@@ -1,0 +1,36 @@
+name: Tests
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Website regression tests
+        working-directory: flow
+        run: python -m unittest discover -s tests -v
+      - name: Gateway regression tests
+        working-directory: flow-gateway
+        run: python -m unittest discover -s tests -v
+  frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Frontend behavior checks
+        working-directory: flow
+        run: |
+          for test in tests/ui_*.cjs; do
+            node "$test"
+          done

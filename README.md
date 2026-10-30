@@ -50,3 +50,9 @@ python3 -m unittest discover -s tests -v
 ## 许可
 
 原创程序源码采用 [MIT 许可证](LICENSE)。教学内容、导入词典及第三方材料不在该源码许可授权范围内；其使用和再分发须遵循各自授权。
+
+## 参与与支持
+
+[贡献指南](CONTRIBUTING.md) · [使用支持](SUPPORT.md) · [安全报告](SECURITY.md) · [报告问题](https://github.com/Jasame/Flow/issues/new/choose)
+
+自动检查：[网站、网关及前端行为测试](https://github.com/Jasame/Flow/actions/workflows/tests.yml)。测试结果以对应提交的 Actions 记录为准。
