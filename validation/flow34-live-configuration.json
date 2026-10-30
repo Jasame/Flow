@@ -1,0 +1,14 @@
+{
+  "configuration": {
+    "FLOW_AI_URL": false,
+    "FLOW_AI_KEY": false,
+    "FLOW_AI_MODEL": false,
+    "GOOGLE_CLOUD_PROJECT": false
+  },
+  "checks": [],
+  "ok": false,
+  "not_tested": [
+    "联网检索",
+    "真实录音"
+  ]
+}

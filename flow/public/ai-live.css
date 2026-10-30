@@ -1,0 +1,11 @@
+.ai-live{position:fixed;right:24px;bottom:24px;width:min(400px,calc(100% - 32px));z-index:1000;background:var(--surface,#fff);color:var(--text,#172b38);border:1px solid var(--border,#d9e2e8);border-radius:16px;box-shadow:0 12px 45px #172b3826;overflow:hidden}
+.ai-live-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;min-height:48px;border-bottom:1px solid var(--border,#d9e2e8)}
+.ai-live-bar strong{white-space:nowrap}.ai-live-status{flex:1;font-size:12px}.ai-live button{min-height:36px;padding:4px 8px;cursor:pointer;background:transparent;color:inherit;border:1px solid var(--border,#d9e2e8);border-radius:8px;flex-shrink:0}
+.ai-live-body{padding:12px 16px}.ai-live-note{font-size:12px;color:var(--muted,#50616d);margin:0 0 10px}.ai-live-text{white-space:pre-wrap;overflow-wrap:anywhere;max-height:32vh;overflow-y:auto;line-height:1.75;font-size:14px;overscroll-behavior:contain}.ai-live.is-collapsed .ai-live-body{display:none}
+.ai-task-select{display:block;width:100%;min-height:44px;margin:6px 0 10px;color:inherit;background:inherit;border:1px solid var(--border,#d9e2e8);border-radius:8px}.ai-live-body label{font-size:12px}
+.mentor-live-preview{white-space:pre-wrap;overflow-wrap:anywhere}.ai-context-help{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:0 0 16px;padding:8px 14px;background:var(--surface,#fff);border:1px solid var(--border,#d9e2e8);border-radius:12px;font-size:13px}.ai-context-help button{min-height:44px}
+[data-theme=dark] .ai-live,[data-theme=dark] .ai-context-help{background:#192630;color:#edf2f5;border-color:#3b4b58}[data-theme=dark] .ai-live-note{color:#b9c9d4}
+@media(max-width:600px){.ai-live{right:12px;bottom:calc(78px + env(safe-area-inset-bottom));width:calc(100% - 24px)}.ai-live-text{max-height:25dvh}.ai-live-bar{padding:8px;gap:6px}.ai-live-bar strong{font-size:13px}.ai-live-bar button{min-height:44px}.ai-context-help{padding:4px 10px;gap:4px 12px}}
+
+.ai-context-help input{display:block;width:100%;max-width:480px;min-height:44px;box-sizing:border-box}.ai-context-help details{flex-basis:100%}.ai-context-help summary{min-height:32px;cursor:pointer}.atlas-decision{padding:12px 0;border-top:1px solid var(--border,#d9e2e8)}.atlas-decision p{margin:8px 0}
+@media(max-width:600px){.ai-live button{min-height:44px}}

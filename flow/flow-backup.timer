@@ -1,0 +1,8 @@
+[Unit]
+Description=Daily Flow backup at 03:15 Asia/Shanghai
+[Timer]
+OnCalendar=*-*-* 03:15:00 Asia/Shanghai
+Persistent=true
+RandomizedDelaySec=120
+[Install]
+WantedBy=timers.target

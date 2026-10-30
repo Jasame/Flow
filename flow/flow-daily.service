@@ -1,0 +1,18 @@
+[Unit]
+Description=Flow daily source-grounded learning material
+After=network-online.target flow.service
+Wants=network-online.target
+[Service]
+Type=oneshot
+User=www
+Group=www
+WorkingDirectory=/www/wwwroot/flow
+EnvironmentFile=/etc/flow.env
+ExecStart=/usr/bin/python3.11 /www/wwwroot/flow/daily_service.py
+TimeoutStartSec=300
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/www/wwwroot/flow/data

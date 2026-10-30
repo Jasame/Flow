@@ -1,0 +1,13 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const root={innerHTML:'',addEventListener(){}};
+const ctx=vm.createContext({app:root,document:{querySelector(){return null}},console,Map,Promise,clearTimeout,setTimeout});
+vm.runInContext("function esc(s){return String(s).replaceAll('<','&lt;').replaceAll('>','&gt;')} function pagehead(a,b){return '<h1>'+esc(a)+'</h1><p>'+esc(b)+'</p>'} function shell(s){app.innerHTML=s} function practiceHTML(){return 'regular'} function renderStudioCatalog(){} function renderStudioPack(){}",ctx);
+vm.runInContext(fs.readFileSync(__dirname+'/../public/foundation.js','utf8'),ctx);
+ctx.d={title:'点餐',step:0,meaning:'我想要汤',example:"I'd like soup, please.",contrast:'替换一个词',note:'有支持的练习',options:['Water','Wrong'],target:"I'd like water, please.",answer:'<script>x</script>'};
+vm.runInContext('foundationData=d;renderFoundation()',ctx);assert(root.innerHTML.includes('我已看过例句'));assert(root.innerHTML.includes('听一句并跟读'));
+ctx.d.step=2;vm.runInContext('renderFoundation()',ctx);assert(root.innerHTML.includes('foundation-answer'));assert(root.innerHTML.includes('&lt;script&gt;'));assert(!root.innerHTML.includes('<script>'));
+ctx.d.step=3;vm.runInContext('renderFoundation()',ctx);assert(root.innerHTML.includes('尚不代表'));assert(root.innerHTML.includes('今天完成，回到私教'));
+vm.runInContext('foundationReset()',ctx);assert.equal(vm.runInContext('foundationData',ctx),null);console.log('Guided lesson steps, saved draft display, honest outcomes, escaping and account reset: passed');
+ctx.response={...ctx.d,step:1,answer:''};
+vm.runInContext("user={id:1};view='journey';foundationEpoch=3;foundationData={...response,step:0,lesson:'food'};api=async()=>({ok:true,current:response})",ctx);
+(async()=>{await vm.runInContext("foundationSubmit('')",ctx);assert(!root.innerHTML.includes('<button class="btn" disabled'));assert.equal(vm.runInContext('foundationBusy',ctx),false);console.log('Guided step transition keeps the next control enabled: passed')})().catch(e=>{console.error(e);process.exit(1)});

@@ -1,0 +1,50 @@
+"""Reviewed starter content. Subskills are teaching labels, not a learned diagnosis."""
+# id, parent, title, prerequisite, lesson, example, question, options, answer, explanation
+NODES = [
+('tense-present','tense','一般现在与进行时',None,'习惯用一般现在时；眼前正在发生的动作常用现在进行时。','She walks every day. She is walking now.','Listen! Someone ____ at the door.',['knocks','is knocking','knocked','has knocked'],1,'Listen 提示眼下正在发生，选择 is knocking。'),
+('tense-past','tense','过去时与过去进行时','tense-present','过去的完整事件用一般过去时；过去某时正在发生用过去进行时。','I was reading when he called.','At eight last night, I ____ a book.',['read every day','am reading','was reading','have read'],2,'过去明确时刻正在发生，用 was reading。'),
+('tense-perfect','tense','完成时与时间线索','tense-past','完成时连接两个时间点；since 常把过去与现在连接。','She has worked here for two years.','He ____ three emails so far today.',['sends','has sent','was sending','send'],1,'so far today 指截至现在，使用现在完成时。'),
+('clause-relative','clause','定语从句关系词',None,'先看先行词，再看从句缺主语、宾语还是状语。','This is the place where we met.','The woman ____ lives next door is a doctor.',['which','where','who','when'],2,'先行词 woman 指人，且从句缺主语，选 who。'),
+('clause-noun','clause','名词性从句','clause-relative','宾语从句使用陈述语序，连接词由语义决定。','I wonder whether she is ready.','Do you know where ____?',['does he live','he lives','is he living','he live'],1,'宾语从句使用陈述语序 he lives。'),
+('clause-adverb','clause','状语从句','clause-noun','辨认时间、原因、让步等逻辑关系。','Although it was cold, we went out.','____ it was raining, they continued walking.',['Although','Because of','Despite','During'],0,'后接完整分句，表示让步，用 Although。'),
+('conditional-real','conditional','真实条件','tense-present','真实将来条件中，从句用现在时，主句可用 will。','If you practise, you will improve.','If she ____ early, we will start on time.',['will arrive','arrives','arrived','had arrived'],1,'真实将来条件，从句使用一般现在时 arrives。'),
+('conditional-unless','conditional','unless 与条件连接','conditional-real','unless 表示除非，等价于 if ... not，避免重复否定。','You cannot enter unless you have a ticket.','You will not improve unless you ____.',['practise','will practise','had practised','would practise'],0,'unless 引导真实条件，用现在时 practise。'),
+('conditional-modal','conditional','条件句中的情态表达','conditional-real','条件句主句也可用 can、may 或祈使句表达能力、可能或建议。','If you feel tired, take a break.','If you need help, ____ me.',['calling','called','call','to call'],2,'主句是祈使句，使用动词原形 call。'),
+('subjunctive-now','subjunctive','与现在事实相反','conditional-real','if 从句用过去式，主句用 would 加动词原形。','If I had time, I would travel.','If he ____ taller, he could reach the shelf.',['is','were','has been','will be'],1,'与现在事实相反，正式表达使用 were。'),
+('subjunctive-past','subjunctive','与过去事实相反','subjunctive-now','if 从句用 had done，主句用 would have done。','If I had left earlier, I would have arrived on time.','If we had known, we ____ you.',['help','will help','would have helped','would help'],2,'与过去事实相反，主句用 would have helped。'),
+('subjunctive-mixed','subjunctive','错综时间条件','subjunctive-past','分别判断条件和结果的时间，不要机械套同一时态。','If I had studied medicine, I would be a doctor now.','If she had taken the job, she ____ in London now.',['would be','will be','had been','has been'],0,'过去的条件影响现在结果，主句用 would be。'),
+('nonfinite-infinitive','nonfinite','不定式与目的','clause-noun','to do 可表达目的，也受 decide 等动词的搭配约束。','I went to the shop to buy milk.','She hopes ____ a teacher.',['becoming','become','to become','became'],2,'hope 后接不定式 to become。'),
+('nonfinite-gerund','nonfinite','动名词与搭配','nonfinite-infinitive','介词后通常接 doing，enjoy、avoid 等动词后也接 doing。','He is good at swimming.','They avoided ____ about the problem.',['talk','to talk','talked','talking'],3,'avoid 后接动名词 talking。'),
+('nonfinite-participle','nonfinite','分词与主动被动','nonfinite-gerund','现在分词常表示主动；过去分词常表示被动或完成。','The broken window needs repair.','The letter ____ by Jane arrived today.',['writing','written','wrote','to writing'],1,'letter 与 write 是被动关系，使用过去分词 written。'),
+('agreement-head','agreement','主语中心词','clause-relative','忽略修饰语，先找到决定谓语形式的主语中心词。','The price of the books is high.','The box of pencils ____ on the table.',['are','were','is','have been'],2,'中心词 box 是单数，使用 is。'),
+('agreement-each','agreement','不定代词与单数','agreement-head','each、everyone 等作主语时通常用单数谓语。','Everyone has a chance.','Everybody ____ ready for the trip.',['are','is','were','have been'],1,'everybody 作主语，谓语按单数处理。'),
+('agreement-either','agreement','就近一致与并列主语','agreement-each','either ... or 和 neither ... nor 连接主语时，常与较近的主语一致。','Either the teacher or the students are coming.','Neither the students nor the teacher ____ absent.',['are','were','is','have been'],2,'谓语与较近的单数 teacher 一致，用 is。')]
+# A second transfer item per node avoids claiming mastery from a memorised item.
+TRANSFER = [
+('My brother usually ____ tea in the morning.',['drink','drinks','is drink','drinking'],1,'usually 表示习惯；第三人称单数用 drinks。'),
+('When I arrived, they ____ dinner.',['were having','have had','are having','have'],0,'到达是过去事件，当时正在吃饭用 were having。'),
+('We ____ each other since primary school.',['know','knew','have known','are knowing'],2,'since 连接过去和现在，使用 have known。'),
+('This is the town ____ I grew up.',['which','who','where','whose'],2,'从句缺地点状语，用 where。'),
+('I believe ____ she is honest.',['that','what','where','who'],0,'宾语从句结构完整，使用 that。'),
+('We stayed inside ____ the storm was severe.',['because','because of','despite','during'],0,'because 后接完整原因分句。'),
+('If you cool water below its freezing point, it ____.',['freeze','freezes','froze','freezing'],1,'描述一般事实的条件句，使用一般现在时 freezes。'),
+('Unless it ____, we will play outside.',['rains','will rain','rained','had rained'],0,'unless 从句用现在时表示真实将来条件。'),
+('If you finish early, you ____ leave.',['can','to','are','has'],0,'主句 can leave 表示许可。'),
+('If I knew the answer, I ____ you.',['tell','will tell','would tell','had told'],2,'与现在事实相反，主句 would tell。'),
+('If he had left earlier, he ____ the train.',['catches','will catch','would catch','would have caught'],3,'过去的反事实结果，使用 would have caught。'),
+('If I had slept well, I ____ tired now.',['would not be','will not be','had not been','am not being'],0,'过去条件对现在的影响，用 would not be。'),
+('They agreed ____ us at noon.',['meet','meeting','to meet','met'],2,'agree 后接 to do。'),
+('She is interested in ____ new languages.',['learn','to learn','learning','learned'],2,'介词 in 后接动名词 learning。'),
+('The girl ____ by the window is my sister.',['standing','stood','is stand','to standing'],0,'girl 主动站立，使用现在分词 standing。'),
+('The quality of these products ____ excellent.',['are','is','were','have been'],1,'主语中心词 quality 为单数。'),
+('Each of the answers ____ correct.',['are','were','is','have been'],2,'each 作主语，谓语为单数。'),
+('Either my parents or my sister ____ picking me up.',['are','were','is','have'],2,'就近的 sister 是单数，使用 is。')]
+PRACTICES = [
+ {'id':'vocab-1','kind':'vocabulary','title':'在语境中辨析 affect / effect','topic':'tense','prompt':'填空并解释理由：The new policy may ____ how we travel. 写出 affect 和 effect 的一个区别。','reference':'affect 通常作动词，意为影响；effect 通常作名词，意为结果或影响。此处 may 后接动词原形 affect。'},
+ {'id':'vocab-2','kind':'vocabulary','title':'主动回忆：reliable','topic':'agreement','prompt':'不用翻译工具，用 reliable 写一句与学习相关的英文，再解释它的含义。','reference':'reliable 是形容词，意为可靠的。例如 A reliable dictionary helps me learn new words. 主动回忆后，可在次日再造一个新句。'},
+ {'id':'reading-1','kind':'reading','title':'短文阅读：先预测，再验证','topic':'clause','prompt':'阅读：Lina used to reread her notes for hours. This term, she began closing the book and answering questions from memory. Although it felt harder, she discovered gaps she had missed before.\n用英语回答：What did Lina change? Why did the new method feel useful? 引用原文中的一条依据。','reference':'她从反复阅读改为合书回忆。新方法帮助发现遗漏，依据是 discovered gaps she had missed before。文本未提供考试成绩，不应推断成绩必然提升。'},
+ {'id':'reading-2','kind':'reading','title':'阅读推断：区分事实与推测','topic':'clause','prompt':'阅读：The library lights were off, but a bicycle was still parked outside. Chen checked his watch and decided to return the next morning.\n写出一条确定事实和一条可能但无法确定的推断。','reference':'事实：灯关闭，外面停着自行车，Chen 决定次日返回。推测：图书馆可能关门了；文本并未直接说明关门或自行车属于谁。'},
+ {'id':'writing-1','kind':'writing','title':'写一封简短邀请邮件','topic':'conditional','prompt':'用 60–100 个英文单词邀请同学周六参加英语学习小组，写明时间、地点、活动和回复方式。提交后按任务完成度、结构、语法和表达获得建议。','reference':'自查：是否说明时间地点？是否有明确邀请与回复方式？段落与称呼是否自然？AI 反馈用于修改草稿，不作为标准化考试评分。'},
+ {'id':'writing-2','kind':'writing','title':'用具体证据支持观点','topic':'nonfinite','prompt':'用 80–120 个英文单词回答：Is studying with a partner helpful? 给出观点、一个具体例子和一个限制条件。','reference':'先写清立场，再用可观察的例子解释原因，最后补充限制条件。修订时关注论点和例子的关系。'},
+ {'id':'speaking-1','kind':'speaking','title':'一分钟自我介绍','topic':'tense','prompt':'用英语介绍你的学习目标、目前遇到的困难和本周计划。可以使用浏览器语音输入或手动输入转写。AI 仅评价转写内容，不评价发音。','reference':'建议结构：My goal is ... / I find it difficult to ... / This week, I plan to ... 先说完，再修改一处表达。'},
+ {'id':'speaking-2','kind':'speaking','title':'情境口语：询问信息','topic':'clause','prompt':'假设你在图书馆，想询问英语读书会的时间、地点和报名方式。写出或口述三句自然礼貌的问题。','reference':'例如 Could you tell me when the reading club meets? 间接疑问句使用陈述语序。可用朗读功能练习，语音识别依赖浏览器支持。'}]

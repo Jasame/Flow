@@ -1,0 +1,9 @@
+[Unit]
+Description=Generate one Flow learning story each morning (Shanghai)
+[Timer]
+OnCalendar=*-*-* 08:10:00 Asia/Shanghai
+Persistent=true
+RandomizedDelaySec=120
+Unit=flow-daily.service
+[Install]
+WantedBy=timers.target
