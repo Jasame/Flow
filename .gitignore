@@ -25,3 +25,5 @@ adc.json
 **/node_modules/
 .DS_Store
 *.zip
+
+/dist/
