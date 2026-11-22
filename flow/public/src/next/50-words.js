@@ -218,6 +218,7 @@
     const t = await api('/api/next/vocab/test');
     const items = t.items, answers = {}; let i = 0;
     function show() {
+      document.body.classList.add('reviewing');
       if (i >= items.length) return finish();
       view.innerHTML = `<div class="bar-progress"><i id="rp"></i></div><div class="review vtest enter"><p class="muted small">认识这个词吗？看到能想起大概意思就算认识。<br>有几个是编出来的假词，用来校正估计。</p>
         <div class="wordbig">${esc(items[i])}</div>
@@ -229,7 +230,7 @@
     }
     function answer(yes) { answers[items[i]] = yes; i++; show(); }
     async function finish() {
-      document.onkeydown = null;
+      document.onkeydown = null; document.body.classList.remove('reviewing');
       view.innerHTML = `<p class="loading"><span class="spin"></span> 正在估算…</p>`;
       const r = await api('/api/next/vocab/test', { answers });
       if (!S.user) save('flow-next-guest-test', { answers, at: Date.now() });  // kept, and saved to the account after signing in

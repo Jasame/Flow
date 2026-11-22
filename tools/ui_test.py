@@ -79,6 +79,10 @@ LAYOUT_JS = """(touch) => {
   const wide = [...document.querySelectorAll('#view *')].filter(e => { const r = e.getBoundingClientRect(); return r.width && r.right > W + 1 && getComputedStyle(e).position !== 'fixed'; })
     .slice(0, 5).map(e => e.tagName + '.' + e.className + ' ' + Math.round(e.getBoundingClientRect().right));
   out.wide = wide;
+  // squeezed text: a run of words forced into a sliver, one word per line (a layout bug the eye catches at once)
+  out.squeezed = [...document.querySelectorAll('#view span, #view p, #view div')].filter(e => e.offsetParent !== null && e.children.length === 0)
+    .filter(e => { const t = (e.textContent || '').trim(); const r = e.getBoundingClientRect(); return t.split(/\s+/).length >= 6 && r.width > 0 && r.width < 90 && r.height > 120; })
+    .slice(0, 5).map(e => e.tagName + '.' + e.className + ' ' + Math.round(e.getBoundingClientRect().width) + 'px "' + e.textContent.trim().slice(0, 30) + '"');
   // touch targets: interactive controls smaller than 32x32 (inline word spans and links inside running text excluded)
   if (touch) {
     out.small = [...document.querySelectorAll('#view button, #view a, #view select, #view input:not([type=hidden]), .tabs a')]
@@ -122,6 +126,7 @@ def run_device(pw, dev, opts):
             go(pg, h)
             lay = pg.evaluate(LAYOUT_JS, touch)
             check(dev, f'{h} no sideways scroll', lay['overflow'] <= 1, f"{lay['overflow']}px {lay['wide']}")
+            check(dev, f'{h} no squeezed text', not lay['squeezed'], lay['squeezed'])
             if touch:
                 check(dev, f'{h} touch targets ≥ 32px', not lay['small'], lay['small'])
             cov = pg.evaluate(COVER_JS)
@@ -131,9 +136,13 @@ def run_device(pw, dev, opts):
         except Exception as e:
             check(dev, f'{h} renders', False, repr(e)[:300])
 
-    # ---- greeting keeps the username's case
+    # ---- home: one clear next action that goes to the plan's next step
     go(pg, '#/')
-    k = pg.text_content('.hello .kicker') or ''
+    first = pg.evaluate("() => { const b = document.querySelector('#view .go-next'); const r = b && b.getBoundingClientRect(); return b ? [b.getAttribute('href'), Math.round(r.top), innerHeight, document.querySelectorAll('#view .go-next').length] : null; }")
+    check(dev, 'home: one primary next-step button, on the first screen', first and first[3] == 1 and first[1] < first[2], first)
+    nexthref = pg.evaluate("() => (document.querySelector('.prow.next') || {}).getAttribute ? document.querySelector('.prow.next').getAttribute('href') : null")
+    check(dev, 'home: the button goes to the highlighted next step', first and nexthref == first[0], (first, nexthref))
+    k = pg.text_content('#view .greet') or ''
     check(dev, 'greeting shows the username as written', f'ui-{dev}' in k, k)
 
     # ---- listen: whole-text playback shows a stop control that stays on screen, and it stops

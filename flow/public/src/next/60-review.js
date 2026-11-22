@@ -1,6 +1,7 @@
   /* ---------- review: recognise -> recall -> spell as an item gets stronger ---------- */
   async function reviewView() {
     if (!S.user) return needLogin('登录后才能复习。');
+    document.body.classList.add('reviewing');
     let first, offline = false;
     try { await OUTBOX.flush(); first = await api('/api/next/review'); save('flow-next-review-cache', { at: Date.now(), q: first }); }
     catch (e) {
@@ -30,6 +31,7 @@
     let swipe = null;
     const onSwipe = (right, left2) => { swipe = { right, left: left2 }; };
     if (!items.length) {
+      document.body.classList.remove('reviewing');
       view.innerHTML = `<div class="empty"><div class="big">✓</div><p>现在没有要复习的单词。</p><div class="row center"><a class="btn" href="#/cards">单词</a><a class="btn primary" href="#/">回到今日</a></div></div>`; return;
     }
     let c, t0, claim;
@@ -226,7 +228,7 @@
         left = q;
       } catch (e) { /* show the summary anyway */ }
       refreshHome().catch(() => {});
-      view.ontouchstart = view.ontouchmove = view.ontouchend = null;
+      view.ontouchstart = view.ontouchmove = view.ontouchend = null; document.body.classList.remove('reviewing');
       view.innerHTML = `<div class="card done-card enter">${doneRing}<h2 class="h2">这一轮复习了 ${doneIds.size} 个</h2>${doneN > doneIds.size ? `<p class="muted tiny">共作答 ${doneN} 次，其中 ${doneN - doneIds.size} 次是再巩固</p>` : ''}
         <p class="muted small">记得 ${tally.good + tally.easy} · 模糊 ${tally.hard} · 忘了 ${tally.again}${tally.known ? ' · 熟知 ' + tally.known : ''}。新学的词 10 分钟后还会再见一次，之后按遗忘曲线安排。</p>
         ${left && (left.due + left.new) ? `<p class="small">还有 ${left.due + left.new} 个可以继续。</p>` : ''}

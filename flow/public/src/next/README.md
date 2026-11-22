@@ -27,3 +27,4 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `81-me.js` | 我的, email binding |
 | `99-boot.js` | start-up |
 | `00-base.css` … `70-input-devices.css` | tokens and base; pages; motion and graph; words; listening; phone pass; learner pages; input methods and devices |
+| `80-flat.css` | the flat look: surfaces instead of outlines, frosted bars, the home plan and its next-step button, review focus mode |

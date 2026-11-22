@@ -127,6 +127,11 @@ rollback() {
   bash "$OPS/flow-pull-rollback.sh" "$BK"
   echo RESULT=ROLLED_BACK; exit 1
 }
+# Flow serves each request on its own thread; glibc's per-thread malloc arenas fragment, so the process kept memory
+# after load spikes (145 -> 233 MB in 8 h). Two arenas keep it compact. A drop-in, so the unit file stays untouched.
+DROPIN=/etc/systemd/system/flow.service.d/60-flow-malloc.conf
+printf '[Service]\nEnvironment=MALLOC_ARENA_MAX=2\n' > "$STAGE/malloc.conf"
+if ! cmp -s "$STAGE/malloc.conf" "$DROPIN"; then mkdir -p "$(dirname "$DROPIN")"; install -m 644 "$STAGE/malloc.conf" "$DROPIN"; systemctl daemon-reload; echo "memory setting installed: $DROPIN"; fi
 systemctl restart flow; sleep 7
 U=http://127.0.0.1:8090
 c(){ curl -s -m 20 -o /dev/null -w "%{http_code}" "$@"; }

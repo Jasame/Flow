@@ -353,7 +353,7 @@
   function setNav(name) { document.querySelectorAll('[data-nav]').forEach(a => a.dataset.nav === name ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')); }
   function parts() { return location.hash.replace(/^#\/?/, '').split('/'); }
   async function route(keepScroll) {
-    TTS.stop(); NAR.stop(); CLIP.stop(); MIC.stop(); MINI.hide(); hideSelbar(); view.ontouchstart = view.ontouchmove = view.ontouchend = null; bar.classList.remove('hide'); document.onselectionchange = null; document.onkeydown = null;
+    TTS.stop(); NAR.stop(); CLIP.stop(); MIC.stop(); MINI.hide(); hideSelbar(); view.ontouchstart = view.ontouchmove = view.ontouchend = null; document.body.classList.remove('reviewing'); bar.classList.remove('hide'); document.onselectionchange = null; document.onkeydown = null;
     const [name, a, b] = parts();
     const last = S.lastRoute.split('/');
     const sameMaterial = name === 'm' && last[0] === 'm' && last[1] === a && !!view.querySelector('#pane');
@@ -444,31 +444,57 @@
   function miniCard(m, tag) {
     return `<a class="card flat mini" href="#/m/${encodeURIComponent(m.id)}"><span class="t">${esc(m.title)}</span>
       <span class="meta">${m.featured ? '<span class="pill feat">精选</span>' : ''}${tag ? `<span class="pill amber">${esc(tag)}</span>` : ''}<span class="pill">${m.level}</span></span>
-      <span class="p">${esc(m.preview)}</span><span class="tiny muted">${esc(m.theme_label)} · ${m.words} 词 · 约 ${m.minutes} 分钟</span>${stepDots(m.steps)}${reasonsHTML(m)}</a>`;
+      <span class="p">${esc(m.preview)}</span><span class="tiny muted">${esc(m.theme_label)} · ${m.words} 词 · 约 ${m.minutes} 分钟</span>${m.steps.length ? stepDots(m.steps) : ''}${reasonsHTML(m)}</a>`;
   }
   async function today() {
     await refreshHome();
     const h = S.home, pick = h.today[0], st = h.stats, g = h.graph;
     const name = S.user ? S.user.username : '';
     const gtotal = g ? g.total : 18, glit = g ? gtotal - g.untouched : 0;
-    view.innerHTML = `<div class="hello"><span class="kicker">${greeting()}${name ? `，<span class="nm">${esc(name)}</span>` : ''}</span>
-        <h1 class="h1">今天学一篇，用上一句。</h1>
-        <span class="muted small">按「${esc(h.level_label)}（${h.level}）」为你挑选 · <a class="link" href="#/welcome/edit">调整</a></span>
-        ${st ? `<div class="week" aria-label="本周学习 ${st.week.filter(d => d.active).length} 天">${st.week.map(d => `<span class="${d.active ? 'on' : ''}" title="${d.day}"></span>`).join('')}</div>` : ''}</div>
-      ${h.resume ? `<a class="card flat mini" href="#/m/${encodeURIComponent(h.resume.id)}/${nextStep(h.resume.steps)}"><span class="t">继续：${esc(h.resume.title)}</span><span class="pill green">继续</span><span class="p">${esc(h.resume.preview)}</span>${stepDots(h.resume.steps)}</a>` : ''}
-      ${h.suggest && Date.now() - (load('flow-next-suggest-skip') || 0) > 7 * 864e5 ? suggestHTML(h.suggest) : ''}
-      ${S.user && h.path ? pathHTML(h.path) : S.user ? vocabHome(st) : ''}
-      ${pick ? `<article class="card hero section"><div class="meta">${pick.featured ? '<span class="pill feat">精选</span>' : ''}<span class="pill green">今日推荐</span><span class="pill">${pick.level}</span><span class="pill">${esc(pick.theme_label)}</span></div>
+    const path = S.user && h.path, weekN = st ? st.week.filter(d => d.active).length : 0;
+    // One clear first action: the plan's next step (signed in), or today's article (guest).
+    let top = '', readId = '';
+    if (path) {
+      const p = h.path, next = p.steps.find(s => !s.done), read = p.steps.find(s => s.key === 'read');
+      readId = read ? decodeURIComponent(read.href.split('/')[2] || '') : '';
+      const art = [pick, h.resume, ...h.today].find(m => m && m.id === readId);
+      const label = s => s.key === 'read' && art ? '读今天这篇' : s.title;
+      top = `<section class="today-plan" aria-labelledby="tpTitle">
+        <div class="tp-head"><div><h1 class="h1" id="tpTitle">${next ? '今天的计划' : '今天的计划完成了'}</h1>
+          <span class="muted small">${p.total} 步 · 约 ${p.minutes} 分钟 · 已完成 ${p.done} / ${p.total}</span></div>
+          <span class="ring" data-p="${Math.round(p.done / Math.max(1, p.total) * 100)}" aria-hidden="true"><b>${p.done}/${p.total}</b></span></div>
+        ${next ? `<a class="btn primary block go-next" href="${esc(next.href)}">开始：${esc(label(next))}<span aria-hidden="true">→</span></a>`
+          : `<div class="tp-done">${doneRing}<span>都完成了。想多学一点，就再读一篇。</span></div><a class="btn primary block go-next" href="#/library">再学一篇<span aria-hidden="true">→</span></a>`}
+        <div class="plist">${p.steps.map((s, k) => {
+          const a = s.key === 'read' ? art : null;
+          return `<a class="prow${s.done ? ' done' : ''}${s === next ? ' next' : ''}" href="${esc(s.href)}"><span class="num">${s.done ? '✓' : k + 1}</span>
+            <span class="t"><b>${esc(a ? a.title : s.title)}</b><span class="muted tiny">${esc(a ? `今天这篇 · ${a.level} · ${a.theme_label} · 约 ${a.minutes} 分钟` : s.sub)}</span>${a ? `<span class="pv">${esc(a.preview)}</span>` : ''}</span>
+            <span class="go" aria-hidden="true">›</span></a>`;
+        }).join('')}</div></section>`;
+    } else if (pick) {
+      top = `<div class="hello"><h1 class="h1">今天学一篇，用上一句。</h1><span class="muted small">按「${esc(h.level_label)}（${h.level}）」为你挑选 · <a class="link" href="#/welcome/edit">调整</a></span></div>
+        <article class="card hero"><div class="meta">${pick.featured ? '<span class="pill feat">精选</span>' : ''}<span class="pill green">今日推荐</span><span class="pill">${pick.level}</span><span class="pill">${esc(pick.theme_label)}</span></div>
         <h2 class="title">${esc(pick.title)}</h2>${pick.title_en ? `<div class="title-en">${esc(pick.title_en)}</div>` : ''}<p class="preview">${esc(pick.preview)}</p>${reasonsHTML(pick)}
-        <div class="row between section"><span class="muted small">${pick.words} 词 · 约 ${pick.minutes} 分钟 · 听、读、理解、用出来</span><a class="btn primary" href="#/m/${encodeURIComponent(pick.id)}">开始学习</a></div></article>` : '<div class="empty">今天没有可推荐的材料了。</div>'}
-      <a class="card flat section mini" href="#/graph"><span class="t">我的知识图谱</span><span class="pill green">${glit} / ${gtotal}</span>
-        <span class="p">${g && g.watch && g.watch.length ? '写作中需要留意：' + g.watch.map(w => esc(w.title)).join('、') : '18 个语法知识点，读过、用过、做对过，都会在这里点亮。'}</span>
-        ${g ? `<div class="gbar" aria-hidden="true">${['solid', 'used', 'met', 'watch'].map(k => `<i class="st st-${k}" data-w="${g[k] / gtotal * 100}"></i>`).join('')}</div>` : ''}</a>
+        <span class="muted small">${pick.words} 词 · 约 ${pick.minutes} 分钟 · 听、读、理解、用出来</span>
+        <a class="btn primary block go-next" href="#/m/${encodeURIComponent(pick.id)}">开始学习<span aria-hidden="true">→</span></a></article>`;
+    } else top = '<div class="empty">今天没有可推荐的材料了。</div>';
+    const more = h.today.filter(m => m.id !== readId && (!path ? m !== pick : true)).slice(0, 4);
+    view.innerHTML = `<span class="kicker greet">${greeting()}${name ? `，<span class="nm">${esc(name)}</span>` : ''}</span>
+      ${top}
+      ${h.suggest && Date.now() - (load('flow-next-suggest-skip') || 0) > 7 * 864e5 ? suggestHTML(h.suggest) : ''}
+      ${S.user && !path ? vocabHome(st) : ''}
+      ${h.resume && h.resume.id !== readId ? `<a class="card flat mini section" href="#/m/${encodeURIComponent(h.resume.id)}/${nextStep(h.resume.steps)}"><span class="t">继续：${esc(h.resume.title)}</span><span class="pill green">继续</span><span class="p">${esc(h.resume.preview)}</span>${stepDots(h.resume.steps)}</a>` : ''}
+      ${st ? `<div class="weekline section"><span class="small">本周学了 <b>${weekN}</b> 天</span><div class="week" aria-hidden="true">${st.week.map(d => `<span class="${d.active ? 'on' : ''}" title="${d.day}"></span>`).join('')}</div></div>` : ''}
+      ${S.user ? '' : `<div class="card sunk section"><div class="stack-s"><b>登录后，进度和收藏的表达会保存下来</b><span class="muted small">不登录也可以听、读和做理解题。</span><div><button class="btn small" id="loginCta">登录 / 注册</button></div></div></div>`}
       ${h.news ? `<div class="section"><div class="section-head"><h2 class="h2">今日热点</h2><span class="muted tiny">联网检索后改写，未经人工审核</span></div>${miniCard(h.news, '热点')}</div>` : ''}
       <div class="section"><div class="section-head"><h2 class="h2">也可以选</h2><a class="link small" href="#/library">全部材料 →</a></div>
-        <div class="grid-list">${h.today.slice(1).map(m => miniCard(m)).join('')}</div></div>
-      ${S.user ? '' : `<div class="card sunk section"><div class="stack-s"><b>登录后，进度和收藏的表达会保存下来</b><span class="muted small">不登录也可以听、读和做理解题。</span><div><button class="btn small" id="loginCta">登录 / 注册</button></div></div></div>`}`;
+        ${path ? `<p class="muted tiny">按「${esc(h.level_label)}（${h.level}）」挑选 · <a class="link" href="#/welcome/edit">调整水平和话题</a></p>` : ''}
+        <div class="grid-list">${more.map(m => miniCard(m)).join('')}</div></div>
+      <a class="card flat section mini" href="#/graph"><span class="t">我的知识图谱</span><span class="pill green">${glit} / ${gtotal}</span>
+        <span class="p">${g && g.watch && g.watch.length ? '写作中需要留意：' + g.watch.map(w => esc(w.title)).join('、') : '18 个语法知识点，读过、用过、做对过，都会在这里点亮。'}</span>
+        ${g ? `<div class="gbar" aria-hidden="true">${['solid', 'used', 'met', 'watch'].map(k => `<i class="st st-${k}" data-w="${g[k] / gtotal * 100}"></i>`).join('')}</div>` : ''}</a>`;
     requestAnimationFrame(() => requestAnimationFrame(() => view.querySelectorAll('.gbar i').forEach(i => { i.style.width = i.dataset.w + '%'; })));
+    const ring = view.querySelector('.ring'); if (ring) ring.style.setProperty('--p', ring.dataset.p + '%');  // CSP: no inline style attributes
     const cta = document.getElementById('loginCta'); if (cta) cta.onclick = () => openLogin();
     if (h.suggest) bindSuggest(h);
   }
@@ -792,7 +818,7 @@
         <p class="muted tiny">点单词查词；点句尾的 ✦ 让 AI 讲解整句；${TOUCH ? '长按拖选' : '选中'}一段文字可以收藏。${TOUCH ? '' : '键盘：Tab 进入正文后用 ← → 逐词移动，↵ 查词，E 讲解这句。'}</p>
         <div class="text" id="reader" tabindex="0" aria-label="正文：左右方向键逐词移动，回车查词">${ls.map((s, i) => sentenceHTML(s, i)).join('')}</div>
         ${m.expressions.length ? `<div class="section"><div class="section-head"><h2 class="h2">地道表达</h2><span class="muted tiny">能直接搬进你自己话里的搭配</span></div><div class="stack-s">${m.expressions.map((x, i) => `<div class="expr"><span class="e">${esc(x.text)}</span><span class="row"><button class="icon-btn" data-sayx="${i}" aria-label="朗读">${ICON.speak}</button><button class="icon-btn" data-sx="${i}" aria-label="收藏 ${esc(x.text)}">${ICON.star}</button></span><span class="m">${esc(x.meaning)}</span><span class="n">${esc(x.note || '')}</span></div>`).join('')}</div></div>` : ''}
-        ${m.vocabulary.length ? `<div class="section"><h2 class="h2">本篇词汇</h2><div class="vocab-list section">${m.vocabulary.map((v, i) => `<div class="vrow"><span class="term">${esc(v.term)}</span><button class="icon-btn" data-sv="${i}" aria-label="收藏 ${esc(v.term)}">${ICON.star}</button><span class="muted small">${esc(v.meaning)}</span><span class="ex">${esc(v.example || '')}</span></div>`).join('')}</div></div>` : ''}
+        ${m.vocabulary.length ? `<div class="section"><h2 class="h2">本篇词汇</h2><div class="vocab-list section">${m.vocabulary.map((v, i) => `<div class="vrow"><span class="term">${esc(v.term)}</span><button class="icon-btn" data-sv="${i}" aria-label="收藏 ${esc(v.term)}">${ICON.star}</button><span class="muted small">${esc(v.meaning)}</span><span class="vex">${esc(v.example || '')}</span></div>`).join('')}</div></div>` : ''}
         ${(m.variant && m.variant.notes.length) ? `<div class="section"><h2 class="h2">改写版新出现的表达</h2><div class="vocab-list section">${m.variant.notes.map((v, i) => `<div class="vrow"><span class="term">${esc(v.text)}</span><button class="icon-btn" data-sn="${i}" aria-label="收藏">${ICON.star}</button><span class="muted small">${esc(v.meaning)}</span></div>`).join('')}</div></div>` : ''}
         ${m.notes.length ? `<div class="section stack-s"><div class="section-head"><h2 class="h2">这篇练到的知识点</h2><a class="link small" href="#/graph">知识图谱 →</a></div>${m.notes.map(n => `<div class="knote"><div class="row between">${nodeChip({ id: n.node, title: n.title, status: n.status })}<span class="tiny muted">${esc(n.label)}</span></div><q>${esc(n.quote)}</q><div class="small muted">${esc(n.explanation)}</div></div>`).join('')}</div>` : ''}
         <div class="section" id="nwSlot">${newWordsHTML()}</div>
@@ -1494,6 +1520,7 @@
     const t = await api('/api/next/vocab/test');
     const items = t.items, answers = {}; let i = 0;
     function show() {
+      document.body.classList.add('reviewing');
       if (i >= items.length) return finish();
       view.innerHTML = `<div class="bar-progress"><i id="rp"></i></div><div class="review vtest enter"><p class="muted small">认识这个词吗？看到能想起大概意思就算认识。<br>有几个是编出来的假词，用来校正估计。</p>
         <div class="wordbig">${esc(items[i])}</div>
@@ -1505,7 +1532,7 @@
     }
     function answer(yes) { answers[items[i]] = yes; i++; show(); }
     async function finish() {
-      document.onkeydown = null;
+      document.onkeydown = null; document.body.classList.remove('reviewing');
       view.innerHTML = `<p class="loading"><span class="spin"></span> 正在估算…</p>`;
       const r = await api('/api/next/vocab/test', { answers });
       if (!S.user) save('flow-next-guest-test', { answers, at: Date.now() });  // kept, and saved to the account after signing in
@@ -1531,6 +1558,7 @@
   /* ---------- review: recognise -> recall -> spell as an item gets stronger ---------- */
   async function reviewView() {
     if (!S.user) return needLogin('登录后才能复习。');
+    document.body.classList.add('reviewing');
     let first, offline = false;
     try { await OUTBOX.flush(); first = await api('/api/next/review'); save('flow-next-review-cache', { at: Date.now(), q: first }); }
     catch (e) {
@@ -1560,6 +1588,7 @@
     let swipe = null;
     const onSwipe = (right, left2) => { swipe = { right, left: left2 }; };
     if (!items.length) {
+      document.body.classList.remove('reviewing');
       view.innerHTML = `<div class="empty"><div class="big">✓</div><p>现在没有要复习的单词。</p><div class="row center"><a class="btn" href="#/cards">单词</a><a class="btn primary" href="#/">回到今日</a></div></div>`; return;
     }
     let c, t0, claim;
@@ -1756,7 +1785,7 @@
         left = q;
       } catch (e) { /* show the summary anyway */ }
       refreshHome().catch(() => {});
-      view.ontouchstart = view.ontouchmove = view.ontouchend = null;
+      view.ontouchstart = view.ontouchmove = view.ontouchend = null; document.body.classList.remove('reviewing');
       view.innerHTML = `<div class="card done-card enter">${doneRing}<h2 class="h2">这一轮复习了 ${doneIds.size} 个</h2>${doneN > doneIds.size ? `<p class="muted tiny">共作答 ${doneN} 次，其中 ${doneN - doneIds.size} 次是再巩固</p>` : ''}
         <p class="muted small">记得 ${tally.good + tally.easy} · 模糊 ${tally.hard} · 忘了 ${tally.again}${tally.known ? ' · 熟知 ' + tally.known : ''}。新学的词 10 分钟后还会再见一次，之后按遗忘曲线安排。</p>
         ${left && (left.due + left.new) ? `<p class="small">还有 ${left.due + left.new} 个可以继续。</p>` : ''}
@@ -1777,11 +1806,6 @@
       <div class="ab-list">${ab.skills.map(s => `<div class="ab ${s.level ? '' : 'none'}"><span class="nm">${esc(s.label)}</span><span class="vbar"><i data-w="${s.level ? LV_W[s.level] : 3}"></i></span>
         <span class="lv">${s.level || '—'}</span><span class="tiny muted ev">${esc(ev(s))}</span></div>`).join('')}</div>
       ${ab.weakest ? `<div class="small">现在最值得练：<b>${esc(SKILL_NAME[ab.weakest])}</b>。首页的「今天的计划」已经按这个安排。</div>` : '<div class="muted small">做几次理解题、听写、跟读和写作，画像就会越来越准。</div>'}</div>`;
-  }
-  function pathHTML(p) {
-    return `<div class="card section path"><div class="row between"><div class="kicker">今天的计划 · ${p.minutes} 分钟</div><span class="pill ${p.done === p.total ? 'green' : ''}">${p.done} / ${p.total}</span></div>
-      <div class="psteps">${p.steps.map((s, k) => `<a class="pstep ${s.done ? 'done' : ''}" href="${esc(s.href)}"><span class="num">${s.done ? '✓' : k + 1}</span>
-        <span class="t"><b>${esc(s.title)}</b><span class="muted tiny">${esc(s.sub)}</span></span><span class="go" aria-hidden="true">›</span></a>`).join('')}</div></div>`;
   }
   function suggestHTML(sg) {
     return sg ? `<div class="card sunk section suggest row between"><div class="small">${esc(sg.reason)}</div>
@@ -1975,7 +1999,7 @@
     const d = await api(`/api/next/library?level=${f.level}&theme=${f.theme}&page=${f.page}&featured=${f.featured}`);
     const pages = Math.max(1, Math.ceil(d.total / d.per));
     view.innerHTML = `<div class="row between"><h1 class="h1">全部材料</h1><a class="btn small" href="#/import">我的文章</a></div><span class="muted small">${d.total} 篇${f.featured === '1' ? ' · 精选' : ''}</span>
-      <div class="filters"><select id="ff" aria-label="范围"><option value="1" ${f.featured === '1' ? 'selected' : ''}>精选（编辑部原创）</option><option value="" ${f.featured !== '1' ? 'selected' : ''}>全部（含基础练习）</option></select>
+      <div class="filters"><select id="ff" aria-label="范围"><option value="1" ${f.featured === '1' ? 'selected' : ''}>精选</option><option value="" ${f.featured !== '1' ? 'selected' : ''}>全部材料</option></select>
         <select id="fl" aria-label="难度"><option value="">全部难度</option>${['A2', 'B1', 'B2', 'C1'].map(l => `<option ${f.level === l ? 'selected' : ''}>${l}</option>`).join('')}</select>
         <select id="ft" aria-label="话题"><option value="">全部话题</option>${Object.entries(d.themes).map(([k, v]) => `<option value="${k}" ${f.theme === k ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></div>
       <div class="grid-list" id="lib">${d.items.map(m => miniCard(m, m.daily ? '热点' : '')).join('') || '<div class="empty">这个筛选下还没有材料。</div>'}</div>

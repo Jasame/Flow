@@ -97,7 +97,7 @@ def password(p,salt=None):
 STARTED=time.time()
 def live_status():
  """What the monitor reads every few minutes: process memory (Linux), uptime, threads, server errors in the last day."""
- out={'uptime_min':round((time.time()-STARTED)/60),'threads':threading.active_count()}
+ out={'uptime_min':round((time.time()-STARTED)/60),'threads':threading.active_count(),'malloc_arenas':os.getenv('MALLOC_ARENA_MAX','')}
  try:
   for line in Path('/proc/self/status').read_text().splitlines():
    k,_,v=line.partition(':')
