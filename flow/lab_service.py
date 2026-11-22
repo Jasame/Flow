@@ -184,7 +184,7 @@ def get(c,uid,path,query):
  if not path.startswith('/api/lab'):return None
  if path=='/api/lab':
   profile=c.execute('SELECT level,theme,focus FROM lab_profile WHERE user_id=?',(uid,)).fetchone()
-  return {'packs':corpus.catalog(c,uid),'resume':corpus.resume(c,uid),'profile':dict(profile) if profile else {'level':'B1','theme':'campus','focus':'listening'},'foundation_basic':__import__('foundation_service').is_basic(c,uid),'report':report(c,uid),'ai_enabled':ai_enabled(),'audio_enabled':audio_enabled(),'remaining':remaining(c,uid),'daily':__import__('daily_service').status(c)},200
+  return {'packs':corpus.catalog(c,uid),'resume':corpus.resume(c,uid),'profile':dict(profile) if profile else {'level':__import__('practice_service').starting(c,uid),'theme':'campus','focus':'listening'},'foundation_basic':__import__('foundation_service').is_basic(c,uid),'report':report(c,uid),'ai_enabled':ai_enabled(),'audio_enabled':audio_enabled(),'remaining':remaining(c,uid),'daily':__import__('daily_service').status(c)},200
  if path=='/api/lab/pack':
   pack=pack_for(c,uid,query.get('id',[''])[0]);drafts=[dict(r) for r in c.execute('SELECT skill,answer,updated FROM lab_drafts WHERE user_id=? AND pack=?',(uid,pack['id']))]
   linked=[dict(r) for r in c.execute("SELECT DISTINCT l.id,l.lemma word FROM kg_edges e JOIN kg_nodes n ON n.id=e.source JOIN lexicon l ON l.id=n.ref WHERE e.target=? AND e.relation IN ('occurs_in','introduced_by') AND l.status='published' AND (l.owner IS NULL OR l.owner=?) LIMIT 12",('material:'+pack['id'],uid))]
@@ -287,7 +287,7 @@ def post(c,uid,path,data):
    answer=text(answer,maximum=4000);target=sentences(pack['body'])[pack['dictation_index']]
    tokens=lambda s:re.findall(r"[a-z]+(?:'[a-z]+)?",s.lower().replace('’',"'"))
    expected=tokens(target);actual=tokens(answer);matcher=difflib.SequenceMatcher(a=expected,b=actual,autojunk=False)
-   details={'kind':'dictation','target':target,'matches':sum(b.size for b in matcher.get_matching_blocks()),'target_words':len(expected),'written_words':len(actual),'accuracy':round(100*matcher.ratio()),'note':'按词序对齐的文本相似度；忽略大小写和标点，不代表听力能力评分。'}
+   details={'kind':'dictation','target':target,'diff':dictation_diff(matcher,expected,actual),'matches':sum(b.size for b in matcher.get_matching_blocks()),'target_words':len(expected),'written_words':len(actual),'accuracy':round(100*matcher.ratio()),'note':'按词序对齐的文本相似度；忽略大小写和标点，不代表听力能力评分。'}
   else:
    answer=text(answer,maximum=4000);details={'kind':'work','word_count':len(re.findall(r"\b[\w'-]+\b",answer))}
    if rid:
@@ -338,6 +338,17 @@ def post(c,uid,path,data):
    c.execute('UPDATE wordbook SET stage=?,due=? WHERE id=?',(stage,due,word['id']))
   c.commit();return {'ok':True},200
  return {'error':'训练接口不存在'},404
+
+
+def dictation_diff(matcher,expected,actual):
+ """Word-level feedback: which target words were missed, replaced or added (1-based positions in the target)."""
+ out={'missing':[],'replaced':[],'extra':[]}
+ for op,a1,a2,b1,b2 in matcher.get_opcodes():
+  if op=='delete':out['missing'].extend({'position':i+1,'expected':expected[i]} for i in range(a1,a2))
+  elif op=='insert':out['extra'].extend({'after':a1,'written':actual[j]} for j in range(b1,b2))
+  elif op=='replace':
+   out['replaced'].append({'position':a1+1,'expected':' '.join(expected[a1:a2]),'written':' '.join(actual[b1:b2])})
+ return out
 
 
 def prior_reading(c,uid,pack):

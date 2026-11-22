@@ -13,6 +13,40 @@ LESSONS.update({
  'work-confirm':{'title':'确认收到一封邮件','meaning':'谢谢你的邮件。','example':'Thank you for your email.','contrast':'确认收到文件，可以接一句：I have the file.','prompt':'请选择“我收到文件了”。','options':['I have the file.','I has the file.','The file have I.'],'target':'I have the file.','node':'skill:writing','skill':'writing'},
  'campus-help':{'title':'请别人再说一次','meaning':'请你再说一次，可以吗？','example':'Could you say that again, please?','contrast':'没听清时可以直接使用这句；不需要先说一大段。','prompt':'没听清时怎样礼貌地请求重复？','options':['Could you say that again, please?','You said yesterday again.','Again that could say.'],'target':'Could you say that again, please?','node':'skill:writing','skill':'writing'}
 })
+# 3.6.3: one guided check per grammar point, written for that point (meaning, the right sentence, two typical mistakes).
+# The right sentence is always first here; view() rotates the order per account.
+GRAMMAR_GUIDED={
+ 'tense-present':('他每天早上跑步。',['He runs every morning.','He running every morning.','He run every morning.']),
+ 'tense-past':('他打电话来的时候，我正在做饭。',['I was cooking when he called.','I am cooking when he called.','I was cook when he called.']),
+ 'tense-perfect':('我在这里住了三年了（现在还住在这里）。',['I have lived here for three years.','I live here for three years.','I have live here for three years.']),
+ 'clause-relative':('这是我出生的城市。',['This is the city where I was born.','This is the city which I was born.','This is the city what I was born.']),
+ 'clause-noun':('我不知道他在哪里。',["I don't know where he is.","I don't know where is he.","I don't know where he are."]),
+ 'clause-adverb':('虽然在下雨，我们还是去散步了。',['Although it was raining, we went for a walk.','Although it was raining, but we went for a walk.','Because it was raining, we went for a walk.']),
+ 'conditional-real':('如果明天下雨，我们就待在家里。',['If it rains tomorrow, we will stay at home.','If it will rain tomorrow, we will stay at home.','If it rains tomorrow, we stayed at home.']),
+ 'conditional-unless':('除非你快一点，否则会错过公交车。',['You will miss the bus unless you hurry.',"You will miss the bus unless you don't hurry.",'You will miss the bus unless you will hurry.']),
+ 'conditional-modal':('如果你需要帮助，可以给我打电话。',['If you need help, you can call me.','If you will need help, you can call me.','If you need help, you can to call me.']),
+ 'subjunctive-now':('如果我是你，我会接受这份工作。',['If I were you, I would take the job.','If I am you, I would take the job.','If I were you, I will take the job.']),
+ 'subjunctive-past':('要是我昨天看到你，我就会跟你打招呼了。',['If I had seen you yesterday, I would have said hello.','If I saw you yesterday, I would say hello.','If I had seen you yesterday, I would said hello.']),
+ 'subjunctive-mixed':('要是我昨晚早点睡，现在就不会这么累。',["If I had gone to bed early last night, I wouldn't be so tired now.","If I went to bed early last night, I won't be so tired now.","If I had gone to bed early last night, I wouldn't have been so tired now."]),
+ 'nonfinite-infinitive':('我早起是为了赶火车。',['I got up early to catch the train.','I got up early for catch the train.','I got up early to catching the train.']),
+ 'nonfinite-gerund':('她喜欢听音乐。（用 enjoy）',['She enjoys listening to music.','She enjoys to listen to music.','She enjoys listen to music.']),
+ 'nonfinite-participle':('我们看了一部让人激动的电影。',['We watched an exciting film.','We watched an excited film.','We watched an excite film.']),
+ 'agreement-head':('那份名单放在桌上。',['The list of names is on the desk.','The list of names are on the desk.','The list of names were on the desk.']),
+ 'agreement-each':('每个学生都有一本书。',['Each student has a book.','Each student have a book.','Each students has a book.']),
+ 'agreement-either':('不是我来，就是我的朋友们来。',['Either I or my friends are coming.','Either I or my friends is coming.','Either I or my friends am coming.']),
+}
+
+def word_options(c,entry,meaning):
+ """The right meaning plus two real meanings of other published words, chosen the same way each time."""
+ others=[];seen={meaning}
+ rows=c.execute("SELECT id,content FROM lexicon WHERE status='published' AND owner IS NULL AND id!=? ORDER BY id",(entry,)).fetchall()
+ start=sum(map(ord,entry))%max(1,len(rows))
+ for r in rows[start:]+rows[:start]:
+  m=json.loads(r['content']).get('meaning','').strip()
+  if m and m not in seen:others.append(m);seen.add(m)
+  if len(others)==2:break
+ return [meaning]+others if len(others)==2 else [meaning,'与这个词无关的意思','还不确定，先回看例句']
+
 ROUTES={'travel':('food','directions','hotel'),'work':('work-request','work-confirm','campus-help'),'campus':('campus-help','work-request','food')}
 
 def schema(c):
@@ -51,11 +85,12 @@ def lesson(c,uid,key):
  if key in LESSONS:return dict(LESSONS[key])
  if key.startswith('word:'):
   from lexicon_service import entry_for
-  r=entry_for(c,uid,key[5:]);e=r['data'];return {'title':'先认识 '+e['word'],'meaning':e['meaning'],'example':e['example'],'contrast':'先看词义和例句，再回忆词条原形。','prompt':'请选择 '+e['word']+' 的含义。','options':[e['meaning'],'与当前词条含义不同','我想先回看例句'],'target':e['word'],'node':'sense:'+r['id'],'skill':'vocabulary','write_prompt':'对照词卡写出词条：'+e['word']}
+  r=entry_for(c,uid,key[5:]);e=r['data'];return {'title':'先认识 '+e['word'],'meaning':e['meaning'],'example':e['example'],'contrast':'先看词义和例句，再回忆词条原形。','prompt':'选出 '+e['word']+' 在例句里的意思。','options':word_options(c,r['id'],e['meaning']),'target':e['word'],'node':'sense:'+r['id'],'skill':'vocabulary','write_prompt':'对照词卡写出词条：'+e['word']}
  if key.startswith('grammar:'):
   r=c.execute('SELECT id,title,lesson,example FROM subskills WHERE id=?',(key[8:],)).fetchone()
   if not r:raise ValueError('知识点不存在')
-  return {'title':'先学：'+r['title'],'meaning':r['lesson'],'example':r['example'],'contrast':'理解后对照仿写；有支持的练习不计独立测评。','prompt':'这一步先做什么？','options':['对照例句理解结构，再仿写','跳过讲解反复猜题','用XP判断已经掌握'],'target':r['example'],'node':r['id'],'skill':'grammar','write_prompt':'对照例句写一遍：'+r['example']}
+  g=GRAMMAR_GUIDED.get(r['id'])
+  return {'title':'先学：'+r['title'],'meaning':r['lesson'],'example':r['example'],'contrast':'理解后对照仿写；有支持的练习不计独立测评。','prompt':'选出意思是“'+g[0]+'”的正确句子。' if g else '下面哪一句和例句用法一致？','options':list(g[1]) if g else [r['example'],'（例句里没有的用法）','还不确定，先回看讲解'],'target':g[1][0] if g else r['example'],'node':r['id'],'skill':'grammar','write_prompt':'用同样的结构，写出“'+g[0].split('（')[0]+'”' if g else '对照例句写一遍：'+r['example']}
  raise ValueError('基础课程不存在或已不可用')
 
 def record_links(c,uid,key,answer,created=None):

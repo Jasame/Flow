@@ -46,19 +46,23 @@ def initial_label(topic,text):
  'agreement':('agreement-either' if any(s in text for s in ['either','neither']) else 'agreement-each' if any(s in text for s in ['each','every','everyone']) else 'agreement-head')}
  return options.get(topic)
 
-def observe(c,uid,question_ids,assisted=None):
- """One review decision per node per submission; any failure resets that node."""
- grouped={};now=time.time()
+def observe(c,uid,question_ids,assisted=None,support=None):
+ """One review decision per node per submission; any failure resets that node.
+ support maps question id -> attempt_service.support(...). Without it (pre-session quizzes)
+ the event keeps an unknown hint state instead of claiming independence."""
+ grouped={};helped={};now=time.time()
  for qid in question_ids:
   row=c.execute('SELECT a.id,a.correct,q.node FROM attempts a JOIN questions q ON q.id=a.question_id WHERE a.user_id=? AND q.id=? ORDER BY a.id DESC LIMIT 1',(uid,qid)).fetchone()
   if not row or not row['node']:continue
   c.execute('INSERT OR IGNORE INTO question_skill_attempts VALUES(?,?)',(row['id'],row['node']))
   grouped.setdefault(row['node'],[]).append(row['correct'])
+  info=(support or {}).get(qid);used=info['assisted'] if info else assisted
+  if used:helped[row['node']]=True
   from event_service import grammar
-  grammar(c,uid,row['id'],assisted)
+  grammar(c,uid,row['id'],used,info)
  for node,scores in grouped.items():
   old=c.execute('SELECT * FROM review_cards WHERE user_id=? AND node=?',(uid,node)).fetchone()
-  if assisted is True and all(scores):
+  if helped.get(node) and all(scores):
    if old:c.execute('UPDATE review_cards SET due=MIN(due,?) WHERE user_id=? AND node=?',(now+86400,uid,node))
    else:c.execute('INSERT INTO review_cards VALUES(?,?,0,?,?)',(uid,node,now+86400,now))
    continue
@@ -68,42 +72,47 @@ def observe(c,uid,question_ids,assisted=None):
   c.execute('INSERT OR REPLACE INTO review_cards VALUES(?,?,?,?,?)',(uid,node,stage,now+86400*INTERVALS[stage],now))
 
 def evidence(c,uid):
- out=[]
- for n in c.execute('SELECT * FROM subskills ORDER BY rowid'):
+ """Per-subskill view. 'state' is the shared current state (state_service); first-attempt
+ accuracy and recent accuracy are kept only as history statistics."""
+ from state_service import grammar_states
+ from content_subskills import page
+ states=grammar_states(c,uid);out=[]
+ for order,n in enumerate(c.execute('SELECT * FROM subskills ORDER BY rowid').fetchall()):
   rows=c.execute('''SELECT a.id,a.question_id,a.correct,a.created FROM attempts a JOIN question_skill_attempts s ON s.attempt_id=a.id WHERE a.user_id=? AND s.node=? ORDER BY a.id''',(uid,n['id'])).fetchall()
   first={};latest={}
   for r in rows:first.setdefault(r['question_id'],r);latest[r['question_id']]=r
   recent=rows[-10:];count=len(first);success=sum(r['correct'] for r in first.values())
   card=c.execute('SELECT stage,due FROM review_cards WHERE user_id=? AND node=?',(uid,n['id'])).fetchone()
-  latest_error=any(not r['correct'] for r in latest.values())
-  state='待测评' if not count else '证据不足' if count<3 else '需要巩固' if latest_error or success/count<.7 else '初步稳定'
-  item=dict(n);item.update(total=len(rows),distinct=count,first_correct=success,first_accuracy=round(100*success/count) if count else None,recent_accuracy=round(100*sum(r['correct'] for r in recent)/len(recent)) if recent else None,state=state,due=card['due'] if card else None,stage=card['stage'] if card else None)
+  st=states[n['id']]
+  item=dict(n);item.update(order=order,total=len(rows),distinct=count,first_correct=success,first_accuracy=round(100*success/count) if count else None,recent_accuracy=round(100*sum(r['correct'] for r in recent)/len(recent)) if recent else None,
+   state=st['state'],label=st['label'],purpose=st['purpose'],purpose_label=st['purpose_label'],independent=st['independent'],independent_items=st['distinct'],delayed=st['delayed'],transfer=st['transfer'],history_best=st['history_best'],stable=st['stable'],basis=st['basis'],updated=st['updated'],policy=st['policy'],
+   history={'first_accuracy':round(100*success/count) if count else None,'distinct_questions':count,'attempts':len(rows),'note':'首次作答正确率是历史统计，不决定当前状态。'},
+   due=card['due'] if card else None,stage=card['stage'] if card else None,content=page(n['id']))
   item['available']=c.execute("SELECT COUNT(*) FROM questions WHERE node=? AND status='published'",(n['id'],)).fetchone()[0]
   out.append(item)
  return out
 
 def summary(c,uid):
- nodes=evidence(c,uid);now=time.time();byid={n['id']:n for n in nodes}
- due=sorted([n for n in nodes if n['due'] and n['due']<=now and n['available']],key=lambda n:n['due'])
- preferred=c.execute('SELECT minutes FROM study_preferences WHERE user_id=?',(uid,)).fetchone();minutes=preferred[0] if preferred else 15
- # Prefer low evidence, then first-attempt difficulty, while respecting prerequisite teaching order.
- ordered=sorted(nodes,key=lambda n:(0 if n['state']=='需要巩固' else 1 if n['distinct']<3 else 2,n['first_accuracy'] if n['first_accuracy'] is not None else 50,n['total']))
- target=next((n for n in ordered if n['available']),nodes[0]);pr=byid.get(target['prereq']);prerequisite=False
- if pr and (pr['distinct']<2 or (pr['first_accuracy'] or 0)<70) and pr['available']:target=pr;prerequisite=True
+ from state_service import grammar_target
+ from growth_service import review_queue
+ import settings_service as settings
+ nodes=evidence(c,uid);now=time.time();queue=review_queue(c,uid)
+ due_nodes={x['node'] for x in queue if x['kind']=='grammar' and x['ready'] and x['purpose'] in ('repair','unassisted','delayed','transfer')}
+ due=[n for n in nodes if n['id'] in due_nodes and n['available']]
+ minutes=settings.minutes(c,uid)
+ target=grammar_target(c,uid,nodes,queue);byid={n['id']:n for n in nodes}
  tasks=[]
- if due:tasks.append({'kind':'review','title':'到期复习：'+due[0]['title'],'node':due[0]['id'],'minutes':min(5,minutes),'reason':'上次作答后已到复习时间；错题会回到 1 天间隔。'})
- tasks.append({'kind':'lesson','title':'学习：'+target['title'],'node':target['id'],'minutes':min(5,minutes),'reason':'前置知识仍需验证，先补这一环。' if prerequisite else f"已做 {target['distinct']} 道不同题；首次正确率为 "+(str(target['first_accuracy'])+'%。' if target['first_accuracy'] is not None else '待建立。')})
- if minutes>=10:tasks.append({'kind':'verify','title':'验证理解：'+target['title'],'node':target['id'],'minutes':5,'reason':'优先抽取未做过的题，再练最近回答错误的题。'})
- if minutes>=20:tasks.append({'kind':'skill','title':'综合训练：阅读与表达','minutes':5,'reason':'把语法应用到语境中。'})
+ if target:
+  t=byid[target['node']];review=target['node'] in due_nodes
+  tasks.append({'kind':'review' if review else 'lesson','title':('到期复习：' if review else '学习：')+t['title'],'node':t['id'],'minutes':min(5,minutes),'reason':target['reason'],'purpose':target['purpose'],'basis':target['basis']})
+  if minutes>=10:tasks.append({'kind':'verify','title':'验证理解：'+t['title'],'node':t['id'],'minutes':5,'reason':'优先抽取没做过的题；看过提示或24小时内做过的题记为有支持的练习。','purpose':target['purpose'],'basis':target['basis']})
  # Include a language skill in the daily plan; grammar and language records remain distinct.
  from lab_service import report as studio_report
  studio=studio_report(c,uid)
- profile=c.execute('SELECT focus FROM lab_profile WHERE user_id=?',(uid,)).fetchone()
- focus=profile[0] if profile else 'listening'
- labels={'listening':'听力与听写','speaking':'口语表达','reading':'阅读证据','writing':'写作修改'}
- tasks=[t for t in tasks if t['kind']!='skill']
+ focus=settings.get(c,uid)['focus_skill']
+ labels={'listening':'听力理解','speaking':'口语表达','reading':'阅读证据','writing':'写作修改'}
  studied=c.execute("SELECT 1 FROM lab_work WHERE user_id=? AND date(created,'unixepoch','+8 hours')=date(?,'unixepoch','+8 hours')",(uid,now)).fetchone()
- skill_task={'kind':'studio','title':'主题训练：'+labels[focus],'minutes':5,'reason':'结合你的优先训练方式，从理解材料走向独立表达；可只完成其中一项。'}
+ skill_task={'kind':'studio','title':'单项训练：'+labels[focus],'minutes':5,'reason':'只完成这一项也算本次完成；四项可以分次做。'}
  if not studied:tasks.insert(0,skill_task)
  elif minutes>=20:tasks.append(skill_task)
  # Keep the entire plan within the chosen daily budget.
@@ -114,7 +123,8 @@ def summary(c,uid):
  repeated=c.execute('''SELECT COUNT(*),COALESCE(SUM(a.correct),0) FROM attempts a WHERE user_id=? AND a.id!=(SELECT MIN(b.id) FROM attempts b WHERE b.user_id=a.user_id AND b.question_id=a.question_id)''',(uid,)).fetchone()
  days=[dict(r) for r in c.execute("SELECT date(created,'unixepoch','+8 hours') day,COUNT(*) total,SUM(correct) correct FROM attempts WHERE user_id=? GROUP BY day ORDER BY day DESC LIMIT 30",(uid,))]
  work=c.execute('SELECT COUNT(*) FROM skill_work WHERE user_id=?',(uid,)).fetchone()[0]
- return {'studio':studio,'nodes':nodes,'due':due,'minutes':minutes,'tasks':bounded,'plan_minutes':used,'first':{'total':first[0],'correct':first[1]},'repeat':{'total':repeated[0],'correct':repeated[1]},'days':days,'skill_count':work,'coverage':sum(n['distinct']>0 for n in nodes),'limitations':'首次与重复作答的题目、间隔可能不同；两者差异不是学习效果的因果证明。细项初始标签含规则映射，教师可在题库中校正。'}
+ from pedagogy_service import next_step
+ return {'studio':studio,'nodes':nodes,'due':due,'minutes':minutes,'tasks':bounded,'plan_minutes':used,'next_step':next_step(c,uid,queue=queue),'target':target,'first':{'total':first[0],'correct':first[1]},'repeat':{'total':repeated[0],'correct':repeated[1]},'days':days,'skill_count':work,'coverage':sum(n['distinct']>0 for n in nodes),'policy':__import__('state_service').POLICY,'limitations':'当前状态只看真实作答证据：是否独立、是否隔天、是否换了题目或情境。首次正确率只是历史统计，不决定当前状态。细项标签经过人工核对，仍可在题库中校正。'}
 
 def quiz_rows(c,uid,data):
  node=data.get('node');mode=data.get('mode')
@@ -182,9 +192,11 @@ def get(c,uid,admin,path,query):
 
 def post(c,uid,admin,path,data,chat):
  if path=='/api/study/preferences':
-  minutes=data.get('minutes')
-  if type(minutes)!=int or minutes not in (5,10,15,20,30):return {'error':'请选择 5、10、15、20 或 30 分钟'},400
-  c.execute('INSERT OR REPLACE INTO study_preferences VALUES(?,?)',(uid,minutes));c.execute('UPDATE learner_goals SET minutes=? WHERE user_id=?',(minutes,uid));c.commit();return {'ok':True},200
+  import settings_service as settings
+  try:saved=settings.save(c,uid,{'minutes':data.get('minutes'),**({'version':data['version']} if 'version' in data else {})},'study')
+  except settings.Conflict as e:c.rollback();return {'error':'设置已在其他页面更新，请确认后再保存。','current':e.current},409
+  except ValueError as e:return {'error':str(e)},400
+  return {'ok':True,'version':saved['version']},200
  if path=='/api/practices/save':
   task=next((t for t in PRACTICES if t['id']==data.get('task')),None);answer=data.get('answer','');rid=data.get('chat_request','')
   if not task or not isinstance(answer,str) or not 1<=len(answer.strip())<=750:return {'error':'练习内容需为 1–750 字符'},400

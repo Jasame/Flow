@@ -63,7 +63,7 @@ def request_model(messages,audio=None,grounding=False):
  if audio:
   from audio_validation import validate_audio
   validate_audio(audio);payload['flow_audio']=audio
- req=urllib.request.Request(endpoint,data=json.dumps(payload,ensure_ascii=False).encode(),headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'})
+ req=urllib.request.Request(endpoint,data=json.dumps(payload,ensure_ascii=False).encode(),headers={'User-Agent':'jasa-flow/1.0','Authorization':'Bearer '+key,'Content-Type':'application/json'})
  with urllib.request.urlopen(req,timeout=85) as r:
   if ai_stream.active():
    if 'text/event-stream' not in r.headers.get('Content-Type',''):raise AIConfigurationError('Gateway streaming upgrade required')

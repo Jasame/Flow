@@ -9,7 +9,7 @@ import quality_service as quality
 DAY=86400
 TZ=datetime.timezone(datetime.timedelta(hours=8))
 SKILLS={'vocabulary':'词汇','grammar':'语法','listening':'听力','speaking':'口语','reading':'阅读','writing':'写作'}
-POLICY='flow-evidence-2.1'
+POLICY='flow-evidence-3.0'
 
 def schema(c):
  quality.schema(c)
@@ -24,24 +24,17 @@ def history(c,uid):
  for r in c.execute('SELECT * FROM learning_events WHERE user_id=? ORDER BY created,id',(uid,)):grouped[r['node']].append(dict(r))
  return grouped
 
-def structured(rows):return [r for r in rows if r['correct'] is not None and r['evaluator']=='rule']
+def structured(rows):return events.checks(rows)
 def successes(rows):return [r for r in structured(rows) if r['correct']==1 and r['assisted']==0]
 
 def settings(c,uid):
- r=c.execute('SELECT theme,hotspots FROM growth_settings WHERE user_id=?',(uid,)).fetchone()
- return dict(r) if r else {'theme':'auto','hotspots':0}
+ import settings_service as store
+ r=c.execute('SELECT hotspots FROM growth_settings WHERE user_id=?',(uid,)).fetchone()
+ name,source=store.theme(c,uid)
+ return {'theme':store.get(c,uid)['theme'],'hotspots':r[0] if r else 0,'effective':name,'source':source}
 
 def theme_for(c,uid):
- s=settings(c,uid)
- if s['theme']!='auto':return s['theme']
- p=c.execute('SELECT goal,interests FROM coach_profiles WHERE user_id=?',(uid,)).fetchone()
- if not p:
-  lab=c.execute('SELECT theme FROM lab_profile WHERE user_id=?',(uid,)).fetchone()
-  if lab:return lab[0]
- text=' '.join(p) if p else ''
- for pattern,theme in [('旅行|旅游|travel','travel'),('职场|工作|work','work'),('科学|科技|science','science'),('电影|文化|culture','culture'),('生活|日常|life','life')]:
-  if re.search(pattern,text,re.I):return theme
- return 'campus'
+ return __import__('settings_service').theme(c,uid)[0]
 
 def node_targets(c,uid):
  out={r['id']:{'node':r['id'],'title':r['title'],'kind':'grammar','target':r['id'],'due':None,'prereq':r['prereq']} for r in c.execute('SELECT id,title,prereq FROM subskills WHERE EXISTS(SELECT 1 FROM questions WHERE node=subskills.id AND status=\'published\')')}
@@ -105,16 +98,12 @@ def material_candidates(c,uid,node=None):
  return [r['pack'] for r in ranked]
 
 def curriculum(c,uid):
- queue=review_queue(c,uid);ready=[x for x in queue if x['ready']];grammar=next((x for x in ready if x['kind']=='grammar'),None)
- if not grammar:
-  from adaptive_service import grammar_choice
-  chosen=grammar_choice(c,uid)
-  if chosen:grammar={'node':chosen[0],'target':chosen[0],'kind':'grammar','title':c.execute('SELECT title FROM subskills WHERE id=?',(chosen[0],)).fetchone()[0],'reason':chosen[1],'evidence_ids':[],'purpose':'diagnostic'}
- # Respect prerequisites with evidence, instead of propagating a hypothetical weakness.
- if grammar:
-  prior=c.execute('SELECT prereq FROM subskills WHERE id=?',(grammar['node'],)).fetchone()[0]
-  if prior and not events.state(c,uid,prior)['independent']:
-   grammar={'node':prior,'target':prior,'kind':'grammar','title':c.execute('SELECT title FROM subskills WHERE id=?',(prior,)).fetchone()[0],'reason':'先补目标知识点的先修环节；尚缺该环节的独立通过证据。','evidence_ids':[],'purpose':'diagnostic'}
+ queue=review_queue(c,uid);ready=[x for x in queue if x['ready']]
+ # One rule for the grammar target everywhere (state_service.grammar_target); it already places
+ # ready review first and suggests an unrecorded prerequisite only for new learning.
+ from state_service import grammar_target
+ chosen=grammar_target(c,uid,queue=queue);grammar=None
+ if chosen:grammar={'node':chosen['node'],'target':chosen['node'],'kind':'grammar','title':chosen['title'],'reason':chosen['reason'],'evidence_ids':chosen['basis'],'purpose':chosen['purpose']}
  packs=material_candidates(c,uid,grammar['node'] if grammar else None)
  if not packs:raise ValueError('暂无通过结构检查的可推荐材料，请先审核语料')
  pack=packs[0];mid='material:'+pack['id'];linked_words={r[0] for r in c.execute("SELECT n.ref FROM kg_edges e JOIN kg_nodes n ON n.id=e.source WHERE e.target=? AND e.relation IN ('occurs_in','introduced_by')",(mid,))}
@@ -129,11 +118,11 @@ def curriculum(c,uid):
  if vocab['target'] in linked_words and (not pattern or c.execute("SELECT 1 FROM kg_edges WHERE source=? AND target=? AND relation='practised_in'",(pattern['target'],mid)).fetchone()):path.append({'kind':'material','id':mid,'title':pack['title']})
  tasks=[]
  # Listening first avoids making a first-listen claim after reading the same text.
- order=('vocabulary','grammar','listening','reading','speaking','writing');profile=c.execute('SELECT minutes FROM coach_profiles WHERE user_id=?',(uid,)).fetchone();budget=profile[0] if profile else 15;session=1;used=0
+ order=('vocabulary','grammar','listening','reading','speaking','writing');budget=__import__('settings_service').minutes(c,uid);session=1;used=0
  titles={'vocabulary':'理解与回忆：'+word['lemma'],'grammar':'验证：'+grammar['title'],'listening':'先听：'+pack['title'],'reading':'再读：'+pack['title'],'speaking':'复述并换一个自己的场景','writing':'写出自己的版本'}
  for i,s in enumerate(order):
   requested={'vocabulary':3,'grammar':3,'listening':5,'reading':5,'speaking':6,'writing':10}[s]
-  minutes=min(requested,budget)
+  minutes=min(requested,budget);short=minutes<requested
   if used+minutes>budget:session+=1;used=0
   used+=minutes
   target=vocab if s=='vocabulary' else grammar if s=='grammar' else None
@@ -145,8 +134,12 @@ def curriculum(c,uid):
   reason=target['reason'] if target else '按本项技能的建议难度练习；听读使用平行情境，避免靠记住答案通过。表达作品用于后续修改，不自动算掌握。'
   instruction={'vocabulary':'先独立回答词义或回忆表达，再把它用于一句自己的英语。','grammar':'先独立做题，需要时再使用提示；后续再用不同题目验证。','listening':'先不看原文听短文，完成理解或听写，再核对原文。','reading':'阅读新情境并用原文证据回答问题，标出一句想学会使用的表达。','speaking':'参考主题 '+pack['title']+'，用自己的经历复述或回答追问，尝试使用 '+word['lemma']+'；录音分析并保存作品。','writing':'围绕 '+pack['title']+' 写一个自己的版本，尝试使用 '+word['lemma']+'，根据反馈修订。'}[s]
   instruction=instruction.replace(pack['title'],chosen_pack['title'])
-  tasks.append({'skill':s,'title':titles[s].replace(pack['title'],chosen_pack['title']),'instruction':instruction+' 本单元先完成一个小步骤，可保存草稿后分次继续。 推荐原因：'+reason,'node':grammar['node'] if s=='grammar' else '', 'entry':vocab['target'] if s=='vocabulary' else '', 'pack':chosen_pack['id'] if s not in ('vocabulary','grammar') else '', 'minutes':minutes,'position':i+1,'session':session,'rationale':reason,'evidence_ids':target['evidence_ids'] if target else [],'verification':target['purpose'] if target else 'practice','path':path if chosen_pack['id']==pack['id'] else [x for x in path if x['kind']!='material']})
+  # A short session really does less, rather than squeezing the full task into fewer minutes.
+  if short:instruction=SHORT[s]
+  tasks.append({'skill':s,'title':titles[s].replace(pack['title'],chosen_pack['title']),'instruction':instruction+' 本单元先完成一个小步骤，可保存草稿后分次继续。 推荐原因：'+reason,'node':grammar['node'] if s=='grammar' else '', 'entry':vocab['target'] if s=='vocabulary' else '', 'pack':chosen_pack['id'] if s not in ('vocabulary','grammar') else '', 'minutes':minutes,'scope':'short' if short else 'full','position':i+1,'session':session,'rationale':reason,'evidence_ids':target['evidence_ids'] if target else [],'verification':target['purpose'] if target else 'practice','path':path if chosen_pack['id']==pack['id'] else [x for x in path if x['kind']!='material']})
  return {'difficulty':difficulty(c,uid),'tasks':tasks,'theme':pack['theme'],'material':{'id':pack['id'],'title':pack['title'],'level':pack['level']},'sessions':session,'daily_minutes':budget,'policy':POLICY,'note':'六维覆盖按可用时间分成多个学习单元；同篇重复练习不作为新语境迁移。图谱中的词形关联仍需核对义项。'}
+
+SHORT={'vocabulary':'只做一题：独立回忆这个词的意思。','grammar':'只做一道题，不看提示先作答。','listening':'只听第一段，回答一道理解题；其余留到下次。','reading':'只读第一段，用原文的一句话回答一个问题。','speaking':'只说两三句（约30秒），用上一个新表达。','writing':'只写两三句，用上一个新表达；完整版本留到下次。'}
 
 def stage(c,uid,data):
  from lab_service import identifier
@@ -205,8 +198,12 @@ def post(c,uid,admin,path,data):
  if found is not None:return found
  if path=='/api/growth/stage':return stage(c,uid,data)
  if path=='/api/growth/settings':
-  if data.get('theme') not in ('auto','campus','travel','life','work','culture','science') or type(data.get('hotspots'))!=bool:raise ValueError('主题设置不正确')
-  c.execute('INSERT OR REPLACE INTO growth_settings VALUES(?,?,?)',(uid,data['theme'],int(data['hotspots'])));c.commit();return {'ok':True},200
+  if type(data.get('hotspots'))!=bool:raise ValueError('主题设置不正确')
+  import settings_service as store
+  try:store.save(c,uid,{k:data[k] for k in ('theme','version') if k in data},'growth',commit=False)
+  except store.Conflict as e:c.rollback();return {'error':'设置已在其他页面更新，请确认后再保存。','current':e.current},409
+  row=c.execute('SELECT theme FROM learner_settings WHERE user_id=?',(uid,)).fetchone()
+  c.execute('INSERT OR REPLACE INTO growth_settings VALUES(?,?,?)',(uid,row[0],int(data['hotspots'])));c.commit();return {'ok':True},200
  if path=='/api/growth/correct':
   from lab_service import text
   kind=data.get('kind');ref=data.get('id');correction=text(data.get('correction'),maximum=600)

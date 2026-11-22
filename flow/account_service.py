@@ -3,6 +3,8 @@ import os,time,secrets,hashlib,re,smtplib,ssl
 from email.message import EmailMessage
 
 def configured():
+ # FLOW_MAIL_OUTBOX is for local development and tests only: messages are written to files instead of sent.
+ if os.getenv('FLOW_MAIL_OUTBOX'):return True
  return bool(os.getenv('FLOW_SMTP_HOST') and os.getenv('FLOW_SMTP_FROM') and os.getenv('FLOW_SMTP_USER') and os.getenv('FLOW_SMTP_PASSWORD'))
 
 def schema(c):
@@ -15,6 +17,12 @@ def schema(c):
 def digest(token):return hashlib.sha256(token.encode()).hexdigest()
 
 def mail(to,subject,text):
+ outbox=os.getenv('FLOW_MAIL_OUTBOX')
+ if outbox:
+  os.makedirs(outbox,exist_ok=True)
+  name=os.path.join(outbox,f'{time.time():.6f}-{secrets.token_hex(3)}.txt')
+  with open(name,'w',encoding='utf-8') as f:f.write('To: '+to+'\nSubject: '+subject+'\n\n'+text)
+  return
  msg=EmailMessage();msg['From']=os.environ['FLOW_SMTP_FROM'];msg['To']=to;msg['Subject']=subject;msg.set_content(text)
  host=os.environ['FLOW_SMTP_HOST'];port=int(os.getenv('FLOW_SMTP_PORT','465'));ctx=ssl.create_default_context()
  if port==465:connection=smtplib.SMTP_SSL(host,port,timeout=12,context=ctx)

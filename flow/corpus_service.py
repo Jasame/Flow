@@ -27,7 +27,7 @@ def catalog(c,uid):
   from content_v30 import SUPERSEDED
   if p['id'] in SUPERSEDED and p['id'] not in saved and p['id'] not in drafts:continue
   m=metadata(p);words=len(p['body'].split())
-  out.append({k:p[k] for k in ('id','title','level','theme')}|m|{'quality':{'status':quality['status'],'warnings':quality['checks']['warnings']},'origin':row['origin'],'daily_day':p.get('daily_day'),'words':words,'minutes':__import__('practice_service').metadata(p)['minutes'],'preview':p['body'][:160],
+  out.append({k:p[k] for k in ('id','title','level','theme')}|m|{'quality':{'status':quality['status'],'warnings':quality['checks']['warnings']},'origin':row['origin'],'daily_day':p.get('daily_day'),'revision':bool(p.get('revision_of')),'words':words,'minutes':__import__('practice_service').metadata(p)['minutes'],'preview':p['body'][:160],
     'grading':__import__('practice_service').metadata(p),'search_text':' '.join([p['title'],p['body'],THEME_NAMES.get(p['theme'],''),*m['tags'],*(w['term'] for w in p['vocabulary'])]),'saved':p['id'] in saved,'recorded_skills':progress.get(p['id'],[]),'has_draft':p['id'] in drafts,'resume_skill':lastskills.get(p['id'])})
  ranked,_=__import__('practice_service').rank(c,uid,c.execute('SELECT * FROM lab_packs WHERE owner IS NULL OR owner=?',(uid,)).fetchall())
  order={r['pack']['id']:i for i,r in enumerate(ranked)}

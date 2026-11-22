@@ -43,7 +43,7 @@ def overview(c,uid,missions=None,now=None):
  # A work can yield several graph events; never report these as several completed exercises.
  sources={r['source'] for r in today if not (r['kind']=='placement' and r['correct'] is None)};checks=[r for r in today if r['evaluator']=='rule' and r['correct'] is not None and r['assisted']==0]
  from growth_service import review_queue
- action=__import__('pedagogy_service').next_action(c,uid,missions,review_queue(c,uid,now))
+ queue=review_queue(c,uid,now);action=__import__('pedagogy_service').next_step(c,uid,queue=queue,missions=missions,detours_only=True)
  return {'next_action':action,'day':day.isoformat(),'unit':unit,'today':{'activities':len(sources),'independent_checks':len(checks),'correct':sum(r['correct']==1 for r in checks)},'changes':changes,'words':words,'note':'当前单元沿用已保存的阶段任务，完成后继续下一项；单元可跨天。表达样本和AI反馈不计为独立通过。'}
 
 def context(c,uid):

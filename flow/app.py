@@ -18,6 +18,12 @@ import practice_service as practice
 import foundation_service as foundation
 import learning_service as learning
 import account_service as account
+import guest_first
+import attempt_service as attempts
+import settings_service as settings_store
+import core_words
+import meeting_path
+import meeting_service as meeting
 from seed import TOPICS,QUESTIONS
 from content_v03 import EXTRA_QUESTIONS,LESSONS
 from vertex_auth import vertex_enabled, ai_enabled, vertex_connection
@@ -26,6 +32,16 @@ DATA=Path(os.environ.get('FLOW_DATA_DIR',str(ROOT/'data'))); DATA.mkdir(parents=
 DB=DATA/'flow.sqlite3'
 SECURE=os.getenv('FLOW_COOKIE_SECURE','1')=='1'
 RATE={}; LOCK=threading.Lock()
+REVISION_TAG=__import__('re').compile(r' · (?:A2|B1|B2) · 修订题组')
+def public_text(s):
+ """Internal edition tags stay in the data; learners see the plain title (level is shown on its own)."""
+ return REVISION_TAG.sub('',s)
+
+def ai_model_label():
+ # Readable name of the configured model (FLOW_AI_MODEL is not a secret), e.g. gemini-3.8-flash -> Gemini 3.8 Flash.
+ raw=os.getenv('FLOW_AI_MODEL','').strip().lower().removeprefix('google/')
+ if not raw or len(raw)>80 or not all(ch.isalnum() or ch in '.-' for ch in raw):return ''
+ return ' '.join(p if any(ch.isdigit() for ch in p) else p.capitalize() for p in raw.split('-') if p)
 def db():
  c=sqlite3.connect(DB,timeout=15); c.row_factory=sqlite3.Row; c.execute('PRAGMA foreign_keys=ON'); return c
 def init():
@@ -53,14 +69,21 @@ CREATE TABLE IF NOT EXISTS ai_usage(user_id INTEGER,day TEXT,count INTEGER,PRIMA
   chat_schema(c)
   learning.schema(c)
   account.schema(c)
+  __import__('auth_service').schema(c)
   lab.schema(c)
   daily.schema(c)
   adaptive.schema(c)
   coach.schema(c)
   growth.schema(c)
   reference.schema(c)
+  core_words.schema(c)
   practice.schema(c)
   foundation.schema(c)
+  import migration_35
+  migration_35.run(c)
+  __import__('corpus_import').schema(c)
+  __import__('pilot_service').schema(c)
+  meeting.schema(c)
 def wrong_questions(c,uid):
  return c.execute('''SELECT q.id,q.topic,q.prompt,q.options,q.explanation,q.answer,a.selected FROM questions q
  JOIN attempts a ON a.question_id=q.id WHERE q.status='published' AND a.user_id=? AND a.correct=0
@@ -90,14 +113,18 @@ def report(c,uid):
  else: chosen=None;reason='暂无内容'
  stats=c.execute('SELECT COUNT(*),COALESCE(SUM(correct),0) FROM attempts WHERE user_id=?',(uid,)).fetchone()
  days=[dict(r) for r in c.execute("SELECT date(created,'unixepoch','+8 hours') AS day,COUNT(*) AS total,SUM(correct) AS correct FROM attempts WHERE user_id=? AND created>=? GROUP BY day ORDER BY day",(uid,time.time()-86400*7))]
- return {'topics':ts,'recommended':chosen,'reason':reason,'total':stats[0],'correct':stats[1],'wrong_count':len(wrong_questions(c,uid)),'completed':len(completed),'days':days}
+ # 3.6.3: the review badge shows what is due now (same count as the review page), not the wrong-answer total.
+ try:
+  import adaptive_service;rs=adaptive_service.review_status(c,uid);due=rs['due_grammar']+rs['due_words']
+ except Exception:due=None
+ return {'topics':ts,'recommended':chosen,'reason':reason,'total':stats[0],'correct':stats[1],'wrong_count':len(wrong_questions(c,uid)),'due_review':due,'completed':len(completed),'days':days}
 class Handler(BaseHTTPRequestHandler):
  def setup(self):
   super().setup();self.connection.settimeout(45)
  def log_message(self,*args): pass
  def send(self,obj,status=200,cookie=None):
   if getattr(self,'ai_transport',None):return self.ai_transport.finish(obj,status)
-  body=json.dumps(obj,ensure_ascii=False).encode(); self.send_response(status);self.headers_common('application/json; charset=utf-8');self.send_header('Cache-Control','no-store')
+  body=public_text(json.dumps(obj,ensure_ascii=False)).encode(); self.send_response(status);self.headers_common('application/json; charset=utf-8');self.send_header('Cache-Control','no-store')
   if cookie:self.send_header('Set-Cookie',cookie)
   self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def headers_common(self,mime):
@@ -116,18 +143,24 @@ class Handler(BaseHTTPRequestHandler):
   except Exception:self.send({'error':'服务暂时异常，请稍后重试'},500)
  def get(self):
   path=self.path.split('?')[0]
-  if path=='/api/health':return self.send({'ok':True,'version':'3.4'})
+  if path=='/api/health':return self.send({'ok':True,'version':'4.5.0','mail':account.configured()})
+  if path=='/api/meeting/previews':
+   return self.send({'previews':[meeting_path.task(day) for day in meeting_path.PUBLIC.values()]})
   if path.startswith('/api/'):
    with db() as c:
     u=self.user(c)
     if path=='/api/session':return self.send({'user':dict(u) if u else None,'ai_enabled':ai_enabled()} if not u else {'user':{k:u[k] for k in ('id','username','admin','csrf')},'ai_enabled':ai_enabled()})
     if not u:return self.send({'error':'请先登录'},401)
+    result=core_words.get(c,path,parse_qs(urlsplit(self.path).query))
+    if result is not None:return self.send(*result)
+    result=meeting.get(c,u['id'],u['admin'],path)
+    if result is not None:return self.send(*result)
     if path=='/api/ai/status':
      configured=bool(os.getenv('FLOW_AI_MODEL')) and (bool(os.getenv('GOOGLE_CLOUD_PROJECT')) if vertex_enabled() else bool(os.getenv('FLOW_AI_KEY')) and os.getenv('FLOW_AI_URL','').startswith('https://'))
      last=c.execute("SELECT MAX(updated) FROM lab_jobs WHERE user_id=? AND status='complete'",(u['id'],)).fetchone()[0]
      chat_last=c.execute("SELECT MAX(updated) FROM chat_turns WHERE user_id=? AND status='complete' AND finish_reason!='lesson'",(u['id'],)).fetchone()[0]
      last=max(last or 0,chat_last or 0) or None
-     return self.send({'configured':configured,'last_success':last,'provider':'Vertex ADC' if vertex_enabled() else '兼容网关','message':'当前账号有成功记录；不代表此刻所有能力可用，音频与检索仍需分别实测。' if last else '配置字段齐全，但当前账号尚无成功记录，请运行部署实测。' if configured else '配置字段不完整，请管理员检查接口、模型与凭据。'})
+     return self.send({'configured':configured,'last_success':last,'model':ai_model_label() if configured else '','provider':'Vertex ADC' if vertex_enabled() else '兼容网关','message':'当前账号有成功记录；不代表此刻所有能力可用，音频与检索仍需分别实测。' if last else '配置字段齐全，但当前账号尚无成功记录，请运行部署实测。' if configured else '配置字段不完整，请管理员检查接口、模型与凭据。'})
     if path=='/api/daily/suggestions':
      pack_id=parse_qs(urlsplit(self.path).query).get('id',[''])[0]
      row=c.execute("SELECT content FROM lab_packs WHERE id=? AND owner IS NULL AND origin='daily'",(pack_id,)).fetchone()
@@ -139,6 +172,8 @@ class Handler(BaseHTTPRequestHandler):
      self.send_header('Content-Length',str(len(html)));self.end_headers();self.wfile.write(html);return
     if path=='/api/graph':return self.send(graph_engine.network(c,u['id']))
     if path=='/api/graph/node':return self.send(graph_engine.detail(c,u['id'],parse_qs(urlsplit(self.path).query).get('id',[''])[0]))
+    result=settings_store.get_route(c,u['id'],path)
+    if result is not None:return self.send(*result)
     result=foundation.get(c,u['id'],path,parse_qs(urlsplit(self.path).query))
     if result is not None:return self.send(*result)
     result=practice.get(c,u['id'],path,parse_qs(urlsplit(self.path).query))
@@ -150,6 +185,12 @@ class Handler(BaseHTTPRequestHandler):
     result=coach.get(c,u['id'],path,parse_qs(urlsplit(self.path).query))
     if result is not None:return self.send(*result)
     result=adaptive.get(c,u['id'],u['admin'],path,parse_qs(urlsplit(self.path).query))
+    if result is not None:return self.send(*result)
+    if path=='/api/pilot/audio':
+     body=__import__('pilot_service').audio(c,u['id'],parse_qs(urlsplit(self.path).query))
+     if body is None:return self.send({'error':'音频不存在或未开放'},404)
+     self.send_response(200);self.headers_common('audio/mp4');self.send_header('Cache-Control','private, max-age=3600');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
+    result=__import__('pilot_service').get(c,u['id'],u['admin'],path,parse_qs(urlsplit(self.path).query))
     if result is not None:return self.send(*result)
     if path=='/api/knowledge':return self.send(knowledge.graph(c,u['id']))
     if path=='/api/daily':return self.send(daily.status(c))
@@ -172,9 +213,21 @@ class Handler(BaseHTTPRequestHandler):
      if not u['admin']:return self.send({'error':'需要管理员权限'},403)
      return self.send({'users':c.execute('SELECT COUNT(*) FROM users').fetchone()[0],'attempts':c.execute('SELECT COUNT(*) FROM attempts').fetchone()[0],'questions':c.execute('SELECT COUNT(*) FROM questions').fetchone()[0],'ai_enabled':ai_enabled(),'ai_provider':'Vertex ADC' if vertex_enabled() else '兼容接口','ai_model':os.getenv('FLOW_AI_MODEL',''),'ai_daily_limit':int(os.getenv('FLOW_AI_DAILY_LIMIT','0'))})
    return self.send({'error':'接口不存在'},404)
-  files={'/ai-live.js':('ai-live.js','text/javascript; charset=utf-8'),'/ai-live.css':('ai-live.css','text/css; charset=utf-8'),'/continuity.js':('continuity.js','text/javascript; charset=utf-8'),'/continuity.css':('continuity.css','text/css; charset=utf-8'),'/foundation.js':('foundation.js','text/javascript; charset=utf-8'),'/foundation.css':('foundation.css','text/css; charset=utf-8'),'/mobile.js':('mobile.js','text/javascript; charset=utf-8'),'/mobile.css':('mobile.css','text/css; charset=utf-8'),'/practice.js':('practice.js','text/javascript; charset=utf-8'),'/practice.css':('practice.css','text/css; charset=utf-8'),'/reference.js':('reference.js','text/javascript; charset=utf-8'),'/reference.css':('reference.css','text/css; charset=utf-8'),'/atlas.js':('atlas.js','text/javascript; charset=utf-8'),'/atlas.css':('atlas.css','text/css; charset=utf-8'),'/':('index.html','text/html; charset=utf-8'),'/app.js':('app.js','text/javascript; charset=utf-8'),'/tutor.js':('tutor.js','text/javascript; charset=utf-8'),'/style.css':('style.css','text/css; charset=utf-8'),'/advanced.js':('advanced.js','text/javascript; charset=utf-8'),'/studio.js':('studio.js','text/javascript; charset=utf-8'),'/growth.js':('growth.js','text/javascript; charset=utf-8'),'/growth.css':('growth.css','text/css; charset=utf-8'),'/design-bridge.css':('design-bridge.css','text/css; charset=utf-8'),'/coach.js':('coach.js','text/javascript; charset=utf-8'),'/coach.css':('coach.css','text/css; charset=utf-8'),'/adaptive.js':('adaptive.js','text/javascript; charset=utf-8'),'/adaptive.css':('adaptive.css','text/css; charset=utf-8'),'/knowledge.js':('knowledge.js','text/javascript; charset=utf-8'),'/layout.css':('layout.css','text/css; charset=utf-8')}
+  if path.startswith('/practice/') and path.endswith('/'):
+   slug=path.removeprefix('/practice/').removesuffix('/')
+   if slug in meeting_path.PUBLIC:
+    body=meeting_path.public_page(slug)
+    self.send_response(200);self.headers_common('text/html; charset=utf-8');self.send_header('Cache-Control','no-cache')
+    self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
+  files={'/guest-first.js':('guest-first.js','text/javascript; charset=utf-8'),'/flow4.css':('flow4.css','text/css; charset=utf-8'),'/flow-motion.js':('flow-motion.js','text/javascript; charset=utf-8'),'/flow-mindmap.js':('flow-mindmap.js','text/javascript; charset=utf-8'),'/literata.woff2':('literata.woff2','font/woff2'),'/core-words.js':('core-words.js','text/javascript; charset=utf-8'),'/meeting.js':('meeting.js','text/javascript; charset=utf-8'),'/meeting.css':('meeting.css','text/css; charset=utf-8'),'/flow36.js':('flow36.js','text/javascript; charset=utf-8'),'/flow36.css':('flow36.css','text/css; charset=utf-8'),'/phone.css':('phone.css','text/css; charset=utf-8'),'/pilot.js':('pilot.js','text/javascript; charset=utf-8'),'/pilot.css':('pilot.css','text/css; charset=utf-8'),'/learning35.js':('learning35.js','text/javascript; charset=utf-8'),'/learning35.css':('learning35.css','text/css; charset=utf-8'),'/ai-live.js':('ai-live.js','text/javascript; charset=utf-8'),'/ai-live.css':('ai-live.css','text/css; charset=utf-8'),'/continuity.js':('continuity.js','text/javascript; charset=utf-8'),'/continuity.css':('continuity.css','text/css; charset=utf-8'),'/foundation.js':('foundation.js','text/javascript; charset=utf-8'),'/foundation.css':('foundation.css','text/css; charset=utf-8'),'/mobile.js':('mobile.js','text/javascript; charset=utf-8'),'/mobile.css':('mobile.css','text/css; charset=utf-8'),'/practice.js':('practice.js','text/javascript; charset=utf-8'),'/practice.css':('practice.css','text/css; charset=utf-8'),'/reference.js':('reference.js','text/javascript; charset=utf-8'),'/reference.css':('reference.css','text/css; charset=utf-8'),'/atlas.js':('atlas.js','text/javascript; charset=utf-8'),'/atlas.css':('atlas.css','text/css; charset=utf-8'),'/':('index.html','text/html; charset=utf-8'),'/app.js':('app.js','text/javascript; charset=utf-8'),'/tutor.js':('tutor.js','text/javascript; charset=utf-8'),'/style.css':('style.css','text/css; charset=utf-8'),'/advanced.js':('advanced.js','text/javascript; charset=utf-8'),'/studio.js':('studio.js','text/javascript; charset=utf-8'),'/growth.js':('growth.js','text/javascript; charset=utf-8'),'/growth.css':('growth.css','text/css; charset=utf-8'),'/design-bridge.css':('design-bridge.css','text/css; charset=utf-8'),'/coach.js':('coach.js','text/javascript; charset=utf-8'),'/coach.css':('coach.css','text/css; charset=utf-8'),'/adaptive.js':('adaptive.js','text/javascript; charset=utf-8'),'/adaptive.css':('adaptive.css','text/css; charset=utf-8'),'/knowledge.js':('knowledge.js','text/javascript; charset=utf-8'),'/layout.css':('layout.css','text/css; charset=utf-8')}
+  if path=='/' and not urlsplit(self.path).query:
+   with db() as c:u=self.user(c)
+   if not u:
+    body=guest_first.inject((ROOT/'public'/'index.html').read_bytes())
+    self.send_response(200);self.headers_common('text/html; charset=utf-8');self.send_header('Cache-Control','no-cache');self.send_header('Vary','Cookie')
+    self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
   if path not in files:return self.send({'error':'页面不存在'},404)
-  name,mime=files[path];body=(ROOT/'public'/name).read_bytes();self.send_response(200);self.headers_common(mime);self.send_header('Cache-Control','no-cache');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
+  name,mime=files[path];body=(ROOT/'public'/name).read_bytes();self.send_response(200);self.headers_common(mime);self.send_header('Cache-Control','public, max-age=31536000, immutable' if name.endswith('.woff2') else 'no-cache');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def do_POST(self):
   try:self.post()
   except (ValueError,KeyError,TypeError,json.JSONDecodeError):self.send({'error':'请求格式或参数不正确'},400)
@@ -199,6 +252,12 @@ class Handler(BaseHTTPRequestHandler):
     if not hmac.compare_digest(self.headers.get('X-CSRF-Token',''),owner['csrf']):return self.send({'error':'安全校验失败'},403)
   data=json.loads(self.rfile.read(length));path=self.path
   if not isinstance(data,dict):return self.send({'error':'请求必须为 JSON 对象'},400)
+  if path==meeting.FIRST_TASK:
+   if not meeting.valid_id(data.get('visitor')) or data.get('action')=='hint':
+    return self.send(*meeting.preview(data))
+   with db() as c:
+    result=meeting.preview(data,c)
+    c.commit();return self.send(*result)
   if path.startswith('/api/recovery/'):
    with db() as c:
     ip=self.client_address[0]
@@ -207,22 +266,24 @@ class Handler(BaseHTTPRequestHandler):
      except ValueError:pass
     result=account.public(c,path,data,password,ip)
     if result is not None:return self.send(*result)
-  if path in ['/api/login','/api/register']:
+  if path in ['/api/login','/api/register','/api/auth/code']:
    # Rate-limit by directly connected address; loopback proxy intentionally shares a ceiling.
    key=self.client_address[0]
    if key in ('127.0.0.1','::1'):
     try:key=str(ipaddress.ip_address(self.headers.get('X-Real-IP',key)))
     except ValueError:pass
-   with LOCK:
-    now=time.time();times=[t for t in RATE.get(key,[]) if t>now-60];RATE[key]=times
-    if len(times)>=30:return self.send({'error':'操作过于频繁，请稍后再试'},429)
-    times.append(now)
-   name=str(data.get('username','')).strip();p=str(data.get('password',''))
-   if not 3<=len(name)<=40 or not 10<=len(p)<=200:return self.send({'error':'用户名需 3–40 个字符，密码需 10–200 个字符'},400)
+   # Code requests have their own per-email and per-address caps (auth_service).
+   if path!='/api/auth/code':
+    with LOCK:
+     now=time.time();times=[t for t in RATE.get(key,[]) if t>now-60];RATE[key]=times
+     if len(times)>=30:return self.send({'error':'操作过于频繁，请稍后再试'},429)
+     times.append(now)
+   import auth_service
    with db() as c:
-    if path=='/api/register':c.execute('INSERT INTO users(username,password) VALUES(?,?)',(name,password(p)))
-    u=c.execute('SELECT * FROM users WHERE username=?',(name,)).fetchone()
-    if not u or not verify(p,u['password']):return self.send({'error':'用户名或密码错误'},401)
+    if path=='/api/auth/code':return self.send(*auth_service.request(c,data,key))
+    # 3.6: sign-up needs a verified email code; login accepts username/email + password or email + code.
+    u,problem=auth_service.register(c,data,password) if path=='/api/register' else auth_service.login(c,data,verify)
+    if problem:return self.send(*problem)
     token=secrets.token_urlsafe(32);csrf=secrets.token_urlsafe(24)
     c.execute('DELETE FROM sessions WHERE expires<?',(time.time(),));c.execute('INSERT INTO sessions VALUES(?,?,?,?)',(token,u['id'],csrf,time.time()+86400*7))
    return self.send({'ok':True},cookie='flow_session='+token+'; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800'+('; Secure' if SECURE else ''))
@@ -230,6 +291,9 @@ class Handler(BaseHTTPRequestHandler):
    u=self.user(c)
    if not u:return self.send({'error':'登录已过期'},401)
    if not hmac.compare_digest(self.headers.get('X-CSRF-Token',''),u['csrf']):return self.send({'error':'安全校验失败，请刷新页面'},403)
+   result=meeting.post(c,u['id'],path,data)
+   if result is not None:
+    c.commit();return self.send(*result)
    import ai_stream
    if path in ai_stream.PATHS and self.headers.get('Accept')=='text/event-stream':
     self.ai_transport=ai_stream.Transport(self,path)
@@ -250,6 +314,10 @@ class Handler(BaseHTTPRequestHandler):
    if path=='/api/ai/help':
     import ai_help_service
     return self.send(*ai_help_service.help(c,u['id'],data))
+   result=settings_store.post_route(c,u['id'],path,data)
+   if result is not None:return self.send(*result)
+   result=attempts.post(c,u['id'],path,data)
+   if result is not None:return self.send(*result)
    result=foundation.post(c,u['id'],path,data)
    if result is not None:return self.send(*result)
    result=practice.post(c,u['id'],path,data)
@@ -259,6 +327,8 @@ class Handler(BaseHTTPRequestHandler):
    result=growth.post(c,u['id'],u['admin'],path,data)
    if result is not None:return self.send(*result)
    result=coach.post(c,u['id'],path,data)
+   if result is not None:return self.send(*result)
+   result=__import__('pilot_service').post(c,u['id'],u['admin'],path,data)
    if result is not None:return self.send(*result)
    result=adaptive.post(c,u['id'],u['admin'],path,data)
    if result is not None:return self.send(*result)
@@ -288,6 +358,7 @@ class Handler(BaseHTTPRequestHandler):
    if path=='/api/quiz':
     topic=data.get('topic')
     rows=learning.quiz_rows(c,u['id'],data)
+    entry='node' if data.get('node') else 'review' if data.get('mode')=='review' else 'wrongs' if data.get('mode')=='wrongs' else 'topic' if topic else 'diagnostic'
     if rows is not None:pass
     elif data.get('mode')=='wrongs':
      rows=wrong_questions(c,u['id'])[:12]
@@ -298,24 +369,47 @@ class Handler(BaseHTTPRequestHandler):
      for t in c.execute('SELECT id FROM topics ORDER BY id'):
       rows.extend(c.execute('SELECT id,topic,prompt,options FROM questions WHERE status="published" AND topic=? ORDER BY RANDOM() LIMIT 2',(t[0],)).fetchall())
      rows=rows[:12]
-    if not rows:return self.send({'error':'暂无可用题目或当前没有到期复习'},400)
+    if not rows:
+     if entry=='review':return self.send({'error':'现在没有到期的语法复习。','empty':True,'status':'none_due'},200)
+     return self.send({'error':'暂无可用题目'},400)
     qs=[{k:r[k] for k in ('id','topic','prompt','options')} for r in rows]
     for q in qs:q['options']=json.loads(q['options'])
-    token=secrets.token_urlsafe(24);c.execute('DELETE FROM quizzes WHERE expires<?',(time.time(),));c.execute('INSERT INTO quizzes VALUES(?,?,?,?,0)',(token,u['id'],json.dumps([q['id'] for q in qs]),time.time()+3600));c.commit();return self.send({'token':token,'questions':qs})
+    c.execute('DELETE FROM quizzes WHERE expires<?',(time.time(),))
+    token,items=attempts.open_session(c,u['id'],entry,[q['id'] for q in qs],data.get('node') or topic or '')
+    familiar={i['question'] for i in items if i['familiar']}
+    for q in qs:q['familiar']=q['id'] in familiar
+    c.execute('INSERT INTO quizzes VALUES(?,?,?,?,0)',(token,u['id'],json.dumps([q['id'] for q in qs]),time.time()+3600));c.commit()
+    return self.send({'token':token,'entry':entry,'questions':qs,'policy':attempts.POLICY,'hint_levels':attempts.HINT_LEVELS,'note':'近24小时做过的题会标为“熟悉题”，做对记为有支持的练习；看提示同样如此。' if familiar else '没看提示独立做对，才计入独立证据。'})
    if path=='/api/submit':
     c.execute('BEGIN IMMEDIATE')
-    quiz=c.execute('SELECT * FROM quizzes WHERE token=? AND user_id=? AND used=0 AND expires>?',(data['token'],u['id'],time.time())).fetchone()
-    if not quiz:return self.send({'error':'测评已提交或已过期，请重新开始'},400)
-    ids=json.loads(quiz['ids']);answers=data['answers']
-    if not isinstance(answers,dict) or set(answers)!=set(map(str,ids)):return self.send({'error':'请完成所有题目'},400)
+    token=data['token'];answers=data['answers']
+    quiz=c.execute('SELECT * FROM quizzes WHERE token=? AND user_id=? AND expires>?',(token,u['id'],time.time()-86400)).fetchone()
+    session=attempts.get(c,u['id'],token)
+    if quiz and quiz['used']:
+     # Idempotent replay: the same answers return the stored result; different answers are refused.
+     if session and session['status']=='complete' and session['signature']==attempts.signature(answers):c.rollback();return self.send({**json.loads(session['result']),'replayed':True})
+     c.rollback();return self.send({'error':'这次测评已经提交过，答案不同的重复提交不会记录。'},409)
+    if not quiz or quiz['expires']<time.time():c.rollback();return self.send({'error':'测评已过期，请重新开始'},400)
+    ids=json.loads(quiz['ids'])
+    if not isinstance(answers,dict) or set(answers)!=set(map(str,ids)):c.rollback();return self.send({'error':'请完成所有题目'},400)
     result=[]
     for qid in ids:
      q=c.execute('SELECT * FROM questions WHERE id=?',(qid,)).fetchone();a=answers[str(qid)]
      if type(a)!=int or not 0<=a<len(json.loads(q['options'])):raise ValueError()
      correct=a==q['answer'];result.append({'id':qid,'topic':q['topic'],'prompt':q['prompt'],'correct':correct,'answer':q['answer'],'selected':a,'options':json.loads(q['options']),'explanation':q['explanation']})
-    for q in result:c.execute('INSERT INTO attempts(user_id,question_id,selected,correct,created) VALUES(?,?,?,?,?)',(u['id'],q['id'],q['selected'],q['correct'],time.time()))
-    learning.observe(c,u['id'],ids)
-    c.execute('UPDATE quizzes SET used=1 WHERE token=?',(data['token'],));c.commit();return self.send({'results':result,'score':round(sum(q['correct'] for q in result)/len(result)*100)})
+    # Recheck exposure now, in the same transaction as the write: another tab or entry may have shown an answer since this test opened.
+    session=attempts.recheck(c,u['id'],session)
+    support={qid:attempts.support(session,qid) for qid in ids} if session else None
+    for q in result:
+     q['attempt']=c.execute('INSERT INTO attempts(user_id,question_id,selected,correct,created) VALUES(?,?,?,?,?)',(u['id'],q['id'],q['selected'],q['correct'],time.time())).lastrowid
+     if support:q['support']=support[q['id']]['support'];q['assisted']=support[q['id']]['assisted']
+    learning.observe(c,u['id'],ids,support=support)
+    from pedagogy_service import next_step
+    out={'results':result,'score':round(sum(q['correct'] for q in result)/len(result)*100),'independent':sum(1 for q in result if q['correct'] and not q.get('assisted',True)),'policy':attempts.POLICY,'next_step':next_step(c,u['id'],return_to=data.get('return_to'))}
+    if session and session.get('rechecked'):out['familiar_note']='有 '+str(len(session['rechecked']))+' 道题在你打开这次测评后，已在别处看过答案；这些题记为有支持的练习，不计独立通过。'
+    c.execute('UPDATE quizzes SET used=1 WHERE token=?',(token,))
+    if session:attempts.complete(c,token,answers,out)
+    c.commit();return self.send(out)
    if path=='/api/admin/question':
     if not u['admin']:return self.send({'error':'需要管理员权限'},403)
     learning.save_question(c,u['id'],{**data,'status':'published'});c.commit();return self.send({'ok':True})

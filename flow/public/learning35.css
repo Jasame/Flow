@@ -1,0 +1,20 @@
+/* Flow 3.5 learning layer: subskill page, hints, next step, review, dictation diff. Uses existing tokens only. */
+.flow35-subskill .flow35-section{margin-top:16px}
+.flow35-subskill .flow35-state{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
+.flow35-pairs{list-style:none;padding:0;margin:8px 0;display:grid;gap:8px}
+.flow35-pairs li{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline}
+.flow35-pairs small{color:var(--muted,#67766d);flex-basis:100%}
+.flow35-pairs.pitfalls li>span:first-child{text-decoration:line-through;opacity:.75}
+.flow35-options{display:grid;gap:8px;margin:8px 0}
+.flow35-guided-feedback:empty{display:none}
+.flow35-extension .tag{margin-bottom:8px;display:inline-block}
+.flow35-hints{margin:12px 0;display:grid;gap:6px}
+.flow35-familiar{display:inline-block;margin-bottom:8px}
+.flow35-next{margin:16px 0;border-left:3px solid var(--accent,#33bb66);}
+.flow35-due{list-style:none;padding:0;margin:8px 0;display:grid;gap:6px}
+.flow35-due small{display:block;color:var(--muted,#67766d)}
+.flow35-diff{display:grid;gap:8px;margin-top:10px}
+.flow35-diff ul{margin:4px 0 0;padding-left:18px}
+.flow35-support{border:0;padding:0;margin:12px 0;display:grid;gap:6px}
+.flow35-support label{display:flex;gap:8px;align-items:center}
+
