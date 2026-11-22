@@ -72,6 +72,7 @@ flow/flow-daily.service
 flow/flow-daily.timer
 flow/flow.env.example
 flow/flow.service
+flow/flow_admin.py
 flow/foundation_service.py
 flow/graph_service.py
 flow/growth_service.py
@@ -134,6 +135,9 @@ flow/public/reference.css
 flow/public/reference.js
 flow/public/studio.js
 flow/public/style.css
+flow/public/survey.css
+flow/public/survey.html
+flow/public/survey.js
 flow/public/tutor.js
 flow/quality_service.py
 flow/reference_service.py
@@ -142,6 +146,7 @@ flow/seed.py
 flow/settings_service.py
 flow/state_service.py
 flow/studio_setup.py
+flow/survey_service.py
 flow/tests/test_adaptive.py
 flow/tests/test_ai_integration.py
 flow/tests/test_ai_stream.py
@@ -164,6 +169,7 @@ flow/tests/test_practice.py
 flow/tests/test_quota.py
 flow/tests/test_reference.py
 flow/tests/test_reliability.py
+flow/tests/test_survey.py
 flow/tests/test_vertex.py
 flow/tests/ui_adaptive.cjs
 flow/tests/ui_advanced.cjs

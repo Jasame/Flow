@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>语流 Flow 后台 · xmc.hk</title>
+<script>
+try {
+  var t = localStorage.getItem('xmc-theme');
+  document.documentElement.dataset.theme = (t === 'dark' || t === 'light') ? t : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+} catch (e) { document.documentElement.dataset.theme = 'light'; }
+</script>
+<link rel="stylesheet" href="/shared-ui.css?v=4.1.1">
+<link rel="stylesheet" href="/flow/admin.css?v=1.0.0">
+</head>
+<body>
+<header class="adm-top">
+  <div class="adm-top-in">
+    <a class="adm-brand" href="/flow/">
+      <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#1f9d55"/><path d="M7 20v-6m6 10V8m6 14V11m6 7v-4" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>
+      <span>语流 Flow</span><span class="adm-sub">运营后台</span>
+    </a>
+    <div class="adm-tools">
+      <a class="btn" href="https://flow.jasa.hk/survey" target="_blank" rel="noopener">打开问卷</a>
+      <a class="btn" href="/">工作台</a>
+      <button type="button" class="btn" id="themeBtn" aria-label="切换深浅色">◐</button>
+    </div>
+  </div>
+  <nav class="adm-tabs" aria-label="Flow 后台">
+    <a href="#overview" data-tab="overview">概览</a>
+    <a href="#survey" data-tab="survey">问卷统计</a>
+    <a href="#responses" data-tab="responses">逐条回答</a>
+  </nav>
+</header>
+<main class="adm-wrap" id="main" aria-live="polite"><p class="muted">正在加载…</p></main>
+<script src="/flow/admin.js?v=1.0.0"></script>
+</body>
+</html>
