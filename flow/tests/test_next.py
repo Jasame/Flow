@@ -353,3 +353,24 @@ class DictionaryBuildTests(unittest.TestCase):
             app.init()
             with patch.object(ref, 'dataset', side_effect=AssertionError('parsed again')):
                 app.init()  # same file already imported: no parse
+
+
+class ServerErrorTests(NextAudioTests):
+    """An unexpected exception is recorded (path only), counted in /api/deploy-status and listed for the operator."""
+
+    def test_crash_is_recorded_without_the_query_and_shown(self):
+        import ops_errors, flow_admin
+        with patch.object(nx, 'get', side_effect=RuntimeError('boom in get')):
+            st, body, _ = self.get('/api/next/home?level=B1&secret=abc')
+        self.assertEqual(st, 500); self.assertNotIn(b'boom', body)  # the learner sees the friendly message only
+        with app.db() as c:
+            row = c.execute('SELECT method, path, kind, message, trace FROM server_errors').fetchone()
+            self.assertEqual((row['method'], row['path'], row['kind'], row['message']), ('GET', '/api/next/home', 'RuntimeError', 'boom in get'))
+            self.assertIn('Traceback', row['trace'])
+            with patch.object(nx, 'get', side_effect=RuntimeError('boom in get')):
+                self.get('/api/next/home?level=A2')
+            rec = ops_errors.recent(c)
+            self.assertEqual((rec['total'], len(rec['groups']), rec['groups'][0]['count']), (2, 1, 2))  # same place: one group
+        st, body, _ = self.get('/api/deploy-status')
+        live = json.loads(body)['live']
+        self.assertEqual(live['errors_24h'], 2); self.assertIn('uptime_min', live)

@@ -52,3 +52,16 @@ and checks every page on a phone, a phone held sideways, a tablet and a desktop:
 nothing hidden under the bottom tabs, touch targets of at least 32 px, and the input paths — keyboard
 shortcuts, Enter in answer boxes, swipes in review, closing sheets by key or by dragging, the playback stop
 control, step switching and list filters. Screenshots of every page go to the out dir.
+
+## Monitoring
+
+- **Server errors**: anything that reaches a learner as 「服务暂时异常」 is written to the journal (`journalctl -u flow`)
+  with its stack trace and kept in `server_errors` (last 500, path only, no query or request body). The admin page
+  has an 「错误」 tab that groups them by where in the code they happened (`flow/ops_errors.py`).
+- **Live status**: `/api/deploy-status` carries `live` (memory, uptime, threads, server errors in 24 h) next to the
+  last release and `daily` (the daily end-to-end test).
+- **Daily end-to-end test**: `flow-autodeploy.py` runs `qa_e2e.py` once a day between 04:00 and 05:00 server time
+  against what is deployed (~17 AI calls).
+- **External check**: `.github/workflows/monitor.yml` checks the site every 15 minutes (pages and APIs answer, fewer
+  than 10 errors a day, memory under 350 MB, last release fine, daily test recent and passing). GitHub emails a
+  failed run to whoever last changed that schedule. It runs from `main`.

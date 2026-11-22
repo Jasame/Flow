@@ -14,6 +14,10 @@ For each request it
 3. if asked ("e2e") and the deploy held, runs tools/qa_e2e.py: internal test accounts, real AI, cleaned up after;
 4. writes the outcome to data/deploy-status.json, which the app serves at /api/deploy-status
    (tag, commit, result, health checks, test counts and the names of failed checks; nothing else).
+
+Once a day (04:00–05:00 server time, when no release is waiting) it also runs the end-to-end test against what is
+deployed, from the copy kept by the last release that ran it, and writes data/e2e-daily.json (shown as "daily" in
+/api/deploy-status, which the GitHub monitor checks).
 """
 import base64, datetime, fcntl, hashlib, json, re, shutil, subprocess, sys, time, urllib.error, urllib.request
 from pathlib import Path
@@ -25,6 +29,9 @@ STATUS = Path('/www/wwwroot/flow/data/deploy-status.json')
 HOSTS = ['cdn.jsdelivr.net', 'fastly.jsdelivr.net', 'gcore.jsdelivr.net', 'testingcf.jsdelivr.net']
 TOOLS = ['tools/flow-pull.sh', 'tools/flow-pull-rollback.sh', 'tools/flow-autodeploy.py', 'tools/qa_e2e.py']
 AUDIO = 'tools/qa-audio/'
+DAILY = AD / 'daily'  # the end-to-end test and its clips, kept from the last release that ran it
+DAILY_STATUS = Path('/www/wwwroot/flow/data/e2e-daily.json')
+DAILY_HOUR = 4
 
 
 def now():
@@ -82,6 +89,46 @@ def verified(sha, path, flat):
     raise RuntimeError(f'{path}: {last!r}')
 
 
+def e2e_summary(work):
+    try:
+        r = json.loads((work / 'report.json').read_text())
+        return {'checks': r['checks']['total'], 'failed': r['checks']['failed'], 'failed_names': [f['who'] + ': ' + f['name'] for f in r['failed']][:40],
+                'server_errors': len(r['server_errors']), 'ai_calls': r['ai_calls_used'], 'seconds': r['seconds'],
+                'cleanup_ok': not any(f['who'] == 'cleanup' for f in r['failed'])}
+    except (OSError, ValueError, KeyError) as e:
+        return {'error': 'no report: ' + str(e)[:200]}
+
+
+def run_e2e(work, log):
+    with log.open('w') as out:
+        try:
+            subprocess.run([sys.executable, '-I', str(work / 'qa_e2e.py')], cwd=work, stdout=out, stderr=subprocess.STDOUT, timeout=1500)
+        except subprocess.TimeoutExpired:
+            pass
+    return e2e_summary(work)
+
+
+def daily():
+    """The once-a-day end-to-end run against what is deployed."""
+    if time.localtime().tm_hour != DAILY_HOUR:
+        return
+    src = DAILY if (DAILY / 'qa_e2e.py').exists() else next(  # before any release kept a copy: the newest one that ran it
+        (d for d in sorted(AD.glob('r*'), key=lambda d: d.stat().st_mtime, reverse=True)
+         if (d / 'qa_e2e.py').exists() and (d / 'qa-audio').is_dir() and any((d / 'qa-audio').iterdir())), None)
+    if src is None:
+        return
+    today = time.strftime('%Y-%m-%d')
+    try:
+        if json.loads(DAILY_STATUS.read_text()).get('day') == today:
+            return
+    except (OSError, ValueError):
+        pass
+    commit = (OPS / 'flow-deployed-commit').read_text().strip() if (OPS / 'flow-deployed-commit').exists() else ''
+    st = {'day': today, 'started': now(), 'commit': commit, **run_e2e(src, src / 'e2e.log'), 'finished': now()}
+    tmp = DAILY_STATUS.with_suffix('.tmp')
+    tmp.write_text(json.dumps(st, ensure_ascii=False, indent=1)); tmp.chmod(0o644); tmp.replace(DAILY_STATUS)
+
+
 def write_status(d):
     tmp = STATUS.with_suffix('.tmp')
     tmp.write_text(json.dumps(d, ensure_ascii=False, indent=1))
@@ -103,6 +150,7 @@ def main():
     except Exception:
         return  # network trouble: ask again next minute
     if req is None:
+        daily()
         return
     (AD / 'next').write_text(str(n + 1))  # each tag is handled once, even if this run fails
     words = (req.strip().splitlines() or [''])[0].split()
@@ -149,18 +197,12 @@ def main():
     if e2e and st['result'] in ('DEPLOYED', 'NOTHING_TO_DO') and (work / 'qa_e2e.py').exists():
         st['state'] = 'testing'
         write_status(st)
-        with (work / 'e2e.log').open('w') as out:
-            try:
-                subprocess.run([sys.executable, '-I', str(work / 'qa_e2e.py')], cwd=work, stdout=out, stderr=subprocess.STDOUT, timeout=1500)
-            except subprocess.TimeoutExpired:
-                pass
-        try:
-            r = json.loads((work / 'report.json').read_text())
-            st['e2e'] = {'checks': r['checks']['total'], 'failed': r['checks']['failed'], 'failed_names': [f['who'] + ': ' + f['name'] for f in r['failed']][:40],
-                         'server_errors': len(r['server_errors']), 'ai_calls': r['ai_calls_used'], 'seconds': r['seconds'],
-                         'cleanup_ok': not any(f['who'] == 'cleanup' for f in r['failed'])}
-        except (OSError, ValueError, KeyError) as e:
-            st['e2e'] = {'error': 'no report: ' + str(e)[:200]}
+        st['e2e'] = run_e2e(work, work / 'e2e.log')
+        if (work / 'qa-audio').is_dir() and any((work / 'qa-audio').iterdir()):  # keep this release's test for the daily run
+            shutil.rmtree(DAILY, ignore_errors=True)
+            DAILY.mkdir(parents=True)
+            shutil.copy2(work / 'qa_e2e.py', DAILY / 'qa_e2e.py')
+            shutil.copytree(work / 'qa-audio', DAILY / 'qa-audio')
     st.update(state='done', finished=now())
     write_status(st)
 

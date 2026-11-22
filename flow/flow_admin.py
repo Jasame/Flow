@@ -123,6 +123,8 @@ class AdminHandler(BaseHTTPRequestHandler):
                     return self._send(overview(c))
                 if path == '/learning':
                     return self._send(learning(c))
+                if path == '/errors':
+                    return self._send(__import__('ops_errors').recent(c))
                 if path == '/survey/definition':
                     return self._send(survey.SURVEY)
                 if path == '/survey/summary':

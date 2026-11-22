@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS ai_usage(user_id INTEGER,day TEXT,count INTEGER,PRIMA
   coach.schema(c)
   growth.schema(c)
   reference.schema(c)
+  __import__('ops_errors').schema(c)
   core_words.schema(c)
   practice.schema(c)
   foundation.schema(c)
@@ -93,6 +94,19 @@ def wrong_questions(c,uid):
  ORDER BY a.id DESC''',(uid,)).fetchall()
 def password(p,salt=None):
  salt=salt or secrets.token_hex(16); return salt+':'+hashlib.pbkdf2_hmac('sha256',p.encode(),bytes.fromhex(salt),260000).hex()
+STARTED=time.time()
+def live_status():
+ """What the monitor reads every few minutes: process memory (Linux), uptime, threads, server errors in the last day."""
+ out={'uptime_min':round((time.time()-STARTED)/60),'threads':threading.active_count()}
+ try:
+  for line in Path('/proc/self/status').read_text().splitlines():
+   k,_,v=line.partition(':')
+   if k in ('VmRSS','VmHWM'):out[{'VmRSS':'rss_mb','VmHWM':'peak_rss_mb'}[k]]=round(int(v.split()[0])/1024)
+ except OSError:pass
+ try:
+  with db() as c:out['errors_24h']=__import__('ops_errors').count_since(c,86400)
+ except Exception:pass
+ return out
 _ASSET={}
 def shell_file(name):
  """A public file; the page shell and the service worker get the asset version filled in (__ASSET__): a hash of
@@ -186,7 +200,7 @@ class Handler(BaseHTTPRequestHandler):
   try:self.get()
   except (BrokenPipeError,ConnectionResetError):pass
   except (ValueError,TypeError):self.send({'error':'材料或请求参数不正确'},400)
-  except Exception:self.send({'error':'服务暂时异常，请稍后重试'},500)
+  except Exception as exc:__import__('ops_errors').record(db,'GET',self.path,exc);self.send({'error':'服务暂时异常，请稍后重试'},500)
  def get(self):
   path=self.path.split('?')[0]
   if path=='/api/health':return self.send({'ok':True,'version':'4.5.0','mail':account.configured()})
@@ -195,8 +209,12 @@ class Handler(BaseHTTPRequestHandler):
    return self.send({'previews':[meeting_path.task(day) for day in meeting_path.PUBLIC.values()]})
   if path=='/api/deploy-status':
    # Written by tools/flow-autodeploy.py: release tag, commit, result, health checks and test counts. Nothing private.
-   try:body=(DATA/'deploy-status.json').read_bytes()
-   except OSError:body=b'{}'
+   try:st=json.loads((DATA/'deploy-status.json').read_text())
+   except (OSError,ValueError):st={}
+   try:st['daily']=json.loads((DATA/'e2e-daily.json').read_text())  # the daily end-to-end test (flow-autodeploy.py)
+   except (OSError,ValueError):pass
+   st['live']=live_status()
+   body=json.dumps(st,ensure_ascii=False).encode()
    self.send_response(200);self.headers_common('application/json; charset=utf-8');self.send_header('Cache-Control','no-store')
    self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
   if path=='/api/next/vocab/reminder.ics':
@@ -300,7 +318,7 @@ class Handler(BaseHTTPRequestHandler):
   try:self.post()
   except (ValueError,KeyError,TypeError,json.JSONDecodeError):self.send({'error':'请求格式或参数不正确'},400)
   except sqlite3.IntegrityError:self.send({'error':'用户名已存在，或数据关联无效'},409)
-  except Exception:self.send({'error':'服务暂时异常，请稍后重试'},500)
+  except Exception as exc:__import__('ops_errors').record(db,'POST',self.path,exc);self.send({'error':'服务暂时异常，请稍后重试'},500)
   finally:
    import ai_jobs
    ai_jobs.leave(getattr(self,'ai_ticket',None))

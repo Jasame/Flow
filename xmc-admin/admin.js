@@ -204,15 +204,32 @@
     }).catch(fail);
   }
 
+  function errorsView() {
+    getJSON('/errors').then(function (d) {
+      var t = function (s) { return new Date(s * 1000).toLocaleString('zh-CN'); };
+      main.innerHTML =
+        '<div class="head-row"><div><h1>服务器错误</h1><p class="muted">学习者看到「服务暂时异常」的请求，按出错位置分组（近 ' + d.days + ' 天，只记路径，不记提交的内容）</p></div>' +
+        '<div class="toolbar"><button class="btn" id="reload">刷新</button></div></div>' +
+        '<div class="kpi-grid">' + kpi('近 24 小时', n(d.last_24h), '次') + kpi('近 ' + d.days + ' 天', n(d.total), '次，' + n(d.groups.length) + ' 处代码') + '</div>' +
+        (d.groups.length ? d.groups.map(function (g) {
+          return '<section class="card"><h2>' + esc(g.kind) + '：' + esc(g.message || '') + '</h2>' +
+            '<p class="muted">' + n(g.count) + ' 次 · 最近 ' + esc(t(g.last)) + ' · 最早 ' + esc(t(g.first)) + '</p>' +
+            '<p>' + g.paths.map(esc).join('<br>') + '</p>' +
+            '<details><summary>最近一次的调用栈</summary><pre class="trace">' + esc(g.trace) + '</pre></details></section>';
+        }).join('') : '<section class="card"><p>没有错误。</p></section>');
+      document.getElementById('reload').onclick = errorsView;
+    }).catch(fail);
+  }
+
   /* ---------- 路由 ---------- */
   function route() {
     ST.tab = (location.hash || '#overview').slice(1);
-    if (['overview', 'learning', 'survey', 'responses'].indexOf(ST.tab) < 0) ST.tab = 'overview';
+    if (['overview', 'learning', 'errors', 'survey', 'responses'].indexOf(ST.tab) < 0) ST.tab = 'overview';
     document.querySelectorAll('.adm-tabs a').forEach(function (a) {
       if (a.dataset.tab === ST.tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
     main.innerHTML = '<p class="muted">正在加载…</p>';
-    ({ overview: overview, learning: learningView, survey: surveyStats, responses: responses })[ST.tab]();
+    ({ overview: overview, learning: learningView, errors: errorsView, survey: surveyStats, responses: responses })[ST.tab]();
   }
   document.getElementById('themeBtn').onclick = function () {
     var next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
