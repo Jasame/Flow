@@ -24,6 +24,29 @@ jobs:
       - name: Gateway regression tests
         working-directory: flow-gateway
         run: python -m unittest discover -s tests -v
+  ui:
+    # tools/ui_test.py: every page on a phone, a phone held sideways, a tablet and a desktop, with touch, keyboard
+    # and mouse; uses the runner's Google Chrome through Playwright and a local server with a simulated AI.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Playwright (driving the installed Chrome)
+        run: python -m pip install --quiet playwright==1.49.1
+      - name: Built front end matches its source parts
+        run: python tools/build_front.py --check && python tools/build_dictionary.py --check
+      - name: Multi-device UI tests
+        run: python tools/ui_test.py /tmp/ui-out
+      - name: Screenshots when something failed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-screenshots
+          path: /tmp/ui-out
+          retention-days: 7
   frontend:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
