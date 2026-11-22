@@ -186,6 +186,16 @@ def roots(norm):
     return [{'part': clean(r), 'meaning': _ROOT_ZH.get(m, m), 'kind': ROOT_CLASS.get(k, '后缀' if 'suffix' in k else '词缀')} for r, m, k in _ROOTS.get(norm, [])]
 
 
+def brief_meaning(meaning, k=3):
+    """The first part of speech and its first few senses ("n. 音高, 程度, 坡度"): enough to recognise a word while reading."""
+    first = (meaning or '').split('；')[0]
+    pos, sep, rest = first.partition('. ')
+    if not sep or len(pos) > 6:
+        pos, rest = '', first
+    senses = [x.strip() for x in rest.split(', ') if x.strip()][:k]
+    return ((pos + '. ') if pos else '') + ', '.join(senses)
+
+
 def short_meaning(meaning, n=2):
     """First parts of speech of a dictionary meaning, for compact lists; cut at a gloss boundary, never mid-gloss."""
     s = '；'.join(meaning.split('；')[:n])
@@ -612,7 +622,7 @@ def preread(c, uid, hard, limit=5):
             continue
         seen.add(hit['lemma'])
         e = d.get(hit['lemma']) or {}
-        out.append({'word': hit['lemma'], 'form': form, 'phonetic': e.get('phonetic', ''), 'meaning': short_meaning(e.get('meaning', '')),
+        out.append({'word': hit['lemma'], 'form': form, 'phonetic': e.get('phonetic', ''), 'meaning': brief_meaning(e.get('meaning', '')),
                     'audio': word_audio(hit['lemma'])})
         if len(out) >= limit:
             break

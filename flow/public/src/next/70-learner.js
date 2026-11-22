@@ -10,11 +10,6 @@
         <span class="lv">${s.level || '—'}</span><span class="tiny muted ev">${esc(ev(s))}</span></div>`).join('')}</div>
       ${ab.weakest ? `<div class="small">现在最值得练：<b>${esc(SKILL_NAME[ab.weakest])}</b>。首页的「今天的计划」已经按这个安排。</div>` : '<div class="muted small">做几次理解题、听写、跟读和写作，画像就会越来越准。</div>'}</div>`;
   }
-  function pathHTML(p) {
-    return `<div class="card section path"><div class="row between"><div class="kicker">今天的计划 · ${p.minutes} 分钟</div><span class="pill ${p.done === p.total ? 'green' : ''}">${p.done} / ${p.total}</span></div>
-      <div class="psteps">${p.steps.map((s, k) => `<a class="pstep ${s.done ? 'done' : ''}" href="${esc(s.href)}"><span class="num">${s.done ? '✓' : k + 1}</span>
-        <span class="t"><b>${esc(s.title)}</b><span class="muted tiny">${esc(s.sub)}</span></span><span class="go" aria-hidden="true">›</span></a>`).join('')}</div></div>`;
-  }
   function suggestHTML(sg) {
     return sg ? `<div class="card sunk section suggest row between"><div class="small">${esc(sg.reason)}</div>
       <div class="row"><button class="btn small primary" id="sgYes">换到 ${esc(sg.to)}</button><button class="btn small ghost" id="sgNo">先不用</button></div></div>` : '';

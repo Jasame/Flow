@@ -6,7 +6,7 @@
     const d = await api(`/api/next/library?level=${f.level}&theme=${f.theme}&page=${f.page}&featured=${f.featured}`);
     const pages = Math.max(1, Math.ceil(d.total / d.per));
     view.innerHTML = `<div class="row between"><h1 class="h1">全部材料</h1><a class="btn small" href="#/import">我的文章</a></div><span class="muted small">${d.total} 篇${f.featured === '1' ? ' · 精选' : ''}</span>
-      <div class="filters"><select id="ff" aria-label="范围"><option value="1" ${f.featured === '1' ? 'selected' : ''}>精选（编辑部原创）</option><option value="" ${f.featured !== '1' ? 'selected' : ''}>全部（含基础练习）</option></select>
+      <div class="filters"><select id="ff" aria-label="范围"><option value="1" ${f.featured === '1' ? 'selected' : ''}>精选</option><option value="" ${f.featured !== '1' ? 'selected' : ''}>全部材料</option></select>
         <select id="fl" aria-label="难度"><option value="">全部难度</option>${['A2', 'B1', 'B2', 'C1'].map(l => `<option ${f.level === l ? 'selected' : ''}>${l}</option>`).join('')}</select>
         <select id="ft" aria-label="话题"><option value="">全部话题</option>${Object.entries(d.themes).map(([k, v]) => `<option value="${k}" ${f.theme === k ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></div>
       <div class="grid-list" id="lib">${d.items.map(m => miniCard(m, m.daily ? '热点' : '')).join('') || '<div class="empty">这个筛选下还没有材料。</div>'}</div>
