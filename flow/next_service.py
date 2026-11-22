@@ -23,7 +23,6 @@ LEVELS = {
 GOALS = {'daily': '日常交流', 'work': '工作沟通', 'exam': '考试', 'abroad': '留学和海外生活', 'media': '看懂影视、新闻', 'interest': '兴趣'}
 THEMES = {'campus': '校园学习', 'travel': '旅行生活', 'life': '日常生活', 'work': '职场沟通', 'culture': '文化交流', 'science': '科学素养'}
 MINUTES = (5, 10, 15, 30)
-RATINGS = ('again', 'hard', 'good', 'easy')
 # Pre-generated Kokoro narration (see tools/gen_audio.py): audio/<voice>/<material>.m4a + .json timings.
 VOICES = {'us-f': '美音 · 女声', 'us-m': '美音 · 男声', 'uk-f': '英音 · 女声', 'uk-m': '英音 · 男声'}
 AUDIO_DIR = Path(os.getenv('FLOW_AUDIO_DIR') or Path(__file__).resolve().parent / 'audio')
@@ -65,6 +64,8 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
  created REAL NOT NULL, PRIMARY KEY(pack, sentence, level));''')
     if 'voice' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:
         c.execute("ALTER TABLE next_profiles ADD COLUMN voice TEXT NOT NULL DEFAULT 'us-f'")
+    import vocab_service  # word books, daily plan and FSRS state live on top of next_cards
+    vocab_service.schema(c)
 
 
 # ---------- helpers ----------
@@ -432,8 +433,11 @@ def stats(c, uid):
     for (t,) in c.execute('SELECT created FROM next_reviews WHERE user_id=? AND created>?', (uid, week_start)):
         days.add(_day(t))
     week = [_day(now - i * 86400) for i in range(6, -1, -1)]
+    import vocab_service
+    vocab_service.introduce(c, uid, now)  # today's new words from the learner's word book, so home shows the real task
+    vc = vocab_service.counts(c, uid, now)
     return {
-        'due': c.execute('SELECT COUNT(*) FROM next_cards WHERE user_id=? AND due<=?', (uid, now)).fetchone()[0],
+        'due': vc['due'], 'new': vc['new'], 'minutes': vc['minutes'], 'vocab_plan': bool(vocab_service.plan(c, uid)),
         'cards': c.execute('SELECT COUNT(*) FROM next_cards WHERE user_id=?', (uid,)).fetchone()[0],
         'materials_done': c.execute("SELECT COUNT(DISTINCT pack) FROM next_progress WHERE user_id=? AND step='check'", (uid,)).fetchone()[0],
         'reviews_week': c.execute('SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND created>?', (uid, week_start)).fetchone()[0],
@@ -513,6 +517,7 @@ def material(c, uid, pid, level=None):
             'variant': variant, 'vocabulary': list(vocab.values()), 'expressions': p.get('expressions', []), 'hard': hard, 'questions': qs,
             'notes': notes, 'task': _task(p, level), 'steps': sorted(done, key=STEPS.index), 'dictation_index': p.get('dictation_index'),
             'provenance': [{'title': s['title'], 'url': s['url']} for s in (p.get('provenance') or {}).get('sources', [])][:5],
+            'mine': __import__('vocab_service').mine_in_text(c, uid, text),
             'user_level': level, 'can_variant': level != cefr(p) and not variant,
             'audio': {'voices': audio_index()[0].get(p['id'], []), 'version': audio_index()[1]}}, 200
 
@@ -578,12 +583,9 @@ def save_card(c, uid, data):
 
 
 def card(c, uid, cid):
+    import vocab_service
     r = c.execute('SELECT * FROM next_cards WHERE id=? AND user_id=?', (cid, uid)).fetchone()
-    return _card_out(r) if r else None
-
-
-def _card_out(r):
-    return {k: r[k] for k in ('id', 'text', 'meaning', 'context', 'pack', 'kind', 'created', 'due', 'interval', 'reps', 'lapses')}
+    return vocab_service.card_out(r) if r else None
 
 
 def cards(c, uid, q='', page=1, per=30):
@@ -592,55 +594,15 @@ def cards(c, uid, q='', page=1, per=30):
         ql = q.lower()
         rows = [r for r in rows if ql in r['text'].lower() or ql in r['meaning'].lower() or ql in r['context'].lower()]
     page = max(1, page)
-    return {'total': len(rows), 'page': page, 'per': per, 'items': [_card_out(r) for r in rows[(page - 1) * per: page * per]]}
+    import vocab_service
+    now = time.time()
+    return {'total': len(rows), 'page': page, 'per': per, 'items': [vocab_service.card_out(r, now) for r in rows[(page - 1) * per: page * per]]}
 
 
 def delete_card(c, uid, data):
     n = c.execute('DELETE FROM next_cards WHERE id=? AND user_id=?', (int(data['id']), uid)).rowcount
     c.commit()
     return ({'ok': True}, 200) if n else ({'error': '记录不存在'}, 404)
-
-
-def review_queue(c, uid, limit=20):
-    now = time.time()
-    rows = c.execute('SELECT * FROM next_cards WHERE user_id=? AND due<=? ORDER BY due LIMIT ?', (uid, now, limit)).fetchall()
-    return {'items': [_card_out(r) for r in rows], 'due': c.execute('SELECT COUNT(*) FROM next_cards WHERE user_id=? AND due<=?', (uid, now)).fetchone()[0]}
-
-
-def schedule(r, rating, now):
-    """Small SM-2 variant. Returns (interval_days, ease, reps, lapses, due)."""
-    interval, ease, reps, lapses = r['interval'], r['ease'], r['reps'], r['lapses']
-    if rating == 'again':
-        return 0, max(1.3, ease - 0.2), 0, lapses + 1, now + 10 * 60
-    if rating == 'hard':
-        interval = max(1, interval * 1.2) if reps else 1
-        return interval, max(1.3, ease - 0.15), reps + 1, lapses, now + interval * 86400
-    if reps == 0:
-        interval = 1
-    elif reps == 1:
-        interval = 3
-    else:
-        interval = max(interval + 1, interval * ease)
-    if rating == 'easy':
-        interval *= 1.3
-        ease += 0.15
-    interval = min(interval, 365)
-    return interval, ease, reps + 1, lapses, now + interval * 86400
-
-
-def review(c, uid, data):
-    rating = data.get('rating')
-    if rating not in RATINGS:
-        return {'error': '评分不正确'}, 400
-    r = c.execute('SELECT * FROM next_cards WHERE id=? AND user_id=?', (int(data['id']), uid)).fetchone()
-    if not r:
-        return {'error': '记录不存在'}, 404
-    now = time.time()
-    interval, ease, reps, lapses, due = schedule(r, rating, now)
-    c.execute('UPDATE next_cards SET interval=?, ease=?, reps=?, lapses=?, due=?, last=? WHERE id=?', (interval, ease, reps, lapses, due, now, r['id']))
-    c.execute('INSERT INTO next_reviews(user_id,card,rating,created) VALUES(?,?,?,?)', (uid, r['id'], rating, now))
-    c.commit()
-    return {'card': card(c, uid, r['id']), 'remaining': review_queue(c, uid, 0)['due']}, 200
 
 
 # ---------- AI ----------
@@ -832,6 +794,10 @@ def meta():
 
 def get(c, uid, path, q):
     one = lambda k, d='': (q.get(k) or [d])[0]
+    if path.startswith('/api/next/vocab') or path == '/api/next/review':
+        if not uid and path != '/api/next/vocab/test':
+            return {'error': '请先登录'}, 401
+        return __import__('vocab_service').get(c, uid, path, q)
     if path == '/api/next/meta':
         return meta(), 200
     if path == '/api/next/home':
@@ -854,8 +820,6 @@ def get(c, uid, path, q):
         return ({'error': '请先登录'}, 401) if path.startswith('/api/next/') else None
     if path == '/api/next/cards':
         return cards(c, uid, one('q')[:80], int(one('page', '1') or 1)), 200
-    if path == '/api/next/review':
-        return review_queue(c, uid), 200
     if path == '/api/next/stats':
         return stats(c, uid), 200
     return None
@@ -865,6 +829,8 @@ def post_public(c, uid, path, data):
     """Routes open to guests (no state change for guests)."""
     if path == '/api/next/check':
         return check(c, uid, data)
+    if path == '/api/next/vocab/test':
+        return __import__('vocab_service').score_test(c, uid, data)
     return None
 
 
@@ -885,8 +851,12 @@ def post(c, uid, path, data):
         return save_card(c, uid, data)
     if path == '/api/next/cards/delete':
         return delete_card(c, uid, data)
-    if path == '/api/next/review':
-        return review(c, uid, data)
+    if path.startswith('/api/next/vocab/') or path == '/api/next/review':
+        import vocab_service
+        if path == '/api/next/vocab/met':
+            hit = vocab_service.met_in_reading(c, uid, str(data.get('word', ''))[:40])
+            return {'card': hit}, 200
+        return vocab_service.post(c, uid, path, data)
     if path == '/api/next/rewrite':
         return rewrite(c, uid, data)
     if path == '/api/next/variant':

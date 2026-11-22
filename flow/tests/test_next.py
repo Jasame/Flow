@@ -86,20 +86,6 @@ class NextServiceTests(unittest.TestCase):
         self.assertEqual(nx.delete_card(self.c, 2, {'id': cid})[1], 404)
         self.assertEqual(nx.delete_card(self.c, 1, {'id': cid})[1], 200)
 
-    def test_review_schedule_grows_and_resets(self):
-        cid = nx.save_card(self.c, 1, {'text': 'make the bus'})[0]['card']['id']
-        self.assertEqual(nx.review_queue(self.c, 1)['due'], 1)
-        d1 = nx.review(self.c, 1, {'id': cid, 'rating': 'good'})[0]['card']
-        self.assertEqual(d1['interval'], 1); self.assertEqual(nx.review_queue(self.c, 1)['due'], 0)
-        self.c.execute('UPDATE next_cards SET due=0 WHERE id=?', (cid,)); self.c.commit()
-        self.assertEqual(nx.review(self.c, 1, {'id': cid, 'rating': 'good'})[0]['card']['interval'], 3)
-        self.c.execute('UPDATE next_cards SET due=0 WHERE id=?', (cid,)); self.c.commit()
-        self.assertGreater(nx.review(self.c, 1, {'id': cid, 'rating': 'easy'})[0]['card']['interval'], 7)
-        again = nx.review(self.c, 1, {'id': cid, 'rating': 'again'})[0]['card']
-        self.assertEqual((again['interval'], again['reps'], again['lapses']), (0, 0, 1))
-        self.assertEqual(nx.review(self.c, 2, {'id': cid, 'rating': 'good'})[1], 404)
-        self.assertEqual(nx.stats(self.c, 1)['reviews_week'], 4)
-
     def test_rewrite_is_validated_quota_counted_and_marks_output(self):
         pid = self.pid()
         with patch.dict(os.environ, {'FLOW_AI_USER_DAILY_LIMIT': '1'}), patch('chat_service.request_model', return_value=(json.dumps(REWRITE), 'stop')) as model:
@@ -170,7 +156,7 @@ class NextHttpTests(unittest.TestCase):
         self.assertEqual(self.call('/api/next/cards', {'text': 'hello there'})[0], 403)
         self.assertEqual(self.call('/api/next/profile', {'level': 'B2', 'themes': ['science']}, csrf)[0], 200)
         self.assertEqual(self.call('/api/next/cards', {'text': 'hello there'}, csrf)[0], 200)
-        self.assertEqual(json.loads(self.call('/api/next/review')[1])['due'], 1)
+        q = json.loads(self.call('/api/next/review')[1]); self.assertEqual((q['due'], q['new'], len(q['items'])), (0, 1, 1))
         self.assertEqual(json.loads(self.call('/api/next/home')[1])['level'], 'B2')
         self.assertEqual(self.call('/api/next/nothing')[0], 404)
 

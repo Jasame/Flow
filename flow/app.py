@@ -140,10 +140,12 @@ class Handler(BaseHTTPRequestHandler):
     except ValueError:pass
   return ip
  def send_audio(self,path):
-  # /audio/<voice>/<material>.(m4a|json): pre-generated narration, with byte ranges so Safari can seek.
+  # /audio/<voice>/<material>.(m4a|json): pre-generated narration; /audio/words/<accent>/<sprite>.m4a: word pronunciations.
+  # Byte ranges so Safari can seek.
   import next_service
   parts=path.split('/')
-  f=next_service.audio_file(parts[2],parts[3].rsplit('.',1)[0],parts[3].rsplit('.',1)[-1]) if len(parts)==4 and '.' in parts[3] else None
+  if len(parts)==5 and parts[2]=='words' and parts[4].endswith('.m4a'):f=__import__('vocab_service').word_audio_file(parts[3],parts[4][:-4])
+  else:f=next_service.audio_file(parts[2],parts[3].rsplit('.',1)[0],parts[3].rsplit('.',1)[-1]) if len(parts)==4 and '.' in parts[3] else None
   if not f:return self.send({'error':'音频不存在'},404)
   data=f.read_bytes();size=len(data);start,end=0,size-1;status=200
   rng=self.headers.get('Range','')

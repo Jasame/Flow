@@ -125,6 +125,7 @@ flow/flow.env.example
 flow/flow.service
 flow/flow_admin.py
 flow/foundation_service.py
+flow/fsrs.py
 flow/graph_service.py
 flow/growth_service.py
 flow/guest_first.py
@@ -228,6 +229,7 @@ flow/tests/test_reference.py
 flow/tests/test_reliability.py
 flow/tests/test_survey.py
 flow/tests/test_vertex.py
+flow/tests/test_vocab.py
 flow/tests/ui_adaptive.cjs
 flow/tests/ui_advanced.cjs
 flow/tests/ui_ai_live.cjs
@@ -252,7 +254,11 @@ flow/tools/revise_pedagogy.py
 flow/upgrade.sh
 flow/vertex_auth.py
 flow/vertex_native.py
+flow/vocab_service.py
 tests/test_release.py
+tools/build_ecdict_subset.py
 tools/corpus_validate.py
+tools/gen_audio.py
+tools/gen_word_audio.py
 tools/release-files.txt
 tools/release.py
