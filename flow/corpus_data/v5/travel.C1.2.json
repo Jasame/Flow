@@ -1,0 +1,514 @@
+[
+  {
+    "id": "v5-travel-c1-guidebook-or-locals",
+    "title": "该信攻略书，还是信当地人",
+    "title_en": "Guidebook or Locals: Whose Advice Should You Trust?",
+    "summary_zh": "“攻略把我带进游客店，路人却指给我最好吃的一顿”——这个故事人人爱讲。作者反驳“当地人永远对、攻略书已过时”的说法，论证两者回答的是不同问题，最好搭配使用。一篇结构完整的论说文范本。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "travel",
+    "genre": "opinion",
+    "body": "Ask any seasoned traveller whose advice they trust, and you will probably hear a familiar story: the guidebook sent them to an overpriced café full of tourists, while a stranger at a bus stop pointed them towards the best meal of the trip. It is a satisfying tale, and it contains some truth, but I would argue that treating locals as infallible and guidebooks as obsolete is a mistake. The two sources answer different questions, and the skill lies in knowing which one to ask. A good guidebook excels at the things that rarely change: how to get from the station to the old town, which museums close early on certain days, why a particular ruin matters. Its writers have usually compared dozens of options, which is precisely what a single resident, however well-meaning, cannot do. Locals, by contrast, are unbeatable on what is happening now: which bakery has just opened, which street is being dug up, where people actually go on a weekday evening. Critics of guidebooks point out, fairly, that once a place appears in print it can be overrun by readers, losing the very charm that earned it a mention. Yet asking locals has its own blind spots. People naturally recommend what they personally enjoy, and unless you happen to share their tastes, their favourite restaurant may leave you puzzled. Some will also steer visitors towards a cousin's shop, which is perfectly human but hardly impartial. The sensible approach, then, is not choosing a side but combining the two. Use the book to sketch the outline of a trip, and let conversations fill in the colour. When the two disagree, it is worth asking why, since the answer often reveals how a place has changed. Far from being rivals, the printed page and the voice at the bus stop work best as a team.",
+    "questions": [
+      {
+        "prompt": "What is the writer's central argument?",
+        "options": [
+          "Local people almost always give better advice than guidebooks",
+          "Guidebooks are out of date and can safely be ignored",
+          "Guidebooks and locals are good at different things and work best together",
+          "Travellers should trust their own instincts rather than anyone's advice"
+        ],
+        "answer": 2,
+        "evidence": "The two sources answer different questions, and the skill lies in knowing which one to ask."
+      },
+      {
+        "prompt": "Why might a local's favourite restaurant disappoint a visitor?",
+        "options": [
+          "Locals rarely eat in restaurants themselves",
+          "The visitor may not share the local's personal taste",
+          "Popular restaurants change their menus for tourists",
+          "Guidebook readers have made it too crowded"
+        ],
+        "answer": 1,
+        "evidence": "unless you happen to share their tastes, their favourite restaurant may leave you puzzled"
+      }
+    ],
+    "dictation_index": 2,
+    "vocabulary": [
+      {
+        "term": "seasoned",
+        "meaning": "经验丰富的；老练的",
+        "example": "Even seasoned teachers feel nervous on the first day of term."
+      },
+      {
+        "term": "infallible",
+        "meaning": "绝对正确的；永不出错的",
+        "example": "My grandmother's memory is good, but it isn't infallible."
+      },
+      {
+        "term": "obsolete",
+        "meaning": "过时的；被淘汰的",
+        "example": "Paper maps are not obsolete when your phone battery dies."
+      },
+      {
+        "term": "overrun",
+        "meaning": "（被人或物）挤满；侵占",
+        "example": "The quiet beach was overrun by visitors after the photo went viral."
+      },
+      {
+        "term": "impartial",
+        "meaning": "公正的；不偏不倚的",
+        "example": "A good referee has to stay impartial."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "I would argue that",
+        "meaning": "我认为（并愿意论证）……",
+        "note": "议论文中提出与常见看法不同的观点时用，比 I think 更有论证感，语气礼貌而坚定。"
+      },
+      {
+        "text": "the skill lies in knowing",
+        "meaning": "关键本领在于懂得……",
+        "note": "A lies in B 表示“A 的关键在于 B”：The secret lies in the timing."
+      },
+      {
+        "text": "by contrast",
+        "meaning": "相比之下",
+        "note": "对比两类事物时的衔接语，常放在句首或主语后，用逗号隔开。"
+      },
+      {
+        "text": "has its own blind spots",
+        "meaning": "也有自己的盲区",
+        "note": "blind spot 指看不到的地方或想不到的问题，用于让步后的反驳很地道。"
+      },
+      {
+        "text": "hardly impartial",
+        "meaning": "算不上公正",
+        "note": "hardly + 形容词是委婉的否定，比 not impartial 更含蓄、更有讽刺味。"
+      },
+      {
+        "text": "Far from being rivals",
+        "meaning": "非但不是对手",
+        "note": "far from + 名词 / 动名词，表示“远非……，恰恰相反”，适合作为结尾的有力翻转。"
+      }
+    ],
+    "grammar": [
+      "nonfinite-gerund",
+      "conditional-unless",
+      "clause-adverb"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-gerund",
+        "quote": "The sensible approach, then, is not choosing a side but combining the two.",
+        "explanation": "动名词 choosing / combining 作表语，用 not A but B 对比两种做法。动名词把“行为”当作名词来讨论，议论文中提出方案时很简洁。"
+      },
+      {
+        "node": "conditional-unless",
+        "quote": "unless you happen to share their tastes, their favourite restaurant may leave you puzzled",
+        "explanation": "unless 意为“除非”，等于 if ... not：如果你和他们口味不同，就可能失望。happen to 让条件显得更偶然。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "When the two disagree, it is worth asking why, since the answer often reveals how a place has changed.",
+        "explanation": "when 引导时间状语从句交代情境，since 引导原因状语从句给出理由，一句话完成“情况—建议—理由”的论证链。"
+      }
+    ],
+    "speaking": "用 1 分钟谈谈你旅行时更信攻略还是更信当地人，举一个例子，并用 by contrast 和 unless 各一次。",
+    "writing": "用 200–250 词写一篇议论文：“旅行时应该依赖网络评分吗？”要求有明确论点、一个反方观点及反驳、结尾总结，用上 I would argue that 和 Far from ...。",
+    "task": {
+      "prompt": "仿照这句，用 The sensible approach is not doing ... but doing ... 对一个“二选一”的争论给出折中观点。",
+      "model": "The sensible approach, then, is not choosing a side but combining the two."
+    },
+    "tags": [
+      "旅行观点",
+      "议论文"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-travel-c1-slow-boat",
+    "title": "沿河慢船三日",
+    "title_en": "Three Days on the Slow Boat",
+    "summary_zh": "明明有公路一下午就到，为什么有人偏要坐三天慢船？这篇旅行特写写信号消失后陌生人之间的对话、两岸缓缓后退的风景，以及“被允许无所事事”的珍贵。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "travel",
+    "genre": "article",
+    "body": "There is a faster way to reach Tamsin, of course: a new road cuts through the hills and covers the distance in an afternoon. But the people who choose the slow boat are not really trying to arrive. They are paying, in a sense, for three days of doing very little, and the boat delivers exactly that. It leaves the river port shortly after dawn, its long wooden deck crowded with plastic chairs, sacks of rice and a surprising number of bicycles. For the first few hours, passengers behave as they would on any other transport, checking their phones and asking how long the next stop will be. By midday the signal has gone, and something shifts. Conversations start between people who would never otherwise have spoken: a retired teacher swapping card tricks with two students, a farmer explaining which trees along the bank bear fruit. Watching the riverbank slide by becomes an activity in itself. Children wave from villages that no road reaches; fishermen lift their nets without looking up; a water buffalo stares at the boat as though it has seen far too many of them. The pace takes some getting used to. On the first afternoon, several travellers paced the deck restlessly, as if their movement could somehow hurry the engine. By the second evening, most had stopped checking the time altogether. What the boat offers, in the end, is not scenery so much as permission: to be bored, to talk to strangers, to let a day pass without having anything to show for it. Few journeys are so unproductive, and fewer still are so hard to forget. When the boat finally docks at Tamsin, there is a strange reluctance to step off, as if the river had been the destination all along.",
+    "questions": [
+      {
+        "prompt": "According to the writer, what is the real appeal of the slow boat?",
+        "options": [
+          "It is the cheapest way to reach Tamsin",
+          "It gives passengers permission to slow down and do very little",
+          "It offers better views than the road through the hills",
+          "It lets travellers work without being disturbed"
+        ],
+        "answer": 1,
+        "evidence": "What the boat offers, in the end, is not scenery so much as permission"
+      },
+      {
+        "prompt": "What happens once the phone signal disappears?",
+        "options": [
+          "Passengers start talking to people they would normally ignore",
+          "Several passengers ask to leave the boat early",
+          "The boat begins to travel faster",
+          "Passengers become more restless than before"
+        ],
+        "answer": 0,
+        "evidence": "Conversations start between people who would never otherwise have spoken"
+      }
+    ],
+    "dictation_index": 10,
+    "vocabulary": [
+      {
+        "term": "dawn",
+        "meaning": "黎明；破晓",
+        "example": "We set off at dawn to avoid the heat."
+      },
+      {
+        "term": "sacks",
+        "meaning": "麻袋；大袋子",
+        "example": "The farmers loaded sacks of potatoes onto the truck."
+      },
+      {
+        "term": "restlessly",
+        "meaning": "焦躁不安地；坐立不安地",
+        "example": "He walked restlessly around the waiting room."
+      },
+      {
+        "term": "reluctance",
+        "meaning": "不情愿；勉强",
+        "example": "She agreed to the plan, but with obvious reluctance."
+      },
+      {
+        "term": "docks",
+        "meaning": "（船）靠岸；进港",
+        "example": "The ferry docks at the island twice a day."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "in a sense",
+        "meaning": "从某种意义上说",
+        "note": "给出一个不完全字面、但有道理的说法时用，语气略带思考。"
+      },
+      {
+        "text": "something shifts",
+        "meaning": "有些东西悄悄变了",
+        "note": "描写气氛或心态的微妙变化，书面随笔中很常见。"
+      },
+      {
+        "text": "an activity in itself",
+        "meaning": "本身就是一项活动",
+        "note": "in itself 强调“本身”：Getting there was an adventure in itself."
+      },
+      {
+        "text": "takes some getting used to",
+        "meaning": "需要一段时间才能适应",
+        "note": "注意 used to 后接动名词 getting；常用于新环境、新习惯。"
+      },
+      {
+        "text": "anything to show for it",
+        "meaning": "（花了时间）却拿不出什么成果",
+        "note": "have nothing to show for sth 通常带遗憾，这里反用，强调“无所收获也没关系”。"
+      },
+      {
+        "text": "all along",
+        "meaning": "一直以来；从头到尾",
+        "note": "常用于恍然大悟：He knew the answer all along."
+      }
+    ],
+    "grammar": [
+      "nonfinite-gerund",
+      "nonfinite-infinitive",
+      "clause-adverb"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-gerund",
+        "quote": "Watching the riverbank slide by becomes an activity in itself.",
+        "explanation": "动名词短语 Watching the riverbank slide by 作主语，谓语用单数 becomes。把一种行为本身当作话题时，用动名词开头最自然。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "permission: to be bored, to talk to strangers, to let a day pass without having anything to show for it",
+        "explanation": "冒号后三个并列的不定式解释 permission 的具体内容，形成排比，节奏感强，是随笔中常用的修辞手法。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "several travellers paced the deck restlessly, as if their movement could somehow hurry the engine",
+        "explanation": "as if 引导方式状语从句，带有“好像……似的”的意味，从句用 could 表示这种想法并不现实，带一点幽默。"
+      }
+    ],
+    "speaking": "用 1 分钟描述一次让你“慢下来”的旅程（坐船、坐火车或长途步行），用上 takes some getting used to 和 something shifts。",
+    "writing": "用 200–250 词写一篇旅行特写，描述一段漫长的交通旅程，至少用一个动名词主语、一组并列不定式和一个 as if 从句。",
+    "task": {
+      "prompt": "仿照这句，用 ... takes some getting used to 写一件你刚开始不习惯、后来慢慢适应的事。",
+      "model": "The pace takes some getting used to."
+    },
+    "tags": [
+      "慢旅行",
+      "旅行特写"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-travel-c1-walking-tour-review",
+    "title": "点评：老城庭院徒步导览",
+    "title_en": "Review: The Hidden Courtyards Walking Tour",
+    "summary_zh": "一位向来不爱跟团的作者，意外地推荐了一场老城徒步导览：人少、导游会聊天、路线专钻小巷。他也毫不客气地指出拖沓之处和不适合的人群。读完你会知道一篇有褒有贬的点评该怎么写。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "travel",
+    "genre": "article",
+    "body": "I have a confession to make: I usually avoid guided walking tours. Shuffling behind a raised umbrella with thirty strangers, straining to hear a script recited at speed, is not my idea of discovering a city. So it was with some reluctance that I joined the Hidden Courtyards walk in the old quarter of Brindell, and with some surprise that I came away recommending it. The first thing to say is that the group was small, which made all the difference. With only eight of us, our guide, a former bookseller named Ivo, could talk to people rather than at them. He began not with a date but with a door, asking why some houses in the quarter have two knockers, one high and one low, and inviting us to guess. Answers ranged from the sensible to the absurd, and by the time he revealed the real one, which I will not spoil here, the group had started to relax and joke together. The route itself is cleverly designed to avoid the main squares, slipping instead through passages most visitors would walk straight past. Ivo's habit of pausing in each courtyard to let the noise of the city fade was perhaps the most memorable part: you hear a fountain, a radio, someone practising scales on a piano. The tour is not flawless. The second hour drags slightly, with too long a stop outside an unremarkable merchant's house, and anyone who finds walking difficult should know that the cobbles are uneven and the steps steep. Unless you are genuinely curious about how ordinary people lived, you may also find the lack of grand monuments disappointing. For everyone else, though, it is a gentle, intelligent introduction to the city, and an excellent way to get your bearings before exploring on your own.",
+    "questions": [
+      {
+        "prompt": "What is the reviewer's overall judgement of the tour?",
+        "options": [
+          "It is perfect for every kind of visitor",
+          "It is too long and not worth the effort",
+          "It is a thoughtful tour, despite a few weaknesses",
+          "It is mainly for people who love grand monuments"
+        ],
+        "answer": 2,
+        "evidence": "with some surprise that I came away recommending it"
+      },
+      {
+        "prompt": "Why did the small size of the group matter?",
+        "options": [
+          "It meant the tour finished earlier",
+          "It allowed the guide to have real conversations with people",
+          "It made it possible to enter private houses",
+          "It let the group walk faster through the squares"
+        ],
+        "answer": 1,
+        "evidence": "could talk to people rather than at them"
+      }
+    ],
+    "dictation_index": 3,
+    "vocabulary": [
+      {
+        "term": "confession",
+        "meaning": "坦白；承认",
+        "example": "I have to make a confession: I've never read the book."
+      },
+      {
+        "term": "straining",
+        "meaning": "（用力）竭力去听 / 看",
+        "example": "We were straining to see the stage from the back row."
+      },
+      {
+        "term": "absurd",
+        "meaning": "荒唐的；可笑的",
+        "example": "Some of the excuses he gave were completely absurd."
+      },
+      {
+        "term": "flawless",
+        "meaning": "完美无缺的",
+        "example": "Her performance was not flawless, but it was full of energy."
+      },
+      {
+        "term": "unremarkable",
+        "meaning": "平平无奇的；不起眼的",
+        "example": "From the outside, the restaurant looks unremarkable."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "I have a confession to make",
+        "meaning": "我得先坦白一件事",
+        "note": "点评、演讲、闲聊时的幽默开场，接着说一个和预期相反的事实。"
+      },
+      {
+        "text": "not my idea of",
+        "meaning": "不是我心目中的……",
+        "note": "委婉表达“我不喜欢”：Waiting in line for hours is not my idea of fun."
+      },
+      {
+        "text": "made all the difference",
+        "meaning": "起了决定性的作用",
+        "note": "强调某个因素让结果大不相同，褒义为主。"
+      },
+      {
+        "text": "talk to people rather than at them",
+        "meaning": "和人交流，而不是对着人说教",
+        "note": "talk to vs talk at：前者是双向交流，后者是单向灌输。"
+      },
+      {
+        "text": "walk straight past",
+        "meaning": "径直走过；擦肩而过",
+        "note": "强调没注意到就走过去了：I walked straight past my friend in the crowd."
+      },
+      {
+        "text": "get your bearings",
+        "meaning": "弄清方位；熟悉环境",
+        "note": "到新地方、新公司都可以用：It took me a week to get my bearings."
+      }
+    ],
+    "grammar": [
+      "nonfinite-infinitive",
+      "conditional-unless",
+      "nonfinite-gerund"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "The route itself is cleverly designed to avoid the main squares",
+        "explanation": "be designed to do sth 表示“被设计用来做……”，不定式说明目的。点评产品、路线、活动时非常好用。"
+      },
+      {
+        "node": "conditional-unless",
+        "quote": "Unless you are genuinely curious about how ordinary people lived, you may also find the lack of grand monuments disappointing.",
+        "explanation": "unless 引导条件从句，等于 if you are not ...；主句用 may 表示可能的失望。写点评时用它划定“适合谁、不适合谁”，显得客观。"
+      },
+      {
+        "node": "nonfinite-gerund",
+        "quote": "Shuffling behind a raised umbrella with thirty strangers, straining to hear a script recited at speed, is not my idea of discovering a city.",
+        "explanation": "长长的动名词短语作主语，中间插入 straining ... 补充画面，谓语用单数 is；结尾 discovering 是介词 of 后的动名词。"
+      }
+    ],
+    "speaking": "用 1 分钟点评一次你参加过的导览、讲座或活动：先说总体评价，再说一个优点和一个缺点，用上 made all the difference 和 Unless you ...。",
+    "writing": "用 200–250 词写一篇有褒有贬的点评（餐厅、展览、景点皆可），开头用 I have a confession to make，结尾说明它适合谁、不适合谁。",
+    "task": {
+      "prompt": "仿照这句，用 I have a confession to make: I usually ... 写一句点评或演讲的开场白。",
+      "model": "I have a confession to make: I usually avoid guided walking tours."
+    },
+    "tags": [
+      "城市徒步",
+      "点评"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-travel-c1-journal-interview",
+    "title": "为什么旅行要写日记",
+    "title_en": "Notes from the Road: Why Keep a Travel Journal?",
+    "summary_zh": "一位坚持多年写旅行日记的人谈：照片记录镜头前的东西，文字记录你脑子里的东西；怎样把门槛降到最低才能坚持；日记里该写什么、不该写什么。读完你可能会想今晚就写下三行。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "travel",
+    "genre": "interview",
+    "body": "Interviewer: You've kept a journal on every trip for most of your adult life, so why not just take photos? Ines: Photos are wonderful, but they record what was in front of the lens, not what was going on in my head. Writing forces me to decide what actually mattered that day, and that decision is where the memory gets made. Interviewer: Plenty of people start a travel journal and abandon it by the third day. How do you keep going? Ines: By lowering the bar almost to the floor. I promise myself three lines before bed, nothing more, and on a good night those three lines turn into three pages. The real trap is treating the journal as a performance. Unless you are planning to publish it, nobody is grading your sentences, so you're free to be boring, repetitive or simply wrong. Interviewer: What goes into a typical entry? Ines: Hardly ever the famous sights, since those are already in every guidebook. I write down the small things instead: the dish I couldn't pronounce, the joke a ferry captain told, the smell of a station at six in the morning. I also tape in bits and pieces, such as tickets, sugar wrappers and the occasional pressed leaf. Interviewer: Do you ever reread them? Ines: Constantly, and that's the real reward. Reading an entry from years ago, I'm often embarrassed by my opinions but grateful for the details, because I would have lost them otherwise. Interviewer: Any advice for someone who is just starting out? Ines: Buy a notebook small enough to carry everywhere, and get into the habit of writing in it before you check your phone. Once the screen is on, your day starts to blur into everybody else's.",
+    "questions": [
+      {
+        "prompt": "According to Ines, what can a journal do that photos cannot?",
+        "options": [
+          "Record more accurately what a place looked like",
+          "Capture her thoughts and what mattered to her",
+          "Be shared more easily with friends",
+          "Save time at the end of a long day"
+        ],
+        "answer": 1,
+        "evidence": "they record what was in front of the lens, not what was going on in my head"
+      },
+      {
+        "prompt": "How does Ines avoid giving up on her journal?",
+        "options": [
+          "She writes for an hour every evening",
+          "She sets herself a very small daily target",
+          "She only writes on the most exciting days",
+          "She plans to publish every page"
+        ],
+        "answer": 1,
+        "evidence": "I promise myself three lines before bed, nothing more"
+      }
+    ],
+    "dictation_index": 2,
+    "vocabulary": [
+      {
+        "term": "lens",
+        "meaning": "镜头；透镜",
+        "example": "There was a fingerprint on the camera lens."
+      },
+      {
+        "term": "abandon",
+        "meaning": "放弃；中途丢下",
+        "example": "We had to abandon our plan because of the storm."
+      },
+      {
+        "term": "repetitive",
+        "meaning": "重复的；单调的",
+        "example": "The work is repetitive, but it gives me time to think."
+      },
+      {
+        "term": "pronounce",
+        "meaning": "发音；念出",
+        "example": "I still can't pronounce the name of that street."
+      },
+      {
+        "term": "blur",
+        "meaning": "变得模糊；混为一体",
+        "example": "After a week of meetings, the days started to blur together."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "lowering the bar",
+        "meaning": "降低标准 / 门槛",
+        "note": "lower the bar 在这里是正面策略：先降低要求，才能坚持下去；也可以说 raise the bar（提高标准）。"
+      },
+      {
+        "text": "on a good night",
+        "meaning": "状态好的晚上",
+        "note": "on a good day / night 表示“顺利的时候”，后面常接最好的情况。"
+      },
+      {
+        "text": "you're free to be",
+        "meaning": "你尽可以……；你完全可以……",
+        "note": "be free to do 表示没有限制、允许去做，语气宽松鼓励。"
+      },
+      {
+        "text": "bits and pieces",
+        "meaning": "零零碎碎的东西",
+        "note": "口语常用，指各种小物件或琐事：I need to pick up a few bits and pieces."
+      },
+      {
+        "text": "starting out",
+        "meaning": "刚起步；刚开始做",
+        "note": "start out 指开始一项事业或爱好，常见于 someone just starting out。"
+      },
+      {
+        "text": "get into the habit of",
+        "meaning": "养成……的习惯",
+        "note": "后接动名词：get into the habit of reading before bed；反义是 get out of the habit。"
+      }
+    ],
+    "grammar": [
+      "nonfinite-gerund",
+      "conditional-unless",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-gerund",
+        "quote": "The real trap is treating the journal as a performance.",
+        "explanation": "动名词短语 treating ... as ... 作表语，说明“真正的陷阱是什么”。同文中 Writing forces me ... 是动名词作主语，get into the habit of writing 是介词后接动名词。"
+      },
+      {
+        "node": "conditional-unless",
+        "quote": "Unless you are planning to publish it, nobody is grading your sentences",
+        "explanation": "unless 引导条件从句，意为“除非你打算出版，否则……”。用它先排除特殊情况，再给对方一个宽心的结论。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "Buy a notebook small enough to carry everywhere",
+        "explanation": "形容词 + enough + to do 表示“足够……以便可以……”。注意 enough 放在形容词后面，不定式说明结果。"
+      }
+    ],
+    "speaking": "用 1 分钟说说你会怎样记录一次旅行（照片、视频、日记还是别的），为什么，用上 Unless ... 和 get into the habit of。",
+    "writing": "用 150–200 词写一则旅行日记，不写著名景点，只写三个小细节（一种味道、一句话、一个声音），并在结尾用一个动名词主语句总结感受。",
+    "task": {
+      "prompt": "仿照这句，用 动名词 + forces me to ... 说说一个习惯给你带来的改变。",
+      "model": "Writing forces me to decide what actually mattered that day"
+    },
+    "tags": [
+      "旅行日记",
+      "人物采访"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

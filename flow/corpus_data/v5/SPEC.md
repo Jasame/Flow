@@ -5,7 +5,7 @@ Flow 正式版语料库。每篇是一份完整的学习材料：原创英文正
 
 ## 文件
 
-- 每个文件是一个 JSON 数组，路径 `flow/corpus_data/v5/<theme>.<cefr>.json`，例如 `science.B2.json`。
+- 每个文件是一个 JSON 数组，路径 `flow/corpus_data/v5/<theme>.<cefr>.json`，例如 `science.B2.json`；后续批次用 `<theme>.<cefr>.<n>.json`（如 `science.B2.2.json`），不要改动已有文件。
 - 写完每个文件立刻运行校验，**零错误才算完成**；警告要逐条看，能改就改：
 
 ```bash

@@ -1,0 +1,482 @@
+[
+  {
+    "id": "v5-campus-a2-budget-cooking",
+    "title": "学生党的省钱厨房",
+    "title_en": "Good Food on a Small Budget: A Student Kitchen Guide",
+    "summary_zh": "天天在外面吃饭又贵又累。这篇小指南给出四个简单办法，教你用学生的预算吃得好。读完你会学到 on a budget、cook once and eat twice 等实用说法。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "campus",
+    "genre": "guide",
+    "body": "Eating out every day is fun, but it gets expensive fast. Here are four simple ways to eat well on a student budget. First, make a shopping list before you go to the shop. Students who shop with a list usually spend less money. Second, buy food that lasts, like rice, eggs, beans and frozen vegetables. Third, cook once and eat twice. A big pot of soup can be your dinner tonight and your lunch tomorrow. Fourth, cook with friends. Everyone brings one thing, and you share the meal and the washing-up. My flatmate Leo does this every Sunday. He makes the rice, I bring the vegetables, and our neighbour brings a cake. It is cheaper than a takeaway, and it is much more fun. If you are new to cooking, start with one easy dish.",
+    "questions": [
+      {
+        "prompt": "What is the main purpose of the text?",
+        "options": [
+          "To explain why eating out is bad for students",
+          "To share Leo's favourite soup recipe",
+          "To give simple tips for eating well without spending much",
+          "To compare the prices of different supermarkets"
+        ],
+        "answer": 2,
+        "evidence": "Here are four simple ways to eat well on a student budget."
+      },
+      {
+        "prompt": "What does Leo do every Sunday?",
+        "options": [
+          "He cooks a shared meal with friends",
+          "He writes a shopping list for the week",
+          "He buys a takeaway for his flatmates",
+          "He makes a big pot of soup for lunch"
+        ],
+        "answer": 0,
+        "evidence": "My flatmate Leo does this every Sunday."
+      }
+    ],
+    "dictation_index": 3,
+    "vocabulary": [
+      {
+        "term": "budget",
+        "meaning": "预算；可以花的钱",
+        "example": "We have a small budget for the class party."
+      },
+      {
+        "term": "lasts",
+        "meaning": "（食物等）能放很久；持续",
+        "example": "This bread lasts for three or four days."
+      },
+      {
+        "term": "frozen",
+        "meaning": "冷冻的",
+        "example": "I always keep some frozen peas in the freezer."
+      },
+      {
+        "term": "takeaway",
+        "meaning": "外卖（饭菜）",
+        "example": "We were too tired to cook, so we ordered a takeaway."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "Eating out",
+        "meaning": "在外面吃饭；下馆子",
+        "note": "eat out 指去餐馆或外面吃，反义是 eat in / cook at home。"
+      },
+      {
+        "text": "gets expensive fast",
+        "meaning": "很快就变得很贵",
+        "note": "get + 形容词 表示变化，fast 放在句尾强调速度：It gets cold fast here."
+      },
+      {
+        "text": "on a student budget",
+        "meaning": "按学生的预算；钱不多的情况下",
+        "note": "on a budget 指“手头紧、要控制花销”，也可以说 on a tight budget。"
+      },
+      {
+        "text": "cook once and eat twice",
+        "meaning": "做一次，吃两顿",
+        "note": "生活小窍门的说法，简单好记，可以直接用来给朋友提建议。"
+      },
+      {
+        "text": "the washing-up",
+        "meaning": "（饭后）洗碗",
+        "note": "英式说法，常说 do the washing-up；美式多说 do the dishes。"
+      },
+      {
+        "text": "new to cooking",
+        "meaning": "刚开始学做饭；做饭新手",
+        "note": "be new to + 名词/动名词：I'm new to this city. / She's new to running."
+      }
+    ],
+    "grammar": [
+      "clause-relative",
+      "tense-present",
+      "conditional-real"
+    ],
+    "knowledge": [
+      {
+        "node": "clause-relative",
+        "quote": "Students who shop with a list usually spend less money.",
+        "explanation": "who shop with a list 是定语从句，修饰前面的 Students（指人用 who）。主句的谓语是 spend，别被从句里的 shop 干扰。"
+      },
+      {
+        "node": "tense-present",
+        "quote": "My flatmate Leo does this every Sunday.",
+        "explanation": "一般现在时 does 加 every Sunday，表示固定的习惯。主语是第三人称单数，所以用 does 而不是 do。"
+      },
+      {
+        "node": "conditional-real",
+        "quote": "If you are new to cooking, start with one easy dish.",
+        "explanation": "真实条件句：if 从句用一般现在时，主句用祈使句 start…，是给建议时最常用的结构。"
+      }
+    ],
+    "speaking": "用 1 分钟告诉一位新同学：怎样在学校吃得好又不花太多钱。至少说一个 who 定语从句，并用上 on a budget。",
+    "writing": "用 60–80 词写一份你自己的“省钱吃饭小贴士”，列出三条建议，用 First / Second / Third 连接，并用上 cook once and eat twice。",
+    "task": {
+      "prompt": "仿照这句，用 …who… 写一句关于“哪类学生会怎样”的话，比如 Students who…",
+      "model": "Students who shop with a list usually spend less money."
+    },
+    "tags": [
+      "宿舍生活",
+      "省钱做饭"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-campus-a2-cleaning-rota",
+    "title": "宿舍值日表",
+    "title_en": "Whose Turn Is It? Making a Cleaning Rota",
+    "summary_zh": "合租公寓的厨房乱成一团，垃圾一周没人倒。三个室友坐下来做了一张值日表，还顺便“抢”了最轻松的活。读完你会说几句商量家务分工的地道口语。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "campus",
+    "genre": "dialogue",
+    "body": "Nadia: Okay, everyone, look at the kitchen. Tom: I know. It's a bit of a mess. Nadia: A bit? Nobody has taken out the rubbish for a week. Wei: Sorry, that's my fault. I've been really busy with exams. Nadia: We're all busy. I think we need a cleaning rota. Tom: A what? Nadia: A rota. It's a list that tells everyone whose turn it is. Wei: Good idea. So who does what? Nadia: Each week, one person cleans the kitchen, one person does the bathroom, and one person takes out the rubbish. Then we change. Tom: Sounds fair. Can I start with the rubbish? Wei: Ha! That's the easiest job. Tom: Exactly. I've already put my name next to it. Nadia: Fine, but next week you're doing the bathroom.",
+    "questions": [
+      {
+        "prompt": "What do the three flatmates decide to do?",
+        "options": [
+          "Clean the whole flat together every Sunday",
+          "Wait until Wei finishes his exams",
+          "Ask Tom to do all the cleaning jobs",
+          "Share the jobs and change them every week"
+        ],
+        "answer": 3,
+        "evidence": "Each week, one person cleans the kitchen, one person does the bathroom, and one person takes out the rubbish. Then we change."
+      },
+      {
+        "prompt": "Why does Tom want to start with the rubbish?",
+        "options": [
+          "Nadia told him to do it first",
+          "It is the easiest job",
+          "He forgot to take it out last week",
+          "Wei is too busy to do it"
+        ],
+        "answer": 1,
+        "evidence": "That's the easiest job."
+      }
+    ],
+    "dictation_index": 11,
+    "vocabulary": [
+      {
+        "term": "rota",
+        "meaning": "值日表；轮班表",
+        "example": "There is a rota for washing the cups in our office."
+      },
+      {
+        "term": "rubbish",
+        "meaning": "垃圾",
+        "example": "Please put the rubbish outside before you go to bed."
+      },
+      {
+        "term": "fault",
+        "meaning": "过错；责任",
+        "example": "It wasn't your fault that the bus was late."
+      },
+      {
+        "term": "easiest",
+        "meaning": "最容易的",
+        "example": "Which question was the easiest for you?"
+      }
+    ],
+    "expressions": [
+      {
+        "text": "a bit of a mess",
+        "meaning": "有点乱",
+        "note": "a bit of a + 名词，让批评听起来轻一点：It's a bit of a problem."
+      },
+      {
+        "text": "taken out the rubbish",
+        "meaning": "把垃圾拿出去（倒垃圾）",
+        "note": "take out the rubbish 是英式说法，美式说 take out the trash。"
+      },
+      {
+        "text": "that's my fault",
+        "meaning": "那是我的错",
+        "note": "主动认错的简单说法，前面常加 Sorry。"
+      },
+      {
+        "text": "whose turn it is",
+        "meaning": "轮到谁了",
+        "note": "常用于排队、做家务、玩游戏：Whose turn is it to cook tonight?"
+      },
+      {
+        "text": "who does what",
+        "meaning": "谁做什么（怎么分工）",
+        "note": "商量分工时的固定说法：Let's decide who does what."
+      },
+      {
+        "text": "Sounds fair",
+        "meaning": "听起来挺公平的；可以",
+        "note": "省略了主语 That，口语里表示同意对方的安排。"
+      }
+    ],
+    "grammar": [
+      "tense-perfect",
+      "tense-present",
+      "clause-relative"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-perfect",
+        "quote": "Nobody has taken out the rubbish for a week.",
+        "explanation": "现在完成时 has taken + for a week，表示从一周前到现在一直没有发生，结果就是现在厨房很乱。Nobody 后面用单数 has。"
+      },
+      {
+        "node": "tense-present",
+        "quote": "Each week, one person cleans the kitchen, one person does the bathroom, and one person takes out the rubbish.",
+        "explanation": "一般现在时描述固定的安排和规则。主语都是 one person（单数），所以动词都加 -s / -es：cleans, does, takes。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "It's a list that tells everyone whose turn it is.",
+        "explanation": "that tells everyone… 是定语从句，修饰 a list（指物用 that 或 which）。用它来解释一个词的意思非常方便：It's a… that…"
+      }
+    ],
+    "speaking": "和同伴模拟：你们宿舍需要分配三项家务。用 1 分钟商量 who does what，至少用上一个现在完成时句子（Nobody has… / I've already…）。",
+    "writing": "用 50–70 词为你的宿舍写一张值日表说明：每周谁做什么、多久换一次。用一般现在时，并用上 whose turn it is。",
+    "task": {
+      "prompt": "仿照这句，用 It's a… that… 向外国朋友解释一个中文里的东西，比如“红包”或“食堂”。",
+      "model": "It's a list that tells everyone whose turn it is."
+    },
+    "tags": [
+      "宿舍生活",
+      "室友相处"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-campus-a2-silent-floor",
+    "title": "图书馆的静音层",
+    "title_en": "Welcome to the Silent Floor",
+    "summary_zh": "图书馆四楼是“静音层”：不能说话、不能吃东西，连打喷嚏都很响。有人在这里效率翻倍，也有人觉得太安静反而紧张。读完你会学到描述学习环境的常用表达。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "campus",
+    "genre": "article",
+    "body": "Every university library has a special place, and in ours it is the fourth floor. People call it the silent floor. The rules are simple. You cannot talk, eat or take phone calls there. Even a sneeze sounds very loud! Most students who study there come for one reason. They want to focus. Downstairs, people are chatting, printing and working in groups. Upstairs, you only hear pages and keyboards. Some students love it. Ming, who is in her second year, goes there every morning. \"My phone stays in my bag, and I finish my work in half the time,\" she says. Others find it too quiet. Jake says the silence makes him nervous, so he works in the busy cafe next door. Which floor is right for you? Try both and see.",
+    "questions": [
+      {
+        "prompt": "What is the writer's main message?",
+        "options": [
+          "The silent floor is the best place for every student",
+          "Students should never use their phones in the library",
+          "Different students need different places to study",
+          "The cafe next door is too noisy for studying"
+        ],
+        "answer": 2,
+        "evidence": "Which floor is right for you? Try both and see."
+      },
+      {
+        "prompt": "Why does Jake work in the cafe?",
+        "options": [
+          "He likes to eat while he studies",
+          "The quiet makes him feel nervous",
+          "The fourth floor is always full",
+          "He needs to work with his group"
+        ],
+        "answer": 1,
+        "evidence": "Jake says the silence makes him nervous"
+      }
+    ],
+    "dictation_index": 7,
+    "vocabulary": [
+      {
+        "term": "silent",
+        "meaning": "安静的；不出声的",
+        "example": "The room went silent when the teacher walked in."
+      },
+      {
+        "term": "focus",
+        "meaning": "集中注意力",
+        "example": "I can't focus when my phone keeps ringing."
+      },
+      {
+        "term": "nervous",
+        "meaning": "紧张的；不安的",
+        "example": "She always feels nervous before a test."
+      },
+      {
+        "term": "keyboards",
+        "meaning": "键盘",
+        "example": "The keyboards in the computer room are very old."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "take phone calls",
+        "meaning": "接电话",
+        "note": "take a call 表示“接听电话”，比 answer the phone 更常用于公共场合的规定。"
+      },
+      {
+        "text": "for one reason",
+        "meaning": "为了一个原因",
+        "note": "后面常接解释：People come here for one reason: the coffee."
+      },
+      {
+        "text": "in her second year",
+        "meaning": "读大二；在第二学年",
+        "note": "be in one's first / second year 是描述年级的自然说法，不说 She is grade two。"
+      },
+      {
+        "text": "in half the time",
+        "meaning": "只用一半的时间",
+        "note": "强调效率高：I can do it in half the time with a good laptop."
+      },
+      {
+        "text": "find it too quiet",
+        "meaning": "觉得太安静",
+        "note": "find + it + 形容词 表达个人感受：I find it hard to wake up early."
+      },
+      {
+        "text": "Try both and see",
+        "meaning": "两个都试试看",
+        "note": "给建议时的轻松结尾，意思是“自己试了就知道”。"
+      }
+    ],
+    "grammar": [
+      "tense-present",
+      "clause-relative"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-present",
+        "quote": "Downstairs, people are chatting, printing and working in groups.",
+        "explanation": "现在进行时 are chatting / printing / working 描写此刻正在发生的场景；三个 -ing 共用一个 are，读起来更紧凑。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "Ming, who is in her second year, goes there every morning.",
+        "explanation": "who is in her second year 夹在两个逗号之间，是对 Ming 的补充说明（非限制性定语从句）。去掉它，句子 Ming goes there every morning 依然完整。"
+      }
+    ],
+    "speaking": "用 1 分钟说说你最喜欢在哪里学习：那里是什么样子？人们通常在做什么？用上现在进行时和一个 who 从句。",
+    "writing": "用 60–80 词描写你学校里一个学习的地方，写出那里的规则和气氛，并用上 in half the time 或 find it too quiet。",
+    "task": {
+      "prompt": "仿照这句，用 …, who…, … 介绍一位朋友和他/她的一个习惯。",
+      "model": "Ming, who is in her second year, goes there every morning."
+    },
+    "tags": [
+      "图书馆",
+      "学习环境"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-campus-a2-radio-host",
+    "title": "校园电台主持人访谈",
+    "title_en": "Meet the Host of Lunch Break Live",
+    "summary_zh": "Sara 在校园电台主持午间节目已经两年了。她讲了第一天忘开麦克风的糗事，还有每周五打电话来点歌的“老听众”。读完你会学到现在完成时在采访中的自然用法。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "campus",
+    "genre": "interview",
+    "body": "Interviewer: Sara, you host Lunch Break Live on campus radio. How long have you been the host? Sara: I've done the show for two years now. Interviewer: Were you nervous at the beginning? Sara: Very! On my first day, I forgot to turn on the microphone. I talked for five minutes, and nobody heard me. Interviewer: Oh no! What happens on the show? Sara: I play music, read the campus news and talk to a guest. My favourite guests are students who have unusual hobbies. Last week, I talked to a boy who keeps bees on the roof. Interviewer: Have you ever met someone famous? Sara: Not yet. But the cleaner in our building has become a regular. She calls in every Friday with a song request. Interviewer: Any advice for new hosts? Sara: Check the microphone first!",
+    "questions": [
+      {
+        "prompt": "Why does Sara give the advice at the end?",
+        "options": [
+          "Because of her own mistake on her first day",
+          "Because the microphone at the station is very old",
+          "Because a guest once broke the microphone",
+          "Because new hosts often speak too quietly"
+        ],
+        "answer": 0,
+        "evidence": "On my first day, I forgot to turn on the microphone."
+      },
+      {
+        "prompt": "Who calls the show every Friday?",
+        "options": [
+          "A boy who keeps bees",
+          "A famous singer",
+          "The cleaner in Sara's building",
+          "Sara's first guest"
+        ],
+        "answer": 2,
+        "evidence": "She calls in every Friday with a song request."
+      }
+    ],
+    "dictation_index": 10,
+    "vocabulary": [
+      {
+        "term": "host",
+        "meaning": "主持（节目）；主持人",
+        "example": "Who is going to host the party this year?"
+      },
+      {
+        "term": "microphone",
+        "meaning": "麦克风；话筒",
+        "example": "Please speak into the microphone so everyone can hear you."
+      },
+      {
+        "term": "unusual",
+        "meaning": "不寻常的；少见的",
+        "example": "He has an unusual name, so people always remember it."
+      },
+      {
+        "term": "request",
+        "meaning": "请求；（点歌的）点播",
+        "example": "The band played our request at the end of the night."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "at the beginning",
+        "meaning": "一开始；刚开始的时候",
+        "note": "at the beginning 单独使用表示“起初”；后面接 of 时要说 at the beginning of the term。"
+      },
+      {
+        "text": "turn on the microphone",
+        "meaning": "打开麦克风",
+        "note": "turn on / turn off 用于电器和设备：turn on the light / the TV。"
+      },
+      {
+        "text": "Not yet",
+        "meaning": "还没有",
+        "note": "回答现在完成时问题（Have you…?）时最自然的简短答语。"
+      },
+      {
+        "text": "become a regular",
+        "meaning": "成了常客；成了老听众",
+        "note": "a regular 指经常来的人，餐馆、咖啡馆、节目都能用：He's a regular here."
+      },
+      {
+        "text": "calls in",
+        "meaning": "（给节目）打电话进来",
+        "note": "call in 指打电话到电台、电视节目或公司，和 call sb 不同。"
+      },
+      {
+        "text": "a song request",
+        "meaning": "点歌",
+        "note": "make a song request = 点一首歌；request 在这里是名词。"
+      }
+    ],
+    "grammar": [
+      "tense-perfect",
+      "clause-relative"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-perfect",
+        "quote": "I've done the show for two years now.",
+        "explanation": "现在完成时 have done + for two years，表示从两年前开始一直到现在还在做。回答 How long have you…? 时就用这个结构。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "Last week, I talked to a boy who keeps bees on the roof.",
+        "explanation": "who keeps bees on the roof 是定语从句，说明是“哪个男孩”。指人用 who，从句里的动词 keeps 要和 a boy 保持单数一致。"
+      }
+    ],
+    "speaking": "假设你在校园电台接受采访：用 1 分钟介绍一件你做了很久的事。用上 I've… for… 和 Have you ever…? 各一次。",
+    "writing": "用 60–80 词写一段采访问答（3 个问题），采访一位有特别爱好的同学，至少用一个 who 从句和一个现在完成时。",
+    "task": {
+      "prompt": "仿照这句，用 I've… for… now. 说一件你坚持了一段时间的事。",
+      "model": "I've done the show for two years now."
+    },
+    "tags": [
+      "校园电台",
+      "学生活动"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

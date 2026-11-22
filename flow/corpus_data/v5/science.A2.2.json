@@ -1,0 +1,489 @@
+[
+  {
+    "id": "v5-science-a2-goosebumps",
+    "title": "为什么会起鸡皮疙瘩",
+    "title_en": "Why Do We Get Goosebumps?",
+    "summary_zh": "天冷或害怕时，手臂上会冒出一粒粒小疙瘩。读完你会知道是哪块小肌肉在“拉”汗毛、这个反应对毛茸茸的动物有什么用，还能学会 make your hair stand on end 这个地道说法。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "science",
+    "genre": "explainer",
+    "body": "Have you ever noticed tiny bumps on your arms on a cold morning? We call them goosebumps, because your skin looks like the skin of a goose without its feathers. Next to every hair, there is a tiny muscle that can pull it up. When you feel cold, these muscles get tight. The hairs stand up, and the skin around them rises into little bumps. For animals with thick fur, this is useful. Standing fur holds warm air close to the body. A cat that is scared looks bigger with its fur up. Humans don't have much body hair, so goosebumps don't really keep us warm. Scientists think they are something that our bodies have kept from the distant past. Fear can cause them too. That's why we say a scary film can make your hair stand on end!",
+    "questions": [
+      {
+        "prompt": "Why don't goosebumps help humans much today?",
+        "options": [
+          "Our muscles are too weak to pull the hairs up",
+          "We don't have enough body hair to hold warm air",
+          "We only get goosebumps when we are afraid",
+          "Our skin is already warmer than an animal's fur"
+        ],
+        "answer": 1,
+        "evidence": "Humans don't have much body hair, so goosebumps don't really keep us warm."
+      },
+      {
+        "prompt": "What pulls each hair up when you feel cold?",
+        "options": [
+          "The cold air around your arms",
+          "Warm air under the skin",
+          "A tiny muscle next to the hair",
+          "The little bumps on the skin"
+        ],
+        "answer": 2,
+        "evidence": "Next to every hair, there is a tiny muscle that can pull it up."
+      }
+    ],
+    "dictation_index": 4,
+    "vocabulary": [
+      {
+        "term": "bumps",
+        "meaning": "小疙瘩；小肿块",
+        "example": "The mosquito left two red bumps on my leg."
+      },
+      {
+        "term": "muscle",
+        "meaning": "肌肉",
+        "example": "You use more than one muscle when you smile."
+      },
+      {
+        "term": "fur",
+        "meaning": "（动物的）毛皮；绒毛",
+        "example": "My cat has soft white fur."
+      },
+      {
+        "term": "scary",
+        "meaning": "吓人的；恐怖的",
+        "example": "I never watch scary films before bed."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "Have you ever noticed",
+        "meaning": "你有没有注意到……",
+        "note": "引出一个大家都见过、却很少细想的现象，开头抓人注意力。"
+      },
+      {
+        "text": "stand up",
+        "meaning": "竖起来；立起来",
+        "note": "人站起来、头发或毛竖起来都可以用：My hair stands up when I'm cold."
+      },
+      {
+        "text": "keep us warm",
+        "meaning": "让我们保暖",
+        "note": "keep + 人 + 形容词，表示“使保持某种状态”：This coat keeps me warm."
+      },
+      {
+        "text": "the distant past",
+        "meaning": "很久很久以前",
+        "note": "distant 表示时间或距离“遥远的”，也可说 the distant future。"
+      },
+      {
+        "text": "make your hair stand on end",
+        "meaning": "让人毛骨悚然；吓得汗毛直竖",
+        "note": "形容非常吓人，正好来自起鸡皮疙瘩时汗毛竖起的样子：The story made my hair stand on end."
+      }
+    ],
+    "grammar": [
+      "tense-perfect",
+      "tense-present",
+      "clause-relative"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-perfect",
+        "quote": "Have you ever noticed tiny bumps on your arms on a cold morning?",
+        "explanation": "Have you ever + 过去分词，问对方“到目前为止有没有过这种经历”。不问具体哪一天，所以不用过去时。"
+      },
+      {
+        "node": "tense-present",
+        "quote": "When you feel cold, these muscles get tight.",
+        "explanation": "when 从句和主句都用一般现在时，描述每次都会发生的身体反应，解释“规律”时就用这个结构。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "A cat that is scared looks bigger with its fur up.",
+        "explanation": "that is scared 是定语从句，修饰前面的 a cat，意思是“害怕的猫”。that 在从句里作主语，不能省略。"
+      }
+    ],
+    "speaking": "用 1 分钟向朋友解释：人为什么会起鸡皮疙瘩，猫害怕时为什么看起来会“变大”。用上 stand up 和 keep us warm。",
+    "writing": "用 60–80 词写一写你什么时候会起鸡皮疙瘩（天冷、看恐怖片、听到某首歌……），至少用一个 Have you ever…? 的问句和一个 that 定语从句。",
+    "task": {
+      "prompt": "仿照这句，用 Have you ever noticed…? 问朋友一个关于身体或天气的小问题。",
+      "model": "Have you ever noticed tiny bumps on your arms on a cold morning?"
+    },
+    "tags": [
+      "人体奥秘",
+      "日常科学"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-science-a2-balloon-static",
+    "title": "用气球让纸屑跳起来",
+    "title_en": "Make Paper Jump with a Balloon",
+    "summary_zh": "一个几分钟就能做完的家庭小实验：用头发摩擦气球，纸屑会跳起来，头发也会竖起来。读完你能用简单英语讲清静电是怎么回事，还能学会说明书式的步骤英语。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "science",
+    "genre": "guide",
+    "body": "Here is a small experiment that you can do at home. You need a balloon, some tiny bits of paper and dry hair. First, blow up the balloon and tie it. Next, rub it quickly on your hair for a few seconds. Once you have rubbed it, hold it just above the paper. Watch closely. The bits jump up and stick to it! Then hold it near your head, and some hairs rise to meet it. Why does this happen? Everything is made of tiny parts that carry electric charge. When you rub, some of these parts move from your hair onto the balloon. Now it can pull light things towards it. Your hairs all get the same charge, so they push each other away. The trick works best on a dry day. Keep balloons away from very young children.",
+    "questions": [
+      {
+        "prompt": "Why can the balloon pull the paper after you rub it?",
+        "options": [
+          "Air comes out of the balloon and lifts the paper",
+          "Rubbing makes the balloon cold",
+          "Tiny charged parts move from your hair onto the balloon",
+          "The paper already has a charge before you start"
+        ],
+        "answer": 2,
+        "evidence": "When you rub, some of these parts move from your hair onto the balloon."
+      },
+      {
+        "prompt": "Why do your hairs push each other away?",
+        "options": [
+          "They are too dry to stay down",
+          "They all get the same charge",
+          "The balloon is too far from them",
+          "They are lighter than the paper"
+        ],
+        "answer": 1,
+        "evidence": "Your hairs all get the same charge, so they push each other away."
+      }
+    ],
+    "dictation_index": 4,
+    "vocabulary": [
+      {
+        "term": "tie",
+        "meaning": "系；扎紧",
+        "example": "Can you help me tie this bag?"
+      },
+      {
+        "term": "rub",
+        "meaning": "摩擦；揉搓",
+        "example": "Rub your hands together to warm them up."
+      },
+      {
+        "term": "stick",
+        "meaning": "粘住；贴住",
+        "example": "Wet leaves stick to the bottom of my shoes."
+      },
+      {
+        "term": "charge",
+        "meaning": "电荷",
+        "example": "Lightning happens when electric charge builds up in clouds."
+      },
+      {
+        "term": "trick",
+        "meaning": "小把戏；小魔术",
+        "example": "My uncle showed me a card trick at dinner."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "blow up the balloon",
+        "meaning": "把气球吹起来",
+        "note": "blow up 用在气球、轮胎上是“充气”；用在炸弹上才是“爆炸”。"
+      },
+      {
+        "text": "Watch closely",
+        "meaning": "仔细看",
+        "note": "演示时提醒别人注意马上要出现的变化，语气轻松。"
+      },
+      {
+        "text": "stick to it",
+        "meaning": "粘在上面",
+        "note": "stick to + 物＝粘住；stick to it 也常比喻“坚持下去”：It's hard, but stick to it!"
+      },
+      {
+        "text": "push each other away",
+        "meaning": "互相推开；互相排斥",
+        "note": "each other 表示“彼此”，可用于人和物：The two magnets push each other away."
+      },
+      {
+        "text": "works best",
+        "meaning": "效果最好",
+        "note": "说明东西在什么条件下最好用：This app works best on a big screen."
+      },
+      {
+        "text": "Keep balloons away from",
+        "meaning": "让气球远离……",
+        "note": "keep A away from B 是常见的安全提示句型：Keep knives away from small children."
+      }
+    ],
+    "grammar": [
+      "tense-perfect",
+      "clause-relative",
+      "tense-present"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-perfect",
+        "quote": "Once you have rubbed it, hold it just above the paper.",
+        "explanation": "once 引导时间从句，用现在完成时 have rubbed 强调“这一步做完以后”，再做主句里的动作。说明书和菜谱里很常见。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "Everything is made of tiny parts that carry electric charge.",
+        "explanation": "that carry electric charge 修饰 tiny parts。先行词是复数，所以从句里的动词用 carry，不加 s。"
+      },
+      {
+        "node": "tense-present",
+        "quote": "When you rub, some of these parts move from your hair onto the balloon.",
+        "explanation": "一般现在时说明每次做实验都会发生的过程。from … onto … 清楚地说出“从哪里到哪里”。"
+      }
+    ],
+    "speaking": "用 1 分钟像老师一样，一步一步教朋友做这个气球实验。用上 First、Next、Once you have… 和 Watch closely。",
+    "writing": "用 60–80 词写一份你会做的小实验、小手工或一道简单菜的步骤说明，至少用 First、Next 和一个 Once you have… 的句子。",
+    "task": {
+      "prompt": "仿照这句，用 Once you have…, … 写一条做饭或做手工的步骤。",
+      "model": "Once you have rubbed it, hold it just above the paper."
+    },
+    "tags": [
+      "家庭小实验",
+      "电与磁"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-science-a2-moon-phases",
+    "title": "月亮为什么会“变形”",
+    "title_en": "Has Someone Eaten the Moon?",
+    "summary_zh": "女儿发现月亮从圆圆的变成了“香蕉”。爸爸用几句话讲清：月亮自己不发光，我们只是看到了被太阳照亮的那一半的不同部分。顺便纠正一个很多人都有的误会。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "science",
+    "genre": "dialogue",
+    "body": "Zoe: Dad, the Moon was round last week. Now it looks like a banana. Has someone eaten it? Dad: No, it's still round. Zoe: But why does it look different? Dad: The Moon doesn't make its own light. The Sun shines on it, and the half that faces the Sun is always bright. Zoe: Always? Dad: Always. But the Moon is travelling around the Earth, and each trip takes about a month. So we see different parts of the bright half. Zoe: So when it's round, we see all of the bright side? Dad: Exactly. When it's thin, we only see a small piece. Zoe: My friend says the Earth's shadow covers it. Dad: Many people think so, but it isn't true. Zoe: I've learned something new tonight. Dad: Me too. I've never heard anyone call the Moon a banana.",
+    "questions": [
+      {
+        "prompt": "Why does the Moon seem to change shape?",
+        "options": [
+          "The Earth's shadow covers a different part of it each night",
+          "We see different parts of its bright half as it travels around the Earth",
+          "The Moon makes less light at some times of the month",
+          "Clouds often hide part of the Moon"
+        ],
+        "answer": 1,
+        "evidence": "So we see different parts of the bright half."
+      },
+      {
+        "prompt": "What does Dad think about the idea from Zoe's friend?",
+        "options": [
+          "It explains why the Moon looks like a banana",
+          "It is true only when the Moon is thin",
+          "It is a common idea, but it is wrong",
+          "It is new to him and very interesting"
+        ],
+        "answer": 2,
+        "evidence": "Many people think so, but it isn't true."
+      }
+    ],
+    "dictation_index": 9,
+    "vocabulary": [
+      {
+        "term": "shines",
+        "meaning": "照耀；发光",
+        "example": "The sun shines into my room every morning."
+      },
+      {
+        "term": "faces",
+        "meaning": "面向；朝着",
+        "example": "Our classroom faces the playground."
+      },
+      {
+        "term": "shadow",
+        "meaning": "影子；阴影",
+        "example": "My dog is afraid of its own shadow."
+      },
+      {
+        "term": "piece",
+        "meaning": "一块；一部分",
+        "example": "Can I have a small piece of your cake?"
+      }
+    ],
+    "expressions": [
+      {
+        "text": "looks like a banana",
+        "meaning": "看起来像根香蕉",
+        "note": "look like + 名词＝看起来像……；look + 形容词＝看起来……：It looks different."
+      },
+      {
+        "text": "make its own light",
+        "meaning": "自己发光",
+        "note": "its own 强调“它自己的”：The Moon has no light of its own."
+      },
+      {
+        "text": "takes about a month",
+        "meaning": "大约需要一个月",
+        "note": "take + 时间，说做某事要花多久：The trip takes about an hour."
+      },
+      {
+        "text": "Many people think so",
+        "meaning": "很多人都这么认为",
+        "note": "think so 代替前面说过的内容，常接 but 引出纠正。"
+      },
+      {
+        "text": "learned something new",
+        "meaning": "学到了新东西",
+        "note": "something + 形容词，形容词放在后面：something new / something interesting。"
+      },
+      {
+        "text": "Me too",
+        "meaning": "我也是",
+        "note": "口语里附和对方最简单的说法，这里爸爸幽默地说自己也“学到了新东西”。"
+      }
+    ],
+    "grammar": [
+      "tense-perfect",
+      "tense-present",
+      "clause-relative"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-perfect",
+        "quote": "Has someone eaten it?",
+        "explanation": "现在完成时强调对现在的影响：月亮“现在”少了一大块，所以问是不是有人把它吃掉了，而不是问具体什么时候吃的。"
+      },
+      {
+        "node": "tense-present",
+        "quote": "But the Moon is travelling around the Earth, and each trip takes about a month.",
+        "explanation": "现在进行时 is travelling 描述一直在进行的运动；takes 用一般现在时说明固定的规律。两种时态在一句里分工明确。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "the half that faces the Sun is always bright",
+        "explanation": "that faces the Sun 修饰 the half，说明是“朝着太阳的那一半”。先行词是单数，所以从句动词用 faces。"
+      }
+    ],
+    "speaking": "用 1 分钟给小朋友解释：月亮为什么有时圆、有时弯，又为什么不是地球的影子挡住了它。用上 make its own light 和 takes about a month。",
+    "writing": "用 60–80 词写一段你和家人之间的“为什么”小对话，至少用一个 Has/Have… 或 I've never… 的现在完成时句子。",
+    "task": {
+      "prompt": "仿照这句，用 I've never… 说一件你从来没做过、见过或听过的事。",
+      "model": "I've never heard anyone call the Moon a banana."
+    },
+    "tags": [
+      "天文",
+      "日常科学"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-science-a2-round-bubbles",
+    "title": "泡泡为什么总是圆的",
+    "title_en": "Why Are Bubbles Always Round? A Science Teacher Explains",
+    "summary_zh": "一位小学科学老师聊她最受欢迎的一节课：吹泡泡。为什么泡泡总是圆的，哪怕用方形的圈来吹？读完你能用简单英语讲清这个道理，并学会用现在完成时谈经历。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "science",
+    "genre": "interview",
+    "body": "Anna Ross is a science teacher who has worked at the same primary school for many years. We asked her about her favourite lesson. Q: What do your students love most? Anna: Bubbles! We have blown thousands of them in my classroom. Q: Why are bubbles always round? Anna: A bubble has a very thin skin of soap and water. This skin pulls itself tight, but the air inside pushes out. A ball is the shape that holds the most air with the smallest skin. So the bubble becomes a ball. Q: What if you use a square wand? Anna: My students have tried that many times. The bubble still comes out round! Q: Is there a lesson here for adults? Anna: Yes. Never stop asking simple questions. Good science often starts with a child who asks why.",
+    "questions": [
+      {
+        "prompt": "According to Anna, why does a bubble become a ball?",
+        "options": [
+          "The air inside is lighter than the air outside",
+          "A ball holds the most air with the least skin",
+          "The soap makes the skin heavier at the bottom",
+          "Most bubble wands are round"
+        ],
+        "answer": 1,
+        "evidence": "A ball is the shape that holds the most air with the smallest skin."
+      },
+      {
+        "prompt": "What message does Anna have for adults?",
+        "options": [
+          "They should buy better bubble soap",
+          "They should teach children more facts",
+          "They should blow bubbles every day",
+          "They should keep asking simple questions"
+        ],
+        "answer": 3,
+        "evidence": "Never stop asking simple questions."
+      }
+    ],
+    "dictation_index": 8,
+    "vocabulary": [
+      {
+        "term": "thin",
+        "meaning": "薄的",
+        "example": "This paper is so thin that you can see through it."
+      },
+      {
+        "term": "soap",
+        "meaning": "肥皂",
+        "example": "There is no soap in the bathroom."
+      },
+      {
+        "term": "shape",
+        "meaning": "形状",
+        "example": "What shape is your new desk?"
+      },
+      {
+        "term": "square",
+        "meaning": "方形的",
+        "example": "We eat at a square table in the kitchen."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "for many years",
+        "meaning": "很多年来（一直）",
+        "note": "常和现在完成时连用，表示从过去一直持续到现在：I have lived here for many years."
+      },
+      {
+        "text": "pulls itself tight",
+        "meaning": "把自己绷紧",
+        "note": "pull … tight＝拉紧：Pull the rope tight."
+      },
+      {
+        "text": "What if you use",
+        "meaning": "要是你用……会怎样？",
+        "note": "What if…? 口语里提出一个假设并问结果：What if it rains tomorrow?"
+      },
+      {
+        "text": "comes out round",
+        "meaning": "出来的结果是圆的",
+        "note": "come out + 形容词，说做出来的结果：My cake came out flat."
+      },
+      {
+        "text": "Never stop asking",
+        "meaning": "永远不要停止提问",
+        "note": "stop + doing 表示“停止做某事”；never stop doing 用来鼓励别人一直保持某种习惯。"
+      }
+    ],
+    "grammar": [
+      "tense-perfect",
+      "clause-relative",
+      "tense-present"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-perfect",
+        "quote": "Anna Ross is a science teacher who has worked at the same primary school for many years.",
+        "explanation": "has worked … for many years 是现在完成时，表示从过去开始、一直持续到现在的状态，她现在还在这所学校工作。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "Good science often starts with a child who asks why.",
+        "explanation": "who asks why 修饰 a child。先行词是人，用 who；who 在从句里作主语，所以后面直接接动词 asks。"
+      },
+      {
+        "node": "tense-present",
+        "quote": "This skin pulls itself tight, but the air inside pushes out.",
+        "explanation": "一般现在时陈述一直成立的科学事实。but 连接两个方向相反的力：皮往里收，空气往外推。"
+      }
+    ],
+    "speaking": "用 1 分钟采访你的同桌或朋友：他/她小时候最喜欢的一个实验或游戏是什么？至少问一个 Have you ever…? 的问题。",
+    "writing": "用 60–80 词介绍一位你记得的老师，至少用一个 who 定语从句和一个现在完成时（如 has taught … for many years）。",
+    "task": {
+      "prompt": "仿照这句，用 have/has + 过去分词 + many times 说一件你做过很多次的事。",
+      "model": "My students have tried that many times."
+    },
+    "tags": [
+      "家庭小实验",
+      "人物访谈"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

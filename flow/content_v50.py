@@ -11,7 +11,7 @@ from pathlib import Path
 from content_v30 import all_materials as previous_materials, SUPERSEDED  # noqa: F401 (re-exported)
 
 V5_DIR = Path(__file__).resolve().parent / 'corpus_data' / 'v5'
-_NAME = re.compile(r'(campus|travel|life|work|culture|science)\.(A2|B1|B2|C1)\.json')
+_NAME = re.compile(r'(campus|travel|life|work|culture|science)\.(A2|B1|B2|C1)(?:\.\d+)?\.json')  # e.g. work.B2.json, work.B2.2.json
 
 
 def v5_materials():

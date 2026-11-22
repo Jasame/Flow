@@ -1,0 +1,509 @@
+[
+  {
+    "id": "v5-travel-b2-visitor-limits",
+    "title": "热门景点该不该限流",
+    "title_en": "Should Popular Sights Limit Visitor Numbers?",
+    "summary_zh": "一篇标准议论文：作者主张热门景点应该限制每日人数，并用分时段预约代替涨价。文章给出两个理由，回应“限流不公平”的反方观点，最后总结立场——可直接当作考试作文的结构范本。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "travel",
+    "genre": "opinion",
+    "body": "Anyone who has queued for an hour to spend ten minutes in a crowded palace knows that popularity can ruin a place. In my view, the most famous sights should limit how many people can enter each day, and they should do it through timed tickets rather than simply raising prices. The first reason is the experience itself. When a small square is packed with visitors, nobody can actually see it; they see the backs of other people's heads. If entry is spread across the day, visitors can move freely and notice the details they travelled so far to find. The second reason is protection. Old floors, painted ceilings and narrow staircases were never designed to carry modern crowds, and every extra footstep adds a little wear. Limiting numbers is one of the simplest ways to make sure these places survive for future generations. Critics argue that limits are unfair, because travellers who cannot plan months ahead will miss out. This is a serious concern, and it deserves a serious answer. Sites could keep a share of tickets for same-day visitors, or offer late slots for people who decide at the last minute. Although no system is perfect, a well-designed one is far fairer than the current situation, in which the people who suffer most are often the ones who live nearby. In short, limiting visitors is not about keeping people out. It is about making sure that everyone who does get in can enjoy a place that is still worth visiting.",
+    "questions": [
+      {
+        "prompt": "What is the writer's main position?",
+        "options": [
+          "Famous sights should close for part of the year",
+          "Popular sights should limit daily visitors, ideally with timed tickets",
+          "Ticket prices should be raised to reduce crowds",
+          "Only people who live nearby should be allowed to visit"
+        ],
+        "answer": 1,
+        "evidence": "the most famous sights should limit how many people can enter each day"
+      },
+      {
+        "prompt": "How does the writer answer the claim that limits are unfair?",
+        "options": [
+          "By saying that travellers should always plan months ahead",
+          "By suggesting tickets for same-day visitors and late slots",
+          "By admitting that limits would not protect old buildings",
+          "By arguing that local people should pay less"
+        ],
+        "answer": 1,
+        "evidence": "Sites could keep a share of tickets for same-day visitors, or offer late slots for people who decide at the last minute."
+      }
+    ],
+    "dictation_index": 4,
+    "vocabulary": [
+      {
+        "term": "queued",
+        "meaning": "排队",
+        "example": "We queued for twenty minutes to buy tickets."
+      },
+      {
+        "term": "wear",
+        "meaning": "磨损；损耗",
+        "example": "The old stairs show signs of wear after years of use."
+      },
+      {
+        "term": "generations",
+        "meaning": "（几）代人",
+        "example": "This recipe has been passed down for generations."
+      },
+      {
+        "term": "slots",
+        "meaning": "（预约的）时段；时间段",
+        "example": "All the morning slots were taken, so I booked one in the afternoon."
+      },
+      {
+        "term": "critics",
+        "meaning": "批评者；反对者",
+        "example": "Critics say the new rule is too strict."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "In my view",
+        "meaning": "在我看来",
+        "note": "议论文表明立场的标准开头，比 I think 正式，比 In my humble opinion 自然。"
+      },
+      {
+        "text": "packed with",
+        "meaning": "挤满了……",
+        "note": "形容地方被人或东西塞满：The train was packed with commuters."
+      },
+      {
+        "text": "miss out",
+        "meaning": "错过（好机会）",
+        "note": "强调“别人有、自己没得到”的遗憾，也可以说 miss out on sth。"
+      },
+      {
+        "text": "it deserves a serious answer",
+        "meaning": "这值得认真回应",
+        "note": "写反方观点时先肯定其合理性，再反驳，显得公允有说服力。"
+      },
+      {
+        "text": "at the last minute",
+        "meaning": "临到最后一刻",
+        "note": "说临时决定或最后关头：He always packs at the last minute."
+      },
+      {
+        "text": "In short",
+        "meaning": "总之；简而言之",
+        "note": "议论文结尾总结用，语气干脆，比 In conclusion 更简洁。"
+      }
+    ],
+    "grammar": [
+      "conditional-real",
+      "clause-adverb",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "conditional-real",
+        "quote": "If entry is spread across the day, visitors can move freely and notice the details they travelled so far to find.",
+        "explanation": "真实条件句：if + 一般现在时（这里是被动 is spread），主句用 can 说明一旦做到就会出现的结果。议论文里用来论证“措施—效果”的因果关系。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "Although no system is perfect, a well-designed one is far fairer than the current situation",
+        "explanation": "although 引导让步状语从句，先承认缺点，再在主句里坚持自己的判断。这是议论文回应反方时最常用的让步结构。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "Limiting numbers is one of the simplest ways to make sure these places survive for future generations.",
+        "explanation": "the way(s) to do sth 中的不定式作后置定语，说明“什么样的办法”。句首 Limiting numbers 是动名词作主语。"
+      }
+    ],
+    "speaking": "用 1 分钟表明你是否支持热门景点限流：先说立场，再给一个理由，最后回应一个反对意见，用上 In my view 和 Although ...。",
+    "writing": "用 180–220 词写一篇议论文：“热门景点应该涨价还是限流？”要求有明确立场、两个理由、一个反方观点及回应、结尾总结，用上 In short。",
+    "task": {
+      "prompt": "仿照这句，用 Although no ... is perfect, ... is far ... than ... 为你支持的方案做一个让步论证。",
+      "model": "Although no system is perfect, a well-designed one is far fairer than the current situation"
+    },
+    "tags": [
+      "旅游议题",
+      "议论文"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-travel-b2-city-guide-interview",
+    "title": "采访一位老城导游",
+    "title_en": "Stories, Not Dates: An Interview with a City Guide",
+    "summary_zh": "Rosa 原本学建筑，一份暑期工让她当上了老港口的导游。她聊怎么用故事抓住游客、怎么面对答不上来的问题，还有为什么同一条街走了无数遍依然不腻。最后给参加导览的人一条实用建议。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "travel",
+    "genre": "interview",
+    "body": "Interviewer: How did you become a tour guide? Rosa: Completely by accident. I was studying architecture and took a summer job showing visitors around the old harbour. If I hadn't needed the money that summer, I'd probably be designing office blocks now instead of walking the same streets every day. Interviewer: What makes a tour good, in your opinion? Rosa: Stories, not dates. People forget a list of kings within an hour, but they remember the baker who hid love letters inside loaves of bread. As soon as I see eyes drifting towards phones, I stop and tell a story. Interviewer: What's the hardest part of the job? Rosa: Every group is different, and that keeps me on my toes. A family with tired children needs a completely different walk from a group of retired engineers, so I've learned to read people quickly. If someone asks a question I can't answer, I say so and promise to find out. Pretending only makes things worse. Interviewer: Don't you get bored of the same streets? Rosa: Honestly, no, because the streets keep surprising me. Almost every week, a visitor points out something I've never noticed, like a tiny carved face above a doorway I've walked past a thousand times. Interviewer: Any advice for people joining a tour? Rosa: Stand near the front and ask things. Guides love curious people, because a good question turns a talk into a conversation.",
+    "questions": [
+      {
+        "prompt": "What does Rosa believe makes a tour memorable?",
+        "options": [
+          "Giving visitors as many dates as possible",
+          "Telling stories that visitors can picture",
+          "Walking quickly to see more places",
+          "Letting visitors use their phones freely"
+        ],
+        "answer": 1,
+        "evidence": "Stories, not dates."
+      },
+      {
+        "prompt": "What does Rosa do when she cannot answer a question?",
+        "options": [
+          "She changes the subject politely",
+          "She makes up a story instead",
+          "She admits it and promises to find out",
+          "She asks another visitor to answer"
+        ],
+        "answer": 2,
+        "evidence": "If someone asks a question I can't answer, I say so and promise to find out."
+      }
+    ],
+    "dictation_index": 7,
+    "vocabulary": [
+      {
+        "term": "architecture",
+        "meaning": "建筑学；建筑",
+        "example": "She is interested in the architecture of old train stations."
+      },
+      {
+        "term": "harbour",
+        "meaning": "港口；海港",
+        "example": "Small fishing boats were tied up in the harbour."
+      },
+      {
+        "term": "drifting",
+        "meaning": "（注意力、目光）飘走；漂移",
+        "example": "I could feel my attention drifting during the long meeting."
+      },
+      {
+        "term": "retired",
+        "meaning": "退休的",
+        "example": "My retired neighbour spends most mornings in his garden."
+      },
+      {
+        "term": "curious",
+        "meaning": "好奇的",
+        "example": "Children are curious about everything around them."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "Completely by accident",
+        "meaning": "完全是偶然",
+        "note": "by accident 表示不是计划好的，回答“你怎么开始做这行的”时很常用。"
+      },
+      {
+        "text": "showing visitors around",
+        "meaning": "带游客参观",
+        "note": "show sb around (a place) 指带人四处看看，可用于新同事、朋友来访。"
+      },
+      {
+        "text": "read people",
+        "meaning": "看懂人；会察言观色",
+        "note": "read people quickly 指很快判断别人的情绪和需要，职场上也常用。"
+      },
+      {
+        "text": "only makes things worse",
+        "meaning": "只会让事情更糟",
+        "note": "劝人别做某事时常用：Shouting only makes things worse."
+      },
+      {
+        "text": "keeps me on my toes",
+        "meaning": "让我时刻保持警觉、不敢松懈",
+        "note": "keep sb on their toes 多是正面意思：新挑战让人保持状态，工作场合很常用。"
+      },
+      {
+        "text": "turns a talk into a conversation",
+        "meaning": "把讲解变成对话",
+        "note": "turn A into B 表示“把 A 变成 B”，用来强调转变。"
+      }
+    ],
+    "grammar": [
+      "subjunctive-mixed",
+      "clause-adverb",
+      "conditional-real"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-mixed",
+        "quote": "If I hadn't needed the money that summer, I'd probably be designing office blocks now",
+        "explanation": "错综时间条件：if 从句用过去完成时，假设过去的情况不同；主句用 would be doing + now，说现在的结果。讲“当初的选择改变了现在的我”时最常用。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "As soon as I see eyes drifting towards phones, I stop and tell a story.",
+        "explanation": "as soon as 引导时间状语从句，表示“一……就……”。从句用一般现在时，描述习惯性的反应。"
+      },
+      {
+        "node": "conditional-real",
+        "quote": "If someone asks a question I can't answer, I say so and promise to find out.",
+        "explanation": "真实条件句的“零条件”用法：if 从句和主句都用一般现在时，说明每次遇到这种情况的固定做法。"
+      }
+    ],
+    "speaking": "用 1 分钟介绍一份你做过的工作或兼职，说说最难的部分，并用 If I hadn't ..., I'd probably be ... now 设想另一种人生。",
+    "writing": "用 150–180 词写一段采访：问一个你认识的人（真实或虚构）为什么选择现在的职业，至少用上 by accident、as soon as 和一个错综条件句。",
+    "task": {
+      "prompt": "仿照这句，用 If I hadn't ..., I'd probably be ... now 写一个改变你现在生活的过去选择。",
+      "model": "If I hadn't needed the money that summer, I'd probably be designing office blocks now"
+    },
+    "tags": [
+      "导游",
+      "人物采访"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-travel-b2-trail-turn-back",
+    "title": "走错山路之后，我们掉头了",
+    "title_en": "The Trail We Didn't Finish",
+    "summary_zh": "两个朋友爬山时跟错了路，标记消失、云在聚集、水也快喝完了。是继续冲顶还是掉头？作者讲述了这次“没走完的山路”，以及从此养成的徒步好习惯。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "travel",
+    "genre": "story",
+    "body": "The sign at the bottom of the trail said the lake was three hours away, and by lunchtime we had been walking for four. Somewhere after the wooden bridge, we had followed a path that looked well used, assuming it was ours. It wasn't. The red marks on the rocks had disappeared, and the path kept narrowing until it was little more than a goat track. My friend Dara wanted to keep going, insisting the lake had to be just over the next ridge. I wasn't so sure. Clouds were gathering behind the peaks, we had half a bottle of water left, and neither of us had told anyone exactly where we were going. Standing on that slope, I realised that the lake was not the point anymore; getting down before dark was. So we turned back. It felt like failure at first, and we hardly spoke for an hour. By the time we reached the bridge again, though, the first drops of rain were falling, and the mood had changed completely. Back at the guesthouse, the owner told us that the path we had taken ends at a steep cliff. If we had pushed on that afternoon, I doubt we would be laughing about it today. Dara now jokes that I'm the most boring hiker she knows, and I take it as a compliment. Before every walk, we check the route, tell someone our plan and agree on a time to turn around, whether or not we have reached the top.",
+    "questions": [
+      {
+        "prompt": "Why did the writer decide to turn back?",
+        "options": [
+          "Dara was too tired to continue",
+          "Getting down safely had become more important than the lake",
+          "They could already see the lake from the slope",
+          "The guesthouse owner had phoned to warn them"
+        ],
+        "answer": 1,
+        "evidence": "I realised that the lake was not the point anymore; getting down before dark was"
+      },
+      {
+        "prompt": "What does \"little more than a goat track\" suggest about the path?",
+        "options": [
+          "It was narrow and hard to follow",
+          "It was full of animals",
+          "It was the main route to the lake",
+          "It was clearly marked with red signs"
+        ],
+        "answer": 0,
+        "evidence": "the path kept narrowing until it was little more than a goat track"
+      }
+    ],
+    "dictation_index": 12,
+    "vocabulary": [
+      {
+        "term": "ridge",
+        "meaning": "山脊",
+        "example": "We walked along the ridge with valleys on both sides."
+      },
+      {
+        "term": "gathering",
+        "meaning": "聚集；（云）越积越多",
+        "example": "Dark clouds were gathering over the sea."
+      },
+      {
+        "term": "slope",
+        "meaning": "山坡；斜坡",
+        "example": "The children rolled down the grassy slope."
+      },
+      {
+        "term": "cliff",
+        "meaning": "悬崖；峭壁",
+        "example": "The old lighthouse stands at the edge of a cliff."
+      },
+      {
+        "term": "compliment",
+        "meaning": "赞美；恭维",
+        "example": "She took his comment about her cooking as a compliment."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "little more than",
+        "meaning": "不过是……；几乎只是……",
+        "note": "强调某物比预期差很多：The hotel was little more than a shed."
+      },
+      {
+        "text": "keep going",
+        "meaning": "继续走下去；坚持下去",
+        "note": "既可以是字面意思，也可以是鼓励：Don't stop now, keep going!"
+      },
+      {
+        "text": "not the point anymore",
+        "meaning": "已经不是重点了",
+        "note": "the point 指真正重要的东西；That's not the point. 是很常用的反驳句。"
+      },
+      {
+        "text": "turned back",
+        "meaning": "折返；往回走",
+        "note": "turn back 指中途返回，也可以比喻放弃原计划。"
+      },
+      {
+        "text": "pushed on",
+        "meaning": "硬着头皮继续前进",
+        "note": "push on 强调不顾困难继续，常用于旅行、工作。"
+      },
+      {
+        "text": "I take it as a compliment",
+        "meaning": "我就当这是夸我了",
+        "note": "别人的话听起来像批评时，用这句幽默地回应。"
+      }
+    ],
+    "grammar": [
+      "subjunctive-mixed",
+      "clause-adverb",
+      "nonfinite-participle"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-mixed",
+        "quote": "If we had pushed on that afternoon, I doubt we would be laughing about it today.",
+        "explanation": "错综时间条件：if 从句用过去完成时假设过去，主句用 would be doing + today 说现在的结果。I doubt 让语气更含蓄，暗示后果不会好。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "By the time we reached the bridge again, though, the first drops of rain were falling",
+        "explanation": "by the time 引导时间状语从句，意思是“等到……的时候”，主句描述那一刻已经在发生的情况。though 插在中间表示转折。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "Standing on that slope, I realised that the lake was not the point anymore",
+        "explanation": "现在分词短语 Standing on that slope 作状语，交代“我”做出判断时所处的位置和时刻，逻辑主语与主句一致。"
+      }
+    ],
+    "speaking": "用 1 分钟讲一次你中途放弃（或差点放弃）某个计划的经历，说说当时为什么改变主意，用上 not the point anymore 和 turned back。",
+    "writing": "用 150–200 词写一次“及时止损”的经历，至少用一个分词短语、一个 by the time 从句，以及一个 If I had ..., I would ... now / today 的错综条件句。",
+    "task": {
+      "prompt": "仿照这句，用 A was not the point anymore; B was 写一次你改变目标的经历。",
+      "model": "the lake was not the point anymore; getting down before dark was"
+    },
+    "tags": [
+      "徒步",
+      "户外安全"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-travel-b2-audio-guide",
+    "title": "一副耳机，让博物馆活了过来",
+    "title_en": "Why a Good Audio Guide Makes a Museum Come Alive",
+    "summary_zh": "逛博物馆时一块块读说明牌，出门却什么都记不住？这篇解释好的语音导览为什么有效：眼睛不用离开展品、人声把事实变成故事、节奏由你掌控。也提醒你：导览好不好，关键在稿子。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "travel",
+    "genre": "explainer",
+    "body": "Most of us have walked through a museum reading label after label, only to realise at the exit that we remember almost nothing. A good audio guide can change that, and the reasons are surprisingly simple. The first is where your eyes go. When you read a label, you have to look away from the object to take in the information. With a voice in your ear, your eyes can stay on the object while someone tells you where to look: the crack in the vase, the tiny dog in the corner of the painting. The second reason is the human voice itself. A speaker who sounds curious, pauses at the right moment and occasionally laughs turns facts into a story, and a story is far easier to hold on to than a list. Some guides go further, adding the noise of a busy workshop or a few lines from an old letter, so that the object seems to belong to a real person again. Third, a guide gives you control. If a room bores you, you can skip ahead; if a single object fascinates you, you can listen to the extra track and stay as long as you like. Of course, an audio guide is only as good as its script. If it simply reads the labels aloud, it adds nothing except a pair of uncomfortable headphones. But when it is written to be heard rather than read, it can make a quiet room full of glass cases feel surprisingly alive.",
+    "questions": [
+      {
+        "prompt": "What is the main point of the passage?",
+        "options": [
+          "Audio guides are better than human tour guides",
+          "A well-written audio guide helps visitors look, listen and remember",
+          "Museums should remove labels from their walls",
+          "Audio guides work only for paintings and letters"
+        ],
+        "answer": 1,
+        "evidence": "A good audio guide can change that, and the reasons are surprisingly simple."
+      },
+      {
+        "prompt": "According to the writer, when does an audio guide add nothing?",
+        "options": [
+          "When it includes the sounds of a workshop",
+          "When it simply reads the labels aloud",
+          "When visitors decide to skip ahead",
+          "When the speaker laughs too often"
+        ],
+        "answer": 1,
+        "evidence": "If it simply reads the labels aloud, it adds nothing except a pair of uncomfortable headphones."
+      }
+    ],
+    "dictation_index": 3,
+    "vocabulary": [
+      {
+        "term": "label",
+        "meaning": "（展品）说明牌；标签",
+        "example": "The label next to the painting was too small to read."
+      },
+      {
+        "term": "crack",
+        "meaning": "裂缝；裂纹",
+        "example": "There is a thin crack in my phone screen."
+      },
+      {
+        "term": "fascinates",
+        "meaning": "使着迷；深深吸引",
+        "example": "Space travel fascinates my younger brother."
+      },
+      {
+        "term": "script",
+        "meaning": "稿子；脚本",
+        "example": "The presenter forgot her script and had to improvise."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "label after label",
+        "meaning": "一块接一块的说明牌",
+        "note": "名词 + after + 名词表示“一个接一个”，带有重复、单调的感觉：meeting after meeting。"
+      },
+      {
+        "text": "take in the information",
+        "meaning": "吸收信息；理解信息",
+        "note": "take in 指接收并理解，也可以说 take in the view（欣赏风景）。"
+      },
+      {
+        "text": "hold on to",
+        "meaning": "记住；抓住不放",
+        "note": "这里比喻“把信息留在脑子里”，也可指保留物品或希望。"
+      },
+      {
+        "text": "skip ahead",
+        "meaning": "跳到后面",
+        "note": "看视频、听音频或读书时跳过一部分：Let's skip ahead to the last chapter."
+      },
+      {
+        "text": "only as good as",
+        "meaning": "好坏取决于……",
+        "note": "A is only as good as B：A 的质量完全取决于 B，常用于评价工具、团队。"
+      },
+      {
+        "text": "written to be heard rather than read",
+        "meaning": "为了让人听而写，而不是为了读",
+        "note": "rather than 连接两个对比的部分，强调写作要考虑受众的方式。"
+      }
+    ],
+    "grammar": [
+      "nonfinite-infinitive",
+      "conditional-real",
+      "clause-adverb"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "When you read a label, you have to look away from the object to take in the information.",
+        "explanation": "to take in the information 是表示目的的不定式：“为了获取信息”。同一句里 when 引导时间状语从句，交代动作发生的情境。"
+      },
+      {
+        "node": "conditional-real",
+        "quote": "If a room bores you, you can skip ahead; if a single object fascinates you, you can listen to the extra track",
+        "explanation": "两个并列的真实条件句，用分号隔开形成对比：if + 一般现在时，主句用 can 说明可以做的选择。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "so that the object seems to belong to a real person again",
+        "explanation": "so that 引导目的状语从句，说明“加入这些声音是为了让展品重新属于一个真实的人”。比 to do 更能带出一个完整的主谓结构。"
+      }
+    ],
+    "speaking": "用 1 分钟说说你逛过的一个印象最深的博物馆或展览，是什么让它“活了起来”？用上 only as good as 或 take in。",
+    "writing": "用 150–200 词为你熟悉的一件展品或一个景点写一段 1 分钟的语音导览稿，要“写给耳朵听”：多用短句和具体细节，至少用一个 so that 和一个 if 条件句。",
+    "task": {
+      "prompt": "仿照这句，用 A is only as good as B 说一个你认同的道理。",
+      "model": "an audio guide is only as good as its script"
+    },
+    "tags": [
+      "博物馆",
+      "旅行体验"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

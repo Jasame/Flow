@@ -1,0 +1,509 @@
+[
+  {
+    "id": "v5-campus-c1-open-book-exams",
+    "title": "期末考试该不该开卷",
+    "title_en": "Should Final Exams Be Open-Book?",
+    "summary_zh": "一篇考试型议论文：作者主张大多数科目更适合开卷考试，但前提是题目必须改写——从“背定义”变成“用知识”。文章先认真回应反方担忧，再论证并给出结论。读完你会学到 unless、动名词主语等高级议论句式。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "campus",
+    "genre": "opinion",
+    "body": "Few proposals unsettle a university quite like the suggestion that students should be allowed to bring their books into the exam hall. To critics, it sounds like an admission that memory no longer matters; to supporters, it is simply an acknowledgement of how knowledge is actually used outside the classroom. My own view is that open-book exams are a better test for most subjects, but only if the questions are rewritten to deserve them. The case against is not trivial. Some knowledge genuinely needs to live in your head: an interpreter who has to look up every second word will never keep pace with a speaker, and a programmer who cannot remember basic syntax will spend the day searching rather than building. Critics also worry, with some justification, that students will prepare less, assuming that the answers are waiting in their notes. Yet this objection rests on a particular kind of question. If an exam asks students to reproduce a definition, then allowing the textbook does make it pointless. Unless the questions change, opening the book merely rewards whoever has the neatest index. The more interesting possibility lies elsewhere. When students know they can consult their materials, examiners are free to set problems that demand applying, comparing and evaluating ideas rather than simply recalling them. A history paper might present an unfamiliar document and ask how far it supports a theory studied in class; no amount of page-turning will write that answer for you. Nor does the format make preparation optional. Knowing where an argument sits in your notes is of little use unless you already understand it well enough to apply it under pressure. Closed-book exams will keep their place wherever instant recall is precisely the skill being assessed. Elsewhere, though, insisting on memorisation measures something we rarely need while ignoring the judgement we need most. Open the books, then, but raise the bar for what the questions ask.",
+    "questions": [
+      {
+        "prompt": "What is the writer's main argument?",
+        "options": [
+          "Open-book exams should replace closed-book exams in every subject",
+          "Closed-book exams are better because memory matters most",
+          "Open-book exams suit most subjects if the questions test more than recall",
+          "Open-book exams mainly reward students who keep tidy notes"
+        ],
+        "answer": 2,
+        "evidence": "but only if the questions are rewritten to deserve them"
+      },
+      {
+        "prompt": "Why does the writer mention a history paper with an unfamiliar document?",
+        "options": [
+          "To prove that history students need to memorise more dates",
+          "To show a question that cannot be answered just by looking things up",
+          "To argue that history exams are harder than other exams",
+          "To suggest that students should bring documents into the exam"
+        ],
+        "answer": 1,
+        "evidence": "no amount of page-turning will write that answer for you"
+      }
+    ],
+    "dictation_index": 8,
+    "vocabulary": [
+      {
+        "term": "trivial",
+        "meaning": "微不足道的；无关紧要的",
+        "example": "It may seem like a trivial mistake, but it changed the whole result."
+      },
+      {
+        "term": "reproduce",
+        "meaning": "复述；照原样再现",
+        "example": "The test only asked us to reproduce what was in the lecture notes."
+      },
+      {
+        "term": "consult",
+        "meaning": "查阅；参考",
+        "example": "You may consult a dictionary during the translation task."
+      },
+      {
+        "term": "unfamiliar",
+        "meaning": "不熟悉的；陌生的",
+        "example": "Driving on unfamiliar roads at night makes me nervous."
+      },
+      {
+        "term": "memorisation",
+        "meaning": "死记硬背；记忆",
+        "example": "Learning a language involves more than the memorisation of word lists."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "with some justification",
+        "meaning": "不无道理地",
+        "note": "让步时用来承认对方的担忧有一定依据，比 rightly 更克制、更学术。"
+      },
+      {
+        "text": "rests on",
+        "meaning": "建立在……之上；取决于",
+        "note": "an argument / objection rests on sth：指出对方论点的前提，是反驳的常用切入点。"
+      },
+      {
+        "text": "lies elsewhere",
+        "meaning": "在别处；另有所在",
+        "note": "The real problem lies elsewhere. 用来把讨论引向作者真正想说的重点。"
+      },
+      {
+        "text": "no amount of page-turning",
+        "meaning": "翻再多页也（没用）",
+        "note": "no amount of + 名词/动名词 + will…：再多的……也不能……，语气强而形象。"
+      },
+      {
+        "text": "under pressure",
+        "meaning": "在压力下",
+        "note": "work / perform / think under pressure，求职和考试话题中非常常用。"
+      },
+      {
+        "text": "raise the bar",
+        "meaning": "提高标准",
+        "note": "比喻把跳高的横杆抬高，常用于结尾呼吁：We need to raise the bar."
+      }
+    ],
+    "grammar": [
+      "conditional-unless",
+      "nonfinite-gerund",
+      "clause-adverb"
+    ],
+    "knowledge": [
+      {
+        "node": "conditional-unless",
+        "quote": "Unless the questions change, opening the book merely rewards whoever has the neatest index.",
+        "explanation": "unless = if not：除非题目改变，否则……。从句用一般现在时；主语 opening the book 是动名词短语，谓语用单数 rewards。"
+      },
+      {
+        "node": "nonfinite-gerund",
+        "quote": "Knowing where an argument sits in your notes is of little use unless you already understand it well enough to apply it under pressure.",
+        "explanation": "动名词短语 Knowing where an argument sits in your notes 作主语，谓语用单数 is；be of little use = 没什么用，比 is not useful 更书面。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "When students know they can consult their materials, examiners are free to set problems that demand applying, comparing and evaluating ideas rather than simply recalling them.",
+        "explanation": "when 引导条件性的时间状语从句，交代前提；主句中 demand 后接三个并列动名词，与 rather than recalling 形成对比。"
+      }
+    ],
+    "speaking": "用 1 分钟回答：你更喜欢开卷考试还是闭卷考试？先承认另一方的道理（with some justification），再给出你的理由，至少用一个 unless 句。",
+    "writing": "用 220–280 词写一篇考试型议论文：Should students be allowed to use calculators or dictionaries in exams? 要有明确立场、反方观点与反驳、结论，并至少用一个动名词作主语。",
+    "task": {
+      "prompt": "仿照这句，用 Unless…, … 指出某种改革如果不配套改变，只会带来什么结果。",
+      "model": "Unless the questions change, opening the book merely rewards whoever has the neatest index."
+    },
+    "tags": [
+      "考试制度",
+      "议论文写作"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-campus-c1-midnight-email",
+    "title": "半夜给老师发邮件失礼吗",
+    "title_en": "The Midnight Email: Writing to a Lecturer at an Awkward Hour",
+    "summary_zh": "凌晨一点，论文九点交，题目却没看懂——这时给老师发邮件算不算失礼？作者认为，真正重要的不是发送时间，而是你要求什么、期待多快回复。读完你会学到写“深夜求助邮件”的得体措辞。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "campus",
+    "genre": "article",
+    "body": "It is twenty to one in the morning, the essay is due at nine, and you have just realised that you have no idea what the second question actually means. You open a blank email to your lecturer, type three apologetic sentences, and then hesitate, wondering whether sending it at this hour is in itself rude. The anxiety is understandable, but it is usually aimed at the wrong thing. An email, unlike a phone call, does not demand to be read the moment it arrives; most lecturers check their inbox when it suits them, and few are woken by a message landing at midnight. What matters far more than the timestamp is what the message asks for and how quickly it expects an answer. Writing at midnight is fine; expecting a reply before breakfast is not. Before you press send, it is worth asking yourself whether the question could have been asked a week ago, and whether it can realistically be answered in the time left. A lecturer who receives a plea for clarification eight hours before a deadline is being asked, in effect, to rescue a situation they did not create. Phrasing helps enormously. Acknowledging the hour without grovelling, being specific about what you have already tried, and making it easy to give a short answer will make your message far more likely to get one. A line such as \"I realise this is late notice, so a one-line reply would be plenty\" reads very differently from three paragraphs of apology. Some students go further and schedule the email to arrive at a civilised hour, which is a small courtesy rather than a requirement. If no answer arrives in time, make the most reasonable interpretation you can and say so briefly at the start of your essay. Few lecturers will penalise a student for reading an ambiguous question sensibly, provided the reasoning is visible on the page.",
+    "questions": [
+      {
+        "prompt": "According to the writer, what matters most about a late-night email to a lecturer?",
+        "options": [
+          "The exact time at which it is sent",
+          "How many times the student apologises in it",
+          "What it asks for and how soon it expects a reply",
+          "Whether it is written in a very formal style"
+        ],
+        "answer": 2,
+        "evidence": "What matters far more than the timestamp is what the message asks for and how quickly it expects an answer."
+      },
+      {
+        "prompt": "What does \"grovelling\" most likely mean in the passage?",
+        "options": [
+          "Complaining about an unfair deadline",
+          "Apologising in an excessively humble way",
+          "Explaining the question in great detail",
+          "Asking several questions at once"
+        ],
+        "answer": 1,
+        "evidence": "Acknowledging the hour without grovelling"
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {
+        "term": "apologetic",
+        "meaning": "道歉的；表示歉意的",
+        "example": "She sent an apologetic message after missing the meeting."
+      },
+      {
+        "term": "clarification",
+        "meaning": "澄清；说明",
+        "example": "I emailed the tutor to ask for clarification on the word limit."
+      },
+      {
+        "term": "grovelling",
+        "meaning": "卑躬屈膝；过分低声下气",
+        "example": "There's no need for grovelling; a simple apology is enough."
+      },
+      {
+        "term": "courtesy",
+        "meaning": "礼貌；礼节",
+        "example": "It's a basic courtesy to reply to an invitation."
+      },
+      {
+        "term": "ambiguous",
+        "meaning": "模棱两可的；有歧义的",
+        "example": "The instructions were ambiguous, so half the class did the wrong task."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "when it suits them",
+        "meaning": "在他们方便的时候",
+        "note": "suit 在这里指“对……方便、合适”：Come whenever it suits you."
+      },
+      {
+        "text": "press send",
+        "meaning": "点击发送",
+        "note": "常用于提醒三思：Think twice before you press send."
+      },
+      {
+        "text": "in effect",
+        "meaning": "实际上；实质上",
+        "note": "揭示表面之下的真实含义，议论文和正式口语中都很常见。"
+      },
+      {
+        "text": "late notice",
+        "meaning": "临时通知；很晚才告知",
+        "note": "常说 at short notice / on late notice，写邮件时用来为临时请求致歉。"
+      },
+      {
+        "text": "at a civilised hour",
+        "meaning": "在一个像样的（不打扰人的）时间",
+        "note": "带一点幽默，指正常作息时间，而非清晨或深夜。"
+      },
+      {
+        "text": "say so briefly",
+        "meaning": "简短地说明这一点",
+        "note": "say so 代指前面提到的内容，避免重复：If you disagree, say so."
+      }
+    ],
+    "grammar": [
+      "nonfinite-gerund",
+      "clause-adverb",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-gerund",
+        "quote": "Acknowledging the hour without grovelling, being specific about what you have already tried, and making it easy to give a short answer will make your message far more likely to get one.",
+        "explanation": "三个动名词短语并列作主语，整体看作“一套做法”，谓语用 will make。介词 without 后也接动名词 grovelling。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "Before you press send, it is worth asking yourself whether the question could have been asked a week ago",
+        "explanation": "before 引导时间状语从句，从句用一般现在时表示将来；主句 it is worth doing 是“值得做”的固定句型。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "does not demand to be read the moment it arrives",
+        "explanation": "to be read 是不定式的被动形式，因为邮件是“被读”的一方；the moment it arrives 相当于 as soon as it arrives。"
+      }
+    ],
+    "speaking": "用 1 分钟说说：你会在深夜给老师或上司发消息吗？为什么？用上 in effect 和一个 Before you…, it is worth… 的句子。",
+    "writing": "用 120–160 词写一封深夜发给老师的求助邮件：说明你卡在哪里、已经尝试了什么，并让对方容易简短回复。至少用一个动名词作主语，并用上 late notice。",
+    "task": {
+      "prompt": "仿照这句，用 Before you…, it is worth asking yourself whether… 给别人一个“行动前先想一想”的建议。",
+      "model": "Before you press send, it is worth asking yourself whether the question could have been asked a week ago"
+    },
+    "tags": [
+      "邮件礼仪",
+      "师生沟通"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-campus-c1-peer-mentor",
+    "title": "当新生导师的这一年",
+    "title_en": "Useful, Not Needed: A Year as a First-Year Mentor",
+    "summary_zh": "大四学生 Amira 当了一年新生导师。她原以为自己只是“活的问讯处”，后来才发现，好导师要学会少给建议、多倾听，并知道什么时候该把人引向专业帮助。读完你会学到不少表达分寸感的高级说法。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "campus",
+    "genre": "interview",
+    "body": "Interviewer: You've spent this year mentoring a first-year student, so what did you expect the role to involve? Amira: Honestly, I expected to be a sort of walking help desk, telling her where the printers were and which deadlines mattered. That lasted about a fortnight, because once she'd found her way around, the questions became much harder to answer and far more interesting. Interviewer: Harder in what way? Amira: She'd ask whether it was normal to feel lonely in a crowded lecture hall, or whether she'd picked the wrong course because one essay had gone badly, and there's no map for that. My instinct was to reassure her straight away, but I learned fairly quickly that rushing to fix things only made her feel unheard. Interviewer: So what did you do instead? Amira: Mostly I asked questions and resisted the urge to fill every silence. Unless she specifically asked for advice, I tried not to give any. It sounds cold, but people often work out what they think simply by saying it aloud to someone who isn't judging them. Interviewer: Were there moments when you had to step back? Amira: A few, because mentors aren't counsellors, and pretending otherwise would have been unfair to both of us. When something was beyond me, my job was to point her towards the people trained to help, and to make that feel like a sensible step rather than a failure. Interviewer: What has the experience taught you? Amira: That being useful to someone and being needed by them are different things. The clearest sign that it was working was that, by the spring, she was messaging me less and less. Interviewer: That hardly sounds like a sad ending. Amira: Not at all, because she's volunteered to mentor a first-year herself next year, which is the nicest review I could have hoped for.",
+    "questions": [
+      {
+        "prompt": "What is Amira's main point about mentoring?",
+        "options": [
+          "A good mentor should answer every question as quickly as possible",
+          "A good mentor helps a newcomer become less dependent over time",
+          "Mentoring is mainly about showing new students around campus",
+          "Mentors should take the place of professional counsellors"
+        ],
+        "answer": 1,
+        "evidence": "That being useful to someone and being needed by them are different things."
+      },
+      {
+        "prompt": "Why did Amira usually avoid giving advice?",
+        "options": [
+          "She was afraid of giving the wrong answer",
+          "Her mentee rarely asked her any questions",
+          "She found that people often discover their own views by talking freely",
+          "The university did not allow mentors to give advice"
+        ],
+        "answer": 2,
+        "evidence": "people often work out what they think simply by saying it aloud to someone who isn't judging them"
+      }
+    ],
+    "dictation_index": 8,
+    "vocabulary": [
+      {
+        "term": "fortnight",
+        "meaning": "两星期",
+        "example": "I'm going home for a fortnight in the summer."
+      },
+      {
+        "term": "reassure",
+        "meaning": "使安心；打消疑虑",
+        "example": "The teacher tried to reassure us that the test would be fair."
+      },
+      {
+        "term": "unheard",
+        "meaning": "不被倾听的；没人听的",
+        "example": "Many people in the meeting felt that their ideas went unheard."
+      },
+      {
+        "term": "counsellors",
+        "meaning": "心理咨询师；辅导员",
+        "example": "The university has trained counsellors that students can talk to."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "found her way around",
+        "meaning": "熟悉了环境；摸清了门路",
+        "note": "find one's way around (a place)：在新地方不再迷路，也可比喻熟悉新工作。"
+      },
+      {
+        "text": "there's no map for that",
+        "meaning": "这种事没有现成的指南",
+        "note": "比喻没有标准答案、只能自己摸索，口语中很生动。"
+      },
+      {
+        "text": "resisted the urge to fill every silence",
+        "meaning": "忍住了想填满每一段沉默的冲动",
+        "note": "resist the urge to do sth：忍住做某事的冲动，描述自我克制时非常地道。"
+      },
+      {
+        "text": "step back",
+        "meaning": "退一步；不再亲自介入",
+        "note": "既可指保持距离、让别人自己来，也可指冷静下来看全局。"
+      },
+      {
+        "text": "beyond me",
+        "meaning": "超出我的能力范围",
+        "note": "sth is beyond me：我处理不了 / 我理解不了，委婉地承认自己的局限。"
+      },
+      {
+        "text": "less and less",
+        "meaning": "越来越少",
+        "note": "比较级重复表示逐渐变化：more and more, better and better。"
+      }
+    ],
+    "grammar": [
+      "nonfinite-infinitive",
+      "conditional-unless",
+      "nonfinite-gerund"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "my job was to point her towards the people trained to help, and to make that feel like a sensible step rather than a failure",
+        "explanation": "两个不定式 to point… 和 to make… 并列作表语，说明“我的职责是什么”；trained to help 中的不定式表示受训的目的。"
+      },
+      {
+        "node": "conditional-unless",
+        "quote": "Unless she specifically asked for advice, I tried not to give any.",
+        "explanation": "unless = if not：除非她明确要建议，否则我不给。叙述过去时从句用过去式 asked；tried not to do 是不定式的否定形式。"
+      },
+      {
+        "node": "nonfinite-gerund",
+        "quote": "rushing to fix things only made her feel unheard",
+        "explanation": "动名词短语 rushing to fix things 作 that 从句的主语，把一种行为当作原因来讨论；make sb feel + 形容词 表示让人产生某种感受。"
+      }
+    ],
+    "speaking": "用 1 分钟谈谈：帮助别人时，什么时候该给建议，什么时候该只是倾听？用上 resist the urge to 和一个 Unless…, … 的句子。",
+    "writing": "用 180–230 词写一段你帮助（或被帮助）的经历，反思“有用”和“被依赖”的区别。至少用一个动名词作主语和一个 unless 句。",
+    "task": {
+      "prompt": "仿照这句，用 Unless…, I tried not to… 说明你在某件事上给自己定的一条原则。",
+      "model": "Unless she specifically asked for advice, I tried not to give any."
+    },
+    "tags": [
+      "新生导师",
+      "倾听与沟通"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-campus-c1-lecture-series-review",
+    "title": "“寻常之物”系列讲座评",
+    "title_en": "Review: The Lives of Ordinary Things, a Six-Evening Lecture Series",
+    "summary_zh": "一篇校园讲座的评论：六个晚上，每次讲一件日常小物，从回形针到砖头。作者称赞它让熟悉的东西重新变得新奇，也批评了个别讲者和糟糕的时间安排。读完你会学到写评论时“褒中有贬”的措辞。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "campus",
+    "genre": "article",
+    "body": "The poster promised six evenings on the lives of ordinary things, and I signed up expecting little more than a pleasant way to avoid my own reading. What I got was the most quietly ambitious lecture series the department has offered in years. Each session took a single everyday object, from the paperclip to the humble brick, and followed it outwards into engineering, economics and design. The format sounds gimmicky, and occasionally it was: the evening devoted to the zip spent rather too long on a slideshow of unusual zips, delivered with the enthusiasm of someone who had clearly been looking forward to it for weeks. At their best, though, the lectures did something textbooks rarely manage, which was to make familiar things strange again. Although I had used pencils my entire life, I had never once stopped to wonder how the graphite gets inside the wood, or why so many of them are painted yellow. By the end of that session, a room full of tired students was arguing cheerfully about erasers. Much of the credit belongs to the speakers, most of whom resisted the temptation to lecture at us. Questions were invited halfway through rather than squeezed into the final five minutes, and the second half of each evening was shaped by whatever the audience had found puzzling. Not every speaker managed this gracefully; one simply repeated his slides more slowly when asked to clarify. The series also suffered from its timing. Scheduled at six on weekday evenings, it clashed with labs and part-time shifts, so the audience was smaller and narrower than the material deserved. If the department runs the series again, as it certainly should, recording the sessions will allow far more people to discover them. Those who did attend left with something unusually durable: not a set of facts to memorise, but a habit of looking twice at the objects lying on their desks.",
+    "questions": [
+      {
+        "prompt": "What is the reviewer's overall judgement of the series?",
+        "options": [
+          "Entertaining but too light to be worth attending",
+          "Impressive at its best, though uneven and poorly timed",
+          "Excellent in every way except for the length of each talk",
+          "Disappointing because most speakers simply read their slides"
+        ],
+        "answer": 1,
+        "evidence": "At their best, though, the lectures did something textbooks rarely manage"
+      },
+      {
+        "prompt": "What does the reviewer recommend if the series is run again?",
+        "options": [
+          "Moving it to weekend mornings",
+          "Cutting the session on zips",
+          "Recording the sessions so more people can see them",
+          "Allowing questions only at the end"
+        ],
+        "answer": 2,
+        "evidence": "recording the sessions will allow far more people to discover them"
+      }
+    ],
+    "dictation_index": 7,
+    "vocabulary": [
+      {
+        "term": "gimmicky",
+        "meaning": "噱头式的；花哨不实的",
+        "example": "The phone has some gimmicky features that nobody really uses."
+      },
+      {
+        "term": "devoted",
+        "meaning": "专门用于……的",
+        "example": "The museum has a whole floor devoted to old toys."
+      },
+      {
+        "term": "gracefully",
+        "meaning": "得体地；从容地",
+        "example": "She handled the difficult question gracefully."
+      },
+      {
+        "term": "clashed",
+        "meaning": "（时间）冲突；撞期",
+        "example": "The concert clashed with my exam, so I couldn't go."
+      },
+      {
+        "term": "durable",
+        "meaning": "持久的；耐用的",
+        "example": "These boots are expensive, but they are very durable."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "quietly ambitious",
+        "meaning": "低调却有雄心的",
+        "note": "quietly + 形容词 表示“不张扬地……”，书评、影评中常见：quietly brilliant。"
+      },
+      {
+        "text": "rather too long",
+        "meaning": "有点太久了",
+        "note": "rather too + 形容词 是英式的委婉批评，比 too long 更含蓄。"
+      },
+      {
+        "text": "make familiar things strange again",
+        "meaning": "让熟悉的东西重新变得新奇",
+        "note": "评论中用来称赞作品带来新视角，make sth + 形容词 结构。"
+      },
+      {
+        "text": "Much of the credit belongs to",
+        "meaning": "很大功劳要归于",
+        "note": "the credit belongs to / goes to sb：把功劳归给某人，评论和致谢中常用。"
+      },
+      {
+        "text": "resisted the temptation to",
+        "meaning": "忍住了……的诱惑",
+        "note": "resist the temptation to do sth：克制住想做某事的念头，正式而地道。"
+      },
+      {
+        "text": "looking twice at",
+        "meaning": "多看一眼；重新审视",
+        "note": "look twice at sth：不再想当然，仔细地再看一次。"
+      }
+    ],
+    "grammar": [
+      "clause-adverb",
+      "nonfinite-infinitive",
+      "nonfinite-participle"
+    ],
+    "knowledge": [
+      {
+        "node": "clause-adverb",
+        "quote": "Although I had used pencils my entire life",
+        "explanation": "although 引导让步状语从句，“虽然用了一辈子铅笔”，与主句“却从没想过……”形成反差。从句用过去完成时，表示在讲座之前一直如此。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "I had never once stopped to wonder how the graphite gets inside the wood",
+        "explanation": "stop to do 是“停下来去做另一件事”，不定式表目的；stop doing 则是“停止正在做的事”。这里指从没停下来想一想。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "Scheduled at six on weekday evenings, it clashed with labs and part-time shifts",
+        "explanation": "过去分词短语 Scheduled… 作状语，逻辑主语是 it（讲座被安排在……），说明冲突的原因，相当于 Because it was scheduled…。"
+      }
+    ],
+    "speaking": "用 1 分钟评价一次你听过的讲座、课程或演讲：先说优点，再说一个缺点。用上 rather too 和 Much of the credit belongs to…。",
+    "writing": "用 200–260 词写一篇短评，评价一门课、一场讲座或一个线上课程，要有褒有贬并给出改进建议。至少用一个过去分词作状语和一个 Although…, … 句。",
+    "task": {
+      "prompt": "仿照这句，用 Although I had… my entire life, I had never once stopped to… 写一件你习以为常却从没细想过的事。",
+      "model": "Although I had used pencils my entire life, I had never once stopped to wonder how the graphite gets inside the wood"
+    },
+    "tags": [
+      "讲座评论",
+      "校园活动"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

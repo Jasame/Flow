@@ -1,0 +1,246 @@
+[
+  {
+    "id": "v5-life-b1-shared-fridge",
+    "title": "合租冰箱里的“失踪案”",
+    "title_en": "Who Ate My Cheese? Sorting Out the Shared Fridge",
+    "summary_zh": "室友的奶酪又不见了，两个人没有吵架，而是想出了分层、列清单的办法。读完你能学会合租生活里商量规则、委婉表达不满的说法。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "life",
+    "genre": "dialogue",
+    "body": "Priya: Tom, have you seen my cheese? I bought it on Saturday, and now it's gone. Tom: Not me, I promise, which means either Dan or his friends have been at it again. Priya: Honestly, I wish we had a lock on this fridge. Tom: A lock might be a bit much, but I know what you mean. Half the time I can't find anything in there, and the rest of the time I find things nobody remembers buying. Priya: Like that soup at the back. Tom: Exactly, so what if we gave everyone their own shelf? If each of us had a shelf, we could see straight away when something was missing. Priya: And the door could be for shared stuff, like milk and butter. Tom: Good idea, although neither Dan nor I am great at remembering whose turn it is to buy milk. Priya: Then let's put a list on the door. Whoever finishes the milk buys the next one. Tom: Fair. Should we tell Dan tonight? Priya: Yes, but nicely. I'd rather sort it out than keep leaving angry notes. Tom: Speaking of notes, was that big red one on the fridge yours? Priya: Maybe.",
+    "questions": [
+      {
+        "prompt": "What does Priya most want by the end of the conversation?",
+        "options": [
+          "To put a lock on the fridge as soon as possible",
+          "To agree on a calm, practical system with her flatmates",
+          "To make Dan buy her some new cheese",
+          "To stop sharing milk and butter with anyone"
+        ],
+        "answer": 1,
+        "evidence": "I'd rather sort it out than keep leaving angry notes."
+      },
+      {
+        "prompt": "What does Tom mean when he says \"A lock might be a bit much\"?",
+        "options": [
+          "A lock would be too expensive to buy",
+          "A lock would be too big for the fridge door",
+          "Putting a lock on the fridge would be going too far",
+          "Dan would probably lose the key to the lock"
+        ],
+        "answer": 2,
+        "evidence": "A lock might be a bit much"
+      }
+    ],
+    "dictation_index": 8,
+    "vocabulary": [
+      {"term": "honestly", "meaning": "说真的；老实说（表达不满或强调）", "example": "Honestly, I don't know why the bus is always late."},
+      {"term": "shelf", "meaning": "（冰箱、书架的）一层；架子", "example": "I keep my books on the top shelf."},
+      {"term": "missing", "meaning": "不见了的；缺少的", "example": "One of my socks is missing again."},
+      {"term": "shared", "meaning": "共用的；共享的", "example": "We have a shared kitchen on each floor."}
+    ],
+    "expressions": [
+      {"text": "have been at it again", "meaning": "又在干这事了（多指偷吃、捣乱）", "note": "带点抱怨和幽默，口语里说别人老毛病又犯了。"},
+      {"text": "a bit much", "meaning": "有点过了；有点夸张", "note": "委婉地说对方的想法太极端，比 too much 柔和。"},
+      {"text": "I know what you mean", "meaning": "我明白你的意思", "note": "先表示理解，再提出不同看法，商量事情时很好用。"},
+      {"text": "straight away", "meaning": "马上；立刻", "note": "英式口语，美式更常说 right away。"},
+      {"text": "whose turn it is", "meaning": "轮到谁了", "note": "Whose turn is it to ...? 合租、家务、排队时都常用。"},
+      {"text": "sort it out", "meaning": "把问题解决好", "note": "sort out 指处理好麻烦或误会，比 solve 更口语。"}
+    ],
+    "grammar": ["agreement-either", "subjunctive-now", "conditional-modal"],
+    "knowledge": [
+      {"node": "agreement-either", "quote": "neither Dan nor I am great at remembering whose turn it is to buy milk", "explanation": "neither A nor B 作主语时，动词和离它最近的 B 保持一致（就近原则），这里 B 是 I，所以用 am；同理 either Dan or his friends have been ... 用 have。"},
+      {"node": "subjunctive-now", "quote": "I wish we had a lock on this fridge.", "explanation": "I wish + 过去式（had）表达对现在情况的不满或愿望：现在其实没有锁。不能说 I wish we have。"},
+      {"node": "conditional-modal", "quote": "If each of us had a shelf, we could see straight away when something was missing.", "explanation": "if + 过去式，主句 could + 动词原形，提出一个“假如这样安排”的设想，用来提建议比直接命令更委婉。"}
+    ],
+    "speaking": "和同伴表演一段 1 分钟的对话：合租的厨房或卫生间出了问题，你们一起商量新规则，用上 I know what you mean 和 What if we ...?。",
+    "writing": "用 80–100 词写一张贴在冰箱上的友好通知，说明新的使用规则，至少用一次 If we ..., we could ... 和一次 whose turn it is。",
+    "task": {"prompt": "仿照这句，用 I'd rather ... than keep ...ing 说说你更愿意怎样处理一件让你烦恼的小事。", "model": "I'd rather sort it out than keep leaving angry notes."},
+    "tags": ["合租生活", "沟通"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-life-b1-learning-to-swim-later",
+    "title": "成年后才学会游泳",
+    "title_en": "Never Too Late for the Deep End: Learning to Swim as an Adult",
+    "summary_zh": "Ines 小时候没学过游泳，长大后一直不好意思开口，直到女儿邀请她一起下水。这篇采访讲她如何克服恐惧，也教你谈论“迟来的第一次”。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "life",
+    "genre": "interview",
+    "body": "Q: You learned to swim as an adult. Why did you wait so long? Ines: Nobody taught me when I was a child, and after a while I was too embarrassed to ask. On holidays, I always found a reason to stay on the beach with a book. Q: What changed? Ines: My daughter started lessons, and she asked me to come in the water with her. I had to say no, and I hated it. So I signed up for an adult class to prove something to myself. Q: How did the first lesson go? Ines: Badly. Standing at the edge of the pool, I could feel my heart beating in my ears. The teacher just asked me to sit on the steps and put my face in the water, and that was the whole lesson. Q: And now? Ines: Now I can swim two lengths without stopping. It's not fast, but it's mine. Q: Is anything still difficult? Ines: Deep water. I wish I felt as relaxed in it as my daughter does. She swims like a fish. Q: What would you say to other adults who can't swim? Ines: Don't wait for the fear to go away first. It goes away in the water, not before.",
+    "questions": [
+      {
+        "prompt": "What is Ines's main advice to adults who can't swim?",
+        "options": [
+          "Wait until you feel completely ready before you start",
+          "Take lessons together with your children",
+          "Start even if you still feel afraid",
+          "Practise on the beach before going into a pool"
+        ],
+        "answer": 2,
+        "evidence": "Don't wait for the fear to go away first."
+      },
+      {
+        "prompt": "Why did Ines finally sign up for swimming lessons?",
+        "options": [
+          "Her daughter's teacher offered her a free class",
+          "She hated having to say no to her daughter",
+          "She wanted to swim faster than her daughter",
+          "She was bored of reading on the beach"
+        ],
+        "answer": 1,
+        "evidence": "I had to say no, and I hated it."
+      }
+    ],
+    "dictation_index": 10,
+    "vocabulary": [
+      {"term": "embarrassed", "meaning": "难为情的；尴尬的", "example": "He was too embarrassed to tell anyone that he couldn't ride a bike."},
+      {"term": "edge", "meaning": "边缘；边上", "example": "Don't stand so close to the edge of the platform."},
+      {"term": "lengths", "meaning": "（泳池的）单程长度", "example": "She swims ten lengths every morning before work."},
+      {"term": "relaxed", "meaning": "放松的；自在的", "example": "I always feel more relaxed after a long walk."}
+    ],
+    "expressions": [
+      {"text": "too embarrassed to ask", "meaning": "不好意思开口问", "note": "too + 形容词 + to do，表示“太……而不能……”，描述心理障碍很常用。"},
+      {"text": "found a reason to", "meaning": "找个理由去（做某事）", "note": "常带一点“故意躲开”的意味：He always finds a reason to leave early."},
+      {"text": "signed up for", "meaning": "报名参加", "note": "sign up for + 课程/活动，比 register for 更口语。"},
+      {"text": "prove something to myself", "meaning": "向自己证明一点什么", "note": "强调做某事不是为了别人，而是为了自己的信心。"},
+      {"text": "swims like a fish", "meaning": "游得像鱼一样好", "note": "夸人水性好的固定说法，带一点羡慕。"},
+      {"text": "go away", "meaning": "（感觉、问题）消失", "note": "常用于恐惧、疼痛、坏心情：The fear didn't go away overnight."}
+    ],
+    "grammar": ["subjunctive-now", "nonfinite-infinitive", "nonfinite-participle"],
+    "knowledge": [
+      {"node": "subjunctive-now", "quote": "I wish I felt as relaxed in it as my daughter does.", "explanation": "I wish + 过去式 felt 表示与现在事实相反的愿望：她现在在深水里其实并不放松。表达“希望自己现在能……”时用这个结构。"},
+      {"node": "nonfinite-infinitive", "quote": "So I signed up for an adult class to prove something to myself.", "explanation": "to prove ... 是不定式表示目的，回答“为什么报名”；放在句末，比 because I wanted to prove 更简洁。"},
+      {"node": "nonfinite-participle", "quote": "Standing at the edge of the pool, I could feel my heart beating in my ears.", "explanation": "Standing ... 是现在分词短语作状语，表示“站在……的时候”，主语就是后面的 I；feel my heart beating 则是 feel + 宾语 + 现在分词，表示感觉到某动作正在进行。"}
+    ],
+    "speaking": "用 1 分钟讲一件你很晚才学会、或者现在还想学的事，说说为什么一直没学，用上 too ... to ... 和 I wish I ...。",
+    "writing": "用 100–120 词写一段你学某项新技能的第一次经历（游泳、骑车、做饭等），用上 signed up for 和一个分词开头的句子（如 Standing / Holding ...）。",
+    "task": {"prompt": "仿照这句，用 I signed up for ... to ... 说说你报名参加某个课程或活动的真实目的。", "model": "So I signed up for an adult class to prove something to myself."},
+    "tags": ["成年人学习", "克服恐惧"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-life-b1-balcony-vegetables",
+    "title": "在阳台上种菜",
+    "title_en": "A Vegetable Garden the Size of a Balcony",
+    "summary_zh": "没有院子也能种菜。这篇指南教你看日照、选容器、按时浇水、从小规模开始。读完你能用英语给别人提一套有步骤的建议。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "life",
+    "genre": "guide",
+    "body": "You don't need a garden to grow your own food. A small balcony, a few pots and a bit of patience are enough to get started. First, watch your balcony for a day and notice how much sun it gets. Tomatoes love long, hot afternoons, but if your balcony only gets morning light, you could try salad leaves or herbs like mint instead. Next, choose your containers. Almost anything can work, from old buckets to wooden boxes, as long as there are holes in the bottom to let extra water out. Fill them with fresh soil sold for growing vegetables. Plants grown in pots dry out much faster than plants in the ground, so check them every evening in summer. If the soil feels dry, water slowly until it comes out of the bottom. Start small. Three pots that you look after well will give you more than ten that you forget about. And don't be discouraged if something fails, because even experienced gardeners lose a plant or two every year. The first time you pick a tomato you have grown yourself, you might find that it tastes better than anything from a shop.",
+    "questions": [
+      {
+        "prompt": "What is the main idea of the guide?",
+        "options": [
+          "Growing vegetables is only possible if you have a large garden",
+          "Even a small balcony can produce food if you start simply",
+          "Tomatoes are the easiest vegetable for beginners to grow",
+          "Experienced gardeners rarely lose any of their plants"
+        ],
+        "answer": 1,
+        "evidence": "You don't need a garden to grow your own food."
+      },
+      {
+        "prompt": "Why should you check your pots every evening in summer?",
+        "options": [
+          "Plants in pots lose water faster than plants in the ground",
+          "Most vegetables only grow in the evening",
+          "The holes in the bottom can get blocked easily",
+          "Insects usually attack plants after dark"
+        ],
+        "answer": 0,
+        "evidence": "Plants grown in pots dry out much faster than plants in the ground"
+      }
+    ],
+    "dictation_index": 1,
+    "vocabulary": [
+      {"term": "patience", "meaning": "耐心", "example": "Learning a language takes time and patience."},
+      {"term": "containers", "meaning": "容器（复数）", "example": "We keep the leftover rice in plastic containers."},
+      {"term": "discouraged", "meaning": "灰心的；泄气的", "example": "Don't feel discouraged if your first cake is not perfect."},
+      {"term": "experienced", "meaning": "有经验的", "example": "An experienced driver stays calm in heavy traffic."}
+    ],
+    "expressions": [
+      {"text": "grow your own food", "meaning": "自己种吃的", "note": "grow your own + 蔬菜/香草，是园艺话题的常用说法。"},
+      {"text": "enough to get started", "meaning": "足够让你开始了", "note": "get started 指“起步、开始做”，鼓励别人别把门槛想得太高。"},
+      {"text": "as long as", "meaning": "只要", "note": "引出必要条件：You can borrow it as long as you bring it back."},
+      {"text": "dry out", "meaning": "变干；干透", "note": "用于土壤、皮肤、食物等慢慢失去水分。"},
+      {"text": "Start small", "meaning": "从小处开始", "note": "做新计划时的常见建议，简短有力。"},
+      {"text": "a plant or two", "meaning": "一两株植物", "note": "a + 名词 + or two 表示“一两个”，语气轻松：I made a mistake or two."}
+    ],
+    "grammar": ["conditional-modal", "nonfinite-infinitive", "nonfinite-participle"],
+    "knowledge": [
+      {"node": "conditional-modal", "quote": "if your balcony only gets morning light, you could try salad leaves or herbs like mint instead", "explanation": "条件句的主句用 could 而不用 will，表示“可以考虑”，给出一个选择而不是命令，建议听起来更客气。"},
+      {"node": "nonfinite-infinitive", "quote": "as long as there are holes in the bottom to let extra water out", "explanation": "to let ... out 是不定式表示目的或用途，说明这些孔“是用来干什么的”。"},
+      {"node": "nonfinite-participle", "quote": "Plants grown in pots dry out much faster than plants in the ground", "explanation": "grown in pots 是过去分词短语作后置定语，表示“被种在花盆里的”，相当于 plants that are grown in pots；前文的 soil sold for ... 也是同样用法。"}
+    ],
+    "speaking": "用 1 分钟给想在家里种点东西的朋友提建议：先做什么、再做什么、要注意什么，至少用一次 you could ... 和一次 as long as。",
+    "writing": "用 100–120 词写一份“新手指南”，主题是你熟悉的一件小事（养鱼、做面包、拍照等），按 First / Next / Finally 分步骤，并用上 Start small。",
+    "task": {"prompt": "仿照这句，用 A ... that you ... will give you more than ... that you ... 说一个“少而精”胜过“多而乱”的例子。", "model": "Three pots that you look after well will give you more than ten that you forget about."},
+    "tags": ["阳台种菜", "生活指南"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-life-b1-repair-cafe-lamp",
+    "title": "修理咖啡馆救活了奶奶的台灯",
+    "title_en": "The Repair Café That Brought My Grandmother's Lamp Back to Life",
+    "summary_zh": "Mia 把坏了很久的旧台灯带去社区“修理咖啡馆”，志愿者没有替她修，而是教她自己动手。读完你能学会给朋友写一封分享经历并发出邀请的邮件。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "life",
+    "genre": "email",
+    "body": "Hi Ollie, Guess what? My grandmother's old lamp works again! You know, the one that has been sitting in my wardrobe since I moved. On Saturday I took it to the repair café at the library. I'd never been before, so I didn't know what to expect. It's basically a big room full of tables, with volunteers who fix things for free while you watch. There were people holding broken toasters, torn jackets and even a bicycle. I waited for a while with a cup of tea, chatting to a woman whose kettle had stopped working. Then a retired electrician called Bernard looked at my lamp. He said that either the switch or the wires were the problem, and in the end it was both. Instead of doing it all for me, he showed me how to replace the switch myself. It took half an hour, and I was surprisingly proud of it. The whole thing cost nothing, although there's a jar for donations. If you came with me next month, you could finally bring that radio you keep talking about. Let me know! Love, Mia",
+    "questions": [
+      {
+        "prompt": "What is the main reason Mia is writing to Ollie?",
+        "options": [
+          "To ask him to help her repair her grandmother's lamp",
+          "To share a good experience and invite him to come next time",
+          "To complain that she had to wait a long time at the library",
+          "To ask him to give some money to the repair café"
+        ],
+        "answer": 1,
+        "evidence": "If you came with me next month, you could finally bring that radio you keep talking about."
+      },
+      {
+        "prompt": "What did Bernard do with the lamp?",
+        "options": [
+          "He fixed it quickly while Mia drank her tea",
+          "He said it was too old to be repaired",
+          "He taught Mia how to change the switch herself",
+          "He took it home to repair it before next month"
+        ],
+        "answer": 2,
+        "evidence": "he showed me how to replace the switch myself"
+      }
+    ],
+    "dictation_index": 6,
+    "vocabulary": [
+      {"term": "wardrobe", "meaning": "衣柜", "example": "My winter coats take up half of the wardrobe."},
+      {"term": "volunteers", "meaning": "志愿者（复数）", "example": "The festival was run by a team of friendly volunteers."},
+      {"term": "replace", "meaning": "更换；替换", "example": "I need to replace the battery in my watch."},
+      {"term": "donations", "meaning": "捐款；捐赠（复数）", "example": "The animal shelter depends on donations from local people."}
+    ],
+    "expressions": [
+      {"text": "Guess what?", "meaning": "你猜怎么着？", "note": "分享好消息或意外消息前的开场白，朋友之间很常用。"},
+      {"text": "what to expect", "meaning": "会是什么样；该期待什么", "note": "I didn't know what to expect. 第一次做某事时常说。"},
+      {"text": "for free", "meaning": "免费地", "note": "口语常用，书面可以说 free of charge。"},
+      {"text": "in the end", "meaning": "最后；结果", "note": "讲故事时引出最终结果，注意和 at the end of（在……的末尾）区分。"},
+      {"text": "Instead of doing it all for me", "meaning": "没有全都替我做", "note": "instead of + 动名词，表示“不是……而是……”，后面接实际发生的事。"},
+      {"text": "keep talking about", "meaning": "老是提起", "note": "keep + doing 表示反复做某事，常带一点调侃。"}
+    ],
+    "grammar": ["agreement-either", "nonfinite-participle", "conditional-modal"],
+    "knowledge": [
+      {"node": "agreement-either", "quote": "either the switch or the wires were the problem", "explanation": "either A or B 作主语时，动词与离它最近的 B 一致：the wires 是复数，所以用 were。如果说 either the wires or the switch，就要用 was。"},
+      {"node": "nonfinite-participle", "quote": "There were people holding broken toasters, torn jackets and even a bicycle.", "explanation": "holding ... 是现在分词短语作后置定语，相当于 people who were holding；torn 是过去分词作定语，表示“被撕破的”。"},
+      {"node": "conditional-modal", "quote": "If you came with me next month, you could finally bring that radio you keep talking about.", "explanation": "if + 过去式 came，主句 could + 动词原形，用“假设”的语气发出邀请，比 Come with me! 更轻松、不给人压力。"}
+    ],
+    "speaking": "用 1 分钟给朋友讲一件你修好（或别人帮你修好）的旧东西，说说它对你有什么意义，用上 Guess what? 和 in the end。",
+    "writing": "用 100–130 词给朋友写一封邮件，介绍你参加过的一个社区活动，并邀请对方下次一起去，用 If you came ..., you could ... 发出邀请。",
+    "task": {"prompt": "仿照这句，用 the one that has been ...ing in my ... since ... 介绍一件你一直放着没用的旧东西。", "model": "the one that has been sitting in my wardrobe since I moved"},
+    "tags": ["修理咖啡馆", "社区生活"],
+    "source": "Flow 编辑部原创"
+  }
+]

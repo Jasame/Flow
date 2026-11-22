@@ -1,0 +1,241 @@
+[
+  {
+    "id": "v5-culture-a2-library-card",
+    "title": "在新城市办了一张借书卡",
+    "title_en": "My First Library Card in a New City",
+    "summary_zh": "搬到新城市的佳佳办了人生第一张当地借书卡，发现图书馆里远不止有书。读完你能学会用现在完成时讲“刚刚做成的一件事”。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "culture",
+    "genre": "email",
+    "body": "Hi Lena, I have some good news. I have just got my first library card in this city! The library is near my flat, so I walked there after work. A woman who works at the front desk helped me. She asked for my address and took a quick photo. The card was ready in five minutes, and it is free. I didn't know that! The library has a lot more than books. There is a quiet room with big tables, and there are free English classes on Saturdays. I have already borrowed two cookbooks and a film. Every Tuesday, people meet there to play chess, so I want to join them next week. I feel a bit less like a visitor now. Write back soon! Love, Jia",
+    "questions": [
+      {
+        "prompt": "How does Jia feel about the city at the end of the email?",
+        "options": [
+          "She wants to move to a bigger city",
+          "She feels a little more at home there",
+          "She is already tired of the library",
+          "She is worried about her new job"
+        ],
+        "answer": 1,
+        "evidence": "I feel a bit less like a visitor now."
+      },
+      {
+        "prompt": "What surprised Jia about the library card?",
+        "options": [
+          "It needed a photo from home",
+          "It took a whole day to make",
+          "It did not cost any money",
+          "It was only for students"
+        ],
+        "answer": 2,
+        "evidence": "it is free. I didn't know that!"
+      }
+    ],
+    "dictation_index": 3,
+    "vocabulary": [
+      {"term": "address", "meaning": "地址", "example": "Please write your address on the back of the form."},
+      {"term": "borrowed", "meaning": "借（入）", "example": "I borrowed my sister's bike for the weekend."},
+      {"term": "cookbooks", "meaning": "菜谱；烹饪书", "example": "My mum has three old cookbooks with notes in them."},
+      {"term": "visitor", "meaning": "访客；外来的人", "example": "On my first day, I felt like a visitor in my own office."}
+    ],
+    "expressions": [
+      {"text": "I have some good news", "meaning": "我有个好消息", "note": "邮件或聊天开头常用，引出下文；也可以说 Guess what!"},
+      {"text": "at the front desk", "meaning": "在前台", "note": "图书馆、酒店、公司都用：Ask at the front desk."},
+      {"text": "a lot more than books", "meaning": "远不止有书", "note": "a lot more than + 名词：表示“比……多得多”，夸一个地方或东西很实用"},
+      {"text": "feel a bit less like a visitor", "meaning": "不那么像个外人了", "note": "描述慢慢适应新环境的感觉，语气温和自然"},
+      {"text": "Write back soon!", "meaning": "早点回信哦！", "note": "朋友之间写信、发邮件的结尾，亲切随意"}
+    ],
+    "grammar": ["tense-perfect", "clause-relative", "tense-present"],
+    "knowledge": [
+      {"node": "tense-perfect", "quote": "I have just got my first library card in this city!", "explanation": "have just + 过去分词表示“刚刚做完”，强调和现在的联系：卡现在就在手里，所以用现在完成时而不是一般过去时。"},
+      {"node": "clause-relative", "quote": "A woman who works at the front desk helped me.", "explanation": "who 引导定语从句修饰 a woman，说明是“哪位女士”。先行词是人时用 who，从句里的动词 works 跟着 woman 用单数。"},
+      {"node": "tense-present", "quote": "Every Tuesday, people meet there to play chess", "explanation": "Every Tuesday 表示固定习惯，所以用一般现在时 meet。讲“每周都会发生的事”就用这个结构。"}
+    ],
+    "speaking": "用 1 分钟介绍你常去的一个公共场所（图书馆、社区中心、公园都可以）：它在哪、里面有什么、你在那里做什么。",
+    "writing": "写一封 50–70 词的英文邮件给朋友，讲讲你最近在一个新地方办成的一件小事（办卡、报名课程、找到一家常去的小店等），用上 I have just... 和一个 who 定语从句。",
+    "task": {"prompt": "仿照这句，用 I have already... 说说你最近已经做过的一件新鲜事。", "model": "I have already borrowed two cookbooks and a film."},
+    "tags": ["图书馆", "新城市生活"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-a2-folk-dance-class",
+    "title": "社区舞蹈课的第一晚",
+    "title_en": "First Night at the Folk Dance Class",
+    "summary_zh": "Ruby 第一次去社区民间舞课，担心跳错、踩到别人的脚。老学员 Dev 告诉她：这支舞跳的是大家一起，不是跳得完美。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "culture",
+    "genre": "dialogue",
+    "body": "Ruby: Hi, is this the folk dance class? Dev: Yes, come in! Are you new? Ruby: I am. I've never danced like this before. Dev: Don't worry. Most of us have only been coming for a few weeks. Ruby: Everyone is holding hands in a circle. What happens next? Dev: The teacher plays the music, and we all step to the left. Then we clap twice and turn. Ruby: That sounds easy. Dev: It is, until the music gets faster! Ruby: Oh no. What if I step on someone's foot? Dev: Then you say sorry and keep going. I've stepped on the teacher's foot three times. She just laughs. She says the dance is about the group, not about being perfect. Ruby: Which hand do I give you? Dev: Your right one. And smile. It helps more than you think!",
+    "questions": [
+      {
+        "prompt": "What is the main thing Dev wants Ruby to understand?",
+        "options": [
+          "She should watch tonight and dance next week",
+          "She must learn all the steps at home first",
+          "Mistakes are normal, and the group matters more than being perfect",
+          "The teacher gets angry when people make mistakes"
+        ],
+        "answer": 2,
+        "evidence": "the dance is about the group, not about being perfect"
+      },
+      {
+        "prompt": "What do the dancers do after they step to the left?",
+        "options": [
+          "They let go of each other's hands",
+          "They clap twice and turn",
+          "They change partners",
+          "They stop and listen to the teacher"
+        ],
+        "answer": 1,
+        "evidence": "Then we clap twice and turn."
+      }
+    ],
+    "dictation_index": 6,
+    "vocabulary": [
+      {"term": "circle", "meaning": "圆圈", "example": "The children sat in a circle around the teacher."},
+      {"term": "clap", "meaning": "拍手；鼓掌", "example": "Everyone began to clap when the song ended."},
+      {"term": "step", "meaning": "迈步；踩", "example": "Please step to the side so others can pass."},
+      {"term": "perfect", "meaning": "完美的", "example": "Your English doesn't have to be perfect to make friends."}
+    ],
+    "expressions": [
+      {"text": "Don't worry.", "meaning": "别担心。", "note": "安慰别人最常用的一句，后面常接一句理由"},
+      {"text": "What if", "meaning": "万一……怎么办？", "note": "What if + 句子，表达担心：What if I forget the words?"},
+      {"text": "step on someone's foot", "meaning": "踩到别人的脚", "note": "跳舞、挤车时常用；step on sb's toes 还可比喻“越界、得罪人”"},
+      {"text": "keep going", "meaning": "继续，别停下", "note": "鼓励别人坚持，跳舞、跑步、学习都能用"},
+      {"text": "It helps more than you think", "meaning": "这比你想的更管用", "note": "推荐一个小方法时的口头语，语气轻松"}
+    ],
+    "grammar": ["tense-present", "tense-perfect"],
+    "knowledge": [
+      {"node": "tense-present", "quote": "Everyone is holding hands in a circle.", "explanation": "现在进行时 is holding 描述“眼前正在发生”的画面；Everyone 虽然指很多人，但作主语时动词用单数 is。"},
+      {"node": "tense-perfect", "quote": "I've stepped on the teacher's foot three times.", "explanation": "现在完成时 + 次数（three times），表示“到目前为止一共做过几次”，不说具体什么时候。"}
+    ],
+    "speaking": "和同伴演一段 30 秒对话：一人第一次来上某个兴趣课，很紧张；另一人安慰他，用上 Don't worry 和 keep going。",
+    "writing": "写 50–70 词，介绍一个你想参加的兴趣班（舞蹈、唱歌、做饭等）：为什么想去，你有点担心什么。",
+    "task": {"prompt": "仿照这句，用 I've never... before. 说一件你从没做过、但想试试的事。", "model": "I've never danced like this before."},
+    "tags": ["民间舞蹈", "社区活动"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-a2-dish-names",
+    "title": "菜名翻不过去怎么办",
+    "title_en": "When a Dish Name Doesn't Translate",
+    "summary_zh": "“蚂蚁上树”直译成英文，外国朋友可能不敢吃。这篇教你先说清菜是什么，再把有趣的名字当成小故事讲出来。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "culture",
+    "genre": "explainer",
+    "body": "Some dish names are hard to translate. Think of a dish that is called \"ants climbing a tree\". In English, it sounds strange, and some people may not want to try it. But there are no ants in it! It is made with noodles and small pieces of meat. So what can you do when a name doesn't work in another language? A good idea is to say what the food is, not what the name says. For example, you can say: It's glass noodles with minced pork. Then add the fun name later, like a small story. People usually love that part. If a friend asks about a dish that you like, tell them three things: what it is made of, how it tastes, and when people eat it. After that, the strange name becomes a nice surprise.",
+    "questions": [
+      {
+        "prompt": "What is the writer's main advice?",
+        "options": [
+          "Never tell people the real name of a dish",
+          "Translate every dish name word by word",
+          "Explain what the food is first, then share the fun name",
+          "Only order dishes with simple names"
+        ],
+        "answer": 2,
+        "evidence": "A good idea is to say what the food is, not what the name says."
+      },
+      {
+        "prompt": "Why might some people not want to try \"ants climbing a tree\"?",
+        "options": [
+          "It is too spicy for most people",
+          "Its name sounds strange in English",
+          "It really has ants in it",
+          "It takes a long time to cook"
+        ],
+        "answer": 1,
+        "evidence": "In English, it sounds strange, and some people may not want to try it."
+      }
+    ],
+    "dictation_index": 4,
+    "vocabulary": [
+      {"term": "translate", "meaning": "翻译", "example": "Can you translate this sign for me?"},
+      {"term": "strange", "meaning": "奇怪的", "example": "The new drink tastes a bit strange, but I like it."},
+      {"term": "pieces", "meaning": "块；片", "example": "Cut the bread into small pieces for the birds."},
+      {"term": "surprise", "meaning": "惊喜；意外", "example": "The party was a big surprise for my dad."}
+    ],
+    "expressions": [
+      {"text": "Think of a dish", "meaning": "想想某道菜；比如说有道菜", "note": "Think of... 用来引出例子，口语书面都常用"},
+      {"text": "is made with", "meaning": "用……做的", "note": "说菜用了哪些原料：It's made with rice and eggs."},
+      {"text": "what it is made of", "meaning": "它是用什么做的", "note": "made of 强调组成材料，介绍食物、东西都能用"},
+      {"text": "how it tastes", "meaning": "它是什么味道", "note": "taste 作“尝起来”时后面接形容词：It tastes sweet."},
+      {"text": "a nice surprise", "meaning": "一个小惊喜", "note": "形容意料之外的好事：Your call was a nice surprise."}
+    ],
+    "grammar": ["clause-relative", "tense-present", "conditional-real"],
+    "knowledge": [
+      {"node": "clause-relative", "quote": "If a friend asks about a dish that you like", "explanation": "that you like 是定语从句，修饰 a dish，说明是“你喜欢的那道菜”。that 在从句里作宾语，口语中也常省略。"},
+      {"node": "tense-present", "quote": "In English, it sounds strange", "explanation": "一般现在时 sounds 表达普遍、一直如此的感觉。sound + 形容词表示“听起来……”，不能说 sounds strangely。"},
+      {"node": "conditional-real", "quote": "If a friend asks about a dish that you like, tell them three things", "explanation": "If 从句用一般现在时 asks，主句用祈使句 tell，给出“遇到这种情况就这么做”的实用建议。"}
+    ],
+    "speaking": "挑一道名字有趣的家乡菜，用 1 分钟向外国朋友介绍：先说它是用什么做的、什么味道，最后再讲它的名字。",
+    "writing": "写 50–70 词，按文中的“三件事”（用什么做、什么味道、什么时候吃）介绍一道中国菜。",
+    "task": {"prompt": "仿照这句，用 It's... with... 向外国朋友介绍一道你喜欢的菜。", "model": "It's glass noodles with minced pork."},
+    "tags": ["饮食文化", "翻译"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-a2-calligraphy-sundays",
+    "title": "每周日的毛笔字时间",
+    "title_en": "My Sunday Hour with a Brush",
+    "summary_zh": "作者每个周日早上练一小时毛笔字，老师只有一条规矩：写慢点。读完你会学到怎么用一般现在时和现在完成时介绍一个坚持下来的爱好。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "culture",
+    "genre": "article",
+    "body": "Every Sunday morning, I sit at the kitchen table and practise calligraphy for one hour. I have done this for six months now. My brush is an old one that my uncle gave me. I use cheap paper, because I make a lot of mistakes. My teacher, who runs a small class near the park, has one rule: write slowly. At first, I hated this rule. I wanted to finish a page in ten minutes. But slow lines are strong lines. Now I breathe in before each line and breathe out as I write. Some weeks my characters look messy. Other weeks, one or two look good, and I put them on the fridge. My phone stays in another room. For one hour, the only sound is the brush on the paper. It is the quietest part of my week.",
+    "questions": [
+      {
+        "prompt": "Why does the writer enjoy the Sunday hour?",
+        "options": [
+          "It helps them finish many pages quickly",
+          "It is a calm, quiet time away from the phone",
+          "The teacher gives prizes for good work",
+          "Their uncle checks the work every week"
+        ],
+        "answer": 1,
+        "evidence": "It is the quietest part of my week."
+      },
+      {
+        "prompt": "Why does the writer use cheap paper?",
+        "options": [
+          "Good paper is hard to find",
+          "The teacher asks everyone to use it",
+          "They make a lot of mistakes",
+          "Cheap paper is better for old brushes"
+        ],
+        "answer": 2,
+        "evidence": "I use cheap paper, because I make a lot of mistakes."
+      }
+    ],
+    "dictation_index": 4,
+    "vocabulary": [
+      {"term": "practise", "meaning": "练习", "example": "I practise the guitar for twenty minutes after dinner."},
+      {"term": "rule", "meaning": "规矩；规则", "example": "Our family has one rule: no phones at dinner."},
+      {"term": "breathe", "meaning": "呼吸", "example": "Close your eyes and breathe slowly."},
+      {"term": "messy", "meaning": "乱糟糟的；不整齐的", "example": "My handwriting gets messy when I am in a hurry."}
+    ],
+    "expressions": [
+      {"text": "At first", "meaning": "起初；一开始", "note": "讲态度或情况的变化时用，后面常接 But... / Now..."},
+      {"text": "make a lot of mistakes", "meaning": "犯很多错", "note": "mistake 搭配动词 make，不说 do mistakes"},
+      {"text": "breathe in", "meaning": "吸气", "note": "反义是 breathe out（呼气），运动、放松时常用"},
+      {"text": "slow lines are strong lines", "meaning": "写得慢，笔画才有力", "note": "用重复结构总结道理，好记又有节奏感"},
+      {"text": "the quietest part of my week", "meaning": "我一周里最安静的时光", "note": "the + 最高级 + part of my day/week，描述一段特别的时间"}
+    ],
+    "grammar": ["tense-present", "tense-perfect", "clause-relative"],
+    "knowledge": [
+      {"node": "tense-present", "quote": "Every Sunday morning, I sit at the kitchen table and practise calligraphy for one hour.", "explanation": "Every Sunday morning 表示固定习惯，所以用一般现在时 sit 和 practise。介绍自己的日常安排，就用这个时态。"},
+      {"node": "tense-perfect", "quote": "I have done this for six months now.", "explanation": "have done + for six months 表示从六个月前一直坚持到现在，而且还在继续。for 后面接一段时间。"},
+      {"node": "clause-relative", "quote": "My brush is an old one that my uncle gave me.", "explanation": "that my uncle gave me 修饰 an old one，说明是“叔叔送的那支”。one 代替前面的 brush，避免重复。"}
+    ],
+    "speaking": "用 1 分钟讲一个让你“慢下来”的爱好：什么时候做、在哪里做、为什么喜欢。",
+    "writing": "写 50–70 词，介绍你每周固定做的一件事，用上一般现在时和 I have... for... now。",
+    "task": {"prompt": "仿照这句，用 I have ... for ... now. 说说你坚持了一段时间的一个习惯。", "model": "I have done this for six months now."},
+    "tags": ["书法", "爱好"],
+    "source": "Flow 编辑部原创"
+  }
+]

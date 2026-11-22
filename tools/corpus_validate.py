@@ -162,9 +162,9 @@ def main(paths):
                 pass
     total_e = total_w = n = 0
     for f in files:
-        m = re.fullmatch(r'([a-z]+)\.(A2|B1|B2|C1)\.json', f.name)
+        m = re.fullmatch(r'([a-z]+)\.(A2|B1|B2|C1)(?:\.\d+)?\.json', f.name)
         if not m or m.group(1) not in THEMES:
-            print(f'✗ {f.name}: 文件名应为 <theme>.<CEFR>.json'); total_e += 1; continue
+            print(f'✗ {f.name}: 文件名应为 <theme>.<CEFR>.json 或 <theme>.<CEFR>.<n>.json'); total_e += 1; continue
         theme, cefr = m.groups()
         try:
             packs = json.loads(f.read_text(encoding='utf-8'))

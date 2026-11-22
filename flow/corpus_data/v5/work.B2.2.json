@@ -1,0 +1,250 @@
+[
+  {
+    "id": "v5-work-b2-chef-turned-tester",
+    "title": "从后厨到软件测试：一次转行",
+    "title_en": "From the Kitchen to Software Testing",
+    "summary_zh": "厨师 Tomasz 转行做了软件测试员。他发现“照着菜谱一步步找出哪里出错”和测试工作惊人地相似。读完你能学会谈论转行经历和可迁移技能的表达。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "work",
+    "genre": "interview",
+    "body": "Q: You spent years as a chef before becoming a software tester. What made you switch? Tomasz: I loved the craft, but I'd stopped seeing my friends, because my shifts always fell exactly when they were free. Q: How did you get started? Tomasz: A friend who tests apps showed me what she does all day, and it looked oddly familiar. A tester follows a recipe step by step, looking for the moment it goes wrong. I took an evening course to learn the basics, and I practised on every free app I could download. If I hadn't taken that course, I'd still be working every weekend in a hot kitchen. Q: Did anything from cooking actually help? Tomasz: More than I expected. In a busy kitchen, you learn to stay calm when everything is going wrong at once during the dinner rush, and you learn to flag a problem immediately, not at the end of the night. Although the tools are completely different, the attitude is the same. You taste everything before it leaves the kitchen, and you test everything before it reaches customers. Q: What was the hardest part? Tomasz: Feeling like a clumsy beginner again in my late thirties. In the kitchen, people came to me for answers; here, I was the one asking. I had to accept that it would take time to be good at this. Q: Any advice for someone thinking of a change? Tomasz: Look for the skills you already have, not the ones you lack. They're usually hiding in plain sight.",
+    "questions": [
+      {
+        "prompt": "What is Tomasz's main message about changing careers?",
+        "options": [
+          "It is only realistic if you start while you are young",
+          "Skills from an old job can be surprisingly useful in a new one",
+          "You should finish several courses before you think of switching",
+          "It is easier if you keep your old job at weekends for a while"
+        ],
+        "answer": 1,
+        "evidence": "Look for the skills you already have, not the ones you lack."
+      },
+      {
+        "prompt": "Why did software testing look \"oddly familiar\" to Tomasz?",
+        "options": [
+          "He had used a lot of apps while he was working as a chef",
+          "His friend had already explained it to him several times",
+          "Like following a recipe, it means checking each step to see where things fail",
+          "Testing apps also involves working long hours at weekends"
+        ],
+        "answer": 2,
+        "evidence": "A tester follows a recipe step by step, looking for the moment it goes wrong."
+      }
+    ],
+    "dictation_index": 7,
+    "vocabulary": [
+      {"term": "switch", "meaning": "转换；换（工作、方向）", "example": "After ten years in sales, she decided to switch to teaching."},
+      {"term": "familiar", "meaning": "熟悉的；似曾相识的", "example": "The new office layout felt strangely familiar."},
+      {"term": "attitude", "meaning": "态度；心态", "example": "Her attitude to mistakes is calm and practical."},
+      {"term": "immediately", "meaning": "立即；马上", "example": "Please tell me immediately if the server goes down."},
+      {"term": "lack", "meaning": "缺乏；缺少", "example": "Many new managers lack confidence in their first year."}
+    ],
+    "expressions": [
+      {"text": "What made you switch", "meaning": "是什么让你转行的", "note": "What made you + 动词原形，比 Why did you… 更口语、更有好奇感，采访和闲聊都常用。"},
+      {"text": "step by step", "meaning": "一步一步地", "note": "描述按顺序完成的过程：The app guides you step by step."},
+      {"text": "everything is going wrong at once", "meaning": "所有事情同时出问题", "note": "at once 这里是“同时”，不是“马上”。形容忙乱的场面非常形象。"},
+      {"text": "More than I expected", "meaning": "比我预想的还多", "note": "单独作答语很自然，表示惊喜：Did it help? — More than I expected."},
+      {"text": "came to me for answers", "meaning": "（别人）来找我要答案", "note": "come to sb for sth 指向某人求助，暗示自己是有经验、被依赖的人。"},
+      {"text": "hiding in plain sight", "meaning": "就在眼前却没被注意到", "note": "原指“藏在显眼处”，常用来说被忽略的优点、机会或答案。"}
+    ],
+    "grammar": ["subjunctive-mixed", "clause-adverb", "nonfinite-infinitive"],
+    "knowledge": [
+      {"node": "subjunctive-mixed", "quote": "If I hadn't taken that course, I'd still be working every weekend in a hot kitchen.", "explanation": "错综条件句：if 从句用过去完成时 hadn't taken 假设过去，主句用 would still be doing 说现在的结果。过去的一个选择改变了今天的生活。"},
+      {"node": "clause-adverb", "quote": "Although the tools are completely different, the attitude is the same.", "explanation": "Although 引导让步状语从句，先承认差异，再在主句里强调相同点。注意英语不能再在主句前加 but。"},
+      {"node": "nonfinite-infinitive", "quote": "I took an evening course to learn the basics", "explanation": "to learn the basics 是不定式表目的，说明“上课是为了什么”。比 so that I could learn… 更简洁。"}
+    ],
+    "speaking": "假设你要转行做另一份工作（或换一个专业），用 1 分钟说说你现在的哪些能力可以“带过去”。用上 Although…, … 和 hiding in plain sight。",
+    "writing": "用 150–200 词写一段采访回答：一个人从一个行业转到完全不同的行业，讲讲最难的部分和意外有用的旧技能。至少用一个 If I hadn't…, I'd still… 句子。",
+    "task": {"prompt": "仿照这句，用 If I hadn't…, I'd (still)… 写一句话，说明过去的一个选择怎样影响了你现在的生活。", "model": "If I hadn't taken that course, I'd still be working every weekend in a hot kitchen."},
+    "tags": ["转行", "职业发展"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-work-b2-performance-review-talk",
+    "title": "一次不尴尬的绩效面谈",
+    "title_en": "A Performance Review That Feels Like a Conversation",
+    "summary_zh": "经理 Esther 和员工 Rohan 的半年绩效面谈：先请对方自评，再肯定成绩、指出“来者不拒导致拖延”的问题，最后一起定下办法。读完你能学会一场有建设性的绩效对话该怎么说。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "work",
+    "genre": "dialogue",
+    "body": "Esther: Thanks for coming in, Rohan — before I share my notes, I'd like to hear how you think the last six months went. Rohan: Honestly, better than I feared, because the customer portal launched on time and I'm proud of that. But I know I struggled to say no whenever other teams asked for favours. Esther: I'm glad you brought that up, because it's the main thing I wanted to discuss. Your work on the portal was excellent, and the client told me so directly. While your technical work is strong, though, you sometimes take on so much that your own deadlines slip. Rohan: That's fair — I suppose I don't want to look unhelpful. Esther: I understand, and nobody wants you to stop helping people. The goal is to help on purpose rather than by accident. From now on, check any new request against your priorities first, and tell me if there's a clash. If the answer isn't obvious, we'll decide together. Rohan: That would make it a lot easier. Could I also ask about leading the next sprint review, since I'd like to get more experience running meetings? Esther: Absolutely. If you lead that one, I'll sit in and give you some feedback afterwards. Rohan: Great, and is there anything else I should be working on? Esther: Just keep writing those clear weekly updates, because they make my job much easier. Rohan: Noted, and thanks — this felt more like a conversation than a test.",
+    "questions": [
+      {
+        "prompt": "What is the main issue Esther raises?",
+        "options": [
+          "Rohan's technical work is not good enough yet",
+          "Rohan agrees to so many requests that his own work is delayed",
+          "Rohan doesn't help other teams often enough",
+          "Rohan's weekly updates are too long and unclear"
+        ],
+        "answer": 1,
+        "evidence": "you sometimes take on so much that your own deadlines slip"
+      },
+      {
+        "prompt": "What does Rohan mean when he says the review felt \"more like a conversation than a test\"?",
+        "options": [
+          "They worked things out together instead of Esther simply judging him",
+          "The meeting was too informal to be really useful",
+          "He was disappointed that Esther didn't give him a score",
+          "He thought he had passed easily because the questions were simple"
+        ],
+        "answer": 0,
+        "evidence": "this felt more like a conversation than a test"
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {"term": "struggled", "meaning": "（做某事）很吃力；难以做到", "example": "I struggled to stay focused during the long call."},
+      {"term": "favours", "meaning": "帮忙；人情", "example": "He's always asking for favours but never offers to help."},
+      {"term": "slip", "meaning": "（进度、截止日期）推迟；下滑", "example": "If the designer is ill, the launch date may slip."},
+      {"term": "priorities", "meaning": "优先事项", "example": "Let's agree on our top three priorities for this month."},
+      {"term": "clash", "meaning": "冲突；（时间）撞车", "example": "There's a clash between the training and the client meeting."}
+    ],
+    "expressions": [
+      {"text": "better than I feared", "meaning": "比我担心的要好", "note": "自我评价时谦虚又积极的说法，也可以说 Better than I expected。"},
+      {"text": "I'm glad you brought that up", "meaning": "很高兴你主动提到这一点", "note": "bring sth up 指提起话题。对方先说出问题时这样回应，能让谈话不那么紧张。"},
+      {"text": "take on so much", "meaning": "揽下太多事情", "note": "take on 指承担（工作、责任），take on too much 是职场常见问题。"},
+      {"text": "That's fair", "meaning": "说得有道理；这很公道", "note": "接受批评时简短、成熟的回应，不辩解也不过度道歉。"},
+      {"text": "on purpose rather than by accident", "meaning": "有意为之，而不是碰巧发生", "note": "on purpose（故意、有意）与 by accident（意外、偶然）对比，强调要主动做选择。"},
+      {"text": "sit in", "meaning": "旁听（会议、课程）", "note": "sit in on a meeting 指不主导、只在场观察，常用于带教或评估。"}
+    ],
+    "grammar": ["conditional-real", "clause-adverb", "nonfinite-infinitive"],
+    "knowledge": [
+      {"node": "conditional-real", "quote": "If you lead that one, I'll sit in and give you some feedback afterwards.", "explanation": "真实条件句：if + 一般现在时，主句 will + 动词原形，表示条件一旦成立就会发生的事。经理用它做出具体承诺。"},
+      {"node": "clause-adverb", "quote": "While your technical work is strong, though, you sometimes take on so much that your own deadlines slip.", "explanation": "While 在这里表示让步（虽然），先肯定再指出问题；后面 so much that… 是结果状语从句，说明“揽得太多”带来的后果。"},
+      {"node": "nonfinite-infinitive", "quote": "The goal is to help on purpose rather than by accident.", "explanation": "The goal is to do… 用不定式作表语，说明目标是什么。比 We want you to… 更客观，适合定方向。"}
+    ],
+    "speaking": "两人一组模拟一次绩效面谈：一人当经理，先肯定一项成绩，再指出一个问题并一起商量办法。用上 While…, … 和 If you…, I'll…。",
+    "writing": "用 150–200 词写一段自我评价：过去半年（或一个学期）你做得好的一件事、需要改进的一件事，以及下一步的打算。",
+    "task": {"prompt": "仿照这句，用 While A, B 先肯定再提出问题，给朋友或同事一个温和的建议。", "model": "While your technical work is strong, though, you sometimes take on so much that your own deadlines slip."},
+    "tags": ["绩效面谈", "向上沟通"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-work-b2-four-day-week",
+    "title": "四天工作制是个好主意吗",
+    "title_en": "Is a Four-Day Week a Good Idea?",
+    "summary_zh": "四天工作制听起来很美，但真的适合所有人吗？这篇议论文先亮明立场，再认真回应反方，最后提出折中方案。读完你能学会一篇结构清晰的考试式议论文怎么写。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "work",
+    "genre": "opinion",
+    "body": "Few workplace ideas sound as attractive as a four-day week: the same job, the same pay, and an extra day to rest, study or simply see friends. I believe it can work well, but only where it is designed around results rather than around the calendar. The strongest argument in its favour is that long hours do not automatically produce good work. Most of us know the feeling of sitting at a desk late on a Friday afternoon, technically present but mentally finished. If a team cuts unnecessary meetings and focuses on what really matters, it will often achieve as much in four days as it used to in five. A longer weekend also gives people time to recover, and rested people tend to be more careful and more creative when they return. Critics raise a fair point, however. Not every job can be squeezed into fewer days. A nurse, a bus driver or a shop assistant cannot simply work faster, because their value lies in being there. For these roles, a shorter week means either hiring more staff or leaving customers without help. There is also a risk that the same workload is crammed into longer days, leaving people more exhausted, not less. These objections suggest that the idea should be adapted, not abandoned. Some teams might rotate their days off; others might shorten each day instead. If offices had been designed around output from the start, we would not be arguing about hours today. In the end, the question is not whether four is better than five, but whether we are willing to measure work by what it achieves.",
+    "questions": [
+      {
+        "prompt": "What is the writer's overall position?",
+        "options": [
+          "A four-day week should replace the five-day week everywhere",
+          "A four-day week can work if it is planned around results",
+          "A four-day week is a fashionable idea that will soon disappear",
+          "A four-day week only suits people who work from home"
+        ],
+        "answer": 1,
+        "evidence": "I believe it can work well, but only where it is designed around results rather than around the calendar."
+      },
+      {
+        "prompt": "Why can't some workers \"simply work faster\"?",
+        "options": [
+          "Their managers do not allow them to change their hours",
+          "Their jobs are valuable because they are physically present",
+          "They already work fewer hours than office staff",
+          "They need more training before they can speed up"
+        ],
+        "answer": 1,
+        "evidence": "because their value lies in being there"
+      }
+    ],
+    "dictation_index": 2,
+    "vocabulary": [
+      {"term": "attractive", "meaning": "有吸引力的", "example": "Flexible hours make the job very attractive to parents."},
+      {"term": "unnecessary", "meaning": "不必要的", "example": "Let's cut any unnecessary steps from the process."},
+      {"term": "workload", "meaning": "工作量", "example": "My workload doubles every December."},
+      {"term": "exhausted", "meaning": "精疲力竭的", "example": "After the trade fair, the whole team was exhausted."},
+      {"term": "rotate", "meaning": "轮流；轮换", "example": "We rotate who chairs the weekly meeting."}
+    ],
+    "expressions": [
+      {"text": "in its favour", "meaning": "对它有利的；支持它的", "note": "the argument in its favour 是议论文高频说法，反方可以说 the argument against it。"},
+      {"text": "technically present but mentally finished", "meaning": "人在，心已经下班了", "note": "technically 表示“严格来说、名义上”，和 mentally 对比，形容“出工不出力”很生动。"},
+      {"text": "raise a fair point", "meaning": "提出了一个合理的观点", "note": "议论文转向反方时的礼貌说法，表示你认真对待对方，而不是一笔带过。"},
+      {"text": "squeezed into fewer days", "meaning": "被压缩进更少的天数里", "note": "squeeze into 指硬塞进有限的空间或时间：squeeze three meetings into one morning。"},
+      {"text": "adapted, not abandoned", "meaning": "应该调整，而不是放弃", "note": "两个押头韵的过去分词形成对比，是议论文里提出折中观点的利落写法。"},
+      {"text": "In the end", "meaning": "归根结底；最终", "note": "放在结尾段开头，引出总结性的观点。"}
+    ],
+    "grammar": ["conditional-real", "subjunctive-mixed", "nonfinite-infinitive"],
+    "knowledge": [
+      {"node": "conditional-real", "quote": "If a team cuts unnecessary meetings and focuses on what really matters, it will often achieve as much in four days as it used to in five.", "explanation": "真实条件句 if + 一般现在时，主句 will + 动词原形，表示满足条件就很可能出现的结果；often 让判断更稳妥，适合议论文。"},
+      {"node": "subjunctive-mixed", "quote": "If offices had been designed around output from the start, we would not be arguing about hours today.", "explanation": "错综条件句：从句 had been designed 假设过去（并没有这样设计），主句 would not be arguing… today 说现在的情况。时间状语 from the start 和 today 是关键线索。"},
+      {"node": "nonfinite-infinitive", "quote": "A longer weekend also gives people time to recover", "explanation": "to recover 是不定式作后置定语，说明“用来做什么的时间”。give sb time to do sth 是很常用的结构。"}
+    ],
+    "speaking": "用 1 分钟回答：你所在的学校或公司适合试行“四天制”吗？先给出立场，再说一个反方观点，最后总结。用上 raise a fair point 和 In the end。",
+    "writing": "用 180–230 词写一篇议论文“Should students have a four-day school week?”：开头亮明观点，中间至少一个让步段（Critics raise a fair point, however…），结尾总结。不要使用统计数字。",
+    "task": {"prompt": "仿照这句，用 If … had been …, we would not be … today 设想过去的某个安排如果不同，现在会怎样。", "model": "If offices had been designed around output from the start, we would not be arguing about hours today."},
+    "tags": ["职场观点", "议论文写作"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-work-b2-angry-email-unsent",
+    "title": "那封不该发出去的气话邮件",
+    "title_en": "The Angry Email You Should Not Send",
+    "summary_zh": "每个人都写过一封“气话邮件”。这篇文章解释为什么愤怒让人觉得必须马上回复，并给出一个简单办法：先写、不填收件人、睡一觉再改。读完你能把冲动的句子改写得冷静又有力。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "work",
+    "genre": "explainer",
+    "body": "Almost everyone has written one: the email that begins politely and ends with three sentences you would never say to someone's face. It usually happens late in the day, after a colleague has missed a deadline or copied your manager into a complaint. The anger feels urgent, as though the problem will grow every minute you wait. In reality, very few workplace problems get worse overnight, whereas a harsh message can do damage that lasts for months. Once something is in writing, it can be forwarded, reread and quoted back to you long after you have calmed down. That is why many experienced people follow a simple routine. They write the angry version anyway, because getting the words out genuinely helps, but they write it in a blank document with nobody's name in the address line. Then they wait, ideally until the next morning. If you still want to send it after a night's sleep, you can at least send a version you won't regret. The rewrite usually keeps the facts and loses the adjectives. A line like \"You clearly didn't bother to read my notes\" becomes \"It looks as though my notes may not have reached you,\" which invites a reply instead of a fight. One office manager I know keeps her unsent drafts in a folder as a reminder. \"If I had sent the worst of them, I wouldn't be working with half of these people today,\" she says. The aim is not to bottle up your feelings but to choose when, and how, they reach other people.",
+    "questions": [
+      {
+        "prompt": "What is the main advice of the text?",
+        "options": [
+          "Never put angry feelings about colleagues into words",
+          "Write the angry email if you need to, but wait before sending anything",
+          "Reply immediately so that the problem doesn't have time to grow",
+          "Ask your manager to check every difficult email before it goes out"
+        ],
+        "answer": 1,
+        "evidence": "Then they wait, ideally until the next morning."
+      },
+      {
+        "prompt": "According to the text, why is an angry email especially risky?",
+        "options": [
+          "It can be shared and repeated long after you have calmed down",
+          "It usually reaches the wrong person by mistake",
+          "It is more likely to be ignored than a phone call",
+          "It makes the original problem worse overnight"
+        ],
+        "answer": 0,
+        "evidence": "it can be forwarded, reread and quoted back to you long after you have calmed down"
+      }
+    ],
+    "dictation_index": 8,
+    "vocabulary": [
+      {"term": "urgent", "meaning": "紧急的；急迫的", "example": "Is this urgent, or can it wait until Monday?"},
+      {"term": "harsh", "meaning": "严厉的；刺耳的", "example": "His comments were fair, but his tone was harsh."},
+      {"term": "forwarded", "meaning": "转发", "example": "She forwarded the invitation to the whole team."},
+      {"term": "regret", "meaning": "后悔", "example": "Don't say anything you might regret later."},
+      {"term": "drafts", "meaning": "草稿", "example": "I keep all my drafts until the final version is approved."}
+    ],
+    "expressions": [
+      {"text": "to someone's face", "meaning": "当着某人的面", "note": "常用于否定或批评：I'd never say that to his face. 和 behind someone's back（背后）相对。"},
+      {"text": "do damage", "meaning": "造成伤害", "note": "可以说 do damage to a relationship / a reputation，比 hurt 更正式。"},
+      {"text": "quoted back to you", "meaning": "被人拿你说过的话来回敬你", "note": "quote sth back to sb 指引用对方原话反驳，提醒书面文字会“留证据”。"},
+      {"text": "after a night's sleep", "meaning": "睡一觉之后", "note": "类似中文“冷静一晚再说”，也可以说 sleep on it。"},
+      {"text": "invites a reply instead of a fight", "meaning": "引来回复而不是争吵", "note": "invite 在这里是“引起、招致”的意思，描述一句话带来的效果。"},
+      {"text": "bottle up your feelings", "meaning": "把情绪憋在心里", "note": "bottle up 像把情绪装进瓶子封住，常带“这样不健康”的意味。"}
+    ],
+    "grammar": ["conditional-real", "clause-adverb", "subjunctive-mixed"],
+    "knowledge": [
+      {"node": "conditional-real", "quote": "If you still want to send it after a night's sleep, you can at least send a version you won't regret.", "explanation": "真实条件句：if + 一般现在时，主句用情态动词 can 给出可行的做法。给建议时，这种结构既现实又不强迫对方。"},
+      {"node": "clause-adverb", "quote": "Once something is in writing, it can be forwarded, reread and quoted back to you long after you have calmed down.", "explanation": "Once 引导时间/条件状语从句，意为“一旦……就……”；后半句 long after… 也是时间状语从句，强调后果持续很久。"},
+      {"node": "subjunctive-mixed", "quote": "If I had sent the worst of them, I wouldn't be working with half of these people today", "explanation": "错综条件句：if 从句 had sent 假设过去（其实没发），主句 wouldn't be working… today 说现在的情况，表达“幸亏当初没发”。"}
+    ],
+    "speaking": "用 1 分钟讲一次你差点发出（或真的发出）一条气话消息的经历，结果怎么样。用上 to someone's face 和 after a night's sleep。",
+    "writing": "把这句气话改成礼貌但清楚的版本，并写一封 120–160 词的邮件：You never answer my messages and now the whole project is late. 保留事实，去掉情绪化的形容词。",
+    "task": {"prompt": "仿照这句，用 Once…, … 写一句话，说明某件事一旦发生，就会带来什么后果。", "model": "Once something is in writing, it can be forwarded, reread and quoted back to you long after you have calmed down."},
+    "tags": ["职场邮件", "情绪管理"],
+    "source": "Flow 编辑部原创"
+  }
+]

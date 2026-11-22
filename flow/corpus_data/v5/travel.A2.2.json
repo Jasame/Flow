@@ -1,0 +1,474 @@
+[
+  {
+    "id": "v5-travel-a2-lost-luggage",
+    "title": "行李没出来，去柜台登记",
+    "title_en": "My Suitcase Didn't Arrive: At the Lost Luggage Desk",
+    "summary_zh": "传送带停了，Ana 的箱子却没出来。跟着她在机场行李柜台说明情况、描述箱子、登记报告——一套丢行李时马上用得上的句子。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "travel",
+    "genre": "dialogue",
+    "body": "Ana: Excuse me. My suitcase hasn't come out, and the belt has stopped. Staff: I'm sorry to hear that. Which flight were you on? Ana: The one from Port Calder. It landed an hour ago. Staff: Can you describe your bag? Ana: Sure. It's a large green suitcase that has a yellow ribbon on the handle. Staff: Thank you. Have you checked the area for big items? Ana: Yes, I've looked everywhere. Staff: Then I'll fill in a report for you. Can I see your bag tag? Ana: Here it is. What happens now? Staff: Lost bags usually come on the next flight. When yours arrives, we'll bring it to your hotel. Ana: Great, but all my clothes are in it! Staff: Here's a small bag with a toothbrush and a T-shirt. Ana: Thanks. You've been really kind.",
+    "questions": [
+      {
+        "prompt": "What is Ana's problem?",
+        "options": [
+          "Her flight landed very late",
+          "Her suitcase did not come out with the other bags",
+          "She lost the tag for her bag",
+          "She cannot find her hotel"
+        ],
+        "answer": 1,
+        "evidence": "My suitcase hasn't come out, and the belt has stopped."
+      },
+      {
+        "prompt": "What will the airport do when Ana's bag arrives?",
+        "options": [
+          "Call Ana and ask her to come back",
+          "Keep it at the desk for a week",
+          "Take it to Ana's hotel",
+          "Send it back to Port Calder"
+        ],
+        "answer": 2,
+        "evidence": "When yours arrives, we'll bring it to your hotel."
+      }
+    ],
+    "dictation_index": 8,
+    "vocabulary": [
+      {
+        "term": "describe",
+        "meaning": "描述；形容",
+        "example": "Can you describe the man you saw?"
+      },
+      {
+        "term": "handle",
+        "meaning": "把手；提手",
+        "example": "The handle of my umbrella is broken."
+      },
+      {
+        "term": "report",
+        "meaning": "报告；登记表",
+        "example": "She wrote a short report about the lost phone."
+      },
+      {
+        "term": "tag",
+        "meaning": "标签；（行李）牌",
+        "example": "Put a name tag on your bag before the trip."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "I'm sorry to hear that",
+        "meaning": "听到这事我很遗憾",
+        "note": "别人说出坏消息时的礼貌回应，工作人员、朋友都常用。"
+      },
+      {
+        "text": "Which flight were you on",
+        "meaning": "你坐的是哪个航班",
+        "note": "be on a flight / train / bus 表示“搭乘”，问别人坐哪班车也能用。"
+      },
+      {
+        "text": "I've looked everywhere",
+        "meaning": "我到处都找过了",
+        "note": "找东西找不到时的口头说法，用现在完成时强调“已经找过”。"
+      },
+      {
+        "text": "fill in a report",
+        "meaning": "填一份报告；登记",
+        "note": "fill in a form / a report 表示填写表格，英式常用；美式也说 fill out。"
+      },
+      {
+        "text": "You've been really kind",
+        "meaning": "你真是太好了",
+        "note": "对一直帮你的人表示感谢，比单说 thank you 更温暖。"
+      }
+    ],
+    "grammar": [
+      "tense-perfect",
+      "clause-relative",
+      "tense-present"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-perfect",
+        "quote": "My suitcase hasn't come out, and the belt has stopped.",
+        "explanation": "现在完成时 hasn't come out / has stopped 说的是“到现在为止”的结果：箱子还没出来，传送带已经停了，所以现在有麻烦。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "It's a large green suitcase that has a yellow ribbon on the handle.",
+        "explanation": "that 引导定语从句，修饰 suitcase，补充“什么样的箱子”。描述丢失的东西时，用 a ... that has ... 最清楚。"
+      },
+      {
+        "node": "tense-present",
+        "quote": "Lost bags usually come on the next flight.",
+        "explanation": "一般现在时加 usually，说一般规律或常见情况，而不是此刻正在发生的事。"
+      }
+    ],
+    "speaking": "角色扮演：你的行李没有出来。用 1 分钟向柜台工作人员说明情况，并描述你的箱子，至少用上 hasn't come out 和 a ... that has ...。",
+    "writing": "用 50–70 词给朋友发一条消息，说你的行李没到、机场会怎么处理，至少用一次现在完成时。",
+    "task": {
+      "prompt": "仿照这句，用 It's a ... that has ... 描述你自己的一件行李或随身物品。",
+      "model": "It's a large green suitcase that has a yellow ribbon on the handle."
+    },
+    "tags": [
+      "机场",
+      "求助对话"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-travel-a2-ten-words",
+    "title": "出发前，我只学了十个词",
+    "title_en": "The Ten Words I Learned Before My Trip",
+    "summary_zh": "Jo 旅行回来，给即将出发的朋友写信：出发前只花两个晚上学十个当地词，就让她处处受到欢迎。读完你也能列出自己的“十个词清单”。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "travel",
+    "genre": "email",
+    "body": "Hi Mia, I've just come back from Velora, and I have a tip for your trip. Before I left, I decided to learn ten words in the local language. It only took me two evenings. I learned hello, please, thank you, sorry and goodbye. I also learned yes, no, water, toilet and the words for 'how much'. These were the words that helped me most. People smiled when I used them, even when my accent was terrible. One old man who sold fruit at the market taught me two more words. I've never felt so welcome in a new place. My advice is simple. Write them on a small card and keep it in your pocket. You don't need to be perfect, because people really like it when you try. Have a great trip! Love, Jo",
+    "questions": [
+      {
+        "prompt": "What is Jo's main message to Mia?",
+        "options": [
+          "You must speak the local language very well",
+          "A few local words can make people welcome you",
+          "Local people prefer to speak English",
+          "It is better to buy fruit at the market"
+        ],
+        "answer": 1,
+        "evidence": "You don't need to be perfect, because people really like it when you try."
+      },
+      {
+        "prompt": "How did Jo learn two more words?",
+        "options": [
+          "From a book she read on the plane",
+          "From a fruit seller at the market",
+          "From her friend Mia",
+          "From a card in her pocket"
+        ],
+        "answer": 1,
+        "evidence": "One old man who sold fruit at the market taught me two more words."
+      }
+    ],
+    "dictation_index": 1,
+    "vocabulary": [
+      {
+        "term": "tip",
+        "meaning": "小建议；窍门",
+        "example": "My teacher gave me a good tip for remembering new words."
+      },
+      {
+        "term": "local",
+        "meaning": "当地的；本地的",
+        "example": "We had lunch at a small local restaurant."
+      },
+      {
+        "term": "accent",
+        "meaning": "口音",
+        "example": "He speaks English with a soft accent."
+      },
+      {
+        "term": "welcome",
+        "meaning": "受欢迎的",
+        "example": "Everyone in the village made us feel welcome."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "I have a tip for",
+        "meaning": "我有个小建议给……",
+        "note": "给别人支招时的轻松开场，也可以说 Here's a tip。"
+      },
+      {
+        "text": "It only took me two evenings",
+        "meaning": "我只花了两个晚上",
+        "note": "It took me + 时间，说做某事花了多久；加 only 强调“没花多少时间”。"
+      },
+      {
+        "text": "helped me most",
+        "meaning": "对我帮助最大",
+        "note": "most 放在动词后面表示“最……”，比如 the thing I miss most。"
+      },
+      {
+        "text": "I've never felt so welcome",
+        "meaning": "我从没觉得这么受欢迎",
+        "note": "I've never felt so + 形容词，强调这次的感受前所未有。"
+      },
+      {
+        "text": "My advice is simple",
+        "meaning": "我的建议很简单",
+        "note": "提出建议前的开场句，下一句直接说要怎么做。"
+      }
+    ],
+    "grammar": [
+      "tense-perfect",
+      "clause-relative",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-perfect",
+        "quote": "I've just come back from Velora",
+        "explanation": "现在完成时 + just，表示“刚刚”做完一件事，而且和现在有关系：我刚回来，所以现在可以给你建议。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "One old man who sold fruit at the market taught me two more words.",
+        "explanation": "who 引导定语从句修饰 man，说明“哪一位老人”。介绍旅途中遇到的人时，用 a man / woman who ... 很自然。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "Before I left, I decided to learn ten words in the local language.",
+        "explanation": "decide 后面接 to + 动词原形，表示“决定去做某事”。同类动词还有 want to、plan to、hope to。"
+      }
+    ],
+    "speaking": "用 1 分钟说说：如果你下个月去一个语言不通的地方，你会先学哪几个词？为什么？用上 I decided to 和 My advice is simple。",
+    "writing": "用 60–80 词给一个要去旅行的朋友写邮件，列出你建议他学的五个词，并用 who 介绍一位你在旅途中遇到的人。",
+    "task": {
+      "prompt": "仿照这句，用 a man / a woman who ... 介绍一位在旅行中帮过你的人。",
+      "model": "One old man who sold fruit at the market taught me two more words."
+    },
+    "tags": [
+      "旅行语言",
+      "邮件"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-travel-a2-postcard-habit",
+    "title": "一家人的明信片传统",
+    "title_en": "The Family Postcard Habit",
+    "summary_zh": "Ferro 一家每次旅行都要给家里寄一张明信片，奶奶把它们全部收在一个木盒里。一个简单的小传统，说明了为什么明信片比手机照片更让人期待。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "travel",
+    "genre": "article",
+    "body": "In the Ferro family, every trip ends the same way. On the last day, each person buys one postcard and sends it home. It sounds old-fashioned, and it is. The idea started with Grandma Lucia, who has kept every card in a big wooden box. Today the box is almost full. People write about a smell, a sound or a funny thing that happened in the street. Lucia's rules are easy: no weather, and always a real stamp. Often the cards arrive after the family is already home. That is part of the fun, because everyone reads them again at dinner. Her grandson Teo, who is twelve, has written cards from four countries. He likes the box more than any photo on his phone. 'Photos stay in your pocket,' he says. 'Postcards travel to you.'",
+    "questions": [
+      {
+        "prompt": "What is the article mainly about?",
+        "options": [
+          "A family that collects old stamps",
+          "A family habit of sending postcards from every trip",
+          "A grandmother who sells postcards to tourists",
+          "Why photos are better than postcards"
+        ],
+        "answer": 1,
+        "evidence": "each person buys one postcard and sends it home"
+      },
+      {
+        "prompt": "Why is it fun when the cards arrive late?",
+        "options": [
+          "The family reads them together at dinner",
+          "Late cards win a prize from Lucia",
+          "The stamps on late cards are more beautiful",
+          "The family can plan another trip"
+        ],
+        "answer": 0,
+        "evidence": "That is part of the fun, because everyone reads them again at dinner."
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {
+        "term": "old-fashioned",
+        "meaning": "老派的；过时的",
+        "example": "My dad still writes letters, which is a little old-fashioned."
+      },
+      {
+        "term": "wooden",
+        "meaning": "木头的",
+        "example": "There is a wooden table in the middle of the kitchen."
+      },
+      {
+        "term": "stamp",
+        "meaning": "邮票",
+        "example": "I need a stamp for this letter."
+      },
+      {
+        "term": "grandson",
+        "meaning": "孙子；外孙",
+        "example": "Her grandson visits her every Sunday."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "every trip ends the same way",
+        "meaning": "每次旅行都以同样的方式结束",
+        "note": "end the same way 说某种固定的结局或习惯，也可以说 Every party ends the same way."
+      },
+      {
+        "text": "It sounds old-fashioned",
+        "meaning": "听起来有点老派",
+        "note": "It sounds + 形容词，说对一件事的第一印象，后面常接 but 或 and it is 自嘲。"
+      },
+      {
+        "text": "almost full",
+        "meaning": "快满了",
+        "note": "almost 放在形容词前表示“差一点就……”：almost ready / almost finished。"
+      },
+      {
+        "text": "That is part of the fun",
+        "meaning": "这正是乐趣的一部分",
+        "note": "把小麻烦说成乐趣，语气轻松，口语里常说 That's part of the fun."
+      },
+      {
+        "text": "more than any photo on his phone",
+        "meaning": "比手机里的任何照片都更（喜欢）",
+        "note": "more than any + 单数名词，表示“比任何一个……都”：I like this café more than any other place."
+      }
+    ],
+    "grammar": [
+      "tense-present",
+      "clause-relative",
+      "tense-perfect"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-present",
+        "quote": "In the Ferro family, every trip ends the same way.",
+        "explanation": "一般现在时描述家庭里一直保持的习惯。every 作主语的一部分，谓语用单数 ends。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "The idea started with Grandma Lucia, who has kept every card in a big wooden box.",
+        "explanation": "逗号后的 who 从句补充介绍 Lucia 这个人。人名后面加信息时，要用 who，不能用 that。"
+      },
+      {
+        "node": "tense-perfect",
+        "quote": "has written cards from four countries",
+        "explanation": "现在完成时 has written 说到现在为止的经历，不说具体哪一年。数一数自己去过、做过多少次时很常用：I have visited three cities."
+      }
+    ],
+    "speaking": "用 1 分钟介绍你家或你自己的一个旅行小习惯（比如买冰箱贴、寄明信片），用上 every trip ends the same way 或 That is part of the fun。",
+    "writing": "用 60–80 词写一张寄给家人的明信片：不写天气，只写一种声音、一种味道和一件小趣事。",
+    "task": {
+      "prompt": "仿照这句，用一般现在时写你家的一个旅行或节日习惯。",
+      "model": "In the Ferro family, every trip ends the same way."
+    },
+    "tags": [
+      "旅行习惯",
+      "家庭"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-travel-a2-quiet-temple",
+    "title": "参观安静古寺的小礼仪",
+    "title_en": "Visiting a Quiet Temple: Simple Manners",
+    "summary_zh": "很多古寺是当地人安静坐一坐的地方。这份小指南告诉你穿什么、鞋子怎么办、能不能拍照、要不要放慢脚步——都是不需要任何背景知识的基本礼貌。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "travel",
+    "genre": "guide",
+    "body": "Many old temples are quiet places where local people come to sit and think. Visitors are usually welcome, but a few simple manners help. First, think about your clothes. If your shoulders or knees are bare, bring a light scarf to cover them. Next, watch the people around you. If they take off their shoes at the door, do the same. Inside, speak softly and turn your phone to silent. Walk slowly, and don't walk in front of someone who is sitting quietly. Some temples allow photos, and some don't. Look for a sign, or ask a guard before you take a picture. Don't touch old paintings or carvings, even if other visitors do. Finally, don't hurry. Sit for a few minutes and listen. Many travellers say that this quiet moment is the part of the trip they remember best.",
+    "questions": [
+      {
+        "prompt": "What is the main purpose of this guide?",
+        "options": [
+          "To explain the history of old temples",
+          "To give visitors simple tips for behaving politely",
+          "To tell visitors which temples are the most beautiful",
+          "To ask visitors not to go inside temples"
+        ],
+        "answer": 1,
+        "evidence": "Visitors are usually welcome, but a few simple manners help."
+      },
+      {
+        "prompt": "What should you do if you are not sure about taking photos?",
+        "options": [
+          "Take photos without a flash",
+          "Do what the other visitors do",
+          "Look for a sign or ask a guard",
+          "Leave your phone at the door"
+        ],
+        "answer": 2,
+        "evidence": "Look for a sign, or ask a guard before you take a picture."
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {
+        "term": "bare",
+        "meaning": "裸露的；光着的",
+        "example": "The children ran on the beach with bare feet."
+      },
+      {
+        "term": "scarf",
+        "meaning": "围巾；披巾",
+        "example": "She always carries a scarf in her bag."
+      },
+      {
+        "term": "softly",
+        "meaning": "轻声地",
+        "example": "Please speak softly in the library."
+      },
+      {
+        "term": "hurry",
+        "meaning": "匆忙；赶时间",
+        "example": "We don't need to hurry, the shop is open late."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "a few simple manners",
+        "meaning": "几条简单的礼仪",
+        "note": "manners 指礼貌、规矩，常用复数：good manners / table manners。"
+      },
+      {
+        "text": "do the same",
+        "meaning": "照着做；也这样做",
+        "note": "看别人怎么做就跟着做，非常实用：When in doubt, do the same."
+      },
+      {
+        "text": "turn your phone to silent",
+        "meaning": "把手机调成静音",
+        "note": "也可以说 put your phone on silent，公共场所的常见提醒。"
+      },
+      {
+        "text": "even if other visitors do",
+        "meaning": "就算别的游客这么做",
+        "note": "even if 表示“即使”，用来强调自己的规矩不因别人而改变。"
+      },
+      {
+        "text": "the part of the trip they remember best",
+        "meaning": "旅途中他们记得最清楚的部分",
+        "note": "the part (that) I remember best 是回忆经历时的好用结构。"
+      }
+    ],
+    "grammar": [
+      "clause-relative",
+      "conditional-real",
+      "tense-present"
+    ],
+    "knowledge": [
+      {
+        "node": "clause-relative",
+        "quote": "Many old temples are quiet places where local people come to sit and think.",
+        "explanation": "where 引导定语从句修饰 places，说明“在那里人们做什么”。介绍一个地方的用途时很常用：a café where students study。"
+      },
+      {
+        "node": "conditional-real",
+        "quote": "If they take off their shoes at the door, do the same.",
+        "explanation": "if + 一般现在时，主句用祈使句给出建议。“如果别人……，你就……”是给游客提醒时最简单的句型。"
+      },
+      {
+        "node": "tense-present",
+        "quote": "Some temples allow photos, and some don't.",
+        "explanation": "一般现在时说一般情况；some ..., and some don't 用来说明“各地规定不一样”，后半句省略了重复的动词。"
+      }
+    ],
+    "speaking": "用 1 分钟给第一次来你家乡的外国朋友介绍参观一个安静地方（寺庙、图书馆、老街）的规矩，至少用两个 If ..., ... 句子。",
+    "writing": "用 60–80 词写一份“参观安静场所”的小提示，至少写 4 条，用上 do the same 和 even if。",
+    "task": {
+      "prompt": "仿照这句，用 If ..., do the same / 祈使句，给来你家乡的游客一条礼仪建议。",
+      "model": "If they take off their shoes at the door, do the same."
+    },
+    "tags": [
+      "旅行礼仪",
+      "参观指南"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

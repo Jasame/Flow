@@ -1,0 +1,508 @@
+[
+  {
+    "id": "v5-culture-b2-street-art-wall",
+    "title": "社区那面涂鸦墙该不该留",
+    "title_en": "The Fox on the Wall That Divided a Street",
+    "summary_zh": "一夜之间，老洗衣店外墙上多了一只巨大的橙色狐狸。有人当它是礼物，有人觉得没人问过居民。读完你会看到一场社区争论怎样变成一个折中方案。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "culture",
+    "genre": "article",
+    "body": "When a giant orange fox appeared overnight on the side of the old laundrette on Mill Lane, nobody in the neighbourhood could agree on what it meant. Some residents saw it as a gift: within a week, children were posing beside it for photos, and the café opposite had started selling fox-shaped biscuits. Others were less charmed. Although the painting is undeniably skilful, nobody asked the people who live there whether they wanted it, and for many that is the real issue. \"If someone can paint a wall without asking, what stops the next person from painting something we hate?\" asked a retired bus driver at a packed community meeting. A teenager in the front row replied that the street had looked grey and forgotten for years, and that the fox was the first thing in a long time to make people stop and talk. What made the meeting unusual was that both sides were, in a sense, arguing for the same thing: a say in how their shared space looks. Eventually, the group agreed on a compromise. The fox will stay for now, but future murals will need approval from a small panel of residents, and local artists will be invited to submit designs to brighten two more walls. If the plan works, the neighbourhood may end up with more art, not less, chosen by the people who walk past it every day. As one woman put it on her way out of the hall, a wall is never just a wall once a whole street has started arguing about it.",
+    "questions": [
+      {
+        "prompt": "According to the writer, what did both sides of the debate really want?",
+        "options": [
+          "To have the fox painted over as soon as possible",
+          "To attract more customers to local shops",
+          "To have a voice in how their shared street looks",
+          "To stop all street art in the area"
+        ],
+        "answer": 2,
+        "evidence": "both sides were, in a sense, arguing for the same thing: a say in how their shared space looks"
+      },
+      {
+        "prompt": "What does \"Others were less charmed\" suggest about some residents?",
+        "options": [
+          "They were confused about what the painting meant",
+          "They were not as pleased by the painting",
+          "They had not yet seen the painting",
+          "They wanted the painting to be even bigger"
+        ],
+        "answer": 1,
+        "evidence": "Others were less charmed."
+      }
+    ],
+    "dictation_index": 9,
+    "vocabulary": [
+      {
+        "term": "residents",
+        "meaning": "居民",
+        "example": "The residents of our building share a small garden."
+      },
+      {
+        "term": "skilful",
+        "meaning": "技艺高超的；熟练的",
+        "example": "She is a skilful cook who never follows a recipe."
+      },
+      {
+        "term": "compromise",
+        "meaning": "折中方案；妥协",
+        "example": "We couldn't agree on a film, so we reached a compromise and watched two short ones."
+      },
+      {
+        "term": "approval",
+        "meaning": "批准；认可",
+        "example": "You need your manager's approval before you book the trip."
+      },
+      {
+        "term": "submit",
+        "meaning": "提交",
+        "example": "Please submit your photos by Friday."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "appeared overnight",
+        "meaning": "一夜之间冒了出来",
+        "note": "形容东西突然出现，带一点惊讶：New shops seem to appear overnight."
+      },
+      {
+        "text": "the real issue",
+        "meaning": "真正的问题所在",
+        "note": "把讨论拉回核心：The cost isn't the real issue; time is."
+      },
+      {
+        "text": "a say in",
+        "meaning": "（对某事的）发言权",
+        "note": "have a say in sth：在某事上有话语权，讨论公共事务、家庭决定都常用"
+      },
+      {
+        "text": "for now",
+        "meaning": "暂时；目前",
+        "note": "表示现在先这样，以后可能会变"
+      },
+      {
+        "text": "end up with",
+        "meaning": "最后得到；落得",
+        "note": "强调出乎意料的结果：We ended up with more food than we needed."
+      },
+      {
+        "text": "As one woman put it",
+        "meaning": "正如一位女士所说",
+        "note": "As sb put it 引用别人的妙语，报道、议论文都好用"
+      }
+    ],
+    "grammar": [
+      "clause-adverb",
+      "conditional-real",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "clause-adverb",
+        "quote": "Although the painting is undeniably skilful, nobody asked the people who live there whether they wanted it",
+        "explanation": "Although 引导让步状语从句，先承认对方的理由（画得好），再提出真正的问题。注意 although 和 but 不能在同一句里同时使用。"
+      },
+      {
+        "node": "conditional-real",
+        "quote": "If the plan works, the neighbourhood may end up with more art, not less",
+        "explanation": "真实条件句：if 从句用一般现在时 works 表示将来可能发生的情况，主句用 may 表示“有可能”，比 will 更谨慎。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "local artists will be invited to submit designs to brighten two more walls",
+        "explanation": "be invited to do 是被动语态后接不定式；后面的 to brighten 是不定式表目的，说明征集设计是为了什么。"
+      }
+    ],
+    "speaking": "你所在的小区或学校想在一面墙上画壁画。用 1 分钟说说你支持还是反对、理由是什么，以及你希望大家怎么决定画什么。",
+    "writing": "写 150–180 词的短文，报道一次社区或班级里关于“公共空间怎么用”的讨论：写出双方观点和最后的折中方案，用上 Although... 和 If..., ... may...。",
+    "task": {
+      "prompt": "仿照这句，用 A is never just A once... 写一句话，说明一个普通的东西如何因为人们的在意而变得不普通。",
+      "model": "a wall is never just a wall once a whole street has started arguing about it"
+    },
+    "tags": [
+      "街头艺术",
+      "社区讨论",
+      "公共空间"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-b2-dinner-toast",
+    "title": "饭桌上的祝酒词怎么说",
+    "title_en": "How to Give a Short Toast Without Panicking",
+    "summary_zh": "突然被请起来祝酒，脑子一片空白？这篇指南告诉你：一分钟、一个小故事、一句清楚的结尾就够了。不喝酒也完全没关系。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "culture",
+    "genre": "guide",
+    "body": "Being asked to give a toast at a dinner can make even confident people go pale, but a good toast is far simpler than most of us imagine. The first rule is to keep it short. If you speak for more than a minute or two, glasses start to feel heavy and people begin glancing longingly at their food. Before you stand up, decide on one thing you want to say about the person or the occasion, rather than trying to cover everything. A single, well-chosen anecdote usually works better than a list of compliments, because it shows the guests who the person really is. You might mention the time your friend got completely lost on the way to her own birthday party, for instance, before saying how glad you are that she always finds her way back to the people she loves. Humour helps, but any teasing should be gentle; if a joke needs explaining or could embarrass someone, leave it out. When you reach the end, raise your glass and say clearly what everyone is drinking to, such as \"To Anna, and to many more years of getting lost together\". That final line acts as a signal, so make sure people know when to lift their glasses. It also helps to remember that nobody is expecting a performance. Guests simply want to share a warm moment, and they will forgive a nervous voice far more easily than a long speech. Finally, if you are not drinking alcohol, just raise whatever is in front of you. Water works just as well, since a toast is about the words rather than the drink.",
+    "questions": [
+      {
+        "prompt": "What is the main message of the guide?",
+        "options": [
+          "A toast should include a long list of the person's best qualities",
+          "Only confident speakers should agree to give a toast",
+          "A good toast is short and personal, because guests want warmth, not a show",
+          "The best toasts are built around as many jokes as possible"
+        ],
+        "answer": 2,
+        "evidence": "It also helps to remember that nobody is expecting a performance."
+      },
+      {
+        "prompt": "Why does the writer recommend telling a single anecdote?",
+        "options": [
+          "It is easier to remember than a joke",
+          "It shows the guests what the person is really like",
+          "It gives the speaker time to calm down",
+          "It makes the toast last a little longer"
+        ],
+        "answer": 1,
+        "evidence": "because it shows the guests who the person really is"
+      }
+    ],
+    "dictation_index": 4,
+    "vocabulary": [
+      {
+        "term": "occasion",
+        "meaning": "场合；特别的日子",
+        "example": "A graduation is a big occasion for the whole family."
+      },
+      {
+        "term": "compliments",
+        "meaning": "称赞；恭维话",
+        "example": "She was so nervous that she didn't hear any of the compliments."
+      },
+      {
+        "term": "anecdote",
+        "meaning": "（真实的）小故事；趣事",
+        "example": "My dad always starts his speeches with a funny anecdote about his childhood."
+      },
+      {
+        "term": "signal",
+        "meaning": "信号；暗示",
+        "example": "When the teacher claps twice, it's a signal to stop talking."
+      },
+      {
+        "term": "forgive",
+        "meaning": "原谅；包容",
+        "example": "People will forgive a small mistake if you are honest about it."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "go pale",
+        "meaning": "脸都白了",
+        "note": "形容突然紧张或害怕；go + 颜色形容词表示变化：go red 脸红"
+      },
+      {
+        "text": "keep it short",
+        "meaning": "简短点",
+        "note": "讲话、写邮件都适用；也可说 keep it brief"
+      },
+      {
+        "text": "leave it out",
+        "meaning": "删掉它；别提它",
+        "note": "leave sth out 指省略、不放进去：If you're not sure, leave it out."
+      },
+      {
+        "text": "raise your glass",
+        "meaning": "举起杯子",
+        "note": "祝酒时的固定说法：Please raise your glasses to the happy couple."
+      },
+      {
+        "text": "drinking to",
+        "meaning": "为……干杯",
+        "note": "drink to sb/sth：为某人或某事祝酒，结尾常说 To + 名词！"
+      },
+      {
+        "text": "works just as well",
+        "meaning": "效果一样好",
+        "note": "说明替代方案同样可行：A phone call works just as well."
+      }
+    ],
+    "grammar": [
+      "conditional-real",
+      "clause-adverb",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "conditional-real",
+        "quote": "If you speak for more than a minute or two, glasses start to feel heavy",
+        "explanation": "零条件句：if 从句和主句都用一般现在时，表示“只要这样，通常就会那样”的普遍规律，适合写指南。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "Before you stand up, decide on one thing you want to say about the person or the occasion",
+        "explanation": "Before 引导时间状语从句，主句是祈使句。时间从句里用一般现在时 stand 表示将来的动作，不用 will stand。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "make sure people know when to lift their glasses",
+        "explanation": "疑问词 + 不定式（when to lift）相当于一个名词从句 when they should lift，简洁地表达“该在什么时候做”。"
+      }
+    ],
+    "speaking": "假设朋友的生日聚会上请你祝酒，用 1 分钟说一段祝酒词：一个小故事 + 一句祝福，最后用 To... 收尾。",
+    "writing": "写一段 120–150 词的英文祝酒词（毕业聚餐、朋友婚礼或家人生日均可），控制在一分钟内能说完，并用上 raise your glass。",
+    "task": {
+      "prompt": "仿照这句，用 A usually works better than B 给出一条你的经验之谈。",
+      "model": "A single, well-chosen anecdote usually works better than a list of compliments"
+    },
+    "tags": [
+      "祝酒词",
+      "公开讲话",
+      "聚餐礼仪"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-b2-comic-timing",
+    "title": "用第二语言讲脱口秀",
+    "title_en": "Getting the Timing Right: Comedy in a Second Language",
+    "summary_zh": "Mira 学英语没几年就开始用英语讲脱口秀，最大的难题不是词汇，而是节奏。她分享了怎样给观众留出“翻译的一秒钟”，以及给学习者的一个小练习。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "culture",
+    "genre": "interview",
+    "body": "Q: You started doing stand-up in English only a few years after you began learning it. Was that terrifying? Mira: Completely. My vocabulary was fine, but my timing was a disaster. I would rush the punchline because I was afraid of forgetting it, and the audience would still be processing the set-up when I had already moved on. Q: So what changed? Mira: I started recording every show and listening to where people laughed, or didn't. That taught me more than any grammar book ever did. A joke in your second language has two jobs: it has to be understood first, and only then can it be funny. If people need an extra second to translate in their heads, you have to give them that second. Q: Do you ever use your first language on stage? Mira: Sometimes, as a kind of surprise. When I switch for one line and then translate it badly on purpose, the gap between the two versions often gets the biggest laugh of the night. Q: If you hadn't moved abroad, would you be a comedian now? Mira: Honestly, I doubt it. If I'd stayed at home, I'd probably be working in my uncle's shop and telling jokes only to the customers. Moving forced me to listen carefully to how people talk, and that's basically what comedy is. Q: Any advice for learners? Mira: Try telling one short joke in English this week, even if it's just to a friend. Notice the pause before the last line. Once you can feel that pause, you're halfway there.",
+    "questions": [
+      {
+        "prompt": "What does Mira see as the key to comedy in a second language?",
+        "options": [
+          "Using difficult words to impress the audience",
+          "Telling most jokes in your first language",
+          "Giving listeners time to understand before expecting a laugh",
+          "Speaking faster so that people stay interested"
+        ],
+        "answer": 2,
+        "evidence": "it has to be understood first, and only then can it be funny"
+      },
+      {
+        "prompt": "Why did Mira rush the punchline when she started?",
+        "options": [
+          "Her shows had a very strict time limit",
+          "She was worried she would forget it",
+          "The audience seemed to be getting bored",
+          "She thought fast jokes sounded more natural"
+        ],
+        "answer": 1,
+        "evidence": "because I was afraid of forgetting it"
+      }
+    ],
+    "dictation_index": 9,
+    "vocabulary": [
+      {
+        "term": "terrifying",
+        "meaning": "非常吓人的",
+        "example": "Speaking in front of the whole school was terrifying at first."
+      },
+      {
+        "term": "punchline",
+        "meaning": "（笑话的）包袱；笑点句",
+        "example": "He laughed so hard that he couldn't finish the punchline."
+      },
+      {
+        "term": "processing",
+        "meaning": "（大脑）消化、处理（信息）",
+        "example": "I'm still processing everything the landlord told me this morning."
+      },
+      {
+        "term": "pause",
+        "meaning": "停顿",
+        "example": "There was a long pause before she answered my question."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "was a disaster",
+        "meaning": "一团糟；彻底失败",
+        "note": "口语夸张说法：The first rehearsal was a disaster."
+      },
+      {
+        "text": "moved on",
+        "meaning": "（话题）往下走了；继续下一个",
+        "note": "move on 也指放下过去：It's time to move on."
+      },
+      {
+        "text": "in their heads",
+        "meaning": "在脑子里（默默地）",
+        "note": "do the maths in your head 心算；translate in your head 在脑中翻译"
+      },
+      {
+        "text": "on purpose",
+        "meaning": "故意地",
+        "note": "反义是 by accident；I didn't do it on purpose! 我不是故意的"
+      },
+      {
+        "text": "I doubt it",
+        "meaning": "我看不见得",
+        "note": "委婉地表达否定或怀疑，比 No 柔和"
+      },
+      {
+        "text": "you're halfway there",
+        "meaning": "你已经成功一半了",
+        "note": "鼓励别人的常用说法，表示关键一步已完成"
+      }
+    ],
+    "grammar": [
+      "subjunctive-mixed",
+      "clause-adverb",
+      "conditional-real"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-mixed",
+        "quote": "If I'd stayed at home, I'd probably be working in my uncle's shop",
+        "explanation": "错综条件句：if 从句用过去完成时（I'd stayed = I had stayed）假设过去，主句用 would be doing 说现在的结果。注意两个 I'd 分别是 had 和 would。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "Once you can feel that pause, you're halfway there.",
+        "explanation": "Once 引导时间状语从句，意思是“一旦……就……”，强调某个条件一达到，结果就随之而来。"
+      },
+      {
+        "node": "conditional-real",
+        "quote": "If people need an extra second to translate in their heads, you have to give them that second.",
+        "explanation": "真实条件句：if 从句和主句都用一般现在时，表达一条经常成立的经验规律，主句用 have to 表示必须这样做。"
+      }
+    ],
+    "speaking": "用英文给同伴讲一个很短的笑话或趣事，注意在最后一句前停顿一下；再用 1 分钟说说你觉得用外语讲笑话最难的是什么。",
+    "writing": "写 150–180 词：如果当初你做了一个不同的选择（专业、城市、爱好），现在的你会是什么样？至少用两个错综条件句。",
+    "task": {
+      "prompt": "仿照这句，用 If I'd..., I'd probably be... 写一句关于你自己人生选择的错综条件句。",
+      "model": "If I'd stayed at home, I'd probably be working in my uncle's shop"
+    },
+    "tags": [
+      "幽默",
+      "采访",
+      "第二语言"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-b2-when-to-clap",
+    "title": "音乐会上鼓掌的规矩该松一松",
+    "title_en": "Let Audiences Clap When the Music Moves Them",
+    "summary_zh": "在音乐会上“鼓错掌”是很多新手的尴尬回忆。作者主张放松这条不成文的规矩，也认真回应了反方的理由，最后给出一个折中办法。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "culture",
+    "genre": "opinion",
+    "body": "Anyone who has clapped at the wrong moment in a concert hall knows the feeling: a few people start applauding, the rest of the room stays frozen, and someone nearby lets out a small, disapproving sigh. At many classical concerts, the unwritten rule is that you wait until the very end of a piece, even if it has several parts with pauses in between. I believe this rule should be relaxed, because it does more to scare away newcomers than to protect the music. Clapping is, after all, the most natural way to show that something has moved you. When a fast, exciting section ends with a crash, it seems strange to ask people to sit in silence as though nothing has happened. If first-time listeners are made to feel foolish, many of them will simply not come back, and no concert hall can afford to lose them. Of course, there is a reasonable case for silence. Some pieces are designed to flow from one part to the next, and a sudden burst of applause can break the spell for everyone else. Performers, too, may need those few quiet seconds to concentrate before they continue. However, these concerns can be met without strict rules. Musicians could tell the audience at the start whether they would like silence, and printed programmes could explain it in one friendly sentence. If I had been told this at my first concert, I would not still remember that sigh so clearly today. In the end, a concert should feel like an invitation, not an exam, and the occasional \"wrong\" clap is a small price to pay for a fuller room.",
+    "questions": [
+      {
+        "prompt": "What is the writer's main argument?",
+        "options": [
+          "Audiences should never clap during classical concerts",
+          "The no-clapping rule should be relaxed because it drives away new listeners",
+          "Performers should stop leaving pauses between the parts of a piece",
+          "Concerts should be divided into events for experts and events for beginners"
+        ],
+        "answer": 1,
+        "evidence": "I believe this rule should be relaxed, because it does more to scare away newcomers than to protect the music."
+      },
+      {
+        "prompt": "How does the writer suggest dealing with pieces that need silence?",
+        "options": [
+          "By banning applause until the musicians leave the stage",
+          "By selling cheaper tickets to first-time listeners",
+          "By letting musicians say at the start if they would like silence",
+          "By seating newcomers away from regular concert-goers"
+        ],
+        "answer": 2,
+        "evidence": "Musicians could tell the audience at the start whether they would like silence"
+      }
+    ],
+    "dictation_index": 3,
+    "vocabulary": [
+      {
+        "term": "disapproving",
+        "meaning": "不赞成的；带责备意味的",
+        "example": "My grandmother gave me a disapproving look when I put my feet on the table."
+      },
+      {
+        "term": "applause",
+        "meaning": "掌声",
+        "example": "The young pianist bowed shyly as the applause filled the hall."
+      },
+      {
+        "term": "foolish",
+        "meaning": "愚蠢的；出洋相的",
+        "example": "I felt foolish when I realised I had been waiting at the wrong gate."
+      },
+      {
+        "term": "concentrate",
+        "meaning": "集中注意力",
+        "example": "I can't concentrate when my phone keeps buzzing."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "the unwritten rule",
+        "meaning": "不成文的规矩",
+        "note": "指大家默认遵守、却没写下来的规则，谈文化礼仪很常用"
+      },
+      {
+        "text": "scare away newcomers",
+        "meaning": "把新人吓跑",
+        "note": "scare away/off sb：因为让人害怕或尴尬而把人赶走"
+      },
+      {
+        "text": "after all",
+        "meaning": "毕竟；说到底",
+        "note": "放在句中补充一个大家都认可的理由，增强说服力"
+      },
+      {
+        "text": "can afford to lose",
+        "meaning": "承受得起失去……",
+        "note": "常用否定：We can't afford to lose another player. 不一定和钱有关"
+      },
+      {
+        "text": "break the spell",
+        "meaning": "打破那种（美好）氛围",
+        "note": "spell 原指魔咒，比喻让人沉浸的状态被打断"
+      },
+      {
+        "text": "a small price to pay",
+        "meaning": "值得付出的小代价",
+        "note": "议论文结尾常用：X is a small price to pay for Y."
+      }
+    ],
+    "grammar": [
+      "conditional-real",
+      "subjunctive-mixed",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "conditional-real",
+        "quote": "If first-time listeners are made to feel foolish, many of them will simply not come back",
+        "explanation": "真实条件句：if 从句用一般现在时（这里是被动 are made to feel），主句用 will，预测一个很可能发生的后果，是议论文里常见的论证方式。"
+      },
+      {
+        "node": "subjunctive-mixed",
+        "quote": "If I had been told this at my first concert, I would not still remember that sigh so clearly today.",
+        "explanation": "错综条件句：if 从句用过去完成时假设过去（当时没人告诉我），主句用 would + 动词原形和 today 说现在的结果。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "it does more to scare away newcomers than to protect the music",
+        "explanation": "do more to A than to B：两个不定式对比“更多起了什么作用”，用来指出某个做法的效果偏离了初衷。"
+      }
+    ],
+    "speaking": "你觉得电影院、音乐会或讲座上有哪条“不成文的规矩”应该放松？用 1 分钟给出观点、一个反方理由和你的回应。",
+    "writing": "写一篇 180–220 词的议论文：公共场合的“不成文规矩”是保护了体验，还是吓跑了新人？要有明确观点、反方观点和结论，用上 a small price to pay。",
+    "task": {
+      "prompt": "仿照这句，用 A should feel like..., not... 说说你认为某种活动或场合应有的样子。",
+      "model": "a concert should feel like an invitation, not an exam"
+    },
+    "tags": [
+      "音乐会礼仪",
+      "议论文",
+      "观点表达"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

@@ -1,0 +1,514 @@
+[
+  {
+    "id": "v5-science-b2-salty-sea",
+    "title": "海水为什么是咸的",
+    "title_en": "Where Does the Salt in the Sea Come From?",
+    "summary_zh": "海里的盐，很多其实来自陆地上的岩石：雨水把矿物一点点溶解，河流把它们带进大海，太阳只带走水、留下盐。读完你还会明白，为什么有些没有出海口的湖比大海还咸。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "science",
+    "genre": "explainer",
+    "body": "Anyone who has swallowed a mouthful of seawater knows how unpleasant it is, but where does all that salt come from? Surprisingly, much of it starts on land. Rainwater is very slightly acidic, because it picks up a little carbon dioxide from the air. As it runs over rocks and soil, it slowly dissolves tiny amounts of minerals and carries them into streams and rivers. Although every river is carrying salt towards the sea, the amount is so small that river water still tastes fresh. The real change happens once the water reaches the ocean. When the sun warms the surface, water evaporates and rises to form clouds, but the salt is left behind. That water later falls again as rain, ready to collect another load of minerals. If you leave a shallow dish of seawater on a sunny windowsill, you can watch the same process on a small scale: the water disappears, and a white crust remains. Repeated over an enormous stretch of time, this cycle has built up the saltiness we taste today. Underwater volcanoes and hot springs on the sea floor add further minerals of their own. So why isn't the sea getting noticeably saltier every year? Some salt is also removed, locked away in mud and rock on the sea floor, so scientists think the input and output are roughly in balance. Lakes that have no outlet to the sea are a different case. Water escapes from them only by evaporation, which is why some of them are far saltier than the ocean itself.",
+    "questions": [
+      {
+        "prompt": "What is the main reason the sea is salty?",
+        "options": [
+          "Salt falls into the sea together with the rain",
+          "Rivers bring dissolved minerals, and evaporation leaves them behind in the sea",
+          "Sea animals produce salt as they grow",
+          "The sea floor is made of a thick layer of salt"
+        ],
+        "answer": 1,
+        "evidence": "When the sun warms the surface, water evaporates and rises to form clouds, but the salt is left behind."
+      },
+      {
+        "prompt": "Why does river water still taste fresh?",
+        "options": [
+          "Rivers lose their salt in lakes on the way",
+          "Rain washes the salt back into the soil",
+          "Rivers only flow over rocks that contain no minerals",
+          "The amount of salt it carries is very small"
+        ],
+        "answer": 3,
+        "evidence": "the amount is so small that river water still tastes fresh"
+      }
+    ],
+    "dictation_index": 6,
+    "vocabulary": [
+      {
+        "term": "dissolves",
+        "meaning": "溶解",
+        "example": "Sugar dissolves faster in hot tea than in cold milk."
+      },
+      {
+        "term": "minerals",
+        "meaning": "矿物质",
+        "example": "Some bottled water is rich in minerals."
+      },
+      {
+        "term": "evaporates",
+        "meaning": "蒸发",
+        "example": "On hot days, the puddle outside our door evaporates by noon."
+      },
+      {
+        "term": "crust",
+        "meaning": "硬壳；外皮",
+        "example": "I love bread with a thick, crunchy crust."
+      },
+      {
+        "term": "outlet",
+        "meaning": "出口；出水口",
+        "example": "The pond has no outlet, so the water just sits there."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "picks up",
+        "meaning": "沾上；带上",
+        "note": "pick up 用法很多：捡起、接人、顺便学会（pick up some Spanish），这里指在过程中“沾上”某物。"
+      },
+      {
+        "text": "left behind",
+        "meaning": "被留下；剩下",
+        "note": "常用被动 be left behind，也可比喻“被落下”：Nobody wants to be left behind."
+      },
+      {
+        "text": "on a small scale",
+        "meaning": "小规模地",
+        "note": "反义是 on a large scale：The company started on a small scale."
+      },
+      {
+        "text": "an enormous stretch of time",
+        "meaning": "极其漫长的一段时间",
+        "note": "a stretch of time / road 指“一段连续的时间或路”，比 a long time 更有画面感。"
+      },
+      {
+        "text": "of their own",
+        "meaning": "属于它们自己的",
+        "note": "强调“额外的、自带的”：Each room has a bathroom of its own."
+      },
+      {
+        "text": "roughly in balance",
+        "meaning": "大致平衡",
+        "note": "be in balance＝处于平衡状态；roughly 让说法更谨慎，科学写作常用。"
+      }
+    ],
+    "grammar": [
+      "clause-adverb",
+      "conditional-real",
+      "nonfinite-participle"
+    ],
+    "knowledge": [
+      {
+        "node": "clause-adverb",
+        "quote": "Although every river is carrying salt towards the sea, the amount is so small that river water still tastes fresh.",
+        "explanation": "although 引导让步状语从句（“虽然……”），主句里又用 so … that 引出结果状语从句。一句话里先让步、再说程度和结果，逻辑很清楚。"
+      },
+      {
+        "node": "conditional-real",
+        "quote": "If you leave a shallow dish of seawater on a sunny windowsill, you can watch the same process on a small scale",
+        "explanation": "真实条件句：if + 一般现在时，主句 can + 动词原形，表示只要照做就真的能看到结果，适合描述实验和可以验证的规律。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "Repeated over an enormous stretch of time, this cycle has built up the saltiness we taste today.",
+        "explanation": "Repeated … 是过去分词短语作状语。逻辑主语 this cycle 是“被重复”的，所以用过去分词，相当于 Because it has been repeated…。"
+      }
+    ],
+    "speaking": "用 1 分钟解释：既然河水是淡的，大海为什么是咸的？用上 left behind 和 on a small scale。",
+    "writing": "用 150–200 词解释一个自然界里“慢慢积累”的现象（溶洞、沙丘、海水变咸……），至少用一个 Although … 句子和一个 If you …, you can … 句子。",
+    "task": {
+      "prompt": "仿照这句，用 Although …, … so … that … 写一句先让步、再说结果的话。",
+      "model": "Although every river is carrying salt towards the sea, the amount is so small that river water still tastes fresh."
+    },
+    "tags": [
+      "地球科学",
+      "日常科学"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-science-b2-battery",
+    "title": "电池里装的不是“电”",
+    "title_en": "What a Battery Really Stores",
+    "summary_zh": "电池不是一个装满电的小罐子，而是装着一组“急着发生反应”的化学物质。读完你会明白：电池为什么放在抽屉里几个月还能用，充电时发生了什么，手机为什么一冷就“没电”。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "science",
+    "genre": "explainer",
+    "body": "It is tempting to picture a battery as a small tank full of electricity, waiting to be poured out. In fact, a battery stores something quite different: chemicals that are eager to react with each other. Inside, there are two ends made of different materials, separated by a layer that lets charged atoms pass through but blocks electrons. The reaction between the two sides can only go ahead if electrons travel from one end to the other, and the only route available to them is outside the battery. As long as nothing is connected, they have nowhere to go, so the chemicals simply wait. That is why a battery can sit in a drawer for months and still work. Once you connect a torch or a remote control, however, a path opens up. Electrons stream out of one end, through the device, and back into the other end, powering it on the way. Meanwhile, charged atoms drift across the inside of the battery to keep everything balanced. When the chemicals are used up, the reaction stops and the battery is flat. In a rechargeable battery, a charger pushes electrons back the other way, forcing the reaction to run in reverse so that the chemicals are ready to react again. This is never perfect, though, which is why phones gradually hold less charge as they get older. Temperature matters too. If a battery gets very cold, its reactions slow down, so a phone may suddenly seem to die on a freezing day, only to recover once it warms up again.",
+    "questions": [
+      {
+        "prompt": "What is the main point of the passage?",
+        "options": [
+          "Batteries slowly fill up with electricity while they are stored",
+          "A battery holds chemicals that release energy only when electrons can flow through a device",
+          "Rechargeable batteries never lose their ability to hold charge",
+          "A battery works best when it is kept very cold"
+        ],
+        "answer": 1,
+        "evidence": "a battery stores something quite different: chemicals that are eager to react with each other"
+      },
+      {
+        "prompt": "Why might a phone seem to die on a freezing day?",
+        "options": [
+          "The cold permanently damages the chemicals",
+          "Electrons cannot leave the battery in winter",
+          "The cold slows down the chemical reactions",
+          "The charger stops working at low temperatures"
+        ],
+        "answer": 2,
+        "evidence": "If a battery gets very cold, its reactions slow down"
+      }
+    ],
+    "dictation_index": 4,
+    "vocabulary": [
+      {
+        "term": "tempting",
+        "meaning": "诱人的；让人忍不住想……的",
+        "example": "It is tempting to stay in bed on a rainy morning."
+      },
+      {
+        "term": "eager",
+        "meaning": "急切的；渴望的",
+        "example": "The children were eager to open their presents."
+      },
+      {
+        "term": "route",
+        "meaning": "路线；途径",
+        "example": "Which route do you usually take to work?"
+      },
+      {
+        "term": "flat",
+        "meaning": "（电池）没电的",
+        "example": "My phone is flat, so I'll call you when I get home."
+      },
+      {
+        "term": "reverse",
+        "meaning": "反向；相反的顺序",
+        "example": "Try saying the alphabet in reverse."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "It is tempting to",
+        "meaning": "人们很容易（忍不住）去……",
+        "note": "引出一个常见但不准确的想法，后面常接 In fact / But 来纠正。"
+      },
+      {
+        "text": "go ahead",
+        "meaning": "进行下去；开始",
+        "note": "可指事情得以进行，也可用来允许别人：Can I sit here? Go ahead."
+      },
+      {
+        "text": "have nowhere to go",
+        "meaning": "无处可去",
+        "note": "可指人、物或情绪：When you're angry and have nowhere to go, take a walk."
+      },
+      {
+        "text": "opens up",
+        "meaning": "（道路、机会）打开；出现",
+        "note": "也常比喻机会出现：New jobs opened up after the factory was built."
+      },
+      {
+        "text": "used up",
+        "meaning": "用完；耗尽",
+        "note": "be used up 常用被动：All the milk is used up."
+      },
+      {
+        "text": "only to recover",
+        "meaning": "结果却又恢复了",
+        "note": "only to do 表示出乎意料的结果：I ran to the station, only to find the train had left."
+      }
+    ],
+    "grammar": [
+      "clause-adverb",
+      "nonfinite-infinitive",
+      "conditional-real"
+    ],
+    "knowledge": [
+      {
+        "node": "clause-adverb",
+        "quote": "As long as nothing is connected, they have nowhere to go, so the chemicals simply wait.",
+        "explanation": "as long as 引导条件状语从句，意思是“只要……”，强调在这个条件持续期间，主句情况一直成立。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "a phone may suddenly seem to die on a freezing day, only to recover once it warms up again",
+        "explanation": "seem to do 表示“看起来……”；only to do 放在句末，表示“结果却……”，引出一个出乎意料的后续。两个不定式都很地道。"
+      },
+      {
+        "node": "conditional-real",
+        "quote": "If a battery gets very cold, its reactions slow down",
+        "explanation": "if 从句和主句都用一般现在时（零条件句），描述每次都成立的科学规律，而不是对未来的预测。"
+      }
+    ],
+    "speaking": "用 1 分钟向朋友解释：电池为什么放在抽屉里几个月还能用，接上电器后又发生了什么。用上 As long as… 和 used up。",
+    "writing": "用 150–200 词纠正一个关于日常科技的常见误解，以 It is tempting to… 开头，用 In fact… 转折，至少用一个 as long as 或 once 引导的状语从句。",
+    "task": {
+      "prompt": "仿照这句，用 It is tempting to picture … as … 写出一个常见但不准确的想象，再接一句 In fact … 纠正它。",
+      "model": "It is tempting to picture a battery as a small tank full of electricity, waiting to be poured out."
+    },
+    "tags": [
+      "科技原理",
+      "电与磁"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-science-b2-echo",
+    "title": "回声是怎么来的",
+    "title_en": "Why the Hills Shout Back: How Echoes Work",
+    "summary_zh": "对着山谷喊一声，山会“回答”你。读完你会明白回声怎样形成、墙太近为什么听不到回声、在浴室唱歌为什么特别好听，以及蝙蝠和轮船怎样利用回声“看”世界。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "science",
+    "genre": "explainer",
+    "body": "Shout your name across a quiet valley and, a moment later, the hills seem to shout it back. An echo is simply sound that has bounced off a hard surface and found its way back to your ears. Sound travels through air as a wave of pressure, and when that wave hits something solid and smooth, such as a cliff or the wall of a building, much of its energy is reflected rather than absorbed. For you to hear a clear echo, however, the surface needs to be fairly far away. If the wall is too close, the reflection returns so quickly that your brain blends it with the original sound. Instead of a separate echo, you hear a fuller, longer voice, which is exactly why people sound so impressive when they sing in a tiled bathroom. Soft materials behave very differently. Curtains, carpets, sofas and even crowds of people soak up sound instead of returning it, which is why an empty flat sounds strangely hollow on moving day and perfectly normal once the furniture arrives. Some animals have turned echoes into a survival skill. Bats send out high-pitched calls as they fly and listen for the faint echoes that bounce back from insects, building a picture of the world in complete darkness. Ships use a similar idea to measure the depth of the sea: by timing how long a sound pulse takes to return from the sea floor, they can work out how far down it is. So the next time a valley answers you, remember that you are hearing your own voice, slightly late, after a short trip to the hills and back.",
+    "questions": [
+      {
+        "prompt": "Which statement best sums up the passage?",
+        "options": [
+          "Echoes can only be heard in mountains and valleys",
+          "An echo is reflected sound, and what we hear depends on distance and surfaces",
+          "Soft materials make echoes louder and clearer",
+          "Only animals and ships can make use of echoes"
+        ],
+        "answer": 1,
+        "evidence": "An echo is simply sound that has bounced off a hard surface and found its way back to your ears."
+      },
+      {
+        "prompt": "Why does an empty flat sound hollow?",
+        "options": [
+          "There is nothing soft to soak up the sound",
+          "The walls are thinner without furniture",
+          "Sound travels more slowly in empty rooms",
+          "The echoes come from the flat next door"
+        ],
+        "answer": 0,
+        "evidence": "Curtains, carpets, sofas and even crowds of people soak up sound instead of returning it"
+      }
+    ],
+    "dictation_index": 4,
+    "vocabulary": [
+      {
+        "term": "reflected",
+        "meaning": "反射",
+        "example": "The mountains were reflected in the still lake."
+      },
+      {
+        "term": "absorbed",
+        "meaning": "吸收",
+        "example": "The towel absorbed most of the spilled water."
+      },
+      {
+        "term": "blends",
+        "meaning": "融合；混在一起",
+        "example": "Her new song blends old and modern styles."
+      },
+      {
+        "term": "hollow",
+        "meaning": "空洞的；空荡荡的",
+        "example": "The old tree in the park is hollow inside."
+      },
+      {
+        "term": "faint",
+        "meaning": "微弱的；模糊的",
+        "example": "I heard a faint knock at the door."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "found its way back",
+        "meaning": "（设法）回到原处",
+        "note": "find one's way back/home 强调“找到路回来”，人和物都能用：The cat found its way home."
+      },
+      {
+        "text": "rather than",
+        "meaning": "而不是",
+        "note": "连接两个对比的成分：I'd rather walk than drive / reflected rather than absorbed。"
+      },
+      {
+        "text": "soak up",
+        "meaning": "吸收；吸走",
+        "note": "可用于液体、声音，也可比喻“尽情享受”：We soaked up the sun on the beach."
+      },
+      {
+        "text": "moving day",
+        "meaning": "搬家那天",
+        "note": "日常说法，指正式搬进新家或搬走的那一天。"
+      },
+      {
+        "text": "work out",
+        "meaning": "算出；推断出",
+        "note": "work out + 答案/how/what 从句：Can you work out how much we each owe?"
+      },
+      {
+        "text": "the next time",
+        "meaning": "下次……的时候",
+        "note": "结尾常用来把知识和读者生活连起来：The next time you see a rainbow, look behind you."
+      }
+    ],
+    "grammar": [
+      "nonfinite-infinitive",
+      "conditional-real",
+      "nonfinite-gerund"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "For you to hear a clear echo, however, the surface needs to be fairly far away.",
+        "explanation": "for + 人 + to do 放句首作目的状语，表示“要让某人做到……”；for you 是不定式 to hear 的逻辑主语。"
+      },
+      {
+        "node": "conditional-real",
+        "quote": "If the wall is too close, the reflection returns so quickly that your brain blends it with the original sound.",
+        "explanation": "真实条件句，if 从句和主句都用一般现在时，描述普遍规律；主句里的 so … that 再引出结果。"
+      },
+      {
+        "node": "nonfinite-gerund",
+        "quote": "by timing how long a sound pulse takes to return from the sea floor",
+        "explanation": "by + 动名词表示“通过……的方式”。timing 后面接 how long… 名词性从句作宾语，说明具体测什么。"
+      }
+    ],
+    "speaking": "用 1 分钟解释：为什么刚搬进的空房子说话有回音，家具放进去后就好了。用上 soak up 和 rather than。",
+    "writing": "用 150–200 词描述一个你听到过回声或“声音变了样”的地方（山谷、隧道、空教室、浴室），并解释原因，至少用一个 For … to …, … 的句子。",
+    "task": {
+      "prompt": "仿照这句，用 For you to …, … needs to … 说明做成某件事需要的条件。",
+      "model": "For you to hear a clear echo, however, the surface needs to be fairly far away."
+    },
+    "tags": [
+      "声音科学",
+      "日常科学"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-science-b2-science-after-school",
+    "title": "毕业后还要学点科学吗",
+    "title_en": "Should Everyone Learn Some Science After School?",
+    "summary_zh": "一篇考试风格的议论文：先承认“成年人太忙、可以依靠专家”的反方理由，再指出科学最有用的不是公式，而是追问“我们怎么知道”的思维习惯。读完你能学会议论文里让步、反驳和总结的常用句式。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "science",
+    "genre": "opinion",
+    "body": "Once the final exam is over, many people close their science books for good, and few of them ever feel they have lost anything. Should everyone keep learning some science after school? I believe they should, although not in the way the question might suggest. The case against is easy to understand. Adults are busy, and most jobs never require anyone to balance a chemical equation. Besides, we already rely on experts for countless things we do not understand, from repairing cars to forecasting the weather, so it is fair to ask why science should be any different. Forcing tired adults back into a classroom would probably make them resent the subject even more. However, this argument assumes that learning science means memorising facts, when its most useful part is a habit of mind: asking how we know something, and what evidence would change our view. That habit matters every day. If you understand even the basics of how claims are tested, you are far harder to fool with a confident advertisement or a dramatic video about a miracle gadget. Speaking personally, if I had dropped science completely at sixteen, I would probably believe every impressive-sounding claim I see online today. Keeping this habit alive need not be a burden. It can mean reading one good popular-science article a week, visiting a museum, or simply asking a knowledgeable friend to explain something properly. In short, nobody needs to become a scientist after school, and it would be a mistake to make it compulsory. But everyone deserves the chance, and the encouragement, to keep thinking like one.",
+    "questions": [
+      {
+        "prompt": "What is the writer's main position?",
+        "options": [
+          "Adults should be required to take science classes",
+          "Science is only useful for people who become scientists",
+          "Everyone should keep a scientific habit of mind, but it should not be compulsory",
+          "People should simply trust experts instead of learning science"
+        ],
+        "answer": 2,
+        "evidence": "nobody needs to become a scientist after school, and it would be a mistake to make it compulsory"
+      },
+      {
+        "prompt": "According to the writer, what is the most useful part of science?",
+        "options": [
+          "Asking how we know something and what evidence would change our view",
+          "Memorising important facts and formulas",
+          "Balancing chemical equations correctly",
+          "Visiting museums as often as possible"
+        ],
+        "answer": 0,
+        "evidence": "asking how we know something, and what evidence would change our view"
+      }
+    ],
+    "dictation_index": 2,
+    "vocabulary": [
+      {
+        "term": "countless",
+        "meaning": "无数的",
+        "example": "I have countless photos on my phone that I never look at."
+      },
+      {
+        "term": "resent",
+        "meaning": "怨恨；对……反感",
+        "example": "Many teenagers resent being told what to wear."
+      },
+      {
+        "term": "burden",
+        "meaning": "负担；重担",
+        "example": "Cooking every night started to feel like a burden."
+      },
+      {
+        "term": "knowledgeable",
+        "meaning": "知识渊博的；很懂行的",
+        "example": "Our museum guide was friendly and very knowledgeable."
+      },
+      {
+        "term": "compulsory",
+        "meaning": "必修的；强制的",
+        "example": "Is a second language compulsory at your school?"
+      }
+    ],
+    "expressions": [
+      {
+        "text": "for good",
+        "meaning": "永远地；彻底地",
+        "note": "比 forever 更口语：She left the city for good."
+      },
+      {
+        "text": "The case against",
+        "meaning": "反对的理由",
+        "note": "议论文里引出反方观点的简洁说法，对应 the case for（支持的理由）。"
+      },
+      {
+        "text": "it is fair to ask",
+        "meaning": "有理由问一句",
+        "note": "承认对方的疑问合理，语气客观，适合写让步段。"
+      },
+      {
+        "text": "a habit of mind",
+        "meaning": "一种思维习惯",
+        "note": "比 a way of thinking 更书面，常用于谈教育和素养。"
+      },
+      {
+        "text": "harder to fool",
+        "meaning": "更难被骗",
+        "note": "形容词 + to do：easy to please, hard to fool。fool 这里作动词“欺骗”。"
+      },
+      {
+        "text": "In short",
+        "meaning": "总之；简而言之",
+        "note": "议论文结尾段的常用开头，引出简短的总结。"
+      }
+    ],
+    "grammar": [
+      "subjunctive-mixed",
+      "conditional-real",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-mixed",
+        "quote": "if I had dropped science completely at sixteen, I would probably believe every impressive-sounding claim I see online today",
+        "explanation": "错综时间条件：if 从句用过去完成时 had dropped 指过去（其实当时没放弃），主句 would believe … today 指现在的结果。today 是看出“现在”的线索。"
+      },
+      {
+        "node": "conditional-real",
+        "quote": "If you understand even the basics of how claims are tested, you are far harder to fool",
+        "explanation": "真实条件句：if + 一般现在时，主句也用一般现在时，说明一个普遍成立的结果，议论文里常用来支撑论点。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "But everyone deserves the chance, and the encouragement, to keep thinking like one.",
+        "explanation": "deserve the chance to do：不定式 to keep thinking 作后置定语修饰 chance，中间插入 and the encouragement 作补充。one 指代前面的 a scientist。"
+      }
+    ],
+    "speaking": "用 1 分钟回答：你毕业后还会继续学某个学科吗？先说一个反方理由，再说你的观点。用上 The case against… 和 In short。",
+    "writing": "用 180–220 词写一篇议论文：成年人是否应该继续学习一门学校里的科目？要有明确观点、反方理由、反驳和结论，至少用一个错综条件句（If I had…, I would … today）。",
+    "task": {
+      "prompt": "仿照这句错综条件句，写一句“要是当年……，我现在可能……”的话。",
+      "model": "if I had dropped science completely at sixteen, I would probably believe every impressive-sounding claim I see online today"
+    },
+    "tags": [
+      "科学素养",
+      "议论文"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]
