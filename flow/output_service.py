@@ -30,7 +30,7 @@ def _ai(c, uid, data, kind, pack, skill, spec, system, user, convert, audio=None
     from chat_service import request_model
     msgs = [{'role': 'system', 'content': system}, {'role': 'user', 'content': user}]
     return run_job(c, uid, str(data.get('request_id', '')), kind, pack, skill, spec,
-                   (lambda: request_model(msgs, audio=audio)) if audio else (lambda: request_model(msgs)), convert)
+                   (lambda: request_model(msgs, audio=audio)) if audio else (lambda: request_model(msgs)), convert, mark_replay=True)
 
 
 def _clean(v, lo=0, hi=600):
@@ -98,6 +98,8 @@ def retell(c, uid, data):
     if status == 200:
         r = result['result']
         r['score'] = round(sum(x['covered'] for x in r['points']) / len(r['points']) * (1 - 0.06 * min(4, len(r['fixes']))), 2)
+    if status == 200 and not result.get('replayed'):
+        r = result['result']
         sk.log(c, uid, 'speaking' if audio else 'writing', 'retell', r['score'], nx.cefr(p), p['id'], commit=False)
         sk.mistakes_from_changes(c, uid, r['fixes'], r['transcript'], 'speaking' if audio else 'writing', p['id'])
     return result, status
@@ -161,7 +163,7 @@ def dialog(c, uid, data):
 
     spec = {'pack': p['id'], 'turns': len(hist), 'text': text, 'end': end, 'audio': bool(audio), 'last': hist[-1]['text'] if hist else ''}
     result, status = _ai(c, uid, data, 'next-dialog', p['id'], 'speaking', spec, system, user, convert, audio)
-    if status == 200 and end:
+    if status == 200 and end and not result.get('replayed'):
         r = result['result']
         sk.log(c, uid, 'speaking', 'dialog', r['score'], nx.cefr(p), p['id'], commit=False)
         sk.mistakes_from_changes(c, uid, r['fixes'], '', 'speaking', p['id'])
@@ -204,6 +206,8 @@ def essay(c, uid, data):
     if status == 200:
         r = result['result']
         r['score'] = round(sum(r['scores'].values()) / 20, 2)
+    if status == 200 and not result.get('replayed'):
+        r = result['result']
         sk.log(c, uid, 'writing', 'essay', r['score'], r['level'] or nx.cefr(p), p['id'], commit=False)
         sk.mistakes_from_changes(c, uid, r['fixes'], text[:600], 'writing', p['id'], limit=4)
     return result, status
@@ -272,7 +276,7 @@ def translate(c, uid, data):
 
     result, status = _ai(c, uid, data, 'next-translate', p['id'], 'translation', {'pack': p['id'], 'sentence': en, 'direction': direction, 'text': text},
                          system, user, convert)
-    if status == 200:
+    if status == 200 and not result.get('replayed'):
         r = result['result']
         sk.log(c, uid, 'translation', 'translate', r['score'], nx.cefr(p), p['id'], commit=False)
         sk.mistakes_from_changes(c, uid, r['fixes'], text, 'translation', p['id'], limit=2)
@@ -289,13 +293,14 @@ def say(c, uid, data):
     if not audio_enabled():
         return {'error': 'AI 听录音暂未开启，可以先用「对比回放」自己听'}, 503
     target = data.get('text') if isinstance(data.get('text'), str) else ''
-    focus = sounds.focus_of(target)
+    focus, partner = sounds.focus_of(target), sounds.partner_of(target)
     if not focus and not (nx.WORD.fullmatch(target) and nx.lookup(target)):
         return {'error': '只能练发音入门里的词，或词典里的单词'}, 400
     raw_audio = validate_audio(data.get('audio'))
     system = ('你是英语语音老师，正在听中国学习者读一个英文词。先写出你实际听到的发音像哪个词；再判断目标音发得对不对。'
-              '只在有把握时下结论，不要打分。只输出 JSON。')
-    user = (f'目标词：{target}' + (f'\n要练的音：{focus}' if focus else '') +
+              '标准是"母语者能不能听成目标词"，不是完美口音：口音、音色、录音质量都不算错；'
+              '只有目标音明显读成了别的音（比如读成了对比词）才判为 false，拿不准时判 true。不要打分。只输出 JSON。')
+    user = (f'目标词：{target}' + (f'\n要练的音：{focus}' if focus else '') + (f'\n最容易读成：{partner}（要分清的对比词）' if partner else '') +
             '\n\n输出 JSON：{"heard":"听起来像哪个英文词","ok":true或false,"note":"中文：哪里对、哪里不对","tip":"中文：舌位、口型或气流怎么调整"}')
 
     def convert(raw):
@@ -306,7 +311,7 @@ def say(c, uid, data):
     import hashlib
     result, status = _ai(c, uid, data, 'next-say', 'sounds', 'speaking', {'text': target, 'audio_sha256': hashlib.sha256(raw_audio).hexdigest()},
                          system, user, convert, data.get('audio'))
-    if status == 200:
+    if status == 200 and not result.get('replayed'):
         r = result['result']
         sk.log(c, uid, 'pronunciation', 'say', 1.0 if r['ok'] else 0.0, commit=False)
         if not r['ok']:

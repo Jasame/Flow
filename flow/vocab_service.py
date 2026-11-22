@@ -33,6 +33,7 @@ EXAM_BOOKS = {  # id -> (title, blurb); word lists from ECDICT's exam tags, most
     'gre': ('GRE 词汇', 'GRE 常考词汇，难度最高'),
 }
 LEVEL_BOOK = {'A2': 'core', 'B1': 'mid', 'B2': 'high', 'C1': 'adv'}
+CORE_SKIP = 150  # "the", "be", "of"…: everyone knows them, and a flashcard of their dictionary entry helps no one
 DAILY_NEW = (5, 10, 15, 20, 30)
 RETENTION = (0.8, 0.85, 0.9, 0.95)
 MASTERED = 21  # days of stability from which an item counts as mastered
@@ -76,8 +77,13 @@ CREATE INDEX IF NOT EXISTS next_reviews_card ON next_reviews(card, created);
 CREATE TABLE IF NOT EXISTS next_word_examples(norm TEXT PRIMARY KEY, sentence TEXT NOT NULL, translation TEXT NOT NULL DEFAULT '', created REAL NOT NULL);
 CREATE TABLE IF NOT EXISTS next_reminders(user_id INTEGER PRIMARY KEY REFERENCES users(id), enabled INTEGER NOT NULL DEFAULT 0,
  hour INTEGER NOT NULL DEFAULT 20, last_sent TEXT, updated REAL NOT NULL);''')
-    if 'skip_rank' not in {r[1] for r in c.execute('PRAGMA table_info(next_vocab_plans)')}:
+    pcols = {r[1] for r in c.execute('PRAGMA table_info(next_vocab_plans)')}
+    if 'skip_rank' not in pcols:
         c.execute('ALTER TABLE next_vocab_plans ADD COLUMN skip_rank INTEGER NOT NULL DEFAULT 0')
+    if 'suggest' not in pcols:  # the book the vocabulary test recommended
+        c.execute('ALTER TABLE next_vocab_plans ADD COLUMN suggest TEXT')
+    # review rows of deleted cards: unlink them (a new card may get the same id), keep them for statistics
+    c.execute('UPDATE next_reviews SET card=-card WHERE card>0 AND NOT EXISTS (SELECT 1 FROM next_cards k WHERE k.id=next_reviews.card AND k.user_id=next_reviews.user_id)')
     c.commit()
 
 
@@ -170,8 +176,13 @@ def roots(norm):
 
 
 def short_meaning(meaning, n=2):
-    """First parts of speech of a dictionary meaning, for compact lists."""
-    return '；'.join(meaning.split('；')[:n])[:60]
+    """First parts of speech of a dictionary meaning, for compact lists; cut at a gloss boundary, never mid-gloss."""
+    s = '；'.join(meaning.split('；')[:n])
+    if len(s) > 60:
+        s = s[:60]
+        cut = max(s.rfind(', '), s.rfind('；'))
+        s = s[:cut] if cut > 20 else s
+    return s.rstrip(' ,，；;')
 
 
 EXAMPLE_SPLIT = re.compile(r"^([^\u4e00-\u9fff]+?[.?!])\s*([\u4e00-\u9fff].*)?$")
@@ -289,7 +300,7 @@ def introduce(c, uid, now=None):
         return 0
     have = {r[0] for r in c.execute('SELECT norm FROM next_cards WHERE user_id=?', (uid,))}
     d = nx.dictionary()
-    skip = (p.get('skip_rank') or 0) if p['book'] in EXAM_BOOKS else 0  # frequency books are already chosen by level
+    skip = (p.get('skip_rank') or 0) if p['book'] in EXAM_BOOKS else CORE_SKIP if p['book'] == 'core' else 0  # frequency books: chosen by level
     added = 0
     for rank, w in book_words()[p['book']]:
         if w in have or (skip and rank <= skip):
@@ -401,6 +412,15 @@ def books_meta():
             + [{'id': k, 'kind': 'exam', 'title': v[0], 'blurb': v[1], 'size': len(bw[k])} for k, v in EXAM_BOOKS.items()])
 
 
+def _skipped(book, skip_rank, force=False):
+    """Words a plan leaves out: everyday words for the first frequency book, words the test showed as known for exam books."""
+    if book == 'core':
+        return sum(1 for r, _ in book_words()[book] if r <= CORE_SKIP)
+    if book in EXAM_BOOKS and skip_rank:
+        return sum(1 for r, _ in book_words()[book] if r <= skip_rank)
+    return 0
+
+
 def overview(c, uid):
     now = time.time()
     p = plan(c, uid)
@@ -421,15 +441,20 @@ def overview(c, uid):
         days[d] = days.get(d, 0) + 1
     calendar = [{'day': nx._day(start - i * fsrs.DAY + 3600), 'n': days.get(nx._day(start - i * fsrs.DAY + 3600), 0)} for i in range(34, -1, -1)]
     book = None
+    skip_rank = (p.get('skip_rank') or 0) if p else 0
     if p and p['book'] in book_words():
         words = book_words()[p['book']]
-        norms = {r['norm'] for r in rows}
-        started = sum(1 for _, w in words if w in norms)
-        left = len(words) - started
-        book = {'id': p['book'], 'title': book_title(p['book']), 'size': len(words), 'started': started,
+        studied = {r['norm'] for r in rows if r['state'] != 'new' or r['known']}  # 已学: reviewed at least once, or marked known
+        started = sum(1 for _, w in words if w in studied)
+        skipped = _skipped(p['book'], skip_rank)
+        left = max(0, len(words) - started - skipped)
+        book = {'id': p['book'], 'title': book_title(p['book']), 'size': len(words), 'started': started, 'skipped': skipped,
                 'finish': nx._day(now + math.ceil(left / max(1, p['daily_new'])) * fsrs.DAY) if left else None}
-    return {'plan': p, 'book': book, 'books': books_meta(), 'daily_new_options': list(DAILY_NEW), 'retention_options': list(RETENTION),
-            'suggested_book': LEVEL_BOOK.get(_level(c, uid), 'mid'), 'mastered': mastered, 'learning': learning, 'total': len(rows),
+    books = books_meta()
+    for b in books:  # how many words a plan would skip in each book, for the estimate on the plan page
+        b['skippable'] = _skipped(b['id'], skip_rank or 0, force=True)
+    return {'plan': p, 'book': book, 'books': books, 'daily_new_options': list(DAILY_NEW), 'retention_options': list(RETENTION),
+            'suggested_book': (p.get('suggest') if p and p.get('suggest') in book_words() else None) or LEVEL_BOOK.get(_level(c, uid), 'mid'), 'mastered': mastered, 'learning': learning, 'total': len(rows),
             'forecast': forecast, 'calendar': calendar, 'reminder': reminder(c, uid), **counts(c, uid, now)}
 
 
@@ -442,6 +467,13 @@ def save_plan(c, uid, data):
     if daily not in DAILY_NEW or retention not in RETENTION:
         return {'error': '计划设置不正确'}, 400
     now = time.time()
+    old = plan(c, uid)
+    if old and old['book'] != book:
+        # Words the old book put into today's queue but that were never studied make way for the new book's words.
+        gone = [r[0] for r in c.execute("SELECT id FROM next_cards WHERE user_id=? AND source='book' AND state='new' AND reps=0 AND known=0", (uid,))]
+        for cid in gone:
+            c.execute('UPDATE next_reviews SET card=-card WHERE card=? AND user_id=?', (cid, uid))
+            c.execute('DELETE FROM next_cards WHERE id=?', (cid,))
     c.execute('''INSERT INTO next_vocab_plans(user_id,book,daily_new,retention,created,updated) VALUES(?,?,?,?,?,?)
                  ON CONFLICT(user_id) DO UPDATE SET book=excluded.book, daily_new=excluded.daily_new, retention=excluded.retention, updated=excluded.updated''',
               (uid, book, daily, retention, now, now))
@@ -487,16 +519,19 @@ def score_test(c, uid, data):
         known[k] = max(0.0, (p - fa) / (1 - fa)) if fa < 1 else 0.0  # correct for guessing
     estimate = int(round(sum(known[k] * sizes[k] for k in BOOKS), -2))
     suggest = next((k for k in BOOKS if known[k] < 0.8), 'ext')
+    ceiling = all(v >= 0.9 for v in known.values())  # beyond what the test can measure: an exam list fits better
+    if ceiling:
+        suggest = 'gre'
     skip_rank = 0
     for k, (_, lo, hi, _) in BOOKS.items():  # exam books skip every band below the first one not reliably known
         if known[k] < 0.85:
             break
         skip_rank = hi
     if uid:
-        c.execute('UPDATE next_vocab_plans SET estimate=?, skip_rank=?, updated=? WHERE user_id=?', (estimate, skip_rank, time.time(), uid))
+        c.execute('UPDATE next_vocab_plans SET estimate=?, skip_rank=?, suggest=?, updated=? WHERE user_id=?', (estimate, skip_rank, suggest, time.time(), uid))
         c.commit()
-    return {'estimate': estimate, 'suggest': suggest, 'bands': {k: round(v, 2) for k, v in known.items()},
-            'titles': {k: v[0] for k, v in BOOKS.items()}, 'guessing': fa > 0.2, 'skip_rank': skip_rank}, 200
+    return {'estimate': estimate, 'suggest': suggest, 'bands': {k: round(v, 2) for k, v in known.items()}, 'ceiling': ceiling,
+            'titles': {**{k: v[0] for k, v in BOOKS.items()}, **{k: v[0] for k, v in EXAM_BOOKS.items()}}, 'guessing': fa > 0.2, 'skip_rank': skip_rank}, 200
 
 
 def import_words(c, uid, data):

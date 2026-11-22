@@ -1,19 +1,27 @@
 #!/bin/bash
 # Deploy the current commit to the Flow server and wait for the outcome.
 #
-#   tools/deploy.sh            deploy HEAD, then run the end-to-end test on the server (real AI, about 25 calls)
-#   tools/deploy.sh --no-e2e   deploy only
+#   tools/deploy.sh                    deploy HEAD, then run the end-to-end test on the server (real AI, about 25 calls)
+#   tools/deploy.sh --no-e2e           deploy only
+#   tools/deploy.sh [--no-e2e] <commit>  deploy a commit that is already on GitHub (the working tree may be dirty)
 #
 # Pushes HEAD, computes the manifest hash from git (tools/release_manifest.py), writes "<sha> <manifest> [e2e]"
 # to REQUEST on the release branch and tags it r<N+1>. The server's timer (tools/flow-autodeploy.py) picks the
 # tag up through jsDelivr within a few minutes, deploys with flow-pull.sh and reports at /api/deploy-status.
 set -euo pipefail
-E2E=" e2e"; [ "${1:-}" = --no-e2e ] && E2E=""
+E2E=" e2e"; WANT=""
+for a in "$@"; do case $a in --no-e2e) E2E="" ;; *) WANT=$a ;; esac; done
 STATUS_URL=${FLOW_STATUS_URL:-https://flow.jasa.hk/api/deploy-status}
 cd "$(git rev-parse --show-toplevel)"
-[ -z "$(git status --porcelain --untracked-files=no)" ] || { echo "uncommitted changes: commit first"; exit 1; }
-SHA=$(git rev-parse HEAD); BR=$(git rev-parse --abbrev-ref HEAD)
-git push -q origin "HEAD:refs/heads/$BR"
+if [ -n "$WANT" ]; then
+  SHA=$(git rev-parse "$WANT^{commit}"); git fetch -q origin
+  BR=$(git branch -r --contains "$SHA" | sed -n 's#^ *origin/##p' | grep -v '^HEAD' | head -1)
+  [ -n "$BR" ] || { echo "$SHA is not on GitHub yet: push it first"; exit 1; }
+else
+  [ -z "$(git status --porcelain --untracked-files=no)" ] || { echo "uncommitted changes: commit first (or pass a pushed commit)"; exit 1; }
+  SHA=$(git rev-parse HEAD); BR=$(git rev-parse --abbrev-ref HEAD)
+  git push -q origin "HEAD:refs/heads/$BR"
+fi
 MAN=$(python3 tools/release_manifest.py "$SHA" 2>/dev/null)
 [[ $MAN =~ ^[0-9a-f]{64}$ ]] || { echo "manifest failed"; exit 1; }
 LAST=$(git ls-remote --tags origin 'refs/tags/r*' | sed -n 's#.*refs/tags/r\([0-9][0-9]*\)$#\1#p' | sort -n | tail -1)

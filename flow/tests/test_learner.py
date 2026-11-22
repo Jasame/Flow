@@ -50,7 +50,7 @@ class LearnerModelTests(unittest.TestCase):
     def test_profile_estimates_levels_and_suggests_moving_up(self):
         for _ in range(4):
             sk.log(self.c, 1, 'listening', 'dictation', 0.95, 'B2'); sk.log(self.c, 1, 'reading', 'question', 1.0, 'B2')
-        sk.log(self.c, 1, 'speaking', 'shadow', 0.4, 'B2'); sk.log(self.c, 1, 'speaking', 'shadow', 0.5, 'B2')
+        sk.log(self.c, 1, 'speaking', 'shadow', 0.4, 'B2'); sk.log(self.c, 1, 'speaking', 'shadow', 0.45, 'B2'); sk.log(self.c, 1, 'speaking', 'shadow', 0.4, 'B2')
         ab = sk.ability(self.c, 1)
         lv = {s['id']: s['level'] for s in ab['skills']}
         self.assertEqual((lv['listening'], lv['reading'], lv['speaking']), ('B2', 'B2', 'B1'))
@@ -61,8 +61,8 @@ class LearnerModelTests(unittest.TestCase):
         self.assertEqual(self.c.execute("SELECT COUNT(*) FROM next_skill_events WHERE skill='grammar'").fetchone()[0], 0)
 
     def test_daily_path_follows_the_weak_skill(self):
-        sk.log(self.c, 1, 'speaking', 'shadow', 0.3, 'B2'); sk.log(self.c, 1, 'speaking', 'shadow', 0.3, 'B2')
-        sk.log(self.c, 1, 'reading', 'question', 1.0, 'B2'); sk.log(self.c, 1, 'reading', 'question', 1.0, 'B2')
+        for _ in range(3):
+            sk.log(self.c, 1, 'speaking', 'shadow', 0.3, 'B2'); sk.log(self.c, 1, 'reading', 'question', 1.0, 'B2')
         home = nx.home(self.c, 1)
         keys = [s['key'] for s in home['path']['steps']]
         self.assertEqual(keys[:2], ['review', 'read']); self.assertIn('retell', keys); self.assertIn('dictate', keys)
@@ -170,3 +170,81 @@ class LearnerModelTests(unittest.TestCase):
         self.assertEqual(sk.post_skill(self.c, 1, {'kind': 'dictation', 'score': 0.8, 'pack': PID})[1], 200)
         self.assertEqual(sk.post_skill(self.c, 1, {'kind': 'essay', 'score': 1})[1], 400)
         self.assertEqual(self.c.execute('SELECT skill, level FROM next_skill_events').fetchone()[:], ('listening', 'B2'))
+
+
+class QARoundTests(LearnerModelTests):
+    """Behaviour fixed after the QA round (walkthroughs at three levels and the production end-to-end run)."""
+
+    def test_retried_request_returns_the_same_result_and_counts_once(self):
+        reply = {'points': [{'point': '要点', 'covered': True}], 'used': [], 'fixes': [{'from': 'it make', 'to': 'it makes', 'why': '三单'}],
+                 'comment': '好。', 'model': 'x'}
+        body = {'pack': PID, 'text': 'The article says it make an opposite wave so the noise goes away quickly.', 'request_id': self.rid()}
+        with ai(reply) as model:
+            a = out.retell(self.c, 1, dict(body)); b = out.retell(self.c, 1, dict(body))
+        self.assertEqual(model.call_count, 1); self.assertTrue(b[0].get('replayed'))
+        self.assertEqual(a[0]['result'], b[0]['result'])
+        self.assertEqual(self.c.execute("SELECT COUNT(*) FROM next_skill_events WHERE kind='retell'").fetchone()[0], 1)
+        card = self.c.execute("SELECT context FROM next_cards WHERE source='mistake'").fetchone()
+        self.assertEqual(card['context'], body['text'])  # the sentence with the mistake
+
+    def test_rewrite_retry_has_the_same_display_fields(self):
+        reply = {'verdict': 'minor', 'summary': '好。', 'corrected': 'I would have caught it.', 'changes': [{'from': 'would catch', 'to': 'would have caught', 'why': '虚拟', 'node': 'subjunctive-past'}],
+                 'versions': [{'label': '更自然', 'text': 'x', 'why': 'y'}], 'used_well': ['clause-adverb']}
+        body = {'pack': PID, 'text': 'If I left earlier, I would catch it.', 'request_id': self.rid()}
+        with ai(reply):
+            a = nx.rewrite(self.c, 1, dict(body))[0]['result']; b = nx.rewrite(self.c, 1, dict(body))[0]['result']
+        self.assertEqual(a, b); self.assertEqual(a['used_well'][0]['id'], 'clause-adverb'); self.assertTrue(a['changes'][0]['node_title'])
+
+    def test_failed_call_gives_the_quota_back(self):
+        import socket, chat_service
+        with patch('chat_service.request_model', side_effect=socket.timeout('slow')):
+            r, st = out.retell(self.c, 1, {'pack': PID, 'text': 'The headphones make an opposite sound wave to cancel the noise.', 'request_id': self.rid()})
+        self.assertEqual(st, 504); self.assertNotIn('Gemini', r['error'])
+        self.assertEqual(self.c.execute('SELECT COALESCE(SUM(count),0) FROM ai_usage WHERE user_id=1').fetchone()[0], 0)
+        with ai({'nonsense': True}):  # the model answered (and cost a call), only the format was wrong: it counts
+            out.retell(self.c, 1, {'pack': PID, 'text': 'The headphones make an opposite sound wave to cancel the noise.', 'request_id': self.rid()})
+        self.assertEqual(self.c.execute('SELECT COALESCE(SUM(count),0) FROM ai_usage WHERE user_id=1').fetchone()[0], 1)
+
+    def test_deleted_card_history_is_unlinked(self):
+        cid = nx.save_card(self.c, 1, {'text': 'devise'})[0]['card']['id']
+        vs.rate(self.c, 1, {'id': cid, 'rating': 'good'})
+        nx.delete_card(self.c, 1, {'id': cid})
+        self.assertEqual(self.c.execute('SELECT card FROM next_reviews WHERE user_id=1').fetchone()[0], -cid)
+        new = nx.save_card(self.c, 1, {'text': 'contrive'})[0]['card']['id']  # SQLite may hand out the same id again
+        self.assertEqual(self.c.execute('SELECT COUNT(*) FROM next_reviews WHERE card=?', (new,)).fetchone()[0], 0)
+
+    def test_switching_books_replaces_unstudied_words(self):
+        vs.save_plan(self.c, 1, {'book': 'core', 'daily_new': 5, 'retention': 0.9}); vs.queue(self.c, 1)
+        core = {r[0]: r[1] for r in self.c.execute("SELECT id, norm FROM next_cards WHERE source='book'")}
+        self.assertNotIn('the', core.values())  # the everyday words of 基础词汇 are skipped
+        vs.save_plan(self.c, 1, {'book': 'gre', 'daily_new': 5, 'retention': 0.9}); vs.queue(self.c, 1)
+        now = {r[0]: r[1] for r in self.c.execute("SELECT id, norm FROM next_cards WHERE source='book'")}
+        gre = {w for _, w in vs.book_words()['gre']}
+        self.assertEqual(len(now), 5); self.assertTrue(set(now.values()) <= gre)  # the old book's unstudied words made way
+        self.assertFalse({w for w in core.values() if w not in gre} & set(now.values()))
+
+    def test_daily_plan_keeps_todays_article_and_counts_three_dictations(self):
+        first = nx.home(self.c, 1)['today'][0]['id']
+        for step in ('listen', 'read', 'check'):
+            nx.mark(self.c, 1, first, step)
+        for k in range(2):
+            sk.log(self.c, 1, 'listening', 'dictation', 0.9, 'B2', first)
+        path = nx.home(self.c, 1)['path']
+        read = next(s for s in path['steps'] if s['key'] == 'read')
+        self.assertTrue(read['done']); self.assertIn(first, read['href'])
+        dic = next((s for s in path['steps'] if s['key'] == 'dictate'), None)
+        if dic:
+            self.assertFalse(dic['done'])
+            sk.log(self.c, 1, 'listening', 'dictation', 0.9, 'B2', first)
+            self.assertTrue(next(s for s in nx.home(self.c, 1)['path']['steps'] if s['key'] == 'dictate')['done'])
+
+    def test_report_covers_seven_days(self):
+        r = sk.report(self.c, 1)
+        d = lambda s: datetime.date.fromisoformat(s)
+        self.assertEqual((d(r['to']) - d(r['from'])).days, 6)
+
+    def test_sounds_know_the_contrast_word(self):
+        self.assertEqual(sounds.partner_of('think'), 'sink'); self.assertEqual(sounds.partner_of('Sink'), 'think')
+        s = sounds.listing()['sets'][0]
+        self.assertTrue(s['listen']); self.assertTrue(s['pairs'][0][0]['phonetic'].startswith('['))
+        self.assertNotIn("'", nx.lookup('ticket')['phonetic'])  # one phonetic style: ˈ not '

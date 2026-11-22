@@ -96,8 +96,14 @@ def _ec_meaning(e):
     return '；'.join(lines)
 
 
+def ipa(p):
+    """One phonetic style everywhere: ECDICT and older lists write ' , : for ˈ ˌ ː."""
+    p = (p or '').replace('ә', 'ə').replace('є', 'ɛ').strip()
+    return re.sub(r",(?=\S)", 'ˌ', p.replace("'", 'ˈ').replace(':', 'ː'))
+
+
 def _ec_phonetic(e):
-    p = (e[0] or '').replace('ә', 'ə').replace('є', 'ɛ').strip()
+    p = ipa(e[0])
     return f'[{p}]' if p else ''
 
 
@@ -120,7 +126,7 @@ def dictionary():
         for t in data['terms']:
             v = t['variants'][0]
             e = ec.get(t['norm'])
-            out[t['norm']] = {'word': t['word'], 'phonetic': v.get('phonetic', '') or (_ec_phonetic(e) if e else ''),
+            out[t['norm']] = {'word': t['word'], 'phonetic': ipa(v.get('phonetic', '')) or (_ec_phonetic(e) if e else ''),
                               'meaning': (_ec_meaning(e) if e else '') or v.get('meaning', ''), 'rank': t.get('rank') or 99999,
                               'example': (v.get('examples') or '').split('\n')[0][3:].strip() if v.get('examples') else '',
                               'ref': True, 'tags': e[2] if e else [], 'collins': e[3] if e else 0}
@@ -213,15 +219,33 @@ def _pack_row(c, uid, pid):
     return row
 
 
+_PACKS = {'key': None, 'at': 0.0, 'rows': []}
+
+
 def _public_packs(c, level=None):
+    """[(row, pack)] for every public material; parsed once and reused until a pack is added or 60 s pass.
+    Callers treat the packs as read-only."""
     from content_v30 import SUPERSEDED
-    out = []
-    for row in c.execute("SELECT id, origin, created, content FROM lab_packs WHERE owner IS NULL"):
-        p = json.loads(row['content'])
-        if p['id'] in SUPERSEDED or (level and cefr(p) != level):
-            continue
-        out.append((row, p))
-    return out
+    key = tuple(c.execute('SELECT COUNT(*), MAX(rowid) FROM lab_packs WHERE owner IS NULL').fetchone())
+    if _PACKS['key'] != key or time.time() - _PACKS['at'] > 60:
+        rows = []
+        for row in c.execute("SELECT id, origin, created, content FROM lab_packs WHERE owner IS NULL"):
+            p = json.loads(row['content'])
+            if p['id'] not in SUPERSEDED:
+                rows.append(({'id': row['id'], 'origin': row['origin'], 'created': row['created']}, p))
+        _PACKS.update(key=key, at=time.time(), rows=rows)
+    return [rp for rp in _PACKS['rows'] if not level or cefr(rp[1]) == level]
+
+
+_TOKENS = {}
+
+
+def _tokens(p):
+    """Lower-case words of a pack's text, cached: matching a learner's saved words against every material."""
+    t = _TOKENS.get(p['id'])
+    if t is None or t[0] is not p:
+        t = _TOKENS[p['id']] = (p, set(WORD.findall(p['body'].lower())))
+    return t[1]
 
 
 def profile(c, uid):
@@ -442,8 +466,18 @@ def home(c, uid, level=None, themes=None):
                 s += 1.2 if st == 'untouched' else 0.8
                 if st == 'untouched' and len(reasons) < 1:
                     reasons.append(f'新知识点「{meta_titles.get(n, n)}」')
-        body = p['body'].lower()
-        hits = [(t, src) for t, n, src in saved if len(n) > 2 and re.search(r'(?<![a-z])' + re.escape(n) + r'(?![a-z])', body)]
+        words, body = _tokens(p), None
+        hits = []
+        for t, n, src in saved:
+            if len(n) <= 2:
+                continue
+            if ' ' not in n and "'" not in n and '-' not in n:
+                if n in words:
+                    hits.append((t, src))
+            else:
+                body = body or p['body'].lower()
+                if re.search(r'(?<![a-z])' + re.escape(n) + r'(?![a-z])', body):
+                    hits.append((t, src))
         if hits:
             t, src = next((h for h in hits if h[1] == 'saved'), hits[0])
             s += min(3, 1.5 * len(hits)); reasons.insert(0, f'你收藏的「{t}」又出现了' if src == 'saved' else f'你在背的「{t}」在这篇里')
@@ -532,7 +566,9 @@ def _task(pack, level):
         if level == 'A2':
             return {'prompt': '仿照下面这句的结构，写一句关于你自己的话。', 'model': model, 'hint': k.get('explanation', '')}
         return {'prompt': '仿照下面这句的结构，写一两句和你自己的经历有关的话。', 'model': model, 'hint': k.get('explanation', '')}
-    return {'prompt': f"用上 {'、'.join(vocab) or '文中的一个表达'}，写一两句和你自己有关的话。", 'model': '', 'hint': ''}
+    if vocab:
+        return {'prompt': f"用上 {'、'.join(vocab)}，写一两句和你自己有关的话。", 'model': '', 'hint': ''}
+    return {'prompt': '挑一个这篇里你喜欢的表达，用它写一两句和你自己有关的话。', 'model': '', 'hint': ''}
 
 
 def material(c, uid, pid, level=None):
@@ -671,6 +707,8 @@ def cards(c, uid, q='', page=1, per=30, f=''):
 
 def delete_card(c, uid, data):
     n = c.execute('DELETE FROM next_cards WHERE id=? AND user_id=?', (int(data['id']), uid)).rowcount
+    if n:
+        c.execute('UPDATE next_reviews SET card=-card WHERE card=? AND user_id=?', (int(data['id']), uid))
     c.commit()
     return ({'ok': True}, 200) if n else ({'error': '记录不存在'}, 404)
 
@@ -753,13 +791,13 @@ def rewrite(c, uid, data):
         return out
 
     result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-rewrite', p['id'], 'writing', spec,
-                             lambda: request_model([{'role': 'system', 'content': system}, {'role': 'user', 'content': user}]), convert)
+                             lambda: request_model([{'role': 'system', 'content': system}, {'role': 'user', 'content': user}]), convert, mark_replay=True)
     if status == 200:
         r = result['result']
         rid = str(data.get('request_id', ''))
-        if not c.execute('SELECT 1 FROM next_node_notes WHERE user_id=? AND detail LIKE ?', (uid, rid + '%')).fetchone():
+        meta = nodes_meta(c)
+        if not result.get('replayed') and not c.execute('SELECT 1 FROM next_node_notes WHERE user_id=? AND detail LIKE ?', (uid, rid + '%')).fetchone():
             now = time.time()
-            meta = nodes_meta(c)
             for ch in r['changes']:
                 if ch['node']:
                     c.execute('INSERT INTO next_node_notes(user_id,node,pack,kind,detail,created) VALUES(?,?,?,?,?,?)',
@@ -769,13 +807,13 @@ def rewrite(c, uid, data):
                 if n not in flagged:
                     c.execute('INSERT INTO next_node_notes(user_id,node,pack,kind,detail,created) VALUES(?,?,?,?,?,?)',
                               (uid, n, p['id'], 'clean', rid + '|', now))
-            for ch in r['changes']:
-                ch['node_title'] = meta.get(ch['node'], {}).get('title') if ch['node'] else None
-            r['used_well'] = [{'id': n, 'title': meta[n]['title']} for n in r['used_well']]
             __import__('vocab_service').record_use(c, uid, r.get('word_use') or [], now)
             import skills_service as sk
             sk.log(c, uid, 'writing', 'rewrite', {'natural': 1.0, 'minor': 0.7, 'rewrite': 0.35}[r['verdict']], level, p['id'], commit=False)
             sk.mistakes_from_changes(c, uid, r['changes'], answer, 'writing', p['id'])
+        for ch in r['changes']:
+            ch['node_title'] = meta.get(ch['node'], {}).get('title') if ch['node'] else None
+        r['used_well'] = [n if isinstance(n, dict) else {'id': n, 'title': meta.get(n, {}).get('title', n)} for n in r['used_well']]
         mark(c, uid, p['id'], 'output')
     return result, status
 
@@ -840,12 +878,14 @@ def shadow(c, uid, data):
 
     spec = {'pack': p['id'], 'i': i, 'audio_sha256': hashlib.sha256(raw_audio).hexdigest()}
     result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-shadow', p['id'], 'speaking', spec,
-                             lambda: request_model([{'role': 'system', 'content': system}, {'role': 'user', 'content': user}], audio=audio), convert)
+                             lambda: request_model([{'role': 'system', 'content': system}, {'role': 'user', 'content': user}], audio=audio), convert, mark_replay=True)
     if status == 200:
         r = result['result']
         r['words'] = compare_words(sentence, r['transcript'])
         r['matched'] = sum(1 for w in r['words'] if w['ok'])
         r['sentence'] = sentence
+        if result.get('replayed'):
+            return result, status
         import skills_service as sk
         sk.log(c, uid, 'speaking', 'shadow', r['matched'] / max(1, len(r['words'])), cefr(p), p['id'], commit=False)
         for it in r['issues'][:2]:

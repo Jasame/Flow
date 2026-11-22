@@ -16,7 +16,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="语流">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="stylesheet" href="/next.css?v=11">
+<link rel="stylesheet" href="/next.css?v=12">
 </head>
 <body>
 <a class="skip" href="#view">跳到主要内容</a>
@@ -32,10 +32,11 @@
     <a href="#/me" data-nav="me"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 9a7 7 0 0 1 14 0"/></svg><span>我的</span></a>
   </nav>
 </header>
-<main id="view" tabindex="-1" aria-live="polite"><p class="loading">正在打开…</p></main>
-<div class="sheet" id="sheet" hidden><div class="sheet-scrim" data-close></div><div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" id="sheetCard"></div></div>
+<main id="view" tabindex="-1"><p class="loading">正在打开…</p></main>
+<div class="sheet" id="sheet" hidden><div class="sheet-scrim" data-close></div><div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" id="sheetCard" tabindex="-1"></div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="sr-only" id="sr" aria-live="polite"></div>
 <noscript><p class="loading">语流需要开启 JavaScript。</p></noscript>
-<script src="/next.js?v=11"></script>
+<script src="/next.js?v=12"></script>
 </body>
 </html>

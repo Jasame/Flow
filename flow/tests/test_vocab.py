@@ -79,7 +79,8 @@ class VocabTests(unittest.TestCase):
         self.assertEqual(vs.set_known(self.c, 1, {'id': first})[1], 200)
         self.assertNotIn(first, [i['id'] for i in vs.queue(self.c, 1)['items']])
         o = vs.overview(self.c, 1)
-        self.assertEqual(o['mastered'], 1); self.assertGreaterEqual(o['book']['started'], 5); self.assertIsNotNone(o['book']['finish'])
+        self.assertEqual(o['mastered'], 1); self.assertEqual(o['book']['started'], 1)  # 已学: studied or known, not merely queued
+        self.assertIsNotNone(o['book']['finish']); self.assertGreater(o['book']['skipped'], 100)  # the everyday words of 基础词汇
         self.assertEqual(len(o['forecast']), 7); self.assertEqual(len(o['calendar']), 35)
         self.assertEqual(vs.overview(self.c, 2)['total'], 0)
 
@@ -221,7 +222,10 @@ class ReadingLinkedTests(unittest.TestCase):
         self.assertTrue(vs.set_reminder(self.c, 1, {'enabled': True, 'hour': 20})[0]['enabled'])
         nx.save_card(self.c, 1, {'text': 'make ends meet'})
         sent = []
-        at8 = datetime.datetime.now(nx.TZ).replace(hour=20, minute=5).timestamp()
+        at8 = datetime.datetime.now(nx.TZ).replace(hour=20, minute=5, second=0)
+        if at8.timestamp() < time.time():  # the next 20:05, so the card saved just now is already due then
+            at8 += datetime.timedelta(days=1)
+        at8 = at8.timestamp()
         self.assertEqual(vs.send_reminders(self.c, at8, lambda to, sub, text: sent.append((to, sub))), 1)
         self.assertEqual(sent[0][0], 'learner@example.test'); self.assertIn('单词', sent[0][1])
         self.assertEqual(vs.send_reminders(self.c, at8 + 60, lambda *a: sent.append(a)), 0)  # once a day

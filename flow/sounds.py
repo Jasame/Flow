@@ -42,18 +42,34 @@ SETS = [
      'pairs': [('thin', 'thing'), ('win', 'wing'), ('ran', 'rang'), ('sin', 'sing'), ('ban', 'bang'), ('kin', 'king')]},
 ]
 _WORDS = {w: s for s in SETS for pair in s['pairs'] for w in pair}
+_PARTNER = {w: pair[1 - k] for s in SETS for pair in s['pairs'] for k, w in enumerate(pair)}
+LISTEN = {  # what to listen for when telling the pair apart
+    'i-long-short': '重点听元音的长短：长音拖得更久，嘴角更开。', 'ae-e': '重点听嘴张得多大：/æ/ 更开、更像"啊"。',
+    'u-long-short': '重点听元音的长短和嘴唇圆不圆。', 'ar-schwa': '重点听元音长短：/ɑː/ 更长、更靠后。',
+    'th-s': '重点听开头或结尾的辅音：/θ/ 是舌尖在齿间漏出的气声，/s/ 是清脆的"丝"。',
+    'th-z': '重点听开头的辅音：/ð/ 带振动又有点"漏气"，/d/ 是干脆的爆破，/z/ 是嗡嗡的摩擦。',
+    'v-w': '重点听开头：/v/ 有齿唇摩擦的嗡声，/w/ 是圆唇滑过去的声音。', 'l-r': '重点听开头：/r/ 带圆唇和卷舌的色彩，/l/ 更清亮。',
+    'n-l': '重点听有没有鼻音：/n/ 带鼻腔共鸣。', 'final-voicing': '重点听词尾前的元音：后面是浊辅音时，元音明显更长。',
+    'sh-s': '重点听摩擦声：/ʃ/ 更低沉、更"嘘"，/s/ 更尖。', 'ending-n-ng': '重点听结尾：/ŋ/ 像带鼻音的"嗯"，/n/ 收得更靠前。',
+}
 
 
 def focus_of(word):
-    """The sound being practised for a word from the sets, e.g. '/θ/（对比 /s/）'."""
+    """The sound being practised for a word from the sets, e.g. '/θ/ 和 /s/'."""
     s = _WORDS.get((word or '').lower())
     return f"{s['title']}" if s else ''
 
 
+def partner_of(word):
+    """The other word of its minimal pair (think -> sink), or ''."""
+    return _PARTNER.get((word or '').lower(), '')
+
+
 def listing():
     import vocab_service as vs
+    import next_service as nx
     out = []
     for s in SETS:
-        pairs = [[{'word': w, 'audio': vs.word_audio(w)} for w in pair] for pair in s['pairs']]
-        out.append({'id': s['id'], 'title': s['title'], 'tip': s['tip'], 'pairs': pairs})
+        pairs = [[{'word': w, 'audio': vs.word_audio(w), 'phonetic': (nx.dictionary().get(w) or {}).get('phonetic', '')} for w in pair] for pair in s['pairs']]
+        out.append({'id': s['id'], 'title': s['title'], 'tip': s['tip'], 'listen': LISTEN.get(s['id'], ''), 'pairs': pairs})
     return {'sets': out}

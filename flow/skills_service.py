@@ -79,7 +79,9 @@ def mistakes_from_changes(c, uid, changes, sentence, skill, pack=None, limit=3):
         frm, to = (ch.get('from') or '').strip(), (ch.get('to') or '').strip()
         if not to or frm in ('', '—') or frm.lower() == to.lower() or len(frm) > 160:
             continue
-        add_mistake(c, uid, 'fix', to, 'fix:' + nx._norm(frm + ' > ' + to), ch.get('why') or '', sentence, skill,
+        # keep the sentence the mistake was in, not the whole essay or retelling
+        ctx = next((x for x in nx.sentences(sentence or '') if frm.lower() in x.lower()), sentence or '')[:600]
+        add_mistake(c, uid, 'fix', to, 'fix:' + nx._norm(frm + ' > ' + to), ch.get('why') or '', ctx, skill,
                     ch.get('node'), pack, {'from': frm}, commit=False)
     c.commit()
 
@@ -90,11 +92,15 @@ def _events(c, uid, since):
     return c.execute('SELECT skill, kind, score, level, created FROM next_skill_events WHERE user_id=? AND created>?', (uid, since)).fetchall()
 
 
-def _estimate(evts):
-    """Highest level with at least two attempts averaging PASS; below the easiest level tried if none passes."""
+def _estimate(evts, home='B1'):
+    """Highest level with at least two attempts averaging PASS. Without a pass: the easiest level tried when the
+    learner is getting about half of it (still working at that level), one below only when clearly struggling.
+    Fewer than three attempts in all is not enough to say anything."""
+    if len(evts) < 3:
+        return None
     by = {}
     for e in evts:
-        by.setdefault(e['level'] or 'B1', []).append(e['score'])
+        by.setdefault(e['level'] or home, []).append(e['score'])
     best = None
     for lv in LEVELS:
         s = by.get(lv)
@@ -103,10 +109,9 @@ def _estimate(evts):
     if best:
         return best
     tried = [lv for lv in LEVELS if by.get(lv)]
-    if not tried:
-        return None
     lowest = LEVELS.index(tried[0])
-    return LEVELS[max(0, lowest - 1)]
+    s = by[tried[0]]
+    return LEVELS[lowest] if sum(s) / len(s) >= 0.5 else LEVELS[max(0, lowest - 1)]
 
 
 def _vocab_level(size):
@@ -120,6 +125,7 @@ def ability(c, uid, now=None):
     now = now or time.time()
     evts = _events(c, uid, now - 56 * 86400)
     recent = [e for e in evts if e['created'] > now - 45 * 86400]
+    home = (nx.profile(c, uid) or {}).get('level') or 'B1'
     out = {}
     for sk in EVENT_SKILLS:
         es = [e for e in recent if e['skill'] == sk]
@@ -128,7 +134,7 @@ def ability(c, uid, now=None):
             lo, hi = now - (w + 1) * 7 * 86400, now - w * 7 * 86400
             s = [e['score'] for e in evts if e['skill'] == sk and lo < e['created'] <= hi]
             weeks.append(round(sum(s) / len(s), 2) if s else None)
-        out[sk] = {'label': SKILLS[sk], 'level': _estimate(es), 'count': len(es),
+        out[sk] = {'label': SKILLS[sk], 'level': _estimate(es, home), 'count': len(es),
                    'avg': round(sum(e['score'] for e in es) / len(es), 2) if es else None, 'weeks': weeks}
     plan = c.execute('SELECT estimate FROM next_vocab_plans WHERE user_id=?', (uid,)).fetchone()
     mastered = c.execute("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND kind='word' AND (known=1 OR stability>=21)", (uid,)).fetchone()[0]
@@ -137,10 +143,12 @@ def ability(c, uid, now=None):
     states = nx.graph_states(c, uid)
     touched = [s for s in states.values() if s['status'] != 'untouched']
     good = sum(1 for s in states.values() if s['status'] in ('solid', 'used'))
-    ratio = good / max(1, len(states))
-    out['grammar'] = {'label': SKILLS['grammar'], 'count': good, 'avg': None, 'weeks': [],
-                      'watch': sum(1 for s in states.values() if s['status'] == 'watch'),
-                      'level': None if len(touched) < 3 else 'A2' if ratio < 0.2 else 'B1' if ratio < 0.45 else 'B2' if ratio < 0.7 else 'C1'}
+    watch = sum(1 for s in states.values() if s['status'] == 'watch')
+    # Judged on the points the learner has actually written with: how many came out right rather than flagged.
+    shown = good + watch
+    ratio = good / max(1, shown)
+    out['grammar'] = {'label': SKILLS['grammar'], 'count': good, 'avg': None, 'weeks': [], 'watch': watch,
+                      'level': None if shown < 4 else 'A2' if ratio < 0.35 else 'B1' if ratio < 0.6 else 'B2' if ratio < 0.85 else 'C1'}
     known = [sk for sk in ('listening', 'reading', 'speaking', 'writing') if out[sk]['level']]
     weakest = min(known, key=lambda sk: (LEVELS.index(out[sk]['level']), out[sk]['avg'] or 0)) if known else None
     order = ['vocab', 'grammar', 'listening', 'reading', 'speaking', 'writing', 'translation', 'pronunciation']
@@ -186,13 +194,22 @@ def daily_path(c, uid, home, now=None):
     minutes = prof.get('minutes') or 10
     n = vs.counts(c, uid, now)
     pick = (home.get('today') or [None])[0]
+    # The material studied today stays "today's" even after it is finished (the recommendations move on).
+    row = c.execute("SELECT pack FROM next_progress WHERE user_id=? AND created>=? ORDER BY (step IN ('check','output')) DESC, created DESC LIMIT 1",
+                    (uid, start)).fetchone()
+    if row:
+        pr = nx._pack_row(c, uid, row['pack'])
+        if pr:
+            pick = {'id': row['pack'], 'title': json.loads(pr['content'])['title']}
     done_steps = {r['step'] for r in c.execute('SELECT step FROM next_progress WHERE user_id=? AND pack=? AND created>=?',
                                                 (uid, pick['id'] if pick else '', start))}
-    today_kinds = {r['kind'] for r in c.execute('SELECT DISTINCT kind FROM next_skill_events WHERE user_id=? AND created>=?', (uid, start))}
+    kind_n = {r['kind']: r['n'] for r in c.execute('SELECT kind, COUNT(*) n FROM next_skill_events WHERE user_id=? AND created>=? GROUP BY kind', (uid, start))}
+    today_kinds = set(kind_n)
     steps = []
     todo = n['due'] + n['new']
-    steps.append({'key': 'review', 'title': f'复习 {todo} 个' if todo else '复习', 'sub': f"约 {n['minutes']} 分钟" if todo else '今天的都完成了',
-                  'href': '#/review', 'done': not todo and n['done_today'] > 0})
+    title = '单词：' + ' · '.join(x for x in (f"复习 {n['due']}" if n['due'] else '', f"新词 {n['new']}" if n['new'] else '') if x) if todo else '单词'
+    steps.append({'key': 'review', 'title': title, 'sub': f"约 {n['minutes']} 分钟" if todo else '今天的都完成了',
+                  'href': '#/review', 'done': not todo})
     if pick:
         steps.append({'key': 'read', 'title': '今天这篇', 'sub': pick['title'], 'href': f"#/m/{pick['id']}",
                       'done': 'check' in done_steps or 'output' in done_steps})
@@ -211,7 +228,8 @@ def daily_path(c, uid, home, now=None):
     kinds = {'retell': {'retell'}, 'essay': {'essay'}, 'translate': {'translate'}, 'dictate': {'dictation'}, 'sounds': {'say', 'discriminate'}}
     steps.append({'key': key, 'title': title, 'sub': sub, 'href': href, 'done': bool(kinds.get(key, set()) & today_kinds)})
     if minutes >= 15 and key != 'dictate' and pick:
-        steps.append({'key': 'dictate', 'title': '听写三句', 'sub': '练耳朵，也练拼写', 'href': f"#/m/{pick['id']}/listen", 'done': 'dictation' in today_kinds})
+        steps.append({'key': 'dictate', 'title': '听写三句', 'sub': f"练耳朵，也练拼写 · 今天 {min(3, kind_n.get('dictation', 0))}/3", 'href': f"#/m/{pick['id']}/listen",
+                      'done': kind_n.get('dictation', 0) >= 3})
     return {'minutes': minutes, 'steps': steps, 'done': sum(1 for s in steps if s['done']), 'total': len(steps)}
 
 
@@ -235,7 +253,7 @@ def report(c, uid, now=None):
     reviews = q("SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND created>? AND rating IN ('again','hard','good','easy')", uid, week)
     learned = q("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND kind='word' AND created>?", uid, week)
     mastered = q("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND kind='word' AND stability>=21 AND last>?", uid, week)
-    fixed = q("SELECT COUNT(*) FROM next_reviews r JOIN next_cards k ON k.id=r.card WHERE r.user_id=? AND r.created>? AND k.source='mistake' AND r.rating IN ('good','easy')", uid, week)
+    fixed = q("SELECT COUNT(DISTINCT r.card) FROM next_reviews r JOIN next_cards k ON k.id=r.card WHERE r.user_id=? AND r.created>? AND k.source='mistake' AND r.rating IN ('good','easy')", uid, week)
     new_mistakes = q("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND source='mistake' AND created>?", uid, week)
     materials = q("SELECT COUNT(DISTINCT pack) FROM next_progress WHERE user_id=? AND step='check' AND created>?", uid, week)
     outputs = q("SELECT COUNT(*) FROM next_skill_events WHERE user_id=? AND created>? AND kind IN ('rewrite','retell','dialog','essay','translate')", uid, week)
@@ -247,10 +265,10 @@ def report(c, uid, now=None):
     if ab['weakest']:
         name = SKILLS[ab['weakest']]
         what = {'speaking': '每天复述一篇或和 AI 对话一轮', 'writing': '写一段短文让 AI 批改', 'listening': '每天听写三句', 'reading': '先读懂再做理解题'}
-        focus = f"{name}是现在最弱的一项：下周{what.get(ab['weakest'], '多练这一项')}。"
+        focus = f"{name}是现在最弱的一项，下周{what.get(ab['weakest'], '多练这一项')}。"
     elif not days:
         focus = '这周还没开始：每天 10 分钟，先从今天这篇开始。'
-    return {'from': nx._day(week + 3600), 'to': nx._day(now), 'days': len(days), 'minutes': minutes, 'materials': materials, 'outputs': outputs,
+    return {'from': nx._day(now - 6 * 86400), 'to': nx._day(now), 'days': len(days), 'minutes': minutes, 'materials': materials, 'outputs': outputs,
             'reviews': reviews, 'learned': learned, 'mastered': mastered, 'mistakes_new': new_mistakes, 'mistakes_fixed': fixed,
             'skills': skills, 'watch': watch, 'focus': focus, 'ability': ab['skills']}
 
