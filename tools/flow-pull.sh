@@ -25,33 +25,50 @@ rm -rf "$STAGE"; mkdir -p "$STAGE"
 
 "$PY" -I - "$STAGE" "$REPO" "$SHA" "$WANT" <<'PYEOF' || { echo ABORT_FETCH; exit 1; }
 import base64, hashlib, json, sys, time, urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 stage, repo, sha, want = Path(sys.argv[1]), sys.argv[2], sys.argv[3], sys.argv[4]
-def get(url, tries=4):
-    for k in range(tries):
+# jsDelivr mirrors: connections to any one of them get reset now and then from mainland China. Every file is
+# checked against its sha256, so whichever mirror answers is fine.
+HOSTS = ['cdn.jsdelivr.net', 'fastly.jsdelivr.net', 'gcore.jsdelivr.net', 'testingcf.jsdelivr.net']
+def fetch(url):
+    with urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'flow-pull/1'}), timeout=45) as r:
+        return r.read()
+def get_any(path, rounds=4):
+    last = None
+    for k in range(rounds):
+        for h in HOSTS:
+            try:
+                return fetch(f'https://{h}/gh/{repo}@{sha}/{path}')
+            except Exception as e:
+                last = e
+        time.sleep(2 + 3 * k)
+    raise RuntimeError(f'{path}: {last}')
+def listing():
+    for k in range(6):
         try:
-            with urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'flow-pull/1'}), timeout=60) as r:
-                return r.read()
+            return json.loads(fetch(f'https://data.jsdelivr.com/v1/package/gh/{repo}@{sha}/flat'))['files']
         except Exception as e:
-            if k == tries - 1: raise
-            time.sleep(2 + 3 * k)
-flat = {f['name'].lstrip('/'): f for f in json.loads(get(f'https://data.jsdelivr.com/v1/package/gh/{repo}@{sha}/flat'))['files']}
-cdn = lambda p: f'https://cdn.jsdelivr.net/gh/{repo}@{sha}/{p}'
-names = get(cdn('tools/release-files.txt')).decode().split()
+            last = e; time.sleep(2 + 3 * k)
+    raise RuntimeError(f'listing: {last}')
+flat = {f['name'].lstrip('/'): f for f in listing()}
+names = get_any('tools/release-files.txt').decode().split()
 names = [n for n in names if n.startswith('flow/') and not n.startswith('flow/tests/')]
 names += [f'xmc-admin/{n}' for n in ('index.html', 'admin.js', 'admin.css') if f'xmc-admin/{n}' in flat]
-lines = []
-for n in sorted(names):
-    if n not in flat:
-        sys.exit(f'{n} is not in the commit')
-    data = get(cdn(n))
+missing = [n for n in names if n not in flat]
+if missing:
+    sys.exit(f'not in the commit: {missing[:5]}')
+def one(n):
+    data = get_any(n)
     digest = base64.b64encode(hashlib.sha256(data).digest()).decode()
     if digest != flat[n]['hash'] or len(data) != flat[n]['size']:
-        sys.exit(f'{n}: content does not match the listing')
+        raise RuntimeError(f'{n}: content does not match the listing')
     out = stage / 'files' / n
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes(data)
-    lines.append(f'{digest}  {n}')
+    return f'{digest}  {n}'
+with ThreadPoolExecutor(6) as ex:
+    lines = sorted(ex.map(one, sorted(names)), key=lambda l: l.split('  ', 1)[1])
 manifest = '\n'.join(lines) + '\n'
 (stage / 'MANIFEST').write_text(manifest)
 got = hashlib.sha256(manifest.encode()).hexdigest()
