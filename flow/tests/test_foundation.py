@@ -17,7 +17,7 @@ class FoundationTests(unittest.TestCase):
   token=coach.begin(self.c,1)[0]['token'];answers={p['id']:{'choice':p['answer'] if p['tier']==1 else None,'hinted':False} for p in ITEMS}
   result,_=coach.assess(self.c,1,{'token':token,'goal':'旅游','interests':'','minutes':15,'writing':'','answers':answers});self.assertEqual(result['band'],'A2')
  def test_low_evidence_gets_pending_label_and_guided_course(self):
-  self.profile();s=coach.snapshot(self.c,1);self.assertTrue(s['foundation']['basic']);self.assertIn('待校准',s['profile']['placement']['label']);self.assertEqual(s['learning_loop']['next_action']['type'],'foundation')
+  self.profile();s=coach.snapshot(self.c,1);self.assertTrue(s['foundation']['basic']);self.assertEqual(s['profile']['placement']['label'],'起点待了解');self.assertEqual(s['learning_loop']['next_action']['type'],'foundation')
  def test_guided_success_is_not_independent_and_progress_survives_reopen(self):
   self.complete('food');d=basic.view(self.c,1,'food');self.assertEqual(d['step'],3);self.assertEqual(events.state(self.c,1,'skill:writing')['independent'],0);self.assertEqual(basic.view(self.c,2,'food')['step'],0);self.assertEqual(basic.recommended(self.c,1)['lesson'],'directions')
  def test_draft_restores_and_late_draft_cannot_overwrite_completed_work(self):

@@ -20,7 +20,7 @@ class LearningTests(unittest.TestCase):
   self.c.execute('UPDATE review_cards SET due=?',(time.time()-1,));self.c.commit();self.attempt(q,1)
   self.assertEqual(self.c.execute('SELECT stage FROM review_cards').fetchone()[0],1)
   self.attempt(q,0);self.assertEqual(self.c.execute('SELECT stage FROM review_cards').fetchone()[0],0)
-  d=learning.summary(self.c,1);n=next(n for n in d['nodes'] if n['id']=='tense-perfect');self.assertEqual(n['distinct'],1);self.assertEqual(n['state'],'证据不足');self.assertEqual(d['first'],{'total':1,'correct':0});self.assertEqual(d['repeat']['total'],3)
+  d=learning.summary(self.c,1);n=next(n for n in d['nodes'] if n['id']=='tense-perfect');self.assertEqual(n['distinct'],1);self.assertEqual(n['state'],'需要巩固');self.assertEqual(d['first'],{'total':1,'correct':0});self.assertEqual(d['repeat']['total'],3)
   self.assertEqual(learning.summary(self.c,2)['coverage'],0)
   for minutes in [5,10,15,20,30]:
    learning.post(self.c,1,False,'/api/study/preferences',{'minutes':minutes},None);d=learning.summary(self.c,1);self.assertLessEqual(d['plan_minutes'],minutes)

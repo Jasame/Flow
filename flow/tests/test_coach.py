@@ -24,7 +24,7 @@ class CoachTests(unittest.TestCase):
   items=coach.begin(self.c,1)[0]['items'];self.assertTrue(all('answer' not in p for p in items));r,s=self.assess();self.assertEqual(s,200);self.assertEqual(r['band'],'B2');self.assertEqual(r['scores']['speaking']['total'],0);self.assertEqual(self.assess()[1],200)
   self.assertEqual(self.c.execute('SELECT COUNT(*) FROM learning_events').fetchone()[0],len(ITEMS))
  def test_skipped_assessment_keeps_unknown_and_does_not_forge_mastery(self):
-  r,_=self.assess(True);self.assertEqual(r['band'],'A2');self.assertEqual(ev.state(self.c,1,'skill:listening')['independent'],0)
+  r,_=self.assess(True);self.assertIsNone(r['band']);self.assertEqual(r['label'],'起点待了解');self.assertEqual(ev.state(self.c,1,'skill:listening')['independent'],0)
  def test_conversation_memory_is_persistent_private_and_idempotent(self):
   self.assess();out,calls=self.send();self.assertEqual(out[1],200);self.assertEqual(calls,1);self.assertEqual(self.send()[1],0)
   self.assertEqual(len(coach.snapshot(self.c,1)['turns']),1);self.assertEqual(coach.snapshot(self.c,2)['turns'],[]);self.assertEqual(len(coach.snapshot(self.c,1)['memories']),1);self.assertEqual(coach.snapshot(self.c,2)['memories'],[])

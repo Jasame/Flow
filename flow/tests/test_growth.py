@@ -20,7 +20,7 @@ class GrowthTests(unittest.TestCase):
    for pack in packs:
     for skill in ('listening','reading'):events.record(self.c,1,'skill:'+skill,level+skill+pack,'comprehension',pack,pack,correct,False,'rule')
    self.c.commit();self.assertEqual(growth.difficulty(self.c,1)['level'],expected)
-  self.assertEqual(coach.snapshot(self.c,1)['profile']['placement']['band'],'A2')
+  self.assertIsNone(coach.snapshot(self.c,1)['profile']['placement']['band'])
  def test_recommended_graph_path_contains_only_existing_edges(self):
   self.profile();self.record('suggest-needs-review',False)
   plan=growth.curriculum(self.c,1);path=plan['tasks'][0]['path'];self.assertGreaterEqual(len(path),3)
