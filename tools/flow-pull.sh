@@ -83,7 +83,10 @@ cd "$STAGE/files"
 while IFS= read -r -d '' f; do
   rel=${f#./}
   case $rel in flow/*) dest=$F/${rel#flow/} ;; xmc-admin/*) dest=$XMC/${rel#xmc-admin/} ;; *) continue ;; esac
-  if [ ! -e "$dest" ]; then NEWF+=("$dest"); CHANGED+=("$rel|$dest")
+  if [ ! -e "$dest" ]; then
+    # Only runtime files are added; docs, unit files and build tools are updated if present, never created.
+    case $rel in flow/*/*.py|flow/tools/*) continue ;; flow/*.py|flow/public/*|flow/corpus_data/*|xmc-admin/*) ;; *) continue ;; esac
+    NEWF+=("$dest"); CHANGED+=("$rel|$dest")
   elif ! cmp -s "$rel" "$dest"; then CHANGED+=("$rel|$dest"); fi
 done < <(find . -type f -print0)
 echo "${#CHANGED[@]} files to install (${#NEWF[@]} new)"
