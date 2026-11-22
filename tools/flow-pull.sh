@@ -58,8 +58,23 @@ names += [f'xmc-admin/{n}' for n in ('index.html', 'admin.js', 'admin.css') if f
 missing = [n for n in names if n not in flat]
 if missing:
     sys.exit(f'not in the commit: {missing[:5]}')
+LIVE = {'flow/': Path('/www/wwwroot/flow'), 'xmc-admin/': Path('/www/wwwroot/xmc.hk/flow')}
+def local(n):
+    """The installed copy, when it is already byte-identical to the commit: nothing to download."""
+    for prefix, root in LIVE.items():
+        if n.startswith(prefix):
+            f = root / n[len(prefix):]
+            if f.is_file() and f.stat().st_size == flat[n]['size']:
+                data = f.read_bytes()
+                if base64.b64encode(hashlib.sha256(data).digest()).decode() == flat[n]['hash']:
+                    return data
+    return None
+fetched = []
 def one(n):
-    data = get_any(n)
+    data = local(n)
+    if data is None:
+        data = get_any(n)
+        fetched.append(n)
     digest = base64.b64encode(hashlib.sha256(data).digest()).decode()
     if digest != flat[n]['hash'] or len(data) != flat[n]['size']:
         raise RuntimeError(f'{n}: content does not match the listing')
@@ -72,7 +87,7 @@ with ThreadPoolExecutor(6) as ex:
 manifest = '\n'.join(lines) + '\n'
 (stage / 'MANIFEST').write_text(manifest)
 got = hashlib.sha256(manifest.encode()).hexdigest()
-print(f'{len(lines)} files verified; manifest {got}')
+print(f'{len(lines)} files verified ({len(fetched)} downloaded, the rest already installed); manifest {got}')
 if got != want:
     sys.exit(f'manifest mismatch: expected {want}')
 PYEOF
