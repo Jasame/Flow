@@ -19,6 +19,7 @@ flow/GRADED-CORPUS.md
 flow/GRAPH-INTEGRATION.md
 flow/LEARNING-REDESIGN.md
 flow/MOBILE-UI.md
+flow/NEXT.md
 flow/README.md
 flow/SOURCE-CORPUS.md
 flow/UI-INTEGRATION.md
@@ -86,6 +87,7 @@ flow/loop_service.py
 flow/meeting_path.py
 flow/meeting_service.py
 flow/migration_35.py
+flow/next_service.py
 flow/nginx-location.conf
 flow/ops.py
 flow/pedagogy_service.py
@@ -126,6 +128,9 @@ flow/public/meeting.css
 flow/public/meeting.js
 flow/public/mobile.css
 flow/public/mobile.js
+flow/public/next.css
+flow/public/next.html
+flow/public/next.js
 flow/public/phone.css
 flow/public/pilot.css
 flow/public/pilot.js
@@ -163,6 +168,7 @@ flow/tests/test_lab.py
 flow/tests/test_learning.py
 flow/tests/test_loop.py
 flow/tests/test_migration.py
+flow/tests/test_next.py
 flow/tests/test_package.py
 flow/tests/test_pedagogy.py
 flow/tests/test_practice.py

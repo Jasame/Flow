@@ -85,6 +85,7 @@ CREATE TABLE IF NOT EXISTS ai_usage(user_id INTEGER,day TEXT,count INTEGER,PRIMA
   __import__('pilot_service').schema(c)
   meeting.schema(c)
   __import__('survey_service').schema(c)
+  __import__('next_service').schema(c)
 def wrong_questions(c,uid):
  return c.execute('''SELECT q.id,q.topic,q.prompt,q.options,q.explanation,q.answer,a.selected FROM questions q
  JOIN attempts a ON a.question_id=q.id WHERE q.status='published' AND a.user_id=? AND a.correct=0
@@ -159,6 +160,9 @@ class Handler(BaseHTTPRequestHandler):
    with db() as c:
     u=self.user(c)
     if path=='/api/session':return self.send({'user':dict(u) if u else None,'ai_enabled':ai_enabled()} if not u else {'user':{k:u[k] for k in ('id','username','admin','csrf')},'ai_enabled':ai_enabled()})
+    if path.startswith('/api/next/'):
+     result=__import__('next_service').get(c,u['id'] if u else None,path,parse_qs(urlsplit(self.path).query))
+     return self.send(*result) if result is not None else self.send({'error':'接口不存在'},404)
     if not u:return self.send({'error':'请先登录'},401)
     result=core_words.get(c,path,parse_qs(urlsplit(self.path).query))
     if result is not None:return self.send(*result)
@@ -228,7 +232,7 @@ class Handler(BaseHTTPRequestHandler):
     body=meeting_path.public_page(slug)
     self.send_response(200);self.headers_common('text/html; charset=utf-8');self.send_header('Cache-Control','no-cache')
     self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
-  files={'/survey':('survey.html','text/html; charset=utf-8'),'/survey.js':('survey.js','text/javascript; charset=utf-8'),'/survey.css':('survey.css','text/css; charset=utf-8'),'/guest-first.js':('guest-first.js','text/javascript; charset=utf-8'),'/flow4.css':('flow4.css','text/css; charset=utf-8'),'/flow-motion.js':('flow-motion.js','text/javascript; charset=utf-8'),'/flow-mindmap.js':('flow-mindmap.js','text/javascript; charset=utf-8'),'/literata.woff2':('literata.woff2','font/woff2'),'/core-words.js':('core-words.js','text/javascript; charset=utf-8'),'/meeting.js':('meeting.js','text/javascript; charset=utf-8'),'/meeting.css':('meeting.css','text/css; charset=utf-8'),'/flow36.js':('flow36.js','text/javascript; charset=utf-8'),'/flow36.css':('flow36.css','text/css; charset=utf-8'),'/phone.css':('phone.css','text/css; charset=utf-8'),'/pilot.js':('pilot.js','text/javascript; charset=utf-8'),'/pilot.css':('pilot.css','text/css; charset=utf-8'),'/learning35.js':('learning35.js','text/javascript; charset=utf-8'),'/learning35.css':('learning35.css','text/css; charset=utf-8'),'/ai-live.js':('ai-live.js','text/javascript; charset=utf-8'),'/ai-live.css':('ai-live.css','text/css; charset=utf-8'),'/continuity.js':('continuity.js','text/javascript; charset=utf-8'),'/continuity.css':('continuity.css','text/css; charset=utf-8'),'/foundation.js':('foundation.js','text/javascript; charset=utf-8'),'/foundation.css':('foundation.css','text/css; charset=utf-8'),'/mobile.js':('mobile.js','text/javascript; charset=utf-8'),'/mobile.css':('mobile.css','text/css; charset=utf-8'),'/practice.js':('practice.js','text/javascript; charset=utf-8'),'/practice.css':('practice.css','text/css; charset=utf-8'),'/reference.js':('reference.js','text/javascript; charset=utf-8'),'/reference.css':('reference.css','text/css; charset=utf-8'),'/atlas.js':('atlas.js','text/javascript; charset=utf-8'),'/atlas.css':('atlas.css','text/css; charset=utf-8'),'/':('index.html','text/html; charset=utf-8'),'/app.js':('app.js','text/javascript; charset=utf-8'),'/tutor.js':('tutor.js','text/javascript; charset=utf-8'),'/style.css':('style.css','text/css; charset=utf-8'),'/advanced.js':('advanced.js','text/javascript; charset=utf-8'),'/studio.js':('studio.js','text/javascript; charset=utf-8'),'/growth.js':('growth.js','text/javascript; charset=utf-8'),'/growth.css':('growth.css','text/css; charset=utf-8'),'/design-bridge.css':('design-bridge.css','text/css; charset=utf-8'),'/coach.js':('coach.js','text/javascript; charset=utf-8'),'/coach.css':('coach.css','text/css; charset=utf-8'),'/adaptive.js':('adaptive.js','text/javascript; charset=utf-8'),'/adaptive.css':('adaptive.css','text/css; charset=utf-8'),'/knowledge.js':('knowledge.js','text/javascript; charset=utf-8'),'/layout.css':('layout.css','text/css; charset=utf-8')}
+  files={'/next':('next.html','text/html; charset=utf-8'),'/next.js':('next.js','text/javascript; charset=utf-8'),'/next.css':('next.css','text/css; charset=utf-8'),'/survey':('survey.html','text/html; charset=utf-8'),'/survey.js':('survey.js','text/javascript; charset=utf-8'),'/survey.css':('survey.css','text/css; charset=utf-8'),'/guest-first.js':('guest-first.js','text/javascript; charset=utf-8'),'/flow4.css':('flow4.css','text/css; charset=utf-8'),'/flow-motion.js':('flow-motion.js','text/javascript; charset=utf-8'),'/flow-mindmap.js':('flow-mindmap.js','text/javascript; charset=utf-8'),'/literata.woff2':('literata.woff2','font/woff2'),'/core-words.js':('core-words.js','text/javascript; charset=utf-8'),'/meeting.js':('meeting.js','text/javascript; charset=utf-8'),'/meeting.css':('meeting.css','text/css; charset=utf-8'),'/flow36.js':('flow36.js','text/javascript; charset=utf-8'),'/flow36.css':('flow36.css','text/css; charset=utf-8'),'/phone.css':('phone.css','text/css; charset=utf-8'),'/pilot.js':('pilot.js','text/javascript; charset=utf-8'),'/pilot.css':('pilot.css','text/css; charset=utf-8'),'/learning35.js':('learning35.js','text/javascript; charset=utf-8'),'/learning35.css':('learning35.css','text/css; charset=utf-8'),'/ai-live.js':('ai-live.js','text/javascript; charset=utf-8'),'/ai-live.css':('ai-live.css','text/css; charset=utf-8'),'/continuity.js':('continuity.js','text/javascript; charset=utf-8'),'/continuity.css':('continuity.css','text/css; charset=utf-8'),'/foundation.js':('foundation.js','text/javascript; charset=utf-8'),'/foundation.css':('foundation.css','text/css; charset=utf-8'),'/mobile.js':('mobile.js','text/javascript; charset=utf-8'),'/mobile.css':('mobile.css','text/css; charset=utf-8'),'/practice.js':('practice.js','text/javascript; charset=utf-8'),'/practice.css':('practice.css','text/css; charset=utf-8'),'/reference.js':('reference.js','text/javascript; charset=utf-8'),'/reference.css':('reference.css','text/css; charset=utf-8'),'/atlas.js':('atlas.js','text/javascript; charset=utf-8'),'/atlas.css':('atlas.css','text/css; charset=utf-8'),'/':('index.html','text/html; charset=utf-8'),'/app.js':('app.js','text/javascript; charset=utf-8'),'/tutor.js':('tutor.js','text/javascript; charset=utf-8'),'/style.css':('style.css','text/css; charset=utf-8'),'/advanced.js':('advanced.js','text/javascript; charset=utf-8'),'/studio.js':('studio.js','text/javascript; charset=utf-8'),'/growth.js':('growth.js','text/javascript; charset=utf-8'),'/growth.css':('growth.css','text/css; charset=utf-8'),'/design-bridge.css':('design-bridge.css','text/css; charset=utf-8'),'/coach.js':('coach.js','text/javascript; charset=utf-8'),'/coach.css':('coach.css','text/css; charset=utf-8'),'/adaptive.js':('adaptive.js','text/javascript; charset=utf-8'),'/adaptive.css':('adaptive.css','text/css; charset=utf-8'),'/knowledge.js':('knowledge.js','text/javascript; charset=utf-8'),'/layout.css':('layout.css','text/css; charset=utf-8')}
   if path=='/' and not urlsplit(self.path).query:
    with db() as c:u=self.user(c)
    if not u:
@@ -264,6 +268,20 @@ class Handler(BaseHTTPRequestHandler):
   if path=='/api/survey':
    # Anonymous: no session lookup; the address is only used for a short-lived hashed rate limit.
    with db() as c:return self.send(*__import__('survey_service').submit(c,data,self.visitor_address()))
+  if path.startswith('/api/next/'):
+   import next_service
+   with db() as c:
+    u=self.user(c)
+    result=next_service.post_public(c,u['id'] if u else None,path,data)
+    if result is not None:return self.send(*result)
+    if not u:return self.send({'error':'请先登录'},401)
+    if not hmac.compare_digest(self.headers.get('X-CSRF-Token',''),u['csrf']):return self.send({'error':'安全校验失败，请刷新页面'},403)
+    if path in ('/api/next/rewrite','/api/next/variant'):
+     import ai_jobs
+     try:self.ai_ticket=ai_jobs.enter(u['id'])
+     except TimeoutError:return self.send({'error':'排队较久，本次未调用模型，请稍后重试。'},503)
+    result=next_service.post(c,u['id'],path,data)
+    return self.send(*result) if result is not None else self.send({'error':'接口不存在'},404)
   if path==meeting.FIRST_TASK:
    if not meeting.valid_id(data.get('visitor')) or data.get('action')=='hint':
     return self.send(*meeting.preview(data))
