@@ -66,6 +66,8 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
         c.execute("ALTER TABLE next_profiles ADD COLUMN voice TEXT NOT NULL DEFAULT 'us-f'")
     import vocab_service  # word books, daily plan and FSRS state live on top of next_cards
     vocab_service.schema(c)
+    __import__('skills_service').schema(c)  # ability profile, mistake book, weekly report
+    __import__('output_service').schema(c)  # translation sources
 
 
 # ---------- helpers ----------
@@ -457,8 +459,13 @@ def home(c, uid, level=None, themes=None):
         g['total'] = len(states)
         watch = [n for n, s in states.items() if s['status'] == 'watch']
         g['watch'] = [{'id': n, 'title': meta_titles.get(n, n)} for n in watch[:3]]
-    return {'profile': prof, 'level': level, 'level_label': LEVELS[level]['label'], 'today': picks, 'news': news, 'resume': resume,
-            'stats': stats(c, uid) if uid else None, 'graph': g}
+    out = {'profile': prof, 'level': level, 'level_label': LEVELS[level]['label'], 'today': picks, 'news': news, 'resume': resume,
+           'stats': stats(c, uid) if uid else None, 'graph': g}
+    if uid and prof:
+        import skills_service as sk
+        out['path'] = sk.daily_path(c, uid, out)
+        out['suggest'] = sk.suggest_level(c, uid)
+    return out
 
 
 def stats(c, uid):
@@ -556,6 +563,7 @@ def material(c, uid, pid, level=None):
             'provenance': [{'title': s['title'], 'url': s['url']} for s in (p.get('provenance') or {}).get('sources', [])][:5],
             'mine': __import__('vocab_service').mine_in_text(c, uid, text),
             'preread': __import__('vocab_service').preread(c, uid, hard),
+            'speaking_task': p.get('speaking', ''), 'writing_task': p.get('writing', ''), 'imported': bool(p.get('imported')),
             'user_level': level, 'can_variant': level != cefr(p) and not variant,
             'audio': {'voices': audio_index()[0].get(p['id'], []), 'version': audio_index()[1]}}, 200
 
@@ -572,8 +580,13 @@ def check(c, uid, data):
     q = qs[i]
     correct = choice == q['answer']
     if uid:
+        import skills_service as sk
         __import__('event_service').record(c, uid, 'skill:reading', f"next:{p['id']}:q{i}", 'next-check', p['id'], p['id'],
                                            int(correct), 0, 'rule', {'choice': choice})
+        sk.log(c, uid, 'reading', 'question', 1.0 if correct else 0.0, cefr(p), p['id'], commit=False)
+        if not correct:
+            sk.add_mistake(c, uid, 'question', q['prompt'], f"q:{p['id']}:{i}", q.get('evidence', ''), '', 'reading', pack=p['id'],
+                           extra={'options': q['options'], 'answer': q['answer'], 'evidence': q.get('evidence', '')}, commit=False)
         if i == len(qs) - 1:
             mark(c, uid, p['id'], 'check', commit=False)
         c.commit()
@@ -626,8 +639,12 @@ def card(c, uid, cid):
     return vocab_service.card_out(r) if r else None
 
 
-def cards(c, uid, q='', page=1, per=30):
+def cards(c, uid, q='', page=1, per=30, f=''):
     rows = c.execute('SELECT * FROM next_cards WHERE user_id=? ORDER BY created DESC', (uid,)).fetchall()
+    if f == 'mistake':
+        rows = [r for r in rows if r['source'] == 'mistake']
+    elif f in ('word', 'phrase'):
+        rows = [r for r in rows if r['source'] != 'mistake' and (r['kind'] == 'word') == (f == 'word')]
     if q:
         ql = q.lower()
         rows = [r for r in rows if ql in r['text'].lower() or ql in r['meaning'].lower() or ql in r['context'].lower()]
@@ -741,6 +758,9 @@ def rewrite(c, uid, data):
                 ch['node_title'] = meta.get(ch['node'], {}).get('title') if ch['node'] else None
             r['used_well'] = [{'id': n, 'title': meta[n]['title']} for n in r['used_well']]
             __import__('vocab_service').record_use(c, uid, r.get('word_use') or [], now)
+            import skills_service as sk
+            sk.log(c, uid, 'writing', 'rewrite', {'natural': 1.0, 'minor': 0.7, 'rewrite': 0.35}[r['verdict']], level, p['id'], commit=False)
+            sk.mistakes_from_changes(c, uid, r['changes'], answer, 'writing', p['id'])
         mark(c, uid, p['id'], 'output')
     return result, status
 
@@ -811,6 +831,11 @@ def shadow(c, uid, data):
         r['words'] = compare_words(sentence, r['transcript'])
         r['matched'] = sum(1 for w in r['words'] if w['ok'])
         r['sentence'] = sentence
+        import skills_service as sk
+        sk.log(c, uid, 'speaking', 'shadow', r['matched'] / max(1, len(r['words'])), cefr(p), p['id'], commit=False)
+        for it in r['issues'][:2]:
+            sk.add_mistake(c, uid, 'sound', it['word'], 'sound:' + _norm(it['word']), it['note'], sentence, 'pronunciation', pack=p['id'], commit=False)
+        c.commit()
     return result, status
 
 
@@ -920,6 +945,12 @@ def get(c, uid, path, q):
         if not uid and path != '/api/next/vocab/test':
             return {'error': '请先登录'}, 401
         return __import__('vocab_service').get(c, uid, path, q)
+    if path == '/api/next/sounds':
+        return __import__('sounds').listing(), 200
+    if path in ('/api/next/ability', '/api/next/report', '/api/next/import'):
+        if not uid:
+            return {'error': '请先登录'}, 401
+        return (__import__('skills_service') if path != '/api/next/import' else __import__('import_service')).get(c, uid, path, q)
     if path == '/api/next/meta':
         return meta(), 200
     if path == '/api/next/home':
@@ -941,7 +972,7 @@ def get(c, uid, path, q):
     if not uid:
         return ({'error': '请先登录'}, 401) if path.startswith('/api/next/') else None
     if path == '/api/next/cards':
-        return cards(c, uid, one('q')[:80], int(one('page', '1') or 1)), 200
+        return cards(c, uid, one('q')[:80], int(one('page', '1') or 1), f=one('f')), 200
     if path == '/api/next/stats':
         return stats(c, uid), 200
     return None
@@ -956,7 +987,8 @@ def post_public(c, uid, path, data):
     return None
 
 
-AI_PATHS = ('/api/next/rewrite', '/api/next/variant', '/api/next/explain', '/api/next/shadow', '/api/next/vocab/examples')
+AI_PATHS = ('/api/next/rewrite', '/api/next/variant', '/api/next/explain', '/api/next/shadow', '/api/next/vocab/examples', '/api/next/import/enrich',
+            '/api/next/retell', '/api/next/dialog', '/api/next/essay', '/api/next/translate/source', '/api/next/translate', '/api/next/say')
 
 
 def post(c, uid, path, data):
@@ -987,4 +1019,8 @@ def post(c, uid, path, data):
         return explain(c, uid, data)
     if path == '/api/next/shadow':
         return shadow(c, uid, data)
-    return None
+    if path == '/api/next/skill':
+        return __import__('skills_service').post(c, uid, path, data)
+    if path.startswith('/api/next/import'):
+        return __import__('import_service').post(c, uid, path, data)
+    return __import__('output_service').post(c, uid, path, data)

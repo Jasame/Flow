@@ -203,7 +203,7 @@ def word_audio(norm):
 
 
 def word_audio_file(accent, sprite):
-    if accent not in ACCENTS or not re.fullmatch(r'[wx]\d{3}', sprite or ''):
+    if accent not in ACCENTS or not re.fullmatch(r'[wxp]\d{3}', sprite or ''):
         return None
     f = WORD_AUDIO_DIR / accent / f'{sprite}.m4a'
     return f if f.is_file() else None
@@ -233,7 +233,10 @@ def recall_now(r, now=None):
 
 
 def mode(r):
-    """How to review this item now: recognise (see the word), recall (meaning + gapped sentence), spell (hear and type)."""
+    """How to review this item now: recognise (see the word), recall (meaning + gapped sentence), spell (hear and type).
+    Mistakes are reviewed in their own way: fix (rewrite the corrected phrase), question (answer again), sound (say it)."""
+    if r['kind'] in ('fix', 'question', 'sound'):
+        return r['kind']
     if r['kind'] != 'word':
         return 'cloze' if r['context'] and r['text'].lower() in r['context'].lower() else 'recall'
     s = r['stability'] or 0
@@ -257,6 +260,13 @@ def card_out(r, now=None, level=None, rich=False, c=None):
             out['examples'] = extra_examples(c, r['norm'])
         out['audio'] = word_audio(r['norm']) if r['kind'] == 'word' else {}
         out['roots'] = roots(r['norm']) if r['kind'] == 'word' else []
+        if r['source'] == 'mistake':
+            out['extra'] = json.loads(r['extra'] or '{}') if 'extra' in r.keys() else {}
+            out['skill'] = r['skill'] if 'skill' in r.keys() else None
+            node = r['node'] if 'node' in r.keys() else None
+            out['node'] = {'id': node, 'title': nx.nodes_meta(c).get(node, {}).get('title', node)} if node and c is not None else None
+            if r['kind'] == 'sound':
+                out['audio'] = word_audio(r['norm'][6:]) if r['norm'].startswith('sound:') else {}
     return out
 
 

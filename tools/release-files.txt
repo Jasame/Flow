@@ -144,6 +144,7 @@ flow/fsrs.py
 flow/graph_service.py
 flow/growth_service.py
 flow/guest_first.py
+flow/import_service.py
 flow/knowledge_service.py
 flow/lab_service.py
 flow/learning_insights.py
@@ -156,6 +157,7 @@ flow/migration_35.py
 flow/next_service.py
 flow/nginx-location.conf
 flow/ops.py
+flow/output_service.py
 flow/pedagogy_service.py
 flow/pilot_service.py
 flow/placement_content.py
@@ -220,6 +222,8 @@ flow/reference_service.py
 flow/requirements-vertex.txt
 flow/seed.py
 flow/settings_service.py
+flow/skills_service.py
+flow/sounds.py
 flow/state_service.py
 flow/studio_setup.py
 flow/survey_service.py
@@ -237,6 +241,7 @@ flow/tests/test_flow.py
 flow/tests/test_foundation.py
 flow/tests/test_growth.py
 flow/tests/test_lab.py
+flow/tests/test_learner.py
 flow/tests/test_learning.py
 flow/tests/test_loop.py
 flow/tests/test_migration.py

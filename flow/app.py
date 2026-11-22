@@ -292,7 +292,7 @@ class Handler(BaseHTTPRequestHandler):
     ai_stream.LOCAL.callback=None
  def post(self):
   length=int(self.headers.get('Content-Length',0))
-  limit=2200000 if self.path in ('/api/lab/audio','/api/next/shadow') else 800000 if self.path=='/api/vocab/import' else 20000
+  limit=2200000 if self.path in ('/api/lab/audio','/api/next/shadow','/api/next/retell','/api/next/dialog','/api/next/say') else 800000 if self.path=='/api/vocab/import' else 40000 if self.path in ('/api/next/import','/api/next/essay','/api/next/dialog') else 20000
   if length<1 or length>limit:return self.send({'error':'请求大小不正确'},400)
   if self.headers.get('Sec-Fetch-Site')=='cross-site':return self.send({'error':'不允许跨站请求'},403)
   if self.path=='/api/lab/audio':
@@ -498,7 +498,9 @@ if __name__=='__main__':
    # Daily vocabulary reminder emails, at each learner's chosen hour (Asia/Shanghai).
    while True:
     try:
-     with db() as c:__import__('vocab_service').send_reminders(c)
+     with db() as c:
+      __import__('vocab_service').send_reminders(c)
+      __import__('skills_service').send_weekly(c)
     except Exception as exc:print('reminders failed:',type(exc).__name__,flush=True)
     time.sleep(300)
   threading.Thread(target=remind_loop,daemon=True).start()
