@@ -27,3 +27,7 @@
 本版测试覆盖完整行数/归并、来源版本、分页/注入、屈折例句、私有采用、回滚、目标词生成、重试、继续丰富已有词与图谱关联。浏览器验证检索、采用、词卡来源回溯、图谱跳转和浅/深色；真实Gemini调用留给部署后验收。
 
 发布验证：118项Python测试与11组Node界面测试通过；升级包独立初始化测试通过。
+
+## ECDICT 释义与考试词表
+
+参考词表大多只给一个词性的释义（例如 even 只有"偶数的"）。语流的查词和背单词改用 ECDICT（https://github.com/skywind3000/ECDICT ，MIT 许可，Copyright (c) 2025 Linwei，许可全文见 `corpus_data/ECDICT-LICENSE.txt`）的全部词性释义；音标和词频排名仍以参考词表为准。`tools/build_ecdict_subset.py` 从 ECDICT 的 `ecdict.csv`（提交 39cfb96）提取参考词表中的词和带考试标签（四级、六级、考研、雅思、托福、GRE）的词，写入 `corpus_data/ecdict-flow.json`，考试词书即由这些标签生成。专四、专八没有可用的公开词表，学习者可以自行导入。

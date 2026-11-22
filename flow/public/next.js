@@ -885,8 +885,8 @@
     const cur = o.plan || { book: o.suggested_book, daily_new: 10, retention: 0.9 };
     let book = cur.book, daily = cur.daily_new, ret = cur.retention;
     view.innerHTML = `<h1 class="h1">背词计划</h1><span class="muted small">随时可以改，已学的进度不会丢。</span>
-      <div class="section stack-s"><h2 class="h2">词书</h2><span class="muted tiny">按英语词频分段；推荐的这本最接近你设置的水平。专四、专八等词表可以在「单词」页导入。</span>
-        <div class="books">${o.books.map(b => `<button class="card flat bookc" data-book="${b.id}" aria-pressed="${b.id === book}"><div class="row between"><b>${esc(b.title)}</b>${b.id === o.suggested_book ? '<span class="pill green">推荐</span>' : ''}</div><span class="small">${esc(b.blurb)}</span><span class="tiny muted">${b.size} 词 · 词频第 ${b.range} 位</span></button>`).join('')}</div></div>
+      <div class="section stack-s"><h2 class="h2">词书</h2><span class="muted tiny">按词频分段的词书从你的水平往上走；考试词书按大纲词表、常用词在前。专四、专八等词表可以在「单词」页导入。</span>
+        ${[['freq', '按词频'], ['exam', '考试词书']].map(([kind, label]) => `<div class="kicker">${label}</div><div class="books">${o.books.filter(b => b.kind === kind).map(b => `<button class="card flat bookc" data-book="${b.id}" aria-pressed="${b.id === book}"><div class="row between"><b>${esc(b.title)}</b>${b.id === o.suggested_book ? '<span class="pill green">推荐</span>' : ''}</div><span class="small">${esc(b.blurb)}</span><span class="tiny muted">${b.size} 词${b.range ? ' · 词频第 ' + b.range + ' 位' : ''}</span></button>`).join('')}</div>`).join('')}</div>
       <div class="section stack-s"><h2 class="h2">每天新词</h2><div class="chips" id="dn">${o.daily_new_options.map(v => `<button class="chip" data-v="${v}" aria-pressed="${v === daily}">${v} 个</button>`).join('')}</div>
         <span class="muted tiny" id="dnHint"></span></div>
       <div class="section stack-s"><h2 class="h2">目标记住率</h2><div class="chips" id="rt">${o.retention_options.map(v => `<button class="chip" data-v="${v}" aria-pressed="${v === ret}">${Math.round(v * 100)}%</button>`).join('')}</div>

@@ -112,10 +112,10 @@ class VocabTests(unittest.TestCase):
         items = vs.test_items(seed=1)['items']
         self.assertGreaterEqual(len(items), 40)
         fakes = [w for w in items if w in vs.PSEUDO]; self.assertEqual(len(fakes), 6)
-        band = {w: k for k, ws in vs.book_words().items() for _, w in ws}
+        band = {w: k for k in vs.BOOKS for _, w in vs.book_words()[k]}
         honest = {w: band.get(w) in ('core', 'mid') for w in items}
         r = vs.score_test(self.c, None, {'answers': honest})[0]
-        sizes = {k: len(v) for k, v in vs.book_words().items()}
+        sizes = {k: len(vs.book_words()[k]) for k in vs.BOOKS}
         self.assertEqual(r['suggest'], 'high'); self.assertAlmostEqual(r['estimate'], sizes['core'] + sizes['mid'], delta=200)
         self.assertFalse(r['guessing'])
         r = vs.score_test(self.c, None, {'answers': {w: True for w in items}})[0]

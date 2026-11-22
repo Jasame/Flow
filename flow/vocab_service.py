@@ -24,6 +24,14 @@ BOOKS = {  # id -> (title, first rank, last rank, blurb); ranks are word-frequen
     'adv': ('精通词汇', 8001, 13000, '面向英语专业和高阶考试的较低频词'),
     'ext': ('拓展词汇', 13001, 20200, '更少见的词，适合继续扩充词汇量'),
 }
+EXAM_BOOKS = {  # id -> (title, blurb); word lists from ECDICT's exam tags, most frequent words first
+    'cet4': ('四级词汇', '大学英语四级考试大纲词汇'),
+    'cet6': ('六级词汇', '大学英语六级考试大纲词汇'),
+    'ky': ('考研词汇', '全国硕士研究生招生考试英语大纲词汇'),
+    'ielts': ('雅思词汇', 'IELTS 常考词汇'),
+    'toefl': ('托福词汇', 'TOEFL 常考词汇'),
+    'gre': ('GRE 词汇', 'GRE 常考词汇，难度最高'),
+}
 LEVEL_BOOK = {'A2': 'core', 'B1': 'mid', 'B2': 'high', 'C1': 'adv'}
 DAILY_NEW = (5, 10, 15, 20, 30)
 RETENTION = (0.8, 0.85, 0.9, 0.95)
@@ -68,21 +76,31 @@ CREATE INDEX IF NOT EXISTS next_reviews_card ON next_reviews(card, created);''')
 # ---------- data ----------
 
 def book_words():
-    """book id -> [(rank, word)] in frequency order: plain lower-case words that have a Chinese meaning."""
+    """book id -> [(rank, word)] in frequency order: plain lower-case words that have a Chinese meaning.
+
+    Frequency books use the reference list only (so their contents never shift); exam books use ECDICT's tags."""
     global _BOOK
     if _BOOK is None:
-        out = {k: [] for k in BOOKS}
+        out = {k: [] for k in (*BOOKS, *EXAM_BOOKS)}
         for norm, e in nx.dictionary().items():
             if not re.fullmatch(r'[a-z]+(?:-[a-z]+)*', norm) or len(norm) < 2 or not e['meaning'] or e['word'][:1].isupper():
                 continue
-            for k, (_, lo, hi, _) in BOOKS.items():
-                if lo <= e['rank'] <= hi:
-                    out[k].append((e['rank'], norm))
-                    break
+            if e.get('ref', True):
+                for k, (_, lo, hi, _) in BOOKS.items():
+                    if lo <= e['rank'] <= hi:
+                        out[k].append((e['rank'], norm))
+                        break
+            for t in e.get('tags') or ():
+                if t in EXAM_BOOKS:
+                    out[t].append((e['rank'], norm))
         for v in out.values():
             v.sort()
         _BOOK = out
     return _BOOK
+
+
+def book_title(book):
+    return (BOOKS.get(book) or EXAM_BOOKS.get(book) or ('词书',))[0]
 
 
 def examples_index():
@@ -145,7 +163,7 @@ def word_audio(norm):
 
 
 def word_audio_file(accent, sprite):
-    if accent not in ACCENTS or not re.fullmatch(r'w\d{3}', sprite or ''):
+    if accent not in ACCENTS or not re.fullmatch(r'[wx]\d{3}', sprite or ''):
         return None
     f = WORD_AUDIO_DIR / accent / f'{sprite}.m4a'
     return f if f.is_file() else None
@@ -208,7 +226,7 @@ def _level(c, uid):
 def introduce(c, uid, now=None):
     """Top up today's new words from the learner's word book, without piling up unstudied ones."""
     p = plan(c, uid)
-    if not p or p['book'] not in BOOKS:
+    if not p or p['book'] not in book_words():
         return 0
     now = now or time.time()
     today_new = c.execute("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND source='book' AND created>=?", (uid, _day_start(now))).fetchone()[0]
@@ -322,7 +340,8 @@ def mine_in_text(c, uid, text):
 
 def books_meta():
     bw = book_words()
-    return [{'id': k, 'title': v[0], 'blurb': v[3], 'size': len(bw[k]), 'range': f'{v[1]}–{v[2]}'} for k, v in BOOKS.items()]
+    return ([{'id': k, 'kind': 'freq', 'title': v[0], 'blurb': v[3], 'size': len(bw[k]), 'range': f'{v[1]}–{v[2]}'} for k, v in BOOKS.items()]
+            + [{'id': k, 'kind': 'exam', 'title': v[0], 'blurb': v[1], 'size': len(bw[k])} for k, v in EXAM_BOOKS.items()])
 
 
 def overview(c, uid):
@@ -345,12 +364,12 @@ def overview(c, uid):
         days[d] = days.get(d, 0) + 1
     calendar = [{'day': nx._day(start - i * fsrs.DAY + 3600), 'n': days.get(nx._day(start - i * fsrs.DAY + 3600), 0)} for i in range(34, -1, -1)]
     book = None
-    if p and p['book'] in BOOKS:
+    if p and p['book'] in book_words():
         words = book_words()[p['book']]
         norms = {r['norm'] for r in rows}
         started = sum(1 for _, w in words if w in norms)
         left = len(words) - started
-        book = {'id': p['book'], 'title': BOOKS[p['book']][0], 'size': len(words), 'started': started,
+        book = {'id': p['book'], 'title': book_title(p['book']), 'size': len(words), 'started': started,
                 'finish': nx._day(now + math.ceil(left / max(1, p['daily_new'])) * fsrs.DAY) if left else None}
     return {'plan': p, 'book': book, 'books': books_meta(), 'daily_new_options': list(DAILY_NEW), 'retention_options': list(RETENTION),
             'suggested_book': LEVEL_BOOK.get(_level(c, uid), 'mid'), 'mastered': mastered, 'learning': learning, 'total': len(rows),
@@ -359,7 +378,7 @@ def overview(c, uid):
 
 def save_plan(c, uid, data):
     book = data.get('book')
-    if book not in BOOKS:
+    if book not in BOOKS and book not in EXAM_BOOKS:
         return {'error': '请选择词书'}, 400
     daily = data.get('daily_new', 10)
     retention = data.get('retention', 0.9)
@@ -378,7 +397,8 @@ def test_items(seed=None):
     rng = random.Random(seed)
     real = nx.dictionary()
     items = []
-    for k, words in book_words().items():
+    for k in BOOKS:
+        words = book_words()[k]
         items += [w for _, w in rng.sample(words, min(8, len(words)))]
     fakes = [w for w in PSEUDO if w not in real]
     items += rng.sample(fakes, min(6, len(fakes)))
@@ -391,7 +411,7 @@ def score_test(c, uid, data):
     if not isinstance(answers, dict) or not 10 <= len(answers) <= 80:
         return {'error': '测试结果不完整'}, 400
     real = nx.dictionary()
-    band_of = {w: k for k, words in book_words().items() for _, w in words}
+    band_of = {w: k for k in BOOKS for _, w in book_words()[k]}
     per = {k: [0, 0] for k in BOOKS}
     fake = [0, 0]
     for w, yes in answers.items():
@@ -401,7 +421,7 @@ def score_test(c, uid, data):
         elif w in band_of:
             per[band_of[w]][0] += bool(yes); per[band_of[w]][1] += 1
     fa = fake[0] / fake[1] if fake[1] else 0
-    sizes = {k: len(v) for k, v in book_words().items()}
+    sizes = {k: len(book_words()[k]) for k in BOOKS}
     known = {}
     for k, (y, n) in per.items():
         p = y / n if n else 0

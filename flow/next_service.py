@@ -83,16 +83,50 @@ def _text(value, maximum, minimum=0):
     return value
 
 
+def _ec_meaning(e):
+    """ECDICT translation lines -> one line per part of speech, joined with 「；」 (the UI shows each on its own line)."""
+    lines = []
+    for ln in e[1]:
+        if ln.startswith('['):  # domain glosses such as [计] or [医]
+            continue
+        ln = re.sub(r'^a\. ', 'adj. ', ln).replace('；', ', ').replace(';', ', ')
+        lines.append(ln)
+    return '；'.join(lines)
+
+
+def _ec_phonetic(e):
+    p = (e[0] or '').replace('ә', 'ə').replace('є', 'ɛ').strip()
+    return f'[{p}]' if p else ''
+
+
 def dictionary():
-    """norm -> {word, phonetic, meaning, rank}; first (most frequent) variant wins."""
+    """norm -> {word, phonetic, meaning, rank, example, ref, tags, collins}; first (most frequent) variant wins.
+
+    Words and frequency ranks come from the reference list (ref=True). Meanings come from ECDICT where it has the
+    word, since it lists every part of speech ("even" is also 甚至); exam tags (cet4, cet6, ky, ielts, toefl, gre)
+    define the exam word books. Exam words missing from the reference list are added with ECDICT's frequency rank.
+    """
     global _DICT
     if _DICT is None:
-        data = json.loads((Path(__file__).resolve().parent / 'corpus_data' / 'yl-reference.json').read_text(encoding='utf-8'))
+        base = Path(__file__).resolve().parent / 'corpus_data'
+        data = json.loads((base / 'yl-reference.json').read_text(encoding='utf-8'))
+        try:
+            ec = json.loads((base / 'ecdict-flow.json').read_text(encoding='utf-8'))['words']
+        except OSError:
+            ec = {}
         out = {}
         for t in data['terms']:
             v = t['variants'][0]
-            out[t['norm']] = {'word': t['word'], 'phonetic': v.get('phonetic', ''), 'meaning': v.get('meaning', ''), 'rank': t.get('rank') or 99999,
-                              'example': (v.get('examples') or '').split('\n')[0][3:].strip() if v.get('examples') else ''}
+            e = ec.get(t['norm'])
+            out[t['norm']] = {'word': t['word'], 'phonetic': v.get('phonetic', '') or (_ec_phonetic(e) if e else ''),
+                              'meaning': (_ec_meaning(e) if e else '') or v.get('meaning', ''), 'rank': t.get('rank') or 99999,
+                              'example': (v.get('examples') or '').split('\n')[0][3:].strip() if v.get('examples') else '',
+                              'ref': True, 'tags': e[2] if e else [], 'collins': e[3] if e else 0}
+        for k, e in ec.items():  # alphabetical, so a base form ("abash") is in before its inflections ("abashed")
+            if k in out or not _ec_meaning(e) or any(c in out for c in lemma_candidates(k)[1:]):
+                continue  # skip inflections of words we already have: "cities" should look up "city"
+            out[k] = {'word': k, 'phonetic': _ec_phonetic(e), 'meaning': _ec_meaning(e), 'rank': e[6] or e[5] or 30000,
+                      'example': '', 'ref': False, 'tags': e[2], 'collins': e[3]}
         _DICT = out
     return _DICT
 

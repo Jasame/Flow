@@ -15,7 +15,7 @@ from pathlib import Path
 
 SRC, FLOW = Path(sys.argv[1]), Path(sys.argv[2])
 TAGS = ('cet4', 'cet6', 'ky', 'ielts', 'toefl', 'gre')
-NOTICE = ('ECDICT (https://github.com/skywind3000/ECDICT), MIT License, Copyright (c) 2017 Linwei. '
+NOTICE = ('ECDICT (https://github.com/skywind3000/ECDICT), MIT License, Copyright (c) 2025 Linwei (full text in corpus_data/ECDICT-LICENSE.txt). '
           'Subset extracted by tools/build_ecdict_subset.py.')
 
 ref = json.loads((FLOW / 'corpus_data' / 'yl-reference.json').read_text(encoding='utf-8'))

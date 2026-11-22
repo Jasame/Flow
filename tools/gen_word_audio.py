@@ -2,6 +2,7 @@
 
 Words are packed 100 to a file ("sprites") so a day of reviews needs a few requests, not hundreds:
   <out>/<accent>/w000.m4a ...    and    <out>/index.json  {"us": {"word": ["w000", start, end]}, "uk": {...}}
+Frequency-book words go in w### files and exam-only words in x###, so adding exam words never reshuffles w###.
 Run on a machine with the Kokoro model files (see tools/gen_audio.py), then copy <out> to flow/audio/words.
 
 usage: gen_word_audio.py <flow dir> <models dir> <out dir> [workers]
@@ -69,10 +70,13 @@ def render(job):
 
 def main():
     import vocab_service as vs
-    words = sorted({(r, w) for ws in vs.book_words().values() for r, w in ws})
-    words = [w for _, w in words]
-    jobs = [(a, f'w{k // PER:03d}', words[k:k + PER]) for a in ACCENTS for k in range(0, len(words), PER)]
-    print(f'{len(words)} words, {len(jobs)} files, {WORKERS} workers', flush=True)
+    bw = vs.book_words()
+    freq = [w for _, w in sorted({(r, w) for k in vs.BOOKS for r, w in bw[k]})]
+    seen = set(freq)
+    exam = [w for _, w in sorted({(r, w) for k in vs.EXAM_BOOKS for r, w in bw[k] if w not in seen})]
+    jobs = [(a, f'{prefix}{k // PER:03d}', words[k:k + PER]) for prefix, words in (('w', freq), ('x', exam))
+            for a in ACCENTS for k in range(0, len(words), PER)]
+    print(f'{len(freq)} + {len(exam)} words, {len(jobs)} files, {WORKERS} workers', flush=True)
     t0 = time.time()
     with ProcessPoolExecutor(WORKERS) as ex:
         for n, (a, sprite, state) in enumerate(ex.map(render, jobs), 1):
@@ -80,7 +84,7 @@ def main():
                 print(f'{n}/{len(jobs)} {a}/{sprite} {state} elapsed {time.time() - t0:.0f}s', flush=True)
     index = {a: {} for a in ACCENTS}
     for a in ACCENTS:
-        for f in sorted((OUT / a).glob('w*.json')):
+        for f in sorted((OUT / a).glob('[wx][0-9][0-9][0-9].json')):
             for w, (s, e) in json.loads(f.read_text()).items():
                 index[a][w] = [f.stem, s, e]
     (OUT / 'index.json').write_text(json.dumps(index, separators=(',', ':')))

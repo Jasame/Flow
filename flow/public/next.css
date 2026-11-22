@@ -466,3 +466,4 @@ button.xcard:hover{border-color:var(--green-line)}
 #impText:focus{outline:none;border-color:var(--green)}
 @media (prefers-reduced-motion:reduce){.vbar i,.forecast i{transition:none}}
 #view:focus{outline:none}
+.books{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
