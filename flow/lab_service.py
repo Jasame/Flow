@@ -3,7 +3,7 @@ import json,time,re,uuid,hashlib,os,difflib,urllib.error,socket
 import ai_jobs
 from content_v06 import PACKS,material
 from content_v09 import THEMES
-from content_v30 import all_materials
+from content_v50 import all_materials
 import corpus_service as corpus
 from audio_validation import validate_audio
 from chat_service import request_model,remaining,reserve

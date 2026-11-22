@@ -1,0 +1,460 @@
+[
+  {
+    "id": "v5-life-b1-dinner-party-disaster",
+    "title": "晚宴上的“厨房灾难”",
+    "title_en": "The Night My Dinner Party Went Up in Smoke",
+    "summary_zh": "Daniel 精心准备的晚宴，主菜在客人到来前烧焦了。朋友们没有扫兴，而是卷起袖子一起煮了一锅意面。一个关于“计划失败反而更好”的故事。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "life",
+    "genre": "story",
+    "body": "Daniel had worked all Saturday on a fish dish that he had seen on a cooking show. Six friends were coming, and he hoped everything would be perfect. At seven o'clock, while he was setting the table, the smoke alarm went off. He ran into the kitchen and found the fish, which was supposed to be golden, burnt black on one side. The sauce had boiled over onto the cooker. For a moment, Daniel just stood there with a tea towel in his hand, wondering whether to cancel. Then the doorbell rang. His friend Aiko took one look at the kitchen and burst out laughing. Instead of feeling embarrassed, Daniel began to laugh too. Soon everyone rolled up their sleeves. Aiko found some pasta in the cupboard, Marco chopped tomatoes and garlic, and someone opened a window to let the smoke out. Less than an hour later, they sat around the table with plates of simple tomato pasta. Nobody mentioned the fish. As people left that night, Marco told Daniel it was the best dinner party he had been to all year. Daniel still isn't sure he was joking. What he does know is that the evening worked because nothing went to plan.",
+    "questions": [
+      {
+        "prompt": "What is the main point of the story?",
+        "options": [
+          "Daniel is a talented cook who rarely makes mistakes",
+          "Fish is too difficult to cook for a large group",
+          "A dinner can still be a success when the plan fails",
+          "Daniel's friends were secretly disappointed with the pasta"
+        ],
+        "answer": 2,
+        "evidence": "the evening worked because nothing went to plan"
+      },
+      {
+        "prompt": "What does \"rolled up their sleeves\" mean in the story?",
+        "options": [
+          "They got ready to leave the party",
+          "They got ready to help with the work",
+          "They changed into clean clothes",
+          "They felt cold because of the open window"
+        ],
+        "answer": 1,
+        "evidence": "Soon everyone rolled up their sleeves."
+      }
+    ],
+    "dictation_index": 2,
+    "vocabulary": [
+      {
+        "term": "embarrassed",
+        "meaning": "尴尬的；难为情的",
+        "example": "I felt embarrassed when I called my teacher by the wrong name."
+      },
+      {
+        "term": "cupboard",
+        "meaning": "橱柜",
+        "example": "The cups are in the cupboard above the sink."
+      },
+      {
+        "term": "cancel",
+        "meaning": "取消",
+        "example": "We had to cancel the picnic because of the rain."
+      },
+      {
+        "term": "mentioned",
+        "meaning": "提到（mention 的过去式）",
+        "example": "She mentioned that she was moving to a new flat."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "went off",
+        "meaning": "（警报、闹钟）响了",
+        "note": "闹钟、警报器响用 go off，不用 ring 也行：My alarm went off at six."
+      },
+      {
+        "text": "took one look at",
+        "meaning": "只看了一眼",
+        "note": "后面接看完之后的反应，讲故事很生动：She took one look at the bill and laughed."
+      },
+      {
+        "text": "burst out laughing",
+        "meaning": "突然大笑起来",
+        "note": "burst out + -ing 表示突然控制不住：burst out crying。"
+      },
+      {
+        "text": "rolled up their sleeves",
+        "meaning": "卷起袖子准备干活",
+        "note": "比喻“动手干起来”，工作里也常说 It's time to roll up our sleeves."
+      },
+      {
+        "text": "went to plan",
+        "meaning": "按计划进行",
+        "note": "多用否定，英式口语常见：Nothing went to plan today."
+      }
+    ],
+    "grammar": [
+      "clause-adverb",
+      "clause-relative"
+    ],
+    "knowledge": [
+      {
+        "node": "clause-adverb",
+        "quote": "At seven o'clock, while he was setting the table, the smoke alarm went off.",
+        "explanation": "while 引导的从句用过去进行时交代背景动作，主句用一般过去时表示突然发生的事，是讲故事的经典组合。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "the fish, which was supposed to be golden, burnt black on one side",
+        "explanation": "which 引导非限制性定语从句，用逗号隔开，补充说明鱼“本来应该是金黄色的”，和烧焦的结果形成反差。逗号后不能用 that。"
+      }
+    ],
+    "speaking": "用 1 分钟讲一次你做饭或准备某件事搞砸了、最后却挺好的经历，用上 went off 或 burst out laughing。",
+    "writing": "写 100–130 词，讲一次“没按计划进行”的聚会或出行，结尾用 nothing went to plan 总结。",
+    "task": {
+      "prompt": "仿照 What he does know is that ...，用 What I do know is that ... 说一件经历最后让你确定的事。",
+      "model": "What he does know is that the evening worked because nothing went to plan."
+    },
+    "tags": [
+      "做饭",
+      "朋友聚会"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-life-b1-customer-service-call",
+    "title": "打客服电话：洗衣机去哪了",
+    "title_en": "Calling Customer Service About a Missing Delivery",
+    "summary_zh": "Amara 在家等了一整天，洗衣机却没送来。她打电话给客服，把问题说清楚，还争取到了满意的安排。读完你能学会打客服电话的一整套实用说法。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "life",
+    "genre": "dialogue",
+    "body": "Josh: Good morning, you're through to customer service — my name's Josh, how can I help? Amara: Hi, Josh, I ordered a washing machine last week, and it was supposed to arrive yesterday. I stayed in all day, but nobody came. Josh: Oh, I'm sorry to hear that — have you got your order number? Amara: Yes, hang on, it's in the confirmation email, so I'll read it out. Josh: Thanks, I can see your order, but that's strange — the driver has marked it as delivered. Amara: Delivered? Well, it definitely hasn't been delivered to me, and I've already checked with my neighbours. Josh: I see, and apologies for the inconvenience. According to our system, the machine is back at the warehouse, so it looks like there was a mix-up with the address. Amara: So what happens now? Josh: We can send it out again tomorrow. Unless you tell me otherwise, it'll arrive between eight and twelve. Amara: Tomorrow morning works. But could you ask the driver to call me if he can't find the building? I don't want to waste another day. Josh: Of course, I've added a note to your order. Is there anything else I can help with? Amara: No, that's all — thanks for sorting it out.",
+    "questions": [
+      {
+        "prompt": "Why did the washing machine probably not arrive?",
+        "options": [
+          "Amara was not at home when the driver came",
+          "The machine was out of stock",
+          "There was a problem with the address",
+          "The driver left it with a neighbour"
+        ],
+        "answer": 2,
+        "evidence": "it looks like there was a mix-up with the address"
+      },
+      {
+        "prompt": "What will happen if Amara does not ask for any changes?",
+        "options": [
+          "Josh will call her again tomorrow morning",
+          "The machine will arrive between eight and twelve tomorrow",
+          "She will need to collect it from the warehouse",
+          "The order will be cancelled automatically"
+        ],
+        "answer": 1,
+        "evidence": "Unless you tell me otherwise, it'll arrive between eight and twelve."
+      }
+    ],
+    "dictation_index": 12,
+    "vocabulary": [
+      {
+        "term": "confirmation",
+        "meaning": "确认（信息）",
+        "example": "I got a confirmation email after I booked the hotel."
+      },
+      {
+        "term": "warehouse",
+        "meaning": "仓库",
+        "example": "All the boxes are kept in a warehouse outside the city."
+      },
+      {
+        "term": "delivered",
+        "meaning": "已送达（deliver 的过去分词）",
+        "example": "The pizza was delivered in twenty minutes."
+      },
+      {
+        "term": "definitely",
+        "meaning": "肯定地；绝对",
+        "example": "I'm definitely coming to your party on Saturday."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "you're through to",
+        "meaning": "您已接通……",
+        "note": "客服电话开头的标准说法；自己打电话也可以问 Am I through to the right department?"
+      },
+      {
+        "text": "I'm sorry to hear that",
+        "meaning": "听到这个很抱歉",
+        "note": "对别人的坏消息表示同情，客服和朋友之间都常用。"
+      },
+      {
+        "text": "hang on",
+        "meaning": "稍等一下",
+        "note": "口语，比 wait a moment 随意，电话里特别常用。"
+      },
+      {
+        "text": "a mix-up with",
+        "meaning": "在……上搞混了、出了差错",
+        "note": "mix-up 是名词，语气轻，只说“弄混了”，不指责任何人。"
+      },
+      {
+        "text": "Unless you tell me otherwise",
+        "meaning": "除非你另有安排，否则……",
+        "note": "确认安排时很好用：表示“你不说的话，就按这个来”。"
+      },
+      {
+        "text": "sorting it out",
+        "meaning": "把问题解决好",
+        "note": "sort sth out 解决、处理，英式口语常见：Thanks for sorting it out."
+      }
+    ],
+    "grammar": [
+      "tense-perfect",
+      "conditional-unless"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-perfect",
+        "quote": "it definitely hasn't been delivered to me, and I've already checked with my neighbours",
+        "explanation": "hasn't been delivered 是现在完成时的被动，强调“到现在为止还没送到”；I've already checked 说明已经做过、和现在有关，所以都不用一般过去时。"
+      },
+      {
+        "node": "conditional-unless",
+        "quote": "Unless you tell me otherwise, it'll arrive between eight and twelve.",
+        "explanation": "unless = if not：“除非你另说，否则……”。unless 从句用一般现在时表示将来，主句用 will。"
+      }
+    ],
+    "speaking": "模拟一次 1 分钟的客服电话：你买的东西没送到或送错了，向客服说明情况并提出一个请求，用上 hang on 和 sorting it out。",
+    "writing": "写一封 80–120 词的邮件，说明一次送货或维修出的问题，并提出你希望的解决办法，用上 a mix-up with 和 unless。",
+    "task": {
+      "prompt": "仿照这句，用 Could you ask ... to ... if ...? 在电话里提一个具体的请求。",
+      "model": "could you ask the driver to call me if he can't find the building?"
+    },
+    "tags": [
+      "客服电话",
+      "网购"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-life-b1-adopting-an-old-dog",
+    "title": "领养一只没人要的老狗",
+    "title_en": "Why I Adopted a Dog Nobody Wanted",
+    "summary_zh": "大多数人领养都想要小狗，Leila 却带回了一只在收容所待了快一年的老狗。这篇访谈讲她们怎样慢慢适应彼此，也让人重新想想什么才值得。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "life",
+    "genre": "interview",
+    "body": "Q: Most people want a puppy. Why did you choose an older dog? Leila: I went to the shelter to look at puppies, actually. But there was this grey dog called Biscuit lying quietly in the corner. The staff told me he had been there for almost a year, because everyone walked past him. Q: How old is he? Leila: About eleven, they think. He's got a white face and he's a bit slow on the stairs. Q: Was it hard at the beginning? Leila: A little. For the first week, he kept hiding behind the sofa. He wasn't used to living in a home with people, so I just gave him space. Q: And now? Leila: He follows me from room to room! What I love about him is that he's so calm. He doesn't chew my shoes, and he's happy with two short walks a day. Q: Are there any downsides? Leila: I know I won't have as many years with him as I would with a puppy. That's the hard part, but I'd rather give him a few good years than leave him in a cage. Q: Would you recommend it? Leila: Definitely. If you're thinking about getting a dog, don't walk past the grey faces.",
+    "questions": [
+      {
+        "prompt": "Why had Biscuit stayed at the shelter for so long?",
+        "options": [
+          "He was too unfriendly to live with people",
+          "People usually chose younger dogs and ignored him",
+          "The staff wanted to keep him for themselves",
+          "He was hiding in the corner, so nobody saw him"
+        ],
+        "answer": 1,
+        "evidence": "because everyone walked past him"
+      },
+      {
+        "prompt": "What does Leila call \"the hard part\" of having an older dog?",
+        "options": [
+          "Helping him up and down the stairs",
+          "Stopping him from chewing her shoes",
+          "Getting him to come out from behind the sofa",
+          "Knowing she will have fewer years with him"
+        ],
+        "answer": 3,
+        "evidence": "I know I won't have as many years with him as I would with a puppy"
+      }
+    ],
+    "dictation_index": 11,
+    "vocabulary": [
+      {
+        "term": "shelter",
+        "meaning": "（动物）收容所；庇护所",
+        "example": "The animal shelter needs people to walk the dogs at weekends."
+      },
+      {
+        "term": "puppy",
+        "meaning": "小狗；幼犬",
+        "example": "The puppy fell asleep on my feet."
+      },
+      {
+        "term": "calm",
+        "meaning": "平静的；沉稳的",
+        "example": "Try to stay calm before the interview."
+      },
+      {
+        "term": "recommend",
+        "meaning": "推荐",
+        "example": "Can you recommend a good place for breakfast?"
+      }
+    ],
+    "expressions": [
+      {
+        "text": "walked past",
+        "meaning": "从旁边走过（没停下）",
+        "note": "字面是“走过”，这里暗示“被忽视”：Everyone walked past the little shop."
+      },
+      {
+        "text": "wasn't used to",
+        "meaning": "不习惯",
+        "note": "be used to + 名词/动名词 表示“习惯于”，别和 used to do（过去常常）混淆。"
+      },
+      {
+        "text": "from room to room",
+        "meaning": "从一个房间到另一个房间",
+        "note": "from A to A 的结构很常用：from door to door, from shop to shop。"
+      },
+      {
+        "text": "the hard part",
+        "meaning": "最难的部分",
+        "note": "指出整件事中最难的一点：The hard part is getting started."
+      },
+      {
+        "text": "I'd rather",
+        "meaning": "我宁愿",
+        "note": "I'd rather A than B，比较两个选择、表达个人倾向，A 和 B 都用动词原形。"
+      }
+    ],
+    "grammar": [
+      "nonfinite-gerund",
+      "clause-noun"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-gerund",
+        "quote": "He wasn't used to living in a home with people",
+        "explanation": "be used to 里的 to 是介词，后面接动名词 living，不能接动词原形。对比 I used to live there（我过去住在那里）。"
+      },
+      {
+        "node": "clause-noun",
+        "quote": "What I love about him is that he's so calm.",
+        "explanation": "What I love about him 是名词性从句作主语，is 后面的 that 从句作表语。“我最喜欢它的一点是……”，介绍优点时非常顺口。"
+      }
+    ],
+    "speaking": "用 1 分钟说说：如果养宠物，你会选年幼的还是年老的（或者都不养）？给出两个理由，用上 I'd rather ... than ...。",
+    "writing": "写 100–130 词，介绍一个你身边常被忽视、其实很好的人、动物或东西，用上 walked past 和 What I love about ... is that ...。",
+    "task": {
+      "prompt": "仿照 What I love about ... is that ...，说说你喜欢某个人、宠物或地方的一点。",
+      "model": "What I love about him is that he's so calm."
+    },
+    "tags": [
+      "宠物",
+      "领养"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-life-b1-doing-nothing-on-sunday",
+    "title": "周日什么都不做的乐趣",
+    "title_en": "In Defence of Doing Nothing on a Sunday",
+    "summary_zh": "作者曾把周日过成“第二个周一”，直到某个周末什么也没安排。这篇观点文章认为：休息不是奖励，而是让我们继续前进的一部分。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "life",
+    "genre": "opinion",
+    "body": "For years, my Sundays looked like a second Monday. I cleaned the flat, answered emails, went to the gym and planned the week ahead. By the evening, I was more tired than I had been on Friday. Then one weekend, I simply didn't make a plan. I made a pot of tea, sat by the window and watched the street. I read half a novel and fell asleep on the sofa in the afternoon. Doing nothing felt strange at first, almost like breaking a rule. But by Monday morning, I noticed something: I actually wanted to go back to work. I think many of us have forgotten that rest is not a reward we earn after being productive. It is part of how we keep going. Of course, not every Sunday can be empty. Life gets in the way, and the laundry won't do itself. But the best part of my slow Sundays is the feeling that nobody needs anything from me for a few hours. If you've never tried it, start small. Leave one Sunday morning without a plan and see what happens. You might find that the most useful thing you do all week is nothing at all.",
+    "questions": [
+      {
+        "prompt": "What is the writer's main point?",
+        "options": [
+          "Sundays are the best day to prepare for the week",
+          "Resting without a plan can help you feel ready to keep going",
+          "People should work fewer hours on Mondays",
+          "Housework is more relaxing than going to the gym"
+        ],
+        "answer": 1,
+        "evidence": "It is part of how we keep going."
+      },
+      {
+        "prompt": "What does the writer mean by \"the laundry won't do itself\"?",
+        "options": [
+          "Some jobs at home still have to be done",
+          "The washing machine is broken",
+          "Nobody else in the flat helps with housework",
+          "Doing laundry is a good way to relax"
+        ],
+        "answer": 0,
+        "evidence": "Life gets in the way, and the laundry won't do itself."
+      }
+    ],
+    "dictation_index": 6,
+    "vocabulary": [
+      {
+        "term": "productive",
+        "meaning": "有成效的；高效的",
+        "example": "I feel more productive when I work in the morning."
+      },
+      {
+        "term": "reward",
+        "meaning": "奖励；回报",
+        "example": "As a reward for finishing the exam, we went out for ice cream."
+      },
+      {
+        "term": "novel",
+        "meaning": "（长篇）小说",
+        "example": "She is reading a novel about a family in Scotland."
+      },
+      {
+        "term": "strange",
+        "meaning": "奇怪的；陌生的",
+        "example": "It felt strange to be back at my old school."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "the week ahead",
+        "meaning": "接下来的一周",
+        "note": "ahead 放在名词后表示“即将到来的”：the year ahead, the road ahead。"
+      },
+      {
+        "text": "breaking a rule",
+        "meaning": "违反规则",
+        "note": "break a rule / break the rules 是固定搭配，不说 destroy a rule。"
+      },
+      {
+        "text": "keep going",
+        "meaning": "继续下去；坚持住",
+        "note": "可以鼓励别人，也可以说自己撑下去：Don't stop now, keep going!"
+      },
+      {
+        "text": "Life gets in the way",
+        "meaning": "生活总会打乱计划",
+        "note": "计划被各种琐事打断时的感慨，口语常用，带点无奈。"
+      },
+      {
+        "text": "won't do itself",
+        "meaning": "不会自己完成",
+        "note": "幽默地说“事情总得有人做”：The dishes won't wash themselves."
+      },
+      {
+        "text": "start small",
+        "meaning": "从小处开始",
+        "note": "给建议时常用，意思是“先做一点点，别一下子太多”。"
+      }
+    ],
+    "grammar": [
+      "nonfinite-gerund",
+      "agreement-head"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-gerund",
+        "quote": "Doing nothing felt strange at first, almost like breaking a rule.",
+        "explanation": "Doing nothing 是动名词短语作主语，相当于“什么都不做这件事”；like 是介词，后面同样要接动名词 breaking。"
+      },
+      {
+        "node": "agreement-head",
+        "quote": "the best part of my slow Sundays is the feeling that nobody needs anything from me for a few hours",
+        "explanation": "主语的中心词是 part，不是离动词更近的 Sundays，所以用 is。遇到长主语，先找“核心名词”再决定单复数。"
+      }
+    ],
+    "speaking": "用 1 分钟谈谈你理想的周日是忙碌还是什么都不做，并给出一个理由，用上 Life gets in the way。",
+    "writing": "写 100–140 词的短评，支持或反对“周末应该什么都不安排”，至少用一个动名词作主语的句子。",
+    "task": {
+      "prompt": "仿照这句，用“动名词作主语 + felt ... at first”描述你第一次做某件事的感觉。",
+      "model": "Doing nothing felt strange at first, almost like breaking a rule."
+    },
+    "tags": [
+      "休息",
+      "生活方式"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

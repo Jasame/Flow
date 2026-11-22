@@ -1,0 +1,491 @@
+[
+  {
+    "id": "v5-culture-b1-sorry-or-excuse-me",
+    "title": "sorry 和 excuse me 到底差在哪",
+    "title_en": "Sorry or Excuse Me? It's All About Timing",
+    "summary_zh": "sorry 和 excuse me 经常被混用，其实关键在“时间点”：一个用在打扰别人之前，一个用在事情发生之后。读完你会知道什么场合该说哪一个。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "culture",
+    "genre": "explainer",
+    "body": "Many learners use \"sorry\" and \"excuse me\" as if they meant the same thing, but in everyday English the choice often depends on timing. \"Excuse me\" usually comes before you do something that might bother someone. If you need to get past a person on a busy train, you say \"excuse me\". If you want to ask a stranger for directions, you start the same way. \"Sorry\", on the other hand, usually comes after something has already happened. You step on someone's foot, so you say \"sorry\". You miss what a friend said, so you say \"Sorry?\" with a rising voice, which asks them to repeat it. Things get more interesting when the two words overlap. Some people say \"sorry\" when someone else bumps into them, even when it clearly wasn't their fault. In that case, \"sorry\" isn't really an apology; it's more like a quick way of keeping the peace. A simple rule can help: \"excuse me\" opens a door, and \"sorry\" closes one. When you aren't sure, choose either one and say it with a smile. Being friendly matters more than picking the perfect word.",
+    "questions": [
+      {
+        "prompt": "What is the main difference between the two phrases, according to the text?",
+        "options": [
+          "\"Excuse me\" is more polite than \"sorry\" in every situation",
+          "\"Excuse me\" is for strangers, while \"sorry\" is for friends",
+          "\"Excuse me\" usually comes before an action, while \"sorry\" usually comes after",
+          "\"Sorry\" should only be used for serious mistakes"
+        ],
+        "answer": 2,
+        "evidence": "\"Excuse me\" usually comes before you do something that might bother someone."
+      },
+      {
+        "prompt": "In the text, what does \"keeping the peace\" mean?",
+        "options": [
+          "Staying completely silent in public",
+          "Telling someone politely that they made a mistake",
+          "Asking someone to move out of the way",
+          "Avoiding a small moment of tension between people"
+        ],
+        "answer": 3,
+        "evidence": "it's more like a quick way of keeping the peace"
+      }
+    ],
+    "dictation_index": 2,
+    "vocabulary": [
+      {
+        "term": "bother",
+        "meaning": "打扰；麻烦（别人）",
+        "example": "I'm sorry to bother you, but is this seat free?"
+      },
+      {
+        "term": "stranger",
+        "meaning": "陌生人",
+        "example": "A stranger helped me carry my bags up the stairs."
+      },
+      {
+        "term": "overlap",
+        "meaning": "重叠；有交叉",
+        "example": "Our holidays overlap by two days, so we can travel together."
+      },
+      {
+        "term": "apology",
+        "meaning": "道歉",
+        "example": "He sent a short apology for missing the meeting."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "get past",
+        "meaning": "从……旁边过去；挤过去",
+        "note": "在拥挤的地方请别人让一让：Can I just get past?"
+      },
+      {
+        "text": "on the other hand",
+        "meaning": "另一方面",
+        "note": "对比两种情况时的连接语，常放在句中、用逗号隔开"
+      },
+      {
+        "text": "step on someone's foot",
+        "meaning": "踩到别人的脚",
+        "note": "step on 表示“踩到”，地铁、排队时常用"
+      },
+      {
+        "text": "bumps into",
+        "meaning": "撞到；碰上",
+        "note": "既可以是身体撞到，也可以是“偶遇”：I bumped into Lily at the shop."
+      },
+      {
+        "text": "keeping the peace",
+        "meaning": "维持和气；息事宁人",
+        "note": "指为了不起冲突而做的小让步，常用 a way of keeping the peace"
+      },
+      {
+        "text": "matters more than",
+        "meaning": "比……更重要",
+        "note": "matter 作动词表示“要紧”：What matters most is..."
+      }
+    ],
+    "grammar": [
+      "conditional-real",
+      "clause-adverb",
+      "nonfinite-gerund"
+    ],
+    "knowledge": [
+      {
+        "node": "conditional-real",
+        "quote": "If you need to get past a person on a busy train, you say \"excuse me\".",
+        "explanation": "真实条件句描述“遇到这种情况通常怎么做”：if 从句和主句都用一般现在时，很适合讲规则和习惯。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "Some people say \"sorry\" when someone else bumps into them, even when it clearly wasn't their fault.",
+        "explanation": "when 引导时间状语从句；even when 表示“即使在……的时候”，强调出乎意料，比单用 when 语气更强。"
+      },
+      {
+        "node": "nonfinite-gerund",
+        "quote": "Being friendly matters more than picking the perfect word.",
+        "explanation": "动名词 Being friendly 作主语，than 后面也用动名词 picking，前后结构保持一致，读起来更顺。"
+      }
+    ],
+    "speaking": "用 1 分钟描述三个场景：地铁上要下车、没听清别人的话、不小心碰到别人。分别说出你会用 excuse me 还是 sorry，并解释原因。",
+    "writing": "写 80–100 词，比较中文里“不好意思”和“对不起”的用法，看看和英文的 excuse me / sorry 有什么相同和不同。",
+    "task": {
+      "prompt": "仿照这句，用 A opens a door, and B closes one 的对比结构，总结两个容易混淆的词或做法。",
+      "model": "\"excuse me\" opens a door, and \"sorry\" closes one"
+    },
+    "tags": [
+      "礼貌用语",
+      "易混表达"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-b1-fish-joke",
+    "title": "一个讲不通的笑话",
+    "title_en": "The Joke That Was About a Fish",
+    "summary_zh": "在宿舍聚餐上，“我”把爷爷最爱的中文笑话翻成英文，结果全场安静——因为笑点是一个谐音。读完你会看到笑话为什么难翻译，以及一个失败的笑话如何变成朋友间的“梗”。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "culture",
+    "genre": "story",
+    "body": "At our first dinner in the shared flat, everyone agreed to bring a joke from home. When it was my turn, I chose my grandfather's favourite one, which always makes my family cry with laughter. I translated it carefully and delivered the last line with a big smile. Nobody laughed. There was a long, polite silence, and then Priya asked kindly whether there was a second part. Too late, I realised that the whole joke depended on two Chinese words that sound exactly the same: one means fish, and the other means having more than enough. In English, it was just a strange sentence about a fish. So I explained it slowly, with drawings on a paper napkin. By the time I finished, everyone was laughing, but not at the joke. They were laughing at how hard I was trying. Then Diego told a joke from Chile, and it failed in exactly the same way. Since that night, we have had a running joke of our own. Whenever something gets lost in translation, someone whispers \"fish\", and the whole table loses it.",
+    "questions": [
+      {
+        "prompt": "Why did nobody laugh when the writer first told the joke?",
+        "options": [
+          "The writer forgot the most important line",
+          "The joke was about a topic the others found sad",
+          "The others could not understand the writer's accent",
+          "The joke worked only because of how two Chinese words sound"
+        ],
+        "answer": 3,
+        "evidence": "the whole joke depended on two Chinese words that sound exactly the same"
+      },
+      {
+        "prompt": "What does \"the whole table loses it\" most likely mean?",
+        "options": [
+          "Everyone at the table gets angry",
+          "Everyone at the table bursts out laughing",
+          "Everyone at the table forgets the joke",
+          "Everyone at the table leaves the room"
+        ],
+        "answer": 1,
+        "evidence": "someone whispers \"fish\", and the whole table loses it"
+      }
+    ],
+    "dictation_index": 8,
+    "vocabulary": [
+      {
+        "term": "delivered",
+        "meaning": "说出（台词、笑点）；发表",
+        "example": "She delivered her speech without looking at her notes."
+      },
+      {
+        "term": "silence",
+        "meaning": "沉默；寂静",
+        "example": "After the question, there was a short silence."
+      },
+      {
+        "term": "depended",
+        "meaning": "取决于；依赖",
+        "example": "Our plans depended on the weather."
+      },
+      {
+        "term": "whispers",
+        "meaning": "低声说；耳语",
+        "example": "My brother always whispers during films."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "cry with laughter",
+        "meaning": "笑出眼泪",
+        "note": "形容笑得特别厉害，比 laugh a lot 生动得多"
+      },
+      {
+        "text": "When it was my turn",
+        "meaning": "轮到我的时候",
+        "note": "It's your turn. 轮到你了；讲游戏、发言顺序都常用"
+      },
+      {
+        "text": "Too late, I realised",
+        "meaning": "等我反应过来已经晚了",
+        "note": "Too late 放句首，带一点懊恼，讲故事时很自然"
+      },
+      {
+        "text": "a running joke",
+        "meaning": "（朋友间）反复提起的梗",
+        "note": "指一群人之间长期流传、一提就笑的笑话"
+      },
+      {
+        "text": "gets lost in translation",
+        "meaning": "在翻译中丢失了（意思）",
+        "note": "可以指语言翻译，也可以指沟通中意思没传到"
+      },
+      {
+        "text": "loses it",
+        "meaning": "（笑得/气得）控制不住",
+        "note": "口语，要看上下文：笑场或发火都可以用"
+      }
+    ],
+    "grammar": [
+      "clause-relative",
+      "tense-perfect",
+      "clause-noun"
+    ],
+    "knowledge": [
+      {
+        "node": "clause-relative",
+        "quote": "I chose my grandfather's favourite one, which always makes my family cry with laughter.",
+        "explanation": "逗号 + which 引导非限制性定语从句，给前面的 one（那个笑话）补充信息；去掉从句，主句意思依然完整。"
+      },
+      {
+        "node": "tense-perfect",
+        "quote": "Since that night, we have had a running joke of our own.",
+        "explanation": "since + 过去的时间点，主句用现在完成时 have had，表示从那时起一直持续到现在的状态。"
+      },
+      {
+        "node": "clause-noun",
+        "quote": "Priya asked kindly whether there was a second part",
+        "explanation": "whether 引导宾语从句，转述一个一般疑问句；从句用陈述语序 there was，不能写成 was there。"
+      }
+    ],
+    "speaking": "用 1 分钟讲一个你觉得很难翻译成英文的中文笑话或说法：它好笑在哪里，为什么翻译之后就不好笑了。",
+    "writing": "写 100–120 词，讲一次你和朋友之间产生“梗”的经历：当时发生了什么，现在大家怎么用它。",
+    "task": {
+      "prompt": "仿照这句，用 Since..., we have had... 说说一件事给你和朋友留下的“梗”或习惯。",
+      "model": "Since that night, we have had a running joke of our own."
+    },
+    "tags": [
+      "幽默",
+      "翻译",
+      "跨文化友谊"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-b1-unopened-gift",
+    "title": "礼物为什么没当面拆",
+    "title_en": "Why Didn't You Open My Present?",
+    "summary_zh": "Hannah 送的生日礼物，Jun 没有当场拆开，她担心了一整天。两人一聊才发现，两家的习惯正好相反。读完你能学会用英语坦诚地化解一个小误会。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "culture",
+    "genre": "dialogue",
+    "body": "Hannah: Jun, can I ask you about last night? Jun: Sure, is everything okay? Hannah: It's probably silly, but you didn't open my present. I've been wondering all day whether you liked it. Jun: Oh no, I opened it as soon as I got home! The tea set is beautiful. Hannah: Really? Then why did you put it away so quickly? Jun: In my family, we usually wait until the guests leave. If you tear the paper open in front of everyone, it can look a bit greedy, as if the gift matters more than the person. Hannah: That's funny, because in my family it's the opposite. Unless you open a present right away, people think you're not interested. Jun: I had no idea that waiting could look rude. So we were both trying to be polite. Hannah: Just in completely different ways! Jun: Next time, I'll open it in front of you and make a big fuss about it. Hannah: Deal, and I'll try not to stare at the box all evening.",
+    "questions": [
+      {
+        "prompt": "What caused the misunderstanding between Hannah and Jun?",
+        "options": [
+          "Jun didn't like the tea set very much",
+          "Hannah gave Jun the present too late",
+          "Their families have opposite habits about opening presents",
+          "Jun opened the present before the guests arrived"
+        ],
+        "answer": 2,
+        "evidence": "That's funny, because in my family it's the opposite."
+      },
+      {
+        "prompt": "Why does Jun's family usually wait before opening presents?",
+        "options": [
+          "Opening them at once can look greedy",
+          "They prefer to open presents on a special day",
+          "They like to write thank-you notes first",
+          "They don't want to waste the wrapping paper"
+        ],
+        "answer": 0,
+        "evidence": "it can look a bit greedy, as if the gift matters more than the person"
+      }
+    ],
+    "dictation_index": 11,
+    "vocabulary": [
+      {
+        "term": "greedy",
+        "meaning": "贪心的",
+        "example": "Don't be greedy, leave some cake for the others."
+      },
+      {
+        "term": "opposite",
+        "meaning": "相反的情况；对立面",
+        "example": "I thought he was shy, but he's the opposite."
+      },
+      {
+        "term": "polite",
+        "meaning": "有礼貌的",
+        "example": "It's polite to say hello when you walk into a small shop."
+      },
+      {
+        "term": "stare",
+        "meaning": "盯着看",
+        "example": "Try not to stare at people on the train."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "It's probably silly, but",
+        "meaning": "可能有点傻，不过……",
+        "note": "提出一个小担心前先“降低姿态”，让对方不觉得被指责"
+      },
+      {
+        "text": "as soon as I got home",
+        "meaning": "我一到家就……",
+        "note": "as soon as 表示“一……就……”，讲两件紧挨着发生的事"
+      },
+      {
+        "text": "put it away",
+        "meaning": "把它收起来",
+        "note": "put away 收好、放回原处；代词要放中间：put it away"
+      },
+      {
+        "text": "right away",
+        "meaning": "马上；立刻",
+        "note": "口语里比 immediately 更常用"
+      },
+      {
+        "text": "make a big fuss about it",
+        "meaning": "大张旗鼓地表示（惊喜、感谢）",
+        "note": "make a fuss about 可以是热情夸张，也可以是“小题大做”，看语境"
+      }
+    ],
+    "grammar": [
+      "tense-perfect",
+      "conditional-unless",
+      "clause-noun"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-perfect",
+        "quote": "I've been wondering all day whether you liked it.",
+        "explanation": "have been + -ing 是现在完成进行时，表示从早上到现在一直在想、而且还没停，比 I wondered 更能表达“担心了一整天”。"
+      },
+      {
+        "node": "conditional-unless",
+        "quote": "Unless you open a present right away, people think you're not interested.",
+        "explanation": "unless = if... not，“除非马上拆开，否则……”。unless 从句本身用肯定形式，不要再加 not。"
+      },
+      {
+        "node": "clause-noun",
+        "quote": "I had no idea that waiting could look rude.",
+        "explanation": "that 从句跟在 idea 后面，说明“什么想法”，是同位语从句；have no idea that... 表示“完全没想到……”。"
+      }
+    ],
+    "speaking": "和同伴演一段 1 分钟的对话：一方因为某个小习惯误会了另一方，用 It's probably silly, but... 开口，最后两人把话说开。",
+    "writing": "写 100–120 词，讲一次你在送礼或收礼时遇到的小误会，以及你们后来是怎么说清楚的。",
+    "task": {
+      "prompt": "仿照这句，用 Unless you..., people think... 说说你身边一个“不这样做就会被误会”的小习惯。",
+      "model": "Unless you open a present right away, people think you're not interested."
+    },
+    "tags": [
+      "送礼",
+      "误会与沟通"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-b1-paper-cutting",
+    "title": "跟奶奶学剪纸",
+    "title_en": "Learning Paper-Cutting from My Grandmother",
+    "summary_zh": "采访一位跟奶奶学剪纸的年轻人：从“剪出来像断腿蜘蛛”到自己开班教小朋友。读完你会学到描述“学一门手艺”的实用表达。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "culture",
+    "genre": "interview",
+    "body": "Q: How did you start paper-cutting? Xiaowen: My grandmother taught me when I was about ten. Every winter, she cut red patterns to stick on our windows, and I wanted to help. Q: Was it hard to learn? Xiaowen: Very! My first flowers looked like broken spiders. She made me practise the same simple shape again and again before I could try anything new. Q: What's the most important thing she taught you? Xiaowen: To be patient with the paper. You can't rush a curve. If your hand is nervous, the scissors know it. Q: Do you still cut with her? Xiaowen: We haven't sat at the same table for a while, because she lives in another city now. But we video call every Sunday, and she checks my work through the screen. She still finds tiny mistakes that I can't see. Q: Have you taught anyone else? Xiaowen: Yes, I've started a small class for children in my neighbourhood. Some of them get bored quickly, but one quiet girl, who hardly ever speaks in class, always stays behind to cut one more.",
+    "questions": [
+      {
+        "prompt": "What is the most important lesson Xiaowen learned from her grandmother?",
+        "options": [
+          "Paper-cutting should be done as quickly as possible",
+          "Beginners should only use red paper",
+          "Good work needs patience and a lot of practice",
+          "Simple shapes are more beautiful than complex ones"
+        ],
+        "answer": 2,
+        "evidence": "To be patient with the paper."
+      },
+      {
+        "prompt": "How does her grandmother help her today?",
+        "options": [
+          "She checks Xiaowen's work during video calls",
+          "She visits Xiaowen's class every Sunday",
+          "She sends Xiaowen new patterns by post",
+          "She cuts shapes for Xiaowen's students"
+        ],
+        "answer": 0,
+        "evidence": "she checks my work through the screen"
+      }
+    ],
+    "dictation_index": 6,
+    "vocabulary": [
+      {
+        "term": "patterns",
+        "meaning": "图案；花样",
+        "example": "The plates have blue patterns around the edge."
+      },
+      {
+        "term": "practise",
+        "meaning": "练习",
+        "example": "I practise the piano for twenty minutes every evening."
+      },
+      {
+        "term": "curve",
+        "meaning": "曲线；弧线",
+        "example": "Slow down before the curve in the road."
+      },
+      {
+        "term": "scissors",
+        "meaning": "剪刀",
+        "example": "Can I borrow your scissors for a second?"
+      }
+    ],
+    "expressions": [
+      {
+        "text": "again and again",
+        "meaning": "一遍又一遍",
+        "note": "强调反复练习或发生，比 many times 更有画面感"
+      },
+      {
+        "text": "be patient with",
+        "meaning": "对……有耐心",
+        "note": "后面可以接人，也可以接事物：be patient with yourself"
+      },
+      {
+        "text": "can't rush",
+        "meaning": "急不来；不能催",
+        "note": "You can't rush + 某事：说某件事必须慢慢来"
+      },
+      {
+        "text": "for a while",
+        "meaning": "有一阵子；一段时间",
+        "note": "常和完成时连用：I haven't seen him for a while."
+      },
+      {
+        "text": "get bored",
+        "meaning": "觉得无聊；没耐心了",
+        "note": "get + 形容词表示状态变化：get tired, get bored"
+      },
+      {
+        "text": "stays behind",
+        "meaning": "（别人走了）留下来",
+        "note": "常说下课、下班后留下：stay behind after class"
+      }
+    ],
+    "grammar": [
+      "nonfinite-infinitive",
+      "tense-perfect",
+      "clause-relative"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "she cut red patterns to stick on our windows",
+        "explanation": "to stick 是不定式表示目的，说明剪窗花是“为了贴到窗户上”；目的状语放在句末最常见。"
+      },
+      {
+        "node": "tense-perfect",
+        "quote": "We haven't sat at the same table for a while",
+        "explanation": "现在完成时否定 + for a while，表示“已经有一段时间没有……”，强调从过去到现在的一段空白。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "one quiet girl, who hardly ever speaks in class, always stays behind to cut one more",
+        "explanation": "who 引导非限制性定语从句，插在主语和谓语之间补充说明这个女孩；注意主句谓语 stays 仍然和 girl 保持一致。"
+      }
+    ],
+    "speaking": "用 1 分钟讲讲你跟长辈学过的一样本事（做菜、写毛笔字、修东西都可以）：谁教的、最难的地方、学到的道理。",
+    "writing": "假设你要采访一位会传统手艺的长辈，用英文写出 5 个问题，并为其中两个写出你猜测的回答（共 100–120 词）。",
+    "task": {
+      "prompt": "仿照这句，用 You can't rush... 说一件你认为“急不来”的事。",
+      "model": "You can't rush a curve."
+    },
+    "tags": [
+      "传统手艺",
+      "祖孙",
+      "采访"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

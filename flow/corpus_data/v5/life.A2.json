@@ -1,0 +1,450 @@
+[
+  {
+    "id": "v5-life-a2-flat-viewing",
+    "title": "看房：和房东的一次对话",
+    "title_en": "Viewing a Flat: Questions for the Landlord",
+    "summary_zh": "Sofia 去看一套出租公寓，和房东聊了暖气、厨房和噪音。读完你能学会看房时最常用的提问和礼貌回应。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "life",
+    "genre": "dialogue",
+    "body": "Mr Patel: Hi, you must be Sofia. Come in, mind the step. Sofia: Thanks! Oh, it's brighter than I expected. Mr Patel: Yes, the living room gets the sun all afternoon. Sofia: Lovely. Is the heating included in the rent? Mr Patel: No, but the flat is small, so it warms up fast. Sofia: Can I see the kitchen? Mr Patel: Sure, it's through here. Sofia: It's quite noisy outside, though. Mr Patel: The bus stops here, I'm afraid. But it goes quiet after ten. Sofia: Fair enough. If I take it, when can I move in? Mr Patel: It's free from next month. Sofia: Great, can I think about it and call you tomorrow? Mr Patel: Of course, take your time. But if you like it, don't wait too long. Two other people are coming this weekend.",
+    "questions": [
+      {
+        "prompt": "Why does Mr Patel mention the two other people at the end?",
+        "options": [
+          "To explain why the street is so noisy",
+          "To tell Sofia that the flat is already taken",
+          "To suggest that Sofia should decide soon",
+          "To ask Sofia to share the flat with them"
+        ],
+        "answer": 2,
+        "evidence": "But if you like it, don't wait too long."
+      },
+      {
+        "prompt": "Why does the flat warm up fast?",
+        "options": [
+          "Because the heating is new",
+          "Because it is small",
+          "Because the windows are always closed",
+          "Because the kitchen is very big"
+        ],
+        "answer": 1,
+        "evidence": "No, but the flat is small, so it warms up fast."
+      }
+    ],
+    "dictation_index": 14,
+    "vocabulary": [
+      {
+        "term": "included",
+        "meaning": "包含在内的",
+        "example": "Breakfast is included in the price of the room."
+      },
+      {
+        "term": "rent",
+        "meaning": "房租",
+        "example": "They pay the rent at the start of every month."
+      },
+      {
+        "term": "noisy",
+        "meaning": "吵闹的",
+        "example": "Our classroom gets noisy before the teacher arrives."
+      },
+      {
+        "term": "expected",
+        "meaning": "预料；期待（expect 的过去式）",
+        "example": "The test was easier than I expected."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "mind the step",
+        "meaning": "小心台阶",
+        "note": "提醒别人注意脚下，英式口语；类似的还有 mind your head（小心碰头）。"
+      },
+      {
+        "text": "brighter than I expected",
+        "meaning": "比我想象的亮",
+        "note": "比较级 + than I expected，看房、试吃、看电影后谈感受都能用。"
+      },
+      {
+        "text": "I'm afraid",
+        "meaning": "恐怕；不好意思地说",
+        "note": "放在句首或句尾，礼貌地说出坏消息：It's sold out, I'm afraid."
+      },
+      {
+        "text": "Fair enough",
+        "meaning": "有道理；行吧",
+        "note": "接受对方的解释，语气随意，口语非常常用。"
+      },
+      {
+        "text": "take your time",
+        "meaning": "慢慢来，不着急",
+        "note": "让对方别急着做决定，友好又礼貌。"
+      }
+    ],
+    "grammar": [
+      "tense-present",
+      "conditional-real"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-present",
+        "quote": "Two other people are coming this weekend.",
+        "explanation": "现在进行时可以表示已经安排好的将来计划，比 will 更有“已经约好了”的感觉。"
+      },
+      {
+        "node": "conditional-real",
+        "quote": "If I take it, when can I move in?",
+        "explanation": "if + 一般现在时，主句用 can/will，讨论很可能发生的情况；问实际安排时非常好用。"
+      }
+    ],
+    "speaking": "两人扮演房东和租客，用 1 分钟完成一次看房对话：租客问三个问题（暖气、厨房、入住时间），房东至少说一次 I'm afraid，租客至少回一次 Fair enough。",
+    "writing": "用 50–70 词给朋友发消息，描述你看过的一个房间：它比你想象的好还是差？用上 than I expected。",
+    "task": {
+      "prompt": "仿照这句，用 If I + 动词, when/what can I ...? 问一个你真实需要的问题（比如报名、入住、退货）。",
+      "model": "If I take it, when can I move in?"
+    },
+    "tags": [
+      "租房",
+      "日常对话"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-life-a2-note-to-neighbour",
+    "title": "给楼上邻居的一张便条",
+    "title_en": "A Friendly Note to the Neighbour Upstairs",
+    "summary_zh": "新邻居总在深夜放音乐，Hana 没有去吵架，而是写了一张友好的便条。读完你会学会怎样礼貌地提要求，又不伤和气。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "life",
+    "genre": "email",
+    "body": "Hi there, I'm Hana from Flat 3, just below you. I hope you're settling in well. I'm writing to ask for a small favour. Last week, I heard loud music late at night, on Tuesday and again on Thursday. I also heard chairs moving around after midnight. I know it's not easy to move into a new place, and I'm sure you didn't mean to keep anyone awake. The problem is that I start work at seven, so I go to bed early. Could you please keep the music down after ten on weeknights? Weekends are no problem at all. And if you ever hear noise from my flat, please tell me too! Thanks so much, and welcome to the building. Hana (Flat 3)",
+    "questions": [
+      {
+        "prompt": "What is the main purpose of Hana's note?",
+        "options": [
+          "To invite her new neighbour to a party",
+          "To ask her neighbour to be quieter on weeknights",
+          "To ask her neighbour to stop playing music at weekends",
+          "To tell her neighbour that she is moving out"
+        ],
+        "answer": 1,
+        "evidence": "Could you please keep the music down after ten on weeknights?"
+      },
+      {
+        "prompt": "Why does Hana go to bed early?",
+        "options": [
+          "Because the music makes her tired",
+          "Because she is new in the building",
+          "Because she starts work at seven",
+          "Because she likes quiet weekends"
+        ],
+        "answer": 2,
+        "evidence": "I start work at seven, so I go to bed early"
+      }
+    ],
+    "dictation_index": 7,
+    "vocabulary": [
+      {
+        "term": "favour",
+        "meaning": "帮忙；恩惠",
+        "example": "Can I ask you a favour? I need someone to feed my cat."
+      },
+      {
+        "term": "settling",
+        "meaning": "安顿；适应（settle 的 -ing 形式）",
+        "example": "She is settling into her new school quite well."
+      },
+      {
+        "term": "awake",
+        "meaning": "醒着的",
+        "example": "The coffee kept me awake all night."
+      },
+      {
+        "term": "weeknights",
+        "meaning": "工作日的晚上",
+        "example": "I never go out on weeknights because I get up early."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "settling in",
+        "meaning": "适应新环境；安顿下来",
+        "note": "对新搬来的人、新同事常说 I hope you're settling in well，很暖心的开场白。"
+      },
+      {
+        "text": "ask for a small favour",
+        "meaning": "请你帮个小忙",
+        "note": "开口提要求前的礼貌铺垫，比直接说“你别吵了”柔和得多。"
+      },
+      {
+        "text": "didn't mean to",
+        "meaning": "不是故意的",
+        "note": "I'm sure you didn't mean to... 先替对方找台阶，再提要求，不伤和气。"
+      },
+      {
+        "text": "keep the music down",
+        "meaning": "把音乐关小点",
+        "note": "keep it down 是“小声点”的固定说法：Could you keep it down a bit?"
+      },
+      {
+        "text": "no problem at all",
+        "meaning": "完全没问题",
+        "note": "比 no problem 更热情，表示真的不介意。"
+      }
+    ],
+    "grammar": [
+      "nonfinite-infinitive",
+      "tense-past"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "I'm writing to ask for a small favour.",
+        "explanation": "to ask 是不定式表示目的：“我写这张条是为了……”。写邮件或便条时，用 I'm writing to + 动词原形 开门见山说明来意。"
+      },
+      {
+        "node": "tense-past",
+        "quote": "Last week, I heard loud music late at night, on Tuesday and again on Thursday.",
+        "explanation": "last week 是明确的过去时间，所以用一般过去时 heard。描述具体发生过的事，用过去时最清楚。"
+      }
+    ],
+    "speaking": "用 1 分钟当面向邻居或室友礼貌地提一个小要求：先寒暄，再说明问题，最后提出请求。至少用上 I'm sure you didn't mean to。",
+    "writing": "写一张 60–80 词的便条给室友或邻居，礼貌地请对方改一个小习惯（比如洗碗、关灯），用上 Could you please ...? 和 no problem at all。",
+    "task": {
+      "prompt": "仿照 I'm writing to ask for ...，写一句便条或邮件的开头，说明你写信的目的（如借东西、请假、换座位）。",
+      "model": "I'm writing to ask for a small favour."
+    },
+    "tags": [
+      "邻里关系",
+      "礼貌请求"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-life-a2-keeping-a-plant-alive",
+    "title": "怎样养活一盆绿植",
+    "title_en": "How Not to Kill Your First Houseplant",
+    "summary_zh": "很多新手养不活植物，不是因为忘了浇水，而是浇得太勤。这篇小指南教你用手指判断要不要浇水，看叶子颜色读懂植物。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "life",
+    "genre": "guide",
+    "body": "Many new plant owners make the same mistake: they love their plants too much. With your first plant, you want to look after it, so you water it every day. But too much water is bad for the roots. Here is a simple rule: put your finger in the soil. If the top feels dry, give the plant a drink. If it still feels wet, leave it alone. Most green plants like a bright room, but not hot sun all day. When the leaves turn yellow, the plant is often getting too much water. When they turn brown and dry, it probably needs more. Don't worry if a leaf falls off now and then. That's normal. Be patient, and try not to move your plant often. Plants, like people, need a while to get used to a new home.",
+    "questions": [
+      {
+        "prompt": "What is the main message of this guide?",
+        "options": [
+          "Plants need hot sun all day to stay green",
+          "You should water a new plant every day",
+          "New owners often give their plants too much water",
+          "Yellow leaves mean a plant needs more water"
+        ],
+        "answer": 2,
+        "evidence": "they love their plants too much"
+      },
+      {
+        "prompt": "How can you tell if your plant needs water?",
+        "options": [
+          "Feel the top of the soil with your finger",
+          "Wait until a leaf falls off",
+          "Water it at the same time every day",
+          "Move it to a sunny window and watch it"
+        ],
+        "answer": 0,
+        "evidence": "put your finger in the soil"
+      }
+    ],
+    "dictation_index": 4,
+    "vocabulary": [
+      {
+        "term": "roots",
+        "meaning": "根（root 的复数）",
+        "example": "The roots of this tree go deep into the ground."
+      },
+      {
+        "term": "soil",
+        "meaning": "土壤；泥土",
+        "example": "Tomatoes grow well in rich, dark soil."
+      },
+      {
+        "term": "bright",
+        "meaning": "明亮的",
+        "example": "I like to study in a bright room near the window."
+      },
+      {
+        "term": "normal",
+        "meaning": "正常的",
+        "example": "It's normal to feel nervous on your first day."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "look after",
+        "meaning": "照顾",
+        "note": "照顾人、动物、东西都能用：Can you look after my cat this weekend?"
+      },
+      {
+        "text": "leave it alone",
+        "meaning": "别管它；别碰它",
+        "note": "也可以用于人：Leave him alone, he's tired."
+      },
+      {
+        "text": "now and then",
+        "meaning": "时不时；偶尔",
+        "note": "常放在句尾，语气轻松：I still call her now and then."
+      },
+      {
+        "text": "get used to",
+        "meaning": "逐渐习惯……",
+        "note": "get used to + 名词/动名词，表示慢慢适应：I'm getting used to the cold."
+      },
+      {
+        "text": "give the plant a drink",
+        "meaning": "给植物浇点水",
+        "note": "把植物当人来说，口语里很可爱；也可以说 give the garden a drink。"
+      }
+    ],
+    "grammar": [
+      "conditional-real",
+      "clause-adverb"
+    ],
+    "knowledge": [
+      {
+        "node": "conditional-real",
+        "quote": "If the top feels dry, give the plant a drink.",
+        "explanation": "if + 一般现在时，主句用祈使句（动词原形开头），表示“如果……就这样做”，写操作指南时最常用。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "When the leaves turn yellow, the plant is often getting too much water.",
+        "explanation": "when 引导时间状语从句放在句首，用逗号和主句隔开，说明“在什么情况下”会出现什么结果。"
+      }
+    ],
+    "speaking": "用 1 分钟教朋友照顾一样东西（植物、宠物或自行车），至少说两条 If ..., ... 的建议，并用上 now and then。",
+    "writing": "写 60–80 词的小贴士，告诉新室友怎样照顾家里的一样东西，至少用一次 When ..., ... 和一次 leave it alone。",
+    "task": {
+      "prompt": "仿照这句，用 If + 一般现在时, + 祈使句 给新手一条实用建议（如做饭、骑车、学英语）。",
+      "model": "If the top feels dry, give the plant a drink."
+    },
+    "tags": [
+      "居家生活",
+      "实用指南"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-life-a2-borrowed-ladder",
+    "title": "借来的梯子",
+    "title_en": "The Ladder I Forgot to Return",
+    "summary_zh": "作者借了邻居的梯子，一放就是半年。直到看见邻居站在椅子上摘苹果，才猛然想起。一个关于借东西、还东西的温暖小故事。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "life",
+    "genre": "story",
+    "body": "In the spring, my neighbour Mr Novak lent me his ladder. I needed it to paint my kitchen ceiling. \"Bring it back when you're done,\" he told me. \"No rush.\" The job took two days. Then I put the ladder in my garage and forgot about it. Summer came and went. One day in October, I noticed Mr Novak in his garden. He was standing on a chair to pick apples from his tree. The chair didn't look safe at all. Suddenly, I remembered. \"I've had his ladder for six months!\" I ran home, carried it over and apologised again and again. Mr Novak just laughed. \"I knew you had it. I just didn't want to ask.\" Now I always return things in the same week. And every autumn, he brings me a bag of apples.",
+    "questions": [
+      {
+        "prompt": "Why didn't Mr Novak ask for his ladder back?",
+        "options": [
+          "He had forgotten that he lent it",
+          "He felt it was awkward to ask",
+          "He had already bought a new one",
+          "He wanted the writer to keep it"
+        ],
+        "answer": 1,
+        "evidence": "I just didn't want to ask."
+      },
+      {
+        "prompt": "What made the writer remember the ladder?",
+        "options": [
+          "Painting the kitchen ceiling again",
+          "Finding it in the garage",
+          "Seeing Mr Novak stand on a chair",
+          "Getting a bag of apples from Mr Novak"
+        ],
+        "answer": 2,
+        "evidence": "He was standing on a chair to pick apples from his tree."
+      }
+    ],
+    "dictation_index": 4,
+    "vocabulary": [
+      {
+        "term": "lent",
+        "meaning": "借给（lend 的过去式）",
+        "example": "My sister lent me her bike for the weekend."
+      },
+      {
+        "term": "ceiling",
+        "meaning": "天花板",
+        "example": "There is a small spider on the bathroom ceiling."
+      },
+      {
+        "term": "return",
+        "meaning": "归还",
+        "example": "Please return the books to the library by Friday."
+      },
+      {
+        "term": "autumn",
+        "meaning": "秋天",
+        "example": "The leaves in the park turn red in autumn."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "No rush",
+        "meaning": "不着急",
+        "note": "告诉对方慢慢来，比 take your time 更简短随意。"
+      },
+      {
+        "text": "when you're done",
+        "meaning": "等你用完/做完",
+        "note": "口语里 done = finished：Call me when you're done."
+      },
+      {
+        "text": "forgot about it",
+        "meaning": "把它忘了",
+        "note": "forget about sth 指“把某事抛在脑后”，不再想起。"
+      },
+      {
+        "text": "came and went",
+        "meaning": "来了又走（一晃就过去了）",
+        "note": "Summer came and went. 形容时间不知不觉溜走，带一点遗憾。"
+      },
+      {
+        "text": "carried it over",
+        "meaning": "把它搬过去",
+        "note": "carry sth over 指把东西拿到对方那边：I'll carry the chairs over later."
+      }
+    ],
+    "grammar": [
+      "tense-past",
+      "tense-perfect"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-past",
+        "quote": "He was standing on a chair to pick apples from his tree.",
+        "explanation": "过去进行时 was standing 描述“当时正在发生”的画面，讲故事时常用它做背景，引出接下来发生的事。"
+      },
+      {
+        "node": "tense-perfect",
+        "quote": "I've had his ladder for six months!",
+        "explanation": "have had + for 一段时间，表示从过去一直持续到说话那一刻。注意用 have（拥有），不能说 I've borrowed it for six months，因为 borrow 是一下子完成的动作。"
+      }
+    ],
+    "speaking": "用 1 分钟讲一次你借了东西忘了还（或别人忘了还你）的经历，用上 No rush 或 came and went。",
+    "writing": "写 60–80 词的小故事：你向别人借过的一样东西，后来怎么还的。至少用一个过去进行时（was/were + -ing）。",
+    "task": {
+      "prompt": "仿照这句，用 I've had ... for ... 说一件你拥有或用了很久的东西。",
+      "model": "I've had his ladder for six months!"
+    },
+    "tags": [
+      "邻里关系",
+      "生活小事"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

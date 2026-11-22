@@ -29,7 +29,7 @@ class PedagogyTests(unittest.TestCase):
   self.assertEqual(out['details']['assisted'],1);self.assertIn('答案可能已暴露',out['details']['support_note']);self.assertEqual(events.state(self.c,1,'skill:reading')['independent'],0)
  def test_revisions_keep_old_answers_but_only_recommend_new_versions(self):
   old=lab.pack_for(self.c,1,'graded-quiet-room-b2');new=lab.pack_for(self.c,1,old['id']+'-r30');self.assertEqual(old['questions'][0]['prompt'],'When is the room free?');self.assertNotEqual(old['questions'],new['questions']);self.assertEqual(old['body'],new['body'])
-  self.assertFalse(quality.recommendable(self.c,self.c.execute('SELECT * FROM lab_packs WHERE id=?',(old['id'],)).fetchone()));self.assertEqual(practice.overview(self.c,1)['total'],154)
+  self.assertFalse(quality.recommendable(self.c,self.c.execute('SELECT * FROM lab_packs WHERE id=?',(old['id'],)).fetchone()));self.assertEqual(practice.overview(self.c,1)['total'],154+len(__import__('content_v50').v5_materials()))
   for p in REVISED:self.assertEqual(quality.checks(p)['errors'],[],p['id'])
  def test_three_samples_do_not_jump_and_confirmed_level_survives_inactivity(self):
   self.c.execute("INSERT INTO lab_profile VALUES(1,'A2','travel','reading')");self.c.commit()

@@ -1,0 +1,246 @@
+[
+  {
+    "id": "v5-science-b2-noise-cancelling",
+    "title": "降噪耳机为什么能“消音”",
+    "title_en": "How Noise-Cancelling Headphones Fight Sound with Sound",
+    "summary_zh": "降噪耳机不是把声音挡在外面，而是制造一段“相反”的声音把噪音抵消掉。读完你会明白它为什么对飞机轰鸣有效、对人声却没那么灵。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "science",
+    "genre": "explainer",
+    "body": "The first time you switch on a pair of noise-cancelling headphones on a train, the effect feels almost like magic: the low roar of the engine simply drains away. What is surprising is that the headphones are not blocking that sound so much as fighting it with more sound. Every noise is a wave of pressure, with peaks and troughs that reach your ear in a regular rhythm. A tiny microphone on the outside of each ear cup listens to the noise around you, and a chip inside works out the exact opposite wave. When that mirror-image wave is played through the speaker, the peaks of one meet the troughs of the other, and the two cancel out. Engineers call this destructive interference, and it works best on sounds that are steady and predictable, such as the hum of an air conditioner or the drone of a plane. Human voices are a different story. Because speech changes from one moment to the next, the chip cannot keep up, which is why you can still hear the person sitting next to you, only a little quieter. If the headphones tried to cancel every sudden sound, they would risk making the noise worse rather than better. Most models therefore combine two strategies: soft, well-sealed cushions block the high-pitched sounds, while the electronics take care of the deep, constant ones. The result is not silence, but it is close enough to make a long journey feel shorter.",
+    "questions": [
+      {
+        "prompt": "What is the main idea of the passage?",
+        "options": [
+          "Headphones work best when the volume is turned up",
+          "Headphones reduce noise mainly by producing an opposite sound wave",
+          "Headphones are designed to block every sound completely",
+          "Headphones use thick cushions to stop all low sounds"
+        ],
+        "answer": 1,
+        "evidence": "the headphones are not blocking that sound so much as fighting it with more sound"
+      },
+      {
+        "prompt": "Why can you still hear the person sitting next to you?",
+        "options": [
+          "Their voice is louder than an engine",
+          "The microphone is turned off when people talk",
+          "Speech changes too quickly for the chip to follow",
+          "The cushions are designed to let voices through"
+        ],
+        "answer": 2,
+        "evidence": "Because speech changes from one moment to the next, the chip cannot keep up"
+      }
+    ],
+    "dictation_index": 3,
+    "vocabulary": [
+      {"term": "predictable", "meaning": "可预测的；有规律的", "example": "Her daily routine is so predictable that I always know where to find her."},
+      {"term": "interference", "meaning": "干涉；干扰", "example": "The radio signal suffered from interference during the storm."},
+      {"term": "strategies", "meaning": "策略；办法", "example": "Good learners try different strategies before giving up."},
+      {"term": "constant", "meaning": "持续不断的", "example": "The constant noise from the road kept me awake."}
+    ],
+    "expressions": [
+      {"text": "feels almost like magic", "meaning": "感觉简直像魔法一样", "note": "描述令人惊叹的体验，口语书面都自然"},
+      {"text": "not blocking that sound so much as fighting it", "meaning": "与其说是挡住声音，不如说是在对抗它", "note": "not A so much as B：纠正别人的常见理解，很地道的论证句型"},
+      {"text": "a different story", "meaning": "另一回事；情况不同", "note": "转折时常用：X is fine, but Y is a different story."},
+      {"text": "cannot keep up", "meaning": "跟不上", "note": "可用于速度、节奏、工作量：I can't keep up with all these emails."},
+      {"text": "making the noise worse rather than better", "meaning": "让情况更糟而不是更好", "note": "worse rather than better：强调适得其反"},
+      {"text": "close enough to", "meaning": "已经足够接近，可以……", "note": "It's not perfect, but it's close enough to work."}
+    ],
+    "grammar": ["clause-adverb", "conditional-modal", "nonfinite-participle"],
+    "knowledge": [
+      {"node": "clause-adverb", "quote": "Because speech changes from one moment to the next, the chip cannot keep up", "explanation": "because 引导原因状语从句放在句首，先交代原因再给结果，适合解释“为什么”。"},
+      {"node": "conditional-modal", "quote": "If the headphones tried to cancel every sudden sound, they would risk making the noise worse rather than better.", "explanation": "if + 过去式，主句 would + 动词原形，描述一个假设的、实际上没有这样做的情况及其后果。"},
+      {"node": "nonfinite-participle", "quote": "soft, well-sealed cushions block the high-pitched sounds", "explanation": "well-sealed 是过去分词作定语，表示“被密封好的”，比用定语从句更简洁。"}
+    ],
+    "speaking": "用 1 分钟向朋友解释：降噪耳机为什么对飞机轰鸣有效，对人说话却没那么有效。至少用上 a different story 或 cannot keep up。",
+    "writing": "用 80–120 词描述一个你觉得“像魔法一样”的日常科技，并用 not A so much as B 说明它真正的原理。",
+    "task": {"prompt": "仿照这句的结构，用 not A so much as B 纠正一个大家对某件事的常见误解。", "model": "the headphones are not blocking that sound so much as fighting it with more sound"},
+    "tags": ["科技原理", "日常科学"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-science-b2-sleep-memory",
+    "title": "睡觉时大脑在“存档”",
+    "title_en": "Why Sleep Is Not Wasted Time: A Conversation About Memory",
+    "summary_zh": "一位睡眠研究者（虚构人物）解释：睡觉不是浪费时间，大脑会在夜里给白天学到的东西“存档”。读完你会明白为什么考前通宵往往得不偿失。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "science",
+    "genre": "interview",
+    "body": "Flow: Many students treat sleep as wasted time, especially before exams, so what would you say to them? Lind: That they've got it backwards. Sleep is when a lot of learning actually gets locked in. During the day, new memories are fragile, a bit like notes scribbled on a whiteboard. At night, the brain seems to replay parts of what happened and move the important pieces into longer-term storage. Flow: Replay, as in watching a film of your day again? Lind: Roughly, yes, although it's much faster and far less complete than a film. Different stages of sleep also appear to handle different jobs. Deep sleep seems especially important for facts, while dreaming sleep may help more with skills and emotions. We're still working out the details. Flow: So pulling an all-nighter before a test is a bad idea. Lind: For memory, almost always. Staying up all night gives you a few extra hours with your notes, but it takes away the very process that makes those hours stick. I hear the same regret from students every year: if I had slept properly, I would remember more now. Flow: Is a nap worth anything? Lind: It can be: even a short nap after studying seems to help, though a regular night's sleep does far more than any last-minute trick. Flow: Do you practise what you preach? Lind: Mostly, but the irony is that I'm a sleep researcher, so I often stay up far too late reading about sleep.",
+    "questions": [
+      {
+        "prompt": "What is Lind's main message?",
+        "options": [
+          "Sleep is mostly wasted time for busy students",
+          "Sleep plays an active part in turning new learning into lasting memory",
+          "Dreaming is the only stage of sleep that matters for learning",
+          "A short nap is more useful than a full night's sleep"
+        ],
+        "answer": 1,
+        "evidence": "Sleep is when a lot of learning actually gets locked in."
+      },
+      {
+        "prompt": "Why does Lind say pulling an all-nighter is a bad idea for memory?",
+        "options": [
+          "Students usually study the wrong notes late at night",
+          "Tired students cannot read as quickly",
+          "It removes the process that helps study time stick",
+          "The brain can only learn properly in daylight"
+        ],
+        "answer": 2,
+        "evidence": "it takes away the very process that makes those hours stick"
+      }
+    ],
+    "dictation_index": 3,
+    "vocabulary": [
+      {"term": "fragile", "meaning": "脆弱的；不牢固的", "example": "The glasses are fragile, so please wrap them carefully."},
+      {"term": "storage", "meaning": "存储；储存空间", "example": "My phone is running out of storage."},
+      {"term": "stages", "meaning": "阶段", "example": "The project is still in its early stages."},
+      {"term": "irony", "meaning": "讽刺之处；反讽", "example": "The irony is that the travel writer is afraid of flying."}
+    ],
+    "expressions": [
+      {"text": "got it backwards", "meaning": "完全弄反了", "note": "直接但不粗鲁地指出对方理解反了：I think you've got it backwards."},
+      {"text": "gets locked in", "meaning": "被牢牢固定下来", "note": "口语，可用于记忆、价格、计划：Book now and the price gets locked in."},
+      {"text": "working out the details", "meaning": "还在研究细节", "note": "承认大方向清楚、细节未定：We agree on the plan; we're just working out the details."},
+      {"text": "pulling an all-nighter", "meaning": "熬通宵（学习或工作）", "note": "学生和上班族常用：I pulled an all-nighter to finish my essay."},
+      {"text": "makes those hours stick", "meaning": "让花掉的时间真正记得住", "note": "make something stick＝让……记牢或产生持久效果：Examples make new words stick."},
+      {"text": "practise what you preach", "meaning": "言行一致；自己做到自己提倡的", "note": "常用来反问对方，略带调侃；美式拼作 practice。"}
+    ],
+    "grammar": ["subjunctive-mixed", "nonfinite-participle", "nonfinite-gerund"],
+    "knowledge": [
+      {"node": "subjunctive-mixed", "quote": "if I had slept properly, I would remember more now", "explanation": "错综时间条件：if 从句用过去完成时 had slept 指过去（当时没睡好），主句用 would + 动词原形 remember 指现在的结果（现在记不住）。用来表达“当初要是……现在就……”的后悔。"},
+      {"node": "nonfinite-participle", "quote": "new memories are fragile, a bit like notes scribbled on a whiteboard", "explanation": "scribbled on a whiteboard 是过去分词短语作后置定语，修饰 notes，表示被动“被匆匆写在白板上的”，比 notes that are scribbled… 更简洁。"},
+      {"node": "nonfinite-gerund", "quote": "Staying up all night gives you a few extra hours with your notes", "explanation": "Staying up all night 是动名词短语作主语，谓语用单数 gives。用“做某事”作主语来评价这件事的利弊，非常常见。"}
+    ],
+    "speaking": "用 1 分钟劝一个准备通宵复习的朋友去睡觉，并说明理由。用上 got it backwards 和 pulling an all-nighter。",
+    "writing": "用 120–160 词写一段你自己“当初要是……现在就……”的经历（学习、工作或生活），至少用一个 if I had…, I would… now 的错综条件句。",
+    "task": {"prompt": "仿照这句错综条件句，写一句你自己的“后悔话”：过去没做某事，导致了现在的结果。", "model": "if I had slept properly, I would remember more now"},
+    "tags": ["人体奥秘", "学习科学"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-science-b2-placebo",
+    "title": "安慰剂为什么会“起作用”",
+    "title_en": "The Placebo Effect: When Expecting Relief Brings It",
+    "summary_zh": "一粒糖丸也能让头疼减轻？安慰剂效应真实存在，但作用有限。读完你会明白“期待”如何影响身体的感受，以及它为什么治不了真正的疾病。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "science",
+    "genre": "explainer",
+    "body": "Imagine two people with the same headache. Each swallows a small white pill, and each feels better within the hour. One pill contained a real painkiller; the other contained nothing but sugar. This is the placebo effect, and it is one of the most famous puzzles in medicine. What makes it so puzzling is that the sugar pill does nothing by itself. The change comes from the person taking it. Expecting relief seems to prompt the brain to release its own pain-dulling chemicals, as if the body were following instructions it had written for itself. Context matters, too: the look of a treatment and the way it is given can shape how strong the effect is. The reverse also happens. People warned about possible side effects sometimes report feeling them, even when the pill they took contained nothing active; researchers call this the nocebo effect. It would be a mistake, however, to conclude that belief can cure anything. Placebos tend to work on experiences that the brain helps to produce, such as pain, tiredness or nausea, rather than on the illness underneath. A sugar pill will not shrink a tumour or clear an infection. That is exactly why new treatments are tested against placebos: a drug only earns its place if it does clearly better than expectation alone. In a sense, the placebo effect is less a trick than a reminder that what we expect quietly shapes what we feel.",
+    "questions": [
+      {
+        "prompt": "What is the writer's overall view of the placebo effect?",
+        "options": [
+          "It is a trick that doctors use to fool their patients",
+          "It is real but limited, working mainly on how we feel",
+          "It proves that belief can cure most illnesses",
+          "It only works on people who know nothing about medicine"
+        ],
+        "answer": 1,
+        "evidence": "Placebos tend to work on experiences that the brain helps to produce"
+      },
+      {
+        "prompt": "What does the passage call the \"nocebo effect\"?",
+        "options": [
+          "Feeling side effects after being warned about them, even from an inactive pill",
+          "Feeling no change at all after taking a real painkiller",
+          "Getting better simply because a doctor seems kind",
+          "Forgetting to take a pill at the right time"
+        ],
+        "answer": 0,
+        "evidence": "People warned about possible side effects sometimes report feeling them"
+      }
+    ],
+    "dictation_index": 4,
+    "vocabulary": [
+      {"term": "swallows", "meaning": "吞下；咽下", "example": "My little brother swallows his food without chewing it properly."},
+      {"term": "relief", "meaning": "（痛苦、焦虑的）缓解；轻松", "example": "It was a huge relief to finally finish the exam."},
+      {"term": "prompt", "meaning": "促使；引起", "example": "The cold weather may prompt people to stay at home."},
+      {"term": "conclude", "meaning": "断定；得出结论", "example": "Don't conclude too quickly that she's angry with you."}
+    ],
+    "expressions": [
+      {"text": "nothing but", "meaning": "只不过是；仅仅", "note": "nothing but + 名词，强调“除此之外什么都没有”：He ate nothing but rice for a week."},
+      {"text": "Context matters", "meaning": "情境很重要", "note": "讨论问题时一句话点明“要看具体情况”：Context matters when you translate a joke."},
+      {"text": "The reverse also happens", "meaning": "反过来的情况也会发生", "note": "引出相反情况，论证时常用；也可说 The reverse is also true."},
+      {"text": "It would be a mistake, however, to conclude that", "meaning": "然而，要是因此断定……就错了", "note": "It would be a mistake to + 动词：委婉地反驳过度推论，比 You're wrong 客气得多。"},
+      {"text": "earns its place", "meaning": "证明自己有资格占一席之地", "note": "earn its/your place：A new player has to earn his place in the team."},
+      {"text": "less a trick than a reminder", "meaning": "与其说是把戏，不如说是一种提醒", "note": "less A than B＝与其说 A 不如说 B，书面语，简洁有力。"}
+    ],
+    "grammar": ["subjunctive-now", "nonfinite-participle", "clause-noun"],
+    "knowledge": [
+      {"node": "subjunctive-now", "quote": "as if the body were following instructions it had written for itself", "explanation": "as if 后用虚拟语气 were（不用 was），表示“仿佛……”，是对现在情况的非真实比喻：身体其实并没有“写指令”。"},
+      {"node": "nonfinite-participle", "quote": "People warned about possible side effects sometimes report feeling them", "explanation": "warned about possible side effects 是过去分词短语作后置定语，修饰 People，表示被动：“被提醒过可能有副作用的人”。"},
+      {"node": "clause-noun", "quote": "What makes it so puzzling is that the sugar pill does nothing by itself.", "explanation": "What makes it so puzzling 是主语从句，that the sugar pill… 是表语从句。What makes X so Y is that… 是解释原因的好用句型。"}
+    ],
+    "speaking": "用 1 分钟向朋友解释安慰剂效应是什么、能做到什么、做不到什么。用上 nothing but 和 It would be a mistake to…。",
+    "writing": "用 120–160 词写一个“期待影响感受”的日常例子（如觉得某支笔考试幸运、觉得某首歌让人有力气），并用 less A than B 总结你的看法。",
+    "task": {"prompt": "仿照这句，用 less A than B 给一件常见的事重新下个定义。", "model": "the placebo effect is less a trick than a reminder that what we expect quietly shapes what we feel"},
+    "tags": ["人体奥秘", "心理学"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-science-b2-cat-landing",
+    "title": "猫为什么总能四脚着地",
+    "title_en": "How a Falling Cat Turns Itself the Right Way Up",
+    "summary_zh": "猫从架子上滑下来，半空中一扭就能稳稳落地，这曾让物理学家困惑不已。读完你会明白猫是怎样“分成两半”转身的，以及为什么这并不代表摔下来就不会受伤。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "science",
+    "genre": "explainer",
+    "body": "Anyone who has watched a cat slip off a shelf has seen something that looks impossible: in a fraction of a second, the animal flips over in mid-air and lands neatly on its feet. For a long time, this puzzled physicists. A falling object that starts without any spin should not be able to turn itself over, since there is nothing in the air to push against. If that cat had been as stiff as a wooden toy, it would have landed on its back. The secret is that a cat is anything but stiff. Its flexible spine lets it behave like two separate halves joined in the middle. Sensing which way is down through its inner ear, the cat first tucks in its front legs and twists its front half towards the ground, while the back half turns slightly the other way. Then it reverses the trick: it stretches out its front legs, tucks in its back legs and swings the rear half round. Because each half twists against the other, the cat as a whole never gains any spin, yet it still ends up the right way up. Neither the tail nor the legs explain the trick on their own; it is the bending body that does most of the work. Even so, landing on its feet is not the same as landing safely. A fall from a height can still badly hurt a cat, which is why this reflex is something to admire rather than test.",
+    "questions": [
+      {
+        "prompt": "What is the main point of the passage?",
+        "options": [
+          "Cats use their tails to steer while they are falling",
+          "Cats turn over by twisting the two halves of their body against each other",
+          "Cats are never hurt when they fall from a height",
+          "Cats push against the air to start spinning"
+        ],
+        "answer": 1,
+        "evidence": "Because each half twists against the other, the cat as a whole never gains any spin"
+      },
+      {
+        "prompt": "In the passage, what does \"anything but stiff\" mean?",
+        "options": [
+          "Slightly stiff",
+          "Stiff only in some parts of the body",
+          "Not stiff at all",
+          "Stiff only when it is frightened"
+        ],
+        "answer": 2,
+        "evidence": "The secret is that a cat is anything but stiff."
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {"term": "flexible", "meaning": "柔韧的；灵活的", "example": "Dancers need to be both strong and flexible."},
+      {"term": "spine", "meaning": "脊柱", "example": "A snake has a very long spine."},
+      {"term": "reflex", "meaning": "反射；本能反应", "example": "Blinking when something flies towards your eye is a reflex."},
+      {"term": "neatly", "meaning": "利落地；整齐地", "example": "She folded the clothes neatly and put them away."}
+    ],
+    "expressions": [
+      {"text": "in a fraction of a second", "meaning": "一瞬间", "note": "强调时间极短：The goalkeeper reacted in a fraction of a second."},
+      {"text": "in mid-air", "meaning": "在半空中", "note": "The ball seemed to stop in mid-air."},
+      {"text": "anything but", "meaning": "根本不；绝不", "note": "anything but + 形容词，语气比 not 强得多：The exam was anything but easy."},
+      {"text": "the right way up", "meaning": "正面朝上；放正", "note": "英式常用：Make sure the box is the right way up."},
+      {"text": "Even so", "meaning": "即便如此", "note": "先承认前面的事实，再提出保留意见，口语书面都可用。"},
+      {"text": "something to admire rather than test", "meaning": "值得欣赏、而不该拿来试验的东西", "note": "something to do rather than do，表达“该这样而不是那样”，带一点幽默的告诫。"}
+    ],
+    "grammar": ["subjunctive-past", "nonfinite-participle", "agreement-either"],
+    "knowledge": [
+      {"node": "subjunctive-past", "quote": "If that cat had been as stiff as a wooden toy, it would have landed on its back.", "explanation": "与过去事实相反：if 从句用 had been，主句用 would have landed，假设那只猫“当时要是很僵硬”会怎样——而这件事实际上没有发生。"},
+      {"node": "nonfinite-participle", "quote": "Sensing which way is down through its inner ear, the cat first tucks in its front legs", "explanation": "Sensing… 是现在分词短语作状语，逻辑主语就是主句的 the cat，表示主动、同时发生的动作：“一边感知方向，一边收腿”。"},
+      {"node": "agreement-either", "quote": "Neither the tail nor the legs explain the trick on their own", "explanation": "neither A nor B 作主语时，谓语与离它最近的 B 保持一致（就近原则）：the legs 是复数，所以用 explain 而不是 explains。"}
+    ],
+    "speaking": "用 1 分钟解释猫为什么能在空中翻身、四脚着地，并提醒大家为什么不该拿猫做试验。用上 anything but 和 Even so。",
+    "writing": "用 120–160 词介绍一种让你觉得“不可能”的动物本领，并用 If it had…, it would have… 写出“假如没有这个本领，当时会怎样”。",
+    "task": {"prompt": "仿照这句，用 anything but + 形容词，描述一个和大家想象完全不同的人或事。", "model": "The secret is that a cat is anything but stiff."},
+    "tags": ["动物科学", "物理原理"],
+    "source": "Flow 编辑部原创"
+  }
+]

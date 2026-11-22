@@ -1,0 +1,514 @@
+[
+  {
+    "id": "v5-campus-b2-silent-teammate",
+    "title": "小组作业里的“隐形人”",
+    "title_en": "The Teammate Who Does Nothing",
+    "summary_zh": "小组作业还剩九天，Marcus 负责的部分却一字未动。Hannah 和 Kenji 争论该直接找导师，还是先给他一次机会。对话展示了怎样在合作中提出问题又保留分寸。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "campus",
+    "genre": "dialogue",
+    "body": "Hannah: Has Marcus sent anything yet, or is it still just the two of us? Kenji: Not a word, and the deadline is nine days away, so his section is still a blank page with his name at the top. Hannah: Honestly, I'm tempted to just write it myself and be done with it. Kenji: And then he gets the same mark as us for doing nothing at all? I think we should email the tutor tonight. Hannah: Maybe, but hang on a second. He's turned up to every single meeting, and he's never once been late. If he were really that lazy, he wouldn't bother coming at all, would he? Kenji: Fair enough, but sitting there nodding isn't the same as contributing. Hannah: True. Then again, did we ever actually ask him to do anything specific, or did we just say he could take the research part and leave it there? Kenji: So you think he's overwhelmed and simply doesn't know where to start? Hannah: It's possible, because he only transferred here this term and he barely says a word in seminars. If we went straight to the tutor, it might feel like an ambush to him. Kenji: Okay, so what do you suggest instead? Hannah: Let's message him tonight with something concrete and manageable, like three sources to read and a one-page summary by Friday. Kenji: And if Friday comes and there's still nothing? Hannah: Then we talk to the tutor, and at least we'll have the messages to show that we tried. Kenji: Fine, but I'm writing the message, because you'll be far too nice.",
+    "questions": [
+      {
+        "prompt": "Why does Hannah hesitate to report Marcus to the tutor?",
+        "options": [
+          "She is worried the tutor will lower her own mark",
+          "She thinks Marcus has secretly finished his section",
+          "She would rather write the whole project herself",
+          "She suspects Marcus may not know what he is supposed to do"
+        ],
+        "answer": 3,
+        "evidence": "did we ever actually ask him to do anything specific"
+      },
+      {
+        "prompt": "Why does Kenji want to write the message himself?",
+        "options": [
+          "He thinks Hannah's message would not be firm enough",
+          "He wants to apologise to Marcus personally",
+          "He is the only one who knows Marcus well",
+          "He thinks Hannah is too angry to write calmly"
+        ],
+        "answer": 0,
+        "evidence": "because you'll be far too nice"
+      }
+    ],
+    "dictation_index": 13,
+    "vocabulary": [
+      {
+        "term": "tempted",
+        "meaning": "很想（做某事）；忍不住想",
+        "example": "I was tempted to skip the meeting, but I went anyway."
+      },
+      {
+        "term": "contributing",
+        "meaning": "出力；做贡献",
+        "example": "Everyone in the team should be contributing ideas, not just listening."
+      },
+      {
+        "term": "transferred",
+        "meaning": "转学；调动",
+        "example": "She transferred to a smaller college in her second year."
+      },
+      {
+        "term": "ambush",
+        "meaning": "突然袭击；（比喻）当面发难",
+        "example": "Inviting him to a meeting and then criticising him felt like an ambush."
+      },
+      {
+        "term": "concrete",
+        "meaning": "具体的；明确的",
+        "example": "Can you give me a concrete example?"
+      }
+    ],
+    "expressions": [
+      {
+        "text": "be done with it",
+        "meaning": "一了百了；干脆了结",
+        "note": "常和 just 连用：Just tell him and be done with it. 带一点不耐烦。"
+      },
+      {
+        "text": "hang on a second",
+        "meaning": "等一下（先别急）",
+        "note": "打断对方、提出不同看法前常用，比 wait 柔和、更口语。"
+      },
+      {
+        "text": "turned up to",
+        "meaning": "出席；露面",
+        "note": "turn up to + 场合，强调人到场了；也可以单独说 He didn't turn up."
+      },
+      {
+        "text": "Fair enough",
+        "meaning": "也有道理；好吧",
+        "note": "承认对方有理，但后面常接 but 提出保留意见。"
+      },
+      {
+        "text": "Then again",
+        "meaning": "不过话说回来",
+        "note": "引出与前面相反的考虑，讨论问题时显得思路周全。"
+      },
+      {
+        "text": "where to start",
+        "meaning": "从哪儿下手",
+        "note": "not know where to start：不知道从何做起，常用来形容任务太大或不清楚。"
+      }
+    ],
+    "grammar": [
+      "subjunctive-now",
+      "conditional-modal",
+      "nonfinite-gerund"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-now",
+        "quote": "If he were really that lazy, he wouldn't bother coming at all, would he?",
+        "explanation": "与现在事实相反的虚拟：if 从句用 were（各人称都可用 were），主句用 wouldn't + 动词原形。言下之意：他其实并不懒。"
+      },
+      {
+        "node": "conditional-modal",
+        "quote": "If we went straight to the tutor, it might feel like an ambush to him.",
+        "explanation": "if + 过去式，主句用 might + 动词原形，讨论一个还没采取的做法可能带来的后果；might 比 would 更不确定、更委婉。"
+      },
+      {
+        "node": "nonfinite-gerund",
+        "quote": "sitting there nodding isn't the same as contributing",
+        "explanation": "动名词短语 sitting there nodding 作主语，谓语用单数 isn't；be the same as 后面再接动名词 contributing，前后对称。"
+      }
+    ],
+    "speaking": "和同伴模拟：你们组里有人不干活。用 1 分钟说出你的处理方案，用上 Then again 和一个 If we…, it might… 的句子。",
+    "writing": "用 120–160 词写一条发给不出力组员的消息：语气友好但清楚，给出具体任务和截止时间。至少用一个 if 句，并用上 concrete 或 where to start。",
+    "task": {
+      "prompt": "仿照这句，用 If sb were really…, they wouldn't… 反驳一个对别人的负面判断。",
+      "model": "If he were really that lazy, he wouldn't bother coming at all, would he?"
+    },
+    "tags": [
+      "小组合作",
+      "沟通技巧"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-campus-b2-cramming-vs-spacing",
+    "title": "临时抱佛脚，为什么记不牢",
+    "title_en": "Why Cramming Feels Better Than It Works",
+    "summary_zh": "考前通宵复习让人觉得“都会了”，几天后却忘得差不多。这篇讲清“眼熟”和“记住”的区别，以及为什么分散复习更慢却更牢。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "campus",
+    "genre": "explainer",
+    "body": "Almost every student has spent at least one night surrounded by highlighted notes and cold coffee, trying to fit a whole term into a few hours. Cramming is popular for a simple reason: it seems to work. By midnight, the pages look familiar, the diagrams make sense, and you walk into the exam feeling ready. The trouble is that familiarity and memory are not the same thing. Recognising an idea when it is in front of you is far easier than pulling it out of your head when the page is blank. The confidence produced by rereading the same notes again and again is often misleading, because it measures how well you recognise the material, not how well you can recall it. Spacing out your revision works differently. When you return to a topic after a few days, part of it has already faded, so you have to make an effort to rebuild it. That effort is exactly the point: each time you struggle to remember something and succeed, it becomes easier to find the next time. Spaced revision feels slower and more frustrating, which is why many people abandon it. Yet a student who reviews a chapter for twenty minutes on three different days is likely to remember more than one who spends an hour on it the night before. None of this means cramming is useless; it can get you through tomorrow's test. It just leaves very little behind for the test after that.",
+    "questions": [
+      {
+        "prompt": "What is the writer's main argument?",
+        "options": [
+          "Cramming feels effective, but spaced revision lasts longer",
+          "Cramming is useless and students should never do it",
+          "Rereading notes many times is the best way to recall information",
+          "Spaced revision is faster and less tiring than cramming"
+        ],
+        "answer": 0,
+        "evidence": "The trouble is that familiarity and memory are not the same thing."
+      },
+      {
+        "prompt": "According to the text, why do many people give up on spaced revision?",
+        "options": [
+          "It does not work for difficult subjects",
+          "It takes more hours in total than cramming",
+          "It feels slower and more frustrating",
+          "It makes the material feel too familiar"
+        ],
+        "answer": 2,
+        "evidence": "Spaced revision feels slower and more frustrating, which is why many people abandon it."
+      }
+    ],
+    "dictation_index": 3,
+    "vocabulary": [
+      {
+        "term": "familiarity",
+        "meaning": "熟悉；眼熟的感觉",
+        "example": "The familiarity of my old street made me feel calm."
+      },
+      {
+        "term": "misleading",
+        "meaning": "误导性的；容易让人误会的",
+        "example": "The photo on the website was misleading; the room was much smaller."
+      },
+      {
+        "term": "recall",
+        "meaning": "回想起；记起",
+        "example": "I can't recall the name of the hotel."
+      },
+      {
+        "term": "faded",
+        "meaning": "（记忆、颜色等）逐渐淡去",
+        "example": "The memory of that trip has faded over the years."
+      },
+      {
+        "term": "abandon",
+        "meaning": "放弃；中途丢下",
+        "example": "Many people abandon their new habits after a week."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "for a simple reason",
+        "meaning": "原因很简单",
+        "note": "引出解释，后面常接冒号：People love it for a simple reason: it's cheap."
+      },
+      {
+        "text": "make sense",
+        "meaning": "讲得通；看得懂",
+        "note": "本文指“看起来都能理解”；口语常说 That makes sense. / It doesn't make sense."
+      },
+      {
+        "text": "pulling it out of your head",
+        "meaning": "把它从脑子里调出来",
+        "note": "形象地描述“主动回忆”，比 remember 更有画面感。"
+      },
+      {
+        "text": "Spacing out",
+        "meaning": "把……分散安排",
+        "note": "space out sth：把事情分开放在不同时间做，space out your revision / your meals。"
+      },
+      {
+        "text": "make an effort",
+        "meaning": "努力；费劲去做",
+        "note": "make an effort to do sth，强调需要主动花力气。"
+      },
+      {
+        "text": "get you through",
+        "meaning": "帮你撑过去；让你应付过去",
+        "note": "get sb through sth：Coffee got me through the morning. 暗示只是“熬过去”。"
+      }
+    ],
+    "grammar": [
+      "nonfinite-participle",
+      "agreement-head",
+      "clause-adverb"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-participle",
+        "quote": "Almost every student has spent at least one night surrounded by highlighted notes and cold coffee",
+        "explanation": "surrounded 是过去分词，说明学生“被……包围”的状态；highlighted 也是过去分词作定语，表示“被画了重点的”笔记。"
+      },
+      {
+        "node": "agreement-head",
+        "quote": "The confidence produced by rereading the same notes again and again is often misleading",
+        "explanation": "主语中心词是 confidence，中间的 produced by…notes 只是修饰语，所以谓语用单数 is，不能被离得近的 notes 带偏。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "When you return to a topic after a few days, part of it has already faded",
+        "explanation": "when 引导时间状语从句交代情境；主句用现在完成时 has already faded，说明到那个时候已经发生的变化。"
+      }
+    ],
+    "speaking": "用 1 分钟向同学解释：为什么考前通宵复习“感觉有用”却记不牢。用上 The trouble is that… 和 make an effort。",
+    "writing": "用 120–160 词写一份你下次考试前的复习计划，说明你会怎样 space out your revision，并用一个 When…, … 句说明理由。",
+    "task": {
+      "prompt": "仿照这句，用 The trouble is that… 指出一个看似合理的做法背后的问题。",
+      "model": "The trouble is that familiarity and memory are not the same thing."
+    },
+    "tags": [
+      "学习方法",
+      "考试复习"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-campus-b2-projector-presentation",
+    "title": "投影仪坏掉的那次展示",
+    "title_en": "The Day the Projector Died",
+    "summary_zh": "Tariq 把课堂展示背得滚瓜烂熟，开讲前投影仪却突然黑屏。被迫脱稿之后，他反而讲出了全场最精彩的一场。适合学习叙事中的分词结构和虚拟语气。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "campus",
+    "genre": "story",
+    "body": "Tariq had rehearsed his presentation on coastal erosion so many times that he could recite it in his sleep. He had twenty-two slides, a script printed in large type, and a joke about sandcastles planned for exactly the third minute. What he didn't have, as it turned out, was a working projector. Two minutes before he was due to start, the screen flickered and went black, and the technician was nowhere to be found. Standing at the front of the room with a useless remote in his hand, Tariq felt his carefully memorised script start to dissolve. His tutor offered to let him go last, but he shook his head, put the papers down and simply started talking. He drew the coastline on the whiteboard, used his hands to show how waves drag sand away, and asked a classmate who had grown up by the sea what she had noticed there. Without the slides to hide behind, he looked at his audience instead of the screen, and they looked back. The joke about sandcastles never happened, yet people laughed twice anyway. Afterwards, his tutor told him it was the most engaging talk of the day. Tariq was pleased but slightly annoyed. If he had known how little the slides really mattered, he would have spent the night before sleeping instead of polishing animations. He still uses slides now, but only a handful, and he never writes a script.",
+    "questions": [
+      {
+        "prompt": "What did Tariq learn from the experience?",
+        "options": [
+          "He should always check the projector the night before",
+          "Connecting with the audience mattered more than perfect slides",
+          "Jokes are the most important part of a presentation",
+          "It is better to go last when something goes wrong"
+        ],
+        "answer": 1,
+        "evidence": "If he had known how little the slides really mattered"
+      },
+      {
+        "prompt": "How did Tariq explain the movement of the waves without slides?",
+        "options": [
+          "He read that part from his printed script",
+          "He showed a short video on his phone",
+          "He asked his tutor to describe it",
+          "He drew on the whiteboard and used his hands"
+        ],
+        "answer": 3,
+        "evidence": "He drew the coastline on the whiteboard, used his hands to show how waves drag sand away"
+      }
+    ],
+    "dictation_index": 2,
+    "vocabulary": [
+      {
+        "term": "rehearsed",
+        "meaning": "排练；预演",
+        "example": "The band rehearsed the new song all afternoon."
+      },
+      {
+        "term": "recite",
+        "meaning": "背诵",
+        "example": "Children often recite poems at the school festival."
+      },
+      {
+        "term": "flickered",
+        "meaning": "（灯光、屏幕）闪烁",
+        "example": "The lights flickered during the storm."
+      },
+      {
+        "term": "engaging",
+        "meaning": "引人入胜的；吸引人的",
+        "example": "She is an engaging speaker who makes hard topics fun."
+      },
+      {
+        "term": "polishing",
+        "meaning": "润色；打磨",
+        "example": "He spent the weekend polishing his cover letter."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "in his sleep",
+        "meaning": "闭着眼都能（做）",
+        "note": "can do sth in one's sleep：形容某事熟练到不用思考。"
+      },
+      {
+        "text": "as it turned out",
+        "meaning": "结果却是；后来才发现",
+        "note": "插入语，引出出乎意料的事实，叙事中非常自然。"
+      },
+      {
+        "text": "went black",
+        "meaning": "（屏幕）一下子黑了",
+        "note": "go + 形容词 表示状态突然变化：go quiet, go red, go wrong。"
+      },
+      {
+        "text": "nowhere to be found",
+        "meaning": "哪儿都找不到",
+        "note": "比 nobody could find him 更有画面感，常用于“关键时刻人不见了”。"
+      },
+      {
+        "text": "hide behind",
+        "meaning": "躲在……后面；拿……当挡箭牌",
+        "note": "字面和比喻都可用：hide behind your slides / excuses。"
+      },
+      {
+        "text": "a handful",
+        "meaning": "少数几个；一小把",
+        "note": "a handful of + 名词，强调数量很少：only a handful of people came。"
+      }
+    ],
+    "grammar": [
+      "tense-perfect",
+      "nonfinite-participle",
+      "subjunctive-past"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-perfect",
+        "quote": "Tariq had rehearsed his presentation on coastal erosion so many times that he could recite it in his sleep.",
+        "explanation": "过去完成时 had rehearsed 表示在故事开始之前就已完成的动作，为后面的意外做铺垫；so many times that… 引出结果。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "Standing at the front of the room with a useless remote in his hand, Tariq felt his carefully memorised script start to dissolve.",
+        "explanation": "Standing… 是现在分词短语作状语，逻辑主语就是 Tariq，表示伴随状态；memorised 是过去分词作定语，表示“被背熟的”。"
+      },
+      {
+        "node": "subjunctive-past",
+        "quote": "If he had known how little the slides really mattered, he would have spent the night before sleeping instead of polishing animations.",
+        "explanation": "与过去事实相反：if + had done，主句 would have done。事实是他当时不知道，所以熬夜做动画，表达事后的遗憾。"
+      }
+    ],
+    "speaking": "用 1 分钟讲一次你计划好的事情突然出了意外的经历，用上 as it turned out 和一个 If I had known…, I would have… 句。",
+    "writing": "用 120–160 词写一段你做课堂展示或公开发言的经历。至少用一个现在分词开头的句子（如 Standing…），并用上 nowhere to be found 或 hide behind。",
+    "task": {
+      "prompt": "仿照这句，用 If I had known…, I would have… 写一件你事后觉得可以做得不同的事。",
+      "model": "If he had known how little the slides really mattered, he would have spent the night before sleeping instead of polishing animations."
+    },
+    "tags": [
+      "课堂展示",
+      "校园故事"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-campus-b2-grades-and-comments",
+    "title": "分数到底帮不帮学习",
+    "title_en": "Read the Comments Before the Grade",
+    "summary_zh": "作文发下来，大家第一眼都看分数，评语却没人细读。作者不主张取消分数，而是提出“先看评语、后出分数”。适合学习议论文中让步与论证的写法。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "campus",
+    "genre": "opinion",
+    "body": "Ask a room of students what they look at first when an essay comes back, and the answer is almost always the same: the number at the top. Only after that, if at all, do they read the comments in the margin. This is not laziness. A grade is instant, unambiguous and easy to compare with a friend's, while comments take effort to understand. The problem is what happens next. A student who gets a disappointing mark often feels judged rather than taught, and a student who gets a high one has little reason to read further. Either way, the comments, which contain almost everything useful, are skimmed or ignored. What a grade cannot tell you is how to do better next time. Unless it comes with specific advice, a mark is less like feedback and more like a verdict. I don't think the answer is to abolish grades. Universities and employers need some way of comparing people, and many students find a clear target motivating. But the order matters. Some teachers now return essays with comments only and release the grade a few days later, once students have responded to the feedback. Neither the teacher nor the student loses anything by this delay, and the comments finally get the attention they deserve. Grades, in other words, should be the end of a conversation about learning, not the whole of it.",
+    "questions": [
+      {
+        "prompt": "What is the writer's position on grades?",
+        "options": [
+          "Grades should be abolished because they only cause stress",
+          "Grades are more useful to students than written comments",
+          "Grades are useful, but students should engage with comments first",
+          "Teachers should stop writing comments and give grades only"
+        ],
+        "answer": 2,
+        "evidence": "I don't think the answer is to abolish grades."
+      },
+      {
+        "prompt": "In the passage, what does \"verdict\" suggest about a mark without advice?",
+        "options": [
+          "It is an unfair decision made in a hurry",
+          "It is a final judgment that does not show how to improve",
+          "It is a piece of advice that is hard to understand",
+          "It is a reward that motivates students to work harder"
+        ],
+        "answer": 1,
+        "evidence": "a mark is less like feedback and more like a verdict"
+      }
+    ],
+    "dictation_index": 7,
+    "vocabulary": [
+      {
+        "term": "margin",
+        "meaning": "页边空白",
+        "example": "My teacher wrote a question mark in the margin."
+      },
+      {
+        "term": "disappointing",
+        "meaning": "令人失望的",
+        "example": "The ending of the film was disappointing."
+      },
+      {
+        "term": "verdict",
+        "meaning": "裁决；最终评判",
+        "example": "The judges will announce their verdict tomorrow."
+      },
+      {
+        "term": "abolish",
+        "meaning": "废除；取消",
+        "example": "Some schools want to abolish homework for young children."
+      },
+      {
+        "term": "motivating",
+        "meaning": "激励人的；给人动力的",
+        "example": "A clear goal can be very motivating."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "if at all",
+        "meaning": "即便有，也很少",
+        "note": "插在句中表示“就算会，也……”，带怀疑语气：He rarely, if at all, calls home."
+      },
+      {
+        "text": "judged rather than taught",
+        "meaning": "觉得被评判而不是被教导",
+        "note": "A rather than B 强调对比；两个过去分词并列，简洁有力。"
+      },
+      {
+        "text": "Either way",
+        "meaning": "不管哪种情况",
+        "note": "前面列出两种情况，再用 Either way 得出同一个结论。"
+      },
+      {
+        "text": "the order matters",
+        "meaning": "顺序很重要",
+        "note": "X matters 是简洁的强调句：Timing matters. / Every detail matters."
+      },
+      {
+        "text": "get the attention they deserve",
+        "meaning": "得到应有的重视",
+        "note": "get / receive the attention sth deserves，写作中常用来表达“该被重视却没被重视”。"
+      },
+      {
+        "text": "in other words",
+        "meaning": "换句话说",
+        "note": "用来总结或换一种说法重申观点，常放在结尾句。"
+      }
+    ],
+    "grammar": [
+      "clause-noun",
+      "conditional-unless",
+      "agreement-either"
+    ],
+    "knowledge": [
+      {
+        "node": "clause-noun",
+        "quote": "What a grade cannot tell you is how to do better next time.",
+        "explanation": "What 引导主语从句 What a grade cannot tell you，表语是 how to do better…。What… is… 结构把重点放到句尾，议论文中很常用。"
+      },
+      {
+        "node": "conditional-unless",
+        "quote": "Unless it comes with specific advice, a mark is less like feedback and more like a verdict.",
+        "explanation": "unless = if not；从句用一般现在时，主句陈述一般规律。配合 less like A and more like B 做对比，论证更有力。"
+      },
+      {
+        "node": "agreement-either",
+        "quote": "Neither the teacher nor the student loses anything by this delay",
+        "explanation": "neither…nor… 连接两个主语时，谓语与离它最近的主语一致（就近原则）：the student 是单数，所以用 loses。"
+      }
+    ],
+    "speaking": "用 1 分钟说说你拿到作业后先看分数还是先看评语，并给出理由。用上 Either way 和 in other words。",
+    "writing": "用 150–200 词写一段议论：分数对学习是帮助还是阻碍？先让步（I don't think…），再提出你的方案。至少用一个 What… is… 句和一个 unless 句。",
+    "task": {
+      "prompt": "仿照这句，用 What… cannot tell you is… 指出某种评价方式的局限。",
+      "model": "What a grade cannot tell you is how to do better next time."
+    },
+    "tags": [
+      "分数与评价",
+      "教育观点"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

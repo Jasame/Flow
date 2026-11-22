@@ -1,6 +1,6 @@
 """Versioned word senses and typed graph. Generated content enters review, not public mastery."""
 import hashlib,json,re,time
-from content_v30 import all_materials
+from content_v50 import all_materials
 
 def key(word,sense='core'):return 'v-'+hashlib.sha256((word.strip().casefold()+'|'+sense).encode()).hexdigest()[:20]
 def node_id(entry):return 'sense:'+entry

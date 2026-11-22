@@ -1,0 +1,485 @@
+[
+  {
+    "id": "v5-campus-a2-night-owl-roommate",
+    "title": "早起鸟遇上夜猫子",
+    "title_en": "The Early Bird and the Night Owl",
+    "summary_zh": "Amara 每天十点睡，室友 Jun 却总是半夜才回宿舍。两人心平气和地聊了聊，找到了让彼此都舒服的办法。读完你会学到和室友商量问题时的几句实用口语。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "campus",
+    "genre": "dialogue",
+    "body": "Amara: Jun, have you got a minute? Jun: Sure. Is something wrong? Amara: Not really. But I go to bed at ten, and you usually come back after midnight. Jun: Oh no. Do I wake you up? Amara: Sometimes. The door makes a lot of noise, and you always turn on the big light. Jun: I'm so sorry. I study in the library until it closes. Amara: I know. I just need my sleep, because I have class at eight. Jun: Okay. If I come back late, I'll use the light on my phone. Amara: That would help a lot. Thanks. You're a real night owl, aren't you? Jun: Yes, and you're an early bird. But maybe that's good. When you need the bathroom, I'm still asleep! Amara: True. We never have to wait.",
+    "questions": [
+      {
+        "prompt": "What is the main problem between Amara and Jun?",
+        "options": [
+          "They both need the bathroom at the same time",
+          "Jun studies loudly in their room every night",
+          "Amara turns on the big light too early",
+          "They go to bed and get up at very different times"
+        ],
+        "answer": 3,
+        "evidence": "But I go to bed at ten, and you usually come back after midnight."
+      },
+      {
+        "prompt": "What does Jun say about coming back late?",
+        "options": [
+          "Jun will use the light on the phone",
+          "Jun will study in the bathroom",
+          "Jun will close the door more quietly",
+          "Jun will come back before ten"
+        ],
+        "answer": 0,
+        "evidence": "If I come back late, I'll use the light on my phone."
+      }
+    ],
+    "dictation_index": 14,
+    "vocabulary": [
+      {
+        "term": "midnight",
+        "meaning": "午夜；半夜十二点",
+        "example": "The last bus leaves just before midnight."
+      },
+      {
+        "term": "noise",
+        "meaning": "噪音；声响",
+        "example": "The old fridge makes a strange noise at night."
+      },
+      {
+        "term": "asleep",
+        "meaning": "睡着的",
+        "example": "My little brother was asleep when we got home."
+      },
+      {
+        "term": "closes",
+        "meaning": "关门；停止营业",
+        "example": "The supermarket closes at nine on Sundays."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "have you got a minute",
+        "meaning": "你现在有空吗？（能占用你一会儿吗）",
+        "note": "想和人认真谈点事时的开场白，比直接说 We need to talk 柔和得多。"
+      },
+      {
+        "text": "Not really",
+        "meaning": "也不算是；不太……",
+        "note": "委婉地否定，比直接说 No 更客气，口语里非常常用。"
+      },
+      {
+        "text": "wake you up",
+        "meaning": "把你吵醒",
+        "note": "wake sb up：代词要放在中间，说 wake you up，不说 wake up you。"
+      },
+      {
+        "text": "That would help a lot",
+        "meaning": "那会很有帮助",
+        "note": "接受对方提议时的礼貌回应，would 让语气更客气。"
+      },
+      {
+        "text": "a real night owl",
+        "meaning": "十足的夜猫子",
+        "note": "night owl 指习惯晚睡的人，a real 加强语气，常带一点调侃。"
+      },
+      {
+        "text": "an early bird",
+        "meaning": "习惯早起的人",
+        "note": "和 night owl 相对；来自谚语 The early bird catches the worm.（早起的鸟儿有虫吃）"
+      }
+    ],
+    "grammar": [
+      "tense-present",
+      "conditional-real"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-present",
+        "quote": "But I go to bed at ten, and you usually come back after midnight.",
+        "explanation": "一般现在时 go / come 搭配频率副词 usually，描述每天的习惯。说作息、日常规律时都用一般现在时。"
+      },
+      {
+        "node": "conditional-real",
+        "quote": "If I come back late, I'll use the light on my phone.",
+        "explanation": "真实条件句：if 从句用一般现在时 come，主句用 will + 动词原形，表示“如果……我就会……”，很适合用来做承诺或提出解决办法。"
+      }
+    ],
+    "speaking": "用 1 分钟说说你的作息：你是 early bird 还是 night owl？用上 usually，再说一个 if 句，比如 If I go to bed late, I…",
+    "writing": "给室友写一条 50–70 词的留言，礼貌地说明一个让你困扰的小问题，并提出一个解决办法。至少用上 have you got a minute 或 That would help a lot。",
+    "task": {
+      "prompt": "仿照这句，用 If I…, I'll… 向室友或家人做一个小承诺。",
+      "model": "If I come back late, I'll use the light on my phone."
+    },
+    "tags": [
+      "宿舍生活",
+      "室友相处"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-campus-a2-missing-library-book",
+    "title": "那本找不到的鸟类书",
+    "title_en": "The Missing Bird Book",
+    "summary_zh": "Priya 从图书馆借的旧书快到期了，却怎么也找不到。最后它出现在一个意想不到的地方。故事里有不少描述“找东西”和“还书”的常用说法。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "campus",
+    "genre": "story",
+    "body": "Priya borrowed a book about birds from the university library. She needed it for her biology project. One evening, the library sent her an email. The book was due back on Friday. Priya looked in her bag, under her bed and on every shelf. It wasn't there. She felt terrible, because the book was old and very expensive. On Thursday, she went to her usual cafe to think. When she ordered her tea, the owner gave her a big smile. Then he took the bird book from behind the counter. She left it on a table there last week! He kept it safe for her, but he also read some of it. He learned a lot about owls! Priya laughed and returned the book on time. From now on, she will always check the table before she leaves.",
+    "questions": [
+      {
+        "prompt": "What is the story mainly about?",
+        "options": [
+          "Why Priya stopped using the university library",
+          "How Priya found a lost library book in an unexpected place",
+          "How Priya finished her biology project about owls",
+          "Why the cafe owner wanted to keep the bird book"
+        ],
+        "answer": 1,
+        "evidence": "Then he took the bird book from behind the counter."
+      },
+      {
+        "prompt": "Why did Priya feel terrible?",
+        "options": [
+          "The library was going to close on Friday",
+          "She forgot to answer the library's email",
+          "The cafe owner was angry with her",
+          "The book was old and very expensive"
+        ],
+        "answer": 3,
+        "evidence": "because the book was old and very expensive"
+      }
+    ],
+    "dictation_index": 8,
+    "vocabulary": [
+      {
+        "term": "borrowed",
+        "meaning": "借（入）",
+        "example": "I borrowed my sister's bike for the weekend."
+      },
+      {
+        "term": "due",
+        "meaning": "到期的；应归还的",
+        "example": "My library books are due next Monday."
+      },
+      {
+        "term": "expensive",
+        "meaning": "昂贵的",
+        "example": "The new phone is too expensive for me."
+      },
+      {
+        "term": "counter",
+        "meaning": "柜台",
+        "example": "Please pay for your coffee at the counter."
+      },
+      {
+        "term": "returned",
+        "meaning": "归还",
+        "example": "He returned the umbrella the next day."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "due back on Friday",
+        "meaning": "周五到期要还",
+        "note": "be due back 指借的东西应在某个时间归还，图书馆、租车都常用。"
+      },
+      {
+        "text": "felt terrible",
+        "meaning": "感觉糟透了；非常内疚",
+        "note": "feel terrible 表示内疚或难受，比 feel bad 语气更强。"
+      },
+      {
+        "text": "her usual cafe",
+        "meaning": "她常去的那家咖啡馆",
+        "note": "usual + 名词 表示“平常的、惯常的”：my usual seat, the usual time。"
+      },
+      {
+        "text": "gave her a big smile",
+        "meaning": "冲她大大地一笑",
+        "note": "give sb a smile 比 smile at sb 更生动，口语和书面都常见。"
+      },
+      {
+        "text": "kept it safe",
+        "meaning": "替（她）好好保管",
+        "note": "keep sth safe：帮别人保管东西的常用说法，Can you keep this safe for me?"
+      },
+      {
+        "text": "on time",
+        "meaning": "按时；准时",
+        "note": "on time 指不迟到、按规定时间；in time 是“及时、来得及”，别混用。"
+      }
+    ],
+    "grammar": [
+      "tense-past",
+      "clause-adverb"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-past",
+        "quote": "Priya looked in her bag, under her bed and on every shelf.",
+        "explanation": "一般过去时 looked 叙述已经发生的动作。讲故事时，主要情节都用一般过去时，规则动词加 -ed。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "When she ordered her tea, the owner gave her a big smile.",
+        "explanation": "when 引导时间状语从句，放在句首，交代“在什么时候”，后面用逗号接主句。两个部分都用过去时。"
+      }
+    ],
+    "speaking": "用 1 分钟讲一次你丢东西又找回来的经历。用一般过去时，并至少用一个 When… 开头的句子。",
+    "writing": "用 60–80 词写一个小故事：你借了别人的东西，后来差点弄丢。用上 on time 和 felt terrible。",
+    "task": {
+      "prompt": "仿照这句，用 When…, … 写一件今天发生在你身上的小事。",
+      "model": "When she ordered her tea, the owner gave her a big smile."
+    },
+    "tags": [
+      "图书馆",
+      "校园故事"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-campus-a2-letter-to-grandma",
+    "title": "一个人在新城市的第一周",
+    "title_en": "My First Week Alone in a New City",
+    "summary_zh": "Mateo 刚到外地上大学一周，给奶奶写信讲坐错车、煮糊饭和交到新朋友的经历。信里有不少现在完成时的地道用法，也适合模仿着写家书。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "campus",
+    "genre": "email",
+    "body": "Dear Grandma, I have been here for one week now, and I want to tell you everything. The city is big and noisy, but I'm starting to like it. On my first day, I took the wrong bus and ended up by the sea. It was a mistake, but the view was beautiful! I have cooked rice three times. The first time it burned. The third time it was almost as good as yours. My classes are hard, but the teachers are friendly. I sit next to a girl called Aiko. She is far from home too, so we eat lunch together. Yesterday we went to the market to buy fruit and got lost again. We laughed all the way home. Please don't worry about me. I miss your cooking, but I'm okay. I'll call you on Sunday. Love, Mateo",
+    "questions": [
+      {
+        "prompt": "How does Mateo seem to feel about his first week?",
+        "options": [
+          "Bored, because nothing interesting has happened",
+          "Worried, because his classes are too difficult",
+          "Sad, and he wants to go home soon",
+          "It has not been easy, but he is mostly happy"
+        ],
+        "answer": 3,
+        "evidence": "The city is big and noisy, but I'm starting to like it."
+      },
+      {
+        "prompt": "Why did Mateo and Aiko go to the market?",
+        "options": [
+          "To buy rice",
+          "To buy fruit",
+          "To see the sea",
+          "To eat lunch"
+        ],
+        "answer": 1,
+        "evidence": "Yesterday we went to the market to buy fruit"
+      }
+    ],
+    "dictation_index": 2,
+    "vocabulary": [
+      {
+        "term": "noisy",
+        "meaning": "吵闹的",
+        "example": "Our classroom is next to a noisy road."
+      },
+      {
+        "term": "mistake",
+        "meaning": "错误；失误",
+        "example": "Writing the wrong date was an easy mistake to make."
+      },
+      {
+        "term": "view",
+        "meaning": "景色；视野",
+        "example": "The view from the top of the hill is amazing."
+      },
+      {
+        "term": "burned",
+        "meaning": "烧焦了",
+        "example": "I talked on the phone too long and the eggs burned."
+      },
+      {
+        "term": "friendly",
+        "meaning": "友好的；和善的",
+        "example": "The new neighbours are very friendly."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "I'm starting to like it",
+        "meaning": "我开始喜欢上它了",
+        "note": "start to do 用进行时，表示变化正在发生，语气自然。"
+      },
+      {
+        "text": "took the wrong bus",
+        "meaning": "坐错了公交车",
+        "note": "take the wrong + 交通工具/路：take the wrong train, take the wrong turn。"
+      },
+      {
+        "text": "ended up by the sea",
+        "meaning": "结果到了海边",
+        "note": "end up + 地点/状态，表示没计划却最后落到某处：I ended up at a friend's place."
+      },
+      {
+        "text": "far from home",
+        "meaning": "远离家乡",
+        "note": "描述离家在外，常带一点想家的感觉。"
+      },
+      {
+        "text": "all the way home",
+        "meaning": "回家的一路上",
+        "note": "all the way 强调“整段路程”：We talked all the way home."
+      },
+      {
+        "text": "don't worry about me",
+        "meaning": "别担心我",
+        "note": "给家人报平安的常用句，可以接 I'm okay / I'm fine。"
+      }
+    ],
+    "grammar": [
+      "tense-perfect",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-perfect",
+        "quote": "I have been here for one week now",
+        "explanation": "现在完成时 have been + for 一段时间，表示从过去一直持续到现在的状态。for one week、now 都是典型的时间线索。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "Yesterday we went to the market to buy fruit and got lost again.",
+        "explanation": "to buy fruit 是不定式表目的，回答“去干什么”。去某地做某事就用 go to + 地点 + to do。"
+      }
+    ],
+    "speaking": "用 1 分钟介绍你到一个新地方后的第一周：用 I have…（现在完成时）说两件你已经做过的事，再用一句 to do 说你去哪儿做了什么。",
+    "writing": "给家人写一封 70–100 词的邮件，讲讲你最近的生活。至少用一次 went to… to…，并用上 ended up 或 far from home。",
+    "task": {
+      "prompt": "仿照这句，用 went to + 地点 + to do 写你最近去某个地方做的一件事。",
+      "model": "Yesterday we went to the market to buy fruit and got lost again."
+    },
+    "tags": [
+      "新生生活",
+      "家书"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-campus-a2-choosing-a-club",
+    "title": "新生怎么选社团",
+    "title_en": "Three Tips for Choosing a University Club",
+    "summary_zh": "开学季社团海报铺天盖地，到底该怎么选？这篇小指南给出三条简单建议，顺便教你 sign up for、give it a try 等常用表达。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "campus",
+    "genre": "guide",
+    "body": "In your first month at university, you will see posters for clubs everywhere. There are clubs for chess, hiking, cooking and even old films. Here are three simple tips. First, go to the club fair and talk to the members. Ask them what they do each week. If they look happy and relaxed, that's a good sign. Second, don't join too many clubs. Some new students sign up for six or seven, and then they have no free time. Two clubs are enough to start with. Third, try something new. If you always play football, why not join the drama club? You might be bad at it at first, and that's okay. Most clubs don't want experts. They want people who come back every week. A club is the easiest way to make friends, so give it a try.",
+    "questions": [
+      {
+        "prompt": "What is the main purpose of this text?",
+        "options": [
+          "To explain how to start your own club",
+          "To advertise the university drama club",
+          "To give new students advice about joining clubs",
+          "To tell students to study first and join clubs later"
+        ],
+        "answer": 2,
+        "evidence": "Here are three simple tips."
+      },
+      {
+        "prompt": "According to the text, what do most clubs want?",
+        "options": [
+          "Students who are already very good at something",
+          "People who come back every week",
+          "Students who join many different clubs",
+          "People who can play football well"
+        ],
+        "answer": 1,
+        "evidence": "They want people who come back every week."
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {
+        "term": "posters",
+        "meaning": "海报",
+        "example": "There are posters for the concert all over the city."
+      },
+      {
+        "term": "members",
+        "meaning": "成员；会员",
+        "example": "Our book club has twelve members."
+      },
+      {
+        "term": "relaxed",
+        "meaning": "放松的；自在的",
+        "example": "She looked relaxed after her holiday."
+      },
+      {
+        "term": "experts",
+        "meaning": "专家；行家",
+        "example": "You don't need to be experts to enjoy cooking together."
+      },
+      {
+        "term": "drama",
+        "meaning": "戏剧；表演",
+        "example": "He took a drama class to feel more confident."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "a good sign",
+        "meaning": "好兆头；好的迹象",
+        "note": "That's a good sign. 用来判断情况，口语常用；反义是 a bad sign。"
+      },
+      {
+        "text": "sign up for",
+        "meaning": "报名参加",
+        "note": "sign up for + 活动/课程，也可以说 sign up to do sth。"
+      },
+      {
+        "text": "to start with",
+        "meaning": "作为开始；起步时",
+        "note": "放句末表示“刚开始先这样”，放句首可表示“首先”。"
+      },
+      {
+        "text": "why not join",
+        "meaning": "何不加入",
+        "note": "Why not + 动词原形，用来提建议，语气轻松友好。"
+      },
+      {
+        "text": "at first",
+        "meaning": "一开始；起初",
+        "note": "暗示后来会有变化：At first it was hard, but now I love it."
+      },
+      {
+        "text": "give it a try",
+        "meaning": "试一试",
+        "note": "鼓励别人尝试的口语说法：Why don't you give it a try?"
+      }
+    ],
+    "grammar": [
+      "conditional-real",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "conditional-real",
+        "quote": "If they look happy and relaxed, that's a good sign.",
+        "explanation": "if 从句和主句都用一般现在时，表示一种普遍成立的判断：只要条件满足，结论就成立。给建议、做判断时很常用。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "A club is the easiest way to make friends",
+        "explanation": "the way to do sth：不定式 to make friends 放在 way 后面，说明“做什么的方法”。the best way to learn、a good place to study 都是同样结构。"
+      }
+    ],
+    "speaking": "用 1 分钟向新同学推荐一个你感兴趣的社团或活动，用上 If you…, … 和 give it a try。",
+    "writing": "写一段 60–90 词的建议，告诉学弟学妹怎么度过大学第一个月。至少用一个 if 句和一个 the best/easiest way to…。",
+    "task": {
+      "prompt": "仿照这句，用 the easiest/best way to do… 说说你学英语或交朋友的方法。",
+      "model": "A club is the easiest way to make friends"
+    },
+    "tags": [
+      "社团",
+      "新生指南"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

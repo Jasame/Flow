@@ -143,7 +143,7 @@ class FlowTest(unittest.TestCase):
   self.assertEqual(self.request('lab')[0],401)
   payload={'pack':'travel-a2','skill':'speaking','request_id':'http-audio-000001','audio':{'mime_type':'audio/webm','data':base64.b64encode(b'\x1aE\xdf\xa3'+b'x'*30000).decode()}}
   self.assertEqual(self.request('lab/audio',payload)[0],401)
-  u=self.register('v06-learner');csrf=u['csrf'];self.assertEqual(len(self.request('lab')[1]['packs']),154)
+  u=self.register('v06-learner');csrf=u['csrf'];self.assertEqual(len(self.request('lab')[1]['packs']),154+len(__import__('content_v50').v5_materials()))
   self.assertEqual(self.request('lab/audio',payload)[0],403)
   self.assertEqual(self.request('lab/audio',payload,csrf)[0],503)
   pack=self.request('lab/pack?id=travel-a2')[1]['pack'];self.assertNotIn('answer',pack['questions'][0])
@@ -198,7 +198,7 @@ class FlowTest(unittest.TestCase):
   with urllib.request.urlopen(self.base.replace('/api/','/')+'knowledge.js') as r:self.assertEqual(r.status,200);self.assertIn(b'renderKnowledge',r.read())
  def test_v07_corpus_http_notes_bookmarks_and_stylesheet(self):
   u=self.register('v07-reader');csrf=u['csrf']
-  catalog=self.request('lab')[1];self.assertEqual(len(catalog['packs']),154)
+  catalog=self.request('lab')[1];self.assertEqual(len(catalog['packs']),154+len(__import__('content_v50').v5_materials()))
   self.assertEqual(len({p['theme'] for p in catalog['packs']}),6)
   self.assertEqual(self.request('lab/bookmark',{'pack':'travel-a2','saved':True})[0],403)
   self.assertEqual(self.request('lab/bookmark',{'pack':'travel-a2','saved':True},csrf)[0],200)

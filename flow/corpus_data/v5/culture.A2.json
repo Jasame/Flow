@@ -1,0 +1,456 @@
+[
+  {
+    "id": "v5-culture-a2-dumpling-night",
+    "title": "和阿根廷朋友一起包饺子",
+    "title_en": "Two Kinds of Dumplings at One Table",
+    "summary_zh": "春节时，阿根廷朋友 Mateo 第一次学包饺子，结果包得一塌糊涂，却教会了全家另一种捏法。读完你能学会用简单英语讲一次和外国朋友一起做饭的经历。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "culture",
+    "genre": "story",
+    "body": "Last winter, my friend Mateo joined us for the Spring Festival. He is from Argentina, and he wanted to learn to make dumplings. My mother gave him some meat and a plate of round wrappers. At first, his dumplings looked like little boats with holes in them. The meat kept falling out, and we all laughed. Then Mateo told us about empanadas, a food from his home. They are a bit like big dumplings. He showed us how his grandmother closes the edge. Soon we were all copying him. That night, we ate two kinds of dumplings at one table. Some were Chinese, some were Argentinian, and some were a funny mix of both. My grandfather thought the mixed ones tasted the best. Now Mateo sends me a message every New Year to ask for the recipe again.",
+    "questions": [
+      {
+        "prompt": "Why were some of the dumplings \"a funny mix of both\"?",
+        "options": [
+          "Mateo's grandmother sent the family a new recipe",
+          "The family closed some dumplings in Mateo's grandmother's way",
+          "The family did not have enough round wrappers",
+          "Mateo cooked empanadas and dumplings in the same pot"
+        ],
+        "answer": 1,
+        "evidence": "He showed us how his grandmother closes the edge. Soon we were all copying him."
+      },
+      {
+        "prompt": "What went wrong with Mateo's first dumplings?",
+        "options": [
+          "They were too big to cook",
+          "They stuck to the table",
+          "The meat kept falling out",
+          "They looked fine but tasted strange"
+        ],
+        "answer": 2,
+        "evidence": "The meat kept falling out"
+      }
+    ],
+    "dictation_index": 9,
+    "vocabulary": [
+      {
+        "term": "wrappers",
+        "meaning": "（饺子）皮；包装纸",
+        "example": "We bought the wrappers and made the filling at home."
+      },
+      {
+        "term": "edge",
+        "meaning": "边；边缘",
+        "example": "Press the edge of the paper flat with your finger."
+      },
+      {
+        "term": "copying",
+        "meaning": "模仿；照着做",
+        "example": "The little boy was copying his father's moves."
+      },
+      {
+        "term": "recipe",
+        "meaning": "食谱；做法",
+        "example": "Can you send me the recipe for this soup?"
+      }
+    ],
+    "expressions": [
+      {
+        "text": "At first",
+        "meaning": "起初；一开始",
+        "note": "讲故事常用开头，后面往往跟着变化，常和 Soon / Then 呼应"
+      },
+      {
+        "text": "kept falling out",
+        "meaning": "老是掉出来",
+        "note": "keep + doing 表示“一直、反复”发生，常带一点无奈"
+      },
+      {
+        "text": "a bit like",
+        "meaning": "有点像",
+        "note": "向外国朋友介绍陌生的东西时特别好用：It's a bit like..."
+      },
+      {
+        "text": "a funny mix of both",
+        "meaning": "两者有趣的混合",
+        "note": "a mix of both 说“两种都有一点”，funny 让语气更轻松"
+      },
+      {
+        "text": "tasted the best",
+        "meaning": "最好吃",
+        "note": "taste + 形容词，夸食物很自然：It tastes great."
+      }
+    ],
+    "grammar": [
+      "tense-past",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-past",
+        "quote": "At first, his dumplings looked like little boats with holes in them.",
+        "explanation": "讲已经发生的事用一般过去时：looked 是 look 的过去式。At first 交代“一开始”的样子，后面再用 Then、Soon 讲变化。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "he wanted to learn to make dumplings",
+        "explanation": "want 和 learn 后面都接 to + 动词原形；两个不定式可以连起来用：wanted to learn to make，意思是“想学做……”。"
+      }
+    ],
+    "speaking": "用 1 分钟讲一次你和朋友一起做饭的经历：做了什么、一开始出了什么问题、最后怎么样。试着用上 At first 和 a bit like。",
+    "writing": "写 50–70 词，向一位外国朋友介绍一道节日食物：它有点像什么、怎么做、你家什么时候吃。",
+    "task": {
+      "prompt": "仿照这句，用 a bit like 把你家乡的一种食物介绍给外国朋友。",
+      "model": "They are a bit like big dumplings"
+    },
+    "tags": [
+      "节日饮食",
+      "跨文化友谊"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-a2-weather-chat",
+    "title": "为什么大家总爱聊天气",
+    "title_en": "Why Does Everyone Talk About the Weather?",
+    "summary_zh": "刚搬家的 Mei 发现邻居每天都跟她聊天气。朋友 Sam 告诉她：聊天气其实只是一种轻松的打招呼方式。读完你会知道怎么接住这种小对话。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "culture",
+    "genre": "dialogue",
+    "body": "Mei: Sam, can I ask you something a bit strange? Sam: Sure, go ahead. Mei: Why does everyone here talk about the weather? My neighbour talks about the rain every single morning. Sam: Ha! It's not really about the rain. It's just an easy way to say hello. Everyone has the same weather, so anyone can join in. If you say it's cold today, the other person can just agree. Nobody has to share anything private. Mei: So what do I say back? Sam: Keep it short and friendly. Something like: Yes, it's so cold! Or: I hope it's sunny this weekend. Mei: And then? Sam: Then you can chat, or just smile and say have a nice day. Mei: That sounds easy. I'll try it tomorrow. But if it rains again, I'm going to say it first!",
+    "questions": [
+      {
+        "prompt": "According to Sam, why do people talk about the weather?",
+        "options": [
+          "The weather in the town changes very quickly",
+          "It is an easy and safe way to start a friendly chat",
+          "People need to plan their weekends together",
+          "It is rude to talk about anything else"
+        ],
+        "answer": 1,
+        "evidence": "It's just an easy way to say hello."
+      },
+      {
+        "prompt": "What does Mei mean when she says she will \"say it first\"?",
+        "options": [
+          "She will say goodbye before her neighbour does",
+          "She will ask her neighbour a private question",
+          "She will tell Sam about the weather before anyone else",
+          "She will talk about the rain before her neighbour does"
+        ],
+        "answer": 3,
+        "evidence": "But if it rains again, I'm going to say it first!"
+      }
+    ],
+    "dictation_index": 3,
+    "vocabulary": [
+      {
+        "term": "strange",
+        "meaning": "奇怪的",
+        "example": "It's strange that the shop is closed on a Saturday."
+      },
+      {
+        "term": "agree",
+        "meaning": "同意；附和",
+        "example": "I agree with you, this film is too long."
+      },
+      {
+        "term": "private",
+        "meaning": "私人的；隐私的",
+        "example": "Some people don't like to talk about private things at work."
+      },
+      {
+        "term": "chat",
+        "meaning": "闲聊",
+        "example": "We had a quick chat before the class started."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "go ahead",
+        "meaning": "说吧；请便",
+        "note": "别人问“我能问你件事吗？”时的自然回答，语气友好"
+      },
+      {
+        "text": "every single morning",
+        "meaning": "每天早上都（无一例外）",
+        "note": "single 加强语气，强调“一次不落”，常带一点夸张"
+      },
+      {
+        "text": "join in",
+        "meaning": "加入；参与进来",
+        "note": "用于聊天、游戏、活动：Can I join in?"
+      },
+      {
+        "text": "Keep it short and friendly",
+        "meaning": "简短、友好就好",
+        "note": "Keep it + 形容词，给别人提建议很好用：Keep it simple."
+      },
+      {
+        "text": "have a nice day",
+        "meaning": "祝你今天愉快",
+        "note": "结束简短对话的礼貌说法，陌生人、店员之间都常用"
+      }
+    ],
+    "grammar": [
+      "tense-present",
+      "conditional-real"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-present",
+        "quote": "My neighbour talks about the rain every single morning.",
+        "explanation": "一般现在时表示习惯、反复发生的事。主语 neighbour 是第三人称单数，动词要加 -s：talks。"
+      },
+      {
+        "node": "conditional-real",
+        "quote": "If you say it's cold today, the other person can just agree.",
+        "explanation": "真实条件句：if 从句用一般现在时，主句可以用 can、will 或祈使句，说现实中很可能发生的情况。if 从句里不用 will。"
+      }
+    ],
+    "speaking": "和同伴练一段 30 秒的“天气小对话”：一人先说今天的天气，另一人附和并加一句自己的话，最后用 have a nice day 结束。",
+    "writing": "写 50–70 词：你身边的人见面时常用什么话题打招呼？举一个例子，并说说你觉得它为什么好用。",
+    "task": {
+      "prompt": "仿照这句，用 It's just an easy way to... 说说你生活中一个小习惯的真正作用。",
+      "model": "It's just an easy way to say hello."
+    },
+    "tags": [
+      "寒暄",
+      "日常口语"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-a2-thank-you-note",
+    "title": "五分钟写好一张感谢卡",
+    "title_en": "How to Write a Short Thank-You Note",
+    "summary_zh": "收到礼物或帮助后，一张小小的感谢卡怎么写才不空洞？这篇给你四个简单步骤和可以直接套用的句子。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "culture",
+    "genre": "guide",
+    "body": "A thank-you note is a short message to say thanks for a gift or help. It takes five minutes, but people may keep it for years. Here is an easy way to do it. First, say thank you for one clear thing. Write the name of the gift. Next, add one small detail. For example: The blue scarf keeps me warm on my way to work. This shows that you really use the gift. Then, say something nice about the person, like: You always know what I like. Finally, end with a warm line, such as: I hope to see you soon. If you write it by hand, it feels more personal. A phone message is fine too. Try to send it within a few days. A late note is better than no note at all.",
+    "questions": [
+      {
+        "prompt": "What is the main purpose of this text?",
+        "options": [
+          "To explain why handwritten notes are better than phone messages",
+          "To give simple steps for writing a thank-you note",
+          "To suggest good gifts for friends and family",
+          "To warn people that late notes are rude"
+        ],
+        "answer": 1,
+        "evidence": "Here is an easy way to do it."
+      },
+      {
+        "prompt": "Why does the writer suggest adding a small detail about the gift?",
+        "options": [
+          "It makes the note look longer",
+          "It tells the person how much you paid",
+          "It shows that you really use the gift",
+          "It helps you remember the date"
+        ],
+        "answer": 2,
+        "evidence": "This shows that you really use the gift."
+      }
+    ],
+    "dictation_index": 10,
+    "vocabulary": [
+      {
+        "term": "detail",
+        "meaning": "细节",
+        "example": "She told me every detail of her trip."
+      },
+      {
+        "term": "personal",
+        "meaning": "有人情味的；个人的",
+        "example": "A personal message means more than a printed card."
+      },
+      {
+        "term": "within",
+        "meaning": "在……之内",
+        "example": "Please answer the email within two days."
+      },
+      {
+        "term": "message",
+        "meaning": "消息；留言",
+        "example": "I left a message on her phone."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "by hand",
+        "meaning": "手写；手工",
+        "note": "write by hand 手写；made by hand 手工做的"
+      },
+      {
+        "text": "keeps me warm",
+        "meaning": "让我很暖和",
+        "note": "keep + 人 + 形容词，夸礼物实用的好句子"
+      },
+      {
+        "text": "on my way to work",
+        "meaning": "在上班路上",
+        "note": "on my way to + 地点，to home 要说 on my way home"
+      },
+      {
+        "text": "within a few days",
+        "meaning": "几天之内",
+        "note": "说期限很自然，比 in a few days（几天后）更强调“不超过”"
+      },
+      {
+        "text": "better than no note at all",
+        "meaning": "总比完全不写强",
+        "note": "A is better than no A at all：迟到的、不完美的也比没有好"
+      }
+    ],
+    "grammar": [
+      "nonfinite-infinitive",
+      "conditional-real",
+      "clause-noun"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "A thank-you note is a short message to say thanks for a gift or help.",
+        "explanation": "to say thanks 是不定式，放在名词 message 后面说明它的用途：“用来道谢的消息”。"
+      },
+      {
+        "node": "conditional-real",
+        "quote": "If you write it by hand, it feels more personal.",
+        "explanation": "真实条件句：if + 一般现在时，主句也用一般现在时，说“只要这样做，通常就会有这个结果”。"
+      },
+      {
+        "node": "clause-noun",
+        "quote": "This shows that you really use the gift.",
+        "explanation": "that 引导宾语从句，放在 shows 后面说明“表明了什么”；口语里 that 可以省略。"
+      }
+    ],
+    "speaking": "想一份你最近收到的礼物或帮助，用 1 分钟口头“说出”一张感谢卡：感谢什么、一个细节、夸对方一句、温暖的结尾。",
+    "writing": "按文中四步，写一张 40–60 词的英文感谢卡，送给最近帮助过你的人。",
+    "task": {
+      "prompt": "仿照这句，写一句感谢某件礼物的话，说清它在什么时候帮到你。",
+      "model": "The blue scarf keeps me warm on my way to work."
+    },
+    "tags": [
+      "礼仪",
+      "实用写作"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-a2-nickname-pickle",
+    "title": "我的外号是怎么来的",
+    "title_en": "How I Became \"Pickle\"",
+    "summary_zh": "Nadia 给笔友写邮件，讲她六岁那年在家庭聚餐上吃光了一整碗泡菜，从此全家都叫她 Pickle。读完你能用英语讲讲自己的外号故事。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "culture",
+    "genre": "email",
+    "body": "Hi Xinyi, You asked about my nickname, so here is the story. My real name is Nadia, but my whole family calls me Pickle. When I was six, we went to my aunt's house for a big family dinner. There were lots of dishes on the table, but I only liked the pickles. I ate a whole bowl of them before the main meal! My uncle laughed and gave me a new name: Little Pickle. After that, the name stuck. Now I am twenty, and my cousins still use it. Even my old teachers know it, because my mother once shouted it at a school sports day. I don't mind, because it makes me smile. It always reminds me of that noisy, happy dinner. Do you have a nickname too? Tell me how you got it. Love, Nadia",
+    "questions": [
+      {
+        "prompt": "How does Nadia feel about her nickname?",
+        "options": [
+          "She is a bit embarrassed and wants people to stop",
+          "She thinks only her uncle should use it",
+          "She likes it because it brings back a happy memory",
+          "She has never told anyone outside her family"
+        ],
+        "answer": 2,
+        "evidence": "I don't mind, because it makes me smile."
+      },
+      {
+        "prompt": "Why did her uncle start calling her Little Pickle?",
+        "options": [
+          "She ate a whole bowl of pickles before the main meal",
+          "She helped her aunt make pickles for the dinner",
+          "She did not want to eat anything at the dinner",
+          "She dropped a bowl of pickles on the floor"
+        ],
+        "answer": 0,
+        "evidence": "I ate a whole bowl of them before the main meal!"
+      }
+    ],
+    "dictation_index": 2,
+    "vocabulary": [
+      {
+        "term": "nickname",
+        "meaning": "外号；昵称",
+        "example": "His nickname at school was Rocket because he ran so fast."
+      },
+      {
+        "term": "whole",
+        "meaning": "整个的；全部的",
+        "example": "She read the whole book in one night."
+      },
+      {
+        "term": "cousins",
+        "meaning": "堂（表）兄弟姐妹",
+        "example": "I have five cousins on my mother's side."
+      },
+      {
+        "term": "noisy",
+        "meaning": "吵闹的；热闹的",
+        "example": "The café was noisy, but the coffee was great."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "so here is the story",
+        "meaning": "那我来讲讲经过",
+        "note": "回答别人的提问、开始讲故事时的自然开头"
+      },
+      {
+        "text": "the name stuck",
+        "meaning": "这个名字就这样叫开了",
+        "note": "stick 指外号、说法“沿用下来”：The nickname stuck."
+      },
+      {
+        "text": "I don't mind",
+        "meaning": "我不介意",
+        "note": "表示无所谓、能接受，语气轻松"
+      },
+      {
+        "text": "makes me smile",
+        "meaning": "让我忍不住笑",
+        "note": "make + 人 + 动词原形，说某事带来的感受"
+      },
+      {
+        "text": "reminds me of",
+        "meaning": "让我想起",
+        "note": "remind sb of sth，后面接让你回想起的人、事、时光"
+      }
+    ],
+    "grammar": [
+      "tense-past",
+      "clause-adverb"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-past",
+        "quote": "When I was six, we went to my aunt's house for a big family dinner.",
+        "explanation": "讲小时候的事用一般过去时：was、went 都是过去式。When I was six 是讲往事时最常见的时间开头。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "I don't mind, because it makes me smile.",
+        "explanation": "because 引导原因状语从句，回答“为什么”。从句放在主句后面，读起来像在补充理由。"
+      }
+    ],
+    "speaking": "用 1 分钟讲讲你或你朋友的一个外号：它是怎么来的、谁先叫的、你喜不喜欢。用上 the name stuck。",
+    "writing": "给笔友写一封 50–70 词的短邮件，讲你的外号或家里人对你的特别称呼是怎么来的。",
+    "task": {
+      "prompt": "仿照这句，用 After that, ... stuck. 讲讲你的一个外号或说法是怎么固定下来的。",
+      "model": "After that, the name stuck."
+    },
+    "tags": [
+      "外号",
+      "家庭故事"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

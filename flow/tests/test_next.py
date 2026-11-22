@@ -35,7 +35,7 @@ class NextServiceTests(unittest.TestCase):
         self.assertTrue(all(x['level'] == 'A2' for x in h['today'])); self.assertIsNone(h['stats'])
         self.assertEqual(nx.save_profile(self.c, 1, {'level': 'C1', 'goal': 'work', 'themes': ['work', 'bogus'], 'minutes': 15})[1], 200)
         h = nx.home(self.c, 1, 'A2')
-        self.assertEqual(h['level'], 'C1'); self.assertTrue(all(x['level'] == 'B2' for x in h['today']))
+        self.assertEqual(h['level'], 'C1'); self.assertTrue(all(x['level'] in ('C1', 'B2') for x in h['today']))
         self.assertEqual(h['profile']['themes'], ['work']); self.assertTrue(all(x['theme'] == 'work' for x in h['today']))
         self.assertEqual(nx.save_profile(self.c, 1, {'level': 'Z9'})[1], 400)
 
@@ -173,6 +173,85 @@ class NextHttpTests(unittest.TestCase):
         self.assertEqual(json.loads(self.call('/api/next/review')[1])['due'], 1)
         self.assertEqual(json.loads(self.call('/api/next/home')[1])['level'], 'B2')
         self.assertEqual(self.call('/api/next/nothing')[0], 404)
+
+
+class NextGraphTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.p = patch.object(app, 'DB', Path(self.tmp.name) / 'g.db'); self.p.start()
+        self.env = patch.dict(os.environ, {'FLOW_AI_PROVIDER': 'openai', 'FLOW_AI_KEY': 'k', 'FLOW_AI_MODEL': 'm', 'FLOW_AI_URL': 'https://x.test/v1/chat/completions',
+                                           'FLOW_AI_DAILY_LIMIT': '0', 'FLOW_AI_USER_DAILY_LIMIT': '0'}); self.env.start()
+        app.init(); self.c = app.db()
+        for n in ('learner', 'other'): self.c.execute('INSERT INTO users(username,password) VALUES(?,?)', (n, 'h'))
+        self.c.commit()
+
+    def tearDown(self):
+        self.c.close(); self.env.stop(); self.p.stop(); self.tmp.cleanup()
+
+    def pack_with(self, node):
+        for r in self.c.execute('SELECT id, content FROM lab_packs WHERE owner IS NULL'):
+            p = json.loads(r['content'])
+            if node in p.get('grammar', []) and p.get('knowledge'):
+                return p
+        self.skipTest('no material for ' + node)
+
+    def test_graph_has_18_nodes_in_6_topics_and_reading_lights_nodes(self):
+        g = nx.graph(self.c, 1)
+        self.assertEqual(len(g['topics']), 6); self.assertEqual(sum(len(t['nodes']) for t in g['topics']), 18)
+        self.assertEqual(g['summary']['untouched'], 18)
+        p = self.pack_with('tense-past')
+        nx.mark(self.c, 1, p['id'], 'read')
+        st = nx.graph_states(self.c, 1)
+        self.assertEqual(st['tense-past']['status'], 'met')
+        nx.mark(self.c, 1, p['id'], 'output')
+        self.assertEqual(nx.graph_states(self.c, 1)['tense-past']['status'], 'used')
+        self.assertEqual(nx.graph_states(self.c, 2)['tense-past']['status'], 'untouched')
+
+    def test_node_detail_lists_examples_materials_and_neighbours(self):
+        out, s = nx.node(self.c, None, 'subjunctive-past', 'B2')
+        self.assertEqual(s, 200); self.assertTrue(out['examples']); self.assertTrue(out['materials'])
+        self.assertTrue(all(e['quote'] for e in out['examples']))
+        self.assertEqual(nx.node(self.c, None, 'nope')[1], 404)
+
+    def test_rewrite_flags_map_to_graph_and_steer_recommendations(self):
+        p = self.pack_with('subjunctive-past')
+        nx.save_profile(self.c, 1, {'level': 'B2'})
+        reply = dict(REWRITE); reply['changes'] = [dict(REWRITE['changes'][0], node='subjunctive-past')]; reply['used_well'] = ['clause-relative', 'bogus']
+        with patch('chat_service.request_model', return_value=(json.dumps(reply), 'stop')):
+            out, s = nx.rewrite(self.c, 1, {'pack': p['id'], 'text': 'If I left earlier I would catch the bus.', 'request_id': 'next-rw-g001'})
+            self.assertEqual(s, 200)
+            self.assertEqual(out['result']['changes'][0]['node'], 'subjunctive-past')
+            self.assertEqual([n['id'] for n in out['result']['used_well']], ['clause-relative'])
+            nx.rewrite(self.c, 1, {'pack': p['id'], 'text': 'If I left earlier I would catch the bus.', 'request_id': 'next-rw-g001'})
+        self.assertEqual(self.c.execute("SELECT COUNT(*) FROM next_node_notes WHERE user_id=1 AND kind='flag'").fetchone()[0], 1)
+        self.assertEqual(nx.graph_states(self.c, 1)['subjunctive-past']['status'], 'watch')
+        h = nx.home(self.c, 1)
+        self.assertIn('subjunctive-past', [w['id'] for w in h['graph']['watch']])
+        self.assertTrue(any('虚拟' in r or '过去事实' in r for x in h['today'] for r in x.get('reasons', [])) or
+                        any('subjunctive-past' in x['grammar'] for x in h['today']))
+
+    def test_saved_expression_reappearing_is_a_recommendation_reason(self):
+        nx.save_profile(self.c, 1, {'level': 'B1'})
+        first = nx.home(self.c, 1)['today'][2]
+        body = json.loads(self.c.execute('SELECT content FROM lab_packs WHERE id=?', (first['id'],)).fetchone()[0])['body']
+        word = max(nx.WORD.findall(body), key=len)
+        nx.save_card(self.c, 1, {'text': word})
+        top = nx.home(self.c, 1)['today']
+        self.assertTrue(any(word in r for x in top for r in x['reasons']))
+
+    def test_explain_is_grounded_cached_and_limited_to_material_sentences(self):
+        p = self.pack_with('clause-relative')
+        sentence = nx.sentences(p['body'])[0]
+        good = {'translation': '中文', 'structure': '主干', 'points': [{'text': sentence.split()[0], 'note': '讲解', 'node': 'clause-relative'}, {'text': 'x', 'note': 'y', 'node': 'bad-node'}],
+                'pattern': {'frame': 'A so much as B', 'example': 'Not luck so much as practice.'}}
+        with patch('chat_service.request_model', return_value=(json.dumps(good), 'stop')) as model:
+            out, s = nx.explain(self.c, 1, {'pack': p['id'], 'sentence': sentence, 'request_id': 'next-ex-0001'})
+            self.assertEqual(s, 200); self.assertFalse(out['cached'])
+            self.assertEqual(out['result']['points'][0]['node_title'], nx.nodes_meta(self.c)['clause-relative']['title'])
+            self.assertIsNone(out['result']['points'][1]['node'])
+            again, _ = nx.explain(self.c, 2, {'pack': p['id'], 'sentence': sentence, 'request_id': 'next-ex-0002'})
+            self.assertTrue(again['cached']); self.assertEqual(model.call_count, 1)
+        self.assertEqual(nx.explain(self.c, 1, {'pack': p['id'], 'sentence': 'Not in the text at all.', 'request_id': 'next-ex-0003'})[1], 400)
 
 
 if __name__ == '__main__':

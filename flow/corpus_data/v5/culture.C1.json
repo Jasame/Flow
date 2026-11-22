@@ -1,0 +1,512 @@
+[
+  {
+    "id": "v5-culture-c1-weight-of-words",
+    "title": "翻译里丢掉的到底是什么",
+    "title_en": "What Really Gets Lost in Translation",
+    "summary_zh": "一位常年在家里两种语言之间翻译家书的作者认为：翻译丢掉的很少是信息，而是话语的“分量”；而适度变通，反而是对读者的一种款待。读完你会学到如何在议论中层层让步、再亮出观点。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "culture",
+    "genre": "opinion",
+    "body": "People often talk about things being lost in translation as though meaning were a liquid that leaks out whenever it is poured from one language into another. Having spent years translating letters between my family's two languages, I have come to see the problem differently. What disappears is rarely the information; it is the weight. Take forms of address. In my mother's language, the choice between two words for \"you\" quietly tells the listener how close you are, how old they are and, occasionally, whether you have recently quarrelled. English offers only one \"you\", so a translator has to rebuild that intimacy elsewhere, through a softer verb or a well-placed first name, and the result is never quite the same. Stripped of its rhythm, a proverb shrinks into a piece of advice; stripped of its timing, a joke turns into an explanation. Neither the dictionary nor the grammar is really to blame. The trouble is that every language bundles meaning differently, so what arrives in one neat package on one side has to be unwrapped and repacked on the other. Yet I am wary of the romantic idea that the original is always superior. Had I translated my grandmother's letters word for word, my cousins would still be puzzled by them today, admiring their strangeness without feeling any of their warmth. Instead, I took small liberties: a joke swapped for a similar one, an old-fashioned greeting turned into a plainer wish. Purists might call that betrayal; I would call it hospitality. A good translation, to my mind, does not pretend that nothing has been lost. It accepts the loss and makes something generous out of what remains. If anything truly gets lost in translation, it is the comfortable illusion that languages are simply different codes for the same thoughts, and losing that illusion, frankly, is no great loss.",
+    "questions": [
+      {
+        "prompt": "What is the writer's central argument about translation?",
+        "options": [
+          "Translation inevitably destroys the meaning of the original text",
+          "What usually gets lost is the weight of words rather than their information",
+          "Translators should always stay word for word out of respect for the original",
+          "Languages are essentially different codes for the same thoughts"
+        ],
+        "answer": 1,
+        "evidence": "What disappears is rarely the information; it is the weight."
+      },
+      {
+        "prompt": "In the text, what does \"took small liberties\" mean?",
+        "options": [
+          "Translated each line slowly and with great care",
+          "Asked the family for permission before changing anything",
+          "Made small changes that were not strictly faithful to the original",
+          "Left out the parts that were too hard to translate"
+        ],
+        "answer": 2,
+        "evidence": "Instead, I took small liberties: a joke swapped for a similar one"
+      }
+    ],
+    "dictation_index": 2,
+    "vocabulary": [
+      {
+        "term": "intimacy",
+        "meaning": "亲密感；亲近",
+        "example": "Using someone's nickname can create a sense of intimacy."
+      },
+      {
+        "term": "bundles",
+        "meaning": "把……捆在一起；打包",
+        "example": "The app bundles your photos into albums by date."
+      },
+      {
+        "term": "wary",
+        "meaning": "警惕的；持保留态度的",
+        "example": "She is wary of advice that sounds too simple."
+      },
+      {
+        "term": "purists",
+        "meaning": "（语言、艺术上的）纯粹主义者",
+        "example": "Purists complain when old songs are remixed."
+      },
+      {
+        "term": "illusion",
+        "meaning": "错觉；幻想",
+        "example": "A big screen gives the illusion of being in the room."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "never quite the same",
+        "meaning": "总归不完全一样",
+        "note": "quite 放在 never 后面，承认“很接近但不完全相同”，语气克制"
+      },
+      {
+        "text": "is really to blame",
+        "meaning": "真正该怪的是",
+        "note": "be to blame（for sth）表示“该负责任”；Neither A nor B is to blame 是常见的“不怪任何一方”"
+      },
+      {
+        "text": "I am wary of",
+        "meaning": "我对……持保留态度",
+        "note": "比 I don't agree with 更委婉、更书面，适合议论文让步后转折"
+      },
+      {
+        "text": "took small liberties",
+        "meaning": "做了一些小小的变通",
+        "note": "take liberties with sth 指不完全照原样、擅自改动；加 small 弱化，带一点自嘲"
+      },
+      {
+        "text": "to my mind",
+        "meaning": "在我看来",
+        "note": "比 I think 更书面，常插在句中"
+      },
+      {
+        "text": "no great loss",
+        "meaning": "没什么大不了的损失",
+        "note": "幽默收尾：It's no great loss. 用 loss 呼应前文的 lost，形成文字游戏"
+      }
+    ],
+    "grammar": [
+      "subjunctive-mixed",
+      "agreement-either",
+      "nonfinite-participle"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-mixed",
+        "quote": "Had I translated my grandmother's letters word for word, my cousins would still be puzzled by them today",
+        "explanation": "错综时间条件：条件指过去（Had I translated = If I had translated，倒装更书面），结果指现在（would still be puzzled... today）。"
+      },
+      {
+        "node": "agreement-either",
+        "quote": "Neither the dictionary nor the grammar is really to blame.",
+        "explanation": "neither A nor B 作主语时，谓语和离它最近的 B 一致（就近原则）：the grammar 是单数，所以用 is。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "Stripped of its rhythm, a proverb shrinks into a piece of advice",
+        "explanation": "过去分词短语 Stripped of... 作状语，逻辑主语是 a proverb（谚语“被剥去”节奏），表示被动；后半句用同样结构排比，增强节奏感。"
+      }
+    ],
+    "speaking": "用 1 分钟举一个你觉得很难译成英文的中文说法（如“您”“辛苦了”），说说翻译之后丢掉的是“信息”还是“分量”，你会怎么变通。",
+    "writing": "写一篇 180–220 词的观点短文：好的翻译应该忠实还是变通？至少用上 Had I..., ... would... today 和 to my mind。",
+    "task": {
+      "prompt": "仿照这句，用 What disappears is rarely A; it is B. 说说某件事里真正“丢失”的是什么。",
+      "model": "What disappears is rarely the information; it is the weight."
+    },
+    "tags": [
+      "翻译",
+      "语言与文化",
+      "观点表达"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-c1-mended-bowl",
+    "title": "博物馆里一只补过的碗",
+    "title_en": "The Mended Bowl That Changed My Mind",
+    "summary_zh": "一直觉得逛博物馆是“尽义务”的作者，在一家小博物馆里被一只用锔钉补好的普通饭碗打动，回家后从回收袋里救回了一把缺口茶壶。读完你会学到用错综条件句讲“一件事如何改变了我现在的看法”。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "culture",
+    "genre": "story",
+    "body": "For most of my adult life, I treated museums as places you visit out of duty, usually with relatives in town and always with sore feet. If my nephew Tariq hadn't begged me to take him somewhere dry one rainy Sunday, I would probably still think of them that way. The museum we found was small and slightly shabby, devoted to objects from ordinary homes. Tariq raced off towards a display of old toys, and I drifted, half-bored, into a room full of kitchenware. That was where I saw the bowl. It was plain and a little lopsided, the kind of thing nobody would look at twice in a shop. But it had once cracked clean in two, and someone had joined the halves with a row of tiny metal staples, each one set into the glaze with obvious care. Held together like that, it can never have been worth much. What struck me was that someone had decided to mend it anyway, when replacing it would surely have been easier. I stood there far longer than I meant to, wondering who had done it and why. Perhaps it had belonged to a grandmother; perhaps it was simply the right size for one person's breakfast. The label offered no answers, and I found I didn't want any. I had always assumed that museums existed to show us what was rare and precious. That bowl suggested something quieter: that the things people choose to keep reveal more about them than the things they can afford. When we got home, I rescued a chipped teapot from the recycling bag where it had been waiting for a week. It sits on my shelf now, slightly ugly and entirely mine, and I find myself checking on it most mornings, the way one might check on a houseplant.",
+    "questions": [
+      {
+        "prompt": "How did the visit change the writer's view of museums?",
+        "options": [
+          "The writer decided museums are mainly places for children",
+          "The writer saw that ordinary objects people keep can reveal a lot about them",
+          "The writer concluded that only rare and precious objects deserve attention",
+          "The writer became interested in learning to repair old pottery"
+        ],
+        "answer": 1,
+        "evidence": "the things people choose to keep reveal more about them than the things they can afford"
+      },
+      {
+        "prompt": "Why does the writer most likely rescue the chipped teapot?",
+        "options": [
+          "Tariq asked to keep it as a souvenir of the trip",
+          "The museum label encouraged visitors to repair old things",
+          "The writer found out that the teapot was valuable",
+          "The mended bowl made the writer value keeping imperfect things"
+        ],
+        "answer": 3,
+        "evidence": "When we got home, I rescued a chipped teapot from the recycling bag where it had been waiting for a week."
+      }
+    ],
+    "dictation_index": 9,
+    "vocabulary": [
+      {
+        "term": "shabby",
+        "meaning": "破旧的；寒酸的",
+        "example": "The hotel looked shabby, but the staff were lovely."
+      },
+      {
+        "term": "lopsided",
+        "meaning": "歪的；一边高一边低的",
+        "example": "My first cake came out lopsided but tasted fine."
+      },
+      {
+        "term": "staples",
+        "meaning": "锔钉；订书钉",
+        "example": "He fixed the torn poster with a few staples."
+      },
+      {
+        "term": "glaze",
+        "meaning": "（陶瓷的）釉；釉面",
+        "example": "The cups have a shiny green glaze."
+      },
+      {
+        "term": "chipped",
+        "meaning": "有缺口的；磕掉一小块的",
+        "example": "I still use my chipped mug because I love the colour."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "out of duty",
+        "meaning": "出于义务；为了尽责",
+        "note": "out of + 名词表示动机：out of curiosity, out of kindness"
+      },
+      {
+        "text": "nobody would look at twice",
+        "meaning": "没人会多看一眼",
+        "note": "look at sth twice 多看一眼；形容东西不起眼"
+      },
+      {
+        "text": "cracked clean in two",
+        "meaning": "整整齐齐地裂成两半",
+        "note": "clean 作副词表示“完全地、利落地”：break clean in two"
+      },
+      {
+        "text": "with obvious care",
+        "meaning": "显然是用心地",
+        "note": "with + 形容词 + care，描写手工、做事态度"
+      },
+      {
+        "text": "far longer than I meant to",
+        "meaning": "比我原本打算的久得多",
+        "note": "mean to do 打算做；than I meant to 省略了后面的动词"
+      },
+      {
+        "text": "I find myself",
+        "meaning": "我发现自己（不知不觉地）……",
+        "note": "I find myself doing... 表示一种自然养成、并非刻意的习惯"
+      }
+    ],
+    "grammar": [
+      "subjunctive-mixed",
+      "nonfinite-participle",
+      "clause-noun"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-mixed",
+        "quote": "If my nephew Tariq hadn't begged me to take him somewhere dry one rainy Sunday, I would probably still think of them that way.",
+        "explanation": "错综条件句：if 从句与过去事实相反（hadn't begged），主句与现在事实相反（would still think），说明“过去那件事改变了我现在的看法”。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "Held together like that, it can never have been worth much.",
+        "explanation": "过去分词短语 Held together 作状语，逻辑主语是碗（it“被锔在一起”）；主句 can never have been 是对过去情况的否定推断。"
+      },
+      {
+        "node": "clause-noun",
+        "quote": "What struck me was that someone had decided to mend it anyway",
+        "explanation": "What struck me 是主语从句，that 从句作表语，组成“让我触动的是……”的强调句式，适合引出一篇文章的核心发现。"
+      }
+    ],
+    "speaking": "用 1 分钟讲一件改变了你看法的小事，用 If I hadn't..., I would still... 开头，再说说你现在的做法有什么不同。",
+    "writing": "写 180–220 词，描述一件你舍不得扔的旧物：它的样子、来历，以及它为什么值得留下。用上 What struck me was that... 和 I find myself...。",
+    "task": {
+      "prompt": "仿照这句，用 If I hadn't..., I would probably still... 说一件改变了你现在看法的事。",
+      "model": "If my nephew Tariq hadn't begged me to take him somewhere dry one rainy Sunday, I would probably still think of them that way."
+    },
+    "tags": [
+      "博物馆",
+      "旧物与记忆"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-c1-bakery-queue",
+    "title": "面包店柜台前的排队学问",
+    "title_en": "A Queue Is Less a Shape Than an Agreement",
+    "summary_zh": "作者在一家顾客来自五湖四海的面包店工作了一年，发现“排成一条线”和“围成一团”背后，其实是同样严格、只是看不见的公平规则。读完你会学到如何用观察写出有层次的议论。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "culture",
+    "genre": "article",
+    "body": "I used to believe that a queue was simply a line: you arrive, you stand behind the last person, you wait. Then I spent a year working at a bakery counter in a neighbourhood where the customers had grown up in dozens of different places, and I discovered that a queue is less a shape than an agreement. Some mornings, people formed a neat line that stretched out of the door. On others, they gathered in a loose cluster near the cakes, chatting and apparently ignoring any order at all. At first, the cluster alarmed me. How was I supposed to know who was next? Yet whenever I hesitated, somebody would nod towards an elderly man at the back or a woman juggling a toddler, and the crowd would part for them without a word. The system that guided those customers was every bit as strict as a painted line; it was simply invisible to me. It was as if each person were quietly keeping track of everyone who had come in after them. Trouble arose not when people disagreed about fairness, but when two different versions of fairness met at the same counter. A customer used to straight lines would see the cluster as chaos, while a customer used to the cluster might find the line oddly cold, as though nobody trusted anyone else to remember. Neither of them was wrong. What I took away from that year is a reluctance to judge a gathering by its outline. Unless you know the rules people are actually following, a crowd can look rude and a line can look unfriendly, when both are doing precisely the same job. These days, whenever I join a queue somewhere unfamiliar, I watch for a minute before deciding where I belong. It is a small habit, but it has saved me from more than one embarrassing mistake.",
+    "questions": [
+      {
+        "prompt": "What is the main idea of the passage?",
+        "options": [
+          "A straight line is the fairest way to serve customers",
+          "Queues that look very different can follow equally strict rules of fairness",
+          "Customers in loose crowds usually ignore who arrived first",
+          "Shops should paint lines on the floor to prevent arguments"
+        ],
+        "answer": 1,
+        "evidence": "a queue is less a shape than an agreement"
+      },
+      {
+        "prompt": "According to the writer, when did trouble usually arise?",
+        "options": [
+          "When the bakery became too crowded to move",
+          "When customers refused to wait their turn",
+          "When the writer served people in the wrong order",
+          "When two different ideas of fairness met at the counter"
+        ],
+        "answer": 3,
+        "evidence": "Trouble arose not when people disagreed about fairness, but when two different versions of fairness met at the same counter."
+      }
+    ],
+    "dictation_index": 8,
+    "vocabulary": [
+      {
+        "term": "cluster",
+        "meaning": "一群；一簇",
+        "example": "A cluster of students waited outside the classroom."
+      },
+      {
+        "term": "hesitated",
+        "meaning": "犹豫；迟疑",
+        "example": "She hesitated for a moment before answering."
+      },
+      {
+        "term": "invisible",
+        "meaning": "看不见的；无形的",
+        "example": "Good design is often invisible until something goes wrong."
+      },
+      {
+        "term": "reluctance",
+        "meaning": "不情愿；不愿意",
+        "example": "I understand your reluctance to change plans at the last minute."
+      },
+      {
+        "term": "outline",
+        "meaning": "外形；轮廓",
+        "example": "We could only see the outline of the mountains in the fog."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "less a shape than an agreement",
+        "meaning": "与其说是一种形状，不如说是一种约定",
+        "note": "A is less X than Y：重新定义一个概念，书面议论文的高级句式"
+      },
+      {
+        "text": "without a word",
+        "meaning": "一言不发地；二话不说",
+        "note": "强调默契或顺从：He left without a word."
+      },
+      {
+        "text": "every bit as strict as",
+        "meaning": "完全和……一样严格",
+        "note": "every bit as + 形容词 + as，比 just as 语气更强"
+      },
+      {
+        "text": "keeping track of",
+        "meaning": "留意；记着（顺序、数量等）",
+        "note": "keep track of time / money / who's next，生活和工作都常用"
+      },
+      {
+        "text": "took away from",
+        "meaning": "从……中得到（的收获）",
+        "note": "What I took away from... 总结一段经历带来的启发"
+      },
+      {
+        "text": "saved me from",
+        "meaning": "让我避免了",
+        "note": "save sb from + 名词/doing，后面常接 embarrassment、a mistake"
+      }
+    ],
+    "grammar": [
+      "agreement-head",
+      "subjunctive-now",
+      "conditional-unless"
+    ],
+    "knowledge": [
+      {
+        "node": "agreement-head",
+        "quote": "The system that guided those customers was every bit as strict as a painted line",
+        "explanation": "主语中心词是 system，定语从句 that guided those customers 再长、里面有复数 customers，谓语仍跟 system 用单数 was。"
+      },
+      {
+        "node": "subjunctive-now",
+        "quote": "It was as if each person were quietly keeping track of everyone who had come in after them.",
+        "explanation": "as if 后用虚拟语气 were（而不是 was），表示“好像……一样”的非真实比较：其实并没有人真的在记名单。"
+      },
+      {
+        "node": "conditional-unless",
+        "quote": "Unless you know the rules people are actually following, a crowd can look rude and a line can look unfriendly",
+        "explanation": "unless = if you don't，引出必要条件；主句用 can 表示“有可能显得……”，避免把话说死。"
+      }
+    ],
+    "speaking": "用 1 分钟描述一个你观察到的“看不见的规则”（如食堂打饭、地铁上下车、电梯里站位），说说外人为什么可能看不懂。",
+    "writing": "写 180–220 词，记录一次你在陌生环境里先观察、再行动的经历，用 A is less X than Y 概括你的发现。",
+    "task": {
+      "prompt": "仿照这句，用 A is less X than Y 重新定义一个你熟悉的东西或习惯。",
+      "model": "a queue is less a shape than an agreement"
+    },
+    "tags": [
+      "排队",
+      "公平",
+      "跨文化观察"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-c1-song-requests",
+    "title": "一首歌，一段回忆：深夜点歌节目主持人访谈",
+    "title_en": "A Song You Didn't Choose: Interview with a Late-Night DJ",
+    "summary_zh": "深夜点歌节目主持人 Amara 发现，听众点的很少是最爱的歌，而是“恰好在那一刻响起”的歌。读完你会学到如何用打比方的方式谈论记忆。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "culture",
+    "genre": "interview",
+    "body": "Q: Your late-night show is built around songs that listeners connect with a particular memory, so what kind of requests do you actually get? Amara: Mostly not the ones you'd expect, because people rarely ask for their all-time favourite song. They ask for whatever happened to be playing when something important happened: a long drive home after a disastrous job interview, a crackling kitchen radio during a family argument, a bus ride on the last day of school. Q: So the song itself doesn't matter very much? Amara: It matters, but almost by accident. One caller requested a cheesy pop song she claimed to hate, simply because it had been on repeat in the café where she and her best friend used to meet before her friend moved abroad. She said that hearing the first few notes was like opening a drawer she'd forgotten about and finding it still full. Q: Do callers ever get emotional on air? Amara: All the time, though not always in the way you'd think, since some dissolve into giggles before they can finish the dedication. One man phoned in to dedicate a lullaby to his grown-up daughter, and halfway through he realised she was listening in the next room. Neither he nor I was expecting her to ring the studio a minute later and request the same song for him. Q: What has the show taught you about memory? Amara: That it's less like a library, where you choose what to take off the shelf, and more like a radio, where you don't get to pick what comes on next. Something drifts out of a shop doorway, and suddenly you're seventeen again, standing in a car park and clutching a concert ticket you never used. Q: Is there a song that does that to you? Amara: Of course there is, but if I told you which one, I'd have to play it, and I'm honestly not sure I'd get through it.",
+    "questions": [
+      {
+        "prompt": "According to Amara, what usually makes a song bring back a memory?",
+        "options": [
+          "It is the listener's all-time favourite song",
+          "Its lyrics describe a similar experience",
+          "It was playing at an important moment, often by chance",
+          "It is played regularly on late-night radio"
+        ],
+        "answer": 2,
+        "evidence": "They ask for whatever happened to be playing when something important happened"
+      },
+      {
+        "prompt": "What does Amara mean when she says memory is \"more like a radio\"?",
+        "options": [
+          "Memories become clearer each time you replay them",
+          "You cannot control which memories suddenly come back",
+          "Memories are best when shared with other people",
+          "Old memories fade like a weak radio signal"
+        ],
+        "answer": 1,
+        "evidence": "more like a radio, where you don't get to pick what comes on next"
+      }
+    ],
+    "dictation_index": 13,
+    "vocabulary": [
+      {
+        "term": "requests",
+        "meaning": "点播；请求",
+        "example": "The band took requests from the audience at the end."
+      },
+      {
+        "term": "cheesy",
+        "meaning": "俗气的；老套煽情的",
+        "example": "The film was a bit cheesy, but I cried anyway."
+      },
+      {
+        "term": "dedication",
+        "meaning": "（点歌时的）献词；致意",
+        "example": "He wrote a short dedication on the first page of the book."
+      },
+      {
+        "term": "lullaby",
+        "meaning": "摇篮曲",
+        "example": "My grandmother still hums the lullaby she sang to my mother."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "happened to be playing",
+        "meaning": "恰好在放",
+        "note": "happen to do 表示“碰巧”，强调偶然：I happened to be there."
+      },
+      {
+        "text": "on repeat",
+        "meaning": "单曲循环；反复播放",
+        "note": "I've had this song on repeat all week. 也可比喻反复发生的事"
+      },
+      {
+        "text": "get emotional",
+        "meaning": "情绪激动；动情",
+        "note": "比 cry 更含蓄，可以指哭也可以指哽咽、激动"
+      },
+      {
+        "text": "on air",
+        "meaning": "在直播中；正在播出",
+        "note": "广播、电视用语：We're on air in five minutes."
+      },
+      {
+        "text": "phoned in",
+        "meaning": "打电话进节目",
+        "note": "phone in / call in 指听众打进直播节目"
+      },
+      {
+        "text": "get through it",
+        "meaning": "撑下来；熬过去",
+        "note": "常用于情绪或困难的场合：I don't know how I got through it."
+      }
+    ],
+    "grammar": [
+      "clause-relative",
+      "nonfinite-gerund",
+      "agreement-either"
+    ],
+    "knowledge": [
+      {
+        "node": "clause-relative",
+        "quote": "it had been on repeat in the café where she and her best friend used to meet before her friend moved abroad",
+        "explanation": "where 引导定语从句修饰地点 café，相当于 in which；从句里信息丰富，让一个普通地点带上了故事。"
+      },
+      {
+        "node": "nonfinite-gerund",
+        "quote": "hearing the first few notes was like opening a drawer she'd forgotten about and finding it still full",
+        "explanation": "动名词 hearing 作主语，like 后接动名词 opening 和 finding 作宾语，用“做 A 就像做 B”的平行结构打比方。"
+      },
+      {
+        "node": "agreement-either",
+        "quote": "Neither he nor I was expecting her to ring the studio a minute later",
+        "explanation": "neither A nor B 作主语时谓语就近一致：最近的是 I，所以用 was，而不是 were。"
+      }
+    ],
+    "speaking": "用 1 分钟讲一首能把你带回某个时刻的歌：它当时在哪里响起、你当时在做什么、现在听到有什么感觉。",
+    "writing": "假设你给深夜点歌节目写一段 150–200 词的点歌留言：点哪首歌、献给谁、背后是什么回忆。用上 happened to be playing 和 on repeat。",
+    "task": {
+      "prompt": "仿照这句，用 less like A, where..., and more like B, where... 给一个抽象概念（如时间、友谊）打个比方。",
+      "model": "less like a library, where you choose what to take off the shelf, and more like a radio, where you don't get to pick what comes on next"
+    },
+    "tags": [
+      "音乐与记忆",
+      "访谈",
+      "打比方"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

@@ -1,0 +1,246 @@
+[
+  {
+    "id": "v5-science-b1-rainbow",
+    "title": "彩虹是怎么形成的",
+    "title_en": "Why Nobody Ever Reaches the End of a Rainbow",
+    "summary_zh": "彩虹不是挂在天上的一样东西，而是阳光、雨滴和你的眼睛一起“合作”的结果。读完你会明白彩虹为什么总在你背对太阳时出现，以及为什么每个人看到的彩虹都不一样。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "science",
+    "genre": "explainer",
+    "body": "A rainbow can seem to appear by magic, but it follows a simple rule: you need the sun behind you and rain in front of you. Sunlight looks white, yet it is really a mix of colours. When it enters a raindrop, the light bends, and each colour bends by a slightly different amount. As a result, the colours spread out like a fan. The light then bounces off the back of the drop and comes out again towards your eyes. Here is the strange part. Each drop sends only one colour to your eye, depending on where it is in the sky. Drops higher up send you red, while drops lower down send you violet. Millions of drops, which are all doing the same thing at once, build the whole arc. This means that the person standing next to you is actually seeing a different rainbow, made by different drops. It also explains why you can never reach the end of a rainbow. If you walk towards it, it moves with you, because it is not an object in one place. It is a meeting point between the sun, the rain and your own eyes.",
+    "questions": [
+      {
+        "prompt": "Why can't two people see exactly the same rainbow?",
+        "options": [
+          "Because rainbows change colour every few seconds",
+          "Because each person's eyes receive light from different drops",
+          "Because one person is always closer to the rain",
+          "Because people's eyes see colours in different ways"
+        ],
+        "answer": 1,
+        "evidence": "the person standing next to you is actually seeing a different rainbow, made by different drops"
+      },
+      {
+        "prompt": "What do you need in order to see a rainbow?",
+        "options": [
+          "The sun behind you and rain in front of you",
+          "Rain behind you and the sun in front of you",
+          "A cloudy sky with no sunlight at all",
+          "The sun directly above your head"
+        ],
+        "answer": 0,
+        "evidence": "you need the sun behind you and rain in front of you"
+      }
+    ],
+    "dictation_index": 2,
+    "vocabulary": [
+      {"term": "bends", "meaning": "弯曲；（光线）折射", "example": "The road bends to the left after the bridge."},
+      {"term": "slightly", "meaning": "稍微；略微", "example": "This shirt is slightly too big for me."},
+      {"term": "arc", "meaning": "弧；弧形", "example": "The ball flew through the air in a high arc."},
+      {"term": "object", "meaning": "物体；东西", "example": "There is a strange object on the table. What is it?"}
+    ],
+    "expressions": [
+      {"text": "by magic", "meaning": "像变魔术一样", "note": "常说 as if by magic：The door opened as if by magic."},
+      {"text": "As a result", "meaning": "因此；结果", "note": "放在句首连接因果，口语和写作都很常用。"},
+      {"text": "spread out", "meaning": "散开；展开", "note": "可用于人、东西、光：The students spread out across the field."},
+      {"text": "Here is the strange part", "meaning": "奇妙的地方来了", "note": "讲解或讲故事时引出最反直觉的一点，也可说 Here's the funny part."},
+      {"text": "depending on", "meaning": "取决于；根据……而定", "note": "后接名词或 where/how 从句：Prices change depending on the season."},
+      {"text": "at once", "meaning": "同时；一起", "note": "at once 也可表示“立刻”，这里是“同时”：Don't all talk at once!"}
+    ],
+    "grammar": ["clause-relative", "agreement-each", "conditional-real"],
+    "knowledge": [
+      {"node": "clause-relative", "quote": "Millions of drops, which are all doing the same thing at once, build the whole arc.", "explanation": "which 引导非限制性定语从句，用逗号隔开，补充说明 drops。去掉它句子仍然完整：Millions of drops build the whole arc."},
+      {"node": "agreement-each", "quote": "Each drop sends only one colour to your eye", "explanation": "each + 单数名词作主语，谓语用单数 sends。虽然说的是很多雨滴，each 强调“每一个分别怎样”。"},
+      {"node": "conditional-real", "quote": "If you walk towards it, it moves with you", "explanation": "if + 一般现在时，主句也用一般现在时，表示每次都会发生的规律：只要你走过去，彩虹就跟着你动。"}
+    ],
+    "speaking": "用 1 分钟解释：为什么人永远走不到彩虹的尽头。用上 depending on 和 As a result。",
+    "writing": "用 100–130 词描述一次你见过的美丽自然现象（彩虹、晚霞、雾……），写出当时的情景，再用一两句话解释它是怎么形成的。",
+    "task": {"prompt": "仿照这句，用 Each + 单数名词 + 单数动词，写一句关于你的班级、公司或家人的话。", "model": "Each drop sends only one colour to your eye, depending on where it is in the sky."},
+    "tags": ["日常科学", "光与颜色"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-science-b1-flat-bread",
+    "title": "我的第一个面包为什么是扁的",
+    "title_en": "My First Loaf Was as Flat as a Pancake",
+    "summary_zh": "第一次烤面包，结果扁得像煎饼。奶奶一句话点出问题：水太烫，把酵母“烫死”了。读完你会明白酵母怎样让面团发起来，也能学会用过去完成时讲经历。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "science",
+    "genre": "story",
+    "body": "The first loaf of bread I ever made came out as flat as a pancake. I had followed the recipe carefully, or so I thought. My grandmother, who has baked bread all her life, took one look at it and asked how hot my water had been. I told her it had been very hot, so that the yeast would wake up quickly. She laughed and explained my mistake. Yeast is a tiny living thing, a kind of fungus. When you mix it with flour and warm water, it feeds on the sugars in the flour and gives off carbon dioxide gas. Kneading the dough builds stretchy threads of gluten, which trap the gas in tiny bubbles, so the dough slowly rises. But yeast is alive, and water that is too hot kills it. No living yeast means no gas, and no gas means flat bread. The next weekend, I had another go, using water that felt just warm on my wrist. I left the bowl in a warm corner of the kitchen and waited. Two hours later, the dough had nearly doubled in size. When the bread came out of the oven, the whole house smelled wonderful, and my grandmother gave me a proud nod.",
+    "questions": [
+      {
+        "prompt": "Why was the writer's first loaf flat?",
+        "options": [
+          "There was not enough flour in the dough",
+          "The very hot water had killed the yeast",
+          "The dough was left in a cold room",
+          "The grandmother had changed the recipe"
+        ],
+        "answer": 1,
+        "evidence": "But yeast is alive, and water that is too hot kills it."
+      },
+      {
+        "prompt": "What does \"gave me a proud nod\" suggest about the grandmother at the end?",
+        "options": [
+          "She was too tired to say anything",
+          "She wanted the writer to bake another loaf",
+          "She was pleased with the writer's success",
+          "She still thought the bread was too flat"
+        ],
+        "answer": 2,
+        "evidence": "my grandmother gave me a proud nod"
+      }
+    ],
+    "dictation_index": 1,
+    "vocabulary": [
+      {"term": "recipe", "meaning": "食谱；做法", "example": "Can you send me the recipe for that soup?"},
+      {"term": "dough", "meaning": "面团", "example": "The dough should feel soft but not sticky."},
+      {"term": "trap", "meaning": "困住；把……包在里面", "example": "Thick curtains trap warm air inside the room."},
+      {"term": "stretchy", "meaning": "有弹性的；能拉长的", "example": "These jeans are stretchy, so they are really comfortable."}
+    ],
+    "expressions": [
+      {"text": "as flat as a pancake", "meaning": "扁得像煎饼", "note": "as … as a … 的夸张比喻，口语里很幽默：The tyre was as flat as a pancake."},
+      {"text": "or so I thought", "meaning": "我原以为是这样（其实不然）", "note": "放在句末，暗示后面要出现反转，讲故事时很好用。"},
+      {"text": "took one look at it", "meaning": "只看了一眼", "note": "强调对方一眼就看出问题：She took one look at my face and knew something was wrong."},
+      {"text": "feeds on", "meaning": "以……为食", "note": "feed on + 食物，多用于动物和微生物：Bees feed on flowers."},
+      {"text": "gives off", "meaning": "释放出（气体、气味、热、光）", "note": "The heater gives off a lot of heat."},
+      {"text": "doubled in size", "meaning": "变成原来的两倍大", "note": "double 作动词表示“翻倍”：Our team has doubled in size this year."}
+    ],
+    "grammar": ["tense-perfect", "clause-relative", "nonfinite-gerund"],
+    "knowledge": [
+      {"node": "tense-perfect", "quote": "I had followed the recipe carefully, or so I thought.", "explanation": "过去完成时 had followed 表示在“面包出炉”这个过去时间点之前就已完成的动作。讲故事时用它往回交代背景。"},
+      {"node": "clause-relative", "quote": "My grandmother, who has baked bread all her life, took one look at it", "explanation": "who 引导非限制性定语从句，用逗号隔开，补充说明奶奶的身份；从句里的现在完成时说明她一辈子都在做面包，到现在还在做。"},
+      {"node": "nonfinite-gerund", "quote": "Kneading the dough builds stretchy threads of gluten", "explanation": "Kneading the dough 是动名词短语作主语，表示“揉面这件事”，谓语用单数 builds。"}
+    ],
+    "speaking": "用 1 分钟讲讲你第一次做饭或做手工失败的经历：出了什么问题、后来怎么改进。用上 or so I thought 和 took one look at it。",
+    "writing": "用 100–140 词写一次“第一次失败、第二次成功”的经历（做饭、运动、修东西都可以），至少用一次过去完成时写出你“当时已经做了什么”。",
+    "task": {"prompt": "仿照这句，用 had done + or so I thought，写一句“我还以为自己做对了”的话。", "model": "I had followed the recipe carefully, or so I thought."},
+    "tags": ["厨房里的科学", "家庭小实验"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-science-b1-fridge",
+    "title": "冰箱怎样让东西变冷",
+    "title_en": "Your Fridge Doesn't Make Cold. It Moves Heat",
+    "summary_zh": "冰箱其实不“制造冷”，而是把热量从里面搬到外面。读完你会明白冰箱背后为什么发热，以及为什么最好在它后面留点空间。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "science",
+    "genre": "explainer",
+    "body": "Open the fridge on a hot day and you feel a rush of cool air. It is natural to think the fridge makes cold, but that is not quite right. What a fridge really does is move heat from the inside to the outside. To do this, it uses a special liquid that flows round a closed loop of pipes. This liquid boils at a very low temperature. Inside the fridge, it turns into a gas, and changing into a gas takes heat from everything nearby, including your milk and vegetables. You have felt the same effect after swimming: as the water dries on your skin, it carries heat away, and you shiver. Next, a pump called a compressor squeezes the gas hard, which makes it hot. The hot gas then flows through pipes at the back, where it gives its heat to the room and turns back into a liquid. After that, it passes through a tiny opening that lowers its pressure, and the cycle starts again. That is why the back of a fridge often feels warm. Unless that heat can escape, the fridge has to work harder, so it is a good idea to leave a little space behind it.",
+    "questions": [
+      {
+        "prompt": "What is the main idea of the text?",
+        "options": [
+          "A fridge creates cold air with a special machine",
+          "A fridge keeps food cold by moving heat out of it",
+          "A fridge works best when it is full of food",
+          "A fridge needs ice inside its pipes to stay cold"
+        ],
+        "answer": 1,
+        "evidence": "What a fridge really does is move heat from the inside to the outside."
+      },
+      {
+        "prompt": "Why does the writer mention swimming?",
+        "options": [
+          "To show that cold water is good for your health",
+          "To explain why fridges are filled with water",
+          "To give an everyday example of a liquid drying and taking heat away",
+          "To compare the pipes in a fridge to a swimming pool"
+        ],
+        "answer": 2,
+        "evidence": "as the water dries on your skin, it carries heat away"
+      }
+    ],
+    "dictation_index": 2,
+    "vocabulary": [
+      {"term": "loop", "meaning": "环；回路", "example": "The bus goes round the city in a big loop."},
+      {"term": "squeezes", "meaning": "挤压；压缩", "example": "He squeezes half a lemon into his water every morning."},
+      {"term": "pressure", "meaning": "压力；压强", "example": "Check the pressure in your bike tyres before a long ride."},
+      {"term": "escape", "meaning": "（气体、热量）逸出；散出去", "example": "Close the window so the warm air doesn't escape."}
+    ],
+    "expressions": [
+      {"text": "a rush of cool air", "meaning": "一股凉气", "note": "a rush of + 空气/情绪，表示突然涌来：a rush of excitement。"},
+      {"text": "not quite right", "meaning": "不完全对", "note": "委婉地纠正别人，比 wrong 客气：I think that's not quite right."},
+      {"text": "carries heat away", "meaning": "把热量带走", "note": "carry … away＝把……带走：The river carried the leaves away."},
+      {"text": "turns back into", "meaning": "又变回", "note": "turn back into + 名词，表示恢复原来的状态。"},
+      {"text": "it is a good idea to", "meaning": "最好……；……是个好主意", "note": "温和地提建议：It's a good idea to book early."},
+      {"text": "work harder", "meaning": "更费力地运转", "note": "人和机器都能用：My laptop has to work harder when lots of apps are open."}
+    ],
+    "grammar": ["clause-noun", "nonfinite-gerund", "conditional-unless"],
+    "knowledge": [
+      {"node": "clause-noun", "quote": "What a fridge really does is move heat from the inside to the outside.", "explanation": "What 引导名词性从句作主语，后面 is + 动词原形 move，用来强调“真正做的事”，纠正误解时很好用。"},
+      {"node": "nonfinite-gerund", "quote": "changing into a gas takes heat from everything nearby", "explanation": "changing into a gas 是动名词短语作主语，表示“变成气体这个过程”，谓语用单数 takes。"},
+      {"node": "conditional-unless", "quote": "Unless that heat can escape, the fridge has to work harder", "explanation": "unless ＝ if … not。Unless that heat can escape 相当于 If that heat cannot escape，主句说出后果。"}
+    ],
+    "speaking": "用 1 分钟向家人解释：为什么冰箱背后摸起来是热的。用上 not quite right 和 What a fridge really does is…。",
+    "writing": "用 100–140 词解释一个你每天都用、但很少想过原理的家电（如电水壶、微波炉、空调），用 What it really does is… 纠正一个常见误解。",
+    "task": {"prompt": "仿照这句，用 What … really does is …，说明某人或某物“真正在做的事”。", "model": "What a fridge really does is move heat from the inside to the outside."},
+    "tags": ["日常科学", "家电原理"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-science-b1-gps",
+    "title": "手机怎么知道你在哪儿",
+    "title_en": "How Does My Phone Know Where I Am?",
+    "summary_zh": "徒步时，Sam 问 Nina：荒郊野外的，手机怎么知道我们在哪？原来手机只是在“听”卫星报时。读完你会明白 GPS 的原理，以及为什么卫星上的时间必须非常精准。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "science",
+    "genre": "dialogue",
+    "body": "Sam: How does my phone know exactly where I am? We're in the middle of nowhere. Nina: It's listening to satellites. Dozens of them are circling the Earth, and each one keeps sending out a simple message. Sam: What does the message say? Nina: Basically: here's where I am, and here's the exact time. Sam: That's it? Nina: That's it. The signal travels at the speed of light, but it still takes a tiny moment to reach you. Your phone checks how late each message arrives and works out how far away each satellite is. Sam: And with a few distances, it can find the one spot that fits them all? Nina: Exactly. It needs at least four satellites to get it right. Sam: Wait, so my phone doesn't send anything to space? Nina: Nope. It only listens. The tricky part is the timing. The satellites carry extremely accurate clocks, because if those clocks were even slightly wrong, your map would put you in the middle of the lake. Sam: Good thing they aren't, then. Nina: Yes, because I have no idea how to read a paper map.",
+    "questions": [
+      {
+        "prompt": "According to Nina, how does a phone find its position?",
+        "options": [
+          "It sends a signal to the satellites and waits for an answer",
+          "It times the messages from several satellites",
+          "It looks at photos taken by satellites",
+          "It asks the nearest phone tower for a map"
+        ],
+        "answer": 1,
+        "evidence": "Your phone checks how late each message arrives and works out how far away each satellite is."
+      },
+      {
+        "prompt": "Why do the satellites need extremely accurate clocks?",
+        "options": [
+          "Because the signals travel very slowly",
+          "Because phones cannot keep their own time",
+          "Because the satellites move very fast",
+          "Because a small timing error would show the wrong position"
+        ],
+        "answer": 3,
+        "evidence": "if those clocks were even slightly wrong, your map would put you in the middle of the lake"
+      }
+    ],
+    "dictation_index": 8,
+    "vocabulary": [
+      {"term": "satellites", "meaning": "卫星", "example": "Weather satellites help us see storms before they arrive."},
+      {"term": "signal", "meaning": "信号", "example": "There's no phone signal in this valley."},
+      {"term": "distances", "meaning": "距离", "example": "Some birds fly very long distances every winter."},
+      {"term": "accurate", "meaning": "精确的；准确的", "example": "This kitchen scale is very accurate."}
+    ],
+    "expressions": [
+      {"text": "in the middle of nowhere", "meaning": "荒郊野外；前不着村后不着店", "note": "夸张的口语说法：Our hotel was in the middle of nowhere."},
+      {"text": "That's it?", "meaning": "就这样？（就这么简单？）", "note": "表示惊讶事情这么简单；回答 That's it. 意思是“就是这样”。"},
+      {"text": "works out", "meaning": "算出；弄明白", "note": "work out + 答案/问题：Can you work out how much we each owe?"},
+      {"text": "get it right", "meaning": "弄对；做准", "note": "It took me three tries to get it right."},
+      {"text": "The tricky part is", "meaning": "难办的地方在于", "note": "引出难点，后接名词或动名词：The tricky part is finding the time."},
+      {"text": "I have no idea how to", "meaning": "我完全不知道怎么……", "note": "比 I don't know how to 语气更强、更口语。"}
+    ],
+    "grammar": ["clause-noun", "conditional-modal", "tense-present"],
+    "knowledge": [
+      {"node": "clause-noun", "quote": "How does my phone know exactly where I am?", "explanation": "where I am 是名词性从句作 know 的宾语。注意从句用陈述语序 where I am，不说 where am I。"},
+      {"node": "conditional-modal", "quote": "if those clocks were even slightly wrong, your map would put you in the middle of the lake", "explanation": "if + 过去式（were），主句 would + 动词原形，描述一个与现实不符的假设及其后果：时钟其实很准，但“假如不准”就会出大错。"},
+      {"node": "tense-present", "quote": "Dozens of them are circling the Earth, and each one keeps sending out a simple message.", "explanation": "现在进行时 are circling 描述此刻正在发生、持续进行的动作；keep doing 表示“不停地做”。"}
+    ],
+    "speaking": "用 1 分钟解释手机是怎样知道你在哪里的，并说出一个让你意外的点。用上 works out 和 The tricky part is…。",
+    "writing": "用 100–140 词写一段对话：你向长辈解释手机的一个功能（如导航、拍照、语音助手）大概是怎么工作的。至少用一个 if … were …, … would … 的句子。",
+    "task": {"prompt": "仿照这句，用 if … were …, … would …，说一个“假如……就会出大问题”的情况。", "model": "if those clocks were even slightly wrong, your map would put you in the middle of the lake"},
+    "tags": ["科技原理", "日常科学"],
+    "source": "Flow 编辑部原创"
+  }
+]

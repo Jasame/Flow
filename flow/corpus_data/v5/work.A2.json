@@ -1,0 +1,238 @@
+[
+  {
+    "id": "v5-work-a2-locked-out-day-one",
+    "title": "上班第一天被锁在门外",
+    "title_en": "Locked Out on Day One",
+    "summary_zh": "新人 Lina 上班第一天就进不了公司大门，一位同事的一句话让她放松下来。读完你能学会描述“第一天”的经历，以及欢迎新同事的几句地道说法。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "work",
+    "genre": "story",
+    "body": "Lina arrived at her new job twenty minutes early, but the front door was locked. She didn't know the code, and nobody answered the bell. It was raining, and she started to feel a little silly. Then a man with a bike stopped next to her. \"You must be the new designer,\" he said with a smile. \"I'm Omar. Don't worry, everyone gets stuck out here on day one.\" He typed the code and held the door open for her. Inside, Omar showed her the kitchen, the printer and her desk by the window. At lunch, he invited her to eat with the team. Everyone had a funny story about their own first day. By five o'clock, Lina felt like part of the team. On the way home, she saved the door code in her phone and smiled.",
+    "questions": [
+      {
+        "prompt": "What is the story mainly about?",
+        "options": [
+          "A designer who loses her new job on the first day",
+          "A difficult start to a first day that ends well",
+          "A team that forgets to welcome a new worker",
+          "A man who teaches a new colleague to ride a bike"
+        ],
+        "answer": 1,
+        "evidence": "By five o'clock, Lina felt like part of the team."
+      },
+      {
+        "prompt": "Why couldn't Lina get into the office at first?",
+        "options": [
+          "She arrived too late and the office was closed",
+          "She left her bag and keys at home",
+          "She didn't know the code for the door",
+          "She went to the wrong building"
+        ],
+        "answer": 2,
+        "evidence": "She didn't know the code, and nobody answered the bell."
+      }
+    ],
+    "dictation_index": 7,
+    "vocabulary": [
+      {"term": "locked", "meaning": "锁着的；上了锁的", "example": "The meeting room was locked, so we talked in the kitchen."},
+      {"term": "code", "meaning": "密码；代码", "example": "Please don't share the door code with visitors."},
+      {"term": "printer", "meaning": "打印机", "example": "The printer on our floor is out of paper again."},
+      {"term": "invited", "meaning": "邀请（过去式）", "example": "My manager invited me to join the team meeting."}
+    ],
+    "expressions": [
+      {"text": "You must be", "meaning": "你一定就是……吧", "note": "must 表示有把握的推测，见到新面孔时用来打招呼很自然：You must be the new intern!"},
+      {"text": "gets stuck", "meaning": "被困住；卡住", "note": "get stuck 可以指人被困在某处，也可以指做事卡住：I got stuck on the second question."},
+      {"text": "held the door open", "meaning": "帮人扶着门", "note": "hold the door open for sb，一个很常见的礼貌动作，也常说 Thanks for holding the door."},
+      {"text": "felt like part of the team", "meaning": "感觉自己成了团队的一员", "note": "feel like part of… 表示有归属感，可换成 part of the family / part of the class。"},
+      {"text": "On the way home", "meaning": "在回家的路上", "note": "on the way to work / on the way here 都是同一结构，讲日常经历时非常常用。"}
+    ],
+    "grammar": ["tense-past", "nonfinite-infinitive"],
+    "knowledge": [
+      {"node": "tense-past", "quote": "Lina arrived at her new job twenty minutes early, but the front door was locked.", "explanation": "讲已经发生的故事用一般过去时：arrived 是规则动词加 -ed，was locked 描述当时门的状态。"},
+      {"node": "nonfinite-infinitive", "quote": "he invited her to eat with the team", "explanation": "invite sb to do sth 表示“邀请某人做某事”，to 后面接动词原形。ask sb to do、tell sb to do 也是同样的结构。"}
+    ],
+    "speaking": "用 1 分钟讲讲你第一天上学或上班时遇到的一个小麻烦，后来是怎么解决的。试着用上 got stuck 和 felt like part of the team。",
+    "writing": "用 60–80 词给一位新同事或新同学写一段欢迎的话：告诉他/她厨房、打印机等在哪里，并邀请他/她一起吃午饭。",
+    "task": {"prompt": "仿照这句，用 show sb A, B and C 写一句你带朋友参观学校或公司时会说的话。", "model": "Omar showed her the kitchen, the printer and her desk by the window."},
+    "tags": ["职场新人", "入职第一天"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-work-a2-kitchen-small-talk",
+    "title": "茶水间里的闲聊",
+    "title_en": "Small Talk by the Kettle",
+    "summary_zh": "周一早上咖啡机又坏了，两位同事在茶水间边泡茶边聊周末。读完你能学会职场闲聊最常用的开场和接话方式。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "work",
+    "genre": "dialogue",
+    "body": "Kenji: Morning, Ana! Is the coffee machine working today? Ana: No, it's broken again. I'm making tea instead. Do you want some? Kenji: Yes, please. How was your weekend? Ana: Pretty good, thanks. I went hiking with my sister, and my legs are still tired. What about you? Kenji: Oh, nothing special. I stayed home and watched a cooking show. Now I want to make pasta from scratch. Ana: Nice! If it goes well, bring some in for lunch. Kenji: Ha, only if it goes well. Ana: Here's your tea. Do you take milk? Kenji: Just a little, thanks. So, are you ready for the big meeting at ten? Ana: Not really. I'm still working on my slides. Kenji: You'll be fine. If you need help, send me a message. Ana: Thanks, Kenji. Right, back to work!",
+    "questions": [
+      {
+        "prompt": "How does Ana probably feel about the meeting at ten?",
+        "options": [
+          "Excited, because she finished her slides early",
+          "Bored, because the meeting is not important",
+          "A little worried, because she is not ready yet",
+          "Angry, because Kenji did not help her"
+        ],
+        "answer": 2,
+        "evidence": "Not really. I'm still working on my slides."
+      },
+      {
+        "prompt": "Why is Ana making tea?",
+        "options": [
+          "The coffee machine is not working",
+          "She does not like coffee at all",
+          "Kenji asked her to make tea for him",
+          "Tea is the only drink in the kitchen"
+        ],
+        "answer": 0,
+        "evidence": "No, it's broken again. I'm making tea instead."
+      }
+    ],
+    "dictation_index": 11,
+    "vocabulary": [
+      {"term": "broken", "meaning": "坏了的；出故障的", "example": "The printer is broken, so I can't print the report."},
+      {"term": "instead", "meaning": "作为替代；反而", "example": "The office was too noisy, so I worked at home instead."},
+      {"term": "slides", "meaning": "（演示用的）幻灯片", "example": "Can you send me your slides before the meeting?"},
+      {"term": "hiking", "meaning": "徒步；远足", "example": "We often go hiking in the hills on Sundays."}
+    ],
+    "expressions": [
+      {"text": "How was your weekend", "meaning": "周末过得怎么样？", "note": "周一办公室里最常见的闲聊开场，回答不需要很长：Pretty good, thanks."},
+      {"text": "nothing special", "meaning": "没什么特别的", "note": "被问到近况但没什么可说时的自然回答，比 nothing 更礼貌、更口语。"},
+      {"text": "from scratch", "meaning": "从零开始；完全自己动手做", "note": "可用于做饭，也可用于工作：We built the website from scratch."},
+      {"text": "You'll be fine", "meaning": "你没问题的", "note": "别人紧张时的一句简单安慰，语气轻松、友好。"},
+      {"text": "back to work", "meaning": "回去干活了", "note": "聊完天准备结束对话时说 Right, back to work! 很自然，不会显得突兀。"}
+    ],
+    "grammar": ["conditional-real", "tense-present"],
+    "knowledge": [
+      {"node": "conditional-real", "quote": "If you need help, send me a message.", "explanation": "If + 一般现在时，主句用祈使句（动词原形开头），表示“如果……就……吧”，是主动提出帮忙的常用句型。"},
+      {"node": "tense-present", "quote": "I'm still working on my slides.", "explanation": "现在进行时 am working 表示这段时间正在做、还没做完的事，still 强调“还在”。"}
+    ],
+    "speaking": "和同伴模拟一段 1 分钟的茶水间闲聊：一人问 How was your weekend?，另一人回答并反问 What about you?，最后用 Right, back to work! 结束。",
+    "writing": "用 60–80 词写一段你和同事或同学的周一闲聊对话，至少用上 nothing special 和 If you…, … 两个表达。",
+    "task": {"prompt": "仿照这句，用 If you…, … 给同事或同学写一句主动提出帮忙的话。", "model": "If you need help, send me a message."},
+    "tags": ["职场闲聊", "办公室日常"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-work-a2-swap-shift-email",
+    "title": "一封请同事换班的邮件",
+    "title_en": "Can We Swap Shifts?",
+    "summary_zh": "Aisha 下周六要参加表姐的婚礼，于是写邮件请同事和她换班。读完你能学会礼貌地请人帮忙、给对方留余地的邮件写法。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "work",
+    "genre": "email",
+    "body": "Hi Tomás, I hope your week is going well. I'm writing to ask you a small favor. My cousin is getting married next Saturday, and I really want to be there. The problem is that I'm working the morning shift that day. Could you take my Saturday shift? In return, I can work your Sunday evening shift. I know Sunday evenings are busy, so I'm happy to do the cleaning at closing time too. If you can't swap, that's completely fine. Just let me know by Wednesday, so I have time to ask someone else. I've also talked to our manager, Rosa, and she says it's okay with her. Thanks a lot, and sorry for the short notice! Best, Aisha",
+    "questions": [
+      {
+        "prompt": "What is the main purpose of Aisha's email?",
+        "options": [
+          "To invite Tomás to her cousin's wedding",
+          "To ask the manager for a day off",
+          "To ask Tomás to change shifts with her",
+          "To complain about working on Sunday evenings"
+        ],
+        "answer": 2,
+        "evidence": "Could you take my Saturday shift?"
+      },
+      {
+        "prompt": "Why does Aisha want an answer by Wednesday?",
+        "options": [
+          "Because the wedding is on Wednesday",
+          "So she has time to find another person",
+          "Because Rosa is away after Wednesday",
+          "So Tomás can plan his Sunday evening"
+        ],
+        "answer": 1,
+        "evidence": "so I have time to ask someone else"
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {"term": "favor", "meaning": "帮忙；恩惠", "example": "Could you do me a favor and close the window?"},
+      {"term": "shift", "meaning": "（轮班制的）班次", "example": "She works the night shift at the hospital."},
+      {"term": "swap", "meaning": "交换；对调", "example": "Do you want to swap seats with me?"},
+      {"term": "manager", "meaning": "经理；主管", "example": "I need to ask my manager before I say yes."}
+    ],
+    "expressions": [
+      {"text": "ask you a small favor", "meaning": "请你帮个小忙", "note": "ask sb a favor 是请人帮忙的固定说法，加 small 让请求听起来更轻、更礼貌。"},
+      {"text": "In return", "meaning": "作为回报", "note": "请人帮忙时主动提出交换条件，显得公平：In return, I can…"},
+      {"text": "that's completely fine", "meaning": "完全没关系", "note": "给对方拒绝的空间，让请求不带压力，邮件和口语都常用。"},
+      {"text": "let me know by", "meaning": "在……之前告诉我", "note": "by + 时间表示截止期限：Please let me know by Friday."},
+      {"text": "sorry for the short notice", "meaning": "抱歉这么临时才通知你", "note": "short notice 指“通知得很晚”，临时提出请求时常用来道歉。"}
+    ],
+    "grammar": ["nonfinite-infinitive", "conditional-real"],
+    "knowledge": [
+      {"node": "nonfinite-infinitive", "quote": "I'm writing to ask you a small favor.", "explanation": "I'm writing to + 动词原形，用不定式说明写信的目的，是英文邮件最常见的开头句之一。"},
+      {"node": "conditional-real", "quote": "If you can't swap, that's completely fine.", "explanation": "If + 一般现在时，主句也用一般现在时，表示真实可能发生的情况；在请求后面加这一句，能给对方留余地。"}
+    ],
+    "speaking": "用 1 分钟当面请一位同事或同学帮你一个忙（比如换班、帮你拿快递），要说明原因，提出 In return…，并告诉对方拒绝也没关系。",
+    "writing": "用 60–80 词写一封邮件，请同学或同事和你交换值日或班次。要用上 I'm writing to… 和 If you can't…, that's completely fine。",
+    "task": {"prompt": "仿照这句，写一封邮件的开头句，请同事或同学帮你一个小忙。", "model": "I'm writing to ask you a small favor."},
+    "tags": ["职场邮件", "请人帮忙"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-work-a2-i-will-find-out",
+    "title": "“我不知道，但我去问问”",
+    "title_en": "I'm Not Sure, but I'll Find Out",
+    "summary_zh": "酒店前台新人 Jun 被客人问住了，他差点随便猜一个答案。读完你会明白为什么在工作中说“我不确定”反而更专业。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "work",
+    "genre": "story",
+    "body": "In his first week at the hotel, Jun worked at the front desk. One evening, a guest asked him which bus went to the old market. Jun had no idea. He wanted to guess, because he didn't want to look stupid. But he said, \"I'm not sure, but I'll find out for you.\" He called his colleague Nadia, who knew the city well. Two minutes later, he gave the guest the bus number and drew a small map. The guest thanked him and left with a big smile. Later that night, the manager came over to Jun's desk. \"I heard that,\" she said. \"Good answer. When you guess, guests sometimes get lost. When you check, they come back.\" Jun felt proud. Saying \"I don't know\" was hard, but it was the right thing to do.",
+    "questions": [
+      {
+        "prompt": "What is the main lesson of the story?",
+        "options": [
+          "Hotel workers should learn every bus number",
+          "It is better to check than to guess",
+          "Guests only like staff who answer quickly",
+          "New workers should not talk to guests alone"
+        ],
+        "answer": 1,
+        "evidence": "When you check, they come back."
+      },
+      {
+        "prompt": "How did Jun get the answer for the guest?",
+        "options": [
+          "He looked it up on the hotel computer",
+          "He asked the manager at the front desk",
+          "He made a good guess and was lucky",
+          "He called a colleague who knew the city"
+        ],
+        "answer": 3,
+        "evidence": "He called his colleague Nadia, who knew the city well."
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {"term": "guest", "meaning": "（酒店的）客人；住客", "example": "Every guest gets a free map of the city."},
+      {"term": "guess", "meaning": "猜；猜测", "example": "If you don't know the answer, don't guess."},
+      {"term": "colleague", "meaning": "同事", "example": "A colleague helped me fix my computer this morning."},
+      {"term": "check", "meaning": "核实；查一下", "example": "Let me check the time of the next train."}
+    ],
+    "expressions": [
+      {"text": "had no idea", "meaning": "完全不知道", "note": "比 didn't know 更口语，语气更强：I had no idea he was the boss."},
+      {"text": "look stupid", "meaning": "显得很笨；出丑", "note": "常用于 I didn't want to look stupid，说明自己为什么不敢提问。"},
+      {"text": "I'll find out for you", "meaning": "我帮您查一下", "note": "服务和职场中被问住时的专业回答，比直接说 I don't know 更积极。"},
+      {"text": "came over to", "meaning": "走过来到……", "note": "come over to sb/sth 表示从别处走到某人身边，讲故事时很常用。"},
+      {"text": "the right thing to do", "meaning": "正确的做法", "note": "It was the right thing to do 常用来肯定一个不容易的决定。"}
+    ],
+    "grammar": ["clause-adverb", "tense-past"],
+    "knowledge": [
+      {"node": "clause-adverb", "quote": "He wanted to guess, because he didn't want to look stupid.", "explanation": "because 引导原因状语从句，放在主句后面，回答“为什么”。说自己的想法时可以模仿：I didn't ask, because…"},
+      {"node": "tense-past", "quote": "Two minutes later, he gave the guest the bus number and drew a small map.", "explanation": "gave 和 drew 是不规则动词的过去式（give–gave，draw–drew），讲故事时按发生的顺序一个接一个地用。"}
+    ],
+    "speaking": "用 1 分钟讲一次你被别人问住的经历：你当时怎么回答的？如果重来一次，你会怎么用 I'm not sure, but I'll find out 来回答？",
+    "writing": "用 60–80 词写一段话：在学习或工作中，你什么时候会说“我不知道”？用上 because 说明你的理由。",
+    "task": {"prompt": "仿照这句，写一句你在工作或学习中被问住时可以说的话。", "model": "I'm not sure, but I'll find out for you."},
+    "tags": ["职场沟通", "服务意识"],
+    "source": "Flow 编辑部原创"
+  }
+]

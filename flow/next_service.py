@@ -1,8 +1,9 @@
-"""Flow Next: one learning loop on top of the existing backend (see NEXT.md).
+"""Flow: one learning loop on top of the existing backend (see NEXT.md).
 
 Material -> listen -> read (tap a word, save expressions) -> check -> use it (AI rewrite
-comparison) -> review only what you saved. Guests may read, listen and check answers;
-saving, AI and progress need an account.
+comparison) -> review only what you saved. The knowledge graph (18 grammar nodes, materials,
+saved expressions) drives what is recommended next, and AI feedback is mapped onto it.
+Guests may read, listen and check answers; saving, AI and progress need an account.
 """
 import datetime, hashlib, json, re, time
 from pathlib import Path
@@ -25,6 +26,15 @@ MINUTES = (5, 10, 15, 30)
 RATINGS = ('again', 'hard', 'good', 'easy')
 WORD = re.compile(r"[A-Za-z]+(?:'[A-Za-z]+)?")
 
+# Knowledge graph: 18 grammar nodes in 6 topics. Which nodes a level should be building now.
+TOPICS = [('tense', '时态'), ('clause', '从句'), ('conditional', '条件'), ('subjunctive', '虚拟'), ('nonfinite', '非谓语'), ('agreement', '主谓一致')]
+LEVEL_NODES = {
+    'A2': ('tense-present', 'tense-past', 'tense-perfect', 'conditional-real', 'nonfinite-infinitive', 'clause-adverb', 'clause-relative'),
+    'B1': ('tense-perfect', 'clause-relative', 'clause-adverb', 'clause-noun', 'conditional-real', 'conditional-unless', 'conditional-modal',
+           'nonfinite-infinitive', 'nonfinite-gerund', 'agreement-head', 'agreement-each'),
+}
+STATUS_LABEL = {'untouched': '还没接触', 'met': '读到过', 'used': '用出来过', 'watch': '写作中需要留意', 'solid': '做题已验证'}
+
 _DICT = None
 
 
@@ -43,7 +53,12 @@ CREATE INDEX IF NOT EXISTS next_cards_due ON next_cards(user_id, due);
 CREATE TABLE IF NOT EXISTS next_reviews(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, card INTEGER NOT NULL, rating TEXT NOT NULL, created REAL NOT NULL);
 CREATE INDEX IF NOT EXISTS next_reviews_time ON next_reviews(user_id, created);
 CREATE TABLE IF NOT EXISTS next_variants(pack TEXT NOT NULL, level TEXT NOT NULL, body TEXT NOT NULL, notes TEXT NOT NULL DEFAULT '[]',
- created REAL NOT NULL, PRIMARY KEY(pack, level));''')
+ created REAL NOT NULL, PRIMARY KEY(pack, level));
+CREATE TABLE IF NOT EXISTS next_node_notes(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, node TEXT NOT NULL, pack TEXT NOT NULL,
+ kind TEXT NOT NULL, detail TEXT NOT NULL DEFAULT '', created REAL NOT NULL);
+CREATE INDEX IF NOT EXISTS next_node_notes_user ON next_node_notes(user_id, node);
+CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT NULL, level TEXT NOT NULL, result TEXT NOT NULL,
+ created REAL NOT NULL, PRIMARY KEY(pack, sentence, level));''')
 
 
 # ---------- helpers ----------
@@ -112,8 +127,23 @@ def lookup(word):
     return {'query': word, 'lemma': best, **d[best]}
 
 
+def easiest_rank(word):
+    """Frequency rank of the most common of the word and its base forms ("blocking" is as easy as "block")."""
+    d = dictionary()
+    ranks = [d[c]['rank'] for c in lemma_candidates(word) if c in d]
+    return min(ranks) if ranks else 99999
+
+
 def sentences(body):
     return [s.strip() for s in re.split(r'(?:(?<=[.!?])|(?<=[.!?]["”’]))\s+', body.strip()) if s.strip()]
+
+
+def cefr(p):
+    return p.get('cefr') or p['level']
+
+
+def featured(p):
+    return p['id'].startswith('v5-')
 
 
 def _pack_row(c, uid, pid):
@@ -130,7 +160,7 @@ def _public_packs(c, level=None):
     out = []
     for row in c.execute("SELECT id, origin, created, content FROM lab_packs WHERE owner IS NULL"):
         p = json.loads(row['content'])
-        if p['id'] in SUPERSEDED or (level and p['level'] != level):
+        if p['id'] in SUPERSEDED or (level and cefr(p) != level):
             continue
         out.append((row, p))
     return out
@@ -170,24 +200,163 @@ def _done(c, uid):
 
 def _card(pack, done=None, extra=None):
     words = len(pack['body'].split())
-    return {'id': pack['id'], 'title': pack['title'], 'level': pack['level'], 'theme': pack['theme'], 'theme_label': THEMES.get(pack['theme'], ''),
-            'genre': pack.get('genre', ''), 'words': words, 'minutes': max(3, round(words / 30) + 4),
-            'preview': sentences(pack['body'])[0][:140], 'daily': bool(pack.get('daily_day')),
+    return {'id': pack['id'], 'title': pack['title'], 'title_en': pack.get('title_en', ''), 'level': cefr(pack), 'theme': pack['theme'],
+            'theme_label': THEMES.get(pack['theme'], ''), 'genre': pack.get('genre', ''), 'words': words, 'minutes': max(3, round(words / 30) + 4),
+            'preview': pack.get('summary_zh') or sentences(pack['body'])[0][:140], 'preview_en': sentences(pack['body'])[0][:160],
+            'daily': bool(pack.get('daily_day')), 'featured': featured(pack), 'grammar': pack.get('grammar', []),
             'steps': sorted(done or [], key=STEPS.index), **(extra or {})}
+
+
+# ---------- knowledge graph ----------
+
+def nodes_meta(c):
+    rows = c.execute('SELECT s.id, s.topic, s.title, s.prereq, s.lesson, s.example FROM subskills s ORDER BY s.rowid').fetchall()
+    return {r['id']: dict(r) for r in rows}
+
+
+def graph_states(c, uid):
+    """Per grammar node: exposure (read), use (wrote), AI flags, and classic evidence state."""
+    meta = nodes_meta(c)
+    out = {n: {'node': n, 'met': 0, 'used': 0, 'flags': 0, 'clean': 0, 'evidence': None} for n in meta}
+    if not uid:
+        for v in out.values():
+            v['status'] = 'untouched'
+        return out
+    packs = {}
+    for r in c.execute("SELECT DISTINCT pack, step FROM next_progress WHERE user_id=? AND step IN ('read','output')", (uid,)):
+        packs.setdefault(r['pack'], set()).add(r['step'])
+    if packs:
+        q = 'SELECT id, content FROM lab_packs WHERE id IN (%s)' % ','.join('?' * len(packs))
+        for r in c.execute(q, list(packs)):
+            for n in json.loads(r['content']).get('grammar', []):
+                if n in out:
+                    out[n]['met'] += 1
+                    if 'output' in packs[r['id']]:
+                        out[n]['used'] += 1
+    for r in c.execute('SELECT node, kind, COUNT(*) n FROM next_node_notes WHERE user_id=? AND created>? GROUP BY node, kind', (uid, time.time() - 30 * 86400)):
+        if r['node'] in out:
+            out[r['node']]['flags' if r['kind'] == 'flag' else 'clean'] += r['n']
+    ev = __import__('event_service')
+    for n in out:
+        rows = [dict(r) for r in c.execute('SELECT * FROM learning_events WHERE user_id=? AND node=? ORDER BY created,id', (uid, n))]
+        if rows:
+            out[n]['evidence'] = ev.summarize(n, rows)['state']
+    for v in out.values():
+        stable = v['evidence'] in ('独立完成一次', '独立完成', '延迟记得', '迁移已有证据')
+        if v['flags'] > v['clean'] or v['evidence'] == '需要巩固':
+            v['status'] = 'watch'
+        elif stable:
+            v['status'] = 'solid'
+        elif v['used']:
+            v['status'] = 'used'
+        elif v['met'] or v['evidence']:
+            v['status'] = 'met'
+        else:
+            v['status'] = 'untouched'
+    return out
+
+
+def graph(c, uid, level=None):
+    prof = profile(c, uid)
+    level = (prof or {}).get('level') or (level if level in LEVELS else 'B1')
+    meta = nodes_meta(c)
+    states = graph_states(c, uid)
+    counts = {}
+    for _, p in _public_packs(c):
+        for n in p.get('grammar', []):
+            counts[n] = counts.get(n, 0) + 1
+    focus = set(LEVEL_NODES.get(level, meta.keys()))
+    topics = []
+    for tid, tname in TOPICS:
+        nodes = [{'id': n, 'title': m['title'], 'prereq': m['prereq'], 'materials': counts.get(n, 0), 'focus': n in focus,
+                  'status': states[n]['status'], 'label': STATUS_LABEL[states[n]['status']], 'met': states[n]['met'],
+                  'used': states[n]['used'], 'flags': states[n]['flags']} for n, m in meta.items() if m['topic'] == tid]
+        topics.append({'id': tid, 'title': tname, 'nodes': nodes})
+    summary = {k: sum(1 for s in states.values() if s['status'] == k) for k in STATUS_LABEL}
+    return {'level': level, 'topics': topics, 'summary': summary, 'labels': STATUS_LABEL, 'total': len(meta)}
+
+
+def node(c, uid, nid, level=None):
+    meta = nodes_meta(c)
+    if nid not in meta:
+        return {'error': '知识点不存在'}, 404
+    m = meta[nid]
+    prof = profile(c, uid)
+    level = (prof or {}).get('level') or (level if level in LEVELS else 'B1')
+    st = graph_states(c, uid)[nid]
+    done = _done(c, uid)
+    examples, mats = [], []
+    for _, p in _public_packs(c):
+        if nid not in p.get('grammar', []):
+            continue
+        for k in p.get('knowledge', []):
+            if k.get('node') == nid and len(examples) < 40:
+                examples.append({'quote': k['quote'], 'explanation': re.split(r'[；;]', k.get('explanation', ''))[0].strip(), 'pack': p['id'],
+                                 'level': cefr(p), 'featured': featured(p)})
+        mats.append(p)
+    target = level if level != 'C1' else 'C1'
+    mats.sort(key=lambda p: (0 if cefr(p) == target else 1, 0 if featured(p) else 1, 'check' in done.get(p['id'], set()), p['id']))
+    examples.sort(key=lambda e: (0 if e['level'] == target else 1, 0 if e['featured'] else 1))
+    notes = [dict(r) for r in c.execute('SELECT pack, kind, detail, created FROM next_node_notes WHERE user_id=? AND node=? ORDER BY created DESC LIMIT 6', (uid or -1, nid))]
+    prereq = meta.get(m['prereq']) if m['prereq'] else None
+    unlocks = [{'id': k, 'title': v['title']} for k, v in meta.items() if v['prereq'] == nid]
+    return {'id': nid, 'title': m['title'], 'topic': dict(TOPICS).get(m['topic'], m['topic']), 'lesson': m['lesson'], 'example': m['example'],
+            'status': st['status'], 'label': STATUS_LABEL[st['status']], 'met': st['met'], 'used': st['used'], 'flags': st['flags'],
+            'evidence': st['evidence'], 'prereq': {'id': prereq['id'], 'title': prereq['title']} if prereq else None, 'unlocks': unlocks,
+            'examples': examples[:6], 'materials': [_card(p, done.get(p['id'])) for p in mats[:6]],
+            'notes': [{'pack': n['pack'], 'kind': n['kind'], 'detail': n['detail'], 'created': n['created']} for n in notes]}, 200
+
+
+# ---------- home & library ----------
+
+def _card_norms(c, uid):
+    if not uid:
+        return []
+    return [(r['text'], r['norm']) for r in c.execute('SELECT text, norm FROM next_cards WHERE user_id=? AND reps>=0 ORDER BY created DESC LIMIT 300', (uid,))]
 
 
 def home(c, uid, level=None, themes=None):
     prof = profile(c, uid)
     level = (prof or {}).get('level') or (level if level in LEVELS else 'B1')
-    pack_level = LEVELS[level]['pack']
     themes = (prof or {}).get('themes') or [t for t in (themes or []) if t in THEMES]
     done = _done(c, uid)
     day = _day()
-    pool = [(r, p) for r, p in _public_packs(c, pack_level) if r['origin'] != 'daily']
+    pool = [(r, p) for r, p in _public_packs(c, level) if r['origin'] != 'daily']
+    if len(pool) < 6 and level == 'C1':
+        pool += [(r, p) for r, p in _public_packs(c, 'B2') if r['origin'] != 'daily']
     fresh = [(r, p) for r, p in pool if 'check' not in done.get(p['id'], set())] or pool
+    states = graph_states(c, uid) if uid else {}
+    focus = set(LEVEL_NODES.get(level, ())) or None
+    meta_titles = {k: v['title'] for k, v in nodes_meta(c).items()}
+    saved = _card_norms(c, uid)
     seed = lambda p: hashlib.sha256(f"{uid or 0}|{day}|{p['id']}".encode()).hexdigest()
-    fresh.sort(key=lambda rp: (0 if (not themes or rp[1]['theme'] in themes) else 1, seed(rp[1])))
-    picks = [_card(p, done.get(p['id'])) for _, p in fresh[:3]]
+
+    def score(p):
+        s, reasons = 0.0, []
+        if featured(p):
+            s += 3
+        if themes and p['theme'] in themes:
+            s += 2
+        for n in p.get('grammar', []):
+            st = states.get(n, {}).get('status', 'untouched')
+            if st == 'watch':
+                s += 4; reasons.append(f'补一补「{meta_titles.get(n, n)}」')
+            elif st in ('met', 'untouched') and (focus is None or n in focus) and uid:
+                s += 1.2 if st == 'untouched' else 0.8
+                if st == 'untouched' and len(reasons) < 1:
+                    reasons.append(f'新知识点「{meta_titles.get(n, n)}」')
+        body = p['body'].lower()
+        hits = [t for t, n in saved if len(n) > 2 and re.search(r'(?<![a-z])' + re.escape(n) + r'(?![a-z])', body)]
+        if hits:
+            s += min(3, 1.5 * len(hits)); reasons.insert(0, f'你收藏的「{hits[0]}」又出现了')
+        return s, reasons[:2]
+
+    scored = []
+    for r, p in fresh:
+        s, reasons = score(p)
+        scored.append((-s, seed(p), p, reasons))
+    scored.sort(key=lambda x: (x[0], x[1]))
+    picks = [_card(p, done.get(p['id']), {'reasons': reasons}) for _, _, p, reasons in scored[:3]]
     news = None
     for r, p in sorted(_public_packs(c), key=lambda rp: -rp[0]['created']):
         if r['origin'] == 'daily' and r['created'] > time.time() - 3 * 86400:
@@ -195,15 +364,20 @@ def home(c, uid, level=None, themes=None):
             break
     resume = None
     if uid:
-        r = c.execute('''SELECT pack, MAX(created) t FROM next_progress WHERE user_id=? GROUP BY pack ORDER BY t DESC LIMIT 5''', (uid,)).fetchall()
-        for row in r:
+        for row in c.execute('SELECT pack, MAX(created) t FROM next_progress WHERE user_id=? GROUP BY pack ORDER BY t DESC LIMIT 5', (uid,)).fetchall():
             if 'output' not in done.get(row['pack'], set()):
                 pr = _pack_row(c, uid, row['pack'])
                 if pr:
                     resume = _card(json.loads(pr['content']), done.get(row['pack']))
                     break
+    g = None
+    if uid:
+        g = {k: sum(1 for s in states.values() if s['status'] == k) for k in STATUS_LABEL}
+        g['total'] = len(states)
+        watch = [n for n, s in states.items() if s['status'] == 'watch']
+        g['watch'] = [{'id': n, 'title': meta_titles.get(n, n)} for n in watch[:3]]
     return {'profile': prof, 'level': level, 'level_label': LEVELS[level]['label'], 'today': picks, 'news': news, 'resume': resume,
-            'stats': stats(c, uid) if uid else None}
+            'stats': stats(c, uid) if uid else None, 'graph': g}
 
 
 def stats(c, uid):
@@ -224,17 +398,25 @@ def stats(c, uid):
     }
 
 
-def library(c, uid, level=None, theme=None, page=1, per=12):
+def library(c, uid, level=None, theme=None, page=1, per=12, featured_only=False):
     done = _done(c, uid)
-    rows = _public_packs(c, level if level in ('A2', 'B1', 'B2') else None)
-    rows = [rp for rp in rows if not theme or rp[1]['theme'] == theme]
-    rows.sort(key=lambda rp: (-(rp[0]['created'] if rp[0]['origin'] == 'daily' else 0), rp[1]['level'], rp[1]['id']))
+    rows = _public_packs(c, level if level in LEVELS else None)
+    rows = [rp for rp in rows if (not theme or rp[1]['theme'] == theme) and (not featured_only or featured(rp[1]))]
+    order = {'A2': 0, 'B1': 1, 'B2': 2, 'C1': 3}
+    rows.sort(key=lambda rp: (0 if rp[0]['origin'] == 'daily' else 1, -(rp[0]['created'] if rp[0]['origin'] == 'daily' else 0),
+                              0 if featured(rp[1]) else 1, order.get(cefr(rp[1]), 9), rp[1]['id']))
     page = max(1, page)
     return {'total': len(rows), 'page': page, 'per': per, 'themes': THEMES,
+            'featured_total': sum(1 for _, p in _public_packs(c) if featured(p)),
             'items': [_card(p, done.get(p['id'])) for _, p in rows[(page - 1) * per: page * per]]}
 
 
+# ---------- material ----------
+
 def _task(pack, level):
+    if isinstance(pack.get('task'), dict) and pack['task'].get('prompt'):
+        k = next((k for k in pack.get('knowledge', []) if k.get('quote') and pack['task'].get('model', '') in k['quote']), None)
+        return {'prompt': pack['task']['prompt'], 'model': pack['task'].get('model', ''), 'hint': (k or {}).get('explanation', '')}
     k = dict((pack.get('knowledge') or [{}])[0])
     # Old explanations end with internal caveats ("阅读不等于已掌握…"); learners only need the first clause.
     k['explanation'] = re.split(r'[；;]', k.get('explanation', ''))[0].strip()
@@ -257,7 +439,7 @@ def material(c, uid, pid, level=None):
     hard_rank = LEVELS[level]['hard_rank']
     body = p['body']
     variant = None
-    if level in LEVELS and LEVELS[level]['pack'] != p['level'] or level == 'C1':
+    if level != cefr(p):
         v = c.execute('SELECT body, notes FROM next_variants WHERE pack=? AND level=?', (pid, level)).fetchone()
         if v:
             variant = {'level': level, 'body': v['body'], 'notes': json.loads(v['notes'])}
@@ -269,17 +451,26 @@ def material(c, uid, pid, level=None):
         if key in hard or key in vocab:
             continue
         hit = lookup(w)
-        if hit and hit['rank'] > hard_rank:
+        if hit and easiest_rank(w) > hard_rank:
             hard[key] = {'meaning': hit['meaning'][:80], 'rank': hit['rank']}
     qs = [{'prompt': q['prompt'], 'options': q['options']} for q in p.get('questions', [])]
     done = _done(c, uid).get(pid, set())
-    return {'id': p['id'], 'title': p['title'], 'level': p['level'], 'theme': p['theme'], 'theme_label': THEMES.get(p['theme'], ''),
-            'source': p.get('source', ''), 'daily_day': p.get('daily_day'), 'sentences': sentences(text), 'original_level': p['level'],
-            'original': sentences(body) if variant else None,
-            'variant': variant, 'vocabulary': list(vocab.values()), 'hard': hard, 'questions': qs,
-            'notes': p.get('knowledge', []), 'task': _task(p, level), 'steps': sorted(done, key=STEPS.index),
+    states = graph_states(c, uid)
+    meta = nodes_meta(c)
+    notes = []
+    for k in p.get('knowledge', []):
+        n = k.get('node')
+        notes.append({'node': n, 'title': meta.get(n, {}).get('title', n), 'quote': k.get('quote', ''),
+                      'explanation': re.split(r'[；;]', k.get('explanation', ''))[0].strip() if not featured(p) else k.get('explanation', ''),
+                      'status': states.get(n, {}).get('status', 'untouched'), 'label': STATUS_LABEL[states.get(n, {}).get('status', 'untouched')]})
+    return {'id': p['id'], 'title': p['title'], 'title_en': p.get('title_en', ''), 'summary_zh': p.get('summary_zh', ''),
+            'level': cefr(p), 'theme': p['theme'], 'theme_label': THEMES.get(p['theme'], ''), 'genre': p.get('genre', ''),
+            'source': p.get('source', ''), 'daily_day': p.get('daily_day'), 'featured': featured(p),
+            'sentences': sentences(text), 'original_level': cefr(p), 'original': sentences(body) if variant else None,
+            'variant': variant, 'vocabulary': list(vocab.values()), 'expressions': p.get('expressions', []), 'hard': hard, 'questions': qs,
+            'notes': notes, 'task': _task(p, level), 'steps': sorted(done, key=STEPS.index), 'dictation_index': p.get('dictation_index'),
             'provenance': [{'title': s['title'], 'url': s['url']} for s in (p.get('provenance') or {}).get('sources', [])][:5],
-            'user_level': level, 'can_variant': level != p['level'] and not variant}, 200
+            'user_level': level, 'can_variant': level != cefr(p) and not variant}, 200
 
 
 def check(c, uid, data):
@@ -417,6 +608,10 @@ def _level_voice(level):
             'C1': '讲解可以中英结合，关注措辞的细微差别、语域和风格。'}[level]
 
 
+def _node_list(c):
+    return '；'.join(f"{k}={v['title']}" for k, v in nodes_meta(c).items())
+
+
 def rewrite(c, uid, data):
     from lab_service import run_job, text as clean_text
     from chat_service import request_model
@@ -429,15 +624,20 @@ def rewrite(c, uid, data):
     if len(WORD.findall(answer)) < 2:
         return {'error': '请用英文写至少一个短句'}, 400
     task = _task(p, level)
+    valid_nodes = set(nodes_meta(c))
+    targets = [n for n in p.get('grammar', []) if n in valid_nodes]
     spec = {'pack': p['id'], 'text': answer, 'level': level}
     system = ('你是一位耐心、专业的英语写作教练，学习者的水平是 ' + level + '（' + LEVELS[level]['label'] + '）。' + _level_voice(level) +
               '先肯定写得好的地方，再改错，最后给出更好的说法。不要编造学习者没写的内容。只输出 JSON。')
     user = ('学习任务：' + task['prompt'] + ('\n参考句：' + task['model'] if task['model'] else '') +
-            '\n材料主题：' + p['title'] + '\n学习者写的英文：\n' + answer +
+            '\n材料主题：' + p['title'] + '\n本篇练习的语法节点：' + (', '.join(targets) or '无') +
+            '\n全部语法节点（id=名称）：' + _node_list(c) +
+            '\n学习者写的英文：\n' + answer +
             '\n\n输出 JSON，结构：{"verdict":"natural|minor|rewrite","summary":"一句话总评（中文，先说优点）",'
             '"corrected":"在保留原意的前提下改对的版本（若已正确则原样返回）",'
-            '"changes":[{"from":"原文片段","to":"改后片段","why":"为什么（简短）"}],'
+            '"changes":[{"from":"原文片段","to":"改后片段","why":"为什么（简短）","node":"相关语法节点 id，没有就写 null"}],'
             '"versions":[{"label":"更自然","text":"...","why":"和原句的差别"},{"label":"更正式","text":"...","why":"..."},{"label":"更简洁","text":"...","why":"..."}],'
+            '"used_well":["学习者用对了的语法节点 id"],'
             '"keep":{"text":"最值得收藏的一个英文表达（短语）","meaning":"中文意思"}}。changes 最多 5 条，没有错误就给空数组。')
 
     def convert(raw):
@@ -445,15 +645,18 @@ def rewrite(c, uid, data):
             raise ValueError('bad')
         out = {'verdict': raw.get('verdict') if raw.get('verdict') in ('natural', 'minor', 'rewrite') else 'minor',
                'summary': clean_text(raw.get('summary'), 1, 300), 'corrected': clean_text(raw.get('corrected'), 1, 900),
-               'changes': [], 'versions': [], 'keep': None}
+               'changes': [], 'versions': [], 'keep': None, 'used_well': []}
         for ch in (raw.get('changes') or [])[:5]:
             if isinstance(ch, dict) and ch.get('to'):
-                out['changes'].append({'from': clean_text(ch.get('from') or '—', 1, 200), 'to': clean_text(ch['to'], 1, 200), 'why': clean_text(ch.get('why') or '—', 1, 300)})
+                n = ch.get('node') if ch.get('node') in valid_nodes else None
+                out['changes'].append({'from': clean_text(ch.get('from') or '—', 1, 200), 'to': clean_text(ch['to'], 1, 200),
+                                       'why': clean_text(ch.get('why') or '—', 1, 300), 'node': n})
         for v in (raw.get('versions') or [])[:3]:
             if isinstance(v, dict) and v.get('text'):
                 out['versions'].append({'label': clean_text(v.get('label') or '参考', 1, 20), 'text': clean_text(v['text'], 1, 900), 'why': clean_text(v.get('why') or '', 0, 300)})
         if not out['versions']:
             raise ValueError('no versions')
+        out['used_well'] = [n for n in (raw.get('used_well') or []) if n in valid_nodes][:3]
         k = raw.get('keep')
         if isinstance(k, dict) and isinstance(k.get('text'), str) and WORD.search(k['text']) and len(k['text']) <= 160:
             out['keep'] = {'text': k['text'].strip(), 'meaning': str(k.get('meaning') or '')[:200]}
@@ -462,8 +665,75 @@ def rewrite(c, uid, data):
     result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-rewrite', p['id'], 'writing', spec,
                              lambda: request_model([{'role': 'system', 'content': system}, {'role': 'user', 'content': user}]), convert)
     if status == 200:
+        r = result['result']
+        rid = str(data.get('request_id', ''))
+        if not c.execute('SELECT 1 FROM next_node_notes WHERE user_id=? AND detail LIKE ?', (uid, rid + '%')).fetchone():
+            now = time.time()
+            meta = nodes_meta(c)
+            for ch in r['changes']:
+                if ch['node']:
+                    c.execute('INSERT INTO next_node_notes(user_id,node,pack,kind,detail,created) VALUES(?,?,?,?,?,?)',
+                              (uid, ch['node'], p['id'], 'flag', rid + '|' + ch['from'] + ' → ' + ch['to'], now))
+            flagged = {ch['node'] for ch in r['changes'] if ch['node']}
+            for n in r['used_well']:
+                if n not in flagged:
+                    c.execute('INSERT INTO next_node_notes(user_id,node,pack,kind,detail,created) VALUES(?,?,?,?,?,?)',
+                              (uid, n, p['id'], 'clean', rid + '|', now))
+            for ch in r['changes']:
+                ch['node_title'] = meta.get(ch['node'], {}).get('title') if ch['node'] else None
+            r['used_well'] = [{'id': n, 'title': meta[n]['title']} for n in r['used_well']]
         mark(c, uid, p['id'], 'output')
     return result, status
+
+
+def explain(c, uid, data):
+    """AI explanation of one sentence, grounded in the material's knowledge nodes. Cached site-wide per level."""
+    from lab_service import run_job, text as clean_text
+    from chat_service import request_model
+    row = _pack_row(c, uid, str(data.get('pack', '')))
+    if not row:
+        return {'error': '材料不存在'}, 404
+    p = json.loads(row['content'])
+    level = (profile(c, uid) or {}).get('level') or 'B1'
+    sentence = _text(data.get('sentence', ''), 600, 2)
+    variant = c.execute('SELECT body FROM next_variants WHERE pack=? AND level=?', (p['id'], level)).fetchone()
+    if sentence not in p['body'] and not (variant and sentence in variant['body']):
+        return {'error': '只能讲解材料里的句子'}, 400
+    meta = nodes_meta(c)
+    cached = c.execute('SELECT result FROM next_explains WHERE pack=? AND sentence=? AND level=?', (p['id'], sentence, level)).fetchone()
+    if cached:
+        return {'result': json.loads(cached['result']), 'cached': True}, 200
+    hints = [f"{k['node']}（{meta.get(k['node'], {}).get('title', '')}）：{k['quote']}" for k in p.get('knowledge', []) if k.get('quote') and k['quote'] in sentence]
+    system = ('你是英语老师，学习者水平 ' + level + '（' + LEVELS[level]['label'] + '）。' + _level_voice(level) + '讲解要短、准、能模仿。只输出 JSON。')
+    user = ('材料：' + p['title'] + '\n要讲解的句子：' + sentence + ('\n这句关联的语法节点：' + '；'.join(hints) if hints else '') +
+            '\n可用语法节点（id=名称）：' + _node_list(c) +
+            '\n\n输出 JSON：{"translation":"自然的中文翻译","structure":"一句话拆解句子主干和修饰成分",'
+            '"points":[{"text":"句中原样片段","note":"讲解（为什么这样用、语气、搭配）","node":"相关语法节点 id 或 null"}],'
+            '"pattern":{"frame":"可替换的句型框架，如 not A so much as B","example":"用这个框架造的一个新句子"}}。points 2–4 条。')
+
+    def convert(raw):
+        if not isinstance(raw, dict):
+            raise ValueError('bad')
+        out = {'translation': clean_text(raw.get('translation'), 1, 400), 'structure': clean_text(raw.get('structure') or '', 0, 400), 'points': [], 'pattern': None}
+        for pt in (raw.get('points') or [])[:4]:
+            if isinstance(pt, dict) and pt.get('text') and pt.get('note'):
+                n = pt.get('node') if pt.get('node') in meta else None
+                out['points'].append({'text': clean_text(pt['text'], 1, 200), 'note': clean_text(pt['note'], 1, 400), 'node': n,
+                                      'node_title': meta[n]['title'] if n else None})
+        if not out['points']:
+            raise ValueError('no points')
+        pt = raw.get('pattern')
+        if isinstance(pt, dict) and pt.get('frame'):
+            out['pattern'] = {'frame': clean_text(pt['frame'], 1, 160), 'example': clean_text(pt.get('example') or '', 0, 300)}
+        return out
+
+    result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-explain', p['id'], 'reading', {'pack': p['id'], 'sentence': sentence, 'level': level},
+                             lambda: request_model([{'role': 'system', 'content': system}, {'role': 'user', 'content': user}]), convert)
+    if status != 200:
+        return result, status
+    c.execute('INSERT OR IGNORE INTO next_explains VALUES(?,?,?,?,?)', (p['id'], sentence, level, json.dumps(result['result'], ensure_ascii=False), time.time()))
+    c.commit()
+    return {'result': result['result'], 'cached': False, 'remaining': result.get('remaining')}, 200
 
 
 def variant(c, uid, data):
@@ -479,7 +749,7 @@ def variant(c, uid, data):
         return {'level': level, 'body': cached['body'], 'notes': json.loads(cached['notes']), 'cached': True}, 200
     n = len(p['body'].split())
     lo, hi = {'A2': (max(40, n * 0.6), n * 1.0), 'B1': (n * 0.8, n * 1.2), 'B2': (n * 0.9, n * 1.4), 'C1': (n * 1.0, n * 1.6)}[level]
-    lo, hi = int(max(35, lo)), int(min(320, max(hi, lo + 30)))
+    lo, hi = int(max(35, lo)), int(min(420, max(hi, lo + 30)))
     system = '你是英语分级读物编辑。只改写语言难度，不增加、不删除事实、人物、数字和观点。只输出 JSON。'
     user = (f'把下面的英文材料改写成 CEFR {level} 难度（{LEVELS[level]["label"]}），{lo}–{hi} 个英文单词，保持段落为一段。'
             + {'A2': '使用最常见的词和短句，避免从句堆叠。', 'B1': '句子长短结合，常见搭配为主。',
@@ -523,9 +793,13 @@ def get(c, uid, path, q):
     if path == '/api/next/home':
         return home(c, uid, one('level'), one('themes').split(',') if one('themes') else None), 200
     if path == '/api/next/library':
-        return library(c, uid, one('level') or None, one('theme') or None, int(one('page', '1') or 1)), 200
+        return library(c, uid, one('level') or None, one('theme') or None, int(one('page', '1') or 1), featured_only=one('featured') == '1'), 200
     if path == '/api/next/material':
         return material(c, uid, one('id'), one('level'))
+    if path == '/api/next/graph':
+        return graph(c, uid, one('level')), 200
+    if path == '/api/next/node':
+        return node(c, uid, one('id'), one('level'))
     if path == '/api/next/lookup':
         w = one('w')[:40]
         if not WORD.fullmatch(w or ''):
@@ -550,6 +824,9 @@ def post_public(c, uid, path, data):
     return None
 
 
+AI_PATHS = ('/api/next/rewrite', '/api/next/variant', '/api/next/explain')
+
+
 def post(c, uid, path, data):
     if path == '/api/next/profile':
         return save_profile(c, uid, data)
@@ -568,4 +845,6 @@ def post(c, uid, path, data):
         return rewrite(c, uid, data)
     if path == '/api/next/variant':
         return variant(c, uid, data)
+    if path == '/api/next/explain':
+        return explain(c, uid, data)
     return None

@@ -34,12 +34,12 @@ class PracticeTests(unittest.TestCase):
   other=lab.pack_for(self.c,1,'graded-quiet-room-b1');lab.post(self.c,1,'/api/lab/support',{'pack':other['id'],'skill':'listening','action':'start'});out,_=lab.post(self.c,1,'/api/lab/comprehension',{'pack':other['id'],'skill':'listening','choices':[q['answer'] for q in other['questions']],'save_id':'practice-listening-001'})
   self.assertEqual(out['details']['assisted'],1);self.assertEqual(events.state(self.c,1,'skill:listening')['independent'],0)
  def test_recommendations_prioritize_level_then_theme_and_distinct_families(self):
-  d=practice.overview(self.c,1);self.assertEqual(d['total'],154);self.assertEqual(len(d['items']),6);self.assertTrue(all(p['level']=='A2' and p['theme']=='travel' for p in d['items']));self.assertEqual(len({p['grading']['family'] for p in d['items']}),6)
+  d=practice.overview(self.c,1);self.assertEqual(d['total'],154+len(__import__('content_v50').v5_materials()));self.assertEqual(len(d['items']),6);self.assertTrue(all(p['level']=='A2' and p['theme']=='travel' for p in d['items']));self.assertEqual(len({p['grading']['family'] for p in d['items']}),6)
  def test_preferences_and_learner_evidence_do_not_cross_accounts(self):
   practice.post(self.c,1,'/api/practice/preferences',{'skill':'writing','mode':'stretch'});self.assertEqual(practice.overview(self.c,1)['target'],'B1');self.assertEqual(practice.preferences(self.c,2)['mode'],'steady');self.assertEqual(practice.bands(self.c,2)['reading']['evidence_ids'],[])
  def test_unapproved_private_content_excluded_and_disabled_public_content_removed(self):
   first=practice.overview(self.c,1)['items'][0];row=self.c.execute('SELECT * FROM lab_packs WHERE id=?',(first['id'],)).fetchone();p=json.loads(row['content']);self.c.execute("INSERT INTO material_reviews(pack,content_hash,status,checks,note,created) VALUES(?,?,'disabled','{}','test',?)",(p['id'],quality.digest(p),time.time()));self.c.execute('INSERT INTO lab_packs VALUES(?,1,?,?,?)',('private-candidate','gemini',json.dumps(dict(p,id='private-candidate')),time.time()));self.c.commit()
-  d=practice.overview(self.c,1);self.assertNotIn(first['id'],[p['id'] for p in d['items']]);self.assertNotIn('private-candidate',[p['id'] for p in d['items']]);self.assertEqual(d['total'],153)
+  d=practice.overview(self.c,1);self.assertNotIn(first['id'],[p['id'] for p in d['items']]);self.assertNotIn('private-candidate',[p['id'] for p in d['items']]);self.assertEqual(d['total'],153+len(__import__('content_v50').v5_materials()))
  def test_stage_uses_personalized_rank_and_catalog_exposes_grading(self):
   candidates=growth.material_candidates(self.c,1);self.assertEqual(candidates[0]['level'],'A2');detail=lab.get(self.c,1,'/api/lab/pack',{'id':['graded-quiet-room-a2']})[0]['pack'];self.assertIn('rationale',detail['grading']);self.assertEqual(detail['grading']['family'],'graded-quiet-room')
 if __name__=='__main__':unittest.main()

@@ -1,0 +1,245 @@
+[
+  {
+    "id": "v5-science-a2-blue-sky",
+    "title": "天空为什么是蓝色的",
+    "title_en": "Why Is the Sky Blue? A Breakfast-Table Question",
+    "summary_zh": "女儿问爸爸：天空为什么是蓝的，傍晚又为什么变橙？读完你能用简单英语讲清阳光被空气“弹开”的原理，还能学会几句日常对话里的万能回应。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "science",
+    "genre": "dialogue",
+    "body": "Mia: Dad, why is the sky blue? Dad: Good question. Sunlight looks white, but it is really a mix of all the colours. Mia: Like a rainbow? Dad: Exactly. When sunlight comes into the air, it hits tiny bits of gas. They bounce blue light in every direction, much more than red. So blue light comes at you from all over the sky. Mia: Then why is the sky orange in the evening? Dad: The sun is low then, so its light travels through much more air. Most of the blue gets bounced away on the long trip. Mostly red and orange light gets through. Mia: So it's all about the long road? Dad: That's right. If you remember that, you'll know more than most people! Mia: Okay, why is grass green? Dad: Ask me after breakfast.",
+    "questions": [
+      {
+        "prompt": "What is the main reason the sky looks blue?",
+        "options": [
+          "The sky reflects the blue colour of the sea",
+          "Tiny bits of gas in the air bounce blue light everywhere",
+          "Sunlight is already blue when it leaves the sun",
+          "Our eyes can only see blue light in the daytime"
+        ],
+        "answer": 1,
+        "evidence": "They bounce blue light in every direction, much more than red."
+      },
+      {
+        "prompt": "Why is the sky orange in the evening?",
+        "options": [
+          "The air gets warmer in the evening",
+          "The sun gives off more red light at the end of the day",
+          "The light travels through more air, so most of the blue is lost",
+          "Clouds turn the blue light into orange light"
+        ],
+        "answer": 2,
+        "evidence": "Most of the blue gets bounced away on the long trip."
+      }
+    ],
+    "dictation_index": 2,
+    "vocabulary": [
+      {"term": "mix", "meaning": "混合物", "example": "This soup is a mix of carrots, beans and rice."},
+      {"term": "tiny", "meaning": "极小的", "example": "There is a tiny hole in my sock."},
+      {"term": "bounce", "meaning": "（使）弹开；反弹", "example": "The ball can bounce off the wall and come back to you."},
+      {"term": "travels", "meaning": "传播；行进", "example": "Sound travels more slowly than light."}
+    ],
+    "expressions": [
+      {"text": "Good question", "meaning": "好问题", "note": "别人问到点子上时先回一句，既礼貌又给自己留一点思考时间。"},
+      {"text": "a mix of", "meaning": "由……混合而成", "note": "后接复数或不可数名词：a mix of old and new songs。"},
+      {"text": "in every direction", "meaning": "向四面八方", "note": "描述光、声音、人群向各处散开：People ran in every direction."},
+      {"text": "all over the sky", "meaning": "遍布整个天空", "note": "all over + 地点＝到处都是：There were toys all over the floor."},
+      {"text": "gets through", "meaning": "穿过（障碍）；通过", "note": "也常说电话“打通”：My call didn't get through."},
+      {"text": "it's all about", "meaning": "关键就在于……", "note": "口语里总结重点：Learning English? It's all about practice."}
+    ],
+    "grammar": ["tense-present", "clause-adverb", "conditional-real"],
+    "knowledge": [
+      {"node": "tense-present", "quote": "Sunlight looks white, but it is really a mix of all the colours.", "explanation": "一般现在时描述一直成立的事实。looks（看起来）和 is really（实际上是）形成对比，是解释现象时很好用的句式。"},
+      {"node": "clause-adverb", "quote": "When sunlight comes into the air, it hits tiny bits of gas.", "explanation": "when 引导时间状语从句放在句首，从句和主句都用一般现在时，描述一个每次都会发生的过程。"},
+      {"node": "conditional-real", "quote": "If you remember that, you'll know more than most people!", "explanation": "真实条件句：if 从句用一般现在时，主句用 will（'ll）+ 动词原形，表示满足条件就会出现的结果。"}
+    ],
+    "speaking": "用 1 分钟给一个小朋友解释：天空为什么是蓝色，傍晚为什么会变橙色。用上 a mix of 和 in every direction。",
+    "writing": "用 60–80 词写一段小对话：一个孩子问你一个“为什么”的问题（比如为什么会下雨），你用简单的英语回答。至少用一个 When… 开头的句子。",
+    "task": {"prompt": "仿照这句，用 If you…, you'll… 给朋友一个小鼓励。", "model": "If you remember that, you'll know more than most people!"},
+    "tags": ["日常科学", "光与颜色"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-science-a2-ice-floats",
+    "title": "冰为什么会浮在水上",
+    "title_en": "The Bottle That Got Fat in the Freezer",
+    "summary_zh": "弟弟把装满水的瓶子放进冷冻室，第二天瓶子“胖”了。小故事讲清水结冰会变大、冰为什么浮在水面上，顺便练习用一般过去时讲故事。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "science",
+    "genre": "story",
+    "body": "Last summer, my little brother Leo made a small mistake. He filled a plastic bottle to the top with water and put it in the freezer. The next morning, the bottle looked fat and strange. Its sides were pushed out, and the cap was almost off. Leo thought the freezer was broken. Mum laughed and told him that water gets bigger when it freezes. Most things get smaller in the cold, but water is different. As it turns into ice, its tiny parts lock together with spaces between them. That's why ice takes up more space than water. It is also lighter than water of the same size, so it floats. We used ice cubes and a glass of juice to test this, and every cube stayed on top. \"So I didn't break it,\" Leo said. \"I did an experiment!\"",
+    "questions": [
+      {
+        "prompt": "What did Leo learn from his mistake?",
+        "options": [
+          "Plastic bottles always break in the freezer",
+          "Water takes up more space when it becomes ice",
+          "A freezer can make things heavier",
+          "Juice freezes faster than water"
+        ],
+        "answer": 1,
+        "evidence": "Mum laughed and told him that water gets bigger when it freezes."
+      },
+      {
+        "prompt": "Why did the ice cubes stay on top of the juice?",
+        "options": [
+          "The juice was colder than the ice",
+          "The cubes were very small",
+          "Ice is lighter than water of the same size",
+          "The juice had a lot of sugar in it"
+        ],
+        "answer": 2,
+        "evidence": "It is also lighter than water of the same size, so it floats."
+      }
+    ],
+    "dictation_index": 1,
+    "vocabulary": [
+      {"term": "freezer", "meaning": "冷冻室；冰柜", "example": "Please put the ice cream back in the freezer."},
+      {"term": "freezes", "meaning": "结冰；冻住", "example": "In winter, the lake near my home freezes."},
+      {"term": "space", "meaning": "空间；地方", "example": "There is no space for a piano in our small flat."},
+      {"term": "experiment", "meaning": "实验", "example": "Our teacher did a fun experiment with salt and water."}
+    ],
+    "expressions": [
+      {"text": "made a small mistake", "meaning": "犯了个小错", "note": "make a mistake 是固定搭配，不说 do a mistake。"},
+      {"text": "to the top", "meaning": "（装）满到顶", "note": "fill something to the top：Don't fill the cup to the top."},
+      {"text": "turns into", "meaning": "变成", "note": "turn into + 名词，描述状态变化：Rain turns into snow when it's very cold."},
+      {"text": "takes up more space", "meaning": "占更多地方", "note": "take up space/time＝占用空间或时间：This game takes up too much of my time."},
+      {"text": "That's why", "meaning": "这就是为什么……", "note": "先讲原因，再用 That's why 引出结果，口语里非常常用。"}
+    ],
+    "grammar": ["tense-past", "clause-noun", "nonfinite-infinitive"],
+    "knowledge": [
+      {"node": "tense-past", "quote": "He filled a plastic bottle to the top with water and put it in the freezer.", "explanation": "一般过去时讲故事：filled、put 两个动作按顺序发生，用 and 连起来。注意 put 的过去式还是 put。"},
+      {"node": "clause-noun", "quote": "Mum laughed and told him that water gets bigger when it freezes.", "explanation": "told him + that 从句，说明“告诉他什么”。从句讲的是一直成立的事实，所以主句是过去时，从句仍可用一般现在时 gets。"},
+      {"node": "nonfinite-infinitive", "quote": "We used ice cubes and a glass of juice to test this", "explanation": "to test this 是不定式表目的，说明“为了做什么”。use A to do B 是很实用的句型：I use this app to learn words."}
+    ],
+    "speaking": "用 1 分钟讲一个你或家人在家里“搞砸”了、却因此学到东西的小故事。用上 made a small mistake 和 That's why。",
+    "writing": "用 60–80 词写一个你在家做过的小实验（比如把东西放进冰箱、水里或阳光下），写清你做了什么、看到了什么。",
+    "task": {"prompt": "仿照这句，用 use … to … 写一句你用某样东西来做某件事的话。", "model": "We used ice cubes and a glass of juice to test this"},
+    "tags": ["日常科学", "家庭小实验"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-science-a2-onion-tears",
+    "title": "切洋葱为什么会流泪",
+    "title_en": "Why Onions Make You Cry",
+    "summary_zh": "切洋葱流泪不是因为难过，而是一种气体跑进了眼睛。读完你会知道眼泪在保护你，还能学会两个少流泪的小窍门。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "science",
+    "genre": "explainer",
+    "body": "Cutting an onion can make even a tough person cry. But don't worry: the onion isn't sad, and neither are you. Here is what happens. An onion is full of tiny cells. When your knife cuts them open, some chemicals inside mix together. They make a new gas, and the gas floats up into the air. When it reaches your eyes, they start to sting. Your eyes then make tears to wash the gas away. So the tears are really your body protecting itself. If you want fewer tears, you can try a few tricks. Put the onion in the fridge for a while before you cut it. Cold slows the gas down. Use a sharp knife, too, because it breaks fewer cells. Next time your eyes water in the kitchen, you'll know the reason.",
+    "questions": [
+      {
+        "prompt": "What is the main point of the text?",
+        "options": [
+          "Onions are bad for your eyes",
+          "Onion tears come from a gas, and they protect your eyes",
+          "Cold onions have more chemicals inside them",
+          "Strong people do not cry when they cut onions"
+        ],
+        "answer": 1,
+        "evidence": "So the tears are really your body protecting itself."
+      },
+      {
+        "prompt": "Why should you put the onion in the fridge first?",
+        "options": [
+          "Cold onions are easier to cut",
+          "The fridge takes the chemicals out",
+          "Cold onions have fewer cells",
+          "Cold slows the gas down"
+        ],
+        "answer": 3,
+        "evidence": "Cold slows the gas down."
+      }
+    ],
+    "dictation_index": 7,
+    "vocabulary": [
+      {"term": "cells", "meaning": "细胞", "example": "Your skin makes new cells every day."},
+      {"term": "chemicals", "meaning": "化学物质", "example": "Some cleaning chemicals have a very strong smell."},
+      {"term": "sting", "meaning": "刺痛", "example": "Soap can sting if it gets in your eyes."},
+      {"term": "tears", "meaning": "眼泪", "example": "She laughed so hard that tears ran down her face."}
+    ],
+    "expressions": [
+      {"text": "neither are you", "meaning": "你也不是", "note": "neither + be/助动词 + 主语，接在否定句后表示“……也不”：I'm not tired, and neither is she."},
+      {"text": "Here is what happens", "meaning": "情况是这样的", "note": "解释一个过程之前的开场白，讲解、聊天都能用。"},
+      {"text": "wash the gas away", "meaning": "把气体冲掉", "note": "wash … away＝冲走：The rain washed the dirt away."},
+      {"text": "try a few tricks", "meaning": "试几个小窍门", "note": "trick 在这里是“窍门”，不是“骗人”：I know a few tricks for learning new words."},
+      {"text": "for a while", "meaning": "一会儿；一段时间", "note": "时间不长也不具体：Let's sit here for a while."},
+      {"text": "your eyes water", "meaning": "（受刺激）流眼泪", "note": "water 作动词＝流泪，不是因为难过：The cold wind makes my eyes water."}
+    ],
+    "grammar": ["conditional-real", "nonfinite-infinitive", "clause-adverb"],
+    "knowledge": [
+      {"node": "conditional-real", "quote": "If you want fewer tears, you can try a few tricks.", "explanation": "真实条件句：if + 一般现在时，主句用 can + 动词原形，给出一个可行的建议。"},
+      {"node": "nonfinite-infinitive", "quote": "Your eyes then make tears to wash the gas away.", "explanation": "to wash 是不定式表目的：眼睛流泪是“为了”把气体冲走。"},
+      {"node": "clause-adverb", "quote": "When it reaches your eyes, they start to sting.", "explanation": "when 引导时间状语从句，描述“一……就……”的先后过程；从句和主句都用一般现在时。"}
+    ],
+    "speaking": "用 1 分钟教朋友切洋葱时少流泪的两个窍门，并解释为什么有效。用上 If you want…, you can… 和 for a while。",
+    "writing": "用 60–80 词介绍一个你知道的生活小窍门（做饭、学习都可以），说清怎么做、为什么有效。",
+    "task": {"prompt": "仿照这句，用 If you want…, you can… 给别人一个小建议。", "model": "If you want fewer tears, you can try a few tricks."},
+    "tags": ["日常科学", "厨房里的科学"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-science-a2-why-we-yawn",
+    "title": "我们为什么会打哈欠",
+    "title_en": "Why Do We Yawn? Nobody Knows for Sure",
+    "summary_zh": "人人都打哈欠，哈欠还会“传染”，可科学家至今说不准原因。读完你会了解几种主要猜想，也学会用英语诚实地说“还不确定”。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "science",
+    "genre": "explainer",
+    "body": "Have you ever yawned just because someone near you did it first? Maybe you want to do it right now, just from reading about it. Everybody yawns, and so do many animals, like dogs and cats. But here is a surprise: scientists are still not sure why we do it. An old idea says we do it to get more air, but there is not much proof for it. Another idea is that a big yawn helps to cool the brain a little. Some scientists think it helps us change from one state to another, for example from sleepy to awake. We do know one thing for sure. Yawns are catching. If you see a friend yawn, you often do the same. So the next time you yawn in class, tell your teacher you are thinking about science.",
+    "questions": [
+      {
+        "prompt": "What is the main message of the text?",
+        "options": [
+          "Yawning always means that you are bored",
+          "Scientists know exactly why we yawn",
+          "People yawn for reasons that are still not clear",
+          "Only people and dogs can yawn"
+        ],
+        "answer": 2,
+        "evidence": "scientists are still not sure why we do it"
+      },
+      {
+        "prompt": "In the text, what does \"Yawns are catching\" mean?",
+        "options": [
+          "Yawns are hard to stop once they start",
+          "Seeing someone yawn can make you yawn too",
+          "Yawns can make you ill",
+          "Yawns happen when we catch a cold"
+        ],
+        "answer": 1,
+        "evidence": "If you see a friend yawn, you often do the same."
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {"term": "yawn", "meaning": "打哈欠", "example": "Try not to yawn when your boss is talking."},
+      {"term": "proof", "meaning": "证据；证明", "example": "Do you have any proof that he took your pen?"},
+      {"term": "awake", "meaning": "醒着的", "example": "The coffee kept me awake all night."},
+      {"term": "catching", "meaning": "会传染的；容易传开的", "example": "Her laugh is so catching that the whole class started laughing."}
+    ],
+    "expressions": [
+      {"text": "right now", "meaning": "此刻；就是现在", "note": "强调“就在这时”：I'm busy right now. Can I call you back?"},
+      {"text": "here is a surprise", "meaning": "让你意外的是", "note": "引出出人意料的信息，讲解或聊天时能抓住听众注意力。"},
+      {"text": "not sure why", "meaning": "不确定为什么", "note": "be not sure why/what/how + 句子：I'm not sure why he left early."},
+      {"text": "for sure", "meaning": "确定地；肯定", "note": "口语常用：I know for sure that she's coming."},
+      {"text": "the next time", "meaning": "下次……的时候", "note": "后面直接接句子：The next time you see her, say hi for me."},
+      {"text": "so do many animals", "meaning": "很多动物也是这样", "note": "so + 助动词 + 主语，接在肯定句后表示“……也一样”：I like tea, and so does my dad."}
+    ],
+    "grammar": ["tense-perfect", "clause-noun", "conditional-real"],
+    "knowledge": [
+      {"node": "tense-perfect", "quote": "Have you ever yawned just because someone near you did it first?", "explanation": "Have you ever + 过去分词，问对方“有没有过某种经历”，不关心具体时间，是现在完成时最常用的用法。"},
+      {"node": "clause-noun", "quote": "Another idea is that a big yawn helps to cool the brain a little.", "explanation": "that 从句放在 is 后面作表语，说明 idea 的具体内容。可以模仿：The problem is that…, The plan is that…"},
+      {"node": "conditional-real", "quote": "If you see a friend yawn, you often do the same.", "explanation": "if + 一般现在时，主句也用一般现在时，表示一种常见规律（只要……通常就……）。注意 see someone do 用动词原形。"}
+    ],
+    "speaking": "用 1 分钟说说科学家对“我们为什么打哈欠”的几种猜想，并说明为什么还没有定论。用上 not sure why 和 for sure。",
+    "writing": "用 60–80 词写一件“大家都会做、但你不知道原因”的小事（比如打喷嚏、做梦），用 Have you ever…? 开头。",
+    "task": {"prompt": "仿照这句，用 Have you ever…? 问朋友一个关于日常经历的问题。", "model": "Have you ever yawned just because someone near you did it first?"},
+    "tags": ["日常科学", "人体奥秘"],
+    "source": "Flow 编辑部原创"
+  }
+]

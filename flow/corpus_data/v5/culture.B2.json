@@ -1,0 +1,505 @@
+[
+  {
+    "id": "v5-culture-b2-soft-no",
+    "title": "不说 no 也能拒绝",
+    "title_en": "How to Say No Without Saying No",
+    "summary_zh": "英语里直接说 no 往往显得生硬，于是有了一整套“软拒绝”说法。这篇拆解几种常用句子各自的作用，也提醒你软到对方听成 yes 就适得其反了。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "culture",
+    "genre": "guide",
+    "body": "In English, a direct \"no\" can sound much colder than the speaker intends, so people often wrap their refusals in softer language. Imagine a colleague asks you to join a project you have no time for. \"No, I can't\" would be perfectly honest, but it might leave the other person feeling brushed off. A more common choice is something like \"I'm not sure that works for me\", which signals a refusal while leaving room for discussion. Each of these softer phrases does a slightly different job. \"I'd love to, but I'm snowed under this week\" shows goodwill before the bad news arrives. \"That might be a bit tricky\" points to a problem without spelling it out. \"Let me check and get back to you\" buys time, although if you use it too often, people may stop believing you will ever get back to them. The real skill is knowing when softness helps and when it simply confuses. Some learners soften a refusal so much that the listener hears a yes, and the misunderstanding ends up costing more than a clear answer would have. One practical approach is to follow the soft phrase with something concrete: a reason, a different time, or another person who might help. Offering an alternative turns a closed door into a half-open one, and it makes clear that you are turning down the request, not the person. With practice, you will notice that a polite no rarely damages a relationship; it is the vague, half-hearted yes that tends to cause trouble later.",
+    "questions": [
+      {
+        "prompt": "What is the writer's main advice?",
+        "options": [
+          "Always refuse directly so that nobody is ever confused",
+          "Avoid saying no to colleagues whenever possible",
+          "Use softer phrases, but make sure the refusal is still clear",
+          "Choose one polite phrase and use it for every request"
+        ],
+        "answer": 2,
+        "evidence": "The real skill is knowing when softness helps and when it simply confuses."
+      },
+      {
+        "prompt": "Why might \"Let me check and get back to you\" become a problem?",
+        "options": [
+          "It sounds too direct for most workplaces",
+          "It only works in written messages",
+          "It forces you to explain your reasons",
+          "If it is overused, people stop trusting it"
+        ],
+        "answer": 3,
+        "evidence": "if you use it too often, people may stop believing you will ever get back to them"
+      }
+    ],
+    "dictation_index": 4,
+    "vocabulary": [
+      {
+        "term": "refusals",
+        "meaning": "拒绝（的话）",
+        "example": "After three polite refusals, he finally stopped asking."
+      },
+      {
+        "term": "goodwill",
+        "meaning": "善意；好意",
+        "example": "Bringing snacks to the meeting was a small sign of goodwill."
+      },
+      {
+        "term": "concrete",
+        "meaning": "具体的；实在的",
+        "example": "Can you give me a concrete example?"
+      },
+      {
+        "term": "alternative",
+        "meaning": "替代方案；另一种选择",
+        "example": "If the train is cancelled, the bus is a cheap alternative."
+      },
+      {
+        "term": "vague",
+        "meaning": "含糊的；不明确的",
+        "example": "His answer was so vague that nobody knew what he meant."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "brushed off",
+        "meaning": "被敷衍；被打发",
+        "note": "feel brushed off 指感觉对方没把你当回事；brush sb off 敷衍某人"
+      },
+      {
+        "text": "leaving room for discussion",
+        "meaning": "留有商量的余地",
+        "note": "leave room for + 名词：leave room for change / for questions"
+      },
+      {
+        "text": "I'm snowed under",
+        "meaning": "我忙得不可开交",
+        "note": "口语，形容工作多到“被雪埋了”，拒绝时给出理由很好用"
+      },
+      {
+        "text": "without spelling it out",
+        "meaning": "不把话挑明",
+        "note": "spell it out 把话说清楚、说白了；Do I have to spell it out?"
+      },
+      {
+        "text": "get back to you",
+        "meaning": "回头再答复你",
+        "note": "职场高频：I'll get back to you by Friday."
+      },
+      {
+        "text": "turning down the request",
+        "meaning": "拒绝这个请求",
+        "note": "turn down 拒绝（邀请、提议、请求），比 refuse 更口语"
+      }
+    ],
+    "grammar": [
+      "agreement-each",
+      "conditional-modal",
+      "nonfinite-gerund"
+    ],
+    "knowledge": [
+      {
+        "node": "agreement-each",
+        "quote": "Each of these softer phrases does a slightly different job.",
+        "explanation": "Each of + 复数名词作主语时，谓语看 each，用单数 does；别被紧挨着的 phrases 带偏写成 do。"
+      },
+      {
+        "node": "conditional-modal",
+        "quote": "if you use it too often, people may stop believing you will ever get back to them",
+        "explanation": "条件句的主句用情态动词 may，表示“有可能会”而不是“一定会”，让警告听起来客观、不武断。"
+      },
+      {
+        "node": "nonfinite-gerund",
+        "quote": "Offering an alternative turns a closed door into a half-open one",
+        "explanation": "动名词短语 Offering an alternative 作主语，谓语用单数 turns；用动名词作主语，适合总结“做某事会带来什么效果”。"
+      }
+    ],
+    "speaking": "同伴邀请你周末加班帮忙。用 1 分钟礼貌地拒绝：先用一句软化表达，再给出具体理由和一个替代方案。",
+    "writing": "写一封 100–130 词的英文邮件，婉拒同事请你负责一个新项目的请求，至少用上文中的两个表达，并提出一个替代建议。",
+    "task": {
+      "prompt": "仿照这句，用 Offering... turns A into B 写一句你认为能“化解尴尬”的做法。",
+      "model": "Offering an alternative turns a closed door into a half-open one"
+    },
+    "tags": [
+      "职场沟通",
+      "委婉表达"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-b2-paper-or-screen",
+    "title": "纸书还是屏幕？各有用处",
+    "title_en": "Paper or Screen? Ask What Each One Is For",
+    "summary_zh": "作者两种都读，结论不是谁更好，而是“哪一种更适合读什么”。读完你会学到如何在观点文里先让步、再表态，并给出自己的规则。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "culture",
+    "genre": "opinion",
+    "body": "People love to argue about whether paper books are better than screens, as though one side had to win. I read on both, and I have come to think the real question is not which is better, but what each one is better for. On my phone, I skim. I jump between articles, answer a message, come back and lose my place without noticing. Surrounded by notifications, even a gripping story has to compete for my attention, and it usually loses. A paperback, by contrast, does exactly one thing. It never offers me a video or reminds me about a sale. What I value most about paper is not the famous smell or the feel of the pages, but the sense of where I am in the story: a third of the way in, or a thumb's width from the end. On a screen, every page looks like every other page, and the story seems to float. That said, I would be lying if I claimed paper always wins. Screens let me make the text larger at night, look up a word in a second and carry a whole shelf of books on a crowded train. I just wish my phone were a little less eager to interrupt me. If it were as quiet as a book, I might never buy paper again. Until then, I follow a simple rule: anything I want to remember, I read on paper; anything I just need to know, I read on a screen.",
+    "questions": [
+      {
+        "prompt": "What is the writer's main opinion?",
+        "options": [
+          "Paper books are better than screens in every way",
+          "Paper and screens suit different kinds of reading",
+          "Screens will soon replace paper books completely",
+          "Reading on a phone is mostly a waste of time"
+        ],
+        "answer": 1,
+        "evidence": "the real question is not which is better, but what each one is better for"
+      },
+      {
+        "prompt": "What does the writer mean by saying the story \"seems to float\" on a screen?",
+        "options": [
+          "The text moves around too much to follow",
+          "The story feels more exciting than on paper",
+          "It is hard to sense how far you are into the book",
+          "The screen is too bright to read comfortably"
+        ],
+        "answer": 2,
+        "evidence": "On a screen, every page looks like every other page, and the story seems to float."
+      }
+    ],
+    "dictation_index": 4,
+    "vocabulary": [
+      {
+        "term": "skim",
+        "meaning": "略读；快速浏览",
+        "example": "I usually skim the news before breakfast."
+      },
+      {
+        "term": "notifications",
+        "meaning": "（手机）通知；推送",
+        "example": "I turned off all my notifications during the exam week."
+      },
+      {
+        "term": "gripping",
+        "meaning": "扣人心弦的；引人入胜的",
+        "example": "The film was so gripping that nobody touched their popcorn."
+      },
+      {
+        "term": "interrupt",
+        "meaning": "打断；打扰",
+        "example": "Sorry to interrupt, but your taxi is here."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "lose my place",
+        "meaning": "找不到读到哪儿了",
+        "note": "读书、听讲时“跟丢了”：I lost my place in the book."
+      },
+      {
+        "text": "compete for my attention",
+        "meaning": "争夺我的注意力",
+        "note": "compete for + 资源，写观点文很好用：Apps compete for our time."
+      },
+      {
+        "text": "by contrast",
+        "meaning": "相比之下",
+        "note": "引出对比，常放句首或句中，用逗号隔开"
+      },
+      {
+        "text": "That said",
+        "meaning": "话虽如此",
+        "note": "先说完一个观点，再引出让步或保留意见，非常地道"
+      },
+      {
+        "text": "I would be lying if I claimed",
+        "meaning": "如果我说……那是在撒谎",
+        "note": "坦诚承认反面观点的说法，语气诚恳"
+      },
+      {
+        "text": "look up a word",
+        "meaning": "查一个词",
+        "note": "look up 在词典、网上查；代词放中间：look it up"
+      }
+    ],
+    "grammar": [
+      "nonfinite-participle",
+      "clause-noun",
+      "subjunctive-now"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-participle",
+        "quote": "Surrounded by notifications, even a gripping story has to compete for my attention",
+        "explanation": "过去分词短语 Surrounded by... 放句首作状语，逻辑主语是后面的 story（故事“被通知包围”），表示被动和处境。"
+      },
+      {
+        "node": "clause-noun",
+        "quote": "What I value most about paper is not the famous smell or the feel of the pages, but the sense of where I am in the story",
+        "explanation": "What 引导主语从句，“我最看重的东西”；配合 not A but B 先否定常见答案、再给出自己的答案。where I am 也是名词性从句。"
+      },
+      {
+        "node": "subjunctive-now",
+        "quote": "I just wish my phone were a little less eager to interrupt me.",
+        "explanation": "wish + 过去式表示与现在事实相反的愿望：手机现在其实很爱打扰人。be 动词在这种虚拟语气里常用 were。"
+      }
+    ],
+    "speaking": "用 1 分钟说说你自己读什么用纸、读什么用屏幕，用 That said 引出一个让步，最后给出你的“阅读规则”。",
+    "writing": "写一篇 150–180 词的观点短文：网课和线下课，哪个更适合学什么？用 not which is better, but what each one is better for 的思路组织。",
+    "task": {
+      "prompt": "仿照这句，用 anything I..., I...; anything I..., I... 写一条你自己的学习或生活“规则”。",
+      "model": "anything I want to remember, I read on paper; anything I just need to know, I read on a screen."
+    },
+    "tags": [
+      "阅读习惯",
+      "观点表达"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-b2-films-and-subtitles",
+    "title": "刷完一整部剧，为什么还是开不了口",
+    "title_en": "I've Watched the Whole Series. Why Can't I Speak?",
+    "summary_zh": "Hao 刷完了整部医疗剧，开口还是卡壳。朋友 Leila 一针见血：你一直在读中文字幕。两人聊出了用影视学英语真正有效的方法和局限。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "culture",
+    "genre": "dialogue",
+    "body": "Hao: I don't get it — I've watched every season of that hospital drama, and I still freeze whenever someone actually speaks English to me. Leila: Let me guess, with Chinese subtitles? Hao: Well, yes, otherwise I'd miss half the plot. Leila: Then that's the problem, because you've basically been reading Chinese for months, with English playing quietly in the background. Hao: Ouch, but it's not completely useless, is it? Leila: No, you've probably picked up the rhythm of how people talk. But if you want the words to stick, you have to work a bit harder. Take one short scene, watch it with English subtitles, then pause and say the lines out loud. Hao: Like an actor? Leila: Exactly, copy the tone, the speed, even the sighs, and although it feels ridiculous at first, it works. Hao: Honestly, if I'd known that two years ago, I'd have saved myself a lot of time. Leila: Don't think of it that way. You enjoyed the show, which is why you kept going, and plenty of people give up on textbooks after a week. Hao: So what's the catch? Leila: The catch is that films give you scripted English. Real people interrupt each other, mumble and change their minds halfway through a sentence, so you'll still need to talk to actual humans. Hao: Fine, shall we start now, then? Leila: Sure, say something, and I'll mumble back.",
+    "questions": [
+      {
+        "prompt": "What is Leila's main point about learning English through films?",
+        "options": [
+          "Films are useless for learning a language",
+          "Films work best with subtitles in your first language",
+          "Films help most when you actively copy what you hear",
+          "Films are a good replacement for real conversation"
+        ],
+        "answer": 2,
+        "evidence": "But if you want the words to stick, you have to work a bit harder."
+      },
+      {
+        "prompt": "What is \"the catch\" that Leila mentions?",
+        "options": [
+          "Film English is scripted and cleaner than real speech",
+          "Subtitles in films are often translated badly",
+          "Actors usually speak too slowly to be realistic",
+          "Watching films takes too much time to be useful"
+        ],
+        "answer": 0,
+        "evidence": "The catch is that films give you scripted English."
+      }
+    ],
+    "dictation_index": 6,
+    "vocabulary": [
+      {
+        "term": "subtitles",
+        "meaning": "字幕",
+        "example": "I watched the film with subtitles because the actors spoke very fast."
+      },
+      {
+        "term": "plot",
+        "meaning": "（故事）情节",
+        "example": "The plot was so confusing that I gave up halfway."
+      },
+      {
+        "term": "rhythm",
+        "meaning": "节奏；韵律",
+        "example": "Listening to songs can help you feel the rhythm of a language."
+      },
+      {
+        "term": "scripted",
+        "meaning": "照剧本写好的；事先安排的",
+        "example": "The interview sounded scripted, not natural."
+      },
+      {
+        "term": "mumble",
+        "meaning": "含糊地说；嘟囔",
+        "example": "Please don't mumble; I can't hear you."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "I don't get it",
+        "meaning": "我想不通；我没明白",
+        "note": "口语高频，表示困惑或不理解，语气比 I don't understand 更随意"
+      },
+      {
+        "text": "picked up the rhythm",
+        "meaning": "（不知不觉）掌握了节奏",
+        "note": "pick up 指在接触中自然学会：pick up a language / a habit"
+      },
+      {
+        "text": "say the lines out loud",
+        "meaning": "把台词大声说出来",
+        "note": "out loud 出声地；跟读、背诵时常用"
+      },
+      {
+        "text": "what's the catch",
+        "meaning": "有什么问题/陷阱吗",
+        "note": "听到好得不像真的的事时追问隐藏的缺点"
+      },
+      {
+        "text": "give up on",
+        "meaning": "放弃（某事/某人）",
+        "note": "give up on + 名词，表示对它失去信心、不再坚持"
+      },
+      {
+        "text": "halfway through a sentence",
+        "meaning": "一句话说到一半",
+        "note": "halfway through + 名词：halfway through the film / the meal"
+      }
+    ],
+    "grammar": [
+      "tense-perfect",
+      "subjunctive-past",
+      "clause-relative"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-perfect",
+        "quote": "I've watched every season of that hospital drama, and I still freeze whenever someone actually speaks English to me.",
+        "explanation": "现在完成时 I've watched 强调“已经看完了”这个结果，和后半句的现状 I still freeze 形成对比，突出“看了也没用”。"
+      },
+      {
+        "node": "subjunctive-past",
+        "quote": "if I'd known that two years ago, I'd have saved myself a lot of time",
+        "explanation": "与过去事实相反：if + had done，主句 would have done。I'd known = I had known，I'd have = I would have，口语里都常缩写。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "You enjoyed the show, which is why you kept going",
+        "explanation": "which 指代前面整句话（你喜欢这部剧这件事），which is why... 表示“这正是……的原因”，口语里非常常用。"
+      }
+    ],
+    "speaking": "用 1 分钟给一位只看中文字幕追剧的朋友提建议：先肯定他的收获，再说出一个具体练法，最后提醒一个局限。",
+    "writing": "写 150–180 词，讲讲你用电影、剧集或歌曲学英语的经历：哪些方法有用、哪些没用，用上 if I'd known... 句型。",
+    "task": {
+      "prompt": "仿照这句，用 if I'd known..., I'd have... 说一件你“早知道就好了”的学习经历。",
+      "model": "if I'd known that two years ago, I'd have saved myself a lot of time"
+    },
+    "tags": [
+      "影视学英语",
+      "学习方法"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-b2-family-stories",
+    "title": "为什么家里人总讲同一个故事",
+    "title_en": "The Story We Tell Every Holiday",
+    "summary_zh": "每次家庭聚餐，总有人讲起爷爷开车走错路、开到卷心菜地的老故事。作者想明白了：大家重复它不是为了信息，而是为了归属感。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "culture",
+    "genre": "article",
+    "body": "In my family, there is one story that turns up at every holiday dinner, usually just after the main course. It is the story of the summer my grandfather drove three hours to the seaside and ended up at a cabbage farm, having followed the wrong signs with total confidence. Everyone at the table knows how it ends. Nobody is surprised by the cabbages. And yet, the moment someone says \"Remember the beach trip?\", the whole room leans in. Why do we keep telling stories that carry no new information? I have come to believe that the facts were never the point. Told for the hundredth time, the story is no longer news; it is more like a song that everyone knows the words to. Each of my aunts tells it differently. One focuses on my grandmother's stony silence in the passenger seat, another on the farmer who kindly offered them lunch, and the details shift a little every year. What stays the same is the feeling of belonging that comes from laughing at exactly the same moment. You can tell a lot about a family from the stories it repeats, because they show what it values, what it forgives and what it finds funny. I understood this most clearly when my sister's husband, who had heard the story at half a dozen dinners, finally told it himself, complete with my grandfather's proud wave at the cabbages. Nobody corrected him. Nobody needed to. By telling our story, he had quietly become part of it.",
+    "questions": [
+      {
+        "prompt": "According to the writer, why does the family keep telling the same story?",
+        "options": [
+          "To make sure the facts are remembered correctly",
+          "Because it creates a shared feeling of belonging",
+          "Because the grandfather insists on hearing it",
+          "To warn the children about following road signs"
+        ],
+        "answer": 1,
+        "evidence": "What stays the same is the feeling of belonging that comes from laughing at exactly the same moment."
+      },
+      {
+        "prompt": "What does the moment when the sister's husband tells the story suggest?",
+        "options": [
+          "He wanted to correct the family's version",
+          "He was tired of hearing it at every dinner",
+          "He had been on the beach trip himself",
+          "He had become an accepted part of the family"
+        ],
+        "answer": 3,
+        "evidence": "By telling our story, he had quietly become part of it."
+      }
+    ],
+    "dictation_index": 6,
+    "vocabulary": [
+      {
+        "term": "confidence",
+        "meaning": "自信；把握",
+        "example": "She answered the question with great confidence."
+      },
+      {
+        "term": "belonging",
+        "meaning": "归属感",
+        "example": "Joining the club gave him a real sense of belonging."
+      },
+      {
+        "term": "shift",
+        "meaning": "（轻微）变化；改变",
+        "example": "Prices shift a little from season to season."
+      },
+      {
+        "term": "forgives",
+        "meaning": "原谅；宽恕",
+        "example": "My mother always forgives me in the end."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "turns up at",
+        "meaning": "出现在（某场合）",
+        "note": "turn up 出现、露面，常带一点“又来了”的意味"
+      },
+      {
+        "text": "ended up at",
+        "meaning": "最后（意外地）到了",
+        "note": "end up + 地点 / doing，表示出乎意料的结果"
+      },
+      {
+        "text": "with total confidence",
+        "meaning": "信心十足地",
+        "note": "常带幽默，暗示“自信但其实错了”"
+      },
+      {
+        "text": "leans in",
+        "meaning": "凑过来（认真听）",
+        "note": "描写听众被吸引的身体动作，比 listens carefully 更生动"
+      },
+      {
+        "text": "never the point",
+        "meaning": "从来不是重点",
+        "note": "X was never the point. 纠正别人对重点的误解"
+      },
+      {
+        "text": "You can tell a lot about",
+        "meaning": "从……能看出很多",
+        "note": "You can tell a lot about someone from... 写观察类文章的好开头"
+      }
+    ],
+    "grammar": [
+      "nonfinite-participle",
+      "agreement-each",
+      "clause-relative"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-participle",
+        "quote": "Told for the hundredth time, the story is no longer news",
+        "explanation": "过去分词 Told 放句首，逻辑主语是 the story（故事“被讲”），相当于 When it is told for the hundredth time，更简洁。"
+      },
+      {
+        "node": "agreement-each",
+        "quote": "Each of my aunts tells it differently.",
+        "explanation": "Each of + 复数名词作主语，谓语跟 each 一致用单数 tells，强调“每一位各讲各的”。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "my sister's husband, who had heard the story at half a dozen dinners, finally told it himself",
+        "explanation": "非限制性定语从句 who had heard... 插在主谓之间补充背景；从句用过去完成时，表示“在他亲口讲之前已经听过很多次”。"
+      }
+    ],
+    "speaking": "用 1 分钟讲一个你家里人反复讲的故事：是关于谁的、每次谁来讲、大家听到哪里会笑。",
+    "writing": "写 150–180 词，讲你家或朋友圈里一个被反复讲的故事，并说说你认为它为什么一直被讲下去。用上 Each of... 和 You can tell a lot about...。",
+    "task": {
+      "prompt": "仿照这句，用 You can tell a lot about... from... 写一句你观察到的规律。",
+      "model": "You can tell a lot about a family from the stories it repeats"
+    },
+    "tags": [
+      "家庭",
+      "讲故事",
+      "归属感"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

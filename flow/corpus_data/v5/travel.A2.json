@@ -1,0 +1,483 @@
+[
+  {
+    "id": "v5-travel-a2-missed-connection",
+    "title": "错过换乘，怎么开口求助",
+    "title_en": "Missed Connection: Asking Station Staff for Help",
+    "summary_zh": "第一班火车晚点，Kenji 错过了换乘。看他怎么向车站工作人员说明情况、问下一班车和站台——一套出门在外随时用得上的求助句。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "travel",
+    "genre": "dialogue",
+    "body": "Kenji: Excuse me, can you help me? My first train was late, and I missed my connection to Lakeside. Staff: Oh no, I'm sorry about that. Can I see your ticket, please? Kenji: Sure, here it is. Do I need to buy a new one? Staff: No, don't worry. Your ticket is still good, because the delay wasn't your fault. Kenji: That's a relief! When is the next train? Staff: There's one in forty minutes, from platform six. Kenji: Is it a direct train, or do I need to change again? Staff: It's direct, so it goes straight there. If you're hungry, there's a small coffee shop upstairs. Kenji: Great, thanks. Sorry, which way is platform six? Staff: Go down these stairs and turn left. You can't miss it. Kenji: Thank you so much. You're a lifesaver!",
+    "questions": [
+      {
+        "prompt": "How does Kenji most likely feel at the end of the conversation?",
+        "options": [
+          "Worried that he must pay again",
+          "Grateful and much calmer",
+          "Annoyed with the station staff",
+          "Nervous about changing trains again"
+        ],
+        "answer": 1,
+        "evidence": "Thank you so much. You're a lifesaver!"
+      },
+      {
+        "prompt": "Why doesn't Kenji need to buy a new ticket?",
+        "options": [
+          "He bought a ticket for every train",
+          "The next train is free for everyone",
+          "The delay was not his fault",
+          "The staff member gives him a discount"
+        ],
+        "answer": 2,
+        "evidence": "Your ticket is still good, because the delay wasn't your fault."
+      }
+    ],
+    "dictation_index": 1,
+    "vocabulary": [
+      {
+        "term": "connection",
+        "meaning": "换乘（的车次或航班）",
+        "example": "We only had twenty minutes to make our connection."
+      },
+      {
+        "term": "delay",
+        "meaning": "延误；耽搁",
+        "example": "There was a long delay because of the snow."
+      },
+      {
+        "term": "direct",
+        "meaning": "直达的",
+        "example": "Is there a direct bus to the airport?"
+      },
+      {
+        "term": "platform",
+        "meaning": "站台",
+        "example": "The train to the city leaves from platform two."
+      },
+      {
+        "term": "fault",
+        "meaning": "过错；责任",
+        "example": "It wasn't your fault that the shop was closed."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "missed my connection",
+        "meaning": "错过了换乘的车（或航班）",
+        "note": "connection 指要转乘的那一班，火车、飞机都能用：I missed my connection because of the storm."
+      },
+      {
+        "text": "That's a relief",
+        "meaning": "那我就放心了；松了一口气",
+        "note": "听到好消息时的自然反应，也可以说 What a relief!"
+      },
+      {
+        "text": "goes straight there",
+        "meaning": "直接到那儿；中途不用换车",
+        "note": "straight 表示不绕路、不停留，也可以说 go straight home（直接回家）。"
+      },
+      {
+        "text": "You can't miss it",
+        "meaning": "你不会错过的；很好找",
+        "note": "指路时的口头禅，让对方放心：目的地很明显。"
+      },
+      {
+        "text": "You're a lifesaver",
+        "meaning": "你真是帮了我大忙",
+        "note": "夸张但很常用的感谢，对帮你解决麻烦的人说，语气热情。"
+      }
+    ],
+    "grammar": [
+      "tense-past",
+      "conditional-real",
+      "clause-adverb"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-past",
+        "quote": "My first train was late, and I missed my connection to Lakeside.",
+        "explanation": "用一般过去时 was / missed 交代已经发生的事。求助时先用一句话讲清“发生了什么”，对方马上就能明白。"
+      },
+      {
+        "node": "conditional-real",
+        "quote": "If you're hungry, there's a small coffee shop upstairs.",
+        "explanation": "if + 一般现在时，主句也用现在时，说一个真实可能的情况并给出建议。If you're ..., there's ... 是给人小建议的万能句型。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "Your ticket is still good, because the delay wasn't your fault.",
+        "explanation": "because 引导原因状语从句，放在主句后面补充理由。口语里先说结论、再用 because 解释，非常自然。"
+      }
+    ],
+    "speaking": "角色扮演：你的火车或航班晚点，错过了换乘。用 1 分钟向工作人员说明情况、问下一班车和怎么走，至少用上 missed my connection 和 Is it a direct ...?",
+    "writing": "用 50–70 词给朋友发一条消息：说你错过了换乘、下一班车什么时候到，用上 because 和 If ..., ... 各一次。",
+    "task": {
+      "prompt": "仿照这句，用 If you're ..., there's ... 给来你城市玩的朋友一个小建议。",
+      "model": "If you're hungry, there's a small coffee shop upstairs."
+    },
+    "tags": [
+      "交通出行",
+      "求助对话"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-travel-a2-asking-directions",
+    "title": "手机没电，开口问路",
+    "title_en": "Phone Almost Dead: Asking a Stranger the Way",
+    "summary_zh": "手机快没电，Amara 只好向路人问去老市场的路。跟着这段对话，学会礼貌开口、听懂“直走、过桥、右转”，再顺便问问有没有公交。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "travel",
+    "genre": "dialogue",
+    "body": "Amara: Excuse me, sorry to bother you. I'm trying to find the old market. Is it far from here? Rosa: Not really. It's about ten minutes on foot. Do you have a map? Amara: Only on my phone, and the battery is almost dead. Rosa: Ah, OK. Go straight on until you get to the river. Amara: Straight on to the river. Got it. Rosa: Then cross the bridge and take the first street on the right. You'll hear the market before you see it, because the sellers shout a lot! Amara: Ha, that sounds fun. Is there a bus, just in case? Rosa: There is, but it's slow. Walking is quicker, and the view from the bridge is lovely. Amara: Perfect. Thanks so much! Rosa: You're welcome. Enjoy the market, and don't forget to try the fresh bread!",
+    "questions": [
+      {
+        "prompt": "Why does Rosa think walking is a better idea than the bus?",
+        "options": [
+          "The bus does not stop near the market",
+          "Walking is faster and the view is nice",
+          "Amara's phone shows only walking routes",
+          "The bus is too crowded in the morning"
+        ],
+        "answer": 1,
+        "evidence": "Walking is quicker, and the view from the bridge is lovely."
+      },
+      {
+        "prompt": "How will Amara know she is close to the market?",
+        "options": [
+          "She will see a big sign",
+          "She will smell fresh bread",
+          "She will hear the sellers shouting",
+          "She will reach the bus stop"
+        ],
+        "answer": 2,
+        "evidence": "You'll hear the market before you see it, because the sellers shout a lot!"
+      }
+    ],
+    "dictation_index": 8,
+    "vocabulary": [
+      {
+        "term": "battery",
+        "meaning": "电池；电量",
+        "example": "My camera battery died halfway through the trip."
+      },
+      {
+        "term": "cross",
+        "meaning": "穿过；过（马路、桥）",
+        "example": "Be careful when you cross the road here."
+      },
+      {
+        "term": "sellers",
+        "meaning": "卖东西的人；摊贩",
+        "example": "The fruit sellers open their stalls very early."
+      },
+      {
+        "term": "fresh",
+        "meaning": "新鲜的；刚做好的",
+        "example": "This bakery sells fresh bread every morning."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "sorry to bother you",
+        "meaning": "不好意思，打扰一下",
+        "note": "向陌生人开口前的礼貌开场，比只说 Excuse me 更客气。"
+      },
+      {
+        "text": "on foot",
+        "meaning": "步行",
+        "note": "It's ten minutes on foot. = 走路十分钟。比 by foot 更常用。"
+      },
+      {
+        "text": "almost dead",
+        "meaning": "（电池）快没电了",
+        "note": "口语里手机、电池没电都用 dead：My phone is dead."
+      },
+      {
+        "text": "Go straight on",
+        "meaning": "一直往前走",
+        "note": "英式指路常用说法，美式英语多说 go straight ahead。"
+      },
+      {
+        "text": "Got it",
+        "meaning": "明白了；记住了",
+        "note": "确认自己听懂了，比 I understand 更口语、更轻松。"
+      },
+      {
+        "text": "just in case",
+        "meaning": "以防万一",
+        "note": "常放在句末，说明做某事是为了预防：Take an umbrella, just in case."
+      }
+    ],
+    "grammar": [
+      "nonfinite-infinitive",
+      "clause-adverb",
+      "tense-present"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "I'm trying to find the old market.",
+        "explanation": "try to do 表示“努力去做、想办法做”。问路时用 I'm trying to find ... 开头，比直接问 Where is ...? 更自然礼貌。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "Go straight on until you get to the river.",
+        "explanation": "until 引导时间状语从句，表示“一直……直到……”。从句说的是将来的事，但用一般现在时 get，不用 will get。"
+      },
+      {
+        "node": "tense-present",
+        "quote": "because the sellers shout a lot",
+        "explanation": "一般现在时表示经常发生、一直如此的事：摊贩们平时就爱吆喝。介绍一个地方的特点时常用。"
+      }
+    ],
+    "speaking": "和同伴练习：一人问路，一人指路（从你家到附近的超市或车站）。至少用上 sorry to bother you、Go straight on until ... 和 Got it。",
+    "writing": "用 50–70 词给朋友写一段从车站到你家的路线说明，用上 until、take the first street on the ... 和 You'll ... before you ...。",
+    "task": {
+      "prompt": "仿照这句，用 You'll ... before you ... 介绍你家附近一个很有特点的地方。",
+      "model": "You'll hear the market before you see it"
+    },
+    "tags": [
+      "问路",
+      "旅行对话"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-travel-a2-menu-pointing",
+    "title": "看不懂菜单的那顿饭",
+    "title_en": "The Night I Couldn't Read the Menu",
+    "summary_zh": "菜单一个字都看不懂，没有图片，服务员也不说英语，怎么办？作者指了指邻桌的菜，结果吃到了整趟旅行最难忘的一顿饭。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "travel",
+    "genre": "story",
+    "body": "On my second night in the little town, I was very hungry. But I couldn't read a single word on the menu. There were no pictures, and the waiter didn't speak English. I looked around the small room. At the next table, an old couple were eating something that smelled amazing. So I smiled at the waiter and pointed at their plates: \"That one, please.\" He laughed and nodded. The woman at the next table understood too. She showed me how to eat it: first the fish, then the rice, then a little of the green sauce. When the food arrived, it was hot and spicy, and I enjoyed every bite. I still don't know the name of the dish. But now, when I travel, I always look at other people's tables first.",
+    "questions": [
+      {
+        "prompt": "What did the writer learn from this meal?",
+        "options": [
+          "Always learn the local language before you travel",
+          "Watching what others eat can help you order",
+          "Restaurants without pictures are usually bad",
+          "It is rude to look at other people's food"
+        ],
+        "answer": 1,
+        "evidence": "when I travel, I always look at other people's tables first"
+      },
+      {
+        "prompt": "How did the woman at the next table help?",
+        "options": [
+          "She translated the menu for the writer",
+          "She ordered the food for the writer",
+          "She showed the writer what to eat first and next",
+          "She gave the writer some of her fish"
+        ],
+        "answer": 2,
+        "evidence": "She showed me how to eat it: first the fish, then the rice, then a little of the green sauce."
+      }
+    ],
+    "dictation_index": 4,
+    "vocabulary": [
+      {
+        "term": "menu",
+        "meaning": "菜单",
+        "example": "Could we see the menu again, please?"
+      },
+      {
+        "term": "couple",
+        "meaning": "（一对）夫妻；情侣",
+        "example": "A young couple sat down at the table by the window."
+      },
+      {
+        "term": "spicy",
+        "meaning": "辣的；香辣的",
+        "example": "I can't eat very spicy food."
+      },
+      {
+        "term": "dish",
+        "meaning": "一道菜",
+        "example": "This is the most famous dish in my hometown."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "couldn't read a single word",
+        "meaning": "一个字都看不懂",
+        "note": "not a single ... 强调“一个都没有”：I didn't see a single taxi."
+      },
+      {
+        "text": "smelled amazing",
+        "meaning": "闻起来香极了",
+        "note": "smell 后面接形容词，不接副词：It smells great."
+      },
+      {
+        "text": "That one, please",
+        "meaning": "要那个，谢谢",
+        "note": "点餐、买东西时边指边说；语言不通时最好用的一句。"
+      },
+      {
+        "text": "showed me how to eat it",
+        "meaning": "教我怎么吃",
+        "note": "show sb how to do sth：做给某人看、教某人怎么做。"
+      },
+      {
+        "text": "enjoyed every bite",
+        "meaning": "每一口都吃得很香",
+        "note": "形容东西特别好吃、吃得很满足，比 It was delicious 更生动。"
+      }
+    ],
+    "grammar": [
+      "tense-past",
+      "clause-adverb",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-past",
+        "quote": "At the next table, an old couple were eating something that smelled amazing.",
+        "explanation": "过去进行时 were eating 描写“当时正在发生”的背景画面，讲故事时用它铺场景，再用一般过去时写接下来的动作。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "When the food arrived, it was hot and spicy, and I enjoyed every bite.",
+        "explanation": "when 引导时间状语从句放在句首，先交代时间点，再说当时的感受。讲经历时非常好用。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "She showed me how to eat it",
+        "explanation": "how to + 动词原形 作宾语，意思是“怎么做”。同样可以说 tell me where to go、show me what to do。"
+      }
+    ],
+    "speaking": "用 1 分钟讲一次你在外面点餐“点错”或“点到惊喜”的经历，用上 couldn't ... a single ... 和 When ..., ...。",
+    "writing": "用 60–80 词写一顿让你难忘的饭：在哪儿、吃了什么、味道怎样，用上 smelled amazing 或 enjoyed every bite。",
+    "task": {
+      "prompt": "仿照这句，用 when I ..., I always ... 写你旅行或生活中的一个小习惯。",
+      "model": "when I travel, I always look at other people's tables first"
+    },
+    "tags": [
+      "点餐",
+      "旅行故事"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-travel-a2-packing-light",
+    "title": "轻装出行的小诀窍",
+    "title_en": "How to Pack Light (and Why You'll Thank Yourself)",
+    "summary_zh": "每次出门都拖着大箱子？这份轻装指南只有几步：东西先减半，衣服选能互相搭配的颜色，最大的鞋穿在脚上。读完你会想重新收拾一次行李。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "travel",
+    "genre": "guide",
+    "body": "Do you always carry a heavy bag on holiday? Here is a simple way to pack light. First, put everything you want to take on your bed. Then take away half of it. It sounds hard, but you won't miss most of those things. Choose clothes in two or three colours, so everything goes with everything. Wear your biggest shoes and your warmest jacket on the journey to save space. If you need something small, like soap or a phone charger, you can usually buy it there. Take one bag, not three. A light bag makes every day easier. You can walk from the station, run up the stairs and jump on a crowded bus. And at the end of the trip, you'll still have room for a little gift for someone at home.",
+    "questions": [
+      {
+        "prompt": "What is the writer's main advice?",
+        "options": [
+          "Buy everything you need after you arrive",
+          "Take fewer things so travelling is easier",
+          "Choose bright colours for your travel clothes",
+          "Use three small bags instead of one big one"
+        ],
+        "answer": 1,
+        "evidence": "A light bag makes every day easier."
+      },
+      {
+        "prompt": "Why should you wear your biggest shoes on the journey?",
+        "options": [
+          "They are more comfortable for walking",
+          "So they don't take up space in your bag",
+          "Because you can't buy shoes there",
+          "So you can run up the stairs quickly"
+        ],
+        "answer": 1,
+        "evidence": "Wear your biggest shoes and your warmest jacket on the journey to save space."
+      }
+    ],
+    "dictation_index": 6,
+    "vocabulary": [
+      {
+        "term": "heavy",
+        "meaning": "重的；沉的",
+        "example": "This box is too heavy for me to carry."
+      },
+      {
+        "term": "charger",
+        "meaning": "充电器",
+        "example": "I left my phone charger in the hotel room."
+      },
+      {
+        "term": "journey",
+        "meaning": "旅程；路途",
+        "example": "The journey to my grandparents' village takes all day."
+      },
+      {
+        "term": "crowded",
+        "meaning": "拥挤的",
+        "example": "The beach gets very crowded at the weekend."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "pack light",
+        "meaning": "轻装出行；少带行李",
+        "note": "旅行高频说法，light 在这里是副词“轻便地”：I always try to pack light."
+      },
+      {
+        "text": "It sounds hard, but",
+        "meaning": "听起来很难，但是……",
+        "note": "先承认困难，再给出理由，劝别人试试时很好用。"
+      },
+      {
+        "text": "goes with everything",
+        "meaning": "百搭；跟什么都配",
+        "note": "go with 指衣服、颜色等互相搭配：This bag goes with everything."
+      },
+      {
+        "text": "save space",
+        "meaning": "节省空间",
+        "note": "打包、收纳时常用；同样可以说 save time、save money。"
+      },
+      {
+        "text": "jump on a crowded bus",
+        "meaning": "挤上一辆满员的公交",
+        "note": "jump on 口语里指“迅速上车”，不一定真的跳。"
+      },
+      {
+        "text": "have room for",
+        "meaning": "还有地方放……",
+        "note": "room 在这里是不可数名词“空间”：Do you have room for one more?"
+      }
+    ],
+    "grammar": [
+      "conditional-real",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "conditional-real",
+        "quote": "If you need something small, like soap or a phone charger, you can usually buy it there.",
+        "explanation": "if + 一般现在时，主句用 can + 动词原形，说一个真实可能发生的情况和你能怎么做。给人出主意时非常常用。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "Wear your biggest shoes and your warmest jacket on the journey to save space.",
+        "explanation": "句末的 to save space 是不定式表目的，回答“为什么这样做”。先说做什么，再用 to + 动词说目的。"
+      }
+    ],
+    "speaking": "用 1 分钟告诉朋友你出门旅行一定会带的三样东西和一定不带的一样东西，用上 pack light 和 If you ..., you can ...。",
+    "writing": "用 60–80 词写一份“周末短途旅行打包清单”，说明每样东西为什么要带，至少用两次 to + 动词表示目的。",
+    "task": {
+      "prompt": "仿照这句，用 If you need ..., you can ... 给第一次出远门的朋友一条小建议。",
+      "model": "If you need something small, like soap or a phone charger, you can usually buy it there."
+    },
+    "tags": [
+      "行李打包",
+      "旅行攻略"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]
