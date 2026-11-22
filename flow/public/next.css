@@ -406,3 +406,6 @@ main>.section,main>*+.section{margin-top:28px}
 .gmap.compact{max-width:420px}.gmap.compact .gn circle.dot{r:10}.gmap.compact .gn circle.ring{r:15}
 .gmap circle.ring,.gmap circle.dot{transform-box:fill-box;transform-origin:center}
 .gmap.compact .gn circle.dot{r:10px}.gmap.compact .gn circle.ring{r:15px}
+.voices{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.chip.small{padding:6px 12px;font-size:13.5px}
+.chip[disabled]{opacity:.4;cursor:not-allowed}

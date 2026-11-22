@@ -254,5 +254,62 @@ class NextGraphTests(unittest.TestCase):
         self.assertEqual(nx.explain(self.c, 1, {'pack': p['id'], 'sentence': 'Not in the text at all.', 'request_id': 'next-ex-0003'})[1], 400)
 
 
+class NextAudioTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.p = patch.object(app, 'DB', Path(self.tmp.name) / 'a.db'); self.p.start()
+        self.audio = Path(self.tmp.name) / 'audio'
+        self.a = patch.object(nx, 'AUDIO_DIR', self.audio); self.a.start()
+        nx._AUDIO.update(mtime=None, index={})
+        app.init()
+        with app.db() as c:
+            c.execute('INSERT INTO users(username,password) VALUES(?,?)', ('learner', app.password('correct horse battery')))
+        self.pid = 'v5-science-b2-noise-cancelling'
+        (self.audio / 'uk-m').mkdir(parents=True)
+        (self.audio / 'uk-m' / (self.pid + '.m4a')).write_bytes(bytes(range(256)) * 4)
+        (self.audio / 'uk-m' / (self.pid + '.json')).write_text('{"v":1,"sentences":[]}')
+        (self.audio / 'index.json').write_text(json.dumps({self.pid: ['uk-m', 'bogus']}))
+        self.srv = ThreadingHTTPServer(('127.0.0.1', 0), app.Handler); threading.Thread(target=self.srv.serve_forever, daemon=True).start()
+
+    def tearDown(self):
+        self.srv.shutdown(); self.srv.server_close(); self.a.stop(); self.p.stop(); self.tmp.cleanup()
+
+    def get(self, path, headers=None):
+        req = urllib.request.Request(f'http://127.0.0.1:{self.srv.server_address[1]}{path}', headers=headers or {})
+        try:
+            with urllib.request.urlopen(req, timeout=10) as r: return r.status, r.read(), dict(r.headers)
+        except urllib.error.HTTPError as e: return e.code, e.read(), dict(e.headers)
+
+    def test_material_lists_available_voices_and_meta_lists_all(self):
+        with app.db() as c:
+            m, _ = nx.material(c, None, self.pid, 'B2')
+            self.assertEqual(m['audio']['voices'], ['uk-m']); self.assertGreater(m['audio']['version'], 0)
+            other = nx.home(c, None, 'A2')['today'][0]['id']
+            self.assertEqual(nx.material(c, None, other, 'A2')[0]['audio']['voices'], [])
+        self.assertEqual([v['id'] for v in nx.meta()['voices']], ['us-f', 'us-m', 'uk-f', 'uk-m'])
+
+    def test_audio_is_served_with_ranges_and_paths_are_validated(self):
+        s, body, h = self.get(f'/audio/uk-m/{self.pid}.m4a')
+        self.assertEqual((s, len(body), h['Accept-Ranges'], h['Content-Type']), (200, 1024, 'bytes', 'audio/mp4'))
+        s, body, h = self.get(f'/audio/uk-m/{self.pid}.m4a', {'Range': 'bytes=100-199'})
+        self.assertEqual((s, len(body), h['Content-Range']), (206, 100, 'bytes 100-199/1024')); self.assertEqual(body[0], 100)
+        s, body, h = self.get(f'/audio/uk-m/{self.pid}.m4a', {'Range': 'bytes=-24'})
+        self.assertEqual((s, len(body)), (206, 24))
+        self.assertEqual(self.get(f'/audio/uk-m/{self.pid}.m4a', {'Range': 'bytes=5000-'})[0], 416)
+        self.assertEqual(self.get(f'/audio/uk-m/{self.pid}.json')[0], 200)
+        for bad in (f'/audio/us-f/{self.pid}.m4a', '/audio/uk-m/../app.py', '/audio/uk-m/x.py', '/audio/evil/a.m4a', f'/audio/uk-m/{self.pid}.wav'):
+            self.assertEqual(self.get(bad)[0], 404, bad)
+
+    def test_voice_preference_is_saved_with_profile(self):
+        with app.db() as c:
+            self.assertEqual(nx.set_voice(c, 1, {'voice': 'xx'})[1], 400)
+            nx.save_profile(c, 1, {'level': 'B1'})
+            self.assertEqual(nx.profile(c, 1)['voice'], 'us-f')
+            self.assertEqual(nx.set_voice(c, 1, {'voice': 'uk-f'})[1], 200)
+            self.assertEqual(nx.profile(c, 1)['voice'], 'uk-f')
+            nx.save_profile(c, 1, {'level': 'B2'})
+            self.assertEqual(nx.profile(c, 1)['voice'], 'uk-f')
+
+
 if __name__ == '__main__':
     unittest.main()

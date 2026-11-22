@@ -7,7 +7,8 @@
   const sheetEl = document.getElementById('sheet');
   const sheetCard = document.getElementById('sheetCard');
   const toastEl = document.getElementById('toast');
-  const S = { user: null, csrf: '', meta: null, home: null, guest: load('flow-next-guest'), lastRoute: '' };
+  const S = { user: null, csrf: '', meta: null, home: null, guest: load('flow-next-guest'), lastRoute: '', voice: load('flow-next-voice') || 'us-f' };
+  const VOICE_LABELS = { 'us-f': '美音 · 女', 'us-m': '美音 · 男', 'uk-f': '英音 · 女', 'uk-m': '英音 · 男' };
   const STEP = { listen: '听', read: '读', check: '理解', output: '用出来' };
   const STEPS = Object.keys(STEP);
   const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -85,6 +86,60 @@
     if (cur) cur.classList.add('cur');
   }
 
+  /* ---------- narration: pre-generated Kokoro audio + timings (sentence exact, words estimated) ---------- */
+  const NAR = {
+    audio: new Audio(), meta: null, key: '', raf: 0, stopAt: null, onTick: null, onEnd: null,
+    async load(id, voice, version) {
+      const key = voice + '/' + id + '@' + version;
+      if (this.key === key && this.meta) return true;
+      this.stop(); this.meta = null; this.key = '';
+      try {
+        const r = await fetch(`/audio/${voice}/${encodeURIComponent(id)}.json?v=${version}`);
+        if (!r.ok) return false;
+        this.meta = await r.json(); this.key = key;
+        this.audio.preload = 'auto'; this.audio.src = `/audio/${voice}/${encodeURIComponent(id)}.m4a?v=${version}`;
+        return true;
+      } catch (e) { return false; }
+    },
+    play(from, to, onTick, onEnd) {
+      this.stopLoop(); this.stopAt = to; this.onTick = onTick; this.onEnd = onEnd;
+      this.audio.playbackRate = TTS.rate; this.audio.preservesPitch = true;
+      try { this.audio.currentTime = from; } catch (e) { /* not seekable yet */ }
+      this.audio.play().catch(() => { toast('音频暂时无法播放，改用浏览器朗读'); this.finish(); });
+      const loop = () => {
+        const t = this.audio.currentTime;
+        if (this.onTick) this.onTick(t);
+        if ((this.stopAt != null && t >= this.stopAt) || this.audio.ended) { this.audio.pause(); this.finish(); return; }
+        this.raf = requestAnimationFrame(loop);
+      };
+      this.raf = requestAnimationFrame(loop);
+    },
+    finish() { this.stopLoop(); const cb = this.onEnd; this.onEnd = null; this.onTick = null; if (cb) cb(); },
+    stopLoop() { cancelAnimationFrame(this.raf); this.raf = 0; },
+    stop() { this.stopLoop(); this.onEnd = null; this.onTick = null; try { this.audio.pause(); } catch (e) { /* ignore */ } },
+    // -> [sentence index, char offset of the current word] at time t
+    locate(t) {
+      const ss = this.meta.sentences; let si = -1;
+      for (let i = 0; i < ss.length; i++) { if (t >= ss[i].s - 0.02 && t < ss[i].e + 0.25) { si = i; break; } if (t < ss[i].s) break; }
+      if (si < 0) return [-1, null];
+      let wc = null; for (const w of ss[si].w) { if (t >= w[1]) wc = w[0]; else break; }
+      return [si, wc];
+    },
+  };
+  function lightAt(container, charOffset) {
+    container.querySelectorAll('.cur').forEach(el => el.classList.remove('cur'));
+    if (charOffset == null) return;
+    const el = container.querySelector(`[data-c="${charOffset}"]`); if (el) el.classList.add('cur');
+  }
+  async function setVoice(v) {
+    S.voice = v; save('flow-next-voice', v);
+    if (S.user) { try { await api('/api/next/voice', { voice: v }); } catch (e) { /* keep local choice */ } }
+  }
+  function voiceChips(available) {
+    return `<div class="voices" role="radiogroup" aria-label="朗读声音">${Object.entries(VOICE_LABELS).map(([k, l]) =>
+      `<button class="chip small" role="radio" data-voice="${k}" aria-checked="${S.voice === k}" aria-pressed="${S.voice === k}" ${available && !available.includes(k) ? 'disabled' : ''}>${l}</button>`).join('')}</div>`;
+  }
+
   /* ---------- sheet ---------- */
   function openSheet(html, onMount) {
     sheetCard.innerHTML = html; sheetEl.hidden = false;
@@ -99,6 +154,7 @@
   async function refreshSession() { const s = await api('/api/session'); S.user = s.user; S.csrf = s.user ? s.user.csrf : ''; }
   async function refreshHome() {
     S.home = await api('/api/next/home' + guestQuery(true));
+    if (S.home.profile && S.home.profile.voice) { S.voice = S.home.profile.voice; save('flow-next-voice', S.voice); }
     const due = S.home.stats ? S.home.stats.due : 0;
     const b = document.getElementById('dueBadge'); b.hidden = !due; b.textContent = due > 99 ? '99+' : due;
   }
@@ -155,7 +211,7 @@
   function setNav(name) { document.querySelectorAll('[data-nav]').forEach(a => a.dataset.nav === name ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')); }
   function parts() { return location.hash.replace(/^#\/?/, '').split('/'); }
   async function route(keepScroll) {
-    TTS.stop(); hideSelbar(); bar.classList.remove('hide'); document.onselectionchange = null;
+    TTS.stop(); NAR.stop(); hideSelbar(); bar.classList.remove('hide'); document.onselectionchange = null;
     const [name, a, b] = parts();
     const last = S.lastRoute.split('/');
     const sameMaterial = name === 'm' && last[0] === 'm' && last[1] === a && !!view.querySelector('#pane');
@@ -309,34 +365,59 @@
     if (same) { const top = view.querySelector('.steps').getBoundingClientRect().top + scrollY - 70; if (scrollY > top) scrollTo({ top, behavior: REDUCED ? 'auto' : 'smooth' }); }
 
     /* listen: sentence list, word-by-word highlight while it plays */
-    function listen() {
+    // Narration is usable when this material has the chosen voice and the shown text is the original.
+    async function narration(ls) {
+      const voices = (m.audio && m.audio.voices) || [];
+      if (!voices.length || (m.variant && !st.showOriginal)) return null;
+      if (!voices.includes(S.voice)) S.voice = voices[0];
+      const ok = await NAR.load(id, S.voice, m.audio.version);
+      return ok && NAR.meta && NAR.meta.sentences.length === ls.length ? NAR.meta : null;
+    }
+    async function listen() {
       const ls = lines();
-      pane.innerHTML = `<div class="player">
+      const nm = await narration(ls);
+      const voices = (m.audio && m.audio.voices) || [];
+      pane.innerHTML = `${voices.length ? voiceChips(voices) : ''}<div class="player">
           <button class="btn primary" id="playAll">${ICON.play.replace('<svg', '<svg width="18" height="18" fill="currentColor"')}<span>播放全文</span></button>
           <div class="speed" role="group" aria-label="语速">${[0.75, 1, 1.25].map(r => `<button data-rate="${r}" aria-pressed="${TTS.rate === r}">${r}×</button>`).join('')}</div>
           <button class="icon-btn ${st.blind ? 'on' : ''}" id="blind" aria-pressed="${st.blind}" title="盲听：先只听不看" aria-label="盲听">${ICON.eye}</button>
         </div>
-        ${TTS.ok ? '' : '<p class="err">这个浏览器不支持朗读，可以直接去「读」。</p>'}
+        ${nm ? '' : (TTS.ok ? '<p class="muted tiny">这篇暂时没有真人声录音，先用浏览器朗读。</p>' : '<p class="err">这个浏览器不支持朗读，可以直接去「读」。</p>')}
         <p class="muted small">先盲听一遍，听不懂的句子单独点开反复听，再看原文。播放时正在读的词会亮起来。</p>
         <div class="lines">${ls.map((s, i) => `<div class="line" data-i="${i}"><button class="icon-btn" data-say="${i}" aria-label="播放第 ${i + 1} 句">${ICON.speak}</button><div class="txt ${st.blind ? 'blind' : ''}">${wordSpans(s, () => 'kw')}</div></div>`).join('')}</div>
-        <div class="section row between"><span class="muted small">共 ${ls.length} 句</span><button class="btn" id="toRead">听完了，去读 →</button></div>`;
-      let playing = -1;
+        <div class="section row between"><span class="muted small">共 ${ls.length} 句${nm ? ' · ' + Math.round(nm.duration / 60 * 10) / 10 + ' 分钟' : ''}</span><button class="btn" id="toRead">听完了，去读 →</button></div>`;
+      let playing = -1, shown = -1;
       const lineEl = i => pane.querySelector(`.line[data-i="${i}"]`);
       const setNow = i => pane.querySelectorAll('.line').forEach(el => { const on = Number(el.dataset.i) === i; el.classList.toggle('now', on); if (!on) el.querySelectorAll('.cur').forEach(x => x.classList.remove('cur')); });
       const setBtn = on => { pane.querySelector('#playAll span').textContent = on ? '停止' : '播放全文'; };
-      const sayLine = (i, then) => { const el = lineEl(i); TTS.say(ls[i], then, c => lightWord(el, c)); };
+      const follow = t => {
+        const [si, wc] = NAR.locate(t);
+        if (si !== shown) { shown = si; setNow(si); const el = lineEl(si); if (el && playing >= 0) el.scrollIntoView({ block: 'center', behavior: REDUCED ? 'auto' : 'smooth' }); }
+        if (si >= 0) lightAt(lineEl(si), wc);
+      };
+      const stopAll = () => { TTS.stop(); NAR.stop(); playing = -1; shown = -1; setNow(-1); setBtn(false); };
+      const sayLine = (i, then) => {
+        if (nm) { shown = -1; NAR.play(nm.sentences[i].s, nm.sentences[i].e, follow, then); return; }
+        const el = lineEl(i); TTS.say(ls[i], then, c => lightWord(el, c));
+      };
       const playFrom = i => {
-        if (i >= ls.length) { playing = -1; setNow(-1); setBtn(false); markStep('listen'); return; }
+        if (i >= ls.length) { stopAll(); markStep('listen'); return; }
         playing = i; setNow(i);
         const el = lineEl(i); if (el) el.scrollIntoView({ block: 'center', behavior: REDUCED ? 'auto' : 'smooth' });
         sayLine(i, () => playFrom(i + 1));
       };
-      pane.querySelector('#playAll').onclick = () => { if (playing >= 0) { TTS.stop(); playing = -1; setNow(-1); setBtn(false); } else { setBtn(true); playFrom(0); } };
-      pane.querySelectorAll('[data-say]').forEach(b => b.onclick = () => { const i = Number(b.dataset.say); TTS.stop(); playing = -1; setBtn(false); setNow(i); sayLine(i, () => setNow(-1)); });
+      pane.querySelector('#playAll').onclick = () => {
+        if (playing >= 0) return stopAll();
+        setBtn(true);
+        if (nm) { playing = 0; shown = -1; NAR.play(nm.sentences[0].s, null, follow, () => { stopAll(); markStep('listen'); }); }
+        else playFrom(0);
+      };
+      pane.querySelectorAll('[data-say]').forEach(b => b.onclick = () => { const i = Number(b.dataset.say); stopAll(); setNow(i); sayLine(i, () => setNow(-1)); });
       pane.querySelectorAll('.line .txt').forEach((t, i) => t.onclick = e => { if (e.target.dataset.w && !st.blind) lookupSheet(e.target.dataset.w, ls[i], id); });
-      pane.querySelectorAll('[data-rate]').forEach(b => b.onclick = () => { TTS.rate = Number(b.dataset.rate); save('flow-next-rate', TTS.rate); pane.querySelectorAll('[data-rate]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); });
+      pane.querySelectorAll('[data-rate]').forEach(b => b.onclick = () => { TTS.rate = Number(b.dataset.rate); save('flow-next-rate', TTS.rate); NAR.audio.playbackRate = TTS.rate; pane.querySelectorAll('[data-rate]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); });
+      pane.querySelectorAll('[data-voice]').forEach(b => b.onclick = async () => { if (b.disabled) return; stopAll(); await setVoice(b.dataset.voice); listen(); toast('已切换为' + VOICE_LABELS[b.dataset.voice]); });
       pane.querySelector('#blind').onclick = e => { st.blind = !st.blind; e.currentTarget.classList.toggle('on', st.blind); e.currentTarget.setAttribute('aria-pressed', String(st.blind)); pane.querySelectorAll('.txt').forEach(t => t.classList.toggle('blind', st.blind)); };
-      pane.querySelector('#toRead').onclick = () => { markStep('listen'); go('read'); };
+      pane.querySelector('#toRead').onclick = () => { stopAll(); markStep('listen'); go('read'); };
     }
 
     /* read: tap a word, ✦ explains a sentence, select to save, read-along, expressions, knowledge points */
@@ -373,9 +454,18 @@
         const w = e.target.closest('.w'); if (w && !String(getSelection()).trim()) lookupSheet(w.dataset.w, ls[Number(w.dataset.s)], id);
       };
       // Read-along: sentence by sentence; the current sentence stays bright, the rest dims, the current word lights up.
-      let along = false;
+      let along = false, alongShown = -1;
       const ra = pane.querySelector('#readAlong');
-      const stopAlong = () => { along = false; TTS.stop(); reader.classList.remove('reading'); reader.querySelectorAll('.now,.cur').forEach(x => x.classList.remove('now', 'cur')); ra.querySelector('span').textContent = '跟读'; };
+      const stopAlong = () => { along = false; TTS.stop(); NAR.stop(); reader.classList.remove('reading'); reader.querySelectorAll('.now,.cur').forEach(x => x.classList.remove('now', 'cur')); ra.querySelector('span').textContent = '跟读'; };
+      const alongAudio = nm => {
+        alongShown = -1;
+        NAR.play(nm.sentences[0].s, null, t => {
+          const [si, wc] = NAR.locate(t);
+          const s = reader.querySelector(`.sent[data-si="${si}"]`);
+          if (si !== alongShown && s) { alongShown = si; reader.querySelectorAll('.sent.now').forEach(x => x.classList.remove('now')); s.classList.add('now'); s.scrollIntoView({ block: 'center', behavior: REDUCED ? 'auto' : 'smooth' }); }
+          if (s) lightAt(s, wc);
+        }, () => { stopAlong(); markStep('read'); });
+      };
       const alongFrom = i => {
         if (!along) return;
         if (i >= ls.length) { stopAlong(); markStep('read'); return; }
@@ -383,7 +473,12 @@
         const s = reader.querySelector(`.sent[data-si="${i}"]`); s.classList.add('now'); s.scrollIntoView({ block: 'center', behavior: REDUCED ? 'auto' : 'smooth' });
         TTS.say(ls[i], () => alongFrom(i + 1), c => lightWord(s, c));
       };
-      ra.onclick = () => { if (along) return stopAlong(); along = true; reader.classList.add('reading'); ra.querySelector('span').textContent = '停止'; alongFrom(0); };
+      ra.onclick = async () => {
+        if (along) return stopAlong();
+        along = true; reader.classList.add('reading'); ra.querySelector('span').textContent = '停止';
+        const nm = await narration(ls);
+        if (along) { if (nm) alongAudio(nm); else alongFrom(0); }
+      };
       pane.querySelectorAll('[data-sayx]').forEach(b => b.onclick = () => TTS.say(m.expressions[Number(b.dataset.sayx)].text));
       pane.querySelectorAll('[data-sx]').forEach(b => b.onclick = () => { const x = m.expressions[Number(b.dataset.sx)]; saveCard({ text: x.text, meaning: x.meaning + (x.note ? '｜' + x.note : ''), context: findContext(x.text, ls), pack: id }, b); });
       pane.querySelectorAll('[data-sv]').forEach(b => b.onclick = () => { const v = m.vocabulary[Number(b.dataset.sv)]; saveCard({ text: v.term, meaning: v.meaning, context: findContext(v.term, ls) || v.example, pack: id }, b); });
@@ -705,7 +800,8 @@
       ${st ? `<div class="stat-grid"><div class="card flat stat"><b>${st.week.filter(d => d.active).length}</b><span class="tiny muted">本周学习天数</span></div><div class="card flat stat"><b>${st.materials_done}</b><span class="tiny muted">学完的材料</span></div><div class="card flat stat"><b>${st.cards}</b><span class="tiny muted">收藏的表达</span></div></div>` : ''}
       <div class="card flat stack-s"><div class="row between"><b>学习设置</b><a class="link small" href="#/welcome/edit">修改</a></div>
         <div class="small">水平：${lv ? esc(lv.label) + '（' + lv.id + '）' : '未设置'}</div><div class="small">目标：${goal ? esc(goal.label) : '未设置'}</div>
-        <div class="small">话题：${themes.length ? esc(themes.join('、')) : '随机'}</div><div class="small">每天：${p.minutes || 10} 分钟</div></div>
+        <div class="small">话题：${themes.length ? esc(themes.join('、')) : '随机'}</div><div class="small">每天：${p.minutes || 10} 分钟</div>
+        <div class="small">朗读声音：</div>${voiceChips(null)}<p class="muted tiny">精选材料用真人声（Kokoro）朗读，可以随时在「听」这一步切换。</p></div>
       <div class="card flat list">
         <a href="#/graph">我的知识图谱 <span>→</span></a>
         <a href="#/library">全部材料 <span>→</span></a>
@@ -713,6 +809,7 @@
         <a href="/?classic=1">经典版（AI 私教、诊断测评、内容管理）<span>→</span></a>
         ${S.user ? '<button id="out">退出登录 <span>→</span></button>' : ''}</div>`;
     const lg = document.getElementById('lg'); if (lg) lg.onclick = () => openLogin();
+    view.querySelectorAll('[data-voice]').forEach(b => b.onclick = async () => { await setVoice(b.dataset.voice); view.querySelectorAll('[data-voice]').forEach(x => { x.setAttribute('aria-pressed', String(x === b)); x.setAttribute('aria-checked', String(x === b)); }); toast('朗读声音：' + VOICE_LABELS[b.dataset.voice]); });
     const out = document.getElementById('out');
     if (out) out.onclick = async () => { try { await api('/api/logout', {}); } catch (e) { /* ignore */ } S.user = null; S.csrf = ''; await refreshHome(); toast('已退出'); route(); };
   }

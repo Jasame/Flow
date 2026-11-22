@@ -5,7 +5,7 @@ comparison) -> review only what you saved. The knowledge graph (18 grammar nodes
 saved expressions) drives what is recommended next, and AI feedback is mapped onto it.
 Guests may read, listen and check answers; saving, AI and progress need an account.
 """
-import datetime, hashlib, json, re, time
+import datetime, hashlib, json, os, re, time
 from pathlib import Path
 
 TZ = datetime.timezone(datetime.timedelta(hours=8))
@@ -24,6 +24,10 @@ GOALS = {'daily': '日常交流', 'work': '工作沟通', 'exam': '考试', 'abr
 THEMES = {'campus': '校园学习', 'travel': '旅行生活', 'life': '日常生活', 'work': '职场沟通', 'culture': '文化交流', 'science': '科学素养'}
 MINUTES = (5, 10, 15, 30)
 RATINGS = ('again', 'hard', 'good', 'easy')
+# Pre-generated Kokoro narration (see tools/gen_audio.py): audio/<voice>/<material>.m4a + .json timings.
+VOICES = {'us-f': '美音 · 女声', 'us-m': '美音 · 男声', 'uk-f': '英音 · 女声', 'uk-m': '英音 · 男声'}
+AUDIO_DIR = Path(os.getenv('FLOW_AUDIO_DIR') or Path(__file__).resolve().parent / 'audio')
+_AUDIO = {'mtime': None, 'index': {}}
 WORD = re.compile(r"[A-Za-z]+(?:'[A-Za-z]+)?")
 
 # Knowledge graph: 18 grammar nodes in 6 topics. Which nodes a level should be building now.
@@ -59,6 +63,8 @@ CREATE TABLE IF NOT EXISTS next_node_notes(id INTEGER PRIMARY KEY, user_id INTEG
 CREATE INDEX IF NOT EXISTS next_node_notes_user ON next_node_notes(user_id, node);
 CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT NULL, level TEXT NOT NULL, result TEXT NOT NULL,
  created REAL NOT NULL, PRIMARY KEY(pack, sentence, level));''')
+    if 'voice' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:
+        c.execute("ALTER TABLE next_profiles ADD COLUMN voice TEXT NOT NULL DEFAULT 'us-f'")
 
 
 # ---------- helpers ----------
@@ -172,7 +178,8 @@ def profile(c, uid):
     r = c.execute('SELECT * FROM next_profiles WHERE user_id=?', (uid,)).fetchone()
     if not r:
         return None
-    return {'level': r['level'], 'goal': r['goal'], 'themes': json.loads(r['themes']), 'minutes': r['minutes']}
+    return {'level': r['level'], 'goal': r['goal'], 'themes': json.loads(r['themes']), 'minutes': r['minutes'],
+            'voice': r['voice'] if r['voice'] in VOICES else 'us-f'}
 
 
 def save_profile(c, uid, data):
@@ -182,12 +189,48 @@ def save_profile(c, uid, data):
     goal = data.get('goal') if data.get('goal') in GOALS else 'daily'
     themes = [t for t in (data.get('themes') or []) if t in THEMES][:6]
     minutes = data.get('minutes') if data.get('minutes') in MINUTES else 10
+    old = profile(c, uid) or {}
+    voice = data.get('voice') if data.get('voice') in VOICES else old.get('voice', 'us-f')
     now = time.time()
-    c.execute('''INSERT INTO next_profiles VALUES(?,?,?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET level=excluded.level,
-      goal=excluded.goal, themes=excluded.themes, minutes=excluded.minutes, updated=excluded.updated''',
-              (uid, level, goal, json.dumps(themes), minutes, now, now))
+    c.execute('''INSERT INTO next_profiles(user_id, level, goal, themes, minutes, created, updated, voice) VALUES(?,?,?,?,?,?,?,?)
+      ON CONFLICT(user_id) DO UPDATE SET level=excluded.level, goal=excluded.goal, themes=excluded.themes,
+      minutes=excluded.minutes, updated=excluded.updated, voice=excluded.voice''',
+              (uid, level, goal, json.dumps(themes), minutes, now, now, voice))
     c.commit()
     return {'profile': profile(c, uid)}, 200
+
+
+def set_voice(c, uid, data):
+    voice = data.get('voice')
+    if voice not in VOICES:
+        return {'error': '声音不正确'}, 400
+    if c.execute('UPDATE next_profiles SET voice=?, updated=? WHERE user_id=?', (voice, time.time(), uid)).rowcount:
+        c.commit()
+    return {'voice': voice}, 200
+
+
+def audio_index():
+    """{material id: [voices]} from audio/index.json, reloaded when the file changes."""
+    f = AUDIO_DIR / 'index.json'
+    try:
+        mtime = f.stat().st_mtime
+    except OSError:
+        return {}, 0
+    if _AUDIO['mtime'] != mtime:
+        try:
+            _AUDIO['index'] = {k: [v for v in vs if v in VOICES] for k, vs in json.loads(f.read_text()).items()}
+        except (OSError, ValueError):
+            _AUDIO['index'] = {}
+        _AUDIO['mtime'] = mtime
+    return _AUDIO['index'], int(mtime)
+
+
+def audio_file(voice, pid, ext):
+    """Path of a narration file, or None. Names are validated so nothing outside AUDIO_DIR can be served."""
+    if voice not in VOICES or ext not in ('m4a', 'json') or not re.fullmatch(r'v5-[a-z0-9]+(?:-[a-z0-9]+)*', pid or ''):
+        return None
+    f = AUDIO_DIR / voice / f'{pid}.{ext}'
+    return f if f.is_file() else None
 
 
 def _done(c, uid):
@@ -470,7 +513,8 @@ def material(c, uid, pid, level=None):
             'variant': variant, 'vocabulary': list(vocab.values()), 'expressions': p.get('expressions', []), 'hard': hard, 'questions': qs,
             'notes': notes, 'task': _task(p, level), 'steps': sorted(done, key=STEPS.index), 'dictation_index': p.get('dictation_index'),
             'provenance': [{'title': s['title'], 'url': s['url']} for s in (p.get('provenance') or {}).get('sources', [])][:5],
-            'user_level': level, 'can_variant': level != cefr(p) and not variant}, 200
+            'user_level': level, 'can_variant': level != cefr(p) and not variant,
+            'audio': {'voices': audio_index()[0].get(p['id'], []), 'version': audio_index()[1]}}, 200
 
 
 def check(c, uid, data):
@@ -783,7 +827,7 @@ def variant(c, uid, data):
 def meta():
     return {'levels': [{'id': k, 'label': v['label'], 'desc': v['desc'], 'sample': v['sample']} for k, v in LEVELS.items()],
             'goals': [{'id': k, 'label': v} for k, v in GOALS.items()], 'themes': [{'id': k, 'label': v} for k, v in THEMES.items()],
-            'minutes': list(MINUTES)}
+            'minutes': list(MINUTES), 'voices': [{'id': k, 'label': v} for k, v in VOICES.items()]}
 
 
 def get(c, uid, path, q):
@@ -830,6 +874,8 @@ AI_PATHS = ('/api/next/rewrite', '/api/next/variant', '/api/next/explain')
 def post(c, uid, path, data):
     if path == '/api/next/profile':
         return save_profile(c, uid, data)
+    if path == '/api/next/voice':
+        return set_voice(c, uid, data)
     if path == '/api/next/progress':
         if not _pack_row(c, uid, str(data.get('pack', ''))):
             return {'error': '材料不存在'}, 404

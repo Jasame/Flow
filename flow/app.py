@@ -139,6 +139,29 @@ class Handler(BaseHTTPRequestHandler):
     try:return str(ipaddress.ip_address(self.headers.get(header,'').strip()))
     except ValueError:pass
   return ip
+ def send_audio(self,path):
+  # /audio/<voice>/<material>.(m4a|json): pre-generated narration, with byte ranges so Safari can seek.
+  import next_service
+  parts=path.split('/')
+  f=next_service.audio_file(parts[2],parts[3].rsplit('.',1)[0],parts[3].rsplit('.',1)[-1]) if len(parts)==4 and '.' in parts[3] else None
+  if not f:return self.send({'error':'音频不存在'},404)
+  data=f.read_bytes();size=len(data);start,end=0,size-1;status=200
+  rng=self.headers.get('Range','')
+  if rng.startswith('bytes='):
+   a,_,b=rng[6:].split(',')[0].partition('-')
+   try:
+    if a:start=int(a);end=int(b) if b else size-1
+    else:start=max(0,size-int(b))
+    end=min(end,size-1)
+    if start>end or start>=size:raise ValueError
+    status=206
+   except ValueError:
+    self.send_response(416);self.send_header('Content-Range',f'bytes */{size}');self.send_header('Content-Length','0');self.end_headers();return
+  body=data[start:end+1]
+  self.send_response(status);self.headers_common('audio/mp4' if f.suffix=='.m4a' else 'application/json; charset=utf-8')
+  self.send_header('Accept-Ranges','bytes');self.send_header('Cache-Control','public, max-age=604800')
+  if status==206:self.send_header('Content-Range',f'bytes {start}-{end}/{size}')
+  self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def user(self,c):
   jar=SimpleCookie()
   try:jar.load(self.headers.get('Cookie',''))
@@ -233,6 +256,8 @@ class Handler(BaseHTTPRequestHandler):
     self.send_response(200);self.headers_common('text/html; charset=utf-8');self.send_header('Cache-Control','no-cache')
     self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
   files={'/next':('next.html','text/html; charset=utf-8'),'/next.js':('next.js','text/javascript; charset=utf-8'),'/next.css':('next.css','text/css; charset=utf-8'),'/survey':('survey.html','text/html; charset=utf-8'),'/survey.js':('survey.js','text/javascript; charset=utf-8'),'/survey.css':('survey.css','text/css; charset=utf-8'),'/guest-first.js':('guest-first.js','text/javascript; charset=utf-8'),'/flow4.css':('flow4.css','text/css; charset=utf-8'),'/flow-motion.js':('flow-motion.js','text/javascript; charset=utf-8'),'/flow-mindmap.js':('flow-mindmap.js','text/javascript; charset=utf-8'),'/literata.woff2':('literata.woff2','font/woff2'),'/core-words.js':('core-words.js','text/javascript; charset=utf-8'),'/meeting.js':('meeting.js','text/javascript; charset=utf-8'),'/meeting.css':('meeting.css','text/css; charset=utf-8'),'/flow36.js':('flow36.js','text/javascript; charset=utf-8'),'/flow36.css':('flow36.css','text/css; charset=utf-8'),'/phone.css':('phone.css','text/css; charset=utf-8'),'/pilot.js':('pilot.js','text/javascript; charset=utf-8'),'/pilot.css':('pilot.css','text/css; charset=utf-8'),'/learning35.js':('learning35.js','text/javascript; charset=utf-8'),'/learning35.css':('learning35.css','text/css; charset=utf-8'),'/ai-live.js':('ai-live.js','text/javascript; charset=utf-8'),'/ai-live.css':('ai-live.css','text/css; charset=utf-8'),'/continuity.js':('continuity.js','text/javascript; charset=utf-8'),'/continuity.css':('continuity.css','text/css; charset=utf-8'),'/foundation.js':('foundation.js','text/javascript; charset=utf-8'),'/foundation.css':('foundation.css','text/css; charset=utf-8'),'/mobile.js':('mobile.js','text/javascript; charset=utf-8'),'/mobile.css':('mobile.css','text/css; charset=utf-8'),'/practice.js':('practice.js','text/javascript; charset=utf-8'),'/practice.css':('practice.css','text/css; charset=utf-8'),'/reference.js':('reference.js','text/javascript; charset=utf-8'),'/reference.css':('reference.css','text/css; charset=utf-8'),'/atlas.js':('atlas.js','text/javascript; charset=utf-8'),'/atlas.css':('atlas.css','text/css; charset=utf-8'),'/':('index.html','text/html; charset=utf-8'),'/app.js':('app.js','text/javascript; charset=utf-8'),'/tutor.js':('tutor.js','text/javascript; charset=utf-8'),'/style.css':('style.css','text/css; charset=utf-8'),'/advanced.js':('advanced.js','text/javascript; charset=utf-8'),'/studio.js':('studio.js','text/javascript; charset=utf-8'),'/growth.js':('growth.js','text/javascript; charset=utf-8'),'/growth.css':('growth.css','text/css; charset=utf-8'),'/design-bridge.css':('design-bridge.css','text/css; charset=utf-8'),'/coach.js':('coach.js','text/javascript; charset=utf-8'),'/coach.css':('coach.css','text/css; charset=utf-8'),'/adaptive.js':('adaptive.js','text/javascript; charset=utf-8'),'/adaptive.css':('adaptive.css','text/css; charset=utf-8'),'/knowledge.js':('knowledge.js','text/javascript; charset=utf-8'),'/layout.css':('layout.css','text/css; charset=utf-8')}
+  if path.startswith('/audio/'):
+   return self.send_audio(path)
   if path=='/classic':
    self.send_response(302);self.send_header('Location','/?classic=1');self.send_header('Content-Length','0');self.end_headers();return
   if path=='/' and not urlsplit(self.path).query:
