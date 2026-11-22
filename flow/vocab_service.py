@@ -432,7 +432,7 @@ def score_test(c, uid, data):
         c.execute('UPDATE next_vocab_plans SET estimate=?, updated=? WHERE user_id=?', (estimate, time.time(), uid))
         c.commit()
     return {'estimate': estimate, 'suggest': suggest, 'bands': {k: round(v, 2) for k, v in known.items()},
-            'guessing': fa > 0.2}, 200
+            'titles': {k: v[0] for k, v in BOOKS.items()}, 'guessing': fa > 0.2}, 200
 
 
 def import_words(c, uid, data):

@@ -117,7 +117,7 @@ class VocabTests(unittest.TestCase):
         r = vs.score_test(self.c, None, {'answers': honest})[0]
         sizes = {k: len(vs.book_words()[k]) for k in vs.BOOKS}
         self.assertEqual(r['suggest'], 'high'); self.assertAlmostEqual(r['estimate'], sizes['core'] + sizes['mid'], delta=200)
-        self.assertFalse(r['guessing'])
+        self.assertFalse(r['guessing']); self.assertEqual(r['titles']['high'], '高阶词汇')
         r = vs.score_test(self.c, None, {'answers': {w: True for w in items}})[0]
         self.assertTrue(r['guessing']); self.assertEqual(r['estimate'], 0)
         self.assertEqual(vs.score_test(self.c, None, {'answers': {}})[1], 400)
