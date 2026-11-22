@@ -20,7 +20,7 @@ def catalog(c,uid):
  for r in c.execute("SELECT pack,skill,stamp FROM (SELECT pack,skill,updated stamp FROM lab_drafts WHERE user_id=? AND trim(answer)!='' UNION ALL SELECT pack,skill,created stamp FROM lab_work WHERE user_id=?) ORDER BY stamp DESC",(uid,uid)):
   lastskills.setdefault(r['pack'],r['skill'])
  out=[]
- for row in c.execute("""SELECT * FROM lab_packs WHERE (owner IS NULL AND (origin!='daily' OR created>?)) OR owner=? OR id IN (SELECT pack FROM lab_bookmarks WHERE user_id=?) ORDER BY CASE WHEN origin='daily' THEN 0 WHEN owner IS NULL THEN 1 ELSE 2 END,created DESC LIMIT 500""",(time.time()-90*86400,uid,uid)):
+ for row in c.execute("""SELECT * FROM lab_packs WHERE (owner IS NULL AND (origin!='daily' OR created>?)) OR owner=? OR id IN (SELECT pack FROM lab_bookmarks WHERE user_id=?) ORDER BY CASE WHEN origin='daily' THEN 0 WHEN owner IS NULL THEN 1 ELSE 2 END,created DESC LIMIT 2000""",(time.time()-90*86400,uid,uid)):
   quality=__import__('quality_service').info(c,row)
   if quality['status']=='disabled':continue
   p=json.loads(row['content'])
