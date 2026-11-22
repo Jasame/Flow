@@ -6,7 +6,7 @@ from content_v09 import THEMES
 from content_v30 import all_materials
 import corpus_service as corpus
 from audio_validation import validate_audio
-from chat_service import request_model,remaining
+from chat_service import request_model,remaining,reserve
 from vertex_auth import ai_enabled
 SKILLS=('listening','speaking','reading','writing')
 LEVELS=('A2','B1','B2');TTL=120
@@ -91,9 +91,8 @@ def run_job(c,uid,rid,kind,pack,skill,spec,invoke,convert):
   if old['status']=='pending' and old['updated']>now-TTL:c.rollback();return {'error':'正在处理，请稍候再刷新记录'},409
  if not ai_enabled():c.rollback();return {'error':'Gemini 尚未配置，请先使用内置材料训练'},503
  if c.execute("SELECT 1 FROM lab_jobs WHERE user_id=? AND status='pending' AND updated>? AND request_id!=?",(uid,now-TTL,rid)).fetchone() or c.execute("SELECT 1 FROM chat_turns WHERE user_id=? AND status='pending' AND updated>?",(uid,now-TTL)).fetchone():c.rollback();return {'error':'已有 AI 请求正在处理，请稍候'},409
- day=time.strftime('%Y-%m-%d',time.gmtime());c.execute('INSERT OR IGNORE INTO ai_usage VALUES(?,?,0)',(uid,day))
- if int(os.getenv('FLOW_AI_DAILY_LIMIT','0'))>0 and c.execute('SELECT COALESCE(SUM(count),0) FROM ai_usage WHERE day=?',(day,)).fetchone()[0]>=int(os.getenv('FLOW_AI_DAILY_LIMIT','0')):c.rollback();return {'error':'今日 AI 请求次数已用完，按 UTC 日期重置'},429
- c.execute('UPDATE ai_usage SET count=count+1 WHERE user_id=? AND day=?',(uid,day))
+ problem=reserve(c,uid)
+ if problem:c.rollback();return {'error':problem,'remaining':remaining(c,uid)},429
  if old:c.execute("UPDATE lab_jobs SET status='pending',error='',updated=? WHERE id=?",(now,old['id']))
  else:c.execute("INSERT INTO lab_jobs(user_id,request_id,kind,pack,skill,fingerprint,status,created,updated) VALUES(?,?,?,?,?,?,'pending',?,?)",(uid,rid,kind,pack,skill,fp,now,now))
  lease=ai_jobs.reserve(c,'lab_jobs',uid,rid);c.commit()

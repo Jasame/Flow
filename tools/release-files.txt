@@ -161,6 +161,7 @@ flow/tests/test_migration.py
 flow/tests/test_package.py
 flow/tests/test_pedagogy.py
 flow/tests/test_practice.py
+flow/tests/test_quota.py
 flow/tests/test_reference.py
 flow/tests/test_reliability.py
 flow/tests/test_vertex.py

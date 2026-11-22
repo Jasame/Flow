@@ -15,8 +15,38 @@ def schema(c):
  CREATE INDEX IF NOT EXISTS chat_user_topic ON chat_turns(user_id,topic,id);''')
  ai_jobs.schema(c,'chat_turns')
 
+def daily_limit(name):
+ try:return max(0,int(os.getenv(name,'0') or 0))
+ except ValueError:return 0
+
+def _today():return time.strftime('%Y-%m-%d',time.gmtime())
+
+def _exempt(c,uid):
+ row=c.execute('SELECT admin FROM users WHERE id=?',(uid,)).fetchone()
+ return bool(row and row[0])
+
 def remaining(c,uid):
- return None  # No per-learner daily ceiling. Usage is still audited.
+ """Calls left today for this learner, or None when no per-account ceiling applies."""
+ limit=daily_limit('FLOW_AI_USER_DAILY_LIMIT')
+ if not limit or _exempt(c,uid):return None
+ row=c.execute('SELECT count FROM ai_usage WHERE user_id=? AND day=?',(uid,_today())).fetchone()
+ return max(0,limit-(row[0] if row else 0))
+
+def reserve(c,uid):
+ """Count one model call inside the caller's write transaction.
+
+ Returns an error message (and counts nothing) when the site-wide
+ FLOW_AI_DAILY_LIMIT or the per-account FLOW_AI_USER_DAILY_LIMIT is reached.
+ Both reset at 00:00 UTC; 0 disables a ceiling; admins skip the per-account one.
+ """
+ day=_today();c.execute('INSERT OR IGNORE INTO ai_usage VALUES(?,?,0)',(uid,day))
+ site=daily_limit('FLOW_AI_DAILY_LIMIT')
+ if site and c.execute('SELECT COALESCE(SUM(count),0) FROM ai_usage WHERE day=?',(day,)).fetchone()[0]>=site:
+  return '本站今日 AI 调用额度已用完，请明天再来。'
+ if remaining(c,uid)==0:
+  return f"你今天的 {daily_limit('FLOW_AI_USER_DAILY_LIMIT')} 次 AI 调用已用完，北京时间早上 8 点重置。"
+ c.execute('UPDATE ai_usage SET count=count+1 WHERE user_id=? AND day=?',(uid,day))
+ return None
 
 def history(c,uid,topic):
  if not c.execute('SELECT 1 FROM topics WHERE id=?',(topic,)).fetchone():return {'error':'知识点不存在'},404
@@ -115,10 +145,8 @@ def chat(c,uid,data):
   c.rollback();return {'error':'已有提问正在处理，请稍候再试。'},409
  enabled=ai_enabled()
  if enabled:
-  day=time.strftime('%Y-%m-%d',time.gmtime());c.execute('INSERT OR IGNORE INTO ai_usage VALUES(?,?,0)',(uid,day))
-  total=c.execute('SELECT COALESCE(SUM(count),0) FROM ai_usage WHERE day=?',(day,)).fetchone()[0]
-  if int(os.getenv('FLOW_AI_DAILY_LIMIT','0'))>0 and total>=int(os.getenv('FLOW_AI_DAILY_LIMIT','0')):c.rollback();return {'error':'本站今日 AI 调用额度已用完，请明天再来。'},429
-  c.execute('UPDATE ai_usage SET count=count+1 WHERE user_id=? AND day=?',(uid,day))
+  problem=reserve(c,uid)
+  if problem:c.rollback();return {'error':problem,'remaining':remaining(c,uid)},429
  now=time.time()
  if row:c.execute("UPDATE chat_turns SET status='pending',error='',updated=? WHERE id=?",(now,row['id']))
  else:c.execute("INSERT INTO chat_turns(user_id,topic,request_id,message,status,created,updated) VALUES(?,?,?,?,'pending',?,?)",(uid,topic_id,rid,question,now,now))
