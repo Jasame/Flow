@@ -1,5 +1,13 @@
 # Tools: deploy and test
 
+## Front-end source (`flow/public/src/next/`)
+
+`next.js` and `next.css` are built: edit the parts in `flow/public/src/next/`, then run
+`python3 tools/build_front.py` and commit the parts and the two built files together. The parts are joined in
+name order, byte for byte (no transform), so the browser still loads one script and one stylesheet.
+`build_front.py --check` fails when a built file is out of date; the test suite and `deploy.sh` run it.
+See `flow/public/src/next/README.md` for which part holds what.
+
 ## Deploy (push-to-deploy)
 
 ```bash

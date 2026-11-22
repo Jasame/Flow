@@ -327,3 +327,12 @@ class AssetVersionTests(unittest.TestCase):
         self.assertIn(f'/next.css?v={v}', html); self.assertIn(f"flow-shell-{v}", sw); self.assertIn(f'/next.js?v={v}', sw)
         self.assertNotIn('__ASSET__', html + sw)
         self.assertEqual(app.shell_file('next.js'), (Path(app.ROOT) / 'public' / 'next.js').read_bytes())  # other files untouched
+
+
+class FrontSourceTests(unittest.TestCase):
+    def test_next_js_and_css_are_built_from_their_parts(self):
+        """flow/public/src/next/* are the source; next.js and next.css must be their exact join (tools/build_front.py)."""
+        import subprocess
+        tool = Path(__file__).resolve().parents[2] / 'tools' / 'build_front.py'
+        r = subprocess.run([sys.executable, str(tool), '--check'], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr or r.stdout)

@@ -13,6 +13,7 @@ E2E=" e2e"; WANT=""
 for a in "$@"; do case $a in --no-e2e) E2E="" ;; *) WANT=$a ;; esac; done
 STATUS_URL=${FLOW_STATUS_URL:-https://flow.jasa.hk/api/deploy-status}
 cd "$(git rev-parse --show-toplevel)"
+python3 tools/build_front.py --check || exit 1  # next.js / next.css must match their source parts
 if [ -n "$WANT" ]; then
   SHA=$(git rev-parse "$WANT^{commit}"); git fetch -q origin
   BR=$(git branch -r --contains "$SHA" | sed -n 's#^ *origin/##p' | grep -v '^HEAD' | head -1)

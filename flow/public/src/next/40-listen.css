@@ -1,0 +1,36 @@
+/* ---------- listen modes, pre-reading words, shadowing, dictation, new words ---------- */
+.preread{margin-bottom:14px}
+.preread{padding:12px 14px}
+.pr-list{display:grid;gap:6px}
+.pr{display:grid;grid-template-columns:32px 1fr;gap:8px;align-items:center;min-width:0}
+.pr>div{min-width:0}
+.pr .icon-btn{width:32px;height:32px;border-radius:8px}.pr .icon-btn svg{width:16px;height:16px}
+.pr b{font-family:var(--serif);font-size:16px}
+.pr .ph{color:var(--muted);font-family:var(--serif);font-size:13px}
+.pr .tiny{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (min-width:560px){.pr-list{grid-template-columns:1fr 1fr;column-gap:16px}}
+.seg.modes{margin-bottom:14px}
+.line.sh{grid-template-columns:1fr;gap:8px}
+.sh-ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.icon-btn.rec .dot{width:14px;height:14px;border-radius:50%;background:var(--red);display:block;transition:transform .2s,border-radius .2s}
+.icon-btn.rec.on{border-color:var(--red);background:var(--red-soft)}
+.icon-btn.rec.on .dot{border-radius:3px;transform:scale(.85);animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.45}}
+.sh-res .tip{color:var(--green-ink)}
+.wdiff{font-family:var(--serif);font-size:17px;line-height:1.8}
+.wdiff .ok{color:var(--green-ink)}
+.wdiff .miss{color:var(--red);text-decoration:underline wavy color-mix(in srgb,var(--red) 60%,transparent);text-underline-offset:4px}
+.dict textarea{min-height:88px;font-size:17px}
+.nw-list{display:flex;flex-wrap:wrap;gap:8px}
+.nw{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line2);border-radius:99px;padding:6px 12px 6px 8px;background:var(--paper);cursor:pointer;max-width:100%}
+.nw input{width:18px;height:18px;accent-color:var(--green);margin:0}
+.nw .tiny{max-width:12em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.roots{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.sheet .roots{justify-content:flex-start}
+.root{font-size:12.5px;background:var(--sunk);border-radius:8px;padding:3px 8px;color:var(--ink2)}
+.root .k{color:var(--green-ink);font-weight:600}
+.checkline{display:flex;gap:8px;align-items:flex-start;font-size:14px;line-height:1.5}
+.checkline input{width:18px;height:18px;margin-top:2px;accent-color:var(--green);flex:none}
+select{font:inherit;font-size:15px;color:var(--ink);background:var(--paper);border:1.5px solid var(--line2);border-radius:10px;padding:8px 12px;min-height:42px}
+.ok-mark{color:var(--green-ink);font-weight:800}.bad-mark{color:var(--red);font-weight:800}
+

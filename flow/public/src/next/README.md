@@ -1,0 +1,29 @@
+# Flow front end, by feature
+
+`tools/build_front.py` joins these in name order into `../../next.js` and `../../next.css` (byte for byte).
+The script is one closure: `00-head.js` opens it and `99-boot.js` closes it, so every part can use every
+other part's names. `20`–`24` are consecutive slices of `study()` (the four learning steps), not standalone files.
+
+| part | what it holds |
+| --- | --- |
+| `00-head.js` | page elements, state, utilities, input helpers (touch, typing, scrolling), icons |
+| `01-audio-offline.js` | browser voice, Kokoro narration, word and sentence clips, mini player, offline review queue |
+| `02-shell.js` | sheets (focus, swipe), keyboard shortcuts, session and sign-in, router |
+| `10-welcome-today.js` | onboarding questions, today's page |
+| `20-study.js` | `study()`: material header, step bar, step bookkeeping |
+| `21-study-listen.js` | 听: whole-text playback, shadowing, dictation |
+| `22-study-read.js` | 读: reader, read-along, new words, keyboard reading |
+| `23-study-check.js` | 理解: comprehension questions |
+| `24-study-output.js` | 用出来: model sentence, retell, dialogue, translation, essay (closes `study()`) |
+| `30-lookup.js` | word look-up, AI sentence explanation, saving cards |
+| `40-graph.js` | knowledge graph and grammar-point pages |
+| `50-words.js` | 单词 page, word cards, word-list import, plan, vocabulary test |
+| `60-review.js` | review session (keys, swipes, mistake cards) |
+| `70-learner.js` | ability profile, daily plan, level suggestion, microphone |
+| `71-import.js` | 我的文章 |
+| `72-sounds.js` | 发音入门 and its listening quiz |
+| `73-report.js` | weekly report and share picture |
+| `80-library.js` | 全部材料 |
+| `81-me.js` | 我的, email binding |
+| `99-boot.js` | start-up |
+| `00-base.css` … `70-input-devices.css` | tokens and base; pages; motion and graph; words; listening; phone pass; learner pages; input methods and devices |

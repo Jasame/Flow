@@ -1,0 +1,50 @@
+/* ---------- learner model: today's plan, ability profile, level suggestion ---------- */
+.psteps{display:grid;gap:6px;margin-top:6px}
+.pstep{display:grid;grid-template-columns:30px 1fr 16px;gap:10px;align-items:center;padding:10px 8px;border-radius:12px;text-decoration:none;color:inherit;background:var(--sunk)}
+.pstep:hover{background:var(--green-soft)}
+.pstep .num{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;background:var(--paper);border:1.5px solid var(--line2)}
+.pstep.done .num{background:var(--green);border-color:var(--green);color:#fff}
+.pstep.done b{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line2)}
+.pstep .t{display:grid;min-width:0}.pstep .t .tiny{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pstep .go{color:var(--muted);font-size:20px}
+.suggest{gap:10px;align-items:center}
+.ab-list{display:grid;gap:8px}
+.ab{display:grid;grid-template-columns:44px 1fr 44px;gap:4px 10px;align-items:center}
+.ab .nm{font-size:14px;font-weight:600}.ab .lv{font-weight:700;font-variant-numeric:tabular-nums;text-align:right;font-size:14px}
+.ab .ev{grid-column:2 / 4}
+.ab.none .vbar i{background:var(--line2)}
+/* ---------- output practice ---------- */
+.seg.outmodes{grid-template-columns:repeat(5,1fr)}
+.seg a{text-align:center;border-radius:9px;padding:8px 2px;font-weight:600;color:var(--muted);text-decoration:none;font-size:14.5px}
+.seg a[aria-selected=true]{background:var(--paper);color:var(--ink);box-shadow:var(--shadow)}
+.seg.two{grid-template-columns:1fr 1fr}
+.chat{display:grid;gap:10px;margin:12px 0}
+.chat .scene{color:var(--muted);text-align:center;padding:4px 8px}
+.msg{display:grid;gap:4px;max-width:88%}
+.msg .b{padding:10px 14px;border-radius:16px;font-family:var(--serif);font-size:16.5px;line-height:1.5}
+.msg.ai{justify-self:start}.msg.ai .b{background:var(--sunk);border-bottom-left-radius:6px}
+.msg.me{justify-self:end}.msg.me .b{background:var(--green-soft);border-bottom-right-radius:6px}
+.msg .fix{padding:0 6px}.msg .fix del{color:var(--red)}
+.chat-in{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:end}
+.chat-in textarea{min-height:52px;font-size:16px}
+.counter.warn{color:var(--amber)}
+/* ---------- mistakes in review ---------- */
+.prompt-q{font-family:var(--serif);font-size:19px;line-height:1.5;text-align:left}
+.qopts{display:grid;gap:8px;text-align:left}
+.qopt{border:1.5px solid var(--line2);background:var(--paper);border-radius:12px;padding:12px 14px;font:inherit;font-size:15px;text-align:left;color:inherit}
+.qopt.right{border-color:var(--green);background:var(--green-soft)}.qopt.wrong{border-color:var(--red);background:var(--red-soft)}
+.choice button.good{border-color:var(--green)}.choice button.again{border-color:var(--red)}
+.chips.filt{margin:-4px 0 12px}
+/* ---------- pronunciation, imports, report ---------- */
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px}
+.pw{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pw b{font-family:var(--serif);font-size:19px;min-width:4.2em}
+.pw .icon-btn{width:36px;height:36px}
+.imp b{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.share-img{width:100%;max-width:360px;border-radius:12px;border:1px solid var(--line);display:block;margin-bottom:10px}
+@media (max-width:420px){
+  .seg a{font-size:13.5px}
+  .pair{grid-template-columns:1fr}
+  .stat-grid{grid-template-columns:repeat(3,1fr)}
+}
+
