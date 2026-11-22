@@ -256,3 +256,44 @@ class QARoundTests(LearnerModelTests):
         s = sounds.listing()['sets'][0]
         self.assertTrue(s['listen']); self.assertTrue(s['pairs'][0][0]['phonetic'].startswith('['))
         self.assertNotIn("'", nx.lookup('ticket')['phonetic'])  # one phonetic style: ˈ not '
+
+
+class QARound2Tests(LearnerModelTests):
+    """Second round: dictionary senses, roots in Chinese, a harder test band, the skip toggle, import topics."""
+
+    def test_reviewed_senses_and_chinese_roots(self):
+        self.assertTrue(nx.lookup('mean')['meaning'].startswith('v. 意思是'))
+        self.assertIn('利益相关者', nx.lookup('stakeholder')['meaning'])
+        r = vs.roots('abbreviate')
+        self.assertTrue(r and all(not any(ch.isdigit() for ch in x['part']) for x in r))
+        self.assertTrue(any('一' <= ch <= '鿿' for ch in r[0]['meaning'])); self.assertIn(r[0]['kind'], ('动词后缀', '前缀', '词根'))
+
+    def test_vocabulary_test_reaches_past_twenty_thousand(self):
+        items = vs.test_items(7)['items']
+        deep = set(vs.beyond_words())
+        self.assertGreaterEqual(sum(w in deep for w in items), 6)
+        answers = {w: w not in vs.PSEUDO for w in items}  # knows every real word, rejects the made-up ones
+        vs.save_plan(self.c, 1, {'book': 'core', 'daily_new': 5, 'retention': 0.9})
+        r = vs.score_test(self.c, 1, {'answers': answers})[0]
+        self.assertTrue(r['ceiling']); self.assertEqual(r['suggest'], 'gre')
+        self.assertGreater(r['estimate'], sum(len(vs.book_words()[k]) for k in vs.BOOKS))  # past the old cap of the frequency books
+        self.assertIn('beyond', r['bands'])
+        # skipping known words can be switched off and on again
+        vs.save_plan(self.c, 1, {'book': 'ielts', 'daily_new': 10, 'retention': 0.9, 'skip_known': False})
+        self.assertEqual(vs.plan(self.c, 1)['skip_rank'], 0)
+        vs.save_plan(self.c, 1, {'book': 'ielts', 'daily_new': 10, 'retention': 0.9, 'skip_known': True})
+        self.assertEqual(vs.plan(self.c, 1)['skip_rank'], vs.plan(self.c, 1)['test_skip']); self.assertGreater(vs.plan(self.c, 1)['skip_rank'], 0)
+
+    def test_import_topic_is_guessed_or_chosen(self):
+        work = ('Our team meeting with the client moved to Monday. The manager said the project deadline is Friday, so every colleague '
+                'must send an email update today. The company wants the customer to see progress before the next business review.')
+        self.assertEqual(imp.save(self.c, 1, {'title': 'Work', 'text': work})[1], 200)
+        self.assertEqual(json.loads(self.c.execute("SELECT content FROM lab_packs WHERE origin='import'").fetchone()[0])['theme'], 'work')
+        self.assertEqual(imp.guess_theme(ARTICLE), 'science')
+        pid = imp.save(self.c, 1, {'title': 'Birds', 'text': ARTICLE, 'theme': 'culture'})[0]['id']
+        self.assertEqual(json.loads(self.c.execute('SELECT content FROM lab_packs WHERE id=?', (pid,)).fetchone()[0])['theme'], 'culture')
+
+    def test_beginner_hard_words_and_stable_picks(self):
+        self.assertNotIn('forty', nx.material(self.c, None, PID, 'A2')[0]['hard'])
+        guest = nx.home(self.c, None, 'B2', ['science'])['today'][0]['id']
+        self.assertEqual(nx.home(self.c, 1)['today'][0]['id'], guest)  # same level and topics: signing in keeps today's pick

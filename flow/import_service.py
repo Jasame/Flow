@@ -32,6 +32,22 @@ def _level(body):
     return 'A2'
 
 
+THEME_WORDS = {  # a few telling words per topic, to file an imported article where the learner would look for it
+    'work': 'meeting colleague colleagues manager client clients project deadline office team career job jobs salary company boss email interview business customer market'.split(),
+    'campus': 'student students university college campus professor lecture exam exams course semester classmates homework library degree'.split(),
+    'travel': 'travel trip flight hotel airport passport tourist train station journey luggage visa destination ticket'.split(),
+    'science': 'scientists research study studies experiment data researchers energy climate species brain cells planet technology evidence'.split(),
+    'culture': 'culture festival tradition traditional art music museum history film language customs heritage'.split(),
+}
+
+
+def guess_theme(body):
+    words = re.findall(r'[a-z]+', body.lower())
+    score = {t: sum(words.count(w) for w in ws) for t, ws in THEME_WORDS.items()}
+    best = max(score, key=score.get)
+    return best if score[best] >= 2 else 'life'
+
+
 def save(c, uid, data):
     title = data.get('title') if isinstance(data.get('title'), str) else ''
     body = data.get('text') if isinstance(data.get('text'), str) else ''
@@ -52,7 +68,7 @@ def save(c, uid, data):
         return {'id': pid, 'existing': True}, 200
     level = _level(body)
     p = {'id': pid, 'title': title, 'title_en': '', 'summary_zh': '', 'level': 'B2' if level == 'C1' else level, 'cefr': level,
-         'theme': 'life', 'genre': 'article', 'body': body, 'source': '我导入的文章', 'vocabulary': [], 'expressions': [], 'questions': [],
+         'theme': data.get('theme') if data.get('theme') in nx.THEMES else guess_theme(body), 'genre': 'article', 'body': body, 'source': '我导入的文章', 'vocabulary': [], 'expressions': [], 'questions': [],
          'knowledge': [], 'grammar': [], 'imported': True}
     c.execute('INSERT INTO lab_packs VALUES(?,?,?,?,?)', (pid, uid, 'import', json.dumps(p, ensure_ascii=False), time.time()))
     c.commit()

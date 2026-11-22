@@ -367,7 +367,7 @@
       else if (name === 'm' && a) { setNav('today'); await study(decodeURIComponent(a), b || 'listen', sameMaterial); }
       else if (name === 'graph') { setNav('graph'); await (a ? nodeView(decodeURIComponent(a)) : graphView()); }
       else if (name === 'cards') { setNav('cards'); await vocabView('', 1, a || ''); }
-      else if (name === 'import') { setNav('me'); await importView(); }
+      else if (name === 'import') { setNav('today'); await importView(); }
       else if (name === 'sounds') { setNav('me'); await soundsView(a ? decodeURIComponent(a) : ''); }
       else if (name === 'report') { setNav('me'); await reportView(); }
       else if (name === 'vocab') { setNav('cards'); await (a === 'plan' ? planView() : a === 'test' ? vocabTest() : vocabView()); }
@@ -1413,11 +1413,19 @@
       ${c.meaning ? `<div class="mean">${esc(c.meaning).replace(/；|;/g, '<br>')}</div>` : ''}${rootsHTML(c)}
       <div class="row">${recallPill(c)}${c.stability ? `<span class="pill">记忆稳定性 ${c.stability < 1 ? '不到 1 天' : Math.round(c.stability) + ' 天'}</span>` : ''}${c.state !== 'new' && !c.known ? `<span class="pill">${dueText(c.due)}</span>` : ''}</div>
       ${curveSVG(c, d.retention)}
-      ${examplesHTML(c)}
+      <div id="exSlot">${examplesHTML(c) || (c.kind === 'word' && S.user ? '<p class="muted tiny"><span class="spin"></span> 正在找例句…</p>' : '')}</div>
       ${d.history.length ? `<div class="tiny muted">复习记录：${d.history.slice(-8).map(h => `${new Date(h.created * 1000).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })} ${tl[h.rating] || h.rating}`).join(' · ')}</div>` : ''}
       <div class="row"><button class="btn" id="known">${c.known ? '取消熟知，继续复习' : '标为熟知，不再复习'}</button><button class="btn ghost" id="del">删除</button><button class="btn ghost" data-close>关闭</button></div></div>`, card => {
       card.querySelector('#sayW').onclick = () => CLIP.word(c);
       bindExamples(card, c);
+      if (c.kind === 'word' && S.user && !(c.examples || []).length) {
+        api('/api/next/vocab/examples', { words: [c.text.toLowerCase()], request_id: rid('ve') }).then(r => {
+          const ex = (r.examples || {})[c.text.toLowerCase()], slot = card.querySelector('#exSlot');
+          if (!slot || !document.contains(slot)) return;
+          if (ex && ex.length) c.examples = ex;
+          slot.innerHTML = examplesHTML(c) || '<p class="muted tiny">暂时没有例句。</p>'; bindExamples(slot, c);
+        }).catch(() => { const slot = card.querySelector('#exSlot'); if (slot) slot.innerHTML = examplesHTML(c); });
+      }
       card.querySelector('#known').onclick = async () => { try { await api('/api/next/vocab/known', { id: c.id, known: !c.known }); closeSheet(); toast(c.known ? '已恢复复习' : '已标为熟知'); refreshHome().catch(() => {}); if (after) after(); } catch (e) { toast(e.message); } };
       const delB = card.querySelector('#del'); if (delB) delB.setAttribute('aria-label', '删除 ' + c.text);
       card.querySelector('#del').onclick = async () => { if (!confirm('删除这个词和它的复习记录？')) return; try { await api('/api/next/cards/delete', { id: c.id }); closeSheet(); if (after) after(); } catch (e) { toast(e.message); } };
@@ -1444,17 +1452,17 @@
     let book = cur.book, daily = cur.daily_new, ret = cur.retention;
     view.innerHTML = `<h1 class="h1">背词计划</h1><span class="muted small">随时可以改，已学的进度不会丢。</span>
       <div class="section stack-s"><h2 class="h2">词书</h2><span class="muted tiny">按词频分段的词书从你的水平往上走；考试词书按大纲词表、常用词在前。专四、专八等词表可以在「单词」页导入。</span>
-        ${[['freq', '按词频'], ['exam', '考试词书']].map(([kind, label]) => `<div class="kicker">${label}</div><div class="books">${o.books.filter(b => b.kind === kind).map(b => `<button class="card flat bookc" data-book="${b.id}" aria-pressed="${b.id === book}"><div class="row between"><b>${esc(b.title)}</b>${b.id === o.suggested_book ? '<span class="pill green">推荐</span>' : ''}</div><span class="small">${esc(b.blurb)}</span><span class="tiny muted">${b.size} 词${b.range ? ' · 词频第 ' + b.range + ' 位' : ''}</span></button>`).join('')}</div>`).join('')}</div>
+        ${[['freq', '按词频'], ['exam', '考试词书']].map(([kind, label]) => `<div class="kicker">${label}</div><div class="books">${o.books.filter(b => b.kind === kind).map(b => `<button class="card flat bookc" data-book="${b.id}" aria-pressed="${b.id === book}"><div class="row between"><b>${esc(b.title)}</b>${b.id === o.suggested_book ? '<span class="pill green">推荐</span>' : ''}</div><span class="small">${esc(b.blurb)}</span><span class="tiny muted">${b.size} 词${b.range ? ' · 词频第 ' + b.range + ' 位' : ''}</span></button>`).join('')}${kind === 'exam' ? `<button class="card flat bookc" id="impBook" type="button"><b>专四 / 专八 / 老师给的词表</b><span class="small">这些没有可以内置的公开官方词表：把手上的词表粘贴进来，就和词书一起按遗忘曲线复习。</span><span class="tiny muted">导入词表 →</span></button>` : ''}</div>`).join('')}</div>
       <div class="section stack-s"><h2 class="h2">每天新词</h2><div class="chips" id="dn">${o.daily_new_options.map(v => `<button class="chip" data-v="${v}" aria-pressed="${v === daily}">${v} 个</button>`).join('')}</div>
         <span class="muted tiny" id="dnHint"></span></div>
       <div class="section stack-s"><h2 class="h2">目标记住率</h2><div class="chips" id="rt">${o.retention_options.map(v => `<button class="chip" data-v="${v}" aria-pressed="${v === ret}">${Math.round(v * 100)}%</button>`).join('')}</div>
         <span class="muted tiny">系统会在你记住的概率降到这个数时安排复习。越高记得越牢，但每天复习更多；90% 是比较均衡的选择。</span></div>
-      ${o.plan && o.plan.estimate ? `<label class="section checkline"><input type="checkbox" id="skipKnown" ${o.plan.skip_rank ? 'checked' : ''}>考试词书里跳过测试显示你已经认识的常用词${o.plan.skip_rank ? `（词频前 ${o.plan.skip_rank} 位）` : ''}</label>` : ''}
+      ${o.plan && o.plan.estimate ? `<label class="section checkline"><input type="checkbox" id="skipKnown" ${o.plan.skip_rank ? 'checked' : ''}>考试词书里跳过测试显示你已经认识的常用词${o.plan.test_skip ? `（词频前 ${o.plan.test_skip} 位）` : ''}</label>` : ''}
       <div class="section row"><button class="btn primary" id="savePlan">${o.plan ? '保存' : '开始背'}</button><a class="btn ghost" href="#/cards">取消</a></div>
       <div class="section card flat stack-s" id="remind"><h2 class="h2">复习提醒</h2>
         <span class="muted tiny">遗忘曲线最怕"到期没人提醒"。选一个每天方便的时间：</span>
         <div class="row"><select id="rHour" aria-label="提醒时间">${Array.from({ length: 18 }, (_, k) => k + 6).map(h => `<option value="${h}" ${h === o.reminder.hour ? 'selected' : ''}>每天 ${h}:00</option>`).join('')}</select></div>
-        <label class="checkline"><input type="checkbox" id="rMail" ${o.reminder.enabled ? 'checked' : ''} ${o.reminder.has_email ? '' : 'disabled'}><span>到点发邮件提醒（只在有词要复习时发）${o.reminder.has_email ? '' : '<br><span class="muted tiny">账号还没绑定邮箱：可以在<a class="link" href="/?classic=1">经典版的账号设置</a>里绑定，或者先用下面的日历提醒。</span>'}</span></label>
+        <label class="checkline"><input type="checkbox" id="rMail" ${o.reminder.enabled ? 'checked' : ''} ${o.reminder.has_email ? '' : 'disabled'}><span>到点发邮件提醒（只在有词要复习时发）${o.reminder.has_email ? '' : '<br><span class="muted tiny">账号还没绑定邮箱：可以在<a class="link" href="#/me">「我的」</a>里绑定，或者先用下面的日历提醒。</span>'}</span></label>
         <div class="row"><a class="btn small" id="rCal" href="/api/next/vocab/reminder.ics?hour=${o.reminder.hour}">加到手机日历</a><span class="muted tiny">日历每天到点提醒，不依赖任何 App</span></div></div>`;
     const meta = id => o.books.find(b => b.id === id) || {};
     // Days left: words not yet studied, minus the ones this plan skips (everyday words; for exam books, what the test showed you know).
@@ -1469,6 +1477,7 @@
     const pick = (sel, set) => view.querySelectorAll(sel + ' [data-v]').forEach(b => b.onclick = () => { set(Number(b.dataset.v)); view.querySelectorAll(sel + ' [data-v]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); hint(); });
     pick('#dn', v => { daily = v; }); pick('#rt', v => { ret = v; });
     const skBox = document.getElementById('skipKnown'); if (skBox) skBox.onchange = hint;
+    document.getElementById('impBook').onclick = importSheet;
     hint();
     const rHour = document.getElementById('rHour'), rMail = document.getElementById('rMail'), rCal = document.getElementById('rCal');
     const saveRemind = async () => { rCal.href = '/api/next/vocab/reminder.ics?hour=' + rHour.value; try { await api('/api/next/vocab/reminder', { enabled: rMail.checked, hour: Number(rHour.value) }); toast(rMail.checked ? `每天 ${rHour.value}:00 会提醒你` : '提醒时间已更新'); } catch (x) { toast(x.message); rMail.checked = false; } };
@@ -1476,7 +1485,7 @@
     document.getElementById('savePlan').onclick = async e => {
       e.currentTarget.disabled = true;
       const sk = document.getElementById('skipKnown');
-      try { await api('/api/next/vocab/plan', { book, daily_new: daily, retention: ret, ...(sk && !sk.checked ? { skip_known: false } : {}) }); await refreshHome(); toast('计划已保存'); location.hash = '#/cards'; }
+      try { await api('/api/next/vocab/plan', { book, daily_new: daily, retention: ret, ...(sk ? { skip_known: sk.checked } : {}) }); await refreshHome(); toast('计划已保存'); location.hash = '#/cards'; }
       catch (x) { toast(x.message); e.currentTarget.disabled = false; }
     };
   }
@@ -1820,9 +1829,11 @@
   async function importView() {
     if (!S.user) return needLogin('登录后可以导入自己想读的英文文章，用点词、AI 讲解、生词复习来学。');
     const d = await api('/api/next/import');
+    if (!S.meta) S.meta = await api('/api/next/meta');
     view.innerHTML = `<h1 class="h1">我的文章</h1><span class="muted small">论文、新闻、小说章节都可以：贴进来，就能点词查义、AI 讲解句子、听写跟读、把生词加入复习。只有你自己看得到。</span>
       <form class="card flat section stack" id="impF"><input name="title" type="text" maxlength="80" placeholder="标题（可不填）" aria-label="标题">
         <textarea name="text" rows="8" lang="en" aria-label="英文正文" placeholder="粘贴英文正文（200–8000 个字符）"></textarea>
+        <select name="theme" aria-label="话题"><option value="">话题：按内容自动判断</option>${S.meta.themes.map(t => `<option value="${t.id}">话题：${esc(t.label)}</option>`).join('')}</select>
         <div class="row between"><span class="muted tiny" id="impN">0 字符</span><button class="btn primary">保存并开始学</button></div></form>
       <div class="section stack-s"><div class="row between"><h2 class="h2">已保存</h2><span class="muted tiny">${d.items.length} / ${d.max}</span></div>
       ${d.items.length ? `<div class="grid-list">${d.items.map(a => `<div class="card flat stack-s imp"><div class="row between"><b>${esc(a.title)}</b><span class="pill">${esc(a.level)}</span></div>
@@ -1833,7 +1844,7 @@
     f.text.oninput = () => { document.getElementById('impN').textContent = f.text.value.length + ' 字符'; };
     f.onsubmit = async e => {
       e.preventDefault(); const b = f.querySelector('button'); b.disabled = true;
-      try { const r = await api('/api/next/import', { title: f.title.value, text: f.text.value }); toast(r.existing ? '这篇已经导入过了' : `已保存，估计难度 ${r.level}`); location.hash = `#/m/${encodeURIComponent(r.id)}/read`; }
+      try { const r = await api('/api/next/import', { title: f.title.value, text: f.text.value, theme: f.theme.value }); toast(r.existing ? '这篇已经导入过了' : `已保存，估计难度 ${r.level}`); location.hash = `#/m/${encodeURIComponent(r.id)}/read`; }
       catch (x) { toast(x.message); b.disabled = false; }
     };
     view.querySelectorAll('[data-enrich]').forEach(b => b.onclick = async () => {
@@ -1930,7 +1941,8 @@
     };
   }
   function shareImage(r) {
-    const W = 1080, H = 1440, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const rows = r.skills.filter(s => s.now != null).slice(0, 5).length;
+    const W = 1080, H = rows ? 900 + rows * 70 + 170 : 860, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
     const g = cv.getContext('2d'), green = '#1f9d55', ink = '#1b1d1a', muted = '#6f7369';
     g.fillStyle = '#fbfaf6'; g.fillRect(0, 0, W, H);
     g.fillStyle = green; g.beginPath(); g.roundRect ? g.roundRect(80, 90, 96, 96, 26) : g.rect(80, 90, 96, 96); g.fill();
@@ -1945,7 +1957,7 @@
       g.fillStyle = '#ffffff'; g.fillRect(x, y, 290, 190); g.fillStyle = green; g.font = font(84, 800); g.fillText(String(v), x + 30, y + 110);
       g.fillStyle = muted; g.font = font(30, 500); g.fillText(l, x + 30, y + 160);
     });
-    let y = 820; g.fillStyle = ink; g.font = font(36, 700); g.fillText('各项练习', 80, y); y += 30;
+    let y = 820; g.fillStyle = ink; g.font = font(36, 700); if (rows) g.fillText('各项练习', 80, y); y += 30;
     r.skills.filter(s => s.now != null).slice(0, 5).forEach(s => {
       y += 70; g.fillStyle = ink; g.font = font(32, 500); g.fillText(s.label, 80, y);
       g.fillStyle = '#e7e3d8'; g.fillRect(240, y - 24, 600, 22); g.fillStyle = green; g.fillRect(240, y - 24, 600 * s.now, 22);
@@ -1995,6 +2007,8 @@
         <span class="muted small">像 App 一样从桌面打开，界面全屏；听过的音频会缓存下来，网络差的时候也能复习。</span>
         ${installPrompt ? '<div><button class="btn small primary" id="doInstall">添加到桌面</button></div>' : /iPhone|iPad|iPod/.test(navigator.userAgent)
           ? '<span class="small">iPhone：用 Safari 打开，点底部的「分享」按钮，再选「添加到主屏幕」。</span>' : '<span class="small">安卓：在浏览器菜单里选「添加到主屏幕」或「安装应用」。</span>'}</div>`}
+      ${S.user ? `<div class="card flat stack-s" id="acct"><div class="row between"><b>邮箱</b><span class="small muted" id="acctEmail"><span class="spin"></span></span></div>
+        <span class="muted tiny">绑定后可以收复习提醒和周报、用验证码登录、找回密码。</span><div><button class="btn small" id="bindMail" hidden>绑定邮箱</button></div></div>` : ''}
       ${S.user ? '<div id="abSlot"><div class="card flat"><p class="loading"><span class="spin"></span></p></div></div>' : ''}
       <div class="card flat list">
         ${S.user ? '<a href="#/report">这周的学习报告 <span>→</span></a><a href="#/cards/mistake">错题本 <span>→</span></a>' : ''}
@@ -2008,10 +2022,39 @@
     const lg = document.getElementById('lg'); if (lg) lg.onclick = () => openLogin();
     const slot = document.getElementById('abSlot');
     if (slot) api('/api/next/ability').then(ab => { slot.innerHTML = abilityHTML(ab); requestAnimationFrame(() => requestAnimationFrame(() => slot.querySelectorAll('.vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; }))); }).catch(() => { slot.innerHTML = ''; });
+    if (S.user) api('/api/account').then(a => {
+      const el = document.getElementById('acctEmail'), b = document.getElementById('bindMail'); if (!el) return;
+      el.textContent = a.email || '还没有绑定';
+      if (a.mail_enabled) { b.hidden = false; b.textContent = a.email ? '更换邮箱' : '绑定邮箱'; b.onclick = () => bindEmailSheet(a.email); }
+      else el.textContent += a.email ? '' : '（邮件服务暂未开启）';
+    }).catch(() => { const el = document.getElementById('acctEmail'); if (el) el.textContent = ''; });
     const di = document.getElementById('doInstall'); if (di) di.onclick = async () => { installPrompt.prompt(); try { await installPrompt.userChoice; } catch (e) { /* dismissed */ } installPrompt = null; meView(); };
     view.querySelectorAll('[data-voice]').forEach(b => b.onclick = async () => { await setVoice(b.dataset.voice); view.querySelectorAll('[data-voice]').forEach(x => { x.setAttribute('aria-pressed', String(x === b)); x.setAttribute('aria-checked', String(x === b)); }); toast('朗读声音：' + VOICE_LABELS[b.dataset.voice]); });
     const out = document.getElementById('out');
     if (out) out.onclick = async () => { try { await api('/api/logout', {}); } catch (e) { /* ignore */ } S.user = null; S.csrf = ''; await refreshHome(); toast('已退出'); route(); };
+  }
+
+  function bindEmailSheet(cur) {
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">${cur ? '更换' : '绑定'}邮箱</h2>
+      <p class="muted small">先发一封验证邮件到新邮箱；邮件里有一串验证令牌，复制回来粘贴到这里就完成了（30 分钟内有效）。</p>
+      <form id="bm1" class="stack" novalidate><label class="field">邮箱<input name="email" type="email" autocomplete="email" inputmode="email" required></label>
+        <label class="field">当前密码（确认是你本人）<input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="btn primary" type="submit">发送验证邮件</button></form>
+      <form id="bm2" class="stack" novalidate hidden><label class="field">验证令牌<input name="token" type="text" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" required></label>
+        <button class="btn primary" type="submit">完成绑定</button></form>
+      <p class="err" id="bmErr" role="alert"></p><button class="btn ghost" data-close type="button">取消</button></div>`, card => {
+      const f1 = card.querySelector('#bm1'), f2 = card.querySelector('#bm2'), err = card.querySelector('#bmErr');
+      f1.onsubmit = async e => {
+        e.preventDefault(); err.textContent = ''; const b = f1.querySelector('button'); b.disabled = true;
+        try { await api('/api/account/email/request', { email: f1.email.value.trim(), password: f1.password.value }); f1.hidden = true; f2.hidden = false; f2.token.focus(); toast('验证邮件已发出，请查看邮箱'); }
+        catch (x) { err.textContent = x.message; b.disabled = false; }
+      };
+      f2.onsubmit = async e => {
+        e.preventDefault(); err.textContent = ''; const b = f2.querySelector('button'); b.disabled = true;
+        try { await api('/api/account/email/confirm', { token: f2.token.value.trim() }); closeSheet(); toast('邮箱已绑定'); meView(); }
+        catch (x) { err.textContent = x.message; b.disabled = false; }
+      };
+    });
   }
 
   /* ---------- boot ---------- */

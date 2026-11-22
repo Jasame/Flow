@@ -279,6 +279,16 @@ def run_device(pw, dev, opts):
     cols = pg.evaluate("() => getComputedStyle(document.querySelector('.choice.opts')).gridTemplateColumns.split(' ').length")
     check(dev, 'welcome: level cards in 1 column on phones, 2 on wide screens', cols == (1 if opts['viewport']['width'] < 600 else 2), cols)
 
+    # ---- account email, exam word lists, import topic
+    go(pg, '#/me'); pg.wait_for_function("() => !document.querySelector('#acctEmail .spin')", timeout=5000)
+    check(dev, 'me: email row says whether one is bound', len((pg.text_content('#acctEmail') or '').strip()) > 0, pg.text_content('#acctEmail'))
+    go(pg, '#/vocab/plan')
+    pg.click('#impBook'); pg.wait_for_selector('#impText', timeout=4000)
+    check(dev, 'plan: 专四/专八 entry opens the word-list import', pg.is_visible('#impText'))
+    pg.evaluate("document.querySelector('#sheet [data-close]').click()")
+    go(pg, '#/import')
+    check(dev, 'import: a topic can be chosen', pg.evaluate("() => document.querySelectorAll('#impF select[name=theme] option').length") >= 7)
+
     # ---- library: filters are remembered after opening a material and coming back
     go(pg, '#/library')
     pg.select_option('#fl', 'B2'); pg.wait_for_timeout(500)

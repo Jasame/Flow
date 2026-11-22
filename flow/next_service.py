@@ -11,7 +11,7 @@ from pathlib import Path
 TZ = datetime.timezone(datetime.timedelta(hours=8))
 STEPS = ('listen', 'read', 'check', 'output')
 LEVELS = {
-    'A2': {'label': '入门', 'pack': 'A2', 'hard_rank': 1500, 'sample': 'I usually take the bus to school. It is cheap and quick.',
+    'A2': {'label': '入门', 'pack': 'A2', 'hard_rank': 2000, 'sample': 'I usually take the bus to school. It is cheap and quick.',
            'desc': '能看懂简单句子，日常交流还比较吃力'},
     'B1': {'label': '中级', 'pack': 'B1', 'hard_rank': 3000, 'sample': 'If the weather is good this weekend, we are planning to go hiking with a few friends.',
            'desc': '能应付日常交流，读工作或学习材料要查不少词'},
@@ -135,6 +135,13 @@ def dictionary():
                 continue  # skip inflections of words we already have: "cities" should look up "city"
             out[k] = {'word': k, 'phonetic': _ec_phonetic(e), 'meaning': _ec_meaning(e), 'rank': e[6] or e[5] or 30000,
                       'example': '', 'ref': False, 'tags': e[2], 'collins': e[3]}
+        try:  # senses reviewed by hand for common words whose dictionary order misleads (mean: 吝啬的 before 意思是)
+            fixes = json.loads((base / 'meaning-fixes.json').read_text(encoding='utf-8'))['words']
+        except (OSError, ValueError, KeyError):
+            fixes = {}
+        for k, m in fixes.items():
+            if k in out:
+                out[k]['meaning'] = m
         _DICT = out
     return _DICT
 
@@ -414,7 +421,8 @@ def node(c, uid, nid, level=None):
                                  'level': cefr(p), 'featured': featured(p)})
         mats.append(p)
     target = level if level != 'C1' else 'C1'
-    mats.sort(key=lambda p: (0 if cefr(p) == target else 1, 0 if featured(p) else 1, 'check' in done.get(p['id'], set()), p['id']))
+    mine = set((prof or {}).get('themes') or [])  # the learner's topics first (职场沟通 for a work learner)
+    mats.sort(key=lambda p: (0 if cefr(p) == target else 1, 0 if p['theme'] in mine else 1, 0 if featured(p) else 1, 'check' in done.get(p['id'], set()), p['id']))
     examples.sort(key=lambda e: (0 if e['level'] == target else 1, 0 if e['featured'] else 1))
     notes = [dict(r) for r in c.execute('SELECT pack, kind, detail, created FROM next_node_notes WHERE user_id=? AND node=? ORDER BY created DESC LIMIT 6', (uid or -1, nid))]
     prereq = meta.get(m['prereq']) if m['prereq'] else None
@@ -450,7 +458,8 @@ def home(c, uid, level=None, themes=None):
     focus = set(LEVEL_NODES.get(level, ())) or None
     meta_titles = {k: v['title'] for k, v in nodes_meta(c).items()}
     saved = _card_norms(c, uid)
-    seed = lambda p: hashlib.sha256(f"{uid or 0}|{day}|{p['id']}".encode()).hexdigest()
+    # Ties are broken per day and level, not per account, so signing in does not swap the article a guest was shown.
+    seed = lambda p: hashlib.sha256(f"{day}|{level}|{p['id']}".encode()).hexdigest()
 
     def score(p):
         s, reasons = 0.0, []
@@ -593,7 +602,7 @@ def material(c, uid, pid, level=None):
         if key in hard or key in vocab:
             continue
         hit = lookup(w)
-        if hit and easiest_rank(w) > hard_rank:
+        if hit and easiest_rank(w) > hard_rank and not hit['meaning'].startswith('num.'):  # forty, eighty: numbers are not "hard"
             hard[key] = {'meaning': hit['meaning'][:80], 'rank': hit['rank']}
     qs = [{'prompt': q['prompt'], 'options': q['options']} for q in p.get('questions', [])]
     done = _done(c, uid).get(pid, set())

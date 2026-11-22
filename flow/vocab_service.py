@@ -49,7 +49,9 @@ _BOOK = None
 _EX = None
 _ROOTS = None
 _WA = {'mtime': None, 'index': {}}
-ROOT_CLASS = {'root': '词根', 'prefix': '前缀'}
+ROOT_CLASS = {'root': '词根', 'prefix': '前缀', 'noun-forming suffix': '名词后缀', 'adjective-forming suffix': '形容词后缀',
+              'verb-forming suffix': '动词后缀', 'adverb-forming suffix': '副词后缀', 'adjective- and noun-forming suffix': '后缀'}
+_ROOT_ZH = None
 REMIND_HOURS = tuple(range(6, 24))
 
 
@@ -82,6 +84,9 @@ CREATE TABLE IF NOT EXISTS next_reminders(user_id INTEGER PRIMARY KEY REFERENCES
         c.execute('ALTER TABLE next_vocab_plans ADD COLUMN skip_rank INTEGER NOT NULL DEFAULT 0')
     if 'suggest' not in pcols:  # the book the vocabulary test recommended
         c.execute('ALTER TABLE next_vocab_plans ADD COLUMN suggest TEXT')
+    if 'test_skip' not in pcols:  # what the test said may be skipped, kept so "skip known words" can be turned back on
+        c.execute('ALTER TABLE next_vocab_plans ADD COLUMN test_skip INTEGER NOT NULL DEFAULT 0')
+        c.execute('UPDATE next_vocab_plans SET test_skip=skip_rank')
     # review rows of deleted cards: unlink them (a new card may get the same id), keep them for statistics
     c.execute('UPDATE next_reviews SET card=-card WHERE card>0 AND NOT EXISTS (SELECT 1 FROM next_cards k WHERE k.id=next_reviews.card AND k.user_id=next_reviews.user_id)')
     c.commit()
@@ -166,13 +171,19 @@ def examples(norm, level='B1', limit=2, skip=''):
 
 def roots(norm):
     """词根词缀 from ECDICT's word-root list: [{'part', 'meaning', 'kind'}]."""
-    global _ROOTS
+    global _ROOTS, _ROOT_ZH
     if _ROOTS is None:
+        base = Path(__file__).resolve().parent / 'corpus_data'
         try:
-            _ROOTS = json.loads((Path(__file__).resolve().parent / 'corpus_data' / 'wordroots-flow.json').read_text(encoding='utf-8'))['words']
+            _ROOTS = json.loads((base / 'wordroots-flow.json').read_text(encoding='utf-8'))['words']
         except OSError:
             _ROOTS = {}
-    return [{'part': r, 'meaning': m, 'kind': ROOT_CLASS.get(k, '后缀' if 'suffix' in k else '词缀')} for r, m, k in _ROOTS.get(norm, [])]
+        try:
+            _ROOT_ZH = json.loads((base / 'wordroots-zh.json').read_text(encoding='utf-8'))['glosses']
+        except (OSError, ValueError, KeyError):
+            _ROOT_ZH = {}
+    clean = lambda part: re.sub(r'(?<=[a-z-])\d', '', part)
+    return [{'part': clean(r), 'meaning': _ROOT_ZH.get(m, m), 'kind': ROOT_CLASS.get(k, '后缀' if 'suffix' in k else '词缀')} for r, m, k in _ROOTS.get(norm, [])]
 
 
 def short_meaning(meaning, n=2):
@@ -262,6 +273,10 @@ def card_out(r, now=None, level=None, rich=False, c=None):
     rv = recall_now(r, now)
     out['recall'] = None if rv is None else round(rv, 3)
     out['mastered'] = bool(r['known'] or (r['stability'] or 0) >= MASTERED)
+    if r['kind'] == 'word' and r['source'] in ('book', 'import'):
+        entry = nx.dictionary().get(r['norm'])
+        if entry and entry['meaning']:
+            out['meaning'] = entry['meaning'][:300]
     if rich:
         entry = nx.dictionary().get(r['norm']) if r['kind'] == 'word' else None
         out['phonetic'] = entry['phonetic'] if entry else ''
@@ -452,7 +467,7 @@ def overview(c, uid):
                 'finish': nx._day(now + math.ceil(left / max(1, p['daily_new'])) * fsrs.DAY) if left else None}
     books = books_meta()
     for b in books:  # how many words a plan would skip in each book, for the estimate on the plan page
-        b['skippable'] = _skipped(b['id'], skip_rank or 0, force=True)
+        b['skippable'] = _skipped(b['id'], ((p.get('test_skip') or skip_rank) if p else 0) or 0, force=True)
     return {'plan': p, 'book': book, 'books': books, 'daily_new_options': list(DAILY_NEW), 'retention_options': list(RETENTION),
             'suggested_book': (p.get('suggest') if p and p.get('suggest') in book_words() else None) or LEVEL_BOOK.get(_level(c, uid), 'mid'), 'mastered': mastered, 'learning': learning, 'total': len(rows),
             'forecast': forecast, 'calendar': calendar, 'reminder': reminder(c, uid), **counts(c, uid, now)}
@@ -479,8 +494,18 @@ def save_plan(c, uid, data):
               (uid, book, daily, retention, now, now))
     if data.get('skip_known') is False:
         c.execute('UPDATE next_vocab_plans SET skip_rank=0 WHERE user_id=?', (uid,))
+    elif data.get('skip_known') is True:
+        c.execute('UPDATE next_vocab_plans SET skip_rank=test_skip WHERE user_id=?', (uid,))
     c.commit()
     return overview(c, uid), 200
+
+
+BEYOND = 20200  # the frequency books end here; the test's last band samples rarer exam words
+
+
+def beyond_words():
+    """GRE words rarer than the frequency books: the vocabulary test's hardest band."""
+    return [w for r, w in book_words()['gre'] if r > BEYOND]
 
 
 def test_items(seed=None):
@@ -491,6 +516,8 @@ def test_items(seed=None):
     for k in BOOKS:
         words = book_words()[k]
         items += [w for _, w in rng.sample(words, min(8, len(words)))]
+    deep = beyond_words()
+    items += rng.sample(deep, min(8, len(deep)))
     fakes = [w for w in PSEUDO if w not in real]
     items += rng.sample(fakes, min(6, len(fakes)))
     rng.shuffle(items)
@@ -503,7 +530,9 @@ def score_test(c, uid, data):
         return {'error': '测试结果不完整'}, 400
     real = nx.dictionary()
     band_of = {w: k for k in BOOKS for _, w in book_words()[k]}
-    per = {k: [0, 0] for k in BOOKS}
+    deep = beyond_words()
+    band_of.update({w: 'beyond' for w in deep if w not in band_of})
+    per = {k: [0, 0] for k in (*BOOKS, 'beyond')}
     fake = [0, 0]
     for w, yes in answers.items():
         w = str(w).lower()[:40]
@@ -512,26 +541,28 @@ def score_test(c, uid, data):
         elif w in band_of:
             per[band_of[w]][0] += bool(yes); per[band_of[w]][1] += 1
     fa = fake[0] / fake[1] if fake[1] else 0
-    sizes = {k: len(book_words()[k]) for k in BOOKS}
+    sizes = {**{k: len(book_words()[k]) for k in BOOKS}, 'beyond': len(deep)}
     known = {}
     for k, (y, n) in per.items():
         p = y / n if n else 0
         known[k] = max(0.0, (p - fa) / (1 - fa)) if fa < 1 else 0.0  # correct for guessing
-    estimate = int(round(sum(known[k] * sizes[k] for k in BOOKS), -2))
-    suggest = next((k for k in BOOKS if known[k] < 0.8), 'ext')
-    ceiling = all(v >= 0.9 for v in known.values())  # beyond what the test can measure: an exam list fits better
-    if ceiling:
-        suggest = 'gre'
+    estimate = int(round(sum(known[k] * sizes[k] for k in sizes), -2))
+    suggest = next((k for k in BOOKS if known[k] < 0.8), None)
+    # Past the frequency books: GRE when the rare band is already half known, otherwise the last frequency book.
+    ceiling = suggest is None and known['beyond'] >= 0.5
+    suggest = suggest or ('gre' if ceiling else 'ext')
     skip_rank = 0
     for k, (_, lo, hi, _) in BOOKS.items():  # exam books skip every band below the first one not reliably known
         if known[k] < 0.85:
             break
         skip_rank = hi
     if uid:
-        c.execute('UPDATE next_vocab_plans SET estimate=?, skip_rank=?, suggest=?, updated=? WHERE user_id=?', (estimate, skip_rank, suggest, time.time(), uid))
+        c.execute('UPDATE next_vocab_plans SET estimate=?, skip_rank=?, test_skip=?, suggest=?, updated=? WHERE user_id=?',
+                  (estimate, skip_rank, skip_rank, suggest, time.time(), uid))
         c.commit()
     return {'estimate': estimate, 'suggest': suggest, 'bands': {k: round(v, 2) for k, v in known.items()}, 'ceiling': ceiling,
-            'titles': {**{k: v[0] for k, v in BOOKS.items()}, **{k: v[0] for k, v in EXAM_BOOKS.items()}}, 'guessing': fa > 0.2, 'skip_rank': skip_rank}, 200
+            'titles': {**{k: v[0] for k, v in BOOKS.items()}, **{k: v[0] for k, v in EXAM_BOOKS.items()}, 'beyond': '超纲难词'},
+            'guessing': fa > 0.2, 'skip_rank': skip_rank}, 200
 
 
 def import_words(c, uid, data):
