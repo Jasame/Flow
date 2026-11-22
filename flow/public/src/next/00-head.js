@@ -7,7 +7,7 @@
   const sheetEl = document.getElementById('sheet');
   const sheetCard = document.getElementById('sheetCard');
   const toastEl = document.getElementById('toast');
-  const S = { user: null, csrf: '', meta: null, home: null, guest: load('flow-next-guest'), lastRoute: '', voice: load('flow-next-voice') || 'us-f' };
+  const S = { user: null, csrf: '', meta: null, home: null, homeFresh: false, guest: load('flow-next-guest'), lastRoute: '', voice: load('flow-next-voice') || 'us-f' };
   const VOICE_LABELS = { 'us-f': '美音 · 女', 'us-m': '美音 · 男', 'uk-f': '英音 · 女', 'uk-m': '英音 · 男' };
   const STEP = { listen: '听', read: '读', check: '理解', output: '用出来' };
   const STEPS = Object.keys(STEP);

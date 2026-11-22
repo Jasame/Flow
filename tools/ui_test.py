@@ -117,8 +117,21 @@ def run_device(pw, dev, opts):
     pg.on('pageerror', lambda e: errors.append(str(e)))
     pg.on('console', lambda m: errors.append(m.text) if m.type == 'error' and 'favicon' not in m.text and '/audio/' not in m.text else None)
     touch = opts['has_touch']
+    starts = []  # each one a round trip; from mainland China about a second
+    pg.on('request', lambda r: starts.append(r.url.split('?')[0].split(BASE, 1)[-1]) if r.url.split('?')[0].endswith(('/api/session', '/api/next/home')) else None)
     pg.goto(BASE + '/', wait_until='networkidle')
     settle(pg)
+
+    # ---- start-up: the home data carries the session, so the first screen needs one request; the next time the
+    # app is opened the page itself comes from the service worker's cache, without waiting on the network
+    check(dev, 'start: one request for session and home', starts == ['/api/next/home'], starts)
+    pg.evaluate('navigator.serviceWorker.ready.then(() => true)')
+    starts.clear()
+    resp = pg.reload(wait_until='networkidle'); settle(pg)
+    cached = bool(resp and resp.from_service_worker)
+    check(dev, 'reopen: page from the cache, still one request', cached and starts == ['/api/next/home'], (cached, starts))
+    k = pg.text_content('#view .greet') or ''
+    check(dev, 'reopen: signed in from that one request', f'ui-{dev}' in k, k)
 
     # ---- every page: no sideways scroll, controls reachable, screenshot
     for h in PAGES:

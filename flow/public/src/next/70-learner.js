@@ -16,7 +16,7 @@
   }
   function bindSuggest(h) {
     const y = document.getElementById('sgYes'), n = document.getElementById('sgNo');
-    if (y) y.onclick = async () => { try { await api('/api/next/profile', { ...h.profile, level: h.suggest.to }); toast('已换到 ' + h.suggest.to + '，推荐会跟着变'); await refreshHome(); route(); } catch (e) { toast(e.message); } };
+    if (y) y.onclick = async () => { try { await api('/api/next/profile', { ...h.profile, level: h.suggest.to }); toast('已换到 ' + h.suggest.to + '，推荐会跟着变'); await refreshHome(); S.homeFresh = true; route(); } catch (e) { toast(e.message); } };
     if (n) n.onclick = () => { save('flow-next-suggest-skip', Date.now()); y.closest('.suggest').remove(); };
   }
 

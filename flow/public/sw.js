@@ -1,5 +1,8 @@
 /* Flow service worker.
-   - The app shell (page, script, styles, icons) opens without a network.
+   - The app shell (page, script, styles, icons) opens from the cache at once, without waiting on the network
+     (from mainland China a page request to the server takes about two seconds). The page is fetched again in the
+     background for next time; a new release arrives with a new service worker (the asset version is in this
+     file), so a phone runs it from the next time the app is opened.
    - Audio (/audio/…) is fetched whole once and kept, then any byte range is served from the cache, so
      word pronunciations and example sentences play instantly on a weak connection and work offline.
    - API calls always go to the network; the page keeps its own small offline queue for reviews. */
@@ -26,8 +29,13 @@ self.addEventListener('fetch', e => {
   if (url.pathname.startsWith('/audio/')) { e.respondWith(audio(req, url)); return; }
   if (req.mode === 'navigate') {
     if (url.pathname !== '/' || url.search) return;  // the classic site and other pages stay network-only
-    e.respondWith(fetch(req).then(r => { if (r.ok) caches.open(SHELL).then(c => c.put('/', r.clone())); return r; })
-      .catch(() => caches.match('/')));
+    let saved;
+    const net = fetch(req).then(r => {
+      if (r.ok) { const copy = r.clone(); saved = caches.open(SHELL).then(c => c.put('/', copy)); }  // cloned before the page reads it
+      return r;
+    });
+    e.waitUntil(net.then(() => saved).catch(() => {}));
+    e.respondWith(caches.open(SHELL).then(c => c.match('/')).then(hit => hit || net).catch(() => net));
     return;
   }
   if (/^\/(next\.(js|css)|manifest\.webmanifest|icon-\d+\.png|apple-touch-icon\.png)$/.test(url.pathname)) {
