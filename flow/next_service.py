@@ -116,34 +116,54 @@ def dictionary():
     """
     global _DICT
     if _DICT is None:
-        base = Path(__file__).resolve().parent / 'corpus_data'
-        data = json.loads((base / 'yl-reference.json').read_text(encoding='utf-8'))
-        try:
-            ec = json.loads((base / 'ecdict-flow.json').read_text(encoding='utf-8'))['words']
-        except OSError:
-            ec = {}
-        out = {}
-        for t in data['terms']:
-            v = t['variants'][0]
-            e = ec.get(t['norm'])
-            out[t['norm']] = {'word': t['word'], 'phonetic': ipa(v.get('phonetic', '')) or (_ec_phonetic(e) if e else ''),
-                              'meaning': (_ec_meaning(e) if e else '') or v.get('meaning', ''), 'rank': t.get('rank') or 99999,
-                              'example': (v.get('examples') or '').split('\n')[0][3:].strip() if v.get('examples') else '',
-                              'ref': True, 'tags': e[2] if e else [], 'collins': e[3] if e else 0}
-        for k, e in ec.items():  # alphabetical, so a base form ("abash") is in before its inflections ("abashed")
-            if k in out or not _ec_meaning(e) or any(c in out for c in lemma_candidates(k)[1:]):
-                continue  # skip inflections of words we already have: "cities" should look up "city"
-            out[k] = {'word': k, 'phonetic': _ec_phonetic(e), 'meaning': _ec_meaning(e), 'rank': e[6] or e[5] or 30000,
-                      'example': '', 'ref': False, 'tags': e[2], 'collins': e[3]}
-        try:  # senses reviewed by hand for common words whose dictionary order misleads (mean: 吝啬的 before 意思是)
-            fixes = json.loads((base / 'meaning-fixes.json').read_text(encoding='utf-8'))['words']
-        except (OSError, ValueError, KeyError):
-            fixes = {}
-        for k, m in fixes.items():
-            if k in out:
-                out[k]['meaning'] = m
-        _DICT = out
+        _DICT = _load_dictionary() or build_dictionary()
     return _DICT
+
+
+DICT_FIELDS = ('word', 'phonetic', 'meaning', 'rank', 'example', 'ref', 'tags', 'collins')
+DICT_FILE = Path(__file__).resolve().parent / 'corpus_data' / 'dictionary-flow.json'
+DICT_SOURCES = ('yl-reference.json', 'ecdict-flow.json', 'meaning-fixes.json', 'irregular-flow.json')
+
+
+def _load_dictionary():
+    """The prebuilt dictionary (tools/build_dictionary.py): a few MB of rows instead of parsing ~38 MB of source JSON,
+    whose freed memory the process rarely gives back."""
+    try:
+        rows = json.loads(DICT_FILE.read_text(encoding='utf-8'))['words']
+    except (OSError, ValueError, KeyError):
+        return None
+    return {k: {f: (bool(v) if f == 'ref' else v) for f, v in zip(DICT_FIELDS, row)} for k, row in rows.items()}
+
+
+def build_dictionary():
+    """The dictionary from its sources (the reference list, ECDICT, the reviewed senses, irregular forms)."""
+    base = Path(__file__).resolve().parent / 'corpus_data'
+    data = json.loads((base / 'yl-reference.json').read_text(encoding='utf-8'))
+    try:
+        ec = json.loads((base / 'ecdict-flow.json').read_text(encoding='utf-8'))['words']
+    except OSError:
+        ec = {}
+    out = {}
+    for t in data['terms']:
+        v = t['variants'][0]
+        e = ec.get(t['norm'])
+        out[t['norm']] = {'word': t['word'], 'phonetic': ipa(v.get('phonetic', '')) or (_ec_phonetic(e) if e else ''),
+                          'meaning': (_ec_meaning(e) if e else '') or v.get('meaning', ''), 'rank': t.get('rank') or 99999,
+                          'example': (v.get('examples') or '').split('\n')[0][3:].strip() if v.get('examples') else '',
+                          'ref': True, 'tags': e[2] if e else [], 'collins': e[3] if e else 0}
+    for k, e in ec.items():  # alphabetical, so a base form ("abash") is in before its inflections ("abashed")
+        if k in out or not _ec_meaning(e) or any(c in out for c in lemma_candidates(k)[1:]):
+            continue  # skip inflections of words we already have: "cities" should look up "city"
+        out[k] = {'word': k, 'phonetic': _ec_phonetic(e), 'meaning': _ec_meaning(e), 'rank': e[6] or e[5] or 30000,
+                  'example': '', 'ref': False, 'tags': e[2], 'collins': e[3]}
+    try:  # senses reviewed by hand for common words whose dictionary order misleads (mean: 吝啬的 before 意思是)
+        fixes = json.loads((base / 'meaning-fixes.json').read_text(encoding='utf-8'))['words']
+    except (OSError, ValueError, KeyError):
+        fixes = {}
+    for k, m in fixes.items():
+        if k in out:
+            out[k]['meaning'] = m
+    return out
 
 
 _IRREG = None

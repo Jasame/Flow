@@ -8,6 +8,10 @@ name order, byte for byte (no transform), so the browser still loads one script 
 `build_front.py --check` fails when a built file is out of date; the test suite and `deploy.sh` run it.
 See `flow/public/src/next/README.md` for which part holds what.
 
+`flow/corpus_data/dictionary-flow.json` is built too: after changing `yl-reference.json`, `ecdict-flow.json`,
+`meaning-fixes.json` or `irregular-flow.json`, run `python3 tools/build_dictionary.py` (tests and `deploy.sh` check it).
+The app loads this compact file instead of parsing ~38 MB of source JSON, which kept the server process ~100 MB larger.
+
 ## Deploy (push-to-deploy)
 
 ```bash

@@ -336,3 +336,20 @@ class FrontSourceTests(unittest.TestCase):
         tool = Path(__file__).resolve().parents[2] / 'tools' / 'build_front.py'
         r = subprocess.run([sys.executable, str(tool), '--check'], capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stderr or r.stdout)
+
+
+class DictionaryBuildTests(unittest.TestCase):
+    def test_prebuilt_dictionary_matches_its_sources(self):
+        """corpus_data/dictionary-flow.json must be what tools/build_dictionary.py makes from the sources."""
+        import subprocess
+        tool = Path(__file__).resolve().parents[2] / 'tools' / 'build_dictionary.py'
+        r = subprocess.run([sys.executable, str(tool), '--check'], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr or r.stdout)
+
+    def test_restart_does_not_reparse_the_reference_list(self):
+        import reference_service as ref
+        tmp = tempfile.TemporaryDirectory(); self.addCleanup(tmp.cleanup)
+        with patch.object(app, 'DB', Path(tmp.name) / 'r.db'):
+            app.init()
+            with patch.object(ref, 'dataset', side_effect=AssertionError('parsed again')):
+                app.init()  # same file already imported: no parse
