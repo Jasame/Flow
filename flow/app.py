@@ -181,6 +181,12 @@ class Handler(BaseHTTPRequestHandler):
   if path=='/api/survey':return self.send(__import__('survey_service').SURVEY)
   if path=='/api/meeting/previews':
    return self.send({'previews':[meeting_path.task(day) for day in meeting_path.PUBLIC.values()]})
+  if path=='/api/deploy-status':
+   # Written by tools/flow-autodeploy.py: release tag, commit, result, health checks and test counts. Nothing private.
+   try:body=(DATA/'deploy-status.json').read_bytes()
+   except OSError:body=b'{}'
+   self.send_response(200);self.headers_common('application/json; charset=utf-8');self.send_header('Cache-Control','no-store')
+   self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
   if path=='/api/next/vocab/reminder.ics':
    # A daily calendar event: a reminder that works on every phone without an app, email or push service.
    hour=parse_qs(urlsplit(self.path).query).get('hour',['20'])[0]
@@ -504,4 +510,7 @@ if __name__=='__main__':
     except Exception as exc:print('reminders failed:',type(exc).__name__,flush=True)
     time.sleep(300)
   threading.Thread(target=remind_loop,daemon=True).start()
-  server=ThreadingHTTPServer((os.getenv('FLOW_HOST','127.0.0.1'),int(os.getenv('FLOW_PORT','8090'))),Handler);server.daemon_threads=True;print('Flow listening',server.server_address,flush=True);server.serve_forever()
+  class Server(ThreadingHTTPServer):
+   request_queue_size=128  # the default (5) resets connections when a page fires many requests at once
+   daemon_threads=True
+  server=Server((os.getenv('FLOW_HOST','127.0.0.1'),int(os.getenv('FLOW_PORT','8090'))),Handler);print('Flow listening',server.server_address,flush=True);server.serve_forever()

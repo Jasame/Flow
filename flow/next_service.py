@@ -133,6 +133,20 @@ def dictionary():
     return _DICT
 
 
+_IRREG = None
+
+
+def irregular():
+    """Irregular form -> base word (went -> go, mice -> mouse), from corpus_data/irregular-flow.json."""
+    global _IRREG
+    if _IRREG is None:
+        try:
+            _IRREG = json.loads((Path(__file__).resolve().parent / 'corpus_data' / 'irregular-flow.json').read_text(encoding='utf-8'))['forms']
+        except (OSError, ValueError, KeyError):
+            _IRREG = {}
+    return _IRREG
+
+
 def lemma_candidates(word):
     w = word.lower().strip("'")
     if w.endswith("'s"):
@@ -155,6 +169,7 @@ def lemma_candidates(word):
         out += [w[:-3], w[:-2]]
         if w[-4] == w[-5]: out.append(w[:-4])
     if w.endswith('ly') and len(w) > 4: out.append(w[:-2])
+    if w in irregular(): out.append(irregular()[w])
     return list(dict.fromkeys(out))
 
 

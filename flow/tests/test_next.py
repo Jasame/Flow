@@ -62,6 +62,13 @@ class NextServiceTests(unittest.TestCase):
             self.assertEqual(nx.lookup(w)['lemma'], lemma, w)
         self.assertIsNone(nx.lookup('qwzxv'))
 
+    def test_lookup_handles_irregular_forms(self):
+        for w, lemma in (('went', 'go'), ('bought', 'buy'), ('mice', 'mouse'), ('taught', 'teach'), ('were', 'be'), ('are', 'be'), ('geese', 'goose')):
+            self.assertEqual(nx.lookup(w)['lemma'], lemma, w)
+        for w in ('left', 'found', 'saw'):  # also words of their own: they keep their own entries
+            self.assertEqual(nx.lookup(w)['lemma'], w)
+        self.assertEqual(nx.easiest_rank('went'), nx.easiest_rank('go'))
+
     def test_check_records_evidence_only_for_members_and_marks_step(self):
         pid = self.pid()
         pack = json.loads(self.c.execute('SELECT content FROM lab_packs WHERE id=?', (pid,)).fetchone()[0])

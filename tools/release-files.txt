@@ -127,6 +127,7 @@ flow/corpus_data/v5/work.C1.2.json
 flow/corpus_data/v5/work.C1.3.json
 flow/corpus_data/v5/work.C1.json
 flow/corpus_data/wordroots-flow.json
+flow/corpus_data/irregular-flow.json
 flow/corpus_data/yl-reference.json
 flow/corpus_import.py
 flow/corpus_service.py
