@@ -313,8 +313,14 @@ def say(c, uid, data):
                          system, user, convert, data.get('audio'))
     if status == 200 and not result.get('replayed'):
         r = result['result']
-        sk.log(c, uid, 'pronunciation', 'say', 1.0 if r['ok'] else 0.0, commit=False)
-        if not r['ok']:
+        key = 'say:' + target.lower()[:60]
+        # Judging one short word from a phone recording is not reliable enough to file a mistake on one verdict:
+        # a miss asks for another try; a second miss in a row on the same word (within a week) makes the card.
+        last = c.execute("SELECT score FROM next_skill_events WHERE user_id=? AND kind='say' AND pack=? AND created>? ORDER BY id DESC LIMIT 1",
+                         (uid, key, time.time() - 7 * 86400)).fetchone()
+        sk.log(c, uid, 'pronunciation', 'say', 1.0 if r['ok'] else 0.0, pack=key, commit=False)
+        r['confirmed'] = not r['ok'] and last is not None and last['score'] == 0
+        if r['confirmed']:
             sk.add_mistake(c, uid, 'sound', target, 'sound:' + target.lower(), r['tip'] or r['note'], '', 'pronunciation', extra={'focus': focus}, commit=False)
         c.commit()
     return result, status

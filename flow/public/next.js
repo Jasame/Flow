@@ -1627,7 +1627,7 @@
         const mic = document.getElementById('sndMic'), out = document.getElementById('sndOut');
         mic.onclick = () => MIC.toggle(mic, 4, async blob => {
           out.innerHTML = '<span class="spin"></span>';
-          try { const x = (await api('/api/next/say', { text: c.text, audio: await MIC.payload(blob), request_id: rid('sy') })).result; out.innerHTML = x.ok ? '<span class="ok-mark">✓ 这次读准了</span>' : `<span class="bad-mark">${esc(x.note || '还不太准')}</span>`; }
+          try { const x = (await api('/api/next/say', { text: c.text, audio: await MIC.payload(blob), request_id: rid('sy') })).result; out.innerHTML = x.ok ? '<span class="ok-mark">✓ 这次读准了</span>' : `<span class="bad-mark">AI 听成了「${esc(x.heard || '?')}」</span><div class="tiny muted">${esc(x.tip || x.note || '')}</div>`; }
           catch (e) { out.textContent = e.message; }
         });
         view.querySelectorAll('[data-self]').forEach(b => b.onclick = () => rate(b.dataset.self, Date.now() - t0));
@@ -1869,8 +1869,8 @@
         out.innerHTML = '<span class="spin"></span>';
         try {
           const x = (await api('/api/next/say', { text: w.word, audio: await MIC.payload(blob), request_id: rid('sy') })).result;
-          out.innerHTML = x.ok ? `<span class="ok-mark">✓ 读对了</span>` : `<span class="bad-mark">像 ${esc(x.heard || '?')}</span>`;
-          if (!x.ok) toast(x.tip || x.note);
+          out.innerHTML = x.ok ? `<span class="ok-mark">✓ 读对了</span>` : `<span class="bad-mark">听着像 ${esc(x.heard || '?')}</span>`;
+          if (!x.ok) toast(x.confirmed ? '两次都没读准，已放进错题本：' + (x.tip || x.note) : `AI 听成了「${x.heard || '?'}」，再读一遍确认一下`);
         } catch (e) { out.textContent = ''; toast(e.message); }
       });
     }));

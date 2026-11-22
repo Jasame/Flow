@@ -120,9 +120,17 @@ class LearnerModelTests(unittest.TestCase):
     def test_pronunciation_sets_and_say(self):
         self.assertGreaterEqual(len(sounds.listing()['sets']), 10)
         self.assertIn('/θ/', sounds.focus_of('think'))
-        with ai({'heard': 'sink', 'ok': False, 'note': '/θ/ 读成了 /s/', 'tip': '舌尖放在上下齿之间'}):
+        miss = {'heard': 'sink', 'ok': False, 'note': '/θ/ 读成了 /s/', 'tip': '舌尖放在上下齿之间'}
+        with ai(miss):
             r = out.say(self.c, 1, {'text': 'think', 'audio': AUDIO, 'request_id': self.rid()})[0]['result']
-        self.assertFalse(r['ok'])
+        self.assertFalse(r['ok']); self.assertFalse(r['confirmed'])  # one verdict on one short word: just try again
+        self.assertIsNone(self.c.execute("SELECT 1 FROM next_cards WHERE source='mistake'").fetchone())
+        with ai({**miss, 'ok': True}):
+            out.say(self.c, 1, {'text': 'think', 'audio': AUDIO, 'request_id': self.rid()})
+        with ai(miss):
+            self.assertFalse(out.say(self.c, 1, {'text': 'think', 'audio': AUDIO, 'request_id': self.rid()})[0]['result']['confirmed'])  # after a success
+            r = out.say(self.c, 1, {'text': 'think', 'audio': AUDIO, 'request_id': self.rid()})[0]['result']
+        self.assertTrue(r['confirmed'])  # two misses in a row: now it is a pronunciation card
         card = self.c.execute("SELECT kind, text FROM next_cards WHERE source='mistake'").fetchone()
         self.assertEqual(tuple(card), ('sound', 'think'))
         self.assertEqual(out.say(self.c, 1, {'text': 'zzzqqq', 'audio': AUDIO})[1], 400)
