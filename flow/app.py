@@ -93,6 +93,18 @@ def wrong_questions(c,uid):
  ORDER BY a.id DESC''',(uid,)).fetchall()
 def password(p,salt=None):
  salt=salt or secrets.token_hex(16); return salt+':'+hashlib.pbkdf2_hmac('sha256',p.encode(),bytes.fromhex(salt),260000).hex()
+_ASSET={}
+def shell_file(name):
+ """A public file; the page shell and the service worker get the asset version filled in (__ASSET__): a hash of
+ next.js and next.css, so any change to them gives new URLs and a changed service worker, and phones update."""
+ body=(ROOT/'public'/name).read_bytes()
+ if name not in ('next.html','sw.js'):return body
+ key=tuple((ROOT/'public'/n).stat().st_mtime_ns for n in ('next.js','next.css'))
+ if _ASSET.get('key')!=key:
+  h=hashlib.sha256()
+  for n in ('next.js','next.css'):h.update((ROOT/'public'/n).read_bytes())
+  _ASSET.update(key=key,v=h.hexdigest()[:10])
+ return body.replace(b'__ASSET__',_ASSET['v'].encode())
 def verify(p,stored): return hmac.compare_digest(password(p,stored.split(':')[0]),stored)
 def topics(c):
  out=[]
@@ -279,11 +291,11 @@ class Handler(BaseHTTPRequestHandler):
   if path=='/' and not urlsplit(self.path).query:
    # The Flow learning loop (next.html) is the main site; the classic site stays at /?classic=1
    # (any query string, e.g. old /?account=1#login and trial links, still opens the classic page).
-   body=(ROOT/'public'/'next.html').read_bytes()
+   body=shell_file('next.html')
    self.send_response(200);self.headers_common('text/html; charset=utf-8');self.send_header('Cache-Control','no-cache')
    self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
   if path not in files:return self.send({'error':'页面不存在'},404)
-  name,mime=files[path];body=(ROOT/'public'/name).read_bytes();self.send_response(200);self.headers_common(mime);self.send_header('Cache-Control','public, max-age=31536000, immutable' if name.endswith('.woff2') else 'no-cache');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
+  name,mime=files[path];body=shell_file(name);self.send_response(200);self.headers_common(mime);self.send_header('Cache-Control','public, max-age=31536000, immutable' if name.endswith('.woff2') else 'no-cache');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def do_POST(self):
   try:self.post()
   except (ValueError,KeyError,TypeError,json.JSONDecodeError):self.send({'error':'请求格式或参数不正确'},400)

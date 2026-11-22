@@ -317,3 +317,13 @@ class NextAudioTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class AssetVersionTests(unittest.TestCase):
+    def test_shell_and_service_worker_carry_the_same_content_version(self):
+        import re as _re
+        html, sw = app.shell_file('next.html').decode(), app.shell_file('sw.js').decode()
+        v = _re.search(r'/next\.js\?v=([0-9a-f]{10})', html).group(1)
+        self.assertIn(f'/next.css?v={v}', html); self.assertIn(f"flow-shell-{v}", sw); self.assertIn(f'/next.js?v={v}', sw)
+        self.assertNotIn('__ASSET__', html + sw)
+        self.assertEqual(app.shell_file('next.js'), (Path(app.ROOT) / 'public' / 'next.js').read_bytes())  # other files untouched

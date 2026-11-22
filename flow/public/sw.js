@@ -4,9 +4,9 @@
      word pronunciations and example sentences play instantly on a weak connection and work offline.
    - API calls always go to the network; the page keeps its own small offline queue for reviews. */
 'use strict';
-const SHELL = 'flow-shell-v12';
+const SHELL = 'flow-shell-__ASSET__';  // filled in by the server: changes whenever next.js or next.css does
 const AUDIO = 'flow-audio-v1';
-const SHELL_FILES = ['/', '/next.css?v=12', '/next.js?v=12', '/manifest.webmanifest', '/icon-192.png', '/apple-touch-icon.png'];
+const SHELL_FILES = ['/', '/next.css?v=__ASSET__', '/next.js?v=__ASSET__', '/manifest.webmanifest', '/icon-192.png', '/apple-touch-icon.png'];
 const AUDIO_MAX = 160;
 
 self.addEventListener('install', e => {
