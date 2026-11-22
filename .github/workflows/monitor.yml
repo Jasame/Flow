@@ -1,0 +1,54 @@
+name: Monitor
+# Every 15 minutes from outside: the site answers, a fresh deploy-status is readable, the server is not erroring or
+# running out of memory, and the daily end-to-end test passed. A failed run is emailed by GitHub to whoever last
+# changed this schedule (the repository owner).
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: monitor
+  cancel-in-progress: false
+jobs:
+  site:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Pages and APIs answer
+        run: |
+          check() {
+            code=$(curl -s -o /tmp/body -w '%{http_code}' --max-time 20 --retry 2 --retry-delay 15 --retry-all-errors "$1")
+            if [ "$code" != 200 ]; then echo "::error::$1 answered $code: $(head -c 200 /tmp/body)"; return 1; fi
+          }
+          check https://flow.jasa.hk/api/health
+          check https://flow.jasa.hk/
+          check "https://flow.jasa.hk/api/next/home?level=B1"
+          check "https://flow.jasa.hk/api/next/lookup?w=went"
+          check https://flow.jasa.hk/api/deploy-status
+          cp /tmp/body /tmp/status.json
+      - name: No errors piling up, memory in bounds, daily test passed
+        run: |
+          python3 - <<'PY'
+          import datetime, json
+          d = json.load(open('/tmp/status.json'))
+          live, daily, problems = d.get('live') or {}, d.get('daily'), []
+          print('live:', json.dumps(live), '| last release:', d.get('tag'), d.get('result'))
+          if live.get('errors_24h', 0) >= 10:
+              problems.append(f"{live['errors_24h']} server errors in the last 24 h (see 错误 in the admin page)")
+          if live.get('rss_mb', 0) > 350:
+              problems.append(f"Flow uses {live['rss_mb']} MB (the service is throttled above 380 MB)")
+          if d.get('result') not in (None, 'DEPLOYED', 'NOTHING_TO_DO', 'NOOP'):
+              problems.append(f"last release {d.get('tag')} ended {d.get('result')}")
+          if daily:
+              print('daily test:', daily.get('day'), daily.get('checks'), 'checks,', daily.get('failed'), 'failed')
+              age = datetime.datetime.now(datetime.timezone.utc) - datetime.datetime.fromisoformat(daily['finished'])
+              if age > datetime.timedelta(hours=30):
+                  problems.append(f"daily end-to-end test last ran {daily['finished']}")
+              if daily.get('failed') or daily.get('error') or daily.get('server_errors'):
+                  problems.append('daily end-to-end test failed: ' + '; '.join(daily.get('failed_names') or [daily.get('error') or 'server errors']))
+          for p in problems:
+              print('::error::' + p)
+          raise SystemExit(1 if problems else 0)
+          PY

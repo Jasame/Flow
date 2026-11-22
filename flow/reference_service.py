@@ -1,10 +1,9 @@
 """Indexed source dictionary and explicit, private learning adoption. No bulk AI calls."""
 import json,re,time,hashlib
 from pathlib import Path
-from functools import lru_cache
 import lexicon_service as lex
 DATA=Path(__file__).resolve().parent/'corpus_data'/'yl-reference.json'
-@lru_cache(maxsize=1)
+# Not cached: only the start-up import reads it, and keeping the parsed 5 MB file alive cost ~23 MB for good.
 def dataset():return json.loads(DATA.read_text(encoding='utf-8'))
 
 def schema(c):
@@ -13,10 +12,15 @@ def schema(c):
  CREATE INDEX IF NOT EXISTS reference_term_rank ON reference_terms(rank,id);
  CREATE TABLE IF NOT EXISTS reference_meta(id TEXT PRIMARY KEY,source TEXT NOT NULL,stats TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS reference_adoptions(user_id INTEGER REFERENCES users(id),reference TEXT REFERENCES reference_terms(id),source_row INTEGER,entry TEXT REFERENCES lexicon(id),pack TEXT REFERENCES lab_packs(id),source_hash TEXT,created REAL,PRIMARY KEY(user_id,reference));''')
+ # A restart with the same file imported before skips parsing it at all (its bytes' hash is recorded).
+ mark='yl-file-'+hashlib.sha256(DATA.read_bytes()).hexdigest()[:16]
+ if c.execute('SELECT 1 FROM migrations WHERE version=?',(mark,)).fetchone():
+  c.execute("INSERT OR IGNORE INTO migrations VALUES('2.4-reference')");return
  data=dataset();stamp=data['source']['sha256'];old=c.execute("SELECT id FROM reference_meta WHERE id=?",(stamp,)).fetchone()
  if not old:
   c.executemany('INSERT INTO reference_terms VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET norm=excluded.norm,word=excluded.word,rank=excluded.rank,meaning=excluded.meaning,has_examples=excluded.has_examples,content=excluded.content',[(t['id'],t['norm'],t['word'],t['rank'],' '.join(dict.fromkeys(v['meaning'] for v in t['variants'])),int(any(v['examples'] for v in t['variants'])),json.dumps(t,ensure_ascii=False)) for t in data['terms']])
   c.execute('INSERT INTO reference_meta VALUES(?,?,?)',(stamp,json.dumps(data['source'],ensure_ascii=False),json.dumps(data['stats'],ensure_ascii=False)))
+ c.execute('INSERT OR IGNORE INTO migrations VALUES(?)',(mark,))
  c.execute("INSERT OR IGNORE INTO migrations VALUES('2.4-reference')")
 
 def summary(c):

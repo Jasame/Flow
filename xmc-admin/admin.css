@@ -82,3 +82,5 @@ button,input,select{font:inherit;color:inherit}
 @media (max-width:900px){.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi:nth-child(2){box-shadow:none}.grid2{grid-template-columns:1fr}}
 @media (max-width:560px){.kpi-grid{grid-template-columns:1fr}.kpi{box-shadow:0 1px 0 var(--line)}.resp-grid{grid-template-columns:1fr}.resp-grid dt{margin-top:6px}}
 @media (hover:none),(pointer:coarse){.btn,.input,select{height:44px}.input,select{font-size:16px}}
+.trace{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--bg,#f6f6f6);padding:10px;border-radius:8px;max-height:360px;overflow:auto}
+details summary{cursor:pointer}

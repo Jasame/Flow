@@ -130,6 +130,7 @@ flow/corpus_data/wordroots-flow.json
 flow/corpus_data/irregular-flow.json
 flow/corpus_data/meaning-fixes.json
 flow/corpus_data/wordroots-zh.json
+flow/corpus_data/dictionary-flow.json
 flow/corpus_data/yl-reference.json
 flow/corpus_import.py
 flow/corpus_service.py
@@ -158,6 +159,7 @@ flow/meeting_path.py
 flow/meeting_service.py
 flow/migration_35.py
 flow/next_service.py
+flow/ops_errors.py
 flow/nginx-location.conf
 flow/ops.py
 flow/output_service.py

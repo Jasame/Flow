@@ -336,3 +336,41 @@ class FrontSourceTests(unittest.TestCase):
         tool = Path(__file__).resolve().parents[2] / 'tools' / 'build_front.py'
         r = subprocess.run([sys.executable, str(tool), '--check'], capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stderr or r.stdout)
+
+
+class DictionaryBuildTests(unittest.TestCase):
+    def test_prebuilt_dictionary_matches_its_sources(self):
+        """corpus_data/dictionary-flow.json must be what tools/build_dictionary.py makes from the sources."""
+        import subprocess
+        tool = Path(__file__).resolve().parents[2] / 'tools' / 'build_dictionary.py'
+        r = subprocess.run([sys.executable, str(tool), '--check'], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr or r.stdout)
+
+    def test_restart_does_not_reparse_the_reference_list(self):
+        import reference_service as ref
+        tmp = tempfile.TemporaryDirectory(); self.addCleanup(tmp.cleanup)
+        with patch.object(app, 'DB', Path(tmp.name) / 'r.db'):
+            app.init()
+            with patch.object(ref, 'dataset', side_effect=AssertionError('parsed again')):
+                app.init()  # same file already imported: no parse
+
+
+class ServerErrorTests(NextAudioTests):
+    """An unexpected exception is recorded (path only), counted in /api/deploy-status and listed for the operator."""
+
+    def test_crash_is_recorded_without_the_query_and_shown(self):
+        import ops_errors, flow_admin
+        with patch.object(nx, 'get', side_effect=RuntimeError('boom in get')):
+            st, body, _ = self.get('/api/next/home?level=B1&secret=abc')
+        self.assertEqual(st, 500); self.assertNotIn(b'boom', body)  # the learner sees the friendly message only
+        with app.db() as c:
+            row = c.execute('SELECT method, path, kind, message, trace FROM server_errors').fetchone()
+            self.assertEqual((row['method'], row['path'], row['kind'], row['message']), ('GET', '/api/next/home', 'RuntimeError', 'boom in get'))
+            self.assertIn('Traceback', row['trace'])
+            with patch.object(nx, 'get', side_effect=RuntimeError('boom in get')):
+                self.get('/api/next/home?level=A2')
+            rec = ops_errors.recent(c)
+            self.assertEqual((rec['total'], len(rec['groups']), rec['groups'][0]['count']), (2, 1, 2))  # same place: one group
+        st, body, _ = self.get('/api/deploy-status')
+        live = json.loads(body)['live']
+        self.assertEqual(live['errors_24h'], 2); self.assertIn('uptime_min', live)
