@@ -160,6 +160,17 @@ class NextHttpTests(unittest.TestCase):
         self.assertEqual(json.loads(self.call('/api/next/home')[1])['level'], 'B2')
         self.assertEqual(self.call('/api/next/nothing')[0], 404)
 
+    def test_app_files_calendar_and_audio_aliases(self):
+        for path in ('/sw.js', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png'):
+            self.assertEqual(self.call(path)[0], 200, path)
+        self.assertIn(b'"start_url": "/"', self.call('/manifest.webmanifest')[1])
+        s, body = self.call('/api/next/vocab/reminder.ics?hour=7')
+        self.assertEqual(s, 200); self.assertIn(b'RRULE:FREQ=DAILY', body)
+        self.assertEqual(self.call('/api/next/vocab/reminder.ics?hour=x')[0], 200)  # falls back to 20:00
+        self.assertEqual(self.call('/audio/words/us/../index.json')[0], 404)
+        self.assertEqual(self.call('/audio/words/zz/w000.mp4')[0], 404)
+        self.assertEqual(self.call('/api/next/shadow', {'pack': 'x'})[0], 401)
+
 
 class NextGraphTests(unittest.TestCase):
     def setUp(self):

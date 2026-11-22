@@ -262,9 +262,9 @@ def audio_index():
 
 def audio_file(voice, pid, ext):
     """Path of a narration file, or None. Names are validated so nothing outside AUDIO_DIR can be served."""
-    if voice not in VOICES or ext not in ('m4a', 'json') or not re.fullmatch(r'v5-[a-z0-9]+(?:-[a-z0-9]+)*', pid or ''):
+    if voice not in VOICES or ext not in ('m4a', 'mp4', 'json') or not re.fullmatch(r'v5-[a-z0-9]+(?:-[a-z0-9]+)*', pid or ''):
         return None
-    f = AUDIO_DIR / voice / f'{pid}.{ext}'
+    f = AUDIO_DIR / voice / (pid + '.' + ('m4a' if ext == 'mp4' else ext))  # .mp4 is the same file, for edge caching
     return f if f.is_file() else None
 
 
@@ -388,9 +388,11 @@ def node(c, uid, nid, level=None):
 # ---------- home & library ----------
 
 def _card_norms(c, uid):
+    """(shown text, norm, source) of the learner's saved and studied items; very common book words are left out."""
     if not uid:
         return []
-    return [(r['text'], r['norm']) for r in c.execute('SELECT text, norm FROM next_cards WHERE user_id=? AND reps>=0 ORDER BY created DESC LIMIT 300', (uid,))]
+    return [(r['text'], r['norm'], r['source']) for r in c.execute(
+        "SELECT text, norm, source FROM next_cards WHERE user_id=? AND known=0 AND (source='saved' OR COALESCE(rank, 99999)>3000)", (uid,))]
 
 
 def home(c, uid, level=None, themes=None):
@@ -424,9 +426,10 @@ def home(c, uid, level=None, themes=None):
                 if st == 'untouched' and len(reasons) < 1:
                     reasons.append(f'新知识点「{meta_titles.get(n, n)}」')
         body = p['body'].lower()
-        hits = [t for t, n in saved if len(n) > 2 and re.search(r'(?<![a-z])' + re.escape(n) + r'(?![a-z])', body)]
+        hits = [(t, src) for t, n, src in saved if len(n) > 2 and re.search(r'(?<![a-z])' + re.escape(n) + r'(?![a-z])', body)]
         if hits:
-            s += min(3, 1.5 * len(hits)); reasons.insert(0, f'你收藏的「{hits[0]}」又出现了')
+            t, src = next((h for h in hits if h[1] == 'saved'), hits[0])
+            s += min(3, 1.5 * len(hits)); reasons.insert(0, f'你收藏的「{t}」又出现了' if src == 'saved' else f'你在背的「{t}」在这篇里')
         return s, reasons[:2]
 
     scored = []
@@ -552,6 +555,7 @@ def material(c, uid, pid, level=None):
             'notes': notes, 'task': _task(p, level), 'steps': sorted(done, key=STEPS.index), 'dictation_index': p.get('dictation_index'),
             'provenance': [{'title': s['title'], 'url': s['url']} for s in (p.get('provenance') or {}).get('sources', [])][:5],
             'mine': __import__('vocab_service').mine_in_text(c, uid, text),
+            'preread': __import__('vocab_service').preread(c, uid, hard),
             'user_level': level, 'can_variant': level != cefr(p) and not variant,
             'audio': {'voices': audio_index()[0].get(p['id'], []), 'version': audio_index()[1]}}, 200
 
@@ -667,6 +671,13 @@ def rewrite(c, uid, data):
     valid_nodes = set(nodes_meta(c))
     targets = [n for n in p.get('grammar', []) if n in valid_nodes]
     spec = {'pack': p['id'], 'text': answer, 'level': level}
+    learning = {r['norm']: r for r in c.execute("SELECT * FROM next_cards WHERE user_id=? AND kind='word' AND known=0", (uid,))}
+    studied = []  # words being learned that the learner chose to use: judging them is a real test of the word
+    for w in WORD.findall(answer):
+        hit = lookup(w)
+        if hit and hit['lemma'] in learning and hit['lemma'] not in studied:
+            studied.append(hit['lemma'])
+    studied = studied[:6]
     system = ('你是一位耐心、专业的英语写作教练，学习者的水平是 ' + level + '（' + LEVELS[level]['label'] + '）。' + _level_voice(level) +
               '先肯定写得好的地方，再改错，最后给出更好的说法。不要编造学习者没写的内容。只输出 JSON。')
     user = ('学习任务：' + task['prompt'] + ('\n参考句：' + task['model'] if task['model'] else '') +
@@ -678,7 +689,10 @@ def rewrite(c, uid, data):
             '"changes":[{"from":"原文片段","to":"改后片段","why":"为什么（简短）","node":"相关语法节点 id，没有就写 null"}],'
             '"versions":[{"label":"更自然","text":"...","why":"和原句的差别"},{"label":"更正式","text":"...","why":"..."},{"label":"更简洁","text":"...","why":"..."}],'
             '"used_well":["学习者用对了的语法节点 id"],'
-            '"keep":{"text":"最值得收藏的一个英文表达（短语）","meaning":"中文意思"}}。changes 最多 5 条，没有错误就给空数组。')
+            '"keep":{"text":"最值得收藏的一个英文表达（短语）","meaning":"中文意思"}' +
+            (',"word_use":[{"word":"单词原形","ok":true,"note":"一句中文：用法对在哪里，或错在哪里、应该怎么用"}]' if studied else '') +
+            '}。changes 最多 5 条，没有错误就给空数组。' +
+            ('\n学习者正在背这些单词，并在上面的句子里用到了：' + '、'.join(studied) + '。请在 word_use 里逐个判断词义和搭配是否用对。' if studied else ''))
 
     def convert(raw):
         if not isinstance(raw, dict):
@@ -700,6 +714,10 @@ def rewrite(c, uid, data):
         k = raw.get('keep')
         if isinstance(k, dict) and isinstance(k.get('text'), str) and WORD.search(k['text']) and len(k['text']) <= 160:
             out['keep'] = {'text': k['text'].strip(), 'meaning': str(k.get('meaning') or '')[:200]}
+        out['word_use'] = []
+        for u in (raw.get('word_use') or []) if studied else []:
+            if isinstance(u, dict) and u.get('word') in studied and isinstance(u.get('ok'), bool):
+                out['word_use'].append({'word': u['word'], 'ok': u['ok'], 'note': clean_text(u.get('note') or '', 0, 300)})
         return out
 
     result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-rewrite', p['id'], 'writing', spec,
@@ -722,7 +740,77 @@ def rewrite(c, uid, data):
             for ch in r['changes']:
                 ch['node_title'] = meta.get(ch['node'], {}).get('title') if ch['node'] else None
             r['used_well'] = [{'id': n, 'title': meta[n]['title']} for n in r['used_well']]
+            __import__('vocab_service').record_use(c, uid, r.get('word_use') or [], now)
         mark(c, uid, p['id'], 'output')
+    return result, status
+
+
+def _words(text):
+    return [w.lower() for w in WORD.findall(text)]
+
+
+def compare_words(target, heard):
+    """Word-level alignment of what was heard against the sentence: [{'w': word, 'ok': bool}] for each target word."""
+    t, h = _words(target), _words(heard)
+    n, m = len(t), len(h)
+    lcs = [[0] * (m + 1) for _ in range(n + 1)]
+    for i in range(n - 1, -1, -1):
+        for j in range(m - 1, -1, -1):
+            lcs[i][j] = lcs[i + 1][j + 1] + 1 if t[i] == h[j] else max(lcs[i + 1][j], lcs[i][j + 1])
+    out, i, j = [], 0, 0
+    while i < n:
+        if j < m and t[i] == h[j]:
+            out.append({'w': t[i], 'ok': True}); i += 1; j += 1
+        elif j < m and lcs[i][j + 1] >= lcs[i + 1][j]:
+            j += 1
+        else:
+            out.append({'w': t[i], 'ok': False}); i += 1
+    return out
+
+
+def shadow(c, uid, data):
+    """Shadowing: the learner reads one sentence aloud; AI transcribes it and points out what to fix."""
+    from lab_service import run_job, text as clean_text, audio_enabled
+    from chat_service import request_model
+    from audio_validation import validate_audio
+    if not audio_enabled():
+        return {'error': 'AI 听录音暂未开启，可以先用「对比回放」自己听'}, 503
+    row = _pack_row(c, uid, str(data.get('pack', '')))
+    if not row:
+        return {'error': '材料不存在'}, 404
+    p = json.loads(row['content'])
+    sents = sentences(p['body'])
+    i = data.get('i')
+    if not isinstance(i, int) or not 0 <= i < len(sents):
+        return {'error': '句子不存在'}, 400
+    sentence = re.sub(r'^[A-Z][a-z]+(?: [A-Z][a-z]+)?:\s+', '', sents[i])  # dialogue labels are not read aloud
+    audio = data.get('audio')
+    raw_audio = validate_audio(audio)
+    level = (profile(c, uid) or {}).get('level') or 'B1'
+    system = ('你是英语口语老师，正在听一位中国学习者（' + level + '）跟读一句英文。先忠实转写你实际听到的英文，听不清的部分写 [听不清]，'
+              '不要按原句补全。然后对照原句给出简短、具体、能马上改的建议：漏读或读错的词、明显的重音/元音/尾音问题、该连读或停顿的地方。'
+              '只在有把握时指出发音问题，不要打分。只输出 JSON。')
+    user = ('原句：' + sentence + '\n\n输出 JSON：{"transcript":"你听到的英文","issues":[{"word":"原句中的词或短语","note":"中文：问题和改法"}],'
+            '"tip":"一句最重要的中文建议","fluency":"smooth|ok|choppy"}。issues 最多 4 条，读得好就给空数组。')
+
+    def convert(raw):
+        if not isinstance(raw, dict):
+            raise ValueError('bad')
+        out = {'transcript': clean_text(raw.get('transcript') or '', 0, 600), 'tip': clean_text(raw.get('tip') or '', 0, 300),
+               'fluency': raw.get('fluency') if raw.get('fluency') in ('smooth', 'ok', 'choppy') else 'ok', 'issues': []}
+        for it in (raw.get('issues') or [])[:4]:
+            if isinstance(it, dict) and it.get('word') and it.get('note'):
+                out['issues'].append({'word': clean_text(it['word'], 1, 80), 'note': clean_text(it['note'], 1, 300)})
+        return out
+
+    spec = {'pack': p['id'], 'i': i, 'audio_sha256': hashlib.sha256(raw_audio).hexdigest()}
+    result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-shadow', p['id'], 'speaking', spec,
+                             lambda: request_model([{'role': 'system', 'content': system}, {'role': 'user', 'content': user}], audio=audio), convert)
+    if status == 200:
+        r = result['result']
+        r['words'] = compare_words(sentence, r['transcript'])
+        r['matched'] = sum(1 for w in r['words'] if w['ok'])
+        r['sentence'] = sentence
     return result, status
 
 
@@ -868,7 +956,7 @@ def post_public(c, uid, path, data):
     return None
 
 
-AI_PATHS = ('/api/next/rewrite', '/api/next/variant', '/api/next/explain')
+AI_PATHS = ('/api/next/rewrite', '/api/next/variant', '/api/next/explain', '/api/next/shadow', '/api/next/vocab/examples')
 
 
 def post(c, uid, path, data):
@@ -897,4 +985,6 @@ def post(c, uid, path, data):
         return variant(c, uid, data)
     if path == '/api/next/explain':
         return explain(c, uid, data)
+    if path == '/api/next/shadow':
+        return shadow(c, uid, data)
     return None

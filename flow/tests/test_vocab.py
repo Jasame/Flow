@@ -1,4 +1,4 @@
-import unittest, tempfile, sys, os, sqlite3, time, json
+import unittest, tempfile, sys, os, sqlite3, time, json, base64, datetime
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -148,3 +148,124 @@ INSERT INTO next_cards(user_id,text,norm,created,due,interval,ease,reps) VALUES(
 
 if __name__ == '__main__':
     unittest.main()
+
+
+AI_ENV = {'FLOW_AI_PROVIDER': 'openai', 'FLOW_AI_KEY': 'k', 'FLOW_AI_MODEL': 'm', 'FLOW_AI_URL': 'https://x.test/v1/chat/completions',
+          'FLOW_AI_DAILY_LIMIT': '0', 'FLOW_AI_USER_DAILY_LIMIT': '0', 'FLOW_AI_AUDIO': '1'}
+
+
+class ReadingLinkedTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.p = patch.object(app, 'DB', Path(self.tmp.name) / 'r.db'); self.p.start()
+        self.env = patch.dict(os.environ, AI_ENV); self.env.start()
+        app.init(); self.c = app.db()
+        for n in ('learner', 'other'): self.c.execute('INSERT INTO users(username,password) VALUES(?,?)', (n, 'h'))
+        self.c.commit()
+        nx.save_profile(self.c, 1, {'level': 'A2', 'goal': 'daily', 'themes': [], 'minutes': 10})
+
+    def tearDown(self):
+        self.c.close(); self.env.stop(); self.p.stop(); self.tmp.cleanup()
+
+    def test_preread_words_then_add_them_in_one_go(self):
+        m, _ = nx.material(self.c, 1, 'v5-science-b2-noise-cancelling')
+        pre = m['preread']
+        self.assertTrue(1 <= len(pre) <= 5); self.assertTrue(all(w['meaning'] for w in pre))
+        r = vs.add_many(self.c, 1, {'pack': m['id'], 'items': [{'word': w['form'], 'sentence': m['sentences'][0]} for w in pre]})[0]
+        self.assertEqual(r['added'], len(pre))
+        again = nx.material(self.c, 1, 'v5-science-b2-noise-cancelling')[0]
+        self.assertFalse({w['word'] for w in again['preread']} & {w['word'] for w in pre})  # already being learned
+        self.assertTrue(again['mine'])
+        self.assertEqual(vs.add_many(self.c, 1, {'items': [{'word': pre[0]['word']}]})[0]['skipped'], 1)
+        r = vs.add_many(self.c, 1, {'min_rank': 1500, 'items': [{'word': 'the'}, {'word': 'scrutiny'}, {'word': 'not a word!'}]})[0]
+        self.assertEqual((r['added'], r['skipped']), (1, 2))
+        self.assertEqual(vs.add_many(self.c, 1, {'items': []})[1], 400)
+
+    def test_examples_roots_and_ai_examples(self):
+        self.assertTrue(any(r['part'].startswith('ben') for r in vs.roots('beneficial')))
+        self.assertEqual(vs.extra_examples(None, 'even')[0]['title'], '词典例句')
+        word = next(w for _, w in vs.book_words()['gre'] if not vs.examples(w) and not vs.extra_examples(self.c, w))
+        reply = json.dumps({'examples': [{'word': word, 'sentence': f'She used the word {word} in her essay.', 'translation': '她在文章里用了这个词。'},
+                                         {'word': 'nonsense', 'sentence': 'x', 'translation': ''}]})
+        with patch('chat_service.request_model', return_value=(reply, 'stop')):
+            out, s = vs.ai_examples(self.c, 1, {'words': [word, 'decision'], 'request_id': 'next-ex-0001'})
+        self.assertEqual(s, 200); self.assertEqual(list(out['examples']), [word])
+        self.assertEqual(vs.extra_examples(self.c, word)[0]['title'], 'AI 例句')
+        self.assertEqual(vs.ai_examples(self.c, 1, {'words': [word]})[0], {'examples': {}})  # cached: no second call
+
+    def test_test_skips_known_bands_in_exam_books(self):
+        band = {w: k for k in vs.BOOKS for _, w in vs.book_words()[k]}
+        items = vs.test_items(seed=3)['items']
+        vs.save_plan(self.c, 1, {'book': 'cet6', 'daily_new': 10, 'retention': 0.9})
+        r = vs.score_test(self.c, 1, {'answers': {w: band.get(w) in ('core', 'mid') for w in items}})[0]
+        self.assertEqual(r['skip_rank'], 5000)
+        q = vs.queue(self.c, 1)
+        self.assertTrue(q['items']); self.assertTrue(all((i.get('stability') is None) for i in q['items']))
+        ranks = [self.c.execute('SELECT rank FROM next_cards WHERE id=?', (i['id'],)).fetchone()[0] for i in q['items']]
+        self.assertTrue(all(r > 5000 for r in ranks), ranks)
+        vs.save_plan(self.c, 1, {'book': 'cet6', 'daily_new': 10, 'retention': 0.9, 'skip_known': False})
+        self.assertEqual(vs.plan(self.c, 1)['skip_rank'], 0)
+
+    def test_offline_reviews_keep_their_time(self):
+        cid = nx.save_card(self.c, 1, {'text': 'serendipity'})[0]['card']['id']
+        at = int(time.time()) - 3600
+        vs.rate(self.c, 1, {'id': cid, 'rating': 'good', 'at': at})
+        self.assertEqual(int(self.c.execute('SELECT last FROM next_cards WHERE id=?', (cid,)).fetchone()[0]), at)
+        vs.rate(self.c, 1, {'id': cid, 'rating': 'good', 'at': 1})  # too old: ignored, now is used
+        self.assertGreater(self.c.execute('SELECT last FROM next_cards WHERE id=?', (cid,)).fetchone()[0], time.time() - 60)
+
+    def test_reminder_email_and_calendar(self):
+        self.assertEqual(vs.set_reminder(self.c, 1, {'enabled': True, 'hour': 20})[1], 400)  # no email yet
+        self.c.execute("UPDATE users SET email='learner@example.test' WHERE id=1"); self.c.commit()
+        self.assertEqual(vs.set_reminder(self.c, 1, {'enabled': True, 'hour': 25})[1], 400)
+        self.assertTrue(vs.set_reminder(self.c, 1, {'enabled': True, 'hour': 20})[0]['enabled'])
+        nx.save_card(self.c, 1, {'text': 'make ends meet'})
+        sent = []
+        at8 = datetime.datetime.now(nx.TZ).replace(hour=20, minute=5).timestamp()
+        self.assertEqual(vs.send_reminders(self.c, at8, lambda to, sub, text: sent.append((to, sub))), 1)
+        self.assertEqual(sent[0][0], 'learner@example.test'); self.assertIn('单词', sent[0][1])
+        self.assertEqual(vs.send_reminders(self.c, at8 + 60, lambda *a: sent.append(a)), 0)  # once a day
+        self.assertEqual(vs.send_reminders(self.c, at8 - 3600, lambda *a: sent.append(a)), 0)  # other hours
+        cal = vs.ics(21)
+        self.assertIn('RRULE:FREQ=DAILY', cal); self.assertIn('DTSTART:', cal); self.assertTrue(cal.endswith('\r\n'))
+        self.assertTrue(vs.overview(self.c, 1)['reminder']['has_email'])
+
+    def test_writing_with_a_studied_word_counts_as_a_review(self):
+        cid = nx.save_card(self.c, 1, {'text': 'devise'})[0]['card']['id']
+        self.c.execute("UPDATE next_cards SET state='review', stability=5, difficulty=5, last=?, due=? WHERE id=?",
+                       (time.time() - 4 * 86400, time.time() + 86400, cid)); self.c.commit()
+        pid = nx.home(self.c, 1)['today'][0]['id']
+        reply = {'verdict': 'natural', 'summary': '很好。', 'corrected': 'We devised a plan.', 'changes': [],
+                 'versions': [{'label': '更自然', 'text': 'We came up with a plan.', 'why': '口语'}], 'used_well': [],
+                 'word_use': [{'word': 'devise', 'ok': True, 'note': '“想出（计划）”用得对'}, {'word': 'plan', 'ok': True, 'note': 'x'}]}
+        with patch('chat_service.request_model', return_value=(json.dumps(reply, ensure_ascii=False), 'stop')) as model:
+            out, s = nx.rewrite(self.c, 1, {'pack': pid, 'text': 'We devised a clever plan.', 'request_id': 'next-rw-word-0001'})
+        self.assertEqual(s, 200); self.assertIn('devise', model.call_args[0][0][1]['content'])
+        self.assertEqual(out['result']['word_use'], [{'word': 'devise', 'ok': True, 'note': '“想出（计划）”用得对'}])
+        row = self.c.execute('SELECT stability, reps FROM next_cards WHERE id=?', (cid,)).fetchone()
+        self.assertGreater(row['stability'], 5); self.assertEqual(row['reps'], 1)
+        self.assertEqual(self.c.execute("SELECT rating FROM next_reviews WHERE card=? ORDER BY id DESC", (cid,)).fetchone()[0], 'used')
+
+    def test_shadowing_feedback(self):
+        self.assertEqual([w['ok'] for w in nx.compare_words('A pair of noisy headphones.', 'a pair of headphones')], [True, True, True, False, True])
+        audio = {'mime_type': 'audio/webm', 'data': base64.b64encode(b'\x1aE\xdf\xa3' + b'\0' * 64).decode()}
+        reply = json.dumps({'transcript': 'The first time you switch a pair of headphones', 'issues': [{'word': 'on', 'note': '漏读了 on'}],
+                            'tip': '把 switch on 连起来读', 'fluency': 'ok'}, ensure_ascii=False)
+        with patch('chat_service.request_model', return_value=(reply, 'stop')) as model:
+            out, s = nx.shadow(self.c, 1, {'pack': 'v5-science-b2-noise-cancelling', 'i': 0, 'audio': audio, 'request_id': 'next-sh-0001'})
+        self.assertEqual(s, 200); self.assertEqual(model.call_args.kwargs['audio'], audio)
+        r = out['result']
+        self.assertEqual(r['issues'][0]['word'], 'on'); self.assertLess(r['matched'], len(r['words']))
+        self.assertEqual(nx.shadow(self.c, 1, {'pack': 'v5-science-b2-noise-cancelling', 'i': 999, 'audio': audio})[1], 400)
+        with patch.dict(os.environ, {'FLOW_AI_AUDIO': '0'}):
+            self.assertEqual(nx.shadow(self.c, 1, {'pack': 'v5-science-b2-noise-cancelling', 'i': 0, 'audio': audio})[1], 503)
+
+    def test_admin_learning_dashboard(self):
+        import flow_admin
+        nx.mark(self.c, 1, 'v5-science-b2-noise-cancelling', 'read')
+        cid = nx.save_card(self.c, 1, {'text': 'serendipity'})[0]['card']['id']
+        vs.rate(self.c, 1, {'id': cid, 'rating': 'good'})
+        d = flow_admin.learning(self.c)
+        self.assertEqual(d['active_today'], 1); self.assertEqual(d['funnel_7d']['read'], 1)
+        self.assertEqual(d['ratings_7d'], {'good': 1}); self.assertEqual(len(d['active_days']), 14)
+        self.assertGreaterEqual(d['materials'], 192)

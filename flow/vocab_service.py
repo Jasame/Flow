@@ -46,7 +46,10 @@ ACCENTS = ('us', 'uk')
 
 _BOOK = None
 _EX = None
+_ROOTS = None
 _WA = {'mtime': None, 'index': {}}
+ROOT_CLASS = {'root': '词根', 'prefix': '前缀'}
+REMIND_HOURS = tuple(range(6, 24))
 
 
 def schema(c):
@@ -69,7 +72,12 @@ def schema(c):
 CREATE TABLE IF NOT EXISTS next_vocab_plans(user_id INTEGER PRIMARY KEY REFERENCES users(id), book TEXT NOT NULL,
  daily_new INTEGER NOT NULL DEFAULT 10, retention REAL NOT NULL DEFAULT 0.9, estimate INTEGER, created REAL NOT NULL, updated REAL NOT NULL);
 CREATE INDEX IF NOT EXISTS next_cards_source ON next_cards(user_id, source, created);
-CREATE INDEX IF NOT EXISTS next_reviews_card ON next_reviews(card, created);''')
+CREATE INDEX IF NOT EXISTS next_reviews_card ON next_reviews(card, created);
+CREATE TABLE IF NOT EXISTS next_word_examples(norm TEXT PRIMARY KEY, sentence TEXT NOT NULL, translation TEXT NOT NULL DEFAULT '', created REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS next_reminders(user_id INTEGER PRIMARY KEY REFERENCES users(id), enabled INTEGER NOT NULL DEFAULT 0,
+ hour INTEGER NOT NULL DEFAULT 20, last_sent TEXT, updated REAL NOT NULL);''')
+    if 'skip_rank' not in {r[1] for r in c.execute('PRAGMA table_info(next_vocab_plans)')}:
+        c.execute('ALTER TABLE next_vocab_plans ADD COLUMN skip_rank INTEGER NOT NULL DEFAULT 0')
     c.commit()
 
 
@@ -150,6 +158,38 @@ def examples(norm, level='B1', limit=2, skip=''):
     return out
 
 
+def roots(norm):
+    """词根词缀 from ECDICT's word-root list: [{'part', 'meaning', 'kind'}]."""
+    global _ROOTS
+    if _ROOTS is None:
+        try:
+            _ROOTS = json.loads((Path(__file__).resolve().parent / 'corpus_data' / 'wordroots-flow.json').read_text(encoding='utf-8'))['words']
+        except OSError:
+            _ROOTS = {}
+    return [{'part': r, 'meaning': m, 'kind': ROOT_CLASS.get(k, '后缀' if 'suffix' in k else '词缀')} for r, m, k in _ROOTS.get(norm, [])]
+
+
+def short_meaning(meaning, n=2):
+    """First parts of speech of a dictionary meaning, for compact lists."""
+    return '；'.join(meaning.split('；')[:n])[:60]
+
+
+EXAMPLE_SPLIT = re.compile(r"^([^\u4e00-\u9fff]+?[.?!])\s*([\u4e00-\u9fff].*)?$")
+
+
+def extra_examples(c, norm):
+    """When Flow's materials never use a word: the reference list's own example, else an AI example cached site-wide."""
+    out = []
+    m = EXAMPLE_SPLIT.match((nx.dictionary().get(norm) or {}).get('example') or '')
+    if m and re.search(r'(?<![A-Za-z])' + re.escape(norm[:max(3, len(norm) - 2)]), m.group(1), re.I):
+        out.append({'pack': None, 'i': None, 'text': m.group(1).strip(), 'form': norm, 'title': '词典例句', 'zh': (m.group(2) or '').strip(), 'audio': 0})
+    if c is not None and not out:
+        r = c.execute('SELECT sentence, translation FROM next_word_examples WHERE norm=?', (norm,)).fetchone()
+        if r:
+            out.append({'pack': None, 'i': None, 'text': r['sentence'], 'form': norm, 'title': 'AI 例句', 'zh': r['translation'], 'audio': 0, 'ai': True})
+    return out
+
+
 def word_audio(norm):
     """{accent: [sprite, start, end]} for a word's pre-generated pronunciation (tools/gen_word_audio.py)."""
     f = WORD_AUDIO_DIR / 'index.json'
@@ -202,7 +242,7 @@ def mode(r):
     return 'spell' if s >= SPELL_FROM else 'recall'
 
 
-def card_out(r, now=None, level=None, rich=False):
+def card_out(r, now=None, level=None, rich=False, c=None):
     out = {k: r[k] for k in ('id', 'text', 'meaning', 'context', 'pack', 'kind', 'created', 'due', 'reps', 'lapses', 'state',
                              'stability', 'difficulty', 'last', 'source', 'known')}
     rv = recall_now(r, now)
@@ -213,7 +253,10 @@ def card_out(r, now=None, level=None, rich=False):
         out['phonetic'] = entry['phonetic'] if entry else ''
         out['mode'] = mode(r)
         out['examples'] = examples(r['norm'], level or 'B1', 2, r['context']) if r['kind'] == 'word' else []
+        if r['kind'] == 'word' and not out['examples']:
+            out['examples'] = extra_examples(c, r['norm'])
         out['audio'] = word_audio(r['norm']) if r['kind'] == 'word' else {}
+        out['roots'] = roots(r['norm']) if r['kind'] == 'word' else []
     return out
 
 
@@ -236,9 +279,10 @@ def introduce(c, uid, now=None):
         return 0
     have = {r[0] for r in c.execute('SELECT norm FROM next_cards WHERE user_id=?', (uid,))}
     d = nx.dictionary()
+    skip = (p.get('skip_rank') or 0) if p['book'] in EXAM_BOOKS else 0  # frequency books are already chosen by level
     added = 0
     for rank, w in book_words()[p['book']]:
-        if w in have:
+        if w in have or (skip and rank <= skip):
             continue
         e = d[w]
         c.execute('INSERT INTO next_cards(user_id,text,norm,meaning,context,pack,kind,created,due,state,source,rank) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
@@ -260,7 +304,7 @@ def queue(c, uid, limit=40):
     new = sorted((r for r in rows if r['state'] == 'new'), key=lambda r: (r['source'] == 'book', r['rank'] or 0, r['created']))
     level = _level(c, uid)
     picked = (reviews + steps + new)[:limit]
-    return {'items': [card_out(r, now, level, rich=True) for r in picked], **counts(c, uid, now)}
+    return {'items': [card_out(r, now, level, rich=True, c=c) for r in picked], **counts(c, uid, now)}
 
 
 def counts(c, uid, now=None):
@@ -280,6 +324,9 @@ def rate(c, uid, data):
     if not r:
         return {'error': '记录不存在'}, 404
     now = time.time()
+    at = data.get('at')  # reviews done offline are synced later with the time they happened
+    if isinstance(at, (int, float)) and not isinstance(at, bool) and now - 3 * 86400 <= at <= now + 60 and at >= (r['last'] or 0):
+        now = float(min(at, now))
     m = data.get('mode') if data.get('mode') in ('recognize', 'recall', 'spell', 'cloze') else None
     ms = data.get('ms') if isinstance(data.get('ms'), int) and 0 <= data.get('ms') < 3600000 else None
     elapsed = (now - r['last']) / fsrs.DAY if r['last'] else None
@@ -373,7 +420,7 @@ def overview(c, uid):
                 'finish': nx._day(now + math.ceil(left / max(1, p['daily_new'])) * fsrs.DAY) if left else None}
     return {'plan': p, 'book': book, 'books': books_meta(), 'daily_new_options': list(DAILY_NEW), 'retention_options': list(RETENTION),
             'suggested_book': LEVEL_BOOK.get(_level(c, uid), 'mid'), 'mastered': mastered, 'learning': learning, 'total': len(rows),
-            'forecast': forecast, 'calendar': calendar, **counts(c, uid, now)}
+            'forecast': forecast, 'calendar': calendar, 'reminder': reminder(c, uid), **counts(c, uid, now)}
 
 
 def save_plan(c, uid, data):
@@ -388,6 +435,8 @@ def save_plan(c, uid, data):
     c.execute('''INSERT INTO next_vocab_plans(user_id,book,daily_new,retention,created,updated) VALUES(?,?,?,?,?,?)
                  ON CONFLICT(user_id) DO UPDATE SET book=excluded.book, daily_new=excluded.daily_new, retention=excluded.retention, updated=excluded.updated''',
               (uid, book, daily, retention, now, now))
+    if data.get('skip_known') is False:
+        c.execute('UPDATE next_vocab_plans SET skip_rank=0 WHERE user_id=?', (uid,))
     c.commit()
     return overview(c, uid), 200
 
@@ -428,11 +477,16 @@ def score_test(c, uid, data):
         known[k] = max(0.0, (p - fa) / (1 - fa)) if fa < 1 else 0.0  # correct for guessing
     estimate = int(round(sum(known[k] * sizes[k] for k in BOOKS), -2))
     suggest = next((k for k in BOOKS if known[k] < 0.8), 'ext')
+    skip_rank = 0
+    for k, (_, lo, hi, _) in BOOKS.items():  # exam books skip every band below the first one not reliably known
+        if known[k] < 0.85:
+            break
+        skip_rank = hi
     if uid:
-        c.execute('UPDATE next_vocab_plans SET estimate=?, updated=? WHERE user_id=?', (estimate, time.time(), uid))
+        c.execute('UPDATE next_vocab_plans SET estimate=?, skip_rank=?, updated=? WHERE user_id=?', (estimate, skip_rank, time.time(), uid))
         c.commit()
     return {'estimate': estimate, 'suggest': suggest, 'bands': {k: round(v, 2) for k, v in known.items()},
-            'titles': {k: v[0] for k, v in BOOKS.items()}, 'guessing': fa > 0.2}, 200
+            'titles': {k: v[0] for k, v in BOOKS.items()}, 'guessing': fa > 0.2, 'skip_rank': skip_rank}, 200
 
 
 def import_words(c, uid, data):
@@ -466,7 +520,193 @@ def detail(c, uid, cid):
     if not r:
         return {'error': '记录不存在'}, 404
     hist = [dict(h) for h in c.execute('SELECT rating, created, mode FROM next_reviews WHERE card=? AND user_id=? ORDER BY created', (cid, uid))]
-    return {'card': card_out(r, level=_level(c, uid), rich=True), 'history': hist, 'retention': _retention(c, uid)}, 200
+    return {'card': card_out(r, level=_level(c, uid), rich=True, c=c), 'history': hist, 'retention': _retention(c, uid)}, 200
+
+
+# ---------- reading: words before and after ----------
+
+def preread(c, uid, hard, limit=5):
+    """Words to glance at before reading: above the learner's level, most useful first, not already being learned."""
+    have = {r[0] for r in c.execute('SELECT norm FROM next_cards WHERE user_id=?', (uid,))} if uid else set()
+    d = nx.dictionary()
+    out, seen = [], set()
+    for form, info in sorted(hard.items(), key=lambda kv: kv[1]['rank']):
+        hit = nx.lookup(form)
+        if not hit or hit['lemma'] in seen or hit['lemma'] in have or not re.fullmatch(r'[a-z]+(?:-[a-z]+)*', hit['lemma']):
+            continue
+        seen.add(hit['lemma'])
+        e = d.get(hit['lemma']) or {}
+        out.append({'word': hit['lemma'], 'form': form, 'phonetic': e.get('phonetic', ''), 'meaning': short_meaning(e.get('meaning', '')),
+                    'audio': word_audio(hit['lemma'])})
+        if len(out) >= limit:
+            break
+    return out
+
+
+def add_many(c, uid, data):
+    """Add several words from one material at once (the pre-reading list, or the words looked up while reading)."""
+    items = data.get('items')
+    if not isinstance(items, list) or not 1 <= len(items) <= 30:
+        return {'error': '一次最多加 30 个词'}, 400
+    pack = data.get('pack') if isinstance(data.get('pack'), str) and len(data['pack']) <= 80 else None
+    min_rank = data.get('min_rank') if isinstance(data.get('min_rank'), int) else 0  # dictation: skip words everyone knows
+    d = nx.dictionary()
+    now = time.time()
+    added = skipped = 0
+    for it in items:
+        if not isinstance(it, dict) or not isinstance(it.get('word'), str):
+            continue
+        word = it['word'].strip()[:40]
+        hit = nx.lookup(word) if nx.WORD.fullmatch(word) else None
+        if not hit:
+            skipped += 1
+            continue
+        norm = hit['lemma']
+        sentence = it.get('sentence') if isinstance(it.get('sentence'), str) else ''
+        sentence = ' '.join(sentence.split())[:600]
+        if c.execute('SELECT 1 FROM next_cards WHERE user_id=? AND norm=?', (uid, norm)).fetchone():
+            skipped += 1
+            continue
+        e = d.get(norm) or {}
+        if min_rank and (e.get('rank') or 99999) < min_rank:
+            skipped += 1
+            continue
+        c.execute('INSERT INTO next_cards(user_id,text,norm,meaning,context,pack,kind,created,due,state,source,rank) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                  (uid, e.get('word', norm), norm, (e.get('meaning') or '')[:300], sentence, pack, 'word', now, now, 'new', 'saved', e.get('rank')))
+        added += 1
+    c.commit()
+    return {'added': added, 'skipped': skipped, **counts(c, uid, now)}, 200
+
+
+def ai_examples(c, uid, data):
+    """One AI call writes example sentences for up to 8 words that no material uses; cached for everyone."""
+    from lab_service import run_job, text as clean_text
+    from chat_service import request_model
+    words = [w for w in (data.get('words') or []) if isinstance(w, str) and re.fullmatch(r'[a-z]+(?:-[a-z]+)*', w)][:8]
+    d = nx.dictionary()
+    words = [w for w in dict.fromkeys(words) if w in d and not examples(w) and not extra_examples(c, w)]
+    if not words:
+        return {'examples': {}}, 200
+    level = _level(c, uid)
+    system = '你是英语词典编辑。为每个单词写一个自然、常用、贴近生活的英文例句（10–20 词，' + level + ' 学习者能读懂），并给出准确的中文翻译。只输出 JSON。'
+    user = ('单词（附中文义项）：\n' + '\n'.join(f'{w}：{short_meaning(d[w]["meaning"])}' for w in words) +
+            '\n\n输出 JSON：{"examples":[{"word":"单词原形","sentence":"英文例句（必须包含这个词或它的变形）","translation":"中文翻译"}]}')
+
+    def convert(raw):
+        out = {}
+        for e in (raw.get('examples') if isinstance(raw, dict) else None) or []:
+            if not isinstance(e, dict) or e.get('word') not in words or not isinstance(e.get('sentence'), str):
+                continue
+            sent = clean_text(e['sentence'], 8, 240)
+            lemmas = {(nx.lookup(t) or {}).get('lemma') for t in nx.WORD.findall(sent)}
+            if e['word'] in lemmas or e['word'] in sent.lower():
+                out[e['word']] = {'sentence': sent, 'translation': clean_text(e.get('translation') or '', 0, 240)}
+        if not out:
+            raise ValueError('no usable examples')
+        return out
+
+    result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-examples', 'vocab', 'vocabulary', {'words': words},
+                             lambda: request_model([{'role': 'system', 'content': system}, {'role': 'user', 'content': user}]), convert)
+    if status != 200:
+        return result, status
+    now = time.time()
+    for w, e in result['result'].items():
+        c.execute('INSERT OR IGNORE INTO next_word_examples VALUES(?,?,?,?)', (w, e['sentence'], e['translation'], now))
+    c.commit()
+    made = {w: [{'pack': None, 'i': None, 'text': e['sentence'], 'form': w, 'title': 'AI 例句', 'zh': e['translation'], 'audio': 0, 'ai': True}]
+            for w, e in result['result'].items()}
+    return {'examples': made, 'remaining': result.get('remaining')}, 200
+
+
+def record_use(c, uid, uses, now=None):
+    """A studied word used in writing: used correctly counts as a successful review, misused brings it back today."""
+    now = now or time.time()
+    for u in uses:
+        r = c.execute("SELECT * FROM next_cards WHERE user_id=? AND norm=? AND kind='word'", (uid, u['word'])).fetchone()
+        if not r:
+            continue
+        if u['ok']:
+            if r['state'] == 'review' and now - (r['last'] or 0) > 12 * 3600:
+                n = fsrs.review(dict(r), 'good', now, _retention(c, uid))
+                c.execute('UPDATE next_cards SET state=?, step=?, stability=?, difficulty=?, last=?, due=?, lapses=?, interval=?, reps=reps+1 WHERE id=?',
+                          (n['state'], n['step'], n['stability'], n['difficulty'], n['last'], n['due'], n['lapses'], n['interval'], r['id']))
+            c.execute('INSERT INTO next_reviews(user_id,card,rating,created,mode) VALUES(?,?,?,?,?)', (uid, r['id'], 'used', now, 'writing'))
+        else:
+            if r['due'] > now:
+                c.execute('UPDATE next_cards SET due=? WHERE id=?', (now, r['id']))
+            c.execute('INSERT INTO next_reviews(user_id,card,rating,created,mode) VALUES(?,?,?,?,?)', (uid, r['id'], 'misused', now, 'writing'))
+    c.commit()
+
+
+# ---------- reminders ----------
+
+def reminder(c, uid):
+    r = c.execute('SELECT enabled, hour, last_sent FROM next_reminders WHERE user_id=?', (uid,)).fetchone()
+    cols = {x[1] for x in c.execute('PRAGMA table_info(users)')}
+    email = c.execute('SELECT email FROM users WHERE id=?', (uid,)).fetchone() if 'email' in cols else None
+    return {'enabled': bool(r and r['enabled']), 'hour': r['hour'] if r else 20, 'has_email': bool(email and email[0])}
+
+
+def set_reminder(c, uid, data):
+    hour = data.get('hour', 20)
+    if hour not in REMIND_HOURS:
+        return {'error': '提醒时间不正确'}, 400
+    enabled = bool(data.get('enabled'))
+    if enabled and not reminder(c, uid)['has_email']:
+        return {'error': '先在账号设置里绑定邮箱，才能收到提醒邮件；也可以用「加到手机日历」'}, 400
+    c.execute('INSERT INTO next_reminders(user_id,enabled,hour,updated) VALUES(?,?,?,?) '
+              'ON CONFLICT(user_id) DO UPDATE SET enabled=excluded.enabled, hour=excluded.hour, updated=excluded.updated',
+              (uid, int(enabled), hour, time.time()))
+    c.commit()
+    return reminder(c, uid), 200
+
+
+def send_reminders(c, now=None, send=None):
+    """Called every few minutes: email learners whose reminder hour has come and who have reviews or new words waiting."""
+    import os
+    now = now or time.time()
+    local = datetime.datetime.fromtimestamp(now, nx.TZ)
+    today = local.date().isoformat()
+    origin = os.getenv('FLOW_PUBLIC_URL', 'https://flow.jasa.hk').rstrip('/')
+    if send is None:
+        from account_service import mail as send
+    if 'email' not in {x[1] for x in c.execute('PRAGMA table_info(users)')}:
+        return 0
+    rows = c.execute("SELECT r.user_id, u.email, u.username FROM next_reminders r JOIN users u ON u.id=r.user_id "
+                     "WHERE r.enabled=1 AND r.hour=? AND (r.last_sent IS NULL OR r.last_sent<?) AND u.email IS NOT NULL AND u.email!=''",
+                     (local.hour, today)).fetchall()
+    sent = 0
+    for r in rows:
+        introduce(c, r['user_id'], now)
+        n = counts(c, r['user_id'], now)
+        c.execute('UPDATE next_reminders SET last_sent=? WHERE user_id=?', (today, r['user_id']))
+        c.commit()
+        if not n['due'] and not n['new']:
+            continue
+        text = (f"{r['username']}，你好：\n\n今天有 {n['due']} 个单词该复习了" + (f"，还有 {n['new']} 个新词" if n['new'] else '') +
+                f"，大约 {n['minutes']} 分钟。\n记忆曲线到点了，现在复习效果最好：{origin}/#/review\n\n"
+                "不想再收到提醒，可以在「单词 → 调整计划」里关掉。\n—— 语流 Flow")
+        try:
+            send(r['email'], f"语流 · 今天有 {n['due'] + n['new']} 个单词等你", text)
+            sent += 1
+        except Exception:
+            pass  # a mail outage must not stop the loop; tomorrow is another try
+    return sent
+
+
+def ics(hour):
+    """A daily calendar event as a reminder that works on any phone, with no app or email needed."""
+    import os
+    hour = hour if hour in REMIND_HOURS else 20
+    origin = os.getenv('FLOW_PUBLIC_URL', 'https://flow.jasa.hk').rstrip('/')
+    start = datetime.datetime.now(nx.TZ).replace(hour=hour, minute=0, second=0, microsecond=0)
+    utc = start.astimezone(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+    stamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+    lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Flow//vocab reminder//ZH', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
+             f'UID:flow-vocab-{hour}@flow', f'DTSTAMP:{stamp}', f'DTSTART:{utc}', 'DURATION:PT10M', 'RRULE:FREQ=DAILY',
+             'SUMMARY:语流：背单词（约 10 分钟）', f'URL:{origin}/#/review', f'DESCRIPTION:按遗忘曲线复习今天到期的单词：{origin}/#/review',
+             'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:语流：该复习单词了', 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR']
+    return '\r\n'.join(lines) + '\r\n'
 
 
 # ---------- routing ----------
@@ -495,6 +735,12 @@ def post_public(c, uid, path, data):
 def post(c, uid, path, data):
     if path == '/api/next/vocab/plan':
         return save_plan(c, uid, data)
+    if path == '/api/next/vocab/add':
+        return add_many(c, uid, data)
+    if path == '/api/next/vocab/examples':
+        return ai_examples(c, uid, data)
+    if path == '/api/next/vocab/reminder':
+        return set_reminder(c, uid, data)
     if path == '/api/next/vocab/import':
         return import_words(c, uid, data)
     if path == '/api/next/vocab/known':

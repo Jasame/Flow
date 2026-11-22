@@ -8,7 +8,10 @@ exam tags (CET-4/6, 考研, IELTS, TOEFL, GRE) define the exam word books.
 Kept: every word in the reference list, plus every word with an exam tag. Per word:
   [phonetic, translation lines, exam tags, collins stars, in Oxford 3000, BNC rank, frequency rank]
 
-usage: build_ecdict_subset.py <ecdict.csv> <flow dir>
+Optionally also writes flow/corpus_data/wordroots-flow.json from ECDICT's wordroot.txt:
+  {word: [[root, meaning, class], ...]} for the words above, so word cards can show 词根词缀.
+
+usage: build_ecdict_subset.py <ecdict.csv> <flow dir> [wordroot.txt]
 """
 import csv, json, re, sys
 from pathlib import Path
@@ -47,3 +50,19 @@ covered = sum(1 for k in want if k in out)
 print(f'{len(out)} words written to {dest} ({dest.stat().st_size / 1e6:.1f} MB); reference list covered {covered}/{len(want)}')
 for t in TAGS:
     print(f'  {t}: {sum(1 for v in out.values() if t in v[2])}')
+
+if len(sys.argv) > 3:
+    roots = json.loads(Path(sys.argv[3]).read_text(encoding='utf-8'))
+    words = want | set(out)
+    inv = {}
+    for root, v in roots.items():
+        if not v.get('meaning'):
+            continue
+        for w in v.get('example') or []:
+            w = w.lower()
+            if w in words and len(inv.setdefault(w, [])) < 3:
+                inv[w].append([root, v['meaning'][:60], v.get('class', '')])
+    rdest = FLOW / 'corpus_data' / 'wordroots-flow.json'
+    rdest.write_text(json.dumps({'notice': NOTICE.replace('Subset', 'Word roots subset'), 'words': dict(sorted(inv.items()))},
+                                ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
+    print(f'{len(inv)} words with roots written to {rdest} ({rdest.stat().st_size / 1e3:.0f} KB)')

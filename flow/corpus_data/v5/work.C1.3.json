@@ -1,0 +1,514 @@
+[
+ {
+  "id": "v5-work-c1-ethics-training-doubts",
+  "title": "必修的职业道德课，能教会什么",
+  "title_en": "What a Mandatory Ethics Course Can and Cannot Teach",
+  "summary_zh": "每年一次的线上职业道德测验到底有没有用？作者认为：它教不会道德，但能提供一套共同语言；真正决定公司风气的，是管理者是否言行一致。读完你能用精确的英语表达“部分认同”的观点。",
+  "level": "B2",
+  "cefr": "C1",
+  "theme": "work",
+  "genre": "opinion",
+  "body": "Every autumn, a reminder lands in my inbox announcing that the mandatory ethics module is due, and every autumn I click through it with the same mixture of guilt and impatience. The scenarios barely change. A client offers you an expensive gift; a manager makes an inappropriate remark at a team dinner; a supplier hints that a contract might go more smoothly if certain details were overlooked. In each case there is an obviously correct answer, and the course congratulates you for choosing it. For years I was openly skeptical of the whole exercise. Philosophers have argued for centuries about what makes an action right, and it seemed faintly absurd to imagine that a short online quiz could settle the matter for an office full of tired adults. Yet I have come to think that the critics, my earlier self included, are asking the module to do a job it was never designed to do. It cannot teach morality; nobody arrives at work without a conscience and leaves the training with one. What it can do, at its best, is give people a shared vocabulary, so that when something feels wrong, there is a name for it and someone specific to tell. The real weakness lies elsewhere. Ethical habits are learned far less from slides than from watching what the people in charge actually do under pressure. A firm whose senior staff embody the values on the poster will rarely need to repeat them; one whose leaders quietly ignore them will discover that no amount of training repairs the damage. What employees notice above all is consistency: whether the same rules apply to the star salesperson as to the newest intern, and whether someone who raises a concern is met with compassion or with suspicion. Such questions seldom receive the scrutiny that a compliance report does, partly because they are harder to measure. But they, far more than any quiz, decide what a workplace actually believes.",
+  "questions": [
+   {
+    "prompt": "What is the writer's position on mandatory ethics training?",
+    "options": [
+     "It can offer a shared language, but leaders' behavior matters far more",
+     "It is a waste of everyone's time and should simply be scrapped",
+     "It would work well if the quizzes were longer and more difficult",
+     "It is the most reliable way to teach employees right from wrong"
+    ],
+    "answer": 0,
+    "evidence": "Ethical habits are learned far less from slides than from watching what the people in charge actually do under pressure."
+   },
+   {
+    "prompt": "According to the writer, what do employees pay most attention to?",
+    "options": [
+     "How often the training module is updated",
+     "Whether the scenarios in the course feel realistic",
+     "How much more senior staff are paid than everyone else",
+     "Whether the rules are applied equally to everyone"
+    ],
+    "answer": 3,
+    "evidence": "whether the same rules apply to the star salesperson as to the newest intern"
+   }
+  ],
+  "dictation_index": 10,
+  "vocabulary": [
+   {
+    "term": "skeptical",
+    "meaning": "怀疑的；不以为然的",
+    "example": "Many staff were skeptical that the new policy would change anything."
+   },
+   {
+    "term": "morality",
+    "meaning": "道德；道德观",
+    "example": "The novel asks hard questions about morality and ambition."
+   },
+   {
+    "term": "embody",
+    "meaning": "体现；是……的化身",
+    "example": "The best team leaders embody the patience they ask of others."
+   },
+   {
+    "term": "consistency",
+    "meaning": "一致性；（标准的）前后统一",
+    "example": "Without consistency, even good rules start to look unfair."
+   },
+   {
+    "term": "scrutiny",
+    "meaning": "仔细审查；严格检视",
+    "example": "Every expense claim now comes under close scrutiny."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "lands in my inbox",
+    "meaning": "（邮件）出现在我的收件箱里",
+    "note": "land 形象地表示邮件“落到”收件箱，职场英语很常用：Your report just landed in my inbox."
+   },
+   {
+    "text": "go more smoothly",
+    "meaning": "进行得更顺利",
+    "note": "go smoothly 形容事情进展顺利；这里带暗示，影射“走后门”。"
+   },
+   {
+    "text": "settle the matter",
+    "meaning": "解决问题；定下结论",
+    "note": "正式一点的说法，常用于争论或决策：A quick vote settled the matter."
+   },
+   {
+    "text": "at its best",
+    "meaning": "在最理想的情况下；最好的时候",
+    "note": "评价事物时先限定范围，显得客观：At its best, the course is genuinely useful."
+   },
+   {
+    "text": "under pressure",
+    "meaning": "在压力之下",
+    "note": "考察一个人的真实表现时常用：She stays calm under pressure."
+   },
+   {
+    "text": "no amount of",
+    "meaning": "再多的……也（不能）",
+    "note": "no amount of + 名词 + 肯定动词，表示“无论多少都没用”，语气很强。"
+   }
+  ],
+  "grammar": [
+   "tense-perfect",
+   "clause-relative",
+   "clause-noun"
+  ],
+  "knowledge": [
+   {
+    "node": "tense-perfect",
+    "quote": "Yet I have come to think that the critics, my earlier self included, are asking the module to do a job it was never designed to do.",
+    "explanation": "have come to think 用现在完成时，表示观点是一段时间里慢慢转变、并延续到现在的结果；比 I now think 更有“想法逐渐改变”的过程感。"
+   },
+   {
+    "node": "clause-relative",
+    "quote": "A firm whose senior staff embody the values on the poster will rarely need to repeat them",
+    "explanation": "whose 引导定语从句，表示所属关系（这家公司的高层）。注意主句主语中心词是 A firm，谓语是 will need。"
+   },
+   {
+    "node": "clause-noun",
+    "quote": "What employees notice above all is consistency",
+    "explanation": "What 引导主语从句，意为“员工最在意的东西”；What… is… 结构把关键词 consistency 推到句末，起强调作用。"
+   }
+  ],
+  "speaking": "用 1 分钟谈谈你上过的一门“必修课”或必须参加的培训：它到底有没有用？用上 at its best 和 no amount of。",
+  "writing": "用 200–250 词写一篇短评：学校或公司的某项“规定动作”（如安全培训、晨会）真正起作用的是什么。至少用一个 What… is… 主语从句和一个 whose 定语从句。",
+  "task": {
+   "prompt": "仿照这句，用 What X can do, at its best, is… 写一句话，评价一门课、一个 App 或一项制度真正的价值。",
+   "model": "What it can do, at its best, is give people a shared vocabulary"
+  },
+  "tags": [
+   "职场伦理",
+   "公司文化"
+  ],
+  "source": "Flow 编辑部原创"
+ },
+ {
+  "id": "v5-work-c1-medieval-guild-standards",
+  "title": "中世纪行会给今天职场的启示",
+  "title_en": "What Medieval Guilds Can Still Teach the Modern Workplace",
+  "summary_zh": "中世纪手工业行会规定了学徒、帮工、师傅的晋升之路，还会检查市场上的商品质量。它们有封闭保守的一面，却也让“统一的标准”成为信任的基础。读完你能用英语谈论职业标准与培训。",
+  "level": "B2",
+  "cefr": "C1",
+  "theme": "work",
+  "genre": "explainer",
+  "body": "Long before anyone wrote a job description, the craft guilds of medieval European towns had worked out answers to questions that still preoccupy employers. A guild was an association of people in the same trade, whether they baked bread, wove cloth or made vinegar, and its main purpose was to control who could practice that trade and how. Training followed a fixed path. An apprentice lived and worked in a master's household for years, learning the craft by doing it, before becoming a journeyman, a qualified worker who was paid by the day and could travel to gain experience. To be accepted as a master, a journeyman often had to submit a sample of their finest work for judgment, which is where the word 'masterpiece' originally comes from. Guild officials also inspected goods on sale, and a baker caught selling underweight loaves, or a weaver passing off junk as fine cloth, could be fined or publicly shamed. Philosophers have long debated whether doing a job well is a moral achievement or merely a useful one; the guilds had no such doubts. For them, quality was a matter of morality as much as commerce, because a bad product betrayed the whole trade, not just one customer. There was, admittedly, a darker side. Guilds could be deeply suspicious of outsiders, and their rules sometimes hardened into a bureaucracy whose chief purpose was to protect existing members from competition. For many people, geography and family amounted to destiny, since a child born into a weaver's household in a particular town was likely to stay there and become a weaver too. Yet the central idea deserves a second look. A guild member was expected to embody the standards of the craft, and it was the consistency of those standards, rather than the brilliance of any single worker, that allowed strangers to trust goods they had never seen being made. Companies that complain about thin, rushed training might find that the old system still has something to teach them.",
+  "questions": [
+   {
+    "prompt": "Which statement best sums up the writer's view of the guilds?",
+    "options": [
+     "They were mainly a clever way for members to keep prices high and rivals out",
+     "They treated outsiders more fairly than most modern companies treat new staff",
+     "They worked so well that they should replace today's training schemes",
+     "They had real faults, but their shared standards built a kind of trust worth learning from"
+    ],
+    "answer": 3,
+    "evidence": "it was the consistency of those standards, rather than the brilliance of any single worker, that allowed strangers to trust goods they had never seen being made"
+   },
+   {
+    "prompt": "Why does the writer say that geography and family \"amounted to destiny\" for many people?",
+    "options": [
+     "Guild officials assigned each child a trade at random",
+     "Where and into which family you were born largely decided your trade",
+     "Only the children of masters were allowed to join a guild",
+     "People believed that talent for a craft was fixed at birth"
+    ],
+    "answer": 1,
+    "evidence": "since a child born into a weaver's household in a particular town was likely to stay there and become a weaver too"
+   }
+  ],
+  "dictation_index": 13,
+  "vocabulary": [
+   {
+    "term": "medieval",
+    "meaning": "中世纪的",
+    "example": "The office is in a medieval building with very thick walls."
+   },
+   {
+    "term": "apprentice",
+    "meaning": "学徒",
+    "example": "She started as an apprentice in a small furniture workshop."
+   },
+   {
+    "term": "inspected",
+    "meaning": "检查；查验",
+    "example": "Every delivery is inspected before it enters the warehouse."
+   },
+   {
+    "term": "embody",
+    "meaning": "体现；代表",
+    "example": "These three rules embody everything the company stands for."
+   },
+   {
+    "term": "consistency",
+    "meaning": "一致性；稳定统一",
+    "example": "Restaurants that last usually offer consistency, not just one great night."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "worked out answers to",
+    "meaning": "想出了……的答案；找到了解决办法",
+    "note": "work out 指经过思考得出答案或方案：We still need to work out who pays for what."
+   },
+   {
+    "text": "passing off junk as fine cloth",
+    "meaning": "把破烂货冒充成好布",
+    "note": "pass sth off as sth 意为“以次充好、冒充”，也可用于人：pass himself off as an expert."
+   },
+   {
+    "text": "had no such doubts",
+    "meaning": "毫不怀疑；没有这种疑虑",
+    "note": "no such + 名词，用来和上文形成对比，书面语中很常见。"
+   },
+   {
+    "text": "a darker side",
+    "meaning": "阴暗的一面；不好的一面",
+    "note": "评价一件事时转向其缺点：Every success story has a darker side."
+   },
+   {
+    "text": "deserves a second look",
+    "meaning": "值得重新审视",
+    "note": "建议别急着否定某事，语气客观、温和。"
+   },
+   {
+    "text": "has something to teach them",
+    "meaning": "仍有值得他们学习的地方",
+    "note": "have something to teach sb 常用于说“老东西也有新启发”。"
+   }
+  ],
+  "grammar": [
+   "nonfinite-participle",
+   "clause-relative",
+   "clause-noun"
+  ],
+  "knowledge": [
+   {
+    "node": "nonfinite-participle",
+    "quote": "a baker caught selling underweight loaves, or a weaver passing off junk as fine cloth, could be fined or publicly shamed",
+    "explanation": "两个分词短语作后置定语：caught 是过去分词，表被动（被抓到的面包师）；passing 是现在分词，表主动（以次充好的织工）。"
+   },
+   {
+    "node": "clause-relative",
+    "quote": "their rules sometimes hardened into a bureaucracy whose chief purpose was to protect existing members from competition",
+    "explanation": "whose 引导定语从句修饰 bureaucracy，whose 也可以指物，相当于 of which；用它能把“目的是什么”紧凑地接在名词后面。"
+   },
+   {
+    "node": "clause-noun",
+    "quote": "its main purpose was to control who could practice that trade and how",
+    "explanation": "who could practice that trade and how 是名词性从句，作 control 的宾语；句末的 and how 省略了 they could practice it，简洁又地道。"
+   }
+  ],
+  "speaking": "用 1 分钟介绍一个你熟悉的“师傅带徒弟”式学习经历（学乐器、做菜、实习等），说说它和课堂学习有什么不同。用上 deserves a second look 和 a darker side。",
+  "writing": "用 200–250 词写一篇说明文：比较一种传统的学手艺方式和今天的入职培训，各有什么优缺点。至少用一个 whose 定语从句和一个分词短语作后置定语。",
+  "task": {
+   "prompt": "仿照这句，用 it was X, rather than Y, that… 写一句话，说说你所在的团队或班级靠什么赢得别人的信任。",
+   "model": "it was the consistency of those standards, rather than the brilliance of any single worker, that allowed strangers to trust goods they had never seen being made"
+  },
+  "tags": [
+   "职业培训",
+   "历史与职场"
+  ],
+  "source": "Flow 编辑部原创"
+ },
+ {
+  "id": "v5-work-c1-trading-concessions",
+  "title": "谈判时如何让步而不吃亏",
+  "title_en": "How to Make Concessions Without Giving Everything Away",
+  "summary_zh": "让步不是认输，而是一种“货币”。这份指南讲了四条谈判规则：以让步换让步、控制让步节奏、要求费用明细、警惕需求悄悄膨胀。读完你能用地道英语谈条件、守底线。",
+  "level": "B2",
+  "cefr": "C1",
+  "theme": "work",
+  "genre": "guide",
+  "body": "Most people treat a concession as a small defeat, something to be surrendered reluctantly once the other side has pushed hard enough. Experienced negotiators see it differently: a concession is a currency, and like any currency, it loses value if you spend it carelessly. The first rule is never to give anything away for nothing. If a client asks for a lower price, the useful reply is neither yes nor no but a question about what they can offer in return, whether that is a longer contract, faster payment or a larger order. Trading in this way signals that every point has a cost, which makes the next request less likely. The second rule concerns pace. Concessions that shrink as the talks go on suggest that you are approaching your limit, whereas concessions that stay the same size suggest there is plenty more to come. Third, ask for a breakdown of any figure you are expected to accept. A supplier who quotes a single total for shipping goods from overseas may turn out to be far less confident about the individual costs once each line is open to scrutiny, and it is entirely reasonable to be skeptical of a number that its owner seems unwilling to explain. Finally, watch for the slow drift known as scope creep. A client agrees to a price for one piece of work, and then, over a series of friendly emails, the piece of work quietly grows. One project manager I know agreed to produce an extra report 'just this once' and subsequently found herself writing it every week. Had each extra request been raised at the start, it would have been priced; arriving one at a time, such requests rarely are. The remedy is unglamorous: write down what was agreed, and when something new appears, point to the original document politely but promptly. None of this requires aggression. It simply requires deciding in advance what you can give, and what you expect in return.",
+  "questions": [
+   {
+    "prompt": "According to the guide, how should a concession be treated?",
+    "options": [
+     "As something of value to be exchanged rather than handed over",
+     "As a sign of weakness that should be avoided at all costs",
+     "As a quick way of bringing difficult talks to an end",
+     "As a reward for the other side's patience"
+    ],
+    "answer": 0,
+    "evidence": "a concession is a currency, and like any currency, it loses value if you spend it carelessly"
+   },
+   {
+    "prompt": "What does the writer suggest about concessions that get smaller as talks continue?",
+    "options": [
+     "They tend to make the other side angry",
+     "They encourage the other side to ask for more",
+     "They signal that you are close to your limit",
+     "They show that you lack experience"
+    ],
+    "answer": 2,
+    "evidence": "Concessions that shrink as the talks go on suggest that you are approaching your limit"
+   }
+  ],
+  "dictation_index": 4,
+  "vocabulary": [
+   {
+    "term": "concession",
+    "meaning": "让步；妥协",
+    "example": "Neither side was willing to make the first concession."
+   },
+   {
+    "term": "breakdown",
+    "meaning": "（费用的）明细；分项列表",
+    "example": "The client asked for a breakdown of the design fee."
+   },
+   {
+    "term": "skeptical",
+    "meaning": "怀疑的；持保留态度的",
+    "example": "I'm skeptical of any plan that promises results in a week."
+   },
+   {
+    "term": "subsequently",
+    "meaning": "随后；之后",
+    "example": "The meeting was postponed and subsequently cancelled."
+   },
+   {
+    "term": "remedy",
+    "meaning": "补救办法；解决方法",
+    "example": "The only remedy for a vague brief is to ask more questions."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "give anything away for nothing",
+    "meaning": "白白让出任何东西",
+    "note": "give sth away 指让出、放弃；for nothing 是“不求回报”，谈判中的核心原则。"
+   },
+   {
+    "text": "in return",
+    "meaning": "作为回报；作为交换",
+    "note": "谈条件时的高频短语：What can you offer in return?"
+   },
+   {
+    "text": "plenty more to come",
+    "meaning": "后面还有很多",
+    "note": "这里暗示“还有很大让步空间”，也可指好事还多着呢。"
+   },
+   {
+    "text": "open to scrutiny",
+    "meaning": "经得起（或要接受）仔细审查",
+    "note": "be open to scrutiny 常用于数据、账目、决定要被逐项检查。"
+   },
+   {
+    "text": "just this once",
+    "meaning": "就这一次",
+    "note": "请求破例时的口头禅，常常是“一次变每次”的开始。"
+   },
+   {
+    "text": "politely but promptly",
+    "meaning": "礼貌但及时地",
+    "note": "两个副词并列、押头韵，强调“客气不等于拖延”。"
+   }
+  ],
+  "grammar": [
+   "subjunctive-past",
+   "nonfinite-participle",
+   "conditional-real"
+  ],
+  "knowledge": [
+   {
+    "node": "subjunctive-past",
+    "quote": "Had each extra request been raised at the start, it would have been priced",
+    "explanation": "省略 if 的倒装虚拟：Had + 主语 + 过去分词 = If each extra request had been raised…，与过去事实相反，语气更正式、更紧凑。"
+   },
+   {
+    "node": "nonfinite-participle",
+    "quote": "arriving one at a time, such requests rarely are",
+    "explanation": "现在分词短语 arriving one at a time 作状语，逻辑主语是 such requests，说明“由于一次只来一个”；句末 are 后省略了 priced。"
+   },
+   {
+    "node": "conditional-real",
+    "quote": "If a client asks for a lower price, the useful reply is neither yes nor no but a question about what they can offer in return",
+    "explanation": "真实条件句：if + 一般现在时，主句也用一般现在时，表示“只要出现这种情况，通常就该这样做”，适合写规则和建议。"
+   }
+  ],
+  "speaking": "用 1 分钟讲一次你和别人“讨价还价”的经历（买东西、分工、换班都可以）：你让了什么、换回了什么？用上 in return 和 just this once。",
+  "writing": "用 200–250 词写一份简短指南：小组作业或兼职中如何防止“任务越加越多”。至少用一个 Had… 倒装虚拟句和一个现在分词作状语的句子。",
+  "task": {
+   "prompt": "仿照这句，用 Had…been…, it would have been… 的倒装虚拟句写一句话，反思一件“如果早点说清楚就好了”的事。",
+   "model": "Had each extra request been raised at the start, it would have been priced"
+  },
+  "tags": [
+   "商务谈判",
+   "职场沟通"
+  ],
+  "source": "Flow 编辑部原创"
+ },
+ {
+  "id": "v5-work-c1-documentary-composer",
+  "title": "给纪录片配乐的作曲家",
+  "title_en": "Scoring the Silence: A Composer at Work on a Fishing Documentary",
+  "summary_zh": "作曲家 Ruth 为一部关于螃蟹渔场的纪录片配乐，却发现最难的是“少写”：画面太美，音乐反而容易喧宾夺主。读完你能学会描述创作过程、谈论分寸感的高级表达。",
+  "level": "B2",
+  "cefr": "C1",
+  "theme": "work",
+  "genre": "article",
+  "body": "When Ruth was hired to write the music for a documentary about a small crab fishery, she assumed the hard part would be the big moments: boats heading out into a storm, pots breaking the surface at dawn. Instead, she spent most of her time on the quiet scenes. The footage was stunning, and that, she soon realized, was precisely the problem. Images that beautiful tempt a composer to underline them, adding sweeping strings whenever the camera rises above the cliffs, until the film starts to feel like an advertisement for the coast. The director wanted something humbler. In their first editorial meeting, he showed her a scene of an old fisherman retying a knot on a crab pot, his fingers stiff with cold, and asked whether it needed music at all. Ruth's instinct was to say yes. She subsequently admitted that he had been right: the scene worked because nothing told the audience how to feel. Much of a film composer's job, she argues, is a negotiation with things that are not music. The narrator's commentary sits in much the same range as a cello, so every line of voice-over forces a choice about which of the two should give way. Background sound, such as gulls, engines and the knock of a hull against the quay, carries its own rhythm, which a careless score can easily flatten. More often than she expected, the best solution was to let a theme creep in so quietly that viewers noticed it only once it was already there. Composers are sometimes tempted to talk about destiny, as if a melody were simply waiting to be discovered. Ruth is skeptical of that language; her process involves dozens of discarded drafts, and the version that survives is rarely the one she would have predicted. She hopes the finished film will not stun anyone with its music. If audiences leave remembering the fishermen and forgetting the score, she will consider the job well done.",
+  "questions": [
+   {
+    "prompt": "What does Ruth's experience on the documentary mainly show?",
+    "options": [
+     "Strong images always need equally powerful music",
+     "A composer works best without the director's opinions",
+     "Holding back often serves a film better than dramatic music",
+     "A good melody usually arrives complete on the first attempt"
+    ],
+    "answer": 2,
+    "evidence": "the scene worked because nothing told the audience how to feel"
+   },
+   {
+    "prompt": "Why was the stunning footage \"precisely the problem\"?",
+    "options": [
+     "Beautiful images tempt a composer to overstate them with music",
+     "It made the film much longer than planned",
+     "The director had decided not to use most of it",
+     "It was hard to match with the narrator's voice"
+    ],
+    "answer": 0,
+    "evidence": "Images that beautiful tempt a composer to underline them"
+   }
+  ],
+  "dictation_index": 7,
+  "vocabulary": [
+   {
+    "term": "footage",
+    "meaning": "（影片的）镜头；拍摄素材",
+    "example": "We have hours of footage but only ten minutes of story."
+   },
+   {
+    "term": "editorial",
+    "meaning": "编辑的；（内容）审定的",
+    "example": "The editorial team decides which stories make the final cut."
+   },
+   {
+    "term": "instinct",
+    "meaning": "直觉；本能反应",
+    "example": "My first instinct was to reply at once, but I waited an hour."
+   },
+   {
+    "term": "commentary",
+    "meaning": "解说；旁白",
+    "example": "The commentary explains what the viewers are seeing."
+   },
+   {
+    "term": "discarded",
+    "meaning": "被丢弃的；弃用的",
+    "example": "Her desk was covered in discarded sketches."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "the hard part would be",
+    "meaning": "难的部分会是……",
+    "note": "the hard part is… 是谈论任务难点的自然说法：The hard part is getting started."
+   },
+   {
+    "text": "was precisely the problem",
+    "meaning": "恰恰就是问题所在",
+    "note": "precisely 加强语气，常用于反转：看似优点，其实正是麻烦。"
+   },
+   {
+    "text": "give way",
+    "meaning": "让步；让位",
+    "note": "原指让路，这里指两种声音中一方“退让”，也可用于观点、压力。"
+   },
+   {
+    "text": "More often than she expected",
+    "meaning": "比她预想的更常",
+    "note": "more often than not / than expected，用来引出意外的规律。"
+   },
+   {
+    "text": "consider the job well done",
+    "meaning": "认为这份工作完成得很好",
+    "note": "consider sth done 表示“算是完成了”，well done 这里作宾补。"
+   },
+   {
+    "text": "needed music at all",
+    "meaning": "到底需不需要音乐",
+    "note": "at all 用在疑问句里加强语气，表示“究竟、根本”。"
+   }
+  ],
+  "grammar": [
+   "subjunctive-now",
+   "clause-adverb",
+   "nonfinite-participle"
+  ],
+  "knowledge": [
+   {
+    "node": "subjunctive-now",
+    "quote": "as if a melody were simply waiting to be discovered",
+    "explanation": "as if 后用 were，表示与现实不符的假设：旋律其实是一遍遍改出来的，并不是“等着被发现”。正式文体中各人称都可用 were。"
+   },
+   {
+    "node": "clause-adverb",
+    "quote": "the best solution was to let a theme creep in so quietly that viewers noticed it only once it was already there",
+    "explanation": "so + 副词 + that 引导结果状语从句（安静到观众……）；里面又套了 once 引导的时间状语从句，层次清楚。"
+   },
+   {
+    "node": "nonfinite-participle",
+    "quote": "adding sweeping strings whenever the camera rises above the cliffs",
+    "explanation": "现在分词短语 adding… 作伴随状语，具体说明 underline them 是怎么做的，逻辑主语是 a composer，表主动。"
+   }
+  ],
+  "speaking": "用 1 分钟谈谈一部电影或视频里让你印象深刻的配乐（或恰到好处的“没有配乐”），用上 was precisely the problem 和 give way。",
+  "writing": "用 200–250 词写一篇人物小记：一位幕后工作者（剪辑师、配音演员、灯光师）怎样做到“让观众察觉不到自己”。至少用一个 as if…were… 句子和一个 so…that… 句子。",
+  "task": {
+   "prompt": "仿照这句，用 If people leave remembering… and forgetting…, I will consider… 写一句话，说说你做一件事（演讲、设计、做饭）真正想达到的效果。",
+   "model": "If audiences leave remembering the fishermen and forgetting the score, she will consider the job well done."
+  },
+  "tags": [
+   "创意工作",
+   "幕后职业"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

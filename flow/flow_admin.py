@@ -40,6 +40,57 @@ def overview(c):
     }
 
 
+def learning(c):
+    """Flow learning data for the operator dashboard: activity, retention, the study funnel, vocabulary and AI use.
+
+    Days are Asia/Shanghai calendar days. A learner is "active" on a day with any study step or review."""
+    import datetime
+    import next_service as nx
+    now = time.time()
+    tz = nx.TZ
+    day_of = lambda t: datetime.datetime.fromtimestamp(t, tz).date()
+    today = day_of(now)
+    q = lambda sql, *a: c.execute(sql, a).fetchone()[0]
+    since = now - 45 * 86400
+    acts = {}
+    for uid, t in c.execute('SELECT user_id, created FROM next_progress WHERE created>? UNION ALL '
+                            'SELECT user_id, created FROM next_reviews WHERE created>?', (since, since)):
+        acts.setdefault(uid, set()).add(day_of(t))
+    days14 = [today - datetime.timedelta(days=i) for i in range(13, -1, -1)]
+    active = [{'day': d.isoformat(), 'count': sum(1 for ds in acts.values() if d in ds)} for d in days14]
+    within = lambda n: sum(1 for ds in acts.values() if any((today - d).days < n for d in ds))
+    # Retention by onboarding day (Flow profile created): came back the next day / within the first week.
+    cohort = {'joined': 0, 'd1': 0, 'week': 0}
+    for uid, created in c.execute('SELECT user_id, created FROM next_profiles WHERE created BETWEEN ? AND ?', (now - 30 * 86400, now - 86400)):
+        start = day_of(created or now)
+        ds = acts.get(uid, set())
+        cohort['joined'] += 1
+        cohort['d1'] += (start + datetime.timedelta(days=1)) in ds
+        cohort['week'] += any(1 <= (d - start).days <= 7 for d in ds)
+    week_ago = now - 7 * 86400
+    funnel = {s: q('SELECT COUNT(*) FROM next_progress WHERE step=? AND created>?', s, week_ago) for s in nx.STEPS}
+    ratings = dict(c.execute('SELECT rating, COUNT(*) FROM next_reviews WHERE created>? GROUP BY rating', (week_ago,)).fetchall())
+    mature = c.execute("SELECT COUNT(*), SUM(rating!='again') FROM next_reviews WHERE created>? AND elapsed>=1 AND rating IN ('again','hard','good','easy')",
+                       (week_ago,)).fetchone()
+    books = dict(c.execute('SELECT book, COUNT(*) FROM next_vocab_plans GROUP BY book').fetchall())
+    added = dict(c.execute('SELECT source, COUNT(*) FROM next_cards WHERE created>? GROUP BY source', (week_ago,)).fetchall())
+    ai = dict(c.execute("SELECT kind, COUNT(*) FROM lab_jobs WHERE status='complete' AND updated>? AND kind LIKE 'next-%' GROUP BY kind", (week_ago,)).fetchall())
+    top = [{'id': pid, 'learners': n} for pid, n in c.execute(
+        'SELECT pack, COUNT(DISTINCT user_id) n FROM next_progress WHERE created>? GROUP BY pack ORDER BY n DESC LIMIT 8', (week_ago,))]
+    titles = {p['id']: p['title'] for p in __import__('content_v50').v5_materials()}
+    for t in top:
+        t['title'] = titles.get(t['id'], t['id'])
+    return {
+        'active_today': active[-1]['count'], 'active_7d': within(7), 'active_30d': within(30), 'active_days': active,
+        'profiles': q('SELECT COUNT(*) FROM next_profiles'), 'cohort': cohort,
+        'funnel_7d': funnel, 'materials': len(titles),
+        'reviews_7d': sum(v for k, v in ratings.items() if k in ('again', 'hard', 'good', 'easy')), 'ratings_7d': ratings,
+        'true_retention': round(mature[1] / mature[0], 3) if mature and mature[0] else None, 'mature_reviews_7d': mature[0] if mature else 0,
+        'vocab_plans': books, 'words_added_7d': added, 'reminders_on': q('SELECT COUNT(*) FROM next_reminders WHERE enabled=1'),
+        'cards_total': q('SELECT COUNT(*) FROM next_cards'), 'ai_7d': ai, 'top_materials_7d': top, 'generated_at': now,
+    }
+
+
 class AdminHandler(BaseHTTPRequestHandler):
     server_version = 'FlowAdmin'
 
@@ -70,6 +121,8 @@ class AdminHandler(BaseHTTPRequestHandler):
             if method == 'GET':
                 if path == '/overview':
                     return self._send(overview(c))
+                if path == '/learning':
+                    return self._send(learning(c))
                 if path == '/survey/definition':
                     return self._send(survey.SURVEY)
                 if path == '/survey/summary':

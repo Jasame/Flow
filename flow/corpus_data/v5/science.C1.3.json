@@ -1,0 +1,518 @@
+[
+  {
+    "id": "v5-science-c1-erased-manuscripts",
+    "title": "被刮掉的字如何重见天日",
+    "title_en": "Reading the Words Someone Tried to Erase",
+    "summary_zh": "中世纪的羊皮纸很贵，旧书常被刮掉重写。如今研究者用紫外线和多波段成像，让被抹去的文字重新显现。文章也提醒：技术越强，越要诚实地区分“看见的”和“推测的”。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "science",
+    "genre": "article",
+    "body": "For much of history, the surface you wrote on was worth more than most of what you wrote. Parchment, made from carefully prepared animal skin, was slow and costly to produce, and in an age when literacy was rare and prosperity uneven, a book that nobody read any longer was less a treasure than a supply of raw material. Scribes would scrape the old ink away, wash the page and write a new text over the top, leaving behind a recycled manuscript known as a palimpsest. What they could not do was remove every trace. Much medieval ink contained iron, which soaked into the skin rather than sitting on it, and those faint remains are what modern researchers set out to retrieve. The simplest tool is ultraviolet light. Under it, parchment gives off a soft bluish glow, while the leftover ink absorbs the light instead of glowing, so the scraped letters reappear as shadows. More ambitious projects photograph each page many times, under narrow bands of light ranging from ultraviolet to infrared, and some libraries now publish interactive images that let readers switch between them. Because the two layers of ink and the skin respond slightly differently to each band, software can compare the images and pull the hidden text away from the visible one. The results can be startling: a plain prayer book, its margins decorated with a tiny dragon curled around a capital letter, may conceal a lost poem or a forgotten work of mathematics. Yet the very power of these methods calls for restraint. Processing can sharpen genuine strokes, but it can also invent them, and when the variance between two readings comes down to a single faint letter, the temptation to see what one hopes for is considerable. A faithful reading admits its gaps, separating what is visible from what is reconstructed, and it resists turning every recovered fragment into a legendary discovery. Treated that way, the work becomes a quiet tribute to both scribes: the one whose words were sacrificed, and the one whose thrift preserved them, however unintentionally. Even the scraping, it turns out, is authentic history.",
+    "questions": [
+      {
+        "prompt": "What is the writer's attitude towards modern imaging methods?",
+        "options": [
+          "They damage old pages and should be replaced by simpler methods",
+          "They are so reliable that their readings no longer need checking",
+          "They are powerful, but readers must be honest about what is uncertain",
+          "They are mainly useful for finding decorations such as small drawings"
+        ],
+        "answer": 2,
+        "evidence": "Yet the very power of these methods calls for restraint."
+      },
+      {
+        "prompt": "Why do scraped letters reappear under ultraviolet light?",
+        "options": [
+          "The parchment glows while the leftover ink absorbs the light",
+          "The old ink glows more brightly than the parchment around it",
+          "Ultraviolet light removes the newer writing on top",
+          "The iron in the ink turns blue when it is exposed to light"
+        ],
+        "answer": 0,
+        "evidence": "parchment gives off a soft bluish glow, while the leftover ink absorbs the light instead of glowing"
+      }
+    ],
+    "dictation_index": 0,
+    "vocabulary": [
+      {
+        "term": "parchment",
+        "meaning": "羊皮纸",
+        "example": "The old map was drawn on parchment rather than paper."
+      },
+      {
+        "term": "palimpsest",
+        "meaning": "重写本（刮掉旧字后重写的手稿）；层层叠加的痕迹",
+        "example": "The old town is a palimpsest of buildings from different centuries."
+      },
+      {
+        "term": "scrape",
+        "meaning": "刮；刮掉",
+        "example": "I had to scrape the ice off the car windows this morning."
+      },
+      {
+        "term": "restraint",
+        "meaning": "克制；节制",
+        "example": "The referee showed great restraint during the argument."
+      },
+      {
+        "term": "thrift",
+        "meaning": "节俭",
+        "example": "My grandparents' thrift meant that nothing was ever thrown away."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "less a treasure than",
+        "meaning": "与其说是宝贝，不如说是……",
+        "note": "less A than B＝与其说是 A，不如说是 B，书面语常用：It was less a holiday than a training camp."
+      },
+      {
+        "text": "set out to",
+        "meaning": "着手；立志要",
+        "note": "set out to do 表示带着明确目标开始做某事：She set out to prove them wrong."
+      },
+      {
+        "text": "gives off",
+        "meaning": "发出（光、热、气味）",
+        "note": "give off 后接 light / heat / a smell，指物体自己散发出来的东西。"
+      },
+      {
+        "text": "calls for",
+        "meaning": "需要；要求",
+        "note": "call for 比 need 更书面，常见 call for patience / caution / action。"
+      },
+      {
+        "text": "comes down to",
+        "meaning": "归根结底在于",
+        "note": "come down to＝最终取决于：In the end, it all comes down to money."
+      },
+      {
+        "text": "it turns out",
+        "meaning": "原来；结果发现",
+        "note": "常作插入语，表示“后来才发现”，带一点意外的语气。"
+      }
+    ],
+    "grammar": [
+      "clause-noun",
+      "clause-relative",
+      "nonfinite-participle"
+    ],
+    "knowledge": [
+      {
+        "node": "clause-noun",
+        "quote": "What they could not do was remove every trace.",
+        "explanation": "What they could not do 是名词性从句作主语，把“做不到的事”放到句首来强调。主语从句里有 do 时，表语常用不带 to 的动词原形，如 remove。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "the one whose words were sacrificed, and the one whose thrift preserved them",
+        "explanation": "两个 whose 定语从句并列，分别修饰两位抄写员：一位的文字被牺牲，一位的节俭反而把它们保存了下来。平行结构让对比更鲜明。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "Treated that way, the work becomes a quiet tribute to both scribes",
+        "explanation": "Treated that way 是过去分词短语作条件状语，逻辑主语 the work 是“被对待”的一方，相当于 If it is treated that way。"
+      }
+    ],
+    "speaking": "用 1 分钟介绍：被刮掉的旧文字为什么还能被读出来？用上 gives off 和 it turns out。",
+    "writing": "用 200–250 词写一段评论：新技术能“还原”过去的东西（给老照片上色、修复旧录音……），它的价值和风险分别是什么？至少用一个 What … was … 句子。",
+    "task": {
+      "prompt": "仿照这句，用 What I could not do was … 写一件你当时做不到、但很想做的事。",
+      "model": "What they could not do was remove every trace."
+    },
+    "tags": [
+      "科学史",
+      "成像技术",
+      "古籍"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-science-c1-hydrogen-hype",
+    "title": "氢能：既非奇迹，也非泡影",
+    "title_en": "Hydrogen Is Neither a Miracle Nor a Mirage",
+    "summary_zh": "氢燃烧后只剩水，所以常被宣传成完美的清洁能源。但地球上几乎没有现成的氢，得先“制造”出来，储存也很麻烦。作者主张既不盲目追捧也不全盘否定，而是先问清：氢从哪来、替代什么。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "science",
+    "genre": "opinion",
+    "body": "Few technologies are advertised as enthusiastically as hydrogen. Combine it with oxygen in a fuel cell, and the only waste that comes out at the point of use is water. It is easy to see why the idea has gathered devoted followers, and equally easy to see why others greet each new announcement with weary rejection. Both reactions, I think, miss what is genuinely interesting about it. The awkward fact is that very little hydrogen on Earth is lying around waiting to be collected; almost all of it is locked up in water and other compounds. Before anyone can use it, someone has to manufacture it, either by using electricity to split water or by extracting it from fossil fuels, a route that releases carbon dioxide. Hydrogen, in other words, is not a source of energy but a way of carrying it, and it can only be as clean as the energy that went into making it. Each conversion along the way also loses some energy, so using hydrogen where a battery would do is rarely a good bargain. Storing it is challenging, too. As the lightest element, it takes up a great deal of space unless it is squeezed to very high pressures or chilled until it turns liquid, and its tiny molecules can slip through materials that hold other gases comfortably. None of this makes hydrogen any less worthy of attention. Some heavy industries have jobs that electricity alone cannot easily do, and there hydrogen may well be the most viable option available. The unfortunate habit is to treat it as a single answer to everything, as if any one fuel could fly solo. A little energy literacy would help: asking where the hydrogen came from, and what it replaces, is more beneficial than either cheering or sneering. If governments choose to intervene, they should back the uses that survive those questions, because lasting prosperity is more likely to come from many sensible tools than from one dazzling promise.",
+    "questions": [
+      {
+        "prompt": "What is the writer's overall position on hydrogen?",
+        "options": [
+          "It is a clean energy source that should replace other fuels",
+          "It is useful for certain jobs but should not be seen as a single answer",
+          "It is too difficult to store and should be abandoned",
+          "It is mainly worth using in cars, where batteries struggle"
+        ],
+        "answer": 1,
+        "evidence": "The unfortunate habit is to treat it as a single answer to everything"
+      },
+      {
+        "prompt": "Why does the writer say hydrogen 'can only be as clean as the energy that went into making it'?",
+        "options": [
+          "Because burning hydrogen releases carbon dioxide",
+          "Because hydrogen leaks easily from storage tanks",
+          "Because hydrogen has to be produced from other substances using energy",
+          "Because fuel cells need oxygen from the air to work"
+        ],
+        "answer": 2,
+        "evidence": "someone has to manufacture it, either by using electricity to split water or by extracting it from fossil fuels"
+      }
+    ],
+    "dictation_index": 7,
+    "vocabulary": [
+      {
+        "term": "compounds",
+        "meaning": "化合物",
+        "example": "Salt and sugar are both compounds."
+      },
+      {
+        "term": "conversion",
+        "meaning": "转换；转化",
+        "example": "The conversion of the old factory into flats took two years."
+      },
+      {
+        "term": "viable",
+        "meaning": "可行的",
+        "example": "Working from home is now a viable choice for many teams."
+      },
+      {
+        "term": "sneering",
+        "meaning": "冷嘲热讽",
+        "example": "I'm tired of his sneering at every new idea."
+      },
+      {
+        "term": "dazzling",
+        "meaning": "耀眼的；令人眼花缭乱的",
+        "example": "The city looked dazzling from the plane at night."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "lying around",
+        "meaning": "随处放着；闲置着",
+        "note": "lie around 指东西随便放着、没人管：Don't leave your keys lying around."
+      },
+      {
+        "text": "in other words",
+        "meaning": "换句话说",
+        "note": "用来换个更简单的说法总结前文，写作和口语都常用。"
+      },
+      {
+        "text": "would do",
+        "meaning": "就够用了；能凑合",
+        "note": "would do 在这里是“够用、行得通”：Any pen would do. 很地道的口语用法。"
+      },
+      {
+        "text": "takes up",
+        "meaning": "占据（空间、时间）",
+        "note": "take up space / time：This sofa takes up half the room."
+      },
+      {
+        "text": "fly solo",
+        "meaning": "单干；独自扛起",
+        "note": "原指单人驾驶飞机，引申为“一个人搞定、不靠别人”：After a year of training, she was ready to fly solo."
+      },
+      {
+        "text": "may well be",
+        "meaning": "很可能是",
+        "note": "may well 比 may 更肯定，表示“很有可能”，适合谨慎地表达观点。"
+      }
+    ],
+    "grammar": [
+      "subjunctive-now",
+      "nonfinite-gerund",
+      "conditional-modal"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-now",
+        "quote": "as if any one fuel could fly solo",
+        "explanation": "as if 后用 could 表示与现实相反的假设：现实中没有哪一种燃料能独自解决所有问题。作者借此委婉地批评“一招通吃”的想法。"
+      },
+      {
+        "node": "nonfinite-gerund",
+        "quote": "asking where the hydrogen came from, and what it replaces, is more beneficial than either cheering or sneering",
+        "explanation": "asking … 是动名词短语作主语，谓语用单数 is；than 后面的 cheering、sneering 也是动名词，前后形式一致，对比才整齐。"
+      },
+      {
+        "node": "conditional-modal",
+        "quote": "If governments choose to intervene, they should back the uses that survive those questions",
+        "explanation": "if 从句用一般现在时表示可能出现的情况，主句用情态动词 should 提出主张。写观点文时，“If …, … should …”能把条件和建议一起说清楚。"
+      }
+    ],
+    "speaking": "用 1 分钟解释：为什么说氢不是“能源”，而只是“搬运能量的方式”？用上 in other words 和 may well be。",
+    "writing": "用 200–250 词评论一项被过度宣传的新技术：先承认它的优点，再指出限制，最后给出你的看法。至少用一个 as if … could … 和一个 If …, … should … 句子。",
+    "task": {
+      "prompt": "仿照这句，用“动名词短语作主语 + is more … than …”写一句你对某个问题的看法。",
+      "model": "asking where the hydrogen came from, and what it replaces, is more beneficial than either cheering or sneering"
+    },
+    "tags": [
+      "能源",
+      "化学",
+      "科技观点"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-science-c1-why-cute",
+    "title": "大眼睛为什么让人心软",
+    "title_en": "Why Big Eyes Melt Our Hearts",
+    "summary_zh": "大头、大眼、圆脸、短手短脚——这些“婴儿特征”会自动唤起成年人的保护欲。玩具和卡通设计者很懂这一点，连古书里凶猛的龙都被画成了可爱的模样。读完你会明白“萌”到底是怎么起作用的。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "science",
+    "genre": "explainer",
+    "body": "Show most adults a photograph of a puppy, a kitten or a human baby, and something predictable happens: their voices rise, their faces soften and they feel an urge to protect. The features that set off this response are remarkably consistent. A large head compared with the body, big eyes set low on the face, round cheeks, a small nose and short, clumsy limbs together form what researchers call the baby schema. The usual explanation is evolutionary: human infants are helpless for an unusually long time, so adults who found them appealing, and who therefore cared for them, were more likely to see their children survive. The response, however, is far from precise. It spills over onto animals, cartoon characters and even cars whose headlights resemble wide eyes. Even the pupils play a part: they widen in dim light and in moments of interest, and illustrators routinely draw them far larger than life, which seems to make a face look warmer and more open. Nowhere is the trick clearer than in the history of the dragon. In medieval manuscripts, the legendary beast is usually all claws, scales and narrow, menacing eyes. Today's toy dragons, by contrast, tend to have oversized heads, huge eyes and stubby legs, which turns a monster into something a child wants to cuddle. Companies that manufacture toys, and those that advertise them, understand this perfectly well, as do the owners of pet accounts competing for followers online. Some interactive toys go further, blinking slowly or tilting their heads at the sound of a voice. None of this means that the affection we feel is fake. The emotion is entirely authentic; it is simply being evoked by a design rather than by a creature that needs us. Knowing that will not switch the reaction off, but it may help us notice when a sweet face is being used to conceal a sales pitch.",
+    "questions": [
+      {
+        "prompt": "What is the main point of the explainer?",
+        "options": [
+          "Baby-like features reliably trigger a caring response, and designers use this on purpose",
+          "Cute features were invented by modern toy companies",
+          "People who like cute animals are easily fooled by advertising",
+          "The affection people feel for cute objects is not real"
+        ],
+        "answer": 0,
+        "evidence": "The emotion is entirely authentic; it is simply being evoked by a design rather than by a creature that needs us."
+      },
+      {
+        "prompt": "How do today's toy dragons differ from those in medieval manuscripts?",
+        "options": [
+          "They have more claws and scales",
+          "They are usually shown breathing fire",
+          "They have big heads, huge eyes and short legs",
+          "They have narrow eyes that make them look clever"
+        ],
+        "answer": 2,
+        "evidence": "tend to have oversized heads, huge eyes and stubby legs"
+      }
+    ],
+    "dictation_index": 11,
+    "vocabulary": [
+      {
+        "term": "infants",
+        "meaning": "婴儿",
+        "example": "Infants spend most of the day asleep."
+      },
+      {
+        "term": "menacing",
+        "meaning": "吓人的；带威胁的",
+        "example": "The dog gave a low, menacing growl."
+      },
+      {
+        "term": "cuddle",
+        "meaning": "搂抱；依偎",
+        "example": "My little brother likes to cuddle his toy rabbit at night."
+      },
+      {
+        "term": "evoked",
+        "meaning": "唤起；引起",
+        "example": "The smell of rain evoked memories of my childhood."
+      },
+      {
+        "term": "stubby",
+        "meaning": "短粗的",
+        "example": "The puppy ran towards us on its stubby legs."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "set off",
+        "meaning": "引发；触发",
+        "note": "set off 后接反应、警报等：Burnt toast can set off the smoke alarm."
+      },
+      {
+        "text": "spills over onto",
+        "meaning": "波及；蔓延到",
+        "note": "spill over 原指液体溢出，比喻影响扩散到别处：Stress at work often spills over onto family life."
+      },
+      {
+        "text": "play a part",
+        "meaning": "起作用；有一份影响",
+        "note": "play a part in something＝在……中起作用，比 have an effect 更口语。"
+      },
+      {
+        "text": "by contrast",
+        "meaning": "相比之下",
+        "note": "用于对比两件事，可放在句首或句中，书面语常用。"
+      },
+      {
+        "text": "go further",
+        "meaning": "更进一步",
+        "note": "go further 表示“做得更多、走得更远”，常用来递进。"
+      },
+      {
+        "text": "a sales pitch",
+        "meaning": "推销话术",
+        "note": "pitch 指推销或游说时的说辞：His speech sounded like a sales pitch."
+      }
+    ],
+    "grammar": [
+      "agreement-head",
+      "clause-relative",
+      "nonfinite-participle"
+    ],
+    "knowledge": [
+      {
+        "node": "agreement-head",
+        "quote": "The features that set off this response are remarkably consistent.",
+        "explanation": "主语的中心词是复数 features，中间的定语从句里虽然有单数 response，谓语仍要和中心词一致，用 are。长主语先找中心词，再定单复数。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "adults who found them appealing, and who therefore cared for them, were more likely to see their children survive",
+        "explanation": "两个 who 引导的定语从句并列修饰 adults，句子主干其实是 adults … were more likely to …。读长句时先抓主谓，再看修饰成分。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "it is simply being evoked by a design rather than by a creature that needs us",
+        "explanation": "is being evoked 是现在进行时的被动：be being + 过去分词，表示“此刻正被……唤起”。情感是被设计“唤起”的，所以用被动。"
+      }
+    ],
+    "speaking": "用 1 分钟说说你觉得最“萌”的一个卡通形象或动物，并解释它用了哪些“婴儿特征”。用上 set off 和 by contrast。",
+    "writing": "用 200–250 词分析一个你常见的广告或产品设计：它怎样利用了人的本能反应？至少用一个长主语（注意中心词的单复数）和一个被动进行时。",
+    "task": {
+      "prompt": "仿照这句，用 Nowhere is … clearer than in … 写一句倒装句，说明某个道理在哪里体现得最明显。",
+      "model": "Nowhere is the trick clearer than in the history of the dragon."
+    },
+    "tags": [
+      "心理学",
+      "演化",
+      "设计"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-science-c1-anchoring-lamp",
+    "title": "第一个报价悄悄定下了心理价位",
+    "title_en": "The Lamp, the Anchor and a Lesson Idea",
+    "summary_zh": "一位老师在集市上被一盏铜灯“套路”：卖家先报离谱的高价，她砍到一半还以为自己赚了。这就是“锚定效应”。她在给同事的邮件里反思这次经历，还设计了一节让学生亲身体验的课。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "science",
+    "genre": "email",
+    "body": "Hi Sam, I'm back from my solo week by the coast, and I have a confession I think you'll enjoy. On the last morning I wandered into a market and fell for a brass lamp whose warm glow evoked my grandmother's hallway so vividly that I could almost smell her cooking. Before I had even asked, the seller named a price that was frankly absurd. I laughed, offered a fraction of it, and watched him clutch his chest in theatrical rejection. Twenty minutes later I walked away with the lamp, convinced I had won, for roughly half his opening figure, which is still far more than I would have paid if I had seen it in a shop. You'll recognise this as anchoring, which makes it more embarrassing, since I've taught it. The first number we hear becomes a reference point, and although we adjust away from it, we rarely adjust far enough. An anchor works even when we suspect it is inflated, which is precisely why sellers like to name it first and why so many shops advertise a crossed-out 'original' price. Knowing about the effect, it turns out, offers little protection, especially once affection has entered the picture and the fear of looking mean starts to intervene. Anyway, I think it would make a worthy interactive lesson for my pupils. Imagine splitting a class in two, showing each half a different, obviously random number, and then asking everyone to estimate the price of something ordinary, such as a can of soda at the cinema. Comparing the variance within each group with the gap between the groups would let us sneak in some real statistics, too. Would you be up for teaching it with me? It feels like exactly the kind of practical literacy that teenagers need before real money is at stake. Best, Ruth",
+    "questions": [
+      {
+        "prompt": "Why does the writer find the lamp purchase embarrassing?",
+        "options": [
+          "She knows about anchoring and even teaches it, yet still fell for it",
+          "She ended up paying more than the seller's opening price",
+          "The lamp turned out to be broken when she got home",
+          "Her friend Sam had warned her not to buy anything"
+        ],
+        "answer": 0,
+        "evidence": "You'll recognise this as anchoring, which makes it more embarrassing, since I've taught it."
+      },
+      {
+        "prompt": "According to the email, why do many shops show a crossed-out 'original' price?",
+        "options": [
+          "To prove that the product is authentic",
+          "Because the law requires it during a sale",
+          "To show customers how much prices have risen",
+          "Because a high first number makes the real price seem smaller"
+        ],
+        "answer": 3,
+        "evidence": "which is precisely why sellers like to name it first and why so many shops advertise a crossed-out 'original' price"
+      }
+    ],
+    "dictation_index": 6,
+    "vocabulary": [
+      {
+        "term": "confession",
+        "meaning": "坦白；认错",
+        "example": "I have a confession: I ate the last piece of cake."
+      },
+      {
+        "term": "theatrical",
+        "meaning": "夸张做作的；像演戏一样的",
+        "example": "He gave a theatrical sigh when the teacher set more homework."
+      },
+      {
+        "term": "anchoring",
+        "meaning": "锚定（效应）",
+        "example": "Anchoring explains why the first offer in a negotiation matters so much."
+      },
+      {
+        "term": "inflated",
+        "meaning": "虚高的；夸大的",
+        "example": "Hotel prices are often inflated during the holidays."
+      },
+      {
+        "term": "estimate",
+        "meaning": "估计；估算",
+        "example": "Can you estimate how long the journey will take?"
+      }
+    ],
+    "expressions": [
+      {
+        "text": "fell for",
+        "meaning": "一下子迷上；上了当",
+        "note": "fall for 有两层意思：被……迷住（fall for a lamp），或上当受骗（fall for a trick）。这里两种意思都沾一点。"
+      },
+      {
+        "text": "walked away with",
+        "meaning": "带着……离开；最后拿下",
+        "note": "walk away with something 指最终得到某物，也常指赢得奖项。"
+      },
+      {
+        "text": "entered the picture",
+        "meaning": "介入；开始起作用",
+        "note": "enter the picture 指某人或某因素出现并产生影响：Things got complicated when money entered the picture."
+      },
+      {
+        "text": "be up for",
+        "meaning": "愿意；有兴致做",
+        "note": "Are you up for …? 是邀请别人一起做事的随意说法：Are you up for a walk?"
+      },
+      {
+        "text": "at stake",
+        "meaning": "利害攸关；面临风险",
+        "note": "be at stake 表示“关系重大、可能失去”：His job is at stake."
+      },
+      {
+        "text": "sneak in",
+        "meaning": "悄悄加进去",
+        "note": "sneak something in 指不动声色地塞进去，老师常说 sneak in some grammar。"
+      }
+    ],
+    "grammar": [
+      "subjunctive-past",
+      "clause-adverb",
+      "nonfinite-gerund"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-past",
+        "quote": "which is still far more than I would have paid if I had seen it in a shop",
+        "explanation": "与过去事实相反的虚拟：if 从句用 had seen，主句用 would have paid。她当时并没有在商店里看到这盏灯，所以说“假如当时……就会……”。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "although we adjust away from it, we rarely adjust far enough",
+        "explanation": "although 引导让步状语从句：虽然我们会往回调，但调得不够。注意中文说“虽然……但是……”，英语里 although 和 but 不能同时用。"
+      },
+      {
+        "node": "nonfinite-gerund",
+        "quote": "Imagine splitting a class in two, showing each half a different, obviously random number, and then asking everyone to estimate the price of something ordinary",
+        "explanation": "imagine 后面接动名词，不接不定式。splitting、showing、asking 三个动名词并列，按顺序描述一个设想中的课堂流程。"
+      }
+    ],
+    "speaking": "用 1 分钟讲一次你购物或砍价时被“第一个价格”影响的经历，用上 fell for 和 walked away with。",
+    "writing": "用 200–250 词给朋友写一封邮件，讲一次你“明明知道却还是中招”的经历，并说说你从中学到了什么。至少用一个 would have done … if I had done … 的句子。",
+    "task": {
+      "prompt": "仿照这句，用 … would have … if I had … 写一句你过去的一次决定，以及换个情况会怎样。",
+      "model": "which is still far more than I would have paid if I had seen it in a shop"
+    },
+    "tags": [
+      "心理学",
+      "行为经济学",
+      "邮件"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

@@ -32,6 +32,7 @@
 
   function bars(options, total, opts) {
     opts = opts || {};
+    if (total == null) total = options.reduce(function (a, o) { return a + o.count; }, 0);
     var max = Math.max.apply(null, options.map(function (o) { return o.count; }).concat([1]));
     var list = opts.sort ? options.slice().sort(function (a, b) { return b.count - a.count; }) : options;
     return '<div class="bars">' + list.map(function (o) {
@@ -163,15 +164,54 @@
     }).catch(fail);
   }
 
+  /* ---------- 学习数据 ---------- */
+  var BOOK = { core: '基础', mid: '进阶', high: '高阶', adv: '精通', ext: '拓展', cet4: '四级', cet6: '六级', ky: '考研', ielts: '雅思', toefl: '托福', gre: 'GRE' };
+  var STEP = { listen: '听', read: '读', check: '理解题', output: '用出来（AI 改写）' };
+  var AIK = { 'next-rewrite': '写作改写', 'next-explain': '句子讲解', 'next-variant': '难度改写', 'next-shadow': '跟读点评', 'next-examples': 'AI 例句' };
+  var RATE = { again: '忘了', hard: '模糊', good: '记得', easy: '很熟', known: '标为熟知', used: '写作用对', misused: '写作用错', lookup: '阅读时查词' };
+  function learningView() {
+    getJSON('/learning').then(function (d) {
+      var max = Math.max.apply(null, d.active_days.map(function (x) { return x.count; }).concat([1]));
+      var c = d.cohort, f = d.funnel_7d;
+      var list = function (obj, names) {
+        var keys = Object.keys(obj || {}); if (!keys.length) return '<p class="muted">暂无数据</p>';
+        return bars(keys.map(function (k) { return { label: names[k] || k, count: obj[k] }; }), null, { sort: true });
+      };
+      main.innerHTML =
+        '<div class="head-row"><div><h1>学习数据</h1><p class="muted">按北京时间统计 · 更新于 ' + new Date(d.generated_at * 1000).toLocaleString('zh-CN') + '</p></div>' +
+        '<div class="toolbar"><button class="btn" id="reload">刷新</button></div></div>' +
+        '<div class="kpi-grid">' +
+          kpi('今天在学', n(d.active_today), '近 7 天 ' + n(d.active_7d) + ' 人 · 近 30 天 ' + n(d.active_30d) + ' 人') +
+          kpi('次日回来', c.joined ? pct(c.d1, c.joined) + '%' : '—', '近 30 天开始学习的 ' + n(c.joined) + ' 人；一周内回来 ' + (c.joined ? pct(c.week, c.joined) + '%' : '—')) +
+          kpi('近 7 天复习', n(d.reviews_7d), d.true_retention == null ? '还没有隔天的复习' : '隔天复习记得的比例 ' + Math.round(d.true_retention * 100) + '%（目标约 90%）') +
+          kpi('开了背词计划', n(Object.keys(d.vocab_plans).reduce(function (a, k) { return a + d.vocab_plans[k]; }, 0)), '开启复习提醒 ' + n(d.reminders_on) + ' 人 · 全站单词卡 ' + n(d.cards_total)) +
+        '</div>' +
+        '<section class="card"><h2>近 14 天每天在学的人数</h2>' +
+          '<div class="spark">' + d.active_days.map(function (x) { return '<div title="' + esc(x.day + '：' + x.count + ' 人') + '" style="height:' + Math.max(3, pct(x.count, max)) + '%"></div>'; }).join('') + '</div>' +
+          '<div class="spark-days">' + d.active_days.map(function (x, i) { return '<span>' + (i % 2 ? '' : esc(x.day.slice(5))) + '</span>'; }).join('') + '</div></section>' +
+        '<div class="grid2">' +
+          '<section class="card"><h2>近 7 天学习步骤</h2><p class="muted">每篇材料完成到哪一步（次数）。从「读」到「用出来」掉得越多，越说明后面的步骤需要更好的引导。</p>' +
+            bars(['listen', 'read', 'check', 'output'].map(function (k) { return { label: STEP[k], count: f[k] || 0 }; }), null, {}) + '</section>' +
+          '<section class="card"><h2>近 7 天复习的选择</h2>' + list(d.ratings_7d, RATE) + '</section>' +
+          '<section class="card"><h2>词书选择</h2>' + list(d.vocab_plans, BOOK) + '</section>' +
+          '<section class="card"><h2>近 7 天新加的词</h2>' + list(d.words_added_7d, { book: '词书每日新词', saved: '读文章时收藏', import: '自己导入' }) + '</section>' +
+          '<section class="card"><h2>近 7 天 AI 功能使用</h2>' + list(d.ai_7d, AIK) + '</section>' +
+          '<section class="card"><h2>近 7 天最多人学的材料</h2>' + (d.top_materials_7d.length ? bars(d.top_materials_7d.map(function (m) { return { label: m.title, count: m.learners }; }), null, {}) : '<p class="muted">暂无数据</p>') +
+            '<p class="muted">共 ' + n(d.materials) + ' 篇精选材料</p></section>' +
+        '</div>';
+      document.getElementById('reload').onclick = learningView;
+    }).catch(fail);
+  }
+
   /* ---------- 路由 ---------- */
   function route() {
     ST.tab = (location.hash || '#overview').slice(1);
-    if (['overview', 'survey', 'responses'].indexOf(ST.tab) < 0) ST.tab = 'overview';
+    if (['overview', 'learning', 'survey', 'responses'].indexOf(ST.tab) < 0) ST.tab = 'overview';
     document.querySelectorAll('.adm-tabs a').forEach(function (a) {
       if (a.dataset.tab === ST.tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
     main.innerHTML = '<p class="muted">正在加载…</p>';
-    ({ overview: overview, survey: surveyStats, responses: responses })[ST.tab]();
+    ({ overview: overview, learning: learningView, survey: surveyStats, responses: responses })[ST.tab]();
   }
   document.getElementById('themeBtn').onclick = function () {
     var next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';

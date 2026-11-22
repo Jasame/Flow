@@ -1,0 +1,512 @@
+[
+ {
+  "id": "v5-life-b2-crabs-and-vinegar",
+  "title": "螃蟹、姜醋和一桌怀疑的朋友",
+  "title_en": "Crabs, Ginger and a Bowl of Vinegar",
+  "summary_zh": "刚搬到海边的“我”请新朋友吃妈妈做法的清蒸螃蟹，配上姜醋却遭到一桌人的怀疑。一个用家乡菜交朋友的小故事，读完你能学会描述口味、讲述转折的表达。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "life",
+  "genre": "story",
+  "body": "When I moved to the coast last spring, I promised myself I would stop eating dinner alone in front of my laptop. So when my new friends from the running club asked what people eat back home, I offered to entertain them on Saturday with a proper crab dinner, the way my mother used to make it. That morning we walked down to the small fishery at the end of the harbor, where an old fisherman named Walt was unloading his catch. He let us climb aboard his boat, and I inspected the crabs one by one, choosing the heavy ones that still kicked when I lifted them. My friends watched as if I were performing surgery. Back at my apartment, I steamed the crabs and set out little bowls of dark vinegar mixed with chopped ginger. That was when the trouble started. Marco, who puts ketchup on almost everything, announced that dipping seafood in vinegar was bizarre. Even Priya, who will usually try anything once, looked skeptical. I explained that the sharp vinegar cuts through the richness of the crab, while the ginger is supposed to warm you from the inside. Nobody moved. Finally Marco sighed, cracked open a claw and dipped it, clearly hoping to prove me wrong. He chewed slowly, then reached for a second piece without saying a word. Within an hour the table was buried under shells, and everyone agreed it was the most delicious meal they'd had in months. Later, as we sat on the balcony watching a stunning orange sunset over the water, Priya asked if I would teach her to cook crab herself. I said yes, and for the first time since I'd arrived, I felt genuinely hopeful about my new life.",
+  "questions": [
+   {
+    "prompt": "Why does Marco most likely reach for a second piece without saying a word?",
+    "options": [
+     "He is too polite to tell the narrator that he dislikes the taste",
+     "He enjoys the crab with vinegar but does not want to admit he was wrong",
+     "He wants to try the crab again without dipping it in vinegar",
+     "He is concentrating hard on cracking the shell properly"
+    ],
+    "answer": 1,
+    "evidence": "He chewed slowly, then reached for a second piece without saying a word."
+   },
+   {
+    "prompt": "According to the narrator, what is the vinegar supposed to do?",
+    "options": [
+     "Make the crab meat taste sweeter",
+     "Keep the crab fresh for longer",
+     "Balance the rich taste of the crab",
+     "Warm the body from the inside"
+    ],
+    "answer": 2,
+    "evidence": "the sharp vinegar cuts through the richness of the crab"
+   }
+  ],
+  "dictation_index": 3,
+  "vocabulary": [
+   {
+    "term": "fishery",
+    "meaning": "渔业点；渔场（这里指港口边卖渔获的地方）",
+    "example": "We bought fresh fish straight from the fishery by the pier."
+   },
+   {
+    "term": "inspected",
+    "meaning": "仔细检查；查看",
+    "example": "The mechanic inspected the brakes before our long drive."
+   },
+   {
+    "term": "bizarre",
+    "meaning": "古怪的；离奇的",
+    "example": "It's bizarre that the café closes right at lunchtime."
+   },
+   {
+    "term": "skeptical",
+    "meaning": "怀疑的；不太相信的",
+    "example": "My grandmother was skeptical about online shopping at first."
+   },
+   {
+    "term": "stunning",
+    "meaning": "极美的；令人惊艳的",
+    "example": "The view from the top of the hill was stunning."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "one by one",
+    "meaning": "一个一个地；逐个",
+    "note": "描述逐个处理或依次发生：The guests left one by one."
+   },
+   {
+    "text": "try anything once",
+    "meaning": "什么都愿意尝试一次",
+    "note": "形容人爱尝鲜、胆子大，也常用来自我介绍：I'll try anything once."
+   },
+   {
+    "text": "That was when the trouble started",
+    "meaning": "麻烦就是从那时开始的",
+    "note": "讲故事时的经典转折句，That was when ... 强调“正是在那个时刻”。"
+   },
+   {
+    "text": "cuts through the richness",
+    "meaning": "解腻；化解油腻感",
+    "note": "cut through 原意“切穿”，谈食物时指酸味、辣味压住油腻：Lemon cuts through the richness of fried fish."
+   },
+   {
+    "text": "prove me wrong",
+    "meaning": "证明我错了",
+    "note": "常见于 hoping to prove sb wrong，带一点较劲的语气；单独说 Prove me wrong! 是“不服你来试试”。"
+   },
+   {
+    "text": "without saying a word",
+    "meaning": "一句话也没说",
+    "note": "描写沉默中的动作，比 silently 更生动，常暗示态度已经变了。"
+   }
+  ],
+  "grammar": [
+   "clause-relative",
+   "nonfinite-participle",
+   "subjunctive-now"
+  ],
+  "knowledge": [
+   {
+    "node": "clause-relative",
+    "quote": "Marco, who puts ketchup on almost everything, announced that dipping seafood in vinegar was bizarre.",
+    "explanation": "who 引导非限制性定语从句，用逗号隔开，补充 Marco 的饮食习惯，暗含幽默：什么都蘸番茄酱的人，反倒嫌蘸醋奇怪。"
+   },
+   {
+    "node": "nonfinite-participle",
+    "quote": "set out little bowls of dark vinegar mixed with chopped ginger",
+    "explanation": "mixed 是过去分词作后置定语，表示被动“拌了姜末的醋”；chopped 也是过去分词，放在名词前表示“切碎的”。"
+   },
+   {
+    "node": "subjunctive-now",
+    "quote": "My friends watched as if I were performing surgery.",
+    "explanation": "as if 后用 were 表示与事实相反的比喻：我并不是在做手术，只是看起来很像。主语是 I 时，正式用法也常用 were。"
+   }
+  ],
+  "speaking": "用 1 分钟介绍一道你家乡的菜，假设外国朋友第一次吃、觉得很奇怪，你会怎么说服他们尝一口？用上 cuts through 和 prove me wrong。",
+  "writing": "用 150–180 词写一个小故事：你请朋友吃一样他们从没尝过的食物，写出他们从怀疑到接受的过程，至少用一个 as if 句和一个 who 引导的定语从句。",
+  "task": {
+   "prompt": "仿照这句，用 I offered to ... , the way my ... used to ... 写一句话，讲你按家里传下来的方式为别人做某件事。",
+   "model": "I offered to entertain them on Saturday with a proper crab dinner, the way my mother used to make it."
+  },
+  "tags": [
+   "家乡菜",
+   "跨文化",
+   "朋友聚会"
+  ],
+  "source": "Flow 编辑部原创"
+ },
+ {
+  "id": "v5-life-b2-flea-market-chest",
+  "title": "跳蚤市场淘来的旧木箱",
+  "title_en": "The Flea-Market Chest: A Restoration Project Nobody Asked For",
+  "summary_zh": "Omar 从跳蚤市场扛回一只缺了条腿的旧木箱，室友 Jess 很怀疑两人能不能把它修好。一段真实的室友对话，读完你能学会在争论中让步、讲条件的口语表达。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "life",
+  "genre": "dialogue",
+  "body": "Omar: Before you say anything, just look at it properly for a second. Jess: I'm looking, and what I see is a wooden box with one leg missing and a smell like an old basement. Omar: It's a chest, and the man at the flea market swore it was over a hundred years old and said the carving on the lid looked almost medieval. Jess: Everything looks medieval when it's covered in that much dust. Omar: Fine, I'm not claiming it belongs in a museum, but think of it as a restoration project: some sanding, a bit of oil, a new leg, and it'll look stunning in the hallway. Jess: You said the same thing about the bike, and that's been sitting on the balcony since March. Omar: The bike was different. Jess: Let me inspect it before I agree to anything. Okay, the wood is solid, I'll give you that, and most of the damage is just neglect, like someone left it in a damp garage for twenty years. Omar: See? Jess: Be honest, what's the probability that we actually finish this, instead of leaving it half-sanded until next summer? Omar: Higher than you think, because I watched a video last night. Jess: One video? Omar: Three, actually, and the woman who made them says the secret is consistency, twenty minutes every evening rather than one exhausting weekend. Jess: I'm still skeptical, but I have to admit I love the little painting inside the lid. Omar: It's like an illustration from an old storybook, isn't it, with the fox standing on the deck of that ship? Jess: All right, here's the deal. If you do the sanding, I'll find a leg that matches. Omar: Deal, and for the record, you sound almost hopeful. Jess: Don't push your luck.",
+  "questions": [
+   {
+    "prompt": "What is Jess's main worry about the chest?",
+    "options": [
+     "It is too old and valuable to repair at home",
+     "They will start the project but never finish it",
+     "The wood is too badly damaged to be saved",
+     "The man at the flea market charged too much for it"
+    ],
+    "answer": 1,
+    "evidence": "what's the probability that we actually finish this, instead of leaving it half-sanded until next summer?"
+   },
+   {
+    "prompt": "When Jess says most of the damage is \"just neglect\", what does she mean?",
+    "options": [
+     "Someone broke the chest on purpose",
+     "The chest was badly made in the first place",
+     "Nobody looked after the chest for a long time",
+     "The chest was damaged on the way to the flea market"
+    ],
+    "answer": 2,
+    "evidence": "most of the damage is just neglect, like someone left it in a damp garage for twenty years"
+   }
+  ],
+  "dictation_index": 17,
+  "vocabulary": [
+   {
+    "term": "medieval",
+    "meaning": "中世纪的；（口语）非常古老的",
+    "example": "The old town is still surrounded by a medieval wall."
+   },
+   {
+    "term": "restoration",
+    "meaning": "修复；翻新",
+    "example": "The restoration of the old cinema took almost two years."
+   },
+   {
+    "term": "neglect",
+    "meaning": "疏于照管；忽视",
+    "example": "The garden was full of weeds after years of neglect."
+   },
+   {
+    "term": "probability",
+    "meaning": "可能性；概率",
+    "example": "There's a high probability that it will rain this afternoon."
+   },
+   {
+    "term": "consistency",
+    "meaning": "持之以恒；稳定性",
+    "example": "When you learn a language, consistency matters more than talent."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "think of it as",
+    "meaning": "把它看作……",
+    "note": "think of A as B，换个角度看待某事，劝说别人时很好用：Think of it as practice."
+   },
+   {
+    "text": "I'll give you that",
+    "meaning": "这点我承认",
+    "note": "争论中让步，承认对方某一点说得对，后面常接 but 继续反驳。"
+   },
+   {
+    "text": "for the record",
+    "meaning": "郑重说明一下；我先说清楚",
+    "note": "半开玩笑地强调自己的立场或观察，口语里很常见。"
+   },
+   {
+    "text": "here's the deal",
+    "meaning": "这样吧；条件是这样的",
+    "note": "提出交换条件或方案前的开场白，语气随意直接。"
+   },
+   {
+    "text": "Don't push your luck",
+    "meaning": "别得寸进尺",
+    "note": "对方已经占了便宜还想要更多时说，语气轻松带调侃。"
+   }
+  ],
+  "grammar": [
+   "tense-perfect",
+   "conditional-real",
+   "clause-noun"
+  ],
+  "knowledge": [
+   {
+    "node": "tense-perfect",
+    "quote": "that's been sitting on the balcony since March",
+    "explanation": "that's = that has，现在完成进行时 has been sitting + since March，强调自行车从三月起一直搁在阳台上、至今没动，带抱怨语气。"
+   },
+   {
+    "node": "conditional-real",
+    "quote": "If you do the sanding, I'll find a leg that matches.",
+    "explanation": "真实条件句：if 从句用一般现在时，主句用 will。谈条件、做交换时最常用：If you cook, I'll wash up."
+   },
+   {
+    "node": "clause-noun",
+    "quote": "what I see is a wooden box with one leg missing",
+    "explanation": "what I see 是名词性从句作主语，相当于 the thing that I see；用它开头能把重点放到后面的“真相”上，形成反差。"
+   }
+  ],
+  "speaking": "和同伴演一段 1 分钟的对话：你想买一件旧家具或二手物品，对方很怀疑。用上 think of it as、I'll give you that 和一个 if 条件句。",
+  "writing": "用 150–180 词写一段话，讲一个你开始了却一直没完成的计划（手工、健身、学乐器等），说明原因和打算，并用上 has been ... since ...。",
+  "task": {
+   "prompt": "仿照这句，用 the secret is ..., ... rather than ... 说说你做好某件事的秘诀。",
+   "model": "the secret is consistency, twenty minutes every evening rather than one exhausting weekend"
+  },
+  "tags": [
+   "二手物品",
+   "室友生活"
+  ],
+  "source": "Flow 编辑部原创"
+ },
+ {
+  "id": "v5-life-b2-house-warming-host",
+  "title": "第一次办乔迁派对",
+  "title_en": "Your First House-Warming Party: A Calm Host's Guide",
+  "summary_zh": "第一次在新家请客，很容易手忙脚乱。这篇指南从准备食物、安排空间到应对小意外，教你轻松办好乔迁派对。读完你能学会用英语给出实用建议的句式。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "life",
+  "genre": "guide",
+  "body": "Throwing a house-warming party is a lovely way to meet the neighbours and show off your new home, but if you have never entertained more than two people at once, the idea can feel overwhelming. The good news is that a relaxed evening depends far more on planning than on talent. Start with the food, and resist the urge to attempt anything ambitious. One big pot of stew, a large salad dressed with olive oil and a splash of vinegar, and plenty of fresh bread will feel generous without trapping you in the kitchen all night. If the stew thickens while it waits, a little hot water will bring back the right consistency. Remember that food doesn't have to be fancy to be delicious; it just has to be ready when people arrive. Next, be honest about your space. Most new flats have inadequate seating, so borrow a few folding chairs or scatter cushions on the floor and call it cosy. Expect a sudden surge of guests at around eight, when everyone who promised to pop in early turns up at once, and keep the hallway clear for coats. It also helps to stick a short memo on the fridge, listing what goes in the oven and when, because you will forget everything the moment the doorbell starts ringing. Is anything mandatory? Only one thing: tell people where the bathroom is before they have to ask. Beyond that, the probability that something goes wrong is high, whether it's a spilt drink or a tray of burnt rolls, and nobody will mind unless you make a fuss about it. Your guests have come to see you, not to judge your cooking.",
+  "questions": [
+   {
+    "prompt": "What is the main message of the guide?",
+    "options": [
+     "A good party needs impressive food and a large flat",
+     "Careful planning matters more than cooking skills or perfection",
+     "New hosts should invite only a few close friends at first",
+     "Guests mainly judge a party by how much food there is"
+    ],
+    "answer": 1,
+    "evidence": "a relaxed evening depends far more on planning than on talent"
+   },
+   {
+    "prompt": "Why does the writer suggest sticking a memo on the fridge?",
+    "options": [
+     "So that guests know which dishes they can help themselves to",
+     "Because hosts tend to forget their cooking plan once guests arrive",
+     "So that neighbours know what time the party will finish",
+     "Because the oven may not be big enough for everything at once"
+    ],
+    "answer": 1,
+    "evidence": "because you will forget everything the moment the doorbell starts ringing"
+   }
+  ],
+  "dictation_index": 4,
+  "vocabulary": [
+   {
+    "term": "overwhelming",
+    "meaning": "让人不知所措的；压力很大的",
+    "example": "Moving to a new city alone can feel overwhelming."
+   },
+   {
+    "term": "inadequate",
+    "meaning": "不够的；不足的",
+    "example": "The lighting in the kitchen is inadequate for cooking at night."
+   },
+   {
+    "term": "surge",
+    "meaning": "激增；（人群）一下子涌来",
+    "example": "There was a surge of customers just before the shop closed."
+   },
+   {
+    "term": "memo",
+    "meaning": "便条；备忘录",
+    "example": "I left a memo on the door to remind myself to take the keys."
+   },
+   {
+    "term": "mandatory",
+    "meaning": "强制的；必须的",
+    "example": "Wearing a helmet is mandatory on the building site."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "show off your new home",
+    "meaning": "展示一下你的新家",
+    "note": "show off 有时带贬义“炫耀”，这里是轻松的“带人看看”：She couldn't wait to show off her new bike."
+   },
+   {
+    "text": "resist the urge to",
+    "meaning": "忍住……的冲动",
+    "note": "后接动词原形，给建议时常用：Resist the urge to check your phone every five minutes."
+   },
+   {
+    "text": "a splash of vinegar",
+    "meaning": "一点点醋",
+    "note": "a splash of 用于液体，指随手倒一点：a splash of milk / a splash of lemon juice."
+   },
+   {
+    "text": "pop in early",
+    "meaning": "早点过来坐坐",
+    "note": "pop in 是英式口语，“顺道过来一下”，暗示停留时间不长。"
+   },
+   {
+    "text": "turns up at once",
+    "meaning": "一下子全都到了",
+    "note": "turn up 意为“出现、露面”，at once 在这里是“同时”，不是“立刻”。"
+   },
+   {
+    "text": "make a fuss about it",
+    "meaning": "为这事大惊小怪",
+    "note": "make a fuss about sth 指小题大做；Don't make a fuss. 是常见的安慰或劝阻。"
+   }
+  ],
+  "grammar": [
+   "conditional-real",
+   "conditional-unless",
+   "nonfinite-participle"
+  ],
+  "knowledge": [
+   {
+    "node": "conditional-real",
+    "quote": "If the stew thickens while it waits, a little hot water will bring back the right consistency.",
+    "explanation": "if + 一般现在时，主句用 will，描述很可能出现的情况和对策；写指南、菜谱时非常常用。"
+   },
+   {
+    "node": "conditional-unless",
+    "quote": "nobody will mind unless you make a fuss about it",
+    "explanation": "unless = if not：“除非你自己大惊小怪，否则没人会在意”。unless 从句用一般现在时表示将来，不用 will。"
+   },
+   {
+    "node": "nonfinite-participle",
+    "quote": "a large salad dressed with olive oil and a splash of vinegar",
+    "explanation": "dressed 是过去分词作后置定语，表示被动“用油和醋拌过的沙拉”；dress 在烹饪里指给沙拉调味。"
+   }
+  ],
+  "speaking": "用 1 分钟给第一次在家请客的朋友提三条建议，用上 resist the urge to、unless 和一个 if 条件句。",
+  "writing": "用 150–180 词写一份“第一次在家请客”的小指南，分食物、空间和心态三部分，至少用上文中两个表达。",
+  "task": {
+   "prompt": "仿照这句，用 ... doesn't have to be ... to be ...; it just has to ... 说一个你认为被高估的“标准”。",
+   "model": "food doesn't have to be fancy to be delicious; it just has to be ready when people arrive"
+  },
+  "tags": [
+   "请客",
+   "乔迁",
+   "生活指南"
+  ],
+  "source": "Flow 编辑部原创"
+ },
+ {
+  "id": "v5-life-b2-fossil-picture-book",
+  "title": "一块化石变成一本绘本",
+  "title_en": "Drawing the Past: An Illustrator on Her Fossil Picture Book",
+  "summary_zh": "一位绘本画家讲她如何把侄子捡到的一块化石变成一本入围奖项的童书，以及为了画准而补的大量功课。读完你能学会谈论创作过程和意外好消息的表达。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "life",
+  "genre": "interview",
+  "body": "Q: Your new picture book is about a girl who finds a fossil on a beach. Where did the idea come from? Maya: From my nephew, actually. He came back from a seaside holiday with a grey stone that had a tiny shell pressed into it, and for a whole week he talked about nothing else. Q: The illustrations are incredibly detailed, so how much research did you do? Maya: Far more than I'd planned. I assumed I could draw a few ancient sea creatures from memory, but my first sketches turned out to be completely inadequate. A biologist friend gently pointed out that half the animals I'd drawn had never lived at the same time. That led to two months of intensive reading, and I ended up loving every minute. I even had to brush up on my geography, because the coastline in the book had to match the rocks where those fossils are found. Q: The book has been nominated for a children's book prize. How did you find out? Maya: My editor rang while I was in the supermarket, and I just stood there in the vegetable aisle holding a bag of carrots. The editorial team had been so patient with all my delays that I mostly felt relieved I hadn't let them down. Q: What do you hope readers take away from it? Maya: That the ground under their feet is full of stories. Children aren't always impressed by facts on their own, but one real detail, drawn carefully, can stun them into silence. Q: What's next? Maya: A book about a composer who writes music from the sounds of a city, like buses, rain and barking dogs. I have no idea how to draw sound yet, which is exactly why I want to try.",
+  "questions": [
+   {
+    "prompt": "Why did Maya mostly feel relieved when she heard about the nomination?",
+    "options": [
+     "She had been worried that the book would not sell",
+     "She felt she had repaid the patience of the people she worked with",
+     "She no longer had to rush her next book about the composer",
+     "Her biologist friend had finally approved her drawings"
+    ],
+    "answer": 1,
+    "evidence": "The editorial team had been so patient with all my delays that I mostly felt relieved I hadn't let them down."
+   },
+   {
+    "prompt": "What was wrong with Maya's first sketches?",
+    "options": [
+     "They showed animals from different periods living together",
+     "They were drawn too small for a picture book",
+     "The coastline did not match any real beach",
+     "The shells were drawn in the wrong colours"
+    ],
+    "answer": 0,
+    "evidence": "half the animals I'd drawn had never lived at the same time"
+   }
+  ],
+  "dictation_index": 3,
+  "vocabulary": [
+   {
+    "term": "fossil",
+    "meaning": "化石",
+    "example": "My little brother keeps a fossil from the beach on his desk."
+   },
+   {
+    "term": "illustrations",
+    "meaning": "插图；插画",
+    "example": "This cookbook is full of beautiful illustrations."
+   },
+   {
+    "term": "inadequate",
+    "meaning": "不够格的；不充分的",
+    "example": "My notes were inadequate, so I had to borrow a classmate's."
+   },
+   {
+    "term": "intensive",
+    "meaning": "密集的；高强度的",
+    "example": "She took an intensive Spanish course before moving abroad."
+   },
+   {
+    "term": "nominated",
+    "meaning": "被提名的；获提名",
+    "example": "Our neighbour's short film was nominated for a local award."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "talked about nothing else",
+    "meaning": "张口闭口全是这件事",
+    "note": "形容某人着迷，比 talked about it a lot 更生动。"
+   },
+   {
+    "text": "from memory",
+    "meaning": "凭记忆",
+    "note": "draw / play / recite sth from memory，指不看任何参考。"
+   },
+   {
+    "text": "pointed out that",
+    "meaning": "指出",
+    "note": "委婉地提醒别人注意某个问题或事实，后接 that 从句；前面常加 gently、kindly。"
+   },
+   {
+    "text": "brush up on",
+    "meaning": "温习；把生疏的东西重新捡起来",
+    "note": "后接知识或技能：I need to brush up on my French before the trip."
+   },
+   {
+    "text": "let them down",
+    "meaning": "让他们失望；辜负他们",
+    "note": "let sb down 是口语高频说法：I promised I'd help, and I don't want to let her down."
+   },
+   {
+    "text": "stun them into silence",
+    "meaning": "让他们惊得说不出话",
+    "note": "动词 + sb + into + 名词，表示“使某人进入某种状态”，类似 scare sb into silence。"
+   }
+  ],
+  "grammar": [
+   "tense-perfect",
+   "nonfinite-participle",
+   "clause-relative"
+  ],
+  "knowledge": [
+   {
+    "node": "tense-perfect",
+    "quote": "half the animals I'd drawn had never lived at the same time",
+    "explanation": "I'd drawn = I had drawn，过去完成时，说明“画画”发生在朋友看画之前；had never lived 则交代更早的远古事实。"
+   },
+   {
+    "node": "nonfinite-participle",
+    "quote": "I just stood there in the vegetable aisle holding a bag of carrots",
+    "explanation": "holding 现在分词作伴随状语，描写“站着的同时手里拎着胡萝卜”，画面感很强；主语 I 主动拿，所以用 -ing。"
+   },
+   {
+    "node": "clause-relative",
+    "quote": "A book about a composer who writes music from the sounds of a city",
+    "explanation": "who 引导限制性定语从句修饰 composer，说明是“什么样的作曲家”；不加逗号，因为去掉它意思就不完整。"
+   }
+  ],
+  "speaking": "用 1 分钟介绍一件你花了很多时间研究、结果越学越喜欢的事，用上 brush up on 和 ended up doing。",
+  "writing": "假设你采访一位创作者（画家、作家、厨师……），用 150–180 词写 3–4 组问答，至少用上 point out that 和一个过去完成时句子。",
+  "task": {
+   "prompt": "仿照这句，用 I have no idea how to ... yet, which is exactly why I want to ... 说一件你想挑战的新事情。",
+   "model": "I have no idea how to draw sound yet, which is exactly why I want to try."
+  },
+  "tags": [
+   "绘本",
+   "人物访谈",
+   "化石"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

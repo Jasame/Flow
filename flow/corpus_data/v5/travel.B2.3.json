@@ -1,0 +1,514 @@
+[
+ {
+  "id": "v5-travel-b2-fossil-beach",
+  "title": "海边捡化石入门",
+  "title_en": "A Beginner's Guide to Fossil Hunting on the Beach",
+  "summary_zh": "一份海边捡化石的入门指南：带什么、去哪儿找、怎么认、什么千万别做。读完你会明白为什么潮汐表比任何工具都重要，也能学到“指南类”文章的常用句式。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "travel",
+  "genre": "guide",
+  "body": "If you are spending a few days on a rocky coast, a morning of fossil hunting is one of the cheapest and most absorbing activities you can choose. You need very little equipment: sturdy shoes, a small bag, a magnifying glass and, above all, a tide table. The tide is the one thing beginners neglect, and it is also the most important, because a beach that looks wide at nine o'clock can disappear completely by noon. Plan to start walking as the water goes out, and turn back well before it returns. The best place to look is not the cliff itself but the line of pebbles and seaweed left behind by the last high tide. Storms break pieces off the cliffs and the sea does the sorting for you, so small fossils tend to accumulate in the same spots, often among darker stones. A marine biologist who leads walks on one such beach told me that most visitors search for something big and shiny, when the real treasures are usually dull and grey. Train your eye on shapes instead: a perfect spiral, a row of tiny ridges, a shell that has turned to stone. It also helps to carry a simple illustration of the common types, and many local visitor centres sell one printed on a card. Whatever you do, resist the urge to dig into the cliff to extract something you have spotted. In many places it is not allowed, and loose rock can fall without warning. The probability of finding something, the biologist said, depends far less on luck than on patience. Walk slowly, keep your head down and stay hopeful: even an empty-handed morning by the sea is rarely a wasted one.",
+  "questions": [
+   {
+    "prompt": "According to the guide, what matters most for finding fossils?",
+    "options": [
+     "Bringing proper tools to break open rocks",
+     "Patience and knowing where and how to look",
+     "Going out straight after a big storm",
+     "Looking for the brightest stones on the beach"
+    ],
+    "answer": 1,
+    "evidence": "depends far less on luck than on patience"
+   },
+   {
+    "prompt": "Why does the writer tell readers not to dig into the cliff?",
+    "options": [
+     "Because the fossils inside are usually broken",
+     "Because it is often not allowed and loose rock can fall",
+     "Because the tide reaches the cliff first",
+     "Because cliff fossils are too large to carry home"
+    ],
+    "answer": 1,
+    "evidence": "In many places it is not allowed, and loose rock can fall without warning."
+   }
+  ],
+  "dictation_index": 3,
+  "vocabulary": [
+   {
+    "term": "sturdy",
+    "meaning": "结实的；耐穿的",
+    "example": "Wear sturdy shoes if you plan to walk over the rocks."
+   },
+   {
+    "term": "accumulate",
+    "meaning": "堆积；积累",
+    "example": "Dust tends to accumulate under the bed if you never clean there."
+   },
+   {
+    "term": "extract",
+    "meaning": "取出；提取",
+    "example": "It took the dentist ten minutes to extract the broken tooth."
+   },
+   {
+    "term": "probability",
+    "meaning": "可能性；概率",
+    "example": "The probability of rain this afternoon is quite high."
+   },
+   {
+    "term": "hopeful",
+    "meaning": "抱有希望的",
+    "example": "We are still hopeful that the ferry will run tomorrow."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "above all",
+    "meaning": "最重要的是",
+    "note": "列举时放在最后，强调最关键的一项：Above all, stay calm."
+   },
+   {
+    "text": "turn back",
+    "meaning": "掉头；往回走",
+    "note": "徒步、旅行常用，指半路折返，强调“不再往前走”。"
+   },
+   {
+    "text": "tend to",
+    "meaning": "往往；容易",
+    "note": "描述规律或倾向，语气比 always 缓和：Prices tend to rise in summer."
+   },
+   {
+    "text": "resist the urge to",
+    "meaning": "忍住……的冲动",
+    "note": "劝别人别做一件很想做的事，比直接说 don’t 更委婉。"
+   },
+   {
+    "text": "without warning",
+    "meaning": "毫无预兆地",
+    "note": "常和 fall、change、close 等动词连用，强调突然、来不及反应。"
+   },
+   {
+    "text": "empty-handed",
+    "meaning": "空手（而归）的",
+    "note": "常见搭配 come back / leave empty-handed，带一点自嘲。"
+   }
+  ],
+  "grammar": [
+   "nonfinite-participle",
+   "clause-relative",
+   "clause-adverb"
+  ],
+  "knowledge": [
+   {
+    "node": "nonfinite-participle",
+    "quote": "the line of pebbles and seaweed left behind by the last high tide",
+    "explanation": "过去分词短语 left behind by ... 作后置定语，修饰 the line of pebbles and seaweed，表示“被潮水留下的”。比 that was left behind 更简洁，说明文里很常用。"
+   },
+   {
+    "node": "clause-relative",
+    "quote": "A marine biologist who leads walks on one such beach told me",
+    "explanation": "who 引导定语从句修饰 A marine biologist，交代消息来源的身份。从句结束后才是谓语 told，读的时候要找准主语和谓语。"
+   },
+   {
+    "node": "clause-adverb",
+    "quote": "Plan to start walking as the water goes out, and turn back well before it returns.",
+    "explanation": "as 引导时间状语从句，意思是“在……的时候；随着……”；before it returns 也是时间状语。两个时间从句把行动安排说得清清楚楚，是指南里的常见写法。"
+   }
+  ],
+  "speaking": "用 1 分钟给第一次去海边捡化石（或赶海）的朋友提三条建议，用上 above all 和 resist the urge to。",
+  "writing": "用 150–200 词写一份户外活动小指南（如观鸟、赶海、爬山），包括装备、去哪儿找和一条安全提醒，至少用一个过去分词作后置定语。",
+  "task": {
+   "prompt": "仿照这句，用 Whatever you do, resist the urge to ... 给第一次做某件事的人提一个忠告。",
+   "model": "Whatever you do, resist the urge to dig into the cliff to extract something you have spotted."
+  },
+  "tags": [
+   "户外活动",
+   "旅行指南"
+  ],
+  "source": "Flow 编辑部原创"
+ },
+ {
+  "id": "v5-travel-b2-suspended-train",
+  "title": "火车突然停运了",
+  "title_en": "When the Trains Stop: A Late-Night Change of Plan",
+  "summary_zh": "车站里的一段对话：火车临时停运，一家人第二天一早还要赶渡轮，得在出租车排起长队之前想出办法。读完你能学到遇到交通突发状况时商量、抱怨和拍板的地道说法。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "travel",
+  "genre": "dialogue",
+  "body": "Nadia: Ben, look at the board — every train to the coast says cancelled, and there's a notice about a suspension of services until further notice. Ben: Oh my goodness, you're joking. Our ferry leaves at seven tomorrow morning, and the hotel by the port is already paid for. Nadia: I know, but staring at the board won't make a train appear. Apparently a tree came down on the line, and they won't know how long the repairs will take until it gets light. Ben: Then why is nobody telling us anything? That announcement just now was completely inadequate, because all it said was that they apologised for the inconvenience. Nadia: The man at the information desk showed me a memo from head office, and he doesn't know much more than we do. Ben: Great, so what are we supposed to do, sleep on the platform with two tired kids? Nadia: Not if I can help it. There'll be a surge of people at the taxi rank any minute, so we need to devise a plan quickly. Option one is the replacement bus, but the queue is already round the corner. Option two is to share a taxi with that couple over there, who are heading to the same port. Ben: To be honest, that's a complication I'd rather avoid, because we don't know them at all. Nadia: Fair enough, but I'd rather share a car with strangers than miss the ferry and lose the hotel. Ben: All right, you win. I'll go and talk to them while you entertain the kids. Nadia: Deal, and keep your phone in your pocket this time, because if you drop it and smash the screen again, we'll have no map at all. Ben: Very funny. Wish me luck, and try to look hopeful.",
+  "questions": [
+   {
+    "prompt": "Why does Nadia want to share a taxi with the other couple?",
+    "options": [
+     "It is cheaper than taking the replacement bus",
+     "It gives them the best chance of catching the ferry",
+     "Ben already knows the couple from the hotel",
+     "The children don't like travelling by bus"
+    ],
+    "answer": 1,
+    "evidence": "I'd rather share a car with strangers than miss the ferry and lose the hotel"
+   },
+   {
+    "prompt": "What is Ben's complaint about the announcement?",
+    "options": [
+     "It was too quiet to hear clearly",
+     "It gave almost no useful information",
+     "It blamed the passengers for the delay",
+     "It was made far too late in the evening"
+    ],
+    "answer": 1,
+    "evidence": "all it said was that they apologised for the inconvenience"
+   }
+  ],
+  "dictation_index": 10,
+  "vocabulary": [
+   {
+    "term": "suspension",
+    "meaning": "暂停；停运",
+    "example": "The storm led to a suspension of all ferry services."
+   },
+   {
+    "term": "inadequate",
+    "meaning": "不充分的；不够的",
+    "example": "The signs at the station were inadequate, so we got lost."
+   },
+   {
+    "term": "devise",
+    "meaning": "想出；设计（办法）",
+    "example": "We need to devise a better way to share the housework."
+   },
+   {
+    "term": "complication",
+    "meaning": "麻烦；复杂情况",
+    "example": "Losing my passport added another complication to the trip."
+   },
+   {
+    "term": "memo",
+    "meaning": "备忘录；内部通知",
+    "example": "The manager sent a memo about the new holiday rules."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "until further notice",
+    "meaning": "在另行通知之前",
+    "note": "公告、通知里的固定说法，意思是“暂时如此，什么时候恢复还不知道”。"
+   },
+   {
+    "text": "Not if I can help it",
+    "meaning": "只要我拦得住，就不会那样",
+    "note": "口语，坚决否定对方担心的情况，带一点决心和幽默。"
+   },
+   {
+    "text": "any minute",
+    "meaning": "随时；马上就要",
+    "note": "表示某事很快就会发生：The bus will be here any minute."
+   },
+   {
+    "text": "I'd rather",
+    "meaning": "我宁愿",
+    "note": "I'd rather A than B 表示两害相权取其轻，后面接动词原形。"
+   },
+   {
+    "text": "you win",
+    "meaning": "好吧，听你的",
+    "note": "争论中让步时的口语，语气轻松，不带火药味。"
+   },
+   {
+    "text": "Wish me luck",
+    "meaning": "祝我好运吧",
+    "note": "去做一件没把握的事之前常说，轻松随意。"
+   }
+  ],
+  "grammar": [
+   "conditional-real",
+   "clause-noun",
+   "clause-relative"
+  ],
+  "knowledge": [
+   {
+    "node": "conditional-real",
+    "quote": "if you drop it and smash the screen again, we'll have no map at all",
+    "explanation": "真实条件句：if 从句用一般现在时（drop、smash），主句用 will 表示很可能出现的后果。日常提醒别人“小心……不然……”时最常用。"
+   },
+   {
+    "node": "clause-noun",
+    "quote": "they won't know how long the repairs will take until it gets light",
+    "explanation": "how long the repairs will take 是名词性从句，作 know 的宾语，要用陈述语序（不是 how long will the repairs take）。until it gets light 用一般现在时表示将来。"
+   },
+   {
+    "node": "clause-relative",
+    "quote": "share a taxi with that couple over there, who are heading to the same port",
+    "explanation": "逗号后的 who 引导非限制性定语从句，补充说明那对夫妇的情况——正好去同一个港口，这正是 Nadia 提议拼车的理由。"
+   }
+  ],
+  "speaking": "和同伴模拟一段对话：航班被取消，你们要在 1 分钟内商量出两个方案并做决定，用上 I'd rather ... than ... 和 any minute。",
+  "writing": "用 150–200 词给朋友写一条消息，讲你旅途中遇到的一次交通突发状况（停运、延误、错过班次）以及你们想出的办法，用上 until further notice。",
+  "task": {
+   "prompt": "仿照这句，用 There'll be ... any minute, so we need to ... 描述一个需要马上行动的场景。",
+   "model": "There'll be a surge of people at the taxi rank any minute, so we need to devise a plan quickly."
+  },
+  "tags": [
+   "交通突发",
+   "旅行对话"
+  ],
+  "source": "Flow 编辑部原创"
+ },
+ {
+  "id": "v5-travel-b2-farm-stay-email",
+  "title": "山间农场来信",
+  "title_en": "Letter from a Hill Farm: Mud, Honey and Quiet",
+  "summary_zh": "Mei 在山间小农场住了一周，给朋友写邮件讲那里的日常：当过生物学家的农场主、取蜂蜜、乡间午饭和一条爱跟人的老狗。读完你能学会用邮件生动地分享一段旅行生活。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "travel",
+  "genre": "email",
+  "body": "Hi Grace, I've been on the farm for five days now, and I can finally reply properly, because the only reliable signal is on the bench by the gate. You asked what it's like, so here goes. Ruth, who owns the place with her husband Alan, used to be a biologist before she swapped the laboratory for a muddy hillside, and she talks about soil the way other people talk about their children. Their kind of farming is the opposite of the intensive kind: the sheep wander where they like, the hedges are left wild and nothing is ever rushed. Every morning I help collect the eggs, and yesterday Alan showed me how to extract honey from the hives, which was sticky, slow and completely absorbing. Lunch is usually fresh bread, a mature cheese from the next valley and a warming bowl of whatever soup Ruth has invented that day, and I promise you it is all delicious. Their beloved old dog, Pip, follows me everywhere, mostly in the hope that I'll drop something. I know I sound like an advert, but there is something genuinely healing about doing physical work all day and being too tired to scroll through my phone at night. All the stress I seem to accumulate at the office is slowly draining away. What has surprised me most, though, is the simple goodness of the people here: neighbours drop by with vegetables or a jar of jam, and nobody expects anything back. If you ever get the chance to do something like this, take it. I'll tell you everything when I'm home, assuming I come home at all! Love, Mei",
+  "questions": [
+   {
+    "prompt": "What is the main impression Mei gives of her stay?",
+    "options": [
+     "It is harder work than she expected, and she regrets going",
+     "It is tiring but calm, and it is doing her a lot of good",
+     "It is mainly a chance to learn how to make cheese",
+     "It is pleasant, but the owners are rather strict"
+    ],
+    "answer": 1,
+    "evidence": "there is something genuinely healing about doing physical work all day"
+   },
+   {
+    "prompt": "What does Mei mean when she calls the farm 'the opposite of the intensive kind'?",
+    "options": [
+     "It produces as much food as possible from a small area",
+     "It is run in a slow, natural way without pushing for more",
+     "It uses modern machines instead of human workers",
+     "It grows only vegetables and keeps no animals"
+    ],
+    "answer": 1,
+    "evidence": "the sheep wander where they like, the hedges are left wild and nothing is ever rushed"
+   }
+  ],
+  "dictation_index": 6,
+  "vocabulary": [
+   {
+    "term": "intensive",
+    "meaning": "集约的；密集的",
+    "example": "Intensive farming can produce a lot of food, but it is hard on the land."
+   },
+   {
+    "term": "extract",
+    "meaning": "取出；提取",
+    "example": "We spent the afternoon helping to extract honey from the frames."
+   },
+   {
+    "term": "mature",
+    "meaning": "（奶酪等）熟成的；陈年的",
+    "example": "This mature cheese has a strong, rich taste."
+   },
+   {
+    "term": "warming",
+    "meaning": "让人暖和的；暖身的",
+    "example": "After the long walk, we had a warming cup of ginger tea."
+   },
+   {
+    "term": "healing",
+    "meaning": "有疗愈作用的",
+    "example": "For me, a long walk by the sea is always healing."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "so here goes",
+    "meaning": "那我就开讲啦",
+    "note": "准备开始讲一件事时的口语开场，带点“好吧，说就说”的轻松感。"
+   },
+   {
+    "text": "used to be",
+    "meaning": "以前是",
+    "note": "说过去的身份或状态，暗示现在已经不是了：She used to be a teacher."
+   },
+   {
+    "text": "in the hope that",
+    "meaning": "抱着……的希望",
+    "note": "后接完整句子，说明做某事的动机；这里拿狗狗的小心思开玩笑。"
+   },
+   {
+    "text": "draining away",
+    "meaning": "（压力、精力）慢慢消失",
+    "note": "drain away 原指水慢慢流走，常比喻压力、疲惫或信心一点点消退。"
+   },
+   {
+    "text": "drop by",
+    "meaning": "顺路来看看",
+    "note": "非正式的“串门”，不用提前约：Drop by whenever you’re free."
+   },
+   {
+    "text": "If you ever get the chance",
+    "meaning": "如果你有机会的话",
+    "note": "推荐别人做某事的常用开头，ever 让语气更随意、更真诚。"
+   }
+  ],
+  "grammar": [
+   "tense-perfect",
+   "nonfinite-gerund",
+   "conditional-real"
+  ],
+  "knowledge": [
+   {
+    "node": "tense-perfect",
+    "quote": "I've been on the farm for five days now",
+    "explanation": "现在完成时 have been + for 一段时间，表示从过去持续到现在的状态；now 强调“到此刻为止”。写信报近况时非常常用。"
+   },
+   {
+    "node": "nonfinite-gerund",
+    "quote": "there is something genuinely healing about doing physical work all day and being too tired to scroll through my phone at night",
+    "explanation": "介词 about 后接动名词 doing 和 being，两个动名词短语并列。there is something + 形容词 + about doing 是描述某种体验带来特别感受的地道句型。"
+   },
+   {
+    "node": "conditional-real",
+    "quote": "If you ever get the chance to do something like this, take it.",
+    "explanation": "真实条件句：if 从句用一般现在时，主句直接用祈使句 take it，给朋友提建议时自然又有力。"
+   }
+  ],
+  "speaking": "用 1 分钟向朋友介绍一次让你放松下来的旅行：住在哪儿、每天做什么、最大的收获是什么，用上 If you ever get the chance ... 和 drop by。",
+  "writing": "以旅行者身份给朋友写一封 150–200 词的邮件，介绍你在乡村或小镇住几天的生活，至少用一个现在完成时和一个 if 条件句。",
+  "task": {
+   "prompt": "仿照这句，用 there is something ... about doing ... 写一种让你感觉特别好的经历。",
+   "model": "there is something genuinely healing about doing physical work all day"
+  },
+  "tags": [
+   "乡村旅行",
+   "旅行邮件"
+  ],
+  "source": "Flow 编辑部原创"
+ },
+ {
+  "id": "v5-travel-b2-dome-restoration",
+  "title": "脚手架后面的圆顶",
+  "title_en": "The Dome Behind the Scaffolding",
+  "summary_zh": "作者带着祖父旧书里的一幅插图，去看老市场的石头圆顶，却发现它正在修复、被脚手架包得严严实实。一位石匠带她爬到顶上，让她看到了站在广场上永远看不到的东西。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "travel",
+  "genre": "story",
+  "body": "The only picture I had of my grandfather's home town came from one of his old books. It was an illustration of a market hall with a pale stone dome, surrounded by stalls and tiny ink figures carrying baskets. He described it so often that by the time I booked a trip, I felt I was visiting an old friend. When I turned the corner into the square, however, the dome had vanished behind scaffolding and plastic sheeting. A faded sign announced that the building was closed for restoration, with completion expected the following spring. I must have looked crushed, because a man in a dusty helmet asked whether I was all right. He turned out to be one of the stonemasons, and when I explained about my grandfather, he offered to take me up to the platform they used for inspections. We climbed ladder after ladder until we were standing almost at the crown of the dome, close enough to touch it. Up close, the stone was not pale at all but patched with green and black, the result of decades of neglect. He pointed to the small windows at the top, where a storm had managed to smash several panes, letting rain soak into the walls for years before anyone acted. Then he showed me something I could never have seen from the square: the stone was full of tiny fossil shells, each one smaller than a fingernail. \"People think we're making it new,\" he said, brushing dust off his sleeve, \"but we're just helping it last.\" I spent the rest of the afternoon in a café across the square, writing a message to my mother about her father's beloved hall. I am hopeful that next year I will see it the way he did, without the scaffolding.",
+  "questions": [
+   {
+    "prompt": "What does the stonemason mean when he says 'we're just helping it last'?",
+    "options": [
+     "Restoration is about protecting the old building, not replacing it with something new",
+     "The work is going too slowly and will not be finished on time",
+     "The narrator should come back when the scaffolding has gone",
+     "The dome is too badly damaged to be saved"
+    ],
+    "answer": 0,
+    "evidence": "but we're just helping it last"
+   },
+   {
+    "prompt": "What did the narrator discover when she saw the stone up close?",
+    "options": [
+     "It was even paler than in the illustration",
+     "It was full of tiny fossil shells",
+     "It had recently been replaced with new stone",
+     "It had been painted green and black"
+    ],
+    "answer": 1,
+    "evidence": "the stone was full of tiny fossil shells, each one smaller than a fingernail"
+   }
+  ],
+  "dictation_index": 4,
+  "vocabulary": [
+   {
+    "term": "scaffolding",
+    "meaning": "脚手架",
+    "example": "The whole bridge was covered in scaffolding during the repairs."
+   },
+   {
+    "term": "restoration",
+    "meaning": "修复；整修",
+    "example": "The restoration of the old theatre took several years."
+   },
+   {
+    "term": "crown",
+    "meaning": "（圆顶、山丘等的）顶部",
+    "example": "We sat on the crown of the hill and watched the sunset."
+   },
+   {
+    "term": "neglect",
+    "meaning": "疏于照管；忽视",
+    "example": "The garden fell into neglect after the owners moved away."
+   },
+   {
+    "term": "panes",
+    "meaning": "（一块块）窗玻璃",
+    "example": "Two panes in the kitchen window were cracked."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "turned out to be",
+    "meaning": "原来是；结果是",
+    "note": "讲故事时揭示人物真实身份或事情真相的常用说法。"
+   },
+   {
+    "text": "must have looked crushed",
+    "meaning": "（我当时）一定显得很失落",
+    "note": "must have done 表示对过去有把握的推测；crushed 口语里指“深受打击、非常失望”。"
+   },
+   {
+    "text": "ladder after ladder",
+    "meaning": "一架又一架梯子",
+    "note": "名词 + after + 名词表示“一个接一个”，强调过程长、数量多：day after day。"
+   },
+   {
+    "text": "close enough to touch",
+    "meaning": "近得伸手就能摸到",
+    "note": "形容词/副词 + enough to do 表示“足以……”，描写距离近非常生动。"
+   },
+   {
+    "text": "the result of",
+    "meaning": "……造成的结果",
+    "note": "补充说明原因，常放在逗号后：the result of years of hard work。"
+   },
+   {
+    "text": "the way he did",
+    "meaning": "像他当年那样",
+    "note": "the way + 从句表示“以……的方式”，口语中常代替 how。"
+   }
+  ],
+  "grammar": [
+   "tense-perfect",
+   "clause-relative",
+   "nonfinite-participle"
+  ],
+  "knowledge": [
+   {
+    "node": "tense-perfect",
+    "quote": "When I turned the corner into the square, however, the dome had vanished behind scaffolding and plastic sheeting.",
+    "explanation": "过去完成时 had vanished 表示在“我转过街角”这个过去时间点之前就已经发生的事。讲故事时用它交代“等我看到时，已经……”。"
+   },
+   {
+    "node": "clause-relative",
+    "quote": "He pointed to the small windows at the top, where a storm had managed to smash several panes",
+    "explanation": "where 引导非限制性定语从句，修饰表示地点的 the small windows，相当于 at which。从句里用过去完成时，交代更早发生的破坏。"
+   },
+   {
+    "node": "nonfinite-participle",
+    "quote": "a market hall with a pale stone dome, surrounded by stalls and tiny ink figures carrying baskets",
+    "explanation": "过去分词 surrounded by 表示被动（被摊位包围），现在分词 carrying 表示主动（小人提着篮子），一被动一主动，把画面写得很具体。"
+   }
+  ],
+  "speaking": "用 1 分钟讲一次你满怀期待去某地却遇到意外（关门、维修、下雨）的经历，以及你最后怎么度过的，用上 turned out to be。",
+  "writing": "用 150–200 词写一个小故事：你去看一处家人常提起的地方，结果和想象中不一样。至少用一个过去完成时和一个 where 引导的定语从句。",
+  "task": {
+   "prompt": "仿照这句，用 ... after ... until ... 描述一次你坚持了很久才到达目的地的经历。",
+   "model": "We climbed ladder after ladder until we were standing almost at the crown of the dome, close enough to touch it."
+  },
+  "tags": [
+   "古迹修复",
+   "旅行故事"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]
