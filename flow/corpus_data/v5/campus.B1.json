@@ -1,0 +1,504 @@
+[
+  {
+    "id": "v5-campus-b1-office-hours-nerves",
+    "title": "鼓起勇气去敲教授的门",
+    "title_en": "Three Walks to the Professor's Door",
+    "summary_zh": "Ines 有个关于论文的小问题，却在教授办公室门口来回走了三趟。真正敲门之后，她才发现最难的部分其实是自己的紧张。适合学习描述犹豫和担心的说法。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "campus",
+    "genre": "story",
+    "body": "Ines had a question about her history essay, and she had a whole week to ask it. Every Tuesday from two to four, Professor Adeyemi kept her office door open for students. On Monday, Ines wrote the question in her notebook. On Tuesday, she walked to the third floor, saw the open door and kept walking. She was worried that the question was too simple. What if the professor thought she hadn't done the reading? She went back to the library and practised the question again in her head. At half past three, she tried a second time. This time she stopped outside the door, but she could hear someone laughing inside, so she left. At five to four, she finally knocked. Professor Adeyemi was alone, eating a sandwich over a pile of papers. She looked genuinely pleased and told Ines she was her first visitor all month. The conversation took ten minutes, and the answer turned out to be easy. Walking home, Ines couldn't stop smiling. All that worrying had taken far longer than the question itself.",
+    "questions": [
+      {
+        "prompt": "What is the main point of the story?",
+        "options": [
+          "Professor Adeyemi was too busy to help students",
+          "Ines's question about the essay was very difficult",
+          "Students should visit teachers in groups, not alone",
+          "Ines's fear was much bigger than the real problem"
+        ],
+        "answer": 3,
+        "evidence": "All that worrying had taken far longer than the question itself."
+      },
+      {
+        "prompt": "Why did Ines leave the second time?",
+        "options": [
+          "The office door was closed",
+          "Professor Adeyemi was eating lunch",
+          "She could hear someone laughing inside",
+          "She had left her notebook in the library"
+        ],
+        "answer": 2,
+        "evidence": "she could hear someone laughing inside, so she left"
+      }
+    ],
+    "dictation_index": 6,
+    "vocabulary": [
+      {
+        "term": "practised",
+        "meaning": "练习（英式拼写）",
+        "example": "He practised his speech in front of the mirror."
+      },
+      {
+        "term": "knocked",
+        "meaning": "敲（门）",
+        "example": "Someone knocked on the door during dinner."
+      },
+      {
+        "term": "pile",
+        "meaning": "一堆；一摞",
+        "example": "There is a pile of dirty clothes on the chair."
+      },
+      {
+        "term": "genuinely",
+        "meaning": "真心地；确实",
+        "example": "She was genuinely surprised by the party."
+      },
+      {
+        "term": "visitor",
+        "meaning": "来访者；访客",
+        "example": "The museum had only one visitor on that rainy morning."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "kept walking",
+        "meaning": "没停下，继续往前走",
+        "note": "keep doing 表示继续做；kept walking 常用来写“假装没看见、直接走过去”。"
+      },
+      {
+        "text": "What if",
+        "meaning": "万一……怎么办",
+        "note": "What if + 句子，表达担心的假设，口语里极常用：What if nobody comes?"
+      },
+      {
+        "text": "done the reading",
+        "meaning": "完成了指定阅读",
+        "note": "大学里 the reading 指课前要读的材料，do the reading 就是“做完阅读任务”。"
+      },
+      {
+        "text": "in her head",
+        "meaning": "在心里默默地",
+        "note": "practise / count / go over sth in your head 表示不出声地在脑子里做。"
+      },
+      {
+        "text": "turned out to be easy",
+        "meaning": "结果发现很简单",
+        "note": "turn out to be 表示事情的真实情况和预想不同，常用来写“原来……”。"
+      },
+      {
+        "text": "couldn't stop smiling",
+        "meaning": "忍不住一直笑",
+        "note": "can't stop doing 表示控制不住地做某事，常用来形容开心或紧张。"
+      }
+    ],
+    "grammar": [
+      "tense-past",
+      "clause-noun",
+      "nonfinite-gerund"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-past",
+        "quote": "On Tuesday, she walked to the third floor, saw the open door and kept walking.",
+        "explanation": "一般过去时把一连串动作按顺序排开：walked, saw, kept。讲故事时，用 and 连接几个过去式动词，节奏紧凑。"
+      },
+      {
+        "node": "clause-noun",
+        "quote": "She was worried that the question was too simple.",
+        "explanation": "be worried that + 完整句子，that 从句说明“担心的内容”。be afraid / sure / surprised that… 都是同样结构。"
+      },
+      {
+        "node": "nonfinite-gerund",
+        "quote": "All that worrying had taken far longer than the question itself.",
+        "explanation": "worrying 是动名词，当名词用作主语，前面还能加 all that 表示“那么多的担心”。动名词作主语时谓语看作单数。"
+      }
+    ],
+    "speaking": "用 1 分钟讲一次你因为紧张而迟迟不敢做某件事的经历，用上 What if…? 和 kept + doing。",
+    "writing": "用 100–130 词写一段经历：你曾经很担心一件事，结果它比想象中简单。用上 be worried that… 和 turned out to be。",
+    "task": {
+      "prompt": "仿照这句，用 be worried that… 写一件你曾经担心、后来发现没必要担心的事。",
+      "model": "She was worried that the question was too simple."
+    },
+    "tags": [
+      "办公时间",
+      "师生沟通"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-campus-b1-extension-email",
+    "title": "给教授写信申请延期",
+    "title_en": "Asking for a Few More Days",
+    "summary_zh": "电脑坏了、草稿丢了，Arjun 给教授写了一封申请论文延期的邮件。这封信礼貌、具体、留有余地，是学习英文邮件请求句式的好范本。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "campus",
+    "genre": "email",
+    "body": "Dear Professor Lindqvist, I am writing to ask whether I could have a short extension on my Urban Planning essay, which is due this Friday. On Tuesday evening, my laptop stopped working, and I lost most of the draft I had saved on it. I know I should have kept a backup, and I've learned that lesson the hard way. Since then, I have rewritten the introduction and the first section from my notes. However, I still need time to finish the rest properly. I would be very grateful if I could submit it on Monday instead. I've attached what I have so far, so you can see that the work is well under way. I completely understand if this isn't possible, and in that case I will hand in the best version I can by Friday. Thank you for considering my request, and I'm sorry for the short notice. Best wishes, Arjun Mehta",
+    "questions": [
+      {
+        "prompt": "What is the main purpose of Arjun's email?",
+        "options": [
+          "To ask for a few more days to finish his essay",
+          "To complain that the deadline is unfair",
+          "To ask the professor for help with his laptop",
+          "To explain why he wants to change his essay topic"
+        ],
+        "answer": 0,
+        "evidence": "I am writing to ask whether I could have a short extension on my Urban Planning essay"
+      },
+      {
+        "prompt": "Why does Arjun attach part of his essay?",
+        "options": [
+          "The professor asked everyone to send a first draft",
+          "He wants the professor to grade it early",
+          "He wants to show that he has already made real progress",
+          "He needs the professor to check his notes"
+        ],
+        "answer": 2,
+        "evidence": "so you can see that the work is well under way"
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {
+        "term": "extension",
+        "meaning": "延期；（期限的）延长",
+        "example": "The library gave me a one-week extension on my loan."
+      },
+      {
+        "term": "backup",
+        "meaning": "备份",
+        "example": "Always keep a backup of your photos on another drive."
+      },
+      {
+        "term": "submit",
+        "meaning": "提交",
+        "example": "You need to submit the form before the end of the month."
+      },
+      {
+        "term": "attached",
+        "meaning": "附上（附件）",
+        "example": "I have attached my timetable to this message."
+      },
+      {
+        "term": "considering",
+        "meaning": "考虑",
+        "example": "Thank you for considering my idea."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "I am writing to ask whether",
+        "meaning": "我写信是想问一下能否……",
+        "note": "正式邮件开头直接说明来意的标准句式，ask whether / if 后接请求内容。"
+      },
+      {
+        "text": "learned that lesson the hard way",
+        "meaning": "吃了苦头才学到这个教训",
+        "note": "learn sth the hard way 表示通过不愉快的经历才明白，语气带点自嘲，很适合道歉时用。"
+      },
+      {
+        "text": "so far",
+        "meaning": "到目前为止",
+        "note": "what I have so far = 我目前已完成的部分，汇报进度时常用。"
+      },
+      {
+        "text": "well under way",
+        "meaning": "已经顺利进行了很大一部分",
+        "note": "be well under way 表示事情已实质性展开，比 I have started 更有说服力。"
+      },
+      {
+        "text": "hand in",
+        "meaning": "上交",
+        "note": "hand in 作业 / 论文；美式英语也常说 turn in。"
+      },
+      {
+        "text": "sorry for the short notice",
+        "meaning": "抱歉这么临时才提出",
+        "note": "short notice 指通知得太晚、留给对方的时间太少，是请求类邮件里常用的客气话。"
+      }
+    ],
+    "grammar": [
+      "conditional-modal",
+      "tense-perfect",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "conditional-modal",
+        "quote": "I would be very grateful if I could submit it on Monday instead.",
+        "explanation": "would be grateful if I could… 用过去式情态动词 would / could 把请求说得更委婉，是正式邮件里最常见的礼貌请求句。"
+      },
+      {
+        "node": "tense-perfect",
+        "quote": "Since then, I have rewritten the introduction and the first section from my notes",
+        "explanation": "since then + 现在完成时 have rewritten，说明从过去某一刻到现在已经完成的事，非常适合在邮件里汇报进度。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "I am writing to ask whether I could have a short extension",
+        "explanation": "to ask 是不定式表目的，I am writing to… 开门见山点明写信目的，是英文邮件开头的固定套路。"
+      }
+    ],
+    "speaking": "假设你要当面向老师申请推迟交作业，用 1 分钟说明原因、目前进度和你希望的新日期。用上 so far 和 I would be grateful if…。",
+    "writing": "写一封 100–130 词的英文邮件，向老师或上司申请把某项任务延期两天。开头用 I am writing to ask whether…，结尾表达理解和感谢。",
+    "task": {
+      "prompt": "仿照这句，用 I would be very grateful if I could… 写一个礼貌的请求。",
+      "model": "I would be very grateful if I could submit it on Monday instead."
+    },
+    "tags": [
+      "邮件写作",
+      "礼貌请求"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-campus-b1-useful-notes",
+    "title": "笔记不是抄得越多越好",
+    "title_en": "How to Take Notes You Will Actually Use",
+    "summary_zh": "很多人上课抄满一本笔记，考前却用不上。这篇指南教你抓重点、用自己的话写、留空白自测，让笔记真正帮你思考。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "campus",
+    "genre": "guide",
+    "body": "Most students write a lot in lectures and use very little of it later. The problem is usually not how much you write, but what you write. Instead of copying every word on the slides, listen for the point the lecturer keeps coming back to. That is often the idea that matters most in the exam. Write it in your own words, even if your sentence is messy. Unless you can explain a note in plain language, you probably haven't understood it yet. It also helps to leave a wide space on the left side of each page. After the lecture, use that space to write two or three questions that the notes answer. A week later, cover the notes and try to answer the questions from memory. This takes ten minutes, but it shows you exactly what you have forgotten. Finally, don't worry if your notes look ugly. Notes that only you can read are fine, as long as they help you think. The goal is not a beautiful notebook but a clearer head.",
+    "questions": [
+      {
+        "prompt": "What is the writer's main advice?",
+        "options": [
+          "Copy the slides carefully so you don't miss anything",
+          "Focus on understanding the key ideas and testing yourself later",
+          "Make your notes neat so they are easy to read later",
+          "Write down every question the lecturer asks in class"
+        ],
+        "answer": 1,
+        "evidence": "The problem is usually not how much you write, but what you write."
+      },
+      {
+        "prompt": "What should you use the wide space on the left of each page for?",
+        "options": [
+          "Writing questions that the notes answer",
+          "Copying the lecturer's slides",
+          "Drawing pictures to help you remember",
+          "Listing words you don't understand"
+        ],
+        "answer": 0,
+        "evidence": "use that space to write two or three questions that the notes answer"
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {
+        "term": "lecturer",
+        "meaning": "（大学）讲师",
+        "example": "Our lecturer always starts with a short story."
+      },
+      {
+        "term": "slides",
+        "meaning": "（演示用的）幻灯片",
+        "example": "She put all the slides online after the class."
+      },
+      {
+        "term": "messy",
+        "meaning": "凌乱的；不整齐的",
+        "example": "My handwriting gets messy when I write fast."
+      },
+      {
+        "term": "plain",
+        "meaning": "简单明了的；朴素的",
+        "example": "The instructions are written in plain English."
+      },
+      {
+        "term": "cover",
+        "meaning": "盖住；遮住",
+        "example": "Cover the answers and test yourself."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "keeps coming back to",
+        "meaning": "反复提到；一再回到",
+        "note": "keep coming back to + 话题，表示某人一再回到同一个点，可以用来判断重点。"
+      },
+      {
+        "text": "in your own words",
+        "meaning": "用你自己的话",
+        "note": "老师布置复述、总结时的高频要求：Explain it in your own words."
+      },
+      {
+        "text": "in plain language",
+        "meaning": "用浅白易懂的语言",
+        "note": "plain 指不加修饰、不绕弯；同义说法有 in simple terms。"
+      },
+      {
+        "text": "from memory",
+        "meaning": "凭记忆",
+        "note": "不看资料，只靠记忆完成：draw a map from memory。"
+      },
+      {
+        "text": "as long as",
+        "meaning": "只要",
+        "note": "引出条件，比 if 更强调“只要满足这一点就行”。"
+      }
+    ],
+    "grammar": [
+      "conditional-unless",
+      "nonfinite-gerund",
+      "clause-relative"
+    ],
+    "knowledge": [
+      {
+        "node": "conditional-unless",
+        "quote": "Unless you can explain a note in plain language, you probably haven't understood it yet.",
+        "explanation": "unless 相当于 if not，“除非你能……否则……”。从句用一般现在时，主句给出结论，用来强调必须满足的条件。"
+      },
+      {
+        "node": "nonfinite-gerund",
+        "quote": "Instead of copying every word on the slides, listen for the point the lecturer keeps coming back to.",
+        "explanation": "介词 instead of 后面要接动名词 copying；keep 后面也接动名词 coming。记住：介词后、keep 后都用 -ing。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "Notes that only you can read are fine, as long as they help you think.",
+        "explanation": "that only you can read 是定语从句，修饰 Notes；that 在从句里作 read 的宾语。整个主语是 Notes…read，谓语是 are。"
+      }
+    ],
+    "speaking": "用 1 分钟向同学介绍你自己做笔记或复习的一个小方法，用上 Instead of…ing 和 as long as。",
+    "writing": "用 100–130 词写一份给新生的学习小建议，说明怎样复习笔记最有效。至少用一个 unless 句和 in your own words。",
+    "task": {
+      "prompt": "仿照这句，用 Unless you…, you probably… 写一条你对学习的看法。",
+      "model": "Unless you can explain a note in plain language, you probably haven't understood it yet."
+    },
+    "tags": [
+      "学习方法",
+      "记笔记"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-campus-b1-study-group-chat",
+    "title": "学习小组变成了聊天群",
+    "title_en": "When the Study Group Stops Studying",
+    "summary_zh": "三个同学约好一起复习，一小时过去却连课本都没翻开。Ravi 鼓起勇气提了个新规则。对话里有很多同学之间提意见又不伤和气的说法。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "campus",
+    "genre": "dialogue",
+    "body": "Ravi: Okay, can I say something slightly awkward? We've been here for over an hour, and nobody has opened the textbook. Nadia: That's not true. I opened it. Ravi: You used it to hold your coffee cup. Chloe: Fair point. We did spend twenty minutes talking about that cooking show. Nadia: It was a really good episode, though. Ravi: I know, and I'm not blaming anyone, because I talked as much as you two did. But the exam is next Thursday, and I still don't get chapter four. Chloe: Me neither, to be honest, so what's the plan? Ravi: How about this? Each of us takes one chapter, explains it to the others in ten minutes, and then we test each other. Nadia: And if anyone picks up their phone, they buy the next round of coffee. Chloe: Harsh, but I like it. Ravi: And once we finish, we can chat as much as we want. Nadia: Deal, but I'm still telling you how that show ends. Chloe: Only after we finish chapter four, Nadia.",
+    "questions": [
+      {
+        "prompt": "Why does Ravi start the conversation?",
+        "options": [
+          "He wants to talk about the cooking show",
+          "He is upset that Nadia put her coffee on his book",
+          "He thinks the group has been chatting instead of studying",
+          "He wants to leave the group before the exam"
+        ],
+        "answer": 2,
+        "evidence": "We've been here for over an hour, and nobody has opened the textbook."
+      },
+      {
+        "prompt": "When Chloe says \"Fair point\", what does she mean?",
+        "options": [
+          "She agrees with what Ravi just said",
+          "She thinks Nadia's answer is clever",
+          "She wants everyone to be fair to Nadia",
+          "She is asking Ravi to explain his point"
+        ],
+        "answer": 0,
+        "evidence": "Fair point. We did spend twenty minutes talking about that cooking show."
+      }
+    ],
+    "dictation_index": 12,
+    "vocabulary": [
+      {
+        "term": "awkward",
+        "meaning": "尴尬的；令人不自在的",
+        "example": "There was an awkward silence after his joke."
+      },
+      {
+        "term": "textbook",
+        "meaning": "课本；教科书",
+        "example": "I left my maths textbook on the bus."
+      },
+      {
+        "term": "episode",
+        "meaning": "（电视剧的）一集",
+        "example": "We watched three episodes in one night, and the last episode was the best."
+      },
+      {
+        "term": "harsh",
+        "meaning": "严厉的；苛刻的",
+        "example": "The coach's words were harsh, but he was right."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "Fair point",
+        "meaning": "说得有道理",
+        "note": "承认对方说得对的口语，比 You're right 更随意，也常用于让步。"
+      },
+      {
+        "text": "I'm not blaming anyone",
+        "meaning": "我不是在怪谁",
+        "note": "提意见之前先说这句，能降低对方的防御心理。"
+      },
+      {
+        "text": "Me neither",
+        "meaning": "我也不（懂）",
+        "note": "附和否定句时用 Me neither；Me too 只用来附和肯定句。"
+      },
+      {
+        "text": "How about this",
+        "meaning": "要不这样吧",
+        "note": "提出新方案前的引子，后面直接说办法。"
+      },
+      {
+        "text": "buy the next round",
+        "meaning": "请下一轮（饮料）",
+        "note": "a round 指给在场每人买一份饮料，buy the next round 是朋友之间常见的说法。"
+      },
+      {
+        "text": "Harsh, but I like it",
+        "meaning": "有点狠，但我喜欢",
+        "note": "半开玩笑地接受一个严格的提议，语气轻松。"
+      }
+    ],
+    "grammar": [
+      "tense-perfect",
+      "agreement-each",
+      "conditional-real"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-perfect",
+        "quote": "We've been here for over an hour, and nobody has opened the textbook.",
+        "explanation": "have been here for over an hour 说明持续到现在的时间；nobody has opened 表示到现在为止都没发生，暗含“该做点什么了”。"
+      },
+      {
+        "node": "agreement-each",
+        "quote": "Each of us takes one chapter",
+        "explanation": "each of us 作主语时，谓语看 each，用单数 takes，不受后面复数 us 的影响。every one of us 同理。"
+      },
+      {
+        "node": "conditional-real",
+        "quote": "And if anyone picks up their phone, they buy the next round of coffee.",
+        "explanation": "用真实条件句定规则：if 从句和主句都用一般现在时，表示约定好的结果。anyone 作主语，谓语用单数 picks。"
+      }
+    ],
+    "speaking": "和同伴模拟：你们的学习小组总在闲聊。用 1 分钟礼貌地提出一个新规则，用上 I'm not blaming anyone 和 How about this?",
+    "writing": "用 100–130 词给你的学习小组发一条消息，提出一个让大家更专注的规则。至少用一个 if 句，并用 Each of us… 说明分工。",
+    "task": {
+      "prompt": "仿照这句，用 Each of us + 单数动词 写一条小组分工。",
+      "model": "Each of us takes one chapter, explains it to the others in ten minutes, and then we test each other."
+    },
+    "tags": [
+      "学习小组",
+      "同学相处"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

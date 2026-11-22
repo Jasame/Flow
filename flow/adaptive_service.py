@@ -2,7 +2,7 @@
 import json,time,secrets,re,datetime
 import event_service as events
 import lexicon_service as lex
-POLICY='flow-evidence-2.1'
+POLICY='flow-evidence-3.0'
 INTERVALS=(1,3,7,14,30)
 
 def schema(c):
@@ -18,17 +18,20 @@ def schema(c):
   for r in c.execute('SELECT id,user_id FROM attempts ORDER BY id').fetchall():events.grammar(c,r['user_id'],r['id'])
   for r in c.execute('SELECT id,user_id FROM lab_work ORDER BY id').fetchall():events.studio(c,r['user_id'],r['id'])
   c.execute("INSERT INTO migrations VALUES('1.0-events')")
+ if 'hint_level' not in {r[1] for r in c.execute('PRAGMA table_info(adaptive_tasks)')}:c.execute('ALTER TABLE adaptive_tasks ADD COLUMN hint_level INTEGER NOT NULL DEFAULT 0')
  c.execute("INSERT OR IGNORE INTO migrations VALUES('1.0')")
 
 def goal(c,uid):
- r=c.execute('SELECT goal,minutes,daily_new,level FROM learner_goals WHERE user_id=?',(uid,)).fetchone()
- if r:return dict(r)
- old=c.execute('SELECT minutes FROM study_preferences WHERE user_id=?',(uid,)).fetchone();p=c.execute('SELECT level FROM lab_profile WHERE user_id=?',(uid,)).fetchone()
- return {'goal':'general','minutes':old[0] if old else 15,'daily_new':3,'level':p[0] if p else 'B1'}
+ """Read from the single settings record. 'level' is the learner's chosen target, not a measured level."""
+ import settings_service as settings
+ st=settings.get(c,uid)
+ return {'goal':st['goal_kind'],'minutes':st['minutes'],'daily_new':st['daily_new'],'level':st['target_level'] or 'B1','level_source':'target' if st['target_level'] else 'default','version':st['version']}
 
-def vocab_choice(c,uid):
+def vocab_choice(c,uid,purpose=None):
+ """purpose='review' returns due words only; purpose='new' introduces a new word only."""
  due=c.execute("SELECT e.entry,e.due FROM vocab_enroll e JOIN lexicon l ON l.id=e.entry WHERE e.user_id=? AND l.status='published' AND (l.owner IS NULL OR l.owner=?) ORDER BY e.due,e.created LIMIT 1",(uid,uid)).fetchone()
- if due and due['due']<=time.time():return due['entry'],'到期复习；先独立回忆，再核对解释。'
+ if due and due['due']<=time.time() and purpose!='new':return due['entry'],'到期复习；先独立回忆，再核对解释。'
+ if purpose=='review':return None
  g=goal(c,uid);today=datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).date().isoformat()
  count=c.execute("SELECT COUNT(*) FROM vocab_enroll WHERE user_id=? AND date(created,'unixepoch','+8 hours')=?",(uid,today)).fetchone()[0]
  if count<g['daily_new']:
@@ -36,35 +39,42 @@ def vocab_choice(c,uid):
   candidates=[(r['id'],json.loads(r['content'])) for r in c.execute("SELECT l.id,l.content FROM lexicon l WHERE l.status='published' AND l.owner IS NULL AND NOT EXISTS(SELECT 1 FROM vocab_enroll e WHERE e.entry=l.id AND e.user_id=?) ORDER BY l.rowid",(uid,))]
   candidates.sort(key=lambda pair:(pair[1]['level']!=g['level'],pair[1]['theme']!=theme))
   r=(candidates[0][0],) if candidates else None
-  if r:return r[0],'结合你的目标与目标难度，引入一个新词；当天新词数量受限。'
+  if r:return r[0],'按你设置的学习方向'+('和目标难度' if g['level_source']=='target' else '')+'引入一个新词；当天新词数量受限。'
  return None
 
-def grammar_choice(c,uid):
- from learning_service import evidence
- nodes=evidence(c,uid);byid={n['id']:n for n in nodes}
- suggestion=c.execute("SELECT node FROM ai_observations WHERE user_id=? AND status='proposed' AND created>? AND NOT EXISTS(SELECT 1 FROM learning_events e WHERE e.user_id=? AND e.node=ai_observations.node AND e.created>ai_observations.created AND e.evaluator='rule') ORDER BY id DESC LIMIT 1",(uid,time.time()-7*86400,uid)).fetchone()
- target=byid.get(suggestion[0]) if suggestion else None;reason='AI 从你的表达中提出了待验证关联；用客观题检查后再判断。' if target else ''
- if not target:
-  target=next((n for n in sorted(nodes,key=lambda n:(0 if n['due'] and n['due']<=time.time() else 1,n['state']!='需要巩固',n['distinct'],n['total'])) if n['available']),None)
-  reason='根据到期复习、错误记录与尚缺的题目证据安排。'
- if not target:return None
- seen=set()
- while target['prereq'] in byid and target['id'] not in seen:
-  seen.add(target['id']);prior=byid[target['prereq']]
-  if prior['state']=='初步稳定' or not prior['available']:break
-  target=prior;reason='目标知识点的先修证据仍不足，先补这一环。'
- return target['id'],reason
+def grammar_choice(c,uid,purpose=None):
+ """Same rule as every other entry (state_service.grammar_target). purpose='review' takes ready review items only."""
+ from state_service import grammar_target
+ from growth_service import review_queue
+ queue=review_queue(c,uid)
+ if purpose=='review':
+  ready=next((x for x in queue if x['kind']=='grammar' and x['ready'] and x['purpose'] in ('repair','unassisted','delayed','transfer')),None)
+  return (ready['node'],ready['reason']) if ready else None
+ t=grammar_target(c,uid,queue=queue)
+ return (t['node'],t['reason']) if t else None
+
+def material_choice(c,uid,node=None):
+ """One rule for 'which text first': the corpus ranking (practice_service.rank). A harder text is only offered as a challenge."""
+ from practice_service import rank
+ rows=c.execute('SELECT * FROM lab_packs WHERE owner IS NULL OR owner=?',(uid,)).fetchall()
+ try:
+  ranked,info=rank(c,uid,rows,node=node)
+  harder,hinfo=rank(c,uid,rows,node=node,mode='stretch')
+ except ValueError:return None,None
+ first=ranked[0] if ranked else None
+ challenge=next((r for r in harder if first and r['pack']['level']!=first['pack']['level']),None) if hinfo['target']!=info['target'] else None
+ return first,challenge
 
 def plan(c,uid):
  g=goal(c,uid);v=vocab_choice(c,uid);grammar=grammar_choice(c,uid);tasks=[]
  if v:tasks.append({'kind':'vocab','target':v[0],'title':'词汇：'+lex.entry_for(c,uid,v[0])['lemma'],'reason':v[1],'minutes':3})
  if grammar:tasks.append({'kind':'grammar','target':grammar[0],'title':'验证：'+c.execute('SELECT title FROM subskills WHERE id=?',(grammar[0],)).fetchone()[0],'reason':grammar[1],'minutes':4})
  target=grammar[0] if grammar else None
- material=c.execute("SELECT n.ref FROM kg_edges e JOIN kg_nodes n ON n.id=e.target JOIN lab_packs p ON p.id=n.ref WHERE e.source=? AND e.relation='practised_in' AND (p.owner IS NULL OR p.owner=?) ORDER BY CASE WHEN p.origin='daily' THEN 0 ELSE 1 END,p.created DESC LIMIT 1",(target,uid)).fetchone() if target else None
- if not material:material=c.execute("SELECT id FROM lab_packs WHERE owner IS NULL OR owner=? ORDER BY origin='daily' DESC,created DESC LIMIT 1",(uid,)).fetchone()
- if material:
-  p=json.loads(c.execute('SELECT content FROM lab_packs WHERE id=?',(material[0],)).fetchone()[0]);profile=c.execute('SELECT focus FROM lab_profile WHERE user_id=?',(uid,)).fetchone()
-  tasks.append({'kind':'studio','target':material[0],'title':'应用：'+p['title'],'skill':profile[0] if profile else 'reading','reason':'沿图谱中的教学关联，在文章里理解并运用；完成作品单独记录，不直接提高语法状态。','minutes':5})
+ first,challenge=material_choice(c,uid,target)
+ if first:
+  p=first['pack'];task={'kind':'studio','target':p['id'],'title':'应用：'+p['title'],'level':p['level'],'skill':first['skill'],'reason':'和语料库同一个起点（'+p['level']+'）。在文章里理解并运用；完成作品单独记录，不直接提高语法状态。','minutes':5}
+  if challenge:task['challenge']={'target':challenge['pack']['id'],'title':challenge['pack']['title'],'level':challenge['pack']['level'],'skill':challenge['skill']}
+  tasks.append(task)
  used=0;bounded=[]
  for t in tasks:
   if used+t['minutes']<=g['minutes']:bounded.append(t);used+=t['minutes']
@@ -82,9 +92,45 @@ def task_view(row):
  if row['status']=='complete':d['result']=json.loads(row['result'])
  return d
 
+def review_status(c,uid,now=None):
+ """Distinguish 'no records yet', 'nothing due now' and 'done for today' for the review entry."""
+ now=time.time() if now is None else now
+ from growth_service import review_queue
+ queue=[x for x in review_queue(c,uid,now) if x['purpose'] in ('repair','unassisted','delayed','transfer')]
+ ready=[x for x in queue if x['ready']]
+ words=c.execute('SELECT COUNT(*) FROM vocab_enroll WHERE user_id=? AND due<=?',(uid,now)).fetchone()[0]
+ has_records=c.execute("SELECT 1 FROM learning_events WHERE user_id=? AND evaluator IN ('rule','legacy') LIMIT 1",(uid,)).fetchone() or c.execute('SELECT 1 FROM vocab_enroll WHERE user_id=? LIMIT 1',(uid,)).fetchone()
+ tz=datetime.timezone(datetime.timedelta(hours=8));day=datetime.datetime.fromtimestamp(now,tz).date()
+ start=datetime.datetime.combine(day,datetime.time(),tz).timestamp()
+ done=c.execute("SELECT COUNT(*) FROM adaptive_tasks WHERE user_id=? AND status='complete' AND created>=? AND json_extract(payload,'$.entry_purpose')='review'",(uid,start)).fetchone()[0]
+ grammar_ready=[x for x in ready if x['kind']=='grammar']
+ count=len(grammar_ready)+words
+ times=[x['ready_at'] for x in queue if not x['ready']]
+ vnext=c.execute('SELECT MIN(due) FROM vocab_enroll WHERE user_id=? AND due>?',(uid,now)).fetchone()[0]
+ if vnext:times.append(vnext)
+ if count:status,text='due','现在有 '+str(count)+' 项到期复习。'
+ elif not has_records:status,text='no_records','还没有可复习的记录。先学一个新词或一个语法细项，之后会自动安排复习。'
+ elif done:status,text='done_today','今天到期的复习已经做完。'
+ else:status,text='none_due','现在没有到期的复习。'
+ return {'status':status,'message':text,'due_grammar':len(grammar_ready),'due_words':words,'done_today':done,'next_due':min(times) if times else None,'items':[{'kind':x['kind'],'node':x['node'],'title':x['title'],'purpose':x['purpose'],'reason':x['reason']} for x in ready[:8]],'note':'复习入口只取到期内容，不会自动加入新词；学新内容请用“学新内容”。'}
+
 def start(c,uid,data):
- requested=data.get('kind');entry=data.get('entry')
+ requested=data.get('kind');entry=data.get('entry');purpose=data.get('purpose')
  if requested not in (None,'vocab','grammar'):raise ValueError('任务类型不正确')
+ if purpose not in (None,'review','new'):raise ValueError('任务目的不正确')
+ if purpose=='review' and not entry and not data.get('node'):
+  # Review takes due items only. An empty review never pulls in new learning.
+  v=vocab_choice(c,uid,'review') if requested in (None,'vocab') else None
+  g=grammar_choice(c,uid,'review') if requested in (None,'grammar') and not v else None
+  if not v and not g:return {'empty':True,**review_status(c,uid)},200
+  t={'kind':'vocab','target':v[0],'reason':v[1]} if v else {'kind':'grammar','target':g[0],'reason':g[1]}
+  return create_task(c,uid,data,t,'review')
+ if purpose=='new' and not entry and not data.get('node'):
+  v=vocab_choice(c,uid,'new') if requested in (None,'vocab') else None
+  g=None if v else grammar_choice(c,uid)
+  if not v and not g:return {'empty':True,'status':'no_new','message':'今天的新词数量已用完，也没有可学的新语法项。'},200
+  t={'kind':'vocab','target':v[0],'reason':v[1]} if v else {'kind':'grammar','target':g[0],'reason':g[1]}
+  return create_task(c,uid,data,t,'new')
  from foundation_service import is_basic
  if requested=='vocab' and entry and is_basic(c,uid):
   progress=c.execute('SELECT step FROM foundation_progress WHERE user_id=? AND lesson=?',(uid,'word:'+entry)).fetchone()
@@ -101,11 +147,21 @@ def start(c,uid,data):
   t={'kind':'grammar','target':node,'reason':'你选择了这个知识点；本次独立作答与提示情况将分别记录。'}
  if entry:t={'kind':'vocab','target':entry,'reason':'你选择了这个词；练习结果将更新个人记录。'}
  if not t or t['kind']=='studio':c.commit();return {'route':t,'plan':p},200
+ return create_task(c,uid,data,t,None,begun=True)
+
+def create_task(c,uid,data,t,entry_purpose,begun=False):
+ if not begun:
+  from foundation_service import is_basic
+  if t['kind']=='vocab' and is_basic(c,uid) and entry_purpose=='new':
+   progress=c.execute('SELECT step FROM foundation_progress WHERE user_id=? AND lesson=?',(uid,'word:'+t['target'])).fetchone()
+   if not progress or progress[0]<3:lex.entry_for(c,uid,t['target']);return {'foundation':'word:'+t['target']},200
+  c.execute('BEGIN IMMEDIATE')
+  for o in c.execute("SELECT token FROM adaptive_tasks WHERE user_id=? AND status='active' AND expires>?",(uid,time.time())).fetchall():c.execute("UPDATE adaptive_tasks SET status='paused' WHERE token=?",(o[0],))
  if t['kind']=='vocab':
   r=lex.entry_for(c,uid,t['target']);e=r['data'];enroll(c,uid,r['id']);state=events.state(c,uid,lex.node_id(r['id']))
   # Only an independent successful check unlocks spelling/application practice.
   meaning_rows=[dict(x) for x in c.execute("SELECT * FROM learning_events WHERE user_id=? AND node=? AND kind='meaning' ORDER BY created,id",(uid,lex.node_id(r['id'])))];meaning_state=events.summarize(lex.node_id(r['id']),meaning_rows)
-  mode='spelling' if meaning_state['independent'] and meaning_state['state'] not in ('需要巩固','提示后完成') else 'meaning';payload={'title':e['word'] if mode=='meaning' else '回忆英文表达','prompt':e['word']+' 在这个词条中的含义是？' if mode=='meaning' else e['meaning']+'（本题回忆词条原形，不是自由翻译；句子仅作语境提示）','level':e['level'],'reason':t['reason'],'node':lex.node_id(r['id']),'version':r['version'],'context':'entry:'+r['id']}
+  mode='spelling' if meaning_state['independent'] and meaning_state['state'] not in ('需要巩固','提示后完成') else 'meaning';payload={'title':e['word'] if mode=='meaning' else '回忆英文表达','prompt':e['word']+' 是什么意思？' if mode=='meaning' else e['meaning']+'（本题回忆词条原形，不是自由翻译；句子仅作语境提示）','level':e['level'],'reason':t['reason'],'node':lex.node_id(r['id']),'version':r['version'],'context':'entry:'+r['id']}
   answer={'entry':r['id'],'word':e['word'],'meaning':e['meaning'],'example':e['example'],'version':r['version']}
   if mode=='meaning':
    candidates=[json.loads(w[0]) for w in c.execute("SELECT content FROM lexicon WHERE status='published' AND owner IS NULL AND lemma!=? ORDER BY id",(e['word'],))]
@@ -135,10 +191,14 @@ def start(c,uid,data):
  purpose=verification['purpose'] if verification and verification['ready'] else 'practice'
  if purpose=='transfer' and payload['context'] in verification['prior_contexts']:
   purpose='delayed';payload['transfer_note']='当前题库暂未提供新的可用语境；本次只能记录重复回忆，不能宣称新语境迁移。'
+ payload['entry_purpose']=entry_purpose
  payload['verification']={'purpose':purpose,'evidence_ids':verification['evidence_ids'] if verification else [],'note':verification['reason'] if verification else '先积累本次表现，再安排后续验证。'}
  token=secrets.token_urlsafe(24);now=time.time()
- exposed=bool(t['kind']=='grammar' and c.execute('SELECT 1 FROM attempts WHERE user_id=? AND question_id=? AND created>?',(uid,answer['question'],now-86400)).fetchone())
- if exposed:payload['familiar_note']='近24小时内已做过这道题，本次是熟悉题练习，不计独立测评。'
+ from attempt_service import exposure,version as item_version
+ exposed=bool(t['kind']=='grammar' and exposure(c,uid,answer['question'],now)['familiar'])
+ if t['kind']=='grammar':answer['version']=item_version(raw)
+ if exposed:payload['familiar_note']='近24小时内已做过这道题，本次是熟悉题练习，做对记为有支持的练习，不计独立通过。'
+ payload['hint_levels']={'1':'线索','2':'对比','3':'部分支架','4':'完整答案'}
  c.execute('INSERT INTO adaptive_tasks(token,user_id,kind,target,mode,payload,answer,created,expires,assisted) VALUES(?,?,?,?,?,?,?,?,?,?)',(token,uid,t['kind'],t['target'],mode,json.dumps(payload,ensure_ascii=False),json.dumps(answer,ensure_ascii=False),now,now+3600,int(exposed)));c.commit()
  row=c.execute('SELECT * FROM adaptive_tasks WHERE token=?',(token,)).fetchone();return {'task':task_view(row)},200
 
@@ -148,13 +208,32 @@ def owned_task(c,uid,token):
  if not r or r['expires']<time.time():raise ValueError('任务不存在或已过期，请重新开始')
  return r
 
+def vocab_hint(r,a,payload,level):
+ word=a['word']
+ if level==1:return {'kind':'线索','text':('看例句里的位置：'+re.sub(re.escape(word),'_'*len(word),a.get('example',''),flags=re.I)) if r['mode']=='meaning' else '首字母是 “'+word[0]+'”，共 '+str(len(word.replace(' ','')))+' 个字母。'}
+ if level==2:return {'kind':'对比','text':'英文例句：'+a['example'] if r['mode']=='meaning' else '例句：'+re.sub(re.escape(word),word[0]+'_'*(len(word)-1),a['example'],flags=re.I)}
+ if level==3:
+  if r['mode']=='meaning':
+   wrong=[i for i in range(len(payload['options'])) if i!=a['correct']][:2]
+   return {'kind':'部分支架','text':'可以先排除：'+'；'.join(payload['options'][i] for i in wrong)}
+  return {'kind':'部分支架','text':'部分字母：'+''.join(ch if i%2==0 or ch==' ' else '_' for i,ch in enumerate(word))}
+ return {'kind':'完整答案','text':word+'：'+a['meaning']+'。'+a['example'],'word':word,'meaning':a['meaning'],'example':a['example']}
+
 def hint(c,uid,data):
+ """Layered help. Without an explicit level the next level is shown (1 clue, 2 contrast, 3 partial, 4 answer)."""
+ level=data.get('level')
+ if level is not None and (type(level)!=int or not 1<=level<=4):raise ValueError('提示层级不正确')
  c.execute('BEGIN IMMEDIATE');r=owned_task(c,uid,data.get('token'))
  if r['status']!='active':c.rollback();return {'error':'任务已结束'},409
- c.execute('UPDATE adaptive_tasks SET assisted=1 WHERE token=?',(r['token'],));a=json.loads(r['answer'])
- if r['kind']=='vocab':out={'meaning':a['meaning'],'word':a['word'],'example':a['example']}
- else:out=dict(c.execute('SELECT lesson,example FROM subskills WHERE id=?',(r['target'],)).fetchone())
- c.commit();return {'hint':out,'assisted':True},200
+ if level is None:level=min(4,(r['hint_level'] or 0)+1)
+ a=json.loads(r['answer']);payload=json.loads(r['payload'])
+ c.execute('UPDATE adaptive_tasks SET assisted=1,hint_level=MAX(hint_level,?) WHERE token=?',(level,r['token']))
+ if r['kind']=='vocab':out=vocab_hint(r,a,payload,level)
+ else:
+  from attempt_service import grammar_hint
+  out=grammar_hint(c,a['question'],level)
+ out['level']=level;out['reveals_answer']=level==4
+ c.commit();return {'hint':out,'assisted':True,'next_level':level+1 if level<4 else None,'note':'看过提示后，本题记为“有支持的练习”，之后会换一道新题或隔天再独立检查。'},200
 
 def submit(c,uid,data):
  c.execute('BEGIN IMMEDIATE');r=owned_task(c,uid,data.get('token'));payload=json.loads(r['payload']);a=json.loads(r['answer']);submitted=data.get('answer')
@@ -172,18 +251,26 @@ def submit(c,uid,data):
   correct=normalize(submitted)==normalize(a['word']);expected=a['word']
  now=time.time();node=payload['node']
  if r['kind']=='grammar':
-  qid=a['question'];attempt=c.execute('INSERT INTO attempts(user_id,question_id,selected,correct,created) VALUES(?,?,?,?,?)',(uid,qid,submitted,correct,now)).lastrowid
+  qid=a['question']
+  # Recheck exposure before this attempt is written, inside the same transaction:
+  # another tab or entry may have shown the answer after the task opened.
+  if not payload.get('familiar_note') and __import__('attempt_service').exposure(c,uid,qid,now,exclude=r['token'])['familiar']:
+   payload['familiar_note']='打开这道题之后，你已在别处看过它的答案；本次记为有支持的练习，不计独立通过。'
+   c.execute('UPDATE adaptive_tasks SET assisted=1,payload=? WHERE token=?',(json.dumps(payload,ensure_ascii=False),r['token']));r=c.execute('SELECT * FROM adaptive_tasks WHERE token=?',(r['token'],)).fetchone()
+  attempt=c.execute('INSERT INTO attempts(user_id,question_id,selected,correct,created) VALUES(?,?,?,?,?)',(uid,qid,submitted,correct,now)).lastrowid
   from learning_service import observe
-  observe(c,uid,[qid],assisted=bool(r['assisted']))
+  familiar=bool(payload.get('familiar_note'));level=r['hint_level'] or 0
+  info={'assisted':bool(r['assisted']),'support':'hint' if level or not familiar and r['assisted'] else 'familiar' if familiar else 'none','hint_level':level,'familiar':familiar,'session':r['token'],'entry':'adaptive','version':a.get('version'),'policy':POLICY}
+  observe(c,uid,[qid],support={qid:info})
  else:
-  events.record(c,uid,node,'task:'+r['token'],r['mode'],r['mode']+':'+payload['context'],payload['context'],correct,bool(r['assisted']),'rule',{'entry':r['target'],'version':payload['version'],'policy':POLICY})
+  events.record(c,uid,node,'task:'+r['token'],r['mode'],r['mode']+':'+payload['context'],payload['context'],correct,bool(r['assisted']),'rule',{'entry':r['target'],'version':payload['version'],'policy':POLICY,'support':'hint' if r['assisted'] else 'none','hint_level':r['hint_level'] or 0})
   old=c.execute('SELECT * FROM vocab_enroll WHERE user_id=? AND entry=?',(uid,r['target'])).fetchone()
   due=old['due'];stage=old['stage']
   if not correct:stage=0;due=now+86400
   elif r['assisted']:due=min(due,now+86400)
   elif due<=now:stage=min(stage+1,4) if old['last'] is not None else 0;due=now+INTERVALS[stage]*86400
   c.execute('UPDATE vocab_enroll SET stage=?,due=?,last=? WHERE user_id=? AND entry=?',(stage,due,now,uid,r['target']))
- result={'ok':True,'correct':correct,'submitted':submitted,'expected':expected,'assisted':bool(r['assisted']),'explanation':a.get('explanation') or a.get('example'),'state':events.state(c,uid,node),'next_reason':'先回看解释，再换一种方式练习。' if not correct else '本次已记录；到期后安排独立回忆。提前重复答对不会加速复习间隔。'}
+ result={'ok':True,'correct':correct,'submitted':submitted,'expected':expected,'assisted':bool(r['assisted']),'familiar_note':payload.get('familiar_note'),'explanation':a.get('explanation') or a.get('example'),'state':__import__('state_service').node_state(c,uid,node),'attempt':attempt if r['kind']=='grammar' else None,'hint_level':r['hint_level'] or 0,'entry_purpose':payload.get('entry_purpose'),'next_step':__import__('pedagogy_service').next_step(c,uid,return_to=data.get('return_to')),'next_reason':'先回看解释，再换一种方式练习。' if not correct else '本次已记录；到期后安排独立回忆。提前重复答对不会加速复习间隔。'}
  c.execute("UPDATE adaptive_tasks SET status='complete',result=? WHERE token=?",(json.dumps(result,ensure_ascii=False),r['token']));c.commit();return result,200
 
 def feedback(c,uid,data):
@@ -219,6 +306,7 @@ def get(c,uid,admin,path,query):
  if path=='/api/adaptive/task':return {'task':task_view(owned_task(c,uid,query.get('token',[''])[0]))},200
  if path=='/api/adaptive':return plan(c,uid),200
  if path=='/api/adaptive/report':return events.report(c,uid),200
+ if path=='/api/review/status':return review_status(c,uid),200
  if path=='/api/vocab':return {'items':lex.catalog(c,uid),'goal':goal(c,uid)},200
  if path=='/api/vocab/entry':
   entry=query.get('id',[''])[0];d=lex.detail(c,uid,entry);draft=c.execute('SELECT answer,updated FROM learner_drafts WHERE user_id=? AND entry=?',(uid,entry)).fetchone();d['draft']=draft[0] if draft else '';d['draft_updated']=draft[1] if draft else 0
@@ -242,8 +330,13 @@ def post(c,uid,admin,path,data):
  if path=='/api/adaptive/skip':
   r=owned_task(c,uid,data.get('token'));c.execute("UPDATE adaptive_tasks SET status='paused' WHERE token=? AND status='active'",(r['token'],));c.commit();return {'ok':True},200
  if path=='/api/adaptive/goal':
-  if data.get('goal') not in ('general','exam','travel','work') or data.get('level') not in ('A2','B1','B2') or type(data.get('minutes'))!=int or data['minutes'] not in (5,10,15,20,30) or type(data.get('daily_new'))!=int or not 1<=data['daily_new']<=10:raise ValueError('学习目标或时间设置不正确')
-  c.execute('INSERT OR REPLACE INTO learner_goals VALUES(?,?,?,?,?)',(uid,data['goal'],data['minutes'],data['daily_new'],data['level']));c.execute('INSERT OR REPLACE INTO study_preferences VALUES(?,?)',(uid,data['minutes']));c.execute('INSERT INTO lab_profile(user_id,level) VALUES(?,?) ON CONFLICT(user_id) DO UPDATE SET level=excluded.level',(uid,data['level']));c.commit();return {'ok':True},200
+  # Target difficulty is a learner choice. It is stored as target_level and never written as a measured level.
+  import settings_service as settings
+  change={'goal_kind':data.get('goal'),'minutes':data.get('minutes'),'daily_new':data.get('daily_new'),'target_level':data.get('level')}
+  if 'version' in data:change['version']=data['version']
+  try:saved=settings.save(c,uid,change,'vocab-goal')
+  except settings.Conflict as e:c.rollback();return {'error':'设置已在其他页面更新，请确认后再保存。','current':e.current},409
+  return {'ok':True,'version':saved['version']},200
  if path=='/api/vocab/enroll':enroll(c,uid,data.get('entry'));c.commit();return {'ok':True},200
  if path=='/api/vocab/unenroll':
   lex.entry_for(c,uid,data.get('entry'));c.execute('DELETE FROM vocab_enroll WHERE user_id=? AND entry=?',(uid,data['entry']));c.commit();return {'ok':True},200

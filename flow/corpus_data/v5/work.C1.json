@@ -1,0 +1,514 @@
+[
+  {
+    "id": "v5-work-c1-meetings-worth-having",
+    "title": "什么样的会才值得开",
+    "title_en": "Which Meetings Deserve Your Calendar",
+    "summary_zh": "大家都爱吐槽开会，但“取消所有会议”同样偷懒。作者给出一个简单的检验标准：只有能改变结果的会才值得开。读完你能学会用有层次的英文表达观点和让步。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "work",
+    "genre": "opinion",
+    "body": "It has become fashionable to complain about meetings, and most of the complaints are deserved. We have all sat through an hour that could have been an email, nodding along while quietly answering other emails. Yet the fashionable solution, abolishing meetings altogether, strikes me as just as lazy as the problem it claims to fix. Some decisions genuinely need people in a room, or at least on a screen, because they depend on reading hesitation, testing half-formed ideas and noticing who has gone silent. The question is not whether to meet, but what earns a meeting its place in the calendar. My own test is simple: a meeting is worth having only if it changes something that would not change otherwise. Sharing updates rarely passes that test, since a written summary does the job faster and can be read when people's attention is actually available. Making a difficult decision, resolving a disagreement or building trust in a new team usually does pass it. Once you apply the test, a few habits follow almost automatically. Each of the people invited has a clear reason to be there, and if nobody can name that reason, the invitation is a courtesy, not a necessity. The agenda states the decision to be made, not merely the topics to be \"discussed\", a word that too often means \"wandered around\". And the meeting ends when the decision is made, even if that happens twenty minutes early. Too many teams treat the scheduled hour as if it were a quota to be filled, when it is really a ceiling. None of this requires a new tool or a company-wide policy. It requires someone, often the most junior person brave enough to ask, to say: \"What do we need to have decided by the end of this?\" A meeting that can answer that question deserves the hour. One that cannot probably deserves to be an email after all.",
+    "questions": [
+      {
+        "prompt": "What is the writer's main position on meetings?",
+        "options": [
+          "Meetings should be abolished and replaced by emails",
+          "Meetings are most useful for sharing regular updates",
+          "A meeting is justified only when it changes an outcome",
+          "Meetings work best when senior staff are in charge"
+        ],
+        "answer": 2,
+        "evidence": "a meeting is worth having only if it changes something that would not change otherwise"
+      },
+      {
+        "prompt": "What does the writer mean by calling the scheduled hour \"really a ceiling\"?",
+        "options": [
+          "Teams should book smaller rooms for shorter meetings",
+          "A meeting can and should end early once its purpose is achieved",
+          "Every meeting should last exactly as long as planned",
+          "The hour should be filled with as many topics as possible"
+        ],
+        "answer": 1,
+        "evidence": "the meeting ends when the decision is made, even if that happens twenty minutes early"
+      }
+    ],
+    "dictation_index": 8,
+    "vocabulary": [
+      {
+        "term": "abolishing",
+        "meaning": "废除；取消",
+        "example": "The company is abolishing its dress code next month."
+      },
+      {
+        "term": "hesitation",
+        "meaning": "犹豫；迟疑",
+        "example": "She accepted the offer without any hesitation."
+      },
+      {
+        "term": "courtesy",
+        "meaning": "礼节；出于客气的举动",
+        "example": "He copied me on the email as a courtesy."
+      },
+      {
+        "term": "quota",
+        "meaning": "定额；指标",
+        "example": "The sales team has a monthly quota to meet."
+      },
+      {
+        "term": "ceiling",
+        "meaning": "上限；最高限度",
+        "example": "Think of the budget as a ceiling, not a target."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "could have been an email",
+        "meaning": "本来发封邮件就能解决",
+        "note": "吐槽无效会议的流行说法：That meeting could have been an email."
+      },
+      {
+        "text": "nodding along",
+        "meaning": "跟着点头附和",
+        "note": "常暗示“没真正在听、只是配合”，带一点讽刺。"
+      },
+      {
+        "text": "strikes me as",
+        "meaning": "在我看来像是……；给我的感觉是……",
+        "note": "比 I think 更委婉、更书面，适合表达个人判断：It strikes me as a bit unfair."
+      },
+      {
+        "text": "passes that test",
+        "meaning": "经得起这个检验",
+        "note": "pass the test 可以用于比喻：判断一件事是否达到某个标准。"
+      },
+      {
+        "text": "a courtesy, not a necessity",
+        "meaning": "出于客气，而非真有必要",
+        "note": "A, not B 的对比结构，简短有力，常用于观点文。"
+      },
+      {
+        "text": "brave enough to ask",
+        "meaning": "有勇气开口问",
+        "note": "adj + enough to do：形容词放在 enough 前面，如 old enough to drive。"
+      }
+    ],
+    "grammar": [
+      "clause-noun",
+      "agreement-each",
+      "subjunctive-now"
+    ],
+    "knowledge": [
+      {
+        "node": "clause-noun",
+        "quote": "The question is not whether to meet, but what earns a meeting its place in the calendar.",
+        "explanation": "not A but B 后面接两个名词性成分作表语：whether to meet（whether + 不定式）和 what 引导的表语从句，用来把讨论从“开不开”转到“凭什么开”。"
+      },
+      {
+        "node": "agreement-each",
+        "quote": "Each of the people invited has a clear reason to be there",
+        "explanation": "Each of + 复数名词作主语时，中心词是 each，谓语用单数 has，不受 people 影响。invited 是过去分词作后置定语。"
+      },
+      {
+        "node": "subjunctive-now",
+        "quote": "Too many teams treat the scheduled hour as if it were a quota to be filled",
+        "explanation": "as if + were 表示与现在事实相反的比喻：一小时并不是必须填满的指标，团队却当它是。"
+      }
+    ],
+    "speaking": "用 1 分钟评价你最近参加的一次会议或小组讨论：它通过作者的“检验标准”了吗？至少用上 strikes me as 和 could have been an email。",
+    "writing": "用 200–250 词写一篇短评：你所在的班级、社团或公司里，哪类会最该保留、哪类最该取消？要有让步（Yet / That said）和一个 as if 句子。",
+    "task": {
+      "prompt": "仿照这句，用 X is worth doing only if… 给一件你常做的事（开会、加班、刷题等）定一个“值得做”的标准。",
+      "model": "a meeting is worth having only if it changes something that would not change otherwise"
+    },
+    "tags": [
+      "会议效率",
+      "职场观点"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-work-c1-pushing-back-on-the-boss",
+    "title": "在会上礼貌地反对上司",
+    "title_en": "Disagreeing with Your Manager, Politely",
+    "summary_zh": "经理宣布新系统下月全面上线，Jae-won 支持项目，却反对“一次性全部切换”。读完你能学会在会议中先表态支持、再提出异议、最后给出替代方案的完整说法。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "work",
+    "genre": "dialogue",
+    "body": "Marta: So that's the plan in a nutshell. We migrate every customer to the new dashboard at the start of next month, and we retire the old one the same week, so nobody is stuck maintaining two systems. Any thoughts before I take it upstairs? Jae-won: Can I push back on one part of that? I'm completely behind the new dashboard, so this isn't about the design at all. What worries me is the combination of timing and scale, because we'd be changing everything for everyone in one fell swoop. Marta: Go on. Jae-won: Launched to everyone at once, the new design would leave us with nothing to compare it against. If something confuses people, we won't be able to tell whether the culprit is the layout, the training materials or simply the sheer shock of change. Marta: I take your point, but we've been testing it internally for weeks, and the reactions have been overwhelmingly positive. Jae-won: They have, and that's been genuinely useful, but we know the product inside out and our customers don't. I keep thinking about the last redesign. If we'd tried it on a smaller group first, we probably wouldn't still be answering complaints about it now. Femi: That's fair, and I can vouch for it, since half my week still disappears into those support tickets. Marta: All right, so what would you propose instead? Jae-won: What if we moved a single region across first, say for a fortnight, and kept the legacy version running everywhere else? We could observe how quickly people complete their usual tasks on both versions and iron out any obvious glitches before the full launch. It would cost us two weeks, but it might save us months of clean-up. Marta: And if the pilot goes smoothly? Jae-won: Then we switch everyone over with real evidence behind us, and frankly, that becomes a far easier story to tell the board. Marta: I'll be honest, I'm not thrilled about slipping the date, and I'll have some explaining to do upstairs. But I'd rather be two weeks late than spend the spring apologizing. Let's work out which region makes the most sense, and I'll take the revised plan to leadership on Thursday.",
+    "questions": [
+      {
+        "prompt": "What is Jae-won mainly trying to do in the meeting?",
+        "options": [
+          "Persuade Marta to cancel the new dashboard",
+          "Support the project while changing how it is launched",
+          "Blame the support team for the last redesign",
+          "Ask for more time to improve the design itself"
+        ],
+        "answer": 1,
+        "evidence": "I'm completely behind the new dashboard, so this isn't about the design at all."
+      },
+      {
+        "prompt": "Why does Marta finally accept a later date?",
+        "options": [
+          "The leadership team has already rejected the original date",
+          "The internal tests revealed serious problems",
+          "She prefers a short delay to a long period of fixing problems",
+          "Femi refuses to answer any more support tickets"
+        ],
+        "answer": 2,
+        "evidence": "I'd rather be two weeks late than spend the spring apologizing."
+      }
+    ],
+    "dictation_index": 17,
+    "vocabulary": [
+      {
+        "term": "retire",
+        "meaning": "停用；淘汰（旧系统、旧产品）",
+        "example": "We plan to retire the old website by the end of the year."
+      },
+      {
+        "term": "scale",
+        "meaning": "规模；范围",
+        "example": "Nobody expected a problem on this scale."
+      },
+      {
+        "term": "internally",
+        "meaning": "在内部",
+        "example": "The report was shared internally before it went to clients."
+      },
+      {
+        "term": "frankly",
+        "meaning": "坦白地说",
+        "example": "Frankly, I think the plan needs more work."
+      },
+      {
+        "term": "thrilled",
+        "meaning": "非常兴奋的；（否定时）不太乐意",
+        "example": "I'm not exactly thrilled about working this weekend."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "push back on one part of that",
+        "meaning": "对其中一部分提出异议",
+        "note": "push back on sth 是职场里“提出反对、不完全接受”的常用说法，只针对 one part 能让反对显得克制。"
+      },
+      {
+        "text": "completely behind",
+        "meaning": "完全支持",
+        "note": "be behind sb/sth 表示支持；反对之前先表态支持，是礼貌异议的关键一步。"
+      },
+      {
+        "text": "I take your point",
+        "meaning": "我明白你的意思（但……）",
+        "note": "承认对方有道理，后面通常接 but，是英式职场里很常见的缓冲语。"
+      },
+      {
+        "text": "inside out",
+        "meaning": "了如指掌；里里外外都熟悉",
+        "note": "know sth inside out：对某事熟悉到每个细节，常用于产品、流程、城市。"
+      },
+      {
+        "text": "What if we",
+        "meaning": "要不我们……？",
+        "note": "What if we + 过去式 提出建议，听起来像商量而不是命令，非常适合对上级使用。"
+      },
+      {
+        "text": "slipping the date",
+        "meaning": "推迟日期；延期",
+        "note": "slip 在项目管理里指进度“滑后”，the deadline slipped 即截止日期被推迟。"
+      }
+    ],
+    "grammar": [
+      "subjunctive-mixed",
+      "conditional-modal",
+      "nonfinite-participle"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-mixed",
+        "quote": "If we'd tried it on a smaller group first, we probably wouldn't still be answering complaints about it now.",
+        "explanation": "错综时间条件句：if 从句说过去（we'd = we had tried），主句说现在（wouldn't still be answering now），表示“当初没那样做，导致现在的局面”。"
+      },
+      {
+        "node": "conditional-modal",
+        "quote": "It would cost us two weeks, but it might save us months of clean-up.",
+        "explanation": "承接上句 What if 的假设，would 说比较确定的代价，might 说有可能的收益。提建议时这样搭配情态动词，既坦诚又不夸大。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "Launched to everyone at once, the new design would leave us with nothing to compare it against.",
+        "explanation": "句首过去分词短语 Launched… 表示被动和条件（= If it were launched…），它的逻辑主语正是主句主语 the new design，所以句子成立。"
+      }
+    ],
+    "speaking": "模拟一次会议发言，对上司的某个计划提出异议：先表态支持（I'm completely behind…），再指出一个具体顾虑，最后用 What if we… 给出替代方案。控制在 1 分钟内。",
+    "writing": "用 200–250 词写一封会后邮件，总结你在会上提出的不同意见和替代方案，语气要礼貌但立场清楚，至少用一个错综条件句。",
+    "task": {
+      "prompt": "仿照这句错综条件句，说一件“当初如果……，现在就不会……”的事，可以和学习或工作有关。",
+      "model": "If we'd tried it on a smaller group first, we probably wouldn't still be answering complaints about it now."
+    },
+    "tags": [
+      "会议沟通",
+      "向上沟通"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-work-c1-declining-extra-project",
+    "title": "如何得体地拒绝额外工作",
+    "title_en": "How to Say No Without Closing the Door",
+    "summary_zh": "Mateo 被邀请加入一个跨部门小组，但手上的项目已经满负荷。他的回信既清楚地说“不”，又给出了三个替代方案。读完你能学会一封真诚、不敷衍的拒绝邮件该怎么写。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "work",
+    "genre": "email",
+    "body": "Dear Sunita, Thank you for thinking of me for the new working group. I was genuinely flattered to be asked, and the brief you sent is exactly the kind of problem I enjoy getting stuck into. Had the invitation come a month ago, I would have said yes without a second thought. As things stand, though, I'm going to have to decline. The migration project I'm leading goes live in early spring, and I've promised my team that I'll protect the time they need to finish it properly. Neither the timeline nor the people on my team are the issue; the issue is that I can't give your group the attention it deserves without short-changing them, and I'd rather be honest about that now than become the member who never quite delivers. That said, I don't want to leave you empty-handed, so here are three thoughts. First, Arjun on our analytics team mentioned recently that he'd love to get involved in something cross-functional, and he knows the customer data far better than I do. I haven't said anything to him, so I'll leave it to you whether to approach him. Second, I'd be happy to run a one-hour session for the group early on, walking through the mistakes we made on a similar project, so that you can avoid repeating them. Third, if the group is still running once the migration is behind us, I'd welcome the chance to join for the later stages, when I could contribute properly rather than in fragments. I hope this doesn't come across as a brush-off; it's quite the opposite. I'd much rather say no clearly than say yes and let you down. Let me know if the session would be useful, and I'll find a slot that suits everyone. Warm regards, Mateo",
+    "questions": [
+      {
+        "prompt": "What is the main purpose of Mateo's email?",
+        "options": [
+          "To accept the invitation if he is given more time",
+          "To turn down the invitation while offering other ways to help",
+          "To complain that his team has too much work",
+          "To ask Sunita to delay his current project"
+        ],
+        "answer": 1,
+        "evidence": "That said, I don't want to leave you empty-handed, so here are three thoughts."
+      },
+      {
+        "prompt": "What does Mateo say about Arjun?",
+        "options": [
+          "Arjun has already agreed to join the working group",
+          "Arjun will run the one-hour session instead of Mateo",
+          "Arjun seems interested, but Sunita should decide whether to ask him",
+          "Arjun is too busy with the migration project to help"
+        ],
+        "answer": 2,
+        "evidence": "I haven't said anything to him, so I'll leave it to you whether to approach him."
+      }
+    ],
+    "dictation_index": 2,
+    "vocabulary": [
+      {
+        "term": "flattered",
+        "meaning": "受宠若惊的；感到荣幸的",
+        "example": "I was flattered that they remembered my name."
+      },
+      {
+        "term": "decline",
+        "meaning": "婉拒；谢绝",
+        "example": "She had to decline the offer because of family plans."
+      },
+      {
+        "term": "migration",
+        "meaning": "（系统、数据的）迁移",
+        "example": "The data migration took longer than we expected."
+      },
+      {
+        "term": "contribute",
+        "meaning": "贡献；出力",
+        "example": "Everyone in the team should have a chance to contribute."
+      },
+      {
+        "term": "fragments",
+        "meaning": "碎片；零碎的部分",
+        "example": "I only heard fragments of their conversation."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "without a second thought",
+        "meaning": "想都不想；毫不犹豫",
+        "note": "强调答应得很爽快，常用于虚拟句：I would have said yes without a second thought."
+      },
+      {
+        "text": "As things stand",
+        "meaning": "就目前的情况而言",
+        "note": "正式、客观的过渡语，用来引出“但现实是……”，比 Now 更得体。"
+      },
+      {
+        "text": "short-changing them",
+        "meaning": "亏待他们；让他们吃亏",
+        "note": "short-change sb 原指少找零钱，引申为没有给别人应得的东西（时间、关注等）。"
+      },
+      {
+        "text": "leave you empty-handed",
+        "meaning": "让你空手而归",
+        "note": "拒绝之后马上提供替代方案时的常用过渡：I don't want to leave you empty-handed."
+      },
+      {
+        "text": "come across as a brush-off",
+        "meaning": "显得像是在敷衍你",
+        "note": "come across as 表示“给人……的印象”；brush-off 指冷淡的打发、敷衍。"
+      },
+      {
+        "text": "let you down",
+        "meaning": "让你失望；辜负你",
+        "note": "常见于 I don't want to let you down，语气真诚。"
+      }
+    ],
+    "grammar": [
+      "subjunctive-past",
+      "agreement-either",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-past",
+        "quote": "Had the invitation come a month ago, I would have said yes without a second thought.",
+        "explanation": "省略 if 的倒装虚拟句：Had + 主语 + 过去分词 = If the invitation had come…，表示与过去事实相反，比 if 句更正式、更书面。"
+      },
+      {
+        "node": "agreement-either",
+        "quote": "Neither the timeline nor the people on my team are the issue",
+        "explanation": "neither A nor B 作主语时，谓语遵循就近原则，和离它最近的 the people 一致，所以用复数 are。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "I was genuinely flattered to be asked",
+        "explanation": "形容词 + 不定式说明产生这种情绪的原因；to be asked 是不定式的被动形式，表示“被邀请”这件事本身。"
+      }
+    ],
+    "speaking": "假设同事请你周末帮忙做一个额外项目，用 1 分钟当面婉拒：先感谢，再说明真实原因，最后至少给出一个替代方案。用上 As things stand 和 let you down。",
+    "writing": "用 200–250 词写一封拒绝额外工作的邮件：感谢对方、清楚说明拒绝的理由、提供两个替代方案，并用一个 Had… 倒装虚拟句。",
+    "task": {
+      "prompt": "仿照这句，用 I'd much rather… than… 写一句话，委婉而真诚地拒绝一个请求。",
+      "model": "I'd much rather say no clearly than say yes and let you down."
+    },
+    "tags": [
+      "职场邮件",
+      "拒绝的艺术"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-work-c1-unwritten-onboarding",
+    "title": "入职手册里没写的那些事",
+    "title_en": "What the Onboarding Handbook Leaves Out",
+    "summary_zh": "入职培训教你文件放在哪、表格怎么填，却很少告诉你团队的“潜规则”。这篇文章讲一个简单做法：给每位新人配一个“翻译官”。读完你能学会描述职场文化和融入新环境的高级表达。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "work",
+    "genre": "article",
+    "body": "Most onboarding programmes are built around what can be written down: where the files live, which forms to fill in, who approves holiday requests. All of that matters, but it is rarely what makes a new person feel lost. What unsettles newcomers is the unwritten layer of a workplace, the rules everyone follows and nobody states. Is it acceptable to message the head of department directly? Does \"let's discuss it next week\" mean next week, or never? When a senior colleague calls a draft \"fine\", is that approval or quiet despair? Left to work these things out alone, a capable new hire can spend months misreading signals, and the cost is usually invisible: questions not asked, ideas held back, a reputation for being \"a bit quiet\" that has little to do with personality. Consider Lucía, a team lead who still remembers her own confusing start. If someone had explained the team's habits to her when she joined, she says, she would be far less cautious in meetings even today. Her solution is modest but effective. Every new arrival is paired with a \"translator\", a colleague who is not their manager and who is explicitly given permission to be candid. The translator's job is not to repeat the handbook but to answer the questions people feel too awkward to ask anyone else, and to raise the ones they would never think to ask. The quality of these conversations depends less on a script than on timing, so a five-minute chat after a newcomer's first big meeting is often worth more than a long induction session on day one. None of this replaces the practical checklist. It simply acknowledges that joining a team is less like learning a system and more like arriving in a small country with its own customs, where the most useful guide is someone who still remembers being a foreigner there.",
+    "questions": [
+      {
+        "prompt": "What is the main argument of the article?",
+        "options": [
+          "Onboarding handbooks should be much longer and cover every possible situation",
+          "Managers should personally answer every question a newcomer has",
+          "Quiet employees usually have less to contribute to a team",
+          "New employees need help with a team's unwritten rules, not just its procedures"
+        ],
+        "answer": 3,
+        "evidence": "What unsettles newcomers is the unwritten layer of a workplace, the rules everyone follows and nobody states."
+      },
+      {
+        "prompt": "Why is the \"translator\" deliberately someone other than the newcomer's manager?",
+        "options": [
+          "Because managers are usually too busy to help new staff",
+          "So that newcomers can ask awkward questions more freely",
+          "Because the translator's main task is to explain the handbook",
+          "Because managers often misunderstand the team's habits"
+        ],
+        "answer": 1,
+        "evidence": "to answer the questions people feel too awkward to ask anyone else"
+      }
+    ],
+    "dictation_index": 1,
+    "vocabulary": [
+      {
+        "term": "unsettles",
+        "meaning": "使不安；使心神不宁",
+        "example": "Sudden silence in a meeting unsettles most people."
+      },
+      {
+        "term": "misreading",
+        "meaning": "误读；误解",
+        "example": "He kept misreading her short replies as anger."
+      },
+      {
+        "term": "candid",
+        "meaning": "坦率的；直言不讳的",
+        "example": "Thank you for being so candid about the problems."
+      },
+      {
+        "term": "induction",
+        "meaning": "入职培训；就职引导",
+        "example": "All new staff attend a half-day induction."
+      },
+      {
+        "term": "acknowledges",
+        "meaning": "承认；认可",
+        "example": "The report acknowledges that the plan was too ambitious."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "work these things out",
+        "meaning": "把这些事弄明白",
+        "note": "work sth out 表示“想明白、弄清楚”，比 understand 更强调自己摸索的过程。"
+      },
+      {
+        "text": "ideas held back",
+        "meaning": "没敢说出口的想法",
+        "note": "hold back 表示“克制、保留不说”，常用于 I held back my opinion."
+      },
+      {
+        "text": "has little to do with",
+        "meaning": "和……关系不大",
+        "note": "have nothing / little / a lot to do with 是表达相关程度的高频结构。"
+      },
+      {
+        "text": "feel too awkward to ask",
+        "meaning": "觉得太尴尬而不好意思问",
+        "note": "too + adj + to do 表示“太……以至于不能……”，描述心理障碍很自然。"
+      },
+      {
+        "text": "worth more than",
+        "meaning": "比……更有价值",
+        "note": "比较两种做法的价值时常用：One good example is worth more than ten rules."
+      },
+      {
+        "text": "less like learning a system and more like arriving in a small country",
+        "meaning": "与其说像学一套系统，不如说像来到一个小国家",
+        "note": "less like A and more like B 用比喻纠正常见理解，是随笔和演讲里很有表现力的句型。"
+      }
+    ],
+    "grammar": [
+      "subjunctive-mixed",
+      "nonfinite-participle",
+      "agreement-head"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-mixed",
+        "quote": "If someone had explained the team's habits to her when she joined, she says, she would be far less cautious in meetings even today.",
+        "explanation": "错综条件句：if 从句用 had explained 指过去，主句用 would be 指现在（even today），表示“过去没发生的事，影响延续到现在”。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "Left to work these things out alone, a capable new hire can spend months misreading signals",
+        "explanation": "句首过去分词短语 Left to… 表示被动（被留下独自摸索），逻辑主语就是主句主语 a capable new hire，相当于 If they are left to…"
+      },
+      {
+        "node": "agreement-head",
+        "quote": "The quality of these conversations depends less on a script than on timing",
+        "explanation": "主语中心词是单数 quality，of these conversations 只是修饰语，所以谓语用 depends，而不是 depend。"
+      }
+    ],
+    "speaking": "用 1 分钟介绍你所在的学校、公司或社团的一条“潜规则”，并说说一个新人如果不知道它，可能会遇到什么尴尬。",
+    "writing": "用 200–250 词给一位即将加入你团队或班级的新人写一封信，告诉他/她手册里不会写的三件事。至少用一个错综条件句和 less like A and more like B。",
+    "task": {
+      "prompt": "仿照 less like A and more like B，用一个比喻描述你第一次进入一个新环境（学校、公司、城市）时的感受。",
+      "model": "joining a team is less like learning a system and more like arriving in a small country with its own customs"
+    },
+    "tags": [
+      "入职融入",
+      "职场文化"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

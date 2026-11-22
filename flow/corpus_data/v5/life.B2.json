@@ -1,0 +1,504 @@
+[
+  {
+    "id": "v5-life-b2-learning-to-say-no",
+    "title": "学会拒绝额外的请求",
+    "title_en": "How to Say No to Extra Favours Without Burning Bridges",
+    "summary_zh": "总是答应别人的请求，最后累的是自己。这篇指南教你先争取时间、简短拒绝、再提出替代方案，在不伤感情的前提下学会说“不”。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "life",
+    "genre": "guide",
+    "body": "Marta is the kind of friend and colleague everyone relies on. She waters her neighbour's plants, ferries friends to the airport and stays late to rescue other people's projects. Each request seems small on its own, but together they leave her exhausted, and her generosity is slowly turning into resentment. If this sounds familiar, the problem probably isn't your schedule; it's a word you find hard to say. Saying no feels uncomfortable because we fear it will strain the relationship. In reality, most people respect a clear, friendly answer far more than a reluctant yes. The trick is to distinguish the request from the person: you are turning down a task, not rejecting a friend. Start by buying yourself time. Instead of answering on the spot, try saying, \"Let me check my week and get back to you.\" This gives you space to decide whether you genuinely want to help. If the answer is no, keep your refusal short, because long explanations sound like excuses and invite the other person to argue. A simple \"I'd love to, but I can't take that on right now\" is usually enough. If you would still like to help in a smaller way, you could offer an alternative: you might not be able to help someone move house, but you could lend them some boxes. Finally, expect a little discomfort. The first few times, you may feel guilty, and that is normal. It doesn't mean you have done something wrong; it means you are doing something new. Over time, every no you say makes room for the yeses that really matter.",
+    "questions": [
+      {
+        "prompt": "According to the guide, what makes saying no easier?",
+        "options": [
+          "Giving a long and honest explanation every time",
+          "Saying yes at first and cancelling later",
+          "Seeing it as refusing a task rather than refusing a person",
+          "Avoiding the people who often ask for help"
+        ],
+        "answer": 2,
+        "evidence": "you are turning down a task, not rejecting a friend"
+      },
+      {
+        "prompt": "Why does the writer advise keeping a refusal short?",
+        "options": [
+          "Long explanations can sound like excuses and lead to arguments",
+          "Most people are too busy to listen to long answers",
+          "Short answers help you avoid feeling guilty afterwards",
+          "A short answer shows that you are angry about the request"
+        ],
+        "answer": 0,
+        "evidence": "long explanations sound like excuses and invite the other person to argue"
+      }
+    ],
+    "dictation_index": 4,
+    "vocabulary": [
+      {
+        "term": "resentment",
+        "meaning": "怨气；不满",
+        "example": "If you never say no, small favours can slowly turn into resentment."
+      },
+      {
+        "term": "reluctant",
+        "meaning": "不情愿的；勉强的",
+        "example": "He gave a reluctant smile when they asked him to sing."
+      },
+      {
+        "term": "genuinely",
+        "meaning": "真心地；真正地",
+        "example": "I was genuinely surprised by how kind the stranger was."
+      },
+      {
+        "term": "alternative",
+        "meaning": "替代方案；另一个选择",
+        "example": "If the train is cancelled, the bus is a good alternative."
+      },
+      {
+        "term": "guilty",
+        "meaning": "内疚的",
+        "example": "I felt guilty for forgetting my best friend's birthday."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "turning down",
+        "meaning": "拒绝（邀请、提议、请求）",
+        "note": "turn down 比 refuse 柔和，生活和工作都常用：She turned down the job offer."
+      },
+      {
+        "text": "buying yourself time",
+        "meaning": "给自己争取时间",
+        "note": "buy (yourself) time 与钱无关，指拖延一下、争取考虑的余地。"
+      },
+      {
+        "text": "on the spot",
+        "meaning": "当场；立刻",
+        "note": "常指被要求马上回答：I don't want to decide on the spot."
+      },
+      {
+        "text": "get back to you",
+        "meaning": "回头再答复你",
+        "note": "工作和生活里都很常用的“缓兵之计”，礼貌又不失专业。"
+      },
+      {
+        "text": "take that on",
+        "meaning": "接下（任务、责任）",
+        "note": "take on 指承担额外的工作：I can't take on any more projects this month."
+      },
+      {
+        "text": "makes room for",
+        "meaning": "为……腾出空间",
+        "note": "可以指空间，也可以指时间和精力：make room for what matters。"
+      }
+    ],
+    "grammar": [
+      "agreement-each",
+      "nonfinite-gerund",
+      "conditional-modal"
+    ],
+    "knowledge": [
+      {
+        "node": "agreement-each",
+        "quote": "Each request seems small on its own",
+        "explanation": "each + 单数名词作主语，动词用单数 seems。即使意思上有很多请求，each 强调“一个一个地看”，语法上仍是单数。"
+      },
+      {
+        "node": "nonfinite-gerund",
+        "quote": "Saying no feels uncomfortable because we fear it will strain the relationship.",
+        "explanation": "Saying no 是动名词短语作主语，相当于“拒绝这件事”，谓语用单数 feels。用动名词开头，可以把一个动作当作话题来讨论。"
+      },
+      {
+        "node": "conditional-modal",
+        "quote": "If you would still like to help in a smaller way, you could offer an alternative",
+        "explanation": "主句用 could 而不是 will，表示“可以考虑这样做”，语气比命令柔和；would like 让条件本身也更客气，适合给建议。"
+      }
+    ],
+    "speaking": "用 1 分钟角色扮演：朋友请你周末帮忙搬家，你礼貌拒绝并提出一个替代方案，用上 get back to you 和 I'd love to, but ...。",
+    "writing": "写 120–150 词的建议帖，告诉一个总是不好意思拒绝别人的人三个具体做法，用上 turn down 和 make room for。",
+    "task": {
+      "prompt": "仿照这句，用 I'd love to, but I can't ... right now 礼貌拒绝一个你最近收到的请求。",
+      "model": "I'd love to, but I can't take that on right now"
+    },
+    "tags": [
+      "人际关系",
+      "自我管理"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-life-b2-grandfathers-curry",
+    "title": "复刻爷爷的咖喱",
+    "title_en": "Cooking My Grandfather's Curry from a Card That Said 'Enough'",
+    "summary_zh": "作者找到爷爷的咖喱食谱卡，上面只写着“一些”“足够”“煮到闻起来对”。连续失败后，他终于给爷爷打了电话。一个关于家传味道和隔代沟通的故事。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "life",
+    "genre": "story",
+    "body": "My grandfather's curry was the taste of every school holiday I spent at his house. After he moved into a smaller flat and stopped cooking, my mother found his recipe card, stained yellow and folded into quarters, at the back of a kitchen drawer. I was delighted until I read it. Instead of measurements, it said things like \"some onions\", \"enough ginger\" and \"cook until it smells right\". My first attempt, made on a rainy Sunday afternoon, tasted like a polite stranger's version of his curry. The second was far too salty. By the third, I had started to suspect that the card wasn't really a recipe at all, but a set of reminders written by someone who already knew the answers. So I did what I should have done in the first place: I called him. He laughed when I described the card, then talked me through it for almost an hour. The onions, he said, need far longer than you think; you keep stirring until they turn the colour of strong tea. The spices go in only when the kitchen starts to smell sweet. And \"enough\" simply means you taste it, add a little, and taste it again. If I had asked him years ago, standing next to him at the stove, I would have learned all this by watching. Still, there was something special about learning it over the phone, his voice filling in the gaps the card had left. My fourth curry wasn't perfect, but when I brought him a container of it, he took one spoonful, nodded, and said, \"Now it smells right.\"",
+    "questions": [
+      {
+        "prompt": "What did the writer come to realise about the recipe card?",
+        "options": [
+          "It was missing several important pages",
+          "It was only useful to someone who already knew the dish",
+          "It had been written by his mother, not his grandfather",
+          "It was a recipe for a different kind of curry"
+        ],
+        "answer": 1,
+        "evidence": "a set of reminders written by someone who already knew the answers"
+      },
+      {
+        "prompt": "According to the grandfather, when should the spices go in?",
+        "options": [
+          "Right at the start, together with the onions",
+          "After tasting the curry for salt",
+          "When the kitchen starts to smell sweet",
+          "Just before the curry is served"
+        ],
+        "answer": 2,
+        "evidence": "The spices go in only when the kitchen starts to smell sweet."
+      }
+    ],
+    "dictation_index": 10,
+    "vocabulary": [
+      {
+        "term": "stained",
+        "meaning": "有污渍的；被弄脏的",
+        "example": "His white shirt was stained with coffee."
+      },
+      {
+        "term": "measurements",
+        "meaning": "（用量、尺寸的）计量数据",
+        "example": "Write down the exact measurements before you buy the curtains."
+      },
+      {
+        "term": "suspect",
+        "meaning": "怀疑；猜想（某事可能是真的）",
+        "example": "I suspect that he already knows about the surprise party."
+      },
+      {
+        "term": "stirring",
+        "meaning": "搅拌（stir 的 -ing 形式）",
+        "example": "Keep stirring the soup so it doesn't stick to the pan."
+      },
+      {
+        "term": "attempt",
+        "meaning": "尝试",
+        "example": "She passed her driving test on her second attempt."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "in the first place",
+        "meaning": "一开始；当初",
+        "note": "常和 should have 搭配，表示“早该这么做”：I should have asked in the first place."
+      },
+      {
+        "text": "talked me through it",
+        "meaning": "一步步给我讲解",
+        "note": "talk sb through sth 指用语言手把手地指导，电话教学、技术支持都常用。"
+      },
+      {
+        "text": "far longer than you think",
+        "meaning": "比你想的久得多",
+        "note": "far + 比较级 加强语气；than you think 很口语，提醒别人别低估。"
+      },
+      {
+        "text": "smells right",
+        "meaning": "闻起来对了",
+        "note": "感官动词 + right 表示“感觉对了”：It just feels right. / That sounds right."
+      },
+      {
+        "text": "filling in the gaps",
+        "meaning": "填补空白",
+        "note": "可指补充缺失的信息：Can you fill in the gaps for me? 这里指补上卡片没写的内容。"
+      }
+    ],
+    "grammar": [
+      "subjunctive-past",
+      "nonfinite-participle",
+      "tense-perfect"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-past",
+        "quote": "If I had asked him years ago, standing next to him at the stove, I would have learned all this by watching.",
+        "explanation": "if + had done，主句 would have done，表示与过去事实相反：当年没问，所以没学会。带着遗憾的语气，回忆往事时很好用。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "his recipe card, stained yellow and folded into quarters",
+        "explanation": "stained 和 folded 是过去分词，表示卡片“被弄脏、被折起来”的被动状态，放在名词后作补充说明，比 which was stained ... 更紧凑。"
+      },
+      {
+        "node": "tense-perfect",
+        "quote": "By the third, I had started to suspect that the card wasn't really a recipe at all",
+        "explanation": "by + 过去某个时间点，常配过去完成时 had started，表示在那个时间点之前就已经发生。"
+      }
+    ],
+    "speaking": "用 1 分钟介绍一道家里长辈做的菜：它是什么味道、你会不会做、你最想问长辈什么问题，用上 talk me through。",
+    "writing": "写 120–160 词，讲一件你想向长辈学的事（一道菜、一门手艺），用上一个 If I had ..., I would have ... 的句子。",
+    "task": {
+      "prompt": "仿照这句，用 I did what I should have done in the first place: ... 讲一件你后来才做对的事。",
+      "model": "So I did what I should have done in the first place: I called him."
+    },
+    "tags": [
+      "家庭",
+      "做饭"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-life-b2-family-group-chat",
+    "title": "家庭群里的一场“争吵”",
+    "title_en": "A Family Group Chat Argument About Nonna's Birthday",
+    "summary_zh": "奶奶的生日到底去餐厅还是在家吃？家庭群里兄妹互不相让，爸爸只会回“好的”。一段很真实的群聊，教你争论、调侃和打圆场的地道说法。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "life",
+    "genre": "dialogue",
+    "body": "Mum: Right, everyone — Nonna's birthday is in three weeks and we still haven't decided anything, so is it a restaurant or dinner at home? Luca: Restaurant, obviously, because nobody wants to spend the whole day cooking and then the whole evening washing up. Giulia: Speak for yourself — Nonna can't stand restaurants, and she always says the portions are tiny and the waiters rush her. Luca: She said that once, years ago. Giulia: She says it every single time we take her out — you just never listen! Mum: Please don't start this again, because last year's argument about Dad's birthday went on for a week. Dad: Sounds good. Luca: Sounds good to which option, Dad? Dad: Whichever one involves cake. Giulia: Honestly, I wish this family could agree on one thing without sending forty messages about it. Luca: You've sent half of them. Mum: Enough, both of you — neither the food nor the place is the point. What matters is that she feels celebrated by the people she loves. If Nonna were reading this chat, she would tell us all to stop fussing and just come round on Sunday. Giulia: So dinner at hers, then — we could all cook it together in her kitchen like we used to. Luca: Fine, as long as I'm not in charge of the washing-up. Mum: You're in charge of the washing-up. Luca: I'm leaving the group. Mum: You can't leave the family group, Luca. Dad: Sounds good.",
+    "questions": [
+      {
+        "prompt": "Why does Dad keep writing \"Sounds good\"?",
+        "options": [
+          "He agrees with Luca that a restaurant is better",
+          "He isn't really following the discussion",
+          "He wants to end the argument by making a decision",
+          "He has already booked a table for the family"
+        ],
+        "answer": 1,
+        "evidence": "Sounds good to which option, Dad?"
+      },
+      {
+        "prompt": "What does the family finally seem to decide?",
+        "options": [
+          "To book a quiet restaurant near Nonna's flat",
+          "To let Dad choose because he only cares about cake",
+          "To ask Nonna to cook a big meal for everyone",
+          "To cook dinner together at Nonna's place"
+        ],
+        "answer": 3,
+        "evidence": "we could all cook it together in her kitchen like we used to"
+      }
+    ],
+    "dictation_index": 13,
+    "vocabulary": [
+      {
+        "term": "portions",
+        "meaning": "（食物的）份；份量",
+        "example": "The portions at that café are huge, so we usually share."
+      },
+      {
+        "term": "option",
+        "meaning": "选项；选择",
+        "example": "Taking the train is the cheapest option."
+      },
+      {
+        "term": "celebrated",
+        "meaning": "被庆祝的；被重视的",
+        "example": "On her last day at work, she felt truly celebrated by her team."
+      },
+      {
+        "term": "fussing",
+        "meaning": "瞎操心；小题大做（fuss 的 -ing 形式）",
+        "example": "Stop fussing over my hair, it's fine!"
+      }
+    ],
+    "expressions": [
+      {
+        "text": "Speak for yourself",
+        "meaning": "那只是你自己的想法",
+        "note": "对方把自己的看法说成“大家都这么想”时用来反驳，带点调侃。"
+      },
+      {
+        "text": "can't stand",
+        "meaning": "受不了；非常讨厌",
+        "note": "can't stand + 名词/动名词，比 don't like 强烈得多：I can't stand waiting in queues."
+      },
+      {
+        "text": "start this again",
+        "meaning": "又开始（争论）",
+        "note": "Don't start this again. 劝人别再翻旧账，家人朋友之间很常用。"
+      },
+      {
+        "text": "stop fussing",
+        "meaning": "别再瞎折腾、别小题大做",
+        "note": "fuss 指为小事操心忙乱：Stop fussing, I'm fine."
+      },
+      {
+        "text": "come round",
+        "meaning": "过来（家里）坐坐",
+        "note": "英式口语，指去别人家做客：Come round for dinner on Friday."
+      },
+      {
+        "text": "in charge of",
+        "meaning": "负责",
+        "note": "be in charge of + 名词/动名词，家务分工、工作安排都能用。"
+      }
+    ],
+    "grammar": [
+      "agreement-either",
+      "subjunctive-now",
+      "clause-noun"
+    ],
+    "knowledge": [
+      {
+        "node": "agreement-either",
+        "quote": "neither the food nor the place is the point",
+        "explanation": "neither A nor B 作主语时，动词和离它最近的 B（the place，单数）保持一致，所以用 is。"
+      },
+      {
+        "node": "subjunctive-now",
+        "quote": "If Nonna were reading this chat, she would tell us all to stop fussing and just come round on Sunday.",
+        "explanation": "奶奶并不在群里，所以用 were reading + would tell，表示与现在事实相反的假设。were 可用于所有人称。"
+      },
+      {
+        "node": "clause-noun",
+        "quote": "What matters is that she feels celebrated by the people she loves.",
+        "explanation": "What matters 是名词性从句作主语，that 从句作表语。争论跑题时，用 What matters is that ... 把大家拉回重点。"
+      }
+    ],
+    "speaking": "用 1 分钟描述你家（或朋友群）讨论一件事时的典型场面：谁最爱争、谁总在“潜水”，用上 Speak for yourself 或 in charge of。",
+    "writing": "写 120–150 词，在家庭群里为一次周末聚餐提出一个大家都能接受的折中方案，用上 neither ... nor ... 和 What matters is that ...。",
+    "task": {
+      "prompt": "仿照这句，用 What matters is that ... 在一场分歧中把大家拉回真正重要的事。",
+      "model": "What matters is that she feels celebrated by the people she loves."
+    },
+    "tags": [
+      "家庭",
+      "沟通"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-life-b2-small-habits",
+    "title": "小习惯为什么比大决心管用",
+    "title_en": "Why Small Habits Outlast Big Resolutions",
+    "summary_zh": "雄心勃勃的计划常常撑不过几周，小到“不好意思不做”的习惯却能坚持下来。这篇文章解释其中的原因，并教你把新习惯挂在已有的日常动作上。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "life",
+    "genre": "explainer",
+    "body": "Big resolutions tend to share the same weakness: they depend on how we feel on the day we make them. On a quiet Sunday evening, full of energy, it seems perfectly reasonable to decide that you will run five kilometres before breakfast every day. On a cold, dark Tuesday, after a bad night's sleep, the same plan feels like a punishment. Small habits work differently, because they are designed for your worst days rather than your best ones. Take Jun, who wanted to read more. Instead of promising himself a book a week, he decided to read two pages before bed, no matter how tired he was. Two pages a night sounded almost silly, but that was the point: it was too small to skip. Most nights he read far more than two, and the nights he didn't still counted. The trick is that a habit built this way doesn't rely on motivation; it relies on a cue that already exists in your day. Brushing your teeth, boiling the kettle or locking the front door can all act as triggers for something new. Unless the new action is attached to something you already do, it will compete with everything else for your attention, and it will usually lose. None of this means that ambitious goals are pointless. They give you a direction. But direction alone rarely changes a routine. Changes that last are usually built from steps so small that they feel almost too easy, repeated until they become part of who you are rather than something you have to remember.",
+    "questions": [
+      {
+        "prompt": "According to the text, why do small habits work better than big resolutions?",
+        "options": [
+          "They depend on how motivated you feel each morning",
+          "They give you a clearer long-term direction",
+          "They are designed to be possible even on your worst days",
+          "They are easier to remember because they are new"
+        ],
+        "answer": 2,
+        "evidence": "they are designed for your worst days rather than your best ones"
+      },
+      {
+        "prompt": "What does \"skip\" mean in \"it was too small to skip\"?",
+        "options": [
+          "To do it faster than planned",
+          "To leave it out and not do it",
+          "To repeat it the next day",
+          "To make it more difficult"
+        ],
+        "answer": 1,
+        "evidence": "it was too small to skip"
+      }
+    ],
+    "dictation_index": 3,
+    "vocabulary": [
+      {
+        "term": "resolutions",
+        "meaning": "决心；（新年）计划",
+        "example": "My resolutions for this year are simple: walk more and cook at home."
+      },
+      {
+        "term": "motivation",
+        "meaning": "动力；积极性",
+        "example": "I lose motivation when the weather is grey."
+      },
+      {
+        "term": "cue",
+        "meaning": "提示；信号",
+        "example": "The sound of the bell is the cue for the students to sit down."
+      },
+      {
+        "term": "triggers",
+        "meaning": "触发因素；诱因",
+        "example": "Stress and tiredness are common triggers for bad moods."
+      },
+      {
+        "term": "ambitious",
+        "meaning": "雄心勃勃的；有野心的",
+        "example": "It's an ambitious plan, but I think we can do it."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "tend to",
+        "meaning": "往往会；倾向于",
+        "note": "tend to + 动词原形，让观点不那么绝对，议论文和日常聊天都常用。"
+      },
+      {
+        "text": "a bad night's sleep",
+        "meaning": "一夜没睡好",
+        "note": "英语常说 a good/bad night's sleep，注意 night's 的所有格。"
+      },
+      {
+        "text": "no matter how",
+        "meaning": "无论多么……",
+        "note": "no matter how + 形容词 + 主谓：no matter how busy I am。"
+      },
+      {
+        "text": "too small to skip",
+        "meaning": "小到没理由跳过",
+        "note": "too + 形容词 + to do 表示“太……而不能……”，这里幽默地反用。"
+      },
+      {
+        "text": "act as",
+        "meaning": "充当；起……作用",
+        "note": "act as + 角色/功能：This app acts as a reminder."
+      },
+      {
+        "text": "part of who you are",
+        "meaning": "成为你的一部分",
+        "note": "描述习惯、爱好变成身份认同：Music is part of who I am."
+      }
+    ],
+    "grammar": [
+      "conditional-unless",
+      "nonfinite-participle",
+      "clause-relative"
+    ],
+    "knowledge": [
+      {
+        "node": "conditional-unless",
+        "quote": "Unless the new action is attached to something you already do, it will compete with everything else for your attention",
+        "explanation": "unless = if not：“如果新行为不挂在已有习惯上，就会……”。从句用一般现在时，主句用 will 预测结果。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "a habit built this way doesn't rely on motivation",
+        "explanation": "built this way 是过去分词短语后置修饰 habit，相当于 that is built this way，表示被动：“用这种方式养成的习惯”。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "Changes that last are usually built from steps so small that they feel almost too easy",
+        "explanation": "that last 是限制性定语从句，限定“能持续下去的”那些改变；去掉它，句子就变成“所有改变”，意思完全不同。"
+      }
+    ],
+    "speaking": "用 1 分钟介绍一个你想养成的习惯：把它缩小到“小到不好意思不做”，并说明你会把它挂在哪个已有习惯后面。",
+    "writing": "写 120–160 词，对比你曾经立下的一个“大决心”和一个真正坚持下来的小习惯，用上 unless 和 no matter how。",
+    "task": {
+      "prompt": "仿照这句，用 Instead of ..., I decided to ..., no matter how ... 写一个你能坚持的小习惯。",
+      "model": "Instead of promising himself a book a week, he decided to read two pages before bed, no matter how tired he was."
+    },
+    "tags": [
+      "习惯",
+      "自我管理"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

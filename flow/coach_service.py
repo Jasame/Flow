@@ -18,6 +18,7 @@ def schema(c):
  CREATE TABLE IF NOT EXISTS coach_drafts(user_id INTEGER PRIMARY KEY REFERENCES users(id),message TEXT,updated REAL);''')
  if 'pinned' not in {r[1] for r in c.execute('PRAGMA table_info(coach_memories)')}:c.execute('ALTER TABLE coach_memories ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0')
  for skill,title in [('vocabulary','词汇'),('grammar','语法')]:c.execute('INSERT OR IGNORE INTO kg_nodes VALUES(?,?,?,NULL,?)',('skill:'+skill,'skill',title,skill))
+ if 'support' not in {r[1] for r in c.execute('PRAGMA table_info(coach_assessments)')}:c.execute("ALTER TABLE coach_assessments ADD COLUMN support TEXT NOT NULL DEFAULT '{}'")
  c.execute("INSERT OR IGNORE INTO migrations VALUES('2.0')")
 
 def begin(c,uid):
@@ -29,7 +30,8 @@ def begin(c,uid):
 def assess(c,uid,data):
  from lab_service import text
  token=data.get('token');answers=data.get('answers');goal=text(data.get('goal'),maximum=300);interests=text(data.get('interests',''),minimum=0,maximum=300);minutes=data.get('minutes');writing=text(data.get('writing',''),minimum=0,maximum=1500)
- if type(minutes)!=int or minutes not in (5,10,15,20,30,45,60) or not isinstance(answers,dict) or set(answers)!={p['id'] for p in ITEMS}:raise ValueError('请完成起点检查与目标设置')
+ import settings_service as store
+ if type(minutes)!=int or minutes not in store.MINUTES or not isinstance(answers,dict) or set(answers)!={p['id'] for p in ITEMS}:raise ValueError('请完成起点检查与目标设置')
  c.execute('BEGIN IMMEDIATE');row=c.execute('SELECT * FROM coach_assessments WHERE token=? AND user_id=?',(token,uid)).fetchone()
  if not row or row['expires']<time.time():raise ValueError('测评已过期，请重新开始')
  signature=json.dumps({'answers':answers,'goal':goal,'interests':interests,'minutes':minutes,'writing':writing},sort_keys=True,ensure_ascii=False)
@@ -37,23 +39,44 @@ def assess(c,uid,data):
   if row['answers']!=signature:c.rollback();return {'error':'该测评已提交，请重新建立起点'},409
   c.rollback();return json.loads(row['result']),200
  scores={s:{'correct':0,'total':0,'hinted':0,'skipped':0} for s in SKILLS};out=[];valid=[]
+ # Support shown during the check is recorded by the server; a client flag can only add support, never remove it.
+ recorded=json.loads(row['support'] or '{}')
  for p in ITEMS:
   value=answers[p['id']]
   if not isinstance(value,dict) or (value.get('choice') is not None and (type(value.get('choice'))!=int or value.get('choice') not in (0,1,2,3))) or type(value.get('hinted',False))!=bool:raise ValueError('答案格式不正确')
-  choice=value.get('choice');hinted=value.get('hinted',False);correct=None if choice is None else choice==p['answer'];s=scores[p['skill']]
+  choice=value.get('choice');hinted=bool(value.get('hinted',False) or recorded.get(p['id']));correct=None if choice is None else choice==p['answer'];s=scores[p['skill']]
   if choice is None:s['skipped']+=1
   else:s['total']+=1;s['correct']+=int(correct);s['hinted']+=int(hinted)
   if correct is not None and not hinted:valid.append((p['tier'],correct))
   out.append({'id':p['id'],'skill':p['skill'],'correct':correct,'hinted':hinted,'answer':p['answer']})
   events.record(c,uid,p['node'] if p['skill']=='grammar' else 'skill:'+p['skill'],'placement:'+token+':'+p['id'],'placement',p['id'],'placement:'+p['id'],correct,hinted if choice is not None else None,'rule',{'tier':p['tier']})
  ratio=sum(int(x[1]) for x in valid)/len(valid) if valid else 0
- band='B2' if len(valid)>=6 and ratio>=.85 and sum(t==3 and ok for t,ok in valid)>=2 else 'B1' if len(valid)>=4 and ratio>=.55 and sum(t>=2 and ok for t,ok in valid)>=2 else 'A2'
- basic=len(valid)<4 or ratio<.5
- result={'mode':'foundation' if basic else 'standard','label':'起点待校准 · 基础起步' if basic else band,'band':band,'scores':scores,'items':out,'writing':writing,'note':'这是有限题量下的建议起点，不是认证CEFR水平；跳过、提示与尚未采集的口语写作不能当作已掌握。'}
+ # Too few valid answers means the starting point is unknown; no band is invented.
+ measured=len(valid)>=4
+ band=None if not measured else 'B2' if len(valid)>=6 and ratio>=.85 and sum(t==3 and ok for t,ok in valid)>=2 else 'B1' if ratio>=.55 and sum(t>=2 and ok for t,ok in valid)>=2 else 'A2'
+ support=data.get('support')
+ if support not in (None,'basic','standard'):raise ValueError('学习方式不正确')
+ suggested='basic' if not measured or ratio<.5 else 'standard'
+ chosen=support or suggested
+ result={'mode':'foundation' if chosen=='basic' else 'standard','mode_source':'chosen' if support else 'suggested','suggested_mode':suggested,'measured':measured,'valid_answers':len(valid),'status':'measured' if measured else 'unknown',
+  'label':('起点检查建议：'+band) if measured else '起点待了解','band':band,'scores':scores,'items':out,'writing':writing,
+  'note':('这是有限题量下的建议起点，不是认证CEFR水平；跳过、提示与尚未采集的口语写作不能当作已掌握。' if measured else '有效作答少于4题（跳过或看过提示的题不计），暂不判断起点。先从短练习开始，系统会按真实表现逐步校准。'),
+  'mode_note':'基础起步是一种学习支持方式，你可以随时切换；它不是水平判断。'}
  now=time.time();c.execute('INSERT INTO coach_profiles VALUES(?,?,?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET goal=excluded.goal,interests=excluded.interests,minutes=excluded.minutes,placement=excluded.placement,updated=excluded.updated',(uid,goal,interests,minutes,json.dumps(result,ensure_ascii=False),now,now))
+ store.save(c,uid,{'goal':goal,'interests':interests,'minutes':minutes},'placement',commit=False)
+ if support:c.execute('INSERT OR REPLACE INTO foundation_preferences(user_id,mode) VALUES(?,?)',(uid,support))
  c.execute("UPDATE coach_assessments SET status='complete',answers=?,result=? WHERE token=?",(signature,json.dumps(result,ensure_ascii=False),token))
- c.execute('INSERT INTO lab_profile(user_id,level) VALUES(?,?) ON CONFLICT(user_id) DO UPDATE SET level=excluded.level',(uid,band))
+ if measured:c.execute('INSERT INTO lab_profile(user_id,level) VALUES(?,?) ON CONFLICT(user_id) DO UPDATE SET level=excluded.level',(uid,band))
  c.commit();return result,200
+
+def placement_support(c,uid,data):
+ """Record that support (for example the listening transcript) was shown for one starting-check item."""
+ token=data.get('token');item=data.get('item')
+ if not isinstance(item,str) or item not in {p['id'] for p in ITEMS}:raise ValueError('题目不正确')
+ c.execute('BEGIN IMMEDIATE');row=c.execute("SELECT support,status FROM coach_assessments WHERE token=? AND user_id=?",(token,uid)).fetchone()
+ if not row or row['status']!='active':c.rollback();return {'error':'起点检查不存在或已提交'},409
+ sup=json.loads(row['support'] or '{}');sup[item]=True
+ c.execute('UPDATE coach_assessments SET support=? WHERE token=?',(json.dumps(sup),token));c.commit();return {'ok':True,'note':'看过原文的题会记为有支持的作答，不用于判断起点。'},200
 
 def sync_missions(c,uid):
  changed=False
@@ -80,10 +103,13 @@ def sync_missions(c,uid):
 def mission_list(c,uid):
  sync_missions(c,uid);out=[dict(r) for r in c.execute('SELECT * FROM coach_missions WHERE user_id=? ORDER BY chapter DESC,created,id LIMIT 120',(uid,))]
  for m in out:
+  m['participation']='done' if m['status']=='done' else m['status']
   m['learning_status']='待练习' if m['status']=='active' else '已归档' if m['status']=='archived' else '已参与，待独立验证'
+  m['performance']=None
   if m['status']=='done' and m['skill'] in ('vocabulary','grammar'):
    node=lex.node_id(m['entry']) if m['entry'] else m['node'];state=events.state(c,uid,node)
    m['learning_status']='已参与，需补练' if state['state'] in ('需要巩固','提示后完成') else '已有独立证据' if state['independent'] else '已参与，待独立验证'
+   m['performance']=__import__('state_service').LABELS.get(state['state'],state['state'])
   if m['status']=='done' and m['skill']=='writing':
    m['learning_status']='已参与；AI任务核对不等于独立掌握'
    if not m['completion'].startswith('work:'):m['learning_status']='历史参与记录，任务要求待核对'
@@ -117,7 +143,8 @@ def retrieved(c,uid,message):
 def prompt_context(c,uid,message,mission=None):
  profile=c.execute('SELECT * FROM coach_profiles WHERE user_id=?',(uid,)).fetchone()
  if not profile:raise ValueError('请先建立学习起点')
- profile=dict(profile);placement=json.loads(profile['placement']);profile={'goal':profile['goal'],'interests':profile['interests'],'minutes':profile['minutes'],'starting_band':placement['band'],'starting_evidence':placement['scores'],'writing_sample':placement.get('writing','')[:400]}
+ profile=dict(profile);placement=json.loads(profile['placement']);st=__import__('settings_service').get(c,uid);status=__import__('settings_service').placement_status(placement)
+ profile={'goal':st['goal'],'interests':st['interests'],'minutes':st['minutes'],'starting_band':status['measured_band'],'starting_status':status['status'],'target_level':st['target_level'],'starting_evidence':placement['scores'],'writing_sample':placement.get('writing','')[:400]}
  from growth_service import review_queue,difficulty,settings
  profile['foundation_recent']=[{'lesson':r['lesson'],'answer':r['answer'][:150],'step':r['step'],'guided':True} for r in c.execute('SELECT lesson,answer,step FROM foundation_progress WHERE user_id=? ORDER BY updated DESC LIMIT 2',(uid,))]
  profile['learning_mode']='foundation' if __import__('foundation_service').is_basic(c,uid) else 'standard'
@@ -125,7 +152,8 @@ def prompt_context(c,uid,message,mission=None):
  profile['skill_practice_levels']={s:v['level'] for s,v in __import__('practice_service').bands(c,uid).items()}
  missions=mission_list(c,uid);memories=select_memories(c,uid,message)
  from learning_service import evidence
- nodes=evidence(c,uid);weak=[{'id':n['id'],'title':n['title'],'state':n['state'],'questions':n['distinct']} for n in nodes if n['state']!='初步稳定'][:5]
+ nodes=evidence(c,uid);# Same projection as every page: only items with recorded checks that are not currently stable.
+ weak=[{'id':n['id'],'title':n['title'],'state':n['label'],'purpose':n['purpose_label'],'basis':n['basis']} for n in nodes if n['state'] in ('需要巩固','提示后完成')][:5]
  theme='travel' if re.search(r'旅行|旅游|travel',profile['goal']+' '+profile['interests'],re.I) else 'work' if re.search(r'工作|职场|work',profile['goal'],re.I) else 'campus'
  candidates=[]
  for r in c.execute("SELECT l.id,l.lemma,l.content,e.due FROM lexicon l LEFT JOIN vocab_enroll e ON e.entry=l.id AND e.user_id=? WHERE l.status='published' AND (l.owner IS NULL OR l.owner=?)",(uid,uid)):
@@ -260,6 +288,7 @@ def get(c,uid,path,q):
 def post(c,uid,path,data):
  if path=='/api/coach/placement/start':return begin(c,uid)
  if path=='/api/coach/placement/submit':return assess(c,uid,data)
+ if path=='/api/coach/placement/support':return placement_support(c,uid,data)
  if path=='/api/coach/chat':return chat(c,uid,data)
  if path=='/api/coach/draft':
   from lab_service import text
@@ -282,7 +311,10 @@ def post(c,uid,path,data):
   c.execute('UPDATE coach_memories SET pinned=? WHERE id=? AND user_id=?',(int(pinned),data['id'],uid));c.commit();return {'ok':True},200
  if path=='/api/coach/profile':
   from lab_service import text
-  goal=text(data.get('goal'),maximum=300);interests=text(data.get('interests',''),minimum=0,maximum=300);minutes=data.get('minutes')
-  if type(minutes)!=int or minutes not in (5,10,15,20,30,45,60):raise ValueError('时间不正确')
-  c.execute('UPDATE coach_profiles SET goal=?,interests=?,minutes=?,updated=? WHERE user_id=?',(goal,interests,minutes,time.time(),uid));c.commit();return {'ok':True},200
+  import settings_service as store
+  change={'goal':text(data.get('goal'),maximum=300),'interests':text(data.get('interests',''),minimum=0,maximum=300),'minutes':data.get('minutes')}
+  if 'version' in data:change['version']=data['version']
+  try:saved=store.save(c,uid,change,'coach')
+  except store.Conflict as e:c.rollback();return {'error':'设置已在其他页面更新，请确认后再保存。','current':e.current},409
+  return {'ok':True,'version':saved['version']},200
  return None

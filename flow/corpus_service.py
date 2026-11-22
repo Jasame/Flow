@@ -20,14 +20,14 @@ def catalog(c,uid):
  for r in c.execute("SELECT pack,skill,stamp FROM (SELECT pack,skill,updated stamp FROM lab_drafts WHERE user_id=? AND trim(answer)!='' UNION ALL SELECT pack,skill,created stamp FROM lab_work WHERE user_id=?) ORDER BY stamp DESC",(uid,uid)):
   lastskills.setdefault(r['pack'],r['skill'])
  out=[]
- for row in c.execute("""SELECT * FROM lab_packs WHERE (owner IS NULL AND (origin!='daily' OR created>?)) OR owner=? OR id IN (SELECT pack FROM lab_bookmarks WHERE user_id=?) ORDER BY CASE WHEN origin='daily' THEN 0 WHEN owner IS NULL THEN 1 ELSE 2 END,created DESC LIMIT 500""",(time.time()-90*86400,uid,uid)):
+ for row in c.execute("""SELECT * FROM lab_packs WHERE (owner IS NULL AND (origin!='daily' OR created>?)) OR owner=? OR id IN (SELECT pack FROM lab_bookmarks WHERE user_id=?) ORDER BY CASE WHEN origin='daily' THEN 0 WHEN owner IS NULL THEN 1 ELSE 2 END,created DESC LIMIT 2000""",(time.time()-90*86400,uid,uid)):
   quality=__import__('quality_service').info(c,row)
   if quality['status']=='disabled':continue
   p=json.loads(row['content'])
   from content_v30 import SUPERSEDED
   if p['id'] in SUPERSEDED and p['id'] not in saved and p['id'] not in drafts:continue
   m=metadata(p);words=len(p['body'].split())
-  out.append({k:p[k] for k in ('id','title','level','theme')}|m|{'quality':{'status':quality['status'],'warnings':quality['checks']['warnings']},'origin':row['origin'],'daily_day':p.get('daily_day'),'words':words,'minutes':__import__('practice_service').metadata(p)['minutes'],'preview':p['body'][:160],
+  out.append({k:p[k] for k in ('id','title','level','theme')}|m|{'quality':{'status':quality['status'],'warnings':quality['checks']['warnings']},'origin':row['origin'],'daily_day':p.get('daily_day'),'revision':bool(p.get('revision_of')),'words':words,'minutes':__import__('practice_service').metadata(p)['minutes'],'preview':p['body'][:160],
     'grading':__import__('practice_service').metadata(p),'search_text':' '.join([p['title'],p['body'],THEME_NAMES.get(p['theme'],''),*m['tags'],*(w['term'] for w in p['vocabulary'])]),'saved':p['id'] in saved,'recorded_skills':progress.get(p['id'],[]),'has_draft':p['id'] in drafts,'resume_skill':lastskills.get(p['id'])})
  ranked,_=__import__('practice_service').rank(c,uid,c.execute('SELECT * FROM lab_packs WHERE owner IS NULL OR owner=?',(uid,)).fetchall())
  order={r['pack']['id']:i for i,r in enumerate(ranked)}

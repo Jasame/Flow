@@ -1,0 +1,495 @@
+[
+  {
+    "id": "v5-culture-b1-thumbs-up-emoji",
+    "title": "一个点赞表情引发的误会",
+    "title_en": "The Thumbs-Up That Sounded Cold",
+    "summary_zh": "Hana 回复同事的长消息只发了一个点赞表情，对方却以为她在敷衍。这封解释邮件教你怎么化解误会，也示范了 I wish I had... 和 If I wrote..., you would... 的用法。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "culture",
+    "genre": "email",
+    "body": "Hi Leo, I think I owe you an explanation about yesterday. When you sent me your long message about the new design, I replied with a single thumbs-up. To me, that meant: Great idea, I'm in! Then Priya mentioned at lunch that you seemed a bit hurt, and that you had read it as \"fine, whatever\". I felt terrible. I had spent ten minutes reading your plan carefully, and I really liked it. In my family chat, a thumbs-up is the happiest thing you can send, so I never imagined it could sound cold. I wish I had a button that showed my tone of voice! If I wrote \"Great idea!\" in words, you would probably hear the warmth I meant. So, to be clear: I love the plan, especially the part about testing two colours. Shall we meet on Thursday to talk it through? From now on, I'll use full sentences for anything important and save the emoji for lunch plans. Best, Hana",
+    "questions": [
+      {
+        "prompt": "What is the main purpose of Hana's email?",
+        "options": [
+          "To complain that Leo's message was far too long",
+          "To explain what her emoji meant and show she likes the plan",
+          "To ask Priya to stop talking about her at lunch",
+          "To say politely that she has no time for the project"
+        ],
+        "answer": 1,
+        "evidence": "To me, that meant: Great idea, I'm in!"
+      },
+      {
+        "prompt": "What will Hana do differently from now on?",
+        "options": [
+          "Stop using her family chat",
+          "Only send messages at lunchtime",
+          "Write full sentences when a message really matters",
+          "Ask Priya to check her messages before she sends them"
+        ],
+        "answer": 2,
+        "evidence": "I'll use full sentences for anything important"
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {
+        "term": "explanation",
+        "meaning": "解释；说明",
+        "example": "The manager gave a short explanation for the delay."
+      },
+      {
+        "term": "hurt",
+        "meaning": "（感情上）受伤的；难过的",
+        "example": "She felt hurt when nobody remembered her birthday."
+      },
+      {
+        "term": "tone",
+        "meaning": "语气；口吻",
+        "example": "I didn't mind what he said, but I didn't like his tone."
+      },
+      {
+        "term": "warmth",
+        "meaning": "温暖；热情",
+        "example": "You could hear the warmth in her voice when she talked about her old school."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "I owe you an explanation",
+        "meaning": "我得跟你解释一下",
+        "note": "主动澄清误会时的开场白，诚恳又不卑微"
+      },
+      {
+        "text": "I'm in!",
+        "meaning": "算我一个！我参加！",
+        "note": "口语，表示同意加入某个计划；反过来说 I'm out."
+      },
+      {
+        "text": "read it as",
+        "meaning": "把它理解成……",
+        "note": "read sth as... 指对文字、表情、语气的解读：Don't read my silence as anger."
+      },
+      {
+        "text": "to be clear",
+        "meaning": "说清楚一点；明确地说",
+        "note": "强调接下来的话是重点，避免再次误会"
+      },
+      {
+        "text": "talk it through",
+        "meaning": "把事情好好谈一谈",
+        "note": "职场常用，指坐下来把问题从头到尾聊清楚"
+      },
+      {
+        "text": "From now on",
+        "meaning": "从今以后",
+        "note": "表示改变做法的决心，常放在句首"
+      }
+    ],
+    "grammar": [
+      "subjunctive-now",
+      "conditional-modal",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-now",
+        "quote": "I wish I had a button that showed my tone of voice!",
+        "explanation": "I wish + 过去式（had）表示对现在的遗憾：现实中并没有这样的按钮。虽然用过去式，说的却是现在。"
+      },
+      {
+        "node": "conditional-modal",
+        "quote": "If I wrote \"Great idea!\" in words, you would probably hear the warmth I meant.",
+        "explanation": "If + 过去式，主句 would + 动词原形，假设一个当时没做的做法及其结果；probably 让推测更委婉。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "Shall we meet on Thursday to talk it through?",
+        "explanation": "to talk it through 是不定式表目的，说明“见面是为了什么”。提议见面时加上目的，对方更容易答应。"
+      }
+    ],
+    "speaking": "讲一次你因为一个表情或一句很短的消息被误会（或误会别人）的经历：发了什么、对方怎么理解、后来怎么解释清楚。1 分钟。",
+    "writing": "写一封 100–120 词的英文邮件，向朋友解释一条被误会的消息，用上 I owe you an explanation、to be clear 和一个 I wish I... 句子。",
+    "task": {
+      "prompt": "仿照这句，用 I wish I had... 说一个你希望拥有、能解决沟通问题的“小工具”。",
+      "model": "I wish I had a button that showed my tone of voice!"
+    },
+    "tags": [
+      "网络沟通",
+      "误会与沟通"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-b1-theatre-first-night",
+    "title": "第一次去剧院看戏要注意什么",
+    "title_en": "Your First Night at the Theatre: A Simple Guide",
+    "summary_zh": "第一次进剧院，不知道几点到、能不能吃东西、什么时候鼓掌？这篇小指南告诉你：剧院礼仪大多就是常识，放松享受就好。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "culture",
+    "genre": "guide",
+    "body": "Going to the theatre for the first time can feel a little scary, but the rules are mostly common sense. First, try to arrive at least twenty minutes early to find your seat and visit the toilet. Latecomers may be asked to wait outside until a suitable break, so that the people already sitting are not disturbed. Once you are seated, switch your phone off completely, not just to silent. A glowing screen in a dark room is surprisingly bright, and even a quick glance at a message can annoy the people around you. What about food? Either a few quiet sweets or a bottle of water is usually fine, but noisy packets are not. If you feel a cough coming, you might want to keep a sweet ready, or wait for a loud moment in the music. Clapping is easy: just follow the audience. People often clap after a big song, and everyone claps when the actors come out to bow at the end. Don't worry about dressing up, either. Nobody will mind what you wear, as long as you are comfortable. Above all, relax and let the story carry you along.",
+    "questions": [
+      {
+        "prompt": "What is the overall message of this guide?",
+        "options": [
+          "First-timers need to learn many strict rules before they go",
+          "Theatre manners are mostly common sense, so there is no need to be nervous",
+          "You should dress up to show respect to the actors",
+          "It is best to sit near the door in case you arrive late"
+        ],
+        "answer": 1,
+        "evidence": "the rules are mostly common sense"
+      },
+      {
+        "prompt": "Why does the writer say you should switch your phone off completely?",
+        "options": [
+          "Phones can interfere with the stage lights",
+          "Staff check every phone at the door",
+          "Even silent mode still makes a small noise",
+          "A bright screen in the dark can bother other people"
+        ],
+        "answer": 3,
+        "evidence": "A glowing screen in a dark room is surprisingly bright"
+      }
+    ],
+    "dictation_index": 3,
+    "vocabulary": [
+      {
+        "term": "disturbed",
+        "meaning": "被打扰的",
+        "example": "Please keep your voice down so the baby isn't disturbed."
+      },
+      {
+        "term": "glance",
+        "meaning": "一瞥；扫一眼",
+        "example": "One glance at the sky told me it was going to rain."
+      },
+      {
+        "term": "packets",
+        "meaning": "（食品的）小包装袋",
+        "example": "He always carries a few packets of tissues in his bag."
+      },
+      {
+        "term": "bow",
+        "meaning": "鞠躬；谢幕",
+        "example": "The singer stopped to bow before the last song."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "common sense",
+        "meaning": "常识；基本判断",
+        "note": "It's just common sense. 表示“这不用教，按常理来就行”"
+      },
+      {
+        "text": "switch your phone off",
+        "meaning": "把手机关机",
+        "note": "switch off 关掉（电器）；对比 put it on silent 调成静音"
+      },
+      {
+        "text": "Don't worry about dressing up",
+        "meaning": "不用特意打扮",
+        "note": "dress up 盛装打扮；worry about + 动名词"
+      },
+      {
+        "text": "as long as you are comfortable",
+        "meaning": "只要你舒服就行",
+        "note": "as long as 引出唯一的条件，语气宽松友好"
+      },
+      {
+        "text": "Above all",
+        "meaning": "最重要的是",
+        "note": "放在列举的最后，引出最想强调的一点"
+      },
+      {
+        "text": "let the story carry you along",
+        "meaning": "让故事带着你走",
+        "note": "carry sb along 指被音乐、故事、气氛带动，形象又自然"
+      }
+    ],
+    "grammar": [
+      "nonfinite-infinitive",
+      "agreement-either",
+      "conditional-modal"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "try to arrive at least twenty minutes early to find your seat and visit the toilet",
+        "explanation": "try to arrive 是不定式作宾语；后面的 to find... and visit... 是不定式表目的，说明“为什么要早到”。"
+      },
+      {
+        "node": "agreement-either",
+        "quote": "Either a few quiet sweets or a bottle of water is usually fine",
+        "explanation": "either A or B 作主语时，谓语和离它最近的 B 保持一致：a bottle of water 是单数，所以用 is。"
+      },
+      {
+        "node": "conditional-modal",
+        "quote": "If you feel a cough coming, you might want to keep a sweet ready",
+        "explanation": "条件句主句用 might want to，比 you must 委婉得多，是给建议时很常用的礼貌说法。"
+      }
+    ],
+    "speaking": "用 1 分钟给第一次去电影院、音乐会或博物馆的朋友讲三条礼仪，用上 Above all 和 as long as。",
+    "writing": "写一篇 100–130 词的小指南：第一次去某个场所（如球赛现场、茶馆、音乐节）要注意什么，至少用上一个 Either... or... 句子。",
+    "task": {
+      "prompt": "仿照这句，用 try to... to... 给第一次去某个场所的人一条建议。",
+      "model": "try to arrive at least twenty minutes early to find your seat"
+    },
+    "tags": [
+      "剧院礼仪",
+      "实用指南"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-b1-book-club-ending",
+    "title": "读书会为结局吵起来了",
+    "title_en": "The Book Club Can't Agree on the Ending",
+    "summary_zh": "读书会三个人为一本书的开放式结局争个不停：有人觉得“戛然而止”，有人觉得“恰到好处”。听他们怎么礼貌又不客气地表达不同意见。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "culture",
+    "genre": "dialogue",
+    "body": "Tara: OK, be honest, did anyone actually like the ending? Ben: I did! The sister finally leaves the village, carrying nothing but her father's old radio, and I thought it was perfect. Tara: Perfect? It just stops in the middle of a scene! I wish the book had one more chapter. Ollie: I'm with Tara on this one. Neither the sister nor her brothers explain why they stopped speaking. Ben: That's the point, though, because some things in families never get explained. Ollie: Maybe, but if I wrote a story like that, my readers would ask for their money back. Ben: Your readers are your mum and your cat. Tara: Ha! Seriously, though, either you or I am reading it wrong. Ben: Or we're both right. Look, you two have been arguing about it for forty minutes, and that means it worked. Tara: Hmm, that sounds like a clever way of saying it's a bad ending. Ben: No, it's a clever way of saying it's a brave one. Ollie: Fine, but next month I'm choosing the book, and it's going to have a happy ending.",
+    "questions": [
+      {
+        "prompt": "Why does Ben think the ending works?",
+        "options": [
+          "It explains clearly why the family stopped speaking",
+          "It is happy, so every reader enjoys it",
+          "It keeps readers thinking and talking about the story",
+          "It was the only part that Tara and Ollie liked"
+        ],
+        "answer": 2,
+        "evidence": "you two have been arguing about it for forty minutes, and that means it worked"
+      },
+      {
+        "prompt": "What does Tara wish the book had?",
+        "options": [
+          "A happier main character",
+          "Another chapter at the end",
+          "Fewer brothers and sisters",
+          "A shorter first part"
+        ],
+        "answer": 1,
+        "evidence": "I wish the book had one more chapter."
+      }
+    ],
+    "dictation_index": 7,
+    "vocabulary": [
+      {
+        "term": "village",
+        "meaning": "村庄",
+        "example": "My grandparents still live in a small village by the river."
+      },
+      {
+        "term": "chapter",
+        "meaning": "（书的）章",
+        "example": "I only meant to read one chapter, but I finished the whole book."
+      },
+      {
+        "term": "clever",
+        "meaning": "聪明的；巧妙的",
+        "example": "That's a clever way to remember new words."
+      },
+      {
+        "term": "brave",
+        "meaning": "勇敢的；大胆的",
+        "example": "It was brave of her to sing in front of the whole school."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "be honest",
+        "meaning": "说实话",
+        "note": "邀请对方说真心话：Be honest, do you like my haircut?"
+      },
+      {
+        "text": "I'm with Tara",
+        "meaning": "我同意 Tara 的看法",
+        "note": "I'm with sb (on this one) 表示在这件事上站在某人一边，比 I agree 更口语"
+      },
+      {
+        "text": "That's the point",
+        "meaning": "这正是重点；就是要这样",
+        "note": "反驳别人时用：对方说的“缺点”恰恰是你认为的用意"
+      },
+      {
+        "text": "ask for their money back",
+        "meaning": "要求退钱",
+        "note": "ask for a refund 的口语说法，也常用来开玩笑说某样东西很差"
+      },
+      {
+        "text": "Seriously, though",
+        "meaning": "说正经的",
+        "note": "开完玩笑后把话题拉回正题"
+      },
+      {
+        "text": "a clever way of saying",
+        "meaning": "换个好听的说法",
+        "note": "That's a nice way of saying... 指出对方在委婉地表达某个意思"
+      }
+    ],
+    "grammar": [
+      "agreement-either",
+      "subjunctive-now",
+      "nonfinite-participle"
+    ],
+    "knowledge": [
+      {
+        "node": "agreement-either",
+        "quote": "either you or I am reading it wrong",
+        "explanation": "either A or B 作主语时，谓语跟最近的 B 一致：离动词最近的是 I，所以用 am，而不是 are。"
+      },
+      {
+        "node": "subjunctive-now",
+        "quote": "I wish the book had one more chapter.",
+        "explanation": "wish 后面用过去式 had，表示与现在事实相反的愿望：这本书现在并没有多一章。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "The sister finally leaves the village, carrying nothing but her father's old radio",
+        "explanation": "carrying... 是现在分词短语，补充主语离开时的伴随动作，比再写一个 and she carries 更紧凑。"
+      }
+    ],
+    "speaking": "选一本你读过或一部你看过、结局有争议的作品，用 1 分钟说说你喜不喜欢结局，用上 That's the point 或 I'm with...。",
+    "writing": "写 100–120 词，为读书会准备一段发言：你对一部作品结局的看法和理由，至少用上一个 I wish... 句子和一个 neither... nor... 句子。",
+    "task": {
+      "prompt": "仿照这句，用 I wish ... had ... 说说你希望一本书或一部剧“多了点什么”。",
+      "model": "I wish the book had one more chapter."
+    },
+    "tags": [
+      "读书会",
+      "表达不同意见"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-b1-two-languages-home",
+    "title": "在两种语言里长大",
+    "title_en": "Growing Up with Two Languages at Home",
+    "summary_zh": "Leila 从小妈妈跟她说一种语言、爸爸说英语。她聊了小时候的尴尬、现在怎样不让妈妈的语言“溜走”，以及她想对小时候的自己说的话。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "culture",
+    "genre": "interview",
+    "body": "Q: Which languages did you speak at home? Leila: My mum spoke to me in her language, and my dad spoke English. They wanted me to keep both, so they never mixed them up. Q: Was that confusing? Leila: Not really. As a child, I just thought every family had two ways of saying everything. Q: Do you have a favourite language? Leila: It depends on the topic. For feelings, I usually choose my mum's language, but for work I find English easier. Q: Did you ever feel embarrassed? Leila: Sometimes, especially when my mum called to me across the playground and the other kids turned around to stare. I wish I could tell that little girl how lucky she was. Q: What's the hardest part now? Leila: Keeping my mum's language strong. If I go a week without using it, I can feel the words slipping away. So I call my aunt every Sunday just to chat. Q: Would you do the same with your own children one day? Leila: Definitely, because I'd want them to have both, even if it takes a lot of patience.",
+    "questions": [
+      {
+        "prompt": "How does Leila feel now about growing up with two languages?",
+        "options": [
+          "She thinks it made her childhood too confusing",
+          "She sees it as something valuable that she wants to keep",
+          "She would rather forget her mum's language",
+          "She believes children should learn one language at a time"
+        ],
+        "answer": 1,
+        "evidence": "I wish I could tell that little girl how lucky she was."
+      },
+      {
+        "prompt": "Why does Leila call her aunt every Sunday?",
+        "options": [
+          "Her aunt helps her with her work",
+          "Her aunt does not speak any English",
+          "She wants to stop her mum's language from fading",
+          "Her mum asked her to keep in touch with the family"
+        ],
+        "answer": 2,
+        "evidence": "If I go a week without using it, I can feel the words slipping away."
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {
+        "term": "confusing",
+        "meaning": "令人困惑的",
+        "example": "The signs at the station were so confusing that we took the wrong train."
+      },
+      {
+        "term": "embarrassed",
+        "meaning": "尴尬的；难为情的",
+        "example": "I was embarrassed when my phone rang during the test."
+      },
+      {
+        "term": "slipping",
+        "meaning": "（慢慢）溜走；滑落",
+        "example": "I can feel my piano skills slipping because I never practise."
+      },
+      {
+        "term": "patience",
+        "meaning": "耐心",
+        "example": "Learning to cook takes time and patience."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "mixed them up",
+        "meaning": "把它们混在一起",
+        "note": "mix up 也常指“搞混”：I always mix up their names."
+      },
+      {
+        "text": "Not really.",
+        "meaning": "其实不怎么……；不太是",
+        "note": "比 No 柔和，回答问题时很常用"
+      },
+      {
+        "text": "It depends on the topic.",
+        "meaning": "要看话题。",
+        "note": "It depends on... 回答“你更喜欢哪个”时的万能开头"
+      },
+      {
+        "text": "slipping away",
+        "meaning": "（一点点）溜走、流失",
+        "note": "形容记忆、技能、时间慢慢失去：Time is slipping away."
+      },
+      {
+        "text": "just to chat",
+        "meaning": "只是为了聊聊天",
+        "note": "说明打电话、见面没有特别目的，语气轻松"
+      },
+      {
+        "text": "takes a lot of patience",
+        "meaning": "需要很大的耐心",
+        "note": "sth takes patience/time/practice：某事需要……"
+      }
+    ],
+    "grammar": [
+      "subjunctive-now",
+      "nonfinite-participle",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-now",
+        "quote": "I wish I could tell that little girl how lucky she was.",
+        "explanation": "I wish I could + 动词原形，表示现在做不到、但很想做的事：她没法回到过去对小时候的自己说话。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "I can feel the words slipping away",
+        "explanation": "feel + 宾语 + 现在分词，表示感觉到某事“正在进行中”。用 slipping 强调词语正在一点点流失。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "So I call my aunt every Sunday just to chat.",
+        "explanation": "just to chat 是不定式表目的，说明打电话“只是为了聊天”；加 just 让目的听起来更随意。"
+      }
+    ],
+    "speaking": "用 1 分钟谈谈：你在家里、学校、网上分别用什么语言或方言？什么话题你更愿意用哪一种？用上 It depends on...。",
+    "writing": "写 100–120 词，采访一位会说方言或外语的家人或朋友：写出 3 个问题和 TA 的回答，用上一个 I wish I could... 句子。",
+    "task": {
+      "prompt": "仿照这句，用 I wish I could tell ... 写一句你想对小时候的自己说的话。",
+      "model": "I wish I could tell that little girl how lucky she was."
+    },
+    "tags": [
+      "双语成长",
+      "采访",
+      "方言与外语"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

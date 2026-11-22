@@ -1,0 +1,514 @@
+[
+ {
+  "id": "v5-work-b2-fisheries-inspector",
+  "title": "渔业检查员：上船查螃蟹的人",
+  "title_en": "Aboard with a Fisheries Inspector",
+  "summary_zh": "Marta 的工作是登上渔船检查渔获。起初船员们把她当成“又一道手续”，她靠学会量螃蟹、打绳结赢得了信任。读完你能学会谈论“不讨喜的工作”和如何赢得信任的表达。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "work",
+  "genre": "interview",
+  "body": "Q: What does a fisheries inspector actually do? Marta: Mostly, I check that boats are following the rules about what they catch and how much. That means going aboard, often before sunrise, and inspecting the catch, the gear and the logbook. Q: Are the crews pleased to see you? Marta: Not at first. When I started, most of them were deeply skeptical, and honestly, I understood why. To them, I was just another piece of bureaucracy standing between them and a day's pay. Q: So how did you win them over? Marta: By learning the job properly. I spent my first season measuring crabs on a rolling deck and practicing the knots they use on their pots, so that nobody had to explain everything to me twice. Once they saw that I could spot an undersized crab as quickly as they could, the conversations got a lot easier. Q: Is there a rule they find especially hard to accept? Marta: Putting back undersized crabs is mandatory, and that's the one they complain about most, because it feels like throwing money away when buyers overseas are paying well. But if everyone kept the small ones, there wouldn't be a fishery left for their children. Q: What surprised you most about the work? Marta: How much geography matters. Conditions in a sheltered bay are nothing like those off an exposed headland, so a rule that makes sense in one harbor can feel unfair in the next. In my first year, I warned a crew about a limit that only applied further up the coast, and I subsequently became much more careful about checking before I speak. Q: Any advice for someone who wants to do this job? Marta: Bring a waterproof notebook, and listen before you lecture.",
+  "questions": [
+   {
+    "prompt": "What mainly changed the crews' attitude towards Marta?",
+    "options": [
+     "She proved that she understood the practical side of their work",
+     "She agreed to relax the rule on undersized crabs",
+     "Her office reduced the amount of paperwork they had to do",
+     "She started inspecting their boats far less often"
+    ],
+    "answer": 0,
+    "evidence": "Once they saw that I could spot an undersized crab as quickly as they could, the conversations got a lot easier."
+   },
+   {
+    "prompt": "What does Marta mean when she says \"geography matters\"?",
+    "options": [
+     "Inspectors have to learn the map of every harbor by heart",
+     "Crews from different parts of the coast speak in different ways",
+     "A rule that suits one stretch of coast may not suit another",
+     "Some harbors are too far away for inspectors to visit"
+    ],
+    "answer": 2,
+    "evidence": "so a rule that makes sense in one harbor can feel unfair in the next"
+   }
+  ],
+  "dictation_index": 6,
+  "vocabulary": [
+   {
+    "term": "skeptical",
+    "meaning": "怀疑的；不太相信的",
+    "example": "The team was skeptical about the new software until they tried it."
+   },
+   {
+    "term": "bureaucracy",
+    "meaning": "繁文缛节；官僚手续",
+    "example": "Getting a work permit involved a surprising amount of bureaucracy."
+   },
+   {
+    "term": "mandatory",
+    "meaning": "强制的；必须遵守的",
+    "example": "Safety training is mandatory for everyone who works in the warehouse."
+   },
+   {
+    "term": "fishery",
+    "meaning": "渔场；渔业",
+    "example": "The local fishery supports most of the families in the village."
+   },
+   {
+    "term": "subsequently",
+    "meaning": "随后；后来",
+    "example": "She joined as an intern and was subsequently offered a full-time job."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "win them over",
+    "meaning": "赢得他们的认可；把他们争取过来",
+    "note": "win sb over 指让原本怀疑、反对的人转而支持你，职场和生活都很常用。"
+   },
+   {
+    "text": "a day's pay",
+    "meaning": "一天的收入",
+    "note": "强调“实实在在的工钱”，常见于 lose a day's pay（少挣一天钱）。"
+   },
+   {
+    "text": "throwing money away",
+    "meaning": "白白扔钱；浪费钱",
+    "note": "口语里表达“不划算、亏了”的感受：Paying for a gym you never use is throwing money away."
+   },
+   {
+    "text": "makes sense",
+    "meaning": "说得通；合理",
+    "note": "最常用的评价说法之一：That makes sense. / It makes sense to check first."
+   },
+   {
+    "text": "further up the coast",
+    "meaning": "沿海岸再往前（的地方）",
+    "note": "further up/down the road/coast 表示“沿着……再往前/往后”，问路、描述位置都好用。"
+   },
+   {
+    "text": "listen before you lecture",
+    "meaning": "先听别人说，再去讲道理",
+    "note": "押头韵的俏皮建议，lecture 这里是“说教”，带一点自嘲。"
+   }
+  ],
+  "grammar": [
+   "subjunctive-now",
+   "clause-adverb",
+   "nonfinite-participle"
+  ],
+  "knowledge": [
+   {
+    "node": "subjunctive-now",
+    "quote": "But if everyone kept the small ones, there wouldn't be a fishery left for their children.",
+    "explanation": "与现在事实相反的虚拟：if 从句用过去式 kept，主句用 wouldn't be，假设一个现在并不存在的情况，用来说明规则背后的理由。"
+   },
+   {
+    "node": "clause-adverb",
+    "quote": "Once they saw that I could spot an undersized crab as quickly as they could, the conversations got a lot easier.",
+    "explanation": "Once 引导时间状语从句，意为“一旦……（就）”，强调某个条件一出现，情况随之改变；从句里还套了 that 宾语从句。"
+   },
+   {
+    "node": "nonfinite-participle",
+    "quote": "just another piece of bureaucracy standing between them and a day's pay",
+    "explanation": "现在分词短语 standing between… 作后置定语修饰 bureaucracy，相当于 that stood between…，表主动：“挡在他们和一天收入之间的”。"
+   }
+  ],
+  "speaking": "用 1 分钟介绍一份需要“检查别人工作”的职业（如质检员、监考老师、审计），说说怎样才能让被检查的人不反感。用上 win them over 和 makes sense。",
+  "writing": "用 150–200 词写一段采访问答：一位从事“不讨人喜欢”工作的人（如交通协管员、宿舍检查员）讲述自己怎样赢得对方理解。至少用一个 if…, …wouldn't… 虚拟句。",
+  "task": {
+   "prompt": "仿照这句，用 Once…, … 写一句话，说说你是怎样赢得某个人（同事、老师、客户）信任的。",
+   "model": "Once they saw that I could spot an undersized crab as quickly as they could, the conversations got a lot easier."
+  },
+  "tags": [
+   "职业故事",
+   "规则与沟通"
+  ],
+  "source": "Flow 编辑部原创"
+ },
+ {
+  "id": "v5-work-b2-harsh-review-edit",
+  "title": "这篇差评太狠，还能登吗",
+  "title_en": "Too Harsh to Print? An Editor and Her Food Critic",
+  "summary_zh": "美食专栏作者 Leo 写了一篇毒舌餐厅评论，编辑 Dana 找他谈：可以犀利，但不能人身攻击。读完你能学会在工作中提修改意见、互相让步的地道说法。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "work",
+  "genre": "dialogue",
+  "body": "Dana: Leo, have you got a minute? It's about your review of the new harbor restaurant. Leo: Let me guess, you think it's too harsh. Dana: Not the verdict, just the tone. You say the crab was stunning, which is lovely, but you also call the salad dressing 'pure vinegar with a superiority complex' and the bread 'a crime against flour' in the same paragraph. Leo: Come on, those are the best lines in the whole piece! Dana: They're funny, I'll give you that, and you can keep both. The problem is the paragraph where you describe the owner as a man who has clearly never tasted his own cooking. That's inappropriate, and it isn't really about the food at all. Leo: Fair enough, I'll cut that bit. Dana: Thanks, that's a concession I can live with. My bigger worry, though, is consistency. Our editorial standards say we judge the meal, not the people serving it, and if we make an exception for you, every chef we've ever reviewed will ask why. Leo: So this isn't really about one restaurant. Dana: Exactly. Everything we print is open to scrutiny, and a personal attack can stun a small family business that has done nothing worse than make a bad salad. Leo: I suppose I got carried away. After years of writing weekly commentary, you start chasing the laugh instead of the point. Dana: It happens to all of us. Send me the new version by four, and we'll still run it on Saturday.",
+  "questions": [
+   {
+    "prompt": "What is Dana's main objection to Leo's review?",
+    "options": [
+     "It praises the crab more than the restaurant deserves",
+     "It is too long to fit in Saturday's paper",
+     "It is unfair about the salad dressing",
+     "It attacks a person instead of judging the meal"
+    ],
+    "answer": 3,
+    "evidence": "Our editorial standards say we judge the meal, not the people serving it"
+   },
+   {
+    "prompt": "When Leo says \"I suppose I got carried away\", what does he mean?",
+    "options": [
+     "He was moved to a different section of the paper",
+     "He became too excited about a joke and went too far",
+     "He was persuaded by the restaurant owner to change his mind",
+     "He forgot about the deadline for his column"
+    ],
+    "answer": 1,
+    "evidence": "I suppose I got carried away."
+   }
+  ],
+  "dictation_index": 17,
+  "vocabulary": [
+   {
+    "term": "verdict",
+    "meaning": "（评论的）结论；最终评价",
+    "example": "The verdict from our test group was clear: the new menu is too confusing."
+   },
+   {
+    "term": "inappropriate",
+    "meaning": "不恰当的；不合适的",
+    "example": "It's inappropriate to discuss a colleague's salary in a team meeting."
+   },
+   {
+    "term": "consistency",
+    "meaning": "一致性；前后统一",
+    "example": "Customers value consistency more than surprise."
+   },
+   {
+    "term": "scrutiny",
+    "meaning": "仔细审查；严格检视",
+    "example": "The new policy will face close scrutiny from staff."
+   },
+   {
+    "term": "commentary",
+    "meaning": "评论；时评",
+    "example": "Her weekly commentary on the music scene is sharp but fair."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "have you got a minute",
+    "meaning": "你有空吗？能占用你一会儿吗？",
+    "note": "找同事谈事的礼貌开场，比 Can I talk to you? 更轻松自然。"
+   },
+   {
+    "text": "Let me guess",
+    "meaning": "让我猜猜",
+    "note": "预感到对方要说什么时用，常带一点无奈或幽默。"
+   },
+   {
+    "text": "I'll give you that",
+    "meaning": "这一点我承认",
+    "note": "先认可对方的一部分，再提出不同意见，是很好用的“让步”句。"
+   },
+   {
+    "text": "Fair enough",
+    "meaning": "有道理；行吧",
+    "note": "接受对方的理由，语气随和。英美口语都很常用。"
+   },
+   {
+    "text": "a concession I can live with",
+    "meaning": "我能接受的让步",
+    "note": "can live with sth 表示“虽不完美但可以接受”，谈判和讨论里非常地道。"
+   },
+   {
+    "text": "got carried away",
+    "meaning": "（一时兴起）有点过头了",
+    "note": "承认自己太投入、说过了头，常用于自我检讨：Sorry, I got a bit carried away."
+   }
+  ],
+  "grammar": [
+   "conditional-real",
+   "clause-relative",
+   "nonfinite-gerund"
+  ],
+  "knowledge": [
+   {
+    "node": "conditional-real",
+    "quote": "if we make an exception for you, every chef we've ever reviewed will ask why",
+    "explanation": "真实条件句：if 从句用一般现在时 make，主句用 will ask，说明一个很可能发生的后果。注意 if 从句里不用 will。"
+   },
+   {
+    "node": "clause-relative",
+    "quote": "a small family business that has done nothing worse than make a bad salad",
+    "explanation": "that 引导定语从句修饰 business；do nothing worse than do sth 意为“最多也就是做了……”，than 后用动词原形。"
+   },
+   {
+    "node": "nonfinite-gerund",
+    "quote": "After years of writing weekly commentary, you start chasing the laugh instead of the point.",
+    "explanation": "介词 of 后接动名词 writing；start 后也用动名词 chasing，表示开始养成的习惯。instead of 后接名词或动名词。"
+   }
+  ],
+  "speaking": "假设你是小组负责人，要劝一位组员删掉报告里一句不合适的话。用 1 分钟说服他，用上 I'll give you that 和 a concession I can live with。",
+  "writing": "用 150–200 词写一段短评（餐厅、电影或 App 都行）：要有态度，但只评价“作品”，不攻击“人”。至少用一个 if…, …will… 句子。",
+  "task": {
+   "prompt": "仿照这句，用 After years of doing…, you start doing… instead of… 写一句话，说说长期做某件事后容易养成的一个坏习惯。",
+   "model": "After years of writing weekly commentary, you start chasing the laugh instead of the point."
+  },
+  "tags": [
+   "编辑工作",
+   "提修改意见"
+  ],
+  "source": "Flow 编辑部原创"
+ },
+ {
+  "id": "v5-work-b2-ferry-lost-property",
+  "title": "夜班渡轮上落下的乐谱",
+  "title_en": "The Music Left Behind on the Night Ferry",
+  "summary_zh": "渡轮新船员 Lena 在甲板上捡到一叠手写乐谱。按规定该交到总部，可她担心它会从此石沉大海……一个关于规则与判断力的小故事，读完你能学会用过去时讲述工作经历。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "work",
+  "genre": "story",
+  "body": "Lena had been working aboard the night ferry for three weeks when she found the folder. As the newest member of the crew, she walked the passenger decks after the last crossing and collected whatever people had left behind. Most of it was junk: paper cups, crumpled maps, a single glove. Some of it was frankly bizarre, like the wedding dress she once found folded neatly on a bench. The folder, tucked under a seat by the window, was different. Inside were dozens of pages of handwritten music, covered in pencil marks and crossings-out, and although Lena couldn't read a note of it, she could tell that someone had spent months on it. The rules were clear: lost property went into a sealed box for the head office, where it usually sat untouched until it was thrown away. Doubts about the job had already begun to creep in, and she wasn't keen to break a rule in her first month. Even so, she photographed the first page, which had a name across the top, and phoned the organizer of a walking group that had been aboard that evening. He knew the name at once. The owner turned out to be a composer who liked working on the crossing because the hum of the engine helped her think. They met the next morning on the quay, beneath the medieval walls of the old harbor. 'If you'd sent it to the office, I would have had to start again from nothing,' she said. When Lena confessed to the captain, half expecting a warning, he only asked her to log it properly next time. She has never believed in destiny, but the view from the quay that morning was stunning, and she stopped looking at other job ads.",
+  "questions": [
+   {
+    "prompt": "Why did Lena not simply put the folder in the lost property box?",
+    "options": [
+     "She wanted to keep it as a souvenir of her first month",
+     "She was worried it would never find its way back to its owner",
+     "The captain had told her to deal with valuable items herself",
+     "The box for the head office was already full that night"
+    ],
+    "answer": 1,
+    "evidence": "where it usually sat untouched until it was thrown away"
+   },
+   {
+    "prompt": "How did Lena manage to find the owner of the folder?",
+    "options": [
+     "She contacted the leader of a group that had been on the ferry",
+     "She asked the head office to look up the name",
+     "She waited on the quay until someone came looking for it",
+     "She asked the captain to make an announcement on board"
+    ],
+    "answer": 0,
+    "evidence": "phoned the organizer of a walking group that had been aboard that evening"
+   }
+  ],
+  "dictation_index": 13,
+  "vocabulary": [
+   {
+    "term": "junk",
+    "meaning": "没用的东西；破烂",
+    "example": "Our storage room is full of junk that nobody wants to throw away."
+   },
+   {
+    "term": "bizarre",
+    "meaning": "古怪的；离奇的",
+    "example": "The most bizarre request I ever got was to deliver a cake to a boat."
+   },
+   {
+    "term": "organizer",
+    "meaning": "组织者；负责人",
+    "example": "The organizer sent everyone a map the night before the trip."
+   },
+   {
+    "term": "composer",
+    "meaning": "作曲家",
+    "example": "The composer rewrote the opening three times before the concert."
+   },
+   {
+    "term": "stunning",
+    "meaning": "极美的；令人惊艳的",
+    "example": "The office has a stunning view of the river."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "left behind",
+    "meaning": "落下的；遗留的",
+    "note": "leave sth behind 指忘带、落下东西：I left my umbrella behind on the bus."
+   },
+   {
+    "text": "creep in",
+    "meaning": "（不好的感觉、错误）悄悄出现",
+    "note": "常和 doubt、mistakes、boredom 搭配：Mistakes creep in when you're tired."
+   },
+   {
+    "text": "wasn't keen to",
+    "meaning": "不太想；不大情愿",
+    "note": "be keen to do 是“很想做”，否定形式语气委婉，比 didn't want to 柔和。"
+   },
+   {
+    "text": "turned out to be",
+    "meaning": "结果发现是；原来是",
+    "note": "讲故事时揭示意外答案的常用说法。"
+   },
+   {
+    "text": "half expecting",
+    "meaning": "多少有点预料（会……）",
+    "note": "half expect sth 表示“心里隐约觉得会发生”，带一点忐忑。"
+   },
+   {
+    "text": "start again from nothing",
+    "meaning": "从零开始重来",
+    "note": "强调之前的努力全白费，也可说 start from scratch。"
+   }
+  ],
+  "grammar": [
+   "tense-past",
+   "subjunctive-past",
+   "nonfinite-participle"
+  ],
+  "knowledge": [
+   {
+    "node": "tense-past",
+    "quote": "Lena had been working aboard the night ferry for three weeks when she found the folder.",
+    "explanation": "过去完成进行时 had been working 表示“在过去某个时刻之前已经持续了一段时间”，再用 when + 一般过去时引出突然发生的事，是讲故事的经典开头。"
+   },
+   {
+    "node": "subjunctive-past",
+    "quote": "If you'd sent it to the office, I would have had to start again from nothing",
+    "explanation": "与过去事实相反的虚拟：if 从句用过去完成时 you'd (had) sent，主句用 would have had to，表示“当时要是……，就得……了”，其实并没有发生。"
+   },
+   {
+    "node": "nonfinite-participle",
+    "quote": "The folder, tucked under a seat by the window, was different.",
+    "explanation": "过去分词短语 tucked under a seat 插在主语和谓语之间作补充说明，表被动：“（被）塞在座位下面的”。"
+   }
+  ],
+  "speaking": "用 1 分钟讲一次你在工作或学习中“没有完全照规定来、但做对了事”的经历（或你听说的故事），用上 turned out to be 和 half expecting。",
+  "writing": "用 150–200 词写一个小故事：一位普通员工下班前发现了别人遗落的一件重要物品，他/她怎么处理？至少用一个 If…had…, …would have… 句子。",
+  "task": {
+   "prompt": "仿照这句，用 I had been doing… for… when… 写一句话，讲一件在你做某事过程中突然发生的事。",
+   "model": "Lena had been working aboard the night ferry for three weeks when she found the folder."
+  },
+  "tags": [
+   "职场故事",
+   "规则与判断"
+  ],
+  "source": "Flow 编辑部原创"
+ },
+ {
+  "id": "v5-work-b2-overseas-posting-advice",
+  "title": "外派之前，前辈的真心话",
+  "title_en": "Re: The Overseas Posting, from Someone Who Went",
+  "summary_zh": "同事 Tom 在考虑外派，已经在海外工作一年的 Grace 回信讲真话：繁琐的手续、自掏腰包的语言课、第三个月的孤独，以及她为什么还是建议他去。读完你能学会给出坦诚建议的表达。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "work",
+  "genre": "email",
+  "body": "Hi Tom, it was great to hear that you're considering the overseas posting, and yes, I'm happy to tell you how it really went. The work itself turned out to be the easy part. What nobody warned me about was the bureaucracy: I spent most of my first month collecting stamps on forms that seemed to exist only so that you could request other forms. Before you sign anything, ask HR for a full breakdown of what the company will cover, because I found out too late that the mandatory language course came out of my own pocket. Moving is also a good excuse to be ruthless. I sold or gave away nearly everything I owned, and I was amazed how much of it was junk I'd been dragging from apartment to apartment for years. Culturally, expect a few bizarre moments. On my second day, a colleague kindly explained that nobody here eats lunch at their desk, and that doing so looks slightly unfriendly. Small things like that add up, and somewhere around the third month, loneliness can creep in without your noticing. When it happened to me, my manager showed real compassion: she lightened my workload for a week and introduced me to the organizer of a Sunday hiking group, which is where I met most of my friends here. If I were you, I'd say yes, but I'd go in with realistic expectations rather than a holiday mood. Call me whenever you like, and bring a list of questions. Best, Grace",
+  "questions": [
+   {
+    "prompt": "What is the overall message of Grace's email?",
+    "options": [
+     "Tom should turn down the posting because the paperwork and loneliness are too much",
+     "The company will handle almost everything, so Tom has little to prepare",
+     "The posting is worth taking if Tom prepares for its practical and emotional challenges",
+     "Tom should only go if he already speaks the local language well"
+    ],
+    "answer": 2,
+    "evidence": "I'd go in with realistic expectations rather than a holiday mood"
+   },
+   {
+    "prompt": "What does Grace say she discovered \"too late\"?",
+    "options": [
+     "That she had brought far too many belongings with her",
+     "That lunch breaks were much shorter than at home",
+     "That HR would not give her a breakdown of costs",
+     "That she had to pay for the required language course herself"
+    ],
+    "answer": 3,
+    "evidence": "the mandatory language course came out of my own pocket"
+   }
+  ],
+  "dictation_index": 8,
+  "vocabulary": [
+   {
+    "term": "posting",
+    "meaning": "（被派驻的）职位；外派岗位",
+    "example": "Her first posting was to a small office by the sea."
+   },
+   {
+    "term": "bureaucracy",
+    "meaning": "繁琐的手续；官僚作风",
+    "example": "Opening a bank account abroad can involve a lot of bureaucracy."
+   },
+   {
+    "term": "breakdown",
+    "meaning": "（费用等的）明细；分项列表",
+    "example": "Could you send me a breakdown of the travel costs?"
+   },
+   {
+    "term": "mandatory",
+    "meaning": "强制的；必须参加的",
+    "example": "Attendance at the first training session is mandatory."
+   },
+   {
+    "term": "compassion",
+    "meaning": "同情心；体恤",
+    "example": "A good manager treats struggling staff with compassion."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "how it really went",
+    "meaning": "实际情况到底怎么样",
+    "note": "really 强调“真实情况”，和场面话相对：Tell me how it really went."
+   },
+   {
+    "text": "came out of my own pocket",
+    "meaning": "（钱）是我自己掏的",
+    "note": "out of one's own pocket 指自掏腰包，常用来抱怨公司不报销。"
+   },
+   {
+    "text": "a good excuse to",
+    "meaning": "正好是……的好借口/好理由",
+    "note": "不一定是贬义，常表示“顺便趁机做某事”：A new job is a good excuse to buy new shoes."
+   },
+   {
+    "text": "Small things like that add up",
+    "meaning": "这样的小事积少成多",
+    "note": "add up 指一点点累积起来，变得不容忽视。"
+   },
+   {
+    "text": "go in with realistic expectations",
+    "meaning": "带着现实的预期去（做某事）",
+    "note": "go in with… 表示“带着某种心态开始”，常用于给建议。"
+   },
+   {
+    "text": "whenever you like",
+    "meaning": "你什么时候方便都行",
+    "note": "邮件结尾表示随时欢迎联系，语气热情又不施压。"
+   }
+  ],
+  "grammar": [
+   "subjunctive-now",
+   "clause-noun",
+   "nonfinite-gerund"
+  ],
+  "knowledge": [
+   {
+    "node": "subjunctive-now",
+    "quote": "If I were you, I'd say yes, but I'd go in with realistic expectations rather than a holiday mood.",
+    "explanation": "If I were you 是与现在事实相反的虚拟（我不可能是你），主句用 I'd (would) + 动词原形，是给建议最常用的委婉句型。"
+   },
+   {
+    "node": "clause-noun",
+    "quote": "What nobody warned me about was the bureaucracy",
+    "explanation": "What 引导主语从句，“没人提醒过我的事”作主语；注意介词 about 留在从句末尾。用这个结构可以把重点 the bureaucracy 放到句末强调。"
+   },
+   {
+    "node": "nonfinite-gerund",
+    "quote": "loneliness can creep in without your noticing",
+    "explanation": "介词 without 后接动名词 noticing，your 是动名词的逻辑主语（较正式），口语中也常说 without you noticing。"
+   }
+  ],
+  "speaking": "用 1 分钟给一位要去外地或国外工作的朋友提三条建议，用上 a good excuse to 和 Small things like that add up。",
+  "writing": "用 150–200 词回一封邮件，给一位正在犹豫要不要接受外派（或去外地实习）的同事讲讲你的经历和建议。至少用一个 What nobody… was… 句子。",
+  "task": {
+   "prompt": "仿照这句，用 If I were you, I'd…, but I'd… 给一位准备换工作或出国的朋友提一句建议。",
+   "model": "If I were you, I'd say yes, but I'd go in with realistic expectations rather than a holiday mood."
+  },
+  "tags": [
+   "外派",
+   "同事来信"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

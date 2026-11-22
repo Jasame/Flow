@@ -1,0 +1,518 @@
+[
+  {
+    "id": "v5-culture-c1-authenticity-on-the-menu",
+    "title": "菜“不正宗”，真的是罪过吗",
+    "title_en": "Is \"Not Authentic\" Really the Worst Thing a Dish Can Be?",
+    "summary_zh": "一篇议论文：作者认为，拿“正不正宗”给餐厅定罪往往站不住脚——同一道菜家家做法不同，漂洋过海更要变；真正该问的是诚不诚实、用不用心。文中也承认了“正宗派”的合理之处。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "culture",
+    "genre": "opinion",
+    "body": "Read enough restaurant reviews and you will notice that one accusation stings more than any complaint about slow service or cold soup: the food, someone declares, is not authentic. It is a strange charge, when you think about it, because it assumes that every dish has a single correct version, fixed somewhere in the past and waiting to be betrayed. Anyone who has eaten the same dish in two neighbouring towns knows how quickly that assumption falls apart under scrutiny. The variance between households alone is enormous; ask three grandmothers for the proper way to fold a dumpling and you will get four answers and at least one argument. When food travels overseas, it changes further, and not because cooks are careless. Ingredients differ, customers bring different habits, and a small family restaurant has to stay commercially viable on a street full of competitors. The noodle shop that adds a little sugar, or serves its lunch special with an ice-cold soda because that is what local office workers order, is not committing a crime; it is doing what cooks have always done. None of this means that authenticity is meaningless, and I will make one concession to the purists: when a restaurant markets itself as a faithful taste of a particular region and then serves something unrecognisable, diners have every right to feel misled. Notice, though, that the problem there is honesty, not tradition. Indeed, the look of authenticity is now easy to manufacture, with handwritten menus, mismatched bowls and a black-and-white photo of an unnamed village, and it often fools the very critics who are most obsessed with it. What troubles me most is the tone of morality that creeps into these debates, as though eating an adapted dish were a small betrayal and enjoying it a character flaw. That tone strikes me as inappropriate for something as generous as cooking. A better question for any reviewer is simpler: was the food made with care, and would you go back? If the answer to both is yes, the label on the menu hardly matters.",
+    "questions": [
+      {
+        "prompt": "Which statement best summarises the writer's position?",
+        "options": [
+          "Judging food mainly by authenticity misses what matters more, such as honesty and care",
+          "Restaurants abroad should follow traditional recipes exactly",
+          "Online reviewers are usually right to criticise adapted dishes",
+          "Authenticity matters only in expensive restaurants"
+        ],
+        "answer": 0,
+        "evidence": "was the food made with care, and would you go back?"
+      },
+      {
+        "prompt": "What does the writer admit to the \"purists\"?",
+        "options": [
+          "That adapted dishes usually taste worse than the originals",
+          "That diners may fairly feel misled when a restaurant's claims are false",
+          "That handwritten menus are a reliable sign of tradition",
+          "That cooks abroad are often careless with ingredients"
+        ],
+        "answer": 1,
+        "evidence": "diners have every right to feel misled"
+      }
+    ],
+    "dictation_index": 2,
+    "vocabulary": [
+      {
+        "term": "concession",
+        "meaning": "让步",
+        "example": "As a concession to the children, we stopped for ice cream on the way home."
+      },
+      {
+        "term": "viable",
+        "meaning": "（商业上）能维持下去的；可行的",
+        "example": "Without more customers, the little bookshop is no longer viable."
+      },
+      {
+        "term": "manufacture",
+        "meaning": "制造；人为营造",
+        "example": "Some reality shows manufacture drama by cutting conversations in half."
+      },
+      {
+        "term": "purists",
+        "meaning": "纯粹主义者；讲究正统的人",
+        "example": "Coffee purists say you should never add sugar."
+      },
+      {
+        "term": "misled",
+        "meaning": "被误导的",
+        "example": "I felt misled when the \"sea view\" turned out to be a car park."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "when you think about it",
+        "meaning": "仔细想想",
+        "note": "插入语，引出一个容易被忽视的角度，语气轻松"
+      },
+      {
+        "text": "falls apart under scrutiny",
+        "meaning": "经不起推敲",
+        "note": "fall apart 散架；under scrutiny 在仔细审视之下，合起来指论点一细看就站不住"
+      },
+      {
+        "text": "have every right to",
+        "meaning": "完全有理由；完全有权",
+        "note": "强调对方的反应是合理的：You have every right to be angry."
+      },
+      {
+        "text": "the very critics",
+        "meaning": "恰恰是那些批评者",
+        "note": "the very + 名词 表示“正是、恰恰”，常带讽刺或强调"
+      },
+      {
+        "text": "strikes me as",
+        "meaning": "在我看来……",
+        "note": "比 I think 更委婉、书面：That strikes me as unfair."
+      },
+      {
+        "text": "hardly matters",
+        "meaning": "几乎无关紧要",
+        "note": "hardly 本身就是否定，不要再加 not"
+      }
+    ],
+    "grammar": [
+      "subjunctive-now",
+      "nonfinite-participle",
+      "clause-noun"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-now",
+        "quote": "as though eating an adapted dish were a small betrayal",
+        "explanation": "as though 后用 were，表示与现在事实相反的假设（吃改良菜当然不是背叛），带作者的讽刺；正式文体里即使主语是单数也用 were。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "a single correct version, fixed somewhere in the past and waiting to be betrayed",
+        "explanation": "过去分词 fixed（被固定的）和现在分词短语 waiting to be betrayed 并列作后置定语，一被动一主动，画出人们想象中的“标准答案”。"
+      },
+      {
+        "node": "clause-noun",
+        "quote": "What troubles me most is the tone of morality that creeps into these debates",
+        "explanation": "What 引导的名词性从句作主语，相当于 The thing that troubles me most；把真正的重点留到句末，是议论文常用的强调句式。"
+      }
+    ],
+    "speaking": "你吃过“不正宗”但很好吃的菜吗？用 1 分钟说说你觉得“正宗”重不重要，举一个例子，并回应一个反对意见。",
+    "writing": "写一篇 220–260 词的议论文 Does authenticity matter in food?：要有明确论点、一个让步（I will make one concession...）和反驳，并用上一个 What... is... 主语从句。",
+    "task": {
+      "prompt": "仿照这句，用 the problem there is A, not B 指出一场争论真正的问题所在。",
+      "model": "the problem there is honesty, not tradition"
+    },
+    "tags": [
+      "饮食文化",
+      "议论文",
+      "正宗与改良"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-c1-translating-a-dragon",
+    "title": "把绘本里的“龙”译成英文",
+    "title_en": "What Do You Do with a Kind Dragon? A Translator on Picture Books",
+    "summary_zh": "一位童书译者谈翻译中文绘本的经历：中国的龙温和智慧，英语小读者却会想到喷火怪兽；结尾的说教要不要软化？读完你会明白“忠实”在翻译里到底指什么。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "culture",
+    "genre": "interview",
+    "body": "Q: Your latest project is a picture book about a dragon who looks after a mountain village, so what made it difficult to translate? Mira: The dragon, almost entirely. In the original, he embodies everything a farming village might hope for: rain at the right time, patience and a kind of unhurried wisdom. But the moment an English-speaking child sees the word \"dragon\", they picture smoke, a pile of gold and a knight arriving to fight it. Q: Did you consider changing the word? Mira: For about a week, yes, and I tried \"sky serpent\", \"river spirit\" and even leaving the Chinese name untranslated. Every option either sounded like a video game or forced the reader to stop and decode it, which is fatal in a book meant to be read aloud at bedtime. In the end I kept \"dragon\" and let the pictures do the work, because once children see him gently carrying a lost goat home, they revise their expectations remarkably quickly. Q: How faithful should a translator be? Mira: Faithful to the experience rather than to every word, so a child reading the English should feel what a child reading the Chinese feels, even if that means I have to intervene. Q: Does that extend to the morality of the story? Mira: Up to a point, yes. The original manuscript ended with a line that spelled out the lesson rather sternly. In Chinese it sounds natural, almost like a proverb, but in English it felt like a teacher wagging a finger, which some parents would find inappropriate at bedtime, so I softened it and let the dragon's compassion speak for itself. Q: Isn't there a danger that softening it will conceal something about the original? Mira: It's a fair worry, which is why the English text was subsequently checked line by line by the author herself, and she rejected two of my changes. She was right both times, but I'd still argue that early literacy depends on children loving how a story sounds, and a book that reads like homework ends up unread on the shelf.",
+    "questions": [
+      {
+        "prompt": "Why was the word \"dragon\" the hardest part of the translation?",
+        "options": [
+          "English has no word for a creature like this",
+          "English-speaking children tend to imagine a dangerous monster",
+          "The author asked Mira not to use the word",
+          "The illustrations showed a different animal"
+        ],
+        "answer": 1,
+        "evidence": "they picture smoke, a pile of gold and a knight arriving to fight it"
+      },
+      {
+        "prompt": "What does Mira mean by being faithful \"to the experience rather than to every word\"?",
+        "options": [
+          "English readers should feel what Chinese readers feel",
+          "Every word should be translated exactly, whatever the effect",
+          "Children should choose which words they prefer",
+          "Cultural notes should be added at the end of the book"
+        ],
+        "answer": 0,
+        "evidence": "a child reading the English should feel what a child reading the Chinese feels"
+      }
+    ],
+    "dictation_index": 12,
+    "vocabulary": [
+      {
+        "term": "embodies",
+        "meaning": "体现；是……的化身",
+        "example": "To my grandmother, the old kitchen embodies the whole family's history."
+      },
+      {
+        "term": "decode",
+        "meaning": "解读；破解",
+        "example": "It took me a minute to decode my friend's handwriting."
+      },
+      {
+        "term": "intervene",
+        "meaning": "介入；出手干预",
+        "example": "The teacher had to intervene when the argument got too loud."
+      },
+      {
+        "term": "sternly",
+        "meaning": "严厉地",
+        "example": "\"Sit down,\" the coach said sternly, and everyone sat."
+      },
+      {
+        "term": "literacy",
+        "meaning": "读写能力（early literacy 指幼儿早期阅读能力）",
+        "example": "Reading aloud every night is good for a child's early literacy."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "let the pictures do the work",
+        "meaning": "让图画自己来说话",
+        "note": "let sth do the work 让某样东西自己发挥作用，不必多解释"
+      },
+      {
+        "text": "read aloud",
+        "meaning": "朗读；读出声",
+        "note": "亲子阅读常用：books meant to be read aloud"
+      },
+      {
+        "text": "spelled out",
+        "meaning": "讲得明明白白",
+        "note": "spell out 把意思一条条说清楚，有时暗示“太直白”"
+      },
+      {
+        "text": "wagging a finger",
+        "meaning": "摇着手指训人",
+        "note": "比喻居高临下地说教；wag a finger at sb"
+      },
+      {
+        "text": "speak for itself",
+        "meaning": "不言自明",
+        "note": "let sth speak for itself 不需要额外解释，事实本身就有说服力"
+      },
+      {
+        "text": "line by line",
+        "meaning": "逐行地；一句一句地",
+        "note": "check / read sth line by line 表示非常仔细地看"
+      }
+    ],
+    "grammar": [
+      "clause-noun",
+      "nonfinite-participle",
+      "clause-relative"
+    ],
+    "knowledge": [
+      {
+        "node": "clause-noun",
+        "quote": "a child reading the English should feel what a child reading the Chinese feels",
+        "explanation": "what 引导宾语从句作 feel 的宾语，相当于 the thing that...；前后两个对称的 a child reading... 把两种读者放在一起对比。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "they picture smoke, a pile of gold and a knight arriving to fight it",
+        "explanation": "现在分词短语 arriving to fight it 作后置定语修饰 a knight，表示正在进行的主动动作，比 a knight who arrives... 更有画面感。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "forced the reader to stop and decode it, which is fatal in a book meant to be read aloud at bedtime",
+        "explanation": "which 引导非限制性定语从句，指代前面整件事（读者被迫停下来猜词），而不是某一个名词。"
+      }
+    ],
+    "speaking": "选一个在中英文里联想很不一样的词（比如“龙”“狗”“红色”），用 1 分钟解释差别，并说说如果你是译者会怎么处理。",
+    "writing": "写 200–240 词，回答 Should a translator change a story to suit new readers?：举一个例子，给出你的立场和一个让步，用上 rather than 和一个 what 引导的名词性从句。",
+    "task": {
+      "prompt": "仿照这句，用 Faithful to A rather than to B 说说你做某件事时真正看重的是什么。",
+      "model": "Faithful to the experience rather than to every word"
+    },
+    "tags": [
+      "翻译",
+      "童书",
+      "中西文化差异"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-c1-live-commentary",
+    "title": "现场解说为什么这样说话",
+    "title_en": "Why Live Commentary Sounds the Way It Does",
+    "summary_zh": "一篇讲解文：广播解说和电视解说分工有何不同，两位解说员的风格为何要有差异，解说又有哪些陷阱。读完你会听懂体育解说背后的“行规”。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "culture",
+    "genre": "explainer",
+    "body": "Anyone who has tried to describe a football match to a friend over the phone knows how hard it is to keep talking while things keep happening. Live commentary is a craft built around precisely that problem, and its habits make more sense once you see the pressures behind them. Radio commentators carry the heavier load, because their listeners can see nothing at all; they must establish who has the ball, where it is and what might happen next, often in a single breath. Television commentators, by contrast, are encouraged to say less, since the pictures already carry most of the information, and the skill lies in adding what the camera cannot show: a player's limp, a coach's frustration, the reason a team has suddenly stopped attacking. Most broadcasts divide the work between two voices. The first describes the action, while the second, usually a former player, offers analysis, and the variance in their styles is deliberate, giving listeners both rhythm and depth. During a pause, the analyst might provide a breakdown of how a goal was scored, replaying each pass step by step. Commentary has its traps, too. Excitement can tip into exaggeration, and bias tends to creep in quietly, especially when a broadcaster is covering a home team. When a commentator says something unfortunate on air, such as a careless joke or a wrong name, producers may intervene through an earpiece, but the words have already gone out. Many broadcasters now offer interactive options, letting viewers choose a different audio track or switch the commentary off altogether, and some coaches say it is beneficial to rewatch matches in silence, judging the play without another voice in their ears. Yet most viewers keep the commentary on, and the reason is revealing: good commentary does not merely report events but decides which moments are worthy of remembering, turning a blur of movement into a story with a beginning, a middle and an end.",
+    "questions": [
+      {
+        "prompt": "According to the explainer, what is the main job of a television commentator?",
+        "options": [
+          "To describe every movement on the screen in detail",
+          "To add information that the pictures cannot show",
+          "To keep talking so that there is never any silence",
+          "To make the match sound more exciting than it is"
+        ],
+        "answer": 1,
+        "evidence": "the skill lies in adding what the camera cannot show"
+      },
+      {
+        "prompt": "What does the final sentence suggest about why most viewers keep the commentary on?",
+        "options": [
+          "It gives them more accurate information than the pictures",
+          "It is difficult to switch off on most channels",
+          "It hides the mistakes that players make",
+          "It helps turn a match into a story they can remember"
+        ],
+        "answer": 3,
+        "evidence": "decides which moments are worthy of remembering"
+      }
+    ],
+    "dictation_index": 6,
+    "vocabulary": [
+      {
+        "term": "establish",
+        "meaning": "确定；交代清楚",
+        "example": "Before we argue, let's establish what actually happened."
+      },
+      {
+        "term": "deliberate",
+        "meaning": "故意的；有意为之的",
+        "example": "The slow start of the film is deliberate, not a mistake."
+      },
+      {
+        "term": "breakdown",
+        "meaning": "细分讲解；分析",
+        "example": "The coach gave us a breakdown of every mistake we made in the first half."
+      },
+      {
+        "term": "exaggeration",
+        "meaning": "夸大；夸张",
+        "example": "Saying the queue went round the block was a slight exaggeration."
+      },
+      {
+        "term": "bias",
+        "meaning": "偏向；偏见",
+        "example": "Fans often accuse the referee of bias towards the home team."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "in a single breath",
+        "meaning": "一口气（说完）",
+        "note": "形容说得又快又密：She told me the whole story in a single breath."
+      },
+      {
+        "text": "by contrast",
+        "meaning": "相比之下",
+        "note": "对比两类事物的连接语，书面、口语都常用"
+      },
+      {
+        "text": "the skill lies in",
+        "meaning": "技巧在于……",
+        "note": "sth lies in + 名词/动名词：The secret lies in the timing."
+      },
+      {
+        "text": "tip into",
+        "meaning": "滑向；越界变成",
+        "note": "常指某种状态过了头：Confidence can tip into arrogance."
+      },
+      {
+        "text": "step by step",
+        "meaning": "一步一步地",
+        "note": "explain / replay sth step by step"
+      },
+      {
+        "text": "on air",
+        "meaning": "在直播中；播出时",
+        "note": "广播电视用语：say something on air / be on air"
+      }
+    ],
+    "grammar": [
+      "agreement-head",
+      "nonfinite-participle",
+      "clause-adverb"
+    ],
+    "knowledge": [
+      {
+        "node": "agreement-head",
+        "quote": "the variance in their styles is deliberate",
+        "explanation": "主语的中心词是 variance（单数），in their styles 只是修饰语，所以谓语用 is 而不是 are。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "the analyst might provide a breakdown of how a goal was scored, replaying each pass step by step",
+        "explanation": "现在分词短语 replaying each pass step by step 作伴随状语，说明分析员“边回放边讲解”，逻辑主语是 the analyst。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "Radio commentators carry the heavier load, because their listeners can see nothing at all",
+        "explanation": "because 引导原因状语从句，解释广播解说为什么更难；because 通常用来给出对方未必知道的新原因。"
+      }
+    ],
+    "speaking": "你喜欢开着解说看比赛、直播或游戏视频吗？用 1 分钟说说好解说和差解说的区别，并举一个例子。",
+    "writing": "写 200–240 词的讲解文，介绍你熟悉的一种“现场解说”（体育、游戏直播、导游讲解等）：它的规矩、难点和常见问题，用上 by contrast 和一个分词作状语的句子。",
+    "task": {
+      "prompt": "仿照这句，用 good X does not merely..., but... 说出你心目中好老师、好朋友或好书的标准。",
+      "model": "good commentary does not merely report events but decides which moments are worthy of remembering"
+    },
+    "tags": [
+      "体育解说",
+      "媒体",
+      "讲解文"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-c1-soda-factory-reunion",
+    "title": "爷爷的汽水厂重聚日",
+    "title_en": "A Letter from Grandpa's Old Soda Factory",
+    "summary_zh": "Mei 给远在海外、没能赶回来的 Jun 写信，讲她怎样张罗了一场汽水厂老员工的重聚，又从一位老人口中听到了爷爷不为人知的一面。读完你会学到私人长邮件里自然的叙事和抒情方式。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "culture",
+    "genre": "email",
+    "body": "Dear Jun, I know you were sorry to miss the reunion at Grandpa's old soda factory, so here is the long version I promised, written on the train home. You'll laugh, but I somehow ended up as the chief organizer, which mostly meant fighting a quiet war with local bureaucracy for permission to open the doors for a single afternoon. When we finally got inside, the place looked like a museum of junk: stacks of wooden crates, a calendar stopped at some long-forgotten June, and that enormous bottling machine whose breakdowns have been a family joke for as long as either of us can remember. It's strange to think that Grandpa and a handful of neighbours used to manufacture, right there, an orange drink that nobody outside the region had ever heard of. Former workers started arriving after lunch, some with walking sticks and others with grandchildren, and every one of them seemed to have saved up a story for the day. One woman told me that during the worst breakdown, when the machine stood silent for most of a summer, Grandpa kept paying everyone out of his own savings and managed to conceal it from Grandma until the bank called. We always thought of him as stern, didn't we? Hearing about that quiet compassion has rearranged something in my memory of him. By the time I stood up to give the short tribute, my stomach was in knots and I'd abandoned my notes entirely. So I simply said that he used to call the factory his destiny, half as a joke, and that I'd never understood why until I saw the people in that room. I wish you had been there, honestly. Since you're overseas until the spring, I'm posting you the one thing I brought home: an unopened bottle that a man in a flat cap slipped into my bag, the orange faded to the colour of weak tea. Love, Mei",
+    "questions": [
+      {
+        "prompt": "How did the reunion change Mei's view of her grandfather?",
+        "options": [
+          "She realised he had been careless with the family's money",
+          "She found out that he had hated running the factory",
+          "She learned that he had secretly wanted to move overseas",
+          "She discovered a kindness in him that she had not known about"
+        ],
+        "answer": 3,
+        "evidence": "Hearing about that quiet compassion has rearranged something in my memory of him."
+      },
+      {
+        "prompt": "What was the hardest part of being the organizer, according to Mei?",
+        "options": [
+          "Persuading former workers to come",
+          "Getting official permission to open the building",
+          "Repairing the old bottling machine",
+          "Writing the speech for the tribute"
+        ],
+        "answer": 1,
+        "evidence": "fighting a quiet war with local bureaucracy for permission to open the doors for a single afternoon"
+      }
+    ],
+    "dictation_index": 7,
+    "vocabulary": [
+      {
+        "term": "reunion",
+        "meaning": "重聚；聚会",
+        "example": "Our class reunion is next month, and I'm already nervous."
+      },
+      {
+        "term": "breakdowns",
+        "meaning": "（机器）故障",
+        "example": "Our old car has had so many breakdowns that we've given it a name."
+      },
+      {
+        "term": "conceal",
+        "meaning": "隐瞒；藏起",
+        "example": "He couldn't conceal how pleased he was with the result."
+      },
+      {
+        "term": "stern",
+        "meaning": "严厉的；不苟言笑的",
+        "example": "My piano teacher looked stern, but she was actually very kind."
+      },
+      {
+        "term": "abandoned",
+        "meaning": "放弃；丢开",
+        "example": "We abandoned the picnic when it started to pour."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "ended up as",
+        "meaning": "最后（意外地）成了",
+        "note": "end up as + 身份/角色：I somehow ended up as the team leader."
+      },
+      {
+        "text": "for as long as either of us can remember",
+        "meaning": "从我们俩记事起就一直",
+        "note": "for as long as I can remember 表示“一直以来、从我记事起”"
+      },
+      {
+        "text": "out of his own savings",
+        "meaning": "自掏腰包（用自己的积蓄）",
+        "note": "pay for sth out of one's own pocket / savings"
+      },
+      {
+        "text": "my stomach was in knots",
+        "meaning": "紧张得胃都揪起来了",
+        "note": "形容非常紧张焦虑，也可以说 My stomach is in knots."
+      },
+      {
+        "text": "half as a joke",
+        "meaning": "半开玩笑地",
+        "note": "say sth half as a joke 说得半真半假"
+      },
+      {
+        "text": "I wish you had been there",
+        "meaning": "真希望你当时在场",
+        "note": "I wish + 过去完成时，表达对过去的遗憾，私人信件里很常见"
+      }
+    ],
+    "grammar": [
+      "subjunctive-past",
+      "clause-relative",
+      "nonfinite-gerund"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-past",
+        "quote": "I wish you had been there, honestly.",
+        "explanation": "I wish 后接过去完成时 had been，表示对过去的遗憾（事实上对方没来）。如果是对现在的愿望，则用一般过去时：I wish you were here."
+      },
+      {
+        "node": "clause-relative",
+        "quote": "that enormous bottling machine whose breakdowns have been a family joke for as long as either of us can remember",
+        "explanation": "whose 引导定语从句，表示所属关系（机器的故障）；先行词是物时同样可以用 whose。"
+      },
+      {
+        "node": "nonfinite-gerund",
+        "quote": "Hearing about that quiet compassion has rearranged something in my memory of him.",
+        "explanation": "动名词短语 Hearing about that quiet compassion 作主语，谓语用单数 has；整句含蓄地说出“我对爷爷的印象变了”。"
+      }
+    ],
+    "speaking": "用 1 分钟讲一位长辈让你意外的一面：你原来怎么看他/她，后来听说或看到了什么，现在的看法有什么变化。",
+    "writing": "给一位没能参加某次家庭聚会或活动的亲友写一封 200–240 词的邮件，讲讲现场发生的事和你的感受，用上 I wish you had been there 和一个 whose 定语从句。",
+    "task": {
+      "prompt": "仿照这句，用 It's strange to think that... used to... 写一个让你感慨的地方或人。",
+      "model": "It's strange to think that Grandpa and a handful of neighbours used to manufacture, right there, an orange drink that nobody outside the region had ever heard of."
+    },
+    "tags": [
+      "家族记忆",
+      "怀旧",
+      "私人邮件"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

@@ -1,0 +1,504 @@
+[
+  {
+    "id": "v5-travel-b1-hostel-booking",
+    "title": "青旅前台：订单不见了",
+    "title_en": "No Booking Under That Name: Sorting Things Out at a Hostel",
+    "summary_zh": "Farah 拖着行李到了青旅，前台却查不到她的预订——原来她订错了月份。看她怎么礼貌地争取今晚的床位，学会住宿出问题时最实用的几句话。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "travel",
+    "genre": "dialogue",
+    "body": "Farah: Hi, I've booked a bed for three nights under the name Farah Haddad. Diego: Welcome, let me just check the system. Hmm, I'm sorry, but I can't find anything under that name. Farah: Really? I got a confirmation email last week, so it should be there somewhere. Diego: Could you show it to me on your phone? Ah, I see what happened. You booked for next month, not this month. Farah: Oh no, you're joking. I must have picked the wrong date when I was booking on the bus. Is there any chance you have a bed for tonight? Diego: We're almost full because of the music festival, but let me have a look. There's one bed left in the eight-person room, though it's a bit noisy, I'm afraid. Farah: Honestly, I'll take anything at this point. I've been travelling since five this morning, and I can hardly keep my eyes open. Diego: Fair enough. You can have that bed tonight, and a quieter room might open up tomorrow, unless someone extends their stay. Farah: That sounds perfect. What about the booking for next month, though? Diego: Don't worry, I'll cancel it for you, so you won't pay twice. Farah: You're a star. Thank you so much!",
+    "questions": [
+      {
+        "prompt": "What caused Farah's problem at the hostel?",
+        "options": [
+          "The hostel never received her confirmation email",
+          "She booked the right hostel for the wrong month",
+          "Diego gave her bed to another guest by mistake",
+          "The music festival cancelled all the bookings"
+        ],
+        "answer": 1,
+        "evidence": "You booked for next month, not this month."
+      },
+      {
+        "prompt": "When Diego says a quieter room \"might open up\", what does he mean?",
+        "options": [
+          "It might become free for a new guest",
+          "It might be cleaned and painted",
+          "It might be made bigger",
+          "It might be closed for the night"
+        ],
+        "answer": 0,
+        "evidence": "a quieter room might open up tomorrow, unless someone extends their stay"
+      }
+    ],
+    "dictation_index": 14,
+    "vocabulary": [
+      {
+        "term": "confirmation",
+        "meaning": "确认（信息）；确认函",
+        "example": "Please check your confirmation before you leave for the airport."
+      },
+      {
+        "term": "festival",
+        "meaning": "节日；（音乐、电影等）节",
+        "example": "The whole town comes out for the summer festival."
+      },
+      {
+        "term": "noisy",
+        "meaning": "吵闹的",
+        "example": "Our room was next to the lift, so it was quite noisy."
+      },
+      {
+        "term": "extends",
+        "meaning": "延长",
+        "example": "If the weather stays nice, she usually extends her holiday by a few days."
+      },
+      {
+        "term": "cancel",
+        "meaning": "取消",
+        "example": "We had to cancel the trip because of the storm."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "Is there any chance",
+        "meaning": "有没有可能……",
+        "note": "比 Can I ...? 更委婉，适合提出对方不一定能满足的请求：Is there any chance I could leave early?"
+      },
+      {
+        "text": "I'm afraid",
+        "meaning": "恐怕；不好意思（说个坏消息）",
+        "note": "放在句末或句首，让坏消息听起来更礼貌：It's fully booked, I'm afraid."
+      },
+      {
+        "text": "I'll take anything at this point",
+        "meaning": "到这个地步，什么都行",
+        "note": "at this point 表示“事已至此”，口语里常带一点疲惫或无奈。"
+      },
+      {
+        "text": "can hardly keep my eyes open",
+        "meaning": "困得眼睛都睁不开了",
+        "note": "形容极度疲倦，比 I'm very tired 更生动。"
+      },
+      {
+        "text": "Fair enough",
+        "meaning": "有道理；可以理解",
+        "note": "接受对方的理由时用，语气随和，英式口语尤其常见。"
+      },
+      {
+        "text": "You're a star",
+        "meaning": "你太好了；你真棒",
+        "note": "感谢别人帮了忙时的热情说法，英式口语常用。"
+      }
+    ],
+    "grammar": [
+      "tense-perfect",
+      "conditional-unless",
+      "clause-noun"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-perfect",
+        "quote": "I've been travelling since five this morning",
+        "explanation": "现在完成进行时 have been doing + since，强调动作从过去某个时间点一直持续到现在，所以才会“困得睁不开眼”。"
+      },
+      {
+        "node": "conditional-unless",
+        "quote": "a quieter room might open up tomorrow, unless someone extends their stay",
+        "explanation": "unless = if ... not，“除非有人延长住宿，否则明天会空出房间”。unless 从句用一般现在时 extends 表示将来。"
+      },
+      {
+        "node": "clause-noun",
+        "quote": "Ah, I see what happened.",
+        "explanation": "what happened 是名词性从句，作 see 的宾语，意思是“发生了什么”。注意语序是陈述句语序，不说 what did happen。"
+      }
+    ],
+    "speaking": "角色扮演：你到酒店或青旅，前台说找不到你的预订。用 1 分钟说明情况并争取一个房间，至少用上 Is there any chance ...? 和 I'm afraid。",
+    "writing": "用 80–100 词给青旅发一条消息：说明你订错了日期，请他们帮你改到正确的日子，用上 I must have ... 和 unless。",
+    "task": {
+      "prompt": "仿照这句，用 Is there any chance ...? 礼貌地提出一个你在旅行或生活中的请求。",
+      "model": "Is there any chance you have a bed for tonight?"
+    },
+    "tags": [
+      "住宿",
+      "解决问题"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-travel-b1-rainy-day",
+    "title": "一场大雨打乱的计划",
+    "title_en": "The Rainy Day That Rewrote the Plan",
+    "summary_zh": "Ingrid 精心安排的海边一日游被一场大雨冲散了，她和爸爸躲进港口边的小书店，却意外过成了整趟旅行最难忘的一天。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "travel",
+    "genre": "story",
+    "body": "Ingrid had planned the perfect day by the sea: a long walk along the cliffs, a picnic by the lighthouse and a swim before dinner. But when she opened the curtains, the rain was coming down so hard that she could barely see the street. Her dad, who never complains about anything, just shrugged and said they could find something else to do. They ran through the rain and ended up in a tiny bookshop at the end of the harbour. The owner was an old fisherman with a loud laugh. He made them hot chocolate and started telling stories about storms, lost boats and a cat that once lived in the lighthouse. Without really noticing, they stayed there for three hours. Later, they ate fish soup in a busy little restaurant full of wet coats and steamy windows. The sun finally came out in the evening, just as they were walking back to the hotel. Ingrid laughed, because the cliffs could wait. Looking back, it's the day of the trip she talks about most.",
+    "questions": [
+      {
+        "prompt": "What is the main point of the story?",
+        "options": [
+          "Bad weather ruined Ingrid's holiday by the sea",
+          "A change of plan gave Ingrid her favourite day",
+          "Ingrid's dad doesn't like walking in the rain",
+          "The bookshop owner showed them the best walks"
+        ],
+        "answer": 1,
+        "evidence": "Looking back, it's the day of the trip she talks about most."
+      },
+      {
+        "prompt": "What does \"the cliffs could wait\" suggest about Ingrid?",
+        "options": [
+          "She was angry about missing the walk",
+          "She didn't mind doing the walk another time",
+          "She knew the cliffs were closed because of the storm",
+          "She wanted to walk there that same evening"
+        ],
+        "answer": 1,
+        "evidence": "Ingrid laughed, because the cliffs could wait."
+      }
+    ],
+    "dictation_index": 6,
+    "vocabulary": [
+      {
+        "term": "cliffs",
+        "meaning": "悬崖；峭壁",
+        "example": "We watched the birds flying around the cliffs."
+      },
+      {
+        "term": "barely",
+        "meaning": "几乎不；勉强",
+        "example": "The music was so loud that I could barely hear her."
+      },
+      {
+        "term": "shrugged",
+        "meaning": "耸了耸肩",
+        "example": "When I asked where he wanted to eat, he just shrugged."
+      },
+      {
+        "term": "harbour",
+        "meaning": "港口；海港",
+        "example": "Small fishing boats were tied up in the harbour."
+      },
+      {
+        "term": "steamy",
+        "meaning": "雾气蒙蒙的；热气腾腾的",
+        "example": "After my hot shower, the bathroom mirror was steamy."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "the rain was coming down so hard",
+        "meaning": "雨下得特别大",
+        "note": "come down 形容雨、雪往下落，比 it was raining heavily 更口语、更有画面感。"
+      },
+      {
+        "text": "could barely see",
+        "meaning": "几乎看不见",
+        "note": "barely 表示“勉强、差一点就不能”，也可以说 could barely hear / barely had time。"
+      },
+      {
+        "text": "ended up in",
+        "meaning": "最后到了（某地）；结果去了",
+        "note": "强调不是原计划，而是事情发展的结果：We ended up in a tiny village."
+      },
+      {
+        "text": "Without really noticing",
+        "meaning": "不知不觉地",
+        "note": "放在句首，说明时间在没留意的情况下溜走了，讲故事很常用。"
+      },
+      {
+        "text": "the cliffs could wait",
+        "meaning": "悬崖以后再去也不迟",
+        "note": "sth can wait 表示“不急，可以晚点再做”：The emails can wait until tomorrow."
+      },
+      {
+        "text": "Looking back",
+        "meaning": "回想起来",
+        "note": "回顾过去时的开头语，后面常接现在的看法或感受。"
+      }
+    ],
+    "grammar": [
+      "clause-relative",
+      "tense-past",
+      "nonfinite-gerund"
+    ],
+    "knowledge": [
+      {
+        "node": "clause-relative",
+        "quote": "Her dad, who never complains about anything, just shrugged",
+        "explanation": "逗号隔开的 who 从句是非限定性定语从句，只是补充说明爸爸的性格，去掉也不影响句子主干。"
+      },
+      {
+        "node": "tense-past",
+        "quote": "the rain was coming down so hard that she could barely see the street",
+        "explanation": "过去进行时 was coming down 描写拉开窗帘那一刻“正在下”的雨，配合 so ... that ... 说明雨大到什么程度。"
+      },
+      {
+        "node": "nonfinite-gerund",
+        "quote": "started telling stories about storms, lost boats and a cat that once lived in the lighthouse",
+        "explanation": "start 后面接动名词 telling，表示开始做一件持续的事。start doing 和 start to do 都可以，口语里 doing 更常见。"
+      }
+    ],
+    "speaking": "用 1 分钟讲一次计划被打乱、结果反而很开心的经历，用上 ended up 和 Looking back。",
+    "writing": "用 100–130 词写一个“计划泡汤却因祸得福”的小故事，用上 so ... that ... 和 Without really noticing。",
+    "task": {
+      "prompt": "仿照这句，用 Without really noticing, ... 写一次你不知不觉花了很长时间做某事的经历。",
+      "model": "Without really noticing, they stayed there for three hours."
+    },
+    "tags": [
+      "旅行故事",
+      "计划变化"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-travel-b1-first-solo-trip",
+    "title": "第一次一个人旅行",
+    "title_en": "An Email Home from My First Solo Trip",
+    "summary_zh": "出发前紧张得要命的 Hana，独自旅行五天后给姐姐写了一封邮件：一个人吃饭的尴尬、自己做决定的自由，还有比想象中更友善的陌生人。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "travel",
+    "genre": "email",
+    "body": "Hi Mina, I'm writing to you from a little guesthouse in the mountains, and I still can't believe I'm doing this on my own. You know how nervous I was before I left. On the first evening, I almost went straight back to my room after dinner, because eating alone in a restaurant felt so strange. But something has changed since then. Every morning I decide what to do over breakfast, and nobody has to agree with me. Yesterday I spent two hours in a tiny tea shop just because I liked the music. I've also talked to more people in five days than I usually do in a month. When you travel alone, people seem to notice you more, and they're kinder than I expected. Of course, there are still lonely moments, especially at night. I've learned to fill them with small things, like a phone call home, a good book or a walk around the square. I'll tell you everything when I'm back, but I wanted you to know that I'm fine. Better than fine, actually. Love, Hana",
+    "questions": [
+      {
+        "prompt": "How have Hana's feelings about travelling alone changed?",
+        "options": [
+          "She was relaxed at first but now feels nervous",
+          "She was nervous at first but now enjoys it",
+          "She has always loved being alone",
+          "She now wants to go home as soon as possible"
+        ],
+        "answer": 1,
+        "evidence": "I wanted you to know that I'm fine. Better than fine, actually."
+      },
+      {
+        "prompt": "According to Hana, what is one good thing about travelling alone?",
+        "options": [
+          "You never feel lonely at night",
+          "People notice you more and are kind to you",
+          "You can save money on meals",
+          "Your family calls you every evening"
+        ],
+        "answer": 1,
+        "evidence": "When you travel alone, people seem to notice you more, and they're kinder than I expected."
+      }
+    ],
+    "dictation_index": 6,
+    "vocabulary": [
+      {
+        "term": "guesthouse",
+        "meaning": "家庭旅馆；民宿",
+        "example": "We stayed in a quiet guesthouse run by an old couple."
+      },
+      {
+        "term": "nervous",
+        "meaning": "紧张的；不安的",
+        "example": "I always feel nervous before a long flight."
+      },
+      {
+        "term": "lonely",
+        "meaning": "孤独的；寂寞的",
+        "example": "The first week in a new city can feel quite lonely."
+      },
+      {
+        "term": "square",
+        "meaning": "广场",
+        "example": "There is a small market in the square every Sunday."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "on my own",
+        "meaning": "独自；靠自己",
+        "note": "= alone，但更口语，也常带“自己搞定”的意味：I did it on my own."
+      },
+      {
+        "text": "went straight back to",
+        "meaning": "直接回到……",
+        "note": "straight 强调“马上、不停留”：After work, I went straight back home."
+      },
+      {
+        "text": "over breakfast",
+        "meaning": "边吃早饭边……",
+        "note": "over + 餐名表示“吃饭时”：Let's talk about it over dinner."
+      },
+      {
+        "text": "kinder than I expected",
+        "meaning": "比我想象的更友善",
+        "note": "比较级 + than I expected，用来表达“意外的好（或坏）”：It was easier than I expected."
+      },
+      {
+        "text": "Better than fine, actually",
+        "meaning": "其实不只是还好，是很好",
+        "note": "先说 I'm fine，再补一句升级，语气俏皮又真诚。"
+      }
+    ],
+    "grammar": [
+      "tense-perfect",
+      "agreement-each",
+      "clause-adverb"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-perfect",
+        "quote": "I've also talked to more people in five days than I usually do in a month.",
+        "explanation": "现在完成时 have talked 总结“到目前为止”的经历，常和 in five days、so far 这样的时间段一起用。"
+      },
+      {
+        "node": "agreement-each",
+        "quote": "nobody has to agree with me",
+        "explanation": "nobody、everyone、somebody 这类不定代词作主语时，谓语用单数：nobody has，不说 nobody have。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "When you travel alone, people seem to notice you more",
+        "explanation": "when 引导时间状语从句，这里讲的是一般规律，所以主从句都用一般现在时。"
+      }
+    ],
+    "speaking": "用 1 分钟说说：如果让你一个人去旅行，你最期待什么、最担心什么？用上 on my own 和 than I expected。",
+    "writing": "用 120–150 词给家人或朋友写一封旅途中的邮件，讲一件让你改变想法的小事，用上现在完成时和 over breakfast / over dinner。",
+    "task": {
+      "prompt": "仿照这句，用 I've ... more ... in ... than I usually do in ... 写一个你最近的变化。",
+      "model": "I've also talked to more people in five days than I usually do in a month."
+    },
+    "tags": [
+      "独自旅行",
+      "邮件"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-travel-b1-gate-small-talk",
+    "title": "航班延误时的登机口闲聊",
+    "title_en": "Another Hour at Gate Twelve: Small Talk with a Stranger",
+    "summary_zh": "航班又延误了一个小时，Kwame 和身边的 Elif 聊了起来：一个赶去参加表亲的婚礼，一个要给妈妈一个惊喜。学会和陌生人自然开聊、接话、道别。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "travel",
+    "genre": "dialogue",
+    "body": "Kwame: Sorry, is anyone sitting here? Elif: No, go ahead, it looks like we're going to be here for a while. Kwame: Yeah, they've just announced another hour. Are you heading home or going away? Elif: Going away, for my cousin's wedding. If this delay gets any longer, I'll miss the big family dinner the night before. Kwame: Oh, that would be a shame after travelling all that way. Is it a big wedding? Elif: Huge, because everyone in my family is coming, even the relatives who never leave their village. What about you, are you off somewhere nice? Kwame: Home, actually, and it's a bit of a secret. I've been working abroad for a year, and my mum has no idea I'm coming back this week. Elif: No way, that's so sweet! She's going to be thrilled when she opens the door and sees you. Kwame: I hope so, as long as she's actually at home when I knock. Elif: Ha, good point. Do you want some of these crisps, by the way? I bought far too many. Kwame: Go on, then, thanks. Oh, listen, they're finally calling our flight. Elif: Well, good luck with the surprise, and I hope she's in! Kwame: Thanks, and enjoy the wedding!",
+    "questions": [
+      {
+        "prompt": "Why is Kwame's trip special?",
+        "options": [
+          "He is going to a family wedding",
+          "His mother doesn't know he is coming home",
+          "It is his first time on a plane",
+          "He is starting a new job abroad"
+        ],
+        "answer": 1,
+        "evidence": "my mum has no idea I'm coming back this week"
+      },
+      {
+        "prompt": "When Elif offers crisps, Kwame says \"Go on, then.\" What does he mean?",
+        "options": [
+          "He wants her to leave",
+          "He is happy to accept",
+          "He wants her to keep talking",
+          "He is politely saying no"
+        ],
+        "answer": 1,
+        "evidence": "Go on, then, thanks."
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {
+        "term": "announced",
+        "meaning": "（正式）宣布；广播通知",
+        "example": "The captain announced that we would land in twenty minutes."
+      },
+      {
+        "term": "relatives",
+        "meaning": "亲戚",
+        "example": "We visit our relatives in the countryside every spring."
+      },
+      {
+        "term": "abroad",
+        "meaning": "在国外；到国外",
+        "example": "My sister wants to study abroad next year."
+      },
+      {
+        "term": "thrilled",
+        "meaning": "非常激动的；高兴极了",
+        "example": "The kids were thrilled to see snow for the first time."
+      },
+      {
+        "term": "crisps",
+        "meaning": "（英式）薯片",
+        "example": "He ate a whole bag of crisps on the train."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "go ahead",
+        "meaning": "请便；你坐吧",
+        "note": "别人问能不能做某事时，表示“可以，请吧”，比 Yes, you can 自然得多。"
+      },
+      {
+        "text": "for a while",
+        "meaning": "一段时间；好一阵子",
+        "note": "时间说不准但不算短时用：I haven't seen him for a while."
+      },
+      {
+        "text": "heading home",
+        "meaning": "正在回家的路上；往家走",
+        "note": "head + 方向，口语中替代 go：I'm heading to the station."
+      },
+      {
+        "text": "that would be a shame",
+        "meaning": "那就太可惜了",
+        "note": "shame 在这里是“遗憾”，不是“羞耻”：What a shame!"
+      },
+      {
+        "text": "No way",
+        "meaning": "不会吧！真的假的！",
+        "note": "听到惊喜或意外消息时的反应，语气兴奋，不是拒绝。"
+      },
+      {
+        "text": "far too many",
+        "meaning": "实在太多了",
+        "note": "far 加强 too 的语气：far too expensive / far too late。"
+      }
+    ],
+    "grammar": [
+      "conditional-real",
+      "agreement-each",
+      "tense-present"
+    ],
+    "knowledge": [
+      {
+        "node": "conditional-real",
+        "quote": "If this delay gets any longer, I'll miss the big family dinner the night before.",
+        "explanation": "真实条件句：if 从句用一般现在时 gets，主句用 will。any longer 加在比较级里表示“再……一点”，很口语。"
+      },
+      {
+        "node": "agreement-each",
+        "quote": "everyone in my family is coming",
+        "explanation": "everyone 虽然指很多人，但语法上是单数，所以用 is coming，不用 are coming。"
+      },
+      {
+        "node": "tense-present",
+        "quote": "my mum has no idea I'm coming back this week",
+        "explanation": "I'm coming back 是现在进行时表示已经安排好的近期计划，说行程时比 I will come back 更自然。has no idea 则是一般现在时说当前状态。"
+      }
+    ],
+    "speaking": "和同伴模拟在车站或机场候车时的闲聊：问对方去哪儿、为什么去，至少用上 Are you heading ...? 和 No way!",
+    "writing": "用 100–130 词写一段你和陌生人在旅途中聊天的经历，用上 for a while、If ..., I'll ... 和一个现在进行时表计划的句子。",
+    "task": {
+      "prompt": "仿照这句，用 If ... gets any ..., I'll ... 说一件让你担心的事。",
+      "model": "If this delay gets any longer, I'll miss the big family dinner the night before."
+    },
+    "tags": [
+      "机场",
+      "闲聊"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

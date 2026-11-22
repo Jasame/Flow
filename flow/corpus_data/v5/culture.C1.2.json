@@ -1,0 +1,518 @@
+[
+  {
+    "id": "v5-culture-c1-returning-museum-objects",
+    "title": "博物馆该不该归还文物",
+    "title_en": "Should Museums Send Objects Back Where They Came From?",
+    "summary_zh": "一篇结构完整的议论文：作者主张，凡是未经原主人真正同意而被带走的藏品，归还应是讨论的起点；同时认真回应“大博物馆更会保护”“展品会被搬空”等反方理由。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "culture",
+    "genre": "opinion",
+    "body": "Few questions in the museum world provoke as much feeling as whether objects should be returned to the places they came from. My own view is that, wherever an object was taken without the meaningful consent of its original owners, returning it should be the starting point of the conversation rather than a reluctant last resort. Museums like to describe themselves as guardians of a shared human heritage, and there is truth in that. Yet keeping an object far from the community that made it can turn a living tradition into a mere exhibit, admired behind glass by visitors who have no idea what it once meant. A carved mask is not simply a beautiful object; to the families who made it, it may hold stories, songs and memories that only make full sense in the place where it was used. Opponents raise serious objections, and they deserve a fair hearing. Some argue that large museums can offer conservation expertise, security and a vast international audience that a smaller institution might struggle to match. Others worry that if every disputed object were sent home, great collections would be emptied and visitors would lose the chance to see many cultures side by side. These concerns are real, but they are not decisive. Expertise can be shared, through training, loans and joint research, without insisting on ownership. And the value of seeing cultures side by side shrinks considerably once we remember that some of those cultures were never asked whether they wished to be displayed at all. Unless a museum can show that an object was acquired fairly, it should be prepared to discuss its return openly, without treating every request as a threat. Returning an object need not mean losing a relationship; it can be the beginning of a more honest one, in which both sides decide together how a piece of the past should be cared for and seen.",
+    "questions": [
+      {
+        "prompt": "Which statement best summarises the writer's position?",
+        "options": [
+          "Museums should keep their collections, because they protect a shared heritage",
+          "Every object in a large museum should be sent back immediately",
+          "Where an object was taken without real consent, its return should be considered from the start",
+          "Smaller institutions should pay large museums for the objects they want back"
+        ],
+        "answer": 2,
+        "evidence": "returning it should be the starting point of the conversation rather than a reluctant last resort"
+      },
+      {
+        "prompt": "How does the writer respond to the argument that large museums have more expertise?",
+        "options": [
+          "By claiming that expertise is not important for old objects",
+          "By pointing out that expertise can be shared without keeping ownership",
+          "By agreeing that only large museums should care for valuable objects",
+          "By suggesting that experts should move to smaller institutions"
+        ],
+        "answer": 1,
+        "evidence": "Expertise can be shared, through training, loans and joint research, without insisting on ownership."
+      }
+    ],
+    "dictation_index": 9,
+    "vocabulary": [
+      {
+        "term": "provoke",
+        "meaning": "激起；引发（强烈反应）",
+        "example": "The new rule is likely to provoke complaints from parents."
+      },
+      {
+        "term": "consent",
+        "meaning": "同意；许可",
+        "example": "You shouldn't post a photo of someone without their consent."
+      },
+      {
+        "term": "reluctant",
+        "meaning": "不情愿的；勉强的",
+        "example": "He gave a reluctant nod and finally agreed to come."
+      },
+      {
+        "term": "heritage",
+        "meaning": "（文化）遗产；传承",
+        "example": "The old tea house is an important part of the town's heritage."
+      },
+      {
+        "term": "decisive",
+        "meaning": "决定性的；起关键作用的",
+        "example": "Price was important, but it wasn't the decisive factor."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "last resort",
+        "meaning": "最后的手段；不得已的选择",
+        "note": "as a last resort 实在没办法才……；议论文里常和 starting point 对比"
+      },
+      {
+        "text": "there is truth in that",
+        "meaning": "这话有一定道理",
+        "note": "让步时先承认对方观点，再用 Yet / But 转折，显得公允"
+      },
+      {
+        "text": "deserve a fair hearing",
+        "meaning": "值得认真听一听",
+        "note": "a fair hearing 原指公正的审理，引申为“不带偏见地听取”，引出反方观点很得体"
+      },
+      {
+        "text": "side by side",
+        "meaning": "并排；放在一起",
+        "note": "既可指物理位置，也可指比较：compare the two side by side"
+      },
+      {
+        "text": "they are not decisive",
+        "meaning": "它们不足以决定结论",
+        "note": "These concerns are real, but... 承认反方、再削弱其分量的经典句式"
+      },
+      {
+        "text": "need not mean",
+        "meaning": "不一定意味着",
+        "note": "need not + 动词原形，书面语，比 doesn't have to 更正式"
+      }
+    ],
+    "grammar": [
+      "conditional-unless",
+      "nonfinite-gerund",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "conditional-unless",
+        "quote": "Unless a museum can show that an object was acquired fairly, it should be prepared to discuss its return openly",
+        "explanation": "unless = if... not：“除非能证明来源正当，否则就应该……”。用 unless 把举证责任放到对方身上，语气比 if it cannot 更有力。"
+      },
+      {
+        "node": "nonfinite-gerund",
+        "quote": "Returning an object need not mean losing a relationship",
+        "explanation": "动名词 Returning an object 作主语，mean 后面再接动名词 losing（mean doing 意味着做某事）。两个动名词对照，结论简洁有力。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "a vast international audience that a smaller institution might struggle to match",
+        "explanation": "struggle to do sth 表示“很难做到”。不定式 to match 放在定语从句末尾，客观地陈述反方理由，不带情绪。"
+      }
+    ],
+    "speaking": "用 1 分钟回答：一件老物件最好留在它被制作的地方，还是放在更多人能看到的大博物馆？给出观点、一个反方理由和你的回应。",
+    "writing": "写一篇 220–260 词的议论文 Should museums return objects to where they came from?：要有明确论点、反方观点与反驳、结论，至少用上一个 Unless... 句子和一个动名词作主语的句子。",
+    "task": {
+      "prompt": "仿照这句，用 A need not mean B; it can be... 重新解读一件看起来像“损失”的事。",
+      "model": "Returning an object need not mean losing a relationship; it can be the beginning of a more honest one"
+    },
+    "tags": [
+      "博物馆",
+      "议论文",
+      "文化遗产"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-c1-two-clocks-review",
+    "title": "影评：墙上的两只钟",
+    "title_en": "Film Review: Two Clocks and the Order of Memory",
+    "summary_zh": "一篇虚构影片的影评：移居异国二十年的译者 Lena 忘了妈妈做菜时先放姜还是先放蒜。评论者喜欢它对“细小失去”的诚实，也指出表演克制得有点过头。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "culture",
+    "genre": "article",
+    "body": "Halfway through Two Clocks, a quiet new drama about a woman who left her hometown twenty years earlier, there is a scene that sums up the whole film. Lena, now a translator in a grey northern city, is cooking a dish from her childhood when she realises she can no longer remember whether her mother added the ginger before or after the garlic. She phones her sister, who is not sure either, and the two of them end up laughing, then falling silent, as though they had both noticed something slipping away at the same moment. Rather than building towards a dramatic return home, the film moves back and forth between past and present so smoothly that you sometimes need a moment to work out where you are. This can be frustrating, but it is clearly deliberate: memory, the film suggests, does not arrive in chronological order. The two clocks of the title hang side by side in Lena's kitchen, one set to local time and one to the time back home, and the director returns to them often enough to make the point without ever hammering it. The performances are restrained to a fault. Although the lead actor conveys a great deal with a single glance, some viewers will wish she had been given one scene in which her feelings could finally spill over. The supporting cast fares better, especially the young actor playing Lena's teenage son, whose embarrassment at his mother's accent slowly turns into curiosity about the language he has never bothered to learn. What lingers afterwards is less any single event than a mood: the strange experience of feeling at home in two places and not quite at home in either. Not every film about migration manages to avoid sentimentality, and this one occasionally drifts close to it, but its honesty about small losses makes it well worth seeing.",
+    "questions": [
+      {
+        "prompt": "What is the reviewer's overall opinion of the film?",
+        "options": [
+          "It is a fast-moving drama that never slows down",
+          "It has some weaknesses but is honest and worth watching",
+          "It fails mainly because the acting is far too emotional",
+          "It is a light comedy about arguments between sisters"
+        ],
+        "answer": 1,
+        "evidence": "its honesty about small losses makes it well worth seeing"
+      },
+      {
+        "prompt": "According to the reviewer, why does the film keep moving between past and present?",
+        "options": [
+          "To keep the ending a surprise for as long as possible",
+          "To reflect the way memories actually come back to us",
+          "Because Lena has lost track of where she is living",
+          "Because the story is told from the son's point of view"
+        ],
+        "answer": 1,
+        "evidence": "memory, the film suggests, does not arrive in chronological order"
+      }
+    ],
+    "dictation_index": 4,
+    "vocabulary": [
+      {
+        "term": "deliberate",
+        "meaning": "故意的；刻意为之的",
+        "example": "The slow start of the novel is deliberate, not a mistake."
+      },
+      {
+        "term": "chronological",
+        "meaning": "按时间顺序的",
+        "example": "Please list your work experience in chronological order."
+      },
+      {
+        "term": "restrained",
+        "meaning": "克制的；含蓄的",
+        "example": "Her restrained reaction made the bad news feel even heavier."
+      },
+      {
+        "term": "conveys",
+        "meaning": "传达；表达",
+        "example": "A good photo often conveys more than a long description."
+      },
+      {
+        "term": "sentimentality",
+        "meaning": "滥情；过度煽情",
+        "example": "The speech was moving without falling into sentimentality."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "sums up",
+        "meaning": "概括；集中体现",
+        "note": "sum up sth 总结；影评里常说 a scene that sums up the whole film"
+      },
+      {
+        "text": "work out where you are",
+        "meaning": "弄清楚自己身在何处",
+        "note": "work out 想明白、弄清楚，口语书面都常用"
+      },
+      {
+        "text": "make the point",
+        "meaning": "把意思表达到位",
+        "note": "make the point without hammering it：点到为止，不反复强调"
+      },
+      {
+        "text": "to a fault",
+        "meaning": "（优点）过了头",
+        "note": "generous to a fault 大方得过分；褒中带贬，评论时很地道"
+      },
+      {
+        "text": "fares better",
+        "meaning": "表现得更好；情况更好",
+        "note": "fare 指“进展、表现”，评论演员、球队、方案都可以用"
+      },
+      {
+        "text": "well worth seeing",
+        "meaning": "非常值得一看",
+        "note": "be well worth + 动名词：The museum is well worth visiting."
+      }
+    ],
+    "grammar": [
+      "clause-adverb",
+      "nonfinite-gerund",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "clause-adverb",
+        "quote": "Although the lead actor conveys a great deal with a single glance, some viewers will wish she had been given one scene in which her feelings could finally spill over.",
+        "explanation": "Although 引导让步状语从句：先肯定演员的长处，再在主句里指出不足。影评、议论文里“先扬后抑”就靠这个结构。"
+      },
+      {
+        "node": "nonfinite-gerund",
+        "quote": "Rather than building towards a dramatic return home, the film moves back and forth between past and present",
+        "explanation": "rather than 后接动名词 building，表示“不是……而是……”，用来对比观众的预期和影片实际的做法。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "the director returns to them often enough to make the point without ever hammering it",
+        "explanation": "副词 + enough to do：“次数足以……”。不定式 to make the point 说明“够到什么程度”，后面 without hammering 再加限制。"
+      }
+    ],
+    "speaking": "用 1 分钟做一段“口头影评”：介绍一部关于离开家乡或回忆的电影或剧，说一个优点、一个不足，最后用 well worth seeing 或 to a fault 作结。",
+    "writing": "写一篇 200–250 词的影评：一句话概括剧情、一个最打动你的场景、表演的优缺点和总体推荐，用上 Although... 和 Rather than + -ing。",
+    "task": {
+      "prompt": "仿照这句，用 What lingers afterwards is less A than B 评价一部你看过的电影或读过的书。",
+      "model": "What lingers afterwards is less any single event than a mood"
+    },
+    "tags": [
+      "影评",
+      "移居与记忆",
+      "电影"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-c1-gestures-need-translation",
+    "title": "原来手势也需要翻译",
+    "title_en": "It Turns Out My Hands Needed a Translator Too",
+    "summary_zh": "作者一直以为手势不用翻译，直到招手叫室友过来尝汤，对方却面露迟疑。几次小误会让她明白：手势是从小学来的习惯，最好的结局是把误会变成两个人的笑话。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "culture",
+    "genre": "story",
+    "body": "I had always assumed that my hands, unlike my vocabulary, needed no translation. That belief lasted until my second week in a shared flat, when I beckoned my new flatmate Yara over to taste a soup by curling my finger towards me, palm up. She came, but slowly, with an expression I could not read. Later that evening, over the washing-up, she explained that in the town where she had grown up, that particular gesture was mostly used to call a dog, and that from a stranger it would have seemed faintly insulting. She had decided, generously, that I could not possibly have meant it. After that conversation, I began noticing how much of my communication I had been leaving to my hands without ever checking what they were saying. At the café on the corner, I would raise a hand, palm outward, to mean \"no more coffee, thanks\", and the waiter, who read it as a cheerful hello, would wave back and keep pouring. In a team meeting, a colleague who tilted his head to one side while I spoke turned out not to be doubting me at all; for him, it simply meant that he was following. Although none of these moments was dramatic, together they made me realise that gestures are learned habits, picked up so early that they feel like nature. Unless someone points them out, you have no reason to suspect that your wave or your nod might be landing differently. I have not stopped gesturing, which would be impossible, but I have started asking. Yara now teases me by beckoning me into the kitchen with a deliberately exaggerated curl of the finger, and we both laugh, which is perhaps the best outcome a misunderstanding can have: it becomes a private joke rather than a quiet grudge.",
+    "questions": [
+      {
+        "prompt": "What is the main lesson the writer draws from her experiences?",
+        "options": [
+          "Gestures mean the same everywhere, so they are safer than words",
+          "It is best to stop using gestures with people you have just met",
+          "Gestures are learned habits, so their meaning can differ from person to person",
+          "Only strangers misread gestures, while friends always understand them"
+        ],
+        "answer": 2,
+        "evidence": "gestures are learned habits, picked up so early that they feel like nature"
+      },
+      {
+        "prompt": "How did Yara first react when the writer beckoned her?",
+        "options": [
+          "She laughed and made a joke about it straight away",
+          "She refused to come into the kitchen",
+          "She came over, but hesitantly and with an unclear expression",
+          "She told the writer immediately that the gesture was rude"
+        ],
+        "answer": 2,
+        "evidence": "She came, but slowly, with an expression I could not read."
+      }
+    ],
+    "dictation_index": 10,
+    "vocabulary": [
+      {
+        "term": "beckoned",
+        "meaning": "（用手势）招呼、示意过来",
+        "example": "The teacher beckoned me to the front of the room."
+      },
+      {
+        "term": "faintly",
+        "meaning": "略微地；隐约地",
+        "example": "The room smelled faintly of fresh paint."
+      },
+      {
+        "term": "insulting",
+        "meaning": "冒犯的；侮辱性的",
+        "example": "He didn't mean it, but his comment sounded a little insulting."
+      },
+      {
+        "term": "exaggerated",
+        "meaning": "夸张的",
+        "example": "She gave an exaggerated yawn to show how boring the film was."
+      },
+      {
+        "term": "grudge",
+        "meaning": "怨恨；心结",
+        "example": "My brother still holds a grudge about the last piece of cake."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "over the washing-up",
+        "meaning": "一边洗碗一边（聊）",
+        "note": "over + 活动：over dinner / over coffee，表示边做边谈"
+      },
+      {
+        "text": "could not possibly have meant it",
+        "meaning": "不可能是故意的",
+        "note": "could not possibly have done 表示对过去的强烈否定推测，替对方开脱时很体贴"
+      },
+      {
+        "text": "turned out not to be",
+        "meaning": "结果发现并不是",
+        "note": "turn out (not) to be 用于“事后才知道”的真相"
+      },
+      {
+        "text": "picked up so early",
+        "meaning": "很早就（不知不觉）学会了",
+        "note": "pick up 指在生活中自然习得语言、习惯、口音"
+      },
+      {
+        "text": "landing differently",
+        "meaning": "被（对方）接收、理解得不一样",
+        "note": "land 比喻话语或举动“落到对方那里”的效果：The joke didn't land."
+      },
+      {
+        "text": "a private joke",
+        "meaning": "只有彼此懂的笑话",
+        "note": "也说 an inside joke，形容两人之间的默契"
+      }
+    ],
+    "grammar": [
+      "nonfinite-gerund",
+      "clause-adverb",
+      "conditional-unless"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-gerund",
+        "quote": "I began noticing how much of my communication I had been leaving to my hands without ever checking what they were saying",
+        "explanation": "begin 后接动名词 noticing；介词 without 后也必须用动名词 checking。without ever doing 强调“从来没有做过某事”。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "Although none of these moments was dramatic, together they made me realise that gestures are learned habits",
+        "explanation": "Although 引导让步状语从句：单个看都不起眼，合起来却说明了问题。注意 none of these moments 在正式文体中常用单数 was。"
+      },
+      {
+        "node": "conditional-unless",
+        "quote": "Unless someone points them out, you have no reason to suspect that your wave or your nod might be landing differently.",
+        "explanation": "unless = if... not：“除非有人指出来，否则你根本不会怀疑……”。从句用一般现在时 points 表示普遍情况。"
+      }
+    ],
+    "speaking": "讲一次你的手势、表情或语气被别人理解错（或你误解别人）的经历，用 1 分钟说清当时的场景、误会和后来的化解。",
+    "writing": "写一篇 200–250 词的个人随笔：一个你从小习以为常、后来才发现别人理解不同的小习惯。至少用上一个 Unless... 句子和一个 without + -ing 结构。",
+    "task": {
+      "prompt": "仿照这句，用 Unless someone..., you have no reason to... 说一个人们通常意识不到的习惯。",
+      "model": "Unless someone points them out, you have no reason to suspect that your wave or your nod might be landing differently."
+    },
+    "tags": [
+      "手势",
+      "跨文化沟通",
+      "误会与沟通"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-c1-lift-small-talk",
+    "title": "电梯里尴尬的三十秒",
+    "title_en": "The Unwritten Script of Sharing a Lift",
+    "summary_zh": "为什么和陌生人同乘电梯总让人不自在？这篇说明文指出：问题不在沉默，而在距离。读完你会明白电梯里那套固定的“聊天剧本”是怎么来的，以及怎样体面地应对。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "culture",
+    "genre": "explainer",
+    "body": "Few social situations are as oddly scripted as the thirty seconds you spend in a lift with a stranger. The space is small, the exit is temporarily out of reach, and there is nothing to look at except the doors and the slowly changing numbers above them, which may be why so many of us stare at those numbers as though they contained urgent news. What makes the lift awkward is not the silence itself but the closeness. In most everyday settings, we manage the distance between ourselves and others without thinking about it, stepping back when someone feels too near. A lift removes that option, so people compensate in other ways: by facing the same direction, by avoiding eye contact, or by suddenly finding their phones fascinating. Small talk, when it happens, tends to follow a narrow script. Asking which floor someone needs is the safest opening, because it is practical rather than personal and offers an obvious next step: pressing the button for them. Comments on the weather or on how slow the lift is work in a similar way, inviting agreement without demanding anything more. What rarely works is a question that requires a long answer, since both people know the conversation has a built-in deadline. If you have ever been halfway through a story when the doors opened on your floor, you will know the peculiar choice that follows: abandon the story mid-sentence, or step out still talking and leave the other person wondering whether to hold the doors. Unless the two of you already know each other, the kindest approach is usually to keep things short enough to finish between floors. None of this is a universal rule, and plenty of people happily chat their way from the ground floor to the top. Still, understanding why the lift feels the way it does can make those thirty seconds less of an ordeal, and occasionally even rather pleasant.",
+    "questions": [
+      {
+        "prompt": "According to the writer, what really makes sharing a lift uncomfortable?",
+        "options": [
+          "The long silence between strangers",
+          "Being physically close with no way to step back",
+          "The slow speed of most lifts",
+          "Not knowing which button to press"
+        ],
+        "answer": 1,
+        "evidence": "What makes the lift awkward is not the silence itself but the closeness."
+      },
+      {
+        "prompt": "Why is asking which floor someone needs described as a good opening?",
+        "options": [
+          "It shows real interest in the other person's life",
+          "It allows a long conversation to develop",
+          "It is practical rather than personal and leads to a simple action",
+          "It is the only polite thing people say in a lift"
+        ],
+        "answer": 2,
+        "evidence": "because it is practical rather than personal and offers an obvious next step"
+      }
+    ],
+    "dictation_index": 2,
+    "vocabulary": [
+      {
+        "term": "scripted",
+        "meaning": "照剧本走的；套路化的",
+        "example": "The interview felt so scripted that nobody said anything surprising."
+      },
+      {
+        "term": "compensate",
+        "meaning": "弥补；补偿",
+        "example": "She speaks slowly to compensate for her strong accent."
+      },
+      {
+        "term": "peculiar",
+        "meaning": "奇怪的；特别的",
+        "example": "There was a peculiar smell coming from the fridge."
+      },
+      {
+        "term": "abandon",
+        "meaning": "放弃；中途丢下",
+        "example": "We had to abandon our picnic when it started to pour."
+      },
+      {
+        "term": "ordeal",
+        "meaning": "煎熬；苦差事",
+        "example": "For shy students, giving a presentation can be a real ordeal."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "out of reach",
+        "meaning": "够不着；无法到达",
+        "note": "既可指物理距离，也可指目标：The price is out of reach for most students."
+      },
+      {
+        "text": "avoiding eye contact",
+        "meaning": "避免眼神接触",
+        "note": "make / avoid eye contact，是描述社交距离的常用搭配"
+      },
+      {
+        "text": "a built-in deadline",
+        "meaning": "自带的截止时间",
+        "note": "built-in 原指“内置的”，比喻某件事天然带有某种限制"
+      },
+      {
+        "text": "mid-sentence",
+        "meaning": "话说到一半",
+        "note": "stop mid-sentence 说着说着突然停下；也可说 mid-conversation"
+      },
+      {
+        "text": "chat their way",
+        "meaning": "一路聊着",
+        "note": "动词 + one's way + 介词短语：talk your way out of trouble、eat your way through a menu"
+      },
+      {
+        "text": "less of an ordeal",
+        "meaning": "没那么煎熬",
+        "note": "less of a + 名词：It's less of a problem than I thought."
+      }
+    ],
+    "grammar": [
+      "conditional-unless",
+      "clause-adverb",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "conditional-unless",
+        "quote": "Unless the two of you already know each other, the kindest approach is usually to keep things short enough to finish between floors.",
+        "explanation": "unless 引出唯一的例外情况：除非你们本来就认识，否则……。主句用 is usually 给出一般建议，语气不武断。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "What rarely works is a question that requires a long answer, since both people know the conversation has a built-in deadline.",
+        "explanation": "since 引导原因状语从句，语气比 because 更平和，常用于说明双方都知道的理由。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "leave the other person wondering whether to hold the doors",
+        "explanation": "whether to do 是“疑问词 + 不定式”，相当于 whether they should hold，简洁地表达“犹豫要不要做”。"
+      }
+    ],
+    "speaking": "用 1 分钟描述你在电梯、地铁或排队时最常遇到的“尴尬三十秒”，说说你通常怎么应对，以及你觉得为什么会尴尬。",
+    "writing": "写一篇 200–250 词的说明文，解释一个日常场景（如电梯、理发店、出租车）里为什么会有固定的“聊天套路”，至少用上一个 Unless... 句子和一个 What makes... is... 句子。",
+    "task": {
+      "prompt": "仿照这句，用 What makes A ... is not B but C 分析一个让你不自在的日常场景。",
+      "model": "What makes the lift awkward is not the silence itself but the closeness."
+    },
+    "tags": [
+      "寒暄",
+      "公共场合",
+      "社交礼仪"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

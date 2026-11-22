@@ -16,7 +16,7 @@ class LabTests(unittest.TestCase):
  def get(self,path='',query=None,uid=1):return lab.get(self.c,uid,'/api/lab'+path,query or {})
  def feedback(self,**extra):return {'pack':'travel-a2','skill':'speaking','answer':'give me a room','request_id':'lab-feedback-001',**extra}
  def test_original_materials_and_answer_hiding(self):
-  d,status=self.get();self.assertEqual(status,200);self.assertEqual(len(d['packs']),154)
+  d,status=self.get();self.assertEqual(status,200);self.assertEqual(len(d['packs']),154+len(__import__('content_v50').v5_materials()))
   for row in PACKS:
    p=material(row);lab.validate_pack(p)
    for q in p['questions']:self.assertIn(q['evidence'],p['body'])

@@ -1,0 +1,63 @@
+[
+  {
+    "id": "v5-science-b2-noise-cancelling",
+    "title": "降噪耳机为什么能“消音”",
+    "title_en": "How Noise-Cancelling Headphones Fight Sound with Sound",
+    "summary_zh": "降噪耳机不是把声音挡在外面，而是制造一段“相反”的声音把噪音抵消掉。读完你会明白它为什么对飞机轰鸣有效、对人声却没那么灵。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "science",
+    "genre": "explainer",
+    "body": "The first time you switch on a pair of noise-cancelling headphones on a train, the effect feels almost like magic: the low roar of the engine simply drains away. What is surprising is that the headphones are not blocking that sound so much as fighting it with more sound. Every noise is a wave of pressure, with peaks and troughs that reach your ear in a regular rhythm. A tiny microphone on the outside of each ear cup listens to the noise around you, and a chip inside works out the exact opposite wave. When that mirror-image wave is played through the speaker, the peaks of one meet the troughs of the other, and the two cancel out. Engineers call this destructive interference, and it works best on sounds that are steady and predictable, such as the hum of an air conditioner or the drone of a plane. Human voices are a different story. Because speech changes from one moment to the next, the chip cannot keep up, which is why you can still hear the person sitting next to you, only a little quieter. If the headphones tried to cancel every sudden sound, they would risk making the noise worse rather than better. Most models therefore combine two strategies: soft, well-sealed cushions block the high-pitched sounds, while the electronics take care of the deep, constant ones. The result is not silence, but it is close enough to make a long journey feel shorter.",
+    "questions": [
+      {
+        "prompt": "What is the main idea of the passage?",
+        "options": [
+          "Headphones work best when the volume is turned up",
+          "Headphones reduce noise mainly by producing an opposite sound wave",
+          "Headphones are designed to block every sound completely",
+          "Headphones use thick cushions to stop all low sounds"
+        ],
+        "answer": 1,
+        "evidence": "the headphones are not blocking that sound so much as fighting it with more sound"
+      },
+      {
+        "prompt": "Why can you still hear the person sitting next to you?",
+        "options": [
+          "Their voice is louder than an engine",
+          "The microphone is turned off when people talk",
+          "Speech changes too quickly for the chip to follow",
+          "The cushions are designed to let voices through"
+        ],
+        "answer": 2,
+        "evidence": "Because speech changes from one moment to the next, the chip cannot keep up"
+      }
+    ],
+    "dictation_index": 3,
+    "vocabulary": [
+      {"term": "predictable", "meaning": "可预测的；有规律的", "example": "Her daily routine is so predictable that I always know where to find her."},
+      {"term": "interference", "meaning": "干涉；干扰", "example": "The radio signal suffered from interference during the storm."},
+      {"term": "strategies", "meaning": "策略；办法", "example": "Good learners try different strategies before giving up."},
+      {"term": "constant", "meaning": "持续不断的", "example": "The constant noise from the road kept me awake."}
+    ],
+    "expressions": [
+      {"text": "feels almost like magic", "meaning": "感觉简直像魔法一样", "note": "描述令人惊叹的体验，口语书面都自然"},
+      {"text": "not blocking that sound so much as fighting it", "meaning": "与其说是挡住声音，不如说是在对抗它", "note": "not A so much as B：纠正别人的常见理解，很地道的论证句型"},
+      {"text": "a different story", "meaning": "另一回事；情况不同", "note": "转折时常用：X is fine, but Y is a different story."},
+      {"text": "cannot keep up", "meaning": "跟不上", "note": "可用于速度、节奏、工作量：I can't keep up with all these emails."},
+      {"text": "making the noise worse rather than better", "meaning": "让情况更糟而不是更好", "note": "worse rather than better：强调适得其反"},
+      {"text": "close enough to", "meaning": "已经足够接近，可以……", "note": "It's not perfect, but it's close enough to work."}
+    ],
+    "grammar": ["clause-adverb", "conditional-modal", "nonfinite-participle"],
+    "knowledge": [
+      {"node": "clause-adverb", "quote": "Because speech changes from one moment to the next, the chip cannot keep up", "explanation": "because 引导原因状语从句放在句首，先交代原因再给结果，适合解释“为什么”。"},
+      {"node": "conditional-modal", "quote": "If the headphones tried to cancel every sudden sound, they would risk making the noise worse rather than better.", "explanation": "if + 过去式，主句 would + 动词原形，描述一个假设的、实际上没有这样做的情况及其后果。"},
+      {"node": "nonfinite-participle", "quote": "soft, well-sealed cushions block the high-pitched sounds", "explanation": "well-sealed 是过去分词作定语，表示“被密封好的”，比用定语从句更简洁。"}
+    ],
+    "speaking": "用 1 分钟向朋友解释：降噪耳机为什么对飞机轰鸣有效，对人说话却没那么有效。至少用上 a different story 或 cannot keep up。",
+    "writing": "用 80–120 词描述一个你觉得“像魔法一样”的日常科技，并用 not A so much as B 说明它真正的原理。",
+    "task": {"prompt": "仿照这句的结构，用 not A so much as B 纠正一个大家对某件事的常见误解。", "model": "the headphones are not blocking that sound so much as fighting it with more sound"},
+    "tags": ["科技原理", "日常科学"],
+    "source": "Flow 编辑部原创"
+  }
+]

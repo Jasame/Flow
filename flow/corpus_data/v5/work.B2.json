@@ -1,0 +1,504 @@
+[
+  {
+    "id": "v5-work-b2-deadline-pushback",
+    "title": "如何回应一个不现实的截止日期",
+    "title_en": "Pushing Back on an Impossible Deadline",
+    "summary_zh": "经理要求新应用提前两周上线，Kwame 回了一封邮件：不硬顶，也不硬扛，而是摆出三个方案让对方选。读完你能学会委婉地说“做不到”，并把拒绝变成可以商量的选项。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "work",
+    "genre": "email",
+    "body": "Hi Helen, Thanks for the heads-up about the revised launch date. I can see why the sales team wants the app out before the trade fair, and I'd genuinely like to make that happen. Having gone through the plan again with the developers this morning, though, I don't think we can realistically deliver everything two weeks early without cutting corners. The testing stage is already tight, and it's the part we can least afford to rush. If I were confident we could do it all, I'd say yes straight away. Instead, I'd like to suggest three options. First, we could keep the new date but launch a simpler version, with the booking feature ready and the loyalty points following a month later. Second, we could keep the full version and the original date, and give the sales team a working preview to show at the fair. Third, if we brought in one more developer for a fortnight, we might manage the full version on time, although that would hinge on finding someone already familiar with the system. Personally, I'd go with the first option, since it gets something real into customers' hands early without putting quality at risk. Could we talk it through for fifteen minutes tomorrow? I'm free any time after ten, and I'll bring an updated timeline so we can decide quickly. Best, Kwame",
+    "questions": [
+      {
+        "prompt": "What is Kwame's overall attitude to the new deadline?",
+        "options": [
+          "He is annoyed and refuses to discuss any change to the plan",
+          "He wants to help, but doesn't believe everything can be done by then",
+          "He accepts the new date and promises the full version",
+          "He thinks the sales team should make the decision alone"
+        ],
+        "answer": 1,
+        "evidence": "I don't think we can realistically deliver everything two weeks early without cutting corners"
+      },
+      {
+        "prompt": "Why does Kwame prefer the first option?",
+        "options": [
+          "It gives customers a real product early without hurting quality",
+          "It is the only option that the developers agree with",
+          "It lets the sales team show a preview at the fair",
+          "It means the company doesn't need to hire anyone"
+        ],
+        "answer": 0,
+        "evidence": "since it gets something real into customers' hands early without putting quality at risk"
+      }
+    ],
+    "dictation_index": 3,
+    "vocabulary": [
+      {
+        "term": "genuinely",
+        "meaning": "真心地；确实",
+        "example": "I genuinely enjoyed working with your team."
+      },
+      {
+        "term": "deliver",
+        "meaning": "交付；兑现（承诺）",
+        "example": "We promised the report by Friday, and we need to deliver."
+      },
+      {
+        "term": "tight",
+        "meaning": "（时间、预算）紧张的",
+        "example": "The schedule is tight, so let's not add any new features."
+      },
+      {
+        "term": "preview",
+        "meaning": "预览版；抢先看",
+        "example": "The designers shared a preview of the new homepage."
+      },
+      {
+        "term": "timeline",
+        "meaning": "时间表；进度安排",
+        "example": "Can you send me a timeline for the whole project?"
+      }
+    ],
+    "expressions": [
+      {
+        "text": "make that happen",
+        "meaning": "把这件事办成",
+        "note": "表达积极配合的态度，先表态“我想帮你实现”，再讲困难，语气就不会太硬。"
+      },
+      {
+        "text": "without cutting corners",
+        "meaning": "不偷工减料",
+        "note": "cut corners 指为了省时省钱而走捷径、降低标准，职场里常用来说明质量风险。"
+      },
+      {
+        "text": "the part we can least afford to rush",
+        "meaning": "我们最不能赶工的部分",
+        "note": "can't afford to do 表示“承受不起做某事的后果”，least 让语气更强。"
+      },
+      {
+        "text": "go with the first option",
+        "meaning": "选第一个方案",
+        "note": "go with sth 是口语里“选择、采用”的常用说法：I'll go with the blue one."
+      },
+      {
+        "text": "putting quality at risk",
+        "meaning": "让质量受到威胁",
+        "note": "put sth at risk 是正式又常用的搭配，可换成 put the project / our reputation at risk。"
+      },
+      {
+        "text": "talk it through",
+        "meaning": "把事情当面谈清楚",
+        "note": "提出当面或电话沟通的自然说法，比 discuss it 更口语、更有合作感。"
+      }
+    ],
+    "grammar": [
+      "subjunctive-now",
+      "conditional-modal",
+      "nonfinite-participle"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-now",
+        "quote": "If I were confident we could do it all, I'd say yes straight away.",
+        "explanation": "If + were 表示与现在事实相反：其实我现在没有把握。用这种虚拟语气说“不”，比直接说 I can't do it 委婉得多。"
+      },
+      {
+        "node": "conditional-modal",
+        "quote": "if we brought in one more developer for a fortnight, we might manage the full version on time",
+        "explanation": "假设条件句的主句用 might 而不是 would，表示“有可能，但不保证”，向上级提方案时能给自己留余地。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "Having gone through the plan again with the developers this morning, though, I don't think we can realistically deliver everything",
+        "explanation": "Having + 过去分词作状语，表示在主句动作之前已经完成的动作，逻辑主语必须和主句主语 I 一致。"
+      }
+    ],
+    "speaking": "假设老板要你把一项任务提前完成，用 1 分钟回应：先表示理解，再说明困难，最后给出两个可选方案。用上 If I were… 或 cutting corners。",
+    "writing": "用 150–200 词写一封邮件，回应一个你觉得不现实的要求（截止日期、工作量等），要给出至少两个选项，并说明你更倾向哪一个、为什么。",
+    "task": {
+      "prompt": "仿照这句，用 If I were…, I'd… 委婉地拒绝或推迟一个你做不到的请求。",
+      "model": "If I were confident we could do it all, I'd say yes straight away."
+    },
+    "tags": [
+      "职场邮件",
+      "向上沟通"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-work-b2-interview-curveball",
+    "title": "面试中没准备过的问题",
+    "title_en": "The Interview Question Nobody Prepares For",
+    "summary_zh": "面试快结束时，面试官问了一个意料之外的问题：“你曾经相信、后来发现是错的工作观念是什么？”读完你能学会如何争取思考时间，以及用一个真实的小教训打动面试官。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "work",
+    "genre": "dialogue",
+    "body": "Claire: Thanks, Yusuf, that's all very clear. Now, one last question, and it's slightly unusual. What's something you used to believe about work that turned out to be wrong? Yusuf: Oh, that's a good one, and nobody has asked me that before. Can I take a moment to think? Claire: Of course, take your time, there's no rush. Yusuf: OK, so when I started my first job, I believed that a good employee was someone who never bothered anyone. So whenever I got stuck, I'd just keep going on my own. Once, I spent almost a week trying to fix a problem with our customer database. In the end, a colleague who sat two desks away solved it in about an hour, because she'd seen the same thing before. Claire: That must have been frustrating. Yusuf: It was, honestly, and a little embarrassing too. If I had asked her on the first day, I would have saved myself a week and the team a lot of waiting. Claire: So what do you do differently now? Yusuf: Now I give myself a time limit, so if I've been stuck for two hours, I ask someone, and I explain what I've already tried. It's a small rule, but it's changed how I work. Claire: That's a really useful answer, thank you. Most candidates just tell me they work too hard, so that's refreshing. Yusuf: Well, I used to think that was my problem too, until I realized I was mostly just working alone.",
+    "questions": [
+      {
+        "prompt": "Why does Claire probably like Yusuf's answer?",
+        "options": [
+          "It proves that he never makes mistakes at work",
+          "It shows he learned from a real mistake and changed his habits",
+          "It shows that he prefers to work completely alone",
+          "It is the same answer that most candidates give"
+        ],
+        "answer": 1,
+        "evidence": "It's a small rule, but it's changed how I work."
+      },
+      {
+        "prompt": "What is Yusuf's \"time limit\" rule?",
+        "options": [
+          "He never spends more than an hour on one task",
+          "He fixes every problem within one working day",
+          "He asks for help after being stuck for two hours",
+          "He checks with his manager before starting any task"
+        ],
+        "answer": 2,
+        "evidence": "if I've been stuck for two hours, I ask someone"
+      }
+    ],
+    "dictation_index": 8,
+    "vocabulary": [
+      {
+        "term": "unusual",
+        "meaning": "不寻常的；少见的",
+        "example": "It's unusual for him to be late, so I called to check."
+      },
+      {
+        "term": "bothered",
+        "meaning": "打扰；麻烦（别人）",
+        "example": "I'm sorry I bothered you so late last night."
+      },
+      {
+        "term": "frustrating",
+        "meaning": "令人沮丧的；让人恼火的",
+        "example": "It's frustrating when the printer breaks before a meeting."
+      },
+      {
+        "term": "candidates",
+        "meaning": "候选人；应聘者",
+        "example": "We interviewed five candidates for the job."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "turned out to be wrong",
+        "meaning": "结果证明是错的",
+        "note": "turn out to be 表示“结果是、后来发现是”，讲反思和教训时非常常用。"
+      },
+      {
+        "text": "Can I take a moment to think",
+        "meaning": "我能想一下吗？",
+        "note": "面试遇到难题时争取思考时间的得体说法，比沉默或乱答好得多。"
+      },
+      {
+        "text": "take your time",
+        "meaning": "慢慢来，不着急",
+        "note": "回应对方请求时间的标准说法，语气友好。"
+      },
+      {
+        "text": "keep going on my own",
+        "meaning": "一个人硬撑着继续做",
+        "note": "on my own 意为“独自”，keep going 是“继续下去”，合起来常带一点“不求助”的意味。"
+      },
+      {
+        "text": "That must have been frustrating",
+        "meaning": "那一定挺让人沮丧的吧",
+        "note": "must have done 表示对过去的有把握推测，常用来表达共情。"
+      },
+      {
+        "text": "saved myself a week",
+        "meaning": "给自己省下一周时间",
+        "note": "save sb sth 的双宾语结构：It saved me a lot of time."
+      }
+    ],
+    "grammar": [
+      "subjunctive-past",
+      "clause-relative",
+      "nonfinite-gerund"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-past",
+        "quote": "If I had asked her on the first day, I would have saved myself a week and the team a lot of waiting.",
+        "explanation": "If + had done，主句 would have done，表示与过去事实相反（其实当时没有问）。面试里讲“当年的教训”时特别好用。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "a colleague who sat two desks away solved it in about an hour",
+        "explanation": "who sat two desks away 修饰 a colleague，整句真正的谓语是 solved。读长句时先找到主语和主句动词，别被从句的动词带偏。"
+      },
+      {
+        "node": "nonfinite-gerund",
+        "quote": "I spent almost a week trying to fix a problem with our customer database",
+        "explanation": "spend + 时间 + doing 是固定搭配，表示“花时间做某事”，-ing 形式不能换成 to do。"
+      }
+    ],
+    "speaking": "回答面试题：What's something you used to believe about work or study that turned out to be wrong? 先用 Can I take a moment to think? 争取时间，再用 1 分钟讲一个真实的小教训。",
+    "writing": "用 150–200 词写一段面试回答，讲一个你犯过的错误、它带来的后果，以及你现在的做法。至少用一次 If I had…, I would have…。",
+    "task": {
+      "prompt": "仿照这句，用 If I had…, I would have… 说一个你自己的小教训。",
+      "model": "If I had asked her on the first day, I would have saved myself a week"
+    },
+    "tags": [
+      "求职面试",
+      "自我反思"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-work-b2-feedback-that-lands",
+    "title": "让人听得进去的反馈",
+    "title_en": "Feedback That Actually Lands",
+    "summary_zh": "“表扬—批评—表扬”的三明治反馈法为什么常常失效？这篇讲解给出一个更有用的三步法，也告诉你被批评时最专业的回应是什么。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "work",
+    "genre": "explainer",
+    "body": "Most of us have been taught the \"feedback sandwich\": start with praise, slip the criticism into the middle, and finish with more praise. It sounds kind, but it often backfires. Listeners quickly learn the pattern, so the opening compliment makes them brace for the \"but\", and the closing one makes the real message easy to forget. The trouble with most of these formulas is that they protect the speaker's comfort rather than help the listener improve. A more useful approach has three parts. First, describe one specific thing you noticed, such as \"In Tuesday's meeting, you answered two questions that were meant for Lin.\" Second, explain the effect: \"She stopped joining in after that.\" Third, open a conversation instead of delivering a verdict: \"What was going on for you there?\" Comments framed this way are easier to accept, because they are about actions, not personality. Feedback given months later, on the other hand, rarely helps, since nobody remembers the details. Receiving feedback is a skill too. The natural reaction is to explain or defend yourself, but the most professional response is often simply, \"Thanks, can you give me another example?\" You don't have to agree on the spot. You can take a day, decide what is fair, and come back with a plan. What people tend to remember is not whether you were right, but whether you listened.",
+    "questions": [
+      {
+        "prompt": "What is the writer's main point?",
+        "options": [
+          "Praise should never be part of feedback",
+          "Feedback should always be written down rather than spoken",
+          "Good feedback describes specific actions and invites a conversation",
+          "Receiving feedback is much harder than giving it"
+        ],
+        "answer": 2,
+        "evidence": "Comments framed this way are easier to accept, because they are about actions, not personality."
+      },
+      {
+        "prompt": "When listeners \"brace for the 'but'\", what are they doing?",
+        "options": [
+          "Preparing themselves for the criticism they expect",
+          "Interrupting the speaker before the criticism comes",
+          "Ignoring everything after the first compliment",
+          "Asking the speaker to repeat the praise"
+        ],
+        "answer": 0,
+        "evidence": "the opening compliment makes them brace for the \"but\""
+      }
+    ],
+    "dictation_index": 9,
+    "vocabulary": [
+      {
+        "term": "criticism",
+        "meaning": "批评；批判意见",
+        "example": "She takes criticism well and always asks follow-up questions."
+      },
+      {
+        "term": "backfires",
+        "meaning": "适得其反；产生反效果",
+        "example": "Shouting at a team usually backfires."
+      },
+      {
+        "term": "verdict",
+        "meaning": "裁决；（单方面的）定论",
+        "example": "The manager's verdict was clear: the plan needed more work."
+      },
+      {
+        "term": "personality",
+        "meaning": "性格；个性",
+        "example": "Good feedback is about what you did, not about your personality."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "slip the criticism into the middle",
+        "meaning": "把批评悄悄夹在中间",
+        "note": "slip sth into… 表示“不动声色地塞进去”，也可说 slip a joke into a speech。"
+      },
+      {
+        "text": "brace for",
+        "meaning": "（心理上）做好准备迎接（坏事）",
+        "note": "brace for bad news / a difficult conversation，常指预感到不好的事要来。"
+      },
+      {
+        "text": "delivering a verdict",
+        "meaning": "下定论；宣判",
+        "note": "deliver a verdict 原指法官宣判，这里比喻单方面给出结论、不给对方说话的机会。"
+      },
+      {
+        "text": "joining in",
+        "meaning": "参与进来",
+        "note": "join in 指加入正在进行的活动或讨论，口语常用：Feel free to join in."
+      },
+      {
+        "text": "on the spot",
+        "meaning": "当场；立刻",
+        "note": "常用于 You don't have to decide on the spot，给对方留出思考时间。"
+      },
+      {
+        "text": "come back with a plan",
+        "meaning": "带着方案回来",
+        "note": "职场里表示“想清楚后再回复”，显得负责、可靠。"
+      }
+    ],
+    "grammar": [
+      "agreement-head",
+      "nonfinite-participle",
+      "clause-noun"
+    ],
+    "knowledge": [
+      {
+        "node": "agreement-head",
+        "quote": "The trouble with most of these formulas is that they protect the speaker's comfort",
+        "explanation": "主语的中心词是单数 trouble，with most of these formulas 只是修饰语，所以谓语用 is，不受离它更近的复数 formulas 影响。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "Comments framed this way are easier to accept",
+        "explanation": "framed this way 是过去分词短语作后置定语，相当于 which are framed this way，表示“被这样表述的”。后文的 Feedback given months later 结构相同。"
+      },
+      {
+        "node": "clause-noun",
+        "quote": "What people tend to remember is not whether you were right, but whether you listened.",
+        "explanation": "What 引导主语从句，两个 whether 引导表语从句；not whether A, but whether B 用来对比“人们以为重要的”和“真正重要的”。"
+      }
+    ],
+    "speaking": "用 1 分钟给同伴一条具体的反馈（可以是表扬）：先说你在什么场合注意到了什么，再说它带来的影响，最后用一个问题开启对话。",
+    "writing": "用 150–200 词写一段话：回忆一次你收到的反馈，它为什么让你听得进去（或听不进去）？用上 rather than 和一个 What… is… 句型。",
+    "task": {
+      "prompt": "仿照这句，用“场合 + 具体行为”的方式，描述一个你注意到的同事或同学的具体做法（可以是好的）。",
+      "model": "In Tuesday's meeting, you answered two questions that were meant for Lin."
+    },
+    "tags": [
+      "反馈沟通",
+      "职场软技能"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-work-b2-kitchen-table-office",
+    "title": "在家办公，下班的界限在哪里",
+    "title_en": "My Office Is Also My Kitchen Table",
+    "summary_zh": "作者在家办公后发现自己“从没真正上班，也从没真正下班”。这篇观点文认为问题不在远程办公本身，而在于界限要靠自己划。读完你能学会谈论工作与生活平衡的地道表达。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "work",
+    "genre": "opinion",
+    "body": "When I first started working from home, it felt like a quiet luxury: no crowded trains, no forced chat by the lifts, and lunch from my own fridge. A few months in, however, I noticed something strange. I was never quite at work, and never quite off. My laptop lived on the kitchen table, so a quick look at my messages before dinner often turned into an hour of replies. I sometimes wish my flat were big enough for a separate room with a door I could close. Still, I don't think the real problem is remote work itself. Offices give us edges for free: the journey home, the building we walk out of, the colleagues putting on their coats. At home, those edges disappear, and work quietly spreads into every gap. Unless you draw that line yourself, nobody is going to draw it for you. What has helped me is surprisingly simple. At six, I shut the laptop and put it in a drawer, out of sight. Then I take a ten-minute walk around the block, a sort of fake commute that tells my brain the day is over. I've also turned off work notifications on my phone after hours. None of this is perfect, and on some evenings an urgent message still gets through. But setting boundaries hasn't made me less committed to my job. If anything, I'm more focused during the day, because I know the day will actually end.",
+    "questions": [
+      {
+        "prompt": "What is the writer's main opinion?",
+        "options": [
+          "Remote work should be replaced by office work",
+          "Working from home makes people less committed",
+          "Only people with a separate room should work from home",
+          "Remote work can work well if people set their own boundaries"
+        ],
+        "answer": 3,
+        "evidence": "Unless you draw that line yourself, nobody is going to draw it for you."
+      },
+      {
+        "prompt": "What does the writer mean by a \"fake commute\"?",
+        "options": [
+          "Pretending to travel to the office for meetings",
+          "A short walk that marks the end of the working day",
+          "Taking the train even on days at home",
+          "Answering messages while walking around the block"
+        ],
+        "answer": 1,
+        "evidence": "a sort of fake commute that tells my brain the day is over"
+      }
+    ],
+    "dictation_index": 10,
+    "vocabulary": [
+      {
+        "term": "luxury",
+        "meaning": "奢侈；难得的享受",
+        "example": "A long lunch break feels like a luxury this week."
+      },
+      {
+        "term": "commute",
+        "meaning": "通勤（路程）",
+        "example": "My commute takes forty minutes by bus."
+      },
+      {
+        "term": "notifications",
+        "meaning": "（手机、软件的）通知提醒",
+        "example": "I turn off notifications when I need to focus."
+      },
+      {
+        "term": "boundaries",
+        "meaning": "界限；边界",
+        "example": "It's important to set clear boundaries between work and rest."
+      },
+      {
+        "term": "committed",
+        "meaning": "投入的；尽心尽力的",
+        "example": "She is very committed to her students."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "A few months in",
+        "meaning": "（开始）几个月之后",
+        "note": "时间 + in 表示“进入某事多久之后”：Two weeks in, I already loved the job."
+      },
+      {
+        "text": "never quite at work, and never quite off",
+        "meaning": "从没真正在上班，也从没真正下班",
+        "note": "never quite 意为“从不完全”，这里用对称结构描述“工作与生活界限模糊”的状态。"
+      },
+      {
+        "text": "turned into an hour of replies",
+        "meaning": "变成了一个小时的回复",
+        "note": "turn into 表示“（不知不觉）变成”，常用于计划失控：A quick chat turned into a long meeting."
+      },
+      {
+        "text": "draw that line",
+        "meaning": "划清那条界限",
+        "note": "draw the line 也可指“到此为止、不再让步”：I draw the line at working on Sundays."
+      },
+      {
+        "text": "out of sight",
+        "meaning": "放在看不见的地方",
+        "note": "常和 out of mind 连用：Out of sight, out of mind（眼不见心不烦）。"
+      },
+      {
+        "text": "If anything",
+        "meaning": "要说有什么不同的话，反而……",
+        "note": "用来纠正对方的预期，引出相反的事实，语气自然。"
+      }
+    ],
+    "grammar": [
+      "subjunctive-now",
+      "conditional-unless",
+      "nonfinite-gerund"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-now",
+        "quote": "I sometimes wish my flat were big enough for a separate room with a door I could close.",
+        "explanation": "wish + 过去式（be 动词常用 were）表示与现在事实相反的愿望：现实是房子没那么大。"
+      },
+      {
+        "node": "conditional-unless",
+        "quote": "Unless you draw that line yourself, nobody is going to draw it for you.",
+        "explanation": "unless 相当于 if not，从句用一般现在时表示将来；“除非你自己划线，否则没人替你划”，语气强调必须靠自己。"
+      },
+      {
+        "node": "nonfinite-gerund",
+        "quote": "setting boundaries hasn't made me less committed to my job",
+        "explanation": "动名词短语 setting boundaries 作主语，表示一件事，所以谓语用单数 hasn't made。"
+      }
+    ],
+    "speaking": "用 1 分钟谈谈：你在家学习或工作时，是怎样（或者没能）划清界限的？至少用上 draw the line 和 If anything。",
+    "writing": "用 150–200 词写一篇小观点文：在家办公（或在家学习）利大于弊吗？给出一个具体的个人做法，并用一个 Unless… 句子。",
+    "task": {
+      "prompt": "仿照这句，用 I sometimes wish… were… 说一个你对现在学习或工作环境的小愿望。",
+      "model": "I sometimes wish my flat were big enough for a separate room with a door I could close."
+    },
+    "tags": [
+      "远程办公",
+      "工作与生活平衡"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

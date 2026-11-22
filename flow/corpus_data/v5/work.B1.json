@@ -1,0 +1,483 @@
+[
+  {
+    "id": "v5-work-b1-asking-for-help",
+    "title": "向同事求助，又不显得无助",
+    "title_en": "How to Ask for Help Without Sounding Helpless",
+    "summary_zh": "新人最怕一开口求助就被觉得“不行”。这篇指南给出四个简单习惯，读完你能学会把问题问得具体、有礼貌，让同事愿意帮你。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "work",
+    "genre": "guide",
+    "body": "Asking for help at work can feel risky, especially when you are new. You worry that people will think you can't do your job. In fact, most colleagues are happy to help, as long as you make it easy for them. Here are four simple habits. First, try something before you ask. Spend fifteen minutes looking for the answer yourself, and then explain what you have already tried. Saying \"I checked the guide and searched our old emails, but I couldn't find the login steps\" sounds very different from \"How do I log in?\" Second, be specific. A question like \"Can you help me with the report?\" is hard to answer, because the other person doesn't know how big the job is. \"Could you look at the numbers on page two?\" is much easier to say yes to. Third, think about timing. If someone is clearly busy, ask \"Do you have five minutes later today?\" instead of interrupting them. Finally, close the loop. When the problem is solved, tell the person who helped you. It shows that you value their time, and it makes them more likely to help you again.",
+    "questions": [
+      {
+        "prompt": "What is the writer's main advice?",
+        "options": [
+          "Wait until you are no longer new before asking for help",
+          "Make your request easy for the other person to answer",
+          "Always go to your manager instead of your colleagues",
+          "Ask as many questions as possible in your first week"
+        ],
+        "answer": 1,
+        "evidence": "most colleagues are happy to help, as long as you make it easy for them"
+      },
+      {
+        "prompt": "In the passage, what does \"close the loop\" mean?",
+        "options": [
+          "Stop asking the same person for help",
+          "Finish the whole task before the end of the day",
+          "Let the helper know that the problem is solved",
+          "Send your question to the whole team at once"
+        ],
+        "answer": 2,
+        "evidence": "When the problem is solved, tell the person who helped you."
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {
+        "term": "risky",
+        "meaning": "有风险的；冒险的",
+        "example": "It feels risky to share a half-finished idea in a meeting."
+      },
+      {
+        "term": "specific",
+        "meaning": "具体的；明确的",
+        "example": "Please give me a specific time, not just \"sometime next week\"."
+      },
+      {
+        "term": "timing",
+        "meaning": "时机；时间的选择",
+        "example": "Good timing matters when you ask your boss for something."
+      },
+      {
+        "term": "interrupting",
+        "meaning": "打断；打扰",
+        "example": "Sorry for interrupting, but your taxi is here."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "as long as",
+        "meaning": "只要",
+        "note": "引出条件，语气比 if 更强调“前提”：I'm happy to help as long as you tell me early."
+      },
+      {
+        "text": "be specific",
+        "meaning": "说具体一点",
+        "note": "职场高频提醒，也可以说 Could you be more specific?"
+      },
+      {
+        "text": "easier to say yes to",
+        "meaning": "更容易让人答应",
+        "note": "say yes to sth 表示“答应某事”，介词 to 放在句末很自然。"
+      },
+      {
+        "text": "Do you have five minutes",
+        "meaning": "你有五分钟时间吗？",
+        "note": "礼貌地约对方一小段时间，比直接开口问更体贴；也可说 Have you got a minute?"
+      },
+      {
+        "text": "close the loop",
+        "meaning": "把结果反馈回去；有始有终",
+        "note": "职场常用语，指事情办完后告诉相关的人，让对方知道结果。"
+      },
+      {
+        "text": "more likely to",
+        "meaning": "更有可能（做）……",
+        "note": "be likely to do 的比较级，常用来说明一个做法的好处。"
+      }
+    ],
+    "grammar": [
+      "nonfinite-gerund",
+      "conditional-real",
+      "clause-relative"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-gerund",
+        "quote": "Asking for help at work can feel risky",
+        "explanation": "动名词 Asking 作主语，把“求助这件事”当成一个名词来谈。下文的 spend fifteen minutes looking 也是动名词：spend + 时间 + doing。"
+      },
+      {
+        "node": "conditional-real",
+        "quote": "If someone is clearly busy, ask \"Do you have five minutes later today?\" instead of interrupting them.",
+        "explanation": "If + 一般现在时，主句用祈使句给出建议，是写指南、提建议的典型句型；instead of 后面接动名词 interrupting。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "tell the person who helped you",
+        "explanation": "who 引导定语从句修饰 the person，说明“哪一个人”。指人用 who，指物用 which 或 that。"
+      }
+    ],
+    "speaking": "用 1 分钟向同伴求助一个你最近真的卡住的问题：先说你已经试过什么，再把问题问具体，最后约一个对方方便的时间。",
+    "writing": "用 100–140 词给同事或同学写一条求助消息：说明你已经尝试过的两件事，提出一个具体的问题，并用上 as long as 或 Do you have five minutes。",
+    "task": {
+      "prompt": "仿照这句，先说你已经试过的两件事，再用 but 说你卡在了哪里，写一句求助的话。",
+      "model": "I checked the guide and searched our old emails, but I couldn't find the login steps"
+    },
+    "tags": [
+      "职场沟通",
+      "求助技巧"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-work-b1-ten-minute-standup",
+    "title": "十分钟站会怎么开",
+    "title_en": "The Ten-Minute Stand-Up",
+    "summary_zh": "一场早上的站会：每人汇报做完了什么、今天做什么、卡在哪里。读完你能学会汇报进度的说法，以及怎样礼貌地把跑题的讨论“挪到会后”。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "work",
+    "genre": "dialogue",
+    "body": "Priya: Morning, everyone, let's keep this short as usual. Tell us what you finished yesterday, what you're working on today, and whether anything is blocking you. Hana, do you want to start? Hana: Sure, I've finished the new sign-up page, and today I'm testing it on different phones. There are no problems so far, so I don't need anything from anyone. Priya: Great, thanks. Marco, how about you? Marco: So, yesterday I found a strange bug in the payment form. At first I thought it was the browser, so I tried three different ones, and then I noticed that the page... Priya: Sorry, Marco, can I stop you there? It sounds important, but let's take it offline. Could you and Leon look at it together straight after this? Marco: Yeah, fair enough, it's probably a long story anyway. Leon, have you got twenty minutes at ten? Leon: Sure, and actually I've seen something similar before on another project. Priya: Perfect. And what about your own work, Leon? Leon: I'm still waiting for the new images from the design team, so I'm a bit stuck on the home page. Priya: OK, I'll chase them this morning and let you know. Anything else from anyone? Then that's it, thanks, everyone.",
+    "questions": [
+      {
+        "prompt": "Why does Priya stop Marco?",
+        "options": [
+          "She thinks the bug he found is not important",
+          "His problem needs a longer talk than the meeting allows",
+          "She wants Hana to fix the bug instead of Marco",
+          "He is talking about the wrong project"
+        ],
+        "answer": 1,
+        "evidence": "It sounds important, but let's take it offline."
+      },
+      {
+        "prompt": "What is stopping Leon from doing his own work?",
+        "options": [
+          "He has found a strange bug in the payment form",
+          "He has to test the new pages on phones",
+          "He has a meeting with Marco at ten",
+          "He hasn't received images from another team"
+        ],
+        "answer": 3,
+        "evidence": "I'm still waiting for the new images from the design team"
+      }
+    ],
+    "dictation_index": 10,
+    "vocabulary": [
+      {
+        "term": "blocking",
+        "meaning": "阻碍；挡住（进度）",
+        "example": "A missing password is blocking the whole team."
+      },
+      {
+        "term": "bug",
+        "meaning": "（程序中的）错误；漏洞",
+        "example": "We found a bug that logs users out every hour."
+      },
+      {
+        "term": "testing",
+        "meaning": "测试",
+        "example": "She is testing the app on three different phones."
+      },
+      {
+        "term": "similar",
+        "meaning": "相似的；类似的",
+        "example": "I had a similar problem with my old laptop."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "keep this short",
+        "meaning": "简短一点；长话短说",
+        "note": "开会或打电话时先定基调：Let's keep this short."
+      },
+      {
+        "text": "can I stop you there",
+        "meaning": "我先打断一下",
+        "note": "礼貌打断别人的固定说法，前面加 Sorry 更柔和。"
+      },
+      {
+        "text": "take it offline",
+        "meaning": "会后单独讨论",
+        "note": "职场常用语，意思不是“下线”，而是把细节讨论挪到会议之外，不占用大家的时间。"
+      },
+      {
+        "text": "fair enough",
+        "meaning": "有道理；行吧",
+        "note": "接受别人的意见或安排，语气轻松，略带让步。"
+      },
+      {
+        "text": "I'll chase them",
+        "meaning": "我去催一下他们",
+        "note": "chase sb 在职场里指“催促某人交东西”，比 push 更常用、更口语。"
+      },
+      {
+        "text": "Then that's it",
+        "meaning": "那就这样吧（结束）",
+        "note": "主持人收尾的自然说法，也可说 That's all for today."
+      }
+    ],
+    "grammar": [
+      "tense-perfect",
+      "tense-present"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-perfect",
+        "quote": "I've finished the new sign-up page, and today I'm testing it on different phones.",
+        "explanation": "I've finished 用现在完成时，强调“已经做完、现在有结果”，没有具体过去时间；如果说 yesterday，就要改用过去时 I finished。"
+      },
+      {
+        "node": "tense-present",
+        "quote": "I'm still waiting for the new images from the design team, so I'm a bit stuck on the home page.",
+        "explanation": "现在进行时 am waiting 表示此刻还在持续的状态，加 still 强调“到现在还没等到”，适合汇报进度受阻。"
+      }
+    ],
+    "speaking": "模拟一次 1 分钟的站会发言：用 I've finished… 说你已经完成的事，用 Today I'm… 说今天的计划，最后说一个你卡住的地方。",
+    "writing": "用 100–140 词写一份给团队的每日进度更新，包括已完成、进行中和遇到的问题三部分，至少用上一个现在完成时和一个现在进行时。",
+    "task": {
+      "prompt": "仿照这句，用 I've finished…, and today I'm… 汇报你昨天完成的一件事和今天正在做的一件事。",
+      "model": "I've finished the new sign-up page, and today I'm testing it on different phones."
+    },
+    "tags": [
+      "会议沟通",
+      "进度汇报"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-work-b1-can-we-talk-monday",
+    "title": "一句“周一聊聊？”引发的周末焦虑",
+    "title_en": "\"Can We Talk on Monday?\"",
+    "summary_zh": "周五下班前，经理只发来一句“周一早上聊聊？”，Ravi 担心了整个周末。读完你会明白含糊的消息为什么容易引起误会，以及怎样把消息写清楚。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "work",
+    "genre": "story",
+    "body": "At six o'clock on Friday, just as Ravi was closing his laptop, a message from his manager appeared on the screen: \"Can we talk on Monday morning?\" That was all. There was no smiley face and no explanation. On the train home, Ravi started to wonder what he had done wrong. Was it the report he had sent late last month? Had a client complained? By Saturday afternoon, he had gone through every email from the past three weeks. He barely slept on Sunday night. On Monday, he walked into the meeting room ready to apologize. His manager, Grace, looked up and smiled. \"Thanks for coming in. We're starting a new project with the Lisbon office, and I'd like you to lead it.\" Ravi laughed out loud, and then told her about his weekend. Grace looked shocked. \"I'm so sorry,\" she said. \"I was in a hurry and didn't think about how it sounded.\" Since then, she has changed one small habit. Every time she asks someone for a chat, she adds a few words about the topic, even if it's just \"nothing serious, just planning.\"",
+    "questions": [
+      {
+        "prompt": "What is the main point of the story?",
+        "options": [
+          "Managers should never send messages after six o'clock",
+          "Ravi worried because he often made serious mistakes",
+          "A short message without context can cause needless worry",
+          "Grace wanted to see how Ravi would handle stress"
+        ],
+        "answer": 2,
+        "evidence": "I was in a hurry and didn't think about how it sounded."
+      },
+      {
+        "prompt": "Why did Grace want to talk to Ravi?",
+        "options": [
+          "She wanted to discuss a report he had sent late",
+          "She wanted him to lead a new project",
+          "A client had complained about his work",
+          "She wanted to hear about his weekend"
+        ],
+        "answer": 1,
+        "evidence": "I'd like you to lead it"
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {
+        "term": "explanation",
+        "meaning": "解释；说明",
+        "example": "He left the meeting early without any explanation."
+      },
+      {
+        "term": "complained",
+        "meaning": "投诉；抱怨（过去式）",
+        "example": "A customer complained that the delivery was late."
+      },
+      {
+        "term": "apologize",
+        "meaning": "道歉",
+        "example": "I want to apologize for missing your call."
+      },
+      {
+        "term": "habit",
+        "meaning": "习惯",
+        "example": "Checking emails before breakfast is a bad habit."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "That was all",
+        "meaning": "就这么一句；仅此而已",
+        "note": "讲故事时用来强调信息少得可怜，常单独成句。"
+      },
+      {
+        "text": "gone through every email",
+        "meaning": "把每封邮件都翻了一遍",
+        "note": "go through sth 表示“仔细查看、逐一检查”，也可用于 go through the report。"
+      },
+      {
+        "text": "laughed out loud",
+        "meaning": "笑出声来",
+        "note": "网络缩写 LOL 就来自 laugh out loud，常用来写突然放松或觉得好笑的瞬间。"
+      },
+      {
+        "text": "in a hurry",
+        "meaning": "匆忙；赶时间",
+        "note": "常用来解释自己为什么没考虑周到：Sorry, I was in a hurry."
+      },
+      {
+        "text": "nothing serious, just planning",
+        "meaning": "不是什么大事，只是做个计划",
+        "note": "约人谈话时补一句 nothing serious，能让对方安心；后半句可以换成具体话题。"
+      }
+    ],
+    "grammar": [
+      "tense-past",
+      "tense-perfect",
+      "clause-noun"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-past",
+        "quote": "just as Ravi was closing his laptop, a message from his manager appeared on the screen",
+        "explanation": "过去进行时 was closing 交代背景动作，一般过去时 appeared 表示突然发生的事，just as 意为“正当……的时候”。"
+      },
+      {
+        "node": "tense-perfect",
+        "quote": "By Saturday afternoon, he had gone through every email from the past three weeks.",
+        "explanation": "by + 过去的时间点，搭配过去完成时 had done，表示“到那时为止已经做完”。"
+      },
+      {
+        "node": "clause-noun",
+        "quote": "Ravi started to wonder what he had done wrong",
+        "explanation": "what he had done wrong 是 wonder 的宾语从句，要用陈述语序：what he had done，而不是 what had he done。"
+      }
+    ],
+    "speaking": "用 1 分钟讲一次你因为一条含糊的消息而误会或担心的经历，结尾说说对方应该怎样写才更清楚。",
+    "writing": "把 \"Can we talk on Monday morning?\" 改写成一条清楚、让人安心的消息，再用 80–120 词说明你为什么这样改。",
+    "task": {
+      "prompt": "仿照这句，用 Every time…, … 写一句你在工作或学习中的一个好习惯。",
+      "model": "Every time she asks someone for a chat, she adds a few words about the topic"
+    },
+    "tags": [
+      "职场沟通",
+      "误会"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-work-b1-holiday-handover",
+    "title": "休假前的工作交接邮件",
+    "title_en": "A Handover Before the Holiday",
+    "summary_zh": "Elif 休假两周前给同事写了一封交接邮件：哪些已完成、哪些待办、找谁、什么情况下才联系她。读完你能写出一封清楚又放心的交接邮件。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "work",
+    "genre": "email",
+    "body": "Hi Daniel, As you know, I'm away from Monday for two weeks, so here is a quick handover for the client workshop. The good news is that most of the big jobs are done. The room is booked, the invitations have gone out, and twenty-two people have already said yes. There are three things left. First, the catering company needs the final number of guests by next Thursday. Second, Tom Brandt from the client side still hasn't sent his slides, so please send him a friendly reminder on Wednesday. Third, someone needs to print the name cards, which are in the shared folder called \"Workshop Final\". If anything changes with the room, call Joanna at reception. She has been really helpful, and I've copied her on this email. Unless it's urgent, please don't call me, as I'll be somewhere in the mountains with very little signal! For anything small, just use your own judgement. I trust you completely. Thanks so much for covering for me. Best wishes, Elif",
+    "questions": [
+      {
+        "prompt": "What is the main purpose of Elif's email?",
+        "options": [
+          "To invite Daniel to a client workshop next month",
+          "To ask Daniel to book a room for the workshop",
+          "To hand over her workshop tasks before her holiday",
+          "To complain that a client hasn't sent his slides"
+        ],
+        "answer": 2,
+        "evidence": "so here is a quick handover for the client workshop"
+      },
+      {
+        "prompt": "What does Elif mean by \"use your own judgement\"?",
+        "options": [
+          "Daniel can decide small things by himself",
+          "Daniel should wait until she comes back",
+          "Daniel should ask Joanna about every problem",
+          "Daniel should call her whenever he is unsure"
+        ],
+        "answer": 0,
+        "evidence": "For anything small, just use your own judgement."
+      }
+    ],
+    "dictation_index": 4,
+    "vocabulary": [
+      {
+        "term": "handover",
+        "meaning": "工作交接",
+        "example": "Please write a short handover before you leave."
+      },
+      {
+        "term": "reminder",
+        "meaning": "提醒；提示",
+        "example": "I set a reminder on my phone for the meeting."
+      },
+      {
+        "term": "urgent",
+        "meaning": "紧急的",
+        "example": "Only call me if it's really urgent."
+      },
+      {
+        "term": "judgement",
+        "meaning": "判断；判断力",
+        "example": "I trust her judgement on design questions."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "As you know",
+        "meaning": "如你所知",
+        "note": "邮件开头提起双方都知道的事，自然地引出正题。"
+      },
+      {
+        "text": "The good news is that",
+        "meaning": "好消息是……",
+        "note": "先报喜再说待办，能让交接或汇报的语气更积极。"
+      },
+      {
+        "text": "a friendly reminder",
+        "meaning": "友好的提醒",
+        "note": "催别人交东西时的客气说法：Just a friendly reminder that…"
+      },
+      {
+        "text": "copied her on this email",
+        "meaning": "把她抄送在这封邮件里",
+        "note": "copy sb on an email 即“抄送某人”，也常写作 cc sb。"
+      },
+      {
+        "text": "use your own judgement",
+        "meaning": "你自己判断就好",
+        "note": "表示信任对方、授权对方做决定，交接时非常实用。"
+      },
+      {
+        "text": "covering for me",
+        "meaning": "替我顶班；替我代管工作",
+        "note": "cover for sb 指某人不在时替他做事，常用于感谢：Thanks for covering for me."
+      }
+    ],
+    "grammar": [
+      "conditional-unless",
+      "tense-perfect",
+      "clause-relative"
+    ],
+    "knowledge": [
+      {
+        "node": "conditional-unless",
+        "quote": "Unless it's urgent, please don't call me",
+        "explanation": "unless 相当于 if not，“除非紧急，否则别打电话”。unless 从句里用一般现在时表示将来的情况。"
+      },
+      {
+        "node": "tense-perfect",
+        "quote": "The room is booked, the invitations have gone out, and twenty-two people have already said yes.",
+        "explanation": "have gone out、have already said 用现在完成时，说明到现在为止已经完成的结果，汇报进度时非常常用。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "print the name cards, which are in the shared folder",
+        "explanation": "逗号后的 which 引导非限制性定语从句，给前面的 name cards 补充信息（在哪里），去掉也不影响主句意思。"
+      }
+    ],
+    "speaking": "假设你明天开始休假，用 1 分钟当面向同事交接一件事：哪些已经做完、还剩什么、遇到问题找谁，并用上 Unless it's urgent…。",
+    "writing": "用 120–160 词写一封休假前的交接邮件，包括已完成事项、待办事项和联系人，至少用上 unless 和一个现在完成时。",
+    "task": {
+      "prompt": "仿照这句，用三个并列的短句（可用被动或完成时）汇报一件事已经完成到哪一步。",
+      "model": "The room is booked, the invitations have gone out, and twenty-two people have already said yes."
+    },
+    "tags": [
+      "职场邮件",
+      "工作交接"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

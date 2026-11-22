@@ -1,0 +1,504 @@
+[
+  {
+    "id": "v5-campus-b2-compulsory-attendance",
+    "title": "上课该不该强制考勤",
+    "title_en": "Should Attendance Be Compulsory?",
+    "summary_zh": "一篇标准的考试型议论文：作者认为研讨课和实验课应该强制出勤，大课则不必。文章先承认对方观点的合理之处，再反驳并提出折中方案。读完你会学到议论文中让步、反驳和收尾的常用句式。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "campus",
+    "genre": "opinion",
+    "body": "Few university rules provoke as much grumbling as compulsory attendance, and at first glance the complaint seems reasonable. Students are adults, the argument goes, and adults should decide for themselves how to spend their time. In my view, however, attendance should be required for small seminars and labs, but not for large lectures. Supporters of strict rules make a fair point. When students come to class regularly, they tend to keep up with the material instead of discovering, a week before the exam, how much they have missed. A register can also give a gentle nudge to students who are struggling quietly and might otherwise drift away. Yet forcing everyone into a lecture hall does not guarantee that anyone is learning. A student who is physically present but scrolling through messages gains very little, while one who works night shifts may learn more from a recording watched at a sensible hour. If a lecture is simply one person talking to a few hundred listeners, attendance adds little that a recording cannot. Seminars and labs are different. Because they depend on discussion and practical work, an empty seat affects everyone else in the room. A group cannot debate a reading if half its members have not turned up, and an experiment cannot be copied from someone else's notes. The sensible compromise, then, is to make attendance compulsory where students learn from each other and optional where they mainly learn from a speaker. Universities that want full lecture halls should spend less energy taking names and more energy giving students a reason to come.",
+    "questions": [
+      {
+        "prompt": "What is the writer's overall position?",
+        "options": [
+          "Attendance should be compulsory for every type of class",
+          "Attendance should be required for seminars and labs, but not lectures",
+          "Students should be free to miss any class, including labs",
+          "Lectures should be replaced completely by recordings"
+        ],
+        "answer": 1,
+        "evidence": "attendance should be required for small seminars and labs, but not for large lectures"
+      },
+      {
+        "prompt": "According to the writer, why does an empty seat matter more in a seminar than in a lecture?",
+        "options": [
+          "Seminar teachers take the register more carefully",
+          "Seminars are not recorded, so absent students miss everything",
+          "Seminars depend on discussion, so one absence affects the whole group",
+          "Students in seminars are more likely to drift away"
+        ],
+        "answer": 2,
+        "evidence": "Because they depend on discussion and practical work, an empty seat affects everyone else in the room."
+      }
+    ],
+    "dictation_index": 10,
+    "vocabulary": [
+      {
+        "term": "compulsory",
+        "meaning": "强制的；必须的",
+        "example": "Wearing a helmet is compulsory on this building site."
+      },
+      {
+        "term": "provoke",
+        "meaning": "引起；激起（某种反应）",
+        "example": "The new parking rules are likely to provoke complaints."
+      },
+      {
+        "term": "register",
+        "meaning": "点名册；出勤登记",
+        "example": "The teacher takes the register at the start of every class."
+      },
+      {
+        "term": "compromise",
+        "meaning": "折中方案；妥协",
+        "example": "After an hour of arguing, we finally reached a compromise."
+      },
+      {
+        "term": "optional",
+        "meaning": "可选的；非强制的",
+        "example": "The extra reading is optional, but it will help with the essay."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "at first glance",
+        "meaning": "乍一看",
+        "note": "议论文开头常用，先承认表面印象，后面再用 however 推翻或修正。"
+      },
+      {
+        "text": "the argument goes",
+        "meaning": "（对方的）说法是",
+        "note": "插入语，用来客观转述别人的观点，暗示作者未必同意：Money, the argument goes, can't buy happiness."
+      },
+      {
+        "text": "make a fair point",
+        "meaning": "说得有道理",
+        "note": "让步时的礼貌说法，后面常跟 Yet / However 转入反驳。"
+      },
+      {
+        "text": "keep up with the material",
+        "meaning": "跟上学习内容",
+        "note": "keep up with + 进度 / 人：跟上，不落后，keep up with the news / the class。"
+      },
+      {
+        "text": "give a gentle nudge to",
+        "meaning": "轻轻推一把；温和地提醒",
+        "note": "nudge 原指用胳膊肘轻推，比喻善意地督促，不带强迫意味。"
+      },
+      {
+        "text": "drift away",
+        "meaning": "渐渐疏远；慢慢掉队",
+        "note": "强调不知不觉地离开，常用于人际关系或学习：drift away from old friends。"
+      }
+    ],
+    "grammar": [
+      "conditional-real",
+      "clause-adverb",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "conditional-real",
+        "quote": "If a lecture is simply one person talking to a few hundred listeners, attendance adds little that a recording cannot.",
+        "explanation": "零条件句：if 从句和主句都用一般现在时，表示“只要条件成立，结果总是如此”，适合在议论文中陈述一般规律。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "Because they depend on discussion and practical work, an empty seat affects everyone else in the room.",
+        "explanation": "because 引导原因状语从句放在句首，先给理由再下结论，让论证更有逻辑感；注意 they 指上一句的 Seminars and labs。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "adults should decide for themselves how to spend their time",
+        "explanation": "疑问词 + 不定式 how to spend 作 decide 的宾语，相当于 how they should spend，比完整从句更简洁。"
+      }
+    ],
+    "speaking": "用 1 分钟表达你对“大学课堂强制考勤”的看法：先让步（make a fair point），再给出你的理由和结论。至少用一个 Because…, … 的句子。",
+    "writing": "用 180–220 词写一篇考试型议论文：Should homework be compulsory at university? 要有明确观点、一个反方论点及反驳、结论，并用上 at first glance 和 the argument goes。",
+    "task": {
+      "prompt": "仿照这句，用 If…, … 的零条件句，说明某种做法在什么情况下没什么意义。",
+      "model": "If a lecture is simply one person talking to a few hundred listeners, attendance adds little that a recording cannot."
+    },
+    "tags": [
+      "教育观点",
+      "议论文写作"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-campus-b2-paraphrase-not-copy",
+    "title": "改写不等于换词：说清抄袭",
+    "title_en": "Paraphrasing Is Not Swapping Words: What Plagiarism Really Means",
+    "summary_zh": "很多学生以为只要把原文的词换掉就不算抄袭。这篇文章讲清楚：抄袭的核心是把别人的观点当成自己的，并给出真正改写的四个步骤。读完你会知道怎样引用才安全，也会学到 word for word、in that sense 等表达。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "campus",
+    "genre": "explainer",
+    "body": "Many students believe that plagiarism means copying a paragraph word for word, so as long as they change enough of the words, they feel safe. Unfortunately, that is not how academic writing works. Plagiarism means presenting someone else's ideas as if they were your own, whether you copy the exact sentences or not. Imagine you have read an article arguing that city parks make people more sociable. If you replace every second word with a synonym and keep the same structure, the ideas are still borrowed, and only the vocabulary is yours. Swapping words in this way is sometimes called patchwriting, and it is one of the most common ways that honest students get into trouble. A genuine paraphrase starts somewhere else entirely. First, read the passage until you understand it well enough to explain it to a friend. Then close the source and write the idea from memory, using your own structure and your own voice. Only after that should you look at the original again, to check that you have not changed the meaning or accidentally kept a distinctive phrase. Finally, add a citation, because even a perfect paraphrase still uses someone else's idea. This might sound like a lot of extra effort, but it has a hidden benefit. When you have to explain an idea without looking at the original, you quickly discover whether you have really understood it. In that sense, good paraphrasing is less a rule to obey than a test of your own understanding.",
+    "questions": [
+      {
+        "prompt": "What is the main point of the passage?",
+        "options": [
+          "Plagiarism is only a problem when whole paragraphs are copied",
+          "Plagiarism is about using others' ideas without credit, not just copying words",
+          "Students should avoid reading sources before they write",
+          "Using synonyms is the safest way to rewrite a source"
+        ],
+        "answer": 1,
+        "evidence": "Plagiarism means presenting someone else's ideas as if they were your own, whether you copy the exact sentences or not."
+      },
+      {
+        "prompt": "Why does the writer suggest closing the source before writing?",
+        "options": [
+          "So that the paraphrase comes from your own understanding",
+          "So that you can finish the essay more quickly",
+          "So that you do not need to add a citation",
+          "So that you can use more synonyms from memory"
+        ],
+        "answer": 0,
+        "evidence": "Then close the source and write the idea from memory, using your own structure and your own voice."
+      }
+    ],
+    "dictation_index": 7,
+    "vocabulary": [
+      {
+        "term": "plagiarism",
+        "meaning": "抄袭；剽窃",
+        "example": "The university treats plagiarism as a serious offence."
+      },
+      {
+        "term": "synonym",
+        "meaning": "同义词",
+        "example": "Big is a synonym for large."
+      },
+      {
+        "term": "genuine",
+        "meaning": "真正的；名副其实的",
+        "example": "She showed a genuine interest in our project."
+      },
+      {
+        "term": "distinctive",
+        "meaning": "独特的；有辨识度的",
+        "example": "He has a distinctive laugh that you can hear across the room."
+      },
+      {
+        "term": "citation",
+        "meaning": "引用标注；出处",
+        "example": "Every quotation in your essay needs a citation."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "word for word",
+        "meaning": "逐字逐句地",
+        "note": "copy / repeat sth word for word：一字不差地照搬，常带贬义。"
+      },
+      {
+        "text": "as long as",
+        "meaning": "只要",
+        "note": "引导条件，语气比 if 更强调“只要满足这一点就行”。"
+      },
+      {
+        "text": "get into trouble",
+        "meaning": "惹上麻烦",
+        "note": "常用于无意中违反规则的情况；get sb into trouble 是“让某人惹麻烦”。"
+      },
+      {
+        "text": "from memory",
+        "meaning": "凭记忆",
+        "note": "write / draw / play sth from memory：不看原件，靠记忆完成。"
+      },
+      {
+        "text": "In that sense",
+        "meaning": "从这个意义上说",
+        "note": "用来引出总结或换个角度的结论，学术写作和演讲中都很常见。"
+      },
+      {
+        "text": "less a rule to obey than a test",
+        "meaning": "与其说是要遵守的规则，不如说是一次检验",
+        "note": "less A than B：纠正读者的理解，比 not A but B 更含蓄。"
+      }
+    ],
+    "grammar": [
+      "conditional-real",
+      "clause-adverb",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "conditional-real",
+        "quote": "If you replace every second word with a synonym and keep the same structure, the ideas are still borrowed, and only the vocabulary is yours.",
+        "explanation": "零条件句：if 从句和主句都用一般现在时，说明“这样做的结果必然是……”。用来解释规则或原理时特别清楚。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "When you have to explain an idea without looking at the original, you quickly discover whether you have really understood it.",
+        "explanation": "when 引导时间状语从句交代情境，主句给出结果；主句里还套了 whether 引导的宾语从句，表示“是否”。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "read the passage until you understand it well enough to explain it to a friend",
+        "explanation": "形容词/副词 + enough + to do：达到足以做某事的程度。well enough to explain 说明“理解到能讲给别人听的程度”。"
+      }
+    ],
+    "speaking": "用 1 分钟向一位新同学解释：为什么“把原文的词都换掉”仍然可能算抄袭？用上 as long as 和 word for word。",
+    "writing": "用 150–200 词写一份“正确改写的步骤说明”，用 First / Then / Finally 连接，至少用一个 enough to do 和一个 When…, … 句。",
+    "task": {
+      "prompt": "仿照这句，用 …is less a… than a… 重新定义一件大家常误解的事。",
+      "model": "good paraphrasing is less a rule to obey than a test of your own understanding"
+    },
+    "tags": [
+      "学术诚信",
+      "论文写作"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-campus-b2-failed-lab-experiment",
+    "title": "那次做砸的化学实验",
+    "title_en": "The Afternoon the Flask Turned Brown",
+    "summary_zh": "Nadia 的第一次化学实验，烧瓶里的液体没变成粉色，反而变成了泥一样的棕色。她本想悄悄重做，助教却让她把错误完整记录下来——这份“失败报告”后来成了全班的范例。读完你会学到错综条件句和讲故事时常用的表达。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "campus",
+    "genre": "story",
+    "body": "Nadia's first proper chemistry practical was supposed to take two hours. The task sounded simple: add one solution to another, drop by drop, until the liquid turned a pale pink. Instead, after twenty minutes, her flask turned a muddy brown that matched nothing in the instructions. Her lab partner, Joel, stared at it as if it might explode. It didn't, of course, but it also refused to turn pink. While the rest of the class finished and packed up, the two of them went back through every step. Eventually they found the problem: two bottles on their bench had been swapped, and neither of them had checked the labels against the worksheet. Nadia's first instinct was to start again quietly and pretend the brown flask had never existed. The lab demonstrator suggested something else. Rather than hiding the mistake, she should write it up, explaining what had gone wrong and how they had discovered it. Reluctantly, Nadia filled two pages with notes about the wrong bottle, the strange colour and every step they had taken to trace it. A week later, the demonstrator showed her notes to the whole class as an example, not of failure, but of how to investigate a result that makes no sense. If she hadn't recorded that disaster so carefully, she wouldn't be the person her lab group now trusts with the notebook. She still checks every label twice, and she has learned that an honest record of a failed experiment can be more useful than a perfect one.",
+    "questions": [
+      {
+        "prompt": "What is the main lesson of the story?",
+        "options": [
+          "Lab partners should always work separately",
+          "An honest record of a mistake can be very valuable",
+          "Chemistry practicals usually take longer than planned",
+          "It is better to start again than to explain an error"
+        ],
+        "answer": 1,
+        "evidence": "an honest record of a failed experiment can be more useful than a perfect one"
+      },
+      {
+        "prompt": "What caused the liquid to turn the wrong colour?",
+        "options": [
+          "Nadia added the solution too quickly",
+          "The worksheet had a mistake in it",
+          "Joel used the wrong flask",
+          "Two bottles had been swapped and nobody checked the labels"
+        ],
+        "answer": 3,
+        "evidence": "two bottles on their bench had been swapped, and neither of them had checked the labels against the worksheet"
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {
+        "term": "flask",
+        "meaning": "烧瓶；（实验用）瓶",
+        "example": "She poured the water carefully into the glass flask."
+      },
+      {
+        "term": "instinct",
+        "meaning": "本能；直觉反应",
+        "example": "My first instinct was to run, but I stayed calm."
+      },
+      {
+        "term": "reluctantly",
+        "meaning": "不情愿地",
+        "example": "He reluctantly agreed to give the presentation on his own."
+      },
+      {
+        "term": "trace",
+        "meaning": "追查；找出……的来源",
+        "example": "The engineers finally managed to trace the fault to a loose wire."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "drop by drop",
+        "meaning": "一滴一滴地",
+        "note": "A by A 结构表示逐步进行：step by step, little by little。"
+      },
+      {
+        "text": "as if it might explode",
+        "meaning": "好像它随时会爆炸似的",
+        "note": "as if 引出夸张的想象，讲故事时增加画面感和幽默。"
+      },
+      {
+        "text": "went back through every step",
+        "meaning": "把每一步重新过了一遍",
+        "note": "go back through sth：回头逐一检查，排查问题时很常用。"
+      },
+      {
+        "text": "first instinct",
+        "meaning": "第一反应",
+        "note": "one's first instinct was to do sth：描述下意识的反应，后面常接“但后来……”。"
+      },
+      {
+        "text": "write it up",
+        "meaning": "把它写成报告",
+        "note": "write sth up：把笔记、实验或会议内容整理成正式书面材料。"
+      },
+      {
+        "text": "makes no sense",
+        "meaning": "说不通；毫无道理",
+        "note": "sth makes no sense：结果或说法讲不通；口语也说 It doesn't make sense."
+      }
+    ],
+    "grammar": [
+      "subjunctive-mixed",
+      "clause-adverb",
+      "nonfinite-participle"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-mixed",
+        "quote": "If she hadn't recorded that disaster so carefully, she wouldn't be the person her lab group now trusts with the notebook.",
+        "explanation": "错综时间条件：if 从句用过去完成时 hadn't recorded（与过去事实相反），主句用 wouldn't be（与现在事实相反，句中的 now 点明是现在），说明过去的做法如何影响了现在。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "While the rest of the class finished and packed up, the two of them went back through every step.",
+        "explanation": "while 引导时间状语从句，表示两件事同时发生，并暗含对比：别人收拾离开，他们却在排查问题。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "she should write it up, explaining what had gone wrong and how they had discovered it",
+        "explanation": "explaining… 是现在分词作状语，补充说明“写报告时要做什么”，逻辑主语是 she。比再写一个 and she should explain… 更紧凑。"
+      }
+    ],
+    "speaking": "用 1 分钟讲一次你做砸某件事的经历，以及它后来带给你的好处。用上 first instinct 和一个 If I hadn't…, I wouldn't… now 的句子。",
+    "writing": "用 150–200 词写一段“失败记录”：一件没做成的事、你怎样找出原因、学到了什么。至少用一个现在分词作状语和一个 While…, … 句。",
+    "task": {
+      "prompt": "仿照这句，用 If I hadn't…, I wouldn't be… 说一件过去的事如何影响了现在的你。",
+      "model": "If she hadn't recorded that disaster so carefully, she wouldn't be the person her lab group now trusts with the notebook."
+    },
+    "tags": [
+      "实验课",
+      "从失败中学习"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-campus-b2-presentation-roles",
+    "title": "小组展示怎么分工",
+    "title_en": "Who Does What? Planning a Group Presentation",
+    "summary_zh": "上学期的小组展示变成了“三个人各讲各的”，这次三位组员决定换个分法：不按内容切块，而是按角色分工。读完你会学到分配任务、表态和推进讨论时的地道口语。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "campus",
+    "genre": "dialogue",
+    "body": "Sofia: Right, we've got fifteen minutes on stage next Thursday, and so far all we have is a title. Arjun: Shall we just split the topic into three parts and take one each? Lena: We did that last term, and it was a disaster. If we hadn't divided it like that, we wouldn't still be known as the group that gave three separate talks. Sofia: Fair point, so what if we divide the jobs instead of the content? Arjun: Meaning what, exactly? Sofia: One person builds the story and the slides, one handles the research, and one runs the rehearsals and the questions at the end. Lena: I like that, and if I do the research, I'll make sure every claim has a source. Arjun: Then I'll take the slides, because I'm hopeless at answering questions on the spot, but I can make a chart look good. Sofia: Which leaves me with rehearsals and questions, but everyone still speaks on the day. Lena: Agreed, because nobody wants to watch one person talk for fifteen minutes. Arjun: How do we stop it turning into three talks again, though? Sofia: We write the links between the sections first, before anyone writes their own part, and we rehearse together at least twice. Lena: And if someone gets a question about another person's section, they should feel free to pass it on. Arjun: So we need to agree on the main message today, while we're all in the same room. Sofia: Exactly, so give me one sentence that sums up the whole thing, and we're halfway there.",
+    "questions": [
+      {
+        "prompt": "How does the group's new plan differ from what they did last term?",
+        "options": [
+          "They will each prepare one part of the topic alone",
+          "They will let one person give the whole talk",
+          "They will divide the jobs rather than the content",
+          "They will skip the rehearsals and focus on the slides"
+        ],
+        "answer": 2,
+        "evidence": "so what if we divide the jobs instead of the content?"
+      },
+      {
+        "prompt": "Why does Arjun choose to do the slides?",
+        "options": [
+          "He finds it hard to answer questions without preparation",
+          "He has already finished the research",
+          "He does not want to speak on the day",
+          "He made the slides for last term's talk"
+        ],
+        "answer": 0,
+        "evidence": "because I'm hopeless at answering questions on the spot"
+      }
+    ],
+    "dictation_index": 3,
+    "vocabulary": [
+      {
+        "term": "disaster",
+        "meaning": "灾难；彻底的失败",
+        "example": "The party was a disaster because nobody brought any food."
+      },
+      {
+        "term": "rehearsals",
+        "meaning": "排练；预演",
+        "example": "We had three rehearsals before the concert."
+      },
+      {
+        "term": "hopeless",
+        "meaning": "很不擅长的；无可救药的",
+        "example": "I'm hopeless at remembering people's birthdays."
+      },
+      {
+        "term": "claim",
+        "meaning": "说法；主张",
+        "example": "Every claim in the report needs to be checked."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "Meaning what, exactly?",
+        "meaning": "具体是什么意思？",
+        "note": "请对方说清楚的口语追问，语气直接但不失礼；exactly 让问题更具体。"
+      },
+      {
+        "text": "on the spot",
+        "meaning": "当场；即时（没时间准备）",
+        "note": "answer / decide on the spot：被要求马上回应，常带压力感。"
+      },
+      {
+        "text": "Which leaves me with",
+        "meaning": "那剩下给我的就是",
+        "note": "which leaves sb with sth：分配完后剩下的部分，用 which 接上一句话，非常口语。"
+      },
+      {
+        "text": "on the day",
+        "meaning": "到了（那）当天",
+        "note": "英式口语，指活动、考试或演出的正式那一天。"
+      },
+      {
+        "text": "feel free to pass it on",
+        "meaning": "尽管把问题转给别人",
+        "note": "feel free to do sth：请随意做某事；pass it on 在这里指把问题交给更合适的人回答。"
+      },
+      {
+        "text": "we're halfway there",
+        "meaning": "我们就成功一半了",
+        "note": "鼓励大家的说法，表示最难的部分已经解决了一半。"
+      }
+    ],
+    "grammar": [
+      "subjunctive-mixed",
+      "conditional-real",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-mixed",
+        "quote": "If we hadn't divided it like that, we wouldn't still be known as the group that gave three separate talks.",
+        "explanation": "错综时间条件：if 从句 hadn't divided 指过去，主句 wouldn't still be known 指现在。言下之意：当初那样分工，导致现在还被人记住这件糗事。"
+      },
+      {
+        "node": "conditional-real",
+        "quote": "if I do the research, I'll make sure every claim has a source",
+        "explanation": "真实条件句：if + 一般现在时，主句 will + 动词原形，用来认领任务并做出承诺，小组讨论中非常实用。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "nobody wants to watch one person talk for fifteen minutes",
+        "explanation": "want to watch 是动词 + 不定式；watch sb do sth 中 talk 是不带 to 的不定式，表示看完整个过程。"
+      }
+    ],
+    "speaking": "和同伴模拟：你们要做一个 10 分钟的小组展示。用 1 分钟商量分工，用上 Which leaves me with… 和一个 If I do…, I'll… 的句子。",
+    "writing": "用 150–200 词给组员写一条消息，提出小组展示的分工方案和排练安排。至少用一个 if 真实条件句，并用上 on the day 或 feel free to。",
+    "task": {
+      "prompt": "仿照这句，用 If we hadn't…, we wouldn't still be… 说一件过去的决定带来的“后遗症”。",
+      "model": "If we hadn't divided it like that, we wouldn't still be known as the group that gave three separate talks."
+    },
+    "tags": [
+      "小组合作",
+      "课堂展示"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

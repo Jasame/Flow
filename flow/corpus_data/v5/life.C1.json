@@ -1,0 +1,509 @@
+[
+  {
+    "id": "v5-life-c1-morning-routine-myth",
+    "title": "“完美晨间习惯”的神话",
+    "title_en": "The Myth of the Perfect Morning Routine",
+    "summary_zh": "网上那些天不亮就起床、写日记、做运动的“完美早晨”看着很治愈，作者亲自尝试后却发现并不适合自己。这篇随笔认为，好的习惯应该围绕真实的你来建立。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "life",
+    "genre": "opinion",
+    "body": "Somewhere online, at this very moment, someone is explaining how they wake before dawn, write three pages in a journal, stretch on a spotless mat and finish a workout before most of us have located our slippers. The videos are soothing to watch, and that, I suspect, is precisely the problem. What they sell is less a routine than an identity: the calm, disciplined person you would be if only you could get up an hour earlier. I spent one winter trying to become that person. I set an alarm for half past five, bought a notebook with a gold cover, and stuck to the plan with grim determination for almost three weeks. Had I been honest with myself from the start, I would not be writing this now with a certain amount of embarrassment, because I am, and always have been, someone who thinks best late at night. The early mornings did not make me more productive; they made me tired by lunchtime and quietly resentful of everyone who seemed to manage them effortlessly. The trouble with the perfect morning routine is that it treats a personal preference as a moral achievement. Waking early is not inherently virtuous, any more than enjoying broccoli is. Plenty of thoughtful, accomplished people do their best work after dark, and plenty of early risers spend their golden hours scrolling through their phones. None of this means routines are useless. A predictable start to the day can be genuinely steadying, especially when the rest of life feels chaotic. But a routine worth keeping is one built around the person you actually are, not the one you see on a screen. Mine now involves coffee, a short walk and no notebook at all. It would not make a very compelling video, which is perhaps the best evidence that it works.",
+    "questions": [
+      {
+        "prompt": "What is the writer's main argument?",
+        "options": [
+          "Getting up early is the most reliable way to become productive",
+          "A good routine should fit your own nature rather than an ideal seen online",
+          "Morning routine videos are harmful and should be avoided completely",
+          "Routines are pointless for people who prefer to work at night"
+        ],
+        "answer": 1,
+        "evidence": "a routine worth keeping is one built around the person you actually are, not the one you see on a screen"
+      },
+      {
+        "prompt": "Why does the writer say their new routine \"would not make a very compelling video\"?",
+        "options": [
+          "They are too embarrassed to film themselves in the morning",
+          "It happens late at night, when the light is poor",
+          "Its ordinariness suggests it is real life rather than a performance",
+          "It has not yet lasted long enough to show results"
+        ],
+        "answer": 2,
+        "evidence": "which is perhaps the best evidence that it works"
+      }
+    ],
+    "dictation_index": 7,
+    "vocabulary": [
+      {
+        "term": "disciplined",
+        "meaning": "自律的；有纪律的",
+        "example": "You have to be very disciplined to study alone at home."
+      },
+      {
+        "term": "resentful",
+        "meaning": "心怀不满的；怨恨的",
+        "example": "She felt resentful that nobody had thanked her for her help."
+      },
+      {
+        "term": "inherently",
+        "meaning": "本质上；固有地",
+        "example": "There is nothing inherently wrong with eating dinner late."
+      },
+      {
+        "term": "virtuous",
+        "meaning": "品德高尚的；（自觉）有美德的",
+        "example": "I felt rather virtuous after cycling to work in the rain."
+      },
+      {
+        "term": "compelling",
+        "meaning": "引人入胜的；有说服力的",
+        "example": "The documentary tells a compelling story about a small village."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "at this very moment",
+        "meaning": "就在此时此刻",
+        "note": "very 强调“恰恰”，常用于文章开头制造画面感和夸张效果。"
+      },
+      {
+        "text": "less a routine than an identity",
+        "meaning": "与其说是一套习惯，不如说是一种身份",
+        "note": "less A than B 是书面表达，用来纠正对事物本质的理解：It's less a job than a lifestyle."
+      },
+      {
+        "text": "if only you could",
+        "meaning": "要是你能……就好了",
+        "note": "if only + 过去式 表达强烈的愿望或遗憾，比 I wish 更有情绪。"
+      },
+      {
+        "text": "stuck to the plan",
+        "meaning": "坚持按计划执行",
+        "note": "stick to + 计划/规则/预算，过去式是 stuck：Try to stick to your budget."
+      },
+      {
+        "text": "any more than",
+        "meaning": "正如……也不是……",
+        "note": "A is not X, any more than B is：用一个明显荒谬的类比来否定前面的说法，C1 议论文常用。"
+      },
+      {
+        "text": "worth keeping",
+        "meaning": "值得保持的",
+        "note": "worth + 动名词 表示“值得……”：a book worth reading, a habit worth keeping。"
+      }
+    ],
+    "grammar": [
+      "subjunctive-mixed",
+      "clause-noun",
+      "nonfinite-participle"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-mixed",
+        "quote": "Had I been honest with myself from the start, I would not be writing this now",
+        "explanation": "条件指向过去（当初没对自己诚实），结果指向现在（此刻才会写这篇），所以用 had been 配 would be doing 的错综时间条件；Had I been = If I had been，倒装更书面。"
+      },
+      {
+        "node": "clause-noun",
+        "quote": "The trouble with the perfect morning routine is that it treats a personal preference as a moral achievement.",
+        "explanation": "that 引导表语从句，说明 the trouble 的具体内容。The trouble/problem/point is that ... 是亮出核心论点的标准句型。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "a routine worth keeping is one built around the person you actually are",
+        "explanation": "built around ... 是过去分词短语，修饰 one（= a routine），表示“围绕……建立起来的”，相当于 that is built around ...。"
+      }
+    ],
+    "speaking": "用 1 分钟谈谈你是“早起型”还是“夜猫子型”，以及你理想的一天该怎么开始，用上 stick to 和 less A than B。",
+    "writing": "写 150–200 词的短评，评价一种在网上很流行的生活方式，至少用一次错综条件句（Had I ..., I would ... now）和一次 any more than。",
+    "task": {
+      "prompt": "仿照 A is not ..., any more than B is，用一个夸张的类比反驳一个你不认同的说法。",
+      "model": "Waking early is not inherently virtuous, any more than enjoying broccoli is."
+    },
+    "tags": [
+      "生活方式",
+      "社交媒体"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-life-c1-what-we-keep",
+    "title": "断舍离之后，我们留下了什么",
+    "title_en": "What We Keep When We Declutter",
+    "summary_zh": "Ingrid 只有一个周末清空童年卧室：相册很好处理，难的是那些毫无用处的小东西。这篇文章讨论，断舍离时我们真正在取舍的到底是什么。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "life",
+    "genre": "article",
+    "body": "When Ingrid's parents decided to move somewhere smaller, she was given one weekend to empty the bedroom she had grown up in. She arrived with a roll of bin bags and a firm philosophy borrowed from countless tidying guides: if an object no longer served a purpose, it had to go. The philosophy lasted until mid-morning. It was not the obviously sentimental things that defeated her — the photo albums and school reports were easy to box up and take home — but the peculiar, unremarkable ones: a chipped mug, a cinema ticket kept inside a dictionary, a jumper several sizes too small. None of them was useful, and yet throwing them away felt uncomfortably close to editing her own memory. This is the part that most decluttering advice tends to skip. We are often told to treat our possessions as a burden, as though every object were quietly draining our energy from the corner of the room. Sometimes that is true; a drawer stuffed with cables we will never untangle is not a treasure. But the things we keep are rarely about the things themselves. A mug can be a vessel for a particular kitchen, a particular voice asking whether anyone wants tea. What we are really deciding, when we hover over the bin, is which versions of ourselves we are prepared to let go of. Ingrid eventually found a compromise. She photographed most of what she couldn't bear to throw out, gave the jumper to a neighbour's daughter, and allowed herself one shoebox for everything that defied explanation. By Sunday evening the room was empty and the shoebox was full. It is time we stopped measuring a tidy life purely by how little it contains. A home with fewer things can certainly feel lighter, but the point of clearing space is to see more clearly what matters, not to pretend that nothing does.",
+    "questions": [
+      {
+        "prompt": "What point does the writer make about most decluttering advice?",
+        "options": [
+          "It is too gentle about throwing things away",
+          "It ignores the emotional meaning that ordinary objects can carry",
+          "It works best for sentimental items such as photos",
+          "It encourages people to keep too many useless cables"
+        ],
+        "answer": 1,
+        "evidence": "But the things we keep are rarely about the things themselves."
+      },
+      {
+        "prompt": "What did Ingrid find hardest to throw away?",
+        "options": [
+          "Photo albums and school reports",
+          "Things her parents asked her to keep",
+          "Small, ordinary objects with no real use",
+          "Clothes that still fitted her"
+        ],
+        "answer": 2,
+        "evidence": "It was not the obviously sentimental things that defeated her"
+      }
+    ],
+    "dictation_index": 8,
+    "vocabulary": [
+      {
+        "term": "sentimental",
+        "meaning": "有情感价值的；多愁善感的",
+        "example": "The ring isn't expensive, but it has great sentimental value."
+      },
+      {
+        "term": "possessions",
+        "meaning": "所有物；个人物品",
+        "example": "He moved abroad with only a few possessions in one suitcase."
+      },
+      {
+        "term": "burden",
+        "meaning": "负担；重担",
+        "example": "I don't want to be a burden to my friends."
+      },
+      {
+        "term": "compromise",
+        "meaning": "折中办法；妥协",
+        "example": "After a long discussion, we reached a compromise."
+      },
+      {
+        "term": "defied",
+        "meaning": "无法（解释、描述）；违抗（defy 的过去式）",
+        "example": "The beauty of the view defied description."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "box up",
+        "meaning": "装箱",
+        "note": "box up + 物品，搬家、整理时常用，和 pack up 类似：Let's box up the books first."
+      },
+      {
+        "text": "tends to skip",
+        "meaning": "往往略过不谈",
+        "note": "tend to + 动词 让批评更委婉；skip 在这里指“跳过、回避”某个话题。"
+      },
+      {
+        "text": "let go of",
+        "meaning": "放下；放手",
+        "note": "let go of + 人/物/想法，常指情感上的放下：It's hard to let go of the past."
+      },
+      {
+        "text": "couldn't bear to",
+        "meaning": "不忍心；舍不得",
+        "note": "can't bear to do sth 表示情感上做不到：I couldn't bear to tell him the truth."
+      },
+      {
+        "text": "defied explanation",
+        "meaning": "无法解释；说不清道不明",
+        "note": "defy explanation/description 是书面搭配，形容某物难以言说。"
+      },
+      {
+        "text": "It is time we stopped",
+        "meaning": "我们是时候不再……了",
+        "note": "It's time + 主语 + 过去式，表示“早就该这样了”，带一点批评或呼吁。"
+      }
+    ],
+    "grammar": [
+      "subjunctive-now",
+      "agreement-head",
+      "agreement-each"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-now",
+        "quote": "as though every object were quietly draining our energy from the corner of the room",
+        "explanation": "as though 后面用 were，表示与现实不符的想象：东西其实并没有在吸走我们的能量。正式文体中 were 可用于所有人称。"
+      },
+      {
+        "node": "agreement-head",
+        "quote": "a drawer stuffed with cables we will never untangle is not a treasure",
+        "explanation": "主语很长，但中心词是 drawer（单数），stuffed with cables ... 只是修饰语，所以动词用 is，不要被 cables 带偏。"
+      },
+      {
+        "node": "agreement-each",
+        "quote": "None of them was useful",
+        "explanation": "none of + 复数名词作主语时，正式书面语常用单数动词，强调“一个也没有”；日常口语里用 were 也很普遍。"
+      }
+    ],
+    "speaking": "用 1 分钟介绍一件你一直舍不得扔、却毫无用处的小东西，说说它让你想起什么，用上 couldn't bear to 和 let go of。",
+    "writing": "写 150–200 词，谈谈你对“断舍离”的看法：它让生活更轻松，还是忽视了情感？至少用一次 as though + 过去式，和一次 It is time we ...。",
+    "task": {
+      "prompt": "仿照 It is time we + 过去式，对一种你觉得该改变的生活观念提出看法。",
+      "model": "It is time we stopped measuring a tidy life purely by how little it contains."
+    },
+    "tags": [
+      "断舍离",
+      "家与回忆"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-life-c1-friendship-after-school",
+    "title": "毕业后渐行渐远的友谊",
+    "title_en": "The Friend I Used to Tell Everything",
+    "summary_zh": "中学时形影不离的好友，毕业后没有吵架，却渐渐疏远。多年后重逢，作者发现两人已不是从前的样子，友谊反而以另一种方式延续。一篇关于成长与友情的随笔。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "life",
+    "genre": "story",
+    "body": "For most of our teenage years, Nadia and I were the kind of friends who finished each other's sentences and borrowed each other's clothes without asking. We had planned to share a flat after school, travel together, and live, as she once put it, \"within shouting distance\" for the rest of our lives. Then she left to study at the other end of the country, I stayed at home to work, and the gaps between our calls lengthened without either of us deciding they should. There was no argument, no betrayal, nothing dramatic enough to explain it. We simply began inhabiting different weeks: hers full of lectures and names I didn't know, mine full of early shifts and a routine she would have found unbearably dull. I used to think friendships ended the way they do in films, with a door slammed or a secret revealed. I have since learned that most of them simply erode, worn down by a long series of postponed conversations. Last spring, after several years of birthday messages and little else, we finally met for coffee. I had rehearsed a small speech in my head, half apology and half accusation. I never gave it. Within ten minutes we were laughing at the same things, although it was unmistakable that we were no longer the same people. She had become decisive in a way I envied; I had become patient in a way she seemed to admire. If we had stayed as close as we planned, we might not be such good friends now, because we would never have had to get to know each other again. The thought unsettled me at first, then oddly consoled me. Perhaps a friendship that survives a long silence isn't a diminished version of the original, but a different one, built on choice rather than habit. We meet every few months now. It isn't what we imagined at fifteen, and I've stopped wishing it were.",
+    "questions": [
+      {
+        "prompt": "How does the writer now see the friendship with Nadia?",
+        "options": [
+          "As a weaker copy of what they had at school",
+          "As something different but still valuable, kept by choice",
+          "As a relationship that ended after a hidden argument",
+          "As a friendship that will soon return to how it used to be"
+        ],
+        "answer": 1,
+        "evidence": "built on choice rather than habit"
+      },
+      {
+        "prompt": "According to the writer, how do most friendships end?",
+        "options": [
+          "Suddenly, after a secret is revealed",
+          "When one person moves away for a job",
+          "Slowly, as conversations keep being put off",
+          "Because of an argument that nobody remembers"
+        ],
+        "answer": 2,
+        "evidence": "most of them simply erode, worn down by a long series of postponed conversations"
+      }
+    ],
+    "dictation_index": 6,
+    "vocabulary": [
+      {
+        "term": "betrayal",
+        "meaning": "背叛",
+        "example": "Reading my diary without asking felt like a betrayal."
+      },
+      {
+        "term": "postponed",
+        "meaning": "被推迟的（postpone 的过去分词）",
+        "example": "The match was postponed because of the storm."
+      },
+      {
+        "term": "rehearsed",
+        "meaning": "预演过；排练过（rehearse 的过去式）",
+        "example": "She rehearsed her answers before the job interview."
+      },
+      {
+        "term": "decisive",
+        "meaning": "果断的",
+        "example": "A good team leader needs to be calm and decisive."
+      },
+      {
+        "term": "erode",
+        "meaning": "（逐渐）侵蚀；削弱",
+        "example": "Small lies, told again and again, can slowly erode trust."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "finished each other's sentences",
+        "meaning": "能接上对方没说完的话（形容非常默契）",
+        "note": "形容朋友、伴侣关系亲密，常用 the kind of friends who ... 引出。"
+      },
+      {
+        "text": "as she once put it",
+        "meaning": "正如她曾经说的那样",
+        "note": "as sb put it 用来引用别人的说法，put 在这里是“表达”的意思。"
+      },
+      {
+        "text": "within shouting distance",
+        "meaning": "喊一声就能听见的距离（住得很近）",
+        "note": "同类结构更常见的是 within walking distance（走路就能到）。"
+      },
+      {
+        "text": "and little else",
+        "meaning": "除此之外几乎什么都没有",
+        "note": "A and little else 表示联系或内容少得可怜：We had bread and little else."
+      },
+      {
+        "text": "get to know each other again",
+        "meaning": "重新认识彼此",
+        "note": "get to know sb 强调“逐渐了解”的过程，比 know 更动态。"
+      }
+    ],
+    "grammar": [
+      "subjunctive-mixed",
+      "tense-perfect",
+      "clause-relative"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-mixed",
+        "quote": "If we had stayed as close as we planned, we might not be such good friends now",
+        "explanation": "条件指向过去（当年如果一直那么亲密），结果指向现在（现在反而可能没这么好），时间错开，所以 had stayed 配 might not be ... now。"
+      },
+      {
+        "node": "tense-perfect",
+        "quote": "I have since learned that most of them simply erode, worn down by a long series of postponed conversations.",
+        "explanation": "since 放在 have 和过去分词之间，意思是“从那以后（一直到现在）”，强调认识的改变延续到当下。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "a friendship that survives a long silence isn't a diminished version of the original",
+        "explanation": "that 引导限制性定语从句，限定是“熬过长久沉默的”那种友谊；去掉从句，句子就变成在说所有友谊。"
+      }
+    ],
+    "speaking": "用 1 分钟讲讲一段因为毕业、搬家或换工作而改变的友谊，现在是什么状态，用上 get to know each other again 或 and little else。",
+    "writing": "写 150–200 词，给一位很久没联系的老朋友写信的开头：回忆你们的过去，并说明为什么想重新联系，至少用一次错综条件句。",
+    "task": {
+      "prompt": "仿照 There was no ..., no ..., nothing ... enough to ...，描述一件“没出什么大事、却悄悄改变了”的经历。",
+      "model": "There was no argument, no betrayal, nothing dramatic enough to explain it."
+    },
+    "tags": [
+      "友谊",
+      "成长"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-life-c1-less-screen-time",
+    "title": "换了老人机的一个月",
+    "title_en": "A Month with a Simpler Phone: A Letter to an Old Friend",
+    "summary_zh": "Elif 把智能手机换成了只能打电话发短信的老式手机，九天后才回复好友的消息。她在信里讲了这一个月的不适、意外的收获和真实的代价。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "life",
+    "genre": "email",
+    "body": "Dear Marcus, I owe you an apology, or at least an explanation, for taking nine days to answer a message that deserved a reply within the hour. It wasn't that I'd forgotten you; quite the opposite. A few weeks ago I swapped my smartphone for a basic one that can make calls and send texts and not much more, and I'm still adjusting to the slower pace. The first fortnight was genuinely uncomfortable. I kept reaching for my pocket in queues and at bus stops, only to find a device that offered nothing to scroll through. Neither my friends nor my sister was particularly sympathetic; most of them assumed I was making some sort of statement. If I'm honest, I wasn't entirely sure myself why I'd done it, beyond a vague sense that my attention had been quietly auctioned off to whoever shouted loudest. What has surprised me is not the extra time, although there is some, but the change in its texture. Waiting for a train has become an opportunity to notice things, or simply to be bored, which turns out to be a surprisingly fertile state. I've read more this month than in the previous six, and I've taken up cooking again, with mixed results. The drawbacks are real, of course. I can't check directions on the move, and I missed at least one party because the invitation existed only in a group chat. Had I known how much of social life now happens there, I might have warned people sooner. Should you ever try something similar, I'd suggest telling everyone in advance and keeping a laptop for the practical things. I'm not trying to convert you, I promise. I know your work depends on being reachable, and I'd rather you didn't throw your phone into a river on my account. But if you fancy a proper conversation, the old-fashioned kind, ring me on Sunday. I'll be the one who actually picks up. Warmly, Elif",
+    "questions": [
+      {
+        "prompt": "What is the main purpose of Elif's email?",
+        "options": [
+          "To persuade Marcus to give up his smartphone",
+          "To apologise for missing Marcus's party",
+          "To explain her slow reply and describe life with a basic phone",
+          "To ask Marcus for help choosing a new laptop"
+        ],
+        "answer": 2,
+        "evidence": "I owe you an apology, or at least an explanation, for taking nine days to answer a message"
+      },
+      {
+        "prompt": "What does Elif mean by \"the change in its texture\"?",
+        "options": [
+          "Her free time feels different in quality, not just longer",
+          "She now has many more free hours every day",
+          "Her new phone feels rougher in her hand",
+          "She spends her time doing the same things more slowly"
+        ],
+        "answer": 0,
+        "evidence": "What has surprised me is not the extra time, although there is some, but the change in its texture."
+      }
+    ],
+    "dictation_index": 12,
+    "vocabulary": [
+      {
+        "term": "fortnight",
+        "meaning": "两周（英式）",
+        "example": "We're going to the seaside for a fortnight in August."
+      },
+      {
+        "term": "sympathetic",
+        "meaning": "同情的；表示理解的",
+        "example": "My boss was very sympathetic when I told him my cat was ill."
+      },
+      {
+        "term": "vague",
+        "meaning": "模糊的；不明确的",
+        "example": "I have a vague memory of meeting him at a party."
+      },
+      {
+        "term": "texture",
+        "meaning": "质感；（比喻）内在的特点",
+        "example": "I love the soft texture of this bread."
+      },
+      {
+        "term": "reachable",
+        "meaning": "能联系上的",
+        "example": "I'll be reachable by phone all afternoon."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "I owe you an apology",
+        "meaning": "我欠你一个道歉",
+        "note": "真诚又略正式的道歉开头；也可说 I owe you an explanation。"
+      },
+      {
+        "text": "kept reaching for",
+        "meaning": "不由自主地一次次伸手去拿",
+        "note": "keep + -ing 表示反复、习惯性的动作，常带“控制不住”的意味。"
+      },
+      {
+        "text": "turns out to be",
+        "meaning": "结果竟然是；原来是",
+        "note": "表示出乎意料的发现：The quiet neighbour turned out to be a famous chef."
+      },
+      {
+        "text": "in advance",
+        "meaning": "提前；预先",
+        "note": "常用于通知、预订、准备：Let people know in advance."
+      },
+      {
+        "text": "on my account",
+        "meaning": "因为我；为了我",
+        "note": "常用于否定句，表示“别因为我而……”：Please don't stay up on my account."
+      },
+      {
+        "text": "if you fancy",
+        "meaning": "如果你想要/有兴趣的话",
+        "note": "英式口语，fancy = want/like：Do you fancy a coffee?"
+      }
+    ],
+    "grammar": [
+      "agreement-either",
+      "conditional-modal",
+      "subjunctive-past"
+    ],
+    "knowledge": [
+      {
+        "node": "agreement-either",
+        "quote": "Neither my friends nor my sister was particularly sympathetic",
+        "explanation": "neither A nor B 作主语，动词与离它最近的 B 一致：my sister 是单数，所以用 was。若换成 Neither my sister nor my friends，就要用 were。"
+      },
+      {
+        "node": "conditional-modal",
+        "quote": "Should you ever try something similar, I'd suggest telling everyone in advance",
+        "explanation": "Should you ... = If you should ...，倒装条件句语气委婉、偏正式；主句用 I'd suggest + 动名词 提建议，比 you must 客气得多。"
+      },
+      {
+        "node": "subjunctive-past",
+        "quote": "Had I known how much of social life now happens there, I might have warned people sooner.",
+        "explanation": "Had I known = If I had known，与过去事实相反：当时不知道，所以没有提前告诉大家；might have done 表示“本来可能会……”。"
+      }
+    ],
+    "speaking": "用 1 分钟谈谈：如果一个月只能用只能打电话、发短信的手机，你最怀念什么、最可能收获什么？用上 turns out to be 和 in advance。",
+    "writing": "写一封 150–200 词的邮件，向朋友解释你最近为什么联系少了，并约对方见面或通话，用上 I owe you ... 和一个 Should you ... 倒装句。",
+    "task": {
+      "prompt": "仿照 I'd rather you didn't ...，委婉地请朋友别因为你而做某件事。",
+      "model": "I'd rather you didn't throw your phone into a river on my account."
+    },
+    "tags": [
+      "数字生活",
+      "朋友来信"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

@@ -1,0 +1,11 @@
+[Unit]
+Description=Flow push-to-deploy: handle the next release tag (tools/flow-autodeploy.py)
+After=network-online.target
+
+[Service]
+Type=oneshot
+# The end-to-end test reads the AI limits from the same environment as the app.
+EnvironmentFile=/etc/flow.env
+ExecStart=/opt/uv-python/cpython-3.11.18-linux-x86_64-gnu/bin/python3.11 -I /root/claude-ops/flow-autodeploy.py
+TimeoutStartSec=50min
+Nice=5

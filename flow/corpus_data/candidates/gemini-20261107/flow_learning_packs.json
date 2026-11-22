@@ -1,0 +1,1212 @@
+[
+  {
+    "pack_id": "FLOW-PACK-001",
+    "candidate_id": "FLOW-CAND-001",
+    "family_id": "FAM-CAMPUS-STUDYGROUP",
+    "title": "学习小组与校园活动通知：时间捕捉与活动对应",
+    "theme": "校园学习",
+    "level": "A2",
+    "skills": [
+      "listening",
+      "reading"
+    ],
+    "audio_status": "待制作音频（提供精确听力脚本与标记词）",
+    "audio_script": "Attention students! The Academic Support Center has updated this week's study sessions. [TARGET_1: The English Discussion Group will meet this Thursday at 3:15 PM in Room 204.] If you want help with your essays, [TARGET_2: the Academic Writing Workshop takes place on Friday at 10:30 AM in the Central Library Seminar Room B.] Please register at the front desk before Wednesday afternoon, as seats are limited to 15 students per session. Don't forget to bring your student ID and a printed copy of your draft!",
+    "learning_objective": "重点检查学生能否听懂校园通知中的时间表达，并准确关联至对应的具体活动，排除干扰时间与非对应活动。",
+    "estimated_minutes_total": "12-15分钟",
+    "steps_timeline": {
+      "initial_question": "2分钟",
+      "error_diagnosis": "2-3分钟",
+      "branch_remediation": "5-6分钟",
+      "verification": "3-4分钟"
+    },
+    "initial_question": {
+      "question_id": "PACK-001-Q0",
+      "type": "single_choice",
+      "prompt": "According to the announcement, when will the Academic Writing Workshop be held?",
+      "prompt_zh": "根据通知，学术写作工作坊（Academic Writing Workshop）将在何时举行？",
+      "options": [
+        {
+          "key": "A",
+          "text": "Thursday at 3:15 PM"
+        },
+        {
+          "key": "B",
+          "text": "Friday at 10:30 AM"
+        },
+        {
+          "key": "C",
+          "text": "Friday at 10:13 AM"
+        },
+        {
+          "key": "D",
+          "text": "Wednesday afternoon"
+        }
+      ],
+      "correct_key": "B",
+      "answer_evidence": "the Academic Writing Workshop takes place on Friday at 10:30 AM in the Central Library Seminar Room B.",
+      "distractor_explanations": {
+        "A": "干扰项（活动错配）：Thursday at 3:15 PM 是‘英语讨论小组’（English Discussion Group）的举办时间，而非写作工作坊。",
+        "C": "干扰项（数字听音混淆）：10:13 AM 属于数字发音混淆干扰项（将 thirty /ˈθɜːti/ 误听为 thirteen /θɜːˈtiːn/）。",
+        "D": "干扰项（截止时间混淆）：Wednesday afternoon 是前台报名的截止时限，并非工作坊本身的举行时间。"
+      },
+      "tiered_hints": [
+        {
+          "tier": 1,
+          "type": "clue",
+          "content": "先在听力或文本中定位关键词 'Academic Writing Workshop'，不要听到第一个时间就仓促选择。"
+        },
+        {
+          "tier": 2,
+          "type": "direction",
+          "content": "区分两项活动：'English Discussion Group' 安排在周四，而关于 essay 帮助的 'Writing Workshop' 安排在周五。"
+        },
+        {
+          "tier": 3,
+          "type": "full_answer",
+          "content": "原文明确提到 'the Academic Writing Workshop takes place on Friday at 10:30 AM'，正确答案为 B。"
+        }
+      ]
+    },
+    "error_hypotheses": [
+      {
+        "hypothesis_id": "H1",
+        "code": "TIME_PERCEPTION_ERROR",
+        "label": "时间表达没有听清",
+        "description": "学生能够定位到涉及写作或周五的句子，但对数字的发音特征（如 -teen 与 -ty 的重音区别、具体时分读法）不够敏锐，导致听辨数字失误（如误选 10:13）。"
+      },
+      {
+        "hypothesis_id": "H2",
+        "code": "ACTIVITY_BINDING_MISMATCH",
+        "label": "听到了时间，但没有对应到正确活动",
+        "description": "学生听清了具体时间数字，但在多任务/多活动交替呈现的语境中，未能将时间状语与对应的主语活动进行强绑定，误将前一个活动的举办时间（周四 3:15 PM）套用到目标活动上（误选 A）。"
+      }
+    ],
+    "diagnostic_check": {
+      "check_id": "PACK-001-DIAG",
+      "description": "用于精准区分学生是属于 H1（时间没听清）还是 H2（时间与活动张冠李戴）的两道短题组合。",
+      "sub_questions": [
+        {
+          "sub_id": "PACK-001-D1",
+          "focus_hypothesis": "H1",
+          "type": "audio_number_discrimination",
+          "prompt": "Listen to the audio snippet: 'The session takes place at ten thirty.' Which time did you hear?",
+          "prompt_zh": "听音频片段，选出说话人说出的确切时间：",
+          "audio_clip_text": "The session takes place at ten thirty.",
+          "options": [
+            {
+              "key": "A",
+              "text": "10:30"
+            },
+            {
+              "key": "B",
+              "text": "10:13"
+            },
+            {
+              "key": "C",
+              "text": "10:03"
+            }
+          ],
+          "correct_key": "A",
+          "diagnostic_rule": "若此题选错（选B或C），表明学生的核心障碍在于时间数字的声学听辨（-teen vs -ty），判定触发分支 Branch-1。"
+        },
+        {
+          "sub_id": "PACK-001-D2",
+          "focus_hypothesis": "H2",
+          "type": "activity_binding_check",
+          "prompt": "Read the sentence: 'The English Discussion Group meets on Thursday at 3:15 PM. The Academic Writing Workshop takes place on Friday at 10:30 AM.' Which activity takes place on Thursday?",
+          "prompt_zh": "读句子，哪项活动安排在周四（Thursday）？",
+          "options": [
+            {
+              "key": "A",
+              "text": "English Discussion Group"
+            },
+            {
+              "key": "B",
+              "text": "Academic Writing Workshop"
+            }
+          ],
+          "correct_key": "A",
+          "diagnostic_rule": "若 D1 做对（听辨数字无障碍）而初题选 A，且在 D2 出现混淆，表明学生是典型的‘主谓与时间搭配断裂’，判定触发分支 Branch-2。"
+        }
+      ]
+    },
+    "remediation_branches": [
+      {
+        "branch_id": "Branch-1",
+        "targeted_hypothesis": "H1",
+        "branch_name": "时间发音与数字听辨专项提升",
+        "student_feedback": "你定位到了活动句子，但对时间数字的发音细节（特别是 -teen 与 -ty 的辨音）还不够敏感。让我们用 2 分钟攻克这个听力易错点！",
+        "short_explanation": {
+          "rule_title": "两招锁定英语时间数字",
+          "point_1": "重音位置区别：-teen 词尾（如 thirTEEN, fourTEEN）重音在第二个音节，音调向上扬且清晰拉长；-ty 词尾（如 THIRty, FORty）重音在第一个音节，末尾弱化短促。",
+          "point_2": "时分顺读连读：ten thirty 顺读时不加介词，中间无停顿，注意 /n/ 与 /θ/ 的连贯发音。"
+        },
+        "targeted_practice": {
+          "practice_id": "PACK-001-P1",
+          "type": "single_choice",
+          "prompt": "Listen to the clip: 'The lab opens at 4:15 PM and closes at 4:50 PM.' When does the lab close?",
+          "prompt_zh": "听音频片段：实验室何时关闭？",
+          "audio_clip_text": "The lab opens at four fifteen PM and closes at four fifty PM.",
+          "options": [
+            {
+              "key": "A",
+              "text": "4:15 PM"
+            },
+            {
+              "key": "B",
+              "text": "4:50 PM"
+            },
+            {
+              "key": "C",
+              "text": "4:05 PM"
+            }
+          ],
+          "correct_key": "B",
+          "explanation": "录音中 closes 对应的时间为 four fifty（4:50 PM），four fifteen（4:15 PM）是开放时间，考查对 fifteen 与 fifty 的重音区分及动作对应。"
+        }
+      },
+      {
+        "branch_id": "Branch-2",
+        "targeted_hypothesis": "H2",
+        "branch_name": "多活动时间绑定与主干抓取技巧",
+        "student_feedback": "你的听力词汇很棒，准确听到了具体时间！但在多项活动同时出现时，容易把前后的活动和时间安错对象。掌握‘主谓时间绑定法则’即可轻松解决！",
+        "short_explanation": {
+          "rule_title": "多活动通知的‘主谓时间绑定法则’",
+          "point_1": "分句切分：一个句子只对应一项活动。听到新活动名称（如 Academic Writing Workshop）时，立刻建立新的信息卡片。",
+          "point_2": "关注连接动词：[活动名称] + [meets / takes place / is held] + [on 星期 + at 时间]。动词前后的活动与时间是一一对应的封闭单元，切忌跨句子拼凑！"
+        },
+        "targeted_practice": {
+          "practice_id": "PACK-001-P2",
+          "type": "single_choice",
+          "prompt": "Notice: 'The Career Fair takes place on Monday at 9:00 AM. The Resume Clinic takes place on Tuesday at 2:00 PM.' Which event is held on Tuesday?",
+          "prompt_zh": "通知：招聘会于周一上午9点举行，简历门诊于周二下午2点举行。哪项活动在周二举行？",
+          "options": [
+            {
+              "key": "A",
+              "text": "Career Fair"
+            },
+            {
+              "key": "B",
+              "text": "Resume Clinic"
+            }
+          ],
+          "correct_key": "B",
+          "explanation": "Tuesday at 2:00 PM 紧跟在 The Resume Clinic takes place 之后，属于该活动的主干信息；Career Fair 对应的是 Monday。"
+        }
+      }
+    ],
+    "verification_question": {
+      "question_id": "PACK-001-V",
+      "type": "single_choice",
+      "scenario": "全新校园通知语境（检验相同听力/阅读提取能力）",
+      "context_text": "Attention freshmen! The Student IT Support Center has published the orientation timetable. The Campus Wi-Fi & Laptop Setup session is scheduled for Tuesday at 1:45 PM in Science Hall 102. If you want to learn how to access the Digital Library and research databases, the Library Portal Workshop meets on Thursday at 3:30 PM in Lab 4. Please sign up online before Monday noon. Bring your student account credentials!",
+      "context_text_zh": "大一新生请注意！学生IT支持中心已发布迎新日程表。校园Wi-Fi与笔记本配置专场定于周二下午1:45在理科楼102举行。如果你想了解如何访问数字图书馆与研究数据库，图书馆门户工作坊将于周四下午3:30在4号机房举行。请在周一中午前在线报名。请携带学生账号凭证！",
+      "prompt": "When will the Library Portal Workshop take place?",
+      "prompt_zh": "图书馆门户工作坊（Library Portal Workshop）将在何时举行？",
+      "options": [
+        {
+          "key": "A",
+          "text": "Tuesday at 1:45 PM"
+        },
+        {
+          "key": "B",
+          "text": "Thursday at 3:30 PM"
+        },
+        {
+          "key": "C",
+          "text": "Thursday at 3:13 PM"
+        },
+        {
+          "key": "D",
+          "text": "Monday at 12:00 noon"
+        }
+      ],
+      "correct_key": "B",
+      "answer_evidence": "the Library Portal Workshop meets on Thursday at 3:30 PM in Lab 4.",
+      "distractor_explanations": {
+        "A": "干扰项（活动错配）：Tuesday at 1:45 PM 是 Wi-Fi & Laptop Setup 专场的时间。",
+        "C": "干扰项（时间数字混淆）：3:13 PM 是针对 3:30 PM 的发音混淆项（thirteen vs thirty）。",
+        "D": "干扰项（截止时限）：Monday noon 是网上报名的截止时间，非活动举行时间。"
+      },
+      "tiered_hints": [
+        {
+          "tier": 1,
+          "type": "clue",
+          "content": "先在通知中锁定目标活动名称 'Library Portal Workshop'。"
+        },
+        {
+          "tier": 2,
+          "type": "direction",
+          "content": "排除前半句 Wi-Fi 设置活动（周二）以及最后的报名截止时间（周一中午）。"
+        },
+        {
+          "tier": 3,
+          "type": "full_answer",
+          "content": "句子明确指示 'Library Portal Workshop meets on Thursday at 3:30 PM'，正确答案为 B。"
+        }
+      ],
+      "student_feedback": "太棒了！你已经完全掌握了在多活动通知中准确定位时间、排除干扰活动与数字陷阱的核心能力！"
+    }
+  },
+  {
+    "pack_id": "FLOW-PACK-002",
+    "candidate_id": "FLOW-CAND-006",
+    "family_id": "FAM-DAILY-APPOINTMENT",
+    "title": "门诊预约调整：排除冲突时段并锁定最终约定",
+    "theme": "日常沟通",
+    "level": "A2",
+    "skills": [
+      "listening",
+      "speaking"
+    ],
+    "audio_status": "待制作音频（提供角色分段台词与重音标注）",
+    "audio_script": "Receptionist: Good morning, City Dental Clinic. How can I help you?\nPatient: Hello, my name is Mark Evans. I have a dental check-up scheduled for this Wednesday at 2:00 PM, but I have an urgent class exam at that time. I was wondering if I could reschedule it to Friday afternoon?\nReceptionist: Let me check Dr. Green's calendar. [TARGET_REJECT: I'm afraid Friday afternoon is fully booked.] However, we have an opening on Thursday at 4:30 PM, or Friday morning at 9:15 AM.\nPatient: [TARGET_CONFIRM: Friday morning at 9:15 AM would be perfect for me.]\nReceptionist: Wonderful. I've updated your appointment to Friday at 9:15 AM. Please arrive ten minutes early to fill out a health form.",
+    "learning_objective": "能在日常电话预约对话中识别委婉拒绝、转折备选与最终确认信号，排除冲突时段并准确提取最终改约的新时间。",
+    "estimated_minutes_total": "12-14分钟",
+    "steps_timeline": {
+      "initial_question": "2分钟",
+      "error_diagnosis": "2-3分钟",
+      "branch_remediation": "5-6分钟",
+      "verification": "3分钟"
+    },
+    "initial_question": {
+      "question_id": "PACK-002-Q0",
+      "type": "single_choice",
+      "prompt": "What is Mark's newly confirmed appointment time?",
+      "prompt_zh": "马克最终确认的新看诊时间是哪一个？",
+      "options": [
+        {
+          "key": "A",
+          "text": "Wednesday at 2:00 PM"
+        },
+        {
+          "key": "B",
+          "text": "Friday afternoon"
+        },
+        {
+          "key": "C",
+          "text": "Thursday at 4:30 PM"
+        },
+        {
+          "key": "D",
+          "text": "Friday at 9:15 AM"
+        }
+      ],
+      "correct_key": "D",
+      "answer_evidence": "Patient: Friday morning at 9:15 AM would be perfect for me. Receptionist: Wonderful. I've updated your appointment to Friday at 9:15 AM.",
+      "distractor_explanations": {
+        "A": "原预约时间：这是马克因考试冲突需要取消的原来看诊时间。",
+        "B": "被拒绝的时段：这是马克主动提出的改期时段，但前台告知已约满（fully booked）。",
+        "C": "未选取的备选方案：这是诊所提供的另一个空档，但马克选择了周五上午。"
+      },
+      "tiered_hints": [
+        {
+          "tier": 1,
+          "type": "clue",
+          "content": "注意对话双方的协商过程，不要只听患者提出的第一个愿望。"
+        },
+        {
+          "tier": 2,
+          "type": "direction",
+          "content": "寻找接待员表示否定的词（fully booked）以及患者最后表示同意的词（would be perfect）。"
+        },
+        {
+          "tier": 3,
+          "type": "full_answer",
+          "content": "接待员最后复述确认 'I've updated your appointment to Friday at 9:15 AM'，正确答案为 D。"
+        }
+      ]
+    },
+    "error_hypotheses": [
+      {
+        "hypothesis_id": "H1",
+        "code": "REJECTION_NEGATION_OVERLOOK",
+        "label": "忽略否定与客满信号",
+        "description": "学生只听到患者最初表达意愿的语句（reschedule to Friday afternoon），忽略了前台随后的否定委婉表达（I'm afraid... is fully booked），误选 B。"
+      },
+      {
+        "hypothesis_id": "H2",
+        "code": "OPTION_SELECTION_CONFUSION",
+        "label": "混淆待选方案与最终敲定结果",
+        "description": "学生听出了周五下午不行，也听到了前台给出的两个选项（周四下午 4:30 与周五上午 9:15），但在快速对话中未捕捉到患者对周五上午的赞同确认（would be perfect），误选 C。"
+      }
+    ],
+    "diagnostic_check": {
+      "check_id": "PACK-002-DIAG",
+      "description": "诊断学生是对拒绝否定词不敏感（H1）还是对最终确认短语不敏感（H2）。",
+      "sub_questions": [
+        {
+          "sub_id": "PACK-002-D1",
+          "focus_hypothesis": "H1",
+          "type": "single_choice",
+          "prompt": "When the receptionist says 'I'm afraid Friday afternoon is fully booked', what does it mean?",
+          "prompt_zh": "当接待员说 'I'm afraid Friday afternoon is fully booked' 时，其含义是什么？",
+          "options": [
+            {
+              "key": "A",
+              "text": "Friday afternoon is available for booking."
+            },
+            {
+              "key": "B",
+              "text": "No slots are left on Friday afternoon."
+            }
+          ],
+          "correct_key": "B",
+          "diagnostic_rule": "若选错，说明无法理解 fully booked 与 I'm afraid 的委婉否定含义，归入 Branch-1。"
+        },
+        {
+          "sub_id": "PACK-002-D2",
+          "focus_hypothesis": "H2",
+          "type": "single_choice",
+          "prompt": "When the patient says 'Friday morning at 9:15 AM would be perfect for me', which option did he choose?",
+          "prompt_zh": "当患者说 'Friday morning at 9:15 AM would be perfect for me' 时，他选择了哪一个？",
+          "options": [
+            {
+              "key": "A",
+              "text": "He chose Friday at 9:15 AM."
+            },
+            {
+              "key": "B",
+              "text": "He chose Thursday at 4:30 PM."
+            }
+          ],
+          "correct_key": "A",
+          "diagnostic_rule": "若 D1 正确而初题错选 C，且对 D2 反应迟疑，归入 Branch-2。"
+        }
+      ]
+    },
+    "remediation_branches": [
+      {
+        "branch_id": "Branch-1",
+        "targeted_hypothesis": "H1",
+        "branch_name": "委婉拒绝与不可行时段识别",
+        "student_feedback": "在英文日常约见中，对方很少生硬地说 'No'，而是常用礼貌委婉的方式表示拒绝。掌握这几个信号词，你就能快速排除干扰时段！",
+        "short_explanation": {
+          "rule_title": "听出英文中的‘委婉拒绝’",
+          "point_1": "前缀警示词：'I'm afraid...'（恐怕……）、'Unfortunately...'（很遗憾……）出现时，后面必定跟着不可行的坏消息。",
+          "point_2": "状态表述：'fully booked'（约满了）、'no availability'（没有空档）、'doctor is out of town'（医生出差）。听到这些表达，前述时段立刻在草稿纸上划掉！"
+        },
+        "targeted_practice": {
+          "practice_id": "PACK-002-P1",
+          "type": "single_choice",
+          "prompt": "Dialogue: 'Can I see the doctor at 3:00 PM?' 'I'm afraid that slot is taken, but 3:45 PM is open.' Can the patient book 3:00 PM?",
+          "prompt_zh": "对话中患者能否预约下午3:00？",
+          "options": [
+            {
+              "key": "A",
+              "text": "Yes, 3:00 PM is confirmed."
+            },
+            {
+              "key": "B",
+              "text": "No, 3:00 PM is already taken."
+            }
+          ],
+          "correct_key": "B",
+          "explanation": "That slot is taken 意为该时段已被占用，配合 I'm afraid 构成拒绝，不能预约。"
+        }
+      },
+      {
+        "branch_id": "Branch-2",
+        "targeted_hypothesis": "H2",
+        "branch_name": "敲定方案与最终确认信号捕捉",
+        "student_feedback": "当对方给出多个候选方案时，最终的决定取决于哪一个方案被双方共同‘盖章确认’。寻找对话结尾的闭环标志！",
+        "short_explanation": {
+          "rule_title": "锁定最后敲定时间的‘三步闭环’",
+          "point_1": "提议阶段：'We have an opening on [选项A] or [选项B]'（提出候选）。",
+          "point_2": "接受阶段：'[选项] would be great / perfect / work best for me'（客户选定其中一个）。",
+          "point_3": "复述确认阶段：'Great, I have put you down for... / I have updated your appointment to...'（服务人员最终录入系统并复述）。以这句复述为最终准绳！"
+        },
+        "targeted_practice": {
+          "practice_id": "PACK-002-P2",
+          "type": "single_choice",
+          "prompt": "Clerk: 'We have Monday at 10 AM or Tuesday at 2 PM.' Customer: 'Tuesday at 2 PM suits me better.' Clerk: 'Booked for Tuesday at 2 PM.' Which day is confirmed?",
+          "prompt_zh": "最终确认的是哪一天？",
+          "options": [
+            {
+              "key": "A",
+              "text": "Monday at 10 AM"
+            },
+            {
+              "key": "B",
+              "text": "Tuesday at 2 PM"
+            }
+          ],
+          "correct_key": "B",
+          "explanation": "顾客使用 suits me better 选择了周二，店员随后用 Booked for Tuesday at 2 PM 予以确认。"
+        }
+      }
+    ],
+    "verification_question": {
+      "question_id": "PACK-002-V",
+      "type": "single_choice",
+      "scenario": "汽车保养预约改期电话（新日常情境）",
+      "context_text": "Customer: Hi, I booked my car maintenance for Thursday at 10:00 AM, but my meeting ran over. Can I move it to Saturday morning?\nService Advisor: Let me see. I'm afraid our garage is fully booked all day Saturday. We do have a slot on Friday at 3:00 PM, or Monday morning at 8:30 AM.\nCustomer: Monday morning at 8:30 AM works great for me before work.\nService Advisor: Perfect. I have rescheduled your service to Monday at 8:30 AM. See you then!",
+      "context_text_zh": "客户：你好，我预约了周四上午10点汽车保养，但我会议拖延了。能改到周六上午吗？\n维修顾问：我查一下。恐怕我们周六整天都约满了。我们周五下午3点或者周一上午8点半有空档。\n客户：周一上午8点半对我来说很合适，正好在上班前。\n维修顾问：太好了。我已经将您的保养改到了周一上午8点半。到时见！",
+      "prompt": "When is the customer's car maintenance ultimately scheduled?",
+      "prompt_zh": "客户的汽车保养最终安排在何时？",
+      "options": [
+        {
+          "key": "A",
+          "text": "Thursday at 10:00 AM"
+        },
+        {
+          "key": "B",
+          "text": "Saturday morning"
+        },
+        {
+          "key": "C",
+          "text": "Friday at 3:00 PM"
+        },
+        {
+          "key": "D",
+          "text": "Monday at 8:30 AM"
+        }
+      ],
+      "correct_key": "D",
+      "answer_evidence": "Customer: Monday morning at 8:30 AM works great for me. Service Advisor: I have rescheduled your service to Monday at 8:30 AM.",
+      "distractor_explanations": {
+        "A": "原预约时间，因会议拖延被取消。",
+        "B": "客户提议但被拒绝的时段（fully booked all day Saturday）。",
+        "C": "维修顾问提出的备选时段之一，但客户未采纳。"
+      },
+      "tiered_hints": [
+        {
+          "tier": 1,
+          "type": "clue",
+          "content": "排除原定时间和被顾问委婉拒绝（fully booked）的时段。"
+        },
+        {
+          "tier": 2,
+          "type": "direction",
+          "content": "对比周五下午与周一上午，寻找客户说 'works great for me' 的时间。"
+        },
+        {
+          "tier": 3,
+          "type": "full_answer",
+          "content": "服务顾问最后确认 'I have rescheduled your service to Monday at 8:30 AM'，答案为 D。"
+        }
+      ],
+      "student_feedback": "完美通关！你已经能够熟练排除预约对话中的干扰时段，准确锁定最终生效的预约时间！"
+    }
+  },
+  {
+    "pack_id": "FLOW-PACK-003",
+    "candidate_id": "FLOW-CAND-011",
+    "family_id": "FAM-CET-PSYCHOLOGY",
+    "title": "四级长篇阅读：转折定位与流行误区vs核心论点辨析",
+    "theme": "四六级常见场景",
+    "level": "B1",
+    "skills": [
+      "reading"
+    ],
+    "audio_status": "无须音频（标准阅读题）",
+    "audio_script": "N/A",
+    "learning_objective": "能在四级议论文中通过识别反差信号词（Contrary to popular belief, Instead, Therefore），准确区分大众普遍认知误区与作者提出的核心科学论点。",
+    "estimated_minutes_total": "13-16分钟",
+    "steps_timeline": {
+      "initial_question": "3分钟",
+      "error_diagnosis": "2-3分钟",
+      "branch_remediation": "5-6分钟",
+      "verification": "3-4分钟"
+    },
+    "initial_question": {
+      "question_id": "PACK-003-Q0",
+      "type": "single_choice",
+      "prompt": "According to the passage, what is the fundamental nature of chronic procrastination?",
+      "prompt_zh": "根据文章，慢性拖延症的本质是什么？",
+      "options": [
+        {
+          "key": "A",
+          "text": "A severe lack of time management skills and strict schedule planning"
+        },
+        {
+          "key": "B",
+          "text": "An emotional coping mechanism to manage negative feelings"
+        },
+        {
+          "key": "C",
+          "text": "An innate personality defect linked with sheer laziness"
+        },
+        {
+          "key": "D",
+          "text": "An irresistible attraction to instant social media gratification"
+        }
+      ],
+      "correct_key": "B",
+      "answer_evidence": "Contrary to popular belief, recent psychological studies show that chronic procrastination is not actually a defect in planning skills or sheer laziness. Instead, researchers define procrastination as an emotional coping mechanism.",
+      "distractor_explanations": {
+        "A": "流行误区干扰项：文章在首句指出学生常将其归咎于时间管理不善，但随后用 Contrary to popular belief 和 not actually 彻底否定了该观点。",
+        "C": "流行误区干扰项：文章明确否定了拖延属于 sheer laziness（纯粹懒惰）。",
+        "D": "表象/诱发工具干扰项：社交媒体只是大脑逃避负面情绪、寻求即时情绪修复的工具（instant distractions），而非拖延的根本心理机制。"
+      },
+      "tiered_hints": [
+        {
+          "tier": 1,
+          "type": "clue",
+          "content": "注意第一句与第二句之间的转折短语 'Contrary to popular belief'。"
+        },
+        {
+          "tier": 2,
+          "type": "direction",
+          "content": "紧盯带有 'not A, but B' 或 'Instead' 逻辑的句子，作者在用科学定义否定常识偏见。"
+        },
+        {
+          "tier": 3,
+          "type": "full_answer",
+          "content": "文中心理学家的正式定义是 'an emotional coping mechanism'，因此正确答案是 B。"
+        }
+      ]
+    },
+    "error_hypotheses": [
+      {
+        "hypothesis_id": "H1",
+        "code": "POPULAR_MISCONCEPTION_TRAP",
+        "label": "凭常识误选大众误区",
+        "description": "学生在阅读四级议论文时，容易依赖日常生活直觉（认为拖延就是没计划好或懒惰），未注意到文中 Contrary to popular belief 和 not actually 的否定批判立场，误选 A 或 C。"
+      },
+      {
+        "hypothesis_id": "H2",
+        "code": "SYMPTOM_VS_ROOT_CAUSE_CONFUSION",
+        "label": "混淆表象工具与根本机制",
+        "description": "学生识别了文章否定了懒惰和时间管理，但在阅读后半部分时，误将大脑用于逃避的表象行为（turning to instant distractions like social media）视为了本质原因，误选 D。"
+      }
+    ],
+    "diagnostic_check": {
+      "check_id": "PACK-003-DIAG",
+      "description": "判断学生是未看懂转折否定句式（H1），还是分不清现象与本质（H2）。",
+      "sub_questions": [
+        {
+          "sub_id": "PACK-003-D1",
+          "focus_hypothesis": "H1",
+          "type": "single_choice",
+          "prompt": "What does 'Contrary to popular belief, X is not Y' signal in academic writing?",
+          "prompt_zh": "在学术议论文中，'Contrary to popular belief, X is not Y' 传递什么信号？",
+          "options": [
+            {
+              "key": "A",
+              "text": "The author agrees that X is indeed Y."
+            },
+            {
+              "key": "B",
+              "text": "The author rejects the popular idea that X is Y."
+            }
+          ],
+          "correct_key": "B",
+          "diagnostic_rule": "若错选A，说明对学术反驳信号词完全不敏感，进入 Branch-1。"
+        },
+        {
+          "sub_id": "PACK-003-D2",
+          "focus_hypothesis": "H2",
+          "type": "single_choice",
+          "prompt": "In the text, why do students turn to social media when facing assignments?",
+          "prompt_zh": "在文中，学生在面对作业时为什么会刷社交媒体？",
+          "options": [
+            {
+              "key": "A",
+              "text": "Because social media is their inherent motivation."
+            },
+            {
+              "key": "B",
+              "text": "Because their brain seeks short-term mood repair to escape negative feelings."
+            }
+          ],
+          "correct_key": "B",
+          "diagnostic_rule": "若 D1 正确但初题错选 D，且在 D2 无法提炼因果关系，进入 Branch-2。"
+        }
+      ]
+    },
+    "remediation_branches": [
+      {
+        "branch_id": "Branch-1",
+        "targeted_hypothesis": "H1",
+        "branch_name": "四六级阅读‘先破后立’反驳结构攻克",
+        "student_feedback": "四级阅读最喜欢考‘常识陷阱’！出题人常常在开头列出人们通常认为的想法，然后再用科学实验推翻它。绝不要凭常识选答案！",
+        "short_explanation": {
+          "rule_title": "识别四级‘破立型’论点信号词",
+          "point_1": "破（批判大众观点）：'Contrary to popular belief / It is widely assumed that... / Many people mistakenly think...' 引导的内容通常是出题人预设的错误干扰项！",
+          "point_2": "立（提出作者真论点）：'In fact... / Instead... / Recent research reveals that...' 后面引出的才是整篇文章的核心考点和正确答案句！"
+        },
+        "targeted_practice": {
+          "practice_id": "PACK-003-P1",
+          "type": "single_choice",
+          "prompt": "Sentence: 'Many believe skipping breakfast helps lose weight. However, clinical trials demonstrate that skipping breakfast actually slows metabolism.' What did clinical trials find?",
+          "prompt_zh": "临床试验发现了什么？",
+          "options": [
+            {
+              "key": "A",
+              "text": "Skipping breakfast helps weight loss."
+            },
+            {
+              "key": "B",
+              "text": "Skipping breakfast slows down metabolism."
+            }
+          ],
+          "correct_key": "B",
+          "explanation": "However 之后的内容才是研究发现，前半句 Many believe 是被否定的普遍误区。"
+        }
+      },
+      {
+        "branch_id": "Branch-2",
+        "targeted_hypothesis": "H2",
+        "branch_name": "因果链条梳理：区分‘核心根源’与‘伴随表象’",
+        "student_feedback": "你敏锐地避开了常识误区，但在分析心理机制时，把‘表象症状’和‘核心根源’混淆了。梳理因果链条即可精准避坑！",
+        "short_explanation": {
+          "rule_title": "两步理清四级因果链条",
+          "point_1": "核心根源（Root Cause）：产生行为的内在机制或驱动力（如 negative emotions, fear of failure, mood repair）。",
+          "point_2": "伴随表象/工具（Symptom / Medium）：根源在外部引发的具体动作（如 browsing social media, playing games）。问 'fundamental nature' 或 'cause' 时，永远选择内在驱动力！"
+        },
+        "targeted_practice": {
+          "practice_id": "PACK-003-P2",
+          "type": "single_choice",
+          "prompt": "Text: 'Students don't play video games during finals because games are inherently educational; they play to temporarily escape overwhelming exam anxiety.' What is the root cause?",
+          "prompt_zh": "期末考期间学生玩游戏的根本原因是什么？",
+          "options": [
+            {
+              "key": "A",
+              "text": "The educational features of video games"
+            },
+            {
+              "key": "B",
+              "text": "A psychological urge to escape severe exam anxiety"
+            }
+          ],
+          "correct_key": "B",
+          "explanation": "文中明确指出玩游戏是表象手段，根源是 temporarily escape overwhelming exam anxiety。"
+        }
+      }
+    ],
+    "verification_question": {
+      "question_id": "PACK-003-V",
+      "type": "single_choice",
+      "scenario": "四六级阅读原创模拟篇章（大学职场心理学）",
+      "context_text": "Many professionals attribute workplace burnout entirely to long working hours and excessive workloads. Contrary to this conventional view, organizational psychologists have discovered that the primary cause of chronic burnout is not simply physical exhaustion. Instead, research indicates that burnout is fundamentally triggered by a profound lack of autonomy and emotional misalignment with institutional values. When employees feel powerless to influence decisions or believe their contributions lack genuine purpose, psychological fatigue accumulates rapidly, regardless of whether they work forty or sixty hours a week.",
+      "context_text_zh": "许多职场人士将职业倦怠完全归咎于工作时间过长和工作量过大。与这种传统观念相反，组织心理学家发现，慢性倦怠的主要原因并非仅仅是身体疲惫。相反，研究表明，倦怠从根本上是由自主权的极度缺乏以及与机构价值观的情感脱节引发的。当员工感到无力影响决策或认为自己的贡献缺乏真实意义时，无论他们每周工作40小时还是60小时，心理疲劳都会迅速累积。",
+      "prompt": "According to organizational psychologists, what is the primary cause of chronic workplace burnout?",
+      "prompt_zh": "根据组织心理学家的研究，职场慢性倦怠的主要根源是什么？",
+      "options": [
+        {
+          "key": "A",
+          "text": "Excessive workloads and demanding overtime hours"
+        },
+        {
+          "key": "B",
+          "text": "Severe physical fatigue resulting from lack of sleep"
+        },
+        {
+          "key": "C",
+          "text": "A severe lack of personal autonomy and meaningful purpose"
+        },
+        {
+          "key": "D",
+          "text": "Strict institutional supervision and company rules"
+        }
+      ],
+      "correct_key": "C",
+      "answer_evidence": "Instead, research indicates that burnout is fundamentally triggered by a profound lack of autonomy and emotional misalignment with institutional values.",
+      "distractor_explanations": {
+        "A": "传统误区干扰项：文章开头 Conventional view 指出人们常怪罪 long working hours，但已被 Contrary to 推翻。",
+        "B": "否定细节干扰项：文中明确指出 is not simply physical exhaustion。",
+        "D": "无中生有项：文中未提及严苛制度监管本身是根源。"
+      },
+      "tiered_hints": [
+        {
+          "tier": 1,
+          "type": "clue",
+          "content": "寻找 Contrary to this conventional view 后的转折主旨句。"
+        },
+        {
+          "tier": 2,
+          "type": "direction",
+          "content": "排除 A 和 B（传统误解与身体疲劳），关注 Instead 引导的核心触发因素。"
+        },
+        {
+          "tier": 3,
+          "type": "full_answer",
+          "content": "原文明确指明 'fundamentally triggered by a profound lack of autonomy'，对应选项 C。"
+        }
+      ],
+      "student_feedback": "太出色了！你已经完全掌握了四级阅读‘破立反差结构’的解题秘诀，不再受常识干扰项迷惑！"
+    }
+  },
+  {
+    "pack_id": "FLOW-PACK-004",
+    "candidate_id": "FLOW-CAND-016",
+    "family_id": "FAM-WORKPLACE-MEETING",
+    "title": "跨时区职场会议：时差换算与反馈截止时间识别",
+    "theme": "简单职场沟通",
+    "level": "B1",
+    "skills": [
+      "reading",
+      "writing"
+    ],
+    "audio_status": "无须音频（职场邮件阅读）",
+    "audio_script": "N/A",
+    "learning_objective": "能在跨国职场协调邮件中，结合各地时区换算准确定位会议召开时间，并严格区分参会时间与提交冲突反馈的截止时间。",
+    "estimated_minutes_total": "12-14分钟",
+    "steps_timeline": {
+      "initial_question": "2-3分钟",
+      "error_diagnosis": "2分钟",
+      "branch_remediation": "5分钟",
+      "verification": "3分钟"
+    },
+    "initial_question": {
+      "question_id": "PACK-004-Q0",
+      "type": "single_choice",
+      "prompt": "If a team member in San Francisco wants to report a scheduling conflict, by what time must they contact the project manager?",
+      "prompt_zh": "如果旧金山办公室的成员存在时间冲突，最迟必须在何时向项目经理提出？",
+      "options": [
+        {
+          "key": "A",
+          "text": "Thursday at 8:00 AM Pacific Time"
+        },
+        {
+          "key": "B",
+          "text": "Wednesday at 12:00 noon UTC"
+        },
+        {
+          "key": "C",
+          "text": "Thursday at 4:00 PM London time"
+        },
+        {
+          "key": "D",
+          "text": "Thursday at 11:00 PM Beijing Time"
+        }
+      ],
+      "correct_key": "B",
+      "answer_evidence": "Please let me know by Wednesday at 12:00 noon UTC if you have an irreconcilable conflict.",
+      "distractor_explanations": {
+        "A": "会议举行时间（旧金山本地）：这是旧金山成员开会的预定时间，不是提出异议的截止时间。",
+        "C": "会议举行时间（伦敦本地）：这是伦敦总部安排会议的主时间节点。",
+        "D": "会议举行时间（北京本地）：这是北京办公室对应的深夜参会时间。"
+      },
+      "tiered_hints": [
+        {
+          "tier": 1,
+          "type": "clue",
+          "content": "仔细看题干问的是‘报告冲突的截止时间’（report a scheduling conflict），而不是‘开会时间’。"
+        },
+        {
+          "tier": 2,
+          "type": "direction",
+          "content": "在邮件第二段寻找含有 'let me know by...' 或 'conflict' 的句子。"
+        },
+        {
+          "tier": 3,
+          "type": "full_answer",
+          "content": "原文第二段明确要求 'Please let me know by Wednesday at 12:00 noon UTC'，因此选 B。"
+        }
+      ]
+    },
+    "error_hypotheses": [
+      {
+        "hypothesis_id": "H1",
+        "code": "DEADLINE_VS_EVENT_CONFUSION",
+        "label": "混淆会议召开时间与反馈截止时间",
+        "description": "学生看到旧金山（San Francisco）就下意识寻找对应的时间（8:00 AM PT），未能区分邮件中的‘事件发生时间（Meeting Time）’与‘前置动作截止时间（Response Deadline）’，误选 A。"
+      },
+      {
+        "hypothesis_id": "H2",
+        "code": "TIMEZONE_ANCHOR_CONFUSION",
+        "label": "跨时区基准换算与标的混淆",
+        "description": "学生知道需要找截止时间，但在多地时区并列时，混淆了统一协调基准（UTC协调世界时）与各办公室的本地时间标注。"
+      }
+    ],
+    "diagnostic_check": {
+      "check_id": "PACK-004-DIAG",
+      "description": "诊断学生是功能目标混淆（开会 vs 截止）还是时区概念模糊。",
+      "sub_questions": [
+        {
+          "sub_id": "PACK-004-D1",
+          "focus_hypothesis": "H1",
+          "type": "single_choice",
+          "prompt": "In professional emails, what does the preposition 'by' introduce in 'Please reply by Friday 5 PM'?",
+          "prompt_zh": "在职场邮件中，'Please reply by Friday 5 PM' 中的介词 'by' 表示什么？",
+          "options": [
+            {
+              "key": "A",
+              "text": "The exact time an event will start."
+            },
+            {
+              "key": "B",
+              "text": "The latest deadline by which an action must be completed."
+            }
+          ],
+          "correct_key": "B",
+          "diagnostic_rule": "若选错，表明对介词 by 的截止时间功能不熟悉，归入 Branch-1。"
+        },
+        {
+          "sub_id": "PACK-004-D2",
+          "focus_hypothesis": "H2",
+          "type": "single_choice",
+          "prompt": "At what time does the meeting actually start for a team member based in London?",
+          "prompt_zh": "对于在伦敦的团队成员，会议实际开始的时间是？",
+          "options": [
+            {
+              "key": "A",
+              "text": "Thursday at 4:00 PM London time"
+            },
+            {
+              "key": "B",
+              "text": "Wednesday at 12:00 noon"
+            }
+          ],
+          "correct_key": "A",
+          "diagnostic_rule": "若 D1 正确但初题选了开会时间，检验其对伦敦基准时间定位能力，归入 Branch-2。"
+        }
+      ]
+    },
+    "remediation_branches": [
+      {
+        "branch_id": "Branch-1",
+        "targeted_hypothesis": "H1",
+        "branch_name": "职场邮件‘双时间’区分术：会议时段 vs 截止时限",
+        "student_feedback": "职场通知邮件通常包含两类完全不同的时间：‘开会时间’和‘确认截止时间’。千万不能一看到城市名字就选开会时间！",
+        "short_explanation": {
+          "rule_title": "两类时间关键词雷达",
+          "point_1": "会议/事件时间标志：'schedule for / take place at / kick off at' 后面跟随的是事件进行时间。",
+          "point_2": "反馈/确认截止时间标志：'by + 时间'（最迟不超过……）、'no later than'、'RSVP before' 后面跟随的是必须回复的最后限期！"
+        },
+        "targeted_practice": {
+          "practice_id": "PACK-004-P1",
+          "type": "single_choice",
+          "prompt": "Email: 'The workshop is on Friday at 3:00 PM. Please submit your registration by Wednesday at 5:00 PM.' What is the deadline to register?",
+          "prompt_zh": "报名的最后截止时间是什么时候？",
+          "options": [
+            {
+              "key": "A",
+              "text": "Friday at 3:00 PM"
+            },
+            {
+              "key": "B",
+              "text": "Wednesday at 5:00 PM"
+            }
+          ],
+          "correct_key": "B",
+          "explanation": "由 by 引出的 Wednesday 5:00 PM 是提交注册的截止时间，Friday 3:00 PM 是会议本身时间。"
+        }
+      },
+      {
+        "branch_id": "Branch-2",
+        "targeted_hypothesis": "H2",
+        "branch_name": "跨时区协作标注与基准时间（UTC）识别",
+        "student_feedback": "跨国团队办公经常使用 UTC（协调世界时）作为中立基准。掌握括号内的时区换算关系，快速看懂多地时间！",
+        "short_explanation": {
+          "rule_title": "看懂跨时区括号换算",
+          "point_1": "基准时间与换算：主句通常给出一个时区（如 4:00 PM London time），括号内用 'which corresponds to...'（相当于）换算出其他时区。",
+          "point_2": "定位自己所在时区：看清楚自己在哪个城市，直接寻找对应缩写（PT = 太平洋时间，UTC = 通用协调时间，CST = 中国标准时间）。"
+        },
+        "targeted_practice": {
+          "practice_id": "PACK-004-P2",
+          "type": "single_choice",
+          "prompt": "Notice: 'Global demo is at 10:00 AM UTC (3:00 AM Pacific / 6:00 PM Beijing).' If you are in Beijing, what time should you log in?",
+          "prompt_zh": "如果你在北京，你应该在几点登录？",
+          "options": [
+            {
+              "key": "A",
+              "text": "10:00 AM"
+            },
+            {
+              "key": "B",
+              "text": "6:00 PM"
+            }
+          ],
+          "correct_key": "B",
+          "explanation": "括号内明确注明对应 Beijing 的时间为 6:00 PM。"
+        }
+      }
+    ],
+    "verification_question": {
+      "question_id": "PACK-004-V",
+      "type": "single_choice",
+      "scenario": "跨国客户产品演示会安排邮件（新职场情境）",
+      "context_text": "Subject: Final Schedule: APAC Client Onboarding Webinar\n\nHi Team,\n\nWe have finalized the onboarding webinar for our Tokyo client on Tuesday, November 17. The live session will run from 2:00 PM to 3:30 PM Tokyo time (which corresponds to 5:00 AM to 6:30 AM London time and 1:00 PM to 2:30 PM Singapore time).\n\nAll presenters must submit their finalized presentation slide decks no later than Monday, November 16, at 5:00 PM Tokyo time for technical review. Please ensure your microphone is tested prior to the session.",
+      "context_text_zh": "主题：亚太客户入职培训网课最终日程\n\n团队大家好，\n我们已经敲定了定于11月17日周二为东京客户举办的培训网课。实时会议将在东京时间下午2:00至3:30进行（对应伦敦时间凌晨5:00至6:30，新加坡时间下午1:00至2:30）。\n所有演讲者最迟必须在东京时间11月16日周一下午5:00前提交最终PPT课件以供技术审核。请在开会前务必测试好麦克风。",
+      "prompt": "By what deadline must presenters submit their slide decks?",
+      "prompt_zh": "演讲者最晚必须在何时提交他们的幻灯片课件？",
+      "options": [
+        {
+          "key": "A",
+          "text": "Tuesday, November 17, at 2:00 PM Tokyo time"
+        },
+        {
+          "key": "B",
+          "text": "Monday, November 16, at 5:00 PM Tokyo time"
+        },
+        {
+          "key": "C",
+          "text": "Tuesday, November 17, at 5:00 AM London time"
+        },
+        {
+          "key": "D",
+          "text": "Monday, November 16, at 1:00 PM Singapore time"
+        }
+      ],
+      "correct_key": "B",
+      "answer_evidence": "All presenters must submit their finalized presentation slide decks no later than Monday, November 16, at 5:00 PM Tokyo time.",
+      "distractor_explanations": {
+        "A": "会议开始时间（东京时间），非提交课件截止时间。",
+        "C": "会议开始时间（伦敦时间对应点）。",
+        "D": "张冠李戴的干扰日期与新加坡时间拼凑。"
+      },
+      "tiered_hints": [
+        {
+          "tier": 1,
+          "type": "clue",
+          "content": "区分‘会议时间’（session will run...）与‘课件提交截止时间’（submit slide decks no later than...）。"
+        },
+        {
+          "tier": 2,
+          "type": "direction",
+          "content": "定位第二段的 'no later than' 短语。"
+        },
+        {
+          "tier": 3,
+          "type": "full_answer",
+          "content": "文本明确写明 'no later than Monday, November 16, at 5:00 PM Tokyo time'，答案为 B。"
+        }
+      ],
+      "student_feedback": "太棒了！你已经完全掌握了职场跨时区邮件中精准提取截止时限、区分会议时间的高阶沟通技能！"
+    }
+  },
+  {
+    "pack_id": "FLOW-PACK-005",
+    "candidate_id": "FLOW-CAND-020",
+    "family_id": "FAM-WORKPLACE-BUDGET",
+    "title": "职场公文审批：识别核心商业回报与申请依据",
+    "theme": "简单职场沟通",
+    "level": "B1",
+    "skills": [
+      "reading",
+      "writing"
+    ],
+    "audio_status": "无须音频（商务邮件阅读）",
+    "audio_script": "N/A",
+    "learning_objective": "能在商务审批申请公文中准确提取核心申请诉求，并区分描述性现状痛点与具有说服力的量化商业投资回报（ROI）论据。",
+    "estimated_minutes_total": "12-15分钟",
+    "steps_timeline": {
+      "initial_question": "3分钟",
+      "error_diagnosis": "2-3分钟",
+      "branch_remediation": "5分钟",
+      "verification": "3-4分钟"
+    },
+    "initial_question": {
+      "question_id": "PACK-005-Q0",
+      "type": "single_choice",
+      "prompt": "What is Kevin's primary business justification to persuade the director to approve the software expense?",
+      "prompt_zh": "凯文用来劝说总监批准购买软件的最主要商业收益依据是什么？",
+      "options": [
+        {
+          "key": "A",
+          "text": "Basic spreadsheets cannot create modern interactive charts for presentations."
+        },
+        {
+          "key": "B",
+          "text": "The team currently wastes 12 hours every week manually cleaning spreadsheet data."
+        },
+        {
+          "key": "C",
+          "text": "It will save at least 40 labor hours monthly, paying for itself within the first quarter."
+        },
+        {
+          "key": "D",
+          "text": "The single team license allows up to five team members to use the software simultaneously."
+        }
+      ],
+      "correct_key": "C",
+      "answer_evidence": "By automating our data workflow, we project saving at least 40 hours of labor per month, effectively paying for the software within the first quarter.",
+      "distractor_explanations": {
+        "A": "功能局限说明：这是现有电子表格的缺陷，是问题诱因而非商业回报收益。",
+        "B": "现状痛点描述：这是团队当前面临的时间浪费现状，属于引出问题（Problem Statement），而非证明投资正当性的商业回报依据（Business Justification/ROI）。",
+        "D": "产品规格参数：这是许可证允许的账号人数（Feature/Specification），不是向管理层证明该花费物超所值的商业投资回报。"
+      },
+      "tiered_hints": [
+        {
+          "tier": 1,
+          "type": "clue",
+          "content": "区分‘痛点问题描述’、‘产品功能参数’与‘商业投资回报（ROI）’。"
+        },
+        {
+          "tier": 2,
+          "type": "direction",
+          "content": "关注包含工时节约与资金回收预测的论述（project saving... paying for...）。"
+        },
+        {
+          "tier": 3,
+          "type": "full_answer",
+          "content": "最核心的审批理由是量化回报：'saving at least 40 hours... paying for the software within the first quarter'，因此选 C。"
+        }
+      ]
+    },
+    "error_hypotheses": [
+      {
+        "hypothesis_id": "H1",
+        "code": "PROBLEM_VS_JUSTIFICATION_CONFUSION",
+        "label": "混淆现状痛点与商业投资回报",
+        "description": "学生能够理解文章中的抱怨，但把第一段叙述的‘团队每周手动清洗数据浪费12小时’（痛点）当成了说服领导批准的最根本商业回报证明，误选 B。"
+      },
+      {
+        "hypothesis_id": "H2",
+        "code": "FEATURE_VS_VALUE_CONFUSION",
+        "label": "混淆产品功能参数与商业价值收益",
+        "description": "学生关注到了产品本身的规格（如可供5人使用、可做交互式仪表板），但忽略了管理层审批预算最看重的可量化产出比（节省工时与成本回收），误选 A 或 D。"
+      }
+    ],
+    "diagnostic_check": {
+      "check_id": "PACK-005-DIAG",
+      "description": "诊断学生分不清问题与收益（H1），还是分不清产品功能与商业价值（H2）。",
+      "sub_questions": [
+        {
+          "sub_id": "PACK-005-D1",
+          "focus_hypothesis": "H1",
+          "type": "single_choice",
+          "prompt": "In a budget proposal, what does 'Business Justification' primarily mean?",
+          "prompt_zh": "在预算审批提案中，'商业正当性依据（Business Justification）'主要指什么？",
+          "options": [
+            {
+              "key": "A",
+              "text": "Explaining how severe the current problems are."
+            },
+            {
+              "key": "B",
+              "text": "Proving that the expected financial/productivity returns outweigh the cost."
+            }
+          ],
+          "correct_key": "B",
+          "diagnostic_rule": "若选A，表明对商业申请论证逻辑缺乏认知，归入 Branch-1。"
+        },
+        {
+          "sub_id": "PACK-005-D2",
+          "focus_hypothesis": "H2",
+          "type": "single_choice",
+          "prompt": "Which of the following is a 'Quantified Return' rather than just a 'Product Feature'?",
+          "prompt_zh": "下列哪一项属于‘量化商业回报’而非单纯的‘产品功能’？",
+          "options": [
+            {
+              "key": "A",
+              "text": "The tool supports dark mode and PDF export."
+            },
+            {
+              "key": "B",
+              "text": "The tool saves 10 hours per week and recovers costs in two months."
+            }
+          ],
+          "correct_key": "B",
+          "diagnostic_rule": "若 D1 正确但初题选了产品功能项（A/D），归入 Branch-2。"
+        }
+      ]
+    },
+    "remediation_branches": [
+      {
+        "branch_id": "Branch-1",
+        "targeted_hypothesis": "H1",
+        "branch_name": "商业提案结构：痛点陈述 vs 投资回报（ROI）",
+        "student_feedback": "在职场中向老板要钱审批，光‘诉苦’说现在工作多累是不够的，核心必须是拿出‘量化投资回报’（ROI）！",
+        "short_explanation": {
+          "rule_title": "区分提案中的两段式逻辑",
+          "point_1": "痛点陈述（Current Problem）：'Our team spends 12 hours manually...' 只是背景铺垫，告诉领导为什么现有工具不够用。",
+          "point_2": "商业依据（Justification / ROI）：'We project saving 40 hours... paying for itself...' 这才是决定性的批准依据，证明这笔钱能为公司省下更多成本！"
+        },
+        "targeted_practice": {
+          "practice_id": "PACK-005-P1",
+          "type": "single_choice",
+          "prompt": "Email snippet: 'We currently lose 5 hours per week on manual printing. Buying this high-speed printer ($400) will eliminate overtime pay, saving $1,200 annually.' What is the financial justification?",
+          "prompt_zh": "购买该打印机的核心财务正当性依据是什么？",
+          "options": [
+            {
+              "key": "A",
+              "text": "Losing 5 hours weekly on manual printing."
+            },
+            {
+              "key": "B",
+              "text": "Eliminating overtime pay and saving $1,200 annually."
+            }
+          ],
+          "correct_key": "B",
+          "explanation": "节省 1,200 美元年成本是量化商业回报，前者只是当前的痛点现状。"
+        }
+      },
+      {
+        "branch_id": "Branch-2",
+        "targeted_hypothesis": "H2",
+        "branch_name": "区分‘产品特性（Feature）’与‘商业价值（Value）’",
+        "student_feedback": "老板审批预算时最在乎的不是软件有多炫酷（功能），而是能给业务带来什么实质效益（价值）！",
+        "short_explanation": {
+          "rule_title": "Feature（功能）vs Value（价值）辨析",
+          "point_1": "功能（Feature）：软件能做什么，例如 'supports 5 users', 'generates charts'。这是工具的技术属性。",
+          "point_2": "价值（Value）：对公司商业目标的好处，例如 'saving 40 hours of labor', 'speeding up client delivery'。审题看清题目问的是 Feature 还是 Justification/Value！"
+        },
+        "targeted_practice": {
+          "practice_id": "PACK-005-P2",
+          "type": "single_choice",
+          "prompt": "Proposal: 'The software includes cloud backup and team chat. Crucially, it reduces error rates by 70%.' Which statement represents the business value?",
+          "prompt_zh": "哪项表述代表了商业核心价值？",
+          "options": [
+            {
+              "key": "A",
+              "text": "It includes cloud backup and team chat."
+            },
+            {
+              "key": "B",
+              "text": "It reduces error rates by 70%."
+            }
+          ],
+          "correct_key": "B",
+          "explanation": "降低70%的差错率是直接提升业务质量的商业价值，云备份是功能特性。"
+        }
+      }
+    ],
+    "verification_question": {
+      "question_id": "PACK-005-V",
+      "type": "single_choice",
+      "scenario": "客服自动化工单软件采购申请（新职场审批情境）",
+      "context_text": "Dear Mr. Henderson,\n\nI am requesting approval to subscribe to TicketFlow Pro for our customer support department. Currently, our three support agents manually copy and assign over 200 incoming customer emails each day, resulting in average response delays of four hours.\n\nThe annual subscription is $1,200 for our entire team. TicketFlow automatically categorizes incoming tickets using machine learning and routes them to the right agent instantly. By cutting ticket assignment time to zero, our agents can resolve customer inquiries 50% faster, eliminating our need to hire an additional temporary staff member this holiday season ($4,000 estimated savings). Please let me know if we can move forward with this purchase.\n\nBest regards,\nRachel Green",
+      "context_text_zh": "尊敬的亨德森先生，\n我申请为客户支持部门订购 TicketFlow Pro 软件。目前，我们的3位支持专员每天手动复制并分派200多封客户邮件，导致平均回复延迟长达4小时。\n全队年度订阅费用为1,200美元。TicketFlow 利用机器学习自动分类工单并即时路由。通过将工单分派时间降为零，专员解决客户问题的速度将提升50%，使我们无须在这个假期招聘额外的临时雇员（预计节约4,000美元成本）。期待您的批准。\n祝好，\n蕾切尔·格林",
+      "prompt": "What is the primary business return Rachel highlights to justify the $1,200 subscription?",
+      "prompt_zh": "蕾切尔强调了哪项主要商业回报，以证明花费1,200美元订阅费是合情合理的？",
+      "options": [
+        {
+          "key": "A",
+          "text": "The software uses machine learning to categorize and route incoming tickets."
+        },
+        {
+          "key": "B",
+          "text": "The team currently handles over 200 emails daily with long 4-hour delays."
+        },
+        {
+          "key": "C",
+          "text": "It resolves tickets 50% faster and saves $4,000 by eliminating the need for temporary seasonal hiring."
+        },
+        {
+          "key": "D",
+          "text": "The annual subscription covers the entire support department for only $1,200."
+        }
+      ],
+      "correct_key": "C",
+      "answer_evidence": "By cutting ticket assignment time to zero, our agents can resolve customer inquiries 50% faster, eliminating our need to hire an additional temporary staff member this holiday season ($4,000 estimated savings).",
+      "distractor_explanations": {
+        "A": "技术特性干扰项：使用机器学习分类是软件的技术功能（Feature），不是商业回报。",
+        "B": "现状痛点干扰项：每天处理200封邮件且延迟4小时是引出问题的现状，非商业回报依据。",
+        "D": "成本价格说明项：只是说明费用金额，没有说明投资回报理由。"
+      },
+      "tiered_hints": [
+        {
+          "tier": 1,
+          "type": "clue",
+          "content": "寻找能够证明1,200美元花得超值的量化收益（节省了什么开支）。"
+        },
+        {
+          "tier": 2,
+          "type": "direction",
+          "content": "对比处理速度提升与避免临时雇员成本的具体数字（50% faster, $4,000 estimated savings）。"
+        },
+        {
+          "tier": 3,
+          "type": "full_answer",
+          "content": "文本明确指出提速50%并节省4,000美元招聘费，答案为 C。"
+        }
+      ],
+      "student_feedback": "太精彩了！你已经精准掌握了职场商务公文中提炼‘投资回报（ROI）’与商业说服逻辑的高阶思维能力！"
+    }
+  }
+]

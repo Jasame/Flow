@@ -1,0 +1,518 @@
+[
+  {
+    "id": "v5-culture-b2-dragon-dance-permit",
+    "title": "一条差点没能起舞的龙",
+    "title_en": "The Dragon Dance That Almost Didn't Happen",
+    "summary_zh": "一群海外留学生想在小镇广场为春节舞龙，最难的却不是舞步，而是层层审批。读完你会看到一次让步怎样换来一场全镇都喜欢的庆祝。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "culture",
+    "genre": "article",
+    "body": "When a group of overseas students at a small university decided to bring a dragon dance to the town square for Spring Festival, they assumed the hard part would be the dancing. They were wrong. The dragon itself, red and gold cloth stitched by hand in a shared kitchen, came together surprisingly quickly. The real challenge was the bureaucracy. To perform in a public space, the group needed a permit, proof of insurance and a written plan showing exactly where the crowd would stand, and every form seemed to lead to another. Things got worse when an unfortunate scheduling error put the dance on the same morning as the weekly farmers' market. For a few days, the chief organizer, a chemistry student named Wei, was ready to give up. Instead, he asked for a meeting with the council and offered a concession: the group would cut the drumming short and finish before the market got busy. Having expected a long argument, he was surprised when the officials agreed within minutes. On the day, the performance was not perfectly authentic, since the drums were borrowed from a school and several dancers had learned the steps from videos, but nobody in the crowd seemed to mind. Wei meant the dance as a tribute to his grandfather, who had led the dragon in his home village for decades. The organizers had also made the event interactive: at the end, local children were invited to duck under the dragon and help carry its tail around the fountain. The council subsequently wrote to say the morning had been beneficial for local shops and to ask whether the group would return next year. If Wei had given up that first week, the town would have missed a celebration worthy of its whole square.",
+    "questions": [
+      {
+        "prompt": "According to the article, what turned out to be the group's biggest problem?",
+        "options": [
+          "Learning the dance steps in time",
+          "Getting through the official paperwork and permission process",
+          "Making the dragon out of cloth",
+          "Persuading local children to join in"
+        ],
+        "answer": 1,
+        "evidence": "The real challenge was the bureaucracy."
+      },
+      {
+        "prompt": "Why does the writer say the performance was \"not perfectly authentic\"?",
+        "options": [
+          "The dragon was much shorter than a traditional one",
+          "The drumming was cut short to please the market traders",
+          "The drums were borrowed and some dancers had learned from videos",
+          "Children carried the dragon instead of trained dancers"
+        ],
+        "answer": 2,
+        "evidence": "since the drums were borrowed from a school and several dancers had learned the steps from videos"
+      }
+    ],
+    "dictation_index": 8,
+    "vocabulary": [
+      {
+        "term": "bureaucracy",
+        "meaning": "官僚程序；繁琐的手续",
+        "example": "Getting a new passport involved more bureaucracy than I expected."
+      },
+      {
+        "term": "permit",
+        "meaning": "许可证",
+        "example": "You need a permit to park on this street during the day."
+      },
+      {
+        "term": "concession",
+        "meaning": "让步",
+        "example": "Both sides had to make a concession before the deal was signed."
+      },
+      {
+        "term": "authentic",
+        "meaning": "正宗的；地道的",
+        "example": "This little shop sells the most authentic noodles in town."
+      },
+      {
+        "term": "interactive",
+        "meaning": "互动的",
+        "example": "The science museum has an interactive room where kids can build their own bridges."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "the hard part",
+        "meaning": "最难的部分",
+        "note": "口语常用：The hard part is getting started. 也常说 the hard part would be..."
+      },
+      {
+        "text": "came together",
+        "meaning": "顺利成形；各部分到位",
+        "note": "指计划、作品、活动逐渐拼成一个整体：The plan finally came together."
+      },
+      {
+        "text": "ready to give up",
+        "meaning": "到了想放弃的地步",
+        "note": "be ready to do 在这里表示“已经快要……了”，常用来表达沮丧"
+      },
+      {
+        "text": "asked for a meeting",
+        "meaning": "要求当面谈一谈",
+        "note": "主动约谈、比较正式：ask for a meeting with your manager"
+      },
+      {
+        "text": "within minutes",
+        "meaning": "几分钟之内",
+        "note": "强调快得出乎意料：The tickets sold out within minutes."
+      },
+      {
+        "text": "seemed to mind",
+        "meaning": "似乎（不）介意",
+        "note": "mind 多用于否定或疑问句：Nobody seemed to mind the rain."
+      }
+    ],
+    "grammar": [
+      "nonfinite-participle",
+      "tense-perfect",
+      "subjunctive-past"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-participle",
+        "quote": "Having expected a long argument, he was surprised when the officials agreed within minutes",
+        "explanation": "Having expected 是完成式现在分词，表示“预料”发生在“惊讶”之前，同时交代原因。分词的逻辑主语必须和主句主语 he 一致。"
+      },
+      {
+        "node": "tense-perfect",
+        "quote": "who had led the dragon in his home village for decades",
+        "explanation": "过去完成时 had led 配合时间线索 for decades，说明在故事发生之前，爷爷已经在村里领舞几十年了。"
+      },
+      {
+        "node": "subjunctive-past",
+        "quote": "If Wei had given up that first week, the town would have missed a celebration worthy of its whole square",
+        "explanation": "与过去事实相反的虚拟：if 从句用 had done，主句用 would have done。事实是 Wei 没有放弃，小镇也没有错过这场庆祝。"
+      }
+    ],
+    "speaking": "假设你要在学校或小区组织一个传统节日活动。用 1 分钟说说可能会遇到哪些手续或阻力，以及你愿意做出什么让步来换取同意。",
+    "writing": "写 150–180 词，记录一次你参与组织的活动：遇到了什么麻烦、谁做了让步、结果如何。用上一个 Having done... 分词句和一个 If I had..., I would have... 虚拟句。",
+    "task": {
+      "prompt": "仿照这句，用 ...assumed the hard part would be... They were wrong. 写一件你把难点猜错了的事。",
+      "model": "they assumed the hard part would be the dancing. They were wrong."
+    },
+    "tags": [
+      "传统节日",
+      "海外留学",
+      "社区活动"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-b2-manuscript-in-a-box",
+    "title": "旧货箱底的一叠手稿",
+    "title_en": "The Manuscript at the Bottom of the Box",
+    "summary_zh": "作者在集市上买了一箱旧货，箱底竟是一位老人亲手抄写的民间故事手稿，封底还夹着一张纸条。读完你会知道这些故事为什么差点消失，又是怎样被找回来的。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "culture",
+    "genre": "story",
+    "body": "I only bought the box because it was cheap and I liked the old biscuit tin on top. Most of what was inside turned out to be junk: odd buttons, a broken watch, a stack of blank postcards. At the bottom, however, lay a thick bundle of paper tied with string, the knot so tight that I had to cut it with scissors. It was a handwritten manuscript of dozens of folk tales, copied out in careful blue ink, each ending with a line about the lesson it was meant to teach. Some of the morality felt old-fashioned, but many of the stories were funny, and a few were moving. Under closer scrutiny, I noticed that the handwriting changed as the pages went on: the early letters were stiff and uneven, the later ones relaxed and confident. Then I found a note slipped inside the back cover, as if the writer had wanted to conceal it. \"I learned to write so that I could keep these,\" it said. \"My mother could not, and her stories nearly disappeared with her.\" The author, it seemed, had joined an adult literacy class late in life and used the tales as her practice. I decided to type the whole thing up, staying as faithful as I could to her spelling and the odd little drawings in the margins. Subsequently, a notice I put up at the market led me to her granddaughter, who had no idea the manuscript existed. When we met, she read the note twice and laughed, saying her grandmother had always claimed she couldn't spell. I don't believe in destiny, exactly, but if I hadn't stopped for that biscuit tin, those stories would still be sitting in a box, waiting for someone curious enough to open it.",
+    "questions": [
+      {
+        "prompt": "What does the change in the handwriting most likely show?",
+        "options": [
+          "Several different people wrote the manuscript",
+          "Someone later corrected the early pages",
+          "The author became more confident at writing as she went on",
+          "The author wrote the later stories in a hurry"
+        ],
+        "answer": 2,
+        "evidence": "the early letters were stiff and uneven, the later ones relaxed and confident"
+      },
+      {
+        "prompt": "According to her note, why did the author learn to write?",
+        "options": [
+          "To keep stories that her mother had not been able to write down",
+          "To teach her granddaughter to read",
+          "To sell her stories at the market",
+          "To pass the final test of her literacy class"
+        ],
+        "answer": 0,
+        "evidence": "I learned to write so that I could keep these"
+      }
+    ],
+    "dictation_index": 6,
+    "vocabulary": [
+      {
+        "term": "manuscript",
+        "meaning": "手稿；原稿",
+        "example": "The museum keeps the writer's original manuscript in a glass case."
+      },
+      {
+        "term": "scrutiny",
+        "meaning": "仔细审视；详细检查",
+        "example": "Every detail of the plan came under scrutiny at the meeting."
+      },
+      {
+        "term": "conceal",
+        "meaning": "隐藏；掩饰",
+        "example": "She tried to conceal her surprise, but her face gave her away."
+      },
+      {
+        "term": "literacy",
+        "meaning": "读写能力",
+        "example": "The library runs free literacy classes for adults on Tuesday evenings."
+      },
+      {
+        "term": "faithful",
+        "meaning": "忠实于原样的",
+        "example": "The film is faithful to the novel, right down to the last scene."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "turned out to be",
+        "meaning": "结果是；原来是",
+        "note": "表示事后才发现的情况：The quiet new neighbour turned out to be a great cook."
+      },
+      {
+        "text": "copied out",
+        "meaning": "（完整地）抄写下来",
+        "note": "copy out 强调一字一句抄一遍：copy out the poem by hand"
+      },
+      {
+        "text": "late in life",
+        "meaning": "年纪很大时；晚年才",
+        "note": "常和学习、开始做新事连用：She took up painting late in life."
+      },
+      {
+        "text": "type the whole thing up",
+        "meaning": "把整份东西打成电子版",
+        "note": "type up 指把手写稿录入电脑；the whole thing 是口语里的“整份、整件事”"
+      },
+      {
+        "text": "had no idea",
+        "meaning": "完全不知道",
+        "note": "比 didn't know 更口语、更强调：I had no idea you could sing!"
+      },
+      {
+        "text": "curious enough to",
+        "meaning": "好奇到愿意去……",
+        "note": "形容词 + enough to do：brave enough to ask, kind enough to help"
+      }
+    ],
+    "grammar": [
+      "subjunctive-mixed",
+      "nonfinite-participle",
+      "clause-noun"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-mixed",
+        "quote": "if I hadn't stopped for that biscuit tin, those stories would still be sitting in a box",
+        "explanation": "错综时间条件：条件指过去（hadn't stopped，当时没停下），结果指现在（would still be sitting，现在还躺在箱子里）。前后时间不同，时态也就不同。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "Then I found a note slipped inside the back cover",
+        "explanation": "过去分词短语 slipped inside the back cover 作后置定语修饰 note，表示“被塞进去的”，相当于 a note that had been slipped inside..."
+      },
+      {
+        "node": "clause-noun",
+        "quote": "I noticed that the handwriting changed as the pages went on",
+        "explanation": "that 引导宾语从句，作 noticed 的宾语；从句里又套了一个 as 状语从句，表示“随着……”。"
+      }
+    ],
+    "speaking": "你有没有在旧物里发现过意外的东西（一封信、一张照片、一本旧书）？用 1 分钟讲讲你发现了什么、当时的感受，以及后来怎么处理它。",
+    "writing": "写 150–180 词的小故事：你在旧物中发现了一件有故事的东西。写出发现的过程、一个细节线索和结尾的感想，用上一个 if I hadn't..., ... would still... 的错综条件句。",
+    "task": {
+      "prompt": "仿照这句，用 I don't believe in..., exactly, but if I hadn't..., ... would still... 写一个改变了你现在生活的小偶然。",
+      "model": "I don't believe in destiny, exactly, but if I hadn't stopped for that biscuit tin, those stories would still be sitting in a box"
+    },
+    "tags": [
+      "民间故事",
+      "手稿",
+      "家族记忆"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-b2-tribute-band-night",
+    "title": "致敬乐队，值得一看吗",
+    "title_en": "Is a Tribute Band Worth a Night Out?",
+    "summary_zh": "Sam 想拉 Lin 去看一支致敬乐队的演出，Lin 却觉得花钱看别人“扮演”乐队很奇怪。读完你会学到一组日常说服、吐槽和开玩笑的口语表达。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "culture",
+    "genre": "dialogue",
+    "body": "Lin: So let me get this straight: you want me to pay to watch four strangers pretend to be a band that split up before we were born? Sam: When you put it like that, it sounds terrible, but the original band is never getting back together, so a tribute act is the only viable way to hear those songs live. Lin: Or I could just play the album at home for free. Sam: Sure, but at home you don't get a whole room singing the chorus too fast, and that's half the fun. Lin: Fine, but it's not exactly authentic, is it? Sam: Depends what you mean by authentic, since the songs and the sweat are real enough. Honestly, they're scarily faithful to the old recordings, and the guitarist even copies the bit where the original player hits a wrong note in the second verse. Lin: That's either brilliant or a bit sad. Sam: It's both, which is exactly why it works. The singer keeps up a running commentary between songs too, pretending it's still the eighties and complaining about the price of petrol. Lin: Isn't that slightly inappropriate, making fun of the real guy? Sam: Not at all, it's affectionate, and the organizer told me some of the original fans travel for hours to every show. Lin: If they're that good, they sound worthy of a bigger stage than a pub. Sam: Probably, but the pub is part of the charm, and the only unfortunate thing is the menu, which is soda and junk food, so eat first. Lin: Okay, I'll come, but if I end up enjoying it, I'm blaming you. Sam: Deal, but I bet by the third song the nostalgia will creep up on you, even for a decade you never lived through.",
+    "questions": [
+      {
+        "prompt": "Why does Sam think the tribute band is worth seeing?",
+        "options": [
+          "It is cheaper than buying the original album",
+          "The tribute band plays better than the original band did",
+          "One of its members used to play in the original band",
+          "It is the only realistic way to hear the songs performed live"
+        ],
+        "answer": 3,
+        "evidence": "a tribute act is the only viable way to hear those songs live"
+      },
+      {
+        "prompt": "When Sam says the band is \"scarily faithful to the old recordings\", what does he mean?",
+        "options": [
+          "They are nervous about changing the songs",
+          "They copy the recordings so closely that it is almost surprising",
+          "They play the songs much louder than on the albums",
+          "They only perform songs that were never recorded"
+        ],
+        "answer": 1,
+        "evidence": "the guitarist even copies the bit where the original player hits a wrong note"
+      }
+    ],
+    "dictation_index": 9,
+    "vocabulary": [
+      {
+        "term": "tribute",
+        "meaning": "致敬",
+        "example": "The town held a small concert as a tribute to its oldest musician."
+      },
+      {
+        "term": "viable",
+        "meaning": "可行的",
+        "example": "Working from home is a viable option for many designers."
+      },
+      {
+        "term": "commentary",
+        "meaning": "解说；评论",
+        "example": "The match was shown with commentary in three languages."
+      },
+      {
+        "term": "inappropriate",
+        "meaning": "不恰当的；不合适的",
+        "example": "Shorts would be inappropriate for a job interview."
+      },
+      {
+        "term": "nostalgia",
+        "meaning": "怀旧之情",
+        "example": "Old cartoon theme songs always fill me with nostalgia."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "let me get this straight",
+        "meaning": "我先确认一下，我没理解错吧",
+        "note": "听到意外或离谱的说法时用，常带一点怀疑或调侃"
+      },
+      {
+        "text": "When you put it like that",
+        "meaning": "你这么一说……",
+        "note": "承认对方的说法让事情听起来不一样，可以是认同，也可以是自嘲"
+      },
+      {
+        "text": "getting back together",
+        "meaning": "重组；复合",
+        "note": "乐队重组、情侣复合都能用：Are they getting back together?"
+      },
+      {
+        "text": "half the fun",
+        "meaning": "一半的乐趣；乐趣所在",
+        "note": "that's half the fun 表示“这正是好玩的地方”"
+      },
+      {
+        "text": "running commentary",
+        "meaning": "不停的现场解说；边看边说",
+        "note": "keep up a running commentary 一直说个不停，也可以略带调侃"
+      },
+      {
+        "text": "creep up on you",
+        "meaning": "不知不觉涌上来",
+        "note": "情绪、困意、年龄等悄悄靠近：Tiredness can creep up on you."
+      }
+    ],
+    "grammar": [
+      "clause-relative",
+      "nonfinite-participle",
+      "conditional-real"
+    ],
+    "knowledge": [
+      {
+        "node": "clause-relative",
+        "quote": "the bit where the original player hits a wrong note in the second verse",
+        "explanation": "where 引导定语从句修饰 the bit（那一段）。where 不只用于地点，也可以指歌曲、电影里的“某一段、某个时刻”。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "pretending it's still the eighties and complaining about the price of petrol",
+        "explanation": "两个现在分词 pretending 和 complaining 作伴随状语，说明主唱在解说时同时在做什么，逻辑主语都是 the singer。"
+      },
+      {
+        "node": "conditional-real",
+        "quote": "if I end up enjoying it, I'm blaming you",
+        "explanation": "真实条件句：if 从句用一般现在时；主句用现在进行时 I'm blaming 表示已经决定的将来，口语里很自然，带玩笑语气。"
+      }
+    ],
+    "speaking": "你愿意花钱去看翻唱乐队、复刻演出这类“二手”的东西吗？用 1 分钟说说你的看法，并用 When you put it like that, ... 回应一个反对意见。",
+    "writing": "写一段 120–150 词的对话：你想说服朋友和你去一个他/她不感兴趣的活动。至少用上 let me get this straight、half the fun 和一个 if 条件句。",
+    "task": {
+      "prompt": "仿照这句，用 When you put it like that, it sounds..., but... 为一件听起来有点傻的事辩护。",
+      "model": "When you put it like that, it sounds terrible, but the original band is never getting back together"
+    },
+    "tags": [
+      "音乐",
+      "现场演出",
+      "日常对话"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-culture-b2-first-red-knot",
+    "title": "从零学编第一个中国结",
+    "title_en": "How to Tie Your First Decorative Knot",
+    "summary_zh": "一份写给成年初学者的传统编结指南：先把一个基础结学好，接受一开始的不完美，再了解红绳背后的寓意。读完你会知道怎样开始学一门慢手艺。",
+    "level": "B2",
+    "cefr": "B2",
+    "theme": "culture",
+    "genre": "guide",
+    "body": "If you have ever admired a red decorative knot hanging in a doorway and thought you could never make one, this guide is for you. Traditional knotting looks complicated, but most designs are built from a handful of basic knots repeated and combined, so the first step is to learn one simple knot properly rather than ten badly. Start with a long, smooth cord and an online tutorial that offers a clear breakdown of each step; interactive videos that let you pause and replay a single loop are especially useful. Expect your first attempts to look lopsided. A little variance between loops is normal at the beginning, and your fingers will learn to keep the tension even long before you can explain how. Mistakes tend to creep in when you are tired, so stop after half an hour instead of forcing it. When you finish a knot, don't try to conceal the loose ends with glue; trim them neatly and tuck them in, as experienced makers do. It also helps to know what you are making. In many families, a red knot is hung for good luck, and the single unbroken cord is often said to embody destiny, the old idea that people who are meant to meet are tied together by an invisible thread. Knowing that, many learners find the practice strangely calming, and some say it is beneficial on stressful evenings, partly because it is impossible to scroll on your phone while both hands are busy. Above all, treat yourself with the same compassion you would show a friend who was just starting out. Machines can manufacture perfect knots by the thousand, but nobody hangs a machine's first attempt on the wall with pride.",
+    "questions": [
+      {
+        "prompt": "What is the guide's main advice for beginners?",
+        "options": [
+          "Learn many different knots quickly to find a favourite",
+          "Practise for several hours at a time to build skill",
+          "Master one basic knot carefully and be patient with yourself",
+          "Study machine-made knots to see how they are built"
+        ],
+        "answer": 2,
+        "evidence": "the first step is to learn one simple knot properly rather than ten badly"
+      },
+      {
+        "prompt": "What does the guide say about small differences between loops at first?",
+        "options": [
+          "They are normal at the beginning",
+          "They should be hidden with glue",
+          "They mean the cord is too smooth",
+          "They show that you need a different tutorial"
+        ],
+        "answer": 0,
+        "evidence": "A little variance between loops is normal at the beginning"
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {
+        "term": "breakdown",
+        "meaning": "分解说明；细分",
+        "example": "The teacher gave us a step-by-step breakdown of the dance."
+      },
+      {
+        "term": "variance",
+        "meaning": "差异；不一致",
+        "example": "There is some variance in how people pronounce this word."
+      },
+      {
+        "term": "lopsided",
+        "meaning": "歪的；一边高一边低的",
+        "example": "My first cake came out lopsided, but it tasted fine."
+      },
+      {
+        "term": "embody",
+        "meaning": "体现；象征",
+        "example": "For many people, the old bridge seems to embody the spirit of the town."
+      },
+      {
+        "term": "compassion",
+        "meaning": "同情心；体谅",
+        "example": "Show yourself some compassion when you make a mistake."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "a handful of",
+        "meaning": "少数几个",
+        "note": "强调数量不多：Only a handful of people turned up."
+      },
+      {
+        "text": "creep in",
+        "meaning": "（错误、问题）悄悄出现",
+        "note": "常说 mistakes / doubts creep in，强调不知不觉"
+      },
+      {
+        "text": "instead of forcing it",
+        "meaning": "而不是硬撑",
+        "note": "force it 指勉强去做；口语 Don't force it. 意思是“别硬来”"
+      },
+      {
+        "text": "for good luck",
+        "meaning": "图个吉利",
+        "note": "讲习俗时常用：Many people eat fish at New Year for good luck."
+      },
+      {
+        "text": "Above all",
+        "meaning": "最重要的是",
+        "note": "引出最核心的一条建议，常放在结尾"
+      },
+      {
+        "text": "with pride",
+        "meaning": "自豪地",
+        "note": "常见搭配：hang / show / wear sth with pride"
+      }
+    ],
+    "grammar": [
+      "conditional-real",
+      "clause-relative",
+      "nonfinite-participle"
+    ],
+    "knowledge": [
+      {
+        "node": "conditional-real",
+        "quote": "If you have ever admired a red decorative knot hanging in a doorway and thought you could never make one, this guide is for you",
+        "explanation": "真实条件句：if 从句用现在完成时 have ever admired 表示“曾经有过这种经历”，主句用一般现在时。这是指南、广告常见的开头。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "an online tutorial that offers a clear breakdown of each step",
+        "explanation": "that 引导定语从句修饰 tutorial，说明该选什么样的教程；从句谓语 offers 与先行词 tutorial 保持单数一致。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "Knowing that, many learners find the practice strangely calming",
+        "explanation": "现在分词短语 Knowing that 作状语，表示“知道了这一点之后”，带原因意味；它的逻辑主语就是主句的 many learners。"
+      }
+    ],
+    "speaking": "你学过什么需要慢慢练的手艺（编织、书法、乐器、做饭都可以）？用 1 分钟说说一开始犯过哪些错，并给新手一条建议。",
+    "writing": "写一篇 150–180 词的小指南，教初学者开始一门手艺或爱好：给出 3 条具体建议，用上 Above all 和一个 If you have ever... 开头的句子。",
+    "task": {
+      "prompt": "仿照这句，用 Machines can..., but nobody... 写一句话，说明亲手做的东西为什么特别。",
+      "model": "Machines can manufacture perfect knots by the thousand, but nobody hangs a machine's first attempt on the wall with pride."
+    },
+    "tags": [
+      "传统手工",
+      "中国结",
+      "学习方法"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

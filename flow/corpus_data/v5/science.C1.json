@@ -1,0 +1,248 @@
+[
+  {
+    "id": "v5-science-c1-annoying-sounds",
+    "title": "为什么有些声音特别烦人",
+    "title_en": "What Makes a Sound Annoying?",
+    "summary_zh": "指甲刮黑板为什么让人浑身难受？答案一半在耳朵，一半在大脑。读完你会了解音高、“粗糙度”和“可控感”如何共同决定一个声音有多烦人。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "science",
+    "genre": "explainer",
+    "body": "Few sounds unite people quite like fingernails scraped down a blackboard: almost everyone winces, and almost no one can say why. Loudness alone cannot be the explanation, since a passing lorry is far louder and rarely makes anyone shudder. What seems to matter more is where a sound sits in pitch and how it behaves over time. Human hearing is not equally sensitive across its range; it is sharpest in a band of middle-to-high pitches, the same band that carries much of the detail of speech and the urgency of a crying baby. The shape of our ear canals happens to amplify this range further. A screech that packs its energy into that band therefore reaches us with unusual force, as though it were being delivered straight to the nervous system. Then there is a quality that acousticians call roughness: a rapid flickering in loudness, too fast to hear as separate beats but too slow to blur into a smooth tone. Screams have it, and so do most alarms, which is hardly a coincidence: whether by design or by trial and error, sounds meant to be impossible to ignore end up sharing the features of a scream. Yet physics explains only part of the story. Our reaction depends heavily on context, and above all on control. Music you choose to play at full volume is a pleasure, whereas a neighbour's drill at the same level, starting and stopping without warning, can feel like a personal insult. Unpredictable noise keeps the brain on alert, because it cannot settle into ignoring what it cannot anticipate. Half a phone conversation overheard on a train can be oddly harder to tune out than a whole one, perhaps because the mind keeps trying to supply the missing half. Seen this way, annoyance is not a malfunction at all. It is an old warning system doing exactly what it was built to do, except that it now fires at squeaky chairs and other people's ringtones.",
+    "questions": [
+      {
+        "prompt": "Which statement best summarises the writer's explanation of annoying sounds?",
+        "options": [
+          "Sounds annoy us mainly because they are too loud",
+          "Annoyance depends both on a sound's physical features and on our sense of control over it",
+          "Only sounds made by machines are truly annoying",
+          "Annoying sounds are a purely modern problem with no link to our past"
+        ],
+        "answer": 1,
+        "evidence": "Yet physics explains only part of the story."
+      },
+      {
+        "prompt": "What does the writer mean by \"roughness\"?",
+        "options": [
+          "A sound that is very low and deep",
+          "A sound that has been recorded badly",
+          "A fast flickering in loudness that falls between separate beats and a smooth tone",
+          "A sound that slowly grows louder over time"
+        ],
+        "answer": 2,
+        "evidence": "a rapid flickering in loudness, too fast to hear as separate beats but too slow to blur into a smooth tone"
+      }
+    ],
+    "dictation_index": 2,
+    "vocabulary": [
+      {"term": "winces", "meaning": "（因疼痛、难受或尴尬）皱眉，表情一缩", "example": "He winces every time he hears his own voice on a recording."},
+      {"term": "amplify", "meaning": "放大；增强", "example": "A good microphone can amplify even a very quiet voice."},
+      {"term": "coincidence", "meaning": "巧合", "example": "It was pure coincidence that we booked the same hotel."},
+      {"term": "anticipate", "meaning": "预料；预见", "example": "Good teachers anticipate the questions their students will ask."},
+      {"term": "overheard", "meaning": "无意中听到", "example": "I overheard two passengers arguing about the best way to the airport."}
+    ],
+    "expressions": [
+      {"text": "explains only part of the story", "meaning": "只解释了一部分原因", "note": "承认某个解释有道理但不完整，论证时常用来转折：Money explains only part of the story."},
+      {"text": "hardly a coincidence", "meaning": "绝非巧合", "note": "hardly 表示“几乎不”，语气克制却有力，暗示背后有原因。"},
+      {"text": "by trial and error", "meaning": "通过反复试错", "note": "强调不是靠理论，而是一次次尝试：I learned to cook by trial and error."},
+      {"text": "above all", "meaning": "尤其是；最重要的是", "note": "在列举中突出最关键的一项，书面口语都可用。"},
+      {"text": "without warning", "meaning": "毫无预兆地", "note": "常修饰突然发生的事：The lights went out without warning."},
+      {"text": "tune out", "meaning": "屏蔽；不去理会（声音、信息）", "note": "口语常用：I've learned to tune out the traffic noise."}
+    ],
+    "grammar": ["subjunctive-now", "agreement-head", "nonfinite-participle"],
+    "knowledge": [
+      {"node": "subjunctive-now", "quote": "as though it were being delivered straight to the nervous system", "explanation": "as though 后用虚拟形式 were（这里是被动进行 were being delivered），表示“仿佛……”，描述一种并非事实、但感受上如此的情况。"},
+      {"node": "agreement-head", "quote": "The shape of our ear canals happens to amplify this range further.", "explanation": "主语中心词是 shape（单数），of our ear canals 只是修饰语，所以谓语用 happens，而不是被就近的 canals 带成 happen。"},
+      {"node": "nonfinite-participle", "quote": "Half a phone conversation overheard on a train can be oddly harder to tune out than a whole one", "explanation": "overheard on a train 是过去分词短语作后置定语，修饰 conversation，表示被动“被无意听到的”，比用 that is overheard 的从句更紧凑。"}
+    ],
+    "speaking": "用 1 分钟说说你最受不了的一种声音，并用文中的两个角度（声音本身的特点、你能否控制它）分析它为什么让你烦。用上 above all 和 without warning。",
+    "writing": "用 150–200 词分析一个生活中“音量不大却很烦人”的声音，至少用一个 as if/as though + were 的句子，并用 … explains only part of the story 引出转折。",
+    "task": {"prompt": "仿照这句，用 as though + 主语 + were…，描述一种让你感觉“仿佛……”的体验。", "model": "as though it were being delivered straight to the nervous system"},
+    "tags": ["声音科学", "心理学"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-science-c1-habits-willpower",
+    "title": "别再怪意志力了",
+    "title_en": "Stop Blaming Your Willpower",
+    "summary_zh": "新年计划总是坚持不了几周，真是因为意志力太差吗？这篇观点文认为，习惯是被环境里的“线索”触发的。读完你会学到一种更聪明、也更善待自己的习惯设计思路。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "science",
+    "genre": "opinion",
+    "body": "Every new year, people everywhere promise themselves that this will be the year they finally go running, read more or stop scrolling at midnight. Each of these promises starts with real enthusiasm, and within weeks many of them have quietly faded. The usual verdict is harsh: we simply lacked willpower. I think that verdict is not only unkind but largely mistaken. Habits, as psychologists describe them, are not really decisions at all. They are responses the brain has learned to link with particular cues: a time of day, a place, a mood, the sight of a phone on the bedside table. Each time a behaviour is repeated in the same setting and followed by some small reward, the link grows a little stronger, until the cue alone is enough to set the routine in motion with hardly any thought. This is precisely what makes habits useful, since they free the mind for other things. But it also means that fighting an established habit with willpower is like holding a door shut against a steady wind. You may win for a while, but unless something changes, you will eventually tire. A smarter strategy is to change the wind. If you want to read more, leave a book on your pillow and charge your phone in another room. If you want to practise the guitar, keep it on a stand rather than zipped inside its case. None of this is glamorous, and it will not work for everyone in every situation; some habits are tangled up with stress or deeper problems in ways that no rearranged shelf can fix. Still, I suspect we would be kinder to ourselves, and more successful, if we treated our habits less as tests of character and more as problems of design. The goal is not to become a person of iron will. It is to build a life in which the right choice is also the easy one.",
+    "questions": [
+      {
+        "prompt": "What is the writer's main argument?",
+        "options": [
+          "People fail to keep good habits because they are lazy",
+          "Changing your surroundings works better than relying on willpower alone",
+          "Habits are always harmful and should be avoided",
+          "Willpower can be trained like a muscle until it never fails"
+        ],
+        "answer": 1,
+        "evidence": "A smarter strategy is to change the wind."
+      },
+      {
+        "prompt": "In the passage, what does \"change the wind\" refer to?",
+        "options": [
+          "Moving to a place with a better climate",
+          "Trying even harder to resist a habit",
+          "Changing the cues and setting that trigger a habit",
+          "Opening a window to stay alert while studying"
+        ],
+        "answer": 2,
+        "evidence": "If you want to read more, leave a book on your pillow and charge your phone in another room."
+      }
+    ],
+    "dictation_index": 3,
+    "vocabulary": [
+      {"term": "verdict", "meaning": "结论；评判", "example": "The final verdict from my friends was that the film was far too long."},
+      {"term": "cues", "meaning": "提示；触发信号", "example": "Actors listen carefully for their cues before walking on stage."},
+      {"term": "established", "meaning": "已形成的；根深蒂固的", "example": "It is hard to change an established routine at work."},
+      {"term": "glamorous", "meaning": "光鲜亮丽的；有魅力的", "example": "Working in film sounds glamorous, but the hours are long."}
+    ],
+    "expressions": [
+      {"text": "not only unkind but largely mistaken", "meaning": "不仅刻薄，而且基本上是错的", "note": "not only A but B 层层递进地反驳一个观点，写评论时很有力。"},
+      {"text": "set the routine in motion", "meaning": "启动那套固定动作", "note": "set something in motion＝使某事开始运转：The phone call set a whole chain of events in motion."},
+      {"text": "free the mind for", "meaning": "让头脑腾出空来做……", "note": "free something for + 名词：Automating small tasks frees your time for creative work."},
+      {"text": "tangled up with", "meaning": "和……纠缠在一起", "note": "形容问题错综复杂、难以分开：His career problems are tangled up with his family life."},
+      {"text": "tests of character", "meaning": "品格的考验", "note": "a test of character 常用于困难处境，这里作者反对把习惯当成品格考验。"},
+      {"text": "a person of iron will", "meaning": "意志如钢的人", "note": "of + 名词作定语描述品质：a woman of great courage, a man of few words。"}
+    ],
+    "grammar": ["conditional-unless", "agreement-each", "subjunctive-now"],
+    "knowledge": [
+      {"node": "conditional-unless", "quote": "unless something changes, you will eventually tire", "explanation": "unless ＝ if … not，从句用一般现在时表示将来，主句用 will。在论证中用它点出“不改变条件就会失败”的必然后果。"},
+      {"node": "agreement-each", "quote": "Each of these promises starts with real enthusiasm", "explanation": "Each of + 复数名词作主语时，中心词是 each（单数），谓语用 starts。不要被紧挨着的复数 promises 误导。"},
+      {"node": "subjunctive-now", "quote": "I suspect we would be kinder to ourselves, and more successful, if we treated our habits less as tests of character and more as problems of design", "explanation": "与现在事实相反的虚拟：if 从句用过去式 treated，主句 would be，表示“如果我们（现在其实没有）换种方式看待习惯，就会……”。前面加 I suspect，让观点更委婉。"}
+    ],
+    "speaking": "用 1 分钟分享一个你想养成的习惯，并说出你打算怎样“改变风向”，也就是改变环境里的线索。用上 unless 和 a person of iron will。",
+    "writing": "用 150–200 词写一篇观点短文：坚持一个好习惯，更靠意志力还是靠环境设计？先承认对方观点的合理之处，再转折提出你的看法，至少用一次 unless。",
+    "task": {"prompt": "仿照这句，用 I suspect we would…, if we… 委婉地提出一个你自己的观点。", "model": "I suspect we would be kinder to ourselves, and more successful, if we treated our habits less as tests of character and more as problems of design"},
+    "tags": ["心理学", "学习科学"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-science-c1-embarrassing-memories",
+    "title": "为什么尴尬的事总忘不掉",
+    "title_en": "Why Embarrassing Moments Replay in the Middle of the Night",
+    "summary_zh": "凌晨三点，脑子突然重播多年前的尴尬瞬间？读完你会明白情绪如何让记忆格外牢固，以及“聚光灯效应”为什么说明别人其实早就忘了。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "science",
+    "genre": "explainer",
+    "body": "It is three in the morning, and your brain has chosen this moment to replay the time you waved back at someone who was actually waving at the person behind you. Years have passed, the other person has almost certainly forgotten, and yet the memory arrives in vivid detail, complete with the heat rising in your cheeks. Why does the mind keep these moments so faithfully while letting whole ordinary weeks slip away? Part of the answer is that emotion works like a highlighter. When an experience stirs us up, whether through fear, delight or shame, the brain treats it as significant, and the memory is stored more firmly as a result. Embarrassment is a particularly social emotion: it flares up when we sense that others might think less of us. For a species that has always depended on belonging to a group, slipping up in front of others was never a trivial matter, so it is not surprising that our brains file such moments under lessons worth keeping. The trouble is that the lesson is rarely updated. We keep the vivid record but lose the context: that people were distracted, that they laughed with us rather than at us, that they moved on within minutes. Psychologists describe a related tendency known as the spotlight effect, our habit of overestimating how much others notice our appearance and our mistakes. We picture an audience studying our every move when, in reality, most people are too busy worrying about their own. Had we known this at the time, we might have laughed it off; had we laughed it off, we would probably not still be wincing about it now. There is some comfort in that. The midnight replay is not proof that you are uniquely awkward. It is evidence of a brain that cares, perhaps a little too much, about how you fit in with other people.",
+    "questions": [
+      {
+        "prompt": "According to the passage, why do embarrassing memories stay so clear?",
+        "options": [
+          "Because embarrassing events happen more often than ordinary ones",
+          "Because strong social emotions make the brain store them more firmly",
+          "Because other people keep reminding us of them",
+          "Because the brain replays every memory at night"
+        ],
+        "answer": 1,
+        "evidence": "the brain treats it as significant, and the memory is stored more firmly as a result"
+      },
+      {
+        "prompt": "What does the \"spotlight effect\" suggest about our embarrassing moments?",
+        "options": [
+          "Other people remember them more clearly than we do",
+          "They are usually caused by bright lights and large crowds",
+          "We tend to think others noticed them far more than they really did",
+          "They only happen when we are performing in public"
+        ],
+        "answer": 2,
+        "evidence": "our habit of overestimating how much others notice our appearance and our mistakes"
+      }
+    ],
+    "dictation_index": 3,
+    "vocabulary": [
+      {"term": "faithfully", "meaning": "忠实地；准确无误地", "example": "The film follows the original novel faithfully."},
+      {"term": "trivial", "meaning": "微不足道的；琐碎的", "example": "Let's not waste the meeting arguing about trivial details."},
+      {"term": "tendency", "meaning": "倾向；习性", "example": "I have a tendency to talk too fast when I'm nervous."},
+      {"term": "awkward", "meaning": "尴尬的；笨拙的", "example": "There was an awkward silence after his joke."}
+    ],
+    "expressions": [
+      {"text": "slip away", "meaning": "（时间、机会）悄悄溜走", "note": "常与 let 连用：Don't let this chance slip away."},
+      {"text": "think less of us", "meaning": "看轻我们；对我们评价降低", "note": "think less of someone，常用于担心别人的看法：I hope you won't think less of me for asking."},
+      {"text": "slipping up", "meaning": "出小差错；失误", "note": "slip up 比 make a mistake 更口语，多指一时疏忽。"},
+      {"text": "laughed with us rather than at us", "meaning": "是和我们一起笑，而不是在嘲笑我们", "note": "laugh with 与 laugh at 的对比很地道，可用来安慰别人。"},
+      {"text": "laughed it off", "meaning": "一笑置之", "note": "laugh something off＝用笑来化解尴尬或批评：She tripped on stage but laughed it off."},
+      {"text": "fit in with", "meaning": "融入；与……合得来", "note": "fit in with + 群体/环境：It took me a while to fit in with my new team."}
+    ],
+    "grammar": ["subjunctive-past", "subjunctive-mixed", "clause-noun"],
+    "knowledge": [
+      {"node": "subjunctive-past", "quote": "Had we known this at the time, we might have laughed it off", "explanation": "省略 if 的倒装虚拟：Had we known ＝ If we had known，主句 might have laughed，表示与过去事实相反（当时并不知道）。倒装让语气更书面、更紧凑。"},
+      {"node": "subjunctive-mixed", "quote": "had we laughed it off, we would probably not still be wincing about it now", "explanation": "错综时间条件：条件指过去（had we laughed it off），结果指现在（would not still be wincing … now）。now 和 still 是看出“现在结果”的线索。"},
+      {"node": "clause-noun", "quote": "The trouble is that the lesson is rarely updated.", "explanation": "that 引导表语从句，说明 trouble 的具体内容。The trouble/problem/point is that… 是提出关键问题的常用句式。"}
+    ],
+    "speaking": "用 1 分钟讲一件你至今想起来还会脸红的小事，再用文中的“聚光灯效应”安慰自己。用上 laughed it off 和 think less of me。",
+    "writing": "用 150–200 词写一段反思：一次尴尬经历让你学到了什么。至少用一个倒装虚拟句 Had I…, I might have…，再用一个错综条件句说明它对现在的影响。",
+    "task": {"prompt": "仿照这句倒装虚拟，用 Had I known…, I might have… 写一句关于你自己过去的话。", "model": "Had we known this at the time, we might have laughed it off"},
+    "tags": ["心理学", "人体奥秘"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-science-c1-plants-gravity",
+    "title": "植物怎么知道哪边是上",
+    "title_en": "How a Bean in a Jar Taught Me Which Way Is Up",
+    "summary_zh": "一盘被猫碰倒的幼苗，让作者在家用玻璃罐和蚕豆做起了实验。读完你会明白植物根尖里的“淀粉颗粒”如何感知重力，让根向下、茎向上。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "science",
+    "genre": "story",
+    "body": "The experiment began, as many good ones do, with an accident. A tray of seedlings on my windowsill had been knocked onto its side, probably by the cat, and by the time I found it the next evening, every stem had curled upwards like a row of question marks. I set the tray upright, felt slightly guilty, and then could not stop wondering how a plant with no eyes, no ears and no brain had known which way was up. So I did what my primary school teacher would have done. I soaked a few broad beans overnight, wedged them between damp kitchen paper and the side of a glass jar, and waited. Within days, each one had sent a pale root downwards and a shoot upwards. Once the roots were about the length of my little finger, I laid the jar on its side. By the following morning, the root tips had bent sharply and were heading down again, while the shoots were curving towards the ceiling. What I was watching, I later learned, is called gravitropism. Tucked inside the tip of each root is a cluster of specialised cells containing tiny grains of starch. Being denser than the fluid around them, these grains settle on whichever side of the cell happens to be lowest, rather like sand in a tilted bottle. Their position tells the plant where down is. The plant responds by shifting a growth hormone towards the lower side, and because this hormone affects roots and shoots in opposite ways, roots curve downwards while stems bend up. Light matters to shoots as well, but roots will turn downwards even in complete darkness. If I had not stumbled on that toppled tray, I would probably still assume that plants simply grow up by default, as though the direction were printed on them. In a sense it is, just in a far cleverer script than I had imagined.",
+    "questions": [
+      {
+        "prompt": "What did the writer's jar experiment show?",
+        "options": [
+          "Beans only grow properly if they are kept in the dark",
+          "Roots and shoots can sense gravity and change direction when turned",
+          "Light is the only thing that tells a plant which way to grow",
+          "Seedlings grow faster when they are lying on their side"
+        ],
+        "answer": 1,
+        "evidence": "the root tips had bent sharply and were heading down again, while the shoots were curving towards the ceiling"
+      },
+      {
+        "prompt": "What role do the grains of starch play?",
+        "options": [
+          "They feed the root so that it can grow longer",
+          "They protect the root tip from damage",
+          "They carry water up to the shoot",
+          "They sink to the lowest side of the cell and show the plant where down is"
+        ],
+        "answer": 3,
+        "evidence": "Their position tells the plant where down is."
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {"term": "seedlings", "meaning": "幼苗", "example": "We planted the tomato seedlings in the garden last weekend."},
+      {"term": "upright", "meaning": "直立的；竖直的", "example": "Please keep the bottle upright so that it doesn't leak."},
+      {"term": "soaked", "meaning": "浸泡", "example": "She soaked the dirty shirt in warm water overnight."},
+      {"term": "denser", "meaning": "密度更大的", "example": "Cold water is denser than warm water, so it tends to sink."},
+      {"term": "hormone", "meaning": "激素", "example": "Ripe fruit gives off a hormone that helps other fruit ripen too."}
+    ],
+    "expressions": [
+      {"text": "as many good ones do", "meaning": "就像许多好（实验/故事）一样", "note": "插入语 as many … do，让叙述带一点幽默和自信：The trip began, as many good ones do, with a wrong turn."},
+      {"text": "could not stop wondering", "meaning": "忍不住一直琢磨", "note": "can't stop doing 表示控制不住地做某事：I couldn't stop thinking about it."},
+      {"text": "which way was up", "meaning": "哪边是上", "note": "know which way is up 也可比喻“清楚基本情况”：After the move, I barely knew which way was up."},
+      {"text": "rather like", "meaning": "有点像；颇像", "note": "比 like 更委婉、更书面，用于打比方：The city at night looks rather like a painting."},
+      {"text": "stumbled on", "meaning": "偶然发现；碰巧遇到", "note": "stumble on/upon + 名词：I stumbled on a great café near my office."},
+      {"text": "by default", "meaning": "默认地；自然而然地", "note": "来自电脑用语，日常也常用：By default, I order the same coffee every day."}
+    ],
+    "grammar": ["tense-perfect", "nonfinite-participle", "subjunctive-mixed"],
+    "knowledge": [
+      {"node": "tense-perfect", "quote": "by the time I found it the next evening, every stem had curled upwards like a row of question marks", "explanation": "by the time + 过去时，主句用过去完成时 had curled，表示在“我发现它”之前，弯曲这件事已经完成了。by the time 是过去完成时最典型的时间线索。"},
+      {"node": "nonfinite-participle", "quote": "Being denser than the fluid around them, these grains settle on whichever side of the cell happens to be lowest", "explanation": "Being denser… 是现在分词短语作原因状语，相当于 Because they are denser…，逻辑主语就是 these grains。"},
+      {"node": "subjunctive-mixed", "quote": "If I had not stumbled on that toppled tray, I would probably still assume that plants simply grow up by default", "explanation": "错综时间条件：if 从句用过去完成时指过去（当时没碰到那盘倒下的苗），主句 would still assume 指现在的状态，表达“要不是当初……我现在还会……”。"}
+    ],
+    "speaking": "用 1 分钟讲讲你小时候做过的一个小实验或小观察（种豆子、养蚕都行），以及你从中发现了什么。用上 stumbled on 和 could not stop wondering。",
+    "writing": "用 150–200 词写一个“意外引发好奇、好奇引出小实验”的故事，至少用一个过去完成时和一个 If I had not…, I would still… 的错综条件句。",
+    "task": {"prompt": "仿照这句错综条件句，写一句“要不是当初偶然……，我现在还会……”。", "model": "If I had not stumbled on that toppled tray, I would probably still assume that plants simply grow up by default"},
+    "tags": ["植物科学", "家庭小实验"],
+    "source": "Flow 编辑部原创"
+  }
+]

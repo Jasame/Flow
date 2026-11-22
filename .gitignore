@@ -27,3 +27,6 @@ adc.json
 *.zip
 
 /dist/
+# Pre-generated narration is uploaded separately (tools/gen_audio.py)
+flow/audio/
+tools/report.json

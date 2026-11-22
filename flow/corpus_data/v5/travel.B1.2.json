@@ -1,0 +1,489 @@
+[
+  {
+    "id": "v5-travel-b1-sleeper-train",
+    "title": "卧铺火车上的一夜",
+    "title_en": "A Night on the Sleeper Train",
+    "summary_zh": "作者本以为会讨厌夜车：上铺窄、梯子陡、一晚上摇摇晃晃。结果车轮声把人摇进梦里，醒来窗外是雾中的湖。读完你会想坐一次卧铺，也能学会用分词把画面写得更生动。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "travel",
+    "genre": "story",
+    "body": "The night train to Morrow left at ten, and I had the top bunk in a tiny cabin for four. My cabin mates were an older couple and a student called Pia, who was already asleep with her headphones on. Climbing the narrow ladder, I hit my head on the ceiling twice. The couple laughed kindly and offered me a biscuit. For the first hour, I lay awake, listening to the wheels and watching dark villages flash past the window. Every so often the train slowed down at a small station, and yellow lights moved across the walls. I had expected to hate it, but the gentle rocking was strangely relaxing. At some point I fell asleep, and when I woke up, the sky was pink and we were passing a lake covered in mist. Pia was already making tea with hot water from a flask she had brought. Drinking it at the window, I felt as if I were in an old film. Now I'm back at my desk, and I wish I had a view like that on my way to work. A plane would have been quicker, but it could never have given me that sunrise.",
+    "questions": [
+      {
+        "prompt": "How does the writer feel about the journey now?",
+        "options": [
+          "Sorry that it took so long",
+          "Happy about it and a little sad it is over",
+          "Annoyed with the other people in the cabin",
+          "Sure that flying would have been better"
+        ],
+        "answer": 1,
+        "evidence": "I wish I had a view like that on my way to work"
+      },
+      {
+        "prompt": "What does \"flash past\" suggest about the villages?",
+        "options": [
+          "They were full of bright lights",
+          "They went by very quickly",
+          "They were close to the station",
+          "They were hard to see in the dark"
+        ],
+        "answer": 1,
+        "evidence": "watching dark villages flash past the window"
+      }
+    ],
+    "dictation_index": 6,
+    "vocabulary": [
+      {
+        "term": "bunk",
+        "meaning": "（火车、宿舍的）铺位",
+        "example": "My little brother always wants the top bunk."
+      },
+      {
+        "term": "cabin",
+        "meaning": "（火车、船上的）小隔间；包厢",
+        "example": "Our cabin on the ship had a small round window."
+      },
+      {
+        "term": "ladder",
+        "meaning": "梯子",
+        "example": "He climbed the ladder to fix the light."
+      },
+      {
+        "term": "mist",
+        "meaning": "薄雾",
+        "example": "The hills were hidden in the morning mist."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "flash past",
+        "meaning": "（景物）一闪而过",
+        "note": "坐车时看窗外的经典说法，也可以说 trees flashed past。"
+      },
+      {
+        "text": "Every so often",
+        "meaning": "时不时；每隔一阵",
+        "note": "比 sometimes 更口语，强调“隔一会儿就有一次”。"
+      },
+      {
+        "text": "I had expected to hate it",
+        "meaning": "我本来以为会讨厌它",
+        "note": "had expected to 表示“原本以为”，后面通常接 but 说结果相反。"
+      },
+      {
+        "text": "strangely relaxing",
+        "meaning": "出奇地让人放松",
+        "note": "strangely + 形容词，表示“没想到会这样”，比如 strangely quiet / strangely beautiful。"
+      },
+      {
+        "text": "At some point",
+        "meaning": "在某个时候；不知什么时候",
+        "note": "说不清具体时间时用，讲故事很自然：At some point I fell asleep."
+      }
+    ],
+    "grammar": [
+      "nonfinite-participle",
+      "subjunctive-now",
+      "clause-relative"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-participle",
+        "quote": "Climbing the narrow ladder, I hit my head on the ceiling twice.",
+        "explanation": "现在分词短语 Climbing ... 放在句首作状语，表示“正在爬梯子时”，主语都是 I。写故事时用它把两个动作连起来，句子更紧凑。"
+      },
+      {
+        "node": "subjunctive-now",
+        "quote": "I wish I had a view like that on my way to work.",
+        "explanation": "I wish + 过去式 had，表示和现在事实相反的愿望：现在上班路上并没有这样的风景。注意不是说过去，而是说“现在的遗憾”。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "a student called Pia, who was already asleep with her headphones on",
+        "explanation": "逗号后的 who 从句给 Pia 补充信息，说明她当时的状态。called Pia 是过去分词作定语，意思是“名叫 Pia 的”。"
+      }
+    ],
+    "speaking": "用 1 分钟讲一次你在火车、汽车或轮船上过夜（或长途坐车）的经历，用上 Every so often 和 I had expected to ..., but ...。",
+    "writing": "用 120–150 词写一段旅途见闻，至少用两个分词短语（如 listening to ...、covered in ...），结尾用 I wish I had ... 说一个愿望。",
+    "task": {
+      "prompt": "仿照这句，用 I wish I had ... 说一件你希望日常生活里也能有的旅行体验。",
+      "model": "I wish I had a view like that on my way to work."
+    },
+    "tags": [
+      "火车旅行",
+      "旅行故事"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-travel-b1-overbooked-flight",
+    "title": "航班超售，要不要让座",
+    "title_en": "Overbooked: Should You Give Up Your Seat?",
+    "summary_zh": "登机口工作人员问 Leo 愿不愿意改乘晚一点的航班。他先问清时间和补偿，再打电话和接机的姐姐商量。一段对话学会怎么询问条件、权衡选择、礼貌答应。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "travel",
+    "genre": "dialogue",
+    "body": "Agent: Excuse me, are you on the flight to Elmsford? It's overbooked today, and we're looking for two passengers to take a later flight. Would you be interested? Leo: Maybe, but it depends on when the next one leaves. Agent: Either the evening flight or the first one tomorrow morning has seats for you. Leo: If I took the evening flight, what time would I arrive? Agent: Just after eleven tonight. We'd also give you a meal voucher and a travel credit to use on a future trip. Leo: That sounds fair, but my sister is picking me up at the airport, and neither she nor her kids want to wait until midnight. Agent: I understand. If you chose the morning flight, we could book you a hotel near the airport as well. Leo: Hmm, give me a minute to call her. Agent: Of course, take your time. Leo: OK, I've just spoken to her. She says tonight is fine, as long as I bring snacks. Agent: Wonderful, so the evening flight? Leo: Yes, and could I have a window seat? Agent: Here's your new boarding pass. Thanks for helping us out. Leo: Not at all. Honestly, I could use a few quiet hours to finish my book.",
+    "questions": [
+      {
+        "prompt": "Why does Leo not say yes immediately?",
+        "options": [
+          "He thinks the airline is not offering enough",
+          "He needs to check with the person meeting him",
+          "He wants a seat in business class",
+          "He is afraid of flying at night"
+        ],
+        "answer": 1,
+        "evidence": "my sister is picking me up at the airport"
+      },
+      {
+        "prompt": "What would the airline do if Leo chose the morning flight?",
+        "options": [
+          "Book him a hotel near the airport",
+          "Give him a window seat for free",
+          "Pay for a taxi to his sister's house",
+          "Put him on a flight to a different city"
+        ],
+        "answer": 0,
+        "evidence": "If you chose the morning flight, we could book you a hotel near the airport as well."
+      }
+    ],
+    "dictation_index": 1,
+    "vocabulary": [
+      {
+        "term": "overbooked",
+        "meaning": "（航班、酒店）超售的；订满还多订的",
+        "example": "The hotel was overbooked, so they sent us to another one nearby."
+      },
+      {
+        "term": "passengers",
+        "meaning": "乘客",
+        "example": "All passengers must show their tickets before boarding."
+      },
+      {
+        "term": "voucher",
+        "meaning": "代金券；兑换券",
+        "example": "We got a voucher for a free coffee at the station."
+      },
+      {
+        "term": "boarding pass",
+        "meaning": "登机牌",
+        "example": "Please have your boarding pass ready at the gate."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "it depends on",
+        "meaning": "那要看……",
+        "note": "不马上答应、先问条件时的万能说法：It depends on the price."
+      },
+      {
+        "text": "That sounds fair",
+        "meaning": "听起来挺合理",
+        "note": "对别人的提议表示基本认可，后面常接 but 提出顾虑。"
+      },
+      {
+        "text": "take your time",
+        "meaning": "慢慢来，不着急",
+        "note": "让对方别有压力，服务人员和朋友之间都常说。"
+      },
+      {
+        "text": "as long as",
+        "meaning": "只要……",
+        "note": "提出条件：You can borrow my bike, as long as you bring it back tonight."
+      },
+      {
+        "text": "helping us out",
+        "meaning": "帮了我们的忙",
+        "note": "help sb out 指在别人有困难时帮一把，语气比 help 更口语、更有人情味。"
+      },
+      {
+        "text": "I could use",
+        "meaning": "我正需要；来点……正好",
+        "note": "I could use + 名词，表示“有……就好了”：I could use a cup of coffee."
+      }
+    ],
+    "grammar": [
+      "conditional-modal",
+      "agreement-either",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "conditional-modal",
+        "quote": "If you chose the morning flight, we could book you a hotel near the airport as well.",
+        "explanation": "if + 过去式，主句用 could + 动词原形，提出一个“假如你这样选，我们可以……”的方案，比 if you choose ... we can ... 更委婉、更礼貌。"
+      },
+      {
+        "node": "agreement-either",
+        "quote": "neither she nor her kids want to wait until midnight",
+        "explanation": "neither A nor B 作主语时，谓语和离它最近的 B 一致：her kids 是复数，所以用 want。同理 either ... or ... 也看最近的名词。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "we're looking for two passengers to take a later flight",
+        "explanation": "不定式 to take ... 放在名词后面，说明“找乘客来做什么”。名词 + to do 是说明目的和用途的常用结构。"
+      }
+    ],
+    "speaking": "角色扮演：你是登机口工作人员，请一位乘客改签。用 1 分钟说明情况和补偿，至少用上 If you ..., we could ... 和 as long as。",
+    "writing": "用 120–150 词写一段对话：你在考虑一个临时变化的安排（改签、换房、换座），先问条件，再做决定，用上 it depends on 和 either ... or ...。",
+    "task": {
+      "prompt": "仿照这句，用 If you ..., we could ... 向别人提出一个有条件的方案。",
+      "model": "If you chose the morning flight, we could book you a hotel near the airport as well."
+    },
+    "tags": [
+      "机场",
+      "改签对话"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-travel-b1-street-food",
+    "title": "放心吃路边摊的几条经验",
+    "title_en": "How to Enjoy Street Food Sensibly",
+    "summary_zh": "路边摊是认识一个地方最好吃的方式。这份指南教你几个简单习惯：跟着人群走、选现做的、看摊位干不干净、先点小份——吃得开心又安心。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "travel",
+    "genre": "guide",
+    "body": "Street food is one of the best ways to taste a new place, and it rarely costs much. A few simple habits will help you enjoy it without worrying. First, follow the crowd. If a stall is busy with local families and office workers, the food is probably fresh, because it doesn't sit around for long. Second, choose dishes cooked in front of you. Watching the cook fry noodles or grill meat over a hot fire is half the fun, and you can see that everything is served hot. Third, look at the stall itself. A clean counter and a cook using tongs or gloves are good signs. If you can't find a place to wash your hands, you should carry a small bottle of hand gel. It's also smart to order small portions at first. That way you can try four or five different things instead of filling up on one big plate. Finally, don't be afraid to point and smile if you don't know the names of the dishes. Most cooks are proud of their food and happy to show you what's in it.",
+    "questions": [
+      {
+        "prompt": "What is the main message of the guide?",
+        "options": [
+          "Street food is too risky for most travellers",
+          "A few sensible habits make street food easier to enjoy",
+          "Travellers should only eat where local families eat at home",
+          "The cheapest stalls usually have the best food"
+        ],
+        "answer": 1,
+        "evidence": "A few simple habits will help you enjoy it without worrying."
+      },
+      {
+        "prompt": "Why does a busy stall usually mean fresh food?",
+        "options": [
+          "The cook buys more expensive ingredients",
+          "The food is sold quickly and does not wait long",
+          "Local workers check how the food is cooked",
+          "Busy stalls always cook in front of you"
+        ],
+        "answer": 1,
+        "evidence": "the food is probably fresh, because it doesn't sit around for long"
+      }
+    ],
+    "dictation_index": 11,
+    "vocabulary": [
+      {
+        "term": "stall",
+        "meaning": "摊位；小吃摊",
+        "example": "There is a noodle stall at the corner of my street."
+      },
+      {
+        "term": "counter",
+        "meaning": "柜台；操作台",
+        "example": "She left the keys on the kitchen counter."
+      },
+      {
+        "term": "portions",
+        "meaning": "（食物的）份；份量",
+        "example": "The portions in this café are big enough for two."
+      },
+      {
+        "term": "crowd",
+        "meaning": "人群",
+        "example": "A crowd was waiting outside the new bakery."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "follow the crowd",
+        "meaning": "跟着人群走；随大流",
+        "note": "这里是褒义的实用建议；在别的语境里也可能指“没主见、随大流”。"
+      },
+      {
+        "text": "sit around",
+        "meaning": "（东西）放着没人动；（人）闲坐着",
+        "note": "说食物时指“放了很久”：The cake sat around all day."
+      },
+      {
+        "text": "half the fun",
+        "meaning": "一半的乐趣",
+        "note": "Getting there is half the fun. 强调过程本身就很好玩。"
+      },
+      {
+        "text": "good signs",
+        "meaning": "好兆头；让人放心的迹象",
+        "note": "a good sign / a bad sign 用来判断情况：A long queue is usually a good sign."
+      },
+      {
+        "text": "filling up on",
+        "meaning": "用……填饱肚子",
+        "note": "fill up on sth 常带一点“吃太多一种东西”的意思：Don't fill up on bread."
+      },
+      {
+        "text": "don't be afraid to",
+        "meaning": "别不好意思……；大胆去……",
+        "note": "鼓励别人尝试的常用开头：Don't be afraid to ask questions."
+      }
+    ],
+    "grammar": [
+      "conditional-modal",
+      "nonfinite-participle",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "conditional-modal",
+        "quote": "If you can't find a place to wash your hands, you should carry a small bottle of hand gel.",
+        "explanation": "if 从句用情态动词 can't 说一种可能的情况，主句用 should 给建议。“如果……做不到，你应该……”是写指南最常用的条件句。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "choose dishes cooked in front of you",
+        "explanation": "过去分词 cooked 修饰 dishes，表示被动“当面做的菜”；后面 a cook using tongs 里的 using 是现在分词，表示主动“正在用夹子的厨师”。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "It's also smart to order small portions at first.",
+        "explanation": "It's + 形容词 + to do，用 it 作形式主语，真正的主语是后面的不定式。给建议时常说 It's smart / wise / a good idea to ...。"
+      }
+    ],
+    "speaking": "用 1 分钟向外国朋友推荐你家乡的一种小吃，并告诉他怎么挑摊位，至少用上 follow the crowd 和一个 If ..., you should ... 句。",
+    "writing": "用 120–150 词写一份“在我的城市吃小吃”的小指南，至少 3 条建议，用上 It's smart to ... 和 half the fun。",
+    "task": {
+      "prompt": "仿照这句，用 Doing ... is half the fun 说说你喜欢的一种旅行体验。",
+      "model": "Watching the cook fry noodles or grill meat over a hot fire is half the fun"
+    },
+    "tags": [
+      "旅行美食",
+      "实用指南"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-travel-b1-shared-taxi",
+    "title": "深夜和陌生人拼了一辆车",
+    "title_en": "Sharing a Taxi with a Stranger",
+    "summary_zh": "火车晚点、公交停运，车站外只剩一辆出租车。Ella 和一位背着大包的陌生女生拼了车，结果收获了一段好聊天和一堆早餐推荐。一封邮件，讲旅途中“陌生人也可以是最好的部分”。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "travel",
+    "genre": "email",
+    "body": "Hi Sam, you won't believe how my trip started. My train reached Kessing almost two hours late, and by then neither the buses nor the last tram was running. There was just one taxi outside the station, and a woman with a huge backpack got to it at the same moment as me. Holding the door open, she smiled and suggested sharing it. I wasn't sure at first, but her hotel turned out to be on the same street as mine, so it made sense. Her name was Noor, and she was travelling alone for three months. She chatted with the driver in his own language, which she had learned from videos, and he ended up giving us tips about the best breakfast places. When we arrived, we split the fare, so it cost each of us very little. I usually keep to myself on trips, but that ride reminded me that strangers can be the best part of travelling. Honestly, I wish I had half her confidence. I'll tell you more when I'm home. Take care, Ella",
+    "questions": [
+      {
+        "prompt": "What does Ella learn from the taxi ride?",
+        "options": [
+          "Taxis are always cheaper than trams",
+          "Talking to strangers can make a trip better",
+          "Travelling alone for months is too difficult",
+          "It is easy to learn a language from videos"
+        ],
+        "answer": 1,
+        "evidence": "that ride reminded me that strangers can be the best part of travelling"
+      },
+      {
+        "prompt": "Why did sharing the taxi make sense?",
+        "options": [
+          "The driver asked them to share",
+          "Their hotels were on the same street",
+          "Noor knew the city very well",
+          "Ella did not have enough money"
+        ],
+        "answer": 1,
+        "evidence": "her hotel turned out to be on the same street as mine, so it made sense"
+      }
+    ],
+    "dictation_index": 3,
+    "vocabulary": [
+      {
+        "term": "backpack",
+        "meaning": "双肩背包",
+        "example": "He carried everything he needed in one backpack."
+      },
+      {
+        "term": "suggested",
+        "meaning": "建议；提议",
+        "example": "My friend suggested taking the earlier train."
+      },
+      {
+        "term": "fare",
+        "meaning": "（车、船等的）费用；车费",
+        "example": "The bus fare is cheaper if you buy a weekly card."
+      },
+      {
+        "term": "confidence",
+        "meaning": "自信；信心",
+        "example": "Speaking in class every day gave her more confidence."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "you won't believe",
+        "meaning": "你肯定不敢相信",
+        "note": "讲新鲜事的口语开场，带着兴奋和夸张：You won't believe who I met today."
+      },
+      {
+        "text": "at the same moment as",
+        "meaning": "和……同一时刻",
+        "note": "也可以说 at the same time as，at the same moment 更强调“刚好那一刻”。"
+      },
+      {
+        "text": "turned out to be",
+        "meaning": "结果是；原来是",
+        "note": "说事后才发现的情况：The quiet guy turned out to be really funny."
+      },
+      {
+        "text": "it made sense",
+        "meaning": "这样做说得通；挺合理",
+        "note": "make sense 表示合乎情理，It makes sense to ... 也很常用。"
+      },
+      {
+        "text": "ended up giving us tips",
+        "meaning": "最后还给了我们一些建议",
+        "note": "end up doing 表示没计划、结果却这样了。"
+      },
+      {
+        "text": "keep to myself",
+        "meaning": "不太和别人来往；自己待着",
+        "note": "keep to oneself 描述内向、不主动社交，没有贬义。"
+      }
+    ],
+    "grammar": [
+      "agreement-either",
+      "subjunctive-now",
+      "nonfinite-participle"
+    ],
+    "knowledge": [
+      {
+        "node": "agreement-either",
+        "quote": "neither the buses nor the last tram was running",
+        "explanation": "neither A nor B 作主语，谓语跟离它最近的名词一致：the last tram 是单数，所以用 was，而不是 were。"
+      },
+      {
+        "node": "subjunctive-now",
+        "quote": "Honestly, I wish I had half her confidence.",
+        "explanation": "I wish + 过去式 had，表达和现在事实相反的愿望：我现在并没有她那样的自信。half her confidence 意思是“她一半的自信”。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "Holding the door open, she smiled and suggested sharing it.",
+        "explanation": "现在分词短语 Holding the door open 作伴随状语，和主句的 she 是同一个人，同时发生。用它能把动作和表情写在一句里。"
+      }
+    ],
+    "speaking": "用 1 分钟讲一次你在旅途中和陌生人打交道的经历（拼车、问路、同桌吃饭），用上 turned out to be 和 I wish I had ...。",
+    "writing": "用 120–150 词给朋友写一封邮件，讲一次旅途中的意外小插曲，用上 neither ... nor ... 和 ended up doing。",
+    "task": {
+      "prompt": "仿照这句，用 I wish I had ... 说说你羡慕别人身上的一种品质。",
+      "model": "Honestly, I wish I had half her confidence."
+    },
+    "tags": [
+      "旅途偶遇",
+      "邮件"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

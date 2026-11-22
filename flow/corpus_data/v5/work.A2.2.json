@@ -1,0 +1,247 @@
+[
+  {
+    "id": "v5-work-a2-angry-customer-call",
+    "title": "电话那头的生气顾客",
+    "title_en": "Staying Calm with an Angry Caller",
+    "summary_zh": "顾客打电话来抱怨书桌迟迟没送到，客服 Ruth 先共情、再道歉、最后给出解决办法。读完你能学会接工作电话的开场白，以及安抚生气顾客的几句话。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "work",
+    "genre": "dialogue",
+    "body": "Ruth: Good morning, customer service, this is Ruth speaking. Caller: Finally! I've called three times this week, and nobody has helped me. Ruth: I'm sorry to hear that. Can I have your name, please? Caller: Paul Dent. My new desk hasn't arrived, and I'm working on the kitchen floor! Ruth: That sounds really frustrating. Let me check your order. The desk is still in our warehouse. Caller: Still? You promised it for last Monday! Ruth: You're right, and I apologise. Here's what I can do. A driver can bring it on Thursday morning. Does that work for you? Caller: Thursday? Okay, fine. But I want someone to call me first. Ruth: Of course. I'm adding a note to your order right now. Caller: Thank you. And sorry I shouted. Ruth: No problem at all. Enjoy your new desk!",
+    "questions": [
+      {
+        "prompt": "How does Ruth deal with the angry caller?",
+        "options": [
+          "She asks him to call back when he is calmer",
+          "She stays calm, says sorry and offers a new delivery day",
+          "She says the driver made the mistake, not her team",
+          "She offers him a different desk that is ready today"
+        ],
+        "answer": 1,
+        "evidence": "You're right, and I apologise. Here's what I can do."
+      },
+      {
+        "prompt": "What does the caller ask for at the end?",
+        "options": [
+          "His money back for the desk",
+          "An email from Ruth's manager",
+          "A phone call before the driver comes",
+          "A delivery on Monday morning"
+        ],
+        "answer": 2,
+        "evidence": "But I want someone to call me first."
+      }
+    ],
+    "dictation_index": 2,
+    "vocabulary": [
+      {"term": "arrived", "meaning": "到达；送到", "example": "My parcel arrived this morning, two days early."},
+      {"term": "warehouse", "meaning": "仓库", "example": "All the new chairs are still in the warehouse."},
+      {"term": "promised", "meaning": "答应；承诺", "example": "She promised to call me back before lunch."},
+      {"term": "apologise", "meaning": "道歉", "example": "I want to apologise for the long wait."},
+      {"term": "shouted", "meaning": "大喊；吼", "example": "He shouted because the music was too loud."}
+    ],
+    "expressions": [
+      {"text": "this is Ruth speaking", "meaning": "我是 Ruth（接电话时的自我介绍）", "note": "接工作电话的标准开场：部门或公司名 + this is + 名字 + speaking，比 I am Ruth 自然得多。"},
+      {"text": "I'm sorry to hear that", "meaning": "听到这个我很抱歉", "note": "对方抱怨或说坏消息时先表示同情，并不等于承认是自己的错。"},
+      {"text": "That sounds really frustrating", "meaning": "这听起来真让人着急", "note": "先说出对方的感受，生气的人往往会更快冷静下来。也可以说 That sounds annoying。"},
+      {"text": "Let me check", "meaning": "我查一下", "note": "简短、主动，让对方知道你已经在处理，可以接 your order / the system。"},
+      {"text": "Here's what I can do", "meaning": "我能为您做的是……", "note": "道歉之后马上给出解决办法，比反复说 sorry 更有用。"},
+      {"text": "No problem at all", "meaning": "完全没关系", "note": "回应别人的道歉或道谢，语气轻松友好。"}
+    ],
+    "grammar": ["tense-perfect", "tense-present"],
+    "knowledge": [
+      {"node": "tense-perfect", "quote": "I've called three times this week, and nobody has helped me.", "explanation": "现在完成时 have/has + 过去分词，说“到现在为止”的经历和结果：this week 还没结束，所以用 I've called，而不是 I called。"},
+      {"node": "tense-present", "quote": "I'm adding a note to your order right now.", "explanation": "现在进行时 am/is/are + -ing 表示说话这一刻正在做的事，right now 是信号词。客服用它让顾客知道“我正在处理”。"}
+    ],
+    "speaking": "两人一组：一人扮演生气的顾客（快递没到、外卖送错等），另一人当客服，用 1 分钟化解。客服至少用上 I'm sorry to hear that 和 Here's what I can do。",
+    "writing": "用 60–80 词写一段客服回复：先道歉，再说明你查到的问题，最后给出一个解决办法。至少用一个现在完成时（I've checked / It hasn't arrived）。",
+    "task": {"prompt": "仿照这句，用 I've… 和 nobody has… 写一句你遇到麻烦时的抱怨，比如一个问题一直没人解决。", "model": "I've called three times this week, and nobody has helped me."},
+    "tags": ["客户沟通", "电话英语"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-work-a2-wrong-file-sorry",
+    "title": "发错文件后的道歉邮件",
+    "title_en": "Sorry, I Sent You the Wrong File",
+    "summary_zh": "Dani 发现把旧版报告发给了客户，马上写邮件说明情况、道歉并附上正确文件。读完你能写一封简短、诚恳、不找借口的道歉邮件。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "work",
+    "genre": "email",
+    "body": "Hi Maya, I'm writing about the report that I sent you this morning. I've just noticed a big mistake. I sent you last year's version, not the new one. Some of the numbers in it are out of date, so please don't use them. I'm really sorry about this. It was my fault, and I've checked everything again carefully. The correct file is attached to this email. It has a green cover page, so you can see the difference easily. I have also told my manager, Leo, who can answer any questions this afternoon. If you have already shared the old file with your team, I can write to them too. Just let me know. Sorry again for the trouble, and thank you for your patience. Best wishes, Dani",
+    "questions": [
+      {
+        "prompt": "What is the main purpose of Dani's email?",
+        "options": [
+          "To ask Maya for help with a difficult report",
+          "To say sorry for a mistake and send the right file",
+          "To complain that Leo made a mistake",
+          "To invite Maya's team to a meeting this afternoon"
+        ],
+        "answer": 1,
+        "evidence": "I've just noticed a big mistake."
+      },
+      {
+        "prompt": "How can Maya tell which file is the new one?",
+        "options": [
+          "It has a different name",
+          "It is much shorter than the old one",
+          "It has a green cover page",
+          "Leo has signed the first page"
+        ],
+        "answer": 2,
+        "evidence": "It has a green cover page, so you can see the difference easily."
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {"term": "noticed", "meaning": "注意到；发现", "example": "I noticed a small spelling mistake in the title."},
+      {"term": "version", "meaning": "版本", "example": "Please send me the latest version of the plan."},
+      {"term": "correct", "meaning": "正确的", "example": "Is this the correct address for the meeting?"},
+      {"term": "attached", "meaning": "附上的；在附件里的", "example": "The photos are attached, so you can look at them later."},
+      {"term": "patience", "meaning": "耐心", "example": "Thank you for your patience while we fix the printer."}
+    ],
+    "expressions": [
+      {"text": "I'm writing about", "meaning": "我写信是关于……", "note": "邮件开头直接说明来意，比 I want to tell you 更自然、更像职场邮件。"},
+      {"text": "out of date", "meaning": "过时的；不是最新的", "note": "可以说文件、信息、地图等：This map is out of date."},
+      {"text": "It was my fault", "meaning": "是我的错", "note": "承认错误时简单直接，不找借口，反而更让人信任。"},
+      {"text": "is attached to this email", "meaning": "附在这封邮件里", "note": "职场邮件的固定说法，也可以说 Please find the file attached。"},
+      {"text": "Just let me know", "meaning": "告诉我一声就行", "note": "主动提出帮忙后用来收尾，语气轻松，不给对方压力。"},
+      {"text": "thank you for your patience", "meaning": "谢谢你的耐心", "note": "给别人添了麻烦或让人等待时用，比再说一次 sorry 更积极。"}
+    ],
+    "grammar": ["tense-perfect", "clause-relative"],
+    "knowledge": [
+      {"node": "tense-perfect", "quote": "I've just noticed a big mistake.", "explanation": "现在完成时 + just 表示“刚刚”发生、而且对现在有影响的事：错误刚被发现，所以现在要马上处理。"},
+      {"node": "clause-relative", "quote": "I'm writing about the report that I sent you this morning.", "explanation": "that I sent you this morning 是定语从句，修饰 the report，说明是哪一份报告。that 在从句里作宾语，口语中常常省略。"}
+    ],
+    "speaking": "想一次你犯过的小错误（发错消息、忘带东西等），用 1 分钟向对方道歉：说明发生了什么、你已经做了什么、接下来怎么办。用上 It was my fault 和 I've already…。",
+    "writing": "用 60–80 词写一封道歉邮件：你把错误的开会时间发给了同学或同事。说明错误，给出正确信息，并用 Just let me know 主动提供帮助。",
+    "task": {"prompt": "仿照这句，用 the + 名词 + that I… 写一句话，说清你在谈哪一样东西。", "model": "the report that I sent you this morning"},
+    "tags": ["职场邮件", "承认错误"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-work-a2-team-across-time-zones",
+    "title": "一个团队，三个时区",
+    "title_en": "One Team, Three Time Zones",
+    "summary_zh": "Ines 的同事分散在三个时区，她们靠每天重叠的一小时和“把一切写下来”顺利合作。读完你能用简单英语描述跨时区团队的日常和规则。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "work",
+    "genre": "article",
+    "body": "Ines works for a small design team, but she has never met most of her colleagues in person. The team lives in three different time zones. When Ines starts work at nine, her colleague Sam is having lunch. And Kaito, who lives far to the east, is already cooking dinner. So how do they work together? First, they share one hour every day. It is early for Ines and late for Kaito, but everyone is online. They use this hour for questions and quick decisions. Second, they write everything down. A message that is clear and short saves a lot of time. Nobody waits a whole day for an answer. Third, they respect each other's time. Nobody sends messages at midnight and expects a quick reply. \"It isn't always easy,\" Ines says. \"But I've learned so much from them.\"",
+    "questions": [
+      {
+        "prompt": "What is the article mainly about?",
+        "options": [
+          "Why Ines wants to move to another country",
+          "How a team in different time zones works well together",
+          "Why online meetings are usually too long",
+          "How Ines met her colleagues for the first time"
+        ],
+        "answer": 1,
+        "evidence": "So how do they work together?"
+      },
+      {
+        "prompt": "What does the team use the shared hour for?",
+        "options": [
+          "Lunch and friendly chats",
+          "Writing long reports together",
+          "Questions and quick decisions",
+          "Training new colleagues"
+        ],
+        "answer": 2,
+        "evidence": "They use this hour for questions and quick decisions."
+      }
+    ],
+    "dictation_index": 9,
+    "vocabulary": [
+      {"term": "colleagues", "meaning": "同事", "example": "My colleagues and I have lunch together on Fridays."},
+      {"term": "time zones", "meaning": "时区", "example": "Our families live in different time zones, so we plan our calls carefully."},
+      {"term": "online", "meaning": "在线", "example": "Are you online now? I have a quick question."},
+      {"term": "decisions", "meaning": "决定", "example": "We make most of our decisions on Monday morning."},
+      {"term": "midnight", "meaning": "午夜；半夜十二点", "example": "Please don't call me after midnight."}
+    ],
+    "expressions": [
+      {"text": "in person", "meaning": "当面；亲自", "note": "和 online 相对：We've only talked online, never in person."},
+      {"text": "write everything down", "meaning": "把一切都写下来", "note": "write sth down 是“记下来”，也是远程合作的第一原则。"},
+      {"text": "saves a lot of time", "meaning": "节省很多时间", "note": "save time 是固定搭配，也可以说 It saves me time."},
+      {"text": "respect each other's time", "meaning": "尊重彼此的时间", "note": "职场里很常用的一句话，可以用来提醒别人别在下班时间发消息。"},
+      {"text": "expects a quick reply", "meaning": "指望很快得到回复", "note": "expect a reply 常用于邮件和消息：I don't expect a reply today."},
+      {"text": "I've learned so much from", "meaning": "我从……学到了很多", "note": "表达感谢和成长，常用来说同事、老师或一段经历。"}
+    ],
+    "grammar": ["tense-present", "clause-relative", "tense-perfect"],
+    "knowledge": [
+      {"node": "tense-present", "quote": "When Ines starts work at nine, her colleague Sam is having lunch.", "explanation": "一般现在时 starts 说每天的习惯，现在进行时 is having 说那一刻正在发生的事。两种时态放在一起，画面就出来了。"},
+      {"node": "clause-relative", "quote": "A message that is clear and short saves a lot of time.", "explanation": "that is clear and short 修饰 a message。主语的中心词仍是 a message，所以谓语用单数 saves。"},
+      {"node": "tense-perfect", "quote": "she has never met most of her colleagues in person", "explanation": "has never met 表示“到现在为止从来没有”，强调经历，不说具体是什么时候。"}
+    ],
+    "speaking": "用 1 分钟介绍你怎样和一位住在别的城市或国家的朋友、家人保持联系：什么时候聊、用什么方式。用上 in person 和 time zones。",
+    "writing": "用 60–80 词给一个远程合作的小组写三条规则，每条一句话，比如什么时候在线、消息怎么写。至少用一个 that 或 who 定语从句。",
+    "task": {"prompt": "仿照这句，用 A … that is … saves … 写一句你觉得能节省时间的好习惯。", "model": "A message that is clear and short saves a lot of time."},
+    "tags": ["远程办公", "团队合作"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-work-a2-my-first-mentor",
+    "title": "我的第一位导师",
+    "title_en": "What My First Mentor Taught Me",
+    "summary_zh": "面包店新员工 Bea 聊她的导师 Rosa：每周五一起喝咖啡，教会她“早点提问”。读完你能用简单英语介绍一个帮助过你的人。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "work",
+    "genre": "interview",
+    "body": "Q: You started at the bakery six months ago. Who has helped you most? Bea: My mentor, Rosa. She's the person who trained me on my first day. Q: What does a mentor do here? Bea: She answers my questions and watches me work. Every Friday, we have coffee and talk about my week. Q: What is the best thing she has taught you? Bea: To ask questions early. At first, I was too shy to ask, so I made lots of mistakes. Now I always ask first. Q: Is she ever strict with you? Bea: Once or twice! But she's always fair. Q: Would you like to be a mentor one day? Bea: I'd love that. I've already helped our new cashier, Tom, who started last week. I showed him the coffee machine, and he hasn't broken it yet!",
+    "questions": [
+      {
+        "prompt": "How does Bea feel about Rosa?",
+        "options": [
+          "She is a little afraid of her",
+          "She thinks Rosa is too busy to help",
+          "She respects her and is thankful for her help",
+          "She would like to have Rosa's job"
+        ],
+        "answer": 2,
+        "evidence": "But she's always fair."
+      },
+      {
+        "prompt": "What is the most important lesson Bea has learned?",
+        "options": [
+          "To work faster than everyone else",
+          "To ask questions early",
+          "To make coffee for the whole team",
+          "To arrive before her manager"
+        ],
+        "answer": 1,
+        "evidence": "To ask questions early."
+      }
+    ],
+    "dictation_index": 3,
+    "vocabulary": [
+      {"term": "mentor", "meaning": "导师；带教师傅", "example": "My mentor helped me write my first report."},
+      {"term": "trained", "meaning": "培训；带（新人）", "example": "The manager trained two new waiters last month."},
+      {"term": "shy", "meaning": "害羞的", "example": "He was too shy to speak in the meeting."},
+      {"term": "strict", "meaning": "严格的", "example": "Our teacher was strict, but we learned a lot."},
+      {"term": "fair", "meaning": "公平的；公正的", "example": "It isn't fair to give her all the hard jobs."}
+    ],
+    "expressions": [
+      {"text": "the person who trained me", "meaning": "带我入门的那个人", "note": "the person who… 用来介绍某人的身份或作用，非常好套用。"},
+      {"text": "too shy to ask", "meaning": "太害羞，不敢问", "note": "too + 形容词 + to do 表示“太……而不能……”：too tired to go out。"},
+      {"text": "Once or twice", "meaning": "一两次；偶尔", "note": "回答“有没有过”时的轻松说法，常带一点幽默。"},
+      {"text": "I'd love that", "meaning": "我很乐意；那太好了", "note": "接受邀请或提议时热情的回答，比 Yes, OK 更有感情。"},
+      {"text": "one day", "meaning": "将来某一天", "note": "说未来的愿望：I want to work abroad one day."},
+      {"text": "hasn't broken it yet", "meaning": "还没把它弄坏", "note": "not… yet 常和现在完成时连用，表示“到目前为止还没有”，这里是开玩笑。"}
+    ],
+    "grammar": ["clause-relative", "tense-perfect"],
+    "knowledge": [
+      {"node": "clause-relative", "quote": "She's the person who trained me on my first day.", "explanation": "who 引导定语从句，修饰前面的人 the person。介绍某人时，先说 the person，再用 who 补充他/她做过什么。"},
+      {"node": "tense-perfect", "quote": "I've already helped our new cashier, Tom, who started last week.", "explanation": "already 常和现在完成时一起用，表示“已经”。注意 who started last week 有具体时间 last week，所以用一般过去时。"}
+    ],
+    "speaking": "用 1 分钟介绍一个曾经帮过你的人（老师、师傅、学长或同事）：他/她是谁、教会了你什么。用上 the person who… 和 has taught me。",
+    "writing": "用 60–80 词给你的“导师”写一张感谢卡，说一件他/她教会你的事，以及你现在有什么变化。至少用一个现在完成时。",
+    "task": {"prompt": "仿照这句，用 He's / She's the person who… 介绍一个对你很重要的人。", "model": "She's the person who trained me on my first day."},
+    "tags": ["职场新人", "导师带教"],
+    "source": "Flow 编辑部原创"
+  }
+]

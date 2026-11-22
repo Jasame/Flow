@@ -1,0 +1,514 @@
+[
+ {
+  "id": "v5-campus-c1-campus-farm",
+  "title": "校园尽头的小农场",
+  "title_en": "The Farm at the Edge of Campus",
+  "summary_zh": "校园最边上有一座大多数新生都不知道的小农场。各个专业的学生周末来这里挖地、除草，在一棵老核桃树下吃午饭。文章写的是这里为什么让人愿意慢下来。读完你会学到描写地点与氛围的高级句式。",
+  "level": "B2",
+  "cefr": "C1",
+  "theme": "campus",
+  "genre": "article",
+  "body": "On the edge of the campus, past the sports fields and the last car park, there is a gate that most first-years never notice, and behind it lies one of the university's best-kept secrets: a small working farm. It was originally set up so that agriculture students could practise what they learned in lectures, but over time it has become something broader, a place where students from every department turn up on Saturday mornings to dig, weed and argue cheerfully about the best way to support tomato plants. Its appeal is easy to underestimate. The town grew up around farming, and for generations its prosperity depended on the fields that now surround the university, so working this land evokes a history that most students only ever drive past. Yet the volunteers I spoke to rarely mentioned history. What they talked about was slowness. In a week shaped by deadlines and notifications, a row of kidney beans does not care how many emails you have left unanswered; it grows at its own pace, and you either accept that or go home. One postgraduate, a solo worker by temperament, said the farm was the first place she had learned to work alongside other people without competing with them. Another spoke of the healing quality of repetitive tasks, though he was careful to add that weeding had not solved anything, merely made his problems feel a little smaller. The farm's most beloved feature is an old walnut tree near the gate, whose wide crown shades the picnic table where volunteers eat lunch. Nobody knows exactly who planted it, but it was clearly mature long before the nearest lecture theatre was built, and students speak of it with an affection usually reserved for pets. Over the years, small traditions have begun to accumulate around it: the first walnuts of autumn belong to whoever finds them, and on late-summer evenings, when the low sun makes the leaves glow, the last shift tends to linger longer than strictly necessary. None of this appears in the prospectus, which is perhaps exactly why it works.",
+  "questions": [
+   {
+    "prompt": "According to the writer, what do the volunteers value most about the farm?",
+    "options": [
+     "The chance to learn about the history of the town",
+     "A slower pace that contrasts with the rest of their week",
+     "The opportunity to earn credit towards their degree",
+     "Competing to grow the best vegetables on campus"
+    ],
+    "answer": 1,
+    "evidence": "What they talked about was slowness."
+   },
+   {
+    "prompt": "What did one volunteer say about weeding?",
+    "options": [
+     "It had solved most of the problems he was worried about",
+     "It was too repetitive to be enjoyable for long",
+     "It was the only job he was trusted to do",
+     "It did not fix his problems but made them seem smaller"
+    ],
+    "answer": 3,
+    "evidence": "weeding had not solved anything, merely made his problems feel a little smaller"
+   }
+  ],
+  "dictation_index": 9,
+  "vocabulary": [
+   {
+    "term": "underestimate",
+    "meaning": "低估；小看",
+    "example": "Never underestimate how long a group project will take."
+   },
+   {
+    "term": "prosperity",
+    "meaning": "繁荣；富足",
+    "example": "The new railway brought prosperity to the whole valley."
+   },
+   {
+    "term": "temperament",
+    "meaning": "性情；天性",
+    "example": "She has the calm temperament of a good nurse."
+   },
+   {
+    "term": "linger",
+    "meaning": "逗留；舍不得离开",
+    "example": "On Sunday mornings I like to linger over a second cup of coffee."
+   },
+   {
+    "term": "prospectus",
+    "meaning": "（学校的）招生简章；介绍手册",
+    "example": "The prospectus is full of photos of smiling students on sunny lawns."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "one of the university's best-kept secrets",
+    "meaning": "大学里最不为人知的宝藏之一",
+    "note": "one of the best-kept secrets 原意是“守得最严的秘密”，现在多用来介绍鲜为人知的好地方、好东西。"
+   },
+   {
+    "text": "turn up",
+    "meaning": "到场；露面",
+    "note": "口语，常指不需要正式报名、自己就来了：Just turn up on Saturday."
+   },
+   {
+    "text": "at its own pace",
+    "meaning": "按自己的节奏",
+    "note": "at one's own pace：不受外界催促，学习、工作语境都很常用。"
+   },
+   {
+    "text": "by temperament",
+    "meaning": "从天性上说；生性",
+    "note": "放在名词或形容词后补充说明性格：a loner by temperament。"
+   },
+   {
+    "text": "usually reserved for",
+    "meaning": "通常只留给……的",
+    "note": "be reserved for：专门留给，带出一个让人会心一笑的对比。"
+   },
+   {
+    "text": "longer than strictly necessary",
+    "meaning": "比真正需要的久一些",
+    "note": "than strictly necessary 委婉幽默地说“有点超过了”，书面语和口语都能用。"
+   }
+  ],
+  "grammar": [
+   "clause-relative",
+   "nonfinite-participle",
+   "clause-noun"
+  ],
+  "knowledge": [
+   {
+    "node": "clause-relative",
+    "quote": "The farm's most beloved feature is an old walnut tree near the gate, whose wide crown shades the picnic table where volunteers eat lunch.",
+    "explanation": "whose 引导非限制性定语从句，表示“它的（树冠）”；where 引导定语从句修饰 the picnic table。一句话叠两层修饰，描写更紧凑。"
+   },
+   {
+    "node": "nonfinite-participle",
+    "quote": "In a week shaped by deadlines and notifications, a row of kidney beans does not care how many emails you have left unanswered",
+    "explanation": "过去分词 shaped by… 作后置定语，表示被动：被截止日期和消息提醒塑造的一周。left unanswered 也是过去分词作补语。"
+   },
+   {
+    "node": "clause-noun",
+    "quote": "What they talked about was slowness.",
+    "explanation": "What they talked about 是名词性从句作主语，把重点 slowness 放到句末，制造强调效果，比 They talked about slowness 更有力。"
+   }
+  ],
+  "speaking": "用 1 分钟介绍校园或你家附近一个“鲜为人知的好地方”，用上 one of the best-kept secrets 和 at its own pace。",
+  "writing": "用 200–250 词写一篇短文，介绍一个能让你慢下来的地方。至少用一个 whose 引导的定语从句和一个 What… was… 的名词性从句。",
+  "task": {
+   "prompt": "仿照这句，用 In a week shaped by…, … does not care… 写一句话，对比忙碌的生活和一件不着急的事物。",
+   "model": "In a week shaped by deadlines and notifications, a row of kidney beans does not care how many emails you have left unanswered"
+  },
+  "tags": [
+   "校园生活",
+   "描写与氛围"
+  ],
+  "source": "Flow 编辑部原创"
+ },
+ {
+  "id": "v5-campus-c1-shiny-buildings",
+  "title": "别再拿新楼当招生广告",
+  "title_en": "Put a Seminar Room on the Cover",
+  "summary_zh": "几乎每本大学宣传册都印着同一种照片：玻璃外墙、圆顶、傍晚灯火通明。作者认为新楼本身没有错，错在用它来代表教育质量。读完你会学到议论文中让步、转折和收束全文的高级表达。",
+  "level": "B2",
+  "cefr": "C1",
+  "theme": "campus",
+  "genre": "opinion",
+  "body": "Open almost any university brochure and you will find the same photograph: a shiny new building, usually made of glass, often topped with a dramatic dome and photographed at dusk so that every window glows. The message is unmistakable: this, the picture says, is where the future happens. I understand why institutions advertise themselves this way. A striking building is easy to photograph and easy to remember, and a well-chosen image can win more followers in a week than a thoughtful piece about teaching will gather in a year. Some of these buildings are genuinely useful, too; a new laboratory for hydrogen research may be exactly what a department needs. My objection is not to the buildings but to what they are being asked to represent. A glass dome tells a prospective student nothing about whether anyone will read their essays carefully, whether seminars are small enough to speak in, or whether the library is open when they actually need it. Yet these are the things that decide whether a degree is worth the effort. When a university presents its newest building as the jewel in its crown, it quietly suggests that education is something you visit rather than something you do. There is also a risk of mistaking construction for prosperity, since a building project can just as easily be a way of borrowing against a reputation that has not yet been earned. Some of the most legendary teachers I have known worked in rooms with peeling paint and rattling radiators, and their students learned to strive for something far harder to photograph than a skyline. None of this amounts to a rejection of good architecture. Beautiful spaces can evoke a sense of purpose, and nobody learns well in a building that is falling apart. But if universities want to smash the stereotype that they care more about rankings than about students, they could start by putting a seminar room on the cover, full of people mid-argument. If brochures showed that instead, applicants would at least know what they were really choosing.",
+  "questions": [
+   {
+    "prompt": "What is the writer's main argument?",
+    "options": [
+     "Universities should stop putting up new buildings altogether",
+     "Old buildings are better places to learn than modern ones",
+     "Impressive buildings say little about the quality of teaching",
+     "Universities should spend more on advertising online"
+    ],
+    "answer": 2,
+    "evidence": "My objection is not to the buildings but to what they are being asked to represent."
+   },
+   {
+    "prompt": "Why does the writer mention teachers who worked in rooms with peeling paint?",
+    "options": [
+     "To show that good teaching does not depend on impressive surroundings",
+     "To complain that some departments are badly funded",
+     "To suggest that old rooms photograph better than new ones",
+     "To argue that students prefer traditional buildings"
+    ],
+    "answer": 0,
+    "evidence": "their students learned to strive for something far harder to photograph than a skyline"
+   }
+  ],
+  "dictation_index": 8,
+  "vocabulary": [
+   {
+    "term": "unmistakable",
+    "meaning": "不会弄错的；一看就明白的",
+    "example": "There was an unmistakable smell of burnt toast in the kitchen."
+   },
+   {
+    "term": "prospective",
+    "meaning": "潜在的；未来可能成为……的",
+    "example": "The open day is designed for prospective students and their parents."
+   },
+   {
+    "term": "prosperity",
+    "meaning": "繁荣；经济上的兴旺",
+    "example": "A busy high street is often a sign of local prosperity."
+   },
+   {
+    "term": "stereotype",
+    "meaning": "刻板印象；成见",
+    "example": "The film plays with the stereotype of the lonely genius."
+   },
+   {
+    "term": "skyline",
+    "meaning": "（城市建筑映衬在天空下的）天际线",
+    "example": "From the hill you can see the whole city skyline."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "worth the effort",
+    "meaning": "值得付出努力",
+    "note": "be worth the effort / trouble：衡量投入和回报，日常和写作都很常用。"
+   },
+   {
+    "text": "borrowing against a reputation",
+    "meaning": "拿名声作抵押；透支名声",
+    "note": "borrow against sth 原指以房产等抵押借款，这里是比喻：先花掉还没挣到的信誉。"
+   },
+   {
+    "text": "None of this amounts to",
+    "meaning": "这一切都不等于……",
+    "note": "议论文里用来让步、防止被误解：None of this amounts to a rejection of…"
+   },
+   {
+    "text": "the jewel in its crown",
+    "meaning": "最引以为傲的东西；王冠上的明珠",
+    "note": "the jewel in the crown：一个机构或地方最珍贵、最拿得出手的部分，常带一点反讽。"
+   },
+   {
+    "text": "smash the stereotype",
+    "meaning": "打破刻板印象",
+    "note": "smash 比 break 更有力，常见搭配还有 challenge / break a stereotype。"
+   },
+   {
+    "text": "mid-argument",
+    "meaning": "正争论到一半",
+    "note": "mid- + 名词表示“在……进行中”：mid-sentence、mid-conversation，简洁生动。"
+   }
+  ],
+  "grammar": [
+   "nonfinite-participle",
+   "clause-noun",
+   "subjunctive-now"
+  ],
+  "knowledge": [
+   {
+    "node": "nonfinite-participle",
+    "quote": "often topped with a dramatic dome and photographed at dusk so that every window glows",
+    "explanation": "过去分词 topped with… 和 photographed at… 并列修饰 building，表示被动：被加上圆顶、在黄昏被拍摄。"
+   },
+   {
+    "node": "clause-noun",
+    "quote": "A glass dome tells a prospective student nothing about whether anyone will read their essays carefully, whether seminars are small enough to speak in, or whether the library is open when they actually need it.",
+    "explanation": "三个 whether 名词性从句并列作介词 about 的宾语，排比出真正重要的问题，节奏感强。"
+   },
+   {
+    "node": "subjunctive-now",
+    "quote": "If brochures showed that instead, applicants would at least know what they were really choosing.",
+    "explanation": "与现在事实相反：if + 过去式 showed，主句 would + 动词原形。现实中宣传册并不这样做，作者借假设收尾，提出建议。"
+   }
+  ],
+  "speaking": "用 1 分钟说说：选大学时你最看重什么？先承认漂亮校园的吸引力，再用 My objection is not to… but to… 说出你真正的标准。",
+  "writing": "用 220–280 词写一篇议论文：Should universities spend more on buildings or on teaching? 要有让步（None of this amounts to…）、反驳和明确结论，并至少用一个与现在事实相反的虚拟句。",
+  "task": {
+   "prompt": "仿照这句，用 My objection is not to… but to… 表达你对某个现象的真正不满。",
+   "model": "My objection is not to the buildings but to what they are being asked to represent."
+  },
+  "tags": [
+   "大学宣传",
+   "议论文写作"
+  ],
+  "source": "Flow 编辑部原创"
+ },
+ {
+  "id": "v5-campus-c1-final-recital",
+  "title": "毕业独奏会前的长谈",
+  "title_en": "Playing the Piece I Play Best",
+  "summary_zh": "钢琴专业的 Leah 下个月要开毕业独奏会。两年前她因过度练习伤了手腕，不得不休学一学期，而那段停下来的时间改变了她听音乐和面对批评的方式。读完你会学到谈论挫折与成长的地道表达。",
+  "level": "B2",
+  "cefr": "C1",
+  "theme": "campus",
+  "genre": "interview",
+  "body": "Interviewer: Your final solo recital is next month, and it marks the completion of your degree, so how are you feeling? Leah: Nervous, obviously, but also slightly amazed that I'm doing it at all, because two years ago I couldn't play for more than ten minutes without pain in my wrist. Interviewer: What happened? Leah: Overuse, mostly. I'd been practising for hours a day without proper breaks, partly because I'd had two rejections from music colleges before I came here and felt I had something to prove. Ironically, my inability to rest was exactly what stopped me playing. Interviewer: So you took time off? Leah: I took a suspension of studies for a term, which felt like failure at the time. The healing itself was slow and dull, but the time away changed how I listen. Without being able to play, I went to concerts and simply paid attention, and I realised how much I'd been trying to impress rather than communicate. Interviewer: Has that changed the programme you've chosen? Leah: Completely, and my old teacher, whose pupils tended to choose the flashiest pieces they could manage, would probably be surprised. I'm ending with a slow piece that has been beloved in my family for generations, and it evokes my grandmother's kitchen in a way I can't fully explain. It isn't the most challenging thing I could play, but it's the thing I play best. Interviewer: How do you deal with critique from your professors now? Leah: I used to hear every comment as a verdict on me as a person, whereas now I try to extract the one useful instruction and ignore the tone. Interviewer: Would you say you've become a more mature player? Leah: I hope so, though maturity in music seems to be mostly about knowing what to leave out. I still strive to play well; I just no longer confuse effort with exhaustion. Interviewer: And if the recital turns out to be a smash? Leah: Then I'll celebrate, of course, but if I play that last piece with real affection, I won't mind a few wrong notes.",
+  "questions": [
+   {
+    "prompt": "How did Leah's time away from playing change her?",
+    "options": [
+     "She decided to move from performing into teaching",
+     "She learned to practise for even longer without breaks",
+     "She began to care more about communicating than impressing",
+     "She lost interest in going to other people's concerts"
+    ],
+    "answer": 2,
+    "evidence": "I realised how much I'd been trying to impress rather than communicate"
+   },
+   {
+    "prompt": "What does Leah do now when her professors criticise her playing?",
+    "options": [
+     "She picks out the useful advice and ignores the tone",
+     "She takes each comment as a judgement of her as a person",
+     "She asks other students whether they agree with it",
+     "She avoids asking for feedback before a performance"
+    ],
+    "answer": 0,
+    "evidence": "now I try to extract the one useful instruction and ignore the tone"
+   }
+  ],
+  "dictation_index": 8,
+  "vocabulary": [
+   {
+    "term": "recital",
+    "meaning": "独奏会；独唱会",
+    "example": "She gave her first piano recital when she was twelve."
+   },
+   {
+    "term": "overuse",
+    "meaning": "过度使用（造成的劳损）",
+    "example": "Overuse of the same muscles can lead to injury."
+   },
+   {
+    "term": "ironically",
+    "meaning": "具有讽刺意味的是；偏偏",
+    "example": "Ironically, the fire station itself caught fire."
+   },
+   {
+    "term": "verdict",
+    "meaning": "定论；（对人或事的）评判",
+    "example": "What's your verdict on the new café?"
+   },
+   {
+    "term": "exhaustion",
+    "meaning": "筋疲力尽；极度疲劳",
+    "example": "After the marathon he fell asleep from sheer exhaustion."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "something to prove",
+    "meaning": "想证明自己",
+    "note": "have / feel something to prove：因被否定或被低估而憋着一股劲。"
+   },
+   {
+    "text": "at the time",
+    "meaning": "在当时",
+    "note": "常暗示“现在回头看并不这么想”：It felt like failure at the time."
+   },
+   {
+    "text": "in a way I can't fully explain",
+    "meaning": "说不太清为什么",
+    "note": "描述情感、联想时很自然，比 I don't know why 更有文采。"
+   },
+   {
+    "text": "what to leave out",
+    "meaning": "该删掉什么；该舍弃什么",
+    "note": "leave out = 省略、不包括；knowing what to leave out 常用来形容高手的判断力。"
+   },
+   {
+    "text": "confuse effort with exhaustion",
+    "meaning": "把努力和累垮混为一谈",
+    "note": "confuse A with B：把 A 错当成 B，可替换成 confuse being busy with being productive。"
+   },
+   {
+    "text": "turns out to be",
+    "meaning": "结果是；最后证明是",
+    "note": "turn out to be + 名词/形容词，常用来谈尚未揭晓的结果。"
+   }
+  ],
+  "grammar": [
+   "tense-perfect",
+   "clause-relative",
+   "conditional-real"
+  ],
+  "knowledge": [
+   {
+    "node": "tense-perfect",
+    "quote": "I'd been practising for hours a day without proper breaks, partly because I'd had two rejections from music colleges before I came here",
+    "explanation": "过去完成进行时 I'd been practising 强调受伤之前长期持续的状态；过去完成时 I'd had 表示更早发生的事，时间线清楚。"
+   },
+   {
+    "node": "clause-relative",
+    "quote": "my old teacher, whose pupils tended to choose the flashiest pieces they could manage, would probably be surprised",
+    "explanation": "whose 引导非限制性定语从句，表示“他的学生们”；they could manage 是省略关系词的定语从句，修饰 pieces。"
+   },
+   {
+    "node": "conditional-real",
+    "quote": "if I play that last piece with real affection, I won't mind a few wrong notes",
+    "explanation": "真实条件句：if + 一般现在时，主句 will not + 动词原形，表达对未来的真实态度。"
+   }
+  ],
+  "speaking": "用 1 分钟讲一次你被迫停下来（受伤、生病或其他原因）却因此有所收获的经历，用上 at the time 和 something to prove。",
+  "writing": "用 200–250 词写一段自述：你现在怎样对待老师或上司的批评？和以前相比有什么变化？至少用一个过去完成进行时（had been doing）。",
+  "task": {
+   "prompt": "仿照这句，用 I still…; I just no longer confuse… with… 说说你现在对某件事的新理解。",
+   "model": "I still strive to play well; I just no longer confuse effort with exhaustion."
+  },
+  "tags": [
+   "音乐专业",
+   "挫折与成长"
+  ],
+  "source": "Flow 编辑部原创"
+ },
+ {
+  "id": "v5-campus-c1-first-anatomy-class",
+  "title": "第一次解剖课",
+  "title_en": "A Pig's Kidney and a Question Nobody Could Answer",
+  "summary_zh": "医学院新生 Mei 第一次上解剖实践课，面前是一只从肉铺买来的猪肾，还有一位以“问倒所有人”出名的老师。一个谁也答不上来的问题，让她明白了“背得出”和“用得上”的区别。读完你会学到叙事中细腻描写的高级句式。",
+  "level": "B2",
+  "cefr": "C1",
+  "theme": "campus",
+  "genre": "story",
+  "body": "The anatomy building was the oldest on campus, and its teaching room sat beneath a glass dome that turned the winter light a pale, watery grey. Mei had heard about Dr Hale long before she met him. He was legendary among second-years, partly for asking questions nobody could answer and partly for the bow ties he wore regardless of the occasion. On the first morning of the practical, each pair of students was given a tray with a pig's kidney on it, bought, he cheerfully informed them, from the butcher's down the road. Mei's partner, a mature student who had spent ten years as an electrician before applying, picked up the scalpel without hesitation, while Mei found she could not stop looking at the ceiling. Before anyone cut anything, Dr Hale asked them what the organ was for. The answers came quickly and were all, in their way, correct: it filters the blood, it balances water, it removes waste. He nodded patiently and then asked how they would know, from the outside alone, whether this kidney had been healthy. Nobody spoke. Mei realised that she had memorised every function in the textbook and could not retrieve a single fact in a form that helped her look. Strangely, her inability to answer felt freeing, because nobody else could answer either. For the rest of the morning they worked slowly, describing before cutting, while Dr Hale moved between the benches and occasionally held a small torch over a tray so that the surface seemed to glow. Near the end, he stopped beside them and studied Mei's face rather than the specimen. Her pupils were enormous, he remarked, which meant she was either terrified or interested, and in his experience the second was the more serious complication. She laughed, and the knot in her stomach began to loosen. In later years she would devise elaborate ways of remembering every structure in the body, but what stayed with her from that morning was simpler. Knowledge she could recite was not the same as knowledge she could use, and the grey light under the dome had given her somewhere to anchor the difference.",
+  "questions": [
+   {
+    "prompt": "What is the main lesson Mei takes away from the practical?",
+    "options": [
+     "Medical students need to memorise far more of the textbook",
+     "Anatomy turned out to be less frightening than she expected",
+     "Teachers should avoid asking questions that nobody can answer",
+     "Being able to recite facts is different from being able to use them"
+    ],
+    "answer": 3,
+    "evidence": "Knowledge she could recite was not the same as knowledge she could use"
+   },
+   {
+    "prompt": "Why did Mei's inability to answer feel freeing?",
+    "options": [
+     "Dr Hale told everyone the answer straight away",
+     "She realised that nobody else in the room knew either",
+     "Her partner answered the question on her behalf",
+     "She had already decided to change to another course"
+    ],
+    "answer": 1,
+    "evidence": "because nobody else could answer either"
+   }
+  ],
+  "dictation_index": 7,
+  "vocabulary": [
+   {
+    "term": "regardless of",
+    "meaning": "不管；不论",
+    "example": "The match will go ahead regardless of the weather."
+   },
+   {
+    "term": "hesitation",
+    "meaning": "犹豫；迟疑",
+    "example": "She accepted the job offer without a moment's hesitation."
+   },
+   {
+    "term": "specimen",
+    "meaning": "标本；样本",
+    "example": "Each student was given a leaf specimen to draw and label."
+   },
+   {
+    "term": "recite",
+    "meaning": "背诵；（按记忆）复述",
+    "example": "He can recite the whole poem from memory."
+   },
+   {
+    "term": "elaborate",
+    "meaning": "复杂精细的；精心设计的",
+    "example": "They came up with an elaborate plan to surprise her."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "long before she met him",
+    "meaning": "早在见到他之前很久",
+    "note": "long before + 从句：强调时间早得多，讲故事铺垫人物名声时很常用。"
+   },
+   {
+    "text": "regardless of the occasion",
+    "meaning": "不管什么场合",
+    "note": "形容一个人的习惯雷打不动，带一点幽默。"
+   },
+   {
+    "text": "without hesitation",
+    "meaning": "毫不犹豫地",
+    "note": "比 immediately 多了“心里没顾虑”的意味。"
+   },
+   {
+    "text": "in their way",
+    "meaning": "在某种意义上；就其本身而言",
+    "note": "先肯定、再暗示不够：The answers were, in their way, correct."
+   },
+   {
+    "text": "the knot in her stomach",
+    "meaning": "心里揪着的那股紧张",
+    "note": "a knot in one's stomach 形容紧张焦虑时胃里发紧的感觉，loosen 表示放松下来。"
+   },
+   {
+    "text": "stayed with her",
+    "meaning": "让她一直记得",
+    "note": "sth stays with sb：某个经历或一句话长久留在心里。"
+   }
+  ],
+  "grammar": [
+   "tense-perfect",
+   "clause-noun",
+   "nonfinite-participle"
+  ],
+  "knowledge": [
+   {
+    "node": "tense-perfect",
+    "quote": "Mei had heard about Dr Hale long before she met him.",
+    "explanation": "过去完成时 had heard 表示在“见到他”这个过去时间点之前就已发生，讲故事时用来交代背景。"
+   },
+   {
+    "node": "clause-noun",
+    "quote": "He nodded patiently and then asked how they would know, from the outside alone, whether this kidney had been healthy.",
+    "explanation": "how they would know… 是 asked 的宾语从句，whether… 又是 know 的宾语从句；间接引语用陈述语序，时态随主句后移。"
+   },
+   {
+    "node": "nonfinite-participle",
+    "quote": "bought, he cheerfully informed them, from the butcher's down the road",
+    "explanation": "过去分词 bought 补充说明 kidney 的来历，表示被动；中间插入 he cheerfully informed them，读起来像老师随口一提。"
+   }
+  ],
+  "speaking": "用 1 分钟讲一次“书上都背过，真用的时候却答不上来”的经历，用上 long before 和 in my experience。",
+  "writing": "用 200–250 词写一个小故事，描写你第一次上某门实践课（实验、手工、体育等）的场景。至少用一个过去完成时和一个 whether 引导的名词性从句。",
+  "task": {
+   "prompt": "仿照这句，用 Knowledge I could… was not the same as knowledge I could… 总结你学某样东西时的体会。",
+   "model": "Knowledge she could recite was not the same as knowledge she could use"
+  },
+  "tags": [
+   "医学课堂",
+   "知识与理解"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

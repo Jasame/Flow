@@ -1,0 +1,250 @@
+[
+  {
+    "id": "v5-work-b1-brainstorm-ground-rules",
+    "title": "让头脑风暴真正有用的规则",
+    "title_en": "Ground Rules for a Brainstorm That Actually Works",
+    "summary_zh": "头脑风暴为什么常常变成“谁嗓门大听谁的”？这篇指南给出五条简单规则，让安静的人也能贡献想法，最后还要把点子落到人头上。读完你能主持一场真正有产出的头脑风暴。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "work",
+    "genre": "guide",
+    "body": "Most brainstorms fail for a simple reason: the loudest person talks first, and everyone else quietly agrees. To get better ideas from the same people, try these five rules next time. First, give everyone five minutes to write ideas alone before anyone speaks. Quiet thinkers often have the best ideas, but they rarely shout them out. Second, aim for quantity, not quality. A long list of silly ideas often hides one or two brilliant ones. Third, ban the phrase \"That won't work\" for the first half of the session. You can judge ideas later; right now, you just need them on the board. Fourth, decide who records everything. Either the host or two volunteers write every idea down, word for word, so nothing gets lost. Fifth, build on each other's ideas instead of competing. If someone suggests a free coffee morning for customers, you could add a vote on the flavours. Feeling a little silly is part of the process, and if nobody laughs at least once, the session was probably too serious. When the time is up, choose three ideas to test, and give each one an owner. Otherwise, the board will be wiped clean and nothing will change.",
+    "questions": [
+      {
+        "prompt": "Why does the writer suggest giving each chosen idea an owner?",
+        "options": [
+          "So that one person gets the credit for the idea",
+          "So that the ideas actually turn into action",
+          "So that the host can relax after the session",
+          "So that nobody argues about which idea is best"
+        ],
+        "answer": 1,
+        "evidence": "Otherwise, the board will be wiped clean and nothing will change."
+      },
+      {
+        "prompt": "Why should people write ideas alone at the start?",
+        "options": [
+          "Because writing is faster than speaking",
+          "Because the host needs time to prepare the board",
+          "Because quiet people may not say their ideas out loud",
+          "Because silly ideas need to be removed first"
+        ],
+        "answer": 2,
+        "evidence": "Quiet thinkers often have the best ideas, but they rarely shout them out."
+      }
+    ],
+    "dictation_index": 1,
+    "vocabulary": [
+      {"term": "quantity", "meaning": "数量", "example": "In the first round, we care about quantity, so write down everything."},
+      {"term": "session", "meaning": "一场（会议、活动）；一段时间", "example": "The training session lasted the whole morning."},
+      {"term": "volunteers", "meaning": "志愿者；主动请缨的人", "example": "We need two volunteers to set up the room."},
+      {"term": "competing", "meaning": "竞争；较劲", "example": "The two teams kept competing instead of sharing what they knew."},
+      {"term": "brilliant", "meaning": "极好的；绝妙的", "example": "Her idea for the poster was simple but brilliant."}
+    ],
+    "expressions": [
+      {"text": "for a simple reason", "meaning": "原因很简单", "note": "先抛出结论再解释时常用：Most diets fail for a simple reason."},
+      {"text": "shout them out", "meaning": "大声说出来", "note": "shout sth out 指当众大声说出（答案、想法），这里形容不愿抢话的人。"},
+      {"text": "word for word", "meaning": "一字不差地；逐字逐句", "note": "记录、翻译、复述时都能用：Don't translate it word for word."},
+      {"text": "build on each other's ideas", "meaning": "在彼此的想法上继续发展", "note": "build on sth 指在已有基础上往前推，是团队讨论里的高频说法。"},
+      {"text": "part of the process", "meaning": "过程中正常的一部分", "note": "用来安慰或提醒别人：犯错、尴尬、慢一点都是正常的。"},
+      {"text": "give each one an owner", "meaning": "给每一项指定负责人", "note": "职场里 owner 指“负责到底的人”，常说 Who owns this task?"}
+    ],
+    "grammar": ["nonfinite-infinitive", "agreement-either", "conditional-modal"],
+    "knowledge": [
+      {"node": "nonfinite-infinitive", "quote": "To get better ideas from the same people, try these five rules next time.", "explanation": "To get… 放在句首是不定式表目的，先说“为了什么”，再给出建议。写指南、提建议时非常好用。"},
+      {"node": "agreement-either", "quote": "Either the host or two volunteers write every idea down, word for word, so nothing gets lost.", "explanation": "Either A or B 作主语时，谓语和离它最近的 B 一致：two volunteers 是复数，所以用 write 而不是 writes。"},
+      {"node": "conditional-modal", "quote": "If someone suggests a free coffee morning for customers, you could add a vote on the flavours.", "explanation": "if 从句用一般现在时，主句用 could 表示“可以这样做”的建议，比 you should 更委婉、更开放。"}
+    ],
+    "speaking": "假设你要主持一次 10 分钟的头脑风暴（为班级活动或公司年会想点子），用 1 分钟向大家宣布规则。用上 To…, … 和 Either … or …。",
+    "writing": "用 100–150 词给你的小组或团队写一份头脑风暴规则，至少三条，每条说明原因。用一个 If…, you could… 句子。",
+    "task": {"prompt": "仿照这句，用 Either A or B + 动词 写一句分工安排，注意动词要和离它最近的主语一致。", "model": "Either the host or two volunteers write every idea down, word for word, so nothing gets lost."},
+    "tags": ["会议技巧", "团队合作"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-work-b1-resignation-email",
+    "title": "好聚好散：一封辞职邮件",
+    "title_en": "Leaving on Good Terms: A Resignation Email",
+    "summary_zh": "Felipe 要离职了，他的辞职邮件既说清时间和原因，又真诚道谢、主动安排交接。读完你能写一封“好聚好散”的辞职信，学会体面告别的说法。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "work",
+    "genre": "email",
+    "body": "Dear Gloria, I'm writing to let you know that I have decided to leave my position as events coordinator. My last day will be four weeks from today, in line with my notice period. This was not an easy decision. I've been offered a role at a smaller company closer to home, and it's a chance to plan events on my own from start to finish. Honestly, I wish I didn't have to choose. I've learned more here than anywhere else, mostly from watching you handle difficult clients with a smile. Before I go, I want to make the handover as smooth as possible. I'm planning to write a full guide to our suppliers, and I'd be happy to train whoever takes over the spring conference. Having worked on it since the very first meeting, I know where the tricky parts are. If it helps, I could also stay in touch for a few weeks after I leave, in case any questions come up. Thank you for trusting me with so much, and for the coffee on the bad days. I'll miss this team more than I can say. Warm regards, Felipe",
+    "questions": [
+      {
+        "prompt": "What is the overall tone of Felipe's email?",
+        "options": [
+          "Grateful and helpful, even though he is leaving",
+          "Angry about how he has been treated",
+          "Worried that the team cannot manage without him",
+          "Formal and cold, with no personal feelings"
+        ],
+        "answer": 0,
+        "evidence": "Thank you for trusting me with so much"
+      },
+      {
+        "prompt": "Why is Felipe leaving?",
+        "options": [
+          "He has had too many problems with difficult clients",
+          "His contract has come to an end",
+          "A new role lets him plan events by himself from start to finish",
+          "Gloria has asked him to move to another team"
+        ],
+        "answer": 2,
+        "evidence": "it's a chance to plan events on my own from start to finish"
+      }
+    ],
+    "dictation_index": 6,
+    "vocabulary": [
+      {"term": "position", "meaning": "职位", "example": "She applied for a position in the marketing team."},
+      {"term": "handover", "meaning": "工作交接", "example": "A good handover saves the next person a lot of stress."},
+      {"term": "suppliers", "meaning": "供应商", "example": "We order our paper and ink from two local suppliers."},
+      {"term": "tricky", "meaning": "棘手的；需要小心处理的", "example": "Booking a venue in December can be tricky."},
+      {"term": "trusting", "meaning": "信任", "example": "Thank you for trusting me with such an important client."}
+    ],
+    "expressions": [
+      {"text": "This was not an easy decision", "meaning": "这个决定并不容易", "note": "宣布离职、退出等消息时常用，表示你认真考虑过，也尊重对方。"},
+      {"text": "from start to finish", "meaning": "从头到尾", "note": "强调完整负责一件事：She organised the trip from start to finish."},
+      {"text": "as smooth as possible", "meaning": "尽可能顺利", "note": "as … as possible 是万能结构，交接、过渡、搬家都能用。"},
+      {"text": "whoever takes over", "meaning": "无论谁来接手", "note": "take over 指“接手、接管”；还不知道接替者是谁时，用 whoever 很自然。"},
+      {"text": "stay in touch", "meaning": "保持联系", "note": "告别时的常用语，也可以说 Let's keep in touch."},
+      {"text": "more than I can say", "meaning": "难以言表；说不出有多……", "note": "放在 miss / appreciate 后面加强感情，书面口语都可用。"}
+    ],
+    "grammar": ["subjunctive-now", "nonfinite-infinitive", "nonfinite-participle"],
+    "knowledge": [
+      {"node": "subjunctive-now", "quote": "Honestly, I wish I didn't have to choose.", "explanation": "I wish + 过去式（didn't have to）表示与现在事实相反的愿望：其实他现在必须二选一。用它表达不舍，比 I'm sad 更真诚、更克制。"},
+      {"node": "nonfinite-infinitive", "quote": "I'm writing to let you know that I have decided to leave my position as events coordinator.", "explanation": "I'm writing to… 用不定式说明写信目的，是正式邮件最常见的开头；decided to leave 是 decide 后接不定式的固定用法。"},
+      {"node": "nonfinite-participle", "quote": "Having worked on it since the very first meeting, I know where the tricky parts are.", "explanation": "Having + 过去分词作状语，表示主句之前已经完成的经历，用来说明“我为什么了解情况”。逻辑主语必须是主句的 I。"}
+    ],
+    "speaking": "假设你要离开一个社团、兼职或团队，用 1 分钟当面告诉负责人：说明决定、表示感谢、提出怎么交接。用上 This was not an easy decision 和 I wish I…。",
+    "writing": "用 120–160 词写一封辞职或退出邮件（真实或虚构都可以）：说明离开的时间和原因，感谢对方，并提出至少两项交接安排。",
+    "task": {"prompt": "仿照这句，用 I wish I didn't have to… 说一件你不得不做、但心里不太情愿的事。", "model": "Honestly, I wish I didn't have to choose."},
+    "tags": ["职场邮件", "离职交接"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-work-b1-first-client-presentation",
+    "title": "第一次给客户做展示",
+    "title_en": "Wen's First Client Presentation",
+    "summary_zh": "Wen 第一次给客户做设计展示，投影仪偏偏在第二页黑屏。她拿起事先打印好的图纸，把汇报变成了一场热烈的讨论。读完你会学到讲“意外”和“备用方案”的地道说法。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "work",
+    "genre": "story",
+    "body": "Wen had practised her presentation eleven times, but her hands were still shaking when the clients walked in. There were three of them, all in dark suits, and none of them smiled. Standing at the front of the room, she suddenly wished she were back at her quiet desk. Her plan was simple: show the new café design, explain the costs, and answer questions. She had even printed the drawings, just in case. If the laptop crashed, she could still talk them through the paper copies. Halfway through the second slide, the projector went black. For a moment, nobody moved. Then Wen took a breath, picked up the drawings and walked over to the table. \"Let's do this the old-fashioned way,\" she said. Spreading the pages out, she pointed to the long wooden counter and the reading corner by the window. The client sitting closest began to ask questions, and soon all three were arguing happily about lamp colours. When the meeting ended, the oldest one shook her hand. \"That was the most useful presentation we've had in ages,\" he said with a grin. Back at her desk, Wen laughed and added a new line to her checklist: always bring paper.",
+    "questions": [
+      {
+        "prompt": "What lesson does Wen take from the meeting?",
+        "options": [
+          "Clients always prefer presentations without slides",
+          "It is wise to have a backup plan that doesn't depend on technology",
+          "She needs to practise her presentations more often",
+          "She should ask a colleague to control the laptop next time"
+        ],
+        "answer": 1,
+        "evidence": "always bring paper"
+      },
+      {
+        "prompt": "What happened during the second slide?",
+        "options": [
+          "The clients started asking questions",
+          "Wen forgot what she wanted to say",
+          "The projector stopped working",
+          "The laptop ran out of battery"
+        ],
+        "answer": 2,
+        "evidence": "Halfway through the second slide, the projector went black."
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {"term": "practised", "meaning": "练习过", "example": "I practised my speech in front of the mirror."},
+      {"term": "projector", "meaning": "投影仪", "example": "Can someone turn on the projector before the meeting starts?"},
+      {"term": "drawings", "meaning": "图纸；设计图", "example": "The architect brought the drawings for the new kitchen."},
+      {"term": "counter", "meaning": "柜台；吧台", "example": "Please pay at the counter by the door."},
+      {"term": "checklist", "meaning": "清单；检查表", "example": "I always go through my checklist before a long trip."}
+    ],
+    "expressions": [
+      {"text": "just in case", "meaning": "以防万一", "note": "放在句末补充说明“有备无患”：Take an umbrella, just in case."},
+      {"text": "talk them through", "meaning": "一步步给他们讲解", "note": "talk sb through sth 指带着对方逐步理解某事，汇报、培训时很常用。"},
+      {"text": "Halfway through", "meaning": "进行到一半时", "note": "后面接活动或时间：halfway through the film / the meeting。"},
+      {"text": "took a breath", "meaning": "深吸一口气", "note": "描写人在紧张时让自己镇定下来，口语也常说 Take a deep breath."},
+      {"text": "the old-fashioned way", "meaning": "用老办法；用传统方式", "note": "常带幽默：We fixed it the old-fashioned way—with a hammer."},
+      {"text": "in ages", "meaning": "很久以来", "note": "口语，常与现在完成时连用：I haven't seen him in ages."}
+    ],
+    "grammar": ["nonfinite-participle", "subjunctive-now", "conditional-modal"],
+    "knowledge": [
+      {"node": "nonfinite-participle", "quote": "Spreading the pages out, she pointed to the long wooden counter and the reading corner by the window.", "explanation": "Spreading the pages out 是现在分词作状语，和主句动作同时发生，逻辑主语就是 she。比写成 She spread… and pointed… 更紧凑。"},
+      {"node": "subjunctive-now", "quote": "she suddenly wished she were back at her quiet desk", "explanation": "wish + 主语 + were 表示与当时事实相反的愿望：她其实站在会议室里，却希望自己在工位上。wish 后用 were 是更标准的写法。"},
+      {"node": "conditional-modal", "quote": "If the laptop crashed, she could still talk them through the paper copies.", "explanation": "这是 Wen 事先想好的预案：if 从句用过去式 crashed，主句用 could 表示“到时候还能……”，讲后备方案时很自然。"}
+    ],
+    "speaking": "用 1 分钟讲一次你做展示、比赛或考试时出了意外的经历，你是怎么应对的。用上 Halfway through… 和 just in case。",
+    "writing": "用 120–160 词写一个小故事：主人公计划好的事出了岔子，但他/她临场想出了办法。至少用一个 -ing 分词开头的句子（Standing… / Holding…）。",
+    "task": {"prompt": "仿照这句，用 If…, I could still… 说一个你为重要场合准备的后备方案。", "model": "If the laptop crashed, she could still talk them through the paper copies."},
+    "tags": ["工作汇报", "临场应变"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-work-b1-cover-letter-your-voice",
+    "title": "写一封像你自己的求职信",
+    "title_en": "Writing a Cover Letter That Sounds Like You",
+    "summary_zh": "大多数求职信换个名字谁都能用。这篇指南教你用一个具体故事代替一串形容词，再通过“读出声”找回自己的语气。读完你能写出一封像你本人的求职信。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "work",
+    "genre": "guide",
+    "body": "Most cover letters could be swapped between candidates, and nobody would notice. If a stranger read yours with the name covered, would they learn anything real about you? Here is how to fix that. Start with a moment, not a list. Instead of saying you are hard-working, describe the evening you stayed late to rebuild a broken spreadsheet before a big meeting. A short story, told honestly, says more than five adjectives. Next, show that you have done some homework. Mention one thing the company does that you genuinely admire, and explain why it matters to you. Keep your sentences plain. Words like \"passionate\" and \"dynamic\" appear in so many letters that tired readers simply skip them. When you have a draft, read the letter aloud. Hearing your own voice, you will quickly notice the lines that sound like someone else. Cut them, or rewrite them the way you would say them to a friend. You are not trying to impress a machine; you are trying to sound like a person someone would enjoy working with. A manager who has just read a pile of identical letters will remember yours, and that is often enough to get you into the room.",
+    "questions": [
+      {
+        "prompt": "What is the writer's main message?",
+        "options": [
+          "A cover letter should list as many skills as possible",
+          "A cover letter works best when it sounds personal and honest",
+          "A cover letter needs strong words to stand out",
+          "A cover letter matters much less than the interview"
+        ],
+        "answer": 1,
+        "evidence": "you are trying to sound like a person someone would enjoy working with"
+      },
+      {
+        "prompt": "Why does the writer suggest avoiding words like \"passionate\"?",
+        "options": [
+          "They sound too informal for a job application",
+          "They are so common that readers ignore them",
+          "Managers usually think they are not true",
+          "They make the letter far too long"
+        ],
+        "answer": 1,
+        "evidence": "appear in so many letters that tired readers simply skip them"
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {"term": "candidates", "meaning": "候选人；应聘者", "example": "The company interviewed six candidates for the job."},
+      {"term": "spreadsheet", "meaning": "电子表格", "example": "I keep all my expenses in a simple spreadsheet."},
+      {"term": "adjectives", "meaning": "形容词", "example": "Try to describe the city without using too many adjectives."},
+      {"term": "draft", "meaning": "草稿；初稿", "example": "Send me your first draft by Friday, and I'll comment on it."},
+      {"term": "identical", "meaning": "完全相同的", "example": "The twins wore identical jackets to the party."}
+    ],
+    "expressions": [
+      {"text": "done some homework", "meaning": "事先做过功课", "note": "do one's homework 在职场里指提前了解情况、做好准备，不是写作业。"},
+      {"text": "says more than", "meaning": "比……更能说明问题", "note": "强调“事实胜于空话”：One example says more than a long explanation."},
+      {"text": "read the letter aloud", "meaning": "把信大声读出来", "note": "read sth aloud 是检查文字是否自然的好办法，写邮件、讲稿都适用。"},
+      {"text": "sound like someone else", "meaning": "听起来像别人（不像你自己）", "note": "sound like + 名词，描述给人的感觉：That doesn't sound like you."},
+      {"text": "get you into the room", "meaning": "让你得到面试（当面交流）的机会", "note": "职场口语，“进门”比喻得到面试或见面的机会。"},
+      {"text": "stayed late", "meaning": "（工作）待到很晚", "note": "stay late 比 work overtime 更口语，常用来讲一次具体的努力。"}
+    ],
+    "grammar": ["conditional-modal", "nonfinite-participle", "nonfinite-infinitive"],
+    "knowledge": [
+      {"node": "conditional-modal", "quote": "If a stranger read yours with the name covered, would they learn anything real about you?", "explanation": "if + 过去式 read，主句 would + 动词原形，构成一个假设问句：让读者想象一个并没发生的情况，来检验自己的求职信。"},
+      {"node": "nonfinite-participle", "quote": "A short story, told honestly, says more than five adjectives.", "explanation": "told honestly 是过去分词短语，插在主语和谓语之间，表示“被诚实地讲出来的”。主语中心词 story 是单数，所以谓语用 says。"},
+      {"node": "nonfinite-infinitive", "quote": "you stayed late to rebuild a broken spreadsheet", "explanation": "to rebuild 是不定式表目的，说明为什么留下来加班。stay late to do sth 是讲努力付出的好用结构。"}
+    ],
+    "speaking": "用 1 分钟给面试官讲一个能体现你某个优点的小故事，不要直接说 I'm hard-working。用上 Instead of… 和 says more than。",
+    "writing": "用 120–160 词写一封求职信（或实习、社团申请）的开头段：用一个具体的小故事开头，再说明你为什么对这个职位感兴趣。",
+    "task": {"prompt": "仿照这句，用 A …, told/done …, says more than … 写一句话，说明具体的事实比空话更有说服力。", "model": "A short story, told honestly, says more than five adjectives."},
+    "tags": ["求职写作", "求职信"],
+    "source": "Flow 编辑部原创"
+  }
+]

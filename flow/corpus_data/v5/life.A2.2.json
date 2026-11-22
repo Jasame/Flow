@@ -1,0 +1,242 @@
+[
+  {
+    "id": "v5-life-a2-saturday-swap-shop",
+    "title": "每周六的旧物交换站",
+    "title_en": "The Swap Shop That Opens Every Saturday",
+    "summary_zh": "社区活动室每周六变成一个不收钱的“交换站”：带一件，拿一件。读完你能学会描述社区活动、介绍一个人的常用句子。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "life",
+    "genre": "article",
+    "body": "Every Saturday, the community hall on Green Street turns into a swap shop. It is not a real shop, and nothing costs any money. People bring things that they don't need any more, and they take things that they can use. The rule is simple: bring one, take one. A teenager is trying on a winter coat which is a little too big for her. The swap shop was the idea of Rosa, a retired teacher who lives across the road. She has run it for two years now. \"I've met more neighbours here than in thirty years on this street,\" she says. Not everything finds a new home, of course. At noon, Rosa takes the last things to a charity shop. Then she goes home for lunch, usually with one new thing for herself.",
+    "questions": [
+      {
+        "prompt": "What does Rosa seem to like most about the swap shop?",
+        "options": [
+          "She can sell her old things there",
+          "It helps her get to know the people around her",
+          "She always finds clothes that fit her",
+          "It gives her a new job after she stopped teaching"
+        ],
+        "answer": 1,
+        "evidence": "I've met more neighbours here than in thirty years on this street"
+      },
+      {
+        "prompt": "What happens to the things that nobody takes?",
+        "options": [
+          "Rosa keeps them in the hall until next Saturday",
+          "People take them home again at noon",
+          "Rosa gives them to a charity shop",
+          "They are sold to the neighbours for a small price"
+        ],
+        "answer": 2,
+        "evidence": "At noon, Rosa takes the last things to a charity shop."
+      }
+    ],
+    "dictation_index": 2,
+    "vocabulary": [
+      {"term": "swap", "meaning": "交换；互换", "example": "Can we swap seats? I want to sit near the window."},
+      {"term": "retired", "meaning": "退休的", "example": "My retired uncle spends every morning in his garden."},
+      {"term": "neighbours", "meaning": "邻居（复数）", "example": "Our neighbours invited us to their barbecue on Sunday."},
+      {"term": "charity", "meaning": "慈善；慈善机构", "example": "She gave all her old toys to a charity for children."}
+    ],
+    "expressions": [
+      {"text": "turns into", "meaning": "变成", "note": "turn into + 名词，表示样子或用途发生变化：The kitchen turns into an office at night."},
+      {"text": "don't need any more", "meaning": "不再需要", "note": "any more 放在句尾表示“不再”，英式拼法常分开写，美式常写 anymore。"},
+      {"text": "trying on", "meaning": "试穿", "note": "try on 用于衣服、鞋子、帽子：Can I try on this jacket?"},
+      {"text": "across the road", "meaning": "在马路对面", "note": "描述住处或店铺的位置很常用，也可以说 across the street。"},
+      {"text": "finds a new home", "meaning": "找到新主人；有了新去处", "note": "常用于旧物或宠物，比 is taken 更温暖、更口语。"}
+    ],
+    "grammar": ["clause-relative", "tense-present", "tense-perfect"],
+    "knowledge": [
+      {"node": "clause-relative", "quote": "The swap shop was the idea of Rosa, a retired teacher who lives across the road.", "explanation": "who 引导的定语从句修饰“人”（teacher），说明她住在哪；修饰物时用 that 或 which，比如前文的 a winter coat which is a little too big。"},
+      {"node": "tense-present", "quote": "A teenager is trying on a winter coat which is a little too big for her.", "explanation": "现在进行时 is trying on 描述“此刻正在发生”的画面；而 nothing costs any money 用一般现在时，说明一直如此的规则。"},
+      {"node": "tense-perfect", "quote": "She has run it for two years now.", "explanation": "现在完成时 has run + for 一段时间，表示从过去开始、一直持续到现在的事情；run 的过去分词还是 run。"}
+    ],
+    "speaking": "用 1 分钟介绍你家附近一个你常去的地方（菜市场、公园、小店），说说那里每周或每天会发生什么，至少用一个 who 或 that 定语从句。",
+    "writing": "用 50–70 词写一则小通知，邀请邻居参加一次旧物交换活动，写清时间、地点和规则，用上 bring one, take one 或 don't need any more。",
+    "task": {"prompt": "仿照这句，用 things that ... 说说你会带去交换站的东西和你想拿回来的东西。", "model": "People bring things that they don't need any more, and they take things that they can use."},
+    "tags": ["社区生活", "旧物交换"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-life-a2-returning-a-jacket",
+    "title": "网购的外套太大了，想退货",
+    "title_en": "This Jacket Doesn't Fit: An Email About a Return",
+    "summary_zh": "Lena 网购的外套又大又和照片不一样，她给客服写了一封邮件问怎么退货。读完你能写出一封清楚、礼貌的退货邮件。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "life",
+    "genre": "email",
+    "body": "Hello, I am writing about a jacket that I ordered last week. It arrived yesterday, and I'm afraid it doesn't fit. I chose a medium, but it is much bigger than the medium that I usually buy. My brother says it looks like a tent on me. The colour is also darker than the photo online. I have only tried it on once, and I haven't removed the labels. I would like to return it and get my money back. Could you tell me how to do this? I have looked on your website, but I can't find a returns form. Also, do I need to pay for the post? The box which it came in is still in good condition, so I can send it back in that. Thank you for your help. Best wishes, Lena Brooks",
+    "questions": [
+      {
+        "prompt": "What is the main purpose of Lena's email?",
+        "options": [
+          "To complain that the jacket arrived late",
+          "To order the same jacket in a smaller size",
+          "To ask how to send the jacket back and get a refund",
+          "To say that the box arrived in bad condition"
+        ],
+        "answer": 2,
+        "evidence": "I would like to return it and get my money back."
+      },
+      {
+        "prompt": "What can't Lena find on the website?",
+        "options": [
+          "A returns form",
+          "A photo of the jacket",
+          "The price of the post",
+          "A smaller size of the jacket"
+        ],
+        "answer": 0,
+        "evidence": "I have looked on your website, but I can't find a returns form."
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {"term": "fit", "meaning": "（尺寸）合身", "example": "These shoes don't fit, so I need a bigger size."},
+      {"term": "labels", "meaning": "标签（复数）", "example": "Please don't cut off the labels before you try it on."},
+      {"term": "return", "meaning": "退还；退货", "example": "You can return the shoes if they are too small."},
+      {"term": "condition", "meaning": "状况；状态", "example": "The old bike is still in very good condition."}
+    ],
+    "expressions": [
+      {"text": "I am writing about", "meaning": "我写信是关于……", "note": "邮件开头直接说明来意的标准句，正式和半正式邮件都能用。"},
+      {"text": "I'm afraid it doesn't fit", "meaning": "恐怕不合身", "note": "I'm afraid 让坏消息听起来更礼貌；fit 只说尺寸合不合，颜色款式合不合适用 suit。"},
+      {"text": "looks like a tent on me", "meaning": "穿在我身上像个帐篷（太大了）", "note": "looks like + 名词，夸张又幽默地描述衣服太大。"},
+      {"text": "tried it on", "meaning": "试穿过", "note": "try on 的宾语是代词时要放中间：try it on，不说 try on it。"},
+      {"text": "get my money back", "meaning": "把钱退回来；退款", "note": "比 refund 更口语，日常对话和邮件都常用。"},
+      {"text": "in good condition", "meaning": "状况良好", "note": "描述二手物品、包装、房子都很常用：The car is in good condition."}
+    ],
+    "grammar": ["tense-perfect", "clause-relative"],
+    "knowledge": [
+      {"node": "tense-perfect", "quote": "I have only tried it on once, and I haven't removed the labels.", "explanation": "现在完成时 have tried / haven't removed 强调“到目前为止”的状态：衣服只试过一次、标签还在，说明现在还能退货。"},
+      {"node": "clause-relative", "quote": "The box which it came in is still in good condition", "explanation": "which it came in 修饰 the box，介词 in 留在从句末尾，口语里很自然；也可以说 the box that it came in。"}
+    ],
+    "speaking": "两人练习：一人是客服，一人打电话说明网购的东西有什么问题，用上 I'm afraid ... 和 I would like to ...，1 分钟内说完。",
+    "writing": "用 60–80 词给网店写一封退货邮件，说明你买了什么、哪里有问题，并问一个关于退货的问题，至少用一次现在完成时。",
+    "task": {"prompt": "仿照这句，用 I have looked ..., but I can't find ... 说一件你找过却没找到的东西。", "model": "I have looked on your website, but I can't find a returns form."},
+    "tags": ["网购退货", "邮件写作"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-life-a2-power-cut-evening",
+    "title": "停电的那个晚上",
+    "title_en": "Candles and Ice Cream: An Evening Without Power",
+    "summary_zh": "突然停电，两个室友找手电、点蜡烛、把快化的冰淇淋当晚饭，结果发现这个安静的晚上意外地美好。读完你能学会停电、手机没电时的地道说法。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "life",
+    "genre": "dialogue",
+    "body": "Maya: Jin? The lights have just gone off. Jin: I know. The whole street is dark. Maya: Have you seen the torch? It's usually in the kitchen drawer. Jin: I've already looked. It isn't there. But I've found two candles. Maya: Perfect. My phone is almost dead, so I'm not using it. Jin: Same here. So what do we do now? Maya: Well, the oven doesn't work, but the bread is still fresh. Jin: And the ice cream is melting in the freezer. We can't waste it! Maya: Ice cream for dinner, then. Jin: You know, this is nice. It's so quiet. Maya: I know. We never really talk like this. We're always looking at our screens. Jin: Oh. The lights are back. Maya: Shall we turn them off again? Jin: Just for one more hour.",
+    "questions": [
+      {
+        "prompt": "How do Maya and Jin feel about the power cut at the end?",
+        "options": [
+          "They are angry because they can't cook dinner",
+          "They are worried because their phones are almost dead",
+          "They enjoy the quiet time and want a little more of it",
+          "They are bored and want to go out with friends"
+        ],
+        "answer": 2,
+        "evidence": "Shall we turn them off again?"
+      },
+      {
+        "prompt": "Why do they eat ice cream for dinner?",
+        "options": [
+          "It is melting, and they don't want to waste it",
+          "It is the only food that Jin likes",
+          "The bread is too old to eat",
+          "They found it in the kitchen drawer"
+        ],
+        "answer": 0,
+        "evidence": "And the ice cream is melting in the freezer."
+      }
+    ],
+    "dictation_index": 10,
+    "vocabulary": [
+      {"term": "torch", "meaning": "手电筒（英式）", "example": "I keep a torch next to my bed in case the lights go off."},
+      {"term": "drawer", "meaning": "抽屉", "example": "The spoons are in the top drawer."},
+      {"term": "melting", "meaning": "正在融化", "example": "The snow is melting in the sun."},
+      {"term": "waste", "meaning": "浪费", "example": "Don't waste water when you brush your teeth."}
+    ],
+    "expressions": [
+      {"text": "have just gone off", "meaning": "（灯、电）刚刚灭了", "note": "go off 指灯或电器突然停了；反义的“来电了”可以说 The lights are back (on)."},
+      {"text": "almost dead", "meaning": "（手机）快没电了", "note": "口语里手机没电说 my phone is dead，快没电就是 almost dead。"},
+      {"text": "Same here", "meaning": "我也是", "note": "回应对方的情况，比 Me too 更随意，朋友之间很常用。"},
+      {"text": "We can't waste it", "meaning": "可不能浪费了", "note": "can't 在这里带一点玩笑的语气，常用来给自己找吃东西的理由。"},
+      {"text": "Shall we", "meaning": "我们要不要……？", "note": "Shall we + 动词原形，提出一起做某事的建议，英式口语很常用。"}
+    ],
+    "grammar": ["tense-perfect", "tense-present"],
+    "knowledge": [
+      {"node": "tense-perfect", "quote": "The lights have just gone off.", "explanation": "have just + 过去分词，表示“刚刚发生、现在还能看到结果”：灯刚灭，现在屋里还是黑的。"},
+      {"node": "tense-present", "quote": "We're always looking at our screens.", "explanation": "现在进行时和 always 连用，表示一个反复出现、说话人不太满意的习惯，比 We always look 更有“抱怨”的感觉。"}
+    ],
+    "speaking": "和同伴表演一段 1 分钟的对话：家里突然停电了，你们要找东西、决定做什么，至少用上 Have you seen ...? 和 Shall we ...?。",
+    "writing": "用 50–70 词写一条朋友圈或日记，讲讲你经历过的一次停电或断网，用上 have just 和 Same here 中的一个。",
+    "task": {"prompt": "仿照这句，用 Have you seen ...? It's usually ... 问家人或室友一件找不到的东西。", "model": "Have you seen the torch? It's usually in the kitchen drawer."},
+    "tags": ["居家生活", "日常对话"],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-life-a2-cooking-for-one",
+    "title": "一个人吃饭也要好好做",
+    "title_en": "Cooking for One Without the Fuss",
+    "summary_zh": "一个人住，常常懒得做饭。这篇指南给出四个简单办法：多做一点、买耐放的食材、记住几道拿手菜、认真摆盘。读完你能用英语给别人提生活小建议。",
+    "level": "A2",
+    "cefr": "A2",
+    "theme": "life",
+    "genre": "guide",
+    "body": "Cooking for one person can feel like too much work. Many people who live alone just eat toast or order food. But a good meal for one doesn't need to be difficult. First, cook a little extra. If you make rice on Monday, you can use the rest for fried rice on Tuesday. Second, buy food that lasts. Eggs, frozen peas and onions stay good for a long time. Third, keep a short list of three or four dishes which you can make without a recipe. A simple soup, an egg dish and a pasta dish are a good start. Finally, make it nice. Put your food on a real plate, not in the pan, and sit at the table. You are eating alone, but you are still worth a proper dinner.",
+    "questions": [
+      {
+        "prompt": "What is the main message of the guide?",
+        "options": [
+          "People who live alone should order food more often",
+          "Cooking for yourself can be easy, and you deserve a good meal",
+          "It is cheaper to cook for a big family than for one person",
+          "You should only eat rice and eggs when you live alone"
+        ],
+        "answer": 1,
+        "evidence": "But a good meal for one doesn't need to be difficult."
+      },
+      {
+        "prompt": "Why does the writer suggest eggs, frozen peas and onions?",
+        "options": [
+          "They are easy to cook in one pan",
+          "They are the cheapest food in the shop",
+          "They stay good for a long time",
+          "They taste good with fried rice"
+        ],
+        "answer": 2,
+        "evidence": "Eggs, frozen peas and onions stay good for a long time."
+      }
+    ],
+    "dictation_index": 4,
+    "vocabulary": [
+      {"term": "extra", "meaning": "额外的；多出来的", "example": "I always take an extra pair of socks when I travel."},
+      {"term": "lasts", "meaning": "（食物等）能保存；持续", "example": "This bread lasts for a week if you keep it in a bag."},
+      {"term": "recipe", "meaning": "食谱；做法", "example": "My mum never uses a recipe when she makes soup."},
+      {"term": "proper", "meaning": "像样的；正经的", "example": "After the long trip, I just wanted a proper bed."}
+    ],
+    "expressions": [
+      {"text": "feel like too much work", "meaning": "感觉太麻烦了", "note": "feel like + 名词，说某件事给人的感觉；too much work 常用来形容“懒得做”。"},
+      {"text": "cook a little extra", "meaning": "多做一点", "note": "a little extra 表示“多一点”，做饭、带钱、留时间都能用。"},
+      {"text": "food that lasts", "meaning": "耐放的食物", "note": "last 作动词表示“保存、持续”，比 can be kept 更简单自然。"},
+      {"text": "stay good for a long time", "meaning": "能放很久不坏", "note": "stay good 指食物保持新鲜，口语中很常用。"},
+      {"text": "a good start", "meaning": "一个不错的开始", "note": "给建议时常用：Three dishes are a good start."},
+      {"text": "worth a proper dinner", "meaning": "值得好好吃一顿", "note": "be worth + 名词，表示“值得拥有……”，带一点鼓励的语气。"}
+    ],
+    "grammar": ["clause-relative", "tense-present", "conditional-real"],
+    "knowledge": [
+      {"node": "clause-relative", "quote": "Many people who live alone just eat toast or order food.", "explanation": "who live alone 修饰 people，说明是“哪些人”；关系词 who 在从句里作主语，不能省略。"},
+      {"node": "tense-present", "quote": "Eggs, frozen peas and onions stay good for a long time.", "explanation": "一般现在时描述普遍的事实和规律，指南、说明书里最常用。"},
+      {"node": "conditional-real", "quote": "If you make rice on Monday, you can use the rest for fried rice on Tuesday.", "explanation": "if + 一般现在时，主句用 can，给出一个真实可行的做法，提建议时非常好用。"}
+    ],
+    "speaking": "用 1 分钟介绍一道你不用看食谱就能做的菜：需要什么、怎么做、什么时候吃，至少用一个 If you ..., you can ... 句子。",
+    "writing": "用 60–80 词给刚开始一个人住的朋友写三条做饭小建议，用 First / Second / Finally 连接，至少用一次 that 或 which 定语从句。",
+    "task": {"prompt": "仿照这句，用 If you ... on Monday, you can ... on Tuesday 写一个你自己的省时小妙招。", "model": "If you make rice on Monday, you can use the rest for fried rice on Tuesday."},
+    "tags": ["独居生活", "做饭"],
+    "source": "Flow 编辑部原创"
+  }
+]

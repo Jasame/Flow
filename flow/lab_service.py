@@ -3,10 +3,10 @@ import json,time,re,uuid,hashlib,os,difflib,urllib.error,socket
 import ai_jobs
 from content_v06 import PACKS,material
 from content_v09 import THEMES
-from content_v30 import all_materials
+from content_v50 import all_materials
 import corpus_service as corpus
 from audio_validation import validate_audio
-from chat_service import request_model,remaining
+from chat_service import request_model,remaining,reserve
 from vertex_auth import ai_enabled
 SKILLS=('listening','speaking','reading','writing')
 LEVELS=('A2','B1','B2');TTL=120
@@ -81,19 +81,20 @@ def validate_feedback(raw,audio=False):
  if audio:out['transcript']=text(raw.get('transcript'),maximum=4000)
  return out
 
-def run_job(c,uid,rid,kind,pack,skill,spec,invoke,convert):
- """Reserve a shared daily call before releasing the write lock for the network."""
+def run_job(c,uid,rid,kind,pack,skill,spec,invoke,convert,mark_replay=False):
+ """Reserve a shared daily call before releasing the write lock for the network.
+ mark_replay: a retry of a finished request says so ('replayed'), so the caller can skip its side effects."""
  identifier(rid);fp=fingerprint(spec);now=time.time();c.execute('BEGIN IMMEDIATE')
  old=c.execute('SELECT * FROM lab_jobs WHERE user_id=? AND request_id=?',(uid,rid)).fetchone()
  if old:
   if old['fingerprint']!=fp or old['kind']!=kind:c.rollback();return {'error':'请求标识已用于其他内容'},409
-  if old['status']=='complete':c.rollback();return {'result':json.loads(old['result']),'request_id':rid,'remaining':remaining(c,uid)},200
+  # A retry of a finished request returns the stored result; callers skip their side effects for it (replayed).
+  if old['status']=='complete':c.rollback();return {'result':json.loads(old['result']),'request_id':rid,'remaining':remaining(c,uid),**({'replayed':True} if mark_replay else {})},200
   if old['status']=='pending' and old['updated']>now-TTL:c.rollback();return {'error':'正在处理，请稍候再刷新记录'},409
- if not ai_enabled():c.rollback();return {'error':'Gemini 尚未配置，请先使用内置材料训练'},503
+ if not ai_enabled():c.rollback();return {'error':'AI 暂未开启，请先使用内置材料训练'},503
  if c.execute("SELECT 1 FROM lab_jobs WHERE user_id=? AND status='pending' AND updated>? AND request_id!=?",(uid,now-TTL,rid)).fetchone() or c.execute("SELECT 1 FROM chat_turns WHERE user_id=? AND status='pending' AND updated>?",(uid,now-TTL)).fetchone():c.rollback();return {'error':'已有 AI 请求正在处理，请稍候'},409
- day=time.strftime('%Y-%m-%d',time.gmtime());c.execute('INSERT OR IGNORE INTO ai_usage VALUES(?,?,0)',(uid,day))
- if int(os.getenv('FLOW_AI_DAILY_LIMIT','0'))>0 and c.execute('SELECT COALESCE(SUM(count),0) FROM ai_usage WHERE day=?',(day,)).fetchone()[0]>=int(os.getenv('FLOW_AI_DAILY_LIMIT','0')):c.rollback();return {'error':'今日 AI 请求次数已用完，按 UTC 日期重置'},429
- c.execute('UPDATE ai_usage SET count=count+1 WHERE user_id=? AND day=?',(uid,day))
+ problem=reserve(c,uid)
+ if problem:c.rollback();return {'error':problem,'remaining':remaining(c,uid)},429
  if old:c.execute("UPDATE lab_jobs SET status='pending',error='',updated=? WHERE id=?",(now,old['id']))
  else:c.execute("INSERT INTO lab_jobs(user_id,request_id,kind,pack,skill,fingerprint,status,created,updated) VALUES(?,?,?,?,?,?,'pending',?,?)",(uid,rid,kind,pack,skill,fp,now,now))
  lease=ai_jobs.reserve(c,'lab_jobs',uid,rid);c.commit()
@@ -106,16 +107,18 @@ def run_job(c,uid,rid,kind,pack,skill,spec,invoke,convert):
   return {'result':result,'request_id':rid,'remaining':remaining(c,uid)},200
  except Exception as exc:
   status=502
-  error='Gemini 暂时无法完成任务；你的草稿仍保留，可使用相同请求重试。'
+  error='AI 暂时无法完成这次任务，草稿还在，稍后再试一次。';refund=True
   if isinstance(exc,__import__('vertex_auth').AIConfigurationError):status=503;error='AI 配置或依赖不完整，请管理员检查模型、接口地址与凭据；反复重试无法修复配置。'
-  elif isinstance(exc,ValueError):error='Gemini 输出不完整或格式不正确，本次未作为有效反馈保存。请重试。'
-  elif isinstance(exc,(TimeoutError,socket.timeout)):status=504;error='Gemini 连接超时。草稿仍保留，可以稍后重试或继续内置练习。'
+  elif isinstance(exc,ValueError):error='AI 这次的回答不完整，没有保存。请再试一次。';refund=False  # the model ran: it counts
+  elif isinstance(exc,(TimeoutError,socket.timeout)):status=504;error='AI 响应超时，草稿还在，稍后再试一次。'
   elif isinstance(exc,urllib.error.HTTPError):
    if exc.code in (400,413):error='模型或网关不支持此请求，请检查模型配置与音频大小。'
    elif exc.code in (401,403):error='AI 服务认证或访问权限异常，请联系管理员检查网关密钥、Google 权限和访问限制。'
-   elif exc.code==429:status=429;error='Google 配额或服务额度暂时不足，请稍后重试；草稿仍保留。'
+   elif exc.code==429:status=429;error='AI 服务这会儿太忙，请稍后再试；草稿还在。'
    elif exc.code==503:status=503;error='AI 服务暂时繁忙，请稍后重试或先练习内置材料。'
-  c.execute("UPDATE lab_jobs SET status='failed',error=?,updated=? WHERE user_id=? AND request_id=? AND lease=?",(error,time.time(),uid,rid,lease));c.commit()
+  c.execute("UPDATE lab_jobs SET status='failed',error=?,updated=? WHERE user_id=? AND request_id=? AND lease=?",(error,time.time(),uid,rid,lease))
+  if refund:c.execute('UPDATE ai_usage SET count=MAX(0,count-1) WHERE user_id=? AND day=?',(uid,time.strftime('%Y-%m-%d',time.gmtime())))  # no answer, no charge
+  c.commit()
   return {'error':error,'request_id':rid,'remaining':remaining(c,uid)},status
 
 def coach_assignment(c,uid,data,pack,skill):
@@ -184,7 +187,7 @@ def get(c,uid,path,query):
  if not path.startswith('/api/lab'):return None
  if path=='/api/lab':
   profile=c.execute('SELECT level,theme,focus FROM lab_profile WHERE user_id=?',(uid,)).fetchone()
-  return {'packs':corpus.catalog(c,uid),'resume':corpus.resume(c,uid),'profile':dict(profile) if profile else {'level':'B1','theme':'campus','focus':'listening'},'foundation_basic':__import__('foundation_service').is_basic(c,uid),'report':report(c,uid),'ai_enabled':ai_enabled(),'audio_enabled':audio_enabled(),'remaining':remaining(c,uid),'daily':__import__('daily_service').status(c)},200
+  return {'packs':corpus.catalog(c,uid),'resume':corpus.resume(c,uid),'profile':dict(profile) if profile else {'level':__import__('practice_service').starting(c,uid),'theme':'campus','focus':'listening'},'foundation_basic':__import__('foundation_service').is_basic(c,uid),'report':report(c,uid),'ai_enabled':ai_enabled(),'audio_enabled':audio_enabled(),'remaining':remaining(c,uid),'daily':__import__('daily_service').status(c)},200
  if path=='/api/lab/pack':
   pack=pack_for(c,uid,query.get('id',[''])[0]);drafts=[dict(r) for r in c.execute('SELECT skill,answer,updated FROM lab_drafts WHERE user_id=? AND pack=?',(uid,pack['id']))]
   linked=[dict(r) for r in c.execute("SELECT DISTINCT l.id,l.lemma word FROM kg_edges e JOIN kg_nodes n ON n.id=e.source JOIN lexicon l ON l.id=n.ref WHERE e.target=? AND e.relation IN ('occurs_in','introduced_by') AND l.status='published' AND (l.owner IS NULL OR l.owner=?) LIMIT 12",('material:'+pack['id'],uid))]
@@ -287,7 +290,7 @@ def post(c,uid,path,data):
    answer=text(answer,maximum=4000);target=sentences(pack['body'])[pack['dictation_index']]
    tokens=lambda s:re.findall(r"[a-z]+(?:'[a-z]+)?",s.lower().replace('’',"'"))
    expected=tokens(target);actual=tokens(answer);matcher=difflib.SequenceMatcher(a=expected,b=actual,autojunk=False)
-   details={'kind':'dictation','target':target,'matches':sum(b.size for b in matcher.get_matching_blocks()),'target_words':len(expected),'written_words':len(actual),'accuracy':round(100*matcher.ratio()),'note':'按词序对齐的文本相似度；忽略大小写和标点，不代表听力能力评分。'}
+   details={'kind':'dictation','target':target,'diff':dictation_diff(matcher,expected,actual),'matches':sum(b.size for b in matcher.get_matching_blocks()),'target_words':len(expected),'written_words':len(actual),'accuracy':round(100*matcher.ratio()),'note':'按词序对齐的文本相似度；忽略大小写和标点，不代表听力能力评分。'}
   else:
    answer=text(answer,maximum=4000);details={'kind':'work','word_count':len(re.findall(r"\b[\w'-]+\b",answer))}
    if rid:
@@ -338,6 +341,17 @@ def post(c,uid,path,data):
    c.execute('UPDATE wordbook SET stage=?,due=? WHERE id=?',(stage,due,word['id']))
   c.commit();return {'ok':True},200
  return {'error':'训练接口不存在'},404
+
+
+def dictation_diff(matcher,expected,actual):
+ """Word-level feedback: which target words were missed, replaced or added (1-based positions in the target)."""
+ out={'missing':[],'replaced':[],'extra':[]}
+ for op,a1,a2,b1,b2 in matcher.get_opcodes():
+  if op=='delete':out['missing'].extend({'position':i+1,'expected':expected[i]} for i in range(a1,a2))
+  elif op=='insert':out['extra'].extend({'after':a1,'written':actual[j]} for j in range(b1,b2))
+  elif op=='replace':
+   out['replaced'].append({'position':a1+1,'expected':' '.join(expected[a1:a2]),'written':' '.join(actual[b1:b2])})
+ return out
 
 
 def prior_reading(c,uid,pack):

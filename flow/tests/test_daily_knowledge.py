@@ -23,7 +23,7 @@ class DailyKnowledgeTests(unittest.TestCase):
   self.assertEqual(daily.run(self.c)['status'],'complete');self.assertEqual(self.c.execute('SELECT SUM(count) FROM ai_usage').fetchone()[0],2)
   p=lab.pack_for(self.c,2,'daily-'+daily.today());self.assertEqual(p['provenance']['sources'][0]['url'],'https://example.org/news')
   self.assertEqual(p['grammar'],['tense-present']);self.assertIn('suggestions',p['provenance'])
-  g=kg.graph(self.c,1);node=next(n for n in g['nodes'] if n['id']=='tense-present');self.assertEqual(node['state'],'待测评');self.assertTrue(any(x['id']==p['id'] for x in node['materials']))
+  g=kg.graph(self.c,1);node=next(n for n in g['nodes'] if n['id']=='tense-present');self.assertEqual(node['state'],'待建立');self.assertTrue(any(x['id']==p['id'] for x in node['materials']))
  def test_no_grounding_never_publishes_and_retry_bounded(self):
   for i in range(2):self.assertEqual(self.run_mock(meta={})[0]['status'],'failed')
   with patch.object(daily,'request_model') as model:daily.run(self.c);model.assert_not_called()
@@ -46,7 +46,7 @@ class DailyKnowledgeTests(unittest.TestCase):
   p=all_materials()[0];node=p['grammar'][0]
   self.c.execute('INSERT INTO lab_work(user_id,pack,skill,answer,feedback_request,details,save_id,created) VALUES(?,?,?,?,?,?,?,?)',(1,p['id'],'reading','my answer','','{}','work-001',time.time()));self.c.commit()
   a=next(n for n in kg.graph(self.c,1)['nodes'] if n['id']==node);b=next(n for n in kg.graph(self.c,2)['nodes'] if n['id']==node)
-  self.assertEqual(a['practice_count'],1);self.assertEqual(b['practice_count'],0);self.assertEqual(a['distinct'],0);self.assertEqual(a['state'],'待测评')
+  self.assertEqual(a['practice_count'],1);self.assertEqual(b['practice_count'],0);self.assertEqual(a['distinct'],0);self.assertEqual(a['state'],'待建立')
  def test_every_graph_node_has_an_original_context_with_valid_anchors(self):
   from content_v08 import all_materials,BRIDGES
   from content_v05 import NODES

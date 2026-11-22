@@ -26,7 +26,7 @@ class CorpusTests(unittest.TestCase):
    self.assertEqual(len(p['vocabulary']),3)
   choices=Counter(q['answer'] for p in packs for q in p['questions']);self.assertEqual(set(choices),{0,1,2,3})
  def test_catalog_search_metadata_bookmark_and_ownership(self):
-  d,status=self.get();self.assertEqual(status,200);self.assertEqual(len(d['packs']),154)
+  d,status=self.get();self.assertEqual(status,200);self.assertEqual(len(d['packs']),154+len(__import__('content_v50').v5_materials()))
   p=next(p for p in d['packs'] if p['id']=='work-intro-a2');self.assertIn('customer messages',p['search_text']);self.assertIn('职场沟通',p['search_text']);self.assertEqual(p['genre'],'dialogue');self.assertNotIn('questions',p)
   self.assertEqual(self.post('/api/lab/bookmark',{'pack':p['id'],'saved':True})[1],200)
   self.post('/api/lab/bookmark',{'pack':p['id'],'saved':True})
@@ -63,7 +63,7 @@ class CorpusTests(unittest.TestCase):
    if p['id'] not in oldids:self.c.execute('DELETE FROM lab_packs WHERE id=?',(p['id'],))
   for table in ('lab_bookmarks','lab_notes','lab_content_reports'):self.c.execute('DROP TABLE '+table)
   self.c.execute("DELETE FROM migrations WHERE version='0.7'");self.c.commit();self.c.close();app.init();app.init();self.c=app.db()
-  self.assertEqual(self.c.execute('SELECT COUNT(*) FROM lab_packs').fetchone()[0],262)
+  self.assertEqual(self.c.execute('SELECT COUNT(*) FROM lab_packs').fetchone()[0],262+len(__import__('content_v50').v5_materials()))
   self.assertEqual(lab.pack_for(self.c,1,'travel-a2')['body'],old['body'])
   self.assertEqual(self.get('/api/lab/history')[0]['items'][0]['answer'],'Original work.')
   self.assertEqual(self.get('/api/lab/pack',query={'id':['travel-a2']})[0]['drafts'][0]['answer'],'Original draft.')

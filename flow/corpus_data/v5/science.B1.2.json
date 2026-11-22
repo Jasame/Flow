@@ -1,0 +1,499 @@
+[
+  {
+    "id": "v5-science-b1-microwave",
+    "title": "微波炉是怎样加热食物的",
+    "title_en": "Your Microwave Doesn't Cook from the Inside Out",
+    "summary_zh": "很多人以为微波炉是“从里往外”加热的，其实不然。读完你会明白微波怎样让水分子“转起来”产生热量、为什么要中途搅拌，以及带尖角的锡纸为什么会打火花。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "science",
+    "genre": "explainer",
+    "body": "Many people believe that a microwave oven cooks food from the inside out, but that is not quite what happens. Inside the oven, a small device sends out microwaves, invisible waves similar to radio waves. They bounce around the metal walls and pass into the food. Water molecules in the food have a slightly positive end and a slightly negative end, so they try to turn and line up with the waves. Because the waves change direction extremely quickly, the molecules keep spinning and bumping into each other, and all that movement turns into heat. However, the waves only reach a few centimetres into the food. The middle of a thick dish heats up more slowly, as heat spreads inwards from the outer layers. That is why the instructions often tell you to stir your soup halfway through. If you didn't stir it, you could end up with a burning-hot edge and an icy centre. The waves also form a pattern of hot and cold spots inside the oven. For this reason, most models have a turning plate to keep the food moving. And what about metal? Thin foil with sharp edges could create sparks, so it is safer to use a dish designed for microwaves.",
+    "questions": [
+      {
+        "prompt": "What common belief does the passage correct?",
+        "options": [
+          "Microwaves are exactly the same as radio waves",
+          "A microwave oven heats food from the inside out",
+          "Metal dishes are always dangerous in a microwave",
+          "A microwave oven heats food without using its water"
+        ],
+        "answer": 1,
+        "evidence": "Many people believe that a microwave oven cooks food from the inside out, but that is not quite what happens."
+      },
+      {
+        "prompt": "Why is it a good idea to stir your soup halfway through?",
+        "options": [
+          "To stop sparks from forming inside the oven",
+          "To help the turning plate move more smoothly",
+          "Because the outer layers heat up faster than the middle",
+          "Because stirring adds more water to the soup"
+        ],
+        "answer": 2,
+        "evidence": "The middle of a thick dish heats up more slowly, as heat spreads inwards from the outer layers."
+      }
+    ],
+    "dictation_index": 8,
+    "vocabulary": [
+      {
+        "term": "invisible",
+        "meaning": "看不见的；无形的",
+        "example": "Air is invisible, but you can feel it on a windy day."
+      },
+      {
+        "term": "molecules",
+        "meaning": "分子",
+        "example": "When water boils, its molecules move faster and escape as steam."
+      },
+      {
+        "term": "halfway",
+        "meaning": "在中途；到一半",
+        "example": "We stopped for lunch halfway through the journey."
+      },
+      {
+        "term": "sparks",
+        "meaning": "火花；火星",
+        "example": "Sparks flew up when we added more wood to the fire."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "from the inside out",
+        "meaning": "从里到外",
+        "note": "也常用来比喻“由内而外”：Real confidence grows from the inside out."
+      },
+      {
+        "text": "not quite what happens",
+        "meaning": "并不完全是这么回事",
+        "note": "委婉地纠正一个常见说法，比直接说 wrong 客气。"
+      },
+      {
+        "text": "line up with",
+        "meaning": "和……对齐；顺着……排好",
+        "note": "可用于物体、方向，也可用于计划：Make sure the pictures line up with each other."
+      },
+      {
+        "text": "bumping into each other",
+        "meaning": "互相碰撞",
+        "note": "bump into 还常指“偶然碰见”：I bumped into my old teacher at the station."
+      },
+      {
+        "text": "end up with",
+        "meaning": "最后落得；结果得到",
+        "note": "常指不太理想的结果：If you don't plan, you'll end up with too much work."
+      },
+      {
+        "text": "halfway through",
+        "meaning": "进行到一半时",
+        "note": "后接过程或活动：I fell asleep halfway through the film."
+      }
+    ],
+    "grammar": [
+      "conditional-modal",
+      "nonfinite-infinitive",
+      "nonfinite-participle"
+    ],
+    "knowledge": [
+      {
+        "node": "conditional-modal",
+        "quote": "If you didn't stir it, you could end up with a burning-hot edge and an icy centre.",
+        "explanation": "if + 过去式 didn't stir，主句 could + 动词原形：假设一个“没那样做”的情况，并说出可能的坏结果。could 强调“有可能”，比 would 语气留有余地。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "most models have a turning plate to keep the food moving",
+        "explanation": "to keep … 是不定式表目的，说明转盘“是为了做什么”；keep + 宾语 + -ing 表示“让……一直保持某种状态”。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "it is safer to use a dish designed for microwaves",
+        "explanation": "designed for microwaves 是过去分词短语作后置定语，修饰 a dish，表示被动“专为微波炉设计的”，相当于 a dish that is designed for microwaves。"
+      }
+    ],
+    "speaking": "用 1 分钟向家人解释：为什么微波炉热过的饭有时外面烫、里面凉，应该怎么办。用上 end up with 和 halfway through。",
+    "writing": "用 100–140 词纠正一个身边常见的生活小误解（做饭、天气或电器都行），先写大家怎么想，再用 but that is not quite what happens 引出真正的原理。",
+    "task": {
+      "prompt": "仿照这句，用 If you didn't…, you could end up with… 提醒别人不做某事可能带来的后果。",
+      "model": "If you didn't stir it, you could end up with a burning-hot edge and an icy centre."
+    },
+    "tags": [
+      "家电原理",
+      "厨房里的科学"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-science-b1-autumn-leaves",
+    "title": "秋天的树叶为什么会变色",
+    "title_en": "Trees Don't Paint Their Leaves in Autumn",
+    "summary_zh": "两个朋友在公园散步，聊起树叶为什么一到秋天就变黄变红。原来黄色和橙色一直都在，只是被绿色盖住了；红色才是秋天“新做”的，而原因科学家还没完全弄清。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "science",
+    "genre": "dialogue",
+    "body": "Rosa: Look at that tree! It was completely green a few weeks ago, and now it's on fire. Jake: I wish I knew how they do that. Do trees paint their leaves every autumn? Rosa: Not really, because most of that yellow and orange was there all summer. Jake: So why couldn't we see it before? Rosa: Because the green covers it up. Leaves are full of a green substance called chlorophyll, which they use to make food from sunlight. Jake: Okay, so what changes in autumn? Rosa: The days get shorter and cooler, so the tree stops making new chlorophyll. It pulls useful materials back into its branches before the leaves fall. As the green fades, the hidden colours finally show through. Jake: So neither the yellow nor the orange is new. Rosa: Exactly, but red is a different story, because some trees actually produce red colour in autumn. Jake: Why bother, if the leaves are going to fall anyway? Rosa: Scientists aren't completely sure, but one idea is that it protects the leaves from strong sunlight while the tree saves what it can. Jake: I wish I had a camera with me. Rosa: You have a phone, Jake. Jake: Oh, right.",
+    "questions": [
+      {
+        "prompt": "According to Rosa, why do leaves turn yellow and orange in autumn?",
+        "options": [
+          "The tree covers them with new colours",
+          "Cold nights burn the edges of the leaves",
+          "The green fades and reveals colours that were already there",
+          "Strong sunlight slowly turns the green into yellow"
+        ],
+        "answer": 2,
+        "evidence": "As the green fades, the hidden colours finally show through."
+      },
+      {
+        "prompt": "What does Rosa say about red leaves?",
+        "options": [
+          "They only appear on very old trees",
+          "Some trees make red colour in autumn, but the reason is not fully clear",
+          "The red was hidden under the green all summer",
+          "They stay on the tree longer than yellow ones"
+        ],
+        "answer": 1,
+        "evidence": "some trees actually produce red colour in autumn"
+      }
+    ],
+    "dictation_index": 10,
+    "vocabulary": [
+      {
+        "term": "substance",
+        "meaning": "物质",
+        "example": "Honey is a thick, sweet substance made by bees."
+      },
+      {
+        "term": "branches",
+        "meaning": "树枝",
+        "example": "Birds were singing in the branches above our heads."
+      },
+      {
+        "term": "fades",
+        "meaning": "（颜色）褪去；逐渐消失",
+        "example": "The colour of my jeans fades a little after every wash."
+      },
+      {
+        "term": "hidden",
+        "meaning": "隐藏的；看不见的",
+        "example": "We found a hidden path behind the old house."
+      },
+      {
+        "term": "produce",
+        "meaning": "产生；制造",
+        "example": "These small trees produce a lot of fruit."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "on fire",
+        "meaning": "着火了；（比喻）红得像烧起来一样",
+        "note": "口语里也形容人状态火热：Our team is on fire this season."
+      },
+      {
+        "text": "Not really",
+        "meaning": "不完全是；不太对",
+        "note": "委婉地否定对方的猜测，比直接说 No 柔和。"
+      },
+      {
+        "text": "covers it up",
+        "meaning": "把它盖住",
+        "note": "cover up 也常指“掩盖（错误、真相）”：He tried to cover up his mistake."
+      },
+      {
+        "text": "show through",
+        "meaning": "透出来；显露出来",
+        "note": "底下的东西从表面透出来：The old paint shows through the new colour."
+      },
+      {
+        "text": "Why bother",
+        "meaning": "何必费这个劲呢？",
+        "note": "口语反问，觉得某件事没必要做：Why bother cooking? Let's order a pizza."
+      },
+      {
+        "text": "Oh, right",
+        "meaning": "哦，对哦",
+        "note": "被别人提醒后恍然大悟，常带一点不好意思的语气。"
+      }
+    ],
+    "grammar": [
+      "subjunctive-now",
+      "agreement-either",
+      "nonfinite-infinitive"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-now",
+        "quote": "I wish I knew how they do that.",
+        "explanation": "I wish + 过去式 knew，表达与现在事实相反的愿望：我现在其实不知道。注意不说 I wish I know。"
+      },
+      {
+        "node": "agreement-either",
+        "quote": "So neither the yellow nor the orange is new.",
+        "explanation": "neither A nor B 作主语时，谓语和离它最近的 B 一致：the orange 是单数，所以用 is。换成 neither the yellow nor the red leaves，就要用 are。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "which they use to make food from sunlight",
+        "explanation": "use something to do something：to make food 是不定式表目的，说明叶子“用叶绿素来做什么”。"
+      }
+    ],
+    "speaking": "用 1 分钟说说你家乡秋天的样子，并解释树叶为什么会变黄。至少用一句 I wish I…（与现在事实相反的愿望）。",
+    "writing": "用 100–140 词写一段两个人看到某个自然现象（下雪、晚霞、落叶……）时的对话，至少用一次 I wish I had/knew… 和一次 neither … nor …。",
+    "task": {
+      "prompt": "仿照这句，用 I wish I had… 说一样你此刻希望手边有、但其实没有的东西。",
+      "model": "I wish I had a camera with me."
+    },
+    "tags": [
+      "植物科学",
+      "日常科学"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-science-b1-bee-dance",
+    "title": "蜜蜂怎样用舞蹈“指路”",
+    "title_en": "How Bees Give Directions by Dancing",
+    "summary_zh": "一位业余养蜂人讲蜜蜂的“摇摆舞”：找到花的工蜂回到漆黑的蜂巢，用舞步的角度告诉同伴方向，用摇摆的时间长短告诉同伴距离。读完你还能学会几种访谈里自然的回应方式。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "science",
+    "genre": "interview",
+    "body": "Tom Price has kept bees in his back garden for many years. We asked him how bees share news about food. Q: Is it true that bees can dance? Tom: It is! When a worker bee finds a good patch of flowers, she flies home to tell her sisters. Inside the dark hive, she performs what is called the waggle dance. Q: What does it look like? Tom: She runs in a straight line, shaking her body from side to side. Then she loops back and does it again, over and over. The other bees crowd around her, following every step. Q: And that tells them where to go? Tom: Yes. The angle of that straight run shows the direction of the flowers compared with the sun. Q: What about distance? Tom: The longer she waggles, the further away the food is. She also carries the smell of the flowers, which helps the others find the right ones. Q: Could you read a dance yourself? Tom: If I watched very carefully, I could probably guess the direction. But the bees are far better at it than I am. Q: Do you ever get tired of watching? Tom: Never. It still feels like spying on a secret meeting.",
+    "questions": [
+      {
+        "prompt": "What is the main purpose of the waggle dance?",
+        "options": [
+          "To warm up the hive on cold days",
+          "To tell other bees where to find food",
+          "To choose a new home for the bees",
+          "To frighten strangers away from the hive"
+        ],
+        "answer": 1,
+        "evidence": "she flies home to tell her sisters"
+      },
+      {
+        "prompt": "How do the other bees learn how far away the flowers are?",
+        "options": [
+          "From how strongly the dancer smells of flowers",
+          "From the angle of the straight run",
+          "From how long the dancer waggles",
+          "From how many bees join the dance"
+        ],
+        "answer": 2,
+        "evidence": "The longer she waggles, the further away the food is."
+      }
+    ],
+    "dictation_index": 4,
+    "vocabulary": [
+      {
+        "term": "patch",
+        "meaning": "一小片（地方）",
+        "example": "There is a small patch of grass behind our building."
+      },
+      {
+        "term": "hive",
+        "meaning": "蜂巢；蜂箱",
+        "example": "The bees flew back to the hive before the rain started."
+      },
+      {
+        "term": "crowd",
+        "meaning": "聚集；围拢",
+        "example": "Children crowd around the ice cream van every afternoon."
+      },
+      {
+        "term": "angle",
+        "meaning": "角度",
+        "example": "Try taking the photo from a different angle."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "share news about",
+        "meaning": "分享关于……的消息",
+        "note": "share news with sb / about sth：We share news about our families every Sunday."
+      },
+      {
+        "text": "from side to side",
+        "meaning": "左右来回地",
+        "note": "描述摇摆、晃动：The boat rocked from side to side."
+      },
+      {
+        "text": "over and over",
+        "meaning": "一遍又一遍",
+        "note": "强调重复，语气比 again and again 更口语：He played the song over and over."
+      },
+      {
+        "text": "compared with",
+        "meaning": "相对于；与……相比",
+        "note": "这里指方向“以太阳为参照”；也常用来比较：Compared with last year, prices are higher."
+      },
+      {
+        "text": "far better at it than I am",
+        "meaning": "比我擅长得多",
+        "note": "be good at 的比较级 better at，前面加 far/much 加强语气，谦虚地夸别人时很好用。"
+      },
+      {
+        "text": "get tired of",
+        "meaning": "厌倦；腻了",
+        "note": "后接名词或动名词：I never get tired of this song."
+      }
+    ],
+    "grammar": [
+      "nonfinite-participle",
+      "nonfinite-infinitive",
+      "conditional-modal"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-participle",
+        "quote": "She runs in a straight line, shaking her body from side to side.",
+        "explanation": "shaking … 是现在分词短语作伴随状语，表示“一边跑一边摇”。分词的逻辑主语就是句子主语 she。"
+      },
+      {
+        "node": "nonfinite-infinitive",
+        "quote": "she flies home to tell her sisters",
+        "explanation": "to tell 是不定式表目的：飞回家是为了告诉同伴。动作 + to do 说明“为什么做”，最常用也最好模仿。"
+      },
+      {
+        "node": "conditional-modal",
+        "quote": "If I watched very carefully, I could probably guess the direction.",
+        "explanation": "if + 过去式 watched，主句 could + 动词原形，表示一种假设的可能。加上 probably，语气更谦虚：我也许能猜出来。"
+      }
+    ],
+    "speaking": "用 1 分钟解释蜜蜂怎样告诉同伴花在哪里：方向怎么表示，距离又怎么表示。用上 compared with 和 The longer…, the further…。",
+    "writing": "用 100–140 词写一段对某位爱好者的简短采访（养花、钓鱼、观鸟……），至少用一个现在分词作伴随状语的句子和一个 If I…, I could… 的句子。",
+    "task": {
+      "prompt": "仿照这句，用 The longer…, the more/further… 写一句关于你自己学习或生活的话。",
+      "model": "The longer she waggles, the further away the food is."
+    },
+    "tags": [
+      "动物世界",
+      "人物访谈"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-science-b1-needle-compass",
+    "title": "用一根针做个指南针",
+    "title_en": "Make a Compass with a Needle and a Bowl of Water",
+    "summary_zh": "一根缝衣针、一块磁铁、一碗水，就能做出一个会自己指向北方的指南针。读完你能讲清：针为什么会变成小磁铁，它又为什么总和地球“对齐”。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "science",
+    "genre": "guide",
+    "body": "To make a simple compass, you need a steel needle, a magnet, a bowl of water and something light that can sit on water. Either a piece of cork or a small leaf works well. First, hold the needle by its eye and rub it from end to end with one side of the magnet, always in the same direction. Lift the magnet away after each rub and repeat this about twenty times. Next, lay the needle gently on the leaf, or push it carefully through the cork. Place your little boat in the middle of the bowl. Resting on the water, it will slowly turn and then settle in one direction. Check it against the compass app on a phone: one end should point roughly north. So what is going on? Steel is full of tiny magnetic areas pointing in all directions. Rubbing it lines many of them up, turning the needle into a weak magnet. The Earth acts like a huge magnet too, so any magnet that can turn freely lines up with it. If the needle were made of plastic, nothing would happen, because plastic cannot become magnetic. Needles are sharp, so ask an adult to help, and keep magnets away from small children.",
+    "questions": [
+      {
+        "prompt": "Why does the needle turn and point roughly north?",
+        "options": [
+          "The water in the bowl slowly pulls it north",
+          "It has become a weak magnet that lines up with the Earth",
+          "The phone next to it works like a magnet",
+          "The leaf always turns towards the light"
+        ],
+        "answer": 1,
+        "evidence": "The Earth acts like a huge magnet too, so any magnet that can turn freely lines up with it."
+      },
+      {
+        "prompt": "Why would a plastic needle not work?",
+        "options": [
+          "It is too light to stay on the leaf",
+          "It would sink to the bottom of the bowl",
+          "Plastic cannot become magnetic",
+          "It is not sharp enough to go through cork"
+        ],
+        "answer": 2,
+        "evidence": "If the needle were made of plastic, nothing would happen, because plastic cannot become magnetic."
+      }
+    ],
+    "dictation_index": 10,
+    "vocabulary": [
+      {
+        "term": "steel",
+        "meaning": "钢",
+        "example": "The new bridge is made of steel and glass."
+      },
+      {
+        "term": "magnet",
+        "meaning": "磁铁",
+        "example": "We keep our shopping list on the fridge with a magnet."
+      },
+      {
+        "term": "settle",
+        "meaning": "停稳；安定下来",
+        "example": "Wait for the dust to settle before you clean the table."
+      },
+      {
+        "term": "roughly",
+        "meaning": "大约；大致",
+        "example": "The walk to school takes roughly twenty minutes."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "from end to end",
+        "meaning": "从一头到另一头",
+        "note": "强调整个长度：We walked the beach from end to end."
+      },
+      {
+        "text": "in the same direction",
+        "meaning": "朝同一个方向",
+        "note": "也可比喻目标一致：The whole team is moving in the same direction."
+      },
+      {
+        "text": "Check it against",
+        "meaning": "拿它和……核对",
+        "note": "check A against B＝用 B 来核对 A：Check your answers against the key."
+      },
+      {
+        "text": "So what is going on?",
+        "meaning": "这到底是怎么回事？",
+        "note": "讲完现象、准备解释原理时的自然过渡，口语里很常用。"
+      },
+      {
+        "text": "lines up with",
+        "meaning": "和……对齐；顺着……排列",
+        "note": "line up with 可用于方向、位置，也可比喻想法一致：Your plan lines up with mine."
+      },
+      {
+        "text": "ask an adult to help",
+        "meaning": "请大人帮忙",
+        "note": "ask sb to do sth 是请求的基本句型，常见于儿童实验和安全提示。"
+      }
+    ],
+    "grammar": [
+      "agreement-either",
+      "nonfinite-participle",
+      "conditional-modal"
+    ],
+    "knowledge": [
+      {
+        "node": "agreement-either",
+        "quote": "Either a piece of cork or a small leaf works well.",
+        "explanation": "either A or B 作主语时，谓语和离它最近的 B 一致：a small leaf 是单数，所以用 works。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "Resting on the water, it will slowly turn and then settle in one direction.",
+        "explanation": "Resting on the water 是现在分词短语，说明主语 it 当时的状态，相当于 While it rests on the water，句子更紧凑。"
+      },
+      {
+        "node": "conditional-modal",
+        "quote": "If the needle were made of plastic, nothing would happen",
+        "explanation": "与现在事实相反的假设：针其实是钢做的。if 从句用 were，主句用 would + 动词原形，说出假设下的结果。"
+      }
+    ],
+    "speaking": "用 1 分钟一步一步说明怎样做这个指南针，再用一两句话解释它为什么会指向北方。用上 Either … or … 和 So what is going on?。",
+    "writing": "用 100–140 词写一份小实验或小手工的说明：先列材料，再写步骤，最后解释原理。至少用一个 Either … or … 句子和一个分词短语。",
+    "task": {
+      "prompt": "仿照这句，用 Either … or … works well 推荐两种都可以用的东西，注意动词和最近的主语保持一致。",
+      "model": "Either a piece of cork or a small leaf works well."
+    },
+    "tags": [
+      "家庭小实验",
+      "电与磁"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

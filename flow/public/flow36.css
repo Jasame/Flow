@@ -1,0 +1,122 @@
+/* Flow 3.6 · phone and iPad layout, account screen.
+   Principle: one clear next step per screen; while learning, navigation steps back. Loaded last. */
+
+/* ---------- Account screen (all sizes) ---------- */
+.auth36 .auth-mobile-brand{display:none}
+.auth36 .auth-methods{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:14px 0 4px;padding:3px;border-radius:10px;background:var(--subtle)}
+.auth36 .auth-methods button{min-height:38px;border:0;border-radius:8px;background:transparent;color:var(--muted);font:inherit;font-size:14px;cursor:pointer}
+.auth36 .auth-methods button[aria-pressed=true]{background:var(--surface);color:var(--text);box-shadow:0 1px 3px #0000001f;font-weight:600}
+.auth36 .code-control{display:flex;gap:8px;align-items:stretch}
+.auth36 .code-control input{flex:1 1 auto;min-width:0;font-variant-numeric:tabular-nums}
+.auth36 .code-control input:not(:placeholder-shown){letter-spacing:.18em}
+.auth36 .code-control .code-send{flex:0 0 auto;min-width:112px;white-space:nowrap;padding-inline:14px}
+.auth36 input[aria-invalid=true]{border-color:var(--negative);box-shadow:0 0 0 3px var(--negative-soft)}
+.auth36 #auth36-form{margin-top:18px}
+.auth36 .auth-privacy{font-size:12px;line-height:1.6}
+
+/* ---------- Phone ---------- */
+
+
+/* ---------- Phone, 3.6.2: a full pass over every screen ---------- */
+
+
+
+
+/* ---------- iPad and small laptops ---------- */
+@media (min-width:641px) and (max-width:1180px){
+ body{font-size:17px;line-height:1.65}
+ .page-content{max-width:900px;margin-inline:auto;padding:28px 36px 48px}
+ .page-content .card{padding:22px 24px;border-radius:18px}
+ .page-content h1{font-size:30px;line-height:1.25}
+ .flow-home .page-content{display:flex;flex-direction:column;gap:18px}
+ .flow-home .page-content>*{margin-top:0!important;margin-bottom:0!important;order:5}
+ .flow-home .mentor-head{order:0}
+ .flow-home .loop-home{order:1;padding:24px 26px}
+ .flow-home .loop-home h2{font-size:23px}
+ .flow-home .mentor-tabs{order:2}
+ .flow-home .learning-mode-bar{order:3}
+ .flow-home .mentor-layout{grid-template-columns:minmax(0,1fr)!important}
+ .flow-home .mentor-rail{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+ .flow-home .loop-home{border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));background:linear-gradient(180deg,var(--accent-soft),var(--surface) 75%)}
+ .flow-focus .quiz{max-width:720px;margin-inline:auto}
+ .flow-focus .quiz .question{font-size:25px;line-height:1.45}
+ .flow-focus .quiz .option{min-height:62px;font-size:19px;padding:16px 20px;border-radius:16px}
+ .flow-focus .quiz .actions{margin-top:22px}
+ .flow-focus .quiz .actions .btn{min-height:52px;min-width:150px}
+ .auth36 .auth-window{max-width:980px}
+}
+
+/* iPad portrait (sidebar is hidden below 1050px): a floating quick bar replaces the hamburger-only navigation. */
+@media (min-width:641px) and (max-width:1050px){
+ .mobile-nav{display:grid!important;visibility:visible!important;grid-template-columns:repeat(5,minmax(0,1fr));position:fixed;z-index:40;left:50%;right:auto;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(560px,calc(100% - 48px));min-height:62px;padding:6px;border:1px solid var(--line);border-radius:22px;background:var(--surface);box-shadow:0 10px 30px #0000001f}
+ .mobile-nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:50px;border:0;border-radius:16px;background:transparent;color:var(--muted);font:inherit;font-size:12px;cursor:pointer}
+ .mobile-nav button[aria-current=page]{background:var(--accent-soft);color:var(--text);font-weight:600}
+ .mobile-nav svg{width:22px;height:22px}
+ .page-content{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
+ .footer{padding-bottom:100px}
+ .flow-focus .mobile-nav{display:none!important}
+ .flow-focus .footer{display:none}
+}
+@media (prefers-reduced-motion:reduce){.flow-home .mentor-tabs{scroll-behavior:auto}}
+
+/* Signature stroke timing lives in the stylesheet: the page CSP blocks inline style attributes. */
+#jasa-route-layer path:nth-child(1){--ink-delay:20ms;--ink-duration:80ms}#jasa-route-layer path:nth-child(2){--ink-delay:80ms;--ink-duration:70ms}#jasa-route-layer path:nth-child(3){--ink-delay:140ms;--ink-duration:45ms}#jasa-route-layer path:nth-child(4){--ink-delay:175ms;--ink-duration:85ms}#jasa-route-layer path:nth-child(5){--ink-delay:235ms;--ink-duration:70ms}#jasa-route-layer path:nth-child(6){--ink-delay:285ms;--ink-duration:70ms}#jasa-route-layer path:nth-child(7){--ink-delay:330ms;--ink-duration:60ms}
+
+/* 3.6.3: quiz pause and resume */
+.quiz-pause{margin:14px 0 0;text-align:center}
+.quiz-pause .text-button{min-height:44px;padding:0 14px}
+.quiz-resume{margin-bottom:16px;border-color:color-mix(in srgb,var(--accent,#8eebb8) 45%,transparent)}
+.quiz-resume h2{margin:6px 0 4px}
+.quiz-resume .actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}
+
+/* 3.6.4: phone fixes from a visual pass of every page (strips cut at the edge, words split
+   across lines, boxes inside boxes, inner scroll areas). Phone only; iPad and desktop unchanged. */
+
+
+
+/* 3.6.5: help button steps aside while reading down; word cards are one tap target at every width. */
+
+
+.flow-word-mini{position:relative}
+.flow-word-mini [data-flow-word]::after{content:'';position:absolute;inset:0;border-radius:inherit}
+.flow-word-mini [data-flow-word]:focus-visible{outline:none}
+.flow-word-mini:has([data-flow-word]:focus-visible){outline:2px solid var(--accent,#83e9b1);outline-offset:2px}
+@media (min-width:641px) and (max-width:1100px){
+ .flow-word-mini{padding:18px 20px!important}
+ .flow-word-mini h2{margin:12px 0 4px!important}
+ .flow-word-mini>p{margin:4px 0 10px!important}
+}
+
+
+/* 3.6.6: on phones the toast sits above the AI panel and the bottom bar, full width, so status messages can be read. */
+
+
+/* 3.7.0 */
+.flow-route .flow-challenge{display:block;margin-top:8px;font-size:11px;text-align:left;line-height:1.6;color:#6c8878}
+.pack-background{margin-top:18px;padding:16px 20px}
+.pack-background>summary{cursor:pointer;font-size:13px;color:#6c8878}
+.pack-background[open]>summary{margin-bottom:14px}
+.pack-background .pack-connections,.pack-background .practice-material-grade{margin-top:10px}
+.focus-next.is-finished{justify-content:flex-start;align-items:center}
+.focus-next.is-finished .btn{margin-right:6px}
+.flow35-guided .option.wrong{border-color:#d9a99a;background:#fff6f2;color:#9a5a45;opacity:.85}
+.flow35-guided .option.correct{border-color:#7fb79f;background:#f1faf5}
+.flow35-guided .option:disabled{cursor:default}
+.flow35-after-guided{margin-top:18px;padding-top:16px;border-top:1px solid var(--line,#e9eeeb)}
+.flow35-after-guided .btn{margin-top:8px}
+.home-quiz-resume{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 20px;margin-bottom:18px}
+.home-quiz-resume p{margin:6px 0 0;font-size:13px}
+
+.flow-starter{background:#f8faf9;border-color:#eaf0ed}
+.flow-starter h2{font-size:21px;margin:10px 0 8px}
+.flow-starter .btn{margin:8px 12px 0 0}
+.flow-quiet-stats{margin-top:18px}
+.flow-quiet-stats>summary{cursor:pointer;font-size:13px;color:#6c8878}
+.flow-quiet-stats[open]>summary{margin-bottom:14px}
+section.flow-quiet-stats{margin-top:22px}
+.atlas-sample-tag{display:inline-block;margin:6px 0 0;font-size:11px;color:#8a6d3b;background:#fff6e3;border-radius:20px;padding:3px 10px}
+:root[data-theme=dark] .flow-starter{background:#2d3631;border-color:#3e4c44}
+:root[data-theme=dark] .atlas-sample-tag{background:#29332d;color:#e2c991}
+:root[data-theme=dark] .flow-route .flow-challenge,:root[data-theme=dark] .pack-background>summary,:root[data-theme=dark] .flow-quiet-stats>summary{color:#add9c1}
+:root[data-theme=dark] .flow35-guided .option.wrong{background:#2b342f;border-color:#5a7063;color:#e6b9aa}
+:root[data-theme=dark] .flow35-guided .option.correct{background:#27302b;border-color:#60796a}

@@ -8,7 +8,7 @@ function flowLiveRender(s){
  if(user?.id!==s.owner)return;
  s=flowLive;if(!s||user?.id!==s.owner)return;
  let panel=document.querySelector('#flow-ai-live');
- if(!panel){panel=document.createElement('aside');panel.id='flow-ai-live';panel.className='ai-live';panel.setAttribute('aria-label','随堂 AI 回复');panel.innerHTML='<div class="ai-live-bar"><strong>随堂 AI</strong><span class="ai-live-status" role="status" aria-live="polite"></span><button type="button" data-ai-collapse aria-expanded="true">收起</button><button type="button" data-ai-close aria-label="关闭回复面板">×</button></div><div class="ai-live-body"><label>AI 任务<select class="ai-task-select" aria-label="切换 AI 任务"></select></label><p class="ai-live-note"></p><div class="ai-live-text" tabindex="0" aria-label="AI 回复内容"></div><button type="button" data-ai-retry hidden>重试本次请求</button><button type="button" data-ai-status>查看连接状态</button></div>';document.body.appendChild(panel)}
+ if(!panel){panel=document.createElement('aside');panel.id='flow-ai-live';panel.className='ai-live';panel.setAttribute('aria-label','随堂 AI 回复');panel.innerHTML='<div class="ai-live-bar"><strong>随堂 AI</strong><span class="ai-live-status" role="status" aria-live="polite"></span><button type="button" data-ai-collapse aria-expanded="true">收起</button><button type="button" data-ai-close aria-label="关闭回复面板">×</button></div><div class="ai-live-body"><label>AI 任务<select class="ai-task-select" aria-label="切换 AI 任务"></select></label><p class="ai-live-note"></p><div class="ai-live-text" tabindex="0" aria-label="AI 回复内容"></div><button type="button" data-ai-retry hidden>重试本次请求</button><button type="button" data-ai-status>查看连接状态</button><span class="ai-live-model"></span></div>';document.body.appendChild(panel);flowAIModelLoad()}
  panel.classList.toggle('is-collapsed',!!s.collapsed);
  const toggle=panel.querySelector('[data-ai-collapse]');toggle.textContent=s.collapsed?'展开':'收起';toggle.setAttribute('aria-expanded',String(!s.collapsed));
  panel.querySelector('[data-ai-close]').hidden=s.busy;
@@ -68,7 +68,7 @@ function flowContextHelp(){
 }
 document.addEventListener('click',e=>{
  if(!flowLive)return;
- if(e.target.closest('[data-ai-status]'))api('ai/status').then(d=>toast(d.message)).catch(err=>toast(err.message));
+ if(e.target.closest('[data-ai-status]'))api('ai/status').then(d=>toast(flowAIStatusText(d))).catch(err=>toast(err.message));
  if(e.target.closest('[data-ai-collapse]')){flowLive.collapsed=!flowLive.collapsed;flowLiveRender(flowLive)}
  if(e.target.closest('[data-ai-close]')&&!flowLive.busy){document.querySelector('#flow-ai-live')?.remove();flowLive=null}
  if(e.target.closest('[data-ai-retry]')&&!flowLive.busy){const {path,data,owner}=flowLive;api(path,data).then(out=>{if(user?.id===owner)flowApplyAIRetry(path,data,out);toast('本次请求已完成。')}).catch(err=>toast(err.message))}
@@ -88,4 +88,16 @@ function flowApplyAIRetry(path,data,out){
  }
  if(path==='vocab/feedback'&&typeof flowWord!=='undefined'&&flowWord?.id===data.entry&&draftFor(data.entry).answer.trim()===data.answer){flowWord.feedback=out.result;renderFlowWord()}
  if(path==='vocab/explain'&&typeof flowWord!=='undefined'&&flowWord?.id===data.entry){flowWord.contextExplanation=out.result;renderFlowWord()}
+}
+
+// 3.6.6: say which model answers (from /api/ai/status; the model name is not a secret, keys never reach the browser).
+let flowAIModel=null;
+function flowAIModelLoad(){if(flowAIModel!==null){flowAIModelShow();return}flowAIModel='';api('ai/status').then(d=>{flowAIModel=d.model||'';flowAIModelShow()}).catch(()=>{flowAIModel=null})}
+function flowAIModelShow(){document.querySelectorAll('.ai-live-model').forEach(e=>{e.textContent=flowAIModel?'模型：'+flowAIModel:''});document.querySelectorAll('.ai-model-inline').forEach(e=>{e.textContent=flowAIModel?' · 由 '+flowAIModel+' 回答':''})}
+function flowAIStatusText(d){
+ if(!d.configured)return d.message;
+ if(d.model)flowAIModel=d.model,flowAIModelShow();
+ const via=d.provider==='兼容网关'?'经 Flow 网关':'经 '+d.provider;
+ const when=d.last_success?new Date(d.last_success*1000).toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+ return `已接入 ${d.model||'AI 模型'}（${via}）。`+(when?`你的账号最近一次成功调用：${when}。`:'你的账号还没有成功调用记录。')
 }

@@ -1,0 +1,122 @@
+{
+ "pilot_id": "PILOT-001",
+ "version": 1,
+ "source_pack": "FLOW-PACK-001",
+ "source_candidate": "FLOW-CAND-001",
+ "source_hash": "293394901fdc7f3f7fe8b2142799b6ca2938ed137cd89903c9c3c1c56c60c2c5",
+ "title": "校园通知：听清时间，配对活动",
+ "level": "A2",
+ "skill": "listening",
+ "status_note": "试点材料：待英语教师审核；来源使用条件待确认，只在本地试点开放。",
+ "audio_note": "合成语音（macOS Samantha，整段测得约 115–170 词/分钟；播放器可切到 0.8 倍慢速），不是真人录音。数字按英文读法写进脚本，播放前已去掉 [TARGET_1: …] 等制作标记。",
+ "revision_notes": [
+  "起始题沿用附件 PACK-001-Q0，只播音频、不显示原文；提交后才显示原文依据。",
+  "附件 D1 的英文题干写出了要听的 ten thirty：改为独立新音频（公交 4:40），题干只问“听到几点”，不含时间。",
+  "附件 D2 让学生读原通知、只问星期几：改为独立新音频（两个社团、两个清楚易辨的整点），问两项活动各自的时间。",
+  "补查题另备第二组（电影 7:15；美术课与音乐课），“再试一次”用新题，不重复第一组。",
+  "两条补练各有不同教学动作：时间听辨用 -teen/-ty 重音对比；活动与时间对应用“一项活动一张卡片”。补练题改为只测各自目标（附件 P1 同时考开放/关闭对应，已改）。",
+  "验证题沿用附件迎新通知的设计，但把目标时间改为 4:15（-teen 才是正确答案）、加入 4:50 干扰项，并把正确选项放到 D，避免照搬起始题的“选 -ty、选 B”记忆。"
+ ],
+ "clips": {
+  "notice": {"text": "Attention, students! The Academic Support Center has updated this week's study sessions. The English Discussion Group will meet this Thursday at three fifteen p.m. in Room two-oh-four. If you want help with your essays, the Academic Writing Workshop takes place on Friday at ten thirty a.m. in the Central Library, Seminar Room B. Please register at the front desk before Wednesday afternoon, as seats are limited to fifteen students per session. Don't forget to bring your student ID and a printed copy of your draft!", "times": ["3:15", "10:30"]},
+  "d1a": {"text": "The bus to the sports center leaves at four forty.", "times": ["4:40"]},
+  "d2a": {"text": "This Saturday, the Chess Club meets at two o'clock, and the Photo Club meets at five o'clock.", "times": ["2:00", "5:00"]},
+  "d1b": {"text": "The film starts at seven fifteen.", "times": ["7:15"]},
+  "d2b": {"text": "On Monday, the Art Class starts at nine o'clock, and the Music Class starts at eleven o'clock.", "times": ["9:00", "11:00"]},
+  "pair1": {"text": "thirteen", "times": []},
+  "pair2": {"text": "fifty", "times": []},
+  "pair3": {"text": "sixteen", "times": []},
+  "p1": {"text": "The museum closes at five fifty.", "times": ["5:50"]},
+  "card": {"text": "The Debate Club meets on Tuesday at four p.m. The Film Club meets on Wednesday at six p.m.", "times": ["4:00", "6:00"]},
+  "p2": {"text": "The Yoga Class is on Monday at eight a.m. The Swimming Class is on Thursday at six p.m.", "times": ["8:00", "6:00"]},
+  "verify": {"text": "Attention, new students! The Student IT Support Center has posted the orientation timetable. The Campus Wi-Fi and Laptop Setup session is on Tuesday at one forty-five p.m. in Science Hall one-oh-two. If you want to learn how to use the Digital Library, the Library Portal Workshop meets on Thursday at four fifteen p.m. in Lab four. Please sign up online before Monday at noon, and bring your student account details.", "times": ["1:45", "4:15"]}
+ },
+ "initial": {
+  "id": "PILOT-001-Q0", "origin": "PACK-001-Q0", "clip": "notice",
+  "prompt": "When is the Academic Writing Workshop?",
+  "prompt_zh": "听通知：学术写作工作坊（Academic Writing Workshop）在什么时候？",
+  "options": [{"key": "A", "text": "Thursday at 3:15 PM"}, {"key": "B", "text": "Friday at 10:30 AM"}, {"key": "C", "text": "Friday at 10:13 AM"}, {"key": "D", "text": "Wednesday afternoon"}],
+  "correct": "B",
+  "evidence": "the Academic Writing Workshop takes place on Friday at ten thirty a.m.",
+  "explanation": "写作工作坊这一句里，紧跟着的是 Friday at ten thirty a.m.（周五上午 10:30）。",
+  "distractors": {
+   "A": {"cause": "binding", "text": "你选的周四 3:15 是英语讨论小组（English Discussion Group）的时间，不是写作工作坊的。"},
+   "C": {"cause": "time", "text": "你选的 10:13 和 10:30 只差在 thirteen / thirty：数字听成了 -teen。"},
+   "D": {"cause": "deadline", "text": "你选的周三下午是前台报名的截止时间，不是工作坊举行的时间。"}
+  },
+  "hints": ["先等 Academic Writing Workshop 这个名字出现，不要听到第一个时间就选。", "通知里有两项活动：讨论小组在周四，写作工作坊在周五。"]
+ },
+ "intro": {
+  "tests": "这道题考的是：在一段有两项活动的通知里，听到“写作工作坊”对应的时间。",
+  "reasons": [
+   {"code": "time", "label": "时间没听清", "text": "比如把 thirty 听成 thirteen，或把分钟听错。"},
+   {"code": "binding", "label": "把时间配给了错误的活动", "text": "比如把讨论小组的“周四 3:15”当成了写作工作坊的时间。"}
+  ],
+  "why_check": "只看一道题，分不清是哪一种原因。两道短题各只查一件事，约 1 分钟。"
+ },
+ "check_sets": [
+  [
+   {"id": "PILOT-001-D1", "origin": "PACK-001-D1", "focus": "time", "clip": "d1a", "prompt": "Listen. What time does the bus leave?", "prompt_zh": "听一句话：公交车几点出发？",
+    "options": [{"key": "A", "text": "4:14"}, {"key": "B", "text": "4:40"}, {"key": "C", "text": "4:04"}], "correct": "B",
+    "hint": "-teen 的重音在后面（four-TEEN），-ty 的重音在前面（FOR-ty）。", "explanation": "录音说的是 four forty（4:40），重音在 FOR 上。"},
+   {"id": "PILOT-001-D2", "origin": "PACK-001-D2", "focus": "binding", "clip": "d2a", "prompt": "Listen. Which plan is right?", "prompt_zh": "听一句话：哪一个安排是对的？",
+    "options": [{"key": "A", "text": "Chess Club 2:00 · Photo Club 5:00"}, {"key": "B", "text": "Chess Club 5:00 · Photo Club 2:00"}, {"key": "C", "text": "Chess Club 2:00 · Photo Club 2:00"}], "correct": "A",
+    "hint": "每个活动名后面紧跟的，就是它的时间。", "explanation": "the Chess Club meets at two o'clock, and the Photo Club meets at five o'clock：象棋社 2 点，摄影社 5 点。"}
+  ],
+  [
+   {"id": "PILOT-001-D1B", "origin": "PACK-001-D1", "focus": "time", "clip": "d1b", "prompt": "Listen. What time does the film start?", "prompt_zh": "听一句话：电影几点开始？",
+    "options": [{"key": "A", "text": "7:15"}, {"key": "B", "text": "7:50"}, {"key": "C", "text": "7:05"}], "correct": "A",
+    "hint": "-teen 的重音在后面，音拉长；-ty 的重音在前面。", "explanation": "录音说的是 seven fifteen（7:15），重音在 TEEN 上。"},
+   {"id": "PILOT-001-D2B", "origin": "PACK-001-D2", "focus": "binding", "clip": "d2b", "prompt": "Listen. Which plan is right?", "prompt_zh": "听一句话：哪一个安排是对的？",
+    "options": [{"key": "A", "text": "Art 11:00 · Music 9:00"}, {"key": "B", "text": "Art 9:00 · Music 11:00"}, {"key": "C", "text": "Art 9:00 · Music 9:00"}], "correct": "B",
+    "hint": "每个活动名后面紧跟的，就是它的时间。", "explanation": "the Art Class starts at nine o'clock, and the Music Class starts at eleven o'clock：美术 9 点，音乐 11 点。"}
+  ]
+ ],
+ "branches": {
+  "time": {
+   "name": "时间听辨补练", "origin": "PACK-001 Branch-1",
+   "why": "短题里：两项活动配对做对了，但单独一个时间听错了。所以问题更可能在“听清数字”，先练这一项。",
+   "action": "重音对比：先听 -teen 和 -ty 的区别，再听一句新的时间。",
+   "points": ["-teen（thirTEEN、fifTEEN）重音在后面，音拉长、往上走。", "-ty（THIRty、FIFty）重音在前面，结尾短。", "听时间时，先抓重音落在哪里，再决定是 13 还是 30。"],
+   "drill": [
+    {"id": "PILOT-001-T1", "clip": "pair1", "prompt_zh": "听一个词：是哪一个？", "options": [{"key": "A", "text": "thirteen (13)"}, {"key": "B", "text": "thirty (30)"}], "correct": "A"},
+    {"id": "PILOT-001-T2", "clip": "pair2", "prompt_zh": "听一个词：是哪一个？", "options": [{"key": "A", "text": "fifteen (15)"}, {"key": "B", "text": "fifty (50)"}], "correct": "B"},
+    {"id": "PILOT-001-T3", "clip": "pair3", "prompt_zh": "听一个词：是哪一个？", "options": [{"key": "A", "text": "sixty (60)"}, {"key": "B", "text": "sixteen (16)"}], "correct": "B"}
+   ],
+   "practice": {"id": "PILOT-001-P1", "origin": "PACK-001-P1", "clip": "p1", "prompt": "Listen. What time does the museum close?", "prompt_zh": "听一句话：博物馆几点关门？",
+    "options": [{"key": "A", "text": "5:15"}, {"key": "B", "text": "5:50"}, {"key": "C", "text": "5:05"}], "correct": "B", "explanation": "five FIFty：重音在前，是 5:50。"}
+  },
+  "binding": {
+   "name": "活动与时间对应补练", "origin": "PACK-001 Branch-2",
+   "why": "短题里：单独一个时间你听对了，但两项活动的时间配错了。所以问题更可能在“把时间放进对的活动”，先练这一项。",
+   "action": "一项活动一张卡片：听到活动名就开新卡片，把紧跟着的星期和时间写进去。",
+   "points": ["听到一个新的活动名，就在心里开一张新卡片。", "活动名后面的 meets / takes place / is on + 星期 + 时间，都属于这张卡片。", "不要把前一句的时间带到后一句的活动上。"],
+   "card": {"id": "PILOT-001-K1", "clip": "card", "prompt_zh": "听两句话，把时间填进每项活动的卡片。", "slots": [{"activity": "Debate Club", "correct": "Tuesday 4 PM"}, {"activity": "Film Club", "correct": "Wednesday 6 PM"}], "choices": ["Tuesday 4 PM", "Wednesday 6 PM"]},
+   "practice": {"id": "PILOT-001-P2", "origin": "PACK-001-P2", "clip": "p2", "prompt": "Listen. When is the Swimming Class?", "prompt_zh": "听两句话：游泳课在什么时候？",
+    "options": [{"key": "A", "text": "Monday at 8 AM"}, {"key": "B", "text": "Thursday at 8 AM"}, {"key": "C", "text": "Thursday at 6 PM"}], "correct": "C", "explanation": "The Swimming Class is on Thursday at six p.m.：游泳课这张卡片是周四下午 6 点；周一 8 点属于瑜伽课。"}
+  },
+  "general": {
+   "name": "直接看讲解", "origin": "PACK-001 Branch-1 + Branch-2",
+   "why": "这次先不分原因，把两种常见错误都看一遍。",
+   "action": "对照原文看：时间读法，以及时间属于哪项活动。",
+   "points": ["thirteen / thirty：-teen 重音在后，-ty 重音在前。", "通知里一项活动一句话：活动名后面紧跟的星期和时间才属于它。", "报名截止时间（before Wednesday afternoon）不是活动时间。"]
+  }
+ },
+ "uncertain": {
+  "both_right": "两道短题都做对了：可能起始题只是一时没注意，也可能短题比起始题简单。现在还分不清原因。",
+  "both_wrong": "两道短题都没做对：两种原因可能都有，现在还分不清先练哪一项。",
+  "skipped": "有短题跳过了，证据不够，暂时无法确定原因。",
+  "hinted": "短题用了提示，答对不能说明你自己听出来了，暂时无法确定原因。"
+ },
+ "verification": {
+  "id": "PILOT-001-V2", "origin": "PACK-001-V", "context_id": "CTX-IT-ORIENTATION", "purpose": "personal_verification", "clip": "verify",
+  "prompt": "When does the Library Portal Workshop meet?",
+  "prompt_zh": "新通知：图书馆门户工作坊（Library Portal Workshop）在什么时候？",
+  "options": [{"key": "A", "text": "Tuesday at 1:45 PM"}, {"key": "B", "text": "Thursday at 4:50 PM"}, {"key": "C", "text": "Monday at 12:00 noon"}, {"key": "D", "text": "Thursday at 4:15 PM"}],
+  "correct": "D",
+  "evidence": "the Library Portal Workshop meets on Thursday at four fifteen p.m.",
+  "explanation": "工作坊这一句后面是 Thursday at four fifteen p.m.：周四下午 4:15。",
+  "distractors": {"A": {"cause": "binding", "text": "周二 1:45 是 Wi-Fi 与电脑设置专场的时间。"}, "B": {"cause": "time", "text": "4:50 是 fifty，录音里是 fifTEEN（4:15）。"}, "C": {"cause": "deadline", "text": "周一中午是网上报名的截止时间。"}},
+  "hints": ["先等 Library Portal Workshop 这个名字出现。", "排除前面的 Wi-Fi 专场（周二）和最后的报名截止（周一中午）。", "参考答案：D. Thursday at 4:15 PM。"]
+ }
+}

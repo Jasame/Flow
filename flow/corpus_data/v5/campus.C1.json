@@ -1,0 +1,514 @@
+[
+  {
+    "id": "v5-campus-c1-choosing-a-major",
+    "title": "专业选得不确定，怎么办",
+    "title_en": "Choosing a Major Without Being Sure",
+    "summary_zh": "十八岁就要决定未来四年学什么，很多人其实并不确定。作者从自己误入一堂语言学课的经历出发，主张把选专业看作可以修正的尝试，而不是一锤定音的身份宣言。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "campus",
+    "genre": "opinion",
+    "body": "At eighteen, I was asked to choose, on a form with a drop-down menu, what I wanted to spend the next four years thinking about. I picked economics, largely because it sounded serious and nobody at the dinner table would ask follow-up questions. Two weeks into my first term, I wandered into a linguistics lecture by mistake and stayed for the whole hour. If I had stuck rigidly to my original plan, I would probably be a competent and faintly bored economist-in-training now; instead, I am a linguistics student who still reads economics for pleasure. I tell this story not because switching worked out, but because of what it taught me about the choice itself. What nobody explains to you at eighteen is that a major is less a declaration of identity than a set of problems you agree to live with for a while. The question worth asking, then, is not what you are passionate about, since passion is often the result of competence rather than its cause, but which problems you would not mind being stuck on. Framed that way, the decision becomes smaller and more honest. You can even test it cheaply: sit in on lectures outside your timetable, read an introductory textbook over a weekend, and notice which kind of confusion feels like an invitation and which feels like a wall. None of this guarantees certainty, and it shouldn't. Uncertainty at this stage is not a character flaw; it is an accurate reading of how little anyone can know about a subject before studying it. The students I worry about are not the ones who hesitate, but the ones who chose with total confidence and are now too embarrassed to admit they were wrong. A major can be changed, or simply outgrown. What is harder to recover is the habit of mistaking an early guess for a final answer.",
+    "questions": [
+      {
+        "prompt": "What is the writer's central argument?",
+        "options": [
+          "Students should simply follow their passion when choosing a major",
+          "Economics is a less rewarding subject to study than linguistics",
+          "Students who change their major usually come to regret it",
+          "A major is a revisable choice, so uncertainty is reasonable"
+        ],
+        "answer": 3,
+        "evidence": "Uncertainty at this stage is not a character flaw"
+      },
+      {
+        "prompt": "Which students does the writer worry about most?",
+        "options": [
+          "Those who hesitate for a long time before choosing",
+          "Those who attend lectures outside their own timetable",
+          "Those who chose confidently and are too embarrassed to admit a mistake",
+          "Those who change their major more than once"
+        ],
+        "answer": 2,
+        "evidence": "the ones who chose with total confidence and are now too embarrassed to admit they were wrong"
+      }
+    ],
+    "dictation_index": 7,
+    "vocabulary": [
+      {
+        "term": "rigidly",
+        "meaning": "死板地；一成不变地",
+        "example": "He followed the recipe so rigidly that he never tasted the sauce."
+      },
+      {
+        "term": "competent",
+        "meaning": "称职的；能胜任的",
+        "example": "She is a competent driver, but she hates motorways."
+      },
+      {
+        "term": "declaration",
+        "meaning": "宣言；声明",
+        "example": "Moving abroad felt like a declaration of independence."
+      },
+      {
+        "term": "hesitate",
+        "meaning": "犹豫；迟疑",
+        "example": "Don't hesitate to ask if anything is unclear."
+      },
+      {
+        "term": "outgrown",
+        "meaning": "（因成长而）不再适合；超越",
+        "example": "She has outgrown the hobbies she loved as a teenager."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "follow-up questions",
+        "meaning": "追问；后续问题",
+        "note": "ask follow-up questions：在对方回答后继续深入提问，面试、采访常用。"
+      },
+      {
+        "text": "by mistake",
+        "meaning": "误打误撞地；不小心",
+        "note": "强调“并非有意”：I took your umbrella by mistake."
+      },
+      {
+        "text": "worked out",
+        "meaning": "结果不错；行得通",
+        "note": "work out 指事情最终顺利：Things worked out in the end."
+      },
+      {
+        "text": "sit in on",
+        "meaning": "旁听",
+        "note": "sit in on a class / meeting：以旁听者身份参加，不正式参与。"
+      },
+      {
+        "text": "a character flaw",
+        "meaning": "性格缺陷",
+        "note": "常用于否定式让步：It's not a character flaw; it's just inexperience."
+      },
+      {
+        "text": "mistaking an early guess for a final answer",
+        "meaning": "把早期的猜测误当成最终答案",
+        "note": "mistake A for B：把 A 错当成 B，写作中很适合用来指出常见误区。"
+      }
+    ],
+    "grammar": [
+      "subjunctive-mixed",
+      "clause-noun",
+      "nonfinite-participle"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-mixed",
+        "quote": "If I had stuck rigidly to my original plan, I would probably be a competent and faintly bored economist-in-training now",
+        "explanation": "错综时间条件：if 从句用过去完成时 had stuck（与过去事实相反），主句用 would be…now（与现在事实相反），表达“当初如果……现在就会……”。"
+      },
+      {
+        "node": "clause-noun",
+        "quote": "What nobody explains to you at eighteen is that a major is less a declaration of identity than a set of problems you agree to live with for a while.",
+        "explanation": "What 引导主语从句，that 引导表语从句，一句里两个名词性从句；less A than B 意为“与其说是 A，不如说是 B”。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "Framed that way, the decision becomes smaller and more honest.",
+        "explanation": "Framed that way 是过去分词作状语，逻辑主语正是 the decision（决定被这样看待），相当于 When it is framed that way，简洁有力。"
+      }
+    ],
+    "speaking": "用 1 分钟谈谈你当初是怎么选专业（或选科）的，如果重来一次你会怎么选。用上一个 If I had…, I would… now 的错综条件句。",
+    "writing": "用 180–230 词写一篇短评：选专业时，兴趣和能力哪个更重要？至少用一次 less A than B 和 mistake A for B。",
+    "task": {
+      "prompt": "仿照这句，用 If I had…, I would… now 写当年的一个选择如何影响了现在的你。",
+      "model": "If I had stuck rigidly to my original plan, I would probably be a competent and faintly bored economist-in-training now"
+    },
+    "tags": [
+      "选专业",
+      "成长思考"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-campus-c1-harsh-feedback",
+    "title": "那句扎心的论文评语",
+    "title_en": "A Dozen Words in Pencil",
+    "summary_zh": "Aylin 花了三个周末写的论文，只换来一句“你自己的观点在哪？”。她连夜写了一封愤怒的邮件，却没有发出去。一周后重读论文，她才明白那句话为什么扎心。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "campus",
+    "genre": "story",
+    "body": "The comment was a single line, written in pencil at the bottom of the final page: This is a careful summary of other people's ideas; where is yours? Aylin read it on the bus home and felt her face grow hot. She had spent three weekends on that essay, cross-checking every source and rewriting the conclusion until it gleamed, and the reward was a dozen words that felt very much like contempt. That night she drafted an email to the lecturer that began politely and grew steadily less polite with each paragraph. By two in the morning it ran to a full page. Had she sent it, she would have spent the rest of the term avoiding his corridor. Instead, exhausted, she saved it as a draft and went to bed. A week later, rereading the essay with the anger drained out of her, she saw what he meant. Every paragraph opened with someone else's name. The argument, such as it was, belonged to the authors she had quoted; she had merely arranged them neatly. The sting of those dozen words, she realised, was not their cruelty but their accuracy. When she finally went to his office, she found him apologetic about the brevity and entirely unrepentant about the point. He had forty essays to mark, he explained, and he had written the one sentence he thought she most needed to hear. They spent half an hour working out what her own position might be, and it turned out she had one; she had simply never assumed she was allowed to say it. The email is still sitting in her drafts folder. She keeps it, she says, as a reminder that the first reading of criticism is rarely the most reliable one.",
+    "questions": [
+      {
+        "prompt": "How does Aylin's view of the comment change?",
+        "options": [
+          "She first saw it as an insult but later recognised it as fair",
+          "She first agreed with it but later decided it was unfair",
+          "She realised the lecturer had confused her essay with another",
+          "She decided the comment was too short to be useful"
+        ],
+        "answer": 0,
+        "evidence": "The sting of those dozen words, she realised, was not their cruelty but their accuracy."
+      },
+      {
+        "prompt": "What does \"unrepentant about the point\" suggest about the lecturer?",
+        "options": [
+          "He refused to apologise for anything at all",
+          "He had forgotten what he wrote on the essay",
+          "He did not take back what the comment said",
+          "He wanted Aylin to rewrite the essay at once"
+        ],
+        "answer": 2,
+        "evidence": "she found him apologetic about the brevity and entirely unrepentant about the point"
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {
+        "term": "contempt",
+        "meaning": "轻蔑；鄙视",
+        "example": "He spoke about the old system with open contempt."
+      },
+      {
+        "term": "merely",
+        "meaning": "仅仅；只不过",
+        "example": "I was merely asking a question, not making a complaint."
+      },
+      {
+        "term": "brevity",
+        "meaning": "简短；简洁",
+        "example": "The brevity of her reply made me think she was upset."
+      },
+      {
+        "term": "unrepentant",
+        "meaning": "不认错的；毫无悔意的",
+        "example": "He remained unrepentant about his decision to quit."
+      },
+      {
+        "term": "drained",
+        "meaning": "（情绪、力气）被抽干；流走",
+        "example": "By Friday evening, all my energy had drained away."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "felt her face grow hot",
+        "meaning": "感到脸一下子发烫",
+        "note": "feel one's face grow hot 描写羞愧或愤怒，比 felt angry 更有画面感。"
+      },
+      {
+        "text": "ran to a full page",
+        "meaning": "长达整整一页",
+        "note": "run to + 长度 / 数量：表示篇幅或数额达到某个程度，The report ran to fifty pages."
+      },
+      {
+        "text": "such as it was",
+        "meaning": "如果那也能算的话",
+        "note": "插入语，暗示所提到的东西质量很差、名不副实，带一点讽刺。"
+      },
+      {
+        "text": "working out",
+        "meaning": "琢磨出；弄清楚",
+        "note": "work out what / how…：通过思考找到答案，口语书面都常用。"
+      },
+      {
+        "text": "it turned out",
+        "meaning": "结果发现；原来",
+        "note": "引出与预期不同的事实，it turned out (that) + 句子。"
+      },
+      {
+        "text": "not their cruelty but their accuracy",
+        "meaning": "不在于刻薄，而在于准确",
+        "note": "not A but B：纠正对原因的误判，议论和叙事中都很有力。"
+      }
+    ],
+    "grammar": [
+      "subjunctive-past",
+      "nonfinite-participle",
+      "agreement-head"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-past",
+        "quote": "Had she sent it, she would have spent the rest of the term avoiding his corridor.",
+        "explanation": "省略 if 的倒装：Had she sent it = If she had sent it，与过去事实相反，主句用 would have done。比普通 if 句更书面、更紧凑。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "A week later, rereading the essay with the anger drained out of her, she saw what he meant.",
+        "explanation": "rereading… 是现在分词作状语，逻辑主语是 she；with the anger drained out of her 是“with + 名词 + 过去分词”结构，表示怒气已被抽干的状态。"
+      },
+      {
+        "node": "agreement-head",
+        "quote": "The sting of those dozen words, she realised, was not their cruelty but their accuracy.",
+        "explanation": "主语中心词是单数 sting，of those dozen words 只是修饰语，插入语 she realised 也不影响，所以谓语用 was 而不是 were。"
+      }
+    ],
+    "speaking": "用 1 分钟讲一次你收到严厉批评的经历：你当时怎么反应，后来又怎么看？用上 it turned out 和 not A but B。",
+    "writing": "用 180–230 词写一段反思：怎样对待让你不舒服的反馈？至少用一个倒装虚拟句（Had I…, I would have…）和一个分词状语。",
+    "task": {
+      "prompt": "仿照这句，用 Had I…, I would have… 写一件你差点冲动去做、最后没做的事。",
+      "model": "Had she sent it, she would have spent the rest of the term avoiding his corridor."
+    },
+    "tags": [
+      "论文反馈",
+      "面对批评"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-campus-c1-seminar-silence",
+    "title": "沉默不等于参与",
+    "title_en": "When Silence Doesn't Count",
+    "summary_zh": "留学生 Yuqi 第一学期在研讨课上一言不发，以为认真听就是参与，结果评语里两次出现 quiet。这篇采访讲她如何发现课堂规则的差异，以及她现在的应对办法。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "campus",
+    "genre": "interview",
+    "body": "Interviewer: You've said that your first term here was a series of small misunderstandings, so which one stands out most? Yuqi: The seminars, without question. In my first week, the tutor said something like feel free to jump in whenever you like, and I took it as a polite formality. Where I went to school, the unspoken rule was that you waited until the teacher called on you, so I sat there with three good points written in my notebook and never said any of them. Interviewer: And what happened when you stayed quiet? Yuqi: Nothing, which was exactly the problem: at mid-term I got my participation feedback, and the word quiet appeared twice. I was genuinely baffled, because I had done every reading and taken pages of notes. I'd assumed that listening carefully was a form of participation; here it barely counted. Interviewer: How did you find out what was actually expected? Yuqi: I asked a classmate, Femi, whose comments always seemed to come out of nowhere. He laughed and admitted that he usually had no idea what he was going to say until he was halfway through saying it. For him, a seminar was a place to think out loud, not to present finished thoughts. That single conversation completely changed the way I saw every seminar afterwards. Interviewer: Would it have been different if someone had explained this on day one? Yuqi: Definitely, although I'm not sure I would have believed it at the time. If I had understood that from the start, I'd have a lot more confidence in seminars today. I've since learned to bring one half-formed question to every class and ask it in the first ten minutes, before I can talk myself out of it. Interviewer: Finally, what advice would you give to students arriving here next term? Yuqi: Don't treat silence as neutral. In some rooms it reads as respect; in others it reads as absence. Find out which kind of room you're in, and if you can't tell, ask.",
+    "questions": [
+      {
+        "prompt": "What was the core of Yuqi's misunderstanding?",
+        "options": [
+          "She did not understand the tutor's English in the first week",
+          "She believed the readings for the seminar were optional",
+          "She thought careful, quiet listening counted as taking part",
+          "She thought the tutor disliked students who asked questions"
+        ],
+        "answer": 2,
+        "evidence": "I'd assumed that listening carefully was a form of participation; here it barely counted."
+      },
+      {
+        "prompt": "What does Femi's answer suggest about seminars?",
+        "options": [
+          "Students are expected to develop ideas while they speak",
+          "Students should prepare a script before every seminar",
+          "The tutor prefers students who have not done the reading",
+          "Speaking in seminars matters less than written work"
+        ],
+        "answer": 0,
+        "evidence": "For him, a seminar was a place to think out loud, not to present finished thoughts."
+      }
+    ],
+    "dictation_index": 11,
+    "vocabulary": [
+      {
+        "term": "formality",
+        "meaning": "客套；走形式的话",
+        "example": "The interview at the end was just a formality; they had already chosen her."
+      },
+      {
+        "term": "participation",
+        "meaning": "参与；（课堂）发言表现",
+        "example": "Class participation counts for part of the final grade."
+      },
+      {
+        "term": "assumed",
+        "meaning": "以为；想当然地认为",
+        "example": "I assumed the shop would be open on Sunday."
+      },
+      {
+        "term": "neutral",
+        "meaning": "中性的；不带倾向的",
+        "example": "Try to keep your tone neutral when you give feedback."
+      },
+      {
+        "term": "absence",
+        "meaning": "缺席；不在场",
+        "example": "Nobody noticed his absence until the end of the meeting."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "stands out",
+        "meaning": "格外突出；印象最深",
+        "note": "Which one stands out? 用来问“哪个最让你印象深刻”，采访和聊天都常用。"
+      },
+      {
+        "text": "without question",
+        "meaning": "毫无疑问",
+        "note": "放在回答开头或结尾加强肯定，比 definitely 更书面一点。"
+      },
+      {
+        "text": "jump in",
+        "meaning": "插话；加入讨论",
+        "note": "Feel free to jump in. 是老师、主持人欢迎大家随时发言的常用说法。"
+      },
+      {
+        "text": "called on you",
+        "meaning": "点你的名（让你发言）",
+        "note": "call on sb：课堂上点名让某人回答问题。"
+      },
+      {
+        "text": "think out loud",
+        "meaning": "边想边说出来",
+        "note": "表示把还没成形的想法说出来，讨论、头脑风暴时常用：Sorry, I'm just thinking out loud."
+      },
+      {
+        "text": "talk myself out of it",
+        "meaning": "说服自己放弃",
+        "note": "talk oneself out of (doing) sth：自己劝自己不去做，常用来形容临阵退缩。"
+      }
+    ],
+    "grammar": [
+      "subjunctive-mixed",
+      "clause-relative",
+      "tense-perfect"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-mixed",
+        "quote": "If I had understood that from the start, I'd have a lot more confidence in seminars today.",
+        "explanation": "错综条件：if 从句 had understood 指过去（当初没明白），主句 I'd have…today 指现在（现在仍不够自信）。两个时间不同，动词形式也不同。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "I asked a classmate, Femi, whose comments always seemed to come out of nowhere.",
+        "explanation": "whose 引导非限制性定语从句，表示所属关系（他的发言），先行词是 Femi；用逗号隔开，表示补充说明。"
+      },
+      {
+        "node": "tense-perfect",
+        "quote": "I've since learned to bring one half-formed question to every class",
+        "explanation": "have since learned：副词 since 放在 have 和过去分词之间，意为“从那以后（一直到现在）”，强调变化延续到现在。"
+      }
+    ],
+    "speaking": "用 1 分钟说说你经历过的一次文化误会（课堂、宿舍或社交都行），用上 stands out 和一个 If I had…, I'd… today 的句子。",
+    "writing": "用 180–230 词给即将出国的新生写一段建议，说明国外的课堂讨论可能和你熟悉的课堂有什么不同。至少用一个 whose 定语从句和 think out loud。",
+    "task": {
+      "prompt": "仿照这句，用 I've since learned to… 写一个你从某次经历中养成的新习惯。",
+      "model": "I've since learned to bring one half-formed question to every class and ask it in the first ten minutes, before I can talk myself out of it."
+    },
+    "tags": [
+      "留学生活",
+      "课堂文化"
+    ],
+    "source": "Flow 编辑部原创"
+  },
+  {
+    "id": "v5-campus-c1-what-good-teachers-remember",
+    "title": "好老师记得“不懂”的感觉",
+    "title_en": "What the Best Teachers Remember",
+    "summary_zh": "问起最好的老师，人们很少提到“懂得最多”。作者回忆一位化学老师，指出好老师真正的本事，是始终记得“不懂”是什么感觉，并耐心对待学生的困惑。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "campus",
+    "genre": "article",
+    "body": "Ask people to describe the best teacher they ever had, and their answers rarely dwell on expertise. Nobody says that their favourite teacher simply knew the most. They talk instead about a quality that is harder to name: the sense that this person could see exactly where they were stuck. My own version of that teacher was Ms Okonkwo, who taught chemistry in a classroom that smelled permanently of burnt sugar. She was not especially charismatic, and her jokes were reliably dreadful. Yet each of us was convinced, by the end of a lesson, that she had been explaining things to us personally. Looking back, I think what made her remarkable was not what she knew but what she remembered: what it felt like not to know it. Experts often suffer from a peculiar kind of blindness. Once you understand something thoroughly, it becomes difficult to reconstruct the confusion you once had, and so you skip the very steps a novice needs. Ms Okonkwo never skipped them. When a student gave a wrong answer, she treated it as if it were a clue rather than a failure, asking how they had got there and frequently discovering that the reasoning was sound even when the conclusion was not. That small habit changed the atmosphere of the room. Mistakes stopped being embarrassing and started being interesting, which meant people were willing to make them out loud. It is tempting to think that good teaching is mainly a matter of clear explanation, and clarity certainly helps. But the teachers we remember seem to offer something more: a patience with confusion that makes it feel like a normal stage of learning rather than a judgment on our ability. That is not a talent reserved for a lucky few. It is, at least in part, a choice to keep remembering what it was like to be a beginner.",
+    "questions": [
+      {
+        "prompt": "According to the writer, what mainly makes a teacher memorable?",
+        "options": [
+          "Knowing more about the subject than anyone else",
+          "Being charismatic and making lessons entertaining",
+          "Giving explanations that are as clear as possible",
+          "Remembering what not knowing feels like"
+        ],
+        "answer": 3,
+        "evidence": "what made her remarkable was not what she knew but what she remembered"
+      },
+      {
+        "prompt": "How did Ms Okonkwo usually respond to a wrong answer?",
+        "options": [
+          "She gave the correct answer straight away",
+          "She asked how the student had reached it",
+          "She made a joke to ease the embarrassment",
+          "She asked another student to correct it"
+        ],
+        "answer": 1,
+        "evidence": "asking how they had got there"
+      }
+    ],
+    "dictation_index": 12,
+    "vocabulary": [
+      {
+        "term": "expertise",
+        "meaning": "专业知识；专长",
+        "example": "We need someone with expertise in website design."
+      },
+      {
+        "term": "charismatic",
+        "meaning": "有个人魅力的",
+        "example": "The new coach is charismatic, and the players love him."
+      },
+      {
+        "term": "reconstruct",
+        "meaning": "重建；重现（过程或经历）",
+        "example": "Police tried to reconstruct what happened that night."
+      },
+      {
+        "term": "thoroughly",
+        "meaning": "彻底地；透彻地",
+        "example": "Read the contract thoroughly before you sign it."
+      },
+      {
+        "term": "atmosphere",
+        "meaning": "氛围；气氛",
+        "example": "The cafe has a warm, friendly atmosphere."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "dwell on",
+        "meaning": "老是谈论；纠结于",
+        "note": "dwell on sth：长时间地讲或想某事，常用否定：Don't dwell on your mistakes."
+      },
+      {
+        "text": "harder to name",
+        "meaning": "更难说清楚",
+        "note": "name 作动词表示“说出名字、指明”，a feeling that is hard to name 是很地道的写法。"
+      },
+      {
+        "text": "Looking back",
+        "meaning": "回想起来",
+        "note": "放句首引出事后的反思，常与 I think / I realise 连用。"
+      },
+      {
+        "text": "the very steps",
+        "meaning": "恰恰是那些步骤",
+        "note": "the very + 名词 强调“正是、恰好是”：the very thing I needed。"
+      },
+      {
+        "text": "a lucky few",
+        "meaning": "少数幸运儿",
+        "note": "常用否定：It's not reserved for a lucky few. 强调人人都能做到。"
+      },
+      {
+        "text": "at least in part",
+        "meaning": "至少在一定程度上",
+        "note": "让论点更谨慎，避免说得太绝对，学术写作中很常用。"
+      }
+    ],
+    "grammar": [
+      "clause-noun",
+      "subjunctive-now",
+      "agreement-each"
+    ],
+    "knowledge": [
+      {
+        "node": "clause-noun",
+        "quote": "what made her remarkable was not what she knew but what she remembered",
+        "explanation": "三个 what 从句：what made her remarkable 作主语，what she knew 和 what she remembered 作表语，用 not A but B 对比，结构对称、重点落在句尾。"
+      },
+      {
+        "node": "subjunctive-now",
+        "quote": "she treated it as if it were a clue rather than a failure",
+        "explanation": "as if + were 表示与事实不符的假设：错误答案并不真是线索，她却“当作”线索对待。as if 后用 were 是虚拟语气，正式文体中常见。"
+      },
+      {
+        "node": "agreement-each",
+        "quote": "Yet each of us was convinced, by the end of a lesson, that she had been explaining things to us personally.",
+        "explanation": "each of us 作主语，谓语用单数 was；后面的 us 不改变主语的单复数。every one of us 同理。"
+      }
+    ],
+    "speaking": "用 1 分钟描述一位让你印象深刻的老师，说清楚 TA 和别的老师最不一样的地方。用上 Looking back 和 not A but B。",
+    "writing": "用 180–230 词写一篇短文，题目是“我心目中的好老师”。至少用一个 what made… was… 结构和一个 as if 句。",
+    "task": {
+      "prompt": "仿照这句，用 what made… was not… but… 说说某个人或某件事真正打动你的原因。",
+      "model": "what made her remarkable was not what she knew but what she remembered"
+    },
+    "tags": [
+      "好老师",
+      "教育随笔"
+    ],
+    "source": "Flow 编辑部原创"
+  }
+]

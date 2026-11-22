@@ -1,0 +1,110 @@
+{
+ "notice": {
+  "file": "3d2ec649a75a8b8242af.m4a",
+  "seconds": 42.44,
+  "words": 85,
+  "wpm": 120,
+  "voice": "Samantha",
+  "rate": 60,
+  "sha256": "613d8ce08d49956f59465bf6bc80e0c9f0493fbf2af6365765ebe22b79b8d416"
+ },
+ "d1a": {
+  "file": "beb0a51ff56de9919d50.m4a",
+  "seconds": 3.48,
+  "words": 10,
+  "wpm": 172,
+  "voice": "Samantha",
+  "rate": 60,
+  "sha256": "5516be56fa3e89c98bb60864fc6f1ae72608e46ccc6cc9e68aeaae4e92318d7f"
+ },
+ "d2a": {
+  "file": "c67814163b74dcfcffbd.m4a",
+  "seconds": 7.13,
+  "words": 17,
+  "wpm": 143,
+  "voice": "Samantha",
+  "rate": 60,
+  "sha256": "40e64e2b20c45f84d86e0a00378ec240b23fa70a1c7c846d3544ad741b93d280"
+ },
+ "d1b": {
+  "file": "8db91967d4b2a6bedaa4.m4a",
+  "seconds": 2.78,
+  "words": 6,
+  "wpm": 130,
+  "voice": "Samantha",
+  "rate": 60,
+  "sha256": "b275a83606a5ec4ef59c9e695fe761db22e8d9f8456ee6075dc7c0441fad75b6"
+ },
+ "d2b": {
+  "file": "18593289706a0b4e622f.m4a",
+  "seconds": 7.23,
+  "words": 17,
+  "wpm": 141,
+  "voice": "Samantha",
+  "rate": 60,
+  "sha256": "81935577b668b85f57e9191beee3af379cf9b243c980808cc55be32cfe475b21"
+ },
+ "pair1": {
+  "file": "2c5c6c444fee70d0c859.m4a",
+  "seconds": 1.11,
+  "words": 1,
+  "wpm": 54,
+  "voice": "Samantha",
+  "rate": 60,
+  "sha256": "b1e9679cfcec2cac2a93fdc12d16136b4cf04554f966255a3b880855cb7d3e62"
+ },
+ "pair2": {
+  "file": "cbe83da54b5578a2889b.m4a",
+  "seconds": 0.97,
+  "words": 1,
+  "wpm": 62,
+  "voice": "Samantha",
+  "rate": 60,
+  "sha256": "9e375cb349c52adda07bdf8879d9c3a0831b2539950b912f286a0caa2122f0df"
+ },
+ "pair3": {
+  "file": "534fbc8e49b9dc00e6bf.m4a",
+  "seconds": 1.2,
+  "words": 1,
+  "wpm": 50,
+  "voice": "Samantha",
+  "rate": 60,
+  "sha256": "8a489a267eb863a1facd5484c7b70a69d6264cc95159fb12fea2d7548198a70b"
+ },
+ "p1": {
+  "file": "5d3ac09d12b1ff6eda98.m4a",
+  "seconds": 2.9,
+  "words": 6,
+  "wpm": 124,
+  "voice": "Samantha",
+  "rate": 60,
+  "sha256": "1ad44448780a0c1144a027e83c0415ff332f79831eefd123c8adce7919409595"
+ },
+ "card": {
+  "file": "c0606b1a7c2575135d74.m4a",
+  "seconds": 7.35,
+  "words": 18,
+  "wpm": 147,
+  "voice": "Samantha",
+  "rate": 60,
+  "sha256": "c7a8e16cdb02123ad24c8cb4f8fe2b700278860e097de67cf935aff39787a2d7"
+ },
+ "p2": {
+  "file": "a6901c317bf6934158bf.m4a",
+  "seconds": 6.98,
+  "words": 18,
+  "wpm": 155,
+  "voice": "Samantha",
+  "rate": 60,
+  "sha256": "039efc80d1d404669ccb61a83ad9a0ba91d1a912bbe8272231b19767f24e542e"
+ },
+ "verify": {
+  "file": "a904bfaf7828b0877581.m4a",
+  "seconds": 36.12,
+  "words": 70,
+  "wpm": 116,
+  "voice": "Samantha",
+  "rate": 60,
+  "sha256": "4b394f9b19a94af08d21c2bdcba5afc7cbbb9d550d4abf2ce7fb1d1ccd1ca61a"
+ }
+}
