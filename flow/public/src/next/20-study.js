@@ -30,6 +30,7 @@
     const tabs = [...view.querySelectorAll('[data-step]')];
     const prev = tabs.findIndex(b => b.getAttribute('aria-selected') === 'true');
     tabs.forEach(b => b.setAttribute('aria-selected', String(b.dataset.step === st.step)));
+    const head = view.querySelector('.study-head'); if (head) head.dataset.at = st.step;  // phones: a shorter header once past listen and read
     const active = tabs.find(b => b.dataset.step === st.step), ind = view.querySelector('.steps .ind');
     const place = () => { ind.style.width = active.offsetWidth + 'px'; ind.style.transform = `translateX(${active.offsetLeft}px)`; };
     if (prev < 0) { ind.style.transition = 'none'; place(); requestAnimationFrame(() => { ind.style.transition = ''; }); } else requestAnimationFrame(place);

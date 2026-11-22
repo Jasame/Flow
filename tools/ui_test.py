@@ -37,7 +37,7 @@ DEVICES = {
 }
 PAGES = ['#/', '#/library', f'#/m/{PID}/listen', f'#/m/{PID}/read', f'#/m/{PID}/check', f'#/m/{PID}/output', f'#/m/{PID}/output/retell',
          f'#/m/{PID}/output/dialog', f'#/m/{PID}/output/translate', f'#/m/{PID}/output/essay', '#/cards', '#/cards/mistake', '#/vocab/plan',
-         '#/vocab/test', '#/review', '#/sounds', '#/sounds/th-s', '#/report', '#/me', '#/import', '#/graph', '#/welcome/edit']
+         '#/vocab/test', '#/review', '#/sounds', '#/sounds/th-s', '#/report', '#/me', '#/import', '#/graph', '#/graph/voice-basic', '#/graph/emph-inversion', '#/welcome/edit']
 RESULTS = []
 
 
@@ -90,6 +90,10 @@ LAYOUT_JS = """(touch) => {
       .map(e => { const r = e.getBoundingClientRect(); return [e, r]; })
       .filter(([e, r]) => r.width && (r.width < 32 || r.height < 32))
       .slice(0, 8).map(([e, r]) => `${e.tagName}${e.id ? '#' + e.id : ''}.${[...e.classList].join('.')} "${(e.textContent || e.getAttribute('aria-label') || '').trim().slice(0, 14)}" ${Math.round(r.width)}x${Math.round(r.height)}`);
+    // fields under 16px make iOS Safari zoom in on focus and stay zoomed
+    out.smallFields = [...document.querySelectorAll('input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]), select, textarea')]
+      .filter(e => e.offsetParent !== null && parseFloat(getComputedStyle(e).fontSize) < 16).slice(0, 5)
+      .map(e => `${e.tagName}${e.id ? '#' + e.id : ''} ${getComputedStyle(e).fontSize}`);
   }
   return out;
 }"""
@@ -142,6 +146,7 @@ def run_device(pw, dev, opts):
             check(dev, f'{h} no squeezed text', not lay['squeezed'], lay['squeezed'])
             if touch:
                 check(dev, f'{h} touch targets ≥ 32px', not lay['small'], lay['small'])
+                check(dev, f'{h} fields ≥ 16px (no zoom on focus)', not lay['smallFields'], lay['smallFields'])
             cov = pg.evaluate(COVER_JS)
             check(dev, f'{h} last control not covered', cov in (None, 'ok'), cov)
             pg.evaluate('scrollTo(0, 0)')
@@ -157,6 +162,29 @@ def run_device(pw, dev, opts):
     check(dev, 'home: the button goes to the highlighted next step', first and nexthref == first[0], (first, nexthref))
     k = pg.text_content('#view .greet') or ''
     check(dev, 'greeting shows the username as written', f'ui-{dev}' in k, k)
+
+    # ---- study steps: the green indicator sits under the selected step after moving between steps
+    for st in ('read', 'check', 'output', 'listen'):
+        go(pg, f'#/m/{PID}/{st}'); pg.wait_for_timeout(450)
+        off = pg.evaluate("() => { const i = document.querySelector('.steps .ind').getBoundingClientRect(), a = document.querySelector('.steps [aria-selected=true]').getBoundingClientRect(); return Math.round(Math.abs(i.left - a.left) + Math.abs(i.width - a.width)); }")
+        check(dev, f'step indicator under the selected step ({st})', off <= 2, f'{off}px off')
+
+    # ---- knowledge graph: one next point to practise, 13 topic tiles, a tile takes you to its points
+    go(pg, '#/graph')
+    g = pg.evaluate("() => ({next: document.querySelectorAll('#view .go-next').length, href: (document.querySelector('#view .go-next') || {}).getAttribute ? document.querySelector('#view .go-next').getAttribute('href') : '', tiles: document.querySelectorAll('.tgrid .tile').length, rows: document.querySelectorAll('.nrow').length})")
+    check(dev, 'graph: one next point and 13 topics with 44 points', g['next'] == 1 and g['href'].startswith('#/graph/') and g['tiles'] == 13 and g['rows'] == 44, g)
+    pg.click('.tgrid .tile >> nth=9'); pg.wait_for_timeout(900)
+    top = pg.evaluate("() => Math.round(document.getElementById('topic-compare').getBoundingClientRect().top)")
+    check(dev, 'graph: a topic tile scrolls to its points', 0 <= top < pg.viewport_size['height'] / 2, top)
+
+    # ---- a point's page: the teaching page, then practice that is checked and lights the point
+    go(pg, '#/graph/voice-basic')
+    parts = pg.evaluate("() => ({steps: document.querySelectorAll('.steps-list li').length, pits: document.querySelectorAll('.pit').length, qs: document.querySelectorAll('#practice .gq').length})")
+    check(dev, 'point page: steps, mistakes and 4 practice questions', parts['steps'] >= 3 and parts['pits'] >= 2 and parts['qs'] == 4, parts)
+    pg.click('#toPractice'); pg.wait_for_timeout(700)
+    pg.click('#practice .gq >> nth=0 >> .ans >> nth=1'); pg.wait_for_timeout(800)
+    fb = pg.evaluate("() => ({fb: document.querySelector('#practice .gq .fb').textContent, right: !!document.querySelector('#practice .gq .ans.right'), status: document.getElementById('nodeStatus').textContent})")
+    check(dev, 'point page: an answer is checked and the point lights up', fb['right'] and fb['fb'].startswith('✓') and fb['status'] == '做题已验证', fb)
 
     # ---- listen: whole-text playback shows a stop control that stays on screen, and it stops
     go(pg, f'#/m/{PID}/listen')

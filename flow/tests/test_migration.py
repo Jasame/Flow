@@ -17,7 +17,7 @@ class MigrationTest(unittest.TestCase):
     c.execute('INSERT INTO attempts(user_id,question_id,selected,correct,created) VALUES(1,?,0,1,1)',(qid,))
    app.init();app.init()
    with app.db() as c:
-    self.assertEqual(c.execute('SELECT COUNT(*) FROM questions').fetchone()[0],73)
+    self.assertEqual(c.execute('SELECT COUNT(*) FROM questions').fetchone()[0],73+104)  # +104: grammar_more, four per point
     self.assertEqual(c.execute("SELECT id FROM questions WHERE prompt='custom lesson'").fetchone()[0],qid)
     self.assertEqual(c.execute('SELECT password FROM users').fetchone()[0],'untouched')
     self.assertEqual(c.execute('SELECT question_id FROM attempts').fetchone()[0],qid)
@@ -37,7 +37,7 @@ CREATE TABLE migrations(version TEXT PRIMARY KEY); INSERT INTO migrations VALUES
     c.execute('INSERT INTO attempts VALUES(1,9,1,1,1,10)')
    app.init();app.init()
    with app.db() as c:
-    self.assertEqual(c.execute('SELECT COUNT(*) FROM questions').fetchone()[0],72)
+    self.assertEqual(c.execute('SELECT COUNT(*) FROM questions').fetchone()[0],72+104)
     self.assertEqual(c.execute('SELECT password FROM users WHERE id=9').fetchone()[0],'original-hash')
     self.assertEqual(c.execute('SELECT question_id FROM attempts').fetchone()[0],1)
     self.assertEqual(c.execute('SELECT COUNT(*) FROM question_skill_attempts').fetchone()[0],1)

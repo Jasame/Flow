@@ -225,10 +225,77 @@ class NextGraphTests(unittest.TestCase):
                 return p
         self.skipTest('no material for ' + node)
 
-    def test_graph_has_18_nodes_in_6_topics_and_reading_lights_nodes(self):
+    def test_new_grammar_points_have_a_page_four_questions_and_real_sentences(self):
+        import grammar_more as gm, content_subskills as cs
+        self.assertEqual(len(gm.NODES_MORE), 26)
+        self.assertEqual([a for a in cs.audit(self.c) if a['issues']], [])  # every page, guided item and question bank checks out
+        with_sentences = 0
+        for n in gm.NODES_MORE:
+            page, code = nx.node(self.c, None, n['id'], 'B1')
+            self.assertEqual(code, 200)
+            self.assertEqual(page['page']['status'], 'ready', n['id']); self.assertEqual(len(page['practice']), 4, n['id'])
+            self.assertTrue(all('answer' not in q for q in page['practice']))  # answers stay on the server
+            with_sentences += bool(page['examples'])
+        self.assertGreaterEqual(with_sentences, 22)  # found in the materials' own text
+
+    def test_finder_tags_clear_forms_and_leaves_lookalikes_alone(self):
+        import grammar_more as gm
+        cases = {
+            'The letter was written by a student.': 'voice-basic', 'The road is being repaired this week.': 'voice-tenses',
+            'By the time we arrived, the film had already started.': 'tense-past-perfect', 'My sister, who lives in Hangzhou, is a nurse.': 'clause-nondefining',
+            'Never have I seen such a beautiful sunset.': 'emph-inversion', 'It was in 2019 that we first met.': 'emph-cleft',
+            'It was so cold that the lake froze.': 'link-purpose', 'She must have missed the train.': 'modal-past',
+            'Having finished the report, he went for lunch.': 'nonfinite-clause', 'I wish I knew the answer to that.': 'subjunctive-wish',
+            'She is interested in starting a business.': 'prep-pattern', 'We had our kitchen painted last spring.': 'voice-causative'}
+        for sentence, point in cases.items():
+            self.assertIn(point, gm.find(sentence), sentence)
+        not_cases = {'She is interested in art and music.': 'voice-basic', 'We used to live near the sea.': 'prep-pattern',
+                     'During the long winter, we read a lot.': 'nonfinite-clause', 'It is important that you rest.': 'emph-cleft',
+                     'She had a long day at work.': 'tense-past-perfect', 'This is rather than a guess.': 'compare-basic'}
+        for sentence, point in not_cases.items():
+            self.assertNotIn(point, gm.find(sentence), sentence)
+
+    def test_practice_on_a_point_page_is_evidence_and_wrong_answers_go_to_the_mistake_book(self):
+        qs = nx.practice(self.c, 'voice-basic')
+        right = {r['id']: r['answer'] for r in self.c.execute("SELECT id, answer FROM questions WHERE node='voice-basic'")}
+        guest, code = nx.node_answer(self.c, None, {'question': qs[0]['id'], 'choice': right[qs[0]['id']]})
+        self.assertEqual(code, 200); self.assertTrue(guest['correct']); self.assertNotIn('status', guest)  # a guest is told, nothing stored
+        self.assertEqual(self.c.execute('SELECT COUNT(*) FROM learning_events WHERE node=?', ('voice-basic',)).fetchone()[0], 0)
+        wrong = (right[qs[0]['id']] + 1) % len(qs[0]['options'])
+        r, _ = nx.node_answer(self.c, 1, {'question': qs[0]['id'], 'choice': wrong})
+        self.assertFalse(r['correct']); self.assertEqual(r['status'], 'watch')
+        card = self.c.execute("SELECT kind, node, source FROM next_cards WHERE user_id=1 AND norm=?", (f"gq:{qs[0]['id']}",)).fetchone()
+        self.assertEqual((card['kind'], card['node'], card['source']), ('question', 'voice-basic', 'mistake'))
+        r, _ = nx.node_answer(self.c, 1, {'question': qs[1]['id'], 'choice': right[qs[1]['id']]})
+        self.assertTrue(r['correct']); self.assertEqual(r['status'], 'solid')
+        self.assertEqual(nx.node_answer(self.c, 1, {'question': 999999, 'choice': 0})[1], 404)
+        self.assertEqual(nx.node_answer(self.c, 1, {'question': qs[1]['id'], 'choice': 9})[1], 400)
+
+    def test_a_point_got_wrong_becomes_a_short_step_in_todays_plan_and_stays_ticked(self):
+        nx.save_profile(self.c, 1, {'level': 'B1', 'goal': 'work', 'themes': ['work'], 'minutes': 15})
+        self.assertNotIn('grammar', [s['key'] for s in nx.home(self.c, 1)['path']['steps']])
+        qs = nx.practice(self.c, 'modal-obligation')
+        answers = {r['id']: r['answer'] for r in self.c.execute("SELECT id, answer FROM questions WHERE node='modal-obligation'")}
+        nx.node_answer(self.c, 1, {'question': qs[0]['id'], 'choice': (answers[qs[0]['id']] + 1) % 4})
+        step = next(s for s in nx.home(self.c, 1)['path']['steps'] if s['key'] == 'grammar')
+        self.assertEqual((step['href'], step['done']), ('#/graph/modal-obligation', False))
+        nx.node_answer(self.c, 1, {'question': qs[1]['id'], 'choice': answers[qs[1]['id']]})
+        step = next(s for s in nx.home(self.c, 1)['path']['steps'] if s['key'] == 'grammar')
+        self.assertEqual((step['href'], step['done']), ('#/graph/modal-obligation', True))
+
+    def test_read_step_shows_points_found_in_the_text(self):
+        p = next(p for _, p in nx._public_packs(self.c) if 'voice-basic' in nx._found(p))
+        m, code = nx.material(self.c, None, p['id'])
+        self.assertEqual(code, 200)
+        found = [k for k in m['notes'] if k['node'] in __import__('grammar_more').BY_ID]
+        self.assertTrue(1 <= len(found) <= 2)
+        self.assertTrue(all(k['quote'] in p['body'] for k in found))
+
+    def test_graph_has_44_points_in_13_topics_and_reading_lights_nodes(self):
         g = nx.graph(self.c, 1)
-        self.assertEqual(len(g['topics']), 6); self.assertEqual(sum(len(t['nodes']) for t in g['topics']), 18)
-        self.assertEqual(g['summary']['untouched'], 18)
+        self.assertEqual(len(g['topics']), 13); self.assertEqual(sum(len(t['nodes']) for t in g['topics']), 44)
+        self.assertEqual(g['summary']['untouched'], 44)
+        self.assertTrue(all(n['level'] in ('A2', 'B1', 'B2', 'C1') for t in g['topics'] for n in t['nodes']))
         p = self.pack_with('tense-past')
         nx.mark(self.c, 1, p['id'], 'read')
         st = nx.graph_states(self.c, 1)
