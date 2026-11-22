@@ -1,3 +1,3 @@
-7f44e2b8febb0f8520fd465e21489e914add32ac a8947ffa99ae8f5595cbf2549931bd3793910b5124c4e4170ddf8b0b30a9f9d0 e2e
-# r5 live-snapshot-20261122: Pronunciation: one miss asks for another try, two in a row make the card
+ec2edfd2a2956c1ad2f3ff9e832d36972658c43c 614b0f69d1668a645e42ea738fa07ddfbaf75089f6998cd063ae65c80660b083 e2e
+# r6 live-snapshot-20261122: Second QA round: clearer word senses, roots in Chinese, a harder test band, email binding
 # Format: <commit sha> <manifest sha256> [e2e]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
