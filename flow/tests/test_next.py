@@ -167,6 +167,32 @@ class NextHttpTests(unittest.TestCase):
         self.assertEqual(json.loads(self.call('/api/next/home')[1])['level'], 'B2')
         self.assertEqual(self.call('/api/next/nothing')[0], 404)
 
+    def test_home_carries_the_session_so_the_page_starts_with_one_request(self):
+        guest = json.loads(self.call('/api/next/home?level=A2')[1])
+        self.assertEqual(guest['session']['user'], None); self.assertEqual(guest['level'], 'A2')
+        self.assertEqual(self.call('/api/login', {'username': 'learner', 'password': 'correct horse battery'})[0], 200)
+        # The page asks before it knows who is signed in, so it sends the guest's level: signed in, that is ignored.
+        member = json.loads(self.call('/api/next/home?level=A2&themes=science')[1])
+        session = json.loads(self.call('/api/session')[1])
+        self.assertEqual(member['session'], session); self.assertEqual(member['session']['user']['username'], 'learner')
+        self.assertEqual(member['level'], json.loads(self.call('/api/next/home')[1])['level'])
+        self.assertEqual(self.call('/api/next/profile', {'level': 'C1', 'themes': ['work']}, session['user']['csrf'])[0], 200)
+        member = json.loads(self.call('/api/next/home?level=A2&themes=science')[1])
+        self.assertEqual((member['level'], member['profile']['themes']), ('C1', ['work']))
+
+    def test_versioned_script_and_styles_are_cached_for_a_year_everything_else_is_checked(self):
+        def cache(path):
+            with urllib.request.urlopen(f'http://127.0.0.1:{self.srv.server_address[1]}{path}', timeout=10) as r:
+                return r.headers['Cache-Control']
+        v = app.asset_version()
+        self.assertIn(f'/next.js?v={v}'.encode(), self.call('/')[1])
+        for name in ('next.js', 'next.css'):
+            self.assertEqual(cache(f'/{name}?v={v}'), 'public, max-age=31536000, immutable', name)
+            self.assertEqual(cache(f'/{name}?v=0000000000'), 'no-cache', name)  # an old page's version: today's file, checked again
+            self.assertEqual(cache(f'/{name}'), 'no-cache', name)
+        for path in ('/', '/sw.js', '/manifest.webmanifest'):
+            self.assertEqual(cache(path), 'no-cache', path)
+
     def test_app_files_calendar_and_audio_aliases(self):
         for path in ('/sw.js', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png'):
             self.assertEqual(self.call(path)[0], 200, path)

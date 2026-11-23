@@ -55,9 +55,12 @@
   }
 
   /* ---------- session ---------- */
-  async function refreshSession() { const s = await api('/api/session'); S.user = s.user; S.csrf = s.user ? s.user.csrf : ''; }
+  // The home data carries the session too (who is signed in, the CSRF token): one request, not two in a row,
+  // which on a line from mainland China to the server is about a second saved. Signed in, the server ignores the
+  // guest's level and themes in the query, so asking before S.user is known gives the same answer.
   async function refreshHome() {
     S.home = await api('/api/next/home' + guestQuery(true));
+    if (S.home.session) { S.user = S.home.session.user; S.csrf = S.user ? S.user.csrf : ''; }
     if (S.home.profile && S.home.profile.voice) { S.voice = S.home.profile.voice; save('flow-next-voice', S.voice); }
     const due = S.home.stats ? S.home.stats.due + S.home.stats.new : 0;
     const b = document.getElementById('dueBadge'); b.hidden = !due; b.textContent = due > 99 ? '99+' : due;
@@ -107,7 +110,7 @@
   }
   function countdown(btn) { let n = 60; btn.textContent = `${n} 秒后可重发`; const t = setInterval(() => { n--; if (n <= 0) { clearInterval(t); btn.disabled = false; btn.textContent = '重新发送'; } else btn.textContent = `${n} 秒后可重发`; }, 1000); }
   async function afterLogin() {
-    await refreshSession(); await refreshHome();
+    await refreshHome();
     if (!S.home.profile && S.guest && S.guest.level) { try { await api('/api/next/profile', S.guest); await refreshHome(); } catch (e) { /* keep guest */ } }
     const gt = load('flow-next-guest-test');  // a vocabulary test taken before signing in
     if (gt && gt.answers) { try { await api('/api/next/vocab/test', { answers: gt.answers }); save('flow-next-guest-test', null); } catch (e) { /* try next time */ } }
@@ -123,8 +126,9 @@
     const sameMaterial = name === 'm' && last[0] === 'm' && last[1] === a && !!view.querySelector('#pane');
     S.lastRoute = parts().join('/');
     if (!sameMaterial) view.innerHTML = skeleton();
+    let fresh = S.homeFresh; S.homeFresh = false;  // home data fetched just before this page: today() need not ask again
     try {
-      if (!S.home) await refreshHome();
+      if (!S.home) { await refreshHome(); fresh = true; }
       if (name === 'welcome') { setNav(''); await welcome(a === 'edit'); }
       // Only the personalised home needs the level questions first; everything else works for a new guest too.
       else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review'].includes(name)) { location.replace('#/welcome'); return; }
@@ -138,7 +142,7 @@
       else if (name === 'review') { setNav('cards'); await reviewView(); }
       else if (name === 'library') { setNav('today'); await libraryView(); }
       else if (name === 'me') { setNav('me'); await meView(); }
-      else { setNav('today'); await today(); }
+      else { setNav('today'); await today(fresh); }
       if (!sameMaterial && name !== 'welcome') enter(view);
       if (!sameMaterial) { const h = view.querySelector('h1'); announce(h ? h.textContent : document.title); }
     } catch (e) {

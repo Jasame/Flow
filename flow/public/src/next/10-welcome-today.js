@@ -34,7 +34,7 @@
       const prof = { level: st.level, goal: st.goal, themes: st.themes, minutes: st.minutes };
       S.guest = prof; save('flow-next-guest', prof);
       if (S.user) { try { await api('/api/next/profile', prof); } catch (e) { toast(e.message); } }
-      await refreshHome(); location.hash = '#/';
+      await refreshHome(); S.homeFresh = true; location.hash = '#/';
     }
     draw();
   }
@@ -48,8 +48,8 @@
       <span class="meta">${m.featured ? '<span class="pill feat">精选</span>' : ''}${tag ? `<span class="pill amber">${esc(tag)}</span>` : ''}<span class="pill">${m.level}</span></span>
       <span class="p">${esc(m.preview)}</span><span class="tiny muted">${esc(m.theme_label)} · ${m.words} 词 · 约 ${m.minutes} 分钟</span>${m.steps.length ? stepDots(m.steps) : ''}${reasonsHTML(m)}</a>`;
   }
-  async function today() {
-    await refreshHome();
+  async function today(fresh) {
+    if (!fresh) await refreshHome();
     const h = S.home, pick = h.today[0], st = h.stats, g = h.graph;
     const name = S.user ? S.user.username : '';
     const gtotal = g ? g.total : 18, glit = g ? gtotal - g.untouched : 0;

@@ -1,7 +1,7 @@
   /* ---------- boot ---------- */
   (async function boot() {
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
-    try { await refreshSession(); } catch (e) { /* offline guest */ }
+    try { await refreshHome(); S.homeFresh = true; } catch (e) { /* offline: route() asks again and offers a retry */ }
     route();
     OUTBOX.flush();
   })();

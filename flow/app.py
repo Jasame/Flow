@@ -113,12 +113,18 @@ def shell_file(name):
  next.js and next.css, so any change to them gives new URLs and a changed service worker, and phones update."""
  body=(ROOT/'public'/name).read_bytes()
  if name not in ('next.html','sw.js'):return body
+ return body.replace(b'__ASSET__',asset_version().encode())
+def asset_version():
+ """The content version of next.js and next.css (10 hex digits); recomputed when either file changes."""
  key=tuple((ROOT/'public'/n).stat().st_mtime_ns for n in ('next.js','next.css'))
  if _ASSET.get('key')!=key:
   h=hashlib.sha256()
   for n in ('next.js','next.css'):h.update((ROOT/'public'/n).read_bytes())
   _ASSET.update(key=key,v=h.hexdigest()[:10])
- return body.replace(b'__ASSET__',_ASSET['v'].encode())
+ return _ASSET['v']
+def session_info(u):
+ """What /api/session answers; /api/next/home carries the same, so the page needs one request to start."""
+ return {'user':{k:u[k] for k in ('id','username','admin','csrf')} if u else None,'ai_enabled':ai_enabled()}
 def verify(p,stored): return hmac.compare_digest(password(p,stored.split(':')[0]),stored)
 def topics(c):
  out=[]
@@ -226,9 +232,12 @@ class Handler(BaseHTTPRequestHandler):
   if path.startswith('/api/'):
    with db() as c:
     u=self.user(c)
-    if path=='/api/session':return self.send({'user':dict(u) if u else None,'ai_enabled':ai_enabled()} if not u else {'user':{k:u[k] for k in ('id','username','admin','csrf')},'ai_enabled':ai_enabled()})
+    if path=='/api/session':return self.send(session_info(u))
     if path.startswith('/api/next/'):
-     result=__import__('next_service').get(c,u['id'] if u else None,path,parse_qs(urlsplit(self.path).query))
+     q=parse_qs(urlsplit(self.path).query)
+     if path=='/api/next/home' and u:q={k:v for k,v in q.items() if k not in ('level','themes')}  # a guest's choices; signed in, the profile decides
+     result=__import__('next_service').get(c,u['id'] if u else None,path,q)
+     if path=='/api/next/home' and result and result[1]==200:result[0]['session']=session_info(u)
      return self.send(*result) if result is not None else self.send({'error':'接口不存在'},404)
     if not u:return self.send({'error':'请先登录'},401)
     result=core_words.get(c,path,parse_qs(urlsplit(self.path).query))
@@ -313,7 +322,11 @@ class Handler(BaseHTTPRequestHandler):
    self.send_response(200);self.headers_common('text/html; charset=utf-8');self.send_header('Cache-Control','no-cache')
    self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
   if path not in files:return self.send({'error':'页面不存在'},404)
-  name,mime=files[path];body=shell_file(name);self.send_response(200);self.headers_common(mime);self.send_header('Cache-Control','public, max-age=31536000, immutable' if name.endswith('.woff2') else 'no-cache');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
+  name,mime=files[path];body=shell_file(name);self.send_response(200);self.headers_common(mime)
+  # next.js and next.css under their current ?v= never change, so browsers and Cloudflare may keep them for a year;
+  # any other version asked for (an old page) gets today's file and must check again.
+  versioned=name in ('next.js','next.css') and parse_qs(urlsplit(self.path).query).get('v',[''])[0]==asset_version()
+  self.send_header('Cache-Control','public, max-age=31536000, immutable' if name.endswith('.woff2') or versioned else 'no-cache');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def do_POST(self):
   try:self.post()
   except (ValueError,KeyError,TypeError,json.JSONDecodeError):self.send({'error':'请求格式或参数不正确'},400)
