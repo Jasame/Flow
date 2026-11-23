@@ -234,6 +234,7 @@ flow/tests/test_admin_roles.py
 flow/tests/test_ai_routing.py
 flow/tests/test_ai_stream.py
 flow/tests/test_atlas.py
+flow/tests/test_channels.py
 flow/tests/test_chat.py
 flow/tests/test_coach.py
 flow/tests/test_continuity.py
