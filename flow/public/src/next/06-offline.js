@@ -22,6 +22,7 @@
     try {
       const m = await dataGet(materialPath(id) + '&offline=1', quiet);
       OFF.put(id, m);
+      if (MAT[id] && !MAT[id].answers) MAT[id].answers = m.answers;  // the page open now can grade offline too
       const vs = (m.audio && m.audio.voices) || [], sw = navigator.serviceWorker && navigator.serviceWorker.controller;
       if (vs.length && sw) {  // the narration and its timings, kept by the service worker like any audio it has served
         const base = `/audio/${vs.includes(S.voice) ? S.voice : vs[0]}/${encodeURIComponent(id)}`;
@@ -47,4 +48,4 @@
   }
   // Losing and finding the connection: said once each way; what waited is sent.
   addEventListener('offline', () => { const n = OFF.count(); toast(n ? `现在没网：已存到手机的 ${n} 篇还能学` : '现在没网：复习单词还能做，联网后自动同步'); });
-  addEventListener('online', async () => { const sent = await OUTBOX.flush(); if (sent) toast(`网络恢复了，没网时做的 ${sent} 项已同步`); });
+  addEventListener('online', () => { OUTBOX.flush(); });  // it says how much was synced

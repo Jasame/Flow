@@ -25,10 +25,12 @@
     if (!m) {
       // A copy kept on the phone (one of the last five opened) shows at once; the server's copy replaces it for the
       // next step. Otherwise the request is often already on its way: preloaded from 今日 or when the link was touched.
-      const path = materialPath(id), kept = snapMaterialGet(path) || OFF.get(id);  // OFF: kept for offline (06-offline.js)
+      // A material kept with 存到手机 (06-offline.js) comes first: only that copy has the answers, to grade without a
+      // connection, and the fresher copy from the server keeps them.
+      const path = materialPath(id), off = OFF.get(id), kept = off || snapMaterialGet(path);
       if (kept) {
         m = kept; MAT[id] = m;
-        api(path).then(f => { if (!f.answers && kept.answers) f.answers = kept.answers; if (MAT[id] === kept) MAT[id] = f; snapMaterial(path, f); if (OFF.has(id)) OFF.put(id, f); }).catch(() => {});
+        api(path).then(f => { if (!f.answers && kept.answers) f.answers = kept.answers; if (MAT[id] === kept) MAT[id] = f; snapMaterial(path, f); if (off) OFF.put(id, f); }).catch(() => {});
       }
       else { m = await api(path); MAT[id] = m; snapMaterial(path, m); }
     }

@@ -369,7 +369,7 @@
           l = this.list().slice(1); save(this.key, l); sent++;
         }
       } finally { this.busy = false; }
-      if (sent) { toast(`已同步 ${sent} 条离线复习记录`); refreshHome().catch(() => {}); }
+      if (sent) { toast(`没网时做的 ${sent} 项已同步`); refreshHome().catch(() => {}); }  // said once, here (also after the 'online' event)
       return sent;
     },
   };
@@ -778,7 +778,13 @@
     });
   }
   function snapMaterialGet(path) { const s = snapGet(); return s && s.owner === snapOwner() && s.mats[path] ? s.mats[path].m : null; }
-  function snapClear() { save(SNAP, null); DATA.mem.clear(); OFF.clear(); }
+  // Signing out (and 注销账号): the account's copies on this phone go, with the review queue kept for offline review and
+  // anything still waiting to be sent (the sign-out sends it first while there is a connection: OUTBOX.flush), so the
+  // next person on a shared phone sees none of it and none of it is sent into their account.
+  function snapClear() {
+    save(SNAP, null); DATA.mem.clear(); OFF.clear();
+    try { localStorage.removeItem('flow-next-review-cache'); localStorage.removeItem('flow-next-outbox'); } catch (e) { /* private mode */ }
+  }
 
   // ---- preloading
   const idle = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 2500 }) : setTimeout(f, 900));
@@ -834,6 +840,7 @@
     try {
       const m = await dataGet(materialPath(id) + '&offline=1', quiet);
       OFF.put(id, m);
+      if (MAT[id] && !MAT[id].answers) MAT[id].answers = m.answers;  // the page open now can grade offline too
       const vs = (m.audio && m.audio.voices) || [], sw = navigator.serviceWorker && navigator.serviceWorker.controller;
       if (vs.length && sw) {  // the narration and its timings, kept by the service worker like any audio it has served
         const base = `/audio/${vs.includes(S.voice) ? S.voice : vs[0]}/${encodeURIComponent(id)}`;
@@ -859,7 +866,7 @@
   }
   // Losing and finding the connection: said once each way; what waited is sent.
   addEventListener('offline', () => { const n = OFF.count(); toast(n ? `现在没网：已存到手机的 ${n} 篇还能学` : '现在没网：复习单词还能做，联网后自动同步'); });
-  addEventListener('online', async () => { const sent = await OUTBOX.flush(); if (sent) toast(`网络恢复了，没网时做的 ${sent} 项已同步`); });
+  addEventListener('online', () => { OUTBOX.flush(); });  // it says how much was synced
   /* ---------- QR codes (byte mode, error correction M, versions 1–6): the 分享卡片's way back to the site ---------- */
   // Written out here rather than loaded from elsewhere (the page loads nothing from other sites). tools/ui_test.py reads
   // the codes back with the browser's own BarcodeDetector where it has one. Up to 106 bytes: plenty for a link.
@@ -1181,10 +1188,12 @@
     if (!m) {
       // A copy kept on the phone (one of the last five opened) shows at once; the server's copy replaces it for the
       // next step. Otherwise the request is often already on its way: preloaded from 今日 or when the link was touched.
-      const path = materialPath(id), kept = snapMaterialGet(path) || OFF.get(id);  // OFF: kept for offline (06-offline.js)
+      // A material kept with 存到手机 (06-offline.js) comes first: only that copy has the answers, to grade without a
+      // connection, and the fresher copy from the server keeps them.
+      const path = materialPath(id), off = OFF.get(id), kept = off || snapMaterialGet(path);
       if (kept) {
         m = kept; MAT[id] = m;
-        api(path).then(f => { if (!f.answers && kept.answers) f.answers = kept.answers; if (MAT[id] === kept) MAT[id] = f; snapMaterial(path, f); if (OFF.has(id)) OFF.put(id, f); }).catch(() => {});
+        api(path).then(f => { if (!f.answers && kept.answers) f.answers = kept.answers; if (MAT[id] === kept) MAT[id] = f; snapMaterial(path, f); if (off) OFF.put(id, f); }).catch(() => {});
       }
       else { m = await api(path); MAT[id] = m; snapMaterial(path, m); }
     }
@@ -2904,7 +2913,8 @@
         <div class="cal" aria-label="最近 5 周每天复习次数">${o.calendar.map(d => `<i class="l${d.n ? Math.min(4, Math.ceil(d.n / maxC * 4)) : 0}" title="${d.day}：${d.n} 次"></i>`).join('')}</div></div></details>
       <form class="searchrow section" id="sf" role="search"><input type="search" name="q" enterkeyhint="search" placeholder="搜索单词、意思或原句${TOUCH ? '' : '（按 / 跳到这里）'}" value="${esc(q)}"><button class="btn">搜索</button></form>
       <div class="chips filt" role="group" aria-label="筛选">${[['', '全部'], ['word', '单词'], ['phrase', '表达'], ['mistake', '错题']].map(([k, l]) => `<button class="chip small" data-f="${k}" aria-pressed="${f === k}">${l}</button>`).join('')}</div>
-      <div id="listSlot">${listHTML(list, q, page, f)}</div>`;
+      <div id="listSlot">${listHTML(list, q, page, f)}</div>
+      ${o.total ? '<p class="tc section"><button class="link small" type="button" id="wbExport" data-tap="words-export">导出单词本：Excel 表格或 Anki</button></p>' : ''}`;
     requestAnimationFrame(() => requestAnimationFrame(() => {
       view.querySelectorAll('.vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; });
       view.querySelectorAll('.forecast i').forEach(i => { i.style.height = Math.max(3, i.dataset.h) + '%'; });
@@ -2931,6 +2941,7 @@
     document.getElementById('sf').onsubmit = e => { e.preventDefault(); st.q = e.target.q.value.trim(); st.page = 1; reload(); };
     view.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { st.f = b.dataset.f; st.page = 1; view.querySelectorAll('[data-f]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); reload(); });
     document.getElementById('imp').onclick = importSheet;
+    const wx = document.getElementById('wbExport'); if (wx) wx.onclick = dataSheet;
     const vs = document.getElementById('vStats');
     vs.addEventListener('toggle', () => { try { localStorage.setItem('flow-words-stats', vs.open ? 'open' : ''); } catch (e) { /* private mode */ } });
     bindList();
@@ -3672,7 +3683,8 @@
       ['设置', [grow('#/welcome/edit', '学习目标和水平', [goal && esc(goal.label), lv && lv.id].filter(Boolean).join(' · ') || '未设置', '', 'me-level'),
         u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), grow('meText', '字号和行距', textLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '加到手机日历', '', 'me-remind'),
         installed ? '' : grow('meInstall', '添加到桌面', '像 App 一样打开', '', 'me-install')]],
-      u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备')],
+      u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
+        grow('meData', '导出我的数据', '单词本 · 学习记录', '', 'me-data'), grow('meDelete', '注销账号', '', '', 'me-delete')],
         '绑定邮箱后，可以用验证码登录，忘记密码时自己找回。30 天内来过就一直保持登录；在别人的手机或电脑上用完，记得退出。'],
       ['帮助', [grow('#/guide', '操作指南', '每个页面怎么用', '', 'me-guide'), grow('#/feedback', '问题反馈', '页面不对、功能用不了，告诉我们', '', 'me-feedback'), grow('/survey', '匿名问卷', '你想要什么样的英语学习网站', '', 'me-survey')]],
     ].filter(Boolean);
@@ -3698,7 +3710,9 @@
       }).catch(() => { const el = document.getElementById('acctEmail'); if (el) el.textContent = ''; });
       document.getElementById('chPw').onclick = () => changePasswordSheet();
       document.getElementById('outAll').onclick = () => signOutEverywhere();
-      document.getElementById('out').onclick = async () => { try { await api('/api/logout', {}); } catch (e) { /* ignore */ } snapClear(); S.user = null; S.csrf = ''; await refreshHome(); toast('已退出'); route(); };
+      document.getElementById('meData').onclick = dataSheet;
+      document.getElementById('meDelete').onclick = deleteAccountSheet;
+      document.getElementById('out').onclick = async () => { await OUTBOX.flush(); try { await api('/api/logout', {}); } catch (e) { /* ignore */ } snapClear(); S.user = null; S.csrf = ''; await refreshHome(); toast('已退出'); route(); };
     }
   }
   // 字号和行距: the reading text (a material, the listening lines, review sentences, questions, the guide, meanings)
@@ -3833,6 +3847,52 @@
       };
     });
   }
+  // 我的数据 (account_data.py): the word book for Excel/WPS/Numbers or for Anki, or every record of the account. Plain
+  // links: the server sends them as files. WeChat does not save files, so there the way out is the phone's browser.
+  const EXPORTS = [['/api/next/export/cards.csv', '单词本 · Excel 表格', '.csv', 'export-csv'],
+    ['/api/next/export/cards-anki.txt', '单词本 · 导入 Anki', '.txt', 'export-anki'],
+    ['/api/next/export/records.json', '全部学习记录', '.json', 'export-json']];
+  function dataSheet() {
+    const n = S.home && S.home.stats ? S.home.stats.cards : null;
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">导出我的数据</h2>
+      ${IN_WECHAT ? '<p class="small card sunk">微信里不能保存文件：点右上角「…」，选「在浏览器打开」，再到「我的 → 导出我的数据」。</p>' : ''}
+      <div class="glist">${EXPORTS.map(([href, label, ext, tap], k) => `<a class="grow" href="${href}" download data-tap="${tap}"><span class="t">${label}</span><span class="v small muted">${k < 2 && n != null ? n + ' 条 · ' : ''}${ext}</span><span class="go" aria-hidden="true">↓</span></a>`).join('')}</div>
+      <p class="tiny muted">表格用 Excel、WPS 或 Numbers 直接打开：英文、中文意思、原文例句、来源和复习情况各占一列。Anki：在电脑上「文件 → 导入」选这个文件，正面是英文，背面是中文意思和原文例句。全部学习记录是一个 JSON 文件，有单词本、每次复习、学过的材料、测评和设置，留底或换地方用。</p>
+      <button class="btn ghost" data-close type="button">完成</button></div>`);
+  }
+  // 注销账号: what goes (all of it, for good), a copy first if wanted, the password once more. Afterwards this phone
+  // forgets the account too.
+  function deleteAccountSheet() {
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">注销账号</h2>
+      <p class="small">注销后，这个账号和它的全部学习记录都会删除，<b>不能恢复</b>：单词本和复习安排、学过的材料、测评和能力雷达、写作和口语的批改记录、发过的问题反馈和截图。同样的用户名和邮箱以后可以重新注册，但会从头开始。</p>
+      <p class="small">想留一份？<button class="link" id="dlFirst" type="button">先导出单词本和学习记录</button></p>
+      <form id="da" class="stack" novalidate>${pwField('输入密码确认', 'password', 'current-password')}
+        <button class="btn danger-btn" type="submit">永久注销这个账号</button></form>
+      <p class="err" id="daErr" role="alert"></p><button class="btn ghost" data-close type="button">取消</button></div>`, card => {
+      bindEyes(card);
+      card.querySelector('#dlFirst').onclick = dataSheet;
+      const form = card.querySelector('#da'), err = card.querySelector('#daErr');
+      form.onsubmit = async e => {
+        e.preventDefault(); err.textContent = '';
+        if (!form.password.value) return fieldError(form, err, { message: '请输入密码', field: 'password' });
+        const b = form.querySelector('[type=submit]'); b.disabled = true;
+        try {
+          await api('/api/account/delete', { password: form.password.value });
+          forgetAccountHere(); S.user = null; S.csrf = ''; closeSheet(); await refreshHome();
+          location.hash = '#/'; route(); toast('账号已注销，学习记录已全部删除');
+        } catch (x) { fieldError(form, err, { message: x.message, field: 'password' }); b.disabled = false; }
+      };
+    });
+  }
+  // What this phone kept for the account: the copies (snapClear) and the small notes of where the learner was.
+  // The phone's own choices (voice, text size, 复读) stay.
+  function forgetAccountHere() {
+    snapClear();
+    try {
+      ['flow-habit-lastweek', 'flow-habit-cheered', 'flow-next-mail-nudge', 'flow-next-suggest-skip', 'flow-words-stats'].forEach(k => localStorage.removeItem(k));
+      Object.keys(localStorage).filter(k => k.startsWith('flow-next-steps-')).forEach(k => localStorage.removeItem(k));
+    } catch (e) { /* private mode */ }
+  }
   // A lost phone, a shared computer: end the account's sessions everywhere, this one included.
   function signOutEverywhere() {
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">退出所有设备？</h2>
@@ -3840,7 +3900,7 @@
       <button class="btn primary" id="soAll" type="button">退出所有设备</button><button class="btn ghost" data-close type="button">取消</button></div>`, card => {
       card.querySelector('#soAll').onclick = async e => {
         e.currentTarget.disabled = true;
-        try { await api('/api/logout', { all: true }); } catch (x) { /* signed out already */ } snapClear();
+        await OUTBOX.flush(); try { await api('/api/logout', { all: true }); } catch (x) { /* signed out already */ } snapClear();
         S.user = null; S.csrf = ''; closeSheet(); await refreshHome(); toast('已在所有设备上退出'); route();
       };
     });

@@ -284,7 +284,7 @@
           l = this.list().slice(1); save(this.key, l); sent++;
         }
       } finally { this.busy = false; }
-      if (sent) { toast(`已同步 ${sent} 条离线复习记录`); refreshHome().catch(() => {}); }
+      if (sent) { toast(`没网时做的 ${sent} 项已同步`); refreshHome().catch(() => {}); }  // said once, here (also after the 'online' event)
       return sent;
     },
   };

@@ -976,6 +976,90 @@ def ux_run(pw):
         browser.close()
 
 
+# ---- the learner round (r22): 每周目标, 存到手机 (study without a connection), 分享卡片, 导出我的数据 and 注销账号
+QR_READ = """async sel => { if (!('BarcodeDetector' in window)) return null;
+  const f = await new BarcodeDetector({ formats: ['qr_code'] }).detect(document.querySelector(sel)); return f.map(x => x.rawValue); }"""
+
+
+def learner_run(pw):
+    dev = 'learner'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    phone = dict(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, accept_downloads=True)
+    closing = "document.querySelector('#sheet [data-close]').click()"
+    try:
+        ctx = browser.new_context(**phone)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['exam']['token'], 'url': BASE}])
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+        # 每周目标: the chip on 今日 opens its sheet, and the goal chosen there shows on the chip at once
+        pg.click('#habitBtn'); pg.wait_for_selector('#sheetCard [data-goal="3"]', timeout=4000)
+        pg.click('#sheetCard [data-goal="3"]'); pg.wait_for_timeout(600); pg.evaluate(closing)
+        chip = (pg.text_content('#habitBtn') or '').strip()
+        check(dev, '每周目标: the goal set from 今日 shows on its chip', '/3 天' in chip, chip[:40])
+        # 分享卡片: after the questions, a learned expression becomes a picture with a QR code back to the site
+        go(pg, f'#/m/{PID}/check'); pg.wait_for_selector('#pane .q', timeout=6000)
+        for q in pg.query_selector_all('#pane .q'):
+            q.query_selector('.ans').click(); pg.wait_for_timeout(250)
+        pg.wait_for_selector('#shareX', timeout=6000); pg.click('#shareX')
+        pg.wait_for_selector('#shareImg[src^="data:image/png"]', timeout=6000); pg.wait_for_timeout(300)
+        size = pg.evaluate("[document.getElementById('shareImg').naturalWidth, document.getElementById('shareImg').naturalHeight]")
+        read = pg.evaluate(QR_READ, '#shareImg')
+        fits = pg.evaluate("() => { const r = document.querySelector('#sheetCard [data-close]').getBoundingClientRect(); return r.bottom <= innerHeight; }")
+        check(dev, '分享卡片: a 1080×1440 picture, its QR code leads back to the site, and the sheet\'s buttons are on screen',
+              size == [1080, 1440] and read in (None, ['https://flowlang.cn/?f=card']) and fits, (size, read if read is not None else 'no BarcodeDetector here (Linux): read on macOS', fits))
+        pg.screenshot(path=str(OUT / 'learner-share.png')); pg.evaluate(closing)
+        # 存到手机: a material kept on the phone opens and is graded without a connection; the answer is sent once online
+        lib = pg.evaluate("fetch('/api/next/library?level=&theme=&page=1&featured=').then(r => r.json())")
+        other = next((m['id'] for m in lib.get('items', []) if m['id'] != PID), None)
+        if other:
+            go(pg, f'#/m/{other}/read'); pg.wait_for_selector('#keepOff', timeout=6000)
+            if pg.get_attribute('#keepOff', 'class').find(' on') < 0:
+                pg.click('#keepOff')
+            pg.wait_for_selector('.offk.on', timeout=8000); go(pg, '#/')
+            ctx.set_offline(True); pg.wait_for_timeout(300)
+            go(pg, f'#/m/{other}/check')
+            shown = pg.query_selector('#pane .q .ans') is not None
+            if shown:
+                pg.click('#pane .q .ans'); pg.wait_for_timeout(400)
+            graded = pg.query_selector('#pane .q .ans.right') is not None
+            waiting = pg.evaluate("JSON.parse(localStorage.getItem('flow-next-outbox') || '[]').filter(x => x.path === '/api/next/check').length")
+            ctx.set_offline(False); pg.wait_for_timeout(1500)
+            sent = pg.evaluate("JSON.parse(localStorage.getItem('flow-next-outbox') || '[]').length")
+            check(dev, '存到手机: a kept material opens and is graded offline, and the answer is sent once back online',
+                  shown and graded and waiting >= 1 and sent == 0, (shown, graded, waiting, sent))
+        else:
+            check(dev, '存到手机: a second material to keep', False, 'no other material in the library')
+        # 导出我的数据: the word book as a table for Excel (UTF-8 with a BOM), from 我的
+        go(pg, '#/me'); pg.click('#meData'); pg.wait_for_selector('#sheetCard a[href$="cards.csv"]', timeout=4000)
+        with pg.expect_download(timeout=8000) as dl:
+            pg.click('#sheetCard a[href$="cards.csv"]')
+        f = dl.value; body = Path(f.path()).read_bytes()
+        check(dev, '导出: the word book downloads as 语流单词本-<day>.csv, readable by Excel', f.suggested_filename.startswith('语流单词本-') and body.startswith('\ufeff英文,中文意思'.encode()),
+              (f.suggested_filename, body[:30]))
+        pg.evaluate(closing)
+        check(dev, 'no script errors on these pages', not errs, errs[:3])
+        ctx.close()
+        # 注销账号: a wrong password is refused; the right one deletes the account, and this phone forgets it
+        ctx = browser.new_context(**phone)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['leaver']['token'], 'url': BASE}])
+        pg = ctx.new_page(); pg.goto(BASE + '/#/me', wait_until='networkidle'); settle(pg)
+        pg.click('#meDelete'); pg.wait_for_selector('#sheetCard #da', timeout=4000); pg.wait_for_timeout(400)
+        pg.screenshot(path=str(OUT / 'learner-delete.png'))
+        pg.fill('#da input[name=password]', 'not the password'); pg.click('#da [type=submit]'); pg.wait_for_timeout(700)
+        refused = (pg.text_content('#daErr') or '').strip()
+        pg.fill('#da input[name=password]', CFG['learners']['leaver']['password']); pg.click('#da [type=submit]')
+        pg.wait_for_function("() => ['#/', '#/welcome'].includes(location.hash) && document.getElementById('sheet').hidden", timeout=8000); settle(pg)
+        who = pg.evaluate("fetch('/api/session').then(r => r.json()).then(j => j.user || null)")
+        # (a guest's own copy of 今日 may be there again: the page after the deletion is a guest's)
+        kept = pg.evaluate("""['flow-snap', 'flow-offline', 'flow-next-outbox', 'flow-next-review-cache'].filter(k => {
+          const v = JSON.parse(localStorage.getItem(k) || 'null'); return v && !(k === 'flow-snap' && v.owner === 'guest'); })""")
+        check(dev, '注销账号: a wrong password is refused, the right one deletes the account and signs out, and this phone keeps none of it',
+              '密码不正确' in refused and who is None and not kept, (refused, who, kept))
+        ctx.close()
+    finally:
+        browser.close()
+
+
 def main():
     with sync_playwright() as pw:
         for dev, opts in DEVICES.items():
@@ -1001,6 +1085,12 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('ux', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'learner' in ONLY:
+            try:
+                learner_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('learner', 'run finished', False, traceback.format_exc()[-600:])
         for engine in ('chrome', 'webkit'):  # last: it takes the vocabulary test and answers review cards
             if not ONLY or 'layout' in ONLY or engine in ONLY:
                 try:

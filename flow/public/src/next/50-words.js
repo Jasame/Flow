@@ -77,7 +77,8 @@
         <div class="cal" aria-label="最近 5 周每天复习次数">${o.calendar.map(d => `<i class="l${d.n ? Math.min(4, Math.ceil(d.n / maxC * 4)) : 0}" title="${d.day}：${d.n} 次"></i>`).join('')}</div></div></details>
       <form class="searchrow section" id="sf" role="search"><input type="search" name="q" enterkeyhint="search" placeholder="搜索单词、意思或原句${TOUCH ? '' : '（按 / 跳到这里）'}" value="${esc(q)}"><button class="btn">搜索</button></form>
       <div class="chips filt" role="group" aria-label="筛选">${[['', '全部'], ['word', '单词'], ['phrase', '表达'], ['mistake', '错题']].map(([k, l]) => `<button class="chip small" data-f="${k}" aria-pressed="${f === k}">${l}</button>`).join('')}</div>
-      <div id="listSlot">${listHTML(list, q, page, f)}</div>`;
+      <div id="listSlot">${listHTML(list, q, page, f)}</div>
+      ${o.total ? '<p class="tc section"><button class="link small" type="button" id="wbExport" data-tap="words-export">导出单词本：Excel 表格或 Anki</button></p>' : ''}`;
     requestAnimationFrame(() => requestAnimationFrame(() => {
       view.querySelectorAll('.vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; });
       view.querySelectorAll('.forecast i').forEach(i => { i.style.height = Math.max(3, i.dataset.h) + '%'; });
@@ -104,6 +105,7 @@
     document.getElementById('sf').onsubmit = e => { e.preventDefault(); st.q = e.target.q.value.trim(); st.page = 1; reload(); };
     view.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { st.f = b.dataset.f; st.page = 1; view.querySelectorAll('[data-f]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); reload(); });
     document.getElementById('imp').onclick = importSheet;
+    const wx = document.getElementById('wbExport'); if (wx) wx.onclick = dataSheet;
     const vs = document.getElementById('vStats');
     vs.addEventListener('toggle', () => { try { localStorage.setItem('flow-words-stats', vs.open ? 'open' : ''); } catch (e) { /* private mode */ } });
     bindList();

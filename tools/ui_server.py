@@ -4,7 +4,8 @@
     python3 tools/ui_server.py <port> <state dir>
 
 Writes <state dir>/sessions.json: {learner: {"token", "csrf", "id"}} for a2, b1, exam and one per test device. The UI tests put the
-token in the browser's cookie, so no password exists or is typed anywhere. Learners come with a profile, a word
+token in the browser's cookie, so no password is typed, except for "leaver": 注销账号 asks for the password, so that one
+learner gets a password made for this run (in sessions.json) and the test deletes it. Learners come with a profile, a word
 plan, saved words, a mistake card of each kind and a few practice results, so every page has something on it.
 Nothing here talks to a real AI or to production.
 """
@@ -102,12 +103,14 @@ PID = 'v5-science-b2-noise-cancelling'
 LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'science']), 'exam': ('B2', 'exam', ['science']),
             # one learner per device in tools/ui_test.py, so each device starts from the same state
             **{d: ('B1', 'work', ['work', 'science']) for d in ('phone', 'phone-land', 'tablet', 'desktop')},
-            'guide': ('B1', 'work', ['work', 'science'])}  # the 操作指南 screenshots (tools/guide_shots.py)
+            'guide': ('B1', 'work', ['work', 'science']),  # the 操作指南 screenshots (tools/guide_shots.py)
+            'leaver': ('B1', 'work', ['work', 'science'])}  # 注销账号 in tools/ui_test.py (learner_run)
 out = {}
 with app.db() as c:
     for name, (level, goal, themes) in LEARNERS.items():
         uname = '小林' if name == 'guide' else f'ui-{name}'
-        c.execute('INSERT INTO users(username,password) VALUES(?,?)', (uname, 'ui-no-login:' + secrets.token_hex(8)))
+        secret = 'ui-leaver-' + secrets.token_hex(8) if name == 'leaver' else ''
+        c.execute('INSERT INTO users(username,password) VALUES(?,?)', (uname, app.password(secret) if secret else 'ui-no-login:' + secrets.token_hex(8)))
         uid = c.execute('SELECT id FROM users WHERE username=?', (uname,)).fetchone()[0]
         token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(24)
         c.execute('INSERT INTO sessions VALUES(?,?,?,?)', (token, uid, csrf, time.time() + 86400))
@@ -135,7 +138,7 @@ with app.db() as c:
             for dim, idx in (('reading', 63), ('listening', 50), ('speaking', 45)):
                 ar.record(c, uid, dim, idx, now=now - 3600)
         c.commit()
-        out[name] = {'token': token, 'csrf': csrf, 'id': uid}
+        out[name] = {'token': token, 'csrf': csrf, 'id': uid, **({'password': secret} if secret else {})}
 (STATE / 'sessions.json').write_text(json.dumps({'base': f'http://127.0.0.1:{PORT}', 'pid': PID, 'learners': out}))
 
 from http.server import ThreadingHTTPServer  # noqa: E402
