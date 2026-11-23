@@ -149,6 +149,8 @@ flow/fsrs.py
 flow/grammar_more.py
 flow/grammar_bank.py
 flow/exam_service.py
+flow/graph_links.py
+flow/LEARNING-SYSTEM.md
 flow/graph_service.py
 flow/growth_service.py
 flow/guest_first.py

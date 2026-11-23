@@ -213,6 +213,16 @@ def daily_path(c, uid, home, now=None):
     if pick:
         steps.append({'key': 'read', 'title': '今天这篇', 'sub': pick['title'], 'href': f"#/m/{pick['id']}",
                       'done': 'check' in done_steps or 'output' in done_steps})
+    if minutes >= 45 and pick:
+        # A longer day gets a second material: the next recommendation, or the one already started today.
+        other = next((m for m in (home.get('today') or []) if m and m['id'] != pick['id']), None)
+        row2 = c.execute("SELECT pack FROM next_progress WHERE user_id=? AND created>=? AND pack!=? ORDER BY created DESC LIMIT 1",
+                         (uid, start, pick['id'])).fetchone()
+        if row2 and nx._pack_row(c, uid, row2['pack']):
+            other = {'id': row2['pack'], 'title': json.loads(nx._pack_row(c, uid, row2['pack'])['content'])['title']}
+        if other:
+            st2 = {r['step'] for r in c.execute('SELECT step FROM next_progress WHERE user_id=? AND pack=? AND created>=?', (uid, other['id'], start))}
+            steps.append({'key': 'read2', 'title': '再读一篇', 'sub': other['title'], 'href': f"#/m/{other['id']}", 'done': 'check' in st2 or 'output' in st2})
     weakest = ability(c, uid, now)['weakest']
     level = prof.get('level') or 'B1'
     if level == 'A2' and minutes <= 10 and 'say' not in today_kinds:
@@ -227,26 +237,22 @@ def daily_path(c, uid, home, now=None):
         href = f"#/m/{pick['id']}/output/{key}" if pick and key != 'dictate' else (f"#/m/{pick['id']}/listen" if pick else '#/library')
     kinds = {'retell': {'retell'}, 'essay': {'essay'}, 'translate': {'translate'}, 'dictate': {'dictation'}, 'sounds': {'say', 'discriminate'}}
     steps.append({'key': key, 'title': title, 'sub': sub, 'href': href, 'done': bool(kinds.get(key, set()) & today_kinds)})
-    # Grammar: a point the learner got wrong in writing or in practice comes first (a short fix on its page); else one
-    # point whose spaced re-check has come. One point a day is the step: once one is practised (and not flagged), the
-    # step is ticked and the rest of the queue waits for tomorrow, as the graph page shows.
-    practised = [r['node'] for r in c.execute("SELECT node FROM learning_events WHERE user_id=? AND source LIKE 'next-node:%' AND created>=? ORDER BY id",
-                                              (uid, start))]
-    graph = home.get('graph') or {}
-    watch, due = graph.get('watch') or [], graph.get('due') or []
-    titles = nx.nodes_meta(c)
-    if watch:
-        steps.append({'key': 'grammar', 'title': '语法：' + watch[0]['title'], 'sub': '写作或做题里出过错 · 4 道题，约 3 分钟',
-                      'href': '#/graph/' + watch[0]['id'], 'done': False})
-    elif practised:
-        left = len(nx.GB.due(c, uid, now))
-        steps.append({'key': 'grammar', 'title': '语法：' + titles.get(practised[-1], {}).get('title', ''),
-                      'sub': '今天练过了' + (f' · 还有 {left} 个该复习，明天继续' if left else ''), 'href': '#/graph/' + practised[-1], 'done': True})
-    elif due:
-        left = len(nx.GB.due(c, uid, now)) - 1
-        steps.append({'key': 'grammar', 'title': '语法复习：' + due[0]['title'],
-                      'sub': '按遗忘曲线该复习了 · 4 道题，约 2 分钟' + (f'（还有 {left} 个排队）' if left > 0 else ''),
-                      'href': '#/graph/' + due[0]['id'], 'done': False})
+    # Grammar: one mixed review a day of the points flagged in writing or practice and those whose re-check has come
+    # (several points interleaved, one or two questions each). The step is done once a round's worth is answered today;
+    # whatever was missed comes back tomorrow on a different question, so the day always ends.
+    practised = c.execute("SELECT COUNT(*) FROM learning_events WHERE user_id=? AND source LIKE 'next-node:%' AND created>=?", (uid, start)).fetchone()[0]
+    nodes = nx.GB.mix_nodes(c, uid, now)
+    if nodes or practised:
+        titles = nx.nodes_meta(c)
+        size = min(8, max(4, min(len(nodes), 6))) if nodes else 4
+        if practised >= min(4, size):
+            left = len(nodes)
+            steps.append({'key': 'grammar', 'title': '语法复习', 'href': '#/mix',
+                          'sub': f'今天做了 {practised} 题' + (f' · 还有 {left} 个点明天接着练' if left else ' · 都练到了'), 'done': True})
+        else:
+            names = '、'.join(titles.get(n, {}).get('title', n) for n in nodes[:2]) + (f' 等 {len(nodes)} 个点' if len(nodes) > 2 else '')
+            steps.append({'key': 'grammar', 'title': '语法混合复习：' + names, 'href': '#/mix',
+                          'sub': f'{size} 道题混着做，约 {max(2, size // 2)} 分钟', 'done': False})
     if prof.get('goal') == 'exam' and minutes >= 10:
         # One practice set a week: shown when the last one is a week old (or none yet), ticked on the day it is done.
         last = c.execute('SELECT MAX(created) t FROM next_exam_results WHERE user_id=?', (uid,)).fetchone()['t']

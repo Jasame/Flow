@@ -354,6 +354,14 @@ def persona_exam(cl):
     check(who, 'serial: six episodes in order', s == 200 and [e.get('part') for e in se.get('episodes', [])] == [1, 2, 3, 4, 5, 6], s)
     s, nd = cl.get('/api/next/node?id=modal-past')
     check(who, 'point page: a round of 4 drawn from the bank, options mapped', s == 200 and len(nd.get('practice', [])) == 4 and all(sorted(q['map']) == [0, 1, 2, 3] for q in nd['practice']), s)
+    # r14: the learning route, a point's trap and links, an interleaved pair round, and extra new words on request
+    s, g = cl.get('/api/next/graph')
+    check(who, 'graph: a learning route through all 44 points', s == 200 and sum(len(b['nodes']) for b in g.get('route', [])) == 44 and len(g['links']['confusable']) >= 30, s)
+    check(who, 'point page: Chinese-speaker trap and confusable points', s == 200 and nd.get('l1') and nd.get('related', {}).get('confusable'), list(nd.get('related', {})) if isinstance(nd, dict) else nd)
+    s, mx = cl.get('/api/next/mix?pair=tense-past,tense-perfect')
+    check(who, 'mixed round: a confusable pair interleaved', s == 200 and len(mx.get('items', [])) == 6 and all(a['node'] != b['node'] for a, b in zip(mx['items'], mx['items'][1:])), s)
+    s, mo = cl.post('/api/next/vocab/more', {'n': 5})
+    check(who, 'words: five more new words on request', s == 200 and mo.get('added') == 5, mo)
     s, m = cl.get('/api/next/material?id=' + PID)
     check(who, 'material has a speaking and writing task', s == 200 and (m.get('speaking_task') or m.get('writing_task')), [k for k in m if 'task' in k] if isinstance(m, dict) else m)
     s, j, r = cl.ai('/api/next/retell', {'pack': PID, 'text': 'The article say noise cancelling headphones listen to the outside noise and make a opposite sound wave. '

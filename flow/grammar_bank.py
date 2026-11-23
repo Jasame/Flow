@@ -426,6 +426,83 @@ def draw(c, node, k=4, seed=None):
     return out
 
 
+def variant(c, node, exclude, k):
+    """Another question on the same point for a grammar mistake in review: the k-th of the others in turn, so the rule is
+    what is practised, not the memory of one item."""
+    rows = c.execute("SELECT id, prompt, options FROM questions WHERE node=? AND status='published' AND id!=? ORDER BY id", (node, exclude)).fetchall()
+    if not rows:
+        return None
+    r = rows[k % len(rows)]
+    opts = json.loads(r['options'])
+    order = list(range(len(opts)))
+    random.Random(r['id'] * 31 + k).shuffle(order)
+    return {'id': r['id'], 'prompt': r['prompt'], 'options': [opts[i] for i in order], 'map': order}
+
+
+# ---------------------------------------------------------------- mixed rounds
+
+def _interleave(items, rnd):
+    """Shuffle, then avoid two questions on the same point in a row where the mix allows it."""
+    rnd.shuffle(items)
+    for i in range(1, len(items)):
+        if items[i]['node'] == items[i - 1]['node']:
+            j = next((j for j in range(i + 1, len(items)) if items[j]['node'] != items[i - 1]['node']), None)
+            if j is not None:
+                items[i], items[j] = items[j], items[i]
+    return items
+
+
+def mix_nodes(c, uid, now=None):
+    """The points today's mixed review is made of: flagged ones first, then those whose re-check has come."""
+    import next_service as nx
+    if not uid:
+        return []
+    states = nx.graph_states(c, uid)
+    watch = [n for n, s in states.items() if s['status'] == 'watch']
+    return watch + [n for n in due(c, uid, now) if n not in watch]
+
+
+def mix(c, uid, pair=None, topic=None, level=None, seed=None):
+    """An interleaved round of grammar questions across several points (questions on different points mixed together
+    make the learner decide which rule applies, which is what using a language asks for).
+    pair 'a,b': a confusable pair, three questions each; topic: one question on each point of a topic;
+    otherwise today's review (flagged and due points), or, with none, practice on the learner's next points."""
+    import next_service as nx, graph_links as GL
+    rnd = random.Random(seed)
+    meta = nx.nodes_meta(c)
+    note, kind, left = None, 'due', 0
+    if pair:
+        nodes = [n for n in pair.split(',')[:2] if n in meta]
+        if len(nodes) != 2:
+            return {'error': '没有这组语法点'}, 404
+        kind, per, note = 'pair', 3, GL.pair_note(*nodes)
+    elif topic:
+        nodes = [n for n, m in meta.items() if m['topic'] == topic]
+        if not nodes:
+            return {'error': '没有这一类'}, 404
+        kind, per = 'topic', 1
+    else:
+        nodes = mix_nodes(c, uid)
+        left = max(0, len(nodes) - 6)
+        nodes = nodes[:6]
+        if not nodes:  # nothing due: a practice round on the next points at the learner's level
+            kind = 'practice'
+            prof = nx.profile(c, uid) or {}
+            lv = prof.get('level') or (level if level in nx.LEVELS else 'B1')
+            states = nx.graph_states(c, uid)
+            nodes = [n for n in nx.LEVEL_NODES.get(lv, ()) if n in meta and states[n]['status'] != 'solid']
+            rnd.shuffle(nodes)
+            nodes = nodes[:4]
+        per = min(3, -(-4 // max(1, len(nodes))))  # at least four questions in a round
+    items = []
+    for n in nodes:
+        for q in draw(c, n, per, rnd.random()):
+            items.append({**q, 'node': n, 'node_title': meta[n]['title']})
+    states = nx.graph_states(c, uid)
+    return {'kind': kind, 'items': _interleave(items, rnd)[:8], 'note': note, 'left': left,
+            'nodes': [{'id': n, 'title': meta[n]['title'], 'status': states[n]['status'], 'label': nx.STATUS_LABEL[states[n]['status']]} for n in nodes]}, 200
+
+
 # ---------------------------------------------------------------- spaced re-checks
 
 def schema(c):

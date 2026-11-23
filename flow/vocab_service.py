@@ -34,7 +34,9 @@ EXAM_BOOKS = {  # id -> (title, blurb); word lists from ECDICT's exam tags, most
 }
 LEVEL_BOOK = {'A2': 'core', 'B1': 'mid', 'B2': 'high', 'C1': 'adv'}
 CORE_SKIP = 150  # "the", "be", "of"…: everyone knows them, and a flashcard of their dictionary entry helps no one
-DAILY_NEW = (5, 10, 15, 20, 30)
+DAILY_NEW = (5, 10, 15, 20, 30, 50, 80, 100)  # suggested; any number from 1 to DAILY_MAX is accepted
+DAILY_MAX = 200
+MORE_MAX = 50  # one extra batch of new words today, on request
 RETENTION = (0.8, 0.85, 0.9, 0.95)
 MASTERED = 21  # days of stability from which an item counts as mastered
 SPELL_FROM, RECALL_FROM = 21, 3  # stability (days) at which reviews move to spelling / active recall
@@ -298,6 +300,11 @@ def card_out(r, now=None, level=None, rich=False, c=None):
         out['roots'] = roots(r['norm']) if r['kind'] == 'word' else []
         if r['source'] == 'mistake':
             out['extra'] = json.loads(r['extra'] or '{}') if 'extra' in r.keys() else {}
+            norm = r['norm'] or ''
+            if r['kind'] == 'question' and norm.startswith('q:') and c is not None:
+                out['passage'] = nx.excerpt(c, r['pack'], out['extra'].get('evidence') or r['meaning'] or '')
+            elif r['kind'] == 'question' and norm.startswith('gq:') and c is not None and r['node']:
+                out['variant'] = __import__('grammar_bank').variant(c, r['node'], int(norm[3:]) if norm[3:].isdigit() else -1, r['reps'] or 0)
             out['skill'] = r['skill'] if 'skill' in r.keys() else None
             node = r['node'] if 'node' in r.keys() else None
             out['node'] = {'id': node, 'title': nx.nodes_meta(c).get(node, {}).get('title', node)} if node and c is not None else None
@@ -377,13 +384,76 @@ def rate(c, uid, data):
     ms = data.get('ms') if isinstance(data.get('ms'), int) and 0 <= data.get('ms') < 3600000 else None
     elapsed = (now - r['last']) / fsrs.DAY if r['last'] else None
     n = fsrs.review(dict(r), rating, now, _retention(c, uid))
-    c.execute('UPDATE next_cards SET state=?, step=?, stability=?, difficulty=?, last=?, due=?, lapses=?, interval=?, reps=reps+1 WHERE id=?',
-              (n['state'], n['step'], n['stability'], n['difficulty'], n['last'], n['due'], n['lapses'], n['interval'], r['id']))
+    known, outcome = r['known'], _lifecycle(c, uid, r, rating, n, now)
+    if outcome in ('passed', 'reread'):
+        known = 1  # done with: it leaves the review queue (the same mistake made again brings it back)
+    c.execute('UPDATE next_cards SET state=?, step=?, stability=?, difficulty=?, last=?, due=?, lapses=?, interval=?, reps=reps+1, known=? WHERE id=?',
+              (n['state'], n['step'], n['stability'], n['difficulty'], n['last'], n['due'], n['lapses'], n['interval'], known, r['id']))
     c.execute('INSERT INTO next_reviews(user_id,card,rating,created,mode,ms,elapsed,stability) VALUES(?,?,?,?,?,?,?,?)',
               (uid, r['id'], rating, now, m, ms, elapsed, n['stability']))
     c.commit()
     r2 = c.execute('SELECT * FROM next_cards WHERE id=?', (r['id'],)).fetchone()
-    return {'card': card_out(r2, now), **counts(c, uid, now)}, 200
+    return {'card': card_out(r2, now), 'outcome': outcome, **counts(c, uid, now)}, 200
+
+
+MISSES_A_DAY = 2  # a card missed this many times today waits for tomorrow: a review session always ends
+
+
+def _lifecycle(c, uid, r, rating, n, now):
+    """Each kind of item has its own way out, so nothing goes round in circles (changes n in place).
+
+    - any card: missed a second time today -> tomorrow, not again in a few minutes;
+    - a reading question got wrong: redone once with its passage; right -> passed (it leaves the queue); wrong
+      again -> put down with a pointer back to the text (re-reading helps, drilling the same question does not);
+    - a grammar question got wrong: reviewed on a different question of the same point each time; two right in
+      a row -> passed (the point's own spaced re-checks take over).
+    Returns what happened: None, 'tomorrow', 'later', 'passed', 'reread' or 'once-more'."""
+    norm = r['norm'] or ''
+    misses = c.execute("SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND card=? AND rating='again' AND created>=?",
+                       (uid, r['id'], _day_start(now))).fetchone()[0] + (rating == 'again')
+    if r['source'] == 'mistake' and r['kind'] == 'question' and norm.startswith('q:'):
+        if rating != 'again':
+            return 'passed'
+        if c.execute("SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND card=? AND rating='again'", (uid, r['id'])).fetchone()[0]:
+            return 'reread'
+        n.update(state='review', due=now + 2 * fsrs.DAY)  # once more, the day after tomorrow, with the passage
+        return 'later'
+    if r['source'] == 'mistake' and r['kind'] == 'question' and norm.startswith('gq:') and rating != 'again':
+        last = c.execute('SELECT rating FROM next_reviews WHERE user_id=? AND card=? ORDER BY id DESC LIMIT 1', (uid, r['id'])).fetchone()
+        return 'passed' if last and last[0] in ('good', 'easy') else 'once-more'
+    if rating == 'again' and misses >= MISSES_A_DAY:
+        n['due'] = max(n['due'], _day_start(now) + fsrs.DAY + 4 * 3600)  # tomorrow morning
+        return 'tomorrow'
+    return None
+
+
+def more_new(c, uid, data):
+    """Learn more new words today than the plan says: one extra batch now, on top of today's (the plan is unchanged)."""
+    n = data.get('n', 10)
+    if type(n) is not int or not 1 <= n <= MORE_MAX:
+        return {'error': f'一次可以多学 1–{MORE_MAX} 个'}, 400
+    p = plan(c, uid)
+    if not p or p['book'] not in book_words():
+        return {'error': '先选一本词书'}, 400
+    waiting = c.execute("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND source='book' AND state='new' AND known=0", (uid,)).fetchone()[0]
+    if waiting >= DAILY_MAX:
+        return {'error': f'已经有 {waiting} 个新词没学，先学完它们吧'}, 400
+    now = time.time()
+    have = {r[0] for r in c.execute('SELECT norm FROM next_cards WHERE user_id=?', (uid,))}
+    d = nx.dictionary()
+    skip = (p.get('skip_rank') or 0) if p['book'] in EXAM_BOOKS else CORE_SKIP if p['book'] == 'core' else 0
+    added = 0
+    for rank, w in book_words()[p['book']]:
+        if w in have or (skip and rank <= skip):
+            continue
+        e = d[w]
+        c.execute('INSERT INTO next_cards(user_id,text,norm,meaning,context,pack,kind,created,due,state,source,rank) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                  (uid, e['word'], w, e['meaning'][:300], '', None, 'word', now, now, 'new', 'book', rank))
+        added += 1
+        if added >= n:
+            break
+    c.commit()
+    return {'added': added, **counts(c, uid, now)}, 200
 
 
 def set_known(c, uid, data):
@@ -489,8 +559,8 @@ def save_plan(c, uid, data):
         return {'error': '请选择词书'}, 400
     daily = data.get('daily_new', 10)
     retention = data.get('retention', 0.9)
-    if daily not in DAILY_NEW or retention not in RETENTION:
-        return {'error': '计划设置不正确'}, 400
+    if type(daily) is not int or not 1 <= daily <= DAILY_MAX or retention not in RETENTION:
+        return {'error': f'每天新词可以是 1–{DAILY_MAX} 个；记住率请从选项里选'}, 400
     now = time.time()
     old = plan(c, uid)
     if old and old['book'] != book:
@@ -850,6 +920,8 @@ def post(c, uid, path, data):
         return import_words(c, uid, data)
     if path == '/api/next/vocab/known':
         return set_known(c, uid, data)
+    if path == '/api/next/vocab/more':
+        return more_new(c, uid, data)
     if path == '/api/next/review':
         return rate(c, uid, data)
     return None

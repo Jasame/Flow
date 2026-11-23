@@ -22,7 +22,7 @@ LEVELS = {
 }
 GOALS = {'daily': '日常交流', 'work': '工作沟通', 'exam': '考试', 'abroad': '留学和海外生活', 'media': '看懂影视、新闻', 'interest': '兴趣'}
 THEMES = {'campus': '校园学习', 'travel': '旅行生活', 'life': '日常生活', 'work': '职场沟通', 'culture': '文化交流', 'science': '科学素养'}
-MINUTES = (5, 10, 15, 30)
+MINUTES = (5, 10, 15, 20, 30, 45, 60)
 # Pre-generated Kokoro narration (see tools/gen_audio.py): audio/<voice>/<material>.m4a + .json timings.
 VOICES = {'us-f': '美音 · 女声', 'us-m': '美音 · 男声', 'uk-f': '英音 · 女声', 'uk-m': '英音 · 男声'}
 AUDIO_DIR = Path(os.getenv('FLOW_AUDIO_DIR') or Path(__file__).resolve().parent / 'audio')
@@ -42,7 +42,7 @@ LEVEL_NODES = {
     'C1': GM.LEVEL_BASE['C1'] + GM.LEVEL_MORE['C1'],
 }
 _GRAMMAR_FOUND = {}  # pack id -> (body length, {point: [sentences]}) for the points grammar_more finds in the text
-STATUS_LABEL = {'untouched': '还没接触', 'met': '读到过', 'used': '用出来过', 'watch': '写作中需要留意', 'solid': '做题已验证'}
+STATUS_LABEL = {'untouched': '还没接触', 'met': '读到过', 'used': '用出来过', 'watch': '需要留意', 'solid': '做题已验证'}
 
 _DICT = None
 
@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
     GM.install(c)  # the 26 further grammar points: topics, subskills, verification questions, graph nodes (once)
     GB.install(c)  # ten questions on every point (once)
     GB.schema(c)  # spaced re-checks of grammar points
+    __import__('graph_links').install(c)  # prerequisite fixes and confusable edges (once)
     __import__('exam_service').schema(c)  # exam practice papers and results
 
 
@@ -446,7 +447,48 @@ def graph(c, uid, level=None):
         topics.append({'id': tid, 'title': tname, 'nodes': nodes})
     summary = {k: sum(1 for s in states.values() if s['status'] == k) for k in STATUS_LABEL}
     summary['due'] = len(due)
-    return {'level': level, 'topics': topics, 'summary': summary, 'labels': STATUS_LABEL, 'total': len(meta)}
+    GL = __import__('graph_links')
+    order = path_order(meta)
+    route = [{'band': b, 'nodes': [{'id': n, 'title': meta[n]['title'], 'status': states[n]['status'], 'due': n in due, 'focus': n in focus,
+                                    'prereq': meta[n]['prereq']} for n in order if node_level(n) == b]} for b in ('A2', 'B1', 'B2', 'C1')]
+    links = {'prereq': [[m['prereq'], n] for n, m in meta.items() if m['prereq'] in meta],
+             'confusable': [[a, b] for a, b, _ in GL.CONFUSABLE if a in meta and b in meta]}
+    return {'level': level, 'topics': topics, 'summary': summary, 'labels': STATUS_LABEL, 'total': len(meta), 'route': route, 'links': links}
+
+
+_TOGETHER = {}
+
+
+def together(c, nid, k=3):
+    """The points that turn up in the same materials as this one most often (worked out once per corpus size)."""
+    packs = _public_packs(c)
+    if _TOGETHER.get('n') != len(packs):
+        pairs = {}
+        for _, p in packs:
+            g = sorted(set(pack_grammar(p)))
+            for i, a in enumerate(g):
+                for b in g[i + 1:]:
+                    pairs[(a, b)] = pairs.get((a, b), 0) + 1
+        _TOGETHER.clear(); _TOGETHER.update(n=len(packs), pairs=pairs)
+    hits = [(b if a == nid else a, n) for (a, b), n in _TOGETHER['pairs'].items() if nid in (a, b)]
+    hits.sort(key=lambda x: -x[1])
+    return hits[:k]
+
+
+def path_order(meta):
+    """The order to learn the points in: by level band, and within a band prerequisites first, then topic order."""
+    topic_i = {t: i for i, (t, _) in enumerate(TOPICS)}
+    out = []
+    for band in ('A2', 'B1', 'B2', 'C1'):
+        todo = [n for n in meta if node_level(n) == band]
+        todo.sort(key=lambda n: (topic_i.get(meta[n]['topic'], 99), list(meta).index(n)))
+        placed = set(out)
+        group = []
+        while todo:
+            ready = next((n for n in todo if not meta[n]['prereq'] or meta[n]['prereq'] in placed or meta[n]['prereq'] not in todo), todo[0])
+            group.append(ready); placed.add(ready); todo.remove(ready)
+        out.extend(group)
+    return out
 
 
 def node_level(nid):
@@ -477,8 +519,8 @@ def node_answer(c, uid, data):
     if uid:
         day = int(time.time() // 86400)
         __import__('event_service').record(c, uid, q['node'], f"next-node:{q['id']}:{day}", 'choice', str(q['id']), 'question:' + str(q['id']),
-                                           int(correct), 0, 'rule', {'choice': choice, 'from': 'node-page'})
-        if not correct:
+                                           int(correct), 0, 'rule', {'choice': choice, 'from': data.get('from') if data.get('from') in ('review', 'mix') else 'node-page'})
+        if not correct and data.get('from') not in ('review', 'mix'):  # those rounds already reschedule the point
             __import__('skills_service').add_mistake(c, uid, 'question', q['prompt'], f"gq:{q['id']}", '', '', 'grammar', node=q['node'],
                                                      extra={'options': options, 'answer': q['answer'], 'evidence': q['explanation'] or ''}, commit=False)
         review = GB.schedule(c, uid, q['node'], correct)
@@ -495,7 +537,8 @@ def node(c, uid, nid, level=None):
     m = meta[nid]
     prof = profile(c, uid)
     level = (prof or {}).get('level') or (level if level in LEVELS else 'B1')
-    st = graph_states(c, uid)[nid]
+    states_all = graph_states(c, uid)
+    st = states_all[nid]
     done = _done(c, uid)
     examples, mats = [], []
     for _, p in _public_packs(c):
@@ -515,12 +558,18 @@ def node(c, uid, nid, level=None):
     examples.sort(key=lambda e: (0 if e['level'] == target else 1, 0 if e['featured'] else 1))
     notes = [dict(r) for r in c.execute('SELECT pack, kind, detail, created FROM next_node_notes WHERE user_id=? AND node=? ORDER BY created DESC LIMIT 6', (uid or -1, nid))]
     prereq = meta.get(m['prereq']) if m['prereq'] else None
-    unlocks = [{'id': k, 'title': v['title']} for k, v in meta.items() if v['prereq'] == nid]
+    unlocks = [{'id': k, 'title': v['title'], 'status': states_all[k]['status']} for k, v in meta.items() if v['prereq'] == nid]
+    GL = __import__('graph_links')
+    l1 = GL.L1.get(nid)
+    related = {'confusable': [{'id': o, 'title': meta[o]['title'], 'how': how, 'status': states_all[o]['status']} for o, how in GL.confusable(nid) if o in meta],
+               'together': [{'id': o, 'title': meta[o]['title'], 'materials': k, 'status': states_all[o]['status']} for o, k in together(c, nid) if o in meta]}
     return {'id': nid, 'title': m['title'], 'topic': dict(TOPICS).get(m['topic'], m['topic']), 'lesson': m['lesson'], 'example': m['example'],
             'level': node_level(nid), 'focus': nid in set(LEVEL_NODES.get(level, ())), 'page': __import__('content_subskills').page(nid),
             'practice': practice(c, nid), 'review': GB.review_of(c, uid, nid),
             'status': st['status'], 'label': STATUS_LABEL[st['status']], 'met': st['met'], 'used': st['used'], 'flags': st['flags'],
-            'evidence': st['evidence'], 'prereq': {'id': prereq['id'], 'title': prereq['title']} if prereq else None, 'unlocks': unlocks,
+            'evidence': st['evidence'], 'prereq': {'id': prereq['id'], 'title': prereq['title'], 'status': states_all[prereq['id']]['status']} if prereq else None,
+            'unlocks': unlocks, 'related': related,
+            'l1': {'why': l1[0], 'zh': l1[1], 'wrong': l1[2], 'right': l1[3]} if l1 else None,
             'examples': examples[:6], 'materials': [_card(p, done.get(p['id'])) for p in mats[:6]],
             'notes': [{'pack': n['pack'], 'kind': n['kind'], 'detail': n['detail'], 'created': n['created']} for n in notes]}, 200
 
@@ -653,6 +702,25 @@ def library(c, uid, level=None, theme=None, page=1, per=12, featured_only=False)
             'featured_total': sum(1 for _, p in _public_packs(c) if featured(p)),
             'items': [_card(p, done.get(p['id'])) for _, p in rows[(page - 1) * per: page * per]],
             'series': series_list(c, uid) if page == 1 else []}
+
+
+def excerpt(c, pid, evidence, around=1):
+    """The sentence a question's answer rests on, with one sentence either side: enough of the text to answer it again."""
+    row = c.execute('SELECT content FROM lab_packs WHERE id=?', (pid or '',)).fetchone()
+    if not row:
+        return None
+    p = json.loads(row['content'])
+    sents = sentences(p.get('body', ''))
+    ev = (evidence or '').strip()
+    hit = next((i for i, s in enumerate(sents) if ev and ev[:60] in s), None)
+    if hit is None:
+        words = set(re.findall(r"[a-z']+", ev.lower()))
+        scores = [len(words & set(re.findall(r"[a-z']+", s.lower()))) for s in sents]
+        hit = max(range(len(sents)), key=scores.__getitem__) if sents and max(scores) >= 3 else None
+    if hit is None:
+        return None
+    lo, hi = max(0, hit - around), min(len(sents), hit + around + 1)
+    return {'text': ' '.join(sents[lo:hi]), 'evidence': ev, 'pack': pid, 'title': p.get('title', ''), 'start': lo > 0, 'end': hi < len(sents)}
 
 
 # ---------- serial stories ----------
@@ -1184,6 +1252,8 @@ def get(c, uid, path, q):
         return GB.placement_items(c), 200
     if path == '/api/next/series':
         return series(c, uid, one('id'))
+    if path == '/api/next/mix':
+        return GB.mix(c, uid, pair=one('pair') or None, topic=one('topic') or None, level=one('level') or None)
     if path == '/api/next/exam':
         return __import__('exam_service').overview(c, uid)
     if path == '/api/next/lookup':

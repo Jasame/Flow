@@ -45,7 +45,7 @@
       ? `<div class="card section stack-s vtoday"><div class="row between"><div><div class="kicker">今天</div>
             ${n ? `<div class="big-line">复习 <b>${o.due}</b> · 新词 <b>${o.new}</b></div><div class="muted small">大约 ${o.minutes} 分钟 · 已完成 ${o.done_today} 次</div>`
               : `<div class="big-line">今天的都完成了</div><div class="muted small">已完成 ${o.done_today} 次 · 明天预计 ${o.forecast[1]} 个复习</div>`}</div>
-            ${n ? '<a class="btn primary" href="#/review">开始</a>' : ''}</div>
+            ${n ? '<a class="btn primary" href="#/review">开始</a>' : '<button class="btn small" id="moreNew">再学 10 个</button>'}</div>
           ${o.book ? `<div class="stack-s"><div class="row between small"><span>《${esc(o.book.title)}》已学 ${o.book.started} / ${o.book.size - (o.book.skipped || 0)}${o.book.skipped ? `<span class="muted">（跳过 ${o.book.skipped} 个常用词）</span>` : ''}</span><span class="muted">${o.book.finish ? '预计 ' + dayLabel(o.book.finish) + '学完' : '已全部学过'}</span></div>
             <div class="vbar"><i data-w="${o.book.started / Math.max(1, o.book.size - (o.book.skipped || 0)) * 100}"></i></div></div>` : ''}
           <div class="row small"><a class="link" href="#/vocab/plan">调整计划</a><span class="muted">每天 ${o.plan.daily_new} 个新词 · 目标记住率 ${Math.round(o.plan.retention * 100)}%</span></div></div>`
@@ -70,6 +70,12 @@
       view.querySelectorAll('.forecast i').forEach(i => { i.style.height = Math.max(3, i.dataset.h) + '%'; });
     }));
     // Filters, search and pages swap only the list: the rest of the page stays put (no reload flash, no lost scroll).
+    const mn = document.getElementById('moreNew');
+    if (mn) mn.onclick = async () => {  // today's words are done and the learner wants more: one extra batch now
+      mn.disabled = true;
+      try { const r = await api('/api/next/vocab/more', { n: 10 }); if (r.added) location.hash = '#/review'; else { toast('词书里的词都学过了'); } }
+      catch (e) { toast(e.message); mn.disabled = false; }
+    };
     const st = { q, page, f };
     const reload = async () => {
       const slot = document.getElementById('listSlot'); slot.classList.add('busy');
@@ -178,7 +184,8 @@
       <div class="section stack-s"><h2 class="h2">词书</h2><span class="muted tiny">按词频分段的词书从你的水平往上走；考试词书按大纲词表、常用词在前。专四、专八等词表可以在「单词」页导入。</span>
         ${[['freq', '按词频'], ['exam', '考试词书']].map(([kind, label]) => `<div class="kicker">${label}</div><div class="books">${o.books.filter(b => b.kind === kind).map(b => `<button class="card flat bookc" data-book="${b.id}" aria-pressed="${b.id === book}"><div class="row between"><b>${esc(b.title)}</b>${b.id === o.suggested_book ? '<span class="pill green">推荐</span>' : ''}</div><span class="small">${esc(b.blurb)}</span><span class="tiny muted">${b.size} 词${b.range ? ' · 词频第 ' + b.range + ' 位' : ''}</span></button>`).join('')}${kind === 'exam' ? `<button class="card flat bookc" id="impBook" type="button"><b>专四 / 专八 / 老师给的词表</b><span class="small">这些没有可以内置的公开官方词表：把手上的词表粘贴进来，就和词书一起按遗忘曲线复习。</span><span class="tiny muted">导入词表 →</span></button>` : ''}</div>`).join('')}</div>
       <div class="section stack-s"><h2 class="h2">每天新词</h2><div class="chips" id="dn">${o.daily_new_options.map(v => `<button class="chip" data-v="${v}" aria-pressed="${v === daily}">${v} 个</button>`).join('')}</div>
-        <span class="muted tiny" id="dnHint"></span></div>
+        <div class="row"><label class="small" for="dnOwn">自己定：</label><input id="dnOwn" type="number" inputmode="numeric" min="1" max="200" step="1" class="num-in" value="${o.daily_new_options.includes(daily) ? '' : daily}" placeholder="1–200"><span class="small muted">个 / 天</span></div>
+        <span class="muted tiny" id="dnHint"></span><span class="muted tiny">学完当天的，复习页还可以「再学 10 个」，不用改计划。</span></div>
       <div class="section stack-s"><h2 class="h2">目标记住率</h2><div class="chips" id="rt">${o.retention_options.map(v => `<button class="chip" data-v="${v}" aria-pressed="${v === ret}">${Math.round(v * 100)}%</button>`).join('')}</div>
         <span class="muted tiny">系统会在你记住的概率降到这个数时安排复习。越高记得越牢，但每天复习更多；90% 是比较均衡的选择。</span></div>
       ${o.plan && o.plan.estimate ? `<label class="section checkline"><input type="checkbox" id="skipKnown" ${o.plan.skip_rank ? 'checked' : ''}>考试词书里跳过测试显示你已经认识的常用词${o.plan.test_skip ? `（词频前 ${o.plan.test_skip} 位）` : ''}</label>` : ''}
@@ -195,11 +202,15 @@
       const skip = book === 'core' || (sk ? sk.checked : true) ? (b.skippable || 0) : 0;
       const done = o.book && o.book.id === book ? o.book.started : 0;
       const days = Math.ceil(Math.max(0, (b.size || 0) - skip - done) / daily);
-      document.getElementById('dnHint').textContent = `学完《${b.title}》大约需要 ${days} 天${skip ? `（跳过 ${skip} 个常用词）` : ''}；新词越多，之后每天的复习也越多（约为新词的 3–5 倍）。`;
+      document.getElementById('dnHint').textContent = `学完《${b.title}》大约需要 ${days} 天${skip ? `（跳过 ${skip} 个常用词）` : ''}；每天 ${daily} 个新词，一个月后每天大约要复习 ${daily * 3}–${daily * 5} 个${daily >= 50 ? '，量很大，记得留出时间' : ''}。`;
     };
     view.querySelectorAll('[data-book]').forEach(b => b.onclick = () => { book = b.dataset.book; view.querySelectorAll('[data-book]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); hint(); });
     const pick = (sel, set) => view.querySelectorAll(sel + ' [data-v]').forEach(b => b.onclick = () => { set(Number(b.dataset.v)); view.querySelectorAll(sel + ' [data-v]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); hint(); });
-    pick('#dn', v => { daily = v; }); pick('#rt', v => { ret = v; });
+    pick('#dn', v => { daily = v; document.getElementById('dnOwn').value = ''; }); pick('#rt', v => { ret = v; });
+    document.getElementById('dnOwn').oninput = e => {
+      const v = Math.round(Number(e.target.value));
+      if (v >= 1 && v <= 200) { daily = v; view.querySelectorAll('#dn [data-v]').forEach(x => x.setAttribute('aria-pressed', String(Number(x.dataset.v) === v))); hint(); }
+    };
     const skBox = document.getElementById('skipKnown'); if (skBox) skBox.onchange = hint;
     document.getElementById('impBook').onclick = importSheet;
     hint();

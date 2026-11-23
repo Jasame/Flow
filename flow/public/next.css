@@ -948,3 +948,69 @@ details[open]>summary{margin-bottom:8px}
 .next-ep{display:grid;gap:4px;text-decoration:none;color:inherit;padding:14px 16px}
 @media (max-width:420px){.exam-pick{grid-template-columns:1fr}.bands{gap:6px}.band span{font-size:16px}}
 @media (hover:none){.serial .ep:hover{background:none}}
+/* ---------- r14: learning route, relations, Chinese-speaker traps, mixed rounds, kinder review ---------- */
+.seg.two{grid-template-columns:1fr 1fr}
+/* the route: one metro line per level */
+.route{display:grid;gap:22px}
+.rband-h{display:flex;align-items:baseline;gap:10px;margin-bottom:4px}
+.rband-h b{font-size:18px}
+.rline{list-style:none;margin:0;padding:0}
+.rnode{position:relative}
+.rnode::before{content:"";position:absolute;left:19px;top:0;bottom:0;width:3px;border-radius:2px;background:var(--line2);transform-origin:top;transform:scaleY(0);transition:transform .35s var(--ease) var(--d,0ms)}
+.rnode:first-child::before{top:50%}
+.rnode:last-child::before{bottom:50%}
+.rnode:only-child::before{display:none}
+.rnode.drawn::before{transform:scaleY(1)}
+.rnode.lit::before{background:var(--green)}
+.rnode a{position:relative;display:grid;grid-template-columns:24px minmax(0,1fr) 14px;gap:12px;align-items:center;min-height:48px;padding:8px 8px 8px 8px;border-radius:12px;text-decoration:none;color:inherit}
+.rnode a:hover{background:var(--sunk)}
+.rnode .dot{position:relative;z-index:1;width:16px;height:16px;margin-left:4px;border-radius:50%;background:var(--paper);box-shadow:0 0 0 2px var(--line2)}
+.rnode.lit .dot{background:var(--c);box-shadow:0 0 0 2px var(--c)}
+.rnode.st-watch .dot{background:var(--c);box-shadow:0 0 0 2px var(--c)}
+.rnode .t{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:15px;font-weight:600;min-width:0}
+.rnode .go{color:var(--muted);font-size:20px}
+.here-tag{font-size:12px;font-weight:700;color:#fff;background:var(--green);border-radius:999px;padding:1px 8px}
+.rnode .due-tag{font-size:12px;border-radius:999px;padding:1px 8px;background:var(--amber-soft)}
+.rnode.here a{background:var(--green-soft)}
+.rnode.here .dot{animation:here 1.8s var(--ease) infinite}
+@keyframes here{0%{box-shadow:0 0 0 2px var(--green),0 0 0 2px color-mix(in srgb,var(--green) 40%,transparent)}70%{box-shadow:0 0 0 2px var(--green),0 0 0 12px transparent}100%{box-shadow:0 0 0 2px var(--green),0 0 0 2px transparent}}
+@media (hover:none){.rnode a:hover{background:none}.rnode.here a:hover{background:var(--green-soft)}}
+/* a point's page: the Chinese-speaker trap and the points it connects to */
+.l1{display:grid;gap:8px;padding:14px 16px;border-radius:14px;background:var(--sunk)}
+.l1-rows{display:grid;gap:6px;font-size:15px}
+.l1-rows .zh{display:flex;gap:8px;align-items:baseline}
+.l1-rows .bad{color:var(--red);text-decoration:line-through;text-decoration-thickness:1px}
+.l1-rows .bad span{text-decoration:none;display:inline-block}
+.l1-rows .good{color:var(--green-ink);font-weight:600}
+.rel-flow{display:grid;justify-items:start;gap:0}
+.rel-step{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:4px 0}
+.rel-step .chips{display:flex;flex-wrap:wrap;gap:6px}
+.rel-step.me .node-chip{font-weight:700;box-shadow:0 0 0 2px var(--c,var(--green))}
+.rel-arrow{display:block;width:2px;height:16px;margin-left:44px;background:var(--line2);position:relative}
+.rel-arrow::after{content:"";position:absolute;left:-4px;bottom:-2px;border:5px solid transparent;border-top-color:var(--line2)}
+.confuse{display:grid;gap:4px;padding:6px 0}
+.howto{display:grid;gap:4px;padding:12px 14px;border-radius:12px;background:var(--amber-soft)}
+/* mixed rounds */
+.mix-dots{display:flex;gap:6px}
+.mix-dots i{flex:1;height:5px;border-radius:3px;background:var(--line2);transition:background .25s}
+.mix-dots i.now{background:var(--ink2)}
+.mix-dots i.ok{background:var(--green)}
+.mix-dots i.no{background:var(--red)}
+.mix .fb{display:grid;gap:8px;margin-top:4px}
+.mix .fb .ok{color:var(--green-ink);font-weight:700}
+.mix .fb .bad{color:var(--red);font-weight:700}
+.mix-done .done-burst{display:flex;justify-content:center}
+.pop-in{animation:pop-in .45s var(--ease-spring) var(--d,0ms) both}
+@keyframes pop-in{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+.cheer{color:var(--green-ink);font-weight:600}
+.node-chip.lit-up{animation:lit-up .9s var(--ease-spring)}
+@keyframes lit-up{0%{transform:scale(1);box-shadow:0 0 0 0 color-mix(in srgb,var(--green) 55%,transparent)}40%{transform:scale(1.12)}100%{transform:scale(1);box-shadow:0 0 0 14px transparent}}
+.done-burst.all .done-ring{animation:pop .6s var(--ease-spring)}
+/* review: a reading question comes back with its passage */
+.passage-q{display:grid;gap:6px;padding:12px 14px;border-radius:12px;background:var(--sunk);text-align:left}
+.passage-q .ptext{margin:0;font-family:var(--serif);font-size:16px;line-height:1.7}
+.passage-q mark{background:var(--mark);border-radius:3px;padding:0 2px}
+.num-in{width:96px;min-height:44px}
+@media (prefers-reduced-motion:reduce){.rnode::before{transition:none;transform:none}.rnode.here .dot,.pop-in,.node-chip.lit-up{animation:none}}
+#mixNext{scroll-margin-bottom:calc(96px + env(safe-area-inset-bottom))}
+@media (min-width:760px){#mixNext{scroll-margin-bottom:24px}}

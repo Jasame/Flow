@@ -65,7 +65,8 @@ class VocabTests(unittest.TestCase):
 
     def test_word_book_plan_daily_new_and_known(self):
         self.assertEqual(vs.save_plan(self.c, 1, {'book': 'nope'})[1], 400)
-        self.assertEqual(vs.save_plan(self.c, 1, {'book': 'core', 'daily_new': 7})[1], 400)
+        self.assertEqual(vs.save_plan(self.c, 1, {'book': 'core', 'daily_new': 7})[1], 200)  # any number from 1 to 200
+        self.assertEqual(vs.save_plan(self.c, 1, {'book': 'core', 'daily_new': 500})[1], 400)
         o = vs.save_plan(self.c, 1, {'book': 'core', 'daily_new': 5, 'retention': 0.9})[0]
         self.assertEqual(o['plan']['book'], 'core'); self.assertGreater(o['books'][0]['size'], 1500)
         q = vs.queue(self.c, 1)
