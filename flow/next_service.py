@@ -1241,6 +1241,8 @@ def get(c, uid, path, q):
         if not uid:
             return {'error': '请先登录'}, 401
         return (__import__('skills_service') if path != '/api/next/import' else __import__('import_service')).get(c, uid, path, q)
+    if path == '/api/next/guide':
+        return __import__('user_guide').api(), 200
     if path == '/api/next/meta':
         return meta(), 200
     if path == '/api/next/home':

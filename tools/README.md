@@ -65,3 +65,16 @@ control, step switching and list filters. Screenshots of every page go to the ou
 - **External check**: `.github/workflows/monitor.yml` checks the site every 15 minutes (pages and APIs answer, fewer
   than 10 errors a day, memory under 350 MB, last release fine, daily test recent and passing). GitHub emails a
   failed run to whoever last changed that schedule. It runs from `main`.
+
+## 操作指南 (user guide)
+
+The guide has one source, `flow/public/guide/guide.md`. The site shows it at `#/guide` and offers it as a PDF.
+`flow/tests/test_guide.py` fails when the guide falls behind: a page or a 练习 tile that the guide never links, a
+missing or unused screenshot, a PDF older than the text, or a guide file missing from `release-files.txt`.
+
+When a change adds, renames or removes a page, button or flow:
+
+1. Edit `flow/public/guide/guide.md`. Every page needs a `[去看看](#/page)` line in the chapter that explains it.
+2. If what a page looks like changed, run `python3 tools/guide_shots.py [name …]` (local UI server, simulated AI).
+3. Run `python3 tools/build_guide.py`, which rebuilds `flow-guide.pdf` and `manifest.json`.
+4. Add any new screenshot to `tools/release-files.txt` and commit the guide in the same change.

@@ -3,6 +3,7 @@
 import argparse,base64,json,os,time,urllib.error
 from pathlib import Path
 import ai_stream
+import chat_service
 from chat_service import request_model
 
 def main():
@@ -17,11 +18,11 @@ def main():
     if Path(args.env_file).is_file():
         for key,value in read_env(Path(args.env_file).read_text()).items():
             if key.startswith(('FLOW_','GOOGLE_')):os.environ[key]=value
-    report={'configuration':{key:bool(os.getenv(key)) for key in ('FLOW_AI_URL','FLOW_AI_KEY','FLOW_AI_MODEL','GOOGLE_CLOUD_PROJECT')},'checks':[]}
+    report={'configuration':{key:bool(os.getenv(key)) for key in ('FLOW_AI_URL','FLOW_AI_KEY','FLOW_AI_MODEL','GOOGLE_CLOUD_PROJECT','FLOW_TEXT_AI_URL','FLOW_TEXT_AI_KEY','FLOW_TEXT_AI_MODEL')},'checks':[]}
     def run(name,operation):
-        print('正在实测：'+name,flush=True);start=time.monotonic()
+        print('正在实测：'+name,flush=True);start=time.monotonic();chat_service.LAST['provider']=None
         try:
-            details=operation();item={'name':name,'ok':True,'seconds':round(time.monotonic()-start,3),**details}
+            details=operation();item={'name':name,'ok':True,'seconds':round(time.monotonic()-start,3),'service':{'text':'文字服务','main':'主服务'}.get(chat_service.LAST['provider'],''),**details}
         except Exception as exc:
             item={'name':name,'ok':False,'seconds':round(time.monotonic()-start,3),'error_type':type(exc).__name__}
             if isinstance(exc,urllib.error.HTTPError):item['http_status']=exc.code

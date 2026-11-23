@@ -85,12 +85,14 @@ chat_service.request_model = fake
 PID = 'v5-science-b2-noise-cancelling'
 LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'science']), 'exam': ('B2', 'exam', ['science']),
             # one learner per device in tools/ui_test.py, so each device starts from the same state
-            **{d: ('B1', 'work', ['work', 'science']) for d in ('phone', 'phone-land', 'tablet', 'desktop')}}
+            **{d: ('B1', 'work', ['work', 'science']) for d in ('phone', 'phone-land', 'tablet', 'desktop')},
+            'guide': ('B1', 'work', ['work', 'science'])}  # the 操作指南 screenshots (tools/guide_shots.py)
 out = {}
 with app.db() as c:
     for name, (level, goal, themes) in LEARNERS.items():
-        c.execute('INSERT INTO users(username,password) VALUES(?,?)', (f'ui-{name}', 'ui-no-login:' + secrets.token_hex(8)))
-        uid = c.execute('SELECT id FROM users WHERE username=?', (f'ui-{name}',)).fetchone()[0]
+        uname = '小林' if name == 'guide' else f'ui-{name}'
+        c.execute('INSERT INTO users(username,password) VALUES(?,?)', (uname, 'ui-no-login:' + secrets.token_hex(8)))
+        uid = c.execute('SELECT id FROM users WHERE username=?', (uname,)).fetchone()[0]
         token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(24)
         c.execute('INSERT INTO sessions VALUES(?,?,?,?)', (token, uid, csrf, time.time() + 86400))
         c.commit()
@@ -106,6 +108,16 @@ with app.db() as c:
                        extra={'options': q['options'], 'answer': q['answer'], 'evidence': q.get('evidence', '')})
         for _ in range(3):
             sk.log(c, uid, 'reading', 'question', 0.8, level, PID); sk.log(c, uid, 'writing', 'rewrite', 0.7, level, PID)
+        if name == 'guide':  # a learner a few weeks in, so the guide's pictures show a lived-in page
+            import ability_radar as ar
+            now = time.time()
+            for k, (words, wpm) in enumerate(((420, 118), (380, 126), (450, 131))):
+                c.execute("INSERT INTO next_easy_reads(user_id,pack,words,seconds,wpm,rating,created) VALUES(?,?,?,?,?,'ok',?)", (uid, PID, words, round(words / wpm * 60), wpm, now - k * 86400))
+            ar.set_goals(c, uid, {'goals': {'listening': 'B2', 'reading': 'B2', 'vocab': 'B2', 'grammar': 'B2', 'speaking': 'B1', 'writing': 'B1'}})
+            for dim, idx in (('vocab', 52), ('grammar', 49), ('reading', 58), ('listening', 44), ('speaking', 38), ('writing', 41)):
+                ar.record(c, uid, dim, idx, now=now - 9 * 86400)
+            for dim, idx in (('reading', 63), ('listening', 50), ('speaking', 45)):
+                ar.record(c, uid, dim, idx, now=now - 3600)
         c.commit()
         out[name] = {'token': token, 'csrf': csrf, 'id': uid}
 (STATE / 'sessions.json').write_text(json.dumps({'base': f'http://127.0.0.1:{PORT}', 'pid': PID, 'learners': out}))

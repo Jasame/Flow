@@ -325,7 +325,26 @@ def report(c, uid, now=None):
         focus = '这周还没开始：每天 10 分钟，先从今天这篇开始。'
     return {'from': nx._day(now - 6 * 86400), 'to': nx._day(now), 'days': len(days), 'minutes': minutes, 'materials': materials, 'outputs': outputs,
             'reviews': reviews, 'learned': learned, 'mastered': mastered, 'mistakes_new': new_mistakes, 'mistakes_fixed': fixed,
-            'skills': skills, 'watch': watch, 'focus': focus, 'ability': ab['skills']}
+            'skills': skills, 'watch': watch, 'focus': focus, 'ability': ab['skills'], **_week_more(c, uid, now, week, prev)}
+
+
+def _week_more(c, uid, now, week, prev):
+    """The rest of the week: easy reading (texts, words, speed), speaking scenes, and how the ability radar moved."""
+    import ability_radar as ar, scenarios
+    n, words, wpm = c.execute('SELECT COUNT(*), COALESCE(SUM(words),0), AVG(wpm) FROM next_easy_reads WHERE user_id=? AND created>?', (uid, week)).fetchone()
+    wpm0 = c.execute('SELECT AVG(wpm) FROM next_easy_reads WHERE user_id=? AND created>? AND created<=?', (uid, prev, week)).fetchone()[0]
+    scene = lambda since: {r[0][6:] for r in c.execute("SELECT DISTINCT pack FROM next_skill_events WHERE user_id=? AND kind='dialog' AND pack LIKE 'scene-%' AND created>?", (uid, since))} & set(scenarios.SCENES)
+    g, chosen = ar.goals(c, uid)
+    snaps = [(r[0], json.loads(r[1]), r[2]) for r in c.execute('SELECT created, scores, source FROM next_radar WHERE user_id=? ORDER BY created', (uid,))]
+    last = lambda k, until: next((s[1][k] for s in reversed(snaps) if s[0] <= until and s[1].get(k) is not None), None)
+    moves = []
+    for k, label in ar.DIMS:  # each skill's latest measure, against its latest one from before this week
+        now_s = ar._score(last(k, now), g[k])
+        if now_s is not None:
+            moves.append({'id': k, 'label': label, 'now': now_s, 'before': ar._score(last(k, week), g[k])})
+    return {'easy': {'texts': n, 'words': words, 'wpm': round(wpm) if wpm else None, 'wpm_before': round(wpm0) if wpm0 else None},
+            'speaking': {'scenes_week': len(scene(week)), 'scenes_done': len(scene(0)), 'scenes_total': len(scenarios.SCENES)},
+            'radar': {'moves': moves, 'tests_week': sum(1 for s in snaps if s[0] > week and s[2] != 'auto'), 'goals_chosen': chosen}}
 
 
 def send_weekly(c, now=None, send=None):
@@ -353,6 +372,13 @@ def send_weekly(c, now=None, send=None):
                  f"· 学了 {rp['days']} 天，约 {rp['minutes']} 分钟", f"· 学完 {rp['materials']} 篇材料，做了 {rp['outputs']} 次输出练习",
                  f"· 复习 {rp['reviews']} 次，新学 {rp['learned']} 个词，{rp['mastered']} 个词进入长期记忆",
                  f"· 新错题 {rp['mistakes_new']} 个，改对 {rp['mistakes_fixed']} 个"]
+        if rp['easy']['texts']:
+            lines.append(f"· 轻松读 {rp['easy']['texts']} 篇，共 {rp['easy']['words']} 个词" + (f"，每分钟 {rp['easy']['wpm']} 词" if rp['easy']['wpm'] else ''))
+        if rp['speaking']['scenes_week']:
+            lines.append(f"· 口语情景练了 {rp['speaking']['scenes_week']} 个（一共完成 {rp['speaking']['scenes_done']} / {rp['speaking']['scenes_total']}）")
+        up = [m for m in rp['radar']['moves'] if m['before'] is not None and m['now'] > m['before']]
+        if up:
+            lines.append('· 能力雷达上涨：' + '、'.join(f"{m['label']} {m['before']}→{m['now']}" for m in up))
         if rp['focus']:
             lines += ['', '下周重点：' + rp['focus']]
         lines += ['', f'完整周报：{origin}/#/report', '—— 语流 Flow']
