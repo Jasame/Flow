@@ -1,12 +1,12 @@
 /* ---------- phone layout pass ---------- */
-.filters{display:grid;grid-template-columns:1.1fr 1fr 1fr;overflow:visible}
+.filters{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr);overflow:visible}
 .filters select{width:100%;min-width:0;padding:4px 8px;text-overflow:ellipsis}
 #reader [data-ex]{padding:8px 5px;margin:-8px -2px;min-width:28px}
 @media (max-width:420px){
   main{padding:14px 14px 32px}
   .h1{font-size:23px}
   .text{font-size:18px;line-height:1.72}
-  .line{grid-template-columns:36px 1fr;gap:8px;padding:8px}
+  .line{grid-template-columns:36px minmax(0,1fr);gap:8px;padding:8px}
   .line .icon-btn{width:36px;height:36px}
   .line .txt{font-size:17px}
   .steps button{font-size:13.5px;padding:9px 2px}
@@ -27,7 +27,7 @@
   .row.center .btn{flex:1 1 auto}
 }
 /* keyboard open on phones: handled by body.typing (see the end of this file); a height rule also hid the tabs in landscape */
-#dn,#rt{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}#rt{grid-template-columns:repeat(4,1fr)}
+#dn,#rt{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}#rt{grid-template-columns:repeat(4,minmax(0,1fr))}
 #dn .chip,#rt .chip{padding:8px 0;text-align:center}
 .mean-a,.mean-q{text-align:left;max-width:32em;margin:0 auto;width:fit-content}
 

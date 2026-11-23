@@ -27,7 +27,7 @@ def server_label():
 
 # 只看数据 sees the numbers; 管理员 also sees people (accounts, answers in full, error traces) and may change things.
 VIEWER_GET = {'/me', '/overview', '/learning', '/survey/definition', '/survey/summary', '/releases', '/compare'}
-ADMIN_GET = {'/users', '/survey/responses', '/survey/export.csv', '/errors', '/log'}
+ADMIN_GET = {'/users', '/survey/responses', '/survey/export.csv', '/errors', '/log', '/feedback', '/feedback/image'}
 ROLE_LABEL = {'admin': '管理员', 'viewer': '只看数据'}
 
 
@@ -45,6 +45,7 @@ def schema(c):
     c.execute('CREATE TABLE IF NOT EXISTS flow_releases(tag TEXT PRIMARY KEY, commit_sha TEXT NOT NULL DEFAULT "", at REAL NOT NULL)')
     # Taps on a few entry points of the learning site, counted per day: no account, no address, only how many.
     c.execute('CREATE TABLE IF NOT EXISTS ui_taps(day TEXT NOT NULL, key TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(day, key))')
+    __import__('feedback_service').schema(c)  # problem reports from the learning site (问题反馈)
 
 
 def log_action(c, op, action, target='', detail=''):
@@ -54,7 +55,8 @@ def log_action(c, op, action, target='', detail=''):
 
 
 ACTION_LABEL = {'reset-link': '生成重设密码链接', 'survey-hide': '隐藏问卷回答', 'survey-show': '恢复问卷回答',
-                'survey-export': '导出问卷 CSV', 'daily-run': '生成今日热点'}
+                'survey-export': '导出问卷 CSV', 'daily-run': '生成今日热点', 'feedback-done': '标记反馈已处理',
+                'feedback-reopen': '重新打开反馈'}
 
 
 def operator_log(c, limit=200):
@@ -146,7 +148,7 @@ TAP_LABEL = {
     'study-origin': '学习页 · 看来源', 'notice-install': '今日 · 提醒：放到桌面',
     'me-radar': '我的 · 能力雷达', 'me-growth': '我的 · 我的进步', 'me-report': '我的 · 这周的报告', 'me-mistake': '我的 · 错题本',
     'me-level': '我的 · 学习目标和水平', 'me-voice': '我的 · 朗读声音', 'me-remind': '我的 · 每天提醒', 'me-install': '我的 · 添加到桌面',
-    'me-guide': '我的 · 操作指南', 'me-survey': '我的 · 匿名问卷',
+    'me-guide': '我的 · 操作指南', 'me-feedback': '我的 · 问题反馈', 'me-survey': '我的 · 匿名问卷',
 }
 
 
@@ -157,6 +159,7 @@ def overview(c):
     week = [time.strftime('%Y-%m-%d', time.gmtime(now - i * 86400)) for i in range(7)]
     q = lambda sql, *a: c.execute(sql, a).fetchone()[0]
     return {
+        'feedback_open': __import__('feedback_service').open_count(c),
         'users': q('SELECT COUNT(*) FROM users'),
         'admins': q('SELECT COUNT(*) FROM users WHERE admin=1'),
         'active_7d': q('SELECT COUNT(DISTINCT user_id) FROM learning_events WHERE created>?', now - 7 * 86400),
@@ -290,6 +293,14 @@ class AdminHandler(BaseHTTPRequestHandler):
                     return self._send(__import__('account_service').admin_users(c, one('q')))
                 if path == '/log':
                     return self._send(operator_log(c))
+                if path == '/feedback':
+                    return self._send(__import__('feedback_service').listing(c, one('status', 'new'), int(one('page', '1') or 1)))
+                if path == '/feedback/image':
+                    # a screenshot learners sent with a report: administrators only, never cached
+                    got = __import__('feedback_service').image(one('id'), one('n'))
+                    if not got:
+                        return self._send({'error': '没有这张截图'}, 404)
+                    return self._send(None, body=got[0], mime=got[1])
                 if path == '/survey/definition':
                     return self._send(survey.SURVEY)
                 if path == '/survey/summary':
@@ -323,6 +334,12 @@ class AdminHandler(BaseHTTPRequestHandler):
                     if status == 200:
                         log_action(c, op, 'survey-hide' if hidden else 'survey-show', f"#{int(data['id'])}")
                     return self._send(body, status)
+                if path == '/feedback/status':
+                    status = 'done' if data.get('status') == 'done' else 'new'
+                    body, code = __import__('feedback_service').set_status(c, int(data['id']), status, op['email'] or op['label'])
+                    if code == 200:
+                        log_action(c, op, 'feedback-done' if status == 'done' else 'feedback-reopen', f"#{int(data['id'])}")
+                    return self._send(body, code)
                 if path == '/daily/run':
                     # Today's news material, made now instead of waiting for the timer (it used to be on the classic site).
                     def run():

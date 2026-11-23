@@ -86,7 +86,8 @@
           <div class="row center">${recBtn('sndMic', '读一遍')}<span class="muted tiny" id="sndOut">${S.user ? '点 ● 读一遍，AI 听你读得准不准' : ''}</span></div>
           <div class="choice">${['读准了', '还不稳', '不会读'].map((t, k) => `<button class="${['good', '', 'again'][k]}" data-self="${['good', 'hard', 'again'][k]}">${t}</button>`).join('')}</div>`;
       }
-      view.innerHTML = `${top()}<div class="review enter">${body}${foot()}</div>`;
+      // A question or a sentence to fix has no word to put in the middle of the screen: it starts at the top.
+      view.innerHTML = `${top()}<div class="review enter${c.mode === 'sound' ? '' : ' q'}">${body}${foot()}</div>`;
       bar(); swipe = null;
       const after = (r, html) => {
         const ms = Date.now() - t0;

@@ -58,6 +58,7 @@
           kpi('近 7 天活跃', n(d.active_7d), '近 24 小时 ' + n(d.active_1d) + ' 人') +
           kpi('今日 AI 调用', n(ai.today), ai.site_limit ? ('全站上限 ' + n(ai.site_limit) + ' · 已用 ' + pct(ai.today, ai.site_limit) + '%') : '全站不设上限') +
           kpi('问卷回答', n(d.survey_responses), '<a href="#survey" style="color:var(--accent)">查看统计 →</a>') +
+          (isAdmin() && d.feedback_open != null ? kpi('待处理反馈', n(d.feedback_open), '<a href="#feedback" style="color:var(--accent)">去处理 →</a>') : '') +
         '</div>' +
         '<div class="grid2">' +
           '<section class="card"><h2>近 7 天 AI 调用</h2>' +
@@ -305,6 +306,61 @@
   }
 
   /* ---------- 操作记录：管理员改了什么、导出了什么 ---------- */
+  /* ---------- 问题反馈（只有管理员）：学员在「我的 → 问题反馈」提交的说明和截图 ---------- */
+  var FB = { status: 'new', page: 1 };
+  function fbBadge(k) {
+    var b = document.getElementById('fbBadge');
+    if (b) { b.textContent = k > 99 ? '99+' : String(k || 0); b.hidden = !k; }
+  }
+  function feedbackView() {
+    getJSON('/feedback?status=' + FB.status + '&page=' + FB.page).then(function (d) {
+      fbBadge(d.counts.new);
+      var dev = function (v) {
+        var bits = [];
+        if (v.w) bits.push(v.w + '×' + v.h + (v.dpr ? ' @' + v.dpr + 'x' : ''));
+        bits.push(v.theme === 'dark' ? '深色' : '浅色');
+        if (v.standalone) bits.push('从桌面打开');
+        if (v.wechat) bits.push('在微信里');
+        if (v.asset) bits.push('页面 ' + v.asset);
+        return bits.join(' · ');
+      };
+      var filters = [['new', '待处理', d.counts.new], ['done', '已处理', d.counts.done], ['all', '全部', d.counts.new + d.counts.done]];
+      main.innerHTML = '<div class="head-row"><div><h1>问题反馈</h1><p class="muted">学员在「我的 → 问题反馈」提交的说明和截图。处理完点「标记已处理」，会记进操作记录。</p></div>' +
+        '<div class="toolbar">' + filters.map(function (f) {
+          return '<button type="button" class="btn' + (FB.status === f[0] ? ' primary' : '') + '" data-fs="' + f[0] + '">' + f[1] + ' ' + n(f[2]) + '</button>';
+        }).join('') + '</div></div>' +
+        (d.items.length ? d.items.map(function (x) {
+          var v = x.device || {};
+          return '<section class="card fb-item"><div class="fb-head"><b>' + esc(x.kind_label) + '</b><span class="pill' + (x.status === 'new' ? '' : ' off') + '">' + esc(x.status_label) + '</span>' +
+            '<span class="muted">#' + x.id + ' · ' + when(x.created) + ' · ' + esc(x.who) + (x.release ? ' · ' + esc(x.release) : '') + '</span></div>' +
+            '<p class="fb-text">' + esc(x.text) + '</p>' +
+            (x.images.length ? '<div class="fb-imgs">' + x.images.map(function (nm) {
+              var u = API + '/feedback/image?id=' + x.id + '&n=' + encodeURIComponent(nm);
+              return '<a href="' + u + '" target="_blank" rel="noopener" title="看原图"><img src="' + u + '" alt="截图" loading="lazy"></a>';
+            }).join('') + '</div>' : '') +
+            '<dl class="fb-meta"><dt>页面</dt><dd>' + (x.page ? '<a href="https://flow.jasa.hk/' + esc(x.page) + '" target="_blank" rel="noopener">' + esc(x.page) + '</a>' : '—') + '</dd>' +
+            '<dt>设备</dt><dd>' + esc(dev(v)) + '<div class="muted small fb-ua">' + esc(v.ua || '') + '</div></dd>' +
+            (x.contact ? '<dt>联系方式</dt><dd>' + esc(x.contact) + '</dd>' : '') +
+            (v.errors && v.errors.length ? '<dt>页面报错</dt><dd><code class="fb-err">' + v.errors.map(esc).join('<br>') + '</code></dd>' : '') +
+            (x.status === 'done' ? '<dt>处理</dt><dd>' + esc(x.handled_by || '—') + ' · ' + when(x.handled_at) + '</dd>' : '') + '</dl>' +
+            '<div class="toolbar"><button type="button" class="btn' + (x.status === 'new' ? ' primary' : '') + '" data-fb="' + x.id + '" data-to="' + (x.status === 'new' ? 'done' : 'new') + '">' +
+            (x.status === 'new' ? '标记已处理' : '重新打开') + '</button></div></section>';
+        }).join('') : '<section class="card"><p class="muted">' + (FB.status === 'new' ? '没有待处理的反馈。' : '还没有反馈。') + '</p></section>') +
+        (d.pages > 1 ? '<div class="toolbar"><button type="button" class="btn" id="fbPrev"' + (FB.page <= 1 ? ' disabled' : '') + '>上一页</button><span class="muted">' + FB.page + ' / ' + d.pages +
+          '</span><button type="button" class="btn" id="fbNext"' + (FB.page >= d.pages ? ' disabled' : '') + '>下一页</button></div>' : '');
+      main.querySelectorAll('[data-fs]').forEach(function (b) { b.onclick = function () { FB.status = b.dataset.fs; FB.page = 1; feedbackView(); }; });
+      var pv = document.getElementById('fbPrev'), nx = document.getElementById('fbNext');
+      if (pv) pv.onclick = function () { FB.page--; feedbackView(); };
+      if (nx) nx.onclick = function () { FB.page++; feedbackView(); };
+      main.querySelectorAll('[data-fb]').forEach(function (b) {
+        b.onclick = function () {
+          b.disabled = true;
+          postJSON('/feedback/status', { id: Number(b.dataset.fb), status: b.dataset.to }).then(feedbackView).catch(function (e) { alert(e.message); b.disabled = false; });
+        };
+      });
+    }).catch(fail);
+  }
+
   function logView() {
     getJSON('/log').then(function (d) {
       main.innerHTML =
@@ -321,13 +377,13 @@
   /* ---------- 路由 ---------- */
   function route() {
     ST.tab = (location.hash || '#overview').slice(1);
-    if (['overview', 'learning', 'compare', 'errors', 'survey', 'responses', 'accounts', 'log'].indexOf(ST.tab) < 0) ST.tab = 'overview';
-    if (!isAdmin() && ['errors', 'responses', 'accounts', 'log'].indexOf(ST.tab) >= 0) ST.tab = 'overview';
+    if (['overview', 'learning', 'compare', 'errors', 'survey', 'responses', 'feedback', 'accounts', 'log'].indexOf(ST.tab) < 0) ST.tab = 'overview';
+    if (!isAdmin() && ['errors', 'responses', 'feedback', 'accounts', 'log'].indexOf(ST.tab) >= 0) ST.tab = 'overview';
     document.querySelectorAll('.adm-tabs a').forEach(function (a) {
       if (a.dataset.tab === ST.tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
     main.innerHTML = '<p class="muted">正在加载…</p>';
-    ({ overview: overview, learning: learningView, compare: compareView, errors: errorsView, survey: surveyStats, responses: responses, accounts: accountsView, log: logView })[ST.tab]();
+    ({ overview: overview, learning: learningView, compare: compareView, errors: errorsView, survey: surveyStats, responses: responses, feedback: feedbackView, accounts: accountsView, log: logView })[ST.tab]();
   }
   document.getElementById('themeBtn').onclick = function () {
     var next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
@@ -344,6 +400,7 @@
       var el = document.getElementById('srv');
       if (el && me.server) { el.textContent = '数据来自' + me.server; el.hidden = false; }
       document.querySelectorAll('.adm-tabs [data-admin]').forEach(function (a) { a.hidden = !isAdmin(); });
+      if (isAdmin()) getJSON('/feedback?status=new&page=1').then(function (d) { fbBadge(d.counts.new); }).catch(function () { /* an older Flow */ });
     }).catch(function () { /* an older Flow without /me: everything as before */ });
   }
   window.addEventListener('hashchange', route);

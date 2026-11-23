@@ -207,6 +207,20 @@
     if (gt && gt.answers) { try { await api('/api/next/vocab/test', { answers: gt.answers }); save('flow-next-guest-test', null); } catch (e) { /* try next time */ } }
   }
 
+  /* ---------- the tab bar's place ---------- */
+  // On phones the tabs are fixed to the bottom, outside the sticky top bar: iOS Safari moves a fixed element along
+  // with a sticky ancestor, and inside the bar the tabs slid up the screen on a long page. On wide screens they are a
+  // row of links in the top bar.
+  const WIDE = matchMedia('(min-width:760px)');
+  function placeTabs() {
+    const t = document.querySelector('.tabs'), bar = document.getElementById('bar');
+    if (!t || !bar) return;
+    if (WIDE.matches && t.parentElement !== bar) bar.appendChild(t);
+    else if (!WIDE.matches && t.parentElement === bar) bar.after(t);
+  }
+  placeTabs();
+  if (WIDE.addEventListener) WIDE.addEventListener('change', placeTabs); else if (WIDE.addListener) WIDE.addListener(placeTabs);
+
   /* ---------- router ---------- */
   function setNav(name) { document.querySelectorAll('[data-nav]').forEach(a => a.dataset.nav === name ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')); }
   function parts() { return location.hash.replace(/^#\/?/, '').split('/'); }
@@ -219,14 +233,14 @@
     const [name, a, b] = parts();
     const last = S.lastRoute.split('/');
     const sameMaterial = name === 'm' && last[0] === 'm' && last[1] === a && !!view.querySelector('#pane');
-    S.lastRoute = parts().join('/');
+    S.prevRoute = S.lastRoute; S.lastRoute = parts().join('/');  // 问题反馈 says which page it came from
     if (!sameMaterial) view.innerHTML = skeleton();
     let fresh = S.homeFresh; S.homeFresh = false;  // home data fetched just before this page: today() need not ask again
     try {
       if (!S.home) { await refreshHome(); fresh = true; }
       if (name === 'welcome') { setNav(''); await welcome(a === 'edit'); }
       // Only the personalised home needs the level questions first; everything else works for a new guest too.
-      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix', 'easy', 'words', 'speak', 'growth', 'radar', 'practice', 'guide'].includes(name)) { location.replace('#/welcome'); return; }
+      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix', 'easy', 'words', 'speak', 'growth', 'radar', 'practice', 'guide', 'feedback'].includes(name)) { location.replace('#/welcome'); return; }
       else if (name === 'placement') { setNav('practice'); await placementView(); }
       else if (name === 'exam') { setNav('practice'); await examView(a); }
       else if (name === 'series') { setNav('today'); await seriesView(decodeURIComponent(a || '')); }
@@ -248,11 +262,12 @@
       else if (name === 'practice') { setNav('practice'); await practiceView(); }
       else if (name === 'guide') { setNav('practice'); await guideView(a ? decodeURIComponent(a) : ''); }
       else if (name === 'me') { setNav('me'); await meView(); }
+      else if (name === 'feedback') { setNav('me'); await feedbackView(); }
       else { setNav('today'); await today(fresh); }
       if (!sameMaterial && name !== 'welcome') enter(view);
       if (!sameMaterial) { const h = view.querySelector('h1'); announce(h ? h.textContent : document.title); }
     } catch (e) {
-      view.innerHTML = `<div class="empty"><div class="big">⚠︎</div><p>${esc(e.message)}</p><button class="btn" id="retry">重试</button></div>`;
+      view.innerHTML = `<div class="empty"><div class="big">⚠︎</div><p>${esc(e.message)}</p><button class="btn" id="retry">重试</button><p class="small"><a class="link" href="#/feedback">反馈这个问题</a></p></div>`;
       document.getElementById('retry').onclick = () => route();
     } finally { if (!keepScroll && !sameMaterial) view.focus({ preventScroll: true }); }
   }

@@ -44,7 +44,7 @@
 .grow:disabled .go{visibility:hidden}
 .grow:disabled:hover{background:none}
 .gfoot{margin:6px 12px 0}
-.grow.danger{grid-template-columns:1fr;justify-items:center;color:var(--red);font-weight:600}
+.grow.danger{grid-template-columns:minmax(0,1fr);justify-items:center;color:var(--red);font-weight:600}
 /* a folded card: its summary is the heading, a chevron turns when it opens */
 details.fold>summary{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;list-style:none;padding:0 26px 0 0;color:inherit;position:relative;min-height:24px}
 details.fold>summary::-webkit-details-marker{display:none}

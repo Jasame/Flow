@@ -8,7 +8,7 @@ button,a,.w,.chip,.opt,.ans,.qopt,select,label{touch-action:manipulation;-webkit
 @media (pointer:coarse){
   .icon-btn{width:44px;height:44px}
   .pr .icon-btn{width:40px;height:40px}
-  .line{grid-template-columns:44px 1fr}
+  .line{grid-template-columns:44px minmax(0,1fr)}
   .btn.small{min-height:40px}
   .chip.small{min-height:38px}
   .speed button{min-height:40px;padding:8px 12px}
@@ -33,7 +33,7 @@ button,a,.w,.chip,.opt,.ans,.qopt,select,label{touch-action:manipulation;-webkit
 .w.kfocus{outline:2px solid var(--green);outline-offset:1px;background:var(--green-soft)}
 #reader:focus-visible{outline:2px dashed var(--green-line);outline-offset:6px;border-radius:8px}
 kbd{font:600 12px/1 var(--sans);border:1px solid var(--line2);border-bottom-width:2px;border-radius:6px;padding:3px 6px;background:var(--paper);color:var(--ink)}
-dl.keys{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;margin:0;align-items:center}
+dl.keys{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 14px;margin:0;align-items:center}
 dl.keys dt{margin:0;white-space:nowrap}dl.keys dd{margin:0;font-size:14px}
 /* sheets: grab handle, follows the finger when dragged down */
 .sheet-card{outline:none;transition:transform .18s var(--ease)}
@@ -72,14 +72,14 @@ body.playing .toast{bottom:calc(142px + env(safe-area-inset-bottom))}
 /* lists swap in place (filters, search, pages) without a page flash */
 #listSlot{transition:opacity .15s}#listSlot.busy{opacity:.5}
 /* onboarding: one column on phones, two on wider screens; the next button stays reachable */
-.choice.opts{grid-template-columns:1fr}
-@media (min-width:600px){.choice.opts.four{grid-template-columns:1fr 1fr}}
+.choice.opts{grid-template-columns:minmax(0,1fr)}
+@media (min-width:600px){.choice.opts.four{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
 /* the next button of onboarding stays on screen on any device (short phones held sideways included) */
 .wnav{position:sticky;bottom:calc(72px + env(safe-area-inset-bottom));background:var(--bg);padding:10px 0;z-index:5}
 @media (min-width:760px){.wnav{bottom:0}}
 /* score rows: labels never break mid-word */
-.ab{grid-template-columns:max-content 1fr 52px}
-.ab .nm{white-space:nowrap}
+.ab{grid-template-columns:minmax(0,max-content) minmax(0,1fr) 52px}
+.ab .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 /* pronunciation pairs */
 .pw .wd{display:grid;min-width:4.6em}.pw .wd .ph{font-family:var(--serif);font-size:12.5px;color:var(--muted)}
 /* quicker page transitions (the stagger used to add up to ~0.7 s) */
@@ -95,7 +95,7 @@ body.playing .toast{bottom:calc(142px + env(safe-area-inset-bottom))}
 main{padding-left:max(var(--gut),env(safe-area-inset-left));padding-right:max(var(--gut),env(safe-area-inset-right))}
 /* tablets and up: two columns of cards; review cards keep a comfortable width */
 @media (min-width:640px){
-  .grid-list{grid-template-columns:1fr 1fr}
+  .grid-list{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   .grid-list>.empty{grid-column:1/-1}
   .review{max-width:560px;margin-left:auto;margin-right:auto;width:100%}
   .pair{padding:14px 16px}

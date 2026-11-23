@@ -76,7 +76,7 @@ input[type=text]:focus,input[type=email]:focus,input[type=password]:focus,input[
 .go-next span{font-size:20px}
 .tp-done{display:flex;align-items:center;gap:12px}.tp-done .done-ring{width:44px;height:44px;margin:0}
 .plist{display:grid;gap:2px;background:var(--paper);border-radius:var(--r);padding:6px}
-.prow{display:grid;grid-template-columns:32px 1fr 14px;gap:12px;align-items:center;padding:12px 10px;border-radius:12px;text-decoration:none;color:inherit}
+.prow{display:grid;grid-template-columns:32px minmax(0,1fr) 14px;gap:12px;align-items:center;padding:12px 10px;border-radius:12px;text-decoration:none;color:inherit}
 .prow:hover{background:var(--sunk)}
 .prow .num{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;background:var(--sunk);color:var(--muted)}
 .prow.next .num{background:var(--green);color:#fff}
@@ -94,9 +94,9 @@ input[type=text]:focus,input[type=email]:focus,input[type=password]:focus,input[
 @media (max-width:759px){
   body.reviewing .tabs{display:none}
   body.reviewing{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
-  body.reviewing .review:not(.open-card){display:flex;flex-direction:column;min-height:calc(100dvh - 120px);gap:14px}
-  body.reviewing .review:not(.open-card)>:first-child{margin-top:auto}
-  body.reviewing .review:not(.open-card) .choice{margin-top:auto}
+  body.reviewing .review:not(.open-card):not(.q){display:flex;flex-direction:column;min-height:calc(100dvh - 120px);gap:14px}
+  body.reviewing .review:not(.open-card):not(.q)>:first-child{margin-top:auto}
+  body.reviewing .review:not(.open-card):not(.q) .choice{margin-top:auto}
   body.reviewing .choice button{min-height:64px;font-size:16.5px}
   body.reviewing .open-card>.row.center{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom));padding:10px 0;background:linear-gradient(transparent,var(--bg) 35%)}
 }

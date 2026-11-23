@@ -587,6 +587,20 @@
     if (gt && gt.answers) { try { await api('/api/next/vocab/test', { answers: gt.answers }); save('flow-next-guest-test', null); } catch (e) { /* try next time */ } }
   }
 
+  /* ---------- the tab bar's place ---------- */
+  // On phones the tabs are fixed to the bottom, outside the sticky top bar: iOS Safari moves a fixed element along
+  // with a sticky ancestor, and inside the bar the tabs slid up the screen on a long page. On wide screens they are a
+  // row of links in the top bar.
+  const WIDE = matchMedia('(min-width:760px)');
+  function placeTabs() {
+    const t = document.querySelector('.tabs'), bar = document.getElementById('bar');
+    if (!t || !bar) return;
+    if (WIDE.matches && t.parentElement !== bar) bar.appendChild(t);
+    else if (!WIDE.matches && t.parentElement === bar) bar.after(t);
+  }
+  placeTabs();
+  if (WIDE.addEventListener) WIDE.addEventListener('change', placeTabs); else if (WIDE.addListener) WIDE.addListener(placeTabs);
+
   /* ---------- router ---------- */
   function setNav(name) { document.querySelectorAll('[data-nav]').forEach(a => a.dataset.nav === name ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')); }
   function parts() { return location.hash.replace(/^#\/?/, '').split('/'); }
@@ -599,14 +613,14 @@
     const [name, a, b] = parts();
     const last = S.lastRoute.split('/');
     const sameMaterial = name === 'm' && last[0] === 'm' && last[1] === a && !!view.querySelector('#pane');
-    S.lastRoute = parts().join('/');
+    S.prevRoute = S.lastRoute; S.lastRoute = parts().join('/');  // 问题反馈 says which page it came from
     if (!sameMaterial) view.innerHTML = skeleton();
     let fresh = S.homeFresh; S.homeFresh = false;  // home data fetched just before this page: today() need not ask again
     try {
       if (!S.home) { await refreshHome(); fresh = true; }
       if (name === 'welcome') { setNav(''); await welcome(a === 'edit'); }
       // Only the personalised home needs the level questions first; everything else works for a new guest too.
-      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix', 'easy', 'words', 'speak', 'growth', 'radar', 'practice', 'guide'].includes(name)) { location.replace('#/welcome'); return; }
+      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix', 'easy', 'words', 'speak', 'growth', 'radar', 'practice', 'guide', 'feedback'].includes(name)) { location.replace('#/welcome'); return; }
       else if (name === 'placement') { setNav('practice'); await placementView(); }
       else if (name === 'exam') { setNav('practice'); await examView(a); }
       else if (name === 'series') { setNav('today'); await seriesView(decodeURIComponent(a || '')); }
@@ -628,11 +642,12 @@
       else if (name === 'practice') { setNav('practice'); await practiceView(); }
       else if (name === 'guide') { setNav('practice'); await guideView(a ? decodeURIComponent(a) : ''); }
       else if (name === 'me') { setNav('me'); await meView(); }
+      else if (name === 'feedback') { setNav('me'); await feedbackView(); }
       else { setNav('today'); await today(fresh); }
       if (!sameMaterial && name !== 'welcome') enter(view);
       if (!sameMaterial) { const h = view.querySelector('h1'); announce(h ? h.textContent : document.title); }
     } catch (e) {
-      view.innerHTML = `<div class="empty"><div class="big">⚠︎</div><p>${esc(e.message)}</p><button class="btn" id="retry">重试</button></div>`;
+      view.innerHTML = `<div class="empty"><div class="big">⚠︎</div><p>${esc(e.message)}</p><button class="btn" id="retry">重试</button><p class="small"><a class="link" href="#/feedback">反馈这个问题</a></p></div>`;
       document.getElementById('retry').onclick = () => route();
     } finally { if (!keepScroll && !sameMaterial) view.focus({ preventScroll: true }); }
   }
@@ -1770,7 +1785,7 @@
       const cur = (S.home && S.home.profile) || S.guest || null;
       view.innerHTML = `<div class="place stack"><div><span class="kicker">小测结果</span><h1 class="h1">建议从 ${esc(r.level)} 开始</h1>
           ${lv ? `<p class="muted">${esc(lv.label)}：${esc(lv.desc)}</p>` : ''}</div>
-        <div class="bands">${r.scores.map(s => `<div class="band${s.right <= per / 2 ? ' low' : ''}"><b>${esc(s.band)}</b><span>${s.right} / ${s.of}</span></div>`).join('')}</div>
+        <div class="pl-bands">${r.scores.map(s => `<div class="pl-band${s.right <= per / 2 ? ' low' : ''}"><b>${esc(s.band)}</b><span>${s.right} / ${s.of}</span></div>`).join('')}</div>
         <button class="btn primary block" id="pUse">${cur && cur.level === r.level ? `保持 ${esc(r.level)}，去学习` : `用 ${esc(r.level)} 开始学`}</button>
         ${r.gaps.length ? `<div class="section stack-s"><h2 class="h2">先补这 ${r.gaps.length} 个点</h2><p class="small muted">在你的起点以内做错了。${r.saved ? '已经标为“要留意”，每天的计划会先排一个来补。' : '登录后再测，它们会排进每天的计划。'}</p>
           <div class="plist">${r.gaps.map(g => `<a class="nrow st st-watch" href="#/graph/${encodeURIComponent(g.id)}"><i class="dot" aria-hidden="true"></i><span class="t"><b>${esc(g.title)}</b></span><span class="lv">${esc(g.band)}</span><span class="go" aria-hidden="true">›</span></a>`).join('')}</div></div>` : ''}
@@ -2669,7 +2684,7 @@
       const titles = r.titles || {}, title = titles[r.suggest] || r.suggest;
       view.innerHTML = `<div class="card done-card enter stack"><div class="kicker">词汇量估计</div><div class="huge">${r.estimate.toLocaleString()}</div>
         <p class="muted small">${r.guessing ? '你选了不少假词，估计可能偏高，已经按比例扣除。' : '按词频分段抽样估算，误差约几百词。'}</p>
-        <div class="bands">${Object.entries(r.bands).map(([k, v]) => `<div class="row between small"><span>${esc(titles[k] || k)}</span><span class="vbar"><i data-w="${v * 100}"></i></span><span class="muted">${Math.round(v * 100)}%</span></div>`).join('')}</div>
+        <div class="vt-bands">${Object.entries(r.bands).map(([k, v]) => `<div class="row between small"><span>${esc(titles[k] || k)}</span><span class="vbar"><i data-w="${v * 100}"></i></span><span class="muted">${Math.round(v * 100)}%</span></div>`).join('')}</div>
         <p>${r.ceiling ? `常用的 2 万词你几乎都认识，超出了这个测试能测的范围。建议用《${esc(title)}》这类考试词表，或在「单词」页导入专四、专八或专业词表。` : `建议从《${esc(title)}》开始。`}</p>
         ${S.user ? '' : '<p class="muted small">结果已经记下，登录后会存到你的账号。</p>'}
         <div class="row center"><button class="btn primary" id="useBook">用《${esc(title)}》开始</button><button class="btn" id="retest">重新测</button><a class="btn ghost" href="#/cards">返回单词</a></div></div>`;
@@ -2772,7 +2787,8 @@
           <div class="row center">${recBtn('sndMic', '读一遍')}<span class="muted tiny" id="sndOut">${S.user ? '点 ● 读一遍，AI 听你读得准不准' : ''}</span></div>
           <div class="choice">${['读准了', '还不稳', '不会读'].map((t, k) => `<button class="${['good', '', 'again'][k]}" data-self="${['good', 'hard', 'again'][k]}">${t}</button>`).join('')}</div>`;
       }
-      view.innerHTML = `${top()}<div class="review enter">${body}${foot()}</div>`;
+      // A question or a sentence to fix has no word to put in the middle of the screen: it starts at the top.
+      view.innerHTML = `${top()}<div class="review enter${c.mode === 'sound' ? '' : ' q'}">${body}${foot()}</div>`;
       bar(); swipe = null;
       const after = (r, html) => {
         const ms = Date.now() - t0;
@@ -3232,7 +3248,7 @@
         installed ? '' : grow('meInstall', '添加到桌面', '像 App 一样打开', '', 'me-install')]],
       u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备')],
         '绑定邮箱后，可以用验证码登录，忘记密码时自己找回。30 天内来过就一直保持登录；在别人的手机或电脑上用完，记得退出。'],
-      ['帮助', [grow('#/guide', '操作指南', '每个页面怎么用', '', 'me-guide'), grow('/survey', '匿名问卷', '你想要什么样的英语学习网站', '', 'me-survey')]],
+      ['帮助', [grow('#/guide', '操作指南', '每个页面怎么用', '', 'me-guide'), grow('#/feedback', '问题反馈', '页面不对、功能用不了，告诉我们', '', 'me-feedback'), grow('/survey', '匿名问卷', '你想要什么样的英语学习网站', '', 'me-survey')]],
     ].filter(Boolean);
     view.innerHTML = `<div class="card flat me-head"><div class="me-id">${u ? `<span class="avatar" aria-hidden="true">${esc([...u.username][0].toUpperCase())}</span>` : ''}
         <div class="t"><h1 class="h1">${u ? esc(u.username) : '我的'}</h1><span class="small muted">${lv ? `${esc(lv.label)}（${lv.id}）` : '还没有设置水平'} · 每天 ${p.minutes || 10} 分钟</span></div></div>
@@ -3385,6 +3401,95 @@
   }
 
 
+  /* ---------- 问题反馈: what happened, the page it happened on, and up to three screenshots ---------- */
+  // Anyone can send one, signed in or not (the server limits guests by a hashed address). The report carries the page
+  // the learner came from, the site's version, the phone and browser, and the last few script errors: a page that
+  // broke often says why in the console. Read and closed in the operator console; nothing is sent back.
+  const ERRS = [];
+  const keepErr = s => { if (s) { ERRS.push(String(s).slice(0, 200)); if (ERRS.length > 5) ERRS.shift(); } };
+  addEventListener('error', e => keepErr(e && e.message ? `${e.message} @ ${String(e.filename || '').split('/').pop().split('?')[0]}:${e.lineno || 0}` : ''));
+  addEventListener('unhandledrejection', e => { const r = e && e.reason; keepErr((r && r.message) || r || 'unhandled rejection'); });
+  const FB_KINDS = [['display', '页面显示不对'], ['broken', '功能用不了'], ['content', '内容有错'], ['idea', '建议'], ['other', '其他']];
+  const ASSET = (((document.querySelector('script[src*="next.js"]') || {}).src || '').split('v=')[1] || '').slice(0, 20);
+
+  // A phone screenshot is large (1290 × 2796 on an iPhone): drawn at most 1600 px on its long side and sent as JPEG
+  // under 650 KB, so three fit in one request. Read as a data: URL (the page's CSP allows data: images, not blob:).
+  function shrinkShot(file) {
+    return new Promise((ok, no) => {
+      if (file.type && !/^image\//.test(file.type)) return no(new Error('只能添加图片'));
+      const fr = new FileReader();
+      fr.onerror = () => no(new Error('读不出这张图片，请换一张'));
+      fr.onload = () => {
+        const img = new Image();
+        img.onerror = () => no(new Error('这个文件打不开，请换一张截图'));
+        img.onload = () => {
+          const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight, 1));
+          const cv = document.createElement('canvas');
+          cv.width = Math.max(1, Math.round(img.naturalWidth * k)); cv.height = Math.max(1, Math.round(img.naturalHeight * k));
+          const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, cv.width, cv.height); g.drawImage(img, 0, 0, cv.width, cv.height);
+          for (const q of [0.82, 0.7, 0.55, 0.4]) { const d = cv.toDataURL('image/jpeg', q); if (d.length * 0.75 <= 650000) return ok(d); }
+          no(new Error('这张图太大了，请裁小一点'));
+        };
+        img.src = fr.result;
+      };
+      fr.readAsDataURL(file);
+    });
+  }
+
+  async function feedbackView() {
+    const from = S.prevRoute && !/^feedback/.test(S.prevRoute) ? '#/' + S.prevRoute : '';
+    let kind = 'display';
+    const shots = [];
+    view.innerHTML = `<div class="stack"><div><h1 class="h1">问题反馈</h1><span class="muted small">页面显示不对、功能用不了、内容有错，或者有建议，都可以告诉我们。</span></div>
+      <form class="card stack fb" id="fbForm" novalidate>
+        <div class="chips" role="radiogroup" aria-label="反馈类型">${FB_KINDS.map(([k, l]) => `<button type="button" class="chip" role="radio" data-k="${k}" aria-checked="${k === kind}">${l}</button>`).join('')}</div>
+        <label class="stack-s" for="fbText"><b>发生了什么</b><span class="tiny muted">在哪个页面、点了什么、看到了什么。</span></label>
+        <textarea id="fbText" rows="5" maxlength="1000" placeholder="比如：在「单词」页往下滑，底部的按钮跑到了屏幕中间。"></textarea>
+        <div class="row between"><span class="tiny err" id="fbErr" role="alert"></span><span class="tiny muted" id="fbCount">0 / 1000</span></div>
+        <div class="stack-s"><b>截图 <span class="tiny muted">可选，最多 3 张</span></b>
+          <div class="fb-shots" id="fbShots"></div>
+          <div><label class="btn" id="fbAdd">添加截图<input type="file" id="fbFile" accept="image/*" multiple class="sr-only"></label></div></div>
+        ${S.user ? '' : `<label class="stack-s" for="fbContact"><b>联系方式 <span class="tiny muted">可不填</span></b></label>
+        <input type="text" id="fbContact" maxlength="100" autocomplete="email" placeholder="邮箱或微信，方便我们问你细节">`}
+        <label class="sr-only" aria-hidden="true">网址<input name="website" id="fbHp" tabindex="-1" autocomplete="off"></label>
+        <p class="tiny muted">会一起发送：${from ? '你刚才在的页面、' : ''}网站版本、手机和浏览器型号${S.user ? '、你的账号' : ''}。截图只有管理员能看。</p>
+        <button class="btn primary block" id="fbSend" type="submit">提交</button>
+      </form></div>`;
+    const form = document.getElementById('fbForm'), ta = document.getElementById('fbText'), box = document.getElementById('fbShots');
+    const file = document.getElementById('fbFile'), add = document.getElementById('fbAdd'), send = document.getElementById('fbSend');
+    const say = m => { document.getElementById('fbErr').textContent = m || ''; };
+    form.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
+      kind = b.dataset.k; form.querySelectorAll('[data-k]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
+    });
+    ta.oninput = () => { document.getElementById('fbCount').textContent = `${ta.value.length} / 1000`; say(''); };
+    const drawShots = () => {
+      box.innerHTML = shots.map((d, k) => `<div class="fb-shot"><img src="${d}" alt="截图 ${k + 1}"><button type="button" data-rm="${k}" aria-label="去掉截图 ${k + 1}">×</button></div>`).join('');
+      box.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { shots.splice(Number(b.dataset.rm), 1); drawShots(); });
+      add.hidden = shots.length >= 3;
+    };
+    file.onchange = async () => {
+      const list = [...file.files].slice(0, 3 - shots.length); file.value = '';
+      add.classList.add('busy');
+      for (const f of list) { try { shots.push(await shrinkShot(f)); say(''); } catch (x) { say(x.message); } }
+      add.classList.remove('busy'); drawShots();
+    };
+    form.onsubmit = async e => {
+      e.preventDefault();
+      const text = ta.value.trim();
+      if (text.length < 4) { say('请写几句发生了什么（至少 4 个字）'); ta.focus(); return; }
+      send.disabled = true; send.textContent = '正在提交…';
+      const c = document.getElementById('fbContact');
+      try {
+        await api('/api/feedback', { kind, text, contact: c ? c.value.trim() : '', page: from, images: shots, website: document.getElementById('fbHp').value,
+          device: { ua: navigator.userAgent, w: innerWidth, h: innerHeight, dpr: devicePixelRatio || 1, lang: navigator.language || '', asset: ASSET,
+            theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light', standalone: STANDALONE(), wechat: IN_WECHAT, errors: ERRS.slice() } });
+        view.innerHTML = `<div class="card done-card enter stack fb-done"><div class="big" aria-hidden="true">✓</div><h1 class="h1">已收到，谢谢！</h1>
+          <p class="muted">${shots.length ? `连同 ${shots.length} 张截图一起收到了。` : ''}我们会尽快看，修好后会在新版本里更新。</p>
+          <div class="row center"><a class="btn primary" href="${esc(from || '#/me')}">${from ? '回到刚才的页面' : '返回「我的」'}</a><button class="btn ghost" id="fbMore" type="button">再提一个</button></div></div>`;
+        document.getElementById('fbMore').onclick = () => feedbackView();
+      } catch (x) { say(x.message); send.disabled = false; send.textContent = '提交'; }
+    };
+  }
   /* ---------- boot ---------- */
   (async function boot() {
     wechatBar();
