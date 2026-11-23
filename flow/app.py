@@ -120,10 +120,16 @@ def api_open(method,path):return any(path==p or (p.endswith('/') and path.starts
 def session_cookie(token):
  return 'flow_session='+token+'; HttpOnly; SameSite=Lax; Path=/; Max-Age='+str(SESSION_DAYS*86400)+('; Secure' if SECURE else '')
 _ASSET={}
+_SLIM={}
 def shell_file(name):
  """A public file; the page shell and the service worker get the asset version filled in (__ASSET__): a hash of
- next.js and next.css, so any change to them gives new URLs and a changed service worker, and phones update."""
- body=(ROOT/'public'/name).read_bytes()
+ next.js and next.css, so any change to them gives new URLs and a changed service worker, and phones update.
+ next.js and next.css are sent slimmed (slim.py: no comments or indentation, the same lines), once per change."""
+ f=ROOT/'public'/name;body=f.read_bytes()
+ if name in ('next.js','next.css'):
+  key=f.stat().st_mtime_ns
+  if _SLIM.get(name,(None,))[0]!=key:_SLIM[name]=(key,__import__('slim').slim(name,body))
+  return _SLIM[name][1]
  if name not in ('next.html','sw.js'):return body
  return body.replace(b'__ASSET__',asset_version().encode())
 def asset_version():
