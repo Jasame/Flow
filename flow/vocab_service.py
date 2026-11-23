@@ -643,6 +643,8 @@ def score_test(c, uid, data):
         c.execute('UPDATE next_vocab_plans SET estimate=?, skip_rank=?, test_skip=?, suggest=?, updated=? WHERE user_id=?',
                   (estimate, skip_rank, skip_rank, suggest, time.time(), uid))
         c.commit()
+        ar = __import__('ability_radar')  # the vocabulary test is the radar's vocabulary assessment
+        ar.record(c, uid, 'vocab', ar.vocab_index(estimate), {'estimate': estimate})
     return {'estimate': estimate, 'suggest': suggest, 'bands': {k: round(v, 2) for k, v in known.items()}, 'ceiling': ceiling,
             'titles': {**{k: v[0] for k, v in BOOKS.items()}, **{k: v[0] for k, v in EXAM_BOOKS.items()}, 'beyond': '超纲难词'},
             'guessing': fa > 0.2, 'skip_rank': skip_rank}, 200

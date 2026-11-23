@@ -29,6 +29,10 @@ def fake(messages, audio=None, grounding=False):
     """Plausible answers for every prompt Flow sends, keyed on the prompt's role line."""
     system, prompt = messages[0]['content'], messages[-1]['content']
     J = lambda o: (json.dumps(o, ensure_ascii=False), 'stop')
+    if '评估老师' in system:  # the radar's speaking and writing assessments
+        dims = ('fluency', 'accuracy', 'range', 'pronunciation') if '口语' in system else ('content', 'organization', 'accuracy', 'range')
+        return J({'transcript': 'I went to Hangzhou last spring with my parents.' if '口语' in system else '', 'level': 'B1', 'position': 0.6,
+                  'scores': {k: 3 for k in dims}, 'strength': '意思表达清楚，有具体的例子。', 'next': ['多用连接词把句子连起来', '注意过去时的动词变化']})
     if '口语老师' in system:  # shadowing one sentence
         sent = prompt.split('原句：', 1)[1].split('\n', 1)[0]
         return J({'transcript': sent, 'issues': [], 'fluency': 'smooth', 'tip': '节奏很好，重音再明显一点。'})

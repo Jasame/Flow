@@ -156,6 +156,7 @@ flow/word_links.py
 flow/scenarios.py
 flow/easy_reading.py
 flow/growth_report.py
+flow/ability_radar.py
 flow/graph_service.py
 flow/growth_service.py
 flow/guest_first.py

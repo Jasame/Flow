@@ -40,7 +40,8 @@ PAGES = ['#/', '#/library', f'#/m/{PID}/listen', f'#/m/{PID}/read', f'#/m/{PID}/
          '#/vocab/test', '#/review', '#/sounds', '#/sounds/th-s', '#/report', '#/me', '#/import', '#/graph', '#/graph/voice-basic', '#/graph/emph-inversion', '#/welcome/edit',
          '#/placement', '#/exam', '#/exam/cet6', '#/series/lighthouse-ledger', '#/m/v5-culture-c1-lighthouse-ledger-1/read',
          '#/mix', '#/mix/pair/tense-past,tense-perfect', '#/graph/link-contrast',
-         '#/easy', '#/words/confuse', '#/words/confuse/borrow-lend,make-do', '#/speak', '#/speak/cafe-order', '#/growth', '#/series/a-new-term']
+         '#/easy', '#/words/confuse', '#/words/confuse/borrow-lend,make-do', '#/speak', '#/speak/cafe-order', '#/growth', '#/series/a-new-term',
+         '#/radar', '#/radar/goals', '#/radar/test', '#/radar/test/reading', '#/radar/test/writing']
 RESULTS = []
 
 
@@ -416,6 +417,28 @@ def run_device(pw, dev, opts):
     go(pg, '#/growth')
     gw = pg.evaluate("() => ({tiles: document.querySelectorAll('.gtile').length, miles: document.querySelectorAll('.mile').length})")
     check(dev, 'my progress: eight figures and the milestones', gw['tiles'] == 8 and gw['miles'] >= 10, gw)
+
+    # ---- ability radar: set goals, take the reading check, the radar draws the skill against the goal
+    go(pg, '#/radar/goals')
+    pg.click('[data-all="B2"]'); pg.wait_for_timeout(150); pg.click('[data-d="speaking"][data-l="B1"]'); pg.wait_for_timeout(150)
+    pg.click('#gSave'); pg.wait_for_selector('.radar', timeout=8000); pg.wait_for_timeout(300)
+    go(pg, '#/radar/test/reading')
+    for _ in range(3):
+        if not pg.query_selector('#aNext'):
+            break
+        for box in range(2):
+            pg.click(f'.gq >> nth={box} >> .ans >> nth=0')
+        pg.click('#aNext'); pg.wait_for_timeout(600)
+    h = pg.text_content('#view h1') or ''
+    check(dev, 'radar: the reading check ends with a level and a score', '分' in h and '约' in h, h)
+    go(pg, '#/radar'); pg.wait_for_timeout(900)
+    rd = pg.evaluate("() => ({axes: document.querySelectorAll('.radar .ax').length, dots: document.querySelectorAll('.radar .dt:not(.none)').length, shown: document.querySelector('.radar .cur').classList.contains('on'), rows: document.querySelectorAll('.rdim').length})")
+    check(dev, 'radar: six axes, the measured skill drawn against the goal', rd['axes'] == 6 and rd['dots'] >= 1 and rd['shown'] and rd['rows'] == 6, rd)
+    go(pg, '#/radar/test/writing')
+    pg.fill('#aText', 'I would like to learn to cook because I live alone now and I want to eat better food every day. ' * 3)
+    pg.click('#aGo'); pg.wait_for_timeout(1200)
+    h = pg.text_content('#view h1') or ''
+    check(dev, 'radar: a short text is judged and recorded', '约 B1' in h, h)
 
     # ---- welcome: the next button is reachable without scrolling on a phone
     go(pg, '#/welcome/edit')

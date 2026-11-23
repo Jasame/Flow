@@ -646,6 +646,8 @@ def placement_score(c, uid, data, now=None):
             ev.record(c, uid, g['node'], f"next-place:{g['id']}:{day}", 'choice', str(g['id']), 'placement', False, 0, 'rule', {'via': 'placement'}, now)
             schedule(c, uid, g['node'], False, now)
         c.commit()
+        ar = __import__('ability_radar')  # the starting check is the radar's grammar assessment
+        ar.record(c, uid, 'grammar', ar.ladder_index({b: scores[b] / counts[b] for b in scores}), {'scores': scores})
     title = lambda n: meta.get(n, {}).get('title', n)
     return {'done': True, 'level': level, 'scores': [{'band': b, 'right': scores[b], 'of': sum(1 for g in graded if g['band'] == b)} for b in BANDS if b in scores],
             'gaps': [{'id': g['node'], 'title': title(g['node']), 'band': g['band']} for g in gaps],
