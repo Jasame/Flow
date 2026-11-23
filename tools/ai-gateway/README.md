@@ -1,175 +1,97 @@
-# AI 网关（api.xmc.hk）上线清单
+# 文字模型切换厂商（xmc-api，api.xmc.hk）
 
-> **暂停，先不要照做（2026-11-23）**：`api.xmc.hk` 已经有一个在用的 AI 网关 xmc-api，在杭州服务器的 127.0.0.1:9000 上；香港的 Flow 正通过 Cloudflare 隧道调用它（`FLOW_AI_URL=https://api.xmc.hk`）。本清单是按"api.xmc.hk 还没有"写的，照做会和现有网关冲突。在按现有的 xmc-api 改好之前：不要在香港新建 `api.xmc.hk` 站点，也不要把 Flow 的 AI 地址改成 127.0.0.1。
-
-
-目标：Flow 只认一个入口。用哪家模型、坏了切谁，都在网关后台里改，Flow 不用改代码、不用重启。
+目标：Flow 的文字请求（批改、讲解、出题、对话）可以在 DeepSeek、通义千问、Gemini 之间随时切换，只在 xmc-api 的控制台里改，Flow 不用改代码、不用重启。
 
 ```
-Flow 后台 ──文字请求──▶ 网关 127.0.0.1:3000（New API）──▶ DeepSeek / 千问 / Gemini …（后台排优先级，可随时切换）
-        └─录音、联网检索──▶ Vertex Gemini（照旧直连，不经过网关）
-后台管理页面：https://api.xmc.hk（Cloudflare Access 保护，只给自己人用）
+Flow（香港）── 文字请求，模型名 flow-text ──▶ api.xmc.hk（xmc-api，杭州）──▶ DeepSeek / 千问 / Gemini（控制台决定）
+           └─ 录音、联网检索，主模型 ──────────▶ api.xmc.hk ──▶ gemini-flow（照旧）
+flow-text 出错或被停用时，Flow 自动改用主模型，学生看不到报错。
 ```
 
-- 网关用开源的 New API（github.com/QuantumNous/new-api，AGPL-3.0），版本固定为 `v1.0.0-rc.49`。只部署一个容器，数据存在 SQLite 里。
-- Flow 走本机地址调用网关，不绕公网，也不经过 Cloudflare。公网上只开放管理后台，模型接口 `/v1` 对外是关闭的。
-- 各家的 API 密钥只存在网关里（`/opt/ai-gateway/data/`）。Flow 只拿一个网关令牌。
-- 需要 Flow r19 或之后的版本：从这个版本起，Flow 允许用 http 访问本机地址；对其他地址仍然只允许 https。
+## 为什么这样设计
 
-下面标「你来做」的步骤涉及密码、密钥或账号，必须由你本人操作；其余步骤可以交给 Claude 做。
+- **xmc-api 本来就是多厂商网关**：有「上游」「模型」「密钥」「用量」「请求日志」，控制台在 https://xmc.hk/api-admin/。Flow 现在就通过它调用 Gemini（`FLOW_AI_URL=https://api.xmc.hk/…`）。不需要另外搭网关。
+- **Flow 只认一个模型名 `flow-text`**：它背后是哪一家，由控制台里的这个模型指向哪个上游决定。
+- **Flow 自己兜底**：`flow-text` 出错（上游挂了、被停用、被限流、密钥被拒），Flow 马上改用主模型。只有请求本身有问题（太大、格式不对）才不重试。
+- **钥匙不用复制**：只写 `FLOW_TEXT_AI_MODEL=flow-text` 一行时，Flow 用的就是现在调用 Gemini 的同一个网关地址和同一把 `flow` 密钥。
 
-## 0. 前提
+注意：xmc-api 的说明书里写着「不要改现有 API 网关的配置和上游，除非用户明确要求」。下面每一步都只是新增，不改已有的上游和模型；由你本人在控制台里操作，或者明确交给 Claude 做。
 
-- 新服务器迁移完成，Flow 在新服务器上正常运行。
-- 宝塔里已安装 Docker（「软件商店」→「Docker」）。
+## 一次性设置
 
-## 1. 启动网关（root，在服务器上）
+### 1. 在 xmc-api 加上游（你来做，密钥只填在控制台里）
 
-```bash
-bash tools/ai-gateway/setup.sh
-```
+打开 https://xmc.hk/api-admin/ →「上游连接」→「添加上游」，各加一个：
 
-这个脚本会：
+| 名称 | 地址（base_url） | 密钥 |
+| --- | --- | --- |
+| `deepseek` | `https://api.deepseek.com/v1` | DeepSeek 开放平台的 API Key |
+| `qwen` | `https://dashscope.aliyuncs.com/compatible-mode/v1` | 阿里云百炼的 API Key |
 
-- 建好 `/opt/ai-gateway`；
-- 生成会话密钥 `.env`（权限 600，不会显示出来）；
-- 拉取固定版本的镜像并启动；
-- 确认 `http://127.0.0.1:3000/api/status` 正常。
+- 建好后各点一次「测试连接」。
+- Gemini 不用新加：现有的上游 `gemini-flow` 就是 Gemini（走 Vertex AI）。
 
-可以重复运行，已有的数据和密钥都会保留。3000 端口被占用时，脚本会停下来并提示换端口。
+### 2. 加模型 `flow-text`（你来做）
 
-## 2. 域名、HTTPS、访问保护
+「模型与倍率」→「添加模型」：
 
-1. **Cloudflare DNS（你来做，或授权 Claude 做）**：添加 `api.xmc.hk`，A 记录指向新服务器 IP，开橙云代理。
-2. **宝塔建站**：
-   1. 添加站点 `api.xmc.hk`（不建数据库、不建 FTP），申请或部署 SSL 证书。
-   2. 打开站点「配置文件」，按 `nginx-api.xmc.hk.conf` 修改：
-      - 删掉宝塔默认带的两段静态文件规则（`gif|jpg…` 和 `js|css`），否则后台页面打不开；
-      - 把默认的 `location /` 换成文件里的两段：第一段关闭 `/v1` 等模型接口，第二段反向代理到 127.0.0.1:3000。
-   3. 保存，并确认 nginx 配置检查通过。
-3. **Cloudflare Access（你来做）**：在 Zero Trust → Access → Applications 里给 `api.xmc.hk` 加一个应用，用和 xmc.hk/flow 相同的策略，只允许你们自己的邮箱。
+- 名称：`flow-text`
+- 上游：`deepseek`
+- 实际模型：`deepseek-chat`（以 DeepSeek 平台当前提供的为准）
+- 倍率：按需要设置（默认 1 倍）。倍率只影响网关里的用量统计和额度扣减。
 
-## 3. 初始化后台（你来做）
+`flow` 这把密钥的权限是「全部模型」，新加的 `flow-text` 自动包含在内，不用改密钥。可以在「调用文档」里选 `flow` 密钥，看模型列表里有没有 `flow-text`。
 
-1. 打开 https://api.xmc.hk，通过 Cloudflare Access 登录。
-2. 按初始化向导创建管理员账号，用强密码，存进密码管理器。
-3. 在「系统设置 / 运营设置」里（名称以后台显示为准）：
-   - 失败重试次数设为 2：一家出错时，自动换下一个优先级的渠道再试；
-   - 打开「自动禁用失败渠道」：连续出错的渠道会被暂停，恢复后在后台手动启用。
+### 3. 让 Flow 用它（需要 Flow r20 或之后的版本）
 
-## 4. 添加渠道（你来做，密钥只填在这里）
-
-每家模型建一个渠道。三家的「模型」都填同一个名字 `flow-text`，再用「模型重定向」指到各家真实的模型名：
-
-| 渠道名 | 类型 | 模型 | 模型重定向 | 优先级 |
-| --- | --- | --- | --- | --- |
-| DeepSeek | DeepSeek | `flow-text` | `{"flow-text": "deepseek-chat"}` | 30 |
-| 通义千问 | 阿里云百炼 | `flow-text` | `{"flow-text": "qwen-plus"}` | 20 |
-| Gemini | Vertex AI | `flow-text` | `{"flow-text": "<和 Flow 现在用的同一个 Gemini 模型>"}` | 10 |
-
-- **优先级**：数字越大越先用。最大的一家出错，就按数字从大到小往下试；同一优先级里按「权重」分配流量。
-- **测试**：每个渠道建好后点一次「测试」。
-- **Gemini 渠道只能用「Vertex AI」类型**：
-  - 香港可以直接用 Vertex AI，Flow 现在就是这样连的；但 AI Studio 的 Gemini API（填 AI Studio API Key 的那种）在香港不开放，不要选那个类型。
-  - 密钥填服务账号 JSON。建议在 Google Cloud 控制台新建一个只有 Vertex AI User 权限的服务账号，不要复用 Flow 服务器上的凭据文件，也不要把 JSON 发到聊天里。
-  - 部署地区填 `global`，和 Flow 现在一样。
-- **这些模型名是建议**，以各家控制台当前提供的为准。
-
-## 5. 价格和令牌（你来做）
-
-1. **定价**：在「模型定价 / 倍率」里给 `flow-text` 设一个价格，按 DeepSeek 的价格填即可。这只用于后台统计和报销对账；不设的话，调用可能被拒绝，提示模型没有定价。
-2. **新建令牌**：
-   - 名称写 `flow`，额度设为无限；
-   - 「模型限制」只勾 `flow-text`；
-   - IP 限制先不填：模型接口本来就只对本机开放。
-3. **复制令牌**：只在下一步用一次，不要发到聊天里。
-
-## 6. 接入 Flow（你来做）
-
-在 `/etc/flow.env` 里加三行，令牌那一行由你本人填写：
+在香港服务器的 `/etc/flow.env` 里加一行（这一行不是密钥，可以交给 Claude 或迁移会话做）：
 
 ```
-FLOW_TEXT_AI_URL=http://127.0.0.1:3000/v1/chat/completions
 FLOW_TEXT_AI_MODEL=flow-text
-FLOW_TEXT_AI_KEY=<第 5 步的令牌>
 ```
 
 然后重启 Flow：
 
-```bash
+```
 systemctl restart flow
 ```
 
-接入后的行为：
+不要动 `FLOW_AI_URL`、`FLOW_AI_KEY`、`FLOW_AI_MODEL`。
 
-- **只有文字请求会走网关**：批改、讲解、出题、对话都是文字请求；录音和联网检索照旧直连 Vertex。
-- **网关不可用时会自动回退**：网关停了或返回错误，Flow 会自动改用 Vertex，学生不会看到报错。
+### 4. 验收
 
-## 7. 验收
+在服务器上运行。`python3` 换成 Flow 服务用的那个 python，`systemctl cat flow` 里 `ExecStart` 那一行写着它的路径：
 
-```bash
-python3 /opt/ai-gateway/check_gateway.py --public https://api.xmc.hk
+```
+cd /www/wwwroot/flow && python3 ai_check.py
 ```
 
-```bash
-cd /www/wwwroot/flow && <Flow 用的 python> ai_check.py
-```
-
-`check_gateway.py` 会检查以下几项，最后应该显示「全部通过」：
-
-- 网关在运行，令牌有效，令牌能用 `flow-text`；
-- 普通调用有回答，并显示实际回答的模型和用时；
-- 流式输出正常；
-- 按要求只回 JSON；
-- `/v1` 不对公网开放。
-
-`ai_check.py` 的每一项里，`"service"` 应该显示「文字服务」。
-
-最后在后台「日志」里能看到 `flow-text` 的调用记录，以及实际走的是哪个渠道。也可以在线上跑一遍 Flow 的端到端测试。
+- 「文字模型（flow-text）」这一项要通过。它直接调用 flow-text，不会回退到主模型，所以能看出 flow-text 自己通不通。
+- 其他几项的 `"service"` 应该显示「文字服务」。如果显示「主服务」，说明 flow-text 没回答，Flow 回退到了主模型。
+- 在 xmc-api 的「请求日志」里能看到 `flow-text` 的调用，上游是 `deepseek`。
 
 ## 日常：切换厂商
 
-- **换主力**：在后台「渠道」里改优先级，或者停用某个渠道。改完立即生效，不用重启 Flow。
-- **加一家新厂商**：新建一个渠道，「模型」写 `flow-text`，用「模型重定向」指向这家的真实模型名，再设好优先级。
-- **每次切换后**：跑一遍 `check_gateway.py`。不同模型守 JSON 格式的程度不一样；主力换成新模型后，前一两天留意 Flow 的批改是否正常。
+在「模型与倍率」里操作，改完立即生效，Flow 不用动：
+
+- **换一家**：删除 `flow-text`，再添加一个同名的 `flow-text`，上游和实际模型改成另一家，例如：
+  - 千问：上游 `qwen`，实际模型 `qwen-plus`（以百炼控制台为准）；
+  - Gemini：上游 `gemini-flow`，实际模型和 Flow 主模型相同。
+  删除到重新添加的这一两分钟里，Flow 会自动用主模型，学生不受影响。
+- **临时全部改回 Gemini**：把 `flow-text` 停用就行，Flow 的文字请求会全部走主模型。要恢复时再启用。
+- **每次切换后**：跑一遍 `ai_check.py`。不同模型守 JSON 格式的程度不一样，换了主力后，前一两天留意 Flow 的批改是否正常。
 
 ## 回退
 
-- **临时关掉网关**：删掉 `/etc/flow.env` 里那三行，然后 `systemctl restart flow`。Flow 就只用 Vertex，和接入网关前完全一样。
-- **网关出故障时**：不用急。Flow 会自动回退到 Vertex，有空再排查：
+- 删掉 `/etc/flow.env` 里的 `FLOW_TEXT_AI_MODEL` 那一行，再重启 Flow：所有请求回到主模型，和以前完全一样。
+- 或者只在控制台停用 `flow-text`，效果相同，不用碰服务器。
 
-  ```bash
-  cd /opt/ai-gateway && docker compose logs --tail 100
-  ```
+## 以后可以再做（要改 xmc-api 代码，等你明确要求再做）
 
-## 升级
+- 控制台里直接「改指向」，不用删除再添加。现在模型只能改倍率和停用、启用。
+- 网关自己按顺序换上游（DeepSeek 不通就自动用千问）。现在由 Flow 回退到主模型兜底，暂时不需要。
 
-1. 先备份数据：
+## 参考
 
-   ```bash
-   cp -a /opt/ai-gateway/data /opt/ai-gateway/data.bak-$(date +%F)
-   ```
-
-2. 把 `docker-compose.yml` 里的版本号改成新的。只选发布满两周、发布说明里没有破坏性改动的版本。
-3. 重启并验收：
-
-   ```bash
-   bash tools/ai-gateway/setup.sh
-   ```
-
-   ```bash
-   python3 /opt/ai-gateway/check_gateway.py
-   ```
-
-## 备份与迁移
-
-- `/opt/ai-gateway/data/` 里存着各家的密钥和调用记录，要当密码一样保管：
-  - 只在服务器之间直接传，不经过聊天，也不用网盘；
-  - 要加进服务器的定期备份。
-- `/opt/ai-gateway/.env` 是会话密钥。丢了重新生成就行，只是所有人要重新登录后台。
-
-## 还没有验证的部分
-
-- 这套配置在本地只对一个模拟的网关跑过，测的是检查脚本和配置文件，没有在真正的 New API 上跑过（本机没有 Docker）。
-- 第 1 步做完后，需要在服务器上实际验收一遍。
-- 香港服务器连 Vertex AI 已经确认没问题：切换前在香港跑的线上测试 152 项全部通过，其中包括真实的 AI 调用。
+- xmc-api 的代码在杭州服务器 `/www/xmc-api/`（`gateway.py`、`control_plane.py`），数据在 `/www/xmc-api/data/api.sqlite3`。
+- 运维说明见 xmc-ui 项目的 `AGENT-MANUAL.md` 第 6.5 节。

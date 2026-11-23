@@ -93,23 +93,33 @@ LOOPBACK=re.compile(r'http://(127\.0\.0\.1|localhost|\[::1\])(:\d{1,5})?/')
 
 
 def endpoint_ok(url):
- """https anywhere; plain http only to this machine, e.g. the AI gateway (tools/ai-gateway) on 127.0.0.1:3000."""
+ """https anywhere; plain http only to this machine (a model service on 127.0.0.1)."""
  return url.startswith('https://') or bool(LOOPBACK.match(url))
 
 
 def text_provider():
- """An optional second, OpenAI-compatible service for text-only requests: FLOW_TEXT_AI_URL / FLOW_TEXT_AI_KEY /
- FLOW_TEXT_AI_MODEL. Usually the AI gateway on this server (tools/ai-gateway), where the vendor behind the model
- name is switched without touching Flow; or one vendor directly, e.g. DeepSeek. None unless all three are set."""
+ """Where text-only requests go first, or None (then everything goes to the main service).
+ FLOW_TEXT_AI_MODEL alone: the same gateway and key as the main service (FLOW_AI_URL / FLOW_AI_KEY), another model
+ name, e.g. flow-text on api.xmc.hk, whose console points it at DeepSeek, Qwen or Gemini (tools/ai-gateway/README.md).
+ With FLOW_TEXT_AI_URL too: a separate service, which then needs its own FLOW_TEXT_AI_KEY; the main key is never
+ sent to another address."""
  url,key,model=os.getenv('FLOW_TEXT_AI_URL',''),os.getenv('FLOW_TEXT_AI_KEY',''),os.getenv('FLOW_TEXT_AI_MODEL','')
+ if model and not url and not vertex_enabled():
+  url,key=os.getenv('FLOW_AI_URL',''),os.getenv('FLOW_AI_KEY','')
  return (url,key,model) if endpoint_ok(url) and key and model else None
+
+
+def refused(exc):
+ """The request itself was refused (malformed, too large): the main service would refuse it too."""
+ return isinstance(exc,urllib.error.HTTPError) and exc.code in (400,413,422)
 
 
 def request_model(messages,audio=None,grounding=False):
  """One model call. Text goes to the text service when one is configured, else to the main one; audio and grounded
- requests only to the main one, which can hear and search. A transient failure moves to the other service, or, with
- only one, is retried once after a short pause (not after a rate limit), so a single hiccup does not cost the learner
- their answer."""
+ requests only to the main one, which can hear and search. When the text service fails for any reason but a refused
+ request (down, model disabled in the gateway's console, key rejected, rate-limited), the main service answers; with
+ only one service, a transient failure is retried once after a short pause (not after a rate limit), so a single
+ hiccup does not cost the learner their answer."""
  order=[]
  if not audio and not grounding and text_provider():order.append('text')
  order.append('main')
@@ -123,8 +133,7 @@ def request_model(messages,audio=None,grounding=False):
    return out
   except Exception as exc:
    last=exc
-   from vertex_auth import AIConfigurationError
-   if which=='text' and isinstance(exc,AIConfigurationError):continue  # a broken text set-up falls back to the main service
+   if which=='text' and not refused(exc) and time.monotonic()-started<=60:continue  # the main service takes over
    if i==len(order)-1 or not transient(exc) or time.monotonic()-started>60:raise
    if order[i+1]==which:
     if isinstance(exc,urllib.error.HTTPError) and exc.code==429:raise  # rate-limited: asking the same service again at once will not help
