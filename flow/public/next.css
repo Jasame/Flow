@@ -943,7 +943,6 @@ details[open]>summary{margin-bottom:8px}
 .serial .ep.done .n{background:var(--green);color:#fff}
 .serial .ep.next .n{box-shadow:0 0 0 2px var(--green)}
 .serial .ep .t{display:grid;gap:2px;min-width:0}
-.next-ep{display:grid;gap:4px;text-decoration:none;color:inherit;padding:14px 16px}
 @media (max-width:420px){.exam-pick{grid-template-columns:1fr}.bands{gap:6px}.band span{font-size:16px}}
 @media (hover:none){.serial .ep:hover{background:none}}
 /* ---------- r14: learning route, relations, Chinese-speaker traps, mixed rounds, kinder review ---------- */
@@ -1201,3 +1200,10 @@ details.rband>summary.rband-h{margin:0;padding:12px 40px 12px 12px;border-radius
 details.rband>summary::after{right:16px;top:calc(50% - 7px)}
 details.rband[open]>summary::after{top:calc(50% - 3px)}
 details.rband[open]>summary{margin-bottom:6px}
+/* the study steps and 全部材料: the main action first, the extras folded */
+.mhead{margin-bottom:8px}
+.preread{margin:4px 0 14px}
+details.preread>summary .tiny{flex-basis:100%}
+.gains .gtabs{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);margin-bottom:12px}
+.gpane .vocab-list{margin:0}
+.gpane>.link{justify-self:start}

@@ -9,10 +9,10 @@
       <div class="filters"><select id="ff" aria-label="范围"><option value="1" ${f.featured === '1' ? 'selected' : ''}>精选</option><option value="" ${f.featured !== '1' ? 'selected' : ''}>全部材料</option></select>
         <select id="fl" aria-label="难度"><option value="">全部难度</option>${['A2', 'B1', 'B2', 'C1'].map(l => `<option ${f.level === l ? 'selected' : ''}>${l}</option>`).join('')}</select>
         <select id="ft" aria-label="话题"><option value="">全部话题</option>${Object.entries(d.themes).map(([k, v]) => `<option value="${k}" ${f.theme === k ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></div>
-      ${d.series && d.series.length ? `<div class="stack-s section"><h2 class="h2">连载故事</h2>${d.series.map(s => `<a class="card flat next-ep" href="#/series/${encodeURIComponent(s.id)}">
-        <span class="row between"><b>《${esc(s.title)}》${esc(s.title_en)}</b><span class="pill">${esc(s.level)}</span></span><span class="small muted">${esc(s.blurb)}</span>
-        <span class="tiny">${s.done ? `已读 ${s.done} / ${s.of} 集${s.next ? ` · 继续第 ${s.next_part} 集` : ' · 读完了'}` : `共 ${s.of} 集 · 从第 1 集开始`} →</span></a>`).join('')}</div>` : ''}
-      <div class="grid-list" id="lib">${d.items.map(m => miniCard(m, m.daily ? '热点' : '')).join('') || '<div class="empty">这个筛选下还没有材料。</div>'}</div>
+      ${d.series && d.series.length ? `<section class="section"><h2 class="h2 mhead">连载故事</h2><div class="mlist">${d.series.map(s => `<a class="mrow" href="#/series/${encodeURIComponent(s.id)}">
+        <span class="t"><b>《${esc(s.title)}》${esc(s.title_en)}</b><span class="tiny muted">${esc(s.level)} · ${s.done ? `已读 ${s.done} / ${s.of} 集${s.next ? ` · 继续第 ${s.next_part} 集` : ' · 读完了'}` : `共 ${s.of} 集 · 从第 1 集开始`}</span></span>
+        <span class="pill green">连载</span><span class="go" aria-hidden="true">›</span></a>`).join('')}</div></section>` : ''}
+      <section class="section">${d.series && d.series.length ? '<h2 class="h2 mhead">单篇</h2>' : ''}<div class="mlist" id="lib">${d.items.map(m => mrow(m, m.daily ? ['热点', 'amber'] : null)).join('') || '<div class="empty">这个筛选下还没有材料。</div>'}</div></section>
       ${pages > 1 ? `<div class="pager"><button class="btn small" id="pv" ${f.page <= 1 ? 'disabled' : ''}>上一页</button><span class="muted small">${f.page} / ${pages}</span><button class="btn small" id="nx" ${f.page >= pages ? 'disabled' : ''}>下一页</button></div>` : ''}`;
     const again = nf => libraryView(nf).then(() => enter(document.getElementById('lib')));
     document.getElementById('ff').onchange = e => again({ ...f, featured: e.target.value, page: 1 });

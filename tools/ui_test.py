@@ -106,7 +106,8 @@ LAYOUT_JS = """(touch) => {
 COVER_JS = """() => {
   // After scrolling to the bottom: is the last control on the page covered by the bottom tabs or another fixed layer?
   scrollTo(0, document.scrollingElement.scrollHeight);
-  const els = [...document.querySelectorAll('#view button:not([disabled]), #view a.btn, #view a.link')].filter(e => e.offsetParent !== null);
+  // (a control inside a folded <details> is not on the page until it is opened)
+  const els = [...document.querySelectorAll('#view button:not([disabled]), #view a.btn, #view a.link')].filter(e => e.offsetParent !== null && !(e.closest('details:not([open])') && !e.closest('summary')));
   const last = els[els.length - 1]; if (!last) return null;
   let r = last.getBoundingClientRect();
   const head = document.getElementById('bar').getBoundingClientRect().bottom;
@@ -243,6 +244,8 @@ def run_device(pw, dev, opts):
 
     # ---- listen: whole-text playback shows a stop control that stays on screen, and it stops
     go(pg, f'#/m/{PID}/listen')
+    lp = pg.evaluate("() => { const p = document.getElementById('playAll').getBoundingClientRect(), w = document.querySelector('#view .preread'); return [Math.round(p.top), w ? Math.round(w.getBoundingClientRect().top) : null, w ? w.open : null, innerHeight]; }")
+    check(dev, 'listen: 播放全文 comes first, on the first screen; the words to know are folded under it', lp[0] < lp[3] and (lp[1] is None or (lp[1] > lp[0] and lp[2] is False)), lp)
     pg.click('#playAll')
     pg.wait_for_timeout(250)
     mini = pg.evaluate("() => { const m = document.querySelector('.mini-player'); if (!m || m.hidden) return null; const r = m.getBoundingClientRect(); return [r.top, r.bottom, innerHeight]; }")
@@ -264,6 +267,12 @@ def run_device(pw, dev, opts):
         const w = b.parentElement.querySelector('.w'); if (!w) return false;
         return Math.abs(b.getBoundingClientRect().top - w.getBoundingClientRect().top) > 12; }).length""")
     check(dev, '✦ never wraps away from its sentence', bad == 0, f'{bad} detached')
+    rd2 = pg.evaluate("() => { const r = document.getElementById('reader').getBoundingClientRect(), t = document.getElementById('toCheck'), g = document.getElementById('gains'); return {gap: Math.round(t.getBoundingClientRect().top - r.bottom), primary: t.classList.contains('primary'), folded: g ? !g.open : null, tabs: g ? g.querySelectorAll('[data-gt]').length : 0}; }")
+    check(dev, 'read: the next step comes right after the text; the extras fold into one card with tabs', rd2['gap'] < 120 and rd2['primary'] and rd2['folded'] and rd2['tabs'] >= 2, rd2)
+    pg.evaluate("document.getElementById('gains').open = true"); pg.click('#gains [data-gt="words"]'); pg.wait_for_timeout(200)
+    shown = pg.evaluate("() => [...document.querySelectorAll('#gains [data-gp]')].filter(p => !p.hidden).map(p => p.dataset.gp)")
+    check(dev, 'read: a tab of 这篇的收获 shows only its own part', shown == ['words'], shown)
+    pg.evaluate("document.getElementById('gains').open = false")
     # step switch from far down the page: the first question is visible right under the step bar
     pg.evaluate("scrollTo(0, document.scrollingElement.scrollHeight)")
     pg.wait_for_timeout(200)
@@ -501,8 +510,10 @@ def run_device(pw, dev, opts):
     go(pg, '#/import')
     check(dev, 'import: a topic can be chosen', pg.evaluate("() => document.querySelectorAll('#impF select[name=theme] option').length") >= 7)
 
-    # ---- library: filters are remembered after opening a material and coming back
+    # ---- library: one row per material; filters are remembered after opening a material and coming back
     go(pg, '#/library')
+    lib = pg.evaluate("() => { const rows = [...document.querySelectorAll('#lib .mrow')]; return [rows.length, Math.max(0, ...rows.map(r => Math.round(r.getBoundingClientRect().height)))]; }")
+    check(dev, 'library: one short row per material', lib[0] >= 3 and lib[1] <= 80, lib)
     pg.select_option('#fl', 'B2'); pg.wait_for_timeout(500)
     pg.click('#lib a >> nth=0'); settle(pg)
     pg.go_back(); settle(pg)

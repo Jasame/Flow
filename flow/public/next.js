@@ -683,11 +683,11 @@
       const ls = lines();
       const nm = await narration(ls);
       const voices = (m.audio && m.audio.voices) || [];
-      pane.innerHTML = `${listenHead()}${voices.length ? voiceChips(voices) : ''}<div class="player">
+      pane.innerHTML = `${modeTabs()}<div class="player">
           <button class="btn primary" id="playAll">${ICON.play.replace('<svg', '<svg width="18" height="18" fill="currentColor"')}<span>播放全文</span></button>
           <div class="speed" role="group" aria-label="语速">${[0.75, 1, 1.25].map(r => `<button data-rate="${r}" aria-pressed="${TTS.rate === r}">${r}×</button>`).join('')}</div>
           <button class="icon-btn ${st.blind ? 'on' : ''}" id="blind" aria-pressed="${st.blind}" title="盲听：先只听不看" aria-label="盲听">${ICON.eye}</button>
-        </div>
+        </div>${voices.length ? voiceChips(voices) : ''}${prereadHTML()}
         ${nm ? '' : (TTS.ok ? '<p class="muted tiny">这篇暂时没有真人声录音，先用浏览器朗读。</p>' : '<p class="err">这个浏览器不支持朗读，可以直接去「读」。</p>')}
         <p class="muted small">想练耳朵，可以先点 👁 只听不看；听不懂的句子单独点开反复听。播放时正在读的词会亮起来${TOUCH ? '' : '（空格键播放 / 停止）'}。</p>
         <div class="lines">${ls.map((s, i) => `<div class="line" data-i="${i}"><button class="icon-btn" data-say="${i}" aria-label="播放第 ${i + 1} 句">${ICON.speak}</button><div class="txt ${st.blind ? 'blind' : ''}">${wordSpans(s, () => 'kw')}</div></div>`).join('')}</div>
@@ -735,19 +735,22 @@
     const MODES = { listen: '精听', shadow: '跟读', dictate: '听写' };
     if (!st.mode) st.mode = MODES[load('flow-next-listen-mode')] ? load('flow-next-listen-mode') : 'listen';
     const stripLabel = s => s.replace(/^[A-Z][a-z]+(?: [A-Z][a-z]+)?:\s+/, '');
-    function listenHead() {
+    // The words worth knowing before listening, folded into one line (open it for the meaning, the sound, review).
+    function prereadHTML() {
       const pr = m._prHidden ? [] : (m.preread || []);
-      return `${pr.length ? `<div class="card sunk preread stack-s"><div class="row between"><b class="small">读前先认识这 ${pr.length} 个词</b><button class="link tiny" id="prHide">收起</button></div>
-          <div class="pr-list">${pr.map((w, k) => `<div class="pr"><button class="icon-btn" data-prsay="${k}" aria-label="朗读 ${esc(w.word)}">${ICON.speak}</button>
+      return pr.length ? `<details class="card sunk fold preread"><summary><b class="small">读前先认识这 ${pr.length} 个词</b><span class="tiny muted">${pr.map(w => esc(w.word)).join(' · ')}</span></summary>
+          <div class="stack-s"><div class="pr-list">${pr.map((w, k) => `<div class="pr"><button class="icon-btn" data-prsay="${k}" aria-label="朗读 ${esc(w.word)}">${ICON.speak}</button>
             <div><b>${esc(w.word)}</b> <span class="ph">${esc(w.phonetic)}</span><div class="tiny muted">${esc(w.meaning)}</div></div></div>`).join('')}</div>
-          <div class="row"><button class="btn small primary" id="prAdd">全部加入复习</button><span class="muted tiny">加入后会在文章里标出来</span></div></div>` : ''}
-        <div class="seg modes" role="tablist" aria-label="听的方式">${Object.entries(MODES).map(([k, l]) => `<button role="tab" data-mode="${k}" aria-selected="${st.mode === k}">${l}</button>`).join('')}</div>`;
+          <div class="row"><button class="btn small primary" id="prAdd">全部加入复习</button><span class="muted tiny">加入后会在文章里标出来</span></div></div></details>` : '';
     }
+    function modeTabs() {
+      return `<div class="seg modes" role="tablist" aria-label="听的方式">${Object.entries(MODES).map(([k, l]) => `<button role="tab" data-mode="${k}" aria-selected="${st.mode === k}">${l}</button>`).join('')}</div>`;
+    }
+    function listenHead() { return modeTabs() + prereadHTML(); }
     function bindListenHead(stop) {
       pane.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { stop(); st.mode = b.dataset.mode; save('flow-next-listen-mode', st.mode); listen(); });
       const pr = m.preread || [];
       pane.querySelectorAll('[data-prsay]').forEach(b => b.onclick = () => { stop(); const w = pr[Number(b.dataset.prsay)]; CLIP.word({ text: w.word, audio: w.audio }); });
-      const hide = pane.querySelector('#prHide'); if (hide) hide.onclick = () => { m._prHidden = true; pane.querySelector('.preread').remove(); };
       const add = pane.querySelector('#prAdd');
       if (add) add.onclick = async () => {
         if (!S.user) return needLogin('登录后可以把这些词加入复习，按遗忘曲线安排。');
@@ -886,28 +889,68 @@
     }
 
     /* after reading: the words looked up here (and the pre-reading list) can go into review in one tap */
-    function newWordsHTML() {
+    function newWordItems() {
       const looked = [...((m._looked && m._looked.values()) || [])];
       const mine = new Set((m.mine || []).map(x => x.form));
       const items = looked.filter(x => !mine.has(x.word)).map(x => ({ ...x, on: true }));
       (m.preread || []).forEach(w => { if (!items.some(x => x.word === w.word) && !mine.has(w.form)) items.push({ word: w.word, meaning: w.meaning, sentence: findContext(w.form, lines()), on: false }); });
-      if (!items.length) return '';
-      return `<div class="card flat stack-s" id="newWords"><div class="row between"><b>这篇的生词</b><span class="muted tiny">勾选的会按遗忘曲线复习</span></div>
-        <div class="nw-list">${items.slice(0, 14).map((x, k) => `<label class="nw"><input type="checkbox" data-nw="${k}" ${x.on ? 'checked' : ''}><b>${esc(x.word)}</b><span class="muted tiny">${esc(x.meaning || '')}</span></label>`).join('')}</div>
+      return items.slice(0, 14);
+    }
+    function newWordsHTML() {
+      const items = newWordItems();
+      if (!items.length) return '<p class="muted small">读的时候点过的词会出现在这里，勾选后按遗忘曲线复习。</p>';
+      return `<div class="stack-s" id="newWords"><div class="row between"><b class="small">这篇的生词</b><span class="muted tiny">勾选的会按遗忘曲线复习</span></div>
+        <div class="nw-list">${items.map((x, k) => `<label class="nw"><input type="checkbox" data-nw="${k}" ${x.on ? 'checked' : ''}><b>${esc(x.word)}</b><span class="muted tiny">${esc(x.meaning || '')}</span></label>`).join('')}</div>
         <div><button class="btn small primary" id="nwAdd">加入复习</button></div></div>`;
     }
     function bindNewWords() {
       const box = pane.querySelector('#newWords'); if (!box) return;
-      const looked = [...((m._looked && m._looked.values()) || [])];
-      const items = looked.map(x => ({ ...x })); (m.preread || []).forEach(w => { if (!items.some(x => x.word === w.word)) items.push({ word: w.word, sentence: findContext(w.form, lines()) }); });
+      const items = newWordItems();
       box.querySelector('#nwAdd').onclick = async e => {
         if (!S.user) return needLogin('登录后可以把这些词加入复习。');
         const pick = [...box.querySelectorAll('[data-nw]:checked')].map(c => items[Number(c.dataset.nw)]).filter(Boolean);
         if (!pick.length) { toast('先勾选要复习的词'); return; }
         const btn = e.currentTarget; btn.disabled = true;
-        try { const r = await api('/api/next/vocab/add', { pack: id, items: pick.map(x => ({ word: x.word, sentence: x.sentence || '' })) }); toast(r.added ? `已加入 ${r.added} 个词` : '这些词已经在复习里了'); refreshHome().catch(() => {}); box.remove(); }
-        catch (x) { toast(x.message); btn.disabled = false; }
+        try {
+          const r = await api('/api/next/vocab/add', { pack: id, items: pick.map(x => ({ word: x.word, sentence: x.sentence || '' })) });
+          toast(r.added ? `已加入 ${r.added} 个词` : '这些词已经在复习里了'); refreshHome().catch(() => {});
+          m.mine = (m.mine || []).concat(pick.map(x => ({ form: x.word.toLowerCase(), id: 0 }))); m._looked = new Map();
+          if (m._onLook) m._onLook();
+        } catch (x) { toast(x.message); btn.disabled = false; }
       };
+    }
+    // What this text leaves you with, in one folded card under the text: expressions, words (the ones looked up
+    // too, to put into review) and grammar points, one tab at a time. Open or closed and the tab are remembered.
+    function gainsTabs() {
+      const vocab = m.vocabulary.length + (m.variant ? m.variant.notes.length : 0), fresh = newWordItems().filter(x => x.on).length;
+      return [
+        m.expressions.length && ['expr', '表达', m.expressions.length, () => `<p class="muted tiny">能直接搬进你自己话里的搭配。</p><div class="stack-s">${m.expressions.map((x, i) => `<div class="expr"><span class="e">${esc(x.text)}</span><span class="row"><button class="icon-btn" data-sayx="${i}" aria-label="朗读">${ICON.speak}</button><button class="icon-btn" data-sx="${i}" aria-label="收藏 ${esc(x.text)}">${ICON.star}</button></span><span class="m">${esc(x.meaning)}</span><span class="n">${esc(x.note || '')}</span></div>`).join('')}</div>`],
+        ['words', '词汇', vocab + fresh, () => `${m.vocabulary.length ? `<div class="vocab-list">${m.vocabulary.map((v, i) => `<div class="vrow"><span class="term">${esc(v.term)}</span><button class="icon-btn" data-sv="${i}" aria-label="收藏 ${esc(v.term)}">${ICON.star}</button><span class="muted small">${esc(v.meaning)}</span><span class="vex">${esc(v.example || '')}</span></div>`).join('')}</div>` : ''}
+          ${(m.variant && m.variant.notes.length) ? `<b class="small">改写版新出现的表达</b><div class="vocab-list">${m.variant.notes.map((v, i) => `<div class="vrow"><span class="term">${esc(v.text)}</span><button class="icon-btn" data-sn="${i}" aria-label="收藏">${ICON.star}</button><span class="muted small">${esc(v.meaning)}</span></div>`).join('')}</div>` : ''}
+          <div id="nwSlot">${newWordsHTML()}</div>`],
+        m.notes.length && ['notes', '知识点', m.notes.length, () => `<div class="stack-s">${m.notes.map(n => `<div class="knote"><div class="row between">${nodeChip({ id: n.node, title: n.title, status: n.status })}<span class="tiny muted">${esc(n.label)}</span></div><q>${esc(n.quote)}</q><div class="small muted">${esc(n.explanation)}</div></div>`).join('')}
+          <a class="link small" href="#/graph">在知识图谱里看 →</a></div>`]].filter(Boolean);
+    }
+    function gainsSummary() {
+      const vocab = m.vocabulary.length + (m.variant ? m.variant.notes.length : 0), fresh = newWordItems().filter(x => x.on).length;
+      return [m.expressions.length && `${m.expressions.length} 个表达`, vocab && `${vocab} 个词`, m.notes.length && `${m.notes.length} 个知识点`, fresh && `查过 ${fresh} 个词，可以加入复习`].filter(Boolean).join(' · ') || '查过的词会收在这里';
+    }
+    function gainsHTML() {
+      const tabs = gainsTabs();
+      let open = false, cur = tabs[0][0];
+      try { open = localStorage.getItem('flow-gains-open') === '1'; const t = localStorage.getItem('flow-gains-tab'); if (tabs.some(x => x[0] === t)) cur = t; } catch (e) { /* private mode */ }
+      return `<details class="card flat fold gains section" id="gains"${open ? ' open' : ''}><summary><b>这篇的收获</b><span class="tiny muted" id="gainsSum">${gainsSummary()}</span></summary>
+        <div class="seg gtabs" role="tablist" aria-label="这篇的收获">${tabs.map(([k, l, n]) => `<button role="tab" type="button" data-gt="${k}" aria-selected="${k === cur}">${l} ${n}</button>`).join('')}</div>
+        ${tabs.map(([k, , , html]) => `<div class="gpane stack-s" data-gp="${k}" role="tabpanel"${k === cur ? '' : ' hidden'}>${html()}</div>`).join('')}</details>`;
+    }
+    function bindGains() {
+      const g = pane.querySelector('#gains'); if (!g) return;
+      g.addEventListener('toggle', () => { try { localStorage.setItem('flow-gains-open', g.open ? '1' : ''); } catch (e) { /* private mode */ } });
+      g.querySelectorAll('[data-gt]').forEach(b => b.onclick = () => {
+        g.querySelectorAll('[data-gt]').forEach(x => x.setAttribute('aria-selected', String(x === b)));
+        g.querySelectorAll('[data-gp]').forEach(p => { p.hidden = p.dataset.gp !== b.dataset.gt; });
+        try { localStorage.setItem('flow-gains-tab', b.dataset.gt); } catch (e) { /* private mode */ }
+      });
     }
 
     /* read: tap a word, ✦ explains a sentence, select to save, read-along, expressions, knowledge points */
@@ -936,12 +979,8 @@
           <button class="btn small" id="readAlong" title="边听录音边看文字，读到哪句亮哪句">${playIcon(false, 14)}<span>伴读</span></button></div>
         <p class="muted tiny">点单词查词；点句尾的 ✦ 让 AI 讲解整句；${TOUCH ? '长按拖选' : '选中'}一段文字可以收藏。${TOUCH ? '' : '键盘：Tab 进入正文后用 ← → 逐词移动，↵ 查词，E 讲解这句。'}</p>
         <div class="text" id="reader" tabindex="0" aria-label="正文：左右方向键逐词移动，回车查词">${ls.map((s, i) => sentenceHTML(s, i)).join('')}</div>
-        ${m.expressions.length ? `<div class="section"><div class="section-head"><h2 class="h2">地道表达</h2><span class="muted tiny">能直接搬进你自己话里的搭配</span></div><div class="stack-s">${m.expressions.map((x, i) => `<div class="expr"><span class="e">${esc(x.text)}</span><span class="row"><button class="icon-btn" data-sayx="${i}" aria-label="朗读">${ICON.speak}</button><button class="icon-btn" data-sx="${i}" aria-label="收藏 ${esc(x.text)}">${ICON.star}</button></span><span class="m">${esc(x.meaning)}</span><span class="n">${esc(x.note || '')}</span></div>`).join('')}</div></div>` : ''}
-        ${m.vocabulary.length ? `<div class="section"><h2 class="h2">本篇词汇</h2><div class="vocab-list section">${m.vocabulary.map((v, i) => `<div class="vrow"><span class="term">${esc(v.term)}</span><button class="icon-btn" data-sv="${i}" aria-label="收藏 ${esc(v.term)}">${ICON.star}</button><span class="muted small">${esc(v.meaning)}</span><span class="vex">${esc(v.example || '')}</span></div>`).join('')}</div></div>` : ''}
-        ${(m.variant && m.variant.notes.length) ? `<div class="section"><h2 class="h2">改写版新出现的表达</h2><div class="vocab-list section">${m.variant.notes.map((v, i) => `<div class="vrow"><span class="term">${esc(v.text)}</span><button class="icon-btn" data-sn="${i}" aria-label="收藏">${ICON.star}</button><span class="muted small">${esc(v.meaning)}</span></div>`).join('')}</div></div>` : ''}
-        ${m.notes.length ? `<div class="section stack-s"><div class="section-head"><h2 class="h2">这篇练到的知识点</h2><a class="link small" href="#/graph">知识图谱 →</a></div>${m.notes.map(n => `<div class="knote"><div class="row between">${nodeChip({ id: n.node, title: n.title, status: n.status })}<span class="tiny muted">${esc(n.label)}</span></div><q>${esc(n.quote)}</q><div class="small muted">${esc(n.explanation)}</div></div>`).join('')}</div>` : ''}
-        <div class="section" id="nwSlot">${newWordsHTML()}</div>
-        <div class="section row between"><span></span><button class="btn" id="toCheck">读完了，做理解题 →</button></div>`;
+        <div class="section row between"><span></span><button class="btn primary" id="toCheck">读完了，做理解题 →</button></div>
+        ${gainsHTML()}`;
       const reader = pane.querySelector('#reader');
       pane.querySelectorAll('[data-ver]').forEach(b => b.onclick = () => { st.showOriginal = b.dataset.ver === 'o'; m._showOriginal = st.showOriginal; read(); });
       const mk = pane.querySelector('#mkVar');
@@ -1004,8 +1043,13 @@
         else if ((e.key === 'e' || e.key === 'E') && kw >= 0) { e.preventDefault(); explainSheet(ls[Number(ws[kw].dataset.s)], id); }
       });
       reader.addEventListener('blur', () => reader.querySelectorAll('.kfocus').forEach(x => x.classList.remove('kfocus')));
-      bindNewWords();
-      m._onLook = () => { const slot = pane.querySelector('#nwSlot'); if (!slot) return; slot.innerHTML = newWordsHTML(); bindNewWords(); };
+      bindGains(); bindNewWords();
+      m._onLook = () => {
+        const slot = pane.querySelector('#nwSlot'); if (!slot) return;
+        slot.innerHTML = newWordsHTML(); bindNewWords();
+        const sum = pane.querySelector('#gainsSum'); if (sum) sum.textContent = gainsSummary();
+        const n = (gainsTabs().find(x => x[0] === 'words') || [])[2], t = pane.querySelector('[data-gt="words"]'); if (t) t.textContent = '词汇 ' + n;
+      };
       const onSel = () => {
         const sel = getSelection(); const t = String(sel).replace(/\s+/g, ' ').trim();
         if (!t || t.length > 160 || !/[A-Za-z]/.test(t) || !reader.contains(sel.anchorNode)) { hideSelbar(); return; }
@@ -2951,10 +2995,10 @@
       <div class="filters"><select id="ff" aria-label="范围"><option value="1" ${f.featured === '1' ? 'selected' : ''}>精选</option><option value="" ${f.featured !== '1' ? 'selected' : ''}>全部材料</option></select>
         <select id="fl" aria-label="难度"><option value="">全部难度</option>${['A2', 'B1', 'B2', 'C1'].map(l => `<option ${f.level === l ? 'selected' : ''}>${l}</option>`).join('')}</select>
         <select id="ft" aria-label="话题"><option value="">全部话题</option>${Object.entries(d.themes).map(([k, v]) => `<option value="${k}" ${f.theme === k ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></div>
-      ${d.series && d.series.length ? `<div class="stack-s section"><h2 class="h2">连载故事</h2>${d.series.map(s => `<a class="card flat next-ep" href="#/series/${encodeURIComponent(s.id)}">
-        <span class="row between"><b>《${esc(s.title)}》${esc(s.title_en)}</b><span class="pill">${esc(s.level)}</span></span><span class="small muted">${esc(s.blurb)}</span>
-        <span class="tiny">${s.done ? `已读 ${s.done} / ${s.of} 集${s.next ? ` · 继续第 ${s.next_part} 集` : ' · 读完了'}` : `共 ${s.of} 集 · 从第 1 集开始`} →</span></a>`).join('')}</div>` : ''}
-      <div class="grid-list" id="lib">${d.items.map(m => miniCard(m, m.daily ? '热点' : '')).join('') || '<div class="empty">这个筛选下还没有材料。</div>'}</div>
+      ${d.series && d.series.length ? `<section class="section"><h2 class="h2 mhead">连载故事</h2><div class="mlist">${d.series.map(s => `<a class="mrow" href="#/series/${encodeURIComponent(s.id)}">
+        <span class="t"><b>《${esc(s.title)}》${esc(s.title_en)}</b><span class="tiny muted">${esc(s.level)} · ${s.done ? `已读 ${s.done} / ${s.of} 集${s.next ? ` · 继续第 ${s.next_part} 集` : ' · 读完了'}` : `共 ${s.of} 集 · 从第 1 集开始`}</span></span>
+        <span class="pill green">连载</span><span class="go" aria-hidden="true">›</span></a>`).join('')}</div></section>` : ''}
+      <section class="section">${d.series && d.series.length ? '<h2 class="h2 mhead">单篇</h2>' : ''}<div class="mlist" id="lib">${d.items.map(m => mrow(m, m.daily ? ['热点', 'amber'] : null)).join('') || '<div class="empty">这个筛选下还没有材料。</div>'}</div></section>
       ${pages > 1 ? `<div class="pager"><button class="btn small" id="pv" ${f.page <= 1 ? 'disabled' : ''}>上一页</button><span class="muted small">${f.page} / ${pages}</span><button class="btn small" id="nx" ${f.page >= pages ? 'disabled' : ''}>下一页</button></div>` : ''}`;
     const again = nf => libraryView(nf).then(() => enter(document.getElementById('lib')));
     document.getElementById('ff').onchange = e => again({ ...f, featured: e.target.value, page: 1 });

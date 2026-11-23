@@ -73,3 +73,10 @@ details.rband>summary.rband-h{margin:0;padding:12px 40px 12px 12px;border-radius
 details.rband>summary::after{right:16px;top:calc(50% - 7px)}
 details.rband[open]>summary::after{top:calc(50% - 3px)}
 details.rband[open]>summary{margin-bottom:6px}
+/* the study steps and 全部材料: the main action first, the extras folded */
+.mhead{margin-bottom:8px}
+.preread{margin:4px 0 14px}
+details.preread>summary .tiny{flex-basis:100%}
+.gains .gtabs{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);margin-bottom:12px}
+.gpane .vocab-list{margin:0}
+.gpane>.link{justify-self:start}
