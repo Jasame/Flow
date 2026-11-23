@@ -2,7 +2,7 @@
   // WeChat's built-in browser (and some other in-app browsers) cannot use the browser voice, and plays sound only when it
   // starts inside a tap; the way out it offers is 「在浏览器打开」.
   const WECHAT = /MicroMessenger/i.test(navigator.userAgent);
-  function noSound(what) { toast(WECHAT ? `微信里${what}：点右上角「···」，选「在浏览器打开」就能听` : `这个浏览器${what}，换 Safari 或 Chrome 试试`); }
+  function noSound(what) { noteIssue('audio', what + (WECHAT ? '（微信）' : '')); toast(WECHAT ? `微信里${what}：点右上角「···」，选「在浏览器打开」就能听` : `这个浏览器${what}，换 Safari 或 Chrome 试试`); }
   const TTS = {
     ok: 'speechSynthesis' in window, rate: Number(load('flow-next-rate')) || 1, voice: null, token: 0,
     pick() {
@@ -123,7 +123,7 @@
       this.raf = requestAnimationFrame(loop);
     },
     finish() { this.stopLoop(); this.audio.dataset.want = ''; const cb = this.onEnd; this.onEnd = null; this.onTick = null; if (cb) cb(); },
-    gaveUp() { if (!this.raf && !this.onEnd) return; toast('音频暂时没加载出来，稍后再点一次'); this.finish(); },
+    gaveUp() { if (!this.raf && !this.onEnd) return; noteIssue('audio', '全文录音没加载出来', this.net ? this.net.split('?')[0] : ''); toast('音频暂时没加载出来，稍后再点一次'); this.finish(); },
     stopLoop() { cancelAnimationFrame(this.raf); this.raf = 0; },
     stop() { this.stopLoop(); this.audio.dataset.want = ''; this.onEnd = null; this.onTick = null; try { this.audio.pause(); } catch (e) { /* ignore */ } },
     // -> [sentence index, char offset of the current word] at time t

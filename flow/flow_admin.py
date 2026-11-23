@@ -26,7 +26,7 @@ def server_label():
 
 
 # 只看数据 sees the numbers; 管理员 also sees people (accounts, answers in full, error traces) and may change things.
-VIEWER_GET = {'/me', '/overview', '/learning', '/survey/definition', '/survey/summary', '/releases', '/compare'}
+VIEWER_GET = {'/me', '/overview', '/learning', '/survey/definition', '/survey/summary', '/releases', '/compare', '/speed'}
 ADMIN_GET = {'/users', '/survey/responses', '/survey/export.csv', '/errors', '/log', '/feedback', '/feedback/image'}
 ROLE_LABEL = {'admin': '管理员', 'viewer': '只看数据'}
 
@@ -46,6 +46,7 @@ def schema(c):
     # Taps on a few entry points of the learning site, counted per day: no account, no address, only how many.
     c.execute('CREATE TABLE IF NOT EXISTS ui_taps(day TEXT NOT NULL, key TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(day, key))')
     __import__('feedback_service').schema(c)  # problem reports from the learning site (问题反馈)
+    __import__('field_service').schema(c)  # page errors and opening times the browsers report
 
 
 def log_action(c, op, action, target='', detail=''):
@@ -288,7 +289,10 @@ class AdminHandler(BaseHTTPRequestHandler):
                     when = float(at) if at.replace('.', '', 1).isdigit() else datetime.datetime.fromisoformat(at).replace(tzinfo=__import__('next_service').TZ).timestamp()
                     return self._send(compare(c, when, int(one('days', '14') or 14)))
                 if path == '/errors':
-                    return self._send(__import__('ops_errors').recent(c))
+                    # the server's own errors, and what learners' browsers reported (页面报错)
+                    return self._send({**__import__('ops_errors').recent(c), 'client': __import__('field_service').recent_issues(c)})
+                if path == '/speed':
+                    return self._send(__import__('field_service').speed(c, 30 if one('days') == '30' else 7))
                 if path == '/users':
                     return self._send(__import__('account_service').admin_users(c, one('q')))
                 if path == '/log':

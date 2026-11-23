@@ -656,6 +656,21 @@ def platform_run(pw):
             wide[h] = pg.evaluate('document.scrollingElement.scrollWidth - innerWidth')
         check(dev, '360 px wide: no page scrolls sideways', all(v <= 0 for v in wide.values()), wide)
         ctx.close()
+        # what the browser reports about the site: the opening time once the first page is drawn, and page errors
+        # (a script error, a picture that did not load) when the page is left
+        ctx = browser.new_context(viewport={'width': 390, 'height': 800}, is_mobile=True, has_touch=True, user_agent=IPHONE_UA, locale='zh-CN', bypass_csp=True)
+        ctx.add_cookies([{'name': 'flow_session', 'value': token, 'url': BASE}])
+        pg = ctx.new_page(); sent = {}
+        pg.on('request', lambda r: sent.setdefault(r.url.split('/api/next/')[-1], []).append(r.post_data) if r.url.endswith(('/api/next/issues', '/api/next/opentime')) else None)
+        pg.goto(BASE + '/#/cards', wait_until='networkidle'); settle(pg); pg.wait_for_timeout(2200)
+        ot = json.loads((sent.get('opentime') or ['{}'])[0])
+        check(dev, 'the opening time is sent once the first page is drawn', len(sent.get('opentime', [])) == 1 and (ot.get('first_view') or 0) > 0 and ot.get('ttfb') is not None, ot)
+        pg.evaluate("() => { setTimeout(() => { throw new Error('ui-test boom'); }, 0); const i = new Image(); i.src = '/no-such-picture.png'; document.body.appendChild(i); }")
+        pg.wait_for_timeout(600); pg.evaluate("() => dispatchEvent(new Event('pagehide'))"); pg.wait_for_timeout(400)
+        items = [x for body in sent.get('issues', []) for x in json.loads(body)['items']]
+        check(dev, 'page errors are sent when the page is left: a script error and a picture that did not load',
+              any(x['kind'] == 'js' and 'ui-test boom' in x['message'] for x in items) and any(x['kind'] == 'resource' and '/no-such-picture.png' in x['message'] for x in items), items[:4])
+        ctx.close()
     finally:
         browser.close()
 

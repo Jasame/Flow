@@ -220,6 +220,46 @@
     }).catch(fail);
   }
 
+  // 页面报错: what learners' browsers reported (field_service.py), grouped by problem; which phones and releases.
+  function clientIssues(c) {
+    if (!c) return '';
+    return '<div class="head-row fd-gap"><div><h1>页面报错</h1><p class="muted">学员的浏览器上报的问题（近 ' + c.days + ' 天，共 ' + n(c.total) + ' 次）：脚本出错、资源没加载出来、请求失败、声音放不出来。不记账号和地址。</p></div></div>' +
+      (c.groups.length ? '<section class="card"><table class="cmp fd-issues"><thead><tr><th>问题</th><th>页面</th><th class="num">次数</th><th>手机和浏览器</th><th>版本</th></tr></thead><tbody>' +
+        c.groups.map(function (g) {
+          return '<tr><td><span class="pill">' + esc(g.kind_label) + '</span> ' + esc(g.message) + (g.source ? '<div class="muted small">' + esc(g.source) + '</div>' : '') + '</td>' +
+            '<td>' + esc(g.page) + '</td><td class="num">' + n(g.count) + '<div class="muted small">' + g.days + ' 天</div></td>' +
+            '<td class="small">' + g.platforms.map(function (x) { return esc(x[0]) + ' ' + n(x[1]); }).join('<br>') + '</td>' +
+            '<td class="small">' + g.releases.map(function (x) { return esc(x[0]); }).join('、') + '</td></tr>';
+        }).join('') + '</tbody></table></section>' : '<section class="card"><p>没有页面报错。</p></section>');
+  }
+
+  // 打开速度: how long learners waited for the first page (field_service.speed), and where the time went.
+  var SP = { days: 7 };
+  function speedView() {
+    getJSON('/speed?days=' + SP.days).then(function (d) {
+      var o = d.overall, sec = function (v) { return v == null ? '—' : (v / 1000).toFixed(1) + ' 秒'; };
+      var PH = { dns: '查域名', connect: '建立连接', tls: '加密握手', ttfb: '服务器响应', html: '下载页面', scripts: '等脚本下载完', home_api: '取首页数据', render: '画出页面' };
+      var tot = Object.keys(PH).reduce(function (a, k) { return a + (d.phases[k] || 0); }, 0) || 1;
+      var table = function (title, rows) {
+        return '<section class="card"><h2>' + title + '</h2><table class="cmp"><thead><tr><th></th><th class="num">打开次数</th><th class="num">中位数</th><th class="num">75%</th><th class="num">90%</th><th class="num">没等到就离开</th></tr></thead><tbody>' +
+          rows.map(function (r) { return '<tr><td>' + esc(r.group) + '</td><td class="num">' + n(r.visits) + '</td><td class="num">' + sec(r.p50) + '</td><td class="num">' + sec(r.p75) + '</td><td class="num">' + sec(r.p90) + '</td><td class="num">' + r.left_pct + '%</td></tr>'; }).join('') +
+          '</tbody></table></section>';
+      };
+      main.innerHTML = '<div class="head-row"><div><h1>打开速度</h1><p class="muted">学员打开网站后，多久看到第一个页面（每次打开记一次，不记账号和地址）。「75%」表示四分之三的人在这个时间内看到了页面。</p></div>' +
+        '<div class="toolbar"><select id="spDays"><option value="7"' + (SP.days === 7 ? ' selected' : '') + '>近 7 天</option><option value="30"' + (SP.days === 30 ? ' selected' : '') + '>近 30 天</option></select></div></div>' +
+        '<div class="kpi-grid">' + kpi('打开次数', n(o.visits), '近 ' + d.days + ' 天') + kpi('中位数', sec(o.p50), '一半的人在这个时间内看到页面') + kpi('90% 的人', sec(o.p90), '慢的那一成要等这么久') + kpi('没等到就离开', o.left_pct + '%', n(o.left) + ' 次，页面还没出来就关了') + '</div>' +
+        (o.visits ? '<section class="card"><h2>时间花在哪（各段的中位数）</h2><div class="sp-bar">' + Object.keys(PH).map(function (k, i) {
+          var v = d.phases[k]; return v ? '<i style="flex:' + v + ' 1 0;--k:' + i + '" title="' + esc(PH[k] + ' ' + sec(v)) + '"></i>' : '';
+        }).join('') + '</div><div class="sp-legend">' + Object.keys(PH).map(function (k, i) {
+          return '<span style="--k:' + i + '"><i></i>' + PH[k] + ' ' + sec(d.phases[k]) + '</span>';
+        }).join('') + '</div><p class="muted small">「查域名」「建立连接」「加密握手」慢，多半是网络线路的问题；「服务器响应」「取首页数据」慢，是服务器的问题；「等脚本下载完」慢，是网页太大或网络带宽不够。</p></section>' +
+          table('按访问的网址', d.by.domain) + table('按手机', d.by.platform) + table('按浏览器（微信、Safari…）', d.by.browser) +
+          table('第一次打开 / 再次打开', d.by.repeat) + table('从桌面打开 / 在浏览器里', d.by.standalone) + table('按网络（安卓浏览器会告诉）', d.by.net) +
+          table('按天', d.daily.map(function (x) { return Object.assign({ group: x.day }, x); })) : '<section class="card"><p class="muted">还没有数据：发版后学员打开网站就会开始记录。</p></section>');
+      document.getElementById('spDays').onchange = function (e) { SP.days = Number(e.target.value); speedView(); };
+    }).catch(fail);
+  }
+
   function errorsView() {
     getJSON('/errors').then(function (d) {
       var t = function (s) { return new Date(s * 1000).toLocaleString('zh-CN'); };
@@ -232,7 +272,7 @@
             '<p class="muted">' + n(g.count) + ' 次 · 最近 ' + esc(t(g.last)) + ' · 最早 ' + esc(t(g.first)) + '</p>' +
             '<p>' + g.paths.map(esc).join('<br>') + '</p>' +
             '<details><summary>最近一次的调用栈</summary><pre class="trace">' + esc(g.trace) + '</pre></details></section>';
-        }).join('') : '<section class="card"><p>没有错误。</p></section>');
+        }).join('') : '<section class="card"><p>没有错误。</p></section>') + clientIssues(d.client);
       document.getElementById('reload').onclick = errorsView;
     }).catch(fail);
   }
@@ -377,13 +417,13 @@
   /* ---------- 路由 ---------- */
   function route() {
     ST.tab = (location.hash || '#overview').slice(1);
-    if (['overview', 'learning', 'compare', 'errors', 'survey', 'responses', 'feedback', 'accounts', 'log'].indexOf(ST.tab) < 0) ST.tab = 'overview';
+    if (['overview', 'learning', 'compare', 'speed', 'errors', 'survey', 'responses', 'feedback', 'accounts', 'log'].indexOf(ST.tab) < 0) ST.tab = 'overview';
     if (!isAdmin() && ['errors', 'responses', 'feedback', 'accounts', 'log'].indexOf(ST.tab) >= 0) ST.tab = 'overview';
     document.querySelectorAll('.adm-tabs a').forEach(function (a) {
       if (a.dataset.tab === ST.tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
     main.innerHTML = '<p class="muted">正在加载…</p>';
-    ({ overview: overview, learning: learningView, compare: compareView, errors: errorsView, survey: surveyStats, responses: responses, feedback: feedbackView, accounts: accountsView, log: logView })[ST.tab]();
+    ({ overview: overview, learning: learningView, compare: compareView, speed: speedView, errors: errorsView, survey: surveyStats, responses: responses, feedback: feedbackView, accounts: accountsView, log: logView })[ST.tab]();
   }
   document.getElementById('themeBtn').onclick = function () {
     var next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';

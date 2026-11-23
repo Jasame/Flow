@@ -23,9 +23,10 @@
     const opt = { credentials: 'same-origin', headers: {} };
     if (body !== undefined) { opt.method = 'POST'; opt.headers['Content-Type'] = 'application/json'; if (S.csrf) opt.headers['X-CSRF-Token'] = S.csrf; opt.body = JSON.stringify(body); }
     let r;
-    try { r = await fetch(path, opt); } catch (x) { const e = new Error('网络连接失败，请检查网络'); e.network = true; throw e; }
+    try { r = await fetch(path, opt); } catch (x) { noteIssue('api', '网络连接失败', path.split('?')[0]); const e = new Error('网络连接失败，请检查网络'); e.network = true; throw e; }
     const j = await r.json().catch(() => ({}));
     if (!r.ok) {
+      if (r.status >= 500) noteIssue('api', `服务器返回 ${r.status}`, path.split('?')[0]);  // 4xx are answers (a wrong password …), not faults
       const e = new Error(j.error || ('请求失败（' + r.status + '）')); e.status = r.status; e.field = j.field; e.code = j.code;
       // Signed out on the server (30 days away, a password change, 退出所有设备): say so and offer to sign in again.
       if (r.status === 401 && S.user && !/^\/api\/(login|register|auth\/)/.test(path)) {

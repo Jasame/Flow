@@ -113,3 +113,11 @@ table.cmp .down{color:var(--danger);font-weight:600}
 .fb-meta{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;margin:0;font-size:13.5px}
 .fb-meta dt{color:var(--muted)}.fb-meta dd{margin:0;overflow-wrap:anywhere}
 .fb-ua,.fb-err{font-size:12px;overflow-wrap:anywhere}
+/* 页面报错, 打开速度 */
+.fd-gap{margin-top:28px}
+.fd-issues td{vertical-align:top}
+.sp-bar{display:flex;height:22px;border-radius:6px;overflow:hidden;background:var(--bg2)}
+.sp-bar i,.sp-legend i{background:hsl(calc(150 + var(--k) * 28) 48% 48%)}
+.sp-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:13px}
+.sp-legend span{display:inline-flex;align-items:center;gap:6px}
+.sp-legend i{display:inline-block;width:10px;height:10px;border-radius:3px}

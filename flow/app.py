@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS ai_usage(user_id INTEGER,day TEXT,count INTEGER,PRIMA
   reference.schema(c)
   __import__('ops_errors').schema(c)
   __import__('feedback_service').schema(c)
+  __import__('field_service').schema(c)
   core_words.schema(c)
   practice.schema(c)
   foundation.schema(c)
@@ -392,6 +393,12 @@ class Handler(BaseHTTPRequestHandler):
    with db() as c:
     u=self.user(c);signed=bool(u) and hmac.compare_digest(self.headers.get('X-CSRF-Token',''),u['csrf'])
     return self.send(*__import__('feedback_service').submit(c,data,self.visitor_address(),u['id'] if signed else None))
+  if path in ('/api/next/issues','/api/next/opentime'):
+   # What the browser reports about the site itself (field_service): no session, no address; the User-Agent only for
+   # its family (iPhone · Safari, Android · 微信 …).
+   with db() as c:
+    f=__import__('field_service')
+    return self.send(*(f.issues if path=='/api/next/issues' else f.open_time)(c,data,self.headers.get('User-Agent','')))
   if path.startswith('/api/next/'):
    import next_service
    with db() as c:

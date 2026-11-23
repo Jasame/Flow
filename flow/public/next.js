@@ -23,9 +23,10 @@
     const opt = { credentials: 'same-origin', headers: {} };
     if (body !== undefined) { opt.method = 'POST'; opt.headers['Content-Type'] = 'application/json'; if (S.csrf) opt.headers['X-CSRF-Token'] = S.csrf; opt.body = JSON.stringify(body); }
     let r;
-    try { r = await fetch(path, opt); } catch (x) { const e = new Error('网络连接失败，请检查网络'); e.network = true; throw e; }
+    try { r = await fetch(path, opt); } catch (x) { noteIssue('api', '网络连接失败', path.split('?')[0]); const e = new Error('网络连接失败，请检查网络'); e.network = true; throw e; }
     const j = await r.json().catch(() => ({}));
     if (!r.ok) {
+      if (r.status >= 500) noteIssue('api', `服务器返回 ${r.status}`, path.split('?')[0]);  // 4xx are answers (a wrong password …), not faults
       const e = new Error(j.error || ('请求失败（' + r.status + '）')); e.status = r.status; e.field = j.field; e.code = j.code;
       // Signed out on the server (30 days away, a password change, 退出所有设备): say so and offer to sign in again.
       if (r.status === 401 && S.user && !/^\/api\/(login|register|auth\/)/.test(path)) {
@@ -73,7 +74,7 @@
   // WeChat's built-in browser (and some other in-app browsers) cannot use the browser voice, and plays sound only when it
   // starts inside a tap; the way out it offers is 「在浏览器打开」.
   const WECHAT = /MicroMessenger/i.test(navigator.userAgent);
-  function noSound(what) { toast(WECHAT ? `微信里${what}：点右上角「···」，选「在浏览器打开」就能听` : `这个浏览器${what}，换 Safari 或 Chrome 试试`); }
+  function noSound(what) { noteIssue('audio', what + (WECHAT ? '（微信）' : '')); toast(WECHAT ? `微信里${what}：点右上角「···」，选「在浏览器打开」就能听` : `这个浏览器${what}，换 Safari 或 Chrome 试试`); }
   const TTS = {
     ok: 'speechSynthesis' in window, rate: Number(load('flow-next-rate')) || 1, voice: null, token: 0,
     pick() {
@@ -194,7 +195,7 @@
       this.raf = requestAnimationFrame(loop);
     },
     finish() { this.stopLoop(); this.audio.dataset.want = ''; const cb = this.onEnd; this.onEnd = null; this.onTick = null; if (cb) cb(); },
-    gaveUp() { if (!this.raf && !this.onEnd) return; toast('音频暂时没加载出来，稍后再点一次'); this.finish(); },
+    gaveUp() { if (!this.raf && !this.onEnd) return; noteIssue('audio', '全文录音没加载出来', this.net ? this.net.split('?')[0] : ''); toast('音频暂时没加载出来，稍后再点一次'); this.finish(); },
     stopLoop() { cancelAnimationFrame(this.raf); this.raf = 0; },
     stop() { this.stopLoop(); this.audio.dataset.want = ''; this.onEnd = null; this.onTick = null; try { this.audio.pause(); } catch (e) { /* ignore */ } },
     // -> [sentence index, char offset of the current word] at time t
@@ -3404,11 +3405,8 @@
   /* ---------- 问题反馈: what happened, the page it happened on, and up to three screenshots ---------- */
   // Anyone can send one, signed in or not (the server limits guests by a hashed address). The report carries the page
   // the learner came from, the site's version, the phone and browser, and the last few script errors: a page that
-  // broke often says why in the console. Read and closed in the operator console; nothing is sent back.
-  const ERRS = [];
-  const keepErr = s => { if (s) { ERRS.push(String(s).slice(0, 200)); if (ERRS.length > 5) ERRS.shift(); } };
-  addEventListener('error', e => keepErr(e && e.message ? `${e.message} @ ${String(e.filename || '').split('/').pop().split('?')[0]}:${e.lineno || 0}` : ''));
-  addEventListener('unhandledrejection', e => { const r = e && e.reason; keepErr((r && r.message) || r || 'unhandled rejection'); });
+  // broke often says why in the console (ERRS, kept by 84-field.js). Read and closed in the operator console; nothing is
+  // sent back.
   const FB_KINDS = [['display', '页面显示不对'], ['broken', '功能用不了'], ['content', '内容有错'], ['idea', '建议'], ['other', '其他']];
   const ASSET = (((document.querySelector('script[src*="next.js"]') || {}).src || '').split('v=')[1] || '').slice(0, 20);
 
@@ -3490,12 +3488,87 @@
       } catch (x) { say(x.message); send.disabled = false; send.textContent = '提交'; }
     };
   }
+  /* ---------- what this browser tells the site about the site itself (field_service.py) ---------- */
+  // Page errors (a script that broke, a promise nobody caught, a picture or sound that did not load, a request that
+  // failed, a sound the browser would not play) and, once per visit, how long until the first page was on screen and
+  // where the time went. No account and no address go with them; each problem is sent once per visit, 20 at most.
+  // The last few errors also go with a 问题反馈 report (ERRS).
+  const FIELD = { q: [], seen: new Set(), sent: 0, firstView: null, openSent: false, t: 0 };
+  const ERRS = [];
+  function beacon(url, data) {
+    const body = JSON.stringify(data);
+    try { if (navigator.sendBeacon && navigator.sendBeacon(url, body)) return; } catch (e) { /* fall back to fetch */ }
+    try { fetch(url, { method: 'POST', body, keepalive: true, credentials: 'same-origin', headers: { 'Content-Type': 'application/json' } }).catch(() => {}); } catch (e) { /* not counted */ }
+  }
+  function noteIssue(kind, message, source) {
+    try {
+      const page = location.hash.split('?')[0] || '#/', msg = String(message || '').slice(0, 200), src = String(source || '').slice(0, 120);
+      if (kind === 'js' || kind === 'promise') { ERRS.push((msg + (src ? ' @ ' + src : '')).slice(0, 200)); if (ERRS.length > 5) ERRS.shift(); }
+      const key = [kind, page, msg, src].join('|');
+      if (!msg || FIELD.seen.has(key) || FIELD.sent + FIELD.q.length >= 20) return;
+      FIELD.seen.add(key); FIELD.q.push({ kind, page, message: msg, source: src });
+      clearTimeout(FIELD.t); FIELD.t = setTimeout(flushIssues, 5000);
+    } catch (e) { /* the report must never break the page */ }
+  }
+  function flushIssues() {
+    if (!FIELD.q.length) return;
+    const items = FIELD.q.splice(0); FIELD.sent += items.length;
+    beacon('/api/next/issues', { items, asset: ASSET, standalone: STANDALONE() });
+  }
+  // Script errors, and pictures, sounds and scripts that did not load: those do not bubble, hence the capture phase.
+  addEventListener('error', e => {
+    const t = e && e.target;
+    if (t && t !== window && t.tagName) {
+      const src = String(t.currentSrc || t.src || t.href || '').replace(location.origin, '').split('?')[0];
+      if (src && !src.startsWith('blob:') && !src.startsWith('data:')) noteIssue('resource', `${t.tagName.toLowerCase()} 没加载出来：${src}`);
+      return;
+    }
+    if (e && e.message) noteIssue('js', e.message, `${String(e.filename || '').split('/').pop().split('?')[0]}:${e.lineno || 0}`);
+  }, true);
+  addEventListener('unhandledrejection', e => { const r = e && e.reason; if (!(r && r.network)) noteIssue('promise', (r && r.message) || String(r)); });
+
+  // Opening time: navigation timing (when the browser has it) and the moment the first page was drawn.
+  function navTiming() {
+    const n = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+    if (n) return n;
+    const t = performance.timing; if (!t || !t.navigationStart) return null;  // older in-app browsers
+    const o = {}; ['domainLookupStart', 'domainLookupEnd', 'connectStart', 'connectEnd', 'secureConnectionStart', 'requestStart', 'responseStart', 'responseEnd']
+      .forEach(k => { o[k] = t[k] ? t[k] - t.navigationStart : 0; });
+    return o;
+  }
+  function sendOpenTime() {
+    if (FIELD.openSent) return; FIELD.openSent = true;
+    try {
+      const n = navTiming(); if (!n) return;
+      const res = (performance.getEntriesByType && performance.getEntriesByType('resource')) || [];
+      const first = re => res.filter(r => re.test(r.name)).sort((a, b) => a.startTime - b.startTime)[0];
+      const home = first(/\/api\/next\/home/), js = first(/\/next\.js/), c = navigator.connection || {};
+      const ms = x => (x == null || !isFinite(x) || x < 0 ? null : Math.round(x)), fv = FIELD.firstView;
+      beacon('/api/next/opentime', {
+        domain: location.host, first_view: ms(fv), waited: ms(performance.now()),
+        dns: ms(n.domainLookupEnd - n.domainLookupStart), connect: ms(n.connectEnd - n.connectStart),
+        tls: n.secureConnectionStart > 0 ? ms(n.connectEnd - n.secureConnectionStart) : null,
+        ttfb: ms(n.responseStart - n.requestStart), html: ms(n.responseEnd - n.responseStart),
+        scripts: js ? ms(js.responseEnd - n.responseEnd) : null, home_api: home ? ms(home.duration) : null,
+        render: fv != null && home ? ms(fv - home.responseEnd) : null,
+        repeat: !!(navigator.serviceWorker && navigator.serviceWorker.controller), standalone: STANDALONE(),
+        net: c.effectiveType || '', tz: (Intl.DateTimeFormat().resolvedOptions().timeZone || '').slice(0, 40) });
+    } catch (e) { /* not counted */ }
+  }
+  function firstViewDrawn() {
+    if (FIELD.firstView != null) return;
+    FIELD.firstView = performance.now();
+    setTimeout(sendOpenTime, 1500);
+  }
+  // Leaving (or switching away): what is queued goes now; a visit that leaves before anything showed counts too.
+  addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { flushIssues(); sendOpenTime(); } });
+  addEventListener('pagehide', () => { flushIssues(); sendOpenTime(); });
   /* ---------- boot ---------- */
   (async function boot() {
     wechatBar();
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
     try { await refreshHome(); S.homeFresh = true; } catch (e) { /* offline: route() asks again and offers a retry */ }
-    route();
+    route().then(firstViewDrawn);  // the opening time ends when the first page is drawn
     OUTBOX.flush();
   })();
 })();

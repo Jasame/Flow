@@ -143,6 +143,7 @@ flow/easy_reading.py
 flow/event_service.py
 flow/exam_service.py
 flow/feedback_service.py
+flow/field_service.py
 flow/flow-backup.service
 flow/flow-backup.timer
 flow/flow-daily.service
@@ -238,6 +239,7 @@ flow/tests/test_corpus.py
 flow/tests/test_corpus_v5.py
 flow/tests/test_daily_knowledge.py
 flow/tests/test_feedback.py
+flow/tests/test_field.py
 flow/tests/test_foundation.py
 flow/tests/test_front_layout.py
 flow/tests/test_growth.py

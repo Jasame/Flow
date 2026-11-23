@@ -1,11 +1,8 @@
   /* ---------- 问题反馈: what happened, the page it happened on, and up to three screenshots ---------- */
   // Anyone can send one, signed in or not (the server limits guests by a hashed address). The report carries the page
   // the learner came from, the site's version, the phone and browser, and the last few script errors: a page that
-  // broke often says why in the console. Read and closed in the operator console; nothing is sent back.
-  const ERRS = [];
-  const keepErr = s => { if (s) { ERRS.push(String(s).slice(0, 200)); if (ERRS.length > 5) ERRS.shift(); } };
-  addEventListener('error', e => keepErr(e && e.message ? `${e.message} @ ${String(e.filename || '').split('/').pop().split('?')[0]}:${e.lineno || 0}` : ''));
-  addEventListener('unhandledrejection', e => { const r = e && e.reason; keepErr((r && r.message) || r || 'unhandled rejection'); });
+  // broke often says why in the console (ERRS, kept by 84-field.js). Read and closed in the operator console; nothing is
+  // sent back.
   const FB_KINDS = [['display', '页面显示不对'], ['broken', '功能用不了'], ['content', '内容有错'], ['idea', '建议'], ['other', '其他']];
   const ASSET = (((document.querySelector('script[src*="next.js"]') || {}).src || '').split('v=')[1] || '').slice(0, 20);
 
