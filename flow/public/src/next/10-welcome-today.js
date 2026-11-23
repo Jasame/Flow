@@ -103,6 +103,8 @@
     requestAnimationFrame(() => requestAnimationFrame(() => view.querySelectorAll('.gbar i').forEach(i => { i.style.width = i.dataset.w + '%'; })));
     const ring = view.querySelector('.ring'); if (ring) ring.style.setProperty('--p', ring.dataset.p + '%');  // CSP: no inline style attributes
     const cta = document.getElementById('loginCta'); if (cta) cta.onclick = () => openLogin();
+    const nextRead = readId || (pick && pick.id);
+    if (nextRead) setTimeout(() => preloadMaterial(nextRead), 600);  // after the page is drawn, not before
     if (h.suggest) bindSuggest(h);
     bindMailNudge();
   }

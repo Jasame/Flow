@@ -1282,8 +1282,9 @@ def get(c, uid, path, q):
         if not WORD.fullmatch(w or ''):
             return {'error': '只能查英文单词'}, 400
         hit = lookup(w)
-        if hit:  # words Chinese speakers mix up with this one (a copy: the cached entry stays as it is)
-            hit = {**hit, 'confusable': __import__('word_links').group_of(hit['lemma']) or __import__('word_links').group_of(w)}
+        if hit:  # words Chinese speakers mix up with this one, and its recorded pronunciation (a copy: the cached entry stays as it is)
+            hit = {**hit, 'confusable': __import__('word_links').group_of(hit['lemma']) or __import__('word_links').group_of(w),
+                   'audio': __import__('vocab_service').word_audio(hit['lemma'])}
         return ({'entry': hit} if hit else {'entry': None, 'query': w}), 200
     if not uid:
         return ({'error': '请先登录'}, 401) if path.startswith('/api/next/') else None

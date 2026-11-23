@@ -317,6 +317,7 @@ flow/tests/ui_practice.cjs
 flow/tests/ui_reference.cjs
 flow/tests/ui_smoke.cjs
 flow/tests/ui_studio.cjs
+flow/tests/test_inapp_audio.py
 flow/tools/build_graded.py
 flow/tools/build_reference.py
 flow/tools/revise_pedagogy.py

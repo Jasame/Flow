@@ -83,6 +83,17 @@
       <span class="small">忘记密码时，绑定了邮箱就能自己用验证码找回；没绑定的话只能请老师或管理员帮忙重设。</span>
       <div class="row"><button class="btn small primary" id="mnBind" type="button">绑定邮箱</button><button class="btn small ghost" id="mnLater" type="button">以后再说</button></div></div>`;
   }
+  // In WeChat's built-in browser: a slim bar, under the top bar, on opening the page in the phone's browser, where every
+  // sound plays and the app can be put on the home screen. Closed, it stays away for a week.
+  function wechatBar() {
+    if (!WECHAT || Date.now() - (load('flow-wx-bar') || 0) < 7 * 864e5) return;
+    const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const el = document.createElement('div'); el.className = 'wx-bar'; el.setAttribute('role', 'note');
+    el.innerHTML = `<span>微信里部分声音和安装功能用不了。点右上角「···」，选「${ios ? '在默认浏览器中打开' : '在浏览器打开'}」，可以听全部音频，还能把语流装到桌面。</span>
+      <button type="button" class="wx-x" aria-label="关闭提示">×</button>`;
+    el.querySelector('.wx-x').onclick = () => { save('flow-wx-bar', Date.now()); el.remove(); };
+    document.getElementById('bar').after(el);
+  }
   function bindMailNudge() {
     const b = document.getElementById('mnBind'), l = document.getElementById('mnLater');
     if (b) b.onclick = () => bindEmailSheet('');

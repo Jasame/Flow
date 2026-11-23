@@ -10,7 +10,7 @@ Checks layout (no sideways scrolling, nothing hidden under the bottom tabs, touc
 learners reported problems with: keyboard shortcuts, Enter in answer boxes, swipes in review, closing sheets, the
 playback stop button, step switching, list filters. Screenshots of every page per device go to the out dir.
 """
-import atexit, json, socket, subprocess, sys, tempfile, time, traceback
+import atexit, json, os, socket, subprocess, sys, tempfile, time, traceback
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
@@ -490,6 +490,86 @@ def run_device(pw, dev, opts):
     ctx.browser.close()
 
 
+# ---- WeChat's built-in browser: sound only when it starts inside a tap (or on a player an earlier tap unlocked), and
+# no browser voice. Chrome allows more, so the page gets a play() that refuses the way WeChat's does. Its own server,
+# with the narration timings and a word index from tools/ui-fixtures (no sound files: what is checked is that every
+# play() is one WeChat would allow, and that the bar telling how to open the page in the browser is there).
+WECHAT_UA = ('Mozilla/5.0 (Linux; Android 13; V2241A Build/TP1A.220624.014; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 '
+             'Chrome/116.0.0.0 Mobile Safari/537.36 XWEB/1160065 MMWEBSDK/20231202 MicroMessenger/8.0.47.2560(0x28002F30) WeChat/arm64 Weixin NetType/WIFI Language/zh_CN ABI/arm64')
+WECHAT_RULES = """(() => {
+  let tap = false;
+  const on = () => { tap = true; setTimeout(() => { tap = false; }, 0); };
+  ['click', 'touchend', 'keydown'].forEach(t => window.addEventListener(t, on, true));
+  window.__plays = [];
+  const play = HTMLMediaElement.prototype.play;
+  HTMLMediaElement.prototype.play = function () {
+    const ok = tap || !!this.__unlocked;
+    window.__plays.push({ src: String(this.getAttribute('src') || '').slice(0, 90), tap, ok });
+    if (!ok) return Promise.reject(new DOMException('play() can only be initiated by a user gesture.', 'NotAllowedError'));
+    this.__unlocked = true;
+    return play.call(this);
+  };
+  for (const o of [window, Window.prototype]) { try { delete o.speechSynthesis; delete o.SpeechSynthesisUtterance; } catch (e) {} }
+})();"""
+
+
+def wechat_run(pw):
+    dev = 'wechat'
+    state = Path(tempfile.mkdtemp(prefix='flow-ui-wx-'))
+    with socket.socket() as so:
+        so.bind(('127.0.0.1', 0)); port = so.getsockname()[1]
+    srv = subprocess.Popen([sys.executable, str(Path(__file__).with_name('ui_server.py')), str(port), str(state)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                           env={**os.environ, 'FLOW_AUDIO_DIR': str(Path(__file__).with_name('ui-fixtures') / 'audio')})
+    try:
+        for _ in range(120):
+            if (state / 'sessions.json').exists():
+                break
+            time.sleep(0.25)
+        time.sleep(0.5)
+        cfg = json.loads((state / 'sessions.json').read_text()); base, pid = cfg['base'], cfg['pid']
+        browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+        ctx = browser.new_context(**DEVICES['phone'], user_agent=WECHAT_UA, locale='zh-CN', bypass_csp=True)
+        ctx.add_cookies([{'name': 'flow_session', 'value': cfg['learners']['phone']['token'], 'url': base}])
+        ctx.add_init_script(WECHAT_RULES)
+        pg = ctx.new_page(); errors = []
+        pg.on('pageerror', lambda e: errors.append(str(e)))
+        pg.goto(base + '/#/', wait_until='networkidle'); settle(pg)
+        bar = pg.text_content('.wx-bar') if pg.query_selector('.wx-bar') else ''
+        check(dev, 'a slim bar says how to open the page in the browser', '在浏览器打开' in bar and pg.is_visible('.wx-bar .wx-x'), bar[:80])
+        pg.click('.wx-bar .wx-x'); pg.reload(); settle(pg)
+        check(dev, 'the bar, once closed, stays away', pg.query_selector('.wx-bar') is None)
+        plays = lambda: pg.evaluate('window.__plays')
+        # listen: the first tap unlocks both players; 播放全文 starts the narration inside the tap
+        pg.evaluate("location.hash = '#/m/" + pid + "/listen'"); settle(pg, '#playAll'); pg.wait_for_timeout(400)
+        pg.click('#playAll'); pg.wait_for_timeout(300)
+        nar = [x for x in plays() if pid in x['src']]
+        check(dev, '播放全文 starts the recording inside the tap', nar and nar[-1]['ok'] and nar[-1]['tap'], plays()[-3:])
+        if pg.is_visible('.mini-player .stop'):
+            pg.click('.mini-player .stop')
+        # read: 伴读 starts inside the tap, because the timings were fetched when the page opened
+        pg.evaluate("location.hash = '#/m/" + pid + "/read'"); settle(pg, '#reader'); pg.wait_for_timeout(500)
+        n0 = len(plays()); pg.click('#readAlong'); pg.wait_for_timeout(300)
+        new = plays()[n0:]
+        check(dev, '伴读 starts the recording inside the tap', new and new[0]['ok'] and new[0]['tap'], new)
+        pg.click('#readAlong'); pg.wait_for_timeout(200)
+        # a word: its recorded pronunciation, started after the look-up arrives, on the player the first tap unlocked
+        n0 = len(plays()); pg.click('#reader .w:text-is("drains")'); pg.wait_for_selector('#sheetCard .word', timeout=5000); pg.wait_for_timeout(400)
+        new = [x for x in plays()[n0:] if '/audio/words/' in x['src']]
+        check(dev, 'a looked-up word plays its recording (no browser voice here)', new and all(x['ok'] for x in new), plays()[n0:])
+        pg.evaluate("document.querySelector('#sheet [data-close]').click()"); pg.wait_for_timeout(200)
+        # review: a card says its word when it appears (after the queue arrives) and again on the speaker button
+        n0 = len(plays()); pg.evaluate("location.hash = '#/review'"); settle(pg); pg.wait_for_timeout(800)
+        if pg.query_selector('#sayW'):
+            pg.click('#sayW'); pg.wait_for_timeout(400)
+        new = [x for x in plays()[n0:] if '/audio/words/' in x['src']]
+        check(dev, 'a review card says its word, by itself and on the speaker button', new and all(x['ok'] for x in new), plays()[n0:])
+        check(dev, 'every sound started was one WeChat allows', all(x['ok'] for x in plays()), [x for x in plays() if not x['ok']][:3])
+        check(dev, 'no script errors', not errors, errors[:3])
+        browser.close()
+    finally:
+        srv.terminate()
+
+
 def main():
     with sync_playwright() as pw:
         for dev, opts in DEVICES.items():
@@ -499,6 +579,11 @@ def main():
                 run_device(pw, dev, opts)
             except Exception:
                 check(dev, 'device run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'wechat' in ONLY:
+            try:
+                wechat_run(pw)
+            except Exception:
+                check('wechat', 'run finished', False, traceback.format_exc()[-600:])
     failed = [r for r in RESULTS if not r['ok']]
     (OUT / 'ui-report.json').write_text(json.dumps({'total': len(RESULTS), 'failed': failed, 'results': RESULTS}, ensure_ascii=False, indent=1))
     print(f'\n{len(RESULTS) - len(failed)}/{len(RESULTS)} passed; screenshots and ui-report.json in {OUT}')
