@@ -98,11 +98,14 @@
         document.getElementById('aNext').disabled = Object.keys(chosen).length < p.questions.length;
       }));
       const play = document.getElementById('aPlay');
+      // The recording is loaded before the tap, so the tap itself starts the sound (WeChat's browser allows only that).
+      const voices = p.audio.voices || [];
+      const loading = voices.length ? NAR.load(p.pack, voices.includes(S.voice) ? S.voice : voices[0], p.audio.version) : Promise.resolve(false);
+      let loaded = null; loading.then(ok => { loaded = ok; });
       if (play) play.onclick = async () => {
         if (plays >= 2) return; plays++; play.disabled = true; play.textContent = '正在播放…';
         const done = () => { play.disabled = plays >= 2; play.textContent = plays >= 2 ? '已经听了两遍' : '▶ 再听一遍'; document.getElementById('aQs').hidden = false; document.getElementById('aPlays').textContent = `已听 ${plays} / 2 遍`; };
-        const voices = p.audio.voices || [];
-        if (voices.length && await NAR.load(p.pack, voices.includes(S.voice) ? S.voice : voices[0], p.audio.version)) NAR.play(0, null, null, done);
+        if (loaded === true || (loaded === null && await loading)) NAR.play(0, null, null, done);
         else TTS.say(p.body.replace(/^[A-Z][a-z]+(?: [A-Z][a-z]+)?:\s+/gm, ''), done);
       };
       document.getElementById('aNext').onclick = async () => {

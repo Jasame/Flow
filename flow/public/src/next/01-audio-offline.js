@@ -1,4 +1,8 @@
   /* ---------- speech (with word boundaries for read-along highlighting) ---------- */
+  // WeChat's built-in browser (and some other in-app browsers) cannot use the browser voice, and plays sound only when it
+  // starts inside a tap; the way out it offers is 「在浏览器打开」.
+  const WECHAT = /MicroMessenger/i.test(navigator.userAgent);
+  function noSound(what) { toast(WECHAT ? `微信里${what}：点右上角「···」，选「在浏览器打开」就能听` : `这个浏览器${what}，换 Safari 或 Chrome 试试`); }
   const TTS = {
     ok: 'speechSynthesis' in window, rate: Number(load('flow-next-rate')) || 1, voice: null, token: 0,
     pick() {
@@ -9,13 +13,17 @@
       return this.voice;
     },
     say(text, onend, onword) {
-      if (!this.ok) { toast('这个浏览器不支持朗读'); return; }
+      if (!this.ok) { noSound('不能用电脑朗读的声音'); return; }
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       u.lang = 'en-US'; u.rate = this.rate; const v = this.voice || this.pick(); if (v) u.voice = v;
       const t = ++this.token;
       if (onword) u.onboundary = e => { if (t === this.token && e.name !== 'sentence') onword(e.charIndex); };
       u.onend = () => { if (t === this.token && onend) onend(); };
+      // A browser with speechSynthesis but no voice to speak with (WeChat on Android) neither starts nor fails: after
+      // 2.5 s without a start, say so (and stop counting on it when it has no voices at all) instead of waiting in silence.
+      const watch = setTimeout(() => { if (t !== this.token) return; speechSynthesis.cancel(); if (!speechSynthesis.getVoices().length) this.ok = false; noSound('不能用电脑朗读的声音'); }, 2500);
+      u.onstart = () => clearTimeout(watch); u.onerror = () => clearTimeout(watch);
       speechSynthesis.speak(u);
     },
     stop() { this.token++; if (this.ok) speechSynthesis.cancel(); },
@@ -49,15 +57,17 @@
         const r = await fetch(`/audio/${voice}/${encodeURIComponent(id)}.json?v=${version}`);
         if (!r.ok) return false;
         this.meta = await r.json(); this.key = key;
-        this.audio.preload = 'auto'; this.audio.src = `/audio/${voice}/${encodeURIComponent(id)}.mp4?v=${version}`;
+        const net = this.net = `/audio/${voice}/${encodeURIComponent(id)}.mp4?v=${version}`;
+        this.audio.preload = 'auto'; this.audio.src = PRELOAD.url(net);
+        PRELOAD.warm(net).then(b => { if (b && this.net === net && this.audio.paused && this.audio.getAttribute('src') === net) this.audio.src = b; });
         return true;
       } catch (e) { return false; }
     },
     play(from, to, onTick, onEnd) {
       this.stopLoop(); this.stopAt = to; this.onTick = onTick; this.onEnd = onEnd;
-      this.audio.playbackRate = TTS.rate; this.audio.preservesPitch = true;
+      claim(this.audio); this.audio.playbackRate = TTS.rate; this.audio.preservesPitch = true;
       try { this.audio.currentTime = from; } catch (e) { /* not seekable yet */ }
-      this.audio.play().catch(() => { toast('音频暂时无法播放，改用浏览器朗读'); this.finish(); });
+      this.audio.play().catch(e => { if (e && e.name === 'NotAllowedError') noSound('没有放出声音'); else toast('音频暂时没加载出来，稍后再点一次'); this.finish(); });
       const loop = () => {
         const t = this.audio.currentTime;
         if (this.onTick) this.onTick(t);
@@ -88,17 +98,22 @@
     audio: new Audio(), raf: 0, metas: {}, want: null,
     accent() { return (S.voice || 'us-f').startsWith('uk') ? 'uk' : 'us'; },
     stop() { cancelAnimationFrame(this.raf); this.want = null; try { this.audio.pause(); } catch (e) { /* ignore */ } },
+    // play() is called right away, inside the tap: in-app browsers (WeChat) and iPhones refuse a play() that starts
+    // later, when the file has loaded. A new file plays muted until it has jumped to the clip.
     play(src, from, to) {
       NAR.stop(); TTS.stop(); this.stop();
       const a = this.audio, want = this.want = { from, to };
-      const go = () => {
-        if (this.want !== want) return;
+      const loop = () => { if (this.want !== want) return; if (a.currentTime >= to || a.ended) { a.pause(); return; } this.raf = requestAnimationFrame(loop); };
+      const refused = e => { if (this.want === want && e && e.name === 'NotAllowedError') noSound('没有放出声音'); };
+      claim(a); a.playbackRate = TTS.rate; src = PRELOAD.url(src);
+      if (a.getAttribute('src') === src && a.readyState >= 1) {
         try { a.currentTime = from; } catch (e) { /* not seekable yet */ }
-        a.playbackRate = TTS.rate; a.play().catch(() => {});
-        const loop = () => { if (this.want !== want) return; if (a.currentTime >= to || a.ended) { a.pause(); return; } this.raf = requestAnimationFrame(loop); };
-        this.raf = requestAnimationFrame(loop);
-      };
-      if (a.getAttribute('src') !== src) { a.preload = 'auto'; a.setAttribute('src', src); a.addEventListener('loadedmetadata', go, { once: true }); a.load(); } else go();
+        a.muted = false; a.play().catch(refused); this.raf = requestAnimationFrame(loop); return;
+      }
+      a.preload = 'auto'; a.setAttribute('src', src); a.muted = true;
+      a.addEventListener('loadedmetadata', () => { if (this.want === want) { try { a.currentTime = from; } catch (e) { /* ignore */ } } }, { once: true });
+      a.addEventListener('seeked', () => { if (this.want !== want) return; a.muted = false; this.raf = requestAnimationFrame(loop); }, { once: true });
+      a.play().catch(refused);
     },
     // c: {text, audio: {us: [sprite, start, end], uk: [...]}}; falls back to the browser voice
     word(c) {
@@ -117,6 +132,74 @@
       } catch (e) { TTS.say(ex.text); }
     },
   };
+  /* ---------- preloading: the recording likely to be played next is fetched while the page is open ---------- */
+  // iPhones and WeChat's browser download a recording only when it is played: on a phone network that is a second or
+  // two after the tap. The recording being studied (and today's article, from 今日) is fetched in the background and kept
+  // in memory as a blob: URL, so a tap plays at once. Not with Save-Data or on 2G; at most 8 recordings are kept.
+  // (Word sounds are not preloaded: a word's file holds about 100 words, and the player fetches only that word's bytes.)
+  const PRELOAD = {
+    done: new Map(), going: new Map(),
+    frugal() { const c = navigator.connection; return !!(c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || ''))); },
+    url(u) { return this.done.get(u) || u; },
+    warm(u) {
+      if (!u) return Promise.resolve(null);
+      if (this.done.has(u)) return Promise.resolve(this.done.get(u));
+      if (this.going.has(u)) return this.going.get(u);
+      if (this.frugal()) return Promise.resolve(null);
+      const p = fetch(u).then(r => (r.ok ? r.blob() : null)).then(b => {
+        this.going.delete(u); if (!b || !b.size) return null;
+        const blob = URL.createObjectURL(b); this.done.set(u, blob);
+        for (const [old, ou] of this.done) {  // oldest first; a recording a player is using stays
+          if (this.done.size <= 8) break;
+          if (![NAR.audio, CLIP.audio].some(a => a.getAttribute('src') === ou)) { this.done.delete(old); URL.revokeObjectURL(ou); }
+        }
+        return blob;
+      }).catch(() => { this.going.delete(u); return null; });
+      this.going.set(u, p); return p;
+    },
+  };
+  // From 今日: the material most likely opened next, and its recording, so the study page opens and plays without a wait.
+  async function preloadMaterial(id) {
+    if (!id || MAT[id] || PRELOAD.frugal()) return;
+    try {
+      const m = await api('/api/next/material?id=' + encodeURIComponent(id) + (S.user ? '' : '&level=' + encodeURIComponent(level())));
+      MAT[id] = m; m._preloaded = Date.now();
+      const vs = (m.audio && m.audio.voices) || [];
+      if (vs.length) PRELOAD.warm(`/audio/${vs.includes(S.voice) ? S.voice : vs[0]}/${encodeURIComponent(id)}.mp4?v=${m.audio.version}`);
+    } catch (e) { /* it loads when opened */ }
+  }
+
+  /* ---------- unlocking: a media element that has played once inside a tap may play later on its own ---------- */
+  // WeChat's browser, iPhones and many Android in-app browsers refuse sound that does not start inside a tap, which is
+  // what a play after a download is (a word's clip, a sentence after its timings, a reply read out). On the first tap
+  // anywhere, both players play a moment of silence; from then on they may play when their file arrives.
+  // Four samples of silence, as a blob: URL (the page's CSP allows blob: and 'self' for media, not data:).
+  const SILENT = (() => {
+    try { const b = atob('UklGRiwAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQgAAAAAAAAAAAAAAA=='), u = new Uint8Array(b.length);
+      for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i);
+      return URL.createObjectURL(new Blob([u], { type: 'audio/wav' })); } catch (e) { return ''; }
+  })();
+  function claim(a) { a._uses = (a._uses || 0) + 1; a.muted = false; }
+  function unlockAudio() {
+    ['touchend', 'click', 'keydown'].forEach(t => window.removeEventListener(t, unlockAudio, true));
+    [NAR.audio, CLIP.audio].forEach(a => {
+      const own = a.getAttribute('src'), uses = a._uses || 0;
+      if (!own && SILENT) a.setAttribute('src', SILENT);
+      a.muted = true;
+      const after = () => {
+        if ((a._uses || 0) !== uses) return;  // this same tap started real playback: leave it alone
+        a.pause(); a.muted = false;
+        if (!own && a.getAttribute('src') === SILENT) { a.removeAttribute('src'); a.load(); }
+      };
+      try { const p = a.play(); if (p && p.then) p.then(after, after); else after(); } catch (e) { after(); }
+    });
+    if (TTS.ok) { try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } catch (e) { /* ignore */ } }
+  }
+  ['touchend', 'click', 'keydown'].forEach(t => window.addEventListener(t, unlockAudio, true));
+  // Attached to the page: some Android in-app browsers lose a detached player's sound.
+  addEventListener('DOMContentLoaded', () => { [NAR.audio, CLIP.audio].forEach(a => { a.hidden = true; document.body.appendChild(a); }); });
+  if (document.readyState !== 'loading') [NAR.audio, CLIP.audio].forEach(a => { a.hidden = true; document.body.appendChild(a); });
+
   /* ---------- mini player: while a whole text plays, a stop button stays on screen however far the text scrolls ---------- */
   const MINI = {
     el: null,

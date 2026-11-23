@@ -238,6 +238,7 @@ flow/tests/test_daily_knowledge.py
 flow/tests/test_foundation.py
 flow/tests/test_growth.py
 flow/tests/test_guide.py
+flow/tests/test_inapp_audio.py
 flow/tests/test_lab.py
 flow/tests/test_learner.py
 flow/tests/test_learning.py

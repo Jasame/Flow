@@ -1217,3 +1217,9 @@ details.preread>summary .tiny{flex-basis:100%}
 /* on the home screen: two numbered steps, the share icon drawn as the phone shows it */
 .isteps{margin:0;padding-left:1.4em;display:grid;gap:10px;font-size:15px;line-height:1.6}
 .ishare{width:20px;height:20px;vertical-align:-4px;fill:none;stroke:var(--accent,#0a84ff);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+/* ---------- r20: WeChat's built-in browser: how to open the page in the phone's browser ---------- */
+.wx-bar{display:flex;align-items:flex-start;gap:8px;padding:8px var(--gut);background:var(--amber-soft);color:var(--ink);font-size:13.5px;line-height:1.55}
+.wx-bar span{flex:1;min-width:0;padding-top:4px}
+.wx-x{flex:none;display:grid;place-items:center;width:36px;height:36px;margin:-2px -8px -2px 0;border:0;border-radius:10px;background:none;color:var(--muted);font-size:22px;line-height:1;cursor:pointer}
+.wx-x:hover{background:color-mix(in srgb,var(--ink) 6%,transparent)}
+@media (min-width:760px){.wx-bar{justify-content:center}.wx-bar span{flex:0 1 auto;max-width:var(--max)}}

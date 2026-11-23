@@ -90,6 +90,17 @@
     const fold = t.tagName === 'SUMMARY' && t.parentElement; if (fold && fold.open) return;
     try { navigator.sendBeacon('/api/next/tap', JSON.stringify({ k: t.dataset.tap })); } catch (x) { /* not counted */ }
   }, true);
+  // In WeChat's built-in browser: a slim bar, under the top bar, on opening the page in the phone's browser, where every
+  // sound plays and the app can be put on the home screen. Closed, it stays away for a week.
+  function wechatBar() {
+    if (!WECHAT || Date.now() - (load('flow-wx-bar') || 0) < 7 * 864e5) return;
+    const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const el = document.createElement('div'); el.className = 'wx-bar'; el.setAttribute('role', 'note');
+    el.innerHTML = `<span>微信里部分声音和安装功能用不了。点右上角「···」，选「${ios ? '在默认浏览器中打开' : '在浏览器打开'}」，可以听全部音频，还能把语流装到桌面。</span>
+      <button type="button" class="wx-x" aria-label="关闭提示">×</button>`;
+    el.querySelector('.wx-x').onclick = () => { save('flow-wx-bar', Date.now()); el.remove(); };
+    document.getElementById('bar').after(el);
+  }
   function bindMailNudge(after) {
     const b = document.getElementById('mnBind'), l = document.getElementById('mnLater');
     if (b) b.onclick = () => bindEmailSheet('');

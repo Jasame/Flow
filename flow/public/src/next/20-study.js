@@ -20,7 +20,8 @@
   }
 
   async function study(id, step, same) {
-    let m = same && MAT[id];
+    let m = (same || (MAT[id] && Date.now() - (MAT[id]._preloaded || 0) < 6e5)) && MAT[id];
+    if (m) delete m._preloaded;
     if (!m) { m = await api('/api/next/material?id=' + encodeURIComponent(id) + (S.user ? '' : '&level=' + encodeURIComponent(level()))); MAT[id] = m; }
     const done = new Set(m.steps.concat(load('flow-next-steps-' + id) || []));
     const st = { step: STEPS.includes(step) ? step : 'listen', showOriginal: !!m._showOriginal, blind: false };

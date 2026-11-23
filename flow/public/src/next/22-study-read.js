@@ -92,6 +92,9 @@
         <div class="section row between"><span></span><button class="btn primary" id="toCheck">读完了，做理解题 →</button></div>
         ${gainsHTML()}`;
       const reader = pane.querySelector('#reader');
+      // The narration's timings are fetched now, so a tap on 伴读 can start the sound inside the tap (in-app browsers
+      // such as WeChat's refuse sound that starts after a download).
+      let nmNow = null; narration(ls).then(x => { nmNow = x; }).catch(() => {});
       pane.querySelectorAll('[data-ver]').forEach(b => b.onclick = () => { st.showOriginal = b.dataset.ver === 'o'; m._showOriginal = st.showOriginal; read(); });
       const mk = pane.querySelector('#mkVar');
       if (mk) mk.onclick = async () => {
@@ -127,10 +130,14 @@
       ra.onclick = async () => {
         if (along) return stopAlong();
         along = true; reader.classList.add('reading'); ra.innerHTML = playIcon(true, 14) + '<span>停止</span>'; MINI.show('伴读中', stopAlong);
-        const nm = await narration(ls);
+        const nm = nmNow || await narration(ls);
         if (along) { if (nm) alongAudio(nm); else alongFrom(0); }
       };
-      pane.querySelectorAll('[data-sayx]').forEach(b => b.onclick = () => TTS.say(m.expressions[Number(b.dataset.sayx)].text));
+      // An expression is read by the browser voice; where there is none (WeChat on Android), its sentence from the narration.
+      pane.querySelectorAll('[data-sayx]').forEach(b => b.onclick = () => {
+        const x = m.expressions[Number(b.dataset.sayx)], k = ls.findIndex(s => s.toLowerCase().includes(x.text.toLowerCase()));
+        if (!TTS.ok && nmNow && k >= 0) NAR.play(nmNow.sentences[k].s, nmNow.sentences[k].e, null, null); else TTS.say(x.text);
+      });
       pane.querySelectorAll('[data-sx]').forEach(b => b.onclick = () => { const x = m.expressions[Number(b.dataset.sx)]; saveCard({ text: x.text, meaning: x.meaning + (x.note ? '｜' + x.note : ''), context: findContext(x.text, ls), pack: id }, b); });
       pane.querySelectorAll('[data-sv]').forEach(b => b.onclick = () => { const v = m.vocabulary[Number(b.dataset.sv)]; saveCard({ text: v.term, meaning: v.meaning, context: findContext(v.term, ls) || v.example, pack: id }, b); });
       pane.querySelectorAll('[data-sn]').forEach(b => b.onclick = () => { const v = m.variant.notes[Number(b.dataset.sn)]; saveCard({ text: v.text, meaning: v.meaning, context: findContext(v.text, ls), pack: id }, b); });
