@@ -251,6 +251,28 @@ def featured(p):
     return p['id'].startswith('v5-')
 
 
+# Where a text comes from, for the line under its title (r20). A corpus file may say more per material: source (who
+# made it), source_url (the original it was adapted from), references (what its facts were checked against, a list of
+# {title, url}) and ai (how AI took part). The production corpus (v5) is written by the Flow editors with AI help under
+# corpus_data/v5/SPEC.md; daily news is AI-rewritten web search; an imported article is the learner's own text.
+V5_AI = 'AI 辅助编写'
+
+
+def origin(p):
+    def links(items, n):
+        return [{'title': str(r.get('title') or r.get('url'))[:120], 'url': r['url']} for r in items or []
+                if isinstance(r, dict) and str(r.get('url', '')).startswith('https://')][:n]
+    if p.get('daily_day'):
+        return {'kind': 'news', 'label': '今日热点（联网检索）', 'ai': 'AI 改写', 'reviewed': False, 'url': '',
+                'references': links((p.get('provenance') or {}).get('sources'), 5)}
+    if p.get('imported'):
+        return {'kind': 'import', 'label': '我导入的文章', 'ai': 'AI 出题' if p.get('questions') else '', 'reviewed': None,
+                'url': p['source_url'] if str(p.get('source_url', '')).startswith('https://') else '', 'references': []}
+    return {'kind': 'original', 'label': p.get('source') or 'Flow 编辑部原创', 'ai': p.get('ai', V5_AI if featured(p) else ''),
+            'reviewed': p.get('reviewed'), 'url': p['source_url'] if str(p.get('source_url', '')).startswith('https://') else '',
+            'references': links(p.get('references'), 8)}
+
+
 def _pack_row(c, uid, pid):
     row = c.execute('SELECT * FROM lab_packs WHERE id=? AND (owner IS NULL OR owner=?)', (pid, uid or -1)).fetchone()
     if not row:
@@ -327,7 +349,12 @@ def set_voice(c, uid, data):
 
 
 def audio_index():
-    """{material id: [voices]} from audio/index.json, reloaded when the file changes."""
+    """{material id: [voices]} and its version. With R2 in use (media.py), from the release's media manifest, so a
+    material has narration as soon as it is uploaded; otherwise from audio/index.json, reloaded when it changes."""
+    import media
+    listed = media.narration()
+    if listed is not None:
+        return {k: [v for v in vs if v in VOICES] for k, vs in listed.items()}, media.version()
     f = AUDIO_DIR / 'index.json'
     try:
         mtime = f.stat().st_mtime
@@ -346,8 +373,8 @@ def audio_file(voice, pid, ext):
     """Path of a narration file, or None. Names are validated so nothing outside AUDIO_DIR can be served."""
     if voice not in VOICES or ext not in ('m4a', 'mp4', 'json') or not re.fullmatch(r'v5-[a-z0-9]+(?:-[a-z0-9]+)*', pid or ''):
         return None
-    f = AUDIO_DIR / voice / (pid + '.' + ('m4a' if ext == 'mp4' else ext))  # .mp4 is the same file, for edge caching
-    return f if f.is_file() else None
+    name = pid + '.' + ('m4a' if ext == 'mp4' else ext)  # .mp4 is the same file, for edge caching
+    return __import__('media').path(f'{voice}/{name}', AUDIO_DIR / voice / name)  # fetched from R2 when missing here
 
 
 def _done(c, uid):
@@ -847,6 +874,7 @@ def material(c, uid, pid, level=None):
             'variant': variant, 'vocabulary': list(vocab.values()), 'expressions': p.get('expressions', []), 'hard': hard, 'questions': qs,
             'notes': notes, 'task': _task(p, level), 'steps': sorted(done, key=STEPS.index), 'dictation_index': p.get('dictation_index'),
             'provenance': [{'title': s['title'], 'url': s['url']} for s in (p.get('provenance') or {}).get('sources', [])][:5],
+            'origin': origin(p),
             'mine': __import__('vocab_service').mine_in_text(c, uid, text),
             'preread': __import__('vocab_service').preread(c, uid, hard),
             'speaking_task': p.get('speaking', ''), 'writing_task': p.get('writing', ''), 'imported': bool(p.get('imported')),
@@ -1282,8 +1310,9 @@ def get(c, uid, path, q):
         if not WORD.fullmatch(w or ''):
             return {'error': '只能查英文单词'}, 400
         hit = lookup(w)
-        if hit:  # words Chinese speakers mix up with this one (a copy: the cached entry stays as it is)
-            hit = {**hit, 'confusable': __import__('word_links').group_of(hit['lemma']) or __import__('word_links').group_of(w)}
+        if hit:  # words Chinese speakers mix up with this one, and its recorded pronunciation (a copy: the cached entry stays as it is)
+            hit = {**hit, 'confusable': __import__('word_links').group_of(hit['lemma']) or __import__('word_links').group_of(w),
+                   'audio': __import__('vocab_service').word_audio(hit['lemma'])}
         return ({'entry': hit} if hit else {'entry': None, 'query': w}), 200
     if not uid:
         return ({'error': '请先登录'}, 401) if path.startswith('/api/next/') else None
@@ -1302,8 +1331,21 @@ def get(c, uid, path, q):
     return None
 
 
+def tap(c, data):
+    """One tap on a counted entry point (flow_admin.TAP_LABEL): per day and key only, nothing about who."""
+    key = str(data.get('k', ''))[:40]
+    if key not in __import__('flow_admin').TAP_LABEL:
+        return {'error': '未知的入口'}, 400
+    day = datetime.datetime.now(TZ).date().isoformat()
+    c.execute('INSERT INTO ui_taps(day, key, n) VALUES(?,?,1) ON CONFLICT(day, key) DO UPDATE SET n=n+1 WHERE n<20000', (day, key))
+    c.commit()
+    return {'ok': True}, 200
+
+
 def post_public(c, uid, path, data):
     """Routes open to guests (no state change for guests)."""
+    if path == '/api/next/tap':
+        return tap(c, data)
     if path == '/api/next/check':
         return check(c, uid, data)
     if path == '/api/next/vocab/test':

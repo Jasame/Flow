@@ -7,6 +7,8 @@
     let e = null;
     try { e = (await api('/api/next/lookup?w=' + encodeURIComponent(word))).entry; } catch (x) { /* show fallback */ }
     const meaning = e ? e.meaning : '';
+    // The recorded pronunciation when there is one (it plays in every browser, WeChat's too); else the browser voice.
+    const sayWord = () => (e && e.audio && (e.audio.us || e.audio.uk) ? CLIP.word({ text: e.word, audio: e.audio }) : TTS.say(e ? e.word : word));
     const mt = MAT[pack];
     // This text's own gloss (本篇词汇) says what the word means here; the dictionary lists every sense.
     const here = mt && (mt.vocabulary || []).find(v => { const t = v.term.toLowerCase(); return t === word.toLowerCase() || (e && t === e.lemma); });
@@ -22,7 +24,7 @@
       <div class="card sunk small text">${esc(sentence)}</div>
       <div class="row"><button class="btn primary" id="saveW">${ICON.star.replace('<svg', '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"')}收藏这个词</button><button class="btn" id="saveS">收藏整句</button><button class="btn" id="exS">✦ AI 讲解整句</button></div>
       <button class="btn ghost" data-close>关闭</button></div>`, card => {
-      card.querySelector('#sayW').onclick = () => TTS.say(e ? e.word : word);
+      card.querySelector('#sayW').onclick = sayWord;
       card.querySelector('#saveW').onclick = () => saveCard({ text: e ? e.lemma : word, meaning: here ? here.meaning + '；' + meaning : meaning, context: sentence, pack }, card.querySelector('#saveW')).then(ok => {
         if (!ok || !mt) return;
         const forms = new Set([word.toLowerCase(), e ? e.lemma : word.toLowerCase()]);
@@ -33,7 +35,7 @@
       card.querySelector('#saveS').onclick = () => saveCard({ text: sentence, meaning: '', context: '', pack }, card.querySelector('#saveS'));
       card.querySelector('#exS').onclick = () => explainSheet(sentence, pack);
     });
-    TTS.say(e ? e.word : word);
+    sayWord();
   }
   async function explainSheet(sentence, pack) {
     if (!S.user) { needLogin('登录后，AI 会结合知识图谱讲解这句话的结构、语气和可模仿的句型。'); return; }

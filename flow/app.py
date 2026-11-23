@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS ai_usage(user_id INTEGER,day TEXT,count INTEGER,PRIMA
   meeting.schema(c)
   __import__('survey_service').schema(c)
   __import__('next_service').schema(c)
+  __import__('flow_admin').schema(c)
 def wrong_questions(c,uid):
  return c.execute('''SELECT q.id,q.topic,q.prompt,q.options,q.explanation,q.answer,a.selected FROM questions q
  JOIN attempts a ON a.question_id=q.id WHERE q.status='published' AND a.user_id=? AND a.correct=0
@@ -108,6 +109,12 @@ def live_status():
  except Exception:pass
  return out
 SESSION_DAYS=30
+# r20: the classic site is archived (archive/classic/). The learner site serves only what the learning site (next.html),
+# the survey, sign-in and the account need, and the operations checks; every other /api/ path answers 404. Operator
+# functions live in the xmc.hk console (flow_admin.py, port FLOW_ADMIN_PORT), never on the learner site.
+OPEN_API={'GET':('/api/health','/api/survey','/api/deploy-status','/api/session','/api/account','/api/next/'),
+ 'POST':('/api/survey','/api/next/','/api/recovery/','/api/login','/api/register','/api/auth/code','/api/auth/reset','/api/logout','/api/password','/api/account/')}
+def api_open(method,path):return any(path==p or (p.endswith('/') and path.startswith(p)) for p in OPEN_API[method])
 def session_cookie(token):
  return 'flow_session='+token+'; HttpOnly; SameSite=Lax; Path=/; Max-Age='+str(SESSION_DAYS*86400)+('; Secure' if SECURE else '')
 _ASSET={}
@@ -125,10 +132,15 @@ def asset_version():
   for n in ('next.js','next.css'):h.update((ROOT/'public'/n).read_bytes())
   _ASSET.update(key=key,v=h.hexdigest()[:10])
  return _ASSET['v']
+def csp():
+ # The media domain (R2, media.py) is the second line for audio and its timings, when FLOW_MEDIA_BASE is set.
+ m=__import__('media').origin();extra=' '+m if m else ''
+ return "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'"+extra+"; media-src 'self' blob:"+extra+"; frame-src 'self' about:; frame-ancestors 'none'"
 def session_info(u):
  """What /api/session answers; /api/next/home carries the same, so the page needs one request to start."""
  # email_bound: the page reminds an account without one that a forgotten password could not be reset by itself.
- return {'user':{**{k:u[k] for k in ('id','username','admin','csrf')},'email_bound':bool(u['email'])} if u else None,'ai_enabled':ai_enabled(),'mail':account.configured()}
+ # media: where audio can also be fetched when this server cannot answer (None unless R2 is in use).
+ return {'user':{**{k:u[k] for k in ('id','username','admin','csrf')},'email_bound':bool(u['email'])} if u else None,'ai_enabled':ai_enabled(),'mail':account.configured(),'media':__import__('media').info()}
 def verify(p,stored): return hmac.compare_digest(password(p,stored.split(':')[0]),stored)
 def topics(c):
  out=[]
@@ -169,7 +181,7 @@ class Handler(BaseHTTPRequestHandler):
   self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def headers_common(self,mime):
   self.send_header('Permissions-Policy','camera=(), geolocation=(), microphone=(self)')
-  self.send_header('Content-Type',mime);self.send_header('X-Content-Type-Options','nosniff');self.send_header('X-Frame-Options','DENY');self.send_header('Referrer-Policy','same-origin');self.send_header('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; media-src 'self' blob:; frame-src 'self' about:; frame-ancestors 'none'")
+  self.send_header('Content-Type',mime);self.send_header('X-Content-Type-Options','nosniff');self.send_header('X-Frame-Options','DENY');self.send_header('Referrer-Policy','same-origin');self.send_header('Content-Security-Policy',csp())
  def visitor_address(self):
   ip=self.client_address[0]
   if ip in ('127.0.0.1','::1'):
@@ -222,10 +234,9 @@ class Handler(BaseHTTPRequestHandler):
   except Exception as exc:__import__('ops_errors').record(db,'GET',self.path,exc);self.send({'error':'服务暂时异常，请稍后重试'},500)
  def get(self):
   path=self.path.split('?')[0]
+  if path.startswith('/api/') and not api_open('GET',path):return self.send({'error':'接口不存在'},404)
   if path=='/api/health':return self.send({'ok':True,'version':'4.5.0','mail':account.configured()})
   if path=='/api/survey':return self.send(__import__('survey_service').SURVEY)
-  if path=='/api/meeting/previews':
-   return self.send({'previews':[meeting_path.task(day) for day in meeting_path.PUBLIC.values()]})
   if path=='/api/deploy-status':
    # Written by tools/flow-autodeploy.py: release tag, commit, result, health checks and test counts. Nothing private.
    try:st=json.loads((DATA/'deploy-status.json').read_text())
@@ -233,6 +244,9 @@ class Handler(BaseHTTPRequestHandler):
    try:st['daily']=json.loads((DATA/'e2e-daily.json').read_text())  # the daily end-to-end test (flow-autodeploy.py)
    except (OSError,ValueError):pass
    st['live']=live_status()
+   try:
+    with db() as c:__import__('flow_admin').note_release(c,st)
+   except Exception:pass
    body=json.dumps(st,ensure_ascii=False).encode()
    self.send_response(200);self.headers_common('application/json; charset=utf-8');self.send_header('Cache-Control','no-store')
    self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
@@ -300,10 +314,6 @@ class Handler(BaseHTTPRequestHandler):
     if result is not None:return self.send(*result)
     result=learning.get(c,u['id'],u['admin'],path,parse_qs(urlsplit(self.path).query))
     if result is not None:return self.send(*result)
-    if path=='/api/manage/backup':
-     if not u['admin']:return self.send({'error':'需要管理员权限'},403)
-     status_file=DATA/'backup-status.json'
-     return self.send({'last':json.loads(status_file.read_text()) if status_file.exists() else None})
     if path=='/api/account':
      result=account.private(c,u,path,{},verify);return self.send(*result)
     if path=='/api/dashboard':return self.send(report(c,u['id']))
@@ -311,19 +321,22 @@ class Handler(BaseHTTPRequestHandler):
      topic=parse_qs(urlsplit(self.path).query).get('topic',[''])[0];out,status=chat_history(c,u['id'],topic);return self.send(out,status)
     if path=='/api/wrongs':return self.send({'items':[dict(r) for r in wrong_questions(c,u['id'])]})
     if path=='/api/history':return self.send({'items':[dict(r) for r in c.execute('SELECT prompt,selected,correct,questions.explanation,created,options FROM attempts JOIN questions ON questions.id=question_id WHERE user_id=? ORDER BY attempts.id DESC LIMIT 50',(u['id'],))]})
-    if path=='/api/admin':
-     if not u['admin']:return self.send({'error':'需要管理员权限'},403)
-     return self.send({'users':c.execute('SELECT COUNT(*) FROM users').fetchone()[0],'attempts':c.execute('SELECT COUNT(*) FROM attempts').fetchone()[0],'questions':c.execute('SELECT COUNT(*) FROM questions').fetchone()[0],'ai_enabled':ai_enabled(),'ai_provider':'Vertex ADC' if vertex_enabled() else '兼容接口','ai_model':os.getenv('FLOW_AI_MODEL',''),'ai_daily_limit':int(os.getenv('FLOW_AI_DAILY_LIMIT','0'))})
    return self.send({'error':'接口不存在'},404)
-  if path.startswith('/practice/') and path.endswith('/'):
-   slug=path.removeprefix('/practice/').removesuffix('/')
-   if slug in meeting_path.PUBLIC:
-    body=meeting_path.public_page(slug)
-    self.send_response(200);self.headers_common('text/html; charset=utf-8');self.send_header('Cache-Control','no-cache')
-    self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
-  files={'/sw.js':('sw.js','text/javascript; charset=utf-8'),'/manifest.webmanifest':('manifest.webmanifest','application/manifest+json; charset=utf-8'),
-   '/icon-192.png':('icon-192.png','image/png'),'/icon-512.png':('icon-512.png','image/png'),'/apple-touch-icon.png':('apple-touch-icon.png','image/png'),
-   '/next':('next.html','text/html; charset=utf-8'),'/next.js':('next.js','text/javascript; charset=utf-8'),'/next.css':('next.css','text/css; charset=utf-8'),'/survey':('survey.html','text/html; charset=utf-8'),'/survey.js':('survey.js','text/javascript; charset=utf-8'),'/survey.css':('survey.css','text/css; charset=utf-8'),'/guest-first.js':('guest-first.js','text/javascript; charset=utf-8'),'/flow4.css':('flow4.css','text/css; charset=utf-8'),'/flow-motion.js':('flow-motion.js','text/javascript; charset=utf-8'),'/flow-mindmap.js':('flow-mindmap.js','text/javascript; charset=utf-8'),'/literata.woff2':('literata.woff2','font/woff2'),'/core-words.js':('core-words.js','text/javascript; charset=utf-8'),'/meeting.js':('meeting.js','text/javascript; charset=utf-8'),'/meeting.css':('meeting.css','text/css; charset=utf-8'),'/flow36.js':('flow36.js','text/javascript; charset=utf-8'),'/flow36.css':('flow36.css','text/css; charset=utf-8'),'/phone.css':('phone.css','text/css; charset=utf-8'),'/pilot.js':('pilot.js','text/javascript; charset=utf-8'),'/pilot.css':('pilot.css','text/css; charset=utf-8'),'/learning35.js':('learning35.js','text/javascript; charset=utf-8'),'/learning35.css':('learning35.css','text/css; charset=utf-8'),'/ai-live.js':('ai-live.js','text/javascript; charset=utf-8'),'/ai-live.css':('ai-live.css','text/css; charset=utf-8'),'/continuity.js':('continuity.js','text/javascript; charset=utf-8'),'/continuity.css':('continuity.css','text/css; charset=utf-8'),'/foundation.js':('foundation.js','text/javascript; charset=utf-8'),'/foundation.css':('foundation.css','text/css; charset=utf-8'),'/mobile.js':('mobile.js','text/javascript; charset=utf-8'),'/mobile.css':('mobile.css','text/css; charset=utf-8'),'/practice.js':('practice.js','text/javascript; charset=utf-8'),'/practice.css':('practice.css','text/css; charset=utf-8'),'/reference.js':('reference.js','text/javascript; charset=utf-8'),'/reference.css':('reference.css','text/css; charset=utf-8'),'/atlas.js':('atlas.js','text/javascript; charset=utf-8'),'/atlas.css':('atlas.css','text/css; charset=utf-8'),'/':('index.html','text/html; charset=utf-8'),'/app.js':('app.js','text/javascript; charset=utf-8'),'/tutor.js':('tutor.js','text/javascript; charset=utf-8'),'/style.css':('style.css','text/css; charset=utf-8'),'/advanced.js':('advanced.js','text/javascript; charset=utf-8'),'/studio.js':('studio.js','text/javascript; charset=utf-8'),'/growth.js':('growth.js','text/javascript; charset=utf-8'),'/growth.css':('growth.css','text/css; charset=utf-8'),'/design-bridge.css':('design-bridge.css','text/css; charset=utf-8'),'/coach.js':('coach.js','text/javascript; charset=utf-8'),'/coach.css':('coach.css','text/css; charset=utf-8'),'/adaptive.js':('adaptive.js','text/javascript; charset=utf-8'),'/adaptive.css':('adaptive.css','text/css; charset=utf-8'),'/knowledge.js':('knowledge.js','text/javascript; charset=utf-8'),'/layout.css':('layout.css','text/css; charset=utf-8')}
+  if path=='/classic' or (path.startswith('/practice/') and path.endswith('/')):
+   # archived classic pages: an old bookmark lands on the learning site
+   self.send_response(302);self.send_header('Location','/');self.send_header('Content-Length','0');self.end_headers();return
+  files={'/sw.js':('sw.js','text/javascript; charset=utf-8'),
+   '/manifest.webmanifest':('manifest.webmanifest','application/manifest+json; charset=utf-8'),
+   '/icon-192.png':('icon-192.png','image/png'),
+   '/icon-512.png':('icon-512.png','image/png'),
+   '/apple-touch-icon.png':('apple-touch-icon.png','image/png'),
+   '/next':('next.html','text/html; charset=utf-8'),
+   '/next.js':('next.js','text/javascript; charset=utf-8'),
+   '/next.css':('next.css','text/css; charset=utf-8'),
+   '/survey':('survey.html','text/html; charset=utf-8'),
+   '/survey.js':('survey.js','text/javascript; charset=utf-8'),
+   '/survey.css':('survey.css','text/css; charset=utf-8'),
+   '/literata.woff2':('literata.woff2','font/woff2')}
   if path=='/guide.pdf' or (path.startswith('/guide/') and path.endswith('.jpg') and path[7:-4].replace('-','').isalnum() and path[7:-4].isascii()):
    # the 操作指南: its screenshots and the PDF made from the same source (user_guide.py)
    f=ROOT/'public'/'guide'/('flow-guide.pdf' if path=='/guide.pdf' else path[7:])
@@ -333,11 +346,8 @@ class Handler(BaseHTTPRequestHandler):
    self.send_header('Cache-Control','public, max-age=3600');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
   if path.startswith('/audio/'):
    return self.send_audio(path)
-  if path=='/classic':
-   self.send_response(302);self.send_header('Location','/?classic=1');self.send_header('Content-Length','0');self.end_headers();return
-  if path=='/' and not urlsplit(self.path).query:
-   # The Flow learning loop (next.html) is the main site; the classic site stays at /?classic=1
-   # (any query string, e.g. old /?account=1#login and trial links, still opens the classic page).
+  if path=='/':
+   # The learning site is the only site: any query string (old /?classic=1, /?account=1#login, trial links) opens it too.
    body=shell_file('next.html')
    self.send_response(200);self.headers_common('text/html; charset=utf-8');self.send_header('Cache-Control','no-cache')
    self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
@@ -364,6 +374,7 @@ class Handler(BaseHTTPRequestHandler):
   limit=2200000 if self.path in ('/api/lab/audio','/api/next/shadow','/api/next/retell','/api/next/dialog','/api/next/say') else 800000 if self.path=='/api/vocab/import' else 40000 if self.path in ('/api/next/import','/api/next/essay','/api/next/dialog') else 20000
   if length<1 or length>limit:return self.send({'error':'请求大小不正确'},400)
   if self.headers.get('Sec-Fetch-Site')=='cross-site':return self.send({'error':'不允许跨站请求'},403)
+  if not api_open('POST',self.path.split('?')[0]):return self.send({'error':'接口不存在'},404)
   if self.path=='/api/lab/audio':
    with db() as c:
     owner=self.user(c)
@@ -444,12 +455,6 @@ class Handler(BaseHTTPRequestHandler):
     except TimeoutError:return self.send({'error':'排队较久，本次未调用模型。草稿保留，可稍后重试。'},503)
     current=self.user(c)
     if not current or not hmac.compare_digest(current['csrf'],u['csrf']):return self.send({'error':'登录已过期，请重新登录'},401)
-   if path=='/api/daily/run':
-    if not u['admin']:return self.send({'error':'需要管理员权限'},403)
-    def generate_daily():
-     with db() as connection:daily.run(connection)
-    threading.Thread(target=generate_daily,daemon=True).start()
-    return self.send({'ok':True,'message':'已请求生成，稍后刷新查看；同日成功缓存不会重建。'},202)
    if path=='/api/ai/help':
     import ai_help_service
     return self.send(*ai_help_service.help(c,u['id'],data))
@@ -553,9 +558,6 @@ class Handler(BaseHTTPRequestHandler):
     c.execute('UPDATE quizzes SET used=1 WHERE token=?',(token,))
     if session:attempts.complete(c,token,answers,out)
     c.commit();return self.send(out)
-   if path=='/api/admin/question':
-    if not u['admin']:return self.send({'error':'需要管理员权限'},403)
-    learning.save_question(c,u['id'],{**data,'status':'published'});c.commit();return self.send({'ok':True})
    if path=='/api/chat':
     out,status=tutor_chat(c,u['id'],data);return self.send(out,status)
   self.send({'error':'接口不存在'},404)

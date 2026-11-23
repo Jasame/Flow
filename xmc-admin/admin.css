@@ -91,3 +91,14 @@ details summary{cursor:pointer}
 .acc-link{width:min(100%,560px);font-family:ui-monospace,Menlo,monospace;font-size:12px}
 .adm-srv{font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;background:color-mix(in srgb,#1f9d55 14%,transparent);color:#1a7f47;white-space:nowrap}
 .adm-srv[hidden]{display:none}
+
+/* r20: who is signed in and the role; release comparison and the operator log */
+.adm-who{align-self:center;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40ch}
+.adm-who[hidden],.adm-tabs a[hidden]{display:none}
+table.cmp{width:100%;border-collapse:collapse;font-size:13.5px}
+table.cmp th,table.cmp td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+table.cmp th{font-weight:600;color:var(--muted);font-size:12.5px}
+table.cmp .num{text-align:right;font-variant-numeric:tabular-nums}
+table.cmp .up{color:var(--accent);font-weight:600}
+table.cmp .down{color:var(--danger);font-weight:600}
+.err{color:var(--danger)}

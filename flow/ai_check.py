@@ -45,7 +45,16 @@ def main():
         raw,reason=request_model([{'role':'user','content':'As an English tutor, give feedback on "I like apples.". Return only JSON with strength (Chinese), priorities (empty array if correct), revision (English), next_question (English).'}])
         if reason!='stop':raise ValueError('Truncated JSON')
         validate_feedback(parse(raw));return {'validated':True}
+    tp=chat_service.text_provider()
+    # the text model's name is not a secret; whether it shares the main gateway and key, or has its own service
+    report['text_model']={'name':tp[2],'route':'同一个网关和密钥' if not os.getenv('FLOW_TEXT_AI_URL') else '单独的服务'} if tp else None
+    def text_model_check():
+        # straight to the text model (no fallback), so a model switched off in the gateway shows here as failed
+        text,reason=chat_service._request_text_service([{'role':'user','content':'Give one short English greeting for a beginner.'}])
+        if reason!='stop' or not text.strip():raise ValueError('Incomplete answer')
+        return {'model':tp[2],'characters':len(text)}
     if not args.configuration_only:
+        if tp:run('文字模型（'+tp[2]+'）',text_model_check)
         run('普通文字调用',text_check);run('真实流式输出',stream_check);run('学习反馈结构校验',structured_check)
         if args.grounding:
             def grounding():

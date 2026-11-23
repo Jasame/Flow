@@ -38,8 +38,20 @@
           <div class="rbar"><span class="vbar"><i data-w="${d.score}"></i></span><b class="num">${d.score}</b>${delta ? `<span class="${delta > 0 ? 'up' : 'down'}">${delta > 0 ? '+' : ''}${delta}</span>` : ''}${spark(r.history.map(h => h.scores[d.id]))}</div>
           <div class="tiny muted">现在约 ${esc(d.level)} · ${CONF[d.confidence] || ''}${d.assessed ? '（' + new Date(d.assessed * 1000).toLocaleDateString('zh-CN') + ' 测评）' : '（来自平时练习）'}
             · <a class="link" href="${DIM_TEST[d.id]}">${d.due ? '该测了' : '重测'}</a>${r.gap === d.id ? ` · <a class="link" href="${d.href}">差距最大：${esc(d.tip)}</a>` : ''}</div>`}</div>`; }).join('')}</section>
-      ${r.gap ? `<p class="small cheer">${esc(r.dims.find(d => d.id === r.gap).label)}离目标最远，每天的计划会多安排这方面的练习。</p>` : ''}</div>`;
+      ${r.gap ? `<p class="small cheer">${esc(r.dims.find(d => d.id === r.gap).label)}离目标最远，每天的计划会多安排这方面的练习。</p>` : ''}
+      <details class="card flat fold" id="abFold"><summary><b>按平时练习估计</b><span class="tiny muted">近 45 天 · 8 项，含翻译和发音</span></summary><div id="abSlot"><p class="muted small"><span class="spin"></span></p></div></details></div>`;
     view.querySelectorAll('.pop-in').forEach(el => el.style.setProperty('--d', Number(el.dataset.k) * 60 + 'ms'));
+    // What used to be the 能力画像 card on 我的: loaded when it is opened.
+    const fold = document.getElementById('abFold');
+    fold.addEventListener('toggle', () => {
+      if (!fold.open || fold.dataset.done) return;
+      fold.dataset.done = '1';
+      api('/api/next/ability').then(ab => {
+        const slot = document.getElementById('abSlot'); if (!slot) return;
+        slot.innerHTML = abilityHTML(ab);
+        requestAnimationFrame(() => requestAnimationFrame(() => slot.querySelectorAll('.vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; })));
+      }).catch(e => { const slot = document.getElementById('abSlot'); if (slot) slot.innerHTML = `<p class="muted small">${esc(e.message)}</p>`; delete fold.dataset.done; });
+    });
     requestAnimationFrame(() => requestAnimationFrame(() => { view.querySelectorAll('.vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; }); const g = view.querySelector('.radar .cur'); if (g) g.classList.add('on'); }));
   }
   async function radarGoals() {
@@ -86,11 +98,14 @@
         document.getElementById('aNext').disabled = Object.keys(chosen).length < p.questions.length;
       }));
       const play = document.getElementById('aPlay');
+      // The recording is loaded before the tap, so the tap itself starts the sound (WeChat's browser allows only that).
+      const voices = p.audio.voices || [];
+      const loading = voices.length ? NAR.load(p.pack, voices.includes(S.voice) ? S.voice : voices[0], p.audio.version) : Promise.resolve(false);
+      let loaded = null; loading.then(ok => { loaded = ok; });
       if (play) play.onclick = async () => {
         if (plays >= 2) return; plays++; play.disabled = true; play.textContent = '正在播放…';
         const done = () => { play.disabled = plays >= 2; play.textContent = plays >= 2 ? '已经听了两遍' : '▶ 再听一遍'; document.getElementById('aQs').hidden = false; document.getElementById('aPlays').textContent = `已听 ${plays} / 2 遍`; };
-        const voices = p.audio.voices || [];
-        if (voices.length && await NAR.load(p.pack, voices.includes(S.voice) ? S.voice : voices[0], p.audio.version)) NAR.play(0, null, null, done);
+        if (loaded === true || (loaded === null && await loading)) NAR.play(0, null, null, done);
         else TTS.say(p.body.replace(/^[A-Z][a-z]+(?: [A-Z][a-z]+)?:\s+/gm, ''), done);
       };
       document.getElementById('aNext').onclick = async () => {

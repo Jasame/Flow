@@ -762,7 +762,7 @@ input[type=text]:focus,input[type=email]:focus,input[type=password]:focus,input[
 .review .choice button[disabled]{opacity:.7}
 
 /* Chinese summaries read better in the sans face; serif stays for English text */
-.hero .preview,.mini .p,.pv{font-family:var(--sans)}
+.hero .preview,.mini .p{font-family:var(--sans)}
 .hero .preview{font-size:16px;line-height:1.65;color:var(--ink2)}
 .mini .p{font-size:14.5px}
 
@@ -786,11 +786,9 @@ input[type=text]:focus,input[type=email]:focus,input[type=password]:focus,input[
 .prow.done b{color:var(--muted);font-weight:600}
 .prow .t{display:grid;gap:2px;min-width:0}
 .prow .t b{font-size:15.5px}
-.prow .pv{font-size:13.5px;color:var(--ink2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:2px}
 .prow .go{color:var(--muted);font-size:20px}
 .hero{display:grid;gap:10px}
 .hero .go-next{margin-top:4px}
-.weekline{display:flex;align-items:center;gap:12px}.weekline .week{flex:1;margin:0}
 @media (hover:none){.prow:hover{background:none}}
 
 /* review and the vocabulary test on phones: no tabs, answers where the thumb is */
@@ -816,8 +814,8 @@ input[type=text]:focus,input[type=email]:focus,input[type=password]:focus,input[
 
 /* material cards (home, node pages): level and 精选 above the title, so the title gets the whole width;
    the reason ("新知识点…") on its own line instead of squeezed beside the word count */
-.mini:not(.graph-mini){grid-template-columns:1fr;gap:6px}
-.mini:not(.graph-mini)>*{grid-column:1/-1;min-width:0}
+.mini{grid-template-columns:1fr;gap:6px}
+.mini>*{grid-column:1/-1;min-width:0}
 .mini .meta{order:-1;display:flex;flex-wrap:wrap;gap:6px;justify-self:start}
 .mini .reasons{justify-self:start}
 
@@ -945,7 +943,6 @@ details[open]>summary{margin-bottom:8px}
 .serial .ep.done .n{background:var(--green);color:#fff}
 .serial .ep.next .n{box-shadow:0 0 0 2px var(--green)}
 .serial .ep .t{display:grid;gap:2px;min-width:0}
-.next-ep{display:grid;gap:4px;text-decoration:none;color:inherit;padding:14px 16px}
 @media (max-width:420px){.exam-pick{grid-template-columns:1fr}.bands{gap:6px}.band span{font-size:16px}}
 @media (hover:none){.serial .ep:hover{background:none}}
 /* ---------- r14: learning route, relations, Chinese-speaker traps, mixed rounds, kinder review ---------- */
@@ -1128,3 +1125,101 @@ details[open]>summary{margin-bottom:8px}
 .auth-links .link{min-height:40px;padding:0 4px;background:none;border:0;cursor:pointer}
 .field input[aria-invalid=true]{border-color:var(--red);box-shadow:0 0 0 3px var(--red-soft)}
 .acct-actions{flex-wrap:wrap;gap:8px}
+/* ---------- r20: four tabs, one main action on 今日, 我的 as a grouped list, one-line rows ---------- */
+/* 今日: the week as seven small bars beside the greeting */
+.greet-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:4px}
+.greet-row .greet{margin:0;min-width:0}
+.wk{display:flex;align-items:center;gap:8px;flex:none}
+.wk .week{display:flex;gap:3px;width:70px;margin:0}
+.wk .week span{height:5px}
+/* one-line rows: materials on 今日, settings on 我的 */
+.mlist,.glist{display:grid;gap:2px;background:var(--paper);border-radius:var(--r);padding:6px}
+.mrow,.grow{display:grid;grid-template-columns:minmax(0,1fr) auto 14px;gap:10px;align-items:center;min-height:52px;padding:9px 10px;border-radius:12px;text-decoration:none;color:inherit;
+  border:0;background:none;width:100%;text-align:left;font:inherit;cursor:pointer}
+.mrow:hover,.grow:hover{background:var(--sunk)}
+.mrow .t,.grow .t{display:grid;gap:2px;min-width:0}
+.mrow .t b{font-size:15.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mrow .t .tiny{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mrow .go,.grow .go,.notice .go{color:var(--muted);font-size:20px}
+.mrow.more b{color:var(--green-ink)}
+.mrow:not(:has(.pill)){grid-template-columns:minmax(0,1fr) 14px}
+.mlist+.tiny{margin-top:8px}
+@media (hover:none){.mrow:hover,.grow:hover{background:none}}
+/* the single notice slot */
+.notice.guide-hint{display:grid;grid-template-columns:minmax(0,1fr) 14px;gap:10px;align-items:center;text-decoration:none;color:inherit}
+.notice.guide-hint b{font-size:15.5px}
+/* 练习: the grammar map is the 语法 group's wide card */
+.ptile.pmap{grid-column:1/-1;min-height:0;gap:6px}
+.ptile.pmap .row{flex-wrap:nowrap}
+.ptile.pmap .gbar{margin-top:4px}
+/* 我的: a header card, then groups of one-line rows; a row opens a page or a sheet */
+.me-head{display:grid;gap:14px}
+.me-id{display:flex;align-items:center;gap:14px;min-width:0}
+.me-id .t{display:grid;gap:2px;min-width:0}
+.me-id .h1{margin:0;overflow:hidden;text-overflow:ellipsis}
+.avatar{flex:none;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--green-soft);color:var(--green-ink);font-size:22px;font-weight:700}
+.me-nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;border-top:1px solid var(--line);padding-top:12px}
+.me-nums div{display:grid;justify-items:center;gap:2px;text-align:center}
+.me-nums b{font-size:20px;font-variant-numeric:tabular-nums}
+.gsec{margin-top:22px}
+.ghead{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.04em;margin:0 12px 6px}
+.grow{position:relative;grid-template-columns:auto minmax(0,1fr) 14px}
+.glist>.grow+.grow::before{content:"";position:absolute;left:10px;right:10px;top:-1px;height:1px;background:var(--line)}
+.grow .t{font-size:15.5px}
+.grow .v{justify-self:end;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.grow:disabled{cursor:default;color:inherit}
+.grow:disabled .go{visibility:hidden}
+.grow:disabled:hover{background:none}
+.gfoot{margin:6px 12px 0}
+.grow.danger{grid-template-columns:1fr;justify-items:center;color:var(--red);font-weight:600}
+/* a folded card: its summary is the heading, a chevron turns when it opens */
+details.fold>summary{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;list-style:none;padding:0 26px 0 0;color:inherit;position:relative;min-height:24px}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary::after{content:"";position:absolute;right:6px;top:6px;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .2s var(--ease)}
+details.fold[open]>summary::after{transform:rotate(225deg);top:10px}
+details.fold[open]>summary{margin-bottom:12px}
+/* 单词: a row of tools, the stats folded, one row per word (its sentence and curve are on the card's sheet) */
+.tools{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.tools a,.tools button{display:grid;justify-items:center;align-content:center;gap:4px;min-height:66px;padding:8px 2px;border:0;border-radius:12px;background:var(--paper);
+  color:var(--ink2);font:inherit;font-size:12.5px;text-decoration:none;cursor:pointer}
+.tools a:hover,.tools button:hover{background:var(--sunk)}
+.tools svg{width:22px;height:22px;fill:none;stroke:var(--green-ink);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tools span{white-space:nowrap}
+.xlist{display:grid;gap:2px;background:var(--paper);border-radius:var(--r);padding:6px}
+.xrow{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;min-height:56px;padding:8px 10px;border:0;border-radius:12px;
+  background:none;text-align:left;font:inherit;color:inherit;cursor:pointer;width:100%}
+.xlist>.xrow+.xrow::before{content:"";position:absolute;left:10px;right:10px;top:-1px;height:1px;background:var(--line)}
+.xrow:hover{background:var(--sunk)}
+.xrow .t{display:grid;gap:1px;min-width:0}
+.xrow .x{font-family:var(--serif);font-size:17px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xrow .tiny{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (hover:none){.xrow:hover{background:none}.tools a:hover,.tools button:hover{background:var(--paper)}}
+/* 图谱: one level open at a time; a folded level is a bar with its count */
+.route{gap:10px}
+details.rband>summary.rband-h{margin:0;padding:12px 40px 12px 12px;border-radius:12px;background:var(--paper)}
+details.rband>summary::after{right:16px;top:calc(50% - 7px)}
+details.rband[open]>summary::after{top:calc(50% - 3px)}
+details.rband[open]>summary{margin-bottom:6px}
+/* the study steps and 全部材料: the main action first, the extras folded */
+.mhead{margin-bottom:8px}
+.preread{margin:4px 0 14px}
+details.preread>summary .tiny{flex-basis:100%}
+.gains .gtabs{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);margin-bottom:12px}
+.gpane .vocab-list{margin:0}
+.gpane>.link{justify-self:start}
+/* where a text comes from: one quiet line under the title, tags for how AI took part */
+.origin{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:6px;line-height:1.5}
+.origin .link{padding:0}
+.otag{display:inline-flex;align-items:center;font-size:11.5px;font-weight:600;padding:1px 7px;border-radius:99px;background:var(--sunk);color:var(--ink2);white-space:nowrap}
+.otag.warn{background:var(--amber-soft);color:var(--amber)}
+.origin-rules{margin:0;padding-left:1.2em;display:grid;gap:4px}
+@media (max-width:759px){.study-head[data-at=check] .origin,.study-head[data-at=output] .origin{display:none}}
+/* on the home screen: two numbered steps, the share icon drawn as the phone shows it */
+.isteps{margin:0;padding-left:1.4em;display:grid;gap:10px;font-size:15px;line-height:1.6}
+.ishare{width:20px;height:20px;vertical-align:-4px;fill:none;stroke:var(--accent,#0a84ff);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+/* ---------- r20: WeChat's built-in browser: how to open the page in the phone's browser ---------- */
+.wx-bar{display:flex;align-items:flex-start;gap:8px;padding:8px var(--gut);background:var(--amber-soft);color:var(--ink);font-size:13.5px;line-height:1.55}
+.wx-bar span{flex:1;min-width:0;padding-top:4px}
+.wx-x{flex:none;display:grid;place-items:center;width:36px;height:36px;margin:-2px -8px -2px 0;border:0;border-radius:10px;background:none;color:var(--muted);font-size:22px;line-height:1;cursor:pointer}
+.wx-x:hover{background:color-mix(in srgb,var(--ink) 6%,transparent)}
+@media (min-width:760px){.wx-bar{justify-content:center}.wx-bar span{flex:0 1 auto;max-width:var(--max)}}

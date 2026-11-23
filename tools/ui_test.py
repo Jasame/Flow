@@ -10,7 +10,7 @@ Checks layout (no sideways scrolling, nothing hidden under the bottom tabs, touc
 learners reported problems with: keyboard shortcuts, Enter in answer boxes, swipes in review, closing sheets, the
 playback stop button, step switching, list filters. Screenshots of every page per device go to the out dir.
 """
-import atexit, json, socket, subprocess, sys, tempfile, time, traceback
+import atexit, json, os, socket, subprocess, sys, tempfile, time, traceback
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
@@ -106,7 +106,8 @@ LAYOUT_JS = """(touch) => {
 COVER_JS = """() => {
   // After scrolling to the bottom: is the last control on the page covered by the bottom tabs or another fixed layer?
   scrollTo(0, document.scrollingElement.scrollHeight);
-  const els = [...document.querySelectorAll('#view button:not([disabled]), #view a.btn, #view a.link')].filter(e => e.offsetParent !== null);
+  // (a control inside a folded <details> is not on the page until it is opened)
+  const els = [...document.querySelectorAll('#view button:not([disabled]), #view a.btn, #view a.link')].filter(e => e.offsetParent !== null && !(e.closest('details:not([open])') && !e.closest('summary')));
   const last = els[els.length - 1]; if (!last) return null;
   let r = last.getBoundingClientRect();
   const head = document.getElementById('bar').getBoundingClientRect().bottom;
@@ -167,6 +168,8 @@ def run_device(pw, dev, opts):
     check(dev, 'home: the button goes to the highlighted next step', first and nexthref == first[0], (first, nexthref))
     k = pg.text_content('#view .greet') or ''
     check(dev, 'greeting shows the username as written', f'ui-{dev}' in k, k)
+    hm = pg.evaluate("() => ({notices: document.querySelectorAll('#notice > *').length, tabs: [...document.querySelectorAll('.tabs a span')].map(s => s.textContent), map: !!document.querySelector('#view .graph-mini'), rows: document.querySelectorAll('#view .mlist .mrow').length, more: (document.querySelector('#view .mrow.more') || {}).getAttribute ? document.querySelector('#view .mrow.more').getAttribute('href') : ''})")
+    check(dev, 'home: four tabs, at most one notice, materials as rows ending in 更多材料', hm['tabs'] == ['今日', '练习', '单词', '我的'] and hm['notices'] <= 1 and not hm['map'] and hm['rows'] >= 2 and hm['more'] == '#/library', hm)
 
     # ---- study steps: the green indicator sits under the selected step after moving between steps
     for st in ('read', 'check', 'output', 'listen'):
@@ -179,6 +182,10 @@ def run_device(pw, dev, opts):
     pg.evaluate("() => { try { localStorage.removeItem('flow-graph-view'); } catch (e) {} }"); go(pg, '#/'); go(pg, '#/graph'); pg.wait_for_timeout(900)
     rt = pg.evaluate("() => ({nodes: document.querySelectorAll('#gRoute .rnode').length, bands: document.querySelectorAll('#gRoute .rband').length, here: document.querySelectorAll('#gRoute .rnode.here').length, drawn: document.querySelectorAll('#gRoute .rnode.drawn').length, shown: !document.getElementById('gRoute').hidden})")
     check(dev, 'graph: the learning route shows 44 points on 4 lines, one marked as next', rt['shown'] and rt['nodes'] == 44 and rt['bands'] == 4 and rt['here'] == 1 and rt['drawn'] == 44, rt)
+    fold = pg.evaluate("() => { const o = [...document.querySelectorAll('#gRoute details.rband[open]')]; return [o.length, o.length === 1 && !!o[0].querySelector('.rnode.here'), !!document.querySelector('.tabs [data-nav=practice][aria-current=page]')]; }")
+    check(dev, 'graph: only the level with the next stop is open, under the 练习 tab', fold[0] == 1 and fold[1] and fold[2], fold)
+    pg.click('#gRoute details.rband:not([open]) > summary >> nth=0'); pg.wait_for_timeout(300)
+    check(dev, 'graph: a folded level opens', pg.evaluate("() => document.querySelectorAll('#gRoute details.rband[open]').length") == 2)
     pg.click('[data-gv="all"]'); pg.wait_for_timeout(300)
     g = pg.evaluate("() => ({next: document.querySelectorAll('#view .go-next').length, href: (document.querySelector('#view .go-next') || {}).getAttribute ? document.querySelector('#view .go-next').getAttribute('href') : '', tiles: document.querySelectorAll('.tgrid .tile').length, rows: document.querySelectorAll('.nrow').length})")
     check(dev, 'graph: one next point and 13 topics with 44 points', g['next'] == 1 and g['href'].startswith('#/graph/') and g['tiles'] == 13 and g['rows'] == 44, g)
@@ -237,6 +244,8 @@ def run_device(pw, dev, opts):
 
     # ---- listen: whole-text playback shows a stop control that stays on screen, and it stops
     go(pg, f'#/m/{PID}/listen')
+    lp = pg.evaluate("() => { const p = document.getElementById('playAll').getBoundingClientRect(), w = document.querySelector('#view .preread'); return [Math.round(p.top), w ? Math.round(w.getBoundingClientRect().top) : null, w ? w.open : null, innerHeight]; }")
+    check(dev, 'listen: 播放全文 comes first, on the first screen; the words to know are folded under it', lp[0] < lp[3] and (lp[1] is None or (lp[1] > lp[0] and lp[2] is False)), lp)
     pg.click('#playAll')
     pg.wait_for_timeout(250)
     mini = pg.evaluate("() => { const m = document.querySelector('.mini-player'); if (!m || m.hidden) return null; const r = m.getBoundingClientRect(); return [r.top, r.bottom, innerHeight]; }")
@@ -252,12 +261,59 @@ def run_device(pw, dev, opts):
         check(dev, 'Space starts playback (desktop)', '停止' in pg.inner_html('#playAll'))
         pg.keyboard.press('Space'); pg.wait_for_timeout(150)
 
+    # ---- audio: when this server cannot send a material's narration, the page fetches it from the media domain itself
+    hits = []
+    def media_origin(route):
+        hits.append(route.request.url)
+        cors = {'Access-Control-Allow-Origin': '*'}
+        if route.request.url.split('?')[0].endswith('.json'):
+            route.fulfill(status=200, content_type='application/json', headers=cors,
+                          body=json.dumps({'v': 1, 'duration': 2, 'sentences': [{'s': 0, 'e': 2, 'w': [[0, 0, 1]]}]}))
+        else:
+            route.fulfill(status=200, content_type='audio/mp4', headers=cors, body=b'not really audio')
+    pg.route('http://127.0.0.1:9/**', media_origin)
+    go(pg, '#/m/v5-culture-c1-lighthouse-ledger-3/listen')
+    pg.click('#playAll'); pg.wait_for_timeout(2500)
+    check(dev, 'audio: timings and sound come from the media domain when this server cannot send them',
+          any('/audio/' in h and '.json?v=uitest000001' in h for h in hits) and any('/audio/' in h and '.m4a?v=uitest000001' in h for h in hits), hits[:4])
+    pg.evaluate("() => { const s = document.querySelector('.mini-player .stop'); if (s && !s.closest('[hidden]')) s.click(); }")
+    pg.unroute('http://127.0.0.1:9/**')
+    # ---- audio: this server sends the timings, but its sound file fails while play() is waiting. The page switches to
+    # the media domain inside the file's error event, and play() reports its failure only after that, so the report
+    # must not end the playback with a false alarm. (A context without the service worker, so requests can be held.)
+    # The page uses a recording only when its timings have one entry per sentence of the text (else the browser voice).
+    sound = (Path(__file__).with_name('ui-fixtures') / 'audio' / 'words' / 'us' / 'w000.m4a').read_bytes()  # 2 s
+    mctx = ctx.browser.new_context(**opts, locale='zh-CN', bypass_csp=True, service_workers='block')
+    mctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners'][dev]['token'], 'url': BASE}])
+    n = len(mctx.request.get(BASE + '/api/next/material?id=v5-culture-c1-lighthouse-ledger-3').json()['sentences'])
+    timing = json.dumps({'v': 1, 'duration': 2, 'sentences': [{'s': 2 * i / n, 'e': 2 * (i + 1) / n, 'w': [[0, 2 * i / n, 2 * (i + 1) / n]]} for i in range(n)]})
+    mp, held, alt = mctx.new_page(), [], []
+    mp.route(BASE + '/audio/**', lambda r: r.fulfill(status=200, content_type='application/json', body=timing) if '.json' in r.request.url else held.append(r))
+    mp.route('http://127.0.0.1:9/**', lambda r: (alt.append(r.request.url), r.fulfill(status=200, content_type='audio/mp4', headers={'Access-Control-Allow-Origin': '*'}, body=sound)))
+    mp.goto(BASE + '/#/m/v5-culture-c1-lighthouse-ledger-3/listen', wait_until='domcontentloaded'); settle(mp, '#playAll')
+    mp.click('#playAll'); mp.wait_for_timeout(150)
+    for r in held:
+        r.fulfill(status=404, body='')
+    mp.wait_for_timeout(600)
+    toast = mp.evaluate("() => { const t = document.getElementById('toast'); return t && t.classList.contains('show') ? t.textContent : ''; }")
+    media = mp.evaluate("[...document.querySelectorAll('audio')].some(a => a.src.startsWith('http://127.0.0.1:9/') && !a.paused)")
+    check(dev, "audio: this server's sound failing while play() waits, the media domain's plays on, with no false alarm",
+          held and media and '没加载出来' not in toast and '无法播放' not in toast and mp.evaluate("document.body.classList.contains('playing')"),
+          {'held': len(held), 'alt': alt[:2], 'playing from the media domain': media, 'toast': toast})
+    mctx.close()
+
     # ---- read: the ✦ of every sentence sits on the same line as the sentence's last word
     go(pg, f'#/m/{PID}/read')
     bad = pg.evaluate("""() => [...document.querySelectorAll('#reader [data-ex]')].filter(b => {
         const w = b.parentElement.querySelector('.w'); if (!w) return false;
         return Math.abs(b.getBoundingClientRect().top - w.getBoundingClientRect().top) > 12; }).length""")
     check(dev, '✦ never wraps away from its sentence', bad == 0, f'{bad} detached')
+    rd2 = pg.evaluate("() => { const r = document.getElementById('reader').getBoundingClientRect(), t = document.getElementById('toCheck'), g = document.getElementById('gains'); return {gap: Math.round(t.getBoundingClientRect().top - r.bottom), primary: t.classList.contains('primary'), folded: g ? !g.open : null, tabs: g ? g.querySelectorAll('[data-gt]').length : 0}; }")
+    check(dev, 'read: the next step comes right after the text; the extras fold into one card with tabs', rd2['gap'] < 120 and rd2['primary'] and rd2['folded'] and rd2['tabs'] >= 2, rd2)
+    pg.evaluate("document.getElementById('gains').open = true"); pg.click('#gains [data-gt="words"]'); pg.wait_for_timeout(200)
+    shown = pg.evaluate("() => [...document.querySelectorAll('#gains [data-gp]')].filter(p => !p.hidden).map(p => p.dataset.gp)")
+    check(dev, 'read: a tab of 这篇的收获 shows only its own part', shown == ['words'], shown)
+    pg.evaluate("document.getElementById('gains').open = false")
     # step switch from far down the page: the first question is visible right under the step bar
     pg.evaluate("scrollTo(0, document.scrollingElement.scrollHeight)")
     pg.wait_for_timeout(200)
@@ -323,8 +379,21 @@ def run_device(pw, dev, opts):
         return [Math.round(t.top), Math.round(t.bottom), Math.round(tabTop)]; }""")
     check(dev, 'dialogue answer box is visible above the tabs', vis[0] >= 0 and vis[1] <= vis[2] + 1, vis)
 
-    # ---- words page: a filter swaps only the list (the header element survives, no flash)
+    # ---- 练习: the grammar map is the wide first card of the 语法 group
+    go(pg, '#/practice')
+    pm = pg.evaluate("() => { const m = document.querySelector('#view .ptile.pmap'); return m ? [m.getAttribute('href'), m.closest('.pgroup').querySelector('h2').textContent, Math.round(m.getBoundingClientRect().width / m.parentElement.getBoundingClientRect().width * 100), Math.round(m.getBoundingClientRect().top), innerHeight] : null; }")
+    check(dev, 'practice: the grammar map is the wide card of the 语法 group, on the first screen', pm and pm[0] == '#/graph' and pm[1] == '语法' and pm[2] >= 98 and pm[3] < pm[4], pm)
+    # r20: a tap on a counted entry point sends its key only (the console compares releases with these counts)
+    with pg.expect_request(lambda r: r.url.endswith('/api/next/tap'), timeout=4000) as tap:
+        pg.click('#view .ptile.pmap')
+    check(dev, 'a counted entry point sends its key and nothing else', json.loads(tap.value.post_data or '{}') == {'k': 'practice-map'}, tap.value.post_data)
+    settle(pg)
+
+    # ---- words page: five tools, the stats folded, one short row per word
     go(pg, '#/cards')
+    wd = pg.evaluate("() => { const rows = [...document.querySelectorAll('#clist .xrow')]; return {tools: document.querySelectorAll('#view .tools a, #view .tools button').length, folded: !document.getElementById('vStats').open, rows: rows.length, tallest: Math.max(0, ...rows.map(r => Math.round(r.getBoundingClientRect().height)))}; }")
+    check(dev, 'words: five tools, the stats folded, one short row per word', wd['tools'] == 5 and wd['folded'] and wd['rows'] >= 10 and wd['tallest'] <= 80, wd)
+    # ---- words page: a filter swaps only the list (the header element survives, no flash)
     pg.evaluate("document.querySelector('#view h1').dataset.keep = '1'")
     pg.click('[data-f="mistake"]')
     pg.wait_for_timeout(600)
@@ -435,6 +504,8 @@ def run_device(pw, dev, opts):
     go(pg, '#/radar'); pg.wait_for_timeout(900)
     rd = pg.evaluate("() => ({axes: document.querySelectorAll('.radar .ax').length, dots: document.querySelectorAll('.radar .dt:not(.none)').length, shown: document.querySelector('.radar .cur').classList.contains('on'), rows: document.querySelectorAll('.rdim').length})")
     check(dev, 'radar: six axes, the measured skill drawn against the goal', rd['axes'] == 6 and rd['dots'] >= 1 and rd['shown'] and rd['rows'] == 6, rd)
+    pg.evaluate("document.getElementById('abFold').open = true"); pg.wait_for_selector('#abFold .ab', timeout=5000)
+    check(dev, 'radar: the folded estimate from practice lists 8 skills (was 能力画像 on 我的)', pg.evaluate("() => document.querySelectorAll('#abFold .ab').length") == 8)
     go(pg, '#/radar/test/writing')
     pg.fill('#aText', 'I would like to learn to cook because I live alone now and I want to eat better food every day. ' * 3)
     pg.click('#aGo'); pg.wait_for_timeout(1200)
@@ -453,6 +524,12 @@ def run_device(pw, dev, opts):
     check(dev, 'me: email row says whether one is bound', len((pg.text_content('#acctEmail') or '').strip()) > 0, pg.text_content('#acctEmail'))
     # ---- account and security: change the password (the eye shows what was typed; a mismatch is said at once)
     check(dev, 'me: account card offers change password and sign out everywhere', pg.is_visible('#chPw') and pg.is_visible('#outAll'))
+    me = pg.evaluate("() => ({groups: [...document.querySelectorAll('#view .gsec .ghead')].map(h => h.textContent), ability: !!document.querySelector('#view #ability'), out: !!document.querySelector('#view #out'), classic: /经典版|classic/.test(document.getElementById('view').innerHTML)})")
+    check(dev, 'me: rows grouped as 进步, 设置, 账号, 帮助, then 退出登录; no ability card, no way to the classic site', me['groups'] == ['进步', '设置', '账号', '帮助'] and not me['ability'] and me['out'] and not me['classic'], me)
+    pg.click('#meVoice'); pg.wait_for_selector('#sheet [data-voice]', timeout=4000)
+    pg.click('#sheet [data-voice="uk-m"]'); pg.wait_for_timeout(300)
+    check(dev, 'me: the voice row opens a sheet, and the row shows the new voice', '英音 · 男' in (pg.text_content('#meVoiceV') or ''), pg.text_content('#meVoiceV'))
+    pg.click('#sheet [data-voice="us-f"]'); pg.wait_for_timeout(200); pg.evaluate("document.querySelector('#sheet [data-close]').click()"); pg.wait_for_timeout(300)
     pg.click('#chPw'); pg.wait_for_selector('#cp', timeout=4000)
     pg.click('#cp [data-eye] >> nth=0')
     check(dev, 'change password: the eye shows the password', pg.get_attribute('#cp [name=old]', 'type') == 'text')
@@ -479,8 +556,10 @@ def run_device(pw, dev, opts):
     go(pg, '#/import')
     check(dev, 'import: a topic can be chosen', pg.evaluate("() => document.querySelectorAll('#impF select[name=theme] option').length") >= 7)
 
-    # ---- library: filters are remembered after opening a material and coming back
+    # ---- library: one row per material; filters are remembered after opening a material and coming back
     go(pg, '#/library')
+    lib = pg.evaluate("() => { const rows = [...document.querySelectorAll('#lib .mrow')]; return [rows.length, Math.max(0, ...rows.map(r => Math.round(r.getBoundingClientRect().height)))]; }")
+    check(dev, 'library: one short row per material', lib[0] >= 3 and lib[1] <= 80, lib)
     pg.select_option('#fl', 'B2'); pg.wait_for_timeout(500)
     pg.click('#lib a >> nth=0'); settle(pg)
     pg.go_back(); settle(pg)
@@ -488,6 +567,159 @@ def run_device(pw, dev, opts):
 
     check(dev, 'no script errors', not [e for e in errors if 'Failed to load resource' not in e], errors[:5])
     ctx.browser.close()
+
+
+# ---- the phone in hand: how to put Flow on the home screen (iPhone, Android with and without the browser's own
+# install offer), where a text comes from, and a 360-pixel-wide phone
+IPHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1'
+ANDROID_UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36'
+OFFER = """window.__prompted = 0; addEventListener('load', () => { const e = new Event('beforeinstallprompt');
+  e.prompt = () => { window.__prompted++; }; e.userChoice = Promise.resolve({ outcome: 'accepted' }); dispatchEvent(e); });"""
+
+
+def platform_run(pw):
+    dev = 'platforms'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    token = CFG['learners']['phone']['token']
+
+    def page(ua, width=390, init=None):
+        ctx = browser.new_context(viewport={'width': width, 'height': 800}, is_mobile=True, has_touch=True, device_scale_factor=2, user_agent=ua, locale='zh-CN', bypass_csp=True)
+        ctx.add_cookies([{'name': 'flow_session', 'value': token, 'url': BASE}])
+        if init:
+            ctx.add_init_script(init)
+        pg = ctx.new_page(); pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+        return ctx, pg
+
+    def install_text(pg):
+        go(pg, '#/me'); pg.click('#meInstall'); pg.wait_for_selector('#sheetCard h2', timeout=4000); pg.wait_for_timeout(200)
+        return pg.text_content('#sheetCard') or ''
+    try:
+        # iPhone (Safari): two steps from the share button; the source line under a title, and its sheet
+        ctx, pg = page(IPHONE_UA)
+        t = install_text(pg)
+        check(dev, 'iPhone: share button at the bottom, then 添加到主屏幕', '底部中间' in t and '添加到主屏幕' in t and not pg.query_selector('#doInstall'), t[:120])
+        pg.evaluate("document.querySelector('#sheet [data-close]').click()")
+        go(pg, f'#/m/{PID}/read')
+        o = pg.text_content('#view .origin') or ''
+        check(dev, 'a text says where it comes from and that AI helped write it', '来源：' in o and 'AI 辅助编写' in o, o)
+        pg.click('#originMore'); pg.wait_for_selector('#sheetCard .origin-rules', timeout=4000)
+        check(dev, 'the source line opens the writing rules', '在原文里找得到依据' in (pg.text_content('#sheetCard') or ''))
+        pg.evaluate("document.querySelector('#sheet [data-close]').click()")
+        # the 今日 notice, for a learner who has studied once: after the email notice is put off, 放到桌面 comes next
+        pg.evaluate("""async pid => { const s = await (await fetch('/api/session')).json();
+            await fetch('/api/next/progress', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': s.user.csrf }, body: JSON.stringify({ pack: pid, step: 'check' }) }); }""", PID)
+        go(pg, '#/'); pg.wait_for_timeout(300)
+        if pg.query_selector('#mnLater'):
+            pg.click('#mnLater'); pg.wait_for_timeout(200)
+        check(dev, '今日: after the email notice, one about the home screen', pg.query_selector('#installNudge') is not None and pg.query_selector('#notice > *:nth-child(2)') is None,
+              pg.text_content('#notice')[:80] if pg.query_selector('#notice') else '')
+        if pg.query_selector('#inGo'):
+            pg.click('#inGo'); pg.wait_for_selector('#sheetCard .isteps', timeout=4000)
+            check(dev, '今日: 怎么放 opens the same two steps', '添加到主屏幕' in (pg.text_content('#sheetCard') or ''))
+        ctx.close()
+        # Android without the browser's offer: the menu, two steps
+        ctx, pg = page(ANDROID_UA)
+        t = install_text(pg)
+        check(dev, 'Android: the browser menu, then 添加到主屏幕 / 安装应用', '⋮' in t and '安装应用' in t, t[:120])
+        ctx.close()
+        # Android with the offer (beforeinstallprompt): one button, the browser's own install
+        ctx, pg = page(ANDROID_UA, init=OFFER)
+        install_text(pg)
+        has = pg.query_selector('#doInstall') is not None
+        if has:
+            pg.click('#doInstall'); pg.wait_for_timeout(400)
+        check(dev, "Android: one tap uses the browser's own install", has and pg.evaluate('window.__prompted') == 1)
+        ctx.close()
+        # a 360-pixel-wide phone: nothing wider than the screen on the pages changed here
+        ctx, pg = page(ANDROID_UA, width=360)
+        wide = {}
+        for h in ('#/', f'#/m/{PID}/read', f'#/m/{PID}/listen', '#/me'):
+            go(pg, h); pg.wait_for_timeout(300)
+            wide[h] = pg.evaluate('document.scrollingElement.scrollWidth - innerWidth')
+        check(dev, '360 px wide: no page scrolls sideways', all(v <= 0 for v in wide.values()), wide)
+        ctx.close()
+    finally:
+        browser.close()
+
+
+# ---- WeChat's built-in browser: sound only when it starts inside a tap (or on a player an earlier tap unlocked), and
+# no browser voice. Chrome allows more, so the page gets a play() that refuses the way WeChat's does. Its own server,
+# with the narration timings and a word index from tools/ui-fixtures (no sound files: what is checked is that every
+# play() is one WeChat would allow, and that the bar telling how to open the page in the browser is there).
+WECHAT_UA = ('Mozilla/5.0 (Linux; Android 13; V2241A Build/TP1A.220624.014; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 '
+             'Chrome/116.0.0.0 Mobile Safari/537.36 XWEB/1160065 MMWEBSDK/20231202 MicroMessenger/8.0.47.2560(0x28002F30) WeChat/arm64 Weixin NetType/WIFI Language/zh_CN ABI/arm64')
+WECHAT_RULES = """(() => {
+  let tap = false;
+  const on = () => { tap = true; setTimeout(() => { tap = false; }, 0); };
+  ['click', 'touchend', 'keydown'].forEach(t => window.addEventListener(t, on, true));
+  window.__plays = [];
+  const play = HTMLMediaElement.prototype.play;
+  HTMLMediaElement.prototype.play = function () {
+    const ok = tap || !!this.__unlocked;
+    window.__plays.push({ src: String(this.getAttribute('src') || '').slice(0, 90), tap, ok });
+    if (!ok) return Promise.reject(new DOMException('play() can only be initiated by a user gesture.', 'NotAllowedError'));
+    this.__unlocked = true;
+    return play.call(this);
+  };
+  for (const o of [window, Window.prototype]) { try { delete o.speechSynthesis; delete o.SpeechSynthesisUtterance; } catch (e) {} }
+})();"""
+
+
+def wechat_run(pw):
+    dev = 'wechat'
+    state = Path(tempfile.mkdtemp(prefix='flow-ui-wx-'))
+    with socket.socket() as so:
+        so.bind(('127.0.0.1', 0)); port = so.getsockname()[1]
+    srv = subprocess.Popen([sys.executable, str(Path(__file__).with_name('ui_server.py')), str(port), str(state)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                           env={**os.environ, 'FLOW_AUDIO_DIR': str(Path(__file__).with_name('ui-fixtures') / 'audio')})
+    try:
+        for _ in range(120):
+            if (state / 'sessions.json').exists():
+                break
+            time.sleep(0.25)
+        time.sleep(0.5)
+        cfg = json.loads((state / 'sessions.json').read_text()); base, pid = cfg['base'], cfg['pid']
+        browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+        ctx = browser.new_context(**DEVICES['phone'], user_agent=WECHAT_UA, locale='zh-CN', bypass_csp=True)
+        ctx.add_cookies([{'name': 'flow_session', 'value': cfg['learners']['phone']['token'], 'url': base}])
+        ctx.add_init_script(WECHAT_RULES)
+        pg = ctx.new_page(); errors = []
+        pg.on('pageerror', lambda e: errors.append(str(e)))
+        pg.goto(base + '/#/', wait_until='networkidle'); settle(pg)
+        bar = pg.text_content('.wx-bar') if pg.query_selector('.wx-bar') else ''
+        check(dev, 'a slim bar says how to open the page in the browser', '在浏览器打开' in bar and pg.is_visible('.wx-bar .wx-x'), bar[:80])
+        pg.click('.wx-bar .wx-x'); pg.reload(); settle(pg)
+        check(dev, 'the bar, once closed, stays away', pg.query_selector('.wx-bar') is None)
+        plays = lambda: pg.evaluate('window.__plays')
+        # listen: the first tap unlocks both players; 播放全文 starts the narration inside the tap
+        pg.evaluate("location.hash = '#/m/" + pid + "/listen'"); settle(pg, '#playAll'); pg.wait_for_timeout(400)
+        pg.click('#playAll'); pg.wait_for_timeout(300)
+        nar = [x for x in plays() if pid in x['src']]
+        check(dev, '播放全文 starts the recording inside the tap', nar and nar[-1]['ok'] and nar[-1]['tap'], plays()[-3:])
+        if pg.is_visible('.mini-player .stop'):
+            pg.click('.mini-player .stop')
+        # read: 伴读 starts inside the tap, because the timings were fetched when the page opened
+        pg.evaluate("location.hash = '#/m/" + pid + "/read'"); settle(pg, '#reader'); pg.wait_for_timeout(500)
+        n0 = len(plays()); pg.click('#readAlong'); pg.wait_for_timeout(300)
+        new = plays()[n0:]
+        check(dev, '伴读 starts the recording inside the tap', new and new[0]['ok'] and new[0]['tap'], new)
+        pg.click('#readAlong'); pg.wait_for_timeout(200)
+        # a word: its recorded pronunciation, started after the look-up arrives, on the player the first tap unlocked
+        n0 = len(plays()); pg.click('#reader .w:text-is("drains")'); pg.wait_for_selector('#sheetCard .word', timeout=5000); pg.wait_for_timeout(400)
+        new = [x for x in plays()[n0:] if '/audio/words/' in x['src']]
+        check(dev, 'a looked-up word plays its recording (no browser voice here)', new and all(x['ok'] for x in new), plays()[n0:])
+        pg.evaluate("document.querySelector('#sheet [data-close]').click()"); pg.wait_for_timeout(200)
+        # review: a card says its word when it appears (after the queue arrives) and again on the speaker button
+        n0 = len(plays()); pg.evaluate("location.hash = '#/review'"); settle(pg); pg.wait_for_timeout(800)
+        if pg.query_selector('#sayW'):
+            pg.click('#sayW'); pg.wait_for_timeout(400)
+        new = [x for x in plays()[n0:] if '/audio/words/' in x['src']]
+        check(dev, 'a review card says its word, by itself and on the speaker button', new and all(x['ok'] for x in new), plays()[n0:])
+        check(dev, 'every sound started was one WeChat allows', all(x['ok'] for x in plays()), [x for x in plays() if not x['ok']][:3])
+        check(dev, 'no script errors', not errors, errors[:3])
+        browser.close()
+    finally:
+        srv.terminate()
 
 
 def main():
@@ -499,6 +731,16 @@ def main():
                 run_device(pw, dev, opts)
             except Exception:
                 check(dev, 'device run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'platforms' in ONLY:
+            try:
+                platform_run(pw)
+            except Exception:
+                check('platforms', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'wechat' in ONLY:
+            try:
+                wechat_run(pw)
+            except Exception:
+                check('wechat', 'run finished', False, traceback.format_exc()[-600:])
     failed = [r for r in RESULTS if not r['ok']]
     (OUT / 'ui-report.json').write_text(json.dumps({'total': len(RESULTS), 'failed': failed, 'results': RESULTS}, ensure_ascii=False, indent=1))
     print(f'\n{len(RESULTS) - len(failed)}/{len(RESULTS)} passed; screenshots and ui-report.json in {OUT}')

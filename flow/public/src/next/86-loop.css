@@ -41,6 +41,5 @@ details[open]>summary{margin-bottom:8px}
 .serial .ep.done .n{background:var(--green);color:#fff}
 .serial .ep.next .n{box-shadow:0 0 0 2px var(--green)}
 .serial .ep .t{display:grid;gap:2px;min-width:0}
-.next-ep{display:grid;gap:4px;text-decoration:none;color:inherit;padding:14px 16px}
 @media (max-width:420px){.exam-pick{grid-template-columns:1fr}.bands{gap:6px}.band span{font-size:16px}}
 @media (hover:none){.serial .ep:hover{background:none}}

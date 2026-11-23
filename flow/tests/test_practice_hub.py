@@ -24,10 +24,17 @@ class PracticeHubTests(unittest.TestCase):
         self.assertGreaterEqual(len(tiles), 18)
         for href, title in tiles:
             self.assertIn(href[2:].split('/')[0], known, title)
-        # what used to be a long list in 我的 is now one link to the hub, plus the guide
+        # r20: four tabs; the grammar map has no tab of its own and is the 语法 group's wide card in the hub
+        self.assertNotIn('data-nav="graph"', html)
+        self.assertEqual(re.findall(r'data-nav="([a-z]+)"', html), ['today', 'practice', 'cards', 'me'])
+        self.assertIn("['#/graph', '知识图谱', '44 个语法点按顺序连成路线，点亮一个学一个', 'map']", hub)
+        for name in ('graph', 'mix', 'placement'):
+            self.assertIn(f"name === '{name}') {{ setNav('practice')", shell)
+        # 我的 is a grouped list: progress, settings, account and help; practice lives in its tab, not in a list here
         me = (SRC / '81-me.js').read_text(encoding='utf-8')
-        self.assertIn('href="#/practice"', me); self.assertIn('href="#/guide"', me)
-        self.assertNotIn('href="#/easy"', me)
+        for href in ('#/radar', '#/growth', '#/report', '#/cards/mistake', '#/welcome/edit', '#/guide'):
+            self.assertIn(f"grow('{href}'", me)
+        self.assertNotIn('#/easy', me); self.assertNotIn('abilityHTML', me)
 
     def test_the_built_script_carries_the_hub_and_the_guide(self):
         js = (ROOT / 'public' / 'next.js').read_text(encoding='utf-8')
