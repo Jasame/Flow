@@ -22,12 +22,17 @@ jobs:
             code=$(curl -s -o /tmp/body -w '%{http_code}' --max-time 20 --retry 2 --retry-delay 15 --retry-all-errors "$1")
             if [ "$code" != 200 ]; then echo "::error::$1 answered $code: $(head -c 200 /tmp/body)"; return 1; fi
           }
-          check https://flow.jasa.hk/api/health
-          check https://flow.jasa.hk/
-          check "https://flow.jasa.hk/api/next/home?level=B1"
-          check "https://flow.jasa.hk/api/next/lookup?w=went"
-          check https://flow.jasa.hk/api/deploy-status
+          check https://flowlang.cn/api/health
+          check https://flowlang.cn/
+          check "https://flowlang.cn/api/next/home?level=B1"
+          check "https://flowlang.cn/api/next/lookup?w=went"
+          check https://flowlang.cn/api/deploy-status
           cp /tmp/body /tmp/status.json
+      - name: The 内测版 (flow.jasa.hk) answers too
+        continue-on-error: true  # a note in the run, not an alarm: the 内测版 may be mid-test
+        run: |
+          code=$(curl -s -o /tmp/beta -w '%{http_code}' --max-time 20 --retry 2 --retry-delay 15 --retry-all-errors https://flow.jasa.hk/api/health)
+          grep -q '"channel": *"beta"' /tmp/beta || { echo "::warning::flow.jasa.hk answered $code, not as the 内测版: $(head -c 200 /tmp/beta)"; exit 1; }
       - name: No errors piling up, memory in bounds, daily test passed
         run: |
           python3 - <<'PY'
