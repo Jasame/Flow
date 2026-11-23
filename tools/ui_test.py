@@ -528,6 +528,79 @@ def run_device(pw, dev, opts):
     ctx.browser.close()
 
 
+# ---- the phone in hand: how to put Flow on the home screen (iPhone, Android with and without the browser's own
+# install offer), where a text comes from, and a 360-pixel-wide phone
+IPHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1'
+ANDROID_UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36'
+OFFER = """window.__prompted = 0; addEventListener('load', () => { const e = new Event('beforeinstallprompt');
+  e.prompt = () => { window.__prompted++; }; e.userChoice = Promise.resolve({ outcome: 'accepted' }); dispatchEvent(e); });"""
+
+
+def platform_run(pw):
+    dev = 'platforms'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    token = CFG['learners']['phone']['token']
+
+    def page(ua, width=390, init=None):
+        ctx = browser.new_context(viewport={'width': width, 'height': 800}, is_mobile=True, has_touch=True, device_scale_factor=2, user_agent=ua, locale='zh-CN', bypass_csp=True)
+        ctx.add_cookies([{'name': 'flow_session', 'value': token, 'url': BASE}])
+        if init:
+            ctx.add_init_script(init)
+        pg = ctx.new_page(); pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+        return ctx, pg
+
+    def install_text(pg):
+        go(pg, '#/me'); pg.click('#meInstall'); pg.wait_for_selector('#sheetCard h2', timeout=4000); pg.wait_for_timeout(200)
+        return pg.text_content('#sheetCard') or ''
+    try:
+        # iPhone (Safari): two steps from the share button; the source line under a title, and its sheet
+        ctx, pg = page(IPHONE_UA)
+        t = install_text(pg)
+        check(dev, 'iPhone: share button at the bottom, then 添加到主屏幕', '底部中间' in t and '添加到主屏幕' in t and not pg.query_selector('#doInstall'), t[:120])
+        pg.evaluate("document.querySelector('#sheet [data-close]').click()")
+        go(pg, f'#/m/{PID}/read')
+        o = pg.text_content('#view .origin') or ''
+        check(dev, 'a text says where it comes from and that AI helped write it', '来源：' in o and 'AI 辅助编写' in o, o)
+        pg.click('#originMore'); pg.wait_for_selector('#sheetCard .origin-rules', timeout=4000)
+        check(dev, 'the source line opens the writing rules', '在原文里找得到依据' in (pg.text_content('#sheetCard') or ''))
+        pg.evaluate("document.querySelector('#sheet [data-close]').click()")
+        # the 今日 notice, for a learner who has studied once: after the email notice is put off, 放到桌面 comes next
+        pg.evaluate("""async pid => { const s = await (await fetch('/api/session')).json();
+            await fetch('/api/next/progress', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': s.user.csrf }, body: JSON.stringify({ pack: pid, step: 'check' }) }); }""", PID)
+        go(pg, '#/'); pg.wait_for_timeout(300)
+        if pg.query_selector('#mnLater'):
+            pg.click('#mnLater'); pg.wait_for_timeout(200)
+        check(dev, '今日: after the email notice, one about the home screen', pg.query_selector('#installNudge') is not None and pg.query_selector('#notice > *:nth-child(2)') is None,
+              pg.text_content('#notice')[:80] if pg.query_selector('#notice') else '')
+        if pg.query_selector('#inGo'):
+            pg.click('#inGo'); pg.wait_for_selector('#sheetCard .isteps', timeout=4000)
+            check(dev, '今日: 怎么放 opens the same two steps', '添加到主屏幕' in (pg.text_content('#sheetCard') or ''))
+        ctx.close()
+        # Android without the browser's offer: the menu, two steps
+        ctx, pg = page(ANDROID_UA)
+        t = install_text(pg)
+        check(dev, 'Android: the browser menu, then 添加到主屏幕 / 安装应用', '⋮' in t and '安装应用' in t, t[:120])
+        ctx.close()
+        # Android with the offer (beforeinstallprompt): one button, the browser's own install
+        ctx, pg = page(ANDROID_UA, init=OFFER)
+        install_text(pg)
+        has = pg.query_selector('#doInstall') is not None
+        if has:
+            pg.click('#doInstall'); pg.wait_for_timeout(400)
+        check(dev, "Android: one tap uses the browser's own install", has and pg.evaluate('window.__prompted') == 1)
+        ctx.close()
+        # a 360-pixel-wide phone: nothing wider than the screen on the pages changed here
+        ctx, pg = page(ANDROID_UA, width=360)
+        wide = {}
+        for h in ('#/', f'#/m/{PID}/read', f'#/m/{PID}/listen', '#/me'):
+            go(pg, h); pg.wait_for_timeout(300)
+            wide[h] = pg.evaluate('document.scrollingElement.scrollWidth - innerWidth')
+        check(dev, '360 px wide: no page scrolls sideways', all(v <= 0 for v in wide.values()), wide)
+        ctx.close()
+    finally:
+        browser.close()
+
+
 def main():
     with sync_playwright() as pw:
         for dev, opts in DEVICES.items():
@@ -537,6 +610,11 @@ def main():
                 run_device(pw, dev, opts)
             except Exception:
                 check(dev, 'device run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'platforms' in ONLY:
+            try:
+                platform_run(pw)
+            except Exception:
+                check('platforms', 'run finished', False, traceback.format_exc()[-600:])
     failed = [r for r in RESULTS if not r['ok']]
     (OUT / 'ui-report.json').write_text(json.dumps({'total': len(RESULTS), 'failed': failed, 'results': RESULTS}, ensure_ascii=False, indent=1))
     print(f'\n{len(RESULTS) - len(failed)}/{len(RESULTS)} passed; screenshots and ui-report.json in {OUT}')

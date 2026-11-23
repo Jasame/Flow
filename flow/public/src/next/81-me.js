@@ -63,14 +63,47 @@
       hour.onchange = () => { cal.href = ics(hour.value); };
     });
   }
+  /* ---------- on the home screen: two steps for the phone in hand, or one tap where the browser offers it ---------- */
+  const STANDALONE = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const IN_WECHAT = /MicroMessenger/i.test(navigator.userAgent);  // WeChat cannot install; its own bar says how to leave it
+  function installKind() {
+    const ua = navigator.userAgent, ipad = /iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);  // iPadOS says Mac
+    if (IN_WECHAT && !/iPhone|iPod/.test(ua) && !ipad) return 'wechat';
+    if (/iPhone|iPod/.test(ua) || ipad) return /CriOS|FxiOS|EdgiOS|OPiOS|MicroMessenger|QQ\//.test(ua) ? 'ios-other' : ipad ? 'ipad' : 'iphone';
+    if (installPrompt) return 'prompt';
+    return /Android/i.test(ua) ? 'android' : 'desktop';
+  }
+  addEventListener('appinstalled', () => { save('flow-installed', Date.now()); installPrompt = null; const n = document.getElementById('installNudge'); if (n) n.remove(); });
+  // The 今日 notice: a phone browser (not WeChat, not already on the home screen) of a learner who has studied once.
+  function installNudgeDue(h) {
+    return !!(S.user && TOUCH && !IN_WECHAT && !STANDALONE() && !load('flow-installed') && h.stats && (h.stats.materials_done || 0) >= 1
+      && Date.now() - (load('flow-install-later') || 0) > 30 * 864e5);
+  }
   function installSheet() {
-    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">添加到手机桌面</h2>
-      <p class="muted small">像 App 一样从桌面打开，界面全屏；听过的音频会缓存下来，网络差的时候也能复习。</p>
-      ${installPrompt ? '<button class="btn primary" id="doInstall" type="button">添加到桌面</button>' : /iPhone|iPad|iPod/.test(navigator.userAgent)
-        ? '<p class="small">iPhone：用 Safari 打开，点底部的「分享」按钮，再选「添加到主屏幕」。</p>' : '<p class="small">安卓：在浏览器菜单里选「添加到主屏幕」或「安装应用」。</p>'}
-      <button class="btn ghost" data-close type="button">${installPrompt ? '取消' : '知道了'}</button></div>`, card => {
+    const k = installKind(), share = '<svg class="ishare" viewBox="0 0 24 24" aria-label="分享按钮"><path d="M12 15V3M8 7l4-4 4 4"/><path d="M7 10H6v10h12V10h-1"/></svg>';
+    const steps = {
+      iphone: [`点屏幕<b>底部中间</b>的分享按钮 ${share}`, '往下滑，点「<b>添加到主屏幕</b>」，再点右上角的「添加」'],
+      ipad: [`点<b>右上角</b>的分享按钮 ${share}`, '往下滑，点「<b>添加到主屏幕</b>」，再点「添加」'],
+      'ios-other': ['苹果手机要用 <b>Safari</b> 才能放到桌面：点下面的「复制网址」，打开 Safari，粘贴并前往', `在 Safari 里点底部中间的分享按钮 ${share}，选「<b>添加到主屏幕</b>」`],
+      wechat: ['微信里不能放到桌面：点右上角「<b>···</b>」，选「<b>在浏览器打开</b>」', '在浏览器里打开「我的 → 添加到桌面」，按那里的两步做'],
+      android: ['点浏览器右上角的 <b>⋮</b>（有的浏览器在底部，是 <b>≡</b>）', '选「<b>添加到主屏幕</b>」或「<b>安装应用</b>」（有的手机叫「添加到桌面」）'],
+      desktop: ['用 Chrome 或 Edge 打开语流，点地址栏右边的「安装」图标', '装好以后，可以从开始菜单或程序坞打开'],
+    }[k];
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">把语流放到桌面</h2>
+      <p class="muted small">像 App 一样从桌面一点就开，界面全屏；听过的音频会缓存下来，网络差的时候也能复习。</p>
+      ${k === 'prompt' ? '<button class="btn primary" id="doInstall" type="button">安装到桌面</button>' : `<ol class="isteps">${steps.map(x => `<li>${x}</li>`).join('')}</ol>`}
+      ${k === 'ios-other' ? '<button class="btn" id="copyUrl" type="button">复制网址</button>' : ''}
+      <button class="btn ghost" data-close type="button">${k === 'prompt' ? '取消' : '知道了'}</button></div>`, card => {
       const di = card.querySelector('#doInstall');
-      if (di) di.onclick = async () => { installPrompt.prompt(); try { await installPrompt.userChoice; } catch (e) { /* dismissed */ } installPrompt = null; closeSheet(); meView(); };
+      if (di) di.onclick = async () => {
+        const p = installPrompt; if (!p) return closeSheet();
+        let ok = false; p.prompt(); try { ok = (await p.userChoice).outcome === 'accepted'; } catch (e) { /* dismissed */ }
+        installPrompt = null; closeSheet();
+        if (ok) { save('flow-installed', Date.now()); toast('放好了，在桌面上找「语流」'); }
+        route(true);
+      };
+      const cu = card.querySelector('#copyUrl');
+      if (cu) cu.onclick = () => { const u = location.origin + '/'; (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => toast('网址已复制，去 Safari 粘贴打开'), () => prompt('复制这个网址，到 Safari 里打开', u)); };
     });
   }
 

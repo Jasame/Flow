@@ -613,6 +613,8 @@
     if (!S.user) return `<div class="card sunk section notice stack-s"><b>登录后，进度和收藏的表达会保存下来</b><span class="muted small">不登录也可以听、读和做理解题。</span><div><button class="btn small" id="loginCta" data-tap="notice-login">登录 / 注册</button></div></div>`;
     if (h.suggest && Date.now() - (load('flow-next-suggest-skip') || 0) > 7 * 864e5) return suggestHTML(h.suggest);
     const mail = mailNudgeHTML(); if (mail) return mail;
+    if (installNudgeDue(h)) return `<div class="card sunk section notice stack-s" id="installNudge"><b>把语流放到手机桌面</b><span class="small">像 App 一样一点就开，全屏；听过的音频网络差的时候也能复习。</span>
+      <div class="row"><button class="btn small primary" id="inGo" type="button" data-tap="notice-install">怎么放</button><button class="btn small ghost" id="inLater" type="button">以后再说</button></div></div>`;
     if (!h.stats || (h.stats.materials_done || 0) < 3) return `<a class="card sunk section notice guide-hint" href="#/guide" data-tap="notice-guide"><span class="stack-s"><b>第一次用？看操作指南</b><span class="small muted">每个页面怎么用、按哪里，一步一步讲清楚。</span></span><span class="go" aria-hidden="true">›</span></a>`;
     return '';
   }
@@ -622,6 +624,9 @@
     const cta = document.getElementById('loginCta'); if (cta) cta.onclick = () => openLogin();
     if (h.suggest) bindSuggest(h, () => fillNotice(h));
     bindMailNudge(() => fillNotice(h));
+    const ig = document.getElementById('inGo'), il = document.getElementById('inLater');
+    if (ig) ig.onclick = installSheet;
+    if (il) il.onclick = () => { save('flow-install-later', Date.now()); fillNotice(h); };
   }
   function vocabHome(st) {
     if (!st) return '';
@@ -636,6 +641,22 @@
   let selbar = null;
   function hideSelbar() { if (selbar) { selbar.remove(); selbar = null; } }
   const MAT = {}; // the material being studied: step changes reuse it instead of refetching and re-animating the header
+  // Under the title: where the text comes from and how AI took part (r20). The writing rules of the originals, or the
+  // sources of a news text, are one tap away.
+  function originHTML(m) {
+    const o = m.origin || { kind: 'original', label: m.source, ai: '', reviewed: null, url: '', references: m.provenance || [] };
+    return `<div class="origin tiny"><span class="muted">来源：${o.url ? `<a class="link" href="${esc(o.url)}" target="_blank" rel="noopener noreferrer">${esc(o.label)}</a>` : esc(o.label)}</span>${o.ai ? `<span class="otag">${esc(o.ai)}</span>` : ''}${o.reviewed === false ? '<span class="otag warn">未经人工审核</span>' : ''}${o.kind === 'import' ? '' : `<button class="link tiny" type="button" id="originMore" data-tap="study-origin">${o.references.length ? `${o.kind === 'news' ? '来源' : '参考资料'} ${o.references.length} 条` : '怎么写的'}</button>`}</div>`;
+  }
+  function originSheet(m) {
+    const o = m.origin, news = o.kind === 'news';
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">这篇材料从哪来</h2>
+      ${news ? '<p class="small">今日热点是 AI 联网检索新闻后改写成的学习材料，<b>没有经过人工审核</b>。下面是它检索到的来源，事实以原文为准。</p>'
+        : m.featured ? `<p class="small">精选材料由 Flow 编辑部按统一的写作规范原创${o.ai ? `（${esc(o.ai)}）` : ''}：</p>
+          <ul class="small origin-rules"><li>不抄、不改写已有的文章、书籍和影视台词；</li><li>只写广为人知、稳定的常识，不写具体的统计数字、年份、价格和研究结论；</li><li>不写在世的真实人物，也不写时事新闻；</li><li>每道理解题的答案都要在原文里找得到依据，发布前由程序逐篇检查。</li></ul>`
+        : `<p class="small">这是 Flow 编辑部较早编写的练习材料${o.ai ? `（${esc(o.ai)}）` : ''}。</p>`}
+      ${o.references.length ? `<div class="stack-s"><b class="small">${news ? '来源' : '核对事实用的参考资料'}</b>${o.references.map(r => `<a class="link small" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">${esc(r.title)}</a>`).join('')}</div>` : ''}
+      <button class="btn ghost" data-close type="button">知道了</button></div>`);
+  }
 
   async function study(id, step, same) {
     let m = same && MAT[id];
@@ -655,10 +676,11 @@
     if (!same) {
       view.innerHTML = `<div class="study-head"><span class="kicker">${m.series ? `<a class="link" href="#/series/${encodeURIComponent(m.series.id)}">连载《${esc(m.series.title)}》第 ${m.series.part} / ${m.series.of} 集</a> · ${m.level}` : `${esc(m.theme_label)} · ${m.level}${m.variant ? ' → ' + m.variant.level : ''}${m.featured ? ' · 精选' : ''}`}</span>
         <h1 class="h1">${esc(m.title)}</h1>${m.title_en ? `<div class="title-en">${esc(m.title_en)}</div>` : ''}
-        <span class="muted tiny">${esc(m.source)}${m.provenance.length ? ' · 来源：' + m.provenance.map(p => `<a class="link" href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">${esc(p.title)}</a>`).join('、') : ''}</span></div>
+        ${originHTML(m)}</div>
         <div class="steps" role="tablist"><span class="ind" aria-hidden="true"></span>${STEPS.map(s => `<button role="tab" data-step="${s}" aria-selected="false">${STEP[s]}${done.has(s) ? '<span class="ok">✓</span>' : ''}</button>`).join('')}</div>
         <section id="pane"></section>`;
       view.querySelectorAll('[data-step]').forEach(b => b.onclick = () => go(b.dataset.step));
+      const om = view.querySelector('#originMore'); if (om) om.onclick = () => originSheet(m);
     }
     // Slide the tab indicator, and slide the pane in from the direction of travel.
     const tabs = [...view.querySelectorAll('[data-step]')];
@@ -979,7 +1001,7 @@
     }
     function read() {
       const ls = lines();
-      const variantBar = m.variant ? `<div class="seg" role="tablist"><button data-ver="v" aria-selected="${!st.showOriginal}">适合我的版本（${m.variant.level}）</button><button data-ver="o" aria-selected="${st.showOriginal}">原文（${m.original_level}）</button><span></span></div>`
+      const variantBar = m.variant ? `<div class="seg" role="tablist"><button data-ver="v" aria-selected="${!st.showOriginal}">适合我的版本（${m.variant.level} · AI 改写）</button><button data-ver="o" aria-selected="${st.showOriginal}">原文（${m.original_level}）</button><span></span></div>`
         : m.can_variant ? `<div class="card sunk row between"><span class="small">这篇原文是 ${m.original_level}，你选的是 ${m.user_level}。</span><button class="btn small" id="mkVar">改写成 ${m.user_level} 难度</button></div>` : '';
       pane.innerHTML = `${m.summary_zh ? `<details class="guide"><summary>中文导读</summary><p>${esc(m.summary_zh)}</p></details>` : ''}${variantBar}
         <div class="row between read-tools"><div class="legend"><span>本篇词汇</span><span class="h">可能超出你的水平</span>${(m.mine || []).length ? '<span class="m">你在背的词</span>' : ''}</div>
@@ -3095,14 +3117,47 @@
       hour.onchange = () => { cal.href = ics(hour.value); };
     });
   }
+  /* ---------- on the home screen: two steps for the phone in hand, or one tap where the browser offers it ---------- */
+  const STANDALONE = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const IN_WECHAT = /MicroMessenger/i.test(navigator.userAgent);  // WeChat cannot install; its own bar says how to leave it
+  function installKind() {
+    const ua = navigator.userAgent, ipad = /iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);  // iPadOS says Mac
+    if (IN_WECHAT && !/iPhone|iPod/.test(ua) && !ipad) return 'wechat';
+    if (/iPhone|iPod/.test(ua) || ipad) return /CriOS|FxiOS|EdgiOS|OPiOS|MicroMessenger|QQ\//.test(ua) ? 'ios-other' : ipad ? 'ipad' : 'iphone';
+    if (installPrompt) return 'prompt';
+    return /Android/i.test(ua) ? 'android' : 'desktop';
+  }
+  addEventListener('appinstalled', () => { save('flow-installed', Date.now()); installPrompt = null; const n = document.getElementById('installNudge'); if (n) n.remove(); });
+  // The 今日 notice: a phone browser (not WeChat, not already on the home screen) of a learner who has studied once.
+  function installNudgeDue(h) {
+    return !!(S.user && TOUCH && !IN_WECHAT && !STANDALONE() && !load('flow-installed') && h.stats && (h.stats.materials_done || 0) >= 1
+      && Date.now() - (load('flow-install-later') || 0) > 30 * 864e5);
+  }
   function installSheet() {
-    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">添加到手机桌面</h2>
-      <p class="muted small">像 App 一样从桌面打开，界面全屏；听过的音频会缓存下来，网络差的时候也能复习。</p>
-      ${installPrompt ? '<button class="btn primary" id="doInstall" type="button">添加到桌面</button>' : /iPhone|iPad|iPod/.test(navigator.userAgent)
-        ? '<p class="small">iPhone：用 Safari 打开，点底部的「分享」按钮，再选「添加到主屏幕」。</p>' : '<p class="small">安卓：在浏览器菜单里选「添加到主屏幕」或「安装应用」。</p>'}
-      <button class="btn ghost" data-close type="button">${installPrompt ? '取消' : '知道了'}</button></div>`, card => {
+    const k = installKind(), share = '<svg class="ishare" viewBox="0 0 24 24" aria-label="分享按钮"><path d="M12 15V3M8 7l4-4 4 4"/><path d="M7 10H6v10h12V10h-1"/></svg>';
+    const steps = {
+      iphone: [`点屏幕<b>底部中间</b>的分享按钮 ${share}`, '往下滑，点「<b>添加到主屏幕</b>」，再点右上角的「添加」'],
+      ipad: [`点<b>右上角</b>的分享按钮 ${share}`, '往下滑，点「<b>添加到主屏幕</b>」，再点「添加」'],
+      'ios-other': ['苹果手机要用 <b>Safari</b> 才能放到桌面：点下面的「复制网址」，打开 Safari，粘贴并前往', `在 Safari 里点底部中间的分享按钮 ${share}，选「<b>添加到主屏幕</b>」`],
+      wechat: ['微信里不能放到桌面：点右上角「<b>···</b>」，选「<b>在浏览器打开</b>」', '在浏览器里打开「我的 → 添加到桌面」，按那里的两步做'],
+      android: ['点浏览器右上角的 <b>⋮</b>（有的浏览器在底部，是 <b>≡</b>）', '选「<b>添加到主屏幕</b>」或「<b>安装应用</b>」（有的手机叫「添加到桌面」）'],
+      desktop: ['用 Chrome 或 Edge 打开语流，点地址栏右边的「安装」图标', '装好以后，可以从开始菜单或程序坞打开'],
+    }[k];
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">把语流放到桌面</h2>
+      <p class="muted small">像 App 一样从桌面一点就开，界面全屏；听过的音频会缓存下来，网络差的时候也能复习。</p>
+      ${k === 'prompt' ? '<button class="btn primary" id="doInstall" type="button">安装到桌面</button>' : `<ol class="isteps">${steps.map(x => `<li>${x}</li>`).join('')}</ol>`}
+      ${k === 'ios-other' ? '<button class="btn" id="copyUrl" type="button">复制网址</button>' : ''}
+      <button class="btn ghost" data-close type="button">${k === 'prompt' ? '取消' : '知道了'}</button></div>`, card => {
       const di = card.querySelector('#doInstall');
-      if (di) di.onclick = async () => { installPrompt.prompt(); try { await installPrompt.userChoice; } catch (e) { /* dismissed */ } installPrompt = null; closeSheet(); meView(); };
+      if (di) di.onclick = async () => {
+        const p = installPrompt; if (!p) return closeSheet();
+        let ok = false; p.prompt(); try { ok = (await p.userChoice).outcome === 'accepted'; } catch (e) { /* dismissed */ }
+        installPrompt = null; closeSheet();
+        if (ok) { save('flow-installed', Date.now()); toast('放好了，在桌面上找「语流」'); }
+        route(true);
+      };
+      const cu = card.querySelector('#copyUrl');
+      if (cu) cu.onclick = () => { const u = location.origin + '/'; (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => toast('网址已复制，去 Safari 粘贴打开'), () => prompt('复制这个网址，到 Safari 里打开', u)); };
     });
   }
 

@@ -248,6 +248,7 @@ flow/tests/test_login.py
 flow/tests/test_loop.py
 flow/tests/test_migration.py
 flow/tests/test_next.py
+flow/tests/test_origin_install.py
 flow/tests/test_package.py
 flow/tests/test_pedagogy.py
 flow/tests/test_practice.py

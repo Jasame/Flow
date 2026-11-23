@@ -80,3 +80,13 @@ details.preread>summary .tiny{flex-basis:100%}
 .gains .gtabs{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);margin-bottom:12px}
 .gpane .vocab-list{margin:0}
 .gpane>.link{justify-self:start}
+/* where a text comes from: one quiet line under the title, tags for how AI took part */
+.origin{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:6px;line-height:1.5}
+.origin .link{padding:0}
+.otag{display:inline-flex;align-items:center;font-size:11.5px;font-weight:600;padding:1px 7px;border-radius:99px;background:var(--sunk);color:var(--ink2);white-space:nowrap}
+.otag.warn{background:var(--amber-soft);color:var(--amber)}
+.origin-rules{margin:0;padding-left:1.2em;display:grid;gap:4px}
+@media (max-width:759px){.study-head[data-at=check] .origin,.study-head[data-at=output] .origin{display:none}}
+/* on the home screen: two numbered steps, the share icon drawn as the phone shows it */
+.isteps{margin:0;padding-left:1.4em;display:grid;gap:10px;font-size:15px;line-height:1.6}
+.ishare{width:20px;height:20px;vertical-align:-4px;fill:none;stroke:var(--accent,#0a84ff);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}

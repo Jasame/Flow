@@ -108,6 +108,8 @@
     if (!S.user) return `<div class="card sunk section notice stack-s"><b>登录后，进度和收藏的表达会保存下来</b><span class="muted small">不登录也可以听、读和做理解题。</span><div><button class="btn small" id="loginCta" data-tap="notice-login">登录 / 注册</button></div></div>`;
     if (h.suggest && Date.now() - (load('flow-next-suggest-skip') || 0) > 7 * 864e5) return suggestHTML(h.suggest);
     const mail = mailNudgeHTML(); if (mail) return mail;
+    if (installNudgeDue(h)) return `<div class="card sunk section notice stack-s" id="installNudge"><b>把语流放到手机桌面</b><span class="small">像 App 一样一点就开，全屏；听过的音频网络差的时候也能复习。</span>
+      <div class="row"><button class="btn small primary" id="inGo" type="button" data-tap="notice-install">怎么放</button><button class="btn small ghost" id="inLater" type="button">以后再说</button></div></div>`;
     if (!h.stats || (h.stats.materials_done || 0) < 3) return `<a class="card sunk section notice guide-hint" href="#/guide" data-tap="notice-guide"><span class="stack-s"><b>第一次用？看操作指南</b><span class="small muted">每个页面怎么用、按哪里，一步一步讲清楚。</span></span><span class="go" aria-hidden="true">›</span></a>`;
     return '';
   }
@@ -117,6 +119,9 @@
     const cta = document.getElementById('loginCta'); if (cta) cta.onclick = () => openLogin();
     if (h.suggest) bindSuggest(h, () => fillNotice(h));
     bindMailNudge(() => fillNotice(h));
+    const ig = document.getElementById('inGo'), il = document.getElementById('inLater');
+    if (ig) ig.onclick = installSheet;
+    if (il) il.onclick = () => { save('flow-install-later', Date.now()); fillNotice(h); };
   }
   function vocabHome(st) {
     if (!st) return '';

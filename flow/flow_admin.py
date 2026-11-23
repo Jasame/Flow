@@ -143,6 +143,7 @@ TAP_LABEL = {
     'practice-map': '练习 · 知识图谱大卡', 'practice-tip': '练习 · 今天建议',
     'words-plan': '单词 · 词书计划', 'words-confuse': '单词 · 辨析', 'words-mistake': '单词 · 错题本', 'words-test': '单词 · 测词汇量', 'words-import': '单词 · 导入',
     'words-stats': '单词 · 展开统计', 'read-gains': '读 · 展开这篇的收获', 'listen-preread': '听 · 展开读前生词',
+    'study-origin': '学习页 · 看来源', 'notice-install': '今日 · 提醒：放到桌面',
     'me-radar': '我的 · 能力雷达', 'me-growth': '我的 · 我的进步', 'me-report': '我的 · 这周的报告', 'me-mistake': '我的 · 错题本',
     'me-level': '我的 · 学习目标和水平', 'me-voice': '我的 · 朗读声音', 'me-remind': '我的 · 每天提醒', 'me-install': '我的 · 添加到桌面',
     'me-guide': '我的 · 操作指南', 'me-survey': '我的 · 匿名问卷',
