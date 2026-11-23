@@ -342,6 +342,11 @@ def run_device(pw, dev, opts):
     go(pg, '#/practice')
     pm = pg.evaluate("() => { const m = document.querySelector('#view .ptile.pmap'); return m ? [m.getAttribute('href'), m.closest('.pgroup').querySelector('h2').textContent, Math.round(m.getBoundingClientRect().width / m.parentElement.getBoundingClientRect().width * 100), Math.round(m.getBoundingClientRect().top), innerHeight] : null; }")
     check(dev, 'practice: the grammar map is the wide card of the 语法 group, on the first screen', pm and pm[0] == '#/graph' and pm[1] == '语法' and pm[2] >= 98 and pm[3] < pm[4], pm)
+    # r20: a tap on a counted entry point sends its key only (the console compares releases with these counts)
+    with pg.expect_request(lambda r: r.url.endswith('/api/next/tap'), timeout=4000) as tap:
+        pg.click('#view .ptile.pmap')
+    check(dev, 'a counted entry point sends its key and nothing else', json.loads(tap.value.post_data or '{}') == {'k': 'practice-map'}, tap.value.post_data)
+    settle(pg)
 
     # ---- words page: five tools, the stats folded, one short row per word
     go(pg, '#/cards')
@@ -478,8 +483,8 @@ def run_device(pw, dev, opts):
     check(dev, 'me: email row says whether one is bound', len((pg.text_content('#acctEmail') or '').strip()) > 0, pg.text_content('#acctEmail'))
     # ---- account and security: change the password (the eye shows what was typed; a mismatch is said at once)
     check(dev, 'me: account card offers change password and sign out everywhere', pg.is_visible('#chPw') and pg.is_visible('#outAll'))
-    me = pg.evaluate("() => ({groups: [...document.querySelectorAll('#view .gsec .ghead')].map(h => h.textContent), ability: !!document.querySelector('#view #ability'), out: !!document.querySelector('#view #out')})")
-    check(dev, 'me: rows grouped as 进步, 设置, 账号, 帮助, then 退出登录; no ability card', me['groups'] == ['进步', '设置', '账号', '帮助'] and not me['ability'] and me['out'], me)
+    me = pg.evaluate("() => ({groups: [...document.querySelectorAll('#view .gsec .ghead')].map(h => h.textContent), ability: !!document.querySelector('#view #ability'), out: !!document.querySelector('#view #out'), classic: /经典版|classic/.test(document.getElementById('view').innerHTML)})")
+    check(dev, 'me: rows grouped as 进步, 设置, 账号, 帮助, then 退出登录; no ability card, no way to the classic site', me['groups'] == ['进步', '设置', '账号', '帮助'] and not me['ability'] and me['out'] and not me['classic'], me)
     pg.click('#meVoice'); pg.wait_for_selector('#sheet [data-voice]', timeout=4000)
     pg.click('#sheet [data-voice="uk-m"]'); pg.wait_for_timeout(300)
     check(dev, 'me: the voice row opens a sheet, and the row shows the new voice', '英音 · 男' in (pg.text_content('#meVoiceV') or ''), pg.text_content('#meVoiceV'))

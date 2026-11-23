@@ -81,8 +81,15 @@
     if (!u || u.email_bound !== false || !mail || Date.now() - (load('flow-next-mail-nudge') || 0) < 14 * 864e5) return '';
     return `<div class="card sunk section mail-nudge stack-s" id="mailNudge"><b>还没有绑定邮箱</b>
       <span class="small">忘记密码时，绑定了邮箱就能自己用验证码找回；没绑定的话只能请老师或管理员帮忙重设。</span>
-      <div class="row"><button class="btn small primary" id="mnBind" type="button">绑定邮箱</button><button class="btn small ghost" id="mnLater" type="button">以后再说</button></div></div>`;
+      <div class="row"><button class="btn small primary" id="mnBind" type="button" data-tap="notice-mail">绑定邮箱</button><button class="btn small ghost" id="mnLater" type="button">以后再说</button></div></div>`;
   }
+  // A few entry points are counted, how many taps a day and nothing about who, so the operator console can compare
+  // the weeks before and after a release (flow_admin.TAP_LABEL lists them). Best effort: a lost count does not matter.
+  document.addEventListener('click', e => {
+    const t = e.target.closest && e.target.closest('[data-tap]'); if (!t) return;
+    const fold = t.tagName === 'SUMMARY' && t.parentElement; if (fold && fold.open) return;
+    try { navigator.sendBeacon('/api/next/tap', JSON.stringify({ k: t.dataset.tap })); } catch (x) { /* not counted */ }
+  }, true);
   function bindMailNudge(after) {
     const b = document.getElementById('mnBind'), l = document.getElementById('mnLater');
     if (b) b.onclick = () => bindEmailSheet('');

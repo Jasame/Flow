@@ -90,25 +90,25 @@
       <div id="notice"></div>
       ${S.user && !path ? vocabHome(st) : ''}
       <section class="section" aria-labelledby="mTitle"><div class="section-head"><h2 class="h2" id="mTitle">也可以读</h2><a class="link small" href="#/welcome/edit">按 ${h.level} 挑选 · 调整</a></div>
-        <div class="mlist">${resume ? mrow(resume, ['继续', 'green'], `#/m/${encodeURIComponent(resume.id)}/${nextStep(resume.steps)}`) : ''}${news ? mrow(news, ['热点', 'amber']) : ''}${more.map(m => mrow(m)).join('')}
-          <a class="mrow more" href="#/library"><span class="t"><b>更多材料</b><span class="tiny muted">按话题和级别挑一篇</span></span><span class="go" aria-hidden="true">›</span></a></div>
+        <div class="mlist">${resume ? mrow(resume, ['继续', 'green'], `#/m/${encodeURIComponent(resume.id)}/${nextStep(resume.steps)}`, 'home-resume') : ''}${news ? mrow(news, ['热点', 'amber'], '', 'home-news') : ''}${more.map(m => mrow(m, null, '', 'home-pick')).join('')}
+          <a class="mrow more" href="#/library" data-tap="home-more"><span class="t"><b>更多材料</b><span class="tiny muted">按话题和级别挑一篇</span></span><span class="go" aria-hidden="true">›</span></a></div>
         ${news ? '<p class="tiny muted">「热点」是联网检索后改写的，未经人工审核。</p>' : ''}</section>`;
     const ring = view.querySelector('.ring'); if (ring) ring.style.setProperty('--p', ring.dataset.p + '%');  // CSP: no inline style attributes
     fillNotice(h);
   }
   // A material as one row: title, then level, topic and time; a pill says why it is on the list.
-  function mrow(m, tag, href) {
-    return `<a class="mrow" href="${href || '#/m/' + encodeURIComponent(m.id)}"><span class="t"><b>${esc(m.title)}</b>
+  function mrow(m, tag, href, tapKey) {
+    return `<a class="mrow" href="${href || '#/m/' + encodeURIComponent(m.id)}"${tapKey ? ` data-tap="${tapKey}"` : ''}><span class="t"><b>${esc(m.title)}</b>
       <span class="tiny muted">${m.level} · ${esc(m.theme_label)} · 约 ${m.minutes} 分钟${m.steps && m.steps.length ? ` · 学了 ${m.steps.length}/4 步` : ''}</span></span>
       ${tag ? `<span class="pill ${tag[1]}">${tag[0]}</span>` : m.featured ? '<span class="pill feat">精选</span>' : ''}<span class="go" aria-hidden="true">›</span></a>`;
   }
   // One notice at a time under the plan, the most useful first: sign in (guest), a level that fits better, an email
   // for getting back in, then the guide for the first few days. Putting one off brings up the next.
   function noticeHTML(h) {
-    if (!S.user) return `<div class="card sunk section notice stack-s"><b>登录后，进度和收藏的表达会保存下来</b><span class="muted small">不登录也可以听、读和做理解题。</span><div><button class="btn small" id="loginCta">登录 / 注册</button></div></div>`;
+    if (!S.user) return `<div class="card sunk section notice stack-s"><b>登录后，进度和收藏的表达会保存下来</b><span class="muted small">不登录也可以听、读和做理解题。</span><div><button class="btn small" id="loginCta" data-tap="notice-login">登录 / 注册</button></div></div>`;
     if (h.suggest && Date.now() - (load('flow-next-suggest-skip') || 0) > 7 * 864e5) return suggestHTML(h.suggest);
     const mail = mailNudgeHTML(); if (mail) return mail;
-    if (!h.stats || (h.stats.materials_done || 0) < 3) return `<a class="card sunk section notice guide-hint" href="#/guide"><span class="stack-s"><b>第一次用？看操作指南</b><span class="small muted">每个页面怎么用、按哪里，一步一步讲清楚。</span></span><span class="go" aria-hidden="true">›</span></a>`;
+    if (!h.stats || (h.stats.materials_done || 0) < 3) return `<a class="card sunk section notice guide-hint" href="#/guide" data-tap="notice-guide"><span class="stack-s"><b>第一次用？看操作指南</b><span class="small muted">每个页面怎么用、按哪里，一步一步讲清楚。</span></span><span class="go" aria-hidden="true">›</span></a>`;
     return '';
   }
   function fillNotice(h) {

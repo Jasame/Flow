@@ -64,7 +64,7 @@ for name in ai_jobs.py vertex_native.py learning_insights.py ai_stream.py ai_hel
   install -m 644 "$FLOW_SOURCE_DIR/$name" "$FLOW_TARGET_DIR/$name"
 done
 install -d -m 755 "$FLOW_TARGET_DIR/public"
-for name in ai-live.js ai-live.css index.html style.css layout.css app.js tutor.js advanced.js studio.js knowledge.js adaptive.js adaptive.css coach.js coach.css growth.js growth.css design-bridge.css atlas.js atlas.css reference.js reference.css practice.js practice.css mobile.js mobile.css foundation.js foundation.css continuity.js continuity.css guest-first.js learning35.css learning35.js flow36.css pilot.css meeting.css flow4.css phone.css flow36.js pilot.js meeting.js core-words.js flow-mindmap.js flow-motion.js literata.woff2 survey.html survey.js survey.css next.html next.js next.css sw.js manifest.webmanifest icon-192.png icon-512.png apple-touch-icon.png; do
+for name in literata.woff2 survey.html survey.js survey.css next.html next.js next.css sw.js manifest.webmanifest icon-192.png icon-512.png apple-touch-icon.png; do
   install -m 644 "$FLOW_SOURCE_DIR/public/$name" "$FLOW_TARGET_DIR/public/$name"
 done
 # the 操作指南: its source, screenshots and PDF (user_guide.py reads them)

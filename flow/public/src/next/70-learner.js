@@ -11,7 +11,7 @@
   }
   function suggestHTML(sg) {
     return sg ? `<div class="card sunk section suggest row between"><div class="small">${esc(sg.reason)}</div>
-      <div class="row"><button class="btn small primary" id="sgYes">换到 ${esc(sg.to)}</button><button class="btn small ghost" id="sgNo">先不用</button></div></div>` : '';
+      <div class="row"><button class="btn small primary" id="sgYes" data-tap="notice-level">换到 ${esc(sg.to)}</button><button class="btn small ghost" id="sgNo">先不用</button></div></div>` : '';
   }
   function bindSuggest(h, after) {
     const y = document.getElementById('sgYes'), n = document.getElementById('sgNo');

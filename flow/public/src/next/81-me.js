@@ -1,8 +1,8 @@
   /* ---------- me: one grouped list, like a phone's settings; each row opens a page or a sheet ---------- */
   // A row: a link (to starts with # or /) or a button (to is its id); the value sits on the right, greyed.
-  function grow(to, label, value, vid) {
+  function grow(to, label, value, vid, tapKey) {
     const tag = to[0] === '#' || to[0] === '/' ? 'a' : 'button';
-    return `<${tag} class="grow" ${tag === 'a' ? `href="${to}"` : `type="button" id="${to}"`}><span class="t">${label}</span><span class="v small muted"${vid ? ` id="${vid}"` : ''}>${value || ''}</span><span class="go" aria-hidden="true">›</span></${tag}>`;
+    return `<${tag} class="grow" ${tag === 'a' ? `href="${to}"` : `type="button" id="${to}"`}${tapKey ? ` data-tap="${tapKey}"` : ''}><span class="t">${label}</span><span class="v small muted"${vid ? ` id="${vid}"` : ''}>${value || ''}</span><span class="go" aria-hidden="true">›</span></${tag}>`;
   }
   async function meView() {
     if (!S.meta) S.meta = await api('/api/next/meta');
@@ -10,13 +10,13 @@
     const lv = S.meta.levels.find(l => l.id === p.level), goal = S.meta.goals.find(g => g.id === p.goal);
     const installed = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
     const groups = [
-      u && ['进步', [grow('#/radar', '能力雷达', '离目标还差多少'), grow('#/growth', '我的进步', '每月对比和里程碑'), grow('#/report', '这周的报告'), grow('#/cards/mistake', '错题本')]],
-      ['设置', [grow('#/welcome/edit', '学习目标和水平', [goal && esc(goal.label), lv && lv.id].filter(Boolean).join(' · ') || '未设置'),
-        grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV'), grow('meRemind', '每天提醒', '加到手机日历'),
-        installed ? '' : grow('meInstall', '添加到桌面', '像 App 一样打开')]],
+      u && ['进步', [grow('#/radar', '能力雷达', '离目标还差多少', '', 'me-radar'), grow('#/growth', '我的进步', '每月对比和里程碑', '', 'me-growth'), grow('#/report', '这周的报告', '', '', 'me-report'), grow('#/cards/mistake', '错题本', '', '', 'me-mistake')]],
+      ['设置', [grow('#/welcome/edit', '学习目标和水平', [goal && esc(goal.label), lv && lv.id].filter(Boolean).join(' · ') || '未设置', '', 'me-level'),
+        grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), grow('meRemind', '每天提醒', '加到手机日历', '', 'me-remind'),
+        installed ? '' : grow('meInstall', '添加到桌面', '像 App 一样打开', '', 'me-install')]],
       u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备')],
         '绑定邮箱后，可以用验证码登录，忘记密码时自己找回。30 天内来过就一直保持登录；在别人的手机或电脑上用完，记得退出。'],
-      ['帮助', [grow('#/guide', '操作指南', '每个页面怎么用'), grow('/survey', '匿名问卷', '你想要什么样的英语学习网站'), grow('/?classic=1', '经典版', 'AI 私教、诊断测评')]],
+      ['帮助', [grow('#/guide', '操作指南', '每个页面怎么用', '', 'me-guide'), grow('/survey', '匿名问卷', '你想要什么样的英语学习网站', '', 'me-survey')]],
     ].filter(Boolean);
     view.innerHTML = `<div class="card flat me-head"><div class="me-id">${u ? `<span class="avatar" aria-hidden="true">${esc([...u.username][0].toUpperCase())}</span>` : ''}
         <div class="t"><h1 class="h1">${u ? esc(u.username) : '我的'}</h1><span class="small muted">${lv ? `${esc(lv.label)}（${lv.id}）` : '还没有设置水平'} · 每天 ${p.minutes || 10} 分钟</span></div></div>

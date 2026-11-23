@@ -1302,8 +1302,21 @@ def get(c, uid, path, q):
     return None
 
 
+def tap(c, data):
+    """One tap on a counted entry point (flow_admin.TAP_LABEL): per day and key only, nothing about who."""
+    key = str(data.get('k', ''))[:40]
+    if key not in __import__('flow_admin').TAP_LABEL:
+        return {'error': '未知的入口'}, 400
+    day = datetime.datetime.now(TZ).date().isoformat()
+    c.execute('INSERT INTO ui_taps(day, key, n) VALUES(?,?,1) ON CONFLICT(day, key) DO UPDATE SET n=n+1 WHERE n<20000', (day, key))
+    c.commit()
+    return {'ok': True}, 200
+
+
 def post_public(c, uid, path, data):
     """Routes open to guests (no state change for guests)."""
+    if path == '/api/next/tap':
+        return tap(c, data)
     if path == '/api/next/check':
         return check(c, uid, data)
     if path == '/api/next/vocab/test':
