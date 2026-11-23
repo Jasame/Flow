@@ -252,6 +252,24 @@ def run_device(pw, dev, opts):
         check(dev, 'Space starts playback (desktop)', '停止' in pg.inner_html('#playAll'))
         pg.keyboard.press('Space'); pg.wait_for_timeout(150)
 
+    # ---- audio: when this server cannot send a material's narration, the page fetches it from the media domain itself
+    hits = []
+    def media_origin(route):
+        hits.append(route.request.url)
+        cors = {'Access-Control-Allow-Origin': '*'}
+        if route.request.url.split('?')[0].endswith('.json'):
+            route.fulfill(status=200, content_type='application/json', headers=cors,
+                          body=json.dumps({'v': 1, 'duration': 2, 'sentences': [{'s': 0, 'e': 2, 'w': [[0, 0, 1]]}]}))
+        else:
+            route.fulfill(status=200, content_type='audio/mp4', headers=cors, body=b'not really audio')
+    pg.route('http://127.0.0.1:9/**', media_origin)
+    go(pg, '#/m/v5-culture-c1-lighthouse-ledger-3/listen')
+    pg.click('#playAll'); pg.wait_for_timeout(2500)
+    check(dev, 'audio: timings and sound come from the media domain when this server cannot send them',
+          any('/audio/' in h and '.json?v=uitest000001' in h for h in hits) and any('/audio/' in h and '.m4a?v=uitest000001' in h for h in hits), hits[:4])
+    pg.evaluate("() => { const s = document.querySelector('.mini-player .stop'); if (s && !s.closest('[hidden]')) s.click(); }")
+    pg.unroute('http://127.0.0.1:9/**')
+
     # ---- read: the ✦ of every sentence sits on the same line as the sentence's last word
     go(pg, f'#/m/{PID}/read')
     bad = pg.evaluate("""() => [...document.querySelectorAll('#reader [data-ex]')].filter(b => {

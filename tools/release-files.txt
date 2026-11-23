@@ -158,6 +158,7 @@ flow/easy_reading.py
 flow/growth_report.py
 flow/ability_radar.py
 flow/user_guide.py
+flow/media.py
 flow/graph_service.py
 flow/growth_service.py
 flow/guest_first.py
@@ -299,6 +300,7 @@ flow/tests/test_vocab.py
 flow/tests/test_ai_routing.py
 flow/tests/test_guide.py
 flow/tests/test_practice_hub.py
+flow/tests/test_media.py
 flow/tests/ui_adaptive.cjs
 flow/tests/ui_advanced.cjs
 flow/tests/ui_ai_live.cjs

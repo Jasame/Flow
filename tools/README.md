@@ -86,3 +86,11 @@ Flow's text calls is chosen and switched in the gateway's console, without chang
 it on this machine (`FLOW_TEXT_AI_URL=http://127.0.0.1:3000/v1/chat/completions`, model `flow-text`); audio and
 web search stay on Vertex. `README.md` there is the step-by-step checklist (which steps need the owner's passwords
 or keys is marked), `setup.sh` starts the pinned container, and `check_gateway.py` checks it the way Flow uses it.
+
+## Audio: this server first, Cloudflare R2 as the second line and the master copy
+
+`tools/push_media.py` uploads the audio that `tools/gen_audio.py` and `tools/gen_word_audio.py` write to the R2 bucket
+(only new or changed files) and writes `flow/corpus_data/media-manifest.json`. After a release with that manifest, the
+server fetches a listed file from R2 the first time someone asks for it (`flow/media.py`, with `FLOW_MEDIA_BASE` set),
+so audio is never copied onto the server by hand; the page plays from R2 by itself when this server cannot answer.
+`tools/media/README.md` is the set-up checklist (in Chinese): bucket, domain, CORS, the upload token, and switching it on.
