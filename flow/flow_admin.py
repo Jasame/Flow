@@ -14,6 +14,11 @@ import survey_service as survey
 PREFIX = '/flow/api'
 
 
+def server_label():
+    """Which server this Flow runs on, shown in the xmc.hk console (FLOW_SERVER_LABEL, e.g. 香港服务器; else the host name)."""
+    return os.getenv('FLOW_SERVER_LABEL', '').strip() or __import__('socket').gethostname()
+
+
 def overview(c):
     import chat_service
     now = time.time()
@@ -36,6 +41,7 @@ def overview(c):
             'model': os.getenv('FLOW_AI_MODEL', ''),
         },
         'survey_responses': q('SELECT COUNT(*) FROM survey_responses WHERE survey=? AND hidden=0', survey.SURVEY_ID),
+        'server': server_label(),
         'generated_at': now,
     }
 
