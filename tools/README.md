@@ -78,3 +78,11 @@ When a change adds, renames or removes a page, button or flow:
 2. If what a page looks like changed, run `python3 tools/guide_shots.py [name …]` (local UI server, simulated AI).
 3. Run `python3 tools/build_guide.py`, which rebuilds `flow-guide.pdf` and `manifest.json`.
 4. Add any new screenshot to `tools/release-files.txt` and commit the guide in the same change.
+
+## AI gateway (api.xmc.hk)
+
+`tools/ai-gateway/` puts New API in front of the text models (DeepSeek, Qwen, Gemini …), so the vendor behind
+Flow's text calls is chosen and switched in the gateway's console, without changing or restarting Flow. Flow calls
+it on this machine (`FLOW_TEXT_AI_URL=http://127.0.0.1:3000/v1/chat/completions`, model `flow-text`); audio and
+web search stay on Vertex. `README.md` there is the step-by-step checklist (which steps need the owner's passwords
+or keys is marked), `setup.sh` starts the pinned container, and `check_gateway.py` checks it the way Flow uses it.

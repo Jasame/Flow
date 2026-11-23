@@ -95,5 +95,18 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(out[0], 'from main'); self.assertEqual([c[0] for c in calls], ['main.test'])
 
 
+    def test_the_gateway_on_this_machine_may_use_plain_http_but_nothing_else_may(self):
+        gw = {'FLOW_TEXT_AI_URL': 'http://127.0.0.1:3000/v1/chat/completions', 'FLOW_TEXT_AI_KEY': 'k3', 'FLOW_TEXT_AI_MODEL': 'flow-text'}
+        out, calls = self.call({**MAIN, **gw}, {'127.0.0.1:3000': ['from the gateway']})
+        self.assertEqual(out[0], 'from the gateway'); self.assertEqual(calls, [('127.0.0.1:3000', 'flow-text', False)])
+        for url in ('http://example.com/v1/chat/completions', 'http://127.0.0.1.evil.test/v1/chat/completions',
+                    'http://localhost@evil.test/v1/chat/completions', 'ftp://127.0.0.1/x'):
+            with self.subTest(url=url):
+                self.assertFalse(cs.endpoint_ok(url))
+                out, calls = self.call({**MAIN, **gw, 'FLOW_TEXT_AI_URL': url}, {'main.test': ['from main']})
+                self.assertEqual(out[0], 'from main'); self.assertEqual([c[0] for c in calls], ['main.test'])
+        for url in ('http://localhost:3000/v1/chat/completions', 'http://[::1]:3000/v1/chat/completions', 'https://api.xmc.hk/v1/chat/completions'):
+            self.assertTrue(cs.endpoint_ok(url), url)
+
 if __name__ == '__main__':
     unittest.main()

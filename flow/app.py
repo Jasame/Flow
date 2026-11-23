@@ -258,7 +258,7 @@ class Handler(BaseHTTPRequestHandler):
     result=meeting.get(c,u['id'],u['admin'],path)
     if result is not None:return self.send(*result)
     if path=='/api/ai/status':
-     configured=bool(os.getenv('FLOW_AI_MODEL')) and (bool(os.getenv('GOOGLE_CLOUD_PROJECT')) if vertex_enabled() else bool(os.getenv('FLOW_AI_KEY')) and os.getenv('FLOW_AI_URL','').startswith('https://'))
+     configured=bool(os.getenv('FLOW_AI_MODEL')) and (bool(os.getenv('GOOGLE_CLOUD_PROJECT')) if vertex_enabled() else bool(os.getenv('FLOW_AI_KEY')) and __import__('chat_service').endpoint_ok(os.getenv('FLOW_AI_URL','')))
      last=c.execute("SELECT MAX(updated) FROM lab_jobs WHERE user_id=? AND status='complete'",(u['id'],)).fetchone()[0]
      chat_last=c.execute("SELECT MAX(updated) FROM chat_turns WHERE user_id=? AND status='complete' AND finish_reason!='lesson'",(u['id'],)).fetchone()[0]
      last=max(last or 0,chat_last or 0) or None
