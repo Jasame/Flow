@@ -51,7 +51,7 @@
     getJSON('/overview').then(function (d) {
       var ai = d.ai, max = Math.max.apply(null, ai.week.map(function (x) { return x.count; }).concat([1]));
       main.innerHTML =
-        '<div class="head-row"><div><h1>语流 Flow 概览</h1><p class="muted">flow.jasa.hk · ' + (d.server ? '数据来自' + esc(d.server) + ' · ' : '') + '更新于 ' + new Date(d.generated_at * 1000).toLocaleString('zh-CN') + '</p></div>' +
+        '<div class="head-row"><div><h1>语流 Flow 概览</h1><p class="muted">flowlang.cn · ' + (d.server ? '数据来自' + esc(d.server) + ' · ' : '') + '更新于 ' + new Date(d.generated_at * 1000).toLocaleString('zh-CN') + '</p></div>' +
         '<div class="toolbar"><button class="btn" id="reload">刷新</button></div></div>' +
         '<div class="kpi-grid">' +
           kpi('注册用户', n(d.users), d.admins ? '其中 ' + n(d.admins) + ' 个员工账号，AI 次数不限' : '学习网站上没有管理功能') +
@@ -103,11 +103,11 @@
       var html =
         '<div class="head-row"><div><h1>' + esc(s.survey.title) + '</h1><p class="muted">匿名问卷 · 共 ' + n(s.total) + ' 份有效回答' +
           (s.hidden ? '（另有 ' + n(s.hidden) + ' 份已隐藏）' : '') + (s.median_seconds ? ' · 中位用时 ' + Math.round(s.median_seconds / 60 * 10) / 10 + ' 分钟' : '') + '</p></div>' +
-        '<div class="toolbar"><a class="btn" href="https://flow.jasa.hk/survey" target="_blank" rel="noopener">问卷链接</a><button class="btn" id="copyLink">复制链接</button>' + (isAdmin() ? '<a class="btn primary" href="' + API + '/survey/export.csv">导出 CSV</a>' : '') + '</div></div>' +
+        '<div class="toolbar"><a class="btn" href="https://flowlang.cn/survey" target="_blank" rel="noopener">问卷链接</a><button class="btn" id="copyLink">复制链接</button>' + (isAdmin() ? '<a class="btn primary" href="' + API + '/survey/export.csv">导出 CSV</a>' : '') + '</div></div>' +
         '<div class="card toolbar">' + filterSelect('role', byId.role) + filterSelect('level', byId.level) + filterSelect('flow', byId.flow) +
           (qs ? '<button class="btn" id="clearF">清除筛选</button>' : '') + '</div>';
       if (!s.total) {
-        main.innerHTML = html + '<div class="card empty">' + (qs ? '这个筛选条件下还没有回答。' : '还没有人填写。把问卷链接 https://flow.jasa.hk/survey 发出去吧。') + '</div>';
+        main.innerHTML = html + '<div class="card empty">' + (qs ? '这个筛选条件下还没有回答。' : '还没有人填写。把问卷链接 https://flowlang.cn/survey 发出去吧。') + '</div>';
         bindStats(); return;
       }
       if (s.by_day.length > 1) {
@@ -139,7 +139,7 @@
     var c = document.getElementById('clearF'); if (c) c.onclick = function () { ST.filters = { role: '', level: '', flow: '' }; surveyStats(); };
     var cp = document.getElementById('copyLink');
     if (cp) cp.onclick = function () {
-      var url = 'https://flow.jasa.hk/survey';
+      var url = 'https://flowlang.cn/survey';
       (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { cp.textContent = '已复制'; }, function () { prompt('复制问卷链接', url); });
     };
   }

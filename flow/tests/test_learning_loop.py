@@ -201,7 +201,7 @@ class LoopTests(unittest.TestCase):
     def test_whole_plan_calendar_reminder_is_folded_and_points_at_today(self):
         cal = vs.ics(7, 'plan', 15)
         self.assertIn('SUMMARY:语流：今天的学习（约 15 分钟）', cal.replace('\r\n ', ''))
-        self.assertIn('URL:https://flow.jasa.hk/#/', cal); self.assertIn('DURATION:PT15M', cal)
+        self.assertIn('URL:https://flowlang.cn/#/', cal); self.assertIn('DURATION:PT15M', cal)
         self.assertTrue(all(len(line.encode()) <= 75 for line in cal.split('\r\n')))
         self.assertIn('UID:flow-vocab-21@flow', vs.ics(21))  # the word-only reminder keeps its id
 

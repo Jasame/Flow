@@ -147,6 +147,7 @@ TAP_LABEL = {
     'me-radar': '我的 · 能力雷达', 'me-growth': '我的 · 我的进步', 'me-report': '我的 · 这周的报告', 'me-mistake': '我的 · 错题本',
     'me-level': '我的 · 学习目标和水平', 'me-voice': '我的 · 朗读声音', 'me-remind': '我的 · 每天提醒', 'me-install': '我的 · 添加到桌面',
     'me-guide': '我的 · 操作指南', 'me-survey': '我的 · 匿名问卷',
+    'beta-main': '内测版 · 去正式版',
 }
 
 
