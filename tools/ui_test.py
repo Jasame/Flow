@@ -832,13 +832,15 @@ def layout_run(pw, engine):
             # review: each card as it comes, answered so the next one shows; questions start near the top
             go(pg, '#/review'); pg.wait_for_timeout(300); asked = 0
             for k in range(40):  # word cards come first; mistakes (questions) after them
-                if not pg.query_selector('#view .review') or asked >= 3:
-                    break
+                if not pg.query_selector('#view .review') or asked:
+                    break  # a question is checked and left unanswered, so it is still due for the next run
                 audit(f'#/review card {k + 1}')
                 top = pg.evaluate(QTOP_JS)
                 asked += top is not None
                 if top is not None and top > 40:
                     found.setdefault((size, theme, 'q-top'), []).append(f'#/review card {k + 1}: question starts {top}% down the screen')
+                if top is not None:
+                    continue
                 b = pg.query_selector('.qopt:not([disabled])') or pg.query_selector('#fixNo') or pg.query_selector('#giveup') or pg.query_selector('.choice button[data-claim="forgot"]') or pg.query_selector('.choice button[data-self]')
                 if not b:
                     break
