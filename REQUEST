@@ -1,3 +1,3 @@
-30a301b8a856dcf3f466cadb37c2b507f4eb7d7a a6fa61fe3ab9625d762ba0b44affabb3a65236454df864e025fa13334e33ed8f e2e
-# r20 main: Merge pull request #22 from Jasame/release-r20
+2fd01f80a18f536ec46304ac5ea4769ad2155d8f 21f87188e3f76c94bf2e13301e06bd9f33bd266ff78c9234001c1309d3714ee2 e2e
+# b1 beta-r22: Merge remote-tracking branch 'origin/domains' into beta-r22
 # Format: <commit sha> <manifest sha256> [e2e]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
