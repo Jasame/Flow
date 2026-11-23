@@ -108,5 +108,36 @@ class RoutingTests(unittest.TestCase):
         for url in ('http://localhost:3000/v1/chat/completions', 'http://[::1]:3000/v1/chat/completions', 'https://api.xmc.hk/v1/chat/completions'):
             self.assertTrue(cs.endpoint_ok(url), url)
 
+    # ---- the text model on the same gateway (api.xmc.hk): one setting, FLOW_TEXT_AI_MODEL
+    def test_a_text_model_alone_uses_the_main_gateway_and_key_with_another_model_name(self):
+        out, calls = self.call({**MAIN, 'FLOW_TEXT_AI_MODEL': 'flow-text'}, {'main.test': ['from flow-text']})
+        self.assertEqual(out[0], 'from flow-text'); self.assertEqual(calls, [('main.test', 'flow-text', False)])
+        self.assertEqual(cs.text_provider(), None)  # outside the call the environment is back to normal
+        with patch.dict(os.environ, {**MAIN, 'FLOW_TEXT_AI_MODEL': 'flow-text'}):
+            os.environ.pop('FLOW_TEXT_AI_URL', None); os.environ.pop('FLOW_TEXT_AI_KEY', None)
+            self.assertEqual(cs.text_provider(), (MAIN['FLOW_AI_URL'], MAIN['FLOW_AI_KEY'], 'flow-text'))
+
+    def test_the_main_key_is_never_sent_to_another_address(self):
+        with patch.dict(os.environ, {**MAIN, 'FLOW_TEXT_AI_MODEL': 'flow-text', 'FLOW_TEXT_AI_URL': 'https://other.test/v1/chat/completions'}):
+            os.environ.pop('FLOW_TEXT_AI_KEY', None)
+            self.assertIsNone(cs.text_provider())
+        with patch.dict(os.environ, {'FLOW_AI_PROVIDER': 'vertex', 'FLOW_TEXT_AI_MODEL': 'flow-text'}):
+            for k in ('FLOW_TEXT_AI_URL', 'FLOW_TEXT_AI_KEY', 'FLOW_AI_URL', 'FLOW_AI_KEY'):
+                os.environ.pop(k, None)
+            self.assertIsNone(cs.text_provider())  # Vertex direct has no gateway to share
+
+    def test_a_text_model_switched_off_in_the_console_hands_over_to_the_main_model(self):
+        env = {**MAIN, 'FLOW_TEXT_AI_MODEL': 'flow-text'}
+        for failure in (http(404), http(401), http(403), http(429), http(502)):
+            out, calls = self.call(env, {'main.test': [failure, 'from main']})
+            self.assertEqual(out[0], 'from main', failure.code)
+            self.assertEqual([c[1] for c in calls], ['flow-text', 'main-model'])
+
+    def test_a_refused_request_is_not_sent_again_to_the_main_model(self):
+        env = {**MAIN, 'FLOW_TEXT_AI_MODEL': 'flow-text'}
+        for code in (400, 413, 422):
+            out, calls = self.call(env, {'main.test': [http(code), 'never']})
+            self.assertIsInstance(out, urllib.error.HTTPError); self.assertEqual(out.code, code); self.assertEqual(len(calls), 1)
+
 if __name__ == '__main__':
     unittest.main()
