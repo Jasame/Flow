@@ -1060,6 +1060,138 @@ def learner_run(pw):
         browser.close()
 
 
+# ---- screen readers and colour: every page, light and dark. A control without a name, an image without alt text, a
+# field without a label, an id used twice, text below WCAG AA contrast (4.5:1; 3:1 for large text; disabled controls
+# exempt), English not marked lang="en" (a screen reader would read it with a Chinese voice), and right/wrong answers
+# told apart by colour alone. Pictures of the answered questions as a red-green colour-blind learner sees them are
+# saved for a look (a11y-deuteranopia.png, a11y-protanopia.png).
+A11Y_JS = """() => {
+  // entrance animations and fades played to their end: what is measured is what stays on screen
+  document.getAnimations().forEach(a => { try { if (isFinite(a.effect.getComputedTiming().endTime)) a.finish(); } catch (e) { /* not finishable */ } });
+  const out = { unnamed: [], noalt: [], unlabeled: [], contrast: [], lang: [], dupid: [] };
+  const visible = el => { if (!el.getClientRects().length) return false; const cs = getComputedStyle(el); return cs.visibility !== 'hidden' && cs.display !== 'none'; };
+  const hidden = el => !!el.closest('[aria-hidden="true"], [hidden], .sr-only') && !el.closest('.sr-only');
+  const sig = el => (el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.') : '') + ' ' + (el.outerHTML || '').slice(0, 90)).replace(/\s+/g, ' ');
+  const nameOf = el => {
+    const al = el.getAttribute('aria-label'); if (al && al.trim()) return al.trim();
+    const lb = el.getAttribute('aria-labelledby'); if (lb) { const t = lb.split(/\s+/).map(id => (document.getElementById(id) || {}).textContent || '').join(' ').trim(); if (t) return t; }
+    if (el.labels && el.labels.length) { const t = [...el.labels].map(l => l.textContent).join(' ').trim(); if (t) return t; }
+    if (!/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) { const t = (el.innerText || el.textContent || '').trim(); if (t) return t; }
+    const img = el.querySelector && el.querySelector('img[alt]'); if (img && img.alt.trim()) return img.alt.trim();
+    if (el.title && el.title.trim()) return el.title.trim();
+    return '';
+  };
+  const ids = {};
+  document.querySelectorAll('[id]').forEach(e => { ids[e.id] = (ids[e.id] || 0) + 1; });
+  out.dupid = Object.keys(ids).filter(k => ids[k] > 1);
+  document.querySelectorAll('button, a[href], [role=button], [role=radio], [role=tab], [role=checkbox], [role=switch], summary').forEach(el => {
+    if (!visible(el) || hidden(el)) return;
+    if (!nameOf(el)) out.unnamed.push(sig(el));
+  });
+  document.querySelectorAll('img').forEach(el => { if (!el.hasAttribute('alt') && !hidden(el) && el.getAttribute('role') !== 'presentation') out.noalt.push(sig(el)); });
+  document.querySelectorAll('input, select, textarea').forEach(el => {
+    if (el.type === 'hidden' || !visible(el) || hidden(el)) return;
+    if (!nameOf(el)) out.unlabeled.push(sig(el) + (el.placeholder ? ' [placeholder only]' : ''));
+  });
+  // contrast (WCAG 2): 4.5 for text, 3 for large text (24px, or 18.66px bold); disabled controls are exempt
+  const parse = s => { const m = s && s.match(/rgba?\(([^)]+)\)/); if (!m) return null; const p = m[1].split(/[\s,\/]+/).filter(Boolean).map(Number); return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1]; };
+  const lum = ([r, g, b]) => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  const over = (top, bottom) => { const a = top[3]; return [0, 1, 2].map(i => top[i] * a + bottom[i] * (1 - a)).concat(1); };
+  // The colour behind a text: the backgrounds up to the first solid one (the current study step's comes from its sliding
+  // indicator, a separate layer), and the opacity of what lies between (the layer with the background fading with
+  // its text changes nothing between them).
+  const bgOf = el => {
+    const layers = []; let e = el, op = 1;
+    while (e && e.nodeType === 1) {
+      const cs = getComputedStyle(e);
+      if (cs.backgroundImage && cs.backgroundImage !== 'none' && !/gradient/.test(cs.backgroundImage)) return null;  // a picture behind: skip
+      let c = parse(cs.backgroundColor);
+      if (/gradient/.test(cs.backgroundImage)) { const m = cs.backgroundImage.match(/rgba?\([^)]+\)/); if (m) c = parse(m[0]); }
+      if ((!c || !c[3]) && e.matches('.steps [aria-selected="true"]')) { const ind = document.querySelector('.steps .ind'); c = ind && parse(getComputedStyle(ind).backgroundColor); }
+      if (c && c[3] > 0) { layers.push(c); if (c[3] >= 1) break; }
+      op *= Number(cs.opacity); e = e.parentElement;
+    }
+    let bg = [255, 255, 255, 1]; for (let i = layers.length - 1; i >= 0; i--) bg = over(layers[i], bg);
+    return { bg, op };
+  };
+  const seen = new Set();
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let n;
+  while ((n = walker.nextNode())) {
+    const t = n.nodeValue.trim(); if (!t || t.length < 1) continue;
+    const el = n.parentElement; if (!el || seen.has(el)) continue; seen.add(el);
+    if (!visible(el) || hidden(el) || el.closest('[disabled], [aria-disabled="true"], .sheet[hidden], svg, canvas, option')) continue;
+    const r = el.getBoundingClientRect(); if (r.width < 1 || r.height < 1) continue;
+    const cs = getComputedStyle(el); const fg = parse(cs.color); const b = bgOf(el); if (!fg || !b) continue;
+    const { bg, op } = b; if (op < 0.05) continue;
+    const eff = over([fg[0], fg[1], fg[2], fg[3] * op], bg);
+    const size = parseFloat(cs.fontSize), bold = Number(cs.fontWeight) >= 700, large = size >= 24 || (bold && size >= 18.66);
+    const need = large ? 3 : 4.5, got = ratio(eff, bg);
+    if (got < need - 0.05) out.contrast.push({ text: t.slice(0, 40), ratio: Math.round(got * 100) / 100, need, size, fg: cs.color, bg: 'rgb(' + bg.slice(0, 3).map(Math.round).join(',') + ')', sel: sig(el).slice(0, 80) });
+  }
+  // English that a screen reader would read with a Chinese voice: blocks of English words not inside lang="en"
+  const seenL = new Set();
+  const w2 = document.createTreeWalker(document.getElementById('view') || document.body, NodeFilter.SHOW_TEXT);
+  while ((n = w2.nextNode())) {
+    const t = n.nodeValue.trim(); const el = n.parentElement;
+    if (!el || seenL.has(el) || !visible(el) || hidden(el)) continue;
+    const words = t.match(/[A-Za-z][A-Za-z'’-]+/g) || [];
+    if (words.length < 3 || /[㐀-鿿]/.test(t)) continue;
+    seenL.add(el);
+    if (/[\u3400-\u9fff]/.test(el.textContent)) continue;  // a block mixing both stays Chinese (screen readers switch for Latin letters)
+    const l = (el.closest('[lang]') || {}).lang || '';
+    if (!/^en/i.test(l)) out.lang.push(t.slice(0, 50) + '  <' + sig(el).slice(0, 60) + '>');
+  }
+  return out;
+}"""
+
+
+def a11y_run(pw):
+    dev = 'a11y'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    try:
+        found = {}
+        for theme in ('light', 'dark'):
+            ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', color_scheme=theme, bypass_csp=True)
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a11y']['token'], 'url': BASE}])
+            pg = ctx.new_page(); pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+            for p in PAGES:
+                go(pg, p); pg.wait_for_timeout(250)
+                for kind, items in pg.evaluate(A11Y_JS).items():
+                    for x in items:
+                        found.setdefault((kind, theme), []).append(f'{p}: {x if isinstance(x, str) else json.dumps(x, ensure_ascii=False)}')
+            if theme == 'light':
+                # a sheet is a dialog with a title, and the focus goes into it
+                go(pg, '#/me'); pg.click('#meText'); pg.wait_for_timeout(200)
+                dlg = pg.evaluate("""() => { const c = document.getElementById('sheetCard'), t = document.getElementById(c.getAttribute('aria-labelledby'));
+                  return [c.getAttribute('role'), c.getAttribute('aria-modal'), !!(t && t.textContent.trim()), c.contains(document.activeElement)]; }""")
+                check(dev, 'a sheet is a modal dialog with its title, and the focus moves into it', dlg == ['dialog', 'true', True, True], dlg)
+                pg.evaluate("document.querySelector('#sheet [data-close]').click()")
+                # right and wrong answers: a mark as well as a colour
+                go(pg, f'#/m/{PID}/check'); pg.wait_for_selector('#pane .q', timeout=6000)
+                for q in pg.query_selector_all('#pane .q'):
+                    q.query_selector_all('.ans')[-1].click(); pg.wait_for_timeout(250)
+                marks = pg.evaluate("""() => ['.ans.right', '.ans.wrong'].map(s => { const e = document.querySelector(s); return e ? getComputedStyle(e, '::after').content : null; })""")
+                live = pg.evaluate("[...document.querySelectorAll('#pane .fb')].every(f => f.getAttribute('aria-live') === 'polite')")
+                check(dev, 'right and wrong answers carry ✓ and ✗, not only green and red, and the result is announced', marks[0] == '"✓"' and marks[1] in ('"✗"', None) and live, (marks, live))
+                cdp = ctx.new_cdp_session(pg)
+                for vision in ('deuteranopia', 'protanopia'):
+                    cdp.send('Emulation.setEmulatedVisionDeficiency', {'type': vision})
+                    pg.evaluate("document.querySelector('#pane .q').scrollIntoView()"); pg.wait_for_timeout(200)
+                    pg.screenshot(path=str(OUT / f'a11y-{vision}.png'))
+                cdp.send('Emulation.setEmulatedVisionDeficiency', {'type': 'none'})
+            ctx.close()
+        for kind, label in (('unnamed', 'every button and link has a name a screen reader can say'), ('noalt', 'every image has alt text'),
+                            ('unlabeled', 'every field has a label (not only a placeholder)'), ('dupid', 'no id is used twice on a page'),
+                            ('contrast', 'text contrast meets WCAG AA'), ('lang', 'English is marked lang="en", so it is read with an English voice')):
+            for theme in ('light', 'dark'):
+                bad = found.get((kind, theme), [])
+                check(dev, f'{label} ({theme})', not bad, f'{len(bad)}: ' + ' | '.join(bad[:4]))
+    finally:
+        browser.close()
+
+
 def main():
     with sync_playwright() as pw:
         for dev, opts in DEVICES.items():
@@ -1091,6 +1223,12 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('learner', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'a11y' in ONLY:
+            try:
+                a11y_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('a11y', 'run finished', False, traceback.format_exc()[-600:])
         for engine in ('chrome', 'webkit'):  # last: it takes the vocabulary test and answers review cards
             if not ONLY or 'layout' in ONLY or engine in ONLY:
                 try:

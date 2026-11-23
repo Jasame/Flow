@@ -3,7 +3,7 @@
 .pstep{display:grid;grid-template-columns:30px minmax(0,1fr) 16px;gap:10px;align-items:center;padding:10px 8px;border-radius:12px;text-decoration:none;color:inherit;background:var(--sunk)}
 .pstep:hover{background:var(--green-soft)}
 .pstep .num{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;background:var(--paper);border:1.5px solid var(--line2)}
-.pstep.done .num{background:var(--green);border-color:var(--green);color:#fff}
+.pstep.done .num{background:var(--fill);border-color:var(--fill);color:var(--on-fill)}
 .pstep.done b{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line2)}
 .pstep .t{display:grid;min-width:0}.pstep .t .tiny{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pstep .go{color:var(--muted);font-size:20px}

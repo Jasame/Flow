@@ -38,7 +38,7 @@ details[open]>summary{margin-bottom:8px}
 .serial .ep{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 8px;border-radius:12px;text-decoration:none;color:inherit}
 .serial .ep:hover{background:var(--sunk)}
 .serial .ep .n{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--sunk)}
-.serial .ep.done .n{background:var(--green);color:#fff}
+.serial .ep.done .n{background:var(--fill);color:var(--on-fill)}
 .serial .ep.next .n{box-shadow:0 0 0 2px var(--green)}
 .serial .ep .t{display:grid;gap:2px;min-width:0}
 @media (max-width:420px){.exam-pick{grid-template-columns:minmax(0,1fr)}.pl-bands{gap:6px}.pl-band span{font-size:16px}}

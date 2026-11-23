@@ -1,5 +1,25 @@
   /* ---------- sheet ---------- */
   let sheetReturn = null;
+  // Screen readers read the page in Chinese (lang="zh-CN"); English on it (a text, a question, a word, an example)
+  // gets lang="en" as it appears, so it is read with an English voice. An element is marked when all of its text is
+  // English; one that mixes both is left as it is (VoiceOver and TalkBack still switch for the Latin letters).
+  const HAN = /[\u3400-\u9fff\uf900-\ufaff]/, LATIN2 = /[A-Za-z]{2}/;  // Chinese characters (not the full-width punctuation)
+  function markEnglish(root) {
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), seen = new Set(); let n;
+    while ((n = w.nextNode())) {
+      const el = n.parentElement;
+      if (!el || seen.has(el) || !LATIN2.test(n.nodeValue)) continue;
+      seen.add(el);
+      const own = el.closest('[lang]');
+      if (own && own !== document.documentElement) continue;  // it says its language already
+      if (!HAN.test(el.textContent) && !/^(SCRIPT|STYLE|TEXTAREA|OPTION)$/.test(el.tagName)) el.lang = 'en';
+    }
+  }
+  const EN_NEW = new Set(); let enFrame = 0;
+  new MutationObserver(ms => {
+    for (const m of ms) for (const x of m.addedNodes) { const e = x.nodeType === 1 ? x : x.parentElement; if (e) EN_NEW.add(e); }
+    if (EN_NEW.size && !enFrame) enFrame = requestAnimationFrame(() => { enFrame = 0; EN_NEW.forEach(e => { if (e.isConnected) markEnglish(e); }); EN_NEW.clear(); });
+  }).observe(document.body, { childList: true, subtree: true });
   function openSheet(html, onMount) {
     if (sheetEl.hidden) sheetReturn = document.activeElement;
     sheetCard.innerHTML = '<div class="grab" aria-hidden="true"></div>' + html; sheetEl.hidden = false; document.body.classList.add('sheet-open');

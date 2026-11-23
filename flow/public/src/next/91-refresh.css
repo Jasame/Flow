@@ -113,3 +113,6 @@ details.preread>summary .tiny{flex-basis:100%}
 .share-pick .chip{flex:none;max-width:78%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* 注销账号: the one button that cannot be undone, red in both themes (red on its soft tint keeps the contrast) */
 .btn.danger-btn{background:var(--red-soft);border-color:var(--red);color:var(--red);font-weight:600}
+/* right and wrong answers carry a mark, not only a colour (red and green look alike to many colour-blind learners) */
+.ans.right::after,.qopt.right::after{content:'✓';margin-left:auto;padding-left:8px;font-family:var(--sans);font-weight:800;color:var(--green-ink)}
+.ans.wrong::after,.qopt.wrong::after{content:'✗';margin-left:auto;padding-left:8px;font-family:var(--sans);font-weight:800;color:var(--red)}

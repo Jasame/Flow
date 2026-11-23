@@ -34,16 +34,16 @@
 
 /* step tabs: sliding indicator */
 .steps{position:sticky}
-.steps .ind{position:absolute;top:8px;bottom:8px;left:0;border-radius:10px;background:var(--green);transition:transform .32s var(--ease),width .32s var(--ease);z-index:0}
+.steps .ind{position:absolute;top:8px;bottom:8px;left:0;border-radius:10px;background:var(--fill);transition:transform .32s var(--ease),width .32s var(--ease);z-index:0}
 .steps button{position:relative;z-index:1;background:transparent}
 .steps{background:var(--bg)}
 .steps::before{content:'';position:absolute;inset:8px 0;border-radius:10px;background:var(--sunk);z-index:0}
-.steps button[aria-selected=true]{background:transparent;color:#fff}
+.steps button[aria-selected=true]{background:transparent;color:var(--on-fill)}
 .steps button .ok{animation:pop .4s var(--ease-spring) both}
 
 /* reading: karaoke word highlight, sentence focus, evidence sweep */
 .w,.kw{transition:background .15s,color .15s}
-.kw.cur,.w.cur{background:var(--green);color:#fff;border-radius:4px;box-shadow:0 0 0 2px var(--green)}
+.kw.cur,.w.cur{background:var(--fill);color:var(--on-fill);border-radius:4px;box-shadow:0 0 0 2px var(--fill)}
 .line{transition:background .25s,border-color .25s,transform .25s var(--ease)}
 .line.now{transform:translateX(2px)}
 .text.reading .sent:not(.now){opacity:.55;transition:opacity .3s}
