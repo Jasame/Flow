@@ -845,7 +845,7 @@ def layout_run(pw, engine):
                 if not b:
                     break
                 b.click(); pg.wait_for_timeout(250)
-                for sel in ('#go', '.choice button.again, .choice button[data-rate="again"]'):
+                for sel in ('#view #go', '#view [data-rate="again"]', '#view [data-rate]'):  # the answer side: 下一个, or a rating
                     nb = pg.query_selector(sel)
                     if nb and nb.is_visible():
                         nb.click(); pg.wait_for_timeout(250); break
