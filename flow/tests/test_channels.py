@@ -120,8 +120,9 @@ class SetupTests(unittest.TestCase):
                      'ReadWritePaths=/www/wwwroot/flow-beta/data', 'Description=Flow 内测版'):
             self.assertIn(want, u)
         self.assertEqual(self.bs.beta_unit(u), u)  # the 内测版's paths are not changed again
-        t = self.bs.beta_timer_unit('[Service]\nExecStart=/usr/bin/python3 /root/claude-ops/flow-autodeploy.py\n[Timer]\nUnit=flow-autodeploy.service\n')
-        self.assertIn('/root/claude-ops/beta/flow-autodeploy.py --beta', t); self.assertIn('Unit=flow-autodeploy-beta.service', t)
+        t = self.bs.beta_timer_unit('[Service]\nEnvironmentFile=/etc/flow.env\nExecStart=/opt/uv-python/bin/python3.11 -I /root/claude-ops/flow-autodeploy.py\n[Timer]\nUnit=flow-autodeploy.service\n')
+        self.assertIn('-I /root/claude-ops/beta/flow-autodeploy.py --beta', t); self.assertIn('Unit=flow-autodeploy-beta.service', t)
+        self.assertIn('EnvironmentFile=/etc/flow-beta.env', t)
         self.assertEqual(self.bs.env_value(self.bs.with_public_url('A=1\nFLOW_PUBLIC_URL=https://flow.jasa.hk\n', 'https://flowlang.cn'), 'FLOW_PUBLIC_URL'), 'https://flowlang.cn')
 
     def test_nginx_switches_by_host_or_says_why_not(self):
