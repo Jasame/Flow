@@ -27,6 +27,10 @@ else
   SHA=$(git rev-parse HEAD); BR=$(git rev-parse --abbrev-ref HEAD)
   git push -q origin "HEAD:refs/heads/$BR"
 fi
+# The 内测版 runs the commit's own flow-pull.sh: one from before the two sites (2026-11-24) would install into 语流.
+if [ $P = b ] && ! git show "$SHA:tools/flow-pull.sh" | grep -qF 'F=${FLOW_DIR:-'; then
+  echo "$SHA has the old flow-pull.sh (it would install into 语流): merge main (PR #25, the two sites) into it first"; exit 1
+fi
 MAN=$(python3 tools/release_manifest.py "$SHA" 2>/dev/null)
 [[ $MAN =~ ^[0-9a-f]{64}$ ]] || { echo "manifest failed"; exit 1; }
 LAST=$(git ls-remote --tags origin "refs/tags/$P*" | sed -n "s#.*refs/tags/$P\([0-9][0-9]*\)\$#\1#p" | sort -n | tail -1)

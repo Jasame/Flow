@@ -147,6 +147,10 @@ class ToolTests(unittest.TestCase):
             r = subprocess.run(['bash', '-n', str(TOOLS / f)], capture_output=True, text=True)
             self.assertEqual(r.returncode, 0, f + r.stderr)
         deploy = (TOOLS / 'deploy.sh').read_text()
+        # a commit whose flow-pull.sh predates the two sites would install into 语流: refused on both ends
+        self.assertIn("git show \"$SHA:tools/flow-pull.sh\" | grep -qF 'F=${FLOW_DIR:-'", deploy)
+        self.assertIn("if BETA and b'F=${FLOW_DIR:-' not in (work / 'flow-pull.sh').read_bytes():", (TOOLS / 'flow-autodeploy.py').read_text())
+        self.assertIn('F=${FLOW_DIR:-', (TOOLS / 'flow-pull.sh').read_text())
         self.assertIn('--beta) P=b; BRANCH=release-beta; SITE=https://flow.jasa.hk', deploy)
         self.assertIn('P=r; BRANCH=release; SITE=https://flowlang.cn', deploy)
         pull = (TOOLS / 'flow-pull.sh').read_text()
