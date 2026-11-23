@@ -14,6 +14,10 @@ The app loads this compact file instead of parsing ~38 MB of source JSON, which 
 `flow/corpus_data/wordbooks-open.json` (中考, 高考, NAWL, BSL word books) is built by `tools/build_open_wordbooks.py`
 from downloaded ECDICT and NGSL Project files; `flow/WORDBOOKS-OPEN.md` has the sources, licences and commands.
 
+`flow/corpus_data/wordbooks.json` (the 专四 / 专八 word books) is built by `python3 tools/build_wordbooks.py` from the
+frequency list, the ECDICT subset and the dictionary's word list; `--check` fails when it is out of date (the tests run it).
+The selection rule, its sources and sizes are in `flow/WORDBOOKS.md`.
+
 ## Deploy (push-to-deploy)
 
 ```bash

@@ -27,6 +27,7 @@ flow/UI-INTEGRATION.md
 flow/UPGRADE.md
 flow/VERTEX_SETUP.md
 flow/WORDBOOKS-OPEN.md
+flow/WORDBOOKS.md
 flow/ability_radar.py
 flow/account_service.py
 flow/adaptive_service.py
@@ -136,6 +137,7 @@ flow/corpus_data/v5/work.C1.2.json
 flow/corpus_data/v5/work.C1.3.json
 flow/corpus_data/v5/work.C1.json
 flow/corpus_data/wordbooks-open.json
+flow/corpus_data/wordbooks.json
 flow/corpus_data/wordroots-flow.json
 flow/corpus_data/wordroots-zh.json
 flow/corpus_data/yl-reference.json
@@ -277,6 +279,7 @@ flow/tests/test_learner_round.py
 flow/tests/test_slim.py
 flow/tests/test_vertex.py
 flow/tests/test_vocab.py
+flow/tests/test_wordbooks.py
 flow/tests/test_wordbooks_open.py
 flow/tools/build_graded.py
 flow/tools/build_reference.py
@@ -290,6 +293,7 @@ flow/word_links.py
 tests/test_release.py
 tools/build_ecdict_subset.py
 tools/build_open_wordbooks.py
+tools/build_wordbooks.py
 tools/corpus_validate.py
 tools/flow-pull-rollback.sh
 tools/flow-pull.sh

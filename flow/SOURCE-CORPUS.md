@@ -30,6 +30,6 @@
 
 ## ECDICT 释义与考试词表
 
-参考词表大多只给一个词性的释义（例如 even 只有"偶数的"）。语流的查词和背单词改用 ECDICT（https://github.com/skywind3000/ECDICT ，MIT 许可，Copyright (c) 2025 Linwei，许可全文见 `corpus_data/ECDICT-LICENSE.txt`）的全部词性释义；音标和词频排名仍以参考词表为准。`tools/build_ecdict_subset.py` 从 ECDICT 的 `ecdict.csv`（提交 39cfb96）提取参考词表中的词和带考试标签（四级、六级、考研、雅思、托福、GRE）的词，写入 `corpus_data/ecdict-flow.json`，考试词书即由这些标签生成。专四、专八没有可用的公开词表，学习者可以自行导入。
+参考词表大多只给一个词性的释义（例如 even 只有"偶数的"）。语流的查词和背单词改用 ECDICT（https://github.com/skywind3000/ECDICT ，MIT 许可，Copyright (c) 2025 Linwei，许可全文见 `corpus_data/ECDICT-LICENSE.txt`）的全部词性释义；音标和词频排名仍以参考词表为准。`tools/build_ecdict_subset.py` 从 ECDICT 的 `ecdict.csv`（提交 39cfb96）提取参考词表中的词和带考试标签（四级、六级、考研、雅思、托福、GRE）的词，写入 `corpus_data/ecdict-flow.json`，考试词书即由这些标签生成。专四、专八没有可用的公开词表，语流按考纲规定的词汇量从这些数据自编了两本（`corpus_data/wordbooks.json`，方法见 `WORDBOOKS.md`，不是官方词表），学习者也可以自行导入。
 
 中考、高考、学术英语（NAWL 1.2）、商务英语（BSL 1.2）四本词书在 `corpus_data/wordbooks-open.json`，由 `tools/build_open_wordbooks.py` 生成：中考、高考来自 ECDICT 的 `zk`、`gk` 标签（为此 `build_ecdict_subset.py` 也保留这两个标签的词，并用 `--keep` 保留 NAWL、BSL 的词）；NAWL、BSL 由 Browne 等以 CC BY-SA 4.0 许可发布，署名与改动见 `corpus_data/NGSL-LICENSE.txt`，语流改编后的这两本词表同样以 CC BY-SA 4.0 许可发布。来源版本、处理规则和重建命令见 `WORDBOOKS-OPEN.md`。
