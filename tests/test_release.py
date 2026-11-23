@@ -51,6 +51,7 @@ class ReleaseTests(unittest.TestCase):
 # laptop and is missing in production (r19: the guide's login.jpg nearly shipped without being listed).
 NOT_SHIPPED = {
     'flow/corpus_data/candidates/': 'material candidates still under review',
+    'flow/corpus_data/meaning-fixes-notes.md': "the editors' record of the reviewed senses (tools/audit_meanings.py)",
     'flow/corpus_data/pilot/make_audio.py': 'makes the pilot audio on a desktop',
     'flow/corpus_data/v5/EXAMPLE.science.B2.json': 'an example for material authors',
     'flow/public/src/': 'the source parts of next.js and next.css (tools/build_front.py joins them)',
