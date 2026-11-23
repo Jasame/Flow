@@ -165,6 +165,7 @@ flow/learning_insights.py
 flow/learning_service.py
 flow/lexicon_service.py
 flow/loop_service.py
+flow/media.py
 flow/meeting_path.py
 flow/meeting_service.py
 flow/migration_35.py
@@ -247,6 +248,7 @@ flow/tests/test_learning_more.py
 flow/tests/test_learning_system.py
 flow/tests/test_login.py
 flow/tests/test_loop.py
+flow/tests/test_media.py
 flow/tests/test_migration.py
 flow/tests/test_next.py
 flow/tests/test_origin_install.py

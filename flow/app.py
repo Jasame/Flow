@@ -132,10 +132,15 @@ def asset_version():
   for n in ('next.js','next.css'):h.update((ROOT/'public'/n).read_bytes())
   _ASSET.update(key=key,v=h.hexdigest()[:10])
  return _ASSET['v']
+def csp():
+ # The media domain (R2, media.py) is the second line for audio and its timings, when FLOW_MEDIA_BASE is set.
+ m=__import__('media').origin();extra=' '+m if m else ''
+ return "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'"+extra+"; media-src 'self' blob:"+extra+"; frame-src 'self' about:; frame-ancestors 'none'"
 def session_info(u):
  """What /api/session answers; /api/next/home carries the same, so the page needs one request to start."""
  # email_bound: the page reminds an account without one that a forgotten password could not be reset by itself.
- return {'user':{**{k:u[k] for k in ('id','username','admin','csrf')},'email_bound':bool(u['email'])} if u else None,'ai_enabled':ai_enabled(),'mail':account.configured()}
+ # media: where audio can also be fetched when this server cannot answer (None unless R2 is in use).
+ return {'user':{**{k:u[k] for k in ('id','username','admin','csrf')},'email_bound':bool(u['email'])} if u else None,'ai_enabled':ai_enabled(),'mail':account.configured(),'media':__import__('media').info()}
 def verify(p,stored): return hmac.compare_digest(password(p,stored.split(':')[0]),stored)
 def topics(c):
  out=[]
@@ -176,7 +181,7 @@ class Handler(BaseHTTPRequestHandler):
   self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def headers_common(self,mime):
   self.send_header('Permissions-Policy','camera=(), geolocation=(), microphone=(self)')
-  self.send_header('Content-Type',mime);self.send_header('X-Content-Type-Options','nosniff');self.send_header('X-Frame-Options','DENY');self.send_header('Referrer-Policy','same-origin');self.send_header('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; media-src 'self' blob:; frame-src 'self' about:; frame-ancestors 'none'")
+  self.send_header('Content-Type',mime);self.send_header('X-Content-Type-Options','nosniff');self.send_header('X-Frame-Options','DENY');self.send_header('Referrer-Policy','same-origin');self.send_header('Content-Security-Policy',csp())
  def visitor_address(self):
   ip=self.client_address[0]
   if ip in ('127.0.0.1','::1'):

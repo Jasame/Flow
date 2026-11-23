@@ -23,6 +23,20 @@ sys.path.insert(0, str(ROOT))
 import app, chat_service, next_service as nx, vocab_service as vs, skills_service as sk  # noqa: E402
 
 app.DB = Path(tmp) / 'flow.sqlite3'
+# Audio in R2 (flow/media.py): one serial episode is listed as having narration while neither this server nor the
+# media origin can send it (port 9 refuses at once), so tools/ui_test.py can check that the page asks the media
+# domain itself; the test intercepts that address. Other materials have narration only as before (audio/index.json).
+MEDIA_PID = 'v5-culture-c1-lighthouse-ledger-3'
+os.environ['FLOW_MEDIA_BASE'] = 'http://127.0.0.1:9'
+import media  # noqa: E402
+media.MANIFEST = Path(tmp) / 'media-manifest.json'
+# Narration this server has (the WeChat run's FLOW_AUDIO_DIR=tools/ui-fixtures/audio) stays listed, sent from here.
+try:
+    HERE = json.loads((media.DIR / 'index.json').read_text())
+except (OSError, ValueError):
+    HERE = {}
+media.MANIFEST.write_text(json.dumps({'v': 1, 'version': 'uitest000001', 'narration': {**HERE, MEDIA_PID: ['us-f', 'us-m', 'uk-f', 'uk-m']},
+                                      'files': {f'{v}/{MEDIA_PID}.{x}': ['0' * 64, 10] for v in ('us-f', 'us-m', 'uk-f', 'uk-m') for x in ('m4a', 'json')}}))
 app.SECURE = False
 app.init()
 

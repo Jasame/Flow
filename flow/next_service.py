@@ -349,7 +349,12 @@ def set_voice(c, uid, data):
 
 
 def audio_index():
-    """{material id: [voices]} from audio/index.json, reloaded when the file changes."""
+    """{material id: [voices]} and its version. With R2 in use (media.py), from the release's media manifest, so a
+    material has narration as soon as it is uploaded; otherwise from audio/index.json, reloaded when it changes."""
+    import media
+    listed = media.narration()
+    if listed is not None:
+        return {k: [v for v in vs if v in VOICES] for k, vs in listed.items()}, media.version()
     f = AUDIO_DIR / 'index.json'
     try:
         mtime = f.stat().st_mtime
@@ -368,8 +373,8 @@ def audio_file(voice, pid, ext):
     """Path of a narration file, or None. Names are validated so nothing outside AUDIO_DIR can be served."""
     if voice not in VOICES or ext not in ('m4a', 'mp4', 'json') or not re.fullmatch(r'v5-[a-z0-9]+(?:-[a-z0-9]+)*', pid or ''):
         return None
-    f = AUDIO_DIR / voice / (pid + '.' + ('m4a' if ext == 'mp4' else ext))  # .mp4 is the same file, for edge caching
-    return f if f.is_file() else None
+    name = pid + '.' + ('m4a' if ext == 'mp4' else ext)  # .mp4 is the same file, for edge caching
+    return __import__('media').path(f'{voice}/{name}', AUDIO_DIR / voice / name)  # fetched from R2 when missing here
 
 
 def _done(c, uid):

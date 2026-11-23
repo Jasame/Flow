@@ -86,3 +86,11 @@ Flow's text calls can use a cheaper model than the main one. With `FLOW_TEXT_AI_
 model name `flow-text`. The gateway's console (xmc.hk/api-admin/) decides which vendor answers it: DeepSeek, Qwen,
 or Gemini. If `flow-text` fails or is switched off, the main model answers. `tools/ai-gateway/README.md` is the
 step-by-step checklist (in Chinese), and `flow/ai_check.py` checks the text model on its own.
+
+## Audio: this server first, Cloudflare R2 as the second line and the master copy
+
+`tools/push_media.py` uploads the audio that `tools/gen_audio.py` and `tools/gen_word_audio.py` write to the R2 bucket
+(only new or changed files) and writes `flow/corpus_data/media-manifest.json`. After a release with that manifest, the
+server fetches a listed file from R2 the first time someone asks for it (`flow/media.py`, with `FLOW_MEDIA_BASE` set),
+so audio is never copied onto the server by hand; the page plays from R2 by itself when this server cannot answer.
+`tools/media/README.md` is the set-up checklist (in Chinese): bucket, domain, CORS, the upload token, and switching it on.

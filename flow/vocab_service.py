@@ -226,10 +226,10 @@ def extra_examples(c, norm):
 
 def word_audio(norm):
     """{accent: [sprite, start, end]} for a word's pre-generated pronunciation (tools/gen_word_audio.py)."""
-    f = WORD_AUDIO_DIR / 'index.json'
+    f = __import__('media').path('words/index.json', WORD_AUDIO_DIR / 'index.json')  # kept in step with R2 when in use
     try:
         m = f.stat().st_mtime
-    except OSError:
+    except (OSError, AttributeError):
         return {}
     if _WA['mtime'] != m:
         _WA['index'], _WA['mtime'] = json.loads(f.read_text()), m
@@ -239,8 +239,7 @@ def word_audio(norm):
 def word_audio_file(accent, sprite):
     if accent not in ACCENTS or not re.fullmatch(r'[wxp]\d{3}', sprite or ''):
         return None
-    f = WORD_AUDIO_DIR / accent / f'{sprite}.m4a'
-    return f if f.is_file() else None
+    return __import__('media').path(f'words/{accent}/{sprite}.m4a', WORD_AUDIO_DIR / accent / f'{sprite}.m4a')
 
 
 # ---------- helpers ----------

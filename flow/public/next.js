@@ -117,6 +117,51 @@
     if (cur) cur.classList.add('cur');
   }
 
+  /* ---------- two lines for audio: this server first (fastest from mainland China), then the media domain ---------- */
+  // S.home.session.media = {base: '<media domain>/audio', version} when the server keeps audio in R2 (flow/media.py).
+  function mediaAlt(url) {
+    const m = S.home && S.home.session && S.home.session.media;
+    if (!m || !m.base || !/^\/audio\//.test(url || '')) return '';
+    return `${m.base}/${url.split('?')[0].slice(7).replace(/\.mp4$/, '.m4a')}?v=${encodeURIComponent(m.version)}`;
+  }
+  const mainDown = () => Date.now() - (S.mediaMainDown || 0) < 120000;  // after a failure, the other line for 2 minutes
+  async function mediaJSON(url) {
+    const alt = mediaAlt(url);
+    if (!(alt && mainDown())) {
+      try { const r = await fetch(url); if (r.ok) return await r.json(); } catch (e) { /* this server did not answer */ }
+      if (!alt) throw new Error('no audio timing');
+      S.mediaMainDown = Date.now();
+    }
+    const r = await fetch(alt); if (!r.ok) throw new Error('no audio timing');
+    return r.json();
+  }
+  // Point an <audio> at this server; if it fails, or waits more than 8 s while playing, switch once to the media
+  // domain, keeping the position and whether it was playing (a.dataset.want).
+  function mediaSrc(a, url) {
+    const alt = mediaAlt(url);
+    a.dataset.src = url; a.dataset.alt = alt; a.dataset.line = alt && mainDown() ? 'alt' : 'main';
+    if (!a.dataset.armed) {
+      a.dataset.armed = '1';
+      a.addEventListener('error', () => mediaSwap(a));
+      a.addEventListener('waiting', () => { clearTimeout(a.stallTimer); a.stallTimer = setTimeout(() => mediaSwap(a), 8000); });
+      a.addEventListener('playing', () => clearTimeout(a.stallTimer));
+      a.addEventListener('pause', () => clearTimeout(a.stallTimer));
+    }
+    a.preload = 'auto'; a.src = a.dataset.line === 'alt' ? alt : PRELOAD.url(url);  // this server: the preloaded copy if there is one
+  }
+  function mediaSwap(a) {
+    clearTimeout(a.stallTimer);
+    if (!a.dataset.alt || a.dataset.line === 'alt') return false;
+    S.mediaMainDown = Date.now();
+    // where it was; a file that failed before it loaded starts where it was asked to (a._from: a clip, a sentence)
+    const at = a.readyState ? a.currentTime || 0 : a._from || 0, play = a.dataset.want === '1';
+    a.dataset.line = 'alt'; a.src = a.dataset.alt; a.load();
+    a.addEventListener('loadedmetadata', () => { try { a.currentTime = at; } catch (e) { /* not seekable yet */ } if (play) a.play().catch(() => {}); }, { once: true });
+    return true;
+  }
+  // Both lines failed (or there is only one): nothing more to try for this file.
+  const mediaGaveUp = a => !a.dataset.alt || a.dataset.line === 'alt';
+
   /* ---------- narration: pre-generated Kokoro audio + timings (sentence exact, words estimated) ---------- */
   const NAR = {
     audio: new Audio(), meta: null, key: '', raf: 0, stopAt: null, onTick: null, onEnd: null,
@@ -125,20 +170,21 @@
       if (this.key === key && this.meta) return true;
       this.stop(); this.meta = null; this.key = '';
       try {
-        const r = await fetch(`/audio/${voice}/${encodeURIComponent(id)}.json?v=${version}`);
-        if (!r.ok) return false;
-        this.meta = await r.json(); this.key = key;
+        this.meta = await mediaJSON(`/audio/${voice}/${encodeURIComponent(id)}.json?v=${version}`); this.key = key;
         const net = this.net = `/audio/${voice}/${encodeURIComponent(id)}.mp4?v=${version}`;
-        this.audio.preload = 'auto'; this.audio.src = PRELOAD.url(net);
+        mediaSrc(this.audio, net);  // the copy in memory, when it was preloaded
         PRELOAD.warm(net).then(b => { if (b && this.net === net && this.audio.paused && this.audio.getAttribute('src') === net) this.audio.src = b; });
         return true;
       } catch (e) { return false; }
     },
     play(from, to, onTick, onEnd) {
       this.stopLoop(); this.stopAt = to; this.onTick = onTick; this.onEnd = onEnd;
-      claim(this.audio); this.audio.playbackRate = TTS.rate; this.audio.preservesPitch = true;
-      try { this.audio.currentTime = from; } catch (e) { /* not seekable yet */ }
-      this.audio.play().catch(e => { if (e && e.name === 'NotAllowedError') noSound('没有放出声音'); else toast('音频暂时没加载出来，稍后再点一次'); this.finish(); });
+      const a = this.audio, asked = a.src;
+      claim(a); a.playbackRate = TTS.rate; a.preservesPitch = true; a.dataset.want = '1'; a._from = from;
+      try { a.currentTime = from; } catch (e) { /* not seekable yet */ }
+      // Refused (WeChat: not inside a tap): say how to hear it. A file that fails is tried on the other line first
+      // (mediaSwap changes the source, and that play() is the one that counts); only when none is left, give up.
+      a.play().catch(e => { if (e && e.name === 'NotAllowedError') { noSound('没有放出声音'); this.finish(); } else if (a.src === asked && mediaGaveUp(a)) this.gaveUp(); });
       const loop = () => {
         const t = this.audio.currentTime;
         if (this.onTick) this.onTick(t);
@@ -147,9 +193,10 @@
       };
       this.raf = requestAnimationFrame(loop);
     },
-    finish() { this.stopLoop(); const cb = this.onEnd; this.onEnd = null; this.onTick = null; if (cb) cb(); },
+    finish() { this.stopLoop(); this.audio.dataset.want = ''; const cb = this.onEnd; this.onEnd = null; this.onTick = null; if (cb) cb(); },
+    gaveUp() { if (!this.raf && !this.onEnd) return; toast('音频暂时没加载出来，稍后再点一次'); this.finish(); },
     stopLoop() { cancelAnimationFrame(this.raf); this.raf = 0; },
-    stop() { this.stopLoop(); this.onEnd = null; this.onTick = null; try { this.audio.pause(); } catch (e) { /* ignore */ } },
+    stop() { this.stopLoop(); this.audio.dataset.want = ''; this.onEnd = null; this.onTick = null; try { this.audio.pause(); } catch (e) { /* ignore */ } },
     // -> [sentence index, char offset of the current word] at time t
     locate(t) {
       const ss = this.meta.sentences; let si = -1;
@@ -159,6 +206,7 @@
       return [si, wc];
     },
   };
+  NAR.audio.addEventListener('error', () => { if (mediaGaveUp(NAR.audio)) NAR.gaveUp(); });
   function lightAt(container, charOffset) {
     container.querySelectorAll('.cur').forEach(el => el.classList.remove('cur'));
     if (charOffset == null) return;
@@ -168,20 +216,21 @@
   const CLIP = {
     audio: new Audio(), raf: 0, metas: {}, want: null,
     accent() { return (S.voice || 'us-f').startsWith('uk') ? 'uk' : 'us'; },
-    stop() { cancelAnimationFrame(this.raf); this.want = null; try { this.audio.pause(); } catch (e) { /* ignore */ } },
+    stop() { cancelAnimationFrame(this.raf); this.want = null; this.audio.dataset.want = ''; try { this.audio.pause(); } catch (e) { /* ignore */ } },
     // play() is called right away, inside the tap: in-app browsers (WeChat) and iPhones refuse a play() that starts
     // later, when the file has loaded. A new file plays muted until it has jumped to the clip.
-    play(src, from, to) {
+    // text: said by the browser voice if neither line can play the clip.
+    play(src, from, to, text) {
       NAR.stop(); TTS.stop(); this.stop();
-      const a = this.audio, want = this.want = { from, to };
+      const a = this.audio, want = this.want = { from, to, text };
       const loop = () => { if (this.want !== want) return; if (a.currentTime >= to || a.ended) { a.pause(); return; } this.raf = requestAnimationFrame(loop); };
       const refused = e => { if (this.want === want && e && e.name === 'NotAllowedError') noSound('没有放出声音'); };
-      claim(a); a.playbackRate = TTS.rate; src = PRELOAD.url(src);
-      if (a.getAttribute('src') === src && a.readyState >= 1) {
+      claim(a); a.playbackRate = TTS.rate; a.dataset.want = '1'; a._from = from;
+      if (a.dataset.src === src && a.readyState >= 1) {
         try { a.currentTime = from; } catch (e) { /* not seekable yet */ }
         a.muted = false; a.play().catch(refused); this.raf = requestAnimationFrame(loop); return;
       }
-      a.preload = 'auto'; a.setAttribute('src', src); a.muted = true;
+      mediaSrc(a, src); a.muted = true;
       a.addEventListener('loadedmetadata', () => { if (this.want === want) { try { a.currentTime = from; } catch (e) { /* ignore */ } } }, { once: true });
       a.addEventListener('seeked', () => { if (this.want !== want) return; a.muted = false; this.raf = requestAnimationFrame(loop); }, { once: true });
       a.play().catch(refused);
@@ -190,19 +239,23 @@
     word(c) {
       const au = c.audio || {}, ac = au[this.accent()] ? this.accent() : au.us ? 'us' : au.uk ? 'uk' : null;
       if (!ac) { TTS.say(c.text); return; }
-      const w = au[ac]; this.play(`/audio/words/${ac}/${w[0]}.mp4`, w[1], w[2]);
+      const w = au[ac]; this.play(`/audio/words/${ac}/${w[0]}.mp4`, w[1], w[2], c.text);
     },
     // ex: {pack, i, text, audio: narration version or 0}
     async sentence(ex) {
       if (!ex.audio) { TTS.say(ex.text); return; }
       const key = S.voice + '/' + ex.pack;
       try {
-        if (!this.metas[key]) { const r = await fetch(`/audio/${S.voice}/${encodeURIComponent(ex.pack)}.json?v=${ex.audio}`); if (!r.ok) throw new Error('no timing'); this.metas[key] = await r.json(); }
+        if (!this.metas[key]) this.metas[key] = await mediaJSON(`/audio/${S.voice}/${encodeURIComponent(ex.pack)}.json?v=${ex.audio}`);
         const s = this.metas[key].sentences[ex.i]; if (!s) throw new Error('no sentence');
-        this.play(`/audio/${S.voice}/${encodeURIComponent(ex.pack)}.mp4?v=${ex.audio}`, s.s, s.e + 0.05);
+        this.play(`/audio/${S.voice}/${encodeURIComponent(ex.pack)}.mp4?v=${ex.audio}`, s.s, s.e + 0.05, ex.text);
       } catch (e) { TTS.say(ex.text); }
     },
   };
+  CLIP.audio.addEventListener('error', () => {
+    const w = CLIP.want; if (!w || !mediaGaveUp(CLIP.audio)) return;
+    CLIP.stop(); if (w.text) TTS.say(w.text);
+  });
   /* ---------- preloading: the recording likely to be played next is fetched while the page is open ---------- */
   // iPhones and WeChat's browser download a recording only when it is played: on a phone network that is a second or
   // two after the tap. The recording being studied (and today's article, from 今日) is fetched in the background and kept
