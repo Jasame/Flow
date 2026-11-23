@@ -20,8 +20,11 @@
         <span class="muted small">像 App 一样从桌面打开，界面全屏；听过的音频会缓存下来，网络差的时候也能复习。</span>
         ${installPrompt ? '<div><button class="btn small primary" id="doInstall">添加到桌面</button></div>' : /iPhone|iPad|iPod/.test(navigator.userAgent)
           ? '<span class="small">iPhone：用 Safari 打开，点底部的「分享」按钮，再选「添加到主屏幕」。</span>' : '<span class="small">安卓：在浏览器菜单里选「添加到主屏幕」或「安装应用」。</span>'}</div>`}
-      ${S.user ? `<div class="card flat stack-s" id="acct"><div class="row between"><b>邮箱</b><span class="small muted" id="acctEmail"><span class="spin"></span></span></div>
-        <span class="muted tiny">绑定后可以收复习提醒和周报、用验证码登录、找回密码。</span><div><button class="btn small" id="bindMail" hidden>绑定邮箱</button></div></div>` : ''}
+      ${S.user ? `<div class="card flat stack-s" id="acct"><b>账号与安全</b>
+        <div class="row between"><span class="small">邮箱</span><span class="small muted" id="acctEmail"><span class="spin"></span></span></div>
+        <span class="muted tiny">绑定后可以用验证码登录、忘记密码时自己找回，也能收复习提醒和周报。</span>
+        <div class="row wrap acct-actions"><button class="btn small" id="bindMail" hidden>绑定邮箱</button><button class="btn small" id="chPw">修改密码</button><button class="btn small ghost" id="outAll">退出所有设备</button></div>
+        <span class="muted tiny">30 天内来过就一直保持登录。在别人的手机或电脑上用完，记得退出登录。</span></div>` : ''}
       ${S.user ? '<a class="card flat place-cta" href="#/radar"><b>能力雷达：离目标还差多少</b><span class="small muted">听力、阅读、词汇、语法、口语、写作六项，对照你自己定的目标；定期测一测，看哪一项长了。</span></a>' : ''}
       ${S.user ? '<div id="abSlot"><div class="card flat"><p class="loading"><span class="spin"></span></p></div></div>' : ''}
       <div class="card flat list">
@@ -44,30 +47,71 @@
     }).catch(() => { const el = document.getElementById('acctEmail'); if (el) el.textContent = ''; });
     const di = document.getElementById('doInstall'); if (di) di.onclick = async () => { installPrompt.prompt(); try { await installPrompt.userChoice; } catch (e) { /* dismissed */ } installPrompt = null; meView(); };
     view.querySelectorAll('[data-voice]').forEach(b => b.onclick = async () => { await setVoice(b.dataset.voice); view.querySelectorAll('[data-voice]').forEach(x => { x.setAttribute('aria-pressed', String(x === b)); x.setAttribute('aria-checked', String(x === b)); }); toast('朗读声音：' + VOICE_LABELS[b.dataset.voice]); });
+    const chPw = document.getElementById('chPw'); if (chPw) chPw.onclick = () => changePasswordSheet();
+    const outAll = document.getElementById('outAll'); if (outAll) outAll.onclick = () => signOutEverywhere();
     const out = document.getElementById('out');
     if (out) out.onclick = async () => { try { await api('/api/logout', {}); } catch (e) { /* ignore */ } S.user = null; S.csrf = ''; await refreshHome(); toast('已退出'); route(); };
   }
 
+  // Binding an email: the current password, then a 6-digit code sent to the new address (as at sign-up).
   function bindEmailSheet(cur) {
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">${cur ? '更换' : '绑定'}邮箱</h2>
-      <p class="muted small">先发一封验证邮件到新邮箱；邮件里有一串验证令牌，复制回来粘贴到这里就完成了（30 分钟内有效）。</p>
-      <form id="bm1" class="stack" novalidate><label class="field">邮箱<input name="email" type="email" autocomplete="email" inputmode="email" required></label>
-        <label class="field">当前密码（确认是你本人）<input name="password" type="password" autocomplete="current-password" required></label>
-        <button class="btn primary" type="submit">发送验证邮件</button></form>
-      <form id="bm2" class="stack" novalidate hidden><label class="field">验证令牌<input name="token" type="text" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" required></label>
+      <p class="muted small">先输入当前密码确认是你本人，再把发到新邮箱的 6 位验证码填回来。</p>
+      <form id="bm" class="stack" novalidate><label class="field">邮箱<input name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" required></label>
+        ${pwField('当前密码', 'password', 'current-password')}
+        <div class="code-row"><label class="field">验证码<input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required></label>
+          <button class="btn small" type="button" data-send>发送验证码</button></div>
         <button class="btn primary" type="submit">完成绑定</button></form>
       <p class="err" id="bmErr" role="alert"></p><button class="btn ghost" data-close type="button">取消</button></div>`, card => {
-      const f1 = card.querySelector('#bm1'), f2 = card.querySelector('#bm2'), err = card.querySelector('#bmErr');
-      f1.onsubmit = async e => {
-        e.preventDefault(); err.textContent = ''; const b = f1.querySelector('button'); b.disabled = true;
-        try { await api('/api/account/email/request', { email: f1.email.value.trim(), password: f1.password.value }); f1.hidden = true; f2.hidden = false; f2.token.focus(); toast('验证邮件已发出，请查看邮箱'); }
-        catch (x) { err.textContent = x.message; b.disabled = false; }
+      bindEyes(card);
+      const form = card.querySelector('#bm'), err = card.querySelector('#bmErr'), send = card.querySelector('[data-send]');
+      send.onclick = async () => {
+        err.textContent = ''; send.disabled = true;
+        try { const r = await api('/api/account/email/request', { email: form.email.value.trim(), password: form.password.value, mode: 'code' }); toast(r.message || '验证码已发送'); countdown(send); form.code.focus(); }
+        catch (x) { fieldError(form, err, { message: x.message, field: x.field || 'email' }); send.disabled = false; }
       };
-      f2.onsubmit = async e => {
-        e.preventDefault(); err.textContent = ''; const b = f2.querySelector('button'); b.disabled = true;
-        try { await api('/api/account/email/confirm', { token: f2.token.value.trim() }); closeSheet(); toast('邮箱已绑定'); meView(); }
-        catch (x) { err.textContent = x.message; b.disabled = false; }
+      form.onsubmit = async e => {
+        e.preventDefault(); err.textContent = '';
+        if (!/^\d{6}$/.test(form.code.value.trim())) return fieldError(form, err, { message: '请先发送验证码，再填邮件里的 6 位数字', field: 'code' });
+        const b = form.querySelector('[type=submit]'); b.disabled = true;
+        try { await api('/api/account/email/confirm', { email: form.email.value.trim(), code: form.code.value.trim() }); closeSheet(); toast('邮箱已绑定，忘记密码时可以自己找回了'); await refreshHome(); route(true); }
+        catch (x) { fieldError(form, err, x); b.disabled = false; }
       };
     });
   }
+  // A new password ends every session, this one too: sign in again with it.
+  function changePasswordSheet() {
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">修改密码</h2>
+      <p class="muted small">改好以后，所有手机和电脑上的登录都会退出，用新密码重新登录就行。</p>
+      <form id="cp" class="stack" novalidate>${pwField('原密码', 'old', 'current-password')}${pwField('新密码', 'new', 'new-password', '至少 10 位，最好是一句只有你知道的话')}
+        ${pwField('再输一次新密码', 'again', 'new-password')}<button class="btn primary" type="submit">保存新密码</button></form>
+      <p class="err" id="cpErr" role="alert"></p><button class="btn ghost" data-close type="button">取消</button></div>`, card => {
+      bindEyes(card);
+      const form = card.querySelector('#cp'), err = card.querySelector('#cpErr');
+      form.onsubmit = async e => {
+        e.preventDefault(); err.textContent = '';
+        if (form.new.value.length < 10) return fieldError(form, err, { message: '新密码至少 10 位', field: 'new' });
+        if (form.new.value !== form.again.value) return fieldError(form, err, { message: '两次输入的新密码不一样', field: 'again' });
+        const b = form.querySelector('[type=submit]'); b.disabled = true;
+        try {
+          await api('/api/password', { old_password: form.old.value, new_password: form.new.value });
+          S.user = null; S.csrf = ''; closeSheet(); await refreshHome(); route();
+          openLogin('密码已修改，请用新密码登录。', 'pw');
+        } catch (x) { fieldError(form, err, { message: x.message, field: /原密码/.test(x.message) ? 'old' : /新密码/.test(x.message) ? 'new' : '' }); b.disabled = false; }
+      };
+    });
+  }
+  // A lost phone, a shared computer: end the account's sessions everywhere, this one included.
+  function signOutEverywhere() {
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">退出所有设备？</h2>
+      <p class="small">所有手机、平板和电脑上的语流都会退出登录，包括这一台。学习记录不会丢，重新登录就回来了。</p>
+      <button class="btn primary" id="soAll" type="button">退出所有设备</button><button class="btn ghost" data-close type="button">取消</button></div>`, card => {
+      card.querySelector('#soAll').onclick = async e => {
+        e.currentTarget.disabled = true;
+        try { await api('/api/logout', { all: true }); } catch (x) { /* signed out already */ }
+        S.user = null; S.csrf = ''; closeSheet(); await refreshHome(); toast('已在所有设备上退出'); route();
+      };
+    });
+  }
+
 

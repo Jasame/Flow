@@ -221,15 +221,51 @@
     }).catch(fail);
   }
 
+  /* ---------- 账号：给忘了密码、又没绑定邮箱的学习者生成一次性重设链接 ---------- */
+  function accountsView(q) {
+    q = q == null ? (ST.aq || '') : q; ST.aq = q;
+    getJSON('/users' + (q ? '?q=' + encodeURIComponent(q) : '')).then(function (d) {
+      main.innerHTML =
+        '<div class="head-row"><div><h1>账号</h1><p class="muted">学习者忘了密码：绑定过邮箱的，让他在登录框点「忘记密码？」自己找回；没绑定邮箱的，在这里生成一次性重设链接发给他本人。</p></div>' +
+        '<form class="toolbar" id="accF"><input class="input" id="aq" type="search" placeholder="用户名或邮箱" value="' + esc(q) + '"><button class="btn">搜索</button></form></div>' +
+        '<div class="kpi-grid">' + kpi('账号', n(d.total), '个') + kpi('没绑定邮箱', n(d.without_email), '个，忘了密码只能在这里重设') + '</div>' +
+        '<section class="card"><h2>' + (q ? '搜索结果' : '最近注册的 30 个') + '</h2>' +
+        (d.users.length ? '<div class="acc-list">' + d.users.map(function (u) {
+          return '<div class="acc-row"><div><b>' + esc(u.username) + '</b><div class="muted">' + (u.has_email ? esc(u.email) : '没有绑定邮箱') + '</div></div>' +
+            '<button class="btn" data-reset="' + esc(u.username) + '">生成重设链接</button></div>';
+        }).join('') + '</div>' : '<p class="muted">没有找到。</p>') + '</section>' +
+        '<section class="card" id="accOut" hidden></section>';
+      document.getElementById('accF').onsubmit = function (e) { e.preventDefault(); accountsView(document.getElementById('aq').value.trim()); };
+      main.querySelectorAll('[data-reset]').forEach(function (b) {
+        b.onclick = function () {
+          var name = b.getAttribute('data-reset');
+          if (!confirm('给「' + name + '」生成重设密码的链接？\n\n先确认对方是本人。链接 24 小时内有效、只能用一次；生成新链接后，旧链接作废。')) return;
+          b.disabled = true;
+          postJSON('/users/reset-link', { user: name }).then(function (r) {
+            var out = document.getElementById('accOut'); out.hidden = false;
+            out.innerHTML = '<h2>「' + esc(r.username) + '」的重设链接</h2>' +
+              '<p><input class="input acc-link" id="accLink" readonly value="' + esc(r.link) + '"> <button class="btn" id="accCopy" type="button">复制</button></p>' +
+              '<p class="muted">' + r.hours + ' 小时内有效，只能用一次。请当面或私信发给本人，不要发到群里。对方打开链接、设好新密码后，用新密码登录。这个链接只显示这一次。</p>';
+            document.getElementById('accCopy').onclick = function () {
+              var i = document.getElementById('accLink'); i.select();
+              (navigator.clipboard ? navigator.clipboard.writeText(i.value) : Promise.reject()).then(function () { document.getElementById('accCopy').textContent = '已复制'; }, function () { document.execCommand('copy'); });
+            };
+            out.scrollIntoView({ block: 'center' }); b.disabled = false;
+          }).catch(function (e) { alert(e.message); b.disabled = false; });
+        };
+      });
+    }).catch(fail);
+  }
+
   /* ---------- 路由 ---------- */
   function route() {
     ST.tab = (location.hash || '#overview').slice(1);
-    if (['overview', 'learning', 'errors', 'survey', 'responses'].indexOf(ST.tab) < 0) ST.tab = 'overview';
+    if (['overview', 'learning', 'errors', 'survey', 'responses', 'accounts'].indexOf(ST.tab) < 0) ST.tab = 'overview';
     document.querySelectorAll('.adm-tabs a').forEach(function (a) {
       if (a.dataset.tab === ST.tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
     main.innerHTML = '<p class="muted">正在加载…</p>';
-    ({ overview: overview, learning: learningView, errors: errorsView, survey: surveyStats, responses: responses })[ST.tab]();
+    ({ overview: overview, learning: learningView, errors: errorsView, survey: surveyStats, responses: responses, accounts: accountsView })[ST.tab]();
   }
   document.getElementById('themeBtn').onclick = function () {
     var next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';

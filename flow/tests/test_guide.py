@@ -101,6 +101,11 @@ class GuideRenderingTests(unittest.TestCase):
         self.assertIn('href="#/easy"', h)
         self.assertEqual(g['chapters'][0]['links'], ['#/easy']); self.assertEqual(g['chapters'][0]['shots'], ['today'])
 
+    def test_a_command_block_is_kept_as_written_and_escaped(self):
+        h = ug.parse('# 章 {#a}\n\n运行：\n\n```\npython3 app.py --reset-link <名字>\n```\n\n之后\n')['chapters'][0]['html']
+        self.assertIn('<pre class="cmd"><code>python3 app.py --reset-link &lt;名字&gt;</code></pre>', h)
+        self.assertIn('<p>之后</p>', h)
+
     def test_text_before_the_first_chapter_is_refused(self):
         with self.assertRaises(ValueError):
             ug.parse('stray line\n# 章 {#a}\n')

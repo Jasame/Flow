@@ -18,6 +18,12 @@ OUT = user_guide.DIR
 PID = 'v5-science-b2-noise-cancelling'
 
 
+def login(pg):
+    pg.click('#lg')
+    pg.wait_for_selector('#authForm', timeout=5000)
+    pg.wait_for_timeout(500)
+
+
 def lookup(pg):
     pg.click('#reader .w:text-is("drains")')  # an inflected word: the card shows its base form
     pg.wait_for_selector('#sheetCard .word', timeout=5000)
@@ -35,6 +41,7 @@ def review(pg):
 # name -> (page, extra step or None, signed in?)
 SHOTS = {
     'welcome': ('#/welcome', None, False),
+    'login': ('#/me', login, False),
     'today': ('#/', None, True),
     'listen': (f'#/m/{PID}/listen', None, True),
     'read': (f'#/m/{PID}/read', None, True),

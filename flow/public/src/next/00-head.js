@@ -25,7 +25,15 @@
     let r;
     try { r = await fetch(path, opt); } catch (x) { const e = new Error('网络连接失败，请检查网络'); e.network = true; throw e; }
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) { const e = new Error(j.error || ('请求失败（' + r.status + '）')); e.status = r.status; throw e; }
+    if (!r.ok) {
+      const e = new Error(j.error || ('请求失败（' + r.status + '）')); e.status = r.status; e.field = j.field; e.code = j.code;
+      // Signed out on the server (30 days away, a password change, 退出所有设备): say so and offer to sign in again.
+      if (r.status === 401 && S.user && !/^\/api\/(login|register|auth\/)/.test(path)) {
+        S.user = null; S.csrf = ''; e.message = '登录已过期，请重新登录';
+        if (sheetEl.hidden) setTimeout(() => openLogin('登录已过期，请重新登录。登录后会回到这一页。'), 0);
+      }
+      throw e;
+    }
     return j;
   }
   const ICON = {

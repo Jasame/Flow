@@ -15,7 +15,9 @@ ROOT = Path(__file__).resolve().parents[1] / 'flow'
 PORT, STATE = int(sys.argv[1]), Path(sys.argv[2])
 STATE.mkdir(parents=True, exist_ok=True)
 tmp = tempfile.mkdtemp(prefix='flow-ui-')
-os.environ.update({'FLOW_DATA_DIR': tmp, 'FLOW_COOKIE_SECURE': '0', 'FLOW_AI_PROVIDER': 'openai', 'FLOW_AI_KEY': 'ui-test', 'FLOW_AI_MODEL': 'ui-test',
+# Mail is on, as in production (sign-up, code login and a forgotten password then use emailed codes): messages are
+# written to <data>/outbox as files, never sent.
+os.environ.update({'FLOW_DATA_DIR': tmp, 'FLOW_COOKIE_SECURE': '0', 'FLOW_MAIL_OUTBOX': os.path.join(tmp, 'outbox'), 'FLOW_AI_PROVIDER': 'openai', 'FLOW_AI_KEY': 'ui-test', 'FLOW_AI_MODEL': 'ui-test',
                    'FLOW_AI_URL': 'https://ai.invalid/v1/chat/completions', 'FLOW_AI_USER_DAILY_LIMIT': '500', 'FLOW_AI_DAILY_LIMIT': '5000', 'FLOW_AI_AUDIO': '1'})
 sys.path.insert(0, str(ROOT))
 import app, chat_service, next_service as nx, vocab_service as vs, skills_service as sk  # noqa: E402

@@ -84,3 +84,8 @@ button,input,select{font:inherit;color:inherit}
 @media (hover:none),(pointer:coarse){.btn,.input,select{height:44px}.input,select{font-size:16px}}
 .trace{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--bg,#f6f6f6);padding:10px;border-radius:8px;max-height:360px;overflow:auto}
 details summary{cursor:pointer}
+/* 账号 */
+.acc-list{display:grid;gap:2px}
+.acc-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line2)}
+.acc-row:last-child{border-bottom:0}
+.acc-link{width:min(100%,560px);font-family:ui-monospace,Menlo,monospace;font-size:12px}

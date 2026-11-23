@@ -1,4 +1,4 @@
-"""Operator API for xmc.hk/flow/ (read-mostly).
+"""Operator API for xmc.hk/flow/ (read-mostly; the writes: hide a survey answer, a one-time password-reset link).
 
 Listens only on 127.0.0.1:FLOW_ADMIN_PORT. The sole route in is the xmc.hk
 nginx location /flow/api/, which sits behind Cloudflare Access; flow.jasa.hk
@@ -125,6 +125,8 @@ class AdminHandler(BaseHTTPRequestHandler):
                     return self._send(learning(c))
                 if path == '/errors':
                     return self._send(__import__('ops_errors').recent(c))
+                if path == '/users':
+                    return self._send(__import__('account_service').admin_users(c, one('q')))
                 if path == '/survey/definition':
                     return self._send(survey.SURVEY)
                 if path == '/survey/summary':
@@ -143,6 +145,9 @@ class AdminHandler(BaseHTTPRequestHandler):
                 if not 0 < length <= 2000:
                     return self._send({'error': '请求大小不正确'}, 400)
                 data = json.loads(self.rfile.read(length))
+                if path == '/users/reset-link':
+                    # A one-time link for a learner who forgot the password and has no email bound.
+                    return self._send(*__import__('account_service').admin_link(c, data.get('user')))
                 if path == '/survey/hide':
                     return self._send(*survey.set_hidden(c, int(data['id']), bool(data.get('hidden', True))))
         return self._send({'error': '接口不存在'}, 404)
