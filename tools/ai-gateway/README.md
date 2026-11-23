@@ -62,11 +62,14 @@ bash tools/ai-gateway/setup.sh
 | --- | --- | --- | --- | --- |
 | DeepSeek | DeepSeek | `flow-text` | `{"flow-text": "deepseek-chat"}` | 30 |
 | 通义千问 | 阿里云百炼 | `flow-text` | `{"flow-text": "qwen-plus"}` | 20 |
-| Gemini | Vertex AI 或 Gemini | `flow-text` | `{"flow-text": "<和 Flow 现在用的同一个 Gemini 模型>"}` | 10 |
+| Gemini | Vertex AI | `flow-text` | `{"flow-text": "<和 Flow 现在用的同一个 Gemini 模型>"}` | 10 |
 
 - **优先级**：数字越大越先用。最大的一家出错，就按数字从大到小往下试；同一优先级里按「权重」分配流量。
 - **测试**：每个渠道建好后点一次「测试」。
-- **Gemini 渠道**：先确认新服务器在香港能直连 Gemini（迁移包里的 `check_ai.py` 会测）。连不上就先不建这个渠道，Gemini 继续由 Flow 直连 Vertex 当最后的兜底。
+- **Gemini 渠道只能用「Vertex AI」类型**：
+  - 香港可以直接用 Vertex AI，Flow 现在就是这样连的；但 AI Studio 的 Gemini API（填 AI Studio API Key 的那种）在香港不开放，不要选那个类型。
+  - 密钥填服务账号 JSON。建议在 Google Cloud 控制台新建一个只有 Vertex AI User 权限的服务账号，不要复用 Flow 服务器上的凭据文件，也不要把 JSON 发到聊天里。
+  - 部署地区填 `global`，和 Flow 现在一样。
 - **这些模型名是建议**，以各家控制台当前提供的为准。
 
 ## 5. 价格和令牌（你来做）
@@ -166,3 +169,4 @@ cd /www/wwwroot/flow && <Flow 用的 python> ai_check.py
 
 - 这套配置在本地只对一个模拟的网关跑过，测的是检查脚本和配置文件，没有在真正的 New API 上跑过（本机没有 Docker）。
 - 第 1 步做完后，需要在服务器上实际验收一遍。
+- 香港服务器连 Vertex AI 已经确认没问题：切换前在香港跑的线上测试 152 项全部通过，其中包括真实的 AI 调用。
