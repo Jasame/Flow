@@ -81,12 +81,19 @@
     if (!u || u.email_bound !== false || !mail || Date.now() - (load('flow-next-mail-nudge') || 0) < 14 * 864e5) return '';
     return `<div class="card sunk section mail-nudge stack-s" id="mailNudge"><b>还没有绑定邮箱</b>
       <span class="small">忘记密码时，绑定了邮箱就能自己用验证码找回；没绑定的话只能请老师或管理员帮忙重设。</span>
-      <div class="row"><button class="btn small primary" id="mnBind" type="button">绑定邮箱</button><button class="btn small ghost" id="mnLater" type="button">以后再说</button></div></div>`;
+      <div class="row"><button class="btn small primary" id="mnBind" type="button" data-tap="notice-mail">绑定邮箱</button><button class="btn small ghost" id="mnLater" type="button">以后再说</button></div></div>`;
   }
-  function bindMailNudge() {
+  // A few entry points are counted, how many taps a day and nothing about who, so the operator console can compare
+  // the weeks before and after a release (flow_admin.TAP_LABEL lists them). Best effort: a lost count does not matter.
+  document.addEventListener('click', e => {
+    const t = e.target.closest && e.target.closest('[data-tap]'); if (!t) return;
+    const fold = t.tagName === 'SUMMARY' && t.parentElement; if (fold && fold.open) return;
+    try { navigator.sendBeacon('/api/next/tap', JSON.stringify({ k: t.dataset.tap })); } catch (x) { /* not counted */ }
+  }, true);
+  function bindMailNudge(after) {
     const b = document.getElementById('mnBind'), l = document.getElementById('mnLater');
     if (b) b.onclick = () => bindEmailSheet('');
-    if (l) l.onclick = () => { save('flow-next-mail-nudge', Date.now()); const n = document.getElementById('mailNudge'); if (n) n.remove(); };
+    if (l) l.onclick = () => { save('flow-next-mail-nudge', Date.now()); if (after) after(); else { const n = document.getElementById('mailNudge'); if (n) n.remove(); } };
   }
   const USERNAME_OK = /^[^\s@<>"'\\/]{2,40}$/;
   function pwField(label, name, auto, hint) {
@@ -209,7 +216,7 @@
       if (name === 'welcome') { setNav(''); await welcome(a === 'edit'); }
       // Only the personalised home needs the level questions first; everything else works for a new guest too.
       else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix', 'easy', 'words', 'speak', 'growth', 'radar', 'practice', 'guide'].includes(name)) { location.replace('#/welcome'); return; }
-      else if (name === 'placement') { setNav('graph'); await placementView(); }
+      else if (name === 'placement') { setNav('practice'); await placementView(); }
       else if (name === 'exam') { setNav('practice'); await examView(a); }
       else if (name === 'series') { setNav('today'); await seriesView(decodeURIComponent(a || '')); }
       else if (name === 'easy') { setNav('practice'); await (a ? easyRead(decodeURIComponent(a)) : easyView()); }
@@ -217,9 +224,9 @@
       else if (name === 'speak') { setNav('practice'); await (a ? speakScene(decodeURIComponent(a)) : speakView()); }
       else if (name === 'radar') { setNav('practice'); await (a === 'goals' ? radarGoals() : a === 'test' && (b === 'reading' || b === 'listening') ? assessComprehension(b) : a === 'test' && (b === 'speaking' || b === 'writing') ? assessJudged(b) : a === 'test' ? radarTests() : radarView()); }
       else if (name === 'growth') { setNav('me'); await growthView(a ? decodeURIComponent(a) : ''); }
-      else if (name === 'mix') { setNav('graph'); await mixView(a === 'pair' || a === 'topic' ? a : 'due', b ? decodeURIComponent(b) : ''); }
+      else if (name === 'mix') { setNav('practice'); await mixView(a === 'pair' || a === 'topic' ? a : 'due', b ? decodeURIComponent(b) : ''); }
       else if (name === 'm' && a) { setNav('today'); await study(decodeURIComponent(a), b || 'listen', sameMaterial); }
-      else if (name === 'graph') { setNav('graph'); await (a ? nodeView(decodeURIComponent(a)) : graphView()); }
+      else if (name === 'graph') { setNav('practice'); await (a ? nodeView(decodeURIComponent(a)) : graphView()); }
       else if (name === 'cards') { setNav('cards'); await vocabView('', 1, a || ''); }
       else if (name === 'import') { setNav('practice'); await importView(); }
       else if (name === 'sounds') { setNav('practice'); await soundsView(a ? decodeURIComponent(a) : ''); }

@@ -137,7 +137,7 @@ U=http://127.0.0.1:8090
 c(){ curl -s -m 20 -o /dev/null -w "%{http_code}" "$@"; }
 total=$(curl -s -m 20 "$U/api/next/library?featured=1" | "$PY" -c "import json,sys;print(json.load(sys.stdin).get('total',0))" 2>/dev/null)
 mid=$(curl -s -m 20 "$U/api/next/library?featured=1" | "$PY" -c "import json,sys;print(json.load(sys.stdin)['items'][0]['id'])" 2>/dev/null)
-checks="health=$(c $U/api/health) root=$(c $U/) classic=$(c "$U/?classic=1") home=$(c "$U/api/next/home?level=B1") graph=$(c $U/api/next/graph) material=$(c "$U/api/next/material?id=$mid") vocabtest=$(c $U/api/next/vocab/test) survey=$(c $U/survey) sw=$(c $U/sw.js) admin=$(c http://127.0.0.1:8091/flow/api/overview) learning=$(c http://127.0.0.1:8091/flow/api/learning)"
+checks="health=$(c $U/api/health) root=$(c $U/) oldlink=$(c "$U/?classic=1") home=$(c "$U/api/next/home?level=B1") graph=$(c $U/api/next/graph) material=$(c "$U/api/next/material?id=$mid") vocabtest=$(c $U/api/next/vocab/test) survey=$(c $U/survey) sw=$(c $U/sw.js) admin=$(c http://127.0.0.1:8091/flow/api/overview) learning=$(c http://127.0.0.1:8091/flow/api/learning)"
 echo "flow: active=$(systemctl is-active flow) featured=$total $checks"
 [ "$(systemctl is-active flow)" = active ] || rollback
 for kv in $checks; do [ "${kv#*=}" = 200 ] || rollback; done

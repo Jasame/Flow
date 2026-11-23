@@ -3,7 +3,11 @@
   'use strict';
   var API = '/flow/api';
   var main = document.getElementById('main');
-  var ST = { tab: 'overview', filters: { role: '', level: '', flow: '' }, page: 1, q: '', def: null };
+  var ST = { tab: 'overview', filters: { role: '', level: '', flow: '' }, page: 1, q: '', def: null, me: null };
+  // 管理员 sees everything and may change things; 只看数据 sees the numbers only (the server enforces it, the page just
+  // leaves out what would answer 403).
+  function isAdmin() { return !ST.me || ST.me.role === 'admin'; }
+  function when(t) { return t ? new Date(t * 1000).toLocaleString('zh-CN', { hour12: false }) : '—'; }
   var DIST = ['#d4553f', '#e79a4a', '#c9c9c2', '#7cc79c', '#1f9d55'];
 
   function esc(s) {
@@ -50,7 +54,7 @@
         '<div class="head-row"><div><h1>语流 Flow 概览</h1><p class="muted">flow.jasa.hk · ' + (d.server ? '数据来自' + esc(d.server) + ' · ' : '') + '更新于 ' + new Date(d.generated_at * 1000).toLocaleString('zh-CN') + '</p></div>' +
         '<div class="toolbar"><button class="btn" id="reload">刷新</button></div></div>' +
         '<div class="kpi-grid">' +
-          kpi('注册用户', n(d.users), '其中管理员 ' + n(d.admins)) +
+          kpi('注册用户', n(d.users), d.admins ? '其中 ' + n(d.admins) + ' 个员工账号，AI 次数不限' : '学习网站上没有管理功能') +
           kpi('近 7 天活跃', n(d.active_7d), '近 24 小时 ' + n(d.active_1d) + ' 人') +
           kpi('今日 AI 调用', n(ai.today), ai.site_limit ? ('全站上限 ' + n(ai.site_limit) + ' · 已用 ' + pct(ai.today, ai.site_limit) + '%') : '全站不设上限') +
           kpi('问卷回答', n(d.survey_responses), '<a href="#survey" style="color:var(--accent)">查看统计 →</a>') +
@@ -59,6 +63,12 @@
           '<section class="card"><h2>近 7 天 AI 调用</h2>' +
             '<div class="spark">' + ai.week.map(function (x) { return '<div title="' + esc(x.day + '：' + x.count) + '" style="height:' + Math.max(3, pct(x.count, max)) + '%"></div>'; }).join('') + '</div>' +
             '<div class="spark-days">' + ai.week.map(function (x) { return '<span>' + esc(x.day.slice(5)) + '</span>'; }).join('') + '</div></section>' +
+          '<section class="card"><h2>备份和每日热点</h2><div class="resp-grid">' +
+            '<dt>最近备份</dt><dd>' + (d.backup ? (d.backup.ok ? '成功 · ' : '<span class="err">失败</span> · ') + esc(when(d.backup.created)) : '还没有备份记录') + '</dd>' +
+            '<dt>今日热点</dt><dd>' + esc(({ complete: '已生成', running: '正在生成', failed: '生成失败', interrupted: '中断了', waiting: '还没生成' })[d.daily.status] || d.daily.status) +
+              (d.daily.enabled ? '' : '（服务器没有开启联网检索，FLOW_AI_GROUNDING）') + (d.daily.error ? '<div class="muted">' + esc(d.daily.error) + '</div>' : '') + '</dd>' +
+            '<dt>最近几天</dt><dd>' + (d.daily.latest.length ? d.daily.latest.map(function (x) { return esc(x.day.slice(5)); }).join('、') : '—') + '</dd>' +
+          '</div>' + (isAdmin() ? '<p><button class="btn" id="dailyRun"' + (d.daily.status === 'complete' || d.daily.status === 'running' ? ' disabled' : '') + '>现在生成今日热点</button></p>' : '') + '</section>' +
           '<section class="card"><h2>AI 额度设置</h2><div class="resp-grid">' +
             '<dt>模型</dt><dd>' + esc(ai.model || '未配置') + '</dd>' +
             '<dt>每账号每日上限</dt><dd>' + (ai.user_limit ? n(ai.user_limit) + ' 次（管理员不受限）' : '不限') + '</dd>' +
@@ -69,6 +79,11 @@
           '</div></section>' +
         '</div>';
       document.getElementById('reload').onclick = overview;
+      var dr = document.getElementById('dailyRun');
+      if (dr) dr.onclick = function () {
+        dr.disabled = true;
+        postJSON('/daily/run', {}).then(function (r) { dr.textContent = r.message; }).catch(function (e) { alert(e.message); dr.disabled = false; });
+      };
     }).catch(fail);
   }
   function kpi(label, val, sub) { return '<div class="kpi"><div class="kpi-label">' + label + '</div><div class="kpi-val">' + val + '</div><div class="kpi-sub">' + sub + '</div></div>'; }
@@ -88,7 +103,7 @@
       var html =
         '<div class="head-row"><div><h1>' + esc(s.survey.title) + '</h1><p class="muted">匿名问卷 · 共 ' + n(s.total) + ' 份有效回答' +
           (s.hidden ? '（另有 ' + n(s.hidden) + ' 份已隐藏）' : '') + (s.median_seconds ? ' · 中位用时 ' + Math.round(s.median_seconds / 60 * 10) / 10 + ' 分钟' : '') + '</p></div>' +
-        '<div class="toolbar"><a class="btn" href="https://flow.jasa.hk/survey" target="_blank" rel="noopener">问卷链接</a><button class="btn" id="copyLink">复制链接</button><a class="btn primary" href="' + API + '/survey/export.csv">导出 CSV</a></div></div>' +
+        '<div class="toolbar"><a class="btn" href="https://flow.jasa.hk/survey" target="_blank" rel="noopener">问卷链接</a><button class="btn" id="copyLink">复制链接</button>' + (isAdmin() ? '<a class="btn primary" href="' + API + '/survey/export.csv">导出 CSV</a>' : '') + '</div></div>' +
         '<div class="card toolbar">' + filterSelect('role', byId.role) + filterSelect('level', byId.level) + filterSelect('flow', byId.flow) +
           (qs ? '<button class="btn" id="clearF">清除筛选</button>' : '') + '</div>';
       if (!s.total) {
@@ -257,29 +272,80 @@
     }).catch(fail);
   }
 
+  /* ---------- 发版对比：发版前后各几天的日均数字，和几个入口的点击次数 ---------- */
+  function compareView() {
+    getJSON('/releases').then(function (rel) {
+      var at = ST.at || (rel.items[0] && rel.items[0].at) || null, days = ST.days || 14;
+      var pick = '<form class="toolbar" id="cmpF"><label class="muted">发版 <select id="cmpRel"><option value="">按日期</option>' + rel.items.map(function (r) {
+          return '<option value="' + r.at + '"' + (Number(r.at) === Number(at) ? ' selected' : '') + '>' + esc(r.tag) + ' · ' + esc(when(r.at)) + '</option>'; }).join('') + '</select></label>' +
+        '<label class="muted">或日期 <input class="input" type="date" id="cmpDay"></label>' +
+        '<label class="muted">前后各 <select id="cmpDays">' + [7, 14, 30].map(function (x) { return '<option' + (x === days ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select> 天</label></form>';
+      var head = '<div class="head-row"><div><h1>发版对比</h1><p class="muted">发版前后各 ' + days + ' 天的日均数字（北京时间）。发版后不满 ' + days + ' 天的，按已经过去的天数算。</p></div>' + pick + '</div>';
+      if (!at) { main.innerHTML = head + '<section class="card"><p>还没有记下发版时间。下一次发版后会自动记下；也可以先选一个日期。</p></section>'; return bindCmp(); }
+      return getJSON('/compare?at=' + at + '&days=' + days).then(function (d) {
+        var ch = function (b, a) { if (b == null || a == null) return '—'; if (!b) return a ? '新出现' : '—'; var p = Math.round(100 * (a - b) / b); return '<span class="' + (p > 0 ? 'up' : p < 0 ? 'down' : '') + '">' + (p > 0 ? '+' : '') + p + '%</span>'; };
+        main.innerHTML = head +
+          '<section class="card"><h2>' + esc(when(d.at)) + ' 前后</h2><p class="muted">发版后已经过了 ' + d.after_days + ' 天。人少的时候，几个人的变化就会让比例跳得很大；「新学员一周内回来的比例」要等发版满一周才准。</p>' +
+          '<table class="cmp"><thead><tr><th></th><th class="num">发版前</th><th class="num">发版后</th><th class="num">变化</th></tr></thead><tbody>' + d.metrics.map(function (m) {
+            return '<tr><td>' + esc(m.label) + '</td><td class="num">' + (m.before == null ? '—' : m.before) + '</td><td class="num">' + (m.after == null ? '—' : m.after) + '</td><td class="num">' + ch(m.before, m.after) + '</td></tr>'; }).join('') +
+          '</tbody></table></section>' +
+          '<section class="card"><h2>入口点击（合计次数）</h2><p class="muted">学习网站上几个入口被点了多少次，只按天计数，不记是谁。发版当天前后都不算。</p>' + (d.taps.length ?
+          '<table class="cmp"><thead><tr><th></th><th class="num">发版前</th><th class="num">发版后</th><th class="num">变化</th></tr></thead><tbody>' + d.taps.map(function (t) {
+            return '<tr><td>' + esc(t.label) + '</td><td class="num">' + n(t.before) + '</td><td class="num">' + n(t.after) + '</td><td class="num">' + ch(t.before, t.after) + '</td></tr>'; }).join('') +
+          '</tbody></table>' : '<p class="muted">还没有点击记录。</p>') + '</section>';
+        bindCmp();
+      });
+    }).catch(fail);
+    function bindCmp() {
+      var f = document.getElementById('cmpF'); if (!f) return;
+      document.getElementById('cmpRel').onchange = function (e) { ST.at = e.target.value || null; compareView(); };
+      document.getElementById('cmpDay').onchange = function (e) { if (e.target.value) { ST.at = new Date(e.target.value + 'T00:00:00+08:00').getTime() / 1000; compareView(); } };
+      document.getElementById('cmpDays').onchange = function (e) { ST.days = Number(e.target.value); compareView(); };
+    }
+  }
+
+  /* ---------- 操作记录：管理员改了什么、导出了什么 ---------- */
+  function logView() {
+    getJSON('/log').then(function (d) {
+      main.innerHTML =
+        '<div class="head-row"><div><h1>操作记录</h1><p class="muted">生成重设密码链接、隐藏问卷回答、导出问卷、生成今日热点，都记在这里：谁、什么时候、对哪一项。链接本身不记录。</p></div>' +
+        '<div class="toolbar"><button class="btn" id="reload">刷新</button></div></div>' +
+        (ST.me && !ST.me.roles_set ? '<section class="card"><p><b>现在所有能登录后台的人都是管理员。</b>想让一部分人只看数据：在服务器的 /etc/flow.env 里加一行 <code>FLOW_ADMIN_EMAILS=你的邮箱,另一个管理员的邮箱</code>，再重启 flow。不在名单里的人就只能看概览、学习数据、发版对比和问卷统计。</p></section>' : '') +
+        '<section class="card">' + (d.items.length ? '<table class="cmp"><thead><tr><th>时间</th><th>谁</th><th>做了什么</th><th>对象</th><th>结果</th></tr></thead><tbody>' + d.items.map(function (r) {
+          return '<tr><td>' + esc(when(r.created)) + '</td><td>' + esc(r.email) + '<div class="muted">' + esc(r.role_label) + '</div></td><td>' + esc(r.action_label) + '</td><td>' + esc(r.target) + '</td><td>' + esc(r.detail) + '</td></tr>'; }).join('') +
+          '</tbody></table>' : '<p class="muted">还没有记录。</p>') + '</section>';
+      document.getElementById('reload').onclick = logView;
+    }).catch(fail);
+  }
+
   /* ---------- 路由 ---------- */
   function route() {
     ST.tab = (location.hash || '#overview').slice(1);
-    if (['overview', 'learning', 'errors', 'survey', 'responses', 'accounts'].indexOf(ST.tab) < 0) ST.tab = 'overview';
+    if (['overview', 'learning', 'compare', 'errors', 'survey', 'responses', 'accounts', 'log'].indexOf(ST.tab) < 0) ST.tab = 'overview';
+    if (!isAdmin() && ['errors', 'responses', 'accounts', 'log'].indexOf(ST.tab) >= 0) ST.tab = 'overview';
     document.querySelectorAll('.adm-tabs a').forEach(function (a) {
       if (a.dataset.tab === ST.tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
     main.innerHTML = '<p class="muted">正在加载…</p>';
-    ({ overview: overview, learning: learningView, errors: errorsView, survey: surveyStats, responses: responses, accounts: accountsView })[ST.tab]();
+    ({ overview: overview, learning: learningView, compare: compareView, errors: errorsView, survey: surveyStats, responses: responses, accounts: accountsView, log: logView })[ST.tab]();
   }
   document.getElementById('themeBtn').onclick = function () {
     var next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
     document.documentElement.dataset.theme = next;
     try { localStorage.setItem('xmc-theme', next); } catch (e) { /* ignore */ }
   };
-  // Which server the data comes from (香港 or 杭州), on every tab: the two panels look alike, the data must not.
-  function serverBadge() {
-    getJSON('/overview').then(function (d) {
+  // Who is signed in (Cloudflare Access) and with which role; which server the data comes from (香港 or 杭州), on
+  // every tab: the two panels look alike, the data must not.
+  function whoAmI() {
+    return getJSON('/me').then(function (me) {
+      ST.me = me;
+      var w = document.getElementById('who');
+      if (w) { w.textContent = (me.email || '未识别的账号') + ' · ' + me.label; w.hidden = false; }
       var el = document.getElementById('srv');
-      if (el && d.server) { el.textContent = '数据来自' + d.server; el.hidden = false; }
-    }).catch(function () { /* the page itself shows the error */ });
+      if (el && me.server) { el.textContent = '数据来自' + me.server; el.hidden = false; }
+      document.querySelectorAll('.adm-tabs [data-admin]').forEach(function (a) { a.hidden = !isAdmin(); });
+    }).catch(function () { /* an older Flow without /me: everything as before */ });
   }
   window.addEventListener('hashchange', route);
-  route();
-  serverBadge();
+  whoAmI().then(route);
 })();

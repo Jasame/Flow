@@ -38,8 +38,20 @@
           <div class="rbar"><span class="vbar"><i data-w="${d.score}"></i></span><b class="num">${d.score}</b>${delta ? `<span class="${delta > 0 ? 'up' : 'down'}">${delta > 0 ? '+' : ''}${delta}</span>` : ''}${spark(r.history.map(h => h.scores[d.id]))}</div>
           <div class="tiny muted">现在约 ${esc(d.level)} · ${CONF[d.confidence] || ''}${d.assessed ? '（' + new Date(d.assessed * 1000).toLocaleDateString('zh-CN') + ' 测评）' : '（来自平时练习）'}
             · <a class="link" href="${DIM_TEST[d.id]}">${d.due ? '该测了' : '重测'}</a>${r.gap === d.id ? ` · <a class="link" href="${d.href}">差距最大：${esc(d.tip)}</a>` : ''}</div>`}</div>`; }).join('')}</section>
-      ${r.gap ? `<p class="small cheer">${esc(r.dims.find(d => d.id === r.gap).label)}离目标最远，每天的计划会多安排这方面的练习。</p>` : ''}</div>`;
+      ${r.gap ? `<p class="small cheer">${esc(r.dims.find(d => d.id === r.gap).label)}离目标最远，每天的计划会多安排这方面的练习。</p>` : ''}
+      <details class="card flat fold" id="abFold"><summary><b>按平时练习估计</b><span class="tiny muted">近 45 天 · 8 项，含翻译和发音</span></summary><div id="abSlot"><p class="muted small"><span class="spin"></span></p></div></details></div>`;
     view.querySelectorAll('.pop-in').forEach(el => el.style.setProperty('--d', Number(el.dataset.k) * 60 + 'ms'));
+    // What used to be the 能力画像 card on 我的: loaded when it is opened.
+    const fold = document.getElementById('abFold');
+    fold.addEventListener('toggle', () => {
+      if (!fold.open || fold.dataset.done) return;
+      fold.dataset.done = '1';
+      api('/api/next/ability').then(ab => {
+        const slot = document.getElementById('abSlot'); if (!slot) return;
+        slot.innerHTML = abilityHTML(ab);
+        requestAnimationFrame(() => requestAnimationFrame(() => slot.querySelectorAll('.vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; })));
+      }).catch(e => { const slot = document.getElementById('abSlot'); if (slot) slot.innerHTML = `<p class="muted small">${esc(e.message)}</p>`; delete fold.dataset.done; });
+    });
     requestAnimationFrame(() => requestAnimationFrame(() => { view.querySelectorAll('.vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; }); const g = view.querySelector('.radar .cur'); if (g) g.classList.add('on'); }));
   }
   async function radarGoals() {

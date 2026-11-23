@@ -28,7 +28,7 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
   if (url.pathname.startsWith('/audio/')) { e.respondWith(audio(req, url)); return; }
   if (req.mode === 'navigate') {
-    if (url.pathname !== '/' || url.search) return;  // the classic site and other pages stay network-only
+    if (url.pathname !== '/' || url.search) return;  // old links with a query string and other pages stay network-only
     let saved;
     const net = fetch(req).then(r => {
       if (r.ok) { const copy = r.clone(); saved = caches.open(SHELL).then(c => c.put('/', copy)); }  // cloned before the page reads it

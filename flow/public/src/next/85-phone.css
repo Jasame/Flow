@@ -10,8 +10,8 @@
 
 /* material cards (home, node pages): level and 精选 above the title, so the title gets the whole width;
    the reason ("新知识点…") on its own line instead of squeezed beside the word count */
-.mini:not(.graph-mini){grid-template-columns:1fr;gap:6px}
-.mini:not(.graph-mini)>*{grid-column:1/-1;min-width:0}
+.mini{grid-template-columns:1fr;gap:6px}
+.mini>*{grid-column:1/-1;min-width:0}
 .mini .meta{order:-1;display:flex;flex-wrap:wrap;gap:6px;justify-self:start}
 .mini .reasons{justify-self:start}
 

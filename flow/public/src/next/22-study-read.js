@@ -1,26 +1,66 @@
     /* after reading: the words looked up here (and the pre-reading list) can go into review in one tap */
-    function newWordsHTML() {
+    function newWordItems() {
       const looked = [...((m._looked && m._looked.values()) || [])];
       const mine = new Set((m.mine || []).map(x => x.form));
       const items = looked.filter(x => !mine.has(x.word)).map(x => ({ ...x, on: true }));
       (m.preread || []).forEach(w => { if (!items.some(x => x.word === w.word) && !mine.has(w.form)) items.push({ word: w.word, meaning: w.meaning, sentence: findContext(w.form, lines()), on: false }); });
-      if (!items.length) return '';
-      return `<div class="card flat stack-s" id="newWords"><div class="row between"><b>这篇的生词</b><span class="muted tiny">勾选的会按遗忘曲线复习</span></div>
-        <div class="nw-list">${items.slice(0, 14).map((x, k) => `<label class="nw"><input type="checkbox" data-nw="${k}" ${x.on ? 'checked' : ''}><b>${esc(x.word)}</b><span class="muted tiny">${esc(x.meaning || '')}</span></label>`).join('')}</div>
+      return items.slice(0, 14);
+    }
+    function newWordsHTML() {
+      const items = newWordItems();
+      if (!items.length) return '<p class="muted small">读的时候点过的词会出现在这里，勾选后按遗忘曲线复习。</p>';
+      return `<div class="stack-s" id="newWords"><div class="row between"><b class="small">这篇的生词</b><span class="muted tiny">勾选的会按遗忘曲线复习</span></div>
+        <div class="nw-list">${items.map((x, k) => `<label class="nw"><input type="checkbox" data-nw="${k}" ${x.on ? 'checked' : ''}><b>${esc(x.word)}</b><span class="muted tiny">${esc(x.meaning || '')}</span></label>`).join('')}</div>
         <div><button class="btn small primary" id="nwAdd">加入复习</button></div></div>`;
     }
     function bindNewWords() {
       const box = pane.querySelector('#newWords'); if (!box) return;
-      const looked = [...((m._looked && m._looked.values()) || [])];
-      const items = looked.map(x => ({ ...x })); (m.preread || []).forEach(w => { if (!items.some(x => x.word === w.word)) items.push({ word: w.word, sentence: findContext(w.form, lines()) }); });
+      const items = newWordItems();
       box.querySelector('#nwAdd').onclick = async e => {
         if (!S.user) return needLogin('登录后可以把这些词加入复习。');
         const pick = [...box.querySelectorAll('[data-nw]:checked')].map(c => items[Number(c.dataset.nw)]).filter(Boolean);
         if (!pick.length) { toast('先勾选要复习的词'); return; }
         const btn = e.currentTarget; btn.disabled = true;
-        try { const r = await api('/api/next/vocab/add', { pack: id, items: pick.map(x => ({ word: x.word, sentence: x.sentence || '' })) }); toast(r.added ? `已加入 ${r.added} 个词` : '这些词已经在复习里了'); refreshHome().catch(() => {}); box.remove(); }
-        catch (x) { toast(x.message); btn.disabled = false; }
+        try {
+          const r = await api('/api/next/vocab/add', { pack: id, items: pick.map(x => ({ word: x.word, sentence: x.sentence || '' })) });
+          toast(r.added ? `已加入 ${r.added} 个词` : '这些词已经在复习里了'); refreshHome().catch(() => {});
+          m.mine = (m.mine || []).concat(pick.map(x => ({ form: x.word.toLowerCase(), id: 0 }))); m._looked = new Map();
+          if (m._onLook) m._onLook();
+        } catch (x) { toast(x.message); btn.disabled = false; }
       };
+    }
+    // What this text leaves you with, in one folded card under the text: expressions, words (the ones looked up
+    // too, to put into review) and grammar points, one tab at a time. Open or closed and the tab are remembered.
+    function gainsTabs() {
+      const vocab = m.vocabulary.length + (m.variant ? m.variant.notes.length : 0), fresh = newWordItems().filter(x => x.on).length;
+      return [
+        m.expressions.length && ['expr', '表达', m.expressions.length, () => `<p class="muted tiny">能直接搬进你自己话里的搭配。</p><div class="stack-s">${m.expressions.map((x, i) => `<div class="expr"><span class="e">${esc(x.text)}</span><span class="row"><button class="icon-btn" data-sayx="${i}" aria-label="朗读">${ICON.speak}</button><button class="icon-btn" data-sx="${i}" aria-label="收藏 ${esc(x.text)}">${ICON.star}</button></span><span class="m">${esc(x.meaning)}</span><span class="n">${esc(x.note || '')}</span></div>`).join('')}</div>`],
+        ['words', '词汇', vocab + fresh, () => `${m.vocabulary.length ? `<div class="vocab-list">${m.vocabulary.map((v, i) => `<div class="vrow"><span class="term">${esc(v.term)}</span><button class="icon-btn" data-sv="${i}" aria-label="收藏 ${esc(v.term)}">${ICON.star}</button><span class="muted small">${esc(v.meaning)}</span><span class="vex">${esc(v.example || '')}</span></div>`).join('')}</div>` : ''}
+          ${(m.variant && m.variant.notes.length) ? `<b class="small">改写版新出现的表达</b><div class="vocab-list">${m.variant.notes.map((v, i) => `<div class="vrow"><span class="term">${esc(v.text)}</span><button class="icon-btn" data-sn="${i}" aria-label="收藏">${ICON.star}</button><span class="muted small">${esc(v.meaning)}</span></div>`).join('')}</div>` : ''}
+          <div id="nwSlot">${newWordsHTML()}</div>`],
+        m.notes.length && ['notes', '知识点', m.notes.length, () => `<div class="stack-s">${m.notes.map(n => `<div class="knote"><div class="row between">${nodeChip({ id: n.node, title: n.title, status: n.status })}<span class="tiny muted">${esc(n.label)}</span></div><q>${esc(n.quote)}</q><div class="small muted">${esc(n.explanation)}</div></div>`).join('')}
+          <a class="link small" href="#/graph">在知识图谱里看 →</a></div>`]].filter(Boolean);
+    }
+    function gainsSummary() {
+      const vocab = m.vocabulary.length + (m.variant ? m.variant.notes.length : 0), fresh = newWordItems().filter(x => x.on).length;
+      return [m.expressions.length && `${m.expressions.length} 个表达`, vocab && `${vocab} 个词`, m.notes.length && `${m.notes.length} 个知识点`, fresh && `查过 ${fresh} 个词，可以加入复习`].filter(Boolean).join(' · ') || '查过的词会收在这里';
+    }
+    function gainsHTML() {
+      const tabs = gainsTabs();
+      let open = false, cur = tabs[0][0];
+      try { open = localStorage.getItem('flow-gains-open') === '1'; const t = localStorage.getItem('flow-gains-tab'); if (tabs.some(x => x[0] === t)) cur = t; } catch (e) { /* private mode */ }
+      return `<details class="card flat fold gains section" id="gains"${open ? ' open' : ''}><summary data-tap="read-gains"><b>这篇的收获</b><span class="tiny muted" id="gainsSum">${gainsSummary()}</span></summary>
+        <div class="seg gtabs" role="tablist" aria-label="这篇的收获">${tabs.map(([k, l, n]) => `<button role="tab" type="button" data-gt="${k}" aria-selected="${k === cur}">${l} ${n}</button>`).join('')}</div>
+        ${tabs.map(([k, , , html]) => `<div class="gpane stack-s" data-gp="${k}" role="tabpanel"${k === cur ? '' : ' hidden'}>${html()}</div>`).join('')}</details>`;
+    }
+    function bindGains() {
+      const g = pane.querySelector('#gains'); if (!g) return;
+      g.addEventListener('toggle', () => { try { localStorage.setItem('flow-gains-open', g.open ? '1' : ''); } catch (e) { /* private mode */ } });
+      g.querySelectorAll('[data-gt]').forEach(b => b.onclick = () => {
+        g.querySelectorAll('[data-gt]').forEach(x => x.setAttribute('aria-selected', String(x === b)));
+        g.querySelectorAll('[data-gp]').forEach(p => { p.hidden = p.dataset.gp !== b.dataset.gt; });
+        try { localStorage.setItem('flow-gains-tab', b.dataset.gt); } catch (e) { /* private mode */ }
+      });
     }
 
     /* read: tap a word, ✦ explains a sentence, select to save, read-along, expressions, knowledge points */
@@ -42,19 +82,15 @@
     }
     function read() {
       const ls = lines();
-      const variantBar = m.variant ? `<div class="seg" role="tablist"><button data-ver="v" aria-selected="${!st.showOriginal}">适合我的版本（${m.variant.level}）</button><button data-ver="o" aria-selected="${st.showOriginal}">原文（${m.original_level}）</button><span></span></div>`
+      const variantBar = m.variant ? `<div class="seg" role="tablist"><button data-ver="v" aria-selected="${!st.showOriginal}">适合我的版本（${m.variant.level} · AI 改写）</button><button data-ver="o" aria-selected="${st.showOriginal}">原文（${m.original_level}）</button><span></span></div>`
         : m.can_variant ? `<div class="card sunk row between"><span class="small">这篇原文是 ${m.original_level}，你选的是 ${m.user_level}。</span><button class="btn small" id="mkVar">改写成 ${m.user_level} 难度</button></div>` : '';
       pane.innerHTML = `${m.summary_zh ? `<details class="guide"><summary>中文导读</summary><p>${esc(m.summary_zh)}</p></details>` : ''}${variantBar}
         <div class="row between read-tools"><div class="legend"><span>本篇词汇</span><span class="h">可能超出你的水平</span>${(m.mine || []).length ? '<span class="m">你在背的词</span>' : ''}</div>
           <button class="btn small" id="readAlong" title="边听录音边看文字，读到哪句亮哪句">${playIcon(false, 14)}<span>伴读</span></button></div>
         <p class="muted tiny">点单词查词；点句尾的 ✦ 让 AI 讲解整句；${TOUCH ? '长按拖选' : '选中'}一段文字可以收藏。${TOUCH ? '' : '键盘：Tab 进入正文后用 ← → 逐词移动，↵ 查词，E 讲解这句。'}</p>
         <div class="text" id="reader" tabindex="0" aria-label="正文：左右方向键逐词移动，回车查词">${ls.map((s, i) => sentenceHTML(s, i)).join('')}</div>
-        ${m.expressions.length ? `<div class="section"><div class="section-head"><h2 class="h2">地道表达</h2><span class="muted tiny">能直接搬进你自己话里的搭配</span></div><div class="stack-s">${m.expressions.map((x, i) => `<div class="expr"><span class="e">${esc(x.text)}</span><span class="row"><button class="icon-btn" data-sayx="${i}" aria-label="朗读">${ICON.speak}</button><button class="icon-btn" data-sx="${i}" aria-label="收藏 ${esc(x.text)}">${ICON.star}</button></span><span class="m">${esc(x.meaning)}</span><span class="n">${esc(x.note || '')}</span></div>`).join('')}</div></div>` : ''}
-        ${m.vocabulary.length ? `<div class="section"><h2 class="h2">本篇词汇</h2><div class="vocab-list section">${m.vocabulary.map((v, i) => `<div class="vrow"><span class="term">${esc(v.term)}</span><button class="icon-btn" data-sv="${i}" aria-label="收藏 ${esc(v.term)}">${ICON.star}</button><span class="muted small">${esc(v.meaning)}</span><span class="vex">${esc(v.example || '')}</span></div>`).join('')}</div></div>` : ''}
-        ${(m.variant && m.variant.notes.length) ? `<div class="section"><h2 class="h2">改写版新出现的表达</h2><div class="vocab-list section">${m.variant.notes.map((v, i) => `<div class="vrow"><span class="term">${esc(v.text)}</span><button class="icon-btn" data-sn="${i}" aria-label="收藏">${ICON.star}</button><span class="muted small">${esc(v.meaning)}</span></div>`).join('')}</div></div>` : ''}
-        ${m.notes.length ? `<div class="section stack-s"><div class="section-head"><h2 class="h2">这篇练到的知识点</h2><a class="link small" href="#/graph">知识图谱 →</a></div>${m.notes.map(n => `<div class="knote"><div class="row between">${nodeChip({ id: n.node, title: n.title, status: n.status })}<span class="tiny muted">${esc(n.label)}</span></div><q>${esc(n.quote)}</q><div class="small muted">${esc(n.explanation)}</div></div>`).join('')}</div>` : ''}
-        <div class="section" id="nwSlot">${newWordsHTML()}</div>
-        <div class="section row between"><span></span><button class="btn" id="toCheck">读完了，做理解题 →</button></div>`;
+        <div class="section row between"><span></span><button class="btn primary" id="toCheck">读完了，做理解题 →</button></div>
+        ${gainsHTML()}`;
       const reader = pane.querySelector('#reader');
       pane.querySelectorAll('[data-ver]').forEach(b => b.onclick = () => { st.showOriginal = b.dataset.ver === 'o'; m._showOriginal = st.showOriginal; read(); });
       const mk = pane.querySelector('#mkVar');
@@ -117,8 +153,13 @@
         else if ((e.key === 'e' || e.key === 'E') && kw >= 0) { e.preventDefault(); explainSheet(ls[Number(ws[kw].dataset.s)], id); }
       });
       reader.addEventListener('blur', () => reader.querySelectorAll('.kfocus').forEach(x => x.classList.remove('kfocus')));
-      bindNewWords();
-      m._onLook = () => { const slot = pane.querySelector('#nwSlot'); if (!slot) return; slot.innerHTML = newWordsHTML(); bindNewWords(); };
+      bindGains(); bindNewWords();
+      m._onLook = () => {
+        const slot = pane.querySelector('#nwSlot'); if (!slot) return;
+        slot.innerHTML = newWordsHTML(); bindNewWords();
+        const sum = pane.querySelector('#gainsSum'); if (sum) sum.textContent = gainsSummary();
+        const n = (gainsTabs().find(x => x[0] === 'words') || [])[2], t = pane.querySelector('[data-gt="words"]'); if (t) t.textContent = '词汇 ' + n;
+      };
       const onSel = () => {
         const sel = getSelection(); const t = String(sel).replace(/\s+/g, ' ').trim();
         if (!t || t.length > 160 || !/[A-Za-z]/.test(t) || !reader.contains(sel.anchorNode)) { hideSelbar(); return; }

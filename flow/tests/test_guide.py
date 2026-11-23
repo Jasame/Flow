@@ -51,7 +51,7 @@ class GuideContentTests(unittest.TestCase):
         for href, title in re.findall(r"\['(#/[^']*)', '([^']+)'", hub):
             self.assertIn(href, self.links + ['#/'], f'练习 tile {title} ({href}) is not linked from the guide')
         tabs = re.findall(r'data-nav="[a-z]+">.*?<span>([^<]+)</span>', (ROOT / 'public' / 'next.html').read_text(encoding='utf-8'))
-        self.assertEqual(len(tabs), 5)
+        self.assertEqual(tabs, ['今日', '练习', '单词', '我的'])  # r20: the grammar map moved into 练习
         tab_chapter = next(ch for ch in self.g['chapters'] if ch['id'] == 'tabs')
         for t in tabs:
             self.assertIn(t, tab_chapter['text'], f'tab {t} is missing from the 底部标签 chapter')
