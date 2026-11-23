@@ -3,10 +3,14 @@
 目标：Flow 的文字请求（批改、讲解、出题、对话）可以在 DeepSeek、通义千问、Gemini 之间随时切换，只在 xmc-api 的控制台里改，Flow 不用改代码、不用重启。
 
 ```
-Flow（香港）── 文字请求，模型名 flow-text ──▶ api.xmc.hk（xmc-api，杭州）──▶ DeepSeek / 千问 / Gemini（控制台决定）
+Flow（香港）── 文字请求，模型名 flow-text ──▶ api.xmc.hk（xmc-api，香港）──▶ DeepSeek / 千问 / Gemini（控制台决定）
            └─ 录音、联网检索，主模型 ──────────▶ api.xmc.hk ──▶ gemini-flow（照旧）
 flow-text 出错或被停用时，Flow 自动改用主模型，学生看不到报错。
 ```
+
+- xmc-api 从 2026-11-23 起和 Flow 在同一台香港服务器上。Flow 现在仍然通过 `https://api.xmc.hk` 调用它，不用改。
+- 发 r20 以后（那一版允许 Flow 用本机 http 调网关），香港的 `FLOW_AI_URL` 可以改成 `http://127.0.0.1:9000/v1/chat/completions`，不再绕 Cloudflare。这一步发 r20 时再做。
+- Gemini 上游仍然经 `ai.flowlang.cn` 中转（GCP 新加坡）。Google AI Studio 的 Gemini API 不对香港开放，中转站只当备用。
 
 ## 为什么这样设计
 
@@ -89,9 +93,9 @@ cd /www/wwwroot/flow && python3 ai_check.py
 ## 以后可以再做（要改 xmc-api 代码，等你明确要求再做）
 
 - 控制台里直接「改指向」，不用删除再添加。现在模型只能改倍率和停用、启用。
-- 网关自己按顺序换上游（DeepSeek 不通就自动用千问）。现在由 Flow 回退到主模型兜底，暂时不需要。
+- 网关自己按顺序换上游（DeepSeek 不通就自动用千问）。这是以后的方向：在 xmc-api 里配好多个上游，出错时按顺序切换。做好之前，由 Flow 回退到主模型兜底。
 
 ## 参考
 
-- xmc-api 的代码在杭州服务器 `/www/xmc-api/`（`gateway.py`、`control_plane.py`），数据在 `/www/xmc-api/data/api.sqlite3`。
+- xmc-api 的代码是 `gateway.py` 和 `control_plane.py`，数据在 `api.sqlite3`。2026-11-23 随迁移从杭州搬到了香港，现在的位置和恢复步骤见杭州服务器上的 `/www/xmc-status/README.md` 和 `RECOVERY.md`。
 - 运维说明见 xmc-ui 项目的 `AGENT-MANUAL.md` 第 6.5 节。
