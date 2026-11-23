@@ -188,6 +188,10 @@ def main():
     except Exception as e:
         write_status({**st, 'state': 'done', 'result': 'ABORT_FETCH', 'error': str(e)[:300], 'finished': now()})
         return
+    if BETA and b'F=${FLOW_DIR:-' not in (work / 'flow-pull.sh').read_bytes():
+        # a commit from before the two sites: its flow-pull.sh knows only 语流's folder and service
+        write_status({**st, 'state': 'done', 'result': 'ABORT_OLD_TOOLS', 'error': 'this commit cannot be installed on the 内测版: merge main into it first', 'finished': now()})
+        return
     log = work / 'deploy.log'
     with log.open('w') as out:
         try:
