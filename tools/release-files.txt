@@ -242,6 +242,7 @@ flow/public/guide/flow-guide.pdf
 flow/public/guide/graph.jpg
 flow/public/guide/guide.md
 flow/public/guide/listen.jpg
+flow/public/guide/login.jpg
 flow/public/guide/lookup.jpg
 flow/public/guide/manifest.json
 flow/public/guide/me.jpg

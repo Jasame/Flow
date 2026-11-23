@@ -36,8 +36,7 @@ a{color:#16794a}
 .toc .n{flex:none;width:8mm;color:#1f9d55;font-weight:700}
 .toc .d{margin-left:auto;color:#8a8d84;font-size:9pt}
 .toc .how{margin-top:8mm;font-size:9.5pt;color:#4a4e46}
-section.ch{break-before:page}
-section.ch::after{content:"";display:block;clear:both}  /* a chapter's pictures stay in its own pages */
+section.ch{break-before:page;display:flow-root}  /* a chapter holds its own pictures, without an extra block that could start a blank page */
 section.ch>h2{font-size:19pt;line-height:1.3;margin:0 0 5mm;padding-bottom:2.5mm;border-bottom:1.2pt solid #1f9d55}
 section.ch>h2 .n{color:#1f9d55;margin-right:3mm}
 h3{font-size:12.5pt;margin:6mm 0 1.5mm;break-after:avoid}
@@ -56,6 +55,7 @@ th{color:#6f7369;font-weight:600;font-size:9pt}
 td:first-child{white-space:nowrap;font-weight:600}
 p:has(>a.go){break-before:avoid;margin-top:1mm}  /* a 去看看 button stays with the text above it */
 a.go{display:inline-block;font-size:9pt;text-decoration:none;color:#16794a;border:.6pt solid #1f9d55;border-radius:10mm;padding:.6mm 4mm;margin:1mm 0}
+pre.cmd{margin:2mm 0;padding:2.5mm 4mm;border-radius:2mm;background:#f1efe8;font-size:9pt;white-space:pre-wrap;break-inside:avoid}
 kbd{font-family:inherit;font-size:9pt;padding:0 1.5mm;border:.5pt solid #c9c5b9;border-bottom-width:1.2pt;border-radius:1.2mm;background:#fff}
 """
 FOOTER = ('<div style="width:100%;font-size:7.5px;color:#8a8d84;padding:0 17mm;display:flex;justify-content:space-between;'

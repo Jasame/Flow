@@ -107,6 +107,9 @@ def live_status():
   with db() as c:out['errors_24h']=__import__('ops_errors').count_since(c,86400)
  except Exception:pass
  return out
+SESSION_DAYS=30
+def session_cookie(token):
+ return 'flow_session='+token+'; HttpOnly; SameSite=Lax; Path=/; Max-Age='+str(SESSION_DAYS*86400)+('; Secure' if SECURE else '')
 _ASSET={}
 def shell_file(name):
  """A public file; the page shell and the service worker get the asset version filled in (__ASSET__): a hash of
@@ -124,7 +127,8 @@ def asset_version():
  return _ASSET['v']
 def session_info(u):
  """What /api/session answers; /api/next/home carries the same, so the page needs one request to start."""
- return {'user':{k:u[k] for k in ('id','username','admin','csrf')} if u else None,'ai_enabled':ai_enabled()}
+ # email_bound: the page reminds an account without one that a forgotten password could not be reset by itself.
+ return {'user':{**{k:u[k] for k in ('id','username','admin','csrf')},'email_bound':bool(u['email'])} if u else None,'ai_enabled':ai_enabled(),'mail':account.configured()}
 def verify(p,stored): return hmac.compare_digest(password(p,stored.split(':')[0]),stored)
 def topics(c):
  out=[]
@@ -159,7 +163,9 @@ class Handler(BaseHTTPRequestHandler):
  def send(self,obj,status=200,cookie=None):
   if getattr(self,'ai_transport',None):return self.ai_transport.finish(obj,status)
   body=public_text(json.dumps(obj,ensure_ascii=False)).encode(); self.send_response(status);self.headers_common('application/json; charset=utf-8');self.send_header('Cache-Control','no-store')
+  renew,self.renew=getattr(self,'renew',None),None
   if cookie:self.send_header('Set-Cookie',cookie)
+  elif renew:self.send_header('Set-Cookie',session_cookie(renew))  # a session in use stays signed in (user())
   self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def headers_common(self,mime):
   self.send_header('Permissions-Policy','camera=(), geolocation=(), microphone=(self)')
@@ -197,11 +203,18 @@ class Handler(BaseHTTPRequestHandler):
   if status==206:self.send_header('Content-Range',f'bytes {start}-{end}/{size}')
   self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def user(self,c):
+  self.renew=None
   jar=SimpleCookie()
   try:jar.load(self.headers.get('Cookie',''))
   except Exception:return None
   token=jar['flow_session'].value if 'flow_session' in jar else ''
-  return c.execute('SELECT users.id,username,admin,csrf,token FROM sessions JOIN users ON users.id=user_id WHERE token=? AND expires>?',(token,time.time())).fetchone()
+  now=time.time()
+  u=c.execute('SELECT users.id,username,admin,csrf,token,expires,email FROM sessions JOIN users ON users.id=user_id WHERE token=? AND expires>?',(token,now)).fetchone()
+  # Sliding sessions: a learner who keeps coming back stays signed in; SESSION_DAYS after the last visit it ends.
+  # At most one write a day per session; the cookie is renewed with the same answer (send()).
+  if u and u['expires']<now+(SESSION_DAYS-1)*86400:
+   c.execute('UPDATE sessions SET expires=? WHERE token=?',(now+SESSION_DAYS*86400,token));c.commit();self.renew=token
+  return u
  def do_GET(self):
   try:self.get()
   except (BrokenPipeError,ConnectionResetError):pass
@@ -391,7 +404,7 @@ class Handler(BaseHTTPRequestHandler):
      except ValueError:pass
     result=account.public(c,path,data,password,ip)
     if result is not None:return self.send(*result)
-  if path in ['/api/login','/api/register','/api/auth/code']:
+  if path in ['/api/login','/api/register','/api/auth/code','/api/auth/reset']:
    # Rate-limit by directly connected address; loopback proxy intentionally shares a ceiling.
    key=self.client_address[0]
    if key in ('127.0.0.1','::1'):
@@ -407,11 +420,12 @@ class Handler(BaseHTTPRequestHandler):
    with db() as c:
     if path=='/api/auth/code':return self.send(*auth_service.request(c,data,key))
     # 3.6: sign-up needs a verified email code; login accepts username/email + password or email + code.
-    u,problem=auth_service.register(c,data,password) if path=='/api/register' else auth_service.login(c,data,verify)
+    # r19: a forgotten password is reset with an emailed code, which also signs the learner in.
+    u,problem=auth_service.register(c,data,password) if path=='/api/register' else auth_service.reset(c,data,password) if path=='/api/auth/reset' else auth_service.login(c,data,verify)
     if problem:return self.send(*problem)
     token=secrets.token_urlsafe(32);csrf=secrets.token_urlsafe(24)
-    c.execute('DELETE FROM sessions WHERE expires<?',(time.time(),));c.execute('INSERT INTO sessions VALUES(?,?,?,?)',(token,u['id'],csrf,time.time()+86400*7))
-   return self.send({'ok':True},cookie='flow_session='+token+'; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800'+('; Secure' if SECURE else ''))
+    c.execute('DELETE FROM sessions WHERE expires<?',(time.time(),));c.execute('INSERT INTO sessions VALUES(?,?,?,?)',(token,u['id'],csrf,time.time()+SESSION_DAYS*86400))
+   return self.send({'ok':True,'username':u['username']},cookie=session_cookie(token))
   with db() as c:
    u=self.user(c)
    if not u:return self.send({'error':'登录已过期'},401)
@@ -464,7 +478,10 @@ class Handler(BaseHTTPRequestHandler):
    result=learning.post(c,u['id'],u['admin'],path,data,tutor_chat)
    if result is not None:return self.send(*result)
    if path=='/api/logout':
-    c.execute('DELETE FROM sessions WHERE token=?',(u['token'],));c.commit();return self.send({'ok':True},cookie='flow_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax')
+    # {"all": true} signs this account out on every device (a lost phone, a shared computer).
+    if data.get('all') is True:c.execute('DELETE FROM sessions WHERE user_id=?',(u['id'],))
+    else:c.execute('DELETE FROM sessions WHERE token=?',(u['token'],))
+    c.commit();return self.send({'ok':True},cookie='flow_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax')
    if path=='/api/password':
     old=str(data.get('old_password',''));new=str(data.get('new_password',''))
     if not 10<=len(new)<=200:return self.send({'error':'新密码需 10–200 个字符'},400)
@@ -474,6 +491,7 @@ class Handler(BaseHTTPRequestHandler):
     c.execute('UPDATE users SET password=? WHERE id=?',(password(new),u['id']))
     c.execute('UPDATE recovery_tokens SET used=1 WHERE user_id=?',(u['id'],))
     c.execute('DELETE FROM sessions WHERE user_id=?',(u['id'],));c.commit()
+    account.password_changed(c,u['id'],'在「我的」里修改')
     return self.send({'ok':True},cookie='flow_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax')
    if path=='/api/lesson/complete':
     topic=data.get('topic')
@@ -542,8 +560,14 @@ class Handler(BaseHTTPRequestHandler):
     out,status=tutor_chat(c,u['id'],data);return self.send(out,status)
   self.send({'error':'接口不存在'},404)
 if __name__=='__main__':
- init();parser=argparse.ArgumentParser();parser.add_argument('--create-admin',action='store_true');args=parser.parse_args()
- if args.create_admin:
+ init();parser=argparse.ArgumentParser();parser.add_argument('--create-admin',action='store_true')
+ parser.add_argument('--reset-link',metavar='用户名或邮箱',help='给忘了密码、又没绑定邮箱的账号生成一次性重设链接（24 小时内有效）')
+ args=parser.parse_args()
+ if args.reset_link:
+  with db() as c:body,status=account.admin_link(c,args.reset_link)
+  if status!=200:raise SystemExit(body['error'])
+  print(f"账号：{body['username']}\n重设链接（{body['hours']} 小时内有效，只能用一次；当面或私信发给本人，不要发到群里）：\n{body['link']}")
+ elif args.create_admin:
   name=input('管理员用户名: ').strip();p=getpass.getpass('密码（至少10位）: ')
   if not 3<=len(name)<=40 or not 10<=len(p)<=200:raise SystemExit('用户名或密码长度不符合要求')
   with db() as c:c.execute('INSERT INTO users(username,password,admin) VALUES(?,?,1)',(name,password(p)))

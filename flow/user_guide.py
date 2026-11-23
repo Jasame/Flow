@@ -2,9 +2,9 @@
 
 The source is a small, fixed Markdown subset, so a teacher or the next developer can edit it as text:
   % title / % updated line          # 章 {#id}          ## 小节          blank line = new paragraph
-  - bullet     1. step (indent 3 spaces for a bullet under a step)     > 提示        | table | rows |
+  - bullet     1. step (indent 2–4 spaces for a bullet or a numbered step under it)     > 提示        | table | rows |
   ![caption](shot:name)  -> public/guide/name.jpg (tools/guide_shots.py takes these from the local UI server)
-  [去看看](#/route) on its own line -> a button to that page;  **bold**  `key`
+  [去看看](#/route) on its own line -> a button to that page;  **bold**  `key`;  ``` … ``` -> a command, shown as is
 Everything is HTML-escaped before the markup is applied, so the output is safe to put into the page.
 """
 import hashlib, html, json, re
@@ -46,7 +46,8 @@ def parse(text=None, shot_url=lambda n: f'/guide/{n}.jpg', link=lambda h: h):
             tag = 'ol' if kind == 'ol' else 'ul'
             parts = []
             for main, subs in items:
-                sub = ('<ul>' + ''.join(f'<li>{_inline(x, link)}</li>' for x in subs) + '</ul>') if subs else ''
+                stag = 'ol' if subs and subs[0][0] == 'ol' else 'ul'
+                sub = (f'<{stag}>' + ''.join(f'<li>{_inline(x, link)}</li>' for _, x in subs) + f'</{stag}>') if subs else ''
                 parts.append(f'<li>{_inline(main, link)}{sub}</li>')
             out(f'<{tag}>' + ''.join(parts) + f'</{tag}>'); items, kind = [], None
         if table:
@@ -58,6 +59,13 @@ def parse(text=None, shot_url=lambda n: f'/guide/{n}.jpg', link=lambda h: h):
 
     while i < len(lines):
         raw = lines[i]; line = raw.rstrip(); i += 1
+        if line.strip() == '```' and cur is not None:  # a command block, kept exactly as written
+            flush(); block = []
+            while i < len(lines) and lines[i].rstrip().strip() != '```':
+                block.append(lines[i].rstrip()); i += 1
+            i += 1
+            out('<pre class="cmd"><code>' + html.escape('\n'.join(block)) + '</code></pre>'); cur['text'].append(' '.join(block))
+            continue
         if line.startswith('% '):
             meta.append(line[2:].strip()); continue
         m = HEAD.match(line)
@@ -96,9 +104,9 @@ def parse(text=None, shot_url=lambda n: f'/guide/{n}.jpg', link=lambda h: h):
             if para or table or (items and kind != 'ol'):
                 flush()
             kind = 'ol'; items.append((m.group(2), [])); continue
-        m = re.match(r'^ {2,4}- (.+)$', raw)
+        m = re.match(r'^ {2,4}(- |\d+\. )(.+)$', raw)
         if m and items:
-            items[-1][1].append(m.group(1)); continue
+            items[-1][1].append(('ul' if m.group(1) == '- ' else 'ol', m.group(2))); continue
         if line.startswith('- '):
             if para or table or (items and kind != 'ul'):
                 flush()

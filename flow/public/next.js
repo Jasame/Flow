@@ -25,7 +25,15 @@
     let r;
     try { r = await fetch(path, opt); } catch (x) { const e = new Error('网络连接失败，请检查网络'); e.network = true; throw e; }
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) { const e = new Error(j.error || ('请求失败（' + r.status + '）')); e.status = r.status; throw e; }
+    if (!r.ok) {
+      const e = new Error(j.error || ('请求失败（' + r.status + '）')); e.status = r.status; e.field = j.field; e.code = j.code;
+      // Signed out on the server (30 days away, a password change, 退出所有设备): say so and offer to sign in again.
+      if (r.status === 401 && S.user && !/^\/api\/(login|register|auth\/)/.test(path)) {
+        S.user = null; S.csrf = ''; e.message = '登录已过期，请重新登录';
+        if (sheetEl.hidden) setTimeout(() => openLogin('登录已过期，请重新登录。登录后会回到这一页。'), 0);
+      }
+      throw e;
+    }
     return j;
   }
   const ICON = {
@@ -302,47 +310,120 @@
     const b = document.getElementById('dueBadge'); b.hidden = !due; b.textContent = due > 99 ? '99+' : due;
   }
   function needLogin(reason) { openLogin(reason); return false; }
-  function openLogin(reason, tab) {
-    tab = tab || 'pw';
-    const tabs = [['pw', '密码登录'], ['code', '验证码登录'], ['reg', '注册']];
-    openSheet(`<div class="stack">
-      <div><h2 class="h2" id="sheetTitle">登录语流</h2>${reason ? `<p class="muted small">${esc(reason)}</p>` : ''}</div>
-      <div class="seg" role="tablist">${tabs.map(([k, l]) => `<button role="tab" data-tab="${k}" aria-selected="${k === tab}">${l}</button>`).join('')}</div>
-      <form id="authForm" class="stack" novalidate>${authFields(tab)}</form>
+  /* ---------- sign in, sign up, a forgotten password ---------- */
+  // With mail configured (production), sign-up, code login and a forgotten password use an emailed 6-digit code;
+  // without it only username + password is offered, as the server then accepts.
+  async function mailOn() {
+    if (S.home && S.home.session && 'mail' in S.home.session) return !!S.home.session.mail;  // carried by the home data
+    if (S.mail == null) { try { S.mail = !!(await api('/api/health')).mail; } catch (e) { return true; } }
+    return S.mail;
+  }
+  // An account without an email cannot reset a forgotten password by itself: say so on 今日 until it binds one
+  // (or the learner says 以后再说, which waits 14 days).
+  function mailNudgeHTML() {
+    const u = S.user, mail = S.home && S.home.session && S.home.session.mail;
+    if (!u || u.email_bound !== false || !mail || Date.now() - (load('flow-next-mail-nudge') || 0) < 14 * 864e5) return '';
+    return `<div class="card sunk section mail-nudge stack-s" id="mailNudge"><b>还没有绑定邮箱</b>
+      <span class="small">忘记密码时，绑定了邮箱就能自己用验证码找回；没绑定的话只能请老师或管理员帮忙重设。</span>
+      <div class="row"><button class="btn small primary" id="mnBind" type="button">绑定邮箱</button><button class="btn small ghost" id="mnLater" type="button">以后再说</button></div></div>`;
+  }
+  function bindMailNudge() {
+    const b = document.getElementById('mnBind'), l = document.getElementById('mnLater');
+    if (b) b.onclick = () => bindEmailSheet('');
+    if (l) l.onclick = () => { save('flow-next-mail-nudge', Date.now()); const n = document.getElementById('mailNudge'); if (n) n.remove(); };
+  }
+  const USERNAME_OK = /^[^\s@<>"'\\/]{2,40}$/;
+  function pwField(label, name, auto, hint) {
+    return `<label class="field">${label}<span class="pw-wrap"><input name="${name}" type="password" autocomplete="${auto}" ${auto === 'new-password' ? 'minlength="10"' : ''} required>
+      <button class="pw-eye" type="button" aria-label="显示密码" aria-pressed="false" data-eye>${ICON.eye}</button></span>${hint ? `<span class="hint">${hint}</span>` : ''}</label>`;
+  }
+  function bindEyes(card) {
+    card.querySelectorAll('[data-eye]').forEach(b => b.onclick = () => {
+      const i = b.previousElementSibling, show = i.type === 'password';
+      i.type = show ? 'text' : 'password'; b.setAttribute('aria-pressed', String(show)); b.setAttribute('aria-label', show ? '隐藏密码' : '显示密码'); i.focus();
+    });
+  }
+  function fieldError(form, err, x) {  // the message under the form, and the field it is about marked and focused
+    err.textContent = x.message;
+    form.querySelectorAll('[aria-invalid]').forEach(i => i.removeAttribute('aria-invalid'));
+    const f = x.field && form.elements[x.field]; if (f) { f.setAttribute('aria-invalid', 'true'); f.focus(); }
+  }
+  async function openLogin(reason, tab) {
+    const mail = await mailOn();
+    tab = tab || 'pw'; if (!mail && (tab === 'code' || tab === 'reset')) tab = 'pw';
+    const tabs = mail ? [['pw', '密码登录'], ['code', '验证码登录'], ['reg', '注册']] : [['pw', '密码登录'], ['reg', '注册']];
+    const reset = tab === 'reset';
+    openSheet(`<div class="stack auth">
+      <div><h2 class="h2" id="sheetTitle">${reset ? '找回密码' : tab === 'reg' ? '注册语流' : '登录语流'}</h2>${reason ? `<p class="muted small">${esc(reason)}</p>` : ''}</div>
+      ${reset ? '<p class="small">填绑定的邮箱，收到验证码后设一个新密码。设好就直接登录，其他手机和电脑上的登录会退出。</p>'
+        : `<div class="seg" role="tablist" aria-label="登录方式">${tabs.map(([k, l]) => `<button role="tab" data-tab="${k}" aria-selected="${k === tab}">${l}</button>`).join('')}</div>`}
+      <form id="authForm" class="stack" novalidate>${authFields(tab, mail)}</form>
       <p class="err" id="authErr" role="alert"></p>
-      <button class="btn ghost" data-close type="button">先不登录</button></div>`, card => {
+      ${reset ? '<button class="btn ghost" type="button" data-tab="pw">返回登录</button>' : '<button class="btn ghost" data-close type="button">先不登录</button>'}</div>`, card => {
       card.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => openLogin(reason, b.dataset.tab));
-      const form = card.querySelector('#authForm');
+      bindEyes(card);
+      const form = card.querySelector('#authForm'), err = card.querySelector('#authErr');
       const sendBtn = card.querySelector('[data-send]');
       if (sendBtn) sendBtn.onclick = async () => {
-        const email = form.email.value.trim(); const err = card.querySelector('#authErr'); err.textContent = '';
-        sendBtn.disabled = true;
-        try { const r = await api('/api/auth/code', { email, purpose: tab === 'reg' ? 'register' : 'login' }); toast(r.message || '验证码已发送，请查看邮箱'); countdown(sendBtn); }
-        catch (e) { err.textContent = e.message; sendBtn.disabled = false; }
+        err.textContent = ''; sendBtn.disabled = true;
+        try {
+          const r = await api('/api/auth/code', { email: form.email.value.trim(), purpose: { reg: 'register', code: 'login', reset: 'reset' }[tab] });
+          toast(r.message || '验证码已发送，请查看邮箱'); countdown(sendBtn); form.code.focus();
+        } catch (x) { fieldError(form, err, { message: x.message, field: x.field || 'email' }); sendBtn.disabled = false; }
       };
       form.onsubmit = async e => {
-        e.preventDefault(); const err = card.querySelector('#authErr'); err.textContent = '';
+        e.preventDefault(); err.textContent = '';
+        const v = n => (form.elements[n] ? form.elements[n].value : '');
+        // the checks the server would make, said at once and without a round trip
+        if (tab === 'reg' && !USERNAME_OK.test(v('username').trim())) return fieldError(form, err, { message: '用户名需 2–40 个字符，不能有空格和 @', field: 'username' });
+        if ((tab === 'reg' || tab === 'reset') && v('password').length < 10) return fieldError(form, err, { message: '密码至少 10 位', field: 'password' });
+        if ((tab === 'code' || tab === 'reset' || (tab === 'reg' && mail)) && !/^\d{6}$/.test(v('code').trim())) return fieldError(form, err, { message: '请输入邮件里的 6 位验证码', field: 'code' });
         const btn = form.querySelector('[type=submit]'); btn.disabled = true;
         try {
-          if (tab === 'pw') await api('/api/login', { username: form.username.value.trim(), password: form.password.value });
-          else if (tab === 'code') await api('/api/login', { method: 'code', email: form.email.value.trim(), code: form.code.value.trim() });
-          else await api('/api/register', { email: form.email.value.trim(), code: form.code.value.trim(), username: form.username.value.trim(), password: form.password.value });
-          await afterLogin(); closeSheet(); toast('已登录'); route(true);
-        } catch (x) { err.textContent = x.message; btn.disabled = false; }
+          let r;
+          if (tab === 'pw') r = await api('/api/login', { username: v('username').trim(), password: v('password') });
+          else if (tab === 'code') r = await api('/api/login', { method: 'code', email: v('email').trim(), code: v('code').trim() });
+          else if (reset) r = await api('/api/auth/reset', { email: v('email').trim(), code: v('code').trim(), password: v('password') });
+          else r = await api('/api/register', { email: v('email').trim(), code: v('code').trim(), username: v('username').trim(), password: v('password') });
+          await afterLogin(); closeSheet();
+          const name = (S.user && S.user.username) || r.username || '';
+          toast(reset ? '密码已重设，已经登录' : tab === 'reg' ? `注册成功，欢迎你${name ? '，' + name : ''}` : `欢迎回来${name ? '，' + name : ''}`);
+          route(true);
+        } catch (x) { fieldError(form, err, x); btn.disabled = false; }
       };
     });
   }
-  function authFields(tab) {
-    if (tab === 'pw') return `<label class="field">用户名或邮箱<input name="username" type="text" autocomplete="username" required></label>
-      <label class="field">密码<input name="password" type="password" autocomplete="current-password" required></label>
+  function authFields(tab, mail) {
+    const email = '<label class="field">邮箱<input name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" required></label>';
+    const code = `<div class="code-row"><label class="field">验证码<input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="\\d{6}" required></label>
+      <button class="btn small" type="button" data-send>发送验证码</button></div><span class="hint">验证码 10 分钟内有效。收不到就看看垃圾邮件，60 秒后可以重发。</span>`;
+    if (tab === 'pw') return `<label class="field">用户名或邮箱<input name="username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" required></label>
+      ${pwField('密码', 'password', 'current-password')}
+      <div class="auth-links">${mail ? '<button class="link small" type="button" data-tab="reset">忘记密码？</button>' : '<span class="tiny muted">忘记密码：请联系老师或管理员重设。</span>'}</div>
       <button class="btn primary block" type="submit">登录</button>`;
-    const codeRow = `<label class="field">邮箱<input name="email" type="email" autocomplete="email" inputmode="email" required></label>
-      <div class="row"><label class="field grow">验证码<input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required></label></div>
-      <button class="btn small" type="button" data-send>发送验证码</button>`;
-    if (tab === 'code') return codeRow + '<button class="btn primary block" type="submit">登录</button>';
-    return codeRow + `<label class="field">用户名（3–40 个字符）<input name="username" type="text" autocomplete="username" required></label>
-      <label class="field">密码（至少 10 位）<input name="password" type="password" autocomplete="new-password" minlength="10" required></label>
+    if (tab === 'code') return email + code + '<button class="btn primary block" type="submit">登录</button>';
+    if (tab === 'reset') return email + code + pwField('新密码', 'password', 'new-password', '至少 10 位，最好是一句只有你知道的话') + '<button class="btn primary block" type="submit">设置新密码并登录</button>';
+    return (mail ? email + code : '') + `<label class="field">用户名<input name="username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" maxlength="40" required>
+        <span class="hint">2–40 个字符，可以用中文，不能有空格和 @。登录时用户名和邮箱都可以用。</span></label>
+      ${pwField('密码', 'password', 'new-password', '至少 10 位，最好是一句只有你知道的话')}
+      ${mail ? '' : '<span class="hint">注册后可以在「我的」里绑定邮箱，忘记密码时用它找回。</span>'}
       <button class="btn primary block" type="submit">注册并登录</button>`;
+  }
+  // An older password-reset email links to /#reset=<token>: set the new password here, then sign in with it.
+  function resetByLink(token) {
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">设置新密码</h2><p class="small">链接 30 分钟内有效。设好以后，用新密码登录；其他设备上的登录会退出。</p>
+      <form id="rlForm" class="stack" novalidate>${pwField('新密码', 'password', 'new-password', '至少 10 位')}<button class="btn primary block" type="submit">保存新密码</button></form>
+      <p class="err" id="rlErr" role="alert"></p><button class="btn ghost" data-close type="button">取消</button></div>`, card => {
+      bindEyes(card);
+      const form = card.querySelector('#rlForm'), err = card.querySelector('#rlErr');
+      form.onsubmit = async e => {
+        e.preventDefault(); err.textContent = '';
+        if (form.password.value.length < 10) return fieldError(form, err, { message: '密码至少 10 位', field: 'password' });
+        const b = form.querySelector('[type=submit]'); b.disabled = true;
+        try { await api('/api/recovery/reset', { token, password: form.password.value }); toast('密码已重设'); openLogin('密码已重设，请用新密码登录。', 'pw'); }
+        catch (x) { fieldError(form, err, x); b.disabled = false; }
+      };
+    });
   }
   function countdown(btn) { let n = 60; btn.textContent = `${n} 秒后可重发`; const t = setInterval(() => { n--; if (n <= 0) { clearInterval(t); btn.disabled = false; btn.textContent = '重新发送'; } else btn.textContent = `${n} 秒后可重发`; }, 1000); }
   async function afterLogin() {
@@ -356,6 +437,10 @@
   function setNav(name) { document.querySelectorAll('[data-nav]').forEach(a => a.dataset.nav === name ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')); }
   function parts() { return location.hash.replace(/^#\/?/, '').split('/'); }
   async function route(keepScroll) {
+    if (/^#reset=/.test(location.hash)) {  // an older password-reset email
+      const token = decodeURIComponent(location.hash.slice(7)); history.replaceState(null, '', location.pathname + location.search + '#/');
+      setTimeout(() => resetByLink(token), 0);
+    }
     TTS.stop(); NAR.stop(); CLIP.stop(); MIC.stop(); MINI.hide(); hideSelbar(); view.ontouchstart = view.ontouchmove = view.ontouchend = null; document.body.classList.remove('reviewing'); bar.classList.remove('hide'); document.onselectionchange = null; document.onkeydown = null;
     const [name, a, b] = parts();
     const last = S.lastRoute.split('/');
@@ -500,6 +585,7 @@
     view.innerHTML = `<span class="kicker greet">${greeting()}${name ? `，<span class="nm">${esc(name)}</span>` : ''}</span>
       ${top}
       ${h.suggest && Date.now() - (load('flow-next-suggest-skip') || 0) > 7 * 864e5 ? suggestHTML(h.suggest) : ''}
+      ${mailNudgeHTML()}
       ${S.user && !path ? vocabHome(st) : ''}
       ${h.resume && h.resume.id !== readId ? `<a class="card flat mini section" href="#/m/${encodeURIComponent(h.resume.id)}/${nextStep(h.resume.steps)}"><span class="t">继续：${esc(h.resume.title)}</span><span class="pill green">继续</span><span class="p">${esc(h.resume.preview)}</span>${stepDots(h.resume.steps)}</a>` : ''}
       ${st ? `<div class="weekline section"><span class="small">本周学了 <b>${weekN}</b> 天</span><div class="week" aria-hidden="true">${st.week.map(d => `<span class="${d.active ? 'on' : ''}" title="${d.day}"></span>`).join('')}</div></div>` : ''}
@@ -516,6 +602,7 @@
     const ring = view.querySelector('.ring'); if (ring) ring.style.setProperty('--p', ring.dataset.p + '%');  // CSP: no inline style attributes
     const cta = document.getElementById('loginCta'); if (cta) cta.onclick = () => openLogin();
     if (h.suggest) bindSuggest(h);
+    bindMailNudge();
   }
   function vocabHome(st) {
     if (!st) return '';
@@ -2860,8 +2947,11 @@
         <span class="muted small">像 App 一样从桌面打开，界面全屏；听过的音频会缓存下来，网络差的时候也能复习。</span>
         ${installPrompt ? '<div><button class="btn small primary" id="doInstall">添加到桌面</button></div>' : /iPhone|iPad|iPod/.test(navigator.userAgent)
           ? '<span class="small">iPhone：用 Safari 打开，点底部的「分享」按钮，再选「添加到主屏幕」。</span>' : '<span class="small">安卓：在浏览器菜单里选「添加到主屏幕」或「安装应用」。</span>'}</div>`}
-      ${S.user ? `<div class="card flat stack-s" id="acct"><div class="row between"><b>邮箱</b><span class="small muted" id="acctEmail"><span class="spin"></span></span></div>
-        <span class="muted tiny">绑定后可以收复习提醒和周报、用验证码登录、找回密码。</span><div><button class="btn small" id="bindMail" hidden>绑定邮箱</button></div></div>` : ''}
+      ${S.user ? `<div class="card flat stack-s" id="acct"><b>账号与安全</b>
+        <div class="row between"><span class="small">邮箱</span><span class="small muted" id="acctEmail"><span class="spin"></span></span></div>
+        <span class="muted tiny">绑定后可以用验证码登录、忘记密码时自己找回，也能收复习提醒和周报。</span>
+        <div class="row wrap acct-actions"><button class="btn small" id="bindMail" hidden>绑定邮箱</button><button class="btn small" id="chPw">修改密码</button><button class="btn small ghost" id="outAll">退出所有设备</button></div>
+        <span class="muted tiny">30 天内来过就一直保持登录。在别人的手机或电脑上用完，记得退出登录。</span></div>` : ''}
       ${S.user ? '<a class="card flat place-cta" href="#/radar"><b>能力雷达：离目标还差多少</b><span class="small muted">听力、阅读、词汇、语法、口语、写作六项，对照你自己定的目标；定期测一测，看哪一项长了。</span></a>' : ''}
       ${S.user ? '<div id="abSlot"><div class="card flat"><p class="loading"><span class="spin"></span></p></div></div>' : ''}
       <div class="card flat list">
@@ -2884,32 +2974,73 @@
     }).catch(() => { const el = document.getElementById('acctEmail'); if (el) el.textContent = ''; });
     const di = document.getElementById('doInstall'); if (di) di.onclick = async () => { installPrompt.prompt(); try { await installPrompt.userChoice; } catch (e) { /* dismissed */ } installPrompt = null; meView(); };
     view.querySelectorAll('[data-voice]').forEach(b => b.onclick = async () => { await setVoice(b.dataset.voice); view.querySelectorAll('[data-voice]').forEach(x => { x.setAttribute('aria-pressed', String(x === b)); x.setAttribute('aria-checked', String(x === b)); }); toast('朗读声音：' + VOICE_LABELS[b.dataset.voice]); });
+    const chPw = document.getElementById('chPw'); if (chPw) chPw.onclick = () => changePasswordSheet();
+    const outAll = document.getElementById('outAll'); if (outAll) outAll.onclick = () => signOutEverywhere();
     const out = document.getElementById('out');
     if (out) out.onclick = async () => { try { await api('/api/logout', {}); } catch (e) { /* ignore */ } S.user = null; S.csrf = ''; await refreshHome(); toast('已退出'); route(); };
   }
 
+  // Binding an email: the current password, then a 6-digit code sent to the new address (as at sign-up).
   function bindEmailSheet(cur) {
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">${cur ? '更换' : '绑定'}邮箱</h2>
-      <p class="muted small">先发一封验证邮件到新邮箱；邮件里有一串验证令牌，复制回来粘贴到这里就完成了（30 分钟内有效）。</p>
-      <form id="bm1" class="stack" novalidate><label class="field">邮箱<input name="email" type="email" autocomplete="email" inputmode="email" required></label>
-        <label class="field">当前密码（确认是你本人）<input name="password" type="password" autocomplete="current-password" required></label>
-        <button class="btn primary" type="submit">发送验证邮件</button></form>
-      <form id="bm2" class="stack" novalidate hidden><label class="field">验证令牌<input name="token" type="text" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" required></label>
+      <p class="muted small">先输入当前密码确认是你本人，再把发到新邮箱的 6 位验证码填回来。</p>
+      <form id="bm" class="stack" novalidate><label class="field">邮箱<input name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" required></label>
+        ${pwField('当前密码', 'password', 'current-password')}
+        <div class="code-row"><label class="field">验证码<input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required></label>
+          <button class="btn small" type="button" data-send>发送验证码</button></div>
         <button class="btn primary" type="submit">完成绑定</button></form>
       <p class="err" id="bmErr" role="alert"></p><button class="btn ghost" data-close type="button">取消</button></div>`, card => {
-      const f1 = card.querySelector('#bm1'), f2 = card.querySelector('#bm2'), err = card.querySelector('#bmErr');
-      f1.onsubmit = async e => {
-        e.preventDefault(); err.textContent = ''; const b = f1.querySelector('button'); b.disabled = true;
-        try { await api('/api/account/email/request', { email: f1.email.value.trim(), password: f1.password.value }); f1.hidden = true; f2.hidden = false; f2.token.focus(); toast('验证邮件已发出，请查看邮箱'); }
-        catch (x) { err.textContent = x.message; b.disabled = false; }
+      bindEyes(card);
+      const form = card.querySelector('#bm'), err = card.querySelector('#bmErr'), send = card.querySelector('[data-send]');
+      send.onclick = async () => {
+        err.textContent = ''; send.disabled = true;
+        try { const r = await api('/api/account/email/request', { email: form.email.value.trim(), password: form.password.value, mode: 'code' }); toast(r.message || '验证码已发送'); countdown(send); form.code.focus(); }
+        catch (x) { fieldError(form, err, { message: x.message, field: x.field || 'email' }); send.disabled = false; }
       };
-      f2.onsubmit = async e => {
-        e.preventDefault(); err.textContent = ''; const b = f2.querySelector('button'); b.disabled = true;
-        try { await api('/api/account/email/confirm', { token: f2.token.value.trim() }); closeSheet(); toast('邮箱已绑定'); meView(); }
-        catch (x) { err.textContent = x.message; b.disabled = false; }
+      form.onsubmit = async e => {
+        e.preventDefault(); err.textContent = '';
+        if (!/^\d{6}$/.test(form.code.value.trim())) return fieldError(form, err, { message: '请先发送验证码，再填邮件里的 6 位数字', field: 'code' });
+        const b = form.querySelector('[type=submit]'); b.disabled = true;
+        try { await api('/api/account/email/confirm', { email: form.email.value.trim(), code: form.code.value.trim() }); closeSheet(); toast('邮箱已绑定，忘记密码时可以自己找回了'); await refreshHome(); route(true); }
+        catch (x) { fieldError(form, err, x); b.disabled = false; }
       };
     });
   }
+  // A new password ends every session, this one too: sign in again with it.
+  function changePasswordSheet() {
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">修改密码</h2>
+      <p class="muted small">改好以后，所有手机和电脑上的登录都会退出，用新密码重新登录就行。</p>
+      <form id="cp" class="stack" novalidate>${pwField('原密码', 'old', 'current-password')}${pwField('新密码', 'new', 'new-password', '至少 10 位，最好是一句只有你知道的话')}
+        ${pwField('再输一次新密码', 'again', 'new-password')}<button class="btn primary" type="submit">保存新密码</button></form>
+      <p class="err" id="cpErr" role="alert"></p><button class="btn ghost" data-close type="button">取消</button></div>`, card => {
+      bindEyes(card);
+      const form = card.querySelector('#cp'), err = card.querySelector('#cpErr');
+      form.onsubmit = async e => {
+        e.preventDefault(); err.textContent = '';
+        if (form.new.value.length < 10) return fieldError(form, err, { message: '新密码至少 10 位', field: 'new' });
+        if (form.new.value !== form.again.value) return fieldError(form, err, { message: '两次输入的新密码不一样', field: 'again' });
+        const b = form.querySelector('[type=submit]'); b.disabled = true;
+        try {
+          await api('/api/password', { old_password: form.old.value, new_password: form.new.value });
+          S.user = null; S.csrf = ''; closeSheet(); await refreshHome(); route();
+          openLogin('密码已修改，请用新密码登录。', 'pw');
+        } catch (x) { fieldError(form, err, { message: x.message, field: /原密码/.test(x.message) ? 'old' : /新密码/.test(x.message) ? 'new' : '' }); b.disabled = false; }
+      };
+    });
+  }
+  // A lost phone, a shared computer: end the account's sessions everywhere, this one included.
+  function signOutEverywhere() {
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">退出所有设备？</h2>
+      <p class="small">所有手机、平板和电脑上的语流都会退出登录，包括这一台。学习记录不会丢，重新登录就回来了。</p>
+      <button class="btn primary" id="soAll" type="button">退出所有设备</button><button class="btn ghost" data-close type="button">取消</button></div>`, card => {
+      card.querySelector('#soAll').onclick = async e => {
+        e.currentTarget.disabled = true;
+        try { await api('/api/logout', { all: true }); } catch (x) { /* signed out already */ }
+        S.user = null; S.csrf = ''; closeSheet(); await refreshHome(); toast('已在所有设备上退出'); route();
+      };
+    });
+  }
+
 
   /* ---------- boot ---------- */
   (async function boot() {
