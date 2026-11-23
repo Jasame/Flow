@@ -683,19 +683,21 @@ def platform_run(pw):
         check(dev, 'preload: idle time fetched 单词 before it was opened', any(a.startswith('/api/next/vocab') for a in asked), [a for a in asked][:8])
         held = []
         pg.route('**/api/next/home*', lambda r: held.append(r))
-        t0 = time.time(); pg.goto(BASE + '/#/', wait_until='domcontentloaded')
+        t0 = time.time(); pg.reload(wait_until='domcontentloaded')
         pg.wait_for_selector('#view .today-plan, #view .hello', timeout=4000); quick = time.time() - t0
         check(dev, 'preload: the second visit draws 今日 at once, while the server is still answering', quick < 2.5 and held, f'{quick:.2f}s, home held: {len(held)}')
         for r in held:
             r.continue_()
         pg.unroute('**/api/next/home*'); pg.wait_for_timeout(800)
-        go(pg, '#/'); asked.clear()
-        link = pg.query_selector('#view a[href^="#/m/"]')
+        go(pg, '#/library'); pg.wait_for_timeout(300); asked.clear()
+        links = pg.query_selector_all('#view a[href^="#/m/"]'); link = links[-1] if links else None
         if link:
             link.dispatch_event('pointerdown'); pg.wait_for_timeout(250)
         check(dev, 'preload: touching a material link starts its request before the tap ends', link is not None and any(a.startswith('/api/next/material?id=') for a in asked), asked[:5])
         go(pg, '#/me'); pg.click('#out'); pg.wait_for_timeout(800)
-        check(dev, 'preload: signing out clears the copy kept on the phone', pg.evaluate("() => localStorage.getItem('flow-snap')") is None)
+        left = pg.evaluate("() => localStorage.getItem('flow-snap') || ''")
+        check(dev, 'preload: signing out clears the copy kept on the phone (a guest\'s 今日 may follow, nothing of the account)',
+              '"owner":"u' not in left and 'username' not in left, left[:120])
         ctx.close()
     finally:
         browser.close()
@@ -915,7 +917,7 @@ def layout_run(pw, engine):
 # ---- the experience round: 复读 in 听, 撤销 in review, 字号和行距, and a first visit that can start with an article
 FAKE_TTS = """(() => { window.__said = []; if (!window.speechSynthesis) return;
   speechSynthesis.speak = u => { window.__said.push(u.text); setTimeout(() => { u.onstart && u.onstart(); u.onend && u.onend(); }, 40); };
-  speechSynthesis.cancel = () => {}; speechSynthesis.getVoices = () => [{ name: 'Test', lang: 'en-US' }]; })();"""
+  speechSynthesis.cancel = () => {}; speechSynthesis.getVoices = () => []; })();"""
 
 
 def ux_run(pw):
@@ -930,9 +932,11 @@ def ux_run(pw):
         # 复读: 3 遍, no pause: one tap on a sentence says it three times
         go(pg, f'#/m/{PID}/listen'); pg.wait_for_selector('[data-rep="3"]', timeout=5000)
         pg.click('[data-rep="3"]'); pg.evaluate('window.__said = []')
-        pg.click('[data-say="0"]'); pg.wait_for_timeout(900)
+        pg.click('[data-say="0"]'); pg.wait_for_timeout(30)
+        mini = pg.is_visible('.mini-player')  # while it repeats (it goes away when the last time ends)
+        pg.wait_for_timeout(900)
         said = pg.evaluate('window.__said')
-        check(dev, '复读: a sentence is said three times, with a stop button on screen', len(said) == 3 and len(set(said)) == 1 and pg.is_visible('.mini-player'), said)
+        check(dev, '复读: a sentence is said three times, with a stop button on screen meanwhile', len(said) == 3 and len(set(said)) == 1 and mini, (len(said), mini))
         pg.reload(); settle(pg, '[data-rep]')
         check(dev, '复读: the choice is remembered', pg.get_attribute('[data-rep="3"]', 'aria-pressed') == 'true')
         pg.click('[data-rep="1"]')
@@ -995,6 +999,7 @@ def main():
             try:
                 ux_run(pw)
             except Exception:
+                print(traceback.format_exc())
                 check('ux', 'run finished', False, traceback.format_exc()[-600:])
         for engine in ('chrome', 'webkit'):  # last: it takes the vocabulary test and answers review cards
             if not ONLY or 'layout' in ONLY or engine in ONLY:
