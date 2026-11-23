@@ -229,7 +229,7 @@ def run_device(pw, dev, opts):
     while asked < 16 and not pg.query_selector('#pUse'):
         pg.click('.place .ans >> nth=0' if asked % 3 else '#pSkip'); asked += 1
         pg.wait_for_timeout(450)
-    res = pg.evaluate("() => ({h: (document.querySelector('#view h1') || {}).textContent || '', bands: document.querySelectorAll('.bands .band').length})")
+    res = pg.evaluate("() => ({h: (document.querySelector('#view h1') || {}).textContent || '', bands: document.querySelectorAll('.pl-bands .pl-band').length})")
     check(dev, 'starting check: ends with a level and band scores', res['h'].startswith('建议从') and 1 <= res['bands'] <= 4 and asked % 4 == 0, (res, asked))
 
     # ---- exam practice: a timed paper of 22 questions, handed in once, scored by part
@@ -764,7 +764,7 @@ def wechat_run(pw):
 #   fixed-in  a fixed bar inside a box that moves or transforms (it is carried along instead of staying put);
 #   tabs      after scrolling a long page to the end, the tab bar is still at the bottom of the screen;
 #   q-top     a review question without a word to show starts near the top, not under a screen of empty space.
-LAYOUT_JS = r"""() => {
+AUDIT_JS = r"""() => {
   const W = innerWidth, H = innerHeight, out = { wide: document.scrollingElement.scrollWidth - W, beyond: [], squeezed: [], fixedIn: [] };
   const name = el => el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (el.classList.length ? '.' + [...el.classList].slice(0, 3).join('.') : '');
   // a scroller or a clipping box of its own (not the page's main column) holds what reaches past it on purpose
@@ -818,7 +818,7 @@ def layout_run(pw, engine):
             ctx = browser.new_context(**opts)
             ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['phone']['token'], 'url': BASE}])
             pg = ctx.new_page(); pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
-            audit = lambda where: note(where, size, theme, pg.evaluate(LAYOUT_JS))
+            audit = lambda where: note(where, size, theme, pg.evaluate(AUDIT_JS))
             for p in PAGES:
                 go(pg, p); audit(p)
             # the states behind a tap: the statistics fold on 单词, the end of the vocabulary test, the placement result
@@ -846,8 +846,8 @@ def layout_run(pw, engine):
                 found.setdefault((size, theme, 'beyond'), []).append('#/placement: the result was not reached, so not checked')
             # review: each card as it comes, answered so the next one shows; questions start near the top
             go(pg, '#/review'); pg.wait_for_timeout(300); asked = 0
-            for k in range(14):
-                if not pg.query_selector('#view .review'):
+            for k in range(40):  # word cards come first; mistakes (questions) after them
+                if not pg.query_selector('#view .review') or asked >= 3:
                     break
                 audit(f'#/review card {k + 1}')
                 top = pg.evaluate(QTOP_JS)
