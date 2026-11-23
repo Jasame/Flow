@@ -150,8 +150,10 @@ class ToolTests(unittest.TestCase):
         self.assertIn('--beta) P=b; BRANCH=release-beta; SITE=https://flow.jasa.hk', deploy)
         self.assertIn('P=r; BRANCH=release; SITE=https://flowlang.cn', deploy)
         pull = (TOOLS / 'flow-pull.sh').read_text()
+        self.assertNotIn('if xmc_dir:', pull)  # one manifest per commit: the 内测版 checks the console files too, it only skips installing them
         for s in ('F=${FLOW_DIR:-/www/wwwroot/flow}', 'XMC=${FLOW_XMC-/www/wwwroot/xmc.hk/flow}', 'SVC=${FLOW_SERVICE:-flow}', 'U=${FLOW_URL:-http://127.0.0.1:8090}',
-                  'echo "$SHA" > "$OPS/$SVC-deployed-commit"', 'bash "$HERE/flow-pull-rollback.sh" "$BK"'):
+                  'echo "$SHA" > "$OPS/$SVC-deployed-commit"', 'bash "$HERE/flow-pull-rollback.sh" "$BK"',
+                  "names += [f'xmc-admin/{n}'", 'xmc-admin/*) [ -n "$XMC" ] || continue;'):
             self.assertIn(s, pull)
         import importlib.util
         for argv, prefix, status in (([], 'r', '/www/wwwroot/flow/data/deploy-status.json'), (['--beta'], 'b', '/www/wwwroot/flow-beta/data/deploy-status.json')):

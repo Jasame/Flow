@@ -168,7 +168,7 @@ def main():
     else:
         say(f'1. copy 语流\'s code to {BETA} (not data/, not audio/)')
         if apply:
-            shutil.copytree(PROD, BETA, ignore=lambda d, names: [n for n in names if Path(d) == PROD and n in ('data', 'audio')] + [n for n in names if n == '__pycache__'])
+            shutil.copytree(PROD, BETA, symlinks=True, ignore=lambda d, names: [n for n in names if Path(d) == PROD and n in ('data', 'audio', '.venv')] + [n for n in names if n == '__pycache__'])
     if apply:
         (BETA / 'data').mkdir(mode=0o700, exist_ok=True)
         shutil.chown(BETA / 'data', 'www', 'www')

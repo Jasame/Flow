@@ -61,8 +61,8 @@ def listing():
 flat = {f['name'].lstrip('/'): f for f in listing()}
 names = get_any('tools/release-files.txt').decode().split()
 names = [n for n in names if n.startswith('flow/') and not n.startswith('flow/tests/')]
-if xmc_dir:  # the console's page files go with 语流's releases only
-    names += [f'xmc-admin/{n}' for n in ('index.html', 'admin.js', 'admin.css') if f'xmc-admin/{n}' in flat]
+# The console's page files are checked on every site (they are part of the release's manifest), installed with 语流's only.
+names += [f'xmc-admin/{n}' for n in ('index.html', 'admin.js', 'admin.css') if f'xmc-admin/{n}' in flat]
 missing = [n for n in names if n not in flat]
 if missing:
     sys.exit(f'not in the commit: {missing[:5]}')
