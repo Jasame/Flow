@@ -278,6 +278,29 @@ def run_device(pw, dev, opts):
           any('/audio/' in h and '.json?v=uitest000001' in h for h in hits) and any('/audio/' in h and '.m4a?v=uitest000001' in h for h in hits), hits[:4])
     pg.evaluate("() => { const s = document.querySelector('.mini-player .stop'); if (s && !s.closest('[hidden]')) s.click(); }")
     pg.unroute('http://127.0.0.1:9/**')
+    # ---- audio: this server sends the timings, but its sound file fails while play() is waiting. The page switches to
+    # the media domain inside the file's error event, and play() reports its failure only after that, so the report
+    # must not end the playback with a false alarm. (A context without the service worker, so requests can be held.)
+    # The page uses a recording only when its timings have one entry per sentence of the text (else the browser voice).
+    sound = (Path(__file__).with_name('ui-fixtures') / 'audio' / 'words' / 'us' / 'w000.m4a').read_bytes()  # 2 s
+    mctx = ctx.browser.new_context(**opts, locale='zh-CN', bypass_csp=True, service_workers='block')
+    mctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners'][dev]['token'], 'url': BASE}])
+    n = len(mctx.request.get(BASE + '/api/next/material?id=v5-culture-c1-lighthouse-ledger-3').json()['sentences'])
+    timing = json.dumps({'v': 1, 'duration': 2, 'sentences': [{'s': 2 * i / n, 'e': 2 * (i + 1) / n, 'w': [[0, 2 * i / n, 2 * (i + 1) / n]]} for i in range(n)]})
+    mp, held, alt = mctx.new_page(), [], []
+    mp.route(BASE + '/audio/**', lambda r: r.fulfill(status=200, content_type='application/json', body=timing) if '.json' in r.request.url else held.append(r))
+    mp.route('http://127.0.0.1:9/**', lambda r: (alt.append(r.request.url), r.fulfill(status=200, content_type='audio/mp4', headers={'Access-Control-Allow-Origin': '*'}, body=sound)))
+    mp.goto(BASE + '/#/m/v5-culture-c1-lighthouse-ledger-3/listen', wait_until='domcontentloaded'); settle(mp, '#playAll')
+    mp.click('#playAll'); mp.wait_for_timeout(150)
+    for r in held:
+        r.fulfill(status=404, body='')
+    mp.wait_for_timeout(600)
+    toast = mp.evaluate("() => { const t = document.getElementById('toast'); return t && t.classList.contains('show') ? t.textContent : ''; }")
+    media = mp.evaluate("[...document.querySelectorAll('audio')].some(a => a.src.startsWith('http://127.0.0.1:9/') && !a.paused)")
+    check(dev, "audio: this server's sound failing while play() waits, the media domain's plays on, with no false alarm",
+          held and media and '没加载出来' not in toast and '无法播放' not in toast and mp.evaluate("document.body.classList.contains('playing')"),
+          {'held': len(held), 'alt': alt[:2], 'playing from the media domain': media, 'toast': toast})
+    mctx.close()
 
     # ---- read: the ✦ of every sentence sits on the same line as the sentence's last word
     go(pg, f'#/m/{PID}/read')
