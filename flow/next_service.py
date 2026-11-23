@@ -78,6 +78,8 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
     GB.install(c)  # ten questions on every point (once)
     GB.schema(c)  # spaced re-checks of grammar points
     __import__('graph_links').install(c)  # prerequisite fixes and confusable edges (once)
+    __import__('easy_reading').schema(c)  # easy reading: words read, speed, how hard it felt
+    __import__('word_links').schema(c)  # practice on words Chinese speakers mix up
     __import__('exam_service').schema(c)  # exam practice papers and results
 
 
@@ -397,6 +399,8 @@ def graph_states(c, uid):
     packs = {}
     for r in c.execute("SELECT DISTINCT pack, step FROM next_progress WHERE user_id=? AND step IN ('read','output')", (uid,)):
         packs.setdefault(r['pack'], set()).add(r['step'])
+    for r in c.execute('SELECT DISTINCT pack FROM next_easy_reads WHERE user_id=?', (uid,)):  # easy reading counts as reading
+        packs.setdefault(r['pack'], set()).add('read')
     if packs:
         q = 'SELECT id, content FROM lab_packs WHERE id IN (%s)' % ','.join('?' * len(packs))
         for r in c.execute(q, list(packs)):
@@ -1252,6 +1256,20 @@ def get(c, uid, path, q):
         return GB.placement_items(c), 200
     if path == '/api/next/series':
         return series(c, uid, one('id'))
+    if path == '/api/next/easy':
+        return __import__('easy_reading').listing(c, uid, one('level') or None)
+    if path == '/api/next/words/confuse':
+        WL = __import__('word_links')
+        prog = WL.progress(c, uid)
+        return {'groups': [{**g, **prog.get(g['id'], {'right': 0, 'tries': 0})} for g in WL.listing()]}, 200
+    if path == '/api/next/words/confuse/round':
+        WL = __import__('word_links')
+        groups = [g for g in (one('groups') or '').split(',') if g in WL.GROUPS][:6]
+        if not groups:
+            return {'error': '没有这一组'}, 404
+        return {'items': WL.round_of(groups, per=3 if len(groups) == 1 else 2), 'groups': [{'id': g, 'words': WL.GROUPS[g][1], 'how': WL.GROUPS[g][2]} for g in groups]}, 200
+    if path == '/api/next/speak':
+        return __import__('scenarios').listing(c, uid, (profile(c, uid) or {}).get('level') or one('level') or None), 200
     if path == '/api/next/mix':
         return GB.mix(c, uid, pair=one('pair') or None, topic=one('topic') or None, level=one('level') or None)
     if path == '/api/next/exam':
@@ -1261,6 +1279,8 @@ def get(c, uid, path, q):
         if not WORD.fullmatch(w or ''):
             return {'error': '只能查英文单词'}, 400
         hit = lookup(w)
+        if hit:  # words Chinese speakers mix up with this one (a copy: the cached entry stays as it is)
+            hit = {**hit, 'confusable': __import__('word_links').group_of(hit['lemma']) or __import__('word_links').group_of(w)}
         return ({'entry': hit} if hit else {'entry': None, 'query': w}), 200
     if not uid:
         return ({'error': '请先登录'}, 401) if path.startswith('/api/next/') else None
@@ -1268,6 +1288,8 @@ def get(c, uid, path, q):
         return cards(c, uid, one('q')[:80], int(one('page', '1') or 1), f=one('f')), 200
     if path == '/api/next/stats':
         return stats(c, uid), 200
+    if path == '/api/next/growth':
+        return __import__('growth_report').month(c, uid, one('month') or None)
     return None
 
 
@@ -1281,6 +1303,10 @@ def post_public(c, uid, path, data):
         return node_answer(c, uid, data)
     if path == '/api/next/placement':
         return GB.placement_score(c, uid, data)
+    if path == '/api/next/easy/done':
+        return __import__('easy_reading').done(c, uid, data)
+    if path == '/api/next/words/confuse/answer':
+        return __import__('word_links').answer(c, uid, data)
     if path == '/api/next/exam/paper':
         return __import__('exam_service').paper(c, uid, data.get('exam'))
     if path == '/api/next/exam/submit':

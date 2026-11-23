@@ -1,0 +1,754 @@
+[
+  {
+    "id": "v5-campus-b1-a-new-term-1",
+    "title": "新学期 1：第一天",
+    "title_en": "A New Term, Part 1: The First Day",
+    "summary_zh": "连载第 1 集：林悦（Lin）带着两个大箱子搬进合租公寓，见到室友 Priya 时，练了多年的英语突然一句也想不起来。明天第一节研讨课就要做自我介绍，她把三句话写在本子上，读了一遍又一遍。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "campus",
+    "genre": "story",
+    "body": "Lin arrived at the flat on a rainy Sunday afternoon, with two heavy suitcases and a long list of questions. The door was opened by a tall girl with a friendly smile. \"Hi, you must be Lin. I'm Priya, your new flatmate,\" she said. Lin had practised her English for years, but now her mind went completely blank. She only managed to say, \"Nice to meet you.\" Priya showed her around the flat. There was a small kitchen, a living room with a broken lamp, and a list of house rules on the fridge. \"Don't worry about the rules,\" Priya laughed. \"The only important one is: wash your cup.\" That evening, Lin sat on her bed and looked at her timetable. Her first class was a seminar at ten the next morning, and everyone had to introduce themselves. She wrote three sentences in her notebook and read them again and again. This time, she promised herself, she would not forget them.",
+    "questions": [
+      {
+        "prompt": "How does Lin feel when she first meets Priya?",
+        "options": [
+          "Angry, because Priya is late",
+          "Nervous, so she can hardly say anything",
+          "Bored by the conversation",
+          "Excited to show off her English"
+        ],
+        "answer": 1,
+        "evidence": "but now her mind went completely blank"
+      },
+      {
+        "prompt": "According to Priya, what is the most important house rule?",
+        "options": [
+          "Turn off the lamp at night",
+          "Wash your cup",
+          "Don't use the kitchen late",
+          "Keep the living room quiet"
+        ],
+        "answer": 1,
+        "evidence": "The only important one is: wash your cup."
+      }
+    ],
+    "dictation_index": 11,
+    "vocabulary": [
+      {
+        "term": "suitcases",
+        "meaning": "行李箱",
+        "example": "We put our suitcases in the car and left for the airport."
+      },
+      {
+        "term": "flatmate",
+        "meaning": "合租室友",
+        "example": "My flatmate always cooks dinner on Fridays."
+      },
+      {
+        "term": "timetable",
+        "meaning": "课程表、时间表",
+        "example": "Check the timetable to see when the next train leaves."
+      },
+      {
+        "term": "seminar",
+        "meaning": "研讨课（学生讨论为主）",
+        "example": "In the seminar, everyone had to give an opinion."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "you must be",
+        "meaning": "你一定是……吧",
+        "note": "见面时猜测对方身份的常用说法"
+      },
+      {
+        "text": "went completely blank",
+        "meaning": "脑子一片空白",
+        "note": "one's mind goes blank：紧张时突然想不起来"
+      },
+      {
+        "text": "managed to say",
+        "meaning": "勉强说出、好不容易说出",
+        "note": "manage to do：费力做到"
+      },
+      {
+        "text": "showed her around",
+        "meaning": "带她到处看看",
+        "note": "show sb around：带人参观"
+      },
+      {
+        "text": "again and again",
+        "meaning": "一遍又一遍",
+        "note": "强调反复"
+      }
+    ],
+    "grammar": [
+      "tense-past",
+      "tense-past-perfect",
+      "modal-deduction"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-past",
+        "quote": "Lin arrived at the flat on a rainy Sunday afternoon",
+        "explanation": "讲故事用一般过去时：arrived 是过去某个时间发生的动作。"
+      },
+      {
+        "node": "tense-past-perfect",
+        "quote": "Lin had practised her English for years, but now her mind went completely blank.",
+        "explanation": "had practised 是“在那之前一直练”，和后面“那一刻脑子空白”形成对比。"
+      },
+      {
+        "node": "modal-deduction",
+        "quote": "you must be Lin",
+        "explanation": "must be 表示有把握的推测：见到新室友，猜她就是 Lin。"
+      }
+    ],
+    "speaking": "说说你第一次用英语和陌生人打招呼的经历：当时说了什么、心里在想什么？1 分钟。",
+    "writing": "写 80–100 词：介绍你住过的一个地方（宿舍、合租房或家），用上 there was / there were 和一个过去完成时。",
+    "task": {
+      "prompt": "仿照这句，用 had done …, but now … 写一件你准备了很久、关键时刻却没发挥好的事。",
+      "model": "Lin had practised her English for years, but now her mind went completely blank."
+    },
+    "tags": [
+      "连载故事",
+      "新学期",
+      "合租生活"
+    ],
+    "source": "Flow 编辑部原创",
+    "series": {
+      "id": "a-new-term",
+      "title": "新学期",
+      "title_en": "A New Term",
+      "of": 6,
+      "blurb": "六集连载 · B1：林悦（Lin）到英国读研的第一个学期——合租、研讨课、兼职、小组作业和第一次展示，每一集都是一道开口说英语的坎。",
+      "part": 1
+    }
+  },
+  {
+    "id": "v5-campus-b1-a-new-term-2",
+    "title": "新学期 2：研讨课",
+    "title_en": "A New Term, Part 2: The Seminar",
+    "summary_zh": "连载第 2 集：第一节研讨课没有讲台，导师和学生围坐一圈。Lin 的自我介绍背得很熟，可导师接着问“你怎么看今天的阅读材料”，她一下子愣住了。同学 Tom 帮她解了围，还告诉她一句话。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "campus",
+    "genre": "story",
+    "body": "The seminar room was small, and the chairs were arranged in a circle. Lin had expected a lecture, but the tutor, Dr Evans, sat with the students instead of standing at the front. \"Let's go round and say who we are and why we chose this course,\" she said. When it was Lin's turn, she read her three sentences perfectly. Then Dr Evans smiled and asked, \"And what do you think about today's reading?\" Lin froze. She had read the article twice, but she wasn't sure her opinion was good enough. The room was silent for a few seconds, which felt like a minute. Then the student next to her, Tom, said, \"I found the second part quite confusing, actually.\" Several people agreed, and the discussion started again. After class, Tom told her, \"Nobody expects a perfect answer here. They just want to hear what you think.\" Lin wrote that sentence on the first page of her notebook.",
+    "questions": [
+      {
+        "prompt": "What surprised Lin about the seminar?",
+        "options": [
+          "The room was too big for the class",
+          "It was more like a discussion than a lecture",
+          "The tutor gave a very long talk",
+          "Students had to write a test"
+        ],
+        "answer": 1,
+        "evidence": "Lin had expected a lecture, but the tutor, Dr Evans, sat with the students instead of standing at the front."
+      },
+      {
+        "prompt": "Why didn't Lin answer the question at first?",
+        "options": [
+          "She hadn't read the article",
+          "She wasn't sure her opinion was good enough",
+          "She didn't hear the question",
+          "She wanted Tom to answer it"
+        ],
+        "answer": 1,
+        "evidence": "she wasn't sure her opinion was good enough"
+      }
+    ],
+    "dictation_index": 7,
+    "vocabulary": [
+      {
+        "term": "arranged",
+        "meaning": "摆放、布置",
+        "example": "The desks were arranged in rows."
+      },
+      {
+        "term": "tutor",
+        "meaning": "（大学的）导师",
+        "example": "My tutor helped me choose a topic for my essay."
+      },
+      {
+        "term": "opinion",
+        "meaning": "观点、看法",
+        "example": "Everyone has a different opinion about the film."
+      },
+      {
+        "term": "confusing",
+        "meaning": "令人困惑的",
+        "example": "The instructions on the box were really confusing."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "go round",
+        "meaning": "轮流（一个接一个）",
+        "note": "课堂上轮流发言常用 go round"
+      },
+      {
+        "text": "instead of",
+        "meaning": "而不是",
+        "note": "instead of + 名词或 doing"
+      },
+      {
+        "text": "it was Lin's turn",
+        "meaning": "轮到 Lin 了",
+        "note": "It's your turn. 轮到你了"
+      },
+      {
+        "text": "felt like a minute",
+        "meaning": "感觉像过了一分钟",
+        "note": "feel like + 名词：感觉像……"
+      }
+    ],
+    "grammar": [
+      "nonfinite-gerund",
+      "clause-noun",
+      "tense-past-perfect"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-gerund",
+        "quote": "sat with the students instead of standing at the front",
+        "explanation": "介词 instead of 后面接动名词 standing，不能接 stand。"
+      },
+      {
+        "node": "clause-noun",
+        "quote": "They just want to hear what you think.",
+        "explanation": "what you think 是宾语从句，用陈述语序（不说 what do you think）。"
+      },
+      {
+        "node": "tense-past-perfect",
+        "quote": "Lin had expected a lecture",
+        "explanation": "来上课之前就以为是讲座：had expected 表示“原以为”，和实际情况相反。"
+      }
+    ],
+    "speaking": "你在课堂上被点名发表看法时一般会怎么做？用英文说说你会怎么开口（比如 I think… / I'm not sure, but…），1 分钟。",
+    "writing": "写 80–100 词：说说你对一篇最近读过的文章的看法，用上 I found … quite … 和一个 what 从句。",
+    "task": {
+      "prompt": "仿照这句，用 want to know / hear + what、how 或 why 从句，写一句你想问别人的话。",
+      "model": "They just want to hear what you think."
+    },
+    "tags": [
+      "连载故事",
+      "新学期",
+      "课堂发言"
+    ],
+    "source": "Flow 编辑部原创",
+    "series": {
+      "id": "a-new-term",
+      "title": "新学期",
+      "title_en": "A New Term",
+      "of": 6,
+      "blurb": "六集连载 · B1：林悦（Lin）到英国读研的第一个学期——合租、研讨课、兼职、小组作业和第一次展示，每一集都是一道开口说英语的坎。",
+      "part": 2
+    }
+  },
+  {
+    "id": "v5-campus-b1-a-new-term-3",
+    "title": "新学期 3：改天一起喝咖啡",
+    "title_en": "A New Term, Part 3: Let's Grab a Coffee",
+    "summary_zh": "连载第 3 集：Tom 说“改天一起喝杯咖啡吧”，Lin 等了一整个周末的消息，却什么也没等到。室友 Priya 告诉她，这只是一句客气话。Lin 决定换个方式：自己约一个具体的时间。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "campus",
+    "genre": "story",
+    "body": "On Friday, Tom said, \"We should grab a coffee sometime.\" Lin was delighted. She checked her phone all weekend, waiting for a message with a time and place. Nothing came. On Monday Tom said hello as usual, but he didn't mention coffee at all. Lin felt confused and a little hurt. That evening she told Priya the whole story. Priya laughed kindly. \"Oh, that's just something people say,\" she explained. \"It means 'I like you', not 'I've made a plan'. If you want to meet, you have to suggest a day yourself.\" Lin thought this was strange. At home, if someone said they would invite you, they usually did. But she decided to try. The next day she said to Tom, \"Are you free for a coffee on Thursday after class?\" \"Sure, that would be great,\" he answered immediately. On Thursday they talked for two hours, and Lin's English felt easier than ever before.",
+    "questions": [
+      {
+        "prompt": "What did Lin learn from Priya?",
+        "options": [
+          "Tom didn't really like her",
+          "\"We should grab a coffee sometime\" is friendly, but it isn't a real plan",
+          "People never drink coffee after class",
+          "She should wait for Tom to call her"
+        ],
+        "answer": 1,
+        "evidence": "It means 'I like you', not 'I've made a plan'."
+      },
+      {
+        "prompt": "What did Lin do differently the next day?",
+        "options": [
+          "She stayed away from Tom",
+          "She suggested a day to meet",
+          "She sent Tom a long message",
+          "She asked Priya to come with them"
+        ],
+        "answer": 1,
+        "evidence": "Are you free for a coffee on Thursday after class?"
+      }
+    ],
+    "dictation_index": 2,
+    "vocabulary": [
+      {
+        "term": "delighted",
+        "meaning": "非常高兴的",
+        "example": "She was delighted with her exam results."
+      },
+      {
+        "term": "mention",
+        "meaning": "提到",
+        "example": "He didn't mention the meeting in his email."
+      },
+      {
+        "term": "suggest",
+        "meaning": "提议、建议",
+        "example": "Can I suggest a different restaurant?"
+      },
+      {
+        "term": "immediately",
+        "meaning": "立刻、马上",
+        "example": "Please call me immediately if anything changes."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "grab a coffee",
+        "meaning": "（随便）喝杯咖啡",
+        "note": "口语，grab 表示“随手、快速地拿”"
+      },
+      {
+        "text": "as usual",
+        "meaning": "像往常一样",
+        "note": "放在句末或句首都可以"
+      },
+      {
+        "text": "the whole story",
+        "meaning": "整件事的来龙去脉",
+        "note": "tell sb the whole story"
+      },
+      {
+        "text": "Are you free for",
+        "meaning": "你有空……吗",
+        "note": "约人时说出具体时间：Are you free for lunch on Monday?"
+      },
+      {
+        "text": "that would be great",
+        "meaning": "那太好了",
+        "note": "接受邀请时的常用回答"
+      }
+    ],
+    "grammar": [
+      "conditional-real",
+      "tense-present",
+      "compare-basic"
+    ],
+    "knowledge": [
+      {
+        "node": "conditional-real",
+        "quote": "If you want to meet, you have to suggest a day yourself.",
+        "explanation": "真实条件句：if 从句用一般现在时，主句说“就得怎么做”。"
+      },
+      {
+        "node": "tense-present",
+        "quote": "that's just something people say",
+        "explanation": "一般现在时说普遍的情况：人们平时都这么说。"
+      },
+      {
+        "node": "compare-basic",
+        "quote": "Lin's English felt easier than ever before",
+        "explanation": "easier than ever before：比以往任何时候都更容易，比较级 + than ever。"
+      }
+    ],
+    "speaking": "说一个中英文“客气话”不一样的例子（比如“改天请你吃饭”），用英文讲讲它真正的意思，1 分钟。",
+    "writing": "写 80–100 词：给一位新认识的同学发消息，约一个具体的时间见面，并说明想聊什么。",
+    "task": {
+      "prompt": "仿照这句，用 Are you free for … on … ? 约一个具体的时间。",
+      "model": "Are you free for a coffee on Thursday after class?"
+    },
+    "tags": [
+      "连载故事",
+      "新学期",
+      "中英文化"
+    ],
+    "source": "Flow 编辑部原创",
+    "series": {
+      "id": "a-new-term",
+      "title": "新学期",
+      "title_en": "A New Term",
+      "of": 6,
+      "blurb": "六集连载 · B1：林悦（Lin）到英国读研的第一个学期——合租、研讨课、兼职、小组作业和第一次展示，每一集都是一道开口说英语的坎。",
+      "part": 3
+    }
+  },
+  {
+    "id": "v5-campus-b1-a-new-term-4",
+    "title": "新学期 4：咖啡店兼职",
+    "title_en": "A New Term, Part 4: The Café Job",
+    "summary_zh": "连载第 4 集：Lin 在图书馆旁的咖啡店找了份兼职，第一天就把顾客点的 flat white 做成了拿铁。她以为要被开除，店长 Rosa 却说：唯一真正的错误，是不问。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "campus",
+    "genre": "story",
+    "body": "Lin found a part-time job at a busy café near the library. On her first morning, a man asked for \"a flat white and a croissant\". Lin had no idea what a flat white was. She guessed, and gave him a latte. He looked surprised but paid anyway. Later, Rosa, the manager, took her aside. Lin was sure she was going to lose the job. Instead, Rosa said, \"Everyone gets things wrong in the first week. The only real mistake is not asking.\" She showed Lin every drink on the menu and let her taste them. From then on, whenever Lin didn't understand an order, she said, \"Sorry, could you say that again?\" Most customers were happy to repeat it. By the end of the month, Lin could make twelve different drinks, and she had learned more everyday English at the counter than in any classroom.",
+    "questions": [
+      {
+        "prompt": "What did Rosa think was the real mistake?",
+        "options": [
+          "Making the wrong drink",
+          "Not asking when you don't understand",
+          "Talking too much to customers",
+          "Arriving late on the first day"
+        ],
+        "answer": 1,
+        "evidence": "The only real mistake is not asking."
+      },
+      {
+        "prompt": "What does the last sentence suggest?",
+        "options": [
+          "Lin wants to leave the café soon",
+          "Working at the café was a good way to learn real English",
+          "Lin likes making drinks more than studying",
+          "The classroom was too noisy to learn in"
+        ],
+        "answer": 1,
+        "evidence": "she had learned more everyday English at the counter than in any classroom"
+      }
+    ],
+    "dictation_index": 9,
+    "vocabulary": [
+      {
+        "term": "guessed",
+        "meaning": "猜",
+        "example": "I didn't know the answer, so I guessed."
+      },
+      {
+        "term": "manager",
+        "meaning": "经理、店长",
+        "example": "The manager came out to talk to us."
+      },
+      {
+        "term": "customers",
+        "meaning": "顾客",
+        "example": "The shop has more customers at the weekend."
+      },
+      {
+        "term": "counter",
+        "meaning": "柜台",
+        "example": "Please pay at the counter."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "had no idea",
+        "meaning": "完全不知道",
+        "note": "have no idea + what / how …"
+      },
+      {
+        "text": "took her aside",
+        "meaning": "把她叫到一边",
+        "note": "take sb aside：单独谈话"
+      },
+      {
+        "text": "gets things wrong",
+        "meaning": "弄错事情",
+        "note": "get sth wrong：弄错"
+      },
+      {
+        "text": "From then on",
+        "meaning": "从那以后",
+        "note": "放在句首"
+      },
+      {
+        "text": "could you say that again",
+        "meaning": "你能再说一遍吗",
+        "note": "没听清时礼貌地请对方重复"
+      }
+    ],
+    "grammar": [
+      "nonfinite-gerund",
+      "clause-adverb",
+      "tense-past-perfect"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-gerund",
+        "quote": "The only real mistake is not asking.",
+        "explanation": "not asking 是动名词的否定形式，在 be 后面作表语：唯一的错误是“不问”。"
+      },
+      {
+        "node": "clause-adverb",
+        "quote": "whenever Lin didn't understand an order",
+        "explanation": "whenever 引导时间状语从句：每当……的时候。"
+      },
+      {
+        "node": "tense-past-perfect",
+        "quote": "she had learned more everyday English at the counter than in any classroom",
+        "explanation": "By the end of the month 是过去的一个时间点，到那时为止学到的，用过去完成时。"
+      }
+    ],
+    "speaking": "说说你做过的一份工作或实习里犯过的一个错，以及你学到了什么，1 分钟。",
+    "writing": "写 80–100 词：给新来的同事写几条建议，至少用一个 whenever 和一个动名词（doing）。",
+    "task": {
+      "prompt": "仿照这句，写一句在没听清时礼貌请对方重复的话。",
+      "model": "Sorry, could you say that again?"
+    },
+    "tags": [
+      "连载故事",
+      "新学期",
+      "打工经历"
+    ],
+    "source": "Flow 编辑部原创",
+    "series": {
+      "id": "a-new-term",
+      "title": "新学期",
+      "title_en": "A New Term",
+      "of": 6,
+      "blurb": "六集连载 · B1：林悦（Lin）到英国读研的第一个学期——合租、研讨课、兼职、小组作业和第一次展示，每一集都是一道开口说英语的坎。",
+      "part": 4
+    }
+  },
+  {
+    "id": "v5-campus-b1-a-new-term-5",
+    "title": "新学期 5：小组作业",
+    "title_en": "A New Term, Part 5: Group Work",
+    "summary_zh": "连载第 5 集：四个人的小组展示，Jack 负责的部分一周都没动静。以前 Lin 可能会默默替他做完，这一次她决定在会上说出来——用一种既直接又不失礼貌的方式。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "campus",
+    "genre": "story",
+    "body": "For their first project, Lin, Tom and two other students had to give a presentation together. At the first meeting they divided the work: Lin would do the research, Tom would make the slides, and Jack would write the introduction. A week later, Jack still hadn't sent anything. He didn't reply to messages either. Lin was annoyed, but she didn't know how to say it politely in English. In the past she might have stayed silent and done his part herself. This time she decided to speak up. At the next meeting she said, \"Jack, I'm a bit worried that we don't have the introduction yet. Is there anything we can help with?\" Jack looked embarrassed. He explained that he had been ill, and he promised to finish it by Friday. He did. Afterwards, Tom said, \"That was really well said.\" Lin felt proud. Being direct, she realised, did not have to mean being rude.",
+    "questions": [
+      {
+        "prompt": "How did Lin deal with the problem?",
+        "options": [
+          "She did Jack's part herself",
+          "She complained to the tutor",
+          "She raised it politely at the meeting",
+          "She left the group"
+        ],
+        "answer": 2,
+        "evidence": "I'm a bit worried that we don't have the introduction yet."
+      },
+      {
+        "prompt": "Why hadn't Jack sent his part?",
+        "options": [
+          "He had been ill",
+          "He had forgotten about the project",
+          "He didn't like the topic",
+          "He was angry with Lin"
+        ],
+        "answer": 0,
+        "evidence": "He explained that he had been ill"
+      }
+    ],
+    "dictation_index": 4,
+    "vocabulary": [
+      {
+        "term": "divided",
+        "meaning": "分配、划分",
+        "example": "We divided the cake into eight pieces."
+      },
+      {
+        "term": "annoyed",
+        "meaning": "恼火的",
+        "example": "I was annoyed because the bus was late again."
+      },
+      {
+        "term": "embarrassed",
+        "meaning": "尴尬的、不好意思的",
+        "example": "He felt embarrassed when he forgot her name."
+      },
+      {
+        "term": "direct",
+        "meaning": "直接的、坦率的",
+        "example": "She gave me a direct answer."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "speak up",
+        "meaning": "说出来、表达意见",
+        "note": "在会上或别人面前说出自己的想法"
+      },
+      {
+        "text": "I'm a bit worried that",
+        "meaning": "我有点担心……",
+        "note": "委婉地提出问题，比 You didn't … 更客气"
+      },
+      {
+        "text": "Is there anything we can help with?",
+        "meaning": "有什么我们能帮忙的吗？",
+        "note": "提出问题后马上给对方台阶"
+      },
+      {
+        "text": "That was really well said",
+        "meaning": "说得真好",
+        "note": "称赞别人的话说得得体"
+      }
+    ],
+    "grammar": [
+      "nonfinite-gerund",
+      "modal-past",
+      "clause-reported"
+    ],
+    "knowledge": [
+      {
+        "node": "nonfinite-gerund",
+        "quote": "Being direct, she realised, did not have to mean being rude.",
+        "explanation": "Being direct 是动名词短语作主语，being rude 是 mean 的宾语：直接不等于无礼。"
+      },
+      {
+        "node": "modal-past",
+        "quote": "she might have stayed silent and done his part herself",
+        "explanation": "might have done：对过去可能发生的情况的推测——以前的她可能会这样做。"
+      },
+      {
+        "node": "clause-reported",
+        "quote": "He explained that he had been ill",
+        "explanation": "转述他的解释：他说的“我病了”在转述时变成 had been ill。"
+      }
+    ],
+    "speaking": "小组合作里有人不干活，你会怎么说？用英文说出你会说的两三句话，1 分钟。",
+    "writing": "写 80–100 词：给小组同学发一条消息，礼貌地提醒截止时间，并主动提出帮忙。",
+    "task": {
+      "prompt": "仿照这句，用 I'm a bit worried that … 礼貌地提出一个问题。",
+      "model": "I'm a bit worried that we don't have the introduction yet."
+    },
+    "tags": [
+      "连载故事",
+      "新学期",
+      "小组合作"
+    ],
+    "source": "Flow 编辑部原创",
+    "series": {
+      "id": "a-new-term",
+      "title": "新学期",
+      "title_en": "A New Term",
+      "of": 6,
+      "blurb": "六集连载 · B1：林悦（Lin）到英国读研的第一个学期——合租、研讨课、兼职、小组作业和第一次展示，每一集都是一道开口说英语的坎。",
+      "part": 5
+    }
+  },
+  {
+    "id": "v5-campus-b1-a-new-term-6",
+    "title": "新学期 6：展示",
+    "title_en": "A New Term, Part 6: The Presentation",
+    "summary_zh": "连载第 6 集（完）：展示那天，Lin 的手一直在抖。有同学问到一个她答不上的数字——几个月前她一定会慌，这一次她从容地回答了。晚上妈妈打电话问她英语怎么样了，她的回答让自己都有点意外。",
+    "level": "B1",
+    "cefr": "B1",
+    "theme": "campus",
+    "genre": "story",
+    "body": "On the day of the presentation, Lin's hands were shaking. She had practised in front of the mirror every night that week, and Priya had listened to her three times. When she stood up, she looked at Tom, who gave her a small nod. She began slowly, and after the first minute her voice became steadier. Then came the questions. A student asked about one of her numbers, and Lin did not know the answer. A few months ago she would have panicked. Instead, she said, \"That's a good question. I'm not sure, but I'll check and email you.\" Dr Evans wrote something in her notebook and smiled. That night Lin called her mother. \"How is your English now?\" her mother asked. Lin thought about the flat, the seminar, the café and the group. \"It's not perfect,\" she said, \"but I'm not afraid of it any more.\"",
+    "questions": [
+      {
+        "prompt": "How has Lin changed since the start of the term?",
+        "options": [
+          "She no longer makes mistakes in English",
+          "She is no longer afraid to use English",
+          "She has decided to go home",
+          "She has stopped working at the café"
+        ],
+        "answer": 1,
+        "evidence": "but I'm not afraid of it any more"
+      },
+      {
+        "prompt": "What did Lin do when she couldn't answer a question?",
+        "options": [
+          "She panicked and sat down",
+          "She asked Tom to answer it",
+          "She said she would check and reply later",
+          "She changed the topic"
+        ],
+        "answer": 2,
+        "evidence": "I'm not sure, but I'll check and email you."
+      }
+    ],
+    "dictation_index": 3,
+    "vocabulary": [
+      {
+        "term": "shaking",
+        "meaning": "发抖",
+        "example": "My legs were shaking before the race."
+      },
+      {
+        "term": "steadier",
+        "meaning": "更稳的",
+        "example": "After a few deep breaths, my hands felt steadier."
+      },
+      {
+        "term": "panicked",
+        "meaning": "惊慌失措",
+        "example": "He panicked when he couldn't find his passport."
+      },
+      {
+        "term": "nod",
+        "meaning": "点头",
+        "example": "She gave a nod to show she agreed."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "in front of the mirror",
+        "meaning": "对着镜子",
+        "note": "practise in front of the mirror：对着镜子练习"
+      },
+      {
+        "text": "gave her a small nod",
+        "meaning": "朝她轻轻点了点头",
+        "note": "give sb a nod"
+      },
+      {
+        "text": "Then came the questions",
+        "meaning": "接着是提问环节",
+        "note": "地点或时间副词放句首时的倒装，讲故事时很常见"
+      },
+      {
+        "text": "That's a good question",
+        "meaning": "这个问题问得好",
+        "note": "答不上来时先用来争取思考时间"
+      },
+      {
+        "text": "any more",
+        "meaning": "不再",
+        "note": "not … any more：不再……"
+      }
+    ],
+    "grammar": [
+      "tense-past",
+      "clause-nondefining",
+      "tense-past-perfect"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-past",
+        "quote": "She began slowly, and after the first minute her voice became steadier.",
+        "explanation": "一般过去时按顺序讲发生的事：began…became。"
+      },
+      {
+        "node": "clause-nondefining",
+        "quote": "she looked at Tom, who gave her a small nod",
+        "explanation": "逗号后的 who 从句补充说明 Tom 做了什么，是非限制性定语从句。"
+      },
+      {
+        "node": "tense-past-perfect",
+        "quote": "She had practised in front of the mirror every night that week",
+        "explanation": "展示之前的那一周一直在练，用过去完成时。"
+      }
+    ],
+    "speaking": "如果在展示时被问到你不知道的问题，你会怎么用英文回答？说出两种得体的说法。",
+    "writing": "写 100–120 词：给一个月前的自己写一封短信，说说你在学英语上的一个变化。",
+    "task": {
+      "prompt": "仿照这句，写一句在答不上问题时得体的回应。",
+      "model": "That's a good question. I'm not sure, but I'll check and email you."
+    },
+    "tags": [
+      "连载故事",
+      "新学期",
+      "第一次展示"
+    ],
+    "source": "Flow 编辑部原创",
+    "series": {
+      "id": "a-new-term",
+      "title": "新学期",
+      "title_en": "A New Term",
+      "of": 6,
+      "blurb": "六集连载 · B1：林悦（Lin）到英国读研的第一个学期——合租、研讨课、兼职、小组作业和第一次展示，每一集都是一道开口说英语的坎。",
+      "part": 6
+    }
+  }
+]

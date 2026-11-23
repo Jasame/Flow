@@ -260,6 +260,20 @@ def daily_path(c, uid, home, now=None):
             steps.append({'key': 'exam', 'title': '考试练习', 'sub': '这周的一套做完了', 'href': '#/exam', 'done': True})
         elif not last or last < now - 6 * 86400:
             steps.append({'key': 'exam', 'title': '考试练习', 'sub': '每周一套：词汇、语法、阅读，约 15–20 分钟', 'href': '#/exam', 'done': False})
+    if minutes >= 30:
+        # Easy reading: a lot of easy text builds fluency; one short text a day on longer days.
+        n_easy = __import__('easy_reading').read_today(c, uid, start)
+        steps.append({'key': 'easy', 'title': '轻松读一篇', 'href': '#/easy', 'done': bool(n_easy),
+                      'sub': f'今天读了 {n_easy} 篇' if n_easy else '比你的水平低一点，只读不做题，约 3 分钟'})
+    if key != 'retell' and (minutes >= 30 or (prof.get('goal') in ('abroad', 'daily', 'work') and minutes >= 20)):
+        # The speaking route: one role-play scene, unless today's output step is already spoken.
+        sp = __import__('scenarios').listing(c, uid, level)
+        spoke = c.execute("SELECT COUNT(*) FROM next_skill_events WHERE user_id=? AND skill='speaking' AND created>=?", (uid, start)).fetchone()[0]
+        if sp['next'] or spoke:
+            nxt = next((x for x in sp['items'] if x['id'] == sp['next']), None)
+            steps.append({'key': 'speak', 'title': '口语：' + (nxt['title'] if nxt and not spoke else '情景对话'), 'done': bool(spoke),
+                          'href': '#/speak/' + nxt['id'] if nxt else '#/speak',
+                          'sub': '今天说过了' if spoke else '和 AI 演一个情景，说四五句，约 5 分钟'})
     if minutes >= 15 and key != 'dictate' and pick:
         steps.append({'key': 'dictate', 'title': '听写三句', 'sub': f"练耳朵，也练拼写 · 今天 {min(3, kind_n.get('dictation', 0))}/3", 'href': f"#/m/{pick['id']}/listen",
                       'done': kind_n.get('dictation', 0) >= 3})

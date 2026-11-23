@@ -367,10 +367,14 @@
       if (!S.home) { await refreshHome(); fresh = true; }
       if (name === 'welcome') { setNav(''); await welcome(a === 'edit'); }
       // Only the personalised home needs the level questions first; everything else works for a new guest too.
-      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix'].includes(name)) { location.replace('#/welcome'); return; }
+      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix', 'easy', 'words', 'speak', 'growth'].includes(name)) { location.replace('#/welcome'); return; }
       else if (name === 'placement') { setNav('graph'); await placementView(); }
       else if (name === 'exam') { setNav('me'); await examView(a); }
       else if (name === 'series') { setNav('today'); await seriesView(decodeURIComponent(a || '')); }
+      else if (name === 'easy') { setNav('today'); await (a ? easyRead(decodeURIComponent(a)) : easyView()); }
+      else if (name === 'words' && a === 'confuse') { setNav('cards'); await (b ? confuseRound(decodeURIComponent(b)) : confuseView()); }
+      else if (name === 'speak') { setNav('me'); await (a ? speakScene(decodeURIComponent(a)) : speakView()); }
+      else if (name === 'growth') { setNav('me'); await growthView(a ? decodeURIComponent(a) : ''); }
       else if (name === 'mix') { setNav('graph'); await mixView(a === 'pair' || a === 'topic' ? a : 'due', b ? decodeURIComponent(b) : ''); }
       else if (name === 'm' && a) { setNav('today'); await study(decodeURIComponent(a), b || 'listen', sameMaterial); }
       else if (name === 'graph') { setNav('graph'); await (a ? nodeView(decodeURIComponent(a)) : graphView()); }
@@ -1188,6 +1192,8 @@
       ${here ? `<div class="here"><span class="pill green">在这篇里</span> ${esc(here.meaning)}</div>` : ''}
       <div class="mean${here ? ' dict' : ''}">${e ? esc(meaning).replace(/；|;/g, '<br>') : '<span class="muted">词典里没有这个词，可以先收藏，复习时再查。</span>'}</div>
       ${e && e.example ? `<div class="small muted text">${esc(e.example)}</div>` : ''}
+      ${e && e.confusable && e.confusable.length ? e.confusable.map(g => `<div class="cf-hint"><div><span class="pill amber">容易混</span> <b class="en">${esc(g.words.join(' / '))}</b></div>
+        <div class="tiny muted">${esc(g.how)}</div><a class="link small" href="#/words/confuse/${encodeURIComponent(g.id)}" data-close>辨析练习 →</a></div>`).join('') : ''}
       <div class="card sunk small text">${esc(sentence)}</div>
       <div class="row"><button class="btn primary" id="saveW">${ICON.star.replace('<svg', '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"')}收藏这个词</button><button class="btn" id="saveS">收藏整句</button><button class="btn" id="exS">✦ AI 讲解整句</button></div>
       <button class="btn ghost" data-close>关闭</button></div>`, card => {
@@ -1626,6 +1632,194 @@
     }
     ask();
   }
+  /* ---------- easy reading: a lot of easy text, read fast, no tasks ---------- */
+  async function easyView() {
+    const d = await api('/api/next/easy' + guestQuery(true)), st = d.stats;
+    view.innerHTML = `<div class="stack"><div><span class="kicker">轻松读</span><h1 class="h1">读得多，比读得难更重要</h1>
+        <p class="muted small">${esc(d.note)}</p></div>
+      ${st ? `<div class="easy-stats"><div><b>${st.week_words.toLocaleString()}</b><span class="tiny muted">这周读了（词）</span></div>
+        <div><b>${st.avg_wpm || '—'}</b><span class="tiny muted">阅读速度（词/分钟）</span></div><div><b>${st.reads}</b><span class="tiny muted">一共读了（篇）</span></div></div>
+        ${st.first_wpm && st.avg_wpm > st.first_wpm ? `<p class="small cheer">比刚开始快了 ${st.avg_wpm - st.first_wpm} 词/分钟。</p>` : ''}` : '<p class="muted small">登录后会记下你读了多少、读得多快。</p>'}
+      <div class="section stack-s"><div class="row between"><h2 class="h2">今天可以读</h2><span class="pill">${esc(d.target)}</span></div>
+        <div class="grid-list">${d.items.map(m => `<a class="card flat mini" href="#/easy/${encodeURIComponent(m.id)}"><span class="t">${esc(m.title)}</span>
+          <span class="meta"><span class="pill">${m.level}</span></span><span class="p">${esc(m.preview_en)}</span><span class="tiny muted">${m.words} 词 · 约 ${Math.max(1, Math.round(m.words / 120))} 分钟</span></a>`).join('') || '<div class="empty"><p>这个难度的材料都读过了，明天会有新的。</p></div>'}</div></div>
+      <p class="tiny muted">怎么读：不查词也能猜个大概就继续往下读；实在影响理解再点词。读完选一下难不难就行。</p></div>`;
+  }
+  async function easyRead(id) {
+    const m = await api('/api/next/material?id=' + encodeURIComponent(id) + guestQuery(false));
+    const ls = m.sentences, t0 = Date.now();
+    let looked = 0;
+    view.innerHTML = `<div><a class="link small" href="#/easy">← 轻松读</a></div>
+      <div class="study-head"><span class="kicker">轻松读 · ${esc(m.level)} · ${ls.join(' ').split(/\s+/).length} 词</span><h1 class="h1">${esc(m.title_en || m.title)}</h1>
+        ${m.title_en ? `<div class="muted small">${esc(m.title)}</div>` : ''}</div>
+      <div class="reader easy-reader" id="easyText" lang="en">${ls.map((s, k) => `<span class="s">${wordSpans(s, () => 'w', ` data-s="${k}"`)}</span> `).join('')}</div>
+      <div class="section stack-s" id="easyEnd"><div class="kicker">读完了，觉得怎么样？</div>
+        <div class="choice three">${[['easy', '太简单'], ['ok', '刚好'], ['hard', '有点难']].map(([v, l]) => `<button class="opt" data-r="${v}"><span class="l">${l}</span></button>`).join('')}</div>
+        <span class="tiny muted">选“太简单”，下一篇会难一点；选“有点难”，会简单一点。</span></div>`;
+    document.getElementById('easyText').onclick = e => {
+      const w = e.target.closest('.w'); if (!w || String(getSelection()).trim()) return;
+      looked++; lookupSheet(w.dataset.w, ls[Number(w.dataset.s)], id, false);
+    };
+    view.querySelectorAll('[data-r]').forEach(b => b.onclick = async () => {
+      view.querySelectorAll('[data-r]').forEach(x => { x.disabled = true; x.setAttribute('aria-pressed', String(x === b)); });
+      const seconds = Math.max(5, Math.round((Date.now() - t0) / 1000));
+      let r; try { r = await api('/api/next/easy/done', { pack: id, seconds, rating: b.dataset.r }); }
+      catch (e) { toast(e.message); view.querySelectorAll('[data-r]').forEach(x => { x.disabled = false; }); return; }
+      const st = r.stats;
+      document.getElementById('easyEnd').insertAdjacentHTML('beforeend', `<div class="easy-done pop-in"><div class="easy-stats"><div><b>${r.words}</b><span class="tiny muted">读了（词）</span></div>
+          <div><b>${r.wpm || '—'}</b><span class="tiny muted">词/分钟</span></div><div><b>${looked}</b><span class="tiny muted">查了（次）</span></div></div>
+        <p class="small cheer">${st ? `这周已经读了 ${st.week_words.toLocaleString()} 词。` : ''}${looked <= 3 ? '几乎没查词就读完了，这正是轻松读要的感觉。' : '这篇查得有点多：觉得吃力的话，选“有点难”，下一篇就会简单一点。'}</p>
+        <div class="row"><a class="btn primary" href="#/easy">再读一篇</a><a class="btn ghost" href="#/">回到今日</a></div></div>`);
+      if (S.user) refreshHome().catch(() => {});
+    });
+  }
+  /* ---------- words Chinese speakers mix up: how to tell them apart, and interleaved practice ---------- */
+  async function confuseView() {
+    const d = await api('/api/next/words/confuse');
+    const LV = ['A2', 'B1', 'B2', 'C1'];
+    view.innerHTML = `<div class="stack"><div><span class="kicker">词汇辨析</span><h1 class="h1">中文里是一个词，英语里是两个</h1>
+        <p class="muted small">借 = borrow / lend，看 = look / see / watch……这些词靠中文分不开，只能放在一起练。选几组混着做，错的会进复习，每次换一道题。</p></div>
+      <button class="btn primary block" id="cfMix" disabled>混合练习选中的组</button>
+      ${LV.map(lv => { const gs = d.groups.filter(g => g.level === lv); return gs.length ? `<section class="stack-s section"><h2 class="h2">${lv}</h2>
+        <div class="cf-list">${gs.map(g => `<label class="cf-row${g.tries ? ' tried' : ''}"><input type="checkbox" value="${esc(g.id)}"><span class="t"><b class="en">${esc(g.words.join(' / '))}</b>
+          <span class="tiny muted">${esc(g.how)}</span></span><span class="tiny muted">${g.tries ? `${g.right}/${g.tries}` : ''}</span><a class="btn small" href="#/words/confuse/${encodeURIComponent(g.id)}">练</a></label>`).join('')}</div></section>` : ''; }).join('')}</div>`;
+    const boxes = [...view.querySelectorAll('.cf-row input')], go = document.getElementById('cfMix');
+    const upd = () => { const n = boxes.filter(b => b.checked).length; go.disabled = n < 2; go.textContent = n < 2 ? '选两组以上，混合练习' : `混合练习选中的 ${n} 组`; };
+    boxes.forEach(b => b.onchange = () => { if (boxes.filter(x => x.checked).length > 6) { b.checked = false; toast('一次最多混 6 组'); } upd(); });
+    go.onclick = () => { location.hash = '#/words/confuse/' + boxes.filter(b => b.checked).map(b => b.value).join(','); };
+    upd();
+  }
+  async function confuseRound(groups) {
+    const d = await api('/api/next/words/confuse/round?groups=' + encodeURIComponent(groups));
+    const items = d.items; let i = 0, right = 0;
+    view.innerHTML = `<div class="stack mix"><div><a class="link small" href="#/words/confuse">← 词汇辨析</a></div>
+      <div><span class="kicker">词汇辨析</span><h1 class="h1">${esc(d.groups.map(g => g.words.join(' / ')).join(' · '))}</h1></div>
+      ${d.groups.map(g => `<div class="howto"><b class="en">${esc(g.words.join(' / '))}</b><span class="small">${esc(g.how)}</span></div>`).join('')}
+      <div class="mix-dots" aria-hidden="true">${items.map(() => '<i></i>').join('')}</div><div id="mixQ"></div></div>`;
+    const dots = [...view.querySelectorAll('.mix-dots i')];
+    const ask = () => {
+      const it = items[i], box = document.getElementById('mixQ');
+      dots.forEach((x, k) => x.classList.toggle('now', k === i));
+      box.innerHTML = `<div class="q gq enter"><div class="tiny muted">第 ${i + 1} / ${items.length} 题</div><div class="prompt">${esc(it.prompt)}</div>
+        ${it.options.map((o, j) => `<button class="ans" data-o="${j}"><span class="k">${'ABCD'[j]}</span><span>${esc(o)}</span></button>`).join('')}<div class="fb" aria-live="polite"></div></div>`;
+      box.querySelectorAll('.ans').forEach(b => b.onclick = () => {
+        const ok = Number(b.dataset.o) === it.answer;
+        box.querySelectorAll('.ans').forEach((x, j) => { x.disabled = true; if (j === it.answer) x.classList.add('right'); });
+        if (!ok) b.classList.add('wrong'); else right++;
+        dots[i].classList.add(ok ? 'ok' : 'no');
+        api('/api/next/words/confuse/answer', { item: it.id, correct: ok }).catch(() => {});
+        box.querySelector('.fb').innerHTML = `<div class="${ok ? 'ok' : 'bad'}">${ok ? '✓ 对了' : '✗ 选错了'}</div><div class="small">${esc(it.explanation)}</div>
+          <button class="btn primary block" id="mixNext">${i + 1 < items.length ? '下一题' : '看结果'}</button>`;
+        const nx = document.getElementById('mixNext'); nx.scrollIntoView({ block: 'nearest', behavior: REDUCED ? 'auto' : 'smooth' });
+        nx.onclick = () => { i++; if (i < items.length) ask(); else done(); };
+        announce(ok ? '答对了' : '答错了');
+      });
+    };
+    const done = () => {
+      view.innerHTML = `<div class="stack mix-done">${right * 2 >= items.length ? `<div class="done-burst${right === items.length ? ' all' : ''}" aria-hidden="true">${doneRing}</div>` : ''}
+        <div class="tc"><span class="kicker">词汇辨析</span><h1 class="h1">${items.length} 题做对 ${right} 题</h1>
+        <p class="small">${right === items.length ? '全对！这几组你已经分得很清楚了。' : S.user ? `错的 ${items.length - right} 组已经放进复习，下次会换一道题考你。` : '登录后，错的会进复习，下次换一道题考你。'}</p></div>
+        <div class="row center"><a class="btn" href="#/words/confuse">选别的组</a><button class="btn primary" id="cfAgain">再来一轮</button></div></div>`;
+      document.getElementById('cfAgain').onclick = () => confuseRound(groups);
+      announce(`${items.length} 题做对 ${right} 题`);
+    };
+    ask();
+  }
+  /* ---------- the speaking route: role-play scenes from ordering a coffee to answering a sceptical boss ---------- */
+  async function speakView() {
+    const d = await api('/api/next/speak' + guestQuery(true));
+    const LV = { A2: '入门', B1: '中级', B2: '中高级', C1: '高级' };
+    view.innerHTML = `<div class="stack"><div><span class="kicker">口语路线</span><h1 class="h1">开口说，从真实情景开始</h1>
+        <p class="muted small">AI 扮演情景里的另一方：店员、房东、面试官……你用英文完成任务，可以说也可以打字。每说一句它会顺手纠正一处，结束时告诉你哪里说得好、哪里要改。</p></div>
+      ${d.next ? `<a class="btn primary block" href="#/speak/${encodeURIComponent(d.next)}">下一个：${esc(d.items.find(x => x.id === d.next).title)}<span aria-hidden="true">→</span></a>` : ''}
+      <p class="small muted">已完成 ${d.done} / ${d.total} 个情景</p>
+      ${['A2', 'B1', 'B2', 'C1'].map(lv => { const xs = d.items.filter(x => x.level === lv); return xs.length ? `<section class="stack-s section"><h2 class="h2">${lv} · ${LV[lv]}</h2>
+        <div class="plist">${xs.map(x => `<a class="nrow ${x.done ? 'st st-solid' : 'st st-untouched'}" href="#/speak/${encodeURIComponent(x.id)}"><i class="dot" aria-hidden="true"></i>
+          <span class="t"><b>${esc(x.title)}</b><span class="tiny muted">你：${esc(x.me)} · AI：${esc(x.ai)}${x.done ? ' · 完成过' : ''}</span></span><span></span><span class="go" aria-hidden="true">›</span></a>`).join('')}</div></section>` : ''; }).join('')}</div>`;
+  }
+  async function speakScene(sid) {
+    const d = await api('/api/next/speak' + guestQuery(true)), x = d.items.find(s => s.id === sid);
+    if (!x) { view.innerHTML = '<div class="empty"><p>没有这个情景。</p><a class="btn" href="#/speak">口语路线</a></div>'; return; }
+    const hist = [];
+    view.innerHTML = `<div><a class="link small" href="#/speak">← 口语路线</a></div>
+      <div class="stack"><div><span class="kicker">情景对话 · ${esc(x.level)}</span><h1 class="h1">${esc(x.title)}</h1><div class="title-en">${esc(x.title_en)}</div>
+        <p class="small">${esc(x.brief)}</p></div>
+      <div class="scene-goals"><div class="kicker">你的任务</div><ol class="steps-list small">${x.goals.map(g => `<li>${esc(g)}</li>`).join('')}</ol></div>
+      <details class="useful"><summary class="small">用得上的说法（${x.useful.length}）</summary><div class="plist">${x.useful.map(u => `<div class="crow"><button class="icon-btn" data-say="${esc(u.text)}" aria-label="朗读">${ICON.speak}</button><span><span class="en">${esc(u.text)}</span><span class="tiny muted">${esc(u.meaning)}</span></span></div>`).join('')}</div></details>
+      <div class="chat" id="chat"></div>
+      <div id="dlgIn" class="stack-s" hidden><div class="tiny muted" id="dlgHint"></div>
+        <div class="chat-in"><textarea id="dlgText" rows="2" maxlength="480" lang="en" enterkeyhint="send" placeholder="用英文回答，或者点 ● 说出来"></textarea>${recBtn('dlgMic', '说出来')}<button class="btn primary" id="dlgSend">发送</button></div>
+        <div class="row between"><span class="tiny muted" id="dlgCount"></span><button class="btn small ghost" id="dlgEnd">结束并看反馈</button></div></div>
+      <div><button class="btn primary block" id="dlgStart">开始对话</button></div><div id="dlgOut"></div></div>`;
+    view.querySelectorAll('[data-say]').forEach(b => b.onclick = () => TTS.say(b.dataset.say));
+    const chat = view.querySelector('#chat');
+    const bubble = (role, text, extra) => { chat.insertAdjacentHTML('beforeend', `<div class="msg ${role}"><div class="b">${esc(text)}</div>${extra || ''}</div>`); chat.lastElementChild.scrollIntoView({ block: 'nearest', behavior: REDUCED ? 'auto' : 'smooth' }); };
+    const busy = on => { ['#dlgSend', '#dlgEnd', '#dlgMic'].forEach(s => { const b = view.querySelector(s); if (b) b.disabled = on; }); };
+    const showInput = () => { const box = view.querySelector('#dlgIn'); if (box && !box.hidden) box.scrollIntoView({ block: 'end', behavior: REDUCED ? 'auto' : 'smooth' }); };
+    const mine = () => hist.filter(h => h.role === 'me').length;
+    async function turn(body) {
+      busy(true);
+      try { return (await api('/api/next/dialog', { scenario: sid, history: hist, request_id: rid('sp'), ...body })).result; }
+      catch (e) { toast(e.message); return null; } finally { busy(false); }
+    }
+    view.querySelector('#dlgStart').onclick = async e => {
+      if (!S.user) { needLogin('登录后可以和 AI 做情景对话。'); return; }
+      const btn = e.currentTarget; btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
+      const r = await turn({}); if (!r) { btn.disabled = false; btn.textContent = '开始对话'; return; }
+      btn.parentNode.remove();
+      chat.insertAdjacentHTML('beforeend', `<div class="scene small">${esc(r.scene)}${r.role ? `（AI 扮演：${esc(r.role)}）` : ''}</div>`);
+      bubble('ai', r.reply); TTS.say(r.reply); hist.push({ role: 'ai', text: r.reply });
+      view.querySelector('#dlgIn').hidden = false; showInput(); if (!TOUCH) view.querySelector('#dlgText').focus({ preventScroll: true });
+    };
+    async function send(text, blob) {
+      const body = blob ? { audio: await MIC.payload(blob) } : { text };
+      const r = await turn(body); if (!r) return;
+      const me = r.heard || text;
+      bubble('me', me, r.correction ? `<div class="fix tiny"><del>${esc(r.correction.original)}</del> → <b>${esc(r.correction.better)}</b> <span class="muted">${esc(r.correction.why)}</span></div>` : '');
+      hist.push({ role: 'me', text: me });
+      bubble('ai', r.reply); TTS.say(r.reply); hist.push({ role: 'ai', text: r.reply });
+      view.querySelector('#dlgHint').textContent = r.hint ? '提示：' + r.hint : '';
+      const n = mine(); view.querySelector('#dlgCount').textContent = n < 4 ? `已经说了 ${n} 句，说到 4 句左右就可以看反馈` : `已经说了 ${n} 句，可以看反馈了`;
+      showInput();
+    }
+    view.querySelector('#dlgSend').onclick = () => { const t = view.querySelector('#dlgText'); const v = t.value.trim(); if (!v) return; t.value = ''; send(v); };
+    view.querySelector('#dlgText').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); view.querySelector('#dlgSend').click(); } });
+    const mic = view.querySelector('#dlgMic'); mic.onclick = () => MIC.toggle(mic, 30, b => send('', b));
+    view.querySelector('#dlgEnd').onclick = async e => {
+      if (mine() < 1) { toast('先说一两句再看反馈'); return; }
+      const btn = e.currentTarget; btn.innerHTML = '<span class="spin"></span>';
+      const r = await turn({ end: true }); if (!r) { btn.textContent = '结束并看反馈'; return; }
+      view.querySelector('#dlgIn').hidden = true; TTS.stop();
+      view.querySelector('#dlgOut').innerHTML = `<div class="result enter stack"><div class="card verdict"><span class="dot"></span><div>${esc(r.summary)}</div></div>
+        ${r.good.length ? `<div class="stack-s"><b>说得好的句子</b>${r.good.map(g => `<div class="small text">${esc(g)}</div>`).join('')}</div>` : ''}
+        ${r.fixes.length ? `<div class="stack-s"><b>要改的地方</b><span class="tiny muted">已经放进错题本，会按遗忘曲线回来。</span>${fixesHTML(r.fixes)}</div>` : ''}
+        ${r.expressions.length ? `<div class="stack-s"><b>可以学的表达</b>${r.expressions.map((ex, k) => `<div class="row between small"><span><b>${esc(ex.text)}</b> <span class="muted">${esc(ex.meaning)}</span></span><button class="btn small" data-kx="${k}">收藏</button></div>`).join('')}</div>` : ''}
+        <p class="small cheer">${mine() >= 4 ? '完整完成了一个情景。' : ''}敢开口就是进步：说错的地方，正是下次能说对的地方。</p>
+        <div class="row"><button class="btn" id="dlgAgain">再练一次</button><a class="btn primary" href="#/speak">下一个情景</a></div></div>`;
+      view.querySelectorAll('[data-kx]').forEach(b => b.onclick = () => { const ex = r.expressions[Number(b.dataset.kx)]; saveCard({ text: ex.text, meaning: ex.meaning, context: '', pack: null }, b); });
+      view.querySelector('#dlgAgain').onclick = () => { scrollTo({ top: 0 }); speakScene(sid); };
+      bringIntoView(view.querySelector('#dlgOut'));
+      if (S.user) refreshHome().catch(() => {});
+    };
+  }
+  /* ---------- my progress: this month against the last, and milestones that only count up ---------- */
+  async function growthView(month) {
+    if (!S.user) return needLogin('登录后可以看到每个月的进步。');
+    const d = await api('/api/next/growth' + (month ? '?month=' + encodeURIComponent(month) : ''));
+    const n = d.now, b = d.before;
+    const cmp = (k, unit) => b[k] == null || n[k] == null ? '' : n[k] > b[k] ? `<span class="up">比上月多 ${(n[k] - b[k]).toLocaleString()}${unit}</span>` : n[k] < b[k] ? `<span class="tiny muted">上月 ${b[k].toLocaleString()}</span>` : '';
+    const tile = (k, label, unit) => `<div class="gtile"><b>${n[k] == null ? '—' : n[k].toLocaleString()}</b><span class="tiny muted">${label}</span>${cmp(k, unit)}</div>`;
+    const thisMonth = new Date(); const cur = `${thisMonth.getFullYear()}-${String(thisMonth.getMonth() + 1).padStart(2, '0')}`;
+    view.innerHTML = `<div class="stack"><div><span class="kicker">我的进步</span><h1 class="h1">${esc(d.label)}</h1><p class="muted small">${esc(d.note)}</p></div>
+      <div class="row"><a class="btn small" href="#/growth/${encodeURIComponent(d.prev)}">← 上个月</a>${d.month !== cur ? `<a class="btn small" href="#/growth">回到本月</a>` : ''}<a class="btn small ghost" href="#/report">这周的报告</a></div>
+      <div class="gtiles">${tile('days', '学习天数', ' 天')}${tile('words_read', '读了（词）', ' 词')}${tile('materials', '学完的材料', ' 篇')}${tile('wpm', '阅读速度（词/分钟）', '')}
+        ${tile('reviews', '复习次数', ' 次')}${tile('new_words', '新学的词', ' 个')}${tile('grammar_checks', '语法做题', ' 题')}${tile('speaking', '开口说', ' 次')}</div>
+      <section class="section stack-s"><div class="row between"><h2 class="h2">里程碑</h2><span class="small muted">已达成 ${d.reached} / ${d.total}</span></div>
+        <div class="miles">${d.milestones.map((m, k) => `<div class="mile${m.done ? ' done' : ''} pop-in" data-k="${k}"><span class="mi" aria-hidden="true">${m.done ? '✓' : ''}</span>
+          <span class="t"><b>${esc(m.title)}</b><span class="vbar"><i data-w="${Math.round(m.have / m.need * 100)}"></i></span><span class="tiny muted">${m.have.toLocaleString()} / ${m.need.toLocaleString()} ${esc(m.unit)}</span></span></div>`).join('')}</div></section></div>`;
+    view.querySelectorAll('.pop-in').forEach(el => el.style.setProperty('--d', Math.min(10, Number(el.dataset.k)) * 60 + 'ms'));
+    requestAnimationFrame(() => requestAnimationFrame(() => view.querySelectorAll('.vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; })));
+  }
   /* ---------- cards ---------- */
   /* ---------- words: one FSRS memory queue for word books, saved words/expressions and imports ---------- */
   function highlight(ctx, text) {
@@ -1676,7 +1870,7 @@
             ${n ? '<a class="btn primary" href="#/review">开始</a>' : '<button class="btn small" id="moreNew">再学 10 个</button>'}</div>
           ${o.book ? `<div class="stack-s"><div class="row between small"><span>《${esc(o.book.title)}》已学 ${o.book.started} / ${o.book.size - (o.book.skipped || 0)}${o.book.skipped ? `<span class="muted">（跳过 ${o.book.skipped} 个常用词）</span>` : ''}</span><span class="muted">${o.book.finish ? '预计 ' + dayLabel(o.book.finish) + '学完' : '已全部学过'}</span></div>
             <div class="vbar"><i data-w="${o.book.started / Math.max(1, o.book.size - (o.book.skipped || 0)) * 100}"></i></div></div>` : ''}
-          <div class="row small"><a class="link" href="#/vocab/plan">调整计划</a><span class="muted">每天 ${o.plan.daily_new} 个新词 · 目标记住率 ${Math.round(o.plan.retention * 100)}%</span></div></div>`
+          <div class="row small"><a class="link" href="#/words/confuse">词汇辨析</a><a class="link" href="#/vocab/plan">调整计划</a><span class="muted">每天 ${o.plan.daily_new} 个新词 · 目标记住率 ${Math.round(o.plan.retention * 100)}%</span></div></div>`
       : `<div class="card section stack-s"><div class="kicker">开始背单词</div><b>选一本词书，每天几个新词，按遗忘曲线复习</b>
           <span class="muted small">例句来自你读的文章，还能听原文录音。不选词书也可以：读文章时点词收藏，收藏的词同样按遗忘曲线复习。</span>
           <div class="row"><a class="btn primary" href="#/vocab/plan">选词书</a><a class="btn" href="#/vocab/test">先测词汇量（约 3 分钟）</a></div>
@@ -1953,14 +2147,14 @@
 
     // Mistakes come back on the forgetting curve too: answer the question again, fix the phrase, say the sound.
     function mistakeAsk() {
-      const ex = c.extra || {}, src = { reading: '理解题', writing: '写作', speaking: '口语', translation: '翻译', pronunciation: '发音' }[c.skill] || '错题';
+      const ex = c.extra || {}, src = { reading: '理解题', writing: '写作', speaking: '口语', translation: '翻译', pronunciation: '发音', vocabulary: '词汇辨析', grammar: '语法' }[c.skill] || '错题';
       const tag = `<span class="pill amber rtag">错题 · ${esc(src)}</span>`;
       let body = '';
       if (c.mode === 'question' && c.variant) {
         // A grammar mistake comes back as a different question on the same point: the rule is practised, not one answer.
         const v = c.variant;
-        body = `${tag}<div class="tiny muted">同一个语法点，换一道题${c.node ? '：' + esc(c.node.title) : ''}</div><div class="prompt-q">${esc(v.prompt)}</div>
-          <div class="qopts">${v.options.map((o, k) => `<button class="qopt" data-o="${v.map[k]}">${esc(o)}</button>`).join('')}</div>`;
+        body = `${tag}<div class="tiny muted">${v.kind === 'word' ? '同一组易混词，换一道题：' + esc(c.text) : '同一个语法点，换一道题' + (c.node ? '：' + esc(c.node.title) : '')}</div><div class="prompt-q">${esc(v.prompt)}</div>
+          <div class="qopts">${v.options.map((o, k) => `<button class="qopt" data-o="${v.map ? v.map[k] : k}">${esc(o)}</button>`).join('')}</div>`;
       } else if (c.mode === 'question') {
         // A reading question comes back with its part of the text: it is answered by reading, not by remembering.
         const opts = ex.options || [], ps = c.passage;
@@ -1990,11 +2184,18 @@
       if (c.mode === 'question' && c.variant) {
         view.querySelectorAll('[data-o]').forEach(b => b.onclick = async () => {
           view.querySelectorAll('[data-o]').forEach(x => { x.disabled = true; });
-          let r; try { r = await api('/api/next/node/answer', { question: c.variant.id, choice: Number(b.dataset.o), from: 'review' }); }
-          catch (e) { toast(e.message); view.querySelectorAll('[data-o]').forEach(x => { x.disabled = false; }); return; }
+          let r;
+          if (c.variant.kind === 'word') {  // a word group: checked here, the answer recorded for the group's progress
+            r = { correct: Number(b.dataset.o) === c.variant.answer, answer: c.variant.answer, explanation: c.variant.explanation };
+            api('/api/next/words/confuse/answer', { item: c.variant.id, correct: r.correct, from: 'review' }).catch(() => {});
+          } else {
+            try { r = await api('/api/next/node/answer', { question: c.variant.id, choice: Number(b.dataset.o), from: 'review' }); }
+            catch (e) { toast(e.message); view.querySelectorAll('[data-o]').forEach(x => { x.disabled = false; }); return; }
+          }
           view.querySelectorAll('[data-o]').forEach(x => { if (Number(x.dataset.o) === r.answer) x.classList.add('right'); });
           if (!r.correct) b.classList.add('wrong');
           after(r.correct ? 'good' : 'again', `<div class="${r.correct ? 'ok' : 'bad'}">${r.correct ? '✓ 换了一道题也答对了' : '这题没答对'}</div><div class="small">${esc(r.explanation || '')}</div>
+            ${!r.correct && c.variant.kind === 'word' ? `<div class="tiny muted">${esc(c.meaning || '')}</div>` : ''}
             ${!r.correct && c.node ? `<a class="link small" href="#/graph/${encodeURIComponent(c.node.id)}">回到「${esc(c.node.title)}」看一遍讲解 →</a>` : ''}`);
         });
         keys({ 1: () => view.querySelector('.qopt:nth-child(1)').click(), 2: () => view.querySelector('.qopt:nth-child(2)').click(), 3: () => view.querySelector('.qopt:nth-child(3)').click(), 4: () => view.querySelector('.qopt:nth-child(4)').click() });
@@ -2371,7 +2572,7 @@
     try { sessionStorage.setItem('flow-next-lib', JSON.stringify(f)); } catch (e) { /* private mode */ }
     const d = await api(`/api/next/library?level=${f.level}&theme=${f.theme}&page=${f.page}&featured=${f.featured}`);
     const pages = Math.max(1, Math.ceil(d.total / d.per));
-    view.innerHTML = `<div class="row between"><h1 class="h1">全部材料</h1><a class="btn small" href="#/import">我的文章</a></div><span class="muted small">${d.total} 篇${f.featured === '1' ? ' · 精选' : ''}</span>
+    view.innerHTML = `<div class="row between"><h1 class="h1">全部材料</h1><span class="row"><a class="btn small" href="#/easy">轻松读</a><a class="btn small" href="#/import">我的文章</a></span></div><span class="muted small">${d.total} 篇${f.featured === '1' ? ' · 精选' : ''}</span>
       <div class="filters"><select id="ff" aria-label="范围"><option value="1" ${f.featured === '1' ? 'selected' : ''}>精选</option><option value="" ${f.featured !== '1' ? 'selected' : ''}>全部材料</option></select>
         <select id="fl" aria-label="难度"><option value="">全部难度</option>${['A2', 'B1', 'B2', 'C1'].map(l => `<option ${f.level === l ? 'selected' : ''}>${l}</option>`).join('')}</select>
         <select id="ft" aria-label="话题"><option value="">全部话题</option>${Object.entries(d.themes).map(([k, v]) => `<option value="${k}" ${f.theme === k ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></div>
@@ -2428,7 +2629,10 @@
         <span class="muted tiny">绑定后可以收复习提醒和周报、用验证码登录、找回密码。</span><div><button class="btn small" id="bindMail" hidden>绑定邮箱</button></div></div>` : ''}
       ${S.user ? '<div id="abSlot"><div class="card flat"><p class="loading"><span class="spin"></span></p></div></div>' : ''}
       <div class="card flat list">
-        ${S.user ? '<a href="#/report">这周的学习报告 <span>→</span></a><a href="#/cards/mistake">错题本 <span>→</span></a>' : ''}
+        ${S.user ? '<a href="#/growth">我的进步：每月对比和里程碑 <span>→</span></a><a href="#/report">这周的学习报告 <span>→</span></a><a href="#/cards/mistake">错题本 <span>→</span></a>' : ''}
+        <a href="#/easy">轻松读：读得多、读得快 <span>→</span></a>
+        <a href="#/speak">口语路线：12 个情景对话 <span>→</span></a>
+        <a href="#/words/confuse">词汇辨析：中国学习者最常混的词 <span>→</span></a>
         <a href="#/sounds">发音入门：容易混的音 <span>→</span></a>
         <a href="#/import">我的文章：导入任何英文来学 <span>→</span></a>
         <a href="#/graph">我的知识图谱 <span>→</span></a>

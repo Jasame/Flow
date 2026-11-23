@@ -1,0 +1,31 @@
+/* ---------- r15: easy reading, word confusables, the speaking route, my progress ---------- */
+.easy-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.easy-stats div{display:grid;gap:2px;padding:12px 8px;border-radius:12px;background:var(--sunk);text-align:center}
+.easy-stats b{font-size:22px;font-variant-numeric:tabular-nums}
+.easy-reader{font-family:var(--serif);font-size:19px;line-height:1.85}
+.easy-reader .w{cursor:pointer;border-radius:3px}
+.easy-reader .w:hover{background:var(--mark)}
+.choice.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.choice.three .opt{text-align:center;justify-content:center}
+.easy-done{display:grid;gap:10px;margin-top:6px}
+.cf-list{display:grid;gap:2px}
+.cf-row{display:grid;grid-template-columns:24px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:10px 8px;border-radius:12px;cursor:pointer}
+.cf-row:hover{background:var(--sunk)}
+.cf-row input{width:20px;height:20px;accent-color:var(--green)}
+.cf-row .t{display:grid;gap:2px;min-width:0}
+.cf-row.tried .t b::after{content:" ·";color:var(--green)}
+.cf-hint{display:grid;gap:4px;padding:10px 12px;border-radius:12px;background:var(--amber-soft)}
+.scene-goals{display:grid;gap:6px;padding:12px 14px;border-radius:12px;background:var(--sunk)}
+.useful>summary{cursor:pointer}
+.gtiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.gtile{display:grid;gap:2px;padding:12px;border-radius:12px;background:var(--sunk)}
+.gtile b{font-size:22px;font-variant-numeric:tabular-nums}
+.gtile .up{font-size:12px;color:var(--green-ink);font-weight:600}
+.miles{display:grid;gap:8px}
+.mile{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:center;padding:10px 4px}
+.mile .mi{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--sunk);color:var(--muted)}
+.mile.done .mi{background:var(--green);color:#fff}
+.mile .t{display:grid;gap:4px;min-width:0}
+.mile .vbar{height:6px}
+@media (min-width:760px){.gtiles{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (hover:none){.cf-row:hover,.easy-reader .w:hover{background:none}}

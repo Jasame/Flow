@@ -24,7 +24,10 @@
         <span class="muted tiny">绑定后可以收复习提醒和周报、用验证码登录、找回密码。</span><div><button class="btn small" id="bindMail" hidden>绑定邮箱</button></div></div>` : ''}
       ${S.user ? '<div id="abSlot"><div class="card flat"><p class="loading"><span class="spin"></span></p></div></div>' : ''}
       <div class="card flat list">
-        ${S.user ? '<a href="#/report">这周的学习报告 <span>→</span></a><a href="#/cards/mistake">错题本 <span>→</span></a>' : ''}
+        ${S.user ? '<a href="#/growth">我的进步：每月对比和里程碑 <span>→</span></a><a href="#/report">这周的学习报告 <span>→</span></a><a href="#/cards/mistake">错题本 <span>→</span></a>' : ''}
+        <a href="#/easy">轻松读：读得多、读得快 <span>→</span></a>
+        <a href="#/speak">口语路线：12 个情景对话 <span>→</span></a>
+        <a href="#/words/confuse">词汇辨析：中国学习者最常混的词 <span>→</span></a>
         <a href="#/sounds">发音入门：容易混的音 <span>→</span></a>
         <a href="#/import">我的文章：导入任何英文来学 <span>→</span></a>
         <a href="#/graph">我的知识图谱 <span>→</span></a>

@@ -39,7 +39,8 @@ PAGES = ['#/', '#/library', f'#/m/{PID}/listen', f'#/m/{PID}/read', f'#/m/{PID}/
          f'#/m/{PID}/output/dialog', f'#/m/{PID}/output/translate', f'#/m/{PID}/output/essay', '#/cards', '#/cards/mistake', '#/vocab/plan',
          '#/vocab/test', '#/review', '#/sounds', '#/sounds/th-s', '#/report', '#/me', '#/import', '#/graph', '#/graph/voice-basic', '#/graph/emph-inversion', '#/welcome/edit',
          '#/placement', '#/exam', '#/exam/cet6', '#/series/lighthouse-ledger', '#/m/v5-culture-c1-lighthouse-ledger-1/read',
-         '#/mix', '#/mix/pair/tense-past,tense-perfect', '#/graph/link-contrast']
+         '#/mix', '#/mix/pair/tense-past,tense-perfect', '#/graph/link-contrast',
+         '#/easy', '#/words/confuse', '#/words/confuse/borrow-lend,make-do', '#/speak', '#/speak/cafe-order', '#/growth', '#/series/a-new-term']
 RESULTS = []
 
 
@@ -380,6 +381,41 @@ def run_device(pw, dev, opts):
     pg.wait_for_timeout(500)
     res = pg.evaluate("() => ({h: (document.querySelector('#view h1') || {}).textContent || '', rows: document.querySelectorAll('.mix-done .nrow').length})")
     check(dev, 'mixed round: six interleaved questions, then a result per point', n == 6 and '6 题做对' in res['h'] and res['rows'] == 2, (n, res))
+
+    # ---- easy reading: a text one level down, tap a word, say how it felt, see words and speed
+    go(pg, '#/easy')
+    pg.click('#view .grid-list a.mini >> nth=0'); settle(pg); pg.wait_for_timeout(300)
+    pg.click('#easyText .w >> nth=3'); pg.wait_for_timeout(600)
+    looked = pg.is_visible('#sheet')
+    if looked:
+        pg.keyboard.press('Escape') if not touch else pg.click('#sheet [data-close] >> nth=-1'); pg.wait_for_timeout(400)
+    pg.click('[data-r="ok"]'); pg.wait_for_selector('.easy-done', timeout=5000)
+    res = pg.evaluate("() => [...document.querySelectorAll('.easy-done .easy-stats b')].map(b => b.textContent)")
+    check(dev, 'easy reading: a word looks up, and reading gives words and speed', looked and len(res) == 3 and res[0].isdigit(), (looked, res))
+
+    # ---- word confusables: pick two groups, an interleaved round, a result
+    go(pg, '#/words/confuse')
+    pg.click('.cf-row input >> nth=0'); pg.click('.cf-row input >> nth=1'); pg.wait_for_timeout(100)
+    pg.click('#cfMix'); settle(pg)
+    n = 0
+    while n < 8 and pg.query_selector('#mixQ .ans'):
+        pg.click('#mixQ .ans >> nth=0'); pg.wait_for_selector('#mixNext', timeout=5000); pg.click('#mixNext'); pg.wait_for_timeout(250); n += 1
+    h = pg.text_content('#view h1') or ''
+    check(dev, 'word confusables: two groups mixed into one round', n == 4 and '4 题做对' in h, (n, h))
+
+    # ---- speaking route: twelve scenes, a scene opens a role-play
+    go(pg, '#/speak')
+    sc = pg.evaluate("() => ({rows: document.querySelectorAll('#view .nrow').length, next: !!document.querySelector('#view a.btn.primary')})")
+    check(dev, 'speaking route: twelve scenes and the next one to do', sc['rows'] == 12 and sc['next'], sc)
+    go(pg, '#/speak/cafe-order')
+    pg.click('#dlgStart'); pg.wait_for_selector('#chat .msg.ai', timeout=8000)
+    pg.fill('#dlgText', 'Could I have a large latte, please?'); pg.click('#dlgSend'); pg.wait_for_selector('#chat .msg.me', timeout=8000)
+    check(dev, 'speaking route: the AI answers in the scene', pg.evaluate("() => document.querySelectorAll('#chat .msg').length") >= 3)
+
+    # ---- my progress: this month, last month, milestones
+    go(pg, '#/growth')
+    gw = pg.evaluate("() => ({tiles: document.querySelectorAll('.gtile').length, miles: document.querySelectorAll('.mile').length})")
+    check(dev, 'my progress: eight figures and the milestones', gw['tiles'] == 8 and gw['miles'] >= 10, gw)
 
     # ---- welcome: the next button is reachable without scrolling on a phone
     go(pg, '#/welcome/edit')

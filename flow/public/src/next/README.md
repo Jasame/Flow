@@ -20,6 +20,10 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `41-placement.js` | 语法起点小测: 16 questions band by band, places the learner and lights the graph |
 | `42-exam.js` | 考试练习: timed CET-4 / CET-6 / 考研 / IELTS sets, results and history |
 | `43-mix.js` | mixed grammar rounds: today's review, confusable pairs, a whole topic (interleaved) |
+| `44-easy.js` | 轻松读: easy texts a level down, reading speed, words read |
+| `45-confuse.js` | 词汇辨析: word groups Chinese speakers mix up, interleaved rounds |
+| `46-speak.js` | 口语路线: twelve role-play scenes with the AI |
+| `47-growth.js` | 我的进步: this month against the last, milestones |
 | `50-words.js` | 单词 page, word cards, word-list import, plan, vocabulary test |
 | `60-review.js` | review session (keys, swipes, mistake cards) |
 | `70-learner.js` | ability profile, daily plan, level suggestion, microphone |
@@ -31,6 +35,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `99-boot.js` | start-up |
 | `00-base.css` … `70-input-devices.css` | tokens and base; pages; motion and graph; words; listening; phone pass; learner pages; input methods and devices |
 | `80-flat.css` | the flat look: surfaces instead of outlines, frosted bars, the home plan and its next-step button, review focus mode |
+| `88-more.css` | easy reading, word confusables, speaking scenes, my progress |
 | `87-route.css` | learning route, relation map, Chinese-speaker traps, mixed rounds, review passage |
 | `86-loop.css` | starting check, re-check tags, exam practice, serial episode list |
 | `85-phone.css` | phone layout from a 360 px audit (16px fields, card layouts, listen controls, one level of surface), the knowledge graph tiles and grammar-point pages |

@@ -303,6 +303,9 @@ def card_out(r, now=None, level=None, rich=False, c=None):
             norm = r['norm'] or ''
             if r['kind'] == 'question' and norm.startswith('q:') and c is not None:
                 out['passage'] = nx.excerpt(c, r['pack'], out['extra'].get('evidence') or r['meaning'] or '')
+            elif r['kind'] == 'question' and norm.startswith('wq:'):
+                # starting with the question after the one that was missed, so review never repeats the miss first
+                out['variant'] = __import__('word_links').variant(norm[3:], out['extra'].get('item', -1) + 1 + (r['reps'] or 0))
             elif r['kind'] == 'question' and norm.startswith('gq:') and c is not None and r['node']:
                 out['variant'] = __import__('grammar_bank').variant(c, r['node'], int(norm[3:]) if norm[3:].isdigit() else -1, r['reps'] or 0)
             out['skill'] = r['skill'] if 'skill' in r.keys() else None
@@ -418,7 +421,7 @@ def _lifecycle(c, uid, r, rating, n, now):
             return 'reread'
         n.update(state='review', due=now + 2 * fsrs.DAY)  # once more, the day after tomorrow, with the passage
         return 'later'
-    if r['source'] == 'mistake' and r['kind'] == 'question' and norm.startswith('gq:') and rating != 'again':
+    if r['source'] == 'mistake' and r['kind'] == 'question' and norm.startswith(('gq:', 'wq:')) and rating != 'again':
         last = c.execute('SELECT rating FROM next_reviews WHERE user_id=? AND card=? ORDER BY id DESC LIMIT 1', (uid, r['id'])).fetchone()
         return 'passed' if last and last[0] in ('good', 'easy') else 'once-more'
     if rating == 'again' and misses >= MISSES_A_DAY:
