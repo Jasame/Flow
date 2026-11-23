@@ -1,0 +1,41 @@
+NAWL and BSL word lists (NGSL Project) - attribution and licence
+
+Flow's word books 学术英语 (book "nawl") and 商务英语 (book "bsl") in corpus_data/wordbooks-open.json
+are adapted from two word lists of the NGSL Project (https://www.newgeneralservicelist.com/).
+
+1. New Academic Word List (NAWL), version 1.2
+   "New Academic Word List by Browne, C., Culligan, B., and Phillips, J. is licensed under a
+   Creative Commons Attribution-ShareAlike 4.0 International License."
+   Source: https://www.newgeneralservicelist.com/new-academic-word-list
+   File used: "NAWL 1.2 alphabetized" (NAWL_1.2_alphabetized_description.txt, 957 headwords)
+   Citation suggested by the authors: Browne, C., Culligan, B. (2013). The New Academic Word List.
+   Retrieved from http://www.newgeneralservicelist.com
+
+2. Business Service List (BSL), version 1.2 (files named 1.20)
+   "Business Service List by Browne, C. and Culligan, B., is licensed under a Creative Commons
+   Attribution-ShareAlike 4.0 International License."
+   Source: https://www.newgeneralservicelist.com/business-service-list
+   File used: "BSL 1.2 list with basic statistics" (BSL_1.20_stats.csv, 1744 headwords with BSL Rank)
+   Citation suggested by the authors: Browne, C., Culligan, B. (2013). The Business Service List.
+   Retrieved from http://www.newgeneralservicelist.com
+
+Licence: Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
+   https://creativecommons.org/licenses/by-sa/4.0/
+   Legal code: https://creativecommons.org/licenses/by-sa/4.0/legalcode
+The lists are provided as-is, without warranties. Permissions beyond the scope of the licence may be
+available from the authors (https://www.charlie-browne.com).
+
+Changes made by Flow (tools/build_open_wordbooks.py; details in flow/WORDBOOKS-OPEN.md):
+   - headwords lower-cased and matched to entries of Flow's dictionary; a few forms mapped to the
+     dictionary entry that carries the listed sense (onwards -> onward, headquarter -> headquarters,
+     unauthorize -> unauthorized);
+   - removed: prefixes the lists carry as items (anti, ex, micro, multi, neo, non, pre, semi, sub,
+     trans) and words Flow's dictionary has no Chinese meaning for (for example goods, tranche);
+   - NAWL put in word-frequency order (the NAWL 1.2 file is alphabetical); BSL keeps its BSL Rank order;
+   - Chinese meanings shown with the words come from ECDICT (MIT, corpus_data/ECDICT-LICENSE.txt), not
+     from the NGSL Project.
+
+ShareAlike: the adapted 学术英语 and 商务英语 lists (books "nawl" and "bsl" in
+corpus_data/wordbooks-open.json) are licensed under CC BY-SA 4.0 as well, with the attribution above.
+Anyone may share and adapt them under the same licence. The other books in that file (中考词汇,
+高考词汇) come from ECDICT's exam tags and are covered by ECDICT's MIT licence.
