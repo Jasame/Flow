@@ -268,6 +268,9 @@ flow/tests/test_reference.py
 flow/tests/test_reliability.py
 flow/tests/test_survey.py
 flow/tests/test_ux_round.py
+flow/tests/test_account_data.py
+flow/tests/test_learner_round.py
+flow/tests/test_slim.py
 flow/tests/test_vertex.py
 flow/tests/test_vocab.py
 flow/tools/build_graded.py

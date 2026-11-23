@@ -1188,9 +1188,9 @@
   const MAT = {}; // the material being studied: step changes reuse it instead of refetching and re-animating the header
   // Under the title: where the text comes from and how AI took part (r20). The writing rules of the originals, or the
   // sources of a news text, are one tap away.
-  function originHTML(m) {
+  function originHTML(m, extra = '') {  // extra: 存到手机 (06-offline.js), on the same line so the step below stays in view
     const o = m.origin || { kind: 'original', label: m.source, ai: '', reviewed: null, url: '', references: m.provenance || [] };
-    return `<div class="origin tiny"><span class="muted">来源：${o.url ? `<a class="link" href="${esc(o.url)}" target="_blank" rel="noopener noreferrer">${esc(o.label)}</a>` : esc(o.label)}</span>${o.ai ? `<span class="otag">${esc(o.ai)}</span>` : ''}${o.reviewed === false ? '<span class="otag warn">未经人工审核</span>' : ''}${o.kind === 'import' ? '' : `<button class="link tiny" type="button" id="originMore" data-tap="study-origin">${o.references.length ? `${o.kind === 'news' ? '来源' : '参考资料'} ${o.references.length} 条` : '怎么写的'}</button>`}</div>`;
+    return `<div class="origin tiny"><span class="muted">来源：${o.url ? `<a class="link" href="${esc(o.url)}" target="_blank" rel="noopener noreferrer">${esc(o.label)}</a>` : esc(o.label)}</span>${o.ai ? `<span class="otag">${esc(o.ai)}</span>` : ''}${o.reviewed === false ? '<span class="otag warn">未经人工审核</span>' : ''}${o.kind === 'import' ? '' : `<button class="link tiny" type="button" id="originMore" data-tap="study-origin">${o.references.length ? `${o.kind === 'news' ? '来源' : '参考资料'} ${o.references.length} 条` : '怎么写的'}</button>`}${extra}</div>`;
   }
   function originSheet(m) {
     const o = m.origin, news = o.kind === 'news';
@@ -1234,7 +1234,7 @@
     if (!same) {
       view.innerHTML = `<div class="study-head"><span class="kicker">${m.series ? `<a class="link" href="#/series/${encodeURIComponent(m.series.id)}">连载《${esc(m.series.title)}》第 ${m.series.part} / ${m.series.of} 集</a> · ${m.level}` : `${esc(m.theme_label)} · ${m.level}${m.variant ? ' → ' + m.variant.level : ''}${m.featured ? ' · 精选' : ''}`}</span>
         <h1 class="h1">${esc(m.title)}</h1>${m.title_en ? `<div class="title-en">${esc(m.title_en)}</div>` : ''}
-        ${originHTML(m)}${offChip(id)}</div>
+        ${originHTML(m, offChip(id))}</div>
         <div class="steps" role="tablist"><span class="ind" aria-hidden="true"></span>${STEPS.map(s => `<button role="tab" data-step="${s}" aria-selected="false">${STEP[s]}${done.has(s) ? '<span class="ok">✓</span>' : ''}</button>`).join('')}</div>
         <section id="pane"></section>`;
       view.querySelectorAll('[data-step]').forEach(b => b.onclick = () => go(b.dataset.step));
