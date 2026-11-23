@@ -16,10 +16,11 @@ cd flow
 python3 -m unittest discover -s tests -v
 ```
 
-前端行为检查（在 `flow/` 目录，需要 Node.js）：
+前端检查（在仓库根目录，需要 Node.js）：构建出来的 `next.js`、`next.css` 和源文件一致，网站用到的脚本都能解析。学习网站的页面行为由 `tools/ui_test.py`（Playwright）检查；经典版和它的旧测试已归档在 `archive/classic/`。
 
 ```bash
-for test in tests/ui_*.cjs; do node "$test" || exit; done
+python3 tools/build_front.py --check
+for js in flow/public/next.js flow/public/sw.js flow/public/survey.js xmc-admin/admin.js; do node --check "$js" || exit; done
 ```
 
 网关检查（在仓库根目录）：

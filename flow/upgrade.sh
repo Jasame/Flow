@@ -73,7 +73,7 @@ for guide_file in "$FLOW_SOURCE_DIR"/public/guide/*; do
   if [ -f "$guide_file" ]; then install -m 644 "$guide_file" "$FLOW_TARGET_DIR/public/guide/"; fi
 done
 install -d -m 755 "$FLOW_TARGET_DIR/tests"
-for flow_test in "$FLOW_SOURCE_DIR"/tests/*.py "$FLOW_SOURCE_DIR"/tests/*.cjs; do
+for flow_test in "$FLOW_SOURCE_DIR"/tests/*.py; do
   if [ -f "$flow_test" ]; then install -m 644 "$flow_test" "$FLOW_TARGET_DIR/tests/"; fi
 done
 install -m 644 "$FLOW_SOURCE_DIR/flow-backup.service" /etc/systemd/system/flow-backup.service

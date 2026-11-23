@@ -8,7 +8,8 @@ python3 tools/release.py check
 python3 -m unittest discover -s tests -v
 (cd flow && python3 -m unittest discover -s tests -v)
 (cd flow-gateway && python3 -m unittest discover -s tests -v)
-(cd flow && for test in tests/ui_*.cjs; do node "$test" || exit; done)
+python3 tools/build_front.py --check
+for js in flow/public/next.js flow/public/sw.js flow/public/survey.js xmc-admin/admin.js; do node --check "$js" || exit; done
 ```
 
 The output is `dist/Flow-v3.4-Learning-Reliability-Upgrade.zip` and its SHA-256 sidecar.
