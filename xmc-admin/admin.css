@@ -89,3 +89,5 @@ details summary{cursor:pointer}
 .acc-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line2)}
 .acc-row:last-child{border-bottom:0}
 .acc-link{width:min(100%,560px);font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.adm-srv{font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;background:color-mix(in srgb,#1f9d55 14%,transparent);color:#1a7f47;white-space:nowrap}
+.adm-srv[hidden]{display:none}

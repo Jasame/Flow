@@ -47,7 +47,7 @@
     getJSON('/overview').then(function (d) {
       var ai = d.ai, max = Math.max.apply(null, ai.week.map(function (x) { return x.count; }).concat([1]));
       main.innerHTML =
-        '<div class="head-row"><div><h1>语流 Flow 概览</h1><p class="muted">flow.jasa.hk · 更新于 ' + new Date(d.generated_at * 1000).toLocaleString('zh-CN') + '</p></div>' +
+        '<div class="head-row"><div><h1>语流 Flow 概览</h1><p class="muted">flow.jasa.hk · ' + (d.server ? '数据来自' + esc(d.server) + ' · ' : '') + '更新于 ' + new Date(d.generated_at * 1000).toLocaleString('zh-CN') + '</p></div>' +
         '<div class="toolbar"><button class="btn" id="reload">刷新</button></div></div>' +
         '<div class="kpi-grid">' +
           kpi('注册用户', n(d.users), '其中管理员 ' + n(d.admins)) +
@@ -272,6 +272,14 @@
     document.documentElement.dataset.theme = next;
     try { localStorage.setItem('xmc-theme', next); } catch (e) { /* ignore */ }
   };
+  // Which server the data comes from (香港 or 杭州), on every tab: the two panels look alike, the data must not.
+  function serverBadge() {
+    getJSON('/overview').then(function (d) {
+      var el = document.getElementById('srv');
+      if (el && d.server) { el.textContent = '数据来自' + d.server; el.hidden = false; }
+    }).catch(function () { /* the page itself shows the error */ });
+  }
   window.addEventListener('hashchange', route);
   route();
+  serverBadge();
 })();

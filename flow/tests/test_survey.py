@@ -127,10 +127,17 @@ class SurveyHttpTests(unittest.TestCase):
         self.assertEqual((status, json.loads(body)), (200, {'ok': True}))
         self.assertEqual(self.call(self.site, '/api/survey', {'answers': full_answers(), 'seconds': 45}, {'Sec-Fetch-Site': 'cross-site'})[0], 403)
 
+    def test_the_console_says_which_server_it_reads(self):
+        with patch.dict(os.environ, {'FLOW_SERVER_LABEL': '香港服务器'}):
+            self.assertEqual(json.loads(self.call(self.admin, '/flow/api/overview')[1])['server'], '香港服务器')
+        with patch.dict(os.environ, {'FLOW_SERVER_LABEL': ''}):
+            self.assertEqual(flow_admin.server_label(), __import__('socket').gethostname())
+
     def test_operator_api_reads_and_requires_marker_for_changes(self):
         self.call(self.site, '/api/survey', {'answers': full_answers(), 'seconds': 45})
         status, body, _ = self.call(self.admin, '/flow/api/overview'); o = json.loads(body)
         self.assertEqual(status, 200); self.assertEqual(o['survey_responses'], 1); self.assertEqual(o['ai']['user_limit'], 100)
+        self.assertTrue(o['server'])  # the console shows which server the data comes from
         s = json.loads(self.call(self.admin, '/flow/api/survey/summary?role=' + urllib.request.quote('中学生'))[1]); self.assertEqual(s['total'], 1)
         r = json.loads(self.call(self.admin, '/flow/api/survey/responses?page=1')[1]); rid = r['items'][0]['id']
         status, body, headers = self.call(self.admin, '/flow/api/survey/export.csv')
