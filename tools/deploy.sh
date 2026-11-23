@@ -67,5 +67,5 @@ printf '%s' "$s" | python3 -c '
 import json, sys
 d = json.load(sys.stdin)
 print(json.dumps(d, ensure_ascii=False, indent=1))
-ok = d.get("result") == "DEPLOYED" and (not d.get("e2e_requested") or (d.get("e2e", {}).get("failed") == 0 and d.get("e2e", {}).get("cleanup_ok")))
+ok = d.get("result") in ("DEPLOYED", "NOTHING_TO_DO") and (not d.get("e2e_requested") or (d.get("e2e", {}).get("failed") == 0 and d.get("e2e", {}).get("cleanup_ok")))
 sys.exit(0 if ok else 1)'
