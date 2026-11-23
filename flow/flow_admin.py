@@ -125,7 +125,10 @@ def compare(c, at, days=14):
         v = {side: f(a, b) if b > a else None for side, (a, b) in sides.items()}
         v = {k: (round(x, 1) if isinstance(x, float) else x) for k, x in v.items()}
         out['metrics'].append({'key': key, 'label': label, **v})
-    span = {side: (day_of(a).isoformat(), day_of(max(a, b - 1)).isoformat()) for side, (a, b) in sides.items()}
+    # Taps are kept per day, so the release day itself would fall on both sides: it is left out of both.
+    one_day = datetime.timedelta(days=1)
+    span = {'before': (day_of(at - days * 86400).isoformat(), (day_of(at) - one_day).isoformat()),
+            'after': ((day_of(at) + one_day).isoformat(), day_of(after_end).isoformat())}
     for key, n_before, n_after in c.execute(
             'SELECT key, SUM(CASE WHEN day BETWEEN ? AND ? THEN n ELSE 0 END), SUM(CASE WHEN day BETWEEN ? AND ? THEN n ELSE 0 END) '
             'FROM ui_taps GROUP BY key ORDER BY 3 DESC', (*span['before'], *span['after'])):

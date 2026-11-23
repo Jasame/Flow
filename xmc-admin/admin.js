@@ -285,11 +285,11 @@
       return getJSON('/compare?at=' + at + '&days=' + days).then(function (d) {
         var ch = function (b, a) { if (b == null || a == null) return '—'; if (!b) return a ? '新出现' : '—'; var p = Math.round(100 * (a - b) / b); return '<span class="' + (p > 0 ? 'up' : p < 0 ? 'down' : '') + '">' + (p > 0 ? '+' : '') + p + '%</span>'; };
         main.innerHTML = head +
-          '<section class="card"><h2>' + esc(when(d.at)) + ' 前后</h2><p class="muted">发版后已经过了 ' + d.after_days + ' 天。人少的时候，几个人的变化就会让比例跳得很大。</p>' +
+          '<section class="card"><h2>' + esc(when(d.at)) + ' 前后</h2><p class="muted">发版后已经过了 ' + d.after_days + ' 天。人少的时候，几个人的变化就会让比例跳得很大；「新学员一周内回来的比例」要等发版满一周才准。</p>' +
           '<table class="cmp"><thead><tr><th></th><th class="num">发版前</th><th class="num">发版后</th><th class="num">变化</th></tr></thead><tbody>' + d.metrics.map(function (m) {
             return '<tr><td>' + esc(m.label) + '</td><td class="num">' + (m.before == null ? '—' : m.before) + '</td><td class="num">' + (m.after == null ? '—' : m.after) + '</td><td class="num">' + ch(m.before, m.after) + '</td></tr>'; }).join('') +
           '</tbody></table></section>' +
-          '<section class="card"><h2>入口点击（合计次数）</h2><p class="muted">学习网站上几个入口被点了多少次，只按天计数，不记是谁。</p>' + (d.taps.length ?
+          '<section class="card"><h2>入口点击（合计次数）</h2><p class="muted">学习网站上几个入口被点了多少次，只按天计数，不记是谁。发版当天前后都不算。</p>' + (d.taps.length ?
           '<table class="cmp"><thead><tr><th></th><th class="num">发版前</th><th class="num">发版后</th><th class="num">变化</th></tr></thead><tbody>' + d.taps.map(function (t) {
             return '<tr><td>' + esc(t.label) + '</td><td class="num">' + n(t.before) + '</td><td class="num">' + n(t.after) + '</td><td class="num">' + ch(t.before, t.after) + '</td></tr>'; }).join('') +
           '</tbody></table>' : '<p class="muted">还没有点击记录。</p>') + '</section>';

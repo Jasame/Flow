@@ -170,7 +170,7 @@ class ReleaseCompareTests(Servers):
                 for r in range(2):
                     c.execute("INSERT INTO next_reviews(user_id,card,rating,created) VALUES(3,1,'good',?)", (at + d * DAY + 120 + r,))
             c.execute('INSERT INTO next_profiles(user_id,level,goal,themes,minutes,created) VALUES(3,"B1","work","[]",15,?)', (at + 30,))
-            for key, t, n in (('home-more', at - 2 * DAY, 3), ('home-more', at + DAY, 9), ('practice-map', at + DAY, 5)):
+            for key, t, n in (('home-more', at - 2 * DAY, 3), ('home-more', at + DAY, 9), ('practice-map', at + DAY, 5), ('words-plan', at, 4)):
                 c.execute('INSERT INTO ui_taps(day,key,n) VALUES(?,?,?)', (day(t), key, n))
         st, cmp, _ = self.console(f'/compare?at={at}&days=7', 'anyone@example.com')
         self.assertEqual(st, 200)
@@ -183,6 +183,7 @@ class ReleaseCompareTests(Servers):
         taps = {t['key']: t for t in cmp['taps']}
         self.assertEqual((taps['home-more']['before'], taps['home-more']['after'], taps['practice-map']['after']), (3, 9, 5))
         self.assertEqual(taps['home-more']['label'], '今日 · 更多材料')
+        self.assertEqual((taps['words-plan']['before'], taps['words-plan']['after']), (0, 0))  # the release day is on neither side
 
 
 class TapTests(Servers):
