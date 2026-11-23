@@ -55,9 +55,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Frontend behavior checks
-        working-directory: flow
+      # r20: the classic site and its behavior tests are archived (archive/classic/); the learning site's behavior is
+      # covered by the ui job. Here: the built files match their parts, and every script the site serves parses.
+      - name: Frontend build and syntax checks
         run: |
-          for test in tests/ui_*.cjs; do
-            node "$test"
+          python3 tools/build_front.py --check
+          for js in flow/public/next.js flow/public/sw.js flow/public/survey.js xmc-admin/admin.js; do
+            node --check "$js"
           done

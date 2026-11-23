@@ -15,7 +15,7 @@
 
 数据库里的旧表和数据都保留，不删除。
 
-只测经典版接口的两组旧测试也移到了这里（`tests/test_flow.py`、`tests/test_ai_integration.py`），不再运行。其中仍然有用的一条检查（不泄露服务器文件、首页有 CSP）搬进了 `flow/tests/test_admin_roles.py`。
+只测经典版的旧测试也移到了这里，不再运行：两组接口测试（`tests/test_flow.py`、`tests/test_ai_integration.py`），和 18 个经典版前端的行为测试（`tests/ui_*.cjs`）。CI 的 frontend 检查改成检查新版前端：构建结果和源文件一致，网站用到的每个脚本都能解析。其中仍然有用的一条检查（不泄露服务器文件、首页有 CSP）搬进了 `flow/tests/test_admin_roles.py`。
 
 ## 想再看一眼经典版
 
