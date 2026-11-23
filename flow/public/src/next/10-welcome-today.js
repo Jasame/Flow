@@ -96,7 +96,7 @@
         ${path ? `<p class="muted tiny">按「${esc(h.level_label)}（${h.level}）」挑选 · <a class="link" href="#/welcome/edit">调整水平和话题</a></p>` : ''}
         <div class="grid-list">${more.map(m => miniCard(m)).join('')}</div></div>
       <a class="card flat section mini graph-mini" href="#/graph"><span class="t">我的知识图谱</span><span class="pill green">${glit} / ${gtotal}</span>
-        <span class="p">${g && g.watch && g.watch.length ? '写作中需要留意：' + g.watch.map(w => esc(w.title)).join('、') : `${gtotal} 个语法点，读过、用过、做对过，都会在这里点亮。`}</span>
+        <span class="p">${g && g.watch && g.watch.length ? '需要留意：' + g.watch.map(w => esc(w.title)).join('、') : `${gtotal} 个语法点，读过、用过、做对过，都会在这里点亮。`}</span>
         ${g ? `<div class="gbar" aria-hidden="true">${['solid', 'used', 'met', 'watch'].map(k => `<i class="st st-${k}" data-w="${g[k] / gtotal * 100}"></i>`).join('')}</div>` : ''}</a>`;
     requestAnimationFrame(() => requestAnimationFrame(() => view.querySelectorAll('.gbar i').forEach(i => { i.style.width = i.dataset.w + '%'; })));
     const ring = view.querySelector('.ring'); if (ring) ring.style.setProperty('--p', ring.dataset.p + '%');  // CSP: no inline style attributes

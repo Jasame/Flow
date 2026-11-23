@@ -278,10 +278,11 @@ class NextGraphTests(unittest.TestCase):
         answers = {r['id']: r['answer'] for r in self.c.execute("SELECT id, answer FROM questions WHERE node='modal-obligation'")}
         nx.node_answer(self.c, 1, {'question': qs[0]['id'], 'choice': (answers[qs[0]['id']] + 1) % 4})
         step = next(s for s in nx.home(self.c, 1)['path']['steps'] if s['key'] == 'grammar')
-        self.assertEqual((step['href'], step['done']), ('#/graph/modal-obligation', False))
-        nx.node_answer(self.c, 1, {'question': qs[1]['id'], 'choice': answers[qs[1]['id']]})
+        self.assertEqual((step['href'], step['done']), ('#/mix', False)); self.assertIn('必须、禁止', step['title'])
+        for q in qs[1:4]:  # a round's worth answered today: the step is done, whatever the score
+            nx.node_answer(self.c, 1, {'question': q['id'], 'choice': answers[q['id']]})
         step = next(s for s in nx.home(self.c, 1)['path']['steps'] if s['key'] == 'grammar')
-        self.assertEqual((step['href'], step['done']), ('#/graph/modal-obligation', True))
+        self.assertEqual((step['href'], step['done']), ('#/mix', True))
 
     def test_read_step_shows_points_found_in_the_text(self):
         p = next(p for _, p in nx._public_packs(self.c) if 'voice-basic' in nx._found(p))

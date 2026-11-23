@@ -70,7 +70,7 @@ class LoopTests(unittest.TestCase):
         self.c.execute("UPDATE next_grammar_review SET due=?, last_day='' WHERE user_id=1", (time.time() - 60,))
         self.c.execute('UPDATE learning_events SET created=created-86400 WHERE user_id=1'); self.c.commit()
         step = next(s for s in nx.home(self.c, 1)['path']['steps'] if s['key'] == 'grammar')
-        self.assertEqual((step['href'], step['done']), ('#/graph/det-quantity', False)); self.assertTrue(step['title'].startswith('语法复习：'))
+        self.assertEqual((step['href'], step['done']), ('#/mix', False)); self.assertTrue(step['title'].startswith('语法混合复习：'))
         g = nx.graph(self.c, 1)
         self.assertEqual(g['summary']['due'], 1)
         self.assertTrue(next(n for t in g['topics'] for n in t['nodes'] if n['id'] == 'det-quantity')['due'])
@@ -79,9 +79,11 @@ class LoopTests(unittest.TestCase):
         q2 = next(x['id'] for x in page['practice'] if x['id'] != q)  # the same question again today would be the same evidence row
         r, _ = nx.node_answer(self.c, 1, {'question': q2, 'choice': ans[q2]})
         self.assertEqual((r['review']['step'], r['review']['in_days']), (1, 3))
+        self.assertFalse(nx.graph(self.c, 1)['summary']['due'])
+        for x in [x for x in ans if x not in (q, q2)][:3]:  # three more today: a round's worth, so the step is done
+            nx.node_answer(self.c, 1, {'question': x, 'choice': ans[x]})
         step = next(s for s in nx.home(self.c, 1)['path']['steps'] if s['key'] == 'grammar')
         self.assertTrue(step['done'])
-        self.assertFalse(nx.graph(self.c, 1)['summary']['due'])
 
     # ---------------- starting check ----------------
 

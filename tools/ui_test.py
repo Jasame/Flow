@@ -38,7 +38,8 @@ DEVICES = {
 PAGES = ['#/', '#/library', f'#/m/{PID}/listen', f'#/m/{PID}/read', f'#/m/{PID}/check', f'#/m/{PID}/output', f'#/m/{PID}/output/retell',
          f'#/m/{PID}/output/dialog', f'#/m/{PID}/output/translate', f'#/m/{PID}/output/essay', '#/cards', '#/cards/mistake', '#/vocab/plan',
          '#/vocab/test', '#/review', '#/sounds', '#/sounds/th-s', '#/report', '#/me', '#/import', '#/graph', '#/graph/voice-basic', '#/graph/emph-inversion', '#/welcome/edit',
-         '#/placement', '#/exam', '#/exam/cet6', '#/series/lighthouse-ledger', '#/m/v5-culture-c1-lighthouse-ledger-1/read']
+         '#/placement', '#/exam', '#/exam/cet6', '#/series/lighthouse-ledger', '#/m/v5-culture-c1-lighthouse-ledger-1/read',
+         '#/mix', '#/mix/pair/tense-past,tense-perfect', '#/graph/link-contrast']
 RESULTS = []
 
 
@@ -172,6 +173,10 @@ def run_device(pw, dev, opts):
 
     # ---- knowledge graph: one next point to practise, 13 topic tiles, a tile takes you to its points
     go(pg, '#/graph')
+    pg.evaluate("() => { try { localStorage.removeItem('flow-graph-view'); } catch (e) {} }"); go(pg, '#/'); go(pg, '#/graph'); pg.wait_for_timeout(900)
+    rt = pg.evaluate("() => ({nodes: document.querySelectorAll('#gRoute .rnode').length, bands: document.querySelectorAll('#gRoute .rband').length, here: document.querySelectorAll('#gRoute .rnode.here').length, drawn: document.querySelectorAll('#gRoute .rnode.drawn').length, shown: !document.getElementById('gRoute').hidden})")
+    check(dev, 'graph: the learning route shows 44 points on 4 lines, one marked as next', rt['shown'] and rt['nodes'] == 44 and rt['bands'] == 4 and rt['here'] == 1 and rt['drawn'] == 44, rt)
+    pg.click('[data-gv="all"]'); pg.wait_for_timeout(300)
     g = pg.evaluate("() => ({next: document.querySelectorAll('#view .go-next').length, href: (document.querySelector('#view .go-next') || {}).getAttribute ? document.querySelector('#view .go-next').getAttribute('href') : '', tiles: document.querySelectorAll('.tgrid .tile').length, rows: document.querySelectorAll('.nrow').length})")
     check(dev, 'graph: one next point and 13 topics with 44 points', g['next'] == 1 and g['href'].startswith('#/graph/') and g['tiles'] == 13 and g['rows'] == 44, g)
     pg.click('.tgrid .tile >> nth=9'); pg.wait_for_timeout(900)
@@ -182,12 +187,14 @@ def run_device(pw, dev, opts):
     go(pg, '#/graph/voice-basic')
     parts = pg.evaluate("() => ({steps: document.querySelectorAll('.steps-list li').length, pits: document.querySelectorAll('.pit').length, qs: document.querySelectorAll('#practice .gq').length})")
     check(dev, 'point page: steps, mistakes and 4 practice questions', parts['steps'] >= 3 and parts['pits'] >= 2 and parts['qs'] == 4, parts)
+    rel = pg.evaluate("() => ({l1: document.querySelectorAll('.l1 .l1-rows > div').length, flow: document.querySelectorAll('.rel-flow .rel-step').length, confuse: document.querySelectorAll('.confuse a.btn').length})")
+    check(dev, 'point page: the Chinese-speaker trap and the points it connects to', rel['l1'] == 3 and rel['flow'] >= 2 and rel['confuse'] >= 1, rel)
     pg.click('#toPractice'); pg.wait_for_timeout(700)
     # Rounds are drawn at random with shuffled options, so the test does not know the answer: either way the right
     # option is shown, and the point lights up (right) or is marked to fix with a re-check tomorrow (wrong).
     pg.click('#practice .gq >> nth=0 >> .ans >> nth=0'); pg.wait_for_timeout(800)
     fb = pg.evaluate("() => ({fb: document.querySelector('#practice .gq .fb').textContent, right: !!document.querySelector('#practice .gq .ans.right'), status: document.getElementById('nodeStatus').textContent, review: document.getElementById('nodeReview').textContent})")
-    ok = fb['fb'].startswith('✓') and fb['status'] == '做题已验证' and '下次复习' in fb['review'] or fb['fb'].startswith('✗') and fb['status'] == '写作中需要留意' and '明天' in fb['review']
+    ok = fb['fb'].startswith('✓') and fb['status'] == '做题已验证' and '下次复习' in fb['review'] or fb['fb'].startswith('✗') and fb['status'] == '需要留意' and '明天' in fb['review']
     check(dev, 'point page: an answer is checked, the point changes and its next re-check is shown', fb['right'] and ok, fb)
     for k in range(1, 4):
         pg.click(f'#practice .gq >> nth={k} >> .ans >> nth=0'); pg.wait_for_timeout(500)
@@ -326,7 +333,7 @@ def run_device(pw, dev, opts):
     go(pg, '#/review')
     foot0 = pg.text_content('.rfoot') or ''
     total0 = foot0.split('/')[-1].split('·')[0].strip()
-    seen_fix = False
+    seen_fix = seen_passage = False
     for step in range(16):
         if pg.query_selector('.done-card'):
             break
@@ -334,10 +341,13 @@ def run_device(pw, dev, opts):
             seen_fix = True
             pg.fill('#fixIn', 'would have arrived')
             pg.press('#fixIn', 'Enter'); pg.wait_for_timeout(250)
-            check(dev, 'Enter submits a fix card', pg.query_selector('#go') is not None)
-            pg.click('#go'); pg.wait_for_timeout(350); continue
+            # Right: one "next" button. Other words than the reference: the learner says whether it means the same.
+            nxt = pg.query_selector('#go') or pg.query_selector('#fixMiss')
+            check(dev, 'Enter submits a fix card', nxt is not None and (pg.query_selector('#go') or pg.query_selector('#fixSame')))
+            nxt.click(); pg.wait_for_timeout(350); continue
         if pg.query_selector('.qopt'):
-            pg.click('.qopt >> nth=0'); pg.wait_for_timeout(250); pg.click('#go'); pg.wait_for_timeout(350); continue
+            seen_passage = seen_passage or bool(pg.query_selector('.passage-q .ptext'))
+            pg.click('.qopt >> nth=0'); pg.wait_for_selector('#go', timeout=5000); pg.click('#go'); pg.wait_for_timeout(350); continue
         if pg.query_selector('#spellIn'):
             pg.fill('#spellIn', 'x'); pg.press('#spellIn', 'Enter'); pg.wait_for_timeout(250); pg.click('#go'); pg.wait_for_timeout(350); continue
         if pg.query_selector('[data-claim]'):
@@ -360,6 +370,16 @@ def run_device(pw, dev, opts):
             pg.click('[data-self="good"]'); pg.wait_for_timeout(350); continue
         break
     check(dev, 'review reached a fix card', seen_fix)
+    check(dev, 'a reading mistake comes back with its part of the text', seen_passage)
+
+    # ---- mixed grammar round: a confusable pair, interleaved, ends with a result
+    go(pg, '#/mix/pair/tense-past,tense-perfect')
+    n = 0
+    while n < 8 and pg.query_selector('#mixQ .ans'):
+        pg.click('#mixQ .ans >> nth=0'); pg.wait_for_selector('#mixNext', timeout=5000); pg.click('#mixNext'); pg.wait_for_timeout(250); n += 1
+    pg.wait_for_timeout(500)
+    res = pg.evaluate("() => ({h: (document.querySelector('#view h1') || {}).textContent || '', rows: document.querySelectorAll('.mix-done .nrow').length})")
+    check(dev, 'mixed round: six interleaved questions, then a result per point', n == 6 and '6 题做对' in res['h'] and res['rows'] == 2, (n, res))
 
     # ---- welcome: the next button is reachable without scrolling on a phone
     go(pg, '#/welcome/edit')

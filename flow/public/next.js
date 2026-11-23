@@ -367,10 +367,11 @@
       if (!S.home) { await refreshHome(); fresh = true; }
       if (name === 'welcome') { setNav(''); await welcome(a === 'edit'); }
       // Only the personalised home needs the level questions first; everything else works for a new guest too.
-      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series'].includes(name)) { location.replace('#/welcome'); return; }
+      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix'].includes(name)) { location.replace('#/welcome'); return; }
       else if (name === 'placement') { setNav('graph'); await placementView(); }
       else if (name === 'exam') { setNav('me'); await examView(a); }
       else if (name === 'series') { setNav('today'); await seriesView(decodeURIComponent(a || '')); }
+      else if (name === 'mix') { setNav('graph'); await mixView(a === 'pair' || a === 'topic' ? a : 'due', b ? decodeURIComponent(b) : ''); }
       else if (name === 'm' && a) { setNav('today'); await study(decodeURIComponent(a), b || 'listen', sameMaterial); }
       else if (name === 'graph') { setNav('graph'); await (a ? nodeView(decodeURIComponent(a)) : graphView()); }
       else if (name === 'cards') { setNav('cards'); await vocabView('', 1, a || ''); }
@@ -501,7 +502,7 @@
         ${path ? `<p class="muted tiny">按「${esc(h.level_label)}（${h.level}）」挑选 · <a class="link" href="#/welcome/edit">调整水平和话题</a></p>` : ''}
         <div class="grid-list">${more.map(m => miniCard(m)).join('')}</div></div>
       <a class="card flat section mini graph-mini" href="#/graph"><span class="t">我的知识图谱</span><span class="pill green">${glit} / ${gtotal}</span>
-        <span class="p">${g && g.watch && g.watch.length ? '写作中需要留意：' + g.watch.map(w => esc(w.title)).join('、') : `${gtotal} 个语法点，读过、用过、做对过，都会在这里点亮。`}</span>
+        <span class="p">${g && g.watch && g.watch.length ? '需要留意：' + g.watch.map(w => esc(w.title)).join('、') : `${gtotal} 个语法点，读过、用过、做对过，都会在这里点亮。`}</span>
         ${g ? `<div class="gbar" aria-hidden="true">${['solid', 'used', 'met', 'watch'].map(k => `<i class="st st-${k}" data-w="${g[k] / gtotal * 100}"></i>`).join('')}</div>` : ''}</a>`;
     requestAnimationFrame(() => requestAnimationFrame(() => view.querySelectorAll('.gbar i').forEach(i => { i.style.width = i.dataset.w + '%'; })));
     const ring = view.querySelector('.ring'); if (ring) ring.style.setProperty('--p', ring.dataset.p + '%');  // CSP: no inline style attributes
@@ -1257,6 +1258,17 @@
     open.sort((a, b) => rank(a) - rank(b) || LEVEL_ORDER.indexOf(a.level) - LEVEL_ORDER.indexOf(b.level) || b.materials - a.materials);
     return open[0] || all.find(n => n.status !== 'solid') || null;
   }
+  // The learning route: the 44 points in the order to learn them, one line per level, like stops on a metro line.
+  const BAND = { A2: '入门', B1: '进阶', B2: '中高级', C1: '高级' };
+  function routeHTML(g, next) {
+    return `<div class="route">${g.route.map(b => {
+      const lit = b.nodes.filter(n => n.status !== 'untouched').length;
+      return `<section class="rband"><div class="rband-h"><b>${b.band}</b><span class="small muted">${BAND[b.band]} · ${b.nodes.length} 个点 · 已点亮 ${lit}</span></div>
+        <ol class="rline">${b.nodes.map((n, k) => { const here = next && n.id === next.id;
+          return `<li class="rnode st st-${n.status}${n.status !== 'untouched' ? ' lit' : ''}${here ? ' here' : ''}" data-k="${k}"><a href="#/graph/${encodeURIComponent(n.id)}">
+            <i class="dot" aria-hidden="true"></i><span class="t">${esc(n.title)}${here ? '<span class="here-tag">下一站</span>' : ''}${n.due ? '<span class="due-tag">该复习</span>' : ''}</span><span class="go" aria-hidden="true">›</span></a></li>`; }).join('')}</ol></section>`;
+    }).join('')}</div>`;
+  }
   async function graphView() {
     const g = await api('/api/next/graph' + guestQuery(true));
     const s = g.summary, next = nextPoint(g);
@@ -1268,6 +1280,8 @@
         <div class="tiny muted">${next.status === 'watch' ? '你在写作或做题里在这里出过错，先补上它。' : next.due ? '按遗忘曲线该复习它了：做 4 道题，记得更牢。' : next.status === 'untouched' ? '先看讲解，再做几道题验证。' : '你已经读到过它，做几道题把它变成“已验证”。'}</div>
         ${s.due > 1 ? `<div class="tiny muted">一共 ${s.due} 个点该复习了，每天做一个就好。</div>` : ''}</div>` : ''}
       ${s.solid + s.used + s.met + s.watch < 5 ? `<a class="card flat place-cta" href="#/placement"><b>不知道从哪开始？</b><span class="small muted">做 16 道题的语法小测，3–6 分钟：给你一个起点等级，做对的点直接点亮。</span></a>` : ''}
+      <div class="seg two section" role="tablist" aria-label="看法"><button role="tab" data-gv="route">学习路线</button><button role="tab" data-gv="all">全部 ${g.total} 个点</button></div>
+      <div id="gRoute">${routeHTML(g, next)}</div><div id="gAll">
       <div class="gsum section">${[['solid', '已验证'], ['used', '用出来过'], ['met', '读到过'], ['watch', '要留意']].map(([k, l]) => `<div class="st st-${k}"><b>${s[k]}</b><span>${l}</span></div>`).join('')}</div>
       <div class="tgrid section" role="list" aria-label="13 类语法">${g.topics.map(t => {
         const lit = t.nodes.filter(n => n.status !== 'untouched').length, watch = t.nodes.some(n => n.status === 'watch');
@@ -1279,7 +1293,16 @@
       <div class="topic-list section">${g.topics.map(t => `<section class="topic" id="topic-${esc(t.id)}"><div class="row between"><h2 class="h2">${esc(t.title)}</h2><span class="tiny muted">${t.nodes.filter(n => n.status !== 'untouched').length} / ${t.nodes.length}</span></div>
         <div class="plist">${t.nodes.map(n => `<a class="nrow st st-${n.status}${n.focus ? ' focus' : ''}" href="#/graph/${encodeURIComponent(n.id)}"><i class="dot" aria-hidden="true"></i>
           <span class="t"><b>${esc(n.title)}</b><span class="tiny muted">${esc(n.label)}${n.due ? ' · <span class="due-tag">该复习</span>' : ''}${n.materials ? ` · ${n.materials} 篇材料` : ''}</span></span><span class="lv">${esc(n.level || '')}</span><span class="go" aria-hidden="true">›</span></a>`).join('')}</div></section>`).join('')}</div>
-      ${S.user ? '' : '<p class="muted small section">登录后，你读过、写过、做对的内容会实时点亮这张图。</p>'}`;
+      </div>${S.user ? '' : '<p class="muted small section">登录后，你读过、写过、做对的内容会实时点亮这张图。</p>'}`;
+    const show = gv => {
+      document.getElementById('gRoute').hidden = gv !== 'route'; document.getElementById('gAll').hidden = gv === 'route';
+      view.querySelectorAll('[data-gv]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.gv === gv)));
+      try { localStorage.setItem('flow-graph-view', gv); } catch (e) { /* private mode */ }
+      if (gv === 'route') view.querySelectorAll('.rnode').forEach(li => { li.classList.remove('drawn'); li.style.setProperty('--d', (Number(li.dataset.k) * 45) + 'ms'); requestAnimationFrame(() => requestAnimationFrame(() => li.classList.add('drawn'))); });
+    };
+    let gv = 'route'; try { gv = localStorage.getItem('flow-graph-view') === 'all' ? 'all' : 'route'; } catch (e) { /* private mode */ }
+    view.querySelectorAll('[data-gv]').forEach(b => b.onclick = () => show(b.dataset.gv));
+    show(gv);
     // CSP forbids inline style attributes, so the ring fill is set through the CSSOM.
     view.querySelectorAll('.tile .ring').forEach(r => r.style.setProperty('--p', r.dataset.p + '%'));
     view.querySelectorAll('.tile').forEach(a => a.onclick = e => {
@@ -1305,13 +1328,20 @@
         <p class="goal">${esc(pg ? pg.goal : n.lesson)}</p>
         ${pg ? `<ol class="steps-list">${pg.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : (n.example ? `<div class="text small">${esc(n.example)}</div>` : '')}
       </div>
+      ${n.l1 ? `<div class="l1 section"><div class="kicker">中文思维陷阱</div><p class="small">${esc(n.l1.why)}</p>
+        <div class="l1-rows"><div class="zh"><span class="tiny muted">中文</span>${esc(n.l1.zh)}</div><div class="bad"><span aria-label="常见错误">✗</span> ${esc(n.l1.wrong)}</div><div class="good"><span aria-label="正确">✓</span> ${esc(n.l1.right)}</div></div></div>` : ''}
       ${pg ? `<div class="section stack-s"><h2 class="h2">对比着看</h2><div class="plist">${pg.contrast.map(([en, zh]) => `<div class="crow"><button class="icon-btn" data-say="${esc(en)}" aria-label="朗读">${ICON.speak}</button><span><span class="en">${esc(en)}</span><span class="tiny muted">${esc(zh)}</span></span></div>`).join('')}</div></div>
       <div class="section stack-s"><h2 class="h2">常见错误</h2><div class="stack-s">${pg.pitfalls.map(([bad, good, why]) => `<div class="pit"><div class="bad"><span aria-label="错误">✗</span> ${esc(bad)}</div><div class="good"><span aria-label="正确">✓</span> ${esc(good)}</div><div class="tiny muted">${esc(why)}</div></div>`).join('')}</div></div>
       <div class="section stack-s"><div class="section-head"><h2 class="h2">先试一题</h2><span class="tiny muted">有提示，不计入验证</span></div>${choice(pg.guided, 0, 'guided')}</div>` : ''}
       ${n.practice.length ? `<div class="section stack-s" id="practice"><div class="section-head"><h2 class="h2">验证一下</h2><span class="tiny muted">${S.user ? '做对会点亮这个点；做错的会进错题本' : '登录后成绩会记进你的图谱'}</span></div>
         ${pg ? `<p class="small muted">做题前先问自己：${esc(pg.clue)}</p>` : ''}<div class="stack">${n.practice.map((q, i) => choice(q, i, 'check')).join('')}</div><div id="pscore" class="small"></div>
         <button class="btn" id="again" hidden>再来一组（题库 10 题，随机抽 4 题）</button></div>` : ''}
-      ${(n.prereq || n.unlocks.length) ? `<div class="row section">${n.prereq ? `<span class="tiny muted">先学</span>${nodeChip({ id: n.prereq.id, title: n.prereq.title, status: 'met' })}` : ''}${n.unlocks.length ? `<span class="tiny muted">接下来</span>${n.unlocks.map(u => nodeChip({ id: u.id, title: u.title, status: 'untouched' })).join('')}` : ''}</div>` : ''}
+      <div class="section stack-s rel"><h2 class="h2">和它相连的点</h2>
+        <div class="rel-flow">${n.prereq ? `<div class="rel-step"><span class="tiny muted">先学</span>${nodeChip(n.prereq)}</div><i class="rel-arrow" aria-hidden="true"></i>` : ''}
+          <div class="rel-step me"><span class="tiny muted">现在</span><span class="node-chip st st-${n.status}">${esc(n.title)}</span></div>
+          ${n.unlocks.length ? `<i class="rel-arrow" aria-hidden="true"></i><div class="rel-step"><span class="tiny muted">接下来</span><span class="chips">${n.unlocks.map(u => nodeChip(u)).join('')}</span></div>` : ''}</div>
+        ${n.related.confusable.length ? `<div class="stack-s"><div class="kicker">容易和它混</div>${n.related.confusable.map(x => `<div class="confuse"><div class="row between">${nodeChip(x)}<a class="btn small" href="#/mix/pair/${encodeURIComponent(n.id + ',' + x.id)}">辨析练习</a></div><div class="tiny muted">${esc(x.how)}</div></div>`).join('')}</div>` : ''}
+        ${n.related.together.length ? `<div class="stack-s"><div class="kicker">常和它一起出现</div><div class="chips">${n.related.together.map(x => nodeChip(x)).join('')}</div><span class="tiny muted">在同一篇材料里出现得最多的点，读到时可以留意它们怎么配合。</span></div>` : ''}</div>
       ${n.notes.length ? `<div class="stack-s section"><h2 class="h2">AI 在你写作里看到的</h2>${n.notes.map(x => `<div class="knote"><span class="small">${x.kind === 'flag' ? '需要留意：' : '用对了'}${esc((x.detail.split('|')[1] || ''))}</span><span class="tiny muted">${new Date(x.created * 1000).toLocaleDateString('zh-CN')}</span></div>`).join('')}</div>` : ''}
       ${n.examples.length ? `<div class="stack-s section"><h2 class="h2">在真实句子里看它</h2>${n.examples.map(x => `<a class="ex-quote" href="#/m/${encodeURIComponent(x.pack)}/read"><span>${esc(x.quote)}</span><div class="small muted">${esc(x.explanation)}</div></a>`).join('')}</div>` : ''}
       ${n.materials.length ? `<div class="section"><div class="section-head"><h2 class="h2">在文章里练它</h2></div><div class="grid-list">${n.materials.map(m => miniCard(m)).join('')}</div></div>` : ''}`;
@@ -1329,7 +1359,8 @@
       } else {
         const q = n.practice[+box.dataset.i];
         try { const r = await api('/api/next/node/answer', { question: q.id, choice: o }); ok = r.correct; answer = r.answer; why = r.explanation;
-          if (r.label) { const st = view.querySelector('#nodeStatus'); st.className = 'node-chip st st-' + r.status; st.textContent = r.label; }
+          if (r.label) { const st = view.querySelector('#nodeStatus'), was = st.className; st.className = 'node-chip st st-' + r.status; st.textContent = r.label;
+            if (r.status === 'solid' && !/st-solid/.test(was)) { st.classList.add('lit-up'); toast('点亮了！「' + n.title + '」做题已验证'); } }
           if (r.review) view.querySelector('#nodeReview').textContent = ok ? reviewText(r.review) : '做错了：明天会再练一次这个点'; }
         catch (e) { toast(e.message); return; }
         answered++; if (ok) right++;
@@ -1342,7 +1373,7 @@
       box.dataset.done = '1';
       box.querySelectorAll('.ans').forEach(x => { x.disabled = true; if (+x.dataset.o === answer) x.classList.add('right'); });
       if (!ok) b.classList.add('wrong');
-      fb.textContent = (ok ? '✓ ' : '✗ ') + (why || '');
+      fb.textContent = (ok ? '✓ ' : '✗ ') + (why || '') + (!ok && box.dataset.kind === 'check' && S.user ? ' 错题是最值钱的题：明天换一道题再考你。' : '');
       announce(ok ? '答对了' : '答错了');
     }));
   }
@@ -1521,6 +1552,80 @@
     };
     document.getElementById('exAgain').onclick = () => examPaper(r.exam);
   }
+  /* ---------- mixed grammar rounds: several points interleaved (today's review, a confusable pair, a whole topic) ---------- */
+  // Questions on different points mixed together make the learner decide which rule applies first: that decision is
+  // what real use asks for, and it is what one-point-at-a-time practice never trains.
+  async function mixView(kind, arg) {
+    const q = kind === 'pair' ? '?pair=' + encodeURIComponent(arg) : kind === 'topic' ? '?topic=' + encodeURIComponent(arg) : guestQuery(true);
+    const m = await api('/api/next/mix' + q);
+    const TITLE = { due: '今天的语法复习', practice: '语法混合练习', pair: '辨析练习', topic: '这一类混着练' };
+    const intro = m.kind === 'due' ? `${m.nodes.length} 个点混在一起出题：先想清楚这题考的是哪条规则，再选。${m.left ? `还有 ${m.left} 个点明天接着练。` : ''}`
+      : m.kind === 'pair' ? '两个容易混的点交替出题，做的时候先判断是哪一个。'
+      : m.kind === 'practice' ? '今天没有到期要复习的点。先混着练几个你这个级别的，做对的会点亮。' : '这一类里的每个点各出一题。';
+    const items = m.items, before = Object.fromEntries(m.nodes.map(n => [n.id, n.status])), after = {}, per = {};
+    let i = 0, right = 0, streak = 0;
+    view.innerHTML = `<div class="stack mix"><div><span class="kicker">${esc(TITLE[m.kind])}</span><h1 class="h1">${m.kind === 'pair' ? esc(m.nodes.map(n => n.title).join(' vs ')) : `${items.length} 道题，${m.nodes.length} 个点`}</h1>
+        <p class="muted small">${esc(intro)}</p></div>
+      ${m.note ? `<div class="howto"><b>怎么区分</b><span class="small">${esc(m.note)}</span></div>` : ''}
+      <div class="mix-dots" aria-hidden="true">${items.map(() => '<i></i>').join('')}</div>
+      <div id="mixQ"></div></div>`;
+    const dots = [...view.querySelectorAll('.mix-dots i')];
+    function ask() {
+      const it = items[i], box = document.getElementById('mixQ');
+      dots.forEach((d, k) => d.classList.toggle('now', k === i));
+      box.innerHTML = `<div class="q gq enter"><div class="tiny muted">第 ${i + 1} / ${items.length} 题</div><div class="prompt">${esc(it.prompt)}</div>
+        ${it.options.map((o, j) => `<button class="ans" data-o="${it.map[j]}"><span class="k">${'ABCD'[j]}</span><span>${esc(o)}</span></button>`).join('')}<div class="fb" aria-live="polite"></div></div>`;
+      box.querySelectorAll('.ans').forEach(b => b.onclick = () => answer(it, b, box));
+      keys4(box);
+    }
+    function keys4(box) {
+      document.onkeydown = e => { const k = Number(e.key); if (k >= 1 && k <= 4 && !e.metaKey && !e.ctrlKey) { const b = box.querySelectorAll('.ans')[k - 1]; if (b && !b.disabled) b.click(); } };
+    }
+    async function answer(it, b, box) {
+      box.querySelectorAll('.ans').forEach(x => { x.disabled = true; });
+      let r;
+      try { r = await api('/api/next/node/answer', { question: it.id, choice: Number(b.dataset.o), from: 'mix' }); }
+      catch (e) { toast(e.message); box.querySelectorAll('.ans').forEach(x => { x.disabled = false; }); return; }
+      box.querySelectorAll('.ans').forEach(x => { if (Number(x.dataset.o) === r.answer) x.classList.add('right'); });
+      if (!r.correct) b.classList.add('wrong');
+      const p = per[it.node] = per[it.node] || { right: 0, of: 0 }; p.of++;
+      if (r.correct) { right++; p.right++; streak++; } else streak = 0;
+      if (r.status) after[it.node] = { status: r.status, label: r.label };
+      dots[i].classList.add(r.correct ? 'ok' : 'no');
+      box.querySelector('.fb').innerHTML = `<div class="${r.correct ? 'ok' : 'bad'}">${r.correct ? '✓ 对了' : '✗ 这题选错了'}${streak >= 3 ? ` · 连对 ${streak} 题` : ''}</div>
+        <div class="small">${esc(r.explanation || '')}</div><div class="tiny muted">考的是：<a class="link" href="#/graph/${encodeURIComponent(it.node)}">${esc(it.node_title)}</a></div>
+        <button class="btn primary block" id="mixNext">${i + 1 < items.length ? '下一题' : '看结果'}</button>`;
+      announce(r.correct ? '答对了' : '答错了');
+      const nx = document.getElementById('mixNext');
+      nx.scrollIntoView({ block: 'nearest', behavior: REDUCED ? 'auto' : 'smooth' });  // the explanation and the next button, above the tab bar
+      nx.onclick = () => { i++; if (i < items.length) ask(); else done(); };
+      document.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); nx.click(); } };
+      nx.focus({ preventScroll: true });
+    }
+    function done() {
+      document.onkeydown = null;
+      const all = right === items.length, rows = m.nodes.filter(n => per[n.id]);
+      const lit = rows.filter(n => before[n.id] !== 'solid' && (after[n.id] || {}).status === 'solid');
+      const msg = all ? `全对！${S.user ? '这几个点都往后推了，到时间再抽查。' : ''}`
+        : `${items.length - right} 题没做对。${S.user ? '它们明天会换一道题再来——错题是最值钱的题，弄懂一个就少一个。' : ''}`;
+      view.innerHTML = `<div class="stack mix-done">${right * 2 >= items.length ? `<div class="done-burst${all ? ' all' : ''}" aria-hidden="true">${doneRing}</div>` : ''}
+        <div class="tc"><span class="kicker">${esc(TITLE[m.kind])}</span><h1 class="h1">${items.length} 题做对 ${right} 题</h1><p class="small">${esc(msg)}</p>
+        ${lit.length ? `<p class="small cheer">新点亮了 ${lit.length} 个点：${esc(lit.map(n => n.title).join('、'))}</p>` : ''}</div>
+        <div class="plist">${rows.map((n, k) => { const a = after[n.id] || n, pr = per[n.id];
+          return `<a class="nrow st st-${a.status} pop-in" data-k="${k}" href="#/graph/${encodeURIComponent(n.id)}"><i class="dot" aria-hidden="true"></i><span class="t"><b>${esc(n.title)}</b><span class="tiny muted">${esc(a.label || '')}</span></span><span class="lv">${pr.right}/${pr.of}</span><span class="go" aria-hidden="true">›</span></a>`; }).join('')}</div>
+        ${S.user ? '' : '<p class="muted small">登录后，做对的点会点亮在你的语法地图里，错的会按遗忘曲线回来。</p>'}
+        <div class="row center"><a class="btn" href="#/graph">语法地图</a>${m.kind === 'due' ? '<a class="btn primary" href="#/">回到今日</a>' : '<button class="btn primary" id="mixAgain">再来一轮</button>'}</div></div>`;
+      view.querySelectorAll('.pop-in').forEach(el => el.style.setProperty('--d', (Number(el.dataset.k) * 90 + 200) + 'ms'));
+      const again = document.getElementById('mixAgain'); if (again) again.onclick = () => mixView(kind, arg);
+      announce(`${items.length} 题做对 ${right} 题`);
+      if (S.user) refreshHome().catch(() => {});
+    }
+    if (!items.length) {
+      document.getElementById('mixQ').innerHTML = '<div class="empty"><p>这里暂时没有题。</p><a class="btn" href="#/graph">回到语法地图</a></div>';
+      return;
+    }
+    ask();
+  }
   /* ---------- cards ---------- */
   /* ---------- words: one FSRS memory queue for word books, saved words/expressions and imports ---------- */
   function highlight(ctx, text) {
@@ -1568,7 +1673,7 @@
       ? `<div class="card section stack-s vtoday"><div class="row between"><div><div class="kicker">今天</div>
             ${n ? `<div class="big-line">复习 <b>${o.due}</b> · 新词 <b>${o.new}</b></div><div class="muted small">大约 ${o.minutes} 分钟 · 已完成 ${o.done_today} 次</div>`
               : `<div class="big-line">今天的都完成了</div><div class="muted small">已完成 ${o.done_today} 次 · 明天预计 ${o.forecast[1]} 个复习</div>`}</div>
-            ${n ? '<a class="btn primary" href="#/review">开始</a>' : ''}</div>
+            ${n ? '<a class="btn primary" href="#/review">开始</a>' : '<button class="btn small" id="moreNew">再学 10 个</button>'}</div>
           ${o.book ? `<div class="stack-s"><div class="row between small"><span>《${esc(o.book.title)}》已学 ${o.book.started} / ${o.book.size - (o.book.skipped || 0)}${o.book.skipped ? `<span class="muted">（跳过 ${o.book.skipped} 个常用词）</span>` : ''}</span><span class="muted">${o.book.finish ? '预计 ' + dayLabel(o.book.finish) + '学完' : '已全部学过'}</span></div>
             <div class="vbar"><i data-w="${o.book.started / Math.max(1, o.book.size - (o.book.skipped || 0)) * 100}"></i></div></div>` : ''}
           <div class="row small"><a class="link" href="#/vocab/plan">调整计划</a><span class="muted">每天 ${o.plan.daily_new} 个新词 · 目标记住率 ${Math.round(o.plan.retention * 100)}%</span></div></div>`
@@ -1593,6 +1698,12 @@
       view.querySelectorAll('.forecast i').forEach(i => { i.style.height = Math.max(3, i.dataset.h) + '%'; });
     }));
     // Filters, search and pages swap only the list: the rest of the page stays put (no reload flash, no lost scroll).
+    const mn = document.getElementById('moreNew');
+    if (mn) mn.onclick = async () => {  // today's words are done and the learner wants more: one extra batch now
+      mn.disabled = true;
+      try { const r = await api('/api/next/vocab/more', { n: 10 }); if (r.added) location.hash = '#/review'; else { toast('词书里的词都学过了'); } }
+      catch (e) { toast(e.message); mn.disabled = false; }
+    };
     const st = { q, page, f };
     const reload = async () => {
       const slot = document.getElementById('listSlot'); slot.classList.add('busy');
@@ -1701,7 +1812,8 @@
       <div class="section stack-s"><h2 class="h2">词书</h2><span class="muted tiny">按词频分段的词书从你的水平往上走；考试词书按大纲词表、常用词在前。专四、专八等词表可以在「单词」页导入。</span>
         ${[['freq', '按词频'], ['exam', '考试词书']].map(([kind, label]) => `<div class="kicker">${label}</div><div class="books">${o.books.filter(b => b.kind === kind).map(b => `<button class="card flat bookc" data-book="${b.id}" aria-pressed="${b.id === book}"><div class="row between"><b>${esc(b.title)}</b>${b.id === o.suggested_book ? '<span class="pill green">推荐</span>' : ''}</div><span class="small">${esc(b.blurb)}</span><span class="tiny muted">${b.size} 词${b.range ? ' · 词频第 ' + b.range + ' 位' : ''}</span></button>`).join('')}${kind === 'exam' ? `<button class="card flat bookc" id="impBook" type="button"><b>专四 / 专八 / 老师给的词表</b><span class="small">这些没有可以内置的公开官方词表：把手上的词表粘贴进来，就和词书一起按遗忘曲线复习。</span><span class="tiny muted">导入词表 →</span></button>` : ''}</div>`).join('')}</div>
       <div class="section stack-s"><h2 class="h2">每天新词</h2><div class="chips" id="dn">${o.daily_new_options.map(v => `<button class="chip" data-v="${v}" aria-pressed="${v === daily}">${v} 个</button>`).join('')}</div>
-        <span class="muted tiny" id="dnHint"></span></div>
+        <div class="row"><label class="small" for="dnOwn">自己定：</label><input id="dnOwn" type="number" inputmode="numeric" min="1" max="200" step="1" class="num-in" value="${o.daily_new_options.includes(daily) ? '' : daily}" placeholder="1–200"><span class="small muted">个 / 天</span></div>
+        <span class="muted tiny" id="dnHint"></span><span class="muted tiny">学完当天的，复习页还可以「再学 10 个」，不用改计划。</span></div>
       <div class="section stack-s"><h2 class="h2">目标记住率</h2><div class="chips" id="rt">${o.retention_options.map(v => `<button class="chip" data-v="${v}" aria-pressed="${v === ret}">${Math.round(v * 100)}%</button>`).join('')}</div>
         <span class="muted tiny">系统会在你记住的概率降到这个数时安排复习。越高记得越牢，但每天复习更多；90% 是比较均衡的选择。</span></div>
       ${o.plan && o.plan.estimate ? `<label class="section checkline"><input type="checkbox" id="skipKnown" ${o.plan.skip_rank ? 'checked' : ''}>考试词书里跳过测试显示你已经认识的常用词${o.plan.test_skip ? `（词频前 ${o.plan.test_skip} 位）` : ''}</label>` : ''}
@@ -1718,11 +1830,15 @@
       const skip = book === 'core' || (sk ? sk.checked : true) ? (b.skippable || 0) : 0;
       const done = o.book && o.book.id === book ? o.book.started : 0;
       const days = Math.ceil(Math.max(0, (b.size || 0) - skip - done) / daily);
-      document.getElementById('dnHint').textContent = `学完《${b.title}》大约需要 ${days} 天${skip ? `（跳过 ${skip} 个常用词）` : ''}；新词越多，之后每天的复习也越多（约为新词的 3–5 倍）。`;
+      document.getElementById('dnHint').textContent = `学完《${b.title}》大约需要 ${days} 天${skip ? `（跳过 ${skip} 个常用词）` : ''}；每天 ${daily} 个新词，一个月后每天大约要复习 ${daily * 3}–${daily * 5} 个${daily >= 50 ? '，量很大，记得留出时间' : ''}。`;
     };
     view.querySelectorAll('[data-book]').forEach(b => b.onclick = () => { book = b.dataset.book; view.querySelectorAll('[data-book]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); hint(); });
     const pick = (sel, set) => view.querySelectorAll(sel + ' [data-v]').forEach(b => b.onclick = () => { set(Number(b.dataset.v)); view.querySelectorAll(sel + ' [data-v]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); hint(); });
-    pick('#dn', v => { daily = v; }); pick('#rt', v => { ret = v; });
+    pick('#dn', v => { daily = v; document.getElementById('dnOwn').value = ''; }); pick('#rt', v => { ret = v; });
+    document.getElementById('dnOwn').oninput = e => {
+      const v = Math.round(Number(e.target.value));
+      if (v >= 1 && v <= 200) { daily = v; view.querySelectorAll('#dn [data-v]').forEach(x => x.setAttribute('aria-pressed', String(Number(x.dataset.v) === v))); hint(); }
+    };
     const skBox = document.getElementById('skipKnown'); if (skBox) skBox.onchange = hint;
     document.getElementById('impBook').onclick = importSheet;
     hint();
@@ -1798,7 +1914,9 @@
       Object.entries(r.examples || {}).forEach(([w, ex]) => items.forEach(x => { if (x.text.toLowerCase() === w && !(x.examples || []).length) x.examples = ex; }));
     }).catch(() => {});
     const items = first.items.slice(), seen = new Set(items.map(x => x.id));
-    let i = 0, doneN = 0, left = first; const tally = { again: 0, hard: 0, good: 0, easy: 0, known: 0 };
+    let i = 0, doneN = 0, left = first, farthest = 0; const tally = { again: 0, hard: 0, good: 0, easy: 0, known: 0 };
+    const OUTCOME = { passed: '过关！这张错题卡完成了，不会再出现', reread: '这题先放下：回原文把那一段再读一遍更有用', later: '后天带着原文再做一次',
+      tomorrow: '今天先到这儿，明天再见它', 'once-more': '答对了，下次再换一道题确认一次' };
     // Progress counts cards, not answers: a card shown again to consolidate it does not grow the total.
     const uniq = new Set(items.map(x => x.id)), doneIds = new Set();
     const pos = () => c.repeat ? '再巩固一次' : `${Math.min(uniq.size, doneIds.size + 1)} / ${uniq.size}${c.source === 'book' && c.state === 'new' ? ' · 新词' : ''}`;
@@ -1838,9 +1956,16 @@
       const ex = c.extra || {}, src = { reading: '理解题', writing: '写作', speaking: '口语', translation: '翻译', pronunciation: '发音' }[c.skill] || '错题';
       const tag = `<span class="pill amber rtag">错题 · ${esc(src)}</span>`;
       let body = '';
-      if (c.mode === 'question') {
-        const opts = ex.options || [];
-        body = `${tag}<div class="prompt-q">${esc(c.text)}</div><div class="qopts">${opts.map((o, k) => `<button class="qopt" data-o="${k}">${esc(o)}</button>`).join('')}</div>`;
+      if (c.mode === 'question' && c.variant) {
+        // A grammar mistake comes back as a different question on the same point: the rule is practised, not one answer.
+        const v = c.variant;
+        body = `${tag}<div class="tiny muted">同一个语法点，换一道题${c.node ? '：' + esc(c.node.title) : ''}</div><div class="prompt-q">${esc(v.prompt)}</div>
+          <div class="qopts">${v.options.map((o, k) => `<button class="qopt" data-o="${v.map[k]}">${esc(o)}</button>`).join('')}</div>`;
+      } else if (c.mode === 'question') {
+        // A reading question comes back with its part of the text: it is answered by reading, not by remembering.
+        const opts = ex.options || [], ps = c.passage;
+        body = `${tag}${ps ? `<div class="passage-q"><div class="tiny muted">原文片段${ps.title ? ' · ' + esc(ps.title) : ''}</div><p class="ptext" id="ptext">${ps.start ? '… ' : ''}${esc(ps.text)}${ps.end ? ' …' : ''}</p></div>` : ''}
+          <div class="prompt-q">${esc(c.text)}</div><div class="qopts">${opts.map((o, k) => `<button class="qopt" data-o="${k}">${esc(o)}</button>`).join('')}</div>`;
       } else if (c.mode === 'fix') {
         // Just the sentence the mistake was in (older cards kept the whole paragraph), with the wrong part underlined.
         const sent = c.context && ex.from ? (splitSentences(c.context).find(x => x.toLowerCase().includes(ex.from.toLowerCase())) || '') : '';
@@ -1862,12 +1987,25 @@
         view.querySelector('.review').insertAdjacentHTML('beforeend', `<div class="stack-s enter">${html}<div class="row center"><button class="btn primary" id="go">下一个</button></div></div>`);
         document.getElementById('go').onclick = () => rate(r, ms); keys({ Enter: () => rate(r, ms), ' ': () => rate(r, ms) });
       };
-      if (c.mode === 'question') {
+      if (c.mode === 'question' && c.variant) {
+        view.querySelectorAll('[data-o]').forEach(b => b.onclick = async () => {
+          view.querySelectorAll('[data-o]').forEach(x => { x.disabled = true; });
+          let r; try { r = await api('/api/next/node/answer', { question: c.variant.id, choice: Number(b.dataset.o), from: 'review' }); }
+          catch (e) { toast(e.message); view.querySelectorAll('[data-o]').forEach(x => { x.disabled = false; }); return; }
+          view.querySelectorAll('[data-o]').forEach(x => { if (Number(x.dataset.o) === r.answer) x.classList.add('right'); });
+          if (!r.correct) b.classList.add('wrong');
+          after(r.correct ? 'good' : 'again', `<div class="${r.correct ? 'ok' : 'bad'}">${r.correct ? '✓ 换了一道题也答对了' : '这题没答对'}</div><div class="small">${esc(r.explanation || '')}</div>
+            ${!r.correct && c.node ? `<a class="link small" href="#/graph/${encodeURIComponent(c.node.id)}">回到「${esc(c.node.title)}」看一遍讲解 →</a>` : ''}`);
+        });
+        keys({ 1: () => view.querySelector('.qopt:nth-child(1)').click(), 2: () => view.querySelector('.qopt:nth-child(2)').click(), 3: () => view.querySelector('.qopt:nth-child(3)').click(), 4: () => view.querySelector('.qopt:nth-child(4)').click() });
+      } else if (c.mode === 'question') {
         view.querySelectorAll('[data-o]').forEach(b => b.onclick = () => {
-          const k = Number(b.dataset.o), ok = k === ex.answer;
+          const k = Number(b.dataset.o), ok = k === ex.answer, ps = c.passage;
           view.querySelectorAll('[data-o]').forEach(x => { x.disabled = true; if (Number(x.dataset.o) === ex.answer) x.classList.add('right'); });
           if (!ok) b.classList.add('wrong');
-          after(ok ? 'good' : 'again', `<div class="${ok ? 'ok' : 'bad'}">${ok ? '✓ 这次答对了' : '还是错了'}</div>${ex.evidence ? `<div class="small"><span class="muted">原文依据：</span>${esc(ex.evidence)}</div>` : ''}`);
+          const pt = document.getElementById('ptext'); if (pt && ps && ps.evidence) pt.innerHTML = (ps.start ? '… ' : '') + highlight(ps.text, ps.evidence) + (ps.end ? ' …' : '');
+          after(ok ? 'good' : 'again', `<div class="${ok ? 'ok' : 'bad'}">${ok ? '✓ 这次答对了，这道题过关' : '还是没答对'}</div>${ex.evidence && !(pt && ps) ? `<div class="small"><span class="muted">原文依据：</span>${esc(ex.evidence)}</div>` : ''}
+            ${!ok && c.pack ? `<a class="link small" href="#/m/${encodeURIComponent(c.pack)}/read">回原文把这一段再读一遍 →</a>` : ''}`);
         });
         keys({ 1: () => view.querySelector('[data-o="0"]').click(), 2: () => view.querySelector('[data-o="1"]').click(), 3: () => view.querySelector('[data-o="2"]').click(), 4: () => view.querySelector('[data-o="3"]').click() });
       } else if (c.mode === 'fix') {
@@ -1876,7 +2014,13 @@
         const done = v => {
           view.querySelectorAll('#fixGo,#fixNo').forEach(b => b.remove()); inp.disabled = true;
           const ok = !!v && norm(v) === norm(c.text);
-          after(ok ? 'good' : 'again', `<div class="${ok ? 'ok' : 'bad'}">${ok ? '✓ 改对了' : '应该是'}：<b>${esc(c.text)}</b></div>${c.meaning ? `<div class="small">${esc(c.meaning)}</div>` : ''}`);
+          if (ok || !v) return after(ok ? 'good' : 'again', `<div class="${ok ? 'ok' : 'bad'}">${ok ? '✓ 改对了' : '应该是'}：<b>${esc(c.text)}</b></div>${c.meaning ? `<div class="small">${esc(c.meaning)}</div>` : ''}`);
+          // Not the same words: often a correct other wording. The learner compares and decides; no loop over one word.
+          const ms = Date.now() - t0;
+          view.querySelector('.review').insertAdjacentHTML('beforeend', `<div class="stack-s enter"><div class="small"><span class="muted">你写的：</span>${esc(v)}</div>
+            <div class="small"><span class="muted">参考改法：</span><b>${esc(c.text)}</b></div>${c.meaning ? `<div class="small muted">${esc(c.meaning)}</div>` : ''}
+            <div class="row center"><button class="btn" id="fixSame">我写的也对</button><button class="btn primary" id="fixMiss">没写对，记下了</button></div></div>`);
+          document.getElementById('fixSame').onclick = () => rate('good', ms); document.getElementById('fixMiss').onclick = () => rate('again', ms);
         };
         document.getElementById('fixGo').onclick = () => done(inp.value.trim());
         document.getElementById('fixNo').onclick = () => done('');
@@ -1981,11 +2125,15 @@
         }
         tally[r]++; doneN++; left = res; i++; doneIds.add(c.id); badge(res);
         const n = res.card;
+        if (res.outcome && OUTCOME[res.outcome]) toast(OUTCOME[res.outcome]);
+        if ((r === 'good' || r === 'easy') && n.due) farthest = Math.max(farthest, Math.round((n.due * 1000 - Date.now()) / 86400000));
         // Only what is due again within minutes (a miss, or a fuzzy new card) comes back in this session, a few cards later;
         // a card answered right waits for its next step (10 minutes, then days) and is picked up by "继续" or the next session.
         const soon = n.due ? n.due * 1000 - Date.now() < 5 * 60000 : r === 'again';
-        if ((n.state === 'learning' || n.state === 'relearning') && soon) {
-          const again = { ...c, ...n, mode: c.kind === 'word' ? 'recognize' : c.mode, repeat: true };
+        // At most one more try in this session; a card missed again waits for tomorrow (the server moves it there too).
+        const parked = ['tomorrow', 'later', 'passed', 'reread'].includes(res.outcome) || (c.tries || 0) >= 1;
+        if ((n.state === 'learning' || n.state === 'relearning') && soon && !parked) {
+          const again = { ...c, ...n, mode: c.kind === 'word' ? 'recognize' : c.mode, repeat: true, tries: (c.tries || 0) + 1 };
           items.splice(Math.min(items.length, i + 4), 0, again);
         }
         const el = view.querySelector('.review'); if (el) el.classList.add('out');
@@ -2008,10 +2156,14 @@
       refreshHome().catch(() => {});
       view.ontouchstart = view.ontouchmove = view.ontouchend = null; document.body.classList.remove('reviewing');
       view.innerHTML = `<div class="card done-card enter">${doneRing}<h2 class="h2">这一轮复习了 ${doneIds.size} 个</h2>${doneN > doneIds.size ? `<p class="muted tiny">共作答 ${doneN} 次，其中 ${doneN - doneIds.size} 次是再巩固</p>` : ''}
-        <p class="muted small">记得 ${tally.good + tally.easy} · 模糊 ${tally.hard} · 忘了 ${tally.again}${tally.known ? ' · 熟知 ' + tally.known : ''}。新学的词 10 分钟后还会再见一次，之后按遗忘曲线安排。</p>
+        <p class="muted small">记得 ${tally.good + tally.easy} · 模糊 ${tally.hard} · 忘了 ${tally.again}${tally.known ? ' · 熟知 ' + tally.known : ''}。</p>
+        <p class="small cheer">${tally.good + tally.easy ? `记得的都往后推了${farthest > 1 ? `，最远的要 ${farthest} 天后才再见` : ''}。` : ''}${tally.again ? `忘了的 ${tally.again} 个明天再来：忘了再想起来，正是记牢的过程。` : tally.good + tally.easy ? '这一轮全都记得，很稳。' : ''}</p>
         ${left && (left.due + left.new) ? `<p class="small">还有 ${left.due + left.new} 个可以继续。</p>` : ''}
-        <div class="row center"><a class="btn" href="#/cards">单词</a>${left && (left.due + left.new) ? '<button class="btn primary" id="again">继续</button>' : '<a class="btn primary" href="#/">回到今日</a>'}</div></div>`;
+        <div class="row center"><a class="btn" href="#/cards">单词</a>${left && (left.due + left.new) ? '<button class="btn primary" id="again">继续</button>' : '<a class="btn primary" href="#/">回到今日</a>'}</div>
+        ${left && !(left.due + left.new) ? '<div class="row center"><button class="btn ghost small" id="moreNew">还想多背：再学 10 个新词</button></div>' : ''}</div>`;
       const ag = document.getElementById('again'); if (ag) ag.onclick = () => reviewView();
+      const mn = document.getElementById('moreNew');
+      if (mn) mn.onclick = async () => { mn.disabled = true; try { const r = await api('/api/next/vocab/more', { n: 10 }); if (r.added) reviewView(); else { toast('词书里的词都学过了'); } } catch (e) { toast(e.message); mn.disabled = false; } };
     }
     ask();
   }
