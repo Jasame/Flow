@@ -416,6 +416,21 @@ button.xcard:hover{border-color:var(--green-line)}
 .books{display:grid;gap:10px}
 .bookc{display:grid;gap:4px;text-align:left;font:inherit;color:inherit;cursor:pointer;border-width:1.5px}
 .bookc[aria-pressed=true]{border-color:var(--green);background:var(--green-soft)}
+/* the picker: books under group headings (按词频, 大学英语, 英语专业 …); a data book's note on how it was made under its card */
+.bookgroups{display:grid;gap:18px;margin-top:2px}
+.bookgroup .kicker{margin-bottom:8px}
+.bookcell{display:grid;grid-template-rows:1fr auto;min-width:0}
+.bk-top{display:flex;justify-content:space-between;align-items:center;gap:8px;min-width:0}
+.bk-tags{display:inline-flex;align-items:center;gap:6px;flex:none}
+.bk-n{font-variant-numeric:tabular-nums;white-space:nowrap}
+.bookc .bk-on{display:none}
+.bookc[aria-pressed=true] .bk-on{display:inline-flex;background:var(--green-ink);color:var(--paper)}
+details.basis>summary{display:flex;align-items:center;gap:4px;min-height:36px;padding:4px 4px 0;font-size:12.5px;color:var(--ink2);list-style:none;cursor:pointer}
+details.basis>summary::-webkit-details-marker{display:none}
+details.basis>summary::after{content:"";width:6px;height:6px;margin-left:2px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(45deg) translateY(-2px);transition:transform .2s var(--ease)}
+details.basis[open]>summary::after{transform:rotate(225deg) translateY(-1px)}
+details.basis>p{margin:2px 4px 4px;line-height:1.6}
+details.basis[open]>summary{margin-bottom:0}
 .curve{width:100%;height:auto;display:block}
 .curve .line{fill:none;stroke:var(--green);stroke-width:2.5;stroke-linecap:round}
 .curve .target{stroke:var(--line2);stroke-dasharray:4 4}
