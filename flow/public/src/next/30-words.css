@@ -26,7 +26,7 @@ button.xcard:hover{border-color:var(--green-line)}
 .bk-tags{display:inline-flex;align-items:center;gap:6px;flex:none}
 .bk-n{font-variant-numeric:tabular-nums;white-space:nowrap}
 .bookc .bk-on{display:none}
-.bookc[aria-pressed=true] .bk-on{display:inline-flex;background:var(--green-ink);color:var(--paper)}
+.bookc[aria-pressed=true] .bk-on{display:inline-flex;background:var(--fill);color:var(--on-fill)}
 details.basis>summary{display:flex;align-items:center;gap:4px;min-height:36px;padding:4px 4px 0;font-size:12.5px;color:var(--ink2);list-style:none;cursor:pointer}
 details.basis>summary::-webkit-details-marker{display:none}
 details.basis>summary::after{content:"";width:6px;height:6px;margin-left:2px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(45deg) translateY(-2px);transition:transform .2s var(--ease)}
