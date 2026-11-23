@@ -74,6 +74,7 @@ def beta_unit(text):
 
 def beta_timer_unit(text):
     text = text.replace(str(OPS / 'flow-autodeploy.py'), str(OPS / 'beta' / 'flow-autodeploy.py') + ' --beta')
+    text = text.replace(str(ENV), str(BENV))  # its end-to-end test runs with the 内测版's settings
     text = text.replace('flow-autodeploy.service', 'flow-autodeploy-beta.service')
     return re.sub(r'^Description=.*$', 'Description=Flow 内测版 autodeploy (tags b<N>)', text, flags=re.M)
 
