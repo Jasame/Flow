@@ -108,8 +108,13 @@ def retell(c, uid, data):
 # ---------- role-play dialogue ----------
 
 def dialog(c, uid, data):
-    """Role-play around the material's speaking task. The client keeps the history; each call is one AI turn."""
-    p, level = _material(c, uid, data)
+    """Role-play around the material's speaking task, or a scene of the speaking route (data['scenario']).
+    The client keeps the history; each call is one AI turn."""
+    sc = __import__('scenarios').pack(data.get('scenario')) if isinstance(data.get('scenario'), str) else None
+    if sc:
+        p, level = sc, (nx.profile(c, uid) or {}).get('level') or sc['cefr']
+    else:
+        p, level = _material(c, uid, data)
     if not p:
         return {'error': '材料不存在'}, 404
     hist = data.get('history') or []
@@ -130,7 +135,8 @@ def dialog(c, uid, data):
     task = p.get('speaking') or f"围绕「{p['title']}」这个话题聊一聊"
     system = ('你在和一位中国英语学习者做情景对话练习。' + LEVEL_NOTE.get(level, '') + '你扮演情景里的另一方，说话自然、简短（1–3 句），'
               '用学习者水平能听懂的英语，适时追问让对方多说。不要替学习者回答。只输出 JSON。')
-    scene = f"材料：{p['title']}\n材料内容：{p['body'][:1500]}\n口语任务：{task}"
+    scene = (f"情景：{p['title']}（{p['title_en']}）\n{p['body']}\n口语任务：{task}" if sc else
+             f"材料：{p['title']}\n材料内容：{p['body'][:1500]}\n口语任务：{task}")
     if not hist:
         user = scene + '\n\n开始对话：先用一句中文说明情景和你扮演的角色，再用英文说第一句。输出 JSON：{"scene":"中文情景说明","role":"你扮演的角色（中文）","reply":"你的第一句英文"}'
     elif end:

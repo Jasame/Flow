@@ -362,6 +362,20 @@ def persona_exam(cl):
     check(who, 'mixed round: a confusable pair interleaved', s == 200 and len(mx.get('items', [])) == 6 and all(a['node'] != b['node'] for a, b in zip(mx['items'], mx['items'][1:])), s)
     s, mo = cl.post('/api/next/vocab/more', {'n': 5})
     check(who, 'words: five more new words on request', s == 200 and mo.get('added') == 5, mo)
+    # r15: easy reading, a word group in the look-up, the speaking route, the B1 serial, my progress
+    s, ez = cl.get('/api/next/easy')
+    check(who, 'easy reading: texts a level below', s == 200 and ez.get('target') == 'B1' and ez.get('items'), s)
+    if s == 200 and ez.get('items'):
+        s, ed = cl.post('/api/next/easy/done', {'pack': ez['items'][0]['id'], 'seconds': 80, 'rating': 'ok'})
+        check(who, 'easy reading: words and speed recorded', s == 200 and ed.get('saved') and ed.get('words', 0) > 0, ed)
+    s, lk = cl.get('/api/next/lookup?w=lent')
+    check(who, 'look-up names the confusable group', s == 200 and (lk.get('entry') or {}).get('confusable', [{}])[0].get('id') == 'borrow-lend', s)
+    s, sp = cl.get('/api/next/speak')
+    check(who, 'speaking route: twelve scenes', s == 200 and sp.get('total') == 12 and sp.get('next'), s)
+    s, se = cl.get('/api/next/series?id=a-new-term')
+    check(who, 'B1 serial: six episodes', s == 200 and se.get('of') == 6, s)
+    s, gw = cl.get('/api/next/growth')
+    check(who, 'my progress: this month and milestones', s == 200 and gw.get('now', {}).get('words_read', 0) > 0 and len(gw.get('milestones', [])) >= 10, s)
     s, m = cl.get('/api/next/material?id=' + PID)
     check(who, 'material has a speaking and writing task', s == 200 and (m.get('speaking_task') or m.get('writing_task')), [k for k in m if 'task' in k] if isinstance(m, dict) else m)
     s, j, r = cl.ai('/api/next/retell', {'pack': PID, 'text': 'The article say noise cancelling headphones listen to the outside noise and make a opposite sound wave. '

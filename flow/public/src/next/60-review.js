@@ -59,14 +59,14 @@
 
     // Mistakes come back on the forgetting curve too: answer the question again, fix the phrase, say the sound.
     function mistakeAsk() {
-      const ex = c.extra || {}, src = { reading: '理解题', writing: '写作', speaking: '口语', translation: '翻译', pronunciation: '发音' }[c.skill] || '错题';
+      const ex = c.extra || {}, src = { reading: '理解题', writing: '写作', speaking: '口语', translation: '翻译', pronunciation: '发音', vocabulary: '词汇辨析', grammar: '语法' }[c.skill] || '错题';
       const tag = `<span class="pill amber rtag">错题 · ${esc(src)}</span>`;
       let body = '';
       if (c.mode === 'question' && c.variant) {
         // A grammar mistake comes back as a different question on the same point: the rule is practised, not one answer.
         const v = c.variant;
-        body = `${tag}<div class="tiny muted">同一个语法点，换一道题${c.node ? '：' + esc(c.node.title) : ''}</div><div class="prompt-q">${esc(v.prompt)}</div>
-          <div class="qopts">${v.options.map((o, k) => `<button class="qopt" data-o="${v.map[k]}">${esc(o)}</button>`).join('')}</div>`;
+        body = `${tag}<div class="tiny muted">${v.kind === 'word' ? '同一组易混词，换一道题：' + esc(c.text) : '同一个语法点，换一道题' + (c.node ? '：' + esc(c.node.title) : '')}</div><div class="prompt-q">${esc(v.prompt)}</div>
+          <div class="qopts">${v.options.map((o, k) => `<button class="qopt" data-o="${v.map ? v.map[k] : k}">${esc(o)}</button>`).join('')}</div>`;
       } else if (c.mode === 'question') {
         // A reading question comes back with its part of the text: it is answered by reading, not by remembering.
         const opts = ex.options || [], ps = c.passage;
@@ -96,11 +96,18 @@
       if (c.mode === 'question' && c.variant) {
         view.querySelectorAll('[data-o]').forEach(b => b.onclick = async () => {
           view.querySelectorAll('[data-o]').forEach(x => { x.disabled = true; });
-          let r; try { r = await api('/api/next/node/answer', { question: c.variant.id, choice: Number(b.dataset.o), from: 'review' }); }
-          catch (e) { toast(e.message); view.querySelectorAll('[data-o]').forEach(x => { x.disabled = false; }); return; }
+          let r;
+          if (c.variant.kind === 'word') {  // a word group: checked here, the answer recorded for the group's progress
+            r = { correct: Number(b.dataset.o) === c.variant.answer, answer: c.variant.answer, explanation: c.variant.explanation };
+            api('/api/next/words/confuse/answer', { item: c.variant.id, correct: r.correct, from: 'review' }).catch(() => {});
+          } else {
+            try { r = await api('/api/next/node/answer', { question: c.variant.id, choice: Number(b.dataset.o), from: 'review' }); }
+            catch (e) { toast(e.message); view.querySelectorAll('[data-o]').forEach(x => { x.disabled = false; }); return; }
+          }
           view.querySelectorAll('[data-o]').forEach(x => { if (Number(x.dataset.o) === r.answer) x.classList.add('right'); });
           if (!r.correct) b.classList.add('wrong');
           after(r.correct ? 'good' : 'again', `<div class="${r.correct ? 'ok' : 'bad'}">${r.correct ? '✓ 换了一道题也答对了' : '这题没答对'}</div><div class="small">${esc(r.explanation || '')}</div>
+            ${!r.correct && c.variant.kind === 'word' ? `<div class="tiny muted">${esc(c.meaning || '')}</div>` : ''}
             ${!r.correct && c.node ? `<a class="link small" href="#/graph/${encodeURIComponent(c.node.id)}">回到「${esc(c.node.title)}」看一遍讲解 →</a>` : ''}`);
         });
         keys({ 1: () => view.querySelector('.qopt:nth-child(1)').click(), 2: () => view.querySelector('.qopt:nth-child(2)').click(), 3: () => view.querySelector('.qopt:nth-child(3)').click(), 4: () => view.querySelector('.qopt:nth-child(4)').click() });
