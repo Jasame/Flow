@@ -1,3 +1,3 @@
-c143085d754ece4cd7faabb50bb5b9c2166a179b d2038f3dd5a6626df803e44a1f01559cfdb46f39724314c87562715071f672df e2e
-# r17 ability-radar: Ability radar: six skills against the learner's own goals, short assessments, and what moved
+c3c9dd5dbd548440ba759453836c0a8467e37643 22d0e45043378c13ceecaae5fa369dcde7d992d9dfb125b45881b22e7373ee6a e2e
+# r18 polish: 操作指南 on the site and as a PDF, a 练习 tab, a fuller weekly report, and AI calls that survive a hiccup
 # Format: <commit sha> <manifest sha256> [e2e]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
