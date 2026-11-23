@@ -90,3 +90,10 @@ details.preread>summary .tiny{flex-basis:100%}
 /* on the home screen: two numbered steps, the share icon drawn as the phone shows it */
 .isteps{margin:0;padding-left:1.4em;display:grid;gap:10px;font-size:15px;line-height:1.6}
 .ishare{width:20px;height:20px;vertical-align:-4px;fill:none;stroke:var(--accent,#0a84ff);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+/* 复读: how many times each sentence, and the pause after it */
+.loopbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-top:10px}
+.loopbar .tiny{margin-left:2px}
+.loopbar .chip[aria-pressed=true]{background:var(--green-soft);border-color:var(--green);color:var(--green-ink);font-weight:600}
+/* 撤销 in the review's top bar */
+.rtop .undo{margin-left:auto;white-space:nowrap;min-height:36px;padding:0 6px}
+.rsum{margin:4px 0 0;color:var(--ink2)}

@@ -12,7 +12,7 @@ Neither keeps an account or an address: the platform is worked out from the User
 Both are capped per day and kept 30 days. The console shows the errors under 错误 (administrators) and the times
 under 打开速度 (everyone who can open the console).
 """
-import re, time
+import re, sqlite3, time
 from datetime import datetime, timedelta
 
 KINDS = {'js': '脚本出错', 'promise': '未处理的异步错误', 'resource': '资源没加载出来', 'api': '请求失败', 'audio': '声音放不出来'}
@@ -33,7 +33,11 @@ def schema(c):
     c.execute('CREATE TABLE IF NOT EXISTS open_times(id INTEGER PRIMARY KEY, created REAL NOT NULL, day TEXT NOT NULL, domain TEXT NOT NULL, '
               'platform TEXT NOT NULL, browser TEXT NOT NULL, net TEXT NOT NULL, tz TEXT NOT NULL, repeat INTEGER NOT NULL, standalone INTEGER NOT NULL, '
               'first_view INTEGER, waited INTEGER NOT NULL DEFAULT 0, dns INTEGER, connect INTEGER, tls INTEGER, ttfb INTEGER, html INTEGER, '
-              'scripts INTEGER, home_api INTEGER, render INTEGER)')
+              'scripts INTEGER, home_api INTEGER, render INTEGER, snap INTEGER NOT NULL DEFAULT 0)')
+    try:  # a table made before the page could draw from its kept copy (r21) gets the column
+        c.execute('ALTER TABLE open_times ADD COLUMN snap INTEGER NOT NULL DEFAULT 0')
+    except sqlite3.OperationalError:
+        pass
     c.execute('CREATE INDEX IF NOT EXISTS open_times_day ON open_times(day)')
 
 
@@ -124,10 +128,10 @@ def open_time(c, data, ua):
     system, browser = platform(ua)
     domain = str(data.get('domain') or '').lower()
     first = _ms(data.get('first_view'))
-    c.execute('INSERT INTO open_times(created, day, domain, platform, browser, net, tz, repeat, standalone, first_view, waited, '
-              + ', '.join(PHASES) + ') VALUES(' + ','.join('?' * (11 + len(PHASES))) + ')',
+    c.execute('INSERT INTO open_times(created, day, domain, platform, browser, net, tz, repeat, standalone, snap, first_view, waited, '
+              + ', '.join(PHASES) + ') VALUES(' + ','.join('?' * (12 + len(PHASES))) + ')',
               (time.time(), day, domain if domain in DOMAINS else '其他', system, browser, data.get('net') if data.get('net') in NETS else '',
-               str(data.get('tz') or '')[:40], int(bool(data.get('repeat'))), int(bool(data.get('standalone'))), first,
+               str(data.get('tz') or '')[:40], int(bool(data.get('repeat'))), int(bool(data.get('standalone'))), int(bool(data.get('snap'))), first,
                _ms(data.get('waited')) or 0, *[_ms(data.get(k)) for k in PHASES]))
     c.commit()
     return {'ok': True}, 200
@@ -174,7 +178,8 @@ def speed(c, days=7):
     rows = [dict(r) for r in c.execute('SELECT * FROM open_times WHERE day>=?', (since,)).fetchall()]
     label = {'repeat': lambda r: '再次打开（有缓存）' if r['repeat'] else '第一次打开', 'net': lambda r: r['net'] or '浏览器没有告诉',
              'platform': lambda r: r['platform'], 'browser': lambda r: r['browser'], 'domain': lambda r: r['domain'],
-             'standalone': lambda r: '从桌面打开' if r['standalone'] else '在浏览器里'}
+             'standalone': lambda r: '从桌面打开' if r['standalone'] else '在浏览器里',
+             'snap': lambda r: '先显示上次的内容' if r.get('snap') else '等服务器的回答'}
     by = {}
     for name, f in label.items():
         groups = {}

@@ -33,6 +33,11 @@
             markStep('check');
             pane.querySelector('#score').innerHTML = `<div class="card sunk row between enter"><span><b>${right} / ${m.questions.length}</b> 题答对</span><button class="btn primary" id="toOut">去用出来 →</button></div>`;
             pane.querySelector('#toOut').onclick = () => go('output');
+            // After a first article tried without any questions: offer the level questions (and an account) next.
+            if (!S.user && !hasProfile()) pane.querySelector('#score').insertAdjacentHTML('beforeend', `<div class="card stack-s enter try-next"><b>觉得有用？按你的水平每天推荐一篇</b>
+              <span class="small muted">回答 4 个问题，大约 1 分钟；注册以后，进度和收藏会保存下来。</span>
+              <div class="row"><a class="btn primary" href="#/welcome" data-tap="trial-level">回答 4 个问题</a><button class="btn" id="trialReg" type="button">注册 / 登录</button></div></div>`);
+            const tr = pane.querySelector('#trialReg'); if (tr) tr.onclick = () => openLogin();
           }
         } catch (e) { toast(e.message); delete answered[i]; box.querySelectorAll('.ans').forEach(x => x.disabled = false); }
       });

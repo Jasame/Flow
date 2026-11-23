@@ -58,12 +58,28 @@
   // The home data carries the session too (who is signed in, the CSRF token): one request, not two in a row,
   // which on a line from mainland China to the server is about a second saved. Signed in, the server ignores the
   // guest's level and themes in the query, so asking before S.user is known gives the same answer.
+  // The home data: who is signed in, today's plan and counts. Kept on the phone for the next visit (05-data.js).
+  // Says whether anything changed since the copy the page was drawn from.
   async function refreshHome() {
+    const before = S.home ? JSON.stringify(S.home) : '';
     S.home = await api('/api/next/home' + guestQuery(true));
     if (S.home.session) { S.user = S.home.session.user; S.csrf = S.user ? S.user.csrf : ''; }
+    S.homeFromSnap = false; DATA.ok();
+    const changed = before !== JSON.stringify(S.home);
+    if (changed) snapHome();
     if (S.home.profile && S.home.profile.voice) { S.voice = S.home.profile.voice; save('flow-next-voice', S.voice); }
-    const due = S.home.stats ? S.home.stats.due + S.home.stats.new : 0;
+    setDueBadge();
+    return changed;
+  }
+  function setDueBadge() {
+    const due = S.home && S.home.stats ? S.home.stats.due + S.home.stats.new : 0;
     const b = document.getElementById('dueBadge'); b.hidden = !due; b.textContent = due > 99 ? '99+' : due;
+  }
+  // The page drawn again with fresher data, without the loading skeleton or the entrance animation, and only when it
+  // would not take anything from the learner (a sheet open, typing in a field, another page by now).
+  function redrawQuietly(drawnFor) {
+    if (location.hash !== drawnFor || !sheetEl.hidden || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName))) return;
+    S.homeFresh = true; route(true, true);
   }
   function needLogin(reason) { openLogin(reason); return false; }
   /* ---------- sign in, sign up, a forgotten password ---------- */
@@ -93,10 +109,27 @@
   // In WeChat's built-in browser: a slim bar, under the top bar, on opening the page in the phone's browser, where every
   // sound plays and the app can be put on the home screen. Closed, it stays away for a week.
   function wechatBar() {
-    if (!WECHAT || Date.now() - (load('flow-wx-bar') || 0) < 7 * 864e5) return;
-    const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (!WECHAT) return;
+    const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent), menu = ios ? '在默认浏览器中打开' : '在浏览器打开';
+    // The first visit in WeChat: an arrow to the ··· menu, the two steps, and a way to copy the address instead.
+    if (!load('flow-wx-guide')) {
+      save('flow-wx-guide', Date.now());
+      const g = document.createElement('div'); g.className = 'wx-guide'; g.setAttribute('role', 'dialog'); g.setAttribute('aria-label', '在浏览器里打开');
+      g.innerHTML = `<svg class="wx-arrow" viewBox="0 0 120 120" aria-hidden="true"><path d="M20 110 C 40 60, 70 40, 104 16" /><path d="M86 14 L106 14 L102 34" /></svg>
+        <div class="wx-steps"><b>在浏览器里打开，用起来更顺</b>
+          <ol><li>点右上角的「···」</li><li>选「${menu}」</li></ol>
+          <span class="small">在浏览器里可以听全部录音、用浏览器朗读，还能把语流放到手机桌面。</span>
+          <div class="row"><button class="btn" type="button" id="wxCopy">复制网址</button><button class="btn primary" type="button" id="wxStay">先在微信里看看</button></div></div>`;
+      document.body.appendChild(g);
+      g.querySelector('#wxStay').onclick = () => g.remove();
+      g.querySelector('#wxCopy').onclick = async () => {
+        const url = location.origin + '/';
+        try { await navigator.clipboard.writeText(url); toast('网址已复制，到浏览器里粘贴打开'); } catch (e) { toast('长按复制：' + url); }
+      };
+    }
+    if (Date.now() - (load('flow-wx-bar') || 0) < 7 * 864e5) return;
     const el = document.createElement('div'); el.className = 'wx-bar'; el.setAttribute('role', 'note');
-    el.innerHTML = `<span>微信里部分声音和安装功能用不了。点右上角「···」，选「${ios ? '在默认浏览器中打开' : '在浏览器打开'}」，可以听全部音频，还能把语流装到桌面。</span>
+    el.innerHTML = `<span>微信里部分声音和安装功能用不了。点右上角「···」，选「${menu}」，可以听全部音频，还能把语流装到桌面。</span>
       <button type="button" class="wx-x" aria-label="关闭提示">×</button>`;
     el.querySelector('.wx-x').onclick = () => { save('flow-wx-bar', Date.now()); el.remove(); };
     document.getElementById('bar').after(el);
@@ -207,6 +240,11 @@
     if (gt && gt.answers) { try { await api('/api/next/vocab/test', { answers: gt.answers }); save('flow-next-guest-test', null); } catch (e) { /* try next time */ } }
   }
 
+  /* ---------- 字号和行距 (81-me.js): set before anything is drawn ---------- */
+  const TEXT = Object.assign({ size: 'm', lh: 'n' }, load('flow-next-text') || {});
+  function applyText() { document.documentElement.dataset.size = TEXT.size; document.documentElement.dataset.lh = TEXT.lh; }
+  applyText();
+
   /* ---------- the tab bar's place ---------- */
   // On phones the tabs are fixed to the bottom, outside the sticky top bar: iOS Safari moves a fixed element along
   // with a sticky ancestor, and inside the bar the tabs slid up the screen on a long page. On wide screens they are a
@@ -224,7 +262,7 @@
   /* ---------- router ---------- */
   function setNav(name) { document.querySelectorAll('[data-nav]').forEach(a => a.dataset.nav === name ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')); }
   function parts() { return location.hash.replace(/^#\/?/, '').split('/'); }
-  async function route(keepScroll) {
+  async function route(keepScroll, quiet) {
     if (/^#reset=/.test(location.hash)) {  // an older password-reset email
       const token = decodeURIComponent(location.hash.slice(7)); history.replaceState(null, '', location.pathname + location.search + '#/');
       setTimeout(() => resetByLink(token), 0);
@@ -234,7 +272,7 @@
     const last = S.lastRoute.split('/');
     const sameMaterial = name === 'm' && last[0] === 'm' && last[1] === a && !!view.querySelector('#pane');
     S.prevRoute = S.lastRoute; S.lastRoute = parts().join('/');  // 问题反馈 says which page it came from
-    if (!sameMaterial) view.innerHTML = skeleton();
+    if (!sameMaterial && !quiet) view.innerHTML = skeleton();
     let fresh = S.homeFresh; S.homeFresh = false;  // home data fetched just before this page: today() need not ask again
     try {
       if (!S.home) { await refreshHome(); fresh = true; }
@@ -264,12 +302,12 @@
       else if (name === 'me') { setNav('me'); await meView(); }
       else if (name === 'feedback') { setNav('me'); await feedbackView(); }
       else { setNav('today'); await today(fresh); }
-      if (!sameMaterial && name !== 'welcome') enter(view);
-      if (!sameMaterial) { const h = view.querySelector('h1'); announce(h ? h.textContent : document.title); }
+      if (!sameMaterial && name !== 'welcome' && !quiet) enter(view);
+      if (!sameMaterial && !quiet) { const h = view.querySelector('h1'); announce(h ? h.textContent : document.title); }
     } catch (e) {
       view.innerHTML = `<div class="empty"><div class="big">⚠︎</div><p>${esc(e.message)}</p><button class="btn" id="retry">重试</button><p class="small"><a class="link" href="#/feedback">反馈这个问题</a></p></div>`;
       document.getElementById('retry').onclick = () => route();
-    } finally { if (!keepScroll && !sameMaterial) view.focus({ preventScroll: true }); }
+    } finally { if (!keepScroll && !sameMaterial && !quiet) view.focus({ preventScroll: true }); }
   }
   window.addEventListener('hashchange', () => {
     const [name, a] = parts(), last = S.lastRoute.split('/');

@@ -254,7 +254,7 @@
           return '<span style="--k:' + i + '"><i></i>' + PH[k] + ' ' + sec(d.phases[k]) + '</span>';
         }).join('') + '</div><p class="muted small">「查域名」「建立连接」「加密握手」慢，多半是网络线路的问题；「服务器响应」「取首页数据」慢，是服务器的问题；「等脚本下载完」慢，是网页太大或网络带宽不够。</p></section>' +
           table('按访问的网址', d.by.domain) + table('按手机', d.by.platform) + table('按浏览器（微信、Safari…）', d.by.browser) +
-          table('第一次打开 / 再次打开', d.by.repeat) + table('从桌面打开 / 在浏览器里', d.by.standalone) + table('按网络（安卓浏览器会告诉）', d.by.net) +
+          table('先显示上次的内容 / 等服务器的回答', d.by.snap || []) + table('第一次打开 / 再次打开', d.by.repeat) + table('从桌面打开 / 在浏览器里', d.by.standalone) + table('按网络（安卓浏览器会告诉）', d.by.net) +
           table('按天', d.daily.map(function (x) { return Object.assign({ group: x.day }, x); })) : '<section class="card"><p class="muted">还没有数据：发版后学员打开网站就会开始记录。</p></section>');
       document.getElementById('spDays').onchange = function (e) { SP.days = Number(e.target.value); speedView(); };
     }).catch(fail);

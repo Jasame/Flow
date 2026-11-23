@@ -215,8 +215,8 @@
   async function preloadMaterial(id) {
     if (!id || MAT[id] || PRELOAD.frugal()) return;
     try {
-      const m = await api('/api/next/material?id=' + encodeURIComponent(id) + (S.user ? '' : '&level=' + encodeURIComponent(level())));
-      MAT[id] = m; m._preloaded = Date.now();
+      const m = await api(materialPath(id));
+      MAT[id] = m; m._preloaded = Date.now(); snapMaterial(materialPath(id), m);
       const vs = (m.audio && m.audio.voices) || [];
       if (vs.length) PRELOAD.warm(`/audio/${vs.includes(S.voice) ? S.voice : vs[0]}/${encodeURIComponent(id)}.mp4?v=${m.audio.version}`);
     } catch (e) { /* it loads when opened */ }
@@ -271,6 +271,8 @@
     key: 'flow-next-outbox',
     list() { return load(this.key) || []; },
     push(item) { const l = this.list(); l.push(item); save(this.key, l.slice(-500)); },
+    // 撤销 of a rating made offline: it has not been sent, so it is simply taken out again
+    unpush(item) { const l = this.list(), k = l.map(x => JSON.stringify(x)).lastIndexOf(JSON.stringify(item)); if (k >= 0) { l.splice(k, 1); save(this.key, l); return true; } return false; },
     async flush() {
       if (this.busy || !S.user || !navigator.onLine) return 0;
       this.busy = true; let sent = 0;

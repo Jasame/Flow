@@ -671,6 +671,32 @@ def platform_run(pw):
         check(dev, 'page errors are sent when the page is left: a script error and a picture that did not load',
               any(x['kind'] == 'js' and 'ui-test boom' in x['message'] for x in items) and any(x['kind'] == 'resource' and '/no-such-picture.png' in x['message'] for x in items), items[:4])
         ctx.close()
+        # instant pages and preloading (05-data.js): the second visit draws 今日 from the copy kept on the phone while the
+        # server is still answering; idle time preloads the other tabs; a touch on a link starts that page's request
+        ctx = browser.new_context(viewport={'width': 390, 'height': 800}, is_mobile=True, has_touch=True, user_agent=IPHONE_UA, locale='zh-CN', bypass_csp=True)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['b1']['token'], 'url': BASE}])  # signed out at the end
+        pg = ctx.new_page(); asked = []
+        pg.on('request', lambda r: asked.append(r.url.split(BASE, 1)[-1]) if '/api/' in r.url else None)
+        pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg); pg.wait_for_timeout(1500)
+        snap = pg.evaluate("() => JSON.parse(localStorage.getItem('flow-snap') || 'null')")
+        check(dev, 'preload: 今日 is kept on the phone, without the session token', bool(snap and snap.get('home')) and 'csrf' not in json.dumps(snap), (snap or {}).keys())
+        check(dev, 'preload: idle time fetched 单词 before it was opened', any(a.startswith('/api/next/vocab') for a in asked), [a for a in asked][:8])
+        held = []
+        pg.route('**/api/next/home*', lambda r: held.append(r))
+        t0 = time.time(); pg.goto(BASE + '/#/', wait_until='domcontentloaded')
+        pg.wait_for_selector('#view .today-plan, #view .hello', timeout=4000); quick = time.time() - t0
+        check(dev, 'preload: the second visit draws 今日 at once, while the server is still answering', quick < 2.5 and held, f'{quick:.2f}s, home held: {len(held)}')
+        for r in held:
+            r.continue_()
+        pg.unroute('**/api/next/home*'); pg.wait_for_timeout(800)
+        go(pg, '#/'); asked.clear()
+        link = pg.query_selector('#view a[href^="#/m/"]')
+        if link:
+            link.dispatch_event('pointerdown'); pg.wait_for_timeout(250)
+        check(dev, 'preload: touching a material link starts its request before the tap ends', link is not None and any(a.startswith('/api/next/material?id=') for a in asked), asked[:5])
+        go(pg, '#/me'); pg.click('#out'); pg.wait_for_timeout(800)
+        check(dev, 'preload: signing out clears the copy kept on the phone', pg.evaluate("() => localStorage.getItem('flow-snap')") is None)
+        ctx.close()
     finally:
         browser.close()
 
@@ -719,6 +745,9 @@ def wechat_run(pw):
         pg = ctx.new_page(); errors = []
         pg.on('pageerror', lambda e: errors.append(str(e)))
         pg.goto(base + '/#/', wait_until='networkidle'); settle(pg)
+        guide = pg.text_content('.wx-guide') if pg.query_selector('.wx-guide') else ''
+        check(dev, 'the first visit points at the ··· menu: two steps, and a way to copy the address', '「···」' in guide and '在浏览器打开' in guide and pg.is_visible('#wxCopy'), guide[:80])
+        pg.click('#wxStay'); pg.wait_for_timeout(150)
         bar = pg.text_content('.wx-bar') if pg.query_selector('.wx-bar') else ''
         check(dev, 'a slim bar says how to open the page in the browser', '在浏览器打开' in bar and pg.is_visible('.wx-bar .wx-x'), bar[:80])
         pg.click('.wx-bar .wx-x'); pg.reload(); settle(pg)
@@ -881,6 +910,66 @@ def layout_run(pw, engine):
         browser.close()
 
 
+# ---- the experience round: 复读 in 听, 撤销 in review, 字号和行距, and a first visit that can start with an article
+FAKE_TTS = """(() => { window.__said = []; if (!window.speechSynthesis) return;
+  speechSynthesis.speak = u => { window.__said.push(u.text); setTimeout(() => { u.onstart && u.onstart(); u.onend && u.onend(); }, 40); };
+  speechSynthesis.cancel = () => {}; speechSynthesis.getVoices = () => [{ name: 'Test', lang: 'en-US' }]; })();"""
+
+
+def ux_run(pw):
+    dev = 'ux'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    phone = dict(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
+    try:
+        ctx = browser.new_context(**phone)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a2']['token'], 'url': BASE}])
+        ctx.add_init_script(FAKE_TTS)
+        pg = ctx.new_page(); pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+        # 复读: 3 遍, no pause: one tap on a sentence says it three times
+        go(pg, f'#/m/{PID}/listen'); pg.wait_for_selector('[data-rep="3"]', timeout=5000)
+        pg.click('[data-rep="3"]'); pg.evaluate('window.__said = []')
+        pg.click('[data-say="0"]'); pg.wait_for_timeout(900)
+        said = pg.evaluate('window.__said')
+        check(dev, '复读: a sentence is said three times, with a stop button on screen', len(said) == 3 and len(set(said)) == 1 and pg.is_visible('.mini-player'), said)
+        pg.reload(); settle(pg, '[data-rep]')
+        check(dev, '复读: the choice is remembered', pg.get_attribute('[data-rep="3"]', 'aria-pressed') == 'true')
+        pg.click('[data-rep="1"]')
+        # 字号: 特大 makes the reading text larger, and a 360-pixel phone still does not scroll sideways
+        go(pg, '#/me'); pg.click('#meText'); pg.wait_for_selector('#sheetCard [data-ts="xl"]', timeout=4000)
+        pg.click('#sheetCard [data-ts="xl"]'); pg.click('#sheetCard [data-tl="w"]'); pg.evaluate("document.querySelector('#sheet [data-close]').click()")
+        pg.set_viewport_size({'width': 360, 'height': 780}); go(pg, f'#/m/{PID}/read'); pg.wait_for_timeout(400)
+        z = pg.evaluate("() => { const t = document.querySelector('#view .text'); return t ? [getComputedStyle(t).zoom, getComputedStyle(t).lineHeight] : null; }")
+        wide = pg.evaluate('document.scrollingElement.scrollWidth - innerWidth')
+        check(dev, '字号: 特大 and 宽松 apply to the reading text, and the page stays within the screen', z and float(z[0]) == 1.25 and wide <= 0, (z, wide))
+        pg.set_viewport_size({'width': 390, 'height': 844}); go(pg, '#/me'); pg.click('#meText'); pg.wait_for_selector('#sheetCard [data-ts="m"]', timeout=4000)
+        pg.click('#sheetCard [data-ts="m"]'); pg.click('#sheetCard [data-tl="n"]'); pg.evaluate("document.querySelector('#sheet [data-close]').click()")
+        # 撤销: a rating taken back brings the same card up again
+        go(pg, '#/review'); pg.wait_for_timeout(400)
+        first = pg.text_content('#view .review') or ''
+        b = pg.query_selector('.choice button[data-claim="forgot"]')
+        if b:
+            b.click(); pg.wait_for_timeout(300)
+            r = pg.query_selector('#view [data-rate="again"]') or pg.query_selector('#view [data-rate]')
+            if r:
+                r.click(); pg.wait_for_timeout(500)
+        has = pg.query_selector('#undo') is not None
+        if has:
+            pg.click('#undo'); pg.wait_for_timeout(600)
+        again = pg.text_content('#view .review') or ''
+        check(dev, '撤销: the latest rating is taken back and the same card comes up again', has and again[:40] == first[:40], (has, first[:40], again[:40]))
+        ctx.close()
+        # a first visit: no questions first, today's article can be tried at once
+        ctx = browser.new_context(**phone); pg = ctx.new_page()
+        pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg, '.try-first')
+        link = pg.get_attribute('.try-first a', 'href') or ''
+        if link:
+            pg.click('.try-first a'); pg.wait_for_selector('#view .steps', timeout=6000)
+        check(dev, 'first visit: 先试读一篇 opens today\'s article without questions or an account', link.startswith('#/m/') and '/m/' in pg.evaluate('location.hash'), link)
+        ctx.close()
+    finally:
+        browser.close()
+
+
 def main():
     with sync_playwright() as pw:
         for dev, opts in DEVICES.items():
@@ -900,6 +989,11 @@ def main():
                 wechat_run(pw)
             except Exception:
                 check('wechat', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'ux' in ONLY:
+            try:
+                ux_run(pw)
+            except Exception:
+                check('ux', 'run finished', False, traceback.format_exc()[-600:])
         for engine in ('chrome', 'webkit'):  # last: it takes the vocabulary test and answers review cards
             if not ONLY or 'layout' in ONLY or engine in ONLY:
                 try:

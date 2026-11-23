@@ -61,7 +61,7 @@
         ttfb: ms(n.responseStart - n.requestStart), html: ms(n.responseEnd - n.responseStart),
         scripts: js ? ms(js.responseEnd - n.responseEnd) : null, home_api: home ? ms(home.duration) : null,
         render: fv != null && home ? ms(fv - home.responseEnd) : null,
-        repeat: !!(navigator.serviceWorker && navigator.serviceWorker.controller), standalone: STANDALONE(),
+        repeat: !!(navigator.serviceWorker && navigator.serviceWorker.controller), snap: DATA.fromSnap, standalone: STANDALONE(),
         net: c.effectiveType || '', tz: (Intl.DateTimeFormat().resolvedOptions().timeZone || '').slice(0, 40) });
     } catch (e) { /* not counted */ }
   }

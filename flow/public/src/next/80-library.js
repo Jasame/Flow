@@ -3,7 +3,7 @@
     let saved = null; try { saved = JSON.parse(sessionStorage.getItem('flow-next-lib') || 'null'); } catch (e) { /* private mode */ }
     f = f || saved || { level: hasProfile() ? level() : '', theme: '', page: 1, featured: '1' };
     try { sessionStorage.setItem('flow-next-lib', JSON.stringify(f)); } catch (e) { /* private mode */ }
-    const d = await api(`/api/next/library?level=${f.level}&theme=${f.theme}&page=${f.page}&featured=${f.featured}`);
+    const d = await api(libraryPath(f));  // the same address a touch of the link already preloaded
     const pages = Math.max(1, Math.ceil(d.total / d.per));
     view.innerHTML = `<div class="row between"><h1 class="h1">全部材料</h1><span class="row"><a class="btn small" href="#/easy">轻松读</a><a class="btn small" href="#/import">我的文章</a></span></div><span class="muted small">${d.total} 篇${f.featured === '1' ? ' · 精选' : ''}</span>
       <div class="filters"><select id="ff" aria-label="范围"><option value="1" ${f.featured === '1' ? 'selected' : ''}>精选</option><option value="" ${f.featured !== '1' ? 'selected' : ''}>全部材料</option></select>

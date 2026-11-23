@@ -1217,12 +1217,29 @@ details.preread>summary .tiny{flex-basis:100%}
 /* on the home screen: two numbered steps, the share icon drawn as the phone shows it */
 .isteps{margin:0;padding-left:1.4em;display:grid;gap:10px;font-size:15px;line-height:1.6}
 .ishare{width:20px;height:20px;vertical-align:-4px;fill:none;stroke:var(--accent,#0a84ff);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+/* 复读: how many times each sentence, and the pause after it */
+.loopbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-top:10px}
+.loopbar .tiny{margin-left:2px}
+.loopbar .chip[aria-pressed=true]{background:var(--green-soft);border-color:var(--green);color:var(--green-ink);font-weight:600}
+/* 撤销 in the review's top bar */
+.rtop .undo{margin-left:auto;white-space:nowrap;min-height:36px;padding:0 6px}
+.rsum{margin:4px 0 0;color:var(--ink2)}
 /* ---------- r20: WeChat's built-in browser: how to open the page in the phone's browser ---------- */
 .wx-bar{display:flex;align-items:flex-start;gap:8px;padding:8px var(--gut);background:var(--amber-soft);color:var(--ink);font-size:13.5px;line-height:1.55}
 .wx-bar span{flex:1;min-width:0;padding-top:4px}
 .wx-x{flex:none;display:grid;place-items:center;width:36px;height:36px;margin:-2px -8px -2px 0;border:0;border-radius:10px;background:none;color:var(--muted);font-size:22px;line-height:1;cursor:pointer}
 .wx-x:hover{background:color-mix(in srgb,var(--ink) 6%,transparent)}
 @media (min-width:760px){.wx-bar{justify-content:center}.wx-bar span{flex:0 1 auto;max-width:var(--max)}}
+/* the first visit in WeChat: a dimmed screen, an arrow to the ··· menu (WeChat's own, top right), the two steps */
+.wx-guide{position:fixed;inset:0;z-index:95;background:rgba(10,14,12,.78);color:#fff;display:flex;flex-direction:column;align-items:flex-end;padding:calc(8px + env(safe-area-inset-top)) 18px 18px}
+.wx-arrow{width:110px;height:110px;fill:none;stroke:#fff;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;margin-right:6px}
+.wx-steps{align-self:stretch;display:grid;gap:10px;max-width:420px;margin:8px auto 0;font-size:17px;line-height:1.6}
+.wx-steps ol{margin:0;padding-left:1.4em;font-size:19px;font-weight:700}
+.wx-steps .small{color:rgba(255,255,255,.82)}
+.wx-steps .btn:not(.primary){background:transparent;color:#fff;border-color:rgba(255,255,255,.6)}
+/* 先试读一篇 on the first visit, and the offer after it */
+.try-first{margin-bottom:18px}.try-first .btn{justify-self:start}
+.try-next{margin-top:10px}
 /* 问题反馈: up to three screenshot thumbnails in a row, each with a button to take it out again */
 .fb-shots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .fb-shots:empty{display:none}
@@ -1234,3 +1251,11 @@ details.preread>summary .tiny{flex-basis:100%}
 #fbAdd.busy{opacity:.6;pointer-events:none}
 .fb .err:empty{display:none}
 .fb-done .big{font-size:40px;color:var(--green)}
+/* 字号和行距 (我的 → 设置): the reading text scaled as a whole (zoom reflows it to the width it has, so nothing gets
+   wider than the screen); menus and buttons keep their size. */
+:root{--read-zoom:1}
+:root[data-size=l]{--read-zoom:1.12}
+:root[data-size=xl]{--read-zoom:1.25}
+:is(.text,.line .txt,.review .cloze,.prompt-q,.passage-q .ptext,.exam-passage,.easy-reader,.guide-body,.mean-q,.mean-a,.sheet .mean,.wdiff,.tsample){zoom:var(--read-zoom)}
+:root[data-lh=w] :is(.text,.line .txt,.review .cloze,.prompt-q,.passage-q .ptext,.exam-passage,.easy-reader,.guide-body,.mean-q,.mean-a,.sheet .mean,.wdiff,.tsample){line-height:2}
+.tsample{margin:0;padding:12px 14px;border-radius:12px;background:var(--sunk)}

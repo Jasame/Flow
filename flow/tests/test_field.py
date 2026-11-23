@@ -131,7 +131,7 @@ class ConsoleTests(Servers):
 
     def test_the_page_reports_and_the_console_has_the_tabs(self):
         js = (Path(app.ROOT) / 'public' / 'next.js').read_text(encoding='utf-8')
-        for s in ("beacon('/api/next/issues'", "beacon('/api/next/opentime'", 'route().then(firstViewDrawn)', "noteIssue('api'", "noteIssue('audio'", '}, true);'):
+        for s in ("beacon('/api/next/issues'", "beacon('/api/next/opentime'", 'firstViewDrawn(); prefetchTabs();', "noteIssue('api'", "noteIssue('audio'", '}, true);'):
             self.assertIn(s, js)
         root = Path(app.ROOT).parent / 'xmc-admin'
         self.assertIn('data-tab="speed"', (root / 'index.html').read_text(encoding='utf-8'))

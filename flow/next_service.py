@@ -1389,7 +1389,7 @@ def post(c, uid, path, data):
         return save_card(c, uid, data)
     if path == '/api/next/cards/delete':
         return delete_card(c, uid, data)
-    if path.startswith('/api/next/vocab/') or path == '/api/next/review':
+    if path.startswith('/api/next/vocab/') or path in ('/api/next/review', '/api/next/review/undo'):
         import vocab_service
         if path == '/api/next/vocab/met':
             hit = vocab_service.met_in_reading(c, uid, str(data.get('word', ''))[:40])
