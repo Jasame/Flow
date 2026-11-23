@@ -89,11 +89,20 @@ def transient(exc):
  return isinstance(exc,(urllib.error.URLError,TimeoutError,socket.timeout,ConnectionError)) or (isinstance(exc,ValueError) and 'Incomplete' in str(exc))
 
 
+LOOPBACK=re.compile(r'http://(127\.0\.0\.1|localhost|\[::1\])(:\d{1,5})?/')
+
+
+def endpoint_ok(url):
+ """https anywhere; plain http only to this machine, e.g. the AI gateway (tools/ai-gateway) on 127.0.0.1:3000."""
+ return url.startswith('https://') or bool(LOOPBACK.match(url))
+
+
 def text_provider():
- """An optional second, OpenAI-compatible service for text-only requests (for example DeepSeek):
- FLOW_TEXT_AI_URL / FLOW_TEXT_AI_KEY / FLOW_TEXT_AI_MODEL. None unless all three are set."""
+ """An optional second, OpenAI-compatible service for text-only requests: FLOW_TEXT_AI_URL / FLOW_TEXT_AI_KEY /
+ FLOW_TEXT_AI_MODEL. Usually the AI gateway on this server (tools/ai-gateway), where the vendor behind the model
+ name is switched without touching Flow; or one vendor directly, e.g. DeepSeek. None unless all three are set."""
  url,key,model=os.getenv('FLOW_TEXT_AI_URL',''),os.getenv('FLOW_TEXT_AI_KEY',''),os.getenv('FLOW_TEXT_AI_MODEL','')
- return (url,key,model) if url.startswith('https://') and key and model else None
+ return (url,key,model) if endpoint_ok(url) and key and model else None
 
 
 def request_model(messages,audio=None,grounding=False):
@@ -142,7 +151,7 @@ def _request_main(messages,audio=None,grounding=False):
 
 def _openai_compatible(endpoint,key,model,messages,audio,grounding):
  from vertex_auth import AIConfigurationError
- if not endpoint.startswith('https://') or not model or not key:raise AIConfigurationError('AI configuration incomplete')
+ if not endpoint_ok(endpoint) or not model or not key:raise AIConfigurationError('AI configuration incomplete')
  payload={'model':model,'messages':messages,'max_tokens':4096}
  if ai_stream.active():payload['stream']=True
  if grounding:payload['flow_grounding']=True
