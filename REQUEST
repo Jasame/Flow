@@ -1,3 +1,3 @@
-793e20be4463f1060729a5732ea84655a60ff57c 0c1ae9ac9f24fa70efb054a7c5775e6cb19d6c103eed85c2cd68370c92d6585f e2e
-# r19 main: Merge pull request #13 from Jasame/login
+30a301b8a856dcf3f466cadb37c2b507f4eb7d7a a6fa61fe3ab9625d762ba0b44affabb3a65236454df864e025fa13334e33ed8f e2e
+# r20 main: Merge pull request #22 from Jasame/release-r20
 # Format: <commit sha> <manifest sha256> [e2e]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
