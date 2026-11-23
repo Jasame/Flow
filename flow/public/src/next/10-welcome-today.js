@@ -144,7 +144,7 @@
   // A material as one row: title, then level, topic and time; a pill says why it is on the list.
   function mrow(m, tag, href, tapKey) {
     return `<a class="mrow" href="${href || '#/m/' + encodeURIComponent(m.id)}"${tapKey ? ` data-tap="${tapKey}"` : ''}><span class="t"><b>${esc(m.title)}</b>
-      <span class="tiny muted">${m.level} · ${esc(m.theme_label)} · 约 ${m.minutes} 分钟${m.steps && m.steps.length ? ` · 学了 ${m.steps.length}/4 步` : ''}</span></span>
+      <span class="tiny muted">${m.level} · ${esc(m.theme_label)}${m.minutes ? ` · 约 ${m.minutes} 分钟` : ''}${m.steps && m.steps.length ? ` · 学了 ${m.steps.length}/4 步` : ''}${OFF.has(m.id) ? ' · 已存到手机' : ''}</span></span>
       ${tag ? `<span class="pill ${tag[1]}">${tag[0]}</span>` : m.featured ? '<span class="pill feat">精选</span>' : ''}<span class="go" aria-hidden="true">›</span></a>`;
   }
   // One notice at a time under the plan, the most useful first: sign in (guest), a level that fits better, an email

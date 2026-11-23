@@ -866,7 +866,9 @@ def _task(pack, level):
     return {'prompt': '挑一个这篇里你喜欢的表达，用它写一两句和你自己有关的话。', 'model': '', 'hint': ''}
 
 
-def material(c, uid, pid, level=None):
+def material(c, uid, pid, level=None, offline=False):
+    """offline: also the answers and their evidence, for a copy kept on the phone (the page grades there without a
+    connection and sends the answers later, so the mistake book and progress are recorded as usual)."""
     row = _pack_row(c, uid, pid)
     if not row:
         return {'error': '材料不存在'}, 404
@@ -918,7 +920,8 @@ def material(c, uid, pid, level=None):
             'preread': __import__('vocab_service').preread(c, uid, hard),
             'speaking_task': p.get('speaking', ''), 'writing_task': p.get('writing', ''), 'imported': bool(p.get('imported')),
             'user_level': level, 'can_variant': level != cefr(p) and not variant,
-            'audio': {'voices': audio_index()[0].get(p['id'], []), 'version': audio_index()[1]}, 'series': _series_nav(c, p)}, 200
+            'audio': {'voices': audio_index()[0].get(p['id'], []), 'version': audio_index()[1]}, 'series': _series_nav(c, p),
+            **({'answers': [{'answer': q['answer'], 'evidence': q.get('evidence', '')} for q in p.get('questions', [])]} if offline else {})}, 200
 
 
 def check(c, uid, data):
@@ -1317,7 +1320,7 @@ def get(c, uid, path, q):
     if path == '/api/next/library':
         return library(c, uid, one('level') or None, one('theme') or None, int(one('page', '1') or 1), featured_only=one('featured') == '1'), 200
     if path == '/api/next/material':
-        return material(c, uid, one('id'), one('level'))
+        return material(c, uid, one('id'), one('level'), one('offline') == '1')
     if path == '/api/next/graph':
         return graph(c, uid, one('level')), 200
     if path == '/api/next/node':

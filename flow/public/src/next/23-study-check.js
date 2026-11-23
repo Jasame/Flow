@@ -23,7 +23,15 @@
         const box = pane.querySelector(`.q[data-q="${i}"]`);
         box.querySelectorAll('.ans').forEach(x => x.disabled = true);
         try {
-          const r = await api('/api/next/check', { pack: id, index: i, choice: j });
+          let r;
+          try { r = await api('/api/next/check', { pack: id, index: i, choice: j }); }
+          catch (e) {
+            // Without a connection, a material kept on the phone is graded there with its own answers; the answer is
+            // sent when the phone is back online (mistake book, progress).
+            const a = e.network && m.answers && m.answers[i]; if (!a) throw e;
+            r = { correct: j === a.answer, answer: a.answer, evidence: a.evidence };
+            if (S.user) OUTBOX.push({ path: '/api/next/check', body: { pack: id, index: i, choice: j } });
+          }
           answered[i] = r.correct;
           box.querySelector(`[data-o="${r.answer}"]`).classList.add('right');
           if (!r.correct) b.classList.add('wrong');

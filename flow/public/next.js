@@ -373,7 +373,7 @@
       return sent;
     },
   };
-  window.addEventListener('online', () => OUTBOX.flush());
+  // sent when the phone is back online: 06-offline.js (which also says how much was synced)
   // Ask the service worker to keep today's audio (word sprites, example narration) for weak or no network.
   function prefetchAudio(urls) {
     const list = [...new Set(urls)].filter(Boolean).slice(0, 40);
@@ -701,7 +701,10 @@
       if (!sameMaterial && name !== 'welcome' && !quiet) enter(view);
       if (!sameMaterial && !quiet) { const h = view.querySelector('h1'); announce(h ? h.textContent : document.title); }
     } catch (e) {
-      view.innerHTML = `<div class="empty"><div class="big">⚠︎</div><p>${esc(e.message)}</p><button class="btn" id="retry">重试</button><p class="small"><a class="link" href="#/feedback">反馈这个问题</a></p></div>`;
+      const kept = e.network ? OFF.list() : [];  // offline: what can still be studied
+      view.innerHTML = `<div class="empty"><div class="big">⚠︎</div><p>${esc(e.message)}</p><button class="btn" id="retry">重试</button>
+        ${kept.length ? `<p class="small">没网时，这些已存到手机的材料还能学：</p><div class="mlist">${kept.map(k => mrow(k, null, '', '')).join('')}</div>` : ''}
+        <p class="small"><a class="link" href="#/feedback">反馈这个问题</a></p></div>`;
       document.getElementById('retry').onclick = () => route();
     } finally { if (!keepScroll && !sameMaterial && !quiet) view.focus({ preventScroll: true }); }
   }
@@ -775,7 +778,7 @@
     });
   }
   function snapMaterialGet(path) { const s = snapGet(); return s && s.owner === snapOwner() && s.mats[path] ? s.mats[path].m : null; }
-  function snapClear() { save(SNAP, null); DATA.mem.clear(); }
+  function snapClear() { save(SNAP, null); DATA.mem.clear(); OFF.clear(); }
 
   // ---- preloading
   const idle = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 2500 }) : setTimeout(f, 900));
@@ -807,6 +810,56 @@
     const a = e.target && e.target.closest && e.target.closest('a[href^="#/"]');
     if (a) prefetchFor(a.getAttribute('href'));
   }, { capture: true, passive: true });
+  /* ---------- 存到手机: materials kept on the phone, to study without a connection ---------- */
+  // Today's article and the next two are kept by themselves (when the phone is idle; not with Save-Data or on 2G), any
+  // other with 「存到手机」 on its page; ten at most, per account. A kept material has its text, its questions with the
+  // answers (graded on the phone without a connection) and its narration (kept by the service worker). What is done
+  // offline (steps, answers) waits in the outbox and is sent when the phone is back online, so progress and the
+  // mistake book are recorded as usual.
+  const OFF = {
+    key: 'flow-offline', max: 10,
+    all() { const s = load(this.key); return s && s.v === 1 && s.owner === snapOwner() ? s : { v: 1, owner: snapOwner(), mats: {} }; },
+    get(id) { const s = this.all(); return s.mats[id] ? s.mats[id].m : null; },
+    has(id) { return !!this.all().mats[id]; },
+    count() { return Object.keys(this.all().mats).length; },
+    list() { const s = this.all(); return Object.keys(s.mats).map(id => s.mats[id].m).filter(Boolean); },
+    put(id, m) {
+      const s = this.all(); s.mats[id] = { at: Date.now(), m };
+      Object.keys(s.mats).sort((a, b) => s.mats[b].at - s.mats[a].at).slice(this.max).forEach(k => delete s.mats[k]);
+      try { save(this.key, s); } catch (e) { /* full: the oldest stays out */ }
+    },
+    clear() { save(this.key, null); },
+  };
+  async function keepOffline(id, quiet) {
+    try {
+      const m = await dataGet(materialPath(id) + '&offline=1', quiet);
+      OFF.put(id, m);
+      const vs = (m.audio && m.audio.voices) || [], sw = navigator.serviceWorker && navigator.serviceWorker.controller;
+      if (vs.length && sw) {  // the narration and its timings, kept by the service worker like any audio it has served
+        const base = `/audio/${vs.includes(S.voice) ? S.voice : vs[0]}/${encodeURIComponent(id)}`;
+        sw.postMessage({ type: 'prefetch', urls: [`${base}.json?v=${m.audio.version}`, `${base}.mp4?v=${m.audio.version}`] });
+      }
+      return true;
+    } catch (e) { if (!quiet) toast(e.network ? '现在没网，存不了' : e.message); return false; }
+  }
+  function keepTodayOffline() {
+    if (PRELOAD.frugal() || !S.home) return;
+    const h = S.home, ids = [], read = h.path && h.path.steps && h.path.steps.find(s => s.key === 'read');
+    if (read) ids.push(decodeURIComponent(read.href.split('/')[2] || ''));
+    (h.today || []).forEach(m => ids.push(m.id));
+    idle(() => [...new Set(ids)].filter(Boolean).slice(0, 3).forEach(id => { if (!OFF.has(id)) keepOffline(id, true); }));
+  }
+  // On a material's page: 存到手机, or that it is kept.
+  function offChip(id) {
+    return OFF.has(id) ? '<span class="offk on" id="keepOff">✓ 已存到手机，没网也能学</span>' : '<button class="link small offk" id="keepOff" type="button" data-tap="study-keep">存到手机，没网也能学</button>';
+  }
+  function bindOffChip(id) {
+    const b = document.getElementById('keepOff'); if (!b || b.tagName !== 'BUTTON') return;
+    b.onclick = async () => { b.disabled = true; b.textContent = '正在存…'; if (await keepOffline(id)) b.outerHTML = offChip(id); else { b.disabled = false; b.textContent = '存到手机，没网也能学'; } };
+  }
+  // Losing and finding the connection: said once each way; what waited is sent.
+  addEventListener('offline', () => { const n = OFF.count(); toast(n ? `现在没网：已存到手机的 ${n} 篇还能学` : '现在没网：复习单词还能做，联网后自动同步'); });
+  addEventListener('online', async () => { const sent = await OUTBOX.flush(); if (sent) toast(`网络恢复了，没网时做的 ${sent} 项已同步`); });
   /* ---------- welcome ---------- */
   async function welcome(edit) {
     if (!S.meta) S.meta = await api('/api/next/meta');
@@ -953,7 +1006,7 @@
   // A material as one row: title, then level, topic and time; a pill says why it is on the list.
   function mrow(m, tag, href, tapKey) {
     return `<a class="mrow" href="${href || '#/m/' + encodeURIComponent(m.id)}"${tapKey ? ` data-tap="${tapKey}"` : ''}><span class="t"><b>${esc(m.title)}</b>
-      <span class="tiny muted">${m.level} · ${esc(m.theme_label)} · 约 ${m.minutes} 分钟${m.steps && m.steps.length ? ` · 学了 ${m.steps.length}/4 步` : ''}</span></span>
+      <span class="tiny muted">${m.level} · ${esc(m.theme_label)}${m.minutes ? ` · 约 ${m.minutes} 分钟` : ''}${m.steps && m.steps.length ? ` · 学了 ${m.steps.length}/4 步` : ''}${OFF.has(m.id) ? ' · 已存到手机' : ''}</span></span>
       ${tag ? `<span class="pill ${tag[1]}">${tag[0]}</span>` : m.featured ? '<span class="pill feat">精选</span>' : ''}<span class="go" aria-hidden="true">›</span></a>`;
   }
   // One notice at a time under the plan, the most useful first: sign in (guest), a level that fits better, an email
@@ -1020,8 +1073,11 @@
     if (!m) {
       // A copy kept on the phone (one of the last five opened) shows at once; the server's copy replaces it for the
       // next step. Otherwise the request is often already on its way: preloaded from 今日 or when the link was touched.
-      const path = materialPath(id), kept = snapMaterialGet(path);
-      if (kept) { m = kept; MAT[id] = m; api(path).then(f => { if (MAT[id] === kept) MAT[id] = f; snapMaterial(path, f); }).catch(() => {}); }
+      const path = materialPath(id), kept = snapMaterialGet(path) || OFF.get(id);  // OFF: kept for offline (06-offline.js)
+      if (kept) {
+        m = kept; MAT[id] = m;
+        api(path).then(f => { if (!f.answers && kept.answers) f.answers = kept.answers; if (MAT[id] === kept) MAT[id] = f; snapMaterial(path, f); if (OFF.has(id)) OFF.put(id, f); }).catch(() => {});
+      }
       else { m = await api(path); MAT[id] = m; snapMaterial(path, m); }
     }
     const done = new Set(m.steps.concat(load('flow-next-steps-' + id) || []));
@@ -1031,7 +1087,8 @@
     function markStep(s) {
       if (done.has(s)) return;
       done.add(s); save('flow-next-steps-' + id, Array.from(done));
-      if (S.user) api('/api/next/progress', { pack: id, step: s }).catch(() => {});
+      // without a connection the step waits in the outbox and is sent when the phone is back online
+      if (S.user) api('/api/next/progress', { pack: id, step: s }).catch(e => { if (e.network) OUTBOX.push({ path: '/api/next/progress', body: { pack: id, step: s } }); });
       const tab = view.querySelector(`[data-step="${s}"]`); if (tab && !tab.querySelector('.ok')) tab.insertAdjacentHTML('beforeend', '<span class="ok">✓</span>');
     }
     function go(s) { location.hash = `#/m/${encodeURIComponent(id)}/${s}`; }
@@ -1039,7 +1096,7 @@
     if (!same) {
       view.innerHTML = `<div class="study-head"><span class="kicker">${m.series ? `<a class="link" href="#/series/${encodeURIComponent(m.series.id)}">连载《${esc(m.series.title)}》第 ${m.series.part} / ${m.series.of} 集</a> · ${m.level}` : `${esc(m.theme_label)} · ${m.level}${m.variant ? ' → ' + m.variant.level : ''}${m.featured ? ' · 精选' : ''}`}</span>
         <h1 class="h1">${esc(m.title)}</h1>${m.title_en ? `<div class="title-en">${esc(m.title_en)}</div>` : ''}
-        ${originHTML(m)}</div>
+        ${originHTML(m)}${offChip(id)}</div>
         <div class="steps" role="tablist"><span class="ind" aria-hidden="true"></span>${STEPS.map(s => `<button role="tab" data-step="${s}" aria-selected="false">${STEP[s]}${done.has(s) ? '<span class="ok">✓</span>' : ''}</button>`).join('')}</div>
         <section id="pane"></section>`;
       view.querySelectorAll('[data-step]').forEach(b => b.onclick = () => go(b.dataset.step));
@@ -1049,7 +1106,8 @@
     const tabs = [...view.querySelectorAll('[data-step]')];
     const prev = tabs.findIndex(b => b.getAttribute('aria-selected') === 'true');
     tabs.forEach(b => b.setAttribute('aria-selected', String(b.dataset.step === st.step)));
-    const head = view.querySelector('.study-head'); if (head) head.dataset.at = st.step;  // phones: a shorter header once past listen and read
+    const head = view.querySelector('.study-head'); if (head) head.dataset.at = st.step;
+    bindOffChip(id);  // phones: a shorter header once past listen and read
     const active = tabs.find(b => b.dataset.step === st.step), ind = view.querySelector('.steps .ind');
     const place = () => { ind.style.width = active.offsetWidth + 'px'; ind.style.transform = `translateX(${active.offsetLeft}px)`; };
     if (prev < 0) { ind.style.transition = 'none'; place(); requestAnimationFrame(() => { ind.style.transition = ''; }); } else requestAnimationFrame(place);
@@ -1513,7 +1571,15 @@
         const box = pane.querySelector(`.q[data-q="${i}"]`);
         box.querySelectorAll('.ans').forEach(x => x.disabled = true);
         try {
-          const r = await api('/api/next/check', { pack: id, index: i, choice: j });
+          let r;
+          try { r = await api('/api/next/check', { pack: id, index: i, choice: j }); }
+          catch (e) {
+            // Without a connection, a material kept on the phone is graded there with its own answers; the answer is
+            // sent when the phone is back online (mistake book, progress).
+            const a = e.network && m.answers && m.answers[i]; if (!a) throw e;
+            r = { correct: j === a.answer, answer: a.answer, evidence: a.evidence };
+            if (S.user) OUTBOX.push({ path: '/api/next/check', body: { pack: id, index: i, choice: j } });
+          }
           answered[i] = r.correct;
           box.querySelector(`[data-o="${r.answer}"]`).classList.add('right');
           if (!r.correct) b.classList.add('wrong');
@@ -3844,7 +3910,7 @@
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
     // The copy of the last 今日 kept on the phone (05-data.js): the page is drawn from it at once, then from the
     // server's answer, quietly, if anything changed. Offline, the copy stays on screen. The first visit waits.
-    const snap = snapGet(), drawn = () => { firstViewDrawn(); prefetchTabs(); };
+    const snap = snapGet(), drawn = () => { firstViewDrawn(); prefetchTabs(); keepTodayOffline(); };
     if (snap && snap.home && snap.home.session) {
       S.home = snap.home; S.user = snap.home.session.user || null; S.csrf = ''; DATA.fromSnap = true; S.homeFresh = true; setDueBadge();
       const drawnFor = location.hash;

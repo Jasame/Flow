@@ -54,7 +54,7 @@
     });
   }
   function snapMaterialGet(path) { const s = snapGet(); return s && s.owner === snapOwner() && s.mats[path] ? s.mats[path].m : null; }
-  function snapClear() { save(SNAP, null); DATA.mem.clear(); }
+  function snapClear() { save(SNAP, null); DATA.mem.clear(); OFF.clear(); }
 
   // ---- preloading
   const idle = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 2500 }) : setTimeout(f, 900));

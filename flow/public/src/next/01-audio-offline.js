@@ -288,7 +288,7 @@
       return sent;
     },
   };
-  window.addEventListener('online', () => OUTBOX.flush());
+  // sent when the phone is back online: 06-offline.js (which also says how much was synced)
   // Ask the service worker to keep today's audio (word sprites, example narration) for weak or no network.
   function prefetchAudio(urls) {
     const list = [...new Set(urls)].filter(Boolean).slice(0, 40);
