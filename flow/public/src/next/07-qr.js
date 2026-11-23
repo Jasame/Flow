@@ -99,9 +99,10 @@
     }
     // Drawn dark on light at x, y, size px across, with the quiet zone (4 modules) inside that size.
     function draw(g, text, x, y, size, dark = '#13261b', light = '#ffffff') {
-      const m = matrix(text), cells = m.length + 8, u = size / cells;
+      // whole pixels per module, the code centred in the box: no seams between modules
+      const m = matrix(text), u = Math.max(1, Math.floor(size / (m.length + 8))), o = Math.round((size - u * m.length) / 2);
       g.fillStyle = light; g.fillRect(x, y, size, size); g.fillStyle = dark;
-      m.forEach((row, r) => row.forEach((v, c) => { if (v) g.fillRect(x + (c + 4) * u, y + (r + 4) * u, Math.ceil(u), Math.ceil(u)); }));
+      m.forEach((row, r) => row.forEach((v, c) => { if (v) g.fillRect(x + o + c * u, y + o + r * u, u, u); }));
     }
     return { matrix, draw };
   })();

@@ -39,7 +39,9 @@
           if (Object.keys(answered).length === m.questions.length) {
             const right = Object.values(answered).filter(Boolean).length;
             markStep('check');
-            pane.querySelector('#score').innerHTML = `<div class="card sunk row between enter"><span><b>${right} / ${m.questions.length}</b> 题答对</span><button class="btn primary" id="toOut">去用出来 →</button></div>`;
+            pane.querySelector('#score').innerHTML = `<div class="card sunk row between enter"><span><b>${right} / ${m.questions.length}</b> 题答对</span><button class="btn primary" id="toOut">去用出来 →</button></div>
+              ${(m.expressions || []).length ? '<div class="row"><button class="link small" id="shareX" type="button" data-tap="share-material">把学会的一句做成卡片，分享或保存</button></div>' : ''}`;
+            const sx = pane.querySelector('#shareX'); if (sx) sx.onclick = () => shareFromMaterial(m);
             pane.querySelector('#toOut').onclick = () => go('output');
             // After a first article tried without any questions: offer the level questions (and an account) next.
             if (!S.user && !hasProfile()) pane.querySelector('#score').insertAdjacentHTML('beforeend', `<div class="card stack-s enter try-next"><b>觉得有用？按你的水平每天推荐一篇</b>

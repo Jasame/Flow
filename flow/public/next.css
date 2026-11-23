@@ -1232,6 +1232,12 @@ details.preread>summary .tiny{flex-basis:100%}
 /* 存到手机 on a material's page */
 .offk{display:inline-block;margin-top:6px;font-size:13px;min-height:32px}
 .offk.on{color:var(--green-ink)}
+/* 分享卡片: the preview fits the sheet */
+#sheetCard .share-img{display:block;width:auto;height:auto;max-width:100%;max-height:min(48vh,520px);margin:0 auto;border-radius:14px;box-shadow:0 2px 14px rgba(0,0,0,.12);background:#fff}
+/* the expressions to pick from: one row that scrolls sideways, so the picture and its buttons stay in view */
+.chips.share-pick{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.chips.share-pick::-webkit-scrollbar{display:none}
+.share-pick .chip{flex:none;max-width:78%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* ---------- r20: WeChat's built-in browser: how to open the page in the phone's browser ---------- */
 .wx-bar{display:flex;align-items:flex-start;gap:8px;padding:8px var(--gut);background:var(--amber-soft);color:var(--ink);font-size:13.5px;line-height:1.55}
 .wx-bar span{flex:1;min-width:0;padding-top:4px}

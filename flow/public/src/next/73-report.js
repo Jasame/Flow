@@ -13,13 +13,9 @@
       <div class="card flat section stack-s"><b>错题</b><span class="small">新进错题本 ${r.mistakes_new} 个，改对 ${r.mistakes_fixed} 个。</span>
         ${r.watch.length ? `<span class="small">写作里要留意：${r.watch.map(n => nodeChip({ id: n.id, title: n.title, status: 'watch' })).join(' ')}</span>` : ''}
         ${r.focus ? `<div class="small"><b>下周重点：</b>${esc(r.focus)}</div>` : ''}</div>
-      <div class="section row"><button class="btn primary" id="share">生成分享图</button><a class="btn" href="#/radar">能力雷达</a></div><div id="shareOut" class="section"></div>`;
+      <div class="section row"><button class="btn primary" id="share" data-tap="share-week">分享这周的学习</button><a class="btn" href="#/radar">能力雷达</a></div>`;
     requestAnimationFrame(() => requestAnimationFrame(() => view.querySelectorAll('.vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; })));
-    document.getElementById('share').onclick = () => {
-      const url = shareImage(r);
-      document.getElementById('shareOut').innerHTML = `<img class="share-img" src="${url}" alt="本周学习分享图"><div class="row"><a class="btn small primary" download="flow-week.png" href="${url}">保存图片</a><span class="muted tiny">${TOUCH ? '也可以长按图片保存' : '或右键图片另存为'}</span></div>`;
-      bringIntoView(document.getElementById('shareOut'));
-    };
+    document.getElementById('share').onclick = () => shareSheet([{ label: '本周', draw: () => shareImage(r) }], '分享这周的学习');
   }
   function weekMoreHTML(r) {
     const e = r.easy || {}, sp = r.speaking || {}, ra = r.radar || { moves: [] };
@@ -36,14 +32,11 @@
   }
   function shareImage(r) {
     const rows = r.skills.filter(s => s.now != null).slice(0, 5).length;
-    const W = 1080, H = rows ? 900 + rows * 70 + 170 : 860, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const W = 1080, H = (rows ? 900 + rows * 70 + 170 : 860) + 230, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
     const g = cv.getContext('2d'), green = '#1f9d55', ink = '#1b1d1a', muted = '#6f7369';
     g.fillStyle = '#fbfaf6'; g.fillRect(0, 0, W, H);
-    g.fillStyle = green; g.beginPath(); g.roundRect ? g.roundRect(80, 90, 96, 96, 26) : g.rect(80, 90, 96, 96); g.fill();
-    g.strokeStyle = '#fff'; g.lineWidth = 9; g.lineCap = 'round';
-    [[103, 133, 151], [121, 115, 169], [139, 124, 160], [157, 133, 145]].forEach(([x, a, b]) => { g.beginPath(); g.moveTo(x, a); g.lineTo(x, b); g.stroke(); });
     const font = (s, w) => `${w || 600} ${s}px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif`;
-    g.fillStyle = ink; g.font = font(44, 700); g.fillText('语流 Flow · 本周学习', 200, 152);
+    g.fillStyle = ink; g.font = font(56, 800); g.fillText('本周学习', 80, 170);  // the brand is in the footer, with the QR code
     g.fillStyle = muted; g.font = font(30, 400); g.fillText(`${r.from} – ${r.to}`, 80, 250);
     const stats = [[r.days, '学习天数'], [r.minutes, '分钟'], [r.materials, '篇材料'], [r.learned, '个新词'], [r.mastered, '个词记牢了'], [r.outputs, '次输出练习']];
     stats.forEach(([v, l], k) => {
@@ -57,7 +50,7 @@
       g.fillStyle = '#e7e3d8'; g.fillRect(240, y - 24, 600, 22); g.fillStyle = green; g.fillRect(240, y - 24, 600 * s.now, 22);
       g.fillStyle = muted; g.fillText(Math.round(s.now * 100) + '%', 870, y);
     });
-    g.fillStyle = muted; g.font = font(30, 400); g.fillText('每天一篇，学了就能用 · flow.jasa.hk', 80, H - 90);
+    brandFoot(g, W, H, habitNote(false, true));  // logo, weeks in a row at the goal, and the QR code back to the site (86-share.js)
     return cv.toDataURL('image/png');
   }
 
