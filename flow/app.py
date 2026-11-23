@@ -225,9 +225,9 @@ class Handler(BaseHTTPRequestHandler):
    self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
   if path=='/api/next/vocab/reminder.ics':
    # A daily calendar event: a reminder that works on every phone without an app, email or push service.
-   hour=parse_qs(urlsplit(self.path).query).get('hour',['20'])[0]
-   body=__import__('vocab_service').ics(int(hour) if hour.isdigit() else 20).encode()
-   self.send_response(200);self.headers_common('text/calendar; charset=utf-8');self.send_header('Content-Disposition','attachment; filename="flow-review.ics"')
+   q=parse_qs(urlsplit(self.path).query);hour=q.get('hour',['20'])[0];kind=q.get('kind',['vocab'])[0];mins=q.get('minutes',['10'])[0]
+   body=__import__('vocab_service').ics(int(hour) if hour.isdigit() else 20,'plan' if kind=='plan' else 'vocab',int(mins) if mins.isdigit() else 10).encode()
+   self.send_response(200);self.headers_common('text/calendar; charset=utf-8');self.send_header('Content-Disposition','attachment; filename="flow-'+('plan' if kind=='plan' else 'review')+'.ics"')
    self.send_header('Cache-Control','no-store');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
   if path.startswith('/api/'):
    with db() as c:
@@ -358,7 +358,9 @@ class Handler(BaseHTTPRequestHandler):
    import next_service
    with db() as c:
     u=self.user(c)
-    result=next_service.post_public(c,u['id'] if u else None,path,data)
+    # Open routes still record progress for a signed-in learner: only with the session's CSRF token (else as a guest).
+    signed=bool(u) and hmac.compare_digest(self.headers.get('X-CSRF-Token',''),u['csrf'])
+    result=next_service.post_public(c,u['id'] if signed else None,path,data)
     if result is not None:return self.send(*result)
     if not u:return self.send({'error':'请先登录'},401)
     if not hmac.compare_digest(self.headers.get('X-CSRF-Token',''),u['csrf']):return self.send({'error':'安全校验失败，请刷新页面'},403)

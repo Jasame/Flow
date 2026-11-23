@@ -37,7 +37,8 @@ DEVICES = {
 }
 PAGES = ['#/', '#/library', f'#/m/{PID}/listen', f'#/m/{PID}/read', f'#/m/{PID}/check', f'#/m/{PID}/output', f'#/m/{PID}/output/retell',
          f'#/m/{PID}/output/dialog', f'#/m/{PID}/output/translate', f'#/m/{PID}/output/essay', '#/cards', '#/cards/mistake', '#/vocab/plan',
-         '#/vocab/test', '#/review', '#/sounds', '#/sounds/th-s', '#/report', '#/me', '#/import', '#/graph', '#/graph/voice-basic', '#/graph/emph-inversion', '#/welcome/edit']
+         '#/vocab/test', '#/review', '#/sounds', '#/sounds/th-s', '#/report', '#/me', '#/import', '#/graph', '#/graph/voice-basic', '#/graph/emph-inversion', '#/welcome/edit',
+         '#/placement', '#/exam', '#/exam/cet6', '#/series/lighthouse-ledger', '#/m/v5-culture-c1-lighthouse-ledger-1/read']
 RESULTS = []
 
 
@@ -182,9 +183,47 @@ def run_device(pw, dev, opts):
     parts = pg.evaluate("() => ({steps: document.querySelectorAll('.steps-list li').length, pits: document.querySelectorAll('.pit').length, qs: document.querySelectorAll('#practice .gq').length})")
     check(dev, 'point page: steps, mistakes and 4 practice questions', parts['steps'] >= 3 and parts['pits'] >= 2 and parts['qs'] == 4, parts)
     pg.click('#toPractice'); pg.wait_for_timeout(700)
-    pg.click('#practice .gq >> nth=0 >> .ans >> nth=1'); pg.wait_for_timeout(800)
-    fb = pg.evaluate("() => ({fb: document.querySelector('#practice .gq .fb').textContent, right: !!document.querySelector('#practice .gq .ans.right'), status: document.getElementById('nodeStatus').textContent})")
-    check(dev, 'point page: an answer is checked and the point lights up', fb['right'] and fb['fb'].startswith('✓') and fb['status'] == '做题已验证', fb)
+    # Rounds are drawn at random with shuffled options, so the test does not know the answer: either way the right
+    # option is shown, and the point lights up (right) or is marked to fix with a re-check tomorrow (wrong).
+    pg.click('#practice .gq >> nth=0 >> .ans >> nth=0'); pg.wait_for_timeout(800)
+    fb = pg.evaluate("() => ({fb: document.querySelector('#practice .gq .fb').textContent, right: !!document.querySelector('#practice .gq .ans.right'), status: document.getElementById('nodeStatus').textContent, review: document.getElementById('nodeReview').textContent})")
+    ok = fb['fb'].startswith('✓') and fb['status'] == '做题已验证' and '下次复习' in fb['review'] or fb['fb'].startswith('✗') and fb['status'] == '写作中需要留意' and '明天' in fb['review']
+    check(dev, 'point page: an answer is checked, the point changes and its next re-check is shown', fb['right'] and ok, fb)
+    for k in range(1, 4):
+        pg.click(f'#practice .gq >> nth={k} >> .ans >> nth=0'); pg.wait_for_timeout(500)
+    check(dev, 'point page: after the round, another round of 4 is offered', pg.is_visible('#again'))
+    before = pg.evaluate("() => [...document.querySelectorAll('#practice .gq .prompt')].map(x => x.textContent).join('|')")
+    pg.click('#again'); settle(pg); pg.wait_for_timeout(300)
+    after = pg.evaluate("() => ({qs: document.querySelectorAll('#practice .gq').length, p: [...document.querySelectorAll('#practice .gq .prompt')].map(x => x.textContent).join('|')})")
+    check(dev, 'point page: the next round is a new draw', after['qs'] == 4 and after['p'] != before, after['qs'])
+
+    # ---- starting check: band by band until it is decided, then a level and the points to fix
+    go(pg, '#/placement')
+    pg.click('#pStart'); pg.wait_for_timeout(300)
+    asked = 0
+    while asked < 16 and not pg.query_selector('#pUse'):
+        pg.click('.place .ans >> nth=0' if asked % 3 else '#pSkip'); asked += 1
+        pg.wait_for_timeout(450)
+    res = pg.evaluate("() => ({h: (document.querySelector('#view h1') || {}).textContent || '', bands: document.querySelectorAll('.bands .band').length})")
+    check(dev, 'starting check: ends with a level and band scores', res['h'].startswith('建议从') and 1 <= res['bands'] <= 4 and asked % 4 == 0, (res, asked))
+
+    # ---- exam practice: a timed paper of 22 questions, handed in once, scored by part
+    go(pg, '#/exam/cet4')
+    pg.click('#exStart'); pg.wait_for_selector('.exam-bar', timeout=8000); pg.wait_for_timeout(300)
+    n = pg.evaluate("() => document.querySelectorAll('.exam-part .gq').length")
+    check(dev, 'exam: a paper of 22 questions in three parts with a clock', n == 22 and pg.evaluate("() => document.querySelectorAll('.exam-part').length") == 3, n)
+    for k in range(n):
+        pg.click(f'.exam-part .gq >> nth={k} >> .ans >> nth=0')
+    pg.click('#exDone'); pg.wait_for_timeout(900)
+    res = pg.evaluate("() => ({h: (document.querySelector('#view h1') || {}).textContent || '', parts: document.querySelectorAll('.exam-score div').length})")
+    check(dev, 'exam: handed in, scored by part', '题做对' in res['h'] and res['parts'] == 3, res)
+
+    # ---- serial: six episodes in order, an episode names its place in the series
+    go(pg, '#/series/lighthouse-ledger')
+    eps = pg.evaluate("() => document.querySelectorAll('.serial .ep').length")
+    check(dev, 'serial: six episodes and a way to carry on', eps == 6 and pg.is_visible('#view .btn.primary'), eps)
+    go(pg, '#/m/v5-culture-c1-lighthouse-ledger-2/read')
+    check(dev, 'serial: an episode shows its place in the series', '第 2 / 6 集' in (pg.text_content('.study-head .kicker') or ''))
 
     # ---- listen: whole-text playback shows a stop control that stays on screen, and it stops
     go(pg, f'#/m/{PID}/listen')

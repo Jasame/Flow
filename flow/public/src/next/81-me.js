@@ -12,6 +12,10 @@
         <div class="small">水平：${lv ? esc(lv.label) + '（' + lv.id + '）' : '未设置'}</div><div class="small">目标：${goal ? esc(goal.label) : '未设置'}</div>
         <div class="small">话题：${themes.length ? esc(themes.join('、')) : '随机'}</div><div class="small">每天：${p.minutes || 10} 分钟</div>
         <div class="small">朗读声音：</div>${voiceChips(null)}<p class="muted tiny">精选材料用真人声（Kokoro）朗读，可以随时在「听」这一步切换。</p></div>
+      <div class="card flat stack-s" id="remind"><b>每天提醒</b><span class="muted small">加到手机日历：每天到点提醒你打开今天的计划。不用装 App、不用邮箱，iPhone 和安卓都能用。</span>
+        <div class="row"><select id="mHour" aria-label="提醒时间">${Array.from({ length: 18 }, (_, k) => k + 6).map(h => `<option value="${h}" ${h === 20 ? 'selected' : ''}>每天 ${h}:00</option>`).join('')}</select>
+        <a class="btn small" id="mCal" href="/api/next/vocab/reminder.ics?kind=plan&hour=20&minutes=${p.minutes || 10}">加到手机日历</a></div>
+        <span class="tiny muted">打开下载的文件，选「添加到日历」即可；不想要了就在日历里删掉这个日程。</span></div>
       ${matchMedia('(display-mode: standalone)').matches || navigator.standalone ? '' : `<div class="card flat stack-s" id="install"><b>添加到手机桌面</b>
         <span class="muted small">像 App 一样从桌面打开，界面全屏；听过的音频会缓存下来，网络差的时候也能复习。</span>
         ${installPrompt ? '<div><button class="btn small primary" id="doInstall">添加到桌面</button></div>' : /iPhone|iPad|iPod/.test(navigator.userAgent)
@@ -24,11 +28,15 @@
         <a href="#/sounds">发音入门：容易混的音 <span>→</span></a>
         <a href="#/import">我的文章：导入任何英文来学 <span>→</span></a>
         <a href="#/graph">我的知识图谱 <span>→</span></a>
+        <a href="#/placement">语法起点小测：重新定水平 <span>→</span></a>
+        <a href="#/exam">考试练习：四六级、考研、雅思 <span>→</span></a>
         <a href="#/library">全部材料 <span>→</span></a>
         <a href="/survey">参与匿名问卷：你想要什么样的英语学习网站 <span>→</span></a>
         <a href="/?classic=1">经典版（AI 私教、诊断测评、内容管理）<span>→</span></a>
         ${S.user ? '<button id="out">退出登录 <span>→</span></button>' : ''}</div>`;
     const lg = document.getElementById('lg'); if (lg) lg.onclick = () => openLogin();
+    const mHour = document.getElementById('mHour'), mCal = document.getElementById('mCal');
+    mHour.onchange = () => { mCal.href = `/api/next/vocab/reminder.ics?kind=plan&hour=${mHour.value}&minutes=${p.minutes || 10}`; };
     const slot = document.getElementById('abSlot');
     if (slot) api('/api/next/ability').then(ab => { slot.innerHTML = abilityHTML(ab); requestAnimationFrame(() => requestAnimationFrame(() => slot.querySelectorAll('.vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; }))); }).catch(() => { slot.innerHTML = ''; });
     if (S.user) api('/api/account').then(a => {

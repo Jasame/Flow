@@ -227,15 +227,33 @@ def daily_path(c, uid, home, now=None):
         href = f"#/m/{pick['id']}/output/{key}" if pick and key != 'dictate' else (f"#/m/{pick['id']}/listen" if pick else '#/library')
     kinds = {'retell': {'retell'}, 'essay': {'essay'}, 'translate': {'translate'}, 'dictate': {'dictation'}, 'sounds': {'say', 'discriminate'}}
     steps.append({'key': key, 'title': title, 'sub': sub, 'href': href, 'done': bool(kinds.get(key, set()) & today_kinds)})
-    # A grammar point the learner got wrong in writing or in practice: a short fix on its page (4 questions).
-    # Once practised today the step stays, ticked, even though the point is no longer flagged.
+    # Grammar: a point the learner got wrong in writing or in practice comes first (a short fix on its page); else one
+    # point whose spaced re-check has come. One point a day is the step: once one is practised (and not flagged), the
+    # step is ticked and the rest of the queue waits for tomorrow, as the graph page shows.
     practised = [r['node'] for r in c.execute("SELECT node FROM learning_events WHERE user_id=? AND source LIKE 'next-node:%' AND created>=? ORDER BY id",
                                               (uid, start))]
-    watch = ((home.get('graph') or {}).get('watch') or [])
-    target = watch[0] if watch else ({'id': practised[-1], 'title': nx.nodes_meta(c).get(practised[-1], {}).get('title', '')} if practised else None)
-    if target:
-        steps.append({'key': 'grammar', 'title': '语法：' + target['title'], 'sub': '写作或做题里出过错 · 4 道题，约 3 分钟' if watch else '今天补过了',
-                      'href': '#/graph/' + target['id'], 'done': target['id'] in practised and target['id'] not in {w['id'] for w in watch}})
+    graph = home.get('graph') or {}
+    watch, due = graph.get('watch') or [], graph.get('due') or []
+    titles = nx.nodes_meta(c)
+    if watch:
+        steps.append({'key': 'grammar', 'title': '语法：' + watch[0]['title'], 'sub': '写作或做题里出过错 · 4 道题，约 3 分钟',
+                      'href': '#/graph/' + watch[0]['id'], 'done': False})
+    elif practised:
+        left = len(nx.GB.due(c, uid, now))
+        steps.append({'key': 'grammar', 'title': '语法：' + titles.get(practised[-1], {}).get('title', ''),
+                      'sub': '今天练过了' + (f' · 还有 {left} 个该复习，明天继续' if left else ''), 'href': '#/graph/' + practised[-1], 'done': True})
+    elif due:
+        left = len(nx.GB.due(c, uid, now)) - 1
+        steps.append({'key': 'grammar', 'title': '语法复习：' + due[0]['title'],
+                      'sub': '按遗忘曲线该复习了 · 4 道题，约 2 分钟' + (f'（还有 {left} 个排队）' if left > 0 else ''),
+                      'href': '#/graph/' + due[0]['id'], 'done': False})
+    if prof.get('goal') == 'exam' and minutes >= 10:
+        # One practice set a week: shown when the last one is a week old (or none yet), ticked on the day it is done.
+        last = c.execute('SELECT MAX(created) t FROM next_exam_results WHERE user_id=?', (uid,)).fetchone()['t']
+        if last and last >= start:
+            steps.append({'key': 'exam', 'title': '考试练习', 'sub': '这周的一套做完了', 'href': '#/exam', 'done': True})
+        elif not last or last < now - 6 * 86400:
+            steps.append({'key': 'exam', 'title': '考试练习', 'sub': '每周一套：词汇、语法、阅读，约 15–20 分钟', 'href': '#/exam', 'done': False})
     if minutes >= 15 and key != 'dictate' and pick:
         steps.append({'key': 'dictate', 'title': '听写三句', 'sub': f"练耳朵，也练拼写 · 今天 {min(3, kind_n.get('dictation', 0))}/3", 'href': f"#/m/{pick['id']}/listen",
                       'done': kind_n.get('dictation', 0) >= 3})

@@ -14,6 +14,6 @@ class UpgradePackageTests(unittest.TestCase):
    page=(target/'public/index.html').read_text()
    for asset in re.findall(r'(?:src|href)="/([^"?]+)',page):self.assertTrue((target/'public'/asset).is_file(),asset)
    env={**os.environ,'FLOW_DATA_DIR':str(target/'data')}
-   result=subprocess.run([sys.executable,'-c',"import app; app.init(); c=app.db(); assert c.execute('SELECT COUNT(*) FROM questions').fetchone()[0]==72+104; import content_v50; assert len(content_v50.v5_materials())>=96; assert c.execute('SELECT COUNT(*) FROM lab_packs').fetchone()[0]==262+len(content_v50.v5_materials()); assert c.execute('SELECT COUNT(*) FROM lexicon').fetchone()[0]==107; assert c.execute('SELECT COUNT(*) FROM kg_edges').fetchone()[0]>500; assert c.execute('SELECT COUNT(*) FROM reference_terms').fetchone()[0]==17634"],cwd=target,env=env,capture_output=True,text=True)
+   result=subprocess.run([sys.executable,'-c',"import app; app.init(); c=app.db(); assert c.execute('SELECT COUNT(*) FROM questions').fetchone()[0]==72+104+264; import content_v50; assert len(content_v50.v5_materials())>=96; assert c.execute('SELECT COUNT(*) FROM lab_packs').fetchone()[0]==262+len(content_v50.v5_materials()); assert c.execute('SELECT COUNT(*) FROM lexicon').fetchone()[0]==107; assert c.execute('SELECT COUNT(*) FROM kg_edges').fetchone()[0]>500; assert c.execute('SELECT COUNT(*) FROM reference_terms').fetchone()[0]==17634"],cwd=target,env=env,capture_output=True,text=True)
    self.assertEqual(result.returncode,0,result.stderr)
 if __name__=='__main__':unittest.main()

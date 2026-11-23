@@ -1,0 +1,794 @@
+[
+  {
+    "id": "v5-culture-c1-lighthouse-ledger-1",
+    "title": "灯塔日志 1：没人想要的差事",
+    "title_en": "The Lighthouse Ledger, Part 1: The Job Nobody Wanted",
+    "summary_zh": "连载第 1 集：翻译 Mei 辞掉城里的工作，到海边小镇的博物馆整理档案，在一只旧箱子底部发现了灯塔看守人的日志——日志中途换了一种笔迹，还有一句看不懂的更正：“不是雾，是烟。”",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "culture",
+    "genre": "story",
+    "body": "Mei had expected the job to be quiet, but she had not expected it to smell of the sea. The museum occupied the ground floor of an old customs house, and its archive, if the word could be stretched that far, consisted of forty cardboard boxes stacked against a wall that was always faintly damp. Ruth, the director, had shown her the boxes on her first morning with the air of someone apologising for a difficult relative. \"Nobody has opened most of these since the lighthouse closed,\" she said. \"The last volunteer lasted a fortnight.\" Mei, who had spent four years translating technical manuals in a glass tower two hundred kilometres inland, did not find this discouraging. She had taken the summer contract precisely because it promised nothing urgent: no clients, no deadlines, only objects waiting patiently to be described. By the end of the first week she had catalogued tide tables, a broken barometer and a surprising number of unpaid bills. Then, at the bottom of the eleventh box, she found the ledger, wrapped in oilcloth. It was the keeper's daily log, a heavy book bound in cracked leather, in which every entry followed the same pattern: the time the lamp was lit, the weather, the ships sighted, the time the lamp was put out. The handwriting was cramped and impatient, as though the writer resented every word he was obliged to put down. Halfway through, however, something changed. For several months the entries were written in a different hand, rounder and far more careful, and the weather was no longer simply \"rough\" or \"fair\" but described with a precision that bordered on the poetic. On one page, someone had crossed out a single word in the keeper's entry and written above it, in the rounder hand, a correction that made no sense to her yet: \"Not fog. Smoke.\"",
+    "questions": [
+      {
+        "prompt": "Why did Mei accept the summer contract at the museum?",
+        "options": [
+          "She hoped it would turn into a permanent job in a museum",
+          "She wanted work without pressure after years of technical translation",
+          "She had always been fascinated by lighthouses and their keepers",
+          "Ruth was an old friend who urgently needed her help"
+        ],
+        "answer": 1,
+        "evidence": "She had taken the summer contract precisely because it promised nothing urgent"
+      },
+      {
+        "prompt": "What changed halfway through the ledger?",
+        "options": [
+          "The entries stopped completely for several months",
+          "The entries were written by a different and more careful person",
+          "The keeper started writing his entries in another language",
+          "The ledger began to be used for recording unpaid bills"
+        ],
+        "answer": 1,
+        "evidence": "the entries were written in a different hand, rounder and far more careful"
+      }
+    ],
+    "dictation_index": 7,
+    "vocabulary": [
+      {
+        "term": "catalogued",
+        "meaning": "编目、登记（档案、藏品）",
+        "example": "The volunteers catalogued every photograph in the collection."
+      },
+      {
+        "term": "obliged",
+        "meaning": "（被）迫，不得不",
+        "example": "I felt obliged to stay until the meeting finished."
+      },
+      {
+        "term": "precision",
+        "meaning": "精确、准确",
+        "example": "She explained the process with remarkable precision."
+      },
+      {
+        "term": "discouraging",
+        "meaning": "令人泄气的",
+        "example": "The first results were discouraging, but we kept going."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "if the word could be stretched that far",
+        "meaning": "如果这个词还能这么勉强用的话",
+        "note": "带调侃的书面说法：这些箱子其实够不上“档案”这个称呼"
+      },
+      {
+        "text": "with the air of someone",
+        "meaning": "带着……的神情、样子",
+        "note": "描写人物神态，后面接 doing 或从句"
+      },
+      {
+        "text": "precisely because",
+        "meaning": "恰恰因为",
+        "note": "强调真正的原因，常带一点出人意料"
+      },
+      {
+        "text": "a surprising number of",
+        "meaning": "数量多得出人意料的",
+        "note": "后接可数名词复数"
+      },
+      {
+        "text": "bordered on the poetic",
+        "meaning": "近乎诗意",
+        "note": "border on + 名词/形容词：接近某种（常是极端的）程度"
+      },
+      {
+        "text": "made no sense to her",
+        "meaning": "她完全看不懂、觉得说不通",
+        "note": "make no sense to sb：对某人来说讲不通"
+      }
+    ],
+    "grammar": [
+      "tense-past-perfect",
+      "clause-nondefining",
+      "nonfinite-participle"
+    ],
+    "knowledge": [
+      {
+        "node": "tense-past-perfect",
+        "quote": "Mei had expected the job to be quiet, but she had not expected it to smell of the sea.",
+        "explanation": "过去完成时 had expected 写“来之前就有的预期”，和到了以后的真实感受对比，是讲故事开头的常用手法。"
+      },
+      {
+        "node": "clause-nondefining",
+        "quote": "Mei, who had spent four years translating technical manuals in a glass tower two hundred kilometres inland, did not find this discouraging.",
+        "explanation": "两个逗号之间的 who 从句补充 Mei 的背景；去掉它，主干 Mei did not find this discouraging 依然完整。"
+      },
+      {
+        "node": "nonfinite-participle",
+        "quote": "wrapped in oilcloth",
+        "explanation": "过去分词短语放在 the ledger 后面，表示被动：日志是“被油布包着的”。注意分词要紧跟它说明的对象，放到句首就成了在说 she。"
+      }
+    ],
+    "speaking": "你有没有因为“不着急、没压力”而选过一份工作或一件事？用 1 分钟说说当时的考虑，用上 precisely because。",
+    "writing": "写 150–180 词：描述你翻到过的一样旧东西（日记、信、照片），按“在哪里找到—它是什么样—哪里不对劲”的顺序写，结尾留一个悬念。",
+    "task": {
+      "prompt": "仿照这句，用 precisely because 说明你做某个选择的真正原因。",
+      "model": "She had taken the summer contract precisely because it promised nothing urgent"
+    },
+    "tags": [
+      "连载故事",
+      "灯塔日志",
+      "档案与记忆"
+    ],
+    "source": "Flow 编辑部原创",
+    "series": {
+      "id": "lighthouse-ledger",
+      "title": "灯塔日志",
+      "title_en": "The Lighthouse Ledger",
+      "of": 6,
+      "blurb": "六集连载 · C1：一位翻译在海边小镇整理档案，发现灯塔日志里藏着另一个人的笔迹——和一段从未被记下的功劳。",
+      "part": 1
+    }
+  },
+  {
+    "id": "v5-culture-c1-lighthouse-ledger-2",
+    "title": "灯塔日志 2：两种笔迹",
+    "title_en": "The Lighthouse Ledger, Part 2: Two Hands",
+    "summary_zh": "连载第 2 集：馆长 Ruth 认为第二种笔迹来自看守人的助手，但 Mei 越比较越怀疑。退休邮差 Ollie 说出了一个名字——看守人的女儿 Ada。可如果是她守着灯塔，为什么从来没人提起？",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "culture",
+    "genre": "story",
+    "body": "Ruth's first theory was that the keeper had simply fallen ill and an assistant had covered for him. \"Lighthouses nearly always had assistants,\" she said, pouring tea that had been brewing for far too long. \"Somebody young, usually, who wanted the room and the wages.\" Mei wanted to believe her, but the more closely she compared the two hands, the less convinced she became. An assistant, she reasoned, would have copied the keeper's habits in order not to attract attention; the second writer had done the opposite, abandoning the keeper's abbreviations and replacing them with full sentences, as if determined to leave a record that someone, one day, would actually read. There was also the matter of the signatures. The keeper had signed each page with a hurried \"T. Hale\", whereas the second hand had signed nothing at all, which seemed less like modesty than caution. On Saturday Mei took photographs of both scripts to the harbour café, where Ollie, who had delivered the town's post for thirty-eight years, held court every morning over a single cup of coffee. He studied the pictures for a long time before answering. \"Hale had a daughter,\" he said eventually. \"Ada. My mother used to say she knew the coastline better than he did, though nobody would have dared say that to his face.\" He could not remember what had become of her; she had left the town, he thought, long before he was born, and the family had not been the kind that people talked about kindly. Mei walked back along the sea wall, turning the name over in her mind. It explained the careful hand and the missing signature, but it raised a question she could not yet answer: if Ada had kept the light, why had no one ever said so?",
+    "questions": [
+      {
+        "prompt": "Why does Mei doubt Ruth's theory about an assistant?",
+        "options": [
+          "Assistants were not allowed to write in the keeper's ledger",
+          "The second writer made no attempt to imitate the keeper's style",
+          "Ollie told her that the keeper had never employed an assistant",
+          "The entries in the second hand were full of obvious mistakes"
+        ],
+        "answer": 1,
+        "evidence": "the second writer had done the opposite, abandoning the keeper's abbreviations"
+      },
+      {
+        "prompt": "What does the remark by Ollie's mother suggest about Ada?",
+        "options": [
+          "She was often rude to her father in public",
+          "She knew the local coast better than her father, though it was unwise to say so",
+          "She worked at the post office before she left town",
+          "She left the town because her father had fallen ill"
+        ],
+        "answer": 1,
+        "evidence": "she knew the coastline better than he did, though nobody would have dared say that to his face"
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {
+        "term": "convinced",
+        "meaning": "确信的、信服的",
+        "example": "I am not convinced that the plan will work."
+      },
+      {
+        "term": "abbreviations",
+        "meaning": "缩写",
+        "example": "The notes were full of abbreviations that only he understood."
+      },
+      {
+        "term": "modesty",
+        "meaning": "谦虚、谦逊",
+        "example": "He spoke about his success with real modesty."
+      },
+      {
+        "term": "caution",
+        "meaning": "谨慎、小心",
+        "example": "The doctors treated the new results with caution."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "covered for him",
+        "meaning": "替他顶班、替他掩护",
+        "note": "cover for sb：别人不在时替他做事，也可指替人打掩护"
+      },
+      {
+        "text": "in order not to attract attention",
+        "meaning": "为了不引人注意",
+        "note": "in order not to do：否定的目的，not 放在 to 前"
+      },
+      {
+        "text": "There was also the matter of",
+        "meaning": "还有……这个问题",
+        "note": "引出另一个要考虑的点，比 also 更郑重"
+      },
+      {
+        "text": "held court",
+        "meaning": "（在固定场合）被一群人围着高谈阔论",
+        "note": "略带幽默，形容一个人像国王一样“坐镇”"
+      },
+      {
+        "text": "to his face",
+        "meaning": "当着他的面",
+        "note": "say sth to sb's face：当面说（常指不客气的话）"
+      },
+      {
+        "text": "turning the name over in her mind",
+        "meaning": "在心里反复琢磨这个名字",
+        "note": "turn sth over in one's mind：反复思考"
+      }
+    ],
+    "grammar": [
+      "compare-pattern",
+      "modal-past",
+      "clause-relative"
+    ],
+    "knowledge": [
+      {
+        "node": "compare-pattern",
+        "quote": "the more closely she compared the two hands, the less convinced she became",
+        "explanation": "the + 比较级……，the + 比较级……：越……越……。这里是“越仔细比较，越不相信”。"
+      },
+      {
+        "node": "modal-past",
+        "quote": "An assistant, she reasoned, would have copied the keeper's habits in order not to attract attention",
+        "explanation": "would have done 表示对过去情况的推断：如果真是助手，当时应该会照着看守人的习惯写。"
+      },
+      {
+        "node": "clause-relative",
+        "quote": "the family had not been the kind that people talked about kindly",
+        "explanation": "that 引导定语从句修饰 the kind，在从句里作 about 的宾语；介词 about 留在句末，口语和书面都很自然。"
+      }
+    ],
+    "speaking": "你身边有没有“大家心里都知道、但没人当面说”的事？用 1 分钟讲讲，用上 to his/her face。",
+    "writing": "写 160–200 词：比较两个人（或两种）写字、说话或做事的风格，用 whereas 做对比，并推断这种差别说明了什么。",
+    "task": {
+      "prompt": "仿照这句，用 the more..., the less... 写你对某件事越了解、反而越不确定的经历。",
+      "model": "the more closely she compared the two hands, the less convinced she became"
+    },
+    "tags": [
+      "连载故事",
+      "灯塔日志",
+      "笔迹与线索"
+    ],
+    "source": "Flow 编辑部原创",
+    "series": {
+      "id": "lighthouse-ledger",
+      "title": "灯塔日志",
+      "title_en": "The Lighthouse Ledger",
+      "of": 6,
+      "blurb": "六集连载 · C1：一位翻译在海边小镇整理档案，发现灯塔日志里藏着另一个人的笔迹——和一段从未被记下的功劳。",
+      "part": 2
+    }
+  },
+  {
+    "id": "v5-culture-c1-lighthouse-ledger-3",
+    "title": "灯塔日志 3：不是雾，是烟",
+    "title_en": "The Lighthouse Ledger, Part 3: Not Fog. Smoke.",
+    "summary_zh": "连载第 3 集：那句更正背后，是一个十一月的夜晚——Ada 发现“雾”逆风飘、带着煤烟味，判断远处有船着火，违规改了灯号，救下十一名水手。报纸却只表扬了她的父亲。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "culture",
+    "genre": "story",
+    "body": "The corrected entry belonged to a night in late November, and once Mei knew what to look for, the surrounding pages told the story with unsettling clarity. The original line was in the keeper's cramped hand and read simply: \"Fog from nine. Lamp lit. No traffic.\" He must have written it from his sickbed, Mei guessed, going by what he could see from his window. Above it Ada had written her correction, and below it, squeezed into the margin, a longer note that Mei needed a magnifying glass to decipher. Ada had noticed that the \"fog\" was drifting against the wind, which fog does not do, and that it smelled of burning coal. Rather than assume it would clear, she had climbed to the gallery, seen a faint glow beyond the northern rocks and concluded that a steamer was on fire somewhere out of sight. What she did next was not, strictly speaking, permitted: she changed the light to the pattern reserved for emergencies, which brought the lifeboat crew out within the hour. The local newspaper, which Mei found the following week in the library's basement, reported that eleven sailors had been brought ashore and that the keeper \"had shown admirable judgement in difficult conditions\". There was no mention of Ada. Reading the article for the third time, Mei felt something closer to anger than to surprise. Had the rescue gone wrong, she suspected, the blame would have fallen entirely on the young woman who had broken the rules; because it had gone right, the credit had passed silently to the man whose name was on the door. It was an old pattern, and she recognised it from her own working life, though on a far smaller scale: the junior colleague whose careful revisions became the senior partner's triumph at the client meeting. She closed the newspaper and went back to the ledger, no longer reading it as a record of the weather but as evidence.",
+    "questions": [
+      {
+        "prompt": "How did Ada realise that what she saw was not fog?",
+        "options": [
+          "The lifeboat crew told her there was a fire at sea",
+          "It was moving against the wind and smelled of burning coal",
+          "She heard a ship's horn from beyond the northern rocks",
+          "Her father had warned her that a steamer was in trouble"
+        ],
+        "answer": 1,
+        "evidence": "was drifting against the wind, which fog does not do"
+      },
+      {
+        "prompt": "What does Mei believe about the way credit was given after the rescue?",
+        "options": [
+          "The newspaper was right to praise the keeper's judgement",
+          "Ada would have been blamed if it had failed, yet got no credit when it succeeded",
+          "The lifeboat crew deserved more credit than anyone at the lighthouse",
+          "Ada chose to stay anonymous in order to protect her father"
+        ],
+        "answer": 1,
+        "evidence": "Had the rescue gone wrong, she suspected, the blame would have fallen entirely on the young woman who had broken the rules"
+      }
+    ],
+    "dictation_index": 11,
+    "vocabulary": [
+      {
+        "term": "decipher",
+        "meaning": "辨认（难认的字迹）、破解",
+        "example": "It took me ten minutes to decipher his handwriting."
+      },
+      {
+        "term": "unsettling",
+        "meaning": "令人不安的",
+        "example": "There was an unsettling silence after the announcement."
+      },
+      {
+        "term": "admirable",
+        "meaning": "令人钦佩的",
+        "example": "She showed admirable patience with the new trainees."
+      },
+      {
+        "term": "triumph",
+        "meaning": "巨大成功、胜利",
+        "example": "The new design was a triumph for the whole team."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "knew what to look for",
+        "meaning": "知道该找什么",
+        "note": "常说 once you know what to look for：一旦知道门道"
+      },
+      {
+        "text": "strictly speaking",
+        "meaning": "严格来说",
+        "note": "放在句中或句首，表示按规定或字面意思"
+      },
+      {
+        "text": "within the hour",
+        "meaning": "不到一小时之内",
+        "note": "比 in an hour 更强调“很快”"
+      },
+      {
+        "text": "brought ashore",
+        "meaning": "（从海上）救上岸、带上岸",
+        "note": "bring sb/sth ashore，被动 be brought ashore"
+      },
+      {
+        "text": "closer to anger than to surprise",
+        "meaning": "与其说是惊讶，不如说更接近愤怒",
+        "note": "closer to A than to B：比较两种感受的细腻说法"
+      },
+      {
+        "text": "on a far smaller scale",
+        "meaning": "规模小得多",
+        "note": "on a … scale：在……规模上"
+      }
+    ],
+    "grammar": [
+      "subjunctive-past",
+      "clause-noun",
+      "tense-past-perfect"
+    ],
+    "knowledge": [
+      {
+        "node": "subjunctive-past",
+        "quote": "Had the rescue gone wrong, she suspected, the blame would have fallen entirely on the young woman who had broken the rules",
+        "explanation": "省略 if 的倒装：Had the rescue gone wrong = If the rescue had gone wrong，与过去事实相反，主句用 would have done。"
+      },
+      {
+        "node": "clause-noun",
+        "quote": "What she did next was not, strictly speaking, permitted",
+        "explanation": "What she did next 是 what 引导的主语从句（= the thing that she did next），整个从句作主语，谓语是 was not permitted；先说“她接下来做的事”，更有悬念。"
+      },
+      {
+        "node": "tense-past-perfect",
+        "quote": "she had climbed to the gallery, seen a faint glow beyond the northern rocks and concluded that a steamer was on fire",
+        "explanation": "一连串过去完成时（had climbed, seen, concluded）交代 Mei 读日志“之前很久”就已经发生的事。"
+      }
+    ],
+    "speaking": "说一个“功劳被别人拿走”或“差点替别人背锅”的经历（可以是听来的），1 分钟，用上 strictly speaking。",
+    "writing": "写 180–220 词：从两个角度讲同一件事——官方记录怎么写，真正发生了什么。至少用一次 Had ... done, ... would have done。",
+    "task": {
+      "prompt": "仿照这句，用 Had + 主语 + done 的倒装，写一件“如果当时……就会……”的事。",
+      "model": "Had the rescue gone wrong, she suspected, the blame would have fallen entirely on the young woman who had broken the rules"
+    },
+    "tags": [
+      "连载故事",
+      "灯塔日志",
+      "一次救援"
+    ],
+    "source": "Flow 编辑部原创",
+    "series": {
+      "id": "lighthouse-ledger",
+      "title": "灯塔日志",
+      "title_en": "The Lighthouse Ledger",
+      "of": 6,
+      "blurb": "六集连载 · C1：一位翻译在海边小镇整理档案，发现灯塔日志里藏着另一个人的笔迹——和一段从未被记下的功劳。",
+      "part": 3
+    }
+  },
+  {
+    "id": "v5-culture-c1-lighthouse-ledger-4",
+    "title": "灯塔日志 4：记录没写下的",
+    "title_en": "The Lighthouse Ledger, Part 4: What the Record Leaves Out",
+    "summary_zh": "连载第 4 集：馆长 Ruth 提出了 Mei 一直回避的问题——到底能证明什么？一段笔迹和页边批注不等于正式记录。两人从“谨慎”争到“偏见”，最后只达成一个约定：继续找证据。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "culture",
+    "genre": "story",
+    "body": "Mei expected Ruth to be delighted, and for a few minutes she was. Then the director put down the magnifying glass and asked the question Mei had been avoiding: what, exactly, could they prove? A change of handwriting was not a signature, and a note in the margin, however vivid, was not the same as an official record. \"If we put Ada's name on that wall,\" Ruth said, \"we are making a claim on behalf of the museum, and people will repeat it as fact.\" Mei argued that the official record was itself a kind of claim, and a less honest one, since it had clearly been written by people who had not climbed the tower that night. Ruth conceded the point but would not move on the principle. Museums, she said, were trusted precisely because they were slow to say things; it was not their job to correct every injustice the past had committed, only to avoid adding new errors of their own. Mei found the argument infuriating, partly because she could not entirely dismiss it. In her old job she had seen what happened when a confident sentence travelled faster than the evidence behind it: a mistranslated safety warning, repeated in three languages before anyone checked the original. Still, it seemed to her that caution could become its own kind of distortion, and that a museum which displayed only what had been officially recorded would end up displaying, in effect, the opinions of whoever had held the pen. They argued until the café across the square switched off its lights. By the end they had agreed on very little, except that Mei would keep looking, and that if she found nothing more, the label would mention the second hand without naming it.",
+    "questions": [
+      {
+        "prompt": "What is the main disagreement between Mei and Ruth?",
+        "options": [
+          "Whether the ledger should be sold to a larger archive",
+          "Whether the museum can name Ada without stronger evidence",
+          "Whether the newspaper article Mei found is genuine",
+          "Whether Mei should be paid for the extra work she has done"
+        ],
+        "answer": 1,
+        "evidence": "we are making a claim on behalf of the museum, and people will repeat it as fact"
+      },
+      {
+        "prompt": "Why does Mei find Ruth's argument \"infuriating\"?",
+        "options": [
+          "Ruth refuses to look at the evidence Mei has collected",
+          "Mei suspects, partly from experience, that the argument has some truth in it",
+          "Ruth wants her own name to appear on the museum label",
+          "Ruth keeps changing her mind about what she believes"
+        ],
+        "answer": 1,
+        "evidence": "partly because she could not entirely dismiss it"
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {
+        "term": "vivid",
+        "meaning": "生动的、鲜明的",
+        "example": "He gave a vivid description of the storm."
+      },
+      {
+        "term": "infuriating",
+        "meaning": "令人恼火的",
+        "example": "It is infuriating when the bus is late every single day."
+      },
+      {
+        "term": "dismiss",
+        "meaning": "不予考虑、驳回",
+        "example": "You should not dismiss her idea so quickly."
+      },
+      {
+        "term": "distortion",
+        "meaning": "歪曲、失真",
+        "example": "The headline was a distortion of what the report actually said."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "conceded the point",
+        "meaning": "承认对方这一点说得对",
+        "note": "concede a point：辩论中让步，但不一定认输"
+      },
+      {
+        "text": "would not move on the principle",
+        "meaning": "在原则问题上不肯让步",
+        "note": "move on sth：在某事上让步、改变立场"
+      },
+      {
+        "text": "on behalf of",
+        "meaning": "代表……",
+        "note": "on behalf of the museum：以博物馆的名义"
+      },
+      {
+        "text": "in effect",
+        "meaning": "实际上、等于是",
+        "note": "说明表面之下的真实结果"
+      },
+      {
+        "text": "travelled faster than the evidence",
+        "meaning": "（说法）传得比证据还快",
+        "note": "描述谣言或未经核实的说法传播"
+      },
+      {
+        "text": "agreed on very little",
+        "meaning": "几乎没达成一致",
+        "note": "agree on sth：在某事上达成一致"
+      }
+    ],
+    "grammar": [
+      "conditional-real",
+      "link-contrast",
+      "clause-noun"
+    ],
+    "knowledge": [
+      {
+        "node": "conditional-real",
+        "quote": "If we put Ada's name on that wall",
+        "explanation": "真实条件句：if 从句用一般现在时 put；主句用现在进行时 we are making，强调“这么做本身就等于在下结论”。"
+      },
+      {
+        "node": "link-contrast",
+        "quote": "a note in the margin, however vivid, was not the same as an official record",
+        "explanation": "however + 形容词 插在句中表示让步：不管批注写得多生动，它也不等于正式记录。"
+      },
+      {
+        "node": "clause-noun",
+        "quote": "it seemed to her that caution could become its own kind of distortion",
+        "explanation": "it 作形式主语，真正的主语是后面的 that 从句；it seemed to sb that... 是表达个人看法的委婉说法。"
+      }
+    ],
+    "speaking": "你更同意 Ruth 还是 Mei？用 1 分钟说明理由，先承认对方的一个合理之处（I'll concede that...）。",
+    "writing": "写 200–240 词的议论文：博物馆（或百科、新闻）在证据不足时，应该写出“可能的真相”，还是只写有记录的事实？要有让步和反驳。",
+    "task": {
+      "prompt": "仿照这句，用 however + 形容词 插在句中表示让步。",
+      "model": "a note in the margin, however vivid, was not the same as an official record"
+    },
+    "tags": [
+      "连载故事",
+      "灯塔日志",
+      "证据与判断"
+    ],
+    "source": "Flow 编辑部原创",
+    "series": {
+      "id": "lighthouse-ledger",
+      "title": "灯塔日志",
+      "title_en": "The Lighthouse Ledger",
+      "of": 6,
+      "blurb": "六集连载 · C1：一位翻译在海边小镇整理档案，发现灯塔日志里藏着另一个人的笔迹——和一段从未被记下的功劳。",
+      "part": 4
+    }
+  },
+  {
+    "id": "v5-culture-c1-lighthouse-ledger-5",
+    "title": "灯塔日志 5：封皮里的信",
+    "title_en": "The Lighthouse Ledger, Part 5: The Letter in the Lining",
+    "summary_zh": "连载第 5 集：日志封底比封面厚——Mei 在修复师的电话指导下拆开内衬，找到 Ada 写给父亲的信：她守了三个月灯塔，决定离开小镇去学航海，并说“重要的是灯，不是本子上写谁的名字”。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "culture",
+    "genre": "story",
+    "body": "It was the binding, in the end, that gave Ada away. Mei had been photographing the ledger page by page for the digital catalogue when she noticed that the back cover was thicker than the front, and that the leather there had been glued down more neatly than an old bookbinder would have bothered to. With Ruth watching anxiously and a conservator from the county archive giving instructions over the phone, she eased the lining away from the board. Inside was a single folded sheet, addressed not to the authorities or to a newspaper but simply to \"Father\". Ada wrote that she had kept the light for three months while he lay ill, that she had told no one because a woman alone in the tower would have been sent home within a week, and that she was leaving to train as a navigator in a port far to the south, where, she had heard, such things were no longer impossible. She did not ask him to tell anyone. \"You will say it was you,\" she wrote, \"and I would rather you did, because the lamp is what matters, not whose name is in the book.\" The letter ended with a practical reminder about the stiff hinge on the gallery door. Mei read it twice and then sat for a long time without speaking. What struck her most was not the injustice, which she had already guessed at, but the absence of bitterness: Ada had apparently decided, at nineteen or twenty, that being right mattered less to her than being free, and had left a record only in case someone, someday, needed the truth more than she did. Ruth, who according to Ollie had not cried in front of a colleague in thirty years, went out to the car park and stayed there for some time. When she came back, she said only: \"Well. Now we can prove it.\"",
+    "questions": [
+      {
+        "prompt": "Why had Ada told no one that she was keeping the light?",
+        "options": [
+          "She was afraid that her father would be angry with her",
+          "She believed she would have been sent away if people had known",
+          "She had promised the lifeboat crew that she would keep it secret",
+          "She planned to surprise the whole town when her father recovered"
+        ],
+        "answer": 1,
+        "evidence": "a woman alone in the tower would have been sent home within a week"
+      },
+      {
+        "prompt": "What affected Mei most when she read the letter?",
+        "options": [
+          "Ada blamed her father bitterly for taking the credit",
+          "Ada seemed to accept the lack of credit without resentment",
+          "The letter was addressed to the editor of a newspaper",
+          "The letter proved that Ada had never left the town"
+        ],
+        "answer": 1,
+        "evidence": "but the absence of bitterness"
+      }
+    ],
+    "dictation_index": 5,
+    "vocabulary": [
+      {
+        "term": "conservator",
+        "meaning": "（文物、档案）修复师",
+        "example": "A conservator spent months repairing the old painting."
+      },
+      {
+        "term": "anxiously",
+        "meaning": "焦虑地、不安地",
+        "example": "We waited anxiously for the results."
+      },
+      {
+        "term": "bitterness",
+        "meaning": "怨恨、苦涩",
+        "example": "He talked about losing the job without any bitterness."
+      },
+      {
+        "term": "binding",
+        "meaning": "（书的）装订、封皮",
+        "example": "The binding of this book is coming apart."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "gave Ada away",
+        "meaning": "暴露了 Ada（的秘密）",
+        "note": "give sb away：泄露某人的身份或秘密"
+      },
+      {
+        "text": "page by page",
+        "meaning": "一页一页地",
+        "note": "A by A 结构：step by step, day by day"
+      },
+      {
+        "text": "I would rather you did",
+        "meaning": "我宁愿你这么做",
+        "note": "would rather + 从句（过去式）：希望别人做某事，语气委婉"
+      },
+      {
+        "text": "guessed at",
+        "meaning": "猜到了几分",
+        "note": "guess at sth：（不完全确定地）推测"
+      },
+      {
+        "text": "in case",
+        "meaning": "以防、万一",
+        "note": "in case + 从句：为了防备某种可能"
+      }
+    ],
+    "grammar": [
+      "emph-cleft",
+      "subjunctive-wish",
+      "nonfinite-gerund"
+    ],
+    "knowledge": [
+      {
+        "node": "emph-cleft",
+        "quote": "It was the binding, in the end, that gave Ada away.",
+        "explanation": "It was ... that ... 强调句：强调“最终暴露她的正是装订”，比 The binding gave Ada away 更有分量。"
+      },
+      {
+        "node": "subjunctive-wish",
+        "quote": "I would rather you did",
+        "explanation": "would rather + 从句时，从句用过去式（did）表示对现在或将来的希望，不是过去的事。"
+      },
+      {
+        "node": "nonfinite-gerund",
+        "quote": "being right mattered less to her than being free",
+        "explanation": "动名词短语 being right 作主语，being free 是比较的另一方；两边都用 doing 形式，结构才平行。"
+      }
+    ],
+    "speaking": "如果你是 Ada，你会留下这封信吗？用 1 分钟说说你的选择，用上 I would rather...。",
+    "writing": "以 Ada 父亲的身份写一封 150–180 词的回信（虚构）：他读到信后想说什么？注意语气：骄傲、愧疚还是倔强？",
+    "task": {
+      "prompt": "仿照这句，用 It was ... that ... 强调是什么最终让一件事真相大白。",
+      "model": "It was the binding, in the end, that gave Ada away."
+    },
+    "tags": [
+      "连载故事",
+      "灯塔日志",
+      "一封信"
+    ],
+    "source": "Flow 编辑部原创",
+    "series": {
+      "id": "lighthouse-ledger",
+      "title": "灯塔日志",
+      "title_en": "The Lighthouse Ledger",
+      "of": 6,
+      "blurb": "六集连载 · C1：一位翻译在海边小镇整理档案，发现灯塔日志里藏着另一个人的笔迹——和一段从未被记下的功劳。",
+      "part": 5
+    }
+  },
+  {
+    "id": "v5-culture-c1-lighthouse-ledger-6",
+    "title": "灯塔日志 6：四十个词的展签",
+    "title_en": "The Lighthouse Ledger, Part 6: A Label of Forty Words",
+    "summary_zh": "连载第 6 集（完）：展签只能写 40 个词。Mei 改了五稿，决定先写 Ada 做了什么，把“功劳被拿走”放在结尾。离开小镇后的面试上，她说出了这个夏天最大的收获。",
+    "level": "B2",
+    "cefr": "C1",
+    "theme": "culture",
+    "genre": "story",
+    "body": "The museum's labels were limited to forty words, a rule Ruth defended with the fervour of a convert, and Mei spent her final week discovering how much a sentence could carry before it collapsed. Her first draft told the whole story and ran to two hundred words; her fifth was accurate but so cautious that it seemed to apologise for Ada's existence. The difficulty, she realised, was not length but emphasis: whichever fact came first would become, for most visitors, the only fact they remembered. In the end she began not with the injustice but with the act itself, because that was what Ada had cared about, and let the missing credit appear only at the end, where a careful reader would find it and a hurried one would not be misled. \"For three months Ada Hale kept this light while her father was ill. One November night she realised a ship was burning and called out the lifeboat. Eleven sailors were saved. The report named her father. She asked for nothing.\" Ruth changed one word and pronounced it the best label in the building. On her last morning Mei caught the early bus to the city for an interview she had arranged weeks earlier, with a firm that wanted her back on better terms. She had expected to feel relieved at the prospect of returning to proper work, as she still privately called it. Instead she found herself rereading the photograph of Ada's letter and thinking that she had spent four years making other people's sentences clear without once asking whose name ended up on them. When the interviewer asked what she had been doing all summer, she heard herself say, with more conviction than she had intended, that she had been helping someone get the credit she was owed.",
+    "questions": [
+      {
+        "prompt": "Why did Mei put the missing credit at the end of the label?",
+        "options": [
+          "Ruth insisted that it should appear at the end",
+          "She wanted visitors to remember Ada's action before anything else",
+          "The museum still had no proof that Ada had been ignored",
+          "Forty words were not enough to mention it any earlier"
+        ],
+        "answer": 1,
+        "evidence": "she began not with the injustice but with the act itself"
+      },
+      {
+        "prompt": "How has the summer changed the way Mei thinks about her own work?",
+        "options": [
+          "She now believes translation matters less than museum work",
+          "She has begun to notice who receives credit for careful work",
+          "She has decided never to return to a job in the city",
+          "She wants to translate Ada's letter into several languages"
+        ],
+        "answer": 1,
+        "evidence": "without once asking whose name ended up on them"
+      }
+    ],
+    "dictation_index": 9,
+    "vocabulary": [
+      {
+        "term": "fervour",
+        "meaning": "热忱、狂热",
+        "example": "She spoke about the project with real fervour."
+      },
+      {
+        "term": "emphasis",
+        "meaning": "强调、侧重",
+        "example": "The new course puts more emphasis on speaking."
+      },
+      {
+        "term": "misled",
+        "meaning": "被误导的",
+        "example": "Many readers were misled by the headline."
+      },
+      {
+        "term": "conviction",
+        "meaning": "坚定、深信",
+        "example": "He answered with a conviction that surprised everyone."
+      },
+      {
+        "term": "prospect",
+        "meaning": "前景、可能性",
+        "example": "The prospect of moving abroad excited her."
+      }
+    ],
+    "expressions": [
+      {
+        "text": "with the fervour of a convert",
+        "meaning": "像刚皈依的人一样热忱",
+        "note": "幽默地形容某人对一条规则或理念格外较真"
+      },
+      {
+        "text": "ran to two hundred words",
+        "meaning": "长达两百词",
+        "note": "run to + 数量：（篇幅、费用）达到"
+      },
+      {
+        "text": "on better terms",
+        "meaning": "以更好的条件",
+        "note": "terms 指合同、工作条件"
+      },
+      {
+        "text": "at the prospect of",
+        "meaning": "一想到……（的前景）",
+        "note": "feel relieved / excited at the prospect of doing"
+      },
+      {
+        "text": "heard herself say",
+        "meaning": "不由自主地说出",
+        "note": "hear oneself say：说出了自己都没料到的话"
+      },
+      {
+        "text": "the credit she was owed",
+        "meaning": "她应得的功劳",
+        "note": "be owed sth：理应得到某物"
+      }
+    ],
+    "grammar": [
+      "clause-noun",
+      "nonfinite-gerund",
+      "tense-past-perfect"
+    ],
+    "knowledge": [
+      {
+        "node": "clause-noun",
+        "quote": "whichever fact came first would become, for most visitors, the only fact they remembered",
+        "explanation": "whichever 引导主语从句：无论哪一个事实放在前面，它都会成为大多数参观者唯一记住的。"
+      },
+      {
+        "node": "nonfinite-gerund",
+        "quote": "without once asking whose name ended up on them",
+        "explanation": "介词 without 后接动名词 asking；once 插在中间加强语气：一次都没问过。"
+      },
+      {
+        "node": "tense-past-perfect",
+        "quote": "an interview she had arranged weeks earlier",
+        "explanation": "过去完成时 had arranged：面试是在“最后一天早上”之前好几周就约好的。"
+      }
+    ],
+    "speaking": "如果你是 Mei，你会接受城里那份工作吗？用 1 分钟说明理由，用上 on better terms 或 at the prospect of。",
+    "writing": "用不超过 40 个英文词，为一件对你有意义的旧物写一张博物馆展签；再用中文写 100 字，说明你为什么这样安排信息的先后。",
+    "task": {
+      "prompt": "仿照这句，用 The difficulty was not A but B 说出一件事真正难在哪里。",
+      "model": "The difficulty, she realised, was not length but emphasis"
+    },
+    "tags": [
+      "连载故事",
+      "灯塔日志",
+      "写下名字"
+    ],
+    "source": "Flow 编辑部原创",
+    "series": {
+      "id": "lighthouse-ledger",
+      "title": "灯塔日志",
+      "title_en": "The Lighthouse Ledger",
+      "of": 6,
+      "blurb": "六集连载 · C1：一位翻译在海边小镇整理档案，发现灯塔日志里藏着另一个人的笔迹——和一段从未被记下的功劳。",
+      "part": 6
+    }
+  }
+]
