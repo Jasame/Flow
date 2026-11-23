@@ -64,6 +64,9 @@ class MoreTests(unittest.TestCase):
         hit, _ = nx.get(self.c, 1, '/api/next/lookup', {'w': ['lent']})
         self.assertEqual(hit['entry']['confusable'][0]['id'], 'borrow-lend')
         self.assertNotIn('confusable', nx.lookup('lent'))  # the cached dictionary entry is left alone
+        for form, gid in (('borrowed', 'borrow-lend'), ('said', 'say-tell'), ('rose', 'raise-rise'), ('robbed', 'steal-rob'), ('watching', 'look-see-watch')):
+            hit, _ = nx.get(self.c, 1, '/api/next/lookup', {'w': [form]})  # the form a reader taps, not only the base word
+            self.assertIn(gid, [g['id'] for g in hit['entry']['confusable']], form)
 
     def test_a_missed_word_question_comes_back_on_another_question_until_right_twice(self):
         r = WL.round_of(['borrow-lend', 'make-do'], seed=2, per=2)

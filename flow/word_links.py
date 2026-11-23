@@ -223,10 +223,41 @@ GROUPS = {
 }
 
 
+# Past forms and plurals the dictionary keeps as words of their own (said, raised, borrowed): mapped back to the
+# group word, so the look-up sheet finds the group from the form a reader actually taps.
+IRREGULAR = {'lent': 'lend', 'said': 'say', 'told': 'tell', 'spoke': 'speak', 'spoken': 'speak', 'saw': 'see', 'seen': 'see',
+             'brought': 'bring', 'took': 'take', 'taken': 'take', 'heard': 'hear', 'won': 'win', 'beaten': 'beat', 'learnt': 'learn',
+             'stole': 'steal', 'stolen': 'steal', 'wore': 'wear', 'worn': 'wear', 'lost': 'lose', 'lain': 'lie', 'laid': 'lay',
+             'rose': 'rise', 'risen': 'rise', 'made': 'make', 'did': 'do', 'done': 'do', 'spent': 'spend', 'paid': 'pay', 'got': 'get',
+             'gotten': 'get', 'lay': 'lay'}
+
+
+def _forms(word):
+    """word plus the regular forms that lead back to it: -s, -es, -ed, -d, -ing, -ied / -ies, doubled consonants."""
+    w = word.lower()
+    out = {w, w + 's', w + 'es', w + 'ed', w + 'd', w + 'ing', w + 'er', w + 'ly'}
+    if w.endswith('e'):
+        out |= {w[:-1] + 'ing'}
+    if w.endswith('y') and len(w) > 2 and w[-2] not in 'aeiou':
+        out |= {w[:-1] + 'ied', w[:-1] + 'ies'}
+    if len(w) >= 3 and w[-1] not in 'aeiouwxy' and w[-2] in 'aeiou' and w[-3] not in 'aeiou':
+        out |= {w + w[-1] + 'ed', w + w[-1] + 'ing'}
+    return out
+
+
+_FORM = {}
+for _gid, _g in GROUPS.items():
+    for _w in _g[1]:
+        for _f in _forms(_w):
+            _FORM.setdefault(_f, set()).add(_gid)
+for _f, _base in IRREGULAR.items():
+    _FORM.setdefault(_f, set()).update(gid for gid, g in GROUPS.items() if _base in [x.lower() for x in g[1]])
+
+
 def group_of(word):
-    """The groups a word belongs to, for the look-up sheet."""
+    """The groups a word belongs to (any of its forms), for the look-up sheet."""
     w = (word or '').lower()
-    return [{'id': gid, 'words': g[1], 'how': g[2], 'level': g[0]} for gid, g in GROUPS.items() if w in [x.lower() for x in g[1]]]
+    return [{'id': gid, 'words': GROUPS[gid][1], 'how': GROUPS[gid][2], 'level': GROUPS[gid][0]} for gid in sorted(_FORM.get(w, ()))]
 
 
 def listing(level=None):
