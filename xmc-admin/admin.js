@@ -181,7 +181,7 @@
   }
 
   /* ---------- 学习数据 ---------- */
-  var BOOK = { core: '基础', mid: '进阶', high: '高阶', adv: '精通', ext: '拓展', cet4: '四级', cet6: '六级', ky: '考研', ielts: '雅思', toefl: '托福', gre: 'GRE' };
+  var BOOK = { core: '基础', mid: '进阶', high: '高阶', adv: '精通', ext: '拓展', zk: '中考', gk: '高考', cet4: '四级', cet6: '六级', ky: '考研', tem4: '专四', tem8: '专八', ielts: '雅思', toefl: '托福', gre: 'GRE', nawl: '学术英语', bsl: '商务英语' };
   var STEP = { listen: '听', read: '读', check: '理解题', output: '用出来（AI 改写）' };
   var AIK = { 'next-rewrite': '仿写改写', 'next-explain': '句子讲解', 'next-variant': '难度改写', 'next-shadow': '跟读点评', 'next-examples': 'AI 例句',
     'next-retell': '复述', 'next-dialog': '情景对话', 'next-essay': '短文批改', 'next-translate': '翻译批改', 'next-transsrc': '翻译原句', 'next-say': '发音检查', 'next-enrich': '导入文章出题' };

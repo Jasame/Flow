@@ -279,6 +279,7 @@ flow/tests/test_learner_round.py
 flow/tests/test_slim.py
 flow/tests/test_vertex.py
 flow/tests/test_vocab.py
+flow/tests/test_wordbook_registry.py
 flow/tests/test_wordbooks.py
 flow/tests/test_wordbooks_open.py
 flow/tools/build_graded.py
