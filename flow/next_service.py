@@ -70,6 +70,8 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
  created REAL NOT NULL, PRIMARY KEY(pack, sentence, level));''')
     if 'voice' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:
         c.execute("ALTER TABLE next_profiles ADD COLUMN voice TEXT NOT NULL DEFAULT 'us-f'")
+    if 'weekly_goal' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:
+        c.execute('ALTER TABLE next_profiles ADD COLUMN weekly_goal INTEGER NOT NULL DEFAULT 4')  # 每周目标: days a week
     import vocab_service  # word books, daily plan and FSRS state live on top of next_cards
     vocab_service.schema(c)
     __import__('skills_service').schema(c)  # ability profile, mistake book, weekly report
@@ -318,7 +320,7 @@ def profile(c, uid):
     if not r:
         return None
     return {'level': r['level'], 'goal': r['goal'], 'themes': json.loads(r['themes']), 'minutes': r['minutes'],
-            'voice': r['voice'] if r['voice'] in VOICES else 'us-f'}
+            'voice': r['voice'] if r['voice'] in VOICES else 'us-f', 'weekly_goal': r['weekly_goal'] if 'weekly_goal' in r.keys() else 4}
 
 
 def save_profile(c, uid, data):
@@ -719,7 +721,44 @@ def stats(c, uid):
         'materials_done': c.execute("SELECT COUNT(DISTINCT pack) FROM next_progress WHERE user_id=? AND step='check'", (uid,)).fetchone()[0],
         'reviews_week': c.execute('SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND created>?', (uid, week_start)).fetchone()[0],
         'week': [{'day': d, 'active': d in days} for d in week],
+        'habit': habit(c, uid, ((profile(c, uid) or {}).get('weekly_goal')) or 4, now),
     }
+
+
+def habit(c, uid, goal, now=None):
+    """每周目标: this week's study days (Monday to Sunday, China time) against the learner's goal, how many weeks in a
+    row the goal was met (a missed day breaks nothing while the week still reaches it), and last week's result for the
+    Monday notice. A day counts when anything was learned: a step of a material or a review."""
+    now = now or time.time()
+    D = datetime.timedelta
+    today = datetime.datetime.fromtimestamp(now, TZ).date()
+    monday = today - D(days=today.weekday())
+    since = datetime.datetime.combine(monday - D(weeks=52), datetime.time(), TZ).timestamp()
+    days = set()
+    for sql in ('SELECT created FROM next_progress WHERE user_id=? AND created>=?', 'SELECT created FROM next_reviews WHERE user_id=? AND created>=?'):
+        for (t,) in c.execute(sql, (uid, since)):
+            days.add(datetime.datetime.fromtimestamp(t, TZ).date())
+    count = lambda mon: sum(1 for k in range(7) if mon + D(days=k) in days)
+    done, last = count(monday), count(monday - D(weeks=1))
+    streak, w = 0, monday - D(weeks=1)
+    while streak < 52 and count(w) >= goal:
+        streak += 1; w -= D(weeks=1)
+    return {'goal': goal, 'done': done, 'met': done >= goal, 'streak': streak + (done >= goal), 'monday': monday.isoformat(),
+            'days': [{'day': (monday + D(days=k)).isoformat(), 'active': monday + D(days=k) in days, 'today': monday + D(days=k) == today} for k in range(7)],
+            'last_week': {'done': last, 'met': last >= goal}}
+
+
+def set_weekly_goal(c, uid, data):
+    try:
+        goal = int(data.get('goal'))
+    except (TypeError, ValueError):
+        goal = 0
+    if not 1 <= goal <= 7:
+        return {'error': '每周目标是 1 到 7 天'}, 400
+    if not c.execute('UPDATE next_profiles SET weekly_goal=?, updated=? WHERE user_id=?', (goal, time.time(), uid)).rowcount:
+        return {'error': '请先设置学习目标和水平'}, 400
+    c.commit()
+    return {'habit': habit(c, uid, goal)}, 200
 
 
 def library(c, uid, level=None, theme=None, page=1, per=12, featured_only=False):
@@ -1372,6 +1411,8 @@ AI_PATHS = ('/api/next/assess/speaking', '/api/next/assess/writing', '/api/next/
 def post(c, uid, path, data):
     if path == '/api/next/profile':
         return save_profile(c, uid, data)
+    if path == '/api/next/habit':
+        return set_weekly_goal(c, uid, data)
     if path == '/api/next/radar/goals':
         return __import__('ability_radar').set_goals(c, uid, data)
     if path == '/api/next/assess/comprehension':
