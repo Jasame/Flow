@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
     __import__('graph_links').install(c)  # prerequisite fixes and confusable edges (once)
     __import__('easy_reading').schema(c)  # easy reading: words read, speed, how hard it felt
     __import__('word_links').schema(c)  # practice on words Chinese speakers mix up
+    __import__('ability_radar').schema(c)  # goals, assessments and radar snapshots
     __import__('exam_service').schema(c)  # exam practice papers and results
 
 
@@ -1290,6 +1291,12 @@ def get(c, uid, path, q):
         return stats(c, uid), 200
     if path == '/api/next/growth':
         return __import__('growth_report').month(c, uid, one('month') or None)
+    if path == '/api/next/radar':
+        return __import__('ability_radar').radar(c, uid), 200
+    if path == '/api/next/assess/test':
+        return __import__('ability_radar').comprehension_test(c, uid, one('kind'))
+    if path == '/api/next/assess/task':
+        return __import__('ability_radar').task(c, uid, one('kind'))
     return None
 
 
@@ -1314,13 +1321,19 @@ def post_public(c, uid, path, data):
     return None
 
 
-AI_PATHS = ('/api/next/rewrite', '/api/next/variant', '/api/next/explain', '/api/next/shadow', '/api/next/vocab/examples', '/api/next/import/enrich',
+AI_PATHS = ('/api/next/assess/speaking', '/api/next/assess/writing', '/api/next/rewrite', '/api/next/variant', '/api/next/explain', '/api/next/shadow', '/api/next/vocab/examples', '/api/next/import/enrich',
             '/api/next/retell', '/api/next/dialog', '/api/next/essay', '/api/next/translate/source', '/api/next/translate', '/api/next/say')
 
 
 def post(c, uid, path, data):
     if path == '/api/next/profile':
         return save_profile(c, uid, data)
+    if path == '/api/next/radar/goals':
+        return __import__('ability_radar').set_goals(c, uid, data)
+    if path == '/api/next/assess/comprehension':
+        return __import__('ability_radar').comprehension_score(c, uid, data)
+    if path in ('/api/next/assess/speaking', '/api/next/assess/writing'):
+        return __import__('ability_radar').judged(c, uid, path.rsplit('/', 1)[1], data)
     if path == '/api/next/voice':
         return set_voice(c, uid, data)
     if path == '/api/next/progress':

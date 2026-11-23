@@ -53,7 +53,7 @@
         <details class="section"><summary class="small">看每题的解析</summary><div class="stack-s">${r.results.map(x => { const q = byId[x.id]; if (!q) return '';
           const right = q.options[q.map.indexOf(x.answer)];
           return `<div class="pit"><div class="small">${esc(q.prompt)}</div><div class="${x.correct ? 'good' : 'bad'} small">${x.correct ? '✓ 答对' : '✗ 答案'}：${esc(right)}</div><div class="tiny muted">${esc(x.explanation)}</div></div>`; }).join('')}</div></details>
-        <a class="link small" href="#/graph">看我的语法地图 →</a></div>`;
+        <div class="row"><a class="link small" href="#/graph">看我的语法地图 →</a>${r.saved ? '<a class="link small" href="#/radar">语法这一项已记进能力雷达 →</a>' : ''}</div></div>`;
       enter(view.firstElementChild);
       announce('小测结束，建议从 ' + r.level + ' 开始');
       document.getElementById('pUse').onclick = async () => {

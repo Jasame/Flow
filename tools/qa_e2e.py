@@ -376,6 +376,17 @@ def persona_exam(cl):
     check(who, 'B1 serial: six episodes', s == 200 and se.get('of') == 6, s)
     s, gw = cl.get('/api/next/growth')
     check(who, 'my progress: this month and milestones', s == 200 and gw.get('now', {}).get('words_read', 0) > 0 and len(gw.get('milestones', [])) >= 10, s)
+    # r17: the ability radar: goals, a reading check, the radar with the measured skill
+    s, rg = cl.post('/api/next/radar/goals', {'goals': {'reading': 'B2', 'speaking': 'B1'}})
+    check(who, 'radar: goals saved', s == 200 and rg.get('goals', {}).get('speaking') == 'B1', s)
+    s, at = cl.get('/api/next/assess/test?kind=reading')
+    check(who, 'radar: a reading check of 2–3 texts around the level', s == 200 and 2 <= len(at.get('passages', [])) <= 3, s)
+    if s == 200:
+        ans = [{'pack': p['pack'], 'i': q['i'], 'choice': 0} for p in at['passages'] for q in p['questions']]
+        s, sc = cl.post('/api/next/assess/comprehension', {'kind': 'reading', 'answers': ans})
+        check(who, 'radar: the check is scored and recorded', s == 200 and sc.get('recorded', {}).get('skill') == 'reading', s)
+    s, rr = cl.get('/api/next/radar')
+    check(who, 'radar: reading measured against its goal', s == 200 and next(d for d in rr['dims'] if d['id'] == 'reading')['source'] == 'assessment', s)
     s, m = cl.get('/api/next/material?id=' + PID)
     check(who, 'material has a speaking and writing task', s == 200 and (m.get('speaking_task') or m.get('writing_task')), [k for k in m if 'task' in k] if isinstance(m, dict) else m)
     s, j, r = cl.ai('/api/next/retell', {'pack': PID, 'text': 'The article say noise cancelling headphones listen to the outside noise and make a opposite sound wave. '

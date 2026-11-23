@@ -24,6 +24,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `45-confuse.js` | 词汇辨析: word groups Chinese speakers mix up, interleaved rounds |
 | `46-speak.js` | 口语路线: twelve role-play scenes with the AI |
 | `47-growth.js` | 我的进步: this month against the last, milestones |
+| `48-radar.js` | 能力雷达: goals, the radar against them, the test hub and the reading/listening/speaking/writing checks |
 | `50-words.js` | 单词 page, word cards, word-list import, plan, vocabulary test |
 | `60-review.js` | review session (keys, swipes, mistake cards) |
 | `70-learner.js` | ability profile, daily plan, level suggestion, microphone |
@@ -35,6 +36,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `99-boot.js` | start-up |
 | `00-base.css` … `70-input-devices.css` | tokens and base; pages; motion and graph; words; listening; phone pass; learner pages; input methods and devices |
 | `80-flat.css` | the flat look: surfaces instead of outlines, frosted bars, the home plan and its next-step button, review focus mode |
+| `89-radar.css` | the radar chart and its rows |
 | `88-more.css` | easy reading, word confusables, speaking scenes, my progress |
 | `87-route.css` | learning route, relation map, Chinese-speaker traps, mixed rounds, review passage |
 | `86-loop.css` | starting check, re-check tags, exam practice, serial episode list |

@@ -223,7 +223,8 @@ def daily_path(c, uid, home, now=None):
         if other:
             st2 = {r['step'] for r in c.execute('SELECT step FROM next_progress WHERE user_id=? AND pack=? AND created>=?', (uid, other['id'], start))}
             steps.append({'key': 'read2', 'title': '再读一篇', 'sub': other['title'], 'href': f"#/m/{other['id']}", 'done': 'check' in st2 or 'output' in st2})
-    weakest = ability(c, uid, now)['weakest']
+    # With goals set, the output step works on the skill furthest from its goal on the radar; otherwise the weakest estimate.
+    weakest = __import__('ability_radar').weakest(c, uid, now) or ability(c, uid, now)['weakest']
     level = prof.get('level') or 'B1'
     if level == 'A2' and minutes <= 10 and 'say' not in today_kinds:
         key, title, sub = 'sounds', '发音入门', '容易混的音，听辨 + 跟读'
@@ -260,6 +261,13 @@ def daily_path(c, uid, home, now=None):
             steps.append({'key': 'exam', 'title': '考试练习', 'sub': '这周的一套做完了', 'href': '#/exam', 'done': True})
         elif not last or last < now - 6 * 86400:
             steps.append({'key': 'exam', 'title': '考试练习', 'sub': '每周一套：词汇、语法、阅读，约 15–20 分钟', 'href': '#/exam', 'done': False})
+    stale = __import__('ability_radar').due_today(c, uid, now)
+    last_test = c.execute('SELECT MAX(created) FROM next_assess WHERE user_id=?', (uid,)).fetchone()[0]
+    if stale and not (last_test and start - 2 * 86400 <= last_test < start):  # a test every few days, not every day
+        tested = c.execute('SELECT COUNT(*) FROM next_assess WHERE user_id=? AND created>=?', (uid, start)).fetchone()[0]
+        names = '、'.join(dict(__import__('ability_radar').DIMS)[k] for k in stale[:3])
+        steps.append({'key': 'assess', 'title': '能力测评', 'href': '#/radar/test', 'done': bool(tested),
+                      'sub': '今天测过了，雷达图已更新' if tested else f'{names}{"等" if len(stale) > 3 else ""}该测一测了，选一项就行，约 5 分钟'})
     if minutes >= 30:
         # Easy reading: a lot of easy text builds fluency; one short text a day on longer days.
         n_easy = __import__('easy_reading').read_today(c, uid, start)
