@@ -41,7 +41,8 @@ PAGES = ['#/', '#/library', f'#/m/{PID}/listen', f'#/m/{PID}/read', f'#/m/{PID}/
          '#/placement', '#/exam', '#/exam/cet6', '#/series/lighthouse-ledger', '#/m/v5-culture-c1-lighthouse-ledger-1/read',
          '#/mix', '#/mix/pair/tense-past,tense-perfect', '#/graph/link-contrast',
          '#/easy', '#/words/confuse', '#/words/confuse/borrow-lend,make-do', '#/speak', '#/speak/cafe-order', '#/growth', '#/series/a-new-term',
-         '#/radar', '#/radar/goals', '#/radar/test', '#/radar/test/reading', '#/radar/test/writing']
+         '#/radar', '#/radar/goals', '#/radar/test', '#/radar/test/reading', '#/radar/test/writing',
+         '#/practice', '#/guide', '#/guide/words']
 RESULTS = []
 
 

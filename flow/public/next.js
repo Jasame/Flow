@@ -367,25 +367,27 @@
       if (!S.home) { await refreshHome(); fresh = true; }
       if (name === 'welcome') { setNav(''); await welcome(a === 'edit'); }
       // Only the personalised home needs the level questions first; everything else works for a new guest too.
-      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix', 'easy', 'words', 'speak', 'growth', 'radar'].includes(name)) { location.replace('#/welcome'); return; }
+      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix', 'easy', 'words', 'speak', 'growth', 'radar', 'practice', 'guide'].includes(name)) { location.replace('#/welcome'); return; }
       else if (name === 'placement') { setNav('graph'); await placementView(); }
-      else if (name === 'exam') { setNav('me'); await examView(a); }
+      else if (name === 'exam') { setNav('practice'); await examView(a); }
       else if (name === 'series') { setNav('today'); await seriesView(decodeURIComponent(a || '')); }
-      else if (name === 'easy') { setNav('today'); await (a ? easyRead(decodeURIComponent(a)) : easyView()); }
+      else if (name === 'easy') { setNav('practice'); await (a ? easyRead(decodeURIComponent(a)) : easyView()); }
       else if (name === 'words' && a === 'confuse') { setNav('cards'); await (b ? confuseRound(decodeURIComponent(b)) : confuseView()); }
-      else if (name === 'speak') { setNav('me'); await (a ? speakScene(decodeURIComponent(a)) : speakView()); }
-      else if (name === 'radar') { setNav('me'); await (a === 'goals' ? radarGoals() : a === 'test' && (b === 'reading' || b === 'listening') ? assessComprehension(b) : a === 'test' && (b === 'speaking' || b === 'writing') ? assessJudged(b) : a === 'test' ? radarTests() : radarView()); }
+      else if (name === 'speak') { setNav('practice'); await (a ? speakScene(decodeURIComponent(a)) : speakView()); }
+      else if (name === 'radar') { setNav('practice'); await (a === 'goals' ? radarGoals() : a === 'test' && (b === 'reading' || b === 'listening') ? assessComprehension(b) : a === 'test' && (b === 'speaking' || b === 'writing') ? assessJudged(b) : a === 'test' ? radarTests() : radarView()); }
       else if (name === 'growth') { setNav('me'); await growthView(a ? decodeURIComponent(a) : ''); }
       else if (name === 'mix') { setNav('graph'); await mixView(a === 'pair' || a === 'topic' ? a : 'due', b ? decodeURIComponent(b) : ''); }
       else if (name === 'm' && a) { setNav('today'); await study(decodeURIComponent(a), b || 'listen', sameMaterial); }
       else if (name === 'graph') { setNav('graph'); await (a ? nodeView(decodeURIComponent(a)) : graphView()); }
       else if (name === 'cards') { setNav('cards'); await vocabView('', 1, a || ''); }
-      else if (name === 'import') { setNav('today'); await importView(); }
-      else if (name === 'sounds') { setNav('me'); await soundsView(a ? decodeURIComponent(a) : ''); }
+      else if (name === 'import') { setNav('practice'); await importView(); }
+      else if (name === 'sounds') { setNav('practice'); await soundsView(a ? decodeURIComponent(a) : ''); }
       else if (name === 'report') { setNav('me'); await reportView(); }
       else if (name === 'vocab') { setNav('cards'); await (a === 'plan' ? planView() : a === 'test' ? vocabTest() : vocabView()); }
       else if (name === 'review') { setNav('cards'); await reviewView(); }
-      else if (name === 'library') { setNav('today'); await libraryView(); }
+      else if (name === 'library') { setNav('practice'); await libraryView(); }
+      else if (name === 'practice') { setNav('practice'); await practiceView(); }
+      else if (name === 'guide') { setNav('practice'); await guideView(a ? decodeURIComponent(a) : ''); }
       else if (name === 'me') { setNav('me'); await meView(); }
       else { setNav('today'); await today(fresh); }
       if (!sameMaterial && name !== 'welcome') enter(view);
@@ -508,7 +510,8 @@
         <div class="grid-list">${more.map(m => miniCard(m)).join('')}</div></div>
       <a class="card flat section mini graph-mini" href="#/graph"><span class="t">我的知识图谱</span><span class="pill green">${glit} / ${gtotal}</span>
         <span class="p">${g && g.watch && g.watch.length ? '需要留意：' + g.watch.map(w => esc(w.title)).join('、') : `${gtotal} 个语法点，读过、用过、做对过，都会在这里点亮。`}</span>
-        ${g ? `<div class="gbar" aria-hidden="true">${['solid', 'used', 'met', 'watch'].map(k => `<i class="st st-${k}" data-w="${g[k] / gtotal * 100}"></i>`).join('')}</div>` : ''}</a>`;
+        ${g ? `<div class="gbar" aria-hidden="true">${['solid', 'used', 'met', 'watch'].map(k => `<i class="st st-${k}" data-w="${g[k] / gtotal * 100}"></i>`).join('')}</div>` : ''}</a>
+      ${!h.stats || (h.stats.materials_done || 0) < 3 ? '<p class="muted small section guide-hint">第一次用？<a class="link" href="#/guide">看操作指南</a>：每个页面怎么用，一步一步讲清楚。</p>' : ''}`;
     requestAnimationFrame(() => requestAnimationFrame(() => view.querySelectorAll('.gbar i').forEach(i => { i.style.width = i.dataset.w + '%'; })));
     const ring = view.querySelector('.ring'); if (ring) ring.style.setProperty('--p', ring.dataset.p + '%');  // CSP: no inline style attributes
     const cta = document.getElementById('loginCta'); if (cta) cta.onclick = () => openLogin();
@@ -1962,6 +1965,82 @@
     requestAnimationFrame(() => requestAnimationFrame(() => view.querySelectorAll('.vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; })));
     if (S.user) refreshHome().catch(() => {});
   }
+  /* ---------- 操作指南: the same source as the PDF (flow/public/guide/guide.md, rendered by user_guide.py) ---------- */
+  async function guideView(id) {
+    if (!S.guide) S.guide = await api('/api/next/guide');
+    const g = S.guide;
+    view.innerHTML = `<h1 class="h1">操作指南</h1><p class="muted small">${esc(g.updated)} · 从第一次打开到每一个页面，一步一步讲清楚。</p>
+      <div class="row">${g.pdf ? `<a class="btn small primary" href="${g.pdf}" download="语流操作指南.pdf">下载 PDF 版</a>` : ''}<a class="btn small" href="#/practice">去练习</a></div>
+      <label class="field section"><span class="sr-only">在指南里搜索</span><input class="guide-search" id="gq" type="search" placeholder="搜一搜：比如 复习、录音、提醒" autocomplete="off"></label>
+      <nav class="card flat guide-toc" id="gtoc" aria-label="指南目录">${g.chapters.map((ch, k) => `<a href="#/guide/${ch.id}" data-ch="${ch.id}"><span class="n">${k + 1}</span><span>${esc(ch.title)}</span></a>`).join('')}</nav>
+      <p class="muted small" id="gnone" hidden>没有找到，换个词试试，或者看看「常见问题」。</p>
+      <div class="guide-body">${g.chapters.map((ch, k) => `<section id="g-${ch.id}" data-ch="${ch.id}"><h2>${k + 1}. ${esc(ch.title)}</h2>${ch.html}</section>`).join('')}</div>
+      <div class="section row"><a class="btn small" href="#/guide">回到目录</a>${g.pdf ? `<a class="btn small" href="${g.pdf}" download="语流操作指南.pdf">下载 PDF 版</a>` : ''}</div>`;
+    const q = document.getElementById('gq'), none = document.getElementById('gnone');
+    q.oninput = () => {
+      const t = q.value.trim().toLowerCase();
+      let shown = 0;
+      g.chapters.forEach(ch => {
+        const hit = !t || ch.text.toLowerCase().includes(t) || ch.title.toLowerCase().includes(t);
+        view.querySelectorAll(`[data-ch="${ch.id}"]`).forEach(el => { el.hidden = !hit; });
+        if (hit) shown++;
+      });
+      none.hidden = shown > 0;
+    };
+    if (id) {
+      const sec = document.getElementById('g-' + id);
+      if (sec) requestAnimationFrame(() => sec.scrollIntoView({ block: 'start' }));
+    }
+  }
+
+  /* ---------- 练习: every kind of practice in one place, grouped by skill, with one suggestion on top ---------- */
+  // Each tile: [href, title, one line on what it is for]. The guide (#/guide) explains each one step by step.
+  const PRACTICE = [
+    ['听和读', [
+      ['#/', '今天的材料', '听一遍、读一遍、答几题、用出来，每天 10–20 分钟'],
+      ['#/easy', '轻松读', '读比你低一级的短文，练速度、攒阅读量'],
+      ['#/library', '全部材料', '按话题和级别挑一篇来学'],
+      ['#/import', '我的文章', '贴一段任何英文，变成可以学的材料']]],
+    ['说和写', [
+      ['#/speak', '口语路线', '12 个生活和校园情景，和 AI 对话'],
+      ['#/sounds', '发音入门', '中国学习者容易混的音，听辨再跟读']]],
+    ['单词', [
+      ['#/review', '复习单词', '到期的词和错过的题，一张张过', 'due'],
+      ['#/words/confuse', '词汇辨析', '最容易混的词放在一起练'],
+      ['#/cards/mistake', '错题本', '做错过的词和题都在这里'],
+      ['#/vocab/plan', '词书和每天新词', '换词书、改每天学多少'],
+      ['#/vocab/test', '词汇量测试', '5 分钟估一估你认识多少词']]],
+    ['语法', [
+      ['#/graph', '知识图谱', '语法点按顺序连成路线，点亮一个学一个'],
+      ['#/mix', '混合练习', '几个语法点打乱一起练，记得更牢'],
+      ['#/placement', '语法起点小测', '16 题定出你的语法起点']]],
+    ['考试和测评', [
+      ['#/exam', '考试练习', '四六级、考研、雅思题型，限时做'],
+      ['#/radar', '能力雷达', '六项能力对照你的目标，定期测一测']]],
+    ['看进步', [
+      ['#/report', '这周的报告', '这周学了什么、哪里进步了'],
+      ['#/growth', '我的进步', '这个月和上个月比，里程碑']]]];
+
+  async function practiceView() {
+    const st = S.home && S.home.stats, due = st ? (st.due || 0) + (st.new || 0) : 0;
+    view.innerHTML = `<h1 class="h1">练习</h1>
+      <p class="muted small">想练哪一项，就从这里进。不知道先练什么，看最上面的建议。</p>
+      <div id="pSuggest">${practiceTip(null, due)}</div>
+      ${PRACTICE.map(([group, items]) => `<section class="pgroup stack-s"><h2 class="h2 pgroup-h">${group}</h2><div class="ptiles">
+        ${items.map(([href, title, line, badge]) => `<a class="ptile card flat" href="${href}"><b>${title}${badge === 'due' && due ? ` <i class="pbadge">${due > 99 ? '99+' : due}</i>` : ''}</b><span class="small muted">${line}</span></a>`).join('')}
+      </div></section>`).join('')}
+      <a class="card flat place-cta guide-cta" href="#/guide"><b>第一次用？看操作指南</b><span class="small muted">每个页面怎么用、按哪里、学完去哪，一步一步讲清楚；也可以下载 PDF。</span></a>`;
+    if (S.user) api('/api/next/radar').then(r => {
+      const el = document.getElementById('pSuggest'); if (el && r && r.gap) el.innerHTML = practiceTip(r, due);
+    }).catch(() => { /* the plain suggestion stays */ });
+  }
+  function practiceTip(radar, due) {
+    const d = radar && radar.dims.find(x => x.id === radar.gap);
+    if (d) return `<a class="card psuggest" href="${esc(d.href)}"><span class="tiny">今天建议</span><b>${esc(d.label)}离目标最远（${d.score} 分）</b><span class="small">${esc(d.tip)}</span><span class="btn small primary">去练 ${esc(d.label)}</span></a>`;
+    if (due) return `<a class="card psuggest" href="#/review"><span class="tiny">今天建议</span><b>有 ${due} 个词等你复习</b><span class="small">先复习再学新的，记得最牢。</span><span class="btn small primary">开始复习</span></a>`;
+    return `<a class="card psuggest" href="#/"><span class="tiny">今天建议</span><b>先做今天的计划</b><span class="small">今日页已经按你的水平排好了顺序。</span><span class="btn small primary">打开今日</span></a>`;
+  }
+
   /* ---------- cards ---------- */
   /* ---------- words: one FSRS memory queue for word books, saved words/expressions and imports ---------- */
   function highlight(ctx, text) {
@@ -2669,6 +2748,7 @@
         <div class="card flat stat"><b>${r.learned}</b><span class="tiny muted">新学的词</span></div><div class="card flat stat"><b>${r.mastered}</b><span class="tiny muted">进入长期记忆</span></div></div>
       <div class="card flat section stack-s"><b>各项练习的平均分</b><div class="ab-list">${r.skills.filter(s => s.count || s.before != null).map(s => `<div class="ab"><span class="nm">${esc(s.label)}</span>
         <span class="vbar"><i data-w="${Math.max(3, (s.now || 0) * 100)}"></i></span><span class="lv">${arrow(s)}</span><span class="tiny muted ev">${s.count} 次</span></div>`).join('') || '<p class="muted small">这周还没有练习记录。</p>'}</div></div>
+      ${weekMoreHTML(r)}
       <div class="card flat section stack-s"><b>错题</b><span class="small">新进错题本 ${r.mistakes_new} 个，改对 ${r.mistakes_fixed} 个。</span>
         ${r.watch.length ? `<span class="small">写作里要留意：${r.watch.map(n => nodeChip({ id: n.id, title: n.title, status: 'watch' })).join(' ')}</span>` : ''}
         ${r.focus ? `<div class="small"><b>下周重点：</b>${esc(r.focus)}</div>` : ''}</div>
@@ -2679,6 +2759,19 @@
       document.getElementById('shareOut').innerHTML = `<img class="share-img" src="${url}" alt="本周学习分享图"><div class="row"><a class="btn small primary" download="flow-week.png" href="${url}">保存图片</a><span class="muted tiny">${TOUCH ? '也可以长按图片保存' : '或右键图片另存为'}</span></div>`;
       bringIntoView(document.getElementById('shareOut'));
     };
+  }
+  function weekMoreHTML(r) {
+    const e = r.easy || {}, sp = r.speaking || {}, ra = r.radar || { moves: [] };
+    const speed = e.wpm ? `，平均每分钟 ${e.wpm} 词${e.wpm_before ? (e.wpm > e.wpm_before ? `（上周 ${e.wpm_before}，快了）` : `（上周 ${e.wpm_before}）`) : ''}` : '';
+    const mv = m => m.before == null ? '' : m.now > m.before ? ` <span class="up">↑${m.now - m.before}</span>` : m.now < m.before ? ` <span class="tiny muted">↓${m.before - m.now}</span>` : '';
+    return `<div class="card flat section stack-s"><div class="row between"><b>轻松读</b><a class="link small" href="#/easy">去读</a></div>
+        <span class="small">${e.texts ? `读了 ${e.texts} 篇，一共 ${e.words} 个词${speed}。` : '这周还没读。每天读一篇比你低一级的短文，阅读速度会慢慢提上来。'}</span></div>
+      <div class="card flat section stack-s"><div class="row between"><b>口语情景</b><a class="link small" href="#/speak">去练</a></div>
+        <span class="small">${sp.scenes_week ? `这周练了 ${sp.scenes_week} 个情景，` : '这周还没练情景对话，'}一共完成 ${sp.scenes_done || 0} / ${sp.scenes_total || 12} 个。</span></div>
+      <div class="card flat section stack-s"><div class="row between"><b>能力雷达</b><a class="link small" href="#/radar">看雷达</a></div>
+        ${ra.moves.length ? `<div class="ab-list">${ra.moves.map(m => `<div class="ab"><span class="nm">${esc(m.label)}</span><span class="vbar"><i data-w="${Math.max(3, Math.min(100, m.now))}"></i></span><span class="lv">${m.now} 分${mv(m)}</span></div>`).join('')}</div>
+          <span class="tiny muted">100 分 = 达到你定的目标${ra.goals_chosen ? '' : '（还没定目标，先按默认目标算）'}。这周做了 ${ra.tests_week} 次测评。</span>`
+          : '<span class="small">还没有雷达数据。做几次小测评，就能看到六项能力离目标还差多少。</span><div><a class="btn small" href="#/radar/test">去测一测</a></div>'}</div>`;
   }
   function shareImage(r) {
     const rows = r.skills.filter(s => s.now != null).slice(0, 5).length;
@@ -2773,15 +2866,8 @@
       ${S.user ? '<div id="abSlot"><div class="card flat"><p class="loading"><span class="spin"></span></p></div></div>' : ''}
       <div class="card flat list">
         ${S.user ? '<a href="#/growth">我的进步：每月对比和里程碑 <span>→</span></a><a href="#/report">这周的学习报告 <span>→</span></a><a href="#/cards/mistake">错题本 <span>→</span></a>' : ''}
-        <a href="#/easy">轻松读：读得多、读得快 <span>→</span></a>
-        <a href="#/speak">口语路线：12 个情景对话 <span>→</span></a>
-        <a href="#/words/confuse">词汇辨析：中国学习者最常混的词 <span>→</span></a>
-        <a href="#/sounds">发音入门：容易混的音 <span>→</span></a>
-        <a href="#/import">我的文章：导入任何英文来学 <span>→</span></a>
-        <a href="#/graph">我的知识图谱 <span>→</span></a>
-        <a href="#/placement">语法起点小测：重新定水平 <span>→</span></a>
-        <a href="#/exam">考试练习：四六级、考研、雅思 <span>→</span></a>
-        <a href="#/library">全部材料 <span>→</span></a>
+        <a href="#/practice">全部练习：听读、口语、单词、语法、考试 <span>→</span></a>
+        <a href="#/guide">操作指南：每个页面怎么用 <span>→</span></a>
         <a href="/survey">参与匿名问卷：你想要什么样的英语学习网站 <span>→</span></a>
         <a href="/?classic=1">经典版（AI 私教、诊断测评、内容管理）<span>→</span></a>
         ${S.user ? '<button id="out">退出登录 <span>→</span></button>' : ''}</div>`;

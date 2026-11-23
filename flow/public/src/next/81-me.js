@@ -26,15 +26,8 @@
       ${S.user ? '<div id="abSlot"><div class="card flat"><p class="loading"><span class="spin"></span></p></div></div>' : ''}
       <div class="card flat list">
         ${S.user ? '<a href="#/growth">我的进步：每月对比和里程碑 <span>→</span></a><a href="#/report">这周的学习报告 <span>→</span></a><a href="#/cards/mistake">错题本 <span>→</span></a>' : ''}
-        <a href="#/easy">轻松读：读得多、读得快 <span>→</span></a>
-        <a href="#/speak">口语路线：12 个情景对话 <span>→</span></a>
-        <a href="#/words/confuse">词汇辨析：中国学习者最常混的词 <span>→</span></a>
-        <a href="#/sounds">发音入门：容易混的音 <span>→</span></a>
-        <a href="#/import">我的文章：导入任何英文来学 <span>→</span></a>
-        <a href="#/graph">我的知识图谱 <span>→</span></a>
-        <a href="#/placement">语法起点小测：重新定水平 <span>→</span></a>
-        <a href="#/exam">考试练习：四六级、考研、雅思 <span>→</span></a>
-        <a href="#/library">全部材料 <span>→</span></a>
+        <a href="#/practice">全部练习：听读、口语、单词、语法、考试 <span>→</span></a>
+        <a href="#/guide">操作指南：每个页面怎么用 <span>→</span></a>
         <a href="/survey">参与匿名问卷：你想要什么样的英语学习网站 <span>→</span></a>
         <a href="/?classic=1">经典版（AI 私教、诊断测评、内容管理）<span>→</span></a>
         ${S.user ? '<button id="out">退出登录 <span>→</span></button>' : ''}</div>`;
