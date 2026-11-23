@@ -1,56 +1,77 @@
-  /* ---------- me ---------- */
+  /* ---------- me: one grouped list, like a phone's settings; each row opens a page or a sheet ---------- */
+  // A row: a link (to starts with # or /) or a button (to is its id); the value sits on the right, greyed.
+  function grow(to, label, value, vid) {
+    const tag = to[0] === '#' || to[0] === '/' ? 'a' : 'button';
+    return `<${tag} class="grow" ${tag === 'a' ? `href="${to}"` : `type="button" id="${to}"`}><span class="t">${label}</span><span class="v small muted"${vid ? ` id="${vid}"` : ''}>${value || ''}</span><span class="go" aria-hidden="true">›</span></${tag}>`;
+  }
   async function meView() {
     if (!S.meta) S.meta = await api('/api/next/meta');
-    const p = (S.home && S.home.profile) || S.guest || {};
+    const p = (S.home && S.home.profile) || S.guest || {}, u = S.user, st = S.home && S.home.stats;
     const lv = S.meta.levels.find(l => l.id === p.level), goal = S.meta.goals.find(g => g.id === p.goal);
-    const themes = S.meta.themes.filter(t => (p.themes || []).includes(t.id)).map(t => t.label);
-    const st = S.home && S.home.stats;
-    view.innerHTML = `<h1 class="h1">${S.user ? esc(S.user.username) : '我的'}</h1>
-      ${S.user ? '' : `<div class="card sunk stack-s"><b>还没有登录</b><span class="muted small">登录后才能保存进度、收藏表达和使用 AI。</span><div><button class="btn primary small" id="lg">登录 / 注册</button></div></div>`}
-      ${st ? `<div class="stat-grid"><div class="card flat stat"><b>${st.week.filter(d => d.active).length}</b><span class="tiny muted">本周学习天数</span></div><div class="card flat stat"><b>${st.materials_done}</b><span class="tiny muted">学完的材料</span></div><div class="card flat stat"><b>${st.cards}</b><span class="tiny muted">单词与表达</span></div></div>` : ''}
-      <div class="card flat stack-s"><div class="row between"><b>学习设置</b><a class="link small" href="#/welcome/edit">修改</a></div>
-        <div class="small">水平：${lv ? esc(lv.label) + '（' + lv.id + '）' : '未设置'}</div><div class="small">目标：${goal ? esc(goal.label) : '未设置'}</div>
-        <div class="small">话题：${themes.length ? esc(themes.join('、')) : '随机'}</div><div class="small">每天：${p.minutes || 10} 分钟</div>
-        <div class="small">朗读声音：</div>${voiceChips(null)}<p class="muted tiny">精选材料用真人声（Kokoro）朗读，可以随时在「听」这一步切换。</p></div>
-      <div class="card flat stack-s" id="remind"><b>每天提醒</b><span class="muted small">加到手机日历：每天到点提醒你打开今天的计划。不用装 App、不用邮箱，iPhone 和安卓都能用。</span>
-        <div class="row"><select id="mHour" aria-label="提醒时间">${Array.from({ length: 18 }, (_, k) => k + 6).map(h => `<option value="${h}" ${h === 20 ? 'selected' : ''}>每天 ${h}:00</option>`).join('')}</select>
-        <a class="btn small" id="mCal" href="/api/next/vocab/reminder.ics?kind=plan&hour=20&minutes=${p.minutes || 10}">加到手机日历</a></div>
-        <span class="tiny muted">打开下载的文件，选「添加到日历」即可；不想要了就在日历里删掉这个日程。</span></div>
-      ${matchMedia('(display-mode: standalone)').matches || navigator.standalone ? '' : `<div class="card flat stack-s" id="install"><b>添加到手机桌面</b>
-        <span class="muted small">像 App 一样从桌面打开，界面全屏；听过的音频会缓存下来，网络差的时候也能复习。</span>
-        ${installPrompt ? '<div><button class="btn small primary" id="doInstall">添加到桌面</button></div>' : /iPhone|iPad|iPod/.test(navigator.userAgent)
-          ? '<span class="small">iPhone：用 Safari 打开，点底部的「分享」按钮，再选「添加到主屏幕」。</span>' : '<span class="small">安卓：在浏览器菜单里选「添加到主屏幕」或「安装应用」。</span>'}</div>`}
-      ${S.user ? `<div class="card flat stack-s" id="acct"><b>账号与安全</b>
-        <div class="row between"><span class="small">邮箱</span><span class="small muted" id="acctEmail"><span class="spin"></span></span></div>
-        <span class="muted tiny">绑定后可以用验证码登录、忘记密码时自己找回，也能收复习提醒和周报。</span>
-        <div class="row wrap acct-actions"><button class="btn small" id="bindMail" hidden>绑定邮箱</button><button class="btn small" id="chPw">修改密码</button><button class="btn small ghost" id="outAll">退出所有设备</button></div>
-        <span class="muted tiny">30 天内来过就一直保持登录。在别人的手机或电脑上用完，记得退出登录。</span></div>` : ''}
-      ${S.user ? '<a class="card flat place-cta" href="#/radar"><b>能力雷达：离目标还差多少</b><span class="small muted">听力、阅读、词汇、语法、口语、写作六项，对照你自己定的目标；定期测一测，看哪一项长了。</span></a>' : ''}
-      ${S.user ? '<div id="abSlot"><div class="card flat"><p class="loading"><span class="spin"></span></p></div></div>' : ''}
-      <div class="card flat list">
-        ${S.user ? '<a href="#/growth">我的进步：每月对比和里程碑 <span>→</span></a><a href="#/report">这周的学习报告 <span>→</span></a><a href="#/cards/mistake">错题本 <span>→</span></a>' : ''}
-        <a href="#/practice">全部练习：听读、口语、单词、语法、考试 <span>→</span></a>
-        <a href="#/guide">操作指南：每个页面怎么用 <span>→</span></a>
-        <a href="/survey">参与匿名问卷：你想要什么样的英语学习网站 <span>→</span></a>
-        <a href="/?classic=1">经典版（AI 私教、诊断测评、内容管理）<span>→</span></a>
-        ${S.user ? '<button id="out">退出登录 <span>→</span></button>' : ''}</div>`;
+    const installed = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    const groups = [
+      u && ['进步', [grow('#/radar', '能力雷达', '离目标还差多少'), grow('#/growth', '我的进步', '每月对比和里程碑'), grow('#/report', '这周的报告'), grow('#/cards/mistake', '错题本')]],
+      ['设置', [grow('#/welcome/edit', '学习目标和水平', [goal && esc(goal.label), lv && lv.id].filter(Boolean).join(' · ') || '未设置'),
+        grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV'), grow('meRemind', '每天提醒', '加到手机日历'),
+        installed ? '' : grow('meInstall', '添加到桌面', '像 App 一样打开')]],
+      u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备')],
+        '绑定邮箱后，可以用验证码登录，忘记密码时自己找回。30 天内来过就一直保持登录；在别人的手机或电脑上用完，记得退出。'],
+      ['帮助', [grow('#/guide', '操作指南', '每个页面怎么用'), grow('/survey', '匿名问卷', '你想要什么样的英语学习网站'), grow('/?classic=1', '经典版', 'AI 私教、诊断测评')]],
+    ].filter(Boolean);
+    view.innerHTML = `<div class="card flat me-head"><div class="me-id">${u ? `<span class="avatar" aria-hidden="true">${esc([...u.username][0].toUpperCase())}</span>` : ''}
+        <div class="t"><h1 class="h1">${u ? esc(u.username) : '我的'}</h1><span class="small muted">${lv ? `${esc(lv.label)}（${lv.id}）` : '还没有设置水平'} · 每天 ${p.minutes || 10} 分钟</span></div></div>
+        ${st ? `<div class="me-nums">${[[st.week.filter(d => d.active).length, '本周学习天数'], [st.materials_done, '学完的材料'], [st.cards, '单词与表达']].map(([n, l]) => `<div><b>${n}</b><span class="tiny muted">${l}</span></div>`).join('')}</div>`
+          : u ? '' : `<div class="stack-s"><span class="muted small">登录后才能保存进度、收藏表达和使用 AI。</span><div><button class="btn primary small" id="lg">登录 / 注册</button></div></div>`}</div>
+      ${groups.map(([h, rows, foot]) => `<section class="gsec" aria-label="${h}"><h2 class="ghead">${h}</h2><div class="glist">${rows.join('')}</div>${foot ? `<p class="tiny muted gfoot">${foot}</p>` : ''}</section>`).join('')}
+      ${u ? '<div class="glist gsec"><button class="grow danger" id="out" type="button"><span class="t">退出登录</span></button></div>' : ''}`;
     const lg = document.getElementById('lg'); if (lg) lg.onclick = () => openLogin();
-    const mHour = document.getElementById('mHour'), mCal = document.getElementById('mCal');
-    mHour.onchange = () => { mCal.href = `/api/next/vocab/reminder.ics?kind=plan&hour=${mHour.value}&minutes=${p.minutes || 10}`; };
-    const slot = document.getElementById('abSlot');
-    if (slot) api('/api/next/ability').then(ab => { slot.innerHTML = abilityHTML(ab); requestAnimationFrame(() => requestAnimationFrame(() => slot.querySelectorAll('.vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; }))); }).catch(() => { slot.innerHTML = ''; });
-    if (S.user) api('/api/account').then(a => {
-      const el = document.getElementById('acctEmail'), b = document.getElementById('bindMail'); if (!el) return;
-      el.textContent = a.email || '还没有绑定';
-      if (a.mail_enabled) { b.hidden = false; b.textContent = a.email ? '更换邮箱' : '绑定邮箱'; b.onclick = () => bindEmailSheet(a.email); }
-      else el.textContent += a.email ? '' : '（邮件服务暂未开启）';
-    }).catch(() => { const el = document.getElementById('acctEmail'); if (el) el.textContent = ''; });
-    const di = document.getElementById('doInstall'); if (di) di.onclick = async () => { installPrompt.prompt(); try { await installPrompt.userChoice; } catch (e) { /* dismissed */ } installPrompt = null; meView(); };
-    view.querySelectorAll('[data-voice]').forEach(b => b.onclick = async () => { await setVoice(b.dataset.voice); view.querySelectorAll('[data-voice]').forEach(x => { x.setAttribute('aria-pressed', String(x === b)); x.setAttribute('aria-checked', String(x === b)); }); toast('朗读声音：' + VOICE_LABELS[b.dataset.voice]); });
-    const chPw = document.getElementById('chPw'); if (chPw) chPw.onclick = () => changePasswordSheet();
-    const outAll = document.getElementById('outAll'); if (outAll) outAll.onclick = () => signOutEverywhere();
-    const out = document.getElementById('out');
-    if (out) out.onclick = async () => { try { await api('/api/logout', {}); } catch (e) { /* ignore */ } S.user = null; S.csrf = ''; await refreshHome(); toast('已退出'); route(); };
+    document.getElementById('meVoice').onclick = voiceSheet;
+    document.getElementById('meRemind').onclick = () => remindSheet(p.minutes || 10);
+    const mi = document.getElementById('meInstall'); if (mi) mi.onclick = installSheet;
+    if (u) {
+      const b = document.getElementById('bindMail'); b.disabled = true;
+      api('/api/account').then(a => {
+        const el = document.getElementById('acctEmail'); if (!el) return;
+        el.textContent = a.email || '还没有绑定';
+        if (a.mail_enabled) { b.disabled = false; b.setAttribute('aria-label', a.email ? '邮箱：' + a.email + '，点这里更换' : '绑定邮箱'); b.onclick = () => bindEmailSheet(a.email); }
+        else if (!a.email) el.textContent += '（邮件服务暂未开启）';
+      }).catch(() => { const el = document.getElementById('acctEmail'); if (el) el.textContent = ''; });
+      document.getElementById('chPw').onclick = () => changePasswordSheet();
+      document.getElementById('outAll').onclick = () => signOutEverywhere();
+      document.getElementById('out').onclick = async () => { try { await api('/api/logout', {}); } catch (e) { /* ignore */ } S.user = null; S.csrf = ''; await refreshHome(); toast('已退出'); route(); };
+    }
+  }
+  function voiceSheet() {
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">朗读声音</h2>${voiceChips(null)}
+      <p class="muted small">精选材料用真人声（Kokoro）朗读。学一篇材料时，也可以在「听」这一步随时切换。</p><button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      card.querySelectorAll('[data-voice]').forEach(b => b.onclick = async () => {
+        await setVoice(b.dataset.voice);
+        card.querySelectorAll('[data-voice]').forEach(x => { x.setAttribute('aria-pressed', String(x === b)); x.setAttribute('aria-checked', String(x === b)); });
+        const v = document.getElementById('meVoiceV'); if (v) v.textContent = VOICE_LABELS[b.dataset.voice];
+        toast('朗读声音：' + VOICE_LABELS[b.dataset.voice]);
+      });
+    });
+  }
+  function remindSheet(minutes) {
+    const ics = h => `/api/next/vocab/reminder.ics?kind=plan&hour=${h}&minutes=${minutes}`;
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">每天提醒</h2>
+      <p class="muted small">加到手机日历：每天到点提醒你打开今天的计划。不用装 App、不用邮箱，iPhone 和安卓都能用。</p>
+      <div class="row"><select id="mHour" aria-label="提醒时间">${Array.from({ length: 18 }, (_, k) => k + 6).map(h => `<option value="${h}" ${h === 20 ? 'selected' : ''}>每天 ${h}:00</option>`).join('')}</select>
+        <a class="btn primary" id="mCal" href="${ics(20)}">加到手机日历</a></div>
+      <p class="tiny muted">打开下载的文件，选「添加到日历」即可；不想要了就在日历里删掉这个日程。</p><button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      const hour = card.querySelector('#mHour'), cal = card.querySelector('#mCal');
+      hour.onchange = () => { cal.href = ics(hour.value); };
+    });
+  }
+  function installSheet() {
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">添加到手机桌面</h2>
+      <p class="muted small">像 App 一样从桌面打开，界面全屏；听过的音频会缓存下来，网络差的时候也能复习。</p>
+      ${installPrompt ? '<button class="btn primary" id="doInstall" type="button">添加到桌面</button>' : /iPhone|iPad|iPod/.test(navigator.userAgent)
+        ? '<p class="small">iPhone：用 Safari 打开，点底部的「分享」按钮，再选「添加到主屏幕」。</p>' : '<p class="small">安卓：在浏览器菜单里选「添加到主屏幕」或「安装应用」。</p>'}
+      <button class="btn ghost" data-close type="button">${installPrompt ? '取消' : '知道了'}</button></div>`, card => {
+      const di = card.querySelector('#doInstall');
+      if (di) di.onclick = async () => { installPrompt.prompt(); try { await installPrompt.userChoice; } catch (e) { /* dismissed */ } installPrompt = null; closeSheet(); meView(); };
+    });
   }
 
   // Binding an email: the current password, then a 6-digit code sent to the new address (as at sign-up).

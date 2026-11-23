@@ -167,6 +167,8 @@ def run_device(pw, dev, opts):
     check(dev, 'home: the button goes to the highlighted next step', first and nexthref == first[0], (first, nexthref))
     k = pg.text_content('#view .greet') or ''
     check(dev, 'greeting shows the username as written', f'ui-{dev}' in k, k)
+    hm = pg.evaluate("() => ({notices: document.querySelectorAll('#notice > *').length, tabs: [...document.querySelectorAll('.tabs a span')].map(s => s.textContent), map: !!document.querySelector('#view .graph-mini'), rows: document.querySelectorAll('#view .mlist .mrow').length, more: (document.querySelector('#view .mrow.more') || {}).getAttribute ? document.querySelector('#view .mrow.more').getAttribute('href') : ''})")
+    check(dev, 'home: four tabs, at most one notice, materials as rows ending in 更多材料', hm['tabs'] == ['今日', '练习', '单词', '我的'] and hm['notices'] <= 1 and not hm['map'] and hm['rows'] >= 2 and hm['more'] == '#/library', hm)
 
     # ---- study steps: the green indicator sits under the selected step after moving between steps
     for st in ('read', 'check', 'output', 'listen'):
@@ -179,6 +181,10 @@ def run_device(pw, dev, opts):
     pg.evaluate("() => { try { localStorage.removeItem('flow-graph-view'); } catch (e) {} }"); go(pg, '#/'); go(pg, '#/graph'); pg.wait_for_timeout(900)
     rt = pg.evaluate("() => ({nodes: document.querySelectorAll('#gRoute .rnode').length, bands: document.querySelectorAll('#gRoute .rband').length, here: document.querySelectorAll('#gRoute .rnode.here').length, drawn: document.querySelectorAll('#gRoute .rnode.drawn').length, shown: !document.getElementById('gRoute').hidden})")
     check(dev, 'graph: the learning route shows 44 points on 4 lines, one marked as next', rt['shown'] and rt['nodes'] == 44 and rt['bands'] == 4 and rt['here'] == 1 and rt['drawn'] == 44, rt)
+    fold = pg.evaluate("() => { const o = [...document.querySelectorAll('#gRoute details.rband[open]')]; return [o.length, o.length === 1 && !!o[0].querySelector('.rnode.here'), !!document.querySelector('.tabs [data-nav=practice][aria-current=page]')]; }")
+    check(dev, 'graph: only the level with the next stop is open, under the 练习 tab', fold[0] == 1 and fold[1] and fold[2], fold)
+    pg.click('#gRoute details.rband:not([open]) > summary >> nth=0'); pg.wait_for_timeout(300)
+    check(dev, 'graph: a folded level opens', pg.evaluate("() => document.querySelectorAll('#gRoute details.rband[open]').length") == 2)
     pg.click('[data-gv="all"]'); pg.wait_for_timeout(300)
     g = pg.evaluate("() => ({next: document.querySelectorAll('#view .go-next').length, href: (document.querySelector('#view .go-next') || {}).getAttribute ? document.querySelector('#view .go-next').getAttribute('href') : '', tiles: document.querySelectorAll('.tgrid .tile').length, rows: document.querySelectorAll('.nrow').length})")
     check(dev, 'graph: one next point and 13 topics with 44 points', g['next'] == 1 and g['href'].startswith('#/graph/') and g['tiles'] == 13 and g['rows'] == 44, g)
@@ -323,8 +329,16 @@ def run_device(pw, dev, opts):
         return [Math.round(t.top), Math.round(t.bottom), Math.round(tabTop)]; }""")
     check(dev, 'dialogue answer box is visible above the tabs', vis[0] >= 0 and vis[1] <= vis[2] + 1, vis)
 
-    # ---- words page: a filter swaps only the list (the header element survives, no flash)
+    # ---- 练习: the grammar map is the wide first card of the 语法 group
+    go(pg, '#/practice')
+    pm = pg.evaluate("() => { const m = document.querySelector('#view .ptile.pmap'); return m ? [m.getAttribute('href'), m.closest('.pgroup').querySelector('h2').textContent, Math.round(m.getBoundingClientRect().width / m.parentElement.getBoundingClientRect().width * 100), Math.round(m.getBoundingClientRect().top), innerHeight] : null; }")
+    check(dev, 'practice: the grammar map is the wide card of the 语法 group, on the first screen', pm and pm[0] == '#/graph' and pm[1] == '语法' and pm[2] >= 98 and pm[3] < pm[4], pm)
+
+    # ---- words page: five tools, the stats folded, one short row per word
     go(pg, '#/cards')
+    wd = pg.evaluate("() => { const rows = [...document.querySelectorAll('#clist .xrow')]; return {tools: document.querySelectorAll('#view .tools a, #view .tools button').length, folded: !document.getElementById('vStats').open, rows: rows.length, tallest: Math.max(0, ...rows.map(r => Math.round(r.getBoundingClientRect().height)))}; }")
+    check(dev, 'words: five tools, the stats folded, one short row per word', wd['tools'] == 5 and wd['folded'] and wd['rows'] >= 10 and wd['tallest'] <= 80, wd)
+    # ---- words page: a filter swaps only the list (the header element survives, no flash)
     pg.evaluate("document.querySelector('#view h1').dataset.keep = '1'")
     pg.click('[data-f="mistake"]')
     pg.wait_for_timeout(600)
@@ -435,6 +449,8 @@ def run_device(pw, dev, opts):
     go(pg, '#/radar'); pg.wait_for_timeout(900)
     rd = pg.evaluate("() => ({axes: document.querySelectorAll('.radar .ax').length, dots: document.querySelectorAll('.radar .dt:not(.none)').length, shown: document.querySelector('.radar .cur').classList.contains('on'), rows: document.querySelectorAll('.rdim').length})")
     check(dev, 'radar: six axes, the measured skill drawn against the goal', rd['axes'] == 6 and rd['dots'] >= 1 and rd['shown'] and rd['rows'] == 6, rd)
+    pg.evaluate("document.getElementById('abFold').open = true"); pg.wait_for_selector('#abFold .ab', timeout=5000)
+    check(dev, 'radar: the folded estimate from practice lists 8 skills (was 能力画像 on 我的)', pg.evaluate("() => document.querySelectorAll('#abFold .ab').length") == 8)
     go(pg, '#/radar/test/writing')
     pg.fill('#aText', 'I would like to learn to cook because I live alone now and I want to eat better food every day. ' * 3)
     pg.click('#aGo'); pg.wait_for_timeout(1200)
@@ -453,6 +469,12 @@ def run_device(pw, dev, opts):
     check(dev, 'me: email row says whether one is bound', len((pg.text_content('#acctEmail') or '').strip()) > 0, pg.text_content('#acctEmail'))
     # ---- account and security: change the password (the eye shows what was typed; a mismatch is said at once)
     check(dev, 'me: account card offers change password and sign out everywhere', pg.is_visible('#chPw') and pg.is_visible('#outAll'))
+    me = pg.evaluate("() => ({groups: [...document.querySelectorAll('#view .gsec .ghead')].map(h => h.textContent), ability: !!document.querySelector('#view #ability'), out: !!document.querySelector('#view #out')})")
+    check(dev, 'me: rows grouped as 进步, 设置, 账号, 帮助, then 退出登录; no ability card', me['groups'] == ['进步', '设置', '账号', '帮助'] and not me['ability'] and me['out'], me)
+    pg.click('#meVoice'); pg.wait_for_selector('#sheet [data-voice]', timeout=4000)
+    pg.click('#sheet [data-voice="uk-m"]'); pg.wait_for_timeout(300)
+    check(dev, 'me: the voice row opens a sheet, and the row shows the new voice', '英音 · 男' in (pg.text_content('#meVoiceV') or ''), pg.text_content('#meVoiceV'))
+    pg.click('#sheet [data-voice="us-f"]'); pg.wait_for_timeout(200); pg.evaluate("document.querySelector('#sheet [data-close]').click()"); pg.wait_for_timeout(300)
     pg.click('#chPw'); pg.wait_for_selector('#cp', timeout=4000)
     pg.click('#cp [data-eye] >> nth=0')
     check(dev, 'change password: the eye shows the password', pg.get_attribute('#cp [name=old]', 'type') == 'text')

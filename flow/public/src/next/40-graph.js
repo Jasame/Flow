@@ -11,14 +11,16 @@
     return open[0] || all.find(n => n.status !== 'solid') || null;
   }
   // The learning route: the 44 points in the order to learn them, one line per level, like stops on a metro line.
+  // Only the level being learnt is open (the one with the next stop, else the learner's level); the others fold.
   const BAND = { A2: '入门', B1: '进阶', B2: '中高级', C1: '高级' };
   function routeHTML(g, next) {
+    const openBand = (next && (g.route.find(b => b.nodes.some(n => n.id === next.id)) || {}).band) || (g.route.some(b => b.band === g.level) ? g.level : g.route[0] && g.route[0].band);
     return `<div class="route">${g.route.map(b => {
       const lit = b.nodes.filter(n => n.status !== 'untouched').length;
-      return `<section class="rband"><div class="rband-h"><b>${b.band}</b><span class="small muted">${BAND[b.band]} · ${b.nodes.length} 个点 · 已点亮 ${lit}</span></div>
+      return `<details class="rband fold"${b.band === openBand ? ' open' : ''}><summary class="rband-h"><b>${b.band}</b><span class="small muted">${BAND[b.band]} · ${b.nodes.length} 个点 · 已点亮 ${lit}</span></summary>
         <ol class="rline">${b.nodes.map((n, k) => { const here = next && n.id === next.id;
           return `<li class="rnode st st-${n.status}${n.status !== 'untouched' ? ' lit' : ''}${here ? ' here' : ''}" data-k="${k}"><a href="#/graph/${encodeURIComponent(n.id)}">
-            <i class="dot" aria-hidden="true"></i><span class="t">${esc(n.title)}${here ? '<span class="here-tag">下一站</span>' : ''}${n.due ? '<span class="due-tag">该复习</span>' : ''}</span><span class="go" aria-hidden="true">›</span></a></li>`; }).join('')}</ol></section>`;
+            <i class="dot" aria-hidden="true"></i><span class="t">${esc(n.title)}${here ? '<span class="here-tag">下一站</span>' : ''}${n.due ? '<span class="due-tag">该复习</span>' : ''}</span><span class="go" aria-hidden="true">›</span></a></li>`; }).join('')}</ol></details>`;
     }).join('')}</div>`;
   }
   async function graphView() {
@@ -55,6 +57,9 @@
     let gv = 'route'; try { gv = localStorage.getItem('flow-graph-view') === 'all' ? 'all' : 'route'; } catch (e) { /* private mode */ }
     view.querySelectorAll('[data-gv]').forEach(b => b.onclick = () => show(b.dataset.gv));
     show(gv);
+    view.querySelectorAll('details.rband').forEach(d => d.addEventListener('toggle', () => {
+      if (d.open) d.querySelectorAll('.rnode').forEach(li => { li.classList.remove('drawn'); requestAnimationFrame(() => requestAnimationFrame(() => li.classList.add('drawn'))); });
+    }));
     // CSP forbids inline style attributes, so the ring fill is set through the CSSOM.
     view.querySelectorAll('.tile .ring').forEach(r => r.style.setProperty('--p', r.dataset.p + '%'));
     view.querySelectorAll('.tile').forEach(a => a.onclick = e => {

@@ -13,7 +13,7 @@
       <div class="card flat section stack-s"><b>错题</b><span class="small">新进错题本 ${r.mistakes_new} 个，改对 ${r.mistakes_fixed} 个。</span>
         ${r.watch.length ? `<span class="small">写作里要留意：${r.watch.map(n => nodeChip({ id: n.id, title: n.title, status: 'watch' })).join(' ')}</span>` : ''}
         ${r.focus ? `<div class="small"><b>下周重点：</b>${esc(r.focus)}</div>` : ''}</div>
-      <div class="section row"><button class="btn primary" id="share">生成分享图</button><a class="btn" href="#/me">能力画像</a></div><div id="shareOut" class="section"></div>`;
+      <div class="section row"><button class="btn primary" id="share">生成分享图</button><a class="btn" href="#/radar">能力雷达</a></div><div id="shareOut" class="section"></div>`;
     requestAnimationFrame(() => requestAnimationFrame(() => view.querySelectorAll('.vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; })));
     document.getElementById('share').onclick = () => {
       const url = shareImage(r);
