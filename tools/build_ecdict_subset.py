@@ -13,6 +13,13 @@ open word books in tools/build_open_wordbooks.py), plus every headword of the --
 are skipped). Flow passes the NAWL and BSL lists (corpus_data/NGSL-LICENSE.txt), so their academic and business
 words have dictionary entries; see flow/WORDBOOKS-OPEN.md for the exact command.
 
+Also lists under "lower" the reference words to show in lower case: the reference list capitalises some common
+words ("Supreme", "Congress", "Internet", "Polish"), which keeps them out of every word book. A word is listed when
+ECDICT's own entry for it is lower-case and carries an exam tag or the Oxford 3000 mark (that is the entry whose meaning
+Flow shows), or when it is in COMMON (reviewed by hand: a capitalised-only ECDICT entry that also holds a common word).
+Names stay capitalised: ECDICT's lower-case duplicates of them (vietnamese, saudi) carry no tag, abbreviations (PhD, CEO)
+have more than one capital, and KEEP_CAPITAL holds the tagged ones that are names in practice.
+
 Optionally also writes flow/corpus_data/wordroots-flow.json from ECDICT's wordroot.txt:
   {word: [[root, meaning, class], ...]} for the words above, so word cards can show 词根词缀.
 
@@ -44,11 +51,16 @@ def keep_words(path):
 
 
 extra = set().union(*map(keep_words, KEEP)) if KEEP else set()
+COMMON = ('polish',)  # "Polish" is ECDICT's only entry, and it also holds polish (擦亮)
+KEEP_CAPITAL = ('antarctic', 'bible')  # tagged lower-case in ECDICT, but written capitalised
 NOTICE = ('ECDICT (https://github.com/skywind3000/ECDICT), MIT License, Copyright (c) 2025 Linwei (full text in corpus_data/ECDICT-LICENSE.txt). '
           'Subset extracted by tools/build_ecdict_subset.py.')
 
 ref = json.loads((FLOW / 'corpus_data' / 'yl-reference.json').read_text(encoding='utf-8'))
 want = {t['norm'] for t in ref['terms']}
+capitalised = {t['norm'] for t in ref['terms'] if t['word'][:1].isupper() and t['word'][1:] == t['word'][1:].lower()
+               and t['word'].lower() == t['norm']}
+lower_entry = set()  # capitalised reference words whose kept ECDICT entry is lower-case, tagged or in the Oxford 3000
 out = {}
 csv.field_size_limit(10 ** 7)
 with SRC.open(encoding='utf-8', newline='') as f:
@@ -70,16 +82,21 @@ with SRC.open(encoding='utf-8', newline='') as f:
             continue
         out[key] = [row.get('phonetic') or '', lines, tags, int(row.get('collins') or 0), int(row.get('oxford') or 0),
                     int(row.get('bnc') or 0), int(row.get('frq') or 0)]
+        if key in capitalised and w == key and (any(t in EXAM_TAGS for t in tags) or out[key][4]):
+            lower_entry.add(key)
 
 dest = FLOW / 'corpus_data' / 'ecdict-flow.json'
+lower = sorted(k for k in capitalised if k in out and (k in lower_entry or k in COMMON) and k not in KEEP_CAPITAL)
 dest.write_text(json.dumps({'notice': NOTICE, 'fields': ['phonetic', 'translation', 'tags', 'collins', 'oxford', 'bnc', 'frq'],
-                            'words': dict(sorted(out.items()))}, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
+                            'lower': lower, 'words': dict(sorted(out.items()))}, ensure_ascii=False, separators=(',', ':')),
+                encoding='utf-8')
 covered = sum(1 for k in want if k in out)
 print(f'{len(out)} words written to {dest} ({dest.stat().st_size / 1e6:.1f} MB); reference list covered {covered}/{len(want)}')
 for t in TAGS:
     print(f'  {t}: {sum(1 for v in out.values() if t in v[2])}')
 if KEEP:
     print(f'  --keep lists: {sum(1 for k in extra if k in out)}/{len(extra)} headwords have an entry')
+print(f'  shown in lower case ({len(lower)}): {", ".join(lower)}')
 
 if len(ARGS) > 2:
     roots = json.loads(Path(ARGS[2]).read_text(encoding='utf-8'))

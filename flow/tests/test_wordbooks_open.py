@@ -89,6 +89,16 @@ class OpenWordbookTests(unittest.TestCase):
         ecdict = (DATA / 'ECDICT-LICENSE.txt').read_text(encoding='utf-8')
         self.assertIn('MIT License', ecdict); self.assertIn('Linwei', ecdict)
 
+    def test_common_words_the_reference_list_capitalises_are_lower_case(self):
+        """ecdict-flow.json "lower": "Supreme", "Congress", "Internet", "Polish" would be left out of every word book."""
+        d = nx.dictionary()
+        self.assertEqual([d[w]['word'] for w in ('supreme', 'congress', 'internet', 'polish', 'united')],
+                         ['supreme', 'congress', 'internet', 'polish', 'united'])
+        self.assertEqual([d[w]['word'] for w in ('english', 'vietnamese', 'phd', 'bible', 'antarctic', 'god')],
+                         ['English', 'Vietnamese', 'PhD', 'Bible', 'Antarctic', 'God'])  # names and abbreviations stay
+        self.assertIn('polish', self.books['gk']['words'])
+        self.assertIn('internet', self.books['bsl']['words'])
+
     def test_the_files_are_shipped(self):
         names = ('corpus_data/wordbooks-open.json', 'corpus_data/NGSL-LICENSE.txt', 'corpus_data/ECDICT-LICENSE.txt')
         copied = re.findall(r'for name in ([^;]+); do', (ROOT / 'upgrade.sh').read_text())[0].split()

@@ -4,10 +4,10 @@
 
 | id | 书名 | 分组 | 来源 | 许可 | 顺序 | 词数 |
 |---|---|---|---|---|---|---|
-| `zk` | 中考词汇 | 中学英语 | ECDICT 标签 `zk` | MIT | 词频 | 1578 |
-| `gk` | 高考词汇 | 中学英语 | ECDICT 标签 `gk`，加上 `zk` 的词 | MIT | 词频 | 3641 |
+| `zk` | 中考词汇 | 中学英语 | ECDICT 标签 `zk` | MIT | 词频 | 1580 |
+| `gk` | 高考词汇 | 中学英语 | ECDICT 标签 `gk`，加上 `zk` 的词 | MIT | 词频 | 3647 |
 | `nawl` | 学术英语 | 学术与职场 | New Academic Word List 1.2 | CC BY-SA 4.0 | 词频 | 946 |
-| `bsl` | 商务英语 | 学术与职场 | Business Service List 1.2 | CC BY-SA 4.0 | 原表排名 | 1720 |
+| `bsl` | 商务英语 | 学术与职场 | Business Service List 1.2 | CC BY-SA 4.0 | 原表排名 | 1721 |
 
 ## 文件格式
 
@@ -73,10 +73,10 @@ NAWL/BSL 只决定“收哪些词”；`ecdict-flow.json` 和 `dictionary-flow.j
 
 | 书 | 列表词数 | 收录 | 未收录 | 原因 |
 |---|---|---|---|---|
-| 中考 | 1603 | 1578 | 25 | 词典词头大写或词典里没有的专名缩写 19（American、Chinese、English、Christmas、TV、T-shirt、Canada、February 等）；不是单个词 5（a、I、ice cream、Mr.、Ms.）；没有词条 1（vcd） |
-| 高考 | 3726 | 3641 | 77 | 专名缩写 60（同上，加上国名、民族、宗教、节日，以及 Polish、supreme、antarctic 这类词典词头大写的词）；不是单个词 7（a、F、I、ice cream、Mr.、Ms.、no.）；没有词条 10（are、does、goods、means、latest、chips、sharpener、shaver、cance、vcd） |
+| 中考 | 1603 | 1580 | 23 | 词典词头大写或词典里没有的专名缩写 17（American、Chinese、English、Christmas、TV、T-shirt、Canada、February 等）；不是单个词 5（a、I、ice cream、Mr.、Ms.）；没有词条 1（vcd） |
+| 高考 | 3726 | 3647 | 71 | 专名缩写 54（同上，加上国名、民族、宗教、节日和 Antarctic）；不是单个词 7（a、F、I、ice cream、Mr.、Ms.、no.）；没有词条 10（are、does、goods、means、latest、chips、sharpener、shaver、cance、vcd） |
 | 学术英语 | 957 | 946 | 11 | 前缀 10；没有词条 1（goods） |
-| 商务英语 | 1744 | 1720 | 24 | 前缀 9；没有词条 14（goods、amortization、deliverable、macroeconomics、maximization、tranche、annualize、capita、graphics、prepayment、pensioner、reinvestment、annum、flotation）；词头大写 1（Internet） |
+| 商务英语 | 1744 | 1721 | 23 | 前缀 9；没有词条 14（goods、amortization、deliverable、macroeconomics、maximization、tranche、annualize、capita、graphics、prepayment、pensioner、reinvestment、annum、flotation） |
 
 还能补回来的：goods、means、latest、chips、shaver、sharpener、pensioner、graphics 在 `ecdict-flow.json` 里有词条，
 但 `next_service.build_dictionary()` 把它们当成 good、mean 等的变形跳过了；amortization、tranche 等在 ECDICT 里只有
@@ -85,22 +85,35 @@ NAWL/BSL 只决定“收哪些词”；`ecdict-flow.json` 和 `dictionary-flow.j
 另外，ECDICT 只以大写形式收录的一些专名（London、China、Monday、January 等）在语流词典里是小写词头，
 所以通过筛选进了中考、高考词书（中考 28 个、高考 39 个），雅思等考试词书里本来也有；显示时是小写。
 
+## 小写词头
+
+参考词表把一些常用词写成大写（Supreme、Congress、Internet、Polish），`book_words()` 因此把它们挡在所有词书外。
+`build_ecdict_subset.py` 在 `ecdict-flow.json` 里写一个 `lower` 列表，`next_service.build_dictionary()` 对列表里的词用小写词头。
+入选条件：ECDICT 给这个词的词条本身是小写，并且带考试标签或 Oxford 3000 标记（语流显示的正是这条的释义）；
+或者在人工核对过的 `COMMON` 里（ECDICT 只有大写的 Polish 一条，但它也收了 polish“擦亮”）。专名不变：ECDICT 里
+专名的小写重复条目（vietnamese、saudi）没有标签，缩写（PhD、CEO）不止一个大写字母，`KEEP_CAPITAL` 里是有标签但实际
+写成大写的 Antarctic、Bible。
+
+改成小写的 13 个：arctic、catholic、congress、democrat、internet、madame、philharmonic、polish、republican、senate、
+supreme、thanksgiving、united。词典里只有这 13 个词的 `word` 变了，释义等其他字段不变；它们因此进了频率词书
+（core +8、mid +1、high +3、ext +1）和考试词书（四级 +6、六级 +8、考研 +10、雅思 +7、托福 +7、GRE +4），其余词不变。
+
 ## 词典扩充
 
 `tools/build_ecdict_subset.py` 现在多保留两种词：带 `zk`、`gk` 标签的词，和 `--keep` 词表里的词头（这里传入 NAWL、BSL
-的 lemmatized for teaching 文件）。原有词条一个不少、内容不变（只是 `tags` 里多了 zk/gk）；新加的词如果 ECDICT
+的 lemmatized for teaching 文件）。原有词条一个不少、内容不变（只是 `tags` 里多了 zk/gk，另加上面的 `lower` 列表）；新加的词如果 ECDICT
 只有大写词头（Canada、February），仍然不收，和以前一样。
 
 | 文件 | 之前 | 之后 |
 |---|---|---|
-| `ecdict-flow.json` | 21,401 词，2,314,210 字节 | 21,551 词（+150），2,353,074 字节 |
+| `ecdict-flow.json` | 21,401 词，2,314,210 字节 | 21,551 词（+150），2,353,226 字节 |
 | `dictionary-flow.json` | 20,954 词，2,409,825 字节 | 21,067 词（+113），2,445,309 字节 |
 | `wordroots-flow.json` | 4,127 词，337,547 字节 | 4,140 词（+13），338,465 字节 |
 
 新加的 150 个 ECDICT 词条里，19 个是已有词的变形（socks、scores、shaver……），`build_dictionary()` 照旧把它们并到原形；
 18 个在 ECDICT 里只有 `[经]`、`[网络]` 这类释义（amortization、tranche……），`_ec_meaning()` 去掉后为空。所以词典多
 113 个词（true、dollar、colour、favourite、dumpling、debit、deflation、receivable、lessee、yuan……）。
-频率词书和考试词书（四级到 GRE）的内容逐词核对过，没有变化。
+频率词书和考试词书（四级到 GRE）逐词核对过：新增的词条没有改变它们，变化只来自上面 13 个小写词头。
 
 ## 重建
 
