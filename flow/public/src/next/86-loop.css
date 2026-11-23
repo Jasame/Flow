@@ -1,0 +1,46 @@
+/* ---------- learning loop: grammar re-checks, starting check, exam practice, serial stories ---------- */
+.due-tag{color:var(--amber);font-weight:700}
+.place-cta{display:grid;gap:4px;text-decoration:none;color:inherit;padding:14px 16px}
+.place-cta b{font-size:15px}
+.place-link{display:inline-block;margin-top:4px}
+.place .q .prompt{font-size:18px;line-height:1.5}
+.ans.chosen{border-color:var(--ink2);background:var(--sunk)}
+.bands{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.band{display:grid;gap:2px;justify-items:center;padding:10px 4px;border-radius:12px;background:var(--green-soft);color:var(--green-ink)}
+.band.low{background:var(--sunk);color:var(--muted)}
+.band b{font-size:13px}
+.band span{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+details>summary{cursor:pointer;padding:8px 0;color:var(--ink2)}
+details[open]>summary{margin-bottom:8px}
+/* exam practice */
+.exam-pick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.exam-pick .opt{display:grid;gap:4px;align-content:start;text-align:left;text-decoration:none;color:inherit}
+.exam-pick .opt .l{font-weight:700;font-size:16px}
+.exam-pick .opt .d{font-size:13px;color:var(--ink2);line-height:1.5}
+/* the series link in an episode's header is a real tap target */
+.study-head .kicker a.link{display:inline-flex;align-items:center;min-height:32px}
+.exam-bar{position:sticky;top:64px;z-index:15;display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:10px 14px;border-radius:12px;background:var(--paper);box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.exam-bar .clock{font-variant-numeric:tabular-nums;font-weight:700}
+.exam-bar .clock.late{color:var(--red)}
+.exam-part{display:grid;gap:12px}
+.exam-part>h2{margin-top:8px}
+.exam-part h3{font-size:16px;margin:8px 0 0}
+.exam-passage{font-family:var(--serif);font-size:17px;line-height:1.75;white-space:pre-line}
+.exam-score{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.exam-score div{display:grid;gap:2px;padding:12px 8px;border-radius:12px;background:var(--sunk);text-align:center}
+.exam-score b{font-size:22px;font-variant-numeric:tabular-nums}
+.exam-hist{display:flex;gap:6px;align-items:flex-end;height:56px}
+.exam-hist i{flex:1;min-width:6px;max-width:28px;border-radius:4px 4px 0 0;background:var(--green-line)}
+.exam-hist i:last-child{background:var(--green)}
+/* serial stories */
+.serial{display:grid;gap:10px}
+.serial .ep{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;padding:10px 8px;border-radius:12px;text-decoration:none;color:inherit}
+.serial .ep:hover{background:var(--sunk)}
+.serial .ep .n{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--sunk)}
+.serial .ep.done .n{background:var(--green);color:#fff}
+.serial .ep.next .n{box-shadow:0 0 0 2px var(--green)}
+.serial .ep .t{display:grid;gap:2px;min-width:0}
+.next-ep{display:grid;gap:4px;text-decoration:none;color:inherit;padding:14px 16px}
+@media (max-width:420px){.exam-pick{grid-template-columns:1fr}.bands{gap:6px}.band span{font-size:16px}}
+@media (hover:none){.serial .ep:hover{background:none}}

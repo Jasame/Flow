@@ -780,19 +780,38 @@ def send_reminders(c, now=None, send=None):
     return sent
 
 
-def ics(hour):
-    """A daily calendar event as a reminder that works on any phone, with no app or email needed."""
+def ics(hour, kind='vocab', minutes=10):
+    """A daily calendar event as a reminder that works on any phone, with no app or email needed.
+    kind 'vocab' is the word review alone; 'plan' is the whole daily plan (words, today's material, grammar re-checks)."""
     import os
     hour = hour if hour in REMIND_HOURS else 20
+    minutes = minutes if minutes in (5, 10, 15, 20, 30) else 10
     origin = os.getenv('FLOW_PUBLIC_URL', 'https://flow.jasa.hk').rstrip('/')
     start = datetime.datetime.now(nx.TZ).replace(hour=hour, minute=0, second=0, microsecond=0)
     utc = start.astimezone(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     stamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
-    lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Flow//vocab reminder//ZH', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
-             f'UID:flow-vocab-{hour}@flow', f'DTSTAMP:{stamp}', f'DTSTART:{utc}', 'DURATION:PT10M', 'RRULE:FREQ=DAILY',
-             'SUMMARY:语流：背单词（约 10 分钟）', f'URL:{origin}/#/review', f'DESCRIPTION:按遗忘曲线复习今天到期的单词：{origin}/#/review',
-             'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:语流：该复习单词了', 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR']
-    return '\r\n'.join(lines) + '\r\n'
+    if kind == 'plan':
+        uid, length, summary, url = f'flow-plan-{hour}', minutes, f'语流：今天的学习（约 {minutes} 分钟）', f'{origin}/#/'
+        desc, alarm = f'打开今天的计划：到期的单词、今天这篇材料、该复习的语法点，按顺序做完就好。{url}', '语流：今天的学习'
+    else:
+        uid, length, summary, url = f'flow-vocab-{hour}', 10, '语流：背单词（约 10 分钟）', f'{origin}/#/review'
+        desc, alarm = f'按遗忘曲线复习今天到期的单词：{url}', '语流：该复习单词了'
+    lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Flow//daily reminder//ZH', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
+             f'UID:{uid}@flow', f'DTSTAMP:{stamp}', f'DTSTART:{utc}', f'DURATION:PT{length}M', 'RRULE:FREQ=DAILY',
+             f'SUMMARY:{summary}', f'URL:{url}', f'DESCRIPTION:{desc}',
+             'BEGIN:VALARM', 'ACTION:DISPLAY', f'DESCRIPTION:{alarm}', 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR']
+    return '\r\n'.join(_fold(x) for x in lines) + '\r\n'
+
+
+def _fold(line, limit=75):
+    """RFC 5545 line folding: at most 75 octets per line, continuation lines start with a space, never inside a character."""
+    out, cur = [], ''
+    for ch in line:
+        if len((cur + ch).encode()) > (limit if not out else limit - 1):
+            out.append(cur); cur = ''
+        cur += ch
+    out.append(cur)
+    return '\r\n '.join(out)
 
 
 # ---------- routing ----------

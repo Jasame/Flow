@@ -16,16 +16,19 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `23-study-check.js` | 理解: comprehension questions |
 | `24-study-output.js` | 用出来: model sentence, retell, dialogue, translation, essay (closes `study()`) |
 | `30-lookup.js` | word look-up, AI sentence explanation, saving cards |
-| `40-graph.js` | knowledge graph and grammar-point pages |
+| `40-graph.js` | knowledge graph and grammar-point pages (rounds of 4 from a bank of 10, spaced re-checks) |
+| `41-placement.js` | 语法起点小测: 16 questions band by band, places the learner and lights the graph |
+| `42-exam.js` | 考试练习: timed CET-4 / CET-6 / 考研 / IELTS sets, results and history |
 | `50-words.js` | 单词 page, word cards, word-list import, plan, vocabulary test |
 | `60-review.js` | review session (keys, swipes, mistake cards) |
 | `70-learner.js` | ability profile, daily plan, level suggestion, microphone |
 | `71-import.js` | 我的文章 |
 | `72-sounds.js` | 发音入门 and its listening quiz |
 | `73-report.js` | weekly report and share picture |
-| `80-library.js` | 全部材料 |
+| `80-library.js` | 全部材料, serial stories and their episode list |
 | `81-me.js` | 我的, email binding |
 | `99-boot.js` | start-up |
 | `00-base.css` … `70-input-devices.css` | tokens and base; pages; motion and graph; words; listening; phone pass; learner pages; input methods and devices |
 | `80-flat.css` | the flat look: surfaces instead of outlines, frosted bars, the home plan and its next-step button, review focus mode |
+| `86-loop.css` | starting check, re-check tags, exam practice, serial episode list |
 | `85-phone.css` | phone layout from a 360 px audit (16px fields, card layouts, listen controls, one level of surface), the knowledge graph tiles and grammar-point pages |

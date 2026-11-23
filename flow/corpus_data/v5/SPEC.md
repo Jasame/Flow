@@ -56,10 +56,11 @@ python3 tools/corpus_validate.py flow/corpus_data/v5/science.B2.json
 | `dictation_index` | 正文第几句（从 0 数）适合听写：长度适中、有可学的结构 |
 | `vocabulary` | 3–5 个，`term` 以相同词形出现在正文，`example` 是新造的句子且包含 `term` |
 | `expressions` | 4–6 个**地道搭配/短语**（不是单词），`text` 原样出现在正文；`note` 说明语气或用法 |
-| `grammar` / `knowledge` | 1–3 个语法节点，只能用下面 18 个 id；每个 `knowledge.quote` 是正文原样子串，且确实用到该语法 |
+| `grammar` / `knowledge` | 1–3 个语法节点，用下面 18 个 id 或 `grammar_more.py` 里的 26 个（共 44 个）；每个 `knowledge.quote` 是正文原样子串，且确实用到该语法 |
+| `series`（可选） | 连载：`{"id", "title", "title_en", "blurb", "part", "of"}`。同一 `id` 的各集按 `part` 排序；首页一次只推荐下一集，考试练习不选连载 |
 | `task.model` | 正文原样子串，适合仿写 |
 
-### 18 个语法节点（知识图谱）
+### 18 个基础语法节点（知识图谱；另有 26 个见 `flow/grammar_more.py`）
 
 tense-present 一般现在与进行时 · tense-past 过去时与过去进行时 · tense-perfect 完成时与时间线索 ·
 clause-relative 定语从句关系词 · clause-noun 名词性从句 · clause-adverb 状语从句 ·

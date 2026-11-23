@@ -337,6 +337,23 @@ def persona_exam(cl):
     check(who, 'vocab overview shows the IELTS plan', s == 200 and 'ielts' in json.dumps(v), (v.get('plan') if isinstance(v, dict) else v))
     s, j = cl.post('/api/next/profile', {'level': 'B2', 'goal': 'exam', 'themes': ['science'], 'minutes': 30})
     check(who, 'save profile B2 exam', s == 200, j)
+    # r13: the starting check, a CET-6 practice set handed in blank (no evidence either way), the serial, the re-check ladder
+    s, t = cl.get('/api/next/placement')
+    check(who, 'starting check: 16 questions, no answers sent', s == 200 and len(t.get('items', [])) == 16 and not any('answer' in i for i in t['items']), s)
+    if s == 200:
+        s, r = cl.post('/api/next/placement', {'answers': [{'question': i['id'], 'choice': None} for i in t['items'][:4]]})
+        check(who, 'starting check: decided after a band answered "不会"', s == 200 and r.get('done') and r.get('level') == 'A2', r)
+    s, pp = cl.post('/api/next/exam/paper', {'exam': 'cet6'})
+    check(who, 'exam practice: a CET-6 paper of 22 questions', s == 200 and sum(len(x.get('items') or [q for ps in x['passages'] for q in ps['items']]) for x in pp['parts']) == 22, s)
+    if s == 200:
+        s, r = cl.post('/api/next/exam/submit', {'paper': pp['paper'], 'answers': {}, 'seconds': 60})
+        check(who, 'exam practice: handed in and saved', s == 200 and r.get('total') == 22 and r.get('saved') and len(r.get('history', [])) >= 1, r if s != 200 else r.get('parts'))
+        s, again = cl.post('/api/next/exam/submit', {'paper': pp['paper'], 'answers': {}})
+        check(who, 'exam practice: a paper is handed in once', s == 404, s)
+    s, se = cl.get('/api/next/series?id=lighthouse-ledger')
+    check(who, 'serial: six episodes in order', s == 200 and [e.get('part') for e in se.get('episodes', [])] == [1, 2, 3, 4, 5, 6], s)
+    s, nd = cl.get('/api/next/node?id=modal-past')
+    check(who, 'point page: a round of 4 drawn from the bank, options mapped', s == 200 and len(nd.get('practice', [])) == 4 and all(sorted(q['map']) == [0, 1, 2, 3] for q in nd['practice']), s)
     s, m = cl.get('/api/next/material?id=' + PID)
     check(who, 'material has a speaking and writing task', s == 200 and (m.get('speaking_task') or m.get('writing_task')), [k for k in m if 'task' in k] if isinstance(m, dict) else m)
     s, j, r = cl.ai('/api/next/retell', {'pack': PID, 'text': 'The article say noise cancelling headphones listen to the outside noise and make a opposite sound wave. '

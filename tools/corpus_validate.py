@@ -19,6 +19,8 @@ NODES = ('tense-present', 'tense-past', 'tense-perfect', 'clause-relative', 'cla
          'conditional-real', 'conditional-unless', 'conditional-modal', 'subjunctive-now', 'subjunctive-past',
          'subjunctive-mixed', 'nonfinite-infinitive', 'nonfinite-gerund', 'nonfinite-participle',
          'agreement-head', 'agreement-each', 'agreement-either')
+# The 26 further points (voice, modals, determiners, comparison, linking, prepositions, emphasis) are valid tags too.
+NODES += tuple(n['id'] for n in __import__('grammar_more').NODES_MORE)
 WORDS = {'A2': (90, 140), 'B1': (140, 210), 'B2': (210, 300), 'C1': (280, 380)}
 SENT_LEN = {'A2': (5, 12.5), 'B1': (9, 17), 'B2': (12, 24), 'C1': (15, 30)}
 # share of words whose easiest form ranks beyond 3000: soft bands

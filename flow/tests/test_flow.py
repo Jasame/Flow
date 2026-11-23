@@ -71,7 +71,7 @@ class FlowTest(unittest.TestCase):
   with sqlite3.connect(Path(self.tmp.name)/'flow.sqlite3') as c:c.execute('UPDATE users SET admin=1 WHERE id=?',(u['id'],))
   q={'topic':'tense','prompt':'Test ____ question','options':['a','b','c','d'],'answer':1,'explanation':'A reviewed explanation'}
   self.assertEqual(self.request('admin/question',q,u['csrf'])[0],200)
-  self.assertEqual(self.request('admin')[1]['questions'],73+104)  # 104: four per point in grammar_more
+  self.assertEqual(self.request('admin')[1]['questions'],73+104+264)  # 104: four per point in grammar_more; 264: grammar_bank brings each point to ten
   self.assertEqual(self.request('login',{'username':'teacher','password':'wrongpassword'})[0],401)
   self.assertEqual(self.request('login',{'username':'teacher','password':'strongtest123'})[0],200)
   self.assertEqual(self.request('session')[1]['user']['admin'],1)

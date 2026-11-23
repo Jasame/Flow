@@ -131,7 +131,10 @@
       if (!S.home) { await refreshHome(); fresh = true; }
       if (name === 'welcome') { setNav(''); await welcome(a === 'edit'); }
       // Only the personalised home needs the level questions first; everything else works for a new guest too.
-      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review'].includes(name)) { location.replace('#/welcome'); return; }
+      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series'].includes(name)) { location.replace('#/welcome'); return; }
+      else if (name === 'placement') { setNav('graph'); await placementView(); }
+      else if (name === 'exam') { setNav('me'); await examView(a); }
+      else if (name === 'series') { setNav('today'); await seriesView(decodeURIComponent(a || '')); }
       else if (name === 'm' && a) { setNav('today'); await study(decodeURIComponent(a), b || 'listen', sameMaterial); }
       else if (name === 'graph') { setNav('graph'); await (a ? nodeView(decodeURIComponent(a)) : graphView()); }
       else if (name === 'cards') { setNav('cards'); await vocabView('', 1, a || ''); }

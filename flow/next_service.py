@@ -32,6 +32,7 @@ WORD = re.compile(r"[A-Za-z]+(?:'[A-Za-z]+)?")
 # Knowledge graph: 44 grammar points in 13 topics (the first 18 from content_v05, 26 more from grammar_more).
 # Which points a level should be building now.
 import grammar_more as GM
+import grammar_bank as GB
 TOPICS = GM.TOPIC_ORDER
 LEVEL_NODES = {
     'A2': ('tense-present', 'tense-past', 'tense-perfect', 'conditional-real', 'nonfinite-infinitive', 'clause-adverb', 'clause-relative') + GM.LEVEL_MORE['A2'],
@@ -74,6 +75,9 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
     __import__('skills_service').schema(c)  # ability profile, mistake book, weekly report
     __import__('output_service').schema(c)  # translation sources
     GM.install(c)  # the 26 further grammar points: topics, subskills, verification questions, graph nodes (once)
+    GB.install(c)  # ten questions on every point (once)
+    GB.schema(c)  # spaced re-checks of grammar points
+    __import__('exam_service').schema(c)  # exam practice papers and results
 
 
 # ---------- helpers ----------
@@ -433,13 +437,15 @@ def graph(c, uid, level=None):
         for n in pack_grammar(p):
             counts[n] = counts.get(n, 0) + 1
     focus = set(LEVEL_NODES.get(level, meta.keys()))
+    due = set(GB.due(c, uid)) if uid else set()
     topics = []
     for tid, tname in TOPICS:
-        nodes = [{'id': n, 'title': m['title'], 'prereq': m['prereq'], 'materials': counts.get(n, 0), 'focus': n in focus, 'level': node_level(n),
+        nodes = [{'id': n, 'title': m['title'], 'prereq': m['prereq'], 'materials': counts.get(n, 0), 'focus': n in focus, 'level': node_level(n), 'due': n in due,
                   'status': states[n]['status'], 'label': STATUS_LABEL[states[n]['status']], 'met': states[n]['met'],
                   'used': states[n]['used'], 'flags': states[n]['flags']} for n, m in meta.items() if m['topic'] == tid]
         topics.append({'id': tid, 'title': tname, 'nodes': nodes})
     summary = {k: sum(1 for s in states.values() if s['status'] == k) for k in STATUS_LABEL}
+    summary['due'] = len(due)
     return {'level': level, 'topics': topics, 'summary': summary, 'labels': STATUS_LABEL, 'total': len(meta)}
 
 
@@ -450,10 +456,9 @@ def node_level(nid):
     return next((lv for lv in ('A2', 'B1', 'B2', 'C1') if nid in LEVEL_NODES.get(lv, ())), 'B2')
 
 
-def practice(c, nid, limit=6):
-    """The published verification questions for a point, without their answers."""
-    return [{'id': r['id'], 'prompt': r['prompt'], 'options': json.loads(r['options'])} for r in c.execute(
-        "SELECT id, prompt, options FROM questions WHERE node=? AND status='published' ORDER BY id LIMIT ?", (nid, limit))]
+def practice(c, nid, limit=4):
+    """A round of verification questions on a point: drawn at random from its ten, options shuffled, no answers."""
+    return GB.draw(c, nid, limit)
 
 
 def node_answer(c, uid, data):
@@ -476,9 +481,10 @@ def node_answer(c, uid, data):
         if not correct:
             __import__('skills_service').add_mistake(c, uid, 'question', q['prompt'], f"gq:{q['id']}", '', '', 'grammar', node=q['node'],
                                                      extra={'options': options, 'answer': q['answer'], 'evidence': q['explanation'] or ''}, commit=False)
+        review = GB.schedule(c, uid, q['node'], correct)
         c.commit()
         st = graph_states(c, uid)[q['node']]
-        out.update(status=st['status'], label=STATUS_LABEL[st['status']])
+        out.update(status=st['status'], label=STATUS_LABEL[st['status']], review=review)
     return out, 200
 
 
@@ -512,7 +518,7 @@ def node(c, uid, nid, level=None):
     unlocks = [{'id': k, 'title': v['title']} for k, v in meta.items() if v['prereq'] == nid]
     return {'id': nid, 'title': m['title'], 'topic': dict(TOPICS).get(m['topic'], m['topic']), 'lesson': m['lesson'], 'example': m['example'],
             'level': node_level(nid), 'focus': nid in set(LEVEL_NODES.get(level, ())), 'page': __import__('content_subskills').page(nid),
-            'practice': practice(c, nid),
+            'practice': practice(c, nid), 'review': GB.review_of(c, uid, nid),
             'status': st['status'], 'label': STATUS_LABEL[st['status']], 'met': st['met'], 'used': st['used'], 'flags': st['flags'],
             'evidence': st['evidence'], 'prereq': {'id': prereq['id'], 'title': prereq['title']} if prereq else None, 'unlocks': unlocks,
             'examples': examples[:6], 'materials': [_card(p, done.get(p['id'])) for p in mats[:6]],
@@ -535,7 +541,9 @@ def home(c, uid, level=None, themes=None):
     themes = (prof or {}).get('themes') or [t for t in (themes or []) if t in THEMES]
     done = _done(c, uid)
     day = _day()
-    pool = [(r, p) for r, p in _public_packs(c, level) if r['origin'] != 'daily']
+    # A serial is recommended one episode at a time: only its next unread episode, never one from the middle.
+    serial_next = {s['next'] for s in series_list(c, uid)}
+    pool = [(r, p) for r, p in _public_packs(c, level) if r['origin'] != 'daily' and (not p.get('series') or p['id'] in serial_next)]
     if len(pool) < 6 and level == 'C1':
         pool += [(r, p) for r, p in _public_packs(c, 'B2') if r['origin'] != 'daily']
     fresh = [(r, p) for r, p in pool if 'check' not in done.get(p['id'], set())] or pool
@@ -602,6 +610,7 @@ def home(c, uid, level=None, themes=None):
         g['total'] = len(states)
         watch = [n for n, s in states.items() if s['status'] == 'watch']
         g['watch'] = [{'id': n, 'title': meta_titles.get(n, n)} for n in watch[:3]]
+        g['due'] = [{'id': n, 'title': meta_titles.get(n, n)} for n in GB.due(c, uid) if n not in watch][:3]
     out = {'profile': prof, 'level': level, 'level_label': LEVELS[level]['label'], 'today': picks, 'news': news, 'resume': resume,
            'stats': stats(c, uid) if uid else None, 'graph': g}
     if uid and prof:
@@ -642,7 +651,60 @@ def library(c, uid, level=None, theme=None, page=1, per=12, featured_only=False)
     page = max(1, page)
     return {'total': len(rows), 'page': page, 'per': per, 'themes': THEMES,
             'featured_total': sum(1 for _, p in _public_packs(c) if featured(p)),
-            'items': [_card(p, done.get(p['id'])) for _, p in rows[(page - 1) * per: page * per]]}
+            'items': [_card(p, done.get(p['id'])) for _, p in rows[(page - 1) * per: page * per]],
+            'series': series_list(c, uid) if page == 1 else []}
+
+
+# ---------- serial stories ----------
+
+def _series_packs(c, sid=None):
+    """series id -> its episodes in order (materials whose pack carries a "series" block)."""
+    out = {}
+    for _, p in _public_packs(c):
+        s = p.get('series')
+        if isinstance(s, dict) and s.get('id') and (sid is None or s['id'] == sid):
+            out.setdefault(s['id'], []).append(p)
+    for eps in out.values():
+        eps.sort(key=lambda p: p['series'].get('part', 0))
+    return out
+
+
+def _read(steps):
+    return 'check' in steps or 'output' in steps
+
+
+def series_list(c, uid):
+    done = _done(c, uid)
+    out = []
+    for sid, eps in _series_packs(c).items():
+        s = eps[0]['series']
+        nxt = next((p for p in eps if not _read(done.get(p['id'], set()))), None)
+        out.append({'id': sid, 'title': s['title'], 'title_en': s.get('title_en', ''), 'blurb': s.get('blurb', ''), 'level': cefr(eps[0]), 'of': len(eps),
+                    'done': sum(1 for p in eps if _read(done.get(p['id'], set()))), 'next': nxt['id'] if nxt else None,
+                    'next_part': nxt['series'].get('part') if nxt else None})
+    return out
+
+
+def series(c, uid, sid):
+    eps = _series_packs(c, sid).get(sid)
+    if not eps:
+        return {'error': '连载不存在'}, 404
+    done = _done(c, uid)
+    s = eps[0]['series']
+    cards = [_card(p, done.get(p['id']), {'part': p['series'].get('part'), 'read': _read(done.get(p['id'], set()))}) for p in eps]
+    nxt = next((x for x in cards if not x['read']), None)
+    return {'id': sid, 'title': s['title'], 'title_en': s.get('title_en', ''), 'blurb': s.get('blurb', ''), 'level': cefr(eps[0]), 'of': len(eps),
+            'episodes': cards, 'next': nxt['id'] if nxt else None, 'done': sum(1 for x in cards if x['read'])}, 200
+
+
+def _series_nav(c, p):
+    s = p.get('series')
+    if not isinstance(s, dict) or not s.get('id'):
+        return None
+    ids = [x['id'] for x in _series_packs(c, s['id']).get(s['id'], [])]
+    i = ids.index(p['id']) if p['id'] in ids else -1
+    return {'id': s['id'], 'title': s['title'], 'part': s.get('part'), 'of': len(ids),
+            'prev': ids[i - 1] if i > 0 else None, 'next': ids[i + 1] if 0 <= i < len(ids) - 1 else None}
 
 
 # ---------- material ----------
@@ -716,7 +778,7 @@ def material(c, uid, pid, level=None):
             'preread': __import__('vocab_service').preread(c, uid, hard),
             'speaking_task': p.get('speaking', ''), 'writing_task': p.get('writing', ''), 'imported': bool(p.get('imported')),
             'user_level': level, 'can_variant': level != cefr(p) and not variant,
-            'audio': {'voices': audio_index()[0].get(p['id'], []), 'version': audio_index()[1]}}, 200
+            'audio': {'voices': audio_index()[0].get(p['id'], []), 'version': audio_index()[1]}, 'series': _series_nav(c, p)}, 200
 
 
 def check(c, uid, data):
@@ -1118,6 +1180,12 @@ def get(c, uid, path, q):
         return graph(c, uid, one('level')), 200
     if path == '/api/next/node':
         return node(c, uid, one('id'), one('level'))
+    if path == '/api/next/placement':
+        return GB.placement_items(c), 200
+    if path == '/api/next/series':
+        return series(c, uid, one('id'))
+    if path == '/api/next/exam':
+        return __import__('exam_service').overview(c, uid)
     if path == '/api/next/lookup':
         w = one('w')[:40]
         if not WORD.fullmatch(w or ''):
@@ -1141,6 +1209,12 @@ def post_public(c, uid, path, data):
         return __import__('vocab_service').score_test(c, uid, data)
     if path == '/api/next/node/answer':
         return node_answer(c, uid, data)
+    if path == '/api/next/placement':
+        return GB.placement_score(c, uid, data)
+    if path == '/api/next/exam/paper':
+        return __import__('exam_service').paper(c, uid, data.get('exam'))
+    if path == '/api/next/exam/submit':
+        return __import__('exam_service').submit(c, uid, data)
     return None
 
 
