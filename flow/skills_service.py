@@ -227,6 +227,15 @@ def daily_path(c, uid, home, now=None):
         href = f"#/m/{pick['id']}/output/{key}" if pick and key != 'dictate' else (f"#/m/{pick['id']}/listen" if pick else '#/library')
     kinds = {'retell': {'retell'}, 'essay': {'essay'}, 'translate': {'translate'}, 'dictate': {'dictation'}, 'sounds': {'say', 'discriminate'}}
     steps.append({'key': key, 'title': title, 'sub': sub, 'href': href, 'done': bool(kinds.get(key, set()) & today_kinds)})
+    # A grammar point the learner got wrong in writing or in practice: a short fix on its page (4 questions).
+    # Once practised today the step stays, ticked, even though the point is no longer flagged.
+    practised = [r['node'] for r in c.execute("SELECT node FROM learning_events WHERE user_id=? AND source LIKE 'next-node:%' AND created>=? ORDER BY id",
+                                              (uid, start))]
+    watch = ((home.get('graph') or {}).get('watch') or [])
+    target = watch[0] if watch else ({'id': practised[-1], 'title': nx.nodes_meta(c).get(practised[-1], {}).get('title', '')} if practised else None)
+    if target:
+        steps.append({'key': 'grammar', 'title': '语法：' + target['title'], 'sub': '写作或做题里出过错 · 4 道题，约 3 分钟' if watch else '今天补过了',
+                      'href': '#/graph/' + target['id'], 'done': target['id'] in practised and target['id'] not in {w['id'] for w in watch}})
     if minutes >= 15 and key != 'dictate' and pick:
         steps.append({'key': 'dictate', 'title': '听写三句', 'sub': f"练耳朵，也练拼写 · 今天 {min(3, kind_n.get('dictation', 0))}/3", 'href': f"#/m/{pick['id']}/listen",
                       'done': kind_n.get('dictation', 0) >= 3})

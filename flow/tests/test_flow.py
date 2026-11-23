@@ -71,7 +71,7 @@ class FlowTest(unittest.TestCase):
   with sqlite3.connect(Path(self.tmp.name)/'flow.sqlite3') as c:c.execute('UPDATE users SET admin=1 WHERE id=?',(u['id'],))
   q={'topic':'tense','prompt':'Test ____ question','options':['a','b','c','d'],'answer':1,'explanation':'A reviewed explanation'}
   self.assertEqual(self.request('admin/question',q,u['csrf'])[0],200)
-  self.assertEqual(self.request('admin')[1]['questions'],73)
+  self.assertEqual(self.request('admin')[1]['questions'],73+104)  # 104: four per point in grammar_more
   self.assertEqual(self.request('login',{'username':'teacher','password':'wrongpassword'})[0],401)
   self.assertEqual(self.request('login',{'username':'teacher','password':'strongtest123'})[0],200)
   self.assertEqual(self.request('session')[1]['user']['admin'],1)
@@ -110,7 +110,7 @@ class FlowTest(unittest.TestCase):
   with urllib.request.urlopen(self.base.replace('/api/','/')) as r:self.assertEqual(r.status,200);self.assertIn("script-src 'self'",r.headers['Content-Security-Policy'])
  def test_v05_learning_portfolio_and_permissions(self):
   u=self.register('v05-learner');csrf=u['csrf']
-  status,d=self.request('study');self.assertEqual(status,200);self.assertEqual(len(d['nodes']),18)
+  status,d=self.request('study');self.assertEqual(status,200);self.assertEqual(len(d['nodes']),44)
   self.assertEqual(self.request('study/preferences',{'minutes':5},csrf)[0],200)
   self.assertLessEqual(self.request('study')[1]['plan_minutes'],5)
   q=self.request('quiz',{'node':'tense-perfect'},csrf)[1];self.assertTrue(q['questions'])
@@ -183,7 +183,7 @@ class FlowTest(unittest.TestCase):
   self.assertEqual(self.request('knowledge')[0],401)
   self.request('register',{'username':'graphlearner','password':'testing-password-08'})
   status,session=self.request('login',{'username':'graphlearner','password':'testing-password-08'});self.assertEqual(status,200);csrf=self.request('session')[1]['user']['csrf']
-  code,graph=self.request('knowledge');self.assertEqual(code,200);self.assertEqual(len(graph['nodes']),18);self.assertTrue(graph['edges']);self.assertTrue(all(n['distinct']==0 for n in graph['nodes']))
+  code,graph=self.request('knowledge');self.assertEqual(code,200);self.assertEqual(len(graph['nodes']),44);self.assertTrue(graph['edges']);self.assertTrue(all(n['distinct']==0 for n in graph['nodes']))
   self.assertEqual(self.request('daily')[0],200)
   self.assertEqual(self.request('daily/run',{},csrf=csrf)[0],403)
   self.assertEqual(self.request('daily/suggestions?id=absent')[0],404)

@@ -112,21 +112,6 @@ details.guide p{margin:8px 0 0;font-size:15px}
 .node-chip:hover{border-color:var(--c)}
 .knote{display:grid;gap:6px;padding:12px 14px;border-radius:12px;background:var(--sunk)}
 .knote q{font-family:var(--serif);font-style:italic;quotes:none}
-.gmap{width:100%;max-width:560px;margin:4px auto 0;display:block;overflow:visible}
-.gmap .hub-ring{fill:none;stroke:var(--line);stroke-dasharray:3 5}
-.gmap .edge{stroke:var(--line2);stroke-width:1.4;fill:none;stroke-dasharray:120;stroke-dashoffset:120;animation:draw .7s var(--ease) forwards}
-.gmap .pre{stroke:var(--muted);stroke-width:1;fill:none;stroke-dasharray:3 4;opacity:.55}
-.gmap .hub circle{fill:var(--paper);stroke:var(--line2);stroke-width:1.5}
-.gmap .hub text{font-size:11.5px;font-weight:700;fill:var(--ink);text-anchor:middle;dominant-baseline:central}
-.gmap .gn{cursor:pointer;transform-box:fill-box;transform-origin:center;animation:gpop .45s var(--ease-spring) both}
-.gmap .gn circle.dot{fill:var(--c);stroke:var(--paper);stroke-width:2;transition:r .2s}
-.gmap .gn circle.ring{fill:none;stroke:var(--c);stroke-width:1.5;opacity:.45}
-.gmap .gn.focus circle.ring{animation:breathe 2.4s ease-in-out infinite}
-.gmap .gn:hover circle.dot,.gmap .gn:focus circle.dot{r:11}
-.gmap .gn text{font-size:11.5px;fill:var(--ink2);font-weight:600}
-.gmap .gn:focus{outline:none}
-@keyframes gpop{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:none}}
-@keyframes breathe{0%,100%{opacity:.25;transform:scale(1)}50%{opacity:.7;transform:scale(1.35)}}
 .glegend{display:flex;flex-wrap:wrap;gap:10px 14px;justify-content:center;font-size:12.5px;color:var(--muted);margin:10px 0 4px}
 .glegend span{display:inline-flex;align-items:center;gap:6px}
 .glegend span::before{content:'';width:10px;height:10px;border-radius:50%;background:var(--c)}
@@ -152,15 +137,11 @@ details.guide p{margin:8px 0 0;font-size:15px}
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
-  .gmap .edge{stroke-dashoffset:0}
 }
 main>*+*{margin-top:14px}
 main>.section,main>*+.section{margin-top:28px}
 .gsum .st b{color:var(--c)}
 .brand em{display:none}
-.gmap.compact{max-width:420px}.gmap.compact .gn circle.dot{r:10}.gmap.compact .gn circle.ring{r:15}
-.gmap circle.ring,.gmap circle.dot{transform-box:fill-box;transform-origin:center}
-.gmap.compact .gn circle.dot{r:10px}.gmap.compact .gn circle.ring{r:15px}
 .voices{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 .chip.small{padding:6px 12px;font-size:13.5px}
 .chip[disabled]{opacity:.4;cursor:not-allowed}

@@ -1,7 +1,7 @@
 """Flow: one learning loop on top of the existing backend (see NEXT.md).
 
 Material -> listen -> read (tap a word, save expressions) -> check -> use it (AI rewrite
-comparison) -> review only what you saved. The knowledge graph (18 grammar nodes, materials,
+comparison) -> review only what you saved. The knowledge graph (44 grammar points in 13 topics, materials,
 saved expressions) drives what is recommended next, and AI feedback is mapped onto it.
 Guests may read, listen and check answers; saving, AI and progress need an account.
 """
@@ -29,13 +29,18 @@ AUDIO_DIR = Path(os.getenv('FLOW_AUDIO_DIR') or Path(__file__).resolve().parent 
 _AUDIO = {'mtime': None, 'index': {}}
 WORD = re.compile(r"[A-Za-z]+(?:'[A-Za-z]+)?")
 
-# Knowledge graph: 18 grammar nodes in 6 topics. Which nodes a level should be building now.
-TOPICS = [('tense', '时态'), ('clause', '从句'), ('conditional', '条件'), ('subjunctive', '虚拟'), ('nonfinite', '非谓语'), ('agreement', '主谓一致')]
+# Knowledge graph: 44 grammar points in 13 topics (the first 18 from content_v05, 26 more from grammar_more).
+# Which points a level should be building now.
+import grammar_more as GM
+TOPICS = GM.TOPIC_ORDER
 LEVEL_NODES = {
-    'A2': ('tense-present', 'tense-past', 'tense-perfect', 'conditional-real', 'nonfinite-infinitive', 'clause-adverb', 'clause-relative'),
+    'A2': ('tense-present', 'tense-past', 'tense-perfect', 'conditional-real', 'nonfinite-infinitive', 'clause-adverb', 'clause-relative') + GM.LEVEL_MORE['A2'],
     'B1': ('tense-perfect', 'clause-relative', 'clause-adverb', 'clause-noun', 'conditional-real', 'conditional-unless', 'conditional-modal',
-           'nonfinite-infinitive', 'nonfinite-gerund', 'agreement-head', 'agreement-each'),
+           'nonfinite-infinitive', 'nonfinite-gerund', 'agreement-head', 'agreement-each') + GM.LEVEL_MORE['B1'],
+    'B2': GM.LEVEL_BASE['B2'] + GM.LEVEL_MORE['B2'],
+    'C1': GM.LEVEL_BASE['C1'] + GM.LEVEL_MORE['C1'],
 }
+_GRAMMAR_FOUND = {}  # pack id -> (body length, {point: [sentences]}) for the points grammar_more finds in the text
 STATUS_LABEL = {'untouched': '还没接触', 'met': '读到过', 'used': '用出来过', 'watch': '写作中需要留意', 'solid': '做题已验证'}
 
 _DICT = None
@@ -68,6 +73,7 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
     vocab_service.schema(c)
     __import__('skills_service').schema(c)  # ability profile, mistake book, weekly report
     __import__('output_service').schema(c)  # translation sources
+    GM.install(c)  # the 26 further grammar points: topics, subskills, verification questions, graph nodes (once)
 
 
 # ---------- helpers ----------
@@ -355,6 +361,21 @@ def _card(pack, done=None, extra=None):
 
 # ---------- knowledge graph ----------
 
+def _found(p):
+    """{point: [sentences]} for the grammar_more points this material's text shows (worked out once per material)."""
+    key = len(p.get('body', ''))
+    hit = _GRAMMAR_FOUND.get(p['id'])
+    if not hit or hit[0] != key:
+        hit = _GRAMMAR_FOUND[p['id']] = (key, GM.examples(p.get('body', '')))
+    return hit[1]
+
+
+def pack_grammar(p):
+    """The grammar points a material practises: its own tags, then the further points found in its text."""
+    own = list(p.get('grammar', []))
+    return own + [n for n in _found(p) if n not in own]
+
+
 def nodes_meta(c):
     rows = c.execute('SELECT s.id, s.topic, s.title, s.prereq, s.lesson, s.example FROM subskills s ORDER BY s.rowid').fetchall()
     return {r['id']: dict(r) for r in rows}
@@ -374,7 +395,7 @@ def graph_states(c, uid):
     if packs:
         q = 'SELECT id, content FROM lab_packs WHERE id IN (%s)' % ','.join('?' * len(packs))
         for r in c.execute(q, list(packs)):
-            for n in json.loads(r['content']).get('grammar', []):
+            for n in pack_grammar(json.loads(r['content'])):
                 if n in out:
                     out[n]['met'] += 1
                     if 'output' in packs[r['id']]:
@@ -409,17 +430,56 @@ def graph(c, uid, level=None):
     states = graph_states(c, uid)
     counts = {}
     for _, p in _public_packs(c):
-        for n in p.get('grammar', []):
+        for n in pack_grammar(p):
             counts[n] = counts.get(n, 0) + 1
     focus = set(LEVEL_NODES.get(level, meta.keys()))
     topics = []
     for tid, tname in TOPICS:
-        nodes = [{'id': n, 'title': m['title'], 'prereq': m['prereq'], 'materials': counts.get(n, 0), 'focus': n in focus,
+        nodes = [{'id': n, 'title': m['title'], 'prereq': m['prereq'], 'materials': counts.get(n, 0), 'focus': n in focus, 'level': node_level(n),
                   'status': states[n]['status'], 'label': STATUS_LABEL[states[n]['status']], 'met': states[n]['met'],
                   'used': states[n]['used'], 'flags': states[n]['flags']} for n, m in meta.items() if m['topic'] == tid]
         topics.append({'id': tid, 'title': tname, 'nodes': nodes})
     summary = {k: sum(1 for s in states.values() if s['status'] == k) for k in STATUS_LABEL}
     return {'level': level, 'topics': topics, 'summary': summary, 'labels': STATUS_LABEL, 'total': len(meta)}
+
+
+def node_level(nid):
+    """The level a point belongs to: the first level that builds it (A2 → C1)."""
+    if nid in GM.BY_ID:
+        return GM.BY_ID[nid]['level']
+    return next((lv for lv in ('A2', 'B1', 'B2', 'C1') if nid in LEVEL_NODES.get(lv, ())), 'B2')
+
+
+def practice(c, nid, limit=6):
+    """The published verification questions for a point, without their answers."""
+    return [{'id': r['id'], 'prompt': r['prompt'], 'options': json.loads(r['options'])} for r in c.execute(
+        "SELECT id, prompt, options FROM questions WHERE node=? AND status='published' ORDER BY id LIMIT ?", (nid, limit))]
+
+
+def node_answer(c, uid, data):
+    """Check one practice answer on a point's page. Signed in, it is evidence for that point (one per question per
+    day, so an answer remembered a day later counts as delayed recall), and a wrong answer goes to the mistake book."""
+    qid, choice = data.get('question'), data.get('choice')
+    q = c.execute("SELECT id, node, prompt, options, answer, explanation FROM questions WHERE id=? AND status='published' AND node IS NOT NULL",
+                  (qid if type(qid) is int else -1,)).fetchone()
+    if not q:
+        return {'error': '题目不存在'}, 404
+    options = json.loads(q['options'])
+    if type(choice) is not int or not 0 <= choice < len(options):
+        return {'error': '选项不正确'}, 400
+    correct = choice == q['answer']
+    out = {'correct': correct, 'answer': q['answer'], 'explanation': q['explanation'] or ''}
+    if uid:
+        day = int(time.time() // 86400)
+        __import__('event_service').record(c, uid, q['node'], f"next-node:{q['id']}:{day}", 'choice', str(q['id']), 'question:' + str(q['id']),
+                                           int(correct), 0, 'rule', {'choice': choice, 'from': 'node-page'})
+        if not correct:
+            __import__('skills_service').add_mistake(c, uid, 'question', q['prompt'], f"gq:{q['id']}", '', '', 'grammar', node=q['node'],
+                                                     extra={'options': options, 'answer': q['answer'], 'evidence': q['explanation'] or ''}, commit=False)
+        c.commit()
+        st = graph_states(c, uid)[q['node']]
+        out.update(status=st['status'], label=STATUS_LABEL[st['status']])
+    return out, 200
 
 
 def node(c, uid, nid, level=None):
@@ -433,12 +493,15 @@ def node(c, uid, nid, level=None):
     done = _done(c, uid)
     examples, mats = [], []
     for _, p in _public_packs(c):
-        if nid not in p.get('grammar', []):
+        if nid not in pack_grammar(p):
             continue
         for k in p.get('knowledge', []):
             if k.get('node') == nid and len(examples) < 40:
                 examples.append({'quote': k['quote'], 'explanation': re.split(r'[；;]', k.get('explanation', ''))[0].strip(), 'pack': p['id'],
                                  'level': cefr(p), 'featured': featured(p)})
+        if nid in GM.BY_ID and len(examples) < 40:  # sentences found in the text: what the form is, not a claim about this sentence's meaning
+            for q in _found(p).get(nid, [])[:1]:
+                examples.append({'quote': q, 'explanation': GM.BY_ID[nid]['note'], 'pack': p['id'], 'level': cefr(p), 'featured': featured(p)})
         mats.append(p)
     target = level if level != 'C1' else 'C1'
     mine = set((prof or {}).get('themes') or [])  # the learner's topics first (职场沟通 for a work learner)
@@ -448,6 +511,8 @@ def node(c, uid, nid, level=None):
     prereq = meta.get(m['prereq']) if m['prereq'] else None
     unlocks = [{'id': k, 'title': v['title']} for k, v in meta.items() if v['prereq'] == nid]
     return {'id': nid, 'title': m['title'], 'topic': dict(TOPICS).get(m['topic'], m['topic']), 'lesson': m['lesson'], 'example': m['example'],
+            'level': node_level(nid), 'focus': nid in set(LEVEL_NODES.get(level, ())), 'page': __import__('content_subskills').page(nid),
+            'practice': practice(c, nid),
             'status': st['status'], 'label': STATUS_LABEL[st['status']], 'met': st['met'], 'used': st['used'], 'flags': st['flags'],
             'evidence': st['evidence'], 'prereq': {'id': prereq['id'], 'title': prereq['title']} if prereq else None, 'unlocks': unlocks,
             'examples': examples[:6], 'materials': [_card(p, done.get(p['id'])) for p in mats[:6]],
@@ -634,6 +699,12 @@ def material(c, uid, pid, level=None):
         notes.append({'node': n, 'title': meta.get(n, {}).get('title', n), 'quote': k.get('quote', ''),
                       'explanation': re.split(r'[；;]', k.get('explanation', ''))[0].strip() if not featured(p) else k.get('explanation', ''),
                       'status': states.get(n, {}).get('status', 'untouched'), 'label': STATUS_LABEL[states.get(n, {}).get('status', 'untouched')]})
+    # two more points found in this text, the learner's level first: the form, shown in one of its sentences
+    focus = set(LEVEL_NODES.get((profile(c, uid) or {}).get('level') or level or 'B1', ()))
+    found = sorted((n for n in _found(p) if n in meta and n not in {x['node'] for x in notes}), key=lambda n: (n not in focus, GM.BY_ID[n]['level']))
+    for n in found[:2]:
+        st = states.get(n, {}).get('status', 'untouched')
+        notes.append({'node': n, 'title': meta[n]['title'], 'quote': _found(p)[n][0], 'explanation': GM.BY_ID[n]['note'], 'status': st, 'label': STATUS_LABEL[st]})
     return {'id': p['id'], 'title': p['title'], 'title_en': p.get('title_en', ''), 'summary_zh': p.get('summary_zh', ''),
             'level': cefr(p), 'theme': p['theme'], 'theme_label': THEMES.get(p['theme'], ''), 'genre': p.get('genre', ''),
             'source': p.get('source', ''), 'daily_day': p.get('daily_day'), 'featured': featured(p),
@@ -1068,6 +1139,8 @@ def post_public(c, uid, path, data):
         return check(c, uid, data)
     if path == '/api/next/vocab/test':
         return __import__('vocab_service').score_test(c, uid, data)
+    if path == '/api/next/node/answer':
+        return node_answer(c, uid, data)
     return None
 
 

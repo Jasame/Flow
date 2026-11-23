@@ -124,6 +124,9 @@ PAGES={
  '谓语离哪一个主语更近？那个主语是单数还是复数？（both ... and 除外）'),
 }
 
+# the 26 further points (grammar_more.py) use the same page format
+PAGES.update(__import__('grammar_more').PAGES_MORE)
+
 def page(node_id):
  """Full teaching page for one subskill, or an explicit pending state. Never another node's text."""
  p=PAGES.get(node_id)

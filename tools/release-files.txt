@@ -145,6 +145,7 @@ flow/flow.service
 flow/flow_admin.py
 flow/foundation_service.py
 flow/fsrs.py
+flow/grammar_more.py
 flow/graph_service.py
 flow/growth_service.py
 flow/guest_first.py
