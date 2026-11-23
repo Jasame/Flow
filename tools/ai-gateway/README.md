@@ -16,7 +16,9 @@ flow-text 出错或被停用时，Flow 自动改用主模型，学生看不到�
 
 - **xmc-api 本来就是多厂商网关**：有「上游」「模型」「密钥」「用量」「请求日志」，控制台在 https://xmc.hk/api-admin/。Flow 现在就通过它调用 Gemini（`FLOW_AI_URL=https://api.xmc.hk/…`）。不需要另外搭网关。
 - **Flow 只认一个模型名 `flow-text`**：它背后是哪一家，由控制台里的这个模型指向哪个上游决定。
-- **Flow 自己兜底**：`flow-text` 出错（上游挂了、被停用、被限流、密钥被拒），Flow 马上改用主模型。只有请求本身有问题（太大、格式不对）才不重试。
+- **两层兜底**：
+  - 网关先按顺序试 `flow-text` 的备用线路（见下面「备用线路」）；
+  - 全都不通时，Flow 改用主模型。只有请求本身有问题（太大、格式不对）才不重试。
 - **钥匙不用复制**：只写 `FLOW_TEXT_AI_MODEL=flow-text` 一行时，Flow 用的就是现在调用 Gemini 的同一个网关地址和同一把 `flow` 密钥。
 
 注意：xmc-api 的说明书里写着「不要改现有 API 网关的配置和上游，除非用户明确要求」。下面每一步都只是新增，不改已有的上游和模型；由你本人在控制台里操作，或者明确交给 Claude 做。
@@ -35,14 +37,24 @@ flow-text 出错或被停用时，Flow 自动改用主模型，学生看不到�
 - 建好后各点一次「测试连接」。
 - Gemini 不用新加：现有的上游 `gemini-flow` 就是 Gemini（走 Vertex AI）。
 
-### 2. 加模型 `flow-text`（你来做）
+### 2. 加模型 `flow-text`（你来做，或者明确交给 Claude 做）
+
+**一定要先做这一步，再做第 3 步。** 网关现在只有 `gemini-3.8-flash`、`gemini-3.8-flash-pro`、`qwen-local-256k` 这几个模型名。没有 `flow-text` 就先在 Flow 里打开它的话，网关每次都回「未知模型」（404），Flow 每次都回退到主模型，每个文字请求白白多绕一圈。
 
 「模型与倍率」→「添加模型」：
 
 - 名称：`flow-text`
-- 上游：`deepseek`
-- 实际模型：`deepseek-chat`（以 DeepSeek 平台当前提供的为准）
+- 主线路：先指向现在的 Gemini，也就是上游 `gemini-flow`、实际模型 `gemini-3.8-flash`。这样打开以后，学生得到的回答和现在一样，只是多了切换的余地。
 - 倍率：按需要设置（默认 1 倍）。倍率只影响网关里的用量统计和额度扣减。
+
+### 2b. 给 `flow-text` 加备用线路（第 1 步的密钥有了以后）
+
+打开 https://xmc.hk/api-admin/fallbacks.html，给 `flow-text` 按顺序加备用线路，例如：
+
+1. 上游 `deepseek`，实际模型 `deepseek-chat`；
+2. 上游 `qwen`，实际模型 `qwen-plus`。
+
+实际模型名以各平台当前提供的为准。想让 DeepSeek 当主力，就按下面「日常：切换厂商」把主线路换成 `deepseek`，再把 Gemini 放进备用线路。
 
 `flow` 这把密钥的权限是「全部模型」，新加的 `flow-text` 自动包含在内，不用改密钥。可以在「调用文档」里选 `flow` 密钥，看模型列表里有没有 `flow-text`。
 
@@ -72,13 +84,22 @@ cd /www/wwwroot/flow && python3 ai_check.py
 
 - 「文字模型（flow-text）」这一项要通过。它直接调用 flow-text，不会回退到主模型，所以能看出 flow-text 自己通不通。
 - 其他几项的 `"service"` 应该显示「文字服务」。如果显示「主服务」，说明 flow-text 没回答，Flow 回退到了主模型。
-- 在 xmc-api 的「请求日志」里能看到 `flow-text` 的调用，上游是 `deepseek`。
+- 在 xmc-api 的「请求日志」里能看到 `flow-text` 的调用，上游是主线路的那一家。
+
+## 备用线路（xmc-api 已支持，2026-11-23 起）
+
+- 同一个模型名先走自己的主线路。连不上、超时，或者上游返回 401/403/408/409/429/5xx 时，网关按顺序试备用线路。
+- 400（请求本身有问题）原样返回，不换线路。
+- 管理页：https://xmc.hk/api-admin/fallbacks.html。也可以用接口：`GET/POST /api-admin/api/fallbacks`，`PATCH/DELETE /api-admin/api/fallbacks/{id}`。
+- 数据存在网关的 `model_fallbacks` 表里。现在所有模型都还没有配备用线路。
 
 ## 日常：切换厂商
 
-在「模型与倍率」里操作，改完立即生效，Flow 不用动：
+在「模型与倍率」和「备用线路」里操作，改完立即生效，Flow 不用动：
 
-- **换一家**：删除 `flow-text`，再添加一个同名的 `flow-text`，上游和实际模型改成另一家，例如：
+- **某一家临时出问题**：不用管。网关会按顺序换到备用线路，都不通时 Flow 回退到主模型。
+
+- **换主力**：删除 `flow-text`，再添加一个同名的 `flow-text`，上游和实际模型改成另一家，然后把备用线路重新加上。例如：
   - 千问：上游 `qwen`，实际模型 `qwen-plus`（以百炼控制台为准）；
   - Gemini：上游 `gemini-flow`，实际模型和 Flow 主模型相同。
   删除到重新添加的这一两分钟里，Flow 会自动用主模型，学生不受影响。
@@ -93,7 +114,6 @@ cd /www/wwwroot/flow && python3 ai_check.py
 ## 以后可以再做（要改 xmc-api 代码，等你明确要求再做）
 
 - 控制台里直接「改指向」，不用删除再添加。现在模型只能改倍率和停用、启用。
-- 网关自己按顺序换上游（DeepSeek 不通就自动用千问）。这是以后的方向：在 xmc-api 里配好多个上游，出错时按顺序切换。做好之前，由 Flow 回退到主模型兜底。
 
 ## 参考
 
