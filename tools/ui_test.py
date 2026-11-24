@@ -1620,7 +1620,13 @@ def a11y_run(pw):
                         found.setdefault((kind, theme), []).append(f'{p}: {x if isinstance(x, str) else json.dumps(x, ensure_ascii=False)}')
             if theme == 'light':
                 # a sheet is a dialog with a title, and the focus goes into it
-                go(pg, '#/me'); pg.click('#meText'); pg.wait_for_timeout(200)
+                go(pg, '#/me'); pg.click('#meText')
+                # openSheet moves the focus in 30 ms after drawing it (02-shell.js): wait for that, up to 2 s, instead of a
+                # fixed 200 ms that a busy runner overran once (main 49d610b, 2026-11-24); a focus that never moves in still fails
+                try:
+                    pg.wait_for_function("() => !document.getElementById('sheet').hidden && document.getElementById('sheetCard').contains(document.activeElement)", timeout=2000)
+                except Exception:
+                    pass  # the check below says what was there
                 dlg = pg.evaluate("""() => { const c = document.getElementById('sheetCard'), t = document.getElementById(c.getAttribute('aria-labelledby'));
                   return [c.getAttribute('role'), c.getAttribute('aria-modal'), !!(t && t.textContent.trim()), c.contains(document.activeElement)]; }""")
                 check(dev, 'a sheet is a modal dialog with its title, and the focus moves into it', dlg == ['dialog', 'true', True, True], dlg)
