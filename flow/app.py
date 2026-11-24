@@ -268,7 +268,7 @@ class Handler(BaseHTTPRequestHandler):
    body=('User-agent: *\nDisallow: /\n' if CHANNEL=='beta' else 'User-agent: *\nDisallow: /api/\nAllow: /\n').encode()
    self.send_response(200);self.headers_common('text/plain; charset=utf-8');self.send_header('Cache-Control','public, max-age=3600')
    self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
-  if path=='/api/survey':return self.send(__import__('survey_service').SURVEY)
+  if path=='/api/survey':sv=__import__('survey_service');return self.send(sv.definition(parse_qs(urlsplit(self.path).query).get('s',[''])[0]))  # ?s=trial: the class trial survey
   if path=='/api/deploy-status':
    # Written by tools/flow-autodeploy.py: release tag, commit, result, health checks and test counts. Nothing private.
    try:st=json.loads((DATA/'deploy-status.json').read_text())

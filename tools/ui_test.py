@@ -1485,6 +1485,49 @@ def privacy_run(pw):
         browser.close()
 
 
+def trial_survey_run(pw):
+    """班级试用问卷: three weeks in a class, 今日 offers the anonymous survey once; 「不用了」 puts it away for good on that
+    phone; the survey opens as the trial one, takes the answers and says thanks, and 今日 stops offering it."""
+    dev = 'trial-survey'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    phone = dict(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN')
+    cookie = [{'name': 'flow_session', 'value': CFG['learners']['veteran']['token'], 'url': BASE}]
+    try:
+        errs = []
+        ctx = browser.new_context(**phone); ctx.add_cookies(cookie)
+        pg = ctx.new_page(); pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg); pg.wait_for_selector('#trialSv', timeout=8000)
+        text = pg.text_content('#trialSv') or ''
+        pg.screenshot(path=str(OUT / 'trial-survey-today.png'))
+        pg.click('#tsClose'); pg.wait_for_timeout(200)
+        gone = pg.query_selector('#trialSv') is None
+        pg.reload(wait_until='networkidle'); settle(pg); pg.wait_for_timeout(500)
+        check(dev, '今日: three weeks in, one quiet line; 「不用了」 puts it away for good', '匿名问卷' in text and gone and pg.query_selector('#trialSv') is None, text[:40])
+        ctx.close()
+        ctx = browser.new_context(**phone); ctx.add_cookies(cookie)
+        pg = ctx.new_page(); pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg); pg.wait_for_selector('#trialSv a', timeout=8000)
+        pg.click('#trialSv a'); pg.wait_for_selector('.sv-hero h1', timeout=8000)
+        title = pg.text_content('.sv-hero h1') or ''
+        # as if the survey had been open for a minute (it refuses answers sent within 20 seconds)
+        pg.evaluate("""() => { sessionStorage.setItem('flow-survey-draft:id', 'trial-2026-12'); sessionStorage.setItem('flow-survey-draft:start', String(Date.now() - 60000)); }""")
+        pg.reload(wait_until='networkidle'); pg.wait_for_selector('#sv-form', timeout=8000)
+        for q in pg.query_selector_all('#sv-form [data-q]'):
+            first = q.query_selector('input')
+            if first:
+                first.click()
+        pg.fill('#sv-form textarea', '希望多一些考试题')
+        pg.click('#sv-form .sv-btn'); pg.wait_for_selector('.sv-done', timeout=8000)
+        thanks = pg.text_content('.sv-done') or ''
+        pg.screenshot(path=str(OUT / 'trial-survey-done.png'))
+        pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg); pg.wait_for_timeout(500)
+        check(dev, '问卷: the trial survey takes the answers, thanks, and 今日 stops offering it',
+              '班级试用' in title and '结项' in thanks and pg.query_selector('#trialSv') is None, (title, thanks[:40]))
+        check(dev, 'no page errors', not errs, errs[:3])
+    finally:
+        browser.close()
+
+
 def a11y_run(pw):
     dev = 'a11y'
     browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
@@ -2217,6 +2260,12 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('backlog', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'trial-survey' in ONLY:
+            try:
+                trial_survey_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('trial-survey', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'privacy' in ONLY:
             try:
                 privacy_run(pw)

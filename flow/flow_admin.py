@@ -177,7 +177,7 @@ TAP_LABEL = {
     'share-material': '学一篇 · 分享学会的一句', 'share-week': '这周报告 · 分享',
     'me-data': '我的 · 导出我的数据', 'me-delete': '我的 · 注销账号', 'words-export': '单词 · 导出单词本',
     'export-csv': '导出 · Excel 表格', 'export-anki': '导出 · Anki', 'export-json': '导出 · 全部学习记录',
-    'me-guide': '我的 · 操作指南', 'me-feedback': '我的 · 问题反馈', 'me-survey': '我的 · 匿名问卷',
+    'trial-survey': '今日 · 试用问卷', 'me-guide': '我的 · 操作指南', 'me-feedback': '我的 · 问题反馈', 'me-survey': '我的 · 匿名问卷',
     'beta-main': '内测版 · 去正式版',
     'me-about': '我的 · 认识语流', 'welcome-about': '第一次打开 · 认识语流',
     'about-start': '认识语流 · 开始学', 'about-join': '认识语流 · 注册账号', 'about-guide': '认识语流 · 操作指南', 'about-vocab-test': '认识语流 · 测词汇量',
@@ -219,6 +219,7 @@ def overview(c):
             'model': os.getenv('FLOW_AI_MODEL', ''),
         },
         'survey_responses': q('SELECT COUNT(*) FROM survey_responses WHERE survey=? AND hidden=0', survey.SURVEY_ID),
+        'trial_responses': q('SELECT COUNT(*) FROM survey_responses WHERE survey=? AND hidden=0', survey.TRIAL_ID),
         'profiles': q('SELECT COUNT(*) FROM next_profiles'),
         'never_started': q('SELECT COUNT(*) FROM users WHERE admin=0 AND id NOT IN (SELECT user_id FROM next_progress UNION SELECT user_id FROM next_reviews)'),
         'disabled': q('SELECT COUNT(*) FROM users WHERE disabled=1'),
@@ -498,17 +499,19 @@ class AdminHandler(BaseHTTPRequestHandler):
                             'classes': __import__('class_service').classes_csv}[kind](c)
                     log_action(c, op, 'export', name, label)
                     return self._send(None, body=body, mime='text/csv; charset=utf-8', extra={'Content-Disposition': f'attachment; filename="{name}"'})
+                # ?s= picks the survey (survey_service.SURVEYS: the needs survey by default, s=trial the class trial one)
+                sid = survey.pick(one('s'))
                 if path == '/survey/definition':
-                    return self._send(survey.SURVEY)
+                    return self._send(survey.definition(sid))
                 if path == '/survey/summary':
-                    filters = {k: one(k) for k in ('role', 'level', 'flow')}
-                    return self._send(survey.summary(c, filters))
+                    filters = {k: one(k) for k in ('role', 'level', 'flow')} if sid == survey.SURVEY_ID else {}
+                    return self._send(survey.summary(c, filters, sid))
                 if path == '/survey/responses':
-                    return self._send(survey.responses(c, int(one('page', '1') or 1), 20, one('q')[:100]))
+                    return self._send(survey.responses(c, int(one('page', '1') or 1), 20, one('q')[:100], sid))
                 if path == '/survey/export.csv':
-                    name = f"flow-survey-{time.strftime('%Y%m%d')}.csv"
+                    name = f"flow-survey-{'trial-' if sid == survey.TRIAL_ID else ''}{time.strftime('%Y%m%d')}.csv"
                     log_action(c, op, 'survey-export', name)
-                    return self._send(None, body=survey.export_csv(c), mime='text/csv; charset=utf-8',
+                    return self._send(None, body=survey.export_csv(c, sid), mime='text/csv; charset=utf-8',
                                       extra={'Content-Disposition': f'attachment; filename="{name}"'})
             elif method == 'POST':
                 if self.headers.get('X-Requested-With') != 'xmc':

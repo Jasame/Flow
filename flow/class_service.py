@@ -409,6 +409,17 @@ def change(c, data):
     return {'ok': True, 'code': _class(c, k['id'])['code']}, 200, target(_class(c, k['id'])), detail
 
 
+SURVEY_AFTER = 21 * DAY  # the trial survey is offered on 今日 three weeks after joining (survey_service.TRIAL)
+
+
+def survey_due(c, uid, now=None):
+    """Whether 今日 offers the anonymous trial survey: in a class now, joined at least three weeks ago. Whether it was
+    answered or closed is kept on the phone only, so nothing links an account to an answer."""
+    r = c.execute('SELECT m.joined_at FROM class_members m JOIN classes k ON k.id=m.class_id WHERE m.user_id=? AND m.left_at IS NULL AND k.active=1',
+                  (uid,)).fetchone()
+    return bool(r) and (now or time.time()) - r['joined_at'] >= SURVEY_AFTER
+
+
 def membership(c, uid):
     """For the console's learner drawer: the class they are in now, and the classes they teach."""
     r = c.execute('SELECT k.id, k.name, m.joined_at FROM class_members m JOIN classes k ON k.id=m.class_id WHERE m.user_id=? AND m.left_at IS NULL', (uid,)).fetchone()
