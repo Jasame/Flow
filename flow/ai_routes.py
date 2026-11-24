@@ -40,7 +40,9 @@ LABEL = {k: l for k, l, _ in TASKS}
 GROUP = {k: g for k, _, g in TASKS}
 # calls that are not learner tasks of their own: in the cost tables under their own name, on another task's route
 EXTRA = {'fill-examples': ('例句预生成（批量）', 'next-examples'), 'daily-search': ('今日热点联网检索', None),
-         'ai-check': ('部署自检', None), 'ai-check-json': ('部署自检', None)}
+         'ai-check': ('部署自检', None), 'ai-check-json': ('部署自检', None),
+         # 2026-11-25: read-aloud through the gateway's flow-tts (tts_service): in the costs and the daily budget, never a route
+         'tts': ('AI 朗读（声音）', None)}
 LABEL.update({k: v[0] for k, v in EXTRA.items()})
 FREE_TEXT = {'chat', 'ai-check'}  # answers in prose, not JSON
 LANES = ('eval', 'batch')
@@ -64,6 +66,10 @@ PRICES = {
                             'offpeak': 0.5, 'busy': [8, 22], 'note': '百炼上北京时间 22:00–08:00 半价'},
     'qwen3.8-omni-flash': {'label': '通义千问 3.8 Omni Flash（听录音）', 'platform': 'bailian', 'in': 0.8, 'cached': 0.1, 'out': 2.7,
                            'note': '录音按 token 计（约每秒 7 个），只回文字；不思考'},
+    # CosyVoice is billed per character: a call is recorded with prompt = characters, so 'in' is yuan per million
+    # characters (list price ¥1 per 10,000; help.aliyun.com/zh/model-studio/model-pricing, 2026-11-24).
+    'cosyvoice-v3-flash': {'label': 'CosyVoice v3 Flash（百炼朗读）', 'platform': 'bailian', 'in': 100.0, 'cached': 100.0, 'out': 0.0,
+                           'note': '按字符计费：每万字符 1 元；记账时 prompt 记字符数'},
     'gemini-3.8-flash': {'label': 'Gemini 3.8 Flash', 'platform': 'google', 'in': 5.33, 'cached': 0.53, 'out': 26.63,
                          'after': {'2027-01-01': {'in': 10.65, 'cached': 1.07, 'out': 53.25}},
                          'note': '按 1 美元 = 7.1 元；2026-12-31 前是推广价，2027-01-01 起翻倍；思考 token 也按输出计费，但中转站不回报，算不进来'},
@@ -631,13 +637,15 @@ def check_budget(c, now=None):
         import account_service
         lv = todo[-1]
         subject = ('语流 AI 费用已超过今日预算' if lv == 'over' else '语流 AI 费用已到今日预算的 80%')
-        text = (f"今天（北京时间 {day}）AI 估算费用 ¥{st['spent']:.2f}，每日预算 ¥{st['daily']:.2f}（{st['pct']}%）。\n\n"
-                + ('已暂停例句预生成等批量任务，明天自动恢复；学员的请求不受影响（每人每天、全站每天的次数上限照旧）。\n' if lv == 'over' else
-                   '到 100% 时会暂停例句预生成等批量任务；学员的请求不受影响。\n')
-                + '\n明细：xmc.hk/flow → 运维 → AI 用量和费用。')
+        # the shared mail layout (mail_layout.py): text and HTML, a button to the console's AI page
+        text, page = __import__('mail_layout').message(
+            [f"今天（北京时间 {day}）AI 估算费用 ¥{st['spent']:.2f}，每日预算 ¥{st['daily']:.2f}（{st['pct']}%）。",
+             '已暂停例句预生成等批量任务，明天自动恢复；学员的请求不受影响（每人每天、全站每天的次数上限照旧）。' if lv == 'over' else
+             '到 100% 时会暂停例句预生成等批量任务；学员的请求不受影响。'],
+            title=subject, button=('查看 AI 用量和费用', 'https://xmc.hk/flow#ai'))
         for addr in to:
             try:
-                account_service.mail(addr, subject, text)
+                account_service.mail(addr, subject, text, html=page)
             except Exception:  # noqa: BLE001 - a mail failure must not stop the loop
                 continue
         mailed = todo
