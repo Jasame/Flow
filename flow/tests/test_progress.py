@@ -318,6 +318,55 @@ class FinishTests(Db):
         self.assertIn("href=\"${more1 ? '#/m/' + encodeURIComponent(more1.id) : '#/library'}\"", JS)
 
 
+class WeekDaysTests(Db):
+    """r28 第 6 段: the weekly goal by the learning goal (asked on 选方向和目标), and after two weeks short of it with some
+    study each, the goal the learner keeps suggested on Monday."""
+    def user(self, c, name, **profile):
+        c.execute('INSERT INTO users(username,password) VALUES(?,?)', (name, 'x'))
+        uid = c.execute('SELECT id FROM users WHERE username=?', (name,)).fetchone()[0]
+        nx.save_profile(c, uid, {'level': 'B1', 'themes': [], 'minutes': 15, **profile})
+        return uid
+
+    def test_a_new_learner_gets_five_days_for_an_exam_four_otherwise_or_what_they_chose(self):
+        with app.db() as c:
+            self.assertEqual(nx.profile(c, self.user(c, 'a', goal='exam'))['weekly_goal'], 5)
+            self.assertEqual(nx.profile(c, self.user(c, 'b', goal='daily'))['weekly_goal'], 4)
+            self.assertEqual(nx.profile(c, self.user(c, 'd', goal='exam', weekly_goal=3))['weekly_goal'], 3)
+            for bad in (1, 8, '5', True):
+                self.assertEqual(nx.profile(c, self.user(c, f'e{bad}', goal='work', weekly_goal=bad))['weekly_goal'], 4, bad)
+            # a saved profile keeps its goal unless one is sent; a new one counts from this week, the weeks before keep theirs
+            nx.save_profile(c, self.uid, {'level': 'B1', 'goal': 'exam', 'themes': [], 'minutes': 15})
+            self.assertEqual(nx.profile(c, self.uid)['weekly_goal'], 4)
+            nx.save_profile(c, self.uid, {'level': 'B1', 'goal': 'exam', 'themes': [], 'minutes': 15, 'weekly_goal': 6})
+            self.assertEqual(nx.profile(c, self.uid)['weekly_goal'], 6)
+            self.assertEqual([tuple(r) for r in ps._history(c, self.uid)][0], ('0000-00-00', 4))
+
+    def test_two_short_weeks_with_some_study_suggest_the_goal_kept(self):
+        with app.db() as c:
+            self.studied(c, at(2026, 11, 10, 9), at(2026, 11, 14, 9), at(2026, 11, 17, 9), at(2026, 11, 22, 9))  # 2 days, 2 days
+            self.assertEqual(nx.habit(c, self.uid, 4, NOW)['lower'], {'goal': 2, 'weeks': [2, 2]})
+            self.studied(c, at(2026, 11, 19, 9))  # last week 3 days
+            self.assertEqual(nx.habit(c, self.uid, 4, NOW)['lower'], {'goal': 3, 'weeks': [2, 3]})
+            self.assertIsNone(nx.habit(c, self.uid, 3, NOW)['lower'])  # last week reached 3
+            self.assertIsNone(nx.habit(c, self.uid, 2, NOW)['lower'])  # nothing lower than 2 days
+
+    def test_a_week_with_no_study_or_a_lowered_goal_suggests_nothing(self):
+        with app.db() as c:
+            self.studied(c, at(2026, 11, 17, 9), at(2026, 11, 22, 9))  # last week 2 days, the week before none
+            self.assertIsNone(nx.habit(c, self.uid, 4, NOW)['lower'])
+            self.studied(c, at(2026, 11, 10, 9))
+            self.assertEqual(nx.habit(c, self.uid, 4, NOW)['lower'], {'goal': 2, 'weeks': [1, 2]})
+            with patch('time.time', return_value=NOW):
+                nx.post(c, self.uid, '/api/next/habit', {'goal': 2})  # taken: both weeks keep their 4, now 2
+            self.assertIsNone(nx.habit(c, self.uid, 2, NOW)['lower'])
+
+    def test_the_page_asks_on_monday_and_the_guide_says_so(self):
+        for s in ('goalLower', '要不要把目标改成每周', 'notice-goal-lower', "load('flow-goal-lower')"):
+            self.assertTrue(s in JS, s)
+        guide = (Path(app.ROOT) / 'public' / 'guide' / 'guide.md').read_text(encoding='utf-8')
+        self.assertTrue('考试 5 天，其他 4 天' in guide and '目标太高时会建议你调' in guide)
+
+
 class PageTests(unittest.TestCase):
     def test_the_page_has_the_card_the_summary_and_the_unsubscribe_page(self):
         for s in ('function weekCardHTML', 'id="weekCard"', 'data-tap="home-week"', 'function weekSheet', "api('/api/next/week')",

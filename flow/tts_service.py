@@ -17,7 +17,7 @@ needs ReadWritePaths=<audio>/tts (a drop-in); without it every new sentence was 
 2026-11-24 23:40). Now the folder is checked before the gateway is called: not writable → StoreError, 503 code 'store'
 (the page switches to the browser voice), one log line, no charge.
 """
-import datetime, hashlib, json, os, re, tempfile, threading, time, urllib.error, urllib.request
+import datetime, hashlib, json, os, re, shutil, tempfile, threading, time, urllib.error, urllib.request
 from pathlib import Path
 
 VOICES = {'us-f': 'loongabby_v3', 'us-m': 'loongandy_v3', 'uk-f': 'loongemily_v3', 'uk-m': 'loongeric_v3'}
@@ -59,6 +59,13 @@ def _int(name, default):
         return default
 
 
+def sample_rate():
+    """FLOW_TTS_SAMPLE_RATE: 16000 or 22050 make smaller mp3s than the gateway's 24000 (语流 12, 2026-11-25); unset, the
+    gateway's own. Part of each file's name, so a change makes a fresh set."""
+    v = _int('FLOW_TTS_SAMPLE_RATE', 0)
+    return v if v in (16000, 22050, 24000) else 0
+
+
 def model():
     return os.getenv('FLOW_TTS_MODEL', '').strip()
 
@@ -86,7 +93,8 @@ def name_of(text, voice):
     upstream voice and the format, so a site on another model or a remapped voice never gets the old files (语流 2,
     2026-11-24). The gateway alias hides the upstream model: pointing flow-tts at another model means a new alias name
     (flow-tts-2) and FLOW_TTS_MODEL set to it, which starts a fresh set of files."""
-    key = '\n'.join((model(), VOICES.get(voice, voice), 'mp3', norm(text)))
+    rate = sample_rate()
+    key = '\n'.join((model(), VOICES.get(voice, voice), 'mp3' + (f'@{rate}' if rate else ''), norm(text)))
     return hashlib.sha256(key.encode()).hexdigest()[:32] + '.mp3'
 
 
@@ -107,9 +115,163 @@ def url(voice, name):
     return f'/audio/tts/{voice}/{name}'
 
 
+# ---------- a learner's own articles (imports): their sentences' voice is theirs only ----------
+# Kept in the data folder (which the service may write; ops.backup skips it: all of it can be made again), one folder
+# per learner, served at /audio/own/<voice>/<name> to that learner's session only (app.send_audio), never listed.
+def own_dir(uid):
+    return Path(__import__('console_ops').data_dir()) / 'tts-own' / str(int(uid))
+
+
+def own_file(uid, voice, name):
+    if not uid or voice not in VOICES or not NAME.fullmatch(name or ''):
+        return None
+    f = own_dir(uid) / voice / name
+    return f if f.is_file() else None
+
+
+def own_url(voice, name):
+    return f'/audio/own/{voice}/{name}'
+
+
+def _own_writable(folder):
+    try:
+        folder.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        _warn(folder, e)
+        return False
+    return os.access(folder, os.W_OK)
+
+
+def _used_import(c, who, day=None):
+    r = c.execute('SELECT chars FROM tts_import WHERE day=? AND who=?', (day or _day(), who)).fetchone()
+    return r[0] if r else 0
+
+
+def _own_pack(c, uid, pack):
+    """An article that belongs to a learner: its text when it is this learner's, False when it is someone else's (or a guest
+    asks), None when the material is shared (or not given)."""
+    if not isinstance(pack, str) or not pack:
+        return None
+    row = c.execute('SELECT owner, content FROM lab_packs WHERE id=?', (pack,)).fetchone()
+    if not row or row[0] is None:
+        return None
+    if not uid or row[0] != uid:
+        return False
+    try:
+        return str(json.loads(row[1]).get('body') or '')
+    except ValueError:
+        return ''
+
+
+def have(c, uid, data):
+    """POST /api/next/tts/have {pack?, voice, texts}: which sentences are made already (their addresses, else null), nothing
+    made: the page says 「正在准备朗读 12/30 句」 and knows what to ask for."""
+    if not enabled():
+        return {'error': '服务器朗读没有开启', 'code': 'off'}, 503
+    texts = data.get('texts')
+    if not isinstance(texts, list) or len(texts) > 400:
+        return {'error': '句子太多了'}, 400
+    voice = data.get('voice') if data.get('voice') in VOICES else 'us-f'
+    own = _own_pack(c, uid, data.get('pack'))
+    if own is False:
+        return {'error': '文章不存在'}, 404
+    out = []
+    for t in texts:
+        name = name_of(t, voice) if isinstance(t, str) else ''
+        hit = (own_file(uid, voice, name) if own is not None else file(voice, name)) if name else None
+        out.append((own_url if own is not None else url)(voice, name) if hit else None)
+    return {'urls': out}, 200
+
+
+_BATCH = threading.BoundedSemaphore(2)  # imports being made in the background at once (low priority; the page asks too)
+
+
+def start_pack(uid, pack, voice=None, wait=False, pause=0.2, tries=3):
+    """After an import: its sentences made one by one in a thread, slowly, a sentence that fails tried again a couple of
+    times; stops at the learner's import share or the site's (the page then says why). Returns the thread or None."""
+    if not enabled() or not CONNECT or not uid:
+        return None
+    if not _BATCH.acquire(blocking=False):
+        return None
+
+    def run():
+        try:
+            c = CONNECT()
+            try:
+                import next_service as nx
+                body = _own_pack(c, uid, pack)
+                if not body:
+                    return
+                v = voice if voice in VOICES else ((nx.profile(c, uid) or {}).get('voice') or 'us-f')
+                for s in nx.sentences(body):
+                    for k in range(tries):
+                        try:
+                            ensure(c, uid, s, v, own=True)
+                            break
+                        except PermissionError:
+                            return  # a share is used up: the page says so when the article is opened
+                        except (ValueError, LookupError, StoreError):
+                            break
+                        except OSError:
+                            time.sleep(pause * 10 * (k + 1))
+                    time.sleep(pause)
+            finally:
+                c.close()
+        except Exception:  # noqa: BLE001  (the page asks for what is missing)
+            pass
+        finally:
+            _BATCH.release()
+    t = threading.Thread(target=run, daemon=True)
+    t.start()
+    if wait:
+        t.join()
+    return t
+
+
+def forget(uid):
+    """注销账号: the learner's own voice files go with the account."""
+    if uid:
+        shutil.rmtree(own_dir(uid), ignore_errors=True)
+
+
+def forget_pack(uid, body):
+    """An import deleted: its sentences' voice files go too (in every voice)."""
+    import next_service as nx
+    for s in nx.sentences(body or ''):
+        for v in VOICES:
+            f = own_file(uid, v, name_of(s, v))
+            if f:
+                try:
+                    f.unlink()
+                except OSError:
+                    pass
+
+
 def schema(c):
     c.execute('CREATE TABLE IF NOT EXISTS tts_usage(day TEXT NOT NULL, who INTEGER NOT NULL, chars INTEGER NOT NULL DEFAULT 0, '
               'files INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(day, who))')  # who: a learner's id, 0 = the site, -1 = overnight
+    c.execute('CREATE TABLE IF NOT EXISTS tts_import(day TEXT NOT NULL, who INTEGER NOT NULL, chars INTEGER NOT NULL DEFAULT 0, '
+              'PRIMARY KEY(day, who))')  # a learner's own articles (imports), on top of tts_usage: their own daily share
+
+
+# ---------- caps (the console can change them: console-settings.json, like the AI call limits) ----------
+# Which cap each kind of use counts against (语流 1 / 语流 2, 2026-11-25):
+#   a tap or an AI reply (shared files):  the learner's FLOW_TTS_USER_CHARS and the site's FLOW_TTS_DAILY_CHARS
+#   a learner's own article (imports):    the same two, plus FLOW_TTS_IMPORT_CHARS a learner a day, and only while the site
+#                                         has used under FLOW_TTS_IMPORT_PERCENT of its day: replies and speaking keep the rest
+#   overnight and the day's 热点:          FLOW_TTS_PREWARM_CHARS a day (who -1), not the site's share; skipped once the
+#                                         console's daily AI budget is spent
+CAPS = {'FLOW_TTS_USER_CHARS': 20000, 'FLOW_TTS_DAILY_CHARS': 200000, 'FLOW_TTS_IMPORT_CHARS': 10000, 'FLOW_TTS_IMPORT_PERCENT': 60,
+        'FLOW_TTS_PREWARM_CHARS': 20000}
+
+
+def cap(name):
+    """A cap in force: the console's value, else the server's (/etc/flow.env), else the default above."""
+    try:
+        v = __import__('console_ops').limit_override(name)
+    except Exception:  # noqa: BLE001
+        v = None
+    return v if v is not None else _int(name, CAPS[name])
 
 
 def _day():
@@ -138,7 +300,10 @@ def _speak(text, voice):
     import ai_routes
     started, err = time.monotonic(), None
     try:
-        body = json.dumps({'model': model(), 'input': text, 'voice': VOICES[voice], 'response_format': 'mp3'}).encode()
+        req_body = {'model': model(), 'input': text, 'voice': VOICES[voice], 'response_format': 'mp3'}
+        if sample_rate():
+            req_body['sample_rate'] = sample_rate()
+        body = json.dumps(req_body).encode()
         req = urllib.request.Request(speech_url(), data=body, method='POST', headers={
             'Authorization': 'Bearer ' + os.getenv('FLOW_AI_KEY', ''), 'Content-Type': 'application/json', 'User-Agent': 'flow-tts/1.0'})
         with urllib.request.urlopen(req, timeout=int(os.getenv('FLOW_TTS_TIMEOUT', '30'))) as r:
@@ -170,9 +335,10 @@ def _store(f, data):
         raise
 
 
-def ensure(c, who, text, voice, cap=None):
+def ensure(c, who, text, voice, cap_left=None, own=False):
     """(url, made) for this sentence in this voice; makes it when it is not stored yet and `who` may.
-    who: a learner's id, None for a guest (stored files only), -1 for overnight prewarm (cap = that night's budget left).
+    who: a learner's id, None for a guest (stored files only), -1 for overnight prewarm (cap_left = that night's budget left).
+    own: a sentence of the learner's own article: kept in their own folder, served to them only, with the import caps.
     Raises LookupError (guest, nothing stored), PermissionError (a cap reached), ValueError (bad text), OSError (gateway),
     StoreError (the folder cannot be written: checked before the gateway is paid)."""
     text = norm(text)
@@ -181,47 +347,68 @@ def ensure(c, who, text, voice, cap=None):
     if not text or len(text) > MAX_CHARS or not LETTERS.search(text):
         raise ValueError('text')
     name = name_of(text, voice)
-    if file(voice, name):
-        return url(voice, name), False
+    if own and not who:
+        raise LookupError('not stored')
+    stored = own_file(who, voice, name) if own else file(voice, name)
+    where = own_url if own else url
+    if stored:
+        return where(voice, name), False
     if who is None:
         raise LookupError('not stored')
     n = len(text)
-    if who != -1 and (_used(c, who) + n > _int('FLOW_TTS_USER_CHARS', 20000) or _used(c, 0) + n > _int('FLOW_TTS_DAILY_CHARS', 200000)):
+    if who != -1 and (_used(c, who) + n > cap('FLOW_TTS_USER_CHARS') or _used(c, 0) + n > cap('FLOW_TTS_DAILY_CHARS')):
         raise PermissionError('cap')
-    if who == -1 and cap is not None and n > cap:
+    if own and _used_import(c, who) + n > cap('FLOW_TTS_IMPORT_CHARS'):
+        raise PermissionError('import_cap')
+    if own and _used(c, 0) + n > cap('FLOW_TTS_DAILY_CHARS') * cap('FLOW_TTS_IMPORT_PERCENT') / 100:
+        raise PermissionError('busy')  # the rest of the day is kept for AI replies and speaking
+    if who == -1 and cap_left is not None and n > cap_left:
         raise PermissionError('cap')
-    if not writable(voice):
+    folder = own_dir(who) / voice if own else directory() / voice
+    if not (_own_writable(folder) if own else writable(voice)):
         raise StoreError('folder')
-    with _lock(voice + name):
-        if file(voice, name):  # made by another request while this one waited
-            return url(voice, name), False
+    with _lock(str(folder) + name):
+        if (folder / name).is_file():  # made by another request while this one waited
+            return where(voice, name), False
         try:
             data = _speak(text, voice)
         except (urllib.error.URLError, OSError, ValueError) as e:
             raise OSError(str(e)[:120])
         try:
-            _store(directory() / voice / name, data)
+            _store(folder / name, data)
         except OSError as e:
-            _warn(directory() / voice, e)
+            _warn(folder, e)
             raise StoreError('store')
     _add(c, who, n, 1)
     if who != -1:
         _add(c, 0, n, 1)
+    if own:
+        c.execute('INSERT INTO tts_import(day, who, chars) VALUES(?,?,?) ON CONFLICT(day, who) DO UPDATE SET chars=chars+excluded.chars', (_day(), who, n))
     c.commit()
-    return url(voice, name), True
+    return where(voice, name), True
 
 
 def post(c, uid, data):
-    """POST /api/next/tts {text, voice}: the stored file's address, made now if need be. Open to guests (stored only)."""
+    """POST /api/next/tts {text, voice, pack?}: the stored file's address, made now if need be. Open to guests (stored
+    only). With the id of the learner's own article (an import) the sentence must be in it, and is kept for them only."""
     if not enabled():
         return {'error': '服务器朗读没有开启', 'code': 'off'}, 503
+    own = _own_pack(c, uid, data.get('pack'))
+    if own is False:
+        return {'error': '文章不存在'}, 404
+    if own is not None and norm(data.get('text')) not in norm(own):
+        return {'error': '这段文字不在这篇文章里'}, 400
     try:
-        u, made = ensure(c, uid, data.get('text'), data.get('voice') if data.get('voice') in VOICES else 'us-f')
+        u, made = ensure(c, uid, data.get('text'), data.get('voice') if data.get('voice') in VOICES else 'us-f', own=own is not None)
     except ValueError:
         return {'error': '这段文字不能朗读'}, 400
     except LookupError:
         return {'error': '登录后可以用 AI 朗读', 'code': 'guest'}, 404
-    except PermissionError:
+    except PermissionError as e:
+        if e.args and e.args[0] == 'import_cap':
+            return {'error': '今天导入文章的 AI 朗读用完了，明天再试；先用浏览器的声音', 'code': 'import_cap'}, 429
+        if e.args and e.args[0] == 'busy':
+            return {'error': '今天用 AI 朗读的人多，导入的文章先用浏览器的声音', 'code': 'busy'}, 429
         return {'error': '今天的 AI 朗读用完了，先用浏览器的声音', 'code': 'cap'}, 429
     except StoreError:
         return {'error': 'AI 朗读暂时不能用，先用浏览器的声音', 'code': 'store'}, 503
@@ -241,6 +428,10 @@ def tick(db, now=None):
     import next_service as nx
     if not enabled():
         return
+    try:
+        _daily_tick(db)
+    except Exception as e:  # noqa: BLE001  (the night's work below still runs)
+        print('tts daily:', type(e).__name__, flush=True)
     t = datetime.datetime.fromtimestamp(now or time.time(), nx.TZ)
     if not 3 <= t.hour < 5 or _NIGHT['day'] == t.date().isoformat():
         return
@@ -288,7 +479,90 @@ def prune(days=30, now=None):
                 gone += 1
             except OSError:
                 kept += 1
+    own_cut = (now or time.time()) - 60 * 86400  # a learner's own articles: two months, then made again when opened
+    for f in (Path(__import__('console_ops').data_dir()) / 'tts-own').glob('*/*/*.mp3'):
+        try:
+            if f.stat().st_mtime < own_cut:
+                f.unlink()
+                gone += 1
+        except OSError:
+            pass
     return {'removed': gone, 'kept': kept}
+
+
+# ---------- 今日热点: its voice ready on the first day ----------
+# The day's 热点 article is written at 08:10 (flow-daily, which cannot write the audio folder); a 热点 without a recording is
+# read sentence by sentence in the server voice, so the Flow process makes its sentences in the voices learners use within
+# a few minutes of it appearing (tick, every 5 minutes), on the overnight budget, one site doing it (a lock file).
+_DAILY = {'done': None, 'busy': False}
+
+
+def daily_texts(c):
+    """(id, sentences) of the newest 今日热点 written in the last 36 hours and not narrated; (None, []) otherwise."""
+    import next_service as nx
+    row = c.execute("SELECT id, content, created FROM lab_packs WHERE origin='daily' ORDER BY created DESC LIMIT 1").fetchone()
+    if not row or row[2] < time.time() - 36 * 3600:
+        return None, []
+    try:
+        if nx.audio_index()[0].get(row[0]):
+            return row[0], []  # it has a recording: nothing to make
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        body = str(json.loads(row[1]).get('body') or '')
+    except ValueError:
+        body = ''
+    return row[0], [s for s in nx.sentences(body) if LETTERS.search(s) and len(s) <= MAX_CHARS]
+
+
+def _daily_tick(db, inline=False):
+    if _DAILY['busy']:
+        return
+    with db() as c:
+        pid, texts = daily_texts(c)
+        voices = voices_in_use(c) if texts else []
+    if not texts or _DAILY['done'] == pid:
+        return
+    missing = [(t, v) for v in voices for t in texts if not file(v, name_of(t, v))]
+    if not missing:
+        _DAILY['done'] = pid
+        return
+    _DAILY['busy'] = True
+    if inline:  # tests
+        _daily_make(db, pid, missing)
+    else:
+        threading.Thread(target=_daily_make, args=(db, pid, missing), daemon=True).start()
+
+
+def _daily_make(db, pid, missing):
+    import fcntl, ai_routes
+    try:
+        d = directory()
+        d.mkdir(parents=True, exist_ok=True)
+        with open(d / '.daily.lock', 'w') as lock:
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError:
+                return  # the other site is making them
+            with db() as c:
+                if ai_routes.over_budget(c):
+                    return
+                left = cap('FLOW_TTS_PREWARM_CHARS') - _used(c, -1)
+                for t, v in missing:
+                    if len(t) > left:
+                        return
+                    try:
+                        _, made = ensure(c, -1, t, v, cap_left=left)
+                        left -= len(t) if made else 0
+                    except StoreError:
+                        return
+                    except (OSError, PermissionError, ValueError):
+                        continue
+            _DAILY['done'] = pid
+    except OSError as e:
+        _warn(directory(), e)
+    finally:
+        _DAILY['busy'] = False
 
 
 # ---------- 声音接力: made while the reply travels to the page ----------
@@ -346,7 +620,7 @@ def prewarm(c, budget=None):
     import ai_routes
     if ai_routes.over_budget(c):  # the console's daily AI budget is spent: batch work waits for tomorrow (as 例句预生成 does)
         return {'status': 'over-budget'}
-    budget = _int('FLOW_TTS_PREWARM_CHARS', 20000) if budget is None else budget
+    budget = cap('FLOW_TTS_PREWARM_CHARS') if budget is None else budget
     left = budget - _used(c, -1)
     made = stored = failed = 0
     for voice in voices_in_use(c):
@@ -357,7 +631,7 @@ def prewarm(c, budget=None):
             if len(t) > left:
                 return {'status': 'budget', 'made': made, 'stored': stored, 'failed': failed}
             try:
-                ensure(c, -1, t, voice, cap=left)
+                ensure(c, -1, t, voice, cap_left=left)
                 made += 1
                 left -= len(t)
             except StoreError:

@@ -1,0 +1,322 @@
+[
+ {
+  "id": "v5-travel-b2-night-markets",
+  "title": "夜市为什么让人念念不忘",
+  "title_en": "Why Night Markets Stay in the Memory",
+  "summary_zh": "白天的停车场，晚上摇身一变成了夜市。便宜的小吃、热闹却不吓人的气氛、看得见的手艺，让旅行者记得最久的往往是这里。读完你能用被动语态和对比句介绍一个热闹的地方。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "travel",
+  "genre": "article",
+  "purposes": [
+   "daily-life",
+   "news-commentary"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "As the sun goes down in many cities, car parks and quiet side streets change their job. Folding tables appear, strings of bulbs are hung between lamp posts, and within an hour a night market is in full swing. For visitors, these markets are often the most memorable part of a trip, and it is worth asking why. Part of the answer is the food, which is cooked in front of you and usually costs very little. You can try five or six small dishes instead of committing to one large meal, so curiosity is rewarded rather than punished. But the atmosphere matters just as much. Night markets are crowded, noisy and slightly chaotic, yet they rarely feel threatening, because everyone is there for the same simple pleasures. Families share plates at plastic tables, students compare snacks, and older couples walk slowly as if they have followed the same route for decades. There is also a sense of performance. A vendor flipping pancakes at speed or pulling noodles by hand is putting on a small show, and the queue that forms becomes part of the audience. Unlike a restaurant, where the kitchen is hidden, a market lets you watch every step. Of course, night markets have their critics, who point to litter, noise and the problem of parking for local residents. Those concerns are fair, and the best markets handle them with clear rules and early closing times. Even so, for one evening they turn an ordinary street into a shared living room, which may be why travellers remember them long after the museums have blurred together.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the article mainly about?",
+    "options": [
+     "How to open a market stall",
+     "Why night markets are so memorable for visitors",
+     "Why restaurants are better than markets",
+     "The history of street lighting"
+    ],
+    "answer": 1,
+    "evidence": "For visitors, these markets are often the most memorable part of a trip, and it is worth asking why."
+   },
+   {
+    "type": "inference",
+    "prompt": "What does the writer suggest by saying curiosity is \"rewarded rather than punished\"?",
+    "options": [
+     "Curious people get free food",
+     "Vendors dislike questions",
+     "Trying many small dishes is cheap and low-risk",
+     "Large meals are better value"
+    ],
+    "answer": 2,
+    "evidence": "You can try five or six small dishes instead of committing to one large meal"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"in full swing\" mean in \"a night market is in full swing\"?",
+    "options": [
+     "at its busiest and most active",
+     "about to close",
+     "just starting to set up",
+     "moving to a new place"
+    ],
+    "answer": 0,
+    "evidence": "a night market is in full swing"
+   },
+   {
+    "type": "detail",
+    "prompt": "What do critics of night markets point to?",
+    "options": [
+     "High prices",
+     "Poor-quality food",
+     "A lack of seating",
+     "Litter, noise and parking problems for residents"
+    ],
+    "answer": 3,
+    "evidence": "who point to litter, noise and the problem of parking for local residents"
+   }
+  ],
+  "dictation_index": 10,
+  "vocabulary": [
+   {
+    "term": "chaotic",
+    "meaning": "混乱的",
+    "example": "The first morning of the sale was completely chaotic."
+   },
+   {
+    "term": "threatening",
+    "meaning": "吓人的；有威胁的",
+    "example": "The dark street felt a little threatening."
+   },
+   {
+    "term": "vendor",
+    "meaning": "摊贩；小商贩",
+    "example": "The vendor gave us an extra skewer for free."
+   },
+   {
+    "term": "litter",
+    "meaning": "垃圾（乱扔的）",
+    "example": "Please take your litter home with you."
+   },
+   {
+    "term": "blurred",
+    "meaning": "变得模糊",
+    "example": "After a week of sightseeing, the churches blurred together."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "in full swing",
+    "meaning": "正热闹；正进行得如火如荼",
+    "note": "The party was in full swing when we arrived."
+   },
+   {
+    "text": "committing to",
+    "meaning": "决定选择；投入",
+    "note": "commit to 表示下定决心选一样：I'm not ready to commit to one plan."
+   },
+   {
+    "text": "putting on a small show",
+    "meaning": "表演一小段",
+    "note": "put on a show 表演；这里比喻摊主做饭像表演。"
+   },
+   {
+    "text": "point to",
+    "meaning": "指出（问题、原因）",
+    "note": "议论文常用：Critics point to the high cost."
+   },
+   {
+    "text": "Even so",
+    "meaning": "尽管如此",
+    "note": "承认前面的问题后，再回到自己的观点。"
+   },
+   {
+    "text": "long after",
+    "meaning": "在……之后很久",
+    "note": "I remembered the song long after the trip ended."
+   }
+  ],
+  "grammar": [
+   "voice-basic",
+   "clause-relative",
+   "link-contrast"
+  ],
+  "knowledge": [
+   {
+    "node": "voice-basic",
+    "quote": "strings of bulbs are hung between lamp posts",
+    "explanation": "被动语态 are hung，重点是“灯串被挂起来”，不关心是谁挂的。描写场景变化时很常用。"
+   },
+   {
+    "node": "clause-relative",
+    "quote": "Unlike a restaurant, where the kitchen is hidden, a market lets you watch every step.",
+    "explanation": "where 引导非限制性定语从句，补充说明餐厅的特点；Unlike… 引出对比。"
+   },
+   {
+    "node": "link-contrast",
+    "quote": "Even so, for one evening they turn an ordinary street into a shared living room",
+    "explanation": "Even so 表示“尽管如此”：前一句承认批评有道理，这一句再回到夜市的好处。"
+   }
+  ],
+  "speaking": "用 1 分钟介绍你去过的一个夜市或小吃街：最难忘的是什么？用上 in full swing 和 even so。",
+  "writing": "用 120–150 词写一段短文，介绍一个让你印象深刻的热闹地方。用一个被动句和一个 where 引导的非限制性定语从句。",
+  "task": {
+   "prompt": "仿照这句，用 Unlike …, where …, … 写一句话，对比两个地方或两种做法。",
+   "model": "Unlike a restaurant, where the kitchen is hidden, a market lets you watch every step."
+  },
+  "tags": [
+   "旅行观察",
+   "城市生活"
+  ],
+  "source": "Flow 编辑部原创"
+ },
+ {
+  "id": "v5-travel-b2-one-backpack-week",
+  "title": "一个背包旅行一周",
+  "title_en": "A Week with Only a Backpack",
+  "summary_zh": "只背一个包出门一周，听起来很难，其实只要按「整套搭配」来带衣服、缩小洗漱用品、留一点空位就行。读完你会收拾一个轻便的行李，也能用 so that… 和动名词主语写出清楚的建议。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "travel",
+  "genre": "guide",
+  "purposes": [
+   "daily-life",
+   "expository"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Travelling for a week with only a backpack sounds like a challenge for minimalists, but it is easier than most people think, and it changes the whole trip. Without a heavy suitcase, you can take stairs, jump on crowded buses and walk from the station instead of queuing for a taxi. The secret is to plan around outfits rather than individual items. Choose clothes in two or three colours that all go together, so that every top works with every pair of trousers. Three tops, two pairs of trousers or skirts, and one warm layer will cover most situations, especially if you can wash a few things on the way. Wear your heaviest shoes and jacket on the journey rather than packing them. Next, shrink your toiletries. Small refillable bottles take up far less room than full-size ones, and most basics can be bought at your destination if you run out. Electronics are often the hidden weight in a bag, so ask yourself whether you really need a laptop as well as a phone. Pack the things you will need first, such as tickets and a charger, at the top or in an outside pocket. Finally, leave a little empty space. A bag that is full on day one has no room for the souvenir you did not plan to buy, and you will end up carrying it in a plastic bag for the rest of the week. Once you have travelled light, a big suitcase can start to feel less like a convenience and more like a piece of furniture you have to take everywhere.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the main purpose of the guide?",
+    "options": [
+     "To recommend expensive luggage",
+     "To argue that suitcases should be banned",
+     "To describe a trip to the mountains",
+     "To explain how to travel for a week with only a backpack"
+    ],
+    "answer": 3,
+    "evidence": "Travelling for a week with only a backpack sounds like a challenge for minimalists, but it is easier than most people think"
+   },
+   {
+    "type": "inference",
+    "prompt": "Why does the writer suggest leaving some empty space in the bag?",
+    "options": [
+     "You may buy something you did not plan to buy",
+     "A full bag breaks easily",
+     "Airlines weigh every bag",
+     "Empty space keeps clothes dry"
+    ],
+    "answer": 0,
+    "evidence": "has no room for the souvenir you did not plan to buy"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What are \"toiletries\" in \"shrink your toiletries\"?",
+    "options": [
+     "travel documents",
+     "things like soap, toothpaste and shampoo",
+     "small toys",
+     "snacks for the journey"
+    ],
+    "answer": 1,
+    "evidence": "Next, shrink your toiletries."
+   },
+   {
+    "type": "detail",
+    "prompt": "What should you do with your heaviest shoes and jacket?",
+    "options": [
+     "Leave them at home",
+     "Pack them at the bottom",
+     "Wear them on the journey",
+     "Post them in advance"
+    ],
+    "answer": 2,
+    "evidence": "Wear your heaviest shoes and jacket on the journey rather than packing them."
+   }
+  ],
+  "dictation_index": 5,
+  "vocabulary": [
+   {
+    "term": "minimalists",
+    "meaning": "极简主义者",
+    "example": "Minimalists own only the things they really use."
+   },
+   {
+    "term": "outfits",
+    "meaning": "整套服装",
+    "example": "I packed three outfits for the weekend."
+   },
+   {
+    "term": "refillable",
+    "meaning": "可再灌装的",
+    "example": "Bring a refillable water bottle on the trip."
+   },
+   {
+    "term": "toiletries",
+    "meaning": "洗漱用品",
+    "example": "Put your toiletries in a small clear bag."
+   },
+   {
+    "term": "souvenir",
+    "meaning": "纪念品",
+    "example": "She bought a small bowl as a souvenir."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "plan around",
+    "meaning": "围绕……来安排",
+    "note": "We planned the day around the weather."
+   },
+   {
+    "text": "go together",
+    "meaning": "相配；搭配",
+    "note": "These colours go together well."
+   },
+   {
+    "text": "take up far less room",
+    "meaning": "占的地方少得多",
+    "note": "take up room / space 占地方。"
+   },
+   {
+    "text": "run out",
+    "meaning": "用完",
+    "note": "We ran out of milk on Sunday."
+   },
+   {
+    "text": "on the way",
+    "meaning": "在途中",
+    "note": "We stopped for lunch on the way."
+   },
+   {
+    "text": "travelled light",
+    "meaning": "轻装出行",
+    "note": "travel light 只带很少的行李。"
+   }
+  ],
+  "grammar": [
+   "nonfinite-gerund",
+   "link-purpose",
+   "conditional-real"
+  ],
+  "knowledge": [
+   {
+    "node": "nonfinite-gerund",
+    "quote": "Travelling for a week with only a backpack sounds like a challenge for minimalists",
+    "explanation": "动名词短语 Travelling for a week… 作主语，谓语用单数 sounds。"
+   },
+   {
+    "node": "link-purpose",
+    "quote": "so that every top works with every pair of trousers",
+    "explanation": "so that 引导目的状语从句，说明“为了让每件上衣都能配每条裤子”。"
+   },
+   {
+    "node": "conditional-real",
+    "quote": "most basics can be bought at your destination if you run out",
+    "explanation": "真实条件句：if 从句用一般现在时；主句 can be bought 是带情态动词的被动。"
+   }
+  ],
+  "speaking": "用 1 分钟说说：你出门一般带多少行李？给朋友三条轻装出行的建议。用上 travel light 和 take up room。",
+  "writing": "用 120–150 词写一份出行打包建议，说明为什么这样带。用一个动名词作主语的句子和一个 so that… 目的状语从句。",
+  "task": {
+   "prompt": "仿照这句，用 Wear/Do … rather than … 写一句建议，说明怎样更省事。",
+   "model": "Wear your heaviest shoes and jacket on the journey rather than packing them"
+  },
+  "tags": [
+   "旅行技巧",
+   "生活指南"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

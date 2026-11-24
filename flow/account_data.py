@@ -255,6 +255,7 @@ def erase(c, u, data, verify, data_dir=None):
     except Exception:
         c.rollback()
         raise
+    __import__('tts_service').forget(uid)  # the voice of the learner's own articles (data/tts-own/<id>)
     if shots:
         import feedback_service
         base = feedback_service.folder() if data_dir is None else data_dir / 'feedback'

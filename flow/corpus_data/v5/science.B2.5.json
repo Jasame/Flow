@@ -1,0 +1,156 @@
+[
+ {
+  "id": "v5-science-b2-why-bread-goes-stale",
+  "title": "面包为什么会变硬",
+  "title_en": "Why Bread Goes Stale",
+  "summary_zh": "面包放两天就变硬，不只是因为水分蒸发了。读完你会明白淀粉「回生」的道理，知道为什么面包别放冰箱、冻起来反而好，也能用非限制性定语从句和动名词主语写一段说明文。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "science",
+  "genre": "explainer",
+  "purposes": [
+   "expository"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Leave a loaf on the kitchen counter for a couple of days and it turns hard and crumbly, even though it has not obviously dried out. Most people assume that stale bread has simply lost its water, but that is only part of the story. When bread bakes, the starch in the flour absorbs water and its tightly packed structure loosens, which is what makes fresh bread soft and springy. As the loaf cools and sits, the starch slowly starts to tighten again, pushing water out and forming firm, crystal-like regions. Scientists call this process retrogradation, and it can happen even in bread that is sealed in a plastic bag. That is why a stale slice can feel dry in the mouth while the bag still looks damp inside. Temperature makes a surprising difference. Bread goes stale fastest at fridge temperatures, so putting a loaf in the fridge to keep it fresh usually has the opposite effect. Freezing, on the other hand, stops the process almost completely, which is why sliced bread kept in the freezer can be toasted straight from frozen and taste nearly new. Heat can also reverse some of the change. Warming a stale loaf in the oven for a few minutes loosens the starch again, and the bread softens, at least until it cools. Bakers have their own tricks, such as adding fat or sugar, which slow the process down. So the next time you find a hard loaf, remember that it may not be ruined, only waiting for a little warmth.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What does the text mainly explain?",
+    "options": [
+     "Why bread goes stale and how temperature affects it",
+     "How to bake bread at home",
+     "Why some flour is better than others",
+     "How plastic bags keep food fresh"
+    ],
+    "answer": 0,
+    "evidence": "Most people assume that stale bread has simply lost its water, but that is only part of the story."
+   },
+   {
+    "type": "inference",
+    "prompt": "What does the writer suggest about a hard loaf at the end?",
+    "options": [
+     "It must be thrown away",
+     "It can often still be enjoyed after warming",
+     "It has probably gone mouldy",
+     "It should be frozen immediately"
+    ],
+    "answer": 1,
+    "evidence": "it may not be ruined, only waiting for a little warmth"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"reverse\" mean in \"Heat can also reverse some of the change\"?",
+    "options": [
+     "speed up",
+     "measure",
+     "undo",
+     "hide"
+    ],
+    "answer": 2,
+    "evidence": "Heat can also reverse some of the change."
+   },
+   {
+    "type": "detail",
+    "prompt": "At what temperature does bread go stale fastest?",
+    "options": [
+     "At room temperature",
+     "In the freezer",
+     "In a hot oven",
+     "At fridge temperatures"
+    ],
+    "answer": 3,
+    "evidence": "Bread goes stale fastest at fridge temperatures"
+   }
+  ],
+  "dictation_index": 11,
+  "vocabulary": [
+   {
+    "term": "crumbly",
+    "meaning": "易碎的；一碰就掉渣的",
+    "example": "The cake was dry and crumbly."
+   },
+   {
+    "term": "starch",
+    "meaning": "淀粉",
+    "example": "Potatoes and rice are full of starch."
+   },
+   {
+    "term": "springy",
+    "meaning": "有弹性的",
+    "example": "Fresh bread feels soft and springy."
+   },
+   {
+    "term": "reverse",
+    "meaning": "逆转；使恢复",
+    "example": "It is hard to reverse a bad habit."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "part of the story",
+    "meaning": "原因的一部分",
+    "note": "That is only part of the story：事情没那么简单。"
+   },
+   {
+    "text": "makes a surprising difference",
+    "meaning": "影响出人意料地大",
+    "note": "make a difference 产生影响。"
+   },
+   {
+    "text": "the opposite effect",
+    "meaning": "相反的效果",
+    "note": "Shouting had the opposite effect."
+   },
+   {
+    "text": "on the other hand",
+    "meaning": "另一方面",
+    "note": "对比两种情况时用。"
+   },
+   {
+    "text": "straight from frozen",
+    "meaning": "直接从冷冻状态",
+    "note": "食品包装上常见：Cook straight from frozen."
+   },
+   {
+    "text": "slow the process down",
+    "meaning": "减缓这个过程",
+    "note": "slow sth down 使变慢。"
+   }
+  ],
+  "grammar": [
+   "clause-nondefining",
+   "nonfinite-gerund",
+   "voice-basic"
+  ],
+  "knowledge": [
+   {
+    "node": "clause-nondefining",
+    "quote": "its tightly packed structure loosens, which is what makes fresh bread soft and springy",
+    "explanation": "逗号后的 which 指代前面整句话（淀粉结构变松散这件事），是非限制性定语从句，不能换成 that。"
+   },
+   {
+    "node": "nonfinite-gerund",
+    "quote": "putting a loaf in the fridge to keep it fresh usually has the opposite effect",
+    "explanation": "动名词短语 putting a loaf in the fridge… 作主语，谓语用单数 has；to keep it fresh 是目的状语。"
+   },
+   {
+    "node": "voice-basic",
+    "quote": "it can happen even in bread that is sealed in a plastic bag",
+    "explanation": "定语从句里用被动 is sealed：面包“被密封”在袋子里。"
+   }
+  ],
+  "speaking": "用 1 分钟给家人解释：面包为什么会变硬，为什么别放冰箱。用上 the opposite effect 和 on the other hand。",
+  "writing": "用 120–150 词写一段说明文，解释一个厨房里的常识误区（如面包放冰箱）。用一个 which 非限制性定语从句和一个动名词作主语的句子。",
+  "task": {
+   "prompt": "仿照这句，用 Doing … usually has the opposite effect 写一句话，指出一个好心办坏事的习惯。",
+   "model": "putting a loaf in the fridge to keep it fresh usually has the opposite effect"
+  },
+  "tags": [
+   "厨房里的科学",
+   "说明文"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

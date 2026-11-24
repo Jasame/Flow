@@ -1,0 +1,317 @@
+[
+ {
+  "id": "v5-life-c1-neighbours-and-the-hedge",
+  "title": "邻居家的树篱",
+  "title_en": "Talking to a Neighbour About the Hedge",
+  "summary_zh": "邻居家的树篱长得太高，挡住了厨房的阳光。Clara 没有贴纸条，而是上门聊了聊，两人很快商量出办法。读完你能用 What I was hoping is that… 等说法，得体地向别人提出请求。",
+  "level": "B2",
+  "cefr": "C1",
+  "theme": "life",
+  "genre": "dialogue",
+  "purposes": [
+   "daily-life"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Clara: Tomasz, have you got a minute? I wanted to talk to you about the hedge before it turns into one of those disputes that neighbours end up having through their lawyers. Tomasz: That sounds ominous, but go on, I'd much rather hear it from you than find a note pinned to my gate. Clara: It's grown so tall over the summer that my kitchen hardly gets any afternoon light, and my tomatoes on that side have more or less given up. Tomasz: I hadn't realised it was blocking your light, honestly, because from my side it just looks like a pleasantly green wall. Clara: I'm not asking you to tear it out, since I know you planted it for privacy and the birds clearly love it. Tomasz: That's a relief, because my daughter would never forgive me if the blackbirds lost their home. Clara: What I was hoping is that we could take a metre off the top and thin out the part nearest my window. Tomasz: That seems entirely reasonable, although I should admit I've never cut a hedge that size and I'm faintly terrified of the ladder. Clara: Then why don't we split the cost of someone who knows what they're doing, and I'll make lunch while they work? Tomasz: You drive a hard bargain, but I can hardly say no to lunch. Clara: Wonderful, and I know a gardener who trimmed the trees on the corner beautifully and seemed completely unbothered by heights. And if the birds are nesting, we'll wait until the chicks have gone, so nobody has to feel guilty. Tomasz: Agreed, and thank you for coming round rather than writing; I suspect a note would have made me defensive before I'd even finished reading it.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the conversation mainly about?",
+    "options": [
+     "A legal dispute over a garden wall",
+     "Planning a lunch party for the street",
+     "Two neighbours calmly agreeing how to deal with an overgrown hedge",
+     "Protecting birds in the city"
+    ],
+    "answer": 2,
+    "evidence": "I wanted to talk to you about the hedge before it turns into one of those disputes"
+   },
+   {
+    "type": "inference",
+    "prompt": "Why does Tomasz thank Clara for coming round rather than writing?",
+    "options": [
+     "A written note might have made him react badly before he understood her",
+     "He cannot read her handwriting",
+     "He prefers to get emails",
+     "He wanted to invite her for lunch"
+    ],
+    "answer": 0,
+    "evidence": "I suspect a note would have made me defensive before I'd even finished reading it"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"ominous\" mean in \"That sounds ominous\"?",
+    "options": [
+     "funny",
+     "boring",
+     "suggesting that something bad is coming",
+     "perfectly reasonable"
+    ],
+    "answer": 2,
+    "evidence": "That sounds ominous"
+   },
+   {
+    "type": "detail",
+    "prompt": "What does Clara suggest about paying for the work?",
+    "options": [
+     "Tomasz should pay for everything",
+     "They should share the cost of someone who knows what they are doing",
+     "She will cut the hedge herself",
+     "They should ask the council to pay"
+    ],
+    "answer": 1,
+    "evidence": "why don't we split the cost of someone who knows what they're doing"
+   }
+  ],
+  "dictation_index": 1,
+  "vocabulary": [
+   {
+    "term": "ominous",
+    "meaning": "不祥的；预示坏事的",
+    "example": "There was an ominous silence after the manager spoke."
+   },
+   {
+    "term": "privacy",
+    "meaning": "隐私；不受打扰",
+    "example": "Curtains give the bedroom a little more privacy."
+   },
+   {
+    "term": "nesting",
+    "meaning": "筑巢；在巢里孵育",
+    "example": "Some birds are nesting under the bridge."
+   },
+   {
+    "term": "defensive",
+    "meaning": "戒备的；为自己辩护的",
+    "example": "He became defensive when I asked about the mistake."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "more or less",
+    "meaning": "差不多；基本上",
+    "note": "口语里常用来缓和语气：The work is more or less finished."
+   },
+   {
+    "text": "tear it out",
+    "meaning": "把它拔掉",
+    "note": "tear out 表示连根拔起、彻底去掉。"
+   },
+   {
+    "text": "thin out",
+    "meaning": "疏剪；使变稀疏",
+    "note": "thin out the plants / the crowd，园艺和日常都能用。"
+   },
+   {
+    "text": "split the cost",
+    "meaning": "分摊费用",
+    "note": "和朋友、邻居商量费用时最常用：Let's split the cost."
+   },
+   {
+    "text": "drive a hard bargain",
+    "meaning": "很会讲条件",
+    "note": "半开玩笑地说对方条件提得精明，语气友好。"
+   },
+   {
+    "text": "coming round",
+    "meaning": "上门来",
+    "note": "come round（英式）= 到别人家里来：Come round for dinner."
+   }
+  ],
+  "grammar": [
+   "clause-noun",
+   "modal-past",
+   "conditional-real"
+  ],
+  "knowledge": [
+   {
+    "node": "clause-noun",
+    "quote": "What I was hoping is that we could take a metre off the top",
+    "explanation": "What I was hoping 是主语从句，is 后面接 that 引导的表语从句。先说“我希望的是”，再说具体内容，比直接提要求更委婉。"
+   },
+   {
+    "node": "modal-past",
+    "quote": "a note would have made me defensive before I'd even finished reading it",
+    "explanation": "would have made 是对过去的推测：如果当时收到的是纸条（实际没有），可能会让人戒备。"
+   },
+   {
+    "node": "conditional-real",
+    "quote": "if the birds are nesting, we'll wait until the chicks have gone",
+    "explanation": "真实条件句：if 从句用一般现在时，主句用 will 表示到时候会怎么做。"
+   }
+  ],
+  "speaking": "用 1 分钟练习：你要跟邻居或室友提一个让你困扰的问题（噪音、垃圾、停车）。先表示理解，再提出一个具体方案。用上 What I was hoping is that… 和 split the cost。",
+  "writing": "用 200–250 词写一段对话：两位邻居心平气和地解决一个小矛盾。至少用一个 What… is that… 句子和一个 would have done 的推测。",
+  "task": {
+   "prompt": "仿照这句，用 What I was hoping is that we could … 写一句话，礼貌地提出一个请求。",
+   "model": "What I was hoping is that we could take a metre off the top"
+  },
+  "tags": [
+   "邻里沟通",
+   "日常对话"
+  ],
+  "source": "Flow 编辑部原创"
+ },
+ {
+  "id": "v5-life-c1-always-busy",
+  "title": "我们为什么总说「忙」",
+  "title_en": "Why We Keep Telling Each Other We're Busy",
+  "summary_zh": "「最近怎么样？」「忙，挺忙的。」作者发现，「忙」既是实话，也悄悄透露着一种身份感，却常常让对话就此结束。与其说忙，不如说一个具体的细节。读完你能用不定式和动名词作主语写一篇生活评论。",
+  "level": "B2",
+  "cefr": "C1",
+  "theme": "life",
+  "genre": "opinion",
+  "purposes": [
+   "news-commentary",
+   "daily-life",
+   "argumentative"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Ask almost anyone how they are these days and the answer arrives before the question has finished: busy, really busy, you know how it is. The word has become a kind of social reflex, as automatic as saying fine, and it is worth asking what it is doing for us. Part of the answer is simple honesty, since many people genuinely are juggling work, family and the small administrative chores that seem to multiply when nobody is looking. But busy also carries a quiet message about status. To be in demand suggests that we are needed, that our time is valuable, and that our lives are full rather than empty. Admitting that we had a slow week, or that we spent Sunday doing very little, can feel almost like a confession. The trouble is that the word closes conversations rather than opening them. When a friend tells us they are busy, there is not much to say except that we are too, and the exchange ends in a tired nod of mutual recognition. It also makes it harder to ask for help, because everyone has already announced that they have no spare capacity. Over time, an entire friendship can be conducted in these brisk updates, each person reassuring the other that they are thriving, exhausted and indispensable. None of this means we should pretend to be idle when we are not. A more useful habit might be to replace the label with a detail: not that we are busy, but that we are moving house, or learning to drive, or worried about a parent. Details invite questions, and questions are how people discover that they can help one another. Busy, after all, describes the size of a life, while the details describe what is actually in it.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the writer's main point?",
+    "options": [
+     "People are busier now than ever before",
+     "Saying \"busy\" tends to end conversations, so sharing a specific detail is more useful",
+     "We should all work fewer hours",
+     "Being busy is a sign of success"
+    ],
+    "answer": 1,
+    "evidence": "A more useful habit might be to replace the label with a detail"
+   },
+   {
+    "type": "inference",
+    "prompt": "Why might admitting to a slow week \"feel almost like a confession\"?",
+    "options": [
+     "Slow weeks are against the rules at work",
+     "Friends might ask to borrow money",
+     "It is impolite to talk about weekends",
+     "Being busy is linked to feeling important and needed"
+    ],
+    "answer": 3,
+    "evidence": "busy also carries a quiet message about status"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"spare capacity\" mean in \"no spare capacity\"?",
+    "options": [
+     "extra time or energy that could be used",
+     "a large storage room",
+     "a quiet place to rest",
+     "money that has not been spent"
+    ],
+    "answer": 0,
+    "evidence": "they have no spare capacity"
+   },
+   {
+    "type": "detail",
+    "prompt": "According to the writer, what do details do that the word \"busy\" does not?",
+    "options": [
+     "They make people look important",
+     "They invite questions",
+     "They end conversations quickly",
+     "They hide our problems"
+    ],
+    "answer": 1,
+    "evidence": "Details invite questions"
+   }
+  ],
+  "dictation_index": 6,
+  "vocabulary": [
+   {
+    "term": "reflex",
+    "meaning": "条件反射；本能反应",
+    "example": "Saying \"sorry\" has become a reflex for him."
+   },
+   {
+    "term": "juggling",
+    "meaning": "同时应付（几件事）",
+    "example": "She is juggling two jobs and an evening class."
+   },
+   {
+    "term": "confession",
+    "meaning": "坦白；承认",
+    "example": "It was a small confession: he had never read the book."
+   },
+   {
+    "term": "mutual",
+    "meaning": "相互的；共同的",
+    "example": "They share a mutual love of old films."
+   },
+   {
+    "term": "idle",
+    "meaning": "无所事事的；闲着的",
+    "example": "He hates being idle, even on holiday."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "you know how it is",
+    "meaning": "你懂的；就那样",
+    "note": "口语里用来带过不想细说的情况。"
+   },
+   {
+    "text": "in demand",
+    "meaning": "很抢手；被需要",
+    "note": "be in demand：Good plumbers are always in demand."
+   },
+   {
+    "text": "a slow week",
+    "meaning": "清闲的一周",
+    "note": "slow 形容事情不多、节奏慢：It's been a slow day at the shop."
+   },
+   {
+    "text": "ask for help",
+    "meaning": "求助",
+    "note": "最基本也最有用的搭配之一。"
+   },
+   {
+    "text": "moving house",
+    "meaning": "搬家",
+    "note": "英式说法；美式常说 moving。"
+   },
+   {
+    "text": "after all",
+    "meaning": "毕竟",
+    "note": "放在句中或句末，引出一个大家都认同的理由。"
+   }
+  ],
+  "grammar": [
+   "nonfinite-infinitive",
+   "nonfinite-gerund",
+   "clause-adverb"
+  ],
+  "knowledge": [
+   {
+    "node": "nonfinite-infinitive",
+    "quote": "To be in demand suggests that we are needed",
+    "explanation": "不定式 To be in demand 作主语，谓语用单数 suggests；比 Being in demand 更书面，评论文章里常见。"
+   },
+   {
+    "node": "nonfinite-gerund",
+    "quote": "Admitting that we had a slow week, or that we spent Sunday doing very little, can feel almost like a confession.",
+    "explanation": "动名词短语 Admitting… 作主语，后面跟两个 that 从句作它的宾语；谓语 can feel 用单数。"
+   },
+   {
+    "node": "clause-adverb",
+    "quote": "When a friend tells us they are busy, there is not much to say except that we are too",
+    "explanation": "When 引导时间状语从句；主句里 except that… 表示“除了……之外”。"
+   }
+  ],
+  "speaking": "用 1 分钟说说：别人问你最近怎么样，你一般怎么回答？试着不用 busy，说一个具体的细节。用上 you know how it is 和 after all。",
+  "writing": "用 200–250 词写一篇短评，谈一个我们天天说、却很少细想的口头禅（如「随便」「还行」「在忙」）。至少用一个不定式作主语的句子。",
+  "task": {
+   "prompt": "仿照这句，用 To be … suggests that … 写一句话，分析一种常见说法背后的意思。",
+   "model": "To be in demand suggests that we are needed"
+  },
+  "tags": [
+   "生活观察",
+   "观点评论"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

@@ -105,6 +105,20 @@ class CorpusV5Tests(unittest.TestCase):
         del p['reviewed'], p['quotes'], p['references']
         self.assertEqual(cv.check_v51(p, p['body'], {'sentences': 14})[0], [])
 
+    def test_every_featured_material_has_typed_questions(self):
+        """Since the A2 back-fill (r27 content line, batch 2) every featured text at every level has 3-4 typed questions,
+        a main or inference one among them; only the older texts (简版) keep two."""
+        packs = content_v50.v5_materials()
+        for cefr in ('A2', 'B1', 'B2', 'C1'):
+            self.assertTrue(any(p['cefr'] == cefr for p in packs), cefr)
+        kinds = set(content_v50.QUESTION_TYPES)
+        for p in packs:
+            qs = p['questions']
+            self.assertTrue(3 <= len(qs) <= 4, (p['id'], len(qs)))
+            self.assertTrue(all(q.get('type') in kinds for q in qs), p['id'])
+            self.assertTrue({'main', 'inference'} & {q['type'] for q in qs}, p['id'])
+            self.assertTrue(all(q['evidence'] in p['body'] for q in qs), p['id'])
+
     def test_every_public_material_can_have_narration(self):
         """r27 content line: the older materials (简版) get narration too, so the id rule must accept every public
         corpus material and still refuse anything that could leave the audio folder."""

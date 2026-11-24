@@ -1,0 +1,311 @@
+[
+ {
+  "id": "v5-life-a2-walking-to-school",
+  "title": "走路上学的好处",
+  "title_en": "Why Children Should Walk to School",
+  "summary_zh": "作者认为，能走路上学就走路：对身体好，能认识自己的街区，还能让校门口少堵车。当然路太远或马路太忙时也有办法。读完你能用 First, Second, Of course 写一段简单的观点短文。",
+  "level": "A2",
+  "cefr": "A2",
+  "theme": "life",
+  "genre": "opinion",
+  "purposes": [
+   "argumentative",
+   "daily-life"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "I think children should walk to school when they can. First, walking is good for the body. A fifteen-minute walk in the morning wakes you up before lessons. Second, children learn about their town. They get to know the shops, the roads and the people on the way. They also learn how to cross the road safely. Third, walking is good for the air. If fewer parents drive, there is less traffic outside the school gate. Of course, some children live too far away. For them, the bus is a better choice. Some parents also worry about busy roads. Small groups can help, because children can walk together with one adult. In my opinion, a short walk is a great way to start the day.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the writer's main opinion?",
+    "options": [
+     "All children should take the bus",
+     "Children should walk to school when they can",
+     "Parents should drive children to school",
+     "Schools should start later"
+    ],
+    "answer": 1,
+    "evidence": "I think children should walk to school when they can."
+   },
+   {
+    "type": "inference",
+    "prompt": "Why does the writer say walking is good for the air?",
+    "options": [
+     "Walking makes trees grow",
+     "Children breathe more in the morning",
+     "Fewer cars near the school means cleaner air",
+     "Buses do not use petrol"
+    ],
+    "answer": 2,
+    "evidence": "If fewer parents drive, there is less traffic outside the school gate."
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"traffic\" mean in \"less traffic outside the school gate\"?",
+    "options": [
+     "cars and other vehicles on the road",
+     "a kind of shop",
+     "a school rule",
+     "a path for walking"
+    ],
+    "answer": 0,
+    "evidence": "there is less traffic outside the school gate"
+   },
+   {
+    "type": "detail",
+    "prompt": "What can help parents who worry about busy roads?",
+    "options": [
+     "Faster buses",
+     "New traffic lights",
+     "Staying at home",
+     "Children walking in small groups with one adult"
+    ],
+    "answer": 3,
+    "evidence": "Small groups can help, because children can walk together with one adult."
+   }
+  ],
+  "dictation_index": 2,
+  "vocabulary": [
+   {
+    "term": "lessons",
+    "meaning": "课",
+    "example": "Our lessons start at half past eight."
+   },
+   {
+    "term": "safely",
+    "meaning": "安全地",
+    "example": "Please drive safely."
+   },
+   {
+    "term": "traffic",
+    "meaning": "交通；来往车辆",
+    "example": "There is a lot of traffic in the morning."
+   },
+   {
+    "term": "choice",
+    "meaning": "选择",
+    "example": "Tea or coffee? It's your choice."
+   },
+   {
+    "term": "worry",
+    "meaning": "担心",
+    "example": "Don't worry, I'll be home soon."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "wakes you up",
+    "meaning": "让你清醒；叫醒你",
+    "note": "A cold shower wakes me up."
+   },
+   {
+    "text": "get to know",
+    "meaning": "慢慢了解；认识",
+    "note": "I want to get to know my new classmates."
+   },
+   {
+    "text": "on the way",
+    "meaning": "在路上",
+    "note": "I buy a newspaper on the way to work."
+   },
+   {
+    "text": "Of course",
+    "meaning": "当然",
+    "note": "在观点文里，先承认另一面时常用。"
+   },
+   {
+    "text": "In my opinion",
+    "meaning": "在我看来",
+    "note": "结尾再说一次自己的观点。"
+   }
+  ],
+  "grammar": [
+   "conditional-real",
+   "link-cause",
+   "nonfinite-infinitive"
+  ],
+  "knowledge": [
+   {
+    "node": "conditional-real",
+    "quote": "If fewer parents drive, there is less traffic outside the school gate.",
+    "explanation": "真实条件句：if 从句和主句都用一般现在时，说一般规律：开车的少，堵车就少。"
+   },
+   {
+    "node": "link-cause",
+    "quote": "Small groups can help, because children can walk together with one adult.",
+    "explanation": "because 引出原因，说明为什么结伴走路有用。"
+   },
+   {
+    "node": "nonfinite-infinitive",
+    "quote": "a short walk is a great way to start the day",
+    "explanation": "a way to do sth 表示“做某事的方法”，不定式 to start 修饰 way。"
+   }
+  ],
+  "speaking": "用 1 分钟说说：你以前怎么上学？你觉得走路上学好不好？用上 first, second 和 in my opinion。",
+  "writing": "用 50–70 词写一段观点短文：上学或上班，你觉得哪种方式最好？给出两个理由，用上 First 和 Second，至少用一个 if 句子。",
+  "task": {
+   "prompt": "仿照这句，用 … is a great way to … 写一句话，推荐一个你喜欢的好习惯。",
+   "model": "a short walk is a great way to start the day"
+  },
+  "tags": [
+   "生活观点",
+   "上学路上"
+  ],
+  "source": "Flow 编辑部原创"
+ },
+ {
+  "id": "v5-life-a2-ten-minute-morning",
+  "title": "十分钟的早晨好习惯",
+  "title_en": "A Better Morning in Ten Minutes",
+  "summary_zh": "早上总是手忙脚乱？前一晚把东西放好，起床先喝水、叠被子、吃点简单的早饭，出门前检查三样东西。读完你能用祈使句和 so 给别人一些生活小建议。",
+  "level": "A2",
+  "cefr": "A2",
+  "theme": "life",
+  "genre": "guide",
+  "purposes": [
+   "daily-life"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Do you always feel rushed in the morning? A good routine can help, and it only takes ten minutes. Start the night before. Put your clothes, bag and keys in one place, so you don't have to look for them. In the morning, don't check your phone straight away. Open the curtains and drink a glass of water first. Next, make your bed. It takes one minute, and your room looks better at once. Then eat a simple breakfast, like toast or fruit. Even a small breakfast gives you energy for the morning. Before you leave, check three things: phone, keys and wallet. Try this for one week. You may find that your mornings feel calmer and happier.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the main purpose of the guide?",
+    "options": [
+     "To give simple tips for a calmer morning",
+     "To sell a new phone",
+     "To explain how to cook breakfast",
+     "To say that mornings are boring"
+    ],
+    "answer": 0,
+    "evidence": "A good routine can help, and it only takes ten minutes."
+   },
+   {
+    "type": "inference",
+    "prompt": "Why should you put your things in one place the night before?",
+    "options": [
+     "Your room will look bigger",
+     "So you do not waste time looking for them in the morning",
+     "Your family asked you to",
+     "So you can sleep later at the weekend"
+    ],
+    "answer": 1,
+    "evidence": "so you don't have to look for them"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"rushed\" mean in \"feel rushed in the morning\"?",
+    "options": [
+     "sleepy",
+     "hungry",
+     "in too much of a hurry",
+     "cold"
+    ],
+    "answer": 2,
+    "evidence": "Do you always feel rushed in the morning?"
+   },
+   {
+    "type": "detail",
+    "prompt": "What three things should you check before you leave?",
+    "options": [
+     "Bag, coat and shoes",
+     "Water, fruit and toast",
+     "Bed, curtains and phone",
+     "Phone, keys and wallet"
+    ],
+    "answer": 3,
+    "evidence": "Before you leave, check three things: phone, keys and wallet."
+   }
+  ],
+  "dictation_index": 7,
+  "vocabulary": [
+   {
+    "term": "rushed",
+    "meaning": "匆忙的",
+    "example": "I felt rushed and forgot my lunch."
+   },
+   {
+    "term": "routine",
+    "meaning": "日常习惯；常规",
+    "example": "Reading before bed is part of my routine."
+   },
+   {
+    "term": "curtains",
+    "meaning": "窗帘",
+    "example": "Please close the curtains."
+   },
+   {
+    "term": "energy",
+    "meaning": "精力；能量",
+    "example": "I have no energy today."
+   },
+   {
+    "term": "wallet",
+    "meaning": "钱包",
+    "example": "I left my wallet at home."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "the night before",
+    "meaning": "前一天晚上",
+    "note": "I packed my bag the night before."
+   },
+   {
+    "text": "look for",
+    "meaning": "寻找",
+    "note": "I'm looking for my glasses."
+   },
+   {
+    "text": "straight away",
+    "meaning": "马上；立刻",
+    "note": "Call me straight away if you need help."
+   },
+   {
+    "text": "make your bed",
+    "meaning": "整理床铺",
+    "note": "I make my bed every morning."
+   },
+   {
+    "text": "at once",
+    "meaning": "立刻；马上",
+    "note": "The room looked better at once."
+   }
+  ],
+  "grammar": [
+   "link-cause",
+   "clause-adverb",
+   "compare-basic"
+  ],
+  "knowledge": [
+   {
+    "node": "link-cause",
+    "quote": "Put your clothes, bag and keys in one place, so you don't have to look for them.",
+    "explanation": "so 在这里引出结果：东西放在一起，所以早上不用找。前半句是祈使句，用动词原形 Put 开头。"
+   },
+   {
+    "node": "clause-adverb",
+    "quote": "Before you leave, check three things: phone, keys and wallet.",
+    "explanation": "Before 引导时间状语从句，说明“出门前”要做什么；后半句是祈使句 check…"
+   },
+   {
+    "node": "compare-basic",
+    "quote": "It takes one minute, and your room looks better at once.",
+    "explanation": "better 是 good 的比较级：铺好床，房间马上看起来更好。look + 形容词表示“看起来……”。"
+   }
+  ],
+  "speaking": "用 1 分钟说说你的早晨：几点起床、先做什么、出门前会检查什么。用上 straight away 和 before you leave。",
+  "writing": "用 50–70 词写几条给朋友的早晨小建议，至少用两个祈使句（一个肯定、一个 don't 开头）和一个 Before… 句子。",
+  "task": {
+   "prompt": "仿照这句，用 Put …, so you don't have to … 写一句建议，帮别人省点时间或麻烦。",
+   "model": "Put your clothes, bag and keys in one place, so you don't have to look for them."
+  },
+  "tags": [
+   "生活习惯",
+   "生活指南"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

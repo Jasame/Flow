@@ -1,0 +1,156 @@
+[
+ {
+  "id": "v5-work-a2-early-baker",
+  "title": "凌晨四点上班的面包师",
+  "title_en": "Meet the Baker Who Starts at Four",
+  "summary_zh": "Tom 是面包师，每天凌晨四点开工。他说起床难不难、一天先做什么、这份工作最好和最不好的地方，还有给想当面包师的人的建议。读完你能用 be used to、What's the best part… 聊聊一份工作。",
+  "level": "A2",
+  "cefr": "A2",
+  "theme": "work",
+  "genre": "interview",
+  "purposes": [
+   "workplace"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Interviewer: Tom, you're a baker. What time do you start work? Tom: At four in the morning, five days a week. Interviewer: That's early! Is it hard to get up? Tom: It was hard at first, but now I'm used to it. I go to bed at nine. Interviewer: What do you do first? Tom: I turn on the ovens and make the bread dough. By six, the first loaves are ready. Interviewer: What's the best part of your job? Tom: The smell of fresh bread, and the quiet streets in the morning. Interviewer: And the worst part? Tom: I miss evenings with my friends. Interviewer: What would you tell someone who wants to be a baker? Tom: Learn to love the morning, and be patient. Good bread takes time.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the interview mainly about?",
+    "options": [
+     "How to open a café",
+     "Tom's working day as a baker and what he thinks of the job",
+     "Why bread is expensive",
+     "Tom's evenings with friends"
+    ],
+    "answer": 1,
+    "evidence": "Tom, you're a baker. What time do you start work?"
+   },
+   {
+    "type": "inference",
+    "prompt": "Why does Tom go to bed at nine?",
+    "options": [
+     "He has to get up very early for work",
+     "He is often ill",
+     "His friends go to bed early",
+     "He does not like TV"
+    ],
+    "answer": 0,
+    "evidence": "At four in the morning, five days a week."
+   },
+   {
+    "type": "vocab",
+    "prompt": "What is \"dough\" in \"make the bread dough\"?",
+    "options": [
+     "a type of oven",
+     "a bread knife",
+     "a mix of flour and water before it is baked",
+     "a small cake shop"
+    ],
+    "answer": 2,
+    "evidence": "I turn on the ovens and make the bread dough."
+   },
+   {
+    "type": "detail",
+    "prompt": "What does Tom miss?",
+    "options": [
+     "Weekends at the beach",
+     "His old job",
+     "Sleeping in the afternoon",
+     "Evenings with his friends"
+    ],
+    "answer": 3,
+    "evidence": "I miss evenings with my friends."
+   }
+  ],
+  "dictation_index": 9,
+  "vocabulary": [
+   {
+    "term": "baker",
+    "meaning": "面包师",
+    "example": "The baker opens his shop at seven."
+   },
+   {
+    "term": "ovens",
+    "meaning": "烤箱",
+    "example": "The ovens in the kitchen are very hot."
+   },
+   {
+    "term": "dough",
+    "meaning": "面团",
+    "example": "Leave the dough in a warm place for an hour."
+   },
+   {
+    "term": "loaves",
+    "meaning": "（面包）条，loaf 的复数",
+    "example": "She bought two loaves of bread."
+   },
+   {
+    "term": "patient",
+    "meaning": "有耐心的",
+    "example": "Be patient — the bus will come soon."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "at first",
+    "meaning": "起初",
+    "note": "At first I didn't like it, but now I do."
+   },
+   {
+    "text": "used to it",
+    "meaning": "习惯了",
+    "note": "be used to sth / doing sth 表示“习惯于”。"
+   },
+   {
+    "text": "turn on",
+    "meaning": "打开（机器、灯）",
+    "note": "Can you turn on the light?"
+   },
+   {
+    "text": "the best part of",
+    "meaning": "……最好的地方",
+    "note": "The best part of the trip was the food."
+   },
+   {
+    "text": "takes time",
+    "meaning": "需要时间",
+    "note": "Learning a language takes time."
+   }
+  ],
+  "grammar": [
+   "tense-present",
+   "tense-past",
+   "nonfinite-infinitive"
+  ],
+  "knowledge": [
+   {
+    "node": "tense-present",
+    "quote": "I turn on the ovens and make the bread dough.",
+    "explanation": "一般现在时说每天都做的事，介绍工作流程时最常用。"
+   },
+   {
+    "node": "tense-past",
+    "quote": "It was hard at first, but now I'm used to it.",
+    "explanation": "was 说过去的情况，now I'm 说现在：一句话里对比“以前难、现在习惯了”。"
+   },
+   {
+    "node": "nonfinite-infinitive",
+    "quote": "What would you tell someone who wants to be a baker?",
+    "explanation": "want to + 动词原形：wants to be 表示“想成为”。who 引导定语从句修饰 someone。"
+   }
+  ],
+  "speaking": "两人一组：一人当记者，一人介绍自己（或家人）的工作。至少问一句 What's the best part of your job? 回答时用上 at first 和 be used to。",
+  "writing": "用 50–70 词介绍一个你认识的人的工作：几点上班、每天做什么、最喜欢和最不喜欢的地方。至少用一个 It was… at first, but now… 句子。",
+  "task": {
+   "prompt": "仿照这句，用 It was … at first, but now I'm used to it 写一句话，说一件你慢慢习惯的事。",
+   "model": "It was hard at first, but now I'm used to it."
+  },
+  "tags": [
+   "职业访谈",
+   "工作日常"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

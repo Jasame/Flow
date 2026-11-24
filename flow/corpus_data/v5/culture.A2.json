@@ -12,6 +12,7 @@
     "body": "Last winter, my friend Mateo joined us for the Spring Festival. He is from Argentina, and he wanted to learn to make dumplings. My mother gave him some meat and a plate of round wrappers. At first, his dumplings looked like little boats with holes in them. The meat kept falling out, and we all laughed. Then Mateo told us about empanadas, a food from his home. They are a bit like big dumplings. He showed us how his grandmother closes the edge. Soon we were all copying him. That night, we ate two kinds of dumplings at one table. Some were Chinese, some were Argentinian, and some were a funny mix of both. My grandfather thought the mixed ones tasted the best. Now Mateo sends me a message every New Year to ask for the recipe again.",
     "questions": [
       {
+        "type": "inference",
         "prompt": "Why were some of the dumplings \"a funny mix of both\"?",
         "options": [
           "Mateo's grandmother sent the family a new recipe",
@@ -23,6 +24,7 @@
         "evidence": "He showed us how his grandmother closes the edge. Soon we were all copying him."
       },
       {
+        "type": "detail",
         "prompt": "What went wrong with Mateo's first dumplings?",
         "options": [
           "They were too big to cook",
@@ -32,7 +34,9 @@
         ],
         "answer": 2,
         "evidence": "The meat kept falling out"
-      }
+      },
+      {"type": "main", "prompt": "What is the story mainly about?", "options": ["Making dumplings with a friend from Argentina and sharing ideas", "The grandfather's favourite recipe", "Mateo's trip to China", "Cooking empanadas in a restaurant"], "answer": 0, "evidence": "He is from Argentina, and he wanted to learn to make dumplings."},
+      {"type": "vocab", "prompt": "What are \"wrappers\" in \"a plate of round wrappers\"?", "options": ["small plates", "thin pieces of dough that go around the filling", "paper bags", "pieces of meat"], "answer": 1, "evidence": "a plate of round wrappers"}
     ],
     "dictation_index": 9,
     "vocabulary": [
@@ -125,6 +129,7 @@
     "body": "Mei: Sam, can I ask you something a bit strange? Sam: Sure, go ahead. Mei: Why does everyone here talk about the weather? My neighbour talks about the rain every single morning. Sam: Ha! It's not really about the rain. It's just an easy way to say hello. Everyone has the same weather, so anyone can join in. If you say it's cold today, the other person can just agree. Nobody has to share anything private. Mei: So what do I say back? Sam: Keep it short and friendly. Something like: Yes, it's so cold! Or: I hope it's sunny this weekend. Mei: And then? Sam: Then you can chat, or just smile and say have a nice day. Mei: That sounds easy. I'll try it tomorrow. But if it rains again, I'm going to say it first!",
     "questions": [
       {
+        "type": "main",
         "prompt": "According to Sam, why do people talk about the weather?",
         "options": [
           "The weather in the town changes very quickly",
@@ -136,6 +141,7 @@
         "evidence": "It's just an easy way to say hello."
       },
       {
+        "type": "inference",
         "prompt": "What does Mei mean when she says she will \"say it first\"?",
         "options": [
           "She will say goodbye before her neighbour does",
@@ -145,7 +151,9 @@
         ],
         "answer": 3,
         "evidence": "But if it rains again, I'm going to say it first!"
-      }
+      },
+      {"type": "vocab", "prompt": "What does \"private\" mean in \"Nobody has to share anything private\"?", "options": ["new", "funny", "personal, not for everyone to know", "about the weather"], "answer": 2, "evidence": "Nobody has to share anything private."},
+      {"type": "detail", "prompt": "What does Sam say you can do after talking about the weather?", "options": ["Ask about their family", "Talk about the news", "Chat, or just smile and say have a nice day", "Give them your phone number"], "answer": 2, "evidence": "Then you can chat, or just smile and say have a nice day."}
     ],
     "dictation_index": 3,
     "vocabulary": [
@@ -238,6 +246,7 @@
     "body": "A thank-you note is a short message to say thanks for a gift or help. It takes five minutes, but people may keep it for years. Here is an easy way to do it. First, say thank you for one clear thing. Write the name of the gift. Next, add one small detail. For example: The blue scarf keeps me warm on my way to work. This shows that you really use the gift. Then, say something nice about the person, like: You always know what I like. Finally, end with a warm line, such as: I hope to see you soon. If you write it by hand, it feels more personal. A phone message is fine too. Try to send it within a few days. A late note is better than no note at all.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main purpose of this text?",
         "options": [
           "To explain why handwritten notes are better than phone messages",
@@ -249,6 +258,7 @@
         "evidence": "Here is an easy way to do it."
       },
       {
+        "type": "detail",
         "prompt": "Why does the writer suggest adding a small detail about the gift?",
         "options": [
           "It makes the note look longer",
@@ -258,7 +268,9 @@
         ],
         "answer": 2,
         "evidence": "This shows that you really use the gift."
-      }
+      },
+      {"type": "inference", "prompt": "Why does the writer say \"A late note is better than no note at all\"?", "options": ["People prefer late notes", "Saying thanks matters even if you are slow", "Late notes are more personal", "You should always wait a month"], "answer": 1, "evidence": "A late note is better than no note at all."},
+      {"type": "vocab", "prompt": "What does \"personal\" mean in \"it feels more personal\"?", "options": ["official", "expensive", "made for one person, so it feels close and warm", "quick"], "answer": 2, "evidence": "If you write it by hand, it feels more personal."}
     ],
     "dictation_index": 10,
     "vocabulary": [
@@ -357,6 +369,7 @@
     "body": "Hi Xinyi, You asked about my nickname, so here is the story. My real name is Nadia, but my whole family calls me Pickle. When I was six, we went to my aunt's house for a big family dinner. There were lots of dishes on the table, but I only liked the pickles. I ate a whole bowl of them before the main meal! My uncle laughed and gave me a new name: Little Pickle. After that, the name stuck. Now I am twenty, and my cousins still use it. Even my old teachers know it, because my mother once shouted it at a school sports day. I don't mind, because it makes me smile. It always reminds me of that noisy, happy dinner. Do you have a nickname too? Tell me how you got it. Love, Nadia",
     "questions": [
       {
+        "type": "inference",
         "prompt": "How does Nadia feel about her nickname?",
         "options": [
           "She is a bit embarrassed and wants people to stop",
@@ -368,6 +381,7 @@
         "evidence": "I don't mind, because it makes me smile."
       },
       {
+        "type": "detail",
         "prompt": "Why did her uncle start calling her Little Pickle?",
         "options": [
           "She ate a whole bowl of pickles before the main meal",
@@ -377,7 +391,9 @@
         ],
         "answer": 0,
         "evidence": "I ate a whole bowl of them before the main meal!"
-      }
+      },
+      {"type": "main", "prompt": "What is the email mainly about?", "options": ["A school sports day", "Nadia's aunt's cooking", "How Nadia got her nickname", "How to make pickles"], "answer": 2, "evidence": "You asked about my nickname, so here is the story."},
+      {"type": "vocab", "prompt": "What does \"stuck\" mean in \"the name stuck\"?", "options": ["was written down", "was forgotten", "changed", "stayed and kept being used"], "answer": 3, "evidence": "After that, the name stuck."}
     ],
     "dictation_index": 2,
     "vocabulary": [

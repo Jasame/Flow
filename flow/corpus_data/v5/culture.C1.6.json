@@ -1,0 +1,158 @@
+[
+ {
+  "id": "v5-culture-c1-why-remakes-disappoint",
+  "title": "翻拍片为什么总让人失望",
+  "title_en": "Why Remakes Rarely Satisfy Anyone",
+  "summary_zh": "每部经典被翻拍，几乎都逃不过「不如原版」的评价。作者认为问题不只在片方，也在观众期待什么：好的翻拍是和过去对话，而不是复制它。读完你能用让步、对比和分词短语写一篇影视短评。",
+  "level": "B2",
+  "cefr": "C1",
+  "theme": "culture",
+  "genre": "opinion",
+  "purposes": [
+   "film-culture",
+   "argumentative",
+   "news-commentary"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Every few months another beloved film is announced as a remake, and the reaction online follows a script almost as predictable as the remake itself: fans protest, the studio insists it is honouring the original, and the finished film is greeted with a shrug. It is tempting to blame a lack of imagination in the industry, and there is some truth in that, since a familiar title is a safer bet than an unknown one. Yet I suspect the deeper problem lies with what audiences expect a remake to do. A film we loved at fifteen is not just a story; it is tangled up with who we were when we first saw it, the friends beside us and the room we watched it in. No new version, however skilfully made, can give that back. If a remake copies the original faithfully, it feels pointless; if it changes too much, it feels like a betrayal. Caught between those two failures, most remakes settle for a cautious middle ground that pleases nobody. The exceptions are revealing. The remakes that work tend to treat the original as raw material rather than as a monument, keeping its central idea while moving it to a different place, period or point of view. They are less interested in recreating famous scenes than in asking why the story mattered in the first place, and whether it still matters now. Admittedly, this requires a confidence that studios rarely show with an expensive title. But audiences could help by changing the question they ask, from whether the new film is as good as the old one to whether it has something of its own to say. Judged that way, a remake stops being a pale copy and becomes what the best adaptations have always been: a conversation with the past rather than an attempt to replace it.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the writer's main argument?",
+    "options": [
+     "Remakes should be banned",
+     "Old films are always better than new ones",
+     "Studios should only make original films",
+     "Remakes work best when they rethink the original instead of copying or replacing it"
+    ],
+    "answer": 3,
+    "evidence": "The remakes that work tend to treat the original as raw material rather than as a monument"
+   },
+   {
+    "type": "inference",
+    "prompt": "Why does the writer say no new version \"can give that back\"?",
+    "options": [
+     "Part of what people love in an old film is their own memory of watching it",
+     "The original actors are no longer available",
+     "New films are far too expensive",
+     "Studios do not own the rights to old films"
+    ],
+    "answer": 0,
+    "evidence": "it is tangled up with who we were when we first saw it"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"a pale copy\" mean in \"a remake stops being a pale copy\"?",
+    "options": [
+     "a colourful poster",
+     "a weak imitation with less life than the original",
+     "an exact replica",
+     "a cheaper cinema ticket"
+    ],
+    "answer": 1,
+    "evidence": "a remake stops being a pale copy"
+   },
+   {
+    "type": "detail",
+    "prompt": "According to the writer, how does a remake feel if it changes too much?",
+    "options": [
+     "Pointless",
+     "Like a success",
+     "Like a betrayal",
+     "Too long"
+    ],
+    "answer": 2,
+    "evidence": "if it changes too much, it feels like a betrayal"
+   }
+  ],
+  "dictation_index": 5,
+  "vocabulary": [
+   {
+    "term": "predictable",
+    "meaning": "可预料的",
+    "example": "The ending was so predictable that I guessed it in the first ten minutes."
+   },
+   {
+    "term": "betrayal",
+    "meaning": "背叛",
+    "example": "Changing the ending felt like a betrayal to the book's fans."
+   },
+   {
+    "term": "cautious",
+    "meaning": "谨慎的；小心的",
+    "example": "The bank took a cautious approach to the new plan."
+   },
+   {
+    "term": "revealing",
+    "meaning": "说明问题的；有启发的",
+    "example": "His answer was more revealing than he intended."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "greeted with a shrug",
+    "meaning": "反应冷淡",
+    "note": "be greeted with + 名词 表示“得到……的反应”：greeted with applause / silence。"
+   },
+   {
+    "text": "a safer bet",
+    "meaning": "更稳妥的选择",
+    "note": "bet 本义是赌注，a safe bet 指十拿九稳的事。"
+   },
+   {
+    "text": "tangled up with",
+    "meaning": "和……纠缠在一起",
+    "note": "常用来说情感、记忆与某事分不开。"
+   },
+   {
+    "text": "settle for",
+    "meaning": "将就；勉强接受",
+    "note": "settle for less / second best：不得不接受不够理想的结果。"
+   },
+   {
+    "text": "raw material",
+    "meaning": "原材料",
+    "note": "比喻用法：把原作当“素材”，而不是不能碰的纪念碑。"
+   },
+   {
+    "text": "in the first place",
+    "meaning": "起初；究竟",
+    "note": "追问根本原因时常用：Why did you agree in the first place?"
+   }
+  ],
+  "grammar": [
+   "clause-noun",
+   "link-contrast",
+   "nonfinite-clause"
+  ],
+  "knowledge": [
+   {
+    "node": "clause-noun",
+    "quote": "the deeper problem lies with what audiences expect a remake to do",
+    "explanation": "what audiences expect a remake to do 是介词 with 后面的宾语从句，what 在从句里作 do 的宾语。"
+   },
+   {
+    "node": "link-contrast",
+    "quote": "Admittedly, this requires a confidence that studios rarely show with an expensive title.",
+    "explanation": "Admittedly 先承认困难，下一句用 But 转回自己的建议，是议论文里常用的“让步—转折”。"
+   },
+   {
+    "node": "nonfinite-clause",
+    "quote": "Caught between those two failures, most remakes settle for a cautious middle ground that pleases nobody.",
+    "explanation": "过去分词短语 Caught between… 作状语，逻辑主语是 most remakes（“被夹在中间”），表示原因或状态。"
+   }
+  ],
+  "speaking": "用 1 分钟说说：你看过让你失望的翻拍或改编吗（不用讲剧情）？你觉得好的改编应该做到什么？用上 in the first place 和 settle for。",
+  "writing": "用 200–250 词写一篇短评：改编（小说改电影、老片翻拍）应该忠于原作，还是大胆改动？用 Admittedly… But… 的结构，至少用一个过去分词短语作状语。",
+  "task": {
+   "prompt": "仿照这句，用 … less interested in … than in … 写一句话，评价一部作品或一个人真正看重的是什么。",
+   "model": "They are less interested in recreating famous scenes than in asking why the story mattered in the first place"
+  },
+  "tags": [
+   "影视文化",
+   "观点评论"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

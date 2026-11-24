@@ -398,6 +398,14 @@ def save_profile(c, uid, data):
       ON CONFLICT(user_id) DO UPDATE SET level=excluded.level, goal=excluded.goal, themes=excluded.themes,
       minutes=excluded.minutes, updated=excluded.updated, voice=excluded.voice, target=excluded.target, level_source=excluded.level_source''',
               (uid, level, goal, json.dumps(themes), minutes, now, now, voice, target, source))
+    # 每周目标 (r28 第 6 段): 选方向和目标 asks how many days a week (2–7); a new learner who leaves it gets 5 days when
+    # preparing for an exam, 4 otherwise. A change keeps the weeks before at the goal they had (progress_service).
+    wg = data.get('weekly_goal')
+    wg = wg if type(wg) is int and 2 <= wg <= 7 else None if old else 5 if goal == 'exam' else 4
+    if wg and wg != (old.get('weekly_goal') or 4):
+        if old:
+            __import__('progress_service').goal_changed(c, uid, old.get('weekly_goal') or 4, wg)
+        c.execute('UPDATE next_profiles SET weekly_goal=? WHERE user_id=?', (wg, uid))
     # the exam goal (考试冲刺) in the same call, when it changed (an exam whose date has passed does not block other settings)
     if 'exam' in data and ((data.get('exam') or None), (data.get('exam_date') or None)) != (old.get('exam'), old.get('exam_date')):
         out, code = sp.set_goal(c, uid, {'exam': data.get('exam') or '', 'date': data.get('exam_date') or ''})
@@ -878,10 +886,17 @@ def habit(c, uid, goal, now=None):
     streak, w = 0, monday - D(weeks=1)
     while streak < 52 and count(w) >= goal:
         streak += 1; w -= D(weeks=1)
+    # r28 第 6 段: the last two weeks both short of the goal they had, each with some study: suggest the goal the learner
+    # actually keeps (at least 2 days), once, on Monday (the page). Weeks reached before stay reached.
+    hist, lower = PS._history(c, uid), None
+    w1, w2 = last, count(monday - D(weeks=2))
+    g1, g2 = (PS._goal_for(hist, (monday - D(weeks=k)).isoformat(), goal) for k in (1, 2))
+    if 0 < w1 < g1 and 0 < w2 < g2 and max(2, w1, w2) < goal:
+        lower = {'goal': max(2, w1, w2), 'weeks': [w2, w1]}
     return {'goal': goal, 'done': done, 'met': done >= goal, 'streak': streak + (done >= goal), 'monday': monday.isoformat(),
             'weeks': PS.weeks_reached(c, uid, goal, days, monday),
             'days': [{'day': (monday + D(days=k)).isoformat(), 'active': monday + D(days=k) in days, 'today': monday + D(days=k) == today} for k in range(7)],
-            'last_week': {'done': last, 'met': last >= goal}}
+            'last_week': {'done': last, 'met': last >= goal}, 'lower': lower}
 
 
 def set_weekly_goal(c, uid, data):
@@ -1188,7 +1203,7 @@ def rewrite(c, uid, data):
     another sentence; better ways to say the same thing go in versions, in the learner's own words and topic; using
     the lesson's pattern is suggested in the summary, not done for them. An answer whose corrected is another sentence
     is asked for once more; if it is still not the learner's sentence, it is not shown (ai_eval.py checks this)."""
-    from lab_service import run_job, text as clean_text, parse
+    from lab_service import run_job, mtext as clean_text, parse  # model output: cut, not refused, when long
     from chat_service import request_model
     row = _pack_row(c, uid, str(data.get('pack', '')))
     if not row:
@@ -1235,7 +1250,7 @@ def rewrite(c, uid, data):
         if not isinstance(raw, dict):
             raise ValueError('bad')
         out = {'verdict': raw.get('verdict') if raw.get('verdict') in ('natural', 'minor', 'rewrite') else 'minor',
-               'summary': clean_text(raw.get('summary'), 1, 300), 'corrected': clean_text(raw.get('corrected'), 1, 900),
+               'summary': clean_text(raw.get('summary'), 1, 300, 'summary_empty'), 'corrected': clean_text(raw.get('corrected'), 1, 900, 'corrected_empty'),
                'changes': [], 'versions': [], 'keep': None, 'used_well': []}
         if not kept_own_sentence(answer, out['corrected']):
             raise ValueError('corrected is another sentence')  # asked for once more already (invoke): not shown
@@ -1343,7 +1358,7 @@ def pron_score(r):
 
 def shadow(c, uid, data):
     """Shadowing: the learner reads one sentence aloud; AI transcribes it and points out what to fix."""
-    from lab_service import run_job, text as clean_text, audio_enabled
+    from lab_service import run_job, mtext as clean_text, audio_enabled, Shape, mnum  # model output: lenient
     from chat_service import request_model
     from audio_validation import validate_audio
     if not audio_enabled():
@@ -1378,10 +1393,10 @@ def shadow(c, uid, data):
             '"issues":[{"word":"原句中的词或短语","note":"中文：问题和改法"}],"tip":"一句最重要的中文建议"}。'
             'sounds 最多 3 条，issues 最多 3 条，读得好就给空数组。')
 
-    def score_of(v):
+    def score_of(v):  # 85, "85", "85分", "85%", "8.5/10"
         try:
-            return max(0, min(100, int(round(float(v)))))
-        except (TypeError, ValueError):
+            return int(round(mnum(v, 0, 100)))
+        except Shape:
             return None
 
     def convert(raw):
@@ -1634,6 +1649,8 @@ def post_public(c, uid, path, data):
     """Routes open to guests (no state change for guests)."""
     if path == '/api/next/tts':  # the server voice: guests get stored sentences, learners may make new ones (tts_service)
         return __import__('tts_service').post(c, uid, data)
+    if path == '/api/next/tts/have':  # which sentences of an article are made already (伴读: 「正在准备朗读 12/30 句」)
+        return __import__('tts_service').have(c, uid, data)
     if path == '/api/next/tap':
         return tap(c, data)
     if path == '/api/next/check':

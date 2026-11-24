@@ -153,6 +153,7 @@ def request_model(messages,audio=None,grounding=False):
  elif hearing:order.append('audio')
  elif not audio and not grounding and text_provider(text_model):order.append('text')
  order.append('main')
+ if getattr(MAIN_ONLY,'on',False):order=['main']  # run_job's last try after answers it could not take: Gemini only, no route
  if len(order)==1:order.append('main')  # one retry on the only service
  ai_routes.CTX.route=text_model if order[0]=='text' else search[2] if order[0]=='search' else hearing if order[0]=='audio' else ''
  last=None
@@ -179,6 +180,16 @@ def request_model(messages,audio=None,grounding=False):
 
 
 INFO=__import__('threading').local()  # the last call's usage and answering model (ai_routes.record)
+MAIN_ONLY=__import__('threading').local()
+
+
+@__import__('contextlib').contextmanager
+def main_only():
+ """Inside, request_model asks the main service (Gemini) only: after the task's own model twice answered in a shape the
+ converter could not take (lab_service.run_job), another vendor gets the last word."""
+ old=getattr(MAIN_ONLY,'on',False);MAIN_ONLY.on=True
+ try:yield
+ finally:MAIN_ONLY.on=old
 
 
 def _request_text_service(messages,model=None,extra=None):
@@ -269,6 +280,17 @@ def _request_main(messages,audio=None,grounding=False):
  return _openai_compatible(endpoint,key,model,messages,audio,grounding)
 
 
+def audio_timeout():
+ """Seconds a recording may take on the main service before the learner is told (FLOW_AUDIO_TIMEOUT, 15–85; default
+ 85, as before). 2026-11-25: Vertex was slow on recordings and every one waited the relay's full 65 s; a site can answer
+ sooner with e.g. 40. Normal Gemini turns took up to ~37 s in voice_eval, so not much lower."""
+ try:
+  v=int(os.getenv('FLOW_AUDIO_TIMEOUT','85'))
+ except ValueError:
+  return 85
+ return v if 15<=v<=85 else 85
+
+
 def _openai_compatible(endpoint,key,model,messages,audio,grounding,extra=None):
  from vertex_auth import AIConfigurationError
  if not endpoint_ok(endpoint) or not model or not key:raise AIConfigurationError('AI configuration incomplete')
@@ -279,7 +301,7 @@ def _openai_compatible(endpoint,key,model,messages,audio,grounding,extra=None):
   from audio_validation import validate_audio
   validate_audio(audio);payload['flow_audio']=audio
  req=urllib.request.Request(endpoint,data=json.dumps(payload,ensure_ascii=False).encode(),headers={'User-Agent':'jasa-flow/1.0','Authorization':'Bearer '+key,'Content-Type':'application/json'})
- with urllib.request.urlopen(req,timeout=85) as r:
+ with urllib.request.urlopen(req,timeout=audio_timeout() if audio else 85) as r:
   if ai_stream.active():
    if 'text/event-stream' not in r.headers.get('Content-Type',''):raise AIConfigurationError('Gateway streaming upgrade required')
    reply='';reason=None;metadata={};started=time.monotonic()

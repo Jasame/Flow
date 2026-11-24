@@ -1,0 +1,156 @@
+[
+ {
+  "id": "v5-work-b1-to-do-list-that-works",
+  "title": "写一份真正有用的待办清单",
+  "title_en": "How to Write a To-Do List That Works",
+  "summary_zh": "待办清单越写越长，事情却没做完？试试这几招：把大任务拆小、每天只挑三件最重要的、给每件事估个时间。读完你能用祈使句和 instead of 给出清楚的工作建议。",
+  "level": "B1",
+  "cefr": "B1",
+  "theme": "work",
+  "genre": "guide",
+  "purposes": [
+   "workplace"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Many people start the day with a long to-do list and end it feeling that they have done nothing. The problem is often not the work but the list itself. Here are a few simple ways to make your list more useful. First, write tasks as clear actions. Instead of writing \"report\", write \"send the first page of the sales report to Mia\". When a task is clear, it is much easier to start. Second, break big jobs into smaller steps. A task that takes three days can sit on a list for weeks, but a step that takes thirty minutes feels possible. Third, choose the three most important tasks for today and put them at the top. Everything else can wait until those are finished. It also helps to write down roughly how long each task will take, because most of us are too hopeful about time. Finally, look at your list at the end of the day and move anything unfinished to tomorrow without feeling guilty. A good list is not a record of everything you could do; it is a plan for what you will actually do.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the main purpose of the guide?",
+    "options": [
+     "To explain how to make a to-do list more useful",
+     "To say that to-do lists are a waste of time",
+     "To describe a sales report",
+     "To show how to work longer hours"
+    ],
+    "answer": 0,
+    "evidence": "Here are a few simple ways to make your list more useful."
+   },
+   {
+    "type": "inference",
+    "prompt": "Why does the writer suggest writing down how long each task will take?",
+    "options": [
+     "Managers want to know",
+     "People usually think tasks will take less time than they really do",
+     "It makes the list look longer",
+     "It is a company rule"
+    ],
+    "answer": 1,
+    "evidence": "because most of us are too hopeful about time"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"guilty\" mean in \"without feeling guilty\"?",
+    "options": [
+     "tired",
+     "excited",
+     "bad, as if you have done something wrong",
+     "bored"
+    ],
+    "answer": 2,
+    "evidence": "without feeling guilty"
+   },
+   {
+    "type": "detail",
+    "prompt": "How many tasks should you put at the top of the list for today?",
+    "options": [
+     "One",
+     "Five",
+     "Ten",
+     "Three"
+    ],
+    "answer": 3,
+    "evidence": "choose the three most important tasks for today and put them at the top"
+   }
+  ],
+  "dictation_index": 5,
+  "vocabulary": [
+   {
+    "term": "tasks",
+    "meaning": "任务",
+    "example": "I have three tasks to finish before lunch."
+   },
+   {
+    "term": "actions",
+    "meaning": "行动；动作",
+    "example": "Write the next actions clearly."
+   },
+   {
+    "term": "roughly",
+    "meaning": "大约",
+    "example": "The trip takes roughly two hours."
+   },
+   {
+    "term": "unfinished",
+    "meaning": "未完成的",
+    "example": "There is some unfinished work on my desk."
+   },
+   {
+    "term": "guilty",
+    "meaning": "内疚的",
+    "example": "I felt guilty for forgetting her birthday."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "to-do list",
+    "meaning": "待办清单",
+    "note": "I keep my to-do list on my phone."
+   },
+   {
+    "text": "Instead of",
+    "meaning": "代替；而不是",
+    "note": "Instead of + -ing / 名词：Instead of waiting, he called."
+   },
+   {
+    "text": "break big jobs into smaller steps",
+    "meaning": "把大任务拆成小步骤",
+    "note": "break sth into… 把……分成……"
+   },
+   {
+    "text": "can wait",
+    "meaning": "可以晚点再做",
+    "note": "The emails can wait until tomorrow."
+   },
+   {
+    "text": "write down",
+    "meaning": "写下；记下",
+    "note": "Write down the number before you forget."
+   }
+  ],
+  "grammar": [
+   "clause-adverb",
+   "compare-basic",
+   "nonfinite-infinitive"
+  ],
+  "knowledge": [
+   {
+    "node": "clause-adverb",
+    "quote": "Everything else can wait until those are finished.",
+    "explanation": "until 引导时间状语从句：等那三件做完再说。从句用一般现在时的被动 are finished 表示将来。"
+   },
+   {
+    "node": "compare-basic",
+    "quote": "When a task is clear, it is much easier to start.",
+    "explanation": "much + 比较级 easier 表示“容易得多”；it is easier to start 用 it 作形式主语。"
+   },
+   {
+    "node": "nonfinite-infinitive",
+    "quote": "It also helps to write down roughly how long each task will take",
+    "explanation": "It helps to do… 用 it 作形式主语，真正的主语是后面的不定式 to write down…"
+   }
+  ],
+  "speaking": "用 1 分钟说说：你平时怎么安排一天要做的事？分享两个让你更有效率的办法。用上 instead of 和 break… into…。",
+  "writing": "用 80–100 词写一份给新同事或同学的小建议：怎样安排每天的任务。用两个祈使句和一个 When… 句子。",
+  "task": {
+   "prompt": "仿照这句，用 A good … is not …; it is … 写一句话，说说你对一样东西的理解。",
+   "model": "A good list is not a record of everything you could do; it is a plan for what you will actually do."
+  },
+  "tags": [
+   "职场技能",
+   "时间管理"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]
