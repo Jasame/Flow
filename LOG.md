@@ -74,3 +74,11 @@
   - #103 内容线第 2 批：28 篇新精选 + A2 补到 4 道题（内容、操作指南）
 - 自检：DEPLOYED，装了 39 个文件（22 个新的）；轻量 e2e 149/149，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45465456013
+
+### b20 · 2026-11-25 03:11
+- main `4f6f438`，构建 `236f6e0`
+- 新合并的 PR（自 b19 起）：
+  - #106 tools/ios_sim_check.py：iPhone 清单在 iOS 模拟器里自动跑（发版和构建）
+  - #105 r28 第 3 段：单词按每天时间封顶、回归补积压、词书背完推荐下一本（单词、开局和考试、操作指南）
+- 自检：DEPLOYED，装了 5 个文件（0 个新的）；轻量 e2e 149/149，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45467345146
