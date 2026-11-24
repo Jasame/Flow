@@ -284,6 +284,7 @@ flow/tests/test_channels.py
 flow/tests/test_chat.py
 flow/tests/test_classes.py
 flow/tests/test_coach.py
+flow/tests/test_content_fallback.py
 flow/tests/test_continuity.py
 flow/tests/test_corpus.py
 flow/tests/test_corpus_v5.py
