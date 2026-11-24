@@ -153,6 +153,7 @@ def request_model(messages,audio=None,grounding=False):
  elif hearing:order.append('audio')
  elif not audio and not grounding and text_provider(text_model):order.append('text')
  order.append('main')
+ if getattr(MAIN_ONLY,'on',False):order=['main']  # run_job's last try after answers it could not take: Gemini only, no route
  if len(order)==1:order.append('main')  # one retry on the only service
  ai_routes.CTX.route=text_model if order[0]=='text' else search[2] if order[0]=='search' else hearing if order[0]=='audio' else ''
  last=None
@@ -179,6 +180,16 @@ def request_model(messages,audio=None,grounding=False):
 
 
 INFO=__import__('threading').local()  # the last call's usage and answering model (ai_routes.record)
+MAIN_ONLY=__import__('threading').local()
+
+
+@__import__('contextlib').contextmanager
+def main_only():
+ """Inside, request_model asks the main service (Gemini) only: after the task's own model twice answered in a shape the
+ converter could not take (lab_service.run_job), another vendor gets the last word."""
+ old=getattr(MAIN_ONLY,'on',False);MAIN_ONLY.on=True
+ try:yield
+ finally:MAIN_ONLY.on=old
 
 
 def _request_text_service(messages,model=None,extra=None):

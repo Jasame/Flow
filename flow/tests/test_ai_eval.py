@@ -167,9 +167,8 @@ class MarkingTests(Site):
         self.assertEqual({k: v for k, v in self.failed(self.run_with()).items() if k.startswith('dialog')}, {})
         failed = self.failed(self.run_with(over_correct=True))
         self.assertEqual(set(k for k in failed if k.startswith('dialog')), {'dialog-turn-correct'})  # a right sentence was corrected
-        failed = self.failed(self.run_with(dialog_end={'summary': None}))  # the beta's 2026-11-25 case: no summary, the site refuses it
-        self.assertIn('dialog-end-three-errors', failed)
-        self.assertIn('没有结果', failed['dialog-end-three-errors'][0])
+        # the beta's 2026-11-25 case, no summary: refused then; since #90 the site fills in a line and keeps the rest
+        self.assertIsNone(self.failed(self.run_with(dialog_end={'summary': None})).get('dialog-end-three-errors'))
         self.assertEqual(self.failed(self.run_with(dialog_end={'score': '0.8'})).get('dialog-end-three-errors'), None)  # a score as text is read
         failed = self.failed(self.run_with(dialog_end={'fixes': [{'from': 'they works', 'to': 'they work', 'why': '…'}]}))
         self.assertEqual(failed['dialog-end-three-errors'], ['学员的 3 处错误只指出 1 处'])
