@@ -290,10 +290,11 @@ class BudgetTests(Site):
                 self.assertEqual(ai_routes.check_budget(c), ['over'])
                 self.assertTrue(ai_routes.over_budget(c))
                 self.assertEqual(ai_routes.check_budget(c), [])
-            mails = sorted(outbox.iterdir())
+            mails = sorted(outbox.glob('*.txt'))  # each mail's text (its HTML is the .html beside it)
             self.assertEqual(len(mails), 2)
             self.assertIn('To: ' + BOSS, mails[1].read_text())
             self.assertIn('超过今日预算', mails[1].read_text())
+            self.assertIn('https://xmc.hk/flow#ai', mails[1].with_suffix('.html').read_text())  # the shared layout, with a button
 
     def test_no_budget_no_mail(self):
         self.spend(500)
