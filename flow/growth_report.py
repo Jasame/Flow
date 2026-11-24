@@ -37,14 +37,8 @@ def _words_read(c, uid, lo, hi):
 
 
 def _days(c, uid, lo, hi):
-    days = set()
-    for (t,) in c.execute('SELECT created FROM next_progress WHERE user_id=? AND created>=? AND created<? UNION ALL '
-                          'SELECT created FROM next_reviews WHERE user_id=? AND created>=? AND created<? UNION ALL '
-                          'SELECT created FROM next_skill_events WHERE user_id=? AND created>=? AND created<? UNION ALL '
-                          'SELECT created FROM learning_events WHERE user_id=? AND created>=? AND created<? UNION ALL '
-                          'SELECT created FROM next_easy_reads WHERE user_id=? AND created>=? AND created<?', (uid, lo, hi) * 5):
-        days.add(nx._day(t))
-    return len(days)
+    """Days studied in [lo, hi), by the same rule as 每周目标 (progress_service.study_days: anything learned)."""
+    return len(__import__('progress_service').study_days(c, uid, lo, hi))
 
 
 def _figures(c, uid, lo, hi):

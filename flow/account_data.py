@@ -24,6 +24,7 @@ GUIDE = {
     'next_exam_results': '考试练习的成绩', 'next_easy_reads': '轻松读：读了什么、多快', 'next_word_practice': '单词练习的每一题',
     'next_node_notes': '语法点笔记', 'next_grammar_review': '语法复习', 'next_vocab_plans': '词书计划', 'next_reminders': '每天提醒',
     'feedback': '你发过的问题反馈（截图不在文件里）', 'lab_packs': '你导入的文章',
+    'next_goal_weeks': '每周目标改过几次：每个目标从哪一周开始算', 'next_weekly': '每周进度邮件：收不收、上次什么时候发的',
     'class_members': '加入过的班级：什么时候加入、什么时候退出（班级名在最上面的「班级」里）',
 }
 
