@@ -2279,6 +2279,177 @@ def start_run(pw):
         browser.close()
 
 
+# ---- 主屏 App (Safari 「添加到主屏幕」, 04-home-app.js): opened from the home screen there is no browser back, the
+# Dynamic Island and the home bar take the screen's edges, the keyboard covers what is fixed, and the app may sleep for
+# days. Chrome stands in for the iPhone: navigator.standalone, the safe areas set through --sat/--sab/--sal/--sar
+# (00-base.css), and a visualViewport whose height the test sets as a keyboard would.
+HOME_SIZES = {  # name -> (width, height, top, bottom, left/right inset)
+    'iphone-15-pro': (393, 852, 59, 34, 0), 'iphone-15-pro-land': (852, 393, 0, 21, 59), 'iphone-se': (375, 667, 0, 0, 0)}
+HOME_INIT = """(([t, b, s]) => {
+  Object.defineProperty(Navigator.prototype, 'standalone', { get: () => true, configurable: true });
+  const vv = new EventTarget(); let h = null;
+  Object.defineProperties(vv, { height: { get: () => h == null ? innerHeight : h }, offsetTop: { get: () => 0 }, offsetLeft: { get: () => 0 },
+    width: { get: () => innerWidth }, scale: { get: () => 1 }, pageTop: { get: () => scrollY } });
+  Object.defineProperty(window, 'visualViewport', { value: vv, configurable: true });
+  window.__kb = px => { h = px ? innerHeight - px : null; vv.dispatchEvent(new Event('resize')); };
+  document.addEventListener('DOMContentLoaded', () => { const r = document.documentElement.style;
+    r.setProperty('--sat', t + 'px'); r.setProperty('--sab', b + 'px'); r.setProperty('--sal', s + 'px'); r.setProperty('--sar', s + 'px'); });
+})(%s)"""
+HOME_SUB = ['#/m/{pid}/listen', '#/m/{pid}/read', '#/m/{pid}/output/essay', '#/review', '#/vocab/test', '#/vocab/plan', '#/exam/cet4', '#/exam/cet4/banked',
+            '#/graph', '#/graph/voice-basic', '#/import', '#/report', '#/growth', '#/radar', '#/radar/test', '#/guide', '#/guide/words', '#/feedback',
+            '#/library', '#/welcome/edit', '#/speak', '#/easy', '#/sounds', '#/placement', '#/mix', '#/words/confuse']
+BACK_JS = """() => { const b = document.getElementById('backBtn'); if (!b || b.hidden || b.offsetParent === null) return null; const r = b.getBoundingClientRect();
+  return { top: Math.round(r.top), bottom: Math.round(r.bottom), w: Math.round(r.width), h: Math.round(r.height), label: b.textContent.trim(),
+           brand: !document.querySelector('.bar .brand').hidden }; }"""
+
+
+def home_app_run(pw):
+    dev = 'home-app'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    tok = CFG['learners']['home-app']['token']
+
+    def context(size, theme='light', signed=True):
+        w, h, t, b, s = HOME_SIZES[size]
+        ctx = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=True, has_touch=True, device_scale_factor=3, locale='zh-CN',
+                                  color_scheme=theme, bypass_csp=True)
+        ctx.add_init_script(HOME_INIT % json.dumps([t, b, s]))
+        if signed:
+            ctx.add_cookies([{'name': 'flow_session', 'value': tok, 'url': BASE}])
+        pg = ctx.new_page(); errs = []
+        pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        return ctx, pg, errs
+    try:
+        for size, (w, h, top, bottom, side) in HOME_SIZES.items():
+            ctx, pg, errs = context(size)
+            pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+            check(dev, f'{size}: the page knows it is a home-screen app', pg.evaluate("document.documentElement.classList.contains('home-app')"))
+            # the four tabs: no back button, the logo below the Dynamic Island, every tab above the home bar
+            for page in ('#/', '#/practice', '#/cards', '#/me'):
+                go(pg, page)
+                tabs = pg.evaluate("""() => { const t = [...document.querySelectorAll('.tabs a')].filter(a => a.offsetParent !== null).map(a => a.getBoundingClientRect());
+                  const brand = document.querySelector('.bar .brand').getBoundingClientRect();
+                  return { n: t.length, low: t.length ? Math.round(Math.max(...t.map(r => r.bottom))) : null, brandTop: Math.round(brand.top), back: !document.getElementById('backBtn').hidden }; }""")
+                check(dev, f'{size} {page}: no back button; the logo clears the top inset; the tabs clear the home bar',
+                      not tabs['back'] and tabs['brandTop'] >= top and (tabs['n'] == 0 or tabs['low'] <= h - bottom), tabs)
+            # every other page: a back button in the first screen, below the Dynamic Island, big enough to tap
+            pid = PID
+            for page in HOME_SUB:
+                page = page.format(pid=pid)
+                go(pg, page); pg.wait_for_timeout(150)
+                bk = pg.evaluate(BACK_JS)
+                check(dev, f'{size} {page}: a back button at the top, clear of the inset, at least 44×40',
+                      bk and bk['top'] >= top and bk['bottom'] <= top + 80 and bk['w'] >= 44 and bk['h'] >= 40 and not bk['brand'], bk)
+                if size == 'iphone-15-pro' and page in (f'#/m/{pid}/read', '#/vocab/test', '#/review'):
+                    pg.screenshot(path=str(OUT / f"home-app-{page.strip('#/').replace('/', '_')}.png"))
+            # review (the tabs hidden): its answers clear the home bar
+            go(pg, '#/review'); pg.wait_for_timeout(300)
+            low = pg.evaluate("() => { scrollTo(0, document.scrollingElement.scrollHeight); const b = [...document.querySelectorAll('#view .review button, #view .review a')].filter(x => x.offsetParent !== null).map(x => x.getBoundingClientRect().bottom); return b.length ? Math.round(Math.max(...b)) : null; }")
+            check(dev, f'{size} review: with the tabs hidden, its controls clear the home bar', low is None or low <= h - bottom, (low, h - bottom))
+            check(dev, f'{size}: no script errors', not errs, errs[:3])
+            ctx.close()
+
+        ctx, pg, errs = context('iphone-15-pro')
+        # back goes to the page before when the app has one; opened straight on a page, to that page's tab
+        pg.goto(BASE + f'/#/m/{PID}/read', wait_until='networkidle'); settle(pg)
+        first = pg.evaluate(BACK_JS)
+        pg.click('#backBtn'); settle(pg)
+        to_tab = pg.evaluate('location.hash')
+        go(pg, '#/library'); go(pg, f'#/m/{PID}/listen')
+        second = pg.evaluate(BACK_JS)
+        pg.click('#backBtn'); settle(pg)
+        check(dev, 'back: opened straight on a material it says 今日 and goes there; after 全部材料 it says 返回 and goes back to it',
+              first and first['label'] == '今日' and to_tab in ('#/', '') and second and second['label'] == '返回' and pg.evaluate('location.hash') == '#/library',
+              (first, to_tab, second, pg.evaluate('location.hash')))
+        go(pg, '#/exam/cet4/banked')
+        bk = pg.evaluate(BACK_JS); pg.click('#backBtn'); settle(pg)
+        check(dev, 'back from 题型专练 (exam area) returns to the page before (全部材料)', bk and bk['label'] == '返回' and pg.evaluate('location.hash') == '#/library',
+              (bk, pg.evaluate('location.hash')))
+        # light and dark: the back button and the new-version line are named and readable
+        for theme in ('light', 'dark'):
+            c2, p2, e2 = context('iphone-15-pro', theme)
+            p2.route('**/api/version', lambda r: r.fulfill(status=200, content_type='application/json', body='{"asset": "a11y-version"}'))
+            p2.goto(BASE + f'/#/m/{PID}/check', wait_until='networkidle'); settle(p2)
+            p2.wait_for_selector('#updateBar', timeout=9000)
+            bad = []
+            for kind, items in p2.evaluate(A11Y_JS).items():
+                bad += [f'{kind}: {x if isinstance(x, str) else json.dumps(x, ensure_ascii=False)}' for x in items if 'backBtn' in str(x) or 'update' in str(x) or 'ub-' in str(x)]
+            check(dev, f'{theme}: the back button and the new-version line have names and contrast', not bad, f'{len(bad)}: ' + ' | '.join(bad[:4]))
+            p2.screenshot(path=str(OUT / f'home-app-update-{theme}.png'))
+            c2.close()
+        check(dev, 'no script errors (back)', not errs, errs[:3])
+        ctx.close()
+
+        # the keyboard: a field and its button stay above it (iPhone SE: the smallest screen); a sheet stands on it
+        for size, kb in (('iphone-se', 260), ('iphone-15-pro', 336)):
+            ctx, pg, errs = context(size)
+            hh = HOME_SIZES[size][1]
+            pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+            for page, field, button, start in ((f'#/m/{PID}/output', '#ans', '#go', None), (f'#/m/{PID}/output/essay', '#esIn', '#esGo', None),
+                                               (f'#/m/{PID}/output/dialog', '#dlgText', '#dlgSend', '#dlgStart'), ('#/import', 'textarea[name=text]', '#view form .btn.primary', None)):
+                go(pg, page)
+                if start:
+                    pg.click(start); pg.wait_for_selector(field, state='visible', timeout=8000)
+                pg.wait_for_selector(field, state='visible', timeout=8000)
+                pg.focus(field); pg.wait_for_timeout(100)
+                pg.evaluate(f'__kb({kb})'); pg.wait_for_timeout(500)
+                got = pg.evaluate("""([f, b]) => { const r = document.querySelector(f).getBoundingClientRect(), s = document.querySelector(b).getBoundingClientRect();
+                  return [Math.round(r.top), Math.round(r.bottom), Math.round(s.bottom)]; }""", [field, button])
+                check(dev, f'{size} keyboard {kb}px on {page}: the field and its button stay above it', got[0] >= 0 and got[1] <= hh - kb and got[2] <= hh - kb, (got, hh - kb))
+                if size == 'iphone-se' and field == '#ans':
+                    pg.screenshot(path=str(OUT / 'home-app-keyboard-se.png'))
+                pg.evaluate('__kb(0)'); pg.evaluate('document.activeElement.blur()'); pg.wait_for_timeout(150)
+            go(pg, '#/vocab/plan'); pg.click('#impBook'); pg.wait_for_selector('#impText', timeout=6000); pg.wait_for_timeout(300)
+            pg.focus('#impText'); pg.evaluate(f'__kb({kb})'); pg.wait_for_timeout(500)
+            sh = pg.evaluate("""() => { const c = document.getElementById('sheetCard').getBoundingClientRect(), t = document.getElementById('impText').getBoundingClientRect(),
+              g = document.getElementById('impGo').getBoundingClientRect(); return [Math.round(c.bottom), Math.round(t.top), Math.round(g.bottom), Math.round(c.top)]; }""")
+            check(dev, f'{size} keyboard {kb}px in a sheet: the sheet stands on the keyboard, its field and button in sight',
+                  sh[0] <= hh - kb + 1 and sh[1] >= sh[3] and sh[2] <= hh - kb, (sh, hh - kb))
+            pg.evaluate('__kb(0)')
+            check(dev, f'{size}: no script errors (keyboard)', not errs, errs[:3])
+            ctx.close()
+
+        # a new version on the server: taken at once on a resting page (and tried once only); elsewhere one line offers it
+        ctx, pg, errs = context('iphone-15-pro')
+        pg.route('**/api/version', lambda r: r.fulfill(status=200, content_type='application/json', body='{"asset": "newer-version"}'))
+        loads = []
+        pg.on('load', lambda: loads.append(1))
+        pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+        pg.wait_for_timeout(9000)  # the check 4 s after opening, the reload, the check after it
+        bar_after = pg.query_selector('#updateBar') is not None
+        check(dev, 'new version on 今日: reloaded once to take it; when the page is still old after that, only the line offers it (no reload loop)',
+              len(loads) == 2 and bar_after, (len(loads), bar_after))
+        ctx.close()
+        ctx, pg, errs = context('iphone-15-pro')
+        pg.route('**/api/version', lambda r: r.fulfill(status=200, content_type='application/json', body='{"asset": "newer-version"}'))
+        loads = []
+        pg.on('load', lambda: loads.append(1))
+        pg.goto(BASE + f'/#/m/{PID}/check', wait_until='networkidle'); settle(pg)
+        pg.wait_for_selector('#updateBar', timeout=9000)
+        stayed = len(loads) == 1
+        pg.click('#updateBar .ub-go'); pg.wait_for_timeout(5500)  # here no new worker comes, so the full 4 s wait
+        check(dev, 'new version while answering questions: no reload, one line; a tap on it reloads', stayed and len(loads) == 2, (stayed, len(loads)))
+        ctx.close()
+        # on 今日 but something playing (the mini player, 好句, shadowing): no reload, only the line
+        ctx, pg, errs = context('iphone-15-pro')
+        ctx.add_init_script("Object.defineProperty(HTMLMediaElement.prototype, 'paused', { get: () => false, configurable: true })")
+        pg.route('**/api/version', lambda r: r.fulfill(status=200, content_type='application/json', body='{"asset": "newer-version"}'))
+        loads = []
+        pg.on('load', lambda: loads.append(1))
+        pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+        pg.wait_for_selector('#updateBar', timeout=9000); pg.wait_for_timeout(1000)
+        check(dev, 'new version on 今日 while audio plays: no reload, only the line', len(loads) == 1, len(loads))
+        ctx.close()
+        ctx, pg, errs = context('iphone-15-pro')
+        loads = []
+        pg.on('load', lambda: loads.append(1))
+        pg.goto(BASE + '/', wait_until='networkidle'); settle(pg); pg.wait_for_timeout(5500)
+        ver = pg.evaluate("fetch('/api/version').then(r => r.json())")
+        check(dev, 'the same version: /api/version answers it, and nothing reloads or shows', ver.get('asset') and len(loads) == 1 and pg.query_selector('#updateBar') is None, (ver, len(loads)))
+        ctx.close()
+    finally:
+        browser.close()
+
+
 def main():
     with sync_playwright() as pw:
         if not ONLY or 'about' in ONLY:
@@ -2334,6 +2505,12 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('listen-speak', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'home-app' in ONLY:
+            try:
+                home_app_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('home-app', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'start' in ONLY:
             try:
                 start_run(pw)
