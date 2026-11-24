@@ -222,11 +222,14 @@
 
   /* ---------- short sounds on iPhones and iPads ---------- */
   // An <audio> is a media session for iOS: every play() sets one up (the Dynamic Island and Now Playing show it and take
-  // it away again), and the moment that takes ate the start of a word (the owner, 2026-11-24). The way chosen (the
-  // owner, through 语流 1, 2026-11-25: the ringer switch must never silence a word; the island as little as possible):
-  // short <audio> clips cut by the server with silence in front (CLIP below; under 0.95 s an <audio> is not shown in
-  // Now Playing). Web Audio (AUDIO, here) only behind ?audio=webaudio, to compare on a phone: a buffer source starts on
-  // the context's own clock, so nothing is lost, but see below. What WebKit does (its source, read 2026-11-25):
+  // it away again), and the moment that takes ate the start of a word (the owner, 2026-11-24). Two ways, both on the
+  // 内测版 until the owner has tried them on an iPhone and chosen one before the next release (语流 1, 2026-11-25):
+  //  - 自动 (the default): Web Audio (AUDIO, here). A buffer source starts on the context's own clock, so nothing is
+  //    lost; the island shows 「语流 · 单词」 while words are being played, and goes 20 s after the last.
+  //  - 兼容模式 (我的 → 设置 → 单词读音方式, or ?audio=element in Safari): short <audio> clips cut by the server with
+  //    silence in front (CLIP below). Under 0.95 s an <audio> is not shown in Now Playing: about 66% of the American
+  //    and 55% of the British words are, with 0.2 s in front.
+  // Neither is silenced by the ringer switch. What WebKit does (its source, read 2026-11-25):
   //  - an AudioContext alone is in the Ambient category, which the ringer switch mutes, unless navigator.audioSession.type
   //    is 'playback' (or 'play-and-record'); under those it is eligible for Now Playing (AudioContext::isNowPlayingEligible)
   //    while it runs, so it is named 「语流」 (MS) and suspended 20 s after the last sound;
@@ -234,20 +237,23 @@
   //  - setting the type is refused where the page may not use the microphone: then this player is not used, and the
   //    short <audio> clips below are (the ringer switch does not mute those);
   //  - iOS 26 home-screen apps: a context may stay silent after the app comes back (WebKit bug 291892): it is closed when
-  //    the page is hidden and made again for the next sound. ?audio=webaudio turns this player on (?audio=auto: off).
+  //    the page is hidden and made again for the next sound.
   const WORD_CLIPS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  (() => {  // switches for trying on a phone: ?audio=webaudio|auto, ?lead=0.05–0.4|auto (seconds of silence before a word)
-    const q = location.search, a = /[?&]audio=(webaudio|element|auto)\b/.exec(q), l = /[?&]lead=([\d.]+|auto)\b/.exec(q);
-    if (a) save('flow-audio', a[1] === 'webaudio' ? 'webaudio' : null);
+  (() => {  // switches for trying in Safari: ?audio=element|compat|auto|webaudio, ?lead=0.05–0.4|auto (silence before a word)
+    const q = location.search, a = /[?&]audio=(webaudio|element|compat|auto)\b/.exec(q), l = /[?&]lead=([\d.]+|auto)\b/.exec(q);
+    if (a) save('flow-audio', a[1] === 'element' || a[1] === 'compat' ? 'compat' : null);
     if (l) save('flow-lead', l[1] === 'auto' ? null : Number(l[1]));
   })();
   // the silence in front of a cut clip: long enough for an iPhone to wake its sound, short enough that most words stay
-  // under 0.95 s (word_clip.LEAD; at 0.25 s about three in ten words do, the rest show once in the Dynamic Island)
-  const CLIP_LEAD = (v => (v >= 0.05 && v <= 0.4 ? v : 0.25))(Number(load('flow-lead')));
+  // under 0.95 s (word_clip.LEAD; with 0.2 s, 66% of the American and 55% of the British words do)
+  const CLIP_LEAD = (v => (v >= 0.05 && v <= 0.4 ? v : 0.2))(Number(load('flow-lead')));
   const AUDIO = {
     ctx: null, src: null, done: null, own: null, token: 0, bufs: new Map(), idle: 0, off: false,
     AC: window.AudioContext || window.webkitAudioContext,
-    usable() { return WORD_CLIPS && !!this.AC && !!navigator.audioSession && !this.off && load('flow-audio') === 'webaudio'; },
+    usable() { return WORD_CLIPS && !!this.AC && !!navigator.audioSession && !this.off && this.mode() !== 'compat'; },
+    // 我的 → 设置 → 单词读音方式 (iPhones and iPads): 'auto' (Web Audio where it works) or 'compat' (the <audio> clips)
+    mode() { return load('flow-audio') === 'compat' ? 'compat' : 'auto'; },
+    setMode(m) { save('flow-audio', m === 'compat' ? 'compat' : null); if (m === 'compat') this.drop(); this.off = false; },
     // The page's audio session type, for this player and for recording (语流 9): AUDIO.session('play-and-record') before
     // the microphone, AUDIO.session('playback') after. Returns the type in effect ('playback', 'play-and-record', 'auto'…),
     // or null where the browser has no navigator.audioSession (then nothing is changed). A type WebKit refuses (no
@@ -327,8 +333,8 @@
   // seconds of silence in front (word_clip.py), played from its start on an <audio>: the waking of the sound happens in
   // the silence. Its source is let go when it ends, so WebKit no longer counts it for Now Playing (a page that once was
   // the Now Playing app shows even short sounds there until it has nothing left to show; a paused whole text may still
-  // count, which only a phone can tell). With ?audio=webaudio they play
-  // on AUDIO instead. Elsewhere the sprite and the narration are played as before.
+  // count, which only a phone can tell). Unless 兼容模式 is chosen they play on AUDIO instead, where it works.
+  // Elsewhere the sprite and the narration are played as before.
   const CLIP = {
     audio: new Audio(), raf: 0, metas: {}, want: null,
     accent() { return (S.voice || 'us-f').startsWith('uk') ? 'uk' : 'us'; },

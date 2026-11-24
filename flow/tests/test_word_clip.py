@@ -31,6 +31,11 @@ class ClipTests(unittest.TestCase):
         self.sprite = FIXTURE / 'us' / 'w000.m4a'
         self.word = json.loads((FIXTURE / 'index.json').read_text())['us']['drain']
 
+    def test_a_words_quiet_tail_can_be_trimmed(self):
+        full, trimmed = frames(wc.clip(self.sprite, self.word[1], self.word[2])), frames(wc.clip(self.sprite, self.word[1], self.word[2], trim=wc.TRIM))
+        self.assertLessEqual(len(trimmed), len(full)); self.assertGreaterEqual(len(trimmed), len(full) - 1)  # at most one frame less
+        self.assertEqual(wc.TRIM, 0.03)
+
     def test_a_clip_is_the_sprites_own_frames_as_adts_with_silence_in_front(self):
         buf, scale, offsets, sizes, starts, durs, prime, aot, sfi, ch = wc._tables(str(self.sprite), self.sprite.stat().st_mtime_ns)
         data = wc.clip(self.sprite, self.word[1], self.word[2])
@@ -92,13 +97,13 @@ class RouteTests(unittest.TestCase):
     def test_the_audio_route_serves_a_clip(self):
         st, h, body = self.get('/audio/words/us/w000.aac?s=0.2&e=0.9')
         self.assertEqual((st, h['Content-Type']), (200, 'audio/aac'))
-        self.assertEqual(body, wc.clip(vs.WORD_AUDIO_DIR / 'us' / 'w000.m4a', 0.2, 0.9))
+        self.assertEqual(body, wc.clip(vs.WORD_AUDIO_DIR / 'us' / 'w000.m4a', 0.2, 0.9, trim=wc.TRIM))  # the word's quiet tail trimmed
         self.assertIn('max-age', h['Cache-Control'])
         st, h, part = self.get('/audio/words/us/w000.aac?s=0.2&e=0.9', {'Range': 'bytes=0-1'})  # Safari asks for a range first
         self.assertEqual((st, part, h['Content-Range']), (206, body[:2], f'bytes 0-1/{len(body)}'))
         self.assertEqual(self.get('/audio/words/us/w000.mp4')[0], 200)  # the sprite itself, as before
         st, h, short = self.get('/audio/words/us/w000.aac?s=0.2&e=0.9&l=0.1')
-        self.assertEqual((st, short), (200, wc.clip(vs.WORD_AUDIO_DIR / 'us' / 'w000.m4a', 0.2, 0.9, lead=0.1)))
+        self.assertEqual((st, short), (200, wc.clip(vs.WORD_AUDIO_DIR / 'us' / 'w000.m4a', 0.2, 0.9, lead=0.1, trim=wc.TRIM)))
         self.assertLess(len(short), len(body))
 
     def test_a_sentence_of_a_narration_is_cut_the_same_way(self):
@@ -130,8 +135,10 @@ class FrontEndTests(unittest.TestCase):
         self.assertIn("if (this.session('playback') !== 'playback') { this.off = true; return false; }", js)
         self.assertIn("MS.claim('short', title || '语流'", js); self.assertIn('}, 20000);', js)
         self.assertIn('CLIP.stop(); if (w.text) TTS.browser(w.text, w.onend);', js)
-        self.assertIn("v >= 0.05 && v <= 0.4 ? v : 0.25", js); self.assertEqual((wc.LEAD, wc.LEADS), (0.25, (0.05, 0.4)))  # the page and the server agree
-        self.assertIn("load('flow-audio') === 'webaudio'", js)  # Web Audio only when asked for (?audio=webaudio)
+        self.assertIn("v >= 0.05 && v <= 0.4 ? v : 0.2", js); self.assertEqual((wc.LEAD, wc.LEADS), (0.2, (0.05, 0.4)))  # the page and the server agree
+        self.assertIn("this.mode() !== 'compat'", js)  # Web Audio unless 兼容模式 (我的 → 设置) is chosen
+        me = (ROOT / 'public' / 'src' / 'next' / '81-me.js').read_text(encoding='utf-8')
+        self.assertIn("WORD_CLIPS ? grow('meSound', '单词读音方式'", me)  # the switch the home-screen app can reach
         self.assertIn('this.letGo(); MS.release', js)  # a word clip lets its source go when it ends (Now Playing)
         # the learner's recordings (对比回放 of 今日好句 and of 跟读) play through it, beside the original
         for part in ('12-daily-line.js', '21-study-listen.js'):

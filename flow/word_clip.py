@@ -16,9 +16,10 @@ import struct
 from bisect import bisect_right
 from functools import lru_cache
 
-LEAD = 0.25  # seconds before the word starts: an iPhone waking its audio fits in this (try others with ?lead=)
+LEAD = 0.2   # seconds before the word starts: an iPhone waking its audio fits in this (try others with ?lead=)
 LEADS = (0.05, 0.4)  # the range a request may ask for
 PAD = 0.12   # seconds of the sprite's own gap kept before the word (the gap is 0.2 s), and after a sentence
+TRIM = 0.03  # a word's timings end in 40-65 ms of quiet (measured in Chrome): this much of it is left out
 MAX = 5.0    # a word clip is never longer than this (a sentence of a narration: SENTENCE)
 SENTENCE = 40.0
 
@@ -169,7 +170,7 @@ def _adts(frame, aot, sfi, ch):
                   (n >> 3) & 0xFF, (n & 7) << 5 | 0x1F, 0xFC)) + frame
 
 
-def clip(path, start, end, longest=MAX, lead=LEAD, tail=0.0):
+def clip(path, start, end, longest=MAX, lead=LEAD, tail=0.0, trim=0.0):
     """ADTS bytes of one word (or one sentence of a narration: longest 40): `lead` seconds before it (silence), and
     after it `tail` seconds of the file (a word: none, so the file stays short; see below). start/end: its place in the
     file in seconds, as index.json (or the narration's timings) gives it.
@@ -183,7 +184,7 @@ def clip(path, start, end, longest=MAX, lead=LEAD, tail=0.0):
     buf, scale, offsets, sizes, starts, durs, prime, aot, sfi, ch = _tables(str(p), p.stat().st_mtime_ns)
     frame = lambda t: max(0, min(len(starts) - 1, bisect_right(starts, t) - 1))  # the frame playing at media time t
     front = min(PAD, lead)
-    m0, m1 = prime + (start - front) * scale, prime + (end + tail) * scale
+    m0, m1 = prime + (start - front) * scale, prime + (max(start + 0.05, end - trim) + tail) * scale
     first, last = frame(max(0, m0)), frame(m1)
     # silence in front: copies of a frame from the middle of the gap before the word (or the first frame of the file)
     quiet = frame(max(0, prime + (start - 0.1) * scale))

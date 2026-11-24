@@ -230,7 +230,7 @@ class Handler(BaseHTTPRequestHandler):
   elif len(parts)==5 and parts[2]=='words' and parts[4].endswith('.aac'):
    f=__import__('vocab_service').word_audio_file(parts[3],parts[4][:-4]);q=parse_qs(urlsplit(self.path).query)
    wc=__import__('word_clip')
-   try:data=wc.clip(f,float(q.get('s',[''])[0]),float(q.get('e',[''])[0]),wc.MAX,float(q.get('l',[wc.LEAD])[0])) if f and f.is_file() else None
+   try:data=wc.clip(f,float(q.get('s',[''])[0]),float(q.get('e',[''])[0]),wc.MAX,float(q.get('l',[wc.LEAD])[0]),trim=wc.TRIM) if f and f.is_file() else None
    except (ValueError,OSError,IndexError,KeyError,StopIteration,TypeError,__import__('struct').error):data=None
    f=f if data else None;mime='audio/aac'
   elif len(parts)==4 and parts[3].endswith('.aac'):

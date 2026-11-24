@@ -12,7 +12,7 @@
     const groups = [
       u && ['进步', [grow('#/radar', '能力雷达', '离目标还差多少', '', 'me-radar'), grow('#/growth', '我的进步', '每月对比和里程碑', '', 'me-growth'), grow('#/report', '这周的报告', '', '', 'me-report'), grow('#/cards/mistake', '错题本', '', '', 'me-mistake')]],
       ['设置', [grow('#/welcome/edit', '学习目标和水平', [goal && esc(goal.label), p.target && '目标 ' + p.target, lv && (p.target ? '现在 ' : '') + lv.id].filter(Boolean).join(' · ') || '未设置', '', 'me-level'),
-        u ? grow('meExam', '我的考试', examLabel(p), 'meExamV', 'me-exam') : '', u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', u ? grow('meClass', '班级', '<span class="spin"></span>', 'meClassV', 'me-class') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), grow('meText', '字号和行距', textLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '加到手机日历', '', 'me-remind'),
+        u ? grow('meExam', '我的考试', examLabel(p), 'meExamV', 'me-exam') : '', u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', u ? grow('meClass', '班级', '<span class="spin"></span>', 'meClassV', 'me-class') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), WORD_CLIPS ? grow('meSound', '单词读音方式', soundLabel(), 'meSoundV', 'me-sound') : '', grow('meText', '字号和行距', textLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '加到手机日历', '', 'me-remind'),
         u ? grow('meMail', '每周进度邮件', weeklyMailLabel(), 'meMailV', 'me-weekly-mail') : '',
         installed ? '' : grow('meInstall', '添加到桌面', '像 App 一样打开', '', 'me-install')]],
       u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
@@ -29,6 +29,7 @@
       ${u ? '<div class="glist gsec"><button class="grow danger" id="out" type="button"><span class="t">退出登录</span></button></div>' : ''}`;
     const lg = document.getElementById('lg'); if (lg) lg.onclick = () => openLogin();
     document.getElementById('meVoice').onclick = voiceSheet;
+    if (document.getElementById('meSound')) document.getElementById('meSound').onclick = soundSheet;
     document.getElementById('meText').onclick = textSheet;
     const mh = document.getElementById('meHabit'); if (mh) mh.onclick = habitSheet;
     const me = document.getElementById('meExam'); if (me) me.onclick = () => examGoalSheet(() => meView());
@@ -68,6 +69,23 @@
         const k = 'ts' in b.dataset ? 'size' : 'lh'; TEXT[k] = b.dataset.ts || b.dataset.tl; save('flow-next-text', TEXT); applyText();
         card.querySelectorAll(k === 'size' ? '[data-ts]' : '[data-tl]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
         const v = document.getElementById('meTextV'); if (v) v.textContent = textLabel();
+      });
+    });
+  }
+  // iPhones and iPads: how words, examples and short sentences are played (01-audio-offline.js AUDIO / CLIP). Kept on
+  // this phone: the app on the home screen keeps its own, and has no address bar for ?audio=.
+  const SOUND_MODES = [['auto', '自动', '从第一个音开始放；连着点单词时，灵动岛会一直显示「语流 · 单词」，停下 20 秒后收起。'],
+    ['compat', '兼容模式', '每个词是一个前面留了一点静音的小音频，大部分单词不会出现在灵动岛上。「自动」没有声音时选这个。']];
+  const soundLabel = () => (SOUND_MODES.find(m => m[0] === AUDIO.mode()) || SOUND_MODES[0])[1];
+  function soundSheet() {
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">单词读音方式</h2>
+      <div class="choice" role="radiogroup" aria-labelledby="sheetTitle">${SOUND_MODES.map(([k, t, d]) => `<button class="opt" type="button" role="radio" data-sound="${k}" aria-checked="${AUDIO.mode() === k}" aria-pressed="${AUDIO.mode() === k}"><b>${t}</b><span class="small muted">${d}</span></button>`).join('')}</div>
+      <p class="muted small">两种方式在静音键打开时都能听到。只影响这台手机。</p><button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      card.querySelectorAll('[data-sound]').forEach(b => b.onclick = () => {
+        AUDIO.setMode(b.dataset.sound);
+        card.querySelectorAll('[data-sound]').forEach(x => { x.setAttribute('aria-checked', String(x === b)); x.setAttribute('aria-pressed', String(x === b)); });
+        const v = document.getElementById('meSoundV'); if (v) v.textContent = soundLabel();
+        toast('单词读音方式：' + soundLabel());
       });
     });
   }
