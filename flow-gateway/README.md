@@ -32,7 +32,7 @@ gcloud compute ssh flow-ai-gateway --project=project-8c5a66f7-07f1-4ea9-af7 --zo
 - 使用已绑定的 Google 服务账号，通过 VM 元数据获取并缓存短期访问令牌，不导出 Google 长期凭据。
 - 提供 /v1/chat/completions 的非流式纯文本兼容接口，固定上游模型，不接受任意上游 URL。
 - 使用独立随机密钥认证；Nginx 只允许阿里云源站与本机调用模型接口。/health 可公开访问，用于网络与进程检查，不调用模型。
-- 限制输入长度、输出令牌上限（最多 4096）、并发（2）和每日请求尝试次数（默认 100，UTC 日期），次数存入 SQLite，重启后保留。次数上限不是美元预算或整项目费用上限。
+- 限制输入长度、输出令牌上限（最多 4096）、并发（默认 6，由 /etc/flow-gateway.env 的 GATEWAY_SLOTS 设置，1–32；v2.2 及以前固定为 2）和每日请求尝试次数（默认 100，UTC 日期），次数存入 SQLite，重启后保留。次数上限不是美元预算或整项目费用上限。
 - 申请 ai.flowlang.cn 的 Let's Encrypt 证书并启用 certbot.timer。域名需已正确解析，80/443 防火墙需已放通；如有错误 AAAA 记录需纠正。
 - 在 SSH 用户主目录生成 flow-gateway-client.env，权限 600；该文件包含网关密钥，应视为密码。
 
@@ -86,3 +86,15 @@ bash /root/connect-flow.sh /root/flow-gateway-client.env
 网关仅保存日期和请求次数，不保存提示文本、模型回答或 Google 令牌日志。请求内容会传给 Google。不要把此独立网关开放成匿名公共 AI 服务。
 
 已完成 4 项本地自动化测试：请求认证与兼容响应、输入与固定模型验证、每日额度并发一致性与持久化、元数据令牌缓存；安装脚本通过 shell 语法检查。无法代替你服务器上的安装、证书申请和网络验证。
+
+## 调整并发（GATEWAY_SLOTS）
+
+v2.2 及以前，gateway.py 把同时发往 Google 的请求固定为 2 个，第 3 个起排队，最多等 25 秒，超时返回 503「Gateway queue timed out」。现在由 `/etc/flow-gateway.env` 的 `GATEWAY_SLOTS` 决定，默认 6，范围 1–32。只改这一项、不换其他文件，在 Cloud Shell 执行：
+
+```bash
+git clone --depth 1 https://github.com/Jasame/Flow.git flow-src
+gcloud compute scp flow-src/flow-gateway/set_slots.sh flow-ai-gateway:~/ --project=project-8c5a66f7-07f1-4ea9-af7 --zone=asia-southeast1-b
+gcloud compute ssh flow-ai-gateway --project=project-8c5a66f7-07f1-4ea9-af7 --zone=asia-southeast1-b --command='sudo bash ~/set_slots.sh 6'
+```
+
+`set_slots.sh` 先备份 gateway.py 和 /etc/flow-gateway.env，只改 SLOTS 那一行和 GATEWAY_SLOTS，重启后检查 /health；失败就恢复两个文件。若出现 429（Vertex 配额），把并发调小再运行一次。

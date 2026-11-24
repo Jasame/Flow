@@ -10,6 +10,7 @@ flow-gateway/connect-flow.sh
 flow-gateway/gateway.py
 flow-gateway/install.sh
 flow-gateway/nginx_update.py
+flow-gateway/set_slots.sh
 flow-gateway/tests/test_gateway.py
 flow-gateway/upgrade.sh
 flow/AI-VERIFICATION.md
