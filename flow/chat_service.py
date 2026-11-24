@@ -123,30 +123,30 @@ def request_model(messages,audio=None,grounding=False):
  request (down, model disabled in the gateway's console, key rejected, rate-limited), the main service answers; with
  only one service, a transient failure is retried once after a short pause (not after a rate limit), so a single
  hiccup does not cost the learner their answer.
- Which text model: the calling task's route (ai_routes: gemini = FLOW_TEXT_AI_MODEL, deepseek = flow-deepseek). On the
- deepseek route even a refused request goes to the main service once, which is another vendor. Every attempt is
- written to ai_calls (tokens, the model that answered, failures and fallbacks) for the console."""
+ Which text model: the calling task's route (ai_routes: a gateway model name; FLOW_TEXT_AI_MODEL by default, a 百炼
+ line such as flow-qwen-plus when the console says so). On a 百炼 line even a refused request goes to the main service
+ once, which is another vendor. Every attempt is written to ai_calls (tokens, the model that answered, failures and
+ fallbacks) for the console."""
  import ai_routes
- rte=ai_routes.route();text_model=ai_routes.model_name(rte)
- if rte!='gemini' and not text_provider(text_model):rte,text_model='gemini',ai_routes.model_name('gemini')  # route not set up here
+ text_model=ai_routes.route()
  order=[]
  if not audio and not grounding and text_provider(text_model):order.append('text')
  order.append('main')
  if len(order)==1:order.append('main')  # one retry on the only service
- ai_routes.CTX.route=rte if order[0]=='text' else ''
+ ai_routes.CTX.route=text_model if order[0]=='text' else ''
  last=None
  for i,which in enumerate(order):
   started=time.monotonic();INFO.__dict__.clear()
   model=text_model if which=='text' else os.getenv('FLOW_AI_MODEL','')
   try:
-   out=_request_text_service(messages,text_model,ai_routes.extra_body(rte)) if which=='text' else _request_main(messages,audio,grounding)
+   out=_request_text_service(messages,text_model,ai_routes.extra_body(text_model)) if which=='text' else _request_main(messages,audio,grounding)
    LAST['provider']=which
    ai_routes.record(which,model,started,messages,out[0],dict(INFO.__dict__),fallback=i>0)
    return out
   except Exception as exc:
    last=exc
    ai_routes.record(which,model,started,messages,None,dict(INFO.__dict__),exc,fallback=i>0)
-   if which=='text' and time.monotonic()-started<=60 and (not refused(exc) or (rte=='deepseek' and getattr(exc,'code',None)!=413)):continue  # the main service takes over
+   if which=='text' and time.monotonic()-started<=60 and (not refused(exc) or (ai_routes.is_bailian(text_model) and getattr(exc,'code',None)!=413)):continue  # the main service takes over
    if i==len(order)-1 or not transient(exc) or time.monotonic()-started>60:raise
    if order[i+1]==which:
     if isinstance(exc,urllib.error.HTTPError) and exc.code==429:raise  # rate-limited: asking the same service again at once will not help

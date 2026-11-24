@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """批改考题集: the AI's marking checked on fixed questions, before a model or a prompt is changed.
 
-    python3 ai_eval.py [--env-file /etc/flow.env] [--text-model NAME] [--main-model NAME] [--route gemini|deepseek]
+    python3 ai_eval.py [--env-file /etc/flow.env] [--text-model NAME] [--main-model NAME] [--route MODEL]
                        [--only rewrite,essay,translate,content] [--quick] [--output report.json]
 
 The questions are in corpus_data/ai-eval.json:
@@ -17,8 +17,8 @@ The questions are in corpus_data/ai-eval.json:
 It runs the site's own marking code (next_service.rewrite, output_service.essay and output_service.translate: the
 same prompts and the same reading of the answers) with the model of the env file, in a throwaway database, so the
 site's data is never read or written. --text-model / --main-model try another model of the gateway for this run
-only (nothing on the server changes); --route sends every task down one route (ai_routes: gemini or deepseek) for this
-run; without it the tasks take the server's routes (FLOW_AI_ROUTES, or the console's with --site-settings). Each answer
+only (nothing on the server changes); --route sends every task to one gateway model name for this run (ai_routes:
+flow-text for Gemini, a 百炼 line such as flow-qwen-plus); without it the tasks take the server's routes (FLOW_AI_ROUTES, or the console's with --site-settings). Each answer
 says which service gave it: when the text service fails, the main one answers, and the report counts those. The report
 also has the run's tokens and estimated cost by task and model (usage). About 90 model calls a run; --quick (the
 nightly check, ai_routes.nightly) is a sample of about 17. Exit status 0 when every question passed, 1 when some did
@@ -181,8 +181,7 @@ def run(cases, kinds=KINDS + ('content',), repeat=2, say=print, quick=False):
 def _run(cases, kinds, repeat, say, quick=False):
     import app, ai_routes, chat_service, next_service as nx, output_service as out, vocab_service as vs
     app.init()
-    report = {'when': time.strftime('%Y-%m-%d %H:%M:%S'), 'models': {'main': os.getenv('FLOW_AI_MODEL', ''), 'text': os.getenv('FLOW_TEXT_AI_MODEL', ''),
-                                                                 'deepseek': ai_routes.model_name('deepseek')},
+    report = {'when': time.strftime('%Y-%m-%d %H:%M:%S'), 'models': {'main': os.getenv('FLOW_AI_MODEL', ''), 'text': os.getenv('FLOW_TEXT_AI_MODEL', '')},
               'routes': {k: v['route'] for k, v in ai_routes.routes().items()}, 'quick': quick, 'items': [], 'summary': {}}
     if quick:
         cases = {**cases, 'rewrite': [x for x in cases['rewrite'] if x['id'] in QUICK['rewrite']], 'translate': cases['translate'][:QUICK['translate']]}
@@ -315,7 +314,7 @@ def main(argv=None):
     ap.add_argument('--env-file', default='/etc/flow.env')
     ap.add_argument('--text-model', help='这次改用网关里的另一个文字模型（服务器设置不变）')
     ap.add_argument('--main-model', help='这次改用另一个主模型')
-    ap.add_argument('--route', choices=('gemini', 'deepseek'), help='这次所有任务都走这条线路（ai_routes）')
+    ap.add_argument('--route', help='这次所有任务都问网关里的这个模型名（如 flow-text、flow-qwen-plus）')
     ap.add_argument('--site-settings', help='用这个网站的后台设置（console-settings.json）里的线路')
     ap.add_argument('--quick', action='store_true', help='只考一小部分（每晚的小评测，约 17 次调用）')
     ap.add_argument('--only', help='只考其中几类：rewrite,essay,translate,content')

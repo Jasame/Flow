@@ -220,8 +220,9 @@ def save_settings(update, by, drop_none=False):
 
 
 def set_ai_budget(data, by):
-    """The daily AI budget in yuan (0 or empty: none), the nightly marking check on or off, and prices set by hand
-    ({family: {in, cached, out}} yuan per million tokens; null for a family: back to the built-in table)."""
+    """The daily AI budget in yuan (0 or empty: none), the nightly marking check on or off, platform discounts
+    ({'bailian': 0.65}: the share of the list price actually paid) and prices set by hand ({model: {in, cached, out,
+    platform}} yuan per million tokens at list price; a new model name adds a row; null: back to the built-in table)."""
     import ai_routes
     update = {}
     if 'daily' in data:
@@ -236,28 +237,46 @@ def set_ai_budget(data, by):
         if type(data['nightly']) is not bool:
             return {'error': '参数不正确'}, 400
         update['nightly_eval'] = None if data['nightly'] else False
+    if 'discounts' in data:
+        cur = dict(settings().get('ai_discounts') or {})
+        if not isinstance(data['discounts'], dict):
+            return {'error': '折扣格式不正确'}, 400
+        for k, v in data['discounts'].items():
+            if k not in ai_routes.PLATFORMS:
+                return {'error': f'没有这个平台：{k}'}, 400
+            if v is None:
+                cur.pop(k, None)
+            elif isinstance(v, (int, float)) and not isinstance(v, bool) and 0 < v <= 1:
+                cur[k] = round(float(v), 3)
+            else:
+                return {'error': '折扣请填 0–1 之间的小数，比如 0.65 表示六五折'}, 400
+        update['ai_discounts'] = cur or None
     if 'prices' in data:
         cur = dict(settings().get('ai_prices') or {})
         if not isinstance(data['prices'], dict):
             return {'error': '单价格式不正确'}, 400
-        for fam, v in data['prices'].items():
-            if fam not in ai_routes.PRICES:
-                return {'error': f'没有这个模型：{fam}'}, 400
+        for key, v in data['prices'].items():
+            if not isinstance(key, str) or not ai_routes.NAME.fullmatch(key):
+                return {'error': '模型名不正确'}, 400
             if v is None:
-                cur.pop(fam, None)
+                cur.pop(key, None)
                 continue
             if not isinstance(v, dict) or any(not isinstance(v.get(k), (int, float)) or isinstance(v.get(k), bool) or not 0 <= v[k] <= 10000 for k in ('in', 'cached', 'out')):
                 return {'error': '单价请填 0–10000 元 / 百万 token'}, 400
-            cur[fam] = {k: float(v[k]) for k in ('in', 'cached', 'out')}
+            row = {k: float(v[k]) for k in ('in', 'cached', 'out')}
+            if v.get('platform') in ai_routes.PLATFORMS:
+                row['platform'] = v['platform']
+            cur[key] = row
         update['ai_prices'] = cur or None
     if not update:
         return {'error': '没有要改的'}, 400
     save_settings(update, by, drop_none=True)
-    return {'ok': True, 'daily': ai_routes.budget(), 'nightly': ai_routes.nightly_on(), 'prices': ai_routes.prices()}, 200
+    return {'ok': True, 'daily': ai_routes.budget(), 'nightly': ai_routes.nightly_on(), 'discounts': ai_routes.discounts(), 'prices': ai_routes.prices()}, 200
 
 
 def ai_budget_text(body):
-    return (f"每日预算 ¥{body['daily']:g}" if body['daily'] else '不设每日预算') + ('，每晚小评测开' if body['nightly'] else '，每晚小评测关')
+    return ((f"每日预算 ¥{body['daily']:g}" if body['daily'] else '不设每日预算') + ('，每晚小评测开' if body['nightly'] else '，每晚小评测关')
+            + '，百炼折扣 ' + f"{body['discounts'].get('bailian', 1):g}")
 
 
 REDO = {'next-explain': ('DELETE FROM next_explains WHERE pack=? AND sentence=? AND level=?', 3),

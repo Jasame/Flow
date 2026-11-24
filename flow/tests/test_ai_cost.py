@@ -1,7 +1,8 @@
-"""AI routes, cost and budget (ai_routes.py): each task goes to the model its route names (DeepSeek or Gemini on the
-gateway), always without thinking; every call is written down with its tokens, cache hits, the model that answered and
-any fallback; costs follow DeepSeek's off-peak half price and Gemini's 2027 price; the daily budget mails 管理员 once per
-level and stops batch work, never learners; the console switches routes (logged), shows the costs, samples shared
+"""AI routes, cost and budget (ai_routes.py): each task asks the gateway model name its route names (flow-text for
+Gemini, a 百炼 line such as flow-qwen-plus), always without thinking, JSON on 百炼; every call is written down with its
+tokens, cache hits, the model that answered and any fallback; costs are list price × the platform's discount, with
+DeepSeek-on-百炼's night half price and Gemini's 2027 price; the daily budget mails 管理员 once per level and stops batch
+work, never learners; the console switches routes (logged), shows the costs, samples shared
 content but never what a learner wrote, and can throw a bad piece of content away; a role-play's opening is asked once;
 the nightly check runs once, at night, on 语流 only."""
 import datetime, io, json, os, sys, tempfile, threading, time, unittest, urllib.error, urllib.request
@@ -64,8 +65,10 @@ class Site(unittest.TestCase):
                         patch.dict(os.environ, {**GATEWAY, 'FLOW_ADMIN_EMAILS': BOSS}), patch('ai_stream.active', return_value=False), patch('time.sleep')]
         for p in self.patches:
             p.start()
-        for k in ('FLOW_AI_ROUTES', 'FLOW_TEXT_AI_URL', 'FLOW_TEXT_AI_KEY', 'FLOW_DEEPSEEK_AI_MODEL', 'FLOW_CHANNEL', 'FLOW_MAIL_OUTBOX'):
+        for k in ('FLOW_AI_ROUTES', 'FLOW_TEXT_AI_URL', 'FLOW_TEXT_AI_KEY', 'FLOW_CHANNEL', 'FLOW_MAIL_OUTBOX'):
             os.environ.pop(k, None)
+        os.environ['FLOW_AI_CHOICES'] = 'flow-qwen-plus,flow-qwen-flash,flow-ds-flash'  # what the gateway would offer
+        ai_routes._CHOICES.update(at=time.time(), names=[])  # never ask a real gateway
         app.init()
 
     def tearDown(self):
@@ -95,52 +98,63 @@ class RouteTests(Site):
         got, sent = self.ask('next-rewrite', {'flow-text': [answer('{"a":1}', 'gemini-3.8-flash')]})
         self.assertEqual(got[0], '{"a":1}')
         self.assertEqual(sent[0]['model'], 'flow-text')
-        self.assertEqual(sent[0]['thinking'], {'type': 'disabled'})  # for DeepSeek as the gateway's backup line
+        self.assertIs(sent[0]['enable_thinking'], False)  # for a 百炼 model as the gateway's backup line
         self.assertNotIn('response_format', sent[0])
-        self.assertEqual({v['route'] for v in ai_routes.routes().values()}, {'gemini'})
+        self.assertEqual({v['route'] for v in ai_routes.routes().values()}, {'flow-text'})
 
-    def test_a_task_on_the_deepseek_route_asks_deepseek_without_thinking_for_json(self):
-        self.route('next-rewrite', 'deepseek')
-        got, sent = self.ask('next-rewrite', {'flow-deepseek': [answer('{"a":1}', 'deepseek-flash')]})
-        self.assertEqual(sent[0]['model'], 'flow-deepseek')
-        self.assertEqual((sent[0]['thinking'], sent[0]['response_format']), ({'type': 'disabled'}, {'type': 'json_object'}))
+    def test_a_task_on_a_bailian_line_asks_it_without_thinking_for_json(self):
+        self.route('next-rewrite', 'flow-qwen-plus')
+        got, sent = self.ask('next-rewrite', {'flow-qwen-plus': [answer('{"a":1}', 'qwen-plus')]})
+        self.assertEqual(sent[0]['model'], 'flow-qwen-plus')
+        self.assertEqual((sent[0]['enable_thinking'], sent[0]['response_format']), (False, {'type': 'json_object'}))
+        self.assertNotIn('thinking', sent[0])
         _, sent = self.ask('next-explain', {'flow-text': [answer('{}', 'gemini-3.8-flash')]})
         self.assertEqual(sent[0]['model'], 'flow-text')  # other tasks keep their own route
-        _, sent = self.ask('chat', {'flow-text': [answer('hi', 'gemini-3.8-flash')]})
-        self.assertNotIn('response_format', sent[0])
+        self.route('chat', 'flow-qwen-plus')
+        _, sent = self.ask('chat', {'flow-qwen-plus': [answer('hi', 'qwen-plus')]})
+        self.assertNotIn('response_format', sent[0])  # free text
 
     def test_the_server_default_and_all_tasks_at_once(self):
-        with patch.dict(os.environ, {'FLOW_AI_ROUTES': json.dumps({'*': 'deepseek', 'next-essay': 'gemini'})}):
-            self.assertEqual(ai_routes.route('next-rewrite'), 'deepseek')
-            self.assertEqual(ai_routes.route('next-essay'), 'gemini')
-            self.assertEqual(ai_routes.route('fill-examples'), 'deepseek')  # the batch follows AI 例句
-            self.route('next-rewrite', 'gemini')
-            self.assertEqual(ai_routes.routes()['next-rewrite'], {'route': 'gemini', 'source': 'console'})
-        body, status, changes = ai_routes.set_routes({'routes': {'*': 'deepseek'}}, 'boss')
+        with patch.dict(os.environ, {'FLOW_AI_ROUTES': json.dumps({'*': 'flow-qwen-flash', 'next-essay': 'flow-qwen-plus'})}):
+            self.assertEqual(ai_routes.route('next-rewrite'), 'flow-qwen-flash')
+            self.assertEqual(ai_routes.route('next-essay'), 'flow-qwen-plus')
+            self.assertEqual(ai_routes.route('fill-examples'), 'flow-qwen-flash')  # the batch follows AI 例句
+            self.route('next-rewrite', 'flow-text')
+            self.assertEqual(ai_routes.routes()['next-rewrite'], {'route': 'flow-text', 'source': 'console'})
+        body, status, changes = ai_routes.set_routes({'routes': {'*': 'flow-qwen-plus'}}, 'boss')
         self.assertEqual(status, 200)
-        self.assertEqual(console_ops.settings()['ai_routes'], {'*': 'deepseek'})  # per-task exceptions cleared
-        self.assertIn(('next-rewrite', 'gemini', 'deepseek'), changes)
-        for bad in ({'routes': {'next-rewrite': 'gpt'}}, {'routes': {'nope': 'deepseek'}}, {'routes': {}}):
-            self.assertEqual(ai_routes.set_routes(bad, 'boss')[1], 400)
+        self.assertEqual(console_ops.settings()['ai_routes'], {'*': 'flow-qwen-plus'})  # per-task exceptions cleared
+        self.assertIn(('next-rewrite', 'flow-text', 'flow-qwen-plus'), changes)
+        for bad in ({'routes': {'next-rewrite': 'flow-gpt'}}, {'routes': {'nope': 'flow-qwen-plus'}}, {'routes': {}}):
+            self.assertEqual(ai_routes.set_routes(bad, 'boss')[1], 400)  # only names the gateway has
 
-    def test_deepseek_failing_hands_over_to_the_main_model_even_when_refused(self):
-        self.route('next-rewrite', 'deepseek')
+    def test_the_console_offers_the_gateways_flow_names(self):
+        ai_routes._CHOICES.update(at=0)
+        sent = []
+
+        def urlopen(req, timeout=None):
+            sent.append((req.full_url, req.headers.get('Authorization')))
+            return Reply({'data': [{'id': 'flow-text'}, {'id': 'flow-qwen-max'}, {'id': 'gemini-3.8-flash'}, {'id': 'qwen-local-256k'}]})
+        with patch('urllib.request.urlopen', urlopen), patch.dict(os.environ, {'FLOW_AI_CHOICES': ''}):
+            names = [c['name'] for c in ai_routes.choices()]
+        self.assertEqual(sent, [('https://gw.test/v1/models', 'Bearer k')])
+        self.assertEqual(names, ['flow-text', 'flow-qwen-max'])  # flow-* only, the default first
+        self.assertEqual(ai_routes.set_routes({'routes': {'next-rewrite': 'flow-qwen-max'}}, 'boss')[1], 200)
+
+    def test_a_bailian_line_failing_hands_over_to_the_main_model_even_when_refused(self):
+        self.route('next-rewrite', 'flow-qwen-plus')
         for failure in (http(503), http(400), http(401)):
-            got, sent = self.ask('next-rewrite', {'flow-deepseek': [failure], 'gemini-3.8-flash': [answer('{"ok":1}', 'gemini-3.8-flash')]})
+            got, sent = self.ask('next-rewrite', {'flow-qwen-plus': [failure], 'gemini-3.8-flash': [answer('{"ok":1}', 'gemini-3.8-flash')]})
             self.assertEqual(got[0], '{"ok":1}', failure.code)
-            self.assertEqual([s['model'] for s in sent], ['flow-deepseek', 'gemini-3.8-flash'])
-            self.assertNotIn('thinking', sent[1])  # the main model gets the request as before
-        got, sent = self.ask('next-rewrite', {'flow-deepseek': [http(413)], 'gemini-3.8-flash': [answer('never', 'x')]})
+            self.assertEqual([s['model'] for s in sent], ['flow-qwen-plus', 'gemini-3.8-flash'])
+            self.assertNotIn('enable_thinking', sent[1])  # the main model gets the request as before
+        got, sent = self.ask('next-rewrite', {'flow-qwen-plus': [http(413)], 'gemini-3.8-flash': [answer('never', 'x')]})
         self.assertIsInstance(got, urllib.error.HTTPError)  # too large: too large everywhere
-
-    def test_a_route_not_set_up_on_this_server_falls_back_to_gemini(self):
-        self.route('next-rewrite', 'deepseek')
-        with patch.dict(os.environ, {'FLOW_DEEPSEEK_AI_MODEL': ''}):
-            _, sent = self.ask('next-rewrite', {'flow-text': [answer('{}', 'gemini-3.8-flash')]})
-        self.assertEqual(sent[0]['model'], 'flow-text')
+        got, sent = self.ask('next-explain', {'flow-text': [http(400)], 'gemini-3.8-flash': [answer('never', 'x')]})
+        self.assertIsInstance(got, urllib.error.HTTPError)  # flow-text refused: Gemini both times, not asked again
 
     def test_audio_never_takes_a_route(self):
-        self.route('next-shadow', 'deepseek')
+        self.route('next-shadow', 'flow-qwen-plus')
         audio = {'mime_type': 'audio/webm', 'data': __import__('base64').b64encode(b'\x1aE\xdf\xa3' + b'0' * 4000).decode()}
         sent = []
         with patch('urllib.request.urlopen', gateway({'gemini-3.8-flash': [answer('heard', 'gemini-3.8-flash')]}, sent)), ai_routes.task('next-shadow'):
@@ -150,47 +164,64 @@ class RouteTests(Site):
 
 class RecordTests(Site):
     def test_each_attempt_is_written_down_with_tokens_cache_and_the_model_that_answered(self):
-        self.route('next-rewrite', 'deepseek')
-        use = {'prompt_tokens': 1000, 'completion_tokens': 400, 'prompt_cache_hit_tokens': 800, 'prompt_cache_miss_tokens': 200}
-        self.ask('next-rewrite', {'flow-deepseek': [answer('{"a":1}', 'deepseek-flash', use)]})
+        self.route('next-rewrite', 'flow-qwen-plus')
+        use = {'prompt_tokens': 1500, 'completion_tokens': 400, 'prompt_tokens_details': {'cached_tokens': 1200}}
+        self.ask('next-rewrite', {'flow-qwen-plus': [answer('{"a":1}', 'qwen-plus', use)]})
         self.ask('next-essay', {'flow-text': [http(502)], 'gemini-3.8-flash': [answer('{"b":2}', 'gemini-3.8-flash')]}, [{'role': 'user', 'content': '写作' * 50}])
         rows = self.calls()
         self.assertEqual([(r['kind'], r['service'], r['model'], r['served'], r['ok'], r['fallback']) for r in rows],
-                         [('next-rewrite', 'text', 'flow-deepseek', 'deepseek-flash', 1, 0),
+                         [('next-rewrite', 'text', 'flow-qwen-plus', 'qwen-plus', 1, 0),
                           ('next-essay', 'text', 'flow-text', '', 0, 0), ('next-essay', 'main', 'gemini-3.8-flash', 'gemini-3.8-flash', 1, 1)])
-        self.assertEqual((rows[0]['prompt'], rows[0]['cached'], rows[0]['completion'], rows[0]['estimated']), (1000, 800, 400, 0))
+        self.assertEqual((rows[0]['prompt'], rows[0]['cached'], rows[0]['completion'], rows[0]['estimated']), (1500, 1200, 400, 0))
         self.assertEqual(rows[1]['status'], 502)
         self.assertEqual(rows[2]['estimated'], 1)  # the Gemini relay reports no usage: estimated from the text
         self.assertEqual(rows[2]['prompt'], 60)    # 100 汉字 × 0.6
 
     def test_the_gateway_backup_line_shows_as_backup(self):
-        self.route('next-rewrite', 'deepseek')
-        self.ask('next-rewrite', {'flow-deepseek': [answer('{}', 'gemini-3.8-flash')]})  # DeepSeek down: the gateway's Gemini line answered
+        self.route('next-rewrite', 'flow-qwen-plus')
+        for served in ('qwen-plus', 'qwen-plus', 'gemini-3.8-flash'):  # the last time 百炼 was down: the gateway's Gemini line answered
+            self.ask('next-rewrite', {'flow-qwen-plus': [answer('{}', served)]})
         with app.db() as c:
             k = next(x for x in ai_routes.summary(c)['kinds'] if x['kind'] == 'next-rewrite')
-        self.assertEqual((k['calls'], k['backup'], k['route']), (1, 1, 'deepseek'))
+        self.assertEqual((k['calls'], k['backup'], k['route']), (3, 1, 'flow-qwen-plus'))
+        names = {c['name']: c['label'] for c in ai_routes.choices()}
+        self.assertEqual(names['flow-qwen-plus'], '通义千问 Plus（不思考）（flow-qwen-plus）')  # named by what answers it
 
 
 class CostTests(Site):
-    def test_deepseek_is_half_price_off_peak_and_gemini_doubles_in_2027(self):
-        mon_10, mon_13, sat_10 = at(2026, 11, 23, 10), at(2026, 11, 23, 13), at(2026, 11, 28, 10)
-        self.assertTrue(ai_routes.peak(mon_10)); self.assertFalse(ai_routes.peak(mon_13)); self.assertFalse(ai_routes.peak(sat_10))
-        full = ai_routes.cost('deepseek', mon_10, 1_000_000, 0, 1_000_000)
-        self.assertAlmostEqual(full, 10.0)
-        self.assertAlmostEqual(ai_routes.cost('deepseek', mon_13, 1_000_000, 0, 1_000_000), 5.0)
-        self.assertAlmostEqual(ai_routes.cost('deepseek', mon_10, 1_000_000, 1_000_000, 0), 0.04)  # all from the cache
-        g26, g27 = ai_routes.cost('gemini', at(2026, 12, 31, 13), 1_000_000, 0, 0), ai_routes.cost('gemini', at(2027, 1, 1, 13), 1_000_000, 0, 0)
-        self.assertAlmostEqual(g27, 2 * g26, places=1)
-        self.assertEqual(ai_routes.next_offpeak(mon_10), at(2026, 11, 23, 12))
-        self.assertEqual(ai_routes.next_offpeak(at(2026, 11, 23, 15, 30)), at(2026, 11, 23, 18))
+    def test_list_price_times_the_platforms_discount(self):
+        noon = at(2026, 11, 23, 12)
+        self.assertAlmostEqual(ai_routes.cost('qwen-plus-2025-12-01', noon, 1_000_000, 0, 1_000_000), (0.8 + 2.0) * 0.65)
+        self.assertAlmostEqual(ai_routes.cost('qwen-flash', noon, 1_000_000, 1_000_000, 0), 0.03 * 0.65)  # all from the cache
+        self.assertAlmostEqual(ai_routes.cost('gemini-3.8-flash', noon, 1_000_000, 0, 0), 5.33)  # no discount on Vertex
+        self.assertEqual(ai_routes.cost('mystery-model', noon, 1_000_000, 0, 1_000_000), 0.0)
+        self.assertEqual(ai_routes.price_of('deepseek-v4.1-flash-1017')['label'], 'DeepSeek V4.1 Flash（百炼）')
 
-    def test_prices_set_in_the_console_replace_the_table(self):
-        body, st = console_ops.set_ai_budget({'prices': {'deepseek': {'in': 1, 'cached': 0.02, 'out': 4}}}, 'boss')
+    def test_deepseek_on_bailian_is_half_price_at_night_and_gemini_doubles_in_2027(self):
+        day, night = at(2026, 11, 23, 10), at(2026, 11, 23, 23)
+        full = ai_routes.cost('deepseek-v4.1-flash', day, 1_000_000, 0, 1_000_000)
+        self.assertAlmostEqual(full, 10.0 * 0.65)
+        self.assertAlmostEqual(ai_routes.cost('deepseek-v4.1-flash', night, 1_000_000, 0, 1_000_000), full / 2)
+        line = ai_routes.price_of('deepseek-v4.1-flash')
+        self.assertEqual(ai_routes.next_quiet(day, line), at(2026, 11, 23, 22))
+        self.assertEqual(ai_routes.next_quiet(night, line), night)
+        self.assertEqual(ai_routes.next_quiet(day, ai_routes.price_of('qwen-plus')), day)  # Qwen has no busy hours
+        g26, g27 = ai_routes.cost('gemini-3.8-flash', at(2026, 12, 31, 13), 1_000_000, 0, 0), ai_routes.cost('gemini-3.8-flash', at(2027, 1, 1, 13), 1_000_000, 0, 0)
+        self.assertAlmostEqual(g27, 2 * g26, places=1)
+
+    def test_the_discount_and_prices_are_set_in_the_console(self):
+        noon = at(2026, 11, 23, 12)
+        body, st = console_ops.set_ai_budget({'discounts': {'bailian': 0.6}}, 'boss')
+        self.assertEqual((st, body['discounts']['bailian']), (200, 0.6))
+        self.assertAlmostEqual(ai_routes.cost('qwen-plus', noon, 1_000_000, 0, 0), 0.8 * 0.6)
+        self.assertEqual(console_ops.set_ai_budget({'discounts': {'bailian': 1.5}}, 'boss')[1], 400)
+        body, st = console_ops.set_ai_budget({'prices': {'qwen-plus': {'in': 1, 'cached': 0.2, 'out': 4}, 'kimi-k3': {'in': 4, 'cached': 0.8, 'out': 16, 'platform': 'bailian'}}}, 'boss')
         self.assertEqual(st, 200)
-        self.assertAlmostEqual(ai_routes.cost('deepseek', at(2026, 11, 23, 10), 1_000_000, 0, 1_000_000), 5.0)
-        self.assertEqual(console_ops.set_ai_budget({'prices': {'deepseek': {'in': -1, 'cached': 0, 'out': 1}}}, 'boss')[1], 400)
-        console_ops.set_ai_budget({'prices': {'deepseek': None}}, 'boss')
-        self.assertAlmostEqual(ai_routes.cost('deepseek', at(2026, 11, 23, 10), 1_000_000, 0, 1_000_000), 10.0)
+        self.assertAlmostEqual(ai_routes.cost('qwen-plus', noon, 1_000_000, 0, 1_000_000), 5.0 * 0.6)
+        self.assertAlmostEqual(ai_routes.cost('kimi-k3', noon, 1_000_000, 0, 0), 4 * 0.6)  # a model added by hand
+        self.assertEqual(console_ops.set_ai_budget({'prices': {'qwen-plus': {'in': -1, 'cached': 0, 'out': 1}}}, 'boss')[1], 400)
+        console_ops.set_ai_budget({'prices': {'qwen-plus': None}, 'discounts': {'bailian': None}}, 'boss')
+        self.assertAlmostEqual(ai_routes.cost('qwen-plus', noon, 1_000_000, 0, 0), 0.8 * 0.65)
 
 
 class BudgetTests(Site):
@@ -293,17 +324,18 @@ class ConsoleTests(Site):
             return e.code, json.loads(e.read() or b'{}')
 
     def test_routes_are_switched_by_a_manager_and_logged(self):
-        st, body = self.console('/settings/ai-routes', {'routes': {'next-rewrite': 'deepseek'}}, email=INTERN)
+        st, body = self.console('/settings/ai-routes', {'routes': {'next-rewrite': 'flow-qwen-plus'}}, email=INTERN)
         self.assertEqual(st, 403)
-        st, body = self.console('/settings/ai-routes', {'routes': {'next-rewrite': 'deepseek'}})
-        self.assertEqual((st, body['routes']['next-rewrite']['route']), (200, 'deepseek'))
+        st, body = self.console('/settings/ai-routes', {'routes': {'next-rewrite': 'flow-qwen-plus'}})
+        self.assertEqual((st, body['routes']['next-rewrite']['route']), (200, 'flow-qwen-plus'))
         with app.db() as c:
             log = c.execute("SELECT action, detail FROM flow_admin_log WHERE action='ai-routes'").fetchall()
-        self.assertEqual([tuple(r) for r in log], [('ai-routes', '仿写批改：Gemini → DeepSeek')])
+        self.assertEqual([tuple(r) for r in log], [('ai-routes', '仿写批改：flow-text → flow-qwen-plus')])
         st, d = self.console('/ai?days=14', email=INTERN)
         self.assertEqual(st, 200)
         rw = next(k for k in d['costs']['kinds'] if k['kind'] == 'next-rewrite')
-        self.assertEqual((rw['route'], rw['source']), ('deepseek', 'console'))
+        self.assertEqual((rw['route'], rw['source']), ('flow-qwen-plus', 'console'))
+        self.assertIn('flow-qwen-flash', [c['name'] for c in d['costs']['choices']])
         self.assertIn('budget', d['costs']); self.assertIn('evals', d); self.assertIn('quality', d)
 
     def test_budget_and_nightly_check_from_the_console(self):
@@ -311,7 +343,7 @@ class ConsoleTests(Site):
         self.assertEqual((st, body['daily'], body['nightly']), (200, 20.0, False))
         self.assertEqual(self.console('/settings/ai-budget', {'daily': 'lots'})[0], 400)
         with app.db() as c:
-            self.assertEqual(c.execute("SELECT detail FROM flow_admin_log WHERE action='ai-budget'").fetchone()[0], '每日预算 ¥20，每晚小评测关')
+            self.assertEqual(c.execute("SELECT detail FROM flow_admin_log WHERE action='ai-budget'").fetchone()[0], '每日预算 ¥20，每晚小评测关，百炼折扣 0.65')
 
     def test_samples_show_shared_content_never_a_learners_own_text_and_a_bad_one_can_go(self):
         with app.db() as c:
@@ -359,11 +391,11 @@ class EvalCommandTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d, patch.object(ai_eval, 'run', run), patch.dict(os.environ, GATEWAY), \
                 patch('lab_service.ai_enabled', return_value=True):
             site = Path(d) / 'console-settings.json'
-            site.write_text(json.dumps({'ai_routes': {'next-rewrite': 'deepseek'}}))
+            site.write_text(json.dumps({'ai_routes': {'next-rewrite': 'flow-qwen-plus'}}))
             ai_eval.main(['--env-file', os.devnull, '--quick', '--site-settings', str(site)])
-            self.assertEqual((json.loads(seen['routes']), seen['quick']), ({'next-rewrite': 'deepseek'}, True))
-            ai_eval.main(['--env-file', os.devnull, '--route', 'deepseek', '--only', 'rewrite'])
-            self.assertEqual((json.loads(seen['routes']), seen['kinds']), ({'*': 'deepseek'}, ('rewrite',)))
+            self.assertEqual((json.loads(seen['routes']), seen['quick']), ({'next-rewrite': 'flow-qwen-plus'}, True))
+            ai_eval.main(['--env-file', os.devnull, '--route', 'flow-qwen-plus', '--only', 'rewrite'])
+            self.assertEqual((json.loads(seen['routes']), seen['kinds']), ({'*': 'flow-qwen-plus'}, ('rewrite',)))
 
 
 if __name__ == '__main__':

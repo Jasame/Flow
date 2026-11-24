@@ -17,8 +17,8 @@ for once. Books go in the order given (default: the exam and data books first, t
 progress every 20 calls and stops after 5 failed calls in a row. Exit status 0 when nothing is left to do, 1 when
 words are left (stopped early or --max-calls reached), 2 when no model is configured.
 
---offpeak: when the examples' route is DeepSeek (ai_routes), wait out its peak hours (Beijing time, weekdays 9–12 and
-14–18), when its price is double. It also stops for the day once the console's daily AI budget is spent (state
+--offpeak: when the model the examples' route usually reaches has busy hours (DeepSeek on 百炼: 08:00–22:00 Beijing
+time; half price the rest of the day), wait them out. Qwen models have none (their half price is 百炼's batch API). It also stops for the day once the console's daily AI budget is spent (state
 budget); run it again tomorrow. Every call is in ai_calls as 例句预生成（批量）.
 
 Run it in the background on the server, e.g.
@@ -57,7 +57,7 @@ def main(argv=None):
     ap.add_argument('--pause', type=float, default=1.0, help='两次请求之间停几秒')
     ap.add_argument('--dry-run', action='store_true', help='只数还缺多少，不请求')
     ap.add_argument('--status', help='把进度写进这个 JSON 文件（后台的「后台任务」读它）')
-    ap.add_argument('--offpeak', action='store_true', help='例句走 DeepSeek 时，避开它的高峰时段（北京时间工作日 9–12、14–18 点，价格翻倍）')
+    ap.add_argument('--offpeak', action='store_true', help='例句用的模型有忙时价（百炼上的 DeepSeek：北京时间 8–22 点）时，等到半价时段再跑')
     a = ap.parse_args(argv)
     status = {'state': 'running', 'books': [], 'total': None, 'looked': 0, 'calls': 0, 'made': 0, 'left': None}
 
@@ -114,8 +114,9 @@ def main(argv=None):
             print('今天的 AI 预算已用完：停下，明天再跑。', flush=True)
             report(state='budget', looked=i, calls=calls, made=made)
             return 1
-        while a.offpeak and ai_routes.route('fill-examples') == 'deepseek' and ai_routes.peak(time.time()):
-            until = ai_routes.next_offpeak(time.time())
+        line = ai_routes.price_of(ai_routes.usual_models().get(ai_routes.route('fill-examples'), ''))
+        while a.offpeak and ai_routes.busy(time.time(), line):
+            until = ai_routes.next_quiet(time.time(), line)
             report(state='waiting', until=until)
             time.sleep(min(600, max(5, until - time.time())))
         report(state='running', until=None)

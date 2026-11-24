@@ -1,23 +1,26 @@
 """Which model answers each AI task, what every call cost, and the daily AI budget (xmc.hk console).
 
-Routes. A text task goes to one of two model names on the xmc-api gateway, with the same address and key as now:
-- gemini: FLOW_TEXT_AI_MODEL (flow-text: Gemini 3.8 Flash first);
-- deepseek: FLOW_DEEPSEEK_AI_MODEL, default flow-deepseek (DeepSeek first, Gemini as the gateway's backup line).
-A task's route is set in the console (console-settings.json 'ai_routes': {kind: route, '*': route}); FLOW_AI_ROUTES
-(JSON of the same shape) is the server's default; with neither, every task stays on gemini, as before. Audio and web
-search never take a route: they go to the main model. When a route's lines all fail, Flow still falls back to the main
-model (chat_service.request_model).
+Routes. A text task goes to one model name on the xmc-api gateway, with the same address and key as now. The default is
+FLOW_TEXT_AI_MODEL (flow-text: Gemini 3.8 Flash first). The others are the gateway's flow-* names, which point at models
+on Alibaba Cloud 百炼 (Model Studio, OpenAI-compatible mode: 通义千问 qwen-flash / qwen-plus / qwen-max, DeepSeek, Kimi,
+GLM … one key), each with Gemini as the gateway's backup line (tools/ai-gateway/README.md). A task's model is set in the
+console (console-settings.json 'ai_routes': {kind: name, '*': name}); FLOW_AI_ROUTES (JSON of the same shape) is the
+server's default; with neither, every task stays on flow-text, as before. The console offers the gateway's flow-* names
+(GET /v1/models with the site's key) and FLOW_AI_CHOICES. Audio and web search never take a route: they go to the main
+model. When a route's lines all fail, Flow still falls back to the main model (chat_service.request_model).
 
-DeepSeek thinks before it answers unless told not to; every text request says "no thinking" (the Gemini relay ignores
-the field), and the deepseek route also asks for a JSON object on tasks whose answer is JSON.
+Every text request says "no thinking" (百炼's enable_thinking; qwen-plus / qwen-flash do not think by default, DeepSeek
+and the qwen3.5+ models do; the Gemini relay drops unknown fields), and a 百炼 route also asks for a JSON object on
+tasks whose answer is JSON (百炼 needs the word JSON in the prompt, which every such prompt has).
 
 Every model call (each attempt, a fallback included) is a row in ai_calls: the task, route, which service, the model
-that answered, tokens (DeepSeek reports the input that hit its prompt cache), milliseconds and the outcome. The Gemini
-relay reports no usage: those rows are estimated from the text (its thinking tokens are not known) and marked so.
-Costs are worked out when read, from PRICES (the console may override them), by the time of each call: DeepSeek's
-off-peak half price, Gemini's price after 2026-12-31.
+that answered, tokens (百炼 reports the input that hit its implicit cache), milliseconds and the outcome. The Gemini relay
+reports no usage: those rows are estimated from the text (its thinking tokens are not known) and marked so. Costs are
+worked out when read, from PRICES (list prices; the console may override them) times the platform's discount (百炼 about
+0.65, the rate the owner agreed), by the time of each call: DeepSeek on 百炼 at half price 22:00–08:00, Gemini's price
+after 2026-12-31.
 """
-import contextlib, datetime, json, math, os, re, sqlite3, sys, threading, time
+import contextlib, datetime, json, math, os, re, sqlite3, sys, threading, time, urllib.request
 
 DAY = 86400
 TASKS = [  # kind, label, group (grading: marks what a learner wrote or said; content: shared material; chat: free answers)
@@ -34,19 +37,26 @@ EXTRA = {'fill-examples': ('例句预生成（批量）', 'next-examples'), 'dai
          'ai-check': ('部署自检', None), 'ai-check-json': ('部署自检', None)}
 LABEL.update({k: v[0] for k, v in EXTRA.items()})
 FREE_TEXT = {'chat', 'ai-check'}  # answers in prose, not JSON
-ROUTES = {'gemini': 'Gemini', 'deepseek': 'DeepSeek'}
-DEFAULT_ROUTE = 'gemini'
+NAME = re.compile(r'[A-Za-z0-9][A-Za-z0-9._:/-]{0,79}')
 
-# Yuan per million tokens (DeepSeek's own CNY prices; Gemini's USD prices at 7.1). Read from the vendors' pages 2026-11-24:
-# api-docs.deepseek.com/zh-cn/quick_start/pricing (deepseek-flash = DeepSeek-V4.1-Flash-1017) and
-# cloud.google.com/vertex-ai/generative-ai/pricing (Gemini 3.8 Flash, global endpoint; output includes thinking).
+# Yuan per million tokens, list prices read 2026-11-24 (in 'cached': the price of input that hits the cache):
+# - 百炼, 华北2（北京）: help.aliyun.com/zh/model-studio/model-pricing (first tier, ≤128K input; non-thinking output) and
+#   /context-cache (an implicit-cache hit costs 20% of the input price; deepseek-v4.1-flash 2%). DeepSeek on 百炼:
+#   busy 08:00–22:00, half price 22:00–08:00. qwen-turbo is gone from the price list: qwen-flash replaces it.
+# - Gemini 3.8 Flash on Vertex AI (global): cloud.google.com/vertex-ai/generative-ai/pricing, at 7.1 yuan a dollar;
+#   output includes thinking.
+# A model is found by the longest key its answering name starts with (qwen-plus-2025-12-01 → qwen-plus).
 PRICES = {
-    'deepseek': {'label': 'DeepSeek V4.1 Flash', 'in': 2.0, 'cached': 0.04, 'out': 8.0, 'offpeak': 0.5,
-                 'note': '高峰（北京时间工作日 9–12、14–18 点）原价，其余时段半价；法定节假日按高峰估，略偏高'},
-    'gemini': {'label': 'Gemini 3.8 Flash', 'in': 5.33, 'cached': 0.53, 'out': 26.63, 'offpeak': 1.0,
-               'after': {'2027-01-01': {'in': 10.65, 'cached': 1.07, 'out': 53.25}},
-               'note': '按 1 美元 = 7.1 元；2026-12-31 前是推广价，2027-01-01 起翻倍；思考 token 也按输出计费，但中转站不回报，算不进来'},
+    'qwen-flash': {'label': '通义千问 Flash', 'platform': 'bailian', 'in': 0.15, 'cached': 0.03, 'out': 1.5},
+    'qwen-plus': {'label': '通义千问 Plus（不思考）', 'platform': 'bailian', 'in': 0.8, 'cached': 0.16, 'out': 2.0},
+    'qwen-max': {'label': '通义千问 Max', 'platform': 'bailian', 'in': 2.4, 'cached': 0.48, 'out': 9.6},
+    'deepseek-v4.1-flash': {'label': 'DeepSeek V4.1 Flash（百炼）', 'platform': 'bailian', 'in': 2.0, 'cached': 0.04, 'out': 8.0,
+                            'offpeak': 0.5, 'busy': [8, 22], 'note': '百炼上北京时间 22:00–08:00 半价'},
+    'gemini-3.8-flash': {'label': 'Gemini 3.8 Flash', 'platform': 'google', 'in': 5.33, 'cached': 0.53, 'out': 26.63,
+                         'after': {'2027-01-01': {'in': 10.65, 'cached': 1.07, 'out': 53.25}},
+                         'note': '按 1 美元 = 7.1 元；2026-12-31 前是推广价，2027-01-01 起翻倍；思考 token 也按输出计费，但中转站不回报，算不进来'},
 }
+PLATFORMS = {'bailian': {'label': '阿里云百炼', 'discount': 0.65}, 'google': {'label': 'Google Vertex AI', 'discount': 1.0}}
 TZ = datetime.timezone(datetime.timedelta(hours=8))
 CTX = threading.local()
 
@@ -94,56 +104,103 @@ def _env_routes():
         return {}
 
 
-def routes():
-    """{kind: route} for every task, and where each comes from (console / server / default)."""
-    console, server = _settings().get('ai_routes') or {}, _env_routes()
-    out = {}
-    for kind, _, _ in TASKS:
-        for src, table in (('console', console), ('server', server)):
-            r = table.get(kind) or table.get('*')
-            if r in ROUTES:
-                out[kind] = {'route': r, 'source': src}
-                break
-        else:
-            out[kind] = {'route': DEFAULT_ROUTE, 'source': 'default'}
-    return out
-
-
-def route(kind=None):
-    kind = kind or current()
-    kind = EXTRA[kind][1] or kind if kind in EXTRA else kind
-    console, server = _settings().get('ai_routes') or {}, _env_routes()
-    for table in (console, server):
-        r = table.get(kind) or table.get('*')
-        if r in ROUTES:
-            return r
-    return DEFAULT_ROUTE
-
-
-def model_name(r):
-    """The gateway model name of a route ('' when the route is not set up on this server)."""
-    if r == 'deepseek':
-        return os.getenv('FLOW_DEEPSEEK_AI_MODEL', 'flow-deepseek').strip()
+def default_model():
     return os.getenv('FLOW_TEXT_AI_MODEL', '').strip()
 
 
-def extra_body(r, kind=None):
-    """Request fields for the text service: no thinking (DeepSeek thinks by default; the Gemini relay drops unknown
-    fields), and on the deepseek route a JSON object for tasks that answer in JSON."""
+def _pick(kind, tables):
+    for src, table in tables:
+        r = table.get(kind) or table.get('*')
+        if isinstance(r, str) and NAME.fullmatch(r):
+            return r, src
+    return default_model(), 'default'
+
+
+def route(kind=None):
+    """The gateway model name this task asks."""
     kind = kind or current()
-    out = {'thinking': {'type': 'disabled'}}
-    if r == 'deepseek' and kind not in FREE_TEXT:
+    kind = EXTRA[kind][1] or kind if kind in EXTRA else kind
+    return _pick(kind, (('console', _settings().get('ai_routes') or {}), ('server', _env_routes())))[0]
+
+
+def routes():
+    """{kind: {route, source}} for every task: the model name and where it comes from (console / server / default)."""
+    tables = (('console', _settings().get('ai_routes') or {}), ('server', _env_routes()))
+    return {kind: dict(zip(('route', 'source'), _pick(kind, tables))) for kind, _, _ in TASKS}
+
+
+def model_name(r):
+    """Kept for callers that name a route: the gateway model name itself ('' = flow-text)."""
+    return r or default_model()
+
+
+_CHOICES = {'at': 0.0, 'names': []}
+
+
+def gateway_models():
+    """The flow-* model names the gateway offers this site's key (GET /v1/models), cached for 10 minutes; [] if the
+    gateway cannot be asked (Vertex direct, no key, down)."""
+    if time.time() - _CHOICES['at'] < 600:
+        return _CHOICES['names']
+    names = []
+    try:
+        import chat_service
+        tp = chat_service.text_provider()
+        if tp and tp[0].endswith('/chat/completions'):
+            req = urllib.request.Request(tp[0][:-len('/chat/completions')] + '/models',
+                                         headers={'Authorization': 'Bearer ' + tp[1], 'User-Agent': 'jasa-flow/1.0'})
+            with urllib.request.urlopen(req, timeout=4) as r:
+                names = sorted(m['id'] for m in json.load(r).get('data', []) if isinstance(m, dict) and str(m.get('id', '')).startswith('flow-'))
+    except Exception:  # noqa: BLE001 - the console then offers what is configured and in use
+        names = []
+    _CHOICES.update(at=time.time(), names=names)
+    return names
+
+
+def choices():
+    """Model names the console may pick from: the gateway's flow-* names, FLOW_AI_CHOICES, and every name in use."""
+    names = set(gateway_models())
+    names |= {n.strip() for n in os.getenv('FLOW_AI_CHOICES', '').split(',') if NAME.fullmatch(n.strip())}
+    names |= {v['route'] for v in routes().values() if v['route']}
+    if default_model():
+        names.add(default_model())
+    usual = usual_models()
+    return [{'name': n, 'default': n == default_model(), 'answers': usual.get(n, ''),
+             'label': describe_model(n, usual.get(n, ''))} for n in sorted(names, key=lambda n: (n != default_model(), n))]
+
+
+def describe_model(name, answers=''):
+    """How the console names a gateway model: what answers behind it, if known."""
+    p = price_of(answers) if answers else None
+    if p:
+        return f"{p['label']}（{name}）"
+    if name == default_model():
+        return f'Gemini（{name}）'
+    return name
+
+
+def is_bailian(r):
+    return bool(r) and r != default_model()
+
+
+def extra_body(r, kind=None):
+    """Request fields for the text service: no thinking (百炼's enable_thinking; the Gemini relay drops unknown fields),
+    and on a 百炼 route a JSON object for tasks that answer in JSON."""
+    kind = kind or current()
+    out = {'enable_thinking': False}
+    if is_bailian(r) and kind not in FREE_TEXT:
         out['response_format'] = {'type': 'json_object'}
     return out
 
 
 def set_routes(data, by):
-    """Console change: data = {'routes': {kind: 'deepseek'|'gemini'|None}} (None = back to the server's default).
+    """Console change: data = {'routes': {kind or '*': model name or None}} (None = back to the server's default).
     Returns (body, status, changes) with changes = [(kind, before, after)]."""
     import console_ops as co
     want = data.get('routes')
     if not isinstance(want, dict) or not want:
         return {'error': '请选择要改的任务'}, 400, []
+    allowed = {c['name'] for c in choices()}
     before = {k: v['route'] for k, v in routes().items()}
     cur = dict(co.settings().get('ai_routes') or {})
     for kind, r in want.items():
@@ -151,10 +208,10 @@ def set_routes(data, by):
             return {'error': f'没有这个任务：{kind}'}, 400, []
         if r is None or r == '':
             cur.pop(kind, None)
-        elif r in ROUTES:
+        elif isinstance(r, str) and r in allowed:
             cur[kind] = r
         else:
-            return {'error': '模型只能选 DeepSeek 或 Gemini'}, 400, []
+            return {'error': '网关里没有这个模型名：先在 xmc.hk/api-admin 加好，再来这里选'}, 400, []
     if '*' in want:  # "all tasks": one value for every task, no per-task exceptions left behind
         cur = {'*': cur['*']} if '*' in cur else {}
     co.save_settings({'ai_routes': cur}, by)
@@ -164,7 +221,7 @@ def set_routes(data, by):
 
 
 def changes_text(changes):
-    return '；'.join(f"{LABEL.get(k, k)}：{ROUTES[a]} → {ROUTES[b]}" for k, a, b in changes) or '没有变化'
+    return '；'.join(f"{LABEL.get(k, k)}：{a or '—'} → {b or '—'}" for k, a, b in changes) or '没有变化'
 
 
 # ---------- one call ----------
@@ -190,13 +247,17 @@ def usage_of(d):
     return prompt, min(cached, prompt), completion, reasoning
 
 
-def family(served, model=''):
-    """Which vendor answered: by the model the answer names (served), else by the name asked for. A gateway alias
-    such as flow-text says nothing on its own: then the route tells (flow-text is Gemini first)."""
-    s = (served or model or '').lower()
-    if not served and model and model == os.getenv('FLOW_TEXT_AI_MODEL', '').strip():
+def vendor(served, model=''):
+    """Who answered, by the model the answer names (served), else by the name asked: 'gemini', 'bailian' or 'other'.
+    flow-text without a served name is Gemini (its own line); another flow-* name is a 百炼 line."""
+    s = (served or '').lower()
+    if not s:
+        return 'gemini' if model == default_model() else 'bailian' if str(model).startswith('flow-') else 'other'
+    if 'gemini' in s or 'google' in s:
         return 'gemini'
-    return 'deepseek' if 'deepseek' in s else 'gemini' if 'gemini' in s or 'google' in s else 'other'
+    if any(k in s for k in ('qwen', 'deepseek', 'kimi', 'moonshot', 'glm', 'minimax')):
+        return 'bailian'
+    return 'other'
 
 
 def _db():
@@ -241,47 +302,90 @@ def record(service, model, started, messages, reply=None, info=None, exc=None, f
         pass
 
 
+def usual_models(days=30):
+    """{gateway model name: the model that most often answered it lately} (to name it, and to know its price)."""
+    c = _db()
+    if c is None:
+        return {}
+    try:
+        rows = c.execute("SELECT model, served, COUNT(*) n FROM ai_calls WHERE ok=1 AND served!='' AND service='text' AND ts>? "
+                         "GROUP BY model, served ORDER BY n", (time.time() - days * DAY,)).fetchall()
+        return {r[0]: r[1] for r in rows}  # the most frequent comes last and wins
+    except sqlite3.Error:
+        return {}
+    finally:
+        c.close()
+
+
 # ---------- cost ----------
 
 def prices():
-    """The price table in force: PRICES with the console's overrides."""
+    """The price table in force: PRICES with the console's overrides and models it added; each with its platform's
+    discount in force (PLATFORMS, the console's 'ai_discounts')."""
     out = json.loads(json.dumps(PRICES))
-    for fam, v in (_settings().get('ai_prices') or {}).items():
-        if fam in out and isinstance(v, dict):
-            for k in ('in', 'cached', 'out'):
-                if isinstance(v.get(k), (int, float)) and 0 <= v[k] <= 10000:
-                    out[fam][k] = float(v[k])
-                    out[fam].pop('after', None)  # a price set by hand replaces the scheduled change
-            out[fam]['custom'] = True
-    return out
+    for key, v in (_settings().get('ai_prices') or {}).items():
+        if not isinstance(v, dict) or not NAME.fullmatch(key):
+            continue
+        row = out.setdefault(key, {'label': key, 'platform': v.get('platform') if v.get('platform') in PLATFORMS else 'bailian'})
+        for k in ('in', 'cached', 'out'):
+            if isinstance(v.get(k), (int, float)) and not isinstance(v.get(k), bool) and 0 <= v[k] <= 10000:
+                row[k] = float(v[k])
+        row.pop('after', None)  # a price set by hand replaces the scheduled change
+        row['custom'] = True
+    disc = discounts()
+    for row in out.values():
+        row['discount'] = disc.get(row.get('platform'), 1.0)
+    return {k: v for k, v in out.items() if all(isinstance(v.get(x), (int, float)) for x in ('in', 'cached', 'out'))}
 
 
-def peak(ts):
-    """DeepSeek's peak hours: Beijing time, Monday to Friday, 9–12 and 14–18 (public holidays not known: counted as peak)."""
-    t = datetime.datetime.fromtimestamp(ts, TZ)
-    return t.weekday() < 5 and (9 <= t.hour < 12 or 14 <= t.hour < 18)
+def discounts():
+    d = {k: v['discount'] for k, v in PLATFORMS.items()}
+    for k, v in (_settings().get('ai_discounts') or {}).items():
+        if k in d and isinstance(v, (int, float)) and not isinstance(v, bool) and 0 < v <= 1:
+            d[k] = float(v)
+    return d
 
 
-def next_offpeak(ts):
-    """The first moment at or after ts outside DeepSeek's peak hours."""
-    t = datetime.datetime.fromtimestamp(ts, TZ)
-    if not peak(ts):
+def price_of(served, table=None):
+    """The price row of the model that answered (longest key its name starts with), or None."""
+    s = (served or '').lower()
+    table = table or prices()
+    keys = [k for k in table if s.startswith(k.lower())]
+    return table[max(keys, key=len)] if keys else None
+
+
+def busy(ts, p):
+    """Whether ts falls in a model's busy hours (Beijing time; no busy hours: never)."""
+    b = (p or {}).get('busy')
+    if not b:
+        return False
+    return b[0] <= datetime.datetime.fromtimestamp(ts, TZ).hour < b[1]
+
+
+def next_quiet(ts, p):
+    """The first moment at or after ts outside a model's busy hours (its half-price time)."""
+    if not busy(ts, p):
         return ts
-    end = t.replace(hour=12 if t.hour < 12 else 18, minute=0, second=0, microsecond=0)
-    return end.timestamp()
+    t = datetime.datetime.fromtimestamp(ts, TZ)
+    return t.replace(hour=p['busy'][1], minute=0, second=0, microsecond=0).timestamp()
 
 
-def cost(fam, ts, prompt, cached, completion, table=None):
-    """Yuan for one call."""
-    p = (table or prices()).get(fam)
+def cost(served, ts, prompt, cached, completion, table=None):
+    """Yuan for one call, after the platform's discount; 0 for a model without a price."""
+    p = price_of(served, table)
     if not p:
         return 0.0
     day = datetime.datetime.fromtimestamp(ts, TZ).date().isoformat()
     for start, later in sorted((p.get('after') or {}).items()):
         if day >= start:
             p = {**p, **later}
-    k = p.get('offpeak', 1.0) if not peak(ts) else 1.0
-    return ((prompt - cached) * p['in'] + cached * p['cached'] + completion * p['out']) * k / 1e6
+    k = p.get('offpeak', 1.0) if p.get('busy') and not busy(ts, p) else 1.0
+    return ((prompt - cached) * p['in'] + cached * p['cached'] + completion * p['out']) * k * p.get('discount', 1.0) / 1e6
+
+
+def served_name(served, model):
+    """The name to price a call by: what answered, else (the Gemini relay names it; a row without one) what was asked."""
+    return served or (os.getenv('FLOW_AI_MODEL', '') if model == default_model() else model)
 
 
 def beijing_day(ts=None):
@@ -302,11 +406,11 @@ def spent(c, day=None):
                          (start, start + DAY)).fetchall()
     except sqlite3.OperationalError:
         return 0.0
-    return sum(cost(family(r[2], r[1]), r[0], r[3], r[4], r[5], table) for r in rows)
+    return sum(cost(served_name(r[2], r[1]), r[0], r[3], r[4], r[5], table) for r in rows)
 
 
 def summary(c, days=14):
-    """The console's AI cost view: by task (with its route), by model, by day; failures and fallbacks."""
+    """The console's AI cost view: by task (with its model), by model, by day; failures, fallbacks, unpriced calls."""
     table, now = prices(), time.time()
     start = _day_start(beijing_day(now) - datetime.timedelta(days=days - 1))
     try:
@@ -315,29 +419,36 @@ def summary(c, days=14):
     except sqlite3.OperationalError:
         rows = []
     rt = routes()
+    # which vendor usually answers each route: an answer from the other one is the gateway's backup line
+    seen = {}
+    for r in rows:
+        if r[6] and r[3] == 'text':
+            v = seen.setdefault(r[2] or r[4], {})
+            v[vendor(r[5], r[4])] = v.get(vendor(r[5], r[4]), 0) + 1
+    usual = {k: max(v, key=v.get) for k, v in seen.items()}
     blank = lambda: {'calls': 0, 'ok': 0, 'failed': 0, 'fallback': 0, 'backup': 0, 'prompt': 0, 'cached': 0, 'completion': 0, 'reasoning': 0,
-                     'estimated': 0, 'cost': 0.0, 'ms': 0}
+                     'estimated': 0, 'unpriced': 0, 'cost': 0.0, 'ms': 0}
     kinds, models, by_day = {}, {}, {}
     total = blank()
     for r in rows:
         ts, kind, rte, service, model, served, ok, prompt, cached, completion, reasoning, est, ms, fb = tuple(r)
-        fam = family(served, model) if ok else ''
-        yuan = cost(fam, ts, prompt, cached, completion, table) if ok else 0.0
+        name = served_name(served, model)
+        priced = bool(price_of(name, table))
+        yuan = cost(name, ts, prompt, cached, completion, table) if ok else 0.0
         day = beijing_day(ts).isoformat()
-        name = served or model or '—'
-        for bucket in (kinds.setdefault(kind, blank()), models.setdefault(name if ok else '（失败）', {**blank(), 'family': fam}),
-                       by_day.setdefault(day, blank()), total):
+        backup = int(bool(ok and service == 'text' and usual.get(rte or model) and vendor(served, model) != usual[rte or model]))
+        for bucket in (kinds.setdefault(kind, blank()), models.setdefault(name if ok else '（失败）', blank()), by_day.setdefault(day, blank()), total):
             bucket['calls'] += 1
             bucket['ok' if ok else 'failed'] += 1
             bucket['fallback'] += fb
-            # the gateway's own backup line answered: the model is not the route's (DeepSeek route answered by Gemini…)
-            bucket['backup'] += int(bool(ok and service == 'text' and rte in ROUTES and fam in ROUTES and fam != rte))
+            bucket['backup'] += backup
             if ok:
                 bucket['prompt'] += prompt
                 bucket['cached'] += cached
                 bucket['completion'] += completion
                 bucket['reasoning'] += reasoning
                 bucket['estimated'] += est
+                bucket['unpriced'] += int(not priced)
                 bucket['ms'] += ms
             bucket['cost'] += yuan
     def finish(b):
@@ -355,11 +466,16 @@ def summary(c, days=14):
         d = (beijing_day(now) - datetime.timedelta(days=i)).isoformat()
         b = finish(by_day.get(d, blank()))
         days_list.append({'day': d, 'calls': b['calls'], 'cost': b['cost'], 'failed': b['failed']})
-    return {'days': days, 'kinds': out_kinds, 'models': sorted(({'name': k, **finish(v)} for k, v in models.items()), key=lambda m: -m['calls']),
+    model_rows = []
+    for k, v in models.items():
+        p = price_of(k, table)
+        model_rows.append({'name': k, 'label': p['label'] if p else '', 'platform': PLATFORMS.get((p or {}).get('platform'), {}).get('label', ''), **finish(v)})
+    return {'days': days, 'kinds': out_kinds, 'models': sorted(model_rows, key=lambda m: -m['calls']),
             'by_day': days_list, 'total': finish(total), 'today': round(spent(c), 4), 'budget': budget_state(c),
-            'prices': table, 'routes': ROUTES, 'deepseek_model': model_name('deepseek'), 'gemini_model': model_name('gemini'),
-            'note': '费用按每次调用的实际 token 和上面的单价估算（北京时间）。Gemini 走自己的中转站，不回报用量：这部分 token 按文字长度估算（标「估算」），'
-                    '它的思考 token 也收费但算不进来，所以 Gemini 的实际费用会比这里高。'}
+            'prices': table, 'platforms': {k: {**v, 'discount': discounts()[k]} for k, v in PLATFORMS.items()},
+            'choices': choices(), 'default_model': default_model(),
+            'note': '费用 = 每次调用的实际 token × 官方标价 × 平台折扣（北京时间）。百炼回报命中缓存的 token；Gemini 走自己的中转站，不回报用量：'
+                    '这部分 token 按文字长度估算（标「估算」），它的思考 token 也收费但算不进来，所以 Gemini 的实际费用会比这里高。'}
 
 
 # ---------- daily budget ----------
@@ -448,7 +564,7 @@ def prune(c, keep_days=180):
 
 # ---------- the nightly marking check ----------
 
-NIGHT = (2, 5)  # Beijing hours: off-peak for DeepSeek, and nobody is studying
+NIGHT = (2, 5)  # Beijing hours: nobody is studying (and DeepSeek on 百炼 is half price)
 
 
 def eval_dir():

@@ -698,17 +698,19 @@
   function ktok(v) { return v >= 10000 ? (v / 1000).toFixed(0) + 'K' : v >= 1000 ? (v / 1000).toFixed(1) + 'K' : n(v); }
   function aiView() {
     getJSON('/ai?days=' + AIV.days).then(function (d) {
-      var lim = d.limits, cs = d.costs || { kinds: [], models: [], by_day: [], total: {}, budget: {}, prices: {}, routes: {} }, tot = cs.total || {}, bud = cs.budget || {};
+      var lim = d.limits, cs = d.costs || { kinds: [], models: [], by_day: [], total: {}, budget: {}, prices: {}, platforms: {}, choices: [] }, tot = cs.total || {}, bud = cs.budget || {};
       var max = Math.max.apply(null, d.by_day.map(function (x) { return x.count; }).concat([1]));
       var cmax = Math.max.apply(null, cs.by_day.map(function (x) { return x.cost; }).concat([0.0001]));
       var src = function (k) { return lim[k + '_source'] === 'console' ? '后台设置（服务器配置是 ' + (lim[k + '_server'] ? n(lim[k + '_server']) + ' 次' : '不限') + '）' : '服务器配置'; };
-      var RT = cs.routes || { gemini: 'Gemini', deepseek: 'DeepSeek' };
+      var CH = cs.choices || [], label = function (name) { var c = CH.filter(function (x) { return x.name === name; })[0]; return c ? c.label : name; };
       var SRC = { console: '后台', server: '服务器', 'default': '默认' };
+      var options = function (cur) { return CH.map(function (c) { return '<option value="' + esc(c.name) + '"' + (c.name === cur ? ' selected' : '') + '>' + esc(c.label) + '</option>'; }).join(''); };
       var routeCell = function (k) {
         if (!k.route) return '—';
-        if (!isAdmin()) return esc(RT[k.route] || k.route) + '<span class="sub">' + esc(SRC[k.source] || '') + '</span>';
-        return '<select data-route="' + esc(k.kind) + '">' + Object.keys(RT).map(function (r) { return '<option value="' + r + '"' + (r === k.route ? ' selected' : '') + '>' + esc(RT[r]) + '</option>'; }).join('') + '</select>';
+        if (!isAdmin()) return esc(label(k.route)) + '<span class="sub">' + esc(SRC[k.source] || '') + '</span>';
+        return '<select data-route="' + esc(k.kind) + '">' + options(k.route) + '</select>';
       };
+      var PF = cs.platforms || {}, bl = PF.bailian || {};
       var budPill = bud.level === 'over' ? '<span class="pill danger">超过预算</span>' : bud.level === 'warn' ? '<span class="pill warn">已到 80%</span>' : '';
       var ev = d.evals || [], ev0 = ev[0];
       main.innerHTML =
@@ -718,12 +720,12 @@
         '<div class="kpi-grid">' +
           kpi('今天的费用（估算）', yuan(cs.today) + ' ' + budPill, bud.daily ? '每日预算 ' + yuan(bud.daily) + ' · 已用 ' + bud.pct + '%' : '没有设每日预算') +
           kpi('近 ' + cs.days + ' 天费用', yuan(tot.cost), n(tot.ok) + ' 次成功 · 失败 ' + n(tot.failed) + ' 次') +
-          kpi('输入命中缓存', tot.cache_pct == null ? '—' : tot.cache_pct + '%', '命中的部分按 2% 的价格算（DeepSeek）') +
+          kpi('输入命中缓存', tot.cache_pct == null ? '—' : tot.cache_pct + '%', '百炼：命中的部分按输入价的 20% 算；提示词要 1024 token 以上才会命中') +
           kpi('备用线路答的', n((tot.backup || 0) + (tot.fallback || 0)) + ' 次', '网关换线 ' + n(tot.backup || 0) + ' · Flow 换到主模型 ' + n(tot.fallback || 0)) + '</div>' +
         '<section class="card"><h2>每个任务用哪个模型</h2>' +
-          '<p class="muted small">选 DeepSeek 时走网关模型 <code>' + esc(cs.deepseek_model || '—') + '</code>（DeepSeek 先答，Gemini 备用）；选 Gemini 时走 <code>' + esc(cs.gemini_model || '—') + '</code>。两条都不通时，Flow 再换主模型。录音、联网检索一直用 Gemini，不在这里。' +
-          (isAdmin() ? '改了马上生效，记进操作记录。换之前先看下面「每晚小评测」和抽样，效果不降再换。' : '') + '</p>' +
-          (isAdmin() ? '<div class="toolbar" style="margin:8px 0"><button class="btn" data-all="deepseek">全部换成 DeepSeek</button><button class="btn" data-all="gemini">全部换回 Gemini</button></div>' : '') +
+          '<p class="muted small">这里列的是 AI 网关（xmc.hk/api-admin）里 flow- 开头的模型名：<code>' + esc(cs.default_model || '—') + '</code> 是 Gemini（默认），其他是阿里云百炼上的模型（通义千问、DeepSeek 等），各自配了 Gemini 备用。两条都不通时，Flow 再换主模型。录音、联网检索一直用 Gemini，不在这里。' +
+          (isAdmin() ? '改了马上生效，记进操作记录。换之前先看下面「每晚小评测」和抽样，效果不降再换；正式版上换之前先问过站长。' : '') + '</p>' +
+          (isAdmin() && CH.length > 1 ? '<div class="toolbar" style="margin:8px 0"><select id="allRoute">' + options(cs.default_model) + '</select><button class="btn" id="allGo">所有任务都用这个</button></div>' : '') +
           '<table class="cmp"><thead><tr><th>任务</th><th>模型</th><th class="num">次数</th><th class="num opt">失败</th><th class="num opt">备用答</th><th class="num opt">输入 / 命中 / 输出 token</th><th class="num">费用</th><th class="num opt">平均</th></tr></thead><tbody>' +
           cs.kinds.map(function (k) {
             return '<tr' + (k.calls ? '' : ' class="dim"') + '><td>' + esc(k.label) + (k.group === 'grading' ? '<span class="sub">批改</span>' : k.group === 'content' ? '<span class="sub">内容，全站共用</span>' : '') + '</td><td>' + routeCell(k) + '</td>' +
@@ -735,17 +737,19 @@
           '<section class="card"><h2>每天的费用</h2><div class="spark">' + cs.by_day.map(function (x) { return '<div title="' + esc(x.day + '：' + yuan(x.cost) + '，' + x.calls + ' 次') + '" style="height:' + Math.max(3, pct(x.cost, cmax)) + '%"></div>'; }).join('') + '</div>' +
             '<div class="spark-days">' + cs.by_day.map(function (x, i) { return '<span>' + (i % (cs.days > 14 ? 5 : 2) ? '' : esc(x.day.slice(5))) + '</span>'; }).join('') + '</div></section>' +
           '<section class="card"><h2>按模型</h2>' + (cs.models.length ? '<table class="cmp"><thead><tr><th>实际回答的模型</th><th class="num">次数</th><th class="num opt">token</th><th class="num">费用</th></tr></thead><tbody>' + cs.models.map(function (m) {
-              return '<tr><td>' + esc(m.name) + (m.estimated ? '<span class="sub">token 是估算</span>' : '') + '</td><td class="num">' + n(m.calls) + '</td><td class="num opt">' + ktok(m.prompt + m.completion) + '</td><td class="num">' + yuan(m.cost) + '</td></tr>'; }).join('') + '</tbody></table>' : '<p class="muted">这段时间没有记录。</p>') + '</section>' +
+              return '<tr><td>' + esc(m.name) + '<span class="sub">' + esc([m.label, m.platform].filter(Boolean).join(' · ') || '没有单价，费用按 0 算') + (m.estimated ? ' · token 是估算' : '') + '</span></td><td class="num">' + n(m.calls) + '</td><td class="num opt">' + ktok(m.prompt + m.completion) + '</td><td class="num">' + yuan(m.cost) + '</td></tr>'; }).join('') + '</tbody></table>' : '<p class="muted">这段时间没有记录。</p>') + '</section>' +
         '</div>' +
         '<div class="grid2">' +
           '<section class="card"><h2>每日预算和单价</h2><dl class="kv"><dt>每日预算</dt><dd>' + (bud.daily ? yuan(bud.daily) : '不设') + '</dd>' +
             '<dt>到预算时</dt><dd>80% 和 100% 各给管理员发一封邮件；超过后暂停例句预生成和每晚小评测，第二天恢复。学员的请求不受影响。</dd>' +
-            Object.keys(cs.prices || {}).map(function (f) { var p = cs.prices[f]; return '<dt>' + esc(p.label) + '</dt><dd>输入 ' + p['in'] + ' · 命中缓存 ' + p.cached + ' · 输出 ' + p.out + ' 元 / 百万 token' + (p.custom ? ' <span class="pill blue">手动设置</span>' : '') + '<div class="muted small">' + esc(p.note || '') + '</div></dd>'; }).join('') + '</dl>' +
+            Object.keys(PF).map(function (k) { return '<dt>' + esc(PF[k].label) + '折扣</dt><dd>' + (PF[k].discount === 1 ? '按标价' : '标价 × ' + PF[k].discount) + '</dd>'; }).join('') +
+            Object.keys(cs.prices || {}).map(function (f) { var p = cs.prices[f]; return '<dt>' + esc(p.label) + '</dt><dd><code>' + esc(f) + '</code> 标价：输入 ' + p['in'] + ' · 命中缓存 ' + p.cached + ' · 输出 ' + p.out + ' 元 / 百万 token' + (p.custom ? ' <span class="pill blue">手动设置</span>' : '') + (p.note ? '<div class="muted small">' + esc(p.note) + '</div>' : '') + '</dd>'; }).join('') + '</dl>' +
             (isAdmin() ? '<form class="form" id="budF" style="margin-top:12px"><div class="row"><label><span>每日预算（元，0 = 不设）</span><input class="input" id="budD" type="number" min="0" max="100000" step="0.5" value="' + (bud.daily || 0) + '"></label>' +
+              '<label><span>百炼折扣（标价的几成，0.65 = 六五折）</span><input class="input" id="budB" type="number" min="0.05" max="1" step="0.01" value="' + (bl.discount || 1) + '"></label>' +
               '<label class="chk"><input type="checkbox" id="budN"' + (d.nightly ? ' checked' : '') + '> 每晚小评测（约 17 次调用）</label></div>' +
               '<div class="row"><button class="btn primary">保存</button></div></form>' : '') + '</section>' +
           '<section class="card"><h2>每晚小评测 ' + (d.nightly ? '' : '<span class="pill off">已关闭</span>') + '</h2>' +
-            '<p class="muted small">每天凌晨 2–5 点（DeepSeek 半价时段）用固定的题考一遍：错句要改对、对的句子不能改、写作分数要分得出好坏、讲解和例句要能直接给学员看。用的是网站当时的模型设置，不碰学员数据。</p>' +
+            '<p class="muted small">每天凌晨 2–5 点用固定的题考一遍：错句要改对、对的句子不能改、写作分数要分得出好坏、讲解和例句要能直接给学员看。用的是网站当时的模型设置，不碰学员数据。</p>' +
             (ev.length ? '<table class="cmp"><thead><tr><th>日期</th><th class="num">通过</th><th class="opt">没过的题</th><th class="num opt">费用</th></tr></thead><tbody>' + ev.map(function (r) {
               return '<tr><td>' + esc(r.day.slice(5)) + '</td><td class="num"><span class="' + (r.passed < r.total ? 'down' : 'up') + '">' + n(r.passed) + ' / ' + n(r.total) + '</span></td>' +
                 '<td class="opt small">' + (r.failed.length ? r.failed.map(function (f) { return esc(f.id) + '：' + esc((f.why || []).join('；')); }).join('<br>') : '—') + '</td><td class="num opt">' + yuan(r.cost) + '</td></tr>'; }).join('') + '</tbody></table>' : '<p class="muted">还没有跑过。</p>') + '</section>' +
@@ -779,25 +783,26 @@
       main.querySelectorAll('tr[data-uid]').forEach(function (tr) { tr.onclick = function () { location.hash = '#learners/' + tr.dataset.uid; }; });
       main.querySelectorAll('select[data-route]').forEach(function (sel) {
         sel.onchange = function () {
-          var k = sel.dataset.route, label = (cs.kinds.filter(function (x) { return x.kind === k; })[0] || {}).label || k, body = { routes: {} };
+          var k = sel.dataset.route, task = (cs.kinds.filter(function (x) { return x.kind === k; })[0] || {}).label || k, body = { routes: {} };
           body.routes[k] = sel.value;
-          if (!confirm('「' + label + '」改用 ' + (RT[sel.value] || sel.value) + '？马上生效。')) { aiView(); return; }
+          if (!confirm('「' + task + '」改用 ' + label(sel.value) + '？马上生效。')) { aiView(); return; }
           sel.disabled = true;
           postJSON('/settings/ai-routes', body).then(aiView, function (e) { alert(e.message); aiView(); });
         };
       });
-      main.querySelectorAll('[data-all]').forEach(function (b) {
-        b.onclick = function () {
-          if (!confirm('所有文字任务都改用 ' + RT[b.dataset.all] + '？马上生效，每个任务单独的设置会清掉。')) return;
-          busy(b, postJSON('/settings/ai-routes', { routes: { '*': b.dataset.all } })).then(aiView);
-        };
-      });
+      var allGo = document.getElementById('allGo');
+      if (allGo) allGo.onclick = function () {
+        var v = document.getElementById('allRoute').value;
+        if (!confirm('所有文字任务都改用 ' + label(v) + '？马上生效，每个任务单独的设置会清掉。')) return;
+        busy(allGo, postJSON('/settings/ai-routes', { routes: { '*': v } })).then(aiView);
+      };
       var bf = document.getElementById('budF');
       if (bf) bf.onsubmit = function (e) {
         e.preventDefault();
-        var v = Number(document.getElementById('budD').value || 0), night = document.getElementById('budN').checked;
-        if (!(v >= 0)) { alert('请填 0 或正数。'); return; }
-        busy(bf.querySelector('button'), postJSON('/settings/ai-budget', { daily: v, nightly: night })).then(aiView);
+        var v = Number(document.getElementById('budD').value || 0), night = document.getElementById('budN').checked, disc = Number(document.getElementById('budB').value || 1);
+        if (!(v >= 0)) { alert('预算请填 0 或正数。'); return; }
+        if (!(disc > 0 && disc <= 1)) { alert('折扣请填 0–1 之间的小数，比如 0.65。'); return; }
+        busy(bf.querySelector('button'), postJSON('/settings/ai-budget', { daily: v, nightly: night, discounts: { bailian: disc } })).then(aiView);
       };
       var f = document.getElementById('limF');
       if (f) f.onsubmit = function (e) {
@@ -846,7 +851,7 @@
 
   /* ---------- 后台任务：例句预生成、每日热点、备份 ---------- */
   var TK = { timer: null };
-  var TASK_STATE = { idle: ['还没运行过', 'off'], running: ['正在运行', ''], waiting: ['等 DeepSeek 半价时段', 'off'], done: ['做完了', ''], left: ['停在中途（到了请求上限或连续失败）', 'warn'], budget: ['今天的 AI 预算用完了，明天再跑', 'warn'], stopped: ['已停止', 'off'], 'no-model': ['服务器没有配置 AI 模型', 'danger'], failed: ['出错了', 'danger'], ended: ['已结束', 'off'] };
+  var TASK_STATE = { idle: ['还没运行过', 'off'], running: ['正在运行', ''], waiting: ['等半价时段', 'off'], done: ['做完了', ''], left: ['停在中途（到了请求上限或连续失败）', 'warn'], budget: ['今天的 AI 预算用完了，明天再跑', 'warn'], stopped: ['已停止', 'off'], 'no-model': ['服务器没有配置 AI 模型', 'danger'], failed: ['出错了', 'danger'], ended: ['已结束', 'off'] };
   function tasksView() {
     clearTimeout(TK.timer);
     getJSON('/tasks').then(function (d) {
@@ -859,13 +864,13 @@
           (pg.total != null ? '<div class="prog"><i style="width:' + pct(pg.looked || 0, pg.total || 1) + '%"></i></div>' +
             '<dl class="kv"><dt>进度</dt><dd>看了 ' + n(pg.looked) + ' / ' + n(pg.total) + ' 个词 · 请求 ' + n(pg.calls) + ' 次 · 写好 ' + n(pg.made) + ' 条例句' + (pg.left != null && ex.state !== 'running' ? ' · 还剩 ' + n(pg.left) + ' 个词没有例句' : '') + '</dd>' +
             (tk.started ? '<dt>开始</dt><dd>' + esc(when(tk.started)) + ' · ' + esc(tk.by || '') + (tk.books && tk.books.length ? ' · 词书 ' + tk.books.map(esc).join('、') : ' · 全部词书') + (tk.max_calls ? ' · 最多 ' + n(tk.max_calls) + ' 次请求' : '') + (tk.offpeak ? ' · 只在半价时段' : '') + '</dd>' : '') +
-            (ex.state === 'waiting' && pg.until ? '<dt>等到</dt><dd>' + esc(when(pg.until)) + '（DeepSeek 半价时段开始）</dd>' : '') + '</dl>' : '') +
+            (ex.state === 'waiting' && pg.until ? '<dt>等到</dt><dd>' + esc(when(pg.until)) + '（半价时段开始）</dd>' : '') + '</dl>' : '') +
           (ex.log.length ? '<details' + (ex.state === 'running' ? ' open' : '') + '><summary class="muted small">运行记录（最后几行）</summary><pre class="logtail">' + esc(ex.log.join('\n')) + '</pre></details>' : '') +
           (isAdmin() ? (ex.state === 'running' || ex.state === 'waiting' ? '<p><button class="btn danger" id="exStop">停止</button></p>' :
             '<form class="form" id="exF" style="margin-top:12px"><div class="row"><label><span>词书</span><select id="exBook"><option value="">全部词书（考试词书优先）</option>' + d.books.map(function (b) {
               return '<option value="' + esc(b.id) + '">' + esc(b.group + ' · ' + b.title) + '</option>'; }).join('') + '</select></label>' +
               '<label><span>最多请求几次（0 = 不限）</span><input class="input" id="exMax" type="number" min="0" max="100000" value="0"></label></div>' +
-              '<label class="chk"><input type="checkbox" id="exOff" checked> 例句走 DeepSeek 时只在半价时段跑（避开北京时间工作日 9–12、14–18 点）</label>' +
+              '<label class="chk"><input type="checkbox" id="exOff" checked> 用的模型有忙时价时（百炼上的 DeepSeek：北京时间 8–22 点），等到半价时段再跑</label>' +
               '<p class="muted small" style="margin:0">一次请求写 16 个词。先试一小批（比如 20 次）看看例句质量，再放开跑。今天的 AI 预算用完时会自动停下。</p>' +
               '<div class="row"><button class="btn primary">开始</button></div></form>') : '') + '</section>' +
         '<div class="grid2">' +

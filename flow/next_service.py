@@ -1095,7 +1095,7 @@ def rewrite(c, uid, data):
             studied.append(hit['lemma'])
     studied = studied[:6]
     # The fixed part first (rules, the node list, the answer's shape), the learner's level after it: the same opening
-    # for every learner, which DeepSeek serves from its prompt cache at 2% of the input price.
+    # for every learner, which a model's prompt cache can serve cheaply (百炼's implicit cache needs 1024 tokens or more).
     system = ('你是一位耐心、专业的英语写作教练。'
               '先肯定写得好的地方，再改错，最后给出更好的说法。不要编造学习者没写的内容。'
               '最重要的一条：corrected 只能是学习者自己这句话的最小改动，只改语法、用词、拼写和标点上的错误，保留原来的意思、结构和话题；'
