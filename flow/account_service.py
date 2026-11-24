@@ -21,6 +21,17 @@ def schema(c):
 
 def digest(token):return hashlib.sha256(token.encode()).hexdigest()
 
+def ehlo_name():
+ # The name given to the mail server (EHLO/HELO): the site's own domain (FLOW_PUBLIC_URL; flowlang.cn by default).
+ # smtplib's default is the machine's internal name (socket.getfqdn()), which every mail would then carry in its
+ # Received header, and which counts against delivery.
+ # A local address (localhost, 127.0.0.1) is no domain to give, so it falls back too.
+ import ipaddress;from urllib.parse import urlsplit
+ name=urlsplit(os.getenv('FLOW_PUBLIC_URL','').strip()).hostname or ''
+ try:ipaddress.ip_address(name);name=''
+ except ValueError:pass
+ return name if '.' in name else 'flowlang.cn'
+
 def mail(to,subject,text,headers=None):
  # the 内测版 (FLOW_CHANNEL=beta, flow.jasa.hk) marks every mail it sends, so nobody takes it for 语流's own
  if os.getenv('FLOW_CHANNEL','').strip().lower()=='beta' and not subject.startswith('【内测版】'):subject='【内测版】'+subject
@@ -33,9 +44,9 @@ def mail(to,subject,text,headers=None):
  msg=EmailMessage();msg['From']=os.environ['FLOW_SMTP_FROM'];msg['To']=to;msg['Subject']=subject;msg.set_content(text)
  for k,v in (headers or {}).items():msg[k]=v  # List-Unsubscribe on the Sunday mail (progress_service)
  host=os.environ['FLOW_SMTP_HOST'];port=int(os.getenv('FLOW_SMTP_PORT','465'));ctx=ssl.create_default_context()
- if port==465:connection=smtplib.SMTP_SSL(host,port,timeout=12,context=ctx)
+ if port==465:connection=smtplib.SMTP_SSL(host,port,local_hostname=ehlo_name(),timeout=12,context=ctx)
  else:
-  connection=smtplib.SMTP(host,port,timeout=12);connection.ehlo();connection.starttls(context=ctx);connection.ehlo()
+  connection=smtplib.SMTP(host,port,local_hostname=ehlo_name(),timeout=12);connection.ehlo();connection.starttls(context=ctx);connection.ehlo()
  with connection as s:
   s.login(os.environ['FLOW_SMTP_USER'],os.environ['FLOW_SMTP_PASSWORD']);s.send_message(msg)
 
