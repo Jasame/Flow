@@ -61,3 +61,11 @@
 
 /* 复习: 认识 / 模糊 / 不认识 centred in their buttons (they were set at the top of a 58 px grid) */
 .choice button,.rate button{align-content:center;justify-items:center}
+
+/* A phone held sideways (about 390 px high): the study header as short as on a phone held upright, so the step
+   bar and the first controls fit on the screen */
+@media (max-height:500px) and (orientation:landscape){
+  .study-head{gap:2px;margin-bottom:6px}
+  .study-head .title-en,.study-head .origin{display:none}
+  .study-head .h1{font-size:19px;margin:0}
+}

@@ -483,6 +483,10 @@ details.basis[open]>summary{margin-bottom:0}
 .seg.modes{margin-bottom:14px}
 .line.sh{grid-template-columns:minmax(0,1fr);gap:8px}
 .sh-ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+/* 跟读: ▶ on every sentence, the recording tools (●, 对比, AI 点评) under the one being practised; a tap picks it */
+.line.sh{cursor:pointer}
+.line.sh.cur{cursor:default;background:var(--green-soft);border-radius:10px;box-shadow:0 0 0 8px var(--green-soft)}
+.line.sh:not(.cur) .sh-ctl>:not([data-o]){display:none}
 .icon-btn.rec .dot{width:14px;height:14px;border-radius:50%;background:var(--red);display:block;transition:transform .2s,border-radius .2s}
 .icon-btn.rec.on{border-color:var(--red);background:var(--red-soft)}
 .icon-btn.rec.on .dot{border-radius:3px;transform:scale(.85);animation:pulse 1s ease-in-out infinite}
@@ -937,6 +941,7 @@ details[open]>summary{margin-bottom:8px}
 .exam-pick .opt{display:grid;gap:4px;align-content:start;text-align:left;text-decoration:none;color:inherit}
 .exam-pick .opt .l{font-weight:700;font-size:16px}
 .exam-pick .opt .d{font-size:13px;color:var(--ink2);line-height:1.5}
+.exam-cur{padding:14px;background:var(--paper);border-radius:var(--r)}  /* the chosen exam, between the two halves of the list */
 /* the series link in an episode's header is a real tap target */
 .study-head .kicker a.link{display:inline-flex;align-items:center;min-height:32px}
 .exam-bar{position:sticky;top:64px;z-index:15;display:flex;justify-content:space-between;align-items:center;gap:12px;
@@ -1369,3 +1374,11 @@ html[data-channel=beta] .auth::before{content:'这是内测版：账号和正式
 
 /* 复习: 认识 / 模糊 / 不认识 centred in their buttons (they were set at the top of a 58 px grid) */
 .choice button,.rate button{align-content:center;justify-items:center}
+
+/* A phone held sideways (about 390 px high): the study header as short as on a phone held upright, so the step
+   bar and the first controls fit on the screen */
+@media (max-height:500px) and (orientation:landscape){
+  .study-head{gap:2px;margin-bottom:6px}
+  .study-head .title-en,.study-head .origin{display:none}
+  .study-head .h1{font-size:19px;margin:0}
+}
