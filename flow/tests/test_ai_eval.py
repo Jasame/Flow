@@ -168,7 +168,8 @@ class MarkingTests(Site):
         failed = self.failed(self.run_with(over_correct=True))
         self.assertEqual(set(k for k in failed if k.startswith('dialog')), {'dialog-turn-correct'})  # a right sentence was corrected
         # the beta's 2026-11-25 case, no summary: refused then; since #90 the site fills in a line and keeps the rest
-        self.assertIsNone(self.failed(self.run_with(dialog_end={'summary': None})).get('dialog-end-three-errors'))
+        # ai_eval still reports it: the model wrote no summary, whatever the site shows
+        self.assertEqual(self.failed(self.run_with(dialog_end={'summary': None})).get('dialog-end-three-errors'), ['模型没写总评（网站补了默认句）'])
         self.assertEqual(self.failed(self.run_with(dialog_end={'score': '0.8'})).get('dialog-end-three-errors'), None)  # a score as text is read
         failed = self.failed(self.run_with(dialog_end={'fixes': [{'from': 'they works', 'to': 'they work', 'why': '…'}]}))
         self.assertEqual(failed['dialog-end-three-errors'], ['学员的 3 处错误只指出 1 处'])
