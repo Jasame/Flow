@@ -149,7 +149,14 @@ if ! cmp -s "$STAGE/malloc.conf" "$DROPIN"; then mkdir -p "$(dirname "$DROPIN")"
 # Server voice (tts_service.py) keeps each sentence it makes in <audio>/tts, shared by both sites (the 内测版 reads 语流's
 # audio folder). ProtectSystem=strict leaves that folder read-only unless the unit names it; the leading '-' keeps the
 # unit starting even if the folder is missing. Without this every new sentence was paid for and lost (2026-11-24).
-AUD=$(sed -n 's/^FLOW_AUDIO_DIR=//p' "/etc/$SVC.env" 2>/dev/null | tail -1); AUD=${AUD:-/www/wwwroot/flow/audio}
+# FLOW_AUDIO_DIR as systemd reads the env file: quotes around the value, a trailing / and a CR dropped; anything but an
+# absolute path means 语流's folder (语流 2, 2026-11-25: some values on 香港 are double-quoted).
+audio_dir() {
+  local v; v=$(sed -n 's/^FLOW_AUDIO_DIR=//p' "$1" 2>/dev/null | tail -1 | tr -d '\r')
+  v=${v%\"}; v=${v#\"}; v=${v%\'}; v=${v#\'}; v=${v%/}
+  case "$v" in /*) printf '%s\n' "$v" ;; *) printf '%s\n' /www/wwwroot/flow/audio ;; esac
+}
+AUD=$(audio_dir "/etc/$SVC.env")
 install -d -o www -g www -m 755 "$AUD/tts"
 TTSDROP=/etc/systemd/system/$SVC.service.d/61-flow-tts.conf
 printf '[Service]\nReadWritePaths=-%s/tts\n' "$AUD" > "$STAGE/tts.conf"
