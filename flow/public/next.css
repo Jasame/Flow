@@ -1383,13 +1383,13 @@ html[data-channel=beta] .auth::before{content:'这是内测版：账号和正式
   .study-head .h1{font-size:19px;margin:0}
 }
 /* 班级试用 (82-class.js): what the teacher sees and not, the class found by its code, the teacher's summary page */
-.cls-terms{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:14px}
+.cls-terms{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;font-size:14px}
 .cls-terms ul{list-style:none;margin:4px 0 0;padding:0;display:grid;gap:4px}
 .cls-terms li{padding-left:20px;position:relative;line-height:1.45}
 .cls-terms li::before{position:absolute;left:0;top:0;font-weight:700}
 .cls-terms li.yes::before{content:'✓';color:var(--green)}
 .cls-terms li.no::before{content:'✗';color:var(--red)}
-@media (max-width:420px){.cls-terms{grid-template-columns:1fr}}
+@media (max-width:420px){.cls-terms{grid-template-columns:minmax(0,1fr)}}
 .cls-found{display:flex;flex-direction:column;gap:2px;padding:12px 14px}
 .cls-found b{font-size:17px}
 .cls-big{display:flex;align-items:baseline;gap:6px}
