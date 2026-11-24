@@ -908,11 +908,13 @@
   }
   // On a material's page: 存到手机, or that it is kept.
   function offChip(id) {
-    return OFF.has(id) ? '<span class="offk on" id="keepOff">✓ 已存到手机，没网也能学</span>' : '<button class="link small offk" id="keepOff" type="button" data-tap="study-keep">存到手机，没网也能学</button>';
+    // a phone with a down arrow in front: set apart from 怎么写的 on the source line, on the same line or the next
+    const icon = '<svg class="offi" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M12 7.5v7m-3-3 3 3 3-3"/></svg>';
+    return OFF.has(id) ? '<span class="offk on" id="keepOff">✓ 已存到手机，没网也能学</span>' : `<button class="link small offk" id="keepOff" type="button" data-tap="study-keep">${icon}存到手机，没网也能学</button>`;
   }
   function bindOffChip(id) {
     const b = document.getElementById('keepOff'); if (!b || b.tagName !== 'BUTTON') return;
-    b.onclick = async () => { b.disabled = true; b.textContent = '正在存…'; if (await keepOffline(id)) b.outerHTML = offChip(id); else { b.disabled = false; b.textContent = '存到手机，没网也能学'; } };
+    b.onclick = async () => { b.disabled = true; b.textContent = '正在存…'; const ok = await keepOffline(id); b.outerHTML = offChip(id); if (!ok) bindOffChip(id); };
   }
   // Losing and finding the connection: said once each way; what waited is sent.
   addEventListener('offline', () => { const n = OFF.count(); toast(n ? `现在没网：已存到手机的 ${n} 篇还能学` : '现在没网：复习单词还能做，联网后自动同步'); });
@@ -1295,13 +1297,43 @@
       return ok && NAR.meta && NAR.meta.sentences.length === ls.length ? NAR.meta : null;
     }
     const LOOP = Object.assign({ rep: 1, gap: 0 }, load('flow-next-loop') || {});  // 复读, kept on the phone
+    // 复听 (relisten_service), from 今日: the text hidden at first; after a listen, how much was understood, then the text.
+    const RELISTEN = [[3, '几乎都懂'], [2, '大部分'], [1, '一半左右'], [0, '很少']];
+    function relistenHTML() {
+      return st.relistened ? `<div class="card sunk stack-s relisten" id="relisten" aria-live="polite"><b>${esc(st.relistened)}</b><span class="small muted">原文出来了：没听懂的句子，点句子前面的喇叭单独再听几遍。</span></div>`
+        : `<div class="card sunk stack-s relisten" id="relisten"><b>复听：先不看原文，从头听一遍</b>
+          <span class="small">点「播放全文」。听完选一下听懂了多少，原文就会出来，再看没听懂的句子。</span>
+          <div class="chips" role="group" aria-label="听懂了多少">${RELISTEN.map(([k, l]) => `<button class="chip" type="button" data-und="${k}">${l}</button>`).join('')}</div></div>`;
+    }
+    function bindRelisten() {
+      const showText = () => {
+        st.blind = false; pane.querySelectorAll('.line .txt').forEach(t => t.classList.remove('blind'));
+        const bl = pane.querySelector('#blind'); if (bl) { bl.classList.remove('on'); bl.setAttribute('aria-pressed', 'false'); }
+        const box = pane.querySelector('#relisten'); if (box) box.outerHTML = relistenHTML();
+      };
+      pane.querySelectorAll('[data-und]').forEach(b => b.onclick = async () => {
+        const body = { pack: id, understood: Number(b.dataset.und) }, label = b.textContent;
+        pane.querySelectorAll('[data-und]').forEach(x => { x.disabled = true; });
+        try {
+          const r = await api('/api/next/relisten', body);
+          st.relistened = `记下了：听懂了${r.label}。` + (r.known ? '这篇已经听熟了，以后不再安排复听。' : `${r.next_days} 天后再听一次。`);
+        } catch (e) {
+          if (!e.network) { toast(e.message); pane.querySelectorAll('[data-und]').forEach(x => { x.disabled = false; }); return; }
+          OUTBOX.push({ path: '/api/next/relisten', body });  // without a connection: sent when the phone is back online
+          st.relistened = `记下了：听懂了${label}，联网后同步。`;
+        }
+        showText();
+      });
+    }
     async function listen() {
+      const again = parts()[3] === 'again' && !!S.user;
+      if (again && !st.againSet) { st.againSet = true; st.mode = 'listen'; st.blind = true; }
       if (st.mode === 'shadow') return shadowMode();
       if (st.mode === 'dictate') return dictateMode();
       const ls = lines();
       const nm = await narration(ls);
       const voices = (m.audio && m.audio.voices) || [];
-      pane.innerHTML = `${modeTabs()}<div class="player">
+      pane.innerHTML = `${again ? relistenHTML() : ''}${modeTabs()}<div class="player">
           <button class="btn primary" id="playAll">${ICON.play.replace('<svg', '<svg width="18" height="18" fill="currentColor"')}<span>播放全文</span></button>
           <div class="speed" role="group" aria-label="语速">${[0.75, 1, 1.25].map(r => `<button data-rate="${r}" aria-pressed="${TTS.rate === r}">${r}×</button>`).join('')}</div>
           <button class="icon-btn ${st.blind ? 'on' : ''}" id="blind" aria-pressed="${st.blind}" title="盲听：先只听不看" aria-label="盲听">${ICON.eye}</button>
@@ -1368,6 +1400,7 @@
       pane.querySelectorAll('[data-voice]').forEach(b => b.onclick = async () => { if (b.disabled) return; stopAll(); await setVoice(b.dataset.voice); listen(); toast('已切换为' + VOICE_LABELS[b.dataset.voice]); });
       pane.querySelector('#blind').onclick = e => { st.blind = !st.blind; toast(st.blind ? '盲听：只听不看，再点一次显示原文' : '已显示原文'); e.currentTarget.classList.toggle('on', st.blind); e.currentTarget.setAttribute('aria-pressed', String(st.blind)); pane.querySelectorAll('.txt').forEach(t => t.classList.toggle('blind', st.blind)); };
       pane.querySelector('#toRead').onclick = () => { stopAll(); markStep('listen'); go('read'); };
+      if (again) bindRelisten();
       bindListenHead(stopAll);
       document.onkeydown = e => {
         if (isTyping(e) || !sheetEl.hidden || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -3654,7 +3687,9 @@
     const e = r.easy || {}, sp = r.speaking || {}, ra = r.radar || { moves: [] };
     const speed = e.wpm ? `，平均每分钟 ${e.wpm} 词${e.wpm_before ? (e.wpm > e.wpm_before ? `（上周 ${e.wpm_before}，快了）` : `（上周 ${e.wpm_before}）`) : ''}` : '';
     const mv = m => m.before == null ? '' : m.now > m.before ? ` <span class="up">↑${m.now - m.before}</span>` : m.now < m.before ? ` <span class="tiny muted">↓${m.before - m.now}</span>` : '';
-    return `<div class="card flat section stack-s"><div class="row between"><b>轻松读</b><a class="link small" href="#/easy">去读</a></div>
+    const rl = r.relisten || {};
+    return `${rl.count ? `<div class="card flat section stack-s"><b>复听</b><span class="small">把几天前学过的文章重听了 ${rl.count} 次，平均听懂${esc(rl.label)}。</span></div>` : ''}
+      <div class="card flat section stack-s"><div class="row between"><b>轻松读</b><a class="link small" href="#/easy">去读</a></div>
         <span class="small">${e.texts ? `读了 ${e.texts} 篇，一共 ${e.words} 个词${speed}。` : '这周还没读。每天读一篇比你低一级的短文，阅读速度会慢慢提上来。'}</span></div>
       <div class="card flat section stack-s"><div class="row between"><b>口语情景</b><a class="link small" href="#/speak">去练</a></div>
         <span class="small">${sp.scenes_week ? `这周练了 ${sp.scenes_week} 个情景，` : '这周还没练情景对话，'}一共完成 ${sp.scenes_done || 0} / ${sp.scenes_total || 12} 个。</span></div>
