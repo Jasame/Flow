@@ -195,21 +195,30 @@ def daily_path(c, uid, home, now=None):
     n = vs.counts(c, uid, now)
     pick = (home.get('today') or [None])[0]
     # The material studied today stays "today's" even after it is finished (the recommendations move on).
-    row = c.execute("SELECT pack FROM next_progress WHERE user_id=? AND created>=? ORDER BY (step IN ('check','output')) DESC, created DESC LIMIT 1",
-                    (uid, start)).fetchone()
+    # Today's steps, a text studied again included (progress_service.steps_since: next_progress keeps the first time only).
+    import progress_service as ps
+    today_steps = ps.steps_since(c, uid, start)
+    row = max(today_steps, key=lambda r: (r['step'] in ('check', 'output'), r['created']), default=None)
     if row:
         pr = nx._pack_row(c, uid, row['pack'])
         if pr:
             pick = {'id': row['pack'], 'title': json.loads(pr['content'])['title']}
-    done_steps = {r['step'] for r in c.execute('SELECT step FROM next_progress WHERE user_id=? AND pack=? AND created>=?',
-                                                (uid, pick['id'] if pick else '', start))}
+    done_steps = {r['step'] for r in today_steps if pick and r['pack'] == pick['id']}
     kind_n = {r['kind']: r['n'] for r in c.execute('SELECT kind, COUNT(*) n FROM next_skill_events WHERE user_id=? AND created>=? GROUP BY kind', (uid, start))}
     today_kinds = set(kind_n)
     steps = []
     todo = n['due'] + n['new']
-    title = '单词：' + ' · '.join(x for x in (f"复习 {n['due']}" if n['due'] else '', f"新词 {n['new']}" if n['new'] else '') if x) if todo else '单词'
-    steps.append({'key': 'review', 'title': title, 'sub': f"约 {n['minutes']} 分钟" if todo else '今天的都完成了',
-                  'href': '#/review', 'done': not todo})
+    if not todo and not vs.plan(c, uid):
+        # No word book yet: 「单词」 would only tick itself, and a newcomer (one preparing for an exam above all) would not
+        # know a book is waiting to be chosen. Ask for one; 背词计划 opens with the exam's book (or the level's) chosen.
+        exam = prof.get('exam') if prof.get('exam') in vs.book_words() else None
+        book = exam or vs.LEVEL_BOOK.get(prof.get('level') or 'B1', 'mid')
+        steps.append({'key': 'review', 'title': '选一本词书（1 分钟）', 'href': '#/vocab/plan', 'done': False,
+                      'sub': f"按你的考试先选好了《{vs.book_title(book)}》，确认一下就能每天背" if exam else f"先给你挑了《{vs.book_title(book)}》，每天背几个新词"})
+    else:
+        title = '单词：' + ' · '.join(x for x in (f"复习 {n['due']}" if n['due'] else '', f"新词 {n['new']}" if n['new'] else '') if x) if todo else '单词'
+        sub = (f"约 {n['minutes']} 分钟" + (' · 今天先复习，新词明天继续' if n.get('new_paused') else '')) if todo else '今天的都完成了'
+        steps.append({'key': 'review', 'title': title, 'sub': sub, 'href': '#/review', 'done': not todo})
     if minutes >= 10:
         # 复听 (relisten_service): a text from a few days ago heard again without the words, before today's new one
         import relisten_service as rl
@@ -229,12 +238,11 @@ def daily_path(c, uid, home, now=None):
     if minutes >= 45 and pick:
         # A longer day gets a second material: the next recommendation, or the one already started today.
         other = next((m for m in (home.get('today') or []) if m and m['id'] != pick['id']), None)
-        row2 = c.execute("SELECT pack FROM next_progress WHERE user_id=? AND created>=? AND pack!=? ORDER BY created DESC LIMIT 1",
-                         (uid, start, pick['id'])).fetchone()
+        row2 = next((r for r in reversed(today_steps) if r['pack'] != pick['id']), None)
         if row2 and nx._pack_row(c, uid, row2['pack']):
             other = {'id': row2['pack'], 'title': json.loads(nx._pack_row(c, uid, row2['pack'])['content'])['title']}
         if other:
-            st2 = {r['step'] for r in c.execute('SELECT step FROM next_progress WHERE user_id=? AND pack=? AND created>=?', (uid, other['id'], start))}
+            st2 = {r['step'] for r in today_steps if r['pack'] == other['id']}
             steps.append({'key': 'read2', 'title': '再读一篇', 'sub': other['title'], 'href': f"#/m/{other['id']}", 'done': 'check' in st2 or 'output' in st2})
     # With goals set, the output step works on the skill furthest from its goal on the radar; otherwise the weakest estimate.
     weakest = __import__('ability_radar').weakest(c, uid, now) or ability(c, uid, now)['weakest']
@@ -302,11 +310,19 @@ def daily_path(c, uid, home, now=None):
         n_easy = __import__('easy_reading').read_today(c, uid, start)
         steps.append({'key': 'easy', 'title': '轻松读一篇', 'href': '#/easy', 'done': bool(n_easy),
                       'sub': f'今天读了 {n_easy} 篇' if n_easy else '比你的水平低一点，只读不做题，约 3 分钟'})
-    if key != 'retell' and (minutes >= 30 or (prof.get('goal') in ('abroad', 'daily', 'work') and minutes >= 20)):
-        # The speaking route: one role-play scene, unless today's output step is already spoken.
-        sp = __import__('scenarios').listing(c, uid, level)
+    ielts = __import__('ielts_speaking')
+    to_ielts = ielts.for_ielts(c, uid, prof)
+    if key != 'retell' and (minutes >= 30 or ((prof.get('goal') in ('abroad', 'daily', 'work') or to_ielts) and minutes >= 20)):
+        # The speaking route: one role-play scene, unless today's output step is already spoken. Heading for IELTS
+        # (abroad, or the IELTS exam): the next 雅思口语 Part 1 topic instead, round after round.
         spoke = c.execute("SELECT COUNT(*) FROM next_skill_events WHERE user_id=? AND skill='speaking' AND created>=?", (uid, start)).fetchone()[0]
-        if sp['next'] or spoke:
+        if to_ielts:
+            t = ielts.next_part1(c, uid)
+            steps.append({'key': 'speak', 'title': '口语：' + ('雅思 Part 1 · ' + t['title'] if not spoke else '雅思口语'), 'done': bool(spoke),
+                          'href': f"#/speak/ielts/p1-{t['id']}",
+                          'sub': '今天说过了' if spoke else '考官问 4 个问题，说完看四项估计分，约 5 分钟' + ('（再练一轮）' if t['round'] else '')})
+        sp = None if to_ielts else __import__('scenarios').listing(c, uid, level)
+        if sp and (sp['next'] or spoke):
             nxt = next((x for x in sp['items'] if x['id'] == sp['next']), None)
             steps.append({'key': 'speak', 'title': '口语：' + (nxt['title'] if nxt and not spoke else '情景对话'), 'done': bool(spoke),
                           'href': '#/speak/' + nxt['id'] if nxt else '#/speak',
@@ -336,18 +352,22 @@ def report(c, uid, now=None):
     skills = [{'id': sk, 'label': SKILLS[sk], 'now': avg(sk, week, now), 'before': avg(sk, prev, week),
                'count': sum(1 for e in evts if e['skill'] == sk and e['created'] > week)} for sk in EVENT_SKILLS]
     reviews = q("SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND created>? AND rating IN ('again','hard','good','easy')", uid, week)
-    learned = q("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND kind='word' AND created>?", uid, week)
+    import progress_service as ps
+    learned = ps.new_words(c, uid, week, now + 1)  # first answered this week, not just put into the queue
     mastered = q("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND kind='word' AND stability>=21 AND last>?", uid, week)
     fixed = q("SELECT COUNT(DISTINCT r.card) FROM next_reviews r JOIN next_cards k ON k.id=r.card WHERE r.user_id=? AND r.created>? AND k.source='mistake' AND r.rating IN ('good','easy')", uid, week)
     new_mistakes = q("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND source='mistake' AND created>?", uid, week)
-    materials = q("SELECT COUNT(DISTINCT pack) FROM next_progress WHERE user_id=? AND step='check' AND created>?", uid, week)
+    materials = len(ps._finished(c, uid, week, now + 1))  # a text studied again this week counts too
     outputs = q("SELECT COUNT(*) FROM next_skill_events WHERE user_id=? AND created>? AND kind IN ('rewrite','retell','dialog','essay','translate')", uid, week)
     minutes = round(reviews * 0.15 + materials * 9 + outputs * 4 + q('SELECT COUNT(*) FROM next_skill_events WHERE user_id=? AND created>?', uid, week) * 0.5)
     meta = nx.nodes_meta(c)
     watch = [{'id': n, 'title': meta.get(n, {}).get('title', n)} for n, s in nx.graph_states(c, uid).items() if s['status'] == 'watch'][:3]
     ab = ability(c, uid, now)
     focus = None
-    if ab['weakest']:
+    backlog = __import__('vocab_service').counts(c, uid, now)['due']
+    if backlog > 100:  # a pile of words due comes first: it only grows while other things are practised
+        focus = f'先把单词积压清掉：现在有 {backlog} 个单词到了复习时间。下周每天先复习一轮，再学新的内容。'
+    elif ab['weakest']:
         name = SKILLS[ab['weakest']]
         what = {'speaking': '每天复述一篇或和 AI 对话一轮', 'writing': '写一段短文让 AI 批改', 'listening': '每天听写三句', 'reading': '先读懂再做理解题'}
         focus = f"{name}是现在最弱的一项，下周{what.get(ab['weakest'], '多练这一项')}。"
