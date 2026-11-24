@@ -275,6 +275,7 @@ def _run(cases, kinds, repeat, say, quick=False):
                     say(('  ✓ ' if x['ok'] else '  ✗ ') + f"内容 {x['id']}" + ('' if x['ok'] else '：' + '；'.join(x['why'])))
         s = ai_routes.summary(c, days=1)
         report['asked'] = sorted({r[0] for r in c.execute('SELECT DISTINCT model FROM ai_calls')})
+        report['speed'] = speed(c)
         report['usage'] = {'calls': s['total']['calls'], 'cost': s['total']['cost'], 'prompt': s['total']['prompt'], 'cached': s['total']['cached'],
                            'completion': s['total']['completion'], 'estimated': s['total']['estimated'],
                            'by_task': {k['kind']: {x: k[x] for x in ('calls', 'failed', 'backup', 'prompt', 'cached', 'completion', 'cost', 'seconds')}
@@ -282,6 +283,21 @@ def _run(cases, kinds, repeat, say, quick=False):
                            'models': {m['name']: {x: m[x] for x in ('calls', 'prompt', 'cached', 'completion', 'cost')} for m in s['models']}}
     report['summary'] = summarize(report['items'])
     return report
+
+
+def speed(c):
+    """Per answering model, one call at a time: how long a learner waits (median and 90th percentile) and how much it
+    writes (output tokens). A model scoring about the same as another but answering faster is the better pick."""
+    out = {}
+    rows = c.execute("SELECT served, ms, completion, reasoning FROM ai_calls WHERE ok=1 AND service='text'").fetchall()
+    for served in sorted({r[0] for r in rows}):
+        ms = sorted(r[1] for r in rows if r[0] == served)
+        comp = [r[2] for r in rows if r[0] == served]
+        pick = lambda q: ms[min(len(ms) - 1, int(q * len(ms)))]
+        out[served or '?'] = {'calls': len(ms), 'p50_s': round(pick(0.5) / 1000, 1), 'p90_s': round(pick(0.9) / 1000, 1),
+                              'out_avg': round(sum(comp) / len(comp)), 'out_max': max(comp),
+                              'reasoning': sum(r[3] for r in rows if r[0] == served)}
+    return out
 
 
 def summarize(items):
@@ -297,7 +313,7 @@ def summarize(items):
             'seconds': {'median': round(statistics.median(secs), 1) if secs else None, 'max': round(max(secs), 1) if secs else None}}
 
 
-def describe(s, models, usage=None, asked=None):
+def describe(s, models, usage=None, asked=None, speed=None):
     pc = lambda d: f"{d['passed']}/{d['total']}"
     text = '、'.join(n for n in (asked or []) if n != models['main']) or models['text'] or '（没有单独的文字模型）'
     answered = '、'.join(n for n in ((usage or {}).get('models') or {}) if n != models['main'])
@@ -308,6 +324,9 @@ def describe(s, models, usage=None, asked=None):
              + (f"；每题用时中位数 {s['seconds']['median']} 秒，最长 {s['seconds']['max']} 秒" if s['seconds']['median'] is not None else '')]
     if models['text'] and s['services']['main']:
         lines.append('注意：有题目是主服务答的（文字服务出错后自动换了），这部分不代表文字模型的水平。')
+    for name, sp in (speed or {}).items():
+        lines.append(f"{name}：每次调用等 {sp['p50_s']} 秒（中位数），慢的时候 {sp['p90_s']} 秒（P90）；平均输出 {sp['out_avg']} token，最多 {sp['out_max']}"
+                     + (f"；思考 {sp['reasoning']} token" if sp['reasoning'] else ''))
     if usage:
         lines.append(f"这一轮 {usage['calls']} 次调用，输入 {usage['prompt']:,} token（命中缓存 {usage['cached']:,}），输出 {usage['completion']:,}，"
                      f"估算 ¥{usage['cost']:.3f}" + ('；Gemini 部分按文字长度估算，不含思考 token' if usage.get('estimated') else ''))
@@ -357,7 +376,7 @@ def main(argv=None):
         return 2
     kinds = tuple(k for k in (args.only or ','.join(KINDS + ('content',))).split(',') if k in KINDS + ('content',))
     report = run(load(args.cases), kinds, quick=args.quick)
-    print(describe(report['summary'], report['models'], report.get('usage'), report.get('asked')))
+    print(describe(report['summary'], report['models'], report.get('usage'), report.get('asked'), report.get('speed')))
     if args.output:
         Path(args.output).write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding='utf-8')
     return 0 if report['summary']['passed'] == report['summary']['total'] else 1
