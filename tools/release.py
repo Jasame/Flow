@@ -66,7 +66,7 @@ def check_requirements(files):
                 continue
             if directory + '/' + name not in files:
                 raise ValueError('Missing upgrade input: ' + directory + '/' + name)
-    for page_name in ('flow/public/next.html', 'flow/public/survey.html'):
+    for page_name in ('flow/public/next.html', 'flow/public/survey.html', 'flow/public/about.html'):
         page = files[page_name].decode()
         for asset in re.findall(r'(?:src|href)="/([^"?]+)', page):
             if asset.endswith(('.js', '.css', '.png', '.woff2', '.webmanifest')) and 'flow/public/' + asset not in files:

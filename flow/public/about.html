@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="zh-CN" data-channel="__CHANNEL__">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%231f9d55'/%3E%3Cpath d='M7 20v-6m6 10V8m6 14V11m6 7v-4' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#fbfaf6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101412" media="(prefers-color-scheme: dark)">
+<meta name="description" content="语流 Flow：给中国学习者的英语学习网站。每天一篇分级短文，听、读、理解、用出来；生词点一下就懂，单词按遗忘曲线复习，17 本词书从中考到 GRE。打开浏览器就能学。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="认识语流 Flow · 每天一篇短文，把英语用起来">
+<meta property="og:description" content="听、读、理解、用出来，一篇十几分钟。生词点一下就懂，单词按遗忘曲线复习，不用下载 App。">
+<meta property="og:image" content="https://flowlang.cn/about/share.jpg">
+<link rel="canonical" href="https://flowlang.cn/about">
+<title>认识语流 Flow · 每天一篇短文，把英语用起来</title>
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" href="/literata.woff2?v=1" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/about.css?v=__ABOUT__">
+<script src="/about.js?v=__ABOUT__"></script>
+</head>
+<body>
+<a class="skip" href="#main">跳到主要内容</a>
+<div class="readline" aria-hidden="true"><i id="readline"></i></div>
+
+<header class="top" id="top">
+  <div class="top-in">
+    <a class="brand" href="/about" aria-label="认识语流 Flow">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" class="logo-bg"/><g class="logo-bars"><path d="M7 20v-6"/><path d="M13 24V8"/><path d="M19 22V11"/><path d="M25 18v-4"/></g></svg>
+      <span>语流 Flow</span>
+    </a>
+    <nav class="nav" aria-label="页面目录">
+      <a href="#how">怎么学</a>
+      <a href="#ai">AI 陪练</a>
+      <a href="#books">词书和考试</a>
+      <a href="#faq">常见问题</a>
+    </nav>
+    <a class="btn small primary top-cta" href="/" data-tap="about-start">开始学</a>
+  </div>
+  <p class="beta-note" role="note"><b>内测版</b> 这里是语流的内测站，账号和数据与正式版分开。<a href="https://flowlang.cn/about">去正式版 flowlang.cn</a></p>
+</header>
+
+<main id="main">
+
+<!-- ============ hero ============ -->
+<section class="hero" aria-labelledby="heroTitle">
+  <svg class="hero-lines" viewBox="0 0 1440 720" preserveAspectRatio="none" aria-hidden="true">
+    <path class="hl hl1" d="M-40 520 C 220 430, 420 610, 720 500 S 1180 380, 1480 470"/>
+    <path class="hl hl2" d="M-40 560 C 260 470, 470 650, 760 540 S 1200 430, 1480 520"/>
+    <path class="hl hl3" d="M-40 600 C 300 520, 520 690, 800 580 S 1220 480, 1480 570"/>
+  </svg>
+  <div class="glow g1" aria-hidden="true"></div>
+  <div class="glow g2" aria-hidden="true"></div>
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <p class="kicker rv">给中国学习者的英语学习网站</p>
+      <h1 id="heroTitle" class="display">
+        <span class="ln"><span class="w">每天一篇短文，</span></span>
+        <span class="ln"><span class="w">把英语<em class="ink">用起来</em>。</span></span>
+      </h1>
+      <p class="lede rv" data-d="2">听一遍、读一遍、答几道题，再用自己的话说出来、写出来。生词点一下就懂，单词按遗忘曲线复习，一篇十几分钟。</p>
+      <div class="cta-row rv" data-d="3">
+        <a class="btn primary big" href="/" data-tap="about-start">免费开始学<span class="arr" aria-hidden="true">→</span></a>
+        <a class="btn ghost big" href="/#/guide" data-tap="about-guide">先看操作指南</a>
+      </div>
+      <ul class="facts rv" data-d="4">
+        <li>不用下载 App</li><li>手机、平板、电脑都能用</li><li>微信里也能打开</li>
+      </ul>
+    </div>
+    <div class="hero-visual rv" data-d="1">
+      <div class="parallax" data-speed="-0.06">
+        <figure class="phone hero-phone">
+          <div class="screen">
+            <picture><source srcset="/about/today-d.jpg" media="(prefers-color-scheme: dark)"><img src="/about/today.jpg" alt="语流的「今日」页：今天的计划、每周目标和推荐的材料" width="390" height="844" fetchpriority="high"></picture>
+          </div>
+        </figure>
+      </div>
+      <div class="chip c-look" aria-hidden="true"><b lang="en">drain</b><span class="ph">[dreɪn]</span><span>流走；耗尽</span></div>
+      <div class="chip c-steps" aria-hidden="true"><span class="st ok">听</span><span class="st ok">读</span><span class="st on">理解</span><span class="st">用出来</span></div>
+      <div class="chip c-mem" aria-hidden="true"><span class="ring"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15"/><circle class="arc" cx="18" cy="18" r="15"/></svg></span><span>记得的概率降到 <b>90%</b><br>该复习了</span></div>
+      <div class="chip c-ai" aria-hidden="true"><span class="spark">✦</span>AI 讲解这一句</div>
+    </div>
+  </div>
+  <a class="scroll-cue" href="#numbers" aria-label="往下看"><span></span></a>
+</section>
+
+<!-- ============ numbers ============ -->
+<section class="numbers" id="numbers" aria-label="语流里有什么">
+  <div class="wrap num-grid">
+    <div class="num rv"><b data-count="252">252</b><span>篇精选短文</span><small>入门 A2 到高级 C1</small></div>
+    <div class="num rv" data-d="1"><b data-count="17">17</b><span>本词书</span><small>从中考背到 GRE</small></div>
+    <div class="num rv" data-d="2"><b data-count="44">44</b><span>个语法点</span><small>连成一张知识图谱</small></div>
+    <div class="num rv" data-d="3"><b data-count="12">12</b><span>个口语情景</span><small>AI 陪你练</small></div>
+    <div class="num rv" data-d="4"><b>8–15</b><span>分钟学完一篇</span><small>可以分两天学</small></div>
+  </div>
+</section>
+
+<!-- ============ how: the four steps ============ -->
+<section class="how" id="how" aria-labelledby="howTitle">
+  <div class="wrap">
+    <header class="sec-head rv">
+      <p class="kicker">一天怎么学</p>
+      <h2 id="howTitle" class="title">打开就知道今天学什么，<br>四步学完一篇。</h2>
+      <p class="sub">「今日」按你的水平、目标和每天的时间排好计划：先复习到期的单词，再学一篇适合你的短文。四步可以按顺序走，也可以点任意一步跳过去。</p>
+    </header>
+    <div class="story">
+      <ol class="steps">
+        <li class="step" data-step="0">
+          <span class="step-no">01</span>
+          <h3>听 <small lang="en">Listen</small></h3>
+          <p>先听一遍。精选材料用真人声音朗读，正在读的词会亮起来。语速可以调慢；想练耳朵就「盲听」，只听不看原文。</p>
+          <ul class="ticks"><li>逐句复读、句后留时间跟说</li><li>跟读录音，和原声对比</li><li>听写：听到什么写什么</li></ul>
+          <figure class="phone inline-phone"><div class="screen"><picture><source srcset="/about/listen-d.jpg" media="(prefers-color-scheme: dark)"><img src="/about/listen.jpg" alt="「听」这一步：播放全文、语速、复读设置和逐句原文" width="390" height="844" loading="lazy" decoding="async"></picture></div></figure>
+        </li>
+        <li class="step" data-step="1">
+          <span class="step-no">02</span>
+          <h3>读 <small lang="en">Read</small></h3>
+          <p>再读一遍。任何一个词点一下，就有它在这篇里的意思和读音；句尾的 ✦ 让 AI 讲解整句。原文太难，登录后可以切到 AI 改写的「适合我的版本」。</p>
+          <ul class="ticks"><li>伴读：边听录音边看，读到哪句亮哪句</li><li>中文导读，先知道大意</li><li>「这篇的收获」：表达、词汇、知识点</li></ul>
+          <figure class="phone inline-phone"><div class="screen"><picture><source srcset="/about/read-d.jpg" media="(prefers-color-scheme: dark)"><img src="/about/read.jpg" alt="「读」这一步：英文原文，每个词都能点" width="390" height="844" loading="lazy" decoding="async"></picture></div></figure>
+        </li>
+        <li class="step" data-step="2">
+          <span class="step-no">03</span>
+          <h3>理解 <small lang="en">Check</small></h3>
+          <p>答几道题。选完马上知道对错；答错了，会把原文里的依据标出来。答错的题进错题本，过两天带着原文那一段再考你一次。</p>
+          <ul class="ticks"><li>每道题的答案都能在原文里找到</li><li>对错用 ✓ ✗ 标出，不只靠颜色</li></ul>
+          <figure class="phone inline-phone"><div class="screen"><picture><source srcset="/about/check-d.jpg" media="(prefers-color-scheme: dark)"><img src="/about/check.jpg" alt="「理解」这一步：选择题，答完马上显示对错和原文依据" width="390" height="844" loading="lazy" decoding="async"></picture></div></figure>
+        </li>
+        <li class="step" data-step="3">
+          <span class="step-no">04</span>
+          <h3>用出来 <small lang="en">Use it</small></h3>
+          <p>学过的东西要用出来才记得牢。仿写、复述、对话、翻译、写作五种练法，用英文写或者直接说，AI 改出错误，再给更好的说法。</p>
+          <ul class="ticks"><li>用上正在背的单词，算一次复习</li><li>改出来的错误自动进错题本</li></ul>
+          <figure class="phone inline-phone"><div class="screen"><picture><source srcset="/about/output-d.jpg" media="(prefers-color-scheme: dark)"><img src="/about/output.jpg" alt="「用出来」这一步：照着示范句写一两句自己的话" width="390" height="844" loading="lazy" decoding="async"></picture></div></figure>
+        </li>
+      </ol>
+      <div class="stage" aria-hidden="true">
+        <div class="stage-in">
+          <div class="stage-tabs"><span data-i="0">听</span><span data-i="1">读</span><span data-i="2">理解</span><span data-i="3">用出来</span><i class="stage-ind"></i></div>
+          <figure class="phone stage-phone">
+            <div class="screen">
+              <picture class="layer" data-i="0"><source srcset="/about/listen-d.jpg" media="(prefers-color-scheme: dark)"><img src="/about/listen.jpg" alt="" width="390" height="844" loading="lazy" decoding="async"></picture>
+              <picture class="layer" data-i="1"><source srcset="/about/read-d.jpg" media="(prefers-color-scheme: dark)"><img src="/about/read.jpg" alt="" width="390" height="844" loading="lazy" decoding="async"></picture>
+              <picture class="layer" data-i="2"><source srcset="/about/check-d.jpg" media="(prefers-color-scheme: dark)"><img src="/about/check.jpg" alt="" width="390" height="844" loading="lazy" decoding="async"></picture>
+              <picture class="layer" data-i="3"><source srcset="/about/output-d.jpg" media="(prefers-color-scheme: dark)"><img src="/about/output.jpg" alt="" width="390" height="844" loading="lazy" decoding="async"></picture>
+            </div>
+          </figure>
+        </div>
+      </div>
+    </div>
+    <div class="relisten rv">
+      <div class="relisten-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M10 24a14 14 0 1 0 4.1-9.9"/><path d="M10 8v7h7"/><path class="rl-wave" d="M19 24h2m3-5v10m3-7v4m3-6v8"/></svg></div>
+      <div>
+        <h3>隔几天，再听一遍</h3>
+        <p>学完 3 天后，这篇会以「复听」回到今日：先不看原文听一遍，再说听懂了多少。听懂了就隔 7 天、21 天再听；三次都听懂，就不再安排。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ lookup demo ============ -->
+<section class="lookup" id="lookup" aria-labelledby="lookTitle">
+  <div class="wrap look-grid">
+    <header class="sec-head rv">
+      <p class="kicker">点一下就懂</p>
+      <h2 id="lookTitle" class="title">生词点一下，<br>意思就在原句旁边。</h2>
+      <p class="sub">不用切出去查词典。下面是精选材料《降噪耳机为什么能“消音”》（B2）的第一句，<b>点句子里的任何一个词试试</b>，查到的就是语流词典里的真实内容；带点线的是可能超出你水平的词。</p>
+      <ul class="look-notes">
+        <li><b>原形</b>点 drains，显示 drain</li>
+        <li><b>容易混</b>中国学习者常混的词，马上能练辨析</li>
+        <li><b>收藏这个词</b>加进单词复习，按遗忘曲线提醒你</li>
+        <li><b>讲解整句</b>AI 讲这句的结构、语气和可以模仿的句型</li>
+      </ul>
+    </header>
+    <div class="look-demo rv" data-d="1">
+      <div class="paper">
+        <p class="paper-meta">科学素养 · B2 · 精选</p>
+        <p class="paper-title">降噪耳机为什么能“消音”</p>
+        <p class="sentence" id="demoSentence" lang="en">The first time you switch on a pair of noise-cancelling headphones on a train, the effect feels almost like magic: the low roar of the engine simply drains away.</p>
+        <p class="look-hint" id="lookHint"><span class="tap-dot" aria-hidden="true"></span>点一个词</p>
+      </div>
+      <div class="look-card" id="lookCard" role="region" aria-live="polite" aria-labelledby="lcWord" hidden>
+        <div class="lc-head">
+          <div><b id="lcWord" lang="en"></b><span class="lc-ph" id="lcPh"></span></div>
+          <button class="lc-say" id="lcSay" type="button" aria-label="听读音"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/></svg></button>
+        </div>
+        <div class="lc-mean" id="lcMean"></div>
+        <div class="lc-tags" id="lcTags"></div>
+        <div class="lc-confuse" id="lcConfuse" hidden></div>
+        <blockquote class="lc-src" id="lcSrc" lang="en"></blockquote>
+        <div class="lc-acts"><span class="lc-btn primary">☆ 收藏这个词</span><span class="lc-btn">收藏整句</span><span class="lc-btn">✦ AI 讲解整句</span></div>
+        <p class="lc-foot">在语流里，收藏后会按遗忘曲线提醒你复习。</p>
+        <button class="lc-close" id="lcClose" type="button" aria-label="关闭查词卡">×</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ memory ============ -->
+<section class="memory" id="memory" aria-labelledby="memTitle">
+  <div class="wrap mem-grid">
+    <header class="sec-head rv">
+      <p class="kicker">记得住</p>
+      <h2 id="memTitle" class="title">快忘的时候，<br>正好再练一次。</h2>
+      <p class="sub">单词按遗忘曲线（FSRS 算法）安排复习：语流估计你此刻还记得的概率，降到你定的目标（比如 90%）时才拿出来。每记住一次，间隔就拉长，从几天到几周，再到几个月。</p>
+    </header>
+    <figure class="curve rv" data-d="1" id="curve">
+      <svg viewBox="0 0 640 300" role="img" aria-labelledby="curveCap">
+        <g class="axis"><path d="M48 24V256H620"/></g>
+        <text class="ax-t" x="40" y="34" text-anchor="end">100%</text>
+        <text class="ax-t" x="40" y="138" text-anchor="end">90%</text>
+        <path class="target" d="M48 134H620"/>
+        <text class="target-t" x="616" y="126" text-anchor="end">你定的目标 90%</text>
+        <defs><clipPath id="memClip"><rect x="48" y="20" width="574" height="236"/></clipPath></defs>
+        <path class="forget" id="memForget" d="" clip-path="url(#memClip)"/>
+        <text class="forget-t" id="memForgetT" x="178" y="242">不复习：一路忘下去</text>
+        <path class="mem-area" id="memArea" d=""/>
+        <path class="mem-line" id="memLine" d=""/>
+        <g id="memDots"></g>
+        <text class="ax-t" x="48" y="282">学会</text>
+        <text class="ax-t" x="620" y="282" text-anchor="end">时间 →</text>
+      </svg>
+      <figcaption id="curveCap">示意图：每次在快忘时复习，记忆就掉得更慢，下一次复习隔得更久。</figcaption>
+    </figure>
+    <div class="mem-cards">
+      <div class="mem-card rv"><div class="swipe" aria-hidden="true"><div class="swipe-card"><b lang="en">commute</b><span>通勤</span></div><span class="sw-l">不认识</span><span class="sw-r">认识</span></div><h3>右滑认识，左滑不认识</h3><p>手机上滑一下就是一张；电脑上按 1、2、3。一轮结束告诉你记住了几成、明天大约复习多少。</p></div>
+      <div class="mem-card rv" data-d="1"><h3>查过的词，自动提前</h3><p>在复习里的词，读文章时你又查了它，说明还不熟，语流会把它的复习提前。</p></div>
+      <div class="mem-card rv" data-d="2"><h3>不会陷入复习死循环</h3><p>同一张卡一天错两次就留到明天；语法题错了下次换一道同类新题，连续答对两次就过关。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ AI ============ -->
+<section class="ai" id="ai" aria-labelledby="aiTitle">
+  <div class="wrap">
+    <header class="sec-head center rv">
+      <p class="kicker">AI 陪练</p>
+      <h2 id="aiTitle" class="title">敢开口、敢下笔，<br>说错了顺手帮你改。</h2>
+      <p class="sub">AI 参与的地方都标出来。下面的句子是演示用的示例。</p>
+    </header>
+    <div class="ai-grid">
+      <article class="ai-card wide rv" id="aiFix">
+        <div class="ai-tag">仿写 · 写作批改</div>
+        <h3>写一两句自己的话，AI 改出错误，再给更好的说法</h3>
+        <div class="fix" aria-label="示例：I very like listen music on the train. 改成 I really like listening to music on the train.">
+          <p class="fix-line" lang="en" aria-hidden="true">I <s>very</s><ins>really</ins> like <s>listen</s><ins>listening to</ins> music on the train.</p>
+          <ul class="fix-why" aria-hidden="true"><li><b>very</b> 不能直接修饰动词 like，用 really</li><li><b>like</b> 后面接动名词：like listening to</li></ul>
+        </div>
+        <p class="note">写作按「内容切题、结构衔接、语言准确、词汇句式」四项评分，给段落点评和示范段落。</p>
+      </article>
+      <article class="ai-card rv" data-d="1" id="aiChat">
+        <div class="ai-tag">口语情景</div>
+        <h3>AI 扮演店员、房东、面试官，你用英文完成任务</h3>
+        <div class="chat" aria-hidden="true">
+          <p class="bub them" lang="en">Hi! What can I get for you today?</p>
+          <p class="bub me" lang="en">Can I have a big one latte?</p>
+          <p class="bub fixit"><span lang="en">a big one latte → <b>a large latte</b></span></p>
+          <p class="bub them" lang="en">Sure, a large latte. Anything else?</p>
+        </div>
+      </article>
+      <article class="ai-card rv" data-d="2" id="aiLevel">
+        <div class="ai-tag">改写到你的水平</div>
+        <h3>原文太难？换成适合你的版本，随时对照</h3>
+        <div class="lvl" role="group" aria-label="切换版本">
+          <button type="button" class="lvl-b" aria-pressed="true" data-v="0">原文 B2</button>
+          <button type="button" class="lvl-b" aria-pressed="false" data-v="1">适合我的 B1</button>
+        </div>
+        <p class="lvl-text" lang="en" id="lvlText" aria-live="polite">What is surprising is that the headphones are not blocking that sound so much as fighting it with more sound.</p>
+      </article>
+      <article class="ai-card rv" id="aiExplain">
+        <div class="ai-tag">讲解整句</div>
+        <h3>句尾点 ✦，讲清这一句的结构和语气</h3>
+        <p class="ex-s" lang="en"><span class="ex-a">The low roar of the engine</span> <span class="ex-b">simply drains away</span>.</p>
+        <ul class="ex-notes" aria-hidden="true"><li><i class="k a"></i>主语：发动机低沉的轰鸣</li><li><i class="k b"></i>drain away：像水一样慢慢流走、消失</li></ul>
+        <p class="note">还会给出可以模仿的句型，一键收藏。</p>
+      </article>
+      <article class="ai-card rv" data-d="1" id="aiSounds">
+        <div class="ai-tag">发音入门</div>
+        <h3>中国学习者最容易混的 12 组音，先练耳朵再练嘴</h3>
+        <div class="pairs" aria-hidden="true"><span>/iː/ · /ɪ/</span><span>/θ/ · /s/</span><span>/v/ · /w/</span><span>/l/ · /r/</span><span>/n/ · /l/</span><span>词尾清浊</span></div>
+        <p class="note">听辨练习 + 跟读，AI 告诉你目标音发得对不对。</p>
+      </article>
+      <article class="ai-card rv" data-d="2" id="aiRetell">
+        <div class="ai-tag">复述 · 对话 · 翻译</div>
+        <h3>不看原文，用自己的话把这篇讲一遍</h3>
+        <div class="retell" aria-hidden="true"><span class="mic"><i></i><i></i><i></i><i></i><i></i></span><span>讲到了 <b>3 / 4</b> 个要点 · 看示范复述</span></div>
+        <p class="note">可以打字，也可以直接说（最长 2 分钟）。</p>
+      </article>
+    </div>
+    <div class="scenes rv" aria-label="12 个口语情景">
+      <div class="marquee"><div class="mq-track">
+        <span>在咖啡店点单</span><span>问路</span><span>酒店入住</span><span>看医生</span><span>看房租房</span><span>退换货</span><span>小组作业分工</span><span>电话预约</span><span>求职面试</span><span>会上提出不同意见</span><span>和房东协商修理</span><span>汇报后的答疑</span>
+        <span aria-hidden="true">在咖啡店点单</span><span aria-hidden="true">问路</span><span aria-hidden="true">酒店入住</span><span aria-hidden="true">看医生</span><span aria-hidden="true">看房租房</span><span aria-hidden="true">退换货</span><span aria-hidden="true">小组作业分工</span><span aria-hidden="true">电话预约</span><span aria-hidden="true">求职面试</span><span aria-hidden="true">会上提出不同意见</span><span aria-hidden="true">和房东协商修理</span><span aria-hidden="true">汇报后的答疑</span>
+      </div></div>
+    </div>
+    <p class="fine rv">每个账号每天使用 AI 的次数有上限，用完第二天恢复。</p>
+  </div>
+</section>
+
+<!-- ============ graph + radar ============ -->
+<section class="map" id="map" aria-labelledby="mapTitle">
+  <div class="wrap">
+    <header class="sec-head rv">
+      <p class="kicker">看得见的进步</p>
+      <h2 id="mapTitle" class="title">语法画成一张地图，<br>能力画成一张雷达。</h2>
+    </header>
+    <div class="map-grid">
+      <article class="map-card rv" id="graphCard">
+        <svg class="kg" viewBox="0 0 520 300" aria-hidden="true">
+          <g class="kg-edges"></g><g class="kg-nodes"></g>
+        </svg>
+        <div class="legend" aria-hidden="true"><span class="lg read">读到过</span><span class="lg used">用出来过</span><span class="lg ok">已验证</span><span class="lg warn">要留意</span></div>
+        <h3>知识图谱：44 个语法点连成一条路线</h3>
+        <p>按「入门、进阶、中高级、高级」排好。你读到它、用出来、做题做对，它就被点亮；写作里出的错也会标在这里。每个点有讲解、「中文思维陷阱」和练习题。</p>
+        <p class="note">不知道从哪开始？做 16 道题的语法小测，3–6 分钟给你一个起点。</p>
+      </article>
+      <article class="map-card rv" data-d="1" id="radarCard">
+        <svg class="radar" viewBox="0 0 300 300" aria-hidden="true">
+          <g class="rd-grid"></g>
+          <polygon class="rd-goal" points=""/>
+          <polygon class="rd-me" points=""/>
+          <g class="rd-labels"></g>
+        </svg>
+        <h3>能力雷达：现在最该补哪一项</h3>
+        <p>听力、阅读、词汇、语法、口语、写作六项，对照你自己定的目标。差距最大的一项，每天的计划会多安排它的练习。建议每 4 周测一轮，看前后变化。</p>
+        <p class="note">图为示意。口语和写作由 AI 按 CEFR 的描述评分，口音不扣分。</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ word books & exams ============ -->
+<section class="books" id="books" aria-labelledby="booksTitle">
+  <div class="wrap">
+    <header class="sec-head rv">
+      <p class="kicker">词书和考试</p>
+      <h2 id="booksTitle" class="title">17 本词书，<br>从中考背到 GRE。</h2>
+      <p class="sub">选一本词书、定每天几个新词，剩下的交给遗忘曲线。不知道选哪本，先花 3 分钟测词汇量，语流会建议从哪本开始。</p>
+    </header>
+    <div class="shelf rv" data-d="1">
+      <div class="shelf-tabs" role="tablist" aria-label="词书分组" id="shelfTabs"></div>
+      <div class="shelf-panel" id="shelfPanel" role="tabpanel" aria-live="polite"></div>
+      <p class="shelf-basis" id="shelfBasis"></p>
+      <noscript><p>按词频（基础、进阶、高阶、精通、拓展词汇）· 中学英语（中考、高考）· 大学英语（四级、六级、考研）· 英语专业（专四、专八）· 出国留学（雅思、托福、GRE）· 学术与职场（学术英语、商务英语）</p></noscript>
+    </div>
+    <div class="exams">
+      <div class="exam-copy rv">
+        <h3>考试练习：8 种考试，按它的难度做一套限时练习</h3>
+        <p>从中考到雅思，词汇 10 题、语法 8 题、阅读 2 篇短文 4 题，每套约 12–20 分钟。交卷后，没认出的词一键加进单词本，要补的语法点排进每天的计划。</p>
+        <p class="note">题目都是语流原创的练习题，不是历年真题；专四、专八的词汇题取自按考纲词汇量自编的词书。</p>
+      </div>
+      <div class="exam-cards">
+        <div class="exam rv"><b>中考</b><span>中考英语</span><i class="timer"></i></div>
+        <div class="exam rv" data-d="1"><b>高考</b><span>高考英语</span><i class="timer"></i></div>
+        <div class="exam rv" data-d="2"><b>四级</b><span>CET-4</span><i class="timer"></i></div>
+        <div class="exam rv" data-d="3"><b>六级</b><span>CET-6</span><i class="timer"></i></div>
+        <div class="exam rv" data-d="1"><b>考研</b><span>考研英语</span><i class="timer"></i></div>
+        <div class="exam rv" data-d="2"><b>专四</b><span>TEM-4</span><i class="timer"></i></div>
+        <div class="exam rv" data-d="3"><b>专八</b><span>TEM-8</span><i class="timer"></i></div>
+        <div class="exam rv" data-d="4"><b>雅思</b><span>IELTS</span><i class="timer"></i></div>
+      </div>
+    </div>
+    <div class="cta-line rv">
+      <a class="btn primary" href="/#/vocab/test" data-tap="about-vocab-test">测一下词汇量（约 3 分钟）</a>
+      <a class="btn ghost" href="/#/exam">看看考试练习</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ anywhere ============ -->
+<section class="anywhere" id="anywhere" aria-labelledby="anyTitle">
+  <div class="wrap">
+    <header class="sec-head center rv">
+      <p class="kicker">随时随地</p>
+      <h2 id="anyTitle" class="title">地铁上、宿舍里、工位前，<br>打开浏览器就能学。</h2>
+    </header>
+    <div class="devices rv" data-d="1">
+      <div class="parallax" data-speed="0.04">
+        <figure class="laptop"><div class="lid"><div class="screen"><picture><source srcset="/about/desk-d.jpg" media="(prefers-color-scheme: dark)"><img src="/about/desk.jpg" alt="电脑上的语流：读一篇材料" width="1280" height="800" loading="lazy" decoding="async"></picture></div></div><div class="base"></div></figure>
+      </div>
+      <div class="parallax dev-phone-wrap" data-speed="-0.08">
+        <figure class="phone dev-phone"><div class="screen"><picture><source srcset="/about/review-d.jpg" media="(prefers-color-scheme: dark)"><img src="/about/review.jpg" alt="手机上复习单词" width="390" height="844" loading="lazy" decoding="async"></picture></div></figure>
+      </div>
+    </div>
+    <div class="tiles">
+      <div class="tile rv"><span class="ti" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><rect x="5" y="18" width="14" height="3" rx="1.5"/></svg></span><h3>存到手机，没网也能学</h3><p>今天这篇和接下来两篇会自动存好；没网时听、读、做题照常，联网后自动同步。</p></div>
+      <div class="tile rv" data-d="1"><span class="ti" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8.5 5C4.9 5 2 7.4 2 10.4c0 1.7.9 3.2 2.4 4.2L3.8 17l2.7-1.4c.6.2 1.3.3 2 .3"/><path d="M15.5 9C12 9 9.3 11.2 9.3 14s2.7 5 6.2 5c.6 0 1.2-.1 1.8-.3L20 20l-.6-2.1c1.4-.9 2.3-2.3 2.3-3.9 0-2.8-2.8-5-6.2-5z"/></svg></span><h3>微信里直接打开</h3><p>朋友发来的链接点开就能学，全文朗读、单词发音都能听；要用全部声音和放到桌面，按提示换到浏览器打开。</p></div>
+      <div class="tile rv" data-d="2"><span class="ti" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 18h4"/><path d="M12 6v6m-3-3h6"/></svg></span><h3>添加到手机桌面</h3><p>像 App 一样从桌面一点就开、全屏显示；不用去应用商店下载。</p></div>
+      <div class="tile rv"><span class="ti" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4m8-4v4"/><path d="m9.5 15 2 2 3.5-3.5"/></svg></span><h3>每天提醒，加到手机日历</h3><p>选一个时间，到点手机提醒你打开今天的计划；不用装 App，也不用邮箱。</p></div>
+      <div class="tile rv" data-d="1"><span class="ti" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="m9 13 6 5m0-5-6 5"/></svg></span><h3>导出到 Excel 和 Anki</h3><p>单词本可以导成 Excel 表格或 Anki 卡片，全部学习记录也能下载留底。</p></div>
+      <div class="tile rv" data-d="2"><span class="ti" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18"/><path d="M12 3a9 9 0 0 1 0 18" class="fillhalf"/></svg></span><h3>深色模式、读屏和大字号</h3><p>亮色和暗色下文字对比度都达到 WCAG AA；读屏软件能念出每个按钮；字号和行距可以调大。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ who ============ -->
+<section class="who" id="who" aria-labelledby="whoTitle">
+  <div class="wrap">
+    <header class="sec-head rv">
+      <p class="kicker">适合谁</p>
+      <h2 id="whoTitle" class="title">每天能抽出十几分钟，<br>想把英语真正用起来的人。</h2>
+    </header>
+    <div class="who-grid">
+      <article class="who-card rv"><span class="who-k">中学生</span><h3>备中考、高考</h3><p>中考、高考词汇和限时练习；从入门（A2）的短文读起，语法一个点一个点点亮。</p></article>
+      <article class="who-card rv" data-d="1"><span class="who-k">大学生</span><h3>四六级、考研</h3><p>四级、六级、考研词汇和限时练习；不占整块时间，课间就能学一篇。</p></article>
+      <article class="who-card rv" data-d="2"><span class="who-k">英语专业</span><h3>专四、专八</h3><p>按大纲词汇量自编的专四、专八词书和限时练习；高级（C1）的文章和写作批改。</p></article>
+      <article class="who-card rv" data-d="3"><span class="who-k">准备出国</span><h3>雅思、托福、GRE</h3><p>出国考试词汇；口语情景从租房、看医生到求职面试。</p></article>
+      <article class="who-card rv" data-d="4"><span class="who-k">上班族</span><h3>把英语捡起来</h3><p>商务英语词汇和职场沟通话题；地铁上用手机学，没网也行。</p></article>
+    </div>
+    <p class="honest rv"><b>也说清楚语流做不到的：</b>这里没有真人老师上课，也不是刷真题的题库。它帮你的是每天读一点、听一点、用一点，把英语慢慢变成自己的。</p>
+  </div>
+</section>
+
+<!-- ============ trust ============ -->
+<section class="trust" id="trust" aria-labelledby="trustTitle">
+  <div class="wrap trust-grid">
+    <header class="sec-head rv">
+      <p class="kicker">内容从哪来</p>
+      <h2 id="trustTitle" class="title">每一篇写着出处，<br>AI 参与的地方都标出来。</h2>
+    </header>
+    <dl class="trust-list">
+      <div class="rv"><dt>精选材料</dt><dd>Flow 编辑部按写作规范原创，AI 辅助编写：只写广为人知的常识，不写具体的统计数字、年份和在世的真人；每道理解题的答案都能在原文里找到依据，发布前由程序逐篇检查。</dd></div>
+      <div class="rv" data-d="1"><dt>今日热点</dt><dd>AI 联网检索新闻后改写，没有经过人工审核，标题下可以点开原始新闻，事实以原文为准。</dd></div>
+      <div class="rv" data-d="2"><dt>词书</dt><dd>专四、专八词书按考试大纲的词汇量要求自编，不是官方词表；取自公开词表的词书写明了来源和许可，每本都能点开看「这份词书怎么来的」。</dd></div>
+      <div class="rv" data-d="3"><dt>你的数据</dt><dd>导入的文章只有你自己看得到；学习记录随时可以导出，也可以注销账号、全部删除。</dd></div>
+    </dl>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="faq" id="faq" aria-labelledby="faqTitle">
+  <div class="wrap faq-wrap">
+    <header class="sec-head rv">
+      <p class="kicker">常见问题</p>
+      <h2 id="faqTitle" class="title">开始之前，你可能想问</h2>
+    </header>
+    <div class="qa-list">
+      <details class="qa rv"><summary>要花钱吗？</summary><div class="qa-a"><p>注册免费，现在所有功能都可以免费用。AI 功能每个账号每天有次数上限，用完第二天恢复。</p></div></details>
+      <details class="qa rv"><summary>不注册能用吗？</summary><div class="qa-a"><p>能。不登录可以听、读、做理解题，也能做词汇量测试和语法起点小测。保存进度、收藏、背单词、AI 批改和能力雷达需要注册一个账号。</p></div></details>
+      <details class="qa rv"><summary>要下载 App 吗？</summary><div class="qa-a"><p>不用。手机、平板、电脑用浏览器打开 flowlang.cn 就能学，iPhone 推荐 Safari，安卓和电脑推荐 Chrome 或 Edge。想像 App 一样打开，可以添加到手机桌面。</p></div></details>
+      <details class="qa rv"><summary>我该从哪个难度开始？</summary><div class="qa-a"><p>第一次打开，语流会问你 4 个小问题，不到一分钟；拿不准的话做 16 题的语法小测，或者 3 分钟的词汇量测试。之后随时可以改，读文章时也能切到 AI 改写的「适合我的版本」。</p></div></details>
+      <details class="qa rv"><summary>没网的时候能学吗？</summary><div class="qa-a"><p>能。复习单词，以及已经「存到手机」的材料（听、读、做理解题），没网也能学，联网后自动同步。「用出来」要用 AI，需要联网。</p></div></details>
+      <details class="qa rv"><summary>在微信里能用吗？</summary><div class="qa-a"><p>能直接打开学，全文朗读、单词发音和例句都能听。一部分声音用的是浏览器自带的朗读（比如 AI 的回复和口语情景），安卓手机的微信里没有这个功能；在微信里也不能放到桌面。按页面提示点右上角「···」，选「在浏览器打开」就都有了。</p></div></details>
+      <details class="qa rv"><summary>换了手机或电脑，进度还在吗？</summary><div class="qa-a"><p>在。进度保存在你的账号里，用同一个账号登录就行。</p></div></details>
+      <details class="qa rv"><summary>能把单词导到 Excel 或 Anki 吗？</summary><div class="qa-a"><p>能。到「我的」→「导出我的数据」，选「单词本 · Excel 表格」或「单词本 · 导入 Anki」。</p></div></details>
+      <details class="qa rv"><summary>材料的内容准确吗？</summary><div class="qa-a"><p>每篇材料标题下都写着来源和 AI 标签。精选材料由 Flow 编辑部按写作规范原创、AI 辅助编写，只写常识；今日热点是 AI 改写的新闻，没有人工审核，可以点「来源」看原文。</p></div></details>
+    </div>
+    <p class="faq-more rv">还有问题？<a href="/#/guide">操作指南</a>把每个页面都讲到了，也可以<a href="/guide.pdf">下载 PDF</a>。</p>
+  </div>
+</section>
+
+<!-- ============ final call ============ -->
+<section class="final" id="start" aria-labelledby="finalTitle">
+  <div class="final-bg" aria-hidden="true"><svg class="logo-big" viewBox="0 0 32 32"><g class="logo-bars"><path d="M7 20v-6"/><path d="M13 24V8"/><path d="M19 22V11"/><path d="M25 18v-4"/></g></svg></div>
+  <div class="wrap final-in">
+    <h2 id="finalTitle" class="display final-title rv">今天，就读第一篇。</h2>
+    <p class="lede rv" data-d="1">不用注册就能先试读一篇；想保存进度、背单词、用 AI 批改时，再免费注册一个账号。</p>
+    <div class="cta-row center rv" data-d="2">
+      <a class="btn primary big" href="/" data-tap="about-start">免费开始学<span class="arr" aria-hidden="true">→</span></a>
+      <a class="btn ghost big" href="/#/join" data-tap="about-join">注册账号</a>
+    </div>
+    <p class="final-links rv" data-d="3"><a href="/#/guide" data-tap="about-guide">操作指南</a><span aria-hidden="true">·</span><a href="/guide.pdf">下载 PDF 版</a></p>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <a class="brand" href="/" aria-label="打开语流 Flow">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" class="logo-bg"/><g class="logo-bars still"><path d="M7 20v-6"/><path d="M13 24V8"/><path d="M19 22V11"/><path d="M25 18v-4"/></g></svg>
+      <span>语流 Flow</span>
+    </a>
+    <nav class="foot-nav" aria-label="更多">
+      <a href="/">开始学</a><a href="/#/guide">操作指南</a><a href="/guide.pdf">PDF 版指南</a><a href="/survey">匿名问卷</a><a href="/#/feedback">问题反馈</a>
+    </nav>
+    <p class="foot-note">文章由 Flow 编辑部原创，AI 辅助编写。专四、专八词书按大纲词汇量自编，不是官方词表；考试练习为原创练习题，不是真题。</p>
+  </div>
+</footer>
+</body>
+</html>
