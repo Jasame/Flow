@@ -129,6 +129,8 @@ The owner approved these on 2026-11-24 (「按你的建议改，b6 发完就写�
    ledger session (语流·总账; the owner's choice, 2026-11-25). When a PR is stuck on a conflict or a flaky check, that
    session merges main into its branch and pushes (never with force), then tells the author to pull. It also deletes
    remote branches that are already in main, after noting each name and sha in the shared note `ledger.md`.
+   Turning on auto-merge (`gh pr merge <N> --repo Jasame/Flow --auto --merge`) the owner allowed on 2026-11-25 (「允许」):
+   only on one's own PR, never on a draft or one marked 「先别合」, and say so in the PR or the area note when you do.
 2. **The 内测版 follows main.** Every merge to main that passes CI goes to the beta by itself
    (`.github/workflows/beta.yml`, GitHub Actions, the owner's choice; #66), with the light end-to-end test, so the beta
    always shows main and nobody releases it by hand. To keep a version there while the owner tries it, pause with
