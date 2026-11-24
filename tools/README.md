@@ -117,6 +117,10 @@ The owner approved these on 2026-11-24 (「按你的建议改，b6 发完就写�
 1. **Authors merge their own PRs.** When CI is green and the PR merges cleanly into main, the session that wrote it
    turns on auto-merge. The release session (语流 2) handles releases and the servers. 语流 still gets a release only
    when the owner says 「发正式版」.
+   - The session may turn auto-merge on itself with `gh pr merge <number> --repo Jasame/Flow --auto --merge` (the owner
+     allowed it on 2026-11-25, 「允许」, knowing that the app's button asks the owner first and the command does not).
+     Only its own PRs; never a draft or a PR marked 「先别合」; and it leaves a one-line note on the PR that it turned
+     auto-merge on. It does not ask another session to do it for it.
 2. **The 内测版 follows main.** Every merge to main that passes CI goes to the beta by itself
    (`.github/workflows/beta.yml`, GitHub Actions, the owner's choice; #66), with the light end-to-end test, so the beta
    always shows main and nobody releases it by hand. To keep a version there while the owner tries it, pause with
