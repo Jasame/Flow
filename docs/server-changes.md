@@ -8,8 +8,9 @@
 - 服务器按地区叫：**香港**（Flow 两个站、AI 网关）、**杭州**（xmc.hk 后台、jasa.hk 等）。
 - 时间是北京时间。备份和日志默认在香港的 `/root/claude-ops/`。
 - 每次动服务器以前先备份；改完要从服务本身验证（真的发一次请求，或者看那个进程的环境和挂载），只从外面看不算。
-- **`/etc/flow.env`、`/etc/flow-beta.env` 只按行撤回**：好几个会话都往这两个文件里加过行，整份恢复旧备份会把后来别人加的行一起抹掉。
-  下面写的「备份」是改之前的那份，用来对照，不要整份拷回去。
+- **`/etc/flow.env`、`/etc/flow-beta.env` 只按行撤回**（语流 2 定的）：这两个文件好几个会话一起改。撤回一律写成
+  「删除或改回 XXX 那一行，然后重启 flow-beta / flow」，不要把整份备份拷回去，否则会冲掉别人后来的改动。
+  下面写的「备份」是改之前的那一份，只用来对照。nginx 配置也一样：只改回那一项。
 - 证书、宝塔、杭州面板和其他项目的维护记在杭州的 ops-log.md，这里只记跟 Flow 有关的。
 - 以后每改一次就在最上面加一条。
 
@@ -38,7 +39,8 @@
 - **谁、为什么**：语流 16。原来两个站都用用户自己的 jasa.hk 飞书邮箱发（免费版每天 100 封、50 个外部收件人）。用户选了
   「阿里云邮件推送」，同意「验证通过就切」内测版；用户定的规矩是优先用 flowlang.cn 发，被拒收再改用原来的飞书邮箱。
 - **备份**：`/root/claude-ops/flow-beta.env.bak-20261125-mail`。
-- **撤回**：`/root/claude-ops/mail-sender-undo-beta.py`（先 `--dry-run`），按行改回去。
+- **撤回**：删除 `FLOW_SMTP_FALLBACK_*` 那几行，把 `FLOW_SMTP_*` 那几行改回原来的飞书邮箱设置，然后重启 flow-beta。
+  `/root/claude-ops/mail-sender-undo-beta.py` 就是按行做这件事（先 `--dry-run` 看它要改哪几行）。
 - **测试**：Gmail、QQ、jasa.hk 进收件箱；Outlook 进垃圾箱；iCloud 第二封被退回（554，只在阿里云的发送详情里看得到）。
   网易没测。语流的 `/etc/flow.env` 没动（见上表）。
 
@@ -46,7 +48,7 @@
 
 - **改了什么**：`/etc/flow-beta.env` 加了 `FLOW_TTS_DAILY_CHARS`（全站每天最多合成多少字，#69 的开关之一）。
 - **谁**：语流 2。数值、原因和备份以语流 2 在香港 `/root/claude-ops/ops-notes.log` 里的记录为准，这里还没核对。
-- **撤回**：删掉这一行，重启 flow-beta（不设时用代码里的默认值）。
+- **撤回**：删除 `FLOW_TTS_DAILY_CHARS` 那一行，然后重启 flow-beta（不设时用代码里的默认值）。
 
 ### 00:05 · AI 网关：加联网检索接口和 4 个评测用模型名
 
@@ -79,7 +81,7 @@
   （www:www 755，原来的 audio 目录是 root:root 755，www 写不进）。`/etc/flow.env` 没动。
 - **谁、为什么**：语流 2，#69 的服务器朗读默认关着，要设这一项才开。用户：「可以，打开」（之前在语流 1 说过「直接打开」）。
 - **备份**：`/root/claude-ops/flow-beta.env.bak-tts-20261124-233048`。
-- **撤回**：删掉这一行，重启 flow-beta。页面会自己退回浏览器的声音。
+- **撤回**：删除 `FLOW_TTS_MODEL` 那一行，然后重启 flow-beta。页面会自己退回浏览器的声音。
 - **出过的问题**：沙箱不让写，23:46 修好（上一条）。
 - **要记住**：两个站共用 `audio/tts`。文件名由声音和句子算出来；#76 起文件名里还带上模型、上游声音和格式。哪天两个站用不同的
   朗读模型，文件名会自己分开。
@@ -121,7 +123,7 @@
 - **备份**：`/root/claude-ops/flow-beta.env.bak-20261124-222514`。`/etc/flow.env` 没动。
 - **验证**：进程环境里读得到；b8 自检里所有文字任务都是 route=model=`flow-text-ds-flash`，实际回答的是 deepseek-v4.1-flash，
   每次 1.7–4.8 秒。录音那条路不走这个设置，还是 Gemini。
-- **撤回**：删掉这一行，重启 flow-beta。
+- **撤回**：删除 `FLOW_AI_ROUTES` 那一行，然后重启 flow-beta。
 
 ### 22:11 · 内测版：测试账号 duet-tester
 
@@ -165,7 +167,7 @@
   从此只有用户是「管理员」，其他能进后台的人「只看数据」。没设这一项时所有人都是管理员。
 - **谁**：语流 2，按用户 11-24 中午的决定（先确认后台右上角认得出用户的邮箱，再设）。
 - **备份**：`/root/claude-ops/flow.env.bak-*`。
-- **撤回**：删掉这一行，重启 flow。
+- **撤回**：删除 `FLOW_ADMIN_EMAILS` 那一行，然后重启 flow。
 
 ### 13:40 前后 · 杭州状态页分开查两个站
 
@@ -178,7 +180,8 @@
 - **改了什么**：nginx `location /` 的 `client_max_body_size` 从 24k 改成 3m。之前超过 24 KB 的请求（口语录音、问题反馈的截图）
   都会被拦（413），正式版的口语练习会坏。Flow 自己按路径限制大小（一般 20 KB，作文和导入 40 KB，录音 2.2 MB，反馈 2.9 MB）。
 - **谁**：语流 2。用户同意（r21 发布以前）。
-- **备份**：`/root/claude-ops/nginx-body-20261124-092110.conf`。撤回：恢复，`nginx -t` 后 reload。
+- **备份**：`/root/claude-ops/nginx-body-20261124-092110.conf`（只用来对照）。
+- **撤回**：把 `client_max_body_size` 那一行改回 24k，`nginx -t` 通过后 reload。
 
 ### 02:13 · 香港：分成正式版和内测版两个站
 
@@ -189,7 +192,9 @@
 - **谁、为什么**：语流 2，用 `tools/beta_setup.py`。用户定的：flowlang.cn 做正式版，flow.jasa.hk 做内测版，「独立数据（推荐）」，
   待发布的版本先上内测版。
 - **备份**：`/root/claude-ops/beta-setup-*`。
-- **撤回**：`python3 /root/claude-ops/beta_setup.py --undo`。
+- **撤回**：`python3 /root/claude-ops/beta_setup.py --undo`：停掉内测版和它的自动部署，去掉分流的 map，flow.jasa.hk 回到语流。
+  要注意两点：它会把 02:13 备份的 nginx 文件整份拷回去，09:21 改的请求大小上限（3m）也会跟着回到 24k，所以跑完要把
+  `client_max_body_size` 那一行再改回 3m；它不动 `/etc/flow.env`，要的话手工改回 `FLOW_PUBLIC_URL` 那一行，然后重启 flow。
 
 ## 2026-11-23
 
@@ -199,7 +204,7 @@
   Cloudflare）和 `FLOW_TEXT_AI_MODEL=flow-text`，重启 flow。`ai_check.py` 4/4（要用 root 跑，它自己读 `/etc/flow.env`）。
 - **谁**：服务器会话（现在的语流 1）。用户：「r20 后改」。
 - **备份**：`/etc/flow.env.bak-20261123-2247`。
-- **撤回**：把这两行改回去（`FLOW_AI_URL` 改回 `https://api.xmc.hk/v1/chat/completions`，删掉 `FLOW_TEXT_AI_MODEL`），重启 flow。
+- **撤回**：把 `FLOW_AI_URL` 那一行改回 `https://api.xmc.hk/v1/chat/completions`，删除 `FLOW_TEXT_AI_MODEL` 那一行，然后重启 flow。
 - **要记住**：网关或 Flow 换到别的机器时，`FLOW_AI_URL` 要改回 `https://api.xmc.hk/v1/chat/completions`（杭州 RECOVERY.md 写了）。
 
 ### 21:54 · 香港：删掉存在服务器上的一份 Gemini key
