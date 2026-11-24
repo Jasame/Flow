@@ -40,7 +40,7 @@
       const art = [pick, h.resume, ...h.today].find(m => m && m.id === readId);
       // 再学一篇 (r27): the next recommendation itself, not the whole library (that only when there is none)
       const more1 = h.today.find(m => m && m.id !== readId && (!(m.steps || []).includes('check') || m.redo));  // 精读重学 counts: it is what 今日 recommends once a level is done
-      top = `<section class="today-plan" aria-labelledby="tpTitle">${overLineHTML(p, next)}
+      top = `<section class="today-plan" aria-labelledby="tpTitle">${backHTML(p, next)}${overLineHTML(p, next)}
         <div class="tp-head"><div><h1 class="h1" id="tpTitle">${next ? '今天的计划' : '今天的计划完成了'}</h1>
           <span class="muted small">${planHeadText(p)}</span>${sprintLine(h)}</div>
           <span class="ring" data-p="${Math.round(p.done / Math.max(1, p.total) * 100)}" aria-hidden="true"><b>${p.done}/${p.total}</b></span></div>
@@ -101,6 +101,12 @@
     return `<a class="prow${s.done ? ' done' : ''}${isNext ? ' next' : ''}${s.group === 'extra' ? ' extra' : s.group === 'week' ? ' week' : ''}" href="${esc(s.href)}"${tap ? ` data-tap="${tap}"` : ''}>
       <span class="num">${s.done ? '✓' : num}</span><span class="t"><b>${esc(a ? a.title : s.title)}</b><span class="muted tiny">${esc(sub.filter(Boolean).join(' · '))}</span></span>
       <span class="go" aria-hidden="true">›</span></a>`;
+  }
+  // 欢迎回来 (r28 第 2 段): after three days or more away, the day back is short, and the plan says so first.
+  function backHTML(p, next) {
+    const b = p.back; if (!b) return '';
+    const left = b.left ? `单词还有 ${b.left} 个，之后几天慢慢补上。` : '';
+    return `<div class="tp-back" role="status"><b>欢迎回来</b><span class="small">${next ? `你 ${b.days} 天没学了，没关系。今天只做 ${p.total} 件事，约 ${p.must_minutes} 分钟。` : '今天的几件事做完了，明天照常。'}${left}</span></div>`;
   }
   // Past the day's minutes by a fifth with 必做 not done: said once a day, above the plan, and nothing is stopped.
   // It stays for the quiet redraw and a quick look away (two minutes), then not again that day.
