@@ -287,7 +287,7 @@
       const token = decodeURIComponent(location.hash.slice(7)); history.replaceState(null, '', location.pathname + location.search + '#/');
       setTimeout(() => resetByLink(token), 0);
     }
-    TTS.stop(); NAR.stop(); CLIP.stop(); MIC.stop(); MINI.hide(); hideSelbar(); view.ontouchstart = view.ontouchmove = view.ontouchend = null; document.body.classList.remove('reviewing'); bar.classList.remove('hide'); document.onselectionchange = null; document.onkeydown = null;
+    TTS.stop(); NAR.stop(); CLIP.stop(); MIC.stop(); MINI.hide(); hideSelbar(); swipeOff(); document.body.classList.remove('reviewing'); bar.classList.remove('hide'); document.onselectionchange = null; document.onkeydown = null;
     const [name, a, b] = parts();
     if (name === 'about') { location.replace('/about'); return; }  // 认识语流 is its own page (the guide links here)
     const last = S.lastRoute.split('/');
@@ -303,14 +303,14 @@
       // Only the personalised home needs the level questions first; everything else works for a new guest too.
       else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix', 'easy', 'words', 'speak', 'growth', 'radar', 'practice', 'guide', 'feedback', 'weekly-off'].includes(name)) { location.replace('#/welcome'); return; }
       else if (name === 'placement') { setNav('practice'); await placementView(); }
-      else if (name === 'exam') { setNav('practice'); await examView(a); }
+      else if (name === 'exam') { setNav('practice'); await (b ? examTypeView(a, decodeURIComponent(b)) : examView(a)); }
       else if (name === 'series') { setNav('today'); await seriesView(decodeURIComponent(a || '')); }
       else if (name === 'easy') { setNav('practice'); await (a ? easyRead(decodeURIComponent(a)) : easyView()); }
       else if (name === 'words' && a === 'confuse') { setNav('cards'); await (b ? confuseRound(decodeURIComponent(b)) : confuseView()); }
       else if (name === 'speak') { setNav('practice'); await (a === 'ielts' ? (b ? ieltsPractice(decodeURIComponent(b)) : ieltsView()) : a ? speakScene(decodeURIComponent(a)) : speakView()); }
       else if (name === 'radar') { setNav('practice'); await (a === 'goals' ? radarGoals() : a === 'test' && (b === 'reading' || b === 'listening') ? assessComprehension(b) : a === 'test' && (b === 'speaking' || b === 'writing') ? assessJudged(b) : a === 'test' ? radarTests() : radarView()); }
       else if (name === 'growth') { setNav('me'); await growthView(a ? decodeURIComponent(a) : ''); }
-      else if (name === 'mix') { setNav('practice'); await mixView(a === 'pair' || a === 'topic' ? a : 'due', b ? decodeURIComponent(b) : ''); }
+      else if (name === 'mix') { setNav('practice'); await mixView(a === 'pair' || a === 'topic' || a === 'exam' ? a : 'due', b ? decodeURIComponent(b) : ''); }
       else if (name === 'm' && a) { setNav('today'); await study(decodeURIComponent(a), b || 'listen', sameMaterial); }
       else if (name === 'graph') { setNav('practice'); await (a ? nodeView(decodeURIComponent(a)) : graphView()); }
       else if (name === 'cards') { setNav('cards'); await vocabView('', 1, a || ''); }

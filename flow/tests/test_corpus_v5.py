@@ -91,6 +91,8 @@ class CorpusV5Tests(unittest.TestCase):
         import corpus_validate as cv
         p = json.loads(json.dumps(next(x for x in content_v50.v5_materials() if x['cefr'] == 'C1')))
         p['spec'] = '5.1'
+        p.pop('ai', None)
+        p['questions'] = [{k: v for k, v in q.items() if k != 'type'} for q in p['questions'][:2]]
         E, _ = cv.check_v51(p, p['body'], {'sentences': 10})
         self.assertTrue(any('13 句' in e for e in E) and any('3–4 道题' in e for e in E) and any('AI 辅助编写' in e for e in E))
         p['ai'] = 'AI 辅助编写'

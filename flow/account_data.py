@@ -19,9 +19,9 @@ LEFT_OUT_COLUMNS = {'password', 'token', 'csrf', 'digest', 'salt'}
 # What the main tables are, for someone reading the file (the rest are from earlier versions of the site).
 GUIDE = {
     'next_cards': '单词本：单词、表达和错题（含复习安排）', 'next_reviews': '每一次复习：什么时候、记得怎么样',
-    'next_progress': '学过的材料和步骤（听、读、理解、用出来）', 'next_profiles': '学习设置：水平、目标、每天几分钟、每周目标',
+    'next_progress': '学过的材料和步骤（听、读、理解、用出来）', 'next_profiles': '学习设置：水平、目标、每天几分钟、每周目标、我的考试和日期',
     'next_goals': '能力目标', 'next_assess': '水平测评', 'next_radar': '能力雷达的每次结果', 'next_skill_events': '各项练习的得分',
-    'next_exam_results': '考试练习的成绩', 'next_easy_reads': '轻松读：读了什么、多快', 'next_word_practice': '单词练习的每一题',
+    'next_exam_results': '考试练习的成绩', 'next_exam_type_results': '题型专练每一组的成绩', 'next_easy_reads': '轻松读：读了什么、多快', 'next_word_practice': '单词练习的每一题',
     'next_node_notes': '语法点笔记', 'next_grammar_review': '语法复习', 'next_vocab_plans': '词书计划', 'next_reminders': '每天提醒',
     'feedback': '你发过的问题反馈（截图不在文件里）', 'lab_packs': '你导入的文章',
     'next_goal_weeks': '每周目标改过几次：每个目标从哪一周开始算', 'next_weekly': '每周进度邮件：收不收、上次什么时候发的',
