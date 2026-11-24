@@ -355,6 +355,7 @@ tools/corpus_validate.py
 tools/flow-pull-rollback.sh
 tools/flow-pull.sh
 tools/gen_audio.py
+tools/narration_pack.py
 tools/gen_word_audio.py
 tools/make_icons.py
 tools/release-files.txt

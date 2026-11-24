@@ -84,7 +84,7 @@ uv run --with kokoro-onnx --with soundfile python tools/gen_audio.py flow ~/Flow
 
 **上线**：
 - **有 R2 之后**：`python3 tools/push_media.py ~/Flow-media/tts/audio --verify https://media.flowlang.cn`，提交 manifest，发版。
-- **R2 之前**：做一个手工包，照第 1 批的 `narration-content1`（在共享笔记 `content-batch1-audio/`），经宝塔放到香港运行。装之前要用户点头。
+- **R2 之前**：用 `python3 tools/narration_pack.py ~/Flow-media/tts/audio <输出目录> <包名> <本周的 id …>` 做一个手工包（第 1 批的例子在共享笔记 `content-batch1-audio/`），经宝塔放到香港运行。装之前要用户点头。
   - 脚本核对 sha；
   - 文件已存在就拒绝；
   - 先备份 `index.json`，只追加；
