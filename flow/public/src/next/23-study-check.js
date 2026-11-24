@@ -14,7 +14,7 @@
       }
       const answered = {};
       pane.innerHTML = `<div class="stack">${m.questions.map((q, i) => `<div class="card flat q" data-q="${i}"><div class="tiny muted">第 ${i + 1} / ${m.questions.length} 题</div><div class="prompt">${esc(q.prompt)}</div>
-        ${q.options.map((o, j) => `<button class="ans" data-q="${i}" data-o="${j}"><span class="k">${'ABCD'[j]}</span><span>${esc(o)}</span></button>`).join('')}<div class="fb"></div></div>`).join('')}
+        ${q.options.map((o, j) => `<button class="ans" data-q="${i}" data-o="${j}"><span class="k">${'ABCD'[j]}</span><span>${esc(o)}</span></button>`).join('')}<div class="fb" aria-live="polite"></div></div>`).join('')}
         <div id="score"></div></div>`;
       pane.querySelectorAll('.ans').forEach(b => b.onclick = async () => {
         const i = Number(b.dataset.q), j = Number(b.dataset.o);
@@ -23,7 +23,15 @@
         const box = pane.querySelector(`.q[data-q="${i}"]`);
         box.querySelectorAll('.ans').forEach(x => x.disabled = true);
         try {
-          const r = await api('/api/next/check', { pack: id, index: i, choice: j });
+          let r;
+          try { r = await api('/api/next/check', { pack: id, index: i, choice: j }); }
+          catch (e) {
+            // Without a connection, a material kept on the phone is graded there with its own answers; the answer is
+            // sent when the phone is back online (mistake book, progress).
+            const a = e.network && m.answers && m.answers[i]; if (!a) throw e;
+            r = { correct: j === a.answer, answer: a.answer, evidence: a.evidence };
+            if (S.user) OUTBOX.push({ path: '/api/next/check', body: { pack: id, index: i, choice: j } });
+          }
           answered[i] = r.correct;
           box.querySelector(`[data-o="${r.answer}"]`).classList.add('right');
           if (!r.correct) b.classList.add('wrong');
@@ -31,7 +39,9 @@
           if (Object.keys(answered).length === m.questions.length) {
             const right = Object.values(answered).filter(Boolean).length;
             markStep('check');
-            pane.querySelector('#score').innerHTML = `<div class="card sunk row between enter"><span><b>${right} / ${m.questions.length}</b> 题答对</span><button class="btn primary" id="toOut">去用出来 →</button></div>`;
+            pane.querySelector('#score').innerHTML = `<div class="card sunk row between enter"><span><b>${right} / ${m.questions.length}</b> 题答对</span><button class="btn primary" id="toOut">去用出来 →</button></div>
+              ${(m.expressions || []).length ? '<div class="row"><button class="link small" id="shareX" type="button" data-tap="share-material">把学会的一句做成卡片，分享或保存</button></div>' : ''}`;
+            const sx = pane.querySelector('#shareX'); if (sx) sx.onclick = () => shareFromMaterial(m);
             pane.querySelector('#toOut').onclick = () => go('output');
             // After a first article tried without any questions: offer the level questions (and an account) next.
             if (!S.user && !hasProfile()) pane.querySelector('#score').insertAdjacentHTML('beforeend', `<div class="card stack-s enter try-next"><b>觉得有用？按你的水平每天推荐一篇</b>

@@ -19,7 +19,7 @@
 .rnode.st-watch .dot{background:var(--c);box-shadow:0 0 0 2px var(--c)}
 .rnode .t{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:15px;font-weight:600;min-width:0}
 .rnode .go{color:var(--muted);font-size:20px}
-.here-tag{font-size:12px;font-weight:700;color:#fff;background:var(--green);border-radius:999px;padding:1px 8px}
+.here-tag{font-size:12px;font-weight:700;color:var(--on-fill);background:var(--fill);border-radius:999px;padding:1px 8px}
 .rnode .due-tag{font-size:12px;border-radius:999px;padding:1px 8px;background:var(--amber-soft)}
 .rnode.here a{background:var(--green-soft)}
 .rnode.here .dot{animation:here 1.8s var(--ease) infinite}

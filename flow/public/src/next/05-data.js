@@ -54,7 +54,13 @@
     });
   }
   function snapMaterialGet(path) { const s = snapGet(); return s && s.owner === snapOwner() && s.mats[path] ? s.mats[path].m : null; }
-  function snapClear() { save(SNAP, null); DATA.mem.clear(); }
+  // Signing out (and 注销账号): the account's copies on this phone go, with the review queue kept for offline review and
+  // anything still waiting to be sent (the sign-out sends it first while there is a connection: OUTBOX.flush), so the
+  // next person on a shared phone sees none of it and none of it is sent into their account.
+  function snapClear() {
+    save(SNAP, null); DATA.mem.clear(); OFF.clear();
+    try { localStorage.removeItem('flow-next-review-cache'); localStorage.removeItem('flow-next-outbox'); } catch (e) { /* private mode */ }
+  }
 
   // ---- preloading
   const idle = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 2500 }) : setTimeout(f, 900));

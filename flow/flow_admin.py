@@ -150,6 +150,11 @@ TAP_LABEL = {
     'me-radar': '我的 · 能力雷达', 'me-growth': '我的 · 我的进步', 'me-report': '我的 · 这周的报告', 'me-mistake': '我的 · 错题本',
     'me-level': '我的 · 学习目标和水平', 'me-voice': '我的 · 朗读声音', 'me-text': '我的 · 字号和行距', 'me-remind': '我的 · 每天提醒', 'me-install': '我的 · 添加到桌面',
     'welcome-try': '第一次打开 · 先试读一篇', 'trial-level': '试读之后 · 回答 4 个问题',
+    'home-habit': '今日 · 每周目标', 'notice-week': '今日 · 提醒：上周小结', 'me-habit': '我的 · 每周目标',
+    'study-keep': '学习页 · 存到手机',
+    'share-material': '学一篇 · 分享学会的一句', 'share-week': '这周报告 · 分享',
+    'me-data': '我的 · 导出我的数据', 'me-delete': '我的 · 注销账号', 'words-export': '单词 · 导出单词本',
+    'export-csv': '导出 · Excel 表格', 'export-anki': '导出 · Anki', 'export-json': '导出 · 全部学习记录',
     'me-guide': '我的 · 操作指南', 'me-feedback': '我的 · 问题反馈', 'me-survey': '我的 · 匿名问卷',
 }
 

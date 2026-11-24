@@ -3,10 +3,12 @@
 :root{
   color-scheme:light dark;
   --bg:#fbfaf6;--paper:#ffffff;--sunk:#f3f1ea;--line:#e7e3d8;--line2:#d6d1c3;
-  --ink:#1b1d1a;--ink2:#4b4f48;--muted:#6f7369;
+  --ink:#1b1d1a;--ink2:#4b4f48;--muted:#666a60;
   --green:#1f9d55;--green-ink:#12733c;--green-soft:#e9f5ee;--green-line:#bfe3cd;
   --amber:#b4690e;--amber-soft:#fbf1e1;--red:#b42318;--red-soft:#fdeceb;
   --mark:#fff2b8;
+  /* solid fills behind text (buttons, badges, the current step): 4.5:1 or more for the text on them, in both themes */
+  --fill:#188546;--on-fill:#fff;--on-red:#fff;--amber-fill:#9a5a0c;--on-amber:#fff;
   --sans:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
   --serif:'Flow Serif',Georgia,'Songti SC','Noto Serif CJK SC',serif;
   --r:14px;--r-s:10px;--gut:16px;--max:720px;
@@ -17,6 +19,7 @@
   --ink:#ecefe9;--ink2:#c3c9c0;--muted:#97a097;
   --green:#3ccf7c;--green-ink:#6ee0a0;--green-soft:#173024;--green-line:#24553a;
   --amber:#f2b55b;--amber-soft:#2f2617;--red:#ff8a80;--red-soft:#351c1a;--mark:#4a4116;
+  --fill:#3ccf7c;--on-fill:#0b1f12;--on-red:#2a0e0c;--amber-fill:#f2b55b;--on-amber:#2a1a05;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
 }}
 *{box-sizing:border-box}
@@ -40,7 +43,7 @@ button{cursor:pointer}
 .tabs a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none;font-size:12px;color:var(--muted);padding:4px 0;position:relative;border-radius:10px}
 .tabs svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .tabs a[aria-current=page]{color:var(--green-ink);font-weight:600}
-.badge{position:absolute;top:0;left:calc(50% + 6px);min-width:18px;height:18px;border-radius:9px;background:var(--red);color:#fff;font-size:11px;line-height:18px;text-align:center;padding:0 5px;font-weight:700}
+.badge{position:absolute;top:0;left:calc(50% + 6px);min-width:18px;height:18px;border-radius:9px;background:var(--red);color:var(--on-red);font-size:11px;line-height:18px;text-align:center;padding:0 5px;font-weight:700}
 @media (min-width:760px){
   body{padding-bottom:0}
   .bar{background:color-mix(in srgb,var(--bg) 90%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
@@ -75,7 +78,7 @@ h1,h2,h3{margin:0;line-height:1.25}
 /* ---- buttons / inputs ---- */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 18px;border-radius:12px;border:1px solid var(--line2);background:var(--paper);font-weight:600;font-size:15px;text-decoration:none;transition:background .15s,border-color .15s}
 .btn:hover{border-color:var(--green)}
-.btn.primary{background:var(--green);border-color:var(--green);color:#fff}
+.btn.primary{background:var(--fill);border-color:var(--fill);color:var(--on-fill)}
 .btn.primary:hover{filter:brightness(1.05)}
 .btn.ghost{border-color:transparent;background:none}
 .btn.small{min-height:36px;padding:0 12px;font-size:13.5px;border-radius:10px}

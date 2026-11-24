@@ -120,10 +120,16 @@ def api_open(method,path):return any(path==p or (p.endswith('/') and path.starts
 def session_cookie(token):
  return 'flow_session='+token+'; HttpOnly; SameSite=Lax; Path=/; Max-Age='+str(SESSION_DAYS*86400)+('; Secure' if SECURE else '')
 _ASSET={}
+_SLIM={}
 def shell_file(name):
  """A public file; the page shell and the service worker get the asset version filled in (__ASSET__): a hash of
- next.js and next.css, so any change to them gives new URLs and a changed service worker, and phones update."""
- body=(ROOT/'public'/name).read_bytes()
+ next.js and next.css, so any change to them gives new URLs and a changed service worker, and phones update.
+ next.js and next.css are sent slimmed (slim.py: no comments or indentation, the same lines), once per change."""
+ f=ROOT/'public'/name;body=f.read_bytes()
+ if name in ('next.js','next.css'):
+  key=f.stat().st_mtime_ns
+  if _SLIM.get(name,(None,))[0]!=key:_SLIM[name]=(key,__import__('slim').slim(name,body))
+  return _SLIM[name][1]
  if name not in ('next.html','sw.js'):return body
  return body.replace(b'__ASSET__',asset_version().encode())
 def asset_version():
@@ -262,6 +268,14 @@ class Handler(BaseHTTPRequestHandler):
    with db() as c:
     u=self.user(c)
     if path=='/api/session':return self.send(session_info(u))
+    if path.startswith('/api/next/export/'):
+     # 我的 → 我的数据: the word book for Excel or Anki, or every record of the account (account_data.py)
+     if not u:return self.send({'error':'请先登录'},401)
+     ad=__import__('account_data');out=ad.export(c,u,path)
+     if out is None:return self.send({'error':'接口不存在'},404)
+     body,mime,ascii_name,name=out
+     self.send_response(200);self.headers_common(mime);self.send_header('Content-Disposition',ad.disposition(ascii_name,name))
+     self.send_header('Cache-Control','no-store');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
     if path.startswith('/api/next/'):
      q=parse_qs(urlsplit(self.path).query)
      if path=='/api/next/home' and u:q={k:v for k,v in q.items() if k not in ('level','themes')}  # a guest's choices; signed in, the profile decides
@@ -455,6 +469,10 @@ class Handler(BaseHTTPRequestHandler):
    u=self.user(c)
    if not u:return self.send({'error':'登录已过期'},401)
    if not hmac.compare_digest(self.headers.get('X-CSRF-Token',''),u['csrf']):return self.send({'error':'安全校验失败，请刷新页面'},403)
+   if path=='/api/account/delete':
+    # 注销账号: the password once more, then everything the account has is deleted (account_data.py)
+    result=__import__('account_data').erase(c,u,data,verify)
+    return self.send(*result,cookie='flow_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax' if result[1]==200 else None)
    result=meeting.post(c,u['id'],path,data)
    if result is not None:
     c.commit();return self.send(*result)

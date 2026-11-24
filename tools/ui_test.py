@@ -976,6 +976,222 @@ def ux_run(pw):
         browser.close()
 
 
+# ---- the learner round (r22): 每周目标, 存到手机 (study without a connection), 分享卡片, 导出我的数据 and 注销账号
+QR_READ = """async sel => { if (!('BarcodeDetector' in window)) return null;
+  const f = await new BarcodeDetector({ formats: ['qr_code'] }).detect(document.querySelector(sel)); return f.map(x => x.rawValue); }"""
+
+
+def learner_run(pw):
+    dev = 'learner'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    phone = dict(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, accept_downloads=True)
+    closing = "document.querySelector('#sheet [data-close]').click()"
+    try:
+        ctx = browser.new_context(**phone)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['exam']['token'], 'url': BASE}])
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+        # 每周目标: the chip on 今日 opens its sheet, and the goal chosen there shows on the chip at once
+        pg.click('#habitBtn'); pg.wait_for_selector('#sheetCard [data-goal="3"]', timeout=4000)
+        pg.click('#sheetCard [data-goal="3"]'); pg.wait_for_timeout(600); pg.evaluate(closing)
+        chip = (pg.text_content('#habitBtn') or '').strip()
+        check(dev, '每周目标: the goal set from 今日 shows on its chip', '/3 天' in chip, chip[:40])
+        # 分享卡片: after the questions, a learned expression becomes a picture with a QR code back to the site
+        go(pg, f'#/m/{PID}/check'); pg.wait_for_selector('#pane .q', timeout=6000)
+        for q in pg.query_selector_all('#pane .q'):
+            q.query_selector('.ans').click(); pg.wait_for_timeout(250)
+        pg.wait_for_selector('#shareX', timeout=6000); pg.click('#shareX')
+        pg.wait_for_selector('#shareImg[src^="data:image/png"]', timeout=6000); pg.wait_for_timeout(300)
+        size = pg.evaluate("[document.getElementById('shareImg').naturalWidth, document.getElementById('shareImg').naturalHeight]")
+        read = pg.evaluate(QR_READ, '#shareImg')
+        fits = pg.evaluate("() => { const r = document.querySelector('#sheetCard [data-close]').getBoundingClientRect(); return r.bottom <= innerHeight; }")
+        check(dev, '分享卡片: a 1080×1440 picture, its QR code leads back to the site, and the sheet\'s buttons are on screen',
+              size == [1080, 1440] and read in (None, ['https://flowlang.cn/?f=card']) and fits, (size, read if read is not None else 'no BarcodeDetector here (Linux): read on macOS', fits))
+        pg.screenshot(path=str(OUT / 'learner-share.png')); pg.evaluate(closing)
+        # 存到手机: a material kept on the phone opens and is graded without a connection; the answer is sent once online
+        lib = pg.evaluate("fetch('/api/next/library?level=&theme=&page=1&featured=').then(r => r.json())")
+        other = next((m['id'] for m in lib.get('items', []) if m['id'] != PID), None)
+        if other:
+            go(pg, f'#/m/{other}/read'); pg.wait_for_selector('#keepOff', timeout=6000)
+            if pg.get_attribute('#keepOff', 'class').find(' on') < 0:
+                pg.click('#keepOff')
+            pg.wait_for_selector('.offk.on', timeout=8000); go(pg, '#/')
+            ctx.set_offline(True); pg.wait_for_timeout(300)
+            go(pg, f'#/m/{other}/check')
+            shown = pg.query_selector('#pane .q .ans') is not None
+            if shown:
+                pg.click('#pane .q .ans'); pg.wait_for_timeout(400)
+            graded = pg.query_selector('#pane .q .ans.right') is not None
+            waiting = pg.evaluate("JSON.parse(localStorage.getItem('flow-next-outbox') || '[]').filter(x => x.path === '/api/next/check').length")
+            ctx.set_offline(False); pg.wait_for_timeout(1500)
+            sent = pg.evaluate("JSON.parse(localStorage.getItem('flow-next-outbox') || '[]').length")
+            check(dev, '存到手机: a kept material opens and is graded offline, and the answer is sent once back online',
+                  shown and graded and waiting >= 1 and sent == 0, (shown, graded, waiting, sent))
+        else:
+            check(dev, '存到手机: a second material to keep', False, 'no other material in the library')
+        # 导出我的数据: the word book as a table for Excel (UTF-8 with a BOM), from 我的
+        go(pg, '#/me'); pg.click('#meData'); pg.wait_for_selector('#sheetCard a[href$="cards.csv"]', timeout=4000)
+        with pg.expect_download(timeout=8000) as dl:
+            pg.click('#sheetCard a[href$="cards.csv"]')
+        f = dl.value; body = Path(f.path()).read_bytes()
+        check(dev, '导出: the word book downloads as 语流单词本-<day>.csv, readable by Excel', f.suggested_filename.startswith('语流单词本-') and body.startswith('\ufeff英文,中文意思'.encode()),
+              (f.suggested_filename, body[:30]))
+        pg.evaluate(closing)
+        check(dev, 'no script errors on these pages', not errs, errs[:3])
+        ctx.close()
+        # 注销账号: a wrong password is refused; the right one deletes the account, and this phone forgets it
+        ctx = browser.new_context(**phone)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['leaver']['token'], 'url': BASE}])
+        pg = ctx.new_page(); pg.goto(BASE + '/#/me', wait_until='networkidle'); settle(pg)
+        pg.click('#meDelete'); pg.wait_for_selector('#sheetCard #da', timeout=4000); pg.wait_for_timeout(400)
+        pg.screenshot(path=str(OUT / 'learner-delete.png'))
+        pg.fill('#da input[name=password]', 'not the password'); pg.click('#da [type=submit]'); pg.wait_for_timeout(700)
+        refused = (pg.text_content('#daErr') or '').strip()
+        pg.fill('#da input[name=password]', CFG['learners']['leaver']['password']); pg.click('#da [type=submit]')
+        pg.wait_for_function("() => ['#/', '#/welcome'].includes(location.hash) && document.getElementById('sheet').hidden", timeout=8000); settle(pg)
+        who = pg.evaluate("fetch('/api/session').then(r => r.json()).then(j => j.user || null)")
+        # (a guest's own copy of 今日 may be there again: the page after the deletion is a guest's)
+        kept = pg.evaluate("""['flow-snap', 'flow-offline', 'flow-next-outbox', 'flow-next-review-cache'].filter(k => {
+          const v = JSON.parse(localStorage.getItem(k) || 'null'); return v && !(k === 'flow-snap' && v.owner === 'guest'); })""")
+        check(dev, '注销账号: a wrong password is refused, the right one deletes the account and signs out, and this phone keeps none of it',
+              '密码不正确' in refused and who is None and not kept, (refused, who, kept))
+        ctx.close()
+    finally:
+        browser.close()
+
+
+# ---- screen readers and colour: every page, light and dark. A control without a name, an image without alt text, a
+# field without a label, an id used twice, text below WCAG AA contrast (4.5:1; 3:1 for large text; disabled controls
+# exempt), English not marked lang="en" (a screen reader would read it with a Chinese voice), and right/wrong answers
+# told apart by colour alone. Pictures of the answered questions as a red-green colour-blind learner sees them are
+# saved for a look (a11y-deuteranopia.png, a11y-protanopia.png).
+A11Y_JS = """() => {
+  // entrance animations and fades played to their end: what is measured is what stays on screen
+  document.getAnimations().forEach(a => { try { if (isFinite(a.effect.getComputedTiming().endTime)) a.finish(); } catch (e) { /* not finishable */ } });
+  const out = { unnamed: [], noalt: [], unlabeled: [], contrast: [], lang: [], dupid: [] };
+  const visible = el => { if (!el.getClientRects().length) return false; const cs = getComputedStyle(el); return cs.visibility !== 'hidden' && cs.display !== 'none'; };
+  const hidden = el => !!el.closest('[aria-hidden="true"], [hidden], .sr-only') && !el.closest('.sr-only');
+  const sig = el => (el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.') : '') + ' ' + (el.outerHTML || '').slice(0, 90)).replace(/\s+/g, ' ');
+  const nameOf = el => {
+    const al = el.getAttribute('aria-label'); if (al && al.trim()) return al.trim();
+    const lb = el.getAttribute('aria-labelledby'); if (lb) { const t = lb.split(/\s+/).map(id => (document.getElementById(id) || {}).textContent || '').join(' ').trim(); if (t) return t; }
+    if (el.labels && el.labels.length) { const t = [...el.labels].map(l => l.textContent).join(' ').trim(); if (t) return t; }
+    if (!/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) { const t = (el.innerText || el.textContent || '').trim(); if (t) return t; }
+    const img = el.querySelector && el.querySelector('img[alt]'); if (img && img.alt.trim()) return img.alt.trim();
+    if (el.title && el.title.trim()) return el.title.trim();
+    return '';
+  };
+  const ids = {};
+  document.querySelectorAll('[id]').forEach(e => { ids[e.id] = (ids[e.id] || 0) + 1; });
+  out.dupid = Object.keys(ids).filter(k => ids[k] > 1);
+  document.querySelectorAll('button, a[href], [role=button], [role=radio], [role=tab], [role=checkbox], [role=switch], summary').forEach(el => {
+    if (!visible(el) || hidden(el)) return;
+    if (!nameOf(el)) out.unnamed.push(sig(el));
+  });
+  document.querySelectorAll('img').forEach(el => { if (!el.hasAttribute('alt') && !hidden(el) && el.getAttribute('role') !== 'presentation') out.noalt.push(sig(el)); });
+  document.querySelectorAll('input, select, textarea').forEach(el => {
+    if (el.type === 'hidden' || !visible(el) || hidden(el)) return;
+    if (!nameOf(el)) out.unlabeled.push(sig(el) + (el.placeholder ? ' [placeholder only]' : ''));
+  });
+  // contrast (WCAG 2): 4.5 for text, 3 for large text (24px, or 18.66px bold); disabled controls are exempt
+  const parse = s => { const m = s && s.match(/rgba?\(([^)]+)\)/); if (!m) return null; const p = m[1].split(/[\s,\/]+/).filter(Boolean).map(Number); return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1]; };
+  const lum = ([r, g, b]) => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  const over = (top, bottom) => { const a = top[3]; return [0, 1, 2].map(i => top[i] * a + bottom[i] * (1 - a)).concat(1); };
+  // The colour behind a text: the backgrounds up to the first solid one (the current study step's comes from its sliding
+  // indicator, a separate layer), and the opacity of what lies between (the layer with the background fading with
+  // its text changes nothing between them).
+  const bgOf = el => {
+    const layers = []; let e = el, op = 1;
+    while (e && e.nodeType === 1) {
+      const cs = getComputedStyle(e);
+      if (cs.backgroundImage && cs.backgroundImage !== 'none' && !/gradient/.test(cs.backgroundImage)) return null;  // a picture behind: skip
+      let c = parse(cs.backgroundColor);
+      if (/gradient/.test(cs.backgroundImage)) { const m = cs.backgroundImage.match(/rgba?\([^)]+\)/); if (m) c = parse(m[0]); }
+      if ((!c || !c[3]) && e.matches('.steps [aria-selected="true"]')) { const ind = document.querySelector('.steps .ind'); c = ind && parse(getComputedStyle(ind).backgroundColor); }
+      if (c && c[3] > 0) { layers.push(c); if (c[3] >= 1) break; }
+      op *= Number(cs.opacity); e = e.parentElement;
+    }
+    let bg = [255, 255, 255, 1]; for (let i = layers.length - 1; i >= 0; i--) bg = over(layers[i], bg);
+    return { bg, op };
+  };
+  const seen = new Set();
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let n;
+  while ((n = walker.nextNode())) {
+    const t = n.nodeValue.trim(); if (!t || t.length < 1) continue;
+    const el = n.parentElement; if (!el || seen.has(el)) continue; seen.add(el);
+    if (!visible(el) || hidden(el) || el.closest('[disabled], [aria-disabled="true"], .sheet[hidden], svg, canvas, option')) continue;
+    const r = el.getBoundingClientRect(); if (r.width < 1 || r.height < 1) continue;
+    const cs = getComputedStyle(el); const fg = parse(cs.color); const b = bgOf(el); if (!fg || !b) continue;
+    const { bg, op } = b; if (op < 0.05) continue;
+    const eff = over([fg[0], fg[1], fg[2], fg[3] * op], bg);
+    const size = parseFloat(cs.fontSize), bold = Number(cs.fontWeight) >= 700, large = size >= 24 || (bold && size >= 18.66);
+    const need = large ? 3 : 4.5, got = ratio(eff, bg);
+    if (got < need - 0.05) out.contrast.push({ text: t.slice(0, 40), ratio: Math.round(got * 100) / 100, need, size, fg: cs.color, bg: 'rgb(' + bg.slice(0, 3).map(Math.round).join(',') + ')', sel: sig(el).slice(0, 80) });
+  }
+  // English that a screen reader would read with a Chinese voice: blocks of English words not inside lang="en"
+  const seenL = new Set();
+  const w2 = document.createTreeWalker(document.getElementById('view') || document.body, NodeFilter.SHOW_TEXT);
+  while ((n = w2.nextNode())) {
+    const t = n.nodeValue.trim(); const el = n.parentElement;
+    if (!el || seenL.has(el) || !visible(el) || hidden(el)) continue;
+    const words = t.match(/[A-Za-z][A-Za-z'’-]+/g) || [];
+    if (words.length < 3 || /[㐀-鿿]/.test(t)) continue;
+    seenL.add(el);
+    if (/[\u3400-\u9fff]/.test(el.textContent)) continue;  // a block mixing both stays Chinese (screen readers switch for Latin letters)
+    const l = (el.closest('[lang]') || {}).lang || '';
+    if (!/^en/i.test(l)) out.lang.push(t.slice(0, 50) + '  <' + sig(el).slice(0, 60) + '>');
+  }
+  return out;
+}"""
+
+
+def a11y_run(pw):
+    dev = 'a11y'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    try:
+        found = {}
+        for theme in ('light', 'dark'):
+            ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', color_scheme=theme, bypass_csp=True)
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a11y']['token'], 'url': BASE}])
+            pg = ctx.new_page(); pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+            for p in PAGES:
+                go(pg, p); pg.wait_for_timeout(250)
+                for kind, items in pg.evaluate(A11Y_JS).items():
+                    for x in items:
+                        found.setdefault((kind, theme), []).append(f'{p}: {x if isinstance(x, str) else json.dumps(x, ensure_ascii=False)}')
+            if theme == 'light':
+                # a sheet is a dialog with a title, and the focus goes into it
+                go(pg, '#/me'); pg.click('#meText'); pg.wait_for_timeout(200)
+                dlg = pg.evaluate("""() => { const c = document.getElementById('sheetCard'), t = document.getElementById(c.getAttribute('aria-labelledby'));
+                  return [c.getAttribute('role'), c.getAttribute('aria-modal'), !!(t && t.textContent.trim()), c.contains(document.activeElement)]; }""")
+                check(dev, 'a sheet is a modal dialog with its title, and the focus moves into it', dlg == ['dialog', 'true', True, True], dlg)
+                pg.evaluate("document.querySelector('#sheet [data-close]').click()")
+                # right and wrong answers: a mark as well as a colour
+                go(pg, f'#/m/{PID}/check'); pg.wait_for_selector('#pane .q', timeout=6000)
+                for q in pg.query_selector_all('#pane .q'):
+                    q.query_selector_all('.ans')[-1].click(); pg.wait_for_timeout(250)
+                marks = pg.evaluate("""() => ['.ans.right', '.ans.wrong'].map(s => { const e = document.querySelector(s); return e ? getComputedStyle(e, '::after').content : null; })""")
+                live = pg.evaluate("[...document.querySelectorAll('#pane .fb')].every(f => f.getAttribute('aria-live') === 'polite')")
+                check(dev, 'right and wrong answers carry ✓ and ✗, not only green and red, and the result is announced', marks[0] == '"✓"' and marks[1] in ('"✗"', None) and live, (marks, live))
+                cdp = ctx.new_cdp_session(pg)
+                for vision in ('deuteranopia', 'protanopia'):
+                    cdp.send('Emulation.setEmulatedVisionDeficiency', {'type': vision})
+                    pg.evaluate("document.querySelector('#pane .q').scrollIntoView()"); pg.wait_for_timeout(200)
+                    pg.screenshot(path=str(OUT / f'a11y-{vision}.png'))
+                cdp.send('Emulation.setEmulatedVisionDeficiency', {'type': 'none'})
+            ctx.close()
+        for kind, label in (('unnamed', 'every button and link has a name a screen reader can say'), ('noalt', 'every image has alt text'),
+                            ('unlabeled', 'every field has a label (not only a placeholder)'), ('dupid', 'no id is used twice on a page'),
+                            ('contrast', 'text contrast meets WCAG AA'), ('lang', 'English is marked lang="en", so it is read with an English voice')):
+            for theme in ('light', 'dark'):
+                bad = found.get((kind, theme), [])
+                check(dev, f'{label} ({theme})', not bad, f'{len(bad)}: ' + ' | '.join(bad[:4]))
+    finally:
+        browser.close()
+
+
 def main():
     with sync_playwright() as pw:
         for dev, opts in DEVICES.items():
@@ -1001,6 +1217,18 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('ux', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'learner' in ONLY:
+            try:
+                learner_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('learner', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'a11y' in ONLY:
+            try:
+                a11y_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('a11y', 'run finished', False, traceback.format_exc()[-600:])
         for engine in ('chrome', 'webkit'):  # last: it takes the vocabulary test and answers review cards
             if not ONLY or 'layout' in ONLY or engine in ONLY:
                 try:

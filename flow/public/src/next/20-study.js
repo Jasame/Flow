@@ -4,9 +4,9 @@
   const MAT = {}; // the material being studied: step changes reuse it instead of refetching and re-animating the header
   // Under the title: where the text comes from and how AI took part (r20). The writing rules of the originals, or the
   // sources of a news text, are one tap away.
-  function originHTML(m) {
+  function originHTML(m, extra = '') {  // extra: 存到手机 (06-offline.js), on the same line so the step below stays in view
     const o = m.origin || { kind: 'original', label: m.source, ai: '', reviewed: null, url: '', references: m.provenance || [] };
-    return `<div class="origin tiny"><span class="muted">来源：${o.url ? `<a class="link" href="${esc(o.url)}" target="_blank" rel="noopener noreferrer">${esc(o.label)}</a>` : esc(o.label)}</span>${o.ai ? `<span class="otag">${esc(o.ai)}</span>` : ''}${o.reviewed === false ? '<span class="otag warn">未经人工审核</span>' : ''}${o.kind === 'import' ? '' : `<button class="link tiny" type="button" id="originMore" data-tap="study-origin">${o.references.length ? `${o.kind === 'news' ? '来源' : '参考资料'} ${o.references.length} 条` : '怎么写的'}</button>`}</div>`;
+    return `<div class="origin tiny"><span class="muted">来源：${o.url ? `<a class="link" href="${esc(o.url)}" target="_blank" rel="noopener noreferrer">${esc(o.label)}</a>` : esc(o.label)}</span>${o.ai ? `<span class="otag">${esc(o.ai)}</span>` : ''}${o.reviewed === false ? '<span class="otag warn">未经人工审核</span>' : ''}${o.kind === 'import' ? '' : `<button class="link tiny" type="button" id="originMore" data-tap="study-origin">${o.references.length ? `${o.kind === 'news' ? '来源' : '参考资料'} ${o.references.length} 条` : '怎么写的'}</button>`}${extra}</div>`;
   }
   function originSheet(m) {
     const o = m.origin, news = o.kind === 'news';
@@ -25,8 +25,13 @@
     if (!m) {
       // A copy kept on the phone (one of the last five opened) shows at once; the server's copy replaces it for the
       // next step. Otherwise the request is often already on its way: preloaded from 今日 or when the link was touched.
-      const path = materialPath(id), kept = snapMaterialGet(path);
-      if (kept) { m = kept; MAT[id] = m; api(path).then(f => { if (MAT[id] === kept) MAT[id] = f; snapMaterial(path, f); }).catch(() => {}); }
+      // A material kept with 存到手机 (06-offline.js) comes first: only that copy has the answers, to grade without a
+      // connection, and the fresher copy from the server keeps them.
+      const path = materialPath(id), off = OFF.get(id), kept = off || snapMaterialGet(path);
+      if (kept) {
+        m = kept; MAT[id] = m;
+        api(path).then(f => { if (!f.answers && kept.answers) f.answers = kept.answers; if (MAT[id] === kept) MAT[id] = f; snapMaterial(path, f); if (off) OFF.put(id, f); }).catch(() => {});
+      }
       else { m = await api(path); MAT[id] = m; snapMaterial(path, m); }
     }
     const done = new Set(m.steps.concat(load('flow-next-steps-' + id) || []));
@@ -36,7 +41,8 @@
     function markStep(s) {
       if (done.has(s)) return;
       done.add(s); save('flow-next-steps-' + id, Array.from(done));
-      if (S.user) api('/api/next/progress', { pack: id, step: s }).catch(() => {});
+      // without a connection the step waits in the outbox and is sent when the phone is back online
+      if (S.user) api('/api/next/progress', { pack: id, step: s }).catch(e => { if (e.network) OUTBOX.push({ path: '/api/next/progress', body: { pack: id, step: s } }); });
       const tab = view.querySelector(`[data-step="${s}"]`); if (tab && !tab.querySelector('.ok')) tab.insertAdjacentHTML('beforeend', '<span class="ok">✓</span>');
     }
     function go(s) { location.hash = `#/m/${encodeURIComponent(id)}/${s}`; }
@@ -44,7 +50,7 @@
     if (!same) {
       view.innerHTML = `<div class="study-head"><span class="kicker">${m.series ? `<a class="link" href="#/series/${encodeURIComponent(m.series.id)}">连载《${esc(m.series.title)}》第 ${m.series.part} / ${m.series.of} 集</a> · ${m.level}` : `${esc(m.theme_label)} · ${m.level}${m.variant ? ' → ' + m.variant.level : ''}${m.featured ? ' · 精选' : ''}`}</span>
         <h1 class="h1">${esc(m.title)}</h1>${m.title_en ? `<div class="title-en">${esc(m.title_en)}</div>` : ''}
-        ${originHTML(m)}</div>
+        ${originHTML(m, offChip(id))}</div>
         <div class="steps" role="tablist"><span class="ind" aria-hidden="true"></span>${STEPS.map(s => `<button role="tab" data-step="${s}" aria-selected="false">${STEP[s]}${done.has(s) ? '<span class="ok">✓</span>' : ''}</button>`).join('')}</div>
         <section id="pane"></section>`;
       view.querySelectorAll('[data-step]').forEach(b => b.onclick = () => go(b.dataset.step));
@@ -54,7 +60,8 @@
     const tabs = [...view.querySelectorAll('[data-step]')];
     const prev = tabs.findIndex(b => b.getAttribute('aria-selected') === 'true');
     tabs.forEach(b => b.setAttribute('aria-selected', String(b.dataset.step === st.step)));
-    const head = view.querySelector('.study-head'); if (head) head.dataset.at = st.step;  // phones: a shorter header once past listen and read
+    const head = view.querySelector('.study-head'); if (head) head.dataset.at = st.step;
+    bindOffChip(id);  // phones: a shorter header once past listen and read
     const active = tabs.find(b => b.dataset.step === st.step), ind = view.querySelector('.steps .ind');
     const place = () => { ind.style.width = active.offsetWidth + 'px'; ind.style.transform = `translateX(${active.offsetLeft}px)`; };
     if (prev < 0) { ind.style.transition = 'none'; place(); requestAnimationFrame(() => { ind.style.transition = ''; }); } else requestAnimationFrame(place);

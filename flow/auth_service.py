@@ -106,6 +106,16 @@ def register(c,data,hash_password):
  c.execute('INSERT INTO users(username,password,email) VALUES(?,?,?)',(name,hash_password(p),email));c.commit()
  return c.execute('SELECT * FROM users WHERE username=?',(name,)).fetchone(),None
 
+def failed(c,key,row,now):
+ """One more wrong password for this account (key u:<id>): 5 in 15 minutes pause password login, and 注销账号
+ (account_data.erase), for 15 minutes. Returns the count so far."""
+ if row and row['first']>now-LOCK_WINDOW:
+  count=row['count']+1;c.execute('UPDATE login_failures SET count=?,until=? WHERE key=?',(count,now+LOCK_WINDOW if count>=LOCK_TRIES else 0,key))
+ else:
+  count=1;c.execute('INSERT OR REPLACE INTO login_failures(key,count,first,until) VALUES(?,1,?,0)',(key,now))
+ c.execute('DELETE FROM login_failures WHERE first<? AND until<?',(now-86400,now));c.commit()
+ return count
+
 def login(c,data,verify):
  """Password login by username or email, or code login by email."""
  if data.get('method')=='code':
@@ -125,12 +135,7 @@ def login(c,data,verify):
  if row and row['until']>now:
   return None,({'error':'密码错了太多次，这个账号的密码登录暂停 %d 分钟。可以用「验证码登录」或「忘记密码」。'%max(1,round((row['until']-now)/60)),'code':'locked'},429)
  if not u or not verify(p,u['password']):
-  if row and row['first']>now-LOCK_WINDOW:
-   count=row['count']+1;c.execute('UPDATE login_failures SET count=?,until=? WHERE key=?',(count,now+LOCK_WINDOW if count>=LOCK_TRIES else 0,key))
-  else:
-   count=1;c.execute('INSERT OR REPLACE INTO login_failures(key,count,first,until) VALUES(?,1,?,0)',(key,now))
-  c.execute('DELETE FROM login_failures WHERE first<? AND until<?',(now-86400,now));c.commit()
-  left=LOCK_TRIES-count
+  left=LOCK_TRIES-failed(c,key,row,now)
   return None,({'error':'用户名、邮箱或密码不正确'+('，再错 %d 次会暂停 15 分钟'%left if 0<left<=2 else '，密码登录已暂停 15 分钟' if left<=0 else '')},401)
  if row:c.execute('DELETE FROM login_failures WHERE key=?',(key,));c.commit()
  return u,None
