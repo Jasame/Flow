@@ -38,10 +38,13 @@ class ClipTests(unittest.TestCase):
         self.assertTrue(all(f[0] == {'profile': aot - 1, 'sfi': sfi, 'ch': ch, 'crc': False} for f in fs))
         payloads = {buf[o:o + n] for o, n in zip(offsets, sizes)}
         self.assertTrue(all(p in payloads for _, p in fs))  # nothing re-encoded: every frame is one of the sprite's
-        seconds = len(fs) * durs[0] / scale
+        seconds, frame = len(fs) * durs[0] / scale, durs[0] / scale
         length = self.word[2] - self.word[1]
-        self.assertGreaterEqual(seconds, wc.LEAD + length + wc.PAD - 0.05)
-        self.assertLessEqual(seconds, wc.LEAD + length + wc.PAD + 3 * durs[0] / scale)
+        # the silence in front, the word, and at most the rest of the frame holding its end: short, for the 0.95 s rule
+        self.assertGreaterEqual(seconds, wc.LEAD + length - frame)
+        self.assertLessEqual(seconds, wc.LEAD + length + 2 * frame)
+        shorter = frames(wc.clip(self.sprite, self.word[1], self.word[2], lead=0.1))
+        self.assertAlmostEqual((len(fs) - len(shorter)) * frame, wc.LEAD - 0.1, delta=frame)  # ?lead= changes only the silence
         lead = 0
         while lead + 1 < len(fs) and fs[lead + 1][1] == fs[0][1]:
             lead += 1
@@ -54,6 +57,9 @@ class ClipTests(unittest.TestCase):
         for s, e in ((0.9, 0.2), (0.5, 0.5), (-1, 0.5), (0, 9)):
             with self.assertRaises(ValueError):
                 wc.clip(self.sprite, s, e)
+        for lead in (0, 0.01, 0.5, 2):
+            with self.assertRaises(ValueError):
+                wc.clip(self.sprite, 0.2, 0.9, lead=lead)
 
 
 class RouteTests(unittest.TestCase):
@@ -91,6 +97,9 @@ class RouteTests(unittest.TestCase):
         st, h, part = self.get('/audio/words/us/w000.aac?s=0.2&e=0.9', {'Range': 'bytes=0-1'})  # Safari asks for a range first
         self.assertEqual((st, part, h['Content-Range']), (206, body[:2], f'bytes 0-1/{len(body)}'))
         self.assertEqual(self.get('/audio/words/us/w000.mp4')[0], 200)  # the sprite itself, as before
+        st, h, short = self.get('/audio/words/us/w000.aac?s=0.2&e=0.9&l=0.1')
+        self.assertEqual((st, short), (200, wc.clip(vs.WORD_AUDIO_DIR / 'us' / 'w000.m4a', 0.2, 0.9, lead=0.1)))
+        self.assertLess(len(short), len(body))
 
     def test_a_sentence_of_a_narration_is_cut_the_same_way(self):
         import next_service as nx
@@ -104,7 +113,7 @@ class RouteTests(unittest.TestCase):
             self.assertEqual(self.get('/audio/zz/v5-science-b2-noise-cancelling.aac?v=1&s=0.2&e=0.9')[0], 404)
 
     def test_a_clip_that_cannot_be_cut_is_not_found(self):
-        for path in ('/audio/words/us/w000.aac', '/audio/words/us/w000.aac?s=x&e=1', '/audio/words/us/w000.aac?s=0.9&e=0.2',
+        for path in ('/audio/words/us/w000.aac', '/audio/words/us/w000.aac?s=x&e=1', '/audio/words/us/w000.aac?s=0.9&e=0.2', '/audio/words/us/w000.aac?s=0.2&e=0.9&l=1',
                      '/audio/words/us/w999.aac?s=0.2&e=0.9', '/audio/words/zz/w000.aac?s=0.2&e=0.9', '/audio/words/us/../w000.aac?s=0.2&e=0.9'):
             self.assertEqual(self.get(path)[0], 404, path)
 
@@ -113,7 +122,7 @@ class FrontEndTests(unittest.TestCase):
     def test_iphones_play_the_clip_and_keep_the_sprite_to_fall_back_on(self):
         js = (ROOT / 'public' / 'src' / 'next' / '01-audio-offline.js').read_text(encoding='utf-8')
         self.assertIn("const WORD_CLIPS = /iPhone|iPad|iPod/.test(navigator.userAgent)", js)
-        self.assertIn("`/audio/words/${ac}/${w[0]}.aac?s=${w[1]}&e=${w[2]}`", js)
+        self.assertIn("`/audio/words/${ac}/${w[0]}.aac?s=${w[1]}&e=${w[2]}&l=${CLIP_LEAD}`", js)
         self.assertIn('if (w.fallback) { const n = CLIP.want = { ...w, fallback: null }; CLIP.element(w.fallback[0], w.fallback[1], w.fallback[2], w.text, w.onend, null, n); return; }', js)
         self.assertIn('/\\.aac(\\?|$)/.test(url)) return', js)  # never looked for in R2
         # Web Audio on iPhones: a 'playback' session (the ringer switch), named on the lock screen, rested after 20 s;
@@ -121,7 +130,9 @@ class FrontEndTests(unittest.TestCase):
         self.assertIn("if (this.session('playback') !== 'playback') { this.off = true; return false; }", js)
         self.assertIn("MS.claim('short', title || '语流'", js); self.assertIn('}, 20000);', js)
         self.assertIn('CLIP.stop(); if (w.text) TTS.browser(w.text, w.onend);', js)
-        self.assertIn("const CLIP_LEAD = 0.3;", js); self.assertEqual(wc.LEAD, 0.3)
+        self.assertIn("v >= 0.05 && v <= 0.4 ? v : 0.25", js); self.assertEqual((wc.LEAD, wc.LEADS), (0.25, (0.05, 0.4)))  # the page and the server agree
+        self.assertIn("load('flow-audio') === 'webaudio'", js)  # Web Audio only when asked for (?audio=webaudio)
+        self.assertIn('this.letGo(); MS.release', js)  # a word clip lets its source go when it ends (Now Playing)
         # the learner's recordings (对比回放 of 今日好句 and of 跟读) play through it, beside the original
         for part in ('12-daily-line.js', '21-study-listen.js'):
             src = (ROOT / 'public' / 'src' / 'next' / part).read_text(encoding='utf-8')
