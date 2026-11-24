@@ -22,14 +22,43 @@
 | 事情 | 现在 | 等什么 |
 | --- | --- | --- |
 | Gemini 中转站并发从 2 改成 6（#68） | 代码已合（11-24 22:49），中转站上还是 2 | 用户在 Google Cloud Shell 里执行 `flow-gateway/set_slots.sh 6`（步骤在 #68 和 flow-gateway 的说明里）。上线后语流 12 对比前后的 503/504 和等待时间 |
-| 语流切到百炼 DeepSeek | 内测版 11-24 22:25 已切；语流还是 Gemini | 下次「发正式版」时问用户：后台「所有任务都用这个」选 `flow-text-ds-flash`、百炼折扣 1.0、每日预算 3 元（或 `/etc/flow.env` 写 `FLOW_AI_ROUTES`） |
-| 语流打开服务器朗读 | 内测版 11-24 23:31 已开；语流没开 | 下次发正式版会自动装 `flow.service.d/61-flow-tts.conf`；装上后在服务里证明写得进 `audio/tts`，用户同意后加 `FLOW_TTS_MODEL=flow-tts` |
+| 录音任务改走百炼 Qwen-Omni（#88） | 代码已在 main（b14 起在内测版），默认关 | 内测版上试过、评测不比 Gemini 差，再问用户切 |
 | 删内测版手工加的 `70-tts-write.conf` | 还在 | b11 起每次部署自己装 `61-flow-tts.conf`，确认装上后找个没人用的时候删掉 70，`daemon-reload` 再重启 flow-beta |
-| 数据库副本只留 14 天（#58） | 内测版只列不删；语流还没发 #58 | 第一次在语流上清理以前，先 `ops.py prune-deploy --channel prod --dry-run`，把清单给用户看，用户同意才删 |
-| 语流的系统邮件改用 flowlang.cn 发 | 内测版 11-25 凌晨已切到阿里云邮件推送；语流还是用户的 jasa.hk 飞书邮箱 | 语流 3 的「被拒收就改走备用」代码和 #85（EHLO 用站点域名）上正式版以后，用户在语流 16 同意再切 `/etc/flow.env`（杭州的 xmc-hz-watch 也读这几行，要一起看） |
+| 数据库副本只留 14 天（#58） | r27 已带上正式版；内测版只列不删 | 语流上最早的副本是 11-23 的，约 12-07 起开始真正删除（语流 2 记着） |
+| 语流的系统邮件改用 flowlang.cn 发 | 内测版 11-25 凌晨已切到阿里云邮件推送；语流还是用户的 jasa.hk 飞书邮箱 | 备用通道 #93 和 EHLO #85 已合进 main（b14、b15 在内测版），随下一个正式版上去以后，用户在语流 16 同意再切 `/etc/flow.env`（杭州的 xmc-hz-watch 也读这几行，要一起看） |
 | 上传用过的整包 `/root/claude-ops/flow-audio-packs.tar`（112 MB） | 还在，内容已装好 | 可以删，删以前问一下 |
 
 ## 2026-11-25
+
+### 01:54 · 语流：文字 AI 改走百炼 DeepSeek（后台设置）
+
+- **改了什么**：xmc.hk/flow 的 AI 页，用管理员账号改：
+  - 「所有任务都用这个」选 `flow-text-ds-flash`，14 个文字任务全部改过去；
+  - 每日预算 ¥3；
+  - 百炼折扣 1.0（学生券按标价扣）；
+  - 每晚的小评测保持打开。
+  
+  都记进了后台的操作记录。没有改 `/etc/flow.env`。
+- **谁、为什么**：语流 2，跟 r27 一起，按用户的「发，都按推荐」。内测版 11-24 22:25 已经先切过，评测和内测版都没问题。
+- **核对**：01:57 在正式版跑了一轮轻量 e2e，147/147：12 次 AI 调用都是 route=`flow-text-ds-flash`、served=deepseek-v4.1-flash，
+  每次 1.3–5.0 秒，没有走备用，整轮 29.5 秒。之前同类任务走 Gemini，一次要 4.6–13.3 秒。录音那条路不受影响，还是 Gemini。
+- **撤回**：同一页把「所有任务都用这个」选回 Gemini 3.8 Flash（`flow-text`），预算改回 0，折扣改回 0.65。
+
+### 01:50 · 语流：打开服务器朗读
+
+- **改了什么**：在 `/etc/flow.env` 末尾加了两行（第 39–40 行），`FLOW_TTS_MODEL=flow-tts` 和 `FLOW_TTS_DAILY_CHARS=30000`
+  （全站每天最多合成 3 万字），然后重启 flow。
+- **谁、为什么**：语流 2，跟 r27 一起，按用户的「发，都按推荐」。内测版 11-24 23:31 已经先开过。
+- **改之前**：r27 已经装好 `flow.service.d/61-flow-tts.conf`。在 flow 自己的沙箱里以 www 身份写 `audio/tts`，重启前后各试一次，都写得进去。
+  这次没有像内测版那样踩到沙箱的坑。
+- **备份**：`/root/claude-ops/flow.env.bak-tts-20261125-015021`（只用来对照）。
+- **撤回**：删除 `FLOW_TTS_MODEL` 和 `FLOW_TTS_DAILY_CHARS` 那两行，然后重启 flow：
+  `sed -i '/^FLOW_TTS_MODEL=/d;/^FLOW_TTS_DAILY_CHARS=/d' /etc/flow.env && systemctl restart flow`。页面会退回浏览器的声音。
+- **核对**：
+  - 用服务自己的环境在沙箱里真的合成了一句固定句：78 个字，1.7 秒，108 KB；外网取得到（200，audio/mpeg）。
+  - 游客请求已经存下的句子回 200，没存的回 404 code=guest，和设计一样。
+  - `/api/session` 返回 tts=true。
+- **要记住**：两个站共用 `audio/tts`，同一句话、同一个声音、同一个模型只合成一次。
 
 ### 凌晨 · 内测版：系统邮件改用 flowlang.cn 发（阿里云邮件推送）
 

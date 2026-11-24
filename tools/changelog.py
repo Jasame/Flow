@@ -10,6 +10,8 @@
 tag 是 r<N>（语流，flowlang.cn）或 b<N>（内测版，flow.jasa.hk）。每个 tag 指向发布分支上的一个 REQUEST 提交，
 REQUEST 第一项是装上去的提交：#60（2026-11-24）以后是构建提交（tag build-<sha12>），它的父提交才是 main 上的那个。
 「这次带了哪些 PR」= 上一个同类 tag 的 main 提交到这一个之间的「Merge pull request #N」（标题是合并提交的第二行）。
+一个 PR 要是跟着另一个 PR 的分支进了 main（r27 的 #42、#48 跟着 #60），它没有自己的合并提交，这里列不出来：
+正式版的记录要对照 GitHub 上那段时间合并的 PR 补上。
 自检结果（e2e）只在那个网站的 /api/deploy-status 里，下一次发布就被盖掉，所以 record 在发布刚完成时把它记下来：
 内测版由 .github/workflows/beta.yml 每次自动发布后调用；语流由发正式版的人在 deploy.sh 之后调用。
 
