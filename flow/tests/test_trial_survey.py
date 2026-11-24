@@ -60,9 +60,9 @@ class DefinitionTests(TrialSurvey):
     def test_the_approved_eight_questions_and_the_needs_survey_unchanged(self):
         st, d = self.call('/api/survey?s=trial')
         qs = [q for s in d['sections'] for q in s['questions']]
-        self.assertEqual((st, d['id'], len(qs)), (200, sv.TRIAL_ID, 8))
+        self.assertEqual((st, d['id'], len(qs)), (200, sv.TRIAL_ID, len(list(sv.questions('trial')))))  # what the server holds, sent whole
         self.assertEqual([q['id'] for q in qs], ['often', 'useful', 'useless', 'change', 'more', 'keep', 'recommend', 'say'])
-        self.assertEqual([q['required'] for q in qs], [True] * 7 + [False])
+        self.assertEqual([q['required'] for q in qs], [q['type'] != 'text' for q in qs])  # the open question alone is optional
         self.assertIn('匿名', d['intro'])
         self.assertEqual(self.call('/api/survey')[1]['id'], sv.SURVEY_ID)
         self.assertEqual(self.call('/api/survey?s=nothing')[1]['id'], sv.SURVEY_ID)

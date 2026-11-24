@@ -149,6 +149,13 @@ class ToolTests(unittest.TestCase):
         deploy = (TOOLS / 'deploy.sh').read_text()
         # a commit whose flow-pull.sh predates the two sites would install into 语流: refused on both ends
         self.assertIn("git show \"$SHA:tools/flow-pull.sh\" | grep -qF 'F=${FLOW_DIR:-'", deploy)
+        # next.js, next.css and the guide PDF are built once per commit for the 内测版 (tools/build_release.py), and 语流
+        # installs that same build commit, only after it was requested on the 内测版 (unless --skip-beta)
+        self.assertIn('BUILD=$(python3 tools/build_release.py "$SHA")', deploy)
+        self.assertIn('BUILD=$(python3 tools/build_release.py --reuse "$SHA")', deploy)
+        self.assertIn('git log -p --format= origin/release-beta -- REQUEST | grep -q "^+$BUILD "', deploy)
+        self.assertIn('MAN=$(python3 tools/release_manifest.py "$BUILD" 2>/dev/null)', deploy)
+        self.assertNotIn('build_front.py --check', deploy)  # it checked the laptop's files, not the commit's
         self.assertIn("if BETA and b'F=${FLOW_DIR:-' not in (work / 'flow-pull.sh').read_bytes():", (TOOLS / 'flow-autodeploy.py').read_text())
         self.assertIn('F=${FLOW_DIR:-', (TOOLS / 'flow-pull.sh').read_text())
         self.assertIn('--beta) P=b; BRANCH=release-beta; SITE=https://flow.jasa.hk', deploy)

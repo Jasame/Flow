@@ -2,14 +2,15 @@
 """Join the front end's source parts into the two files the browser loads.
 
     python3 tools/build_front.py           # write flow/public/next.js and flow/public/next.css
-    python3 tools/build_front.py --check   # exit 1 if either is out of date with its parts (tests and deploy.sh run this)
+    python3 tools/build_front.py --check   # exit 1 if either is out of date with its parts (tests and release builds run this)
 
 flow/public/src/next/*.js   -> flow/public/next.js
 flow/public/src/next/*.css  -> flow/public/next.css
 
 Parts are joined in file-name order, byte for byte: no wrapper, no transform, no build tool. The script is still
 one closure (00-head.js opens it, 99-boot.js closes it), so every part sees the others' names exactly as before;
-the 2x parts are consecutive slices of study(). Edit the parts, run this, commit both. One file per feature means
+the 2x parts are consecutive slices of study(). Edit the parts and run this; commit only the parts: git ignores
+next.js and next.css, and a release builds them from the commit's parts (tools/build_release.py). One file per feature means
 two people (or two sessions) working on different features no longer edit the same file.
 """
 import subprocess, shutil, sys

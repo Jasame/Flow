@@ -1,6 +1,8 @@
 # Flow front end, by feature
 
 `tools/build_front.py` joins these in name order into `../../next.js` and `../../next.css` (byte for byte).
+Commit only these parts: git ignores `next.js` and `next.css`, and a release builds them from the commit
+(`tools/build_release.py`), so two pull requests that change different parts never conflict.
 The script is one closure: `00-head.js` opens it and `99-boot.js` closes it, so every part can use every
 other part's names. `20`–`24` are consecutive slices of `study()` (the four learning steps), not standalone files.
 

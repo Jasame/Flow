@@ -1,6 +1,10 @@
 """The 操作指南 stays in step with the site: every page a learner can open is explained, every picture exists, the PDF
-was rebuilt from the current text, and every file ships. When one of these fails after a change to the site, update
-flow/public/guide/guide.md (and run tools/guide_shots.py and tools/build_guide.py) in the same change."""
+was made from the current text, and every file ships. When one of these fails after a change to the site, update
+flow/public/guide/guide.md (and run tools/guide_shots.py for new pictures) in the same change.
+
+The PDF and its manifest.json are not kept in git: they are printed when a commit is released (tools/build_release.py),
+and that build runs this file with FLOW_REQUIRE_BUILT=1 on the files about to ship. CI prints them before the tests too.
+On a laptop that has not run tools/build_release.py --here, the tests of the PDF itself are skipped."""
 import hashlib, json, os, re, sys, tempfile, threading, unittest, urllib.error, urllib.request
 from http.server import ThreadingHTTPServer
 from pathlib import Path
@@ -11,6 +15,15 @@ sys.path.insert(0, str(ROOT))
 import user_guide as ug  # noqa: E402
 
 SRC = ROOT / 'public' / 'src' / 'next'
+
+
+def built():
+    """Whether the PDF and its manifest are here; missing is a failure where they must have been built (CI, a release)."""
+    if ug.PDF.is_file() and ug.MANIFEST.is_file():
+        return True
+    if os.getenv('FLOW_REQUIRE_BUILT') or os.getenv('CI'):
+        raise AssertionError('the guide PDF was not built: python3 tools/build_release.py --here')
+    return False
 # pages that need an id and are reached from pages the guide explains (a material from 今日 / 全部材料, a 连载 story)
 DYNAMIC = {'m', 'series', 'class'}  # class: one page per class, for its teacher (我的 → 我的班级)
 
@@ -69,12 +82,14 @@ class GuideContentTests(unittest.TestCase):
         stray = {p.stem for p in ug.DIR.glob('*.jpg')} - used
         self.assertFalse(stray, f'screenshots no longer used by guide.md: {sorted(stray)}')
 
-    def test_the_pdf_was_rebuilt_from_the_current_text_and_pictures(self):
+    def test_the_pdf_was_made_from_the_current_text_and_pictures(self):
+        if not built():
+            self.skipTest('the guide PDF is printed at release (python3 tools/build_release.py --here makes it here)')
         m = json.loads(ug.MANIFEST.read_text())
-        self.assertEqual(m['source_sha256'], ug.source_hash(), 'guide.md changed: run tools/build_guide.py')
+        self.assertEqual(m['source_sha256'], ug.source_hash(), 'guide.md changed: run python3 tools/build_release.py --here')
         self.assertEqual(m['pdf_sha256'], hashlib.sha256(ug.PDF.read_bytes()).hexdigest())
         for s, h in m['shots'].items():
-            self.assertEqual(h, hashlib.sha256((ug.DIR / f'{s}.jpg').read_bytes()).hexdigest(), f'{s}.jpg changed: run tools/build_guide.py')
+            self.assertEqual(h, hashlib.sha256((ug.DIR / f'{s}.jpg').read_bytes()).hexdigest(), f'{s}.jpg changed: run python3 tools/build_release.py --here')
         self.assertTrue(ug.PDF.read_bytes().startswith(b'%PDF-'))
         self.assertLess(ug.PDF.stat().st_size, 8_000_000)
 
@@ -111,13 +126,16 @@ class GuideRenderingTests(unittest.TestCase):
             ug.parse('stray line\n# 章 {#a}\n')
 
     def test_the_api_offers_the_pdf_only_when_it_matches_the_text(self):
-        ug._CACHE.clear()
-        self.assertEqual(ug.api()['pdf'], '/guide.pdf')
         with tempfile.TemporaryDirectory() as tmp:
-            m = Path(tmp) / 'manifest.json'; m.write_text(json.dumps({'source_sha256': 'old'}))
-            with patch.object(ug, 'MANIFEST', m):
-                ug._CACHE.clear()
-                self.assertIsNone(ug.api()['pdf'])
+            pdf, m = Path(tmp) / 'flow-guide.pdf', Path(tmp) / 'manifest.json'
+            with patch.object(ug, 'PDF', pdf), patch.object(ug, 'MANIFEST', m):
+                for made, source, offered in ((False, ug.source_hash(), None), (True, ug.source_hash(), '/guide.pdf'), (True, 'old', None)):
+                    pdf.unlink(missing_ok=True)
+                    if made:
+                        pdf.write_bytes(b'%PDF-1.4 test')
+                    m.write_text(json.dumps({'source_sha256': source}))
+                    ug._CACHE.clear()
+                    self.assertEqual(ug.api()['pdf'], offered, (made, source))
         ug._CACHE.clear()
 
 
@@ -142,13 +160,18 @@ class GuideHttpTests(unittest.TestCase):
             return e.code, e.read(), dict(e.headers)
 
     def test_the_guide_its_pictures_and_the_pdf_are_served_without_signing_in(self):
+        ug._CACHE.clear()
         st, body, _ = self.get('/api/next/guide')
         self.assertEqual(st, 200)
         g = json.loads(body)
-        self.assertEqual(g['pdf'], '/guide.pdf'); self.assertGreaterEqual(len(g['chapters']), 12)
+        self.assertGreaterEqual(len(g['chapters']), 12)
         st, body, h = self.get('/guide/today.jpg')
         self.assertEqual(st, 200); self.assertEqual(h['Content-Type'], 'image/jpeg'); self.assertTrue(body.startswith(b'\xff\xd8'))
         st, body, h = self.get('/guide.pdf')
+        if not built():  # no PDF here: the guide offers none and the address answers 404
+            self.assertIsNone(g['pdf']); self.assertEqual(st, 404)
+            return
+        self.assertEqual(g['pdf'], '/guide.pdf')
         self.assertEqual(st, 200); self.assertEqual(h['Content-Type'], 'application/pdf'); self.assertTrue(body.startswith(b'%PDF-'))
         self.assertIn('inline', h['Content-Disposition'])
 

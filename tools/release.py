@@ -57,7 +57,7 @@ def check_requirements(files):
         script = files[directory + '/upgrade.sh'].decode()
         required = re.findall(r'\$' + variable + r'/([\w./-]+)', script)
         if directory == 'flow':
-            lists = re.findall(r'for name in ([^;]+); do', script)
+            lists = re.findall(r'^FLOW_(?:PUBLIC_)?FILES=\(\n(.*?)^\)', script, re.S | re.M)  # FLOW_FILES, FLOW_PUBLIC_FILES: one name per line
             if len(lists) != 2:
                 raise ValueError('Website upgrade file-list format changed; review packaging')
             required += lists[0].split() + ['public/' + x for x in lists[1].split()]
