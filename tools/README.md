@@ -125,7 +125,10 @@ The owner approved these on 2026-11-24 (「按你的建议改，b6 发完就写�
 
 1. **Authors merge their own PRs.** When CI is green and the PR merges cleanly into main, the session that wrote it
    turns on auto-merge. The release session (语流 2) handles releases and the servers. 语流 still gets a release only
-   when the owner says 「发正式版」.
+   when the owner says 「发正式版」. **GitHub as a whole** (the order PRs land in, conflicts, branch cleanup) belongs to the
+   ledger session (语流·总账; the owner's choice, 2026-11-25). When a PR is stuck on a conflict or a flaky check, that
+   session merges main into its branch and pushes (never with force), then tells the author to pull. It also deletes
+   remote branches that are already in main, after noting each name and sha in the shared note `ledger.md`.
 2. **The 内测版 follows main.** Every merge to main that passes CI goes to the beta by itself
    (`.github/workflows/beta.yml`, GitHub Actions, the owner's choice; #66), with the light end-to-end test, so the beta
    always shows main and nobody releases it by hand. To keep a version there while the owner tries it, pause with
