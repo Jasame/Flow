@@ -102,6 +102,7 @@ Flow 文字任务 ─┬─ flow-text        → Gemini 3.8 Flash（备用：百
                ├─ flow-qwen-flash  → 百炼 qwen-flash（备用：Gemini）
                ├─ flow-qwen-plus   → 百炼 qwen-plus（备用：Gemini）
                ├─ flow-qwen-max    → 百炼 qwen-max（备用：Gemini）
+               ├─ flow-qwen37-flash / flow-qwen37-plus → 百炼 qwen3.7-flash / qwen3.7-plus（备用：Gemini）
                └─ flow-ds-flash    → 百炼 deepseek-v4.1-flash（备用：Gemini）
 都不通时，Flow 再换主模型 gemini-3.8-flash；录音、联网检索一直走主模型。
 ```
@@ -111,7 +112,7 @@ Flow 文字任务 ─┬─ flow-text        → Gemini 3.8 Flash（备用：百
 | 在哪里 | 加什么 |
 | --- | --- |
 | 上游连接 | `bailian`，地址见下面「地域」，密钥填百炼的 API Key，点「测试连接」 |
-| 模型与倍率 | `flow-qwen-flash` → `qwen-flash`；`flow-qwen-plus` → `qwen-plus`；`flow-qwen-max` → `qwen-max`；`flow-ds-flash` → `deepseek-v4.1-flash`（上游都是 `bailian`） |
+| 模型与倍率 | `flow-qwen-flash` → `qwen-flash`；`flow-qwen-plus` → `qwen-plus`；`flow-qwen-max` → `qwen-max`；`flow-qwen37-flash` → `qwen3.7-flash`；`flow-qwen37-plus` → `qwen3.7-plus`；`flow-ds-flash` → `deepseek-v4.1-flash`（上游都是 `bailian`）。这些是候选，评测后不用的可以删 |
 | 备用线路 | 上面每个的备用：`gemini-flow` / `gemini-3.8-flash`；`flow-text` 的备用：`bailian` / `qwen-plus` |
 
 - **地域**：百炼的 key 按地域分，不能混用。阿里云中国站（华北2 北京）的兼容地址是 `https://dashscope.aliyuncs.com/compatible-mode/v1`；官方建议改用工作空间域名 `https://<WorkspaceId>.cn-beijing.maas.aliyuncs.com/compatible-mode/v1`（2026-09-30 起新功能只上工作空间域名，WorkspaceId 在百炼控制台看）。国际站是新加坡 `dashscope-intl.aliyuncs.com`，另有中国香港地域。用哪个以你谈折扣的那个账号为准。网关在 base_url 后面接 `/chat/completions`，所以地址填到 `/v1` 为止。
