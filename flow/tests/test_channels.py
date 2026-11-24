@@ -64,6 +64,29 @@ class BetaSiteTests(Site):
 
 
 class MailTests(unittest.TestCase):
+    def test_the_mail_server_is_greeted_with_the_sites_domain(self):
+        """EHLO says the site's domain (FLOW_PUBLIC_URL), never the machine's internal name, on both kinds of connection."""
+        seen = []
+
+        class Fake:
+            def __init__(self, host, port, local_hostname=None, **kw): seen.append((port, local_hostname))
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+            def ehlo(self): pass
+            def starttls(self, **kw): pass
+            def login(self, *a): pass
+            def send_message(self, msg): pass
+
+        env = {'FLOW_SMTP_HOST': 'smtp.example.com', 'FLOW_SMTP_FROM': 'x@example.com', 'FLOW_SMTP_USER': 'u', 'FLOW_SMTP_PASSWORD': 'p',
+               'FLOW_CHANNEL': ''}
+        with patch.dict(os.environ, env), patch.object(account_service.smtplib, 'SMTP_SSL', Fake), patch.object(account_service.smtplib, 'SMTP', Fake):
+            os.environ.pop('FLOW_MAIL_OUTBOX', None)
+            for url, port in (('https://flow.jasa.hk', '465'), ('', '465'), ('https://flowlang.cn/', '587'), ('http://127.0.0.1:8090', '465'),
+                              ('http://localhost:8090', '465')):
+                os.environ['FLOW_PUBLIC_URL'], os.environ['FLOW_SMTP_PORT'] = url, port
+                account_service.mail('a@example.com', 's', 't')
+        self.assertEqual(seen, [(465, 'flow.jasa.hk'), (465, 'flowlang.cn'), (587, 'flowlang.cn'), (465, 'flowlang.cn'), (465, 'flowlang.cn')])
+
     def test_beta_mail_is_marked_once(self):
         with tempfile.TemporaryDirectory() as out:
             for channel, want in (('', 'Flow 登录验证码 123456'), ('beta', '【内测版】Flow 登录验证码 123456')):
