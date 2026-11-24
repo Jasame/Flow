@@ -234,8 +234,38 @@ class BackTests(Db):
         c.execute('INSERT OR IGNORE INTO next_progress(user_id,pack,step,created) VALUES(?,?,?,?)', (self.uid, pid, step, self.now - days_ago * 86400))
         c.commit()
 
-    def plan(self, c):
-        return sk.daily_path(c, self.uid, nx.home(c, self.uid), self.now)
+    def plan(self, c, counts=None):
+        """The plan with vocab_service.counts as it was before it sized the day's share (no cap: one round of 40 here),
+        or as given."""
+        real = vs.counts.__wrapped__ if hasattr(vs.counts, '__wrapped__') else vs.counts
+
+        def old(c, uid, now=None):
+            r = real(c, uid, now)
+            return {k: v for k, v in r.items() if k not in ('catch_up', 'later', 'cap')}
+        with patch.object(vs, 'counts', counts or old):
+            return sk.daily_path(c, self.uid, nx.home(c, self.uid), self.now)
+
+    def test_with_the_days_share_from_vocab_service_the_backlog_says_how_many_days(self):
+        real = vs.counts
+
+        def share(c, uid, now=None, cap=None):  # vocab_service once it sizes the day's share (r28 第 3 段, 语流 11)
+            r = real(c, uid, now)
+            return {**r, 'due': 40, 'new': 0, 'minutes': 6, 'later': 60, 'catch_up': {'left': 60, 'days': 5}, 'cap': cap}
+        with app.db() as c:
+            self.step(c, self.PID, 'listen', 10)
+            p = self.plan(c, share)
+            w = p['steps'][0]
+            self.assertEqual((w['title'], w['sub'], w['minutes'], w['done']), ('单词：先复习最容易忘的 40 个', '补积压：还剩 60 个，大约 5 天补完', 6, False))
+            self.assertEqual(p['back'], {'days': 9, 'left': 60, 'catch_days': 5})
+
+            def ordinary(c, uid, now=None, cap=None):
+                return {**real(c, uid, now), 'due': 12, 'new': 3, 'minutes': 5, 'later': 30, 'catch_up': None, 'cap': cap, 'new_paused': False}
+            self.step(c, 'other-pack', 'listen', 1)  # yesterday: an ordinary day, the rest of the reviews later
+            p = self.plan(c, ordinary)
+            self.assertIsNone(p['back'])
+            self.assertEqual(p['steps'][0]['sub'], '还有 30 个复习留到之后几天')
+            p = self.plan(c, lambda c, uid, now=None, cap=None: {**ordinary(c, uid, now, cap), 'new_paused': True})
+            self.assertEqual(p['steps'][0]['sub'], '还有 30 个复习留到之后几天 · 新词明天继续')
 
     def test_after_nine_days_away_one_round_of_words_and_a_text_nothing_else(self):
         with app.db() as c:
@@ -290,7 +320,7 @@ class PageTests(unittest.TestCase):
             self.assertTrue(s in CSS, s)
 
     def test_the_guide_explains_the_budget(self):
-        for s in ('还有时间的话', '本周任务', '超过你定的', '仿写一句', '摸底，可以跳过', '几天没来，回来那天', '先复习最该复习的 40 个'):
+        for s in ('还有时间的话', '本周任务', '超过你定的', '仿写一句', '摸底，可以跳过', '几天没来，回来那天', '先复习最容易忘的 40 个', '大约 5 天补完'):
             self.assertTrue(s in GUIDE, s)
 
 

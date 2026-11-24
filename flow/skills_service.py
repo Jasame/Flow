@@ -206,8 +206,9 @@ def _easier(c, uid, level, now):
             and 'check' not in done.get(p['id'], set())]
     if not rows:
         return None
-    day = nx._day(now)
-    p = min(rows, key=lambda p: hashlib.sha256(f"{day}|{p['id']}".encode()).hexdigest())
+    day, goal = nx._day(now), (nx.profile(c, uid) or {}).get('goal')
+    suits = getattr(nx, 'suits_goal', None)
+    p = min(rows, key=lambda p: (not (suits and suits(p, goal)), hashlib.sha256(f"{day}|{p['id']}".encode()).hexdigest()))
     return {**nx._card(p, done.get(p['id'])), 'easier': down}
 READ_SUB = {'glance': '只听一遍，或只读一段', 'listen-read': '听一遍，再读一遍', 'core': '听、读、做理解题'}
 
@@ -259,7 +260,7 @@ def daily_path(c, uid, home, now=None):
     before = ps.study_days(c, uid, now - 400 * 86400, start)
     if before:
         missed = (ps._local(now).date() - max(before)).days - 1
-        if missed >= BACK_DAYS:
+        if missed >= getattr(vs, 'BACK_DAYS', BACK_DAYS):
             back = {'days': missed, 'left': 0}
             if not row:
                 half = home.get('resume') if home.get('resume') and 'check' not in (home['resume'].get('steps') or []) else None
@@ -279,7 +280,7 @@ def daily_path(c, uid, home, now=None):
         add({'key': 'review', 'title': '选一本词书', 'href': '#/vocab/plan', 'done': False,
              'sub': f"按你的考试先选好了《{vs.book_title(book)}》，确认一下就能每天背" if exam else f"先给你挑了《{vs.book_title(book)}》，每天背几个新词"},
             1, ('words',), 0, must=True)
-    elif back and n['due']:
+    elif back and n['due'] and 'catch_up' not in n:  # before vocab_service sizes the day's share (r28 第 3 段)
         # the day back: one round of the words most due (the ones answered today count towards it); the rest come over
         # the next days
         answered = c.execute('SELECT COUNT(DISTINCT card) FROM next_reviews WHERE user_id=? AND created>=?', (uid, start)).fetchone()[0]
@@ -291,7 +292,15 @@ def daily_path(c, uid, home, now=None):
             vs.minutes_for(left, 0, vs.answer_seconds(c, uid, now)) if left else 0, ('words',), 0, must=True)
     else:
         title = '单词：' + ' · '.join(x for x in (f"复习 {n['due']}" if n['due'] else '', f"新词 {n['new']}" if n['new'] else '') if x) if todo else '单词'
-        sub = ('今天先复习，新词明天继续' if n.get('new_paused') else '复习到期的词，再学新词' if n['new'] and n['due'] else '') if todo else '今天的都完成了'
+        cu = n.get('catch_up')  # 补积压 (r28 第 3 段): after days away, the backlog over the next days, no new words meanwhile
+        if back and 'catch_up' in n:
+            back.update(left=cu['left'] if cu else n.get('later') or 0, catch_days=cu['days'] if cu else None)
+        later = [f"还有 {n['later']} 个复习留到之后几天" if n.get('later') else '',
+                 ('新词明天继续' if n.get('later') else '今天先复习，新词明天继续') if n.get('new_paused') else '']
+        sub = ((f"补积压：还剩 {cu['left']} 个，大约 {cu['days']} 天补完" if cu else ' · '.join(x for x in later if x)
+                or ('复习到期的词，再学新词' if n['new'] and n['due'] else '')) if todo else '今天的都完成了')
+        if back and cu and todo:
+            title = f"单词：先复习最容易忘的 {n['due']} 个"  # the first day's share of the backlog
         add({'key': 'review', 'title': title, 'sub': sub, 'href': '#/review', 'done': not todo}, n['minutes'] if todo else 0, ('words',), 0, must=True)
     if minutes >= 10:
         # 复听 (relisten_service): a text from a few days ago heard again without the words, before today's new one

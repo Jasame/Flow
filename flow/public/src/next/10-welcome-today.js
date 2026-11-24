@@ -105,7 +105,7 @@
   // 欢迎回来 (r28 第 2 段): after three days or more away, the day back is short, and the plan says so first.
   function backHTML(p, next) {
     const b = p.back; if (!b) return '';
-    const left = b.left ? `单词还有 ${b.left} 个，之后几天慢慢补上。` : '';
+    const left = b.left ? (b.catch_days ? `单词还剩 ${b.left} 个，大约 ${b.catch_days} 天补完。` : `单词还有 ${b.left} 个，之后几天慢慢补上。`) : '';
     return `<div class="tp-back" role="status"><b>欢迎回来</b><span class="small">${next ? `你 ${b.days} 天没学了，没关系。今天只做 ${p.total} 件事，约 ${p.must_minutes} 分钟。` : '今天的几件事做完了，明天照常。'}${left}</span></div>`;
   }
   // Past the day's minutes by a fifth with 必做 not done: said once a day, above the plan, and nothing is stopped.
