@@ -8,7 +8,37 @@
       return ok && NAR.meta && NAR.meta.sentences.length === ls.length ? NAR.meta : null;
     }
     const LOOP = Object.assign({ rep: 1, gap: 0 }, load('flow-next-loop') || {});  // 复读, kept on the phone
+    // 复听 (relisten_service), from 今日: the text hidden at first; after a listen, how much was understood, then the text.
+    const RELISTEN = [[3, '几乎都懂'], [2, '大部分'], [1, '一半左右'], [0, '很少']];
+    function relistenHTML() {
+      return st.relistened ? `<div class="card sunk stack-s relisten" id="relisten" aria-live="polite"><b>${esc(st.relistened)}</b><span class="small muted">原文出来了：没听懂的句子，点句子前面的喇叭单独再听几遍。</span></div>`
+        : `<div class="card sunk stack-s relisten" id="relisten"><b>复听：先不看原文，从头听一遍</b>
+          <span class="small">点「播放全文」。听完选一下听懂了多少，原文就会出来，再看没听懂的句子。</span>
+          <div class="chips" role="group" aria-label="听懂了多少">${RELISTEN.map(([k, l]) => `<button class="chip" type="button" data-und="${k}">${l}</button>`).join('')}</div></div>`;
+    }
+    function bindRelisten() {
+      const showText = () => {
+        st.blind = false; pane.querySelectorAll('.line .txt').forEach(t => t.classList.remove('blind'));
+        const bl = pane.querySelector('#blind'); if (bl) { bl.classList.remove('on'); bl.setAttribute('aria-pressed', 'false'); }
+        const box = pane.querySelector('#relisten'); if (box) box.outerHTML = relistenHTML();
+      };
+      pane.querySelectorAll('[data-und]').forEach(b => b.onclick = async () => {
+        const body = { pack: id, understood: Number(b.dataset.und) }, label = b.textContent;
+        pane.querySelectorAll('[data-und]').forEach(x => { x.disabled = true; });
+        try {
+          const r = await api('/api/next/relisten', body);
+          st.relistened = `记下了：听懂了${r.label}。` + (r.known ? '这篇已经听熟了，以后不再安排复听。' : `${r.next_days} 天后再听一次。`);
+        } catch (e) {
+          if (!e.network) { toast(e.message); pane.querySelectorAll('[data-und]').forEach(x => { x.disabled = false; }); return; }
+          OUTBOX.push({ path: '/api/next/relisten', body });  // without a connection: sent when the phone is back online
+          st.relistened = `记下了：听懂了${label}，联网后同步。`;
+        }
+        showText();
+      });
+    }
     async function listen() {
+      const again = parts()[3] === 'again' && !!S.user;
+      if (again && !st.againSet) { st.againSet = true; st.mode = 'listen'; st.blind = true; }
       if (st.mode === 'shadow') return shadowMode();
       if (st.mode === 'dictate') return dictateMode();
       const ls = lines();
@@ -18,7 +48,7 @@
       // first screen of a phone. Open or closed is remembered.
       const rateL = r => `${r}×`, repL = n => (n === 0 ? '单句循环' : `每句 ${n} 遍`), gapL = n => (n === 0 ? '句后不停' : n === -1 ? '留时间跟说' : `句后停 ${n} 秒`);
       const psum = () => `${rateL(TTS.rate)} · ${repL(LOOP.rep)} · ${gapL(LOOP.gap)}`;
-      pane.innerHTML = `${modeTabs()}<div class="player">
+      pane.innerHTML = `${again ? relistenHTML() : ''}${modeTabs()}<div class="player">
           <button class="btn primary" id="playAll">${ICON.play.replace('<svg', '<svg width="18" height="18" fill="currentColor"')}<span>播放全文</span></button>
           <button class="icon-btn ${st.blind ? 'on' : ''}" id="blind" aria-pressed="${st.blind}" title="盲听：先只听不看" aria-label="盲听">${ICON.eye}</button>
         </div>
@@ -89,6 +119,7 @@
       pane.querySelectorAll('[data-voice]').forEach(b => b.onclick = async () => { if (b.disabled) return; stopAll(); await setVoice(b.dataset.voice); listen(); toast('已切换为' + VOICE_LABELS[b.dataset.voice]); });
       pane.querySelector('#blind').onclick = e => { st.blind = !st.blind; toast(st.blind ? '盲听：只听不看，再点一次显示原文' : '已显示原文'); e.currentTarget.classList.toggle('on', st.blind); e.currentTarget.setAttribute('aria-pressed', String(st.blind)); pane.querySelectorAll('.txt').forEach(t => t.classList.toggle('blind', st.blind)); };
       pane.querySelector('#toRead').onclick = () => { stopAll(); markStep('listen'); go('read'); };
+      if (again) bindRelisten();
       bindListenHead(stopAll);
       document.onkeydown = e => {
         if (isTyping(e) || !sheetEl.hidden || e.metaKey || e.ctrlKey || e.altKey) return;

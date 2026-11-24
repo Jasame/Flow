@@ -196,7 +196,7 @@ class QARoundTests(LearnerModelTests):
         self.assertEqual(card['context'], body['text'])  # the sentence with the mistake
 
     def test_rewrite_retry_has_the_same_display_fields(self):
-        reply = {'verdict': 'minor', 'summary': '好。', 'corrected': 'I would have caught it.', 'changes': [{'from': 'would catch', 'to': 'would have caught', 'why': '虚拟', 'node': 'subjunctive-past'}],
+        reply = {'verdict': 'minor', 'summary': '好。', 'corrected': 'If I had left earlier, I would have caught it.', 'changes': [{'from': 'would catch', 'to': 'would have caught', 'why': '虚拟', 'node': 'subjunctive-past'}],
                  'versions': [{'label': '更自然', 'text': 'x', 'why': 'y'}], 'used_well': ['clause-adverb']}
         body = {'pack': PID, 'text': 'If I left earlier, I would catch it.', 'request_id': self.rid()}
         with ai(reply):

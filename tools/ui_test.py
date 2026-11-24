@@ -1096,6 +1096,14 @@ def learner_run(pw):
                   shown and graded and waiting >= 1 and sent == 0, (shown, graded, waiting, sent))
         else:
             check(dev, '存到手机: a second material to keep', False, 'no other material in the library')
+        # 复听: from 今日, the text hidden at first; the answer to 听懂了多少 shows it and says when it comes back
+        go(pg, f'#/m/{PID}/listen/again'); pg.wait_for_selector('#relisten [data-und]', timeout=6000)
+        hidden = pg.evaluate("document.querySelectorAll('#pane .line .txt.blind').length")
+        pg.wait_for_timeout(300); pg.screenshot(path=str(OUT / 'learner-relisten.png'))
+        pg.click('#relisten [data-und="2"]'); pg.wait_for_function("() => !document.querySelector('#relisten [data-und]')", timeout=6000)
+        said = (pg.text_content('#relisten') or '').strip()
+        shown = pg.evaluate("document.querySelectorAll('#pane .line .txt.blind').length")
+        check(dev, '复听: the text is hidden until 听懂了多少 is answered, then shown with when it comes back', hidden > 0 and shown == 0 and '7 天后再听一次' in said, (hidden, shown, said[:60]))
         # 导出我的数据: the word book as a table for Excel (UTF-8 with a BOM), from 我的
         go(pg, '#/me'); pg.click('#meData'); pg.wait_for_selector('#sheetCard a[href$="cards.csv"]', timeout=4000)
         with pg.expect_download(timeout=8000) as dl:
