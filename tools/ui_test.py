@@ -768,6 +768,8 @@ def platform_run(pw):
         pg.goto(BASE + '/#/cards', wait_until='networkidle'); settle(pg); pg.wait_for_timeout(2200)
         ot = json.loads((sent.get('opentime') or ['{}'])[0])
         check(dev, 'the opening time is sent once the first page is drawn', len(sent.get('opentime', [])) == 1 and (ot.get('first_view') or 0) > 0 and ot.get('ttfb') is not None, ot)
+        check(dev, 'the opening time says when the page asked, when the script ran, and which page it opened on',
+              ot.get('startup') is not None and ot.get('boot') is not None and ot.get('hidden') is False and ot.get('page') == 'other', ot)  # opened on #/cards
         pg.evaluate("() => { setTimeout(() => { throw new Error('ui-test boom'); }, 0); const i = new Image(); i.src = '/no-such-picture.png'; document.body.appendChild(i); }")
         pg.wait_for_timeout(600); pg.evaluate("() => dispatchEvent(new Event('pagehide'))"); pg.wait_for_timeout(400)
         items = [x for body in sent.get('issues', []) for x in json.loads(body)['items']]

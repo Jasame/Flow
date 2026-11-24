@@ -4563,7 +4563,11 @@
   // failed, a sound the browser would not play) and, once per visit, how long until the first page was on screen and
   // where the time went. No account and no address go with them; each problem is sent once per visit, 20 at most.
   // The last few errors also go with a 问题反馈 report (ERRS).
-  const FIELD = { q: [], seen: new Set(), sent: 0, firstView: null, openSent: false, t: 0 };
+  // t0: when this script began to run (after it was downloaded and compiled); hidden: the page was opened out of sight
+  // (a tab in the background, a link WeChat loaded ahead): its time on screen is not a wait, so the console leaves it
+  // out. page: which page this visit opened on (a link to a material waits for that material, not for 今日).
+  const FIELD = { q: [], seen: new Set(), sent: 0, firstView: null, openSent: false, t: 0, t0: performance.now(),
+    hidden: document.visibilityState === 'hidden', page: (s => (!s ? 'today' : s === 'm' ? 'material' : 'other'))((location.hash.split('/')[1] || '')) };
   const ERRS = [];
   function beacon(url, data) {
     const body = JSON.stringify(data);
@@ -4602,7 +4606,7 @@
     const n = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
     if (n) return n;
     const t = performance.timing; if (!t || !t.navigationStart) return null;  // older in-app browsers
-    const o = {}; ['domainLookupStart', 'domainLookupEnd', 'connectStart', 'connectEnd', 'secureConnectionStart', 'requestStart', 'responseStart', 'responseEnd']
+    const o = {}; ['fetchStart', 'domainLookupStart', 'domainLookupEnd', 'connectStart', 'connectEnd', 'secureConnectionStart', 'requestStart', 'responseStart', 'responseEnd']
       .forEach(k => { o[k] = t[k] ? t[k] - t.navigationStart : 0; });
     return o;
   }
@@ -4616,12 +4620,14 @@
       const ms = x => (x == null || !isFinite(x) || x < 0 ? null : Math.round(x)), fv = FIELD.firstView;
       beacon('/api/next/opentime', {
         domain: location.host, first_view: ms(fv), waited: ms(performance.now()),
-        dns: ms(n.domainLookupEnd - n.domainLookupStart), connect: ms(n.connectEnd - n.connectStart),
+        startup: ms(n.fetchStart), dns: ms(n.domainLookupEnd - n.domainLookupStart), connect: ms(n.connectEnd - n.connectStart),
         tls: n.secureConnectionStart > 0 ? ms(n.connectEnd - n.secureConnectionStart) : null,
         ttfb: ms(n.responseStart - n.requestStart), html: ms(n.responseEnd - n.responseStart),
-        scripts: js ? ms(js.responseEnd - n.responseEnd) : null, home_api: home ? ms(home.duration) : null,
+        scripts: js ? ms(js.responseEnd - n.responseEnd) : null, boot: ms(FIELD.t0 - (js ? js.responseEnd : n.responseEnd)),
+        home_api: home ? ms(home.duration) : null,
         render: fv != null && home ? ms(fv - home.responseEnd) : null,
         repeat: !!(navigator.serviceWorker && navigator.serviceWorker.controller), snap: DATA.fromSnap, standalone: STANDALONE(),
+        hidden: FIELD.hidden, page: FIELD.page,
         net: c.effectiveType || '', tz: (Intl.DateTimeFormat().resolvedOptions().timeZone || '').slice(0, 40) });
     } catch (e) { /* not counted */ }
   }
