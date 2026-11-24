@@ -70,7 +70,7 @@ class JobTests(unittest.TestCase):
         with patch('chat_service._request_main', return_value=(reply, 'stop')) as m:
             r, st = self.end()
         self.assertEqual(st, 200); self.assertEqual(m.call_count, 1)
-        self.assertEqual((r['result']['score'], r['result']['summary']), (0.7, '这一轮练完了，下面是具体的反馈。'))
+        self.assertEqual((r['result']['score'], r['result']['summary']), (0.7, out.SUMMARY_FILLER))
         self.assertNotIn('extra', r['result'])
 
     def test_an_unusable_answer_is_asked_for_once_more(self):
