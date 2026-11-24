@@ -72,6 +72,7 @@ def save(c, uid, data):
          'knowledge': [], 'grammar': [], 'imported': True}
     c.execute('INSERT INTO lab_packs VALUES(?,?,?,?,?)', (pid, uid, 'import', json.dumps(p, ensure_ascii=False), time.time()))
     c.commit()
+    __import__('tts_service').start_pack(uid, pid)  # its 伴读 voice, made in the background (for this learner only)
     return {'id': pid, 'level': level, 'existing': False}, 200
 
 
@@ -85,8 +86,11 @@ def articles(c, uid):
 
 
 def delete(c, uid, data):
+    row = c.execute("SELECT content FROM lab_packs WHERE id=? AND owner=? AND origin='import'", (str(data.get('id', '')), uid)).fetchone()
     n = c.execute("DELETE FROM lab_packs WHERE id=? AND owner=? AND origin='import'", (str(data.get('id', '')), uid)).rowcount
     c.commit()
+    if row:  # its sentences' voice files go with it
+        __import__('tts_service').forget_pack(uid, json.loads(row[0]).get('body') or '')
     return ({'ok': True}, 200) if n else ({'error': '文章不存在'}, 404)
 
 
