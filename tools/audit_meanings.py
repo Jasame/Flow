@@ -5,9 +5,11 @@
     python3 tools/audit_meanings.py --list noun-first  # the flagged words, most frequent first
     python3 tools/audit_meanings.py --list all --book core --top 50
     python3 tools/audit_meanings.py --without-fixes    # as if meaning-fixes.json were empty (the "before")
+    python3 tools/audit_meanings.py --json --unreviewed > flagged.json   # flagged words not in meaning-fixes.json yet
 
-Audits the meaning a word card shows (next_service.dictionary(), meaning-fixes.json applied) for the books learners
-study most: core, mid, high, cet4, cet6, ky (vocab_service.book_words()). The checks are heuristics: they find
+Audits the meaning a word card shows (next_service.dictionary(), meaning-fixes.json applied) for every word book a
+learner can choose (vocab_service.registry(): the frequency and exam books and the data books 专四、专八、中考、学术…;
+until 2026-11-24 only core, mid, high, cet4, cet6 and ky). The checks are heuristics: they find
 candidates for review by hand, and a flagged meaning is not always wrong. Fixes go in
 flow/corpus_data/meaning-fixes.json (then run tools/build_dictionary.py); see meaning-fixes-notes.md.
 """
@@ -19,7 +21,7 @@ sys.path.insert(0, str(FLOW))
 import next_service as nx  # noqa: E402
 import vocab_service as vs  # noqa: E402
 
-BOOKS = ('core', 'mid', 'high', 'cet4', 'cet6', 'ky')
+BOOKS = tuple(b['id'] for b in vs.registry())
 POS = re.compile(r'^([a-z]+)\. ')
 NOTE = re.compile(r'^（[^）]*）')  # a line that is only a note, e.g. "（find 的过去式和过去分词）"
 NORM_POS = {'vt': 'v', 'vi': 'v', 'a': 'adj', 'int': 'interj'}
@@ -129,8 +131,15 @@ def main():
     ap.add_argument('--min-rank', type=int, default=vs.CORE_SKIP, help='skip words more frequent than this '
                     '(default: the core book starts after them, %(default)s)')
     ap.add_argument('--without-fixes', action='store_true', help='audit the meanings as if meaning-fixes.json were empty')
+    ap.add_argument('--unreviewed', action='store_true', help='only words not in meaning-fixes.json yet')
+    ap.add_argument('--json', action='store_true', help='print the flagged words as JSON: [{word, rank, codes, books, meaning, phonetic}]')
     a = ap.parse_args()
-    rows = [r for r in audit(a.without_fixes) if r[0] > a.min_rank and (not a.book or a.book in r[5])]
+    fixed = set(json.loads((FLOW / 'corpus_data' / 'meaning-fixes.json').read_text(encoding='utf-8'))['words']) if a.unreviewed else set()
+    rows = [r for r in audit(a.without_fixes) if r[0] > a.min_rank and (not a.book or a.book in r[5]) and r[1] not in fixed]
+    if a.json:
+        print(json.dumps([{'word': w, 'rank': rank, 'codes': sorted(codes), 'books': bs, 'meaning': m, 'phonetic': ph}
+                          for rank, w, m, ph, codes, bs in rows if codes], ensure_ascii=False, indent=0))
+        return
     if a.list:
         n = 0
         for rank, w, m, ph, codes, bs in rows:
