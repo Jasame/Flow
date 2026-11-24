@@ -190,7 +190,11 @@ class NextHttpTests(unittest.TestCase):
             self.assertEqual(cache(f'/{name}?v={v}'), 'public, max-age=31536000, immutable', name)
             self.assertEqual(cache(f'/{name}?v=0000000000'), 'no-cache', name)  # an old page's version: today's file, checked again
             self.assertEqual(cache(f'/{name}'), 'no-cache', name)
-        for path in ('/', '/sw.js', '/manifest.webmanifest'):
+        # the page itself opens from the browser's copy at once and is fetched again in the background (iPhone WeChat
+        # has no service worker); the service worker and the manifest are checked every time
+        self.assertEqual(cache('/'), app.PAGE_CACHE)
+        self.assertIn('stale-while-revalidate', app.PAGE_CACHE)
+        for path in ('/sw.js', '/manifest.webmanifest'):
             self.assertEqual(cache(path), 'no-cache', path)
 
     def test_app_files_calendar_and_audio_aliases(self):
@@ -424,6 +428,16 @@ class AssetVersionTests(unittest.TestCase):
         import slim  # next.js and next.css go out slimmed (tests/test_slim.py)
         self.assertEqual(app.shell_file('next.js'), slim.js((Path(app.ROOT) / 'public' / 'next.js').read_text(encoding='utf-8')).encode())
 
+
+    def test_the_service_worker_asks_the_server_for_the_page_past_the_browsers_copy(self):
+        """The browser may keep the page to open at once (app.PAGE_CACHE); the service worker must not install or keep
+        that old copy, or a phone with it would get a new release one opening later than before."""
+        import re as _re
+        sw = app.shell_file('sw.js').decode()
+        self.assertRegex(sw, r"u === '/' \? new Request\(u, \{ cache: 'no-cache' \}\)")  # installing a release
+        nav = sw[sw.index("req.mode === 'navigate'"):]
+        self.assertRegex(nav[:nav.index('respondWith')], r"fetch\(req\.url, \{ cache: 'no-cache'")  # the copy for next time
+        self.assertFalse(_re.search(r"addAll\(SHELL_FILES\)", sw))
 
 class FrontSourceTests(unittest.TestCase):
     def test_next_js_and_css_are_built_from_their_parts(self):

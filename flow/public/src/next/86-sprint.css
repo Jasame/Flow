@@ -1,0 +1,82 @@
+/* ---------- 考试冲刺 (r27): the line on 今日, the exam hub, the score trend, question-type practice ---------- */
+/* 今日: under the plan's title, one line (never a card) */
+.sprint-line{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:6px;text-decoration:none;color:var(--ink2);min-height:32px}
+.sprint-line b{color:var(--green-ink)}
+.sprint-line .pace{padding:1px 8px;border-radius:99px;background:var(--green-soft);color:var(--green-ink);font-size:12.5px}
+.sprint-line.behind .pace{background:var(--amber-soft);color:var(--amber)}
+
+/* the hub */
+.sp-when{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin:4px 0 0}
+.sp-when .link{min-height:32px}
+.sp-pace{display:grid;gap:8px;padding:16px;border-left:4px solid var(--line2)}
+.sp-pace h2{margin:0;font-size:17px}
+.sp-pace p{margin:0}
+.sp-pace.st-on_time,.sp-pace.st-done{border-left-color:var(--green)}
+.sp-pace.st-behind,.sp-pace.st-other_book,.sp-pace.st-no_plan,.sp-pace.st-past{border-left-color:var(--amber)}
+.sp-others summary{min-height:44px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none}
+.sp-others summary::-webkit-details-marker{display:none}
+.sp-others summary::after{content:'展开 ›';color:var(--green-ink)}
+.sp-others[open] summary::after{content:'收起'}
+.sp-others .exam-pick{margin-top:8px}
+.sp-invite{padding:14px}
+.h2 .tiny{font-weight:400;margin-left:6px}
+
+/* 成绩走势: the total, then three small lines */
+.trend{display:grid;gap:10px}
+.trend-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.trend-head b{font-variant-numeric:tabular-nums}
+.trend-chart{width:100%;overflow:hidden}
+.trend-chart.big{height:112px}
+.trend-chart.small{height:40px}
+.trend-chart svg{display:block}
+.trend-chart polyline{fill:none;stroke:var(--green);stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round}
+.trend-chart.small polyline{stroke-width:1.8}
+.trend-chart circle{fill:var(--paper);stroke:var(--green);stroke-width:2}
+.trend-chart circle.last{fill:var(--green)}
+.trend-chart line.g{stroke:var(--line);stroke-width:1}
+.trend-chart text{fill:var(--muted);font:11px var(--sans)}
+.trend-parts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.trend-parts .tp{display:grid;gap:2px;padding:10px;border-radius:12px;background:var(--sunk);min-width:0}
+.trend-parts b{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* a chip in a radio group (我的考试, 每周目标, 字号): the chosen one looks chosen */
+.chip[aria-checked=true]{border-color:var(--green);background:var(--green-soft);color:var(--green-ink);font-weight:600}
+
+/* dates */
+.plan-exam input[type=date],#sheetCard input[type=date]{width:100%;max-width:280px;min-height:46px;padding:8px 12px;border-radius:12px;border:1px solid var(--line2);background:var(--paper);font-size:16px}
+.plan-exam{margin-top:4px}
+
+/* one question type */
+.xt .exam-passage{margin:0}
+.xt-text{padding:4px 0}
+.xt .gap{display:inline;font:inherit;color:inherit;line-height:inherit;padding:2px 6px;border:0;border-bottom:2px solid var(--green);border-radius:6px;background:var(--green-soft)}
+.xt button.gap{min-height:32px;cursor:pointer}
+.xt .gap.ro{background:transparent}
+.xt .gap .gv{font-family:var(--sans);font-size:.92em;color:var(--green-ink)}
+.xt-bank{display:grid;gap:8px;padding:14px}
+.xt-banklist{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.xt-banklist li{display:flex;gap:10px;align-items:baseline;font-family:var(--serif);font-size:16px;line-height:1.5}
+.xt-banklist .k{font:700 14px var(--sans);color:var(--ink2);min-width:1.8em;flex:none}
+.xt-banklist.words{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 12px}
+.xt-banklist li.used span:last-child{color:var(--muted)}
+.xt-banklist li.used .k::after{content:' ✓';color:var(--green-ink)}
+.xt-para{display:grid;gap:6px}
+.xt-para>.row{gap:10px;align-items:center}
+.xt-para>.row>b,.xt-para>p>b,p.xt-para>b{font-family:var(--sans);color:var(--green-ink)}
+.xt-q .prompt{font-family:var(--serif);font-size:16.5px;line-height:1.55}
+.xt-opts{display:grid;gap:6px}
+.xt-letters{display:flex;flex-wrap:wrap;gap:6px}
+.xt-letters .ans{min-width:44px;min-height:44px;justify-content:center;padding:8px 0;font-family:var(--sans);font-weight:600}
+.xt-tf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.xt-tf .ans{justify-content:center;text-align:center;padding:10px 4px;font:600 13.5px var(--sans);min-height:44px}
+.xt-words{display:flex;flex-wrap:wrap;gap:6px}
+.xw{min-height:36px;min-width:32px;padding:4px 8px;border:1px solid var(--line2);border-radius:8px;background:var(--paper);font-family:var(--serif);font-size:16px}
+.xw.chosen{border-color:var(--amber);background:var(--amber-soft);box-shadow:inset 0 0 0 1px var(--amber)}
+.xt-pick .ans{width:100%}
+.xt-pick .ans .tiny{display:block}
+.xt .pit .ok{color:var(--green-ink)}
+.xt .pit .no{color:var(--red)}
+.xt .pit .tiny.muted{display:block}
+@media (min-width:768px){.xt-opts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#sheetCard .xt-pick .ans{background:var(--sunk)}
+#sheetCard .xt-pick .ans.chosen{box-shadow:inset 0 0 0 2px var(--green);background:var(--green-soft)}
