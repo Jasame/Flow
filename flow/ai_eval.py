@@ -20,7 +20,9 @@ site's data is never read or written. --text-model / --main-model try another mo
 only (nothing on the server changes); --route sends every task to one gateway model name for this run (ai_routes:
 flow-text for Gemini, a 百炼 line such as flow-qwen-plus); without it the tasks take the server's routes (FLOW_AI_ROUTES, or the console's with --site-settings). Each answer
 says which service gave it: when the text service fails, the main one answers, and the report counts those. The report
-also has the run's tokens and estimated cost by task and model (usage). About 90 model calls a run; --quick (the
+also has the run's tokens and estimated cost by task and model (usage), and the gateway names it asked (asked): a run
+takes the eval lane (flow-eval-X for flow-text-X, the owner's own 百炼 account) where the gateway has it; --lane none
+asks the learners' names. About 90 model calls a run; --quick (the
 nightly check, ai_routes.nightly) is a sample of about 17. Exit status 0 when every question passed, 1 when some did
 not, 2 when no model is configured.
 """
@@ -272,6 +274,7 @@ def _run(cases, kinds, repeat, say, quick=False):
                 if x['kind'] == 'content':
                     say(('  ✓ ' if x['ok'] else '  ✗ ') + f"内容 {x['id']}" + ('' if x['ok'] else '：' + '；'.join(x['why'])))
         s = ai_routes.summary(c, days=1)
+        report['asked'] = sorted({r[0] for r in c.execute('SELECT DISTINCT model FROM ai_calls')})
         report['usage'] = {'calls': s['total']['calls'], 'cost': s['total']['cost'], 'prompt': s['total']['prompt'], 'cached': s['total']['cached'],
                            'completion': s['total']['completion'], 'estimated': s['total']['estimated'],
                            'by_task': {k['kind']: {x: k[x] for x in ('calls', 'failed', 'backup', 'prompt', 'cached', 'completion', 'cost', 'seconds')}
@@ -317,6 +320,7 @@ def main(argv=None):
     ap.add_argument('--route', help='这次所有任务都问网关里的这个模型名（如 flow-text、flow-qwen-plus）')
     ap.add_argument('--site-settings', help='用这个网站的后台设置（console-settings.json）里的线路')
     ap.add_argument('--quick', action='store_true', help='只考一小部分（每晚的小评测，约 17 次调用）')
+    ap.add_argument('--lane', choices=('eval', 'none'), default='eval', help='eval（默认）：网关有 flow-eval-* 时走它（研发账号）；none：和学员用同一个名字')
     ap.add_argument('--only', help='只考其中几类：rewrite,essay,translate,content')
     ap.add_argument('--cases', default=str(CASES))
     ap.add_argument('--output', help='把每道题的详细结果写进这个 JSON 文件')
@@ -339,6 +343,8 @@ def main(argv=None):
             os.environ['FLOW_AI_ROUTES'] = json.dumps(routes)
     if args.route:
         os.environ['FLOW_AI_ROUTES'] = json.dumps({'*': args.route})
+    # development calls on their own account: flow-text-X asks flow-eval-X when the gateway has it (ai_routes lanes)
+    os.environ['FLOW_AI_LANE'] = '' if args.lane == 'none' else 'eval'
     # the run's own throwaway data, and no daily cap on it (the site's counts are elsewhere and untouched)
     os.environ['FLOW_DATA_DIR'] = tempfile.mkdtemp(prefix='flow-ai-eval-data-')
     os.environ['FLOW_AI_USER_DAILY_LIMIT'] = os.environ['FLOW_AI_DAILY_LIMIT'] = '100000'

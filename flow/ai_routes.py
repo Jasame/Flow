@@ -1,13 +1,19 @@
 """Which model answers each AI task, what every call cost, and the daily AI budget (xmc.hk console).
 
 Routes. A text task goes to one model name on the xmc-api gateway, with the same address and key as now. The default is
-FLOW_TEXT_AI_MODEL (flow-text: Gemini 3.8 Flash first). The others are the gateway's flow-* names, which point at models
-on Alibaba Cloud 百炼 (Model Studio, OpenAI-compatible mode: 通义千问 qwen-flash / qwen-plus / qwen-max, DeepSeek, Kimi,
-GLM … one key), each with Gemini as the gateway's backup line (tools/ai-gateway/README.md). A task's model is set in the
-console (console-settings.json 'ai_routes': {kind: name, '*': name}); FLOW_AI_ROUTES (JSON of the same shape) is the
-server's default; with neither, every task stays on flow-text, as before. The console offers the gateway's flow-* names
+FLOW_TEXT_AI_MODEL (flow-text: Gemini 3.8 Flash first). The others are the gateway's flow-text-* names, which point at
+models on Alibaba Cloud 百炼 (Model Studio, OpenAI-compatible mode: 通义千问, DeepSeek, Kimi, GLM … one key), each with
+Gemini as the gateway's backup line (tools/ai-gateway/README.md). A task's model is set in the console
+(console-settings.json 'ai_routes': {kind: name, '*': name}); FLOW_AI_ROUTES (JSON of the same shape) is the server's
+default; with neither, every task stays on flow-text, as before. The console offers the gateway's flow-text* names
 (GET /v1/models with the site's key) and FLOW_AI_CHOICES. Audio and web search never take a route: they go to the main
 model. When a route's lines all fail, Flow still falls back to the main model (chat_service.request_model).
+
+Lanes. Learners' calls go to the enterprise 百炼 account (the agreed discount); development and batch work go to the
+owner's own account (a student coupon), through names of their own on the gateway: with FLOW_AI_LANE=eval (ai_eval.py,
+the nightly check) flow-text-X becomes flow-eval-X, and 例句预生成 (fill-examples) asks flow-batch-X, whenever the
+gateway has that name; else the learners' name is used. When the coupon is spent, the gateway points those names at the
+enterprise upstream; nothing changes here.
 
 Every text request says "no thinking" (百炼's enable_thinking; qwen-plus / qwen-flash do not think by default, DeepSeek
 and the qwen3.5+ models do; the Gemini relay drops unknown fields), and a 百炼 route also asks for a JSON object on
@@ -37,6 +43,7 @@ EXTRA = {'fill-examples': ('例句预生成（批量）', 'next-examples'), 'dai
          'ai-check': ('部署自检', None), 'ai-check-json': ('部署自检', None)}
 LABEL.update({k: v[0] for k, v in EXTRA.items()})
 FREE_TEXT = {'chat', 'ai-check'}  # answers in prose, not JSON
+LANES = ('eval', 'batch')
 NAME = re.compile(r'[A-Za-z0-9][A-Za-z0-9._:/-]{0,79}')
 
 # Yuan per million tokens, list prices read 2026-11-24 (in 'cached': the price of input that hits the cache):
@@ -119,11 +126,24 @@ def _pick(kind, tables):
     return default_model(), 'default'
 
 
+LANE_OF = {'fill-examples': 'batch'}  # batch work in the site's own process, whatever FLOW_AI_LANE says
+
+
 def route(kind=None):
-    """The gateway model name this task asks."""
+    """The gateway model name this task asks (in its lane: LANE_OF, else this process's FLOW_AI_LANE)."""
     kind = kind or current()
+    lane = LANE_OF.get(kind)
     kind = EXTRA[kind][1] or kind if kind in EXTRA else kind
-    return _pick(kind, (('console', _settings().get('ai_routes') or {}), ('server', _env_routes())))[0]
+    return in_lane(_pick(kind, (('console', _settings().get('ai_routes') or {}), ('server', _env_routes())))[0], lane)
+
+
+def in_lane(name, lane=None):
+    """flow-text-X as flow-eval-X / flow-batch-X when this process runs in that lane and the gateway has the name."""
+    lane = lane if lane is not None else os.getenv('FLOW_AI_LANE', '').strip()
+    if lane not in LANES or not name.startswith('flow-text-'):
+        return name
+    other = f'flow-{lane}-' + name[len('flow-text-'):]
+    return other if other in gateway_models() else name
 
 
 def routes():
@@ -153,7 +173,7 @@ def gateway_models():
             req = urllib.request.Request(tp[0][:-len('/chat/completions')] + '/models',
                                          headers={'Authorization': 'Bearer ' + tp[1], 'User-Agent': 'jasa-flow/1.0'})
             with urllib.request.urlopen(req, timeout=4) as r:
-                names = sorted(m['id'] for m in json.load(r).get('data', []) if isinstance(m, dict) and str(m.get('id', '')).startswith('flow-'))
+                names = sorted(m['id'] for m in json.load(r).get('data', []) if isinstance(m, dict) and str(m.get('id', '')).startswith('flow-'))  # all lanes
     except Exception:  # noqa: BLE001 - the console then offers what is configured and in use
         names = []
     _CHOICES.update(at=time.time(), names=names)
@@ -161,8 +181,9 @@ def gateway_models():
 
 
 def choices():
-    """Model names the console may pick from: the gateway's flow-* names, FLOW_AI_CHOICES, and every name in use."""
-    names = set(gateway_models())
+    """Model names the console may pick from: the gateway's names for learners (flow-text, flow-text-*), FLOW_AI_CHOICES,
+    and every name in use."""
+    names = {n for n in gateway_models() if n == 'flow-text' or n.startswith('flow-text-')}
     names |= {n.strip() for n in os.getenv('FLOW_AI_CHOICES', '').split(',') if NAME.fullmatch(n.strip())}
     names |= {v['route'] for v in routes().values() if v['route']}
     if default_model():

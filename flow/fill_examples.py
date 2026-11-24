@@ -18,7 +18,8 @@ progress every 20 calls and stops after 5 failed calls in a row. Exit status 0 w
 words are left (stopped early or --max-calls reached), 2 when no model is configured.
 
 --offpeak: when the model the examples' route usually reaches has busy hours (DeepSeek on 百炼: 08:00–22:00 Beijing
-time; half price the rest of the day), wait them out. Qwen models have none (their half price is 百炼's batch API). It also stops for the day once the console's daily AI budget is spent (state
+time; half price the rest of the day), wait them out. Qwen models have none (their half price is 百炼's batch API).
+The calls take the batch lane (ai_routes): flow-batch-X for the examples' flow-text-X where the gateway has it. It also stops for the day once the console's daily AI budget is spent (state
 budget); run it again tomorrow. Every call is in ai_calls as 例句预生成（批量）.
 
 Run it in the background on the server, e.g.

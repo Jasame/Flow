@@ -95,32 +95,44 @@ cd /www/wwwroot/flow && python3 ai_check.py
 
 ## 按任务选模型：阿里云百炼或 Gemini（2026-11-24 起，ai_routes.py）
 
-用户定了用**阿里云百炼**（谈到六七折）：一个 key 就能调通义千问各档，以及百炼上的 DeepSeek、Kimi、GLM 等，走 OpenAI 兼容接口（compatible-mode）。Flow 可以按任务选网关里的模型名，不用删了再建 `flow-text`：
+用户定了用**阿里云百炼**：一个 key 就能调通义千问各档，以及百炼上的 DeepSeek、Kimi、GLM 等，走 OpenAI 兼容接口（compatible-mode）。有两个百炼账号：
+
+- **企业账号**（协议价，六七折）：正式版和内测版学员的调用都走它。网关上游 `bailian`。
+- **站长个人的学生账号**（一张 300 元「云工开物」券，领取后一年内有效，只能抵扣学生用券中心「大模型服务」里列出的模型）：跑研发和批量的活，包括 ai_eval 对比、每晚小评测、例句预生成、语音模型试验。网关上游 `bailian-dev`。**学生账号上跑哪些模型，以站长在学生用券中心看到的那份列表为准**，不在列表里的模型券抵不了。
+
+网关里的模型名按用途分三种前缀，Flow 自己会挑：
 
 ```
-Flow 文字任务 ─┬─ flow-text        → Gemini 3.8 Flash（备用：百炼 qwen-plus）
-               ├─ flow-qwen-flash  → 百炼 qwen-flash（备用：Gemini）
-               ├─ flow-qwen-plus   → 百炼 qwen-plus（备用：Gemini）
-               ├─ flow-qwen-max    → 百炼 qwen-max（备用：Gemini）
-               ├─ flow-qwen37-flash / flow-qwen37-plus → 百炼 qwen3.7-flash / qwen3.7-plus（备用：Gemini）
-               └─ flow-ds-flash    → 百炼 deepseek-v4.1-flash（备用：Gemini）
-都不通时，Flow 再换主模型 gemini-3.8-flash；录音、联网检索一直走主模型。
+学员（企业账号）  flow-text            → Gemini 3.8 Flash（现在的，备用：bailian / qwen-plus）
+                  flow-text-qwen37-plus → bailian / qwen3.7-plus（批改、讲解、改写的主力候选）
+                  flow-text-ds-flash    → bailian / deepseek-v4.1-flash（主力候选）
+                  flow-text-qwen-plus   → bailian / qwen-plus（便宜的对照组）
+                  flow-text-qwen37-flash→ bailian / qwen3.7-flash（量大、要求低：例句、翻译原句、对话）
+                  flow-text-qwen38-flash→ bailian / qwen3.8-flash（对话不够自然时换它）
+评测（学生账号）  flow-eval-<同名>      → bailian-dev / 同一个实际模型
+批量（学生账号）  flow-batch-<同名>     → bailian-dev / 同一个实际模型
+百炼的每条都配 Gemini 备用；都不通时，Flow 再换主模型 gemini-3.8-flash；录音、联网检索一直走主模型。
 ```
 
-网关里要有这几样（百炼的 API Key 由你本人在百炼控制台生成、填进网关，别人不经手；阿里云 AccessKey 也不用给任何人）：
+- 后台给某个任务选了 `flow-text-qwen37-plus`：学员的请求问它（企业账号）。`ai_eval.py` 和每晚小评测问 `flow-eval-qwen37-plus`，例句预生成问 `flow-batch-qwen37-plus`，这两个都走学生账号。网关里没有对应的 eval / batch 名字时，退回学员用的那个名字（企业账号）。评测报告里的 `asked` 会写明实际问了哪些名字。
+- **学生券用完或过期后**：在网关里把 `flow-eval-*`、`flow-batch-*` 改指 `bailian` 上游（删了重建，或者直接删掉，让 Flow 退回 `flow-text-*`）。Flow 代码不用动。
+- 这些都是候选，评测后不用的可以删。max 档、Kimi、deepseek-v4-pro 贵 5–20 倍，这几类任务用不上，不加。
+
+网关里要加的东西（两把百炼 API Key 都由站长本人在百炼控制台生成、填进网关，别人不经手；阿里云 AccessKey 也不用给任何人）：
 
 | 在哪里 | 加什么 |
 | --- | --- |
-| 上游连接 | `bailian`，地址见下面「地域」，密钥填百炼的 API Key，点「测试连接」 |
-| 模型与倍率 | `flow-qwen-flash` → `qwen-flash`；`flow-qwen-plus` → `qwen-plus`；`flow-qwen-max` → `qwen-max`；`flow-qwen37-flash` → `qwen3.7-flash`；`flow-qwen37-plus` → `qwen3.7-plus`；`flow-ds-flash` → `deepseek-v4.1-flash`（上游都是 `bailian`）。这些是候选，评测后不用的可以删 |
-| 备用线路 | 上面每个的备用：`gemini-flow` / `gemini-3.8-flash`；`flow-text` 的备用：`bailian` / `qwen-plus` |
+| 上游连接 | `bailian`（企业账号的 key）、`bailian-dev`（学生账号的 key），地址见下面「地域」，各点一次「测试连接」 |
+| 模型与倍率 | 上图的 `flow-text-*` 指向 `bailian`；需要的 `flow-eval-*`、`flow-batch-*` 指向 `bailian-dev`，实际模型同名 |
+| 备用线路 | 每个百炼名字的备用：`gemini-flow` / `gemini-3.8-flash`；`flow-text` 的备用：`bailian` / `qwen-plus` |
 
-- **地域**：百炼的 key 按地域分，不能混用。阿里云中国站（华北2 北京）的兼容地址是 `https://dashscope.aliyuncs.com/compatible-mode/v1`；官方建议改用工作空间域名 `https://<WorkspaceId>.cn-beijing.maas.aliyuncs.com/compatible-mode/v1`（2026-09-30 起新功能只上工作空间域名，WorkspaceId 在百炼控制台看）。国际站是新加坡 `dashscope-intl.aliyuncs.com`，另有中国香港地域。用哪个以你谈折扣的那个账号为准。网关在 base_url 后面接 `/chat/completions`，所以地址填到 `/v1` 为止。
-- 每个任务问哪个模型名，在 xmc.hk/flow →「AI 用量、费用和质量」里选：下拉框列的是网关里 `flow-` 开头的模型名（Flow 用自己的密钥问 `GET /v1/models`）。改了马上生效，记进操作记录。服务器上的默认值是 `FLOW_AI_ROUTES`（例如 `{"*": "flow-qwen-plus"}`）。两样都没有时，全部走 `flow-text`，和以前一样。**正式版上换模型之前先问过站长。**
-- Flow 每个文字请求都带 `"enable_thinking": false`：qwen-plus、qwen-flash 默认就不思考，百炼上的 DeepSeek 和 qwen3.5 以后的型号默认会思考，又慢又多花输出 token。走百炼的 JSON 任务还带 `response_format: {"type": "json_object"}`（百炼要求提示词里有 JSON 字样，Flow 的都有）。Gemini 中转站会忽略这两个字段。
-- 费用：后台按官方标价 × 平台折扣算（百炼默认 0.65，后台可以改；单价也可以改、可以加模型）。百炼的隐式缓存命中按输入价的 20% 算，但提示词要 1024 token 以上才会命中，Flow 现在的批改提示词大多不到 1000，所以基本吃不到。qwen-turbo 已经不在价格表里，用 qwen-flash 代替。
-- **换模型之前先考试**：在香港用内测版代码的一份副本，对每个候选各跑一次 `python3 ai_eval.py --env-file /etc/flow-beta.env --route flow-qwen-plus --output …`（`flow-text` 是 Gemini 的对照），比较通过数和报告里的 `usage`（token、命中缓存、估算费用）。哪个任务某个模型没过，那个任务就不换给它。
-- 后台每晚 2–5 点自动跑一次小评测（`ai_eval.py --quick`，约 17 次调用），结果画在同一页上。
+- **地域**：百炼的 key 按地域分，不能混用。阿里云中国站（华北2 北京）的兼容地址是 `https://dashscope.aliyuncs.com/compatible-mode/v1`。官方建议改用工作空间域名 `https://<WorkspaceId>.cn-beijing.maas.aliyuncs.com/compatible-mode/v1`：2026-09-30 起新功能只上工作空间域名，WorkspaceId 在百炼控制台看。国际站是新加坡 `dashscope-intl.aliyuncs.com`，另外还有中国香港地域。两个账号各按自己的地域填。网关会在 base_url 后面接 `/chat/completions`，所以地址填到 `/v1` 为止。
+- 每个任务问哪个模型名，在 xmc.hk/flow →「AI 用量、费用和质量」里选。下拉框列的是网关里的 `flow-text`、`flow-text-*`：Flow 用自己的密钥问 `GET /v1/models`。改了马上生效，记进操作记录。服务器上的默认值写在 `FLOW_AI_ROUTES` 里（例如 `{"*": "flow-text-qwen37-plus"}`）。两样都没有时，全部走 `flow-text`，和以前一样。**正式版上换模型之前先问过站长。**
+- Flow 每个文字请求都带 `"enable_thinking": false`。qwen-plus、qwen-flash 默认就不思考；百炼上的 DeepSeek 和 qwen3.5 以后的型号默认会思考，又慢，又多花输出 token。走百炼的 JSON 任务还带 `response_format: {"type": "json_object"}`：百炼要求提示词里有 JSON 字样，Flow 的提示词都有。Gemini 中转站会忽略这两个字段。思考默认全关；哪个批改任务效果不够，再单独给它试开（要改 Flow 代码里的 `extra_body`）。
+- 费用：后台按官方标价 × 平台折扣算。百炼默认按 0.65 折，后台可以改；单价也可以改，还可以加模型。学生账号上跑的（每晚小评测、例句预生成）也按这个价估，实际由学生券抵扣，券还剩多少要到百炼控制台看。
+- 缓存：百炼的隐式缓存命中按输入价的 20% 算，但要 1024 token 以上才可能命中。Flow 提示词里每次相同的开头只有 500–750 token，整条提示词也大多不到 1000，所以基本吃不到。qwen-turbo 已经不在价格表里了。
+- **换模型之前先考试**：在香港用内测版代码的一份副本，对每个候选跑 `python3 ai_eval.py --env-file /etc/flow-beta.env --route flow-text-qwen37-plus --output …`（走学生账号上的 `flow-eval-qwen37-plus`），用 `--route flow-text` 跑一遍 Gemini 作对照。比较通过数和报告里的 `usage`（token、命中缓存、估算费用）。哪个任务某个模型没过，那个任务就不换给它。
+- 后台每晚 2–5 点自动跑一次小评测（`ai_eval.py --quick`，约 17 次调用，走 `flow-eval-*`），结果画在同一页上。
 
 ## 日常：切换厂商
 

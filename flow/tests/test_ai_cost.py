@@ -1,5 +1,5 @@
 """AI routes, cost and budget (ai_routes.py): each task asks the gateway model name its route names (flow-text for
-Gemini, a 百炼 line such as flow-qwen-plus), always without thinking, JSON on 百炼; every call is written down with its
+Gemini, a 百炼 line such as flow-text-qwen-plus), always without thinking, JSON on 百炼; every call is written down with its
 tokens, cache hits, the model that answered and any fallback; costs are list price × the platform's discount, with
 DeepSeek-on-百炼's night half price and Gemini's 2027 price; the daily budget mails 管理员 once per level and stops batch
 work, never learners; the console switches routes (logged), shows the costs, samples shared
@@ -67,7 +67,7 @@ class Site(unittest.TestCase):
             p.start()
         for k in ('FLOW_AI_ROUTES', 'FLOW_TEXT_AI_URL', 'FLOW_TEXT_AI_KEY', 'FLOW_CHANNEL', 'FLOW_MAIL_OUTBOX'):
             os.environ.pop(k, None)
-        os.environ['FLOW_AI_CHOICES'] = 'flow-qwen-plus,flow-qwen-flash,flow-ds-flash'  # what the gateway would offer
+        os.environ['FLOW_AI_CHOICES'] = 'flow-text-qwen-plus,flow-text-qwen-flash,flow-text-ds-flash'  # what the gateway would offer
         ai_routes._CHOICES.update(at=time.time(), names=[])  # never ask a real gateway
         app.init()
 
@@ -103,29 +103,29 @@ class RouteTests(Site):
         self.assertEqual({v['route'] for v in ai_routes.routes().values()}, {'flow-text'})
 
     def test_a_task_on_a_bailian_line_asks_it_without_thinking_for_json(self):
-        self.route('next-rewrite', 'flow-qwen-plus')
-        got, sent = self.ask('next-rewrite', {'flow-qwen-plus': [answer('{"a":1}', 'qwen-plus')]})
-        self.assertEqual(sent[0]['model'], 'flow-qwen-plus')
+        self.route('next-rewrite', 'flow-text-qwen-plus')
+        got, sent = self.ask('next-rewrite', {'flow-text-qwen-plus': [answer('{"a":1}', 'qwen-plus')]})
+        self.assertEqual(sent[0]['model'], 'flow-text-qwen-plus')
         self.assertEqual((sent[0]['enable_thinking'], sent[0]['response_format']), (False, {'type': 'json_object'}))
         self.assertNotIn('thinking', sent[0])
         _, sent = self.ask('next-explain', {'flow-text': [answer('{}', 'gemini-3.8-flash')]})
         self.assertEqual(sent[0]['model'], 'flow-text')  # other tasks keep their own route
-        self.route('chat', 'flow-qwen-plus')
-        _, sent = self.ask('chat', {'flow-qwen-plus': [answer('hi', 'qwen-plus')]})
+        self.route('chat', 'flow-text-qwen-plus')
+        _, sent = self.ask('chat', {'flow-text-qwen-plus': [answer('hi', 'qwen-plus')]})
         self.assertNotIn('response_format', sent[0])  # free text
 
     def test_the_server_default_and_all_tasks_at_once(self):
-        with patch.dict(os.environ, {'FLOW_AI_ROUTES': json.dumps({'*': 'flow-qwen-flash', 'next-essay': 'flow-qwen-plus'})}):
-            self.assertEqual(ai_routes.route('next-rewrite'), 'flow-qwen-flash')
-            self.assertEqual(ai_routes.route('next-essay'), 'flow-qwen-plus')
-            self.assertEqual(ai_routes.route('fill-examples'), 'flow-qwen-flash')  # the batch follows AI 例句
+        with patch.dict(os.environ, {'FLOW_AI_ROUTES': json.dumps({'*': 'flow-text-qwen-flash', 'next-essay': 'flow-text-qwen-plus'})}):
+            self.assertEqual(ai_routes.route('next-rewrite'), 'flow-text-qwen-flash')
+            self.assertEqual(ai_routes.route('next-essay'), 'flow-text-qwen-plus')
+            self.assertEqual(ai_routes.route('fill-examples'), 'flow-text-qwen-flash')  # the batch follows AI 例句
             self.route('next-rewrite', 'flow-text')
             self.assertEqual(ai_routes.routes()['next-rewrite'], {'route': 'flow-text', 'source': 'console'})
-        body, status, changes = ai_routes.set_routes({'routes': {'*': 'flow-qwen-plus'}}, 'boss')
+        body, status, changes = ai_routes.set_routes({'routes': {'*': 'flow-text-qwen-plus'}}, 'boss')
         self.assertEqual(status, 200)
-        self.assertEqual(console_ops.settings()['ai_routes'], {'*': 'flow-qwen-plus'})  # per-task exceptions cleared
-        self.assertIn(('next-rewrite', 'flow-text', 'flow-qwen-plus'), changes)
-        for bad in ({'routes': {'next-rewrite': 'flow-gpt'}}, {'routes': {'nope': 'flow-qwen-plus'}}, {'routes': {}}):
+        self.assertEqual(console_ops.settings()['ai_routes'], {'*': 'flow-text-qwen-plus'})  # per-task exceptions cleared
+        self.assertIn(('next-rewrite', 'flow-text', 'flow-text-qwen-plus'), changes)
+        for bad in ({'routes': {'next-rewrite': 'flow-gpt'}}, {'routes': {'nope': 'flow-text-qwen-plus'}}, {'routes': {}}):
             self.assertEqual(ai_routes.set_routes(bad, 'boss')[1], 400)  # only names the gateway has
 
     def test_the_console_offers_the_gateways_flow_names(self):
@@ -134,27 +134,44 @@ class RouteTests(Site):
 
         def urlopen(req, timeout=None):
             sent.append((req.full_url, req.headers.get('Authorization')))
-            return Reply({'data': [{'id': 'flow-text'}, {'id': 'flow-qwen-max'}, {'id': 'gemini-3.8-flash'}, {'id': 'qwen-local-256k'}]})
+            return Reply({'data': [{'id': 'flow-text'}, {'id': 'flow-text-qwen37-plus'}, {'id': 'flow-eval-qwen37-plus'}, {'id': 'flow-batch-qwen37-flash'},
+                                   {'id': 'gemini-3.8-flash'}, {'id': 'qwen-local-256k'}]})
         with patch('urllib.request.urlopen', urlopen), patch.dict(os.environ, {'FLOW_AI_CHOICES': ''}):
             names = [c['name'] for c in ai_routes.choices()]
         self.assertEqual(sent, [('https://gw.test/v1/models', 'Bearer k')])
-        self.assertEqual(names, ['flow-text', 'flow-qwen-max'])  # flow-* only, the default first
-        self.assertEqual(ai_routes.set_routes({'routes': {'next-rewrite': 'flow-qwen-max'}}, 'boss')[1], 200)
+        self.assertEqual(names, ['flow-text', 'flow-text-qwen37-plus'])  # learners' names only, the default first
+        self.assertEqual(ai_routes.set_routes({'routes': {'next-rewrite': 'flow-text-qwen37-plus'}}, 'boss')[1], 200)
+        self.assertEqual(ai_routes.set_routes({'routes': {'next-rewrite': 'flow-eval-qwen37-plus'}}, 'boss')[1], 400)
+
+    def test_development_and_batch_calls_take_their_own_gateway_names(self):
+        ai_routes._CHOICES.update(at=time.time(), names=['flow-text-qwen37-plus', 'flow-eval-qwen37-plus', 'flow-batch-qwen37-flash', 'flow-text-qwen37-flash'])
+        self.route('next-rewrite', 'flow-text-qwen37-plus')
+        self.route('next-examples', 'flow-text-qwen37-flash')
+        self.assertEqual(ai_routes.route('next-rewrite'), 'flow-text-qwen37-plus')  # learners: the enterprise account
+        with patch.dict(os.environ, {'FLOW_AI_LANE': 'eval'}):
+            self.assertEqual(ai_routes.route('next-rewrite'), 'flow-eval-qwen37-plus')  # ai_eval / the nightly check
+            self.assertEqual(ai_routes.route('next-examples'), 'flow-text-qwen37-flash')  # no flow-eval- name: the learners' one
+        self.assertEqual(ai_routes.route('fill-examples'), 'flow-batch-qwen37-flash')  # 例句预生成
+        self.assertEqual(ai_routes.route('next-examples'), 'flow-text-qwen37-flash')
+        self.route('next-examples', 'flow-text')
+        self.assertEqual(ai_routes.route('fill-examples'), 'flow-text')  # Gemini has no lanes
+        _, sent = self.ask('fill-examples', {'flow-text': [answer('{}', 'gemini-3.8-flash')]})
+        self.assertEqual(sent[0]['model'], 'flow-text')
 
     def test_a_bailian_line_failing_hands_over_to_the_main_model_even_when_refused(self):
-        self.route('next-rewrite', 'flow-qwen-plus')
+        self.route('next-rewrite', 'flow-text-qwen-plus')
         for failure in (http(503), http(400), http(401)):
-            got, sent = self.ask('next-rewrite', {'flow-qwen-plus': [failure], 'gemini-3.8-flash': [answer('{"ok":1}', 'gemini-3.8-flash')]})
+            got, sent = self.ask('next-rewrite', {'flow-text-qwen-plus': [failure], 'gemini-3.8-flash': [answer('{"ok":1}', 'gemini-3.8-flash')]})
             self.assertEqual(got[0], '{"ok":1}', failure.code)
-            self.assertEqual([s['model'] for s in sent], ['flow-qwen-plus', 'gemini-3.8-flash'])
+            self.assertEqual([s['model'] for s in sent], ['flow-text-qwen-plus', 'gemini-3.8-flash'])
             self.assertNotIn('enable_thinking', sent[1])  # the main model gets the request as before
-        got, sent = self.ask('next-rewrite', {'flow-qwen-plus': [http(413)], 'gemini-3.8-flash': [answer('never', 'x')]})
+        got, sent = self.ask('next-rewrite', {'flow-text-qwen-plus': [http(413)], 'gemini-3.8-flash': [answer('never', 'x')]})
         self.assertIsInstance(got, urllib.error.HTTPError)  # too large: too large everywhere
         got, sent = self.ask('next-explain', {'flow-text': [http(400)], 'gemini-3.8-flash': [answer('never', 'x')]})
         self.assertIsInstance(got, urllib.error.HTTPError)  # flow-text refused: Gemini both times, not asked again
 
     def test_audio_never_takes_a_route(self):
-        self.route('next-shadow', 'flow-qwen-plus')
+        self.route('next-shadow', 'flow-text-qwen-plus')
         audio = {'mime_type': 'audio/webm', 'data': __import__('base64').b64encode(b'\x1aE\xdf\xa3' + b'0' * 4000).decode()}
         sent = []
         with patch('urllib.request.urlopen', gateway({'gemini-3.8-flash': [answer('heard', 'gemini-3.8-flash')]}, sent)), ai_routes.task('next-shadow'):
@@ -164,13 +181,13 @@ class RouteTests(Site):
 
 class RecordTests(Site):
     def test_each_attempt_is_written_down_with_tokens_cache_and_the_model_that_answered(self):
-        self.route('next-rewrite', 'flow-qwen-plus')
+        self.route('next-rewrite', 'flow-text-qwen-plus')
         use = {'prompt_tokens': 1500, 'completion_tokens': 400, 'prompt_tokens_details': {'cached_tokens': 1200}}
-        self.ask('next-rewrite', {'flow-qwen-plus': [answer('{"a":1}', 'qwen-plus', use)]})
+        self.ask('next-rewrite', {'flow-text-qwen-plus': [answer('{"a":1}', 'qwen-plus', use)]})
         self.ask('next-essay', {'flow-text': [http(502)], 'gemini-3.8-flash': [answer('{"b":2}', 'gemini-3.8-flash')]}, [{'role': 'user', 'content': '写作' * 50}])
         rows = self.calls()
         self.assertEqual([(r['kind'], r['service'], r['model'], r['served'], r['ok'], r['fallback']) for r in rows],
-                         [('next-rewrite', 'text', 'flow-qwen-plus', 'qwen-plus', 1, 0),
+                         [('next-rewrite', 'text', 'flow-text-qwen-plus', 'qwen-plus', 1, 0),
                           ('next-essay', 'text', 'flow-text', '', 0, 0), ('next-essay', 'main', 'gemini-3.8-flash', 'gemini-3.8-flash', 1, 1)])
         self.assertEqual((rows[0]['prompt'], rows[0]['cached'], rows[0]['completion'], rows[0]['estimated']), (1500, 1200, 400, 0))
         self.assertEqual(rows[1]['status'], 502)
@@ -178,14 +195,14 @@ class RecordTests(Site):
         self.assertEqual(rows[2]['prompt'], 60)    # 100 汉字 × 0.6
 
     def test_the_gateway_backup_line_shows_as_backup(self):
-        self.route('next-rewrite', 'flow-qwen-plus')
+        self.route('next-rewrite', 'flow-text-qwen-plus')
         for served in ('qwen-plus', 'qwen-plus', 'gemini-3.8-flash'):  # the last time 百炼 was down: the gateway's Gemini line answered
-            self.ask('next-rewrite', {'flow-qwen-plus': [answer('{}', served)]})
+            self.ask('next-rewrite', {'flow-text-qwen-plus': [answer('{}', served)]})
         with app.db() as c:
             k = next(x for x in ai_routes.summary(c)['kinds'] if x['kind'] == 'next-rewrite')
-        self.assertEqual((k['calls'], k['backup'], k['route']), (3, 1, 'flow-qwen-plus'))
+        self.assertEqual((k['calls'], k['backup'], k['route']), (3, 1, 'flow-text-qwen-plus'))
         names = {c['name']: c['label'] for c in ai_routes.choices()}
-        self.assertEqual(names['flow-qwen-plus'], '通义千问 Plus（不思考）（flow-qwen-plus）')  # named by what answers it
+        self.assertEqual(names['flow-text-qwen-plus'], '通义千问 Plus（不思考）（flow-text-qwen-plus）')  # named by what answers it
 
 
 class CostTests(Site):
@@ -324,18 +341,18 @@ class ConsoleTests(Site):
             return e.code, json.loads(e.read() or b'{}')
 
     def test_routes_are_switched_by_a_manager_and_logged(self):
-        st, body = self.console('/settings/ai-routes', {'routes': {'next-rewrite': 'flow-qwen-plus'}}, email=INTERN)
+        st, body = self.console('/settings/ai-routes', {'routes': {'next-rewrite': 'flow-text-qwen-plus'}}, email=INTERN)
         self.assertEqual(st, 403)
-        st, body = self.console('/settings/ai-routes', {'routes': {'next-rewrite': 'flow-qwen-plus'}})
-        self.assertEqual((st, body['routes']['next-rewrite']['route']), (200, 'flow-qwen-plus'))
+        st, body = self.console('/settings/ai-routes', {'routes': {'next-rewrite': 'flow-text-qwen-plus'}})
+        self.assertEqual((st, body['routes']['next-rewrite']['route']), (200, 'flow-text-qwen-plus'))
         with app.db() as c:
             log = c.execute("SELECT action, detail FROM flow_admin_log WHERE action='ai-routes'").fetchall()
-        self.assertEqual([tuple(r) for r in log], [('ai-routes', '仿写批改：flow-text → flow-qwen-plus')])
+        self.assertEqual([tuple(r) for r in log], [('ai-routes', '仿写批改：flow-text → flow-text-qwen-plus')])
         st, d = self.console('/ai?days=14', email=INTERN)
         self.assertEqual(st, 200)
         rw = next(k for k in d['costs']['kinds'] if k['kind'] == 'next-rewrite')
-        self.assertEqual((rw['route'], rw['source']), ('flow-qwen-plus', 'console'))
-        self.assertIn('flow-qwen-flash', [c['name'] for c in d['costs']['choices']])
+        self.assertEqual((rw['route'], rw['source']), ('flow-text-qwen-plus', 'console'))
+        self.assertIn('flow-text-qwen-flash', [c['name'] for c in d['costs']['choices']])
         self.assertIn('budget', d['costs']); self.assertIn('evals', d); self.assertIn('quality', d)
 
     def test_budget_and_nightly_check_from_the_console(self):
@@ -391,11 +408,11 @@ class EvalCommandTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d, patch.object(ai_eval, 'run', run), patch.dict(os.environ, GATEWAY), \
                 patch('lab_service.ai_enabled', return_value=True):
             site = Path(d) / 'console-settings.json'
-            site.write_text(json.dumps({'ai_routes': {'next-rewrite': 'flow-qwen-plus'}}))
+            site.write_text(json.dumps({'ai_routes': {'next-rewrite': 'flow-text-qwen-plus'}}))
             ai_eval.main(['--env-file', os.devnull, '--quick', '--site-settings', str(site)])
-            self.assertEqual((json.loads(seen['routes']), seen['quick']), ({'next-rewrite': 'flow-qwen-plus'}, True))
-            ai_eval.main(['--env-file', os.devnull, '--route', 'flow-qwen-plus', '--only', 'rewrite'])
-            self.assertEqual((json.loads(seen['routes']), seen['kinds']), ({'*': 'flow-qwen-plus'}, ('rewrite',)))
+            self.assertEqual((json.loads(seen['routes']), seen['quick']), ({'next-rewrite': 'flow-text-qwen-plus'}, True))
+            ai_eval.main(['--env-file', os.devnull, '--route', 'flow-text-qwen-plus', '--only', 'rewrite'])
+            self.assertEqual((json.loads(seen['routes']), seen['kinds']), ({'*': 'flow-text-qwen-plus'}, ('rewrite',)))
 
 
 if __name__ == '__main__':
