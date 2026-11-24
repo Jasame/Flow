@@ -42,6 +42,10 @@ GROUPS = ('按词频', '中学英语', '大学英语', '英语专业', '出国�
 WORDBOOK_FILES = None
 BOOK_ID = re.compile(r'[a-z][a-z0-9_-]{0,23}')
 LEVEL_BOOK = {'A2': 'core', 'B1': 'mid', 'B2': 'high', 'C1': 'adv'}
+# 「你在准备什么考试？」 at the top of the plan page: one tap picks that exam's book (「不考试」 picks suggested_book).
+# A chip shows only when its book is in the registry (the data books can be missing).
+EXAM_GOALS = (('中考', 'zk'), ('高考', 'gk'), ('四级', 'cet4'), ('六级', 'cet6'), ('考研', 'ky'), ('专四', 'tem4'),
+              ('专八', 'tem8'), ('雅思', 'ielts'), ('托福', 'toefl'), ('GRE', 'gre'))
 CORE_SKIP = 150  # "the", "be", "of"…: everyone knows them, and a flashcard of their dictionary entry helps no one
 DAILY_NEW = (5, 10, 15, 20, 30, 50, 80, 100)  # suggested; any number from 1 to DAILY_MAX is accepted
 DAILY_MAX = 200
@@ -668,7 +672,9 @@ def overview(c, uid):
     books = registry()
     for b in books:  # how many words a plan would skip in each book, for the estimate on the plan page
         b['skippable'] = _skipped(b['id'], ((p.get('test_skip') or skip_rank) if p else 0) or 0, force=True)
+    ids = {b['id'] for b in books}
     return {'plan': p, 'book': book, 'books': books, 'groups': book_groups(books), 'daily_new_options': list(DAILY_NEW), 'retention_options': list(RETENTION),
+            'exam_goals': [{'title': t, 'book': b} for t, b in EXAM_GOALS if b in ids],
             'suggested_book': (p.get('suggest') if p and p.get('suggest') in book_words() else None) or LEVEL_BOOK.get(_level(c, uid), 'mid'), 'mastered': mastered, 'learning': learning, 'total': len(rows),
             'forecast': forecast, 'calendar': calendar, 'reminder': reminder(c, uid), **counts(c, uid, now)}
 
