@@ -44,3 +44,4 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `87-route.css` | learning route, relation map, Chinese-speaker traps, mixed rounds, review passage |
 | `86-loop.css` | starting check, re-check tags, exam practice, serial episode list |
 | `85-phone.css` | phone layout from a 360 px audit (16px fields, card layouts, listen controls, one level of surface), the knowledge graph tiles and grammar-point pages |
+| `96-tidy.css` | phone tidy-up from a full-length audit: 存到手机 on the kicker line, 听's settings folded into one line, 读's tools in one row, the word-book picker folded, the 练习 list, 全部材料 filters |

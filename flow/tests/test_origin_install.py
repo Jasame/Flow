@@ -40,7 +40,7 @@ class OriginTests(unittest.TestCase):
 class FrontEndTests(unittest.TestCase):
     def test_the_study_header_shows_the_origin_and_the_sheet_has_the_writing_rules(self):
         js = (SRC / '20-study.js').read_text(encoding='utf-8')
-        self.assertIn('${originHTML(m, offChip(id))}', js)  # r22: 存到手机 rides on the same line; self.assertIn('function originSheet(m)', js)
+        self.assertIn('${originHTML(m)}', js); self.assertIn('${offChip(id)}</div>', js)  # 存到手机: on the kicker line (sh-top) since the phone tidy-up  # r22: 存到手机 rides on the same line; self.assertIn('function originSheet(m)', js)
         for rule in ('不抄、不改写已有的文章', '不写具体的统计数字、年份、价格和研究结论', '不写在世的真实人物', '在原文里找得到依据'):
             self.assertIn(rule, js)
         spec = (ROOT / 'corpus_data' / 'v5' / 'SPEC.md').read_text(encoding='utf-8')
