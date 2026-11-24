@@ -1320,7 +1320,7 @@ def sprint_run(pw):
                                   color_scheme=theme, bypass_csp=True)
         ctx.add_cookies([{'name': 'flow_session', 'value': tok, 'url': BASE}])
         pg = ctx.new_page(); errs = []
-        pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
         pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
         return ctx, pg, errs
 
