@@ -476,7 +476,7 @@
   }
 
   /* ---------- 班级试用：建班级、邀请码、老师；每个班的人数、近 7 天在学和试用人次（class_service.py） ---------- */
-  var JOIN = 'https://flowlang.cn/#/join/';
+  var JOIN = 'https://flowlang.cn/#/invite/';
   var CL = { shown: false };
   function classesView() {
     return getJSON('/classes').then(function (d) {

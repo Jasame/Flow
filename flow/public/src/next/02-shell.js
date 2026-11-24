@@ -301,7 +301,7 @@
       if (name === 'join') { location.replace('#/'); if (!S.user) setTimeout(() => openLogin('', 'reg'), 0); return; }
       if (name === 'welcome') { setNav(''); await welcome(a === 'edit'); }
       // Only the personalised home needs the level questions first; everything else works for a new guest too.
-      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix', 'easy', 'words', 'speak', 'growth', 'radar', 'practice', 'guide', 'feedback', 'weekly-off', 'join', 'class'].includes(name)) { location.replace('#/welcome'); return; }
+      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix', 'easy', 'words', 'speak', 'growth', 'radar', 'practice', 'guide', 'feedback', 'weekly-off', 'invite', 'class'].includes(name)) { location.replace('#/welcome'); return; }
       else if (name === 'placement') { setNav('practice'); await placementView(); }
       else if (name === 'exam') { setNav('practice'); await examView(a); }
       else if (name === 'series') { setNav('today'); await seriesView(decodeURIComponent(a || '')); }
@@ -324,7 +324,7 @@
       else if (name === 'practice') { setNav('practice'); await practiceView(); }
       else if (name === 'guide') { setNav('practice'); await guideView(a ? decodeURIComponent(a) : ''); }
       else if (name === 'me') { setNav('me'); await meView(); }
-      else if (name === 'join') { setNav('me'); await joinRoute(decodeURIComponent(a || '')); }
+      else if (name === 'invite') { setNav('me'); await joinRoute(decodeURIComponent(a || '')); }
       else if (name === 'class' && a) { setNav('me'); await classView(decodeURIComponent(a)); }
       else if (name === 'feedback') { setNav('me'); await feedbackView(); }
       else { setNav('today'); await today(fresh); }

@@ -1375,7 +1375,7 @@ def class_run(pw):
         ctx = browser.new_context(**phone)
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['student']['token'], 'url': BASE}])
         pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
-        pg.goto(BASE + '/#/join/' + k['code'].lower(), wait_until='networkidle')
+        pg.goto(BASE + '/#/invite/' + k['code'].lower(), wait_until='networkidle')
         pg.wait_for_selector('#clsJoin', timeout=8000)
         terms, found = pg.text_content('#sheetCard .cls-terms') or '', pg.text_content('#clsFound') or ''
         fits = pg.evaluate("() => document.getElementById('clsJoin').getBoundingClientRect().bottom <= innerHeight")
@@ -1404,7 +1404,7 @@ def class_run(pw):
               and 'ui-member' not in text and pg.evaluate(wide), (heights, points))
         pg.click('#clsQr'); pg.wait_for_timeout(300)
         read = pg.evaluate(QR_READ, '#clsQrC')
-        check(dev, '老师: the QR code reads back as the class\'s join link', read in (None, [BASE + '/#/join/' + k['code']]),
+        check(dev, '老师: the QR code reads back as the class\'s join link', read in (None, [BASE + '/#/invite/' + k['code']]),
               read if read is not None else 'no BarcodeDetector here (Linux): read on macOS')
         pg.screenshot(path=str(OUT / 'class-teacher.png'), full_page=True)
         check(dev, 'no page errors', not errs, errs[:3])

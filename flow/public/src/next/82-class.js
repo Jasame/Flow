@@ -2,7 +2,7 @@
   // What a teacher sees and does not, said the same way before joining and on the teacher's own page.
   const CLASS_SEES = ['最近 7 天全班几人在学', '全班最常错的 5 个语法点'];
   const CLASS_NOT = ['你的名字、作业、答题和学习记录', '你一个人学了多少、错了什么'];
-  const classLink = code => `${location.origin}/#/join/${encodeURIComponent(code)}`;
+  const classLink = code => `${location.origin}/#/invite/${encodeURIComponent(code)}`;
   function classTerms(min) {
     return `<div class="cls-terms"><div><b>老师能看到</b><ul>${CLASS_SEES.map(x => `<li class="yes">${x}</li>`).join('')}</ul></div>
       <div><b>老师看不到</b><ul>${CLASS_NOT.map(x => `<li class="no">${x}</li>`).join('')}</ul></div></div>
@@ -42,7 +42,7 @@
           const j = found.querySelector('#clsJoin');
           if (j) j.onclick = async () => {
             j.disabled = true;
-            try { S.myClass = await api('/api/next/class/join', { code: c }); closeSheet(); toast(`已加入「${r.name}」`); const v = document.getElementById('meClassV'); if (v) v.textContent = r.name; if (location.hash.startsWith('#/join')) location.replace('#/me'); }
+            try { S.myClass = await api('/api/next/class/join', { code: c }); closeSheet(); toast(`已加入「${r.name}」`); const v = document.getElementById('meClassV'); if (v) v.textContent = r.name; if (location.hash.startsWith('#/invite')) location.replace('#/me'); }
             catch (x) { err.textContent = x.message; j.disabled = false; }
           };
         } catch (x) { fieldError(form, err, { message: x.message, field: 'code' }); }
@@ -71,7 +71,7 @@
       };
     });
   }
-  // #/join/<code>: the link a teacher sends: 我的, with the sheet open and the code filled in.
+  // #/invite/<code>: the link a teacher sends: 我的, with the sheet open and the code filled in. (#/join is 认识语流's sign-up.)
   async function joinRoute(code) {
     await meView();
     if (!S.user) return openLogin('登录后就能加入班级（还没有账号可以先注册）');

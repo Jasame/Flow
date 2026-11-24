@@ -1,7 +1,7 @@
 {
- "source_sha256": "d36f6dfcfe99ad2a17c36bae1de0dbada6dd168b4ca63337db19913e711d3fcd",
- "pdf_sha256": "7c0e913c742e99defe0c342b8566fe6125b97c4ff7a7db21bc963b172dd9e2bb",
- "pdf_bytes": 3767745,
+ "source_sha256": "7af8f87507bdbbe9e8263329bb3b47f8e9e95b62e2fc3e4eb721ae9c3d20a60b",
+ "pdf_sha256": "162ab07ae5f90e2198fabf7d7b7254538abd19c53da8cab4696d365c623dd60b",
+ "pdf_bytes": 3767747,
  "shots": {
   "cards": "c11f72139868d6de0f32bb415397210aadc7a8f6c04d955067d5730d47950e02",
   "easy": "8a6699cd6eb689fa80a3f53bc314353d5eb06b9fd271a31dd5073746d8aa23e8",
