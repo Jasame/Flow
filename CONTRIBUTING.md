@@ -11,15 +11,21 @@
 
 ## 本地检查
 
+推送之前只跑改到的部分，全套交给 CI。CI 每个 Pull Request 都会把网站测试分 2 份、页面测试分 5 份同时跑，大约 6 分钟跑完。具体哪种改动跑哪些测试，见 [tools/README.md 的「推之前跑哪些测试」](tools/README.md)。
+
 ```bash
-cd flow
-python3 -m unittest discover -s tests -v
+python3 tools/run_tests.py --changed          # 这个分支改到的模块对应的网站测试
+python3 tools/run_tests.py test_vocab         # 指定的测试文件
+python3 tools/run_tests.py                    # 全部网站测试，多个进程同时跑（笔记本上约 3 分钟）
+python3 tools/run_tests.py --ui phone desktop # 改到的页面对应的设备组（需要 Playwright，用本机的 Chrome）
 ```
 
-前端检查（在仓库根目录，需要 Node.js）：构建出来的 `next.js`、`next.css` 和源文件一致，网站用到的脚本都能解析。学习网站的页面行为由 `tools/ui_test.py`（Playwright）检查；经典版和它的旧测试已归档在 `archive/classic/`。
+`next.js`、`next.css`、操作指南的 PDF 和 `manifest.json` 都是生成出来的，不提交：git 会忽略它们，发版时由 `tools/build_release.py` 用提交里的源文件生成。改前端只提交 `flow/public/src/next/` 里的源文件；改指南只提交 `guide.md` 和截图。想在本地看到生成的结果，运行 `python3 tools/build_release.py --here`（PDF 需要 Playwright）。合并 main 遇到冲突时，先运行 `python3 tools/settle_merge.py`：生成文件、`release-files.txt` 和 `upgrade.sh` 里的文件清单会自动处理好，剩下的才需要手工解决。
+
+前端检查（在仓库根目录，需要 Node.js）：
 
 ```bash
-python3 tools/build_front.py --check
+python3 tools/build_front.py
 for js in flow/public/next.js flow/public/sw.js flow/public/survey.js xmc-admin/admin.js; do node --check "$js" || exit; done
 ```
 

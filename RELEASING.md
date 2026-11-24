@@ -4,9 +4,10 @@ Requires Python 3.11 (standard library only), Git, and Node 22 for frontend regr
 From a clean checkout of the release commit:
 
 ```bash
+python3 tools/build_release.py --here   # next.js, next.css and the guide PDF are built, not kept in git (needs Playwright)
 python3 tools/release.py check
 python3 -m unittest discover -s tests -v
-(cd flow && python3 -m unittest discover -s tests -v)
+python3 tools/run_tests.py
 (cd flow-gateway && python3 -m unittest discover -s tests -v)
 python3 tools/build_front.py --check
 for js in flow/public/next.js flow/public/sw.js flow/public/survey.js xmc-admin/admin.js; do node --check "$js" || exit; done
