@@ -1408,6 +1408,88 @@ def a11y_run(pw):
         browser.close()
 
 
+def about_run(pw):
+    """认识语流 (/about), the introduction page: on every device and at 360 px, light and dark, under the page's own CSP:
+    nothing scrolls sideways, every part comes in as it is scrolled to, the screenshots load, no errors; then the demos
+    (tap a word, the word-book shelf, the questions), the ways in from the learning site, and the page with less motion
+    (screen readers, contrast)."""
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    sizes = {**DEVICES, 'phone-360': dict(viewport={'width': 360, 'height': 780}, is_mobile=True, has_touch=True, device_scale_factor=2)}
+    try:
+        for dev, opts in sizes.items():
+            for theme in ('light', 'dark'):
+                tag = f'about-{dev}-{theme}'
+                ctx = browser.new_context(**opts, locale='zh-CN', color_scheme=theme)
+                pg = ctx.new_page(); errors, bad = [], []
+                pg.on('pageerror', lambda e: errors.append(str(e)))
+                pg.on('console', lambda m: errors.append(m.text) if m.type == 'error' else None)
+                pg.on('response', lambda r: bad.append(f'{r.status} {r.url}') if r.status >= 400 else None)
+                pg.goto(BASE + '/about', wait_until='networkidle')
+                vh, y, wide = opts['viewport']['height'], 0, []
+                while y < pg.evaluate('document.scrollingElement.scrollHeight'):
+                    pg.evaluate(f'window.scrollTo(0, {y})'); pg.wait_for_timeout(110)
+                    wide.append(pg.evaluate('document.scrollingElement.scrollWidth - innerWidth'))
+                    y += int(vh * 0.6)
+                pg.wait_for_timeout(1400)
+                check(tag, 'no sideways scrolling anywhere on the page', max(wide) <= 0, max(wide))
+                left = pg.evaluate("[...document.querySelectorAll('.rv')].filter(e => !e.classList.contains('in')).map(e => e.className)")
+                check(tag, 'every part came in as it was scrolled to', not left, left[:4])
+                imgs = pg.evaluate("[...document.images].filter(i => i.getClientRects().length && !(i.complete && i.naturalWidth)).map(i => i.currentSrc || i.src)")
+                check(tag, 'every screenshot on the page has loaded', not imgs, imgs[:4])
+                dark_pics = pg.evaluate("[...document.images].filter(i => i.getClientRects().length && i.closest('picture')).every(i => /-d\\.jpg/.test(i.currentSrc) === matchMedia('(prefers-color-scheme: dark)').matches)")
+                check(tag, 'the screenshots follow light and dark', dark_pics)
+                check(tag, 'no page errors, CSP refusals or failed requests', not errors and not bad, errors[:3] + bad[:3])
+                pg.evaluate('window.scrollTo(0, 0)'); pg.wait_for_timeout(300)
+                pg.screenshot(path=str(OUT / f'{tag}.jpg'), type='jpeg', quality=60, full_page=True)
+                if theme == 'light':
+                    pg.evaluate("document.getElementById('lookup').scrollIntoView()"); pg.wait_for_timeout(600)
+                    pg.click('#demoSentence .wd[data-k="roar"]'); pg.wait_for_timeout(250)
+                    roar = pg.evaluate("[document.getElementById('lcWord').textContent, !!document.querySelector('#lcSrc mark')]")
+                    pg.click('#demoSentence .wd[data-k="drains"]'); pg.wait_for_timeout(250)
+                    drain = pg.evaluate("[document.getElementById('lcWord').textContent, document.getElementById('lcPh').textContent]")
+                    check(tag, 'tapping a word in the demo shows its dictionary entry (drains → drain, 原形)', roar == ['roar', True] and drain[0] == 'drain' and '原形 drain' in drain[1], (roar, drain))
+                    pg.evaluate("document.getElementById('books').scrollIntoView()"); pg.wait_for_timeout(300)
+                    pg.click('#shelfTabs .tab:has-text("英语专业")'); pg.wait_for_timeout(400)
+                    shelf = pg.evaluate("document.getElementById('shelfPanel').innerText + ' | ' + document.getElementById('shelfBasis').innerText")
+                    check(tag, 'the word-book shelf switches groups and says 专四、专八 are not official lists', '专四词汇' in shelf and '6,161' in shelf and '不是官方词表' in shelf, shelf[:160])
+                    pg.click('#faq .qa:first-child summary'); pg.wait_for_timeout(600)
+                    check(tag, 'a question opens', pg.evaluate("document.querySelector('#faq .qa').open"))
+                    if dev == 'desktop':
+                        pg.evaluate("document.querySelector('.step[data-step=\"2\"]').scrollIntoView({block: 'center', behavior: 'instant'})"); pg.wait_for_timeout(900)
+                        on = pg.evaluate("[document.querySelector('.layer.on') && document.querySelector('.layer.on').dataset.i, getComputedStyle(document.querySelector('.stage-in')).position]")
+                        check(tag, 'the phone beside the four steps follows the step being read', on == ['2', 'sticky'], on)
+                ctx.close()
+        # the ways in from the learning site, as a first-time guest
+        ctx = browser.new_context(**DEVICES['phone'], locale='zh-CN')
+        pg = ctx.new_page(); pg.goto(BASE + '/#/welcome', wait_until='networkidle'); settle(pg)
+        check('about', 'a first visit sees the line to 认识语流 under the starting questions', pg.query_selector('#view a[href="/about"]') is not None)
+        pg.goto(BASE + '/#/me'); settle(pg)
+        check('about', '我的 → 帮助 has 认识语流', pg.query_selector('#view a.grow[href="/about"]') is not None)
+        pg.goto(BASE + '/#/about'); pg.wait_for_url('**/about', timeout=6000)
+        check('about', '#/about (the guide links there) opens the page', pg.url.endswith('/about'))
+        pg.click('a[href="/#/join"]'); pg.wait_for_selector('#sheetCard', timeout=8000); pg.wait_for_timeout(400)
+        sheet = pg.evaluate("[document.getElementById('sheetTitle') && document.getElementById('sheetTitle').textContent, location.hash]")
+        check('about', '「注册账号」 opens the learning site with the sign-up sheet', sheet[0] == '注册语流' and sheet[1] in ('#/', '#/welcome'), sheet)
+        ctx.close()
+        # less motion: everything is there at once; names, alt text, contrast and lang in both themes
+        found = {}
+        for theme in ('light', 'dark'):
+            ctx = browser.new_context(**DEVICES['phone'], locale='zh-CN', color_scheme=theme, reduced_motion='reduce')
+            pg = ctx.new_page(); pg.goto(BASE + '/about', wait_until='networkidle'); pg.wait_for_timeout(300)
+            shown = pg.evaluate("[...document.querySelectorAll('.rv, .display .w')].every(e => getComputedStyle(e).opacity === '1')")
+            check('about', f'with less motion every part is shown at once ({theme})', shown)
+            for kind, items in pg.evaluate(A11Y_JS).items():
+                found.setdefault((kind, theme), []).extend(items)
+            ctx.close()
+        for kind, label in (('unnamed', 'every button and link has a name'), ('noalt', 'every image has alt text'), ('dupid', 'no id is used twice'),
+                            ('contrast', 'text contrast meets WCAG AA'), ('lang', 'English is marked lang="en"')):
+            for theme in ('light', 'dark'):
+                items = [x if isinstance(x, str) else json.dumps(x, ensure_ascii=False) for x in found.get((kind, theme), [])]
+                check('about', f'{label} ({theme})', not items, f'{len(items)}: ' + ' | '.join(items[:4]))
+    finally:
+        browser.close()
+
+
 # ---- 这周进步 (r27): the card at the top of 今日 on phones (390 and 360 px), a phone held sideways, a tablet and a
 # computer, in light and dark; its details; the three lines after a text; 每周进度邮件 in 我的; the mail's link
 PROGRESS_SIZES = {'phone-390': (390, 844), 'phone-360': (360, 780), 'phone-land': (844, 390), 'tablet': (820, 1180), 'desktop': (1440, 900)}
@@ -1512,6 +1594,12 @@ def progress_run(pw):
 
 def main():
     with sync_playwright() as pw:
+        if not ONLY or 'about' in ONLY:
+            try:
+                about_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('about', 'run finished', False, traceback.format_exc()[-600:])
         for dev, opts in DEVICES.items():
             if ONLY and dev not in ONLY:
                 continue
