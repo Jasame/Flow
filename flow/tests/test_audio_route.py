@@ -144,6 +144,19 @@ class AudioRouteTests(unittest.TestCase):
             cs.request_model([{'role': 'user', 'content': 'typed, not spoken'}])
         self.assertEqual(sent, ['flow-text'])  # a typed turn of the same task takes the text route
 
+    def test_the_recording_timeout_on_gemini_is_a_setting(self):
+        for env, want in (({}, 85), ({'FLOW_AUDIO_TIMEOUT': '40'}, 40), ({'FLOW_AUDIO_TIMEOUT': '5'}, 85), ({'FLOW_AUDIO_TIMEOUT': 'soon'}, 85)):
+            _, sent = self.ask([gemini()], kind='next-shadow', env=env)
+            self.assertEqual(sent[0][2], want, env)
+        seen = []
+
+        def urlopen(req, timeout=None):
+            seen.append(timeout)
+            return gemini('plain')
+        with patch.dict(os.environ, {'FLOW_AUDIO_TIMEOUT': '40'}), patch('urllib.request.urlopen', urlopen), ai_routes.task('chat'):
+            cs.request_model([{'role': 'user', 'content': 'typed'}])
+        self.assertEqual(seen, [85])  # text keeps its own timeout
+
     def test_evals_ask_the_eval_name_and_omni_has_a_price(self):
         with patch.dict(os.environ, {'FLOW_AUDIO_ROUTES': 'flow-audio-omni-flash', 'FLOW_AI_LANE': 'eval'}):
             self.assertEqual(ai_routes.audio_route('next-ielts'), 'flow-eval-omni-flash')

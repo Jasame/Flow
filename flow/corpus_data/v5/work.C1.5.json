@@ -1,0 +1,156 @@
+[
+ {
+  "id": "v5-work-c1-credit-where-due",
+  "title": "请上司帮我说明贡献",
+  "title_en": "Making Sure the Credit Lands in the Right Place",
+  "summary_zh": "自己做了一个月的分析，在高层会上被当成团队成果介绍，名字一次也没出现。Priya 没有抱怨，而是写信请上司帮忙补一句说明。读完你能写一封不指责、但清楚提出请求的邮件。",
+  "level": "B2",
+  "cefr": "C1",
+  "theme": "work",
+  "genre": "email",
+  "purposes": [
+   "workplace"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Dear Daniel, I hope you had a restful weekend. I wanted to follow up on Thursday's leadership meeting, where the supplier analysis was presented, because I think something got lost along the way and I would rather raise it now than let it quietly bother me. As you know, I spent most of last month building that analysis, from cleaning the raw data to designing the comparison that ended up on the final slide. The comparison was the part I was proudest of, because it took several iterations to make the numbers tell a coherent story. During the meeting, the work was introduced as the team's, which is entirely legitimate, but my name was not mentioned at any point, and two of the directors have since asked Marco to walk them through the figures. I am not suggesting anyone did this deliberately, and Marco has been nothing but helpful throughout. Still, being visible to the directors matters for the kind of projects I hope to lead next year, and I suspect it would be easy for this to recur unnoticed. I would rather sort it out with a light touch than let it turn into resentment. Would it be possible to send a short note to the directors clarifying who built the model and offering me as the person to contact about it? I would also welcome your advice on how to make my contribution clearer in future, whether that means presenting a section myself or attributing each section on the slides. I know this is a minor matter compared with everything else on your plate, so thank you for taking the time to read it. I am happy to talk it through in person if that is easier. Best wishes, Priya",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the main purpose of Priya's email?",
+    "options": [
+     "To complain that Marco took her work",
+     "To ask for a pay rise",
+     "To ask her manager to help make her contribution visible to the directors",
+     "To cancel next year's projects"
+    ],
+    "answer": 2,
+    "evidence": "Would it be possible to send a short note to the directors clarifying who built the model"
+   },
+   {
+    "type": "inference",
+    "prompt": "Why does Priya mention that Marco \"has been nothing but helpful\"?",
+    "options": [
+     "To make clear she is not accusing him",
+     "To recommend him for promotion",
+     "To show she prefers working alone",
+     "To ask Daniel to thank him"
+    ],
+    "answer": 0,
+    "evidence": "I am not suggesting anyone did this deliberately"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"on your plate\" mean in \"everything else on your plate\"?",
+    "options": [
+     "food you have not finished",
+     "money you owe",
+     "meetings you have missed",
+     "the work and responsibilities you are dealing with"
+    ],
+    "answer": 3,
+    "evidence": "everything else on your plate"
+   },
+   {
+    "type": "detail",
+    "prompt": "What happened after the meeting?",
+    "options": [
+     "Two directors asked Marco to explain the figures",
+     "The directors praised Priya by name",
+     "Daniel cancelled the project",
+     "Priya presented the slides again"
+    ],
+    "answer": 0,
+    "evidence": "two of the directors have since asked Marco to walk them through the figures"
+   }
+  ],
+  "dictation_index": 11,
+  "vocabulary": [
+   {
+    "term": "deliberately",
+    "meaning": "故意地",
+    "example": "I don't think he left you out deliberately."
+   },
+   {
+    "term": "visible",
+    "meaning": "看得见的；引人注意的",
+    "example": "Her hard work finally became visible to the whole team."
+   },
+   {
+    "term": "resentment",
+    "meaning": "怨恨；不满",
+    "example": "Small problems can turn into resentment if nobody talks about them."
+   },
+   {
+    "term": "contribution",
+    "meaning": "贡献",
+    "example": "Thank you for your contribution to the report."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "follow up on",
+    "meaning": "跟进（某事）",
+    "note": "职场邮件高频：I'm following up on our call yesterday."
+   },
+   {
+    "text": "got lost along the way",
+    "meaning": "在过程中被漏掉了",
+    "note": "委婉地说事情出了偏差，不指责具体的人。"
+   },
+   {
+    "text": "walk them through",
+    "meaning": "给他们一步步讲解",
+    "note": "walk sb through sth：Can you walk me through the plan?"
+   },
+   {
+    "text": "nothing but helpful",
+    "meaning": "一直都很帮忙",
+    "note": "nothing but + 形容词 = 完全是、只有：She has been nothing but kind."
+   },
+   {
+    "text": "with a light touch",
+    "meaning": "轻描淡写地；不大动干戈地",
+    "note": "处理敏感问题时，用温和的方式。"
+   },
+   {
+    "text": "talk it through",
+    "meaning": "当面把事情说清楚",
+    "note": "talk sth through：详细地讨论，一起想办法。"
+   }
+  ],
+  "grammar": [
+   "nonfinite-gerund",
+   "clause-nondefining",
+   "tense-perfect"
+  ],
+  "knowledge": [
+   {
+    "node": "nonfinite-gerund",
+    "quote": "being visible to the directors matters for the kind of projects I hope to lead next year",
+    "explanation": "动名词短语 being visible to the directors 作主语，谓语用单数 matters。"
+   },
+   {
+    "node": "clause-nondefining",
+    "quote": "Thursday's leadership meeting, where the supplier analysis was presented",
+    "explanation": "逗号后的 where 是非限制性定语从句，补充说明那次会议上发生了什么。"
+   },
+   {
+    "node": "tense-perfect",
+    "quote": "two of the directors have since asked Marco to walk them through the figures",
+    "explanation": "have since asked 用现在完成时，since 作副词，表示“从那以后（到现在）”已经发生了这件事。"
+   }
+  ],
+  "speaking": "用 1 分钟练习：你在小组作业或工作里做了很多，但汇报时没人提到你。你怎么跟老师或上司说？用上 follow up on 和 I am not suggesting…。",
+  "writing": "用 200–250 词写一封邮件，礼貌地请上司或老师帮忙说明你在一个项目里的贡献。不指责任何人，提出一个具体的请求。至少用一个动名词作主语的句子。",
+  "task": {
+   "prompt": "仿照这句，用 I would rather … than … 写一句话，说明你为什么现在就提出一个问题。",
+   "model": "I would rather raise it now than let it quietly bother me"
+  },
+  "tags": [
+   "职场邮件",
+   "向上沟通"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

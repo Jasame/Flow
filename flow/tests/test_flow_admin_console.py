@@ -277,9 +277,19 @@ class AiLimitTests(Console):
         self.assertEqual(self.console('/settings/ai-limits', {'user_limit': 'many'})[0], 400)
         body = self.console('/settings/ai-limits', {'user_limit': None, 'site_limit': ''})[1]
         self.assertEqual((body['user_limit'], body['user_limit_source'], body['site_limit']), (100, 'server', 2000))
-        self.assertEqual([r['detail'] for r in self.log()], ['每账号 2 次 · 全站 不限', '每账号 100 次 · 全站 2000 次'])
+        self.assertEqual([r['detail'].split(' · AI 朗读')[0] for r in self.log()], ['每账号 2 次 · 全站 不限', '每账号 100 次 · 全站 2000 次'])
         ai = self.console('/ai')[1]
         self.assertEqual(ai['limits']['user_limit'], 100)
+
+    def test_the_ai_voice_caps_are_set_in_the_console_too(self):
+        import tts_service
+        st, body = self.console('/settings/ai-limits', {'tts_import_chars': 8000, 'tts_import_percent': 50})
+        self.assertEqual((st, body['tts']['tts_import_chars'], body['tts']['tts_import_chars_source'], body['tts']['tts_import_percent']), (200, 8000, 'console', 50))
+        self.assertEqual((tts_service.cap('FLOW_TTS_IMPORT_CHARS'), tts_service.cap('FLOW_TTS_IMPORT_PERCENT')), (8000, 50))
+        self.assertEqual(self.console('/settings/ai-limits', {'tts_import_percent': 120})[0], 400)
+        self.assertIn('导入每账号 8000', self.log()[-1]['detail'])
+        body = self.console('/settings/ai-limits', {'tts_import_chars': None, 'tts_import_percent': ''})[1]
+        self.assertEqual((body['tts']['tts_import_chars'], body['tts']['tts_import_chars_source']), (10000, 'server'))
 
 
 class AnnouncementTests(Console):

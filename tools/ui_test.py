@@ -1527,6 +1527,25 @@ def listen_speak_run(pw):
                 pg.click('.line[data-i="0"] .snd a'); pg.wait_for_timeout(600)
                 check(dev, '跟读: 去练 opens that 发音入门 set', pg.evaluate("location.hash").startswith('#/sounds/') and bool(pg.query_selector('#view h1')), pg.evaluate('location.hash'))
 
+            if size == 'phone':  # 伴读 of an imported article: the server voice, sentence by sentence, its files its owner's only
+                text = ' '.join(['The library opens early on weekdays.', 'Students meet there before their first class.', 'Some of them read quietly in the corner.',
+                                 'Others work on group projects at the long tables.', 'By noon most seats are taken.', 'In the evening it is quiet again.'])
+                imp = pg.evaluate("([t, csrf]) => fetch('/api/next/import', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf}, "
+                                  "body: JSON.stringify({title: '图书馆的一天', text: t})}).then(r => r.json())", [text, CFG['learners'][learner]['csrf']])
+                go(pg, f"#/m/{imp['id']}/read"); pg.wait_for_selector('#readAlong'); pg.wait_for_timeout(300)
+                pg.click('#readAlong'); pg.wait_for_selector('#reader .sent.now', timeout=5000)
+                pg.wait_for_function("performance.getEntriesByType('resource').some(e => e.name.includes('/audio/own/'))", timeout=8000)
+                got = pg.evaluate("""() => { const r = performance.getEntriesByType('resource').map(e => e.name);
+                    return {have: r.some(n => n.includes('/api/next/tts/have')), own: r.filter(n => n.includes('/audio/own/')).map(n => n.split(location.host)[1]),
+                            first: (document.querySelector('#reader .sent.now') || {}).dataset.si}; }""")
+                check(dev, '伴读 of an import: read by the server voice from the learner\'s own files, the sentence lit',
+                      got['have'] and got['own'] and got['own'][0].startswith('/audio/own/us-f/') and got['first'] == '0', got)
+                pg.click('#readAlong')
+                other = browser.new_context(); op = other.new_page()
+                st = op.goto(BASE + got['own'][0]).status if got['own'] else 0
+                other.close()
+                check(dev, '伴读 of an import: someone else (signed out) cannot fetch its voice', st == 404, st)
+
             if size == 'phone':  # 留学: today's speaking step is the next 雅思口语 Part 1 topic, and it opens that topic
                 # its own learner: by now the device learners have set radar goals and spoken, which changes today's steps
                 me = CFG['learners']['abroad']
@@ -2082,6 +2101,16 @@ def about_run(pw):
                     check(tag, 'the word-book shelf switches groups and says 专四、专八 are not official lists', '专四词汇' in shelf and '6,161' in shelf and '不是官方词表' in shelf, shelf[:160])
                     pg.click('#faq .qa:first-child summary'); pg.wait_for_timeout(600)
                     check(tag, 'a question opens', pg.evaluate("document.querySelector('#faq .qa').open"))
+                    # 一分钟看懂语流: plays by itself once on screen, a bar jumps to its part, the button pauses
+                    pg.evaluate("document.getElementById('fmStage').scrollIntoView({block: 'center', behavior: 'instant'})"); pg.wait_for_timeout(1600)
+                    t1 = pg.evaluate("document.getElementById('fmTime').textContent"); pg.wait_for_timeout(1200)
+                    t2 = pg.evaluate("document.getElementById('fmTime').textContent")
+                    check(tag, 'the one-minute film plays by itself once it is on screen', t1 != t2 and pg.evaluate("document.getElementById('fmPlayL').textContent") == '暂停', (t1, t2))
+                    pg.click('#fmCh .fm-cb:nth-child(5)'); pg.wait_for_timeout(500)
+                    now = pg.evaluate("[document.getElementById('fmNow').textContent, document.querySelector('.fm-sc[data-seg=daily]').classList.contains('on')]")
+                    pg.click('#fmPlay'); pg.wait_for_timeout(200)
+                    t3 = pg.evaluate("document.getElementById('fmTime').textContent"); pg.wait_for_timeout(700)
+                    check(tag, 'a bar under the film jumps to its part (5 · 每天一篇) and the button pauses it', now == ['5 / 10 · 每天一篇', True] and t3 == pg.evaluate("document.getElementById('fmTime').textContent"), (now, t3))
                     if dev == 'desktop':
                         pg.evaluate("document.querySelector('.step[data-step=\"2\"]').scrollIntoView({block: 'center', behavior: 'instant'})"); pg.wait_for_timeout(900)
                         on = pg.evaluate("[document.querySelector('.layer.on') && document.querySelector('.layer.on').dataset.i, getComputedStyle(document.querySelector('.stage-in')).position]")
@@ -2106,9 +2135,24 @@ def about_run(pw):
             pg = ctx.new_page(); pg.goto(BASE + '/about', wait_until='networkidle'); pg.wait_for_timeout(300)
             shown = pg.evaluate("[...document.querySelectorAll('.rv, .display .w')].every(e => getComputedStyle(e).opacity === '1')")
             check('about', f'with less motion every part is shown at once ({theme})', shown)
+            pg.evaluate("document.getElementById('fmStage').scrollIntoView({block: 'center', behavior: 'instant'})"); pg.wait_for_timeout(1500)
+            still = pg.evaluate("[document.getElementById('fmPlayL').textContent, document.getElementById('fmNow').textContent, document.querySelector('.fm-sc[data-seg=speak]').classList.contains('on')]")
+            check('about', f'with less motion the film does not play by itself and shows the café conversation ({theme})', still == ['播放', '2 / 10 · 口语情景', True], still)
             for kind, items in pg.evaluate(A11Y_JS).items():
                 found.setdefault((kind, theme), []).extend(items)
             ctx.close()
+        # the film's recording view: the stage alone, the long and short cuts, and only the words the server allows
+        ctx = browser.new_context(viewport={'width': 1280, 'height': 720}, locale='zh-CN')
+        pg = ctx.new_page()
+        pg.goto(BASE + '/about?record=1&cut=short&gates=voice,fast', wait_until='networkidle')
+        rec = pg.evaluate("[Math.round(FILM.dur * 100) / 100, FILM.segs.map(s => s.id).join(' '), getComputedStyle(document.getElementById('fmStage')).position, FILM.caps.some(c => c[2].includes('一两秒'))]")
+        check('about', 'the film records: the short cut is 28.8 s in 6 parts, the stage fills the window', rec == [28.8, 'open speak daily words any end', 'fixed', True], rec)
+        pg.goto(BASE + '/about?record=1&cut=long', wait_until='networkidle')  # what this server has on (<html data-film>): the test server reads with the server voice, not on 百炼
+        said = pg.evaluate("""(() => { const on = (document.documentElement.dataset.film || '').split(' '), said = FILM.caps.map(c => c[2]).join(' ');
+          return [Math.round(FILM.dur * 100) / 100, FILM.segs.length, /一两秒/.test(said) === on.includes('fast'), /更像真人/.test(said) === on.includes('voice'),
+                  (getComputedStyle(document.querySelector('.fm-fast')).display === 'none') === !on.includes('fast'), on.join(' ')]; })()""")
+        check('about', 'the film mentions the server voice and quick replies only where the server has them on (long cut: 81.5 s, 10 parts)', said[:5] == [81.5, 10, True, True, True], said)
+        ctx.close()
         for kind, label in (('unnamed', 'every button and link has a name'), ('noalt', 'every image has alt text'), ('dupid', 'no id is used twice'),
                             ('contrast', 'text contrast meets WCAG AA'), ('lang', 'English is marked lang="en"')):
             for theme in ('light', 'dark'):

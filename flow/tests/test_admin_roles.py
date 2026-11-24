@@ -94,6 +94,13 @@ class ClassicArchivedTests(Servers):
         with patch.object(app, 'CHANNEL', 'beta'):  # the 内测版 says so on this page too and stays out of search results
             st, body, h = self.call(self.site, '/about', raw=True)
             self.assertIn(b'data-channel="beta"', body); self.assertEqual(h.get('X-Robots-Tag'), 'noindex, nofollow')
+        # the one-minute film talks about the server voice and quick typed replies only where the server has them on
+        with patch.object(app, '_FILM', {'at': 0.0, 'v': ''}), patch.dict(os.environ, {'FLOW_TTS_MODEL': '', 'FLOW_TEXT_AI_MODEL': 'flow-text'}):
+            body = self.call(self.site, '/about', raw=True)[1]
+            self.assertIn(b'data-film=""', body); self.assertNotIn(b'__FILM__', body)
+        with patch.object(app, '_FILM', {'at': 0.0, 'v': ''}), patch('tts_service.enabled', return_value=True), \
+                patch('ai_routes.route', return_value='flow-text-deepseek'), patch.dict(os.environ, {'FLOW_TEXT_AI_MODEL': 'flow-text'}):
+            self.assertIn(b'data-film="voice fast"', self.call(self.site, '/about', raw=True)[1])
 
     def test_the_introduction_page_says_what_the_data_says(self):
         """认识语流 shows the word books with their sizes and a tap-a-word demo with dictionary entries, copied into
