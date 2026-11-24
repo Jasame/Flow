@@ -62,7 +62,7 @@ h1,h2,h3{margin:0;line-height:1.25}
 .h2{font-size:18px;font-weight:700}
 .kicker{font-size:12.5px;font-weight:600;letter-spacing:.06em;color:var(--green-ink);text-transform:uppercase;margin-bottom:6px}
 .muted{color:var(--muted)}.small{font-size:13.5px}.tiny{font-size:12px}
-.stack{display:grid;gap:14px}.stack-s{display:grid;gap:8px}
+.stack{display:grid;gap:14px}.stack-s{display:grid;gap:8px}.stack-xs{display:grid;gap:3px}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row.between{justify-content:space-between}
 .section{margin-top:28px}
 .section-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;gap:10px}
@@ -492,6 +492,16 @@ details.basis[open]>summary{margin-bottom:0}
 .icon-btn.rec.on .dot{border-radius:3px;transform:scale(.85);animation:pulse 1s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.45}}
 .sh-res .tip{color:var(--green-ink)}
+/* 发音分 (AI estimate): the total, then 准确 / 流利 / 完整 as bars; a sentence that has one shows it on its row */
+.pron{display:grid;gap:10px}
+.pron-top{display:flex;align-items:center;gap:12px}
+.pron-n{font-size:30px;line-height:1;font-weight:800;font-variant-numeric:tabular-nums;color:var(--green-ink);min-width:2ch}
+.pron .ab{grid-template-columns:36px minmax(0,1fr) 48px}
+.pron .ab .nm{font-weight:500;color:var(--ink2)}
+.snd{display:grid;grid-template-columns:minmax(44px,max-content) minmax(0,1fr);gap:8px;align-items:baseline}
+.snd .ph{font-family:var(--serif);color:var(--amber-fill)}
+.pron-chip{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--green-ink);background:var(--paper);border:1px solid var(--green-line);border-radius:99px;padding:2px 9px}
+.line.sh:not(.cur) .sh-ctl>.pron-chip:not([hidden]){display:inline-block}
 .wdiff{font-family:var(--serif);font-size:17px;line-height:1.8}
 .wdiff .ok{color:var(--green-ink)}
 .wdiff .miss{color:var(--red);text-decoration:underline wavy color-mix(in srgb,var(--red) 60%,transparent);text-underline-offset:4px}
@@ -1382,6 +1392,45 @@ html[data-channel=beta] .auth::before{content:'这是内测版：账号和正式
   .study-head .title-en,.study-head .origin{display:none}
   .study-head .h1{font-size:19px;margin:0}
 }
+/* ---------- 雅思口语练习 (46-ielts.js): entry on the speaking route, Part 1 chat, Part 2 cue card and clock, feedback ---------- */
+.card.ielts-entry{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:14px 16px;text-decoration:none;color:inherit;border-left:3px solid var(--green)}
+.ielts-entry .go{color:var(--muted);font-size:20px}
+.ielts-note{color:var(--amber-fill);margin:0}  /* the darker amber: 5:1 on the page, as small text needs */
+.msg .who{padding:0 6px}
+.msg .better{padding:0 6px}
+.msg .better summary{cursor:pointer;color:var(--green-ink);list-style:none;padding:4px 0;min-height:24px}
+.msg .better summary::-webkit-details-marker{display:none}
+.msg .better summary::before{content:'▸ '}
+.msg .better[open] summary::before{content:'▾ '}
+.msg .better .text{font-family:var(--serif);font-size:15.5px;line-height:1.5;background:var(--paper);border:1px solid var(--green-line);border-radius:10px;padding:8px 12px;margin:4px 0}
+.cue{border:1.5px solid var(--line2);border-radius:var(--r);padding:14px 16px;background:var(--paper);font-family:var(--serif);font-size:16.5px;line-height:1.55;display:grid;gap:4px;overflow-wrap:anywhere}
+.cue{scroll-margin-top:84px}
+.cue ul{margin:0;padding-left:1.2em}
+.cue .small{font-family:var(--sans);color:var(--ink2)}
+.p2-clock{display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:10px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--sunk)}
+.p2-clock .lbl{font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.p2-clock b{font-size:24px;font-variant-numeric:tabular-nums;min-width:3.2ch}
+.p2-clock .vbar i{transition:width 1s linear}
+.p2-clock.talk{background:var(--red-soft)}
+.p2-clock.talk .vbar i{background:var(--red)}
+.rec-dot{width:10px;height:10px;border-radius:50%;background:var(--red);display:inline-block;animation:pulse 1s ease-in-out infinite}
+#p2Notes,#p2Txt{font-size:16px}
+.p2-kept{white-space:pre-wrap;overflow-wrap:anywhere}
+.ielts-top{display:grid;gap:8px}
+.ielts-overall{display:flex;align-items:baseline;gap:10px}
+.ielts-overall b{font-size:32px;line-height:1.1;color:var(--green-ink);font-variant-numeric:tabular-nums}
+.ielts-crit{gap:12px}
+.ielts-crit .crit{display:grid;gap:3px}
+.ielts-crit .ab{grid-template-columns:5.5em minmax(0,1fr) 3em}
+.ielts-crit .ab .nm{white-space:nowrap}
+.ielts-crit .up{color:var(--green-ink);font-weight:700}
+.ielts-model{font-size:16px;line-height:1.6;margin:0}
+/* a phone held sideways: while speaking, the card stays at the top and the clock at the foot of the screen */
+@media (max-height:500px) and (orientation:landscape){
+  .cue{font-size:15px;line-height:1.4;padding:10px 14px}
+  .p2-clock.talk{position:sticky;bottom:8px;z-index:2;box-shadow:var(--shadow)}
+}
+@media (prefers-reduced-motion:reduce){.rec-dot{animation:none}.p2-clock .vbar i{transition:none}}
 /* ---- 这周进步 (r27): the card at the top of 今日, its details sheet, the summary after a text, the unsubscribe page ---- */
 /* the card brings no outer margin: the page that holds it spaces its slot (today: under the plan) */
 .week-slot{margin:18px 0 2px}
@@ -1479,6 +1528,7 @@ a.fin-row:hover{background:var(--paper)}
 .lc-sh .btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
 .lc-out .miss{color:var(--red);text-decoration:underline wavy}
 .lc-out:empty{display:none}
+.lc-score{font-size:20px;font-variant-numeric:tabular-nums;color:var(--green-ink);margin-right:2px}
 .news-card{display:grid;gap:5px;padding:16px 18px;margin:0 0 18px;background:var(--paper);border:0;box-shadow:none;text-decoration:none;color:inherit}
 .news-card:hover{background:color-mix(in srgb,var(--paper) 90%,var(--amber-soft))}
 /* the darker amber (text on white needs 4.5:1; --amber gives 4.2) */

@@ -19,6 +19,7 @@
 .lc-sh .btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
 .lc-out .miss{color:var(--red);text-decoration:underline wavy}
 .lc-out:empty{display:none}
+.lc-score{font-size:20px;font-variant-numeric:tabular-nums;color:var(--green-ink);margin-right:2px}
 .news-card{display:grid;gap:5px;padding:16px 18px;margin:0 0 18px;background:var(--paper);border:0;box-shadow:none;text-decoration:none;color:inherit}
 .news-card:hover{background:color-mix(in srgb,var(--paper) 90%,var(--amber-soft))}
 /* the darker amber (text on white needs 4.5:1; --amber gives 4.2) */

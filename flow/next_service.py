@@ -1212,6 +1212,20 @@ def compare_words(target, heard):
     return out
 
 
+PRON_WEIGHTS = {'accuracy': 0.5, 'fluency': 0.25, 'complete': 0.25}
+
+
+def pron_score(r):
+    """跟读 score of one sentence, 0–100: accuracy and fluency are the AI's estimate from the recording; completeness is
+    counted here (the words of the sentence found in what it heard). None when the AI gave no estimate or heard none of
+    the sentence (then there is nothing to score)."""
+    if r.get('accuracy') is None or not r.get('words') or not r.get('matched'):
+        return None
+    complete = round(100 * r['matched'] / len(r['words']))
+    parts = {'accuracy': r['accuracy'], 'fluency': r.get('fluency_score') if r.get('fluency_score') is not None else 72, 'complete': complete}
+    return {**parts, 'total': round(sum(PRON_WEIGHTS[k] * v for k, v in parts.items()))}
+
+
 def shadow(c, uid, data):
     """Shadowing: the learner reads one sentence aloud; AI transcribes it and points out what to fix."""
     from lab_service import run_job, text as clean_text, audio_enabled
@@ -1236,18 +1250,41 @@ def shadow(c, uid, data):
     audio = data.get('audio')
     raw_audio = validate_audio(audio)
     level = (profile(c, uid) or {}).get('level') or 'B1'
+    import sounds as snd
+    sets = '；'.join(f"{x['id']}（{x['title']}）" for x in snd.SETS)
     system = ('你是英语口语老师，正在听一位中国学习者（' + level + '）跟读一句英文。先忠实转写你实际听到的英文，听不清的部分写 [听不清]，'
-              '不要按原句补全。然后对照原句给出简短、具体、能马上改的建议：漏读或读错的词、明显的重音/元音/尾音问题、该连读或停顿的地方。'
-              '只在有把握时指出发音问题，不要打分。只输出 JSON。')
-    user = ('原句：' + sentence + '\n\n输出 JSON：{"transcript":"你听到的英文","issues":[{"word":"原句中的词或短语","note":"中文：问题和改法"}],'
-            '"tip":"一句最重要的中文建议","fluency":"smooth|ok|choppy"}。issues 最多 4 条，读得好就给空数组。')
+              '不要按原句补全。然后只根据录音本身估计发音：accuracy 是发音准确度（0–100：90 以上几乎每个音都准；75–89 个别音不准、不影响听懂；'
+              '60–74 有几处明显错音、要仔细听；40–59 很多词读错或含糊；40 以下大部分听不清），fluency_score 是流利度（0–100：语速自然、'
+              '停顿在意群之间为高；一词一顿、反复重来为低）。口音本身不扣分，只看别人能不能听清。漏读的词不算进准确度（完整度另算）。'
+              '再找出最需要练的音（最多 3 个，只在有把握时写）和其他要注意的地方（漏读、重音、连读、停顿）。只输出 JSON。')
+    user = ('原句：' + sentence + '\n\n发音入门里能练的音（set 填其中一个 id，都不合适就填空字符串）：' + sets +
+            '\n\n输出 JSON：{"transcript":"你听到的英文","accuracy":0-100,"fluency_score":0-100,"fluency":"smooth|ok|choppy",'
+            '"sounds":[{"sound":"音标，如 /v/","word":"原句中读错这个音的词","note":"中文：读成了什么、怎么改","set":"发音入门的 id 或空字符串"}],'
+            '"issues":[{"word":"原句中的词或短语","note":"中文：问题和改法"}],"tip":"一句最重要的中文建议"}。'
+            'sounds 最多 3 条，issues 最多 3 条，读得好就给空数组。')
+
+    def score_of(v):
+        try:
+            return max(0, min(100, int(round(float(v)))))
+        except (TypeError, ValueError):
+            return None
 
     def convert(raw):
         if not isinstance(raw, dict):
             raise ValueError('bad')
+        flu = raw.get('fluency') if raw.get('fluency') in ('smooth', 'ok', 'choppy') else 'ok'
         out = {'transcript': clean_text(raw.get('transcript') or '', 0, 600), 'tip': clean_text(raw.get('tip') or '', 0, 300),
-               'fluency': raw.get('fluency') if raw.get('fluency') in ('smooth', 'ok', 'choppy') else 'ok', 'issues': []}
-        for it in (raw.get('issues') or [])[:4]:
+               'fluency': flu, 'accuracy': score_of(raw.get('accuracy')), 'fluency_score': score_of(raw.get('fluency_score')), 'issues': [], 'sounds': []}
+        if out['fluency_score'] is None and out['accuracy'] is not None:
+            out['fluency_score'] = {'smooth': 88, 'ok': 72, 'choppy': 50}[flu]
+        said = set(_words(sentence))
+        titles = {x['id']: x['title'] for x in snd.SETS}
+        for it in (raw.get('sounds') or [])[:3]:
+            if isinstance(it, dict) and it.get('sound') and it.get('note') and _words(str(it.get('word') or ''))[:1] and set(_words(str(it['word']))) <= said:
+                sid = it.get('set') if it.get('set') in titles else ''
+                out['sounds'].append({'sound': clean_text(it['sound'], 1, 16), 'word': clean_text(it['word'], 1, 40), 'note': clean_text(it['note'], 1, 200),
+                                      'set': sid, 'set_title': titles.get(sid, '')})
+        for it in (raw.get('issues') or [])[:3]:
             if isinstance(it, dict) and it.get('word') and it.get('note'):
                 out['issues'].append({'word': clean_text(it['word'], 1, 80), 'note': clean_text(it['note'], 1, 300)})
         return out
@@ -1260,11 +1297,14 @@ def shadow(c, uid, data):
         r['words'] = compare_words(sentence, r['transcript'])
         r['matched'] = sum(1 for w in r['words'] if w['ok'])
         r['sentence'] = sentence
+        r['score'] = pron_score(r)
         if result.get('replayed'):
             return result, status
         import skills_service as sk
         sk.log(c, uid, 'speaking', 'shadow', r['matched'] / max(1, len(r['words'])), lvl, pid, commit=False)
-        for it in r['issues'][:2]:
+        if r['score']:
+            sk.log(c, uid, 'pronunciation', 'shadow-pron', r['score']['total'] / 100, lvl, pid, commit=False)
+        for it in ([{'word': x['word'], 'note': x['sound'] + '：' + x['note']} for x in r.get('sounds') or []] + r['issues'])[:2]:
             sk.add_mistake(c, uid, 'sound', it['word'], 'sound:' + _norm(it['word']), it['note'], sentence, 'pronunciation', pack=pid, commit=False)
         c.commit()
     return result, status
@@ -1414,6 +1454,8 @@ def get(c, uid, path, q):
         return {'items': WL.round_of(groups, per=3 if len(groups) == 1 else 2), 'groups': [{'id': g, 'words': WL.GROUPS[g][1], 'how': WL.GROUPS[g][2]} for g in groups]}, 200
     if path == '/api/next/speak':
         return __import__('scenarios').listing(c, uid, (profile(c, uid) or {}).get('level') or one('level') or None), 200
+    if path == '/api/next/ielts':
+        return __import__('ielts_speaking').listing(c, uid), 200
     if path == '/api/next/mix':
         return GB.mix(c, uid, pair=one('pair') or None, topic=one('topic') or None, level=one('level') or None)
     if path == '/api/next/exam':
@@ -1483,7 +1525,8 @@ def post_public(c, uid, path, data):
 
 
 AI_PATHS = ('/api/next/assess/speaking', '/api/next/assess/writing', '/api/next/rewrite', '/api/next/variant', '/api/next/explain', '/api/next/shadow', '/api/next/vocab/examples', '/api/next/import/enrich',
-            '/api/next/retell', '/api/next/dialog', '/api/next/essay', '/api/next/translate/source', '/api/next/translate', '/api/next/say')
+            '/api/next/retell', '/api/next/dialog', '/api/next/essay', '/api/next/translate/source', '/api/next/translate', '/api/next/say',
+            '/api/next/ielts')
 
 
 def post(c, uid, path, data):
@@ -1526,6 +1569,8 @@ def post(c, uid, path, data):
         return explain(c, uid, data)
     if path == '/api/next/shadow':
         return shadow(c, uid, data)
+    if path == '/api/next/ielts':
+        return __import__('ielts_speaking').post(c, uid, data)
     if path == '/api/next/skill':
         return __import__('skills_service').post(c, uid, path, data)
     if path.startswith('/api/next/import'):

@@ -173,15 +173,34 @@
     }
     const wordsHTML = ws => `<div class="wdiff">${ws.map(w => `<span class="${w.ok ? 'ok' : 'miss'}">${esc(w.w)}</span>`).join(' ')}</div>`;
 
+    // 发音分 of 跟读: accuracy and fluency are the AI's estimate from the recording, completeness is counted from what it
+    // heard (next_service.pron_score). Each sentence's latest score stays on its row while the material is open.
+    const shScores = m._shScores || (m._shScores = {});
+    function shAvgHTML() {
+      const v = Object.values(shScores);
+      return `<p class="tiny muted" id="shAvg"${v.length ? '' : ' hidden'}>${v.length ? `这篇已经点评 ${v.length} 句，发音分平均 ${Math.round(v.reduce((a, b) => a + b, 0) / v.length)}（AI 估计）` : ''}</p>`;
+    }
+    function pronHTML(x) {
+      const sc = x.score;
+      if (!sc) return x.matched ? '' : '<div class="small err">AI 没听清这一句。离手机近一点，完整读一遍再点评。</div>';
+      const bar = (l, v, txt) => `<div class="ab"><span class="nm">${l}</span><span class="vbar"><i data-w="${v}"></i></span><span class="lv">${txt == null ? v : txt}</span></div>`;
+      return `<div class="pron"><div class="pron-top"><b class="pron-n">${sc.total}</b><span class="stack-xs"><b>发音分</b><span class="tiny muted">AI 听录音给的估计，仅供参考</span></span></div>
+          <div class="ab-list">${bar('准确', sc.accuracy)}${bar('流利', sc.fluency)}${bar('完整', sc.complete, `${x.matched}/${x.words.length}`)}</div></div>`;
+    }
+    function soundsHTML(ss) {
+      return ss && ss.length ? `<div class="stack-s"><b class="small">要练的音</b>${ss.map(s => `<div class="snd small"><b class="ph">${esc(s.sound)}</b>
+          <span><b>${esc(s.word)}</b>：${esc(s.note)}${s.set ? ` <a class="link" href="#/sounds/${encodeURIComponent(s.set)}" data-tap="shadow-sound">去练 ${esc(s.set_title)} →</a>` : ''}</span></div>`).join('')}</div>` : '';
+    }
     async function shadowMode() {
       const ls = lines(), nm = await narration(ls);
       // Every sentence keeps its ▶; the recording tools (●, 对比, AI 点评) show under the sentence being practised only,
       // so eleven rows of four buttons do not bury the text. A tap anywhere on a sentence makes it the one.
-      pane.innerHTML = `${listenHead()}<p class="muted small">点一句开始练：先点 ▶ 听原声，再点 ● 跟着读一遍（再点一次停止）。「对比」先放原声再放你的录音；${S.user ? '「AI 点评」会写出它听到的内容，并指出要改的地方。' : '登录后可以让 AI 点评。'}</p>
+      pane.innerHTML = `${listenHead()}<p class="muted small">点一句开始练：先点 ▶ 听原声，再点 ● 跟着读一遍（再点一次停止）。「对比」先放原声再放你的录音；${S.user ? '「AI 点评」给一个发音分（AI 估计），写出它听到的内容和要练的音。' : '登录后可以让 AI 点评、给发音分。'}</p>
+        ${shAvgHTML()}
         <div class="lines">${ls.map((s, i) => `<div class="line sh${i === 0 ? ' cur' : ''}" data-i="${i}"><div class="txt">${esc(s)}</div>
           <div class="sh-ctl"><button class="icon-btn" data-o="${i}" aria-label="听原声">${ICON.play.replace('<svg', '<svg fill="currentColor"')}</button>
             <button class="icon-btn rec" data-r="${i}" aria-label="录音"><span class="dot"></span></button>
-            <button class="btn small" data-c="${i}" disabled>对比</button><button class="btn small" data-ai="${i}" disabled>✦ AI 点评</button></div>
+            <button class="btn small" data-c="${i}" disabled>对比</button><button class="btn small" data-ai="${i}" disabled>✦ AI 点评</button>${shScores[i] != null ? `<span class="pron-chip" data-sc="${i}" title="这一句的发音分（AI 估计）">${shScores[i]}</span>` : `<span class="pron-chip" data-sc="${i}" hidden></span>`}</div>
           <div class="sh-out"></div></div>`).join('')}</div>
         <div class="section row between"><span></span><button class="btn" id="toRead">去读 →</button></div>`;
       const REC = { mr: null, blobs: {}, timer: 0, url: {} };
@@ -225,9 +244,17 @@
           const mime = /mp4|m4a|aac/.test(blob.type) ? 'audio/mp4' : /ogg/.test(blob.type) ? 'audio/ogg' : 'audio/webm';
           const x = (await api('/api/next/shadow', { pack: id, i, audio: { mime_type: mime, data }, request_id: rid('sh') })).result;
           const flu = { smooth: '流畅', ok: '基本流畅', choppy: '有点断断续续' }[x.fluency];
-          row(i).querySelector('.sh-out').innerHTML = `<div class="card flat sh-res stack-s enter">${wordsHTML(x.words)}
-            <div class="tiny muted">AI 听到：${esc(x.transcript || '（没听清）')} · 读到 ${x.matched}/${x.words.length} 个词 · ${flu}</div>
-            ${x.issues.map(it => `<div class="small"><b>${esc(it.word)}</b>：${esc(it.note)}</div>`).join('')}${x.tip ? `<div class="small tip">建议：${esc(x.tip)}</div>` : ''}</div>`;
+          const out = row(i).querySelector('.sh-out');
+          out.innerHTML = `<div class="card flat sh-res stack-s enter">${pronHTML(x)}${soundsHTML(x.sounds)}
+            ${x.issues.length ? `<div class="stack-s"><b class="small">${x.sounds && x.sounds.length ? '其他要注意的' : '要注意的'}</b>${x.issues.map(it => `<div class="small"><b>${esc(it.word)}</b>：${esc(it.note)}</div>`).join('')}</div>` : ''}
+            ${x.tip ? `<div class="small tip">建议：${esc(x.tip)}</div>` : ''}
+            <div class="stack-xs">${wordsHTML(x.words)}<div class="tiny muted">AI 听到：${esc(x.transcript || '（没听清）')} · 读到 ${x.matched}/${x.words.length} 个词${x.score ? '' : ' · ' + flu}</div></div></div>`;
+          requestAnimationFrame(() => requestAnimationFrame(() => out.querySelectorAll('.vbar i').forEach(b => { b.style.width = b.dataset.w + '%'; })));
+          if (x.score) {
+            shScores[i] = x.score.total;
+            const chip = row(i).querySelector('[data-sc]'); chip.textContent = x.score.total; chip.hidden = false;
+            const avg = pane.querySelector('#shAvg'); if (avg) avg.outerHTML = shAvgHTML();
+          }
         } catch (e) { toast(e.message); }
         btn.disabled = false; btn.textContent = '✦ AI 点评';
       }

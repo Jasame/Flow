@@ -175,6 +175,7 @@ flow/graph_service.py
 flow/growth_report.py
 flow/growth_service.py
 flow/guest_first.py
+flow/ielts_speaking.py
 flow/import_service.py
 flow/knowledge_service.py
 flow/lab_service.py
@@ -218,6 +219,9 @@ flow/public/guide/read.jpg
 flow/public/guide/report.jpg
 flow/public/guide/review.jpg
 flow/public/guide/speak.jpg
+flow/public/guide/shadow.jpg
+flow/public/guide/ielts.jpg
+flow/public/guide/ielts-fb.jpg
 flow/public/guide/today.jpg
 flow/public/guide/week.jpg
 flow/public/guide/welcome.jpg
@@ -297,6 +301,7 @@ flow/tests/test_ai_eval.py
 flow/tests/test_rewrite_minimal.py
 flow/tests/test_vertex.py
 flow/tests/test_vocab.py
+flow/tests/test_ielts_speaking.py
 flow/tests/test_wordbook_registry.py
 flow/tests/test_wordbooks.py
 flow/tests/test_wordbooks_open.py
