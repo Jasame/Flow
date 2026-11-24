@@ -9,7 +9,8 @@ import csv, datetime, io, json, os, time
 DAY = 86400
 KIND_LABEL = {'next-rewrite': '仿写改写', 'next-explain': '句子讲解', 'next-variant': '难度改写', 'next-shadow': '跟读点评',
               'next-examples': 'AI 例句', 'next-retell': '复述', 'next-dialog': '情景对话', 'next-essay': '短文批改',
-              'next-translate': '翻译批改', 'next-transsrc': '翻译原句', 'next-say': '发音检查', 'next-enrich': '导入文章出题'}
+              'next-translate': '翻译批改', 'next-transsrc': '翻译原句', 'next-say': '发音检查', 'next-enrich': '导入文章出题',
+              'next-ielts': '雅思口语'}
 RATE_LABEL = {'again': '忘了', 'hard': '模糊', 'good': '记得', 'easy': '很熟', 'known': '标为熟知', 'used': '写作用对',
               'misused': '写作用错', 'lookup': '阅读时查词'}
 SOURCE_LABEL = {'book': '词书每日新词', 'saved': '读文章时收藏', 'import': '自己导入', 'mistake': '错题加入'}

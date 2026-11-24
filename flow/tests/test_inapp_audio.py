@@ -30,6 +30,17 @@ class LookupAudioTests(unittest.TestCase):
         body, _ = nx.get(None, None, '/api/next/lookup', {'w': ['unrecordedwordzz']})
         self.assertIsNone(body['entry'])
 
+    def test_words_added_later_play_from_their_own_files(self):
+        """r27: words of the newer word books (中考/高考/专四/商务/学术…) were made later, in b### files after the old ones."""
+        words = vs.WORD_AUDIO_DIR
+        (words / 'index.json').write_text(json.dumps({'us': {'receivable': ['b000', 79.993, 80.818]}, 'uk': {'receivable': ['b000', 83.9, 84.8]}}))
+        (words / 'us').mkdir(); (words / 'us' / 'b000.m4a').write_bytes(b'sprite')
+        vs._WA.update(mtime=None)
+        body, _ = nx.get(None, None, '/api/next/lookup', {'w': ['receivable']})
+        self.assertEqual(body['entry']['audio']['us'], ['b000', 79.993, 80.818])
+        self.assertEqual(vs.word_audio_file('us', 'b000'), words / 'us' / 'b000.m4a')
+        self.assertIsNone(vs.word_audio_file('us', 'z000')); self.assertIsNone(vs.word_audio_file('us', 'b00'))
+
 
 class FrontEndTests(unittest.TestCase):
     def setUp(self):
