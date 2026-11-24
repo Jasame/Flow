@@ -205,7 +205,9 @@ class ToolTests(unittest.TestCase):
         self.assertIn('if [ -n "$LIGHT" ] && [ $P = r ]; then echo', deploy)
         self.assertIn('if [ -n "$E2E" ]; then E2E="$E2E$LIGHT"; fi', deploy)
         self.assertIn('MAN=$(python3 tools/release_manifest.py "$BUILD" 2>/dev/null)', deploy)
-        self.assertNotIn('build_front.py --check', deploy)  # it checked the laptop's files, not the commit's
+        self.assertNotIn('build_front.py --check', deploy)
+        # REQUEST names main when main has the commit, not the first branch that happens to contain it
+        self.assertIn('if printf \'%s\\n\' "$BRS" | grep -qx main; then BR=main;', deploy)  # it checked the laptop's files, not the commit's
         self.assertIn("if BETA and b'F=${FLOW_DIR:-' not in (work / 'flow-pull.sh').read_bytes():", (TOOLS / 'flow-autodeploy.py').read_text())
         self.assertIn('F=${FLOW_DIR:-', (TOOLS / 'flow-pull.sh').read_text())
         self.assertIn('--beta) P=b; BRANCH=release-beta; SITE=https://flow.jasa.hk', deploy)

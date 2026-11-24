@@ -29,7 +29,9 @@ cd "$(git rev-parse --show-toplevel)"
 python3 tools/build_dictionary.py --check || exit 1  # corpus_data/dictionary-flow.json must match its sources
 if [ -n "$WANT" ]; then
   SHA=$(git rev-parse "$WANT^{commit}"); git fetch -q origin
-  BR=$(git branch -r --contains "$SHA" | sed -n 's#^ *origin/##p' | grep -v '^HEAD' | head -1)
+  # the branch named in REQUEST: main when main has the commit (b13 said "ai-shape-tolerant": the first branch by name)
+  BRS=$(git branch -r --contains "$SHA" | sed -n 's#^ *origin/##p' | grep -v '^HEAD' || true)
+  if printf '%s\n' "$BRS" | grep -qx main; then BR=main; else BR=$(printf '%s\n' "$BRS" | head -1); fi
   [ -n "$BR" ] || { echo "$SHA is not on GitHub yet: push it first"; exit 1; }
 else
   [ -z "$(git status --porcelain --untracked-files=no)" ] || { echo "uncommitted changes: commit first (or pass a pushed commit)"; exit 1; }
