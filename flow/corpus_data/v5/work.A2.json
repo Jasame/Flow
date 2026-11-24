@@ -12,6 +12,7 @@
     "body": "Lina arrived at her new job twenty minutes early, but the front door was locked. She didn't know the code, and nobody answered the bell. It was raining, and she started to feel a little silly. Then a man with a bike stopped next to her. \"You must be the new designer,\" he said with a smile. \"I'm Omar. Don't worry, everyone gets stuck out here on day one.\" He typed the code and held the door open for her. Inside, Omar showed her the kitchen, the printer and her desk by the window. At lunch, he invited her to eat with the team. Everyone had a funny story about their own first day. By five o'clock, Lina felt like part of the team. On the way home, she saved the door code in her phone and smiled.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the story mainly about?",
         "options": [
           "A designer who loses her new job on the first day",
@@ -23,6 +24,7 @@
         "evidence": "By five o'clock, Lina felt like part of the team."
       },
       {
+        "type": "detail",
         "prompt": "Why couldn't Lina get into the office at first?",
         "options": [
           "She arrived too late and the office was closed",
@@ -32,7 +34,9 @@
         ],
         "answer": 2,
         "evidence": "She didn't know the code, and nobody answered the bell."
-      }
+      },
+      {"type": "inference", "prompt": "Why does Omar say \"everyone gets stuck out here on day one\"?", "options": ["To say the office is closed", "To make Lina feel less silly", "To ask Lina for the code", "To complain about the door"], "answer": 1, "evidence": "Don't worry, everyone gets stuck out here on day one."},
+      {"type": "vocab", "prompt": "What does \"silly\" mean in \"she started to feel a little silly\"?", "options": ["excited", "very angry", "very cold", "a bit stupid or embarrassed"], "answer": 3, "evidence": "she started to feel a little silly"}
     ],
     "dictation_index": 7,
     "vocabulary": [
@@ -72,6 +76,7 @@
     "body": "Kenji: Morning, Ana! Is the coffee machine working today? Ana: No, it's broken again. I'm making tea instead. Do you want some? Kenji: Yes, please. How was your weekend? Ana: Pretty good, thanks. I went hiking with my sister, and my legs are still tired. What about you? Kenji: Oh, nothing special. I stayed home and watched a cooking show. Now I want to make pasta from scratch. Ana: Nice! If it goes well, bring some in for lunch. Kenji: Ha, only if it goes well. Ana: Here's your tea. Do you take milk? Kenji: Just a little, thanks. So, are you ready for the big meeting at ten? Ana: Not really. I'm still working on my slides. Kenji: You'll be fine. If you need help, send me a message. Ana: Thanks, Kenji. Right, back to work!",
     "questions": [
       {
+        "type": "inference",
         "prompt": "How does Ana probably feel about the meeting at ten?",
         "options": [
           "Excited, because she finished her slides early",
@@ -83,6 +88,7 @@
         "evidence": "Not really. I'm still working on my slides."
       },
       {
+        "type": "detail",
         "prompt": "Why is Ana making tea?",
         "options": [
           "The coffee machine is not working",
@@ -92,7 +98,9 @@
         ],
         "answer": 0,
         "evidence": "No, it's broken again. I'm making tea instead."
-      }
+      },
+      {"type": "main", "prompt": "What is the dialogue mainly about?", "options": ["A friendly chat between two colleagues in the office kitchen", "Planning a hiking trip", "How to fix a coffee machine", "How to make pasta"], "answer": 0, "evidence": "Morning, Ana! Is the coffee machine working today?"},
+      {"type": "vocab", "prompt": "What does \"from scratch\" mean in \"make pasta from scratch\"?", "options": ["from the beginning, using basic things like flour and eggs", "very quickly", "with a friend", "from a packet"], "answer": 0, "evidence": "Now I want to make pasta from scratch."}
     ],
     "dictation_index": 11,
     "vocabulary": [
@@ -132,6 +140,7 @@
     "body": "Hi Tomás, I hope your week is going well. I'm writing to ask you a small favor. My cousin is getting married next Saturday, and I really want to be there. The problem is that I'm working the morning shift that day. Could you take my Saturday shift? In return, I can work your Sunday evening shift. I know Sunday evenings are busy, so I'm happy to do the cleaning at closing time too. If you can't swap, that's completely fine. Just let me know by Wednesday, so I have time to ask someone else. I've also talked to our manager, Rosa, and she says it's okay with her. Thanks a lot, and sorry for the short notice! Best, Aisha",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main purpose of Aisha's email?",
         "options": [
           "To invite Tomás to her cousin's wedding",
@@ -143,6 +152,7 @@
         "evidence": "Could you take my Saturday shift?"
       },
       {
+        "type": "detail",
         "prompt": "Why does Aisha want an answer by Wednesday?",
         "options": [
           "Because the wedding is on Wednesday",
@@ -152,7 +162,9 @@
         ],
         "answer": 1,
         "evidence": "so I have time to ask someone else"
-      }
+      },
+      {"type": "inference", "prompt": "Why does Aisha offer to do the cleaning at closing time too?", "options": ["She enjoys cleaning", "Tomás is ill", "To make the swap fairer for Tomás", "The manager asked her to"], "answer": 2, "evidence": "I know Sunday evenings are busy, so I'm happy to do the cleaning at closing time too."},
+      {"type": "vocab", "prompt": "What does \"In return\" mean in \"In return, I can work your Sunday evening shift\"?", "options": ["next year", "by mistake", "to give something back for his help", "at the same time"], "answer": 2, "evidence": "In return, I can work your Sunday evening shift."}
     ],
     "dictation_index": 5,
     "vocabulary": [
@@ -192,6 +204,7 @@
     "body": "In his first week at the hotel, Jun worked at the front desk. One evening, a guest asked him which bus went to the old market. Jun had no idea. He wanted to guess, because he didn't want to look stupid. But he said, \"I'm not sure, but I'll find out for you.\" He called his colleague Nadia, who knew the city well. Two minutes later, he gave the guest the bus number and drew a small map. The guest thanked him and left with a big smile. Later that night, the manager came over to Jun's desk. \"I heard that,\" she said. \"Good answer. When you guess, guests sometimes get lost. When you check, they come back.\" Jun felt proud. Saying \"I don't know\" was hard, but it was the right thing to do.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main lesson of the story?",
         "options": [
           "Hotel workers should learn every bus number",
@@ -203,6 +216,7 @@
         "evidence": "When you check, they come back."
       },
       {
+        "type": "detail",
         "prompt": "How did Jun get the answer for the guest?",
         "options": [
           "He looked it up on the hotel computer",
@@ -212,7 +226,9 @@
         ],
         "answer": 3,
         "evidence": "He called his colleague Nadia, who knew the city well."
-      }
+      },
+      {"type": "inference", "prompt": "What does the manager mean by \"When you check, they come back\"?", "options": ["Guests get lost and come back", "Guests forget their bags", "Guests return to a hotel that gives them the right help", "Guests come back to the desk to complain"], "answer": 2, "evidence": "When you check, they come back."},
+      {"type": "vocab", "prompt": "What does \"proud\" mean in \"Jun felt proud\"?", "options": ["angry", "worried", "pleased about something he did well", "tired"], "answer": 2, "evidence": "Jun felt proud."}
     ],
     "dictation_index": 5,
     "vocabulary": [

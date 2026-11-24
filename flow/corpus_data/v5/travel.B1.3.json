@@ -1,0 +1,316 @@
+[
+ {
+  "id": "v5-travel-b1-tourist-tax",
+  "title": "有些城市为什么向游客收税",
+  "title_en": "Why Some Cities Charge Visitors a Tourist Tax",
+  "summary_zh": "住酒店时，账单上多了一笔「游客税」。越来越多的热门城市这样做：钱用来打扫街道、维护景点，也想让游客错开高峰。读完你能看懂这类新闻，并用 so that 和 while 说出两方的看法。",
+  "level": "B1",
+  "cefr": "B1",
+  "theme": "travel",
+  "genre": "article",
+  "purposes": [
+   "news-commentary",
+   "daily-life"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "When you check out of a hotel in many popular cities, you may notice an extra charge on your bill. It is often called a tourist tax, and it is usually a small amount for each night of your stay. More and more places now do this, and the reasons are easy to understand. Popular cities spend a lot of money on cleaning streets, collecting rubbish and looking after historic buildings. Residents pay for these services through their own taxes, but visitors use them too. A tourist tax is a way to make sure that visitors share some of the cost. Some towns also charge more in the busiest months so that people will think about visiting at quieter times. Not everyone agrees with the idea. Hotel owners sometimes worry that extra charges will send visitors to cheaper places nearby. Some travellers say they already spend plenty in shops and restaurants. However, the amount is usually small compared with the price of the room. While a few euros a night will not change most people's plans, it can add up to a lot of money for a city. If the money really goes back into the places that visitors love, many travellers are happy to pay it.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the article mainly about?",
+    "options": [
+     "How to find a cheap hotel",
+     "Why some cities charge visitors a small tax",
+     "Why tourists should stay at home",
+     "How hotels clean their rooms"
+    ],
+    "answer": 1,
+    "evidence": "It is often called a tourist tax, and it is usually a small amount for each night of your stay."
+   },
+   {
+    "type": "inference",
+    "prompt": "Why might a town charge more in the busiest months?",
+    "options": [
+     "To encourage people to visit at quieter times",
+     "Because hotels are closed in winter",
+     "Because the weather is better",
+     "To stop local people travelling"
+    ],
+    "answer": 0,
+    "evidence": "so that people will think about visiting at quieter times"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"add up to\" mean in \"it can add up to a lot of money\"?",
+    "options": [
+     "take away",
+     "make a total of",
+     "be less than",
+     "pay back"
+    ],
+    "answer": 1,
+    "evidence": "it can add up to a lot of money for a city"
+   },
+   {
+    "type": "detail",
+    "prompt": "What do some hotel owners worry about?",
+    "options": [
+     "That rooms will get dirty",
+     "That the tax is too difficult to explain",
+     "That visitors will go to cheaper places nearby",
+     "That local people will leave"
+    ],
+    "answer": 2,
+    "evidence": "extra charges will send visitors to cheaper places nearby"
+   }
+  ],
+  "dictation_index": 5,
+  "vocabulary": [
+   {
+    "term": "charge",
+    "meaning": "费用；收费",
+    "example": "There is no charge for children under five."
+   },
+   {
+    "term": "services",
+    "meaning": "（公共）服务",
+    "example": "The city needs better bus services."
+   },
+   {
+    "term": "rubbish",
+    "meaning": "垃圾",
+    "example": "Please put your rubbish in the bin."
+   },
+   {
+    "term": "nearby",
+    "meaning": "附近的",
+    "example": "We stayed in a small village nearby."
+   },
+   {
+    "term": "euros",
+    "meaning": "欧元",
+    "example": "The ticket costs ten euros."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "check out of",
+    "meaning": "退房",
+    "note": "We checked out of the hotel at ten."
+   },
+   {
+    "text": "More and more",
+    "meaning": "越来越多的",
+    "note": "More and more people work from home."
+   },
+   {
+    "text": "looking after",
+    "meaning": "照顾；维护",
+    "note": "Who is looking after your cat?"
+   },
+   {
+    "text": "make sure that",
+    "meaning": "确保",
+    "note": "Make sure that you lock the door."
+   },
+   {
+    "text": "compared with",
+    "meaning": "与……相比",
+    "note": "This flat is cheap compared with the last one."
+   },
+   {
+    "text": "add up to",
+    "meaning": "加起来达到",
+    "note": "Small savings add up to a lot."
+   }
+  ],
+  "grammar": [
+   "link-purpose",
+   "clause-adverb",
+   "conditional-real"
+  ],
+  "knowledge": [
+   {
+    "node": "link-purpose",
+    "quote": "Some towns also charge more in the busiest months so that people will think about visiting at quieter times.",
+    "explanation": "so that 引导目的状语从句，说明“为了让人们考虑淡季来”。"
+   },
+   {
+    "node": "clause-adverb",
+    "quote": "While a few euros a night will not change most people's plans, it can add up to a lot of money for a city.",
+    "explanation": "While 在这里表示对比（虽然……但是……），前后两句意思相对。"
+   },
+   {
+    "node": "conditional-real",
+    "quote": "If the money really goes back into the places that visitors love, many travellers are happy to pay it.",
+    "explanation": "真实条件句：if 从句用一般现在时，主句说一般情况下的结果。"
+   }
+  ],
+  "speaking": "用 1 分钟说说：你愿意出门旅行时多交一点「游客税」吗？为什么？用上 so that 和 compared with。",
+  "writing": "用 80–100 词写一段话，说说游客税的一个好处和一个问题，最后给出你的看法。用一个 While… 对比句。",
+  "task": {
+   "prompt": "仿照这句，用 … is a way to make sure that … 写一句话，说明一个规定的作用。",
+   "model": "A tourist tax is a way to make sure that visitors share some of the cost."
+  },
+  "tags": [
+   "旅行新闻",
+   "城市话题"
+  ],
+  "source": "Flow 编辑部原创"
+ },
+ {
+  "id": "v5-travel-b1-host-family-email",
+  "title": "出发前写给寄宿家庭的信",
+  "title_en": "An Email to My Host Family Before I Arrive",
+  "summary_zh": "下个月要去寄宿家庭住三周，Lin 先写了一封邮件：介绍自己、说明到达时间、提到饮食习惯，再问几个实际问题。读完你能写一封自然又礼貌的自我介绍邮件。",
+  "level": "B1",
+  "cefr": "B1",
+  "theme": "travel",
+  "genre": "email",
+  "purposes": [
+   "daily-life"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Dear Mr and Mrs Carter, my name is Lin Yue, and I am going to stay with you for three weeks next month while I take an English course in your town. I wanted to write before I arrive so that you know a little about me. I am nineteen and I study engineering at university in Chengdu. In my free time I like cooking, playing badminton and taking photos of old buildings. My flight lands at a quarter past four on Saturday the twelfth, and the school has told me that a driver will bring me to your house. I should arrive at about six, but I will send you a message if the flight is late. I eat almost everything, although I do not drink milk because it makes me feel ill. I hope that is not a problem. I also have a few questions. Is there anything I should bring for the house, such as a towel? Is it all right if I use the kitchen to cook a Chinese meal for you one evening? I would love to share some food from my home town. Thank you very much for having me, and I am looking forward to meeting you both. Best wishes, Lin Yue",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the main purpose of Lin's email?",
+    "options": [
+     "To book an English course",
+     "To complain about the flight",
+     "To introduce herself and ask some questions before she arrives",
+     "To ask the family to pick her up"
+    ],
+    "answer": 2,
+    "evidence": "I wanted to write before I arrive so that you know a little about me."
+   },
+   {
+    "type": "inference",
+    "prompt": "Why does Lin offer to cook a Chinese meal?",
+    "options": [
+     "She does not like English food",
+     "She wants to share something from her home and be friendly",
+     "The family asked her to cook",
+     "She wants to save money"
+    ],
+    "answer": 1,
+    "evidence": "I would love to share some food from my home town."
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"having me\" mean in \"Thank you very much for having me\"?",
+    "options": [
+     "letting me stay as your guest",
+     "giving me a present",
+     "calling me",
+     "teaching me"
+    ],
+    "answer": 0,
+    "evidence": "Thank you very much for having me"
+   },
+   {
+    "type": "detail",
+    "prompt": "Who will take Lin from the airport to the house?",
+    "options": [
+     "Mr Carter",
+     "A friend from university",
+     "A taxi she books herself",
+     "A driver arranged by the school"
+    ],
+    "answer": 3,
+    "evidence": "the school has told me that a driver will bring me to your house"
+   }
+  ],
+  "dictation_index": 5,
+  "vocabulary": [
+   {
+    "term": "engineering",
+    "meaning": "工程（学）",
+    "example": "My brother studies engineering."
+   },
+   {
+    "term": "badminton",
+    "meaning": "羽毛球",
+    "example": "We play badminton every Friday."
+   },
+   {
+    "term": "ill",
+    "meaning": "不舒服的；生病的",
+    "example": "I felt ill after the long journey."
+   },
+   {
+    "term": "towel",
+    "meaning": "毛巾",
+    "example": "Don't forget to pack a towel."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "stay with",
+    "meaning": "在某人家住",
+    "note": "I stayed with my aunt for a week."
+   },
+   {
+    "text": "In my free time",
+    "meaning": "空闲时",
+    "note": "自我介绍里介绍爱好时常用。"
+   },
+   {
+    "text": "a quarter past four",
+    "meaning": "四点一刻",
+    "note": "英式说时间：half past, a quarter to…"
+   },
+   {
+    "text": "Is it all right if",
+    "meaning": "如果……可以吗",
+    "note": "比 Can I…? 更客气的请求。"
+   },
+   {
+    "text": "having me",
+    "meaning": "接待我；让我住",
+    "note": "Thank you for having me 是做客后的常用感谢。"
+   },
+   {
+    "text": "looking forward to",
+    "meaning": "期待",
+    "note": "后面接名词或 -ing：I'm looking forward to seeing you."
+   }
+  ],
+  "grammar": [
+   "link-purpose",
+   "clause-adverb",
+   "conditional-real"
+  ],
+  "knowledge": [
+   {
+    "node": "link-purpose",
+    "quote": "I wanted to write before I arrive so that you know a little about me.",
+    "explanation": "so that 引导目的状语从句，说明写信的目的。"
+   },
+   {
+    "node": "clause-adverb",
+    "quote": "I eat almost everything, although I do not drink milk because it makes me feel ill.",
+    "explanation": "although 引出让步，because 说明原因：一句话里先说大部分都吃，再说一个例外和原因。"
+   },
+   {
+    "node": "conditional-real",
+    "quote": "I will send you a message if the flight is late",
+    "explanation": "真实条件句：if 从句用一般现在时 is，主句用 will send。"
+   }
+  ],
+  "speaking": "用 1 分钟练习：第一次见寄宿家庭或新室友，介绍自己、你的爱好和一个生活习惯。用上 in my free time 和 Is it all right if…?",
+  "writing": "用 80–100 词写一封邮件给你要去住的人家（或新室友），介绍自己、说明到达时间，并问两个问题。用一个 so that 句子。",
+  "task": {
+   "prompt": "仿照这句，用 Is it all right if I …? 写一个礼貌的请求。",
+   "model": "Is it all right if I use the kitchen to cook a Chinese meal for you one evening?"
+  },
+  "tags": [
+   "出国生活",
+   "生活邮件"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

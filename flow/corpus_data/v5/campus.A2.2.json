@@ -12,6 +12,7 @@
     "body": "Eating out every day is fun, but it gets expensive fast. Here are four simple ways to eat well on a student budget. First, make a shopping list before you go to the shop. Students who shop with a list usually spend less money. Second, buy food that lasts, like rice, eggs, beans and frozen vegetables. Third, cook once and eat twice. A big pot of soup can be your dinner tonight and your lunch tomorrow. Fourth, cook with friends. Everyone brings one thing, and you share the meal and the washing-up. My flatmate Leo does this every Sunday. He makes the rice, I bring the vegetables, and our neighbour brings a cake. It is cheaper than a takeaway, and it is much more fun. If you are new to cooking, start with one easy dish.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main purpose of the text?",
         "options": [
           "To explain why eating out is bad for students",
@@ -23,6 +24,7 @@
         "evidence": "Here are four simple ways to eat well on a student budget."
       },
       {
+        "type": "detail",
         "prompt": "What does Leo do every Sunday?",
         "options": [
           "He cooks a shared meal with friends",
@@ -32,7 +34,9 @@
         ],
         "answer": 0,
         "evidence": "My flatmate Leo does this every Sunday."
-      }
+      },
+      {"type": "inference", "prompt": "Why can \"cook once and eat twice\" save money?", "options": ["Soup is always the cheapest food", "You only go shopping once a month", "One pot of food can give you two meals", "Your friends pay for dinner"], "answer": 2, "evidence": "A big pot of soup can be your dinner tonight and your lunch tomorrow."},
+      {"type": "vocab", "prompt": "What does \"lasts\" mean in \"buy food that lasts\"?", "options": ["is the last one in the shop", "stays good for a long time", "is very cheap", "is easy to cook"], "answer": 1, "evidence": "buy food that lasts"}
     ],
     "dictation_index": 3,
     "vocabulary": [
@@ -136,6 +140,7 @@
     "body": "Nadia: Okay, everyone, look at the kitchen. Tom: I know. It's a bit of a mess. Nadia: A bit? Nobody has taken out the rubbish for a week. Wei: Sorry, that's my fault. I've been really busy with exams. Nadia: We're all busy. I think we need a cleaning rota. Tom: A what? Nadia: A rota. It's a list that tells everyone whose turn it is. Wei: Good idea. So who does what? Nadia: Each week, one person cleans the kitchen, one person does the bathroom, and one person takes out the rubbish. Then we change. Tom: Sounds fair. Can I start with the rubbish? Wei: Ha! That's the easiest job. Tom: Exactly. I've already put my name next to it. Nadia: Fine, but next week you're doing the bathroom.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What do the three flatmates decide to do?",
         "options": [
           "Clean the whole flat together every Sunday",
@@ -147,6 +152,7 @@
         "evidence": "Each week, one person cleans the kitchen, one person does the bathroom, and one person takes out the rubbish. Then we change."
       },
       {
+        "type": "inference",
         "prompt": "Why does Tom want to start with the rubbish?",
         "options": [
           "Nadia told him to do it first",
@@ -156,7 +162,9 @@
         ],
         "answer": 1,
         "evidence": "That's the easiest job."
-      }
+      },
+      {"type": "vocab", "prompt": "What is a \"rota\" in \"we need a cleaning rota\"?", "options": ["a list that shows whose turn it is to do a job", "a meeting for flatmates", "a machine for cleaning", "a kind of rubbish bag"], "answer": 0, "evidence": "It's a list that tells everyone whose turn it is."},
+      {"type": "detail", "prompt": "Why hasn't Wei taken out the rubbish?", "options": ["He was away on holiday", "He has been very busy with exams", "He did not know it was his turn", "He does not like the kitchen"], "answer": 1, "evidence": "I've been really busy with exams."}
     ],
     "dictation_index": 11,
     "vocabulary": [
@@ -260,6 +268,7 @@
     "body": "Every university library has a special place, and in ours it is the fourth floor. People call it the silent floor. The rules are simple. You cannot talk, eat or take phone calls there. Even a sneeze sounds very loud! Most students who study there come for one reason. They want to focus. Downstairs, people are chatting, printing and working in groups. Upstairs, you only hear pages and keyboards. Some students love it. Ming, who is in her second year, goes there every morning. \"My phone stays in my bag, and I finish my work in half the time,\" she says. Others find it too quiet. Jake says the silence makes him nervous, so he works in the busy cafe next door. Which floor is right for you? Try both and see.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's main message?",
         "options": [
           "The silent floor is the best place for every student",
@@ -271,6 +280,7 @@
         "evidence": "Which floor is right for you? Try both and see."
       },
       {
+        "type": "detail",
         "prompt": "Why does Jake work in the cafe?",
         "options": [
           "He likes to eat while he studies",
@@ -280,7 +290,9 @@
         ],
         "answer": 1,
         "evidence": "Jake says the silence makes him nervous"
-      }
+      },
+      {"type": "inference", "prompt": "Why can Ming finish her work \"in half the time\"?", "options": ["She uses a faster computer", "She studies with a big group", "Nothing takes her attention away from her work", "The library opens very early"], "answer": 2, "evidence": "My phone stays in my bag, and I finish my work in half the time"},
+      {"type": "vocab", "prompt": "What does \"focus\" mean in \"They want to focus\"?", "options": ["give all their attention to one thing", "take a short break", "print their work", "meet new people"], "answer": 0, "evidence": "They want to focus."}
     ],
     "dictation_index": 7,
     "vocabulary": [
@@ -378,6 +390,7 @@
     "body": "Interviewer: Sara, you host Lunch Break Live on campus radio. How long have you been the host? Sara: I've done the show for two years now. Interviewer: Were you nervous at the beginning? Sara: Very! On my first day, I forgot to turn on the microphone. I talked for five minutes, and nobody heard me. Interviewer: Oh no! What happens on the show? Sara: I play music, read the campus news and talk to a guest. My favourite guests are students who have unusual hobbies. Last week, I talked to a boy who keeps bees on the roof. Interviewer: Have you ever met someone famous? Sara: Not yet. But the cleaner in our building has become a regular. She calls in every Friday with a song request. Interviewer: Any advice for new hosts? Sara: Check the microphone first!",
     "questions": [
       {
+        "type": "inference",
         "prompt": "Why does Sara give the advice at the end?",
         "options": [
           "Because of her own mistake on her first day",
@@ -389,6 +402,7 @@
         "evidence": "On my first day, I forgot to turn on the microphone."
       },
       {
+        "type": "detail",
         "prompt": "Who calls the show every Friday?",
         "options": [
           "A boy who keeps bees",
@@ -398,7 +412,9 @@
         ],
         "answer": 2,
         "evidence": "She calls in every Friday with a song request."
-      }
+      },
+      {"type": "main", "prompt": "What is the interview mainly about?", "options": ["A boy who keeps bees on the roof", "Famous people on the radio", "How to fix a microphone", "Sara's experience as the host of a campus radio show"], "answer": 3, "evidence": "you host Lunch Break Live on campus radio"},
+      {"type": "vocab", "prompt": "What is \"a regular\" in \"has become a regular\"?", "options": ["someone who takes part often", "a kind of radio", "a new rule", "a famous singer"], "answer": 0, "evidence": "the cleaner in our building has become a regular"}
     ],
     "dictation_index": 10,
     "vocabulary": [

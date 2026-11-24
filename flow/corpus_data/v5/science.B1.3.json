@@ -1,0 +1,161 @@
+[
+ {
+  "id": "v5-science-b1-how-a-flask-works",
+  "title": "保温杯为什么能保温",
+  "title_en": "How a Flask Keeps Your Tea Hot",
+  "summary_zh": "早上倒进去的热茶，下午还烫嘴。保温杯靠的是两层杯壁之间的真空，还有亮亮的内壁和盖子。读完你能用被动语态和 so… that… 解释一个日常物品的原理。",
+  "level": "B1",
+  "cefr": "B1",
+  "theme": "science",
+  "genre": "explainer",
+  "purposes": [
+   "expository"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "If you pour hot tea into a good flask in the morning, it can still be hot in the afternoon. This is not magic. A flask is designed to stop heat from escaping, and it does this in three clever ways. Heat usually moves from hot things to cold things. It can travel through solid materials, it can be carried by air, and it can also spread out as light that we cannot see. Most flasks have two walls, one inside the other, with a thin space between them. The air is taken out of this space, so it becomes a vacuum. Without air, heat cannot be carried across the gap, and very little gets through to the outside. The inside walls are often shiny, which helps to reflect some of the heat back into the drink. Finally, the lid is very important, because a lot of heat would escape from the top if it were open. The same flask also keeps cold drinks cold, since it stops outside heat from getting in. Some flasks work so well that you need to be careful with very hot drinks. So next time you take a sip of warm tea, remember the empty space that is doing the work.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What does the text mainly explain?",
+    "options": [
+     "How to make good tea",
+     "Why metal is hot",
+     "How a flask keeps drinks hot or cold",
+     "Why tea goes cold quickly"
+    ],
+    "answer": 2,
+    "evidence": "A flask is designed to stop heat from escaping, and it does this in three clever ways."
+   },
+   {
+    "type": "inference",
+    "prompt": "Why can a flask also keep cold drinks cold?",
+    "options": [
+     "It has ice inside the walls",
+     "It stops heat from the outside getting in",
+     "Cold drinks do not need a lid",
+     "The shiny walls make the drink colder"
+    ],
+    "answer": 1,
+    "evidence": "since it stops outside heat from getting in"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What is a \"vacuum\" in \"it becomes a vacuum\"?",
+    "options": [
+     "a space with almost no air in it",
+     "a kind of cleaning machine",
+     "a hot liquid",
+     "a thick wall"
+    ],
+    "answer": 0,
+    "evidence": "The air is taken out of this space, so it becomes a vacuum."
+   },
+   {
+    "type": "detail",
+    "prompt": "What do the shiny inside walls do?",
+    "options": [
+     "Make the flask lighter",
+     "Keep the lid closed",
+     "Make the tea taste better",
+     "Reflect some heat back into the drink"
+    ],
+    "answer": 3,
+    "evidence": "which helps to reflect some of the heat back into the drink"
+   }
+  ],
+  "dictation_index": 6,
+  "vocabulary": [
+   {
+    "term": "flask",
+    "meaning": "保温瓶；保温杯",
+    "example": "I always take a flask of coffee to work."
+   },
+   {
+    "term": "escaping",
+    "meaning": "逃出；漏出",
+    "example": "Close the window to stop the heat escaping."
+   },
+   {
+    "term": "vacuum",
+    "meaning": "真空",
+    "example": "There is a vacuum between the two walls."
+   },
+   {
+    "term": "reflect",
+    "meaning": "反射",
+    "example": "White walls reflect light and make a room look bigger."
+   },
+   {
+    "term": "sip",
+    "meaning": "一小口",
+    "example": "She took a sip of her hot chocolate."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "This is not magic",
+    "meaning": "这不是魔法",
+    "note": "科普文常用来引出原理。"
+   },
+   {
+    "text": "stop heat from escaping",
+    "meaning": "防止热量散失",
+    "note": "stop sth from doing sth 阻止……做……"
+   },
+   {
+    "text": "one inside the other",
+    "meaning": "一个套在另一个里面",
+    "note": "描述两层结构时常用。"
+   },
+   {
+    "text": "gets through to",
+    "meaning": "穿过……到达",
+    "note": "Very little light gets through to the bottom of the sea."
+   },
+   {
+    "text": "so well that",
+    "meaning": "好到……以至于",
+    "note": "so + 形容词/副词 + that 引出结果。"
+   },
+   {
+    "text": "take a sip of",
+    "meaning": "喝一小口",
+    "note": "Take a sip of water before you speak."
+   }
+  ],
+  "grammar": [
+   "voice-basic",
+   "clause-relative",
+   "clause-adverb"
+  ],
+  "knowledge": [
+   {
+    "node": "voice-basic",
+    "quote": "The air is taken out of this space, so it becomes a vacuum.",
+    "explanation": "被动语态 is taken out：重点是“空气被抽走”，不需要说是谁做的。说明物品原理时很常用。"
+   },
+   {
+    "node": "clause-relative",
+    "quote": "The inside walls are often shiny, which helps to reflect some of the heat back into the drink.",
+    "explanation": "which 指代前面整件事（内壁是亮的），补充说明它的作用。"
+   },
+   {
+    "node": "clause-adverb",
+    "quote": "Some flasks work so well that you need to be careful with very hot drinks.",
+    "explanation": "so… that… 引导结果状语从句：保温效果太好，所以要小心烫。"
+   }
+  ],
+  "speaking": "用 1 分钟给朋友解释：保温杯为什么能保温？用上 stop… from… 和 so… that…。",
+  "writing": "用 80–100 词解释一个你每天用的物品是怎么工作的（如雨伞、冰箱贴、保温杯）。用一个被动句。",
+  "task": {
+   "prompt": "仿照这句，用 … work(s) so well that … 写一句话，夸一个好用的东西。",
+   "model": "Some flasks work so well that you need to be careful with very hot drinks."
+  },
+  "tags": [
+   "生活里的科学",
+   "说明文"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

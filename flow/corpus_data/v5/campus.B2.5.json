@@ -1,0 +1,156 @@
+[
+ {
+  "id": "v5-campus-b2-asking-for-a-reference",
+  "title": "请老师写推荐信",
+  "title_en": "Asking a Lecturer for a Reference",
+  "summary_zh": "申请博物馆的暑期研究助理，需要一位老师作推荐人。Kofi 在邮件里说清楚申请什么、为什么找这位老师、截止时间，还给老师留了拒绝的余地。读完你能写一封得体的推荐信请求。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "campus",
+  "genre": "email",
+  "purposes": [
+   "campus-life"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Dear Dr Mensah, I hope your term is going well. I am writing to ask whether you would be willing to act as a referee for me. I am applying for a summer research assistant position at the city museum, working on their new exhibition about local rivers, and the application asks for one academic reference. I took your Environmental History module last year and wrote my final essay on the old flood records, which you may remember because we discussed the maps in your office hours. I feel that your course is the most relevant to this role, as it taught me how to work carefully with original documents. The role involves reading old newspapers and letters, which is exactly what I enjoyed most in your seminars. The deadline for references is the fifteenth of next month, and the museum will contact you directly by email. It will only ask a few short questions about my work and how I manage deadlines. I have attached the job description, my CV and a copy of my essay, in case they are useful. If you would like to talk about the application first, I would be very happy to come to your office hours next week. Of course, I completely understand if you are too busy at the moment, and I will not take it personally. Thank you very much for considering my request. Best wishes, Kofi Asante",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the main purpose of Kofi's email?",
+    "options": [
+     "To ask for a better essay grade",
+     "To apply directly to the museum",
+     "To invite the lecturer to an exhibition",
+     "To ask a lecturer to give him a reference"
+    ],
+    "answer": 3,
+    "evidence": "I am writing to ask whether you would be willing to act as a referee for me."
+   },
+   {
+    "type": "inference",
+    "prompt": "Why does Kofi mention discussing the maps in office hours?",
+    "options": [
+     "To help the lecturer remember him and his work",
+     "To complain about the office hours",
+     "To ask for the maps back",
+     "To show he did not understand them"
+    ],
+    "answer": 0,
+    "evidence": "which you may remember because we discussed the maps in your office hours"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"take it personally\" mean in \"I will not take it personally\"?",
+    "options": [
+     "collect it in person",
+     "feel hurt, as if it were a criticism of me",
+     "keep it a secret",
+     "do it myself"
+    ],
+    "answer": 1,
+    "evidence": "I will not take it personally"
+   },
+   {
+    "type": "detail",
+    "prompt": "How will the museum contact the referee?",
+    "options": [
+     "By phone",
+     "Through Kofi",
+     "Directly by email",
+     "By post"
+    ],
+    "answer": 2,
+    "evidence": "the museum will contact you directly by email"
+   }
+  ],
+  "dictation_index": 4,
+  "vocabulary": [
+   {
+    "term": "referee",
+    "meaning": "推荐人",
+    "example": "My manager agreed to be my referee."
+   },
+   {
+    "term": "relevant",
+    "meaning": "相关的",
+    "example": "Only include experience that is relevant to the job."
+   },
+   {
+    "term": "original",
+    "meaning": "原始的；原件的",
+    "example": "The library keeps the original letters in a safe room."
+   },
+   {
+    "term": "considering",
+    "meaning": "考虑",
+    "example": "Thank you for considering my application."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "act as a referee",
+    "meaning": "当推荐人",
+    "note": "act as 表示“担任”：She acted as our guide."
+   },
+   {
+    "text": "applying for",
+    "meaning": "申请",
+    "note": "apply for a job / a visa / a scholarship。"
+   },
+   {
+    "text": "in case they are useful",
+    "meaning": "以防有用",
+    "note": "附件说明里常用的客气话。"
+   },
+   {
+    "text": "at the moment",
+    "meaning": "目前；眼下",
+    "note": "I'm very busy at the moment."
+   },
+   {
+    "text": "take it personally",
+    "meaning": "往心里去；当成针对自己",
+    "note": "Don't take it personally — he's like that with everyone."
+   },
+   {
+    "text": "office hours",
+    "meaning": "（老师的）答疑时间",
+    "note": "大学里老师固定接待学生的时间。"
+   }
+  ],
+  "grammar": [
+   "clause-noun",
+   "clause-nondefining",
+   "nonfinite-participle"
+  ],
+  "knowledge": [
+   {
+    "node": "clause-noun",
+    "quote": "I am writing to ask whether you would be willing to act as a referee for me.",
+    "explanation": "whether 引导宾语从句，作 ask 的宾语；would be willing to 比 will 更委婉。"
+   },
+   {
+    "node": "clause-nondefining",
+    "quote": "my final essay on the old flood records, which you may remember because we discussed the maps in your office hours",
+    "explanation": "逗号后的 which 指代那篇论文，补充说明“您可能还记得”，帮老师回忆。"
+   },
+   {
+    "node": "nonfinite-participle",
+    "quote": "a summer research assistant position at the city museum, working on their new exhibition about local rivers",
+    "explanation": "现在分词短语 working on… 补充说明这个职位要做什么。"
+   }
+  ],
+  "speaking": "用 1 分钟练习：当面请老师帮你写推荐信。说明申请什么、为什么找这位老师、截止时间。用上 I was wondering whether 和 in case。",
+  "writing": "用 120–150 词写一封邮件请老师当推荐人：说明申请的职位、你上过的课、截止日期，并给老师留出拒绝的余地。用一个 whether 宾语从句。",
+  "task": {
+   "prompt": "仿照这句，用 I completely understand if …, and I will not take it personally 写一句话，给对方留余地。",
+   "model": "I completely understand if you are too busy at the moment, and I will not take it personally"
+  },
+  "tags": [
+   "大学生活",
+   "学术邮件"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

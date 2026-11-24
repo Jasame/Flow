@@ -1,0 +1,162 @@
+[
+ {
+  "id": "v5-travel-a2-new-beach-bus",
+  "title": "去海滩的新公交",
+  "title_en": "A New Bus to the Beach",
+  "summary_zh": "小城新开了一路去海滩的公交车：便宜、能带自行车和冲浪板，周末不再堵车。不过村里也有人担心车太大。读完你能看懂一篇简单的本地新闻，并用现在完成时和比较级说说变化。",
+  "level": "A2",
+  "cefr": "A2",
+  "theme": "travel",
+  "genre": "article",
+  "purposes": [
+   "news-commentary",
+   "daily-life"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Since June, there has been a new bus from the city centre to Calder Bay. The number 9 bus leaves the main square every hour from eight. The trip takes about forty minutes, and a ticket costs two pounds. Before, the only way to get to the beach was by car. On hot weekends, the beach car park was always full. Cars waited on the road for hours. Now, many families take the bus instead. \"It's cheaper than parking, and the children love the view,\" said one mother. The bus has space for bikes and surfboards too. Not everyone is happy, though. Some people in the village say the bus is too big for the narrow streets. The town will look at the route again in September. For now, the number 9 is the easiest way to the sea.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the article mainly about?",
+    "options": [
+     "A new bus to the beach",
+     "A new car park by the sea",
+     "A surf school",
+     "A summer festival in the village"
+    ],
+    "answer": 0,
+    "evidence": "Since June, there has been a new bus from the city centre to Calder Bay."
+   },
+   {
+    "type": "inference",
+    "prompt": "Why do many families now take the bus?",
+    "options": [
+     "They have no cars",
+     "The beach is closed to cars",
+     "It is cheaper and easier than parking",
+     "The bus is free for children"
+    ],
+    "answer": 2,
+    "evidence": "It's cheaper than parking, and the children love the view"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"narrow\" mean in \"the narrow streets\"?",
+    "options": [
+     "long",
+     "not wide",
+     "busy",
+     "old"
+    ],
+    "answer": 1,
+    "evidence": "the bus is too big for the narrow streets"
+   },
+   {
+    "type": "detail",
+    "prompt": "When will the town look at the route again?",
+    "options": [
+     "In June",
+     "Next summer",
+     "Every weekend",
+     "In September"
+    ],
+    "answer": 3,
+    "evidence": "The town will look at the route again in September."
+   }
+  ],
+  "dictation_index": 2,
+  "vocabulary": [
+   {
+    "term": "square",
+    "meaning": "广场",
+    "example": "We met in the main square."
+   },
+   {
+    "term": "view",
+    "meaning": "风景；景色",
+    "example": "The view from the hill is beautiful."
+   },
+   {
+    "term": "surfboards",
+    "meaning": "冲浪板",
+    "example": "They carried their surfboards to the water."
+   },
+   {
+    "term": "narrow",
+    "meaning": "窄的",
+    "example": "The road is too narrow for big cars."
+   },
+   {
+    "term": "route",
+    "meaning": "路线",
+    "example": "This is the fastest route to the station."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "every hour",
+    "meaning": "每小时一班",
+    "note": "The train leaves every hour."
+   },
+   {
+    "text": "the only way to",
+    "meaning": "唯一的办法",
+    "note": "The only way to get there is by boat."
+   },
+   {
+    "text": "car park",
+    "meaning": "停车场",
+    "note": "英式说法；美式说 parking lot。"
+   },
+   {
+    "text": "take the bus",
+    "meaning": "坐公交车",
+    "note": "I take the bus to work."
+   },
+   {
+    "text": "Not everyone is happy, though",
+    "meaning": "不过，并不是每个人都满意",
+    "note": "新闻里引出不同意见时常用。"
+   },
+   {
+    "text": "For now",
+    "meaning": "目前；暂时",
+    "note": "For now, I live with my parents."
+   }
+  ],
+  "grammar": [
+   "tense-perfect",
+   "compare-basic",
+   "tense-future"
+  ],
+  "knowledge": [
+   {
+    "node": "tense-perfect",
+    "quote": "Since June, there has been a new bus from the city centre to Calder Bay.",
+    "explanation": "since + 过去的时间点，用现在完成时 has been：从六月到现在一直有这路车。"
+   },
+   {
+    "node": "compare-basic",
+    "quote": "It's cheaper than parking, and the children love the view",
+    "explanation": "比较级 cheaper than：坐公交比停车便宜。"
+   },
+   {
+    "node": "tense-future",
+    "quote": "The town will look at the route again in September.",
+    "explanation": "will + 动词原形 说将来要做的事。"
+   }
+  ],
+  "speaking": "用 1 分钟说说：你家附近有没有新开的公交、地铁或店？它带来了什么变化？用上 since 和 cheaper than。",
+  "writing": "用 50–70 词写一条简单的本地新闻：你住的地方有什么新变化？大家怎么看？至少用一个 since 句子和一个比较级。",
+  "task": {
+   "prompt": "仿照这句，用 Before, the only way to … was … 写一句话，说说一个过去和现在不一样的地方。",
+   "model": "Before, the only way to get to the beach was by car."
+  },
+  "tags": [
+   "城市新闻",
+   "出行"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

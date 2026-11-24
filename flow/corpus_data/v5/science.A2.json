@@ -12,6 +12,7 @@
     "body": "Mia: Dad, why is the sky blue? Dad: Good question. Sunlight looks white, but it is really a mix of all the colours. Mia: Like a rainbow? Dad: Exactly. When sunlight comes into the air, it hits tiny bits of gas. They bounce blue light in every direction, much more than red. So blue light comes at you from all over the sky. Mia: Then why is the sky orange in the evening? Dad: The sun is low then, so its light travels through much more air. Most of the blue gets bounced away on the long trip. Mostly red and orange light gets through. Mia: So it's all about the long road? Dad: That's right. If you remember that, you'll know more than most people! Mia: Okay, why is grass green? Dad: Ask me after breakfast.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main reason the sky looks blue?",
         "options": [
           "The sky reflects the blue colour of the sea",
@@ -23,6 +24,7 @@
         "evidence": "They bounce blue light in every direction, much more than red."
       },
       {
+        "type": "detail",
         "prompt": "Why is the sky orange in the evening?",
         "options": [
           "The air gets warmer in the evening",
@@ -32,7 +34,9 @@
         ],
         "answer": 2,
         "evidence": "Most of the blue gets bounced away on the long trip."
-      }
+      },
+      {"type": "inference", "prompt": "What does Mia's last question show about her?", "options": ["She is curious and keeps asking questions", "She wants to stop talking", "She does not believe her dad", "She is bored with science"], "answer": 0, "evidence": "Okay, why is grass green?"},
+      {"type": "vocab", "prompt": "What does \"bounce\" mean in \"They bounce blue light in every direction\"?", "options": ["make it darker", "send it back away from them", "take it in and keep it", "turn it into red light"], "answer": 1, "evidence": "They bounce blue light in every direction, much more than red."}
     ],
     "dictation_index": 2,
     "vocabulary": [
@@ -74,6 +78,7 @@
     "body": "Last summer, my little brother Leo made a small mistake. He filled a plastic bottle to the top with water and put it in the freezer. The next morning, the bottle looked fat and strange. Its sides were pushed out, and the cap was almost off. Leo thought the freezer was broken. Mum laughed and told him that water gets bigger when it freezes. Most things get smaller in the cold, but water is different. As it turns into ice, its tiny parts lock together with spaces between them. That's why ice takes up more space than water. It is also lighter than water of the same size, so it floats. We used ice cubes and a glass of juice to test this, and every cube stayed on top. \"So I didn't break it,\" Leo said. \"I did an experiment!\"",
     "questions": [
       {
+        "type": "main",
         "prompt": "What did Leo learn from his mistake?",
         "options": [
           "Plastic bottles always break in the freezer",
@@ -85,6 +90,7 @@
         "evidence": "Mum laughed and told him that water gets bigger when it freezes."
       },
       {
+        "type": "detail",
         "prompt": "Why did the ice cubes stay on top of the juice?",
         "options": [
           "The juice was colder than the ice",
@@ -94,7 +100,9 @@
         ],
         "answer": 2,
         "evidence": "It is also lighter than water of the same size, so it floats."
-      }
+      },
+      {"type": "inference", "prompt": "Why did Leo think the freezer was broken?", "options": ["The bottle looked strange and pushed out in the morning", "Mum told him it was broken", "The freezer was making a noise", "The ice cubes were melting"], "answer": 0, "evidence": "The next morning, the bottle looked fat and strange."},
+      {"type": "vocab", "prompt": "What does \"floats\" mean in \"so it floats\"?", "options": ["melts", "gets bigger", "stays on top of a liquid", "goes to the bottom"], "answer": 2, "evidence": "It is also lighter than water of the same size, so it floats."}
     ],
     "dictation_index": 1,
     "vocabulary": [
@@ -135,6 +143,7 @@
     "body": "Cutting an onion can make even a tough person cry. But don't worry: the onion isn't sad, and neither are you. Here is what happens. An onion is full of tiny cells. When your knife cuts them open, some chemicals inside mix together. They make a new gas, and the gas floats up into the air. When it reaches your eyes, they start to sting. Your eyes then make tears to wash the gas away. So the tears are really your body protecting itself. If you want fewer tears, you can try a few tricks. Put the onion in the fridge for a while before you cut it. Cold slows the gas down. Use a sharp knife, too, because it breaks fewer cells. Next time your eyes water in the kitchen, you'll know the reason.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main point of the text?",
         "options": [
           "Onions are bad for your eyes",
@@ -146,6 +155,7 @@
         "evidence": "So the tears are really your body protecting itself."
       },
       {
+        "type": "detail",
         "prompt": "Why should you put the onion in the fridge first?",
         "options": [
           "Cold onions are easier to cut",
@@ -155,7 +165,9 @@
         ],
         "answer": 3,
         "evidence": "Cold slows the gas down."
-      }
+      },
+      {"type": "inference", "prompt": "What does the writer mean by \"the onion isn't sad, and neither are you\"?", "options": ["You should not cut onions when you are sad", "Onions have feelings", "Crying makes cooking more fun", "The tears do not come from feelings"], "answer": 3, "evidence": "But don't worry: the onion isn't sad, and neither are you."},
+      {"type": "vocab", "prompt": "What does \"sting\" mean in \"they start to sting\"?", "options": ["get bigger", "hurt with a sharp feeling", "close", "feel cold"], "answer": 1, "evidence": "When it reaches your eyes, they start to sting."}
     ],
     "dictation_index": 7,
     "vocabulary": [
@@ -197,6 +209,7 @@
     "body": "Have you ever yawned just because someone near you did it first? Maybe you want to do it right now, just from reading about it. Everybody yawns, and so do many animals, like dogs and cats. But here is a surprise: scientists are still not sure why we do it. An old idea says we do it to get more air, but there is not much proof for it. Another idea is that a big yawn helps to cool the brain a little. Some scientists think it helps us change from one state to another, for example from sleepy to awake. We do know one thing for sure. Yawns are catching. If you see a friend yawn, you often do the same. So the next time you yawn in class, tell your teacher you are thinking about science.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main message of the text?",
         "options": [
           "Yawning always means that you are bored",
@@ -208,6 +221,7 @@
         "evidence": "scientists are still not sure why we do it"
       },
       {
+        "type": "vocab",
         "prompt": "In the text, what does \"Yawns are catching\" mean?",
         "options": [
           "Yawns are hard to stop once they start",
@@ -217,7 +231,9 @@
         ],
         "answer": 1,
         "evidence": "If you see a friend yawn, you often do the same."
-      }
+      },
+      {"type": "inference", "prompt": "Why does the writer say \"Maybe you want to do it right now\"?", "options": ["Even reading about yawning can make you yawn", "It is late at night", "Yawning is good for you", "The text is boring"], "answer": 0, "evidence": "Maybe you want to do it right now, just from reading about it."},
+      {"type": "detail", "prompt": "Which animals does the text say also yawn?", "options": ["Horses and cows", "No animals at all", "Birds and fish", "Dogs and cats"], "answer": 3, "evidence": "Everybody yawns, and so do many animals, like dogs and cats."}
     ],
     "dictation_index": 5,
     "vocabulary": [
