@@ -1060,6 +1060,7 @@ def send_reminders(c, now=None, send=None):
     local = datetime.datetime.fromtimestamp(now, nx.TZ)
     today = local.date().isoformat()
     origin = os.getenv('FLOW_PUBLIC_URL', 'https://flowlang.cn').rstrip('/')
+    import mail_layout
     if send is None:
         from account_service import mail as send
     if 'email' not in {x[1] for x in c.execute('PRAGMA table_info(users)')}:
@@ -1078,16 +1079,17 @@ def send_reminders(c, now=None, send=None):
             continue
         if n['due'] + n['new'] > BATCH:  # piled up: the first 40 is a session that can be done, not the whole heap
             first = minutes_for(min(n['due'], BATCH), max(0, BATCH - n['due']), answer_seconds(c, r['user_id'], now))
-            text = (f"{r['username']}，你好：\n\n先复习最要紧的 {BATCH} 个，大约 {first} 分钟。最容易忘的排在前面，"
-                    f"做完这些今天就可以停，剩下的之后几天接着来。\n{origin}/#/review\n\n")
+            say = f"先复习最要紧的 {BATCH} 个，大约 {first} 分钟。最容易忘的排在前面，做完这些今天就可以停，剩下的之后几天接着来。"
             subject = f"语流 · 先复习最要紧的 {BATCH} 个，约 {first} 分钟"
         else:
-            text = (f"{r['username']}，你好：\n\n今天有 {n['due']} 个单词该复习了" + (f"，还有 {n['new']} 个新词" if n['new'] else '') +
-                    f"，大约 {n['minutes']} 分钟。\n记忆曲线到点了，现在复习效果最好：{origin}/#/review\n\n")
+            say = (f"今天有 {n['due']} 个单词该复习了" + (f"，还有 {n['new']} 个新词" if n['new'] else '') +
+                   f"，大约 {n['minutes']} 分钟。记忆曲线到点了，现在复习效果最好。")
             subject = f"语流 · 今天有 {n['due'] + n['new']} 个单词等你"
-        text += "不想再收到提醒，可以在「单词 → 调整计划」里关掉。\n—— 语流 Flow"
+        # the one look of every mail 语流 sends (mail_layout, 「A 简洁卡片」): plain text and HTML with the same words
+        text, page = mail_layout.message([f"{r['username']}，你好：", say], button=('去复习', f'{origin}/#/review'),
+                                         foot=[('不想再收到提醒，可以在「单词 → 调整计划」里关掉', f'{origin}/#/vocab/plan')])
         try:
-            send(r['email'], subject, text)
+            send(r['email'], subject, text, html=page)
             sent += 1
         except Exception:
             pass  # a mail outage must not stop the loop; tomorrow is another try
