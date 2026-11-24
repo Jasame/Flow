@@ -76,6 +76,9 @@ The owner agreed this order on 2026-11-24.
    the newest commit; a failed release or test fails
    the run (Actions → Beta release; GitHub emails it). The 内测版 shows what it runs at https://flow.jasa.hk/api/deploy-status (`tag`, `commit`: the build commit, whose
    parent is the main commit; `result`; `e2e`). Nobody releases the 内测版 by hand any more, unless it is paused (below).
+   After each release the run appends it to `LOG.md` on `release-beta` (`tools/changelog.py record`: the commit, the PRs
+   merged since the last one and the areas they touch, the e2e result while deploy-status still shows it). A 内测版
+   released by hand is logged with `python3 tools/changelog.py record b<N> --push`.
 4. **The owner tries flow.jasa.hk.** Pause first, so the version being tried stays there while other PRs merge:
    `gh variable set BETA_AUTO --body off -R Jasame/Flow`; afterwards `gh variable delete BETA_AUTO -R Jasame/Flow`
    (the next green main goes out). A problem goes back through 1–3.
@@ -83,7 +86,13 @@ The owner agreed this order on 2026-11-24.
    end-to-end test. It installs the build the 内测版 got, byte for byte, and refuses a commit that never went to the
    内测版. Check the 内测版's run first (Actions → Beta release, or `e2e` in its deploy-status): a failure there is
    either the AI's (rerun it) or a reason not to release. A failed deploy or test on 语流 rolls back by itself.
-6. **Afterwards:** the public changelog, the version in the guide header, the ops log.
+6. **Afterwards:** the ledger, the public changelog, the version in the guide header, the ops log. The ledger is
+   [`docs/releases.md`](../docs/releases.md) (every release, both sites; server and settings changes in
+   [`docs/server-changes.md`](../docs/server-changes.md)). Right after `deploy.sh`:
+   `python3 tools/changelog.py record r<N> --push` (keeps the e2e result in `LOG.md` on `release`), then
+   `python3 tools/changelog.py entry r<N>` prints the entry: put it at the top of 正式版, write what learners see in one
+   or two plain sentences and the owner's words that let it go out, add the 内测版 rows (`changelog.py rows b<from> b<to>`),
+   and merge that as a docs-only PR. A server or settings change gets its own entry in `docs/server-changes.md`.
 
 Conventions:
 
@@ -116,7 +125,10 @@ The owner approved these on 2026-11-24 (「按你的建议改，b6 发完就写�
 
 1. **Authors merge their own PRs.** When CI is green and the PR merges cleanly into main, the session that wrote it
    turns on auto-merge. The release session (语流 2) handles releases and the servers. 语流 still gets a release only
-   when the owner says 「发正式版」.
+   when the owner says 「发正式版」. **GitHub as a whole** (the order PRs land in, conflicts, branch cleanup) belongs to the
+   ledger session (语流·总账; the owner's choice, 2026-11-25). When a PR is stuck on a conflict or a flaky check, that
+   session merges main into its branch and pushes (never with force), then tells the author to pull. It also deletes
+   remote branches that are already in main, after noting each name and sha in the shared note `ledger.md`.
    - The session may turn auto-merge on itself with `gh pr merge <number> --repo Jasame/Flow --auto --merge` (the owner
      allowed it on 2026-11-25, 「允许」, knowing that the app's button asks the owner first and the command does not).
      Only its own PRs; never a draft or a PR marked 「先别合」; and it leaves a one-line note on the PR that it turned
