@@ -62,7 +62,7 @@
   }
 
   // ---- 新版本: back in front (or when the service worker changes), ask the server which version it serves. A new one
-  // is taken at once on a resting page (one of the four tabs, nothing being typed, no sheet, nothing playing); anywhere
+  // is taken at once on a resting page (one of the four tabs, nothing typed, no sheet, nothing playing or recording); anywhere
   // else one line offers it, and it is taken on the next resting page. The new service worker (sw.js: skipWaiting,
   // claim) is given up to 4 s to take over first, so the reload gets the new page and files, not the cached ones.
   // A version tried once and still not running is only offered again, never reloaded into a loop.
@@ -78,10 +78,20 @@
     try { const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); if (reg) reg.update(); } catch (e) { /* no worker: the reload asks the server */ }
     updateWhenSafe();
   }
+  // Something playing or recording (the narration, a clip or the server/browser voice in 01-audio-offline.js, the
+  // microphone in 70-learner.js, any <audio> on the page; read only): a reload would cut it off. The 今日 mini player,
+  // 好句 and shadowing can all be going on a tab page.
+  function audioBusy() {
+    try {
+      if (!NAR.audio.paused || !CLIP.audio.paused || MIC.busy()) return true;
+      if (window.speechSynthesis && (speechSynthesis.speaking || speechSynthesis.pending)) return true;
+    } catch (e) { return true; }
+    return [...document.querySelectorAll('audio, video')].some(m => !m.paused);
+  }
   function restingNow() {
     const h = location.hash.replace(/^#\/?/, '');
     return ['', 'practice', 'cards', 'me'].includes(h) && sheetEl.hidden && document.visibilityState === 'visible'
-      && !isTyping({ target: document.activeElement }) && !document.body.classList.contains('playing');
+      && !isTyping({ target: document.activeElement }) && !document.body.classList.contains('playing') && !audioBusy();
   }
   function updateWhenSafe() {
     if (!NEW_ASSET) return;

@@ -2429,6 +2429,16 @@ def home_app_run(pw):
         pg.click('#updateBar .ub-go'); pg.wait_for_timeout(5500)  # here no new worker comes, so the full 4 s wait
         check(dev, 'new version while answering questions: no reload, one line; a tap on it reloads', stayed and len(loads) == 2, (stayed, len(loads)))
         ctx.close()
+        # on 今日 but something playing (the mini player, 好句, shadowing): no reload, only the line
+        ctx, pg, errs = context('iphone-15-pro')
+        ctx.add_init_script("Object.defineProperty(HTMLMediaElement.prototype, 'paused', { get: () => false, configurable: true })")
+        pg.route('**/api/version', lambda r: r.fulfill(status=200, content_type='application/json', body='{"asset": "newer-version"}'))
+        loads = []
+        pg.on('load', lambda: loads.append(1))
+        pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+        pg.wait_for_selector('#updateBar', timeout=9000); pg.wait_for_timeout(1000)
+        check(dev, 'new version on 今日 while audio plays: no reload, only the line', len(loads) == 1, len(loads))
+        ctx.close()
         ctx, pg, errs = context('iphone-15-pro')
         loads = []
         pg.on('load', lambda: loads.append(1))
