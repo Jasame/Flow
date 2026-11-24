@@ -584,6 +584,17 @@ def run_device(pw, dev, opts):
     sel = pg.evaluate("""() => ({pressed: [...document.querySelectorAll('#view [data-book][aria-pressed=true]')].map(b => b.dataset.book),
       tag: getComputedStyle(document.querySelector('#view [data-book=tem4] .bk-on')).display, now: document.getElementById('bookNow').textContent})""")
     check(dev, 'plan: choosing 专四 marks only that card 已选 and names it', sel['pressed'] == ['tem4'] and sel['tag'] != 'none' and '专四词汇' in sel['now'], sel)
+    goal = lambda: pg.evaluate("""() => ({goal: [...document.querySelectorAll('#goal [aria-pressed=true]')].map(b => b.textContent.trim()),
+      book: [...document.querySelectorAll('#view [data-book][aria-pressed=true]')].map(b => b.dataset.book), now: document.getElementById('bookNow').textContent})""")
+    g = goal()
+    check(dev, 'plan: 你在准备什么考试？ follows the chosen book (专四 lit after picking the 专四 card)', g['goal'] == ['专四'] and g['book'] == ['tem4'], g)
+    pg.click('#goal [data-goal=tem8]'); g = goal()
+    check(dev, 'plan: tapping the 专八 exam chip picks the 专八 book and says so', g['goal'] == ['专八'] and g['book'] == ['tem8'] and '专八词汇' in g['now'], g)
+    pg.click('#goal [data-goal=""]'); g = goal()
+    check(dev, 'plan: 不考试 goes back to the suggested book by frequency', g['goal'] == ['不考试'] and g['book'] == ['mid'], g)
+    wide = pg.evaluate("() => [...document.querySelectorAll('#goal .chip')].filter(e => e.getBoundingClientRect().right > innerWidth + 1).length")
+    check(dev, 'plan: the exam chips wrap inside the screen', wide == 0, wide)
+    pg.click('[data-book=tem4]')
     pg.click('[data-book=tem4] ~ details.basis > summary'); pg.wait_for_timeout(200)
     check(dev, 'plan: 这份词书怎么来的 opens the note', pg.is_visible('[data-book=tem4] ~ details.basis > p') and
           '不是官方词表' in (pg.text_content('[data-book=tem4] ~ details.basis > p') or ''))
