@@ -236,8 +236,13 @@ def _running(task):
     pid = task.get('pid')
     if not pid or task.get('finished'):
         return False
+    # A run started before a restart of this process: still there, and still writing progress (the script writes
+    # after every call; a number that has been quiet for 15 minutes is another process by now)?
+    last = _read(_paths()[1]).get('updated') or task.get('started') or 0
+    if time.time() - last > 900:
+        return False
     try:
-        os.kill(int(pid), 0)  # a run started before a restart of this process: still there?
+        os.kill(int(pid), 0)
         return True
     except (OSError, ValueError):
         return False
