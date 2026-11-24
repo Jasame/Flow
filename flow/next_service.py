@@ -120,7 +120,7 @@ def ipa(p):
 
 
 def _ec_phonetic(e):
-    p = ipa(e[0])
+    p = ipa(e[0]).replace('^', 'ɡ')  # ECDICT writes the IPA ɡ as ^ in some entries (postgraduate, glandular, fungi)
     return f'[{p}]' if p else ''
 
 
@@ -140,6 +140,8 @@ def dictionary():
 DICT_FIELDS = ('word', 'phonetic', 'meaning', 'rank', 'example', 'ref', 'tags', 'collins')
 DICT_FILE = Path(__file__).resolve().parent / 'corpus_data' / 'dictionary-flow.json'
 DICT_SOURCES = ('yl-reference.json', 'ecdict-flow.json', 'meaning-fixes.json', 'irregular-flow.json')
+# Headwords ECDICT spells wrongly (reservior is tagged 四级; saut is sauté without its accent): built under the right one
+HEADWORD_FIXES = {'reservior': 'reservoir', 'saut': 'saute'}
 
 
 def _load_dictionary():
@@ -175,6 +177,14 @@ def build_dictionary():
             continue  # skip inflections of words we already have: "cities" should look up "city"
         out[k] = {'word': k, 'phonetic': _ec_phonetic(e), 'meaning': _ec_meaning(e), 'rank': e[6] or e[5] or 30000,
                   'example': '', 'ref': False, 'tags': e[2], 'collins': e[3]}
+    for wrong, right in HEADWORD_FIXES.items():  # ECDICT misspellings: the entry and its exam tags go to the right spelling
+        e = out.pop(wrong, None)
+        if e is None:
+            continue
+        if right in out:
+            out[right]['tags'] = list(dict.fromkeys(list(out[right]['tags']) + list(e['tags'])))
+        else:
+            out[right] = {**e, 'word': right}
     try:  # senses reviewed by hand for common words whose dictionary order misleads (mean: 吝啬的 before 意思是)
         fx = json.loads((base / 'meaning-fixes.json').read_text(encoding='utf-8'))
         fixes, phonetics = fx['words'], fx.get('phonetics') or {}
