@@ -1,3 +1,3 @@
-7488cc5472c253a3387b666c3ac6f3d57ec31a27 dff903e9277dddd8f6a2ec5e3f211ed2054d64e28e6aaddbfa5915f945501b9d e2e
-# b3 main: Merge pull request #30 from Jasame/rewrite-minimal
+261dd6acbcfcb9dd8d74697093d1a31b403de7a4 350b244562630047d6361fb77ffd0bebf1c6c540785e55bcc51f836959d825dc e2e
+# b4 promo-page: Merge main (#30 仿写批改, #31 word examples) into promo-page; guide PDF rebuilt
 # Format: <commit sha> <manifest sha256> [e2e]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
