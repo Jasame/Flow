@@ -183,7 +183,7 @@
     // text: said by the browser voice if neither line can play the clip.
     play(src, from, to, text, onend) {
       NAR.stop(); TTS.stop(); this.stop();
-      const a = this.audio, want = this.want = { from, to, text };
+      const a = this.audio, want = this.want = { from, to, text, onend };
       const loop = () => { if (this.want !== want) return; if (a.currentTime >= to || a.ended) { a.pause(); this.want = null; if (onend) onend(); return; } this.raf = requestAnimationFrame(loop); };
       const refused = e => { if (this.want === want && e && e.name === 'NotAllowedError') noSound('没有放出声音'); };
       claim(a); a.playbackRate = TTS.rate; a.dataset.want = '1'; a._from = from;
@@ -215,7 +215,7 @@
   };
   CLIP.audio.addEventListener('error', () => {
     const w = CLIP.want; if (!w || !mediaGaveUp(CLIP.audio)) return;
-    CLIP.stop(); if (w.text) TTS.browser(w.text);  // not TTS.say: that may be this player again (the server voice)
+    CLIP.stop(); if (w.text) TTS.browser(w.text, w.onend);  // not TTS.say: that may be this player again (the server voice); onend still runs (对比回放 plays the recording then)
   });
   /* ---------- preloading: the recording likely to be played next is fetched while the page is open ---------- */
   // iPhones and WeChat's browser download a recording only when it is played: on a phone network that is a second or
