@@ -259,6 +259,148 @@ class BacklogTests(unittest.TestCase):
         self.assertIn('去复习：', txt); self.assertIn('class="fl-card"', html)
         self.assertIn('learner，你好：', txt)
 
+class WordCapTests(unittest.TestCase):
+    """r28 section 3 (the owner chose the recommended plan, 2026-11-25): a day of words capped in minutes, reviews most
+    at risk first and new words in the time left; after a break the most urgent 40, the rest over 5 days; a finished
+    book names the next one."""
+    setUp, tearDown = BacklogTests.setUp, BacklogTests.tearDown  # the same learner, without running BacklogTests twice
+
+    def review(self, word, recall_days, due=None):
+        """A review card due now; recall_days: days since its last review at stability 3 (more days: more at risk)."""
+        self.c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,stability,difficulty,last) "
+                       "VALUES(1,?,?,'',' ','word',?,?,'review','saved',3,5,?)", (word, word, self.now - 30 * 86400, due or self.now - 60, self.now - recall_days * 86400))
+
+    def answered(self, n, at=None):
+        for _ in range(n):
+            self.c.execute("INSERT INTO next_reviews(user_id,card,rating,created) VALUES(1,0,'good',?)", (at or self.now - 60,))
+        self.c.commit()
+
+    def plan(self, minutes=5, book='core', daily=10):
+        vs.save_plan(self.c, 1, {'book': book, 'daily_new': daily, 'retention': 0.9, 'word_minutes': minutes})
+        self.c.execute('DELETE FROM next_cards'); self.c.commit()
+
+    def test_a_cap_gives_todays_share_most_at_risk_first(self):
+        self.plan(5)
+        for k in range(28):
+            self.review(f'w{k:02d}', 3 + k)  # w27 the most at risk
+        self.c.commit()
+        holds = int(5 * 60 / vs.ANSWER_SECONDS // vs.ANSWERS_PER_REVIEW)  # 26 reviews in 5 minutes at 9.5 s an answer
+        n = vs.counts(self.c, 1, self.now, cap=5)
+        self.assertEqual((n['due'], n['later'], n['cap'], n['catch_up']), (holds, 28 - holds, 5, None))
+        self.assertLessEqual(n['minutes'], 5)
+        with patch.object(vs.time, 'time', lambda: self.now):
+            q = vs.queue(self.c, 1)
+            self.assertEqual(len(q['items']), holds)
+            self.assertNotIn('w00', [i['text'] for i in q['items']]); self.assertNotIn('w01', [i['text'] for i in q['items']])  # the safest wait
+            self.assertEqual(len(vs.queue(self.c, 1, more=True)['items']), 28)  # 继续复习: everything due
+        self.assertEqual(vs.counts(self.c, 1, self.now)['due'], 28)  # without a cap, as before (今日 before r28, the badge)
+
+    def test_answers_today_use_up_the_share(self):
+        self.plan(5)
+        for k in range(20):
+            self.review(f'w{k}', 5)
+        self.c.commit()
+        self.assertEqual(vs.counts(self.c, 1, self.now, cap=5)['due'], 20)
+        self.answered(12)  # about ten cards done: the share is what is left of the time
+        n = vs.counts(self.c, 1, self.now, cap=5)
+        self.assertEqual(n['due'], int((5 * 60 / vs.ANSWER_SECONDS - 12) // vs.ANSWERS_PER_REVIEW))
+        self.answered(30)  # past the cap: today's words are done, the rest is for later
+        n = vs.counts(self.c, 1, self.now, cap=5)
+        self.assertEqual((n['due'], n['new'], n['minutes'], n['later']), (0, 0, 0, 20))
+
+    def test_new_words_come_in_the_time_the_reviews_leave(self):
+        self.plan(5, daily=10)
+        self.assertEqual(vs.introduce(self.c, 1, self.now), 10)  # nothing due: 5 minutes hold 10 new words (3 answers each)
+        self.c.execute('DELETE FROM next_cards'); self.c.execute("UPDATE next_vocab_plans SET paused_on=NULL"); self.c.commit()
+        for k in range(15):
+            self.review(f'w{k}', 5)
+        self.c.commit()
+        left = 5 * 60 / vs.ANSWER_SECONDS - 15 * vs.ANSWERS_PER_REVIEW
+        self.assertEqual(vs.introduce(self.c, 1, self.now), int(left // vs.ANSWERS_PER_NEW))
+        self.assertEqual(vs.introduce(self.c, 1, self.now), 0)  # asked again: no more than fits
+        self.assertEqual(vs.fit_new(5, 0.9, vs.ANSWER_SECONDS), 3)  # what 5 minutes keep up with a month in
+
+    def test_the_cap_is_the_learners_own_else_the_days_plan_and_an_exam_date_raises_it(self):
+        import types
+        self.plan(0)
+        nx.save_profile(self.c, 1, {'level': 'B1', 'goal': 'daily', 'themes': [], 'minutes': 15})
+        self.assertIsNone(vs.word_cap(self.c, 1, self.now))  # no time_budget yet: no cap
+        tb = types.ModuleType('time_budget'); tb.budget = lambda minutes, exam=False: {'words': {15: 5}.get(minutes, 9)}
+        with patch.dict(sys.modules, {'time_budget': tb}):
+            self.assertEqual(vs.word_cap(self.c, 1, self.now), 5)
+            self.assertEqual(vs.word_cap(self.c, 1, self.now, default=4), 4)  # the caller's budget
+            self.c.execute('UPDATE next_vocab_plans SET word_minutes=8'); self.c.commit()
+            self.assertEqual(vs.word_cap(self.c, 1, self.now, default=4), 8)  # 单词每天 set on the plan page wins
+            with patch('exam_sprint.countdown', return_value={'need': 20, 'book': 'core', 'plan_book': 'core'}):
+                per = vs.ANSWERS_PER_NEW + vs.MONTH_REVIEWS_PER_NEW[0.9] * vs.ANSWERS_PER_REVIEW
+                self.assertEqual(vs.word_cap(self.c, 1, self.now), -(-20 * per * vs.ANSWER_SECONDS // 60))  # 20 new a day to make the exam
+
+    def test_after_a_break_the_most_urgent_40_then_the_rest_over_5_days_without_new_words(self):
+        self.plan(5, daily=10)
+        self.answered(1, at=self.now - 4 * 86400)  # last review four days ago
+        for k in range(140):
+            self.review(f'w{k:03d}', 3 + k % 20)
+        self.c.commit()
+        n = vs.counts(self.c, 1, self.now, cap=5)
+        self.assertEqual((n['due'], n['new'], n['later']), (vs.BATCH, 0, 100))
+        holds = int(5 * 60 / vs.ANSWER_SECONDS // vs.ANSWERS_PER_REVIEW)
+        # today 40; the other 100 over 5 days, or faster when a day's cap holds more than 100 / 5
+        self.assertEqual(n['catch_up'], {'left': 140, 'days': 1 + -(-100 // max(holds, 20))})
+        self.assertEqual(vs.introduce(self.c, 1, self.now), 0)  # no new words until caught up
+        self.assertEqual((vs.BACK_DAYS, vs.SPREAD_DAYS), (3, 5))  # r28 section 2 (回来模式) says 3 days and 5 days
+        # the next day, 100 left: a day's share is the larger of the cap and 100 / 5
+        self.c.execute("DELETE FROM next_cards WHERE norm IN (SELECT norm FROM next_cards ORDER BY norm LIMIT 40)"); self.c.commit()
+        self.answered(48, at=self.now)
+        tomorrow = self.now + 86400
+        n = vs.counts(self.c, 1, tomorrow, cap=5)
+        self.assertEqual(n['due'], max(26, 20)); self.assertIsNotNone(n['catch_up'])
+        # once a day's cap holds what is due, catching up is over and new words come back
+        self.c.execute("DELETE FROM next_cards WHERE norm IN (SELECT norm FROM next_cards ORDER BY norm LIMIT 80)"); self.c.commit()
+        n = vs.counts(self.c, 1, tomorrow + 86400, cap=5)
+        self.assertIsNone(n['catch_up']); self.assertIsNone(vs.plan(self.c, 1)['catch_up'])
+
+    def test_a_short_break_or_a_small_heap_is_not_catching_up(self):
+        self.plan(5)
+        self.answered(1, at=self.now - 86400)  # yesterday
+        for k in range(60):
+            self.review(f'w{k}', 5)
+        self.c.commit()
+        self.assertIsNone(vs.counts(self.c, 1, self.now, cap=5)['catch_up'])
+        self.c.execute('DELETE FROM next_reviews'); self.answered(1, at=self.now - 3 * 86400)
+        self.assertIsNone(vs.counts(self.c, 1, self.now, cap=5)['catch_up'])  # two days without a review in between: not yet
+        self.c.execute('DELETE FROM next_reviews'); self.answered(1, at=self.now - 5 * 86400)
+        self.c.execute('DELETE FROM next_cards WHERE rowid > 10'); self.c.commit()  # 10 due: a day's cap holds them
+        self.assertIsNone(vs.counts(self.c, 1, self.now, cap=5)['catch_up'])
+
+    def test_a_finished_book_names_the_next_one_and_a_book_nearly_done_says_so(self):
+        books = {**vs.book_words(), 'zk': [(1, 'apple'), (2, 'banana'), (3, 'cherry')], 'gk': [(1, 'apple'), (2, 'cherry'), (3, 'date'), (4, 'elder')]}
+        with patch.object(vs, 'book_words', lambda: books):
+            self.plan(0, book='zk', daily=10)
+            for w in ('apple', 'banana'):
+                self.review(w, 5, due=self.now + 9 * 86400)
+            self.c.commit()
+            b = vs.overview(self.c, 1)['book']
+            self.assertEqual((b['left'], b['soon'], b['done']), (1, True, False))
+            self.assertEqual(b['next'], {'id': 'gk', 'title': vs.book_title('gk'), 'new': 3})  # apple is known already
+            self.review('cherry', 5, due=self.now + 9 * 86400); self.c.commit()
+            b = vs.overview(self.c, 1)['book']
+            self.assertTrue(b['done']); self.assertIsNone(b['finish']); self.assertEqual(b['next']['new'], 2)
+            self.assertEqual(vs.next_book(self.c, 1, 'cet6'), 'ky')
+            nx.save_profile(self.c, 1, {'level': 'B2', 'goal': 'abroad', 'themes': [], 'minutes': 30})
+            self.assertEqual(vs.next_book(self.c, 1, 'cet6'), 'ielts')  # going abroad: 雅思 after 六级
+            self.assertIsNone(vs.next_book(self.c, 1, 'gre'))
+
+    def test_the_plan_keeps_its_word_minutes(self):
+        self.plan(8)
+        self.assertEqual(vs.plan(self.c, 1)['word_minutes'], 8)
+        vs.save_plan(self.c, 1, {'book': 'core', 'daily_new': 5, 'retention': 0.9})  # left out: kept
+        self.assertEqual(vs.plan(self.c, 1)['word_minutes'], 8)
+        self.assertEqual(vs.save_plan(self.c, 1, {'book': 'core', 'daily_new': 5, 'retention': 0.9, 'word_minutes': 7})[1], 400)
+        o = vs.overview(self.c, 1)
+        self.assertEqual(o['word_minutes_options'], list(vs.WORD_MINUTES)); self.assertEqual(o['cap'], 8)
+        self.assertEqual(vs.get(self.c, 1, '/api/next/review', {'more': ['1']})[0]['more'], True)
+
+
 class ReadingLinkedTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
