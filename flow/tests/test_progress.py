@@ -263,6 +263,57 @@ class MailTests(Db):
             self.assertFalse(ps.mail_state(c, self.uid)['on'])
 
 
+
+class FinishTests(Db):
+    """r27 收尾: a text studied again ticks the plan; 新学的词 counts first answers; a pile of due words comes first."""
+    def test_a_text_studied_again_ticks_todays_plan_and_counts_as_finished(self):
+        import time as _t, skills_service as sk
+        now = _t.time()
+        with app.db() as c:
+            for step in ('listen', 'read', 'check'):  # first studied ten days ago
+                c.execute('INSERT INTO next_progress VALUES(?,?,?,?)', (self.uid, PID, step, now - 10 * 86400))
+            c.commit()
+            for step in ('listen', 'read', 'check'):  # studied again today
+                nx.mark(c, self.uid, PID, step)
+            first = c.execute("SELECT created FROM next_progress WHERE user_id=? AND pack=? AND step='check'", (self.uid, PID)).fetchone()[0]
+            self.assertLess(first, now - 9 * 86400)  # the first time is kept (复听 and 这周进步 read it as first studied)
+            home = nx.home(c, self.uid)
+            read = next(x for x in home['path']['steps'] if x['key'] == 'read')
+            self.assertEqual((read['sub'], read['done']), (json.loads(c.execute('SELECT content FROM lab_packs WHERE id=?', (PID,)).fetchone()[0])['title'], True))
+            self.assertIn(PID, ps._finished(c, self.uid, now - 3600, now + 1))
+            self.assertEqual(sk.report(c, self.uid)['materials'], 1)
+            nx.mark(c, self.uid, PID, 'check')  # twice the same day: one row
+            self.assertEqual(c.execute('SELECT COUNT(*) FROM next_step_log WHERE user_id=? AND step=?', (self.uid, 'check')).fetchone()[0], 1)
+
+    def test_new_words_are_words_answered_for_the_first_time(self):
+        import time as _t, skills_service as sk, growth_report as gr
+        now = _t.time()
+        with app.db() as c:
+            queued = self.word(c, 'queued', now - 3600)                    # brought in by 今日, never answered
+            fresh = self.word(c, 'fresh', now - 3600); self.review(c, fresh, 'again', now - 1800)
+            old = self.word(c, 'older', now - 40 * 86400); self.review(c, old, 'good', now - 40 * 86400); self.review(c, old, 'good', now - 600)
+            known = self.word(c, 'known', now - 3600, known=1); self.review(c, known, 'known', now - 1200)
+            c.commit()
+            self.assertEqual(sk.report(c, self.uid)['learned'], 1)          # fresh only
+            self.assertEqual(ps.new_words(c, self.uid, now - 86400, now + 1), 1)
+            lo, hi = gr._month(None, now)[:2]
+            self.assertEqual(gr._figures(c, self.uid, lo, hi)['new_words'], 1)
+
+    def test_a_pile_of_due_words_is_next_weeks_focus(self):
+        import time as _t, skills_service as sk
+        now = _t.time()
+        with app.db() as c:
+            for k in range(101):
+                c.execute("INSERT INTO next_cards(user_id,text,norm,kind,created,due,state) VALUES(?,?,?,'word',?,?,'review')",
+                          (self.uid, f'w{k}', f'w{k}', now - 30 * 86400, now - 86400))
+            c.commit()
+            self.assertTrue(sk.report(c, self.uid)['focus'].startswith('先把单词积压清掉：现在有 101 个单词到了复习时间'))
+
+    def test_study_again_offers_the_next_recommendation(self):
+        self.assertIn("const more1 = h.today.find(m => m && m.id !== readId", JS)
+        self.assertIn("href=\"${more1 ? '#/m/' + encodeURIComponent(more1.id) : '#/library'}\"", JS)
+
+
 class PageTests(unittest.TestCase):
     def test_the_page_has_the_card_the_summary_and_the_unsubscribe_page(self):
         for s in ('function weekCardHTML', 'id="weekCard"', 'data-tap="home-week"', 'function weekSheet', "api('/api/next/week')",

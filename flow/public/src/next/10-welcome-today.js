@@ -1,54 +1,3 @@
-  /* ---------- welcome ---------- */
-  async function welcome(edit) {
-    if (!S.meta) S.meta = await api('/api/next/meta');
-    const cur = (S.home && S.home.profile) || S.guest || {};
-    // Back from the starting check with a level: the level question is answered, go on with the rest.
-    const st = { step: S.placed ? 1 : 0, level: S.placed || cur.level || '', goal: cur.goal || '', themes: (cur.themes || []).slice(), minutes: cur.minutes || 10 };
-    S.placed = '';
-    const total = 4;
-    function draw() {
-      let body = '';
-      // A first visit (often from a link in WeChat) can start with today's article right away: no questions, no account.
-      const trial = !edit && !S.user && !cur.level && S.home && S.home.today && S.home.today[0];
-      if (st.step === 0 && trial) body = `<div class="card sunk try-first stack-s"><b>先试读一篇，觉得有用再定水平</b>
-          <span class="small muted">「${esc(trial.title)}」 · 约 ${trial.minutes} 分钟：听一遍、读一遍、做几道理解题。不用回答问题，也不用注册。</span>
-          <a class="btn primary" href="#/m/${encodeURIComponent(trial.id)}" data-tap="welcome-try">先试读一篇</a></div><p class="tiny muted tc">或者先回答 4 个问题，按你的水平推荐</p>`;
-      // A first visit also gets one quiet line to 认识语流 (/about), for those who want to know what this is first.
-      const aboutLine = trial ? `<p class="tiny tc about-line"><a class="link" href="/about" data-tap="welcome-about">第一次来？先花一分钟看看语流能帮你做什么</a></p>` : '';
-      if (st.step === 0) body += `<h1 class="h1">你能轻松读懂哪一句？</h1><p class="muted">选你不查词典也能读懂的最难一句。之后随时可以改。</p>
-        <div class="choice opts four">${S.meta.levels.map(l => `<button class="opt" data-v="${l.id}" aria-pressed="${st.level === l.id}"><div class="row between"><span class="l">${esc(l.label)}</span><span class="pill">${l.id}</span></div><div class="s">${esc(l.sample)}</div><div class="d">${esc(l.desc)}</div></button>`).join('')}</div>
-        <a class="link small place-link" href="#/placement">拿不准？做个 16 题的语法小测，帮你定起点 →</a>${aboutLine}`;
-      if (st.step === 1) body = `<h1 class="h1">你学英语主要为了什么？</h1><div class="choice opts">${S.meta.goals.map(g => `<button class="opt" data-v="${g.id}" aria-pressed="${st.goal === g.id}"><span class="l">${esc(g.label)}</span></button>`).join('')}</div>`;
-      if (st.step === 2) body = `<h1 class="h1">你对哪些话题感兴趣？</h1><p class="muted">可以多选，不选就每天随机。</p><div class="chips">${S.meta.themes.map(t => `<button class="chip" data-t="${t.id}" aria-pressed="${st.themes.includes(t.id)}">${esc(t.label)}</button>`).join('')}</div>`;
-      if (st.step === 3) body = `<h1 class="h1">每天想学多久？</h1><p class="muted">5 分钟够复习单词再做一小步；一篇完整材料约 8–15 分钟，可以分两天学完。少一点但每天来，比偶尔学很久更有用。</p><div class="choice opts">${S.meta.minutes.map(m => `<button class="opt" data-v="${m}" aria-pressed="${st.minutes === m}"><span class="l">${m} 分钟</span></button>`).join('')}</div>`;
-      const canNext = st.step === 0 ? !!st.level : st.step === 1 ? !!st.goal : true;
-      const prevW = (st.step / total * 100);
-      view.innerHTML = `<div class="progress-line"><i id="wp"></i></div><div class="stack" id="wbody">${body}
-        <div class="row between wnav"><button class="btn ghost" id="wBack" ${st.step === 0 && !edit ? 'hidden' : ''}>${st.step === 0 ? '取消' : '上一步'}</button>
-        <button class="btn primary" id="wNext" ${canNext ? '' : 'disabled'}>${st.step === total - 1 ? '开始学习' : '下一步'}</button></div></div>`;
-      const wp = document.getElementById('wp'); wp.style.width = prevW + '%';
-      requestAnimationFrame(() => requestAnimationFrame(() => { wp.style.width = ((st.step + 1) / total * 100) + '%'; }));
-      enter(document.getElementById('wbody'));
-      view.querySelectorAll('.opt').forEach(b => b.onclick = () => {
-        const v = b.dataset.v; if (st.step === 0) st.level = v; else if (st.step === 1) st.goal = v; else st.minutes = Number(v);
-        view.querySelectorAll('.opt').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-        document.getElementById('wNext').disabled = false;
-        if (st.step < 2) setTimeout(next, REDUCED ? 0 : 240);
-      });
-      view.querySelectorAll('.chip').forEach(b => b.onclick = () => { const t = b.dataset.t; st.themes = st.themes.includes(t) ? st.themes.filter(x => x !== t) : st.themes.concat(t); b.setAttribute('aria-pressed', String(st.themes.includes(t))); });
-      document.getElementById('wNext').onclick = next;
-      document.getElementById('wBack').onclick = () => { if (st.step === 0) history.back(); else { st.step--; draw(); } };
-    }
-    async function next() {
-      if (st.step < total - 1) { st.step++; draw(); return; }
-      const prof = { level: st.level, goal: st.goal, themes: st.themes, minutes: st.minutes };
-      S.guest = prof; save('flow-next-guest', prof);
-      if (S.user) { try { await api('/api/next/profile', prof); } catch (e) { toast(e.message); } }
-      await refreshHome(); S.homeFresh = true; location.hash = '#/';
-    }
-    draw();
-  }
-
   /* ---------- today ---------- */
   function greeting() { const h = new Date().getHours(); return h < 5 ? '夜深了' : h < 11 ? '早上好' : h < 14 ? '中午好' : h < 18 ? '下午好' : '晚上好'; }
   function stepDots(steps) { return `<span class="steps-dots" aria-label="已完成 ${steps.length} / 4 步">${STEPS.map(s => `<i class="${steps.includes(s) ? 'on' : ''}"></i>`).join('')}</span>`; }
@@ -75,12 +24,14 @@
       const p = h.path, nextK = p.steps.findIndex(s => !s.done), next = p.steps[nextK], read = p.steps.find(s => s.key === 'read');
       readId = read ? decodeURIComponent(read.href.split('/')[2] || '') : '';
       const art = [pick, h.resume, ...h.today].find(m => m && m.id === readId);
+      // 再学一篇 (r27): the next recommendation itself, not the whole library (that only when there is none)
+      const more1 = h.today.find(m => m && m.id !== readId && !(m.steps || []).includes('check'));
       top = `<section class="today-plan" aria-labelledby="tpTitle">
         <div class="tp-head"><div><h1 class="h1" id="tpTitle">${next ? '今天的计划' : '今天的计划完成了'}</h1>
-          <span class="muted small">${p.total} 步 · 约 ${p.minutes} 分钟 · 已完成 ${p.done} / ${p.total}</span></div>
+          <span class="muted small">${p.total} 步 · 约 ${p.minutes} 分钟 · 已完成 ${p.done} / ${p.total}</span>${sprintLine(h)}</div>
           <span class="ring" data-p="${Math.round(p.done / Math.max(1, p.total) * 100)}" aria-hidden="true"><b>${p.done}/${p.total}</b></span></div>
         ${next ? `<a class="btn primary block go-next" href="${esc(next.href)}">${p.done ? '继续' : '开始'}第 ${nextK + 1} 步<span aria-hidden="true">→</span></a>`
-          : `<div class="tp-done">${doneRing}<span>都完成了。想多学一点，就再读一篇。</span></div><a class="btn primary block go-next" href="#/library">再学一篇<span aria-hidden="true">→</span></a>`}
+          : `<div class="tp-done">${doneRing}<span>都完成了。${more1 ? `想多学一点，下一篇是《${esc(more1.title)}》。` : '想多学一点，就再挑一篇。'}</span></div><a class="btn primary block go-next" href="${more1 ? '#/m/' + encodeURIComponent(more1.id) : '#/library'}" data-tap="home-more-one">再学一篇<span aria-hidden="true">→</span></a>`}
         <div class="plist">${p.steps.map((s, k) => {
           const a = s.key === 'read' ? art : null;
           return `<a class="prow${s.done ? ' done' : ''}${s === next ? ' next' : ''}" href="${esc(s.href)}"><span class="num">${s.done ? '✓' : k + 1}</span>
@@ -96,31 +47,36 @@
     } else top = '<div class="empty">今天没有可推荐的材料了。</div>';
     const resume = h.resume && h.resume.id !== readId ? h.resume : null, news = h.news && h.news.id !== readId ? h.news : null;
     const more = h.today.filter(m => m.id !== readId && (path || m !== pick) && (!resume || m.id !== resume.id) && (!news || m.id !== news.id)).slice(0, 3);
+    // 好句 and 热点 come first, except on a screen too short for them and the plan's button together (a phone held
+    // sideways): there the plan comes first, so its next step is still on the first screen.
+    const short = innerHeight < 500 && innerWidth > innerHeight;
     view.innerHTML = `<div class="greet-row"><span class="kicker greet">${greeting()}${name ? `，<span class="nm">${esc(name)}</span>` : ''}</span>
-        ${st && st.progress ? '' : st && st.habit ? habitChip(st.habit) : st ? `<span class="wk" title="本周学了 ${weekN} 天"><span class="tiny muted">本周 ${weekN} 天</span><span class="week" aria-hidden="true">${st.week.map(d => `<span class="${d.active ? 'on' : ''}"></span>`).join('')}</span></span>` : ''}</div>
+        ${st && st.habit ? habitChip(st.habit) : st ? `<span class="wk" title="本周学了 ${weekN} 天"><span class="tiny muted">本周 ${weekN} 天</span><span class="week" aria-hidden="true">${st.week.map(d => `<span class="${d.active ? 'on' : ''}"></span>`).join('')}</span></span>` : ''}</div>
       ${announceHTML(h)}
-      ${weekCardHTML(h)}
+      ${short ? '' : lineCardHTML(h) + newsCardHTML(news)}
       ${top}
+      ${short ? lineCardHTML(h) + newsCardHTML(news) : ''}
+      ${weekCardSlot()}
       <div id="notice"></div>
       ${S.user && !path ? vocabHome(st) : ''}
-      <section class="section" aria-labelledby="mTitle"><div class="section-head"><h2 class="h2" id="mTitle">也可以读</h2><a class="link small" href="#/welcome/edit">按 ${h.level} 挑选 · 调整</a></div>
-        <div class="mlist">${resume ? mrow(resume, ['继续', 'green'], `#/m/${encodeURIComponent(resume.id)}/${nextStep(resume.steps)}`, 'home-resume') : ''}${news ? mrow(news, ['热点', 'amber'], '', 'home-news') : ''}${more.map(m => mrow(m, null, '', 'home-pick')).join('')}
-          <a class="mrow more" href="#/library" data-tap="home-more"><span class="t"><b>更多材料</b><span class="tiny muted">按话题和级别挑一篇</span></span><span class="go" aria-hidden="true">›</span></a></div>
-        ${news ? '<p class="tiny muted">「热点」是联网检索后改写的，未经人工审核。</p>' : ''}</section>`;
+      <section class="section" aria-labelledby="mTitle"><div class="section-head"><h2 class="h2" id="mTitle">也可以读</h2><a class="link small hit44" href="#/welcome/edit">按 ${h.level} 挑选 · 调整</a></div>
+        <div class="mlist">${resume ? mrow(resume, ['继续', 'green'], `#/m/${encodeURIComponent(resume.id)}/${nextStep(resume.steps)}`, 'home-resume') : ''}${more.map(m => mrow(m, null, '', 'home-pick')).join('')}
+          <a class="mrow more" href="#/library" data-tap="home-more"><span class="t"><b>更多材料</b><span class="tiny muted">按话题和级别挑一篇</span></span><span class="go" aria-hidden="true">›</span></a></div></section>`;
     const ring = view.querySelector('.ring'); if (ring) ring.style.setProperty('--p', ring.dataset.p + '%');  // CSP: no inline style attributes
     fillNotice(h);
     bindAnnounce(h);
-    bindWeekCard();  // 这周进步 (11-progress.js)
-    const hb = document.getElementById('habitBtn'); if (hb) hb.onclick = habitSheet;
+    bindLine(h);  // 今日好句 (12-daily-line.js)
+    mountWeekCards(view);  // 这周进步 (11-progress.js)
+    const hb = document.getElementById('habitBtn'); if (hb) hb.onclick = weekSheet;
     if (st && st.habit) cheerWeek(st.habit);
     const nextRead = readId || (pick && pick.id);
     if (nextRead) setTimeout(() => preloadMaterial(nextRead), 600);  // after the page is drawn, not before
   }
   // 每周目标: this week's days (Monday to Sunday) against the goal; a missed day breaks nothing while the week still
-  // reaches it. The weeks reached are counted up, never as a run that breaks (r27). A tap changes the goal. Signed in,
-  // the 这周进步 card (11-progress.js) shows all this, and the chip is only for a 今日 kept from before it.
+  // reaches it. The weeks reached are counted up, never as a run that breaks (r27). A tap opens 这周进步's details
+  // (11-progress.js), where the goal can be changed.
   function habitChip(hb) {
-    return `<button class="wk habit" id="habitBtn" type="button" aria-label="本周学了 ${hb.done} 天，目标 ${hb.goal} 天${hb.weeks ? '，已达成 ' + hb.weeks + ' 周' : ''}。点这里改每周目标" data-tap="home-habit">
+    return `<button class="wk habit" id="habitBtn" type="button" aria-label="本周学了 ${hb.done} 天，目标 ${hb.goal} 天${hb.weeks ? '，已达成 ' + hb.weeks + ' 周' : ''}。点这里看这周进步" data-tap="home-habit">
       <span class="tiny ${hb.met ? 'met' : 'muted'}">本周 ${hb.done}/${hb.goal} 天${hb.weeks ? ` · 已达成 ${hb.weeks} 周` : ''}</span>
       <span class="week" aria-hidden="true">${hb.days.map(d => `<span class="${d.active ? 'on' : ''}${d.today ? ' today' : ''}"></span>`).join('')}</span></button>`;
   }
@@ -136,7 +92,7 @@
           if (S.home && S.home.stats) S.home.stats.habit = r.habit;
           card.querySelectorAll('[data-goal]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
           const v = document.getElementById('meHabitV'); if (v) v.textContent = `每周 ${r.habit.goal} 天`;
-          const chip = document.getElementById('habitBtn'); if (chip) { chip.outerHTML = habitChip(r.habit); const n = document.getElementById('habitBtn'); if (n) n.onclick = habitSheet; }
+          const chip = document.getElementById('habitBtn'); if (chip) { chip.outerHTML = habitChip(r.habit); const n = document.getElementById('habitBtn'); if (n) n.onclick = weekSheet; }
           refreshWeekCard();
           toast(`每周目标：${r.habit.goal} 天`);
         } catch (e) { toast(e.message); }
@@ -174,6 +130,7 @@
   function noticeHTML(h) {
     if (!S.user) return `<div class="card sunk section notice stack-s"><b>登录后，进度和收藏的表达会保存下来</b><span class="muted small">不登录也可以听、读和做理解题。</span><div><button class="btn small" id="loginCta" data-tap="notice-login">登录 / 注册</button></div></div>`;
     if (h.suggest && Date.now() - (load('flow-next-suggest-skip') || 0) > 7 * 864e5) return suggestHTML(h.suggest);
+    const lg = levelGuessHTML(h); if (lg) return lg;  // 09-start.js: a level guessed from the target, no test yet
     const hb = h.stats && h.stats.habit;  // on Monday and Tuesday: how last week went, once
     if (hb && hb.last_week.done && (hb.days[0].today || hb.days[1].today) && load('flow-habit-lastweek') !== hb.monday)
       return `<div class="card sunk section notice stack-s" id="lastWeek"><b>${hb.last_week.met ? `上周学了 ${hb.last_week.done} 天，目标达成了 🎉` : `上周学了 ${hb.last_week.done} 天，离目标还差 ${hb.goal - hb.last_week.done} 天`}</b>
@@ -190,6 +147,7 @@
     slot.innerHTML = noticeHTML(h);
     const cta = document.getElementById('loginCta'); if (cta) cta.onclick = () => openLogin();
     if (h.suggest) bindSuggest(h, () => fillNotice(h));
+    bindLevelGuess(() => fillNotice(h));
     bindMailNudge(() => fillNotice(h));
     const lw = document.getElementById('lwOk'); if (lw) lw.onclick = () => { save('flow-habit-lastweek', h.stats.habit.monday); fillNotice(h); };
     const lwr = document.querySelector('#lastWeek a'); if (lwr) lwr.addEventListener('click', () => save('flow-habit-lastweek', h.stats.habit.monday));

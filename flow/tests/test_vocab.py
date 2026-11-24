@@ -156,6 +156,93 @@ AI_ENV = {'FLOW_AI_PROVIDER': 'openai', 'FLOW_AI_KEY': 'k', 'FLOW_AI_MODEL': 'm'
           'FLOW_AI_DAILY_LIMIT': '0', 'FLOW_AI_USER_DAILY_LIMIT': '0', 'FLOW_AI_AUDIO': '1'}
 
 
+
+class BacklogTests(unittest.TestCase):
+    """A day of words that can be done: reviews due by the day, new words held back when reviews pile up, estimates
+    from the learner's own pace (ux-longterm-audit 1.1, 1.3, 10, 11, 17)."""
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.p = patch.object(app, 'DB', Path(self.tmp.name) / 'v.db'); self.p.start()
+        app.init(); self.c = app.db()
+        self.c.execute('INSERT INTO users(username,password,email) VALUES(?,?,?)', ('learner', 'h', 'learner@example.test'))
+        self.c.commit()
+        self.now = datetime.datetime.now(nx.TZ).replace(hour=8, minute=0, second=0, microsecond=0).timestamp()
+        self.day = vs._day_start(self.now)
+
+    def tearDown(self):
+        self.c.close(); self.p.stop(); self.tmp.cleanup()
+
+    def card(self, word, state, due):
+        self.c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,stability,difficulty,last) "
+                       "VALUES(1,?,?,'',' ','word',?,?,?,'saved',3,5,?)", (word, word, self.now - 9 * 86400, due, state, self.now - 3 * 86400))
+        self.c.commit()
+
+    def test_a_review_card_is_due_all_of_its_day_a_learning_step_only_from_its_minute(self):
+        self.card('tonight', 'review', self.day + 20 * 3600)      # due this evening: due all day today
+        self.card('tomorrow', 'review', self.day + 86400 + 60)     # tomorrow just after midnight: not yet
+        self.card('in-ten', 'learning', self.now + 600)            # a learning step ten minutes away: not yet
+        self.card('stepped', 'relearning', self.now - 60)          # a step that has come round: due
+        self.assertEqual(vs.counts(self.c, 1, self.now)['due'], 2)
+        with patch.object(vs.time, 'time', lambda: self.now):
+            self.assertEqual(sorted(i['text'] for i in vs.queue(self.c, 1)['items']), ['stepped', 'tonight'])
+
+    def test_new_words_wait_a_day_while_reviews_pile_up(self):
+        vs.save_plan(self.c, 1, {'book': 'core', 'daily_new': 5, 'retention': 0.9})
+        self.c.execute("DELETE FROM next_cards"); self.c.commit()
+        for k in range(16):  # more than 5 x 3 reviews due
+            self.card(f'w{k}', 'review', self.now - 3600)
+        self.assertEqual(vs.introduce(self.c, 1, self.now), 0)
+        n = vs.counts(self.c, 1, self.now)
+        self.assertEqual((n['due'], n['new'], n['new_paused']), (16, 0, True))
+        self.c.execute("UPDATE next_cards SET known=1"); self.c.commit()  # the reviews done: still none today
+        self.assertEqual(vs.introduce(self.c, 1, self.now + 3600), 0)
+        self.assertTrue(vs.counts(self.c, 1, self.now + 3600)['new_paused'])
+        tomorrow = self.now + 86400
+        self.assertEqual(vs.introduce(self.c, 1, tomorrow), 5)
+        self.assertFalse(vs.counts(self.c, 1, tomorrow)['new_paused'])
+        self.assertEqual(vs.PAUSE_OVER, 3)  # the word page says 「超过每天新词的 3 倍」 (50-words.js)
+
+    def test_a_few_reviews_do_not_hold_back_new_words(self):
+        vs.save_plan(self.c, 1, {'book': 'core', 'daily_new': 5, 'retention': 0.9})
+        self.c.execute("DELETE FROM next_cards"); self.c.commit()
+        for k in range(15):  # exactly 5 x 3: not over
+            self.card(f'w{k}', 'review', self.now - 3600)
+        self.assertEqual(vs.introduce(self.c, 1, self.now), 5)
+
+    def test_the_estimate_follows_the_learners_own_pace(self):
+        self.assertEqual(vs.answer_seconds(self.c, 1, self.now), vs.ANSWER_SECONDS)
+        self.assertEqual(vs.minutes_for(100, 20, 9.5), round((100 * 1.2 + 20 * 3) * 9.5 / 60))
+        for k in range(30):
+            self.c.execute('INSERT INTO next_reviews(user_id,card,rating,created,ms) VALUES(1,1,?,?,5000)', ('good', self.now - k * 60))
+        self.c.execute('INSERT INTO next_reviews(user_id,card,rating,created,ms) VALUES(1,1,?,?,600000)', ('good', self.now))  # looked away
+        self.c.commit()
+        self.assertEqual(vs.answer_seconds(self.c, 1, self.now), 5.0)
+        for k in range(40):
+            self.card(f'w{k}', 'review', self.now - 3600)
+        self.assertEqual(vs.counts(self.c, 1, self.now)['minutes'], vs.minutes_for(40, 0, 5.0))  # 40 x 1.2 x 5 s = 4 min
+
+    def test_the_plan_page_gets_the_same_numbers(self):
+        vs.save_plan(self.c, 1, {'book': 'core', 'daily_new': 20, 'retention': 0.9})
+        load = vs.overview(self.c, 1)['load']
+        self.assertEqual((load['per_review'], load['per_new'], load['answer_seconds']), (1.2, 3, 9.5))
+        self.assertEqual(set(load['month_reviews_per_new']), {str(r) for r in vs.RETENTION})
+        self.assertEqual(load['month_reviews_per_new']['0.9'], 6)
+        # a month in at 20 a day and 90 %: about 120 reviews, half an hour with the new words (the audit simulated 33 minutes)
+        self.assertEqual(vs.minutes_for(20 * 6, 20, 9.5), 32)
+
+    def test_a_reminder_for_a_pile_asks_for_the_first_forty(self):
+        self.assertTrue(vs.set_reminder(self.c, 1, {'enabled': True, 'hour': 20})[0]['enabled'])
+        at = self.day + 20 * 3600 + 300
+        for k in range(120):
+            self.card(f'w{k}', 'review', self.now - 3600)
+        sent = []
+        self.assertEqual(vs.send_reminders(self.c, at, lambda to, sub, text: sent.append((sub, text))), 1)
+        sub, text = sent[0]
+        self.assertIn('先复习最要紧的 40 个', sub); self.assertIn('先复习最要紧的 40 个', text)
+        self.assertNotIn('120', sub + text)
+        self.assertIn(f"约 {vs.minutes_for(40, 0, vs.ANSWER_SECONDS)} 分钟", sub)
+
+
 class ReadingLinkedTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

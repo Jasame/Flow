@@ -20,7 +20,8 @@ STEPS = {'listen', 'read', 'check', 'output', 'retell', 'dialog', 'translate', '
          'writing', 'speaking', 'listening', 'pair', 'topic', 'edit', 'confuse', 'paper'}
 DOMAINS = {'flow.jasa.hk', 'flowlang.cn', 'www.flowlang.cn'}
 NETS = {'slow-2g', '2g', '3g', '4g'}
-PHASES = ('dns', 'connect', 'tls', 'ttfb', 'html', 'scripts', 'home_api', 'render')
+PHASES = ('startup', 'dns', 'connect', 'tls', 'ttfb', 'html', 'scripts', 'boot', 'home_api', 'render')  # in the order they happen
+PAGES = {'today': '今日', 'material': '从链接打开的材料页', 'other': '其他页面', '': 'r26 以前（没有记录）'}
 MAX_ISSUE_ROWS, MAX_ISSUE_COUNT, MAX_BATCH = 1000, 100000, 20
 MAX_OPENS = 5000
 KEEP_DAYS = 30
@@ -33,11 +34,15 @@ def schema(c):
     c.execute('CREATE TABLE IF NOT EXISTS open_times(id INTEGER PRIMARY KEY, created REAL NOT NULL, day TEXT NOT NULL, domain TEXT NOT NULL, '
               'platform TEXT NOT NULL, browser TEXT NOT NULL, net TEXT NOT NULL, tz TEXT NOT NULL, repeat INTEGER NOT NULL, standalone INTEGER NOT NULL, '
               'first_view INTEGER, waited INTEGER NOT NULL DEFAULT 0, dns INTEGER, connect INTEGER, tls INTEGER, ttfb INTEGER, html INTEGER, '
-              'scripts INTEGER, home_api INTEGER, render INTEGER, snap INTEGER NOT NULL DEFAULT 0)')
-    try:  # a table made before the page could draw from its kept copy (r21) gets the column
-        c.execute('ALTER TABLE open_times ADD COLUMN snap INTEGER NOT NULL DEFAULT 0')
-    except sqlite3.OperationalError:
-        pass
+              'scripts INTEGER, home_api INTEGER, render INTEGER, snap INTEGER NOT NULL DEFAULT 0, startup INTEGER, boot INTEGER, '
+              "hidden INTEGER NOT NULL DEFAULT 0, page TEXT NOT NULL DEFAULT '')")
+    # a table made before these were measured gets the columns: snap (r21), and startup, boot, hidden, page (r27)
+    for col in ('snap INTEGER NOT NULL DEFAULT 0', 'startup INTEGER', 'boot INTEGER', 'hidden INTEGER NOT NULL DEFAULT 0',
+                "page TEXT NOT NULL DEFAULT ''"):
+        try:
+            c.execute('ALTER TABLE open_times ADD COLUMN ' + col)
+        except sqlite3.OperationalError:
+            pass
     c.execute('CREATE INDEX IF NOT EXISTS open_times_day ON open_times(day)')
 
 
@@ -128,11 +133,12 @@ def open_time(c, data, ua):
     system, browser = platform(ua)
     domain = str(data.get('domain') or '').lower()
     first = _ms(data.get('first_view'))
-    c.execute('INSERT INTO open_times(created, day, domain, platform, browser, net, tz, repeat, standalone, snap, first_view, waited, '
-              + ', '.join(PHASES) + ') VALUES(' + ','.join('?' * (12 + len(PHASES))) + ')',
+    page = data.get('page') if data.get('page') in ('today', 'material', 'other') else ''
+    c.execute('INSERT INTO open_times(created, day, domain, platform, browser, net, tz, repeat, standalone, snap, hidden, page, first_view, '
+              'waited, ' + ', '.join(PHASES) + ') VALUES(' + ','.join('?' * (14 + len(PHASES))) + ')',
               (time.time(), day, domain if domain in DOMAINS else '其他', system, browser, data.get('net') if data.get('net') in NETS else '',
-               str(data.get('tz') or '')[:40], int(bool(data.get('repeat'))), int(bool(data.get('standalone'))), int(bool(data.get('snap'))), first,
-               _ms(data.get('waited')) or 0, *[_ms(data.get(k)) for k in PHASES]))
+               str(data.get('tz') or '')[:40], int(bool(data.get('repeat'))), int(bool(data.get('standalone'))), int(bool(data.get('snap'))),
+               int(data.get('hidden') is True), page, first, _ms(data.get('waited')) or 0, *[_ms(data.get(k)) for k in PHASES]))
     c.commit()
     return {'ok': True}, 200
 
@@ -173,13 +179,18 @@ def _summary(rows):
 
 def speed(c, days=7):
     """Opening times for the console: overall, where the time goes (medians), and by domain, platform, browser,
-    network, first or repeat visit, and day."""
+    network, first or repeat visit, the page opened on, and day. Pages opened out of sight are left out of every figure
+    and only counted (hidden_visits)."""
     since = (datetime.now(__import__('next_service').TZ).date() - timedelta(days=days - 1)).isoformat()
     rows = [dict(r) for r in c.execute('SELECT * FROM open_times WHERE day>=?', (since,)).fetchall()]
+    # a page opened out of sight (a background tab, a link WeChat loaded ahead) waited for nobody: counted apart
+    hidden = sum(1 for r in rows if r['hidden'])
+    rows = [r for r in rows if not r['hidden']]
     label = {'repeat': lambda r: '再次打开（有缓存）' if r['repeat'] else '第一次打开', 'net': lambda r: r['net'] or '浏览器没有告诉',
              'platform': lambda r: r['platform'], 'browser': lambda r: r['browser'], 'domain': lambda r: r['domain'],
              'standalone': lambda r: '从桌面打开' if r['standalone'] else '在浏览器里',
-             'snap': lambda r: '先显示上次的内容' if r.get('snap') else '等服务器的回答'}
+             'snap': lambda r: '先显示上次的内容' if r.get('snap') else '等服务器的回答',
+             'page': lambda r: PAGES.get(r['page'], PAGES[''])}
     by = {}
     for name, f in label.items():
         groups = {}
@@ -196,4 +207,5 @@ def speed(c, days=7):
     return {'days': days, 'overall': _summary(rows),
             'phases': {k: _pct([r[k] for r in rows if r[k] is not None], 50) for k in PHASES},
             'phases_slow': {k: _pct([r[k] for r in slow if r[k] is not None], 50) for k in PHASES}, 'slow_visits': len(slow),
+            'hidden_visits': hidden,
             'by': by, 'daily': [{'day': d, **_summary(v)} for d, v in sorted(daily.items())]}

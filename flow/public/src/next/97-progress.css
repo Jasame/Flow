@@ -1,6 +1,9 @@
 /* ---- 这周进步 (r27): the card at the top of 今日, its details sheet, the summary after a text, the unsubscribe page ---- */
+/* the card brings no outer margin: the page that holds it spaces its slot (today: under the plan) */
+.week-slot{margin:18px 0 2px}
+.week-slot:empty{display:none}
 /* four numbers side by side down to a 360 px phone: no boxes around them, thin rules between, labels of five characters */
-.week-card{display:grid;gap:10px;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;padding:14px 16px 12px;margin:2px 0 20px;
+.week-card{display:grid;gap:10px;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;padding:14px 16px 12px;margin:0;
   background:var(--paper);border:0;border-radius:var(--r);box-shadow:none;-webkit-tap-highlight-color:transparent;transition:background .15s}
 .week-card:hover{background:color-mix(in srgb,var(--paper) 88%,var(--green-soft))}
 .week-card:active{transform:scale(.995)}

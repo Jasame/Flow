@@ -34,6 +34,11 @@ def schema(c):
         if name not in cols:
             c.execute(f'ALTER TABLE next_weekly ADD COLUMN {name} {decl}')
     c.execute('CREATE UNIQUE INDEX IF NOT EXISTS next_weekly_token ON next_weekly(token) WHERE token IS NOT NULL')
+    # every day a step of a material was done, a second time included (next_progress keeps only the first time, which
+    # 复听 and 这周进步 read as "first studied"): so redoing a text the plan offers still ticks it
+    c.execute('CREATE TABLE IF NOT EXISTS next_step_log(user_id INTEGER NOT NULL REFERENCES users(id), pack TEXT NOT NULL, step TEXT NOT NULL, '
+              'day TEXT NOT NULL, created REAL NOT NULL, PRIMARY KEY(user_id, pack, step, day))')
+    c.execute('CREATE INDEX IF NOT EXISTS next_step_log_time ON next_step_log(user_id, created)')
 
 
 # ---------- days and weeks ----------
@@ -53,9 +58,9 @@ def _bounds(now):
     return today, monday, _start(monday), _start(monday - D(weeks=1))
 
 
-# What makes a study day, for 每周目标 and for 我的进步's 学习天数 alike: anything learned. A step of a material, a
-# review, a relisten, easy reading, a scored practice (dictation, speaking, writing ...) or an answered question.
-DAY_TABLES = ('next_progress', 'next_reviews', 'next_relisten', 'next_easy_reads', 'next_skill_events', 'learning_events')
+# What makes a study day, for 每周目标 and for 我的进步's 学习天数 alike: anything learned. A step of a material (the
+# first time or again), a review, a relisten, easy reading, a scored practice (dictation, speaking, writing ...) or an answered question.
+DAY_TABLES = ('next_progress', 'next_step_log', 'next_reviews', 'next_relisten', 'next_easy_reads', 'next_skill_events', 'learning_events')
 
 
 def study_days(c, uid, since=0, until=None):
@@ -116,10 +121,34 @@ def _answers(c, uid, lo, hi):
     return {'right': right, 'total': total, 'rate': round(right / total * 100) if total >= MIN_ANSWERS else None}
 
 
-def _finished(c, uid, lo, hi):
-    """Texts finished in [lo, hi): materials whose comprehension questions were done (学完的材料 in the weekly report)."""
-    return [r[0] for r in c.execute("SELECT pack FROM next_progress WHERE user_id=? AND step='check' AND created>=? AND created<? ORDER BY created",
-                                    (uid, lo, hi))]
+def log_step(c, uid, pid, step, now=None):
+    """A step of a material done today (next_service.mark): kept once a day, the first time and every time after."""
+    now = now or time.time()
+    c.execute('INSERT OR IGNORE INTO next_step_log VALUES(?,?,?,?,?)', (uid, pid, step, _local(now).date().isoformat(), now))
+
+
+def steps_since(c, uid, since, until=None, pack=None):
+    """(pack, step, time) of every step done in [since, until): the first time (next_progress) or again (next_step_log)."""
+    until = until or time.time() + 1
+    extra, args = (' AND pack=?', (pack,)) if pack else ('', ())
+    rows = c.execute('SELECT pack, step, created FROM next_progress WHERE user_id=? AND created>=? AND created<?' + extra + ' UNION '
+                     'SELECT pack, step, created FROM next_step_log WHERE user_id=? AND created>=? AND created<?' + extra + ' ORDER BY created',
+                     (uid, since, until, *args, uid, since, until, *args)).fetchall()
+    return rows
+
+
+def _finished(c, uid, lo, hi, steps=('check',)):
+    """Texts finished in [lo, hi): materials whose comprehension questions were done then, the first time or again
+    (学完的文章 here, 学完的材料 in the weekly report and 我的进步). Ordered by when."""
+    return list(dict.fromkeys(r['pack'] for r in steps_since(c, uid, lo, hi) if r['step'] in steps))
+
+
+def new_words(c, uid, lo, hi):
+    """新学的词 in [lo, hi): word cards answered for the first time then (a review's first rating), not cards merely put
+    into the queue (今日 brings in the day's new words when it opens) nor words marked as already known."""
+    return c.execute("""SELECT COUNT(*) FROM (SELECT MIN(r.created) t FROM next_reviews r JOIN next_cards k ON k.id=r.card AND k.user_id=r.user_id
+        WHERE r.user_id=? AND k.kind='word' AND k.known=0 AND r.rating IN ('again','hard','good','easy') GROUP BY r.card) WHERE t>=? AND t<?""",
+                     (uid, lo, hi)).fetchone()[0]
 
 
 def _titles(c, uid, packs):
@@ -350,7 +379,10 @@ def mailed_today(c, uid, now=None):
 # ---------- routes ----------
 
 def get(c, uid, path, q):
-    if path == '/api/next/week':
+    if path == '/api/next/week':  # brief=1: what the 这周进步 card shows (the numbers and the weekly goal), wherever it is
+        if (q.get('brief') or [''])[0] == '1':
+            prof = nx.profile(c, uid) or {}
+            return {**week(c, uid), 'habit': nx.habit(c, uid, prof.get('weekly_goal') or 4)}, 200
         return week(c, uid, detail=True), 200
     if path == '/api/next/text-summary':
         return text_summary(c, uid, (q.get('pack') or [''])[0][:80])
