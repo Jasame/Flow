@@ -52,7 +52,7 @@
       g.fillStyle = '#e7e3d8'; g.fillRect(240, y - 24, 600, 22); g.fillStyle = green; g.fillRect(240, y - 24, 600 * s.now, 22);
       g.fillStyle = muted; g.fillText(Math.round(s.now * 100) + '%', 870, y);
     });
-    brandFoot(g, W, H, habitNote(false, true));  // logo, weeks in a row at the goal, and the QR code back to the site (86-share.js)
+    brandFoot(g, W, H, habitNote(false, true));  // logo, the weeks that reached the goal, and the QR code back to the site (86-share.js)
     return cv.toDataURL('image/png');
   }
 
