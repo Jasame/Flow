@@ -130,5 +130,90 @@ class LevelAndSenseTests(FillExamplesTests):
         self.assertIn('systemd-run', doc); self.assertIn('--uid=www', doc); self.assertIn('never as root', doc)
         self.assertNotIn('nohup python3 fill_examples.py', doc)
 
+
+class WorkersTests(FillExamplesTests):
+    """--workers (2026-11-25): calls at once in threads, the database written by the main thread only; a rate limit
+    halves the calls at once and asks the batch again; a batch line of its own never falls back to the main model."""
+
+    def test_calls_run_at_once_and_only_the_main_thread_writes(self):
+        import threading
+        todo = [w for _, _, w in fill_examples.pending(self.c, vs, ['gre'])]
+        write, lock, now, most, writers = writer()[0], threading.Lock(), [0], [0], set()
+
+        def model(messages, audio=None, grounding=False):
+            with lock:
+                now[0] += 1; most[0] = max(most[0], now[0])
+            threading.Event().wait(0.05)
+            with lock:
+                now[0] -= 1
+            return write(messages)
+        save = vs.save_examples
+        with patch('chat_service.request_model', model), patch.object(vs, 'save_examples', lambda c, made, now=None: (writers.add(threading.current_thread().name), save(c, made, now))):
+            fill_examples.main(self.args + ['--per-call', '2', '--max-calls', '12', '--workers', '4'])
+        self.assertEqual(writers, {'MainThread'})
+        self.assertGreater(most[0], 1); self.assertLessEqual(most[0], 4)
+        self.assertEqual(set(self.cached()), set(todo[:24]))
+
+    def test_the_pace_halves_on_a_rate_limit_and_grows_back(self):
+        p = fill_examples.Pace(8)
+        p.slow(); self.assertEqual((p.now, p.hold), (4, 5))
+        p.slow(); self.assertEqual((p.now, p.hold), (2, 10))
+        for _ in range(10):
+            p.ok()
+        self.assertEqual(p.now, 3)
+        q = fill_examples.Pace(1)
+        q.slow(); self.assertEqual(q.now, 1)
+
+    def test_a_rate_limited_batch_is_asked_again(self):
+        import urllib.error
+        todo = [w for _, _, w in fill_examples.pending(self.c, vs, ['gre'])]
+        write, left = writer()[0], [2]
+
+        def model(messages, audio=None, grounding=False):
+            if left[0]:
+                left[0] -= 1
+                raise urllib.error.HTTPError('https://ai.invalid', 429, 'busy', None, None)
+            return write(messages)
+        status = Path(self.tmp.name) / 'status.json'
+        with patch('chat_service.request_model', model), patch('time.sleep') as sleep:
+            fill_examples.main(self.args + ['--per-call', '4', '--max-calls', '6', '--workers', '2', '--status', str(status)])
+        self.assertEqual(set(self.cached()), set(todo[:16]))  # 6 calls: 2 refused, their words asked again
+        st = json.loads(status.read_text())
+        self.assertEqual((st['calls'], st['failed'], st['made']), (6, 2, 16))
+        self.assertTrue(any(x.args[0] >= 5 for x in sleep.call_args_list))  # waited before the next call
+
+    def test_a_batch_line_of_its_own_never_falls_back_to_the_main_model(self):
+        import chat_service, urllib.error
+        write, seen = writer()[0], []
+
+        def line(messages, model=None, extra=None):
+            seen.append(model)
+            if len(seen) == 1:
+                raise urllib.error.HTTPError('https://ai.invalid', 503, 'down', None, None)
+            chat_service.INFO.served = 'deepseek-v4.1-flash'
+            return write(messages)
+        with patch.dict(os.environ, {'FLOW_AI_ROUTES': 'next-examples=flow-batch-x'}), patch.object(chat_service, '_request_text_service', line), \
+                patch.object(chat_service, '_request_main', side_effect=AssertionError('no fallback')), patch('time.sleep'):
+            fill_examples.main(self.args + ['--per-call', '4', '--max-calls', '3', '--workers', '2'])
+        self.assertEqual(seen, ['flow-batch-x'] * 3)
+        rows = self.c.execute("SELECT model, ok, status, served FROM ai_calls WHERE kind='fill-examples' ORDER BY id").fetchall()
+        self.assertEqual([tuple(r) for r in rows], [('flow-batch-x', 0, 503, ''), ('flow-batch-x', 1, 200, 'deepseek-v4.1-flash'), ('flow-batch-x', 1, 200, 'deepseek-v4.1-flash')])
+        self.assertEqual(len(self.cached()), 8)
+
+    def test_max_yuan_stops_new_calls(self):
+        import ai_routes
+        write, db = writer()[0], Path(self.tmp.name) / 'flow.sqlite3'
+
+        def model(messages, audio=None, grounding=False):  # each call leaves its ai_calls row, as request_model does
+            with sqlite3.connect(db) as c:
+                c.execute("INSERT INTO ai_calls(ts,kind,service,ok) VALUES(?,?,?,1)", (__import__('time').time(), 'fill-examples', 'text'))
+            return write(messages)
+        status = Path(self.tmp.name) / 'status.json'
+        with patch('chat_service.request_model', model), patch.object(ai_routes, 'cost', return_value=1.0):
+            self.assertEqual(fill_examples.main(self.args + ['--per-call', '4', '--max-yuan', '2', '--status', str(status)]), 1)
+        st = json.loads(status.read_text())
+        self.assertEqual((st['calls'], st['yuan'], st['state']), (2, 2.0, 'left'))
+
+
 if __name__ == '__main__':
     unittest.main()
