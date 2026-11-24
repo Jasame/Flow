@@ -1816,7 +1816,7 @@ def backlog_run(pw):
         o = pg.evaluate("fetch('/api/next/vocab').then(r => r.json())")
         note = pg.text_content('#newPaused') if pg.query_selector('#newPaused') else ''
         check(dev, 'reviews piled up (60 > 3 x 10): no new words today, and the word page says why',
-              o['new_paused'] and o['due'] >= 60 and '先把到期的复习完，新词明天继续' in note and '3 倍' in note, (o['due'], o['new'], o['new_paused'], note))
+              o['new_paused'] and o['due'] >= 60 and note.strip() == '到期的词比较多，今天先复习，新词明天继续。', (o['due'], o['new'], o['new_paused'], note))
         home = pg.evaluate("fetch('/api/next/home').then(r => r.json())")
         step = next((x for x in (home.get('path') or {}).get('steps', []) if x.get('key') == 'review'), {})
         check(dev, "today's word step says new words wait", '新词明天继续' in step.get('sub', ''), step)
@@ -1836,13 +1836,23 @@ def backlog_run(pw):
         head = pg.text_content('.done-card h2') if pg.query_selector('.done-card') else ''
         stop = pg.text_content('#stopOk') if pg.query_selector('#stopOk') else ''
         again = pg.text_content('#again') if pg.query_selector('#again') else ''
-        check(dev, 'after the 40: a place to stop, 今天做到这里也行, and 再做 for the rest', head.startswith('这一轮复习了 40 个') and '今天做到这里也行' in stop
-              and again.startswith('再做') and pg.query_selector('.done-card a[href="#/"]') is not None, (head, stop, again))
+        check(dev, 'after the 40: a place to stop, 今天做到这里也行 as the main button, 再做 beside it', head.startswith('这一轮复习了 40 个') and '今天做到这里也行' in stop
+              and again.startswith('再做') and 'primary' not in (pg.get_attribute('#again', 'class') or '')
+              and (pg.text_content('.done-card a.btn.primary[href="#/"]') or '').strip() == '今天就到这里', (head, stop, again))
         for page, sel, name in (('#/report', '.card a.link[href="#/easy"]', '周报「去读」'), ('#/report', '.card a.link[href="#/speak"]', '周报「去练」'),
                                 ('#/', '.section-head a.link[href="#/welcome/edit"]', '今日「按 B1 挑选 · 调整」'), (f'#/m/{PID}/listen', '#originMore', '材料的「怎么写的」')):
             go(pg, page); pg.wait_for_timeout(300)
             t = pg.evaluate(TAP44_JS, sel)
             check(dev, f'{name} takes a tap 44 px around it', t is not None and t['ok'], t)
+        # 背词计划: 20 new words a day at 90 % comes to over half an hour a month in: the number, the way out, and one tap to 10
+        go(pg, '#/vocab/plan'); pg.click('#dn [data-v="20"]'); pg.wait_for_timeout(200)
+        hint = pg.text_content('#dnHint') or ''
+        check(dev, 'plan: half an hour or more says the minutes and offers 10 a day, one tap away',
+              '按现在的设置，一个月后每天大约要' in hint and '可以改成每天 10 个新词' in hint and pg.is_visible('#dnTen'), hint)
+        pg.click('#dnTen'); pg.wait_for_timeout(200)
+        hint = pg.text_content('#dnHint') or ''
+        check(dev, 'plan: after the tap, 10 a day is chosen and the hint is calm again',
+              pg.get_attribute('#dn [data-v="10"]', 'aria-pressed') == 'true' and not pg.is_visible('#dnTen') and '连新词约' in hint, hint)
         check(dev, 'no script errors', not errs, errs[:3])
         ctx.close()
     finally:
