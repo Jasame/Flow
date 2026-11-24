@@ -188,6 +188,13 @@
     if (h.suggest && Date.now() - (load('flow-next-suggest-skip') || 0) > 7 * 864e5) return suggestHTML(h.suggest);
     const lg = levelGuessHTML(h); if (lg) return lg;  // 09-start.js: a level guessed from the target, no test yet
     const hb = h.stats && h.stats.habit;  // on Monday and Tuesday: how last week went, once
+    // r28: two weeks in a row short of the goal, each with some study: the goal the learner keeps, one tap (instead of 上周学了…)
+    if (hb && hb.lower && (hb.days[0].today || hb.days[1].today) && load('flow-goal-lower') !== hb.monday) {
+      const [a, b] = hb.lower.weeks, g = hb.lower.goal;
+      return `<div class="card sunk section notice stack-s" id="goalLower"><b>${a === b ? `最近两周每周学 ${a} 天` : `最近两周学了 ${a} 天和 ${b} 天`}，要不要把目标改成每周 ${g} 天？</b>
+        <span class="small">目标定在做得到的地方，每周都能达成。以前达成的周不会被扣，以后也可以在「我的」→「每周目标」里改回来。</span>
+        <div class="row"><button class="btn small primary" id="glYes" type="button" data-tap="notice-goal-lower">改成每周 ${g} 天</button><button class="btn small ghost" id="glNo" type="button">不用，保持 ${hb.goal} 天</button></div></div>`;
+    }
     if (hb && hb.last_week.done && (hb.days[0].today || hb.days[1].today) && load('flow-habit-lastweek') !== hb.monday)
       return `<div class="card sunk section notice stack-s" id="lastWeek"><b>${hb.last_week.met ? `上周学了 ${hb.last_week.done} 天，目标达成了 🎉` : `上周学了 ${hb.last_week.done} 天，离目标还差 ${hb.goal - hb.last_week.done} 天`}</b>
         <span class="small">${hb.last_week.met ? '这周接着来。' : '没关系，这周重新开始，学一步材料或复习几个词就算一天。'}</span>
@@ -205,6 +212,19 @@
     if (h.suggest) bindSuggest(h, () => fillNotice(h));
     bindLevelGuess(() => fillNotice(h));
     bindMailNudge(() => fillNotice(h));
+    const gy = document.getElementById('glYes'), gn = document.getElementById('glNo'), hb = h.stats && h.stats.habit;
+    const glDone = () => { save('flow-goal-lower', hb.monday); save('flow-habit-lastweek', hb.monday); fillNotice(h); };  // said once a week
+    if (gn) gn.onclick = glDone;
+    if (gy) gy.onclick = async () => {
+      try {
+        const r = await api('/api/next/habit', { goal: hb.lower.goal });
+        h.stats.habit = r.habit;
+        const chip = document.getElementById('habitBtn'); if (chip) { chip.outerHTML = habitChip(r.habit); const n = document.getElementById('habitBtn'); if (n) n.onclick = weekSheet; }
+        refreshWeekCard();
+        toast(`每周目标：${r.habit.goal} 天`);
+        save('flow-goal-lower', r.habit.monday); save('flow-habit-lastweek', r.habit.monday); fillNotice(h);
+      } catch (e) { toast(e.message); }
+    };
     const lw = document.getElementById('lwOk'); if (lw) lw.onclick = () => { save('flow-habit-lastweek', h.stats.habit.monday); fillNotice(h); };
     const lwr = document.querySelector('#lastWeek a'); if (lwr) lwr.addEventListener('click', () => save('flow-habit-lastweek', h.stats.habit.monday));
     const ig = document.getElementById('inGo'), il = document.getElementById('inLater');

@@ -84,6 +84,15 @@ class AudioRouteTests(unittest.TestCase):
         finally:
             c.close()
 
+    def test_the_last_try_after_unusable_answers_skips_omni(self):
+        # lab_service.run_job's third try (chat_service.main_only, #90): Gemini hears the recording, Omni is not asked
+        env = {'FLOW_AUDIO_ROUTES': 'next-dialog=flow-audio-omni-flash'}
+        with cs.main_only():
+            (reply, reason), sent = self.ask([gemini()], env=env)
+        self.assertEqual([b['model'] for _, b, _ in sent], ['gemini-3.8-flash'])
+        self.assertEqual(sent[0][1]['flow_audio'], WEBM)
+        self.assertEqual([(r['service'], r['ok']) for r in self.rows()], [('main', 1)])
+
     def test_without_the_setting_gemini_hears_it_as_before(self):
         (reply, reason), sent = self.ask([gemini()])
         self.assertEqual(sent[0][1]['model'], 'gemini-3.8-flash')
@@ -134,6 +143,19 @@ class AudioRouteTests(unittest.TestCase):
         with patch.dict(os.environ, env), patch('urllib.request.urlopen', urlopen), ai_routes.task('next-dialog'):
             cs.request_model([{'role': 'user', 'content': 'typed, not spoken'}])
         self.assertEqual(sent, ['flow-text'])  # a typed turn of the same task takes the text route
+
+    def test_the_recording_timeout_on_gemini_is_a_setting(self):
+        for env, want in (({}, 85), ({'FLOW_AUDIO_TIMEOUT': '40'}, 40), ({'FLOW_AUDIO_TIMEOUT': '5'}, 85), ({'FLOW_AUDIO_TIMEOUT': 'soon'}, 85)):
+            _, sent = self.ask([gemini()], kind='next-shadow', env=env)
+            self.assertEqual(sent[0][2], want, env)
+        seen = []
+
+        def urlopen(req, timeout=None):
+            seen.append(timeout)
+            return gemini('plain')
+        with patch.dict(os.environ, {'FLOW_AUDIO_TIMEOUT': '40'}), patch('urllib.request.urlopen', urlopen), ai_routes.task('chat'):
+            cs.request_model([{'role': 'user', 'content': 'typed'}])
+        self.assertEqual(seen, [85])  # text keeps its own timeout
 
     def test_evals_ask_the_eval_name_and_omni_has_a_price(self):
         with patch.dict(os.environ, {'FLOW_AUDIO_ROUTES': 'flow-audio-omni-flash', 'FLOW_AI_LANE': 'eval'}):

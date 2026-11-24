@@ -10,6 +10,7 @@ import time
 
 import next_service as nx
 import skills_service as sk
+from lab_service import Shape, mbool, mnum  # lenient readers of what a model wrote (DeepSeek words JSON unlike Gemini)
 
 LEVEL_NOTE = {'A2': '学习者是入门水平，反馈用简单中文，示范用最常见的词和短句。', 'B1': '学习者是中级水平，反馈用中文，示范句清楚自然。',
               'B2': '学习者是中高级水平，关注搭配、语气和衔接。', 'C1': '学习者是高级水平，关注措辞精确、语域和行文层次。'}
@@ -33,9 +34,10 @@ def _ai(c, uid, data, kind, pack, skill, spec, system, user, convert, audio=None
                    (lambda: request_model(msgs, audio=audio)) if audio else (lambda: request_model(msgs)), convert, mark_replay=True)
 
 
-def _clean(v, lo=0, hi=600):
-    from lab_service import text
-    return text(v if isinstance(v, str) else '', lo, hi)
+def _clean(v, lo=0, hi=600, code='text_empty', default=None):
+    """A field a model wrote (only those): cut when long, Shape(code) when missing or short (run_job asks again)."""
+    from lab_service import mtext
+    return mtext(v, lo, hi, code, default)
 
 
 def _fixes(raw, valid):
@@ -88,10 +90,10 @@ def retell(c, uid, data):
 
     def convert(raw):
         if not isinstance(raw, dict) or not isinstance(raw.get('points'), list):
-            raise ValueError('bad')
+            raise Shape('points_missing')
         pts = [{'point': _clean(x.get('point'), 1, 200), 'covered': bool(x.get('covered'))} for x in raw['points'][:8] if isinstance(x, dict) and x.get('point')]
         if not pts:
-            raise ValueError('no points')
+            raise Shape('points_missing')
         return {'transcript': _clean(raw.get('transcript') or '', 0, 2500) if audio else text, 'points': pts,
                 'used': [_clean(u, 1, 120) for u in (raw.get('used') or [])[:6] if isinstance(u, str) and u.strip()],
                 'fixes': _fixes(raw.get('fixes'), valid), 'comment': _clean(raw.get('comment') or '', 0, 400), 'model': _clean(raw.get('model') or '', 0, 1500)}
@@ -181,23 +183,23 @@ def dialog(c, uid, data):
 
     def convert(raw):
         if not isinstance(raw, dict):
-            raise ValueError('bad')
+            raise Shape('json_shape')
         rnd = {'mode': sc['mode'], 'challenge': sc['challenge']} if sc else {}
         if not hist:
-            return {'scene': _clean(raw.get('scene'), 1, 300), 'role': _clean(raw.get('role') or '', 0, 60), 'reply': _clean(raw.get('reply'), 1, 400), **rnd}
+            return {'scene': _clean(raw.get('scene'), 1, 300, 'scene_empty'), 'role': _clean(raw.get('role') or '', 0, 60), 'reply': _clean(raw.get('reply'), 1, 400, 'reply_empty'), **rnd}
         if end:
             met = raw.get('challenge_met')
-            return {'summary': _clean(raw.get('summary'), 1, 500), 'good': [_clean(g, 1, 300) for g in (raw.get('good') or [])[:3] if isinstance(g, str) and g],
+            return {'summary': _clean(raw.get('summary'), 1, 500, default='这一轮练完了，下面是具体的反馈。'), 'good': [_clean(g, 1, 300) for g in (raw.get('good') or [])[:3] if isinstance(g, str) and g],
                     'fixes': _fixes(raw.get('fixes'), valid),
                     'expressions': [{'text': _clean(e.get('text'), 1, 120), 'meaning': _clean(e.get('meaning') or '', 0, 120)}
                                     for e in (raw.get('expressions') or [])[:4] if isinstance(e, dict) and e.get('text')],
-                    'score': max(0.0, min(1.0, float(raw.get('score') or 0))), **rnd,
+                    'score': mnum(raw.get('score'), 0.0, 1.0, 'score_nan'), **rnd,
                     **({'challenge_met': met} if sc and sc['challenge'] and isinstance(met, bool) else {})}
         corr = raw.get('correction')
         corr = {'original': _clean(corr.get('original') or '', 0, 300), 'better': _clean(corr.get('better'), 1, 300), 'why': _clean(corr.get('why') or '', 0, 300)} \
             if isinstance(corr, dict) and corr.get('better') else None
         heard = _clean(raw.get('heard') or '', 0, 500) if audio else text
-        out = {'heard': heard, 'reply': _clean(raw.get('reply'), 1, 400), 'correction': corr, 'hint': _clean(raw.get('hint') or '', 0, 200)}
+        out = {'heard': heard, 'reply': _clean(raw.get('reply'), 1, 400, 'reply_empty'), 'correction': corr, 'hint': _clean(raw.get('hint') or '', 0, 200)}
         if sc:
             out['pace'] = SC.pace(heard, bool(corr))
             say = raw.get('say')
@@ -255,10 +257,10 @@ def essay(c, uid, data):
     def convert(raw):
         s = raw.get('scores') if isinstance(raw, dict) else None
         if not isinstance(s, dict):
-            raise ValueError('bad')
-        scores = {k: max(1, min(5, int(s.get(k) or 1))) for k in ('content', 'organization', 'accuracy', 'range')}
-        return {'scores': scores, 'level': raw.get('level') if raw.get('level') in sk.LEVELS else None, 'comment': _clean(raw.get('comment'), 1, 500),
-                'paragraphs': [{'para': int(x.get('para') or i + 1), 'note': _clean(x.get('note'), 1, 300)} for i, x in enumerate((raw.get('paragraphs') or [])[:6])
+            raise Shape('scores_missing')
+        scores = {k: int(round(mnum(s.get(k), 1, 5, default=1))) for k in ('content', 'organization', 'accuracy', 'range')}
+        return {'scores': scores, 'level': raw.get('level') if raw.get('level') in sk.LEVELS else None, 'comment': _clean(raw.get('comment'), 1, 500, 'comment_empty'),
+                'paragraphs': [{'para': int(mnum(x.get('para'), 1, 99, default=i + 1)), 'note': _clean(x.get('note'), 1, 300)} for i, x in enumerate((raw.get('paragraphs') or [])[:6])
                                if isinstance(x, dict) and x.get('note')],
                 'fixes': _fixes(raw.get('fixes'), valid), 'better': _fixes(raw.get('better'), valid)[:2], 'model': _clean(raw.get('model') or '', 0, 1200)}
 
@@ -331,9 +333,9 @@ def translate(c, uid, data):
     user = task + ('\n\nreference 写一个自然的英文译法。' if direction == 'zh2en' else '\n\nreference 写一个自然的中文译法。')
 
     def convert(raw):
-        if not isinstance(raw, dict) or raw.get('score') is None:
-            raise ValueError('bad')
-        return {'score': max(0.0, min(1.0, float(raw['score']))), 'accuracy': _clean(raw.get('accuracy') or '', 0, 400),
+        if not isinstance(raw, dict):
+            raise Shape('json_shape')
+        return {'score': mnum(raw.get('score'), 0.0, 1.0, 'score_nan'), 'accuracy': _clean(raw.get('accuracy') or '', 0, 400),
                 'fluency': _clean(raw.get('fluency') or '', 0, 400), 'fixes': _fixes(raw.get('fixes'), valid) if direction == 'zh2en' else [],
                 'reference': _clean(raw.get('reference') or '', 0, 800), 'original': en}
 
@@ -367,9 +369,9 @@ def say(c, uid, data):
             '\n\n输出 JSON：{"heard":"听起来像哪个英文词","ok":true或false,"note":"中文：哪里对、哪里不对","tip":"中文：舌位、口型或气流怎么调整"}')
 
     def convert(raw):
-        if not isinstance(raw, dict) or not isinstance(raw.get('ok'), bool):
-            raise ValueError('bad')
-        return {'heard': _clean(raw.get('heard') or '', 0, 80), 'ok': raw['ok'], 'note': _clean(raw.get('note') or '', 0, 300), 'tip': _clean(raw.get('tip') or '', 0, 300)}
+        if not isinstance(raw, dict):
+            raise Shape('json_shape')
+        return {'heard': _clean(raw.get('heard') or '', 0, 80), 'ok': mbool(raw.get('ok'), 'ok_missing'), 'note': _clean(raw.get('note') or '', 0, 300), 'tip': _clean(raw.get('tip') or '', 0, 300)}
 
     import hashlib
     result, status = _ai(c, uid, data, 'next-say', 'sounds', 'speaking', {'text': target, 'audio_sha256': hashlib.sha256(raw_audio).hexdigest()},

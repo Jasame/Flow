@@ -142,7 +142,7 @@ def shell_file(name):
   return _SLIM[name][1]
  if name=='manifest.webmanifest' and CHANNEL=='beta':
   m=json.loads(body);m.update(name='语流 Flow 内测版',short_name='语流内测');return json.dumps(m,ensure_ascii=False,indent=1).encode()
- if name=='about.html':return body.replace(b'__ABOUT__',asset_version(ABOUT_ASSETS).encode()).replace(b'__CHANNEL__',CHANNEL.encode())
+ if name=='about.html':return body.replace(b'__ABOUT__',asset_version(ABOUT_ASSETS).encode()).replace(b'__CHANNEL__',CHANNEL.encode()).replace(b'__FILM__',about_film().encode())
  if name not in ('next.html','sw.js'):return body
  return body.replace(b'__ASSET__',asset_version().encode()).replace(b'__CHANNEL__',CHANNEL.encode())
 
@@ -151,6 +151,21 @@ PAGE_CACHE='max-age=0, stale-while-revalidate=2592000'  # the learning page: see
 # 认识语流 (/about): the introduction page for people who have not used Flow yet; its own small files, so it opens fast
 # and never loads the learning site. Its pictures are real screenshots (tools/about_shots.py) in public/about/.
 ABOUT_ASSETS=('about.js','about.css')
+_FILM={'at':0.0,'v':''}
+def about_film():
+ """What the page's one-minute film may say (about.js film(), <html data-film>): 'voice' when sentences are read by
+ CosyVoice on this server (tts_service), 'fast' when typed scene turns go to a 百炼 model such as DeepSeek rather than
+ the default Gemini. Asked again after a minute, so a setting changed in the console shows up on its own."""
+ if time.time()-_FILM['at']<60:return _FILM['v']
+ got=[]
+ try:
+  if __import__('tts_service').enabled():got.append('voice')
+ except Exception:pass  # noqa: BLE001 - not said, rather than said wrongly
+ try:
+  ar=__import__('ai_routes')
+  if ar.is_bailian(ar.route('next-dialog')):got.append('fast')
+ except Exception:pass  # noqa: BLE001
+ _FILM.update(at=time.time(),v=' '.join(got));return _FILM['v']
 def asset_version(names=('next.js','next.css')):
  """The content version of next.js and next.css (10 hex digits), or of the files named; recomputed when one changes."""
  key=tuple((ROOT/'public'/n).stat().st_mtime_ns for n in names)
@@ -226,7 +241,7 @@ class Handler(BaseHTTPRequestHandler):
   # /audio/words/<accent>/<sprite>.aac?s=<start>&e=<end>: one word cut from its sprite with silence in front (word_clip:
   # an iPhone waking its audio lost the start of a word played from the middle of the sprite).
   import next_service
-  parts=path.split('/');data=None;mime=None
+  parts=path.split('/');data=None;mime=None;private=False
   if len(parts)==5 and parts[2]=='words' and parts[4][-4:] in ('.m4a','.mp4'):f=__import__('vocab_service').word_audio_file(parts[3],parts[4][:-4])
   elif len(parts)==5 and parts[2]=='words' and parts[4].endswith('.aac'):
    f=__import__('vocab_service').word_audio_file(parts[3],parts[4][:-4]);q=parse_qs(urlsplit(self.path).query)
@@ -241,6 +256,12 @@ class Handler(BaseHTTPRequestHandler):
    except (ValueError,OSError,IndexError,KeyError,StopIteration,TypeError,__import__('struct').error):data=None
    f=f if data else None;mime='audio/aac'
   elif len(parts)==5 and parts[2]=='tts':f=__import__('tts_service').file(parts[3],parts[4])
+  elif len(parts)==5 and parts[2]=='own':
+   # /audio/own/<voice>/<hash>.mp3: a sentence of the learner's own article (an import), served to that learner only
+   c=db()
+   try:u=self.user(c)
+   finally:c.close()
+   f=__import__('tts_service').own_file(u['id'],parts[3],parts[4]) if u else None;private=True
   else:f=next_service.audio_file(parts[2],parts[3].rsplit('.',1)[0],parts[3].rsplit('.',1)[-1]) if len(parts)==4 and '.' in parts[3] else None
   if not f:return self.send({'error':'音频不存在'},404)
   data=data if data is not None else f.read_bytes();size=len(data);start,end=0,size-1;status=200
@@ -257,7 +278,7 @@ class Handler(BaseHTTPRequestHandler):
     self.send_response(416);self.send_header('Content-Range',f'bytes */{size}');self.send_header('Content-Length','0');self.end_headers();return
   body=data[start:end+1]
   self.send_response(status);self.headers_common(mime or {'.m4a':'audio/mp4','.mp3':'audio/mpeg'}.get(f.suffix,'application/json; charset=utf-8'))
-  self.send_header('Accept-Ranges','bytes');self.send_header('Cache-Control','public, max-age=604800')
+  self.send_header('Accept-Ranges','bytes');self.send_header('Cache-Control',('private' if private else 'public')+', max-age=604800')
   if status==206:self.send_header('Content-Range',f'bytes {start}-{end}/{size}')
   self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def user(self,c):

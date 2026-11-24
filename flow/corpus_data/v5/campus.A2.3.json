@@ -1,0 +1,156 @@
+[
+ {
+  "id": "v5-campus-a2-rooftop-garden",
+  "title": "宿舍楼顶的小菜园",
+  "title_en": "The Garden on the Roof",
+  "summary_zh": "去年春天，宿舍楼的同学在楼顶开了个小菜园。来自不同国家的同学轮流浇水，种上家乡的蔬菜，周五一起摘菜做饭。读完你能用一般过去时和现在完成时介绍一个集体活动。",
+  "level": "A2",
+  "cefr": "A2",
+  "theme": "campus",
+  "genre": "article",
+  "purposes": [
+   "campus-life"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Last spring, students in our hall started a small garden on the roof. At first, there were only six empty boxes and a few bags of soil. Now there are tomatoes, beans, herbs and lots of flowers. Students from many countries help in the garden. Everyone waters the plants on a different day. There is a list on the door, so nobody forgets. Some students have planted vegetables from their home countries. Ji-woo grows a kind of Korean lettuce, and Marco grows his grandmother's basil. On Friday evenings, we pick vegetables and cook dinner together in the kitchen downstairs. It is a great way to meet new people. Last week, twenty students came to dinner! If you live in the hall, you are welcome to join. You don't need any experience, just bring a smile.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the article mainly about?",
+    "options": [
+     "A garden that students share on the roof of their hall",
+     "How to grow tomatoes",
+     "A cooking class at the university",
+     "A new rule in the student hall"
+    ],
+    "answer": 0,
+    "evidence": "Last spring, students in our hall started a small garden on the roof."
+   },
+   {
+    "type": "inference",
+    "prompt": "Why is there a list on the door?",
+    "options": [
+     "To show the price of vegetables",
+     "So everyone knows which day they water the plants",
+     "To show the names of the flowers",
+     "To ask people to keep out"
+    ],
+    "answer": 1,
+    "evidence": "There is a list on the door, so nobody forgets."
+   },
+   {
+    "type": "vocab",
+    "prompt": "What are \"herbs\" in \"tomatoes, beans, herbs\"?",
+    "options": [
+     "small trees",
+     "kinds of fruit",
+     "plants used to give food flavour",
+     "garden tools"
+    ],
+    "answer": 2,
+    "evidence": "Now there are tomatoes, beans, herbs and lots of flowers."
+   },
+   {
+    "type": "detail",
+    "prompt": "What do the students do on Friday evenings?",
+    "options": [
+     "Water the flowers",
+     "Buy new boxes",
+     "Clean the roof",
+     "Pick vegetables and cook dinner together"
+    ],
+    "answer": 3,
+    "evidence": "On Friday evenings, we pick vegetables and cook dinner together in the kitchen downstairs."
+   }
+  ],
+  "dictation_index": 4,
+  "vocabulary": [
+   {
+    "term": "roof",
+    "meaning": "屋顶",
+    "example": "There is a cat on the roof."
+   },
+   {
+    "term": "soil",
+    "meaning": "泥土",
+    "example": "Put the seeds in the soil."
+   },
+   {
+    "term": "herbs",
+    "meaning": "香草；草本植物",
+    "example": "I put fresh herbs in the soup."
+   },
+   {
+    "term": "lettuce",
+    "meaning": "生菜",
+    "example": "Wash the lettuce before you eat it."
+   },
+   {
+    "term": "experience",
+    "meaning": "经验",
+    "example": "She has a lot of experience with children."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "At first",
+    "meaning": "起初",
+    "note": "At first, the garden was very small."
+   },
+   {
+    "text": "a kind of",
+    "meaning": "一种",
+    "note": "It's a kind of Chinese tea."
+   },
+   {
+    "text": "a great way to",
+    "meaning": "一个很好的方法",
+    "note": "Sport is a great way to make friends."
+   },
+   {
+    "text": "you are welcome to",
+    "meaning": "欢迎你……",
+    "note": "邀请别人参加时很客气的说法。"
+   },
+   {
+    "text": "bring a smile",
+    "meaning": "带上笑容",
+    "note": "邀请里的轻松说法：只要人来就好。"
+   }
+  ],
+  "grammar": [
+   "tense-past",
+   "tense-perfect",
+   "conditional-real"
+  ],
+  "knowledge": [
+   {
+    "node": "tense-past",
+    "quote": "Last spring, students in our hall started a small garden on the roof.",
+    "explanation": "Last spring 是过去的时间，用一般过去时 started。"
+   },
+   {
+    "node": "tense-perfect",
+    "quote": "Some students have planted vegetables from their home countries.",
+    "explanation": "现在完成时 have planted：种下去了，现在园子里还有这些菜。"
+   },
+   {
+    "node": "conditional-real",
+    "quote": "If you live in the hall, you are welcome to join.",
+    "explanation": "真实条件句：if 从句用一般现在时，主句说“欢迎加入”。"
+   }
+  ],
+  "speaking": "用 1 分钟介绍你参加过的一个集体活动（社团、志愿者、班级活动）：什么时候开始的、大家一起做什么。用上 at first 和 a great way to。",
+  "writing": "用 50–70 词写一则小启事，邀请同学参加一个活动，说明时间、地点和要做什么。至少用一个 If you… 句子。",
+  "task": {
+   "prompt": "仿照这句，用 If you …, you are welcome to … 写一句邀请。",
+   "model": "If you live in the hall, you are welcome to join."
+  },
+  "tags": [
+   "大学生活",
+   "集体活动"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

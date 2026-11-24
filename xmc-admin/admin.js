@@ -826,6 +826,25 @@
       var max = Math.max.apply(null, d.by_day.map(function (x) { return x.count; }).concat([1]));
       var cmax = Math.max.apply(null, cs.by_day.map(function (x) { return x.cost; }).concat([0.0001]));
       var src = function (k) { return lim[k + '_source'] === 'console' ? '后台设置（服务器配置是 ' + (lim[k + '_server'] ? n(lim[k + '_server']) + ' 次' : '不限') + '）' : '服务器配置'; };
+      // AI 朗读 (CosyVoice) caps in characters a day: a learner, the site, a learner's imported articles, and the share of the
+      // site's day imports may use before they fall back to the browser voice (tts_service.CAPS; 语流 9, 2026-11-25)
+      var ttsCard = function (t) {
+        var ts = function (k) { return t[k + '_source'] === 'console' ? '后台设置' : '服务器配置'; };
+        var inp = function (id, k, max) { return '<input class="input" id="' + id + '" type="number" min="0" max="' + max + '" placeholder="服务器配置" value="' + (t[k + '_source'] === 'console' ? t[k] : '') + '">'; };
+        return '<section class="card"><h2>AI 朗读额度（每天，按字符）</h2><dl class="kv">' +
+          '<dt>每账号</dt><dd>' + n(t.tts_user_chars) + ' · ' + ts('tts_user_chars') + '</dd>' +
+          '<dt>全站</dt><dd>' + n(t.tts_site_chars) + ' · ' + ts('tts_site_chars') + '</dd>' +
+          '<dt>导入文章（每账号）</dt><dd>' + n(t.tts_import_chars) + ' · ' + ts('tts_import_chars') + '</dd>' +
+          '<dt>导入文章最多用到全站的</dt><dd>' + t.tts_import_percent + '%（剩下的留给 AI 回复和口语）· ' + ts('tts_import_percent') + '</dd>' +
+          '<dt>夜里和今日热点提前生成</dt><dd>' + n(t.tts_prewarm_chars) + ' · ' + ts('tts_prewarm_chars') + '</dd></dl>' +
+          (isAdmin() ? '<form class="form" id="ttsF" style="margin-top:14px"><div class="row">' +
+            '<label><span>每账号（字符）</span>' + inp('ttsU', 'tts_user_chars', 10000000) + '</label>' +
+            '<label><span>全站（字符）</span>' + inp('ttsS', 'tts_site_chars', 10000000) + '</label></div><div class="row">' +
+            '<label><span>导入文章每账号（字符）</span>' + inp('ttsI', 'tts_import_chars', 10000000) + '</label>' +
+            '<label><span>导入文章最多用到全站的（%）</span>' + inp('ttsP', 'tts_import_percent', 100) + '</label></div>' +
+            '<p class="muted small" style="margin:0">马上生效。约 1 万字符 1 元（CosyVoice 标价）。留空表示用服务器配置。超过额度的句子用浏览器的声音读。</p>' +
+            '<div class="row"><button class="btn primary">保存</button></div></form>' : '') + '</section>';
+      };
       var CH = cs.choices || [], label = function (name) { var c = CH.filter(function (x) { return x.name === name; })[0]; return c ? c.label : name; };
       var SRC = { console: '后台', server: '服务器', 'default': '默认' };
       var options = function (cur) { return CH.map(function (c) { return '<option value="' + esc(c.name) + '"' + (c.name === cur ? ' selected' : '') + '>' + esc(c.label) + '</option>'; }).join(''); };
@@ -899,6 +918,7 @@
               '<label><span>全站每天（次）</span><input class="input" id="limS" type="number" min="0" max="1000000" placeholder="服务器配置" value="' + (lim.site_limit_source === 'console' ? lim.site_limit : '') + '"></label></div>' +
               '<p class="muted small" style="margin:0">马上生效，不用重启。0 表示不限；留空表示用服务器 /etc/flow.env 里的值。员工账号不受每账号上限限制。每天北京时间 08:00 重置。</p>' +
               '<div class="row"><button class="btn primary">保存</button></div></form>' : '') + '</section>' +
+          (lim.tts ? ttsCard(lim.tts) : '') +
           (d.top ? '<section class="card"><h2>用得最多的账号</h2>' + (d.top.length ? '<table class="cmp"><tbody>' + d.top.map(function (u) {
             return '<tr class="click" data-uid="' + u.id + '"><td>' + esc(u.username) + (u.staff ? ' <span class="pill blue">员工</span>' : '') + '</td><td class="num">' + n(u.count) + ' 次</td></tr>'; }).join('') + '</tbody></table>' : '<p class="muted">没有。</p>') + '</section>' : '') +
           (d.failures && d.failures.length ? '<section class="card"><h2>最近失败的请求</h2><table class="cmp"><tbody>' + d.failures.map(function (f) {
@@ -937,6 +957,15 @@
         if ([body.user_limit, body.site_limit].some(function (v) { return v != null && !(Number.isInteger(v) && v >= 0); })) { alert('请填 0 或正整数；留空表示用服务器配置。'); return; }
         if (!confirm('把 AI 每日额度改成：每账号 ' + (body.user_limit == null ? '服务器配置' : body.user_limit || '不限') + '，全站 ' + (body.site_limit == null ? '服务器配置' : body.site_limit || '不限') + '？马上生效。')) return;
         busy(f.querySelector('button'), postJSON('/settings/ai-limits', body)).then(aiView);
+      };
+      var tf = document.getElementById('ttsF');
+      if (tf) tf.onsubmit = function (e) {
+        e.preventDefault();
+        var val = function (id) { var v = document.getElementById(id).value.trim(); return v === '' ? null : Number(v); };
+        var body = { tts_user_chars: val('ttsU'), tts_site_chars: val('ttsS'), tts_import_chars: val('ttsI'), tts_import_percent: val('ttsP') };
+        if (Object.keys(body).some(function (k) { var v = body[k]; return v != null && !(Number.isInteger(v) && v >= 0 && (k !== 'tts_import_percent' || v <= 100)); })) { alert('请填 0 或正整数（百分比 0–100）；留空表示用服务器配置。'); return; }
+        if (!confirm('保存 AI 朗读额度？马上生效。')) return;
+        busy(tf.querySelector('button'), postJSON('/settings/ai-limits', body)).then(aiView);
       };
       main.querySelectorAll('[data-sample]').forEach(function (b) { b.onclick = function () { AIV.sample = b.dataset.sample; main.querySelectorAll('[data-sample]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); }); aiSamples(); }; });
       if (AIV.sample) aiSamples();
