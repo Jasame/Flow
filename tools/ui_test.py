@@ -1585,10 +1585,17 @@ def listen_speak_run(pw):
             check(dev, '口语情景: round 2 shows the round and its extra requirement', '第 2 轮' in hd[0] and '这一轮多一条' in hd[1], hd)
             l3 = p3.evaluate(LAYOUT_JS, touch); check(dev, '口语情景 round 2: no sideways scroll', l3['overflow'] <= 1, f"{l3['overflow']}px {l3['wide']}")
             p3.click('#dlgStart'); p3.wait_for_selector('#chat .msg.ai', timeout=8000)
-            if size == 'phone':  # the AI's line is said by the server voice (an mp3 made once and stored), not the browser voice
+            if size == 'phone':  # the AI's line is said by the server voice (an mp3 made once and stored), not the browser voice,
+                # in its role's voice: the barista is a woman, the accent is the learner's (set to uk-m for this check, then back)
                 p3.wait_for_function("performance.getEntriesByType('resource').some(e => e.name.includes('/api/next/tts'))", timeout=8000)
                 src = p3.evaluate("new Promise(r => setTimeout(() => r(performance.getEntriesByType('resource').filter(e => e.name.includes('/audio/tts/')).map(e => e.name.split('/audio/')[1])), 1200))")
                 check(dev, '口语情景: the AI line is spoken by the server voice', bool(src) and src[0].startswith('tts/us-f/') and src[0].endswith('.mp3'), src)
+                set_voice = "([v, csrf]) => fetch('/api/next/voice', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf}, body: JSON.stringify({voice: v})}).then(r => r.status)"
+                p3.evaluate(set_voice, ['uk-m', me3['csrf']])
+                rv = p3.evaluate("([csrf]) => fetch('/api/next/dialog', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf}, "
+                                 "body: JSON.stringify({scenario: 'cafe-order', history: [], request_id: 'ui-role-voice-01'})}).then(r => r.json()).then(j => j.result.voice)", [me3['csrf']])
+                p3.evaluate(set_voice, ['us-f', me3['csrf']])
+                check(dev, '口语情景: the role has its own voice, in the learner\'s accent (barista: uk-f for a uk-m learner)', rv == 'uk-f', rv)
             p3.fill('#dlgText', 'yes'); p3.click('#dlgSend'); p3.wait_for_selector('#chat .msg.me .pace', timeout=8000)
             sl = p3.evaluate("() => [document.querySelector('#chat .msg.me .pace').dataset.pace, document.querySelector('#chat .msg.me .pace').textContent, (document.querySelector('#dlgHint .say-line b') || {}).textContent || '']")
             check(dev, '口语情景: a one-word answer slows the AI down, says so, and offers a sentence to use', sl[0] == 'easier' and '放慢' in sl[1] and len(sl[2].split()) >= 3, sl)
@@ -1598,10 +1605,26 @@ def listen_speak_run(pw):
             check(dev, '口语情景: a long, correct answer makes the AI go deeper', pc == ['easier', 'harder'], pc)
             l3 = p3.evaluate(LAYOUT_JS, touch); check(dev, '口语情景 with pace notes: no sideways scroll', l3['overflow'] <= 1, f"{l3['overflow']}px {l3['wide']}")
             p3.screenshot(path=str(OUT / f'{dev}-scene-round2.png'), full_page=False)
+            if size == 'desktop':  # 说完就显示进度: a slow reply shows what is happening and for how long; a failed one gives the answer back
+                # the reply held back 2.2 s in the page (a blocking route handler would stall the test's own event loop)
+                p3.evaluate("""() => { const f = window.fetch; window.__slow = true;
+                    window.fetch = (u, o) => (window.__slow && String(u).includes('/api/next/dialog')) ? new Promise(r => setTimeout(r, 2200)).then(() => f(u, o)) : f(u, o); }""")
+                p3.fill('#dlgText', 'And a small croissant, please.'); p3.click('#dlgSend')
+                p3.wait_for_selector('#chat .dlg-wait', timeout=3000); p3.wait_for_timeout(1300)
+                wt = p3.text_content('#chat .dlg-wait') or ''
+                p3.wait_for_function("document.querySelectorAll('#chat .msg.me').length >= 3", timeout=8000)
+                check(dev, '口语情景: while the reply is on its way, a line says so with the seconds, gone when it comes',
+                      '对方正在回' in wt and '1 秒' in wt and not p3.query_selector('#chat .dlg-wait'), wt)
+                p3.evaluate('window.__slow = false')
+                p3.route('**/api/next/dialog', lambda route: route.fulfill(status=502, json={'error': 'AI 服务暂时繁忙'}))
+                p3.fill('#dlgText', 'Can I pay by card?'); p3.click('#dlgSend'); p3.wait_for_timeout(800)
+                check(dev, '口语情景: an answer that did not get through goes back into the box', p3.input_value('#dlgText') == 'Can I pay by card?' and not p3.query_selector('#chat .dlg-wait'))
+                p3.unroute('**/api/next/dialog'); p3.fill('#dlgText', '')
             if size == 'desktop':  # the end of the round: whether the requirement was met, and how often the AI adjusted
                 p3.click('#dlgEnd'); p3.wait_for_selector('#dlgOut .result', timeout=10000)
                 end = p3.text_content('#dlgOut') or ''
                 check(dev, '口语情景: the feedback says the requirement was met and how the AI adjusted', '这一轮的要求' in end and '做到了' in end and '放慢了 1 次' in end and '加深了 1 次' in end, end[:160])
+                check(dev, '口语情景: 「放进错题本」 said once, not twice', end.count('放进错题本') <= 1, end.count('放进错题本'))
             c3.close()
             check(dev, 'no script errors', not errors, errors[:3])
             ctx.close()

@@ -91,6 +91,7 @@ CREATE TABLE IF NOT EXISTS ai_usage(user_id INTEGER,day TEXT,count INTEGER,PRIMA
   __import__('next_service').schema(c)
   __import__('relisten_service').schema(c)
   __import__('tts_service').schema(c)
+  __import__('tts_service').CONNECT=db  # 声音接力: a sentence made in a thread while the reply travels needs its own connection
   __import__('class_service').schema(c)
   __import__('flow_admin').schema(c)
   __import__('ai_routes').schema(c)

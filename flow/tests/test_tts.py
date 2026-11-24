@@ -134,6 +134,19 @@ class ServerVoiceTests(TtsCase):
         self.assertEqual((st, body['code']), (502, 'gateway'))
         self.assertIsNone(self.c.execute('SELECT 1 FROM tts_usage').fetchone())
         self.assertFalse((nx.AUDIO_DIR / 'tts').exists() and any((nx.AUDIO_DIR / 'tts').rglob('*.mp3')))
+        row = self.c.execute("SELECT ok, prompt FROM ai_calls WHERE kind='tts'").fetchone()
+        self.assertEqual(tuple(row), (0, len('The gateway is down.')))  # in the console's costs, as a failed call
+
+    def test_each_sentence_made_is_a_row_in_the_ai_costs(self):
+        tts.post(self.c, 1, {'text': 'Counted in the costs.', 'voice': 'uk-m'})
+        tts.post(self.c, 2, {'text': 'Counted in the costs.', 'voice': 'uk-m'})  # stored: no second call, no second row
+        rows = [tuple(r) for r in self.c.execute("SELECT kind, service, model, served, ok, prompt FROM ai_calls WHERE kind='tts'")]
+        self.assertEqual(rows, [('tts', 'tts', 'flow-tts', 'cosyvoice-v3-flash', 1, len('Counted in the costs.'))])
+
+    def test_the_nightly_prewarm_waits_when_the_days_ai_budget_is_spent(self):
+        with patch('ai_routes.over_budget', return_value=True):
+            self.assertEqual(tts.prewarm(self.c, budget=10 ** 6), {'status': 'over-budget'})
+        self.assertEqual(self.gw.seen, [])
 
     def test_a_folder_it_cannot_write_is_found_before_the_gateway_is_paid(self):
         # 内测版, 2026-11-24: systemd ProtectSystem=strict kept the folder read-only; every tap was charged, then lost.
@@ -237,6 +250,49 @@ class NightTests(TtsCase):
             self.assertEqual(len(started), 1)
             with patch.dict(os.environ, {'FLOW_TTS_MODEL': ''}):
                 tts._NIGHT['day'] = None; tts.tick(app.db, day.timestamp()); self.assertEqual(len(started), 1)
+
+    def test_one_off_sentences_go_after_thirty_days_the_fixed_ones_stay(self):
+        fixed = tts.fixed_texts()[0]
+        tts.ensure(self.c, 1, fixed, 'us-f'); tts.ensure(self.c, 1, 'A reply nobody will hear again.', 'us-f')
+        tts.ensure(self.c, 1, 'A reply from this morning.', 'uk-m')
+        old = time.time() - 31 * 86400
+        for t, v in ((fixed, 'us-f'), ('A reply nobody will hear again.', 'us-f')):
+            os.utime(nx.AUDIO_DIR / 'tts' / v / tts.name_of(t, v), (old, old))
+        self.assertEqual(tts.prune(), {'removed': 1, 'kept': 2})
+        self.assertIsNotNone(tts.file('us-f', tts.name_of(fixed, 'us-f')))
+        self.assertIsNone(tts.file('us-f', tts.name_of('A reply nobody will hear again.', 'us-f')))
+
+
+class SoonTests(TtsCase):
+    """声音接力: the AI's line is made in a thread while the reply travels to the page, counted against the learner."""
+
+    def test_made_in_a_thread_and_then_found_by_the_page(self):
+        t = tts.start(1, 'Sure thing. Hot or iced?', 'uk-f', wait=True)
+        self.assertIsNotNone(t)
+        self.assertEqual([g['voice'] for g in self.gw.seen], ['loongemily_v3'])
+        self.assertEqual(self.c.execute('SELECT chars, files FROM tts_usage WHERE who=1').fetchone()[:], (24, 1))
+        body, st = tts.post(self.c, 1, {'text': 'Sure thing. Hot or iced?', 'voice': 'uk-f'})
+        self.assertEqual((st, body['made']), (200, False)); self.assertEqual(len(self.gw.seen), 1)  # the page's request: already made
+        self.assertIsNone(tts.start(1, 'Sure thing. Hot or iced?', 'uk-f'))  # stored: nothing to do
+
+    def test_nothing_happens_when_off_busy_or_without_a_connection(self):
+        with patch.dict(os.environ, {'FLOW_TTS_MODEL': ''}):
+            self.assertIsNone(tts.start(1, 'Off tonight.', 'us-f'))
+        with patch.object(tts, 'CONNECT', None):
+            self.assertIsNone(tts.start(1, 'No connection.', 'us-f'))
+        self.assertIsNone(tts.start(1, 'An unknown voice.', 'xx-y'))
+        taken = [tts._SOON.acquire(blocking=False) for _ in range(4)]
+        try:
+            self.assertIsNone(tts.start(1, 'Four already being made.', 'us-f'))
+        finally:
+            [tts._SOON.release() for ok in taken if ok]
+        self.assertEqual(self.gw.seen, [])
+
+    def test_a_failure_in_the_thread_is_left_to_the_page(self):
+        self.gw.status = 502
+        tts.start(1, 'The gateway is down.', 'us-f', wait=True)
+        self.assertIsNone(self.c.execute('SELECT 1 FROM tts_usage').fetchone())
+        self.assertEqual(tts._SOON._value, 4)  # the slot is given back
 
 
 if __name__ == '__main__':
