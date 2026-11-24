@@ -12,6 +12,7 @@
     "body": "At eighteen, I was asked to choose, on a form with a drop-down menu, what I wanted to spend the next four years thinking about. I picked economics, largely because it sounded serious and nobody at the dinner table would ask follow-up questions. Two weeks into my first term, I wandered into a linguistics lecture by mistake and stayed for the whole hour. If I had stuck rigidly to my original plan, I would probably be a competent and faintly bored economist-in-training now; instead, I am a linguistics student who still reads economics for pleasure. I tell this story not because switching worked out, but because of what it taught me about the choice itself. What nobody explains to you at eighteen is that a major is less a declaration of identity than a set of problems you agree to live with for a while. The question worth asking, then, is not what you are passionate about, since passion is often the result of competence rather than its cause, but which problems you would not mind being stuck on. Framed that way, the decision becomes smaller and more honest. You can even test it cheaply: sit in on lectures outside your timetable, read an introductory textbook over a weekend, and notice which kind of confusion feels like an invitation and which feels like a wall. None of this guarantees certainty, and it shouldn't. Uncertainty at this stage is not a character flaw; it is an accurate reading of how little anyone can know about a subject before studying it. The students I worry about are not the ones who hesitate, but the ones who chose with total confidence and are now too embarrassed to admit they were wrong. A major can be changed, or simply outgrown. What is harder to recover is the habit of mistaking an early guess for a final answer.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's central argument?",
         "options": [
           "Students should simply follow their passion when choosing a major",
@@ -23,6 +24,7 @@
         "evidence": "Uncertainty at this stage is not a character flaw"
       },
       {
+        "type": "detail",
         "prompt": "Which students does the writer worry about most?",
         "options": [
           "Those who hesitate for a long time before choosing",
@@ -32,7 +34,9 @@
         ],
         "answer": 2,
         "evidence": "the ones who chose with total confidence and are now too embarrassed to admit they were wrong"
-      }
+      },
+      {"type": "inference", "prompt": "Why does the writer say passion is \"often the result of competence rather than its cause\"?", "options": ["To claim that talent cannot be learned", "To suggest that people often come to love what they become good at", "To show that economics is a boring subject", "To argue that passion is useless"], "answer": 1, "evidence": "passion is often the result of competence rather than its cause"},
+      {"type": "vocab", "prompt": "What does \"outgrown\" mean in \"A major can be changed, or simply outgrown\"?", "options": ["finished early", "made larger", "failed", "left behind as a person develops"], "answer": 3, "evidence": "A major can be changed, or simply outgrown."}
     ],
     "dictation_index": 7,
     "vocabulary": [
@@ -141,6 +145,7 @@
     "body": "The comment was a single line, written in pencil at the bottom of the final page: This is a careful summary of other people's ideas; where is yours? Aylin read it on the bus home and felt her face grow hot. She had spent three weekends on that essay, cross-checking every source and rewriting the conclusion until it gleamed, and the reward was a dozen words that felt very much like contempt. That night she drafted an email to the lecturer that began politely and grew steadily less polite with each paragraph. By two in the morning it ran to a full page. Had she sent it, she would have spent the rest of the term avoiding his corridor. Instead, exhausted, she saved it as a draft and went to bed. A week later, rereading the essay with the anger drained out of her, she saw what he meant. Every paragraph opened with someone else's name. The argument, such as it was, belonged to the authors she had quoted; she had merely arranged them neatly. The sting of those dozen words, she realised, was not their cruelty but their accuracy. When she finally went to his office, she found him apologetic about the brevity and entirely unrepentant about the point. He had forty essays to mark, he explained, and he had written the one sentence he thought she most needed to hear. They spent half an hour working out what her own position might be, and it turned out she had one; she had simply never assumed she was allowed to say it. The email is still sitting in her drafts folder. She keeps it, she says, as a reminder that the first reading of criticism is rarely the most reliable one.",
     "questions": [
       {
+        "type": "main",
         "prompt": "How does Aylin's view of the comment change?",
         "options": [
           "She first saw it as an insult but later recognised it as fair",
@@ -152,6 +157,7 @@
         "evidence": "The sting of those dozen words, she realised, was not their cruelty but their accuracy."
       },
       {
+        "type": "vocab",
         "prompt": "What does \"unrepentant about the point\" suggest about the lecturer?",
         "options": [
           "He refused to apologise for anything at all",
@@ -161,7 +167,9 @@
         ],
         "answer": 2,
         "evidence": "she found him apologetic about the brevity and entirely unrepentant about the point"
-      }
+      },
+      {"type": "inference", "prompt": "Why does Aylin keep the unsent email in her drafts folder?", "options": ["So that she can show it to other students", "Because she still plans to send it", "As a reminder that her first reaction to criticism may be wrong", "Because she forgot to delete it"], "answer": 2, "evidence": "the first reading of criticism is rarely the most reliable one"},
+      {"type": "detail", "prompt": "What did Aylin notice when she reread her essay a week later?", "options": ["Several sources were missing", "The conclusion was far too long", "Every paragraph opened with someone else's name", "The essay had no quotations at all"], "answer": 2, "evidence": "Every paragraph opened with someone else's name."}
     ],
     "dictation_index": 5,
     "vocabulary": [
@@ -270,6 +278,7 @@
     "body": "Interviewer: You've said that your first term here was a series of small misunderstandings, so which one stands out most? Yuqi: The seminars, without question. In my first week, the tutor said something like feel free to jump in whenever you like, and I took it as a polite formality. Where I went to school, the unspoken rule was that you waited until the teacher called on you, so I sat there with three good points written in my notebook and never said any of them. Interviewer: And what happened when you stayed quiet? Yuqi: Nothing, which was exactly the problem: at mid-term I got my participation feedback, and the word quiet appeared twice. I was genuinely baffled, because I had done every reading and taken pages of notes. I'd assumed that listening carefully was a form of participation; here it barely counted. Interviewer: How did you find out what was actually expected? Yuqi: I asked a classmate, Femi, whose comments always seemed to come out of nowhere. He laughed and admitted that he usually had no idea what he was going to say until he was halfway through saying it. For him, a seminar was a place to think out loud, not to present finished thoughts. That single conversation completely changed the way I saw every seminar afterwards. Interviewer: Would it have been different if someone had explained this on day one? Yuqi: Definitely, although I'm not sure I would have believed it at the time. If I had understood that from the start, I'd have a lot more confidence in seminars today. I've since learned to bring one half-formed question to every class and ask it in the first ten minutes, before I can talk myself out of it. Interviewer: Finally, what advice would you give to students arriving here next term? Yuqi: Don't treat silence as neutral. In some rooms it reads as respect; in others it reads as absence. Find out which kind of room you're in, and if you can't tell, ask.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What was the core of Yuqi's misunderstanding?",
         "options": [
           "She did not understand the tutor's English in the first week",
@@ -281,6 +290,7 @@
         "evidence": "I'd assumed that listening carefully was a form of participation; here it barely counted."
       },
       {
+        "type": "inference",
         "prompt": "What does Femi's answer suggest about seminars?",
         "options": [
           "Students are expected to develop ideas while they speak",
@@ -290,7 +300,9 @@
         ],
         "answer": 0,
         "evidence": "For him, a seminar was a place to think out loud, not to present finished thoughts."
-      }
+      },
+      {"type": "vocab", "prompt": "What does \"baffled\" mean in \"I was genuinely baffled\"?", "options": ["confused and unable to understand", "bored and tired", "angry and offended", "pleased and relieved"], "answer": 0, "evidence": "I was genuinely baffled"},
+      {"type": "detail", "prompt": "What does Yuqi now do in every class?", "options": ["She sits next to Femi", "She asks one half-formed question in the first ten minutes", "She waits for the tutor to call on her", "She reads her notes aloud at the end"], "answer": 1, "evidence": "bring one half-formed question to every class and ask it in the first ten minutes"}
     ],
     "dictation_index": 11,
     "vocabulary": [
@@ -399,6 +411,7 @@
     "body": "Ask people to describe the best teacher they ever had, and their answers rarely dwell on expertise. Nobody says that their favourite teacher simply knew the most. They talk instead about a quality that is harder to name: the sense that this person could see exactly where they were stuck. My own version of that teacher was Ms Okonkwo, who taught chemistry in a classroom that smelled permanently of burnt sugar. She was not especially charismatic, and her jokes were reliably dreadful. Yet each of us was convinced, by the end of a lesson, that she had been explaining things to us personally. Looking back, I think what made her remarkable was not what she knew but what she remembered: what it felt like not to know it. Experts often suffer from a peculiar kind of blindness. Once you understand something thoroughly, it becomes difficult to reconstruct the confusion you once had, and so you skip the very steps a novice needs. Ms Okonkwo never skipped them. When a student gave a wrong answer, she treated it as if it were a clue rather than a failure, asking how they had got there and frequently discovering that the reasoning was sound even when the conclusion was not. That small habit changed the atmosphere of the room. Mistakes stopped being embarrassing and started being interesting, which meant people were willing to make them out loud. It is tempting to think that good teaching is mainly a matter of clear explanation, and clarity certainly helps. But the teachers we remember seem to offer something more: a patience with confusion that makes it feel like a normal stage of learning rather than a judgment on our ability. That is not a talent reserved for a lucky few. It is, at least in part, a choice to keep remembering what it was like to be a beginner.",
     "questions": [
       {
+        "type": "main",
         "prompt": "According to the writer, what mainly makes a teacher memorable?",
         "options": [
           "Knowing more about the subject than anyone else",
@@ -410,6 +423,7 @@
         "evidence": "what made her remarkable was not what she knew but what she remembered"
       },
       {
+        "type": "detail",
         "prompt": "How did Ms Okonkwo usually respond to a wrong answer?",
         "options": [
           "She gave the correct answer straight away",
@@ -419,7 +433,9 @@
         ],
         "answer": 1,
         "evidence": "asking how they had got there"
-      }
+      },
+      {"type": "inference", "prompt": "Why did mistakes become \"interesting\" in Ms Okonkwo's class?", "options": ["The lessons were deliberately easy", "Students were never asked questions in public", "She gave prizes for the best mistakes", "Wrong answers were explored rather than judged"], "answer": 3, "evidence": "she treated it as if it were a clue rather than a failure"},
+      {"type": "vocab", "prompt": "What does \"novice\" mean in \"the very steps a novice needs\"?", "options": ["a beginner", "an expert", "a teacher", "a scientist"], "answer": 0, "evidence": "you skip the very steps a novice needs"}
     ],
     "dictation_index": 12,
     "vocabulary": [

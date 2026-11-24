@@ -12,6 +12,7 @@
     "body": "The first time you switch on a pair of noise-cancelling headphones on a train, the effect feels almost like magic: the low roar of the engine simply drains away. What is surprising is that the headphones are not blocking that sound so much as fighting it with more sound. Every noise is a wave of pressure, with peaks and troughs that reach your ear in a regular rhythm. A tiny microphone on the outside of each ear cup listens to the noise around you, and a chip inside works out the exact opposite wave. When that mirror-image wave is played through the speaker, the peaks of one meet the troughs of the other, and the two cancel out. Engineers call this destructive interference, and it works best on sounds that are steady and predictable, such as the hum of an air conditioner or the drone of a plane. Human voices are a different story. Because speech changes from one moment to the next, the chip cannot keep up, which is why you can still hear the person sitting next to you, only a little quieter. If the headphones tried to cancel every sudden sound, they would risk making the noise worse rather than better. Most models therefore combine two strategies: soft, well-sealed cushions block the high-pitched sounds, while the electronics take care of the deep, constant ones. The result is not silence, but it is close enough to make a long journey feel shorter.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main idea of the passage?",
         "options": [
           "Headphones work best when the volume is turned up",
@@ -23,6 +24,7 @@
         "evidence": "the headphones are not blocking that sound so much as fighting it with more sound"
       },
       {
+        "type": "detail",
         "prompt": "Why can you still hear the person sitting next to you?",
         "options": [
           "Their voice is louder than an engine",
@@ -32,7 +34,9 @@
         ],
         "answer": 2,
         "evidence": "Because speech changes from one moment to the next, the chip cannot keep up"
-      }
+      },
+      {"type": "inference", "prompt": "Why do most models also use soft, well-sealed cushions?", "options": ["Cushions make the headphones cheaper", "Cushions add extra bass", "They make the headphones look better", "The electronics cannot deal well with high-pitched sounds"], "answer": 3, "evidence": "soft, well-sealed cushions block the high-pitched sounds"},
+      {"type": "vocab", "prompt": "What does \"drains away\" mean in \"the low roar of the engine simply drains away\"?", "options": ["gradually disappears", "gets louder", "changes direction", "leaks into the ear"], "answer": 0, "evidence": "the low roar of the engine simply drains away"}
     ],
     "dictation_index": 3,
     "vocabulary": [
@@ -74,6 +78,7 @@
     "body": "Flow: Many students treat sleep as wasted time, especially before exams, so what would you say to them? Lind: That they've got it backwards. Sleep is when a lot of learning actually gets locked in. During the day, new memories are fragile, a bit like notes scribbled on a whiteboard. At night, the brain seems to replay parts of what happened and move the important pieces into longer-term storage. Flow: Replay, as in watching a film of your day again? Lind: Roughly, yes, although it's much faster and far less complete than a film. Different stages of sleep also appear to handle different jobs. Deep sleep seems especially important for facts, while dreaming sleep may help more with skills and emotions. We're still working out the details. Flow: So pulling an all-nighter before a test is a bad idea. Lind: For memory, almost always. Staying up all night gives you a few extra hours with your notes, but it takes away the very process that makes those hours stick. I hear the same regret from students every year: if I had slept properly, I would remember more now. Flow: Is a nap worth anything? Lind: It can be: even a short nap after studying seems to help, though a regular night's sleep does far more than any last-minute trick. Flow: Do you practise what you preach? Lind: Mostly, but the irony is that I'm a sleep researcher, so I often stay up far too late reading about sleep.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is Lind's main message?",
         "options": [
           "Sleep is mostly wasted time for busy students",
@@ -85,6 +90,7 @@
         "evidence": "Sleep is when a lot of learning actually gets locked in."
       },
       {
+        "type": "detail",
         "prompt": "Why does Lind say pulling an all-nighter is a bad idea for memory?",
         "options": [
           "Students usually study the wrong notes late at night",
@@ -94,7 +100,9 @@
         ],
         "answer": 2,
         "evidence": "it takes away the very process that makes those hours stick"
-      }
+      },
+      {"type": "inference", "prompt": "What does Lind mean when she says students have \"got it backwards\"?", "options": ["Sleep is not wasted time but part of learning", "Students should sleep during the day", "Exams should be held at night", "Students revise topics in the wrong order"], "answer": 0, "evidence": "Sleep is when a lot of learning actually gets locked in."},
+      {"type": "vocab", "prompt": "What does \"fragile\" mean in \"new memories are fragile\"?", "options": ["easily damaged or lost", "very strong", "secret", "colourful"], "answer": 0, "evidence": "new memories are fragile"}
     ],
     "dictation_index": 3,
     "vocabulary": [
@@ -136,6 +144,7 @@
     "body": "Imagine two people with the same headache. Each swallows a small white pill, and each feels better within the hour. One pill contained a real painkiller; the other contained nothing but sugar. This is the placebo effect, and it is one of the most famous puzzles in medicine. What makes it so puzzling is that the sugar pill does nothing by itself. The change comes from the person taking it. Expecting relief seems to prompt the brain to release its own pain-dulling chemicals, as if the body were following instructions it had written for itself. Context matters, too: the look of a treatment and the way it is given can shape how strong the effect is. The reverse also happens. People warned about possible side effects sometimes report feeling them, even when the pill they took contained nothing active; researchers call this the nocebo effect. It would be a mistake, however, to conclude that belief can cure anything. Placebos tend to work on experiences that the brain helps to produce, such as pain, tiredness or nausea, rather than on the illness underneath. A sugar pill will not shrink a tumour or clear an infection. That is exactly why new treatments are tested against placebos: a drug only earns its place if it does clearly better than expectation alone. In a sense, the placebo effect is less a trick than a reminder that what we expect quietly shapes what we feel.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's overall view of the placebo effect?",
         "options": [
           "It is a trick that doctors use to fool their patients",
@@ -147,6 +156,7 @@
         "evidence": "Placebos tend to work on experiences that the brain helps to produce"
       },
       {
+        "type": "vocab",
         "prompt": "What does the passage call the \"nocebo effect\"?",
         "options": [
           "Feeling side effects after being warned about them, even from an inactive pill",
@@ -156,7 +166,9 @@
         ],
         "answer": 0,
         "evidence": "People warned about possible side effects sometimes report feeling them"
-      }
+      },
+      {"type": "inference", "prompt": "What does \"as if the body were following instructions it had written for itself\" suggest?", "options": ["Patients write their own prescriptions", "The relief comes from the person's own body, not from the pill", "Doctors give unclear instructions", "The pill contains written instructions"], "answer": 1, "evidence": "The change comes from the person taking it."},
+      {"type": "detail", "prompt": "According to the text, what kinds of experience do placebos tend to affect?", "options": ["Eyesight problems", "Pain, tiredness or nausea", "Tumours and infections", "Broken bones"], "answer": 1, "evidence": "such as pain, tiredness or nausea"}
     ],
     "dictation_index": 4,
     "vocabulary": [
@@ -198,6 +210,7 @@
     "body": "Anyone who has watched a cat slip off a shelf has seen something that looks impossible: in a fraction of a second, the animal flips over in mid-air and lands neatly on its feet. For a long time, this puzzled physicists. A falling object that starts without any spin should not be able to turn itself over, since there is nothing in the air to push against. If that cat had been as stiff as a wooden toy, it would have landed on its back. The secret is that a cat is anything but stiff. Its flexible spine lets it behave like two separate halves joined in the middle. Sensing which way is down through its inner ear, the cat first tucks in its front legs and twists its front half towards the ground, while the back half turns slightly the other way. Then it reverses the trick: it stretches out its front legs, tucks in its back legs and swings the rear half round. Because each half twists against the other, the cat as a whole never gains any spin, yet it still ends up the right way up. Neither the tail nor the legs explain the trick on their own; it is the bending body that does most of the work. Even so, landing on its feet is not the same as landing safely. A fall from a height can still badly hurt a cat, which is why this reflex is something to admire rather than test.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main point of the passage?",
         "options": [
           "Cats use their tails to steer while they are falling",
@@ -209,6 +222,7 @@
         "evidence": "Because each half twists against the other, the cat as a whole never gains any spin"
       },
       {
+        "type": "vocab",
         "prompt": "In the passage, what does \"anything but stiff\" mean?",
         "options": [
           "Slightly stiff",
@@ -218,7 +232,9 @@
         ],
         "answer": 2,
         "evidence": "The secret is that a cat is anything but stiff."
-      }
+      },
+      {"type": "inference", "prompt": "Why does the writer say the reflex is \"something to admire rather than test\"?", "options": ["The reflex only works for kittens", "A cat can still be badly hurt by a fall", "Scientists already know everything about it", "Testing cats is against the law"], "answer": 1, "evidence": "A fall from a height can still badly hurt a cat"},
+      {"type": "detail", "prompt": "How does a cat sense which way is down?", "options": ["By looking at the floor", "With its whiskers", "Through its inner ear", "With its tail"], "answer": 2, "evidence": "Sensing which way is down through its inner ear"}
     ],
     "dictation_index": 5,
     "vocabulary": [

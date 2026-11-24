@@ -12,6 +12,7 @@
     "body": "Anyone who has queued for an hour to spend ten minutes in a crowded palace knows that popularity can ruin a place. In my view, the most famous sights should limit how many people can enter each day, and they should do it through timed tickets rather than simply raising prices. The first reason is the experience itself. When a small square is packed with visitors, nobody can actually see it; they see the backs of other people's heads. If entry is spread across the day, visitors can move freely and notice the details they travelled so far to find. The second reason is protection. Old floors, painted ceilings and narrow staircases were never designed to carry modern crowds, and every extra footstep adds a little wear. Limiting numbers is one of the simplest ways to make sure these places survive for future generations. Critics argue that limits are unfair, because travellers who cannot plan months ahead will miss out. This is a serious concern, and it deserves a serious answer. Sites could keep a share of tickets for same-day visitors, or offer late slots for people who decide at the last minute. Although no system is perfect, a well-designed one is far fairer than the current situation, in which the people who suffer most are often the ones who live nearby. In short, limiting visitors is not about keeping people out. It is about making sure that everyone who does get in can enjoy a place that is still worth visiting.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's main position?",
         "options": [
           "Famous sights should close for part of the year",
@@ -23,6 +24,7 @@
         "evidence": "the most famous sights should limit how many people can enter each day"
       },
       {
+        "type": "detail",
         "prompt": "How does the writer answer the claim that limits are unfair?",
         "options": [
           "By saying that travellers should always plan months ahead",
@@ -32,7 +34,9 @@
         ],
         "answer": 1,
         "evidence": "Sites could keep a share of tickets for same-day visitors, or offer late slots for people who decide at the last minute."
-      }
+      },
+      {"type": "inference", "prompt": "What does the writer imply by \"the people who suffer most are often the ones who live nearby\"?", "options": ["Locals cannot find jobs in tourism", "Locals visit the sights too often", "Local residents bear the cost of the crowds", "Locals are the ones selling the tickets"], "answer": 2, "evidence": "the people who suffer most are often the ones who live nearby"},
+      {"type": "vocab", "prompt": "What does \"wear\" mean in \"every extra footstep adds a little wear\"?", "options": ["clothing", "noise", "dirt from outside", "damage caused by use over time"], "answer": 3, "evidence": "every extra footstep adds a little wear"}
     ],
     "dictation_index": 4,
     "vocabulary": [
@@ -141,6 +145,7 @@
     "body": "Interviewer: How did you become a tour guide? Rosa: Completely by accident. I was studying architecture and took a summer job showing visitors around the old harbour. If I hadn't needed the money that summer, I'd probably be designing office blocks now instead of walking the same streets every day. Interviewer: What makes a tour good, in your opinion? Rosa: Stories, not dates. People forget a list of kings within an hour, but they remember the baker who hid love letters inside loaves of bread. As soon as I see eyes drifting towards phones, I stop and tell a story. Interviewer: What's the hardest part of the job? Rosa: Every group is different, and that keeps me on my toes. A family with tired children needs a completely different walk from a group of retired engineers, so I've learned to read people quickly. If someone asks a question I can't answer, I say so and promise to find out. Pretending only makes things worse. Interviewer: Don't you get bored of the same streets? Rosa: Honestly, no, because the streets keep surprising me. Almost every week, a visitor points out something I've never noticed, like a tiny carved face above a doorway I've walked past a thousand times. Interviewer: Any advice for people joining a tour? Rosa: Stand near the front and ask things. Guides love curious people, because a good question turns a talk into a conversation.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What does Rosa believe makes a tour memorable?",
         "options": [
           "Giving visitors as many dates as possible",
@@ -152,6 +157,7 @@
         "evidence": "Stories, not dates."
       },
       {
+        "type": "detail",
         "prompt": "What does Rosa do when she cannot answer a question?",
         "options": [
           "She changes the subject politely",
@@ -161,7 +167,9 @@
         ],
         "answer": 2,
         "evidence": "If someone asks a question I can't answer, I say so and promise to find out."
-      }
+      },
+      {"type": "inference", "prompt": "Why does Rosa tell a story when she sees eyes drifting towards phones?", "options": ["The tour is about to end", "She wants people to take photos", "She has forgotten the dates", "Stories win back people's attention"], "answer": 3, "evidence": "As soon as I see eyes drifting towards phones, I stop and tell a story."},
+      {"type": "vocab", "prompt": "What does \"keeps me on my toes\" mean?", "options": ["makes me bored", "makes me tired", "makes me walk further", "keeps me alert and ready for anything"], "answer": 3, "evidence": "that keeps me on my toes"}
     ],
     "dictation_index": 7,
     "vocabulary": [
@@ -270,6 +278,7 @@
     "body": "The sign at the bottom of the trail said the lake was three hours away, and by lunchtime we had been walking for four. Somewhere after the wooden bridge, we had followed a path that looked well used, assuming it was ours. It wasn't. The red marks on the rocks had disappeared, and the path kept narrowing until it was little more than a goat track. My friend Dara wanted to keep going, insisting the lake had to be just over the next ridge. I wasn't so sure. Clouds were gathering behind the peaks, we had half a bottle of water left, and neither of us had told anyone exactly where we were going. Standing on that slope, I realised that the lake was not the point anymore; getting down before dark was. So we turned back. It felt like failure at first, and we hardly spoke for an hour. By the time we reached the bridge again, though, the first drops of rain were falling, and the mood had changed completely. Back at the guesthouse, the owner told us that the path we had taken ends at a steep cliff. If we had pushed on that afternoon, I doubt we would be laughing about it today. Dara now jokes that I'm the most boring hiker she knows, and I take it as a compliment. Before every walk, we check the route, tell someone our plan and agree on a time to turn around, whether or not we have reached the top.",
     "questions": [
       {
+        "type": "main",
         "prompt": "Why did the writer decide to turn back?",
         "options": [
           "Dara was too tired to continue",
@@ -281,6 +290,7 @@
         "evidence": "I realised that the lake was not the point anymore; getting down before dark was"
       },
       {
+        "type": "vocab",
         "prompt": "What does \"little more than a goat track\" suggest about the path?",
         "options": [
           "It was narrow and hard to follow",
@@ -290,7 +300,9 @@
         ],
         "answer": 0,
         "evidence": "the path kept narrowing until it was little more than a goat track"
-      }
+      },
+      {"type": "inference", "prompt": "Why does the writer take being called \"the most boring hiker\" as a compliment?", "options": ["The writer dislikes hiking", "Being careful is what kept them safe", "Dara is really joking about the lake", "The writer wants to stop hiking"], "answer": 1, "evidence": "If we had pushed on that afternoon, I doubt we would be laughing about it today."},
+      {"type": "detail", "prompt": "What did the guesthouse owner tell them about the path they had taken?", "options": ["It is closed in winter", "It leads to a second lake", "It is the quickest route", "It ends at a steep cliff"], "answer": 3, "evidence": "the path we had taken ends at a steep cliff"}
     ],
     "dictation_index": 12,
     "vocabulary": [
@@ -399,6 +411,7 @@
     "body": "Most of us have walked through a museum reading label after label, only to realise at the exit that we remember almost nothing. A good audio guide can change that, and the reasons are surprisingly simple. The first is where your eyes go. When you read a label, you have to look away from the object to take in the information. With a voice in your ear, your eyes can stay on the object while someone tells you where to look: the crack in the vase, the tiny dog in the corner of the painting. The second reason is the human voice itself. A speaker who sounds curious, pauses at the right moment and occasionally laughs turns facts into a story, and a story is far easier to hold on to than a list. Some guides go further, adding the noise of a busy workshop or a few lines from an old letter, so that the object seems to belong to a real person again. Third, a guide gives you control. If a room bores you, you can skip ahead; if a single object fascinates you, you can listen to the extra track and stay as long as you like. Of course, an audio guide is only as good as its script. If it simply reads the labels aloud, it adds nothing except a pair of uncomfortable headphones. But when it is written to be heard rather than read, it can make a quiet room full of glass cases feel surprisingly alive.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main point of the passage?",
         "options": [
           "Audio guides are better than human tour guides",
@@ -410,6 +423,7 @@
         "evidence": "A good audio guide can change that, and the reasons are surprisingly simple."
       },
       {
+        "type": "detail",
         "prompt": "According to the writer, when does an audio guide add nothing?",
         "options": [
           "When it includes the sounds of a workshop",
@@ -419,7 +433,9 @@
         ],
         "answer": 1,
         "evidence": "If it simply reads the labels aloud, it adds nothing except a pair of uncomfortable headphones."
-      }
+      },
+      {"type": "inference", "prompt": "Why does the writer mention the crack in the vase and the tiny dog in the painting?", "options": ["To complain about damaged objects", "To list the museum's most famous objects", "To describe the gift shop", "To show how a voice can guide your eyes to details"], "answer": 3, "evidence": "your eyes can stay on the object while someone tells you where to look"},
+      {"type": "vocab", "prompt": "What does \"fascinates\" mean in \"if a single object fascinates you\"?", "options": ["frightens", "annoys", "confuses", "holds your attention because it is very interesting"], "answer": 3, "evidence": "if a single object fascinates you"}
     ],
     "dictation_index": 3,
     "vocabulary": [

@@ -12,6 +12,7 @@
     "body": "Read enough restaurant reviews and you will notice that one accusation stings more than any complaint about slow service or cold soup: the food, someone declares, is not authentic. It is a strange charge, when you think about it, because it assumes that every dish has a single correct version, fixed somewhere in the past and waiting to be betrayed. Anyone who has eaten the same dish in two neighbouring towns knows how quickly that assumption falls apart under scrutiny. The variance between households alone is enormous; ask three grandmothers for the proper way to fold a dumpling and you will get four answers and at least one argument. When food travels overseas, it changes further, and not because cooks are careless. Ingredients differ, customers bring different habits, and a small family restaurant has to stay commercially viable on a street full of competitors. The noodle shop that adds a little sugar, or serves its lunch special with an ice-cold soda because that is what local office workers order, is not committing a crime; it is doing what cooks have always done. None of this means that authenticity is meaningless, and I will make one concession to the purists: when a restaurant markets itself as a faithful taste of a particular region and then serves something unrecognisable, diners have every right to feel misled. Notice, though, that the problem there is honesty, not tradition. Indeed, the look of authenticity is now easy to manufacture, with handwritten menus, mismatched bowls and a black-and-white photo of an unnamed village, and it often fools the very critics who are most obsessed with it. What troubles me most is the tone of morality that creeps into these debates, as though eating an adapted dish were a small betrayal and enjoying it a character flaw. That tone strikes me as inappropriate for something as generous as cooking. A better question for any reviewer is simpler: was the food made with care, and would you go back? If the answer to both is yes, the label on the menu hardly matters.",
     "questions": [
       {
+        "type": "main",
         "prompt": "Which statement best summarises the writer's position?",
         "options": [
           "Judging food mainly by authenticity misses what matters more, such as honesty and care",
@@ -23,6 +24,7 @@
         "evidence": "was the food made with care, and would you go back?"
       },
       {
+        "type": "detail",
         "prompt": "What does the writer admit to the \"purists\"?",
         "options": [
           "That adapted dishes usually taste worse than the originals",
@@ -32,7 +34,9 @@
         ],
         "answer": 1,
         "evidence": "diners have every right to feel misled"
-      }
+      },
+      {"type": "inference", "prompt": "What point does the writer make about handwritten menus and mismatched bowls?", "options": ["The look of authenticity can easily be faked", "Such details make a restaurant more expensive", "Critics prefer restaurants with modern design", "Traditional restaurants always serve better food"], "answer": 0, "evidence": "the look of authenticity is now easy to manufacture"},
+      {"type": "vocab", "prompt": "What does \"commercially viable\" mean in \"stay commercially viable\"?", "options": ["able to make enough money to keep going", "popular with tourists", "approved by food critics", "run by a single family"], "answer": 0, "evidence": "stay commercially viable on a street full of competitors"}
     ],
     "dictation_index": 2,
     "vocabulary": [
@@ -142,6 +146,7 @@
     "body": "Q: Your latest project is a picture book about a dragon who looks after a mountain village, so what made it difficult to translate? Mira: The dragon, almost entirely. In the original, he embodies everything a farming village might hope for: rain at the right time, patience and a kind of unhurried wisdom. But the moment an English-speaking child sees the word \"dragon\", they picture smoke, a pile of gold and a knight arriving to fight it. Q: Did you consider changing the word? Mira: For about a week, yes, and I tried \"sky serpent\", \"river spirit\" and even leaving the Chinese name untranslated. Every option either sounded like a video game or forced the reader to stop and decode it, which is fatal in a book meant to be read aloud at bedtime. In the end I kept \"dragon\" and let the pictures do the work, because once children see him gently carrying a lost goat home, they revise their expectations remarkably quickly. Q: How faithful should a translator be? Mira: Faithful to the experience rather than to every word, so a child reading the English should feel what a child reading the Chinese feels, even if that means I have to intervene. Q: Does that extend to the morality of the story? Mira: Up to a point, yes. The original manuscript ended with a line that spelled out the lesson rather sternly. In Chinese it sounds natural, almost like a proverb, but in English it felt like a teacher wagging a finger, which some parents would find inappropriate at bedtime, so I softened it and let the dragon's compassion speak for itself. Q: Isn't there a danger that softening it will conceal something about the original? Mira: It's a fair worry, which is why the English text was subsequently checked line by line by the author herself, and she rejected two of my changes. She was right both times, but I'd still argue that early literacy depends on children loving how a story sounds, and a book that reads like homework ends up unread on the shelf.",
     "questions": [
       {
+        "type": "detail",
         "prompt": "Why was the word \"dragon\" the hardest part of the translation?",
         "options": [
           "English has no word for a creature like this",
@@ -153,6 +158,7 @@
         "evidence": "they picture smoke, a pile of gold and a knight arriving to fight it"
       },
       {
+        "type": "inference",
         "prompt": "What does Mira mean by being faithful \"to the experience rather than to every word\"?",
         "options": [
           "English readers should feel what Chinese readers feel",
@@ -162,7 +168,9 @@
         ],
         "answer": 0,
         "evidence": "a child reading the English should feel what a child reading the Chinese feels"
-      }
+      },
+      {"type": "main", "prompt": "What is the interview mainly about?", "options": ["How a translator adapts a picture book so that it feels right in another language", "Why children should read stories in the original language", "How to write a picture book from scratch", "Why dragons are dangerous in Chinese stories"], "answer": 0, "evidence": "Faithful to the experience rather than to every word"},
+      {"type": "vocab", "prompt": "What does \"intervene\" mean in \"even if that means I have to intervene\"?", "options": ["read the text aloud", "ask for more money", "step in and make changes", "give up the project"], "answer": 2, "evidence": "even if that means I have to intervene"}
     ],
     "dictation_index": 12,
     "vocabulary": [
@@ -272,6 +280,7 @@
     "body": "Anyone who has tried to describe a football match to a friend over the phone knows how hard it is to keep talking while things keep happening. Live commentary is a craft built around precisely that problem, and its habits make more sense once you see the pressures behind them. Radio commentators carry the heavier load, because their listeners can see nothing at all; they must establish who has the ball, where it is and what might happen next, often in a single breath. Television commentators, by contrast, are encouraged to say less, since the pictures already carry most of the information, and the skill lies in adding what the camera cannot show: a player's limp, a coach's frustration, the reason a team has suddenly stopped attacking. Most broadcasts divide the work between two voices. The first describes the action, while the second, usually a former player, offers analysis, and the variance in their styles is deliberate, giving listeners both rhythm and depth. During a pause, the analyst might provide a breakdown of how a goal was scored, replaying each pass step by step. Commentary has its traps, too. Excitement can tip into exaggeration, and bias tends to creep in quietly, especially when a broadcaster is covering a home team. When a commentator says something unfortunate on air, such as a careless joke or a wrong name, producers may intervene through an earpiece, but the words have already gone out. Many broadcasters now offer interactive options, letting viewers choose a different audio track or switch the commentary off altogether, and some coaches say it is beneficial to rewatch matches in silence, judging the play without another voice in their ears. Yet most viewers keep the commentary on, and the reason is revealing: good commentary does not merely report events but decides which moments are worthy of remembering, turning a blur of movement into a story with a beginning, a middle and an end.",
     "questions": [
       {
+        "type": "detail",
         "prompt": "According to the explainer, what is the main job of a television commentator?",
         "options": [
           "To describe every movement on the screen in detail",
@@ -283,6 +292,7 @@
         "evidence": "the skill lies in adding what the camera cannot show"
       },
       {
+        "type": "inference",
         "prompt": "What does the final sentence suggest about why most viewers keep the commentary on?",
         "options": [
           "It gives them more accurate information than the pictures",
@@ -292,7 +302,9 @@
         ],
         "answer": 3,
         "evidence": "decides which moments are worthy of remembering"
-      }
+      },
+      {"type": "main", "prompt": "What is the explainer mainly about?", "options": ["How former players become coaches", "How live commentary works and why it sounds the way it does", "The history of a famous football club", "Why radio is better than television"], "answer": 1, "evidence": "Live commentary is a craft built around precisely that problem"},
+      {"type": "vocab", "prompt": "What does \"creep in\" mean in \"bias tends to creep in quietly\"?", "options": ["disappear completely", "be removed by producers", "be announced loudly", "appear gradually without being noticed"], "answer": 3, "evidence": "bias tends to creep in quietly"}
     ],
     "dictation_index": 6,
     "vocabulary": [
@@ -402,6 +414,7 @@
     "body": "Dear Jun, I know you were sorry to miss the reunion at Grandpa's old soda factory, so here is the long version I promised, written on the train home. You'll laugh, but I somehow ended up as the chief organizer, which mostly meant fighting a quiet war with local bureaucracy for permission to open the doors for a single afternoon. When we finally got inside, the place looked like a museum of junk: stacks of wooden crates, a calendar stopped at some long-forgotten June, and that enormous bottling machine whose breakdowns have been a family joke for as long as either of us can remember. It's strange to think that Grandpa and a handful of neighbours used to manufacture, right there, an orange drink that nobody outside the region had ever heard of. Former workers started arriving after lunch, some with walking sticks and others with grandchildren, and every one of them seemed to have saved up a story for the day. One woman told me that during the worst breakdown, when the machine stood silent for most of a summer, Grandpa kept paying everyone out of his own savings and managed to conceal it from Grandma until the bank called. We always thought of him as stern, didn't we? Hearing about that quiet compassion has rearranged something in my memory of him. By the time I stood up to give the short tribute, my stomach was in knots and I'd abandoned my notes entirely. So I simply said that he used to call the factory his destiny, half as a joke, and that I'd never understood why until I saw the people in that room. I wish you had been there, honestly. Since you're overseas until the spring, I'm posting you the one thing I brought home: an unopened bottle that a man in a flat cap slipped into my bag, the orange faded to the colour of weak tea. Love, Mei",
     "questions": [
       {
+        "type": "main",
         "prompt": "How did the reunion change Mei's view of her grandfather?",
         "options": [
           "She realised he had been careless with the family's money",
@@ -413,6 +426,7 @@
         "evidence": "Hearing about that quiet compassion has rearranged something in my memory of him."
       },
       {
+        "type": "detail",
         "prompt": "What was the hardest part of being the organizer, according to Mei?",
         "options": [
           "Persuading former workers to come",
@@ -422,7 +436,9 @@
         ],
         "answer": 1,
         "evidence": "fighting a quiet war with local bureaucracy for permission to open the doors for a single afternoon"
-      }
+      },
+      {"type": "inference", "prompt": "What does the description of the bottle, \"faded to the colour of weak tea\", suggest?", "options": ["It was a new product from the factory", "It had been kept unopened for a very long time", "It had been made in another country", "It had been opened and refilled"], "answer": 1, "evidence": "the orange faded to the colour of weak tea"},
+      {"type": "vocab", "prompt": "What does \"conceal\" mean in \"managed to conceal it from Grandma\"?", "options": ["hide", "explain", "repay", "announce"], "answer": 0, "evidence": "managed to conceal it from Grandma until the bank called"}
     ],
     "dictation_index": 7,
     "vocabulary": [

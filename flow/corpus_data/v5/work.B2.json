@@ -12,6 +12,7 @@
     "body": "Hi Helen, Thanks for the heads-up about the revised launch date. I can see why the sales team wants the app out before the trade fair, and I'd genuinely like to make that happen. Having gone through the plan again with the developers this morning, though, I don't think we can realistically deliver everything two weeks early without cutting corners. The testing stage is already tight, and it's the part we can least afford to rush. If I were confident we could do it all, I'd say yes straight away. Instead, I'd like to suggest three options. First, we could keep the new date but launch a simpler version, with the booking feature ready and the loyalty points following a month later. Second, we could keep the full version and the original date, and give the sales team a working preview to show at the fair. Third, if we brought in one more developer for a fortnight, we might manage the full version on time, although that would hinge on finding someone already familiar with the system. Personally, I'd go with the first option, since it gets something real into customers' hands early without putting quality at risk. Could we talk it through for fifteen minutes tomorrow? I'm free any time after ten, and I'll bring an updated timeline so we can decide quickly. Best, Kwame",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is Kwame's overall attitude to the new deadline?",
         "options": [
           "He is annoyed and refuses to discuss any change to the plan",
@@ -23,6 +24,7 @@
         "evidence": "I don't think we can realistically deliver everything two weeks early without cutting corners"
       },
       {
+        "type": "detail",
         "prompt": "Why does Kwame prefer the first option?",
         "options": [
           "It gives customers a real product early without hurting quality",
@@ -32,7 +34,9 @@
         ],
         "answer": 0,
         "evidence": "since it gets something real into customers' hands early without putting quality at risk"
-      }
+      },
+      {"type": "inference", "prompt": "Why does Kwame offer three options instead of simply saying no?", "options": ["Because he cannot make up his mind", "To show he wants to help and to make the decision easier", "To delay the project", "Because Helen asked for three"], "answer": 1, "evidence": "I'd genuinely like to make that happen"},
+      {"type": "vocab", "prompt": "What does \"cutting corners\" mean in \"without cutting corners\"?", "options": ["taking a shorter route", "doing something badly to save time", "saving money on rent", "working late"], "answer": 1, "evidence": "without cutting corners"}
     ],
     "dictation_index": 3,
     "vocabulary": [
@@ -141,6 +145,7 @@
     "body": "Claire: Thanks, Yusuf, that's all very clear. Now, one last question, and it's slightly unusual. What's something you used to believe about work that turned out to be wrong? Yusuf: Oh, that's a good one, and nobody has asked me that before. Can I take a moment to think? Claire: Of course, take your time, there's no rush. Yusuf: OK, so when I started my first job, I believed that a good employee was someone who never bothered anyone. So whenever I got stuck, I'd just keep going on my own. Once, I spent almost a week trying to fix a problem with our customer database. In the end, a colleague who sat two desks away solved it in about an hour, because she'd seen the same thing before. Claire: That must have been frustrating. Yusuf: It was, honestly, and a little embarrassing too. If I had asked her on the first day, I would have saved myself a week and the team a lot of waiting. Claire: So what do you do differently now? Yusuf: Now I give myself a time limit, so if I've been stuck for two hours, I ask someone, and I explain what I've already tried. It's a small rule, but it's changed how I work. Claire: That's a really useful answer, thank you. Most candidates just tell me they work too hard, so that's refreshing. Yusuf: Well, I used to think that was my problem too, until I realized I was mostly just working alone.",
     "questions": [
       {
+        "type": "inference",
         "prompt": "Why does Claire probably like Yusuf's answer?",
         "options": [
           "It proves that he never makes mistakes at work",
@@ -152,6 +157,7 @@
         "evidence": "It's a small rule, but it's changed how I work."
       },
       {
+        "type": "detail",
         "prompt": "What is Yusuf's \"time limit\" rule?",
         "options": [
           "He never spends more than an hour on one task",
@@ -161,7 +167,9 @@
         ],
         "answer": 2,
         "evidence": "if I've been stuck for two hours, I ask someone"
-      }
+      },
+      {"type": "main", "prompt": "What is the conversation mainly about?", "options": ["A manager explaining a database problem", "Two friends discussing their first jobs", "A colleague asking for help with a project", "A candidate answering an unusual interview question about a lesson he learned"], "answer": 3, "evidence": "What's something you used to believe about work that turned out to be wrong?"},
+      {"type": "vocab", "prompt": "What does \"refreshing\" mean in \"that's refreshing\"?", "options": ["cold", "confusing", "pleasantly different and welcome", "tiring"], "answer": 2, "evidence": "so that's refreshing"}
     ],
     "dictation_index": 8,
     "vocabulary": [
@@ -265,6 +273,7 @@
     "body": "Most of us have been taught the \"feedback sandwich\": start with praise, slip the criticism into the middle, and finish with more praise. It sounds kind, but it often backfires. Listeners quickly learn the pattern, so the opening compliment makes them brace for the \"but\", and the closing one makes the real message easy to forget. The trouble with most of these formulas is that they protect the speaker's comfort rather than help the listener improve. A more useful approach has three parts. First, describe one specific thing you noticed, such as \"In Tuesday's meeting, you answered two questions that were meant for Lin.\" Second, explain the effect: \"She stopped joining in after that.\" Third, open a conversation instead of delivering a verdict: \"What was going on for you there?\" Comments framed this way are easier to accept, because they are about actions, not personality. Feedback given months later, on the other hand, rarely helps, since nobody remembers the details. Receiving feedback is a skill too. The natural reaction is to explain or defend yourself, but the most professional response is often simply, \"Thanks, can you give me another example?\" You don't have to agree on the spot. You can take a day, decide what is fair, and come back with a plan. What people tend to remember is not whether you were right, but whether you listened.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's main point?",
         "options": [
           "Praise should never be part of feedback",
@@ -276,6 +285,7 @@
         "evidence": "Comments framed this way are easier to accept, because they are about actions, not personality."
       },
       {
+        "type": "vocab",
         "prompt": "When listeners \"brace for the 'but'\", what are they doing?",
         "options": [
           "Preparing themselves for the criticism they expect",
@@ -285,7 +295,9 @@
         ],
         "answer": 0,
         "evidence": "the opening compliment makes them brace for the \"but\""
-      }
+      },
+      {"type": "inference", "prompt": "What does the example about answering questions meant for Lin show?", "options": ["Good feedback names a specific action and its effect", "Questions should be sent in writing", "Lin is a difficult colleague", "Meetings should be shorter"], "answer": 0, "evidence": "describe one specific thing you noticed"},
+      {"type": "detail", "prompt": "What does the writer suggest saying when you receive feedback?", "options": ["\"Thanks, can you give me another example?\"", "\"I disagree completely.\"", "\"I will fix it at once.\"", "\"That was not my fault.\""], "answer": 0, "evidence": "Thanks, can you give me another example?"}
     ],
     "dictation_index": 9,
     "vocabulary": [
@@ -389,6 +401,7 @@
     "body": "When I first started working from home, it felt like a quiet luxury: no crowded trains, no forced chat by the lifts, and lunch from my own fridge. A few months in, however, I noticed something strange. I was never quite at work, and never quite off. My laptop lived on the kitchen table, so a quick look at my messages before dinner often turned into an hour of replies. I sometimes wish my flat were big enough for a separate room with a door I could close. Still, I don't think the real problem is remote work itself. Offices give us edges for free: the journey home, the building we walk out of, the colleagues putting on their coats. At home, those edges disappear, and work quietly spreads into every gap. Unless you draw that line yourself, nobody is going to draw it for you. What has helped me is surprisingly simple. At six, I shut the laptop and put it in a drawer, out of sight. Then I take a ten-minute walk around the block, a sort of fake commute that tells my brain the day is over. I've also turned off work notifications on my phone after hours. None of this is perfect, and on some evenings an urgent message still gets through. But setting boundaries hasn't made me less committed to my job. If anything, I'm more focused during the day, because I know the day will actually end.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's main opinion?",
         "options": [
           "Remote work should be replaced by office work",
@@ -400,6 +413,7 @@
         "evidence": "Unless you draw that line yourself, nobody is going to draw it for you."
       },
       {
+        "type": "vocab",
         "prompt": "What does the writer mean by a \"fake commute\"?",
         "options": [
           "Pretending to travel to the office for meetings",
@@ -409,7 +423,9 @@
         ],
         "answer": 1,
         "evidence": "a sort of fake commute that tells my brain the day is over"
-      }
+      },
+      {"type": "inference", "prompt": "Why does the writer say offices \"give us edges for free\"?", "options": ["Offices are on the edge of town", "Offices have sharp furniture", "Office life separates work from home without any effort", "Offices pay for the journey home"], "answer": 2, "evidence": "Offices give us edges for free"},
+      {"type": "detail", "prompt": "What does the writer do at six o'clock?", "options": ["Shuts the laptop and puts it in a drawer", "Cooks dinner at the kitchen table", "Starts answering messages", "Calls a colleague"], "answer": 0, "evidence": "At six, I shut the laptop and put it in a drawer, out of sight."}
     ],
     "dictation_index": 10,
     "vocabulary": [
