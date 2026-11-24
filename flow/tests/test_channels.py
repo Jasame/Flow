@@ -214,7 +214,19 @@ class ToolTests(unittest.TestCase):
         self.assertNotIn('if xmc_dir:', pull)  # one manifest per commit: the 内测版 checks the console files too, it only skips installing them
         # both services may write the shared voice folder (ProtectSystem=strict), set before the restart
         self.assertLess(pull.index("ReadWritePaths=-%s/tts"), pull.index('systemctl restart "$SVC"'))
-        self.assertIn('sed -n \'s/^FLOW_AUDIO_DIR=//p\' "/etc/$SVC.env"', pull)
+        self.assertIn('AUD=$(audio_dir "/etc/$SVC.env")', pull)
+        # the folder as systemd reads it: quoted or not, with or without a trailing slash; anything else means 语流's folder
+        import re as _re, tempfile as _tf
+        fn = _re.search(r'^audio_dir\(\) \{.*?^\}', pull, _re.S | _re.M).group(0)
+        cases = {'FLOW_AUDIO_DIR=/www/wwwroot/flow/audio\n': '/www/wwwroot/flow/audio', 'FLOW_AUDIO_DIR="/data/audio/"\n': '/data/audio',
+                 "A=1\nFLOW_AUDIO_DIR='/srv/a b'\r\n": '/srv/a b', 'FLOW_SMTP_HOST="x"\n': '/www/wwwroot/flow/audio',
+                 'FLOW_AUDIO_DIR=audio\n': '/www/wwwroot/flow/audio', '': '/www/wwwroot/flow/audio'}
+        for text, want in cases.items():
+            with _tf.NamedTemporaryFile('w', suffix='.env', delete=False) as f:
+                f.write(text)
+            got = subprocess.run(['bash', '-c', fn + '\naudio_dir "$1"', '_', f.name], capture_output=True, text=True).stdout.strip()
+            os.unlink(f.name)
+            self.assertEqual(got, want, text)
         for s in ('F=${FLOW_DIR:-/www/wwwroot/flow}', 'XMC=${FLOW_XMC-/www/wwwroot/xmc.hk/flow}', 'SVC=${FLOW_SERVICE:-flow}', 'U=${FLOW_URL:-http://127.0.0.1:8090}',
                   'echo "$SHA" > "$OPS/$SVC-deployed-commit"', 'bash "$HERE/flow-pull-rollback.sh" "$BK"',
                   "names += [f'xmc-admin/{n}'", 'xmc-admin/*) [ -n "$XMC" ] || continue;'):
