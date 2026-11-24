@@ -1,21 +1,31 @@
 """复听: a text learned a few days ago, heard again without the words, then rated by how much was understood.
 
-Spaced like the word reviews, but for whole texts. The first time 3 days after the text was studied (its first step
-of 读, 理解 or 用出来); then 7 and 21 days after the last listen that was mostly understood. A listen where half or
-less was understood brings the text back after 3 days, without moving on. After three good listens the text is
-known and is not brought back. Texts studied more than 60 days ago (counting the last listen) are left alone.
+A text comes back 3 days after it was studied (its first step of 读, 理解 or 用出来). A listen where most or almost
+all was understood is the last one: the text is known. A listen where half or less was understood brings it back after
+3 days, until it is understood. Texts studied more than 60 days ago (counting the last listen) are left alone.
 
-One text a day, in 今日 (skills_service.daily_path): the one waiting longest. The listen page (#/m/<id>/listen/again)
-starts with the text hidden, asks how much was understood, then shows the text for the sentences that were missed.
+One text a day, in 今日 (skills_service.daily_path): the one that became due most recently, so a text is heard again
+while it is still remembered. When more than 7 wait, only those studied or heard in the last 2 weeks are offered; the
+others come back if the queue gets shorter, until the 60 days are up.
+Until r27 a text came back three times (3, 7 and 21 days) and the longest-waiting one came first. With one listen a day
+and about one new text a day, that queue only grew: by week 5–9 learners had 21–62 texts waiting and the one offered
+was 16–40 days old. Simulated with the same answers (很少/一半 25%, 大部分 50%, 几乎都懂 25%), one text studied and one
+heard a day for 9 weeks: the old rule leaves 42 waiting, offers texts studied 26 days before, and re-hears 70% of them;
+this rule leaves 4 waiting, offers texts studied 3 days before, and re-hears 88%.
+
+The listen page (#/m/<id>/listen/again) starts with the text hidden, asks how much was understood, then shows the
+text for the sentences that were missed.
 A listen counts as a study day for 每周目标 (next_service.habit) and in the weekly report (skills_service.report).
 """
 import time
 
-STEPS = (3, 7, 21)  # days to the next listen after 0, 1 and 2 good listens
+STEPS = (3,)        # days to the next listen after 0 good listens; one good listen and the text is known
 AGAIN = 3           # days to the next listen after one where half or less was understood
 LOOKBACK = 60       # days: texts studied longer ago are not brought back
 LABELS = ('很少', '一半左右', '大部分', '几乎都懂')  # understood: 0..3; 2 and 3 are good listens
 SAME_VISIT = 600    # seconds: a second rating of the same text this soon replaces the first
+QUEUE_MAX = 7       # more texts than this waiting: only the recent ones are offered
+RECENT = 14         # days: "recent" = studied or last heard this long ago at most
 
 
 def schema(c):
@@ -51,19 +61,23 @@ def _listens(c, uid, pack=None):
 
 
 def due(c, uid, now=None, exclude=()):
-    """The texts waiting to be heard again, the longest waiting first: [{'pack', 'first', 'due', 'times', 'good'}]."""
+    """The texts waiting to be heard again, the one due most recently first: [{'pack', 'first', 'last', 'due', 'times', 'good'}].
+    With more than QUEUE_MAX waiting, only those studied or heard in the last RECENT days."""
     import next_service as nx
     now = now or time.time()
     listens = _listens(c, uid)
     out = []
     for pack, first in _studied(c, uid).items():
         ls = listens.get(pack, [])
-        if pack in exclude or max([first] + [t for _, t in ls]) < now - LOOKBACK * 86400:
+        last = max([first] + [t for _, t in ls])
+        if pack in exclude or last < now - LOOKBACK * 86400:
             continue
         when, good = next_time(first, ls)
         if when is not None and when <= now and nx._pack_row(c, uid, pack):
-            out.append({'pack': pack, 'first': first, 'due': when, 'times': len(ls), 'good': good})
-    return sorted(out, key=lambda x: x['due'])
+            out.append({'pack': pack, 'first': first, 'last': last, 'due': when, 'times': len(ls), 'good': good})
+    if len(out) > QUEUE_MAX:
+        out = [x for x in out if x['last'] >= now - RECENT * 86400]
+    return sorted(out, key=lambda x: (-x['due'], -x['first']))
 
 
 def today(c, uid, start):

@@ -268,7 +268,9 @@ def persona_b1(cl):
     check(who, 'AI scores shadowing (native-like clip)', s == 200 and isinstance(r, dict), j if s != 200 else {k: r.get(k) for k in list(r)[:6]})
     if s == 200:
         sc = r.get('score', r.get('accuracy'))
-        check(who, 'shadow of a clean reading scores well', sc is None or (isinstance(sc, (int, float)) and sc >= (0.6 if sc <= 1 else 60)), sc)
+        if isinstance(sc, dict):  # since r27 (#41): {accuracy, fluency, complete, total}, 0–100 each
+            sc = sc.get('total')
+        check(who, 'shadow of a clean reading scores well', sc is None or (isinstance(sc, (int, float)) and sc >= (0.6 if sc <= 1 else 60)), r.get('score', sc))
     s, j, r = cl.ai('/api/next/variant', {'pack': PID, 'level': 'B1'}, 'nv')
     check(who, 'AI makes a B1 version', s == 200, j if s != 200 else (r or j).get('level') if isinstance(r or j, dict) else j)
     s, j, r = cl.ai('/api/next/explain', {'pack': PID, 'sentence': sents[1] if len(sents) > 1 else sents[0]}, 'ex')
@@ -584,6 +586,15 @@ def persona_guard(cl, others):
     for p, want in (('/', 200), ('/sw.js', 200), ('/manifest.webmanifest', 200), ('/next.js?v=11', 200), ('/icon-192.png', 200)):
         s, _ = raw.get(p)
         check(who, f'static {p}', s == want, s)
+    # the 操作指南 PDF is printed when a commit is released (tools/build_release.py): the site offers it, and it downloads
+    s, g = raw.get('/api/next/guide')
+    check(who, 'the guide offers its PDF', s == 200 and isinstance(g, dict) and g.get('pdf') == '/guide.pdf', (s, g.get('pdf') if isinstance(g, dict) else str(g)[:100]))
+    try:
+        with urllib.request.urlopen(BASE + '/guide.pdf', timeout=30) as r:
+            head = r.read(5)
+            check(who, 'the guide PDF downloads', r.status == 200 and head == b'%PDF-' and r.headers.get('Content-Type') == 'application/pdf', (r.status, head))
+    except urllib.error.HTTPError as e:
+        check(who, 'the guide PDF downloads', False, e.code)
     s, wi = cl.get('/api/next/material?id=' + PID)
     au = (wi.get('audio') or {}) if isinstance(wi, dict) else {}
     src = f"/audio/{au['voices'][0]}/{PID}.mp4" if au.get('voices') else None

@@ -23,9 +23,9 @@
     const mv = m => m.before == null ? '' : m.now > m.before ? ` <span class="up">↑${m.now - m.before}</span>` : m.now < m.before ? ` <span class="tiny muted">↓${m.before - m.now}</span>` : '';
     const rl = r.relisten || {};
     return `${rl.count ? `<div class="card flat section stack-s"><b>复听</b><span class="small">把几天前学过的文章重听了 ${rl.count} 次，平均听懂${esc(rl.label)}。</span></div>` : ''}
-      <div class="card flat section stack-s"><div class="row between"><b>轻松读</b><a class="link small" href="#/easy">去读</a></div>
+      <div class="card flat section stack-s"><div class="row between"><b>轻松读</b><a class="link small hit44" href="#/easy">去读</a></div>
         <span class="small">${e.texts ? `读了 ${e.texts} 篇，一共 ${e.words} 个词${speed}。` : '这周还没读。每天读一篇比你低一级的短文，阅读速度会慢慢提上来。'}</span></div>
-      <div class="card flat section stack-s"><div class="row between"><b>口语情景</b><a class="link small" href="#/speak">去练</a></div>
+      <div class="card flat section stack-s"><div class="row between"><b>口语情景</b><a class="link small hit44" href="#/speak">去练</a></div>
         <span class="small">${sp.scenes_week ? `这周练了 ${sp.scenes_week} 个情景，` : '这周还没练情景对话，'}一共完成 ${sp.scenes_done || 0} / ${sp.scenes_total || 12} 个。</span></div>
       <div class="card flat section stack-s"><div class="row between"><b>能力雷达</b><a class="link small" href="#/radar">看雷达</a></div>
         ${ra.moves.length ? `<div class="ab-list">${ra.moves.map(m => `<div class="ab"><span class="nm">${esc(m.label)}</span><span class="vbar"><i data-w="${Math.max(3, Math.min(100, m.now))}"></i></span><span class="lv">${m.now} 分${mv(m)}</span></div>`).join('')}</div>

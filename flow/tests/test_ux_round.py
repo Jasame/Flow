@@ -77,7 +77,7 @@ class PageTests(unittest.TestCase):
 
     def test_repeat_undo_text_size_and_first_visit(self):
         for s in ('data-rep="${n}"', 'data-gap="${n}"', "save('flow-next-loop', LOOP)", 'function takeBack', "api('/api/next/review/undo'",
-                  'OUTBOX.unpush', 'function textSheet', "save('flow-next-text', TEXT)", 'data-tap="welcome-try"', 'data-tap="trial-level"',
+                  'OUTBOX.unpush', 'function textSheet', "save('flow-next-text', TEXT)", 'data-tap="welcome-start"', 'data-tap="trial-level"',  # r27: the one start page took the place of 先试读一篇
                   "load('flow-wx-guide')"):
             self.assertIn(s, JS)
         self.assertIn(':root[data-size=xl]{--read-zoom:1.25}', CSS)

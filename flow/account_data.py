@@ -25,6 +25,7 @@ GUIDE = {
     'next_node_notes': '语法点笔记', 'next_grammar_review': '语法复习', 'next_vocab_plans': '词书计划', 'next_reminders': '每天提醒',
     'feedback': '你发过的问题反馈（截图不在文件里）', 'lab_packs': '你导入的文章',
     'next_goal_weeks': '每周目标改过几次：每个目标从哪一周开始算', 'next_weekly': '每周进度邮件：收不收、上次什么时候发的',
+    'class_members': '加入过的班级：什么时候加入、什么时候退出（班级名在最上面的「班级」里）',
 }
 
 
@@ -152,6 +153,7 @@ def records(c, u):
     out = {'说明': '语流 Flow 为这个账号保存的全部学习记录。时间是 Unix 时间戳（秒）；每张表一组记录，常用的几张在「目录」里有说明。',
            'exported_at': datetime.datetime.now(CN).isoformat(timespec='seconds'),
            'account': {'username': row['username'], 'email': row['email'] or ''},
+           **__import__('class_service').export_rows(c, uid),
            '目录': {t: GUIDE[t] for t in tables if t in GUIDE}, 'tables': tables}
     return json.dumps(out, ensure_ascii=False, indent=1).encode('utf-8')
 
@@ -244,7 +246,7 @@ def erase(c, u, data, verify, data_dir=None):
         n += _cascade(c, refs, 'users', 'id', [uid])  # what refers to the account by another name (owner), and the account
         if stored['email']:
             n += c.execute('DELETE FROM email_codes WHERE email=?', (stored['email'],)).rowcount
-        c.execute('DELETE FROM login_failures WHERE key=?', (key,))
+        c.execute('DELETE FROM login_failures WHERE key IN (?, ?)', (key, 'class:%d' % uid))  # and the invite-code pause
         if 'mail_limits' in _tables(c):
             c.execute('DELETE FROM mail_limits WHERE key=?', ('bind:%d' % uid,))
         c.commit()
