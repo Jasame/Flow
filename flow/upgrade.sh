@@ -242,6 +242,7 @@ FLOW_FILES=(
   learning_service.py
   lexicon_service.py
   loop_service.py
+  mail_layout.py
   media.py
   meeting_path.py
   meeting_service.py
