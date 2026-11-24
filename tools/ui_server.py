@@ -53,9 +53,31 @@ def fake(messages, audio=None, grounding=False):
         dims = ('fluency', 'accuracy', 'range', 'pronunciation') if '口语' in system else ('content', 'organization', 'accuracy', 'range')
         return J({'transcript': 'I went to Hangzhou last spring with my parents.' if '口语' in system else '', 'level': 'B1', 'position': 0.6,
                   'scores': {k: 3 for k in dims}, 'strength': '意思表达清楚，有具体的例子。', 'next': ['多用连接词把句子连起来', '注意过去时的动词变化']})
-    if '口语老师' in system:  # shadowing one sentence
+    if '口语老师' in system:  # shadowing one sentence: one word left out, an estimate, one sound to practise
         sent = prompt.split('原句：', 1)[1].split('\n', 1)[0]
-        return J({'transcript': sent, 'issues': [], 'fluency': 'smooth', 'tip': '节奏很好，重音再明显一点。'})
+        ws = sent.split()
+        heard = ' '.join(ws[:2] + ws[3:]) if len(ws) > 4 else sent
+        th = next((w.strip('.,!?;:"\'').lower() for w in ws if 'th' in w.lower()), None)
+        snd = {'sound': '/ð/' if th in ('the', 'this', 'that', 'there', 'they', 'then') else '/θ/', 'word': th, 'note': '舌尖放到上下齿之间，别读成 /z/ 或 /s/',
+               'set': 'th-z' if th in ('the', 'this', 'that', 'there', 'they', 'then') else 'th-s'} if th else \
+            {'sound': '/ɪ/', 'word': ws[-1].strip('.,!?;:"\'').lower(), 'note': '短而放松，不要拖长', 'set': 'i-long-short'}
+        return J({'transcript': heard, 'accuracy': 78, 'fluency_score': 84, 'fluency': 'smooth', 'sounds': [snd],
+                  'issues': [{'word': ws[2].strip('.,!?;:"\'') if len(ws) > 4 else ws[0], 'note': '这个词漏读了'}], 'tip': '节奏很好，重音再明显一点。'})
+    if '练雅思口语 Part 1' in system:  # one Part 1 answer
+        typed = prompt.split('学习者的回答：', 1)[1].split('\n\n输出', 1)[0] if '学习者的回答：' in prompt else 'I am more of a morning person, because I feel more fresh.'
+        return J({'heard': typed, 'better': {'text': 'Definitely a morning person. I feel much fresher before breakfast, so I do my hardest work then.', 'why': '比较级用 fresher，再补一个理由'},
+                  'note': '能直接回答；比较级用错；语速平稳。'})
+    if '雅思口语考官' in system:  # Part 1 or Part 2 feedback on the four criteria
+        fb = {'bands': {'fc': 6, 'lr': 6.5, 'gra': 5.5, 'p': 6 if 'p 填 null' not in system else None}, 'summary': '能一直说下去，回答切题；连接词偏少，过去时有时漏 -ed。',
+              'notes': {'fc': {'good': '停顿不多，能接着往下说', 'next': '多用 because / for example 把理由说完整'},
+                        'lr': {'good': '用了 rewarding、patient 这样的词', 'next': '把 very good 换成更具体的形容词'},
+                        'gra': {'good': '简单句基本正确', 'next': '讲过去的事，动词别漏 -ed'}, 'p': {'good': '整体清楚，能听懂', 'next': 'think 的 th 别读成 s'}},
+              'fixes': [{'from': 'I learn it last year', 'to': 'I learned it last year', 'why': '过去的事用过去时', 'node': None}],
+              'model': 'I\'d like to talk about cooking, which I picked up from my grandmother. I started when I was fifteen, mostly by watching her and asking questions, and it took me about a year before I could make a proper meal on my own. These days it saves me money and, more importantly, it\'s how I relax after a long day.',
+              'model_q': 1}
+        if 'Part 2' in prompt:
+            fb.update(transcript='I want to talk about cooking. I learn it last year from my grandmother. It is very good for me because I can save money.', covered=[True, True, False, True])
+        return J(fb)
     if '复述' in system:
         return J({'transcript': 'The headphones make an opposite sound wave so the noise is cancelled.',
                   'points': [{'point': '降噪耳机用反相声波抵消噪音', 'covered': True}, {'point': '对低频持续的噪音最有效', 'covered': False}],
@@ -105,7 +127,7 @@ chat_service.request_model = fake
 PID = 'v5-science-b2-noise-cancelling'
 LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'science']), 'exam': ('B2', 'exam', ['science']),
             # one learner per device in tools/ui_test.py, so each device starts from the same state
-            **{d: ('B1', 'work', ['work', 'science']) for d in ('phone', 'phone-land', 'tablet', 'desktop')},
+            **{d: ('B1', 'work', ['work', 'science']) for d in ('phone', 'phone-land', 'tablet', 'desktop', 'phone-360')},
             'guide': ('B1', 'work', ['work', 'science']),  # the 操作指南 screenshots (tools/guide_shots.py)
             'leaver': ('B1', 'work', ['work', 'science']),  # 注销账号 in tools/ui_test.py (learner_run)
             'a11y': ('B1', 'work', ['work', 'science']),  # the screen-reader and contrast audit (a11y_run)
@@ -188,6 +210,7 @@ with app.db() as c:
             for k in range(30):
                 ev.record(c, uid, 'skill:reading', f'guide-prev:{k}', 'choice', str(k), 'q', int(k % 10 not in (1, 4, 8)), 0, 'rule', created=at(monday - dt.timedelta(days=1 + k % 7), 10) + k)
             c.execute("INSERT INTO next_node_notes(user_id,node,pack,kind,detail,created) VALUES(?,?,?,?,?,?)", (uid, 'agreement-head', PID, 'flag', 'guide|it make → it makes', now - 7200))
+            sk.log(c, uid, 'speaking', 'ielts', 6.0 / 9, 'B2', 'ielts-p1-mornings')  # 雅思口语: 「上次约 6.0」 on the list
         c.commit()
         out[name] = {'token': token, 'csrf': csrf, 'id': uid, **({'password': secret} if secret else {})}
 (STATE / 'sessions.json').write_text(json.dumps({'base': f'http://127.0.0.1:{PORT}', 'pid': PID, 'learners': out}))

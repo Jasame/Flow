@@ -334,7 +334,7 @@ def word_audio(norm):
 
 
 def word_audio_file(accent, sprite):
-    if accent not in ACCENTS or not re.fullmatch(r'[wxp]\d{3}', sprite or ''):
+    if accent not in ACCENTS or not re.fullmatch(r'[wxpb]\d{3}', sprite or ''):
         return None
     return __import__('media').path(f'words/{accent}/{sprite}.m4a', WORD_AUDIO_DIR / accent / f'{sprite}.m4a')
 
