@@ -156,6 +156,7 @@ flow/corpus_data/v5/work.C1.2.json
 flow/corpus_data/v5/work.C1.3.json
 flow/corpus_data/v5/work.C1.4.json
 flow/corpus_data/v5/work.C1.json
+flow/corpus_data/voice-eval.json
 flow/corpus_data/wordbooks-open.json
 flow/corpus_data/wordbooks.json
 flow/corpus_data/wordroots-flow.json
@@ -279,6 +280,7 @@ flow/reference_service.py
 flow/relisten_service.py
 flow/requirements-vertex.txt
 flow/scenarios.py
+flow/search_eval.py
 flow/seed.py
 flow/settings_service.py
 flow/skills_service.py
@@ -343,6 +345,7 @@ flow/tests/test_reference.py
 flow/tests/test_reliability.py
 flow/tests/test_relisten.py
 flow/tests/test_rewrite_minimal.py
+flow/tests/test_search_route.py
 flow/tests/test_slim.py
 flow/tests/test_speak_rounds.py
 flow/tests/test_survey.py
@@ -351,7 +354,9 @@ flow/tests/test_tts.py
 flow/tests/test_ux_round.py
 flow/tests/test_vertex.py
 flow/tests/test_vocab.py
+flow/tests/test_voice_eval.py
 flow/tests/test_welcome.py
+flow/tests/test_word_clip.py
 flow/tests/test_wordbook_registry.py
 flow/tests/test_wordbooks.py
 flow/tests/test_wordbooks_open.py
@@ -364,6 +369,8 @@ flow/user_guide.py
 flow/vertex_auth.py
 flow/vertex_native.py
 flow/vocab_service.py
+flow/voice_eval.py
+flow/word_clip.py
 flow/word_links.py
 tests/test_release.py
 tools/build_ecdict_subset.py

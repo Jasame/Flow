@@ -816,6 +816,8 @@ def platform_run(pw):
 # play() is one WeChat would allow, and that the bar telling how to open the page in the browser is there).
 WECHAT_UA = ('Mozilla/5.0 (Linux; Android 13; V2241A Build/TP1A.220624.014; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 '
              'Chrome/116.0.0.0 Mobile Safari/537.36 XWEB/1160065 MMWEBSDK/20231202 MicroMessenger/8.0.47.2560(0x28002F30) WeChat/arm64 Weixin NetType/WIFI Language/zh_CN ABI/arm64')
+IPHONE_WECHAT_UA = ('Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 '
+                    'MicroMessenger/8.0.47(0x18002f2c) NetType/WIFI Language/zh_CN')
 WECHAT_RULES = """(() => {
   let tap = false;
   const on = () => { tap = true; setTimeout(() => { tap = false; }, 0); };
@@ -832,6 +834,134 @@ WECHAT_RULES = """(() => {
   for (const o of [window, Window.prototype]) { try { delete o.speechSynthesis; delete o.SpeechSynthesisUtterance; } catch (e) {} }
 })();"""
 
+
+# iPhones and iPads: short sounds on Web Audio (01-audio-offline.js AUDIO). A stand-in AudioContext records what is
+# started (offset, length, rate), the audio session type asked for, and the lock-screen handlers (navigator.mediaSession).
+IOS_AUDIO_FAKE = """(() => {
+  const W = window.__wa = { created: 0, resumed: 0, suspended: 0, closed: 0, starts: [], stops: 0, types: [], failDecode: false, refuse: false, ms: {} };
+  class Src { constructor() { this.playbackRate = { value: 1 }; this.buffer = null; this.onended = null; }
+    connect() {} start(when, off, dur) { W.starts.push({ when, off, dur, rate: this.playbackRate.value }); setTimeout(() => { if (this.onended) this.onended(); }, 250); }
+    stop() { W.stops++; } }
+  class Ctx { constructor() { W.created++; this.state = 'suspended'; this.currentTime = 0; this.destination = {}; this.onstatechange = null; }
+    resume() { W.resumed++; this.state = 'running'; return Promise.resolve(); }
+    suspend() { W.suspended++; this.state = 'suspended'; return Promise.resolve(); }
+    close() { W.closed++; this.state = 'closed'; return Promise.resolve(); }
+    createBufferSource() { return new Src(); }
+    decodeAudioData(buf, ok, no) { if (W.failDecode) { const e = new Error('cannot decode'); if (no) no(e); return Promise.reject(e); } const b = { duration: 5 }; if (ok) ok(b); return Promise.resolve(b); } }
+  window.AudioContext = Ctx; window.webkitAudioContext = Ctx;
+  let type = 'auto';
+  Object.defineProperty(navigator, 'audioSession', { configurable: true, value: { get type() { return type; }, set type(v) { W.types.push(v); if (!W.refuse) type = v; } } });
+  if (navigator.mediaSession) { const set = navigator.mediaSession.setActionHandler.bind(navigator.mediaSession); navigator.mediaSession.setActionHandler = (k, f) => { W.ms[k] = f; try { set(k, f); } catch (e) {} }; }
+})();"""
+
+
+def ios_audio_run(pw):
+    """iPhone (Safari / the home-screen app): a word, an example sentence and the learner's recording play on Web Audio
+    from their first sound, under a 'playback' audio session (the ringer switch does not mute it) and named 「语流 · …」
+    on the lock screen; where that cannot be (decoding fails, the type is refused, ?audio=element) the <audio> clip
+    plays; a whole text keeps its <audio>, with the lock screen's controls and a page that follows a pause from outside."""
+    dev = 'ios-audio'
+    state = Path(tempfile.mkdtemp(prefix='flow-ui-ios-'))
+    with socket.socket() as so:
+        so.bind(('127.0.0.1', 0)); port = so.getsockname()[1]
+    srv = subprocess.Popen([sys.executable, str(Path(__file__).with_name('ui_server.py')), str(port), str(state)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                           env={**os.environ, 'FLOW_AUDIO_DIR': str(Path(__file__).with_name('ui-fixtures') / 'audio')})
+    browser = None
+    try:
+        for _ in range(120):
+            if (state / 'sessions.json').exists():
+                break
+            time.sleep(0.25)
+        time.sleep(0.5)
+        cfg = json.loads((state / 'sessions.json').read_text()); base, pid = cfg['base'], cfg['pid']
+        word = json.loads((Path(__file__).with_name('ui-fixtures') / 'audio' / 'words' / 'index.json').read_text())['us']['drain']
+        browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+
+        sample = (Path(__file__).with_name('ui-fixtures') / 'tts-sample.mp3').read_bytes()
+
+        def page(query='', refuse=False, undecodable=False, narration=False):
+            ctx = browser.new_context(**DEVICES['phone'], user_agent=IPHONE_UA, locale='zh-CN', bypass_csp=True, service_workers='block')
+            ctx.add_cookies([{'name': 'flow_session', 'value': cfg['learners']['phone']['token'], 'url': base}])
+            ctx.add_init_script(IOS_AUDIO_FAKE + ('window.__wa.refuse = true;' if refuse else '') + ('window.__wa.failDecode = true;' if undecodable else ''))
+            pg = ctx.new_page(); errs = []; asked = []
+            pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+            pg.on('request', lambda r: asked.append(r.url.split(base, 1)[-1]) if '/audio/' in r.url else None)
+            if narration:  # this server has the narration's timings, not its sound: a short mp3 stands in, before the page asks
+                pg.route(f'**/audio/*/{pid}.mp4*', lambda r: r.fulfill(status=200, content_type='audio/mpeg', body=sample))
+            pg.goto(base + '/' + query + '#/m/' + pid + '/read', wait_until='load'); settle(pg, '#reader'); pg.wait_for_timeout(500)
+            return ctx, pg, errs, asked
+
+        def tap_word(pg):
+            pg.click('#reader .w:text-is("drains")'); pg.wait_for_selector('#sheetCard .word', timeout=5000); pg.wait_for_timeout(600)
+
+        elements = "[...document.querySelectorAll('audio')].map(a => a.getAttribute('src') || '').filter(s => s.includes('/audio/words/'))"
+        ctx, pg, errs, asked = page()
+        tap_word(pg)
+        wa = pg.evaluate('window.__wa')
+        st = wa['starts'][-1] if wa['starts'] else {}
+        length = word[2] - word[1]
+        check(dev, 'a word plays on Web Audio from its clip: from just before the word (0.28 s in) for its length, at the reading speed',
+              st and abs(st['off'] - 0.28) < 0.005 and abs(st['dur'] - (length + 0.06)) < 0.005 and st['rate'] == 1
+              and any(f"/audio/words/us/{word[0]}.aac?s={word[1]}&e={word[2]}" in u for u in asked) and not pg.evaluate(elements), (st, asked[-3:]))
+        check(dev, "the audio session is 'playback' (the ringer switch does not mute it), and the context was started inside the first tap",
+              'playback' in wa['types'] and wa['created'] == 1 and wa['resumed'] >= 1, wa)
+        title = pg.evaluate("navigator.mediaSession && navigator.mediaSession.metadata && navigator.mediaSession.metadata.title")
+        check(dev, 'the lock screen and the Dynamic Island say 「语流 · 单词」, not an address', title == '语流 · 单词', title)
+        pg.evaluate("Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); document.dispatchEvent(new Event('visibilitychange'))")
+        wa = pg.evaluate('window.__wa')
+        check(dev, 'leaving the page closes the context (iOS 26 home-screen apps went silent with an old one) and clears the lock screen',
+              wa['closed'] == 1 and pg.evaluate("!(navigator.mediaSession && navigator.mediaSession.metadata)"), wa)
+        pg.evaluate("Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true }); document.dispatchEvent(new Event('visibilitychange'))")
+        check(dev, 'no script errors (Web Audio)', not errs, errs[:3])
+        ctx.close()
+        # decoding fails: the <audio> clip instead
+        ctx, pg, errs, asked = page(undecodable=True)
+        tap_word(pg)
+        check(dev, 'a clip Web Audio cannot decode plays on an <audio> instead', not pg.evaluate('window.__wa.starts') and any('.aac?s=' in x for x in pg.evaluate(elements)), pg.evaluate(elements))
+        ctx.close()
+        # the type refused (a browser that does not let the page set it): <audio> clips, which the ringer switch does not mute
+        ctx, pg, errs, asked = page(refuse=True)
+        tap_word(pg)
+        wa = pg.evaluate('window.__wa')
+        check(dev, "where 'playback' is refused, words play on an <audio> clip (no Web Audio, so the ringer switch cannot mute them)",
+              not wa['starts'] and 'playback' in wa['types'] and any('.aac?s=' in x for x in pg.evaluate(elements)), (wa, pg.evaluate(elements)))
+        ctx.close()
+        # ?audio=element: the switch for trying the old way on a phone
+        ctx, pg, errs, asked = page('?audio=element')
+        tap_word(pg)
+        check(dev, '?audio=element turns Web Audio off (and ?audio=auto back on)', not pg.evaluate('window.__wa.starts') and any('.aac?s=' in x for x in pg.evaluate(elements)), pg.evaluate('window.__wa'))
+        pg.goto(base + '/?audio=auto#/m/' + pid + '/read', wait_until='load'); settle(pg, '#reader'); pg.wait_for_timeout(400)
+        tap_word(pg)
+        check(dev, '?audio=auto: Web Audio again', len(pg.evaluate('window.__wa.starts')) >= 1, pg.evaluate('window.__wa'))
+        ctx.close()
+        # a whole text: <audio> (the lock screen controls it), named, and a pause from outside shows on the page
+        ctx, pg, errs, asked = page(narration=True)
+        pg.evaluate("location.hash = '#/m/" + pid + "/listen'"); settle(pg, '#playAll'); pg.wait_for_timeout(600)
+        pg.click('#playAll')
+        playing = "[...document.querySelectorAll('audio')].find(a => !a.paused && a.currentTime > 0)"  # the narration (its preloaded copy is a blob: URL)
+        pg.wait_for_function(f"!!{playing}", timeout=8000)
+        pg.evaluate(f"window.__nar = {playing}")
+        ms = pg.evaluate("({ title: navigator.mediaSession.metadata && navigator.mediaSession.metadata.title, state: navigator.mediaSession.playbackState, acts: Object.keys(window.__wa.ms).filter(k => window.__wa.ms[k]) })")
+        check(dev, 'a whole text: the lock screen shows 「语流 · 标题」 with play, pause, previous and next sentence',
+              (ms['title'] or '').startswith('语流 · ') and ms['state'] == 'playing' and {'play', 'pause', 'previoustrack', 'nexttrack'} <= set(ms['acts']), ms)
+        nar = "window.__nar"
+        pg.evaluate(f"{nar}.pause()"); pg.wait_for_timeout(300)  # what a call does
+        mini = pg.evaluate("({ label: document.querySelector('.mini-player .lbl').textContent, resume: !!document.querySelector('.mini-player .resume'), state: navigator.mediaSession.playbackState })")
+        check(dev, 'paused by a call: the page says 已暂停 with 继续 (not still playing), and so does the lock screen',
+              mini['label'] == '已暂停' and mini['resume'] and mini['state'] == 'paused', mini)
+        pg.click('.mini-player .resume'); pg.wait_for_timeout(400)
+        mini = pg.evaluate(f"({{ resume: !!document.querySelector('.mini-player .resume'), playing: !{nar}.paused, state: navigator.mediaSession.playbackState }})")
+        check(dev, '继续 plays on from where it was', mini['playing'] and not mini['resume'] and mini['state'] == 'playing', mini)
+        t0 = pg.evaluate(f"{nar}.currentTime"); pg.evaluate('window.__wa.ms.nexttrack()'); pg.wait_for_timeout(200)
+        check(dev, "the lock screen's next goes to the next sentence", pg.evaluate(f"{nar}.currentTime") > t0, (t0, pg.evaluate(f"{nar}.currentTime")))
+        pg.evaluate("(m => m && !m.hidden && m.querySelector('.stop').click())(document.querySelector('.mini-player'))"); pg.wait_for_timeout(300)  # or the short sample ended
+        check(dev, '停止 (or the end) clears the lock screen', pg.evaluate("!navigator.mediaSession.metadata && navigator.mediaSession.playbackState === 'none'"), pg.evaluate("navigator.mediaSession.playbackState"))
+        check(dev, 'no script errors (a whole text)', not errs, errs[:3])
+        ctx.close()
+    finally:
+        if browser:
+            browser.close()
+        srv.terminate()
 
 def wechat_run(pw):
     dev = 'wechat'
@@ -896,7 +1026,42 @@ def wechat_run(pw):
         said = [x for x in plays()[n0:] if '/audio/tts/' in x['src']]
         check(dev, 'the examiner is heard in WeChat: the server voice, on the player the first tap unlocked', said and all(x['ok'] for x in said), plays()[n0:])
         check(dev, 'every sound started was one WeChat allows', all(x['ok'] for x in plays()), [x for x in plays() if not x['ok']][:3])
+        check(dev, 'Android: words play from their sprite, as before (no clip)', all('.aac' not in x['src'] for x in plays() if '/audio/words/' in x['src']),
+              [x['src'] for x in plays() if '/audio/words/' in x['src']][:3])
         check(dev, 'no script errors', not errors, errors[:3])
+        # iPhone (Safari, the app on the home screen, WeChat): a word is its own small clip with 0.3 s of silence in front,
+        # played from its start (word_clip.py: an iPhone waking its audio lost the start of a word played inside its sprite)
+        ictx = browser.new_context(**DEVICES['phone'], user_agent=IPHONE_WECHAT_UA, locale='zh-CN', bypass_csp=True, service_workers='block')
+        ictx.add_cookies([{'name': 'flow_session', 'value': cfg['learners']['phone']['token'], 'url': base}])
+        ictx.add_init_script(WECHAT_RULES)
+        ip = ictx.new_page(); ierrors = []
+        ip.on('pageerror', lambda e: ierrors.append(page_error(ip, e)))
+        iplays = lambda: ip.evaluate('window.__plays')
+        word = lambda: (ip.click('#reader .w:text-is("drains")'), ip.wait_for_selector('#sheetCard .word', timeout=5000), ip.wait_for_timeout(700))
+        ip.goto(base + '/#/m/' + pid + '/read', wait_until='load'); settle(ip, '#reader'); ip.wait_for_timeout(600)
+        away = lambda: [ip.click(sel) for sel in ('#wxStay', '.wx-bar .wx-x') if ip.query_selector(sel) and ip.is_visible(sel)]  # WeChat's first-visit guide
+        away(); ip.wait_for_timeout(200)
+        word()
+        new = [x for x in iplays() if '/audio/words/' in x['src']]
+        check(dev, 'iPhone: a looked-up word plays its own clip (.aac, from its start), as WeChat allows',
+              new and all(x['ok'] and '.aac?s=' in x['src'] for x in new), new)
+        ip.wait_for_function("[...document.querySelectorAll('audio')].some(x => (x.currentSrc || x.src || '').includes('.aac') && (x.ended || x.paused))", timeout=5000)
+        info = ip.evaluate("""async () => { const a = [...document.querySelectorAll('audio')].find(x => (x.currentSrc || x.src || '').includes('.aac'));
+          if (!a) return null; const r = await fetch(a.currentSrc || a.src); const b = await r.arrayBuffer();
+          const buf = await new OfflineAudioContext(1, 1, 44100).decodeAudioData(b);
+          return { type: r.headers.get('content-type'), dur: buf.duration, played: a.currentTime, ended: a.ended }; }""")
+        idx = json.loads((Path(__file__).with_name('ui-fixtures') / 'audio' / 'words' / 'index.json').read_text())['us']['drain']
+        want = 0.3 + (idx[2] - idx[1])  # silence, then the word; then a little of the gap after it
+        check(dev, 'iPhone: the clip is audio/aac with 0.3 s of silence, the whole word and a little after, and it plays to its end',
+              info and info['type'].startswith('audio/aac') and want <= info['dur'] <= want + 0.4 and info['ended'], (info, want))
+        # no clip from the server (an older server, an error): the word plays from its sprite, as before
+        ip.route('**/*.aac*', lambda r: r.fulfill(status=404, content_type='application/json', body='{}'))
+        ip.reload(wait_until='load'); settle(ip, '#reader'); ip.wait_for_timeout(600); away()
+        n0 = len(iplays()); word()
+        new = [x for x in iplays()[n0:] if '/audio/words/' in x['src']]
+        check(dev, 'iPhone: without a clip, the sprite plays instead', any('.aac' not in x['src'] and x['ok'] for x in new), new)
+        check(dev, 'iPhone: no script errors', not ierrors, ierrors[:3])
+        ictx.close()
         browser.close()
     finally:
         srv.terminate()
@@ -1290,6 +1455,16 @@ def listen_speak_run(pw):
             dev = 'ls-' + size
             ctx = browser.new_context(**opts, locale='zh-CN', bypass_csp=True)
             ctx.grant_permissions(['microphone'], origin=BASE)
+            # every microphone stream the page opens, to check each one is let go when its recording ends (an iPhone
+            # plays everything through the earpiece while one is open); the one-time 「要用一下麦克风」 sheet: on the phone
+            ctx.add_init_script("""(() => { const md = navigator.mediaDevices; if (!md || !md.getUserMedia) return; window.__mics = [];
+                const g = md.getUserMedia.bind(md); md.getUserMedia = c => g(c).then(s => { window.__mics.push(s); return s; }); })()""")
+            # Chrome has no navigator.audioSession (iOS 16.4+): a stand-in that remembers what the page set it to
+            ctx.add_init_script("""(() => { if (navigator.audioSession) return; let t = 'auto';
+                Object.defineProperty(navigator, 'audioSession', { configurable: true, value: { get type() { return t; }, set type(v) { t = v; } } }); })()""")
+            if size != 'phone':
+                ctx.add_init_script("try { localStorage.setItem('flow-mic-explained', '1'); } catch (e) {}")
+            mic_free = "window.__mics.length > 0 && window.__mics.every(s => s.getTracks().every(t => t.readyState === 'ended'))"
             ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners'][learner]['token'], 'url': BASE}])
             pg = ctx.new_page(); errors = []
             pg.on('pageerror', lambda e: errors.append(str(e)))
@@ -1301,8 +1476,19 @@ def listen_speak_run(pw):
 
             # 跟读: record the first sentence, AI 点评 -> 发音分 with 准确 / 流利 / 完整 and the sound to practise
             go(pg, f'#/m/{PID}/listen'); pg.click('[data-mode="shadow"]'); pg.wait_for_selector('.line.sh.cur [data-r="0"]')
-            pg.click('[data-r="0"]'); pg.wait_for_selector('[data-r="0"].on', timeout=5000); pg.wait_for_timeout(1200); pg.click('[data-r="0"]')
-            pg.wait_for_selector('[data-ai="0"]:not([disabled])', timeout=5000); pg.click('[data-ai="0"]')
+            pg.click('[data-r="0"]')
+            if size == 'phone':  # the first time on a device: why the microphone is asked for, then a fresh tap records
+                pg.wait_for_selector('#micGo', timeout=3000)
+                sh = pg.text_content('#sheetCard') or ''
+                check(dev, '麦克风: the first time, a sheet says when it is open and that iPhones ask again', '只在你点' in sh and 'iOS 的规定' in sh, sh[:90])
+                pg.click('#micGo')
+            pg.wait_for_selector('[data-r="0"].on', timeout=5000); pg.wait_for_timeout(1200)
+            during = pg.evaluate('navigator.audioSession.type'); pg.click('[data-r="0"]')
+            pg.wait_for_selector('[data-ai="0"]:not([disabled])', timeout=5000)
+            check(dev, '跟读: the microphone is let go when the recording ends', pg.evaluate(mic_free), pg.evaluate('window.__mics.length'))
+            after = pg.evaluate('navigator.audioSession.type')
+            check(dev, '跟读: iPhone audio session is play-and-record while recording, playback after', (during, after) == ('play-and-record', 'playback'), (during, after))
+            pg.click('[data-ai="0"]')
             pg.wait_for_selector('.line[data-i="0"] .sh-res .pron', timeout=10000); pg.wait_for_timeout(400)
             r = pg.evaluate("""() => { const o = document.querySelector('.line[data-i="0"] .sh-res'), n = o.querySelector('.pron-n'), chip = document.querySelector('[data-sc="0"]');
                 const link = o.querySelector('.snd a'); return {n: n && n.textContent, est: o.textContent.includes('AI 听录音给的估计'), bars: [...o.querySelectorAll('.pron .ab .nm')].map(x => x.textContent),
@@ -1375,6 +1561,8 @@ def listen_speak_run(pw):
             check(dev, 'Part 2: recording starts with a two-minute clock and the notes kept', pg.text_content('#p2T') in ('2:00', '1:59') and 'grandma' in (pg.text_content('.p2-kept') or ''))
             pg.wait_for_timeout(5600); lay('Part 2 recording'); shot('ielts-p2-talk'); pg.click('#p2Done')
             pg.wait_for_selector('#ieOut .ielts-fb', timeout=15000); pg.wait_for_timeout(400)
+            check(dev, 'Part 2: the microphone is let go when the talk ends', pg.evaluate(mic_free), pg.evaluate('window.__mics.length'))
+            check(dev, 'Part 2: the audio session is back to playback for the feedback', pg.evaluate('navigator.audioSession.type') == 'playback')
             f = pg.evaluate("""() => { const o = document.querySelector('#ieOut'); return {overall: o.querySelector('.ielts-overall b').textContent, p: [...o.querySelectorAll('.crit .lv')].map(x => x.textContent)[3],
                 said: (o.querySelector('details summary') || {}).textContent || '', cov: o.querySelectorAll('.ok-mark, .bad-mark').length}; }""")
             check(dev, 'Part 2 feedback: spoken, so 发音 is judged; what was said, with its length', f['overall'] == '约 6.0' and f['p'] == '6.0' and 'AI 转写' in f['said'] and '0:0' in f['said'], f)
@@ -2279,6 +2467,177 @@ def start_run(pw):
         browser.close()
 
 
+# ---- 主屏 App (Safari 「添加到主屏幕」, 04-home-app.js): opened from the home screen there is no browser back, the
+# Dynamic Island and the home bar take the screen's edges, the keyboard covers what is fixed, and the app may sleep for
+# days. Chrome stands in for the iPhone: navigator.standalone, the safe areas set through --sat/--sab/--sal/--sar
+# (00-base.css), and a visualViewport whose height the test sets as a keyboard would.
+HOME_SIZES = {  # name -> (width, height, top, bottom, left/right inset)
+    'iphone-15-pro': (393, 852, 59, 34, 0), 'iphone-15-pro-land': (852, 393, 0, 21, 59), 'iphone-se': (375, 667, 0, 0, 0)}
+HOME_INIT = """(([t, b, s]) => {
+  Object.defineProperty(Navigator.prototype, 'standalone', { get: () => true, configurable: true });
+  const vv = new EventTarget(); let h = null;
+  Object.defineProperties(vv, { height: { get: () => h == null ? innerHeight : h }, offsetTop: { get: () => 0 }, offsetLeft: { get: () => 0 },
+    width: { get: () => innerWidth }, scale: { get: () => 1 }, pageTop: { get: () => scrollY } });
+  Object.defineProperty(window, 'visualViewport', { value: vv, configurable: true });
+  window.__kb = px => { h = px ? innerHeight - px : null; vv.dispatchEvent(new Event('resize')); };
+  document.addEventListener('DOMContentLoaded', () => { const r = document.documentElement.style;
+    r.setProperty('--sat', t + 'px'); r.setProperty('--sab', b + 'px'); r.setProperty('--sal', s + 'px'); r.setProperty('--sar', s + 'px'); });
+})(%s)"""
+HOME_SUB = ['#/m/{pid}/listen', '#/m/{pid}/read', '#/m/{pid}/output/essay', '#/review', '#/vocab/test', '#/vocab/plan', '#/exam/cet4', '#/exam/cet4/banked',
+            '#/graph', '#/graph/voice-basic', '#/import', '#/report', '#/growth', '#/radar', '#/radar/test', '#/guide', '#/guide/words', '#/feedback',
+            '#/library', '#/welcome/edit', '#/speak', '#/easy', '#/sounds', '#/placement', '#/mix', '#/words/confuse']
+BACK_JS = """() => { const b = document.getElementById('backBtn'); if (!b || b.hidden || b.offsetParent === null) return null; const r = b.getBoundingClientRect();
+  return { top: Math.round(r.top), bottom: Math.round(r.bottom), w: Math.round(r.width), h: Math.round(r.height), label: b.textContent.trim(),
+           brand: !document.querySelector('.bar .brand').hidden }; }"""
+
+
+def home_app_run(pw):
+    dev = 'home-app'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    tok = CFG['learners']['home-app']['token']
+
+    def context(size, theme='light', signed=True):
+        w, h, t, b, s = HOME_SIZES[size]
+        ctx = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=True, has_touch=True, device_scale_factor=3, locale='zh-CN',
+                                  color_scheme=theme, bypass_csp=True)
+        ctx.add_init_script(HOME_INIT % json.dumps([t, b, s]))
+        if signed:
+            ctx.add_cookies([{'name': 'flow_session', 'value': tok, 'url': BASE}])
+        pg = ctx.new_page(); errs = []
+        pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        return ctx, pg, errs
+    try:
+        for size, (w, h, top, bottom, side) in HOME_SIZES.items():
+            ctx, pg, errs = context(size)
+            pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+            check(dev, f'{size}: the page knows it is a home-screen app', pg.evaluate("document.documentElement.classList.contains('home-app')"))
+            # the four tabs: no back button, the logo below the Dynamic Island, every tab above the home bar
+            for page in ('#/', '#/practice', '#/cards', '#/me'):
+                go(pg, page)
+                tabs = pg.evaluate("""() => { const t = [...document.querySelectorAll('.tabs a')].filter(a => a.offsetParent !== null).map(a => a.getBoundingClientRect());
+                  const brand = document.querySelector('.bar .brand').getBoundingClientRect();
+                  return { n: t.length, low: t.length ? Math.round(Math.max(...t.map(r => r.bottom))) : null, brandTop: Math.round(brand.top), back: !document.getElementById('backBtn').hidden }; }""")
+                check(dev, f'{size} {page}: no back button; the logo clears the top inset; the tabs clear the home bar',
+                      not tabs['back'] and tabs['brandTop'] >= top and (tabs['n'] == 0 or tabs['low'] <= h - bottom), tabs)
+            # every other page: a back button in the first screen, below the Dynamic Island, big enough to tap
+            pid = PID
+            for page in HOME_SUB:
+                page = page.format(pid=pid)
+                go(pg, page); pg.wait_for_timeout(150)
+                bk = pg.evaluate(BACK_JS)
+                check(dev, f'{size} {page}: a back button at the top, clear of the inset, at least 44×40',
+                      bk and bk['top'] >= top and bk['bottom'] <= top + 80 and bk['w'] >= 44 and bk['h'] >= 40 and not bk['brand'], bk)
+                if size == 'iphone-15-pro' and page in (f'#/m/{pid}/read', '#/vocab/test', '#/review'):
+                    pg.screenshot(path=str(OUT / f"home-app-{page.strip('#/').replace('/', '_')}.png"))
+            # review (the tabs hidden): its answers clear the home bar
+            go(pg, '#/review'); pg.wait_for_timeout(300)
+            low = pg.evaluate("() => { scrollTo(0, document.scrollingElement.scrollHeight); const b = [...document.querySelectorAll('#view .review button, #view .review a')].filter(x => x.offsetParent !== null).map(x => x.getBoundingClientRect().bottom); return b.length ? Math.round(Math.max(...b)) : null; }")
+            check(dev, f'{size} review: with the tabs hidden, its controls clear the home bar', low is None or low <= h - bottom, (low, h - bottom))
+            check(dev, f'{size}: no script errors', not errs, errs[:3])
+            ctx.close()
+
+        ctx, pg, errs = context('iphone-15-pro')
+        # back goes to the page before when the app has one; opened straight on a page, to that page's tab
+        pg.goto(BASE + f'/#/m/{PID}/read', wait_until='networkidle'); settle(pg)
+        first = pg.evaluate(BACK_JS)
+        pg.click('#backBtn'); settle(pg)
+        to_tab = pg.evaluate('location.hash')
+        go(pg, '#/library'); go(pg, f'#/m/{PID}/listen')
+        second = pg.evaluate(BACK_JS)
+        pg.click('#backBtn'); settle(pg)
+        check(dev, 'back: opened straight on a material it says 今日 and goes there; after 全部材料 it says 返回 and goes back to it',
+              first and first['label'] == '今日' and to_tab in ('#/', '') and second and second['label'] == '返回' and pg.evaluate('location.hash') == '#/library',
+              (first, to_tab, second, pg.evaluate('location.hash')))
+        go(pg, '#/exam/cet4/banked')
+        bk = pg.evaluate(BACK_JS); pg.click('#backBtn'); settle(pg)
+        check(dev, 'back from 题型专练 (exam area) returns to the page before (全部材料)', bk and bk['label'] == '返回' and pg.evaluate('location.hash') == '#/library',
+              (bk, pg.evaluate('location.hash')))
+        # light and dark: the back button and the new-version line are named and readable
+        for theme in ('light', 'dark'):
+            c2, p2, e2 = context('iphone-15-pro', theme)
+            p2.route('**/api/version', lambda r: r.fulfill(status=200, content_type='application/json', body='{"asset": "a11y-version"}'))
+            p2.goto(BASE + f'/#/m/{PID}/check', wait_until='networkidle'); settle(p2)
+            p2.wait_for_selector('#updateBar', timeout=9000)
+            bad = []
+            for kind, items in p2.evaluate(A11Y_JS).items():
+                bad += [f'{kind}: {x if isinstance(x, str) else json.dumps(x, ensure_ascii=False)}' for x in items if 'backBtn' in str(x) or 'update' in str(x) or 'ub-' in str(x)]
+            check(dev, f'{theme}: the back button and the new-version line have names and contrast', not bad, f'{len(bad)}: ' + ' | '.join(bad[:4]))
+            p2.screenshot(path=str(OUT / f'home-app-update-{theme}.png'))
+            c2.close()
+        check(dev, 'no script errors (back)', not errs, errs[:3])
+        ctx.close()
+
+        # the keyboard: a field and its button stay above it (iPhone SE: the smallest screen); a sheet stands on it
+        for size, kb in (('iphone-se', 260), ('iphone-15-pro', 336)):
+            ctx, pg, errs = context(size)
+            hh = HOME_SIZES[size][1]
+            pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+            for page, field, button, start in ((f'#/m/{PID}/output', '#ans', '#go', None), (f'#/m/{PID}/output/essay', '#esIn', '#esGo', None),
+                                               (f'#/m/{PID}/output/dialog', '#dlgText', '#dlgSend', '#dlgStart'), ('#/import', 'textarea[name=text]', '#view form .btn.primary', None)):
+                go(pg, page)
+                if start:
+                    pg.click(start); pg.wait_for_selector(field, state='visible', timeout=8000)
+                pg.wait_for_selector(field, state='visible', timeout=8000)
+                pg.focus(field); pg.wait_for_timeout(100)
+                pg.evaluate(f'__kb({kb})'); pg.wait_for_timeout(500)
+                got = pg.evaluate("""([f, b]) => { const r = document.querySelector(f).getBoundingClientRect(), s = document.querySelector(b).getBoundingClientRect();
+                  return [Math.round(r.top), Math.round(r.bottom), Math.round(s.bottom)]; }""", [field, button])
+                check(dev, f'{size} keyboard {kb}px on {page}: the field and its button stay above it', got[0] >= 0 and got[1] <= hh - kb and got[2] <= hh - kb, (got, hh - kb))
+                if size == 'iphone-se' and field == '#ans':
+                    pg.screenshot(path=str(OUT / 'home-app-keyboard-se.png'))
+                pg.evaluate('__kb(0)'); pg.evaluate('document.activeElement.blur()'); pg.wait_for_timeout(150)
+            go(pg, '#/vocab/plan'); pg.click('#impBook'); pg.wait_for_selector('#impText', timeout=6000); pg.wait_for_timeout(300)
+            pg.focus('#impText'); pg.evaluate(f'__kb({kb})'); pg.wait_for_timeout(500)
+            sh = pg.evaluate("""() => { const c = document.getElementById('sheetCard').getBoundingClientRect(), t = document.getElementById('impText').getBoundingClientRect(),
+              g = document.getElementById('impGo').getBoundingClientRect(); return [Math.round(c.bottom), Math.round(t.top), Math.round(g.bottom), Math.round(c.top)]; }""")
+            check(dev, f'{size} keyboard {kb}px in a sheet: the sheet stands on the keyboard, its field and button in sight',
+                  sh[0] <= hh - kb + 1 and sh[1] >= sh[3] and sh[2] <= hh - kb, (sh, hh - kb))
+            pg.evaluate('__kb(0)')
+            check(dev, f'{size}: no script errors (keyboard)', not errs, errs[:3])
+            ctx.close()
+
+        # a new version on the server: taken at once on a resting page (and tried once only); elsewhere one line offers it
+        ctx, pg, errs = context('iphone-15-pro')
+        pg.route('**/api/version', lambda r: r.fulfill(status=200, content_type='application/json', body='{"asset": "newer-version"}'))
+        loads = []
+        pg.on('load', lambda: loads.append(1))
+        pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+        pg.wait_for_timeout(9000)  # the check 4 s after opening, the reload, the check after it
+        bar_after = pg.query_selector('#updateBar') is not None
+        check(dev, 'new version on 今日: reloaded once to take it; when the page is still old after that, only the line offers it (no reload loop)',
+              len(loads) == 2 and bar_after, (len(loads), bar_after))
+        ctx.close()
+        ctx, pg, errs = context('iphone-15-pro')
+        pg.route('**/api/version', lambda r: r.fulfill(status=200, content_type='application/json', body='{"asset": "newer-version"}'))
+        loads = []
+        pg.on('load', lambda: loads.append(1))
+        pg.goto(BASE + f'/#/m/{PID}/check', wait_until='networkidle'); settle(pg)
+        pg.wait_for_selector('#updateBar', timeout=9000)
+        stayed = len(loads) == 1
+        pg.click('#updateBar .ub-go'); pg.wait_for_timeout(5500)  # here no new worker comes, so the full 4 s wait
+        check(dev, 'new version while answering questions: no reload, one line; a tap on it reloads', stayed and len(loads) == 2, (stayed, len(loads)))
+        ctx.close()
+        # on 今日 but something playing (the mini player, 好句, shadowing): no reload, only the line
+        ctx, pg, errs = context('iphone-15-pro')
+        ctx.add_init_script("Object.defineProperty(HTMLMediaElement.prototype, 'paused', { get: () => false, configurable: true })")
+        pg.route('**/api/version', lambda r: r.fulfill(status=200, content_type='application/json', body='{"asset": "newer-version"}'))
+        loads = []
+        pg.on('load', lambda: loads.append(1))
+        pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+        pg.wait_for_selector('#updateBar', timeout=9000); pg.wait_for_timeout(1000)
+        check(dev, 'new version on 今日 while audio plays: no reload, only the line', len(loads) == 1, len(loads))
+        ctx.close()
+        ctx, pg, errs = context('iphone-15-pro')
+        loads = []
+        pg.on('load', lambda: loads.append(1))
+        pg.goto(BASE + '/', wait_until='networkidle'); settle(pg); pg.wait_for_timeout(5500)
+        ver = pg.evaluate("fetch('/api/version').then(r => r.json())")
+        check(dev, 'the same version: /api/version answers it, and nothing reloads or shows', ver.get('asset') and len(loads) == 1 and pg.query_selector('#updateBar') is None, (ver, len(loads)))
+        ctx.close()
+    finally:
+        browser.close()
+
+
 def main():
     with sync_playwright() as pw:
         if not ONLY or 'about' in ONLY:
@@ -2303,7 +2662,14 @@ def main():
             try:
                 wechat_run(pw)
             except Exception:
+                print(traceback.format_exc())
                 check('wechat', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'ios-audio' in ONLY:
+            try:
+                ios_audio_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('ios-audio', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'ux' in ONLY:
             try:
                 ux_run(pw)
@@ -2334,6 +2700,12 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('listen-speak', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'home-app' in ONLY:
+            try:
+                home_app_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('home-app', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'start' in ONLY:
             try:
                 start_run(pw)

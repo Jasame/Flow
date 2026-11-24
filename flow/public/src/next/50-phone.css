@@ -19,7 +19,7 @@
   .choice button{min-height:56px;font-size:15.5px}
   .stat b{font-size:21px}
   .wordbig{font-size:clamp(30px,10vw,40px)}
-  .sheet-card{padding:16px 14px calc(16px + env(safe-area-inset-bottom))}
+  .sheet-card{padding:16px 14px calc(16px + var(--sab))}
   .sheet .word{font-size:25px}
   .bookc{padding:12px}
   .review{min-height:46vh;gap:14px}

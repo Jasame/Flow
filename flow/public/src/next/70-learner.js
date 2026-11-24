@@ -19,6 +19,41 @@
     if (n) n.onclick = () => { save('flow-next-suggest-skip', Date.now()); if (after) after(); else n.closest('.suggest').remove(); };
   }
 
+  /* ---------- the microphone is open only while a recording runs ----------
+     While it is open an iPhone sends every sound to the earpiece, quietly (the audio session turns to play-and-record),
+     so each recorder takes it with micOpen() at the tap and lets go with micClose() the moment the recording ends: the
+     examiner and the AI then speak through the loudspeaker again. The first time on a device a short sheet says why the
+     microphone is asked for; a home-screen app on an iPhone asks again after every launch (an iOS rule, not ours). */
+  const MIC_SEEN = 'flow-mic-explained', MIC_HOW = '打开方法见操作指南「常见问题」里的「录音、跟读用不了？」';
+  function micSession(type) {  // tells iOS (16.4+) what the page does, so sound leaves the earpiece once recording ends
+    try {
+      if (typeof AUDIO !== 'undefined' && AUDIO && typeof AUDIO.session === 'function') AUDIO.session(type);  // 语流 11's helper (01-audio-offline.js), once it is in
+      else if (navigator.audioSession && 'type' in navigator.audioSession) navigator.audioSession.type = type;
+    } catch (e) { /* older iOS, other browsers: nothing to switch */ }
+  }
+  function micReady(go) {  // true: record now; false: the sheet is up, and its button calls go() (a fresh tap, which iPhones and WeChat need)
+    let seen = true;
+    try { seen = localStorage.getItem(MIC_SEEN) === '1'; } catch (e) { /* storage blocked: do not ask every time */ }
+    if (seen) return true;
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">要用一下麦克风</h2>
+      <p class="small">说出来的回答要录音。麦克风只在你点 ● 以后、说话的这几秒打开，说完马上关；录音只在批改时发给 AI，服务器上不留。</p>
+      <p class="small muted">接下来手机会问能不能用麦克风，请选「允许」。放在 iPhone 主屏上的语流，每次重新打开后第一次录音，系统都会再问一次，这是 iOS 的规定。</p>
+      <div class="row"><button class="btn primary" id="micGo" type="button">好，开始录音</button><button class="btn ghost" type="button" data-close>先不用</button></div></div>`, card => {
+      card.querySelector('#micGo').onclick = () => { try { localStorage.setItem(MIC_SEEN, '1'); } catch (e) { /* asked again next time */ } closeSheet(); go(); };
+    });
+    return false;
+  }
+  async function micOpen() {  // the stream; throws an Error whose message is for the learner
+    if (!navigator.mediaDevices || !window.MediaRecorder) throw new Error('这个浏览器不支持录音，换 Safari 或 Chrome 试试');
+    micSession('play-and-record');
+    try { return await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch (e) { micSession('playback'); throw new Error('没有拿到麦克风权限，' + MIC_HOW); }
+  }
+  function micClose(stream) {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    micSession('playback');
+  }
+
   /* ---------- microphone: one spoken answer, sent to the AI as {mime_type, data} ---------- */
   const MIC = {
     mr: null, timer: 0,
@@ -26,16 +61,16 @@
     stop() { if (this.busy()) this.mr.stop(); },
     async toggle(btn, maxSecs, onDone) {
       if (this.busy()) { this.mr.stop(); return; }
+      if (!micReady(() => this.toggle(btn, maxSecs, onDone))) return;
       TTS.stop(); NAR.stop(); CLIP.stop();
-      if (!navigator.mediaDevices || !window.MediaRecorder) { toast('这个浏览器不支持录音，换 Safari 或 Chrome 试试'); return; }
       let stream;
-      try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { toast('没有拿到麦克风权限，可以在浏览器设置里打开'); return; }
+      try { stream = await micOpen(); } catch (e) { toast(e.message); return; }
       const type = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
       const mr = new MediaRecorder(stream, type ? { mimeType: type } : undefined), chunks = [];
       this.mr = mr;
       mr.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
       mr.onstop = () => {
-        stream.getTracks().forEach(t => t.stop()); clearTimeout(this.timer); btn.classList.remove('on');
+        micClose(stream); clearTimeout(this.timer); btn.classList.remove('on');
         if (chunks.length) onDone(new Blob(chunks, { type: mr.mimeType || type || 'audio/webm' }));
       };
       mr.start(); btn.classList.add('on');

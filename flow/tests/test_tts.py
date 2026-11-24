@@ -88,6 +88,20 @@ class ServerVoiceTests(TtsCase):
         self.assertEqual({v: tts.VOICES[v] for v in ('us-f', 'us-m', 'uk-f', 'uk-m')},
                          {'us-f': 'loongabby_v3', 'us-m': 'loongandy_v3', 'uk-f': 'loongemily_v3', 'uk-m': 'loongeric_v3'})
 
+    def test_another_model_or_upstream_voice_never_gets_the_old_file(self):
+        # both sites share the folder: a site on another model (or a remapped voice) must make its own files
+        text = 'The same sentence, another model.'
+        first, _ = tts.post(self.c, 1, {'text': text})
+        with patch.dict(os.environ, {'FLOW_TTS_MODEL': 'flow-tts-2'}):
+            second, _ = tts.post(self.c, 1, {'text': text})
+        with patch.dict(tts.VOICES, {'us-f': 'longxiaochun_v3'}):
+            third, _ = tts.post(self.c, 1, {'text': text})
+        self.assertEqual(len({first['url'], second['url'], third['url']}), 3)
+        self.assertTrue(first['made'] and second['made'] and third['made'])
+        self.assertEqual([g['model'] for g in self.gw.seen], ['flow-tts', 'flow-tts-2', 'flow-tts'])
+        again, _ = tts.post(self.c, 2, {'text': text})
+        self.assertEqual((again['url'], again['made']), (first['url'], False))  # back on flow-tts: the first file
+
     def test_guests_get_stored_sentences_only(self):
         body, st = tts.post(self.c, None, {'text': 'Nothing stored yet.'})
         self.assertEqual((st, body['code']), (404, 'guest')); self.assertEqual(self.gw.seen, [])
@@ -120,6 +134,32 @@ class ServerVoiceTests(TtsCase):
         self.assertEqual((st, body['code']), (502, 'gateway'))
         self.assertIsNone(self.c.execute('SELECT 1 FROM tts_usage').fetchone())
         self.assertFalse((nx.AUDIO_DIR / 'tts').exists() and any((nx.AUDIO_DIR / 'tts').rglob('*.mp3')))
+
+    def test_a_folder_it_cannot_write_is_found_before_the_gateway_is_paid(self):
+        # 内测版, 2026-11-24: systemd ProtectSystem=strict kept the folder read-only; every tap was charged, then lost.
+        d = nx.AUDIO_DIR / 'tts' / 'us-f'
+        d.mkdir(parents=True)
+        d.chmod(0o555)
+        try:
+            if os.access(d, os.W_OK):
+                self.skipTest('running as root: a mode bit cannot make the folder read-only')
+            with patch('builtins.print') as log:
+                body, st = tts.post(self.c, 1, {'text': 'A read-only folder.'})
+                tts.post(self.c, 1, {'text': 'Another sentence.'})
+                night = tts.prewarm(self.c, budget=10 ** 6)
+        finally:
+            d.chmod(0o755)
+        self.assertEqual((st, body['code']), (503, 'store'))  # 503: the page uses the browser voice from now on
+        self.assertEqual(self.gw.seen, [])
+        self.assertIsNone(self.c.execute('SELECT 1 FROM tts_usage').fetchone())
+        self.assertEqual(sum('tts: cannot write' in str(a) for call in log.call_args_list for a in call.args), 1)  # said once
+        self.assertEqual(night['status'], 'store')
+
+    def test_a_file_that_cannot_be_saved_is_reported_as_such(self):
+        with patch.object(tts, '_store', side_effect=OSError(30, 'Read-only file system')), patch('builtins.print'):
+            body, st = tts.post(self.c, 1, {'text': 'The disk said no.'})
+        self.assertEqual((st, body['code']), (503, 'store'))
+        self.assertIsNone(self.c.execute('SELECT 1 FROM tts_usage').fetchone())
 
     def test_stored_names_are_checked(self):
         self.assertIsNone(tts.file('us-f', '../../t.db')); self.assertIsNone(tts.file('xx', 'a' * 32 + '.mp3'))

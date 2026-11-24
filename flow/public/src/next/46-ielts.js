@@ -103,12 +103,13 @@
   }
 
   /* Part 2: the cue card. 开始准备 asks for the microphone inside the tap (WeChat and iPhones allow it only there), one
-     minute to prepare with a box for notes, then the recording starts by itself and stops at two minutes. */
+     minute to prepare with a box for notes, then the recording starts by itself and stops at two minutes. The microphone
+     stays open from 开始准备 to the end of the talk (nothing plays meanwhile) and is let go the moment the talk ends, so
+     the feedback and the model answer are heard on the loudspeaker (micOpen / micClose, 70-learner.js). */
   const LONGREC = {
     stream: null, mr: null, chunks: [], t0: 0,
     async open() {
-      if (!navigator.mediaDevices || !window.MediaRecorder) throw new Error('这个浏览器不能录音，可以打字作答，或换 Safari / Chrome');
-      try { this.stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { throw new Error('没有拿到麦克风权限，可以在浏览器设置里打开，或者打字作答'); }
+      try { this.stream = await micOpen(); } catch (e) { throw new Error(e.message + '；也可以打字作答'); }
     },
     start(onStop) {
       const type = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
@@ -121,7 +122,7 @@
       mr.start(1000);
     },
     stop() { if (this.mr && this.mr.state === 'recording') this.mr.stop(); else this.close(); },
-    close() { if (this.stream) this.stream.getTracks().forEach(t => t.stop()); this.stream = null; },
+    close() { if (this.stream) micClose(this.stream); this.stream = null; },
   };
   function ieltsPart2(d, x) {
     let timer = 0;
@@ -167,7 +168,9 @@
     }
     stage.querySelector('#p2Start').onclick = async e => {
       if (!S.user) { needLogin('登录后可以练雅思口语，AI 会听你的回答并给估计分。'); return; }
-      const b = e.currentTarget; b.disabled = true;
+      const b = e.currentTarget;
+      if (!micReady(() => b.click())) return;
+      b.disabled = true;
       try { await LONGREC.open(); } catch (err) { b.disabled = false; toast(err.message); return; }
       let left = d.prep;
       stage.innerHTML = `${meter('准备', left, d.prep, 'prep')}

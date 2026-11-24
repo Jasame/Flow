@@ -49,9 +49,10 @@ def issue(c,uid,email,purpose):
  c.execute('DELETE FROM recovery_tokens WHERE expires<?',(time.time(),));c.execute('INSERT INTO recovery_tokens VALUES(?,?,?,?,?,0)',(digest(token),uid,email,purpose,time.time()+1800));c.commit()
  origin=os.getenv('FLOW_PUBLIC_URL','https://flowlang.cn').rstrip('/')
  url=origin+'/#reset='+token if purpose=='reset' else None
- import mail_layout
- text,page=mail_layout.message(['请在 30 分钟内打开下面的链接设置新密码。','如果不是你本人操作，忽略这封邮件即可。'],button=('设置新密码',url)) if url else \
-  mail_layout.message(['请在语流的账号设置里输入下面这串验证令牌，30 分钟内有效。',token,'如果不是你本人操作，忽略这封邮件即可。'])
+ # The text stays as it was (the link or the token on the line after the first); the HTML is the shared layout.
+ text=(('请在 30 分钟内打开此链接设置新密码：\n'+url) if url else '请在 Flow 账号设置中输入以下验证令牌（30 分钟内有效）：\n'+token)+'\n\n如非本人操作，请忽略。'
+ page=__import__('mail_layout').message(['请在 30 分钟内打开下面的链接设置新密码。','如果不是你本人操作，忽略这封邮件即可。'],button=('设置新密码',url))[1] if url else \
+  __import__('mail_layout').message(['请在语流的账号设置里输入下面这串验证令牌，30 分钟内有效。',token,'如果不是你本人操作，忽略这封邮件即可。'])[1]
  try:mail(email,'Flow 密码找回' if purpose=='reset' else 'Flow 邮箱验证',text,html=page);state='sent'
  except Exception:
   state='failed';c.execute('UPDATE recovery_tokens SET used=1 WHERE digest=?',(digest(token),))
