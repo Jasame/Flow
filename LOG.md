@@ -60,3 +60,10 @@
   - #101 操作指南页头只写日期（更新于 2026-11-25），不写网站版本号（操作指南）
 - 自检：DEPLOYED，装了 29 个文件（0 个新的）；轻量 e2e 149/149，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45461668045
+
+### b18 · 2026-11-25 02:50
+- main `1d31d69`，构建 `c8112d3`
+- 新合并的 PR（自 b17 起）：
+  - #102 ai_eval 能看出「模型没写总评」；录音交给 Gemini 时的超时可以配置（AI）
+- 自检：DEPLOYED，装了 5 个文件（0 个新的）；轻量 e2e 149/149，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45463322724
