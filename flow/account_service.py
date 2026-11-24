@@ -21,7 +21,9 @@ def schema(c):
 
 def digest(token):return hashlib.sha256(token.encode()).hexdigest()
 
-def mail(to,subject,text,headers=None):
+def mail(to,subject,text,headers=None,html=None):
+ # html: the same mail laid out (mail_layout.message); sent as multipart/alternative with the text, so a mail app
+ # that shows only text loses nothing. In the outbox (tests, local runs) it is written beside the .txt as .html.
  # the 内测版 (FLOW_CHANNEL=beta, flow.jasa.hk) marks every mail it sends, so nobody takes it for 语流's own
  if os.getenv('FLOW_CHANNEL','').strip().lower()=='beta' and not subject.startswith('【内测版】'):subject='【内测版】'+subject
  outbox=os.getenv('FLOW_MAIL_OUTBOX')
@@ -29,8 +31,11 @@ def mail(to,subject,text,headers=None):
   os.makedirs(outbox,exist_ok=True)
   name=os.path.join(outbox,f'{time.time():.6f}-{secrets.token_hex(3)}.txt')
   with open(name,'w',encoding='utf-8') as f:f.write('To: '+to+'\nSubject: '+subject+'\n'+''.join(k+': '+v+'\n' for k,v in (headers or {}).items())+'\n'+text)
+  if html:
+   with open(name[:-4]+'.html','w',encoding='utf-8') as f:f.write(html)
   return
  msg=EmailMessage();msg['From']=os.environ['FLOW_SMTP_FROM'];msg['To']=to;msg['Subject']=subject;msg.set_content(text)
+ if html:msg.add_alternative(html,subtype='html')
  for k,v in (headers or {}).items():msg[k]=v  # List-Unsubscribe on the Sunday mail (progress_service)
  host=os.environ['FLOW_SMTP_HOST'];port=int(os.getenv('FLOW_SMTP_PORT','465'));ctx=ssl.create_default_context()
  if port==465:connection=smtplib.SMTP_SSL(host,port,timeout=12,context=ctx)
@@ -44,8 +49,11 @@ def issue(c,uid,email,purpose):
  c.execute('DELETE FROM recovery_tokens WHERE expires<?',(time.time(),));c.execute('INSERT INTO recovery_tokens VALUES(?,?,?,?,?,0)',(digest(token),uid,email,purpose,time.time()+1800));c.commit()
  origin=os.getenv('FLOW_PUBLIC_URL','https://flowlang.cn').rstrip('/')
  url=origin+'/#reset='+token if purpose=='reset' else None
- text=('请在 30 分钟内打开此链接设置新密码：\n'+url) if url else '请在 Flow 账号设置中输入以下验证令牌（30 分钟内有效）：\n'+token
- try:mail(email,'Flow 密码找回' if purpose=='reset' else 'Flow 邮箱验证',text+'\n\n如非本人操作，请忽略。');state='sent'
+ # The text stays as it was (the link or the token on the line after the first); the HTML is the shared layout.
+ text=(('请在 30 分钟内打开此链接设置新密码：\n'+url) if url else '请在 Flow 账号设置中输入以下验证令牌（30 分钟内有效）：\n'+token)+'\n\n如非本人操作，请忽略。'
+ page=__import__('mail_layout').message(['请在 30 分钟内打开下面的链接设置新密码。','如果不是你本人操作，忽略这封邮件即可。'],button=('设置新密码',url))[1] if url else \
+  __import__('mail_layout').message(['请在语流的账号设置里输入下面这串验证令牌，30 分钟内有效。',token,'如果不是你本人操作，忽略这封邮件即可。'])[1]
+ try:mail(email,'Flow 密码找回' if purpose=='reset' else 'Flow 邮箱验证',text,html=page);state='sent'
  except Exception:
   state='failed';c.execute('UPDATE recovery_tokens SET used=1 WHERE digest=?',(digest(token),))
  c.execute('INSERT INTO mail_events(status,created) VALUES(?,?)',(state,time.time()));c.commit()
@@ -59,10 +67,13 @@ def password_changed(c,uid,how):
  row=c.execute('SELECT username,email FROM users WHERE id=?',(uid,)).fetchone()
  if not row or not row['email'] or not configured():return False
  origin=os.getenv('FLOW_PUBLIC_URL','https://flowlang.cn').rstrip('/')
- text=(f'你的语流 Flow 账号（用户名：{row["username"]}）的密码刚刚{how}了，所有手机和电脑上的登录都已退出。\n\n'
-       f'如果是你本人操作，不用理会这封邮件。\n如果不是你，请马上打开 {origin} ，在登录框点「忘记密码？」用这个邮箱重设密码。')
+ import mail_layout
+ text,page=mail_layout.message([f'你的语流 Flow 账号（用户名：{row["username"]}）的密码刚刚{how}了，所有手机和电脑上的登录都已退出。',
+                                '如果是你本人操作，不用理会这封邮件。',
+                                '如果不是你，请马上打开语流，在登录框点「忘记密码？」用这个邮箱重设密码。'],
+                               title='密码已修改',button=('打开语流',origin))
  def go():
-  try:mail(row['email'],'Flow 密码已修改',text)
+  try:mail(row['email'],'Flow 密码已修改',text,html=page)
   except Exception:pass
  __import__('threading').Thread(target=go,daemon=True).start()
  return True

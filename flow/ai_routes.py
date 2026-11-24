@@ -611,13 +611,15 @@ def check_budget(c, now=None):
         import account_service
         lv = todo[-1]
         subject = ('语流 AI 费用已超过今日预算' if lv == 'over' else '语流 AI 费用已到今日预算的 80%')
-        text = (f"今天（北京时间 {day}）AI 估算费用 ¥{st['spent']:.2f}，每日预算 ¥{st['daily']:.2f}（{st['pct']}%）。\n\n"
-                + ('已暂停例句预生成等批量任务，明天自动恢复；学员的请求不受影响（每人每天、全站每天的次数上限照旧）。\n' if lv == 'over' else
-                   '到 100% 时会暂停例句预生成等批量任务；学员的请求不受影响。\n')
-                + '\n明细：xmc.hk/flow → 运维 → AI 用量和费用。')
+        # the shared mail layout (mail_layout.py): text and HTML, a button to the console's AI page
+        text, page = __import__('mail_layout').message(
+            [f"今天（北京时间 {day}）AI 估算费用 ¥{st['spent']:.2f}，每日预算 ¥{st['daily']:.2f}（{st['pct']}%）。",
+             '已暂停例句预生成等批量任务，明天自动恢复；学员的请求不受影响（每人每天、全站每天的次数上限照旧）。' if lv == 'over' else
+             '到 100% 时会暂停例句预生成等批量任务；学员的请求不受影响。'],
+            title=subject, button=('查看 AI 用量和费用', 'https://xmc.hk/flow#ai'))
         for addr in to:
             try:
-                account_service.mail(addr, subject, text)
+                account_service.mail(addr, subject, text, html=page)
             except Exception:  # noqa: BLE001 - a mail failure must not stop the loop
                 continue
         mailed = todo
