@@ -1606,15 +1606,16 @@ def listen_speak_run(pw):
             l3 = p3.evaluate(LAYOUT_JS, touch); check(dev, '口语情景 with pace notes: no sideways scroll', l3['overflow'] <= 1, f"{l3['overflow']}px {l3['wide']}")
             p3.screenshot(path=str(OUT / f'{dev}-scene-round2.png'), full_page=False)
             if size == 'desktop':  # 说完就显示进度: a slow reply shows what is happening and for how long; a failed one gives the answer back
-                slow = lambda route: (time.sleep(1.6), route.continue_())
-                p3.route('**/api/next/dialog', slow)
+                # the reply held back 2.2 s in the page (a blocking route handler would stall the test's own event loop)
+                p3.evaluate("""() => { const f = window.fetch; window.__slow = true;
+                    window.fetch = (u, o) => (window.__slow && String(u).includes('/api/next/dialog')) ? new Promise(r => setTimeout(r, 2200)).then(() => f(u, o)) : f(u, o); }""")
                 p3.fill('#dlgText', 'And a small croissant, please.'); p3.click('#dlgSend')
-                p3.wait_for_selector('#chat .dlg-wait', timeout=3000); p3.wait_for_timeout(1100)
+                p3.wait_for_selector('#chat .dlg-wait', timeout=3000); p3.wait_for_timeout(1300)
                 wt = p3.text_content('#chat .dlg-wait') or ''
                 p3.wait_for_function("document.querySelectorAll('#chat .msg.me').length >= 3", timeout=8000)
                 check(dev, '口语情景: while the reply is on its way, a line says so with the seconds, gone when it comes',
-                      '对方正在回' in wt and '秒' in wt and not p3.query_selector('#chat .dlg-wait'), wt)
-                p3.unroute('**/api/next/dialog', slow)
+                      '对方正在回' in wt and '1 秒' in wt and not p3.query_selector('#chat .dlg-wait'), wt)
+                p3.evaluate('window.__slow = false')
                 p3.route('**/api/next/dialog', lambda route: route.fulfill(status=502, json={'error': 'AI 服务暂时繁忙'}))
                 p3.fill('#dlgText', 'Can I pay by card?'); p3.click('#dlgSend'); p3.wait_for_timeout(800)
                 check(dev, '口语情景: an answer that did not get through goes back into the box', p3.input_value('#dlgText') == 'Can I pay by card?' and not p3.query_selector('#chat .dlg-wait'))
