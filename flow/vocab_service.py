@@ -945,7 +945,7 @@ def send_reminders(c, now=None, send=None):
     now = now or time.time()
     local = datetime.datetime.fromtimestamp(now, nx.TZ)
     today = local.date().isoformat()
-    origin = os.getenv('FLOW_PUBLIC_URL', 'https://flow.jasa.hk').rstrip('/')
+    origin = os.getenv('FLOW_PUBLIC_URL', 'https://flowlang.cn').rstrip('/')
     if send is None:
         from account_service import mail as send
     if 'email' not in {x[1] for x in c.execute('PRAGMA table_info(users)')}:
@@ -978,7 +978,7 @@ def ics(hour, kind='vocab', minutes=10):
     import os
     hour = hour if hour in REMIND_HOURS else 20
     minutes = minutes if minutes in (5, 10, 15, 20, 30) else 10
-    origin = os.getenv('FLOW_PUBLIC_URL', 'https://flow.jasa.hk').rstrip('/')
+    origin = os.getenv('FLOW_PUBLIC_URL', 'https://flowlang.cn').rstrip('/')
     start = datetime.datetime.now(nx.TZ).replace(hour=hour, minute=0, second=0, microsecond=0)
     utc = start.astimezone(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     stamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')

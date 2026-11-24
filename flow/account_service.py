@@ -17,6 +17,8 @@ def schema(c):
 def digest(token):return hashlib.sha256(token.encode()).hexdigest()
 
 def mail(to,subject,text):
+ # the 内测版 (FLOW_CHANNEL=beta, flow.jasa.hk) marks every mail it sends, so nobody takes it for 语流's own
+ if os.getenv('FLOW_CHANNEL','').strip().lower()=='beta' and not subject.startswith('【内测版】'):subject='【内测版】'+subject
  outbox=os.getenv('FLOW_MAIL_OUTBOX')
  if outbox:
   os.makedirs(outbox,exist_ok=True)

@@ -32,7 +32,7 @@ def public_page(slug):
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{title}｜语流 Flow 英文会议练习</title>
 <meta name="description" content="{escape(item["context"], quote=True)}用三分钟练习并检查你的英文表达。">
-<link rel="canonical" href="https://flow.jasa.hk/practice/{slug}/">
+<link rel="canonical" href="https://flowlang.cn/practice/{slug}/">
 <link rel="stylesheet" href="/meeting.css?v=440">
 <link rel="stylesheet" href="/flow4.css?v=440">
 <meta name="theme-color" content="#fbfcfb">

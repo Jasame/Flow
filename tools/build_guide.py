@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'flow'))
 import user_guide as ug  # noqa: E402
 
-ORIGIN = os.getenv('FLOW_PUBLIC_URL', 'https://flow.jasa.hk').rstrip('/')
+ORIGIN = os.getenv('FLOW_PUBLIC_URL', 'https://flowlang.cn').rstrip('/')
 LOGO = ('<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#1f9d55"/>'
         '<path d="M7 20v-6m6 10V8m6 14V11m6 7v-4" stroke="#fff" stroke-width="2.6" stroke-linecap="round" fill="none"/></svg>')
 CSS = """
