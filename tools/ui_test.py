@@ -10,7 +10,7 @@ Checks layout (no sideways scrolling, nothing hidden under the bottom tabs, touc
 learners reported problems with: keyboard shortcuts, Enter in answer boxes, swipes in review, closing sheets, the
 playback stop button, step switching, list filters. Screenshots of every page per device go to the out dir.
 """
-import atexit, json, os, socket, subprocess, sys, tempfile, time, traceback
+import atexit, json, os, re, socket, subprocess, sys, tempfile, time, traceback
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
@@ -44,6 +44,24 @@ PAGES = ['#/', '#/library', f'#/m/{PID}/listen', f'#/m/{PID}/read', f'#/m/{PID}/
          '#/radar', '#/radar/goals', '#/radar/test', '#/radar/test/reading', '#/radar/test/writing',
          '#/practice', '#/guide', '#/guide/words', '#/feedback']
 RESULTS = []
+NEXT_PARTS = sorted((Path(__file__).resolve().parent.parent / 'flow/public/src/next').glob('*.js'))
+
+
+def page_error(pg, e):
+    """A script error with where it happened: the route, and the part file and line of the first frame in next.js
+    (next.js is the parts joined byte for byte, so a line number maps back to one part)."""
+    where = ''
+    m = re.search(r'next\.js[^:\s]*:(\d+):\d+', getattr(e, 'stack', '') or '')
+    if m:
+        n = int(m.group(1))
+        for part in NEXT_PARTS:
+            k = part.read_text().count('\n')
+            if n <= k:
+                where = f' at {part.name}:{n}'
+                break
+            n -= k
+    route = pg.url.split('#', 1)[1] if '#' in pg.url else '/'
+    return f'{getattr(e, "message", e)} (#{route}{where})'
 
 
 def png(w=60, h=120, rgb=(31, 157, 85)):
@@ -132,7 +150,7 @@ def run_device(pw, dev, opts):
     ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners'][dev]['token'], 'url': BASE}])
     pg = ctx.new_page()
     errors = []
-    pg.on('pageerror', lambda e: errors.append(str(e)))
+    pg.on('pageerror', lambda e: errors.append(page_error(pg, e)))
     pg.on('console', lambda m: errors.append(m.text) if m.type == 'error' and 'favicon' not in m.text and '/audio/' not in m.text else None)
     touch = opts['has_touch']
     starts = []  # each one a round trip; from mainland China about a second
@@ -830,7 +848,7 @@ def wechat_run(pw):
         ctx.add_cookies([{'name': 'flow_session', 'value': cfg['learners']['phone']['token'], 'url': base}])
         ctx.add_init_script(WECHAT_RULES)
         pg = ctx.new_page(); errors = []
-        pg.on('pageerror', lambda e: errors.append(str(e)))
+        pg.on('pageerror', lambda e: errors.append(page_error(pg, e)))
         pg.goto(base + '/#/', wait_until='networkidle'); settle(pg)
         guide = pg.text_content('.wx-guide') if pg.query_selector('.wx-guide') else ''
         check(dev, 'the first visit points at the ··· menu: two steps, and a way to copy the address', '「···」' in guide and '在浏览器打开' in guide and pg.is_visible('#wxCopy'), guide[:80])
@@ -1075,7 +1093,7 @@ def learner_run(pw):
     try:
         ctx = browser.new_context(**phone)
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['exam']['token'], 'url': BASE}])
-        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
         pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
         # 每周目标: the chip on 今日 opens its sheet, and the goal chosen there shows on the chip at once
         pg.click('#habitBtn'); pg.wait_for_selector('#sheetCard [data-goal="3"]', timeout=4000)

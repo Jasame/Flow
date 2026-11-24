@@ -84,6 +84,20 @@ class KnownBadMeaningTests(unittest.TestCase):
         self.assertTrue(nx.lookup('hardly')['meaning'].startswith('adv. 几乎不'))
 
 
+class HeadwordAndPhoneticTests(unittest.TestCase):
+    """ECDICT's misspelt headwords fold into the right spelling, ^ reads as ɡ, and -ing words are said with -ing."""
+
+    def test_misspelt_headwords_and_broken_transcriptions(self):
+        import vocab_service as vs
+        d = nx.dictionary()
+        self.assertNotIn('reservior', d); self.assertIn('cet4', d['reservoir']['tags'])  # 四级 has the right spelling
+        self.assertIn('reservoir', {w for _, w in vs.book_words()['cet4']})
+        self.assertNotIn('saut', d); self.assertIn('sauté', d['saute']['meaning'])
+        self.assertFalse([w for w, e in d.items() if '^' in (e.get('phonetic') or '')])
+        for w in ('changing', 'buying', 'generating', 'spraying'):
+            self.assertIn('ɪŋ', d[w]['phonetic'], w)
+
+
 class StudyBookAuditTests(unittest.TestCase):
     """tools/audit_meanings.py: no mechanical problem left in the books learners study most."""
 
