@@ -64,6 +64,29 @@ class BetaSiteTests(Site):
 
 
 class MailTests(unittest.TestCase):
+    def test_the_mail_server_is_greeted_with_the_sites_domain(self):
+        """EHLO says the site's domain (FLOW_PUBLIC_URL), never the machine's internal name, on both kinds of connection."""
+        seen = []
+
+        class Fake:
+            def __init__(self, host, port, local_hostname=None, **kw): seen.append((port, local_hostname))
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+            def ehlo(self): pass
+            def starttls(self, **kw): pass
+            def login(self, *a): pass
+            def send_message(self, msg): pass
+
+        env = {'FLOW_SMTP_HOST': 'smtp.example.com', 'FLOW_SMTP_FROM': 'x@example.com', 'FLOW_SMTP_USER': 'u', 'FLOW_SMTP_PASSWORD': 'p',
+               'FLOW_CHANNEL': ''}
+        with patch.dict(os.environ, env), patch.object(account_service.smtplib, 'SMTP_SSL', Fake), patch.object(account_service.smtplib, 'SMTP', Fake):
+            os.environ.pop('FLOW_MAIL_OUTBOX', None)
+            for url, port in (('https://flow.jasa.hk', '465'), ('', '465'), ('https://flowlang.cn/', '587'), ('http://127.0.0.1:8090', '465'),
+                              ('http://localhost:8090', '465')):
+                os.environ['FLOW_PUBLIC_URL'], os.environ['FLOW_SMTP_PORT'] = url, port
+                account_service.mail('a@example.com', 's', 't')
+        self.assertEqual(seen, [(465, 'flow.jasa.hk'), (465, 'flowlang.cn'), (587, 'flowlang.cn'), (465, 'flowlang.cn'), (465, 'flowlang.cn')])
+
     def test_beta_mail_is_marked_once(self):
         with tempfile.TemporaryDirectory() as out:
             for channel, want in (('', 'Flow 登录验证码 123456'), ('beta', '【内测版】Flow 登录验证码 123456')):
@@ -205,7 +228,9 @@ class ToolTests(unittest.TestCase):
         self.assertIn('if [ -n "$LIGHT" ] && [ $P = r ]; then echo', deploy)
         self.assertIn('if [ -n "$E2E" ]; then E2E="$E2E$LIGHT"; fi', deploy)
         self.assertIn('MAN=$(python3 tools/release_manifest.py "$BUILD" 2>/dev/null)', deploy)
-        self.assertNotIn('build_front.py --check', deploy)  # it checked the laptop's files, not the commit's
+        self.assertNotIn('build_front.py --check', deploy)
+        # REQUEST names main when main has the commit, not the first branch that happens to contain it
+        self.assertIn('if printf \'%s\\n\' "$BRS" | grep -qx main; then BR=main;', deploy)  # it checked the laptop's files, not the commit's
         self.assertIn("if BETA and b'F=${FLOW_DIR:-' not in (work / 'flow-pull.sh').read_bytes():", (TOOLS / 'flow-autodeploy.py').read_text())
         self.assertIn('F=${FLOW_DIR:-', (TOOLS / 'flow-pull.sh').read_text())
         self.assertIn('--beta) P=b; BRANCH=release-beta; SITE=https://flow.jasa.hk', deploy)
@@ -214,7 +239,19 @@ class ToolTests(unittest.TestCase):
         self.assertNotIn('if xmc_dir:', pull)  # one manifest per commit: the 内测版 checks the console files too, it only skips installing them
         # both services may write the shared voice folder (ProtectSystem=strict), set before the restart
         self.assertLess(pull.index("ReadWritePaths=-%s/tts"), pull.index('systemctl restart "$SVC"'))
-        self.assertIn('sed -n \'s/^FLOW_AUDIO_DIR=//p\' "/etc/$SVC.env"', pull)
+        self.assertIn('AUD=$(audio_dir "/etc/$SVC.env")', pull)
+        # the folder as systemd reads it: quoted or not, with or without a trailing slash; anything else means 语流's folder
+        import re as _re, tempfile as _tf
+        fn = _re.search(r'^audio_dir\(\) \{.*?^\}', pull, _re.S | _re.M).group(0)
+        cases = {'FLOW_AUDIO_DIR=/www/wwwroot/flow/audio\n': '/www/wwwroot/flow/audio', 'FLOW_AUDIO_DIR="/data/audio/"\n': '/data/audio',
+                 "A=1\nFLOW_AUDIO_DIR='/srv/a b'\r\n": '/srv/a b', 'FLOW_SMTP_HOST="x"\n': '/www/wwwroot/flow/audio',
+                 'FLOW_AUDIO_DIR=audio\n': '/www/wwwroot/flow/audio', '': '/www/wwwroot/flow/audio'}
+        for text, want in cases.items():
+            with _tf.NamedTemporaryFile('w', suffix='.env', delete=False) as f:
+                f.write(text)
+            got = subprocess.run(['bash', '-c', fn + '\naudio_dir "$1"', '_', f.name], capture_output=True, text=True).stdout.strip()
+            os.unlink(f.name)
+            self.assertEqual(got, want, text)
         for s in ('F=${FLOW_DIR:-/www/wwwroot/flow}', 'XMC=${FLOW_XMC-/www/wwwroot/xmc.hk/flow}', 'SVC=${FLOW_SERVICE:-flow}', 'U=${FLOW_URL:-http://127.0.0.1:8090}',
                   'echo "$SHA" > "$OPS/$SVC-deployed-commit"', 'bash "$HERE/flow-pull-rollback.sh" "$BK"',
                   "names += [f'xmc-admin/{n}'", 'xmc-admin/*) [ -n "$XMC" ] || continue;'):

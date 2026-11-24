@@ -116,21 +116,29 @@ def dialog(c, uid, data):
     SC = __import__('scenarios')
     sid = data.get('scenario') if isinstance(data.get('scenario'), str) else None
     sc = SC.pack(sid, SC.mode_for(c, uid, sid)) if sid in SC.SCENES else None
+    prof = nx.profile(c, uid) or {}
     if sc:
-        p, level = sc, (nx.profile(c, uid) or {}).get('level') or sc['cefr']
+        p, level = sc, prof.get('level') or sc['cefr']
     else:
         p, level = _material(c, uid, data)
     if not p:
         return {'error': '材料不存在'}, 404
+    # the voice the AI's lines are said in: a scene's role has its own (scenarios.voice_for), a material's partner the learner's
+    voice = SC.voice_for(sc['sid'], sc['mode'], prof.get('voice')) if sc else (prof.get('voice') or 'us-f')
+    opener_key = p['id'] + ('@persona' if sc else '')
     hist = data.get('history') or []
     if not isinstance(hist, list) or len(hist) > 16:
         return {'error': '对话太长了，先结束这一轮吧'}, 400
     if not hist:
         # The opening (scene, role, first line) is the same for everyone on this text at this level: asked once, kept.
-        row = c.execute('SELECT result FROM next_dialog_openers WHERE pack=? AND level=?', (p['id'], level)).fetchone()
+        # Scenes' openings are kept under a new key since the roles got their personas (像真人, 2026-11-25).
+        row = c.execute('SELECT result FROM next_dialog_openers WHERE pack=? AND level=?', (opener_key, level)).fetchone()
         if row:
             from chat_service import remaining
-            return {'result': json.loads(row['result']), 'request_id': str(data.get('request_id', '')), 'remaining': remaining(c, uid), 'cached': True}, 200
+            r = json.loads(row['result'])
+            _say_soon(uid, r.get('reply'), voice)
+            return {'result': {**r, **({'voice': voice} if sc else {})}, 'request_id': str(data.get('request_id', '')),
+                    'remaining': remaining(c, uid), 'cached': True}, 200
     turns = []
     for h in hist:
         if not isinstance(h, dict) or h.get('role') not in ('ai', 'me') or not isinstance(h.get('text'), str) or len(h['text']) > 500:
@@ -144,8 +152,12 @@ def dialog(c, uid, data):
             return err
     valid = set(nx.nodes_meta(c))
     task = p.get('speaking') or f"围绕「{p['title']}」这个话题聊一聊"
-    system = ('你在和一位中国英语学习者做情景对话练习。你扮演情景里的另一方，说话自然、简短（1–3 句），'
-              '用学习者水平能听懂的英语，适时追问让对方多说。不要替学习者回答。只输出 JSON。' + LEVEL_NOTE.get(level, ''))
+    # 像真人 (owner: 「不像真人」): short spoken turns that react before they ask, one question at a time, in character
+    system = ('你在和一位中国英语学习者做情景对话练习。你扮演情景里的另一方，像真人一样说话：每次只说 1–2 句，'
+              'reply 不超过 25 个英文词；用口语（缩写，以及 Sure / Oh, got it / Hmm, let me check 这样自然的回应）；'
+              '先接住对方刚说的内容，再往下问；一次只问一个问题。用学习者水平能听懂的英语。不要像老师：reply 里不夸对方的英语、'
+              '不纠错（纠错只放在 correction 里）。不要替学习者回答。只输出 JSON。'
+              + (f'你的角色和说话方式（英文）：{p["persona"]}。' if sc and p.get('persona') else '') + LEVEL_NOTE.get(level, ''))
     if sc:  # 按回答调难度: the next line follows the learner's last answer (scenarios.pace has the same rule)
         system += (f'按学习者刚才这句调整你下一句的难度：如果这句很短（不到 {SC.PACE_SHORT} 个词），或者不到 {SC.PACE_MID} 个词而且有明显错误，'
                    '你的下一句要更短、用更常见的词，并在 say 里给一句学习者可以直接套用的英文；如果这句有 '
@@ -196,13 +208,24 @@ def dialog(c, uid, data):
             **({'mode': sc['mode']} if sc else {})}
     result, status = _ai(c, uid, data, 'next-dialog', p['id'], 'speaking', spec, system, user, convert, audio)
     if status == 200 and not hist:
-        c.execute('INSERT OR IGNORE INTO next_dialog_openers VALUES(?,?,?,?)', (p['id'], level, json.dumps(result['result'], ensure_ascii=False), time.time()))
+        c.execute('INSERT OR IGNORE INTO next_dialog_openers VALUES(?,?,?,?)', (opener_key, level, json.dumps(result['result'], ensure_ascii=False), time.time()))
         c.commit()
     if status == 200 and end and not result.get('replayed'):
         r = result['result']
         sk.log(c, uid, 'speaking', 'dialog', r['score'], nx.cefr(p), p['id'], commit=False)
         sk.mistakes_from_changes(c, uid, r['fixes'], '', 'speaking', p['id'])
+    if status == 200 and not end:
+        _say_soon(uid, result['result'].get('reply'), voice)
+        if sc:
+            result = {**result, 'result': {**result['result'], 'voice': voice}}
     return result, status
+
+
+def _say_soon(uid, text, voice):
+    """声音接力: the server voice starts making the AI's line now, while the reply travels to the page, so the page's own
+    request for it (/api/next/tts) finds it made or joins the making (tts_service locks per sentence). Saves a round trip."""
+    if uid and text:
+        __import__('tts_service').start(uid, text, voice)
 
 
 # ---------- essay ----------

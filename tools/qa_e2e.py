@@ -176,6 +176,8 @@ def persona_a2(cl):
     who = 'a2'
     s, meta = cl.get('/api/next/meta')
     check(who, 'meta', s == 200 and meta.get('levels'), s)
+    s, ver = cl.get('/api/version')  # a home-screen app asks it when it wakes (04-home-app.js): the version the server sends
+    check(who, 'version of the page files', s == 200 and isinstance(ver.get('asset'), str) and len(ver['asset']) >= 6, ver)
     goal = meta['goals'][0]['id']
     themes = [t['id'] for t in meta['themes'][:2]]
     s, j = cl.post('/api/next/profile', {'level': 'A2', 'goal': goal, 'themes': themes, 'minutes': 10})

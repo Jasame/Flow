@@ -325,9 +325,12 @@ class TrialTests(Classes):
         names = self.joined_class(2, code, back=20 * DAY)
         a, b = (self.people[n][2] for n in names)
         now = time.time()
-        for when, pack in ((now - 3600, 'p1'), (now - 3500, 'p2'), (now - 2 * DAY, 'p3'), (now - 12 * DAY, 'p4')):
+        # today's three, all after today's China-time midnight (study_days counts China dates): an hour back at most,
+        # half the time since midnight just after it (the test used to fail between 0:00 and 1:00 Beijing time)
+        back = min(3600, (now + ps.CN) % DAY / 2)
+        for when, pack in ((now - back, 'p1'), (now - back * 0.97, 'p2'), (now - 2 * DAY, 'p3'), (now - 12 * DAY, 'p4')):
             self.step(a, when, pack)  # two steps today: one day
-        self.wrong(a, self.nodes[0][0], now - 3400)  # a question the same day: still one day
+        self.wrong(a, self.nodes[0][0], now - back * 0.94)  # a question the same day: still one day
         self.step(b, now - 25 * DAY)  # before joining: not a trial day
         self.step(b, now - 5 * DAY)
         with app.db() as c:

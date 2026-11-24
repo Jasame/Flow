@@ -236,12 +236,28 @@ class BacklogTests(unittest.TestCase):
         for k in range(120):
             self.card(f'w{k}', 'review', self.now - 3600)
         sent = []
-        self.assertEqual(vs.send_reminders(self.c, at, lambda to, sub, text: sent.append((sub, text))), 1)
-        sub, text = sent[0]
-        self.assertIn('先复习最要紧的 40 个', sub); self.assertIn('先复习最要紧的 40 个', text)
+        self.assertEqual(vs.send_reminders(self.c, at, lambda to, sub, text, html=None: sent.append((sub, text, html))), 1)
+        sub, text, html = sent[0]
+        self.assertIn('先复习最要紧的 40 个', sub); self.assertIn('先复习最要紧的 40 个', text); self.assertIn('先复习最要紧的 40 个', html)
         self.assertNotIn('120', sub + text)
         self.assertIn(f"约 {vs.minutes_for(40, 0, vs.ANSWER_SECONDS)} 分钟", sub)
+        # the card layout (mail_layout): the same words as text and HTML, a button to the review, the way to turn it off
+        self.assertIn('去复习：', text); self.assertIn('/#/review', text); self.assertIn('调整计划', text.split('——')[-1])
+        self.assertIn('class="fl-btn"', html); self.assertIn('/#/review', html); self.assertIn('/#/vocab/plan', html)
 
+
+    def test_a_reminder_goes_as_text_and_the_card_layout(self):
+        """Through the real mail function (the outbox in tests): the .txt and the .html beside it, same words."""
+        self.assertTrue(vs.set_reminder(self.c, 1, {'enabled': True, 'hour': 20})[0]['enabled'])
+        for k in range(3):
+            self.card(f'w{k}', 'review', self.now - 3600)
+        box = Path(self.tmp.name) / 'outbox'
+        with patch.dict(os.environ, {'FLOW_MAIL_OUTBOX': str(box)}):
+            self.assertEqual(vs.send_reminders(self.c, self.day + 20 * 3600 + 300), 1)
+        txt = next(box.glob('*.txt')).read_text(encoding='utf-8'); html = next(box.glob('*.html')).read_text(encoding='utf-8')
+        self.assertIn('今天有 3 个单词该复习了', txt); self.assertIn('今天有 3 个单词该复习了', html)
+        self.assertIn('去复习：', txt); self.assertIn('class="fl-card"', html)
+        self.assertIn('learner，你好：', txt)
 
 class ReadingLinkedTests(unittest.TestCase):
     def setUp(self):
@@ -314,10 +330,10 @@ class ReadingLinkedTests(unittest.TestCase):
         if at8.timestamp() < time.time():  # the next 20:05, so the card saved just now is already due then
             at8 += datetime.timedelta(days=1)
         at8 = at8.timestamp()
-        self.assertEqual(vs.send_reminders(self.c, at8, lambda to, sub, text: sent.append((to, sub))), 1)
+        self.assertEqual(vs.send_reminders(self.c, at8, lambda to, sub, text, html=None: sent.append((to, sub))), 1)
         self.assertEqual(sent[0][0], 'learner@example.test'); self.assertIn('单词', sent[0][1])
-        self.assertEqual(vs.send_reminders(self.c, at8 + 60, lambda *a: sent.append(a)), 0)  # once a day
-        self.assertEqual(vs.send_reminders(self.c, at8 - 3600, lambda *a: sent.append(a)), 0)  # other hours
+        self.assertEqual(vs.send_reminders(self.c, at8 + 60, lambda *a, **kw: sent.append(a)), 0)  # once a day
+        self.assertEqual(vs.send_reminders(self.c, at8 - 3600, lambda *a, **kw: sent.append(a)), 0)  # other hours
         cal = vs.ics(21)
         self.assertIn('RRULE:FREQ=DAILY', cal); self.assertIn('DTSTART:', cal); self.assertTrue(cal.endswith('\r\n'))
         self.assertTrue(vs.overview(self.c, 1)['reminder']['has_email'])

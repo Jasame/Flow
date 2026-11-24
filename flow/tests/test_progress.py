@@ -195,8 +195,12 @@ class MailTests(Db):
         m = self.mails()[0]
         self.assertIn('Subject: 语流 · 这周进步：记住 1 个新词，学完 1 篇', m)
         self.assertIn('· 每周目标：学了 2 天，目标 4 天，这周差 2 天。', m)
-        self.assertIn('· 记住了 1 个新词（隔天复习还记得的）：commute', m)
+        self.assertIn('· 记住了 1 个新词：隔天复习还记得的：commute。', m)
         self.assertIn('· 学完 1 篇：《', m)
+        page = sorted(self.outbox.glob('*.html'))[0].read_text(encoding='utf-8')  # the same mail in the one look of 语流's mails
+        self.assertIn('class="fl-card"', page)
+        self.assertIn('记住了 1 个新词', page)
+        self.assertIn('/#/weekly-off/', page)
         token = re.search(r'https://flow\.test/#/weekly-off/([\w-]+)', m).group(1)
         self.assertIn(f'List-Unsubscribe: <https://flow.test/api/next/weekly-mail/off?t={token}>', m)
         self.assertIn('List-Unsubscribe-Post: List-Unsubscribe=One-Click', m)
@@ -237,9 +241,9 @@ class MailTests(Db):
             vs.set_reminder(c, self.uid, {'enabled': True, 'hour': 20})
             card = self.word(c, 'commute', at(2026, 11, 20, 9)); c.execute('UPDATE next_cards SET due=?, state=? WHERE id=?', (at(2026, 11, 28), 'review', card)); c.commit()
             self.assertEqual(ps.send_weekly(c, SUNDAY), 1)  # the learner with an email only
-            self.assertEqual(vs.send_reminders(c, SUNDAY + 60, lambda *a: self.fail('the weekly mail already said it')), 0)
+            self.assertEqual(vs.send_reminders(c, SUNDAY + 60, lambda *a, **kw: self.fail('the weekly mail already said it')), 0)
             self.assertIn('个单词到了复习时间', self.mails()[0])
-            self.assertEqual(vs.send_reminders(c, at(2026, 11, 30, 20, 5), lambda *a: None), 1)  # Monday: as before
+            self.assertEqual(vs.send_reminders(c, at(2026, 11, 30, 20, 5), lambda *a, **kw: None), 1)  # Monday: as before
 
     def test_one_click_unsubscribe_from_a_mail_app(self):
         with app.db() as c:

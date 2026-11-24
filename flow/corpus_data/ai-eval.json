@@ -51,11 +51,19 @@
     {"id": "worse-rather-than-better", "level": "B2", "sentence": "If the headphones tried to cancel every sudden sound, they would risk making the noise worse rather than better.", "zh": "如果耳机想把每一个突然出现的声音都抵消掉，反而可能让噪音更糟，而不是更好。", "good": "If the headphones tried to cancel every sudden sound, they might make the noise worse instead of better.", "bad": "If headphone cancel all sudden sound, noise will more bad."}
   ],
   "content": {
-    "about": "内容类任务（讲解、例句、难度改写、对话开场、翻译原句）：没有标准答案，只查能不能直接给学习者看——格式对、讲的是原句里的片段、例句真的用了这个词、改写不丢原文的数字、开场白是短短的英文。",
+    "about": "内容类任务（讲解、例句、难度改写、对话开场、翻译原句）：没有标准答案，只查能不能直接给学习者看——格式对、讲的是原句里的片段、例句真的用了这个词、改写不丢原文的数字、开场白是短短的英文。dialog_turn：情景对话说一句，有错（error）要纠正，说对了不能改；dialog_end：对话结束的总结，网站要能收下（分数写成字符串、缺总评这类写法会被拒），要有中文总评和分数，并指出学员的错误（errors 里至少两处）。",
     "explain": [{"id": "explain-not-so-much-as", "i": 1}, {"id": "explain-microphone-chip", "i": 3}],
     "examples": [{"id": "examples-b2-words", "level": "B2", "words": ["critical", "conduct", "conflict", "perspective", "political", "skiing"]}],
     "variant": [{"id": "variant-a2", "level": "A2"}],
     "dialog": [{"id": "dialog-opening"}],
+    "dialog_turn": [
+      {"id": "dialog-turn-error", "history": [{"role": "ai", "text": "Hi! Do those headphones really block out the engine noise?"}], "text": "Yes, they works very good on the train.", "error": {"original": "they works", "better": "they work"}},
+      {"id": "dialog-turn-correct", "history": [{"role": "ai", "text": "Hi! Do those headphones really block out the engine noise?"}], "text": "Yes, they block out most of the noise, so I can sleep on the train.", "error": null}
+    ],
+    "dialog_end": [
+      {"id": "dialog-end-three-errors", "history": [{"role": "ai", "text": "Hi! Do those headphones really block out the engine noise?"}, {"role": "me", "text": "Yes, they works very well."}, {"role": "ai", "text": "Nice! How long is your trip today?"}, {"role": "me", "text": "It take three hours to Shanghai."}, {"role": "ai", "text": "That's a long ride. What will you do on the way?"}, {"role": "me", "text": "I will listen music and sleep a little."}], "errors": [{"original": "they works", "better": "they work"}, {"original": "It take", "better": "It takes"}, {"original": "listen music", "better": "listen to music"}]},
+      {"id": "dialog-end-clean", "history": [{"role": "ai", "text": "Hi! Do those headphones really block out the engine noise?"}, {"role": "me", "text": "They do. I can finally read without the engine noise."}, {"role": "ai", "text": "Lucky you! Where are you heading?"}, {"role": "me", "text": "I'm going to Hangzhou to visit my grandparents."}], "errors": []}
+    ],
     "transsrc": [{"id": "transsrc-interference", "i": 5}]
   }
 }

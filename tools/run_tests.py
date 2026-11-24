@@ -8,6 +8,7 @@
     python3 tools/run_tests.py --ui [groups…]         # tools/ui_test.py, its groups in parallel (needs Playwright)
     python3 tools/run_tests.py --ui --shard 3/5       # CI: one share of the UI groups
     python3 tools/run_tests.py --list [--ui] [--shard K/N]   # print what would run, run nothing
+    git diff --name-only … | python3 tools/run_tests.py --ui-needed   # CI: ui=true unless no path can change the UI
     options: --jobs N (processes at once; default: the number of CPUs, at most 8)
              --out DIR (UI screenshots and ui-report.json, one folder per process; default /tmp/flow-ui-out)
 
@@ -47,12 +48,24 @@ DEFAULT_SECONDS = 30
 # Every group ui_test.py has must be in one (tests/test_ci.py checks): a new group goes into the shortest share.
 # A name ui_test.py does not have yet is allowed: 'privacy' and 'trial-survey' arrive with PRs #58 and #59.
 UI_SHARDS = [
-    ['about', 'wait'],
+    ['about', 'wait', 'home-app', 'ios-audio'],
     ['phone', 'phone-land', 'privacy', 'trial-survey'],
     ['tablet', 'desktop', 'platforms', 'wechat', 'ux'],
     ['learner', 'progress', 'swipe', 'listen-speak', 'start', 'sprint', 'backlog', 'class'],
     ['a11y', 'layout'],
 ]
+
+
+# What the UI tests depend on: the website (flow/, its pages, guide.md, corpus) and the tools that serve and drive it.
+# A pull request that changes none of these (docs, the release and evaluation tools, …) skips the UI shares; any doubt
+# (no list of paths, a path under flow/) runs them.
+UI_INPUTS = ('flow/', 'tools/ui_test.py', 'tools/ui_server.py', 'tools/ui-fixtures/', 'tools/build_front.py',
+             'tools/run_tests.py', '.github/workflows/tests.yml')
+
+
+def ui_needed(paths):
+    paths = [p.strip() for p in paths if p.strip()]
+    return not paths or any(p.startswith(UI_INPUTS) for p in paths)
 
 
 def test_files():
@@ -170,6 +183,9 @@ def run_ui(out, groups_per_process, workers):
 
 
 def main(argv):
+    if '--ui-needed' in argv:
+        print('ui=' + ('true' if ui_needed(sys.stdin.read().splitlines()) else 'false'))
+        return 0
     shard, listing = shard_arg(argv), '--list' in argv
     words = [a for k, a in enumerate(argv) if not a.startswith('--') and (k == 0 or argv[k - 1] not in ('--shard', '--jobs', '--out'))]
     if '--ui' in argv:

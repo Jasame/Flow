@@ -243,6 +243,7 @@ FLOW_FILES=(
   learning_service.py
   lexicon_service.py
   loop_service.py
+  mail_layout.py
   media.py
   meeting_path.py
   meeting_service.py
@@ -278,6 +279,7 @@ FLOW_FILES=(
   vertex_native.py
   vocab_service.py
   voice_eval.py
+  word_clip.py
   word_links.py
 )
 for name in "${FLOW_FILES[@]}"; do

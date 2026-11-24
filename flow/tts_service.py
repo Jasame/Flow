@@ -133,15 +133,25 @@ def _lock(name):
 
 
 def _speak(text, voice):
-    """mp3 bytes for one sentence from the gateway; raises on any failure."""
-    body = json.dumps({'model': model(), 'input': text, 'voice': VOICES[voice], 'response_format': 'mp3'}).encode()
-    req = urllib.request.Request(speech_url(), data=body, method='POST', headers={
-        'Authorization': 'Bearer ' + os.getenv('FLOW_AI_KEY', ''), 'Content-Type': 'application/json', 'User-Agent': 'flow-tts/1.0'})
-    with urllib.request.urlopen(req, timeout=int(os.getenv('FLOW_TTS_TIMEOUT', '30'))) as r:
-        data = r.read(8_000_001)
-    if not 100 < len(data) <= 8_000_000 or not (data[:3] == b'ID3' or data[0] == 0xFF):
-        raise ValueError('not an mp3')
-    return data
+    """mp3 bytes for one sentence from the gateway; raises on any failure. Each call is a row in ai_calls (kind 'tts',
+    characters as the prompt), so the console's costs and daily budget include the voice (语流 12, #82)."""
+    import ai_routes
+    started, err = time.monotonic(), None
+    try:
+        body = json.dumps({'model': model(), 'input': text, 'voice': VOICES[voice], 'response_format': 'mp3'}).encode()
+        req = urllib.request.Request(speech_url(), data=body, method='POST', headers={
+            'Authorization': 'Bearer ' + os.getenv('FLOW_AI_KEY', ''), 'Content-Type': 'application/json', 'User-Agent': 'flow-tts/1.0'})
+        with urllib.request.urlopen(req, timeout=int(os.getenv('FLOW_TTS_TIMEOUT', '30'))) as r:
+            data = r.read(8_000_001)
+        if not 100 < len(data) <= 8_000_000 or not (data[:3] == b'ID3' or data[0] == 0xFF):
+            raise ValueError('not an mp3')
+        return data
+    except Exception as e:
+        err = e
+        raise
+    finally:
+        with ai_routes.task('tts'):
+            ai_routes.record('tts', model(), started, [], info={'usage': (len(text), 0, 0, 0), 'served': 'cosyvoice-v3-flash'}, exc=err)
 
 
 def _store(f, data):
@@ -255,6 +265,61 @@ def _night(db):
             return
         with db() as c:
             print('tts prewarm:', json.dumps(prewarm(c)), flush=True)
+        print('tts prune:', json.dumps(prune()), flush=True)
+
+
+def prune(days=30, now=None):
+    """One-off sentences (an AI's reply, a look-up example) are made on a tap and then rarely heard again: a file older
+    than `days` goes, unless it is one of the fixed sentences prewarm keeps (any voice). A pruned sentence is simply
+    made again on the next tap. Without this the folder grows by every reply (60–145 KB each)."""
+    keep = {name_of(t, v) for v in VOICES for t in fixed_texts()}
+    cut = (now or time.time()) - days * 86400
+    gone = kept = 0
+    for v in VOICES:
+        d = directory() / v
+        if not d.is_dir():
+            continue
+        for f in d.glob('*.mp3'):
+            try:
+                if f.name in keep or f.stat().st_mtime >= cut:
+                    kept += 1
+                    continue
+                f.unlink()
+                gone += 1
+            except OSError:
+                kept += 1
+    return {'removed': gone, 'kept': kept}
+
+
+# ---------- 声音接力: made while the reply travels to the page ----------
+CONNECT = None  # app.init sets this to its db(); a thread needs a connection of its own
+_SOON = threading.BoundedSemaphore(4)  # at most four sentences being made this way at once; past that the page asks itself
+
+
+def start(uid, text, voice, wait=False):
+    """Begin making this sentence in a thread (the page will ask for it in a moment); returns the thread, or None when
+    off, nothing to do, or busy. Counts against the learner's share like a tap; any failure is left to the page's request."""
+    if not enabled() or not CONNECT or not text or voice not in VOICES or file(voice, name_of(text, voice)):
+        return None
+    if not _SOON.acquire(blocking=False):
+        return None
+
+    def run():
+        try:
+            c = CONNECT()
+            try:
+                ensure(c, uid, text, voice)
+            finally:
+                c.close()
+        except Exception:  # the cap, the gateway, the folder: the page's own request says what happened
+            pass
+        finally:
+            _SOON.release()
+    t = threading.Thread(target=run, daemon=True)
+    t.start()
+    if wait:
+        t.join()
+    return t
 
 
 def fixed_texts():
@@ -278,6 +343,9 @@ def prewarm(c, budget=None):
     """Make the fixed sentences in the voices learners use, within tonight's budget. Run by flow-daily (daily_service)."""
     if not enabled():
         return {'status': 'off'}
+    import ai_routes
+    if ai_routes.over_budget(c):  # the console's daily AI budget is spent: batch work waits for tomorrow (as 例句预生成 does)
+        return {'status': 'over-budget'}
     budget = _int('FLOW_TTS_PREWARM_CHARS', 20000) if budget is None else budget
     left = budget - _used(c, -1)
     made = stored = failed = 0

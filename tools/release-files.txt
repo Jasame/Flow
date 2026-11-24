@@ -198,6 +198,7 @@ flow/learning_insights.py
 flow/learning_service.py
 flow/lexicon_service.py
 flow/loop_service.py
+flow/mail_layout.py
 flow/media.py
 flow/meeting_path.py
 flow/meeting_service.py
@@ -297,6 +298,7 @@ flow/tests/test_ai_eval.py
 flow/tests/test_ai_routing.py
 flow/tests/test_ai_stream.py
 flow/tests/test_atlas.py
+flow/tests/test_audio_route.py
 flow/tests/test_channels.py
 flow/tests/test_chat.py
 flow/tests/test_classes.py
@@ -327,6 +329,7 @@ flow/tests/test_learning_more.py
 flow/tests/test_learning_system.py
 flow/tests/test_login.py
 flow/tests/test_loop.py
+flow/tests/test_mail.py
 flow/tests/test_meaning_fixes.py
 flow/tests/test_media.py
 flow/tests/test_migration.py
@@ -354,6 +357,7 @@ flow/tests/test_vertex.py
 flow/tests/test_vocab.py
 flow/tests/test_voice_eval.py
 flow/tests/test_welcome.py
+flow/tests/test_word_clip.py
 flow/tests/test_wordbook_registry.py
 flow/tests/test_wordbooks.py
 flow/tests/test_wordbooks_open.py
@@ -367,6 +371,7 @@ flow/vertex_auth.py
 flow/vertex_native.py
 flow/vocab_service.py
 flow/voice_eval.py
+flow/word_clip.py
 flow/word_links.py
 tests/test_release.py
 tools/build_ecdict_subset.py

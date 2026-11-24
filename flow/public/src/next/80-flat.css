@@ -95,11 +95,11 @@ body.reviewing{touch-action:pan-y pinch-zoom}
 /* review and the vocabulary test on phones: no tabs, answers where the thumb is */
 @media (max-width:759px){
   body.reviewing .tabs{display:none}
-  body.reviewing{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+  body.reviewing{padding-bottom:calc(12px + var(--sab))}
   body.reviewing .review:not(.open-card):not(.q){display:flex;flex-direction:column;min-height:calc(100dvh - 120px);gap:14px}
   body.reviewing .review:not(.open-card):not(.q)>:first-child{margin-top:auto}
   body.reviewing .review:not(.open-card):not(.q) .choice{margin-top:auto}
   body.reviewing .choice button{min-height:64px;font-size:16.5px}
-  body.reviewing .open-card>.row.center{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom));padding:10px 0;background:linear-gradient(transparent,var(--bg) 35%)}
+  body.reviewing .open-card>.row.center{position:sticky;bottom:calc(10px + var(--sab));padding:10px 0;background:linear-gradient(transparent,var(--bg) 35%)}
 }
-@media (max-width:759px){body.reviewing .toast{bottom:calc(132px + env(safe-area-inset-bottom))}}
+@media (max-width:759px){body.reviewing .toast{bottom:calc(132px + var(--sab))}}
