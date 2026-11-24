@@ -69,13 +69,20 @@ The owner agreed this order on 2026-11-24.
    merged one after another without merging main into each again (the protection rule doesn't require it): the built
    files no longer conflict, and the release lists are sorted, one name per line. A PR that GitHub says conflicts
    merges main, runs `python3 tools/settle_merge.py`, and resolves by hand only what that leaves.
-3. **内测版:** wait for main's own CI run after the last merge (about 6 minutes; it tests the PRs together), then
-   `tools/deploy.sh --beta <main sha>`. It builds next.js, next.css and the guide PDF for that commit, and the beta's
-   autodeploy installs the build and runs `qa_e2e.py` there.
-4. **The owner tries flow.jasa.hk.** A problem goes back through 1–3 as a new `b<N>`.
-5. **语流, only after the owner says so (「发正式版」):** `tools/deploy.sh <the same sha>`, with the end-to-end
-   test. It installs the build the 内测版 got, byte for byte, and refuses a commit that never went to the 内测版.
-   A failed deploy or test rolls back by itself.
+3. **内测版, by itself:** when main's own CI run passes (about 6 minutes after a merge; it tests the PRs together),
+   `.github/workflows/beta.yml` runs `tools/deploy.sh --beta <that commit>` on a GitHub runner: it builds next.js,
+   next.css and the guide PDF (Noto Sans CJK on the runner), requests `b<N>`, and waits for the 内测版's autodeploy to
+   install it and run the **light** `qa_e2e.py` (no recordings sent to the AI, see below). Merges in a row release only
+   the newest commit; a failed release or test fails
+   the run (Actions → Beta release; GitHub emails it). The 内测版 shows what it runs at https://flow.jasa.hk/api/deploy-status (`tag`, `commit`: the build commit, whose
+   parent is the main commit; `result`; `e2e`). Nobody releases the 内测版 by hand any more, unless it is paused (below).
+4. **The owner tries flow.jasa.hk.** Pause first, so the version being tried stays there while other PRs merge:
+   `gh variable set BETA_AUTO --body off -R Jasame/Flow`; afterwards `gh variable delete BETA_AUTO -R Jasame/Flow`
+   (the next green main goes out). A problem goes back through 1–3.
+5. **语流, only after the owner says so (「发正式版」):** `tools/deploy.sh <the main sha on the 内测版>`, with the
+   end-to-end test. It installs the build the 内测版 got, byte for byte, and refuses a commit that never went to the
+   内测版. Check the 内测版's run first (Actions → Beta release, or `e2e` in its deploy-status): a failure there is
+   either the AI's (rerun it) or a reason not to release. A failed deploy or test on 语流 rolls back by itself.
 6. **Afterwards:** the public changelog, the version in the guide header, the ops log.
 
 Conventions:
@@ -83,10 +90,21 @@ Conventions:
 - **Who merges:** the author of the PR, once CI is green and it merges cleanly (see the working agreement below).
   Before #60 (generated files built at release time, sharded CI) one session merged in order, because the generated
   files made PRs collide.
-- **Trying a PR before it merges:** merge main into that PR's branch and beta-deploy the result. Don't build
-  one-off combination branches. 语流 still only gets commits from main.
+- **Trying a PR before it merges:** pause the automatic release (`BETA_AUTO` off), merge main into that PR's branch and
+  beta-deploy the result by hand (`tools/deploy.sh --beta <branch sha>`). Don't build one-off combination branches.
+  语流 still only gets commits from main.
+- **Which end-to-end test runs where.** The light one (no recordings to the AI) on every automatic 内测版 release; the
+  full one on every 语流 release (`deploy.sh` refuses `--light` there), in the daily run, and on the 内测版 when someone
+  asks for it (Run workflow with e2e = full, or `tools/deploy.sh --beta <sha>` without `--light`). Recordings go
+  through the Gemini relay, whose two places 语流's learners share: on 2026-11-24 three release tests in half an hour
+  made 语流 slow.
 - **Hotfixes take the same path.** The beta's e2e run takes a few minutes. Skip the beta only when the owner says so
   (`tools/deploy.sh --skip-beta <sha>`).
+- **The pause `BETA_AUTO`** (a repository variable): `off` while the owner is trying a version or a PR branch is on
+  the 内测版 for a trial; merges then wait on main. Unset (or anything else), main goes to the 内测版 by itself. A release by
+  hand still works either way: `tools/deploy.sh --beta <sha>` on the Mac (it prints the PDF with PingFang there), or
+  Actions → Beta release → Run workflow. An e2e failure that is the AI's, not the app's (it happens), is retried with
+  Run workflow for the same commit: same build, new `b<N>`.
 - **Database schema changes** run against the 内测版's data before they reach 语流's.
 - **A commit from before the two-site split** has a `tools/flow-pull.sh` without `F=${FLOW_DIR:-`. That script
   would install into 语流. `deploy.sh --beta` and the beta's autodeploy (status `ABORT_OLD_TOOLS`) both refuse it,
@@ -99,9 +117,10 @@ The owner approved these on 2026-11-24 (「按你的建议改，b6 发完就写�
 1. **Authors merge their own PRs.** When CI is green and the PR merges cleanly into main, the session that wrote it
    turns on auto-merge. The release session (语流 2) handles releases and the servers. 语流 still gets a release only
    when the owner says 「发正式版」.
-2. **The 内测版 follows main.** Every merge to main is deployed to the beta automatically, so the beta always shows
-   main and there are no hand-numbered batches (GitHub Actions, the owner's choice; 语流 15, #66). Until it is switched on,
-   run `deploy.sh --beta` by hand.
+2. **The 内测版 follows main.** Every merge to main that passes CI goes to the beta by itself
+   (`.github/workflows/beta.yml`, GitHub Actions, the owner's choice; #66), with the light end-to-end test, so the beta
+   always shows main and nobody releases it by hand. To keep a version there while the owner tries it, pause with
+   `gh variable set BETA_AUTO --body off -R Jasame/Flow` (`gh variable delete BETA_AUTO -R Jasame/Flow` resumes).
 3. **Small steps.** A change goes to 语流 once the owner has tried it on the beta, or with the weekly release, whichever
    comes first. Never "wait until all of version X is done". Unfinished work merges behind a switch that is off on 语流.
 4. **One owner per area.** One long-lived session owns each area: 今日和计划, 开局和考试, 单词, 听和说, 内容, 后台和班级,
@@ -137,6 +156,12 @@ Four internal test learners (ids from 990001, sessions written straight into the
 email so no mail can go out) use the live app at the same time with the real AI and synthesized speech
 (`qa-audio/`, made by `qa_clips.py`). It checks API behaviour, limits, isolation between learners and
 database invariants, then deletes every row the test accounts created and verifies none is left.
+
+**Light run** (`QA_LIGHT=1`, REQUEST `e2e light`, `deploy.sh --beta --light`): skips the checks that send a recording
+to the AI (pronunciation and the sound card, shadowing, a dialogue turn by voice, which becomes a typed one, and a
+spoken retell) and notes each skip. **At most `QA_AI_SLOTS` (default 1) AI requests** of a run are in flight at once,
+so a test never takes all of a model's places from learners. `report.json` and `/api/deploy-status` record both
+(`e2e.light`, `e2e_light`). A light run checks 143 things, a full one 150 (against the local UI server, 2026-11-24).
 
 ## Multi-device UI test (`ui_test.py`)
 

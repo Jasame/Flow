@@ -1,0 +1,107 @@
+name: Beta release
+# Every commit that lands on main and passes Tests goes to the 内测版 (flow.jasa.hk) by itself: tools/deploy.sh --beta
+# builds next.js, next.css and the guide PDF for it (tools/build_release.py), pushes that build as tag build-<sha12>,
+# requests b<N>, and waits for the 内测版's own deploy and end-to-end test (https://flow.jasa.hk/api/deploy-status).
+# The test is the light one (tools/qa_e2e.py QA_LIGHT): no recordings go to the AI, because the Gemini relay has two places
+# that 语流's learners share, and a release test after every merge would keep taking them (2026-11-24: three release tests
+# in half an hour slowed 语流 down). The full test runs on 语流's releases and every day; Run workflow can ask for it here.
+# One release at a time (concurrency below), and the test itself sends one AI request at a time (QA_AI_SLOTS).
+# A failed release or test fails this run, and GitHub emails it. 语流 later installs the same build, only one that was
+# requested here (tools/deploy.sh <sha>, after the owner says 「发正式版」); the 内测版 checks (F=${FLOW_DIR:-) are
+# deploy.sh's and the server's, unchanged.
+#
+# Pause: the repository variable BETA_AUTO. Set to "off", main no longer goes to the 内测版 by itself (while the owner
+# tries a version there, or a PR branch is on it for a trial); merges wait on main. Unset or anything else: on.
+#     gh variable set BETA_AUTO --body off -R Jasame/Flow      gh variable delete BETA_AUTO -R Jasame/Flow
+# "Run workflow" (workflow_dispatch) releases a given commit whatever the switch says, e.g. again after a flaky AI check.
+on:
+  workflow_run:
+    workflows: [Tests]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Commit on main to release (empty for main's newest)
+        required: false
+      e2e:
+        description: End-to-end test on the 内测版 (full sends recordings to the AI too)
+        type: choice
+        options: [light, full]
+        default: light
+  pull_request:
+    # a change to how a release is built: its release build is made and checked here, nothing is pushed
+    paths:
+      - tools/build_release.py
+      - tools/build_guide.py
+      - tools/build_front.py
+      - tools/deploy.sh
+      - .github/workflows/beta.yml
+      - 'flow/public/guide/**'
+permissions:
+  contents: read
+jobs:
+  release:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && vars.BETA_AUTO != 'off' &&
+       github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50  # deploy.sh waits up to 40 minutes for the 内测版 (usually 5–8)
+    permissions:
+      contents: write  # the tags build-* and b<N> and the release-beta branch; main stays protected
+    concurrency:
+      group: beta-release
+      cancel-in-progress: false  # one release at a time; of the ones waiting, only the newest runs
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || inputs.sha || 'main' }}
+          fetch-depth: 0  # deploy.sh finds the branch that has the commit, and the release branches
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip  # Playwright's wheel, kept between runs
+          cache-dependency-path: tools/requirements-release.txt
+      - name: Playwright (prints the 操作指南 PDF with the installed Chrome)
+        run: python -m pip install --quiet -r tools/requirements-release.txt
+      - name: Chinese fonts for the guide PDF (Noto Sans CJK, named in its stylesheet)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
+      - name: Release to the 内测版 and wait for its end-to-end test
+        env:
+          E2E_MODE: ${{ inputs.e2e == 'full' && 'full' || 'light' }}  # automatic releases: light
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if [ "$E2E_MODE" = full ]; then light=""; else light="--light"; fi
+          bash tools/deploy.sh --beta $light "$(git rev-parse HEAD)"
+  dry-run:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: tools/requirements-release.txt
+      - name: Playwright and the Chinese fonts, as for a release
+        run: |
+          python -m pip install --quiet -r tools/requirements-release.txt
+          sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
+      - name: The release build of this pull request (built and checked, not pushed; its log names the PDF's fonts)
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          build=$(python tools/build_release.py --dry-run HEAD)
+          mkdir -p /tmp/release-build
+          git show "$build:flow/public/guide/flow-guide.pdf" > /tmp/release-build/flow-guide.pdf
+      - name: The guide PDF a release of this would ship
+        uses: actions/upload-artifact@v4
+        with:
+          name: guide-pdf
+          path: /tmp/release-build/flow-guide.pdf
+          retention-days: 7

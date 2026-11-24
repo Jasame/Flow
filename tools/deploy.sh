@@ -7,18 +7,24 @@
 #   tools/deploy.sh --beta [--no-e2e] [<commit>]   the same for the 内测版 (flow.jasa.hk, its own data): versions
 #                                      waiting for release go there first; tags b<N> on the release-beta branch
 #   tools/deploy.sh --skip-beta <commit>  语流 without the 内测版 first: only when the owner says so (an urgent fix)
+#   tools/deploy.sh --beta --light <commit>  the 内测版 with a light end-to-end test: no recordings sent to the AI (the
+#                                      Gemini relay's two places are shared with 语流's learners); what beta.yml asks for
 #
 # Pushes HEAD. The files git does not keep (next.js, next.css, the guide PDF) are built for the commit by
 # tools/build_release.py: --beta builds and checks them and pushes the build (the commit plus those files) as tag
-# build-<sha12>; 语流 installs the same build commit, which must have been requested on the 内测版 first. Then it
+# build-<sha12>; 语流 installs the same build commit, which must have been requested on the 内测版 first.
+# .github/workflows/beta.yml runs the --beta release by itself for every main commit that passes Tests. Then it
 # computes the build commit's manifest hash from git (tools/release_manifest.py), writes "<build sha> <manifest> [e2e]"
 # to REQUEST on the release branch and tags it r<N+1> (语流, flowlang.cn) or b<N+1> (内测版). The server's timer for
 # that site (tools/flow-autodeploy.py [--beta]) picks the tag up through jsDelivr within a few minutes, deploys
 # with flow-pull.sh and reports at that site's /api/deploy-status.
 set -euo pipefail
-E2E=" e2e"; WANT=""; P=r; BRANCH=release; SITE=https://flowlang.cn; SKIPBETA=""
-for a in "$@"; do case $a in --no-e2e) E2E="" ;; --beta) P=b; BRANCH=release-beta; SITE=https://flow.jasa.hk ;; --skip-beta) SKIPBETA=1 ;; *) WANT=$a ;; esac; done
+E2E=" e2e"; LIGHT=""; WANT=""; P=r; BRANCH=release; SITE=https://flowlang.cn; SKIPBETA=""
+for a in "$@"; do case $a in --no-e2e) E2E="" ;; --light) LIGHT=" light" ;; --beta) P=b; BRANCH=release-beta; SITE=https://flow.jasa.hk ;; --skip-beta) SKIPBETA=1 ;; *) WANT=$a ;; esac; done
 STATUS_URL=${FLOW_STATUS_URL:-$SITE/api/deploy-status}
+# "e2e light": tools/qa_e2e.py with QA_LIGHT=1 (tools/flow-autodeploy.py); 语流 always gets the full test
+if [ -n "$LIGHT" ] && [ $P = r ]; then echo "--light is for the 内测版 only: 语流's release runs the full end-to-end test"; exit 1; fi
+if [ -n "$E2E" ]; then E2E="$E2E$LIGHT"; fi
 cd "$(git rev-parse --show-toplevel)"
 python3 tools/build_dictionary.py --check || exit 1  # corpus_data/dictionary-flow.json must match its sources
 if [ -n "$WANT" ]; then
@@ -39,7 +45,8 @@ if [ $P = b ] || [ -n "$SKIPBETA" ]; then BUILD=$(python3 tools/build_release.py
 else BUILD=$(python3 tools/build_release.py --reuse "$SHA") || exit 1; fi
 if [ $P = r ] && [ -z "$SKIPBETA" ]; then
   git fetch -q origin release-beta
-  git log -p --format= origin/release-beta -- REQUEST | grep -q "^+$BUILD " || {
+  # grep reads all of it (-q would stop at the first match, and pipefail would count git log's broken pipe as a failure)
+  git log -p --format= origin/release-beta -- REQUEST | grep "^+$BUILD " >/dev/null || {
     echo "${BUILD:0:12} (for ${SHA:0:12}) was never requested on the 内测版: tools/deploy.sh --beta ${SHA:0:12} first"; exit 1; }
 fi
 MAN=$(python3 tools/release_manifest.py "$BUILD" 2>/dev/null)
@@ -52,7 +59,7 @@ trap 'git worktree remove --force "$WT" >/dev/null 2>&1 || rm -rf "$WT"' EXIT
 git fetch -q origin "$BRANCH" 2>/dev/null || git fetch -q origin "release:refs/remotes/origin/$BRANCH"
 git worktree add -q --detach "$WT" "origin/$BRANCH"
 FROM=""; [ "$BUILD" = "$SHA" ] || FROM=" = build of ${SHA:0:12}"
-printf '%s %s%s\n# %s%s %s: %s%s\n# Format: <commit sha> <manifest sha256> [e2e]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.\n' \
+printf '%s %s%s\n# %s%s %s: %s%s\n# Format: <commit sha> <manifest sha256> [e2e [light]]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.\n' \
   "$BUILD" "$MAN" "$E2E" "$P" "$N" "$BR" "$(git log -1 --format=%s "$SHA")" "$FROM" > "$WT/REQUEST"
 git -C "$WT" add REQUEST
 git -C "$WT" commit -qm "release $P$N: ${BUILD:0:12}$FROM ($BR)"

@@ -1,0 +1,1 @@
+playwright==1.49.1  # prints the 操作指南 PDF with the installed Google Chrome (tools/build_guide.py); no browser download

@@ -17,7 +17,8 @@ A release build of <commit>
 1. checks <commit> out in a temporary worktree and builds the generated files there;
 2. checks them the way the tests checked them while they were committed: tools/build_front.py --check, the guide's
    manifest matches guide.md and every screenshot and the PDF's hash, header and size (flow/tests/test_guide.py with
-   FLOW_REQUIRE_BUILT=1), and node --check on next.js when Node is installed;
+   FLOW_REQUIRE_BUILT=1), and node --check on next.js when Node is installed; and the PDF embeds a Chinese font (a
+   machine without one prints boxes: .github/workflows/beta.yml installs Noto Sans CJK on the runner);
 3. commits them on top of <commit>: one commit whose parent is <commit> and which adds only these files, pushed as
    the tag build-<first 12 hex of commit>.
 deploy.sh then deploys that build commit like any other commit: the server's flow-pull.sh fetches it through jsDelivr and
@@ -28,7 +29,7 @@ commit again reuses its tag, so a retried release installs the same bytes too.
 A commit from before this (the generated files still in git) is released as it is, after the same checks.
 Output: the commit to deploy on stdout, everything else on stderr.
 """
-import hashlib, json, os, shutil, subprocess, sys, tempfile
+import hashlib, json, os, re, shutil, subprocess, sys, tempfile, zlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -92,8 +93,28 @@ def build(tree, front=True, guide=True):
         run([python_with_playwright(), 'tools/build_guide.py'], tree)
 
 
+def pdf_fonts(path):
+    """The font names a PDF embeds (Chrome writes most of them inside compressed streams)."""
+    data = Path(path).read_bytes()
+    blobs = [data]
+    for m in re.finditer(rb'stream\r?\n', data):
+        try:
+            blobs.append(zlib.decompress(data[m.end():data.find(b'endstream', m.end())]))
+        except zlib.error:
+            pass
+    return sorted({n.split(b'+')[-1].decode('latin1') for b in blobs for n in re.findall(rb'/(?:BaseFont|FontName)\s*/([^\s/>\]]+)', b)})
+
+
+CHINESE_FONTS = ('PingFang', 'Hiragino', 'CJK', 'SourceHan', 'NotoSansSC', 'NotoSerifSC', 'YaHei', 'WenQuanYi')
+
+
 def verify(tree):
     """The checks the tests made on these files while they were committed, made on the files about to ship."""
+    pdf = Path(tree) / GUIDE[0]
+    fonts = pdf_fonts(pdf)
+    log(f'guide PDF: {pdf.stat().st_size // 1024} KB, fonts: {", ".join(fonts)}')
+    if not any(c.lower() in f.lower() for f in fonts for c in CHINESE_FONTS):
+        raise SystemExit('the guide PDF embeds no Chinese font (its text would print as boxes): install one, e.g. fonts-noto-cjk')
     run([sys.executable, 'tools/build_front.py', '--check'], tree)
     if shutil.which('node'):
         for name in FRONT:

@@ -10,8 +10,14 @@
   is left, and writes report.json next to this script. Leftovers of an interrupted run are removed before starting.
 - Run after each deploy by tools/flow-autodeploy.py; the clips in qa-audio/ come from tools/qa_clips.py (Kokoro).
   Local dry run: QA_DB=<sqlite> QA_BASE=http://127.0.0.1:<port> python3 -I tools/qa_e2e.py
+- Light run (QA_LIGHT=1: every automatic 内测版 release, .github/workflows/beta.yml): no check that sends a recording
+  to the AI (pronunciation, shadowing, a dialogue turn by voice, a spoken retell). Those go through the Gemini relay,
+  which has two places that learners on 语流 share; text AI on the 内测版 goes elsewhere. The full run is what 语流's
+  releases and the daily run do.
+- At most QA_AI_SLOTS (default 1) AI requests of this test are in flight at once, so the test never takes all of a
+  model's places from learners while it runs (2026-11-24: three release tests in half an hour slowed 语流 down).
 """
-import base64, concurrent.futures as cf, datetime, json, os, re, secrets, sqlite3, statistics, sys, threading, time, traceback
+import base64, concurrent.futures as cf, contextlib, datetime, json, os, re, secrets, sqlite3, statistics, sys, threading, time, traceback
 import urllib.error, urllib.request
 from pathlib import Path
 
@@ -22,6 +28,9 @@ AUD = Path(os.getenv('QA_AUDIO', HERE / 'qa-audio'))
 PID = 'v5-science-b2-noise-cancelling'
 IDS = {'a2': 990001, 'b1': 990002, 'exam': 990003, 'guard': 990004}
 LOCK = threading.Lock()
+LIGHT = os.getenv('QA_LIGHT') == '1'
+AI_SLOT_COUNT = max(1, int(os.getenv('QA_AI_SLOTS', '1')))
+AI_SLOTS = threading.BoundedSemaphore(AI_SLOT_COUNT)
 CALLS, CHECKS, NOTES = [], [], []
 T0 = time.time()
 
@@ -37,6 +46,13 @@ def note(who, msg):
         NOTES.append({'t': round(time.time() - T0, 1), 'who': who, 'msg': msg})
     print(f'[{time.time() - T0:7.1f}] {who}: {msg}', flush=True)
 
+
+
+def spoken(who, what):
+    """Whether to run a check that sends a recording to the AI: a light run (QA_LIGHT=1) notes that it skipped it."""
+    if LIGHT:
+        note(who, f'light run: no recording sent to the AI ({what})')
+    return not LIGHT
 
 def check(who, name, ok, detail=''):
     with LOCK:
@@ -100,9 +116,11 @@ class Client:
     def post(self, path, data=None, **kw):
         return self.call('POST', path, data, **kw)
 
-    def ai(self, path, data, tag):
+    def ai(self, path, data, tag, slot=True):
+        """An AI request, waiting for one of the test's AI_SLOTS (slot=False: the caller already holds one)."""
         data = dict(data, request_id=rid(tag))
-        s, j = self.post(path, data)
+        with AI_SLOTS if slot else contextlib.nullcontext():
+            s, j = self.post(path, data)
         res = j.get('result') if isinstance(j, dict) else None
         if s != 200:
             note(self.who, f'AI {path} -> {s} {j.get("error") if isinstance(j, dict) else j!r}'[:300])
@@ -222,17 +240,18 @@ def persona_a2(cl):
     # sounds
     s, so = cl.get('/api/next/sounds')
     check(who, 'sounds listing', s == 200 and len(so.get('sets', so.get('items', []))) >= 10 if isinstance(so, dict) else False, list(so)[:5] if isinstance(so, dict) else so)
-    s, j, r = cl.ai('/api/next/say', {'text': 'think', 'audio': audio('think_ok')}, 'say')
-    check(who, 'pronunciation check answers (think)', s == 200 and isinstance((r or {}).get('ok'), bool), r)
-    note(who, f"AI verdict on a synthetic 'think': {r}")  # a model's judgement of one synthetic word: information, not a test
-    first_ok = bool(r and r.get('ok'))
-    s, j, r = cl.ai('/api/next/say', {'text': 'think', 'audio': audio('think_as_sink')}, 'say')
-    check(who, 'pronunciation check answers (sink for think)', s == 200 and isinstance((r or {}).get('ok'), bool), r)
-    note(who, f"AI verdict on 'sink' said for 'think': {r}")
-    second_miss = bool(r and r.get('ok') is False)
-    s, mc = cl.get('/api/next/cards?f=mistake')
-    has_card = any(x.get('kind') == 'sound' for x in mc.get('items', []))
-    check(who, 'a sound card only after two misses in a row', has_card == (second_miss and not first_ok), (first_ok, second_miss, has_card))
+    if spoken(who, 'pronunciation, the sound card after two misses'):
+        s, j, r = cl.ai('/api/next/say', {'text': 'think', 'audio': audio('think_ok')}, 'say')
+        check(who, 'pronunciation check answers (think)', s == 200 and isinstance((r or {}).get('ok'), bool), r)
+        note(who, f"AI verdict on a synthetic 'think': {r}")  # a model's judgement of one synthetic word: information, not a test
+        first_ok = bool(r and r.get('ok'))
+        s, j, r = cl.ai('/api/next/say', {'text': 'think', 'audio': audio('think_as_sink')}, 'say')
+        check(who, 'pronunciation check answers (sink for think)', s == 200 and isinstance((r or {}).get('ok'), bool), r)
+        note(who, f"AI verdict on 'sink' said for 'think': {r}")
+        second_miss = bool(r and r.get('ok') is False)
+        s, mc = cl.get('/api/next/cards?f=mistake')
+        has_card = any(x.get('kind') == 'sound' for x in mc.get('items', []))
+        check(who, 'a sound card only after two misses in a row', has_card == (second_miss and not first_ok), (first_ok, second_miss, has_card))
     s, _ = cl.post('/api/next/skill', {'kind': 'discriminate', 'score': 0.7})
     check(who, 'log discrimination score', s == 200, s)
     s, _ = cl.post('/api/next/skill', {'kind': 'dictation', 'score': 0.8, 'pack': pid})
@@ -264,13 +283,14 @@ def persona_b1(cl):
     s, m = cl.get('/api/next/material?id=' + PID)
     check(who, 'open science material', s == 200 and m.get('id') == PID, s)
     sents = m.get('sentences') or []
-    s, j, r = cl.ai('/api/next/shadow', {'pack': PID, 'i': 0, 'audio': audio('shadow_s0')}, 'sh')
-    check(who, 'AI scores shadowing (native-like clip)', s == 200 and isinstance(r, dict), j if s != 200 else {k: r.get(k) for k in list(r)[:6]})
-    if s == 200:
-        sc = r.get('score', r.get('accuracy'))
-        if isinstance(sc, dict):  # since r27 (#41): {accuracy, fluency, complete, total}, 0–100 each
-            sc = sc.get('total')
-        check(who, 'shadow of a clean reading scores well', sc is None or (isinstance(sc, (int, float)) and sc >= (0.6 if sc <= 1 else 60)), r.get('score', sc))
+    if spoken(who, 'shadowing'):
+        s, j, r = cl.ai('/api/next/shadow', {'pack': PID, 'i': 0, 'audio': audio('shadow_s0')}, 'sh')
+        check(who, 'AI scores shadowing (native-like clip)', s == 200 and isinstance(r, dict), j if s != 200 else {k: r.get(k) for k in list(r)[:6]})
+        if s == 200:
+            sc = r.get('score', r.get('accuracy'))
+            if isinstance(sc, dict):  # since r27 (#41): {accuracy, fluency, complete, total}, 0–100 each
+                sc = sc.get('total')
+            check(who, 'shadow of a clean reading scores well', sc is None or (isinstance(sc, (int, float)) and sc >= (0.6 if sc <= 1 else 60)), r.get('score', sc))
     s, j, r = cl.ai('/api/next/variant', {'pack': PID, 'level': 'B1'}, 'nv')
     check(who, 'AI makes a B1 version', s == 200, j if s != 200 else (r or j).get('level') if isinstance(r or j, dict) else j)
     s, j, r = cl.ai('/api/next/explain', {'pack': PID, 'sentence': sents[1] if len(sents) > 1 else sents[0]}, 'ex')
@@ -280,12 +300,19 @@ def persona_b1(cl):
     opening = (r or {}).get('reply') or (r or {}).get('text') or ''
     check(who, 'dialog opens with an AI line', s == 200 and len(opening) > 5, r if s == 200 else j)
     hist = [{'role': 'ai', 'text': opening[:480] or 'Hello! How can I help you?'}]
-    s, j, r = cl.ai('/api/next/dialog', {'pack': PID, 'history': hist, 'audio': audio('dialog')}, 'dg')
-    check(who, 'dialog turn by voice (transcribed + reply)', s == 200 and isinstance(r, dict) and (r.get('reply') or r.get('text')), r if s == 200 else j)
-    if s == 200:
-        tr = (r.get('heard') or '').lower()
-        check(who, 'dialog transcript matches what was said', 'headphones' in tr or 'train' in tr, tr)
-        hist += [{'role': 'me', 'text': (r.get('heard') or 'I would like some headphones.')[:480]}, {'role': 'ai', 'text': (r.get('reply') or r.get('text') or 'Sure.')[:480]}]
+    if spoken(who, 'a dialogue turn by voice'):
+        s, j, r = cl.ai('/api/next/dialog', {'pack': PID, 'history': hist, 'audio': audio('dialog')}, 'dg')
+        check(who, 'dialog turn by voice (transcribed + reply)', s == 200 and isinstance(r, dict) and (r.get('reply') or r.get('text')), r if s == 200 else j)
+        if s == 200:
+            tr = (r.get('heard') or '').lower()
+            check(who, 'dialog transcript matches what was said', 'headphones' in tr or 'train' in tr, tr)
+            hist += [{'role': 'me', 'text': (r.get('heard') or 'I would like some headphones.')[:480]}, {'role': 'ai', 'text': (r.get('reply') or r.get('text') or 'Sure.')[:480]}]
+    else:  # typed instead, so the round still has a learner turn to give feedback on
+        said = 'I would like some headphones for the train, please.'
+        s, j, r = cl.ai('/api/next/dialog', {'pack': PID, 'history': hist, 'text': said}, 'dg')
+        check(who, 'dialog turn by text (reply)', s == 200 and isinstance(r, dict) and (r.get('reply') or r.get('text')), r if s == 200 else j)
+        if s == 200:
+            hist += [{'role': 'me', 'text': said}, {'role': 'ai', 'text': (r.get('reply') or r.get('text') or 'Sure.')[:480]}]
     s, j, r = cl.ai('/api/next/dialog', {'pack': PID, 'history': hist, 'end': True}, 'dg')
     check(who, 'dialog end gives feedback', s == 200 and isinstance(r, dict), r if s == 200 else j)
     s, j = cl.post('/api/next/dialog', {'pack': PID, 'history': [{'role': 'x', 'text': 'hi'}], 'text': 'hello there', 'request_id': rid('dg')})
@@ -396,8 +423,9 @@ def persona_exam(cl):
     check(who, 'AI scores a written retell', s == 200 and isinstance(r, dict) and r.get('points'), r if s == 200 else j)
     if s == 200:
         check(who, 'retell score in [0,1]', 0 <= r.get('score', -1) <= 1, r.get('score'))
-    s, j, r = cl.ai('/api/next/retell', {'pack': PID, 'audio': audio('retell')}, 'rt')
-    check(who, 'AI scores a spoken retell (transcribes it)', s == 200 and isinstance(r, dict) and len(r.get('transcript', '')) > 40, (r or {}).get('transcript', '')[:200] if s == 200 else j)
+    if spoken(who, 'a spoken retell'):
+        s, j, r = cl.ai('/api/next/retell', {'pack': PID, 'audio': audio('retell')}, 'rt')
+        check(who, 'AI scores a spoken retell (transcribes it)', s == 200 and isinstance(r, dict) and len(r.get('transcript', '')) > 40, (r or {}).get('transcript', '')[:200] if s == 200 else j)
     s, j, r = cl.ai('/api/next/essay', {'pack': PID, 'text': ESSAY}, 'es')
     check(who, 'AI marks an essay', s == 200 and isinstance(r, dict), r if s == 200 else j)
     if s == 200:
@@ -496,10 +524,11 @@ def persona_guard(cl, others):
     check(who, 'over-long lookup handled', s in (200, 400), s)
     # three AI requests at once from one learner: queued one after another, all succeed, none is lost
     t = time.time()
-    with cf.ThreadPoolExecutor(3) as ex:
+    # the server runs one learner's AI requests one after another, so the three hold one of the test's slots together
+    with AI_SLOTS, cf.ThreadPoolExecutor(3) as ex:
         texts = ['I am agree that the noise is a big problem in city.', 'Yesterday I buy a new headphone for my journey.',
                  'The machine make sound that cancel other sound.']
-        res = list(ex.map(lambda x: cl.ai('/api/next/rewrite', {'pack': PID, 'text': x}, 'cc'), texts))
+        res = list(ex.map(lambda x: cl.ai('/api/next/rewrite', {'pack': PID, 'text': x}, 'cc', slot=False), texts))
     check(who, '3 simultaneous AI requests all complete (queued per learner)', all(r[0] == 200 for r in res), [r[0] for r in res])
     note(who, f'3 queued AI calls took {time.time() - t:.1f}s')
     # same request id again: the stored result comes back, no second model call
@@ -707,6 +736,7 @@ def main():
         by_path.setdefault(r['method'] + ' ' + r['path'], []).append(r['ms'])
     lat = {k: {'n': len(v), 'p50': int(statistics.median(v)), 'max': max(v)} for k, v in sorted(by_path.items())}
     report = {'started': datetime.datetime.fromtimestamp(T0).isoformat(timespec='seconds'), 'seconds': round(time.time() - T0, 1),
+              'light': LIGHT, 'ai_slots': AI_SLOT_COUNT,
               'limits': lim, 'usage_before': u0, 'usage_after': u1,
               'ai_calls_used': sum(u1['test_accounts'].values()),
               'checks': {'total': len(CHECKS), 'failed': sum(not x['ok'] for x in CHECKS)},

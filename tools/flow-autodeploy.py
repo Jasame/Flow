@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Push-to-deploy for the Flow server, run every minute by flow-autodeploy.timer.
 
-A release is a git tag r<N> on GitHub whose REQUEST file reads "<commit sha> <manifest sha256> [e2e]"
+A release is a git tag r<N> on GitHub whose REQUEST file reads "<commit sha> <manifest sha256> [e2e [light]]"
 (tools/deploy.sh writes and pushes it). The server cannot reach GitHub, only jsDelivr, and jsDelivr caches
 branch heads for hours, but a tag it has never seen resolves fresh. So the server only ever asks for the next
 tag number: it handles r<N> once, then waits for r<N+1>.
@@ -11,7 +11,8 @@ For each request it
    against the sha256 in jsDelivr's listing of the commit;
 2. runs flow-pull.sh (every release file checked against its sha256 and the manifest; backup; health checks;
    automatic rollback);
-3. if asked ("e2e") and the deploy held, runs tools/qa_e2e.py: internal test accounts, real AI, cleaned up after;
+3. if asked ("e2e") and the deploy held, runs tools/qa_e2e.py: internal test accounts, real AI, cleaned up after
+   ("e2e light": QA_LIGHT=1, no recordings sent to the AI; the automatic 内测版 releases ask for that);
 4. writes the outcome to data/deploy-status.json, which the app serves at /api/deploy-status
    (tag, commit, result, health checks, test counts and the names of failed checks; nothing else).
 
@@ -105,16 +106,18 @@ def e2e_summary(work):
     try:
         r = json.loads((work / 'report.json').read_text())
         return {'checks': r['checks']['total'], 'failed': r['checks']['failed'], 'failed_names': [f['who'] + ': ' + f['name'] for f in r['failed']][:40],
+                'light': bool(r.get('light')),
                 'server_errors': len(r['server_errors']), 'ai_calls': r['ai_calls_used'], 'seconds': r['seconds'],
                 'cleanup_ok': not any(f['who'] == 'cleanup' for f in r['failed'])}
     except (OSError, ValueError, KeyError) as e:
         return {'error': 'no report: ' + str(e)[:200]}
 
 
-def run_e2e(work, log):
+def run_e2e(work, log, light=False):
     with log.open('w') as out:
         try:
-            subprocess.run([sys.executable, '-I', str(work / 'qa_e2e.py')], cwd=work, env=ENV, stdout=out, stderr=subprocess.STDOUT, timeout=1500)
+            subprocess.run([sys.executable, '-I', str(work / 'qa_e2e.py')], cwd=work, env={**ENV, **({'QA_LIGHT': '1'} if light else {})},
+                           stdout=out, stderr=subprocess.STDOUT, timeout=1500)
         except subprocess.TimeoutExpired:
             pass
     return e2e_summary(work)
@@ -175,7 +178,8 @@ def main():
         write_status({**st, 'state': 'done', 'result': 'BAD_REQUEST', 'finished': now()})
         return
     e2e = 'e2e' in words[2:]
-    st.update(commit=sha, e2e_requested=e2e)
+    light = e2e and 'light' in words[2:]  # no recordings sent to the AI (tools/qa_e2e.py QA_LIGHT)
+    st.update(commit=sha, e2e_requested=e2e, **({'e2e_light': True} if light else {}))
     write_status(st)
     work = AD / tag
     shutil.rmtree(work, ignore_errors=True)
@@ -214,7 +218,7 @@ def main():
     if e2e and st['result'] in ('DEPLOYED', 'NOTHING_TO_DO') and (work / 'qa_e2e.py').exists():
         st['state'] = 'testing'
         write_status(st)
-        st['e2e'] = run_e2e(work, work / 'e2e.log')
+        st['e2e'] = run_e2e(work, work / 'e2e.log', light)
         if not BETA and (work / 'qa-audio').is_dir() and any((work / 'qa-audio').iterdir()):  # keep this release's test for the daily run
             shutil.rmtree(DAILY, ignore_errors=True)
             DAILY.mkdir(parents=True)

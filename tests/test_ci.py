@@ -57,6 +57,53 @@ class ShareTests(unittest.TestCase):
         self.assertIn('tools/build_release.py --here', jobs['backend-share'])  # the guide PDF the guide tests check
 
 
+class BetaReleaseTests(unittest.TestCase):
+    """.github/workflows/beta.yml releases each main commit that passed Tests to the 内测版, unless BETA_AUTO is off."""
+
+    def setUp(self):
+        self.wf = (ROOT / '.github' / 'workflows' / 'beta.yml').read_text(encoding='utf-8')
+        self.jobs = dict(re.findall(r'^  ([a-z-]+):\n(.*?)(?=^  [a-z-]+:\n|\Z)', self.wf.split('\njobs:\n', 1)[1], re.S | re.M))
+
+    def test_it_follows_main_after_tests_pass_unless_paused(self):
+        tests_name = re.search(r'^name: (.+)$', (ROOT / '.github' / 'workflows' / 'tests.yml').read_text(), re.M).group(1)
+        self.assertIn(f'workflow_run:\n    workflows: [{tests_name}]\n    types: [completed]\n    branches: [main]', self.wf)
+        cond = self.jobs['release']
+        for part in ("vars.BETA_AUTO != 'off'", "github.event.workflow_run.conclusion == 'success'",
+                     "github.event.workflow_run.event == 'push'", "github.event_name == 'workflow_dispatch'"):
+            self.assertIn(part, cond)
+        self.assertIn('ref: ${{ github.event.workflow_run.head_sha', cond)  # the commit that passed, not main's newest
+        # with the end-to-end test (never --no-e2e), the light one unless a Run workflow asks for the full one
+        self.assertIn('bash tools/deploy.sh --beta $light "$(git rev-parse HEAD)"', cond)
+        self.assertIn("E2E_MODE: ${{ inputs.e2e == 'full' && 'full' || 'light' }}", cond)
+        self.assertIn('if [ "$E2E_MODE" = full ]; then light=""; else light="--light"; fi', cond)
+        self.assertIn('options: [light, full]\n        default: light', self.wf)
+        self.assertNotIn('--no-e2e', self.wf)
+        self.assertIn('-r tools/requirements-release.txt', cond); self.assertIn('cache: pip', cond)  # Playwright, cached
+
+    def test_only_the_release_job_may_push_and_releases_run_one_at_a_time(self):
+        self.assertIn('\npermissions:\n  contents: read\n', self.wf)
+        self.assertIn('permissions:\n      contents: write', self.jobs['release'])
+        self.assertNotIn('contents: write', self.jobs['dry-run'])
+        self.assertIn('group: beta-release\n      cancel-in-progress: false', self.jobs['release'])
+        self.assertNotIn('secrets.', self.wf)  # nothing but the workflow's own token
+
+    def test_the_guide_pdf_is_printed_with_a_chinese_font(self):
+        for job in ('release', 'dry-run'):
+            self.assertIn('fonts-noto-cjk', self.jobs[job], job)
+        br = load('build_release')
+        import zlib
+        def pdf(name):
+            body = zlib.compress(b'<< /Type /FontDescriptor /FontName /ABCDEF+' + name + b' >>')
+            return b'%PDF-1.4\n1 0 obj << /Length 9 /Filter /FlateDecode >>\nstream\n' + body + b'\nendstream\n/BaseFont /GHIJKL+Helvetica\n'
+        with tempfile.TemporaryDirectory() as tmp:
+            f = Path(tmp) / 'g.pdf'
+            f.write_bytes(pdf(b'NotoSansCJKsc-Regular'))
+            self.assertEqual(br.pdf_fonts(f), ['Helvetica', 'NotoSansCJKsc-Regular'])
+            self.assertTrue(any(c.lower() in n.lower() for n in br.pdf_fonts(f) for c in br.CHINESE_FONTS))
+            f.write_bytes(pdf(b'DejaVuSans'))
+            self.assertFalse(any(c.lower() in n.lower() for n in br.pdf_fonts(f) for c in br.CHINESE_FONTS))
+
+
 class MergeFriendlyListTests(unittest.TestCase):
     def test_the_upgrade_lists_are_one_name_per_line_and_sorted(self):
         script = (ROOT / 'flow' / 'upgrade.sh').read_text()

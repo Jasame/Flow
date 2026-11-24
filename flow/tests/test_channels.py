@@ -141,6 +141,50 @@ class SetupTests(unittest.TestCase):
         self.assertTrue(any('redirect' in p for p in problems))
 
 
+class LightEndToEndTests(unittest.TestCase):
+    """REQUEST "e2e light" runs tools/qa_e2e.py with QA_LIGHT=1, which sends no recording to the AI (the Gemini relay's
+    two places are shared with 语流's learners), and the test never has more than QA_AI_SLOTS AI requests in flight."""
+
+    def autodeploy(self):
+        import importlib.util
+        with patch.object(sys, 'argv', ['flow-autodeploy.py', '--beta']):
+            spec = importlib.util.spec_from_file_location('autodeploy_light', TOOLS / 'flow-autodeploy.py')
+            mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+        return mod
+
+    def test_the_request_word_light_reaches_the_test_as_qa_light(self):
+        mod = self.autodeploy()
+        src = (TOOLS / 'flow-autodeploy.py').read_text()
+        self.assertIn("light = e2e and 'light' in words[2:]", src)
+        self.assertIn("st['e2e'] = run_e2e(work, work / 'e2e.log', light)", src)
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            (work / 'report.json').write_text(json.dumps({'checks': {'total': 3, 'failed': 0}, 'failed': [], 'server_errors': [],
+                                                          'ai_calls_used': 1, 'seconds': 1, 'light': True}))
+            seen = []
+            with patch.object(mod.subprocess, 'run', lambda *a, **k: seen.append(k['env'])):
+                self.assertTrue(mod.run_e2e(work, work / 'e2e.log', True)['light'])
+                mod.run_e2e(work, work / 'e2e.log')
+        self.assertEqual(seen[0].get('QA_LIGHT'), '1')
+        self.assertNotIn('QA_LIGHT', seen[1])
+        self.assertEqual(seen[0].get('FLOW_SERVICE'), 'flow-beta')  # the 内测版's settings are kept
+
+    def test_every_recording_sent_to_the_ai_is_skipped_in_a_light_run(self):
+        lines = (TOOLS / 'qa_e2e.py').read_text().splitlines()
+        sends = [k for k, l in enumerate(lines) if 'cl.ai(' in l and 'audio(' in l]
+        self.assertGreaterEqual(len(sends), 5)
+        for k in sends:
+            depth = len(lines[k]) - len(lines[k].lstrip())
+            opener = next(l for l in reversed(lines[:k]) if l.strip() and len(l) - len(l.lstrip()) < depth)
+            while not opener.lstrip().startswith(('if spoken(', 'def ')):
+                depth = len(opener) - len(opener.lstrip())
+                opener = next(l for l in reversed(lines[:lines.index(opener)]) if l.strip() and len(l) - len(l.lstrip()) < depth)
+            self.assertTrue(opener.lstrip().startswith('if spoken('), f'qa_e2e.py line {k + 1} sends a recording outside `if spoken(...)`')
+        src = '\n'.join(lines)
+        self.assertIn("AI_SLOTS = threading.BoundedSemaphore(AI_SLOT_COUNT)", src)
+        self.assertIn("with AI_SLOTS if slot else contextlib.nullcontext():", src)
+
+
 class ToolTests(unittest.TestCase):
     def test_releases_for_each_site_go_their_own_way(self):
         for f in ('deploy.sh', 'flow-pull.sh', 'flow-pull-rollback.sh'):
@@ -153,7 +197,13 @@ class ToolTests(unittest.TestCase):
         # installs that same build commit, only after it was requested on the 内测版 (unless --skip-beta)
         self.assertIn('BUILD=$(python3 tools/build_release.py "$SHA")', deploy)
         self.assertIn('BUILD=$(python3 tools/build_release.py --reuse "$SHA")', deploy)
-        self.assertIn('git log -p --format= origin/release-beta -- REQUEST | grep -q "^+$BUILD "', deploy)
+        # grep without -q: under pipefail, grep -q stopping early would make git log's broken pipe count as "not found"
+        self.assertIn('git log -p --format= origin/release-beta -- REQUEST | grep "^+$BUILD " >/dev/null', deploy)
+        self.assertNotIn('| grep -q "^+$BUILD "', deploy)
+        # the automatic 内测版 releases ask for the light end-to-end test (no recordings to the AI); 语流 never does
+        self.assertIn('--light) LIGHT=" light" ;;', deploy)
+        self.assertIn('if [ -n "$LIGHT" ] && [ $P = r ]; then echo', deploy)
+        self.assertIn('if [ -n "$E2E" ]; then E2E="$E2E$LIGHT"; fi', deploy)
         self.assertIn('MAN=$(python3 tools/release_manifest.py "$BUILD" 2>/dev/null)', deploy)
         self.assertNotIn('build_front.py --check', deploy)  # it checked the laptop's files, not the commit's
         self.assertIn("if BETA and b'F=${FLOW_DIR:-' not in (work / 'flow-pull.sh').read_bytes():", (TOOLS / 'flow-autodeploy.py').read_text())
