@@ -2,7 +2,7 @@
 """例句预生成: AI example sentences written ahead of time for word-book words that no Flow text uses.
 
     python3 fill_examples.py [--env-file /etc/flow.env] [--books tem8,gre] [--per-call 16] [--max-calls N]
-                             [--pause 1.0] [--dry-run] [--status FILE]
+                             [--pause 1.0] [--dry-run] [--status FILE] [--offpeak]
 
 A word card shows up to two sentences from Flow's texts, else the dictionary's example, else an AI example. That last
 one is written the first time someone opens the card (the card says 「正在找例句…」 for a few seconds) and is then
@@ -17,6 +17,11 @@ for once. Books go in the order given (default: the exam and data books first, t
 progress every 20 calls and stops after 5 failed calls in a row. Exit status 0 when nothing is left to do, 1 when
 words are left (stopped early or --max-calls reached), 2 when no model is configured.
 
+--offpeak: when the model the examples' route usually reaches has busy hours (DeepSeek on 百炼: 08:00–22:00 Beijing
+time; half price the rest of the day), wait them out. Qwen models have none (their half price is 百炼's batch API).
+The calls take the batch lane (ai_routes): flow-batch-X for the examples' flow-text-X where the gateway has it. It also
+stops for the day once the console's daily AI budget is spent (state budget); run it again tomorrow. Every call is in ai_calls as 例句预生成（批量）.
+
 On the server, run it as the site's own user (www), never as root. The database is in WAL mode: a root process can
 leave root-owned flow.sqlite3-wal / -shm files behind, and then the site (running as www) can no longer write to its
 own database. The env file is readable by root only, so let systemd read it and start the script as www, with the
@@ -30,7 +35,8 @@ site's interpreter (systemctl show flow -p ExecStart) and a folder www can write
 (--env-file /dev/null: the environment already comes from systemd. For the 内测版: /etc/flow-beta.env and
 /www/wwwroot/flow-beta. Add --wait to stay until it ends; try --dry-run and --max-calls 5 first, as on b5, 2026-11-24.)
 Or start it from the xmc.hk console (运维 → 后台任务, r26), which runs it as the site does, with --status, and shows
-that file's progress: {state: running | done | left | no-model, total, looked, calls, made, left, other_sense, books, updated}.
+that file's progress: {state: running | waiting | done | left | budget | no-model, total, looked, calls, made, left, other_sense, books, updated,
+until}.
 
 Each word is written at its own level (vocab_service.example_level: the school and basic books A2, 四级 B1, the rest
 B2), in its first sense unless that one is clearly a rare use; the sense used is kept with the example.
@@ -68,6 +74,7 @@ def main(argv=None):
     ap.add_argument('--pause', type=float, default=1.0, help='两次请求之间停几秒')
     ap.add_argument('--dry-run', action='store_true', help='只数还缺多少，不请求')
     ap.add_argument('--status', help='把进度写进这个 JSON 文件（后台的「后台任务」读它）')
+    ap.add_argument('--offpeak', action='store_true', help='例句用的模型有忙时价（百炼上的 DeepSeek：北京时间 8–22 点）时，等到半价时段再跑')
     a = ap.parse_args(argv)
     status = {'state': 'running', 'books': [], 'total': None, 'looked': 0, 'calls': 0, 'made': 0, 'other_sense': 0, 'left': None}
 
@@ -89,6 +96,7 @@ def main(argv=None):
     from vertex_auth import ai_enabled
     from chat_service import request_model
     from lab_service import parse
+    import ai_routes
     db = Path(os.environ.get('FLOW_DATA_DIR') or HERE / 'data') / 'flow.sqlite3'
     if not db.is_file():
         print(f'找不到网站数据库：{db}')
@@ -120,9 +128,20 @@ def main(argv=None):
             i += 1
         if not batch:
             continue
+        if ai_routes.over_budget():
+            print('今天的 AI 预算已用完：停下，明天再跑。', flush=True)
+            report(state='budget', looked=i, calls=calls, made=made)
+            return 1
+        line = ai_routes.price_of(ai_routes.usual_models().get(ai_routes.route('fill-examples'), ''))
+        while a.offpeak and ai_routes.busy(time.time(), line):
+            until = ai_routes.next_quiet(time.time(), line)
+            report(state='waiting', until=until)
+            time.sleep(min(600, max(5, until - time.time())))
+        report(state='running', until=None)
         calls += 1
         try:
-            reply, _ = request_model(vs.example_messages(batch, level))
+            with ai_routes.task('fill-examples'):
+                reply, _ = request_model(vs.example_messages(batch, level))
             out = vs.example_results(parse(reply), batch)
             vs.save_examples(c, out)
             made += len(out)

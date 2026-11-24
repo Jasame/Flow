@@ -126,6 +126,22 @@ def listing(c, uid):
             'notice': NOTICE, 'prep': PREP_SECONDS, 'talk': TALK_SECONDS, 'done': len(last)}
 
 
+def for_ielts(c, uid, prof):
+    """Is this learner heading for IELTS: studying abroad, or preparing for IELTS (the exam they set, or the IELTS
+    word book)? Then the plan's speaking step is the next Part 1 topic instead of a role-play scene."""
+    if prof.get('goal') == 'abroad' or prof.get('exam') == 'ielts':
+        return True
+    return prof.get('goal') == 'exam' and (__import__('vocab_service').plan(c, uid) or {}).get('book') == 'ielts'
+
+
+def next_part1(c, uid):
+    """The Part 1 topic to practise next: the first one not done yet; once all are done, the one done longest ago."""
+    last = {r['pack']: r['t'] for r in c.execute("SELECT pack, MAX(created) t FROM next_skill_events WHERE user_id=? AND kind='ielts' "
+                                                 "AND pack LIKE 'ielts-p1-%' GROUP BY pack", (uid,))}
+    key = min(PART1, key=lambda k: (pack_id(1, k) in last, last.get(pack_id(1, k), 0)))
+    return {'id': key, 'title': PART1[key][0], 'title_en': PART1[key][1], 'round': len(last) >= len(PART1)}
+
+
 def _clean(v, lo=0, hi=600):
     from lab_service import text
     return text(v if isinstance(v, str) else '', lo, hi)
