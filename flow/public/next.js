@@ -879,11 +879,13 @@
   }
   // On a material's page: 存到手机, or that it is kept.
   function offChip(id) {
-    return OFF.has(id) ? '<span class="offk on" id="keepOff">✓ 已存到手机，没网也能学</span>' : '<button class="link small offk" id="keepOff" type="button" data-tap="study-keep">存到手机，没网也能学</button>';
+    // a phone with a down arrow in front: set apart from 怎么写的 on the source line, on the same line or the next
+    const icon = '<svg class="offi" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M12 7.5v7m-3-3 3 3 3-3"/></svg>';
+    return OFF.has(id) ? '<span class="offk on" id="keepOff">✓ 已存到手机，没网也能学</span>' : `<button class="link small offk" id="keepOff" type="button" data-tap="study-keep">${icon}存到手机，没网也能学</button>`;
   }
   function bindOffChip(id) {
     const b = document.getElementById('keepOff'); if (!b || b.tagName !== 'BUTTON') return;
-    b.onclick = async () => { b.disabled = true; b.textContent = '正在存…'; if (await keepOffline(id)) b.outerHTML = offChip(id); else { b.disabled = false; b.textContent = '存到手机，没网也能学'; } };
+    b.onclick = async () => { b.disabled = true; b.textContent = '正在存…'; const ok = await keepOffline(id); b.outerHTML = offChip(id); if (!ok) bindOffChip(id); };
   }
   // Losing and finding the connection: said once each way; what waited is sent.
   addEventListener('offline', () => { const n = OFF.count(); toast(n ? `现在没网：已存到手机的 ${n} 篇还能学` : '现在没网：复习单词还能做，联网后自动同步'); });

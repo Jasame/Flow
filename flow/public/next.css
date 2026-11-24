@@ -1234,7 +1234,8 @@ details.preread>summary .tiny{flex-basis:100%}
 .wk .week span.today{outline:1.5px solid var(--green);outline-offset:1px}
 /* 存到手机 on a material's page */
 .offk{display:inline-flex;align-items:center;font-size:13px;min-height:24px}
-.origin .offk{border-left:1px solid var(--line2);padding-left:10px;margin-left:2px}  /* on the source line: set apart from 怎么写的 */
+.offk .offi{width:15px;height:15px;margin-right:3px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.origin .offk{margin-left:4px}  /* on the source line: the icon sets it apart from 怎么写的 */
 .offk.on{color:var(--green-ink)}
 /* 分享卡片: the preview fits the sheet */
 #sheetCard .share-img{display:block;width:auto;height:auto;max-width:100%;max-height:min(48vh,520px);margin:0 auto;border-radius:14px;box-shadow:0 2px 14px rgba(0,0,0,.12);background:#fff}
