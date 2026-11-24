@@ -264,7 +264,7 @@ def compose(c, uid, name, now, origin):
     else:
         rem, fin, acc = w['remembered'], w['finished'], w['accuracy']
         if hb['met']:
-            subject = f"语流 · 这周目标达成，一共 {hb['weeks']} 周了"
+            subject = f"语流 · 这周目标达成，一共 {hb['weeks']} 周了" if hb['weeks'] > 1 else '语流 · 这周目标达成了'
         elif rem['now'] or fin['now']:
             subject = '语流 · 这周进步：' + '，'.join(x for x in (f"记住 {rem['now']} 个新词" if rem['now'] else '', f"学完 {fin['now']} 篇" if fin['now'] else '') if x)
         else:

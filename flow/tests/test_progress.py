@@ -224,7 +224,11 @@ class MailTests(Db):
         with app.db() as c:
             self.studied(c, *(at(2026, 11, d, 9) for d in (23, 24, 25, 26)))
             self.assertEqual(ps.send_weekly(c, SUNDAY), 1)
-        self.assertIn('Subject: 语流 · 这周目标达成，一共 1 周了', self.mails()[0])
+        self.assertIn('Subject: 语流 · 这周目标达成了', self.mails()[0])
+        with app.db() as c:  # the next week reached too: two in all
+            self.studied(c, at(2026, 11, 30, 9), *(at(2026, 12, d, 9) for d in (1, 2, 3)))
+            self.assertEqual(ps.send_weekly(c, SUNDAY + 7 * 86400), 1)
+        self.assertIn('Subject: 语流 · 这周目标达成，一共 2 周了', self.mails()[-1])
 
     def test_no_email_no_mail_and_the_daily_reminder_does_not_repeat_it(self):
         with app.db() as c:
