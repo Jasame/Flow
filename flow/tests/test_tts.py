@@ -134,6 +134,19 @@ class ServerVoiceTests(TtsCase):
         self.assertEqual((st, body['code']), (502, 'gateway'))
         self.assertIsNone(self.c.execute('SELECT 1 FROM tts_usage').fetchone())
         self.assertFalse((nx.AUDIO_DIR / 'tts').exists() and any((nx.AUDIO_DIR / 'tts').rglob('*.mp3')))
+        row = self.c.execute("SELECT ok, prompt FROM ai_calls WHERE kind='tts'").fetchone()
+        self.assertEqual(tuple(row), (0, len('The gateway is down.')))  # in the console's costs, as a failed call
+
+    def test_each_sentence_made_is_a_row_in_the_ai_costs(self):
+        tts.post(self.c, 1, {'text': 'Counted in the costs.', 'voice': 'uk-m'})
+        tts.post(self.c, 2, {'text': 'Counted in the costs.', 'voice': 'uk-m'})  # stored: no second call, no second row
+        rows = [tuple(r) for r in self.c.execute("SELECT kind, service, model, served, ok, prompt FROM ai_calls WHERE kind='tts'")]
+        self.assertEqual(rows, [('tts', 'tts', 'flow-tts', 'cosyvoice-v3-flash', 1, len('Counted in the costs.'))])
+
+    def test_the_nightly_prewarm_waits_when_the_days_ai_budget_is_spent(self):
+        with patch('ai_routes.over_budget', return_value=True):
+            self.assertEqual(tts.prewarm(self.c, budget=10 ** 6), {'status': 'over-budget'})
+        self.assertEqual(self.gw.seen, [])
 
     def test_a_folder_it_cannot_write_is_found_before_the_gateway_is_paid(self):
         # 内测版, 2026-11-24: systemd ProtectSystem=strict kept the folder read-only; every tap was charged, then lost.
