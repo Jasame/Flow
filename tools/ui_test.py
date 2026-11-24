@@ -1462,6 +1462,39 @@ def class_run(pw):
         browser.close()
 
 
+def wait_run(pw):
+    """A slow AI answer (the gateway queueing, the model busy): after 15 s a line under the button says the AI is still
+    thinking, inside the screen, gone when the answer comes. The page's fetch is held back here, so no server change."""
+    dev = 'wait'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    phone = dict(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN')
+    try:
+        ctx = browser.new_context(**phone)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['phone']['token'], 'url': BASE}])
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.goto(BASE + '/#/', wait_until='networkidle')
+        go(pg, f'#/m/{PID}/output'); pg.wait_for_selector('#ans', timeout=8000)
+        pg.evaluate("""() => { const f = window.fetch; window.fetch = (u, o) => /\\/api\\/next\\/rewrite/.test(String(u))
+            ? new Promise(r => setTimeout(() => r(f(u, o)), 17500)) : f(u, o); }""")
+        pg.fill('#ans', 'I usually wear headphones on the train, so the noise is less.'); pg.click('#go')
+        pg.wait_for_timeout(9000)
+        early = pg.evaluate("!!document.querySelector('.ai-wait')")
+        pg.wait_for_selector('.ai-wait', timeout=9000)
+        line = pg.evaluate("""() => { const l = document.querySelector('.ai-wait'), b = document.getElementById('go'), r = l.getBoundingClientRect();
+            return { text: l.textContent, status: l.getAttribute('role'), below: r.top >= b.getBoundingClientRect().bottom - 1,
+                     inside: r.left >= 0 && r.right <= innerWidth + 1, wide: document.scrollingElement.scrollWidth - innerWidth }; }""")
+        check(dev, 'a slow AI answer: nothing in the first 15 s, then 「AI 还在想」 under the button, read out, inside the screen',
+              not early and line['text'].startswith('AI 还在想') and line['status'] == 'status' and line['below'] and line['inside'] and line['wide'] <= 0, (early, line))
+        pg.evaluate("document.querySelector('.ai-wait').scrollIntoView({ block: 'center' })"); pg.wait_for_timeout(200)
+        pg.screenshot(path=str(OUT / 'ai-wait.png'))
+        pg.wait_for_selector('#finSum .fin-row', timeout=20000); pg.wait_for_timeout(400)
+        check(dev, 'the line goes once the answer comes', not pg.evaluate("!!document.querySelector('.ai-wait')"))
+        check(dev, 'no script errors', not errs, errs[:3])
+        ctx.close()
+    finally:
+        browser.close()
+
+
 def privacy_run(pw):
     """年龄段 and a guardian's agreement (privacy_service): the sign-up form asks a band and, under 14, the tick, before any
     request; an older account is asked once and cannot dismiss the question; under 14 without the agreement, the AI on
@@ -2321,6 +2354,12 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('class', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'wait' in ONLY:
+            try:
+                wait_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('wait', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'a11y' in ONLY:
             try:
                 a11y_run(pw)

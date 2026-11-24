@@ -19,14 +19,40 @@
   function save(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private mode */ } }
   function rid(prefix) { return prefix + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10); }
   function toast(msg) { toastEl.textContent = msg; toastEl.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => toastEl.classList.remove('show'), 2400); }
+  // An AI request still running after 15 s (the AI busy, a queue at the gateway): a line under the button just pressed,
+  // 「AI 还在听…」 for a recording, 「AI 还在想…」 otherwise, gone when the answer comes. Background fills (example
+  // sentences while reviewing) have no button and show nothing. Buttons pressed by click, tap or keyboard alike.
+  const AI_WAIT_MS = 15000, AI_QUIET = /^\/api\/next\/vocab\/examples/;
+  let lastPress = { el: null, at: 0 };
+  document.addEventListener('click', e => { const b = e.target && e.target.closest && e.target.closest('button, .btn, [role=button]'); if (b) lastPress = { el: b, at: Date.now() }; }, true);
+  function aiWait(path, body) {
+    if (!body || typeof body.request_id !== 'string' || AI_QUIET.test(path)) return () => {};
+    const btn = Date.now() - lastPress.at < 1500 ? lastPress.el : null;
+    if (!btn) return () => {};
+    let line = null;
+    const t = setTimeout(() => {
+      if (!btn.isConnected) return;
+      // under the row of buttons when the button sits in one, else right under the button
+      let host = btn, up = btn.parentElement;
+      if (up && getComputedStyle(up).display.includes('flex') && !getComputedStyle(up).flexDirection.startsWith('column')) host = up;
+      line = document.createElement('p');
+      line.className = 'ai-wait small';
+      line.setAttribute('role', 'status');
+      line.textContent = body.audio ? 'AI 还在听，可能要多等一会儿' : 'AI 还在想，可能要多等一会儿';
+      host.insertAdjacentElement('afterend', line);
+    }, AI_WAIT_MS);
+    return () => { clearTimeout(t); if (line) line.remove(); };
+  }
   // One request to the server: an error becomes a message the page can show, and a session that ended asks to sign in
   // again (not for a preload: quiet). Returns the answer parsed (j) and as text (t, for the data layer to share).
   async function request(path, body, quiet) {
     const opt = { credentials: 'same-origin', headers: {} };
     if (body !== undefined) { opt.method = 'POST'; opt.headers['Content-Type'] = 'application/json'; if (S.csrf) opt.headers['X-CSRF-Token'] = S.csrf; opt.body = JSON.stringify(body); }
     let r;
-    try { r = await fetch(path, opt); } catch (x) { noteIssue('api', '网络连接失败', path.split('?')[0]); const e = new Error('网络连接失败，请检查网络'); e.network = true; throw e; }
+    const waiting = aiWait(path, body);
+    try { r = await fetch(path, opt); } catch (x) { waiting(); noteIssue('api', '网络连接失败', path.split('?')[0]); const e = new Error('网络连接失败，请检查网络'); e.network = true; throw e; }
     const t = await r.text().catch(() => '');
+    waiting();
     let j = {}; try { j = t ? JSON.parse(t) : {}; } catch (x) { /* not JSON: an error page */ }
     if (!r.ok) {
       if (r.status >= 500) noteIssue('api', `服务器返回 ${r.status}`, path.split('?')[0]);  // 4xx are answers (a wrong password …), not faults

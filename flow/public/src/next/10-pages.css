@@ -148,6 +148,9 @@
 .toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:99px;font-size:14px;opacity:0;pointer-events:none;transition:.2s;z-index:80;max-width:calc(100% - 32px);text-align:center}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 @media (min-width:760px){.toast{bottom:32px}}
+.ai-wait{flex-basis:100%;margin:6px 0 0;color:var(--muted);animation:aiwait .3s ease-out}
+@keyframes aiwait{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.ai-wait{animation:none}}
 .spin{display:inline-block;width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .8s linear infinite;vertical-align:-3px}
 @keyframes sp{to{transform:rotate(360deg)}}
 .grow{flex:1}.row.center{justify-content:center}.tc{text-align:center}
