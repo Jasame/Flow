@@ -97,6 +97,14 @@ class JobTests(unittest.TestCase):
         self.assertEqual(len(rows), 3); self.assertTrue(all(ok == 0 and err == 'shape: score_nan' for _, ok, err in rows))
         self.assertNotIn('coffee', json.dumps(rows))
 
+    def test_a_row_that_was_not_written_never_marks_an_older_one(self):
+        import ai_routes, time as _t
+        ai_routes.record('main', 'gemini-test', _t.monotonic(), [], 'ok')  # an earlier call, written
+        with patch('ai_routes._db', return_value=None):
+            ai_routes.record('main', 'gemini-test', _t.monotonic(), [], 'x')  # this one could not be written
+        ai_routes.mark_shape('json_parse')
+        self.assertEqual(self.calls(), [('main', 1, '')])
+
     def test_a_cut_off_answer_counts_as_a_miss(self):
         good = json.dumps(END, ensure_ascii=False)
         with patch('chat_service._request_main', side_effect=[('{"summary": "敢开口', 'length'), (good, 'stop')]):

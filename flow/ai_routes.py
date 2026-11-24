@@ -381,6 +381,7 @@ def _db():
 
 def record(service, model, started, messages, reply=None, info=None, exc=None, fallback=False):
     """One attempt, into ai_calls. Never raises: the learner's answer matters more than the bookkeeping."""
+    CTX.last_call = None  # set again only when this row is written: mark_shape must never touch an older row
     info = info or {}
     try:
         status = getattr(exc, 'code', None) if exc is not None else 200
