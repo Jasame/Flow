@@ -149,6 +149,8 @@ flow/daily_service.py
 flow/easy_reading.py
 flow/event_service.py
 flow/exam_service.py
+flow/exam_sprint.py
+flow/exam_types.py
 flow/feedback_service.py
 flow/field_service.py
 flow/account_data.py
@@ -197,6 +199,8 @@ flow/public/apple-touch-icon.png
 flow/public/guide/cards.jpg
 flow/public/guide/easy.jpg
 flow/public/guide/exam.jpg
+flow/public/guide/examtype.jpg
+flow/public/guide/sprint.jpg
 flow/public/guide/flow-guide.pdf
 flow/public/guide/graph.jpg
 flow/public/guide/guide.md
@@ -265,6 +269,7 @@ flow/tests/test_lab.py
 flow/tests/test_learner.py
 flow/tests/test_learning.py
 flow/tests/test_learning_loop.py
+flow/tests/test_exam_sprint.py
 flow/tests/test_learning_more.py
 flow/tests/test_learning_system.py
 flow/tests/test_login.py

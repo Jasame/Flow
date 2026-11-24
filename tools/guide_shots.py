@@ -38,7 +38,16 @@ def review(pg):
     pg.wait_for_selector('#view .review', timeout=6000)
 
 
-# name -> (page, extra step or None, signed in?)
+def gaps(pg):
+    """选词填空 with its first two gaps filled (rightly) from the options sheet."""
+    for i in range(2):
+        pg.click(f'button.gap[data-gap="{i}"]'); pg.wait_for_selector('#sheetCard [data-pick]', timeout=5000)
+        pg.click(f'#sheetCard [data-pick="{(12, 13)[i]}"]'); pg.wait_for_timeout(300)  # the right words: role, sorts
+    pg.evaluate("document.querySelector('.xt-text').scrollIntoView(); scrollBy(0, -150)")
+
+
+# name -> (page, extra step or None, signed in?[, learner]); the learner is 小林 (guide) unless named
+
 SHOTS = {
     'welcome': ('#/welcome', None, False),
     'login': ('#/me', login, False),
@@ -60,6 +69,8 @@ SHOTS = {
     'radartest': ('#/radar/test', None, True),
     'report': ('#/report', None, True),
     'me': ('#/me', None, True),
+    'sprint': ('#/exam', None, True, 'sprint'),  # 考试冲刺: a learner preparing for 四级 in 19 days (tools/ui_server.py)
+    'examtype': ('#/exam/cet4/banked', gaps, True, 'sprint'),
 }
 
 
@@ -80,11 +91,12 @@ def main(only):
         time.sleep(0.25)
     time.sleep(0.5)
     cfg = json.loads((state / 'sessions.json').read_text())
-    base, token = cfg['base'], cfg['learners']['guide']['token']
+    base = cfg['base']
     with sync_playwright() as p:
         browser = p.chromium.launch(channel='chrome')  # the installed Chrome, as tools/ui_test.py does
         for name in names:
-            route, step, signed = SHOTS[name]
+            route, step, signed, *who = SHOTS[name]
+            token = cfg['learners'][who[0] if who else 'guide']['token']
             ctx = browser.new_context(viewport={'width': 390, 'height': 760}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN',
                                       reduced_motion='reduce', service_workers='block', bypass_csp=True)
             if signed:
@@ -96,7 +108,7 @@ def main(only):
             pg.wait_for_timeout(700)
             if step:
                 step(pg)
-            pg.evaluate("() => { const t = document.getElementById('toast'); if (t) t.style.display = 'none'; window.scrollTo(0, 0); }")
+            pg.evaluate("keep => { const t = document.getElementById('toast'); if (t) t.style.display = 'none'; if (!keep) window.scrollTo(0, 0); }", name == 'examtype')
             pg.wait_for_timeout(300)
             pg.screenshot(path=str(OUT / f'{name}.jpg'), type='jpeg', quality=62)
             print(f"{name}: {(OUT / f'{name}.jpg').stat().st_size // 1024} KB", flush=True)
