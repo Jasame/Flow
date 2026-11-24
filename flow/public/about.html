@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN" data-channel="__CHANNEL__">
+<html lang="zh-CN" data-channel="__CHANNEL__" data-film="__FILM__">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -62,6 +62,7 @@
         <a class="btn primary big" href="/" data-tap="about-start">免费开始学<span class="arr" aria-hidden="true">→</span></a>
         <a class="btn ghost big" href="/#/guide" data-tap="about-guide">先看操作指南</a>
       </div>
+      <a class="film-link rv" data-d="3" href="#film"><span class="fl-ico" aria-hidden="true"></span>先看一分钟动画</a>
       <ul class="facts rv" data-d="4">
         <li>不用下载 App</li><li>手机、平板、电脑都能用</li><li>微信里也能打开</li>
       </ul>
@@ -80,7 +81,199 @@
       <div class="chip c-ai" aria-hidden="true"><span class="spark">✦</span>AI 讲解这一句</div>
     </div>
   </div>
-  <a class="scroll-cue" href="#numbers" aria-label="往下看"><span></span></a>
+  <a class="scroll-cue" href="#film" aria-label="往下看：一分钟看懂语流"><span></span></a>
+</section>
+
+<!-- ============ film: 一分钟看懂语流. One timeline (about.js film()) draws this stage, and the two videos are recorded
+     from it frame by frame (/about?record=1&cut=long|short; window.FILM). Everything in it is drawn from the
+     time alone; the text version below says the same for screen readers. ============ -->
+<section class="film" id="film" aria-labelledby="filmTitle">
+  <div class="wrap">
+    <header class="sec-head rv">
+      <p class="kicker">一分钟看懂语流</p>
+      <h2 id="filmTitle" class="title">先听 AI 店员开口，<br>再看每天怎么学。</h2>
+    </header>
+    <div class="fm-box rv" data-d="1">
+      <div class="fm-stage" id="fmStage" aria-hidden="true">
+        <div class="fm-scenes">
+
+          <div class="fm-sc fm-open" data-seg="open">
+            <div class="fm-wds">
+              <span class="fm-wd fx" data-in="0.1" data-out="2.6" lang="en">commute</span>
+              <span class="fm-wd fx" data-in="0.25" data-out="2.8" lang="en">available</span>
+              <span class="fm-wd fx" data-in="0.4" data-out="2.7" lang="en">recommend</span>
+              <span class="fm-wd fx" data-in="0.2" data-out="3" lang="en">schedule</span>
+              <span class="fm-wd fx" data-in="0.5" data-out="2.9" lang="en">receipt</span>
+              <span class="fm-wd fx" data-in="0.35" data-out="3.1" lang="en">appointment</span>
+              <span class="fm-wd fx" data-in="0.15" data-out="2.75" lang="en">actually</span>
+              <span class="fm-wd fx" data-in="0.45" data-out="3.2" lang="en">negotiate</span>
+            </div>
+            <div class="fm-msg me fm-stuck fx pop" data-in="0.7"><p lang="en"><span data-type="I'd like a… um… a…" data-in="1" data-rate="8"></span><i class="fm-caret"></i></p></div>
+          </div>
+
+          <div class="fm-sc fm-speak" data-seg="speak">
+            <div class="fm-chat fx" data-in="0">
+              <div class="fm-chat-hd"><b>情景：在咖啡店点单</b><span class="fm-pill">AI 扮演：店员</span></div>
+              <p class="fm-task fx" data-in="0.5"><b>你的任务</b>点一杯饮料，说清大小和要不要加奶</p>
+              <div class="fm-msg ai fx" data-in="1.2"><p lang="en">Hi there! What can I get for you today?</p><small><span class="fm-wave" data-in="1.3" data-out="4"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span data-gate="voice">AI 朗读 · 自然人声</span></small></div>
+              <div class="fm-msg me fx" data-in="4.3"><p lang="en"><span data-type="A large latte with oat milk, please." data-in="4.5" data-rate="20"></span></p><small>打字</small></div>
+              <div class="fm-slot">
+                <div class="fm-dots fx" data-in="6.6" data-out="7.4"><i></i><i></i><i></i></div>
+                <div class="fm-msg ai fx" data-in="7.6"><p lang="en">Sure! Anything to eat with that?</p><small><span class="fm-wave" data-in="7.7" data-out="10.2"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><b class="fm-fast" data-gate="fast">一两秒就回</b></small></div>
+              </div>
+            </div>
+            <div class="fm-side">
+              <p class="fm-k fx" data-in="9.2">AI 扮演</p>
+              <div class="fm-roles fx" data-in="9.3">
+                <span class="fm-role lit" data-in="9.4">咖啡店员</span><span class="fm-role lit" data-in="9.8">酒店前台</span><span class="fm-role lit" data-in="10.2">医生</span><span class="fm-role lit" data-in="10.6">房东</span><span class="fm-role lit" data-in="11">面试官</span><span class="fm-role lit" data-in="11.4">小组同学</span>
+              </div>
+              <p class="fm-n fx" data-in="11.8"><b>12</b> 个情景，从入门到高级</p>
+            </div>
+          </div>
+
+          <div class="fm-sc fm-rounds" data-seg="rounds">
+            <div class="fm-chat fm-mini fx" data-in="0">
+              <div class="fm-msg me fx" data-in="0.2"><p lang="en">Small.</p></div>
+              <p class="fm-note fx" data-in="1">↳ AI 按你的回答放慢了一点</p>
+              <div class="fm-msg ai fx" data-in="1.3"><p lang="en">No problem. Hot or iced?</p></div>
+              <p class="fm-say fx" data-in="2.3">可以说 <b lang="en">Iced, please.</b></p>
+            </div>
+            <ol class="fm-rnd">
+              <li class="fx" data-in="3.6"><b>第 1 轮</b><span>今天：点一杯咖啡</span></li>
+              <li class="fx" data-in="5.3"><b>第 2 轮 · 两周后</b><span>这次多一条：问店员一个关于菜单的问题</span></li>
+              <li class="fx" data-in="7"><b>第 3 轮</b><span>换角色：你演店员，AI 演顾客</span></li>
+            </ol>
+          </div>
+
+          <div class="fm-sc fm-ielts" data-seg="ielts">
+            <div class="fm-card fm-cue fx" data-in="0">
+              <p class="fm-k">雅思口语 Part 2 · 话题卡</p>
+              <p class="fm-cue-t" lang="en">Describe a skill you learned outside school.</p>
+              <ul lang="en"><li>what the skill is</li><li>how you learned it</li><li>why it matters to you</li></ul>
+              <div class="fm-timer"><svg viewBox="0 0 36 36"><circle class="tr" cx="18" cy="18" r="15"/><circle class="arc" cx="18" cy="18" r="15" data-in="0.3" data-dur="6"/></svg><span>准备 1 分钟</span></div>
+            </div>
+            <div class="fm-col">
+              <div class="fm-card fx" data-in="1.6">
+                <p class="fm-k">四项估分 <span class="fm-tag">AI 估计 · 仅供练习</span></p>
+                <div class="fm-row"><span>流利与连贯</span><i class="fm-meter" data-in="1.9" data-dur="1"><i data-w=".67"></i></i><b>6.0</b></div>
+                <div class="fm-row"><span>词汇</span><i class="fm-meter" data-in="2.05" data-dur="1"><i data-w=".72"></i></i><b>6.5</b></div>
+                <div class="fm-row"><span>语法</span><i class="fm-meter" data-in="2.2" data-dur="1"><i data-w=".61"></i></i><b>5.5</b></div>
+                <div class="fm-row"><span>发音</span><i class="fm-meter" data-in="2.35" data-dur="1"><i data-w=".67"></i></i><b>6.0</b></div>
+              </div>
+              <div class="fm-card fx" data-in="3.8">
+                <p class="fm-k">跟读 · 发音分</p>
+                <p class="fm-line" lang="en">Iced, please. And a small cake.</p>
+                <div class="fm-pron"><b data-num="82" data-in="4" data-dur="1.2">0</b><span>准确 88 · 流利 79 · 完整 100</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="fm-sc fm-daily" data-seg="daily">
+            <figure class="fm-phone fx" data-in="0"><picture><source srcset="/about/today-d.jpg" media="(prefers-color-scheme: dark)"><img src="/about/today.jpg" alt="" width="390" height="844" decoding="async"></picture></figure>
+            <div class="fm-col">
+              <p class="fm-k fx" data-in="0.4">今天的计划 · 约 15 分钟</p>
+              <div class="fm-steps"><span class="lit" data-in="1">听</span><span class="lit" data-in="1.8">读</span><span class="lit" data-in="2.6">理解</span><span class="lit" data-in="3.4">用出来</span></div>
+              <p class="fm-sent fx" data-in="4.6" lang="en">…the low roar of the engine simply <span class="fm-hit" data-in="6">drains</span> away.</p>
+              <div class="fm-look fx" data-in="6.5"><p class="fm-look-w"><b lang="en">drain</b><span lang="en">[dreɪn]</span></p><p>v. 排水，流走，耗尽，喝光，使疲惫</p><p class="fm-tags"><span>四级</span><span>六级</span><span>考研</span><span>托福</span><span>雅思</span><span>GRE</span></p></div>
+            </div>
+          </div>
+
+          <div class="fm-sc fm-wordsc" data-seg="words">
+            <div class="fm-shelf">
+              <span class="lit" data-in="0.2">基础</span><span class="lit" data-in="0.3">进阶</span><span class="lit" data-in="0.4">高阶</span><span class="lit" data-in="0.5">精通</span><span class="lit" data-in="0.6">拓展</span><span class="lit" data-in="0.7">中考</span><span class="lit" data-in="0.8">高考</span><span class="lit" data-in="0.9">四级</span><span class="lit" data-in="1">六级</span><span class="lit" data-in="1.1">考研</span><span class="lit" data-in="1.2">专四</span><span class="lit" data-in="1.3">专八</span><span class="lit" data-in="1.4">雅思</span><span class="lit" data-in="1.5">托福</span><span class="lit" data-in="1.6">GRE</span><span class="lit" data-in="1.7">学术</span><span class="lit" data-in="1.8">商务</span>
+            </div>
+            <div class="fm-deck">
+              <div class="fm-wc back fx" data-in="0.4"><div class="fm-rise" data-in="3.6"><b lang="en">schedule</b><span>日程；安排</span></div></div>
+              <div class="fm-wc fx swipe" data-in="0.6" data-out="3.3"><b lang="en">commute</b><span>通勤</span></div>
+              <p class="fm-lr"><span>← 不认识</span><span class="r">认识 →</span></p>
+            </div>
+            <figure class="fm-curve fx" data-in="0.8">
+              <svg viewBox="0 0 220 100"><path class="ax" d="M14 6V86H214"/><path class="th" d="M14 22H214"/><path class="ln" data-in="1.2" data-dur="4.5" pathLength="1" d="M14 10C30 22 38 28 50 30L50 10C72 20 84 25 100 28L100 10C128 17 146 21 166 25L166 10C184 13 198 15 214 17"/><text x="16" y="19">90%</text></svg>
+              <figcaption>快忘的时候复习，间隔越拉越长</figcaption>
+            </figure>
+          </div>
+
+          <div class="fm-sc fm-exam" data-seg="exam">
+            <article class="fm-card fx" data-in="0.1">
+              <p class="fm-k">我的考试 · 四级</p>
+              <p class="fm-big">还有 <b data-num="19" data-from="30" data-in="0.3" data-dur="1.2">30</b> 天</p>
+              <p>今天这一步：题型专练 · 选词填空</p>
+              <div class="fm-trend"><i data-in="0.8" data-h=".38"></i><i data-in="1" data-h=".5"></i><i data-in="1.2" data-h=".57"></i><i data-in="1.4" data-h=".72"></i></div>
+            </article>
+            <article class="fm-card fx" data-in="2.2">
+              <p class="fm-k">这周进步</p>
+              <p class="fm-big">本周 4 / 5 天</p>
+              <div class="fm-days"><i class="lit" data-in="2.6"></i><i class="lit" data-in="2.8"></i><i></i><i class="lit" data-in="3"></i><i class="lit" data-in="3.2"></i><i></i><i></i></div>
+              <p>已达成 5 周</p>
+            </article>
+            <article class="fm-card fx" data-in="4.2">
+              <p class="fm-k">学完一篇 · 这篇学到了什么</p>
+              <ul class="fm-got"><li><b>3</b> 个表达</li><li><b>6</b> 个新词</li><li><b>1</b> 个语法点</li></ul>
+            </article>
+          </div>
+
+          <div class="fm-sc fm-any" data-seg="any">
+            <div class="fm-home fx" data-in="0">
+              <div class="fm-icons"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                <span class="fm-app fx pop" data-in="0.7"><svg viewBox="0 0 32 32"><rect width="32" height="32" rx="9"/><path d="M7 20v-6M13 24V8M19 22V11M25 18v-4"/></svg><small>语流</small></span></div>
+              <p class="fm-pillx fx" data-in="1.3">添加到主屏幕</p>
+            </div>
+            <div class="fm-col">
+              <p class="fm-off fx" data-in="2.4">现在没网：已存到手机的 3 篇还能学</p>
+              <div class="fm-devs"><span class="fm-dv ph fx" data-in="3.4"><i></i></span><span class="fm-dv tb fx" data-in="3.7"><i></i></span><span class="fm-dv lp fx" data-in="4"><i></i></span></div>
+              <p class="fm-k fx" data-in="4.4">手机、平板、电脑都能用，不用下载 App</p>
+            </div>
+          </div>
+
+          <div class="fm-sc fm-class" data-seg="class">
+            <div class="fm-card fx" data-in="0">
+              <p class="fm-k">老师给的 6 位邀请码</p>
+              <p class="fm-code"><span>3</span><span>8</span><span>K</span><span>2</span><span>Q</span><span>F</span></p>
+            </div>
+            <div class="fm-card fx" data-in="1">
+              <p class="fm-k">老师看到的 · 示例班级</p>
+              <p class="fm-big"><b>18</b> / 24 人</p>
+              <p>近 7 天在学 · 全班最常错的语法点</p>
+              <p class="fm-lock">看不到个人的名字和记录</p>
+            </div>
+          </div>
+
+          <div class="fm-sc fm-end" data-seg="end">
+            <svg class="fm-logo fx pop" data-in="0" viewBox="0 0 32 32"><rect width="32" height="32" rx="9"/><path d="M7 20v-6"/><path d="M13 24V8"/><path d="M19 22V11"/><path d="M25 18v-4"/></svg>
+            <p class="fm-name fx" data-in="0.5">语流 Flow</p>
+            <p class="fm-slogan fx" data-in="1">每天十几分钟，把英语用起来。</p>
+            <p class="fm-url fx" data-in="1.6">flowlang.cn</p>
+            <p class="fm-free fx" data-in="2.1">免费 · 不用下载 App · 手机、平板、电脑都能用</p>
+          </div>
+
+        </div>
+        <p class="fm-demo">演示画面</p>
+        <p class="fm-sub" id="fmSub"></p>
+      </div>
+      <div class="fm-bar">
+        <button class="fm-play" id="fmPlay" type="button"><span class="fm-ico" aria-hidden="true"></span><span id="fmPlayL">播放</span></button>
+        <div class="fm-ch" id="fmCh" role="group" aria-label="跳到某一段"></div>
+        <span class="fm-time" id="fmTime">1:20</span>
+      </div>
+      <p class="fm-now" id="fmNow"></p>
+    </div>
+    <details class="fm-text">
+      <summary>文字版：这一分钟讲了什么</summary>
+      <ol>
+        <li>单词背了不少，一开口还是卡住？</li>
+        <li>口语情景：AI 扮演店员、房东、面试官，你用英文把事情办成；打字或说出来都行。<span data-gate="fast">打字回一句，一两秒就有回应。</span><span data-gate="voice">AI 的回复用更像真人的声音读出来（AI 朗读，自然人声）。</span></li>
+        <li>说得短，AI 就放慢；说得好，它就加深。练过的情景两周后再来，多一条要求；第 3 轮换角色。</li>
+        <li>雅思口语 Part 1、Part 2，按四项标准给估计分（AI 估计，仅供练习）；跟读一句，看发音分。</li>
+        <li>每天一篇短文：听、读、理解、用出来，十几分钟；生词点一下就懂。</li>
+        <li>17 本词书，从中考到 GRE；单词按遗忘曲线复习，快忘的时候正好再练一次。</li>
+        <li>备考有倒计时和题型专练；这周学了几天、一篇学到了什么，都看得见。</li>
+        <li>加到手机桌面，像 App 一样用；存到手机的文章没网也能学。</li>
+        <li>老师可以开班级：只看全班的数字，看不到每个人学了什么。</li>
+        <li>语流 Flow，每天十几分钟，把英语用起来。flowlang.cn，免费，不用下载 App。</li>
+      </ol>
+      <p class="fm-text-note">动画里的对话、分数和数字是演示用的。</p>
+    </details>
+  </div>
 </section>
 
 <!-- ============ numbers ============ -->

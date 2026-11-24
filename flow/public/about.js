@@ -351,8 +351,176 @@ document.documentElement.classList.add('js');
     }, true);
   }
 
+  /* ---------- 一分钟看懂语流 (#film): one timeline for the stage on this page and for the two videos ----------
+     draw(t) sets every moving value from the time alone, so playing, jumping to a part and the frame-by-frame
+     recording (/about?record=1&cut=long|short; the recorder seeks window.FILM frame by frame and lives with the promo files, not in this repo) show the same picture. Each scene's parts carry
+     data-in / data-out (seconds into the scene); --a and --o go 0→1 as a part comes in and goes, and about.css turns
+     them into opacity, position, colour and length. Lines that rest on a server setting say so in `gate`: 'voice'
+     (sentences read by CosyVoice, tts_service) and 'fast' (typed scene turns on a 百炼 model); the server writes the
+     ones in force into <html data-film> (app.py about_film). With less motion nothing plays by itself. */
+  const FILM_SEGS = [  // id, label, length in the long cut, [start in the scene, length] in the short cut, a still frame
+    { id: 'open', label: '开场', dur: 5, short: [0, 3], still: 4 },
+    { id: 'speak', label: '口语情景', dur: 14, short: [2.4, 8], still: 12.5 },
+    { id: 'rounds', label: '循环复练', dur: 10, still: 9 },
+    { id: 'ielts', label: '雅思和跟读', dur: 7, still: 6.5 },
+    { id: 'daily', label: '每天一篇', dur: 11, short: [3.4, 6], still: 9.5 },
+    { id: 'words', label: '单词', dur: 7, short: [1, 3], still: 6 },
+    { id: 'exam', label: '考试和进步', dur: 8, still: 7.5 },
+    { id: 'any', label: '随时随地', dur: 7, short: [0.8, 2.6], still: 6.5 },
+    { id: 'class', label: '老师和班级', dur: 4, still: 3.8 },
+    { id: 'end', label: '结尾', dur: 7, short: [0, 3.4], still: 6 },
+  ];
+  // Captions: [scene, from, to (seconds from the scene's start in that cut), text]; a function picks the words the
+  // server's settings allow. web: false = only in the videos (the end card already says it on the page).
+  const L02B = f => f.fast && f.voice ? '打字回一句，一两秒就有回应，声音也更像真人。' : f.fast ? '打字回一句，一两秒就有回应。'
+    : f.voice ? '打字或者开口说都行，AI 的声音也更像真人。' : '打字或者开口说都行，说错了顺手帮你改。';
+  const FILM_CAPS = {
+    long: [
+      ['open', 0.3, 5, '单词背了不少，一开口还是卡住？'],
+      ['speak', 0.3, 7.3, '语流的口语情景：AI 扮演店员、房东、面试官，你用英文把事情办成。'],
+      ['speak', 7.4, 14, L02B],
+      ['rounds', 0.2, 4.9, '说短了，它就放慢；说得好，它就加深。'],
+      ['rounds', 5, 10, '练过的情景，两周后再来，多一条要求，还会换角色。'],
+      ['ielts', 0.2, 7, '雅思口语 Part 1、Part 2，按四项标准给估计分；跟读一句，看发音分。'],
+      ['daily', 0.2, 6, '每天一篇短文：听、读、理解、用出来，十几分钟。'],
+      ['daily', 6.1, 11, '生词点一下就懂。'],
+      ['words', 0.2, 7, '17 本词书，从中考到 GRE；快忘的时候，正好再练一次。'],
+      ['exam', 0.2, 8, '备考有倒计时和题型专练；这周学了几天、记住了哪些词，都看得见。'],
+      ['any', 0.2, 7, '加到手机桌面，像 App 一样用；没网也能学。'],
+      ['class', 0.2, 4, '老师可以开班级，只看全班的数字。'],
+      ['end', 0.3, 7, '语流 Flow，每天十几分钟，把英语用起来。', false],
+    ],
+    short: [
+      ['open', 0.2, 3, '单词背了不少，一开口还是卡住？'],
+      ['speak', 0.1, 8, f => f.fast ? '语流的口语情景：AI 扮店员，你用英文把事办成，打字一两秒就有回应。' : '语流的口语情景：AI 扮店员，你用英文把事办成。'],
+      ['daily', 0.1, 6, '每天一篇短文，听、读、理解、用出来；生词点一下就懂。'],
+      ['words', 0.1, 3, '17 本词书，快忘的时候正好再练。'],
+      ['any', 0.1, 2.6, '加到手机桌面，没网也能学。'],
+      ['end', 0.2, 3.4, '语流 Flow，把英语用起来。', false],
+    ],
+  };
+  const ease = k => 1 - Math.pow(1 - k, 3);
+  const clock = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  function film() {
+    const stage = $('#fmStage'); if (!stage) return;
+    const q = new URLSearchParams(location.search), rec = q.get('record') === '1';
+    const cut = rec && q.get('cut') === 'short' ? 'short' : 'long';
+    if (rec && q.has('gates')) document.documentElement.dataset.film = q.get('gates').replace(/,/g, ' ');
+    const on = new Set((document.documentElement.dataset.film || '').split(/\s+/).filter(Boolean));
+    const flags = { voice: on.has('voice'), fast: on.has('fast') };
+    const segs = []; let T = 0;
+    FILM_SEGS.forEach(s => {
+      const el = $(`.fm-sc[data-seg="${s.id}"]`, stage); if (!el) return;
+      const [from, dur] = cut === 'short' ? (s.short || [0, 0]) : [0, s.dur];
+      if (!dur) { el.remove(); return; }
+      const parts = $$('[data-in]', el).map(p => {
+        if (p.dataset.w) p.style.setProperty('--w', p.dataset.w);
+        if (p.dataset.h) p.style.setProperty('--h', p.dataset.h);
+        return {
+          el: p, in: Number(p.dataset.in), out: p.dataset.out ? Number(p.dataset.out) : Infinity, d: Number(p.dataset.dur || 0.45),
+          type: p.dataset.type || null, rate: Number(p.dataset.rate || 14),
+          num: p.dataset.num ? Number(p.dataset.num) : null, from: Number(p.dataset.from || 0), a: -1, o: -1, n: -1,
+        };
+      });
+      $$('[data-w], [data-h]', el).forEach(p => { if (!p.dataset.in) { if (p.dataset.w) p.style.setProperty('--w', p.dataset.w); if (p.dataset.h) p.style.setProperty('--h', p.dataset.h); } });
+      segs.push({ ...s, el, from, dur, t0: T, parts, s: -1 });
+      T += dur;
+    });
+    const DUR = T;
+    const t0Of = id => (segs.find(s => s.id === id) || {}).t0;
+    const caps = FILM_CAPS[cut].filter(c => t0Of(c[0]) !== undefined && (rec || c[4] !== false))
+      .map(c => ({ a: t0Of(c[0]) + c[1], b: t0Of(c[0]) + c[2], text: typeof c[3] === 'function' ? c[3](flags) : c[3] }));
+    const sub = $('#fmSub', stage);
+    let capNow = null;
+    function draw(t) {
+      t = clamp(t, 0, DUR);
+      stage.style.setProperty('--t', t.toFixed(3));
+      segs.forEach((g, j) => {
+        const into = t - g.t0, past = t - (g.t0 + g.dur);
+        let s = into < 0 || past >= 0.35 ? 0 : 1;
+        if (s && j > 0) s *= ease(clamp(into / 0.35, 0, 1));
+        if (s && j < segs.length - 1 && past >= 0) s *= 1 - ease(clamp(past / 0.35, 0, 1));
+        if (t >= DUR && j === segs.length - 1) s = 1;
+        if (s !== g.s) { g.el.style.setProperty('--s', s.toFixed(3)); g.el.classList.toggle('on', s > 0); g.s = s; }
+        if (!s) return;
+        const local = into + g.from;
+        g.parts.forEach(p => {
+          const a = local >= p.in ? ease(clamp((local - p.in) / p.d, 0, 1)) : 0;
+          const o = local >= p.out ? ease(clamp((local - p.out) / 0.35, 0, 1)) : 0;
+          if (a !== p.a) { p.el.style.setProperty('--a', a.toFixed(3)); p.a = a; }
+          if (o !== p.o) { p.el.style.setProperty('--o', o.toFixed(3)); p.o = o; }
+          if (p.type) {
+            const n = local < p.in ? 0 : Math.min(p.type.length, Math.floor((local - p.in) * p.rate));
+            if (n !== p.n) { p.el.textContent = p.type.slice(0, n); p.n = n; }
+          }
+          if (p.num !== null) {
+            const n = Math.round(p.from + (p.num - p.from) * a);
+            if (n !== p.n) { p.el.textContent = String(n); p.n = n; }
+          }
+        });
+      });
+      const c = caps.find(x => t >= x.a && t < x.b) || null;
+      if (c !== capNow) { sub.textContent = c ? c.text : ''; capNow = c; }
+      return t;
+    }
+    if (rec) {
+      document.documentElement.classList.add('fm-rec');
+      $$('.fm-box, .fm-box .rv').forEach(el => el.classList.add('in'));
+      window.FILM = { cut, dur: DUR, seek: t => { draw(t); return t; }, segs: segs.map(g => ({ id: g.id, t0: g.t0, dur: g.dur })), caps: caps.map(x => [x.a, x.b, x.text]) };
+      draw(0); return;
+    }
+    // ---- the player: play / pause, a bar per part (tap to jump there), the part's name and the time ----
+    const btn = $('#fmPlay'), lbl = $('#fmPlayL'), bar = $('#fmCh'), now = $('#fmNow'), time = $('#fmTime');
+    bar.innerHTML = segs.map((g, i) => `<button type="button" class="fm-cb" data-i="${i}" aria-label="跳到第 ${i + 1} 段：${esc(g.label)}"><i></i></button>`).join('');
+    const cbs = $$('.fm-cb', bar);
+    cbs.forEach((b, i) => b.style.setProperty('--w', segs[i].dur));
+    let t = 0, playing = false, ended = false, userPaused = false, last = 0, seen = false, segNow = -1;
+    const speak = segs.find(g => g.id === 'speak') || segs[0];
+    t = speak.t0 + Math.min(speak.still, speak.dur - 0.01);  // until it plays: the scene with the café, mid-conversation
+    function ui() {
+      btn.classList.toggle('playing', playing);
+      lbl.textContent = playing ? '暂停' : ended ? '再看一遍' : '播放';
+      btn.setAttribute('aria-label', (playing ? '暂停' : ended ? '再看一遍' : '播放') + '：一分钟看懂语流');
+    }
+    function show() {
+      t = draw(t);
+      let i = segs.findIndex(g => t < g.t0 + g.dur); if (i < 0) i = segs.length - 1;
+      cbs.forEach((b, k) => { const cp = clamp((t - segs[k].t0) / segs[k].dur, 0, 1); if (b._cp !== cp) { b.style.setProperty('--cp', cp.toFixed(3)); b._cp = cp; } });
+      if (i !== segNow) { segNow = i; cbs.forEach((b, k) => b.toggleAttribute('aria-current', k === i)); now.textContent = `${i + 1} / ${segs.length} · ${segs[i].label}`; }
+      time.textContent = `${clock(t)} / ${clock(DUR)}`;
+    }
+    function frame(ms) {
+      if (!playing) return;
+      t += Math.min(0.1, (ms - last) / 1000); last = ms;
+      if (t >= DUR) { t = DUR; playing = false; ended = true; ui(); }
+      show();
+      if (playing) requestAnimationFrame(frame);
+    }
+    function play() {
+      if (playing) return;
+      if (ended || t >= DUR - 0.05) { t = 0; ended = false; }
+      playing = true; ui(); last = performance.now(); requestAnimationFrame(frame);
+    }
+    function pause() { if (!playing) return; playing = false; ui(); }
+    btn.addEventListener('click', () => { if (playing) { userPaused = true; pause(); } else { userPaused = false; if (!seen) { t = 0; seen = true; } play(); } });
+    bar.addEventListener('click', e => {
+      const b = e.target.closest('.fm-cb'); if (!b) return;
+      const g = segs[Number(b.dataset.i)]; seen = true; ended = false;
+      if (RM) { pause(); t = g.t0 + Math.min(g.still, g.dur - 0.01); show(); return; }
+      t = g.t0; show(); userPaused = false; play();
+    });
+    show(); ui();
+    if (RM || !IO) return;
+    // plays by itself, from the start, once at least half of it is on screen; stops when it leaves
+    new IO(es => es.forEach(e => {
+      if (e.isIntersecting && e.intersectionRatio >= 0.45) {
+        if (!userPaused && !ended) { if (!seen) { t = 0; seen = true; } play(); }
+      } else pause();
+    }), { threshold: [0, 0.45, 0.8] }).observe(stage);
+  }
+
   function start() {
-    taps(); hero(); reveal(); pauseOffscreen(); statusBars(); story(); lookup(); curve(); levels(); graph(); radar(); shelf(); timers(); faq(); scrolling();
+    taps(); hero(); reveal(); pauseOffscreen(); statusBars(); story(); lookup(); curve(); levels(); graph(); radar(); shelf(); timers(); faq(); film(); scrolling();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

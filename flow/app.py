@@ -141,7 +141,7 @@ def shell_file(name):
   return _SLIM[name][1]
  if name=='manifest.webmanifest' and CHANNEL=='beta':
   m=json.loads(body);m.update(name='语流 Flow 内测版',short_name='语流内测');return json.dumps(m,ensure_ascii=False,indent=1).encode()
- if name=='about.html':return body.replace(b'__ABOUT__',asset_version(ABOUT_ASSETS).encode()).replace(b'__CHANNEL__',CHANNEL.encode())
+ if name=='about.html':return body.replace(b'__ABOUT__',asset_version(ABOUT_ASSETS).encode()).replace(b'__CHANNEL__',CHANNEL.encode()).replace(b'__FILM__',about_film().encode())
  if name not in ('next.html','sw.js'):return body
  return body.replace(b'__ASSET__',asset_version().encode()).replace(b'__CHANNEL__',CHANNEL.encode())
 
@@ -150,6 +150,21 @@ PAGE_CACHE='max-age=0, stale-while-revalidate=2592000'  # the learning page: see
 # 认识语流 (/about): the introduction page for people who have not used Flow yet; its own small files, so it opens fast
 # and never loads the learning site. Its pictures are real screenshots (tools/about_shots.py) in public/about/.
 ABOUT_ASSETS=('about.js','about.css')
+_FILM={'at':0.0,'v':''}
+def about_film():
+ """What the page's one-minute film may say (about.js film(), <html data-film>): 'voice' when sentences are read by
+ CosyVoice on this server (tts_service), 'fast' when typed scene turns go to a 百炼 model such as DeepSeek rather than
+ the default Gemini. Asked again after a minute, so a setting changed in the console shows up on its own."""
+ if time.time()-_FILM['at']<60:return _FILM['v']
+ got=[]
+ try:
+  if __import__('tts_service').enabled():got.append('voice')
+ except Exception:pass  # noqa: BLE001 - not said, rather than said wrongly
+ try:
+  ar=__import__('ai_routes')
+  if ar.is_bailian(ar.route('next-dialog')):got.append('fast')
+ except Exception:pass  # noqa: BLE001
+ _FILM.update(at=time.time(),v=' '.join(got));return _FILM['v']
 def asset_version(names=('next.js','next.css')):
  """The content version of next.js and next.css (10 hex digits), or of the files named; recomputed when one changes."""
  key=tuple((ROOT/'public'/n).stat().st_mtime_ns for n in names)
