@@ -131,6 +131,7 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             'guide': ('B1', 'work', ['work', 'science']),  # the 操作指南 screenshots (tools/guide_shots.py)
             'leaver': ('B1', 'work', ['work', 'science']),  # 注销账号 in tools/ui_test.py (learner_run)
             'a11y': ('B1', 'work', ['work', 'science']),  # the screen-reader and contrast audit (a11y_run)
+            'abroad': ('B1', 'abroad', ['campus']),  # 留学: the plan's speaking step is 雅思 Part 1 (listen_speak_run); nothing else uses it
             # swiping the review card from anywhere on the screen (swipe_run): one learner per screen size, each starting fresh
             **{f'swipe-{k}': ('B1', 'work', ['work', 'science']) for k in ('ipad-land', 'ipad-mini-land', 'phone')}}
 out = {}
