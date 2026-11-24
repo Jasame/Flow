@@ -210,6 +210,19 @@ def daily_path(c, uid, home, now=None):
     title = '单词：' + ' · '.join(x for x in (f"复习 {n['due']}" if n['due'] else '', f"新词 {n['new']}" if n['new'] else '') if x) if todo else '单词'
     steps.append({'key': 'review', 'title': title, 'sub': f"约 {n['minutes']} 分钟" if todo else '今天的都完成了',
                   'href': '#/review', 'done': not todo})
+    if minutes >= 10:
+        # 复听 (relisten_service): a text from a few days ago heard again without the words, before today's new one
+        import relisten_service as rl
+        heard, waiting = rl.today(c, uid, start), None
+        if not heard:
+            waiting = next(iter(rl.due(c, uid, now, exclude={pick['id']} if pick else set())), None)
+        it = {'pack': heard[-1]['pack']} if heard else waiting
+        row3 = it and nx._pack_row(c, uid, it['pack'])
+        if row3:
+            name = json.loads(row3['content'])['title']
+            ago = max(1, round((now - waiting['first']) / 86400)) if waiting else 0
+            steps.append({'key': 'relisten', 'title': '复听：' + name, 'href': f"#/m/{it['pack']}/listen/again", 'done': bool(heard),
+                          'sub': f"今天复听过了：听懂了{rl.LABELS[heard[-1]['understood']]}" if heard else f'{ago} 天前学过 · 先不看原文听一遍，约 3 分钟'})
     if pick:
         steps.append({'key': 'read', 'title': '今天这篇', 'sub': pick['title'], 'href': f"#/m/{pick['id']}",
                       'done': 'check' in done_steps or 'output' in done_steps})
@@ -297,7 +310,8 @@ def report(c, uid, now=None):
     q = lambda sql, *a: c.execute(sql, a).fetchone()[0]
     days = set()
     for (t,) in c.execute('SELECT created FROM next_progress WHERE user_id=? AND created>? UNION ALL SELECT created FROM next_reviews WHERE user_id=? AND created>? '
-                          'UNION ALL SELECT created FROM next_skill_events WHERE user_id=? AND created>?', (uid, week, uid, week, uid, week)):
+                          'UNION ALL SELECT created FROM next_skill_events WHERE user_id=? AND created>? UNION ALL SELECT created FROM next_relisten WHERE user_id=? AND created>?',
+                          (uid, week, uid, week, uid, week, uid, week)):
         days.add(nx._day(t))
     evts = _events(c, uid, prev)
     def avg(sk, lo, hi):
@@ -325,7 +339,8 @@ def report(c, uid, now=None):
         focus = '这周还没开始：每天 10 分钟，先从今天这篇开始。'
     return {'from': nx._day(now - 6 * 86400), 'to': nx._day(now), 'days': len(days), 'minutes': minutes, 'materials': materials, 'outputs': outputs,
             'reviews': reviews, 'learned': learned, 'mastered': mastered, 'mistakes_new': new_mistakes, 'mistakes_fixed': fixed,
-            'skills': skills, 'watch': watch, 'focus': focus, 'ability': ab['skills'], **_week_more(c, uid, now, week, prev)}
+            'skills': skills, 'watch': watch, 'focus': focus, 'ability': ab['skills'], 'relisten': __import__('relisten_service').week(c, uid, week),
+            **_week_more(c, uid, now, week, prev)}
 
 
 def _week_more(c, uid, now, week, prev):

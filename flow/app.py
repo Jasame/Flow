@@ -89,6 +89,7 @@ CREATE TABLE IF NOT EXISTS ai_usage(user_id INTEGER,day TEXT,count INTEGER,PRIMA
   meeting.schema(c)
   __import__('survey_service').schema(c)
   __import__('next_service').schema(c)
+  __import__('relisten_service').schema(c)
   __import__('flow_admin').schema(c)
 def wrong_questions(c,uid):
  return c.execute('''SELECT q.id,q.topic,q.prompt,q.options,q.explanation,q.answer,a.selected FROM questions q

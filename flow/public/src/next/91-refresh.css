@@ -117,3 +117,6 @@ details.preread>summary .tiny{flex-basis:100%}
 /* right and wrong answers carry a mark, not only a colour (red and green look alike to many colour-blind learners) */
 .ans.right::after,.qopt.right::after{content:'✓';margin-left:auto;padding-left:8px;font-family:var(--sans);font-weight:800;color:var(--green-ink)}
 .ans.wrong::after,.qopt.wrong::after{content:'✗';margin-left:auto;padding-left:8px;font-family:var(--sans);font-weight:800;color:var(--red)}
+/* 复听: the card above the player on #/m/<id>/listen/again */
+.relisten{margin-bottom:12px}
+.relisten .chips{margin-top:2px}

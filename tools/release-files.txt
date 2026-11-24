@@ -146,6 +146,7 @@ flow/feedback_service.py
 flow/field_service.py
 flow/account_data.py
 flow/slim.py
+flow/relisten_service.py
 flow/flow-backup.service
 flow/flow-backup.timer
 flow/flow-daily.service
