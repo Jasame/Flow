@@ -398,7 +398,14 @@ def save_profile(c, uid, data):
             c.commit()
             return out, code
     c.commit()
-    return {'profile': profile(c, uid)}, 200
+    # 选方向和目标 with an exam and no word plan yet: one is made on the exam's book, 10 new words a day (the page says so;
+    # 单词 → 背词计划 changes it). A guest's choices reach here at sign-in, so the plan comes then.
+    import vocab_service as vs
+    made, exam = None, (profile(c, uid) or {}).get('exam')
+    if data.get('exam') and exam and exam in vs.book_words() and not vs.plan(c, uid):
+        vs.save_plan(c, uid, {'book': exam, 'daily_new': 10, 'retention': 0.9})
+        made = {'book': exam, 'title': vs.book_title(exam), 'daily_new': 10}
+    return {'profile': profile(c, uid), 'plan_made': made}, 200
 
 
 def set_voice(c, uid, data):
@@ -1446,7 +1453,8 @@ def meta():
             'goals': [{'id': k, 'label': v} for k, v in GOALS.items()], 'themes': [{'id': k, 'label': v} for k, v in THEMES.items()],
             'minutes': list(MINUTES), 'voices': [{'id': k, 'label': v} for k, v in VOICES.items()],
             'goal_hints': GOAL_HINT, 'targets': [{'id': k, 'label': v} for k, v in TARGETS.items()], 'target_for': TARGET_FOR,
-            'exams': [{'id': k, 'short': __import__('exam_sprint').short(k)} for k in __import__('exam_sprint').available()]}
+            'exams': [{'id': k, 'short': __import__('exam_sprint').short(k), 'book_title': __import__('vocab_service').book_title(k)}
+                      for k in __import__('exam_sprint').available()]}
 
 
 def get(c, uid, path, q):

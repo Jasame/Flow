@@ -14,7 +14,8 @@
     const s = h && h.sprint;
     if (!s || s.status === 'past') return '';
     const when = s.days == null ? '填上考试日期 ›' : s.days === 0 ? '今天考试，加油' : `还有 ${s.days} 天`;
-    const pace = s.days ? { on_time: '背词跟得上', behind: '背词跟不上', other_book: '还没背这本考试词书', no_plan: '还没有背词计划', done: '词书背完了' }[s.status] : '';
+    // (no plan yet: the plan's first step already says 选一本词书, so this line does not say it again)
+    const pace = s.days ? { on_time: '背词跟得上', behind: '背词跟不上', other_book: '还没背这本考试词书', done: '词书背完了' }[s.status] : '';
     return `<a class="sprint-line small${s.status === 'behind' ? ' behind' : ''}" href="#/exam/${esc(s.exam)}" data-tap="home-sprint"><b>${esc(s.short)}</b><span>${when}</span>${pace ? `<span class="pace">${pace}</span>` : ''}</a>`;
   }
 

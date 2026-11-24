@@ -1086,6 +1086,7 @@
           <div class="chips" role="radiogroup" aria-labelledby="wgMinH">${M.minutes.map(m => radio('min', m, m === st.minutes, `${m} 分钟`)).join('')}</div></section>
         <section class="stack-s" aria-labelledby="wgThemeH"><h2 class="h3" id="wgThemeH">感兴趣的话题</h2><p class="tiny muted">可以多选，不选就每天随机。</p>
           <div class="chips" role="group" aria-labelledby="wgThemeH">${M.themes.map(t => `<button class="chip" type="button" data-theme="${t.id}" aria-pressed="${st.themes.includes(t.id)}">${esc(t.label)}</button>`).join('')}</div></section>` : ''}
+      <p class="small wg-plan" id="wgPlan" aria-live="polite" hidden></p>
       <div class="wg-go stack-s"><button class="btn primary block" id="wgGo" type="button" data-tap="welcome-start">${edit ? '保存' : '开始学习'}</button>
         <p class="tiny muted tc" id="wgNeed" aria-live="polite" hidden></p>
         ${edit ? '<a class="btn ghost block" href="#/me">取消</a>' : S.user ? '' : '<button class="link small tc" id="wgLogin" type="button" data-tap="welcome-login">已有账号？登录</button>'}</div>
@@ -1098,6 +1099,12 @@
       document.getElementById('wgExam').hidden = st.goal !== 'exam';
       document.getElementById('wgDate').hidden = st.goal !== 'exam' || !st.exam;
       document.getElementById('wgGo').disabled = !st.goal;
+      // with an exam and no word plan yet, starting makes one on the exam's book (save_profile): said here first
+      const e = st.goal === 'exam' && M.exams.find(x => x.id === st.exam), plan = document.getElementById('wgPlan');
+      const hasPlan = !!(S.home && S.home.stats && S.home.stats.vocab_plan);
+      plan.hidden = !e || hasPlan;
+      if (e && !hasPlan) plan.textContent = S.user ? `${edit ? '保存' : '开始学习'}后会为你建好《${e.book_title}》每天 10 个新词，可以在「单词」里改。`
+        : `登录后会为你建好《${e.book_title}》每天 10 个新词的背词计划，可以在「单词」里改。`;
       const need = document.getElementById('wgNeed'); need.textContent = st.goal ? '' : '先选一个目标'; need.hidden = !!st.goal;
     };
     view.querySelectorAll('[data-goal]').forEach(b => b.onclick = () => { st.goal = b.dataset.goal; sync(); });
@@ -1115,11 +1122,12 @@
       const level = S.placed ? S.placed : edit ? st.level || below(st.target) : below(st.target);
       const source = S.placed ? 'placed' : edit && st.level === cur.level ? (cur.level_source || 'self') : edit && st.level ? 'self' : 'guess';
       const prof = { goal: st.goal, target: st.target, level, level_source: source, themes: st.themes, minutes: st.minutes, exam, exam_date: date };
-      if (S.user) { try { await api('/api/next/profile', prof); } catch (x) { btn.disabled = false; toast(x.message); return; } }
+      let made = null;
+      if (S.user) { try { made = (await api('/api/next/profile', prof)).plan_made; } catch (x) { btn.disabled = false; toast(x.message); return; } }
       S.placed = ''; S.guest = { ...(S.guest || {}), ...prof }; save('flow-next-guest', S.guest);
       document.body.classList.remove('onboarding');
       await refreshHome(); S.homeFresh = true;
-      if (edit) toast('已保存');
+      if (made) toast(`已为你建好《${made.title}》每天 ${made.daily_new} 个新词`); else if (edit) toast('已保存');
       location.hash = edit ? '#/me' : '#/';
     };
   }
@@ -2722,7 +2730,8 @@
     const s = h && h.sprint;
     if (!s || s.status === 'past') return '';
     const when = s.days == null ? '填上考试日期 ›' : s.days === 0 ? '今天考试，加油' : `还有 ${s.days} 天`;
-    const pace = s.days ? { on_time: '背词跟得上', behind: '背词跟不上', other_book: '还没背这本考试词书', no_plan: '还没有背词计划', done: '词书背完了' }[s.status] : '';
+    // (no plan yet: the plan's first step already says 选一本词书, so this line does not say it again)
+    const pace = s.days ? { on_time: '背词跟得上', behind: '背词跟不上', other_book: '还没背这本考试词书', done: '词书背完了' }[s.status] : '';
     return `<a class="sprint-line small${s.status === 'behind' ? ' behind' : ''}" href="#/exam/${esc(s.exam)}" data-tap="home-sprint"><b>${esc(s.short)}</b><span>${when}</span>${pace ? `<span class="pace">${pace}</span>` : ''}</a>`;
   }
 

@@ -42,5 +42,6 @@ body.onboarding{padding-bottom:env(safe-area-inset-bottom)}
 .wg .opt[aria-checked=true] .d{color:var(--green-ink)}
 .wg input[type=date]{width:100%;max-width:280px;min-height:46px;padding:8px 12px;border-radius:12px;border:1px solid var(--line2);background:var(--paper);font-size:16px}
 .wg-go{margin-top:8px}
+.wg-plan{margin:4px 0 0;padding:10px 12px;border-radius:12px;background:var(--green-soft);color:var(--green-ink)}
 .wg-go .link{min-height:40px;align-self:center}
 @media (min-width:768px){.wg-goals{grid-template-columns:repeat(3,minmax(0,1fr))}}

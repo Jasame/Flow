@@ -62,12 +62,37 @@ class WelcomeTests(unittest.TestCase):
         nx.save_profile(self.c, 2, {'level': 'B1', 'goal': 'work', 'themes': [], 'minutes': 10})
         self.assertFalse(nx.home(self.c, 2)['level_guess'])
 
+    def test_an_exam_chosen_at_the_start_makes_a_word_plan_once(self):
+        import vocab_service as vs
+        out, _ = nx.save_profile(self.c, 1, {'goal': 'exam', 'target': 'B2', 'exam': 'cet6', 'exam_date': self.day(40)})
+        self.assertEqual(out['plan_made'], {'book': 'cet6', 'title': '六级词汇', 'daily_new': 10})
+        self.assertEqual((vs.plan(self.c, 1)['book'], vs.plan(self.c, 1)['daily_new']), ('cet6', 10))
+        vs.save_plan(self.c, 1, {'book': 'cet6', 'daily_new': 25, 'retention': 0.9})
+        out, _ = nx.save_profile(self.c, 1, {'goal': 'exam', 'target': 'B2', 'exam': 'ielts'})
+        self.assertIsNone(out['plan_made'])  # a plan the learner has is never replaced
+        self.assertEqual(vs.plan(self.c, 1)['daily_new'], 25)
+        self.assertIsNone(nx.save_profile(self.c, 2, {'goal': 'daily', 'target': 'B1'})[0]['plan_made'])
+        self.assertIsNone(vs.plan(self.c, 2))
+
+    def test_without_a_word_plan_the_first_step_asks_for_a_book(self):
+        import vocab_service as vs
+        nx.save_profile(self.c, 2, {'goal': 'daily', 'target': 'B2'})
+        first = nx.home(self.c, 2)['path']['steps'][0]
+        self.assertEqual((first['title'], first['href'], first['done']), ('选一本词书（1 分钟）', '#/vocab/plan', False))
+        self.assertIn('进阶词汇', first['sub'])  # the level's book (B1, one band below B2)
+        sp.set_goal(self.c, 2, {'exam': 'cet4', 'date': ''})  # an exam set elsewhere, still no plan: its book comes first
+        self.assertIn('《四级词汇》', nx.home(self.c, 2)['path']['steps'][0]['sub'])
+        self.assertEqual(vs.overview(self.c, 2)['suggested_book'], 'cet4')
+        vs.save_plan(self.c, 2, {'book': 'cet4', 'daily_new': 10, 'retention': 0.9})
+        self.assertTrue(nx.home(self.c, 2)['path']['steps'][0]['title'].startswith('单词'))
+
     def test_the_page_gets_what_it_shows_from_meta(self):
         m = nx.meta()
         self.assertEqual([t['id'] for t in m['targets']], ['A2', 'B1', 'B2', 'C1'])
         self.assertTrue(all(m['goal_hints'].get(g['id']) for g in m['goals']))
         self.assertTrue(all(m['target_for'].get(e['id']) in nx.BANDS for e in m['exams']))
         self.assertTrue(all(m['target_for'].get(g['id']) in nx.BANDS for g in m['goals']))
+        self.assertTrue(all(e['book_title'].endswith('词汇') for e in m['exams']))
 
 
 if __name__ == '__main__':
