@@ -278,7 +278,7 @@
     }
     function answer(yes) { answers[items[i]] = yes; i++; show(); }
     async function finish() {
-      document.onkeydown = null; document.body.classList.remove('reviewing');
+      document.onkeydown = null; swipeOff(); document.body.classList.remove('reviewing');
       view.innerHTML = `<p class="loading"><span class="spin"></span> 正在估算…</p>`;
       const r = await api('/api/next/vocab/test', { answers });
       if (!S.user) save('flow-next-guest-test', { answers, at: Date.now() });  // kept, and saved to the account after signing in
@@ -298,6 +298,7 @@
           await api('/api/next/vocab/test', { answers }); await refreshHome(); location.hash = '#/cards'; } catch (e) { toast(e.message); }
       };
     }
+    swipeOn(() => (i < items.length ? { right: () => answer(true), left: () => answer(false) } : null));  // as on the buttons: ← 不认识, 认识 →
     show();
   }
 
