@@ -58,22 +58,23 @@ class ShareTests(unittest.TestCase):
 
 
 class BetaReleaseTests(unittest.TestCase):
-    """.github/workflows/beta.yml releases each main commit that passed Tests to the 内测版, only while BETA_AUTO is on."""
+    """.github/workflows/beta.yml releases each main commit that passed Tests to the 内测版, unless BETA_AUTO is off."""
 
     def setUp(self):
         self.wf = (ROOT / '.github' / 'workflows' / 'beta.yml').read_text(encoding='utf-8')
         self.jobs = dict(re.findall(r'^  ([a-z-]+):\n(.*?)(?=^  [a-z-]+:\n|\Z)', self.wf.split('\njobs:\n', 1)[1], re.S | re.M))
 
-    def test_it_follows_main_after_tests_pass_and_only_while_switched_on(self):
+    def test_it_follows_main_after_tests_pass_unless_paused(self):
         tests_name = re.search(r'^name: (.+)$', (ROOT / '.github' / 'workflows' / 'tests.yml').read_text(), re.M).group(1)
         self.assertIn(f'workflow_run:\n    workflows: [{tests_name}]\n    types: [completed]\n    branches: [main]', self.wf)
         cond = self.jobs['release']
-        for part in ("vars.BETA_AUTO == 'on'", "github.event.workflow_run.conclusion == 'success'",
+        for part in ("vars.BETA_AUTO != 'off'", "github.event.workflow_run.conclusion == 'success'",
                      "github.event.workflow_run.event == 'push'", "github.event_name == 'workflow_dispatch'"):
             self.assertIn(part, cond)
         self.assertIn('ref: ${{ github.event.workflow_run.head_sha', cond)  # the commit that passed, not main's newest
         self.assertIn('bash tools/deploy.sh --beta "$(git rev-parse HEAD)"', cond)  # with the end-to-end test (no --no-e2e)
         self.assertNotIn('--no-e2e', self.wf)
+        self.assertIn('-r tools/requirements-release.txt', cond); self.assertIn('cache: pip', cond)  # Playwright, cached
 
     def test_only_the_release_job_may_push_and_releases_run_one_at_a_time(self):
         self.assertIn('\npermissions:\n  contents: read\n', self.wf)

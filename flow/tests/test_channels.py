@@ -150,15 +150,12 @@ class ToolTests(unittest.TestCase):
         # a commit whose flow-pull.sh predates the two sites would install into 语流: refused on both ends
         self.assertIn("git show \"$SHA:tools/flow-pull.sh\" | grep -qF 'F=${FLOW_DIR:-'", deploy)
         # next.js, next.css and the guide PDF are built once per commit for the 内测版 (tools/build_release.py), and 语流
-        # installs that same build commit, only once the 内测版's end-to-end test passed on it (unless --skip-beta)
+        # installs that same build commit, only after it was requested on the 内测版 (unless --skip-beta)
         self.assertIn('BUILD=$(python3 tools/build_release.py "$SHA")', deploy)
         self.assertIn('BUILD=$(python3 tools/build_release.py --reuse "$SHA")', deploy)
-        self.assertIn('PASSED="refs/tags/beta-passed-${BUILD:0:12}"', deploy)
-        self.assertIn('if [ $P = r ] && [ -z "$SKIPBETA" ] && ! git ls-remote --exit-code --tags origin "$PASSED" >/dev/null; then', deploy)
-        self.assertIn('git push -q origin "$BUILD:$PASSED"', deploy)
-        self.assertLess(deploy.index("sys.exit(0 if ok else 1)' || exit 1"), deploy.index('git push -q origin "$BUILD:$PASSED"'))  # only after the test passed
-        # before release builds (b6 and earlier) a request on the 内测版 is enough; grep without -q under pipefail
-        self.assertIn('[ "$BUILD" = "$SHA" ] && git log -p --format= origin/release-beta -- REQUEST | grep "^+$BUILD " >/dev/null', deploy)
+        # grep without -q: under pipefail, grep -q stopping early would make git log's broken pipe count as "not found"
+        self.assertIn('git log -p --format= origin/release-beta -- REQUEST | grep "^+$BUILD " >/dev/null', deploy)
+        self.assertNotIn('| grep -q "^+$BUILD "', deploy)
         self.assertIn('MAN=$(python3 tools/release_manifest.py "$BUILD" 2>/dev/null)', deploy)
         self.assertNotIn('build_front.py --check', deploy)  # it checked the laptop's files, not the commit's
         self.assertIn("if BETA and b'F=${FLOW_DIR:-' not in (work / 'flow-pull.sh').read_bytes():", (TOOLS / 'flow-autodeploy.py').read_text())
