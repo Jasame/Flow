@@ -12,6 +12,7 @@
     "body": "Most brainstorms fail for a simple reason: the loudest person talks first, and everyone else quietly agrees. To get better ideas from the same people, try these five rules next time. First, give everyone five minutes to write ideas alone before anyone speaks. Quiet thinkers often have the best ideas, but they rarely shout them out. Second, aim for quantity, not quality. A long list of silly ideas often hides one or two brilliant ones. Third, ban the phrase \"That won't work\" for the first half of the session. You can judge ideas later; right now, you just need them on the board. Fourth, decide who records everything. Either the host or two volunteers write every idea down, word for word, so nothing gets lost. Fifth, build on each other's ideas instead of competing. If someone suggests a free coffee morning for customers, you could add a vote on the flavours. Feeling a little silly is part of the process, and if nobody laughs at least once, the session was probably too serious. When the time is up, choose three ideas to test, and give each one an owner. Otherwise, the board will be wiped clean and nothing will change.",
     "questions": [
       {
+        "type": "detail",
         "prompt": "Why does the writer suggest giving each chosen idea an owner?",
         "options": [
           "So that one person gets the credit for the idea",
@@ -23,6 +24,7 @@
         "evidence": "Otherwise, the board will be wiped clean and nothing will change."
       },
       {
+        "type": "detail",
         "prompt": "Why should people write ideas alone at the start?",
         "options": [
           "Because writing is faster than speaking",
@@ -32,7 +34,9 @@
         ],
         "answer": 2,
         "evidence": "Quiet thinkers often have the best ideas, but they rarely shout them out."
-      }
+      },
+      {"type": "main", "prompt": "What is the guide mainly about?", "options": ["Simple rules that help a group get better ideas in a brainstorm", "How to plan a coffee morning for customers", "How to write a meeting report", "Why loud people have the best ideas"], "answer": 0, "evidence": "To get better ideas from the same people, try these five rules next time."},
+      {"type": "vocab", "prompt": "What does \"quantity\" mean in \"aim for quantity, not quality\"?", "options": ["a clear plan", "a large number of something", "a short time", "high quality"], "answer": 1, "evidence": "aim for quantity, not quality"}
     ],
     "dictation_index": 1,
     "vocabulary": [
@@ -75,6 +79,7 @@
     "body": "Dear Gloria, I'm writing to let you know that I have decided to leave my position as events coordinator. My last day will be four weeks from today, in line with my notice period. This was not an easy decision. I've been offered a role at a smaller company closer to home, and it's a chance to plan events on my own from start to finish. Honestly, I wish I didn't have to choose. I've learned more here than anywhere else, mostly from watching you handle difficult clients with a smile. Before I go, I want to make the handover as smooth as possible. I'm planning to write a full guide to our suppliers, and I'd be happy to train whoever takes over the spring conference. Having worked on it since the very first meeting, I know where the tricky parts are. If it helps, I could also stay in touch for a few weeks after I leave, in case any questions come up. Thank you for trusting me with so much, and for the coffee on the bad days. I'll miss this team more than I can say. Warm regards, Felipe",
     "questions": [
       {
+        "type": "inference",
         "prompt": "What is the overall tone of Felipe's email?",
         "options": [
           "Grateful and helpful, even though he is leaving",
@@ -86,6 +91,7 @@
         "evidence": "Thank you for trusting me with so much"
       },
       {
+        "type": "detail",
         "prompt": "Why is Felipe leaving?",
         "options": [
           "He has had too many problems with difficult clients",
@@ -95,7 +101,9 @@
         ],
         "answer": 2,
         "evidence": "it's a chance to plan events on my own from start to finish"
-      }
+      },
+      {"type": "main", "prompt": "What is the main purpose of Felipe's email?", "options": ["To ask for a pay rise", "To invite Gloria for coffee", "To tell his manager he is leaving and offer help with the handover", "To complain about a client"], "answer": 2, "evidence": "I have decided to leave my position as events coordinator"},
+      {"type": "vocab", "prompt": "What does \"handover\" mean in \"make the handover as smooth as possible\"?", "options": ["a goodbye party", "a final payment", "a holiday", "passing your work and duties to someone else"], "answer": 3, "evidence": "make the handover as smooth as possible"}
     ],
     "dictation_index": 6,
     "vocabulary": [
@@ -138,6 +146,7 @@
     "body": "Wen had practised her presentation eleven times, but her hands were still shaking when the clients walked in. There were three of them, all in dark suits, and none of them smiled. Standing at the front of the room, she suddenly wished she were back at her quiet desk. Her plan was simple: show the new café design, explain the costs, and answer questions. She had even printed the drawings, just in case. If the laptop crashed, she could still talk them through the paper copies. Halfway through the second slide, the projector went black. For a moment, nobody moved. Then Wen took a breath, picked up the drawings and walked over to the table. \"Let's do this the old-fashioned way,\" she said. Spreading the pages out, she pointed to the long wooden counter and the reading corner by the window. The client sitting closest began to ask questions, and soon all three were arguing happily about lamp colours. When the meeting ended, the oldest one shook her hand. \"That was the most useful presentation we've had in ages,\" he said with a grin. Back at her desk, Wen laughed and added a new line to her checklist: always bring paper.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What lesson does Wen take from the meeting?",
         "options": [
           "Clients always prefer presentations without slides",
@@ -149,6 +158,7 @@
         "evidence": "always bring paper"
       },
       {
+        "type": "detail",
         "prompt": "What happened during the second slide?",
         "options": [
           "The clients started asking questions",
@@ -158,7 +168,9 @@
         ],
         "answer": 2,
         "evidence": "Halfway through the second slide, the projector went black."
-      }
+      },
+      {"type": "inference", "prompt": "What does it suggest that the clients began \"arguing happily about lamp colours\"?", "options": ["They wanted to leave early", "They had become interested and involved in the design", "They did not like the café", "They were angry with Wen"], "answer": 1, "evidence": "soon all three were arguing happily about lamp colours"},
+      {"type": "vocab", "prompt": "What does \"with a grin\" mean in \"he said with a grin\"?", "options": ["with a shout", "with a sigh", "with a frown", "with a wide smile"], "answer": 3, "evidence": "he said with a grin"}
     ],
     "dictation_index": 5,
     "vocabulary": [
@@ -201,6 +213,7 @@
     "body": "Most cover letters could be swapped between candidates, and nobody would notice. If a stranger read yours with the name covered, would they learn anything real about you? Here is how to fix that. Start with a moment, not a list. Instead of saying you are hard-working, describe the evening you stayed late to rebuild a broken spreadsheet before a big meeting. A short story, told honestly, says more than five adjectives. Next, show that you have done some homework. Mention one thing the company does that you genuinely admire, and explain why it matters to you. Keep your sentences plain. Words like \"passionate\" and \"dynamic\" appear in so many letters that tired readers simply skip them. When you have a draft, read the letter aloud. Hearing your own voice, you will quickly notice the lines that sound like someone else. Cut them, or rewrite them the way you would say them to a friend. You are not trying to impress a machine; you are trying to sound like a person someone would enjoy working with. A manager who has just read a pile of identical letters will remember yours, and that is often enough to get you into the room.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's main message?",
         "options": [
           "A cover letter should list as many skills as possible",
@@ -212,6 +225,7 @@
         "evidence": "you are trying to sound like a person someone would enjoy working with"
       },
       {
+        "type": "detail",
         "prompt": "Why does the writer suggest avoiding words like \"passionate\"?",
         "options": [
           "They sound too informal for a job application",
@@ -221,7 +235,9 @@
         ],
         "answer": 1,
         "evidence": "appear in so many letters that tired readers simply skip them"
-      }
+      },
+      {"type": "inference", "prompt": "What does the writer mean by \"You are not trying to impress a machine\"?", "options": ["Machines write better letters than people", "A real person reads the letter, so it should sound human", "Computers check every letter", "Letters should be written by hand"], "answer": 1, "evidence": "you are trying to sound like a person someone would enjoy working with"},
+      {"type": "vocab", "prompt": "What does \"identical\" mean in \"a pile of identical letters\"?", "options": ["handwritten", "exactly the same", "very long", "well written"], "answer": 1, "evidence": "a pile of identical letters"}
     ],
     "dictation_index": 5,
     "vocabulary": [
