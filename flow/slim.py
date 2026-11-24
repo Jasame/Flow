@@ -145,11 +145,12 @@ def css(src):
 
 
 def slim(name, body):
-    """The bytes to send for a public file: next.js and next.css slimmed (the file as it is if slimming fails)."""
+    """The bytes to send for a public file: next.js and next.css (and 认识语流's about.js and about.css) slimmed (the
+    file as it is if slimming fails)."""
     try:
-        if name == 'next.js':
+        if name in ('next.js', 'about.js'):
             return js(body.decode('utf-8')).encode('utf-8')
-        if name == 'next.css':
+        if name in ('next.css', 'about.css'):
             return css(body.decode('utf-8')).encode('utf-8')
     except (ValueError, UnicodeDecodeError):
         pass

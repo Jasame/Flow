@@ -95,7 +95,8 @@ class ReleaseListTests(unittest.TestCase):
         self.assertFalse([n for n in self.listed if n.startswith('archive/')])
         public = {n.split('/')[-1] for n in self.listed if n.startswith('flow/public/') and n.count('/') == 2}
         self.assertEqual(public, {'next.html', 'next.js', 'next.css', 'sw.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png',
-                                  'apple-touch-icon.png', 'survey.html', 'survey.js', 'survey.css', 'literata.woff2'})
+                                  'apple-touch-icon.png', 'survey.html', 'survey.js', 'survey.css', 'literata.woff2',
+                                  'about.html', 'about.js', 'about.css'})
 
 
 if __name__ == '__main__':

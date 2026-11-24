@@ -172,6 +172,8 @@ TAP_LABEL = {
     'export-csv': '导出 · Excel 表格', 'export-anki': '导出 · Anki', 'export-json': '导出 · 全部学习记录',
     'me-guide': '我的 · 操作指南', 'me-feedback': '我的 · 问题反馈', 'me-survey': '我的 · 匿名问卷',
     'beta-main': '内测版 · 去正式版',
+    'me-about': '我的 · 认识语流', 'welcome-about': '第一次打开 · 认识语流',
+    'about-start': '认识语流 · 开始学', 'about-join': '认识语流 · 注册账号', 'about-guide': '认识语流 · 操作指南', 'about-vocab-test': '认识语流 · 测词汇量',
     'announce-open': '今日 · 公告：去看看',
     'home-week': '今日 · 这周进步', 'me-weekly-mail': '我的 · 每周进度邮件',
     'finish-expr': '学完一篇 · 小结：表达', 'finish-words': '学完一篇 · 小结：新词', 'finish-grammar': '学完一篇 · 小结：语法点',
