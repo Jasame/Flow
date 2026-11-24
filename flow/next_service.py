@@ -382,23 +382,29 @@ def set_voice(c, uid, data):
 
 def audio_index():
     """{material id: [voices]} and its version. With R2 in use (media.py), from the release's media manifest, so a
-    material has narration as soon as it is uploaded; otherwise from audio/index.json, reloaded when it changes."""
+    material has narration as soon as it is uploaded; otherwise from audio/index.json, reloaded when it changes.
+    audio/index-old.json lists the narration of the older materials (简版, r27 content line). It is a separate file
+    because code before it serves only v5 ids: had their entries gone into index.json, an older release would have
+    offered narration it then refused to serve."""
     import media
     listed = media.narration()
     if listed is not None:
         return {k: [v for v in vs if v in VOICES] for k, vs in listed.items()}, media.version()
-    f = AUDIO_DIR / 'index.json'
-    try:
-        mtime = f.stat().st_mtime
-    except OSError:
+    files = (AUDIO_DIR / 'index.json', AUDIO_DIR / 'index-old.json')
+    mtimes = tuple(f.stat().st_mtime if f.exists() else 0 for f in files)
+    if not any(mtimes):
         return {}, 0
-    if _AUDIO['mtime'] != mtime:
-        try:
-            _AUDIO['index'] = {k: [v for v in vs if v in VOICES] for k, vs in json.loads(f.read_text()).items()}
-        except (OSError, ValueError):
-            _AUDIO['index'] = {}
-        _AUDIO['mtime'] = mtime
-    return _AUDIO['index'], int(mtime)
+    if _AUDIO['mtime'] != mtimes:
+        index = {}
+        for f in files:
+            try:
+                index.update({k: [v for v in vs if v in VOICES] for k, vs in json.loads(f.read_text()).items()
+                              if NARRATION_ID.fullmatch(k)})
+            except (OSError, ValueError, AttributeError):
+                pass
+        _AUDIO['index'] = index
+        _AUDIO['mtime'] = mtimes
+    return _AUDIO['index'], int(max(mtimes))
 
 
 def audio_file(voice, pid, ext):
