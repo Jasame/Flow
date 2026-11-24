@@ -366,6 +366,8 @@ class WordCapTests(unittest.TestCase):
             self.review(f'w{k}', 5)
         self.c.commit()
         self.assertIsNone(vs.counts(self.c, 1, self.now, cap=5)['catch_up'])
+        self.c.execute('DELETE FROM next_reviews'); self.answered(1, at=self.now - 3 * 86400)
+        self.assertIsNone(vs.counts(self.c, 1, self.now, cap=5)['catch_up'])  # two days without a review in between: not yet
         self.c.execute('DELETE FROM next_reviews'); self.answered(1, at=self.now - 5 * 86400)
         self.c.execute('DELETE FROM next_cards WHERE rowid > 10'); self.c.commit()  # 10 due: a day's cap holds them
         self.assertIsNone(vs.counts(self.c, 1, self.now, cap=5)['catch_up'])

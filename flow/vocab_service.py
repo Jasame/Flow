@@ -649,7 +649,7 @@ def share(c, uid, now, cap, p=None):
 
 
 def _catch_up(c, uid, p, now, due, budget):
-    """After a break (no review for BACK_DAYS days) with more due than a day's cap holds: the first day the BATCH
+    """After a break (BACK_DAYS days in a row without a review) with more due than a day's cap holds: the first day the BATCH
     most at risk, then the rest over SPREAD_DAYS days, no new words meanwhile. Kept in the plan (catch_up) from the
     first day; over once a day's cap holds what is due (or after SPREAD_DAYS + 2 days). None when not catching up."""
     if not p:
@@ -662,8 +662,9 @@ def _catch_up(c, uid, p, now, due, budget):
     holds = int(budget // ANSWERS_PER_REVIEW + 1e-9)
     if not st:
         last = c.execute('SELECT MAX(created) FROM next_reviews WHERE user_id=? AND created<?', (uid, _day_start(now))).fetchone()[0]
-        # calendar days since the last review before today (a day is 23–25 hours around a clock change)
-        if not last or due <= holds or (_day_start(now) - _day_start(last)) / fsrs.DAY < BACK_DAYS - 0.5:
+        # BACK_DAYS whole days without a review in between: the last one 4 days before today or earlier, as 今日's
+        # 回来那天 (r28 section 2, 语流 08) counts the days without study (a day is 23-25 hours around a clock change)
+        if not last or due <= holds or (_day_start(now) - _day_start(last)) / fsrs.DAY < BACK_DAYS + 0.5:
             return None
         st = {'day': day, 'total': due}
         c.execute('UPDATE next_vocab_plans SET catch_up=? WHERE user_id=?', (json.dumps(st), uid))
