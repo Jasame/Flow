@@ -241,9 +241,9 @@ class MailTests(Db):
             vs.set_reminder(c, self.uid, {'enabled': True, 'hour': 20})
             card = self.word(c, 'commute', at(2026, 11, 20, 9)); c.execute('UPDATE next_cards SET due=?, state=? WHERE id=?', (at(2026, 11, 28), 'review', card)); c.commit()
             self.assertEqual(ps.send_weekly(c, SUNDAY), 1)  # the learner with an email only
-            self.assertEqual(vs.send_reminders(c, SUNDAY + 60, lambda *a: self.fail('the weekly mail already said it')), 0)
+            self.assertEqual(vs.send_reminders(c, SUNDAY + 60, lambda *a, **kw: self.fail('the weekly mail already said it')), 0)
             self.assertIn('个单词到了复习时间', self.mails()[0])
-            self.assertEqual(vs.send_reminders(c, at(2026, 11, 30, 20, 5), lambda *a: None), 1)  # Monday: as before
+            self.assertEqual(vs.send_reminders(c, at(2026, 11, 30, 20, 5), lambda *a, **kw: None), 1)  # Monday: as before
 
     def test_one_click_unsubscribe_from_a_mail_app(self):
         with app.db() as c:
