@@ -48,12 +48,26 @@
     const n = o.due + o.new;
     const start = new Date(); start.setHours(0, 0, 0, 0);
     const maxF = Math.max(1, ...o.forecast), maxC = Math.max(1, ...o.calendar.map(d => d.n));
+    // r28: under a cap (单词每天, or the day's plan) the card shows today's share; what is beyond it waits (later)
+    const capLine = o.cap ? ` · 单词每天 ${o.cap} 分钟` : '';
+    const bk = o.book, nb = bk && bk.next;
+    let rested = false; try { rested = !!(bk && localStorage.getItem('flow-book-rest-' + bk.id)); } catch (e) { /* private mode */ }
+    // a book nearly done says what comes next; a finished one offers it, one tap away (or reviewing until the exam first)
+    const bookNote = !bk ? '' : bk.done && !rested ? `<div class="card sunk stack-s" id="bookDone"><b>《${esc(bk.title)}》背完了</b>
+        <span class="small">${bk.exam_first ? '离考试还有一段时间，先把学过的词复习牢，考完再换下一本。' : nb ? `接下来推荐《${esc(nb.title)}》：你学过的词会跳过，还剩约 ${nb.new.toLocaleString()} 个新词。` : '可以在背词计划里换一本接着背。'}</span>
+        <div class="row">${nb && !bk.exam_first ? `<button class="btn primary small" id="bookNext">换成《${esc(nb.title)}》</button><button class="btn small" id="bookRest">先只复习</button>`
+          : bk.exam_first ? `<button class="btn primary small" id="bookRest">先只复习到考试</button>${nb ? `<button class="btn small" id="bookNext">换成《${esc(nb.title)}》</button>` : ''}`
+          : '<a class="btn small" href="#/vocab/plan">换一本</a><button class="btn small" id="bookRest">先只复习</button>'}</div></div>`
+      : bk.soon ? `<p class="small" id="bookSoon">《${esc(bk.title)}》还剩 ${bk.left} 个新词，大约 ${bk.days} 天背完。${nb ? `接下来推荐《${esc(nb.title)}》：你学过的词会跳过，还剩约 ${nb.new.toLocaleString()} 个新词。` : ''}</p>` : '';
     const today = o.plan
       ? `<div class="card section stack-s vtoday"><div class="row between"><div><div class="kicker">今天</div>
-            ${n ? `<div class="big-line">复习 <b>${o.due}</b> · 新词 <b>${o.new}</b></div><div class="muted small">大约 ${o.minutes} 分钟 · 已完成 ${o.done_today} 次</div>`
+            ${n ? `<div class="big-line">复习 <b>${o.due}</b> · 新词 <b>${o.new}</b></div><div class="muted small">大约 ${o.minutes} 分钟${capLine} · 已完成 ${o.done_today} 次</div>`
+              : o.later ? `<div class="big-line">今天的单词做完了</div><div class="muted small" id="laterLine">还有 ${o.later} 个复习留到之后几天，想多背可以继续${capLine}</div>`
               : `<div class="big-line">今天的都完成了</div><div class="muted small">已完成 ${o.done_today} 次 · 明天预计 ${o.forecast[1]} 个复习</div>`}
-            ${o.new_paused ? '<p class="small" id="newPaused">到期的词比较多，今天先复习，新词明天继续。</p>' : ''}</div>
-            ${n ? '<a class="btn primary" href="#/review">开始</a>' : '<button class="btn small" id="moreNew">再学 10 个</button>'}</div>
+            ${o.catch_up ? `<p class="small" id="catchUp">补积压：还剩 ${o.catch_up.left} 个，大约 ${o.catch_up.days} 天补完。最容易忘的排在前面，补完之前先不加新词。</p>`
+              : o.new_paused ? '<p class="small" id="newPaused">到期的词比较多，今天先复习，新词明天继续。</p>' : ''}</div>
+            ${n ? '<a class="btn primary" href="#/review">开始</a>' : o.later ? '<a class="btn small" href="#/review/more" id="moreRev">继续复习</a>' : '<button class="btn small" id="moreNew">再学 10 个</button>'}</div>
+          ${bookNote}
           ${o.book ? `<div class="stack-s"><div class="row between small"><span>《${esc(o.book.title)}》已学 ${o.book.started} / ${o.book.size - (o.book.skipped || 0)}${o.book.skipped ? `<span class="muted">（跳过 ${o.book.skipped} 个常用词）</span>` : ''}</span></div>
             <div class="vbar"><i data-w="${o.book.started / Math.max(1, o.book.size - (o.book.skipped || 0)) * 100}"></i></div></div>` : ''}
           <span class="tiny muted">${o.book ? (o.book.finish ? '预计 ' + dayLabel(o.book.finish) + '学完 · ' : '已全部学过 · ') : ''}每天 ${o.plan.daily_new} 个新词 · 目标记住率 ${Math.round(o.plan.retention * 100)}%</span></div>`
@@ -88,9 +102,17 @@
     const mn = document.getElementById('moreNew');
     if (mn) mn.onclick = async () => {  // today's words are done and the learner wants more: one extra batch now
       mn.disabled = true;
-      try { const r = await api('/api/next/vocab/more', { n: 10 }); if (r.added) location.hash = '#/review'; else { toast('词书里的词都学过了'); } }
+      try { const r = await api('/api/next/vocab/more', { n: 10 }); if (r.added) location.hash = '#/review/more'; else { toast('词书里的词都学过了'); } }
       catch (e) { toast(e.message); mn.disabled = false; }
     };
+    const bn = document.getElementById('bookNext');
+    if (bn) bn.onclick = async () => {  // the next book, with the plan's pace kept; studied words stay and are skipped
+      bn.disabled = true;
+      try { await api('/api/next/vocab/plan', { book: nb.id, daily_new: o.plan.daily_new, retention: o.plan.retention }); toast(`已换成《${nb.title}》`); refreshHome().catch(() => {}); vocabView(); }
+      catch (e) { toast(e.message); bn.disabled = false; }
+    };
+    const br = document.getElementById('bookRest');
+    if (br) br.onclick = () => { try { localStorage.setItem('flow-book-rest-' + bk.id, '1'); } catch (e) { /* private mode */ } const d = document.getElementById('bookDone'); if (d) d.remove(); };
     const st = { q, page, f };
     const reload = async () => {
       const slot = document.getElementById('listSlot'); slot.classList.add('busy');
@@ -197,7 +219,7 @@
     if (!S.user) return needLogin('登录后才能制定背词计划。');
     const o = await api('/api/next/vocab');
     const cur = o.plan || { book: o.suggested_book, daily_new: 10, retention: 0.9 };
-    let book = cur.book, daily = cur.daily_new, ret = cur.retention;
+    let book = cur.book, daily = cur.daily_new, ret = cur.retention, wm = cur.word_minutes || 0;
     // 考试冲刺: the chip pressed is the exam being prepared for (saved with the plan), with its date (42-sprint.js).
     const prof = (S.home && S.home.profile) || {}, exam0 = prof.exam || '', date0 = prof.exam_date || '';
     let examSel = exam0;
@@ -217,6 +239,9 @@
       <div class="section stack-s"><h2 class="h2">每天新词</h2><div class="chips" id="dn">${o.daily_new_options.map(v => `<button class="chip" data-v="${v}" aria-pressed="${v === daily}">${v} 个</button>`).join('')}</div>
         <div class="row"><label class="small" for="dnOwn">自己定：</label><input id="dnOwn" type="number" inputmode="numeric" min="1" max="200" step="1" class="num-in" value="${o.daily_new_options.includes(daily) ? '' : daily}" placeholder="1–200"><span class="small muted">个 / 天</span></div>
         <span class="muted tiny" id="dnHint"></span><button class="btn small" type="button" id="dnTen" hidden>改成每天 10 个</button><span class="muted tiny">学完当天的，复习页还可以「再学 10 个」，不用改计划。</span></div>
+      <div class="section stack-s"><h2 class="h2">单词每天</h2><div class="chips" id="wm"><button class="chip" data-m="0" aria-pressed="${!wm}">${o.word_auto ? `跟着每天计划（${o.word_auto} 分钟）` : '不限时间'}</button>${(o.word_minutes_options || []).map(v => `<button class="chip" data-m="${v}" aria-pressed="${v === wm}">${v} 分钟</button>`).join('')}</div>
+        <span class="muted tiny" id="wmHint"></span><button class="btn small" type="button" id="wmFit" hidden></button>
+        <span class="muted tiny">做到这个时间，今天的单词就算完成；剩下的复习按遗忘风险留到之后几天，想多背随时可以继续。</span></div>
       <div class="section stack-s"><h2 class="h2">目标记住率</h2><div class="chips" id="rt">${o.retention_options.map(v => `<button class="chip" data-v="${v}" aria-pressed="${v === ret}">${Math.round(v * 100)}%</button>`).join('')}</div>
         <span class="muted tiny">系统会在你记住的概率降到这个数时安排复习。越高记得越牢，但每天复习更多；90% 是比较均衡的选择。</span></div>
       ${o.plan && o.plan.estimate ? `<label class="section checkline"><input type="checkbox" id="skipKnown" ${o.plan.skip_rank ? 'checked' : ''}>跳过测试显示你已经认识的常用词${o.plan.test_skip ? `（词频前 ${o.plan.test_skip} 位）` : ''}，按词频的词书不受影响</label>` : ''}
@@ -244,9 +269,16 @@
       const mins = Math.max(1, Math.round((month * L.per_review + daily * L.per_new) * L.answer_seconds / 60));
       // half an hour or more a day: the number as it is, and the way out (10 new words a day), one tap away
       const heavy = b.title && mins >= 30, ten = heavy && daily > 10;
-      document.getElementById('dnHint').textContent = !b.title ? '先在上面选一本词书。' : `学完《${b.title}》大约需要 ${days} 天${skip ? `（跳过 ${skip} 个常用词）` : ''}；每天 ${daily} 个新词，一个月后每天大约要复习 ${month} 个${heavy
+      // 单词每天 (r28): the new words a day that cap keeps up with, a month in; the book's days at that pace
+      const cap = wm || o.word_auto, perNew = L.per_new + (L.month_reviews_per_new[String(ret)] || 6) * L.per_review;
+      const fit = cap ? Math.max(1, Math.floor(cap * 60 / L.answer_seconds / perNew)) : 0, slow = cap && daily > fit;
+      const capDays = cap ? Math.ceil(Math.max(0, (b.size || 0) - skip - done) / Math.min(daily, fit)) : days;
+      document.getElementById('dnHint').textContent = !b.title ? '先在上面选一本词书。' : `学完《${b.title}》大约需要 ${capDays} 天${skip ? `（跳过 ${skip} 个常用词）` : ''}；每天 ${daily} 个新词，一个月后每天大约要复习 ${month} 个${heavy && !cap
         ? `。按现在的设置，一个月后每天大约要 ${mins} 分钟${ten ? '。时间紧的话，可以改成每天 10 个新词' : ''}。` : `，连新词约 ${mins} 分钟。`}`;
-      document.getElementById('dnTen').hidden = !ten;
+      document.getElementById('dnTen').hidden = !ten || !!cap;
+      document.getElementById('wmHint').textContent = !cap ? '不限时间：每天到期的复习和新词都排进今天。'
+        : `按单词每天 ${cap} 分钟，每天大约能学 ${fit} 个新词${slow ? `。每天 ${daily} 个新词，一个月后单词每天约 ${mins} 分钟，比 ${cap} 分钟多：可以把单词时间改长，或者新词改成 ${fit} 个` : ''}。`;
+      const wf = document.getElementById('wmFit'); wf.hidden = !slow; wf.textContent = `新词改成每天 ${fit} 个`; wf.dataset.n = fit;
     };
     // The exam chips follow the chosen book: its exam, or 「不考试」 for a book by frequency; another book (学术、商务…) lights none.
     const syncGoal = () => view.querySelectorAll('[data-goal]').forEach(x => x.setAttribute('aria-pressed', String(examSel ? x.dataset.exam === examSel : x.dataset.goal ? x.dataset.goal === book : meta(book).group === '按词频')));
@@ -259,6 +291,11 @@
     syncGoal();
     const pick = (sel, set) => view.querySelectorAll(sel + ' [data-v]').forEach(b => b.onclick = () => { set(Number(b.dataset.v)); view.querySelectorAll(sel + ' [data-v]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); hint(); });
     pick('#dn', v => { daily = v; document.getElementById('dnOwn').value = ''; }); pick('#rt', v => { ret = v; });
+    view.querySelectorAll('#wm [data-m]').forEach(b => b.onclick = () => { wm = Number(b.dataset.m); view.querySelectorAll('#wm [data-m]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); hint(); });
+    document.getElementById('wmFit').onclick = e => {  // the new words a day that fit the time, one tap away
+      const v = Number(e.currentTarget.dataset.n), chip = view.querySelector(`#dn [data-v="${v}"]`);
+      if (chip) chip.click(); else { daily = v; document.getElementById('dnOwn').value = v; view.querySelectorAll('#dn [data-v]').forEach(x => x.setAttribute('aria-pressed', 'false')); hint(); }
+    };
     document.getElementById('dnTen').onclick = () => { const t = view.querySelector('#dn [data-v="10"]'); if (t) t.click(); };
     document.getElementById('dnOwn').oninput = e => {
       const v = Math.round(Number(e.target.value));
@@ -275,7 +312,7 @@
       const sk = document.getElementById('skipKnown');
       const date = examSel && pxDate ? pxDate.value : '';
       try {
-        await api('/api/next/vocab/plan', { book, daily_new: daily, retention: ret, ...(sk ? { skip_known: sk.checked } : {}) });
+        await api('/api/next/vocab/plan', { book, daily_new: daily, retention: ret, word_minutes: wm, ...(sk ? { skip_known: sk.checked } : {}) });
         if (examSel !== exam0 || date !== date0) await api('/api/next/exam/goal', { exam: examSel, date });
         await refreshHome(); toast('计划已保存'); location.hash = '#/cards';
       }

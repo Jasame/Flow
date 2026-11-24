@@ -2337,7 +2337,8 @@ TAP44_JS = """sel => { const el = document.querySelector(sel); if (!el) return n
 def backlog_run(pw):
     """Reviews piled up after a break (ux-longterm-audit 1.1, 11, 16, 2026-11-24): no new words today and the word page
     says so; the review page says 「先做 40 个（还有 N 个）」 and, after those 40, offers a place to stop; the small links
-    a finger needs (结束, 去读, 去练, 按 B1 挑选 · 调整, 怎么写的) take a tap 44 px around them."""
+    a finger needs (结束, 去读, 去练, 按 B1 挑选 · 调整, 怎么写的) take a tap 44 px around them. r28 section 3: 单词每天
+    (a cap in minutes: done at the cap, 继续复习 past it, the new words a day it keeps up with) and a finished book's next."""
     dev = 'backlog'
     browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
     try:
@@ -2385,6 +2386,51 @@ def backlog_run(pw):
         hint = pg.text_content('#dnHint') or ''
         check(dev, 'plan: after the tap, 10 a day is chosen and the hint is calm again',
               pg.get_attribute('#dn [data-v="10"]', 'aria-pressed') == 'true' and not pg.is_visible('#dnTen') and '连新词约' in hint, hint)
+        # r28 section 3: 单词每天 5 分钟. The 40 answered above are past it: today's words are done, the rest waits for the
+        # coming days, 继续复习 goes on past the cap
+        csrf = CFG['learners']['pile']['csrf']
+        plan = pg.evaluate("fetch('/api/next/vocab').then(r => r.json()).then(o => o.plan)")
+        st = pg.evaluate("([p, csrf]) => fetch('/api/next/vocab/plan', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf}, "
+                         "body: JSON.stringify({book: p.book, daily_new: 10, retention: p.retention, word_minutes: 5})}).then(r => r.status)", [plan, csrf])
+        fresh = lambda: (pg.reload(wait_until='load'), settle(pg), go(pg, '#/cards'), pg.wait_for_timeout(300))  # the page keeps API answers in memory (05-data.js)
+        fresh()
+        o = pg.evaluate("fetch('/api/next/vocab').then(r => r.json())")
+        later = pg.text_content('#laterLine') if pg.query_selector('#laterLine') else ''
+        check(dev, 'a cap of 5 minutes already used: 今天的单词做完了, the rest waits, 继续复习 one tap away',
+              st == 200 and o['cap'] == 5 and o['due'] + o['new'] == 0 and o['later'] > 0 and f"还有 {o['later']} 个复习留到之后几天" in later
+              and '单词每天 5 分钟' in later and pg.is_visible('#moreRev'), (st, o.get('cap'), o.get('due'), o.get('later'), later))
+        pg.click('#moreRev'); pg.wait_for_timeout(500)
+        check(dev, '继续复习 goes on past the cap', 'review/more' in pg.url and bool(pg.query_selector('[data-claim], [data-self]')), pg.url)
+        # the plan page: 5 minutes keep up with about 3 new words a day; 10 a day is more: the number that fits, one tap away
+        go(pg, '#/vocab/plan'); pg.wait_for_timeout(300)
+        wmh = pg.text_content('#wmHint') or ''
+        check(dev, 'plan: 单词每天 5 分钟 says the new words a day it keeps up with, and offers that number',
+              pg.get_attribute('#wm [data-m="5"]', 'aria-pressed') == 'true' and '按单词每天 5 分钟，每天大约能学 3 个新词' in wmh and pg.is_visible('#wmFit'), wmh)
+        pg.click('#wmFit'); pg.wait_for_timeout(200)
+        check(dev, 'plan: after the tap, 3 new words a day and no more offer', pg.input_value('#dnOwn') == '3' and not pg.is_visible('#wmFit'),
+              (pg.input_value('#dnOwn'), pg.text_content('#wmHint')))
+        # a book nearly done, then done: what comes next, one tap away (the API's answer is changed here; test_vocab tests vocab_service)
+        def book(route, kind):
+            r = route.fetch(); o = r.json()
+            o['book'].update(left=12, days=2, soon=kind == 'soon', done=kind == 'done', finish=None if kind == 'done' else o['book'].get('finish'),
+                             next={'id': 'high', 'title': '高阶词汇', 'new': 2400}, exam_first=False)
+            route.fulfill(response=r, json=o)
+        pg.route('**/api/next/vocab', lambda route: book(route, 'soon'))
+        fresh()
+        soon = pg.text_content('#bookSoon') if pg.query_selector('#bookSoon') else ''
+        check(dev, 'a book nearly done: the new words left, the days, and the next book with its new words',
+              '还剩 12 个新词，大约 2 天背完' in soon and '接下来推荐《高阶词汇》' in soon and '还剩约 2,400 个新词' in soon, soon)
+        pg.unroute('**/api/next/vocab'); pg.route('**/api/next/vocab', lambda route: book(route, 'done'))
+        fresh()
+        done = pg.text_content('#bookDone') if pg.query_selector('#bookDone') else ''
+        check(dev, 'a finished book: 背完了, 换成 the next one as the main button, 先只复习 beside it',
+              '背完了' in done and (pg.text_content('#bookNext') or '') == '换成《高阶词汇》' and 'primary' in (pg.get_attribute('#bookNext', 'class') or '')
+              and pg.is_visible('#bookRest'), done)
+        pg.click('#bookRest'); pg.wait_for_timeout(100)
+        gone = not pg.query_selector('#bookDone')
+        fresh()
+        check(dev, '先只复习 puts the card away, and it stays away', gone and not pg.query_selector('#bookDone'), gone)
+        pg.unroute('**/api/next/vocab')
         check(dev, 'no script errors', not errs, errs[:3])
         ctx.close()
     finally:
