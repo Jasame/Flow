@@ -4,12 +4,12 @@
 .vtoday .big-line{font-size:17px}.vtoday .big-line b{font-size:26px;font-variant-numeric:tabular-nums;margin:0 2px}
 .vbar{display:block;flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden;min-width:60px}
 .vbar i{display:block;height:100%;width:0;background:var(--green);border-radius:3px;transition:width .6s var(--ease)}
-.forecast{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;height:118px;align-items:end;text-align:center}
+.forecast{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;height:118px;align-items:end;text-align:center}
 .forecast div{display:grid;grid-template-rows:16px 1fr 16px;height:100%;align-items:end;gap:4px}
 .forecast i{display:block;width:62%;margin:0 auto;height:3%;background:var(--green);border-radius:5px 5px 2px 2px;opacity:.85;transition:height .6s var(--ease)}
 .forecast div:first-child i{opacity:1}
 .forecast .n{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink2)}
-.cal{display:grid;grid-template-columns:repeat(35,1fr);gap:3px;margin-top:4px}
+.cal{display:grid;grid-template-columns:repeat(35,minmax(0,1fr));gap:3px;margin-top:4px}
 .cal i{aspect-ratio:1;border-radius:3px;background:var(--line)}
 .cal i.l1{background:color-mix(in srgb,var(--green) 28%,var(--line))}.cal i.l2{background:color-mix(in srgb,var(--green) 52%,var(--line))}
 .cal i.l3{background:color-mix(in srgb,var(--green) 76%,var(--line))}.cal i.l4{background:var(--green)}
@@ -25,7 +25,7 @@ button.xcard:hover{border-color:var(--green-line)}
 .curve .now{fill:var(--paper);stroke:var(--green-ink);stroke-width:2.5}
 .curve .lbl{font-size:10.5px;fill:var(--muted)}
 .exs{display:grid;gap:10px}
-.ex{display:grid;grid-template-columns:40px 1fr;gap:10px;align-items:start;text-align:left}
+.ex{display:grid;grid-template-columns:40px minmax(0,1fr);gap:10px;align-items:start;text-align:left}
 .ex .text{font-family:var(--serif);font-size:16px;line-height:1.55}
 .ex .gap.open{color:var(--green-ink);font-weight:700;background:var(--green-soft);border-radius:4px;padding:0 3px}
 .wordbig{font-family:var(--serif);font-size:clamp(34px,9vw,46px);font-weight:700;letter-spacing:-.01em;line-height:1.1;word-break:break-word}
@@ -34,8 +34,8 @@ button.xcard:hover{border-color:var(--green-line)}
 .mean-a{font-size:16px;line-height:1.6;color:var(--ink2)}
 .review.open-card{align-content:start;padding-top:12px}
 .review.open-card .exs{margin-top:4px}
-.choice{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.choice.two{grid-template-columns:1fr 1fr}
+.choice{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.choice.two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 .choice button{border:1.5px solid var(--line2);background:var(--paper);border-radius:14px;min-height:58px;padding:8px 4px;font-weight:700;font-size:16px;display:grid;gap:2px;transition:transform .12s,border-color .15s}
 .choice button:active{transform:scale(.97)}
 .choice button small{font-weight:500;color:var(--muted);font-size:11px}
@@ -47,8 +47,8 @@ button.xcard:hover{border-color:var(--green-line)}
 .review .ok{color:var(--green-ink);font-weight:700}.review .warn{color:var(--amber);font-weight:600}.review .bad{color:var(--red);font-weight:600}
 .review s{opacity:.8}
 .huge{font-size:54px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
-.bands{display:grid;gap:8px;text-align:left}
-.bands .row{flex-wrap:nowrap}.bands .row span:first-child{width:72px}
+.vt-bands{display:grid;gap:8px;text-align:left}
+.vt-bands .row{flex-wrap:nowrap;gap:10px}.vt-bands .row span:first-child{width:72px;flex:none}.vt-bands .row span:last-child{width:3em;flex:none;text-align:right}
 .vtest .wordbig{margin:18px 0}
 #impText{font:inherit;width:100%;border:1.5px solid var(--line2);border-radius:12px;padding:12px;background:var(--paper);color:var(--ink);resize:vertical}
 #impText:focus{outline:none;border-color:var(--green)}

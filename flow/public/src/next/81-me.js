@@ -12,11 +12,12 @@
     const groups = [
       u && ['进步', [grow('#/radar', '能力雷达', '离目标还差多少', '', 'me-radar'), grow('#/growth', '我的进步', '每月对比和里程碑', '', 'me-growth'), grow('#/report', '这周的报告', '', '', 'me-report'), grow('#/cards/mistake', '错题本', '', '', 'me-mistake')]],
       ['设置', [grow('#/welcome/edit', '学习目标和水平', [goal && esc(goal.label), lv && lv.id].filter(Boolean).join(' · ') || '未设置', '', 'me-level'),
-        grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), grow('meRemind', '每天提醒', '加到手机日历', '', 'me-remind'),
+        u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), grow('meText', '字号和行距', textLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '加到手机日历', '', 'me-remind'),
         installed ? '' : grow('meInstall', '添加到桌面', '像 App 一样打开', '', 'me-install')]],
-      u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备')],
+      u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
+        grow('meData', '导出我的数据', '单词本 · 学习记录', '', 'me-data'), grow('meDelete', '注销账号', '', '', 'me-delete')],
         '绑定邮箱后，可以用验证码登录，忘记密码时自己找回。30 天内来过就一直保持登录；在别人的手机或电脑上用完，记得退出。'],
-      ['帮助', [grow('#/guide', '操作指南', '每个页面怎么用', '', 'me-guide'), grow('/survey', '匿名问卷', '你想要什么样的英语学习网站', '', 'me-survey')]],
+      ['帮助', [grow('#/guide', '操作指南', '每个页面怎么用', '', 'me-guide'), grow('#/feedback', '问题反馈', '页面不对、功能用不了，告诉我们', '', 'me-feedback'), grow('/survey', '匿名问卷', '你想要什么样的英语学习网站', '', 'me-survey')]],
     ].filter(Boolean);
     view.innerHTML = `<div class="card flat me-head"><div class="me-id">${u ? `<span class="avatar" aria-hidden="true">${esc([...u.username][0].toUpperCase())}</span>` : ''}
         <div class="t"><h1 class="h1">${u ? esc(u.username) : '我的'}</h1><span class="small muted">${lv ? `${esc(lv.label)}（${lv.id}）` : '还没有设置水平'} · 每天 ${p.minutes || 10} 分钟</span></div></div>
@@ -26,6 +27,8 @@
       ${u ? '<div class="glist gsec"><button class="grow danger" id="out" type="button"><span class="t">退出登录</span></button></div>' : ''}`;
     const lg = document.getElementById('lg'); if (lg) lg.onclick = () => openLogin();
     document.getElementById('meVoice').onclick = voiceSheet;
+    document.getElementById('meText').onclick = textSheet;
+    const mh = document.getElementById('meHabit'); if (mh) mh.onclick = habitSheet;
     document.getElementById('meRemind').onclick = () => remindSheet(p.minutes || 10);
     const mi = document.getElementById('meInstall'); if (mi) mi.onclick = installSheet;
     if (u) {
@@ -38,8 +41,28 @@
       }).catch(() => { const el = document.getElementById('acctEmail'); if (el) el.textContent = ''; });
       document.getElementById('chPw').onclick = () => changePasswordSheet();
       document.getElementById('outAll').onclick = () => signOutEverywhere();
-      document.getElementById('out').onclick = async () => { try { await api('/api/logout', {}); } catch (e) { /* ignore */ } S.user = null; S.csrf = ''; await refreshHome(); toast('已退出'); route(); };
+      document.getElementById('meData').onclick = dataSheet;
+      document.getElementById('meDelete').onclick = deleteAccountSheet;
+      document.getElementById('out').onclick = async () => { await OUTBOX.flush(); try { await api('/api/logout', {}); } catch (e) { /* ignore */ } snapClear(); S.user = null; S.csrf = ''; await refreshHome(); toast('已退出'); route(); };
     }
+  }
+  // 字号和行距: the reading text (a material, the listening lines, review sentences, questions, the guide, meanings)
+  // larger and with more room between lines; menus and buttons stay as they are. Kept on the phone (applyText, 02-shell.js).
+  const TEXT_SIZES = [['m', '标准'], ['l', '大'], ['xl', '特大']], TEXT_LH = [['n', '标准'], ['w', '宽松']];
+  function textLabel() { return [TEXT_SIZES.find(x => x[0] === TEXT.size)[1], TEXT.lh === 'w' ? '行距宽松' : ''].filter(Boolean).join(' · '); }
+  function textSheet() {
+    const chips = (list, key, cur) => list.map(([k, l]) => `<button class="chip" type="button" role="radio" data-${key}="${k}" aria-checked="${cur === k}">${l}</button>`).join('');
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">字号和行距</h2>
+      <div class="stack-s"><b>字号</b><div class="chips" role="radiogroup" aria-label="字号">${chips(TEXT_SIZES, 'ts', TEXT.size)}</div></div>
+      <div class="stack-s"><b>行距</b><div class="chips" role="radiogroup" aria-label="行距">${chips(TEXT_LH, 'tl', TEXT.lh)}</div></div>
+      <p class="text tsample">Reading a little every day is how a new language slowly becomes your own.</p>
+      <p class="muted small">课文、听力句子、讲解和释义的字会变大，菜单和按钮不变。</p><button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      card.querySelectorAll('[data-ts], [data-tl]').forEach(b => b.onclick = () => {
+        const k = 'ts' in b.dataset ? 'size' : 'lh'; TEXT[k] = b.dataset.ts || b.dataset.tl; save('flow-next-text', TEXT); applyText();
+        card.querySelectorAll(k === 'size' ? '[data-ts]' : '[data-tl]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
+        const v = document.getElementById('meTextV'); if (v) v.textContent = textLabel();
+      });
+    });
   }
   function voiceSheet() {
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">朗读声音</h2>${voiceChips(null)}
@@ -155,6 +178,52 @@
       };
     });
   }
+  // 我的数据 (account_data.py): the word book for Excel/WPS/Numbers or for Anki, or every record of the account. Plain
+  // links: the server sends them as files. WeChat does not save files, so there the way out is the phone's browser.
+  const EXPORTS = [['/api/next/export/cards.csv', '单词本 · Excel 表格', '.csv', 'export-csv'],
+    ['/api/next/export/cards-anki.txt', '单词本 · 导入 Anki', '.txt', 'export-anki'],
+    ['/api/next/export/records.json', '全部学习记录', '.json', 'export-json']];
+  function dataSheet() {
+    const n = S.home && S.home.stats ? S.home.stats.cards : null;
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">导出我的数据</h2>
+      ${IN_WECHAT ? '<p class="small card sunk">微信里不能保存文件：点右上角「…」，选「在浏览器打开」，再到「我的 → 导出我的数据」。</p>' : ''}
+      <div class="glist">${EXPORTS.map(([href, label, ext, tap], k) => `<a class="grow" href="${href}" download data-tap="${tap}"><span class="t">${label}</span><span class="v small muted">${k < 2 && n != null ? n + ' 条 · ' : ''}${ext}</span><span class="go" aria-hidden="true">↓</span></a>`).join('')}</div>
+      <p class="tiny muted">表格用 Excel、WPS 或 Numbers 直接打开：英文、中文意思、原文例句、来源和复习情况各占一列。Anki：在电脑上「文件 → 导入」选这个文件，正面是英文，背面是中文意思和原文例句。全部学习记录是一个 JSON 文件，有单词本、每次复习、学过的材料、测评和设置，留底或换地方用。</p>
+      <button class="btn ghost" data-close type="button">完成</button></div>`);
+  }
+  // 注销账号: what goes (all of it, for good), a copy first if wanted, the password once more. Afterwards this phone
+  // forgets the account too.
+  function deleteAccountSheet() {
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">注销账号</h2>
+      <p class="small">注销后，这个账号和它的全部学习记录都会删除，<b>不能恢复</b>：单词本和复习安排、学过的材料、测评和能力雷达、写作和口语的批改记录、发过的问题反馈和截图。同样的用户名和邮箱以后可以重新注册，但会从头开始。</p>
+      <p class="small">想留一份？<button class="link" id="dlFirst" type="button">先导出单词本和学习记录</button></p>
+      <form id="da" class="stack" novalidate>${pwField('输入密码确认', 'password', 'current-password')}
+        <button class="btn danger-btn" type="submit">永久注销这个账号</button></form>
+      <p class="err" id="daErr" role="alert"></p><button class="btn ghost" data-close type="button">取消</button></div>`, card => {
+      bindEyes(card);
+      card.querySelector('#dlFirst').onclick = dataSheet;
+      const form = card.querySelector('#da'), err = card.querySelector('#daErr');
+      form.onsubmit = async e => {
+        e.preventDefault(); err.textContent = '';
+        if (!form.password.value) return fieldError(form, err, { message: '请输入密码', field: 'password' });
+        const b = form.querySelector('[type=submit]'); b.disabled = true;
+        try {
+          await api('/api/account/delete', { password: form.password.value });
+          forgetAccountHere(); S.user = null; S.csrf = ''; closeSheet(); await refreshHome();
+          location.hash = '#/'; route(); toast('账号已注销，学习记录已全部删除');
+        } catch (x) { fieldError(form, err, { message: x.message, field: 'password' }); b.disabled = false; }
+      };
+    });
+  }
+  // What this phone kept for the account: the copies (snapClear) and the small notes of where the learner was.
+  // The phone's own choices (voice, text size, 复读) stay.
+  function forgetAccountHere() {
+    snapClear();
+    try {
+      ['flow-habit-lastweek', 'flow-habit-cheered', 'flow-next-mail-nudge', 'flow-next-suggest-skip', 'flow-words-stats'].forEach(k => localStorage.removeItem(k));
+      Object.keys(localStorage).filter(k => k.startsWith('flow-next-steps-')).forEach(k => localStorage.removeItem(k));
+    } catch (e) { /* private mode */ }
+  }
   // A lost phone, a shared computer: end the account's sessions everywhere, this one included.
   function signOutEverywhere() {
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">退出所有设备？</h2>
@@ -162,7 +231,7 @@
       <button class="btn primary" id="soAll" type="button">退出所有设备</button><button class="btn ghost" data-close type="button">取消</button></div>`, card => {
       card.querySelector('#soAll').onclick = async e => {
         e.currentTarget.disabled = true;
-        try { await api('/api/logout', { all: true }); } catch (x) { /* signed out already */ }
+        await OUTBOX.flush(); try { await api('/api/logout', { all: true }); } catch (x) { /* signed out already */ } snapClear();
         S.user = null; S.csrf = ''; closeSheet(); await refreshHome(); toast('已在所有设备上退出'); route();
       };
     });

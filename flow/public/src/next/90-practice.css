@@ -6,7 +6,7 @@
 .ptile:hover{background:var(--sunk)}
 .ptile:active{transform:scale(.97)}
 .ptile b{font-size:15px;display:flex;align-items:center;gap:6px}
-.pbadge{font-style:normal;font-size:11px;font-weight:700;line-height:1;padding:3px 6px;border-radius:999px;background:var(--amber,#e8a33d);color:#fff}
+.pbadge{font-style:normal;font-size:11px;font-weight:700;line-height:1;padding:3px 6px;border-radius:999px;background:var(--amber-fill);color:var(--on-amber)}
 .psuggest{display:grid;gap:6px;text-decoration:none;color:inherit;padding:16px;background:var(--green-soft);border:0}
 .psuggest .tiny{color:var(--green-ink);font-weight:600;letter-spacing:.04em}
 .psuggest b{font-size:17px}

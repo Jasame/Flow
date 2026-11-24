@@ -42,8 +42,16 @@ PAGES = ['#/', '#/library', f'#/m/{PID}/listen', f'#/m/{PID}/read', f'#/m/{PID}/
          '#/mix', '#/mix/pair/tense-past,tense-perfect', '#/graph/link-contrast',
          '#/easy', '#/words/confuse', '#/words/confuse/borrow-lend,make-do', '#/speak', '#/speak/cafe-order', '#/growth', '#/series/a-new-term',
          '#/radar', '#/radar/goals', '#/radar/test', '#/radar/test/reading', '#/radar/test/writing',
-         '#/practice', '#/guide', '#/guide/words']
+         '#/practice', '#/guide', '#/guide/words', '#/feedback']
 RESULTS = []
+
+
+def png(w=60, h=120, rgb=(31, 157, 85)):
+    """A small real PNG (a screenshot stand-in the page can draw and shrink)."""
+    import struct, zlib
+    chunk = lambda t, d: struct.pack('>I', len(d)) + t + d + struct.pack('>I', zlib.crc32(t + d) & 0xffffffff)
+    raw = b''.join(b'\x00' + bytes(rgb) * w for _ in range(h))
+    return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', w, h, 8, 2, 0, 0, 0)) + chunk(b'IDAT', zlib.compress(raw)) + chunk(b'IEND', b'')
 
 
 def check(dev, name, ok, detail=''):
@@ -221,7 +229,7 @@ def run_device(pw, dev, opts):
     while asked < 16 and not pg.query_selector('#pUse'):
         pg.click('.place .ans >> nth=0' if asked % 3 else '#pSkip'); asked += 1
         pg.wait_for_timeout(450)
-    res = pg.evaluate("() => ({h: (document.querySelector('#view h1') || {}).textContent || '', bands: document.querySelectorAll('.bands .band').length})")
+    res = pg.evaluate("() => ({h: (document.querySelector('#view h1') || {}).textContent || '', bands: document.querySelectorAll('.pl-bands .pl-band').length})")
     check(dev, 'starting check: ends with a level and band scores', res['h'].startswith('建议从') and 1 <= res['bands'] <= 4 and asked % 4 == 0, (res, asked))
 
     # ---- exam practice: a timed paper of 22 questions, handed in once, scored by part
@@ -536,6 +544,16 @@ def run_device(pw, dev, opts):
     pg.fill('#cp [name=new]', 'a long new password'); pg.fill('#cp [name=again]', 'something else'); pg.click('#cp [type=submit]')
     check(dev, 'change password: a mismatch is marked on the field', pg.get_attribute('#cp [name=again]', 'aria-invalid') == 'true' and '不一样' in (pg.text_content('#cpErr') or ''))
     pg.evaluate("document.querySelector('#sheet [data-close]').click()")
+    # ---- 问题反馈: from 我的, a few words and a screenshot (shrunk on the page before it is sent), then 已收到
+    go(pg, '#/me'); pg.click('[data-tap="me-feedback"]'); pg.wait_for_selector('#fbForm', timeout=5000)
+    pg.click('#fbForm [data-k="broken"]')
+    pg.fill('#fbText', '单词页往下滑，底部按钮跑到了中间')
+    pg.set_input_files('#fbFile', files=[{'name': 'shot.png', 'mimeType': 'image/png', 'buffer': png()}])
+    pg.wait_for_selector('#fbShots img', timeout=5000)
+    shot = pg.evaluate("document.querySelector('#fbShots img').src.slice(0, 23)")
+    pg.click('#fbSend'); pg.wait_for_selector('.fb-done', timeout=8000)
+    check(dev, '问题反馈: a screenshot goes as a shrunk JPEG with the words, and 已收到 counts it',
+          shot == 'data:image/jpeg;base64,' and '1 张截图' in (pg.text_content('#view') or ''), shot)
     # ---- signed out: the sign-in sheet, a forgotten password, sign-up checks said before any request
     gctx = ctx.browser.new_context(**opts, locale='zh-CN', bypass_csp=True); gp = gctx.new_page()
     gp.goto(BASE + '/#/me'); settle(gp)
@@ -638,6 +656,49 @@ def platform_run(pw):
             wide[h] = pg.evaluate('document.scrollingElement.scrollWidth - innerWidth')
         check(dev, '360 px wide: no page scrolls sideways', all(v <= 0 for v in wide.values()), wide)
         ctx.close()
+        # what the browser reports about the site: the opening time once the first page is drawn, and page errors
+        # (a script error, a picture that did not load) when the page is left
+        ctx = browser.new_context(viewport={'width': 390, 'height': 800}, is_mobile=True, has_touch=True, user_agent=IPHONE_UA, locale='zh-CN', bypass_csp=True)
+        ctx.add_cookies([{'name': 'flow_session', 'value': token, 'url': BASE}])
+        pg = ctx.new_page(); sent = {}
+        pg.on('request', lambda r: sent.setdefault(r.url.split('/api/next/')[-1], []).append(r.post_data) if r.url.endswith(('/api/next/issues', '/api/next/opentime')) else None)
+        pg.goto(BASE + '/#/cards', wait_until='networkidle'); settle(pg); pg.wait_for_timeout(2200)
+        ot = json.loads((sent.get('opentime') or ['{}'])[0])
+        check(dev, 'the opening time is sent once the first page is drawn', len(sent.get('opentime', [])) == 1 and (ot.get('first_view') or 0) > 0 and ot.get('ttfb') is not None, ot)
+        pg.evaluate("() => { setTimeout(() => { throw new Error('ui-test boom'); }, 0); const i = new Image(); i.src = '/no-such-picture.png'; document.body.appendChild(i); }")
+        pg.wait_for_timeout(600); pg.evaluate("() => dispatchEvent(new Event('pagehide'))"); pg.wait_for_timeout(400)
+        items = [x for body in sent.get('issues', []) for x in json.loads(body)['items']]
+        check(dev, 'page errors are sent when the page is left: a script error and a picture that did not load',
+              any(x['kind'] == 'js' and 'ui-test boom' in x['message'] for x in items) and any(x['kind'] == 'resource' and '/no-such-picture.png' in x['message'] for x in items), items[:4])
+        ctx.close()
+        # instant pages and preloading (05-data.js): the second visit draws 今日 from the copy kept on the phone while the
+        # server is still answering; idle time preloads the other tabs; a touch on a link starts that page's request
+        ctx = browser.new_context(viewport={'width': 390, 'height': 800}, is_mobile=True, has_touch=True, user_agent=IPHONE_UA, locale='zh-CN', bypass_csp=True)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['b1']['token'], 'url': BASE}])  # signed out at the end
+        pg = ctx.new_page(); asked = []
+        pg.on('request', lambda r: asked.append(r.url.split(BASE, 1)[-1]) if '/api/' in r.url else None)
+        pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg); pg.wait_for_timeout(1500)
+        snap = pg.evaluate("() => JSON.parse(localStorage.getItem('flow-snap') || 'null')")
+        check(dev, 'preload: 今日 is kept on the phone, without the session token', bool(snap and snap.get('home')) and 'csrf' not in json.dumps(snap), (snap or {}).keys())
+        check(dev, 'preload: idle time fetched 单词 before it was opened', any(a.startswith('/api/next/vocab') for a in asked), [a for a in asked][:8])
+        held = []
+        pg.route('**/api/next/home*', lambda r: held.append(r))
+        t0 = time.time(); pg.reload(wait_until='domcontentloaded')
+        pg.wait_for_selector('#view .today-plan, #view .hello', timeout=4000); quick = time.time() - t0
+        check(dev, 'preload: the second visit draws 今日 at once, while the server is still answering', quick < 2.5 and held, f'{quick:.2f}s, home held: {len(held)}')
+        for r in held:
+            r.continue_()
+        pg.unroute('**/api/next/home*'); pg.wait_for_timeout(800)
+        go(pg, '#/library'); pg.wait_for_timeout(300); asked.clear()
+        links = pg.query_selector_all('#view a[href^="#/m/"]'); link = links[-1] if links else None
+        if link:
+            link.dispatch_event('pointerdown'); pg.wait_for_timeout(250)
+        check(dev, 'preload: touching a material link starts its request before the tap ends', link is not None and any(a.startswith('/api/next/material?id=') for a in asked), asked[:5])
+        go(pg, '#/me'); pg.click('#out'); pg.wait_for_timeout(800)
+        left = pg.evaluate("() => localStorage.getItem('flow-snap') || ''")
+        check(dev, 'preload: signing out clears the copy kept on the phone (a guest\'s 今日 may follow, nothing of the account)',
+              '"owner":"u' not in left and 'username' not in left, left[:120])
+        ctx.close()
     finally:
         browser.close()
 
@@ -686,6 +747,9 @@ def wechat_run(pw):
         pg = ctx.new_page(); errors = []
         pg.on('pageerror', lambda e: errors.append(str(e)))
         pg.goto(base + '/#/', wait_until='networkidle'); settle(pg)
+        guide = pg.text_content('.wx-guide') if pg.query_selector('.wx-guide') else ''
+        check(dev, 'the first visit points at the ··· menu: two steps, and a way to copy the address', '「···」' in guide and '在浏览器打开' in guide and pg.is_visible('#wxCopy'), guide[:80])
+        pg.click('#wxStay'); pg.wait_for_timeout(150)
         bar = pg.text_content('.wx-bar') if pg.query_selector('.wx-bar') else ''
         check(dev, 'a slim bar says how to open the page in the browser', '在浏览器打开' in bar and pg.is_visible('.wx-bar .wx-x'), bar[:80])
         pg.click('.wx-bar .wx-x'); pg.reload(); settle(pg)
@@ -722,6 +786,412 @@ def wechat_run(pw):
         srv.terminate()
 
 
+# ---- layout on every page and in the states learners reach (a test's result, an open fold, each kind of review card),
+# on a phone and a small phone, dark and light, in Chrome and (when installed) WebKit, the engine of iPhone Safari.
+# Each check is a kind of fault found on phones, looked for everywhere at once:
+#   wide      the page is wider than the screen, so it slides sideways (and iOS lets it zoom out, carrying the bars);
+#   beyond    something reaches past the screen's edge (cut off, or pushing the page wider);
+#   squeezed  text squeezed into a column about one character wide (two layouts fighting over one class name);
+#   fixed-in  a fixed bar inside a box that moves or transforms (it is carried along instead of staying put);
+#   tabs      after scrolling a long page to the end, the tab bar is still at the bottom of the screen;
+#   q-top     a review question without a word to show starts near the top, not under a screen of empty space.
+AUDIT_JS = r"""() => {
+  const W = innerWidth, H = innerHeight, out = { wide: document.scrollingElement.scrollWidth - W, beyond: [], squeezed: [], fixedIn: [] };
+  const name = el => el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (el.classList.length ? '.' + [...el.classList].slice(0, 3).join('.') : '');
+  // a scroller or a clipping box of its own (not the page's main column) holds what reaches past it on purpose
+  const held = el => { for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+    if (p.tagName === 'MAIN') continue; const ox = getComputedStyle(p).overflowX; if (ox !== 'visible') return true; } return false; };
+  const flagged = [];
+  for (const el of document.querySelectorAll('body *')) {
+    if (el.closest('.skip, .sr-only, [hidden], #sheet[hidden]')) continue;
+    const r = el.getBoundingClientRect(); if (!r.width || !r.height) continue;
+    const cs = getComputedStyle(el); if (cs.visibility === 'hidden' || cs.display === 'none') continue;
+    const straddles = (r.left < -1 && r.right > 0) || (r.right > W + 1 && r.left < W);
+    if (straddles && cs.position !== 'fixed' && !held(el) && !flagged.some(f => f.contains(el))) { flagged.push(el); out.beyond.push(name(el) + ' ' + Math.round(r.left) + '…' + Math.round(r.right)); }
+    const own = [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).join('');
+    if (own.length >= 2) { const fs = parseFloat(cs.fontSize) || 16, lh = parseFloat(cs.lineHeight) || fs * 1.5;
+      if (r.width < fs * 1.6 && r.height > lh * 2.5) out.squeezed.push(name(el) + ' "' + own.slice(0, 12) + '"'); }
+    if (cs.position === 'fixed') for (let p = el.parentElement; p && p !== document.documentElement; p = p.parentElement) {
+      const ps = getComputedStyle(p), bf = ps.backdropFilter || ps.webkitBackdropFilter || 'none';
+      if (ps.position === 'sticky' || ps.transform !== 'none' || ps.filter !== 'none' || bf !== 'none' || ps.perspective !== 'none' || /paint|layout|strict|content/.test(ps.contain || '') || /transform|filter/.test(ps.willChange || '')) {
+        out.fixedIn.push(name(el) + ' inside ' + name(p)); break; } }
+  }
+  return out;
+}"""
+TABS_JS = """() => { const t = document.querySelector('.tabs'); if (!t) return null; const cs = getComputedStyle(t);
+  if (cs.position !== 'fixed' || cs.display === 'none') return null; return Math.round(innerHeight - t.getBoundingClientRect().bottom); }"""
+QTOP_JS = """() => { const r = document.querySelector('#view .review'); if (!r || !r.querySelector('.qopts, #fixIn') || r.querySelector('.wordbig')) return null;
+  const f = r.querySelector('.rtag') || r.firstElementChild; return f ? Math.round(f.getBoundingClientRect().top / innerHeight * 100) : null; }"""
+
+
+def layout_run(pw, engine):
+    dev = 'layout-' + engine
+    try:
+        browser = pw.webkit.launch() if engine == 'webkit' else pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    except Exception as e:
+        if engine == 'webkit' and 'webkit' not in ONLY:  # not installed here (CI): the Chrome run still covers the rest
+            print(f'SKIP [{dev}] WebKit is not installed (python -m playwright install webkit)'); return
+        raise
+    found = {}  # (size, theme, kind) -> [where: what]
+
+    def note(where, size, theme, res):
+        for kind in ('beyond', 'squeezed', 'fixedIn'):
+            for x in res[kind][:4]:
+                found.setdefault((size, theme, kind), []).append(f'{where}: {x}')
+        if res['wide'] > 1:
+            found.setdefault((size, theme, 'wide'), []).append(f"{where}: +{res['wide']} px")
+    try:
+        for (w, h), theme in ((390, 844), 'dark'), ((360, 780), 'light'), ((390, 844), 'light'), ((360, 780), 'dark'):
+            size = f'{w}'
+            opts = dict(viewport={'width': w, 'height': h}, has_touch=True, device_scale_factor=2, color_scheme=theme, locale='zh-CN', bypass_csp=True)
+            if engine != 'webkit':
+                opts['is_mobile'] = True
+            ctx = browser.new_context(**opts)
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['phone']['token'], 'url': BASE}])
+            pg = ctx.new_page(); pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+            audit = lambda where: note(where, size, theme, pg.evaluate(AUDIT_JS))
+            for p in PAGES:
+                go(pg, p); audit(p)
+            # the states behind a tap: the statistics fold on 单词, the end of the vocabulary test, the placement result
+            go(pg, '#/cards'); pg.evaluate("() => { const d = document.getElementById('vStats'); if (d) d.open = true; }"); pg.wait_for_timeout(250); audit('#/cards (统计 open)')
+            go(pg, '#/vocab/test')
+            for _ in range(240):
+                if not pg.query_selector('[data-a="1"]'):
+                    break
+                pg.click('[data-a="1"]')
+            pg.wait_for_selector('#view .done-card', timeout=8000); pg.wait_for_timeout(300); audit('#/vocab/test (result)')
+            go(pg, '#/placement')
+            if pg.query_selector('#pStart'):
+                pg.click('#pStart'); pg.wait_for_timeout(300)
+            placed = lambda: pg.evaluate("() => [...document.querySelectorAll('#view .place .kicker')].some(k => k.textContent.includes('小测结果'))")
+            for _ in range(60):  # 「不会」 to every question: the test ends early, at the result
+                if placed():
+                    break
+                s = pg.query_selector('#pSkip:not([disabled])')
+                if s:
+                    s.click()
+                pg.wait_for_timeout(350)
+            if placed():
+                audit('#/placement (result)')
+            else:
+                found.setdefault((size, theme, 'beyond'), []).append('#/placement: the result was not reached, so not checked')
+            # review: each card as it comes, answered so the next one shows; questions start near the top
+            go(pg, '#/review'); pg.wait_for_timeout(300); asked = 0
+            for k in range(40):  # word cards come first; mistakes (questions) after them
+                if not pg.query_selector('#view .review') or asked:
+                    break  # a question is checked and left unanswered, so it is still due for the next run
+                audit(f'#/review card {k + 1}')
+                top = pg.evaluate(QTOP_JS)
+                asked += top is not None
+                if top is not None and top > 40:
+                    found.setdefault((size, theme, 'q-top'), []).append(f'#/review card {k + 1}: question starts {top}% down the screen')
+                if top is not None:
+                    continue
+                b = pg.query_selector('.qopt:not([disabled])') or pg.query_selector('#fixNo') or pg.query_selector('#giveup') or pg.query_selector('.choice button[data-claim="forgot"]') or pg.query_selector('.choice button[data-self]')
+                if not b:
+                    break
+                b.click(); pg.wait_for_timeout(250)
+                for sel in ('#view #go', '#view [data-rate="again"]', '#view [data-rate]'):  # the answer side: 下一个, or a rating
+                    nb = pg.query_selector(sel)
+                    if nb and nb.is_visible():
+                        nb.click(); pg.wait_for_timeout(250); break
+            if not asked:
+                found.setdefault((size, theme, 'q-top'), []).append('#/review: no question card came up, so none was checked')
+            # the tab bar stays at the bottom of the screen when a long page is scrolled to its end
+            for p in ('#/library', '#/cards', '#/guide'):
+                go(pg, p); pg.evaluate('window.scrollTo(0, document.scrollingElement.scrollHeight)'); pg.wait_for_timeout(500)
+                gap = pg.evaluate(TABS_JS)
+                if gap is not None and abs(gap) > 2:
+                    found.setdefault((size, theme, 'tabs'), []).append(f'{p}: tab bar {gap} px above the bottom')
+                pg.evaluate('window.scrollTo(0, 0)')
+            ctx.close()
+        for kind, label in (('wide', 'no page is wider than the screen'), ('beyond', 'nothing reaches past the edge of the screen'),
+                            ('squeezed', 'no text squeezed into a narrow column'), ('fixedIn', 'fixed bars are not carried by a moving box'),
+                            ('tabs', 'the tab bar stays at the bottom of long pages'), ('q-top', 'review questions start near the top')):
+            bad = {f'{s}px {t}': v for (s, t, k), v in found.items() if k == kind}
+            check(dev, label, not bad, json.dumps(bad, ensure_ascii=False)[:380])
+    finally:
+        browser.close()
+
+
+# ---- the experience round: 复读 in 听, 撤销 in review, 字号和行距, and a first visit that can start with an article
+FAKE_TTS = """(() => { window.__said = []; if (!window.speechSynthesis) return;
+  speechSynthesis.speak = u => { window.__said.push(u.text); setTimeout(() => { u.onstart && u.onstart(); u.onend && u.onend(); }, 40); };
+  speechSynthesis.cancel = () => {}; speechSynthesis.getVoices = () => []; })();"""
+
+
+def ux_run(pw):
+    dev = 'ux'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    phone = dict(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
+    try:
+        ctx = browser.new_context(**phone)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a2']['token'], 'url': BASE}])
+        ctx.add_init_script(FAKE_TTS)
+        pg = ctx.new_page(); pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+        # 复读: 3 遍, no pause: one tap on a sentence says it three times
+        go(pg, f'#/m/{PID}/listen'); pg.wait_for_selector('[data-rep="3"]', timeout=5000)
+        pg.click('[data-rep="3"]'); pg.evaluate('window.__said = []')
+        pg.click('[data-say="0"]'); pg.wait_for_timeout(30)
+        mini = pg.is_visible('.mini-player')  # while it repeats (it goes away when the last time ends)
+        pg.wait_for_timeout(900)
+        said = pg.evaluate('window.__said')
+        check(dev, '复读: a sentence is said three times, with a stop button on screen meanwhile', len(said) == 3 and len(set(said)) == 1 and mini, (len(said), mini))
+        pg.reload(); settle(pg, '[data-rep]')
+        check(dev, '复读: the choice is remembered', pg.get_attribute('[data-rep="3"]', 'aria-pressed') == 'true')
+        pg.click('[data-rep="1"]')
+        # 字号: 特大 makes the reading text larger, and a 360-pixel phone still does not scroll sideways
+        go(pg, '#/me'); pg.click('#meText'); pg.wait_for_selector('#sheetCard [data-ts="xl"]', timeout=4000)
+        pg.click('#sheetCard [data-ts="xl"]'); pg.click('#sheetCard [data-tl="w"]'); pg.evaluate("document.querySelector('#sheet [data-close]').click()")
+        pg.set_viewport_size({'width': 360, 'height': 780}); go(pg, f'#/m/{PID}/read'); pg.wait_for_timeout(400)
+        z = pg.evaluate("() => { const t = document.querySelector('#view .text'); return t ? [getComputedStyle(t).zoom, getComputedStyle(t).lineHeight] : null; }")
+        wide = pg.evaluate('document.scrollingElement.scrollWidth - innerWidth')
+        check(dev, '字号: 特大 and 宽松 apply to the reading text, and the page stays within the screen', z and float(z[0]) == 1.25 and wide <= 0, (z, wide))
+        pg.set_viewport_size({'width': 390, 'height': 844}); go(pg, '#/me'); pg.click('#meText'); pg.wait_for_selector('#sheetCard [data-ts="m"]', timeout=4000)
+        pg.click('#sheetCard [data-ts="m"]'); pg.click('#sheetCard [data-tl="n"]'); pg.evaluate("document.querySelector('#sheet [data-close]').click()")
+        # 撤销: a rating taken back brings the same card up again
+        go(pg, '#/review'); pg.wait_for_timeout(400)
+        first = pg.text_content('#view .review') or ''
+        b = pg.query_selector('.choice button[data-claim="forgot"]')
+        if b:
+            b.click(); pg.wait_for_timeout(300)
+            r = pg.query_selector('#view [data-rate="again"]') or pg.query_selector('#view [data-rate]')
+            if r:
+                r.click(); pg.wait_for_timeout(500)
+        has = pg.query_selector('#undo') is not None
+        if has:
+            pg.click('#undo'); pg.wait_for_timeout(600)
+        again = pg.text_content('#view .review') or ''
+        check(dev, '撤销: the latest rating is taken back and the same card comes up again', has and again[:40] == first[:40], (has, first[:40], again[:40]))
+        ctx.close()
+        # a first visit: no questions first, today's article can be tried at once
+        ctx = browser.new_context(**phone); pg = ctx.new_page()
+        pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg, '.try-first')
+        link = pg.get_attribute('.try-first a', 'href') or ''
+        if link:
+            pg.click('.try-first a'); pg.wait_for_selector('#view .steps', timeout=6000)
+        check(dev, 'first visit: 先试读一篇 opens today\'s article without questions or an account', link.startswith('#/m/') and '/m/' in pg.evaluate('location.hash'), link)
+        ctx.close()
+    finally:
+        browser.close()
+
+
+# ---- the learner round (r22): 每周目标, 存到手机 (study without a connection), 分享卡片, 导出我的数据 and 注销账号
+QR_READ = """async sel => { if (!('BarcodeDetector' in window)) return null;
+  const f = await new BarcodeDetector({ formats: ['qr_code'] }).detect(document.querySelector(sel)); return f.map(x => x.rawValue); }"""
+
+
+def learner_run(pw):
+    dev = 'learner'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    phone = dict(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, accept_downloads=True)
+    closing = "document.querySelector('#sheet [data-close]').click()"
+    try:
+        ctx = browser.new_context(**phone)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['exam']['token'], 'url': BASE}])
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+        # 每周目标: the chip on 今日 opens its sheet, and the goal chosen there shows on the chip at once
+        pg.click('#habitBtn'); pg.wait_for_selector('#sheetCard [data-goal="3"]', timeout=4000)
+        pg.click('#sheetCard [data-goal="3"]'); pg.wait_for_timeout(600); pg.evaluate(closing)
+        chip = (pg.text_content('#habitBtn') or '').strip()
+        check(dev, '每周目标: the goal set from 今日 shows on its chip', '/3 天' in chip, chip[:40])
+        # 分享卡片: after the questions, a learned expression becomes a picture with a QR code back to the site
+        go(pg, f'#/m/{PID}/check'); pg.wait_for_selector('#pane .q', timeout=6000)
+        for q in pg.query_selector_all('#pane .q'):
+            q.query_selector('.ans').click(); pg.wait_for_timeout(250)
+        pg.wait_for_selector('#shareX', timeout=6000); pg.click('#shareX')
+        pg.wait_for_selector('#shareImg[src^="data:image/png"]', timeout=6000); pg.wait_for_timeout(300)
+        size = pg.evaluate("[document.getElementById('shareImg').naturalWidth, document.getElementById('shareImg').naturalHeight]")
+        read = pg.evaluate(QR_READ, '#shareImg')
+        fits = pg.evaluate("() => { const r = document.querySelector('#sheetCard [data-close]').getBoundingClientRect(); return r.bottom <= innerHeight; }")
+        check(dev, '分享卡片: a 1080×1440 picture, its QR code leads back to the site, and the sheet\'s buttons are on screen',
+              size == [1080, 1440] and read in (None, ['https://flowlang.cn/?f=card']) and fits, (size, read if read is not None else 'no BarcodeDetector here (Linux): read on macOS', fits))
+        pg.screenshot(path=str(OUT / 'learner-share.png')); pg.evaluate(closing)
+        # 存到手机: a material kept on the phone opens and is graded without a connection; the answer is sent once online
+        lib = pg.evaluate("fetch('/api/next/library?level=&theme=&page=1&featured=').then(r => r.json())")
+        other = next((m['id'] for m in lib.get('items', []) if m['id'] != PID), None)
+        if other:
+            go(pg, f'#/m/{other}/read'); pg.wait_for_selector('#keepOff', timeout=6000)
+            if pg.get_attribute('#keepOff', 'class').find(' on') < 0:
+                pg.click('#keepOff')
+            pg.wait_for_selector('.offk.on', timeout=8000); go(pg, '#/')
+            ctx.set_offline(True); pg.wait_for_timeout(300)
+            go(pg, f'#/m/{other}/check')
+            shown = pg.query_selector('#pane .q .ans') is not None
+            if shown:
+                pg.click('#pane .q .ans'); pg.wait_for_timeout(400)
+            graded = pg.query_selector('#pane .q .ans.right') is not None
+            waiting = pg.evaluate("JSON.parse(localStorage.getItem('flow-next-outbox') || '[]').filter(x => x.path === '/api/next/check').length")
+            ctx.set_offline(False); pg.wait_for_timeout(1500)
+            sent = pg.evaluate("JSON.parse(localStorage.getItem('flow-next-outbox') || '[]').length")
+            check(dev, '存到手机: a kept material opens and is graded offline, and the answer is sent once back online',
+                  shown and graded and waiting >= 1 and sent == 0, (shown, graded, waiting, sent))
+        else:
+            check(dev, '存到手机: a second material to keep', False, 'no other material in the library')
+        # 导出我的数据: the word book as a table for Excel (UTF-8 with a BOM), from 我的
+        go(pg, '#/me'); pg.click('#meData'); pg.wait_for_selector('#sheetCard a[href$="cards.csv"]', timeout=4000)
+        with pg.expect_download(timeout=8000) as dl:
+            pg.click('#sheetCard a[href$="cards.csv"]')
+        f = dl.value; body = Path(f.path()).read_bytes()
+        check(dev, '导出: the word book downloads as 语流单词本-<day>.csv, readable by Excel', f.suggested_filename.startswith('语流单词本-') and body.startswith('\ufeff英文,中文意思'.encode()),
+              (f.suggested_filename, body[:30]))
+        pg.evaluate(closing)
+        check(dev, 'no script errors on these pages', not errs, errs[:3])
+        ctx.close()
+        # 注销账号: a wrong password is refused; the right one deletes the account, and this phone forgets it
+        ctx = browser.new_context(**phone)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['leaver']['token'], 'url': BASE}])
+        pg = ctx.new_page(); pg.goto(BASE + '/#/me', wait_until='networkidle'); settle(pg)
+        pg.click('#meDelete'); pg.wait_for_selector('#sheetCard #da', timeout=4000); pg.wait_for_timeout(400)
+        pg.screenshot(path=str(OUT / 'learner-delete.png'))
+        pg.fill('#da input[name=password]', 'not the password'); pg.click('#da [type=submit]'); pg.wait_for_timeout(700)
+        refused = (pg.text_content('#daErr') or '').strip()
+        pg.fill('#da input[name=password]', CFG['learners']['leaver']['password']); pg.click('#da [type=submit]')
+        pg.wait_for_function("() => ['#/', '#/welcome'].includes(location.hash) && document.getElementById('sheet').hidden", timeout=8000); settle(pg)
+        who = pg.evaluate("fetch('/api/session').then(r => r.json()).then(j => j.user || null)")
+        # (a guest's own copy of 今日 may be there again: the page after the deletion is a guest's)
+        kept = pg.evaluate("""['flow-snap', 'flow-offline', 'flow-next-outbox', 'flow-next-review-cache'].filter(k => {
+          const v = JSON.parse(localStorage.getItem(k) || 'null'); return v && !(k === 'flow-snap' && v.owner === 'guest'); })""")
+        check(dev, '注销账号: a wrong password is refused, the right one deletes the account and signs out, and this phone keeps none of it',
+              '密码不正确' in refused and who is None and not kept, (refused, who, kept))
+        ctx.close()
+    finally:
+        browser.close()
+
+
+# ---- screen readers and colour: every page, light and dark. A control without a name, an image without alt text, a
+# field without a label, an id used twice, text below WCAG AA contrast (4.5:1; 3:1 for large text; disabled controls
+# exempt), English not marked lang="en" (a screen reader would read it with a Chinese voice), and right/wrong answers
+# told apart by colour alone. Pictures of the answered questions as a red-green colour-blind learner sees them are
+# saved for a look (a11y-deuteranopia.png, a11y-protanopia.png).
+A11Y_JS = """() => {
+  // entrance animations and fades played to their end: what is measured is what stays on screen
+  document.getAnimations().forEach(a => { try { if (isFinite(a.effect.getComputedTiming().endTime)) a.finish(); } catch (e) { /* not finishable */ } });
+  const out = { unnamed: [], noalt: [], unlabeled: [], contrast: [], lang: [], dupid: [] };
+  const visible = el => { if (!el.getClientRects().length) return false; const cs = getComputedStyle(el); return cs.visibility !== 'hidden' && cs.display !== 'none'; };
+  const hidden = el => !!el.closest('[aria-hidden="true"], [hidden], .sr-only') && !el.closest('.sr-only');
+  const sig = el => (el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.') : '') + ' ' + (el.outerHTML || '').slice(0, 90)).replace(/\s+/g, ' ');
+  const nameOf = el => {
+    const al = el.getAttribute('aria-label'); if (al && al.trim()) return al.trim();
+    const lb = el.getAttribute('aria-labelledby'); if (lb) { const t = lb.split(/\s+/).map(id => (document.getElementById(id) || {}).textContent || '').join(' ').trim(); if (t) return t; }
+    if (el.labels && el.labels.length) { const t = [...el.labels].map(l => l.textContent).join(' ').trim(); if (t) return t; }
+    if (!/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) { const t = (el.innerText || el.textContent || '').trim(); if (t) return t; }
+    const img = el.querySelector && el.querySelector('img[alt]'); if (img && img.alt.trim()) return img.alt.trim();
+    if (el.title && el.title.trim()) return el.title.trim();
+    return '';
+  };
+  const ids = {};
+  document.querySelectorAll('[id]').forEach(e => { ids[e.id] = (ids[e.id] || 0) + 1; });
+  out.dupid = Object.keys(ids).filter(k => ids[k] > 1);
+  document.querySelectorAll('button, a[href], [role=button], [role=radio], [role=tab], [role=checkbox], [role=switch], summary').forEach(el => {
+    if (!visible(el) || hidden(el)) return;
+    if (!nameOf(el)) out.unnamed.push(sig(el));
+  });
+  document.querySelectorAll('img').forEach(el => { if (!el.hasAttribute('alt') && !hidden(el) && el.getAttribute('role') !== 'presentation') out.noalt.push(sig(el)); });
+  document.querySelectorAll('input, select, textarea').forEach(el => {
+    if (el.type === 'hidden' || !visible(el) || hidden(el)) return;
+    if (!nameOf(el)) out.unlabeled.push(sig(el) + (el.placeholder ? ' [placeholder only]' : ''));
+  });
+  // contrast (WCAG 2): 4.5 for text, 3 for large text (24px, or 18.66px bold); disabled controls are exempt
+  const parse = s => { const m = s && s.match(/rgba?\(([^)]+)\)/); if (!m) return null; const p = m[1].split(/[\s,\/]+/).filter(Boolean).map(Number); return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1]; };
+  const lum = ([r, g, b]) => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  const over = (top, bottom) => { const a = top[3]; return [0, 1, 2].map(i => top[i] * a + bottom[i] * (1 - a)).concat(1); };
+  // The colour behind a text: the backgrounds up to the first solid one (the current study step's comes from its sliding
+  // indicator, a separate layer), and the opacity of what lies between (the layer with the background fading with
+  // its text changes nothing between them).
+  const bgOf = el => {
+    const layers = []; let e = el, op = 1;
+    while (e && e.nodeType === 1) {
+      const cs = getComputedStyle(e);
+      if (cs.backgroundImage && cs.backgroundImage !== 'none' && !/gradient/.test(cs.backgroundImage)) return null;  // a picture behind: skip
+      let c = parse(cs.backgroundColor);
+      if (/gradient/.test(cs.backgroundImage)) { const m = cs.backgroundImage.match(/rgba?\([^)]+\)/); if (m) c = parse(m[0]); }
+      if ((!c || !c[3]) && e.matches('.steps [aria-selected="true"]')) { const ind = document.querySelector('.steps .ind'); c = ind && parse(getComputedStyle(ind).backgroundColor); }
+      if (c && c[3] > 0) { layers.push(c); if (c[3] >= 1) break; }
+      op *= Number(cs.opacity); e = e.parentElement;
+    }
+    let bg = [255, 255, 255, 1]; for (let i = layers.length - 1; i >= 0; i--) bg = over(layers[i], bg);
+    return { bg, op };
+  };
+  const seen = new Set();
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let n;
+  while ((n = walker.nextNode())) {
+    const t = n.nodeValue.trim(); if (!t || t.length < 1) continue;
+    const el = n.parentElement; if (!el || seen.has(el)) continue; seen.add(el);
+    if (!visible(el) || hidden(el) || el.closest('[disabled], [aria-disabled="true"], .sheet[hidden], svg, canvas, option')) continue;
+    const r = el.getBoundingClientRect(); if (r.width < 1 || r.height < 1) continue;
+    const cs = getComputedStyle(el); const fg = parse(cs.color); const b = bgOf(el); if (!fg || !b) continue;
+    const { bg, op } = b; if (op < 0.05) continue;
+    const eff = over([fg[0], fg[1], fg[2], fg[3] * op], bg);
+    const size = parseFloat(cs.fontSize), bold = Number(cs.fontWeight) >= 700, large = size >= 24 || (bold && size >= 18.66);
+    const need = large ? 3 : 4.5, got = ratio(eff, bg);
+    if (got < need - 0.05) out.contrast.push({ text: t.slice(0, 40), ratio: Math.round(got * 100) / 100, need, size, fg: cs.color, bg: 'rgb(' + bg.slice(0, 3).map(Math.round).join(',') + ')', sel: sig(el).slice(0, 80) });
+  }
+  // English that a screen reader would read with a Chinese voice: blocks of English words not inside lang="en"
+  const seenL = new Set();
+  const w2 = document.createTreeWalker(document.getElementById('view') || document.body, NodeFilter.SHOW_TEXT);
+  while ((n = w2.nextNode())) {
+    const t = n.nodeValue.trim(); const el = n.parentElement;
+    if (!el || seenL.has(el) || !visible(el) || hidden(el)) continue;
+    const words = t.match(/[A-Za-z][A-Za-z'’-]+/g) || [];
+    if (words.length < 3 || /[㐀-鿿]/.test(t)) continue;
+    seenL.add(el);
+    if (/[\u3400-\u9fff]/.test(el.textContent)) continue;  // a block mixing both stays Chinese (screen readers switch for Latin letters)
+    const l = (el.closest('[lang]') || {}).lang || '';
+    if (!/^en/i.test(l)) out.lang.push(t.slice(0, 50) + '  <' + sig(el).slice(0, 60) + '>');
+  }
+  return out;
+}"""
+
+
+def a11y_run(pw):
+    dev = 'a11y'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    try:
+        found = {}
+        for theme in ('light', 'dark'):
+            ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', color_scheme=theme, bypass_csp=True)
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a11y']['token'], 'url': BASE}])
+            pg = ctx.new_page(); pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+            for p in PAGES:
+                go(pg, p); pg.wait_for_timeout(250)
+                for kind, items in pg.evaluate(A11Y_JS).items():
+                    for x in items:
+                        found.setdefault((kind, theme), []).append(f'{p}: {x if isinstance(x, str) else json.dumps(x, ensure_ascii=False)}')
+            if theme == 'light':
+                # a sheet is a dialog with a title, and the focus goes into it
+                go(pg, '#/me'); pg.click('#meText'); pg.wait_for_timeout(200)
+                dlg = pg.evaluate("""() => { const c = document.getElementById('sheetCard'), t = document.getElementById(c.getAttribute('aria-labelledby'));
+                  return [c.getAttribute('role'), c.getAttribute('aria-modal'), !!(t && t.textContent.trim()), c.contains(document.activeElement)]; }""")
+                check(dev, 'a sheet is a modal dialog with its title, and the focus moves into it', dlg == ['dialog', 'true', True, True], dlg)
+                pg.evaluate("document.querySelector('#sheet [data-close]').click()")
+                # right and wrong answers: a mark as well as a colour
+                go(pg, f'#/m/{PID}/check'); pg.wait_for_selector('#pane .q', timeout=6000)
+                for q in pg.query_selector_all('#pane .q'):
+                    q.query_selector_all('.ans')[-1].click(); pg.wait_for_timeout(250)
+                marks = pg.evaluate("""() => ['.ans.right', '.ans.wrong'].map(s => { const e = document.querySelector(s); return e ? getComputedStyle(e, '::after').content : null; })""")
+                live = pg.evaluate("[...document.querySelectorAll('#pane .fb')].every(f => f.getAttribute('aria-live') === 'polite')")
+                check(dev, 'right and wrong answers carry ✓ and ✗, not only green and red, and the result is announced', marks[0] == '"✓"' and marks[1] in ('"✗"', None) and live, (marks, live))
+                cdp = ctx.new_cdp_session(pg)
+                for vision in ('deuteranopia', 'protanopia'):
+                    cdp.send('Emulation.setEmulatedVisionDeficiency', {'type': vision})
+                    pg.evaluate("document.querySelector('#pane .q').scrollIntoView()"); pg.wait_for_timeout(200)
+                    pg.screenshot(path=str(OUT / f'a11y-{vision}.png'))
+                cdp.send('Emulation.setEmulatedVisionDeficiency', {'type': 'none'})
+            ctx.close()
+        for kind, label in (('unnamed', 'every button and link has a name a screen reader can say'), ('noalt', 'every image has alt text'),
+                            ('unlabeled', 'every field has a label (not only a placeholder)'), ('dupid', 'no id is used twice on a page'),
+                            ('contrast', 'text contrast meets WCAG AA'), ('lang', 'English is marked lang="en", so it is read with an English voice')):
+            for theme in ('light', 'dark'):
+                bad = found.get((kind, theme), [])
+                check(dev, f'{label} ({theme})', not bad, f'{len(bad)}: ' + ' | '.join(bad[:4]))
+    finally:
+        browser.close()
+
+
 def main():
     with sync_playwright() as pw:
         for dev, opts in DEVICES.items():
@@ -741,6 +1211,30 @@ def main():
                 wechat_run(pw)
             except Exception:
                 check('wechat', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'ux' in ONLY:
+            try:
+                ux_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('ux', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'learner' in ONLY:
+            try:
+                learner_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('learner', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'a11y' in ONLY:
+            try:
+                a11y_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('a11y', 'run finished', False, traceback.format_exc()[-600:])
+        for engine in ('chrome', 'webkit'):  # last: it takes the vocabulary test and answers review cards
+            if not ONLY or 'layout' in ONLY or engine in ONLY:
+                try:
+                    layout_run(pw, engine)
+                except Exception:
+                    check('layout-' + engine, 'run finished', False, traceback.format_exc()[-600:])
     failed = [r for r in RESULTS if not r['ok']]
     (OUT / 'ui-report.json').write_text(json.dumps({'total': len(RESULTS), 'failed': failed, 'results': RESULTS}, ensure_ascii=False, indent=1))
     print(f'\n{len(RESULTS) - len(failed)}/{len(RESULTS)} passed; screenshots and ui-report.json in {OUT}')

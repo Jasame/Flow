@@ -70,6 +70,8 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
  created REAL NOT NULL, PRIMARY KEY(pack, sentence, level));''')
     if 'voice' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:
         c.execute("ALTER TABLE next_profiles ADD COLUMN voice TEXT NOT NULL DEFAULT 'us-f'")
+    if 'weekly_goal' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:
+        c.execute('ALTER TABLE next_profiles ADD COLUMN weekly_goal INTEGER NOT NULL DEFAULT 4')  # 每周目标: days a week
     import vocab_service  # word books, daily plan and FSRS state live on top of next_cards
     vocab_service.schema(c)
     __import__('skills_service').schema(c)  # ability profile, mistake book, weekly report
@@ -318,7 +320,7 @@ def profile(c, uid):
     if not r:
         return None
     return {'level': r['level'], 'goal': r['goal'], 'themes': json.loads(r['themes']), 'minutes': r['minutes'],
-            'voice': r['voice'] if r['voice'] in VOICES else 'us-f'}
+            'voice': r['voice'] if r['voice'] in VOICES else 'us-f', 'weekly_goal': r['weekly_goal'] if 'weekly_goal' in r.keys() else 4}
 
 
 def save_profile(c, uid, data):
@@ -721,7 +723,44 @@ def stats(c, uid):
         'materials_done': c.execute("SELECT COUNT(DISTINCT pack) FROM next_progress WHERE user_id=? AND step='check'", (uid,)).fetchone()[0],
         'reviews_week': c.execute('SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND created>?', (uid, week_start)).fetchone()[0],
         'week': [{'day': d, 'active': d in days} for d in week],
+        'habit': habit(c, uid, ((profile(c, uid) or {}).get('weekly_goal')) or 4, now),
     }
+
+
+def habit(c, uid, goal, now=None):
+    """每周目标: this week's study days (Monday to Sunday, China time) against the learner's goal, how many weeks in a
+    row the goal was met (a missed day breaks nothing while the week still reaches it), and last week's result for the
+    Monday notice. A day counts when anything was learned: a step of a material or a review."""
+    now = now or time.time()
+    D = datetime.timedelta
+    today = datetime.datetime.fromtimestamp(now, TZ).date()
+    monday = today - D(days=today.weekday())
+    since = datetime.datetime.combine(monday - D(weeks=52), datetime.time(), TZ).timestamp()
+    days = set()
+    for sql in ('SELECT created FROM next_progress WHERE user_id=? AND created>=?', 'SELECT created FROM next_reviews WHERE user_id=? AND created>=?'):
+        for (t,) in c.execute(sql, (uid, since)):
+            days.add(datetime.datetime.fromtimestamp(t, TZ).date())
+    count = lambda mon: sum(1 for k in range(7) if mon + D(days=k) in days)
+    done, last = count(monday), count(monday - D(weeks=1))
+    streak, w = 0, monday - D(weeks=1)
+    while streak < 52 and count(w) >= goal:
+        streak += 1; w -= D(weeks=1)
+    return {'goal': goal, 'done': done, 'met': done >= goal, 'streak': streak + (done >= goal), 'monday': monday.isoformat(),
+            'days': [{'day': (monday + D(days=k)).isoformat(), 'active': monday + D(days=k) in days, 'today': monday + D(days=k) == today} for k in range(7)],
+            'last_week': {'done': last, 'met': last >= goal}}
+
+
+def set_weekly_goal(c, uid, data):
+    try:
+        goal = int(data.get('goal'))
+    except (TypeError, ValueError):
+        goal = 0
+    if not 1 <= goal <= 7:
+        return {'error': '每周目标是 1 到 7 天'}, 400
+    if not c.execute('UPDATE next_profiles SET weekly_goal=?, updated=? WHERE user_id=?', (goal, time.time(), uid)).rowcount:
+        return {'error': '请先设置学习目标和水平'}, 400
+    c.commit()
+    return {'habit': habit(c, uid, goal)}, 200
 
 
 def library(c, uid, level=None, theme=None, page=1, per=12, featured_only=False):
@@ -829,7 +868,9 @@ def _task(pack, level):
     return {'prompt': '挑一个这篇里你喜欢的表达，用它写一两句和你自己有关的话。', 'model': '', 'hint': ''}
 
 
-def material(c, uid, pid, level=None):
+def material(c, uid, pid, level=None, offline=False):
+    """offline: also the answers and their evidence, for a copy kept on the phone (the page grades there without a
+    connection and sends the answers later, so the mistake book and progress are recorded as usual)."""
     row = _pack_row(c, uid, pid)
     if not row:
         return {'error': '材料不存在'}, 404
@@ -881,7 +922,8 @@ def material(c, uid, pid, level=None):
             'preread': __import__('vocab_service').preread(c, uid, hard),
             'speaking_task': p.get('speaking', ''), 'writing_task': p.get('writing', ''), 'imported': bool(p.get('imported')),
             'user_level': level, 'can_variant': level != cefr(p) and not variant,
-            'audio': {'voices': audio_index()[0].get(p['id'], []), 'version': audio_index()[1]}, 'series': _series_nav(c, p)}, 200
+            'audio': {'voices': audio_index()[0].get(p['id'], []), 'version': audio_index()[1]}, 'series': _series_nav(c, p),
+            **({'answers': [{'answer': q['answer'], 'evidence': q.get('evidence', '')} for q in p.get('questions', [])]} if offline else {})}, 200
 
 
 def check(c, uid, data):
@@ -1280,7 +1322,7 @@ def get(c, uid, path, q):
     if path == '/api/next/library':
         return library(c, uid, one('level') or None, one('theme') or None, int(one('page', '1') or 1), featured_only=one('featured') == '1'), 200
     if path == '/api/next/material':
-        return material(c, uid, one('id'), one('level'))
+        return material(c, uid, one('id'), one('level'), one('offline') == '1')
     if path == '/api/next/graph':
         return graph(c, uid, one('level')), 200
     if path == '/api/next/node':
@@ -1374,6 +1416,8 @@ AI_PATHS = ('/api/next/assess/speaking', '/api/next/assess/writing', '/api/next/
 def post(c, uid, path, data):
     if path == '/api/next/profile':
         return save_profile(c, uid, data)
+    if path == '/api/next/habit':
+        return set_weekly_goal(c, uid, data)
     if path == '/api/next/radar/goals':
         return __import__('ability_radar').set_goals(c, uid, data)
     if path == '/api/next/assess/comprehension':
@@ -1391,7 +1435,7 @@ def post(c, uid, path, data):
         return save_card(c, uid, data)
     if path == '/api/next/cards/delete':
         return delete_card(c, uid, data)
-    if path.startswith('/api/next/vocab/') or path == '/api/next/review':
+    if path.startswith('/api/next/vocab/') or path in ('/api/next/review', '/api/next/review/undo'):
         import vocab_service
         if path == '/api/next/vocab/met':
             hit = vocab_service.met_in_reading(c, uid, str(data.get('word', ''))[:40])

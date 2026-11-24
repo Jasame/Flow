@@ -77,6 +77,8 @@ CREATE TABLE IF NOT EXISTS ai_usage(user_id INTEGER,day TEXT,count INTEGER,PRIMA
   growth.schema(c)
   reference.schema(c)
   __import__('ops_errors').schema(c)
+  __import__('feedback_service').schema(c)
+  __import__('field_service').schema(c)
   core_words.schema(c)
   practice.schema(c)
   foundation.schema(c)
@@ -113,7 +115,7 @@ SESSION_DAYS=30
 # the survey, sign-in and the account need, and the operations checks; every other /api/ path answers 404. Operator
 # functions live in the xmc.hk console (flow_admin.py, port FLOW_ADMIN_PORT), never on the learner site.
 OPEN_API={'GET':('/api/health','/api/survey','/api/deploy-status','/api/session','/api/account','/api/next/'),
- 'POST':('/api/survey','/api/next/','/api/recovery/','/api/login','/api/register','/api/auth/code','/api/auth/reset','/api/logout','/api/password','/api/account/')}
+ 'POST':('/api/survey','/api/feedback','/api/next/','/api/recovery/','/api/login','/api/register','/api/auth/code','/api/auth/reset','/api/logout','/api/password','/api/account/')}
 def api_open(method,path):return any(path==p or (p.endswith('/') and path.startswith(p)) for p in OPEN_API[method])
 def session_cookie(token):
  return 'flow_session='+token+'; HttpOnly; SameSite=Lax; Path=/; Max-Age='+str(SESSION_DAYS*86400)+('; Secure' if SECURE else '')
@@ -122,11 +124,17 @@ _ASSET={}
 # the 内测版 (FLOW_CHANNEL=beta), a second instance with its own data, where versions waiting for release run first.
 # The 内测版 says so on every page, sends its mail marked 【内测版】 and asks search engines to stay away.
 CHANNEL='beta' if os.getenv('FLOW_CHANNEL','').strip().lower()=='beta' else 'prod'
+_SLIM={}
 def shell_file(name):
  """A public file; the page shell and the service worker get the asset version filled in (__ASSET__): a hash of
  next.js and next.css, so any change to them gives new URLs and a changed service worker, and phones update.
+ next.js and next.css are sent slimmed (slim.py: no comments or indentation, the same lines), once per change.
  The page shell also says which site it is (__CHANNEL__), and the 内测版's home-screen app is named as such."""
- body=(ROOT/'public'/name).read_bytes()
+ f=ROOT/'public'/name;body=f.read_bytes()
+ if name in ('next.js','next.css'):
+  key=f.stat().st_mtime_ns
+  if _SLIM.get(name,(None,))[0]!=key:_SLIM[name]=(key,__import__('slim').slim(name,body))
+  return _SLIM[name][1]
  if name=='manifest.webmanifest' and CHANNEL=='beta':
   m=json.loads(body);m.update(name='语流 Flow 内测版',short_name='语流内测');return json.dumps(m,ensure_ascii=False,indent=1).encode()
  if name not in ('next.html','sw.js'):return body
@@ -272,6 +280,14 @@ class Handler(BaseHTTPRequestHandler):
    with db() as c:
     u=self.user(c)
     if path=='/api/session':return self.send(session_info(u))
+    if path.startswith('/api/next/export/'):
+     # 我的 → 我的数据: the word book for Excel or Anki, or every record of the account (account_data.py)
+     if not u:return self.send({'error':'请先登录'},401)
+     ad=__import__('account_data');out=ad.export(c,u,path)
+     if out is None:return self.send({'error':'接口不存在'},404)
+     body,mime,ascii_name,name=out
+     self.send_response(200);self.headers_common(mime);self.send_header('Content-Disposition',ad.disposition(ascii_name,name))
+     self.send_header('Cache-Control','no-store');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
     if path.startswith('/api/next/'):
      q=parse_qs(urlsplit(self.path).query)
      if path=='/api/next/home' and u:q={k:v for k,v in q.items() if k not in ('level','themes')}  # a guest's choices; signed in, the profile decides
@@ -383,7 +399,8 @@ class Handler(BaseHTTPRequestHandler):
     ai_stream.LOCAL.callback=None
  def post(self):
   length=int(self.headers.get('Content-Length',0))
-  limit=2200000 if self.path in ('/api/lab/audio','/api/next/shadow','/api/next/retell','/api/next/dialog','/api/next/say') else 800000 if self.path=='/api/vocab/import' else 40000 if self.path in ('/api/next/import','/api/next/essay','/api/next/dialog') else 20000
+  # /api/feedback: up to three screenshots shrunk on the phone, sent as base64; under nginx's 3 MB (client_max_body_size 3m)
+  limit=2900000 if self.path=='/api/feedback' else 2200000 if self.path in ('/api/lab/audio','/api/next/shadow','/api/next/retell','/api/next/dialog','/api/next/say') else 800000 if self.path=='/api/vocab/import' else 40000 if self.path in ('/api/next/import','/api/next/essay','/api/next/dialog') else 20000
   if length<1 or length>limit:return self.send({'error':'请求大小不正确'},400)
   if self.headers.get('Sec-Fetch-Site')=='cross-site':return self.send({'error':'不允许跨站请求'},403)
   if not api_open('POST',self.path.split('?')[0]):return self.send({'error':'接口不存在'},404)
@@ -397,6 +414,17 @@ class Handler(BaseHTTPRequestHandler):
   if path=='/api/survey':
    # Anonymous: no session lookup; the address is only used for a short-lived hashed rate limit.
    with db() as c:return self.send(*__import__('survey_service').submit(c,data,self.visitor_address()))
+  if path=='/api/feedback':
+   # Signed in or not: the account is attached only with the session's CSRF token; a guest is limited by a hashed address.
+   with db() as c:
+    u=self.user(c);signed=bool(u) and hmac.compare_digest(self.headers.get('X-CSRF-Token',''),u['csrf'])
+    return self.send(*__import__('feedback_service').submit(c,data,self.visitor_address(),u['id'] if signed else None))
+  if path in ('/api/next/issues','/api/next/opentime'):
+   # What the browser reports about the site itself (field_service): no session, no address; the User-Agent only for
+   # its family (iPhone · Safari, Android · 微信 …).
+   with db() as c:
+    f=__import__('field_service')
+    return self.send(*(f.issues if path=='/api/next/issues' else f.open_time)(c,data,self.headers.get('User-Agent','')))
   if path.startswith('/api/next/'):
    import next_service
    with db() as c:
@@ -453,6 +481,10 @@ class Handler(BaseHTTPRequestHandler):
    u=self.user(c)
    if not u:return self.send({'error':'登录已过期'},401)
    if not hmac.compare_digest(self.headers.get('X-CSRF-Token',''),u['csrf']):return self.send({'error':'安全校验失败，请刷新页面'},403)
+   if path=='/api/account/delete':
+    # 注销账号: the password once more, then everything the account has is deleted (account_data.py)
+    result=__import__('account_data').erase(c,u,data,verify)
+    return self.send(*result,cookie='flow_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax' if result[1]==200 else None)
    result=meeting.post(c,u['id'],path,data)
    if result is not None:
     c.commit();return self.send(*result)

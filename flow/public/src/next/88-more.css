@@ -24,7 +24,7 @@
 .miles{display:grid;gap:8px}
 .mile{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:center;padding:10px 4px}
 .mile .mi{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--sunk);color:var(--muted)}
-.mile.done .mi{background:var(--green);color:#fff}
+.mile.done .mi{background:var(--fill);color:var(--on-fill)}
 .mile .t{display:grid;gap:4px;min-width:0}
 .mile .vbar{height:6px}
 @media (min-width:760px){.gtiles{grid-template-columns:repeat(4,minmax(0,1fr))}}

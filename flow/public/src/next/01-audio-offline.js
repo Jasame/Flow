@@ -2,7 +2,7 @@
   // WeChat's built-in browser (and some other in-app browsers) cannot use the browser voice, and plays sound only when it
   // starts inside a tap; the way out it offers is 「在浏览器打开」.
   const WECHAT = /MicroMessenger/i.test(navigator.userAgent);
-  function noSound(what) { toast(WECHAT ? `微信里${what}：点右上角「···」，选「在浏览器打开」就能听` : `这个浏览器${what}，换 Safari 或 Chrome 试试`); }
+  function noSound(what) { noteIssue('audio', what + (WECHAT ? '（微信）' : '')); toast(WECHAT ? `微信里${what}：点右上角「···」，选「在浏览器打开」就能听` : `这个浏览器${what}，换 Safari 或 Chrome 试试`); }
   const TTS = {
     ok: 'speechSynthesis' in window, rate: Number(load('flow-next-rate')) || 1, voice: null, token: 0,
     pick() {
@@ -123,7 +123,7 @@
       this.raf = requestAnimationFrame(loop);
     },
     finish() { this.stopLoop(); this.audio.dataset.want = ''; const cb = this.onEnd; this.onEnd = null; this.onTick = null; if (cb) cb(); },
-    gaveUp() { if (!this.raf && !this.onEnd) return; toast('音频暂时没加载出来，稍后再点一次'); this.finish(); },
+    gaveUp() { if (!this.raf && !this.onEnd) return; noteIssue('audio', '全文录音没加载出来', this.net ? this.net.split('?')[0] : ''); toast('音频暂时没加载出来，稍后再点一次'); this.finish(); },
     stopLoop() { cancelAnimationFrame(this.raf); this.raf = 0; },
     stop() { this.stopLoop(); this.audio.dataset.want = ''; this.onEnd = null; this.onTick = null; try { this.audio.pause(); } catch (e) { /* ignore */ } },
     // -> [sentence index, char offset of the current word] at time t
@@ -215,8 +215,8 @@
   async function preloadMaterial(id) {
     if (!id || MAT[id] || PRELOAD.frugal()) return;
     try {
-      const m = await api('/api/next/material?id=' + encodeURIComponent(id) + (S.user ? '' : '&level=' + encodeURIComponent(level())));
-      MAT[id] = m; m._preloaded = Date.now();
+      const m = await api(materialPath(id));
+      MAT[id] = m; m._preloaded = Date.now(); snapMaterial(materialPath(id), m);
       const vs = (m.audio && m.audio.voices) || [];
       if (vs.length) PRELOAD.warm(`/audio/${vs.includes(S.voice) ? S.voice : vs[0]}/${encodeURIComponent(id)}.mp4?v=${m.audio.version}`);
     } catch (e) { /* it loads when opened */ }
@@ -271,6 +271,8 @@
     key: 'flow-next-outbox',
     list() { return load(this.key) || []; },
     push(item) { const l = this.list(); l.push(item); save(this.key, l.slice(-500)); },
+    // 撤销 of a rating made offline: it has not been sent, so it is simply taken out again
+    unpush(item) { const l = this.list(), k = l.map(x => JSON.stringify(x)).lastIndexOf(JSON.stringify(item)); if (k >= 0) { l.splice(k, 1); save(this.key, l); return true; } return false; },
     async flush() {
       if (this.busy || !S.user || !navigator.onLine) return 0;
       this.busy = true; let sent = 0;
@@ -282,11 +284,11 @@
           l = this.list().slice(1); save(this.key, l); sent++;
         }
       } finally { this.busy = false; }
-      if (sent) { toast(`已同步 ${sent} 条离线复习记录`); refreshHome().catch(() => {}); }
+      if (sent) { toast(`没网时做的 ${sent} 项已同步`); refreshHome().catch(() => {}); }  // said once, here (also after the 'online' event)
       return sent;
     },
   };
-  window.addEventListener('online', () => OUTBOX.flush());
+  // sent when the phone is back online: 06-offline.js (which also says how much was synced)
   // Ask the service worker to keep today's audio (word sprites, example narration) for weak or no network.
   function prefetchAudio(urls) {
     const list = [...new Set(urls)].filter(Boolean).slice(0, 40);

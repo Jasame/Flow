@@ -7,6 +7,7 @@
       const ok = await NAR.load(id, S.voice, m.audio.version);
       return ok && NAR.meta && NAR.meta.sentences.length === ls.length ? NAR.meta : null;
     }
+    const LOOP = Object.assign({ rep: 1, gap: 0 }, load('flow-next-loop') || {});  // 复读, kept on the phone
     async function listen() {
       if (st.mode === 'shadow') return shadowMode();
       if (st.mode === 'dictate') return dictateMode();
@@ -17,7 +18,10 @@
           <button class="btn primary" id="playAll">${ICON.play.replace('<svg', '<svg width="18" height="18" fill="currentColor"')}<span>播放全文</span></button>
           <div class="speed" role="group" aria-label="语速">${[0.75, 1, 1.25].map(r => `<button data-rate="${r}" aria-pressed="${TTS.rate === r}">${r}×</button>`).join('')}</div>
           <button class="icon-btn ${st.blind ? 'on' : ''}" id="blind" aria-pressed="${st.blind}" title="盲听：先只听不看" aria-label="盲听">${ICON.eye}</button>
-        </div>${voices.length ? voiceChips(voices) : ''}${prereadHTML()}
+        </div>
+        <div class="loopbar"><div class="lg" role="group" aria-label="复读：每句几遍"><span class="tiny muted">每句</span>${[[1, '1 遍'], [3, '3 遍'], [5, '5 遍'], [0, '循环']].map(([n, l]) => `<button class="chip small" data-rep="${n}" aria-pressed="${LOOP.rep === n}">${l}</button>`).join('')}</div>
+          <div class="lg" role="group" aria-label="复读：句后停顿"><span class="tiny muted">句后</span>${[[0, '不停'], [2, '停 2 秒'], [-1, '留时间跟说']].map(([n, l]) => `<button class="chip small" data-gap="${n}" aria-pressed="${LOOP.gap === n}">${l}</button>`).join('')}</div></div>
+        ${voices.length ? voiceChips(voices) : ''}${prereadHTML()}
         ${nm ? '' : (TTS.ok ? '<p class="muted tiny">这篇暂时没有真人声录音，先用浏览器朗读。</p>' : '<p class="err">这个浏览器不支持朗读，可以直接去「读」。</p>')}
         <p class="muted small">想练耳朵，可以先点 👁 只听不看；听不懂的句子单独点开反复听。播放时正在读的词会亮起来${TOUCH ? '' : '（空格键播放 / 停止）'}。</p>
         <div class="lines">${ls.map((s, i) => `<div class="line" data-i="${i}"><button class="icon-btn" data-say="${i}" aria-label="播放第 ${i + 1} 句">${ICON.speak}</button><div class="txt ${st.blind ? 'blind' : ''}">${wordSpans(s, () => 'kw')}</div></div>`).join('')}</div>
@@ -31,7 +35,21 @@
         if (si !== shown) { shown = si; setNow(si); MINI.update(`第 ${si + 1} / ${ls.length} 句`); const el = lineEl(si); if (el && playing >= 0) el.scrollIntoView({ block: 'center', behavior: REDUCED ? 'auto' : 'smooth' }); }
         if (si >= 0) lightAt(lineEl(si), wc);
       };
-      const stopAll = () => { TTS.stop(); NAR.stop(); playing = -1; shown = -1; setNow(-1); setBtn(false); MINI.hide(); };
+      const stopAll = () => { loopTok++; clearTimeout(loopTimer); TTS.stop(); NAR.stop(); playing = -1; shown = -1; setNow(-1); setBtn(false); MINI.hide(); };
+      // 复读: a sentence said LOOP.rep times (0: until stopped), with a pause after it: none, 2 s, or as long as the
+      // sentence itself and a little more, to say it back.
+      let loopTok = 0, loopTimer = 0;
+      const gapMs = i => (LOOP.gap === -1 ? Math.max(1500, nm ? (nm.sentences[i].e - nm.sentences[i].s) * 1300 : ls[i].split(' ').length * 450) : LOOP.gap * 1000);
+      const sayRepeated = (i, then, n = 0) => {
+        const tok = loopTok;
+        sayLine(i, () => {
+          if (tok !== loopTok) return;
+          const more = LOOP.rep === 0 || n + 1 < LOOP.rep, next = () => { if (tok === loopTok) { if (more) sayRepeated(i, then, n + 1); else if (then) then(); } };
+          const g = more || then ? gapMs(i) : 0;
+          if (g) loopTimer = setTimeout(next, g); else next();
+        });
+      };
+      const looping = () => LOOP.rep !== 1 || LOOP.gap !== 0;
       const sayLine = (i, then) => {
         if (nm) { shown = -1; NAR.play(nm.sentences[i].s, nm.sentences[i].e, follow, then); return; }
         const el = lineEl(i); TTS.say(ls[i], then, c => lightWord(el, c));
@@ -40,15 +58,24 @@
         if (i >= ls.length) { stopAll(); markStep('listen'); return; }
         playing = i; setNow(i); MINI.update(`第 ${i + 1} / ${ls.length} 句`);
         const el = lineEl(i); if (el) el.scrollIntoView({ block: 'center', behavior: REDUCED ? 'auto' : 'smooth' });
-        sayLine(i, () => playFrom(i + 1));
+        sayRepeated(i, () => playFrom(i + 1));
       };
       pane.querySelector('#playAll').onclick = () => {
         if (playing >= 0) return stopAll();
         setBtn(true); MINI.show('正在播放全文', stopAll);
-        if (nm) { playing = 0; shown = -1; NAR.play(nm.sentences[0].s, null, follow, () => { stopAll(); markStep('listen'); }); }
+        // one sentence after another (each said again, and pauses, when 复读 is set); otherwise the narration straight through
+        if (nm && !looping()) { playing = 0; shown = -1; NAR.play(nm.sentences[0].s, null, follow, () => { stopAll(); markStep('listen'); }); }
         else playFrom(0);
       };
-      pane.querySelectorAll('[data-say]').forEach(b => b.onclick = () => { const i = Number(b.dataset.say); stopAll(); setNow(i); sayLine(i, () => setNow(-1)); });
+      pane.querySelectorAll('[data-say]').forEach(b => b.onclick = () => {
+        const i = Number(b.dataset.say); stopAll(); setNow(i);
+        if (looping()) MINI.show(`复读第 ${i + 1} 句`, stopAll);  // a stop button on screen while it repeats
+        sayRepeated(i, () => { setNow(-1); MINI.hide(); });
+      });
+      pane.querySelectorAll('[data-rep], [data-gap]').forEach(b => b.onclick = () => {
+        const k = 'rep' in b.dataset ? 'rep' : 'gap'; LOOP[k] = Number(b.dataset[k]); save('flow-next-loop', LOOP);
+        pane.querySelectorAll(`[data-${k}]`).forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      });
       pane.querySelectorAll('.line .txt').forEach((t, i) => t.onclick = e => { if (e.target.dataset.w && !st.blind) lookupSheet(e.target.dataset.w, ls[i], id); });
       pane.querySelectorAll('[data-rate]').forEach(b => b.onclick = () => { TTS.rate = Number(b.dataset.rate); save('flow-next-rate', TTS.rate); NAR.audio.playbackRate = TTS.rate; pane.querySelectorAll('[data-rate]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); });
       pane.querySelectorAll('[data-voice]').forEach(b => b.onclick = async () => { if (b.disabled) return; stopAll(); await setVoice(b.dataset.voice); listen(); toast('已切换为' + VOICE_LABELS[b.dataset.voice]); });

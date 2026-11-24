@@ -8,7 +8,12 @@
     const total = 4;
     function draw() {
       let body = '';
-      if (st.step === 0) body = `<h1 class="h1">你能轻松读懂哪一句？</h1><p class="muted">选你不查词典也能读懂的最难一句。之后随时可以改。</p>
+      // A first visit (often from a link in WeChat) can start with today's article right away: no questions, no account.
+      const trial = !edit && !S.user && !cur.level && S.home && S.home.today && S.home.today[0];
+      if (st.step === 0 && trial) body = `<div class="card sunk try-first stack-s"><b>先试读一篇，觉得有用再定水平</b>
+          <span class="small muted">「${esc(trial.title)}」 · 约 ${trial.minutes} 分钟：听一遍、读一遍、做几道理解题。不用回答问题，也不用注册。</span>
+          <a class="btn primary" href="#/m/${encodeURIComponent(trial.id)}" data-tap="welcome-try">先试读一篇</a></div><p class="tiny muted tc">或者先回答 4 个问题，按你的水平推荐</p>`;
+      if (st.step === 0) body += `<h1 class="h1">你能轻松读懂哪一句？</h1><p class="muted">选你不查词典也能读懂的最难一句。之后随时可以改。</p>
         <div class="choice opts four">${S.meta.levels.map(l => `<button class="opt" data-v="${l.id}" aria-pressed="${st.level === l.id}"><div class="row between"><span class="l">${esc(l.label)}</span><span class="pill">${l.id}</span></div><div class="s">${esc(l.sample)}</div><div class="d">${esc(l.desc)}</div></button>`).join('')}</div>
         <a class="link small place-link" href="#/placement">拿不准？做个 16 题的语法小测，帮你定起点 →</a>`;
       if (st.step === 1) body = `<h1 class="h1">你学英语主要为了什么？</h1><div class="choice opts">${S.meta.goals.map(g => `<button class="opt" data-v="${g.id}" aria-pressed="${st.goal === g.id}"><span class="l">${esc(g.label)}</span></button>`).join('')}</div>`;
@@ -52,7 +57,12 @@
       <span class="p">${esc(m.preview)}</span><span class="tiny muted">${esc(m.theme_label)} · ${m.words} 词 · 约 ${m.minutes} 分钟</span>${m.steps.length ? stepDots(m.steps) : ''}${reasonsHTML(m)}</a>`;
   }
   async function today(fresh) {
-    if (!fresh) await refreshHome();
+    // Drawn at once from the home data already here; the server's answer follows and, if anything changed, the page is
+    // drawn again quietly (05-data.js). Only the very first visit, with nothing here yet, waits.
+    if (!fresh) {
+      if (S.home) { const drawnFor = location.hash; refreshHome().then(changed => { if (changed) redrawQuietly(drawnFor); }).catch(() => {}); }
+      else await refreshHome();
+    }
     const h = S.home, pick = h.today[0], st = h.stats;
     const name = S.user ? S.user.username : '';
     const path = S.user && h.path, weekN = st ? st.week.filter(d => d.active).length : 0;
@@ -85,7 +95,7 @@
     const resume = h.resume && h.resume.id !== readId ? h.resume : null, news = h.news && h.news.id !== readId ? h.news : null;
     const more = h.today.filter(m => m.id !== readId && (path || m !== pick) && (!resume || m.id !== resume.id) && (!news || m.id !== news.id)).slice(0, 3);
     view.innerHTML = `<div class="greet-row"><span class="kicker greet">${greeting()}${name ? `，<span class="nm">${esc(name)}</span>` : ''}</span>
-        ${st ? `<span class="wk" title="本周学了 ${weekN} 天"><span class="tiny muted">本周 ${weekN} 天</span><span class="week" aria-hidden="true">${st.week.map(d => `<span class="${d.active ? 'on' : ''}"></span>`).join('')}</span></span>` : ''}</div>
+        ${st && st.habit ? habitChip(st.habit) : st ? `<span class="wk" title="本周学了 ${weekN} 天"><span class="tiny muted">本周 ${weekN} 天</span><span class="week" aria-hidden="true">${st.week.map(d => `<span class="${d.active ? 'on' : ''}"></span>`).join('')}</span></span>` : ''}</div>
       ${top}
       <div id="notice"></div>
       ${S.user && !path ? vocabHome(st) : ''}
@@ -95,13 +105,46 @@
         ${news ? '<p class="tiny muted">「热点」是联网检索后改写的，未经人工审核。</p>' : ''}</section>`;
     const ring = view.querySelector('.ring'); if (ring) ring.style.setProperty('--p', ring.dataset.p + '%');  // CSP: no inline style attributes
     fillNotice(h);
+    const hb = document.getElementById('habitBtn'); if (hb) hb.onclick = habitSheet;
+    if (st && st.habit) cheerWeek(st.habit);
     const nextRead = readId || (pick && pick.id);
     if (nextRead) setTimeout(() => preloadMaterial(nextRead), 600);  // after the page is drawn, not before
+  }
+  // 每周目标: this week's days (Monday to Sunday) against the goal; a missed day breaks nothing while the week still
+  // reaches it. Weeks in a row are shown from two on. A tap changes the goal.
+  function habitChip(hb) {
+    return `<button class="wk habit" id="habitBtn" type="button" aria-label="本周学了 ${hb.done} 天，目标 ${hb.goal} 天${hb.streak > 1 ? '，已连续 ' + hb.streak + ' 周达成' : ''}。点这里改每周目标" data-tap="home-habit">
+      <span class="tiny ${hb.met ? 'met' : 'muted'}">本周 ${hb.done}/${hb.goal} 天${hb.streak > 1 ? ` · 连续 ${hb.streak} 周` : ''}</span>
+      <span class="week" aria-hidden="true">${hb.days.map(d => `<span class="${d.active ? 'on' : ''}${d.today ? ' today' : ''}"></span>`).join('')}</span></button>`;
+  }
+  function habitSheet() {
+    const hb = (S.home && S.home.stats && S.home.stats.habit) || { goal: 4 };
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">每周目标</h2>
+      <p class="muted small">一周里学够这么多天就算达成。哪天没空也没关系，不会清零；坚持的是一周一周，不是天天打卡。</p>
+      <div class="chips" role="radiogroup" aria-label="每周学几天">${[2, 3, 4, 5, 6, 7].map(n => `<button class="chip" type="button" role="radio" data-goal="${n}" aria-checked="${hb.goal === n}">每周 ${n} 天</button>`).join('')}</div>
+      <p class="tiny muted">学一步材料或复习几个词，都算学了这一天。</p><button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      card.querySelectorAll('[data-goal]').forEach(b => b.onclick = async () => {
+        try {
+          const r = await api('/api/next/habit', { goal: Number(b.dataset.goal) });
+          if (S.home && S.home.stats) S.home.stats.habit = r.habit;
+          card.querySelectorAll('[data-goal]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
+          const v = document.getElementById('meHabitV'); if (v) v.textContent = `每周 ${r.habit.goal} 天`;
+          const chip = document.getElementById('habitBtn'); if (chip) { chip.outerHTML = habitChip(r.habit); const n = document.getElementById('habitBtn'); if (n) n.onclick = habitSheet; }
+          toast(`每周目标：${r.habit.goal} 天`);
+        } catch (e) { toast(e.message); }
+      });
+    });
+  }
+  // The week's goal reached: said once, the first time 今日 shows it that week.
+  function cheerWeek(hb) {
+    if (!hb.met || load('flow-habit-cheered') === hb.monday) return;
+    save('flow-habit-cheered', hb.monday);
+    toast(hb.streak > 1 ? `本周目标达成！已经连续 ${hb.streak} 周` : '本周目标达成！');
   }
   // A material as one row: title, then level, topic and time; a pill says why it is on the list.
   function mrow(m, tag, href, tapKey) {
     return `<a class="mrow" href="${href || '#/m/' + encodeURIComponent(m.id)}"${tapKey ? ` data-tap="${tapKey}"` : ''}><span class="t"><b>${esc(m.title)}</b>
-      <span class="tiny muted">${m.level} · ${esc(m.theme_label)} · 约 ${m.minutes} 分钟${m.steps && m.steps.length ? ` · 学了 ${m.steps.length}/4 步` : ''}</span></span>
+      <span class="tiny muted">${m.level} · ${esc(m.theme_label)}${m.minutes ? ` · 约 ${m.minutes} 分钟` : ''}${m.steps && m.steps.length ? ` · 学了 ${m.steps.length}/4 步` : ''}${OFF.has(m.id) ? ' · 已存到手机' : ''}</span></span>
       ${tag ? `<span class="pill ${tag[1]}">${tag[0]}</span>` : m.featured ? '<span class="pill feat">精选</span>' : ''}<span class="go" aria-hidden="true">›</span></a>`;
   }
   // One notice at a time under the plan, the most useful first: sign in (guest), a level that fits better, an email
@@ -109,6 +152,11 @@
   function noticeHTML(h) {
     if (!S.user) return `<div class="card sunk section notice stack-s"><b>登录后，进度和收藏的表达会保存下来</b><span class="muted small">不登录也可以听、读和做理解题。</span><div><button class="btn small" id="loginCta" data-tap="notice-login">登录 / 注册</button></div></div>`;
     if (h.suggest && Date.now() - (load('flow-next-suggest-skip') || 0) > 7 * 864e5) return suggestHTML(h.suggest);
+    const hb = h.stats && h.stats.habit;  // on Monday and Tuesday: how last week went, once
+    if (hb && hb.last_week.done && (hb.days[0].today || hb.days[1].today) && load('flow-habit-lastweek') !== hb.monday)
+      return `<div class="card sunk section notice stack-s" id="lastWeek"><b>${hb.last_week.met ? `上周学了 ${hb.last_week.done} 天，目标达成了 🎉` : `上周学了 ${hb.last_week.done} 天，离目标还差 ${hb.goal - hb.last_week.done} 天`}</b>
+        <span class="small">${hb.last_week.met ? '这周接着来。' : '没关系，这周重新开始，学一步材料或复习几个词就算一天。'}</span>
+        <div class="row"><a class="btn small primary" href="#/report" data-tap="notice-week">看上周报告</a><button class="btn small ghost" id="lwOk" type="button">知道了</button></div></div>`;
     const mail = mailNudgeHTML(); if (mail) return mail;
     if (installNudgeDue(h)) return `<div class="card sunk section notice stack-s" id="installNudge"><b>把语流放到手机桌面</b><span class="small">像 App 一样一点就开，全屏；听过的音频网络差的时候也能复习。</span>
       <div class="row"><button class="btn small primary" id="inGo" type="button" data-tap="notice-install">怎么放</button><button class="btn small ghost" id="inLater" type="button">以后再说</button></div></div>`;
@@ -121,6 +169,8 @@
     const cta = document.getElementById('loginCta'); if (cta) cta.onclick = () => openLogin();
     if (h.suggest) bindSuggest(h, () => fillNotice(h));
     bindMailNudge(() => fillNotice(h));
+    const lw = document.getElementById('lwOk'); if (lw) lw.onclick = () => { save('flow-habit-lastweek', h.stats.habit.monday); fillNotice(h); };
+    const lwr = document.querySelector('#lastWeek a'); if (lwr) lwr.addEventListener('click', () => save('flow-habit-lastweek', h.stats.habit.monday));
     const ig = document.getElementById('inGo'), il = document.getElementById('inLater');
     if (ig) ig.onclick = installSheet;
     if (il) il.onclick = () => { save('flow-install-later', Date.now()); fillNotice(h); };

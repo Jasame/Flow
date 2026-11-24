@@ -58,6 +58,7 @@
           kpi('近 7 天活跃', n(d.active_7d), '近 24 小时 ' + n(d.active_1d) + ' 人') +
           kpi('今日 AI 调用', n(ai.today), ai.site_limit ? ('全站上限 ' + n(ai.site_limit) + ' · 已用 ' + pct(ai.today, ai.site_limit) + '%') : '全站不设上限') +
           kpi('问卷回答', n(d.survey_responses), '<a href="#survey" style="color:var(--accent)">查看统计 →</a>') +
+          (isAdmin() && d.feedback_open != null ? kpi('待处理反馈', n(d.feedback_open), '<a href="#feedback" style="color:var(--accent)">去处理 →</a>') : '') +
         '</div>' +
         '<div class="grid2">' +
           '<section class="card"><h2>近 7 天 AI 调用</h2>' +
@@ -219,6 +220,46 @@
     }).catch(fail);
   }
 
+  // 页面报错: what learners' browsers reported (field_service.py), grouped by problem; which phones and releases.
+  function clientIssues(c) {
+    if (!c) return '';
+    return '<div class="head-row fd-gap"><div><h1>页面报错</h1><p class="muted">学员的浏览器上报的问题（近 ' + c.days + ' 天，共 ' + n(c.total) + ' 次）：脚本出错、资源没加载出来、请求失败、声音放不出来。不记账号和地址。</p></div></div>' +
+      (c.groups.length ? '<section class="card"><table class="cmp fd-issues"><thead><tr><th>问题</th><th>页面</th><th class="num">次数</th><th>手机和浏览器</th><th>版本</th></tr></thead><tbody>' +
+        c.groups.map(function (g) {
+          return '<tr><td><span class="pill">' + esc(g.kind_label) + '</span> ' + esc(g.message) + (g.source ? '<div class="muted small">' + esc(g.source) + '</div>' : '') + '</td>' +
+            '<td>' + esc(g.page) + '</td><td class="num">' + n(g.count) + '<div class="muted small">' + g.days + ' 天</div></td>' +
+            '<td class="small">' + g.platforms.map(function (x) { return esc(x[0]) + ' ' + n(x[1]); }).join('<br>') + '</td>' +
+            '<td class="small">' + g.releases.map(function (x) { return esc(x[0]); }).join('、') + '</td></tr>';
+        }).join('') + '</tbody></table></section>' : '<section class="card"><p>没有页面报错。</p></section>');
+  }
+
+  // 打开速度: how long learners waited for the first page (field_service.speed), and where the time went.
+  var SP = { days: 7 };
+  function speedView() {
+    getJSON('/speed?days=' + SP.days).then(function (d) {
+      var o = d.overall, sec = function (v) { return v == null ? '—' : (v / 1000).toFixed(1) + ' 秒'; };
+      var PH = { dns: '查域名', connect: '建立连接', tls: '加密握手', ttfb: '服务器响应', html: '下载页面', scripts: '等脚本下载完', home_api: '取首页数据', render: '画出页面' };
+      var tot = Object.keys(PH).reduce(function (a, k) { return a + (d.phases[k] || 0); }, 0) || 1;
+      var table = function (title, rows) {
+        return '<section class="card"><h2>' + title + '</h2><table class="cmp"><thead><tr><th></th><th class="num">打开次数</th><th class="num">中位数</th><th class="num">75%</th><th class="num">90%</th><th class="num">没等到就离开</th></tr></thead><tbody>' +
+          rows.map(function (r) { return '<tr><td>' + esc(r.group) + '</td><td class="num">' + n(r.visits) + '</td><td class="num">' + sec(r.p50) + '</td><td class="num">' + sec(r.p75) + '</td><td class="num">' + sec(r.p90) + '</td><td class="num">' + r.left_pct + '%</td></tr>'; }).join('') +
+          '</tbody></table></section>';
+      };
+      main.innerHTML = '<div class="head-row"><div><h1>打开速度</h1><p class="muted">学员打开网站后，多久看到第一个页面（每次打开记一次，不记账号和地址）。「75%」表示四分之三的人在这个时间内看到了页面。</p></div>' +
+        '<div class="toolbar"><select id="spDays"><option value="7"' + (SP.days === 7 ? ' selected' : '') + '>近 7 天</option><option value="30"' + (SP.days === 30 ? ' selected' : '') + '>近 30 天</option></select></div></div>' +
+        '<div class="kpi-grid">' + kpi('打开次数', n(o.visits), '近 ' + d.days + ' 天') + kpi('中位数', sec(o.p50), '一半的人在这个时间内看到页面') + kpi('90% 的人', sec(o.p90), '慢的那一成要等这么久') + kpi('没等到就离开', o.left_pct + '%', n(o.left) + ' 次，页面还没出来就关了') + '</div>' +
+        (o.visits ? '<section class="card"><h2>时间花在哪（各段的中位数）</h2><div class="sp-bar">' + Object.keys(PH).map(function (k, i) {
+          var v = d.phases[k]; return v ? '<i style="flex:' + v + ' 1 0;--k:' + i + '" title="' + esc(PH[k] + ' ' + sec(v)) + '"></i>' : '';
+        }).join('') + '</div><div class="sp-legend">' + Object.keys(PH).map(function (k, i) {
+          return '<span style="--k:' + i + '"><i></i>' + PH[k] + ' ' + sec(d.phases[k]) + '</span>';
+        }).join('') + '</div><p class="muted small">「查域名」「建立连接」「加密握手」慢，多半是网络线路的问题；「服务器响应」「取首页数据」慢，是服务器的问题；「等脚本下载完」慢，是网页太大或网络带宽不够。</p></section>' +
+          table('按访问的网址', d.by.domain) + table('按手机', d.by.platform) + table('按浏览器（微信、Safari…）', d.by.browser) +
+          table('先显示上次的内容 / 等服务器的回答', d.by.snap || []) + table('第一次打开 / 再次打开', d.by.repeat) + table('从桌面打开 / 在浏览器里', d.by.standalone) + table('按网络（安卓浏览器会告诉）', d.by.net) +
+          table('按天', d.daily.map(function (x) { return Object.assign({ group: x.day }, x); })) : '<section class="card"><p class="muted">还没有数据：发版后学员打开网站就会开始记录。</p></section>');
+      document.getElementById('spDays').onchange = function (e) { SP.days = Number(e.target.value); speedView(); };
+    }).catch(fail);
+  }
+
   function errorsView() {
     getJSON('/errors').then(function (d) {
       var t = function (s) { return new Date(s * 1000).toLocaleString('zh-CN'); };
@@ -231,7 +272,7 @@
             '<p class="muted">' + n(g.count) + ' 次 · 最近 ' + esc(t(g.last)) + ' · 最早 ' + esc(t(g.first)) + '</p>' +
             '<p>' + g.paths.map(esc).join('<br>') + '</p>' +
             '<details><summary>最近一次的调用栈</summary><pre class="trace">' + esc(g.trace) + '</pre></details></section>';
-        }).join('') : '<section class="card"><p>没有错误。</p></section>');
+        }).join('') : '<section class="card"><p>没有错误。</p></section>') + clientIssues(d.client);
       document.getElementById('reload').onclick = errorsView;
     }).catch(fail);
   }
@@ -305,6 +346,61 @@
   }
 
   /* ---------- 操作记录：管理员改了什么、导出了什么 ---------- */
+  /* ---------- 问题反馈（只有管理员）：学员在「我的 → 问题反馈」提交的说明和截图 ---------- */
+  var FB = { status: 'new', page: 1 };
+  function fbBadge(k) {
+    var b = document.getElementById('fbBadge');
+    if (b) { b.textContent = k > 99 ? '99+' : String(k || 0); b.hidden = !k; }
+  }
+  function feedbackView() {
+    getJSON('/feedback?status=' + FB.status + '&page=' + FB.page).then(function (d) {
+      fbBadge(d.counts.new);
+      var dev = function (v) {
+        var bits = [];
+        if (v.w) bits.push(v.w + '×' + v.h + (v.dpr ? ' @' + v.dpr + 'x' : ''));
+        bits.push(v.theme === 'dark' ? '深色' : '浅色');
+        if (v.standalone) bits.push('从桌面打开');
+        if (v.wechat) bits.push('在微信里');
+        if (v.asset) bits.push('页面 ' + v.asset);
+        return bits.join(' · ');
+      };
+      var filters = [['new', '待处理', d.counts.new], ['done', '已处理', d.counts.done], ['all', '全部', d.counts.new + d.counts.done]];
+      main.innerHTML = '<div class="head-row"><div><h1>问题反馈</h1><p class="muted">学员在「我的 → 问题反馈」提交的说明和截图。处理完点「标记已处理」，会记进操作记录。</p></div>' +
+        '<div class="toolbar">' + filters.map(function (f) {
+          return '<button type="button" class="btn' + (FB.status === f[0] ? ' primary' : '') + '" data-fs="' + f[0] + '">' + f[1] + ' ' + n(f[2]) + '</button>';
+        }).join('') + '</div></div>' +
+        (d.items.length ? d.items.map(function (x) {
+          var v = x.device || {};
+          return '<section class="card fb-item"><div class="fb-head"><b>' + esc(x.kind_label) + '</b><span class="pill' + (x.status === 'new' ? '' : ' off') + '">' + esc(x.status_label) + '</span>' +
+            '<span class="muted">#' + x.id + ' · ' + when(x.created) + ' · ' + esc(x.who) + (x.release ? ' · ' + esc(x.release) : '') + '</span></div>' +
+            '<p class="fb-text">' + esc(x.text) + '</p>' +
+            (x.images.length ? '<div class="fb-imgs">' + x.images.map(function (nm) {
+              var u = API + '/feedback/image?id=' + x.id + '&n=' + encodeURIComponent(nm);
+              return '<a href="' + u + '" target="_blank" rel="noopener" title="看原图"><img src="' + u + '" alt="截图" loading="lazy"></a>';
+            }).join('') + '</div>' : '') +
+            '<dl class="fb-meta"><dt>页面</dt><dd>' + (x.page ? '<a href="https://flow.jasa.hk/' + esc(x.page) + '" target="_blank" rel="noopener">' + esc(x.page) + '</a>' : '—') + '</dd>' +
+            '<dt>设备</dt><dd>' + esc(dev(v)) + '<div class="muted small fb-ua">' + esc(v.ua || '') + '</div></dd>' +
+            (x.contact ? '<dt>联系方式</dt><dd>' + esc(x.contact) + '</dd>' : '') +
+            (v.errors && v.errors.length ? '<dt>页面报错</dt><dd><code class="fb-err">' + v.errors.map(esc).join('<br>') + '</code></dd>' : '') +
+            (x.status === 'done' ? '<dt>处理</dt><dd>' + esc(x.handled_by || '—') + ' · ' + when(x.handled_at) + '</dd>' : '') + '</dl>' +
+            '<div class="toolbar"><button type="button" class="btn' + (x.status === 'new' ? ' primary' : '') + '" data-fb="' + x.id + '" data-to="' + (x.status === 'new' ? 'done' : 'new') + '">' +
+            (x.status === 'new' ? '标记已处理' : '重新打开') + '</button></div></section>';
+        }).join('') : '<section class="card"><p class="muted">' + (FB.status === 'new' ? '没有待处理的反馈。' : '还没有反馈。') + '</p></section>') +
+        (d.pages > 1 ? '<div class="toolbar"><button type="button" class="btn" id="fbPrev"' + (FB.page <= 1 ? ' disabled' : '') + '>上一页</button><span class="muted">' + FB.page + ' / ' + d.pages +
+          '</span><button type="button" class="btn" id="fbNext"' + (FB.page >= d.pages ? ' disabled' : '') + '>下一页</button></div>' : '');
+      main.querySelectorAll('[data-fs]').forEach(function (b) { b.onclick = function () { FB.status = b.dataset.fs; FB.page = 1; feedbackView(); }; });
+      var pv = document.getElementById('fbPrev'), nx = document.getElementById('fbNext');
+      if (pv) pv.onclick = function () { FB.page--; feedbackView(); };
+      if (nx) nx.onclick = function () { FB.page++; feedbackView(); };
+      main.querySelectorAll('[data-fb]').forEach(function (b) {
+        b.onclick = function () {
+          b.disabled = true;
+          postJSON('/feedback/status', { id: Number(b.dataset.fb), status: b.dataset.to }).then(feedbackView).catch(function (e) { alert(e.message); b.disabled = false; });
+        };
+      });
+    }).catch(fail);
+  }
+
   function logView() {
     getJSON('/log').then(function (d) {
       main.innerHTML =
@@ -321,13 +417,13 @@
   /* ---------- 路由 ---------- */
   function route() {
     ST.tab = (location.hash || '#overview').slice(1);
-    if (['overview', 'learning', 'compare', 'errors', 'survey', 'responses', 'accounts', 'log'].indexOf(ST.tab) < 0) ST.tab = 'overview';
-    if (!isAdmin() && ['errors', 'responses', 'accounts', 'log'].indexOf(ST.tab) >= 0) ST.tab = 'overview';
+    if (['overview', 'learning', 'compare', 'speed', 'errors', 'survey', 'responses', 'feedback', 'accounts', 'log'].indexOf(ST.tab) < 0) ST.tab = 'overview';
+    if (!isAdmin() && ['errors', 'responses', 'feedback', 'accounts', 'log'].indexOf(ST.tab) >= 0) ST.tab = 'overview';
     document.querySelectorAll('.adm-tabs a').forEach(function (a) {
       if (a.dataset.tab === ST.tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
     main.innerHTML = '<p class="muted">正在加载…</p>';
-    ({ overview: overview, learning: learningView, compare: compareView, errors: errorsView, survey: surveyStats, responses: responses, accounts: accountsView, log: logView })[ST.tab]();
+    ({ overview: overview, learning: learningView, compare: compareView, speed: speedView, errors: errorsView, survey: surveyStats, responses: responses, feedback: feedbackView, accounts: accountsView, log: logView })[ST.tab]();
   }
   document.getElementById('themeBtn').onclick = function () {
     var next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
@@ -344,6 +440,7 @@
       var el = document.getElementById('srv');
       if (el && me.server) { el.textContent = '数据来自' + me.server; el.hidden = false; }
       document.querySelectorAll('.adm-tabs [data-admin]').forEach(function (a) { a.hidden = !isAdmin(); });
+      if (isAdmin()) getJSON('/feedback?status=new&page=1').then(function (d) { fbBadge(d.counts.new); }).catch(function () { /* an older Flow */ });
     }).catch(function () { /* an older Flow without /me: everything as before */ });
   }
   window.addEventListener('hashchange', route);

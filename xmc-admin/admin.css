@@ -102,3 +102,22 @@ table.cmp .num{text-align:right;font-variant-numeric:tabular-nums}
 table.cmp .up{color:var(--accent);font-weight:600}
 table.cmp .down{color:var(--danger);font-weight:600}
 .err{color:var(--danger)}
+/* 问题反馈 */
+.adm-badge{display:inline-block;min-width:18px;height:18px;padding:0 5px;margin-left:4px;border-radius:9px;background:#d4553f;color:#fff;font-size:11px;line-height:18px;text-align:center;font-weight:700;vertical-align:1px}
+.adm-badge[hidden]{display:none}
+.fb-item{display:grid;gap:10px}
+.fb-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.fb-text{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;line-height:1.6}
+.fb-imgs{display:flex;gap:8px;flex-wrap:wrap}
+.fb-imgs img{display:block;width:120px;height:213px;object-fit:cover;border-radius:10px;border:1px solid var(--line);background:var(--bg2)}
+.fb-meta{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;margin:0;font-size:13.5px}
+.fb-meta dt{color:var(--muted)}.fb-meta dd{margin:0;overflow-wrap:anywhere}
+.fb-ua,.fb-err{font-size:12px;overflow-wrap:anywhere}
+/* 页面报错, 打开速度 */
+.fd-gap{margin-top:28px}
+.fd-issues td{vertical-align:top}
+.sp-bar{display:flex;height:22px;border-radius:6px;overflow:hidden;background:var(--bg2)}
+.sp-bar i,.sp-legend i{background:hsl(calc(150 + var(--k) * 28) 48% 48%)}
+.sp-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:13px}
+.sp-legend span{display:inline-flex;align-items:center;gap:6px}
+.sp-legend i{display:inline-block;width:10px;height:10px;border-radius:3px}

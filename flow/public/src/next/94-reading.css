@@ -1,0 +1,8 @@
+/* 字号和行距 (我的 → 设置): the reading text scaled as a whole (zoom reflows it to the width it has, so nothing gets
+   wider than the screen); menus and buttons keep their size. */
+:root{--read-zoom:1}
+:root[data-size=l]{--read-zoom:1.12}
+:root[data-size=xl]{--read-zoom:1.25}
+:is(.text,.line .txt,.review .cloze,.prompt-q,.passage-q .ptext,.exam-passage,.easy-reader,.guide-body,.mean-q,.mean-a,.sheet .mean,.wdiff,.tsample){zoom:var(--read-zoom)}
+:root[data-lh=w] :is(.text,.line .txt,.review .cloze,.prompt-q,.passage-q .ptext,.exam-passage,.easy-reader,.guide-body,.mean-q,.mean-a,.sheet .mean,.wdiff,.tsample){line-height:2}
+.tsample{margin:0;padding:12px 14px;border-radius:12px;background:var(--sunk)}

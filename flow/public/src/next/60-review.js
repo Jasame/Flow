@@ -25,9 +25,13 @@
       tomorrow: '今天先到这儿，明天再见它', 'once-more': '答对了，下次再换一道题确认一次' };
     // Progress counts cards, not answers: a card shown again to consolidate it does not grow the total.
     const uniq = new Set(items.map(x => x.id)), doneIds = new Set();
-    const pos = () => c.repeat ? '再巩固一次' : `${Math.min(uniq.size, doneIds.size + 1)} / ${uniq.size}${c.source === 'book' && c.state === 'new' ? ' · 新词' : ''}`;
+    // How long the rest will take, from this session's own pace (about 9 seconds a card until there is one).
+    const started = Date.now(); let spent = 0;
+    const eta = () => { const rest = uniq.size - doneIds.size; if (rest < 3) return ''; const per = doneN ? spent / doneN : 9000; return ` · 约 ${Math.max(1, Math.round(rest * per / 60000))} 分钟`; };
+    const pos = () => c.repeat ? '再巩固一次' : `${Math.min(uniq.size, doneIds.size + 1)} / ${uniq.size}${c.source === 'book' && c.state === 'new' ? ' · 新词' : ''}${eta()}`;
     const foot = () => `<p class="muted tiny tc rfoot">${pos()}</p>`;
-    const top = () => `<div class="rtop"><a class="link small" href="#/cards">结束</a><div class="bar-progress"><i id="rp"></i></div></div>`;
+    let undo = null;  // the latest rating, while it can be taken back (撤销)
+    const top = () => `<div class="rtop"><a class="link small" href="#/cards">结束</a><div class="bar-progress"><i id="rp"></i></div>${undo ? `<button class="link small undo" id="undo" type="button" aria-label="撤销上一张：${esc(undo.c.text)}">↶ 撤销</button>` : ''}</div>`;
     const badge = res => { const b = document.getElementById('dueBadge'); if (b && res && res.due != null) { const n = res.due + res.new; b.hidden = !n; b.textContent = n > 99 ? '99+' : n; } };
     // Touch: swipe the card right for "I know it" (or the main button), left for "I don't".
     let swipe = null;
@@ -37,7 +41,10 @@
       view.innerHTML = `<div class="empty"><div class="big">✓</div><p>现在没有要复习的单词。</p><div class="row center"><a class="btn" href="#/cards">单词</a><a class="btn primary" href="#/">回到今日</a></div></div>`; return;
     }
     let c, t0, claim;
-    const bar = () => { const rp = document.getElementById('rp'); if (rp) rp.style.width = (doneIds.size / Math.max(1, uniq.size) * 100) + '%'; };
+    const bar = () => {
+      const rp = document.getElementById('rp'); if (rp) rp.style.width = (doneIds.size / Math.max(1, uniq.size) * 100) + '%';
+      const u = document.getElementById('undo'); if (u) u.onclick = takeBack;
+    };
     const keys = map => { document.onkeydown = e => { if (!sheetEl.hidden || e.metaKey || e.ctrlKey || e.altKey) return; if (e.target.matches && e.target.matches('input,textarea')) { if (e.key === 'Enter' && map.Enter && ['spellIn', 'fixIn'].includes(e.target.id)) { e.preventDefault(); map.Enter(); } return; } const f = map[e.key] || map[e.key.toLowerCase()]; if (f) { e.preventDefault(); f(); } }; };
     let sx = null;
     view.ontouchstart = e => { sx = e.touches.length === 1 && !isTyping(e) && !e.target.closest('button,a,input') ? [e.touches[0].clientX, e.touches[0].clientY] : null; };
@@ -86,7 +93,8 @@
           <div class="row center">${recBtn('sndMic', '读一遍')}<span class="muted tiny" id="sndOut">${S.user ? '点 ● 读一遍，AI 听你读得准不准' : ''}</span></div>
           <div class="choice">${['读准了', '还不稳', '不会读'].map((t, k) => `<button class="${['good', '', 'again'][k]}" data-self="${['good', 'hard', 'again'][k]}">${t}</button>`).join('')}</div>`;
       }
-      view.innerHTML = `${top()}<div class="review enter">${body}${foot()}</div>`;
+      // A question or a sentence to fix has no word to put in the middle of the screen: it starts at the top.
+      view.innerHTML = `${top()}<div class="review enter${c.mode === 'sound' ? '' : ' q'}">${body}${foot()}</div>`;
       bar(); swipe = null;
       const after = (r, html) => {
         const ms = Date.now() - t0;
@@ -226,17 +234,18 @@
       if (busy) return; busy = true; document.onkeydown = null;
       try {
         const body = { id: c.id, rating: r, mode: c.mode, ms: Math.min(ms, 3599999), at: Math.floor(Date.now() / 1000) };
+        const before = { c, r, i, had: doneIds.has(c.id), left, inserted: -1, offline: false, body };
         let res;
         try { res = await api('/api/next/review', body); }
         catch (e) {
           if (!e.network) throw e;
-          OUTBOX.push({ path: '/api/next/review', body });  // offline: keep going, sync later
+          OUTBOX.push({ path: '/api/next/review', body }); before.offline = true;  // offline: keep going, sync later
           const learning = c.state !== 'review' || r === 'again';
           res = { card: { ...c, state: learning && r !== 'easy' ? (c.state === 'review' ? 'relearning' : 'learning') : 'review' }, due: left ? left.due : 0, new: left ? left.new : 0 };
           if (r === 'good' && c.state === 'learning' && (c.step || 0) >= 1) res.card.state = 'review';
           res.card.step = (c.step || 0) + 1;
         }
-        tally[r]++; doneN++; left = res; i++; doneIds.add(c.id); badge(res);
+        tally[r]++; doneN++; left = res; i++; doneIds.add(c.id); badge(res); spent += Math.min(ms, 60000); undo = before;
         const n = res.card;
         if (res.outcome && OUTCOME[res.outcome]) toast(OUTCOME[res.outcome]);
         if ((r === 'good' || r === 'easy') && n.due) farthest = Math.max(farthest, Math.round((n.due * 1000 - Date.now()) / 86400000));
@@ -247,11 +256,25 @@
         const parked = ['tomorrow', 'later', 'passed', 'reread'].includes(res.outcome) || (c.tries || 0) >= 1;
         if ((n.state === 'learning' || n.state === 'relearning') && soon && !parked) {
           const again = { ...c, ...n, mode: c.kind === 'word' ? 'recognize' : c.mode, repeat: true, tries: (c.tries || 0) + 1 };
-          items.splice(Math.min(items.length, i + 4), 0, again);
+          before.inserted = Math.min(items.length, i + 4); items.splice(before.inserted, 0, again);
         }
         const el = view.querySelector('.review'); if (el) el.classList.add('out');
         setTimeout(ask, REDUCED ? 0 : 180);
       } catch (e) { toast(e.message); keys({}); }
+      finally { busy = false; }
+    }
+    // 撤销: the latest rating taken back (a slip of the finger); the same card comes up again to answer.
+    async function takeBack() {
+      const u = undo; if (!u || busy) return; busy = true;
+      try {
+        let res = u.left;
+        if (u.offline) OUTBOX.unpush({ path: '/api/next/review', body: u.body });
+        else res = await api('/api/next/review/undo', { id: u.c.id });
+        tally[u.r]--; doneN--; if (!u.had) doneIds.delete(u.c.id);
+        if (u.inserted >= 0) items.splice(u.inserted, 1);
+        i = u.i; left = res; undo = null; badge(res);
+        toast('已撤销，再答一次这一张'); ask();
+      } catch (e) { undo = null; toast(e.message); const b = document.getElementById('undo'); if (b) b.remove(); }
       finally { busy = false; }
     }
     async function known() {
@@ -268,12 +291,16 @@
       } catch (e) { /* show the summary anyway */ }
       refreshHome().catch(() => {});
       view.ontouchstart = view.ontouchmove = view.ontouchend = null; document.body.classList.remove('reviewing');
-      view.innerHTML = `<div class="card done-card enter">${doneRing}<h2 class="h2">这一轮复习了 ${doneIds.size} 个</h2>${doneN > doneIds.size ? `<p class="muted tiny">共作答 ${doneN} 次，其中 ${doneN - doneIds.size} 次是再巩固</p>` : ''}
+      undo = null;
+      const rated = tally.again + tally.hard + tally.good + tally.easy, mins = Math.max(1, Math.round((Date.now() - started) / 60000));
+      view.innerHTML = `<div class="card done-card enter">${doneRing}<h2 class="h2">这一轮复习了 ${doneIds.size} 个</h2>
+        <p class="small rsum">用时约 ${mins} 分钟${rated ? ` · 记住了 ${Math.round((tally.good + tally.easy) / rated * 100)}%` : ''}<span id="tmr"></span></p>${doneN > doneIds.size ? `<p class="muted tiny">共作答 ${doneN} 次，其中 ${doneN - doneIds.size} 次是再巩固</p>` : ''}
         <p class="muted small">记得 ${tally.good + tally.easy} · 模糊 ${tally.hard} · 忘了 ${tally.again}${tally.known ? ' · 熟知 ' + tally.known : ''}。</p>
         <p class="small cheer">${tally.good + tally.easy ? `记得的都往后推了${farthest > 1 ? `，最远的要 ${farthest} 天后才再见` : ''}。` : ''}${tally.again ? `忘了的 ${tally.again} 个明天再来：忘了再想起来，正是记牢的过程。` : tally.good + tally.easy ? '这一轮全都记得，很稳。' : ''}</p>
         ${left && (left.due + left.new) ? `<p class="small">还有 ${left.due + left.new} 个可以继续。</p>` : ''}
         <div class="row center"><a class="btn" href="#/cards">单词</a>${left && (left.due + left.new) ? '<button class="btn primary" id="again">继续</button>' : '<a class="btn primary" href="#/">回到今日</a>'}</div>
         ${left && !(left.due + left.new) ? '<div class="row center"><button class="btn ghost small" id="moreNew">还想多背：再学 10 个新词</button></div>' : ''}</div>`;
+      api('/api/next/vocab').then(o => { const t = document.getElementById('tmr'); if (t && o.forecast && o.forecast[1] != null) t.textContent = ` · 明天大约复习 ${o.forecast[1]} 个`; }).catch(() => {});
       const ag = document.getElementById('again'); if (ag) ag.onclick = () => reviewView();
       const mn = document.getElementById('moreNew');
       if (mn) mn.onclick = async () => { mn.disabled = true; try { const r = await api('/api/next/vocab/more', { n: 10 }); if (r.added) reviewView(); else { toast('词书里的词都学过了'); } } catch (e) { toast(e.message); mn.disabled = false; } };

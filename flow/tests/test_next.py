@@ -420,7 +420,9 @@ class AssetVersionTests(unittest.TestCase):
         v = _re.search(r'/next\.js\?v=([0-9a-f]{10})', html).group(1)
         self.assertIn(f'/next.css?v={v}', html); self.assertIn(f"flow-shell-{v}", sw); self.assertIn(f'/next.js?v={v}', sw)
         self.assertNotIn('__ASSET__', html + sw)
-        self.assertEqual(app.shell_file('next.js'), (Path(app.ROOT) / 'public' / 'next.js').read_bytes())  # other files untouched
+        self.assertEqual(app.shell_file('survey.js'), (Path(app.ROOT) / 'public' / 'survey.js').read_bytes())  # other files untouched
+        import slim  # next.js and next.css go out slimmed (tests/test_slim.py)
+        self.assertEqual(app.shell_file('next.js'), slim.js((Path(app.ROOT) / 'public' / 'next.js').read_text(encoding='utf-8')).encode())
 
 
 class FrontSourceTests(unittest.TestCase):
