@@ -278,6 +278,7 @@ flow/reference_service.py
 flow/relisten_service.py
 flow/requirements-vertex.txt
 flow/scenarios.py
+flow/search_eval.py
 flow/seed.py
 flow/settings_service.py
 flow/skills_service.py
@@ -341,6 +342,7 @@ flow/tests/test_reference.py
 flow/tests/test_reliability.py
 flow/tests/test_relisten.py
 flow/tests/test_rewrite_minimal.py
+flow/tests/test_search_route.py
 flow/tests/test_slim.py
 flow/tests/test_speak_rounds.py
 flow/tests/test_survey.py
