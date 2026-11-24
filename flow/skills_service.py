@@ -268,13 +268,29 @@ def daily_path(c, uid, home, now=None):
             names = '、'.join(titles.get(n, {}).get('title', n) for n in nodes[:2]) + (f' 等 {len(nodes)} 个点' if len(nodes) > 2 else '')
             steps.append({'key': 'grammar', 'title': '语法混合复习：' + names, 'href': '#/mix',
                           'sub': f'{size} 道题混着做，约 {max(2, size // 2)} 分钟', 'done': False})
-    if prof.get('goal') == 'exam' and minutes >= 10:
+    # 考试冲刺 (exam_sprint): in the last four weeks before the learner's exam, the weekly set of that exam and a round
+    # on its grammar points join the plan, whatever the minutes.
+    sprint = home.get('sprint') if 'sprint' in home else __import__('exam_sprint').brief(c, uid, now)
+    sprinting = bool(sprint and sprint['sprint'])
+    if (prof.get('goal') == 'exam' and minutes >= 10) or sprinting:
         # One practice set a week: shown when the last one is a week old (or none yet), ticked on the day it is done.
-        last = c.execute('SELECT MAX(created) t FROM next_exam_results WHERE user_id=?', (uid,)).fetchone()['t']
+        ex = sprint['exam'] if sprint else ''
+        last = c.execute('SELECT MAX(created) t FROM next_exam_results WHERE user_id=?' + (' AND exam=?' if ex else ''), (uid, ex) if ex else (uid,)).fetchone()['t']
+        title, href = ('考试练习：' + sprint['short'], '#/exam/' + ex) if ex else ('考试练习', '#/exam')
         if last and last >= start:
-            steps.append({'key': 'exam', 'title': '考试练习', 'sub': '这周的一套做完了', 'href': '#/exam', 'done': True})
+            steps.append({'key': 'exam', 'title': title, 'sub': '这周的一套做完了', 'href': href, 'done': True})
         elif not last or last < now - 6 * 86400:
-            steps.append({'key': 'exam', 'title': '考试练习', 'sub': '每周一套：词汇、语法、阅读，约 15–20 分钟', 'href': '#/exam', 'done': False})
+            steps.append({'key': 'exam', 'title': title, 'sub': f"考前 {sprint['days']} 天 · 每周一套：词汇、语法、阅读，约 15–20 分钟" if sprinting else '每周一套：词汇、语法、阅读，约 15–20 分钟',
+                          'href': href, 'done': False})
+    if sprinting:
+        import exam_sprint as sp
+        answered = sp.grammar_today(c, uid, now)
+        pts = sp.grammar_nodes(c, uid, sprint['exam'], now)[:6]
+        if pts:
+            titles = nx.nodes_meta(c)
+            names = '、'.join(titles.get(n, {}).get('title', n) for n in pts[:2]) + (f' 等 {len(pts)} 个点' if len(pts) > 2 else '')
+            steps.append({'key': 'exam-grammar', 'title': f"考点语法：{names}", 'href': '#/mix/exam/' + sprint['exam'], 'done': answered >= 4,
+                          'sub': f'今天做了 {answered} 题' if answered >= 4 else f"{sprint['short']}常考的语法点混着练，8 道题，约 4 分钟"})
     stale = __import__('ability_radar').due_today(c, uid, now)
     last_test = c.execute('SELECT MAX(created) FROM next_assess WHERE user_id=?', (uid,)).fetchone()[0]
     if stale and not (last_test and start - 2 * 86400 <= last_test < start):  # a test every few days, not every day
