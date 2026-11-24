@@ -1,0 +1,119 @@
+{
+ "about": "情景对话说一句的评测句子（voice_eval.py）：每句是学习者对 opener 的回答，error 是句子里故意留的错误（null = 没有错）。录音全是合成的：flow-tts 的 CosyVoice 声音现读；mac_voice 是站长 Mac 上用来做带中国口音录音的系统声音（Tingting、Meijia 读英文）。不放任何学员的录音。",
+ "cases": [
+  {
+   "id": "c01-ok-us",
+   "scene": "cafe",
+   "opener": "Hi there! What can I get for you today?",
+   "text": "Hi, can I get a large latte with oat milk, please?",
+   "error": null,
+   "mac_voice": "Samantha"
+  },
+  {
+   "id": "c02-tense-us",
+   "scene": "weekend",
+   "opener": "Hey! How was your weekend?",
+   "text": "Yesterday I go to the park with my friend and we play basketball.",
+   "error": {
+    "original": "go",
+    "better": "went"
+   },
+   "mac_voice": "Samantha"
+  },
+  {
+   "id": "c03-ok-zh",
+   "scene": "restaurant",
+   "opener": "Good evening, Riverside Bistro. How can I help you?",
+   "text": "I would like to book a table for two people tonight.",
+   "error": null,
+   "mac_voice": "Tingting"
+  },
+  {
+   "id": "c04-agree-zh",
+   "scene": "cafe",
+   "opener": "Hi there! What can I get for you today?",
+   "text": "She don't like coffee, so she want a cup of tea.",
+   "error": {
+    "original": "don't",
+    "better": "doesn't"
+   },
+   "mac_voice": "Tingting"
+  },
+  {
+   "id": "c05-missing-zh",
+   "scene": "directions",
+   "opener": "Hello! You look a bit lost. Can I help you?",
+   "text": "Excuse me, where nearest subway station?",
+   "error": {
+    "original": "where nearest",
+    "better": "where is the nearest"
+   },
+   "mac_voice": "Tingting"
+  },
+  {
+   "id": "c06-long-uk",
+   "scene": "weekend",
+   "opener": "Hey! How was your weekend?",
+   "text": "I usually spend my weekends reading, but last Saturday I went hiking with my cousins in the hills.",
+   "error": null,
+   "mac_voice": "Daniel"
+  },
+  {
+   "id": "c07-agree-in",
+   "scene": "shopping",
+   "opener": "So, what do you think about this jacket?",
+   "text": "I am agree with you, the price is too much expensive.",
+   "error": {
+    "original": "I am agree",
+    "better": "I agree"
+   },
+   "mac_voice": "Rishi"
+  },
+  {
+   "id": "c08-hesitant-us",
+   "scene": "directions",
+   "opener": "Hello! You look a bit lost. Can I help you?",
+   "text": "Um... I think... I think I will, uh, take the bus.",
+   "error": null,
+   "mac_voice": "Samantha"
+  },
+  {
+   "id": "c09-short-zh",
+   "scene": "cafe",
+   "opener": "Hi there! What can I get for you today?",
+   "text": "Yes, I want.",
+   "error": {
+    "original": "I want",
+    "better": "I want one / Yes, please"
+   },
+   "mac_voice": "Tingting"
+  },
+  {
+   "id": "c10-plural-tw",
+   "scene": "restaurant",
+   "opener": "Good evening, Riverside Bistro. How can I help you?",
+   "text": "Can you recommend some good restaurant near here?",
+   "error": {
+    "original": "some good restaurant",
+    "better": "some good restaurants"
+   },
+   "mac_voice": "Meijia"
+  },
+  {
+   "id": "c11-word-zh",
+   "scene": "weekend",
+   "opener": "Hey! How was your weekend?",
+   "text": "I live in a big house with my family and two cats.",
+   "error": null,
+   "mac_voice": "Tingting"
+  },
+  {
+   "id": "c12-ok-au",
+   "scene": "directions",
+   "opener": "Hello! You look a bit lost. Can I help you?",
+   "text": "What time does the museum close on Sundays?",
+   "error": null,
+   "mac_voice": "Karen"
+  }
+ ]
+}

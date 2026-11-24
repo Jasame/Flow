@@ -12,6 +12,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `01-audio-offline.js` | browser voice, Kokoro narration, word and sentence clips, mini player, offline review queue |
 | `02-shell.js` | sheets (focus, swipe), keyboard shortcuts, session and sign-in, router |
 | `09-start.js` | 启动动画 (the mark in next.html, timed against the first page drawn) and 选方向和目标: one page for a new learner (goal, exam and date, the level to reach), the same page edits it from 我的; the 今日 notice for a guessed level |
+| `04-home-app.js` | 主屏 App (Safari 「添加到主屏幕」): `html.home-app`, the 返回 button in the top bar (`homeBack`, from `setNav`), the keyboard (visualViewport → `--kb`), and taking a new version after a long sleep (`/api/version`) |
 | `10-welcome-today.js` | today's page |
 | `11-progress.js` | 这周进步 (r27): a card that stands on its own (`weekCardSlot()` where a page wants it, `mountWeekCards(root)`; home data or its own request), its details, 每周进度邮件 in 我的, the mail's unsubscribe page |
 | `12-daily-line.js` | 今日好句 (listen, shadow, save) and the 今日热点 card at the top of 今日 |
@@ -55,6 +56,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `86-loop.css` | starting check, re-check tags, exam practice, serial episode list |
 | `86-sprint.css` | 考试冲刺: the line on 今日, the exam hub, the score trend, question-type practice |
 | `85-phone.css` | phone layout from a 360 px audit (16px fields, card layouts, listen controls, one level of surface), the knowledge graph tiles and grammar-point pages |
+| `98-home-app.css` | 主屏 App: the top bar clear of the Dynamic Island and the sides (safe areas are `--sat/--sab/--sal/--sar`, 00-base.css), the back button, the sheet on the keyboard, the new-version line |
 | `96-tidy.css` | phone tidy-up from a full-length audit: 存到手机 on the kicker line, 听's settings folded into one line, 读's tools in one row, the word-book picker folded, the 练习 list, 全部材料 filters |
 | `97-progress.css` | 这周进步: the four-number card, its details sheet, the three lines after a text, the unsubscribe page |
 | `98-daily-line.css` | 今日好句 and 今日热点 cards |
