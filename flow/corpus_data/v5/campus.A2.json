@@ -8,6 +8,7 @@
     "cefr": "A2",
     "theme": "campus",
     "genre": "dialogue",
+    "purposes": ["campus-life"],
     "body": "Amara: Jun, have you got a minute? Jun: Sure. Is something wrong? Amara: Not really. But I go to bed at ten, and you usually come back after midnight. Jun: Oh no. Do I wake you up? Amara: Sometimes. The door makes a lot of noise, and you always turn on the big light. Jun: I'm so sorry. I study in the library until it closes. Amara: I know. I just need my sleep, because I have class at eight. Jun: Okay. If I come back late, I'll use the light on my phone. Amara: That would help a lot. Thanks. You're a real night owl, aren't you? Jun: Yes, and you're an early bird. But maybe that's good. When you need the bathroom, I'm still asleep! Amara: True. We never have to wait.",
     "questions": [
       {
@@ -125,6 +126,7 @@
     "cefr": "A2",
     "theme": "campus",
     "genre": "story",
+    "purposes": ["story", "campus-life"],
     "body": "Priya borrowed a book about birds from the university library. She needed it for her biology project. One evening, the library sent her an email. The book was due back on Friday. Priya looked in her bag, under her bed and on every shelf. It wasn't there. She felt terrible, because the book was old and very expensive. On Thursday, she went to her usual cafe to think. When she ordered her tea, the owner gave her a big smile. Then he took the bird book from behind the counter. She left it on a table there last week! He kept it safe for her, but he also read some of it. He learned a lot about owls! Priya laughed and returned the book on time. From now on, she will always check the table before she leaves.",
     "questions": [
       {
@@ -247,6 +249,7 @@
     "cefr": "A2",
     "theme": "campus",
     "genre": "email",
+    "purposes": ["campus-life"],
     "body": "Dear Grandma, I have been here for one week now, and I want to tell you everything. The city is big and noisy, but I'm starting to like it. On my first day, I took the wrong bus and ended up by the sea. It was a mistake, but the view was beautiful! I have cooked rice three times. The first time it burned. The third time it was almost as good as yours. My classes are hard, but the teachers are friendly. I sit next to a girl called Aiko. She is far from home too, so we eat lunch together. Yesterday we went to the market to buy fruit and got lost again. We laughed all the way home. Please don't worry about me. I miss your cooking, but I'm okay. I'll call you on Sunday. Love, Mateo",
     "questions": [
       {
@@ -369,6 +372,7 @@
     "cefr": "A2",
     "theme": "campus",
     "genre": "guide",
+    "purposes": ["expository", "campus-life"],
     "body": "In your first month at university, you will see posters for clubs everywhere. There are clubs for chess, hiking, cooking and even old films. Here are three simple tips. First, go to the club fair and talk to the members. Ask them what they do each week. If they look happy and relaxed, that's a good sign. Second, don't join too many clubs. Some new students sign up for six or seven, and then they have no free time. Two clubs are enough to start with. Third, try something new. If you always play football, why not join the drama club? You might be bad at it at first, and that's okay. Most clubs don't want experts. They want people who come back every week. A club is the easiest way to make friends, so give it a try.",
     "questions": [
       {

@@ -8,6 +8,7 @@
     "cefr": "B1",
     "theme": "campus",
     "genre": "story",
+    "purposes": ["story", "campus-life"],
     "body": "Ines had a question about her history essay, and she had a whole week to ask it. Every Tuesday from two to four, Professor Adeyemi kept her office door open for students. On Monday, Ines wrote the question in her notebook. On Tuesday, she walked to the third floor, saw the open door and kept walking. She was worried that the question was too simple. What if the professor thought she hadn't done the reading? She went back to the library and practised the question again in her head. At half past three, she tried a second time. This time she stopped outside the door, but she could hear someone laughing inside, so she left. At five to four, she finally knocked. Professor Adeyemi was alone, eating a sandwich over a pile of papers. She looked genuinely pleased and told Ines she was her first visitor all month. The conversation took ten minutes, and the answer turned out to be easy. Walking home, Ines couldn't stop smiling. All that worrying had taken far longer than the question itself.",
     "questions": [
       {
@@ -136,6 +137,7 @@
     "cefr": "B1",
     "theme": "campus",
     "genre": "email",
+    "purposes": ["campus-life"],
     "body": "Dear Professor Lindqvist, I am writing to ask whether I could have a short extension on my Urban Planning essay, which is due this Friday. On Tuesday evening, my laptop stopped working, and I lost most of the draft I had saved on it. I know I should have kept a backup, and I've learned that lesson the hard way. Since then, I have rewritten the introduction and the first section from my notes. However, I still need time to finish the rest properly. I would be very grateful if I could submit it on Monday instead. I've attached what I have so far, so you can see that the work is well under way. I completely understand if this isn't possible, and in that case I will hand in the best version I can by Friday. Thank you for considering my request, and I'm sorry for the short notice. Best wishes, Arjun Mehta",
     "questions": [
       {
@@ -264,6 +266,7 @@
     "cefr": "B1",
     "theme": "campus",
     "genre": "guide",
+    "purposes": ["expository", "campus-life"],
     "body": "Most students write a lot in lectures and use very little of it later. The problem is usually not how much you write, but what you write. Instead of copying every word on the slides, listen for the point the lecturer keeps coming back to. That is often the idea that matters most in the exam. Write it in your own words, even if your sentence is messy. Unless you can explain a note in plain language, you probably haven't understood it yet. It also helps to leave a wide space on the left side of each page. After the lecture, use that space to write two or three questions that the notes answer. A week later, cover the notes and try to answer the questions from memory. This takes ten minutes, but it shows you exactly what you have forgotten. Finally, don't worry if your notes look ugly. Notes that only you can read are fine, as long as they help you think. The goal is not a beautiful notebook but a clearer head.",
     "questions": [
       {
@@ -387,6 +390,7 @@
     "cefr": "B1",
     "theme": "campus",
     "genre": "dialogue",
+    "purposes": ["campus-life"],
     "body": "Ravi: Okay, can I say something slightly awkward? We've been here for over an hour, and nobody has opened the textbook. Nadia: That's not true. I opened it. Ravi: You used it to hold your coffee cup. Chloe: Fair point. We did spend twenty minutes talking about that cooking show. Nadia: It was a really good episode, though. Ravi: I know, and I'm not blaming anyone, because I talked as much as you two did. But the exam is next Thursday, and I still don't get chapter four. Chloe: Me neither, to be honest, so what's the plan? Ravi: How about this? Each of us takes one chapter, explains it to the others in ten minutes, and then we test each other. Nadia: And if anyone picks up their phone, they buy the next round of coffee. Chloe: Harsh, but I like it. Ravi: And once we finish, we can chat as much as we want. Nadia: Deal, but I'm still telling you how that show ends. Chloe: Only after we finish chapter four, Nadia.",
     "questions": [
       {

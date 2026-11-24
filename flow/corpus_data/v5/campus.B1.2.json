@@ -8,6 +8,7 @@
     "cefr": "B1",
     "theme": "campus",
     "genre": "email",
+    "purposes": ["campus-life"],
     "body": "Hi Mei, I have some bad news, and I'm telling you first because you won't panic. I failed my statistics exam. I got the result this morning, and I've been walking around campus ever since, trying to work out what went wrong. Honestly, I already know the answer. I read my notes again and again, but I never practised a single problem on my own. In the exam, I recognised every question and still couldn't solve most of them. I wish I had your patience with numbers, but wishing won't help, so I've made a plan. There's a resit at the end of the summer, and I'm going to do two practice problems every day instead of rereading. I've also booked a meeting with my tutor to go through my paper. If I could go back to the start of term, I would ask for help in the first week, not the last. Please don't tell Mum and Dad yet. I'd rather tell them myself once I have a plan that works. Could you call me this weekend? If you had half an hour, you could test me on the basics. Love, Lin",
     "questions": [
       {
@@ -136,6 +137,7 @@
     "cefr": "B1",
     "theme": "campus",
     "genre": "dialogue",
+    "purposes": ["campus-life"],
     "body": "Ella: Thanks for doing this, Ravi, because I've been staring at question four for an hour. Ravi: No problem, so what's confusing you? Ella: Everything, to be honest: neither the lecture slides nor the textbook explains why the answer is negative. Ravi: Okay, forget the answer for now and explain the question to me in your own words. Ella: You want me to explain it to you? You're the one who got top marks. Ravi: Trust me, it helps, because talking it through shows us exactly where you get stuck. Ella: Fine, so a ball is thrown straight up, and we need its velocity after two seconds. Ravi: And what's happening to it during those two seconds? Ella: It's going up, but it's slowing down the whole time — oh, wait! Ravi: Keep going. Ella: So by two seconds it has already stopped and started to fall, and that's why the answer is negative! Ravi: Exactly, and the minus sign just shows the direction. Ella: But why didn't you just tell me that? Ravi: Because you'd have forgotten it by Friday. You worked it out yourself, so it'll stay with you. And honestly, explaining things helps me remember them too.",
     "questions": [
       {
@@ -259,6 +261,7 @@
     "cefr": "B1",
     "theme": "campus",
     "genre": "guide",
+    "purposes": ["expository", "campus-life"],
     "body": "Electives are the only part of your timetable that you get to choose freely, so it's worth thinking carefully before you click. Here are four questions to ask yourself. First, would you still take this class if none of your friends were taking it? Choosing a course just to stay with your group often means a whole term of boredom. Second, what could this class give you that your main subject can't? A history student might learn more from a basic coding course than from yet another history module. Third, have you read the course description properly? Look for the way students are assessed. A class marked entirely on one final exam feels very different from one built around weekly projects. Fourth, can you talk to someone who has already taken it? Second-year students are usually happy to tell you whether the reading list is manageable. Finally, leave a little room for curiosity. Some of the best classes are the ones people choose almost by accident, simply because the title made them smile.",
     "questions": [
       {
@@ -387,6 +390,7 @@
     "cefr": "B1",
     "theme": "campus",
     "genre": "interview",
+    "purposes": ["campus-life"],
     "body": "Interviewer: Daniel, you work at the bike repair shop near the main gate. How did that start? Daniel: I came in with a flat tyre in my first month, and the owner was so busy that I offered to help. By the end of the week, he'd offered me a job. Interviewer: How many hours do you work? Daniel: Two evenings a week and Saturday mornings. Interviewer: Is it hard to balance work and study? Daniel: Sometimes. During exam weeks, either my boss or my classmates have to be patient with me. Usually I swap shifts with another student working there, and that saves me. Interviewer: What's the best part of the job? Daniel: Honestly, the people. Students come in looking stressed because they're late for class, and twenty minutes later they ride off smiling. Interviewer: And the worst part? Daniel: I wish I had more free evenings. My friends go to the cinema on Thursdays, and I'm usually covered in oil at that time. Interviewer: Would you recommend a part-time job to other students? Daniel: Yes, but only if it's flexible. Find a boss who understands that you're a student first.",
     "questions": [
       {

@@ -78,6 +78,7 @@
       if (d.announce) info.push(['#announce', '学员正在看到公告', esc(d.announce.text.slice(0, 24)) + (d.announce.text.length > 24 ? '…' : '')]);
       if (d.hidden_materials) info.push(['#content', '已下架的材料', n(d.hidden_materials) + ' 篇']);
       if (isAdmin() && d.disabled) info.push(['#learners/f=disabled', '已停用的账号', n(d.disabled) + ' 个']);
+      if (d.classes && d.classes.count) info.push([isAdmin() ? '#classes' : '#overview', '班级试用', n(d.classes.count) + ' 个班 · 试用 ' + n(d.classes.trial_people) + ' 人、' + n(d.classes.trial_days) + ' 人次']);
       var li = function (x) { return '<li><a href="' + x[0] + '"><b>' + x[1] + '</b><span class="muted">' + x[2] + ' →</span></a></li>'; };
       main.innerHTML =
         '<div class="head-row"><div><h1>语流 Flow 概览</h1><p class="muted">flowlang.cn · ' + (d.server ? '数据来自' + esc(d.server) + ' · ' : '') + '更新于 ' + new Date(d.generated_at * 1000).toLocaleString('zh-CN') + '</p></div>' +
@@ -352,9 +353,10 @@
   var drawer = document.getElementById('drawer'), drawerBg = document.getElementById('drawerBg');
   function closeDrawer(nav) {
     if (drawer.hidden) return;
-    drawer.hidden = drawerBg.hidden = true; drawer.innerHTML = ''; drawer.dataset.uid = '';
+    drawer.hidden = drawerBg.hidden = true; drawer.innerHTML = ''; drawer.dataset.uid = drawer.dataset.cid = '';
     document.body.style.overflow = '';
-    if (nav !== false && /^#learners\/\d+/.test(location.hash)) history.replaceState(null, '', '#learners');
+    var m = /^#(learners|classes)\/\d+/.exec(location.hash);
+    if (nav !== false && m) history.replaceState(null, '', '#' + m[1]);
   }
   drawerBg.onclick = function () { closeDrawer(); };
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
@@ -369,7 +371,7 @@
     drawer.hidden = drawerBg.hidden = false;
     document.body.style.overflow = 'hidden';
     if (String(drawer.dataset.uid) !== String(id)) drawer.scrollTop = 0;  // another learner starts at the top; the same one (after an action) stays put
-    drawer.dataset.uid = id;
+    drawer.dataset.uid = id; drawer.dataset.cid = '';
     drawer.innerHTML = '<div class="dr-head"><h2 id="drawerTitle">正在加载…</h2><button class="btn" type="button" data-close>关闭</button></div>';
     drawer.querySelector('[data-close]').onclick = function () { closeDrawer(); };
     getJSON('/learner?id=' + encodeURIComponent(id)).then(function (d) { drawLearner(d); }).catch(function (e) {
@@ -393,6 +395,8 @@
           '<dt>注册</dt><dd>' + (a.joined ? esc(when(a.joined)) + (a.joined_known ? '' : '（没有注册时间，按开始学习算）') : '早于记录') + '</dd>' +
           '<dt>最近打开</dt><dd>' + esc(rel(a.last_open)) + ' · 登录着的设备 ' + n(a.sessions) + ' 台</dd>' +
           (p ? '<dt>学习目标</dt><dd>' + esc(p.goal) + ' · 每天 ' + n(p.minutes) + ' 分钟 · 每周 ' + n(p.weekly_goal) + ' 天' + (p.themes.length ? ' · ' + p.themes.map(esc).join('、') : '') + '</dd>' : '') +
+          (d.classes && (d.classes.member || d.classes.teaching.length) ? '<dt>班级</dt><dd>' + (d.classes.member ? '<a href="#classes/' + d.classes.member.id + '">' + esc(d.classes.member.name) + '</a>（' + esc(d.classes.member.joined) + ' 加入）' : '') +
+            (d.classes.teaching.length ? (d.classes.member ? '<br>' : '') + '老师：' + d.classes.teaching.map(function (k) { return '<a href="#classes/' + k.id + '">' + esc(k.name) + '</a>'; }).join('、') : '') + '</dd>' : '') +
         '</dl></section>' +
         (isAdmin() ? '<section class="card dr-actions"><h3>操作</h3>' +
           '<div class="toolbar"><button class="btn" data-act="reset">生成重设密码链接</button><button class="btn" data-act="signout"' + (a.sessions ? '' : ' disabled') + '>退出所有设备</button>' +
@@ -468,6 +472,108 @@
       var k = Number(document.getElementById('drDaily').value);
       if (!(k >= 1 && k <= 200) || k === v.plan.daily_new) return;
       busy(b, postJSON('/learner/daily-new', { id: a.id, daily_new: k })).then(after);
+    });
+  }
+
+  /* ---------- 班级试用：建班级、邀请码、老师；每个班的人数、近 7 天在学和试用人次（class_service.py） ---------- */
+  var JOIN = 'https://flowlang.cn/#/invite/';
+  var CL = { shown: false };
+  function classesView() {
+    return getJSON('/classes').then(function (d) {
+      var live = d.items.filter(function (x) { return x.active; }).length;
+      main.innerHTML =
+        '<div class="head-row"><div><h1>班级</h1><p class="muted">学员凭邀请码自愿加入，随时可以退出。老师用自己的语流账号，在「我的 → 我的班级」里只看全班汇总：近 7 天几人在学、全班最常错的 5 个语法点；看不到任何学生的名字、作业和记录。不满 ' + d.min + ' 人的班不显示。</p></div>' +
+        '<div class="toolbar"><a class="btn" href="' + API + '/export/classes.csv">导出试用人数和人次 CSV</a></div></div>' +
+        '<div class="kpi-grid">' + kpi('使用中的班级', n(live), '一共 ' + n(d.items.length) + ' 个') + kpi('现在在班里', n(d.members), '不算老师和员工账号') +
+          kpi('试用人数', n(d.trial_people), '全部班级合计，同一人只算一个') + kpi('试用人次', n(d.trial_days), '同一人同一天算 1 次') + '</div>' +
+        '<section class="card"><h2>新建班级</h2><form class="toolbar" id="clF"><input class="input" name="name" maxlength="30" placeholder="班级名，如 高一（3）班" style="width:220px">' +
+          '<input class="input" name="teacher" maxlength="60" placeholder="老师的语流用户名" style="width:180px"><button class="btn primary">新建</button></form>' +
+          '<p class="err" id="clErr" hidden></p><p class="muted small" style="margin:0">老师要先在语流注册账号。新建后生成 6 位邀请码；老师在自己的「我的班级」页面也能看到邀请码，复制链接或出二维码发给学生。</p></section>' +
+        '<section class="card">' + (d.items.length ? '<div class="tbl-wrap"><table class="cmp"><thead><tr><th>班级</th><th>老师</th><th class="num">人数</th><th class="num">近 7 天在学</th><th class="num">试用人数</th><th class="num">试用人次</th><th class="opt">邀请码</th><th class="opt">创建</th></tr></thead><tbody>' +
+          d.items.map(function (x) {
+            return '<tr class="click' + (x.active ? '' : ' dim') + '" data-cid="' + x.id + '" tabindex="0"><td><b>' + esc(x.name) + '</b> ' + (x.active ? '' : '<span class="pill off">已停用</span>') +
+              (x.active && !x.ready ? '<span class="pill warn">不满 ' + d.min + ' 人</span>' : '') + '</td>' +
+              '<td>' + (x.teacher ? esc(x.teacher.username) + '<span class="sub">#' + x.teacher.id + '</span>' : '<span class="muted">没有老师</span>') + '</td>' +
+              '<td class="num">' + n(x.members) + '</td><td class="num">' + n(x.active_7d) + '</td><td class="num"><b>' + n(x.trial_people) + '</b></td><td class="num"><b>' + n(x.trial_days) + '</b></td>' +
+              '<td class="opt"><code>' + esc(x.code) + '</code></td><td class="opt">' + esc(x.created) + '</td></tr>';
+          }).join('') + '</tbody></table></div>' : '<p class="muted">还没有班级。</p>') +
+          '<p class="muted small">' + esc(d.rule_people) + '</p><p class="muted small">' + esc(d.rule_days) + '</p><p class="muted small" style="margin:0">' + esc(d.study_rule) + '</p></section>';
+      CL.shown = true;
+      var f = document.getElementById('clF'), err = document.getElementById('clErr');
+      f.onsubmit = function (e) {
+        e.preventDefault(); err.hidden = true;
+        busy(f.querySelector('button'), postJSON('/class/create', { name: f.name.value.trim(), teacher: f.teacher.value.trim() }).catch(function (x) { err.textContent = x.message; err.hidden = false; throw x; }))
+          .then(function (r) { location.hash = '#classes/' + r.id; classesView(); }, function () { /* shown above */ });
+      };
+      main.querySelectorAll('tr[data-cid]').forEach(function (tr) {
+        var open = function () { location.hash = '#classes/' + tr.dataset.cid; };
+        tr.onclick = open;
+        tr.onkeydown = function (e) { if (e.key === 'Enter') open(); };
+      });
+    }).catch(fail);
+  }
+  function openClass(id) {
+    drawer.hidden = drawerBg.hidden = false;
+    document.body.style.overflow = 'hidden';
+    if (String(drawer.dataset.cid) !== String(id)) drawer.scrollTop = 0;
+    drawer.dataset.cid = id; drawer.dataset.uid = '';
+    drawer.innerHTML = '<div class="dr-head"><h2 id="drawerTitle">正在加载…</h2><button class="btn" type="button" data-close>关闭</button></div>';
+    drawer.querySelector('[data-close]').onclick = function () { closeDrawer(); };
+    getJSON('/class?id=' + encodeURIComponent(id)).then(drawClass).catch(function (e) {
+      drawer.innerHTML = '<div class="dr-head"><h2 id="drawerTitle">' + esc(e.message) + '</h2><button class="btn" type="button" data-close>关闭</button></div>';
+      drawer.querySelector('[data-close]').onclick = function () { closeDrawer(); };
+    });
+  }
+  function drawClass(d) {
+    var link = JOIN + d.code, top = Math.max.apply(null, d.weeks.map(function (w) { return w.studied; }).concat([1]));
+    drawer.innerHTML =
+      '<div class="dr-head"><div><h2 id="drawerTitle">' + esc(d.name) + '</h2><div class="dr-pills"><span class="pill off">#c' + d.id + '</span>' +
+        (d.active ? '<span class="pill">使用中</span>' : '<span class="pill danger">已停用</span>') +
+        (d.active && d.members < d.min ? '<span class="pill warn">不满 ' + d.min + ' 人：老师还看不到汇总</span>' : '') + '</div></div>' +
+        '<button class="btn" type="button" data-close>关闭</button></div>' +
+      '<div class="dr-body">' +
+        '<section class="card"><dl class="kv">' +
+          '<dt>老师</dt><dd>' + (d.teacher ? '<a href="#learners/' + d.teacher.id + '">' + esc(d.teacher.username) + '</a> #' + d.teacher.id : '没有（老师的账号注销了）') + '</dd>' +
+          '<dt>邀请码</dt><dd><code>' + esc(d.code) + '</code><div class="muted small">加入链接 ' + esc(link) + ' <button class="btn" type="button" id="clCopy">复制</button></div></dd>' +
+          '<dt>人数</dt><dd>现在 ' + n(d.members) + ' 人 · 加入过 ' + n(d.joined) + ' 人 · 退出了 ' + n(d.left) + ' 人<div class="muted small">现在的人数不算老师和员工账号</div></dd>' +
+          '<dt>试用人数</dt><dd><b>' + n(d.trial_people) + '</b><div class="muted small">' + esc(d.rule_people) + '</div></dd>' +
+          '<dt>试用人次</dt><dd><b>' + n(d.trial_days) + '</b><div class="muted small">' + esc(d.rule_days) + '</div></dd>' +
+          '<dt>创建</dt><dd>' + esc(d.created) + (d.by ? ' · ' + esc(d.by) : '') + '</dd>' +
+        '</dl></section>' +
+        '<section class="card"><h3>近 8 周</h3><table class="cmp"><thead><tr><th>每 7 天</th><th class="num">在学</th><th class="num">新增试用人数</th><th class="num">试用人次</th><th></th></tr></thead><tbody>' +
+          d.weeks.map(function (w) {
+            return '<tr><td>' + esc(w.label) + '</td><td class="num">' + n(w.studied) + '</td><td class="num">' + n(w.new_people) + '</td><td class="num">' + n(w.days) + '</td>' +
+              '<td style="width:40%"><div class="prog"><i style="width:' + pct(w.studied, top) + '%"></i></div></td></tr>';
+          }).join('') + '</tbody></table><p class="muted small" style="margin:8px 0 0">在学：这 7 天里以班级成员身份学过至少一步（包括后来退出的人）。新增试用人数：第一次以这个班的成员身份学习。试用人次：这 7 天里成员学习的天数加起来，同一人同一天算 1 次。</p></section>' +
+        (isAdmin() ? '<section class="card dr-actions"><h3>操作</h3>' +
+          '<div class="toolbar"><span class="inline-form"><input class="input" id="clName" maxlength="30" value="' + esc(d.name) + '" style="width:180px"><button class="btn" data-act="rename">改名</button></span>' +
+            '<span class="inline-form"><input class="input" id="clTeacher" maxlength="60" placeholder="新老师的用户名" style="width:150px"><button class="btn" data-act="teacher">换老师</button></span></div>' +
+          '<div class="toolbar"><button class="btn" data-act="code">换邀请码</button><button class="btn danger" data-act="active">' + (d.active ? '停用班级' : '重新启用') + '</button></div>' +
+          '<p class="muted small" style="margin:0">每个操作都会记进「操作记录」。换邀请码：旧码马上作废，已经在班里的人不受影响。停用：不能再加入，老师看不到汇总；班里的人照常学习，可以随时退出。</p></section>' : '') +
+        (d.log.length ? '<section class="card"><h3>管理员对这个班做过的事</h3><table class="cmp"><tbody>' + d.log.map(function (r) {
+          return '<tr><td>' + esc(when(r.created)) + '<span class="sub">' + esc(r.email) + '</span></td><td>' + esc(r.action_label) + (r.detail ? '<span class="sub">' + esc(r.detail) + '</span>' : '') + '</td></tr>'; }).join('') + '</tbody></table></section>' : '') +
+      '</div>';
+    drawer.querySelector('[data-close]').onclick = function () { closeDrawer(); };
+    drawer.querySelector('[data-close]').focus();
+    document.getElementById('clCopy').onclick = function (e) { (navigator.clipboard ? navigator.clipboard.writeText(link) : Promise.reject()).then(function () { e.target.textContent = '已复制'; }, function () { prompt('复制这个链接', link); }); };
+    var act = function (name, fn) { var b = drawer.querySelector('[data-act="' + name + '"]'); if (b) b.onclick = function () { fn(b); }; };
+    var after = function () { openClass(d.id); if (CL.shown && ST.tab === 'classes') classesView(); };
+    act('rename', function (b) {
+      var v = document.getElementById('clName').value.trim(); if (!v || v === d.name) return;
+      busy(b, postJSON('/class/rename', { id: d.id, name: v })).then(after);
+    });
+    act('teacher', function (b) {
+      var v = document.getElementById('clTeacher').value.trim(); if (!v) return;
+      if (!confirm('把「' + d.name + '」的老师换成「' + v + '」？\n\n原来的老师马上看不到这个班的汇总。')) return;
+      busy(b, postJSON('/class/teacher', { id: d.id, teacher: v })).then(after);
+    });
+    act('code', function (b) {
+      if (!confirm('给「' + d.name + '」换一个邀请码？\n\n旧邀请码和旧链接马上作废；已经在班里的人不受影响。')) return;
+      busy(b, postJSON('/class/code', { id: d.id })).then(after);
+    });
+    act('active', function (b) {
+      if (d.active && !confirm('停用「' + d.name + '」？\n\n之后不能再加入，老师也看不到汇总；班里的人照常学习，可以随时退出。可以重新启用。')) return;
+      busy(b, postJSON('/class/active', { id: d.id, active: !d.active })).then(after);
     });
   }
 
@@ -692,27 +798,83 @@
     }).catch(fail);
   }
 
-  /* ---------- AI 用量和额度 ---------- */
-  var AIV = { days: 14 };
+  /* ---------- AI 用量、费用、模型和质量 ---------- */
+  var AIV = { days: 14, sample: '' };
+  function yuan(v) { return v == null ? '—' : '¥' + (v >= 100 ? Math.round(v).toLocaleString('zh-CN') : v >= 1 ? v.toFixed(2) : v.toFixed(3)); }
+  function ktok(v) { return v >= 10000 ? (v / 1000).toFixed(0) + 'K' : v >= 1000 ? (v / 1000).toFixed(1) + 'K' : n(v); }
   function aiView() {
     getJSON('/ai?days=' + AIV.days).then(function (d) {
-      var lim = d.limits, max = Math.max.apply(null, d.by_day.map(function (x) { return x.count; }).concat([1]));
+      var lim = d.limits, cs = d.costs || { kinds: [], models: [], by_day: [], total: {}, budget: {}, prices: {}, platforms: {}, choices: [] }, tot = cs.total || {}, bud = cs.budget || {};
+      var max = Math.max.apply(null, d.by_day.map(function (x) { return x.count; }).concat([1]));
+      var cmax = Math.max.apply(null, cs.by_day.map(function (x) { return x.cost; }).concat([0.0001]));
       var src = function (k) { return lim[k + '_source'] === 'console' ? '后台设置（服务器配置是 ' + (lim[k + '_server'] ? n(lim[k + '_server']) + ' 次' : '不限') + '）' : '服务器配置'; };
+      var CH = cs.choices || [], label = function (name) { var c = CH.filter(function (x) { return x.name === name; })[0]; return c ? c.label : name; };
+      var SRC = { console: '后台', server: '服务器', 'default': '默认' };
+      var options = function (cur) { return CH.map(function (c) { return '<option value="' + esc(c.name) + '"' + (c.name === cur ? ' selected' : '') + '>' + esc(c.label) + '</option>'; }).join(''); };
+      var routeCell = function (k) {
+        if (!k.route) return '—';
+        if (!isAdmin()) return esc(label(k.route)) + '<span class="sub">' + esc(SRC[k.source] || '') + '</span>';
+        return '<select data-route="' + esc(k.kind) + '">' + options(k.route) + '</select>';
+      };
+      var PF = cs.platforms || {}, bl = PF.bailian || {};
+      var envBad = cs.server_routes_problem ? '<p class="err small">服务器设置有问题，任务都没按它走：' + esc(cs.server_routes_problem) + '</p>' : '';
+      var budPill = bud.level === 'over' ? '<span class="pill danger">超过预算</span>' : bud.level === 'warn' ? '<span class="pill warn">已到 80%</span>' : '';
+      var ev = d.evals || [], ev0 = ev[0];
       main.innerHTML =
-        '<div class="head-row"><div><h1>AI 用量和额度</h1><p class="muted">' + esc(d.note) + '</p></div>' +
+        '<div class="head-row"><div><h1>AI 用量、费用和质量</h1><p class="muted">' + esc(d.note) + ' 费用、token 按北京时间算。</p></div>' +
         '<div class="toolbar"><select id="aiDays"><option value="14"' + (d.days === 14 ? ' selected' : '') + '>近 14 天</option><option value="30"' + (d.days === 30 ? ' selected' : '') + '>近 30 天</option></select>' +
         (isAdmin() ? '<a class="btn" href="' + API + '/export/ai.csv">导出 CSV</a>' : '') + '</div></div>' +
-        '<div class="kpi-grid">' + kpi('今天', n(d.today) + ' 次', lim.site_limit ? '全站上限 ' + n(lim.site_limit) + ' · 已用 ' + pct(d.today, lim.site_limit) + '%' : '全站不设上限') +
-          kpi('每账号每天', lim.user_limit ? n(lim.user_limit) + ' 次' : '不限', '今天用满的 ' + n(d.users_at_limit) + ' 个账号') +
-          kpi('模型', '<span style="font-size:18px">' + esc(d.models.main || '未配置') + '</span>', d.models.text ? '文字任务：' + esc(d.models.text) : '文字任务用同一个') +
-          kpi('近 ' + d.days + ' 天', n(d.by_day.reduce(function (a, x) { return a + x.count; }, 0)) + ' 次', '日均 ' + Math.round(d.by_day.reduce(function (a, x) { return a + x.count; }, 0) / d.days)) + '</div>' +
-        '<section class="card"><h2>每天的次数</h2><div class="spark">' + d.by_day.map(function (x) { return '<div title="' + esc(x.day + '：' + x.count + ' 次') + '" style="height:' + Math.max(3, pct(x.count, max)) + '%"></div>'; }).join('') + '</div>' +
-          '<div class="spark-days">' + d.by_day.map(function (x, i) { return '<span>' + (i % (d.days > 14 ? 5 : 2) ? '' : esc(x.day.slice(5))) + '</span>'; }).join('') + '</div></section>' +
+        '<div class="kpi-grid">' +
+          kpi('今天的费用（估算）', yuan(cs.today) + ' ' + budPill, bud.daily ? '每日预算 ' + yuan(bud.daily) + ' · 已用 ' + bud.pct + '%' : '没有设每日预算') +
+          kpi('近 ' + cs.days + ' 天费用', yuan(tot.cost), n(tot.ok) + ' 次成功 · 失败 ' + n(tot.failed) + ' 次') +
+          kpi('输入命中缓存', tot.cache_pct == null ? '—' : tot.cache_pct + '%', '百炼：命中的部分按输入价的 20% 算；提示词要 1024 token 以上才会命中') +
+          kpi('备用线路答的', n((tot.backup || 0) + (tot.fallback || 0)) + ' 次', '网关换线 ' + n(tot.backup || 0) + ' · Flow 换到主模型 ' + n(tot.fallback || 0)) + '</div>' +
+        '<section class="card"><h2>每个任务用哪个模型</h2>' +
+          '<p class="muted small">这里列的是 AI 网关（xmc.hk/api-admin）里给学员用的模型名：<code>' + esc(cs.default_model || '—') + '</code> 是 Gemini（默认），flow-text- 开头的是阿里云百炼企业账号上的模型（通义千问、DeepSeek 等），各自配了 Gemini 备用。评测和例句预生成会自动改问 flow-eval- / flow-batch- 同名模型（站长的学生账号）。两条都不通时，Flow 再换主模型。录音、联网检索一直用 Gemini，不在这里。' +
+          (isAdmin() ? '改了马上生效，记进操作记录。换之前先看下面「每晚小评测」和抽样，效果不降再换；正式版上换之前先问过站长。' : '') + '</p>' +
+          envBad + (isAdmin() && CH.length > 1 ? '<div class="toolbar" style="margin:8px 0"><select id="allRoute">' + options(cs.default_model) + '</select><button class="btn" id="allGo">所有任务都用这个</button></div>' : '') +
+          '<table class="cmp"><thead><tr><th>任务</th><th>模型</th><th class="num">次数</th><th class="num opt">失败</th><th class="num opt">备用答</th><th class="num opt">输入 / 命中 / 输出 token</th><th class="num">费用</th><th class="num opt">平均</th></tr></thead><tbody>' +
+          cs.kinds.map(function (k) {
+            return '<tr' + (k.calls ? '' : ' class="dim"') + '><td>' + esc(k.label) + (k.group === 'grading' ? '<span class="sub">批改</span>' : k.group === 'content' ? '<span class="sub">内容，全站共用</span>' : '') + '</td><td>' + routeCell(k) + '</td>' +
+              '<td class="num">' + n(k.calls) + '</td><td class="num opt">' + (k.failed ? '<span class="down">' + n(k.failed) + '</span>' : '0') + '</td><td class="num opt">' + n(k.backup + k.fallback) + '</td>' +
+              '<td class="num opt">' + ktok(k.prompt) + ' / ' + ktok(k.cached) + ' / ' + ktok(k.completion) + (k.estimated ? '<span class="sub">含估算 ' + n(k.estimated) + ' 次</span>' : '') + '</td>' +
+              '<td class="num">' + yuan(k.cost) + '</td><td class="num opt">' + (k.seconds == null ? '—' : k.seconds + ' 秒') + '</td></tr>';
+          }).join('') + '</tbody></table></section>' +
         '<div class="grid2">' +
-          '<section class="card"><h2>按功能</h2>' + (d.kinds.length ? '<table class="cmp"><thead><tr><th></th><th class="num">成功</th><th class="num">失败</th><th class="num">失败率</th><th class="num opt">平均等待</th></tr></thead><tbody>' + d.kinds.map(function (k) {
+          '<section class="card"><h2>每天的费用</h2><div class="spark">' + cs.by_day.map(function (x) { return '<div title="' + esc(x.day + '：' + yuan(x.cost) + '，' + x.calls + ' 次') + '" style="height:' + Math.max(3, pct(x.cost, cmax)) + '%"></div>'; }).join('') + '</div>' +
+            '<div class="spark-days">' + cs.by_day.map(function (x, i) { return '<span>' + (i % (cs.days > 14 ? 5 : 2) ? '' : esc(x.day.slice(5))) + '</span>'; }).join('') + '</div></section>' +
+          '<section class="card"><h2>按模型</h2>' + (cs.models.length ? '<table class="cmp"><thead><tr><th>实际回答的模型</th><th class="num">次数</th><th class="num opt">token</th><th class="num">费用</th></tr></thead><tbody>' + cs.models.map(function (m) {
+              return '<tr><td>' + esc(m.name) + '<span class="sub">' + esc([m.label, m.platform].filter(Boolean).join(' · ') || '没有单价，费用按 0 算') + (m.estimated ? ' · token 是估算' : '') + '</span></td><td class="num">' + n(m.calls) + '</td><td class="num opt">' + ktok(m.prompt + m.completion) + '</td><td class="num">' + yuan(m.cost) + '</td></tr>'; }).join('') + '</tbody></table>' : '<p class="muted">这段时间没有记录。</p>') + '</section>' +
+        '</div>' +
+        '<div class="grid2">' +
+          '<section class="card"><h2>每日预算和单价</h2><dl class="kv"><dt>每日预算</dt><dd>' + (bud.daily ? yuan(bud.daily) : '不设') + '</dd>' +
+            '<dt>到预算时</dt><dd>80% 和 100% 各给管理员发一封邮件；超过后暂停例句预生成和每晚小评测，第二天恢复。学员的请求不受影响。</dd>' +
+            Object.keys(PF).map(function (k) { return '<dt>' + esc(PF[k].label) + '折扣</dt><dd>' + (PF[k].discount === 1 ? '按标价' : '标价 × ' + PF[k].discount) + '</dd>'; }).join('') +
+            Object.keys(cs.prices || {}).map(function (f) { var p = cs.prices[f]; return '<dt>' + esc(p.label) + '</dt><dd><code>' + esc(f) + '</code> 标价：输入 ' + p['in'] + ' · 命中缓存 ' + p.cached + ' · 输出 ' + p.out + ' 元 / 百万 token' + (p.custom ? ' <span class="pill blue">手动设置</span>' : '') + (p.note ? '<div class="muted small">' + esc(p.note) + '</div>' : '') + '</dd>'; }).join('') + '</dl>' +
+            (isAdmin() ? '<form class="form" id="budF" style="margin-top:12px"><div class="row"><label><span>每日预算（元，0 = 不设）</span><input class="input" id="budD" type="number" min="0" max="100000" step="0.5" value="' + (bud.daily || 0) + '"></label>' +
+              '<label><span>百炼折扣（标价的几成，0.65 = 六五折）</span><input class="input" id="budB" type="number" min="0.05" max="1" step="0.01" value="' + (bl.discount || 1) + '"></label>' +
+              '<label class="chk"><input type="checkbox" id="budN"' + (d.nightly ? ' checked' : '') + '> 每晚小评测（约 17 次调用）</label></div>' +
+              '<div class="row"><button class="btn primary">保存</button></div></form>' : '') + '</section>' +
+          '<section class="card"><h2>每晚小评测 ' + (d.nightly ? '' : '<span class="pill off">已关闭</span>') + '</h2>' +
+            '<p class="muted small">每天凌晨 2–5 点用固定的题考一遍：错句要改对、对的句子不能改、写作分数要分得出好坏、讲解和例句要能直接给学员看。用的是网站当时的模型设置，不碰学员数据。</p>' +
+            (ev.length ? '<table class="cmp"><thead><tr><th>日期</th><th class="num">通过</th><th class="opt">没过的题</th><th class="num opt">费用</th></tr></thead><tbody>' + ev.map(function (r) {
+              return '<tr><td>' + esc(r.day.slice(5)) + '</td><td class="num"><span class="' + (r.passed < r.total ? 'down' : 'up') + '">' + n(r.passed) + ' / ' + n(r.total) + '</span></td>' +
+                '<td class="opt small">' + (r.failed.length ? r.failed.map(function (f) { return esc(f.id) + '：' + esc((f.why || []).join('；')); }).join('<br>') : '—') + '</td><td class="num opt">' + yuan(r.cost) + '</td></tr>'; }).join('') + '</tbody></table>' : '<p class="muted">还没有跑过。</p>') + '</section>' +
+        '</div>' +
+        '<div class="grid2">' +
+          '<section class="card"><h2>批改结果（只看数字）</h2><p class="muted small">学员写的内容不在后台显示，这里只有统计：判对、改动、平均分的走向突然变了，多半是模型变了。</p>' +
+            ((d.quality || []).length ? '<table class="cmp"><thead><tr><th>任务</th><th class="num">次数</th><th class="num opt">失败</th><th>情况</th></tr></thead><tbody>' + d.quality.map(function (q) {
+              return '<tr><td>' + esc(q.label) + '</td><td class="num">' + n(q.done) + '</td><td class="num opt">' + (q.failed ? n(q.failed) + (q.unusable ? '<span class="sub">回答不完整 ' + n(q.unusable) + '</span>' : '') : '0') + '</td><td class="small">' + (q.notes.map(esc).join('<br>') || '—') + '</td></tr>'; }).join('') + '</tbody></table>' : '<p class="muted">这段时间没有批改。</p>') + '</section>' +
+          '<section class="card"><h2>抽样看内容</h2><p class="muted small">讲解、例句、难度改写这些是全站共用的（第一个人用时 AI 写，之后大家看同一份）。随机抽几条看看' + (isAdmin() ? '；写得不好的点「让 AI 重写」，下一个用到的人会拿到新写的' : '') + '。</p>' +
+            '<div class="chips" style="margin:8px 0">' + (d.sample_kinds || []).map(function (k) { return '<button class="chip" data-sample="' + esc(k.kind) + '" aria-pressed="' + (AIV.sample === k.kind) + '">' + esc(k.label) + '</button>'; }).join('') + '</div><div id="samples"></div></section>' +
+        '</div>' +
+        '<div class="grid2">' +
+          '<section class="card"><h2>按功能（学习页面的请求）</h2>' + (d.kinds.length ? '<table class="cmp"><thead><tr><th></th><th class="num">成功</th><th class="num">失败</th><th class="num">失败率</th><th class="num opt">平均等待</th></tr></thead><tbody>' + d.kinds.map(function (k) {
             return '<tr><td>' + esc(k.label) + '</td><td class="num">' + n(k.complete) + '</td><td class="num">' + n(k.failed) + '</td><td class="num">' + (k.fail_pct == null ? '—' : '<span class="' + (k.fail_pct >= 10 ? 'down' : '') + '">' + k.fail_pct + '%</span>') + '</td><td class="num opt">' + (k.seconds == null ? '—' : k.seconds + ' 秒') + '</td></tr>';
           }).join('') + '</tbody></table>' : '<p class="muted">这段时间没有 AI 请求。</p>') + '</section>' +
-          '<section class="card"><h2>每日额度</h2><dl class="kv"><dt>每账号每天</dt><dd>' + (lim.user_limit ? n(lim.user_limit) + ' 次' : '不限') + ' · ' + src('user_limit') + '</dd>' +
+          '<section class="card"><h2>每日次数额度</h2><div class="spark" style="height:44px">' + d.by_day.map(function (x) { return '<div title="' + esc(x.day + '：' + x.count + ' 次') + '" style="height:' + Math.max(3, pct(x.count, max)) + '%"></div>'; }).join('') + '</div>' +
+            '<dl class="kv"><dt>今天</dt><dd>' + n(d.today) + ' 次' + (lim.site_limit ? '（全站上限 ' + n(lim.site_limit) + '，已用 ' + pct(d.today, lim.site_limit) + '%）' : '') + ' · 用满的账号 ' + n(d.users_at_limit) + ' 个</dd>' +
+            '<dt>每账号每天</dt><dd>' + (lim.user_limit ? n(lim.user_limit) + ' 次' : '不限') + ' · ' + src('user_limit') + '</dd>' +
             '<dt>全站每天</dt><dd>' + (lim.site_limit ? n(lim.site_limit) + ' 次' : '不限') + ' · ' + src('site_limit') + '</dd>' +
             (lim.updated ? '<dt>上次修改</dt><dd>' + esc(when(lim.updated)) + ' · ' + esc(lim.by || '') + '</dd>' : '') + '</dl>' +
             (isAdmin() ? '<form class="form" id="limF" style="margin-top:14px"><div class="row"><label><span>每账号每天（次）</span><input class="input" id="limU" type="number" min="0" max="1000000" placeholder="服务器配置" value="' + (lim.user_limit_source === 'console' ? lim.user_limit : '') + '"></label>' +
@@ -726,6 +888,29 @@
         '</div>';
       document.getElementById('aiDays').onchange = function (e) { AIV.days = Number(e.target.value); aiView(); };
       main.querySelectorAll('tr[data-uid]').forEach(function (tr) { tr.onclick = function () { location.hash = '#learners/' + tr.dataset.uid; }; });
+      main.querySelectorAll('select[data-route]').forEach(function (sel) {
+        sel.onchange = function () {
+          var k = sel.dataset.route, task = (cs.kinds.filter(function (x) { return x.kind === k; })[0] || {}).label || k, body = { routes: {} };
+          body.routes[k] = sel.value;
+          if (!confirm('「' + task + '」改用 ' + label(sel.value) + '？马上生效。')) { aiView(); return; }
+          sel.disabled = true;
+          postJSON('/settings/ai-routes', body).then(aiView, function (e) { alert(e.message); aiView(); });
+        };
+      });
+      var allGo = document.getElementById('allGo');
+      if (allGo) allGo.onclick = function () {
+        var v = document.getElementById('allRoute').value;
+        if (!confirm('所有文字任务都改用 ' + label(v) + '？马上生效，每个任务单独的设置会清掉。')) return;
+        busy(allGo, postJSON('/settings/ai-routes', { routes: { '*': v } })).then(aiView);
+      };
+      var bf = document.getElementById('budF');
+      if (bf) bf.onsubmit = function (e) {
+        e.preventDefault();
+        var v = Number(document.getElementById('budD').value || 0), night = document.getElementById('budN').checked, disc = Number(document.getElementById('budB').value || 1);
+        if (!(v >= 0)) { alert('预算请填 0 或正数。'); return; }
+        if (!(disc > 0 && disc <= 1)) { alert('折扣请填 0–1 之间的小数，比如 0.65。'); return; }
+        busy(bf.querySelector('button'), postJSON('/settings/ai-budget', { daily: v, nightly: night, discounts: { bailian: disc } })).then(aiView);
+      };
       var f = document.getElementById('limF');
       if (f) f.onsubmit = function (e) {
         e.preventDefault();
@@ -735,12 +920,45 @@
         if (!confirm('把 AI 每日额度改成：每账号 ' + (body.user_limit == null ? '服务器配置' : body.user_limit || '不限') + '，全站 ' + (body.site_limit == null ? '服务器配置' : body.site_limit || '不限') + '？马上生效。')) return;
         busy(f.querySelector('button'), postJSON('/settings/ai-limits', body)).then(aiView);
       };
+      main.querySelectorAll('[data-sample]').forEach(function (b) { b.onclick = function () { AIV.sample = b.dataset.sample; main.querySelectorAll('[data-sample]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); }); aiSamples(); }; });
+      if (AIV.sample) aiSamples();
     }).catch(fail);
+  }
+
+  function sampleOut(kind, o) {
+    if (kind === 'next-explain') return '<div>' + esc(o.translation) + '</div>' + (o.structure ? '<div class="muted small">' + esc(o.structure) + '</div>' : '') +
+      '<ul class="small">' + (o.points || []).map(function (p) { return '<li><b>' + esc(p.text) + '</b>：' + esc(p.note) + (p.node_title ? ' <span class="pill off">' + esc(p.node_title) + '</span>' : '') + '</li>'; }).join('') + '</ul>' +
+      (o.pattern ? '<div class="small">句型：<b>' + esc(o.pattern.frame) + '</b> — ' + esc(o.pattern.example || '') + '</div>' : '');
+    if (kind === 'next-variant') return '<div class="small">' + esc(o.body) + '</div>' + ((o.notes || []).length ? '<div class="muted small">' + o.notes.map(function (x) { return esc(x.text + ' ' + (x.meaning || '')); }).join(' · ') + '</div>' : '');
+    if (kind === 'next-examples') return '<div>' + esc(o.sentence) + '</div><div class="muted small">' + esc(o.translation) + (o.sense ? ' · 词义：' + esc(o.sense) : '') + '</div>';
+    if (kind === 'next-transsrc') return '<div>' + esc(o.zh) + '</div>';
+    if (kind === 'next-dialog') return '<div class="muted small">' + esc(o.scene) + (o.role ? ' · AI 扮演：' + esc(o.role) : '') + '</div><div>' + esc(o.reply) + '</div>';
+    return '<div class="small">' + esc(o.body) + '</div><ol class="small">' + (o.questions || []).map(function (q) { return '<li>' + esc(q) + '</li>'; }).join('') + '</ol><div class="muted small">' + esc(o.source || '') + '</div>';
+  }
+  function aiSamples() {
+    var box = document.getElementById('samples');
+    if (!box || !AIV.sample) return;
+    box.innerHTML = '<p class="muted">正在抽…</p>';
+    getJSON('/ai/samples?n=5&kind=' + encodeURIComponent(AIV.sample)).then(function (d) {
+      box.innerHTML = (d.items.length ? d.items.map(function (x, i) {
+        return '<div class="card flat" style="margin:8px 0;padding:10px 12px"><div class="small"><b>' + esc(x.title || '') + '</b>' + (x.level ? ' · ' + esc(x.level) : '') + (x.source ? '<div class="muted">原句：' + esc(x.source) + '</div>' : '') + '</div>' +
+          sampleOut(d.kind, x.output) + '<div class="row between small muted" style="margin-top:6px"><span>' + esc(when(x.created)) + '</span>' +
+          (isAdmin() && d.redo ? '<button class="btn" data-redo="' + i + '">让 AI 重写</button>' : '') + '</div></div>';
+      }).join('') : '<p class="muted">这一类还没有内容。</p>') + '<p><button class="btn" id="sampleMore">再抽几条</button></p>';
+      document.getElementById('sampleMore').onclick = aiSamples;
+      box.querySelectorAll('[data-redo]').forEach(function (b) {
+        b.onclick = function () {
+          var x = d.items[Number(b.dataset.redo)];
+          if (!confirm('把这条「' + d.label + '」删掉，让 AI 在下次有人用到时重写？会用 1 次 AI。')) return;
+          busy(b, postJSON('/ai/samples/redo', { kind: d.kind, key: x.key })).then(function () { b.textContent = '已删掉，下次重写'; b.disabled = true; });
+        };
+      });
+    }).catch(function (e) { box.innerHTML = '<p class="err">' + esc(e.message) + '</p>'; });
   }
 
   /* ---------- 后台任务：例句预生成、每日热点、备份 ---------- */
   var TK = { timer: null };
-  var TASK_STATE = { idle: ['还没运行过', 'off'], running: ['正在运行', ''], done: ['做完了', ''], left: ['停在中途（到了请求上限或连续失败）', 'warn'], stopped: ['已停止', 'off'], 'no-model': ['服务器没有配置 AI 模型', 'danger'], failed: ['出错了', 'danger'], ended: ['已结束', 'off'] };
+  var TASK_STATE = { idle: ['还没运行过', 'off'], running: ['正在运行', ''], waiting: ['等半价时段', 'off'], done: ['做完了', ''], left: ['停在中途（到了请求上限或连续失败）', 'warn'], budget: ['今天的 AI 预算用完了，明天再跑', 'warn'], stopped: ['已停止', 'off'], 'no-model': ['服务器没有配置 AI 模型', 'danger'], failed: ['出错了', 'danger'], ended: ['已结束', 'off'] };
   function tasksView() {
     clearTimeout(TK.timer);
     getJSON('/tasks').then(function (d) {
@@ -752,13 +970,15 @@
           '<p class="muted">学员打开一张没有例句的单词卡时，要等几秒让 AI 现写。这里提前把例句写好存起来，学员打开就有。已经有例句的词会跳过，所以随时可以停、下次接着做。用的是网站自己的 AI 额度，不算进任何学员的次数。</p>' +
           (pg.total != null ? '<div class="prog"><i style="width:' + pct(pg.looked || 0, pg.total || 1) + '%"></i></div>' +
             '<dl class="kv"><dt>进度</dt><dd>看了 ' + n(pg.looked) + ' / ' + n(pg.total) + ' 个词 · 请求 ' + n(pg.calls) + ' 次 · 写好 ' + n(pg.made) + ' 条例句' + (pg.left != null && ex.state !== 'running' ? ' · 还剩 ' + n(pg.left) + ' 个词没有例句' : '') + '</dd>' +
-            (tk.started ? '<dt>开始</dt><dd>' + esc(when(tk.started)) + ' · ' + esc(tk.by || '') + (tk.books && tk.books.length ? ' · 词书 ' + tk.books.map(esc).join('、') : ' · 全部词书') + (tk.max_calls ? ' · 最多 ' + n(tk.max_calls) + ' 次请求' : '') + '</dd>' : '') + '</dl>' : '') +
+            (tk.started ? '<dt>开始</dt><dd>' + esc(when(tk.started)) + ' · ' + esc(tk.by || '') + (tk.books && tk.books.length ? ' · 词书 ' + tk.books.map(esc).join('、') : ' · 全部词书') + (tk.max_calls ? ' · 最多 ' + n(tk.max_calls) + ' 次请求' : '') + (tk.offpeak ? ' · 只在半价时段' : '') + '</dd>' : '') +
+            (ex.state === 'waiting' && pg.until ? '<dt>等到</dt><dd>' + esc(when(pg.until)) + '（半价时段开始）</dd>' : '') + '</dl>' : '') +
           (ex.log.length ? '<details' + (ex.state === 'running' ? ' open' : '') + '><summary class="muted small">运行记录（最后几行）</summary><pre class="logtail">' + esc(ex.log.join('\n')) + '</pre></details>' : '') +
-          (isAdmin() ? (ex.state === 'running' ? '<p><button class="btn danger" id="exStop">停止</button></p>' :
+          (isAdmin() ? (ex.state === 'running' || ex.state === 'waiting' ? '<p><button class="btn danger" id="exStop">停止</button></p>' :
             '<form class="form" id="exF" style="margin-top:12px"><div class="row"><label><span>词书</span><select id="exBook"><option value="">全部词书（考试词书优先）</option>' + d.books.map(function (b) {
               return '<option value="' + esc(b.id) + '">' + esc(b.group + ' · ' + b.title) + '</option>'; }).join('') + '</select></label>' +
               '<label><span>最多请求几次（0 = 不限）</span><input class="input" id="exMax" type="number" min="0" max="100000" value="0"></label></div>' +
-              '<p class="muted small" style="margin:0">一次请求写 16 个词。先试一小批（比如 20 次）看看例句质量，再放开跑。</p>' +
+              '<label class="chk"><input type="checkbox" id="exOff" checked> 用的模型有忙时价时（百炼上的 DeepSeek：北京时间 8–22 点），等到半价时段再跑</label>' +
+              '<p class="muted small" style="margin:0">一次请求写 16 个词。先试一小批（比如 20 次）看看例句质量，再放开跑。今天的 AI 预算用完时会自动停下。</p>' +
               '<div class="row"><button class="btn primary">开始</button></div></form>') : '') + '</section>' +
         '<div class="grid2">' +
           '<section class="card"><h2>今日热点 <span class="pill ' + (dl.status === 'complete' ? '' : dl.status === 'failed' || dl.status === 'interrupted' ? 'danger' : 'off') + '">' + esc(DAILY[dl.status] || dl.status) + '</span></h2>' +
@@ -779,12 +999,12 @@
         e.preventDefault();
         var book = document.getElementById('exBook').value, max = Number(document.getElementById('exMax').value || 0);
         if (!confirm('开始例句预生成（' + (book ? '词书 ' + book : '全部词书') + (max ? '，最多 ' + max + ' 次请求' : '，不限次数') + '）？会用网站的 AI 额度。')) return;
-        busy(f.querySelector('button'), postJSON('/tasks/examples/start', { books: book ? [book] : [], max_calls: max })).then(tasksView);
+        busy(f.querySelector('button'), postJSON('/tasks/examples/start', { books: book ? [book] : [], max_calls: max, offpeak: document.getElementById('exOff').checked })).then(tasksView);
       };
       var again = document.getElementById('dailyAgain'), run = document.getElementById('dailyRun');
       if (again) again.onclick = function () { busy(again, postJSON('/daily/run', { again: true })).then(function (r) { again.textContent = r.message; again.disabled = true; }); };
       if (run) run.onclick = function () { busy(run, postJSON('/daily/run', {})).then(function (r) { run.textContent = r.message; run.disabled = true; }); };
-      if (ex.state === 'running') TK.timer = setTimeout(function () { if (ST.tab === 'tasks' && !document.hidden) tasksView(); }, 5000);
+      if (ex.state === 'running' || ex.state === 'waiting') TK.timer = setTimeout(function () { if (ST.tab === 'tasks' && !document.hidden) tasksView(); }, 5000);
     }).catch(fail);
   }
 
@@ -803,8 +1023,8 @@
 
   /* ---------- 路由：#tab 或 #tab/参数（#learners/12 打开 12 号学员；#learners/f=disabled 先筛选） ---------- */
   var VIEWS = { overview: overview, learning: learningView, funnel: funnelView, compare: compareView, speed: speedView, survey: surveyStats, responses: responses,
-    learners: learnersView, feedback: feedbackView, content: contentView, books: booksView, announce: announceView, ai: aiView, tasks: tasksView, errors: errorsView, log: logView };
-  var ADMIN_TABS = ['responses', 'learners', 'feedback', 'errors', 'log'];
+    learners: learnersView, classes: classesView, feedback: feedbackView, content: contentView, books: booksView, announce: announceView, ai: aiView, tasks: tasksView, errors: errorsView, log: logView };
+  var ADMIN_TABS = ['responses', 'learners', 'classes', 'feedback', 'errors', 'log'];
   var GROUP_HOME = { data: 'overview', people: 'learners', content: 'content', ops: 'ai' };
   function route() {
     var h = (location.hash || '#overview').slice(1), cut = h.indexOf('/');
@@ -828,8 +1048,13 @@
       if (/^\d+$/.test(arg)) { if (!same) learnersView(); ST.drawn = true; openLearner(arg); return; }
       closeDrawer(false);
       if (same && LR.shown) return;  // the drawer was closed: the list is still there
+    } else if (tab === 'classes') {
+      if (/^\d+$/.test(arg)) { if (!same) classesView(); ST.drawn = true; openClass(arg); return; }
+      closeDrawer(false);
+      if (same && CL.shown) return;
     } else closeDrawer(false);
     if (/^\d+$/.test(arg) === false && tab !== 'learners') LR.shown = false;
+    if (tab !== 'classes') CL.shown = false;
     main.innerHTML = '<p class="muted">正在加载…</p>';
     ST.drawn = true;
     VIEWS[tab]();

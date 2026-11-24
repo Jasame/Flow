@@ -94,6 +94,7 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
     __import__('exam_service').schema(c)  # exam practice papers and results
     __import__('exam_sprint').schema(c)  # question-type practice results
     __import__('progress_service').schema(c)  # 这周进步: weekly goals by week, the Sunday mail's switch and link
+    __import__('content_v50').sync(c)  # additive edits of published materials (more questions, tags) reach the database
 
 
 # ---------- helpers ----------
@@ -298,7 +299,9 @@ def origin(p):
                 'url': p['source_url'] if str(p.get('source_url', '')).startswith('https://') else '', 'references': []}
     return {'kind': 'original', 'label': p.get('source') or 'Flow 编辑部原创', 'ai': p.get('ai', V5_AI if featured(p) else ''),
             'reviewed': p.get('reviewed'), 'url': p['source_url'] if str(p.get('source_url', '')).startswith('https://') else '',
-            'references': links(p.get('references'), 8)}
+            'references': links(p.get('references'), 8),
+            'quotes': [{k: qt[k] for k in ('text', 'author', 'work', 'year')} for qt in p.get('quotes') or []
+                       if isinstance(qt, dict) and all(qt.get(k) for k in ('text', 'author', 'work', 'year'))][:3]}
 
 
 def _pack_row(c, uid, pid):
@@ -972,7 +975,9 @@ def material(c, uid, pid, level=None, offline=False):
         hit = lookup(w)
         if hit and easiest_rank(w) > hard_rank and not hit['meaning'].startswith('num.'):  # forty, eighty: numbers are not "hard"
             hard[key] = {'meaning': hit['meaning'][:80], 'rank': hit['rank']}
-    qs = [{'prompt': q['prompt'], 'options': q['options']} for q in p.get('questions', [])]
+    qtypes = __import__('content_v50').QUESTION_TYPES
+    qs = [{'prompt': q['prompt'], 'options': q['options'], **({'type': qtypes[q['type']]} if q.get('type') in qtypes else {})}
+          for q in p.get('questions', [])]
     done = _done(c, uid).get(pid, set())
     states = graph_states(c, uid)
     meta = nodes_meta(c)
@@ -1148,25 +1153,27 @@ def rewrite(c, uid, data):
         if hit and hit['lemma'] in learning and hit['lemma'] not in studied:
             studied.append(hit['lemma'])
     studied = studied[:6]
-    system = ('你是一位耐心、专业的英语写作教练，学习者的水平是 ' + level + '（' + LEVELS[level]['label'] + '）。' + _level_voice(level) +
+    # The fixed part first (rules, the node list, the answer's shape), the learner's level after it: the same opening
+    # for every learner, which a model's prompt cache can serve cheaply (百炼's implicit cache needs 1024 tokens or more).
+    system = ('你是一位耐心、专业的英语写作教练。'
               '先肯定写得好的地方，再改错，最后给出更好的说法。不要编造学习者没写的内容。'
               '最重要的一条：corrected 只能是学习者自己这句话的最小改动，只改语法、用词、拼写和标点上的错误，保留原来的意思、结构和话题；'
               '绝不能换成另一句话，也不要为了套用本课的句型或话题去改写。没有错误时 verdict 写 natural，corrected 原样返回，changes 为空数组。'
               'versions 是同一个意思的更好说法：用学习者自己的意思和话题来写，不要换成课文的话题；本课的目标表达能自然用上时，可以在其中一个版本里用。'
-              '学习者没有用上本课的目标表达时，在 summary 里用中文提一句可以怎么用，不要替他改写原句。只输出 JSON。')
+              '学习者没有用上本课的目标表达时，在 summary 里用中文提一句可以怎么用，不要替他改写原句。只输出 JSON。'
+              '\n全部语法节点（id=名称）：' + _node_list(c) +
+              '\n\n输出 JSON，结构：{"verdict":"natural|minor|rewrite","summary":"一句话总评（中文，先说优点）",'
+              '"corrected":"学习者原句的最小改动：只改错误，保留原意和话题，不写新句子（若已正确则原样返回）",'
+              '"changes":[{"from":"原文片段","to":"改后片段","why":"为什么（简短）","node":"相关语法节点 id，没有就写 null"}],'
+              '"versions":[{"label":"更自然","text":"同一个意思的更自然说法","why":"和原句的差别"},{"label":"更正式","text":"...","why":"..."},{"label":"更简洁","text":"...","why":"..."}],'
+              '"used_well":["学习者用对了的语法节点 id"],'
+              '"keep":{"text":"最值得收藏的一个英文表达（短语）","meaning":"中文意思"}}。changes 最多 5 条，没有错误就给空数组。'
+              '\n\n学习者的水平是 ' + level + '（' + LEVELS[level]['label'] + '）。' + _level_voice(level))
     user = ('学习任务（供参考，用来看学习者有没有用上目标表达；不要据此改写学习者的句子）：' + task['prompt'] + ('\n参考句：' + task['model'] if task['model'] else '') +
             '\n材料主题：' + p['title'] + '\n本篇练习的语法节点：' + (', '.join(targets) or '无') +
-            '\n全部语法节点（id=名称）：' + _node_list(c) +
             '\n学习者写的英文：\n' + answer +
-            '\n\n输出 JSON，结构：{"verdict":"natural|minor|rewrite","summary":"一句话总评（中文，先说优点）",'
-            '"corrected":"学习者原句的最小改动：只改错误，保留原意和话题，不写新句子（若已正确则原样返回）",'
-            '"changes":[{"from":"原文片段","to":"改后片段","why":"为什么（简短）","node":"相关语法节点 id，没有就写 null"}],'
-            '"versions":[{"label":"更自然","text":"同一个意思的更自然说法","why":"和原句的差别"},{"label":"更正式","text":"...","why":"..."},{"label":"更简洁","text":"...","why":"..."}],'
-            '"used_well":["学习者用对了的语法节点 id"],'
-            '"keep":{"text":"最值得收藏的一个英文表达（短语）","meaning":"中文意思"}' +
-            (',"word_use":[{"word":"单词原形","ok":true,"note":"一句中文：用法对在哪里，或错在哪里、应该怎么用"}]' if studied else '') +
-            '}。changes 最多 5 条，没有错误就给空数组。' +
-            ('\n学习者正在背这些单词，并在上面的句子里用到了：' + '、'.join(studied) + '。请在 word_use 里逐个判断词义和搭配是否用对。' if studied else ''))
+            ('\n\n学习者正在背这些单词，并在上面的句子里用到了：' + '、'.join(studied) + '。请在 JSON 里再加一个字段 '
+             '"word_use":[{"word":"单词原形","ok":true,"note":"一句中文：用法对在哪里，或错在哪里、应该怎么用"}]，逐个判断词义和搭配是否用对。' if studied else ''))
 
     def convert(raw):
         if not isinstance(raw, dict):
@@ -1380,12 +1387,13 @@ def explain(c, uid, data):
     if cached:
         return {'result': json.loads(cached['result']), 'cached': True}, 200
     hints = [f"{k['node']}（{meta.get(k['node'], {}).get('title', '')}）：{k['quote']}" for k in p.get('knowledge', []) if k.get('quote') and k['quote'] in sentence]
-    system = ('你是英语老师，学习者水平 ' + level + '（' + LEVELS[level]['label'] + '）。' + _level_voice(level) + '讲解要短、准、能模仿。只输出 JSON。')
-    user = ('材料：' + p['title'] + '\n要讲解的句子：' + sentence + ('\n这句关联的语法节点：' + '；'.join(hints) if hints else '') +
-            '\n可用语法节点（id=名称）：' + _node_list(c) +
-            '\n\n输出 JSON：{"translation":"自然的中文翻译","structure":"一句话拆解句子主干和修饰成分",'
-            '"points":[{"text":"句中原样片段","note":"讲解（为什么这样用、语气、搭配）","node":"相关语法节点 id 或 null"}],'
-            '"pattern":{"frame":"可替换的句型框架，如 not A so much as B","example":"用这个框架造的一个新句子"}}。points 2–4 条。')
+    system = ('你是英语老师。讲解要短、准、能模仿。只输出 JSON。'
+              '\n可用语法节点（id=名称）：' + _node_list(c) +
+              '\n\n输出 JSON：{"translation":"自然的中文翻译","structure":"一句话拆解句子主干和修饰成分",'
+              '"points":[{"text":"句中原样片段","note":"讲解（为什么这样用、语气、搭配）","node":"相关语法节点 id 或 null"}],'
+              '"pattern":{"frame":"可替换的句型框架，如 not A so much as B","example":"用这个框架造的一个新句子"}}。points 2–4 条。'
+              '\n\n学习者水平 ' + level + '（' + LEVELS[level]['label'] + '）。' + _level_voice(level))
+    user = ('材料：' + p['title'] + '\n要讲解的句子：' + sentence + ('\n这句关联的语法节点：' + '；'.join(hints) if hints else ''))
 
     def convert(raw):
         if not isinstance(raw, dict):
@@ -1477,6 +1485,12 @@ def get(c, uid, path, q):
         if not uid:
             return {'error': '请先登录'}, 401
         return (__import__('skills_service') if path != '/api/next/import' else __import__('import_service')).get(c, uid, path, q)
+    if path in ('/api/next/class', '/api/next/class/teach'):
+        # 班级试用 (class_service.py): the class this learner is in; for its teacher, numbers for the whole class only
+        if not uid:
+            return {'error': '请先登录'}, 401
+        cs = __import__('class_service')
+        return cs.mine(c, uid) if path == '/api/next/class' else cs.teach(c, uid, one('id'))
     if path == '/api/next/guide':
         return __import__('user_guide').api(), 200
     if path == '/api/next/meta':
@@ -1591,6 +1605,9 @@ AI_PATHS = ('/api/next/assess/speaking', '/api/next/assess/writing', '/api/next/
 
 
 def post(c, uid, path, data):
+    if path in ('/api/next/class/find', '/api/next/class/join', '/api/next/class/leave'):
+        cs = __import__('class_service')  # 班级试用: join of one's own accord with an invite code, leave at any time
+        return cs.leave(c, uid) if path.endswith('/leave') else (cs.find if path.endswith('/find') else cs.join)(c, uid, data)
     if path == '/api/next/profile':
         return save_profile(c, uid, data)
     if path == '/api/next/habit':

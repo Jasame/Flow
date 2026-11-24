@@ -8,6 +8,7 @@
     "cefr": "A2",
     "theme": "travel",
     "genre": "dialogue",
+    "purposes": ["daily-life"],
     "body": "Ana: Excuse me. My suitcase hasn't come out, and the belt has stopped. Staff: I'm sorry to hear that. Which flight were you on? Ana: The one from Port Calder. It landed an hour ago. Staff: Can you describe your bag? Ana: Sure. It's a large green suitcase that has a yellow ribbon on the handle. Staff: Thank you. Have you checked the area for big items? Ana: Yes, I've looked everywhere. Staff: Then I'll fill in a report for you. Can I see your bag tag? Ana: Here it is. What happens now? Staff: Lost bags usually come on the next flight. When yours arrives, we'll bring it to your hotel. Ana: Great, but all my clothes are in it! Staff: Here's a small bag with a toothbrush and a T-shirt. Ana: Thanks. You've been really kind.",
     "questions": [
       {
@@ -126,6 +127,7 @@
     "cefr": "A2",
     "theme": "travel",
     "genre": "email",
+    "purposes": ["daily-life"],
     "body": "Hi Mia, I've just come back from Velora, and I have a tip for your trip. Before I left, I decided to learn ten words in the local language. It only took me two evenings. I learned hello, please, thank you, sorry and goodbye. I also learned yes, no, water, toilet and the words for 'how much'. These were the words that helped me most. People smiled when I used them, even when my accent was terrible. One old man who sold fruit at the market taught me two more words. I've never felt so welcome in a new place. My advice is simple. Write them on a small card and keep it in your pocket. You don't need to be perfect, because people really like it when you try. Have a great trip! Love, Jo",
     "questions": [
       {
@@ -244,6 +246,7 @@
     "cefr": "A2",
     "theme": "travel",
     "genre": "article",
+    "purposes": ["daily-life"],
     "body": "In the Ferro family, every trip ends the same way. On the last day, each person buys one postcard and sends it home. It sounds old-fashioned, and it is. The idea started with Grandma Lucia, who has kept every card in a big wooden box. Today the box is almost full. People write about a smell, a sound or a funny thing that happened in the street. Lucia's rules are easy: no weather, and always a real stamp. Often the cards arrive after the family is already home. That is part of the fun, because everyone reads them again at dinner. Her grandson Teo, who is twelve, has written cards from four countries. He likes the box more than any photo on his phone. 'Photos stay in your pocket,' he says. 'Postcards travel to you.'",
     "questions": [
       {
@@ -362,6 +365,7 @@
     "cefr": "A2",
     "theme": "travel",
     "genre": "guide",
+    "purposes": ["expository", "daily-life"],
     "body": "Many old temples are quiet places where local people come to sit and think. Visitors are usually welcome, but a few simple manners help. First, think about your clothes. If your shoulders or knees are bare, bring a light scarf to cover them. Next, watch the people around you. If they take off their shoes at the door, do the same. Inside, speak softly and turn your phone to silent. Walk slowly, and don't walk in front of someone who is sitting quietly. Some temples allow photos, and some don't. Look for a sign, or ask a guard before you take a picture. Don't touch old paintings or carvings, even if other visitors do. Finally, don't hurry. Sit for a few minutes and listen. Many travellers say that this quiet moment is the part of the trip they remember best.",
     "questions": [
       {

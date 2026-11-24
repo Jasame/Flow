@@ -101,7 +101,7 @@ class OpenWordbookTests(unittest.TestCase):
 
     def test_the_files_are_shipped(self):
         names = ('corpus_data/wordbooks-open.json', 'corpus_data/NGSL-LICENSE.txt', 'corpus_data/ECDICT-LICENSE.txt')
-        copied = re.findall(r'for name in ([^;]+); do', (ROOT / 'upgrade.sh').read_text())[0].split()
+        copied = re.findall(r'^FLOW_FILES=\(\n(.*?)^\)', (ROOT / 'upgrade.sh').read_text(), re.S | re.M)[0].split()
         self.assertEqual([n for n in names if n not in copied], [])
         release = ROOT.parent / 'tools' / 'release-files.txt'
         if not release.exists():

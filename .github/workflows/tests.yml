@@ -2,6 +2,11 @@ name: Tests
 # A pull request is tested once, by its pull_request run; main is tested again after each merge. Testing every
 # branch push as well ran each PR twice: with five PRs being tested that took all 20 jobs a free account runs at
 # once, so the next push had to wait (2026-11-24).
+#
+# The suites run in shares at the same time (tools/run_tests.py splits them): 2 website shares and 5 UI shares, about
+# 6 minutes each, instead of one 25-minute job each. main's protection rule asks for the checks "backend", "ui" and
+# "frontend": the "backend" and "ui" jobs below pass only when every one of their shares passed. One run takes 8
+# runners at once (of the 20 a free account has), so two pull requests can be tested side by side.
 on:
   push:
     branches: [main]
@@ -13,29 +18,55 @@ concurrency:
   group: tests-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  backend:
+  backend-share:
+    name: backend ${{ matrix.share }}/2
     runs-on: ubuntu-24.04
-    timeout-minutes: 45  # one process: 18–25 min on a hosted runner (2026-11-24, ~630 tests); #48 hit the old 25-min limit
+    timeout-minutes: 15  # a share took about 4 minutes (2026-11-24); the whole suite in one job took 18–25
+    strategy:
+      fail-fast: false
+      matrix:
+        share: [1, 2]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Playwright (prints the 操作指南 PDF with the installed Chrome)
+        run: python -m pip install --quiet playwright==1.49.1
+      - name: The files a release builds (next.js, next.css, the guide PDF and its manifest)
+        run: python tools/build_release.py --here
       - name: Archive policy checks
+        if: matrix.share == 1
         run: python -m unittest discover -s tests -v
       - name: Reproducible upgrade archive and extracted boot check
+        if: matrix.share == 1
         run: python tools/release.py check
-      - name: Website regression tests
-        working-directory: flow
-        run: python -m unittest discover -s tests -v
+      - name: Website regression tests (this share, 4 files at once)
+        run: python tools/run_tests.py --shard ${{ matrix.share }}/2 --jobs 4
       - name: Gateway regression tests
+        if: matrix.share == 2
         working-directory: flow-gateway
         run: python -m unittest discover -s tests -v
-  ui:
-    # tools/ui_test.py: every page on a phone, a phone held sideways, a tablet and a desktop, with touch, keyboard
-    # and mouse; uses the runner's Google Chrome through Playwright and a local server with a simulated AI.
+  backend:
+    # the check main's protection rule asks for; runs when a share failed too (a skipped check would count as passed)
+    needs: backend-share
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 45  # one process: 21–24 min on a hosted runner (2026-11-24, ~2000 checks); room for the class pages
+    timeout-minutes: 2
+    steps:
+      - name: Every website share passed
+        run: test "${{ needs.backend-share.result }}" = success
+  ui-share:
+    # tools/ui_test.py: every page on a phone, a phone held sideways, a tablet and a desktop, with touch, keyboard
+    # and mouse; uses the runner's Google Chrome through Playwright and a local server with a simulated AI. Each share
+    # runs some of its groups (tools/run_tests.py UI_SHARDS) against a server of its own.
+    name: ui ${{ matrix.share }}/5
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15  # a share took about 6 minutes (2026-11-24); all groups in one job took 21–24
+    strategy:
+      fail-fast: false
+      matrix:
+        share: [1, 2, 3, 4, 5]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -43,30 +74,43 @@ jobs:
           python-version: '3.11'
       - name: Playwright (driving the installed Chrome)
         run: python -m pip install --quiet playwright==1.49.1
-      - name: Built front end matches its source parts
-        run: python tools/build_front.py --check && python tools/build_dictionary.py --check
-      - name: Multi-device UI tests
-        run: python tools/ui_test.py /tmp/ui-out
+      - name: Front end built from its parts
+        run: python tools/build_front.py
+      - name: Multi-device UI tests (this share's groups)
+        run: python tools/run_tests.py --ui --shard ${{ matrix.share }}/5 --out /tmp/ui-out
       - name: Screenshots when something failed
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: ui-screenshots
+          name: ui-screenshots-${{ matrix.share }}
           path: /tmp/ui-out
           retention-days: 7
+  ui:
+    needs: ui-share
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Every UI share passed
+        run: test "${{ needs.ui-share.result }}" = success
   frontend:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       # r20: the classic site and its behavior tests are archived (archive/classic/); the learning site's behavior is
-      # covered by the ui job. Here: the built files match their parts, and every script the site serves parses.
+      # covered by the ui job. Here: the front end builds from its parts, every script the site serves parses, and the
+      # prebuilt dictionary matches its sources.
       - name: Frontend build and syntax checks
         run: |
-          python3 tools/build_front.py --check
+          python tools/build_front.py
+          python tools/build_dictionary.py --check
           for js in flow/public/next.js flow/public/sw.js flow/public/survey.js flow/public/about.js xmc-admin/admin.js; do
             node --check "$js"
           done

@@ -204,3 +204,9 @@ td.heat.none{color:var(--muted);background:none}
 .ann-preview{border:1px solid var(--line);border-left:3px solid var(--accent-bar);border-radius:6px;padding:10px 14px;background:var(--card);display:flex;justify-content:space-between;gap:12px;align-items:center}
 .logtail{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--bg2);padding:10px;border-radius:6px;max-height:220px;overflow:auto;margin:8px 0 0}
 table.cmp th.c{text-align:center}
+/* AI 用量、费用和质量 (2.2) */
+.form label.chk,.chk{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--text)}
+.card.flat{background:var(--bg2);border-color:transparent}
+.row.between{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card code{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--bg2);padding:1px 5px;border-radius:4px}
+table.cmp select{max-width:120px}

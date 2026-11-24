@@ -30,3 +30,10 @@ adc.json
 # Pre-generated narration is uploaded separately (tools/gen_audio.py)
 flow/audio/
 tools/report.json
+# Built from their sources when a commit is released (tools/build_release.py), never committed: next.js and next.css
+# (tools/build_front.py), the 操作指南 PDF and its manifest (tools/build_guide.py). Build them locally with
+# python3 tools/build_release.py --here.
+/flow/public/next.js
+/flow/public/next.css
+/flow/public/guide/flow-guide.pdf
+/flow/public/guide/manifest.json

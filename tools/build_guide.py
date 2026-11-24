@@ -7,6 +7,9 @@
 The PDF is printed by Chrome (Playwright), so Chinese text, the screenshots and the layout come out the way the site
 shows them. manifest.json records which guide.md the PDF was made from; tests/test_guide.py fails when guide.md
 changed and the PDF was not rebuilt, and the site only offers the PDF download while the two match.
+Neither file is committed: a release prints them from the commit's guide.md and screenshots (tools/build_release.py,
+which runs this), so pull requests that edit the guide no longer conflict over the PDF. To see it locally:
+python3 tools/build_release.py --here.
 """
 import datetime, hashlib, html, json, os, sys, tempfile
 from pathlib import Path

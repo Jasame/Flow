@@ -1,0 +1,156 @@
+[
+ {
+  "id": "v5-science-c1-chance-of-rain",
+  "title": "降水概率 40% 到底什么意思",
+  "title_en": "What a Forty Percent Chance of Rain Really Means",
+  "summary_zh": "“降水概率 40%”不是四成时间下雨，也不是四成地方下雨。读完你会明白这个数字从哪来、真正说明什么，并学会用 Whether… depends on… 讲清一个常被误解的概念。",
+  "level": "B2",
+  "cefr": "C1",
+  "theme": "science",
+  "genre": "explainer",
+  "purposes": [
+   "expository"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Few numbers are quoted as often, or misunderstood as widely, as the percentage at the top of a weather forecast. Ask a group of friends what a forty percent chance of rain means and you will probably hear at least three answers. Some will say it will rain for forty percent of the day; others will picture rain falling on forty percent of the city; a few will shrug and say it means the forecasters are not sure. None of these is quite right, although the last comes closest. In many weather services, the figure describes the likelihood that measurable rain will fall at any particular spot in the forecast area during the period in question. It says nothing about how long the rain will last or how heavy it will be. A day with that forecast could bring a ten-minute shower or an afternoon of steady rain, and the number alone will not tell you which. Behind the number lies an admission that the atmosphere cannot be predicted perfectly. Modern forecasts are often produced by running a computer model many times, each run starting from slightly different conditions, because tiny uncertainties in today's measurements can grow into large differences by tomorrow afternoon. When a substantial share of those runs bring rain to your area, the forecast reflects that. Seen this way, forty percent is not a hedge but an honest summary of what the evidence supports. The practical question is what to do with it. Whether a forty percent chance justifies carrying an umbrella depends less on meteorology than on how much you mind getting wet. A forecaster can tell you the odds; only you can decide whether the risk is worth taking.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the main purpose of the text?",
+    "options": [
+     "To argue that weather forecasts are usually wrong",
+     "To explain what a rain percentage means and why forecasts are given as probabilities",
+     "To compare the weather services of different countries",
+     "To give advice on choosing a good umbrella"
+    ],
+    "answer": 1,
+    "evidence": "In many weather services, the figure describes the likelihood that measurable rain will fall at any particular spot in the forecast area during the period in question."
+   },
+   {
+    "type": "inference",
+    "prompt": "Why does the writer say the friend who shrugs \"comes closest\"?",
+    "options": [
+     "Because forecasters never actually use numbers",
+     "Because rain usually falls on forty percent of a city",
+     "Because the percentage does express uncertainty about whether it will rain",
+     "Because forecasts are guesses with no evidence behind them"
+    ],
+    "answer": 2,
+    "evidence": "Behind the number lies an admission that the atmosphere cannot be predicted perfectly."
+   },
+   {
+    "type": "vocab",
+    "prompt": "In \"forty percent is not a hedge but an honest summary\", what does \"hedge\" mean?",
+    "options": [
+     "a row of bushes around a garden",
+     "a type of official weather warning",
+     "a mathematical formula used by forecasters",
+     "a vague answer given to avoid being wrong"
+    ],
+    "answer": 3,
+    "evidence": "forty percent is not a hedge but an honest summary of what the evidence supports"
+   },
+   {
+    "type": "detail",
+    "prompt": "Why are computer models run many times with slightly different starting conditions?",
+    "options": [
+     "Because small uncertainties in today's measurements can grow into large differences",
+     "Because the computers often stop working halfway",
+     "Because each run predicts how heavy the rain will be",
+     "Because forecasters need to know how long the rain will last"
+    ],
+    "answer": 0,
+    "evidence": "tiny uncertainties in today's measurements can grow into large differences by tomorrow afternoon"
+   }
+  ],
+  "dictation_index": 5,
+  "vocabulary": [
+   {
+    "term": "likelihood",
+    "meaning": "可能性",
+    "example": "There is little likelihood of snow this weekend."
+   },
+   {
+    "term": "measurable",
+    "meaning": "可测量的；明显的",
+    "example": "The new rule has had a measurable effect on waiting times."
+   },
+   {
+    "term": "admission",
+    "meaning": "承认；供认",
+    "example": "His silence was an admission that he had forgotten."
+   },
+   {
+    "term": "substantial",
+    "meaning": "相当大的；可观的",
+    "example": "A substantial part of the budget goes on rent."
+   },
+   {
+    "term": "justifies",
+    "meaning": "证明……有理；是……的正当理由",
+    "example": "A short delay hardly justifies a full refund."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "in question",
+    "meaning": "所说的；正在讨论的",
+    "note": "放在名词后面，指前面提到的那一个：the day in question、the person in question。"
+   },
+   {
+    "text": "comes closest",
+    "meaning": "最接近（正确答案）",
+    "note": "come close to 表示“接近”，最高级 come closest 常用于比较几种说法。"
+   },
+   {
+    "text": "Seen this way",
+    "meaning": "这样看来",
+    "note": "过去分词短语作状语，换一个角度重新解释时用：Seen this way, the mistake was useful."
+   },
+   {
+    "text": "depends less on meteorology than on",
+    "meaning": "与其说取决于气象学，不如说取决于……",
+    "note": "depends less on A than on B 是很地道的比较说法，适合说明文和议论文。"
+   },
+   {
+    "text": "the risk is worth taking",
+    "meaning": "这个险值得冒",
+    "note": "be worth taking 常和 risk、chance 搭配：It's a risk worth taking."
+   }
+  ],
+  "grammar": [
+   "clause-noun",
+   "nonfinite-clause",
+   "compare-pattern"
+  ],
+  "knowledge": [
+   {
+    "node": "clause-noun",
+    "quote": "Whether a forty percent chance justifies carrying an umbrella depends less on meteorology than on how much you mind getting wet.",
+    "explanation": "Whether 引导的主语从句作整句主语，谓语是单数 depends；句末 how much you mind getting wet 是介词 on 后的宾语从句。"
+   },
+   {
+    "node": "nonfinite-clause",
+    "quote": "Seen this way, forty percent is not a hedge but an honest summary of what the evidence supports.",
+    "explanation": "Seen this way 是过去分词短语作状语，逻辑主语是主句的 forty percent（“被这样看待”），表示换一个角度理解。"
+   },
+   {
+    "node": "compare-pattern",
+    "quote": "depends less on meteorology than on how much you mind getting wet",
+    "explanation": "less A than B 表示“与其说 A，不如说 B”；两边都是 on + 宾语，结构对称。"
+   }
+  ],
+  "speaking": "用 1 分钟说说：天气预报说“降水概率 40%”时，你会带伞吗？说说你怎么理解这个数字。用上 depends less on… than on…。",
+  "writing": "用 200–250 词写一段说明文，解释一个常被误解的数字或说法（如“保质期”“满分 100 分”）真正的意思。先列出常见误解，再用 Whether… depends on… 讲清楚。",
+  "task": {
+   "prompt": "仿照这句，用 Whether … depends less on … than on … 写一句话，谈一个你最近要做的决定。",
+   "model": "Whether a forty percent chance justifies carrying an umbrella depends less on meteorology than on how much you mind getting wet"
+  },
+  "tags": [
+   "日常科学",
+   "说明文"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

@@ -8,6 +8,7 @@
     "cefr": "B1",
     "theme": "travel",
     "genre": "story",
+    "purposes": ["story", "daily-life"],
     "body": "The night train to Morrow left at ten, and I had the top bunk in a tiny cabin for four. My cabin mates were an older couple and a student called Pia, who was already asleep with her headphones on. Climbing the narrow ladder, I hit my head on the ceiling twice. The couple laughed kindly and offered me a biscuit. For the first hour, I lay awake, listening to the wheels and watching dark villages flash past the window. Every so often the train slowed down at a small station, and yellow lights moved across the walls. I had expected to hate it, but the gentle rocking was strangely relaxing. At some point I fell asleep, and when I woke up, the sky was pink and we were passing a lake covered in mist. Pia was already making tea with hot water from a flask she had brought. Drinking it at the window, I felt as if I were in an old film. Now I'm back at my desk, and I wish I had a view like that on my way to work. A plane would have been quicker, but it could never have given me that sunrise.",
     "questions": [
       {
@@ -126,6 +127,7 @@
     "cefr": "B1",
     "theme": "travel",
     "genre": "dialogue",
+    "purposes": ["daily-life"],
     "body": "Agent: Excuse me, are you on the flight to Elmsford? It's overbooked today, and we're looking for two passengers to take a later flight. Would you be interested? Leo: Maybe, but it depends on when the next one leaves. Agent: Either the evening flight or the first one tomorrow morning has seats for you. Leo: If I took the evening flight, what time would I arrive? Agent: Just after eleven tonight. We'd also give you a meal voucher and a travel credit to use on a future trip. Leo: That sounds fair, but my sister is picking me up at the airport, and neither she nor her kids want to wait until midnight. Agent: I understand. If you chose the morning flight, we could book you a hotel near the airport as well. Leo: Hmm, give me a minute to call her. Agent: Of course, take your time. Leo: OK, I've just spoken to her. She says tonight is fine, as long as I bring snacks. Agent: Wonderful, so the evening flight? Leo: Yes, and could I have a window seat? Agent: Here's your new boarding pass. Thanks for helping us out. Leo: Not at all. Honestly, I could use a few quiet hours to finish my book.",
     "questions": [
       {
@@ -249,6 +251,7 @@
     "cefr": "B1",
     "theme": "travel",
     "genre": "guide",
+    "purposes": ["expository", "daily-life"],
     "body": "Street food is one of the best ways to taste a new place, and it rarely costs much. A few simple habits will help you enjoy it without worrying. First, follow the crowd. If a stall is busy with local families and office workers, the food is probably fresh, because it doesn't sit around for long. Second, choose dishes cooked in front of you. Watching the cook fry noodles or grill meat over a hot fire is half the fun, and you can see that everything is served hot. Third, look at the stall itself. A clean counter and a cook using tongs or gloves are good signs. If you can't find a place to wash your hands, you should carry a small bottle of hand gel. It's also smart to order small portions at first. That way you can try four or five different things instead of filling up on one big plate. Finally, don't be afraid to point and smile if you don't know the names of the dishes. Most cooks are proud of their food and happy to show you what's in it.",
     "questions": [
       {
@@ -372,6 +375,7 @@
     "cefr": "B1",
     "theme": "travel",
     "genre": "email",
+    "purposes": ["daily-life"],
     "body": "Hi Sam, you won't believe how my trip started. My train reached Kessing almost two hours late, and by then neither the buses nor the last tram was running. There was just one taxi outside the station, and a woman with a huge backpack got to it at the same moment as me. Holding the door open, she smiled and suggested sharing it. I wasn't sure at first, but her hotel turned out to be on the same street as mine, so it made sense. Her name was Noor, and she was travelling alone for three months. She chatted with the driver in his own language, which she had learned from videos, and he ended up giving us tips about the best breakfast places. When we arrived, we split the fare, so it cost each of us very little. I usually keep to myself on trips, but that ride reminded me that strangers can be the best part of travelling. Honestly, I wish I had half her confidence. I'll tell you more when I'm home. Take care, Ella",
     "questions": [
       {

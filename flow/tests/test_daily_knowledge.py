@@ -13,7 +13,7 @@ class DailyKnowledgeTests(unittest.TestCase):
   self.meta={'groundingChunks':[{'web':{'uri':'https://example.org/news','title':'Museum'}}], 'groundingSupports':[{'segment':{'text':'A museum has opened a new room.'},'groundingChunkIndices':[0]}], 'searchEntryPoint':{'renderedContent':'<style>.chip{color:blue}</style><a href="https://google.com/search?q=museum">Museum</a>'},'webSearchQueries':['museum today']}
  def tearDown(self):self.c.close();self.env.stop();self.p.stop();self.tmp.cleanup()
  def raw(self):
-  p=copy.deepcopy(all_materials()[0]);p['level']=['A2','B1','B2'][__import__('datetime').date.fromisoformat(daily.today()).toordinal()%3];p['theme']='campus';p['knowledge']=[{'node':'tense-present','quote':lab.sentences(p['body'])[0],'explanation':'说明该句的用法'}];return p
+  p=copy.deepcopy(all_materials()[0]);p['level']=daily.plan(daily.today())[0];p['theme']='campus';p['knowledge']=[{'node':'tense-present','quote':lab.sentences(p['body'])[0],'explanation':'说明该句的用法'}];return p
  def run_mock(self,raw=None,meta=None):
   calls=[(self.brief,'stop',self.meta if meta is None else meta),(json.dumps(raw or self.raw()),'stop')]
   with patch.object(daily,'request_model',side_effect=calls) as model:result=daily.run(self.c)
