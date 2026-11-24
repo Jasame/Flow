@@ -38,6 +38,11 @@ def review(pg):
     pg.wait_for_selector('#view .review', timeout=6000)
 
 
+def start(pg):
+    """选方向和目标 with 考试 and 四级 chosen, so the exams and the suggested level show."""
+    pg.click('[data-goal="exam"]'); pg.click('[data-exam="cet4"]'); pg.wait_for_timeout(300)
+
+
 def gaps(pg):
     """选词填空 with its first two gaps filled (rightly) from the options sheet."""
     for i in range(2):
@@ -90,7 +95,7 @@ def finish(pg):  # 用出来 done: the finish card with its three lines, in the 
 
 # name -> (page, extra step or None, signed in?[, learner]); the learner is 小林 (guide) unless named
 SHOTS = {
-    'welcome': ('#/welcome', None, False),
+    'welcome': ('#/welcome', start, False),
     'login': ('#/me', login, False),
     'today': ('#/', None, True),
     'week': ('#/', week, True),
