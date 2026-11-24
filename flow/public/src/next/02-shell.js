@@ -287,7 +287,7 @@
       const token = decodeURIComponent(location.hash.slice(7)); history.replaceState(null, '', location.pathname + location.search + '#/');
       setTimeout(() => resetByLink(token), 0);
     }
-    TTS.stop(); NAR.stop(); CLIP.stop(); MIC.stop(); MINI.hide(); hideSelbar(); view.ontouchstart = view.ontouchmove = view.ontouchend = null; document.body.classList.remove('reviewing'); bar.classList.remove('hide'); document.onselectionchange = null; document.onkeydown = null;
+    TTS.stop(); NAR.stop(); CLIP.stop(); MIC.stop(); MINI.hide(); hideSelbar(); swipeOff(); document.body.classList.remove('reviewing'); bar.classList.remove('hide'); document.onselectionchange = null; document.onkeydown = null;
     const [name, a, b] = parts();
     if (name === 'about') { location.replace('/about'); return; }  // 认识语流 is its own page (the guide links here)
     const last = S.lastRoute.split('/');
