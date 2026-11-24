@@ -11,6 +11,11 @@ gets the stored file. The 语流 and 内测版 share the audio folder, so they s
 Off unless FLOW_TTS_MODEL is set. Guests get stored files only. A signed-in learner may make new ones within
 FLOW_TTS_USER_CHARS characters a day, the site within FLOW_TTS_DAILY_CHARS; past either the page uses the browser voice.
 Overnight prewarm has its own FLOW_TTS_PREWARM_CHARS. Characters are what the gateway bills (¥1 per 10,000, list price).
+
+The folder must be writable by the Flow process. On 香港 both services run with systemd ProtectSystem=strict, so each
+needs ReadWritePaths=<audio>/tts (a drop-in); without it every new sentence was paid for and then lost (内测版,
+2026-11-24 23:40). Now the folder is checked before the gateway is called: not writable → StoreError, 503 code 'store'
+(the page switches to the browser voice), one log line, no charge.
 """
 import datetime, hashlib, json, os, re, tempfile, threading, time, urllib.error, urllib.request
 from pathlib import Path
@@ -20,6 +25,31 @@ MAX_CHARS = 1500
 NAME = re.compile(r'[0-9a-f]{32}\.mp3')
 LETTERS = re.compile(r'[A-Za-z]{2}')
 _LOCKS, _GUARD = {}, threading.Lock()
+_WARNED = set()
+
+
+class StoreError(Exception):
+    """The audio folder cannot be written (permissions, a read-only mount, a full disk)."""
+
+
+def _warn(what, err):
+    if what not in _WARNED:  # once per process: the log should say why, not repeat it for every tap
+        _WARNED.add(what)
+        print(f'tts: cannot write {what}: {err}', flush=True)
+
+
+def writable(voice):
+    """Whether the folder for this voice can take a new file; made if missing. False on a read-only mount too."""
+    d = directory() / voice
+    try:
+        d.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        _warn(d, e)
+        return False
+    if not os.access(d, os.W_OK):
+        _warn(d, 'no write access (systemd ReadWritePaths?)')
+        return False
+    return True
 
 
 def _int(name, default):
@@ -128,7 +158,8 @@ def _store(f, data):
 def ensure(c, who, text, voice, cap=None):
     """(url, made) for this sentence in this voice; makes it when it is not stored yet and `who` may.
     who: a learner's id, None for a guest (stored files only), -1 for overnight prewarm (cap = that night's budget left).
-    Raises LookupError (guest, nothing stored), PermissionError (a cap reached), ValueError (bad text), OSError (gateway)."""
+    Raises LookupError (guest, nothing stored), PermissionError (a cap reached), ValueError (bad text), OSError (gateway),
+    StoreError (the folder cannot be written: checked before the gateway is paid)."""
     text = norm(text)
     if voice not in VOICES:
         voice = 'us-f'
@@ -144,6 +175,8 @@ def ensure(c, who, text, voice, cap=None):
         raise PermissionError('cap')
     if who == -1 and cap is not None and n > cap:
         raise PermissionError('cap')
+    if not writable(voice):
+        raise StoreError('folder')
     with _lock(voice + name):
         if file(voice, name):  # made by another request while this one waited
             return url(voice, name), False
@@ -151,7 +184,11 @@ def ensure(c, who, text, voice, cap=None):
             data = _speak(text, voice)
         except (urllib.error.URLError, OSError, ValueError) as e:
             raise OSError(str(e)[:120])
-        _store(directory() / voice / name, data)
+        try:
+            _store(directory() / voice / name, data)
+        except OSError as e:
+            _warn(directory() / voice, e)
+            raise StoreError('store')
     _add(c, who, n, 1)
     if who != -1:
         _add(c, 0, n, 1)
@@ -171,6 +208,8 @@ def post(c, uid, data):
         return {'error': '登录后可以用 AI 朗读', 'code': 'guest'}, 404
     except PermissionError:
         return {'error': '今天的 AI 朗读用完了，先用浏览器的声音', 'code': 'cap'}, 429
+    except StoreError:
+        return {'error': 'AI 朗读暂时不能用，先用浏览器的声音', 'code': 'store'}, 503
     except OSError:
         return {'error': 'AI 朗读暂时没有生成出来', 'code': 'gateway'}, 502
     return {'url': u, 'made': made}, 200
@@ -197,8 +236,14 @@ def tick(db, now=None):
 def _night(db):
     import fcntl
     d = directory()
-    d.mkdir(parents=True, exist_ok=True)
-    with open(d / '.prewarm.lock', 'w') as lock:
+    try:
+        d.mkdir(parents=True, exist_ok=True)
+        lock = open(d / '.prewarm.lock', 'w')
+    except OSError as e:
+        _warn(d, e)
+        print('tts prewarm:', json.dumps({'status': 'store'}), flush=True)
+        return
+    with lock:
         try:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except OSError:
@@ -242,6 +287,8 @@ def prewarm(c, budget=None):
                 ensure(c, -1, t, voice, cap=left)
                 made += 1
                 left -= len(t)
+            except StoreError:
+                return {'status': 'store', 'made': made, 'stored': stored, 'failed': failed}
             except (OSError, PermissionError, ValueError):
                 failed += 1
                 if failed >= 5:
