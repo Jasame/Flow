@@ -15,6 +15,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1] / 'flow'
 PORT, STATE = int(sys.argv[1]), Path(sys.argv[2])
 STATE.mkdir(parents=True, exist_ok=True)
+# next.js and next.css are built from their parts, not kept in git (tools/build_release.py): built here for this run
+import subprocess  # noqa: E402
+subprocess.run([sys.executable, str(ROOT.parent / 'tools' / 'build_front.py')], check=True, stdout=subprocess.DEVNULL)
 tmp = tempfile.mkdtemp(prefix='flow-ui-')
 # Mail is on, as in production (sign-up, code login and a forgotten password then use emailed codes): messages are
 # written to <data>/outbox as files, never sent.
