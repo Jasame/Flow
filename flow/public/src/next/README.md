@@ -10,7 +10,8 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `01-audio-offline.js` | browser voice, Kokoro narration, word and sentence clips, mini player, offline review queue |
 | `02-shell.js` | sheets (focus, swipe), keyboard shortcuts, session and sign-in, router |
 | `10-welcome-today.js` | onboarding questions, today's page |
-| `11-progress.js` | 这周进步 (r27): the card at the top of 今日 and its details, 每周进度邮件 in 我的, the mail's unsubscribe page |
+| `11-progress.js` | 这周进步 (r27): a card that stands on its own (`weekCardSlot()` where a page wants it, `mountWeekCards(root)`; home data or its own request), its details, 每周进度邮件 in 我的, the mail's unsubscribe page |
+| `12-daily-line.js` | 今日好句 (listen, shadow, save) and the 今日热点 card at the top of 今日 |
 | `20-study.js` | `study()`: material header, step bar, step bookkeeping |
 | `21-study-listen.js` | 听: whole-text playback, shadowing, dictation |
 | `22-study-read.js` | 读: reader, read-along, new words, keyboard reading |
@@ -48,3 +49,4 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `85-phone.css` | phone layout from a 360 px audit (16px fields, card layouts, listen controls, one level of surface), the knowledge graph tiles and grammar-point pages |
 | `96-tidy.css` | phone tidy-up from a full-length audit: 存到手机 on the kicker line, 听's settings folded into one line, 读's tools in one row, the word-book picker folded, the 练习 list, 全部材料 filters |
 | `97-progress.css` | 这周进步: the four-number card, its details sheet, the three lines after a text, the unsubscribe page |
+| `98-daily-line.css` | 今日好句 and 今日热点 cards |

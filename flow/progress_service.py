@@ -350,7 +350,10 @@ def mailed_today(c, uid, now=None):
 # ---------- routes ----------
 
 def get(c, uid, path, q):
-    if path == '/api/next/week':
+    if path == '/api/next/week':  # brief=1: what the 这周进步 card shows (the numbers and the weekly goal), wherever it is
+        if (q.get('brief') or [''])[0] == '1':
+            prof = nx.profile(c, uid) or {}
+            return {**week(c, uid), 'habit': nx.habit(c, uid, prof.get('weekly_goal') or 4)}, 200
         return week(c, uid, detail=True), 200
     if path == '/api/next/text-summary':
         return text_summary(c, uid, (q.get('pack') or [''])[0][:80])

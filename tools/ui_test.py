@@ -1083,7 +1083,8 @@ def learner_run(pw):
         pg.wait_for_selector('#sheetCard [data-goal="3"]', timeout=4000)
         pg.click('#sheetCard [data-goal="3"]'); pg.wait_for_timeout(600); pg.evaluate(closing)
         goal = (pg.text_content('#weekCard .wk-tile.goal b') or '').strip()
-        check(dev, '每周目标: the goal set from 今日 shows on the 这周进步 card', goal.endswith('/3天') and not pg.query_selector('#habitBtn'), goal[:40])
+        chip = (pg.text_content('#habitBtn') or '').strip()
+        check(dev, '每周目标: the goal set from 今日 shows on the 这周进步 card and the chip by the greeting at once', goal.endswith('/3天') and '/3 天' in chip, (goal[:40], chip[:40]))
         # 分享卡片: after the questions, a learned expression becomes a picture with a QR code back to the site
         go(pg, f'#/m/{PID}/check'); pg.wait_for_selector('#pane .q', timeout=6000)
         for q in pg.query_selector_all('#pane .q'):
@@ -1304,7 +1305,7 @@ CARD_JS = r"""() => {
     values: tiles.map(t => t.querySelector('b').textContent.trim()),
     clipped: tiles.filter(t => t.scrollWidth > t.clientWidth + 1 || [...t.children].some(x => r(x).right > r(t).right + 1)).map(t => t.textContent.trim()),
     wrapped: tiles.filter(t => [...t.querySelectorAll('.tiny')].some(l => r(l).height > parseFloat(getComputedStyle(l).lineHeight) * 1.5)).map(t => t.textContent.trim()),
-    above: !plan || r(c).bottom <= r(plan).top + 1, inView: r(c).left >= 0 && r(c).right <= innerWidth,
+    below: !plan || r(c).top >= r(plan).bottom - 1, inView: r(c).left >= 0 && r(c).right <= innerWidth,
     goBottom: go ? Math.round(r(go).bottom) : null, H: innerHeight,
     wide: document.scrollingElement.scrollWidth - innerWidth,
     surface: bg !== getComputedStyle(document.body).backgroundColor,
@@ -1314,6 +1315,16 @@ CARD_JS = r"""() => {
   };
 }"""
 
+# 今日 from the top: 好句, 热点, the plan, 这周进步; nothing in the 好句 card cut off; its buttons big enough to tap
+TOP_JS = r"""() => {
+  const r = el => el.getBoundingClientRect();
+  const blocks = [['lineCard', '#lineCard'], ['news', '#view .news-card'], ['plan', '#view .today-plan'], ['week', '#weekCard']]
+    .map(([k, sel]) => [k, document.querySelector(sel)]).filter(([, el]) => el).sort((a, b) => r(a[1]).top - r(b[1]).top).map(([k]) => k);
+  const card = document.getElementById('lineCard');
+  return { order: blocks, wide: document.scrollingElement.scrollWidth - innerWidth,
+           clipped: card ? [...card.querySelectorAll('*')].filter(e => r(e).right > r(card).right + 1).map(e => e.className || e.tagName).slice(0, 3) : ['no card'],
+           small: card ? [...card.querySelectorAll('button')].filter(b => r(b).height < 40).map(b => b.textContent.trim()) : [] };
+}"""
 
 def progress_run(pw):
     dev = 'progress'
@@ -1335,7 +1346,10 @@ def progress_run(pw):
                 acc = pr['accuracy']['now']
                 want = [str(pr['remembered']['now']), str(pr['finished']['now']),
                         f"{acc['rate']}%" if acc['rate'] is not None else (f"{acc['right']}/{acc['total']}" if acc['total'] else '—'), f"{hb['done']}/{hb['goal']}天"]
-                check(dev, f'{tag}: 这周进步 sits above the plan, in place of the week chip', card and card['above'] and not card['chip'] and card['inView'], card)
+                check(dev, f'{tag}: 这周进步 sits under the plan, the week chip by the greeting', card and card['below'] and card['chip'] and card['inView'], card)
+                top = pg.evaluate(TOP_JS)
+                check(dev, f'{tag}: 今日 runs 好句, 热点, the plan, 这周进步 from the top, nothing cut off or wider than the screen',
+                      top['order'] == ['lineCard', 'news', 'plan', 'week'] and not top['clipped'] and top['wide'] <= 0 and (not touch or top['small'] == []), top)
                 check(dev, f'{tag}: its four numbers are the learner\'s own (as the server counts them)', card and card['values'] == want, (card and card['values'], want))
                 check(dev, f'{tag}: four numbers in one row, nothing cut off or wrapped', card and card['tiles'] == 4 and card['oneRow'] and not card['clipped'] and not card['wrapped'],
                       card and (card['oneRow'], card['clipped'], card['wrapped']))
@@ -1377,6 +1391,35 @@ def progress_run(pw):
                     check(dev, f'{tag}: 我的 → 每周进度邮件 says how it stands and opens its switch', '每周进度邮件' in row and '绑定邮箱' in row and title == '每周进度邮件', (row, title))
                 check(dev, f'{tag}: no page errors', not errors, errors[:3])
                 ctx.close()
+        ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
+        ctx.add_init_script(FAKE_TTS)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['guide']['token'], 'url': BASE}])
+        pg = ctx.new_page(); pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg); pg.wait_for_selector('#lineCard', timeout=8000)
+        line = pg.evaluate("fetch('/api/next/home').then(r => r.json()).then(h => h.line)")
+        pg.click('#lcSay'); pg.wait_for_timeout(300)
+        said = pg.evaluate('window.__said || []')
+        pg.click('#lcShadow'); pg.wait_for_timeout(200)
+        panel = pg.evaluate("() => { const p = document.getElementById('lcPanel'); return [p.hidden, !!p.querySelector('#lsRec'), document.getElementById('lsBack').disabled, document.getElementById('lcShadow').getAttribute('aria-expanded')]; }")
+        pg.click('#lcShadow'); pg.wait_for_timeout(150)
+        closed = pg.evaluate("document.getElementById('lcPanel').hidden")
+        check(dev, '好句: 听一遍 says the line (verse without its line marks), 跟读 opens a recorder and closes again',
+              (said[-1:] == [line['say']] or line['kind'] == 'text') and panel == [False, True, True, 'true'] and closed, (said[-1:], line['say'], panel, closed))
+        pg.click('#lcKeep'); pg.wait_for_timeout(700)
+        cards = pg.evaluate("fetch('/api/next/cards?q=&page=1&f=').then(r => r.json())")
+        kept = line['say'] if line['kind'] == 'quote' else line['expression']
+        check(dev, '好句: 收藏 puts it into the word book, for review', any(x.get('text') == kept for x in cards.get('items', [])), kept)
+        # a sentence from a 语流 text: its expression marked, its meaning, where it comes from, a link to the text
+        m = pg.evaluate(f"fetch('/api/next/material?id={PID}').then(r => r.json())")
+        ex = m['expressions'][0]; k = next(i for i, x in enumerate(m['sentences']) if ex['text'].lower() in x.lower())
+        fake = {'kind': 'text', 'id': f'm:{PID}:{k}', 'label': '语流文章', 'en': m['sentences'][k], 'say': m['sentences'][k], 'zh': f"「{ex['text']}」：{ex['meaning']}",
+                'note': ex.get('note', ''), 'expression': ex['text'], 'meaning': ex['meaning'], 'source': f"出自《{m['title']}》 · B2", 'pack': PID, 'i': k,
+                'title': m['title'], 'level': 'B2', 'audio': 0, 'href': f'#/m/{PID}/read', 'day': '2026-11-25'}
+        pg.route('**/api/next/home*', lambda route: (lambda r: route.fulfill(response=r, json={**r.json(), 'line': fake}))(route.fetch()))
+        pg.evaluate("() => { localStorage.removeItem('flow-snap'); }"); pg.reload(wait_until='networkidle'); settle(pg); pg.wait_for_selector('#lineCard .lc-en b', timeout=8000)
+        shown = pg.evaluate("() => { const c = document.getElementById('lineCard'); return [c.querySelector('.lc-en b').textContent, c.querySelector('.lc-src a').getAttribute('href'), c.querySelector('.pill').textContent]; }")
+        check(dev, '好句 from a 语流 text: its expression marked, a link to the text, labelled as 语流文章', shown == [ex['text'], f'#/m/{PID}/read', '语流文章'], shown)
+        pg.screenshot(path=str(OUT / 'progress-line-text.png'))
+        ctx.close()
         # the link in the mail opens without signing in, asks before it turns anything off, and says when a link is wrong
         ctx = browser.new_context(viewport={'width': 360, 'height': 780}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True)
         pg = ctx.new_page(); pg.goto(BASE + '/#/weekly-off/not-a-real-link-0123456789', wait_until='networkidle'); settle(pg)
