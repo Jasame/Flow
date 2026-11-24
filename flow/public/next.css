@@ -1306,3 +1306,66 @@ details.preread>summary .tiny{flex-basis:100%}
 .beta-bar b{background:var(--amber-fill,#9a5a0c);color:var(--on-amber,#fff);border-radius:99px;padding:0 8px;font-size:12px}
 .beta-bar a{color:var(--green-ink);font-weight:600}
 html[data-channel=beta] .auth::before{content:'这是内测版：账号和正式版 flowlang.cn 分开，第一次来请先注册。';display:block;padding:8px 12px;border-radius:10px;background:var(--amber-soft);color:var(--ink);font-size:13px;line-height:1.5}
+/* Phone tidy-up (2026-11-24, from a full-length audit of the main pages at 360 and 390 px): less stacked above the
+   content, one line where three rows of controls were, long lists folded. */
+
+/* study header: 存到手机 at the right of the kicker line; on a phone 听 drops the English title (读 keeps it) */
+.sh-top{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.sh-top .kicker{min-width:0}
+.sh-top .offk{flex:none;white-space:nowrap;padding:0;margin:0}
+@media (max-width:759px){
+  .study-head{gap:4px}
+  .study-head[data-at=listen] .title-en{display:none}
+}
+
+/* 听: one line for 语速 · 复读 · 停顿, the choices folded under it */
+.playset{margin:-6px 0 10px}
+.playset>summary{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:40px;cursor:pointer;list-style:none}
+.playset>summary::-webkit-details-marker{display:none}
+.playset>summary .link{flex:none;font-weight:600}
+.playset>summary .link::after{content:" ▾"}
+.playset[open]>summary .link::after{content:" ▴"}
+.playset .loopbar{margin-top:2px;padding:10px 12px;background:var(--sunk);border-radius:12px}
+.playset .loopbar .chip[aria-pressed=true]{background:var(--green-soft);border-color:var(--green);color:var(--green-ink);font-weight:600}
+.playset .voices{display:flex;flex-wrap:wrap;gap:6px}
+.listen-tip{margin:4px 0 10px}
+
+/* 读: 中文导读、改写 and 伴读 in one row; the colour key and the tap hints in one line under it */
+.read-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:6px}
+.read-tools #readAlong{margin-left:auto}
+.read-tools .chip[aria-expanded=true]{background:var(--green-soft);border-color:var(--green);color:var(--green-ink)}
+.guide-zh{margin:0 0 10px;padding:10px 12px;background:var(--sunk);border-radius:12px;line-height:1.7}
+.read-hint{display:flex;flex-wrap:wrap;align-items:center;gap:2px 12px;margin:0 0 10px}
+.read-hint .legend{margin:0}
+
+/* 背词计划: the chosen book on top (换一本 opens the whole list); 保存 stays in reach above the tab bar */
+.booksel{padding:12px 14px;gap:6px}
+.booksel .basis{margin:0}
+.booksel #moreBooks{flex:none;font-weight:600}
+#allBooks{display:grid;gap:14px}
+#allBooks[hidden]{display:none}
+@media (max-width:759px){
+  .savebar{position:sticky;bottom:calc(72px + env(safe-area-inset-bottom));z-index:5;background:var(--bg);padding:10px 0;box-shadow:0 -1px 0 var(--line)}
+}
+
+/* 练习: one-line rows with an icon, grouped like 我的 (two columns on a wide screen); the grammar map stays a wide card */
+.px-list{display:grid;gap:2px;background:var(--paper);border-radius:var(--r);padding:6px}
+.px-row{display:grid;grid-template-columns:36px minmax(0,1fr) 14px;gap:12px;align-items:center;min-height:56px;padding:8px 10px;border-radius:12px;text-decoration:none;color:inherit}
+.px-row:hover{background:var(--sunk)}
+.px-row:active{background:var(--sunk)}
+.px-row .pico{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:var(--green-soft);color:var(--green-ink)}
+.px-row .t{display:grid;gap:2px;min-width:0}
+.px-row .t b{font-size:15.5px;display:flex;align-items:center;gap:6px;min-width:0}
+.px-row .t .tiny{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.px-row .go{color:var(--muted);font-size:20px}
+.pgroup .ptile.pmap{margin-bottom:2px}
+@media (min-width:760px){.px-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* 全部材料: on a phone 范围 and 难度 side by side, 话题 on its own row, so no choice is cut off at 360 px */
+@media (max-width:759px){
+  .filters{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .filters #ft{grid-column:1/-1}
+}
+
+/* 复习: 认识 / 模糊 / 不认识 centred in their buttons (they were set at the top of a 58 px grid) */
+.choice button,.rate button{align-content:center;justify-items:center}

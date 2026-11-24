@@ -254,6 +254,15 @@ def run_device(pw, dev, opts):
     go(pg, f'#/m/{PID}/listen')
     lp = pg.evaluate("() => { const p = document.getElementById('playAll').getBoundingClientRect(), w = document.querySelector('#view .preread'); return [Math.round(p.top), w ? Math.round(w.getBoundingClientRect().top) : null, w ? w.open : null, innerHeight]; }")
     check(dev, 'listen: 播放全文 comes first, on the first screen; the words to know are folded under it', lp[0] < lp[3] and (lp[1] is None or (lp[1] > lp[0] and lp[2] is False)), lp)
+    ps = pg.evaluate("""() => { const d = document.querySelector('#view .playset'), l = document.querySelector('#view .line[data-i="0"]');
+      return {open: d ? d.open : null, sum: (document.getElementById('psum') || {}).textContent, first: l ? Math.round(l.getBoundingClientRect().top) : null, h: innerHeight}; }""")
+    check(dev, 'listen: 语速、复读 and 停顿 fold into one line that says how it will play', ps['open'] is False and '每句' in (ps['sum'] or ''), ps)
+    if dev == 'phone':
+        check(dev, 'listen: the first sentence is on the first screen of a phone', ps['first'] is not None and ps['first'] < ps['h'], ps)
+    pg.click('#view .playset > summary'); pg.click('#view [data-rate="1.25"]')
+    s125 = pg.text_content('#psum') or ''
+    pg.click('#view [data-rate="1"]'); pg.click('#view .playset > summary')
+    check(dev, 'listen: 播放设置 opens the choices, and the line follows them', '1.25×' in s125 and pg.evaluate("() => !document.querySelector('#view .playset').open"), s125)
     pg.click('#playAll')
     pg.wait_for_timeout(250)
     mini = pg.evaluate("() => { const m = document.querySelector('.mini-player'); if (!m || m.hidden) return null; const r = m.getBoundingClientRect(); return [r.top, r.bottom, innerHeight]; }")
@@ -387,10 +396,27 @@ def run_device(pw, dev, opts):
         return [Math.round(t.top), Math.round(t.bottom), Math.round(tabTop)]; }""")
     check(dev, 'dialogue answer box is visible above the tabs', vis[0] >= 0 and vis[1] <= vis[2] + 1, vis)
 
+    # ---- 读: 中文导读、改写 and 伴读 in one row, the key and hints in one line, the text on a phone's first screen
+    go(pg, f'#/m/{PID}/read')
+    rd = pg.evaluate("""() => { const r = document.getElementById('reader'), t = document.querySelector('#view .read-tools');
+      return {tools: t ? [...t.querySelectorAll('button')].map(b => b.id) : [], top: r ? Math.round(r.getBoundingClientRect().top) : null, h: innerHeight}; }""")
+    check(dev, 'read: the tools sit in one row above the text', 'readAlong' in rd['tools'], rd)
+    if dev == 'phone':
+        check(dev, 'read: the text starts on the first screen of a phone', rd['top'] is not None and rd['top'] < rd['h'] * 0.6, rd)
+    if pg.query_selector('#zhGuide'):
+        pg.click('#zhGuide'); opened = pg.is_visible('#zhText'); pg.click('#zhGuide')
+        check(dev, 'read: 中文导读 opens under the row and closes again', opened and not pg.is_visible('#zhText'))
+
     # ---- 练习: the grammar map is the wide first card of the 语法 group
     go(pg, '#/practice')
     pm = pg.evaluate("() => { const m = document.querySelector('#view .ptile.pmap'); return m ? [m.getAttribute('href'), m.closest('.pgroup').querySelector('h2').textContent, Math.round(m.getBoundingClientRect().width / m.parentElement.getBoundingClientRect().width * 100), Math.round(m.getBoundingClientRect().top), innerHeight] : null; }")
     check(dev, 'practice: the grammar map is the wide card of the 语法 group, on the first screen', pm and pm[0] == '#/graph' and pm[1] == '语法' and pm[2] >= 98 and pm[3] < pm[4], pm)
+    pr = pg.evaluate("""() => ({rows: document.querySelectorAll('#view .px-list .px-row').length, tiles: document.querySelectorAll('#view .ptile:not(.pmap)').length,
+      noicon: [...document.querySelectorAll('#view .px-row .pico svg')].filter(x => !x.children.length).length,
+      wide: [...document.querySelectorAll('#view .px-row')].filter(e => e.getBoundingClientRect().right > innerWidth + 1).length,
+      tall: [...document.querySelectorAll('#view .px-row .t .tiny')].filter(e => e.getBoundingClientRect().height > 24).length})""")
+    check(dev, '练习: one row per practice, each with an icon and a one-line note, inside the screen',
+          pr['rows'] >= 15 and pr['tiles'] == 0 and pr['noicon'] == 0 and pr['wide'] == 0 and pr['tall'] == 0, pr)
     # r20: a tap on a counted entry point sends its key only (the console compares releases with these counts)
     with pg.expect_request(lambda r: r.url.endswith('/api/next/tap'), timeout=4000) as tap:
         pg.click('#view .ptile.pmap')
@@ -580,6 +606,10 @@ def run_device(pw, dev, opts):
           pick['groups'] == ['按词频', '中学英语', '大学英语', '英语专业', '出国留学', '学术与职场', '自己的词表'], pick['groups'])
     check(dev, 'plan: 专四 and 专八 from the data file, with a word count and a 怎么来的 note, inside the width',
           pick['tem'] == ['tem4', 'tem8'] and pick['count'] == '30 词' and pick['basis'] and not pick['wide'], pick)
+    fold = pg.evaluate("() => ({hidden: document.getElementById('allBooks').hidden, now: document.getElementById('bookNow').textContent, imp: !!document.getElementById('impBook') && document.getElementById('impBook').offsetParent !== null})")
+    check(dev, 'plan: the book list is folded; the chosen book is named on top, the word-list import stays in view', fold['hidden'] and '已选《' in fold['now'] and fold['imp'], fold)
+    pg.click('#moreBooks')
+    check(dev, 'plan: 换一本 opens every book', pg.is_visible('[data-book=tem4]') and pg.text_content('#moreBooks') == '收起')
     pg.click('[data-book=tem4]')
     sel = pg.evaluate("""() => ({pressed: [...document.querySelectorAll('#view [data-book][aria-pressed=true]')].map(b => b.dataset.book),
       tag: getComputedStyle(document.querySelector('#view [data-book=tem4] .bk-on')).display, now: document.getElementById('bookNow').textContent})""")
@@ -966,7 +996,8 @@ def ux_run(pw):
         ctx.add_init_script(FAKE_TTS)
         pg = ctx.new_page(); pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
         # 复读: 3 遍, no pause: one tap on a sentence says it three times
-        go(pg, f'#/m/{PID}/listen'); pg.wait_for_selector('[data-rep="3"]', timeout=5000)
+        go(pg, f'#/m/{PID}/listen'); pg.wait_for_selector('#view .playset', timeout=5000)
+        pg.evaluate("document.querySelector('#view .playset').open = true"); pg.wait_for_timeout(100)  # 播放设置: remembered open after the reload below
         pg.click('[data-rep="3"]'); pg.evaluate('window.__said = []')
         pg.click('[data-say="0"]'); pg.wait_for_timeout(30)
         mini = pg.is_visible('.mini-player')  # while it repeats (it goes away when the last time ends)
