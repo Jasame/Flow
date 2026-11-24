@@ -100,13 +100,13 @@ def endpoint_ok(url):
  return url.startswith('https://') or bool(LOOPBACK.match(url))
 
 
-def text_provider():
+def text_provider(model=None):
  """Where text-only requests go first, or None (then everything goes to the main service).
  FLOW_TEXT_AI_MODEL alone: the same gateway and key as the main service (FLOW_AI_URL / FLOW_AI_KEY), another model
  name, e.g. flow-text on api.xmc.hk, whose console points it at DeepSeek, Qwen or Gemini (tools/ai-gateway/README.md).
  With FLOW_TEXT_AI_URL too: a separate service, which then needs its own FLOW_TEXT_AI_KEY; the main key is never
- sent to another address."""
- url,key,model=os.getenv('FLOW_TEXT_AI_URL',''),os.getenv('FLOW_TEXT_AI_KEY',''),os.getenv('FLOW_TEXT_AI_MODEL','')
+ sent to another address. model: another model name on that same service (a task's route, ai_routes.model_name)."""
+ url,key,model=os.getenv('FLOW_TEXT_AI_URL',''),os.getenv('FLOW_TEXT_AI_KEY',''),model or os.getenv('FLOW_TEXT_AI_MODEL','')
  if model and not url and not vertex_enabled():
   url,key=os.getenv('FLOW_AI_URL',''),os.getenv('FLOW_AI_KEY','')
  return (url,key,model) if endpoint_ok(url) and key and model else None
@@ -122,21 +122,31 @@ def request_model(messages,audio=None,grounding=False):
  requests only to the main one, which can hear and search. When the text service fails for any reason but a refused
  request (down, model disabled in the gateway's console, key rejected, rate-limited), the main service answers; with
  only one service, a transient failure is retried once after a short pause (not after a rate limit), so a single
- hiccup does not cost the learner their answer."""
+ hiccup does not cost the learner their answer.
+ Which text model: the calling task's route (ai_routes: a gateway model name; FLOW_TEXT_AI_MODEL by default, a 百炼
+ line such as flow-qwen-plus when the console says so). On a 百炼 line even a refused request goes to the main service
+ once, which is another vendor. Every attempt is written to ai_calls (tokens, the model that answered, failures and
+ fallbacks) for the console."""
+ import ai_routes
+ text_model=ai_routes.route()
  order=[]
- if not audio and not grounding and text_provider():order.append('text')
+ if not audio and not grounding and text_provider(text_model):order.append('text')
  order.append('main')
  if len(order)==1:order.append('main')  # one retry on the only service
+ ai_routes.CTX.route=text_model if order[0]=='text' else ''
  last=None
  for i,which in enumerate(order):
-  started=time.monotonic()
+  started=time.monotonic();INFO.__dict__.clear()
+  model=text_model if which=='text' else os.getenv('FLOW_AI_MODEL','')
   try:
-   out=_request_text_service(messages) if which=='text' else _request_main(messages,audio,grounding)
+   out=_request_text_service(messages,text_model,ai_routes.extra_body(text_model)) if which=='text' else _request_main(messages,audio,grounding)
    LAST['provider']=which
+   ai_routes.record(which,model,started,messages,out[0],dict(INFO.__dict__),fallback=i>0)
    return out
   except Exception as exc:
    last=exc
-   if which=='text' and not refused(exc) and time.monotonic()-started<=60:continue  # the main service takes over
+   ai_routes.record(which,model,started,messages,None,dict(INFO.__dict__),exc,fallback=i>0)
+   if which=='text' and time.monotonic()-started<=60 and (not refused(exc) or (ai_routes.is_bailian(text_model) and getattr(exc,'code',None)!=413)):continue  # the main service takes over
    if i==len(order)-1 or not transient(exc) or time.monotonic()-started>60:raise
    if order[i+1]==which:
     if isinstance(exc,urllib.error.HTTPError) and exc.code==429:raise  # rate-limited: asking the same service again at once will not help
@@ -144,9 +154,12 @@ def request_model(messages,audio=None,grounding=False):
  raise last
 
 
-def _request_text_service(messages):
- url,key,model=text_provider() or ('','','')
- return _openai_compatible(url,key,model,messages,None,False)
+INFO=__import__('threading').local()  # the last call's usage and answering model (ai_routes.record)
+
+
+def _request_text_service(messages,model=None,extra=None):
+ url,key,model=text_provider(model) or ('','','')
+ return _openai_compatible(url,key,model,messages,None,False,extra)
 
 
 def _request_main(messages,audio=None,grounding=False):
@@ -161,10 +174,10 @@ def _request_main(messages,audio=None,grounding=False):
  return _openai_compatible(endpoint,key,model,messages,audio,grounding)
 
 
-def _openai_compatible(endpoint,key,model,messages,audio,grounding):
+def _openai_compatible(endpoint,key,model,messages,audio,grounding,extra=None):
  from vertex_auth import AIConfigurationError
  if not endpoint_ok(endpoint) or not model or not key:raise AIConfigurationError('AI configuration incomplete')
- payload={'model':model,'messages':messages,'max_tokens':4096}
+ payload={**(extra or {}),'model':model,'messages':messages,'max_tokens':4096}
  if ai_stream.active():payload['stream']=True
  if grounding:payload['flow_grounding']=True
  if audio:
@@ -179,6 +192,8 @@ def _openai_compatible(endpoint,key,model,messages,audio,grounding):
     if time.monotonic()-started>100:raise TimeoutError('AI stream deadline exceeded')
     if frame=='[DONE]':break
     chunk=json.loads(frame)
+    if chunk.get('model'):INFO.served=str(chunk['model'])[:80]
+    if __import__('ai_routes').usage_of(chunk):INFO.usage=__import__('ai_routes').usage_of(chunk)
     if chunk.get('error'):
      status=chunk.get('status',502)
      raise urllib.error.HTTPError(endpoint,status if type(status)==int and status in (400,401,403,413,429,502,503,504) else 502,'Model stream failed',None,None)
@@ -197,6 +212,8 @@ def _openai_compatible(endpoint,key,model,messages,audio,grounding):
    if reason!='stop':raise ValueError('Model stream not complete')
    return (reply,reason,metadata) if grounding else (reply,reason)
   d=json.load(r)
+ import ai_routes
+ INFO.usage=ai_routes.usage_of(d);INFO.served=str(d.get('model') or '')[:80]
  choice=d['choices'][0];reply=choice['message']['content'];reason=choice.get('finish_reason','stop')
  if not isinstance(reply,str) or not reply.strip():raise ValueError('Empty model reply')
  if grounding:return reply[:20000],reason,d.get('flow_grounding',{})
@@ -230,7 +247,7 @@ def chat(c,uid,data):
  lease=ai_jobs.reserve(c,'chat_turns',uid,rid);c.commit()
  try:
   if enabled:
-   with ai_jobs.renewing(c,'chat_turns',uid,rid,lease):reply,reason=request_model(context(c,uid,topic,question))
+   with ai_jobs.renewing(c,'chat_turns',uid,rid,lease),__import__('ai_routes').task('chat'):reply,reason=request_model(context(c,uid,topic,question))
   else:reply='当前未接入 AI。以下是本知识点的固定学习提示：\n\n'+topic['lesson']+'\n\n**例句**\n'+topic['example']+'\n\n'+topic['explanation'];reason='lesson'
   changed=c.execute("UPDATE chat_turns SET reply=?,finish_reason=?,status='complete',error='',updated=? WHERE user_id=? AND request_id=? AND lease=?",(reply,reason,time.time(),uid,rid,lease)).rowcount;c.commit()
   if not changed:return {'error':'旧请求已被新请求接替，请刷新记录。'},409

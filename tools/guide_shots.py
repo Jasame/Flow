@@ -4,7 +4,7 @@
     python3 tools/guide_shots.py [name …]        # needs: pip install playwright; all shots when no name is given
 
 Each ![caption](shot:name) in flow/public/guide/guide.md needs an entry in SHOTS below; the pictures are written to
-flow/public/guide/<name>.jpg at phone size. Then run tools/build_guide.py to make the PDF. Nothing here touches production.
+flow/public/guide/<name>.jpg at phone size. Commit the pictures; the PDF is printed when the commit is released (tools/build_release.py). Nothing here touches production.
 """
 import json, socket, subprocess, sys, tempfile, time, atexit
 from pathlib import Path

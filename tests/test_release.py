@@ -8,6 +8,9 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('release', ROOT / 'tools/release.py')
 release = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(release)
+spec = importlib.util.spec_from_file_location('build_release', ROOT / 'tools/build_release.py')
+build_release = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(build_release)
 
 
 class ReleaseTests(unittest.TestCase):
@@ -80,9 +83,21 @@ class ReleaseListTests(unittest.TestCase):
                    and not any(n == k or (k.endswith('/') and n.startswith(k)) for k in NOT_SHIPPED)]
         self.assertEqual(missing, [], 'add these to tools/release-files.txt, or to NOT_SHIPPED with the reason')
 
-    def test_every_listed_file_is_in_git(self):
-        self.assertEqual(sorted(set(self.listed) - set(self.files)), [])
+    def test_every_listed_file_is_in_git_except_the_ones_a_release_builds(self):
+        # next.js, next.css and the guide PDF are built when a commit is released (tools/build_release.py), so git has
+        # every other listed file, and none of these
+        self.assertEqual(sorted(set(self.listed) - set(self.files)), sorted(build_release.GENERATED))
         self.assertFalse(any(n.startswith(k) for n in self.listed for k in NOT_SHIPPED if k.endswith('/')))
+
+    def test_the_files_a_release_builds_are_never_committed(self):
+        import subprocess
+        self.assertEqual([n for n in build_release.GENERATED if n in self.files], [])
+        ignored = subprocess.run(['git', 'check-ignore', '--no-index', *build_release.GENERATED], cwd=ROOT, capture_output=True, text=True).stdout.split()
+        self.assertEqual(sorted(ignored), sorted(build_release.GENERATED), 'list them in .gitignore')
+
+    def test_the_release_list_is_sorted_one_file_per_line(self):
+        # two pull requests that each add a file then touch different lines, and git merges them on its own
+        self.assertEqual(self.listed, sorted(set(self.listed)), 'keep tools/release-files.txt sorted, one path per line')
 
     def test_the_console_files_are_the_ones_the_deploy_installs(self):
         pull = (ROOT / 'tools/flow-pull.sh').read_text()
