@@ -770,7 +770,8 @@ def home(c, uid, level=None, themes=None):
     line = __import__('daily_line').today(c, uid, level, skip={p['id'] for p in picks[:1]})
     out = {'profile': prof, 'level': level, 'level_label': LEVELS[level]['label'], 'today': picks, 'news': news, 'resume': resume, 'line': line,
            'stats': stats(c, uid) if uid else None, 'graph': g,
-           'announce': __import__('console_ops').current_announcement(c)}  # 公告 from the xmc.hk console, at the top of 今日
+           'announce': __import__('console_ops').current_announcement(c),
+           'trial_survey': bool(uid) and __import__('class_service').survey_due(c, uid)}  # 公告 from the xmc.hk console, at the top of 今日
     if uid and prof:
         import skills_service as sk
         out['sprint'] = __import__('exam_sprint').brief(c, uid)  # 考试冲刺: the exam and its days left, in the plan's header line

@@ -342,6 +342,7 @@ flow/tests/test_rewrite_minimal.py
 flow/tests/test_slim.py
 flow/tests/test_speak_rounds.py
 flow/tests/test_survey.py
+flow/tests/test_trial_survey.py
 flow/tests/test_ux_round.py
 flow/tests/test_vertex.py
 flow/tests/test_vocab.py

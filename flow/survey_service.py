@@ -1,4 +1,5 @@
-"""Anonymous learner-needs survey.
+"""Anonymous surveys: the learner-needs survey (needs-2026-11, the default) and the class trial survey (trial-2026-12,
+班级试用: asked on 今日 three weeks after joining a class; class_service.survey_due). /survey?s=trial opens the second.
 
 Privacy: responses carry no account, cookie, IP or user agent. Abuse control keeps
 an HMAC of (client address, UTC day) in a separate table for two days only, keyed
@@ -64,8 +65,49 @@ SURVEY = {
 }
 
 
-def questions():
-    for section in SURVEY['sections']:
+STEPS = ['听材料和跟读', '读文章和查词', '理解题', '用出来（AI 批改仿写、复述、翻译）', '背单词和复习', '语法点练习', '考试练习', '口语练习']
+TRIAL_ID = 'trial-2026-12'
+TRIAL = {
+    'id': TRIAL_ID,
+    'title': '班级试用：用了几周，感觉怎么样？',
+    'intro': '匿名，约 2 分钟。不收姓名和账号；回答只用来改进语流，和写春萌项目的结项报告（只用汇总数字）。',
+    'thanks': '你的回答已经匿名保存，会用来改进语流，也会以汇总数字写进春萌项目的结项报告。',
+    'sections': [
+        {'title': '这几周', 'questions': [
+            {'id': 'often', 'type': 'single', 'required': True, 'label': '这几周你大概多久用一次语流？',
+             'options': ['几乎每天', '每周 3–5 天', '每周 1–2 天', '很少，加入后基本没用']},
+            {'id': 'useful', 'type': 'multi', 'max': 2, 'required': True, 'label': '哪几步对你最有用？（最多选 2 项）', 'options': STEPS},
+            {'id': 'useless', 'type': 'single', 'required': True, 'label': '哪一步对你最没用，或者最不想做？', 'options': STEPS + ['都还好']},
+            {'id': 'change', 'type': 'single', 'required': True, 'label': '用了这几周，你觉得自己的英语有变化吗？',
+             'options': ['明显进步', '有一点进步', '说不清', '没有变化']},
+            {'id': 'more', 'type': 'single', 'required': True, 'label': '加入班级以后，你学得比以前多了吗？',
+             'options': ['多了不少', '多了一点', '差不多', '反而少了', '加入前没用过语流']},
+        ]},
+        {'title': '以后', 'questions': [
+            {'id': 'keep', 'type': 'single', 'required': True, 'label': '试用结束后，你还会继续用语流吗？', 'options': ['一定会', '可能会', '不太会', '不会']},
+            {'id': 'recommend', 'type': 'single', 'required': True, 'label': '你愿意把语流推荐给同学吗？',
+             'options': ['非常愿意', '愿意', '一般', '不太愿意', '不愿意']},
+            {'id': 'say', 'type': 'text', 'required': False, 'label': '最想让语流改进的一件事，或者想对我们说的话（选填）',
+             'placeholder': '一句话也可以'},
+        ]},
+    ],
+}
+SURVEYS = {SURVEY_ID: SURVEY, TRIAL_ID: TRIAL}
+ALIASES = {'trial': TRIAL_ID, 'needs': SURVEY_ID}
+
+
+def pick(sid):
+    """A survey id (or its short name in /survey?s=); the needs survey when empty or unknown."""
+    sid = ALIASES.get(str(sid or ''), str(sid or ''))
+    return sid if sid in SURVEYS else SURVEY_ID
+
+
+def definition(sid=None):
+    return SURVEYS[pick(sid)]
+
+
+def questions(sid=None):
+    for section in definition(sid)['sections']:
         yield from section['questions']
 
 
@@ -102,20 +144,23 @@ def _salt():
             return path.read_bytes()
 
 
-def client_key(address, day):
-    return hmac.new(_salt(), f'{address}|{day}'.encode(), hashlib.sha256).hexdigest()
+def client_key(address, day, sid=SURVEY_ID):
+    """The daily limit's key: per address, day and survey (the needs survey keeps the key it always had)."""
+    msg = f'{address}|{day}' if sid == SURVEY_ID else f'{address}|{day}|{sid}'
+    return hmac.new(_salt(), msg.encode(), hashlib.sha256).hexdigest()
 
 
-def clean(data):
-    """Validate a submission against SURVEY. Returns (answers, error)."""
+def clean(data, sid=None):
+    """Validate a submission against its survey. Returns (answers, error)."""
     raw = data.get('answers')
     if not isinstance(raw, dict):
         return None, '请完成问卷后再提交'
-    known = {q['id'] for q in questions()}
+    sid = pick(sid if sid is not None else data.get('survey'))
+    known = {q['id'] for q in questions(sid)}
     if set(raw) - known:
         return None, '问卷内容已更新，请刷新页面后重新填写'
     out = {}
-    for q in questions():
+    for q in questions(sid):
         value = raw.get(q['id'])
         empty = value in (None, '', [], {})
         if empty:
@@ -156,41 +201,45 @@ def submit(c, data, address, now=None):
         seconds = 0
     if seconds < MIN_SECONDS:
         return {'error': '填得有点快，请再看一遍题目后提交'}, 400
-    answers, problem = clean(data)
+    sid = pick(data.get('survey'))
+    if data.get('survey') and str(data['survey']) not in SURVEYS and str(data['survey']) not in ALIASES:
+        return {'error': '问卷内容已更新，请刷新页面后重新填写'}, 400
+    answers, problem = clean(data, sid)
     if problem:
         return {'error': problem}, 400
     day = _day(now)
-    key = client_key(address, day)
+    key = client_key(address, day, sid)
     c.execute('BEGIN IMMEDIATE')
     c.execute('DELETE FROM survey_limits WHERE day<?', (_day(now - 2 * 86400),))
     used = c.execute('SELECT count FROM survey_limits WHERE key=? AND day=?', (key, day)).fetchone()
     if used and used[0] >= DAILY_PER_CLIENT:
         c.rollback()
         return {'error': '今天已经收到你的回答了，谢谢！'}, 429
-    if c.execute('SELECT COUNT(*) FROM survey_responses WHERE survey=? AND day=?', (SURVEY_ID, day)).fetchone()[0] >= DAILY_TOTAL:
+    if c.execute('SELECT COUNT(*) FROM survey_responses WHERE survey=? AND day=?', (sid, day)).fetchone()[0] >= DAILY_TOTAL:
         c.rollback()
         return {'error': '今天的问卷收集已满，请明天再来'}, 429
     c.execute('INSERT INTO survey_limits VALUES(?,?,1) ON CONFLICT(key,day) DO UPDATE SET count=count+1', (key, day))
     c.execute('INSERT INTO survey_responses(survey,created,day,answers,seconds) VALUES(?,?,?,?,?)',
-              (SURVEY_ID, now, day, json.dumps(answers, ensure_ascii=False), min(seconds, 86400)))
+              (sid, now, day, json.dumps(answers, ensure_ascii=False), min(seconds, 86400)))
     c.commit()
     return {'ok': True}, 200
 
 
-def _rows(c, include_hidden=False):
+def _rows(c, include_hidden=False, sid=None):
     sql = 'SELECT id,created,day,answers,seconds,hidden FROM survey_responses WHERE survey=?'
     if not include_hidden:
         sql += ' AND hidden=0'
     return [dict(id=r[0], created=r[1], day=r[2], answers=json.loads(r[3]), seconds=r[4], hidden=bool(r[5]))
-            for r in c.execute(sql + ' ORDER BY id DESC', (SURVEY_ID,))]
+            for r in c.execute(sql + ' ORDER BY id DESC', (pick(sid),))]
 
 
-def summary(c, filters=None):
+def summary(c, filters=None, sid=None):
+    sid = pick(sid)
     filters = {k: v for k, v in (filters or {}).items() if v}
-    rows = [r for r in _rows(c) if all(r['answers'].get(k) == v for k, v in filters.items())]
+    rows = [r for r in _rows(c, sid=sid) if all(r['answers'].get(k) == v for k, v in filters.items())]
     total = len(rows)
     out = []
-    for q in questions():
+    for q in questions(sid):
         item = {'id': q['id'], 'type': q['type'], 'label': q['label']}
         answered = [r['answers'][q['id']] for r in rows if q['id'] in r['answers']]
         item['answered'] = len(answered)
@@ -213,15 +262,16 @@ def summary(c, filters=None):
     for r in rows:
         days[r['day']] = days.get(r['day'], 0) + 1
     secs = sorted(r['seconds'] for r in rows if r['seconds'])
-    return {'survey': {'id': SURVEY_ID, 'title': SURVEY['title']}, 'total': total, 'filters': filters,
+    return {'survey': {'id': sid, 'title': SURVEYS[sid]['title']}, 'surveys': [{'id': k, 'title': v['title']} for k, v in SURVEYS.items()],
+            'total': total, 'filters': filters,
             'by_day': [{'day': d, 'count': n} for d, n in sorted(days.items())],
             'median_seconds': secs[len(secs) // 2] if secs else None,
-            'hidden': c.execute('SELECT COUNT(*) FROM survey_responses WHERE survey=? AND hidden=1', (SURVEY_ID,)).fetchone()[0],
+            'hidden': c.execute('SELECT COUNT(*) FROM survey_responses WHERE survey=? AND hidden=1', (sid,)).fetchone()[0],
             'questions': out}
 
 
-def responses(c, page=1, per_page=20, query=''):
-    rows = _rows(c, include_hidden=True)
+def responses(c, page=1, per_page=20, query='', sid=None):
+    rows = _rows(c, include_hidden=True, sid=sid)
     if query:
         q = query.lower()
         rows = [r for r in rows if q in json.dumps(r['answers'], ensure_ascii=False).lower()]
@@ -230,7 +280,7 @@ def responses(c, page=1, per_page=20, query=''):
 
 
 def set_hidden(c, rid, hidden):
-    cur = c.execute('UPDATE survey_responses SET hidden=? WHERE id=? AND survey=?', (1 if hidden else 0, rid, SURVEY_ID))
+    cur = c.execute('UPDATE survey_responses SET hidden=? WHERE id=?', (1 if hidden else 0, rid))
     c.commit()
     return ({'ok': True}, 200) if cur.rowcount else ({'error': '记录不存在'}, 404)
 
@@ -240,8 +290,8 @@ def _cell(v):
     return "'" + v if isinstance(v, str) and v[:1] in ('=', '+', '-', '@', '\t', '\r') else v
 
 
-def export_csv(c):
-    qs = list(questions())
+def export_csv(c, sid=None):
+    qs = list(questions(sid))
     buf = io.StringIO()
     buf.write('﻿')  # Excel opens UTF-8 correctly with a BOM.
     w = csv.writer(buf)
@@ -249,7 +299,7 @@ def export_csv(c):
     for q in qs:
         head += [f"{q['id']}:{row}" for row in q['rows']] if q['type'] == 'matrix' else [q['id']]
     w.writerow(head)
-    for r in reversed(_rows(c)):
+    for r in reversed(_rows(c, sid=sid)):
         line = [r['id'], r['day'], r['seconds']]
         for q in qs:
             v = r['answers'].get(q['id'])
