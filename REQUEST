@@ -1,3 +1,3 @@
-c04db4e4a1366399568795fdef97bd02d04e9e9e 33b1622257d07463bac1ccef667a7c14019fa831a1bbceb5fddeace1076bda05 e2e light
-# b11 main: Merge pull request #77 from Jasame/voice-eval = build of 8d4f2e494ab0
+b036799c5fb669722ed0f2188bb84d1c7e355f6e 78627bba99db29b26d7974d3de689f4e64e21759c14df5d5021a2b5d882594fa e2e light
+# b12 main: Merge pull request #79 from Jasame/ios-shell = build of 928ab52f36a7
 # Format: <commit sha> <manifest sha256> [e2e [light]]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
