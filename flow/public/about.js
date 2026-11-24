@@ -292,7 +292,7 @@ document.documentElement.classList.add('js');
   /* ---------- exam cards: their timers run once ---------- */
   function timers() {
     $$('.exam').forEach((ex, i) => {
-      const t = $('.timer', ex), to = [.62, .48, .74, .56][i % 4];
+      const t = $('.timer', ex), to = [.62, .48, .74, .56, .38, .7, .52, .66][i % 8];
       const run = () => {
         if (RM) { t.style.setProperty('--t', to); return; }
         const t0 = performance.now() + i * 120, dur = 1600;

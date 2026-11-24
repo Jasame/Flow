@@ -119,6 +119,15 @@ class OpenTimeTests(Servers):
         self.assertEqual((by['Safari']['visits'], by['微信']['left_pct']), (2, 50.0))
         self.assertEqual({g['group'] for g in d['by']['repeat']}, {'再次打开（有缓存）', '第一次打开'})
 
+    def test_the_slowest_quarter_shows_where_it_waits(self):
+        # quick visits wait on nothing in particular; the slow ones wait for the home data
+        quick = [(v, v // 6) for v in range(300, 1000, 100)]  # 7 visits, the home data a sixth of the time
+        for v, api in quick + [(6000, 4800), (7000, 5600)]:
+            self.post('/api/next/opentime', {'domain': 'flowlang.cn', 'first_view': v, 'home_api': api, 'scripts': 20}, WECHAT)
+        d = self.console('/speed', email='intern@example.com')[1]
+        self.assertEqual(d['slow_visits'], 3)  # from the 75th percentile up: 900, 6000 and 7000
+        self.assertEqual((d['phases']['home_api'], d['phases_slow']['home_api'], d['phases_slow']['scripts']), (116, 4800, 20))
+
 
 class ConsoleTests(Servers):
     def test_page_errors_sit_with_the_server_errors_for_administrators(self):

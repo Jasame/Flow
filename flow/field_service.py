@@ -189,6 +189,11 @@ def speed(c, days=7):
     daily = {}
     for r in rows:
         daily.setdefault(r['day'], []).append(r)
+    # the slowest quarter on its own: the medians over every visit hide where the slow ones wait
+    seen = [r['first_view'] for r in rows if r['first_view'] is not None]
+    cut = _pct(seen, 75)
+    slow = [r for r in rows if cut is not None and r['first_view'] is not None and r['first_view'] >= cut]
     return {'days': days, 'overall': _summary(rows),
             'phases': {k: _pct([r[k] for r in rows if r[k] is not None], 50) for k in PHASES},
+            'phases_slow': {k: _pct([r[k] for r in slow if r[k] is not None], 50) for k in PHASES}, 'slow_visits': len(slow),
             'by': by, 'daily': [{'day': d, **_summary(v)} for d, v in sorted(daily.items())]}

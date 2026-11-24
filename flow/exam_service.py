@@ -1,4 +1,5 @@
-"""Exam practice: a timed mixed set at the difficulty of CET-4, CET-6, 考研 or IELTS, built only from Flow's own content.
+"""Exam practice: a timed mixed set at the difficulty of 中考, 高考, CET-4, CET-6, 考研, 专四, 专八 or IELTS, built only from
+Flow's own content (an exam shows only when its word book is there: 中考、高考、专四、专八 are data books).
 
 Three parts: words from that exam's list (ECDICT tags), grammar points of that exam's levels (the 44-point bank), and
 one original reading passage at the exam's level with its questions. It is practice at the right difficulty, not a past
@@ -10,13 +11,21 @@ import json, random, secrets, time
 import next_service as nx
 import grammar_bank as GB
 
-EXAMS = {  # id -> title, word book (ECDICT tag), grammar levels, reading level, suggested minutes, blurb
+EXAMS = {  # id -> title, word book (ECDICT tag or data book), grammar levels, reading level, suggested minutes, blurb
+    'zk': {'title': '中考英语', 'book': 'zk', 'levels': ('A2',), 'reading': 'A2', 'minutes': 12,
+           'blurb': '中考大纲词汇、基础语法、一篇 A2 阅读'},
+    'gk': {'title': '高考英语', 'book': 'gk', 'levels': ('A2', 'B1'), 'reading': 'B1', 'minutes': 15,
+           'blurb': '高考大纲词汇、基础到中级语法、一篇 B1 阅读'},
     'cet4': {'title': '大学英语四级', 'book': 'cet4', 'levels': ('A2', 'B1'), 'reading': 'B1', 'minutes': 15,
              'blurb': '四级大纲词汇、基础到中级语法、一篇 B1 阅读'},
     'cet6': {'title': '大学英语六级', 'book': 'cet6', 'levels': ('B1', 'B2'), 'reading': 'B2', 'minutes': 18,
              'blurb': '六级大纲词汇、中级到中高级语法、一篇 B2 阅读'},
     'ky': {'title': '考研英语', 'book': 'ky', 'levels': ('B2', 'C1'), 'reading': 'C1', 'minutes': 20,
            'blurb': '考研大纲词汇、中高级到高级语法、一篇 C1 阅读'},
+    'tem4': {'title': '英语专业四级', 'book': 'tem4', 'levels': ('B1', 'B2'), 'reading': 'B2', 'minutes': 18,
+             'blurb': '专四词汇（按考纲词汇量编，不是官方词表）、中级到中高级语法、一篇 B2 阅读'},
+    'tem8': {'title': '英语专业八级', 'book': 'tem8', 'levels': ('B2', 'C1'), 'reading': 'C1', 'minutes': 20,
+             'blurb': '专八词汇（按考纲词汇量编，不是官方词表）、中高级到高级语法、一篇 C1 阅读'},
     'ielts': {'title': '雅思', 'book': 'ielts', 'levels': ('B1', 'B2', 'C1'), 'reading': 'B2', 'minutes': 18,
               'blurb': '雅思常考词汇、中级到高级语法、一篇 B2 阅读'},
 }
@@ -49,7 +58,7 @@ def overview(c, uid):
     plan = vs.plan(c, uid) if uid else None
     return {'note': NOTE, 'plan': {k: plan[k] for k in ('book', 'daily_new', 'retention')} if plan else None,
             'exams': [{'id': k, 'title': e['title'], 'blurb': e['blurb'], 'minutes': e['minutes'], 'words': len(books.get(e['book'], [])),
-                       'book': e['book'], 'book_title': vs.book_title(e['book']), 'history': history(c, uid, k)} for k, e in EXAMS.items()]}, 200
+                       'book': e['book'], 'book_title': vs.book_title(e['book']), 'history': history(c, uid, k)} for k, e in EXAMS.items() if e['book'] in books]}, 200
 
 
 def _vocab(rnd, book, n):
@@ -112,8 +121,9 @@ def _reading(c, uid, rnd, level, n=2):
 
 def paper(c, uid, exam):
     """A new practice set. The answers stay on the server with the paper; it can be handed in once."""
+    import vocab_service as vs
     e = EXAMS.get(exam)
-    if not e:
+    if not e or e['book'] not in vs.book_words():  # 中考、高考、专四、专八 need their data books
         return {'error': '没有这个考试'}, 400
     now = time.time()
     c.execute('DELETE FROM next_exam_papers WHERE created<?', (now - PAPER_TTL,))

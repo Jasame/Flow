@@ -52,14 +52,27 @@ python3 tools/audit_meanings.py --min-rank 0        # 连最常用的 150 个词
 | duplicate | 35 → 1 | 19 → 0 | 7 → 0 | 7 → 1 | 21 → 0 | 26 → 1 | 27 → 1 |
 | noun-first | 896 → 247 | 236 → 18 | 308 → 64 | 188 → 78 | 538 → 126 | 672 → 190 | 677 → 181 |
 
+## 2026-11-24 第二轮：全部 17 本词书
+
+`tools/audit_meanings.py` 改为审计选词书页上的全部词书（`vocab_service.registry()`：按词频、四六级考研、出国三本，
+加上专四、专八、中考、高考、学术、商务这些数据词书）。审计时有 1,211 个词被标记，其中 1,207 个不在 meaning-fixes.json 里。
+按字母分成四批逐词看过：改写 1,182 条，另有 25 条原样确认（照抄进 meaning-fixes.json，算作已审），共 2,819 条。
+
+- 主要问题：
+  - 没有词性的行：429 个，多数是 ECDICT 用「；」隔开义项，或者只剩一行「burn的过去式和过去分词」；
+  - 名词排第一：619 个；
+  - 残留字符和领域标签：159 个。
+- 典型错误：cola 只有「结肠, 冒号」，coursework 是一句关于研究生录取的话，hotdog 只有「卖弄」，mum 是「菊花」，
+  forty-eight 是「两天假日」，husky 是「爱斯基摩人」，ohp 是「高架发射」。
+- 写法同第一轮。名词排不排第一按词的实际用法定：确实以名词为主的（dream、salary、uniform）只清理不调序。
+- 音标：meaning-fixes.json 新增 `phonetics`（`build_dictionary()` 的最后一步）。补上 ECDICT 缺的 69 个音标，
+  并改正几个明显错的（pouring [por]、puffing [pufiŋ]、payback [ˈpebæk]），共 77 个。
+
+修订后，rank > 150 的 20,611 个词里只剩 4 个被标记：ie、etc、mm、ohp，它们的主要用法本来就是缩写。
+`test_meaning_fixes` 的审计测试现在覆盖全部词书。
+
 ## 还没做的
 
-- `noun-first` 剩 247 个：多数是名词本来就常用、排第一也合理的词（delay、sigh、chat、fax），
-  以及低频的高阶和六级、考研词；值得以后再看一遍高阶词书。
-- `no-phonetic` 11 个（theatre、firework、cosy、waggon 等英式拼写或 ECDICT 拼错的词，如 reservior）：
-  meaning-fixes.json 只管释义，补音标需要给 `build_dictionary()` 加一个字段，这一轮没动代码。
-- `letter-abbr` 剩 3 个是正确的（alpha 本来就是希腊字母，ie 是 i.e.，etc）；`duplicate` 剩的是原有条目 commute 的「v. 减刑」，保留。
-- adv（精通）、ext（拓展）、ielts、toefl、gre 词书没有审。
-- 首字母大写的词条：supreme、polish、internet、congress 在词典里存成 Supreme、Polish、Internet、Congress，
-  `book_words()` 跳过大写词条，所以这几个四级词不在任何词书里。释义已经修了（查词能用上），
-  词条大小写要在重建 ECDICT 子集时改。
+- 词条拼写：ECDICT 有拼错或去掉重音的词条，比如 reservior（四级词书里，应为 reservoir）、saut（应为 sauté）。
+  释义里已经注明了正确写法，词条本身要在重建 ECDICT 子集时改。
+- 还有一些音标看起来不对，比如 umm、spraying、tightening、widening，这一轮没有动。

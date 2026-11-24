@@ -239,7 +239,14 @@
     getJSON('/speed?days=' + SP.days).then(function (d) {
       var o = d.overall, sec = function (v) { return v == null ? '—' : (v / 1000).toFixed(1) + ' 秒'; };
       var PH = { dns: '查域名', connect: '建立连接', tls: '加密握手', ttfb: '服务器响应', html: '下载页面', scripts: '等脚本下载完', home_api: '取首页数据', render: '画出页面' };
-      var tot = Object.keys(PH).reduce(function (a, k) { return a + (d.phases[k] || 0); }, 0) || 1;
+      // one bar per set of medians: every visit, then the slowest quarter (where a slow opening really waits)
+      var bar = function (ph) {
+        return '<div class="sp-bar">' + Object.keys(PH).map(function (k, i) {
+          var v = ph[k]; return v ? '<i style="flex:' + v + ' 1 0;--k:' + i + '" title="' + esc(PH[k] + ' ' + sec(v)) + '"></i>' : '';
+        }).join('') + '</div><div class="sp-legend">' + Object.keys(PH).map(function (k, i) {
+          return '<span style="--k:' + i + '"><i></i>' + PH[k] + ' ' + sec(ph[k]) + '</span>';
+        }).join('') + '</div>';
+      };
       var table = function (title, rows) {
         return '<section class="card"><h2>' + title + '</h2><table class="cmp"><thead><tr><th></th><th class="num">打开次数</th><th class="num">中位数</th><th class="num">75%</th><th class="num">90%</th><th class="num">没等到就离开</th></tr></thead><tbody>' +
           rows.map(function (r) { return '<tr><td>' + esc(r.group) + '</td><td class="num">' + n(r.visits) + '</td><td class="num">' + sec(r.p50) + '</td><td class="num">' + sec(r.p75) + '</td><td class="num">' + sec(r.p90) + '</td><td class="num">' + r.left_pct + '%</td></tr>'; }).join('') +
@@ -248,11 +255,8 @@
       main.innerHTML = '<div class="head-row"><div><h1>打开速度</h1><p class="muted">学员打开网站后，多久看到第一个页面（每次打开记一次，不记账号和地址）。「75%」表示四分之三的人在这个时间内看到了页面。</p></div>' +
         '<div class="toolbar"><select id="spDays"><option value="7"' + (SP.days === 7 ? ' selected' : '') + '>近 7 天</option><option value="30"' + (SP.days === 30 ? ' selected' : '') + '>近 30 天</option></select></div></div>' +
         '<div class="kpi-grid">' + kpi('打开次数', n(o.visits), '近 ' + d.days + ' 天') + kpi('中位数', sec(o.p50), '一半的人在这个时间内看到页面') + kpi('90% 的人', sec(o.p90), '慢的那一成要等这么久') + kpi('没等到就离开', o.left_pct + '%', n(o.left) + ' 次，页面还没出来就关了') + '</div>' +
-        (o.visits ? '<section class="card"><h2>时间花在哪（各段的中位数）</h2><div class="sp-bar">' + Object.keys(PH).map(function (k, i) {
-          var v = d.phases[k]; return v ? '<i style="flex:' + v + ' 1 0;--k:' + i + '" title="' + esc(PH[k] + ' ' + sec(v)) + '"></i>' : '';
-        }).join('') + '</div><div class="sp-legend">' + Object.keys(PH).map(function (k, i) {
-          return '<span style="--k:' + i + '"><i></i>' + PH[k] + ' ' + sec(d.phases[k]) + '</span>';
-        }).join('') + '</div><p class="muted small">「查域名」「建立连接」「加密握手」慢，多半是网络线路的问题；「服务器响应」「取首页数据」慢，是服务器的问题；「等脚本下载完」慢，是网页太大或网络带宽不够。</p></section>' +
+        (o.visits ? '<section class="card"><h2>时间花在哪（各段的中位数）</h2>' + bar(d.phases) +
+          (d.slow_visits ? '<h2>最慢的四分之一（' + n(d.slow_visits) + ' 次）时间花在哪</h2>' + bar(d.phases_slow || {}) : '') + '<p class="muted small">「查域名」「建立连接」「加密握手」慢，多半是网络线路的问题；「服务器响应」「取首页数据」慢，是服务器的问题；「等脚本下载完」慢，是网页太大或网络带宽不够。</p></section>' +
           table('按访问的网址', d.by.domain) + table('按手机', d.by.platform) + table('按浏览器（微信、Safari…）', d.by.browser) +
           table('先显示上次的内容 / 等服务器的回答', d.by.snap || []) + table('第一次打开 / 再次打开', d.by.repeat) + table('从桌面打开 / 在浏览器里', d.by.standalone) + table('按网络（安卓浏览器会告诉）', d.by.net) +
           table('按天', d.daily.map(function (x) { return Object.assign({ group: x.day }, x); })) : '<section class="card"><p class="muted">还没有数据：发版后学员打开网站就会开始记录。</p></section>');

@@ -862,41 +862,63 @@ def add_many(c, uid, data):
     return {'added': added, 'skipped': skipped, **counts(c, uid, now)}, 200
 
 
-def ai_examples(c, uid, data):
-    """One AI call writes example sentences for up to 8 words that no material uses; cached for everyone."""
-    from lab_service import run_job, text as clean_text
-    from chat_service import request_model
-    words = [w for w in (data.get('words') or []) if isinstance(w, str) and re.fullmatch(r'[a-z]+(?:-[a-z]+)*', w)][:8]
+def example_messages(words, level):
+    """The chat messages that ask for one example sentence (and its translation) per word; shared by the learner's
+    request (ai_examples) and the batch that writes them ahead of time (fill_examples.py)."""
     d = nx.dictionary()
-    words = [w for w in dict.fromkeys(words) if w in d and not examples(w) and not extra_examples(c, w)]
-    if not words:
-        return {'examples': {}}, 200
-    level = _level(c, uid)
     system = '你是英语词典编辑。为每个单词写一个自然、常用、贴近生活的英文例句（10–20 词，' + level + ' 学习者能读懂），并给出准确的中文翻译。只输出 JSON。'
     user = ('单词（附中文义项）：\n' + '\n'.join(f'{w}：{short_meaning(d[w]["meaning"])}' for w in words) +
             '\n\n输出 JSON：{"examples":[{"word":"单词原形","sentence":"英文例句（必须包含这个词或它的变形）","translation":"中文翻译"}]}')
+    return [{'role': 'system', 'content': system}, {'role': 'user', 'content': user}]
+
+
+def example_results(raw, words):
+    """{word: {sentence, translation}} from the model's JSON: only sentences that really use the word (or a form of it)."""
+    from lab_service import text as clean_text
+    out = {}
+    for e in (raw.get('examples') if isinstance(raw, dict) else None) or []:
+        if not isinstance(e, dict) or e.get('word') not in words or not isinstance(e.get('sentence'), str):
+            continue
+        sent = clean_text(e['sentence'], 8, 240)
+        lemmas = {(nx.lookup(t) or {}).get('lemma') for t in nx.WORD.findall(sent)}
+        if e['word'] in lemmas or e['word'] in sent.lower():
+            out[e['word']] = {'sentence': sent, 'translation': clean_text(e.get('translation') or '', 0, 240)}
+    return out
+
+
+def save_examples(c, made, now=None):
+    now = now or time.time()
+    for w, e in made.items():
+        c.execute('INSERT OR IGNORE INTO next_word_examples VALUES(?,?,?,?)', (w, e['sentence'], e['translation'], now))
+    c.commit()
+
+
+def needs_example(c, w):
+    """No sentence from Flow's texts, no dictionary example and no AI example cached yet."""
+    return not examples(w) and not extra_examples(c, w)
+
+
+def ai_examples(c, uid, data):
+    """One AI call writes example sentences for up to 8 words that no material uses; cached for everyone."""
+    from lab_service import run_job
+    from chat_service import request_model
+    words = [w for w in (data.get('words') or []) if isinstance(w, str) and re.fullmatch(r'[a-z]+(?:-[a-z]+)*', w)][:8]
+    d = nx.dictionary()
+    words = [w for w in dict.fromkeys(words) if w in d and needs_example(c, w)]
+    if not words:
+        return {'examples': {}}, 200
 
     def convert(raw):
-        out = {}
-        for e in (raw.get('examples') if isinstance(raw, dict) else None) or []:
-            if not isinstance(e, dict) or e.get('word') not in words or not isinstance(e.get('sentence'), str):
-                continue
-            sent = clean_text(e['sentence'], 8, 240)
-            lemmas = {(nx.lookup(t) or {}).get('lemma') for t in nx.WORD.findall(sent)}
-            if e['word'] in lemmas or e['word'] in sent.lower():
-                out[e['word']] = {'sentence': sent, 'translation': clean_text(e.get('translation') or '', 0, 240)}
+        out = example_results(raw, words)
         if not out:
             raise ValueError('no usable examples')
         return out
 
     result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-examples', 'vocab', 'vocabulary', {'words': words},
-                             lambda: request_model([{'role': 'system', 'content': system}, {'role': 'user', 'content': user}]), convert)
+                             lambda: request_model(example_messages(words, _level(c, uid))), convert)
     if status != 200:
         return result, status
-    now = time.time()
-    for w, e in result['result'].items():
-        c.execute('INSERT OR IGNORE INTO next_word_examples VALUES(?,?,?,?)', (w, e['sentence'], e['translation'], now))
-    c.commit()
+    save_examples(c, result['result'])
     made = {w: [{'pack': None, 'i': None, 'text': e['sentence'], 'form': w, 'title': 'AI 例句', 'zh': e['translation'], 'audio': 0, 'ai': True}]
             for w, e in result['result'].items()}
     return {'examples': made, 'remaining': result.get('remaining')}, 200

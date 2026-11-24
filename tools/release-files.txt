@@ -152,6 +152,7 @@ flow/exam_service.py
 flow/feedback_service.py
 flow/field_service.py
 flow/account_data.py
+flow/fill_examples.py
 flow/slim.py
 flow/relisten_service.py
 flow/flow-backup.service
@@ -269,6 +270,7 @@ flow/tests/test_corpus_v5.py
 flow/tests/test_daily_knowledge.py
 flow/tests/test_feedback.py
 flow/tests/test_field.py
+flow/tests/test_fill_examples.py
 flow/tests/test_foundation.py
 flow/tests/test_front_layout.py
 flow/tests/test_growth.py
