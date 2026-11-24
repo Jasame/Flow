@@ -38,7 +38,7 @@
       const rec = panel.querySelector('#lsRec'), back = panel.querySelector('#lsBack'), ai = panel.querySelector('#lsAI');
       panel.querySelector('#lsOrig').onclick = () => sayLine(l);
       rec.onclick = () => MIC.toggle(rec, 15, b => { blob = b; if (url) URL.revokeObjectURL(url); url = URL.createObjectURL(b); back.disabled = false; ai.disabled = false; toast('录好了，可以对比回放'); });
-      back.onclick = () => { const mine = () => { const a = new Audio(url); a.play().catch(() => {}); }; if (l.kind === 'text' && l.audio) { sayLine(l); setTimeout(mine, 600 + l.say.length * 70); } else sayLine(l, mine); };
+      back.onclick = () => { const mine = () => CLIP.mine(url); if (l.kind === 'text' && l.audio) { sayLine(l); setTimeout(mine, 600 + l.say.length * 70); } else sayLine(l, mine); };
       ai.onclick = async () => {
         if (!S.user) return needLogin('登录后，AI 会听你的跟读，指出漏读、读错和需要连读的地方。');
         if (!blob) return;

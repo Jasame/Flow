@@ -37,7 +37,7 @@
 #allBooks{display:grid;gap:14px}
 #allBooks[hidden]{display:none}
 @media (max-width:759px){
-  .savebar{position:sticky;bottom:calc(72px + env(safe-area-inset-bottom));z-index:5;background:var(--bg);padding:10px 0;box-shadow:0 -1px 0 var(--line)}
+  .savebar{position:sticky;bottom:calc(72px + var(--sab));z-index:5;background:var(--bg);padding:10px 0;box-shadow:0 -1px 0 var(--line)}
 }
 
 /* 练习: one-line rows with an icon, grouped like 我的 (two columns on a wide screen); the grammar map stays a wide card */

@@ -205,6 +205,7 @@ FLOW_FILES=(
   corpus_data/v5/work.C1.3.json
   corpus_data/v5/work.C1.4.json
   corpus_data/v5/work.C1.json
+  corpus_data/voice-eval.json
   corpus_data/wordbooks-open.json
   corpus_data/wordbooks.json
   corpus_data/wordroots-flow.json
@@ -263,6 +264,7 @@ FLOW_FILES=(
   relisten_service.py
   requirements-vertex.txt
   scenarios.py
+  search_eval.py
   seed.py
   settings_service.py
   skills_service.py
@@ -276,6 +278,8 @@ FLOW_FILES=(
   vertex_auth.py
   vertex_native.py
   vocab_service.py
+  voice_eval.py
+  word_clip.py
   word_links.py
 )
 for name in "${FLOW_FILES[@]}"; do

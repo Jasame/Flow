@@ -60,7 +60,7 @@
 .line.now{background:var(--green-soft);border-color:var(--green-line)}
 .line .txt{font-family:var(--serif);font-size:18px;line-height:1.6}
 .line .txt.blind{color:transparent;text-shadow:0 0 9px color-mix(in srgb,var(--ink) 55%,transparent);user-select:none}
-.selbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));z-index:40;background:var(--ink);color:var(--bg);border-radius:99px;padding:6px 6px 6px 14px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
+.selbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + var(--sab));z-index:40;background:var(--ink);color:var(--bg);border-radius:99px;padding:6px 6px 6px 14px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
 .selbar span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;font-family:var(--serif)}
 .selbar button{border:0;border-radius:99px;background:var(--fill);color:var(--on-fill);font-weight:700;padding:8px 14px}
 @media (min-width:760px){.selbar{bottom:24px}}
@@ -135,7 +135,7 @@
 /* ---- sheet / toast ---- */
 .sheet{position:fixed;inset:0;z-index:60;display:grid;align-items:end}
 .sheet-scrim{position:absolute;inset:0;background:rgba(10,12,10,.4)}
-.sheet-card{position:relative;background:var(--paper);border-radius:20px 20px 0 0;padding:20px var(--gut) calc(20px + env(safe-area-inset-bottom));max-height:86vh;overflow:auto;width:100%;max-width:var(--max);margin:0 auto;box-shadow:0 -8px 30px rgba(0,0,0,.15);animation:up .2s ease-out}
+.sheet-card{position:relative;background:var(--paper);border-radius:20px 20px 0 0;padding:20px var(--gut) calc(20px + var(--sab));max-height:86vh;overflow:auto;width:100%;max-width:var(--max);margin:0 auto;box-shadow:0 -8px 30px rgba(0,0,0,.15);animation:up .2s ease-out}
 @keyframes up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
 @media (min-width:760px){.sheet{align-items:center}.sheet-card{border-radius:20px;max-width:460px}}
 @media (prefers-reduced-motion:reduce){.sheet-card{animation:none}}
@@ -145,7 +145,7 @@
 .seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;background:var(--sunk);border-radius:12px;padding:4px;margin-bottom:14px}
 .seg button{border:0;background:none;border-radius:9px;padding:8px;font-weight:600;color:var(--muted)}
 .seg button[aria-selected=true]{background:var(--paper);color:var(--ink);box-shadow:var(--shadow)}
-.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:99px;font-size:14px;opacity:0;pointer-events:none;transition:.2s;z-index:80;max-width:calc(100% - 32px);text-align:center}
+.toast{position:fixed;left:50%;bottom:calc(90px + var(--sab));transform:translate(-50%,20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:99px;font-size:14px;opacity:0;pointer-events:none;transition:.2s;z-index:80;max-width:calc(100% - 32px);text-align:center}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 @media (min-width:760px){.toast{bottom:32px}}
 .ai-wait{flex-basis:100%;margin:6px 0 0;color:var(--muted);animation:aiwait .3s ease-out}

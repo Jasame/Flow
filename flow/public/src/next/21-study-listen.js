@@ -233,7 +233,7 @@
         const secs = nm ? (nm.sentences[i].e - nm.sentences[i].s) * 2.2 + 2 : 12;
         REC.timer = setTimeout(() => { if (mr.state === 'recording') mr.stop(); }, Math.min(25, secs) * 1000);
       }
-      function compare(i) { stop(); orig(i, () => { const a = new Audio(REC.url[i]); a.play().catch(() => {}); }); }
+      function compare(i) { stop(); orig(i, () => CLIP.mine(REC.url[i])); }
       async function aiCheck(i, btn) {
         if (!S.user) return needLogin('登录后，AI 会听你的跟读，指出漏读、读错和需要连读的地方。');
         const blob = REC.blobs[i]; if (!blob) return;

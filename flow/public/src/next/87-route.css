@@ -62,5 +62,5 @@
 .passage-q mark{background:var(--mark);border-radius:3px;padding:0 2px}
 .num-in{width:96px;min-height:44px}
 @media (prefers-reduced-motion:reduce){.rnode::before{transition:none;transform:none}.rnode.here .dot,.pop-in,.node-chip.lit-up{animation:none}}
-#mixNext{scroll-margin-bottom:calc(96px + env(safe-area-inset-bottom))}
+#mixNext{scroll-margin-bottom:calc(96px + var(--sab))}
 @media (min-width:760px){#mixNext{scroll-margin-bottom:24px}}
