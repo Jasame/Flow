@@ -1,5 +1,12 @@
 name: Tests
-on: [push, pull_request, workflow_dispatch]
+# A pull request is tested once, by its pull_request run; main is tested again after each merge. Testing every
+# branch push as well ran each PR twice: with five PRs being tested that took all 20 jobs a free account runs at
+# once, so the next push had to wait (2026-11-24).
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
