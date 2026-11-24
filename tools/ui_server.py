@@ -155,6 +155,35 @@ with app.db() as c:
                 ar.record(c, uid, dim, idx, now=now - 9 * 86400)
             for dim, idx in (('reading', 63), ('listening', 50), ('speaking', 45)):
                 ar.record(c, uid, dim, idx, now=now - 3600)
+            # 这周进步 (r27): four weeks that reached the goal (4 days), last week 3 days, this week every day so far; words
+            # remembered this week and last (added one day, still recalled the next), texts finished, questions answered,
+            # and one sentence the AI corrected in this text (the grammar line after it).
+            import progress_service as ps, event_service as ev, datetime as dt
+            today, monday, lo, prev = ps._bounds(now)
+            at = lambda d, h=9: min(ps._start(d) + h * 3600, now - 600)  # never later than now, whenever the tests run
+            anchor = c.execute("SELECT id FROM next_cards WHERE user_id=? AND norm='commute'", (uid,)).fetchone()[0]
+            for w in range(2, 6):
+                for k in (0, 1, 3, 5):
+                    c.execute('INSERT INTO next_reviews(user_id,card,rating,created) VALUES(?,?,?,?)', (uid, anchor, 'good', at(monday - dt.timedelta(weeks=w, days=-k))))
+            for k in (0, 2, 4):
+                c.execute('INSERT INTO next_reviews(user_id,card,rating,created) VALUES(?,?,?,?)', (uid, anchor, 'good', at(monday - dt.timedelta(weeks=1, days=-k))))
+            days = [monday + dt.timedelta(days=k) for k in range((today - monday).days + 1)]
+            words = {'this': ['negotiate', 'reliable', 'efficient', 'priority', 'estimate', 'colleague', 'maintain', 'evidence', 'budget', 'survey', 'resource', 'approach'],
+                     'last': ['schedule', 'agenda', 'deliver', 'feedback', 'proposal', 'confirm', 'invoice', 'client']}
+            for when, ws in words.items():
+                for k, w in enumerate(ws):
+                    day = days[k % len(days)] if when == 'this' else monday - dt.timedelta(days=1 + k % 6)
+                    cid = c.execute("INSERT INTO next_cards(user_id,text,norm,kind,created,due,state,source) VALUES(?,?,?,'word',?,?,'review','book')",
+                                    (uid, w, w, at(day - dt.timedelta(days=1), 8), at(day) + 3 * 86400)).lastrowid
+                    c.execute('INSERT INTO next_reviews(user_id,card,rating,created) VALUES(?,?,?,?)', (uid, cid, 'good', at(day, 8)))
+            packs = [r[0] for r in c.execute("SELECT id FROM lab_packs WHERE owner IS NULL AND origin!='daily' AND id!=? ORDER BY id LIMIT 5", (PID,))]
+            for k, pk in enumerate(packs):
+                c.execute('INSERT OR IGNORE INTO next_progress VALUES(?,?,?,?)', (uid, pk, 'check', at(days[-1] if k < 2 else monday - dt.timedelta(days=2 + k), 19)))
+            for k in range(23):
+                ev.record(c, uid, 'skill:reading', f'guide:{k}', 'choice', str(k), 'q', int(k % 9 not in (3, 6) and k != 22 and k != 21), 0, 'rule', created=at(days[k % len(days)], 10) + k)
+            for k in range(30):
+                ev.record(c, uid, 'skill:reading', f'guide-prev:{k}', 'choice', str(k), 'q', int(k % 10 not in (1, 4, 8)), 0, 'rule', created=at(monday - dt.timedelta(days=1 + k % 7), 10) + k)
+            c.execute("INSERT INTO next_node_notes(user_id,node,pack,kind,detail,created) VALUES(?,?,?,?,?,?)", (uid, 'agreement-head', PID, 'flag', 'guide|it make → it makes', now - 7200))
         c.commit()
         out[name] = {'token': token, 'csrf': csrf, 'id': uid, **({'password': secret} if secret else {})}
 (STATE / 'sessions.json').write_text(json.dumps({'base': f'http://127.0.0.1:{PORT}', 'pid': PID, 'learners': out}))

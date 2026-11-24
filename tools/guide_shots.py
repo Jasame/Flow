@@ -44,18 +44,35 @@ def gaps(pg):
         pg.click(f'button.gap[data-gap="{i}"]'); pg.wait_for_selector('#sheetCard [data-pick]', timeout=5000)
         pg.click(f'#sheetCard [data-pick="{(12, 13)[i]}"]'); pg.wait_for_timeout(300)  # the right words: role, sorts
     pg.evaluate("document.querySelector('.xt-text').scrollIntoView(); scrollBy(0, -150)")
+    return 'keep'  # the page stays scrolled where the step left it
+
+
+def week(pg):
+    pg.click('#weekCard')
+    pg.wait_for_selector('.wk-sheet', timeout=6000)
+    pg.wait_for_timeout(500)
+
+
+def finish(pg):  # 用出来 done: the finish card with its three lines, in the middle of the screen
+    output(pg)
+    pg.click('#go')
+    pg.wait_for_selector('#finSum .fin-row', timeout=10000)
+    pg.evaluate("() => document.getElementById('finCard').scrollIntoView({ block: 'center' })")
+    pg.wait_for_timeout(500)
+    return 'keep'  # the page stays scrolled where the step left it
 
 
 # name -> (page, extra step or None, signed in?[, learner]); the learner is 小林 (guide) unless named
-
 SHOTS = {
     'welcome': ('#/welcome', None, False),
     'login': ('#/me', login, False),
     'today': ('#/', None, True),
+    'week': ('#/', week, True),
     'listen': (f'#/m/{PID}/listen', None, True),
     'read': (f'#/m/{PID}/read', None, True),
     'lookup': (f'#/m/{PID}/read', lookup, True),
     'output': (f'#/m/{PID}/output', output, True),
+    'finish': (f'#/m/{PID}/output', finish, True),
     'cards': ('#/cards', None, True),
     'plan': ('#/vocab/plan', None, True),
     'review': ('#/review', review, True),
@@ -106,9 +123,8 @@ def main(only):
             pg.wait_for_function("() => !document.querySelector('#view .skeleton') && !document.querySelector('#view .loading')", timeout=15000)
             pg.wait_for_selector('#view h1, #view .review, #view .empty', timeout=10000)
             pg.wait_for_timeout(700)
-            if step:
-                step(pg)
-            pg.evaluate("keep => { const t = document.getElementById('toast'); if (t) t.style.display = 'none'; if (!keep) window.scrollTo(0, 0); }", name == 'examtype')
+            keep = step(pg) == 'keep' if step else False
+            pg.evaluate("keep => { const t = document.getElementById('toast'); if (t) t.style.display = 'none'; if (!keep) window.scrollTo(0, 0); }", keep)
             pg.wait_for_timeout(300)
             pg.screenshot(path=str(OUT / f'{name}.jpg'), type='jpeg', quality=62)
             print(f"{name}: {(OUT / f'{name}.jpg').stat().st_size // 1024} KB", flush=True)

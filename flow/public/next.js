@@ -695,7 +695,7 @@
       if (!S.home) { await refreshHome(); fresh = true; }
       if (name === 'welcome') { setNav(''); await welcome(a === 'edit'); }
       // Only the personalised home needs the level questions first; everything else works for a new guest too.
-      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix', 'easy', 'words', 'speak', 'growth', 'radar', 'practice', 'guide', 'feedback'].includes(name)) { location.replace('#/welcome'); return; }
+      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix', 'easy', 'words', 'speak', 'growth', 'radar', 'practice', 'guide', 'feedback', 'weekly-off'].includes(name)) { location.replace('#/welcome'); return; }
       else if (name === 'placement') { setNav('practice'); await placementView(); }
       else if (name === 'exam') { setNav('practice'); await (b ? examTypeView(a, decodeURIComponent(b)) : examView(a)); }
       else if (name === 'series') { setNav('today'); await seriesView(decodeURIComponent(a || '')); }
@@ -711,6 +711,7 @@
       else if (name === 'import') { setNav('practice'); await importView(); }
       else if (name === 'sounds') { setNav('practice'); await soundsView(a ? decodeURIComponent(a) : ''); }
       else if (name === 'report') { setNav('me'); await reportView(); }
+      else if (name === 'weekly-off') { setNav('me'); await weeklyOffView(decodeURIComponent(a || '')); }  // the link in the Sunday mail
       else if (name === 'vocab') { setNav('cards'); await (a === 'plan' ? planView() : a === 'test' ? vocabTest() : vocabView()); }
       else if (name === 'review') { setNav('cards'); await reviewView(); }
       else if (name === 'library') { setNav('practice'); await libraryView(); }
@@ -1125,8 +1126,9 @@
     const resume = h.resume && h.resume.id !== readId ? h.resume : null, news = h.news && h.news.id !== readId ? h.news : null;
     const more = h.today.filter(m => m.id !== readId && (path || m !== pick) && (!resume || m.id !== resume.id) && (!news || m.id !== news.id)).slice(0, 3);
     view.innerHTML = `<div class="greet-row"><span class="kicker greet">${greeting()}${name ? `，<span class="nm">${esc(name)}</span>` : ''}</span>
-        ${st && st.habit ? habitChip(st.habit) : st ? `<span class="wk" title="本周学了 ${weekN} 天"><span class="tiny muted">本周 ${weekN} 天</span><span class="week" aria-hidden="true">${st.week.map(d => `<span class="${d.active ? 'on' : ''}"></span>`).join('')}</span></span>` : ''}</div>
+        ${st && st.progress ? '' : st && st.habit ? habitChip(st.habit) : st ? `<span class="wk" title="本周学了 ${weekN} 天"><span class="tiny muted">本周 ${weekN} 天</span><span class="week" aria-hidden="true">${st.week.map(d => `<span class="${d.active ? 'on' : ''}"></span>`).join('')}</span></span>` : ''}</div>
       ${announceHTML(h)}
+      ${weekCardHTML(h)}
       ${top}
       <div id="notice"></div>
       ${S.user && !path ? vocabHome(st) : ''}
@@ -1137,16 +1139,18 @@
     const ring = view.querySelector('.ring'); if (ring) ring.style.setProperty('--p', ring.dataset.p + '%');  // CSP: no inline style attributes
     fillNotice(h);
     bindAnnounce(h);
+    bindWeekCard();  // 这周进步 (11-progress.js)
     const hb = document.getElementById('habitBtn'); if (hb) hb.onclick = habitSheet;
     if (st && st.habit) cheerWeek(st.habit);
     const nextRead = readId || (pick && pick.id);
     if (nextRead) setTimeout(() => preloadMaterial(nextRead), 600);  // after the page is drawn, not before
   }
   // 每周目标: this week's days (Monday to Sunday) against the goal; a missed day breaks nothing while the week still
-  // reaches it. Weeks in a row are shown from two on. A tap changes the goal.
+  // reaches it. The weeks reached are counted up, never as a run that breaks (r27). A tap changes the goal. Signed in,
+  // the 这周进步 card (11-progress.js) shows all this, and the chip is only for a 今日 kept from before it.
   function habitChip(hb) {
-    return `<button class="wk habit" id="habitBtn" type="button" aria-label="本周学了 ${hb.done} 天，目标 ${hb.goal} 天${hb.streak > 1 ? '，已连续 ' + hb.streak + ' 周达成' : ''}。点这里改每周目标" data-tap="home-habit">
-      <span class="tiny ${hb.met ? 'met' : 'muted'}">本周 ${hb.done}/${hb.goal} 天${hb.streak > 1 ? ` · 连续 ${hb.streak} 周` : ''}</span>
+    return `<button class="wk habit" id="habitBtn" type="button" aria-label="本周学了 ${hb.done} 天，目标 ${hb.goal} 天${hb.weeks ? '，已达成 ' + hb.weeks + ' 周' : ''}。点这里改每周目标" data-tap="home-habit">
+      <span class="tiny ${hb.met ? 'met' : 'muted'}">本周 ${hb.done}/${hb.goal} 天${hb.weeks ? ` · 已达成 ${hb.weeks} 周` : ''}</span>
       <span class="week" aria-hidden="true">${hb.days.map(d => `<span class="${d.active ? 'on' : ''}${d.today ? ' today' : ''}"></span>`).join('')}</span></button>`;
   }
   function habitSheet() {
@@ -1162,6 +1166,7 @@
           card.querySelectorAll('[data-goal]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
           const v = document.getElementById('meHabitV'); if (v) v.textContent = `每周 ${r.habit.goal} 天`;
           const chip = document.getElementById('habitBtn'); if (chip) { chip.outerHTML = habitChip(r.habit); const n = document.getElementById('habitBtn'); if (n) n.onclick = habitSheet; }
+          refreshWeekCard();
           toast(`每周目标：${r.habit.goal} 天`);
         } catch (e) { toast(e.message); }
       });
@@ -1171,7 +1176,7 @@
   function cheerWeek(hb) {
     if (!hb.met || load('flow-habit-cheered') === hb.monday) return;
     save('flow-habit-cheered', hb.monday);
-    toast(hb.streak > 1 ? `本周目标达成！已经连续 ${hb.streak} 周` : '本周目标达成！');
+    toast(hb.weeks > 1 ? `本周目标达成！一共达成 ${hb.weeks} 周了` : '本周目标达成！');
   }
   // A material as one row: title, then level, topic and time; a pill says why it is on the list.
   function mrow(m, tag, href, tapKey) {
@@ -1230,6 +1235,113 @@
   }
   function nextStep(steps) { return STEPS.find(s => !steps.includes(s)) || 'output'; }
 
+  /* ---------- 这周进步 (r27): the week so far, at the top of 今日; its details; the Sunday mail ---------- */
+  // Four numbers from the learner's own records (progress_service.week): words remembered for the first time (a later
+  // day's review still recalled them), texts finished, the share of questions answered right without a hint against
+  // last week, and the weekly goal with the weeks reached so far (they only count up). A tap opens the details.
+  const WEEKDAYS = '一二三四五六日';
+  function accText(a) {
+    const n = a.now, b = a.before;
+    const value = n.rate != null ? n.rate + '%' : n.total ? `${n.right}/${n.total}` : '—';
+    const sub = n.rate != null && b.rate != null ? (n.rate > b.rate ? `<span class="up">比上周 ↑${n.rate - b.rate}</span>` : n.rate < b.rate ? `比上周 ↓${b.rate - n.rate}` : '和上周持平')
+      : n.rate == null ? (n.total ? `满 ${a.min} 题才算` : '这周还没做题') : b.total ? '上周题太少' : '上周没做题';
+    return { value, sub };
+  }
+  function weekCardHTML(h) {
+    const st = h && h.stats, p = st && st.progress, hb = st && st.habit;
+    if (!S.user || !p || !hb) return '';
+    const acc = accText(p.accuracy), weeks = hb.weeks || 0;
+    const empty = !p.remembered.now && !p.finished.now && !p.accuracy.now.total && !hb.done;
+    const tile = (cls, value, label, sub) => `<span class="wk-tile${cls ? ' ' + cls : ''}"><b>${value}</b><span class="tiny muted">${label}</span><span class="tiny sub">${sub}</span></span>`;
+    const label = `这周进步：记住 ${p.remembered.now} 个新词，学完 ${p.finished.now} 篇，做题正确率 ${p.accuracy.now.rate != null ? p.accuracy.now.rate + '%' : '还不够算'}，`
+      + `本周学了 ${hb.done} 天，目标 ${hb.goal} 天${weeks ? `，已达成 ${weeks} 周` : ''}。点开看明细`;
+    return `<button class="card week-card" id="weekCard" type="button" data-tap="home-week" aria-label="${esc(label)}">
+      <span class="wk-head"><b>这周进步</b><span class="tiny wk-total${weeks ? ' on' : ''}">${weeks ? `已达成 ${weeks} 周` : '看明细'}<span aria-hidden="true"> ›</span></span></span>
+      <span class="wk-tiles">${tile('', p.remembered.now, '记住的新词', `上周 ${p.remembered.before}`)}${tile('', p.finished.now, '学完的文章', `上周 ${p.finished.before}`)}`
+      + `${tile('', acc.value, '做题正确率', acc.sub)}${tile('goal' + (hb.met ? ' met' : ''), `${hb.done}<small>/${hb.goal}天</small>`, '每周目标', hb.met ? '达成 ✓' : `还差 ${hb.goal - hb.done} 天`)}</span>
+      <span class="wk-foot"><span class="week" aria-hidden="true">${hb.days.map(d => `<span class="${d.active ? 'on' : ''}${d.today ? ' today' : ''}"></span>`).join('')}</span>
+        <span class="tiny muted">${empty ? '做完今天的第一步，这里就开始记录' : '数字都来自你自己的学习记录'}</span></span></button>`;
+  }
+  function bindWeekCard() {
+    const b = document.getElementById('weekCard'); if (b) b.onclick = weekSheet;
+  }
+  // After the goal changes (habitSheet): the card is drawn again from the new numbers.
+  function refreshWeekCard() {
+    const b = document.getElementById('weekCard'); if (!b || !S.home) return;
+    b.outerHTML = weekCardHTML(S.home); bindWeekCard();
+  }
+  async function weekSheet() {
+    openSheet('<div class="stack"><h2 class="h2" id="sheetTitle">这周进步</h2><div class="loading"><span class="spin"></span></div></div>');
+    let w;
+    try { w = await api('/api/next/week'); } catch (e) { closeSheet(); return toast(e.message); }
+    if (sheetEl.hidden) return;
+    const hb = w.habit, r = w.remembered, f = w.finished, a = accText(w.accuracy), an = w.accuracy.now, ab = w.accuracy.before;
+    const day = s => { const [, m, d] = s.split('-').map(Number); return `${m} 月 ${d} 日`; };
+    openSheet(`<div class="stack wk-sheet"><div><h2 class="h2" id="sheetTitle">这周进步</h2><span class="small muted">${day(w.from)} – ${day(w.to)} · 数字都来自你自己的学习记录</span></div>
+      <section class="wk-sec" aria-label="每周目标"><div class="row between"><b>每周目标</b><span class="small ${hb.met ? 'met' : 'muted'}">本周 ${hb.done} / ${hb.goal} 天${hb.met ? ' · 达成 ✓' : ''}</span></div>
+        <div class="wk-days">${hb.days.map((d, k) => `<span class="${d.active ? 'on' : ''}${d.today ? ' today' : ''}"><i aria-hidden="true"></i><span class="tiny">${WEEKDAYS[k]}</span><span class="sr-only">${d.active ? '学了' : '没学'}</span></span>`).join('')}</div>
+        <p class="small">${hb.weeks ? `已经有 <b>${hb.weeks}</b> 周达成了目标。` : '还没有达成目标的周。'}一周学够 ${hb.goal} 天就算达成一周；哪天、哪周没学都不会清零，只会越攒越多。</p>
+        <p class="tiny muted">学一步材料、复习几个词、做一组练习或读一篇轻松读，都算学了这一天。</p>
+        <div><button class="btn small" id="wkGoal" type="button">改每周目标</button></div></section>
+      <section class="wk-sec" aria-label="记住的新词"><div class="row between"><b>记住的新词</b><span class="wk-num">${r.now}</span></div>
+        <p class="small muted">新词要隔天复习时还记得才算，一个词只算一次。上周 ${r.before} 个。</p>
+        ${r.words.length ? `<div class="wk-words">${r.words.map(x => `<span class="pill" lang="en">${esc(x)}</span>`).join('')}</div>` : '<p class="small">这周还没有。今天学的新词，明天复习还记得就会出现在这里。</p>'}</section>
+      <section class="wk-sec" aria-label="学完的文章"><div class="row between"><b>学完的文章</b><span class="wk-num">${f.now}</span></div>
+        <p class="small muted">做完一篇的理解题就算学完。上周 ${f.before} 篇。</p>
+        ${f.titles.length ? `<div class="wk-list">${f.titles.map(t => `<a class="link small" href="#/m/${encodeURIComponent(t.id)}" data-close>《${esc(t.title)}》</a>`).join('')}</div>` : ''}
+        ${w.easy && w.easy[0] ? `<p class="small">另外轻松读了 ${w.easy[0]} 篇，共 ${Number(w.easy[1]).toLocaleString()} 个词。</p>` : ''}</section>
+      <section class="wk-sec" aria-label="做题正确率"><div class="row between"><b>做题正确率</b><span class="wk-num">${a.value}</span></div>
+        <p class="small">${an.total ? `这周做了 ${an.total} 题，对了 ${an.right} 题` : '这周还没做题'}${an.total && an.rate == null ? `，满 ${w.accuracy.min} 题才算正确率` : ''}。${ab.total ? `上周 ${ab.total} 题对 ${ab.right} 题${ab.rate != null ? `（${ab.rate}%）` : ''}。` : '上周没做题。'}</p>
+        <p class="tiny muted">算的是不看提示做的理解题、语法题、辨析和考试练习；语法起点小测不算（它会一直加难，错一半是正常的）。</p></section>
+      <div class="row"><a class="btn primary" href="#/report" data-close>这周的报告</a><a class="btn" href="#/growth" data-close>我的进步</a><button class="btn ghost" data-close type="button">关闭</button></div></div>`, card => {
+      card.querySelector('#wkGoal').onclick = habitSheet;
+    });
+  }
+  // 我的 → 每周进度邮件: on by default for an account with an email; the mail's own link turns it off too.
+  function weeklyMailLabel() {
+    const m = S.home && S.home.stats && S.home.stats.progress && S.home.stats.progress.mail;
+    return !m ? '' : !m.email ? '绑定邮箱后可以收' : m.on ? '每周日晚上 8 点' : '已关闭';
+  }
+  function weeklyMailSheet() {
+    const p = S.home && S.home.stats && S.home.stats.progress, m = (p && p.mail) || { on: true, email: false };
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">每周进度邮件</h2>
+      <p class="small">每周日晚上 8 点，把这周的进步发到你绑定的邮箱：记住的新词、学完的文章、做题正确率和每周目标。这周没学的话，会提醒你一下；连着几周没学就不再发。</p>
+      ${m.email ? `<div class="chips" role="radiogroup" aria-label="收不收每周进度邮件">${[[true, '每周收'], [false, '不收']].map(([v, l]) => `<button class="chip" type="button" role="radio" data-mail="${v}" aria-checked="${m.on === v}">${l}</button>`).join('')}</div>
+        <p class="tiny muted">每封邮件最下面也有退订链接。</p>`
+        : `<p class="small muted">还没有绑定邮箱。</p><div><button class="btn small primary" id="wmBind" type="button">绑定邮箱</button></div>`}
+      <button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      card.querySelectorAll('[data-mail]').forEach(b => b.onclick = async () => {
+        try {
+          const r = await api('/api/next/weekly-mail', { on: b.dataset.mail === 'true' });
+          if (p) p.mail = r;
+          card.querySelectorAll('[data-mail]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
+          const v = document.getElementById('meMailV'); if (v) v.textContent = weeklyMailLabel();
+          toast(r.on ? '每周日晚上会收到进度邮件' : '不再发每周进度邮件');
+        } catch (e) { toast(e.message); }
+      });
+      const bind = card.querySelector('#wmBind'); if (bind) bind.onclick = () => bindEmailSheet('');
+    });
+  }
+  // The link in the mail (#/weekly-off/<token>): no sign-in needed. It asks once, so a mail scanner opening the link
+  // turns nothing off; 「撤销」 takes it back.
+  async function weeklyOffView(token) {
+    const draw = (off, err) => {
+      view.innerHTML = `<div class="stack weekly-off"><div><span class="kicker">每周进度邮件</span><h1 class="h1">${off ? '已退订' : '退订每周进度邮件'}</h1></div>
+        <p class="small">${off ? '以后不会再收到每周进度邮件了。想再收，可以点下面的「撤销」，或者在「我的 → 每周进度邮件」里打开。'
+          : '每周日晚上 8 点，语流会把你这周的进步发到绑定的邮箱：记住的新词、学完的文章、做题正确率和每周目标。退订后就不再发。'}</p>
+        <div class="row">${off ? '<button class="btn" id="offUndo" type="button">撤销，继续收</button><a class="btn primary" href="#/">去学习</a>'
+          : '<button class="btn primary" id="offGo" type="button">退订</button><a class="btn ghost" href="#/">不退订，去学习</a>'}</div>
+        <p class="err" role="alert">${esc(err || '')}</p></div>`;
+      const send = on => async e => {
+        e.currentTarget.disabled = true;
+        try { await api('/api/next/weekly-mail/off', { token, on }); draw(!on); toast(on ? '会继续收到每周进度邮件' : '已退订'); }
+        catch (x) { draw(on, x.message); }
+      };
+      const go = document.getElementById('offGo'); if (go) go.onclick = send(false);
+      const undo = document.getElementById('offUndo'); if (undo) undo.onclick = send(true);
+    };
+    draw(false);
+  }
   /* ---------- study ---------- */
   let selbar = null;
   function hideSelbar() { if (selbar) { selbar.remove(); selbar = null; } }
@@ -1873,7 +1985,7 @@
             ${x.model ? `<div class="card flat stack-s"><div class="row between"><b>示范复述</b><button class="icon-btn" id="rtSay" aria-label="朗读">${ICON.speak}</button></div><div class="text small">${esc(x.model)}</div></div>` : ''}</div>`;
           const say = pane.querySelector('#rtSay'); if (say) say.onclick = () => TTS.say(x.model);
           bringIntoView(pane.querySelector('#rtOut'));
-          markStep('output'); blob = null; state.textContent = '打字或录音都行';
+          markStep('output'); showFinish(pane, m, id); blob = null; state.textContent = '打字或录音都行';
         } catch (x) { toast(x.message); }
         btn.disabled = false; btn.textContent = 'AI 看看我的复述';
       };
@@ -1933,7 +2045,7 @@
           <div class="row"><button class="btn primary" id="dlgAgain">再练一轮</button><a class="btn" href="#/m/${encodeURIComponent(id)}/output/translate">换个练法：翻译</a></div></div>`;
         pane.querySelectorAll('[data-kx]').forEach(b => b.onclick = () => { const ex = x.expressions[Number(b.dataset.kx)]; saveCard({ text: ex.text, meaning: ex.meaning, context: '', pack: id }, b); });
         pane.querySelector('#dlgAgain').onclick = () => { scrollTo({ top: 0 }); dialogMode(); };
-        bringIntoView(pane.querySelector('#dlgOut'));
+        showFinish(pane, m, id); bringIntoView(pane.querySelector('#dlgOut'));
       };
     }
 
@@ -1964,7 +2076,7 @@
             pane.querySelector('#trOut').innerHTML = `<div class="result enter stack"><div class="card verdict"><span class="dot"></span><div>得分 ${Math.round(x.score * 100)}<div class="small">${esc(x.accuracy)}</div><div class="small muted">${esc(x.fluency)}</div></div></div>
               ${fixesHTML(x.fixes)}<div class="card flat stack-s"><b>${dir === 'zh2en' ? '原文' : '参考译文'}</b><div class="text small">${esc(dir === 'zh2en' ? x.original : x.reference)}</div>
               ${dir === 'zh2en' && x.reference && x.reference !== x.original ? `<div class="tiny muted">另一种自然说法：${esc(x.reference)}</div>` : ''}</div></div>`;
-            markStep('output'); bringIntoView(pane.querySelector('#trOut'));
+            markStep('output'); showFinish(pane, m, id); bringIntoView(pane.querySelector('#trOut'));
           } catch (x) { toast(x.message); }
           btn.disabled = false; btn.textContent = '提交';
         };
@@ -2000,7 +2112,7 @@
           requestAnimationFrame(() => requestAnimationFrame(() => pane.querySelectorAll('#esOut .vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; })));
           const wn = count();
           if (wn < range[0] || wn > range[1]) pane.querySelector('#esOut .result').insertAdjacentHTML('afterbegin', `<div class="card sunk small">这篇 ${wn} 词，任务建议 ${range[0]}–${range[1]} 词：${wn < range[0] ? '内容展开得还不够，考试里会影响「内容」分。' : '超出了建议长度，考试里要注意时间和篇幅。'}</div>`);
-          markStep('output'); bringIntoView(pane.querySelector('#esOut'));
+          markStep('output'); showFinish(pane, m, id); bringIntoView(pane.querySelector('#esOut'));
         } catch (x) { toast(x.message); }
         btn.disabled = false; btn.textContent = '再批改一次';
       };
@@ -2047,15 +2159,58 @@
         ${r.word_use && r.word_use.length ? `<div class="card sunk stack-s"><div class="kicker">你用到了正在背的词</div>${r.word_use.map(u => `<div class="small"><span class="${u.ok ? 'ok-mark' : 'bad-mark'}">${u.ok ? '✓' : '✗'}</span> <b>${esc(u.word)}</b>：${esc(u.note)}</div>`).join('')}
           <div class="tiny muted">用对的算一次成功复习；用错的会提前安排复习。</div></div>` : ''}
         ${r.keep ? `<div class="card sunk row between"><div><div class="kicker">值得收藏</div><b class="text">${esc(r.keep.text)}</b> <span class="muted small">${esc(r.keep.meaning)}</span></div><button class="btn small primary" id="keep">收藏</button></div>` : ''}
-        <div class="card done-card">${doneRing}<h2 class="h2">这篇完成了</h2>${(m.expressions || []).length ? '<button class="link small" id="shareDone" type="button" data-tap="share-material">把学会的一句做成卡片</button>' : ''}<p class="muted small">${remaining != null ? '今天还可以用 AI ' + remaining + ' 次。' : ''}收藏的表达会在合适的时候出现在复习里，知识图谱也已更新。</p>
-          <div class="row center">${m.series && m.series.next ? `<a class="btn" href="#/">回到今日</a><a class="btn primary" href="#/m/${encodeURIComponent(m.series.next)}">下一集：第 ${m.series.part + 1} 集</a>` : '<a class="btn" href="#/graph">看知识图谱</a><a class="btn primary" href="#/">回到今日</a>'}</div></div></div>`;
+        </div>`;
       box.querySelectorAll('[data-say-text]').forEach(b => b.onclick = () => TTS.say(b.dataset.sayText));
-      const sd = box.querySelector('#shareDone'); if (sd) sd.onclick = () => shareFromMaterial(m);
+      showFinish(pane, m, id, remaining);  // 这篇完成了, with what this text gave (25-finish.js)
       box.querySelectorAll('[data-keep-v]').forEach(b => b.onclick = () => { const v = r.versions[Number(b.dataset.keepV)]; saveCard({ text: v.text, meaning: v.label + '：' + v.why, context: '', pack: id }, b); });
       const k = box.querySelector('#keep'); if (k) k.onclick = () => saveCard({ text: r.keep.text, meaning: r.keep.meaning, context: r.corrected, pack: id }, k);
       box.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' });
     }
     ({ listen, read, check, output })[st.step]();
+  }
+  /* ---------- 这篇完成了 (r27): after 用出来, three lines on what this text gave the learner ---------- */
+  // The expressions and words saved from this text, and one grammar point to work on (progress_service.text_summary):
+  // one the AI corrected in what was written for it, else one of its points that needs attention or has not been
+  // checked with questions yet. Each line goes where that work continues. Shown after any of the five ways of 用出来,
+  // once at the end of the step (a second answer draws it again with what has changed). The share card stays.
+  function finishCard(m, id, remaining) {
+    const share = (m.expressions || []).length ? '<button class="link small" id="shareDone" type="button" data-tap="share-material">把学会的一句做成卡片</button>' : '';
+    const next = m.series && m.series.next ? `<a class="btn" href="#/">回到今日</a><a class="btn primary" href="#/m/${encodeURIComponent(m.series.next)}">下一集：第 ${m.series.part + 1} 集</a>`
+      : '<a class="btn" href="#/graph">看知识图谱</a><a class="btn primary" href="#/">回到今日</a>';
+    return `<div class="card done-card fin enter" id="finCard">${doneRing}<h2 class="h2">这篇完成了</h2>
+      ${S.user ? '<div class="fin-sum" id="finSum" aria-live="polite" aria-busy="true"><span class="fin-wait"><span class="spin"></span> 正在整理这篇学到的…</span></div>' : ''}
+      ${share}<p class="muted tiny">${remaining != null ? '今天还可以用 AI ' + remaining + ' 次。' : ''}收藏的表达和生词会按遗忘曲线安排复习。</p>
+      <div class="row center">${next}</div></div>`;
+  }
+  function finishLines(s, id) {
+    const row = (k, text, href, tap) => href ? `<a class="fin-row" href="${href}" data-tap="${tap}"><span class="k">${k}</span><span class="t">${text}</span><span class="go" aria-hidden="true">›</span></a>`
+      : `<div class="fin-row"><span class="k">${k}</span><span class="t">${text}</span></div>`;
+    const list = xs => xs.slice(0, 2).map(x => `<b lang="en">${esc(x.text || x)}</b>`).join('、');
+    const e = s.expressions, w = s.words, g = s.grammar;
+    const expr = e.count ? row('表达', `收藏了 ${e.count} 个：${list(e.saved)}${e.count > 2 ? ' 等' : ''}`, '#/cards/phrase', 'finish-expr')
+      : e.key.length ? row('表达', `还没收藏。这篇的重点：${list(e.key)}`, `#/m/${encodeURIComponent(id)}/read`, 'finish-expr') : row('表达', '这篇没有收藏表达');
+    const words = w.count ? row('新词', `收藏了 ${w.count} 个：${list(w.saved)}${w.count > 2 ? ' 等' : ''}，明天开始复习`, '#/cards/word', 'finish-words')
+      : w.mine.length ? row('新词', `没有收藏生词；这篇里有你在背的 ${w.mine.length} 个：${list(w.mine)}${w.mine.length > 2 ? ' 等' : ''}`, '#/cards/word', 'finish-words')
+      : row('新词', '这篇没有收藏生词');
+    const node = g && g.id ? `#/graph/${encodeURIComponent(g.id)}` : '';
+    const gram = !g ? row('语法', '这篇没有标出语法点')
+      : g.all_solid ? row('语法', `这篇的 ${g.count} 个语法点都做题验证过了 ✓`)
+      : g.why === 'flag' ? row('语法', `「${esc(g.title)}」写错了 ${g.times} 次${g.change ? `（<span lang="en">${esc(g.change)}</span>）` : ''}，做 4 题巩固`, node, 'finish-grammar')
+      : g.why === 'watch' ? row('语法', `「${esc(g.title)}」需要留意，做 4 题巩固`, node, 'finish-grammar')
+      : row('语法', `这篇用到了「${esc(g.title)}」，做 4 题验证一下`, node, 'finish-grammar');
+    return expr + words + gram;
+  }
+  // The finish card at the end of the step's pane (one; drawn again after another answer), then its three lines.
+  async function showFinish(pane, m, id, remaining) {
+    let slot = pane.querySelector('#finSlot');
+    if (!slot) { slot = document.createElement('div'); slot.id = 'finSlot'; slot.className = 'section'; pane.appendChild(slot); }
+    slot.innerHTML = finishCard(m, id, remaining);
+    const sd = slot.querySelector('#shareDone'); if (sd) sd.onclick = () => shareFromMaterial(m);
+    const box = slot.querySelector('#finSum'); if (!box) return;
+    try {
+      const s = await api('/api/next/text-summary?pack=' + encodeURIComponent(id));
+      if (box.isConnected) { box.innerHTML = finishLines(s, id); box.removeAttribute('aria-busy'); }
+    } catch (e) { box.remove(); }
   }
   function splitSentences(body) { return body.split(/(?<=[.!?]["”’]?)\s+/).map(s => s.trim()).filter(Boolean); }
   function findContext(term, ls) { const t = term.toLowerCase(); return ls.find(s => s.toLowerCase().includes(t)) || ''; }
@@ -4063,7 +4218,7 @@
       g.fillStyle = '#e7e3d8'; g.fillRect(240, y - 24, 600, 22); g.fillStyle = green; g.fillRect(240, y - 24, 600 * s.now, 22);
       g.fillStyle = muted; g.fillText(Math.round(s.now * 100) + '%', 870, y);
     });
-    brandFoot(g, W, H, habitNote(false, true));  // logo, weeks in a row at the goal, and the QR code back to the site (86-share.js)
+    brandFoot(g, W, H, habitNote(false, true));  // logo, the weeks that reached the goal, and the QR code back to the site (86-share.js)
     return cv.toDataURL('image/png');
   }
 
@@ -4120,6 +4275,7 @@
       u && ['进步', [grow('#/radar', '能力雷达', '离目标还差多少', '', 'me-radar'), grow('#/growth', '我的进步', '每月对比和里程碑', '', 'me-growth'), grow('#/report', '这周的报告', '', '', 'me-report'), grow('#/cards/mistake', '错题本', '', '', 'me-mistake')]],
       ['设置', [grow('#/welcome/edit', '学习目标和水平', [goal && esc(goal.label), lv && lv.id].filter(Boolean).join(' · ') || '未设置', '', 'me-level'),
         u ? grow('meExam', '我的考试', examLabel(p), 'meExamV', 'me-exam') : '', u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), grow('meText', '字号和行距', textLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '加到手机日历', '', 'me-remind'),
+        u ? grow('meMail', '每周进度邮件', weeklyMailLabel(), 'meMailV', 'me-weekly-mail') : '',
         installed ? '' : grow('meInstall', '添加到桌面', '像 App 一样打开', '', 'me-install')]],
       u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
         grow('meData', '导出我的数据', '单词本 · 学习记录', '', 'me-data'), grow('meDelete', '注销账号', '', '', 'me-delete')],
@@ -4128,7 +4284,7 @@
     ].filter(Boolean);
     view.innerHTML = `<div class="card flat me-head"><div class="me-id">${u ? `<span class="avatar" aria-hidden="true">${esc([...u.username][0].toUpperCase())}</span>` : ''}
         <div class="t"><h1 class="h1">${u ? esc(u.username) : '我的'}</h1><span class="small muted">${lv ? `${esc(lv.label)}（${lv.id}）` : '还没有设置水平'} · 每天 ${p.minutes || 10} 分钟</span></div></div>
-        ${st ? `<div class="me-nums">${[[st.week.filter(d => d.active).length, '本周学习天数'], [st.materials_done, '学完的材料'], [st.cards, '单词与表达']].map(([n, l]) => `<div><b>${n}</b><span class="tiny muted">${l}</span></div>`).join('')}</div>`
+        ${st ? `<div class="me-nums">${[[st.habit ? st.habit.done : st.week.filter(d => d.active).length, '本周学习天数'], [st.materials_done, '学完的材料'], [st.cards, '单词与表达']].map(([n, l]) => `<div><b>${n}</b><span class="tiny muted">${l}</span></div>`).join('')}</div>`
           : u ? '' : `<div class="stack-s"><span class="muted small">登录后才能保存进度、收藏表达和使用 AI。</span><div><button class="btn primary small" id="lg">登录 / 注册</button></div></div>`}</div>
       ${groups.map(([h, rows, foot]) => `<section class="gsec" aria-label="${h}"><h2 class="ghead">${h}</h2><div class="glist">${rows.join('')}</div>${foot ? `<p class="tiny muted gfoot">${foot}</p>` : ''}</section>`).join('')}
       ${u ? '<div class="glist gsec"><button class="grow danger" id="out" type="button"><span class="t">退出登录</span></button></div>' : ''}`;
@@ -4138,6 +4294,7 @@
     const mh = document.getElementById('meHabit'); if (mh) mh.onclick = habitSheet;
     const me = document.getElementById('meExam'); if (me) me.onclick = () => examGoalSheet(() => meView());
     document.getElementById('meRemind').onclick = () => remindSheet(p.minutes || 10);
+    const mm = document.getElementById('meMail'); if (mm) mm.onclick = weeklyMailSheet;  // 11-progress.js
     const mi = document.getElementById('meInstall'); if (mi) mi.onclick = installSheet;
     if (u) {
       const b = document.getElementById('bindMail'); b.disabled = true;
@@ -4532,15 +4689,15 @@
     QR.draw(g, SHARE_URL, W - 300, H - 300, 220, '#13261b', '#ffffff');
     g.fillStyle = '#6f7369'; g.font = shareFont(24, 400); g.textAlign = 'center'; g.fillText('扫码一起学', W - 190, H - 52); g.textAlign = 'left';
   }
-  // The week, said only when there is something to say: a streak of weeks, or the days of this one. Shared right after
-  // studying (studiedNow), today counts even before 今日 is fetched again. The week's card has its days already
-  // (streakOnly; its seven days are not the calendar week either).
-  function habitNote(studiedNow, streakOnly) {
+  // The week, said only when there is something to say: the weeks that reached the goal (counted up, never a run that
+  // breaks), or the days of this one. Shared right after studying (studiedNow), today counts even before 今日 is
+  // fetched again. The week's card has its days already (weeksOnly; its seven days are not the calendar week either).
+  function habitNote(studiedNow, weeksOnly) {
     const hb = S.user && S.home && S.home.stats && S.home.stats.habit;
     if (!hb) return '';
     const t = (hb.days || []).find(d => d.today), done = hb.done + (studiedNow && t && !t.active ? 1 : 0);
-    const streak = hb.streak + (done >= hb.goal && !hb.met ? 1 : 0);
-    return streak > 1 ? `已经连续 ${streak} 周达成学习目标` : done > 0 && !streakOnly ? `这周学了 ${done} 天` : '';
+    const weeks = (hb.weeks || 0) + (done >= hb.goal && !hb.met ? 1 : 0);
+    return weeks > 1 ? `一共有 ${weeks} 周达成了学习目标` : done > 0 && !weeksOnly ? `这周学了 ${done} 天` : '';
   }
   // A learned expression: big, its meaning, the sentence it came in, and where from.
   function sentenceCard(x, from, title) {

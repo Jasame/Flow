@@ -982,12 +982,13 @@ def send_reminders(c, now=None, send=None):
                      "WHERE r.enabled=1 AND r.hour=? AND (r.last_sent IS NULL OR r.last_sent<?) AND u.email IS NOT NULL AND u.email!=''",
                      (local.hour, today)).fetchall()
     sent = 0
+    weekly = __import__('progress_service').mailed_today
     for r in rows:
         introduce(c, r['user_id'], now)
         n = counts(c, r['user_id'], now)
         c.execute('UPDATE next_reminders SET last_sent=? WHERE user_id=?', (today, r['user_id']))
         c.commit()
-        if not n['due'] and not n['new']:
+        if not n['due'] and not n['new'] or weekly(c, r['user_id'], now):  # Sunday evening: the weekly mail said it already
             continue
         text = (f"{r['username']}，你好：\n\n今天有 {n['due']} 个单词该复习了" + (f"，还有 {n['new']} 个新词" if n['new'] else '') +
                 f"，大约 {n['minutes']} 分钟。\n记忆曲线到点了，现在复习效果最好：{origin}/#/review\n\n"

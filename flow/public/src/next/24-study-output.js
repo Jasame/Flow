@@ -33,7 +33,7 @@
             ${x.model ? `<div class="card flat stack-s"><div class="row between"><b>示范复述</b><button class="icon-btn" id="rtSay" aria-label="朗读">${ICON.speak}</button></div><div class="text small">${esc(x.model)}</div></div>` : ''}</div>`;
           const say = pane.querySelector('#rtSay'); if (say) say.onclick = () => TTS.say(x.model);
           bringIntoView(pane.querySelector('#rtOut'));
-          markStep('output'); blob = null; state.textContent = '打字或录音都行';
+          markStep('output'); showFinish(pane, m, id); blob = null; state.textContent = '打字或录音都行';
         } catch (x) { toast(x.message); }
         btn.disabled = false; btn.textContent = 'AI 看看我的复述';
       };
@@ -93,7 +93,7 @@
           <div class="row"><button class="btn primary" id="dlgAgain">再练一轮</button><a class="btn" href="#/m/${encodeURIComponent(id)}/output/translate">换个练法：翻译</a></div></div>`;
         pane.querySelectorAll('[data-kx]').forEach(b => b.onclick = () => { const ex = x.expressions[Number(b.dataset.kx)]; saveCard({ text: ex.text, meaning: ex.meaning, context: '', pack: id }, b); });
         pane.querySelector('#dlgAgain').onclick = () => { scrollTo({ top: 0 }); dialogMode(); };
-        bringIntoView(pane.querySelector('#dlgOut'));
+        showFinish(pane, m, id); bringIntoView(pane.querySelector('#dlgOut'));
       };
     }
 
@@ -124,7 +124,7 @@
             pane.querySelector('#trOut').innerHTML = `<div class="result enter stack"><div class="card verdict"><span class="dot"></span><div>得分 ${Math.round(x.score * 100)}<div class="small">${esc(x.accuracy)}</div><div class="small muted">${esc(x.fluency)}</div></div></div>
               ${fixesHTML(x.fixes)}<div class="card flat stack-s"><b>${dir === 'zh2en' ? '原文' : '参考译文'}</b><div class="text small">${esc(dir === 'zh2en' ? x.original : x.reference)}</div>
               ${dir === 'zh2en' && x.reference && x.reference !== x.original ? `<div class="tiny muted">另一种自然说法：${esc(x.reference)}</div>` : ''}</div></div>`;
-            markStep('output'); bringIntoView(pane.querySelector('#trOut'));
+            markStep('output'); showFinish(pane, m, id); bringIntoView(pane.querySelector('#trOut'));
           } catch (x) { toast(x.message); }
           btn.disabled = false; btn.textContent = '提交';
         };
@@ -160,7 +160,7 @@
           requestAnimationFrame(() => requestAnimationFrame(() => pane.querySelectorAll('#esOut .vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; })));
           const wn = count();
           if (wn < range[0] || wn > range[1]) pane.querySelector('#esOut .result').insertAdjacentHTML('afterbegin', `<div class="card sunk small">这篇 ${wn} 词，任务建议 ${range[0]}–${range[1]} 词：${wn < range[0] ? '内容展开得还不够，考试里会影响「内容」分。' : '超出了建议长度，考试里要注意时间和篇幅。'}</div>`);
-          markStep('output'); bringIntoView(pane.querySelector('#esOut'));
+          markStep('output'); showFinish(pane, m, id); bringIntoView(pane.querySelector('#esOut'));
         } catch (x) { toast(x.message); }
         btn.disabled = false; btn.textContent = '再批改一次';
       };
@@ -207,10 +207,9 @@
         ${r.word_use && r.word_use.length ? `<div class="card sunk stack-s"><div class="kicker">你用到了正在背的词</div>${r.word_use.map(u => `<div class="small"><span class="${u.ok ? 'ok-mark' : 'bad-mark'}">${u.ok ? '✓' : '✗'}</span> <b>${esc(u.word)}</b>：${esc(u.note)}</div>`).join('')}
           <div class="tiny muted">用对的算一次成功复习；用错的会提前安排复习。</div></div>` : ''}
         ${r.keep ? `<div class="card sunk row between"><div><div class="kicker">值得收藏</div><b class="text">${esc(r.keep.text)}</b> <span class="muted small">${esc(r.keep.meaning)}</span></div><button class="btn small primary" id="keep">收藏</button></div>` : ''}
-        <div class="card done-card">${doneRing}<h2 class="h2">这篇完成了</h2>${(m.expressions || []).length ? '<button class="link small" id="shareDone" type="button" data-tap="share-material">把学会的一句做成卡片</button>' : ''}<p class="muted small">${remaining != null ? '今天还可以用 AI ' + remaining + ' 次。' : ''}收藏的表达会在合适的时候出现在复习里，知识图谱也已更新。</p>
-          <div class="row center">${m.series && m.series.next ? `<a class="btn" href="#/">回到今日</a><a class="btn primary" href="#/m/${encodeURIComponent(m.series.next)}">下一集：第 ${m.series.part + 1} 集</a>` : '<a class="btn" href="#/graph">看知识图谱</a><a class="btn primary" href="#/">回到今日</a>'}</div></div></div>`;
+        </div>`;
       box.querySelectorAll('[data-say-text]').forEach(b => b.onclick = () => TTS.say(b.dataset.sayText));
-      const sd = box.querySelector('#shareDone'); if (sd) sd.onclick = () => shareFromMaterial(m);
+      showFinish(pane, m, id, remaining);  // 这篇完成了, with what this text gave (25-finish.js)
       box.querySelectorAll('[data-keep-v]').forEach(b => b.onclick = () => { const v = r.versions[Number(b.dataset.keepV)]; saveCard({ text: v.text, meaning: v.label + '：' + v.why, context: '', pack: id }, b); });
       const k = box.querySelector('#keep'); if (k) k.onclick = () => saveCard({ text: r.keep.text, meaning: r.keep.meaning, context: r.corrected, pack: id }, k);
       box.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' });
