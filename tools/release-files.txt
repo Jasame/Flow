@@ -32,6 +32,7 @@ flow/ability_radar.py
 flow/account_service.py
 flow/adaptive_service.py
 flow/ai_check.py
+flow/ai_eval.py
 flow/ai_help_service.py
 flow/ai_jobs.py
 flow/ai_stream.py
@@ -58,6 +59,7 @@ flow/corpus_data/ecdict-flow.json
 flow/corpus_data/graded-packs.json
 flow/corpus_data/irregular-flow.json
 flow/corpus_data/meaning-fixes.json
+flow/corpus_data/ai-eval.json
 flow/corpus_data/pilot/audio/18593289706a0b4e622f.m4a
 flow/corpus_data/pilot/audio/2c5c6c444fee70d0c859.m4a
 flow/corpus_data/pilot/audio/3d2ec649a75a8b8242af.m4a
@@ -151,6 +153,7 @@ flow/feedback_service.py
 flow/field_service.py
 flow/account_data.py
 flow/slim.py
+flow/relisten_service.py
 flow/flow-backup.service
 flow/flow-backup.timer
 flow/flow-daily.service
@@ -278,6 +281,8 @@ flow/tests/test_ux_round.py
 flow/tests/test_account_data.py
 flow/tests/test_learner_round.py
 flow/tests/test_slim.py
+flow/tests/test_relisten.py
+flow/tests/test_ai_eval.py
 flow/tests/test_vertex.py
 flow/tests/test_vocab.py
 flow/tests/test_wordbook_registry.py

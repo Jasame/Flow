@@ -715,6 +715,8 @@ def stats(c, uid):
         days.add(_day(t))
     for (t,) in c.execute('SELECT created FROM next_reviews WHERE user_id=? AND created>?', (uid, week_start)):
         days.add(_day(t))
+    for (t,) in c.execute('SELECT created FROM next_relisten WHERE user_id=? AND created>?', (uid, week_start)):
+        days.add(_day(t))
     week = [_day(now - i * 86400) for i in range(6, -1, -1)]
     import vocab_service
     vocab_service.introduce(c, uid, now)  # today's new words from the learner's word book, so home shows the real task
@@ -739,7 +741,8 @@ def habit(c, uid, goal, now=None):
     monday = today - D(days=today.weekday())
     since = datetime.datetime.combine(monday - D(weeks=52), datetime.time(), TZ).timestamp()
     days = set()
-    for sql in ('SELECT created FROM next_progress WHERE user_id=? AND created>=?', 'SELECT created FROM next_reviews WHERE user_id=? AND created>=?'):
+    for sql in ('SELECT created FROM next_progress WHERE user_id=? AND created>=?', 'SELECT created FROM next_reviews WHERE user_id=? AND created>=?',
+                'SELECT created FROM next_relisten WHERE user_id=? AND created>=?'):  # 复听 (relisten_service) counts too
         for (t,) in c.execute(sql, (uid, since)):
             days.add(datetime.datetime.fromtimestamp(t, TZ).date())
     count = lambda mon: sum(1 for k in range(7) if mon + D(days=k) in days)
@@ -1420,6 +1423,8 @@ def post(c, uid, path, data):
         return save_profile(c, uid, data)
     if path == '/api/next/habit':
         return set_weekly_goal(c, uid, data)
+    if path == '/api/next/relisten':
+        return __import__('relisten_service').record(c, uid, data)
     if path == '/api/next/radar/goals':
         return __import__('ability_radar').set_goals(c, uid, data)
     if path == '/api/next/assess/comprehension':
