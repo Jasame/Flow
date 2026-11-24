@@ -159,7 +159,11 @@ class LightEndToEndTests(unittest.TestCase):
         self.assertIn("st['e2e'] = run_e2e(work, work / 'e2e.log', light)", src)
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)
-            failed = [{'who': 'b1', 'name': 'dialog end gives feedback', 'detail': {'error': 'AI 这次的回答不完整，没有保存。', 'x': 'y ' * 200}}]
+            failed = [{'who': 'b1', 'name': 'dialog end gives feedback', 'detail': str({'error': 'AI 这次的回答不完整，没有保存。', 'request_id': 'e2e-dg-1', 'remaining': 41})},
+                      {'who': 'db', 'name': 'no AI job failed', 'detail': str([{'kind': 'next-dialog', 'error': 'AI 这次的回答不完整，没有保存。'}])},
+                      {'who': 'exam', 'name': 'AI scores an essay', 'detail': str({'summary': 'what the learner wrote, never shown', 'score': 0.4})},
+                      {'who': 'guard', 'name': 'oversized essay body refused', 'detail': '502'},
+                      {'who': 'a2', 'name': 'persona finished without crashing', 'detail': 'Traceback (most recent call last):\n  File "x"\nKeyError: \'reply\''}]
             (work / 'report.json').write_text(json.dumps({'checks': {'total': 3, 'failed': 1}, 'failed': failed, 'server_errors': [],
                                                           'ai_calls_used': 1, 'seconds': 1, 'light': True}))
             seen = []
@@ -167,11 +171,14 @@ class LightEndToEndTests(unittest.TestCase):
                 summary = mod.run_e2e(work, work / 'e2e.log', True)
                 self.assertTrue(summary['light'])
                 mod.run_e2e(work, work / 'e2e.log')
-        # why it failed travels with the name, short: the deploy status (and the Actions log) show it
-        self.assertEqual(summary['failed_names'], ['b1: dialog end gives feedback'])
-        detail = summary['failed_details'][0]
-        self.assertTrue(detail.startswith('b1: dialog end gives feedback: '), detail)
-        self.assertLessEqual(len(detail), len('b1: dialog end gives feedback: ') + 160)
+        # why it failed travels with the name: the app's error text, a status, an exception type; never an answer's content
+        self.assertEqual(summary['failed_details'], [
+            'b1: dialog end gives feedback: AI 这次的回答不完整，没有保存。',
+            'db: no AI job failed: next-dialog: AI 这次的回答不完整，没有保存。',
+            'exam: AI scores an essay: ',
+            'guard: oversized essay body refused: HTTP 502',
+            'a2: persona finished without crashing: KeyError'])
+        self.assertNotIn('learner wrote', json.dumps(summary, ensure_ascii=False))
         self.assertEqual(seen[0].get('QA_LIGHT'), '1')
         self.assertNotIn('QA_LIGHT', seen[1])
         self.assertEqual(seen[0].get('FLOW_SERVICE'), 'flow-beta')  # the 内测版's settings are kept
