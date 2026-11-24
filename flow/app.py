@@ -226,7 +226,7 @@ class Handler(BaseHTTPRequestHandler):
   # /audio/words/<accent>/<sprite>.aac?s=<start>&e=<end>: one word cut from its sprite with silence in front (word_clip:
   # an iPhone waking its audio lost the start of a word played from the middle of the sprite).
   import next_service
-  parts=path.split('/');data=None;mime=None
+  parts=path.split('/');data=None;mime=None;private=False
   if len(parts)==5 and parts[2]=='words' and parts[4][-4:] in ('.m4a','.mp4'):f=__import__('vocab_service').word_audio_file(parts[3],parts[4][:-4])
   elif len(parts)==5 and parts[2]=='words' and parts[4].endswith('.aac'):
    f=__import__('vocab_service').word_audio_file(parts[3],parts[4][:-4]);q=parse_qs(urlsplit(self.path).query)
@@ -241,6 +241,12 @@ class Handler(BaseHTTPRequestHandler):
    except (ValueError,OSError,IndexError,KeyError,StopIteration,TypeError,__import__('struct').error):data=None
    f=f if data else None;mime='audio/aac'
   elif len(parts)==5 and parts[2]=='tts':f=__import__('tts_service').file(parts[3],parts[4])
+  elif len(parts)==5 and parts[2]=='own':
+   # /audio/own/<voice>/<hash>.mp3: a sentence of the learner's own article (an import), served to that learner only
+   c=db()
+   try:u=self.user(c)
+   finally:c.close()
+   f=__import__('tts_service').own_file(u['id'],parts[3],parts[4]) if u else None;private=True
   else:f=next_service.audio_file(parts[2],parts[3].rsplit('.',1)[0],parts[3].rsplit('.',1)[-1]) if len(parts)==4 and '.' in parts[3] else None
   if not f:return self.send({'error':'音频不存在'},404)
   data=data if data is not None else f.read_bytes();size=len(data);start,end=0,size-1;status=200
@@ -257,7 +263,7 @@ class Handler(BaseHTTPRequestHandler):
     self.send_response(416);self.send_header('Content-Range',f'bytes */{size}');self.send_header('Content-Length','0');self.end_headers();return
   body=data[start:end+1]
   self.send_response(status);self.headers_common(mime or {'.m4a':'audio/mp4','.mp3':'audio/mpeg'}.get(f.suffix,'application/json; charset=utf-8'))
-  self.send_header('Accept-Ranges','bytes');self.send_header('Cache-Control','public, max-age=604800')
+  self.send_header('Accept-Ranges','bytes');self.send_header('Cache-Control',('private' if private else 'public')+', max-age=604800')
   if status==206:self.send_header('Content-Range',f'bytes {start}-{end}/{size}')
   self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def user(self,c):

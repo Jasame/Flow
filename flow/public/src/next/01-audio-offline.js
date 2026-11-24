@@ -82,8 +82,9 @@
   // S.home.session.media = {base: '<media domain>/audio', version} when the server keeps audio in R2 (flow/media.py).
   function mediaAlt(url) {
     const m = S.home && S.home.session && S.home.session.media;
-    // server-voice files and word clips (.aac, cut by this server from a sprite) are not in R2
-    if (!m || !m.base || !/^\/audio\//.test(url || '') || /^\/audio\/tts\//.test(url) || /\.aac(\?|$)/.test(url)) return '';
+    // server-voice files, a learner's own articles' voice (private: never asked of another host) and word clips (.aac, cut
+    // by this server from a sprite) are not in R2
+    if (!m || !m.base || !/^\/audio\//.test(url || '') || /^\/audio\/(tts|own)\//.test(url) || /\.aac(\?|$)/.test(url)) return '';
     return `${m.base}/${url.split('?')[0].slice(7).replace(/\.mp4$/, '.m4a')}?v=${encodeURIComponent(m.version)}`;
   }
   const mainDown = () => Date.now() - (S.mediaMainDown || 0) < 120000;  // after a failure, the other line for 2 minutes

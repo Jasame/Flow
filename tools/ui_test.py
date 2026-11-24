@@ -1527,6 +1527,25 @@ def listen_speak_run(pw):
                 pg.click('.line[data-i="0"] .snd a'); pg.wait_for_timeout(600)
                 check(dev, '跟读: 去练 opens that 发音入门 set', pg.evaluate("location.hash").startswith('#/sounds/') and bool(pg.query_selector('#view h1')), pg.evaluate('location.hash'))
 
+            if size == 'phone':  # 伴读 of an imported article: the server voice, sentence by sentence, its files its owner's only
+                text = ' '.join(['The library opens early on weekdays.', 'Students meet there before their first class.', 'Some of them read quietly in the corner.',
+                                 'Others work on group projects at the long tables.', 'By noon most seats are taken.', 'In the evening it is quiet again.'])
+                imp = pg.evaluate("([t, csrf]) => fetch('/api/next/import', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf}, "
+                                  "body: JSON.stringify({title: '图书馆的一天', text: t})}).then(r => r.json())", [text, CFG['learners'][learner]['csrf']])
+                go(pg, f"#/m/{imp['id']}/read"); pg.wait_for_selector('#readAlong'); pg.wait_for_timeout(300)
+                pg.click('#readAlong'); pg.wait_for_selector('#reader .sent.now', timeout=5000)
+                pg.wait_for_function("performance.getEntriesByType('resource').some(e => e.name.includes('/audio/own/'))", timeout=8000)
+                got = pg.evaluate("""() => { const r = performance.getEntriesByType('resource').map(e => e.name);
+                    return {have: r.some(n => n.includes('/api/next/tts/have')), own: r.filter(n => n.includes('/audio/own/')).map(n => n.split(location.host)[1]),
+                            first: (document.querySelector('#reader .sent.now') || {}).dataset.si}; }""")
+                check(dev, '伴读 of an import: read by the server voice from the learner\'s own files, the sentence lit',
+                      got['have'] and got['own'] and got['own'][0].startswith('/audio/own/us-f/') and got['first'] == '0', got)
+                pg.click('#readAlong')
+                other = browser.new_context(); op = other.new_page()
+                st = op.goto(BASE + got['own'][0]).status if got['own'] else 0
+                other.close()
+                check(dev, '伴读 of an import: someone else (signed out) cannot fetch its voice', st == 404, st)
+
             if size == 'phone':  # 留学: today's speaking step is the next 雅思口语 Part 1 topic, and it opens that topic
                 # its own learner: by now the device learners have set radar goals and spoken, which changes today's steps
                 me = CFG['learners']['abroad']
