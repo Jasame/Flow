@@ -2,21 +2,23 @@
 
 - 运营后台 (flow_admin.py, 管理员 only, every change in the operator log): a class is made with a name and a teacher (one
   语流 account) and gets a 6-character invite code. The console lists every class with its members, how many of them
-  studied in the last 7 days and its 试用人次; an operator renames it, changes its teacher or code, stops or restarts it.
+  studied in the last 7 days, its 试用人数 and 试用人次; an operator renames it, changes its teacher or code, stops or
+  restarts it.
 - 学员 (我的 → 班级): find a class by its code, read what the teacher sees and what not, join; leave at any time. One class
-  at a time. Leaving keeps only when they joined and left (for 试用人次 below); 注销账号 deletes that too (the table has
+  at a time. Leaving keeps only when they joined and left (for 试用人数 and 人次 below); 注销账号 deletes that too (the table has
   user_id, account_data.erase), and 导出我的数据 has it (account_data.records).
 - 老师 (我的 → 我的班级): the teacher's own account sees, per class, numbers for the whole class only: how many of its
   members studied in the last 7 days and in each of the 4 weeks up to now, and the 5 grammar points most of them got
   wrong in the last 7 days. No names, no ids, nothing about one learner. A class with fewer than 5 members shows none
   of it. A member who leaves is out of every number from that moment; the teacher and 员工 accounts are never counted.
 
-学过一步 (studied a step): any row in learning_events (a grammar, exam or placement question, a check), next_progress (a
-step of a material: 听、读、理解、用出来), next_reviews (one word reviewed) or next_easy_reads (one 轻松读 read through),
-made while a member: after joining, before leaving.
+学过一步 (studied a step): a row in any of progress_service.DAY_TABLES — the tables 「我的进步」 counts study days from:
+a step of a material, a word reviewed, 复听, 轻松读, a practice score, a question answered — made while a member: after
+joining, before leaving.
 做错一个语法点: a rule-checked answer on it that was wrong (learning_events.correct = 0), or a change the AI feedback on
 writing made because of it (next_node_notes kind 'flag').
-试用人次 (for 春萌结项): RULE below.
+试用人数 and 试用人次 (for 春萌结项, the console only): RULE_PEOPLE and RULE_DAYS below. 人次 counts study days with
+progress_service.study_days, so a day is the same day as in 「我的进步」.
 """
 import datetime, re, secrets, time
 
@@ -26,11 +28,12 @@ CODE_LEN = 6
 TRIES, WINDOW = 10, 900         # wrong invite codes: 10 in 15 minutes pause looking up codes for 15 minutes
 DAY, WEEK = 86400, 7 * 86400
 TZ = datetime.timezone(datetime.timedelta(hours=8))
-STUDY_TABLES = ('learning_events', 'next_progress', 'next_reviews', 'next_easy_reads')
-RULE = ('试用人次：加入班级以后、退出之前，在语流里至少学过一步（材料的听、读、理解、用出来任一步，复习一次单词，做一道题，'
-        '或读完一篇轻松读）的不同学员。员工账号和这个班的老师不算；同一个人在一个班里只算一次，全部班级合计时也只算一次。'
-        '退出班级的人，在班里时学过就仍然算。')
-STUDY_RULE = '在学：这 7 天（按北京时间，含今天）里在语流里学过至少一步（材料的任一步、复习单词、做题或轻松读）。'
+STEP = '学材料的任一步、复习单词、复听、轻松读、做题或其他练习，和「我的进步」算学习天数的口径一样'
+RULE_PEOPLE = ('试用人数：加入班级以后、退出之前，在语流里至少学过一步（' + STEP + '）的不同学员。员工账号和这个班的老师不算；'
+               '同一个人在一个班里只算一个，全部班级合计时也只算一个。退出班级的人，在班里时学过就仍然算。')
+RULE_DAYS = ('试用人次：这些学员在班里期间学习的天数加起来，同一学员同一天算 1 次（按北京时间算天，和「我的进步」里的学习天数一致）。'
+             '全部班级合计时，同一学员同一天也只算 1 次。')
+STUDY_RULE = '在学：这 7 天（按北京时间，含今天）里在语流里学过至少一步（' + STEP + '）。'
 
 
 def schema(c):
@@ -89,14 +92,15 @@ def _username(c, uid):
 # ---------------------------------------------------------------- who studied, as a member
 
 def _tables(c):
+    import progress_service as ps  # the same tables as 「我的进步」's study days
     have = {r[0] for r in c.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-    return [t for t in STUDY_TABLES if t in have]
+    return [t for t in ps.DAY_TABLES if t in have]
 
 
 def _base(t, cid, current):
     """FROM … WHERE for the study rows of table t made by members inside their membership (the teacher and 员工 left out)."""
     sql = (f'FROM class_members m JOIN users u ON u.id=m.user_id JOIN classes k ON k.id=m.class_id JOIN "{t}" s ON s.user_id=m.user_id '
-           'WHERE COALESCE(u.admin,0)=0 AND m.user_id IS NOT k.teacher AND s.created>=m.joined_at AND (m.left_at IS NULL OR s.created<=m.left_at)')
+           'WHERE COALESCE(u.admin,0)=0 AND m.user_id IS NOT k.teacher AND s.created>=m.joined_at AND (m.left_at IS NULL OR s.created<m.left_at)')
     args = []
     if cid is not None:
         sql += ' AND m.class_id=?'
@@ -119,15 +123,26 @@ def _weeks(c, cid, now, weeks, current):
     return out
 
 
-def _firsts(c, cid=None):
-    """{(user_id, class_id): the first time they studied as a member of that class} — who counts toward 试用人次."""
+def _trial(c, cid=None):
+    """{(user_id, class_id): the Beijing dates they studied on as members of that class (progress_service.study_days, from
+    joining to leaving)} — only learners who studied, so the keys are 试用人数 and the dates add up to 试用人次."""
+    import progress_service as ps
+    sql = ('SELECT m.user_id, m.class_id, m.joined_at, m.left_at FROM class_members m JOIN users u ON u.id=m.user_id '
+           'JOIN classes k ON k.id=m.class_id WHERE COALESCE(u.admin,0)=0 AND m.user_id IS NOT k.teacher')
     out = {}
-    for t in _tables(c):
-        sql, args = _base(t, cid, False)
-        for r in c.execute(f'SELECT m.user_id, m.class_id, MIN(s.created) f {sql} GROUP BY m.user_id, m.class_id', args):
-            key = (r['user_id'], r['class_id'])
-            out[key] = min(out.get(key, r['f']), r['f'])
+    for r in c.execute(sql + (' AND m.class_id=?' if cid is not None else ''), (cid,) if cid is not None else ()).fetchall():
+        days = ps.study_days(c, r['user_id'], r['joined_at'], r['left_at'])
+        if days:
+            out.setdefault((r['user_id'], r['class_id']), set()).update(days)
     return out
+
+
+def _totals(trial):
+    """(试用人数, 试用人次) over all classes: a learner once, and a learner's day once."""
+    per = {}
+    for (u, _), days in trial.items():
+        per.setdefault(u, set()).update(days)
+    return len(per), sum(len(d) for d in per.values())
 
 
 def _members(c, k):
@@ -267,9 +282,9 @@ def teach(c, uid, cid, now=None):
 # ---------------------------------------------------------------- 运营后台 (flow_admin.py: 管理员 only)
 
 def console_list(c, now=None):
-    """GET /classes: every class with its members now, how many studied in the last 7 days, and its 试用人次."""
+    """GET /classes: every class with its members now, how many studied in the last 7 days, its 试用人数 and 试用人次."""
     now = now or time.time()
-    firsts = _firsts(c)
+    trial = _trial(c)
     items = []
     for k in c.execute('SELECT * FROM classes ORDER BY active DESC, created DESC').fetchall():
         members = _members(c, k)
@@ -277,25 +292,31 @@ def console_list(c, now=None):
                       'teacher': {'id': k['teacher'], 'username': _username(c, k['teacher'])} if k['teacher'] else None,
                       'members': len(members), 'ready': len(members) >= MIN,
                       'active_7d': len(_weeks(c, k['id'], now, 1, True)[0]),
-                      'trial': sum(1 for (_, cid) in firsts if cid == k['id']),
+                      'trial_people': sum(1 for (_, cid) in trial if cid == k['id']),
+                      'trial_days': sum(len(d) for (_, cid), d in trial.items() if cid == k['id']),
                       'created': _day(k['created']), 'by': k['by']})
-    return {'items': items, 'trial': len({u for (u, _) in firsts}), 'members': sum(x['members'] for x in items),
-            'rule': RULE, 'study_rule': STUDY_RULE, 'min': MIN}
+    people, days = _totals(trial)
+    return {'items': items, 'trial_people': people, 'trial_days': days, 'members': sum(x['members'] for x in items),
+            'rule_people': RULE_PEOPLE, 'rule_days': RULE_DAYS, 'study_rule': STUDY_RULE, 'min': MIN}
 
 
 def console_detail(c, cid, now=None):
-    """GET /class?id=: one class for an operator: who teaches it, its code, and 8 weeks of 在学 and new 试用人次."""
+    """GET /class?id=: one class for an operator: who teaches it, its code, and 8 weeks of 在学, new 试用人数 and 试用人次."""
     k = _class(c, cid)
     if not k:
         return None
     now = now or time.time()
     weeks = _weeks(c, k['id'], now, 8, False)
-    firsts = [f for (_, cl), f in _firsts(c, k['id']).items() if cl == k['id']]
-    since = _end(now) - 8 * WEEK
-    new = [0] * 8
-    for f in firsts:
-        if f >= since:
-            new[min(7, int((f - since) // WEEK))] += 1
+    trial = [d for (_, cl), d in _trial(c, k['id']).items() if cl == k['id']]
+    today = datetime.datetime.fromtimestamp(now, TZ).date()
+    slot = lambda d: 7 - (today - d).days // 7  # the same 8 weeks as _weeks: 7 = today and the 6 days before
+    new, visits = [0] * 8, [0] * 8
+    for days in trial:
+        if 0 <= slot(min(days)) <= 7:
+            new[slot(min(days))] += 1
+        for d in days:
+            if 0 <= slot(d) <= 7:
+                visits[slot(d)] += 1
     joined = c.execute('SELECT COUNT(DISTINCT user_id) FROM class_members WHERE class_id=?', (k['id'],)).fetchone()[0]
     left = c.execute('SELECT COUNT(DISTINCT user_id) FROM class_members WHERE class_id=? AND left_at IS NOT NULL AND user_id NOT IN '
                      '(SELECT user_id FROM class_members WHERE class_id=? AND left_at IS NULL)', (k['id'], k['id'])).fetchone()[0]
@@ -305,8 +326,9 @@ def console_detail(c, cid, now=None):
     return {'id': k['id'], 'name': k['name'], 'code': k['code'], 'active': bool(k['active']),
             'teacher': {'id': k['teacher'], 'username': _username(c, k['teacher'])} if k['teacher'] else None,
             'created': _day(k['created']), 'by': k['by'], 'members': len(_members(c, k)), 'joined': joined or 0, 'left': left or 0,
-            'trial': len(firsts), 'min': MIN, 'rule': RULE, 'study_rule': STUDY_RULE,
-            'weeks': [{'label': l, 'studied': len(w), 'new_trial': n} for l, w, n in zip(_week_labels(now, 8), weeks, new)], 'log': log}
+            'trial_people': len(trial), 'trial_days': sum(len(d) for d in trial), 'min': MIN,
+            'rule_people': RULE_PEOPLE, 'rule_days': RULE_DAYS, 'study_rule': STUDY_RULE,
+            'weeks': [{'label': l, 'studied': len(w), 'new_people': n, 'days': v} for l, w, n, v in zip(_week_labels(now, 8), weeks, new, visits)], 'log': log}
 
 
 def _teacher(c, name):
@@ -385,16 +407,18 @@ def membership(c, uid):
 
 
 def classes_csv(c, now=None):
-    """The 试用人次 table for 春萌结项: one row a class and a total, with the rule on top."""
+    """试用人数 and 试用人次 for 春萌结项: one row a class and a total, with both rules on top."""
     import csv, io
     out = console_list(c, now)
     buf = io.StringIO()
     w = csv.writer(buf)
-    w.writerow([RULE])
-    w.writerow(['班级', '老师', '创建日期', '现在人数', '近 7 天在学', '试用人次', '状态'])
+    w.writerow([RULE_PEOPLE])
+    w.writerow([RULE_DAYS])
+    w.writerow(['班级', '老师', '创建日期', '现在人数', '近 7 天在学', '试用人数', '试用人次', '状态'])
     for x in out['items']:
-        w.writerow([x['name'], (x['teacher'] or {}).get('username', ''), x['created'], x['members'], x['active_7d'], x['trial'], '使用中' if x['active'] else '已停用'])
-    w.writerow(['合计（同一人只算一次）', '', '', out['members'], '', out['trial'], ''])
+        w.writerow([x['name'], (x['teacher'] or {}).get('username', ''), x['created'], x['members'], x['active_7d'], x['trial_people'], x['trial_days'],
+                    '使用中' if x['active'] else '已停用'])
+    w.writerow(['合计（同一人、同一人同一天只算一次）', '', '', out['members'], '', out['trial_people'], out['trial_days'], ''])
     return ('﻿' + buf.getvalue()).encode('utf-8')
 
 

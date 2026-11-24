@@ -78,7 +78,7 @@
       if (d.announce) info.push(['#announce', '学员正在看到公告', esc(d.announce.text.slice(0, 24)) + (d.announce.text.length > 24 ? '…' : '')]);
       if (d.hidden_materials) info.push(['#content', '已下架的材料', n(d.hidden_materials) + ' 篇']);
       if (isAdmin() && d.disabled) info.push(['#learners/f=disabled', '已停用的账号', n(d.disabled) + ' 个']);
-      if (d.classes && d.classes.count) info.push([isAdmin() ? '#classes' : '#overview', '班级试用', n(d.classes.count) + ' 个班 · ' + n(d.classes.members) + ' 人 · 试用人次 ' + n(d.classes.trial)]);
+      if (d.classes && d.classes.count) info.push([isAdmin() ? '#classes' : '#overview', '班级试用', n(d.classes.count) + ' 个班 · 试用 ' + n(d.classes.trial_people) + ' 人、' + n(d.classes.trial_days) + ' 人次']);
       var li = function (x) { return '<li><a href="' + x[0] + '"><b>' + x[1] + '</b><span class="muted">' + x[2] + ' →</span></a></li>'; };
       main.innerHTML =
         '<div class="head-row"><div><h1>语流 Flow 概览</h1><p class="muted">flowlang.cn · ' + (d.server ? '数据来自' + esc(d.server) + ' · ' : '') + '更新于 ' + new Date(d.generated_at * 1000).toLocaleString('zh-CN') + '</p></div>' +
@@ -483,21 +483,21 @@
       var live = d.items.filter(function (x) { return x.active; }).length;
       main.innerHTML =
         '<div class="head-row"><div><h1>班级</h1><p class="muted">学员凭邀请码自愿加入，随时可以退出。老师用自己的语流账号，在「我的 → 我的班级」里只看全班汇总：近 7 天几人在学、全班最常错的 5 个语法点；看不到任何学生的名字、作业和记录。不满 ' + d.min + ' 人的班不显示。</p></div>' +
-        '<div class="toolbar"><a class="btn" href="' + API + '/export/classes.csv">导出试用人次 CSV</a></div></div>' +
-        '<div class="kpi-grid k3">' + kpi('使用中的班级', n(live), '一共 ' + n(d.items.length) + ' 个') + kpi('现在在班里', n(d.members), '不算老师和员工账号') +
-          kpi('试用人次', n(d.trial), '全部班级合计，同一人只算一次') + '</div>' +
+        '<div class="toolbar"><a class="btn" href="' + API + '/export/classes.csv">导出试用人数和人次 CSV</a></div></div>' +
+        '<div class="kpi-grid">' + kpi('使用中的班级', n(live), '一共 ' + n(d.items.length) + ' 个') + kpi('现在在班里', n(d.members), '不算老师和员工账号') +
+          kpi('试用人数', n(d.trial_people), '全部班级合计，同一人只算一个') + kpi('试用人次', n(d.trial_days), '同一人同一天算 1 次') + '</div>' +
         '<section class="card"><h2>新建班级</h2><form class="toolbar" id="clF"><input class="input" name="name" maxlength="30" placeholder="班级名，如 高一（3）班" style="width:220px">' +
           '<input class="input" name="teacher" maxlength="60" placeholder="老师的语流用户名" style="width:180px"><button class="btn primary">新建</button></form>' +
           '<p class="err" id="clErr" hidden></p><p class="muted small" style="margin:0">老师要先在语流注册账号。新建后生成 6 位邀请码；老师在自己的「我的班级」页面也能看到邀请码，复制链接或出二维码发给学生。</p></section>' +
-        '<section class="card">' + (d.items.length ? '<div class="tbl-wrap"><table class="cmp"><thead><tr><th>班级</th><th>老师</th><th class="num">人数</th><th class="num">近 7 天在学</th><th class="num">试用人次</th><th class="opt">邀请码</th><th class="opt">创建</th></tr></thead><tbody>' +
+        '<section class="card">' + (d.items.length ? '<div class="tbl-wrap"><table class="cmp"><thead><tr><th>班级</th><th>老师</th><th class="num">人数</th><th class="num">近 7 天在学</th><th class="num">试用人数</th><th class="num">试用人次</th><th class="opt">邀请码</th><th class="opt">创建</th></tr></thead><tbody>' +
           d.items.map(function (x) {
             return '<tr class="click' + (x.active ? '' : ' dim') + '" data-cid="' + x.id + '" tabindex="0"><td><b>' + esc(x.name) + '</b> ' + (x.active ? '' : '<span class="pill off">已停用</span>') +
               (x.active && !x.ready ? '<span class="pill warn">不满 ' + d.min + ' 人</span>' : '') + '</td>' +
               '<td>' + (x.teacher ? esc(x.teacher.username) + '<span class="sub">#' + x.teacher.id + '</span>' : '<span class="muted">没有老师</span>') + '</td>' +
-              '<td class="num">' + n(x.members) + '</td><td class="num">' + n(x.active_7d) + '</td><td class="num"><b>' + n(x.trial) + '</b></td>' +
+              '<td class="num">' + n(x.members) + '</td><td class="num">' + n(x.active_7d) + '</td><td class="num"><b>' + n(x.trial_people) + '</b></td><td class="num"><b>' + n(x.trial_days) + '</b></td>' +
               '<td class="opt"><code>' + esc(x.code) + '</code></td><td class="opt">' + esc(x.created) + '</td></tr>';
           }).join('') + '</tbody></table></div>' : '<p class="muted">还没有班级。</p>') +
-          '<p class="muted small">' + esc(d.rule) + '</p><p class="muted small" style="margin:0">' + esc(d.study_rule) + '</p></section>';
+          '<p class="muted small">' + esc(d.rule_people) + '</p><p class="muted small">' + esc(d.rule_days) + '</p><p class="muted small" style="margin:0">' + esc(d.study_rule) + '</p></section>';
       CL.shown = true;
       var f = document.getElementById('clF'), err = document.getElementById('clErr');
       f.onsubmit = function (e) {
@@ -525,7 +525,7 @@
     });
   }
   function drawClass(d) {
-    var link = JOIN + d.code, top = Math.max.apply(null, d.weeks.map(function (w) { return Math.max(w.studied, w.new_trial); }).concat([1]));
+    var link = JOIN + d.code, top = Math.max.apply(null, d.weeks.map(function (w) { return w.studied; }).concat([1]));
     drawer.innerHTML =
       '<div class="dr-head"><div><h2 id="drawerTitle">' + esc(d.name) + '</h2><div class="dr-pills"><span class="pill off">#c' + d.id + '</span>' +
         (d.active ? '<span class="pill">使用中</span>' : '<span class="pill danger">已停用</span>') +
@@ -536,14 +536,15 @@
           '<dt>老师</dt><dd>' + (d.teacher ? '<a href="#learners/' + d.teacher.id + '">' + esc(d.teacher.username) + '</a> #' + d.teacher.id : '没有（老师的账号注销了）') + '</dd>' +
           '<dt>邀请码</dt><dd><code>' + esc(d.code) + '</code><div class="muted small">加入链接 ' + esc(link) + ' <button class="btn" type="button" id="clCopy">复制</button></div></dd>' +
           '<dt>人数</dt><dd>现在 ' + n(d.members) + ' 人 · 加入过 ' + n(d.joined) + ' 人 · 退出了 ' + n(d.left) + ' 人<div class="muted small">现在的人数不算老师和员工账号</div></dd>' +
-          '<dt>试用人次</dt><dd><b>' + n(d.trial) + '</b><div class="muted small">' + esc(d.rule) + '</div></dd>' +
+          '<dt>试用人数</dt><dd><b>' + n(d.trial_people) + '</b><div class="muted small">' + esc(d.rule_people) + '</div></dd>' +
+          '<dt>试用人次</dt><dd><b>' + n(d.trial_days) + '</b><div class="muted small">' + esc(d.rule_days) + '</div></dd>' +
           '<dt>创建</dt><dd>' + esc(d.created) + (d.by ? ' · ' + esc(d.by) : '') + '</dd>' +
         '</dl></section>' +
-        '<section class="card"><h3>近 8 周</h3><table class="cmp"><thead><tr><th>每 7 天</th><th class="num">在学</th><th class="num">新增试用</th><th></th></tr></thead><tbody>' +
+        '<section class="card"><h3>近 8 周</h3><table class="cmp"><thead><tr><th>每 7 天</th><th class="num">在学</th><th class="num">新增试用人数</th><th class="num">试用人次</th><th></th></tr></thead><tbody>' +
           d.weeks.map(function (w) {
-            return '<tr><td>' + esc(w.label) + '</td><td class="num">' + n(w.studied) + '</td><td class="num">' + n(w.new_trial) + '</td>' +
+            return '<tr><td>' + esc(w.label) + '</td><td class="num">' + n(w.studied) + '</td><td class="num">' + n(w.new_people) + '</td><td class="num">' + n(w.days) + '</td>' +
               '<td style="width:40%"><div class="prog"><i style="width:' + pct(w.studied, top) + '%"></i></div></td></tr>';
-          }).join('') + '</tbody></table><p class="muted small" style="margin:8px 0 0">在学：这 7 天里以班级成员身份学过至少一步（包括后来退出的人）。新增试用：第一次以这个班的成员身份学习。</p></section>' +
+          }).join('') + '</tbody></table><p class="muted small" style="margin:8px 0 0">在学：这 7 天里以班级成员身份学过至少一步（包括后来退出的人）。新增试用人数：第一次以这个班的成员身份学习。试用人次：这 7 天里成员学习的天数加起来，同一人同一天算 1 次。</p></section>' +
         (isAdmin() ? '<section class="card dr-actions"><h3>操作</h3>' +
           '<div class="toolbar"><span class="inline-form"><input class="input" id="clName" maxlength="30" value="' + esc(d.name) + '" style="width:180px"><button class="btn" data-act="rename">改名</button></span>' +
             '<span class="inline-form"><input class="input" id="clTeacher" maxlength="60" placeholder="新老师的用户名" style="width:150px"><button class="btn" data-act="teacher">换老师</button></span></div>' +

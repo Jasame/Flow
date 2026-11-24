@@ -226,9 +226,10 @@ def overview(c):
 
 
 def _class_numbers(c):
-    """班级试用 in the overview: how many classes, members and 试用人次 (numbers only, so 只看数据 sees them too)."""
+    """班级试用 in the overview: how many classes, members, 试用人数 and 试用人次 (numbers only, so 只看数据 sees them too)."""
     got = __import__('class_service').console_list(c)
-    return {'count': sum(1 for x in got['items'] if x['active']), 'members': got['members'], 'trial': got['trial']}
+    return {'count': sum(1 for x in got['items'] if x['active']), 'members': got['members'], 'trial_people': got['trial_people'],
+            'trial_days': got['trial_days']}
 
 
 def backup_status():

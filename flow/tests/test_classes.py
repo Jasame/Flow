@@ -136,7 +136,8 @@ class ConsoleTests(Classes):
         self.assertEqual(detail['teacher']['username'], 'lilaoshi')
         self.assertEqual(len(detail['log']), 6)
         self.assertEqual(len(detail['weeks']), 8)
-        self.assertIn('试用人次', detail['rule'])
+        self.assertIn('试用人数', detail['rule_people'])
+        self.assertIn('试用人次', detail['rule_days'])
 
     def test_viewers_see_only_how_many(self):
         self.person('wanglaoshi')
@@ -144,7 +145,7 @@ class ConsoleTests(Classes):
         self.joined_class(2, code)
         st, ov = self.console('/overview', email=INTERN)
         self.assertEqual(st, 200)
-        self.assertEqual(ov['classes'], {'count': 1, 'members': 2, 'trial': 0})
+        self.assertEqual(ov['classes'], {'count': 1, 'members': 2, 'trial_people': 0, 'trial_days': 0})
         self.assertNotIn(code, json.dumps(ov))
         self.assertNotIn('wanglaoshi', json.dumps(ov))
 
@@ -281,7 +282,7 @@ class TeacherTests(Classes):
         self.wrong(u, self.nodes[0][0], joined - 60)
         body = self.me('wanglaoshi', f'/api/next/class/teach?id={cid}')[1]
         self.assertEqual((body['active_7d'], body['points']), (0, []))
-        self.assertEqual(self.console('/classes')[1]['trial'], 0)
+        self.assertEqual((self.console('/classes')[1]['trial_people'], self.console('/classes')[1]['trial_days']), (0, 0))
 
 
 class TrialTests(Classes):
@@ -305,13 +306,39 @@ class TrialTests(Classes):
         self.step(ids[0], time.time() + 5, 'p2')
         got = self.console('/classes')[1]
         per = {x['name']: x for x in got['items']}
-        self.assertEqual((per['高一（3）班']['trial'], per['英语社']['trial'], got['trial']), (2, 1, 2))
+        self.assertEqual((per['高一（3）班']['trial_people'], per['英语社']['trial_people'], got['trial_people']), (2, 1, 2))
+        # 人次: stu00 studied today in both classes — one day in each class, but once in the total
+        self.assertEqual((per['高一（3）班']['trial_days'], per['英语社']['trial_days'], got['trial_days']), (2, 1, 2))
         self.assertEqual((per['高一（3）班']['members'], per['英语社']['members']), (2, 1))  # staff not counted
         csv = self.console('/export/classes.csv')[1].decode('utf-8-sig')
-        self.assertIn('试用人次', csv.splitlines()[0])
-        self.assertIn('合计（同一人只算一次）,,,3,,2,', csv)
+        self.assertIn('试用人数', csv.splitlines()[0])
+        self.assertIn('试用人次', csv.splitlines()[1])
+        self.assertIn('合计（同一人、同一人同一天只算一次）,,,3,,2,2,', csv)
         detail = self.console(f'/class?id={c1}')[1]
-        self.assertEqual((detail['joined'], detail['left'], detail['trial'], detail['weeks'][-1]['new_trial']), (4, 1, 2, 2))
+        self.assertEqual((detail['joined'], detail['left'], detail['trial_people'], detail['trial_days'], detail['weeks'][-1]['new_people']), (4, 1, 2, 2, 2))
+
+    def test_trial_days_count_a_learners_study_day_once(self):
+        """试用人次: days studied as a member (progress_service.study_days), a learner's day once however much they did."""
+        import progress_service as ps
+        self.person('wanglaoshi')
+        cid, code = self.make()
+        names = self.joined_class(2, code, back=20 * DAY)
+        a, b = (self.people[n][2] for n in names)
+        now = time.time()
+        for when, pack in ((now - 3600, 'p1'), (now - 3500, 'p2'), (now - 2 * DAY, 'p3'), (now - 12 * DAY, 'p4')):
+            self.step(a, when, pack)  # two steps today: one day
+        self.wrong(a, self.nodes[0][0], now - 3400)  # a question the same day: still one day
+        self.step(b, now - 25 * DAY)  # before joining: not a trial day
+        self.step(b, now - 5 * DAY)
+        with app.db() as c:
+            joined = c.execute('SELECT joined_at FROM class_members WHERE user_id=?', (a,)).fetchone()[0]
+            self.assertEqual(len(ps.study_days(c, a, joined)), 3)
+        got = self.console('/classes')[1]
+        self.assertEqual((got['trial_people'], got['trial_days']), (2, 4))
+        detail = self.console(f'/class?id={cid}')[1]
+        self.assertEqual(sum(w['days'] for w in detail['weeks']), 4)
+        self.assertEqual([w['days'] for w in detail['weeks']][-2:], [1, 3])  # 12 days ago; then today, 2 and 5 days ago
+        self.assertIn('同一学员同一天算 1 次', detail['rule_days'])
 
 
 class AccountTests(Classes):
