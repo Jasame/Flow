@@ -179,6 +179,16 @@ def request_model(messages,audio=None,grounding=False):
 
 
 INFO=__import__('threading').local()  # the last call's usage and answering model (ai_routes.record)
+MAIN_ONLY=__import__('threading').local()
+
+
+@__import__('contextlib').contextmanager
+def main_only():
+ """Inside, request_model asks the main service (Gemini) only: after the task's own model twice answered in a shape the
+ converter could not take (lab_service.run_job), another vendor gets the last word."""
+ old=getattr(MAIN_ONLY,'on',False);MAIN_ONLY.on=True
+ try:yield
+ finally:MAIN_ONLY.on=old
 
 
 def _request_text_service(messages,model=None,extra=None):

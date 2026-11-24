@@ -1188,7 +1188,7 @@ def rewrite(c, uid, data):
     another sentence; better ways to say the same thing go in versions, in the learner's own words and topic; using
     the lesson's pattern is suggested in the summary, not done for them. An answer whose corrected is another sentence
     is asked for once more; if it is still not the learner's sentence, it is not shown (ai_eval.py checks this)."""
-    from lab_service import run_job, text as clean_text, parse
+    from lab_service import run_job, mtext as clean_text, parse  # model output: cut, not refused, when long
     from chat_service import request_model
     row = _pack_row(c, uid, str(data.get('pack', '')))
     if not row:
@@ -1235,7 +1235,7 @@ def rewrite(c, uid, data):
         if not isinstance(raw, dict):
             raise ValueError('bad')
         out = {'verdict': raw.get('verdict') if raw.get('verdict') in ('natural', 'minor', 'rewrite') else 'minor',
-               'summary': clean_text(raw.get('summary'), 1, 300), 'corrected': clean_text(raw.get('corrected'), 1, 900),
+               'summary': clean_text(raw.get('summary'), 1, 300, 'summary_empty'), 'corrected': clean_text(raw.get('corrected'), 1, 900, 'corrected_empty'),
                'changes': [], 'versions': [], 'keep': None, 'used_well': []}
         if not kept_own_sentence(answer, out['corrected']):
             raise ValueError('corrected is another sentence')  # asked for once more already (invoke): not shown
@@ -1343,7 +1343,7 @@ def pron_score(r):
 
 def shadow(c, uid, data):
     """Shadowing: the learner reads one sentence aloud; AI transcribes it and points out what to fix."""
-    from lab_service import run_job, text as clean_text, audio_enabled
+    from lab_service import run_job, mtext as clean_text, audio_enabled, Shape, mnum  # model output: lenient
     from chat_service import request_model
     from audio_validation import validate_audio
     if not audio_enabled():
@@ -1378,10 +1378,10 @@ def shadow(c, uid, data):
             '"issues":[{"word":"原句中的词或短语","note":"中文：问题和改法"}],"tip":"一句最重要的中文建议"}。'
             'sounds 最多 3 条，issues 最多 3 条，读得好就给空数组。')
 
-    def score_of(v):
+    def score_of(v):  # 85, "85", "85分", "85%", "8.5/10"
         try:
-            return max(0, min(100, int(round(float(v)))))
-        except (TypeError, ValueError):
+            return int(round(mnum(v, 0, 100)))
+        except Shape:
             return None
 
     def convert(raw):
