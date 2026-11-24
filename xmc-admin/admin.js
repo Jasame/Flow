@@ -87,7 +87,7 @@
           kpi('注册用户', n(d.users), '填了学习档案 ' + n(d.profiles) + ' 人 · 还没开始学 ' + n(d.never_started) + ' 人') +
           kpi('近 7 天活跃', n(d.active_7d), '近 24 小时 ' + n(d.active_1d) + ' 人 · <a href="#funnel" style="color:var(--accent)">看留存 →</a>') +
           kpi('今日 AI 调用', n(ai.today), ai.site_limit ? ('全站上限 ' + n(ai.site_limit) + ' · 已用 ' + pct(ai.today, ai.site_limit) + '%') : '全站不设上限') +
-          kpi('问卷回答', n(d.survey_responses), '<a href="#survey" style="color:var(--accent)">查看统计 →</a>') +
+          kpi('问卷回答', n(d.survey_responses), (d.trial_responses ? '班级试用问卷 ' + n(d.trial_responses) + ' 份 · ' : '') + '<a href="#survey" style="color:var(--accent)">查看统计 →</a>') +
           (isAdmin() && d.feedback_open != null ? kpi('待处理反馈', n(d.feedback_open), '<a href="#feedback" style="color:var(--accent)">去处理 →</a>') : kpi('员工账号', n(d.admins), 'AI 次数不限')) +
         '</div>' +
         '<div class="grid2">' +
@@ -120,20 +120,32 @@
     return '<label class="muted" style="font-size:12.5px">' + esc(q.label.replace(/[？?].*$/, '')) + ' <select data-filter="' + id + '"><option value="">全部</option>' +
       q.options.map(function (o) { return '<option' + (ST.filters[id] === o ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('') + '</select></label>';
   }
+  // Two surveys (survey_service.SURVEYS): the learner-needs one, and the anonymous class trial one (s=trial)
+  var SURVEY_TABS = [['', '需求问卷'], ['trial', '班级试用问卷']];
+  function svParam(sep) { return ST.sid ? sep + 's=' + ST.sid : ''; }
+  function svDef() { ST.defs = ST.defs || {}; return ST.defs[ST.sid] ? Promise.resolve(ST.defs[ST.sid]) : getJSON('/survey/definition' + svParam('?')).then(function (d) { return (ST.defs[ST.sid] = d); }); }
+  function svSwitch() {
+    return '<div class="chips" role="group" aria-label="哪份问卷">' + SURVEY_TABS.map(function (t) {
+      return '<button type="button" class="chip" data-sv="' + t[0] + '" aria-pressed="' + ((ST.sid || '') === t[0]) + '">' + t[1] + '</button>'; }).join('') + '</div>';
+  }
+  function bindSwitch(again) {
+    main.querySelectorAll('[data-sv]').forEach(function (b) { b.onclick = function () { ST.sid = b.dataset.sv; ST.page = 1; ST.q = ''; again(); }; });
+  }
   function surveyStats() {
-    var qs = Object.keys(ST.filters).filter(function (k) { return ST.filters[k]; }).map(function (k) { return k + '=' + encodeURIComponent(ST.filters[k]); }).join('&');
-    Promise.all([ST.def ? Promise.resolve(ST.def) : getJSON('/survey/definition'), getJSON('/survey/summary' + (qs ? '?' + qs : ''))]).then(function (res) {
-      var def = ST.def = res[0], s = res[1];
+    var qs = ST.sid ? '' : Object.keys(ST.filters).filter(function (k) { return ST.filters[k]; }).map(function (k) { return k + '=' + encodeURIComponent(ST.filters[k]); }).join('&');
+    var link = 'https://flowlang.cn/survey' + svParam('?');
+    Promise.all([svDef(), getJSON('/survey/summary' + (qs ? '?' + qs + svParam('&') : svParam('?')))]).then(function (res) {
+      var def = res[0], s = res[1];
       var byId = {}; def.sections.forEach(function (sec) { sec.questions.forEach(function (q) { byId[q.id] = q; }); });
       var max = Math.max.apply(null, s.by_day.map(function (x) { return x.count; }).concat([1]));
       var html =
         '<div class="head-row"><div><h1>' + esc(s.survey.title) + '</h1><p class="muted">匿名问卷 · 共 ' + n(s.total) + ' 份有效回答' +
           (s.hidden ? '（另有 ' + n(s.hidden) + ' 份已隐藏）' : '') + (s.median_seconds ? ' · 中位用时 ' + Math.round(s.median_seconds / 60 * 10) / 10 + ' 分钟' : '') + '</p></div>' +
-        '<div class="toolbar"><a class="btn" href="https://flowlang.cn/survey" target="_blank" rel="noopener">问卷链接</a><button class="btn" id="copyLink">复制链接</button>' + (isAdmin() ? '<a class="btn primary" href="' + API + '/survey/export.csv">导出 CSV</a>' : '') + '</div></div>' +
-        '<div class="card toolbar">' + filterSelect('role', byId.role) + filterSelect('level', byId.level) + filterSelect('flow', byId.flow) +
-          (qs ? '<button class="btn" id="clearF">清除筛选</button>' : '') + '</div>';
+        '<div class="toolbar"><a class="btn" href="' + link + '" target="_blank" rel="noopener">问卷链接</a><button class="btn" id="copyLink" data-link="' + link + '">复制链接</button>' + (isAdmin() ? '<a class="btn primary" href="' + API + '/survey/export.csv' + svParam('?') + '">导出 CSV</a>' : '') + '</div></div>' +
+        '<div class="card toolbar">' + svSwitch() + (ST.sid ? '<span class="muted small">加入班级满 3 周的学员会在「今日」看到一次提示，可以关掉；回答不带账号，只看汇总。</span>'
+          : filterSelect('role', byId.role) + filterSelect('level', byId.level) + filterSelect('flow', byId.flow) + (qs ? '<button class="btn" id="clearF">清除筛选</button>' : '')) + '</div>';
       if (!s.total) {
-        main.innerHTML = html + '<div class="card empty">' + (qs ? '这个筛选条件下还没有回答。' : '还没有人填写。把问卷链接 https://flowlang.cn/survey 发出去吧。') + '</div>';
+        main.innerHTML = html + '<div class="card empty">' + (qs ? '这个筛选条件下还没有回答。' : ST.sid ? '还没有人填写。加入班级满 3 周的学员会在「今日」看到提示。' : '还没有人填写。把问卷链接 https://flowlang.cn/survey 发出去吧。') + '</div>';
         bindStats(); return;
       }
       if (s.by_day.length > 1) {
@@ -159,13 +171,14 @@
     }).catch(fail);
   }
   function bindStats() {
+    bindSwitch(surveyStats);
     main.querySelectorAll('[data-filter]').forEach(function (el) {
       el.onchange = function () { ST.filters[el.dataset.filter] = el.value; surveyStats(); };
     });
     var c = document.getElementById('clearF'); if (c) c.onclick = function () { ST.filters = { role: '', level: '', flow: '' }; surveyStats(); };
     var cp = document.getElementById('copyLink');
     if (cp) cp.onclick = function () {
-      var url = 'https://flowlang.cn/survey';
+      var url = cp.dataset.link;
       (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { cp.textContent = '已复制'; }, function () { prompt('复制问卷链接', url); });
     };
   }
@@ -178,13 +191,14 @@
     return esc(v);
   }
   function responses() {
-    Promise.all([ST.def ? Promise.resolve(ST.def) : getJSON('/survey/definition'), getJSON('/survey/responses?page=' + ST.page + '&q=' + encodeURIComponent(ST.q))]).then(function (res) {
-      var def = ST.def = res[0], d = res[1];
+    Promise.all([svDef(), getJSON('/survey/responses?page=' + ST.page + '&q=' + encodeURIComponent(ST.q) + svParam('&'))]).then(function (res) {
+      var def = res[0], d = res[1];
       var qs = []; def.sections.forEach(function (s) { qs = qs.concat(s.questions); });
       var pages = Math.max(1, Math.ceil(d.total / d.per_page));
       main.innerHTML =
         '<div class="head-row"><div><h1>逐条回答</h1><p class="muted">共 ' + n(d.total) + ' 条（含已隐藏）。隐藏的回答不计入统计，也不导出。</p></div>' +
         '<form class="toolbar" id="searchF"><input class="input" id="q" type="search" placeholder="搜索回答内容" value="' + esc(ST.q) + '"><button class="btn">搜索</button></form></div>' +
+        '<div class="card toolbar">' + svSwitch() + '</div>' +
         (d.items.length ? '<div class="resp">' + d.items.map(function (r) {
           return '<article class="resp-item' + (r.hidden ? ' hidden' : '') + '"><div class="resp-head"><b>#' + r.id + '</b>' +
             '<span class="muted">' + esc(new Date(r.created * 1000).toLocaleString('zh-CN')) + ' · 用时 ' + Math.round((r.seconds || 0) / 60 * 10) / 10 + ' 分钟</span>' +
@@ -192,6 +206,7 @@
             '<dl class="resp-grid">' + qs.map(function (q) { return '<dt>' + esc(q.label) + '</dt><dd>' + fmt(q, r.answers[q.id]) + '</dd>'; }).join('') + '</dl></article>';
         }).join('') + '</div>' : '<div class="card empty">没有找到回答。</div>') +
         (pages > 1 ? '<div class="pager"><button class="btn" id="prev"' + (ST.page <= 1 ? ' disabled' : '') + '>上一页</button><span class="muted num">' + ST.page + ' / ' + pages + '</span><button class="btn" id="next"' + (ST.page >= pages ? ' disabled' : '') + '>下一页</button></div>' : '');
+      bindSwitch(responses);
       document.getElementById('searchF').onsubmit = function (e) { e.preventDefault(); ST.q = document.getElementById('q').value.trim(); ST.page = 1; responses(); };
       var p = document.getElementById('prev'), nx = document.getElementById('next');
       if (p) p.onclick = function () { ST.page--; responses(); };
@@ -325,6 +340,7 @@
           d.items.map(function (r) {
             return '<tr class="click' + (r.disabled ? ' dim' : '') + '" data-uid="' + r.id + '" tabindex="0"><td><b>' + esc(r.username) + '</b> ' +
               (r.staff ? '<span class="pill blue">员工</span> ' : '') + (r.disabled ? '<span class="pill danger">已停用</span>' : '') +
+              (r.age === 'u14' || r.age === '14-17' ? '<span class="pill warn">' + esc(r.age_label) + '</span> ' : '') +
               '<span class="sub">#' + r.id + ' · ' + (r.has_email ? esc(r.email) : '没有绑定邮箱') + '</span></td>' +
               '<td>' + (r.level ? esc(r.level) : '<span class="muted">未填</span>') + (r.goal ? '<span class="sub">' + esc(r.goal) + '</span>' : '') + '</td>' +
               '<td>' + esc(rel(r.last_seen)) + (r.last_study ? '<span class="sub">学习 ' + esc(relDay(r.last_study)) + '</span>' : '') + '</td>' +
@@ -393,6 +409,8 @@
         '<section class="card"><dl class="kv">' +
           '<dt>邮箱</dt><dd>' + (a.has_email ? esc(a.email) + '（打码显示）' : '没有绑定，忘了密码只能由管理员生成重设链接') + '</dd>' +
           '<dt>注册</dt><dd>' + (a.joined ? esc(when(a.joined)) + (a.joined_known ? '' : '（没有注册时间，按开始学习算）') : '早于记录') + '</dd>' +
+          '<dt>年龄段</dt><dd>' + esc(a.age_label || '没填') + (a.age === 'u14' ? (a.guardian ? '<div class="muted small">监护人同意：' + esc(when(a.guardian)) + ' 勾选</div>'
+            : '<div class="muted small">还没有监护人同意：交给 AI 的批改和录音先停着，其他照常</div>') : !a.age ? '<div class="muted small">下次打开语流时会问</div>' : '') + '</dd>' +
           '<dt>最近打开</dt><dd>' + esc(rel(a.last_open)) + ' · 登录着的设备 ' + n(a.sessions) + ' 台</dd>' +
           (p ? '<dt>学习目标</dt><dd>' + esc(p.goal) + ' · 每天 ' + n(p.minutes) + ' 分钟 · 每周 ' + n(p.weekly_goal) + ' 天' + (p.themes.length ? ' · ' + p.themes.map(esc).join('、') : '') + '</dd>' : '') +
           (d.classes && (d.classes.member || d.classes.teaching.length) ? '<dt>班级</dt><dd>' + (d.classes.member ? '<a href="#classes/' + d.classes.member.id + '">' + esc(d.classes.member.name) + '</a>（' + esc(d.classes.member.joined) + ' 加入）' : '') +
@@ -817,6 +835,7 @@
         return '<select data-route="' + esc(k.kind) + '">' + options(k.route) + '</select>';
       };
       var PF = cs.platforms || {}, bl = PF.bailian || {};
+      var envBad = cs.server_routes_problem ? '<p class="err small">服务器设置有问题，任务都没按它走：' + esc(cs.server_routes_problem) + '</p>' : '';
       var budPill = bud.level === 'over' ? '<span class="pill danger">超过预算</span>' : bud.level === 'warn' ? '<span class="pill warn">已到 80%</span>' : '';
       var ev = d.evals || [], ev0 = ev[0];
       main.innerHTML =
@@ -831,7 +850,7 @@
         '<section class="card"><h2>每个任务用哪个模型</h2>' +
           '<p class="muted small">这里列的是 AI 网关（xmc.hk/api-admin）里给学员用的模型名：<code>' + esc(cs.default_model || '—') + '</code> 是 Gemini（默认），flow-text- 开头的是阿里云百炼企业账号上的模型（通义千问、DeepSeek 等），各自配了 Gemini 备用。评测和例句预生成会自动改问 flow-eval- / flow-batch- 同名模型（站长的学生账号）。两条都不通时，Flow 再换主模型。录音、联网检索一直用 Gemini，不在这里。' +
           (isAdmin() ? '改了马上生效，记进操作记录。换之前先看下面「每晚小评测」和抽样，效果不降再换；正式版上换之前先问过站长。' : '') + '</p>' +
-          (isAdmin() && CH.length > 1 ? '<div class="toolbar" style="margin:8px 0"><select id="allRoute">' + options(cs.default_model) + '</select><button class="btn" id="allGo">所有任务都用这个</button></div>' : '') +
+          envBad + (isAdmin() && CH.length > 1 ? '<div class="toolbar" style="margin:8px 0"><select id="allRoute">' + options(cs.default_model) + '</select><button class="btn" id="allGo">所有任务都用这个</button></div>' : '') +
           '<table class="cmp"><thead><tr><th>任务</th><th>模型</th><th class="num">次数</th><th class="num opt">失败</th><th class="num opt">备用答</th><th class="num opt">输入 / 命中 / 输出 token</th><th class="num">费用</th><th class="num opt">平均</th></tr></thead><tbody>' +
           cs.kinds.map(function (k) {
             return '<tr' + (k.calls ? '' : ' class="dim"') + '><td>' + esc(k.label) + (k.group === 'grading' ? '<span class="sub">批改</span>' : k.group === 'content' ? '<span class="sub">内容，全站共用</span>' : '') + '</td><td>' + routeCell(k) + '</td>' +

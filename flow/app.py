@@ -166,7 +166,8 @@ def session_info(u):
  """What /api/session answers; /api/next/home carries the same, so the page needs one request to start."""
  # email_bound: the page reminds an account without one that a forgotten password could not be reset by itself.
  # media: where audio can also be fetched when this server cannot answer (None unless R2 is in use).
- return {'user':{**{k:u[k] for k in ('id','username','admin','csrf')},'email_bound':bool(u['email'])} if u else None,'ai_enabled':ai_enabled(),'mail':account.configured(),'media':__import__('media').info()}
+ # age/guardian: 年龄段 and a guardian's agreement under 14 (privacy_service): an account without a band is asked once.
+ return {'user':{**{k:u[k] for k in ('id','username','admin','csrf')},'email_bound':bool(u['email']),**__import__('privacy_service').info(u)} if u else None,'ai_enabled':ai_enabled(),'mail':account.configured(),'media':__import__('media').info()}
 def verify(p,stored): return hmac.compare_digest(password(p,stored.split(':')[0]),stored)
 def topics(c):
  out=[]
@@ -249,7 +250,7 @@ class Handler(BaseHTTPRequestHandler):
   token=jar['flow_session'].value if 'flow_session' in jar else ''
   now=time.time()
   # an account an operator stopped (xmc.hk console) has no session: its sessions are deleted and none is read
-  u=c.execute('SELECT users.id,username,admin,csrf,token,expires,email FROM sessions JOIN users ON users.id=user_id WHERE token=? AND expires>? AND NOT COALESCE(users.disabled,0)',(token,now)).fetchone()
+  u=c.execute('SELECT users.id,username,admin,csrf,token,expires,email,age_band,guardian_ok FROM sessions JOIN users ON users.id=user_id WHERE token=? AND expires>? AND NOT COALESCE(users.disabled,0)',(token,now)).fetchone()
   # Sliding sessions: a learner who keeps coming back stays signed in; SESSION_DAYS after the last visit it ends.
   # At most one write a day per session; the cookie is renewed with the same answer (send()).
   if u and u['expires']<now+(SESSION_DAYS-1)*86400:
@@ -268,7 +269,7 @@ class Handler(BaseHTTPRequestHandler):
    body=('User-agent: *\nDisallow: /\n' if CHANNEL=='beta' else 'User-agent: *\nDisallow: /api/\nAllow: /\n').encode()
    self.send_response(200);self.headers_common('text/plain; charset=utf-8');self.send_header('Cache-Control','public, max-age=3600')
    self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
-  if path=='/api/survey':return self.send(__import__('survey_service').SURVEY)
+  if path=='/api/survey':sv=__import__('survey_service');return self.send(sv.definition(parse_qs(urlsplit(self.path).query).get('s',[''])[0]))  # ?s=trial: the class trial survey
   if path=='/api/deploy-status':
    # Written by tools/flow-autodeploy.py: release tag, commit, result, health checks and test counts. Nothing private.
    try:st=json.loads((DATA/'deploy-status.json').read_text())
@@ -469,6 +470,8 @@ class Handler(BaseHTTPRequestHandler):
     if result is not None:return self.send(*result)
     if not u:return self.send({'error':'请先登录'},401)
     if not hmac.compare_digest(self.headers.get('X-CSRF-Token',''),u['csrf']):return self.send({'error':'安全校验失败，请刷新页面'},403)
+    held=__import__('privacy_service').gate(u,path)  # under 14 without a guardian's agreement: no AI on the learner's own words
+    if held:return self.send(*held)
     if path in next_service.AI_PATHS:
      import ai_jobs
      try:self.ai_ticket=ai_jobs.enter(u['id'])
@@ -516,6 +519,9 @@ class Handler(BaseHTTPRequestHandler):
    u=self.user(c)
    if not u:return self.send({'error':'登录已过期'},401)
    if not hmac.compare_digest(self.headers.get('X-CSRF-Token',''),u['csrf']):return self.send({'error':'安全校验失败，请刷新页面'},403)
+   if path=='/api/account/age':return self.send(*__import__('privacy_service').set_age(c,u['id'],data))  # 年龄段, asked later
+   held=__import__('privacy_service').gate(u,path)
+   if held:return self.send(*held)
    if path=='/api/account/delete':
     # 注销账号: the password once more, then everything the account has is deleted (account_data.py)
     result=__import__('account_data').erase(c,u,data,verify)

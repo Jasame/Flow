@@ -1,0 +1,156 @@
+[
+ {
+  "id": "v5-science-b2-ears-pop-on-a-plane",
+  "title": "坐飞机为什么会耳朵发闷",
+  "title_en": "Why Your Ears Pop on a Plane",
+  "summary_zh": "飞机爬升、降落时耳朵发闷，“啵”的一声又恢复了，这背后是中耳里的一小团空气和一根细管。读完你会明白原理，知道降落时为什么更难受，以及打个哈欠为什么有用。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "science",
+  "genre": "explainer",
+  "purposes": [
+   "expository"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Most people who have flown know the strange moment when the world suddenly sounds muffled, as if someone has wrapped cotton wool around their head. A few minutes later, there is a small pop, and the noise of the cabin returns. The cause lies in a tiny, air-filled space behind each eardrum called the middle ear. This space is connected to the back of the throat by a narrow tube, which is usually closed. On the ground, the air pressure inside the middle ear matches the pressure outside, so the eardrum sits flat and vibrates freely. As a plane climbs, however, the air pressure in the cabin falls, because cabins are kept at a lower pressure than you would find at sea level. The air trapped behind the eardrum now pushes outwards, and the eardrum can no longer move as easily, which is why sounds seem dull. When the tube finally opens, some of that air escapes, the pressure evens out and you hear the pop. Landing is often more uncomfortable than take-off. As the plane descends, the outside pressure rises again, and the tube has to open to let air back into the middle ear, which it does less readily. Swallowing, yawning or chewing gum all help, because the muscles used in these movements pull the tube open. This is also why people with a blocked nose often find flying harder: a swollen tube struggles to open at all. So if your ears feel full on the way down, try a big yawn; it is not rude, it is physics.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What does the text mainly explain?",
+    "options": [
+     "How pilots control the pressure inside a cabin",
+     "Why flying is bad for your hearing",
+     "Why changes in air pressure during a flight affect our ears",
+     "How to choose a quiet seat on a plane"
+    ],
+    "answer": 2,
+    "evidence": "The cause lies in a tiny, air-filled space behind each eardrum called the middle ear."
+   },
+   {
+    "type": "inference",
+    "prompt": "Why does the writer say a yawn \"is not rude, it is physics\"?",
+    "options": [
+     "Because yawning helps to even out the pressure in the ears",
+     "Because the cabin crew ask passengers to yawn",
+     "Because yawning shows that a passenger is tired",
+     "Because yawning makes the engines sound quieter"
+    ],
+    "answer": 0,
+    "evidence": "the muscles used in these movements pull the tube open"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"muffled\" mean in \"the world suddenly sounds muffled\"?",
+    "options": [
+     "loud and sharp",
+     "fast and confusing",
+     "clear and musical",
+     "quiet and unclear"
+    ],
+    "answer": 3,
+    "evidence": "the world suddenly sounds muffled"
+   },
+   {
+    "type": "detail",
+    "prompt": "Why is landing often more uncomfortable than take-off?",
+    "options": [
+     "The cabin becomes colder near the ground",
+     "The tube opens less readily to let air back in",
+     "Passengers stop swallowing during landing",
+     "The engines are much louder"
+    ],
+    "answer": 1,
+    "evidence": "the tube has to open to let air back into the middle ear, which it does less readily"
+   }
+  ],
+  "dictation_index": 8,
+  "vocabulary": [
+   {
+    "term": "muffled",
+    "meaning": "（声音）发闷的；听不清的",
+    "example": "We heard muffled voices through the wall."
+   },
+   {
+    "term": "eardrum",
+    "meaning": "鼓膜",
+    "example": "A very loud noise can damage the eardrum."
+   },
+   {
+    "term": "vibrates",
+    "meaning": "振动",
+    "example": "My phone vibrates when a message arrives."
+   },
+   {
+    "term": "descends",
+    "meaning": "下降",
+    "example": "The road descends steeply towards the river."
+   },
+   {
+    "term": "swollen",
+    "meaning": "肿胀的",
+    "example": "Her ankle was swollen after the fall."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "lies in",
+    "meaning": "在于",
+    "note": "The problem lies in… 是说明原因的正式说法，比 is because of 更书面。"
+   },
+   {
+    "text": "no longer",
+    "meaning": "不再",
+    "note": "放在实义动词前、be 动词后：It no longer works. / He is no longer here."
+   },
+   {
+    "text": "at sea level",
+    "meaning": "在海平面上",
+    "note": "说海拔、气压、沸点时的固定说法。"
+   },
+   {
+    "text": "evens out",
+    "meaning": "变得均衡；拉平",
+    "note": "even out 也可以说数字、情绪：Prices usually even out over the year."
+   },
+   {
+    "text": "on the way down",
+    "meaning": "下降途中；往下走的时候",
+    "note": "反义是 on the way up：We stopped for photos on the way up."
+   }
+  ],
+  "grammar": [
+   "voice-basic",
+   "compare-basic",
+   "clause-adverb"
+  ],
+  "knowledge": [
+   {
+    "node": "voice-basic",
+    "quote": "This space is connected to the back of the throat by a narrow tube",
+    "explanation": "被动语态 is connected to… by…，说明文里描写结构时很常用：重点是“这个空间”，而不是谁连接了它。"
+   },
+   {
+    "node": "compare-basic",
+    "quote": "Landing is often more uncomfortable than take-off.",
+    "explanation": "多音节形容词 uncomfortable 用 more… than… 构成比较级；often 放在 be 动词后。"
+   },
+   {
+    "node": "clause-adverb",
+    "quote": "As a plane climbs, however, the air pressure in the cabin falls",
+    "explanation": "As 引导时间状语从句，意思是“随着……”，表示两件事同时变化；however 插在中间，和上一句形成对比。"
+   }
+  ],
+  "speaking": "用 1 分钟给第一次坐飞机的朋友解释：为什么降落时耳朵会难受，可以怎么办。用上 lies in 和 on the way down。",
+  "writing": "用 120–150 词写一段说明文，解释一个旅行中的身体小现象（如晕车、时差）。用一个被动句、一个 As… 状语从句和一个比较级句子。",
+  "task": {
+   "prompt": "仿照这句，用 The cause lies in … 写一句话，解释一个你观察到的现象的原因。",
+   "model": "The cause lies in a tiny, air-filled space behind each eardrum called the middle ear"
+  },
+  "tags": [
+   "人体奥秘",
+   "说明文"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

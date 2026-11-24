@@ -8,9 +8,11 @@
     "cefr": "B1",
     "theme": "culture",
     "genre": "email",
+    "purposes": ["daily-life"],
     "body": "Hi Leo, I think I owe you an explanation about yesterday. When you sent me your long message about the new design, I replied with a single thumbs-up. To me, that meant: Great idea, I'm in! Then Priya mentioned at lunch that you seemed a bit hurt, and that you had read it as \"fine, whatever\". I felt terrible. I had spent ten minutes reading your plan carefully, and I really liked it. In my family chat, a thumbs-up is the happiest thing you can send, so I never imagined it could sound cold. I wish I had a button that showed my tone of voice! If I wrote \"Great idea!\" in words, you would probably hear the warmth I meant. So, to be clear: I love the plan, especially the part about testing two colours. Shall we meet on Thursday to talk it through? From now on, I'll use full sentences for anything important and save the emoji for lunch plans. Best, Hana",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main purpose of Hana's email?",
         "options": [
           "To complain that Leo's message was far too long",
@@ -22,6 +24,7 @@
         "evidence": "To me, that meant: Great idea, I'm in!"
       },
       {
+        "type": "detail",
         "prompt": "What will Hana do differently from now on?",
         "options": [
           "Stop using her family chat",
@@ -31,7 +34,9 @@
         ],
         "answer": 2,
         "evidence": "I'll use full sentences for anything important"
-      }
+      },
+      {"type": "inference", "prompt": "Why did Leo feel a bit hurt?", "options": ["Hana had missed a meeting", "He read the thumbs-up as a cold, uninterested reply", "Priya had criticised his design", "Hana had not read his plan"], "answer": 1, "evidence": "you had read it as \"fine, whatever\""},
+      {"type": "vocab", "prompt": "What does \"tone of voice\" mean in \"a button that showed my tone of voice\"?", "options": ["your accent", "how fast you speak", "the feeling shown by the way you say something", "how loudly you speak"], "answer": 2, "evidence": "I wish I had a button that showed my tone of voice!"}
     ],
     "dictation_index": 5,
     "vocabulary": [
@@ -131,9 +136,11 @@
     "cefr": "B1",
     "theme": "culture",
     "genre": "guide",
+    "purposes": ["expository"],
     "body": "Going to the theatre for the first time can feel a little scary, but the rules are mostly common sense. First, try to arrive at least twenty minutes early to find your seat and visit the toilet. Latecomers may be asked to wait outside until a suitable break, so that the people already sitting are not disturbed. Once you are seated, switch your phone off completely, not just to silent. A glowing screen in a dark room is surprisingly bright, and even a quick glance at a message can annoy the people around you. What about food? Either a few quiet sweets or a bottle of water is usually fine, but noisy packets are not. If you feel a cough coming, you might want to keep a sweet ready, or wait for a loud moment in the music. Clapping is easy: just follow the audience. People often clap after a big song, and everyone claps when the actors come out to bow at the end. Don't worry about dressing up, either. Nobody will mind what you wear, as long as you are comfortable. Above all, relax and let the story carry you along.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the overall message of this guide?",
         "options": [
           "First-timers need to learn many strict rules before they go",
@@ -145,6 +152,7 @@
         "evidence": "the rules are mostly common sense"
       },
       {
+        "type": "detail",
         "prompt": "Why does the writer say you should switch your phone off completely?",
         "options": [
           "Phones can interfere with the stage lights",
@@ -154,7 +162,9 @@
         ],
         "answer": 3,
         "evidence": "A glowing screen in a dark room is surprisingly bright"
-      }
+      },
+      {"type": "inference", "prompt": "Why might you keep a sweet ready?", "options": ["Because food in the theatre is expensive", "To stop a cough from disturbing other people", "To give to the actors", "Because the play is very long"], "answer": 1, "evidence": "If you feel a cough coming, you might want to keep a sweet ready"},
+      {"type": "vocab", "prompt": "What does \"Latecomers\" mean in \"Latecomers may be asked to wait outside\"?", "options": ["people who arrive after the start", "ticket sellers", "people who leave early", "actors"], "answer": 0, "evidence": "Latecomers may be asked to wait outside"}
     ],
     "dictation_index": 3,
     "vocabulary": [
@@ -254,9 +264,11 @@
     "cefr": "B1",
     "theme": "culture",
     "genre": "dialogue",
+    "purposes": ["daily-life"],
     "body": "Tara: OK, be honest, did anyone actually like the ending? Ben: I did! The sister finally leaves the village, carrying nothing but her father's old radio, and I thought it was perfect. Tara: Perfect? It just stops in the middle of a scene! I wish the book had one more chapter. Ollie: I'm with Tara on this one. Neither the sister nor her brothers explain why they stopped speaking. Ben: That's the point, though, because some things in families never get explained. Ollie: Maybe, but if I wrote a story like that, my readers would ask for their money back. Ben: Your readers are your mum and your cat. Tara: Ha! Seriously, though, either you or I am reading it wrong. Ben: Or we're both right. Look, you two have been arguing about it for forty minutes, and that means it worked. Tara: Hmm, that sounds like a clever way of saying it's a bad ending. Ben: No, it's a clever way of saying it's a brave one. Ollie: Fine, but next month I'm choosing the book, and it's going to have a happy ending.",
     "questions": [
       {
+        "type": "main",
         "prompt": "Why does Ben think the ending works?",
         "options": [
           "It explains clearly why the family stopped speaking",
@@ -268,6 +280,7 @@
         "evidence": "you two have been arguing about it for forty minutes, and that means it worked"
       },
       {
+        "type": "detail",
         "prompt": "What does Tara wish the book had?",
         "options": [
           "A happier main character",
@@ -277,7 +290,9 @@
         ],
         "answer": 1,
         "evidence": "I wish the book had one more chapter."
-      }
+      },
+      {"type": "inference", "prompt": "What does Ben mean when he says \"that means it worked\"?", "options": ["He wants to choose the next book", "The book club is well organised", "A book that makes readers argue has done its job", "The arguments have gone on too long"], "answer": 2, "evidence": "you two have been arguing about it for forty minutes, and that means it worked"},
+      {"type": "vocab", "prompt": "What does \"brave\" mean in \"it's a brave one\"?", "options": ["willing to take a risk", "very long", "boring", "frightening"], "answer": 0, "evidence": "it's a clever way of saying it's a brave one"}
     ],
     "dictation_index": 7,
     "vocabulary": [
@@ -377,9 +392,11 @@
     "cefr": "B1",
     "theme": "culture",
     "genre": "interview",
+    "purposes": ["expository"],
     "body": "Q: Which languages did you speak at home? Leila: My mum spoke to me in her language, and my dad spoke English. They wanted me to keep both, so they never mixed them up. Q: Was that confusing? Leila: Not really. As a child, I just thought every family had two ways of saying everything. Q: Do you have a favourite language? Leila: It depends on the topic. For feelings, I usually choose my mum's language, but for work I find English easier. Q: Did you ever feel embarrassed? Leila: Sometimes, especially when my mum called to me across the playground and the other kids turned around to stare. I wish I could tell that little girl how lucky she was. Q: What's the hardest part now? Leila: Keeping my mum's language strong. If I go a week without using it, I can feel the words slipping away. So I call my aunt every Sunday just to chat. Q: Would you do the same with your own children one day? Leila: Definitely, because I'd want them to have both, even if it takes a lot of patience.",
     "questions": [
       {
+        "type": "main",
         "prompt": "How does Leila feel now about growing up with two languages?",
         "options": [
           "She thinks it made her childhood too confusing",
@@ -391,6 +408,7 @@
         "evidence": "I wish I could tell that little girl how lucky she was."
       },
       {
+        "type": "detail",
         "prompt": "Why does Leila call her aunt every Sunday?",
         "options": [
           "Her aunt helps her with her work",
@@ -400,7 +418,9 @@
         ],
         "answer": 2,
         "evidence": "If I go a week without using it, I can feel the words slipping away."
-      }
+      },
+      {"type": "inference", "prompt": "What does Leila mean by \"I wish I could tell that little girl how lucky she was\"?", "options": ["She wants to go back to school", "As a child she felt embarrassed, but now she values both languages", "She has lost both languages", "She had an unlucky childhood"], "answer": 1, "evidence": "I wish I could tell that little girl how lucky she was."},
+      {"type": "vocab", "prompt": "What does \"slipping away\" mean in \"I can feel the words slipping away\"?", "options": ["falling over", "being written down", "slowly being lost or forgotten", "getting louder"], "answer": 2, "evidence": "I can feel the words slipping away"}
     ],
     "dictation_index": 5,
     "vocabulary": [

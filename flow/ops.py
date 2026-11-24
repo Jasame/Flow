@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Root-only backup and explicit restore for the BaoTa installation."""
-import argparse,datetime,json,os,secrets,sqlite3,tarfile,tempfile,time,subprocess,shutil
+import argparse,datetime,json,os,re,secrets,sqlite3,tarfile,tempfile,time,subprocess,shutil
 from pathlib import Path
 ROOT=Path('/www/wwwroot/flow');BACKUPS=Path('/www/backup/flow/daily')
 def check(path):
@@ -31,11 +31,46 @@ def backup():
   # Only remove completed backups created by this tool, keeping the most recent 14.
   completed=sorted([p for p in BACKUPS.glob('flow-*') if (p/'manifest.json').is_file()],key=lambda p:p.stat().st_mtime,reverse=True)
   for old in completed[14:]:shutil.rmtree(old)
+  prune_deploy_copies(channel=channel())
  except Exception:
   status={'ok':False,'created':time.time()};raise
  finally:
   status_file=ROOT/'data/backup-status.json';temp=status_file.with_suffix('.tmp');temp.write_text(json.dumps(status));temp.chmod(0o644);temp.replace(status_file)
  return folder
+
+# tools/flow-pull.sh keeps a copy of the database from before each deploy, in one folder for both sites:
+# backup-pull-<YYYYMMDD-HHMMSS> for 语流 (flow), backup-pull-beta-<…> for the 内测版 (flow-beta).
+COPIES={'prod':re.compile(r'backup-pull-\d{8}-\d{6}'),'beta':re.compile(r'backup-pull-beta-\d{8}-\d{6}')}
+def channel():
+ return 'beta' if os.getenv('FLOW_CHANNEL','').strip().lower()=='beta' else 'prod'
+def dry_default(chan):
+ """FLOW_PRUNE_DRY_RUN=1 lists only, =0 deletes; unset: the 内测版 lists only, 语流 deletes."""
+ v=os.getenv('FLOW_PRUNE_DRY_RUN','').strip()
+ return v=='1' if v in ('0','1') else chan=='beta'
+def prune_deploy_copies(ops=Path('/root/claude-ops'),days=14,now=None,channel='prod',dry_run=None,say=print):
+ """The database copies of this site's deploys older than 14 days go (the code files stay, for a rollback), so an
+ account deleted with 注销账号 is gone from every backup within 14 days, as the 隐私说明 says. Only this site's own
+ folders (COPIES[channel], the whole name) are looked at; anything else is left alone. Each copy is logged with its
+ size before it goes; dry_run lists them and deletes nothing. Returns [(path, bytes, mtime)]."""
+ pattern=COPIES.get(channel)
+ if pattern is None:say('prune: unknown site %r, nothing done'%channel);return []
+ dry=dry_default(channel) if dry_run is None else dry_run
+ now=now or time.time();found=[]
+ try:folders=sorted(p for p in ops.iterdir() if p.is_dir() and pattern.fullmatch(p.name))
+ except OSError:return []
+ for d in folders:
+  f=d/'flow-before.sqlite3'
+  try:st=f.stat()
+  except OSError:continue
+  if now-st.st_mtime>days*86400:found.append((f,st.st_size,st.st_mtime))
+ label='只列不删' if dry else '删除'
+ for f,size,mtime in found:
+  say('prune %s [%s] %s %.1f MB %s'%(channel,label,f,size/1048576,datetime.datetime.fromtimestamp(mtime).strftime('%Y-%m-%d')))
+  if not dry:
+   try:f.unlink()
+   except OSError as exc:say('prune %s: could not delete %s: %s'%(channel,f,exc))
+ say('prune %s [%s]: %d 个超过 %d 天的旧数据库副本，共 %.1f MB'%(channel,label,len(found),days,sum(x[1] for x in found)/1048576))
+ return found
 
 def restore(folder,apply):
  folder=Path(folder).resolve();source=folder/'flow.sqlite3';check(source)
@@ -61,8 +96,10 @@ def restore(folder,apply):
    if timer_active:subprocess.run(['systemctl','start','flow-daily.timer'],check=True)
    subprocess.run(['systemctl','start','flow'],check=True)
 if __name__=='__main__':
- parser=argparse.ArgumentParser();parser.add_argument('action',choices=['backup','restore']);parser.add_argument('folder',nargs='?');parser.add_argument('--apply',action='store_true');args=parser.parse_args()
+ parser=argparse.ArgumentParser();parser.add_argument('action',choices=['backup','restore','prune-deploy']);parser.add_argument('folder',nargs='?');parser.add_argument('--apply',action='store_true')
+ parser.add_argument('--channel',choices=['prod','beta']);parser.add_argument('--dry-run',action='store_true');args=parser.parse_args()
  if os.geteuid()!=0:raise SystemExit('请使用 root 运行，以保护备份与配置。')
  if args.action=='backup':backup()
+ elif args.action=='prune-deploy':prune_deploy_copies(channel=args.channel or channel(),dry_run=True if args.dry_run else None)
  elif args.folder:restore(args.folder,args.apply)
  else:parser.error('restore 需要指定备份目录')

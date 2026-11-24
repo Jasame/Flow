@@ -8,9 +8,11 @@
     "cefr": "C1",
     "theme": "science",
     "genre": "article",
+    "purposes": ["news-commentary", "expository"],
     "body": "For much of history, the surface you wrote on was worth more than most of what you wrote. Parchment, made from carefully prepared animal skin, was slow and costly to produce, and in an age when literacy was rare and prosperity uneven, a book that nobody read any longer was less a treasure than a supply of raw material. Scribes would scrape the old ink away, wash the page and write a new text over the top, leaving behind a recycled manuscript known as a palimpsest. What they could not do was remove every trace. Much medieval ink contained iron, which soaked into the skin rather than sitting on it, and those faint remains are what modern researchers set out to retrieve. The simplest tool is ultraviolet light. Under it, parchment gives off a soft bluish glow, while the leftover ink absorbs the light instead of glowing, so the scraped letters reappear as shadows. More ambitious projects photograph each page many times, under narrow bands of light ranging from ultraviolet to infrared, and some libraries now publish interactive images that let readers switch between them. Because the two layers of ink and the skin respond slightly differently to each band, software can compare the images and pull the hidden text away from the visible one. The results can be startling: a plain prayer book, its margins decorated with a tiny dragon curled around a capital letter, may conceal a lost poem or a forgotten work of mathematics. Yet the very power of these methods calls for restraint. Processing can sharpen genuine strokes, but it can also invent them, and when the variance between two readings comes down to a single faint letter, the temptation to see what one hopes for is considerable. A faithful reading admits its gaps, separating what is visible from what is reconstructed, and it resists turning every recovered fragment into a legendary discovery. Treated that way, the work becomes a quiet tribute to both scribes: the one whose words were sacrificed, and the one whose thrift preserved them, however unintentionally. Even the scraping, it turns out, is authentic history.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's attitude towards modern imaging methods?",
         "options": [
           "They damage old pages and should be replaced by simpler methods",
@@ -22,6 +24,7 @@
         "evidence": "Yet the very power of these methods calls for restraint."
       },
       {
+        "type": "detail",
         "prompt": "Why do scraped letters reappear under ultraviolet light?",
         "options": [
           "The parchment glows while the leftover ink absorbs the light",
@@ -31,7 +34,9 @@
         ],
         "answer": 0,
         "evidence": "parchment gives off a soft bluish glow, while the leftover ink absorbs the light instead of glowing"
-      }
+      },
+      {"type": "inference", "prompt": "Why does the writer call this work \"a quiet tribute to both scribes\"?", "options": ["Both scribes later became famous", "Both scribes wrote prayer books", "Both scribes used ultraviolet light", "Both the original writer and the one who reused the page helped the text survive"], "answer": 3, "evidence": "the one whose words were sacrificed, and the one whose thrift preserved them, however unintentionally"},
+      {"type": "vocab", "prompt": "What does \"thrift\" mean in \"the one whose thrift preserved them\"?", "options": ["skill at drawing", "careful use of resources to avoid waste", "speed of writing", "religious belief"], "answer": 1, "evidence": "the one whose thrift preserved them"}
     ],
     "dictation_index": 0,
     "vocabulary": [
@@ -137,9 +142,11 @@
     "cefr": "C1",
     "theme": "science",
     "genre": "opinion",
+    "purposes": ["argumentative", "news-commentary"],
     "body": "Few technologies are advertised as enthusiastically as hydrogen. Combine it with oxygen in a fuel cell, and the only waste that comes out at the point of use is water. It is easy to see why the idea has gathered devoted followers, and equally easy to see why others greet each new announcement with weary rejection. Both reactions, I think, miss what is genuinely interesting about it. The awkward fact is that very little hydrogen on Earth is lying around waiting to be collected; almost all of it is locked up in water and other compounds. Before anyone can use it, someone has to manufacture it, either by using electricity to split water or by extracting it from fossil fuels, a route that releases carbon dioxide. Hydrogen, in other words, is not a source of energy but a way of carrying it, and it can only be as clean as the energy that went into making it. Each conversion along the way also loses some energy, so using hydrogen where a battery would do is rarely a good bargain. Storing it is challenging, too. As the lightest element, it takes up a great deal of space unless it is squeezed to very high pressures or chilled until it turns liquid, and its tiny molecules can slip through materials that hold other gases comfortably. None of this makes hydrogen any less worthy of attention. Some heavy industries have jobs that electricity alone cannot easily do, and there hydrogen may well be the most viable option available. The unfortunate habit is to treat it as a single answer to everything, as if any one fuel could fly solo. A little energy literacy would help: asking where the hydrogen came from, and what it replaces, is more beneficial than either cheering or sneering. If governments choose to intervene, they should back the uses that survive those questions, because lasting prosperity is more likely to come from many sensible tools than from one dazzling promise.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's overall position on hydrogen?",
         "options": [
           "It is a clean energy source that should replace other fuels",
@@ -151,6 +158,7 @@
         "evidence": "The unfortunate habit is to treat it as a single answer to everything"
       },
       {
+        "type": "inference",
         "prompt": "Why does the writer say hydrogen 'can only be as clean as the energy that went into making it'?",
         "options": [
           "Because burning hydrogen releases carbon dioxide",
@@ -160,7 +168,9 @@
         ],
         "answer": 2,
         "evidence": "someone has to manufacture it, either by using electricity to split water or by extracting it from fossil fuels"
-      }
+      },
+      {"type": "vocab", "prompt": "What does \"viable\" mean in \"the most viable option available\"?", "options": ["cheapest", "newest", "practical and able to work", "most popular"], "answer": 2, "evidence": "the most viable option available"},
+      {"type": "detail", "prompt": "According to the writer, why is hydrogen difficult to store?", "options": ["It is too heavy to move easily", "It turns into water too quickly", "It explodes at room temperature", "It takes up a lot of space unless it is highly compressed or chilled"], "answer": 3, "evidence": "it takes up a great deal of space unless it is squeezed to very high pressures or chilled until it turns liquid"}
     ],
     "dictation_index": 7,
     "vocabulary": [
@@ -266,9 +276,11 @@
     "cefr": "C1",
     "theme": "science",
     "genre": "explainer",
+    "purposes": ["expository"],
     "body": "Show most adults a photograph of a puppy, a kitten or a human baby, and something predictable happens: their voices rise, their faces soften and they feel an urge to protect. The features that set off this response are remarkably consistent. A large head compared with the body, big eyes set low on the face, round cheeks, a small nose and short, clumsy limbs together form what researchers call the baby schema. The usual explanation is evolutionary: human infants are helpless for an unusually long time, so adults who found them appealing, and who therefore cared for them, were more likely to see their children survive. The response, however, is far from precise. It spills over onto animals, cartoon characters and even cars whose headlights resemble wide eyes. Even the pupils play a part: they widen in dim light and in moments of interest, and illustrators routinely draw them far larger than life, which seems to make a face look warmer and more open. Nowhere is the trick clearer than in the history of the dragon. In medieval manuscripts, the legendary beast is usually all claws, scales and narrow, menacing eyes. Today's toy dragons, by contrast, tend to have oversized heads, huge eyes and stubby legs, which turns a monster into something a child wants to cuddle. Companies that manufacture toys, and those that advertise them, understand this perfectly well, as do the owners of pet accounts competing for followers online. Some interactive toys go further, blinking slowly or tilting their heads at the sound of a voice. None of this means that the affection we feel is fake. The emotion is entirely authentic; it is simply being evoked by a design rather than by a creature that needs us. Knowing that will not switch the reaction off, but it may help us notice when a sweet face is being used to conceal a sales pitch.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main point of the explainer?",
         "options": [
           "Baby-like features reliably trigger a caring response, and designers use this on purpose",
@@ -280,6 +292,7 @@
         "evidence": "The emotion is entirely authentic; it is simply being evoked by a design rather than by a creature that needs us."
       },
       {
+        "type": "detail",
         "prompt": "How do today's toy dragons differ from those in medieval manuscripts?",
         "options": [
           "They have more claws and scales",
@@ -289,7 +302,9 @@
         ],
         "answer": 2,
         "evidence": "tend to have oversized heads, huge eyes and stubby legs"
-      }
+      },
+      {"type": "inference", "prompt": "What is the writer's attitude to cute designs used to sell products?", "options": ["Cute designs should be banned", "People who like cute toys are being foolish", "The feelings are real, but we should notice when they are being used to sell", "Advertisers do not understand cuteness"], "answer": 2, "evidence": "it may help us notice when a sweet face is being used to conceal a sales pitch"},
+      {"type": "vocab", "prompt": "What does \"menacing\" mean in \"narrow, menacing eyes\"?", "options": ["sleepy", "colourful", "threatening", "friendly"], "answer": 2, "evidence": "narrow, menacing eyes"}
     ],
     "dictation_index": 11,
     "vocabulary": [
@@ -395,9 +410,11 @@
     "cefr": "C1",
     "theme": "science",
     "genre": "email",
+    "purposes": ["daily-life"],
     "body": "Hi Sam, I'm back from my solo week by the coast, and I have a confession I think you'll enjoy. On the last morning I wandered into a market and fell for a brass lamp whose warm glow evoked my grandmother's hallway so vividly that I could almost smell her cooking. Before I had even asked, the seller named a price that was frankly absurd. I laughed, offered a fraction of it, and watched him clutch his chest in theatrical rejection. Twenty minutes later I walked away with the lamp, convinced I had won, for roughly half his opening figure, which is still far more than I would have paid if I had seen it in a shop. You'll recognise this as anchoring, which makes it more embarrassing, since I've taught it. The first number we hear becomes a reference point, and although we adjust away from it, we rarely adjust far enough. An anchor works even when we suspect it is inflated, which is precisely why sellers like to name it first and why so many shops advertise a crossed-out 'original' price. Knowing about the effect, it turns out, offers little protection, especially once affection has entered the picture and the fear of looking mean starts to intervene. Anyway, I think it would make a worthy interactive lesson for my pupils. Imagine splitting a class in two, showing each half a different, obviously random number, and then asking everyone to estimate the price of something ordinary, such as a can of soda at the cinema. Comparing the variance within each group with the gap between the groups would let us sneak in some real statistics, too. Would you be up for teaching it with me? It feels like exactly the kind of practical literacy that teenagers need before real money is at stake. Best, Ruth",
     "questions": [
       {
+        "type": "detail",
         "prompt": "Why does the writer find the lamp purchase embarrassing?",
         "options": [
           "She knows about anchoring and even teaches it, yet still fell for it",
@@ -409,6 +426,7 @@
         "evidence": "You'll recognise this as anchoring, which makes it more embarrassing, since I've taught it."
       },
       {
+        "type": "detail",
         "prompt": "According to the email, why do many shops show a crossed-out 'original' price?",
         "options": [
           "To prove that the product is authentic",
@@ -418,7 +436,9 @@
         ],
         "answer": 3,
         "evidence": "which is precisely why sellers like to name it first and why so many shops advertise a crossed-out 'original' price"
-      }
+      },
+      {"type": "main", "prompt": "What is the main purpose of Ruth's email?", "options": ["To ask Sam to buy a lamp for her", "To complain about a dishonest seller", "To share an example of anchoring and suggest teaching a lesson on it together", "To describe her grandmother's house"], "answer": 2, "evidence": "Would you be up for teaching it with me?"},
+      {"type": "vocab", "prompt": "What does \"inflated\" mean in \"even when we suspect it is inflated\"?", "options": ["written down", "made higher than it should be", "hidden", "reduced"], "answer": 1, "evidence": "An anchor works even when we suspect it is inflated"}
     ],
     "dictation_index": 6,
     "vocabulary": [

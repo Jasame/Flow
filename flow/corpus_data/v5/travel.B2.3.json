@@ -8,9 +8,11 @@
   "cefr": "B2",
   "theme": "travel",
   "genre": "guide",
+  "purposes": ["expository", "daily-life"],
   "body": "If you are spending a few days on a rocky coast, a morning of fossil hunting is one of the cheapest and most absorbing activities you can choose. You need very little equipment: sturdy shoes, a small bag, a magnifying glass and, above all, a tide table. The tide is the one thing beginners neglect, and it is also the most important, because a beach that looks wide at nine o'clock can disappear completely by noon. Plan to start walking as the water goes out, and turn back well before it returns. The best place to look is not the cliff itself but the line of pebbles and seaweed left behind by the last high tide. Storms break pieces off the cliffs and the sea does the sorting for you, so small fossils tend to accumulate in the same spots, often among darker stones. A marine biologist who leads walks on one such beach told me that most visitors search for something big and shiny, when the real treasures are usually dull and grey. Train your eye on shapes instead: a perfect spiral, a row of tiny ridges, a shell that has turned to stone. It also helps to carry a simple illustration of the common types, and many local visitor centres sell one printed on a card. Whatever you do, resist the urge to dig into the cliff to extract something you have spotted. In many places it is not allowed, and loose rock can fall without warning. The probability of finding something, the biologist said, depends far less on luck than on patience. Walk slowly, keep your head down and stay hopeful: even an empty-handed morning by the sea is rarely a wasted one.",
   "questions": [
    {
+    "type": "main",
     "prompt": "According to the guide, what matters most for finding fossils?",
     "options": [
      "Bringing proper tools to break open rocks",
@@ -22,6 +24,7 @@
     "evidence": "depends far less on luck than on patience"
    },
    {
+    "type": "detail",
     "prompt": "Why does the writer tell readers not to dig into the cliff?",
     "options": [
      "Because the fossils inside are usually broken",
@@ -31,7 +34,9 @@
     ],
     "answer": 1,
     "evidence": "In many places it is not allowed, and loose rock can fall without warning."
-   }
+   },
+   {"type": "inference", "prompt": "What does the biologist mean by \"the real treasures are usually dull and grey\"?", "options": ["Shiny fossils are usually fake", "The beach is always grey", "Grey stones are worth a lot of money", "Valuable fossils often look ordinary, so you have to look closely"], "answer": 3, "evidence": "most visitors search for something big and shiny"},
+   {"type": "vocab", "prompt": "What does \"absorbing\" mean in \"the cheapest and most absorbing activities\"?", "options": ["expensive", "wet", "tiring", "so interesting that it holds all your attention"], "answer": 3, "evidence": "one of the cheapest and most absorbing activities you can choose"}
   ],
   "dictation_index": 3,
   "vocabulary": [
@@ -136,9 +141,11 @@
   "cefr": "B2",
   "theme": "travel",
   "genre": "dialogue",
+  "purposes": ["daily-life"],
   "body": "Nadia: Ben, look at the board — every train to the coast says cancelled, and there's a notice about a suspension of services until further notice. Ben: Oh my goodness, you're joking. Our ferry leaves at seven tomorrow morning, and the hotel by the port is already paid for. Nadia: I know, but staring at the board won't make a train appear. Apparently a tree came down on the line, and they won't know how long the repairs will take until it gets light. Ben: Then why is nobody telling us anything? That announcement just now was completely inadequate, because all it said was that they apologised for the inconvenience. Nadia: The man at the information desk showed me a memo from head office, and he doesn't know much more than we do. Ben: Great, so what are we supposed to do, sleep on the platform with two tired kids? Nadia: Not if I can help it. There'll be a surge of people at the taxi rank any minute, so we need to devise a plan quickly. Option one is the replacement bus, but the queue is already round the corner. Option two is to share a taxi with that couple over there, who are heading to the same port. Ben: To be honest, that's a complication I'd rather avoid, because we don't know them at all. Nadia: Fair enough, but I'd rather share a car with strangers than miss the ferry and lose the hotel. Ben: All right, you win. I'll go and talk to them while you entertain the kids. Nadia: Deal, and keep your phone in your pocket this time, because if you drop it and smash the screen again, we'll have no map at all. Ben: Very funny. Wish me luck, and try to look hopeful.",
   "questions": [
    {
+    "type": "detail",
     "prompt": "Why does Nadia want to share a taxi with the other couple?",
     "options": [
      "It is cheaper than taking the replacement bus",
@@ -150,6 +157,7 @@
     "evidence": "I'd rather share a car with strangers than miss the ferry and lose the hotel"
    },
    {
+    "type": "detail",
     "prompt": "What is Ben's complaint about the announcement?",
     "options": [
      "It was too quiet to hear clearly",
@@ -159,7 +167,9 @@
     ],
     "answer": 1,
     "evidence": "all it said was that they apologised for the inconvenience"
-   }
+   },
+   {"type": "main", "prompt": "What is the conversation mainly about?", "options": ["Booking a hotel near the port", "A family deciding how to reach the port after their trains are cancelled", "Complaining at the information desk", "Repairing a broken phone screen"], "answer": 1, "evidence": "every train to the coast says cancelled"},
+   {"type": "vocab", "prompt": "What does \"devise\" mean in \"we need to devise a plan quickly\"?", "options": ["think up", "cancel", "forget", "pay for"], "answer": 0, "evidence": "we need to devise a plan quickly"}
   ],
   "dictation_index": 10,
   "vocabulary": [
@@ -264,9 +274,11 @@
   "cefr": "B2",
   "theme": "travel",
   "genre": "email",
+  "purposes": ["daily-life"],
   "body": "Hi Grace, I've been on the farm for five days now, and I can finally reply properly, because the only reliable signal is on the bench by the gate. You asked what it's like, so here goes. Ruth, who owns the place with her husband Alan, used to be a biologist before she swapped the laboratory for a muddy hillside, and she talks about soil the way other people talk about their children. Their kind of farming is the opposite of the intensive kind: the sheep wander where they like, the hedges are left wild and nothing is ever rushed. Every morning I help collect the eggs, and yesterday Alan showed me how to extract honey from the hives, which was sticky, slow and completely absorbing. Lunch is usually fresh bread, a mature cheese from the next valley and a warming bowl of whatever soup Ruth has invented that day, and I promise you it is all delicious. Their beloved old dog, Pip, follows me everywhere, mostly in the hope that I'll drop something. I know I sound like an advert, but there is something genuinely healing about doing physical work all day and being too tired to scroll through my phone at night. All the stress I seem to accumulate at the office is slowly draining away. What has surprised me most, though, is the simple goodness of the people here: neighbours drop by with vegetables or a jar of jam, and nobody expects anything back. If you ever get the chance to do something like this, take it. I'll tell you everything when I'm home, assuming I come home at all! Love, Mei",
   "questions": [
    {
+    "type": "main",
     "prompt": "What is the main impression Mei gives of her stay?",
     "options": [
      "It is harder work than she expected, and she regrets going",
@@ -278,6 +290,7 @@
     "evidence": "there is something genuinely healing about doing physical work all day"
    },
    {
+    "type": "vocab",
     "prompt": "What does Mei mean when she calls the farm 'the opposite of the intensive kind'?",
     "options": [
      "It produces as much food as possible from a small area",
@@ -287,7 +300,9 @@
     ],
     "answer": 1,
     "evidence": "the sheep wander where they like, the hedges are left wild and nothing is ever rushed"
-   }
+   },
+   {"type": "inference", "prompt": "What does Mei mean by \"assuming I come home at all\"?", "options": ["She is worried about the weather", "She has lost her ticket home", "She is planning to buy the farm", "She is joking that she loves the farm so much she may not want to leave"], "answer": 3, "evidence": "assuming I come home at all!"},
+   {"type": "detail", "prompt": "What does Mei help with every morning?", "options": ["Milking the sheep", "Walking the neighbours' dogs", "Collecting the eggs", "Baking the bread"], "answer": 2, "evidence": "Every morning I help collect the eggs"}
   ],
   "dictation_index": 6,
   "vocabulary": [
@@ -392,9 +407,11 @@
   "cefr": "B2",
   "theme": "travel",
   "genre": "story",
+  "purposes": ["story", "daily-life"],
   "body": "The only picture I had of my grandfather's home town came from one of his old books. It was an illustration of a market hall with a pale stone dome, surrounded by stalls and tiny ink figures carrying baskets. He described it so often that by the time I booked a trip, I felt I was visiting an old friend. When I turned the corner into the square, however, the dome had vanished behind scaffolding and plastic sheeting. A faded sign announced that the building was closed for restoration, with completion expected the following spring. I must have looked crushed, because a man in a dusty helmet asked whether I was all right. He turned out to be one of the stonemasons, and when I explained about my grandfather, he offered to take me up to the platform they used for inspections. We climbed ladder after ladder until we were standing almost at the crown of the dome, close enough to touch it. Up close, the stone was not pale at all but patched with green and black, the result of decades of neglect. He pointed to the small windows at the top, where a storm had managed to smash several panes, letting rain soak into the walls for years before anyone acted. Then he showed me something I could never have seen from the square: the stone was full of tiny fossil shells, each one smaller than a fingernail. \"People think we're making it new,\" he said, brushing dust off his sleeve, \"but we're just helping it last.\" I spent the rest of the afternoon in a café across the square, writing a message to my mother about her father's beloved hall. I am hopeful that next year I will see it the way he did, without the scaffolding.",
   "questions": [
    {
+    "type": "inference",
     "prompt": "What does the stonemason mean when he says 'we're just helping it last'?",
     "options": [
      "Restoration is about protecting the old building, not replacing it with something new",
@@ -406,6 +423,7 @@
     "evidence": "but we're just helping it last"
    },
    {
+    "type": "detail",
     "prompt": "What did the narrator discover when she saw the stone up close?",
     "options": [
      "It was even paler than in the illustration",
@@ -415,7 +433,9 @@
     ],
     "answer": 1,
     "evidence": "the stone was full of tiny fossil shells, each one smaller than a fingernail"
-   }
+   },
+   {"type": "main", "prompt": "What is the story mainly about?", "options": ["Finding fossils on a beach", "The life of a café owner", "A visit to a grandfather's home town that turns into a close look at a building under repair", "Learning to work as a stonemason"], "answer": 2, "evidence": "he offered to take me up to the platform they used for inspections"},
+   {"type": "vocab", "prompt": "What does \"crushed\" mean in \"I must have looked crushed\"?", "options": ["excited", "very disappointed", "injured", "very tired"], "answer": 1, "evidence": "I must have looked crushed"}
   ],
   "dictation_index": 4,
   "vocabulary": [

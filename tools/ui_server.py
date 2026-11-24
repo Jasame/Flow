@@ -89,11 +89,23 @@ def fake(messages, audio=None, grounding=False):
     if '情景对话' in system:
         if '对话结束' in prompt or '总结' in prompt:
             return J({'summary': '敢开口，回答也切题。', 'good': ['I take the train every day.'], 'fixes': [{'from': 'I want buy', 'to': 'I want to buy', 'why': 'want to do'}],
-                      'expressions': [{'text': 'shop around', 'meaning': '货比三家'}], 'score': 0.72})
-        if '学习者：' not in prompt:
+                      'expressions': [{'text': 'shop around', 'meaning': '货比三家'}], 'score': 0.72, **({'challenge_met': True} if '额外要求' in prompt else {})})
+        if '开始对话：' in prompt:  # the opening line (the first answer's history has no learner line yet either)
+            t, r = re.search(r'情景：(.+?)（', prompt), re.search(r'The AI plays: (.+?)\. The learner', prompt)
+            if t and r:  # a scene of the speaking route: its own title and the part the AI plays
+                return J({'scene': f'情景：{t.group(1)}。', 'role': r.group(1), 'reply': 'Hi there! What can I get for you today?'})
             return J({'scene': '你在一家耳机店。', 'role': '店员', 'reply': 'Hi there! Are you looking for anything in particular today?'})
-        return J({'heard': 'I want buy headphones for the train.', 'reply': 'Great. Do you prefer over-ear or in-ear ones?',
-                  'correction': {'original': 'I want buy', 'better': 'I want to buy', 'why': 'want to do'}, 'hint': '说说你在意音质还是价格'})
+        # spoken: the usual sentence with a mistake; typed: a short answer gets a simpler line and a sentence to use, a long
+        # correct one a deeper question (scenarios.pace decides which, from the answer itself)
+        said = prompt.split('学习者刚说：', 1)[1].split('\n', 1)[0] if '学习者刚说：' in prompt else 'I want buy headphones for the train.'
+        n = len(re.findall(r"[A-Za-z']+", said))
+        if n >= 10:
+            return J({'heard': said, 'reply': 'Makes sense. How long is your train ride, and is the noise worst in the morning?',
+                      'correction': None, 'hint': '说说你坐多久的车、什么时候最吵', 'say': ''})
+        if n < 4:
+            return J({'heard': said, 'reply': 'OK! Which one would you like?', 'correction': None, 'hint': '说说你想要哪一种', 'say': "I'd like a small one, please."})
+        return J({'heard': said, 'reply': 'Great. Do you prefer over-ear or in-ear ones?', 'hint': '说说你在意音质还是价格', 'say': "I'd like a pair for the train, please.",
+                  'correction': {'original': 'I want buy', 'better': 'I want to buy', 'why': 'want to do'} if 'want buy' in said else None})
     if '写作老师' in system:
         return J({'scores': {'content': 4, 'organization': 3, 'accuracy': 3, 'range': 3}, 'level': 'B1', 'comment': '观点清楚。',
                   'paragraphs': [{'para': 1, 'note': '开头直接给观点。'}], 'fixes': [{'from': 'more quieter', 'to': 'quieter', 'why': '比较级不要重复'}],
@@ -138,9 +150,12 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             'sprint': ('B1', 'exam', ['campus']),  # 考试冲刺: 四级 in 19 days, four practice sets done (sprint_run; the guide's exam pictures)
             'fresh': ('', '', []), 'fresh2': ('', '', []),  # 选方向和目标: accounts with no settings yet (start_run)
             'abroad': ('B1', 'abroad', ['campus']),  # 留学: the plan's speaking step is 雅思 Part 1 (listen_speak_run); nothing else uses it
+            'rounds': ('B1', 'work', ['work']),  # 口语情景 round 2: 在咖啡店点单 done 20 days ago (listen_speak_run)
             # swiping the review card from anywhere on the screen (swipe_run): one learner per screen size, each starting fresh
             **{f'swipe-{k}': ('B1', 'work', ['work', 'science']) for k in ('ipad-land', 'ipad-mini-land', 'phone')},
-            'teacher': ('B1', 'work', ['work']), 'student': ('B1', 'work', ['work'])}  # 班级试用 (class_run)
+            'teacher': ('B1', 'work', ['work']), 'student': ('B1', 'work', ['work']),  # 班级试用 (class_run)
+            'ageless': ('B1', 'work', ['work']), 'young': ('B1', 'work', ['work']),
+            'veteran': ('B1', 'work', ['work'])}  # 班级试用问卷 (trial_survey_run): in the class for 25 days  # 年龄段 (privacy_run): none yet; 不满 14 岁 without a guardian's agreement
 out = {}
 with app.db() as c:
     for name, (level, goal, themes) in LEARNERS.items():
@@ -179,6 +194,8 @@ with app.db() as c:
                 ex.submit(c, uid, {'paper': p['paper'], 'seconds': 840 - 40 * k, 'answers': {'vocab': right([v['answer'] for v in paper['vocab']], 4),
                           'grammar': right(grammar, 4), 'reading': right([r['answer'] for r in paper['reading']], 4)}})
                 c.execute('UPDATE next_exam_results SET created=? WHERE paper=?', (time.time() - (4 - k) * 7 * 86400, p['paper']))
+        if name == 'rounds':
+            c.execute("INSERT INTO next_skill_events(user_id,skill,kind,score,level,pack,created) VALUES(?,'speaking','dialog',0.6,'A2','scene-cafe-order',?)", (uid, time.time() - 20 * 86400))
         if name == 'guide':  # a learner a few weeks in, so the guide's pictures show a lived-in page
             import ability_radar as ar
             now = time.time()
@@ -219,6 +236,7 @@ with app.db() as c:
                 ev.record(c, uid, 'skill:reading', f'guide-prev:{k}', 'choice', str(k), 'q', int(k % 10 not in (1, 4, 8)), 0, 'rule', created=at(monday - dt.timedelta(days=1 + k % 7), 10) + k)
             c.execute("INSERT INTO next_node_notes(user_id,node,pack,kind,detail,created) VALUES(?,?,?,?,?,?)", (uid, 'agreement-head', PID, 'flag', 'guide|it make → it makes', now - 7200))
             sk.log(c, uid, 'speaking', 'ielts', 6.0 / 9, 'B2', 'ielts-p1-mornings')  # 雅思口语: 「上次约 6.0」 on the list
+            c.execute("INSERT INTO next_skill_events(user_id,skill,kind,score,level,pack,created) VALUES(?,'speaking','dialog',0.6,'A2','scene-cafe-order',?)", (uid, now - 20 * 86400))  # 情景第 2 轮 (the guide's scene picture)
         if name == 'pile':  # 60 word reviews due, more than 3 x the 10 new words a day: no new words today (ux audit 1.1, 11)
             c.execute("DELETE FROM next_cards WHERE user_id=? AND source='book'", (uid,))
             now, d = time.time(), nx.dictionary()
@@ -227,6 +245,10 @@ with app.db() as c:
                           "VALUES(?,?,?,?,'','word',?,?,'review','book',?,1,5,?,1)", (uid, d[w]['word'], w, d[w]['meaning'][:300], now - 20 * 86400, now - 3600 - k, rank, now - 2 * 86400))
         c.commit()
         out[name] = {'token': token, 'csrf': csrf, 'id': uid, **({'password': secret} if secret else {})}
+    # 年龄段 (privacy_service): every learner has one, so the one-time question does not cover the pages under test;
+    # ui-ageless has none (it is asked), ui-young is 不满 14 岁 with no guardian's agreement yet (AI waits for it)
+    c.execute("UPDATE users SET age_band='18+', age_set=? WHERE username NOT IN ('ui-ageless', 'ui-young')", (time.time(),))
+    c.execute("UPDATE users SET age_band='u14', age_set=? WHERE username='ui-young'", (time.time(),))
     # 班级试用: ui-teacher's class with 5 members who studied and got grammar points wrong this week (class_run)
     now = time.time()
     cid = c.execute("INSERT INTO classes(name, code, teacher, by, created, updated) VALUES('高一（3）班', 'UICLS2', ?, 'ui', ?, ?)", (out['teacher']['id'], now, now)).lastrowid
@@ -238,6 +260,7 @@ with app.db() as c:
         c.execute("INSERT INTO next_progress VALUES(?,?,'listen',?)", (mid, PID, now - 3600 - k * 86400 * 3))
         for n in nodes[:3 - k % 3]:
             c.execute("INSERT INTO learning_events(user_id,node,source,kind,item,correct,evaluator,created) VALUES(?,?,?,'choice','q',0,'rule',?)", (mid, n, f'ui:{mid}:{n}', now - 7200))
+    c.execute('INSERT INTO class_members(user_id, class_id, joined_at) VALUES(?,?,?)', (out['veteran']['id'], cid, now - 25 * 86400))
     c.commit()
 # 今日热点 (r27: its own card under 今日好句): one news text of today, as the daily job would leave it, clearly a sample
 with app.db() as c:

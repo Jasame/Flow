@@ -8,9 +8,11 @@
   "cefr": "B2",
   "theme": "campus",
   "genre": "story",
+  "purposes": ["story", "campus-life"],
   "body": "Every spring, the chemistry society takes a science show to a local primary school, and this year Priya had been put in charge of the finale. She had spent weeks devising it: a hydrogen balloon, touched with a candle on a long stick, would vanish in a flash of light. The trouble started in the car park. The gas cylinder had the wrong valve, and by the time someone had fixed it, the hall was already full of restless children. Then came a second complication, because the head teacher, who had seen the word 'explosion' in the email the society used to advertise the show, asked them to use a much smaller balloon. Priya's hands were shaking as she lifted the stick. The little balloon refused to pop; the candle had gone out on the way up, leaving her standing there with a smoking stick and every face in the hall staring at her. It was the most challenging thirty seconds of her degree. Instead of panicking, she turned to the children and asked why they thought it hadn't worked. A girl in the front row put up her hand and suggested, quite seriously, that the balloon was shy. Everyone laughed, Priya relit the candle, and this time it burst with a sharp crack and a brief orange glow that made the whole room gasp. After the show, a teacher told her that if it had worked first time, the children would have forgotten it by lunch. Her inability to get it right at once had turned an ordinary demonstration into a smash hit, because it showed the pupils that scientists get things wrong too. The school later sent a shiny certificate, but the society's most beloved souvenir is a child's drawing of a very shy balloon.",
   "questions": [
    {
+    "type": "main",
     "prompt": "According to the story, why did the failed first attempt turn out to be a good thing?",
     "options": [
      "It meant the show could finish earlier than planned",
@@ -22,6 +24,7 @@
     "evidence": "because it showed the pupils that scientists get things wrong too"
    },
    {
+    "type": "vocab",
     "prompt": "What does 'a smash hit' mean near the end of the story?",
     "options": [
      "A loud accident that frightened the children",
@@ -31,7 +34,9 @@
     ],
     "answer": 2,
     "evidence": "had turned an ordinary demonstration into a smash hit"
-   }
+   },
+   {"type": "inference", "prompt": "Why did the head teacher most likely ask for a much smaller balloon?", "options": ["The hall was too small for a big one", "She thought big balloons were boring", "She wanted to save the society money", "She was worried the demonstration might be dangerous"], "answer": 3, "evidence": "who had seen the word 'explosion' in the email the society used to advertise the show"},
+   {"type": "detail", "prompt": "What did the girl in the front row suggest?", "options": ["That they had used the wrong gas", "That they should try again after lunch", "That the balloon was shy", "That the candle was too small"], "answer": 2, "evidence": "suggested, quite seriously, that the balloon was shy"}
   ],
   "dictation_index": 8,
   "vocabulary": [
@@ -136,9 +141,11 @@
   "cefr": "B2",
   "theme": "campus",
   "genre": "dialogue",
+  "purposes": ["campus-life"],
   "body": "Hana: Twenty people have walked past our stall in the last ten minutes, and not one of them has stopped. Tom: Don't take it personally, because rejection is basically the whole job at a freshers' fair. Hana: That's easy for you to say, but the climbing club next door has a queue, and all they've got is a shiny poster and free sweets. Tom: Then let's advertise the one thing nobody else in this hall can offer, which is the dome. Hana: You mean the observatory above the physics labs? I thought it was closed after the suspension of the rooftop sessions last year. Tom: It was, but it reopened over the summer, and we're the only society with a key. Hana: That's exciting, so why on earth isn't it on our banner? Tom: Because whoever made the banner spelled 'astronomy' wrong, and nobody's had time to make a new one. Hana: Forget the banner: we've accumulated a few hundred followers who never hear from us, so I'll post a photo of the telescope tonight. Tom: Good, and mention the legendary night when half the campus queued on the stairs to see a comet. Hana: Wait, was that real, or just a story the committee tells new members? Tom: Completely real: people still remember it hanging like a faint glow above the crown of the big oak by the library. Hana: So the pitch is simple: come for the sweets, stay for the comet. Tom: Except we don't have any sweets. Hana: Then I'll buy some, because our motto is literally 'Strive for the stars', and I refuse to lose to a climbing wall. Tom: While you're gone, I'll do a solo shift and try smiling at people. Hana: Try shouting 'free telescope' instead; it'll work better than your smile.",
   "questions": [
    {
+    "type": "main",
     "prompt": "What does Tom think will make their society stand out?",
     "options": [
      "Free sweets like the ones the climbing club offers",
@@ -150,6 +157,7 @@
     "evidence": "let's advertise the one thing nobody else in this hall can offer, which is the dome"
    },
    {
+    "type": "detail",
     "prompt": "Why did Hana think the observatory might not be available?",
     "options": [
      "The banner said that it was closed",
@@ -159,7 +167,9 @@
     ],
     "answer": 2,
     "evidence": "I thought it was closed after the suspension of the rooftop sessions last year"
-   }
+   },
+   {"type": "inference", "prompt": "What does Hana mean by \"come for the sweets, stay for the comet\"?", "options": ["People should leave once the sweets are gone", "A comet can be seen every week", "Small treats will attract people, and the observatory will keep them interested", "The society only offers sweets"], "answer": 2, "evidence": "So the pitch is simple: come for the sweets, stay for the comet."},
+   {"type": "vocab", "prompt": "What does \"accumulated\" mean in \"we've accumulated a few hundred followers\"?", "options": ["blocked", "gradually collected", "lost", "paid"], "answer": 1, "evidence": "we've accumulated a few hundred followers who never hear from us"}
   ],
   "dictation_index": 1,
   "vocabulary": [
@@ -264,9 +274,11 @@
   "cefr": "B2",
   "theme": "campus",
   "genre": "email",
+  "purposes": ["campus-life"],
   "body": "Dear Dr Okafor, I am writing to ask whether I could take a suspension of studies for the spring term, and to explain why I have missed your seminars over the last fortnight. My father had a kidney operation three weeks ago, and although it went well, a minor complication has slowed the healing, so he will need several more weeks of rest. Our family runs a small sheep farm, and his inability to work at this time of year is a real problem. The lambs are due soon, and farming does not stop for anyone's recovery. My mother has asked me to come home and help until he is back on his feet. If the suspension is approved, I understand that my completion date will move back by a term, and I am prepared to accept that. I have already retrieved my draft essays from the shared drive, so I can keep reading in the evenings without falling too far behind. You once told our group that a mature decision is often the one that sounds less impressive. I would rather pause properly now than strive to do both and manage neither. My father, who studied here himself and still talks about the place with great affection, was the one who persuaded me to ask for a suspension instead of simply dropping out. The university has been an anchor for me since my first year, and I fully intend to come back in the autumn. Could you let me know which forms I need to complete, and whether we could speak briefly on the phone this week? Best wishes, Sam Turner",
   "questions": [
    {
+    "type": "main",
     "prompt": "What is the main purpose of Sam's email?",
     "options": [
      "To complain about the way the seminars are organised",
@@ -278,6 +290,7 @@
     "evidence": "I am writing to ask whether I could take a suspension of studies for the spring term"
    },
    {
+    "type": "detail",
     "prompt": "Why is Sam's help needed at home right now?",
     "options": [
      "His father cannot work during a busy time on the farm",
@@ -287,7 +300,9 @@
     ],
     "answer": 0,
     "evidence": "his inability to work at this time of year is a real problem"
-   }
+   },
+   {"type": "inference", "prompt": "Why does Sam mention Dr Okafor's remark about \"a mature decision\"?", "options": ["To prove that he has finished his essays", "To ask for a better grade", "To complain about the course", "To show that pausing is sensible even if it sounds less impressive"], "answer": 3, "evidence": "a mature decision is often the one that sounds less impressive"},
+   {"type": "vocab", "prompt": "What does \"complication\" mean in \"a minor complication has slowed the healing\"?", "options": ["a successful result", "a type of medicine", "a problem that makes a situation more difficult", "a hospital form"], "answer": 2, "evidence": "a minor complication has slowed the healing"}
   ],
   "dictation_index": 4,
   "vocabulary": [
@@ -392,9 +407,11 @@
   "cefr": "B2",
   "theme": "campus",
   "genre": "guide",
+  "purposes": ["expository", "campus-life"],
   "body": "Sooner or later, most courses ask you to write a critique of a published article, and the first attempt is usually more challenging than students expect. A critique is not a summary with a few complaints at the end; it is an argument about how well the article does what it sets out to do. Read the piece once without taking notes, simply to understand its main claim. On the second reading, extract the parts that carry the argument, such as the research question, the method, the key evidence and the conclusion. Copy them into a simple table rather than highlighting whole pages, because a highlighted page is surprisingly hard to retrieve anything from a week later. Next, devise three or four questions to test the article against, such as whether the method suits the question and whether the evidence really supports the conclusion. Imagine an article arguing that hydrogen will soon power most city buses. A weak critique would simply call the author too optimistic, whereas a strong one would point to the exact step where the reasoning goes further than the evidence allows. Anchor every judgement in a specific page or quotation, so that your reader can check it. Avoid words that merely evoke a feeling, such as 'brilliant' or 'disappointing', unless you explain exactly why. As your notes accumulate, resist the temptation to include everything you noticed, and develop the two or three points that matter most. Saying clearly what an article does well shows that you have read it fairly, neither as a loyal follower of the author nor as an enemy hunting for mistakes. Finally, leave a day between the completion of your draft and your final edit, because you will notice weaknesses that you were too close to see.",
   "questions": [
    {
+    "type": "main",
     "prompt": "According to the guide, how is a critique different from a summary?",
     "options": [
      "It is shorter and leaves out the method",
@@ -406,6 +423,7 @@
     "evidence": "it is an argument about how well the article does what it sets out to do"
    },
    {
+    "type": "detail",
     "prompt": "Why does the guide recommend copying key parts into a table?",
     "options": [
      "Tables look more professional to markers",
@@ -415,7 +433,9 @@
     ],
     "answer": 3,
     "evidence": "because a highlighted page is surprisingly hard to retrieve anything from a week later"
-   }
+   },
+   {"type": "inference", "prompt": "What does the example of the hydrogen buses show about a strong critique?", "options": ["It agrees with the author on every point", "It uses stronger adjectives than a weak one", "It points to exactly where the reasoning goes beyond the evidence", "It is mainly about transport"], "answer": 2, "evidence": "a strong one would point to the exact step where the reasoning goes further than the evidence allows"},
+   {"type": "vocab", "prompt": "What does \"evoke\" mean in \"words that merely evoke a feeling\"?", "options": ["hide", "measure", "explain", "bring to mind or call up"], "answer": 3, "evidence": "Avoid words that merely evoke a feeling"}
   ],
   "dictation_index": 8,
   "vocabulary": [

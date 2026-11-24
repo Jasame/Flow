@@ -48,6 +48,87 @@ class CorpusV5Tests(unittest.TestCase):
                 for r in c.execute("SELECT * FROM lab_packs WHERE id LIKE 'v5-%'"):
                     self.assertTrue(quality.recommendable(c, r), r['id'])
 
+    def test_additive_edits_reach_a_running_database(self):
+        """lab_packs is written once: a third question or new tags in a file must still reach the site (v5 sync),
+        earlier questions keep their place, review states carry over, and a changed text is never applied."""
+        with tempfile.TemporaryDirectory() as tmp, patch.object(app, 'DB', Path(tmp) / 'sync.db'):
+            app.init()
+            packs = content_v50.v5_materials()
+            a, b, d, e = (json.loads(json.dumps(x)) for x in packs[:4])
+            with app.db() as c:
+                c.execute('INSERT INTO material_reviews(pack,content_hash,status,checks,note,actor,created) VALUES(?,?,?,?,?,?,?)',
+                          (a['id'], __import__('quality_service').digest(a), 'disabled', '{}', '停用测试', None, 0))
+                c.commit()
+            a['questions'].append({'prompt': 'What is the main point?', 'options': ['w', 'x', 'y', 'z'], 'answer': 0,
+                                   'evidence': a['body'][:20], 'type': 'main'})
+            a['questions'][0]['type'] = 'detail'
+            a['purposes'] = ['story']
+            b['body'] = b['body'] + ' Changed.'
+            d['questions'] = d['questions'][::-1]
+            e['questions'][0]['type'] = 'detail'
+            e['questions'].append(dict(e['questions'][1], prompt='Which word fits?', type='main'))
+            with patch.object(content_v50, 'v5_materials', return_value=[a, b, d, e] + packs[4:]):
+                with app.db() as c:
+                    self.assertEqual(content_v50.sync(c), [a['id'], e['id']])
+                    got = json.loads(c.execute('SELECT content FROM lab_packs WHERE id=?', (a['id'],)).fetchone()[0])
+                    self.assertEqual(len(got['questions']), len(packs[0]['questions']) + 1)
+                    self.assertEqual(got['purposes'], ['story'])
+                    row = c.execute('SELECT * FROM lab_packs WHERE id=?', (a['id'],)).fetchone()
+                    self.assertEqual(__import__('quality_service').info(c, row)['status'], 'disabled')
+                    self.assertNotIn('Changed.', json.loads(c.execute('SELECT content FROM lab_packs WHERE id=?', (b['id'],)).fetchone()[0])['body'])
+                    self.assertEqual(content_v50.sync(c), [])
+                    import next_service as nx
+                    self.assertEqual(nx.material(c, None, a['id'])[1], 404)  # still disabled after the sync
+                    m, code = nx.material(c, None, e['id'])
+                    self.assertEqual(code, 200)
+                    self.assertEqual(m['questions'][0].get('type'), '细节')
+                    self.assertEqual(m['questions'][-1].get('type'), '主旨')
+
+    def test_v51_rules(self):
+        if not VALIDATOR.exists():
+            self.skipTest('validator only ships with the source repository')
+        sys.path.insert(0, str(VALIDATOR.parent))
+        import corpus_validate as cv
+        p = json.loads(json.dumps(next(x for x in content_v50.v5_materials() if x['cefr'] == 'C1')))
+        p['spec'] = '5.1'
+        p.pop('ai', None)
+        p['questions'] = [{k: v for k, v in q.items() if k != 'type'} for q in p['questions'][:2]]
+        E, _ = cv.check_v51(p, p['body'], {'sentences': 10})
+        self.assertTrue(any('13 句' in e for e in E) and any('3–4 道题' in e for e in E) and any('AI 辅助编写' in e for e in E))
+        p['ai'] = 'AI 辅助编写'
+        p['questions'] = [dict(q, type=t) for q, t in zip(p['questions'] * 2, ('main', 'inference', 'vocab', 'detail'))]
+        p['reviewed'] = True
+        p['quotes'] = [{'text': p['body'][:15], 'author': 'X', 'work': 'Y', 'year': 1990, 'author_died': 2001}]
+        p['references'] = [{'title': 'a', 'url': 'https://example.org'}]
+        E, _ = cv.check_v51(p, p['body'], {'sentences': 14})
+        self.assertTrue(any('人工审校' in e for e in E) and any('公有领域' in e for e in E) and any('核实日期' in e for e in E))
+        del p['reviewed'], p['quotes'], p['references']
+        self.assertEqual(cv.check_v51(p, p['body'], {'sentences': 14})[0], [])
+
+    def test_every_public_material_can_have_narration(self):
+        """r27 content line: the older materials (简版) get narration too, so the id rule must accept every public
+        corpus material and still refuse anything that could leave the audio folder."""
+        import next_service as nx
+        ids = [p['id'] for p in content_v50.all_materials() if p['id'] not in content_v50.SUPERSEDED]
+        self.assertEqual([i for i in ids if not nx.NARRATION_ID.fullmatch(i)], [])
+        for bad in ('../v5-x', 'v5-x/../../etc', 'daily-2026-11-24', 'rev-abc', 'V5-x', ''):
+            self.assertIsNone(nx.audio_file('us-f', bad, 'm4a'), bad)
+
+    def test_old_narration_has_its_own_index(self):
+        """The 简版 narration is listed in audio/index-old.json, which releases before it never read, so installing
+        the files early cannot make an older release offer narration it would refuse to serve."""
+        import next_service as nx
+        with tempfile.TemporaryDirectory() as tmp, patch.object(nx, 'AUDIO_DIR', Path(tmp)), \
+                patch.dict(nx._AUDIO, {'mtime': None, 'index': {}}), patch('media.narration', return_value=None):
+            self.assertEqual(nx.audio_index(), ({}, 0))
+            (Path(tmp) / 'index.json').write_text(json.dumps({'v5-a': ['us-f', 'xx'], 'evil/../x': ['us-f']}))
+            self.assertEqual(nx.audio_index()[0], {'v5-a': ['us-f']})
+            (Path(tmp) / 'index-old.json').write_text(json.dumps({'graded-quiet-room-a2-r30': ['us-f', 'uk-m']}))
+            os.utime(Path(tmp) / 'index-old.json', (2e9, 2e9))
+            got, version = nx.audio_index()
+            self.assertEqual(got, {'v5-a': ['us-f'], 'graded-quiet-room-a2-r30': ['us-f', 'uk-m']})
+            self.assertEqual(version, int(2e9))
+
 
 if __name__ == '__main__':
     unittest.main()

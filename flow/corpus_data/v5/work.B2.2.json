@@ -8,9 +8,11 @@
     "cefr": "B2",
     "theme": "work",
     "genre": "interview",
+    "purposes": ["workplace"],
     "body": "Q: You spent years as a chef before becoming a software tester. What made you switch? Tomasz: I loved the craft, but I'd stopped seeing my friends, because my shifts always fell exactly when they were free. Q: How did you get started? Tomasz: A friend who tests apps showed me what she does all day, and it looked oddly familiar. A tester follows a recipe step by step, looking for the moment it goes wrong. I took an evening course to learn the basics, and I practised on every free app I could download. If I hadn't taken that course, I'd still be working every weekend in a hot kitchen. Q: Did anything from cooking actually help? Tomasz: More than I expected. In a busy kitchen, you learn to stay calm when everything is going wrong at once during the dinner rush, and you learn to flag a problem immediately, not at the end of the night. Although the tools are completely different, the attitude is the same. You taste everything before it leaves the kitchen, and you test everything before it reaches customers. Q: What was the hardest part? Tomasz: Feeling like a clumsy beginner again in my late thirties. In the kitchen, people came to me for answers; here, I was the one asking. I had to accept that it would take time to be good at this. Q: Any advice for someone thinking of a change? Tomasz: Look for the skills you already have, not the ones you lack. They're usually hiding in plain sight.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is Tomasz's main message about changing careers?",
         "options": [
           "It is only realistic if you start while you are young",
@@ -22,6 +24,7 @@
         "evidence": "Look for the skills you already have, not the ones you lack."
       },
       {
+        "type": "detail",
         "prompt": "Why did software testing look \"oddly familiar\" to Tomasz?",
         "options": [
           "He had used a lot of apps while he was working as a chef",
@@ -31,7 +34,9 @@
         ],
         "answer": 2,
         "evidence": "A tester follows a recipe step by step, looking for the moment it goes wrong."
-      }
+      },
+      {"type": "inference", "prompt": "What does Tomasz mean when he says useful skills are \"hiding in plain sight\"?", "options": ["People often fail to notice skills they already have", "Chefs hide their recipes", "Testers hide problems from customers", "Skills should be kept secret"], "answer": 0, "evidence": "Look for the skills you already have, not the ones you lack."},
+      {"type": "vocab", "prompt": "What does \"flag\" mean in \"learn to flag a problem immediately\"?", "options": ["fix", "cause", "hide", "point out or report"], "answer": 3, "evidence": "learn to flag a problem immediately"}
     ],
     "dictation_index": 7,
     "vocabulary": [
@@ -70,9 +75,11 @@
     "cefr": "B2",
     "theme": "work",
     "genre": "dialogue",
+    "purposes": ["workplace"],
     "body": "Esther: Thanks for coming in, Rohan — before I share my notes, I'd like to hear how you think the last six months went. Rohan: Honestly, better than I feared, because the customer portal launched on time and I'm proud of that. But I know I struggled to say no whenever other teams asked for favours. Esther: I'm glad you brought that up, because it's the main thing I wanted to discuss. Your work on the portal was excellent, and the client told me so directly. While your technical work is strong, though, you sometimes take on so much that your own deadlines slip. Rohan: That's fair — I suppose I don't want to look unhelpful. Esther: I understand, and nobody wants you to stop helping people. The goal is to help on purpose rather than by accident. From now on, check any new request against your priorities first, and tell me if there's a clash. If the answer isn't obvious, we'll decide together. Rohan: That would make it a lot easier. Could I also ask about leading the next sprint review, since I'd like to get more experience running meetings? Esther: Absolutely. If you lead that one, I'll sit in and give you some feedback afterwards. Rohan: Great, and is there anything else I should be working on? Esther: Just keep writing those clear weekly updates, because they make my job much easier. Rohan: Noted, and thanks — this felt more like a conversation than a test.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main issue Esther raises?",
         "options": [
           "Rohan's technical work is not good enough yet",
@@ -84,6 +91,7 @@
         "evidence": "you sometimes take on so much that your own deadlines slip"
       },
       {
+        "type": "inference",
         "prompt": "What does Rohan mean when he says the review felt \"more like a conversation than a test\"?",
         "options": [
           "They worked things out together instead of Esther simply judging him",
@@ -93,7 +101,9 @@
         ],
         "answer": 0,
         "evidence": "this felt more like a conversation than a test"
-      }
+      },
+      {"type": "vocab", "prompt": "What does \"slip\" mean in \"your own deadlines slip\"?", "options": ["are cancelled", "fall on the floor", "come earlier", "are missed or pushed later"], "answer": 3, "evidence": "your own deadlines slip"},
+      {"type": "detail", "prompt": "What does Esther ask Rohan to do with new requests from now on?", "options": ["Send them to another team", "Check them against his priorities and tell her about any clash", "Do them before his own work", "Refuse all of them"], "answer": 1, "evidence": "check any new request against your priorities first"}
     ],
     "dictation_index": 5,
     "vocabulary": [
@@ -132,9 +142,11 @@
     "cefr": "B2",
     "theme": "work",
     "genre": "opinion",
+    "purposes": ["argumentative", "news-commentary", "workplace"],
     "body": "Few workplace ideas sound as attractive as a four-day week: the same job, the same pay, and an extra day to rest, study or simply see friends. I believe it can work well, but only where it is designed around results rather than around the calendar. The strongest argument in its favour is that long hours do not automatically produce good work. Most of us know the feeling of sitting at a desk late on a Friday afternoon, technically present but mentally finished. If a team cuts unnecessary meetings and focuses on what really matters, it will often achieve as much in four days as it used to in five. A longer weekend also gives people time to recover, and rested people tend to be more careful and more creative when they return. Critics raise a fair point, however. Not every job can be squeezed into fewer days. A nurse, a bus driver or a shop assistant cannot simply work faster, because their value lies in being there. For these roles, a shorter week means either hiring more staff or leaving customers without help. There is also a risk that the same workload is crammed into longer days, leaving people more exhausted, not less. These objections suggest that the idea should be adapted, not abandoned. Some teams might rotate their days off; others might shorten each day instead. If offices had been designed around output from the start, we would not be arguing about hours today. In the end, the question is not whether four is better than five, but whether we are willing to measure work by what it achieves.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's overall position?",
         "options": [
           "A four-day week should replace the five-day week everywhere",
@@ -146,6 +158,7 @@
         "evidence": "I believe it can work well, but only where it is designed around results rather than around the calendar."
       },
       {
+        "type": "detail",
         "prompt": "Why can't some workers \"simply work faster\"?",
         "options": [
           "Their managers do not allow them to change their hours",
@@ -155,7 +168,9 @@
         ],
         "answer": 1,
         "evidence": "because their value lies in being there"
-      }
+      },
+      {"type": "inference", "prompt": "What does the writer mean by measuring work \"by what it achieves\"?", "options": ["Offices should stay open five days a week", "Everyone should simply work faster", "Workers should be paid by the hour", "Results matter more than the number of hours worked"], "answer": 3, "evidence": "it is designed around results rather than around the calendar"},
+      {"type": "vocab", "prompt": "What does \"crammed\" mean in \"the same workload is crammed into longer days\"?", "options": ["squeezed into too little space or time", "shared equally", "paid for", "removed"], "answer": 0, "evidence": "the same workload is crammed into longer days"}
     ],
     "dictation_index": 2,
     "vocabulary": [
@@ -194,9 +209,11 @@
     "cefr": "B2",
     "theme": "work",
     "genre": "explainer",
+    "purposes": ["expository", "workplace"],
     "body": "Almost everyone has written one: the email that begins politely and ends with three sentences you would never say to someone's face. It usually happens late in the day, after a colleague has missed a deadline or copied your manager into a complaint. The anger feels urgent, as though the problem will grow every minute you wait. In reality, very few workplace problems get worse overnight, whereas a harsh message can do damage that lasts for months. Once something is in writing, it can be forwarded, reread and quoted back to you long after you have calmed down. That is why many experienced people follow a simple routine. They write the angry version anyway, because getting the words out genuinely helps, but they write it in a blank document with nobody's name in the address line. Then they wait, ideally until the next morning. If you still want to send it after a night's sleep, you can at least send a version you won't regret. The rewrite usually keeps the facts and loses the adjectives. A line like \"You clearly didn't bother to read my notes\" becomes \"It looks as though my notes may not have reached you,\" which invites a reply instead of a fight. One office manager I know keeps her unsent drafts in a folder as a reminder. \"If I had sent the worst of them, I wouldn't be working with half of these people today,\" she says. The aim is not to bottle up your feelings but to choose when, and how, they reach other people.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main advice of the text?",
         "options": [
           "Never put angry feelings about colleagues into words",
@@ -208,6 +225,7 @@
         "evidence": "Then they wait, ideally until the next morning."
       },
       {
+        "type": "detail",
         "prompt": "According to the text, why is an angry email especially risky?",
         "options": [
           "It can be shared and repeated long after you have calmed down",
@@ -217,7 +235,9 @@
         ],
         "answer": 0,
         "evidence": "it can be forwarded, reread and quoted back to you long after you have calmed down"
-      }
+      },
+      {"type": "inference", "prompt": "Why does the office manager keep her unsent drafts in a folder?", "options": ["To show them to her own manager", "To remind herself how much damage sending them could have done", "So that she can send them later", "To use them in training sessions"], "answer": 1, "evidence": "If I had sent the worst of them, I wouldn't be working with half of these people today"},
+      {"type": "vocab", "prompt": "What does \"bottle up\" mean in \"not to bottle up your feelings\"?", "options": ["shout at people", "write feelings down", "keep feelings hidden inside", "share feelings with friends"], "answer": 2, "evidence": "The aim is not to bottle up your feelings"}
     ],
     "dictation_index": 8,
     "vocabulary": [

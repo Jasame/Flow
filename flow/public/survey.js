@@ -109,14 +109,17 @@
     }
     const btn = root.querySelector('.sv-btn');
     btn.disabled = true; btn.textContent = '正在提交…'; err.textContent = '';
-    const payload = { answers: {}, seconds: Math.round((Date.now() - started) / 1000), website: root.querySelector('[name=website]').value };
+    const payload = { survey: def.id, answers: {}, seconds: Math.round((Date.now() - started) / 1000), website: root.querySelector('[name=website]').value };
     all().forEach(q => { if (done(q)) payload.answers[q.id] = q.type === 'text' ? answers[q.id].trim() : answers[q.id]; });
     try {
       const r = await fetch('/api/survey', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), credentials: 'omit' });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.error || '提交失败，请稍后再试');
       store.clear();
-      root.innerHTML = `<div class="sv-done"><h1>谢谢你！</h1><p class="sv-muted">你的回答已经匿名保存。它会直接影响语流 Flow 接下来做什么。</p>
+      // the trial survey: 今日 stops offering it on this phone (only a note that it was answered, never what)
+      if (def.thanks) { try { localStorage.setItem('flow-trial-survey', '"done"'); } catch (x) { /* private mode */ } }
+      root.innerHTML = def.thanks ? `<div class="sv-done"><h1>谢谢你！</h1><p class="sv-muted">${esc(def.thanks)}</p><a href="/">回到语流 →</a></div>`
+        : `<div class="sv-done"><h1>谢谢你！</h1><p class="sv-muted">你的回答已经匿名保存。它会直接影响语流 Flow 接下来做什么。</p>
         <p class="sv-muted">如果身边有在学英语的朋友，也欢迎把这份问卷转给他们。</p><a href="/">去看看语流 Flow →</a></div>`;
       window.scrollTo(0, 0);
     } catch (x) {
@@ -124,7 +127,8 @@
     }
   }
 
-  fetch('/api/survey', { credentials: 'omit' })
+  const which = new URLSearchParams(location.search).get('s') || '';  // /survey?s=trial: the class trial survey
+  fetch('/api/survey' + (which ? '?s=' + encodeURIComponent(which) : ''), { credentials: 'omit' })
     .then(r => r.ok ? r.json() : Promise.reject(new Error('问卷暂时无法打开')))
     .then(d => {
       def = d;

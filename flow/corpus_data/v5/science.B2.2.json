@@ -8,9 +8,11 @@
     "cefr": "B2",
     "theme": "science",
     "genre": "explainer",
+    "purposes": ["expository"],
     "body": "Anyone who has swallowed a mouthful of seawater knows how unpleasant it is, but where does all that salt come from? Surprisingly, much of it starts on land. Rainwater is very slightly acidic, because it picks up a little carbon dioxide from the air. As it runs over rocks and soil, it slowly dissolves tiny amounts of minerals and carries them into streams and rivers. Although every river is carrying salt towards the sea, the amount is so small that river water still tastes fresh. The real change happens once the water reaches the ocean. When the sun warms the surface, water evaporates and rises to form clouds, but the salt is left behind. That water later falls again as rain, ready to collect another load of minerals. If you leave a shallow dish of seawater on a sunny windowsill, you can watch the same process on a small scale: the water disappears, and a white crust remains. Repeated over an enormous stretch of time, this cycle has built up the saltiness we taste today. Underwater volcanoes and hot springs on the sea floor add further minerals of their own. So why isn't the sea getting noticeably saltier every year? Some salt is also removed, locked away in mud and rock on the sea floor, so scientists think the input and output are roughly in balance. Lakes that have no outlet to the sea are a different case. Water escapes from them only by evaporation, which is why some of them are far saltier than the ocean itself.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main reason the sea is salty?",
         "options": [
           "Salt falls into the sea together with the rain",
@@ -22,6 +24,7 @@
         "evidence": "When the sun warms the surface, water evaporates and rises to form clouds, but the salt is left behind."
       },
       {
+        "type": "detail",
         "prompt": "Why does river water still taste fresh?",
         "options": [
           "Rivers lose their salt in lakes on the way",
@@ -31,7 +34,9 @@
         ],
         "answer": 3,
         "evidence": "the amount is so small that river water still tastes fresh"
-      }
+      },
+      {"type": "inference", "prompt": "What is the dish of seawater on a sunny windowsill meant to show?", "options": ["Why rain is slightly acidic", "How evaporation leaves salt behind, on a small scale", "How rivers carry minerals", "How clouds are formed"], "answer": 1, "evidence": "you can watch the same process on a small scale"},
+      {"type": "vocab", "prompt": "What does \"dissolves\" mean in \"it slowly dissolves tiny amounts of minerals\"?", "options": ["mixes something into a liquid so it becomes part of it", "breaks something into large pieces", "freezes", "heats up"], "answer": 0, "evidence": "it slowly dissolves tiny amounts of minerals"}
     ],
     "dictation_index": 6,
     "vocabulary": [
@@ -136,9 +141,11 @@
     "cefr": "B2",
     "theme": "science",
     "genre": "explainer",
+    "purposes": ["expository"],
     "body": "It is tempting to picture a battery as a small tank full of electricity, waiting to be poured out. In fact, a battery stores something quite different: chemicals that are eager to react with each other. Inside, there are two ends made of different materials, separated by a layer that lets charged atoms pass through but blocks electrons. The reaction between the two sides can only go ahead if electrons travel from one end to the other, and the only route available to them is outside the battery. As long as nothing is connected, they have nowhere to go, so the chemicals simply wait. That is why a battery can sit in a drawer for months and still work. Once you connect a torch or a remote control, however, a path opens up. Electrons stream out of one end, through the device, and back into the other end, powering it on the way. Meanwhile, charged atoms drift across the inside of the battery to keep everything balanced. When the chemicals are used up, the reaction stops and the battery is flat. In a rechargeable battery, a charger pushes electrons back the other way, forcing the reaction to run in reverse so that the chemicals are ready to react again. This is never perfect, though, which is why phones gradually hold less charge as they get older. Temperature matters too. If a battery gets very cold, its reactions slow down, so a phone may suddenly seem to die on a freezing day, only to recover once it warms up again.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main point of the passage?",
         "options": [
           "Batteries slowly fill up with electricity while they are stored",
@@ -150,6 +157,7 @@
         "evidence": "a battery stores something quite different: chemicals that are eager to react with each other"
       },
       {
+        "type": "detail",
         "prompt": "Why might a phone seem to die on a freezing day?",
         "options": [
           "The cold permanently damages the chemicals",
@@ -159,7 +167,9 @@
         ],
         "answer": 2,
         "evidence": "If a battery gets very cold, its reactions slow down"
-      }
+      },
+      {"type": "inference", "prompt": "Why does the writer say it is \"tempting\" to picture a battery as a tank of electricity?", "options": ["It is a common but inaccurate way of imagining a battery", "Batteries really are full of liquid", "Tanks work better than batteries", "It is the correct scientific model"], "answer": 0, "evidence": "In fact, a battery stores something quite different"},
+      {"type": "vocab", "prompt": "What does \"flat\" mean in \"the battery is flat\"?", "options": ["smooth and level", "very thin", "having no power left", "broken into pieces"], "answer": 2, "evidence": "the reaction stops and the battery is flat"}
     ],
     "dictation_index": 4,
     "vocabulary": [
@@ -264,9 +274,11 @@
     "cefr": "B2",
     "theme": "science",
     "genre": "explainer",
+    "purposes": ["expository"],
     "body": "Shout your name across a quiet valley and, a moment later, the hills seem to shout it back. An echo is simply sound that has bounced off a hard surface and found its way back to your ears. Sound travels through air as a wave of pressure, and when that wave hits something solid and smooth, such as a cliff or the wall of a building, much of its energy is reflected rather than absorbed. For you to hear a clear echo, however, the surface needs to be fairly far away. If the wall is too close, the reflection returns so quickly that your brain blends it with the original sound. Instead of a separate echo, you hear a fuller, longer voice, which is exactly why people sound so impressive when they sing in a tiled bathroom. Soft materials behave very differently. Curtains, carpets, sofas and even crowds of people soak up sound instead of returning it, which is why an empty flat sounds strangely hollow on moving day and perfectly normal once the furniture arrives. Some animals have turned echoes into a survival skill. Bats send out high-pitched calls as they fly and listen for the faint echoes that bounce back from insects, building a picture of the world in complete darkness. Ships use a similar idea to measure the depth of the sea: by timing how long a sound pulse takes to return from the sea floor, they can work out how far down it is. So the next time a valley answers you, remember that you are hearing your own voice, slightly late, after a short trip to the hills and back.",
     "questions": [
       {
+        "type": "main",
         "prompt": "Which statement best sums up the passage?",
         "options": [
           "Echoes can only be heard in mountains and valleys",
@@ -278,6 +290,7 @@
         "evidence": "An echo is simply sound that has bounced off a hard surface and found its way back to your ears."
       },
       {
+        "type": "detail",
         "prompt": "Why does an empty flat sound hollow?",
         "options": [
           "There is nothing soft to soak up the sound",
@@ -287,7 +300,9 @@
         ],
         "answer": 0,
         "evidence": "Curtains, carpets, sofas and even crowds of people soak up sound instead of returning it"
-      }
+      },
+      {"type": "inference", "prompt": "What does \"after a short trip to the hills and back\" refer to?", "options": ["A bus trip to the valley", "The journey of the sound wave to the hills and back to you", "A walking holiday in the hills", "A recording of your own voice"], "answer": 1, "evidence": "you are hearing your own voice, slightly late"},
+      {"type": "vocab", "prompt": "What does \"absorbed\" mean in \"reflected rather than absorbed\"?", "options": ["made louder", "repeated", "taken in and not sent back", "measured"], "answer": 2, "evidence": "much of its energy is reflected rather than absorbed"}
     ],
     "dictation_index": 4,
     "vocabulary": [
@@ -392,9 +407,11 @@
     "cefr": "B2",
     "theme": "science",
     "genre": "opinion",
+    "purposes": ["argumentative", "news-commentary"],
     "body": "Once the final exam is over, many people close their science books for good, and few of them ever feel they have lost anything. Should everyone keep learning some science after school? I believe they should, although not in the way the question might suggest. The case against is easy to understand. Adults are busy, and most jobs never require anyone to balance a chemical equation. Besides, we already rely on experts for countless things we do not understand, from repairing cars to forecasting the weather, so it is fair to ask why science should be any different. Forcing tired adults back into a classroom would probably make them resent the subject even more. However, this argument assumes that learning science means memorising facts, when its most useful part is a habit of mind: asking how we know something, and what evidence would change our view. That habit matters every day. If you understand even the basics of how claims are tested, you are far harder to fool with a confident advertisement or a dramatic video about a miracle gadget. Speaking personally, if I had dropped science completely at sixteen, I would probably believe every impressive-sounding claim I see online today. Keeping this habit alive need not be a burden. It can mean reading one good popular-science article a week, visiting a museum, or simply asking a knowledgeable friend to explain something properly. In short, nobody needs to become a scientist after school, and it would be a mistake to make it compulsory. But everyone deserves the chance, and the encouragement, to keep thinking like one.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's main position?",
         "options": [
           "Adults should be required to take science classes",
@@ -406,6 +423,7 @@
         "evidence": "nobody needs to become a scientist after school, and it would be a mistake to make it compulsory"
       },
       {
+        "type": "detail",
         "prompt": "According to the writer, what is the most useful part of science?",
         "options": [
           "Asking how we know something and what evidence would change our view",
@@ -415,7 +433,9 @@
         ],
         "answer": 0,
         "evidence": "asking how we know something, and what evidence would change our view"
-      }
+      },
+      {"type": "inference", "prompt": "Why does the writer mention \"a dramatic video about a miracle gadget\"?", "options": ["To explain how gadgets work", "To recommend a new product", "To complain about online videos", "To show how scientific thinking protects people from false claims"], "answer": 3, "evidence": "you are far harder to fool with a confident advertisement"},
+      {"type": "vocab", "prompt": "What does \"resent\" mean in \"make them resent the subject even more\"?", "options": ["understand", "enjoy", "feel bitter and annoyed about", "forget"], "answer": 2, "evidence": "make them resent the subject even more"}
     ],
     "dictation_index": 2,
     "vocabulary": [

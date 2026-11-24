@@ -8,9 +8,11 @@
     "cefr": "B2",
     "theme": "life",
     "genre": "interview",
+    "purposes": ["daily-life"],
     "body": "Q: How did you end up running a bike repair shop? Hannah: Completely by accident. I was a music teacher, and I used to fix my friends' bikes at weekends. One day I realised I was looking forward to Saturday far more than Monday, so I rented this tiny space under the railway bridge. Q: What do people get wrong about looking after a bike? Hannah: Most people only think about their bike when it stops working. They ride it through rain and mud for months, and then they're surprised when the chain sounds like a box of spoons. Q: So what's the one thing everyone should do? Hannah: Keep the tyres pumped up. If your tyres are soft, every journey feels like riding uphill, and you're far more likely to get a puncture. Q: And the chain? Hannah: Wipe it with an old cloth to get the dirt off, then oil it lightly. Whenever someone brings in a chain that's dripping with oil, I know they've been trying too hard, because too much oil just collects dirt. Q: Do you ever turn a job down? Hannah: Not really, but sometimes I tell people honestly that fixing an old bike will cost more than it's worth. Even so, a lot of them want it repaired anyway, because the bike has a story. Q: What's the best part of the job? Hannah: When a kid comes back after a week and says the bike feels brand new. Although I've done this for years, that never gets old. Q: Any last advice? Hannah: Learn to fix a puncture yourself. One day, miles from home, you'll be glad you did.",
     "questions": [
       {
+        "type": "inference",
         "prompt": "What does Hannah suggest about the way most people treat their bikes?",
         "options": [
           "They spend too much money on expensive new parts",
@@ -22,6 +24,7 @@
         "evidence": "Most people only think about their bike when it stops working."
       },
       {
+        "type": "detail",
         "prompt": "Why does a chain dripping with oil show that someone has been \"trying too hard\"?",
         "options": [
           "Extra oil makes the chain more likely to break",
@@ -31,7 +34,9 @@
         ],
         "answer": 2,
         "evidence": "because too much oil just collects dirt"
-      }
+      },
+      {"type": "main", "prompt": "What is the interview mainly about?", "options": ["A bike mechanic's simple advice on looking after a bike", "Why old bikes should be thrown away", "How to become a music teacher", "The history of a railway bridge"], "answer": 0, "evidence": "So what's the one thing everyone should do?"},
+      {"type": "vocab", "prompt": "What does \"puncture\" mean in \"you're far more likely to get a puncture\"?", "options": ["a parking fine", "a steep road", "a small hole in a tyre", "a broken chain"], "answer": 2, "evidence": "you're far more likely to get a puncture"}
     ],
     "dictation_index": 2,
     "vocabulary": [
@@ -70,9 +75,11 @@
     "cefr": "B2",
     "theme": "life",
     "genre": "guide",
+    "purposes": ["expository", "daily-life"],
     "body": "Money is one of the quickest ways to turn friendly flatmates into polite strangers. The problem is rarely the amount itself; it is the feeling that someone is getting a better deal and nobody is saying so. Fortunately, most of these tensions can be avoided with a few honest conversations. Start before the first bill arrives. Although it can feel awkward to talk about money with people you barely know, it is far easier to agree on rules early than to argue about them later. Next, decide together what counts as shared. Washing-up liquid and toilet paper are obvious, but what about olive oil, or a film subscription that only one person watches? Then be open about situations that are genuinely different. If one person works from home all day, they will probably use more heating, and it is fairer to say so out loud than to hint at it. Splitting everything equally is simple, but simple is not always the same as fair. Whatever system you choose, write it down somewhere everyone can see it, so that nobody has to rely on memory. Finally, agree to check in every few months, because routines change and a system that worked in autumn may feel unfair by summer. The aim is not to count every last coin but to make sure nobody quietly feels taken advantage of. When flatmates can talk about money as calmly as they talk about whose turn it is to take the bins out, the subject loses most of its power to spoil a home.",
     "questions": [
       {
+        "type": "main",
         "prompt": "According to the guide, what usually causes money arguments between flatmates?",
         "options": [
           "Bills that are simply too high for anyone to pay",
@@ -84,6 +91,7 @@
         "evidence": "it is the feeling that someone is getting a better deal and nobody is saying so"
       },
       {
+        "type": "detail",
         "prompt": "What does the writer suggest about splitting everything equally?",
         "options": [
           "It is the only fair system for people sharing a flat",
@@ -93,7 +101,9 @@
         ],
         "answer": 2,
         "evidence": "Splitting everything equally is simple, but simple is not always the same as fair."
-      }
+      },
+      {"type": "inference", "prompt": "Why does the writer compare talking about money with talking about taking the bins out?", "options": ["Money should become an ordinary, calm topic in the flat", "Money and rubbish both cause mess", "Bills should be kept near the bins", "Flatmates argue most about the bins"], "answer": 0, "evidence": "the subject loses most of its power to spoil a home"},
+      {"type": "vocab", "prompt": "What does \"taken advantage of\" mean in \"nobody quietly feels taken advantage of\"?", "options": ["given a reward", "treated unfairly so that others benefit", "left alone", "asked for advice"], "answer": 1, "evidence": "nobody quietly feels taken advantage of"}
     ],
     "dictation_index": 9,
     "vocabulary": [
@@ -132,9 +142,11 @@
     "cefr": "B2",
     "theme": "life",
     "genre": "story",
+    "purposes": ["story", "daily-life"],
     "body": "When my neighbour Helen asked me to feed her cat for a weekend, I agreed without thinking twice. How hard could it be? She handed me a key, a bag of food and a note written in tiny handwriting, which I folded into my pocket without reading. On Saturday morning, I let myself in, filled the bowl and called the cat's name. Nothing happened. I checked under the bed, behind the curtains and inside every cupboard, but Mango was nowhere to be found. Because a window in the kitchen was slightly open, I convinced myself that she had escaped. For the next three hours, I knocked on every door in the building, shook a box of cat treats in the car park and even printed posters with a photo borrowed from Helen's fridge door. By the afternoon, half of my neighbours were searching the street with me. It was only when I went back to the flat to leave some food out that I finally unfolded the note. On the second side, underlined twice, Helen had explained that Mango hides on top of the wardrobe whenever strangers visit, and that I shouldn't worry if I never saw her. I opened the bedroom door, looked up, and there she was, staring down at me with complete calm. Had I turned that note over on the first morning, I wouldn't now be known to everyone in our building as the cat detective. Helen laughed for a full minute when she got home, but she has already asked me to look after Mango again next month. This time, I have read the instructions twice.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What was the real cause of the narrator's problem?",
         "options": [
           "Helen forgot to explain where the cat liked to hide",
@@ -146,6 +158,7 @@
         "evidence": "which I folded into my pocket without reading"
       },
       {
+        "type": "detail",
         "prompt": "Why did the narrator believe the cat had escaped?",
         "options": [
           "The front door had been left unlocked",
@@ -155,7 +168,9 @@
         ],
         "answer": 1,
         "evidence": "Because a window in the kitchen was slightly open, I convinced myself that she had escaped."
-      }
+      },
+      {"type": "inference", "prompt": "Why has Helen asked the narrator to look after Mango again?", "options": ["She found the mix-up funny and still trusts the narrator", "The narrator offered to pay her", "Mango now prefers the narrator", "Nobody else in the building will do it"], "answer": 0, "evidence": "Helen laughed for a full minute when she got home, but she has already asked me to look after Mango again next month."},
+      {"type": "vocab", "prompt": "What does \"convinced myself\" mean in \"I convinced myself that she had escaped\"?", "options": ["made myself believe something", "proved something with evidence", "forgot completely", "told a neighbour"], "answer": 0, "evidence": "I convinced myself that she had escaped"}
     ],
     "dictation_index": 6,
     "vocabulary": [
@@ -194,9 +209,11 @@
     "cefr": "B2",
     "theme": "life",
     "genre": "opinion",
+    "purposes": ["argumentative", "news-commentary", "daily-life"],
     "body": "Few questions divide a city as quickly as what to do about cars in its centre. In my view, most cities would benefit from closing their central streets to private cars, provided that the change is made gradually and with real alternatives in place. The case for a ban is easy to picture. Without traffic, a busy junction can become a square where children play and neighbours stop to chat. The air is cleaner, the noise drops, and walking or cycling no longer feels like a risk. If a centre is pleasant to spend time in, people tend to stay longer, which can be good news for cafés and small shops. Critics, however, raise serious concerns. Shop owners worry that customers who drive in from the suburbs will simply go elsewhere. Older people and those with limited mobility may depend on a car to reach the places they need. Delivery drivers and emergency services also need access. Although these objections are sometimes dismissed as excuses, they describe real lives. Yet they are an argument for a careful ban rather than no ban at all. A sensible plan would allow deliveries at certain hours, keep access for people who genuinely need it, and improve buses before the first street is closed. It is also worth remembering that many old city centres were laid out long before the car existed and were only later reshaped around it. If planners had resisted that change, we would not be having this argument today. Handled with care, a car-free centre is not a loss but a return to what those streets were built for.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's overall position?",
         "options": [
           "Cars should be banned from every city centre immediately",
@@ -208,6 +225,7 @@
         "evidence": "provided that the change is made gradually and with real alternatives in place"
       },
       {
+        "type": "detail",
         "prompt": "How does the writer respond to the critics' concerns?",
         "options": [
           "By saying the concerns are only excuses to avoid change",
@@ -217,7 +235,9 @@
         ],
         "answer": 2,
         "evidence": "they are an argument for a careful ban rather than no ban at all"
-      }
+      },
+      {"type": "inference", "prompt": "What does the writer mean by \"a return to what those streets were built for\"?", "options": ["Cars should be allowed back into the centre", "Old centres were designed for people on foot, before cars existed", "Cities should rebuild their old walls", "Streets were first built for buses"], "answer": 1, "evidence": "many old city centres were laid out long before the car existed"},
+      {"type": "vocab", "prompt": "What does \"limited mobility\" mean in \"those with limited mobility\"?", "options": ["a small budget", "poor eyesight", "a short holiday", "difficulty in moving around easily"], "answer": 3, "evidence": "those with limited mobility"}
     ],
     "dictation_index": 4,
     "vocabulary": [

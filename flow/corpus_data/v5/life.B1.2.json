@@ -8,9 +8,11 @@
     "cefr": "B1",
     "theme": "life",
     "genre": "dialogue",
+    "purposes": ["daily-life"],
     "body": "Priya: Tom, have you seen my cheese? I bought it on Saturday, and now it's gone. Tom: Not me, I promise, which means either Dan or his friends have been at it again. Priya: Honestly, I wish we had a lock on this fridge. Tom: A lock might be a bit much, but I know what you mean. Half the time I can't find anything in there, and the rest of the time I find things nobody remembers buying. Priya: Like that soup at the back. Tom: Exactly, so what if we gave everyone their own shelf? If each of us had a shelf, we could see straight away when something was missing. Priya: And the door could be for shared stuff, like milk and butter. Tom: Good idea, although neither Dan nor I am great at remembering whose turn it is to buy milk. Priya: Then let's put a list on the door. Whoever finishes the milk buys the next one. Tom: Fair. Should we tell Dan tonight? Priya: Yes, but nicely. I'd rather sort it out than keep leaving angry notes. Tom: Speaking of notes, was that big red one on the fridge yours? Priya: Maybe.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What does Priya most want by the end of the conversation?",
         "options": [
           "To put a lock on the fridge as soon as possible",
@@ -22,6 +24,7 @@
         "evidence": "I'd rather sort it out than keep leaving angry notes."
       },
       {
+        "type": "vocab",
         "prompt": "What does Tom mean when he says \"A lock might be a bit much\"?",
         "options": [
           "A lock would be too expensive to buy",
@@ -31,7 +34,9 @@
         ],
         "answer": 2,
         "evidence": "A lock might be a bit much"
-      }
+      },
+      {"type": "inference", "prompt": "What does Priya's answer \"Maybe\" suggest about the big red note?", "options": ["It was about the milk", "She probably wrote it", "Dan wrote it", "She has never seen it"], "answer": 1, "evidence": "was that big red one on the fridge yours?"},
+      {"type": "detail", "prompt": "What will the fridge door be used for?", "options": ["Shared things like milk and butter", "Angry notes", "Priya's cheese", "Dan's food only"], "answer": 0, "evidence": "the door could be for shared stuff, like milk and butter"}
     ],
     "dictation_index": 8,
     "vocabulary": [
@@ -69,9 +74,11 @@
     "cefr": "B1",
     "theme": "life",
     "genre": "interview",
+    "purposes": ["daily-life"],
     "body": "Q: You learned to swim as an adult. Why did you wait so long? Ines: Nobody taught me when I was a child, and after a while I was too embarrassed to ask. On holidays, I always found a reason to stay on the beach with a book. Q: What changed? Ines: My daughter started lessons, and she asked me to come in the water with her. I had to say no, and I hated it. So I signed up for an adult class to prove something to myself. Q: How did the first lesson go? Ines: Badly. Standing at the edge of the pool, I could feel my heart beating in my ears. The teacher just asked me to sit on the steps and put my face in the water, and that was the whole lesson. Q: And now? Ines: Now I can swim two lengths without stopping. It's not fast, but it's mine. Q: Is anything still difficult? Ines: Deep water. I wish I felt as relaxed in it as my daughter does. She swims like a fish. Q: What would you say to other adults who can't swim? Ines: Don't wait for the fear to go away first. It goes away in the water, not before.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is Ines's main advice to adults who can't swim?",
         "options": [
           "Wait until you feel completely ready before you start",
@@ -83,6 +90,7 @@
         "evidence": "Don't wait for the fear to go away first."
       },
       {
+        "type": "detail",
         "prompt": "Why did Ines finally sign up for swimming lessons?",
         "options": [
           "Her daughter's teacher offered her a free class",
@@ -92,7 +100,9 @@
         ],
         "answer": 1,
         "evidence": "I had to say no, and I hated it."
-      }
+      },
+      {"type": "inference", "prompt": "Why does Ines say \"It's not fast, but it's mine\"?", "options": ["She does not care about speed", "Her daughter taught her to swim", "She owns the swimming pool", "She is proud of what she has achieved herself"], "answer": 3, "evidence": "Now I can swim two lengths without stopping."},
+      {"type": "vocab", "prompt": "What does \"embarrassed\" mean in \"I was too embarrassed to ask\"?", "options": ["too busy", "too tired", "feeling ashamed and uncomfortable", "very confident"], "answer": 2, "evidence": "I was too embarrassed to ask"}
     ],
     "dictation_index": 10,
     "vocabulary": [
@@ -130,9 +140,11 @@
     "cefr": "B1",
     "theme": "life",
     "genre": "guide",
+    "purposes": ["expository", "daily-life"],
     "body": "You don't need a garden to grow your own food. A small balcony, a few pots and a bit of patience are enough to get started. First, watch your balcony for a day and notice how much sun it gets. Tomatoes love long, hot afternoons, but if your balcony only gets morning light, you could try salad leaves or herbs like mint instead. Next, choose your containers. Almost anything can work, from old buckets to wooden boxes, as long as there are holes in the bottom to let extra water out. Fill them with fresh soil sold for growing vegetables. Plants grown in pots dry out much faster than plants in the ground, so check them every evening in summer. If the soil feels dry, water slowly until it comes out of the bottom. Start small. Three pots that you look after well will give you more than ten that you forget about. And don't be discouraged if something fails, because even experienced gardeners lose a plant or two every year. The first time you pick a tomato you have grown yourself, you might find that it tastes better than anything from a shop.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main idea of the guide?",
         "options": [
           "Growing vegetables is only possible if you have a large garden",
@@ -144,6 +156,7 @@
         "evidence": "You don't need a garden to grow your own food."
       },
       {
+        "type": "detail",
         "prompt": "Why should you check your pots every evening in summer?",
         "options": [
           "Plants in pots lose water faster than plants in the ground",
@@ -153,7 +166,9 @@
         ],
         "answer": 0,
         "evidence": "Plants grown in pots dry out much faster than plants in the ground"
-      }
+      },
+      {"type": "inference", "prompt": "Why should you watch your balcony for a day before you start?", "options": ["To choose plants that suit the amount of sun it gets", "To measure the size of the balcony", "To see whether it rains", "To check whether the neighbours mind"], "answer": 0, "evidence": "notice how much sun it gets"},
+      {"type": "vocab", "prompt": "What does \"discouraged\" mean in \"don't be discouraged if something fails\"?", "options": ["losing confidence and the wish to continue", "surprised", "excited", "angry"], "answer": 0, "evidence": "don't be discouraged if something fails"}
     ],
     "dictation_index": 1,
     "vocabulary": [
@@ -191,9 +206,11 @@
     "cefr": "B1",
     "theme": "life",
     "genre": "email",
+    "purposes": ["daily-life"],
     "body": "Hi Ollie, Guess what? My grandmother's old lamp works again! You know, the one that has been sitting in my wardrobe since I moved. On Saturday I took it to the repair café at the library. I'd never been before, so I didn't know what to expect. It's basically a big room full of tables, with volunteers who fix things for free while you watch. There were people holding broken toasters, torn jackets and even a bicycle. I waited for a while with a cup of tea, chatting to a woman whose kettle had stopped working. Then a retired electrician called Bernard looked at my lamp. He said that either the switch or the wires were the problem, and in the end it was both. Instead of doing it all for me, he showed me how to replace the switch myself. It took half an hour, and I was surprisingly proud of it. The whole thing cost nothing, although there's a jar for donations. If you came with me next month, you could finally bring that radio you keep talking about. Let me know! Love, Mia",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main reason Mia is writing to Ollie?",
         "options": [
           "To ask him to help her repair her grandmother's lamp",
@@ -205,6 +222,7 @@
         "evidence": "If you came with me next month, you could finally bring that radio you keep talking about."
       },
       {
+        "type": "detail",
         "prompt": "What did Bernard do with the lamp?",
         "options": [
           "He fixed it quickly while Mia drank her tea",
@@ -214,7 +232,9 @@
         ],
         "answer": 2,
         "evidence": "he showed me how to replace the switch myself"
-      }
+      },
+      {"type": "inference", "prompt": "Why was Mia \"surprisingly proud\"?", "options": ["The repair had cost nothing", "Bernard had praised her in front of everyone", "She had made a new friend", "She had repaired the lamp with her own hands"], "answer": 3, "evidence": "he showed me how to replace the switch myself"},
+      {"type": "vocab", "prompt": "What does \"donations\" mean in \"a jar for donations\"?", "options": ["tea and biscuits", "tickets", "money that people give freely to help", "broken things"], "answer": 2, "evidence": "there's a jar for donations"}
     ],
     "dictation_index": 6,
     "vocabulary": [

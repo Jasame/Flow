@@ -8,6 +8,7 @@
     "cefr": "A2",
     "theme": "life",
     "genre": "article",
+    "purposes": ["daily-life"],
     "body": "Every Saturday, the community hall on Green Street turns into a swap shop. It is not a real shop, and nothing costs any money. People bring things that they don't need any more, and they take things that they can use. The rule is simple: bring one, take one. A teenager is trying on a winter coat which is a little too big for her. The swap shop was the idea of Rosa, a retired teacher who lives across the road. She has run it for two years now. \"I've met more neighbours here than in thirty years on this street,\" she says. Not everything finds a new home, of course. At noon, Rosa takes the last things to a charity shop. Then she goes home for lunch, usually with one new thing for herself.",
     "questions": [
       {
@@ -68,6 +69,7 @@
     "cefr": "A2",
     "theme": "life",
     "genre": "email",
+    "purposes": ["daily-life"],
     "body": "Hello, I am writing about a jacket that I ordered last week. It arrived yesterday, and I'm afraid it doesn't fit. I chose a medium, but it is much bigger than the medium that I usually buy. My brother says it looks like a tent on me. The colour is also darker than the photo online. I have only tried it on once, and I haven't removed the labels. I would like to return it and get my money back. Could you tell me how to do this? I have looked on your website, but I can't find a returns form. Also, do I need to pay for the post? The box which it came in is still in good condition, so I can send it back in that. Thank you for your help. Best wishes, Lena Brooks",
     "questions": [
       {
@@ -128,6 +130,7 @@
     "cefr": "A2",
     "theme": "life",
     "genre": "dialogue",
+    "purposes": ["daily-life"],
     "body": "Maya: Jin? The lights have just gone off. Jin: I know. The whole street is dark. Maya: Have you seen the torch? It's usually in the kitchen drawer. Jin: I've already looked. It isn't there. But I've found two candles. Maya: Perfect. My phone is almost dead, so I'm not using it. Jin: Same here. So what do we do now? Maya: Well, the oven doesn't work, but the bread is still fresh. Jin: And the ice cream is melting in the freezer. We can't waste it! Maya: Ice cream for dinner, then. Jin: You know, this is nice. It's so quiet. Maya: I know. We never really talk like this. We're always looking at our screens. Jin: Oh. The lights are back. Maya: Shall we turn them off again? Jin: Just for one more hour.",
     "questions": [
       {
@@ -187,6 +190,7 @@
     "cefr": "A2",
     "theme": "life",
     "genre": "guide",
+    "purposes": ["expository", "daily-life"],
     "body": "Cooking for one person can feel like too much work. Many people who live alone just eat toast or order food. But a good meal for one doesn't need to be difficult. First, cook a little extra. If you make rice on Monday, you can use the rest for fried rice on Tuesday. Second, buy food that lasts. Eggs, frozen peas and onions stay good for a long time. Third, keep a short list of three or four dishes which you can make without a recipe. A simple soup, an egg dish and a pasta dish are a good start. Finally, make it nice. Put your food on a real plate, not in the pan, and sit at the table. You are eating alone, but you are still worth a proper dinner.",
     "questions": [
       {

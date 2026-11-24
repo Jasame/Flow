@@ -62,6 +62,13 @@ def shadow(pg):
     return 'keep'
 
 
+def scene(pg):  # 口语情景 round 2 (the guide learner did 在咖啡店点单 once): its extra requirement, then a short answer
+    pg.click('#dlgStart'); pg.wait_for_selector('#chat .msg.ai', timeout=8000)
+    pg.fill('#dlgText', 'yes'); pg.click('#dlgSend'); pg.wait_for_selector('#chat .msg.me .pace', timeout=8000); pg.wait_for_timeout(500)
+    pg.evaluate("() => { const r = document.querySelector('.scene-goals').getBoundingClientRect(); scrollBy(0, r.top - 80); }")
+    return 'keep'
+
+
 def ielts_card(pg):
     pg.click('#p2Start'); pg.wait_for_selector('.p2-clock.prep', timeout=5000)
     pg.fill('#p2Notes', 'cooking · grandma · one year · saves money')
@@ -114,6 +121,7 @@ SHOTS = {
     'speak': ('#/speak', None, True),
     'shadow': (f'#/m/{PID}/listen', shadow, True),
     'ielts': ('#/speak/ielts/p2-skill', ielts_card, True),
+    'scene': ('#/speak/cafe-order', scene, True),
     'ielts-fb': ('#/speak/ielts/p2-skill', ielts_feedback, True),
     'exam': ('#/exam', None, True),
     'radar': ('#/radar', None, True),

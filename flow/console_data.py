@@ -101,7 +101,8 @@ def learners(c):
     last_job = dict(c.execute('SELECT user_id, MAX(created) FROM lab_jobs GROUP BY user_id').fetchall())
     import vocab_service as vs
     out = []
-    for u in c.execute('SELECT id, username, email, admin, disabled, created FROM users ORDER BY id DESC'):
+    import privacy_service as pv
+    for u in c.execute('SELECT id, username, email, admin, disabled, created, age_band, guardian_ok FROM users ORDER BY id DESC'):
         uid = u['id']
         days = act.get(uid, {})
         first = min(days) if days else None
@@ -114,6 +115,7 @@ def learners(c):
         out.append({
             'id': uid, 'username': u['username'], 'email': auth_service.mask(u['email']) if u['email'] else '', 'has_email': bool(u['email']),
             'staff': bool(u['admin']), 'disabled': bool(u['disabled']), 'joined': joined, 'joined_known': bool(u['created']),
+            'age': u['age_band'], 'age_label': pv.label(u['age_band']), 'guardian': bool(u['guardian_ok']),
             'level': p['level'] if p else None, 'goal': GOAL_LABEL.get(p['goal'], p['goal']) if p else None,
             'last_study': last_study.isoformat() if last_study else None, 'last_seen': last_seen,
             'days_total': len(days), 'days_7d': sum(1 for d in days if (td - d).days < 7), 'days_30d': sum(1 for d in days if (td - d).days < 30),
@@ -132,6 +134,8 @@ FILTERS = {
     'never': ('注册了还没开始学', lambda r, td: not r['days_total']),
     'staff': ('员工账号', lambda r, td: r['staff']),
     'disabled': ('已停用', lambda r, td: r['disabled']),
+    'minor': ('未成年', lambda r, td: r['age'] in ('u14', '14-17')),
+    'no_age': ('没填年龄段', lambda r, td: not r['age']),
 }
 SORTS = {
     'recent': lambda r: (r['last_seen'] or 0, r['id']),
@@ -162,7 +166,7 @@ def learner(c, uid):
     learner wrote."""
     import auth_service, vocab_service as vs, exam_service as ex, chat_service, feedback_service
     uid = int(uid)
-    u = c.execute('SELECT id, username, email, admin, disabled, created FROM users WHERE id=?', (uid,)).fetchone()
+    u = c.execute('SELECT id, username, email, admin, disabled, created, age_band, guardian_ok FROM users WHERE id=?', (uid,)).fetchone()
     if not u:
         return None
     now, td = time.time(), today()
@@ -213,6 +217,7 @@ def learner(c, uid):
     return {
         'account': {'id': uid, 'username': u['username'], 'email': auth_service.mask(u['email']) if u['email'] else '', 'has_email': bool(u['email']),
                     'staff': bool(u['admin']), 'disabled': bool(u['disabled']), 'joined': _joined(u, p['created'] if p else None, first),
+                    'age': u['age_band'], 'age_label': __import__('privacy_service').label(u['age_band']), 'guardian': u['guardian_ok'],
                     'joined_known': bool(u['created']), 'sessions': sessions, 'last_open': seen,
                     'locked_until': lock['until'] if lock and lock['until'] > now else None},
         'profile': {'level': p['level'], 'goal': GOAL_LABEL.get(p['goal'], p['goal']), 'minutes': p['minutes'], 'weekly_goal': p['weekly_goal'],
@@ -553,9 +558,9 @@ def _date(t):
 
 
 def learners_csv(c):
-    head = ['编号', '用户名', '邮箱（打码）', '员工账号', '已停用', '注册', '水平', '目标', '最近来', '最近学习日', '学习天数', '近7天学习天数', '近30天学习天数',
+    head = ['编号', '用户名', '邮箱（打码）', '年龄段', '员工账号', '已停用', '注册', '水平', '目标', '最近来', '最近学习日', '学习天数', '近7天学习天数', '近30天学习天数',
             '学过的材料', '学完的材料', '词书', '每日新词', '单词卡', '近7天复习', '近7天AI次数', '考试练习次数', '反馈条数']
-    rows = [[r['id'], r['username'], r['email'], '是' if r['staff'] else '', '是' if r['disabled'] else '', _date(r['joined']), r['level'], r['goal'],
+    rows = [[r['id'], r['username'], r['email'], r['age_label'], '是' if r['staff'] else '', '是' if r['disabled'] else '', _date(r['joined']), r['level'], r['goal'],
              _date(r['last_seen']), r['last_study'], r['days_total'], r['days_7d'], r['days_30d'], r['materials'], r['materials_done'], r['book'],
              r['daily_new'], r['cards'], r['reviews_7d'], r['ai_7d'], r['exams'], r['feedback']] for r in learners(c)]
     return _csv(head, rows)

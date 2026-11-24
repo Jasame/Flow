@@ -8,9 +8,11 @@
     "cefr": "C1",
     "theme": "science",
     "genre": "explainer",
+    "purposes": ["expository"],
     "body": "Few sounds unite people quite like fingernails scraped down a blackboard: almost everyone winces, and almost no one can say why. Loudness alone cannot be the explanation, since a passing lorry is far louder and rarely makes anyone shudder. What seems to matter more is where a sound sits in pitch and how it behaves over time. Human hearing is not equally sensitive across its range; it is sharpest in a band of middle-to-high pitches, the same band that carries much of the detail of speech and the urgency of a crying baby. The shape of our ear canals happens to amplify this range further. A screech that packs its energy into that band therefore reaches us with unusual force, as though it were being delivered straight to the nervous system. Then there is a quality that acousticians call roughness: a rapid flickering in loudness, too fast to hear as separate beats but too slow to blur into a smooth tone. Screams have it, and so do most alarms, which is hardly a coincidence: whether by design or by trial and error, sounds meant to be impossible to ignore end up sharing the features of a scream. Yet physics explains only part of the story. Our reaction depends heavily on context, and above all on control. Music you choose to play at full volume is a pleasure, whereas a neighbour's drill at the same level, starting and stopping without warning, can feel like a personal insult. Unpredictable noise keeps the brain on alert, because it cannot settle into ignoring what it cannot anticipate. Half a phone conversation overheard on a train can be oddly harder to tune out than a whole one, perhaps because the mind keeps trying to supply the missing half. Seen this way, annoyance is not a malfunction at all. It is an old warning system doing exactly what it was built to do, except that it now fires at squeaky chairs and other people's ringtones.",
     "questions": [
       {
+        "type": "main",
         "prompt": "Which statement best summarises the writer's explanation of annoying sounds?",
         "options": [
           "Sounds annoy us mainly because they are too loud",
@@ -22,6 +24,7 @@
         "evidence": "Yet physics explains only part of the story."
       },
       {
+        "type": "vocab",
         "prompt": "What does the writer mean by \"roughness\"?",
         "options": [
           "A sound that is very low and deep",
@@ -31,7 +34,9 @@
         ],
         "answer": 2,
         "evidence": "a rapid flickering in loudness, too fast to hear as separate beats but too slow to blur into a smooth tone"
-      }
+      },
+      {"type": "inference", "prompt": "Why does the writer say it is \"hardly a coincidence\" that alarms resemble screams?", "options": ["Sounds designed to grab attention end up using the same features that make screams hard to ignore", "Alarms are made from recordings of screams", "Alarm makers want to frighten people", "Screams developed to imitate alarms"], "answer": 0, "evidence": "sounds meant to be impossible to ignore end up sharing the features of a scream"},
+      {"type": "detail", "prompt": "Why does a passing lorry show that loudness alone is not the explanation?", "options": ["It is far louder but rarely makes anyone shudder", "It is quieter than fingernails on a blackboard", "It is usually too far away to hear", "It has no pitch at all"], "answer": 0, "evidence": "a passing lorry is far louder and rarely makes anyone shudder"}
     ],
     "dictation_index": 2,
     "vocabulary": [
@@ -70,9 +75,11 @@
     "cefr": "C1",
     "theme": "science",
     "genre": "opinion",
+    "purposes": ["argumentative", "news-commentary"],
     "body": "Every new year, people everywhere promise themselves that this will be the year they finally go running, read more or stop scrolling at midnight. Each of these promises starts with real enthusiasm, and within weeks many of them have quietly faded. The usual verdict is harsh: we simply lacked willpower. I think that verdict is not only unkind but largely mistaken. Habits, as psychologists describe them, are not really decisions at all. They are responses the brain has learned to link with particular cues: a time of day, a place, a mood, the sight of a phone on the bedside table. Each time a behaviour is repeated in the same setting and followed by some small reward, the link grows a little stronger, until the cue alone is enough to set the routine in motion with hardly any thought. This is precisely what makes habits useful, since they free the mind for other things. But it also means that fighting an established habit with willpower is like holding a door shut against a steady wind. You may win for a while, but unless something changes, you will eventually tire. A smarter strategy is to change the wind. If you want to read more, leave a book on your pillow and charge your phone in another room. If you want to practise the guitar, keep it on a stand rather than zipped inside its case. None of this is glamorous, and it will not work for everyone in every situation; some habits are tangled up with stress or deeper problems in ways that no rearranged shelf can fix. Still, I suspect we would be kinder to ourselves, and more successful, if we treated our habits less as tests of character and more as problems of design. The goal is not to become a person of iron will. It is to build a life in which the right choice is also the easy one.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's main argument?",
         "options": [
           "People fail to keep good habits because they are lazy",
@@ -84,6 +91,7 @@
         "evidence": "A smarter strategy is to change the wind."
       },
       {
+        "type": "vocab",
         "prompt": "In the passage, what does \"change the wind\" refer to?",
         "options": [
           "Moving to a place with a better climate",
@@ -93,7 +101,9 @@
         ],
         "answer": 2,
         "evidence": "If you want to read more, leave a book on your pillow and charge your phone in another room."
-      }
+      },
+      {"type": "inference", "prompt": "What does the writer imply about people whose new-year promises fade?", "options": ["They never really wanted to change", "They should simply try harder next year", "They are not necessarily weak; their surroundings may be working against them", "They should stop making promises"], "answer": 2, "evidence": "I think that verdict is not only unkind but largely mistaken."},
+      {"type": "detail", "prompt": "What does the writer suggest for someone who wants to practise the guitar?", "options": ["Practise only late at night", "Charge the phone in the same room", "Leave it on the pillow", "Keep it on a stand rather than in its case"], "answer": 3, "evidence": "keep it on a stand rather than zipped inside its case"}
     ],
     "dictation_index": 3,
     "vocabulary": [
@@ -131,9 +141,11 @@
     "cefr": "C1",
     "theme": "science",
     "genre": "explainer",
+    "purposes": ["expository"],
     "body": "It is three in the morning, and your brain has chosen this moment to replay the time you waved back at someone who was actually waving at the person behind you. Years have passed, the other person has almost certainly forgotten, and yet the memory arrives in vivid detail, complete with the heat rising in your cheeks. Why does the mind keep these moments so faithfully while letting whole ordinary weeks slip away? Part of the answer is that emotion works like a highlighter. When an experience stirs us up, whether through fear, delight or shame, the brain treats it as significant, and the memory is stored more firmly as a result. Embarrassment is a particularly social emotion: it flares up when we sense that others might think less of us. For a species that has always depended on belonging to a group, slipping up in front of others was never a trivial matter, so it is not surprising that our brains file such moments under lessons worth keeping. The trouble is that the lesson is rarely updated. We keep the vivid record but lose the context: that people were distracted, that they laughed with us rather than at us, that they moved on within minutes. Psychologists describe a related tendency known as the spotlight effect, our habit of overestimating how much others notice our appearance and our mistakes. We picture an audience studying our every move when, in reality, most people are too busy worrying about their own. Had we known this at the time, we might have laughed it off; had we laughed it off, we would probably not still be wincing about it now. There is some comfort in that. The midnight replay is not proof that you are uniquely awkward. It is evidence of a brain that cares, perhaps a little too much, about how you fit in with other people.",
     "questions": [
       {
+        "type": "main",
         "prompt": "According to the passage, why do embarrassing memories stay so clear?",
         "options": [
           "Because embarrassing events happen more often than ordinary ones",
@@ -145,6 +157,7 @@
         "evidence": "the brain treats it as significant, and the memory is stored more firmly as a result"
       },
       {
+        "type": "inference",
         "prompt": "What does the \"spotlight effect\" suggest about our embarrassing moments?",
         "options": [
           "Other people remember them more clearly than we do",
@@ -154,7 +167,9 @@
         ],
         "answer": 2,
         "evidence": "our habit of overestimating how much others notice our appearance and our mistakes"
-      }
+      },
+      {"type": "vocab", "prompt": "What does \"flares up\" mean in \"it flares up when we sense that others might think less of us\"?", "options": ["stays hidden", "grows slowly over years", "appears suddenly and strongly", "disappears"], "answer": 2, "evidence": "it flares up when we sense that others might think less of us"},
+      {"type": "detail", "prompt": "According to the writer, what do we tend to lose from these memories?", "options": ["The feeling of embarrassment", "The vivid details of the scene", "The time of day it happened", "The context, such as people being distracted or laughing with us"], "answer": 3, "evidence": "We keep the vivid record but lose the context"}
     ],
     "dictation_index": 3,
     "vocabulary": [
@@ -192,9 +207,11 @@
     "cefr": "C1",
     "theme": "science",
     "genre": "story",
+    "purposes": ["story"],
     "body": "The experiment began, as many good ones do, with an accident. A tray of seedlings on my windowsill had been knocked onto its side, probably by the cat, and by the time I found it the next evening, every stem had curled upwards like a row of question marks. I set the tray upright, felt slightly guilty, and then could not stop wondering how a plant with no eyes, no ears and no brain had known which way was up. So I did what my primary school teacher would have done. I soaked a few broad beans overnight, wedged them between damp kitchen paper and the side of a glass jar, and waited. Within days, each one had sent a pale root downwards and a shoot upwards. Once the roots were about the length of my little finger, I laid the jar on its side. By the following morning, the root tips had bent sharply and were heading down again, while the shoots were curving towards the ceiling. What I was watching, I later learned, is called gravitropism. Tucked inside the tip of each root is a cluster of specialised cells containing tiny grains of starch. Being denser than the fluid around them, these grains settle on whichever side of the cell happens to be lowest, rather like sand in a tilted bottle. Their position tells the plant where down is. The plant responds by shifting a growth hormone towards the lower side, and because this hormone affects roots and shoots in opposite ways, roots curve downwards while stems bend up. Light matters to shoots as well, but roots will turn downwards even in complete darkness. If I had not stumbled on that toppled tray, I would probably still assume that plants simply grow up by default, as though the direction were printed on them. In a sense it is, just in a far cleverer script than I had imagined.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What did the writer's jar experiment show?",
         "options": [
           "Beans only grow properly if they are kept in the dark",
@@ -206,6 +223,7 @@
         "evidence": "the root tips had bent sharply and were heading down again, while the shoots were curving towards the ceiling"
       },
       {
+        "type": "detail",
         "prompt": "What role do the grains of starch play?",
         "options": [
           "They feed the root so that it can grow longer",
@@ -215,7 +233,9 @@
         ],
         "answer": 3,
         "evidence": "Their position tells the plant where down is."
-      }
+      },
+      {"type": "inference", "prompt": "What does the writer mean by \"In a sense it is, just in a far cleverer script\"?", "options": ["Plants grow properly only in the dark", "Seeds have instructions printed on them", "The writer's teacher had been wrong", "The direction of growth is built into the plant, through a clever mechanism"], "answer": 3, "evidence": "just in a far cleverer script than I had imagined"},
+      {"type": "vocab", "prompt": "What does \"denser\" mean in \"Being denser than the fluid around them\"?", "options": ["smaller", "heavier for their size", "brighter", "warmer"], "answer": 1, "evidence": "Being denser than the fluid around them"}
     ],
     "dictation_index": 5,
     "vocabulary": [

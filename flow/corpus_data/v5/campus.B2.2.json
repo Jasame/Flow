@@ -8,9 +8,11 @@
     "cefr": "B2",
     "theme": "campus",
     "genre": "opinion",
+    "purposes": ["argumentative", "campus-life"],
     "body": "Few university rules provoke as much grumbling as compulsory attendance, and at first glance the complaint seems reasonable. Students are adults, the argument goes, and adults should decide for themselves how to spend their time. In my view, however, attendance should be required for small seminars and labs, but not for large lectures. Supporters of strict rules make a fair point. When students come to class regularly, they tend to keep up with the material instead of discovering, a week before the exam, how much they have missed. A register can also give a gentle nudge to students who are struggling quietly and might otherwise drift away. Yet forcing everyone into a lecture hall does not guarantee that anyone is learning. A student who is physically present but scrolling through messages gains very little, while one who works night shifts may learn more from a recording watched at a sensible hour. If a lecture is simply one person talking to a few hundred listeners, attendance adds little that a recording cannot. Seminars and labs are different. Because they depend on discussion and practical work, an empty seat affects everyone else in the room. A group cannot debate a reading if half its members have not turned up, and an experiment cannot be copied from someone else's notes. The sensible compromise, then, is to make attendance compulsory where students learn from each other and optional where they mainly learn from a speaker. Universities that want full lecture halls should spend less energy taking names and more energy giving students a reason to come.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's overall position?",
         "options": [
           "Attendance should be compulsory for every type of class",
@@ -22,6 +24,7 @@
         "evidence": "attendance should be required for small seminars and labs, but not for large lectures"
       },
       {
+        "type": "detail",
         "prompt": "According to the writer, why does an empty seat matter more in a seminar than in a lecture?",
         "options": [
           "Seminar teachers take the register more carefully",
@@ -31,7 +34,9 @@
         ],
         "answer": 2,
         "evidence": "Because they depend on discussion and practical work, an empty seat affects everyone else in the room."
-      }
+      },
+      {"type": "inference", "prompt": "What does the writer imply about a student who sits in a lecture scrolling through messages?", "options": ["The student should be punished", "Being present does not mean the student is learning", "The student must be working night shifts", "The student already understands the lecture"], "answer": 1, "evidence": "forcing everyone into a lecture hall does not guarantee that anyone is learning"},
+      {"type": "vocab", "prompt": "What does \"nudge\" mean in \"a gentle nudge to students who are struggling quietly\"?", "options": ["a written warning", "a long lecture", "a small push or encouragement", "a strict punishment"], "answer": 2, "evidence": "give a gentle nudge to students who are struggling quietly"}
     ],
     "dictation_index": 10,
     "vocabulary": [
@@ -136,9 +141,11 @@
     "cefr": "B2",
     "theme": "campus",
     "genre": "explainer",
+    "purposes": ["expository", "campus-life"],
     "body": "Many students believe that plagiarism means copying a paragraph word for word, so as long as they change enough of the words, they feel safe. Unfortunately, that is not how academic writing works. Plagiarism means presenting someone else's ideas as if they were your own, whether you copy the exact sentences or not. Imagine you have read an article arguing that city parks make people more sociable. If you replace every second word with a synonym and keep the same structure, the ideas are still borrowed, and only the vocabulary is yours. Swapping words in this way is sometimes called patchwriting, and it is one of the most common ways that honest students get into trouble. A genuine paraphrase starts somewhere else entirely. First, read the passage until you understand it well enough to explain it to a friend. Then close the source and write the idea from memory, using your own structure and your own voice. Only after that should you look at the original again, to check that you have not changed the meaning or accidentally kept a distinctive phrase. Finally, add a citation, because even a perfect paraphrase still uses someone else's idea. This might sound like a lot of extra effort, but it has a hidden benefit. When you have to explain an idea without looking at the original, you quickly discover whether you have really understood it. In that sense, good paraphrasing is less a rule to obey than a test of your own understanding.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main point of the passage?",
         "options": [
           "Plagiarism is only a problem when whole paragraphs are copied",
@@ -150,6 +157,7 @@
         "evidence": "Plagiarism means presenting someone else's ideas as if they were your own, whether you copy the exact sentences or not."
       },
       {
+        "type": "detail",
         "prompt": "Why does the writer suggest closing the source before writing?",
         "options": [
           "So that the paraphrase comes from your own understanding",
@@ -159,7 +167,9 @@
         ],
         "answer": 0,
         "evidence": "Then close the source and write the idea from memory, using your own structure and your own voice."
-      }
+      },
+      {"type": "inference", "prompt": "Why does the writer call good paraphrasing \"a test of your own understanding\"?", "options": ["If you cannot explain an idea without the source, you have not really understood it", "Paraphrasing is part of every exam", "Synonyms are difficult to learn", "Teachers mark paraphrases more strictly than essays"], "answer": 0, "evidence": "you quickly discover whether you have really understood it"},
+      {"type": "vocab", "prompt": "What does \"distinctive\" mean in \"accidentally kept a distinctive phrase\"?", "options": ["extremely long", "very common", "grammatically wrong", "special and easy to recognise as someone else's"], "answer": 3, "evidence": "accidentally kept a distinctive phrase"}
     ],
     "dictation_index": 7,
     "vocabulary": [
@@ -264,9 +274,11 @@
     "cefr": "B2",
     "theme": "campus",
     "genre": "story",
+    "purposes": ["story", "campus-life"],
     "body": "Nadia's first proper chemistry practical was supposed to take two hours. The task sounded simple: add one solution to another, drop by drop, until the liquid turned a pale pink. Instead, after twenty minutes, her flask turned a muddy brown that matched nothing in the instructions. Her lab partner, Joel, stared at it as if it might explode. It didn't, of course, but it also refused to turn pink. While the rest of the class finished and packed up, the two of them went back through every step. Eventually they found the problem: two bottles on their bench had been swapped, and neither of them had checked the labels against the worksheet. Nadia's first instinct was to start again quietly and pretend the brown flask had never existed. The lab demonstrator suggested something else. Rather than hiding the mistake, she should write it up, explaining what had gone wrong and how they had discovered it. Reluctantly, Nadia filled two pages with notes about the wrong bottle, the strange colour and every step they had taken to trace it. A week later, the demonstrator showed her notes to the whole class as an example, not of failure, but of how to investigate a result that makes no sense. If she hadn't recorded that disaster so carefully, she wouldn't be the person her lab group now trusts with the notebook. She still checks every label twice, and she has learned that an honest record of a failed experiment can be more useful than a perfect one.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main lesson of the story?",
         "options": [
           "Lab partners should always work separately",
@@ -278,6 +290,7 @@
         "evidence": "an honest record of a failed experiment can be more useful than a perfect one"
       },
       {
+        "type": "detail",
         "prompt": "What caused the liquid to turn the wrong colour?",
         "options": [
           "Nadia added the solution too quickly",
@@ -287,7 +300,9 @@
         ],
         "answer": 3,
         "evidence": "two bottles on their bench had been swapped, and neither of them had checked the labels against the worksheet"
-      }
+      },
+      {"type": "inference", "prompt": "What does it suggest that Nadia's lab group now trusts her with the notebook?", "options": ["Nobody else wanted the job", "Her careful recording earned her classmates' respect", "She never makes mistakes any more", "She is the oldest in the group"], "answer": 1, "evidence": "she wouldn't be the person her lab group now trusts with the notebook"},
+      {"type": "vocab", "prompt": "What does \"instinct\" mean in \"Nadia's first instinct was to start again quietly\"?", "options": ["a careful plan", "a natural, immediate reaction", "a written rule", "a feeling of pride"], "answer": 1, "evidence": "Nadia's first instinct was to start again quietly"}
     ],
     "dictation_index": 5,
     "vocabulary": [
@@ -387,9 +402,11 @@
     "cefr": "B2",
     "theme": "campus",
     "genre": "dialogue",
+    "purposes": ["campus-life"],
     "body": "Sofia: Right, we've got fifteen minutes on stage next Thursday, and so far all we have is a title. Arjun: Shall we just split the topic into three parts and take one each? Lena: We did that last term, and it was a disaster. If we hadn't divided it like that, we wouldn't still be known as the group that gave three separate talks. Sofia: Fair point, so what if we divide the jobs instead of the content? Arjun: Meaning what, exactly? Sofia: One person builds the story and the slides, one handles the research, and one runs the rehearsals and the questions at the end. Lena: I like that, and if I do the research, I'll make sure every claim has a source. Arjun: Then I'll take the slides, because I'm hopeless at answering questions on the spot, but I can make a chart look good. Sofia: Which leaves me with rehearsals and questions, but everyone still speaks on the day. Lena: Agreed, because nobody wants to watch one person talk for fifteen minutes. Arjun: How do we stop it turning into three talks again, though? Sofia: We write the links between the sections first, before anyone writes their own part, and we rehearse together at least twice. Lena: And if someone gets a question about another person's section, they should feel free to pass it on. Arjun: So we need to agree on the main message today, while we're all in the same room. Sofia: Exactly, so give me one sentence that sums up the whole thing, and we're halfway there.",
     "questions": [
       {
+        "type": "main",
         "prompt": "How does the group's new plan differ from what they did last term?",
         "options": [
           "They will each prepare one part of the topic alone",
@@ -401,6 +418,7 @@
         "evidence": "so what if we divide the jobs instead of the content?"
       },
       {
+        "type": "detail",
         "prompt": "Why does Arjun choose to do the slides?",
         "options": [
           "He finds it hard to answer questions without preparation",
@@ -410,7 +428,9 @@
         ],
         "answer": 0,
         "evidence": "because I'm hopeless at answering questions on the spot"
-      }
+      },
+      {"type": "inference", "prompt": "Why does Sofia want to write the links between the sections first?", "options": ["So that Arjun can finish the slides early", "Because the tutor asked for them", "So that the presentation feels like one talk instead of three", "Because the links are the easiest part"], "answer": 2, "evidence": "How do we stop it turning into three talks again, though?"},
+      {"type": "vocab", "prompt": "What does \"on the spot\" mean in \"answering questions on the spot\"?", "options": ["in a quiet place", "immediately, without time to prepare", "after a long break", "in writing"], "answer": 1, "evidence": "I'm hopeless at answering questions on the spot"}
     ],
     "dictation_index": 3,
     "vocabulary": [

@@ -8,9 +8,11 @@
     "cefr": "C1",
     "theme": "culture",
     "genre": "opinion",
+    "purposes": ["argumentative", "news-commentary"],
     "body": "People often talk about things being lost in translation as though meaning were a liquid that leaks out whenever it is poured from one language into another. Having spent years translating letters between my family's two languages, I have come to see the problem differently. What disappears is rarely the information; it is the weight. Take forms of address. In my mother's language, the choice between two words for \"you\" quietly tells the listener how close you are, how old they are and, occasionally, whether you have recently quarrelled. English offers only one \"you\", so a translator has to rebuild that intimacy elsewhere, through a softer verb or a well-placed first name, and the result is never quite the same. Stripped of its rhythm, a proverb shrinks into a piece of advice; stripped of its timing, a joke turns into an explanation. Neither the dictionary nor the grammar is really to blame. The trouble is that every language bundles meaning differently, so what arrives in one neat package on one side has to be unwrapped and repacked on the other. Yet I am wary of the romantic idea that the original is always superior. Had I translated my grandmother's letters word for word, my cousins would still be puzzled by them today, admiring their strangeness without feeling any of their warmth. Instead, I took small liberties: a joke swapped for a similar one, an old-fashioned greeting turned into a plainer wish. Purists might call that betrayal; I would call it hospitality. A good translation, to my mind, does not pretend that nothing has been lost. It accepts the loss and makes something generous out of what remains. If anything truly gets lost in translation, it is the comfortable illusion that languages are simply different codes for the same thoughts, and losing that illusion, frankly, is no great loss.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's central argument about translation?",
         "options": [
           "Translation inevitably destroys the meaning of the original text",
@@ -22,6 +24,7 @@
         "evidence": "What disappears is rarely the information; it is the weight."
       },
       {
+        "type": "vocab",
         "prompt": "In the text, what does \"took small liberties\" mean?",
         "options": [
           "Translated each line slowly and with great care",
@@ -31,7 +34,9 @@
         ],
         "answer": 2,
         "evidence": "Instead, I took small liberties: a joke swapped for a similar one"
-      }
+      },
+      {"type": "inference", "prompt": "Why does the writer call her changes \"hospitality\" rather than \"betrayal\"?", "options": ["She sees them as making the text welcoming to new readers", "She wanted to hide the original meaning", "She was translating for a hotel", "She thinks purists are usually right"], "answer": 0, "evidence": "Purists might call that betrayal; I would call it hospitality."},
+      {"type": "detail", "prompt": "What can the choice between two words for \"you\" tell a listener in her mother's language?", "options": ["Whether the sentence is a question", "How many people are listening", "How close the speakers are, how old the listener is, and sometimes whether they have quarrelled", "Whether the speaker is a man or a woman"], "answer": 2, "evidence": "how close you are, how old they are and, occasionally, whether you have recently quarrelled"}
     ],
     "dictation_index": 2,
     "vocabulary": [
@@ -137,9 +142,11 @@
     "cefr": "C1",
     "theme": "culture",
     "genre": "story",
+    "purposes": ["story"],
     "body": "For most of my adult life, I treated museums as places you visit out of duty, usually with relatives in town and always with sore feet. If my nephew Tariq hadn't begged me to take him somewhere dry one rainy Sunday, I would probably still think of them that way. The museum we found was small and slightly shabby, devoted to objects from ordinary homes. Tariq raced off towards a display of old toys, and I drifted, half-bored, into a room full of kitchenware. That was where I saw the bowl. It was plain and a little lopsided, the kind of thing nobody would look at twice in a shop. But it had once cracked clean in two, and someone had joined the halves with a row of tiny metal staples, each one set into the glaze with obvious care. Held together like that, it can never have been worth much. What struck me was that someone had decided to mend it anyway, when replacing it would surely have been easier. I stood there far longer than I meant to, wondering who had done it and why. Perhaps it had belonged to a grandmother; perhaps it was simply the right size for one person's breakfast. The label offered no answers, and I found I didn't want any. I had always assumed that museums existed to show us what was rare and precious. That bowl suggested something quieter: that the things people choose to keep reveal more about them than the things they can afford. When we got home, I rescued a chipped teapot from the recycling bag where it had been waiting for a week. It sits on my shelf now, slightly ugly and entirely mine, and I find myself checking on it most mornings, the way one might check on a houseplant.",
     "questions": [
       {
+        "type": "main",
         "prompt": "How did the visit change the writer's view of museums?",
         "options": [
           "The writer decided museums are mainly places for children",
@@ -151,6 +158,7 @@
         "evidence": "the things people choose to keep reveal more about them than the things they can afford"
       },
       {
+        "type": "inference",
         "prompt": "Why does the writer most likely rescue the chipped teapot?",
         "options": [
           "Tariq asked to keep it as a souvenir of the trip",
@@ -160,7 +168,9 @@
         ],
         "answer": 3,
         "evidence": "When we got home, I rescued a chipped teapot from the recycling bag where it had been waiting for a week."
-      }
+      },
+      {"type": "vocab", "prompt": "What does \"lopsided\" mean in \"plain and a little lopsided\"?", "options": ["brightly painted", "uneven, with one side higher than the other", "very heavy", "cracked in many places"], "answer": 1, "evidence": "It was plain and a little lopsided"},
+      {"type": "detail", "prompt": "How had the bowl been repaired?", "options": ["With a new base", "With a row of tiny metal staples", "With glue and gold paint", "With a piece of string"], "answer": 1, "evidence": "someone had joined the halves with a row of tiny metal staples"}
     ],
     "dictation_index": 9,
     "vocabulary": [
@@ -265,9 +275,11 @@
     "cefr": "C1",
     "theme": "culture",
     "genre": "article",
+    "purposes": ["news-commentary"],
     "body": "I used to believe that a queue was simply a line: you arrive, you stand behind the last person, you wait. Then I spent a year working at a bakery counter in a neighbourhood where the customers had grown up in dozens of different places, and I discovered that a queue is less a shape than an agreement. Some mornings, people formed a neat line that stretched out of the door. On others, they gathered in a loose cluster near the cakes, chatting and apparently ignoring any order at all. At first, the cluster alarmed me. How was I supposed to know who was next? Yet whenever I hesitated, somebody would nod towards an elderly man at the back or a woman juggling a toddler, and the crowd would part for them without a word. The system that guided those customers was every bit as strict as a painted line; it was simply invisible to me. It was as if each person were quietly keeping track of everyone who had come in after them. Trouble arose not when people disagreed about fairness, but when two different versions of fairness met at the same counter. A customer used to straight lines would see the cluster as chaos, while a customer used to the cluster might find the line oddly cold, as though nobody trusted anyone else to remember. Neither of them was wrong. What I took away from that year is a reluctance to judge a gathering by its outline. Unless you know the rules people are actually following, a crowd can look rude and a line can look unfriendly, when both are doing precisely the same job. These days, whenever I join a queue somewhere unfamiliar, I watch for a minute before deciding where I belong. It is a small habit, but it has saved me from more than one embarrassing mistake.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main idea of the passage?",
         "options": [
           "A straight line is the fairest way to serve customers",
@@ -279,6 +291,7 @@
         "evidence": "a queue is less a shape than an agreement"
       },
       {
+        "type": "detail",
         "prompt": "According to the writer, when did trouble usually arise?",
         "options": [
           "When the bakery became too crowded to move",
@@ -288,7 +301,9 @@
         ],
         "answer": 3,
         "evidence": "Trouble arose not when people disagreed about fairness, but when two different versions of fairness met at the same counter."
-      }
+      },
+      {"type": "inference", "prompt": "What did the crowd parting for the elderly man show the writer?", "options": ["The bakery had a special counter for older people", "The loose cluster followed its own unspoken rules", "The customers were all in a hurry", "Nobody cared who was served next"], "answer": 1, "evidence": "The system that guided those customers was every bit as strict as a painted line; it was simply invisible to me."},
+      {"type": "vocab", "prompt": "What does \"juggling\" mean in \"a woman juggling a toddler\"?", "options": ["telling a child off", "feeding a child", "managing a child while also dealing with other things", "performing tricks for a crowd"], "answer": 2, "evidence": "a woman juggling a toddler"}
     ],
     "dictation_index": 8,
     "vocabulary": [
@@ -394,9 +409,11 @@
     "cefr": "C1",
     "theme": "culture",
     "genre": "interview",
+    "purposes": ["film-culture"],
     "body": "Q: Your late-night show is built around songs that listeners connect with a particular memory, so what kind of requests do you actually get? Amara: Mostly not the ones you'd expect, because people rarely ask for their all-time favourite song. They ask for whatever happened to be playing when something important happened: a long drive home after a disastrous job interview, a crackling kitchen radio during a family argument, a bus ride on the last day of school. Q: So the song itself doesn't matter very much? Amara: It matters, but almost by accident. One caller requested a cheesy pop song she claimed to hate, simply because it had been on repeat in the café where she and her best friend used to meet before her friend moved abroad. She said that hearing the first few notes was like opening a drawer she'd forgotten about and finding it still full. Q: Do callers ever get emotional on air? Amara: All the time, though not always in the way you'd think, since some dissolve into giggles before they can finish the dedication. One man phoned in to dedicate a lullaby to his grown-up daughter, and halfway through he realised she was listening in the next room. Neither he nor I was expecting her to ring the studio a minute later and request the same song for him. Q: What has the show taught you about memory? Amara: That it's less like a library, where you choose what to take off the shelf, and more like a radio, where you don't get to pick what comes on next. Something drifts out of a shop doorway, and suddenly you're seventeen again, standing in a car park and clutching a concert ticket you never used. Q: Is there a song that does that to you? Amara: Of course there is, but if I told you which one, I'd have to play it, and I'm honestly not sure I'd get through it.",
     "questions": [
       {
+        "type": "main",
         "prompt": "According to Amara, what usually makes a song bring back a memory?",
         "options": [
           "It is the listener's all-time favourite song",
@@ -408,6 +425,7 @@
         "evidence": "They ask for whatever happened to be playing when something important happened"
       },
       {
+        "type": "inference",
         "prompt": "What does Amara mean when she says memory is \"more like a radio\"?",
         "options": [
           "Memories become clearer each time you replay them",
@@ -417,7 +435,9 @@
         ],
         "answer": 1,
         "evidence": "more like a radio, where you don't get to pick what comes on next"
-      }
+      },
+      {"type": "vocab", "prompt": "What does \"cheesy\" mean in \"a cheesy pop song\"?", "options": ["very old", "too sentimental or obvious in a slightly embarrassing way", "played very loudly", "difficult to sing"], "answer": 1, "evidence": "a cheesy pop song she claimed to hate"},
+      {"type": "detail", "prompt": "What happened after the man dedicated a lullaby to his daughter?", "options": ["His daughter switched the radio off", "His daughter rang the studio and requested the same song for him", "The station played a different song by mistake", "He forgot the words halfway through"], "answer": 1, "evidence": "Neither he nor I was expecting her to ring the studio a minute later and request the same song for him."}
     ],
     "dictation_index": 13,
     "vocabulary": [

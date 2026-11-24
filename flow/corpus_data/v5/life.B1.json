@@ -8,9 +8,11 @@
     "cefr": "B1",
     "theme": "life",
     "genre": "story",
+    "purposes": ["story", "daily-life"],
     "body": "Daniel had worked all Saturday on a fish dish that he had seen on a cooking show. Six friends were coming, and he hoped everything would be perfect. At seven o'clock, while he was setting the table, the smoke alarm went off. He ran into the kitchen and found the fish, which was supposed to be golden, burnt black on one side. The sauce had boiled over onto the cooker. For a moment, Daniel just stood there with a tea towel in his hand, wondering whether to cancel. Then the doorbell rang. His friend Aiko took one look at the kitchen and burst out laughing. Instead of feeling embarrassed, Daniel began to laugh too. Soon everyone rolled up their sleeves. Aiko found some pasta in the cupboard, Marco chopped tomatoes and garlic, and someone opened a window to let the smoke out. Less than an hour later, they sat around the table with plates of simple tomato pasta. Nobody mentioned the fish. As people left that night, Marco told Daniel it was the best dinner party he had been to all year. Daniel still isn't sure he was joking. What he does know is that the evening worked because nothing went to plan.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main point of the story?",
         "options": [
           "Daniel is a talented cook who rarely makes mistakes",
@@ -22,6 +24,7 @@
         "evidence": "the evening worked because nothing went to plan"
       },
       {
+        "type": "vocab",
         "prompt": "What does \"rolled up their sleeves\" mean in the story?",
         "options": [
           "They got ready to leave the party",
@@ -31,7 +34,9 @@
         ],
         "answer": 1,
         "evidence": "Soon everyone rolled up their sleeves."
-      }
+      },
+      {"type": "inference", "prompt": "Why isn't Daniel sure that Marco was joking?", "options": ["Marco never makes jokes", "The evening had been fun even though it went wrong", "The pasta was perfect", "Marco had not eaten anything"], "answer": 1, "evidence": "the evening worked because nothing went to plan"},
+      {"type": "detail", "prompt": "What did Aiko find in the cupboard?", "options": ["A cake", "Some pasta", "Another fish", "A tea towel"], "answer": 1, "evidence": "Aiko found some pasta in the cupboard"}
     ],
     "dictation_index": 2,
     "vocabulary": [
@@ -120,9 +125,11 @@
     "cefr": "B1",
     "theme": "life",
     "genre": "dialogue",
+    "purposes": ["daily-life"],
     "body": "Josh: Good morning, you're through to customer service — my name's Josh, how can I help? Amara: Hi, Josh, I ordered a washing machine last week, and it was supposed to arrive yesterday. I stayed in all day, but nobody came. Josh: Oh, I'm sorry to hear that — have you got your order number? Amara: Yes, hang on, it's in the confirmation email, so I'll read it out. Josh: Thanks, I can see your order, but that's strange — the driver has marked it as delivered. Amara: Delivered? Well, it definitely hasn't been delivered to me, and I've already checked with my neighbours. Josh: I see, and apologies for the inconvenience. According to our system, the machine is back at the warehouse, so it looks like there was a mix-up with the address. Amara: So what happens now? Josh: We can send it out again tomorrow. Unless you tell me otherwise, it'll arrive between eight and twelve. Amara: Tomorrow morning works. But could you ask the driver to call me if he can't find the building? I don't want to waste another day. Josh: Of course, I've added a note to your order. Is there anything else I can help with? Amara: No, that's all — thanks for sorting it out.",
     "questions": [
       {
+        "type": "inference",
         "prompt": "Why did the washing machine probably not arrive?",
         "options": [
           "Amara was not at home when the driver came",
@@ -134,6 +141,7 @@
         "evidence": "it looks like there was a mix-up with the address"
       },
       {
+        "type": "detail",
         "prompt": "What will happen if Amara does not ask for any changes?",
         "options": [
           "Josh will call her again tomorrow morning",
@@ -143,7 +151,9 @@
         ],
         "answer": 1,
         "evidence": "Unless you tell me otherwise, it'll arrive between eight and twelve."
-      }
+      },
+      {"type": "main", "prompt": "What is the phone call mainly about?", "options": ["Changing Amara's address", "Complaining about a neighbour", "Buying a new washing machine", "Sorting out a washing machine delivery that went wrong"], "answer": 3, "evidence": "it was supposed to arrive yesterday"},
+      {"type": "vocab", "prompt": "What does \"mix-up\" mean in \"a mix-up with the address\"?", "options": ["a change of plan", "a new address", "a delay caused by traffic", "a mistake caused by confusion"], "answer": 3, "evidence": "there was a mix-up with the address"}
     ],
     "dictation_index": 12,
     "vocabulary": [
@@ -237,9 +247,11 @@
     "cefr": "B1",
     "theme": "life",
     "genre": "interview",
+    "purposes": ["daily-life"],
     "body": "Q: Most people want a puppy. Why did you choose an older dog? Leila: I went to the shelter to look at puppies, actually. But there was this grey dog called Biscuit lying quietly in the corner. The staff told me he had been there for almost a year, because everyone walked past him. Q: How old is he? Leila: About eleven, they think. He's got a white face and he's a bit slow on the stairs. Q: Was it hard at the beginning? Leila: A little. For the first week, he kept hiding behind the sofa. He wasn't used to living in a home with people, so I just gave him space. Q: And now? Leila: He follows me from room to room! What I love about him is that he's so calm. He doesn't chew my shoes, and he's happy with two short walks a day. Q: Are there any downsides? Leila: I know I won't have as many years with him as I would with a puppy. That's the hard part, but I'd rather give him a few good years than leave him in a cage. Q: Would you recommend it? Leila: Definitely. If you're thinking about getting a dog, don't walk past the grey faces.",
     "questions": [
       {
+        "type": "detail",
         "prompt": "Why had Biscuit stayed at the shelter for so long?",
         "options": [
           "He was too unfriendly to live with people",
@@ -251,6 +263,7 @@
         "evidence": "because everyone walked past him"
       },
       {
+        "type": "detail",
         "prompt": "What does Leila call \"the hard part\" of having an older dog?",
         "options": [
           "Helping him up and down the stairs",
@@ -260,7 +273,9 @@
         ],
         "answer": 3,
         "evidence": "I know I won't have as many years with him as I would with a puppy"
-      }
+      },
+      {"type": "main", "prompt": "What is the interview mainly about?", "options": ["Working at an animal shelter", "Why Leila adopted an older dog and what it is like", "Taking a dog on long walks", "How to train a puppy"], "answer": 1, "evidence": "Why did you choose an older dog?"},
+      {"type": "inference", "prompt": "What does Leila mean by \"don't walk past the grey faces\"?", "options": ["Look carefully at every puppy", "Avoid dogs with white faces", "Give older dogs a chance instead of ignoring them", "Grey dogs are friendlier than others"], "answer": 2, "evidence": "because everyone walked past him"}
     ],
     "dictation_index": 11,
     "vocabulary": [
@@ -349,9 +364,11 @@
     "cefr": "B1",
     "theme": "life",
     "genre": "opinion",
+    "purposes": ["argumentative", "daily-life"],
     "body": "For years, my Sundays looked like a second Monday. I cleaned the flat, answered emails, went to the gym and planned the week ahead. By the evening, I was more tired than I had been on Friday. Then one weekend, I simply didn't make a plan. I made a pot of tea, sat by the window and watched the street. I read half a novel and fell asleep on the sofa in the afternoon. Doing nothing felt strange at first, almost like breaking a rule. But by Monday morning, I noticed something: I actually wanted to go back to work. I think many of us have forgotten that rest is not a reward we earn after being productive. It is part of how we keep going. Of course, not every Sunday can be empty. Life gets in the way, and the laundry won't do itself. But the best part of my slow Sundays is the feeling that nobody needs anything from me for a few hours. If you've never tried it, start small. Leave one Sunday morning without a plan and see what happens. You might find that the most useful thing you do all week is nothing at all.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's main point?",
         "options": [
           "Sundays are the best day to prepare for the week",
@@ -363,6 +380,7 @@
         "evidence": "It is part of how we keep going."
       },
       {
+        "type": "vocab",
         "prompt": "What does the writer mean by \"the laundry won't do itself\"?",
         "options": [
           "Some jobs at home still have to be done",
@@ -372,7 +390,9 @@
         ],
         "answer": 0,
         "evidence": "Life gets in the way, and the laundry won't do itself."
-      }
+      },
+      {"type": "inference", "prompt": "What does the writer mean by \"my Sundays looked like a second Monday\"?", "options": ["Sundays were boring", "Sundays were as busy as working days", "The writer had two jobs", "The writer was paid to work on Sundays"], "answer": 1, "evidence": "I cleaned the flat, answered emails, went to the gym and planned the week ahead."},
+      {"type": "detail", "prompt": "What did the writer notice on the Monday after an empty Sunday?", "options": ["The writer felt more tired than usual", "Lots of emails were waiting", "The writer actually wanted to go back to work", "The flat was very dirty"], "answer": 2, "evidence": "I actually wanted to go back to work"}
     ],
     "dictation_index": 6,
     "vocabulary": [

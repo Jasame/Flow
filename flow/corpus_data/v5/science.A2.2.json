@@ -8,6 +8,7 @@
     "cefr": "A2",
     "theme": "science",
     "genre": "explainer",
+    "purposes": ["expository"],
     "body": "Have you ever noticed tiny bumps on your arms on a cold morning? We call them goosebumps, because your skin looks like the skin of a goose without its feathers. Next to every hair, there is a tiny muscle that can pull it up. When you feel cold, these muscles get tight. The hairs stand up, and the skin around them rises into little bumps. For animals with thick fur, this is useful. Standing fur holds warm air close to the body. A cat that is scared looks bigger with its fur up. Humans don't have much body hair, so goosebumps don't really keep us warm. Scientists think they are something that our bodies have kept from the distant past. Fear can cause them too. That's why we say a scary film can make your hair stand on end!",
     "questions": [
       {
@@ -126,6 +127,7 @@
     "cefr": "A2",
     "theme": "science",
     "genre": "guide",
+    "purposes": ["expository"],
     "body": "Here is a small experiment that you can do at home. You need a balloon, some tiny bits of paper and dry hair. First, blow up the balloon and tie it. Next, rub it quickly on your hair for a few seconds. Once you have rubbed it, hold it just above the paper. Watch closely. The bits jump up and stick to it! Then hold it near your head, and some hairs rise to meet it. Why does this happen? Everything is made of tiny parts that carry electric charge. When you rub, some of these parts move from your hair onto the balloon. Now it can pull light things towards it. Your hairs all get the same charge, so they push each other away. The trick works best on a dry day. Keep balloons away from very young children.",
     "questions": [
       {
@@ -254,6 +256,7 @@
     "cefr": "A2",
     "theme": "science",
     "genre": "dialogue",
+    "purposes": ["daily-life"],
     "body": "Zoe: Dad, the Moon was round last week. Now it looks like a banana. Has someone eaten it? Dad: No, it's still round. Zoe: But why does it look different? Dad: The Moon doesn't make its own light. The Sun shines on it, and the half that faces the Sun is always bright. Zoe: Always? Dad: Always. But the Moon is travelling around the Earth, and each trip takes about a month. So we see different parts of the bright half. Zoe: So when it's round, we see all of the bright side? Dad: Exactly. When it's thin, we only see a small piece. Zoe: My friend says the Earth's shadow covers it. Dad: Many people think so, but it isn't true. Zoe: I've learned something new tonight. Dad: Me too. I've never heard anyone call the Moon a banana.",
     "questions": [
       {
@@ -377,6 +380,7 @@
     "cefr": "A2",
     "theme": "science",
     "genre": "interview",
+    "purposes": ["expository"],
     "body": "Anna Ross is a science teacher who has worked at the same primary school for many years. We asked her about her favourite lesson. Q: What do your students love most? Anna: Bubbles! We have blown thousands of them in my classroom. Q: Why are bubbles always round? Anna: A bubble has a very thin skin of soap and water. This skin pulls itself tight, but the air inside pushes out. A ball is the shape that holds the most air with the smallest skin. So the bubble becomes a ball. Q: What if you use a square wand? Anna: My students have tried that many times. The bubble still comes out round! Q: Is there a lesson here for adults? Anna: Yes. Never stop asking simple questions. Good science often starts with a child who asks why.",
     "questions": [
       {

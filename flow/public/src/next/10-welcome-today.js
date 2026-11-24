@@ -63,7 +63,7 @@
     const short = innerHeight < 500 && innerWidth > innerHeight;
     view.innerHTML = `<div class="greet-row"><span class="kicker greet">${greeting()}${name ? `，<span class="nm">${esc(name)}</span>` : ''}</span>
         ${st && st.habit ? habitChip(st.habit) : st ? `<span class="wk" title="本周学了 ${weekN} 天"><span class="tiny muted">本周 ${weekN} 天</span><span class="week" aria-hidden="true">${st.week.map(d => `<span class="${d.active ? 'on' : ''}"></span>`).join('')}</span></span>` : ''}</div>
-      ${announceHTML(h)}
+      ${announceHTML(h)}${trialSurveyHTML(h)}
       ${short ? '' : lineCardHTML(h) + newsCardHTML(news)}
       ${top}
       ${short ? lineCardHTML(h) + newsCardHTML(news) : ''}
@@ -75,7 +75,7 @@
           <a class="mrow more" href="#/library" data-tap="home-more"><span class="t"><b>更多材料</b><span class="tiny muted">按话题和级别挑一篇</span></span><span class="go" aria-hidden="true">›</span></a></div></section>`;
     const ring = view.querySelector('.ring'); if (ring) ring.style.setProperty('--p', ring.dataset.p + '%');  // CSP: no inline style attributes
     fillNotice(h);
-    bindAnnounce(h);
+    bindAnnounce(h); bindTrialSurvey();
     bindLine(h);  // 今日好句 (12-daily-line.js)
     mountWeekCards(view);  // 这周进步 (11-progress.js)
     const hb = document.getElementById('habitBtn'); if (hb) hb.onclick = weekSheet;
@@ -129,6 +129,17 @@
     if (!a || load('flow-announce-seen') === a.id) return '';
     return `<div class="card sunk section notice announce stack-s" id="announce" role="status"><b>${esc(a.text)}</b>
       <div class="row">${a.link ? `<a class="btn small primary" href="${esc(a.link)}" data-tap="announce-open">去看看</a>` : ''}<button class="btn small ghost" id="annOk" type="button">知道了</button></div></div>`;
+  }
+  // 班级试用: three weeks in a class, a quiet line asks for the anonymous trial survey (survey_service.TRIAL) until it is
+  // answered (survey.js notes it on this phone) or closed. Nothing on the server says who answered.
+  function trialSurveyHTML(h) {
+    if (!h.trial_survey || load('flow-trial-survey')) return '';
+    return `<div class="card sunk section notice tsurvey" id="trialSv" role="status"><span>班级试用几周了，花 2 分钟填一份匿名问卷？</span>
+      <div class="row"><a class="btn small primary" href="/survey?s=trial" data-tap="trial-survey">去填写</a><button class="btn small ghost" id="tsClose" type="button">不用了</button></div></div>`;
+  }
+  function bindTrialSurvey() {
+    const b = document.getElementById('tsClose');
+    if (b) b.onclick = () => { save('flow-trial-survey', 'closed'); document.getElementById('trialSv').remove(); };
   }
   function bindAnnounce(h) {
     const box = document.getElementById('announce'); if (!box) return;

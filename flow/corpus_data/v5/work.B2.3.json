@@ -8,9 +8,11 @@
   "cefr": "B2",
   "theme": "work",
   "genre": "interview",
+  "purposes": ["workplace"],
   "body": "Q: What does a fisheries inspector actually do? Marta: Mostly, I check that boats are following the rules about what they catch and how much. That means going aboard, often before sunrise, and inspecting the catch, the gear and the logbook. Q: Are the crews pleased to see you? Marta: Not at first. When I started, most of them were deeply skeptical, and honestly, I understood why. To them, I was just another piece of bureaucracy standing between them and a day's pay. Q: So how did you win them over? Marta: By learning the job properly. I spent my first season measuring crabs on a rolling deck and practicing the knots they use on their pots, so that nobody had to explain everything to me twice. Once they saw that I could spot an undersized crab as quickly as they could, the conversations got a lot easier. Q: Is there a rule they find especially hard to accept? Marta: Putting back undersized crabs is mandatory, and that's the one they complain about most, because it feels like throwing money away when buyers overseas are paying well. But if everyone kept the small ones, there wouldn't be a fishery left for their children. Q: What surprised you most about the work? Marta: How much geography matters. Conditions in a sheltered bay are nothing like those off an exposed headland, so a rule that makes sense in one harbor can feel unfair in the next. In my first year, I warned a crew about a limit that only applied further up the coast, and I subsequently became much more careful about checking before I speak. Q: Any advice for someone who wants to do this job? Marta: Bring a waterproof notebook, and listen before you lecture.",
   "questions": [
    {
+    "type": "main",
     "prompt": "What mainly changed the crews' attitude towards Marta?",
     "options": [
      "She proved that she understood the practical side of their work",
@@ -22,6 +24,7 @@
     "evidence": "Once they saw that I could spot an undersized crab as quickly as they could, the conversations got a lot easier."
    },
    {
+    "type": "inference",
     "prompt": "What does Marta mean when she says \"geography matters\"?",
     "options": [
      "Inspectors have to learn the map of every harbor by heart",
@@ -31,7 +34,9 @@
     ],
     "answer": 2,
     "evidence": "so a rule that makes sense in one harbor can feel unfair in the next"
-   }
+   },
+   {"type": "vocab", "prompt": "What does \"skeptical\" mean in \"most of them were deeply skeptical\"?", "options": ["doubtful and not ready to trust", "friendly", "excited", "frightened"], "answer": 0, "evidence": "most of them were deeply skeptical"},
+   {"type": "detail", "prompt": "Which rule do the crews complain about most?", "options": ["Starting before sunrise", "Keeping a logbook", "Putting back undersized crabs", "Using particular knots"], "answer": 2, "evidence": "Putting back undersized crabs is mandatory, and that's the one they complain about most"}
   ],
   "dictation_index": 6,
   "vocabulary": [
@@ -136,9 +141,11 @@
   "cefr": "B2",
   "theme": "work",
   "genre": "dialogue",
+  "purposes": ["workplace"],
   "body": "Dana: Leo, have you got a minute? It's about your review of the new harbor restaurant. Leo: Let me guess, you think it's too harsh. Dana: Not the verdict, just the tone. You say the crab was stunning, which is lovely, but you also call the salad dressing 'pure vinegar with a superiority complex' and the bread 'a crime against flour' in the same paragraph. Leo: Come on, those are the best lines in the whole piece! Dana: They're funny, I'll give you that, and you can keep both. The problem is the paragraph where you describe the owner as a man who has clearly never tasted his own cooking. That's inappropriate, and it isn't really about the food at all. Leo: Fair enough, I'll cut that bit. Dana: Thanks, that's a concession I can live with. My bigger worry, though, is consistency. Our editorial standards say we judge the meal, not the people serving it, and if we make an exception for you, every chef we've ever reviewed will ask why. Leo: So this isn't really about one restaurant. Dana: Exactly. Everything we print is open to scrutiny, and a personal attack can stun a small family business that has done nothing worse than make a bad salad. Leo: I suppose I got carried away. After years of writing weekly commentary, you start chasing the laugh instead of the point. Dana: It happens to all of us. Send me the new version by four, and we'll still run it on Saturday.",
   "questions": [
    {
+    "type": "main",
     "prompt": "What is Dana's main objection to Leo's review?",
     "options": [
      "It praises the crab more than the restaurant deserves",
@@ -150,6 +157,7 @@
     "evidence": "Our editorial standards say we judge the meal, not the people serving it"
    },
    {
+    "type": "vocab",
     "prompt": "When Leo says \"I suppose I got carried away\", what does he mean?",
     "options": [
      "He was moved to a different section of the paper",
@@ -159,7 +167,9 @@
     ],
     "answer": 1,
     "evidence": "I suppose I got carried away."
-   }
+   },
+   {"type": "inference", "prompt": "Why is Dana worried about consistency?", "options": ["The restaurant advertises in the paper", "An exception for Leo would make the paper's standards look unfair to other chefs", "Leo writes too many reviews", "She wants every review to be positive"], "answer": 1, "evidence": "if we make an exception for you, every chef we've ever reviewed will ask why"},
+   {"type": "detail", "prompt": "What does Dana let Leo keep?", "options": ["The whole review unchanged", "A new title for the piece", "The paragraph about the owner", "His two funny lines about the dressing and the bread"], "answer": 3, "evidence": "They're funny, I'll give you that, and you can keep both."}
   ],
   "dictation_index": 17,
   "vocabulary": [
@@ -264,9 +274,11 @@
   "cefr": "B2",
   "theme": "work",
   "genre": "story",
+  "purposes": ["story", "workplace"],
   "body": "Lena had been working aboard the night ferry for three weeks when she found the folder. As the newest member of the crew, she walked the passenger decks after the last crossing and collected whatever people had left behind. Most of it was junk: paper cups, crumpled maps, a single glove. Some of it was frankly bizarre, like the wedding dress she once found folded neatly on a bench. The folder, tucked under a seat by the window, was different. Inside were dozens of pages of handwritten music, covered in pencil marks and crossings-out, and although Lena couldn't read a note of it, she could tell that someone had spent months on it. The rules were clear: lost property went into a sealed box for the head office, where it usually sat untouched until it was thrown away. Doubts about the job had already begun to creep in, and she wasn't keen to break a rule in her first month. Even so, she photographed the first page, which had a name across the top, and phoned the organizer of a walking group that had been aboard that evening. He knew the name at once. The owner turned out to be a composer who liked working on the crossing because the hum of the engine helped her think. They met the next morning on the quay, beneath the medieval walls of the old harbor. 'If you'd sent it to the office, I would have had to start again from nothing,' she said. When Lena confessed to the captain, half expecting a warning, he only asked her to log it properly next time. She has never believed in destiny, but the view from the quay that morning was stunning, and she stopped looking at other job ads.",
   "questions": [
    {
+    "type": "inference",
     "prompt": "Why did Lena not simply put the folder in the lost property box?",
     "options": [
      "She wanted to keep it as a souvenir of her first month",
@@ -278,6 +290,7 @@
     "evidence": "where it usually sat untouched until it was thrown away"
    },
    {
+    "type": "detail",
     "prompt": "How did Lena manage to find the owner of the folder?",
     "options": [
      "She contacted the leader of a group that had been on the ferry",
@@ -287,7 +300,9 @@
     ],
     "answer": 0,
     "evidence": "phoned the organizer of a walking group that had been aboard that evening"
-   }
+   },
+   {"type": "main", "prompt": "What is the story mainly about?", "options": ["A captain who punishes his crew", "A composer who lives on a ferry", "A new crew member who bends a rule to return an important lost folder", "A wedding dress left on a ferry"], "answer": 2, "evidence": "Even so, she photographed the first page"},
+   {"type": "vocab", "prompt": "What does \"bizarre\" mean in \"Some of it was frankly bizarre\"?", "options": ["dirty", "valuable", "useful", "very strange"], "answer": 3, "evidence": "Some of it was frankly bizarre"}
   ],
   "dictation_index": 13,
   "vocabulary": [
@@ -392,9 +407,11 @@
   "cefr": "B2",
   "theme": "work",
   "genre": "email",
+  "purposes": ["workplace"],
   "body": "Hi Tom, it was great to hear that you're considering the overseas posting, and yes, I'm happy to tell you how it really went. The work itself turned out to be the easy part. What nobody warned me about was the bureaucracy: I spent most of my first month collecting stamps on forms that seemed to exist only so that you could request other forms. Before you sign anything, ask HR for a full breakdown of what the company will cover, because I found out too late that the mandatory language course came out of my own pocket. Moving is also a good excuse to be ruthless. I sold or gave away nearly everything I owned, and I was amazed how much of it was junk I'd been dragging from apartment to apartment for years. Culturally, expect a few bizarre moments. On my second day, a colleague kindly explained that nobody here eats lunch at their desk, and that doing so looks slightly unfriendly. Small things like that add up, and somewhere around the third month, loneliness can creep in without your noticing. When it happened to me, my manager showed real compassion: she lightened my workload for a week and introduced me to the organizer of a Sunday hiking group, which is where I met most of my friends here. If I were you, I'd say yes, but I'd go in with realistic expectations rather than a holiday mood. Call me whenever you like, and bring a list of questions. Best, Grace",
   "questions": [
    {
+    "type": "main",
     "prompt": "What is the overall message of Grace's email?",
     "options": [
      "Tom should turn down the posting because the paperwork and loneliness are too much",
@@ -406,6 +423,7 @@
     "evidence": "I'd go in with realistic expectations rather than a holiday mood"
    },
    {
+    "type": "detail",
     "prompt": "What does Grace say she discovered \"too late\"?",
     "options": [
      "That she had brought far too many belongings with her",
@@ -415,7 +433,9 @@
     ],
     "answer": 3,
     "evidence": "the mandatory language course came out of my own pocket"
-   }
+   },
+   {"type": "inference", "prompt": "Why does Grace mention eating lunch at your desk?", "options": ["To show how small cultural differences can catch you out", "To recommend a local restaurant", "To explain the bureaucracy", "To complain about a colleague"], "answer": 0, "evidence": "Small things like that add up"},
+   {"type": "vocab", "prompt": "What does \"ruthless\" mean in \"a good excuse to be ruthless\"?", "options": ["firm and willing to get rid of things without hesitation", "careless", "nervous", "kind"], "answer": 0, "evidence": "Moving is also a good excuse to be ruthless."}
   ],
   "dictation_index": 8,
   "vocabulary": [

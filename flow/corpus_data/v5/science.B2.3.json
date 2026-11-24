@@ -8,9 +8,11 @@
     "cefr": "B2",
     "theme": "science",
     "genre": "dialogue",
+    "purposes": ["daily-life"],
     "body": "Max: Oh no! Who packed the soda right next to the football? Lin: That would be me, and judging by your shirt, it was an unfortunate decision. Max: It's soaked! I only opened it a crack, and it just exploded. Lin: Well, it spent an hour bouncing around in the bag, and shaking it is what did that. Max: But shaking doesn't add any gas, does it? The bottle was sealed the whole time. Lin: True, and that's the clever part. When factories make fizzy drinks, they force carbon dioxide into them under pressure, so most of it stays dissolved until you open the cap. Max: And then the pressure drops and the gas wants out. Lin: Exactly, but gas can't easily form a bubble out of nothing; it needs a starting point, like a tiny scratch or a bubble that's already there. Max: So shaking it turned the gas at the top into loads of tiny bubbles? Lin: That's it. They cling to the walls, concealed in the liquid, and the moment you open the cap they all grow at once and push the drink out. Max: I've seen people tap the side of the bottle. Is that a viable trick? Lin: It might knock a few bubbles loose, but waiting a few minutes is more reliable, because the bubbles float up and rejoin the gas at the top. Max: You sound like a science account with thousands of followers. Go on, retrieve the other bottle from the cool bag. Why does it taste so sharp, anyway? Lin: Some of the gas reacts with water to make a weak acid, which releases hydrogen ions, and your tongue reads those as sour. Max: Funny how the ads never mention any of this. Lin: They advertise the fizz, not the mess.",
     "questions": [
       {
+        "type": "main",
         "prompt": "According to Lin, why did Max's soda spray out when he opened it?",
         "options": [
           "Shaking the bottle added extra gas to the drink",
@@ -22,6 +24,7 @@
         "evidence": "the moment you open the cap they all grow at once and push the drink out"
       },
       {
+        "type": "detail",
         "prompt": "Why does Lin think waiting a few minutes works better than tapping the bottle?",
         "options": [
           "Tapping makes the drink lose its sharp taste",
@@ -31,7 +34,9 @@
         ],
         "answer": 2,
         "evidence": "waiting a few minutes is more reliable, because the bubbles float up and rejoin the gas at the top"
-      }
+      },
+      {"type": "inference", "prompt": "What does Lin mean by \"They advertise the fizz, not the mess\"?", "options": ["Adverts always explain the science", "Adverts show the attractive side of a product and leave out the problems", "Fizzy drinks never cause a mess", "Soda companies also sell cleaning products"], "answer": 1, "evidence": "They advertise the fizz, not the mess."},
+      {"type": "vocab", "prompt": "What does \"concealed\" mean in \"concealed in the liquid\"?", "options": ["pushed out", "frozen", "mixed with sugar", "hidden"], "answer": 3, "evidence": "concealed in the liquid"}
     ],
     "dictation_index": 9,
     "vocabulary": [
@@ -132,9 +137,11 @@
     "cefr": "B2",
     "theme": "science",
     "genre": "guide",
+    "purposes": ["expository"],
     "body": "If you have ever stepped on a bathroom scale twice in a row and got two different numbers, you are not imagining things. A little variance is normal, and knowing where it comes from makes the numbers far less stressful. Most digital scales contain small metal parts that bend very slightly under your weight, and that bending changes an electrical signal which the scale turns into a number. Companies that manufacture scales often advertise impressive accuracy, but that only holds if the scale is used properly. The first rule is to anchor it on a hard, flat floor. On a soft carpet, the scale sinks unevenly, and the unfortunate result can be a reading that is too high or too low. Once you have found a good spot, leave it there, because moving it can upset its starting point. Next, stand still in the centre with your weight on both feet; even leaning forward is enough to change the result. Some of the variance, however, is authentic, because your body really does change through the day. A glass of water or a can of soda adds weight the moment you drink it, and food takes hours to pass through. Overnight, you lose water through your breath and skin, while your kidneys keep adjusting how much water your body holds on to. The scale's inability to tell water from anything else means it simply reports the total. That is why weighing yourself at the same time each morning gives the most faithful picture. Even then, a single reading is rarely worthy of much attention. Making sense of the numbers can be challenging at first, but it is far more beneficial to look at the trend over several weeks than to react to one surprising morning.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main message of this guide?",
         "options": [
           "Digital scales are too inaccurate to be worth using",
@@ -146,6 +153,7 @@
         "evidence": "it is far more beneficial to look at the trend over several weeks than to react to one surprising morning"
       },
       {
+        "type": "vocab",
         "prompt": "What does 'anchor it on a hard, flat floor' mean in the guide?",
         "options": [
           "Tie the scale to something heavy",
@@ -155,7 +163,9 @@
         ],
         "answer": 1,
         "evidence": "The first rule is to anchor it on a hard, flat floor."
-      }
+      },
+      {"type": "inference", "prompt": "Why does the writer say \"a single reading is rarely worthy of much attention\"?", "options": ["Bathroom scales are always broken", "Normal changes in the body make one number unreliable", "Weight does not matter at all", "People should never weigh themselves"], "answer": 1, "evidence": "your body really does change through the day"},
+      {"type": "detail", "prompt": "What can happen if a scale is used on a soft carpet?", "options": ["It measures only water", "It becomes more accurate", "It switches itself off", "It sinks unevenly and may read too high or too low"], "answer": 3, "evidence": "On a soft carpet, the scale sinks unevenly"}
     ],
     "dictation_index": 6,
     "vocabulary": [
@@ -256,9 +266,11 @@
     "cefr": "B2",
     "theme": "science",
     "genre": "story",
+    "purposes": ["story"],
     "body": "I had gone to the coast on a solo trip, mainly to escape my phone, but on my second evening my landlady asked whether I had seen the dragon yet. According to her, a legendary sea dragon lit up the water with its breath on summer nights, and the village lantern festival had begun as a tribute to it, a way of asking for calm seas and prosperity. I smiled politely, assuming it was a story for tourists. That night, though, curiosity got the better of me. At first the beach was so dark that I could hardly see the boats lying at anchor in the bay, but slowly my pupils widened to let in every scrap of light. Then a wave broke, and a line of electric blue ran along its edge. When I dragged my foot through the wet sand, it sparkled as if I were walking on stars. The glow, I learned later, comes from tiny living things in the water, which produce light through a chemical reaction whenever they are disturbed. Scientists think the sudden flash may help to frighten off creatures that want to eat them. A bright moon can conceal the effect completely, which is partly why the dragon seems to choose its nights. I tried to take photos, but none of them was faithful to what I saw, and every time I checked the screen, its light shrank my pupils again. In the end, I put the phone away and simply watched. The memory still evokes a rush of affection for that little village. The villagers' dragon may not be science, but it felt more authentic than any of my pictures, and it is a story worthy of being told.",
     "questions": [
       {
+        "type": "detail",
         "prompt": "Why did the writer finally put the phone away?",
         "options": [
           "The battery had run out after so many photos",
@@ -270,6 +282,7 @@
         "evidence": "none of them was faithful to what I saw, and every time I checked the screen, its light shrank my pupils again"
       },
       {
+        "type": "detail",
         "prompt": "What produces the blue light in the waves?",
         "options": [
           "Moonlight reflected off the breaking waves",
@@ -279,7 +292,9 @@
         ],
         "answer": 3,
         "evidence": "comes from tiny living things in the water, which produce light through a chemical reaction whenever they are disturbed"
-      }
+      },
+      {"type": "main", "prompt": "What is the story mainly about?", "options": ["Seeing glowing waves at night and how it changed the writer's view of a local legend", "A scientist searching for a sea dragon", "How to photograph the sea at night", "A lantern festival in a big city"], "answer": 0, "evidence": "The villagers' dragon may not be science, but it felt more authentic than any of my pictures"},
+      {"type": "inference", "prompt": "Why does the dragon \"seem to choose its nights\"?", "options": ["The villagers decide when it appears", "The glow can only be seen when the moon is not too bright", "The dragon is afraid of tourists", "The festival happens only once a year"], "answer": 1, "evidence": "A bright moon can conceal the effect completely"}
     ],
     "dictation_index": 6,
     "vocabulary": [
@@ -380,9 +395,11 @@
     "cefr": "B2",
     "theme": "science",
     "genre": "interview",
+    "purposes": ["expository"],
     "body": "Q: Most of us know that kidneys clean the blood, but what do they actually do? Hana: They filter it all the time, removing waste and extra water as urine. They also keep salts in balance and help control how acidic the blood is, partly by getting rid of hydrogen ions. When the kidneys fail, their inability to remove waste soon affects the whole body, and although a machine can take over part of the job, a transplant is often the better long-term answer. Q: So why is a transplant so challenging? Hana: The surgery is only half the story. Every cell in your body carries proteins on its surface that work like name badges, and your immune system checks those badges constantly. Anything unfamiliar is treated as an invader. A donated kidney carries someone else's badges, so the immune system may attack it. That attack is what doctors call rejection. Q: Can doctors intervene? Hana: Yes, in two main ways. First, they look for a donor whose badges are as similar as possible, which is why close relatives are often tested first. Second, patients take medicines that calm the immune system down. That's hugely beneficial for the new kidney, but it has a cost: a calmer immune system is less able to fight infections. Q: Is it true that an organ can't wait long? Hana: Yes. Once it has been retrieved, it's kept cold to slow its chemistry down, but it stays viable for only a limited time, so the whole team works fast. Q: Anything you'd like readers to take away? Hana: That every transplant depends on someone's generosity, and the best tribute we can pay to donors is to understand what their gift involves.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the interview mainly about?",
         "options": [
           "How to sign up as a kidney donor",
@@ -394,6 +411,7 @@
         "evidence": "A donated kidney carries someone else's badges, so the immune system may attack it."
       },
       {
+        "type": "detail",
         "prompt": "What is the downside of the medicines that calm the immune system?",
         "options": [
           "They make the new kidney work more slowly",
@@ -403,7 +421,9 @@
         ],
         "answer": 3,
         "evidence": "a calmer immune system is less able to fight infections"
-      }
+      },
+      {"type": "inference", "prompt": "Why does Hana compare the proteins on cells to \"name badges\"?", "options": ["Because donors wear badges", "To explain how the immune system recognises what belongs to the body", "To describe the hospital staff", "Because cells really have names"], "answer": 1, "evidence": "your immune system checks those badges constantly"},
+      {"type": "vocab", "prompt": "What does \"viable\" mean in \"it stays viable for only a limited time\"?", "options": ["visible", "able to work successfully", "expensive", "frozen"], "answer": 1, "evidence": "it stays viable for only a limited time"}
     ],
     "dictation_index": 12,
     "vocabulary": [

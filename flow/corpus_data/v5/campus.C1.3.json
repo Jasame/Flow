@@ -8,9 +8,11 @@
   "cefr": "C1",
   "theme": "campus",
   "genre": "article",
+  "purposes": ["news-commentary", "campus-life"],
   "body": "On the edge of the campus, past the sports fields and the last car park, there is a gate that most first-years never notice, and behind it lies one of the university's best-kept secrets: a small working farm. It was originally set up so that agriculture students could practise what they learned in lectures, but over time it has become something broader, a place where students from every department turn up on Saturday mornings to dig, weed and argue cheerfully about the best way to support tomato plants. Its appeal is easy to underestimate. The town grew up around farming, and for generations its prosperity depended on the fields that now surround the university, so working this land evokes a history that most students only ever drive past. Yet the volunteers I spoke to rarely mentioned history. What they talked about was slowness. In a week shaped by deadlines and notifications, a row of kidney beans does not care how many emails you have left unanswered; it grows at its own pace, and you either accept that or go home. One postgraduate, a solo worker by temperament, said the farm was the first place she had learned to work alongside other people without competing with them. Another spoke of the healing quality of repetitive tasks, though he was careful to add that weeding had not solved anything, merely made his problems feel a little smaller. The farm's most beloved feature is an old walnut tree near the gate, whose wide crown shades the picnic table where volunteers eat lunch. Nobody knows exactly who planted it, but it was clearly mature long before the nearest lecture theatre was built, and students speak of it with an affection usually reserved for pets. Over the years, small traditions have begun to accumulate around it: the first walnuts of autumn belong to whoever finds them, and on late-summer evenings, when the low sun makes the leaves glow, the last shift tends to linger longer than strictly necessary. None of this appears in the prospectus, which is perhaps exactly why it works.",
   "questions": [
    {
+    "type": "main",
     "prompt": "According to the writer, what do the volunteers value most about the farm?",
     "options": [
      "The chance to learn about the history of the town",
@@ -22,6 +24,7 @@
     "evidence": "What they talked about was slowness."
    },
    {
+    "type": "detail",
     "prompt": "What did one volunteer say about weeding?",
     "options": [
      "It had solved most of the problems he was worried about",
@@ -31,7 +34,9 @@
     ],
     "answer": 3,
     "evidence": "weeding had not solved anything, merely made his problems feel a little smaller"
-   }
+   },
+   {"type": "inference", "prompt": "What does the writer suggest by noting that none of this appears in the prospectus?", "options": ["The university is embarrassed by the farm", "The prospectus has not been updated for years", "The farm's traditions break university rules", "The farm's charm comes partly from being informal and unadvertised"], "answer": 3, "evidence": "None of this appears in the prospectus, which is perhaps exactly why it works."},
+   {"type": "vocab", "prompt": "What does \"evokes\" mean in \"working this land evokes a history\"?", "options": ["brings to mind", "ignores", "destroys", "repeats exactly"], "answer": 0, "evidence": "working this land evokes a history that most students only ever drive past"}
   ],
   "dictation_index": 9,
   "vocabulary": [
@@ -136,9 +141,11 @@
   "cefr": "C1",
   "theme": "campus",
   "genre": "opinion",
+  "purposes": ["argumentative", "campus-life"],
   "body": "Open almost any university brochure and you will find the same photograph: a shiny new building, usually made of glass, often topped with a dramatic dome and photographed at dusk so that every window glows. The message is unmistakable: this, the picture says, is where the future happens. I understand why institutions advertise themselves this way. A striking building is easy to photograph and easy to remember, and a well-chosen image can win more followers in a week than a thoughtful piece about teaching will gather in a year. Some of these buildings are genuinely useful, too; a new laboratory for hydrogen research may be exactly what a department needs. My objection is not to the buildings but to what they are being asked to represent. A glass dome tells a prospective student nothing about whether anyone will read their essays carefully, whether seminars are small enough to speak in, or whether the library is open when they actually need it. Yet these are the things that decide whether a degree is worth the effort. When a university presents its newest building as the jewel in its crown, it quietly suggests that education is something you visit rather than something you do. There is also a risk of mistaking construction for prosperity, since a building project can just as easily be a way of borrowing against a reputation that has not yet been earned. Some of the most legendary teachers I have known worked in rooms with peeling paint and rattling radiators, and their students learned to strive for something far harder to photograph than a skyline. None of this amounts to a rejection of good architecture. Beautiful spaces can evoke a sense of purpose, and nobody learns well in a building that is falling apart. But if universities want to smash the stereotype that they care more about rankings than about students, they could start by putting a seminar room on the cover, full of people mid-argument. If brochures showed that instead, applicants would at least know what they were really choosing.",
   "questions": [
    {
+    "type": "main",
     "prompt": "What is the writer's main argument?",
     "options": [
      "Universities should stop putting up new buildings altogether",
@@ -150,6 +157,7 @@
     "evidence": "My objection is not to the buildings but to what they are being asked to represent."
    },
    {
+    "type": "inference",
     "prompt": "Why does the writer mention teachers who worked in rooms with peeling paint?",
     "options": [
      "To show that good teaching does not depend on impressive surroundings",
@@ -159,7 +167,9 @@
     ],
     "answer": 0,
     "evidence": "their students learned to strive for something far harder to photograph than a skyline"
-   }
+   },
+   {"type": "vocab", "prompt": "What does \"the jewel in its crown\" mean here?", "options": ["a problem it hides from visitors", "a temporary decoration", "its most valuable and admired feature", "its most expensive mistake"], "answer": 2, "evidence": "presents its newest building as the jewel in its crown"},
+   {"type": "detail", "prompt": "According to the writer, what should universities put on the cover of their brochures?", "options": ["A seminar room full of people mid-argument", "A new laboratory for hydrogen research", "A glass dome photographed at dusk", "A table of university rankings"], "answer": 0, "evidence": "putting a seminar room on the cover, full of people mid-argument"}
   ],
   "dictation_index": 8,
   "vocabulary": [
@@ -264,9 +274,11 @@
   "cefr": "C1",
   "theme": "campus",
   "genre": "interview",
+  "purposes": ["campus-life"],
   "body": "Interviewer: Your final solo recital is next month, and it marks the completion of your degree, so how are you feeling? Leah: Nervous, obviously, but also slightly amazed that I'm doing it at all, because two years ago I couldn't play for more than ten minutes without pain in my wrist. Interviewer: What happened? Leah: Overuse, mostly. I'd been practising for hours a day without proper breaks, partly because I'd had two rejections from music colleges before I came here and felt I had something to prove. Ironically, my inability to rest was exactly what stopped me playing. Interviewer: So you took time off? Leah: I took a suspension of studies for a term, which felt like failure at the time. The healing itself was slow and dull, but the time away changed how I listen. Without being able to play, I went to concerts and simply paid attention, and I realised how much I'd been trying to impress rather than communicate. Interviewer: Has that changed the programme you've chosen? Leah: Completely, and my old teacher, whose pupils tended to choose the flashiest pieces they could manage, would probably be surprised. I'm ending with a slow piece that has been beloved in my family for generations, and it evokes my grandmother's kitchen in a way I can't fully explain. It isn't the most challenging thing I could play, but it's the thing I play best. Interviewer: How do you deal with critique from your professors now? Leah: I used to hear every comment as a verdict on me as a person, whereas now I try to extract the one useful instruction and ignore the tone. Interviewer: Would you say you've become a more mature player? Leah: I hope so, though maturity in music seems to be mostly about knowing what to leave out. I still strive to play well; I just no longer confuse effort with exhaustion. Interviewer: And if the recital turns out to be a smash? Leah: Then I'll celebrate, of course, but if I play that last piece with real affection, I won't mind a few wrong notes.",
   "questions": [
    {
+    "type": "main",
     "prompt": "How did Leah's time away from playing change her?",
     "options": [
      "She decided to move from performing into teaching",
@@ -278,6 +290,7 @@
     "evidence": "I realised how much I'd been trying to impress rather than communicate"
    },
    {
+    "type": "detail",
     "prompt": "What does Leah do now when her professors criticise her playing?",
     "options": [
      "She picks out the useful advice and ignores the tone",
@@ -287,7 +300,9 @@
     ],
     "answer": 0,
     "evidence": "now I try to extract the one useful instruction and ignore the tone"
-   }
+   },
+   {"type": "inference", "prompt": "What does Leah imply when she says she no longer confuses \"effort with exhaustion\"?", "options": ["She has stopped practising altogether", "She practises only when she feels tired", "Effort no longer matters to her", "Working harder does not always mean working better"], "answer": 3, "evidence": "I still strive to play well; I just no longer confuse effort with exhaustion."},
+   {"type": "vocab", "prompt": "What does \"flashiest\" mean in \"the flashiest pieces they could manage\"?", "options": ["shortest", "most showy and impressive on the surface", "oldest", "quietest"], "answer": 1, "evidence": "the flashiest pieces they could manage"}
   ],
   "dictation_index": 8,
   "vocabulary": [
@@ -392,9 +407,11 @@
   "cefr": "C1",
   "theme": "campus",
   "genre": "story",
+  "purposes": ["story", "campus-life"],
   "body": "The anatomy building was the oldest on campus, and its teaching room sat beneath a glass dome that turned the winter light a pale, watery grey. Mei had heard about Dr Hale long before she met him. He was legendary among second-years, partly for asking questions nobody could answer and partly for the bow ties he wore regardless of the occasion. On the first morning of the practical, each pair of students was given a tray with a pig's kidney on it, bought, he cheerfully informed them, from the butcher's down the road. Mei's partner, a mature student who had spent ten years as an electrician before applying, picked up the scalpel without hesitation, while Mei found she could not stop looking at the ceiling. Before anyone cut anything, Dr Hale asked them what the organ was for. The answers came quickly and were all, in their way, correct: it filters the blood, it balances water, it removes waste. He nodded patiently and then asked how they would know, from the outside alone, whether this kidney had been healthy. Nobody spoke. Mei realised that she had memorised every function in the textbook and could not retrieve a single fact in a form that helped her look. Strangely, her inability to answer felt freeing, because nobody else could answer either. For the rest of the morning they worked slowly, describing before cutting, while Dr Hale moved between the benches and occasionally held a small torch over a tray so that the surface seemed to glow. Near the end, he stopped beside them and studied Mei's face rather than the specimen. Her pupils were enormous, he remarked, which meant she was either terrified or interested, and in his experience the second was the more serious complication. She laughed, and the knot in her stomach began to loosen. In later years she would devise elaborate ways of remembering every structure in the body, but what stayed with her from that morning was simpler. Knowledge she could recite was not the same as knowledge she could use, and the grey light under the dome had given her somewhere to anchor the difference.",
   "questions": [
    {
+    "type": "main",
     "prompt": "What is the main lesson Mei takes away from the practical?",
     "options": [
      "Medical students need to memorise far more of the textbook",
@@ -406,6 +423,7 @@
     "evidence": "Knowledge she could recite was not the same as knowledge she could use"
    },
    {
+    "type": "detail",
     "prompt": "Why did Mei's inability to answer feel freeing?",
     "options": [
      "Dr Hale told everyone the answer straight away",
@@ -415,7 +433,9 @@
     ],
     "answer": 1,
     "evidence": "because nobody else could answer either"
-   }
+   },
+   {"type": "inference", "prompt": "What does Dr Hale mean when he calls interest \"the more serious complication\"?", "options": ["He believes fear helps students learn faster", "He is joking that real curiosity will pull her deep into the subject", "He thinks she has become ill", "He wants her to leave the class"], "answer": 1, "evidence": "in his experience the second was the more serious complication"},
+   {"type": "vocab", "prompt": "What does \"retrieve\" mean in \"could not retrieve a single fact\"?", "options": ["forget completely", "write down", "make up", "bring back from memory"], "answer": 3, "evidence": "could not retrieve a single fact in a form that helped her look"}
   ],
   "dictation_index": 7,
   "vocabulary": [

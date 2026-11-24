@@ -8,9 +8,11 @@
     "cefr": "B1",
     "theme": "culture",
     "genre": "explainer",
+    "purposes": ["expository"],
     "body": "Many learners use \"sorry\" and \"excuse me\" as if they meant the same thing, but in everyday English the choice often depends on timing. \"Excuse me\" usually comes before you do something that might bother someone. If you need to get past a person on a busy train, you say \"excuse me\". If you want to ask a stranger for directions, you start the same way. \"Sorry\", on the other hand, usually comes after something has already happened. You step on someone's foot, so you say \"sorry\". You miss what a friend said, so you say \"Sorry?\" with a rising voice, which asks them to repeat it. Things get more interesting when the two words overlap. Some people say \"sorry\" when someone else bumps into them, even when it clearly wasn't their fault. In that case, \"sorry\" isn't really an apology; it's more like a quick way of keeping the peace. A simple rule can help: \"excuse me\" opens a door, and \"sorry\" closes one. When you aren't sure, choose either one and say it with a smile. Being friendly matters more than picking the perfect word.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main difference between the two phrases, according to the text?",
         "options": [
           "\"Excuse me\" is more polite than \"sorry\" in every situation",
@@ -22,6 +24,7 @@
         "evidence": "\"Excuse me\" usually comes before you do something that might bother someone."
       },
       {
+        "type": "vocab",
         "prompt": "In the text, what does \"keeping the peace\" mean?",
         "options": [
           "Staying completely silent in public",
@@ -31,7 +34,9 @@
         ],
         "answer": 3,
         "evidence": "it's more like a quick way of keeping the peace"
-      }
+      },
+      {"type": "inference", "prompt": "What does the rule \"excuse me opens a door, and sorry closes one\" mean?", "options": ["\"Excuse me\" starts an interaction, and \"sorry\" ends a small problem", "You should say sorry when you leave a room", "You should say excuse me at every door", "Both phrases are only used at doors"], "answer": 0, "evidence": "\"Excuse me\" usually comes before you do something that might bother someone."},
+      {"type": "detail", "prompt": "How can you ask someone to repeat what they said, according to the text?", "options": ["Say \"Sorry?\" with a rising voice", "Wave your hand", "Say \"Pardon me\" slowly", "Say \"Excuse me\" loudly"], "answer": 0, "evidence": "you say \"Sorry?\" with a rising voice"}
     ],
     "dictation_index": 2,
     "vocabulary": [
@@ -131,9 +136,11 @@
     "cefr": "B1",
     "theme": "culture",
     "genre": "story",
+    "purposes": ["story"],
     "body": "At our first dinner in the shared flat, everyone agreed to bring a joke from home. When it was my turn, I chose my grandfather's favourite one, which always makes my family cry with laughter. I translated it carefully and delivered the last line with a big smile. Nobody laughed. There was a long, polite silence, and then Priya asked kindly whether there was a second part. Too late, I realised that the whole joke depended on two Chinese words that sound exactly the same: one means fish, and the other means having more than enough. In English, it was just a strange sentence about a fish. So I explained it slowly, with drawings on a paper napkin. By the time I finished, everyone was laughing, but not at the joke. They were laughing at how hard I was trying. Then Diego told a joke from Chile, and it failed in exactly the same way. Since that night, we have had a running joke of our own. Whenever something gets lost in translation, someone whispers \"fish\", and the whole table loses it.",
     "questions": [
       {
+        "type": "main",
         "prompt": "Why did nobody laugh when the writer first told the joke?",
         "options": [
           "The writer forgot the most important line",
@@ -145,6 +152,7 @@
         "evidence": "the whole joke depended on two Chinese words that sound exactly the same"
       },
       {
+        "type": "vocab",
         "prompt": "What does \"the whole table loses it\" most likely mean?",
         "options": [
           "Everyone at the table gets angry",
@@ -154,7 +162,9 @@
         ],
         "answer": 1,
         "evidence": "someone whispers \"fish\", and the whole table loses it"
-      }
+      },
+      {"type": "inference", "prompt": "Why were people laughing after the writer explained the joke?", "options": ["They found the writer's effort funny and charming", "They finally understood the Chinese words", "The drawings were very silly", "Diego had told a better joke"], "answer": 0, "evidence": "They were laughing at how hard I was trying."},
+      {"type": "detail", "prompt": "What did the writer use to explain the joke?", "options": ["A short video", "Drawings on a paper napkin", "A translation app", "A Chinese dictionary"], "answer": 1, "evidence": "with drawings on a paper napkin"}
     ],
     "dictation_index": 8,
     "vocabulary": [
@@ -255,9 +265,11 @@
     "cefr": "B1",
     "theme": "culture",
     "genre": "dialogue",
+    "purposes": ["daily-life"],
     "body": "Hannah: Jun, can I ask you about last night? Jun: Sure, is everything okay? Hannah: It's probably silly, but you didn't open my present. I've been wondering all day whether you liked it. Jun: Oh no, I opened it as soon as I got home! The tea set is beautiful. Hannah: Really? Then why did you put it away so quickly? Jun: In my family, we usually wait until the guests leave. If you tear the paper open in front of everyone, it can look a bit greedy, as if the gift matters more than the person. Hannah: That's funny, because in my family it's the opposite. Unless you open a present right away, people think you're not interested. Jun: I had no idea that waiting could look rude. So we were both trying to be polite. Hannah: Just in completely different ways! Jun: Next time, I'll open it in front of you and make a big fuss about it. Hannah: Deal, and I'll try not to stare at the box all evening.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What caused the misunderstanding between Hannah and Jun?",
         "options": [
           "Jun didn't like the tea set very much",
@@ -269,6 +281,7 @@
         "evidence": "That's funny, because in my family it's the opposite."
       },
       {
+        "type": "detail",
         "prompt": "Why does Jun's family usually wait before opening presents?",
         "options": [
           "Opening them at once can look greedy",
@@ -278,7 +291,9 @@
         ],
         "answer": 0,
         "evidence": "it can look a bit greedy, as if the gift matters more than the person"
-      }
+      },
+      {"type": "inference", "prompt": "What does Hannah mean by \"Just in completely different ways!\"?", "options": ["They both wanted to leave early", "They both forgot about the present", "They both disliked the present", "Both were being polite according to their own family habits"], "answer": 3, "evidence": "So we were both trying to be polite."},
+      {"type": "vocab", "prompt": "What does \"make a big fuss about it\" mean?", "options": ["complain loudly", "hide it away", "forget about it", "show a lot of excitement and attention"], "answer": 3, "evidence": "make a big fuss about it"}
     ],
     "dictation_index": 11,
     "vocabulary": [
@@ -373,9 +388,11 @@
     "cefr": "B1",
     "theme": "culture",
     "genre": "interview",
+    "purposes": ["expository"],
     "body": "Q: How did you start paper-cutting? Xiaowen: My grandmother taught me when I was about ten. Every winter, she cut red patterns to stick on our windows, and I wanted to help. Q: Was it hard to learn? Xiaowen: Very! My first flowers looked like broken spiders. She made me practise the same simple shape again and again before I could try anything new. Q: What's the most important thing she taught you? Xiaowen: To be patient with the paper. You can't rush a curve. If your hand is nervous, the scissors know it. Q: Do you still cut with her? Xiaowen: We haven't sat at the same table for a while, because she lives in another city now. But we video call every Sunday, and she checks my work through the screen. She still finds tiny mistakes that I can't see. Q: Have you taught anyone else? Xiaowen: Yes, I've started a small class for children in my neighbourhood. Some of them get bored quickly, but one quiet girl, who hardly ever speaks in class, always stays behind to cut one more.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the most important lesson Xiaowen learned from her grandmother?",
         "options": [
           "Paper-cutting should be done as quickly as possible",
@@ -387,6 +404,7 @@
         "evidence": "To be patient with the paper."
       },
       {
+        "type": "detail",
         "prompt": "How does her grandmother help her today?",
         "options": [
           "She checks Xiaowen's work during video calls",
@@ -396,7 +414,9 @@
         ],
         "answer": 0,
         "evidence": "she checks my work through the screen"
-      }
+      },
+      {"type": "inference", "prompt": "What does \"If your hand is nervous, the scissors know it\" suggest?", "options": ["Paper-cutting is dangerous", "Scissors can feel emotions", "Nervousness shows in your cutting, so you need to stay calm", "You should buy better scissors"], "answer": 2, "evidence": "You can't rush a curve."},
+      {"type": "vocab", "prompt": "What does \"stays behind\" mean in \"always stays behind to cut one more\"?", "options": ["arrives late", "remains after the others have left", "sits at the back", "goes home early"], "answer": 1, "evidence": "always stays behind to cut one more"}
     ],
     "dictation_index": 6,
     "vocabulary": [

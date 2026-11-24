@@ -156,9 +156,14 @@ class LoopTests(unittest.TestCase):
         self.assertEqual(ex.submit(self.c, 2, {'paper': p['paper'], 'answers': answers})[1], 404)  # someone else's paper
         r, code = ex.submit(self.c, 1, {'paper': p['paper'], 'answers': answers, 'seconds': 700})
         self.assertEqual(code, 200)
-        self.assertEqual((r['score'], r['total'], r['seconds']), (21, 22, 700))
-        self.assertEqual([x['right'] for x in r['parts']], [10, 7, 4])
-        self.assertEqual(len(r['history']), 1); self.assertEqual(r['history'][0]['pct'], 95)
+        # Counted from the paper itself, so adding questions to materials does not break the test.
+        nv, ng, nr = len(stored['vocab']), len(g), len(stored['reading'])
+        total = nv + ng + nr
+        self.assertEqual((nv, ng, nr), (ex.VOCAB_N, ex.GRAMMAR_N, ex.READING_Q * len(p['parts'][2]['passages'])))
+        self.assertEqual(nr, sum(len(x['items']) for x in p['parts'][2]['passages']))  # what is shown is what is marked
+        self.assertEqual((r['score'], r['total'], r['seconds']), (total - 1, total, 700))
+        self.assertEqual([x['right'] for x in r['parts']], [nv, ng - 1, nr])
+        self.assertEqual(len(r['history']), 1); self.assertEqual(r['history'][0]['pct'], round(100 * (total - 1) / total))
         miss = self.c.execute('SELECT node FROM questions WHERE id=?', (g[-1]['id'],)).fetchone()[0]
         self.assertEqual(nx.graph_states(self.c, 1)[miss]['status'], 'watch')
         self.assertEqual(self.c.execute("SELECT COUNT(*) FROM next_cards WHERE user_id=1 AND norm=?", (f"gq:{g[-1]['id']}",)).fetchone()[0], 1)

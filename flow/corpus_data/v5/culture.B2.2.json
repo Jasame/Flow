@@ -8,9 +8,11 @@
     "cefr": "B2",
     "theme": "culture",
     "genre": "article",
+    "purposes": ["news-commentary"],
     "body": "When a giant orange fox appeared overnight on the side of the old laundrette on Mill Lane, nobody in the neighbourhood could agree on what it meant. Some residents saw it as a gift: within a week, children were posing beside it for photos, and the café opposite had started selling fox-shaped biscuits. Others were less charmed. Although the painting is undeniably skilful, nobody asked the people who live there whether they wanted it, and for many that is the real issue. \"If someone can paint a wall without asking, what stops the next person from painting something we hate?\" asked a retired bus driver at a packed community meeting. A teenager in the front row replied that the street had looked grey and forgotten for years, and that the fox was the first thing in a long time to make people stop and talk. What made the meeting unusual was that both sides were, in a sense, arguing for the same thing: a say in how their shared space looks. Eventually, the group agreed on a compromise. The fox will stay for now, but future murals will need approval from a small panel of residents, and local artists will be invited to submit designs to brighten two more walls. If the plan works, the neighbourhood may end up with more art, not less, chosen by the people who walk past it every day. As one woman put it on her way out of the hall, a wall is never just a wall once a whole street has started arguing about it.",
     "questions": [
       {
+        "type": "main",
         "prompt": "According to the writer, what did both sides of the debate really want?",
         "options": [
           "To have the fox painted over as soon as possible",
@@ -22,6 +24,7 @@
         "evidence": "both sides were, in a sense, arguing for the same thing: a say in how their shared space looks"
       },
       {
+        "type": "vocab",
         "prompt": "What does \"Others were less charmed\" suggest about some residents?",
         "options": [
           "They were confused about what the painting meant",
@@ -31,7 +34,9 @@
         ],
         "answer": 1,
         "evidence": "Others were less charmed."
-      }
+      },
+      {"type": "inference", "prompt": "What does the woman mean by \"a wall is never just a wall once a whole street has started arguing about it\"?", "options": ["Walls should never be painted", "The fox will soon be removed", "A shared space starts to matter once people debate it", "Arguments damage old buildings"], "answer": 2, "evidence": "a wall is never just a wall once a whole street has started arguing about it"},
+      {"type": "detail", "prompt": "What did the community meeting agree?", "options": ["Only professional artists may paint walls", "The café must stop selling fox biscuits", "The fox will be painted over", "The fox stays, and future murals need approval from a residents' panel"], "answer": 3, "evidence": "future murals will need approval from a small panel of residents"}
     ],
     "dictation_index": 9,
     "vocabulary": [
@@ -137,9 +142,11 @@
     "cefr": "B2",
     "theme": "culture",
     "genre": "guide",
+    "purposes": ["expository"],
     "body": "Being asked to give a toast at a dinner can make even confident people go pale, but a good toast is far simpler than most of us imagine. The first rule is to keep it short. If you speak for more than a minute or two, glasses start to feel heavy and people begin glancing longingly at their food. Before you stand up, decide on one thing you want to say about the person or the occasion, rather than trying to cover everything. A single, well-chosen anecdote usually works better than a list of compliments, because it shows the guests who the person really is. You might mention the time your friend got completely lost on the way to her own birthday party, for instance, before saying how glad you are that she always finds her way back to the people she loves. Humour helps, but any teasing should be gentle; if a joke needs explaining or could embarrass someone, leave it out. When you reach the end, raise your glass and say clearly what everyone is drinking to, such as \"To Anna, and to many more years of getting lost together\". That final line acts as a signal, so make sure people know when to lift their glasses. It also helps to remember that nobody is expecting a performance. Guests simply want to share a warm moment, and they will forgive a nervous voice far more easily than a long speech. Finally, if you are not drinking alcohol, just raise whatever is in front of you. Water works just as well, since a toast is about the words rather than the drink.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main message of the guide?",
         "options": [
           "A toast should include a long list of the person's best qualities",
@@ -151,6 +158,7 @@
         "evidence": "It also helps to remember that nobody is expecting a performance."
       },
       {
+        "type": "detail",
         "prompt": "Why does the writer recommend telling a single anecdote?",
         "options": [
           "It is easier to remember than a joke",
@@ -160,7 +168,9 @@
         ],
         "answer": 1,
         "evidence": "because it shows the guests who the person really is"
-      }
+      },
+      {"type": "inference", "prompt": "Why should a joke that \"needs explaining\" be left out of a toast?", "options": ["It may fall flat or embarrass someone", "It makes the toast too short", "Guests dislike any humour", "It is against the rules of a dinner"], "answer": 0, "evidence": "if a joke needs explaining or could embarrass someone, leave it out"},
+      {"type": "vocab", "prompt": "What does \"longingly\" mean in \"glancing longingly at their food\"?", "options": ["without interest", "with a strong wish for something", "angrily", "quickly"], "answer": 1, "evidence": "people begin glancing longingly at their food"}
     ],
     "dictation_index": 4,
     "vocabulary": [
@@ -266,9 +276,11 @@
     "cefr": "B2",
     "theme": "culture",
     "genre": "interview",
+    "purposes": ["film-culture"],
     "body": "Q: You started doing stand-up in English only a few years after you began learning it. Was that terrifying? Mira: Completely. My vocabulary was fine, but my timing was a disaster. I would rush the punchline because I was afraid of forgetting it, and the audience would still be processing the set-up when I had already moved on. Q: So what changed? Mira: I started recording every show and listening to where people laughed, or didn't. That taught me more than any grammar book ever did. A joke in your second language has two jobs: it has to be understood first, and only then can it be funny. If people need an extra second to translate in their heads, you have to give them that second. Q: Do you ever use your first language on stage? Mira: Sometimes, as a kind of surprise. When I switch for one line and then translate it badly on purpose, the gap between the two versions often gets the biggest laugh of the night. Q: If you hadn't moved abroad, would you be a comedian now? Mira: Honestly, I doubt it. If I'd stayed at home, I'd probably be working in my uncle's shop and telling jokes only to the customers. Moving forced me to listen carefully to how people talk, and that's basically what comedy is. Q: Any advice for learners? Mira: Try telling one short joke in English this week, even if it's just to a friend. Notice the pause before the last line. Once you can feel that pause, you're halfway there.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What does Mira see as the key to comedy in a second language?",
         "options": [
           "Using difficult words to impress the audience",
@@ -280,6 +292,7 @@
         "evidence": "it has to be understood first, and only then can it be funny"
       },
       {
+        "type": "detail",
         "prompt": "Why did Mira rush the punchline when she started?",
         "options": [
           "Her shows had a very strict time limit",
@@ -289,7 +302,9 @@
         ],
         "answer": 1,
         "evidence": "because I was afraid of forgetting it"
-      }
+      },
+      {"type": "inference", "prompt": "What does Mira suggest about how moving abroad helped her comedy?", "options": ["People abroad speak too quickly", "She became a professional translator", "Living in a new language trained the listening skills comedy needs", "She stopped using her first language"], "answer": 2, "evidence": "that's basically what comedy is"},
+      {"type": "vocab", "prompt": "What does \"punchline\" mean in \"I would rush the punchline\"?", "options": ["the opening of a speech", "an angry remark", "the last part of a joke that makes it funny", "a line of people waiting"], "answer": 2, "evidence": "I would rush the punchline"}
     ],
     "dictation_index": 9,
     "vocabulary": [
@@ -390,9 +405,11 @@
     "cefr": "B2",
     "theme": "culture",
     "genre": "opinion",
+    "purposes": ["argumentative", "news-commentary", "film-culture"],
     "body": "Anyone who has clapped at the wrong moment in a concert hall knows the feeling: a few people start applauding, the rest of the room stays frozen, and someone nearby lets out a small, disapproving sigh. At many classical concerts, the unwritten rule is that you wait until the very end of a piece, even if it has several parts with pauses in between. I believe this rule should be relaxed, because it does more to scare away newcomers than to protect the music. Clapping is, after all, the most natural way to show that something has moved you. When a fast, exciting section ends with a crash, it seems strange to ask people to sit in silence as though nothing has happened. If first-time listeners are made to feel foolish, many of them will simply not come back, and no concert hall can afford to lose them. Of course, there is a reasonable case for silence. Some pieces are designed to flow from one part to the next, and a sudden burst of applause can break the spell for everyone else. Performers, too, may need those few quiet seconds to concentrate before they continue. However, these concerns can be met without strict rules. Musicians could tell the audience at the start whether they would like silence, and printed programmes could explain it in one friendly sentence. If I had been told this at my first concert, I would not still remember that sigh so clearly today. In the end, a concert should feel like an invitation, not an exam, and the occasional \"wrong\" clap is a small price to pay for a fuller room.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's main argument?",
         "options": [
           "Audiences should never clap during classical concerts",
@@ -404,6 +421,7 @@
         "evidence": "I believe this rule should be relaxed, because it does more to scare away newcomers than to protect the music."
       },
       {
+        "type": "detail",
         "prompt": "How does the writer suggest dealing with pieces that need silence?",
         "options": [
           "By banning applause until the musicians leave the stage",
@@ -413,7 +431,9 @@
         ],
         "answer": 2,
         "evidence": "Musicians could tell the audience at the start whether they would like silence"
-      }
+      },
+      {"type": "inference", "prompt": "Why does the writer still remember \"that sigh\" so clearly?", "options": ["It came from one of the performers", "It was part of the music", "It made the writer feel foolish at a first concert", "The writer had sighed too"], "answer": 2, "evidence": "someone nearby lets out a small, disapproving sigh"},
+      {"type": "vocab", "prompt": "What does \"break the spell\" mean in \"a sudden burst of applause can break the spell\"?", "options": ["end a contract", "fix a problem", "start the music again", "spoil a special atmosphere"], "answer": 3, "evidence": "can break the spell for everyone else"}
     ],
     "dictation_index": 3,
     "vocabulary": [

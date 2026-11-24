@@ -25,7 +25,7 @@ def today(pg):
 def listen(pg):
     # The local server has no narration files; on the site this material is read by four real voices, so its tip
     # does not carry the "no recording yet" line.
-    pg.evaluate("() => { const t = document.querySelector('.listen-tip'); if (t) t.firstChild.nodeValue = t.firstChild.nodeValue.replace('这篇还没有真人录音，先用浏览器朗读。', ''); }")
+    pg.evaluate("() => { const t = document.querySelector('.listen-tip'); if (t) t.firstChild.nodeValue = t.firstChild.nodeValue.replace('这篇还没有录音，先用浏览器朗读。', ''); }")
 
 
 def check(pg):
