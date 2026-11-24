@@ -1,0 +1,162 @@
+[
+ {
+  "id": "v5-campus-c1-grading-on-a-curve",
+  "title": "按比例给分，公平吗",
+  "title_en": "Grading on a Curve: Protection or Pressure?",
+  "summary_zh": "“按曲线给分”能防止一场出难了的考试冤枉所有人，却也悄悄把同学变成了对手。作者权衡利弊后给出更公平的做法。读完你能用 Had… would have… 倒装虚拟和“让步—转折”写议论文。",
+  "level": "B2",
+  "cefr": "C1",
+  "theme": "campus",
+  "genre": "opinion",
+  "purposes": [
+   "argumentative",
+   "campus-life"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Grading on a curve sounds like a technical matter, the kind of thing decided in a committee room and forgotten by lunchtime. In practice, it shapes how students treat one another. Under a curve, a fixed share of the class receives each grade, so your mark depends not only on what you know but on how well everyone around you performs. Supporters point out that it protects students from the luck of the draw: if one exam turns out to be unexpectedly hard, nobody is punished for the examiner's misjudgement. That is a genuine advantage, and anyone who has sat a badly written paper will appreciate it. Yet the side effects are hard to ignore. When a classmate's success can lower your own result, sharing notes starts to feel like a risk, and the study group that once met every Thursday quietly falls apart. Students learn to keep their best questions to themselves, which is precisely the opposite of what a university claims to value. Even the strongest students lose out, because explaining an idea to someone else is one of the surest ways to understand it properly. There is also something odd about a system that guarantees some people will receive the lowest grades, however much the whole group improves. Had the same students taken the course a year earlier, alongside a weaker group, many of them would have earned higher grades for identical work. A fairer approach would set clear standards in advance and adjust them only when an exam has plainly gone wrong. That keeps the protection supporters rightly care about without turning classmates into rivals. Learning is hard enough without being made into a race in which helping a friend means falling behind.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the writer's overall view of grading on a curve?",
+    "options": [
+     "It offers some protection, but it harms cooperation and can be unfair",
+     "It is the fairest system because it rewards the hardest workers",
+     "It should be used only when an exam is very easy",
+     "It has no real advantages and was never meant to help students"
+    ],
+    "answer": 0,
+    "evidence": "Yet the side effects are hard to ignore."
+   },
+   {
+    "type": "inference",
+    "prompt": "Why might the Thursday study group \"quietly fall apart\" under a curve?",
+    "options": [
+     "Its members no longer have free time on Thursdays",
+     "The university does not allow students to study together",
+     "The exams are too easy for anyone to need help",
+     "Helping others may now lower one's own grade"
+    ],
+    "answer": 3,
+    "evidence": "When a classmate's success can lower your own result, sharing notes starts to feel like a risk"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"the luck of the draw\" refer to in this text?",
+    "options": [
+     "a prize for the best student in the class",
+     "results that depend on chance rather than ability",
+     "a game played to decide seating in an exam",
+     "the order in which exam papers are marked"
+    ],
+    "answer": 1,
+    "evidence": "it protects students from the luck of the draw"
+   },
+   {
+    "type": "detail",
+    "prompt": "What does the writer propose instead?",
+    "options": [
+     "Letting students choose which exams count",
+     "Grading each class against the previous year",
+     "Setting clear standards in advance and adjusting them only when an exam has plainly gone wrong",
+     "Removing written exams from university courses"
+    ],
+    "answer": 2,
+    "evidence": "A fairer approach would set clear standards in advance"
+   }
+  ],
+  "dictation_index": 12,
+  "vocabulary": [
+   {
+    "term": "misjudgement",
+    "meaning": "判断失误",
+    "example": "Booking the hall so late was a serious misjudgement."
+   },
+   {
+    "term": "guarantees",
+    "meaning": "保证；确保",
+    "example": "A good plan never guarantees success, but it helps."
+   },
+   {
+    "term": "identical",
+    "meaning": "完全相同的",
+    "example": "The two essays were almost identical."
+   },
+   {
+    "term": "rivals",
+    "meaning": "对手；竞争者",
+    "example": "The two teams have been rivals for years."
+   },
+   {
+    "term": "appreciate",
+    "meaning": "体会到……的好处；感激",
+    "example": "You will appreciate a warm coat on the mountain."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "the luck of the draw",
+    "meaning": "全凭运气",
+    "note": "原指抽签的运气，常用来说结果不由自己掌控：Who gets the best room is the luck of the draw."
+   },
+   {
+    "text": "turns out to be",
+    "meaning": "结果是；原来是",
+    "note": "强调和预期不同：The test turned out to be much easier than we feared."
+   },
+   {
+    "text": "falls apart",
+    "meaning": "散了；瓦解",
+    "note": "可指团体、计划、关系：Without a leader, the project fell apart."
+   },
+   {
+    "text": "keep their best questions to themselves",
+    "meaning": "把好问题藏在心里不说",
+    "note": "keep sth to oneself 表示“不告诉别人”：She kept the news to herself."
+   },
+   {
+    "text": "precisely the opposite of",
+    "meaning": "恰恰与……相反",
+    "note": "precisely 加强语气，议论文里指出矛盾时很有力。"
+   },
+   {
+    "text": "hard enough without",
+    "meaning": "本来就够难了，不需要再……",
+    "note": "X is hard enough without Y，委婉地表示“别再雪上加霜”。"
+   }
+  ],
+  "grammar": [
+   "subjunctive-past",
+   "clause-adverb",
+   "clause-nondefining"
+  ],
+  "knowledge": [
+   {
+    "node": "subjunctive-past",
+    "quote": "Had the same students taken the course a year earlier, alongside a weaker group, many of them would have earned higher grades for identical work.",
+    "explanation": "省略 if、把 had 提到主语前，是与过去事实相反的虚拟条件（= If the same students had taken…）；主句用 would have earned。正式写作里常见。"
+   },
+   {
+    "node": "clause-adverb",
+    "quote": "When a classmate's success can lower your own result, sharing notes starts to feel like a risk",
+    "explanation": "When 引导的状语从句交代条件和背景；主句主语是动名词短语 sharing notes，谓语用单数 starts。"
+   },
+   {
+    "node": "clause-nondefining",
+    "quote": "Students learn to keep their best questions to themselves, which is precisely the opposite of what a university claims to value.",
+    "explanation": "逗号后的 which 指代前面整句话（学生把问题藏起来这件事），是非限制性定语从句，不能换成 that。"
+   }
+  ],
+  "speaking": "用 1 分钟说说：你更喜欢“和标准比”（达到要求就行）还是“和别人比”（按排名给分）？为什么？用上 the luck of the draw 或 fall apart。",
+  "writing": "用 200–250 词写一篇议论文：学校该不该按排名比例给成绩？先承认对方的一个好处，再写出两个问题，最后提出你的方案。至少用一次 Had… would have… 倒装虚拟。",
+  "task": {
+   "prompt": "仿照这句，用 Had I … , I would have … 写一句和你过去经历有关的虚拟句。",
+   "model": "Had the same students taken the course a year earlier"
+  },
+  "tags": [
+   "校园生活",
+   "议论文"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

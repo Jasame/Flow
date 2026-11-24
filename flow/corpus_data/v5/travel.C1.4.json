@@ -1,0 +1,172 @@
+[
+ {
+  "id": "v5-travel-c1-against-the-bucket-list",
+  "title": "别让旅行变成打卡清单",
+  "title_en": "Against the Bucket List",
+  "summary_zh": "把旅行当清单逐项打钩，换来的常常只是一连串“到此一游”。作者借马克·吐温的一句话，主张少去几处、多待几天。读完你能用 rather than、Having… 等结构写出有立场的旅行评论。",
+  "level": "B2",
+  "cefr": "C1",
+  "theme": "travel",
+  "genre": "opinion",
+  "purposes": [
+   "argumentative",
+   "news-commentary",
+   "daily-life"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Somewhere along the way, travel turned into a checklist. We collect countries the way children once collected stickers, and social media rewards us for every new pin on the map. The bucket list, that inventory of places to see before we die, promises a life fully lived, yet it often delivers something thinner: a series of arrivals with very little in between. I say this as someone who once flew across three time zones to spend a single afternoon at a famous waterfall, took the obligatory photograph and left feeling oddly empty. The trouble with the list is not ambition but the way it frames a place as a target to be hit rather than a world to be entered. Once a site is ticked off, there is no reason to return, to linger, or to wonder what happens there on an ordinary Tuesday. Mark Twain claimed that travel is fatal to prejudice, bigotry, and narrow-mindedness, and he was probably right, but only about the kind of travel that leaves room for surprise. A rushed visit can just as easily confirm what we expected to find. We fly in, find the landmark we have seen in a thousand photographs, and fly out with our assumptions intact. None of this means the list should be torn up. Having somewhere to dream about can get a person through a long winter, and some journeys really are once in a lifetime. The alternative is simply to hold the list more loosely: to stay longer in fewer places, to let one conversation reshape a plan, and to measure a trip by what it changed in us rather than by how many places it added. A map with fewer pins may turn out to hold far more stories.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the writer's main argument?",
+    "options": [
+     "People should stop making travel plans altogether",
+     "A trip should be judged by how it changes us, not by how many places we tick off",
+     "Famous sights are no longer worth visiting",
+     "Social media has made travel cheaper and easier"
+    ],
+    "answer": 1,
+    "evidence": "to measure a trip by what it changed in us rather than by how many places it added"
+   },
+   {
+    "type": "inference",
+    "prompt": "Why does the writer mention the trip to the waterfall?",
+    "options": [
+     "To recommend the waterfall to readers",
+     "To complain about the price of long flights",
+     "To show from experience how a checklist trip can feel empty",
+     "To prove that photographs are better than visits"
+    ],
+    "answer": 2,
+    "evidence": "left feeling oddly empty"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"obligatory\" mean in \"took the obligatory photograph\"?",
+    "options": [
+     "expensive and of high quality",
+     "forbidden by local rules",
+     "taken by accident",
+     "expected, done because everyone does it"
+    ],
+    "answer": 3,
+    "evidence": "took the obligatory photograph"
+   },
+   {
+    "type": "detail",
+    "prompt": "According to the writer, which kind of travel can reduce prejudice?",
+    "options": [
+     "travel that leaves room for surprise",
+     "travel to as many countries as possible",
+     "travel planned with a detailed checklist",
+     "travel that is shared on social media"
+    ],
+    "answer": 0,
+    "evidence": "the kind of travel that leaves room for surprise"
+   }
+  ],
+  "dictation_index": 7,
+  "vocabulary": [
+   {
+    "term": "inventory",
+    "meaning": "清单；详细目录",
+    "example": "Make an inventory of everything you packed."
+   },
+   {
+    "term": "obligatory",
+    "meaning": "惯例的；必须做的",
+    "example": "After the speech came the obligatory group photo."
+   },
+   {
+    "term": "linger",
+    "meaning": "逗留；舍不得离开",
+    "example": "Visitors often linger by the river after sunset."
+   },
+   {
+    "term": "assumptions",
+    "meaning": "假设；想当然的看法",
+    "example": "Travel can challenge our assumptions about other people."
+   },
+   {
+    "term": "reshape",
+    "meaning": "重塑；改变……的样子",
+    "example": "One good teacher can reshape the way you think about a subject."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "Somewhere along the way",
+    "meaning": "不知不觉间；在这个过程中",
+    "note": "用来说变化悄悄发生、说不清从哪一刻开始：Somewhere along the way, we stopped writing letters."
+   },
+   {
+    "text": "ticked off",
+    "meaning": "（清单上的一项）打了钩",
+    "note": "tick off 表示逐项完成；美式英语多说 check off。"
+   },
+   {
+    "text": "leaves room for",
+    "meaning": "给……留出余地",
+    "note": "leave room for surprise / mistakes / discussion 都很常用。"
+   },
+   {
+    "text": "torn up",
+    "meaning": "撕掉；作废",
+    "note": "tear up 原指撕碎，引申为“推翻（计划、协议）”：They tore up the old plan."
+   },
+   {
+    "text": "once in a lifetime",
+    "meaning": "一生一次的",
+    "note": "作形容词放在名词前要加连字符：a once-in-a-lifetime chance。"
+   },
+   {
+    "text": "hold the list more loosely",
+    "meaning": "别把清单抓得太紧",
+    "note": "hold sth loosely 比喻不过分执着，是很有画面感的说法。"
+   }
+  ],
+  "grammar": [
+   "nonfinite-infinitive",
+   "nonfinite-gerund",
+   "clause-adverb"
+  ],
+  "knowledge": [
+   {
+    "node": "nonfinite-infinitive",
+    "quote": "a target to be hit rather than a world to be entered",
+    "explanation": "to be hit、to be entered 是不定式的被动形式，作后置定语修饰 target 和 world，意思是“要被击中的目标”“要走进去的世界”；rather than 连接两个对称结构。"
+   },
+   {
+    "node": "nonfinite-gerund",
+    "quote": "Having somewhere to dream about can get a person through a long winter",
+    "explanation": "动名词短语 Having somewhere to dream about 作主语，谓语用单数；get sb through sth 表示“帮某人熬过……”。"
+   },
+   {
+    "node": "clause-adverb",
+    "quote": "Once a site is ticked off, there is no reason to return",
+    "explanation": "Once 引导时间状语从句，意思是“一旦”；从句用一般现在时的被动 is ticked off，表示一般情况。"
+   }
+  ],
+  "speaking": "用 1 分钟说说：你有没有过“打卡式”的旅行？那次你真正记住了什么？用上 leave room for 和 once in a lifetime。",
+  "writing": "用 200–250 词写一篇短评：旅行应该“多去几个地方”还是“在一个地方多待几天”？先让步（None of this means…），再给出你的主张。可以引用一句已进入公有领域的名言，写明出处。",
+  "task": {
+   "prompt": "仿照这句，用 … as a target to be hit rather than … to be … 写一句话，说说你对学习或工作的一个看法。",
+   "model": "a target to be hit rather than a world to be entered"
+  },
+  "tags": [
+   "旅行观点",
+   "议论文"
+  ],
+  "source": "Flow 编辑部原创",
+  "quotes": [
+   {
+    "text": "travel is fatal to prejudice, bigotry, and narrow-mindedness",
+    "author": "Mark Twain",
+    "work": "The Innocents Abroad",
+    "year": 1869,
+    "author_died": 1910
+   }
+  ]
+ }
+]

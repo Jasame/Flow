@@ -8,6 +8,7 @@
     "cefr": "B1",
     "theme": "science",
     "genre": "explainer",
+    "purposes": ["expository"],
     "body": "A rainbow can seem to appear by magic, but it follows a simple rule: you need the sun behind you and rain in front of you. Sunlight looks white, yet it is really a mix of colours. When it enters a raindrop, the light bends, and each colour bends by a slightly different amount. As a result, the colours spread out like a fan. The light then bounces off the back of the drop and comes out again towards your eyes. Here is the strange part. Each drop sends only one colour to your eye, depending on where it is in the sky. Drops higher up send you red, while drops lower down send you violet. Millions of drops, which are all doing the same thing at once, build the whole arc. This means that the person standing next to you is actually seeing a different rainbow, made by different drops. It also explains why you can never reach the end of a rainbow. If you walk towards it, it moves with you, because it is not an object in one place. It is a meeting point between the sun, the rain and your own eyes.",
     "questions": [
       {
@@ -69,6 +70,7 @@
     "cefr": "B1",
     "theme": "science",
     "genre": "story",
+    "purposes": ["story"],
     "body": "The first loaf of bread I ever made came out as flat as a pancake. I had followed the recipe carefully, or so I thought. My grandmother, who has baked bread all her life, took one look at it and asked how hot my water had been. I told her it had been very hot, so that the yeast would wake up quickly. She laughed and explained my mistake. Yeast is a tiny living thing, a kind of fungus. When you mix it with flour and warm water, it feeds on the sugars in the flour and gives off carbon dioxide gas. Kneading the dough builds stretchy threads of gluten, which trap the gas in tiny bubbles, so the dough slowly rises. But yeast is alive, and water that is too hot kills it. No living yeast means no gas, and no gas means flat bread. The next weekend, I had another go, using water that felt just warm on my wrist. I left the bowl in a warm corner of the kitchen and waited. Two hours later, the dough had nearly doubled in size. When the bread came out of the oven, the whole house smelled wonderful, and my grandmother gave me a proud nod.",
     "questions": [
       {
@@ -130,6 +132,7 @@
     "cefr": "B1",
     "theme": "science",
     "genre": "explainer",
+    "purposes": ["expository"],
     "body": "Open the fridge on a hot day and you feel a rush of cool air. It is natural to think the fridge makes cold, but that is not quite right. What a fridge really does is move heat from the inside to the outside. To do this, it uses a special liquid that flows round a closed loop of pipes. This liquid boils at a very low temperature. Inside the fridge, it turns into a gas, and changing into a gas takes heat from everything nearby, including your milk and vegetables. You have felt the same effect after swimming: as the water dries on your skin, it carries heat away, and you shiver. Next, a pump called a compressor squeezes the gas hard, which makes it hot. The hot gas then flows through pipes at the back, where it gives its heat to the room and turns back into a liquid. After that, it passes through a tiny opening that lowers its pressure, and the cycle starts again. That is why the back of a fridge often feels warm. Unless that heat can escape, the fridge has to work harder, so it is a good idea to leave a little space behind it.",
     "questions": [
       {
@@ -191,6 +194,7 @@
     "cefr": "B1",
     "theme": "science",
     "genre": "dialogue",
+    "purposes": ["daily-life"],
     "body": "Sam: How does my phone know exactly where I am? We're in the middle of nowhere. Nina: It's listening to satellites. Dozens of them are circling the Earth, and each one keeps sending out a simple message. Sam: What does the message say? Nina: Basically: here's where I am, and here's the exact time. Sam: That's it? Nina: That's it. The signal travels at the speed of light, but it still takes a tiny moment to reach you. Your phone checks how late each message arrives and works out how far away each satellite is. Sam: And with a few distances, it can find the one spot that fits them all? Nina: Exactly. It needs at least four satellites to get it right. Sam: Wait, so my phone doesn't send anything to space? Nina: Nope. It only listens. The tricky part is the timing. The satellites carry extremely accurate clocks, because if those clocks were even slightly wrong, your map would put you in the middle of the lake. Sam: Good thing they aren't, then. Nina: Yes, because I have no idea how to read a paper map.",
     "questions": [
       {

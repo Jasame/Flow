@@ -8,6 +8,7 @@
     "cefr": "A2",
     "theme": "work",
     "genre": "dialogue",
+    "purposes": ["workplace"],
     "body": "Ruth: Good morning, customer service, this is Ruth speaking. Caller: Finally! I've called three times this week, and nobody has helped me. Ruth: I'm sorry to hear that. Can I have your name, please? Caller: Paul Dent. My new desk hasn't arrived, and I'm working on the kitchen floor! Ruth: That sounds really frustrating. Let me check your order. The desk is still in our warehouse. Caller: Still? You promised it for last Monday! Ruth: You're right, and I apologise. Here's what I can do. A driver can bring it on Thursday morning. Does that work for you? Caller: Thursday? Okay, fine. But I want someone to call me first. Ruth: Of course. I'm adding a note to your order right now. Caller: Thank you. And sorry I shouted. Ruth: No problem at all. Enjoy your new desk!",
     "questions": [
       {
@@ -69,6 +70,7 @@
     "cefr": "A2",
     "theme": "work",
     "genre": "email",
+    "purposes": ["workplace"],
     "body": "Hi Maya, I'm writing about the report that I sent you this morning. I've just noticed a big mistake. I sent you last year's version, not the new one. Some of the numbers in it are out of date, so please don't use them. I'm really sorry about this. It was my fault, and I've checked everything again carefully. The correct file is attached to this email. It has a green cover page, so you can see the difference easily. I have also told my manager, Leo, who can answer any questions this afternoon. If you have already shared the old file with your team, I can write to them too. Just let me know. Sorry again for the trouble, and thank you for your patience. Best wishes, Dani",
     "questions": [
       {
@@ -130,6 +132,7 @@
     "cefr": "A2",
     "theme": "work",
     "genre": "article",
+    "purposes": ["workplace"],
     "body": "Ines works for a small design team, but she has never met most of her colleagues in person. The team lives in three different time zones. When Ines starts work at nine, her colleague Sam is having lunch. And Kaito, who lives far to the east, is already cooking dinner. So how do they work together? First, they share one hour every day. It is early for Ines and late for Kaito, but everyone is online. They use this hour for questions and quick decisions. Second, they write everything down. A message that is clear and short saves a lot of time. Nobody waits a whole day for an answer. Third, they respect each other's time. Nobody sends messages at midnight and expects a quick reply. \"It isn't always easy,\" Ines says. \"But I've learned so much from them.\"",
     "questions": [
       {
@@ -192,6 +195,7 @@
     "cefr": "A2",
     "theme": "work",
     "genre": "interview",
+    "purposes": ["workplace"],
     "body": "Q: You started at the bakery six months ago. Who has helped you most? Bea: My mentor, Rosa. She's the person who trained me on my first day. Q: What does a mentor do here? Bea: She answers my questions and watches me work. Every Friday, we have coffee and talk about my week. Q: What is the best thing she has taught you? Bea: To ask questions early. At first, I was too shy to ask, so I made lots of mistakes. Now I always ask first. Q: Is she ever strict with you? Bea: Once or twice! But she's always fair. Q: Would you like to be a mentor one day? Bea: I'd love that. I've already helped our new cashier, Tom, who started last week. I showed him the coffee machine, and he hasn't broken it yet!",
     "questions": [
       {

@@ -8,6 +8,7 @@
     "cefr": "A2",
     "theme": "campus",
     "genre": "guide",
+    "purposes": ["expository", "campus-life"],
     "body": "Eating out every day is fun, but it gets expensive fast. Here are four simple ways to eat well on a student budget. First, make a shopping list before you go to the shop. Students who shop with a list usually spend less money. Second, buy food that lasts, like rice, eggs, beans and frozen vegetables. Third, cook once and eat twice. A big pot of soup can be your dinner tonight and your lunch tomorrow. Fourth, cook with friends. Everyone brings one thing, and you share the meal and the washing-up. My flatmate Leo does this every Sunday. He makes the rice, I bring the vegetables, and our neighbour brings a cake. It is cheaper than a takeaway, and it is much more fun. If you are new to cooking, start with one easy dish.",
     "questions": [
       {
@@ -131,6 +132,7 @@
     "cefr": "A2",
     "theme": "campus",
     "genre": "dialogue",
+    "purposes": ["campus-life"],
     "body": "Nadia: Okay, everyone, look at the kitchen. Tom: I know. It's a bit of a mess. Nadia: A bit? Nobody has taken out the rubbish for a week. Wei: Sorry, that's my fault. I've been really busy with exams. Nadia: We're all busy. I think we need a cleaning rota. Tom: A what? Nadia: A rota. It's a list that tells everyone whose turn it is. Wei: Good idea. So who does what? Nadia: Each week, one person cleans the kitchen, one person does the bathroom, and one person takes out the rubbish. Then we change. Tom: Sounds fair. Can I start with the rubbish? Wei: Ha! That's the easiest job. Tom: Exactly. I've already put my name next to it. Nadia: Fine, but next week you're doing the bathroom.",
     "questions": [
       {
@@ -254,6 +256,7 @@
     "cefr": "A2",
     "theme": "campus",
     "genre": "article",
+    "purposes": ["campus-life"],
     "body": "Every university library has a special place, and in ours it is the fourth floor. People call it the silent floor. The rules are simple. You cannot talk, eat or take phone calls there. Even a sneeze sounds very loud! Most students who study there come for one reason. They want to focus. Downstairs, people are chatting, printing and working in groups. Upstairs, you only hear pages and keyboards. Some students love it. Ming, who is in her second year, goes there every morning. \"My phone stays in my bag, and I finish my work in half the time,\" she says. Others find it too quiet. Jake says the silence makes him nervous, so he works in the busy cafe next door. Which floor is right for you? Try both and see.",
     "questions": [
       {
@@ -371,6 +374,7 @@
     "cefr": "A2",
     "theme": "campus",
     "genre": "interview",
+    "purposes": ["campus-life"],
     "body": "Interviewer: Sara, you host Lunch Break Live on campus radio. How long have you been the host? Sara: I've done the show for two years now. Interviewer: Were you nervous at the beginning? Sara: Very! On my first day, I forgot to turn on the microphone. I talked for five minutes, and nobody heard me. Interviewer: Oh no! What happens on the show? Sara: I play music, read the campus news and talk to a guest. My favourite guests are students who have unusual hobbies. Last week, I talked to a boy who keeps bees on the roof. Interviewer: Have you ever met someone famous? Sara: Not yet. But the cleaner in our building has become a regular. She calls in every Friday with a song request. Interviewer: Any advice for new hosts? Sara: Check the microphone first!",
     "questions": [
       {

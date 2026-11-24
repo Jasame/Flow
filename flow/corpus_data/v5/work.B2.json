@@ -8,6 +8,7 @@
     "cefr": "B2",
     "theme": "work",
     "genre": "email",
+    "purposes": ["workplace"],
     "body": "Hi Helen, Thanks for the heads-up about the revised launch date. I can see why the sales team wants the app out before the trade fair, and I'd genuinely like to make that happen. Having gone through the plan again with the developers this morning, though, I don't think we can realistically deliver everything two weeks early without cutting corners. The testing stage is already tight, and it's the part we can least afford to rush. If I were confident we could do it all, I'd say yes straight away. Instead, I'd like to suggest three options. First, we could keep the new date but launch a simpler version, with the booking feature ready and the loyalty points following a month later. Second, we could keep the full version and the original date, and give the sales team a working preview to show at the fair. Third, if we brought in one more developer for a fortnight, we might manage the full version on time, although that would hinge on finding someone already familiar with the system. Personally, I'd go with the first option, since it gets something real into customers' hands early without putting quality at risk. Could we talk it through for fifteen minutes tomorrow? I'm free any time after ten, and I'll bring an updated timeline so we can decide quickly. Best, Kwame",
     "questions": [
       {
@@ -136,6 +137,7 @@
     "cefr": "B2",
     "theme": "work",
     "genre": "dialogue",
+    "purposes": ["workplace"],
     "body": "Claire: Thanks, Yusuf, that's all very clear. Now, one last question, and it's slightly unusual. What's something you used to believe about work that turned out to be wrong? Yusuf: Oh, that's a good one, and nobody has asked me that before. Can I take a moment to think? Claire: Of course, take your time, there's no rush. Yusuf: OK, so when I started my first job, I believed that a good employee was someone who never bothered anyone. So whenever I got stuck, I'd just keep going on my own. Once, I spent almost a week trying to fix a problem with our customer database. In the end, a colleague who sat two desks away solved it in about an hour, because she'd seen the same thing before. Claire: That must have been frustrating. Yusuf: It was, honestly, and a little embarrassing too. If I had asked her on the first day, I would have saved myself a week and the team a lot of waiting. Claire: So what do you do differently now? Yusuf: Now I give myself a time limit, so if I've been stuck for two hours, I ask someone, and I explain what I've already tried. It's a small rule, but it's changed how I work. Claire: That's a really useful answer, thank you. Most candidates just tell me they work too hard, so that's refreshing. Yusuf: Well, I used to think that was my problem too, until I realized I was mostly just working alone.",
     "questions": [
       {
@@ -259,6 +261,7 @@
     "cefr": "B2",
     "theme": "work",
     "genre": "explainer",
+    "purposes": ["expository", "workplace"],
     "body": "Most of us have been taught the \"feedback sandwich\": start with praise, slip the criticism into the middle, and finish with more praise. It sounds kind, but it often backfires. Listeners quickly learn the pattern, so the opening compliment makes them brace for the \"but\", and the closing one makes the real message easy to forget. The trouble with most of these formulas is that they protect the speaker's comfort rather than help the listener improve. A more useful approach has three parts. First, describe one specific thing you noticed, such as \"In Tuesday's meeting, you answered two questions that were meant for Lin.\" Second, explain the effect: \"She stopped joining in after that.\" Third, open a conversation instead of delivering a verdict: \"What was going on for you there?\" Comments framed this way are easier to accept, because they are about actions, not personality. Feedback given months later, on the other hand, rarely helps, since nobody remembers the details. Receiving feedback is a skill too. The natural reaction is to explain or defend yourself, but the most professional response is often simply, \"Thanks, can you give me another example?\" You don't have to agree on the spot. You can take a day, decide what is fair, and come back with a plan. What people tend to remember is not whether you were right, but whether you listened.",
     "questions": [
       {
@@ -382,6 +385,7 @@
     "cefr": "B2",
     "theme": "work",
     "genre": "opinion",
+    "purposes": ["argumentative", "news-commentary", "workplace"],
     "body": "When I first started working from home, it felt like a quiet luxury: no crowded trains, no forced chat by the lifts, and lunch from my own fridge. A few months in, however, I noticed something strange. I was never quite at work, and never quite off. My laptop lived on the kitchen table, so a quick look at my messages before dinner often turned into an hour of replies. I sometimes wish my flat were big enough for a separate room with a door I could close. Still, I don't think the real problem is remote work itself. Offices give us edges for free: the journey home, the building we walk out of, the colleagues putting on their coats. At home, those edges disappear, and work quietly spreads into every gap. Unless you draw that line yourself, nobody is going to draw it for you. What has helped me is surprisingly simple. At six, I shut the laptop and put it in a drawer, out of sight. Then I take a ten-minute walk around the block, a sort of fake commute that tells my brain the day is over. I've also turned off work notifications on my phone after hours. None of this is perfect, and on some evenings an urgent message still gets through. But setting boundaries hasn't made me less committed to my job. If anything, I'm more focused during the day, because I know the day will actually end.",
     "questions": [
       {

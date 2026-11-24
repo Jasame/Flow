@@ -68,7 +68,7 @@
   }
   function voiceSheet() {
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">朗读声音</h2>${voiceChips(null)}
-      <p class="muted small">精选材料用真人声（Kokoro）朗读。学一篇材料时，也可以在「听」这一步随时切换。</p><button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      <p class="muted small">精选材料用 AI 朗读（自然人声，Kokoro 合成）。学一篇材料时，也可以在「听」这一步随时切换。</p><button class="btn ghost" data-close type="button">完成</button></div>`, card => {
       card.querySelectorAll('[data-voice]').forEach(b => b.onclick = async () => {
         await setVoice(b.dataset.voice);
         card.querySelectorAll('[data-voice]').forEach(x => { x.setAttribute('aria-pressed', String(x === b)); x.setAttribute('aria-checked', String(x === b)); });

@@ -54,6 +54,7 @@ NOT_SHIPPED = {
     'flow/corpus_data/meaning-fixes-notes.md': "the editors' record of the reviewed senses (tools/audit_meanings.py)",
     'flow/corpus_data/pilot/make_audio.py': 'makes the pilot audio on a desktop',
     'flow/corpus_data/v5/EXAMPLE.science.B2.json': 'an example for material authors',
+    'flow/corpus_data/v5/PRODUCTION.md': "the editors' weekly production steps for new materials",
     'flow/public/src/': 'the source parts of next.js and next.css (tools/build_front.py joins them)',
 }
 CONSOLE = ('index.html', 'admin.js', 'admin.css')  # tools/flow-pull.sh installs these from xmc-admin/ by name

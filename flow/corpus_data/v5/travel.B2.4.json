@@ -1,0 +1,162 @@
+[
+ {
+  "id": "v5-travel-b2-wrong-train-right-place",
+  "title": "坐错的火车，对的地方",
+  "title_en": "The Wrong Train to the Right Place",
+  "summary_zh": "坐错火车、错过提前订好的博物馆，作者被困在一个只有一条街的小镇上六个小时，结果那成了整趟旅行最难忘的一天。读完你能用过去完成时和间接引语讲好一个旅行故事。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "travel",
+  "genre": "story",
+  "purposes": [
+   "story",
+   "daily-life"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "I realised I was on the wrong train about ten minutes after it left the station, when the city disappeared and the window filled with fields. The ticket inspector looked at my ticket, smiled politely and explained that I was heading north instead of east. The next stop, she said, was a small town I had never heard of, and the next train back would not leave until the evening. My first reaction was panic, because I had booked a museum tour for that afternoon and had paid for it in advance. By the time we arrived, however, I had accepted that the tour was lost. The town turned out to be a single street of stone houses, a bakery and a river with an old wooden bridge. With six hours to fill, I bought a loaf of bread and started walking along the water. An elderly man who was painting the bridge asked where I was from, and before long he was showing me the best place to watch the swans. Later, the woman at the bakery let me leave my bag behind the counter while I climbed the hill above the town. From the top, I could see the railway line stretching back towards the city I had meant to visit. For the first time on the whole trip, nobody needed me to be anywhere. When the evening train finally arrived, I felt almost sorry to leave. I never did see that museum, but the photo of the bridge is still on my desk, and it reminds me that the best part of a trip is often the part I never planned.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the main message of the story?",
+    "options": [
+     "Travellers should always check the train times twice",
+     "Museum tours are usually a waste of money",
+     "An unplanned mistake can lead to the most memorable part of a trip",
+     "Small towns are too quiet for tourists"
+    ],
+    "answer": 2,
+    "evidence": "the best part of a trip is often the part I never planned"
+   },
+   {
+    "type": "inference",
+    "prompt": "How did the narrator most likely feel when leaving the town?",
+    "options": [
+     "A little sad to go",
+     "Relieved to finally escape",
+     "Angry about the lost tour",
+     "Worried about the bag"
+    ],
+    "answer": 0,
+    "evidence": "I felt almost sorry to leave"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"before long\" mean in \"before long he was showing me the best place to watch the swans\"?",
+    "options": [
+     "a long time ago",
+     "for a very long time",
+     "at the very beginning",
+     "soon"
+    ],
+    "answer": 3,
+    "evidence": "before long he was showing me the best place to watch the swans"
+   },
+   {
+    "type": "detail",
+    "prompt": "What did the woman at the bakery do?",
+    "options": [
+     "She drove the narrator to the station",
+     "She let the narrator leave a bag behind the counter",
+     "She sold the narrator a museum ticket",
+     "She showed the narrator where to watch the swans"
+    ],
+    "answer": 1,
+    "evidence": "the woman at the bakery let me leave my bag behind the counter"
+   }
+  ],
+  "dictation_index": 5,
+  "vocabulary": [
+   {
+    "term": "inspector",
+    "meaning": "检查员；查票员",
+    "example": "The inspector checked every ticket in the carriage."
+   },
+   {
+    "term": "panic",
+    "meaning": "惊慌",
+    "example": "There was a moment of panic when the lights went out."
+   },
+   {
+    "term": "elderly",
+    "meaning": "上了年纪的",
+    "example": "An elderly couple sat on the bench by the lake."
+   },
+   {
+    "term": "stretching",
+    "meaning": "延伸；伸展",
+    "example": "Fields were stretching as far as we could see."
+   },
+   {
+    "term": "loaf",
+    "meaning": "一条（面包）",
+    "example": "Could you buy a loaf of bread on your way home?"
+   }
+  ],
+  "expressions": [
+   {
+    "text": "heading north",
+    "meaning": "往北走",
+    "note": "head + 方向，表示“朝……前进”：We were heading home."
+   },
+   {
+    "text": "had never heard of",
+    "meaning": "从没听说过",
+    "note": "hear of 表示“听说过（某人某物的存在）”，常用于否定。"
+   },
+   {
+    "text": "in advance",
+    "meaning": "提前",
+    "note": "book / pay / plan in advance 是旅行里的高频搭配。"
+   },
+   {
+    "text": "turned out to be",
+    "meaning": "结果是；原来是",
+    "note": "和预想不同时用：The quiet town turned out to be wonderful."
+   },
+   {
+    "text": "before long",
+    "meaning": "不久；很快",
+    "note": "讲故事时推进情节：Before long, we were friends."
+   },
+   {
+    "text": "sorry to leave",
+    "meaning": "舍不得离开",
+    "note": "be sorry to do 表示“做……感到遗憾”：I'm sorry to hear that."
+   }
+  ],
+  "grammar": [
+   "tense-past-perfect",
+   "clause-reported",
+   "clause-relative"
+  ],
+  "knowledge": [
+   {
+    "node": "tense-past-perfect",
+    "quote": "By the time we arrived, however, I had accepted that the tour was lost.",
+    "explanation": "By the time + 过去时，主句用过去完成时 had accepted，表示在“到站”这个过去时间点之前，心态已经转变。"
+   },
+   {
+    "node": "clause-reported",
+    "quote": "The next stop, she said, was a small town I had never heard of, and the next train back would not leave until the evening.",
+    "explanation": "间接引语：she said 插在句中，后面的时态往过去推，will 变成 would；I had never heard of 是省略了关系词的定语从句。"
+   },
+   {
+    "node": "clause-relative",
+    "quote": "An elderly man who was painting the bridge asked where I was from",
+    "explanation": "who was painting the bridge 修饰 An elderly man；where I was from 是间接疑问句，用陈述语序，不说 where was I from。"
+   }
+  ],
+  "speaking": "用 1 分钟讲一次你走错路或坐错车的经历，结果怎么样？用上 turn out to be 和 before long。",
+  "writing": "用 120–150 词写一个小故事：一次计划被打乱，却意外有收获。用一个 By the time… had… 过去完成时句子和一句间接引语。",
+  "task": {
+   "prompt": "仿照这句，用 By the time …, I had … 写一句话，讲一次你心情慢慢变化的经历。",
+   "model": "By the time we arrived, however, I had accepted that the tour was lost"
+  },
+  "tags": [
+   "旅行故事",
+   "意外收获"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]
