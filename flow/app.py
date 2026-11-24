@@ -238,7 +238,8 @@ class Handler(BaseHTTPRequestHandler):
   except Exception:return None
   token=jar['flow_session'].value if 'flow_session' in jar else ''
   now=time.time()
-  u=c.execute('SELECT users.id,username,admin,csrf,token,expires,email FROM sessions JOIN users ON users.id=user_id WHERE token=? AND expires>?',(token,now)).fetchone()
+  # an account an operator stopped (xmc.hk console) has no session: its sessions are deleted and none is read
+  u=c.execute('SELECT users.id,username,admin,csrf,token,expires,email FROM sessions JOIN users ON users.id=user_id WHERE token=? AND expires>? AND NOT COALESCE(users.disabled,0)',(token,now)).fetchone()
   # Sliding sessions: a learner who keeps coming back stays signed in; SESSION_DAYS after the last visit it ends.
   # At most one write a day per session; the cookie is renewed with the same answer (send()).
   if u and u['expires']<now+(SESSION_DAYS-1)*86400:
@@ -475,6 +476,7 @@ class Handler(BaseHTTPRequestHandler):
     # r19: a forgotten password is reset with an emailed code, which also signs the learner in.
     u,problem=auth_service.register(c,data,password) if path=='/api/register' else auth_service.reset(c,data,password) if path=='/api/auth/reset' else auth_service.login(c,data,verify)
     if problem:return self.send(*problem)
+    if 'disabled' in u.keys() and u['disabled']:return self.send({'error':'这个账号已停用。如有疑问，请联系语流。','code':'disabled'},403)
     token=secrets.token_urlsafe(32);csrf=secrets.token_urlsafe(24)
     c.execute('DELETE FROM sessions WHERE expires<?',(time.time(),));c.execute('INSERT INTO sessions VALUES(?,?,?,?)',(token,u['id'],csrf,time.time()+SESSION_DAYS*86400))
    return self.send({'ok':True,'username':u['username']},cookie=session_cookie(token))
@@ -617,7 +619,7 @@ if __name__=='__main__':
  elif args.create_admin:
   name=input('管理员用户名: ').strip();p=getpass.getpass('密码（至少10位）: ')
   if not 3<=len(name)<=40 or not 10<=len(p)<=200:raise SystemExit('用户名或密码长度不符合要求')
-  with db() as c:c.execute('INSERT INTO users(username,password,admin) VALUES(?,?,1)',(name,password(p)))
+  with db() as c:c.execute('INSERT INTO users(username,password,admin,created) VALUES(?,?,1,?)',(name,password(p),time.time()))
   print('管理员已创建')
  else:
   import ai_jobs

@@ -16,6 +16,9 @@ def schema(c):
  ai_jobs.schema(c,'chat_turns')
 
 def daily_limit(name):
+ # r26: a value set in the xmc.hk console (console-settings.json) wins over /etc/flow.env, at once
+ v=__import__('console_ops').limit_override(name)
+ if v is not None:return v
  try:return max(0,int(os.getenv(name,'0') or 0))
  except ValueError:return 0
 

@@ -12,7 +12,7 @@ try {
 } catch (e) { document.documentElement.dataset.theme = 'light'; }
 </script>
 <link rel="stylesheet" href="/shared-ui.css?v=4.1.1">
-<link rel="stylesheet" href="/flow/admin.css?v=1.6.0">
+<link rel="stylesheet" href="/flow/admin.css?v=2.0.0">
 </head>
 <body>
 <header class="adm-top">
@@ -21,6 +21,12 @@ try {
       <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#1f9d55"/><path d="M7 20v-6m6 10V8m6 14V11m6 7v-4" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>
       <span>语流 Flow</span><span class="adm-sub">运营后台</span><span class="adm-srv" id="srv" hidden></span>
     </a>
+    <nav class="adm-groups" aria-label="后台分组">
+      <a href="#overview" data-group="data">数据</a>
+      <a href="#learners" data-group="people" data-admin>学员 <b class="adm-badge" id="fbBadgeG" hidden></b></a>
+      <a href="#content" data-group="content">内容</a>
+      <a href="#ai" data-group="ops">运维</a>
+    </nav>
     <div class="adm-tools">
       <span class="adm-who" id="who" hidden></span>
       <a class="btn" href="https://flowlang.cn/survey" target="_blank" rel="noopener">打开问卷</a>
@@ -29,19 +35,27 @@ try {
     </div>
   </div>
   <nav class="adm-tabs" aria-label="Flow 后台">
-    <a href="#overview" data-tab="overview">概览</a>
-    <a href="#learning" data-tab="learning">学习数据</a>
-    <a href="#compare" data-tab="compare">发版对比</a>
-    <a href="#speed" data-tab="speed">打开速度</a>
-    <a href="#survey" data-tab="survey">问卷统计</a>
-    <a href="#responses" data-tab="responses" data-admin>逐条回答</a>
-    <a href="#feedback" data-tab="feedback" data-admin>问题反馈 <b class="adm-badge" id="fbBadge" hidden></b></a>
-    <a href="#accounts" data-tab="accounts" data-admin>账号</a>
-    <a href="#errors" data-tab="errors" data-admin>错误和报错</a>
-    <a href="#log" data-tab="log" data-admin>操作记录</a>
+    <a href="#overview" data-tab="overview" data-group="data">概览</a>
+    <a href="#learning" data-tab="learning" data-group="data">学习数据</a>
+    <a href="#funnel" data-tab="funnel" data-group="data">留存和漏斗</a>
+    <a href="#compare" data-tab="compare" data-group="data">发版对比</a>
+    <a href="#speed" data-tab="speed" data-group="data">打开速度</a>
+    <a href="#survey" data-tab="survey" data-group="data">问卷统计</a>
+    <a href="#responses" data-tab="responses" data-admin data-group="data">逐条回答</a>
+    <a href="#learners" data-tab="learners" data-admin data-group="people">学员</a>
+    <a href="#feedback" data-tab="feedback" data-admin data-group="people">问题反馈 <b class="adm-badge" id="fbBadge" hidden></b></a>
+    <a href="#content" data-tab="content" data-group="content">材料</a>
+    <a href="#books" data-tab="books" data-group="content">词书和考试</a>
+    <a href="#announce" data-tab="announce" data-group="content">公告</a>
+    <a href="#ai" data-tab="ai" data-group="ops">AI 用量和额度</a>
+    <a href="#tasks" data-tab="tasks" data-group="ops">后台任务</a>
+    <a href="#errors" data-tab="errors" data-admin data-group="ops">错误和报错</a>
+    <a href="#log" data-tab="log" data-admin data-group="ops">操作记录</a>
   </nav>
 </header>
 <main class="adm-wrap" id="main" aria-live="polite"><p class="muted">正在加载…</p></main>
-<script src="/flow/admin.js?v=1.8.3"></script>
+<div class="drawer-bg" id="drawerBg" hidden></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle" hidden></aside>
+<script src="/flow/admin.js?v=2.0.0"></script>
 </body>
 </html>

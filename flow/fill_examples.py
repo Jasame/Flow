@@ -2,7 +2,7 @@
 """例句预生成: AI example sentences written ahead of time for word-book words that no Flow text uses.
 
     python3 fill_examples.py [--env-file /etc/flow.env] [--books tem8,gre] [--per-call 16] [--max-calls N]
-                             [--pause 1.0] [--dry-run]
+                             [--pause 1.0] [--dry-run] [--status FILE]
 
 A word card shows up to two sentences from Flow's texts, else the dictionary's example, else an AI example. That last
 one is written the first time someone opens the card (the card says 「正在找例句…」 for a few seconds) and is then
@@ -19,8 +19,10 @@ words are left (stopped early or --max-calls reached), 2 when no model is config
 
 Run it in the background on the server, e.g.
     cd /www/wwwroot/flow && nohup python3 fill_examples.py > /root/claude-ops/fill-examples.log 2>&1 &
+or from the xmc.hk console (运维 → 后台任务, r26), which starts it with --status and shows that file's progress:
+{state: running | done | left | no-model, total, looked, calls, made, left, books, updated}.
 """
-import argparse, os, sqlite3, sys, time
+import argparse, json, os, sqlite3, sys, time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -50,7 +52,17 @@ def main(argv=None):
     ap.add_argument('--max-calls', type=int, default=0, help='最多请求几次（默认不限）')
     ap.add_argument('--pause', type=float, default=1.0, help='两次请求之间停几秒')
     ap.add_argument('--dry-run', action='store_true', help='只数还缺多少，不请求')
+    ap.add_argument('--status', help='把进度写进这个 JSON 文件（后台的「后台任务」读它）')
     a = ap.parse_args(argv)
+    status = {'state': 'running', 'books': [], 'total': None, 'looked': 0, 'calls': 0, 'made': 0, 'left': None}
+
+    def report(**kw):
+        if not a.status:
+            return
+        status.update(kw, updated=time.time())
+        tmp = Path(a.status + '.tmp')
+        tmp.write_text(json.dumps(status, ensure_ascii=False), encoding='utf-8')
+        os.replace(tmp, a.status)
     if Path(a.env_file).is_file():
         sys.path.insert(0, str(HERE))
         from studio_setup import read_env
@@ -71,10 +83,13 @@ def main(argv=None):
     books = [b for b in (a.books.split(',') if a.books else ORDER) if b in vs.book_words()]
     todo = pending(c, vs, books)
     print(f'{db}: {len(todo)} words without an example in {",".join(books)} ({(len(todo) + a.per_call - 1) // max(1, a.per_call)} calls)', flush=True)
+    report(books=books, total=len(todo), left=len(todo))
     if a.dry_run or not todo:
+        report(state='done' if not todo else 'left')
         return 0 if not todo else 1
     if not ai_enabled():
         print('没有配置 AI 模型（FLOW_AI_MODEL 等），不能写例句。')
+        report(state='no-model')
         return 2
     calls = made = fails = 0
     i = 0
@@ -105,9 +120,11 @@ def main(argv=None):
             time.sleep(10)
         if calls % 20 == 0:
             print(f'{calls} calls, {made} examples written, {i}/{len(todo)} words looked at', flush=True)
+        report(looked=i, calls=calls, made=made)
         time.sleep(a.pause)
     left = len(pending(c, vs, books))
     print(f'done: {calls} calls, {made} examples written, {left} words still without an example', flush=True)
+    report(state='done' if not left else 'left', looked=i, calls=calls, made=made, left=left)
     return 0 if not left else 1
 
 
