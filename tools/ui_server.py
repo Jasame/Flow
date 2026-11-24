@@ -132,6 +132,7 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             'leaver': ('B1', 'work', ['work', 'science']),  # 注销账号 in tools/ui_test.py (learner_run)
             'a11y': ('B1', 'work', ['work', 'science']),  # the screen-reader and contrast audit (a11y_run)
             'sprint': ('B1', 'exam', ['campus']),  # 考试冲刺: 四级 in 19 days, four practice sets done (sprint_run; the guide's exam pictures)
+            'fresh': ('', '', []), 'fresh2': ('', '', []),  # 选方向和目标: accounts with no settings yet (start_run)
             # swiping the review card from anywhere on the screen (swipe_run): one learner per screen size, each starting fresh
             **{f'swipe-{k}': ('B1', 'work', ['work', 'science']) for k in ('ipad-land', 'ipad-mini-land', 'phone')}}
 out = {}
@@ -144,6 +145,9 @@ with app.db() as c:
         token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(24)
         c.execute('INSERT INTO sessions VALUES(?,?,?,?)', (token, uid, csrf, time.time() + 86400))
         c.commit()
+        if name.startswith('fresh'):
+            out[name] = {'token': token, 'csrf': csrf, 'id': uid}
+            continue
         nx.save_profile(c, uid, {'level': level, 'goal': goal if goal in nx.GOALS else next(iter(nx.GOALS)), 'themes': [t for t in themes if t in nx.THEMES], 'minutes': 15})
         vs.save_plan(c, uid, {'book': 'core' if level == 'A2' else 'mid', 'daily_new': 10, 'retention': 0.9})
         for w, ctx in (('commute', 'I commute to work by train.'), ('deadline', 'The deadline is on Friday.'), ('make ends meet', 'It is hard to make ends meet.')):

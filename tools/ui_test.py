@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Multi-device UI tests for Flow /next: phone, phone sideways, tablet and desktop; touch, keyboard and mouse.
 
-    python3 tools/ui_test.py [out dir] [phone|phone-land|tablet|desktop|progress|listen-speak|sprint …]   # needs: pip install playwright
+    python3 tools/ui_test.py [out dir] [phone|phone-land|tablet|desktop|progress|listen-speak|sprint|start …]   # needs: pip install playwright
 
 Starts its own local server (tools/ui_server.py: throwaway database, simulated AI, one signed-in learner per device),
 so every run begins from the same state, and drives the installed Google Chrome.
@@ -79,7 +79,9 @@ def check(dev, name, ok, detail=''):
 
 
 def settle(pg, sel='#view h1, #view .review, #view .empty, #view .done-card', timeout=8000):
-    pg.wait_for_function("() => !document.querySelector('#view .skeleton')", timeout=timeout)
+    # waits that poll without eval, so they work under the page's CSP in WebKit too (it does not honour bypass_csp)
+    pg.wait_for_selector('#view .skeleton', state='detached', timeout=timeout)
+    pg.wait_for_selector('#splash', state='detached', timeout=timeout)  # 启动动画 (09-start.js) has left
     try:
         pg.wait_for_selector(sel, timeout=timeout)
     except Exception:
@@ -583,12 +585,12 @@ def run_device(pw, dev, opts):
     h = pg.text_content('#view h1') or ''
     check(dev, 'radar: a short text is judged and recorded', '约 B1' in h, h)
 
-    # ---- welcome: the next button is reachable without scrolling on a phone
+    # ---- 学习目标和水平 (the start page from 我的): goals two across on phones, three on wide screens; 保存 reachable
     go(pg, '#/welcome/edit')
-    nb = pg.evaluate("() => { const r = document.getElementById('wNext').getBoundingClientRect(); return [Math.round(r.top), Math.round(r.bottom), innerHeight]; }")
-    check(dev, 'welcome: next button is on screen', nb[1] <= nb[2] and nb[0] >= 0, nb)
-    cols = pg.evaluate("() => getComputedStyle(document.querySelector('.choice.opts')).gridTemplateColumns.split(' ').length")
-    check(dev, 'welcome: level cards in 1 column on phones, 2 on wide screens', cols == (1 if opts['viewport']['width'] < 600 else 2), cols)
+    cols = pg.evaluate("() => getComputedStyle(document.querySelector('.wg-goals')).gridTemplateColumns.split(' ').length")
+    check(dev, 'welcome: goals in 2 columns on phones, 3 on wide screens', cols == (2 if opts['viewport']['width'] < 768 else 3), cols)
+    nb = pg.evaluate("() => { const b = document.getElementById('wgGo'); b.scrollIntoView({ block: 'center' }); const r = b.getBoundingClientRect(); return [Math.round(r.top), Math.round(r.bottom), innerHeight]; }")
+    check(dev, 'welcome: 保存 can be brought on screen above the tabs', nb[0] >= 0 and nb[1] <= nb[2], nb)
 
     # ---- account email, exam word lists, import topic
     go(pg, '#/me'); pg.wait_for_function("() => !document.querySelector('#acctEmail .spin')", timeout=5000)
@@ -1075,13 +1077,15 @@ def ux_run(pw):
         again = pg.text_content('#view .review') or ''
         check(dev, '撤销: the latest rating is taken back and the same card comes up again', has and again[:40] == first[:40], (has, first[:40], again[:40]))
         ctx.close()
-        # a first visit: no questions first, today's article can be tried at once
+        # a first visit: the one start page (goal, level to reach), then 今日; a shared material still opens without it
         ctx = browser.new_context(**phone); pg = ctx.new_page()
-        pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg, '.try-first')
-        link = pg.get_attribute('.try-first a', 'href') or ''
-        if link:
-            pg.click('.try-first a'); pg.wait_for_selector('#view .steps', timeout=6000)
-        check(dev, 'first visit: 先试读一篇 opens today\'s article without questions or an account', link.startswith('#/m/') and '/m/' in pg.evaluate('location.hash'), link)
+        pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg)
+        start = pg.evaluate('location.hash')
+        pg.click('[data-goal="daily"]'); pg.click('#wgGo'); pg.wait_for_function("() => location.hash === '#/'", timeout=6000); settle(pg)
+        today = pg.query_selector('#view .hello') is not None
+        pg.goto(BASE + f'/#/m/{PID}/read'); settle(pg)
+        check(dev, 'first visit: the start page, then 今日 for the level chosen; a link to a material opens it directly', start == '#/welcome' and today and pg.query_selector('#view .steps') is not None,
+              (start, today))
         ctx.close()
     finally:
         browser.close()
@@ -1837,6 +1841,129 @@ def progress_run(pw):
         browser.close()
 
 
+# ---- 启动动画 and 选方向和目标 (r27): the mark on every opening, the one page a new learner answers once, the same page
+# from 我的; five sizes, light and dark
+START_SIZES = {'phone': (390, 844, True), 'phone-360': (360, 780, True), 'phone-land': (844, 390, True), 'tablet': (820, 1180, True), 'desktop': (1440, 900, False)}
+SPLASH_JS = "() => { const s = document.getElementById('splash'); return s ? [s.className, getComputedStyle(s).visibility] : null; }"
+
+
+def start_run(pw):
+    dev = 'start'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    try:
+        for size, (w, h, touch) in START_SIZES.items():
+            for theme in ('light', 'dark'):
+                tag = f'{size} {theme}'
+                ctx = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=touch, has_touch=touch, device_scale_factor=2, locale='zh-CN',
+                                          color_scheme=theme, bypass_csp=True)
+                pg = ctx.new_page(); errs = []
+                pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+                # a first visit: the full mark (name and line), about a second, then the page, which is the one-page start
+                pg.goto(BASE + '/', wait_until='commit'); pg.wait_for_selector('#splash', state='attached', timeout=5000); pg.wait_for_timeout(120)
+                first = pg.evaluate(SPLASH_JS)
+                if size == 'phone':
+                    pg.wait_for_timeout(500); pg.screenshot(path=str(OUT / f'start-splash-{theme}.png'))
+                pg.wait_for_selector('#splash', state='detached', timeout=5000)
+                gone = pg.evaluate('Math.round(performance.now())')
+                check(dev, f'{tag}: a first visit shows the full mark for about a second, then the start page', first and 'first' in first[0] and 900 <= gone <= 2500
+                      and pg.evaluate('location.hash') == '#/welcome', (first, gone, pg.evaluate('location.hash')))
+                settle(pg); pg.wait_for_timeout(200)
+                lay = pg.evaluate(LAYOUT_JS, touch)
+                tabs = pg.evaluate("getComputedStyle(document.querySelector('.tabs')).display")
+                check(dev, f'{tag}: the start page fits (no sideways scroll, nothing squeezed, controls big enough), without the tabs',
+                      lay['overflow'] <= 1 and not lay['squeezed'] and not lay.get('small') and not lay.get('smallFields') and tabs == 'none',
+                      (lay['overflow'], lay['squeezed'], lay.get('small'), lay.get('smallFields'), tabs))
+                bad = []
+                for kind, items in pg.evaluate(A11Y_JS).items():
+                    bad += [f'{kind}: {x if isinstance(x, str) else json.dumps(x, ensure_ascii=False)}' for x in items]
+                check(dev, f'{tag}: contrast, names and labels on the start page', not bad, f'{len(bad)}: ' + ' | '.join(bad[:4]))
+                # 考试 opens the exams; an exam suggests a level (推荐), picked unless one was chosen by hand
+                pg.click('[data-goal="exam"]'); pg.click('[data-exam="cet4"]'); pg.wait_for_timeout(150)
+                rec = pg.evaluate("[...document.querySelectorAll('[data-target]')].filter(b => !b.querySelector('.rec').hidden).map(b => [b.dataset.target, b.getAttribute('aria-checked')])")
+                pg.click('[data-exam="cet6"]'); pg.wait_for_timeout(100)
+                rec6 = pg.evaluate("document.querySelector('[data-target][aria-checked=true]').dataset.target")
+                pg.click('[data-target="C1"]'); pg.click('[data-exam="ielts"]'); pg.wait_for_timeout(100)
+                kept = pg.evaluate("document.querySelector('[data-target][aria-checked=true]').dataset.target")
+                check(dev, f'{tag}: 考试 opens the exams; 四级 suggests B1, 六级 B2; a level picked by hand stays', rec == [['B1', 'true']] and rec6 == 'B2' and kept == 'C1', (rec, rec6, kept))
+                if size == 'phone':
+                    pg.click('[data-target="B2"]'); pg.wait_for_timeout(100)
+                    pg.screenshot(path=str(OUT / f'start-page-{theme}.png'), full_page=True)
+                pg.fill('#wgDateIn', (__import__('datetime').date.today() + __import__('datetime').timedelta(days=60)).isoformat())
+                pg.click('#wgGo'); pg.wait_for_function("() => location.hash === '#/'", timeout=6000); settle(pg)
+                guest = pg.evaluate("JSON.parse(localStorage.getItem('flow-next-guest'))")
+                check(dev, f'{tag}: started as a guest: the choices kept on the phone, materials one band below the target, today shown',
+                      guest['goal'] == 'exam' and guest['exam'] == 'ielts' and guest['level_source'] == 'guess' and guest['level'] == {'C1': 'B2', 'B2': 'B1'}[guest['target']]
+                      and pg.query_selector('#view .hello, #view .today-plan') is not None, guest)
+                # the next opening: the mark alone and short; never the start page again
+                pg.reload(wait_until='commit'); pg.wait_for_selector('#splash', state='attached', timeout=5000)
+                again = pg.evaluate(SPLASH_JS)
+                pg.wait_for_selector('#splash', state='detached', timeout=5000); settle(pg)
+                check(dev, f'{tag}: opened again: the short mark only, then 今日 (the start page does not come back)', again and 'first' not in again[0] and pg.evaluate('location.hash') in ('', '#/'),
+                      (again, pg.evaluate('location.hash')))
+                check(dev, f'{tag}: no script errors', not errs, errs[:3])
+                ctx.close()
+        # a new account without settings: the page, written to the account in one call; 今日 then suggests a test
+        ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['fresh']['token'], 'url': BASE}])
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+        check(dev, 'a signed-in account without settings gets the start page (no 登录 link there)', pg.evaluate('location.hash') == '#/welcome' and not pg.query_selector('#wgLogin'), pg.evaluate('location.hash'))
+        pg.click('[data-goal="exam"]'); pg.click('[data-exam="cet6"]'); pg.wait_for_timeout(100)
+        said = pg.evaluate("(el => el && !el.hidden ? el.textContent : '')(document.getElementById('wgPlan'))")
+        pg.screenshot(path=str(OUT / 'start-plan-note.png'), full_page=True)
+        pg.click('#wgGo')
+        pg.wait_for_function("() => location.hash === '#/'", timeout=6000); settle(pg); pg.wait_for_timeout(300)
+        vp = pg.evaluate("fetch('/api/next/vocab').then(r => r.json()).then(o => o.plan && [o.plan.book, o.plan.daily_new])")
+        check(dev, 'with an exam, the page says a word plan will be made, and starting makes it: the exam\'s book, 10 a day',
+              '《六级词汇》每天 10 个新词' in said and vp == ['cet6', 10], (said, vp))
+        prof = pg.evaluate("fetch('/api/next/home').then(r => r.json()).then(h => [h.profile, h.level_guess])")
+        note = pg.evaluate("(document.getElementById('levelGuess') || {}).textContent || ''")
+        check(dev, 'the account keeps goal, exam (the exam goal of 考试冲刺), target and a guessed level; 今日 suggests a test',
+              prof[0]['goal'] == 'exam' and prof[0]['exam'] == 'cet6' and prof[0]['target'] == 'B2' and prof[0]['level'] == 'B1' and prof[1]
+              and '去能力里测一下' in note and pg.get_attribute('#levelGuess a', 'href') == '#/radar/test', (prof, note[:40]))
+        pg.screenshot(path=str(OUT / 'start-today-hint.png'))
+        pg.click('#lgLater'); pg.wait_for_timeout(200)
+        check(dev, '「以后再说」 puts the suggestion away', pg.query_selector('#levelGuess') is None)
+        # 我的 → 学习目标和水平: the same page, with the current level, minutes and topics; saved, it goes back to 我的
+        go(pg, '#/me'); pg.click('a[href="#/welcome/edit"]'); settle(pg)
+        edit = pg.evaluate("""() => ({goal: (document.querySelector('[data-goal][aria-checked=true]') || {}).dataset, level: (document.querySelector('[data-level][aria-checked=true]') || {}).textContent,
+          exam: (document.querySelector('[data-exam][aria-checked=true]') || {}).textContent, tabs: getComputedStyle(document.querySelector('.tabs')).display})""")
+        pg.click('[data-level="B2"]'); pg.click('[data-min="20"]'); pg.click('#wgGo')
+        pg.wait_for_function("() => location.hash === '#/me'", timeout=6000); settle(pg)
+        p2 = pg.evaluate("fetch('/api/next/home').then(r => r.json()).then(h => h.profile)")
+        check(dev, '我的 opens the same page with what was chosen (tabs shown); a level chosen there counts as the learner choice',
+              edit['level'] and edit['level'].startswith('B1') and edit['exam'] == '六级' and edit['tabs'] != 'none'
+              and (p2['level'], p2['level_source'], p2['minutes'], p2['exam']) == ('B2', 'self', 20, 'cet6'), (edit, p2))
+        check(dev, 'no script errors (account)', not errs, errs[:3])
+        ctx.close()
+        # no word plan yet: 今日's first step asks for a book (not ticked); with an exam set, 背词计划 opens with its book chosen
+        ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['fresh2']['token'], 'url': BASE}])
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+        pg.click('[data-goal="daily"]'); pg.click('#wgGo'); pg.wait_for_function("() => location.hash === '#/'", timeout=6000); settle(pg)
+        step = pg.evaluate("(a => a && [a.querySelector('b').textContent, a.getAttribute('href'), a.classList.contains('done')])(document.querySelector('.today-plan .prow'))")
+        pg.screenshot(path=str(OUT / 'start-choose-book.png'))
+        csrf = CFG['learners']['fresh2']['csrf']
+        pg.evaluate("t => fetch('/api/next/exam/goal', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': t}, body: JSON.stringify({exam: 'cet4', date: ''})})", csrf)
+        go(pg, '#/vocab/plan'); pg.wait_for_timeout(300)
+        chosen = pg.evaluate("[document.getElementById('bookNow').textContent, [...document.querySelectorAll('#goal [aria-pressed=true]')].map(x => x.textContent)]")
+        check(dev, 'no word plan: 今日 starts with 选一本词书 (not ticked, to 背词计划), which opens with the exam\'s book chosen',
+              step == ['选一本词书（1 分钟）', '#/vocab/plan', False] and '《四级词汇》' in chosen[0] and chosen[1] == ['四级'], (step, chosen))
+        check(dev, 'no script errors (no word plan)', not errs, errs[:3])
+        ctx.close()
+        # reduced motion: no rising bars, the mark only fades
+        ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_init_script("document.addEventListener('DOMContentLoaded', () => { const i = document.querySelector('.sp-mark i'); window.__spAnim = i ? getComputedStyle(i).animationName : 'gone'; })")
+        pg = ctx.new_page(); pg.goto(BASE + '/', wait_until='domcontentloaded')
+        anim = pg.evaluate('window.__spAnim')
+        pg.wait_for_selector('#splash', state='detached', timeout=5000)
+        check(dev, 'reduced motion: the bars do not move and the mark leaves once the page is drawn', anim == 'none', anim)
+        ctx.close()
+    finally:
+        browser.close()
+
+
 def main():
     with sync_playwright() as pw:
         if not ONLY or 'about' in ONLY:
@@ -1892,6 +2019,12 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('listen-speak', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'start' in ONLY:
+            try:
+                start_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('start', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'sprint' in ONLY:
             try:
                 sprint_run(pw)
@@ -1909,6 +2042,7 @@ def main():
                 try:
                     layout_run(pw, engine)
                 except Exception:
+                    print(traceback.format_exc())
                     check('layout-' + engine, 'run finished', False, traceback.format_exc()[-600:])
     failed = [r for r in RESULTS if not r['ok']]
     (OUT / 'ui-report.json').write_text(json.dumps({'total': len(RESULTS), 'failed': failed, 'results': RESULTS}, ensure_ascii=False, indent=1))

@@ -92,6 +92,53 @@ textarea{min-height:120px;resize:vertical;line-height:1.55;font-family:var(--ser
 label.field{display:grid;gap:6px;font-size:14px;font-weight:600}
 .err{color:var(--red);font-size:14px;min-height:1.3em;margin:0}
 
+/* ---------- 启动动画 and 选方向和目标 (r27, 09-start.js) ---------- */
+/* The mark is in next.html, so it is on screen from the first paint; its bars rise in 0.4 s. The name and line show
+   only the first time (.first, set by the script). If the script never runs, the mark fades by itself after 3 s. */
+.splash{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  background:var(--bg);color:var(--ink);animation:sp-gone .3s ease 3s forwards}
+.sp-mark{width:96px;height:96px;border-radius:26px;background:var(--green);display:flex;align-items:center;justify-content:center;gap:7px}
+.sp-mark i{display:block;width:8px;border-radius:4px;background:#fff;animation:sp-bar .42s cubic-bezier(.2,.8,.2,1) both}
+.sp-mark i:nth-child(1){height:26px}
+.sp-mark i:nth-child(2){height:48px;animation-delay:.05s}
+.sp-mark i:nth-child(3){height:36px;animation-delay:.1s}
+.sp-mark i:nth-child(4){height:56px;animation-delay:.15s}
+.sp-mark i:nth-child(5){height:30px;animation-delay:.2s}
+.sp-name,.sp-tag{opacity:0}
+.sp-name{font-size:30px;font-weight:700;letter-spacing:1px;margin-top:4px}
+.sp-tag{font-size:15px;color:var(--ink2);margin-top:-10px}
+.splash.first .sp-name{animation:sp-in .4s ease .3s both}
+.splash.first .sp-tag{animation:sp-in .4s ease .45s both}
+.splash.out{animation:sp-gone .26s ease forwards;pointer-events:none}
+@keyframes sp-bar{from{transform:scaleY(.12)}to{transform:none}}
+@keyframes sp-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes sp-gone{to{opacity:0;visibility:hidden}}
+@media (prefers-reduced-motion:reduce){
+  .sp-mark i,.splash.first .sp-name,.splash.first .sp-tag{animation:none}
+  .splash.first .sp-name,.splash.first .sp-tag{opacity:1}
+  .splash.out{animation-duration:.01s}
+}
+
+/* the first time: the page alone, without the tabs */
+body.onboarding .tabs{display:none}
+body.onboarding{padding-bottom:env(safe-area-inset-bottom)}
+.wg{padding-bottom:12px}
+.wg h2.h3{font-size:17px;margin:4px 0 0}
+.wg-goals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.wg-goals .opt{display:grid;gap:2px;align-content:start;text-align:left;padding:14px;min-height:72px}
+.wg-goals .opt .l{font-weight:700;font-size:15.5px}
+.wg-goals .opt .d{font-size:12.5px;line-height:1.45;color:var(--ink2)}
+.wg-targets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.wg-targets .opt{display:grid;justify-items:center;gap:2px;padding:10px 4px;text-align:center;min-height:72px;position:relative}
+.wg-targets .opt b{font-size:16px}
+.wg-targets .opt .d{font-size:12px;line-height:1.35;color:var(--ink2)}
+.wg-targets .rec{font-size:11.5px;font-weight:700;color:var(--on-fill);background:var(--fill);border-radius:99px;padding:0 7px;line-height:1.6}
+.wg .opt[aria-checked=true] .d{color:var(--green-ink)}
+.wg input[type=date]{width:100%;max-width:280px;min-height:46px;padding:8px 12px;border-radius:12px;border:1px solid var(--line2);background:var(--paper);font-size:16px}
+.wg-go{margin-top:8px}
+.wg-plan{margin:4px 0 0;padding:10px 12px;border-radius:12px;background:var(--green-soft);color:var(--green-ink)}
+.wg-go .link{min-height:40px;align-self:center}
+@media (min-width:768px){.wg-goals{grid-template-columns:repeat(3,minmax(0,1fr))}}
 /* ---- today ---- */
 .hello{display:grid;gap:4px;margin-bottom:18px}
 .week{display:flex;gap:6px;margin-top:10px}
