@@ -438,7 +438,7 @@ def ai(c, days=14, people=False):
 # wrote, and the marking of it, never shows here: only counts and averages (ai_quality).
 SAMPLES = {'next-explain': ('句子讲解', 'SELECT e.pack, e.sentence, e.level, e.result, e.created FROM next_explains e JOIN lab_packs l ON l.id=e.pack AND l.owner IS NULL'),
            'next-variant': ('难度改写', 'SELECT v.pack, v.level, v.body, v.notes, v.created FROM next_variants v JOIN lab_packs l ON l.id=v.pack AND l.owner IS NULL'),
-           'next-examples': ('AI 例句', 'SELECT norm, sentence, translation, created FROM next_word_examples'),
+           'next-examples': ('AI 例句', "SELECT norm, sentence, translation, created, COALESCE(sense, '') FROM next_word_examples"),
            'next-transsrc': ('翻译原句', 'SELECT t.pack, t.sentence, t.zh, t.created FROM next_translations t JOIN lab_packs l ON l.id=t.pack AND l.owner IS NULL'),
            'next-dialog': ('对话开场', 'SELECT pack, level, result, created FROM next_dialog_openers'),
            'daily-news': ('今日热点', "SELECT id, content, created FROM lab_packs WHERE origin='daily' AND owner IS NULL")}
@@ -471,7 +471,7 @@ def ai_samples(c, kind, n=5):
         elif kind == 'next-variant':
             items.append({'key': [r[0], r[1]], 'title': _t(r[0]), 'level': r[1], 'output': {'body': r[2], 'notes': json.loads(r[3])}, 'created': r[4]})
         elif kind == 'next-examples':
-            items.append({'key': [r[0]], 'title': r[0], 'output': {'sentence': r[1], 'translation': r[2]}, 'created': r[3]})
+            items.append({'key': [r[0]], 'title': r[0], 'output': {'sentence': r[1], 'translation': r[2], 'sense': r[4] if len(r) > 4 else ''}, 'created': r[3]})
         elif kind == 'next-transsrc':
             items.append({'key': [r[0], r[1]], 'title': _t(r[0]), 'source': r[1], 'output': {'zh': r[2]}, 'created': r[3]})
         elif kind == 'next-dialog':

@@ -375,7 +375,8 @@ class ConsoleTests(Site):
             c.execute('INSERT INTO next_explains VALUES(?,?,?,?,?)', ('v5-science-b2-noise-cancelling', 'Human voices are a different story.', 'B1', json.dumps(good), time.time()))
             c.execute('INSERT INTO next_explains VALUES(?,?,?,?,?)', ('imp-private', 'My secret.', 'B1', json.dumps(good), time.time()))
             c.execute('INSERT INTO next_dialog_openers VALUES(?,?,?,?)', ('imp-private', 'B1', json.dumps({'scene': '日记', 'role': '', 'reply': 'Hi'}), time.time()))
-            c.execute('INSERT INTO next_word_examples VALUES(?,?,?,?)', ('perspective', 'Travel gave her a new perspective.', '旅行给了她新的看法。', time.time()))
+            c.execute('INSERT INTO next_word_examples(norm,sentence,translation,created,sense) VALUES(?,?,?,?,?)',
+                      ('perspective', 'Travel gave her a new perspective.', '旅行给了她新的看法。', time.time(), '看法'))
             c.execute("INSERT INTO lab_jobs(user_id,request_id,kind,pack,skill,fingerprint,status,result,created,updated) VALUES(?,?,?,?,?,?,?,?,?,?)",
                       (uid, 'rq-aaaaaaaaaaaa', 'next-rewrite', 'p', 'writing', 'f', 'complete',
                        json.dumps({'verdict': 'minor', 'corrected': 'My very private sentence.', 'changes': [{}]}), time.time(), time.time()))
@@ -386,7 +387,7 @@ class ConsoleTests(Site):
         st, d = self.console('/ai/samples?kind=next-dialog')
         self.assertEqual(d['items'], [])
         st, d = self.console('/ai/samples?kind=next-examples')
-        self.assertEqual([(x['key'], x['output']['translation']) for x in d['items']], [(['perspective'], '旅行给了她新的看法。')])
+        self.assertEqual([(x['key'], x['output']['translation'], x['output']['sense']) for x in d['items']], [(['perspective'], '旅行给了她新的看法。', '看法')])
         self.assertEqual(self.console('/ai/samples/redo', {'kind': 'next-examples', 'key': ['perspective']})[0], 200)
         st, d = self.console('/ai')
         self.assertNotIn('My very private sentence', json.dumps(d, ensure_ascii=False))

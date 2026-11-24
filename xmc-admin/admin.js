@@ -823,7 +823,7 @@
       '<ul class="small">' + (o.points || []).map(function (p) { return '<li><b>' + esc(p.text) + '</b>：' + esc(p.note) + (p.node_title ? ' <span class="pill off">' + esc(p.node_title) + '</span>' : '') + '</li>'; }).join('') + '</ul>' +
       (o.pattern ? '<div class="small">句型：<b>' + esc(o.pattern.frame) + '</b> — ' + esc(o.pattern.example || '') + '</div>' : '');
     if (kind === 'next-variant') return '<div class="small">' + esc(o.body) + '</div>' + ((o.notes || []).length ? '<div class="muted small">' + o.notes.map(function (x) { return esc(x.text + ' ' + (x.meaning || '')); }).join(' · ') + '</div>' : '');
-    if (kind === 'next-examples') return '<div>' + esc(o.sentence) + '</div><div class="muted small">' + esc(o.translation) + '</div>';
+    if (kind === 'next-examples') return '<div>' + esc(o.sentence) + '</div><div class="muted small">' + esc(o.translation) + (o.sense ? ' · 词义：' + esc(o.sense) : '') + '</div>';
     if (kind === 'next-transsrc') return '<div>' + esc(o.zh) + '</div>';
     if (kind === 'next-dialog') return '<div class="muted small">' + esc(o.scene) + (o.role ? ' · AI 扮演：' + esc(o.role) : '') + '</div><div>' + esc(o.reply) + '</div>';
     return '<div class="small">' + esc(o.body) + '</div><ol class="small">' + (o.questions || []).map(function (q) { return '<li>' + esc(q) + '</li>'; }).join('') + '</ol><div class="muted small">' + esc(o.source || '') + '</div>';
