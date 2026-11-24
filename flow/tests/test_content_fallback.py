@@ -1,7 +1,7 @@
 """今日 once a level's featured texts run out (r27 content line, audit 3.2): this level's unlearned featured texts, then
 the next level's, then 精读重学 (the longest ago first), and the older texts (简版) only when nothing else is left.
 Counts come from the corpus, never hard-coded: the corpus grows every week."""
-import sys, tempfile, time, unittest
+import datetime, sys, tempfile, time, unittest
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -57,7 +57,11 @@ class ContentFallbackTests(unittest.TestCase):
         h = nx.home(self.c, 1)
         self.assertNotIn(first, [m['id'] for m in h['today']])
         self.assertEqual([m['id'] for m in h['today']], oldest[1:4])
-        self.assertTrue(h['today'][0]['reasons'][0].endswith('1 天前学过'))
+        gap = (datetime.date.fromisoformat(nx._day()) - datetime.date.fromisoformat(nx._day(time.time() - 86400 - 1))).days
+        self.assertEqual(gap, 1)
+        self.assertTrue(h['today'][0]['reasons'][0].endswith('昨天学过'), h['today'][0]['reasons'])
+        nx.mark(self.c, 1, oldest[1], 'check')  # learned again just now
+        self.assertNotIn(oldest[1], [m['id'] for m in nx.home(self.c, 1)['today']])
         cards = {m['id']: m for m in nx.home(self.c, 1)['today']}
         self.assertEqual(len(cards), 3)
 

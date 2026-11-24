@@ -783,8 +783,9 @@ def home(c, uid, level=None, themes=None):
             if kind == 'up':
                 extra['reasons'] = [f'这一级的精选学完了，先试试 {up} 的'] + reasons[:1]
             elif kind == 'redo':
-                days = int((time.time() - last.get(p['id'], time.time())) // 86400)
-                when = '今天学过' if days < 1 else f'{days} 天前学过'
+                # calendar days in Beijing time, not 24-hour periods: last night's text is 「昨天学过」 this morning
+                days = (datetime.date.fromisoformat(_day()) - datetime.date.fromisoformat(_day(last.get(p['id'], time.time())))).days
+                when = '今天学过' if days <= 0 else '昨天学过' if days == 1 else f'{days} 天前学过'
                 extra = {'reasons': [f'精读重学：{when}' if p['id'] in last else '精读重学'], 'redo': True}
             picks.append(_card(p, done.get(p['id']), extra))
     news = None
