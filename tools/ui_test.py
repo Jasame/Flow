@@ -1538,7 +1538,8 @@ def listen_speak_run(pw):
                 p2.goto(BASE + '/#/', wait_until='networkidle'); settle(p2); p2.wait_for_timeout(500)
                 step = p2.evaluate("() => { const a = [...document.querySelectorAll('#view a[href^=\"#/speak/ielts/p1-\"]')][0]; return a ? [a.getAttribute('href'), a.textContent.replace(/\\s+/g, ' ')] : null; }")
                 check(dev, '留学: 今日 speaks 雅思 Part 1, the next topic', st == 200 and step and step[0] == '#/speak/ielts/p1-study-work' and '雅思 Part 1 · 学习还是工作' in step[1], (st, step))
-                if step:
+                if step:  # at 20 minutes a day the speaking step is under 还有时间的话 (r28 time budget): open it first
+                    p2.evaluate("h => { const a = document.querySelector(`#view a[href=\"${h}\"]`), d = a && a.closest('details'); if (d) d.open = true; }", step[0])
                     p2.click(f'#view a[href="{step[0]}"]'); settle(p2)
                     check(dev, '留学: the step opens that Part 1 topic', p2.evaluate('location.hash') == step[0] and bool(p2.query_selector('#ieStart')), p2.evaluate('location.hash'))
                 c2.close()
