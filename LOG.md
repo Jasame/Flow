@@ -89,3 +89,10 @@
   - #107 r28 第 6 段：每周学习天数（默认按目的 + 周一建议调低）（今日和计划、后台和班级、操作指南）
 - 自检：DEPLOYED，装了 6 个文件（0 个新的）；轻量 e2e 149/149，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45469043615
+
+### b22 · 2026-11-25 03:30
+- main `a771fdd`，构建 `a5508a2`
+- 新合并的 PR（自 b21 起）：
+  - #109 主屏 App：键盘不再挡住对话/导入的按钮；切深色浅色后状态栏跟着变（开局和考试）
+- 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 149/149，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45470855664
