@@ -175,12 +175,16 @@ def build_dictionary():
         out[k] = {'word': k, 'phonetic': _ec_phonetic(e), 'meaning': _ec_meaning(e), 'rank': e[6] or e[5] or 30000,
                   'example': '', 'ref': False, 'tags': e[2], 'collins': e[3]}
     try:  # senses reviewed by hand for common words whose dictionary order misleads (mean: 吝啬的 before 意思是)
-        fixes = json.loads((base / 'meaning-fixes.json').read_text(encoding='utf-8'))['words']
+        fx = json.loads((base / 'meaning-fixes.json').read_text(encoding='utf-8'))
+        fixes, phonetics = fx['words'], fx.get('phonetics') or {}
     except (OSError, ValueError, KeyError):
-        fixes = {}
+        fixes, phonetics = {}, {}
     for k, m in fixes.items():
         if k in out:
             out[k]['meaning'] = m
+    for k, p in phonetics.items():  # transcriptions reviewed by hand: missing in ECDICT (theatre, cosy) or broken there (pouring [por])
+        if k in out:
+            out[k]['phonetic'] = p
     return out
 
 
