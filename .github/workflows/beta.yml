@@ -1,0 +1,90 @@
+name: Beta release
+# Every commit that lands on main and passes Tests goes to the 内测版 (flow.jasa.hk) by itself: tools/deploy.sh --beta
+# builds next.js, next.css and the guide PDF for it (tools/build_release.py), pushes that build as tag build-<sha12>,
+# requests b<N>, and waits for the 内测版's own deploy and end-to-end test (https://flow.jasa.hk/api/deploy-status).
+# When the test passes it tags the build beta-passed-<sha12>; 语流 only ever installs such a build (tools/deploy.sh
+# <sha>, after the owner says 「发正式版」). A failed release or test fails this run, and GitHub emails it.
+#
+# The switch is the repository variable BETA_AUTO: only "on" releases by itself. While the owner tries a version on the
+# 内测版, turn it off so the 内测版 stays on that version; merges still queue up on main:
+#     gh variable set BETA_AUTO --body off -R Jasame/Flow      (and --body on afterwards)
+# "Run workflow" (workflow_dispatch) releases a main commit whatever the switch says.
+on:
+  workflow_run:
+    workflows: [Tests]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Commit on main to release (empty for main's newest)
+        required: false
+  pull_request:
+    # a change to how a release is built: its release build is made and checked here, nothing is pushed
+    paths:
+      - tools/build_release.py
+      - tools/build_guide.py
+      - tools/build_front.py
+      - tools/deploy.sh
+      - .github/workflows/beta.yml
+      - 'flow/public/guide/**'
+permissions:
+  contents: read
+jobs:
+  release:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && vars.BETA_AUTO == 'on' &&
+       github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50  # deploy.sh waits up to 40 minutes for the 内测版 (usually 5–8)
+    permissions:
+      contents: write  # the tags build-*, b<N>, beta-passed-* and the release-beta branch; main stays protected
+    concurrency:
+      group: beta-release
+      cancel-in-progress: false  # one release at a time; of the ones waiting, only the newest runs
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || inputs.sha || 'main' }}
+          fetch-depth: 0  # deploy.sh finds the branch that has the commit, and the release branches
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Playwright (prints the 操作指南 PDF with the installed Chrome)
+        run: python -m pip install --quiet playwright==1.49.1
+      - name: Chinese fonts for the guide PDF (Noto Sans CJK, named in its stylesheet)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
+      - name: Release to the 内测版 and wait for its end-to-end test
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          bash tools/deploy.sh --beta "$(git rev-parse HEAD)"
+  dry-run:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Playwright and the Chinese fonts, as for a release
+        run: |
+          python -m pip install --quiet playwright==1.49.1
+          sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
+      - name: The release build of this pull request (built and checked, not pushed; its log names the PDF's fonts)
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          build=$(python tools/build_release.py --dry-run HEAD)
+          mkdir -p /tmp/release-build
+          git show "$build:flow/public/guide/flow-guide.pdf" > /tmp/release-build/flow-guide.pdf
+      - name: The guide PDF a release of this would ship
+        uses: actions/upload-artifact@v4
+        with:
+          name: guide-pdf
+          path: /tmp/release-build/flow-guide.pdf
+          retention-days: 7

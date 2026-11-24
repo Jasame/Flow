@@ -10,7 +10,9 @@
 #
 # Pushes HEAD. The files git does not keep (next.js, next.css, the guide PDF) are built for the commit by
 # tools/build_release.py: --beta builds and checks them and pushes the build (the commit plus those files) as tag
-# build-<sha12>; 语流 installs the same build commit, which must have been requested on the 内测版 first. Then it
+# build-<sha12>; when the 内测版's deploy and end-to-end test pass, it tags the build beta-passed-<sha12>. 语流 installs
+# the same build commit, and only one tagged beta-passed (a commit from before release builds: one requested on the
+# 内测版). .github/workflows/beta.yml runs the --beta release for every main commit that passes Tests. Then it
 # computes the build commit's manifest hash from git (tools/release_manifest.py), writes "<build sha> <manifest> [e2e]"
 # to REQUEST on the release branch and tags it r<N+1> (语流, flowlang.cn) or b<N+1> (内测版). The server's timer for
 # that site (tools/flow-autodeploy.py [--beta]) picks the tag up through jsDelivr within a few minutes, deploys
@@ -37,10 +39,13 @@ fi
 # The build to install: made and checked now for the 内测版, the same one again for 语流 (both sites get the same bytes)
 if [ $P = b ] || [ -n "$SKIPBETA" ]; then BUILD=$(python3 tools/build_release.py "$SHA") || exit 1
 else BUILD=$(python3 tools/build_release.py --reuse "$SHA") || exit 1; fi
-if [ $P = r ] && [ -z "$SKIPBETA" ]; then
+PASSED="refs/tags/beta-passed-${BUILD:0:12}"  # the 内测版 installed this build and its end-to-end test passed
+if [ $P = r ] && [ -z "$SKIPBETA" ] && ! git ls-remote --exit-code --tags origin "$PASSED" >/dev/null; then
+  # a commit from before release builds (2026-11-24, b6 and earlier) has no such tag: it must have been requested there
   git fetch -q origin release-beta
-  git log -p --format= origin/release-beta -- REQUEST | grep -q "^+$BUILD " || {
-    echo "${BUILD:0:12} (for ${SHA:0:12}) was never requested on the 内测版: tools/deploy.sh --beta ${SHA:0:12} first"; exit 1; }
+  # grep reads all of it (-q would stop at the first match, and pipefail would count git log's broken pipe as a failure)
+  [ "$BUILD" = "$SHA" ] && git log -p --format= origin/release-beta -- REQUEST | grep "^+$BUILD " >/dev/null || {
+    echo "${BUILD:0:12} (for ${SHA:0:12}) has not passed the 内测版's end-to-end test: tools/deploy.sh --beta ${SHA:0:12} first"; exit 1; }
 fi
 MAN=$(python3 tools/release_manifest.py "$BUILD" 2>/dev/null)
 [[ $MAN =~ ^[0-9a-f]{64}$ ]] || { echo "manifest failed"; exit 1; }
@@ -80,4 +85,9 @@ import json, sys
 d = json.load(sys.stdin)
 print(json.dumps(d, ensure_ascii=False, indent=1))
 ok = d.get("result") in ("DEPLOYED", "NOTHING_TO_DO") and (not d.get("e2e_requested") or (d.get("e2e", {}).get("failed") == 0 and d.get("e2e", {}).get("cleanup_ok")))
-sys.exit(0 if ok else 1)'
+sys.exit(0 if ok else 1)' || exit 1
+# the 内测版 runs this build and passed its end-to-end test: 语流 may install it now (tools/deploy.sh <sha>)
+if [ $P = b ] && [ -n "$E2E" ] && ! git ls-remote --exit-code --tags origin "$PASSED" >/dev/null; then
+  git push -q origin "$BUILD:$PASSED" || { echo "deployed and tested, but ${PASSED#refs/tags/} could not be pushed: push it by hand"; exit 1; }
+  echo "tagged ${PASSED#refs/tags/}: 语流 may install this build"
+fi

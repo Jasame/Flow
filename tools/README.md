@@ -38,8 +38,9 @@ tools/deploy.sh --skip-beta <commit>  # 语流 without the 内测版 first: only
 `deploy.sh` pushes, then gets the commit's **release build**: `deploy.sh --beta` runs `build_release.py <commit>`, which
 builds the files a release builds in a temporary worktree of that commit, checks them the way the tests did while they
 were committed (`build_front.py --check`, `test_guide.py` on the PDF and its manifest, `node --check`), commits them on
-top of the commit and pushes that as tag `build-<sha12>`. `deploy.sh <commit>` for 语流 reuses that same build commit
-(`--reuse`) and refuses one that was never requested on the 内测版, so both sites install the same bytes. A commit from
+top of the commit and pushes that as tag `build-<sha12>`; once the 内测版 passed its end-to-end test on it, it adds the
+tag `beta-passed-<sha12>`. `deploy.sh <commit>` for 语流 reuses that same build commit (`--reuse`) and refuses one
+without that tag, so both sites install the same bytes and 语流 only gets what passed on the 内测版. A commit from
 before 2026-11-24 still has those files in git and is released as it is. Then `deploy.sh` computes the build commit's
 manifest hash from git (`release_manifest.py`), writes `<build commit> <manifest> [e2e]` to `REQUEST` on the `release`
 branch and tags it `r<N>`. The server needs nothing new: it deploys the build commit like any commit. The release
@@ -69,12 +70,19 @@ The owner agreed this order on 2026-11-24.
    merged one after another without merging main into each again (the protection rule doesn't require it): the built
    files no longer conflict, and the release lists are sorted, one name per line. A PR that GitHub says conflicts
    merges main, runs `python3 tools/settle_merge.py`, and resolves by hand only what that leaves.
-3. **内测版:** wait for main's own CI run after the last merge (about 6 minutes; it tests the PRs together), then
-   `tools/deploy.sh --beta <main sha>`. It builds next.js, next.css and the guide PDF for that commit, and the beta's
-   autodeploy installs the build and runs `qa_e2e.py` there.
-4. **The owner tries flow.jasa.hk.** A problem goes back through 1–3 as a new `b<N>`.
-5. **语流, only after the owner says so (「发正式版」):** `tools/deploy.sh <the same sha>`, with the end-to-end
-   test. It installs the build the 内测版 got, byte for byte, and refuses a commit that never went to the 内测版.
+3. **内测版, by itself:** when main's own CI run passes (about 6 minutes after a merge; it tests the PRs together),
+   `.github/workflows/beta.yml` runs `tools/deploy.sh --beta <that commit>` on a GitHub runner: it builds next.js,
+   next.css and the guide PDF (Noto Sans CJK on the runner), requests `b<N>`, and waits for the 内测版's autodeploy to
+   install it and run `qa_e2e.py`. When that passes it tags the build `beta-passed-<sha12>`. Merges in a row release
+   only the newest commit; a failed release or test fails the run (Actions → Beta release; GitHub emails it). The
+   内测版 shows what it runs at https://flow.jasa.hk/api/deploy-status (`tag`, `commit`: the build commit, whose
+   parent is the main commit; `result`; `e2e`). Nothing to do by hand, unless the switch is off (below).
+4. **The owner tries flow.jasa.hk.** Turn the switch off first, so the version being tried stays there while other
+   PRs merge: `gh variable set BETA_AUTO --body off -R Jasame/Flow`; on again afterwards (`--body on`). A problem goes
+   back through 1–3 as a new `b<N>`.
+5. **语流, only after the owner says so (「发正式版」):** `tools/deploy.sh <the main sha on the 内测版>`, with the
+   end-to-end test. It installs the build the 内测版 got, byte for byte, and refuses one without `beta-passed-<sha12>`
+   (the 内测版's end-to-end test did not pass on it; b6 and earlier count when they were requested on the 内测版).
    A failed deploy or test rolls back by itself.
 6. **Afterwards:** the public changelog, the version in the guide header, the ops log.
 
@@ -86,6 +94,11 @@ Conventions:
   one-off combination branches. 语流 still only gets commits from main.
 - **Hotfixes take the same path.** The beta's e2e run takes a few minutes. Skip the beta only when the owner says so
   (`tools/deploy.sh --skip-beta <sha>`).
+- **The switch `BETA_AUTO`** (a repository variable) is `on` while main should flow to the 内测版, and `off` while the
+  owner is trying a version or a PR branch is on the 内测版 for a trial. Off, merges just wait on main. A release by
+  hand still works either way: `tools/deploy.sh --beta <sha>` on the Mac (it prints the PDF with PingFang there), or
+  Actions → Beta release → Run workflow. An e2e failure that is the AI's, not the app's (it happens), is retried with
+  Run workflow for the same commit: same build, new `b<N>`.
 - **Database schema changes** run against the 内测版's data before they reach 语流's.
 - **A commit from before the two-site split** has a `tools/flow-pull.sh` without `F=${FLOW_DIR:-`. That script
   would install into 语流. `deploy.sh --beta` and the beta's autodeploy (status `ABORT_OLD_TOOLS`) both refuse it,

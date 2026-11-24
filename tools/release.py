@@ -13,6 +13,8 @@ import zipfile
 from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from build_release import GENERATED  # noqa: E402  next.js, next.css, the guide PDF and its manifest
 NAME = 'Flow-v3.4-Learning-Reliability-Upgrade.zip'
 STAMP = (1980, 1, 1, 0, 0, 0)
 MANIFEST = 'release-manifest.json'
@@ -46,6 +48,8 @@ def source_files(root):
         if any((root / Path(*PurePosixPath(name).parts[:i])).is_symlink()
                for i in range(1, len(PurePosixPath(name).parts) + 1)):
             raise ValueError('Symlinks are not release inputs: ' + name)
+        if not path.is_file() and name in GENERATED:
+            raise FileNotFoundError(f'{name} is built at release, not kept in git: run python3 tools/build_release.py --here first')
         files[name] = path.read_bytes()
     check_requirements(files)
     return files
