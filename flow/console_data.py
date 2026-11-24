@@ -10,7 +10,7 @@ DAY = 86400
 KIND_LABEL = {'next-rewrite': '仿写改写', 'next-explain': '句子讲解', 'next-variant': '难度改写', 'next-shadow': '跟读点评',
               'next-examples': 'AI 例句', 'next-retell': '复述', 'next-dialog': '情景对话', 'next-essay': '短文批改',
               'next-translate': '翻译批改', 'next-transsrc': '翻译原句', 'next-say': '发音检查', 'next-enrich': '导入文章出题',
-              'next-ielts': '雅思口语'}
+              'next-ielts': '雅思口语', 'context-help': '随堂提示'}
 RATE_LABEL = {'again': '忘了', 'hard': '模糊', 'good': '记得', 'easy': '很熟', 'known': '标为熟知', 'used': '写作用对',
               'misused': '写作用错', 'lookup': '阅读时查词'}
 SOURCE_LABEL = {'book': '词书每日新词', 'saved': '读文章时收藏', 'import': '自己导入', 'mistake': '错题加入'}
@@ -423,7 +423,117 @@ def ai(c, days=14, people=False):
             ((utc_today - datetime.timedelta(days=days - 1)).isoformat(),))]
         out['failures'] = [{'kind': KIND_LABEL.get(r[0], r[0]), 'error': (r[1] or '')[:160], 'created': r[2]} for r in c.execute(
             "SELECT kind, error, created FROM lab_jobs WHERE status='failed' AND created>? ORDER BY id DESC LIMIT 8", (now - days * DAY,))]
+    import ai_routes
+    out['costs'] = ai_routes.summary(c, days)
+    out['evals'] = ai_routes.eval_reports()
+    out['nightly'] = ai_routes.nightly_on()
+    out['quality'] = ai_quality(c, days)
+    out['sample_kinds'] = [{'kind': k, 'label': v[0]} for k, v in SAMPLES.items()]
     return out
+
+
+# ---------- AI output quality (r27+): shared content read in full, marking in numbers only ----------
+
+# Content every learner sees the same way (cached for everyone): an operator may read samples in full. What learners
+# wrote, and the marking of it, never shows here: only counts and averages (ai_quality).
+SAMPLES = {'next-explain': ('句子讲解', 'SELECT e.pack, e.sentence, e.level, e.result, e.created FROM next_explains e JOIN lab_packs l ON l.id=e.pack AND l.owner IS NULL'),
+           'next-variant': ('难度改写', 'SELECT v.pack, v.level, v.body, v.notes, v.created FROM next_variants v JOIN lab_packs l ON l.id=v.pack AND l.owner IS NULL'),
+           'next-examples': ('AI 例句', "SELECT norm, sentence, translation, created, COALESCE(sense, '') FROM next_word_examples"),
+           'next-transsrc': ('翻译原句', 'SELECT t.pack, t.sentence, t.zh, t.created FROM next_translations t JOIN lab_packs l ON l.id=t.pack AND l.owner IS NULL'),
+           'next-dialog': ('对话开场', 'SELECT pack, level, result, created FROM next_dialog_openers'),
+           'daily-news': ('今日热点', "SELECT id, content, created FROM lab_packs WHERE origin='daily' AND owner IS NULL")}
+
+
+def _public_title(c, pack, cache):
+    """A public text's title (a material or a speaking-route scene); None for a learner's own imported text."""
+    if pack not in cache:
+        r = c.execute('SELECT content FROM lab_packs WHERE id=? AND owner IS NULL', (pack,)).fetchone()
+        sc = None if r else __import__('scenarios').pack(pack)
+        cache[pack] = json.loads(r[0]).get('title') if r else (sc or {}).get('title')
+    return cache[pack]
+
+
+def ai_samples(c, kind, n=5):
+    """A few random items of one kind of shared AI content, as the learners see it, with the key to make it again."""
+    if kind not in SAMPLES:
+        return {'error': '没有这一类'}, 400
+    label, sql = SAMPLES[kind]
+    try:
+        rows = c.execute(sql + ' ORDER BY RANDOM() LIMIT ?', (max(1, min(20, int(n))),)).fetchall()
+    except Exception:  # noqa: BLE001 - an older database without the table
+        rows = []
+    items, cache = [], {}
+    _t = lambda pack: _public_title(c, pack, cache)
+    for r in rows:
+        r = tuple(r)
+        if kind == 'next-explain':
+            items.append({'key': [r[0], r[1], r[2]], 'title': _t(r[0]), 'level': r[2], 'source': r[1], 'output': json.loads(r[3]), 'created': r[4]})
+        elif kind == 'next-variant':
+            items.append({'key': [r[0], r[1]], 'title': _t(r[0]), 'level': r[1], 'output': {'body': r[2], 'notes': json.loads(r[3])}, 'created': r[4]})
+        elif kind == 'next-examples':
+            items.append({'key': [r[0]], 'title': r[0], 'output': {'sentence': r[1], 'translation': r[2], 'sense': r[4] if len(r) > 4 else ''}, 'created': r[3]})
+        elif kind == 'next-transsrc':
+            items.append({'key': [r[0], r[1]], 'title': _t(r[0]), 'source': r[1], 'output': {'zh': r[2]}, 'created': r[3]})
+        elif kind == 'next-dialog':
+            if not _t(r[0]):
+                continue  # a learner's own imported text: not shown
+            items.append({'key': [r[0], r[1]], 'title': _t(r[0]), 'level': r[1], 'output': json.loads(r[2]), 'created': r[3]})
+        else:
+            p = json.loads(r[1])
+            items.append({'key': [r[0]], 'title': p.get('title'), 'level': p.get('level'), 'output': {'body': p.get('body'), 'questions': [q.get('prompt') for q in p.get('questions', [])],
+                          'source': p.get('source')}, 'created': r[2]})
+    return {'kind': kind, 'label': label, 'items': items, 'redo': kind not in ('daily-news',)}, 200
+
+
+def ai_quality(c, days=14):
+    """How the marking came out, in numbers only (never what was written): per task, how many, and its averages."""
+    since = time.time() - days * DAY
+    rows = c.execute("SELECT kind, status, result, error FROM lab_jobs WHERE created>? AND kind IN "
+                     "('next-rewrite','next-essay','next-translate','next-retell','next-dialog','next-ielts')",
+                     (since,)).fetchall()
+    acc = {}
+    for kind, status, result, error in rows:
+        a = acc.setdefault(kind, {'kind': kind, 'label': KIND_LABEL.get(kind, kind), 'done': 0, 'failed': 0, 'unusable': 0, 'v': {}, 'n': []})
+        if status == 'failed':
+            a['failed'] += 1
+            a['unusable'] += int('不完整' in (error or ''))
+            continue
+        if status != 'complete':
+            continue
+        a['done'] += 1
+        try:
+            r = json.loads(result or '{}')
+        except ValueError:
+            continue
+        if not isinstance(r, dict) or not r:
+            continue
+        if kind == 'next-rewrite':
+            a['v'][r.get('verdict') or '?'] = a['v'].get(r.get('verdict') or '?', 0) + 1
+            a['n'].append(len(r.get('changes') or []))
+        elif kind == 'next-essay' and isinstance(r.get('scores'), dict):
+            a['n'].append(sum(r['scores'].values()))
+        elif kind == 'next-translate' and isinstance(r.get('score'), (int, float)):
+            a['n'].append(r['score'])
+        elif kind == 'next-retell' and r.get('points'):
+            a['n'].append(sum(1 for x in r['points'] if x.get('covered')) / len(r['points']))
+        elif kind == 'next-dialog' and isinstance(r.get('score'), (int, float)):
+            a['n'].append(r['score'])
+    out = []
+    for kind, a in acc.items():
+        tot = a['done'] + a['failed']
+        notes = []
+        vt = sum(a['v'].values())
+        if kind == 'next-rewrite' and vt:
+            notes.append('判「没问题」{}%，小改 {}%，要重写 {}%'.format(*(round(100 * a['v'].get(k, 0) / vt) for k in ('natural', 'minor', 'rewrite'))))
+            if a['n']:
+                notes.append(f"平均改 {sum(a['n']) / len(a['n']):.1f} 处")
+        elif a['n']:
+            avg = sum(a['n']) / len(a['n'])
+            notes.append({'next-essay': f'平均 {avg:.1f} / 20 分', 'next-translate': f'平均 {avg:.2f} 分（0–1）',
+                          'next-retell': f'平均讲到 {round(100 * avg)}% 的要点', 'next-dialog': f'对话总结平均 {avg:.2f} 分（0–1）'}.get(kind, ''))
+        out.append({'kind': kind, 'label': a['label'], 'done': a['done'], 'failed': a['failed'], 'unusable': a['unusable'],
+                    'fail_pct': round(100 * a['failed'] / tot) if tot else None, 'notes': [x for x in notes if x]})
+    return sorted(out, key=lambda x: -(x['done'] + x['failed']))
 
 
 # ---------- CSV ----------

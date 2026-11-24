@@ -198,12 +198,103 @@ def set_limits(data, by):
             new[env] = v
         else:
             return {'error': '额度请填 0–1000000 的整数（0 表示不限，留空表示用服务器配置）'}, 400
+    save_settings({k: new.get(k) for k in LIMIT_KEYS}, by, drop_none=True)
+    return {'ok': True, **limits()}, 200
+
+
+def save_settings(update, by, drop_none=False):
+    """Write some keys of console-settings.json (the rest kept), with who and when. drop_none: a None value removes the key."""
+    new = dict(settings())
+    for k, v in update.items():
+        if v is None and drop_none:
+            new.pop(k, None)
+        else:
+            new[k] = v
     new.update(updated=time.time(), by=by)
     p = data_dir() / SETTINGS
+    p.parent.mkdir(parents=True, exist_ok=True)
     tmp = p.with_name(p.name + '.tmp')
     tmp.write_text(json.dumps(new, ensure_ascii=False), encoding='utf-8')
     os.replace(tmp, p)
-    return {'ok': True, **limits()}, 200
+    _CACHE.update(path=None)  # read again at once (two writes within one mtime tick)
+
+
+def set_ai_budget(data, by):
+    """The daily AI budget in yuan (0 or empty: none), the nightly marking check on or off, platform discounts
+    ({'bailian': 0.65}: the share of the list price actually paid) and prices set by hand ({model: {in, cached, out,
+    platform}} yuan per million tokens at list price; a new model name adds a row; null: back to the built-in table)."""
+    import ai_routes
+    update = {}
+    if 'daily' in data:
+        v = data['daily']
+        if v in (None, '', 0):
+            update['ai_budget'] = None
+        elif isinstance(v, (int, float)) and not isinstance(v, bool) and 0 < v <= 100000:
+            update['ai_budget'] = round(float(v), 2)
+        else:
+            return {'error': '每日预算请填 0–100000 元（0 或留空表示不设）'}, 400
+    if 'nightly' in data:
+        if type(data['nightly']) is not bool:
+            return {'error': '参数不正确'}, 400
+        update['nightly_eval'] = None if data['nightly'] else False
+    if 'discounts' in data:
+        cur = dict(settings().get('ai_discounts') or {})
+        if not isinstance(data['discounts'], dict):
+            return {'error': '折扣格式不正确'}, 400
+        for k, v in data['discounts'].items():
+            if k not in ai_routes.PLATFORMS:
+                return {'error': f'没有这个平台：{k}'}, 400
+            if v is None:
+                cur.pop(k, None)
+            elif isinstance(v, (int, float)) and not isinstance(v, bool) and 0 < v <= 1:
+                cur[k] = round(float(v), 3)
+            else:
+                return {'error': '折扣请填 0–1 之间的小数，比如 0.65 表示六五折'}, 400
+        update['ai_discounts'] = cur or None
+    if 'prices' in data:
+        cur = dict(settings().get('ai_prices') or {})
+        if not isinstance(data['prices'], dict):
+            return {'error': '单价格式不正确'}, 400
+        for key, v in data['prices'].items():
+            if not isinstance(key, str) or not ai_routes.NAME.fullmatch(key):
+                return {'error': '模型名不正确'}, 400
+            if v is None:
+                cur.pop(key, None)
+                continue
+            if not isinstance(v, dict) or any(not isinstance(v.get(k), (int, float)) or isinstance(v.get(k), bool) or not 0 <= v[k] <= 10000 for k in ('in', 'cached', 'out')):
+                return {'error': '单价请填 0–10000 元 / 百万 token'}, 400
+            row = {k: float(v[k]) for k in ('in', 'cached', 'out')}
+            if v.get('platform') in ai_routes.PLATFORMS:
+                row['platform'] = v['platform']
+            cur[key] = row
+        update['ai_prices'] = cur or None
+    if not update:
+        return {'error': '没有要改的'}, 400
+    save_settings(update, by, drop_none=True)
+    return {'ok': True, 'daily': ai_routes.budget(), 'nightly': ai_routes.nightly_on(), 'discounts': ai_routes.discounts(), 'prices': ai_routes.prices()}, 200
+
+
+def ai_budget_text(body):
+    return ((f"每日预算 ¥{body['daily']:g}" if body['daily'] else '不设每日预算') + ('，每晚小评测开' if body['nightly'] else '，每晚小评测关')
+            + '，百炼折扣 ' + f"{body['discounts'].get('bailian', 1):g}")
+
+
+REDO = {'next-explain': ('DELETE FROM next_explains WHERE pack=? AND sentence=? AND level=?', 3),
+        'next-variant': ('DELETE FROM next_variants WHERE pack=? AND level=?', 2),
+        'next-examples': ('DELETE FROM next_word_examples WHERE norm=?', 1),
+        'next-transsrc': ('DELETE FROM next_translations WHERE pack=? AND sentence=?', 2),
+        'next-dialog': ('DELETE FROM next_dialog_openers WHERE pack=? AND level=?', 2)}
+
+
+def redo_sample(c, kind, key):
+    """Throw away one cached piece of shared AI content an operator found wrong: the next learner who needs it gets a
+    freshly written one (one AI call then)."""
+    if kind not in REDO or not isinstance(key, list) or len(key) != REDO[kind][1] or not all(isinstance(k, str) and len(k) <= 2000 for k in key):
+        return {'error': '参数不正确'}, 400
+    if not c.execute(REDO[kind][0], key).rowcount:
+        return {'error': '这一条已经不在了'}, 404
+    c.commit()
+    return {'ok': True}, 200
 
 
 def limits_text(lim):
@@ -255,17 +346,17 @@ def task_status():
     if not task:
         state = 'idle'
     elif running:
-        state = 'running'
+        state = 'waiting' if st.get('state') == 'waiting' else 'running'
     elif task.get('stop_requested'):
         state = 'stopped'
     else:
-        state = st.get('state') if st.get('state') in ('done', 'left', 'no-model', 'failed') else 'ended'
+        state = st.get('state') if st.get('state') in ('done', 'left', 'no-model', 'failed', 'budget') else 'ended'
     try:
         log = log_p.read_text(encoding='utf-8', errors='replace').splitlines()[-12:]
     except OSError:
         log = []
-    return {'state': state, 'task': {k: task.get(k) for k in ('started', 'by', 'books', 'max_calls', 'stopped')},
-            'progress': {k: st.get(k) for k in ('total', 'looked', 'calls', 'made', 'left', 'updated', 'books')}, 'log': log}
+    return {'state': state, 'task': {k: task.get(k) for k in ('started', 'by', 'books', 'max_calls', 'stopped', 'offpeak')},
+            'progress': {k: st.get(k) for k in ('total', 'looked', 'calls', 'made', 'left', 'updated', 'books', 'until')}, 'log': log}
 
 
 def start_examples(data, by):
@@ -287,6 +378,9 @@ def start_examples(data, by):
         cmd += ['--books', ','.join(books)]
     if max_calls:
         cmd += ['--max-calls', str(max_calls)]
+    offpeak = data.get('offpeak', True) is not False
+    if offpeak:
+        cmd += ['--offpeak']
     for p in (status_p,):
         try:
             p.unlink()
@@ -296,7 +390,7 @@ def start_examples(data, by):
     with open(log_p, 'w', encoding='utf-8') as log:
         proc = subprocess.Popen(cmd, cwd=str(HERE), stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, env=env)
     _PROC['p'] = proc
-    task = {'pid': proc.pid, 'started': time.time(), 'by': by, 'books': books, 'max_calls': max_calls}
+    task = {'pid': proc.pid, 'started': time.time(), 'by': by, 'books': books, 'max_calls': max_calls, 'offpeak': offpeak}
     task_p.write_text(json.dumps(task, ensure_ascii=False), encoding='utf-8')
     return {'ok': True, **task_status()}, 202
 
