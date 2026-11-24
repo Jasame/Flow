@@ -32,7 +32,7 @@
     const mh = document.getElementById('meHabit'); if (mh) mh.onclick = habitSheet;
     const me = document.getElementById('meExam'); if (me) me.onclick = () => examGoalSheet(() => meView());
     document.getElementById('meRemind').onclick = () => remindSheet(p.minutes || 10);
-    const mm = document.getElementById('meMail'); if (mm) mm.onclick = weeklyMailSheet;  // 11-progress.js
+    const mm = document.getElementById('meMail'); if (mm) { mm.onclick = weeklyMailSheet; fillMailRow(); }  // 11-progress.js
     const mi = document.getElementById('meInstall'); if (mi) mi.onclick = installSheet;
     if (u) {
       const b = document.getElementById('bindMail'); b.disabled = true;

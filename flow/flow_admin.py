@@ -157,7 +157,7 @@ TAP_LABEL = {
     'home-sprint': '今日 · 考试倒计时', 'me-exam': '我的 · 我的考试', 'exam-goal': '考试练习 · 设定考试', 'exam-pace': '考试练习 · 按倒计时改每天新词',
     'exam-type': '考试练习 · 题型专练',
     'notice-login': '今日 · 提醒：登录', 'notice-level': '今日 · 提醒：换水平', 'notice-mail': '今日 · 提醒：绑定邮箱', 'notice-guide': '今日 · 提醒：看指南',
-    'home-resume': '今日 · 继续上次', 'home-news': '今日 · 热点', 'home-pick': '今日 · 也可以读', 'home-more': '今日 · 更多材料',
+    'home-resume': '今日 · 继续上次', 'home-news': '今日 · 今日热点', 'home-pick': '今日 · 也可以读', 'home-more': '今日 · 更多材料',
     'practice-map': '练习 · 知识图谱大卡', 'practice-tip': '练习 · 今天建议',
     'words-plan': '单词 · 词书计划', 'words-confuse': '单词 · 辨析', 'words-mistake': '单词 · 错题本', 'words-test': '单词 · 测词汇量', 'words-import': '单词 · 导入',
     'words-stats': '单词 · 展开统计', 'read-gains': '读 · 展开这篇的收获', 'listen-preread': '听 · 展开读前生词',
@@ -178,6 +178,8 @@ TAP_LABEL = {
     'announce-open': '今日 · 公告：去看看',
     'home-week': '今日 · 这周进步', 'me-weekly-mail': '我的 · 每周进度邮件',
     'finish-expr': '学完一篇 · 小结：表达', 'finish-words': '学完一篇 · 小结：新词', 'finish-grammar': '学完一篇 · 小结：语法点',
+    'home-more-one': '今日 · 计划完成后再学一篇',
+    'line-say': '今日好句 · 听一遍', 'line-shadow': '今日好句 · 跟读', 'line-keep': '今日好句 · 收藏', 'line-read': '今日好句 · 读原文',
     'shadow-sound': '跟读 · 去练要练的音', 'speak-ielts': '口语路线 · 雅思口语',
 }
 
