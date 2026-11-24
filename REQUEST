@@ -1,3 +1,3 @@
-16ec8216b9106f82780bd8d8ccbf934ad9ebe6d4 02e4034bbb841ddbca5cd3b844f57d0192f5179a8bf1322473e22879bb73ffa3 e2e light
-# b15 main: Merge pull request #93 from Jasame/mail-fallback = build of 71b90c42f8da
+2475df59151e83fcf8021d949024d7d09c78b2d5 fb4f147a5ba7894ba26c71d1793a59148e5d195e47ad289c7f5e2404ced89e1b e2e light
+# b16 main: Merge pull request #83 from Jasame/changelog = build of 66317daeb83a
 # Format: <commit sha> <manifest sha256> [e2e [light]]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
