@@ -121,6 +121,32 @@ class ServerVoiceTests(TtsCase):
         self.assertIsNone(self.c.execute('SELECT 1 FROM tts_usage').fetchone())
         self.assertFalse((nx.AUDIO_DIR / 'tts').exists() and any((nx.AUDIO_DIR / 'tts').rglob('*.mp3')))
 
+    def test_a_folder_it_cannot_write_is_found_before_the_gateway_is_paid(self):
+        # 内测版, 2026-11-24: systemd ProtectSystem=strict kept the folder read-only; every tap was charged, then lost.
+        d = nx.AUDIO_DIR / 'tts' / 'us-f'
+        d.mkdir(parents=True)
+        d.chmod(0o555)
+        try:
+            if os.access(d, os.W_OK):
+                self.skipTest('running as root: a mode bit cannot make the folder read-only')
+            with patch('builtins.print') as log:
+                body, st = tts.post(self.c, 1, {'text': 'A read-only folder.'})
+                tts.post(self.c, 1, {'text': 'Another sentence.'})
+                night = tts.prewarm(self.c, budget=10 ** 6)
+        finally:
+            d.chmod(0o755)
+        self.assertEqual((st, body['code']), (503, 'store'))  # 503: the page uses the browser voice from now on
+        self.assertEqual(self.gw.seen, [])
+        self.assertIsNone(self.c.execute('SELECT 1 FROM tts_usage').fetchone())
+        self.assertEqual(sum('tts: cannot write' in str(a) for call in log.call_args_list for a in call.args), 1)  # said once
+        self.assertEqual(night['status'], 'store')
+
+    def test_a_file_that_cannot_be_saved_is_reported_as_such(self):
+        with patch.object(tts, '_store', side_effect=OSError(30, 'Read-only file system')), patch('builtins.print'):
+            body, st = tts.post(self.c, 1, {'text': 'The disk said no.'})
+        self.assertEqual((st, body['code']), (503, 'store'))
+        self.assertIsNone(self.c.execute('SELECT 1 FROM tts_usage').fetchone())
+
     def test_stored_names_are_checked(self):
         self.assertIsNone(tts.file('us-f', '../../t.db')); self.assertIsNone(tts.file('xx', 'a' * 32 + '.mp3'))
         self.assertIsNone(tts.file('us-f', 'a' * 32 + '.mp3'))  # well-formed, not stored

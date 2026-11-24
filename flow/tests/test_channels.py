@@ -212,6 +212,9 @@ class ToolTests(unittest.TestCase):
         self.assertIn('P=r; BRANCH=release; SITE=https://flowlang.cn', deploy)
         pull = (TOOLS / 'flow-pull.sh').read_text()
         self.assertNotIn('if xmc_dir:', pull)  # one manifest per commit: the 内测版 checks the console files too, it only skips installing them
+        # both services may write the shared voice folder (ProtectSystem=strict), set before the restart
+        self.assertLess(pull.index("ReadWritePaths=-%s/tts"), pull.index('systemctl restart "$SVC"'))
+        self.assertIn('sed -n \'s/^FLOW_AUDIO_DIR=//p\' "/etc/$SVC.env"', pull)
         for s in ('F=${FLOW_DIR:-/www/wwwroot/flow}', 'XMC=${FLOW_XMC-/www/wwwroot/xmc.hk/flow}', 'SVC=${FLOW_SERVICE:-flow}', 'U=${FLOW_URL:-http://127.0.0.1:8090}',
                   'echo "$SHA" > "$OPS/$SVC-deployed-commit"', 'bash "$HERE/flow-pull-rollback.sh" "$BK"',
                   "names += [f'xmc-admin/{n}'", 'xmc-admin/*) [ -n "$XMC" ] || continue;'):
