@@ -9,7 +9,12 @@ MODEL=os.environ.get('GATEWAY_MODEL','gemini-3.8-flash')
 SECRET=os.environ.get('GATEWAY_SECRET','')
 DATA=Path(os.environ.get('GATEWAY_DATA','/var/lib/flow-gateway'))
 LIMIT=int(os.environ.get('GATEWAY_DAILY_LIMIT','0'))
-TOKEN_LOCK=threading.Lock();TOKEN={'value':None,'until':0};SLOTS=threading.BoundedSemaphore(2)
+def slots_from_env(value=None):
+ """How many requests reach Google at once (GATEWAY_SLOTS, 1–32, default 6); the rest wait up to 25 s."""
+ try:n=int(os.environ.get('GATEWAY_SLOTS','') if value is None else value)
+ except (TypeError,ValueError):n=6
+ return max(1,min(n,32))
+TOKEN_LOCK=threading.Lock();TOKEN={'value':None,'until':0};SLOTS_N=slots_from_env();SLOTS=threading.BoundedSemaphore(SLOTS_N)
 NO_PROXY=urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 def init():
@@ -111,7 +116,7 @@ class Handler(BaseHTTPRequestHandler):
   body=json.dumps(data,ensure_ascii=False).encode();self.send_response(status)
   self.send_header('Content-Type','application/json; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('X-Content-Type-Options','nosniff');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def do_GET(self):
-  if self.path=='/health':self.send({'ok':True,'service':'flow-gateway','version':'2.2','audio_input':True,'search_grounding':True,'streaming':True})
+  if self.path=='/health':self.send({'ok':True,'service':'flow-gateway','version':'2.2','audio_input':True,'search_grounding':True,'streaming':True,'slots':SLOTS_N})
   else:self.send({'error':'Not found'},404)
  def do_POST(self):
   if self.path!='/v1/chat/completions':return self.send({'error':'Not found'},404)

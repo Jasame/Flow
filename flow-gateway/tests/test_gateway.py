@@ -81,6 +81,12 @@ class GatewayTests(unittest.TestCase):
     with urllib.request.urlopen(req,timeout=2) as r:self.assertEqual(r.status,200)
     self.assertIn('inlineData',invoke.call_args.args[0]['contents'][-1]['parts'][-1])
   finally:server.shutdown();server.server_close();thread.join()
+ def test_slots_come_from_the_environment(self):
+  self.assertEqual(g.slots_from_env('8'),8)
+  for value,want in (('',6),('x',6),('0',1),('-3',1),('99',32)):self.assertEqual(g.slots_from_env(value),want)
+  with patch.dict(g.os.environ,{'GATEWAY_SLOTS':'5'}):self.assertEqual(g.slots_from_env(),5)
+  with patch.dict(g.os.environ,{},clear=True):self.assertEqual(g.slots_from_env(),6)
+  self.assertEqual(g.SLOTS._value,g.SLOTS_N)
  def test_nginx_update_retains_security_and_is_idempotent(self):
   source='server { client_max_body_size 24k; location = /v1/chat/completions { allow 121.40.203.104; deny all; limit_req zone=flow_gateway burst=10 nodelay; proxy_pass http://127.0.0.1:8088; proxy_read_timeout 95s; } }'
   updated=update_nginx(source)
