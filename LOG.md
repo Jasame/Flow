@@ -30,7 +30,7 @@
   - #89 ai_eval 加情景对话两类题：说一句的回复和纠错、对话结束的总结（AI、内容）
   - #88 录音可以按任务走百炼 Qwen-Omni，Gemini 作备用；默认不开（FLOW_AUDIO_ROUTES）（AI、操作指南）
   - #84 iPhone 读音：设置里可切「自动 / 兼容模式」，兼容模式把单词压到 0.95 秒以下（垫 0.2 秒、切词尾安静）（听和说、今日和计划、后台和班级、操作指南）
-- 自检：没取到（发布时 deploy-status 已经是别的 tag，或网站没回答）
+- 自检：DEPLOYED，装了 17 个文件（0 个新的）；轻量 e2e 147/149，没过：a2: AI rewrite of an A2 sentence；db: no AI job failed，服务器报错 1（02:10 从 Actions 日志补记）
 
 ### b15 · 2026-11-25 02:01
 - main `71b90c4`，构建 `16ec821`
