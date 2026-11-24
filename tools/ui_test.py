@@ -567,9 +567,34 @@ def run_device(pw, dev, opts):
     wide = gp.evaluate("() => document.getElementById('sheetCard').scrollWidth <= document.getElementById('sheetCard').clientWidth + 1")
     check(dev, 'sign-in sheet fits the width', wide)
     gctx.close()
+    # ---- the word-book picker: books under group headings; 专四、专八、中考、学术 come from the data files
+    # (tools/ui-fixtures/wordbooks*.json here), each with how it was made; picking one is plain to see
     go(pg, '#/vocab/plan')
+    pick = pg.evaluate("""() => ({groups: [...document.querySelectorAll('#view .bookgroup > .kicker')].map(e => e.textContent.trim()),
+      tem: [...document.querySelectorAll('#view .bookgroup')].filter(g => g.querySelector('.kicker').textContent.trim() === '英语专业')
+        .flatMap(g => [...g.querySelectorAll('[data-book]')].map(b => b.dataset.book)),
+      count: (document.querySelector('#view [data-book=tem4] .bk-n') || {}).textContent,
+      basis: !!document.querySelector('#view [data-book=tem4] ~ details.basis > summary'),
+      wide: [...document.querySelectorAll('#view .bookc, #view details.basis')].filter(e => e.getBoundingClientRect().right > innerWidth + 1).length})""")
+    check(dev, 'plan: books grouped 按词频 → 中学 → 大学 → 英语专业 → 出国 → 学术与职场, then 自己的词表',
+          pick['groups'] == ['按词频', '中学英语', '大学英语', '英语专业', '出国留学', '学术与职场', '自己的词表'], pick['groups'])
+    check(dev, 'plan: 专四 and 专八 from the data file, with a word count and a 怎么来的 note, inside the width',
+          pick['tem'] == ['tem4', 'tem8'] and pick['count'] == '30 词' and pick['basis'] and not pick['wide'], pick)
+    pg.click('[data-book=tem4]')
+    sel = pg.evaluate("""() => ({pressed: [...document.querySelectorAll('#view [data-book][aria-pressed=true]')].map(b => b.dataset.book),
+      tag: getComputedStyle(document.querySelector('#view [data-book=tem4] .bk-on')).display, now: document.getElementById('bookNow').textContent})""")
+    check(dev, 'plan: choosing 专四 marks only that card 已选 and names it', sel['pressed'] == ['tem4'] and sel['tag'] != 'none' and '专四词汇' in sel['now'], sel)
+    pg.click('[data-book=tem4] ~ details.basis > summary'); pg.wait_for_timeout(200)
+    check(dev, 'plan: 这份词书怎么来的 opens the note', pg.is_visible('[data-book=tem4] ~ details.basis > p') and
+          '不是官方词表' in (pg.text_content('[data-book=tem4] ~ details.basis > p') or ''))
+    if dev == 'phone':
+        pg.evaluate("document.querySelector('[data-book=tem4]').scrollIntoView({block: 'center'})"); pg.wait_for_timeout(200)
+        pg.screenshot(path=str(OUT / 'phone-vocab_plan-wordbooks.png'))
+        pg.click('#savePlan'); pg.wait_for_function("() => location.hash === '#/cards'", timeout=5000); settle(pg)
+        check(dev, 'plan: a 专四 plan is saved and the 单词 page shows it', '《专四词汇》' in (pg.text_content('#view .vtoday') or ''))
+        go(pg, '#/vocab/plan')
     pg.click('#impBook'); pg.wait_for_selector('#impText', timeout=4000)
-    check(dev, 'plan: 专四/专八 entry opens the word-list import', pg.is_visible('#impText'))
+    check(dev, 'plan: the 导入老师给的词表 entry opens the word-list import', pg.is_visible('#impText'))
     pg.evaluate("document.querySelector('#sheet [data-close]').click()")
     go(pg, '#/import')
     check(dev, 'import: a topic can be chosen', pg.evaluate("() => document.querySelectorAll('#impF select[name=theme] option').length") >= 7)

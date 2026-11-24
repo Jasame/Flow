@@ -26,6 +26,8 @@ flow/SOURCE-CORPUS.md
 flow/UI-INTEGRATION.md
 flow/UPGRADE.md
 flow/VERTEX_SETUP.md
+flow/WORDBOOKS-OPEN.md
+flow/WORDBOOKS.md
 flow/ability_radar.py
 flow/account_service.py
 flow/adaptive_service.py
@@ -51,6 +53,7 @@ flow/content_v30.py
 flow/content_v50.py
 flow/core_words.py
 flow/corpus_data/ECDICT-LICENSE.txt
+flow/corpus_data/NGSL-LICENSE.txt
 flow/corpus_data/dictionary-flow.json
 flow/corpus_data/ecdict-flow.json
 flow/corpus_data/graded-packs.json
@@ -135,6 +138,8 @@ flow/corpus_data/v5/work.B2.json
 flow/corpus_data/v5/work.C1.2.json
 flow/corpus_data/v5/work.C1.3.json
 flow/corpus_data/v5/work.C1.json
+flow/corpus_data/wordbooks-open.json
+flow/corpus_data/wordbooks.json
 flow/corpus_data/wordroots-flow.json
 flow/corpus_data/wordroots-zh.json
 flow/corpus_data/yl-reference.json
@@ -259,6 +264,7 @@ flow/tests/test_learning_more.py
 flow/tests/test_learning_system.py
 flow/tests/test_login.py
 flow/tests/test_loop.py
+flow/tests/test_meaning_fixes.py
 flow/tests/test_media.py
 flow/tests/test_migration.py
 flow/tests/test_next.py
@@ -279,6 +285,9 @@ flow/tests/test_relisten.py
 flow/tests/test_ai_eval.py
 flow/tests/test_vertex.py
 flow/tests/test_vocab.py
+flow/tests/test_wordbook_registry.py
+flow/tests/test_wordbooks.py
+flow/tests/test_wordbooks_open.py
 flow/tools/build_graded.py
 flow/tools/build_reference.py
 flow/tools/revise_pedagogy.py
@@ -290,6 +299,8 @@ flow/vocab_service.py
 flow/word_links.py
 tests/test_release.py
 tools/build_ecdict_subset.py
+tools/build_open_wordbooks.py
+tools/build_wordbooks.py
 tools/corpus_validate.py
 tools/flow-pull-rollback.sh
 tools/flow-pull.sh

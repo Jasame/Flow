@@ -20,6 +20,9 @@ tmp = tempfile.mkdtemp(prefix='flow-ui-')
 # written to <data>/outbox as files, never sent.
 os.environ.update({'FLOW_DATA_DIR': tmp, 'FLOW_COOKIE_SECURE': '0', 'FLOW_MAIL_OUTBOX': os.path.join(tmp, 'outbox'), 'FLOW_AI_PROVIDER': 'openai', 'FLOW_AI_KEY': 'ui-test', 'FLOW_AI_MODEL': 'ui-test',
                    'FLOW_AI_URL': 'https://ai.invalid/v1/chat/completions', 'FLOW_AI_USER_DAILY_LIMIT': '500', 'FLOW_AI_DAILY_LIMIT': '5000', 'FLOW_AI_AUDIO': '1'})
+# Data word books (专四、专八、中考、学术…): small fixtures instead of flow/corpus_data/wordbooks*.json, so the picker
+# always shows the same groups and books whatever data files the checkout has.
+os.environ['FLOW_WORDBOOKS'] = os.pathsep.join(str(ROOT.parent / 'tools' / 'ui-fixtures' / n) for n in ('wordbooks.json', 'wordbooks-open.json'))
 sys.path.insert(0, str(ROOT))
 import app, chat_service, next_service as nx, vocab_service as vs, skills_service as sk  # noqa: E402
 
