@@ -15,7 +15,7 @@ concurrency:
 jobs:
   backend:
     runs-on: ubuntu-24.04
-    timeout-minutes: 25  # the website suite takes about 13 minutes on a hosted runner (2026-11); keep room to grow
+    timeout-minutes: 45  # one process: 18–25 min on a hosted runner (2026-11-24, ~630 tests); #48 hit the old 25-min limit
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -35,7 +35,7 @@ jobs:
     # tools/ui_test.py: every page on a phone, a phone held sideways, a tablet and a desktop, with touch, keyboard
     # and mouse; uses the runner's Google Chrome through Playwright and a local server with a simulated AI.
     runs-on: ubuntu-24.04
-    timeout-minutes: 30  # the UI suite took about 13 minutes on a hosted runner (2026-11-24) and passed 15 with the /about checks
+    timeout-minutes: 45  # one process: 21–24 min on a hosted runner (2026-11-24, ~2000 checks); room for the class pages
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
