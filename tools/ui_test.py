@@ -920,23 +920,25 @@ def ios_audio_run(pw):
         row = pg.text_content('#meSound') if pg.query_selector('#meSound') else ''
         pg.click('#meSound'); pg.wait_for_selector('#sheetCard [data-sound="compat"]', timeout=4000); pg.click('#sheetCard [data-sound="compat"]'); pg.wait_for_timeout(200)
         picked = pg.text_content('#meSoundV')
+        pg.click('#sheetCard [data-lead="0.15"]'); pg.wait_for_timeout(200)
+        leaded = pg.text_content('#meSoundV')
         pg.evaluate("document.querySelector('#sheet [data-close]').click()")
         pg.reload(wait_until='load'); settle(pg); pg.wait_for_timeout(300)
         kept = pg.text_content('#meSoundV') if pg.query_selector('#meSoundV') else ''
-        check(dev, '我的 → 设置 has 单词读音方式 (自动 by default); 兼容模式 chosen there stays after the app is opened again',
-              '单词读音方式' in row and '自动' in row and picked == '兼容模式' and kept == '兼容模式', (row, picked, kept))
+        check(dev, '我的 → 设置 has 单词读音方式 (连续 by default); 标准 and 0.15 s chosen there stay after the app is opened again',
+              '单词读音方式' in row and '连续' in row and picked == '标准 · 前面 0.2 秒' and leaded == kept == '标准 · 前面 0.15 秒', (row, picked, leaded, kept))
         n = len(pg.evaluate('window.__wa.starts')); pg.evaluate("location.hash = '#/m/" + pid + "/read'"); settle(pg, '#reader'); pg.wait_for_timeout(400)
         asked.clear(); tap_word(pg)
-        check(dev, '兼容模式: the word plays its <audio> clip (0.2 s of silence in front), not Web Audio',
-              any(clip_url in u for u in asked) and len(pg.evaluate('window.__wa.starts')) == n, asked[-3:])
+        check(dev, '标准: the word plays its <audio> clip with the silence chosen (0.15 s), not Web Audio',
+              any(clip_url.replace('l=0.2', 'l=0.15') in u for u in asked) and len(pg.evaluate('window.__wa.starts')) == n, asked[-3:])
         pg.wait_for_timeout(1500)
-        check(dev, '兼容模式: a clip that has ended lets its source go (WebKit then stops counting it for Now Playing)', not pg.evaluate(elements), pg.evaluate(elements))
-        check(dev, 'no script errors (自动 and 兼容模式)', not errs, errs[:3])
+        check(dev, '标准: a clip that has ended lets its source go (WebKit then stops counting it for Now Playing)', not pg.evaluate(elements), pg.evaluate(elements))
+        check(dev, 'no script errors (连续 and 标准)', not errs, errs[:3])
         ctx.close()
         # ?audio=element in Safari: the same 兼容模式; ?lead=: the silence in front (0.05–0.4 s)
         ctx, pg, errs, asked = page('?audio=element&lead=0.15')
         tap_word(pg)
-        check(dev, '?audio=element is 兼容模式, and ?lead=0.15 asks for a clip with 0.15 s of silence',
+        check(dev, '?audio=element is 标准, and ?lead=0.15 asks for a clip with 0.15 s of silence',
               not pg.evaluate('window.__wa.starts') and any(clip_url.replace('l=0.2', 'l=0.15') in u for u in asked), asked[-3:])
         pg.goto(base + '/?audio=auto&lead=auto#/m/' + pid + '/read', wait_until='load'); settle(pg, '#reader'); pg.wait_for_timeout(400)
         tap_word(pg)

@@ -127,7 +127,7 @@ class FrontEndTests(unittest.TestCase):
     def test_iphones_play_the_clip_and_keep_the_sprite_to_fall_back_on(self):
         js = (ROOT / 'public' / 'src' / 'next' / '01-audio-offline.js').read_text(encoding='utf-8')
         self.assertIn("const WORD_CLIPS = /iPhone|iPad|iPod/.test(navigator.userAgent)", js)
-        self.assertIn("`/audio/words/${ac}/${w[0]}.aac?s=${w[1]}&e=${w[2]}&l=${CLIP_LEAD}`", js)
+        self.assertIn("`/audio/words/${ac}/${w[0]}.aac?s=${w[1]}&e=${w[2]}&l=${clipLead()}`", js)
         self.assertIn('if (w.fallback) { const n = CLIP.want = { ...w, fallback: null }; CLIP.element(w.fallback[0], w.fallback[1], w.fallback[2], w.text, w.onend, null, n); return; }', js)
         self.assertIn('/\\.aac(\\?|$)/.test(url)) return', js)  # never looked for in R2
         # Web Audio on iPhones: a 'playback' session (the ringer switch), named on the lock screen, rested after 20 s;
@@ -135,7 +135,8 @@ class FrontEndTests(unittest.TestCase):
         self.assertIn("if (this.session('playback') !== 'playback') { this.off = true; return false; }", js)
         self.assertIn("MS.claim('short', title || '语流'", js); self.assertIn('}, 20000);', js)
         self.assertIn('CLIP.stop(); if (w.text) TTS.browser(w.text, w.onend);', js)
-        self.assertIn("v >= 0.05 && v <= 0.4 ? v : 0.2", js); self.assertEqual((wc.LEAD, wc.LEADS), (0.2, (0.05, 0.4)))  # the page and the server agree
+        self.assertIn("LEAD_DEFAULT = 0.2;", js); self.assertEqual((wc.LEAD, wc.LEADS), (0.2, (0.05, 0.4)))  # the page and the server agree
+        self.assertIn("const LEADS = [0.1, 0.15, 0.2, 0.25, 0.3]", js)  # the choices in 我的 → 设置, all inside the server's range
         self.assertIn("this.mode() !== 'compat'", js)  # Web Audio unless 兼容模式 (我的 → 设置) is chosen
         me = (ROOT / 'public' / 'src' / 'next' / '81-me.js').read_text(encoding='utf-8')
         self.assertIn("WORD_CLIPS ? grow('meSound', '单词读音方式'", me)  # the switch the home-screen app can reach
