@@ -129,9 +129,12 @@ PYEOF
 chmod 600 "$BK/flow-before.sqlite3"
 for x in "${CHANGED[@]}"; do src=${x%%|*}; dest=${x#*|}; mkdir -p "$(dirname "$dest")"; install -m 644 -o root -g root "$STAGE/files/$src" "$dest"; done
 echo "installed; backup in $BK"
-# 隐私说明: a deleted account is gone from every backup within 14 days. The database copies older than that go
-# (flow/ops.py does the same every day); the code files stay, for a rollback.
-find "$OPS" -maxdepth 2 -path "$OPS/backup-pull*/flow-before.sqlite3" -mtime +13 -print -delete 2>/dev/null | sed 's/^/pruned old database copy: /' || true
+# 隐私说明: a deleted account is gone from every backup within 14 days. This site's own database copies older than that
+# go (flow/ops.py prune-deploy; the daily backup does the same for 语流); the code files stay, for a rollback. Each site
+# touches only its own folders (backup-pull-<date> for 语流, backup-pull-beta-<date> for the 内测版); the 内测版 only
+# lists them unless FLOW_PRUNE_DRY_RUN=0.
+case "$SVC" in flow) CH=prod;; flow-beta) CH=beta;; *) CH=;; esac
+if [ -n "$CH" ] && [ -f "$F/ops.py" ]; then "$PY" "$F/ops.py" prune-deploy --channel "$CH" 2>&1 || true; fi
 
 rollback() {
   echo "FAIL -> ROLLBACK"; journalctl -u "$SVC" -n 30 --no-pager
