@@ -241,6 +241,7 @@ flow/public/guide/read.jpg
 flow/public/guide/report.jpg
 flow/public/guide/review.jpg
 flow/public/guide/speak.jpg
+flow/public/guide/scene.jpg
 flow/public/guide/shadow.jpg
 flow/public/guide/ielts.jpg
 flow/public/guide/ielts-fb.jpg
@@ -326,6 +327,7 @@ flow/tests/test_rewrite_minimal.py
 flow/tests/test_vertex.py
 flow/tests/test_vocab.py
 flow/tests/test_ielts_speaking.py
+flow/tests/test_speak_rounds.py
 flow/tests/test_wordbook_registry.py
 flow/tests/test_wordbooks.py
 flow/tests/test_wordbooks_open.py

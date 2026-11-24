@@ -1380,6 +1380,33 @@ def listen_speak_run(pw):
                 pg.fill('#p2Txt', ' '.join(['I often go to the small park near my flat after work because it is quiet and green.'] * 2)); pg.click('#p2Send')
                 pg.wait_for_selector('#ieOut .ielts-fb', timeout=10000)
                 check(dev, 'Part 2 typed: feedback without 发音', '不评发音' in pg.text_content('#ieOut'))
+            # 口语情景 r28: a scene done before comes back as round 2 with one more requirement; each answer sets the AI's pace
+            me3 = CFG['learners']['rounds']
+            c3 = browser.new_context(**opts, locale='zh-CN', bypass_csp=True)
+            c3.add_cookies([{'name': 'flow_session', 'value': me3['token'], 'url': BASE}])
+            p3 = c3.new_page(); p3.on('pageerror', lambda e: errors.append(str(e)))
+            p3.goto(BASE + '/#/speak', wait_until='networkidle'); settle(p3)
+            row = p3.evaluate("() => { const a = document.querySelector('#view a.nrow[href=\"#/speak/cafe-order\"]'); return a ? a.textContent.replace(/\\s+/g, ' ') : ''; }")
+            check(dev, '口语情景: a scene done once says so on the route', '练过 1 轮' in row, row)
+            p3.goto(BASE + '/#/speak/cafe-order', wait_until='networkidle'); settle(p3)
+            hd = p3.evaluate("() => [document.querySelector('#view .kicker').textContent, (document.querySelector('#view .round-extra') || {}).textContent || '']")
+            check(dev, '口语情景: round 2 shows the round and its extra requirement', '第 2 轮' in hd[0] and '这一轮多一条' in hd[1], hd)
+            l3 = p3.evaluate(LAYOUT_JS, touch); check(dev, '口语情景 round 2: no sideways scroll', l3['overflow'] <= 1, f"{l3['overflow']}px {l3['wide']}")
+            p3.click('#dlgStart'); p3.wait_for_selector('#chat .msg.ai', timeout=8000)
+            p3.fill('#dlgText', 'yes'); p3.click('#dlgSend'); p3.wait_for_selector('#chat .msg.me .pace', timeout=8000)
+            sl = p3.evaluate("() => [document.querySelector('#chat .msg.me .pace').dataset.pace, document.querySelector('#chat .msg.me .pace').textContent, (document.querySelector('#dlgHint .say-line b') || {}).textContent || '']")
+            check(dev, '口语情景: a one-word answer slows the AI down, says so, and offers a sentence to use', sl[0] == 'easier' and '放慢' in sl[1] and len(sl[2].split()) >= 3, sl)
+            p3.fill('#dlgText', 'I usually take the early train, so I want headphones that block the engine noise.'); p3.click('#dlgSend')
+            p3.wait_for_function("document.querySelectorAll('#chat .msg.me').length >= 2", timeout=8000)
+            pc = p3.evaluate("() => [...document.querySelectorAll('#chat .msg.me')].map(m => (m.querySelector('.pace') || {dataset: {}}).dataset.pace || '')")
+            check(dev, '口语情景: a long, correct answer makes the AI go deeper', pc == ['easier', 'harder'], pc)
+            l3 = p3.evaluate(LAYOUT_JS, touch); check(dev, '口语情景 with pace notes: no sideways scroll', l3['overflow'] <= 1, f"{l3['overflow']}px {l3['wide']}")
+            p3.screenshot(path=str(OUT / f'{dev}-scene-round2.png'), full_page=False)
+            if size == 'desktop':  # the end of the round: whether the requirement was met, and how often the AI adjusted
+                p3.click('#dlgEnd'); p3.wait_for_selector('#dlgOut .result', timeout=10000)
+                end = p3.text_content('#dlgOut') or ''
+                check(dev, '口语情景: the feedback says the requirement was met and how the AI adjusted', '这一轮的要求' in end and '做到了' in end and '放慢了 1 次' in end and '加深了 1 次' in end, end[:160])
+            c3.close()
             check(dev, 'no script errors', not errors, errors[:3])
             ctx.close()
     finally:
