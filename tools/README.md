@@ -72,7 +72,8 @@ The owner agreed this order on 2026-11-24.
 3. **内测版, by itself:** when main's own CI run passes (about 6 minutes after a merge; it tests the PRs together),
    `.github/workflows/beta.yml` runs `tools/deploy.sh --beta <that commit>` on a GitHub runner: it builds next.js,
    next.css and the guide PDF (Noto Sans CJK on the runner), requests `b<N>`, and waits for the 内测版's autodeploy to
-   install it and run `qa_e2e.py`. Merges in a row release only the newest commit; a failed release or test fails
+   install it and run the **light** `qa_e2e.py` (no recordings sent to the AI, see below). Merges in a row release only
+   the newest commit; a failed release or test fails
    the run (Actions → Beta release; GitHub emails it). The 内测版 shows what it runs at https://flow.jasa.hk/api/deploy-status (`tag`, `commit`: the build commit, whose
    parent is the main commit; `result`; `e2e`). Nobody releases the 内测版 by hand any more, unless it is paused (below).
 4. **The owner tries flow.jasa.hk.** Pause first, so the version being tried stays there while other PRs merge:
@@ -91,6 +92,11 @@ Conventions:
 - **Trying a PR before it merges:** pause the automatic release (`BETA_AUTO` off), merge main into that PR's branch and
   beta-deploy the result by hand (`tools/deploy.sh --beta <branch sha>`). Don't build one-off combination branches.
   语流 still only gets commits from main.
+- **Which end-to-end test runs where.** The light one (no recordings to the AI) on every automatic 内测版 release; the
+  full one on every 语流 release (`deploy.sh` refuses `--light` there), in the daily run, and on the 内测版 when someone
+  asks for it (Run workflow with e2e = full, or `tools/deploy.sh --beta <sha>` without `--light`). Recordings go
+  through the Gemini relay, whose two places 语流's learners share: on 2026-11-24 three release tests in half an hour
+  made 语流 slow.
 - **Hotfixes take the same path.** The beta's e2e run takes a few minutes. Skip the beta only when the owner says so
   (`tools/deploy.sh --skip-beta <sha>`).
 - **The pause `BETA_AUTO`** (a repository variable): `off` while the owner is trying a version or a PR branch is on
@@ -127,6 +133,12 @@ Four internal test learners (ids from 990001, sessions written straight into the
 email so no mail can go out) use the live app at the same time with the real AI and synthesized speech
 (`qa-audio/`, made by `qa_clips.py`). It checks API behaviour, limits, isolation between learners and
 database invariants, then deletes every row the test accounts created and verifies none is left.
+
+**Light run** (`QA_LIGHT=1`, REQUEST `e2e light`, `deploy.sh --beta --light`): skips the checks that send a recording
+to the AI (pronunciation and the sound card, shadowing, a dialogue turn by voice, which becomes a typed one, and a
+spoken retell) and notes each skip. **At most `QA_AI_SLOTS` (default 1) AI requests** of a run are in flight at once,
+so a test never takes all of a model's places from learners. `report.json` and `/api/deploy-status` record both
+(`e2e.light`, `e2e_light`). A light run checks 143 things, a full one 150 (against the local UI server, 2026-11-24).
 
 ## Multi-device UI test (`ui_test.py`)
 

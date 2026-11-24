@@ -2,6 +2,10 @@ name: Beta release
 # Every commit that lands on main and passes Tests goes to the 内测版 (flow.jasa.hk) by itself: tools/deploy.sh --beta
 # builds next.js, next.css and the guide PDF for it (tools/build_release.py), pushes that build as tag build-<sha12>,
 # requests b<N>, and waits for the 内测版's own deploy and end-to-end test (https://flow.jasa.hk/api/deploy-status).
+# The test is the light one (tools/qa_e2e.py QA_LIGHT): no recordings go to the AI, because the Gemini relay has two places
+# that 语流's learners share, and a release test after every merge would keep taking them (2026-11-24: three release tests
+# in half an hour slowed 语流 down). The full test runs on 语流's releases and every day; Run workflow can ask for it here.
+# One release at a time (concurrency below), and the test itself sends one AI request at a time (QA_AI_SLOTS).
 # A failed release or test fails this run, and GitHub emails it. 语流 later installs the same build, only one that was
 # requested here (tools/deploy.sh <sha>, after the owner says 「发正式版」); the 内测版 checks (F=${FLOW_DIR:-) are
 # deploy.sh's and the server's, unchanged.
@@ -20,6 +24,11 @@ on:
       sha:
         description: Commit on main to release (empty for main's newest)
         required: false
+      e2e:
+        description: End-to-end test on the 内测版 (full sends recordings to the AI too)
+        type: choice
+        options: [light, full]
+        default: light
   pull_request:
     # a change to how a release is built: its release build is made and checked here, nothing is pushed
     paths:
@@ -59,10 +68,13 @@ jobs:
       - name: Chinese fonts for the guide PDF (Noto Sans CJK, named in its stylesheet)
         run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
       - name: Release to the 内测版 and wait for its end-to-end test
+        env:
+          E2E_MODE: ${{ inputs.e2e == 'full' && 'full' || 'light' }}  # automatic releases: light
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          bash tools/deploy.sh --beta "$(git rev-parse HEAD)"
+          if [ "$E2E_MODE" = full ]; then light=""; else light="--light"; fi
+          bash tools/deploy.sh --beta $light "$(git rev-parse HEAD)"
   dry-run:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04

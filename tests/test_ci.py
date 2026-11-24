@@ -72,7 +72,11 @@ class BetaReleaseTests(unittest.TestCase):
                      "github.event.workflow_run.event == 'push'", "github.event_name == 'workflow_dispatch'"):
             self.assertIn(part, cond)
         self.assertIn('ref: ${{ github.event.workflow_run.head_sha', cond)  # the commit that passed, not main's newest
-        self.assertIn('bash tools/deploy.sh --beta "$(git rev-parse HEAD)"', cond)  # with the end-to-end test (no --no-e2e)
+        # with the end-to-end test (never --no-e2e), the light one unless a Run workflow asks for the full one
+        self.assertIn('bash tools/deploy.sh --beta $light "$(git rev-parse HEAD)"', cond)
+        self.assertIn("E2E_MODE: ${{ inputs.e2e == 'full' && 'full' || 'light' }}", cond)
+        self.assertIn('if [ "$E2E_MODE" = full ]; then light=""; else light="--light"; fi', cond)
+        self.assertIn('options: [light, full]\n        default: light', self.wf)
         self.assertNotIn('--no-e2e', self.wf)
         self.assertIn('-r tools/requirements-release.txt', cond); self.assertIn('cache: pip', cond)  # Playwright, cached
 
