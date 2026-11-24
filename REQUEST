@@ -1,3 +1,3 @@
-2fd01f80a18f536ec46304ac5ea4769ad2155d8f 21f87188e3f76c94bf2e13301e06bd9f33bd266ff78c9234001c1309d3714ee2 e2e
-# b1 beta-r22: Merge remote-tracking branch 'origin/domains' into beta-r22
+b2d6dec1ee7f702abee92c0309e91e49cd8a022d eeb2386dc8ab1f08d087b8208d9adf7c1cf1b9d5bc809a386b8b360cc8ced314 e2e
+# b2 wordbooks: Merge main (PR #25 merged, guide PDF fix) into wordbooks
 # Format: <commit sha> <manifest sha256> [e2e]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
