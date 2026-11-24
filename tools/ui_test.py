@@ -2052,6 +2052,18 @@ def about_run(pw):
             for kind, items in pg.evaluate(A11Y_JS).items():
                 found.setdefault((kind, theme), []).extend(items)
             ctx.close()
+        # the film's recording view: the stage alone, the long and short cuts, and only the words the server allows
+        ctx = browser.new_context(viewport={'width': 1280, 'height': 720}, locale='zh-CN')
+        pg = ctx.new_page()
+        pg.goto(BASE + '/about?record=1&cut=short&gates=voice,fast', wait_until='networkidle')
+        rec = pg.evaluate("[Math.round(FILM.dur * 100) / 100, FILM.segs.map(s => s.id).join(' '), getComputedStyle(document.getElementById('fmStage')).position, FILM.caps.some(c => c[2].includes('一两秒'))]")
+        check('about', 'the film records: the short cut is 26 s in 6 parts, the stage fills the window', rec == [26, 'open speak daily words any end', 'fixed', True], rec)
+        pg.goto(BASE + '/about?record=1&cut=long', wait_until='networkidle')  # what this server has on (<html data-film>): the test server reads with the server voice, not on 百炼
+        said = pg.evaluate("""(() => { const on = (document.documentElement.dataset.film || '').split(' '), said = FILM.caps.map(c => c[2]).join(' ');
+          return [Math.round(FILM.dur * 100) / 100, FILM.segs.length, /一两秒/.test(said) === on.includes('fast'), /更像真人/.test(said) === on.includes('voice'),
+                  (getComputedStyle(document.querySelector('.fm-fast')).display === 'none') === !on.includes('fast'), on.join(' ')]; })()""")
+        check('about', 'the film mentions the server voice and quick replies only where the server has them on (long cut: 80 s, 10 parts)', said[:5] == [80, 10, True, True, True], said)
+        ctx.close()
         for kind, label in (('unnamed', 'every button and link has a name'), ('noalt', 'every image has alt text'), ('dupid', 'no id is used twice'),
                             ('contrast', 'text contrast meets WCAG AA'), ('lang', 'English is marked lang="en"')):
             for theme in ('light', 'dark'):

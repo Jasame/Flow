@@ -643,7 +643,8 @@ html:not([data-film~="fast"]) [data-gate~="fast"],html:not([data-film~="voice"])
 .fm-timer svg{width:2.6em;height:2.6em;transform:rotate(-90deg)}
 .fm-timer circle{fill:none;stroke-width:3.2}
 .fm-timer .tr{stroke:var(--line)}
-.fm-timer .arc{stroke:var(--green);stroke-linecap:round;stroke-dasharray:94.25;stroke-dashoffset:calc(var(--a,0) * 94.25)}
+.fm-timer .arc{stroke:var(--green);stroke-linecap:round;stroke-dasharray:94.25;stroke-dashoffset:calc(var(--a,0) * 12.57)}
+.fm-timer b{font-family:var(--serif);font-variant-numeric:tabular-nums;color:var(--ink)}
 .fm-row{display:grid;grid-template-columns:5.2em minmax(0,1fr) 2em;gap:.6em;align-items:center;font-size:.9em}
 .fm-row b{font-family:var(--serif);text-align:right}
 .fm-meter{display:block;height:.45em;border-radius:9px;background:var(--line);overflow:hidden}
