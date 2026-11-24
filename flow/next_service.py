@@ -23,6 +23,12 @@ LEVELS = {
 }
 GOALS = {'daily': '日常交流', 'work': '工作沟通', 'exam': '考试', 'abroad': '留学和海外生活', 'media': '看懂影视、新闻', 'interest': '兴趣'}
 THEMES = {'campus': '校园学习', 'travel': '旅行生活', 'life': '日常生活', 'work': '职场沟通', 'culture': '文化交流', 'science': '科学素养'}
+# What each 学习目的 reads first (r28 第 5 段, audit 7.1): the SPEC v5.1 purposes tags that suit it (the same map as
+# tools/corpus_validate.py), and the line on the card. 今日's first text (计划里的「今天这篇」) is picked from these.
+GOAL_PURPOSES = {'daily': ('daily-life', 'story'), 'work': ('workplace',), 'exam': ('expository', 'argumentative'),
+                 'abroad': ('campus-life', 'daily-life'), 'media': ('news-commentary', 'film-culture'), 'interest': ('story', 'daily-life')}
+GOAL_REASON = {'daily': '日常交流用得上', 'work': '工作沟通用得上', 'exam': '考试阅读常见的文体', 'abroad': '留学和海外生活用得上',
+               'media': '适合「看懂影视、新闻」', 'interest': '有故事，读着轻松'}
 MINUTES = (5, 10, 15, 20, 30, 45, 60)
 # Pre-generated Kokoro narration (see tools/gen_audio.py): audio/<voice>/<material>.m4a + .json timings.
 VOICES = {'us-f': '美音 · 女声', 'us-m': '美音 · 男声', 'uk-f': '英音 · 女声', 'uk-m': '英音 · 男声'}
@@ -699,6 +705,35 @@ def _card_norms(c, uid):
         "SELECT text, norm, source FROM next_cards WHERE user_id=? AND known=0 AND (source='saved' OR COALESCE(rank, 99999)>3000)", (uid,))]
 
 
+def suits_goal(p, goal):
+    """Is this text one the learner's 学习目的 reads first (GOAL_PURPOSES)? Only featured texts carry purposes tags."""
+    return bool(set(p.get('purposes') or ()) & set(GOAL_PURPOSES.get(goal, ())))
+
+
+# 今天这篇's minutes in the day's time budget (r28 第 1 段, time_budget.py): (read, mode) for 5, 10 and 15 minutes a day,
+# the short days where the length of a text decides whether it fits. Copied until time_budget is in main; longer days fit.
+SHORT_READ = {5: (2, 'glance'), 10: (6, 'core'), 15: (8, 'core')}
+SHORT_READ_EXAM = {10: (3, 'listen-read'), 15: (6, 'core')}
+
+
+def read_fits(words, minutes, exam=False):
+    """Does a text of this many words fit 今天这篇 on a day of these minutes (one minute over still fits, as the plan
+    packs it)? exam: the learner has 考试小练, which takes its minutes out of today's text at 10 and 15."""
+    try:
+        import time_budget as tb
+    except ImportError:
+        tb = None
+    if tb:
+        b = tb.budget(minutes, exam=exam)
+        return tb.read_minutes(words, b['read_mode']) <= b['read'] / b['texts'] + 1
+    t = max([m for m in MINUTES if m <= (minutes or 10)] or [MINUTES[0]])
+    if t not in SHORT_READ:
+        return True
+    read, mode = (SHORT_READ_EXAM if exam and t in SHORT_READ_EXAM else SHORT_READ)[t]
+    need = max(2, round(words / 120)) if mode == 'glance' else max(2, round(words / 30)) if mode == 'listen-read' else max(3, round(words / 30) + 2)
+    return need <= read + 1
+
+
 def featured_left(c, uid, level, done=None):
     """How many of a level's featured texts the learner has not learned yet (every episode of a serial counts).
     今日 says so from seven down (r27 content line); other parts of 今日 can use it too (今日好句 avoids the last few)."""
@@ -776,6 +811,13 @@ def home(c, uid, level=None, themes=None):
             s += min(3, 1.5 * len(hits)); reasons.insert(0, f'你收藏的「{t}」又出现了' if src == 'saved' else f'你在背的「{t}」在这篇里')
         return s, reasons[:2]
 
+    # The first text (计划里的「今天这篇」) suits the learner's 学习目的 when this tier has one (r28 第 5 段); on a short
+    # day (15 minutes or less) one that fits the time comes first among those. The other two are ranked as before, so
+    # the day stays varied; no tier is skipped for a goal, and 精读重学 keeps its order (the longest ago first).
+    goal = (prof or {}).get('goal') if (prof or {}).get('goal') in GOAL_PURPOSES else None
+    minutes = (prof or {}).get('minutes') or 10
+    short = bool(prof) and minutes <= 15  # a guest has no day's time: ranked as before
+    exam_day = goal == 'exam' and bool(getattr(__import__('exam_service'), 'drill_step', None))  # 考试小练 (r28 第 4 段)
     picks, taken = [], set()
     for kind, rows in tiers:
         if len(picks) >= 3:
@@ -785,12 +827,18 @@ def home(c, uid, level=None, themes=None):
         else:
             ranked = sorted(((p,) + score(p) for _, p in rows), key=lambda x: (-x[1], seed(x[0])))
             ranked = [(p, reasons) for p, _, reasons in ranked]
+            if not picks and ranked and (goal or short):
+                first = min(range(len(ranked)), key=lambda i: (not (goal and suits_goal(ranked[i][0], goal)),
+                                                               short and not read_fits(len(ranked[i][0]['body'].split()), minutes, exam_day), i))
+                ranked.insert(0, ranked.pop(first))
         for p, reasons in ranked:
             if len(picks) >= 3:
                 break
             if p['id'] in taken:
                 continue
             taken.add(p['id'])
+            if not picks and goal and kind != 'redo' and suits_goal(p, goal):
+                reasons = [GOAL_REASON[goal]] + reasons[:1]
             extra = {'reasons': reasons}
             if kind == 'up':
                 extra['reasons'] = [f'这一级的精选学完了，先试试 {up} 的'] + reasons[:1]
@@ -800,11 +848,18 @@ def home(c, uid, level=None, themes=None):
                 when = '今天学过' if days <= 0 else '昨天学过' if days == 1 else f'{days} 天前学过'
                 extra = {'reasons': [f'精读重学：{when}' if p['id'] in last else '精读重学'], 'redo': True}
             picks.append(_card(p, done.get(p['id']), extra))
+    # 今日热点 at the learner's level (r28 第 5 段, audit 7.2): one is written a day and its level goes round A2 → C1
+    # (daily_service.plan), so the newest at this level is at most 4 days old; one level below when that day's failed.
     news = None
-    for r, p in sorted(_public_packs(c), key=lambda rp: -rp[0]['created']):
-        if r['origin'] == 'daily' and r['created'] > time.time() - 3 * 86400:
-            news = _card(p, done.get(p['id']), {'source': p.get('source', ''), 'day': p.get('daily_day')})
-            break
+    dailies = [p for r, p in sorted(_public_packs(c), key=lambda rp: -rp[0]['created'])
+               if r['origin'] == 'daily' and r['created'] > time.time() - 4 * 86400]
+    below = BANDS[BANDS.index(level) - 1] if level in BANDS and BANDS.index(level) else None
+    hot = next((p for p in dailies if cefr(p) == level), None) or next((p for p in dailies if below and cefr(p) == below), None)
+    if hot:
+        extra = {'source': hot.get('source', ''), 'day': hot.get('daily_day')}
+        if goal and suits_goal(hot, goal):
+            extra['reasons'] = ['和你的目标相关']
+        news = _card(hot, done.get(hot['id']), extra)
     resume = None
     if uid:
         for row in c.execute('SELECT pack, MAX(created) t FROM next_progress WHERE user_id=? GROUP BY pack ORDER BY t DESC LIMIT 5', (uid,)).fetchall():
