@@ -1191,7 +1191,7 @@
         <div class="plist">${p.steps.map((s, k) => {
           const a = s.key === 'read' ? art : null;
           return `<a class="prow${s.done ? ' done' : ''}${s === next ? ' next' : ''}" href="${esc(s.href)}"><span class="num">${s.done ? '✓' : k + 1}</span>
-            <span class="t"><b>${esc(a ? a.title : s.title)}</b><span class="muted tiny">${esc(a ? `今天这篇 · ${a.level} · ${a.theme_label} · 约 ${a.minutes} 分钟` : s.sub)}</span></span>
+            <span class="t"><b>${esc(a ? a.title : s.title)}</b><span class="muted tiny">${esc(a ? `${a.redo ? '精读重学 · ' : ''}今天这篇 · ${a.level} · ${a.theme_label} · 约 ${a.minutes} 分钟` : s.sub)}</span></span>
             <span class="go" aria-hidden="true">›</span></a>`;
         }).join('')}</div></section>`;
     } else if (pick) {

@@ -716,7 +716,10 @@ def home(c, uid, level=None, themes=None):
                              and not learned(rp[1])]))
     last = {}
     if uid:
-        last = {r['pack']: r['t'] for r in c.execute("SELECT pack, MAX(created) t FROM next_progress WHERE user_id=? AND step='check' GROUP BY pack", (uid,))}
+        # The latest time each text was learned: the first time (next_progress) or again (next_step_log, since #51)
+        last = {r['pack']: r['t'] for r in c.execute(
+            "SELECT pack, MAX(created) t FROM (SELECT pack, created FROM next_progress WHERE user_id=? AND step='check' "
+            "UNION ALL SELECT pack, created FROM next_step_log WHERE user_id=? AND step='check') GROUP BY pack", (uid, uid))}
     tiers.append(('redo', sorted((rp for rp in feat if learned(rp[1])), key=lambda rp: (last.get(rp[1]['id'], 0), rp[1]['id']))))
     tiers.append(('brief', [rp for rp in pool if not featured(rp[1]) and not learned(rp[1])]))
     tiers.append(('any', pool))
@@ -780,8 +783,9 @@ def home(c, uid, level=None, themes=None):
             if kind == 'up':
                 extra['reasons'] = [f'这一级的精选学完了，先试试 {up} 的'] + reasons[:1]
             elif kind == 'redo':
-                days = max(1, round((time.time() - last.get(p['id'], time.time())) / 86400))
-                extra = {'reasons': [f'精读重学：{days} 天前学过' if p['id'] in last else '精读重学'], 'redo': True}
+                days = int((time.time() - last.get(p['id'], time.time())) // 86400)
+                when = '今天学过' if days < 1 else f'{days} 天前学过'
+                extra = {'reasons': [f'精读重学：{when}' if p['id'] in last else '精读重学'], 'redo': True}
             picks.append(_card(p, done.get(p['id']), extra))
     news = None
     for r, p in sorted(_public_packs(c), key=lambda rp: -rp[0]['created']):

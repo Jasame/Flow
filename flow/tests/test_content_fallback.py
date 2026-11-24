@@ -51,6 +51,15 @@ class ContentFallbackTests(unittest.TestCase):
         self.assertEqual(h['featured_left'], 0); self.assertIsNone(h['level_up'])
         self.assertEqual([m['id'] for m in h['today']], oldest[:3])
         self.assertTrue(all(m['redo'] and m['reasons'][0].startswith('精读重学') for m in h['today']))
+        # Learning the first one again moves it to the back the next day (the redo is in next_step_log, #51)
+        first = oldest[0]
+        nx.mark(self.c, 1, first, 'check')
+        h = nx.home(self.c, 1)
+        self.assertNotIn(first, [m['id'] for m in h['today']])
+        self.assertEqual([m['id'] for m in h['today']], oldest[1:4])
+        self.assertTrue(h['today'][0]['reasons'][0].endswith('1 天前学过'))
+        cards = {m['id']: m for m in nx.home(self.c, 1)['today']}
+        self.assertEqual(len(cards), 3)
 
     def test_older_texts_only_when_nothing_else_is_left(self):
         self.learner('A2')
