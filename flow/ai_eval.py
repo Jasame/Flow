@@ -297,9 +297,11 @@ def summarize(items):
             'seconds': {'median': round(statistics.median(secs), 1) if secs else None, 'max': round(max(secs), 1) if secs else None}}
 
 
-def describe(s, models, usage=None):
+def describe(s, models, usage=None, asked=None):
     pc = lambda d: f"{d['passed']}/{d['total']}"
-    lines = [f"模型：文字 {models['text'] or '（没有单独的文字模型）'} · 主模型 {models['main'] or '—'}",
+    text = '、'.join(n for n in (asked or []) if n != models['main']) or models['text'] or '（没有单独的文字模型）'
+    answered = '、'.join(n for n in ((usage or {}).get('models') or {}) if n != models['main'])
+    lines = [f"模型：文字 {text}" + (f"（实际回答：{answered}）" if answered else '') + f" · 主模型 {models['main'] or '—'}",
              f"错句改对：{pc(s['rewrite_fix'])}　正确句没被改：{pc(s['rewrite_keep'])}　写作评分：{pc(s['essay'])}　翻译评分：{pc(s['translate'])}"
              + (f"　内容：{pc(s['content'])}" if s.get('content', {}).get('total') else ''),
              f"合计 {s['passed']}/{s['total']} 题通过；没拿到结果 {s['no_answer']} 次；由文字服务回答 {s['services']['text']} 题、主服务 {s['services']['main']} 题"
@@ -355,7 +357,7 @@ def main(argv=None):
         return 2
     kinds = tuple(k for k in (args.only or ','.join(KINDS + ('content',))).split(',') if k in KINDS + ('content',))
     report = run(load(args.cases), kinds, quick=args.quick)
-    print(describe(report['summary'], report['models'], report.get('usage')))
+    print(describe(report['summary'], report['models'], report.get('usage'), report.get('asked')))
     if args.output:
         Path(args.output).write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding='utf-8')
     return 0 if report['summary']['passed'] == report['summary']['total'] else 1
