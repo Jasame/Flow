@@ -28,6 +28,7 @@
         const base = `/audio/${vs.includes(S.voice) ? S.voice : vs[0]}/${encodeURIComponent(id)}`;
         sw.postMessage({ type: 'prefetch', urls: [`${base}.json?v=${m.audio.version}`, `${base}.mp4?v=${m.audio.version}`] });
       }
+      if (!quiet) toast('已存到手机，没网也能学');  // the chip itself is short now, so the toast says what it means
       return true;
     } catch (e) { if (!quiet) toast(e.network ? '现在没网，存不了' : e.message); return false; }
   }
@@ -40,11 +41,11 @@
   }
   // On a material's page: 存到手机, or that it is kept.
   function offChip(id) {
-    return OFF.has(id) ? '<span class="offk on" id="keepOff">✓ 已存到手机，没网也能学</span>' : '<button class="link small offk" id="keepOff" type="button" data-tap="study-keep">存到手机，没网也能学</button>';
+    return OFF.has(id) ? '<span class="offk on" id="keepOff" title="没网也能学">✓ 已存到手机</span>' : '<button class="link small offk" id="keepOff" type="button" data-tap="study-keep" title="存到手机，没网也能学">存到手机</button>';
   }
   function bindOffChip(id) {
     const b = document.getElementById('keepOff'); if (!b || b.tagName !== 'BUTTON') return;
-    b.onclick = async () => { b.disabled = true; b.textContent = '正在存…'; if (await keepOffline(id)) b.outerHTML = offChip(id); else { b.disabled = false; b.textContent = '存到手机，没网也能学'; } };
+    b.onclick = async () => { b.disabled = true; b.textContent = '正在存…'; if (await keepOffline(id)) b.outerHTML = offChip(id); else { b.disabled = false; b.textContent = '存到手机'; } };
   }
   // Losing and finding the connection: said once each way; what waited is sent.
   addEventListener('offline', () => { const n = OFF.count(); toast(n ? `现在没网：已存到手机的 ${n} 篇还能学` : '现在没网：复习单词还能做，联网后自动同步'); });

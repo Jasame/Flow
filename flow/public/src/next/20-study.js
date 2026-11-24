@@ -48,9 +48,10 @@
     function go(s) { location.hash = `#/m/${encodeURIComponent(id)}/${s}`; }
 
     if (!same) {
-      view.innerHTML = `<div class="study-head"><span class="kicker">${m.series ? `<a class="link" href="#/series/${encodeURIComponent(m.series.id)}">连载《${esc(m.series.title)}》第 ${m.series.part} / ${m.series.of} 集</a> · ${m.level}` : `${esc(m.theme_label)} · ${m.level}${m.variant ? ' → ' + m.variant.level : ''}${m.featured ? ' · 精选' : ''}`}</span>
+      // 存到手机 sits at the right of the kicker line, so the source line under the title stays one line on a phone
+      view.innerHTML = `<div class="study-head"><div class="sh-top"><span class="kicker">${m.series ? `<a class="link" href="#/series/${encodeURIComponent(m.series.id)}">连载《${esc(m.series.title)}》第 ${m.series.part} / ${m.series.of} 集</a> · ${m.level}` : `${esc(m.theme_label)} · ${m.level}${m.variant ? ' → ' + m.variant.level : ''}${m.featured ? ' · 精选' : ''}`}</span>${offChip(id)}</div>
         <h1 class="h1">${esc(m.title)}</h1>${m.title_en ? `<div class="title-en">${esc(m.title_en)}</div>` : ''}
-        ${originHTML(m, offChip(id))}</div>
+        ${originHTML(m)}</div>
         <div class="steps" role="tablist"><span class="ind" aria-hidden="true"></span>${STEPS.map(s => `<button role="tab" data-step="${s}" aria-selected="false">${STEP[s]}${done.has(s) ? '<span class="ok">✓</span>' : ''}</button>`).join('')}</div>
         <section id="pane"></section>`;
       view.querySelectorAll('[data-step]').forEach(b => b.onclick = () => go(b.dataset.step));

@@ -27,15 +27,36 @@
       ['#/report', '这周的报告', '这周学了什么、哪里进步了'],
       ['#/growth', '我的进步', '这个月和上个月比，里程碑']]]];
 
+  const PICON = {
+    '#/mix': '<path d="M4 7h3l10 10h3"/><path d="M4 17h3l2.5-2.5"/><path d="M14.5 9.5 17 7h3"/><path d="m18 5 2 2-2 2"/><path d="m18 15 2 2-2 2"/>',
+    '#/placement': '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/>',
+    '#/': '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4m6-4v4"/>',
+    '#/easy': '<path d="M5 19c8 0 14-6 14-14-8 0-14 6-14 14z"/><path d="m5 19 8-8"/>',
+    '#/library': '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
+    '#/import': '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M12 11v6m-3-3h6"/>',
+    '#/speak': '<path d="M4 5h16v11H9l-5 4z"/>',
+    '#/sounds': '<path d="M12 4a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V7a3 3 0 0 1 3-3z"/><path d="M6 11a6 6 0 0 0 12 0M12 17v3"/>',
+    '#/review': '<path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/>',
+    '#/words/confuse': '<circle cx="9" cy="12" r="5.5"/><circle cx="15" cy="12" r="5.5"/>',
+    '#/cards/mistake': '<path d="M6 3h12v18H6z"/><path d="m9.5 9.5 5 5m0-5-5 5"/>',
+    '#/vocab/plan': '<path d="M5 5a2 2 0 0 1 2-2h11v15H7a2 2 0 0 0-2 2z"/><path d="M5 20a2 2 0 0 0 2 1h11v-3"/>',
+    '#/vocab/test': '<path d="M4 17a8 8 0 0 1 16 0"/><path d="m12 17 4-5"/>',
+    '#/exam': '<circle cx="12" cy="13" r="7"/><path d="M12 9v4l3 2M10 3h4"/>',
+    '#/radar': '<path d="M12 3 20 8v8l-8 5-8-5V8z"/><path d="m12 8 4 3-1.5 5h-5L8 11z"/>',
+    '#/report': '<path d="M5 20V10m5 10V5m5 15v-7m5 7V8"/>',
+    '#/growth': '<path d="m4 17 6-6 4 4 6-7"/><path d="M15 8h5v5"/>'};
+  // One row per practice (icon, title, one line on what it is for): a phone shows a whole group at a glance.
+  const prow = ([href, title, line, badge], due) => `<a class="prow" href="${href}"><span class="pico" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${PICON[href] || ''}</svg></span>
+    <span class="t"><b>${title}${badge === 'due' && due ? ` <i class="pbadge">${due > 99 ? '99+' : due}</i>` : ''}</b><span class="tiny muted">${line}</span></span><span class="go" aria-hidden="true">›</span></a>`;
+
   async function practiceView() {
     const st = S.home && S.home.stats, due = st ? (st.due || 0) + (st.new || 0) : 0;
     view.innerHTML = `<h1 class="h1">练习</h1>
       <p class="muted small">想练哪一项，就从这里进。不知道先练什么，看最上面的建议。</p>
       <div id="pSuggest">${practiceTip(null, due)}</div>
-      ${PRACTICE.map(([group, items]) => `<section class="pgroup stack-s"><h2 class="h2 pgroup-h">${group}</h2><div class="ptiles">
-        ${items.map(([href, title, line, badge]) => badge === 'map' ? mapTile(href, title, line)
-          : `<a class="ptile card flat" href="${href}"><b>${title}${badge === 'due' && due ? ` <i class="pbadge">${due > 99 ? '99+' : due}</i>` : ''}</b><span class="small muted">${line}</span></a>`).join('')}
-      </div></section>`).join('')}
+      ${PRACTICE.map(([group, items]) => `<section class="pgroup stack-s"><h2 class="h2 pgroup-h">${group}</h2>
+        ${items.filter(x => x[3] === 'map').map(([href, title, line]) => mapTile(href, title, line)).join('')}
+        <div class="plist">${items.filter(x => x[3] !== 'map').map(x => prow(x, due)).join('')}</div></section>`).join('')}
       <a class="card flat place-cta guide-cta" href="#/guide"><b>第一次用？看操作指南</b><span class="small muted">每个页面怎么用、按哪里、学完去哪，一步一步讲清楚；也可以下载 PDF。</span></a>`;
     requestAnimationFrame(() => requestAnimationFrame(() => view.querySelectorAll('.gbar i').forEach(i => { i.style.width = i.dataset.w + '%'; })));
     if (S.user) api('/api/next/radar').then(r => {
