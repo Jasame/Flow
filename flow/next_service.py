@@ -398,6 +398,14 @@ def save_profile(c, uid, data):
       ON CONFLICT(user_id) DO UPDATE SET level=excluded.level, goal=excluded.goal, themes=excluded.themes,
       minutes=excluded.minutes, updated=excluded.updated, voice=excluded.voice, target=excluded.target, level_source=excluded.level_source''',
               (uid, level, goal, json.dumps(themes), minutes, now, now, voice, target, source))
+    # 每周目标 (r28 第 6 段): 选方向和目标 asks how many days a week (2–7); a new learner who leaves it gets 5 days when
+    # preparing for an exam, 4 otherwise. A change keeps the weeks before at the goal they had (progress_service).
+    wg = data.get('weekly_goal')
+    wg = wg if type(wg) is int and 2 <= wg <= 7 else None if old else 5 if goal == 'exam' else 4
+    if wg and wg != (old.get('weekly_goal') or 4):
+        if old:
+            __import__('progress_service').goal_changed(c, uid, old.get('weekly_goal') or 4, wg)
+        c.execute('UPDATE next_profiles SET weekly_goal=? WHERE user_id=?', (wg, uid))
     # the exam goal (考试冲刺) in the same call, when it changed (an exam whose date has passed does not block other settings)
     if 'exam' in data and ((data.get('exam') or None), (data.get('exam_date') or None)) != (old.get('exam'), old.get('exam_date')):
         out, code = sp.set_goal(c, uid, {'exam': data.get('exam') or '', 'date': data.get('exam_date') or ''})
@@ -878,10 +886,17 @@ def habit(c, uid, goal, now=None):
     streak, w = 0, monday - D(weeks=1)
     while streak < 52 and count(w) >= goal:
         streak += 1; w -= D(weeks=1)
+    # r28 第 6 段: the last two weeks both short of the goal they had, each with some study: suggest the goal the learner
+    # actually keeps (at least 2 days), once, on Monday (the page). Weeks reached before stay reached.
+    hist, lower = PS._history(c, uid), None
+    w1, w2 = last, count(monday - D(weeks=2))
+    g1, g2 = (PS._goal_for(hist, (monday - D(weeks=k)).isoformat(), goal) for k in (1, 2))
+    if 0 < w1 < g1 and 0 < w2 < g2 and max(2, w1, w2) < goal:
+        lower = {'goal': max(2, w1, w2), 'weeks': [w2, w1]}
     return {'goal': goal, 'done': done, 'met': done >= goal, 'streak': streak + (done >= goal), 'monday': monday.isoformat(),
             'weeks': PS.weeks_reached(c, uid, goal, days, monday),
             'days': [{'day': (monday + D(days=k)).isoformat(), 'active': monday + D(days=k) in days, 'today': monday + D(days=k) == today} for k in range(7)],
-            'last_week': {'done': last, 'met': last >= goal}}
+            'last_week': {'done': last, 'met': last >= goal}, 'lower': lower}
 
 
 def set_weekly_goal(c, uid, data):
