@@ -131,6 +131,7 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             'guide': ('B1', 'work', ['work', 'science']),  # the 操作指南 screenshots (tools/guide_shots.py)
             'leaver': ('B1', 'work', ['work', 'science']),  # 注销账号 in tools/ui_test.py (learner_run)
             'a11y': ('B1', 'work', ['work', 'science']),  # the screen-reader and contrast audit (a11y_run)
+            'sprint': ('B1', 'exam', ['campus']),  # 考试冲刺: 四级 in 19 days, four practice sets done (sprint_run; the guide's exam pictures)
             # swiping the review card from anywhere on the screen (swipe_run): one learner per screen size, each starting fresh
             **{f'swipe-{k}': ('B1', 'work', ['work', 'science']) for k in ('ipad-land', 'ipad-mini-land', 'phone')}}
 out = {}
@@ -155,6 +156,19 @@ with app.db() as c:
                        extra={'options': q['options'], 'answer': q['answer'], 'evidence': q.get('evidence', '')})
         for _ in range(3):
             sk.log(c, uid, 'reading', 'question', 0.8, level, PID); sk.log(c, uid, 'writing', 'rewrite', 0.7, level, PID)
+        if name == 'sprint':  # preparing for 四级 in 19 days on its word book, four sets done over four weeks, getting better
+            import exam_service as ex, exam_sprint as sp, datetime
+            day = (datetime.datetime.now(nx.TZ).date() + datetime.timedelta(days=19)).isoformat()
+            sp.set_goal(c, uid, {'exam': 'cet4', 'date': day})
+            vs.save_plan(c, uid, {'book': 'cet4', 'daily_new': 10, 'retention': 0.9})
+            for k, share in enumerate((0.4, 0.5, 0.6, 0.75)):
+                p, _ = ex.paper(c, uid, 'cet4')
+                paper = json.loads(c.execute('SELECT content FROM next_exam_papers WHERE id=?', (p['paper'],)).fetchone()[0])
+                right = lambda xs, n: [a if i < round(share * len(xs)) else (a + 1) % n for i, a in enumerate(xs)]
+                grammar = [c.execute('SELECT answer FROM questions WHERE id=?', (g['id'],)).fetchone()[0] for g in paper['grammar']]
+                ex.submit(c, uid, {'paper': p['paper'], 'seconds': 840 - 40 * k, 'answers': {'vocab': right([v['answer'] for v in paper['vocab']], 4),
+                          'grammar': right(grammar, 4), 'reading': right([r['answer'] for r in paper['reading']], 4)}})
+                c.execute('UPDATE next_exam_results SET created=? WHERE paper=?', (time.time() - (4 - k) * 7 * 86400, p['paper']))
         if name == 'guide':  # a learner a few weeks in, so the guide's pictures show a lived-in page
             import ability_radar as ar
             now = time.time()
