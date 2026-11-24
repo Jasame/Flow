@@ -18,6 +18,7 @@ The app loads this compact file instead of parsing ~38 MB of source JSON, which 
 tools/deploy.sh              # deploy HEAD, then the end-to-end test on the server (real AI, ~20 calls)
 tools/deploy.sh --no-e2e     # deploy only
 tools/deploy.sh <commit>     # deploy a commit that is already on GitHub
+tools/deploy.sh --beta <commit>   # the same for the 内测版 (flow.jasa.hk); see 发布顺序 below
 ```
 
 `deploy.sh` pushes, computes the manifest hash from git (`release_manifest.py`), writes
@@ -32,6 +33,34 @@ Each tag is handled once; to retry, run `deploy.sh` again (new tag).
 One-time server setup: `flow-autodeploy.py` in `/root/claude-ops`, the `.service` and `.timer` in
 `/etc/systemd/system`, `systemctl enable --now flow-autodeploy.timer`, and the next tag number in
 `/root/claude-ops/autodeploy/next`.
+
+## 发布顺序: 内测版 first, then 语流
+
+There are two sites on the Hong Kong server: **语流** (flowlang.cn, the public site; tags `r<N>` on `release`) and
+the **内测版** (flow.jasa.hk, its own data, open to anyone with the link; `tools/deploy.sh --beta`, tags `b<N>` on
+`release-beta`). The rule is that 语流 only ever gets a commit that ran on the 内测版 first, **the same sha**.
+The owner agreed this order on 2026-11-24.
+
+1. **One branch and one PR per change, targeting main.** Don't stack PRs. If one has to sit on another, retarget it
+   to main as soon as the one below merges. CI (backend, frontend, ui) must be green.
+2. **Merge into main.** No approval needed. main is "waiting for release". Merging changes no site.
+3. **内测版:** `tools/deploy.sh --beta <main sha>`. The beta's autodeploy installs it and runs `qa_e2e.py` there.
+4. **The owner tries flow.jasa.hk.** A problem goes back through 1–3 as a new `b<N>`.
+5. **语流, only after the owner says so (「发正式版」):** `tools/deploy.sh <the same sha>`, with the end-to-end
+   test. A failed deploy or test rolls back by itself.
+6. **Afterwards:** the public changelog, the version in the guide header, the ops log.
+
+Conventions:
+
+- **One session merges and releases.** Others finish and test their PR, then hand it over. Two sessions merging at
+  the same time is how stacked merges go wrong.
+- **Trying a PR before it merges:** merge main into that PR's branch and beta-deploy the result. Don't build
+  one-off combination branches. 语流 still only gets commits from main.
+- **Hotfixes take the same path.** The beta's e2e run takes a few minutes. Skip the beta only when the owner says so.
+- **Database schema changes** run against the 内测版's data before they reach 语流's.
+- **A commit from before the two-site split** has a `tools/flow-pull.sh` without `F=${FLOW_DIR:-`. That script
+  would install into 语流. `deploy.sh --beta` and the beta's autodeploy (status `ABORT_OLD_TOOLS`) both refuse it,
+  so merge main into such a branch before beta-deploying it.
 
 ## End-to-end test on the server (`qa_e2e.py`)
 
