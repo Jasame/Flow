@@ -145,5 +145,39 @@ class IeltsTests(unittest.TestCase):
         self.assertIn('speak-ielts', flow_admin.TAP_LABEL); self.assertIn('shadow-sound', flow_admin.TAP_LABEL)
 
 
+    def test_heading_for_ielts_the_plan_speaks_part1_topic_by_topic(self):
+        """r27: studying abroad, or preparing for IELTS, the plan's speaking step is the next Part 1 topic, never gone."""
+        import skills_service as sk, vocab_service as vs
+        now = __import__('time').time()
+        speak = lambda: next((s for s in sk.daily_path(self.c, 1, nx.home(self.c, 1), now)['steps'] if s['key'] == 'speak'), None)
+        with patch('ability_radar.weakest', return_value='writing'):  # today's output step is an essay, not a spoken retell
+            nx.save_profile(self.c, 1, {'level': 'B2', 'goal': 'abroad', 'themes': [], 'minutes': 20})
+            s = speak()
+            self.assertEqual((s['title'], s['href'], s['done']), ('口语：雅思 Part 1 · 学习还是工作', '#/speak/ielts/p1-study-work', False))
+            self.c.execute("INSERT INTO next_skill_events(user_id,skill,kind,score,level,pack,created) VALUES(1,'speaking','ielts',?,'B2','ielts-p1-study-work',?)", (6 / 9, now - 2 * 86400))
+            self.c.commit()
+            self.assertEqual(speak()['href'], '#/speak/ielts/p1-hometown')
+            for k, key in enumerate(list(ie.PART1)[1:]):  # every topic done, study-work longest ago
+                self.c.execute("INSERT INTO next_skill_events(user_id,skill,kind,score,level,pack,created) VALUES(1,'speaking','ielts',0.6,'B2',?,?)",
+                               (ie.pack_id(1, key), now - 86400 * 1.5 + k * 60))
+            self.c.commit()
+            s = speak()
+            self.assertEqual(s['href'], '#/speak/ielts/p1-study-work'); self.assertIn('再练一轮', s['sub'])
+            self.c.execute("INSERT INTO next_skill_events(user_id,skill,kind,score,level,pack,created) VALUES(1,'speaking','ielts',0.6,'B2','ielts-p1-music',?)", (now,))
+            self.c.commit()
+            s = speak()
+            self.assertEqual((s['done'], s['sub']), (True, '今天说过了'))
+            self.c.execute("DELETE FROM next_skill_events WHERE created>=?", (now - 60,)); self.c.commit()
+            # preparing for an exam: IELTS (its word book) speaks Part 1; another exam keeps the role-play scenes
+            nx.save_profile(self.c, 1, {'level': 'B2', 'goal': 'exam', 'themes': [], 'minutes': 20})
+            vs.save_plan(self.c, 1, {'book': 'ielts', 'daily_new': 10, 'retention': 0.9})
+            self.assertTrue(speak()['href'].startswith('#/speak/ielts/p1-'))
+            self.assertTrue(ie.for_ielts(self.c, 1, {'goal': 'exam', 'exam': 'ielts'}))
+            vs.save_plan(self.c, 1, {'book': 'cet6', 'daily_new': 10, 'retention': 0.9})
+            self.assertIsNone(speak())  # an exam learner at 20 minutes: no speaking step, as before
+            nx.save_profile(self.c, 1, {'level': 'B2', 'goal': 'work', 'themes': [], 'minutes': 20})
+            self.assertTrue(speak()['href'].startswith('#/speak/') and 'ielts' not in speak()['href'])  # a role-play scene
+
+
 if __name__ == '__main__':
     unittest.main()

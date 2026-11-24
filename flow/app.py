@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS ai_usage(user_id INTEGER,day TEXT,count INTEGER,PRIMA
   __import__('relisten_service').schema(c)
   __import__('class_service').schema(c)
   __import__('flow_admin').schema(c)
+  __import__('ai_routes').schema(c)
 def wrong_questions(c,uid):
  return c.execute('''SELECT q.id,q.topic,q.prompt,q.options,q.explanation,q.answer,a.selected FROM questions q
  JOIN attempts a ON a.question_id=q.id WHERE q.status='published' AND a.user_id=? AND a.correct=0
@@ -670,6 +671,9 @@ if __name__=='__main__':
       __import__('progress_service').send_weekly(c)  # Sunday evening, before the daily reminder: it says the words due too
       __import__('vocab_service').send_reminders(c)
     except Exception as exc:print('reminders failed:',type(exc).__name__,flush=True)
+    try:
+     with db() as c:__import__('ai_routes').tick(c)  # AI budget mails, the nightly marking check, old call rows pruned
+    except Exception as exc:print('ai budget/check failed:',type(exc).__name__,flush=True)
     time.sleep(300)
   threading.Thread(target=remind_loop,daemon=True).start()
   class Server(ThreadingHTTPServer):

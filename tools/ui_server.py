@@ -117,7 +117,7 @@ def fake(messages, audio=None, grounding=False):
     if '要讲解的句子：' in prompt:
         return J({'translation': '（演示）这句话的中文。', 'structure': '主干 + 从句。', 'points': [{'text': 'The', 'note': '开头先交代主语。', 'node': None}],
                   'pattern': {'frame': 'not A so much as B', 'example': 'It is not talent so much as practice.'}})
-    yours = prompt.split('学习者写的英文：\n', 1)[1].split('\n\n输出', 1)[0] if '学习者写的英文：\n' in prompt else 'I like it.'
+    yours = prompt.split('学习者写的英文：\n', 1)[1].split('\n\n', 1)[0] if '学习者写的英文：\n' in prompt else 'I like it.'
     return J({'verdict': 'minor', 'summary': '意思清楚。', 'corrected': yours, 'changes': [],
               'versions': [{'label': '更自然', 'text': yours, 'why': '—'}], 'used_well': [], 'keep': None})
 
@@ -134,6 +134,7 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             'pile': ('B1', 'work', ['work', 'science']),  # back from a break: reviews piled up (backlog_run)
             'sprint': ('B1', 'exam', ['campus']),  # 考试冲刺: 四级 in 19 days, four practice sets done (sprint_run; the guide's exam pictures)
             'fresh': ('', '', []), 'fresh2': ('', '', []),  # 选方向和目标: accounts with no settings yet (start_run)
+            'abroad': ('B1', 'abroad', ['campus']),  # 留学: the plan's speaking step is 雅思 Part 1 (listen_speak_run); nothing else uses it
             # swiping the review card from anywhere on the screen (swipe_run): one learner per screen size, each starting fresh
             **{f'swipe-{k}': ('B1', 'work', ['work', 'science']) for k in ('ipad-land', 'ipad-mini-land', 'phone')},
             'teacher': ('B1', 'work', ['work']), 'student': ('B1', 'work', ['work']),  # 班级试用 (class_run)

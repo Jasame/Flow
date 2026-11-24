@@ -162,6 +162,7 @@ flow/privacy_service.py
 flow/slim.py
 flow/relisten_service.py
 flow/progress_service.py
+flow/ai_routes.py
 flow/daily_line.py
 flow/flow-backup.service
 flow/flow-backup.timer
@@ -330,6 +331,7 @@ flow/tests/test_rewrite_minimal.py
 flow/tests/test_vertex.py
 flow/tests/test_vocab.py
 flow/tests/test_ielts_speaking.py
+flow/tests/test_ai_cost.py
 flow/tests/test_wordbook_registry.py
 flow/tests/test_wordbooks.py
 flow/tests/test_wordbooks_open.py
