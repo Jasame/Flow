@@ -173,7 +173,7 @@ TAP_LABEL = {
     'me-level': '我的 · 学习目标和水平', 'me-voice': '我的 · 朗读声音', 'me-text': '我的 · 字号和行距', 'me-remind': '我的 · 每天提醒', 'me-install': '我的 · 添加到桌面',
     'trial-level': '试读之后 · 选学习目标',
     'welcome-start': '第一次打开 · 选好方向和目标，开始学习', 'welcome-login': '第一次打开 · 已有账号，登录', 'notice-test': '今日 · 提醒：去能力里测一下',
-    'home-habit': '今日 · 每周目标', 'notice-week': '今日 · 提醒：上周小结', 'me-habit': '我的 · 每周目标',
+    'home-habit': '今日 · 每周目标', 'notice-week': '今日 · 提醒：上周小结', 'notice-goal-lower': '今日 · 提醒：建议调低每周目标', 'me-habit': '我的 · 每周目标',
     'study-keep': '学习页 · 存到手机',
     'share-material': '学一篇 · 分享学会的一句', 'share-week': '这周报告 · 分享',
     'me-data': '我的 · 导出我的数据', 'me-delete': '我的 · 注销账号', 'words-export': '单词 · 导出单词本',
