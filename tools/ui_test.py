@@ -1659,6 +1659,68 @@ CARD_JS = r"""() => {
 }"""
 
 
+SWIPE_SIZES = {'ipad-land': (1180, 820), 'ipad-mini-land': (1133, 744), 'phone': (390, 844)}
+SWIPE_AT = """([x, y, dx, dy]) => {
+  const el = document.elementFromPoint(x, y) || document.documentElement;  // a finger's touches go to what is under it
+  const mk = (type, X, Y) => { const t = new Touch({ identifier: 1, target: el, clientX: X, clientY: Y });
+    el.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches: type === 'touchend' ? [] : [t], changedTouches: [t] })); };
+  mk('touchstart', x, y); for (let k = 1; k <= 6; k++) mk('touchmove', x + dx * k / 6, y + dy * k / 6); mk('touchend', x + dx, y + dy);
+  return el.tagName + (el.id ? '#' + el.id : '');
+}"""
+CARD_STATE = """() => ({ front: !!document.querySelector('[data-claim]'), back: !!document.querySelector('.open-card'),
+  rates: [...document.querySelectorAll('[data-rate]')].map(b => b.dataset.rate), foot: ((document.querySelector('.rfoot, .vtest .tc') || {}).textContent || '').trim(),
+  word: ((document.querySelector('.wordbig') || {}).textContent || '').trim() })"""
+
+
+def swipe_run(pw):
+    """认识 / 不认识 by swiping, from anywhere on the screen: on an iPad sideways the card is a column in the middle and
+    a swipe that started beside it or below it did nothing (r27). Not from a button, and not a scroll."""
+    dev = 'swipe'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    try:
+        for size, (w, h) in SWIPE_SIZES.items():
+            ctx = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners'][f'swipe-{size}']['token'], 'url': BASE}])
+            pg = ctx.new_page(); errors = []; pg.on('pageerror', lambda e: errors.append(page_error(pg, e)))
+            sw = lambda x, y, dx, dy=0: (pg.evaluate(SWIPE_AT, [x, y, dx, dy]), pg.wait_for_timeout(450))[0]
+            state = lambda: pg.evaluate(CARD_STATE)
+            pg.goto(BASE + f'/?swipe={size}#/review', wait_until='networkidle'); pg.wait_for_selector('[data-claim]', timeout=8000)
+            box = pg.evaluate("() => { const r = document.querySelector('.review').getBoundingClientRect(); return [r.left, r.right, r.bottom]; }")
+            s0 = state()
+            sw(int(w / 2), int(h * 0.45), 0, 0)  # a touch that does not move: nothing
+            check(f'{dev} {size}', 'a touch that does not move rates nothing', state() == s0, state())
+            sw(int(w / 2), int(h * 0.4), 90, 220)  # mostly down: a scroll, not a swipe
+            check(f'{dev} {size}', 'a mostly-down drag is a scroll, not 认识', state() == s0, state())
+            end = pg.evaluate("() => { const b = document.querySelector('.rtop a'); const r = b.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }")
+            sw(int(end[0]), int(end[1]), 160)
+            check(f'{dev} {size}', 'a swipe that starts on a link (结束) is left to the link', state() == s0, state())
+            x = max(12, int(box[0] / 2)) if box[0] > 40 else 24  # beside the card where there is room, else near its edge
+            tgt = sw(x, int(h / 2), 160)
+            s1 = state()
+            check(f'{dev} {size}', f'swipe right from beside the card ({tgt}) is 认识: the answer shows', s1['back'] and s1['rates'] == ['again', 'good'], s1)
+            tgt = sw(int(w / 2), h - 24, 160)  # below the card, near the bottom of the screen
+            s2 = state()
+            check(f'{dev} {size}', f'on the answer, swipe right from below the card ({tgt}) is 没错，下一个', s2['front'] and s2['foot'] != s1['foot'], [s1['foot'], s2['foot']])
+            tgt = sw(w - (max(12, int((w - box[1]) / 2)) if w - box[1] > 40 else 24), int(h / 2), -160)
+            s3 = state()
+            check(f'{dev} {size}', f'swipe left from the other side ({tgt}) is 不认识', s3['back'] and s3['rates'] == ['again'], s3)
+            btn = pg.evaluate("() => { const b = document.querySelector('[data-rate]'); const r = b.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }")
+            tgt = sw(int(btn[0]) - 60 if btn[0] > w / 2 else int(btn[0]), int(btn[1]), 160)
+            s4 = state()
+            check(f'{dev} {size}', f'a swipe that starts on an answer button ({tgt}) counts: on a phone the thumb rests there', s4['foot'] != s3['foot'] and not s4['back'], [s3['foot'], s4['foot']])
+            # the vocabulary test: the buttons say ← 不认识 and 认识 →, and the swipe does what they say
+            pg.goto(BASE + f'/?swipe={size}-t#/vocab/test', wait_until='networkidle'); pg.wait_for_selector('.vtest', timeout=8000)
+            t0 = state()['foot']; sw(24, int(h / 2), 160); t1 = state()['foot']; sw(w // 2, h - 24, -160); t2 = state()['foot']
+            check(f'{dev} {size}', 'vocabulary test: swipe right, then left, answers two words', t0.startswith('1 /') and t1.startswith('2 /') and t2.startswith('3 /'), [t0, t1, t2])
+            pg.goto(BASE + f'/?swipe={size}-u#/cards', wait_until='networkidle'); settle(pg)
+            before = pg.url; sw(w // 2, int(h / 2), 160)
+            check(f'{dev} {size}', 'away from the card pages a swipe does nothing', pg.url == before and pg.evaluate("() => !document.body.classList.contains('reviewing')"), pg.url)
+            check(f'{dev} {size}', 'no script errors', not errors, errors[:3])
+            ctx.close()
+    finally:
+        browser.close()
+
+
 def progress_run(pw):
     dev = 'progress'
     browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
@@ -1878,6 +1940,12 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('progress', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'swipe' in ONLY:
+            try:
+                swipe_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('swipe', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'listen-speak' in ONLY:
             try:
                 listen_speak_run(pw)

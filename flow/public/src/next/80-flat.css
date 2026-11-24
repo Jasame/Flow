@@ -90,6 +90,8 @@ input[type=text]:focus,input[type=email]:focus,input[type=password]:focus,input[
 .hero .go-next{margin-top:4px}
 @media (hover:none){.prow:hover{background:none}}
 
+/* review: a sideways swipe is the page's (认识 / 不认识), so the browser keeps only up-down scrolling and zoom for itself */
+body.reviewing{touch-action:pan-y pinch-zoom}
 /* review and the vocabulary test on phones: no tabs, answers where the thumb is */
 @media (max-width:759px){
   body.reviewing .tabs{display:none}
