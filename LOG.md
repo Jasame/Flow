@@ -82,3 +82,10 @@
   - #105 r28 第 3 段：单词按每天时间封顶、回归补积压、词书背完推荐下一本（单词、开局和考试、操作指南）
 - 自检：DEPLOYED，装了 5 个文件（0 个新的）；轻量 e2e 149/149，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45467345146
+
+### b21 · 2026-11-25 03:20
+- main `6d88b35`，构建 `14413ea`
+- 新合并的 PR（自 b20 起）：
+  - #107 r28 第 6 段：每周学习天数（默认按目的 + 周一建议调低）（今日和计划、后台和班级、操作指南）
+- 自检：DEPLOYED，装了 6 个文件（0 个新的）；轻量 e2e 149/149，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45469043615
