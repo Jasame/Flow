@@ -158,6 +158,7 @@ flow/fill_examples.py
 flow/console_data.py
 flow/console_ops.py
 flow/class_service.py
+flow/privacy_service.py
 flow/slim.py
 flow/relisten_service.py
 flow/progress_service.py
@@ -289,6 +290,7 @@ flow/tests/test_field.py
 flow/tests/test_fill_examples.py
 flow/tests/test_flow_admin_console.py
 flow/tests/test_classes.py
+flow/tests/test_privacy.py
 flow/tests/test_foundation.py
 flow/tests/test_front_layout.py
 flow/tests/test_growth.py

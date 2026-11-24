@@ -40,6 +40,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `73-report.js` | weekly report and share picture |
 | `80-library.js` | 全部材料, serial stories and their episode list |
 | `81-me.js` | 我的, email binding |
+| `81-privacy.js` | 年龄段 and a guardian's agreement under 14: the sign-up chips, the one-time ask for older accounts, the prompt when AI needs the agreement |
 | `82-class.js` | 班级试用: joining a class with an invite code and leaving it (我的 → 班级), the teacher's whole-class summary (#/class/<id>) |
 | `99-boot.js` | start-up |
 | `05-start.css` | 启动动画 and 选方向和目标 |
@@ -56,3 +57,4 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `97-progress.css` | 这周进步: the four-number card, its details sheet, the three lines after a text, the unsubscribe page |
 | `98-daily-line.css` | 今日好句 and 今日热点 cards |
 | `99-class.css` | 班级试用: what a teacher sees and not, the class found by its code, the teacher's summary page |
+| `99-privacy.css` | 年龄段: the three chips and the guardian's box |

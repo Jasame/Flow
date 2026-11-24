@@ -36,6 +36,8 @@
         S.user = null; S.csrf = ''; e.message = '登录已过期，请重新登录';
         if (sheetEl.hidden) setTimeout(() => openLogin('登录已过期，请重新登录。登录后会回到这一页。'), 0);
       }
+      // under 14 without a guardian's agreement: the AI on the learner's own words waits for it (81-privacy.js)
+      if (r.status === 403 && j.code === 'guardian' && !quiet) setTimeout(() => guardianSheet(), 0);
       throw e;
     }
     return { j, t };
@@ -430,10 +432,11 @@
     if (sheetReturn && document.contains(sheetReturn) && sheetReturn.focus) sheetReturn.focus({ preventScroll: true });
     sheetReturn = null;
   }
-  sheetEl.addEventListener('click', e => { if (e.target.closest('[data-close]')) closeSheet(); });
+  const sheetLocked = () => !!sheetCard.querySelector('[data-lock]');  // a sheet that waits for an answer (askAgeOnce)
+  sheetEl.addEventListener('click', e => { const c = e.target.closest('[data-close]'); if (c && (!sheetLocked() || sheetCard.contains(c))) closeSheet(); });
   document.addEventListener('keydown', e => {
     if (sheetEl.hidden) return;
-    if (e.key === 'Escape') { e.preventDefault(); closeSheet(); return; }
+    if (e.key === 'Escape') { e.preventDefault(); if (!sheetLocked()) closeSheet(); return; }
     if (e.key !== 'Tab') return;
     const f = [...sheetCard.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select,[tabindex="0"]')].filter(x => x.offsetParent !== null);
     if (!f.length) return;
@@ -447,7 +450,7 @@
     let y0 = null, dy = 0;
     sheetCard.addEventListener('touchstart', e => { y0 = sheetCard.scrollTop <= 0 && e.touches.length === 1 ? e.touches[0].clientY : null; dy = 0; }, { passive: true });
     sheetCard.addEventListener('touchmove', e => { if (y0 == null) return; dy = e.touches[0].clientY - y0; if (dy > 0) sheetCard.style.transform = `translateY(${dy}px)`; }, { passive: true });
-    sheetCard.addEventListener('touchend', () => { if (y0 == null) return; y0 = null; if (dy > 90) closeSheet(); else sheetCard.style.transform = ''; });
+    sheetCard.addEventListener('touchend', () => { if (y0 == null) return; y0 = null; if (dy > 90 && !sheetLocked()) closeSheet(); else sheetCard.style.transform = ''; });
   })();
   // On phones the bottom tabs step aside while typing, so the keyboard never covers the field and its button.
   document.addEventListener('focusin', e => { if (TOUCH && isTyping(e)) document.body.classList.add('typing'); });
@@ -480,7 +483,7 @@
   async function refreshHome() {
     const before = S.home ? JSON.stringify(S.home) : '';
     S.home = await api('/api/next/home' + guestQuery(true));
-    if (S.home.session) { S.user = S.home.session.user; S.csrf = S.user ? S.user.csrf : ''; }
+    if (S.home.session) { S.user = S.home.session.user; S.csrf = S.user ? S.user.csrf : ''; setTimeout(askAgeOnce, 400); }
     S.homeFromSnap = false; DATA.ok();
     const changed = before !== JSON.stringify(S.home);
     if (changed) snapHome();
@@ -570,7 +573,7 @@
   function fieldError(form, err, x) {  // the message under the form, and the field it is about marked and focused
     err.textContent = x.message;
     form.querySelectorAll('[aria-invalid]').forEach(i => i.removeAttribute('aria-invalid'));
-    const f = x.field && form.elements[x.field]; if (f) { f.setAttribute('aria-invalid', 'true'); f.focus(); }
+    const f = x.field && form.elements[x.field]; if (f && f.setAttribute) { f.setAttribute('aria-invalid', 'true'); f.focus(); } else if (f && f[0]) f[0].focus();  // a radio group: its first
   }
   async function openLogin(reason, tab) {
     const mail = await mailOn();
@@ -586,6 +589,7 @@
       ${reset ? '<button class="btn ghost" type="button" data-tab="pw">返回登录</button>' : '<button class="btn ghost" data-close type="button">先不登录</button>'}</div>`, card => {
       card.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => openLogin(reason, b.dataset.tab));
       bindEyes(card);
+      if (tab === 'reg') bindAge(card, false);
       const form = card.querySelector('#authForm'), err = card.querySelector('#authErr');
       const sendBtn = card.querySelector('[data-send]');
       if (sendBtn) sendBtn.onclick = async () => {
@@ -602,13 +606,15 @@
         if (tab === 'reg' && !USERNAME_OK.test(v('username').trim())) return fieldError(form, err, { message: '用户名需 2–40 个字符，不能有空格和 @', field: 'username' });
         if ((tab === 'reg' || tab === 'reset') && v('password').length < 10) return fieldError(form, err, { message: '密码至少 10 位', field: 'password' });
         if ((tab === 'code' || tab === 'reset' || (tab === 'reg' && mail)) && !/^\d{6}$/.test(v('code').trim())) return fieldError(form, err, { message: '请输入邮件里的 6 位验证码', field: 'code' });
+        const ag = readAge(form), agp = tab === 'reg' ? ageProblem(ag, true, false) : '';
+        if (agp) return fieldError(form, err, { message: agp, field: ag.age ? 'guardian' : 'age' });
         const btn = form.querySelector('[type=submit]'); btn.disabled = true;
         try {
           let r;
           if (tab === 'pw') r = await api('/api/login', { username: v('username').trim(), password: v('password') });
           else if (tab === 'code') r = await api('/api/login', { method: 'code', email: v('email').trim(), code: v('code').trim() });
           else if (reset) r = await api('/api/auth/reset', { email: v('email').trim(), code: v('code').trim(), password: v('password') });
-          else r = await api('/api/register', { email: v('email').trim(), code: v('code').trim(), username: v('username').trim(), password: v('password') });
+          else r = await api('/api/register', { email: v('email').trim(), code: v('code').trim(), username: v('username').trim(), password: v('password'), age: ag.age, guardian: ag.guardian });
           await afterLogin(); closeSheet();
           const name = (S.user && S.user.username) || r.username || '';
           toast(reset ? '密码已重设，已经登录' : tab === 'reg' ? `注册成功，欢迎你${name ? '，' + name : ''}` : `欢迎回来${name ? '，' + name : ''}`);
@@ -631,7 +637,9 @@
         <span class="hint">2–40 个字符，可以用中文，不能有空格和 @。登录时用户名和邮箱都可以用。</span></label>
       ${pwField('密码', 'password', 'new-password', '至少 10 位，最好是一句只有你知道的话')}
       ${mail ? '' : '<span class="hint">注册后可以在「我的」里绑定邮箱，忘记密码时用它找回。</span>'}
-      <button class="btn primary block" type="submit">注册并登录</button>`;
+      ${ageFields('', false)}
+      <button class="btn primary block" type="submit">注册并登录</button>
+      <span class="hint">注册即表示你已了解<a class="link" href="${PRIVACY}" target="_blank" rel="noopener">隐私说明</a>：数据存在哪里、哪些内容交给哪家 AI。</span>`;
   }
   // An older password-reset email links to /#reset=<token>: set the new password here, then sign in with it.
   function resetByLink(token) {
@@ -4679,9 +4687,9 @@
         u ? grow('meMail', '每周进度邮件', weeklyMailLabel(), 'meMailV', 'me-weekly-mail') : '',
         installed ? '' : grow('meInstall', '添加到桌面', '像 App 一样打开', '', 'me-install')]],
       u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
-        grow('meData', '导出我的数据', '单词本 · 学习记录', '', 'me-data'), grow('meDelete', '注销账号', '', '', 'me-delete')],
+        grow('meAge', '年龄段', ageLabel(u && u.age), 'meAgeV', 'me-age'), grow('meData', '导出我的数据', '单词本 · 学习记录', '', 'me-data'), grow('meDelete', '注销账号', '', '', 'me-delete')],
         '绑定邮箱后，可以用验证码登录，忘记密码时自己找回。30 天内来过就一直保持登录；在别人的手机或电脑上用完，记得退出。'],
-      ['帮助', [grow('#/guide', '操作指南', '每个页面怎么用', '', 'me-guide'), grow('/about', '认识语流', '一页看完语流能帮你做什么', '', 'me-about'),grow('#/feedback', '问题反馈', '页面不对、功能用不了，告诉我们', '', 'me-feedback'), grow('/survey', '匿名问卷', '你想要什么样的英语学习网站', '', 'me-survey')]],
+      ['帮助', [grow('#/guide', '操作指南', '每个页面怎么用', '', 'me-guide'), grow('/about', '认识语流', '一页看完语流能帮你做什么', '', 'me-about'),grow('#/feedback', '问题反馈', '页面不对、功能用不了，告诉我们', '', 'me-feedback'), grow('#/guide/privacy', '隐私说明', '数据存在哪里、交给哪家 AI', '', 'me-privacy'), grow('/survey', '匿名问卷', '你想要什么样的英语学习网站', '', 'me-survey')]],
     ].filter(Boolean);
     view.innerHTML = `<div class="card flat me-head"><div class="me-id">${u ? `<span class="avatar" aria-hidden="true">${esc([...u.username][0].toUpperCase())}</span>` : ''}
         <div class="t"><h1 class="h1">${u ? esc(u.username) : '我的'}</h1><span class="small muted">${lv ? `${esc(lv.label)}（${lv.id}）` : '还没有设置水平'} · 每天 ${p.minutes || 10} 分钟</span></div></div>
@@ -4711,6 +4719,7 @@
       document.getElementById('chPw').onclick = () => changePasswordSheet();
       document.getElementById('outAll').onclick = () => signOutEverywhere();
       document.getElementById('meData').onclick = dataSheet;
+      document.getElementById('meAge').onclick = () => ageSheet(false);
       document.getElementById('meDelete').onclick = deleteAccountSheet;
       document.getElementById('out').onclick = async () => { await OUTBOX.flush(); try { await api('/api/logout', {}); } catch (e) { /* ignore */ } snapClear(); S.user = null; S.csrf = ''; await refreshHome(); toast('已退出'); route(); };
     }
@@ -4907,6 +4916,76 @@
   }
 
 
+  /* ---------- 年龄段和监护人同意 (privacy_service.py): a band, never a birthday; under 14, a guardian's agreement ---------- */
+  const AGE_BANDS = [['u14', '不满 14 岁'], ['14-17', '14–17 岁'], ['18+', '18 岁及以上']];
+  const GUARD_WHY = '你写的作文和说的录音会交给 AI 批改，所以需要家长知道。';
+  const PRIVACY = '/#/guide/privacy';
+  function ageLabel(a) { const x = AGE_BANDS.find(b => b[0] === a); return x ? x[1] : '没填'; }
+  // The three bands as chips (radio buttons) and, for 不满 14 岁 without an agreement on record, the box to tick.
+  function ageFields(cur, onRecord) {
+    return `<fieldset class="agefs"><legend>年龄段<span class="hint">只用来保护未成年人的信息，不问生日。</span></legend>
+      <div class="chips" role="radiogroup" aria-label="年龄段">${AGE_BANDS.map(([k, l]) => `<label class="chip agechip"><input type="radio" name="age" value="${k}"${cur === k ? ' checked' : ''}><span>${l}</span></label>`).join('')}</div>
+      <div class="guard" ${cur === 'u14' && !onRecord ? '' : 'hidden'}><label class="checkline"><input type="checkbox" name="guardian"><span>我已经告诉家长（或监护人），他们同意我用语流</span></label>
+        <span class="hint">${GUARD_WHY}<a class="link" href="${PRIVACY}" target="_blank" rel="noopener">看隐私说明</a></span></div></fieldset>`;
+  }
+  function bindAge(root, onRecord) {
+    const g = root.querySelector('.guard'), radios = root.querySelectorAll('input[name=age]');
+    const show = () => radios.forEach(x => x.parentNode.dataset.on = String(x.checked));  // the chips' look (no :has)
+    radios.forEach(r => { r.onchange = () => { if (r.checked) g.hidden = !(r.value === 'u14' && !onRecord); show(); }; });
+    show();
+  }
+  function readAge(root) {
+    const r = root.querySelector('input[name=age]:checked'), g = root.querySelector('input[name=guardian]');
+    return { age: r ? r.value : '', guardian: !!(g && g.checked) };
+  }
+  // The same check the server makes, said at once: '' when fine. need: under 14, the tick is required here.
+  function ageProblem(a, need, onRecord) {
+    if (!a.age) return '请选一个年龄段';
+    if (need && a.age === 'u14' && !a.guardian && !onRecord) return '不满 14 岁需要先告诉家长（或监护人）并得到同意，勾选后才能继续';
+    return '';
+  }
+  // An account without a band (made before 2026-11-24, or by an older page) is asked once, the next time it opens the
+  // site; the sheet stays until a band is chosen. locked: no 关闭, the scrim, Esc and a swipe down do nothing.
+  let ageAsked = false;
+  function askAgeOnce() {
+    if (!S.user || S.user.age || ageAsked || !sheetEl.hidden) return;
+    ageAsked = true; ageSheet(true);
+  }
+  function ageSheet(locked) {
+    const u = S.user; if (!u) return;
+    openSheet(`<div class="stack"${locked ? ' data-lock' : ''}><h2 class="h2" id="sheetTitle">${locked ? '补充一个问题：你现在多大？' : '年龄段'}</h2>
+      <form id="ageF" class="stack" novalidate>${ageFields(u.age, u.guardian)}
+        <p class="small muted">不满 14 岁、还没告诉家长的，可以先选；学材料、背单词、做题都照常，要交给 AI 批改的作文和录音等家长同意以后再用。</p>
+        <button class="btn primary" type="submit">好了</button></form>
+      <p class="err" id="ageErr" role="alert"></p>${locked ? '' : '<button class="btn ghost" data-close type="button">取消</button>'}</div>`, card => {
+      const form = card.querySelector('#ageF'), err = card.querySelector('#ageErr');
+      bindAge(card, u.guardian);
+      form.onsubmit = async e => {
+        e.preventDefault(); err.textContent = '';
+        const a = readAge(form), p = ageProblem(a, false, u.guardian);
+        if (p) { err.textContent = p; const r = form.querySelector('input[name=age]'); if (r) r.focus(); return; }
+        try { Object.assign(S.user, await api('/api/account/age', a)); closeSheet(); toast(S.user.age === 'u14' && !S.user.guardian ? '好了。家长同意以后，在「我的 → 年龄段」里勾选' : '好了，谢谢'); const v = document.getElementById('meAgeV'); if (v) v.textContent = ageLabel(S.user.age); }
+        catch (x) { err.textContent = x.message; }
+      };
+    });
+  }
+  // A feature that hands the learner's own words or voice to AI answered 403 code 'guardian' (privacy_service.gate).
+  function guardianSheet() {
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">先告诉家长</h2>
+      <p class="small">这一步会把你写的或说的交给 AI 处理。不满 14 岁，需要先告诉家长（或监护人），得到同意以后再用。学材料、背单词、做题不受影响。</p>
+      <form id="guardF" class="stack" novalidate><label class="checkline"><input type="checkbox" name="guardian"><span>我已经告诉家长（或监护人），他们同意我用语流</span></label>
+        <a class="link small" href="${PRIVACY}" target="_blank" rel="noopener">看隐私说明：数据存在哪里、交给哪家 AI</a>
+        <button class="btn primary" type="submit">继续</button></form>
+      <p class="err" id="guardErr" role="alert"></p><button class="btn ghost" data-close type="button">先不用</button></div>`, card => {
+      const form = card.querySelector('#guardF'), err = card.querySelector('#guardErr');
+      form.onsubmit = async e => {
+        e.preventDefault(); err.textContent = '';
+        if (!form.guardian.checked) { err.textContent = '勾选以后才能继续'; form.guardian.focus(); return; }
+        try { Object.assign(S.user, await api('/api/account/age', { age: 'u14', guardian: true })); closeSheet(); toast('好了，再点一次刚才的按钮'); }
+        catch (x) { err.textContent = x.message; }
+      };
+    });
+  }
   /* ---------- 班级试用 (class_service.py): join a class with the teacher's code, leave at any time; a teacher sees the whole class's numbers only ---------- */
   // What a teacher sees and does not, said the same way before joining and on the teacher's own page.
   const CLASS_SEES = ['最近 7 天全班几人在学', '全班最常错的 5 个语法点'];
@@ -4945,13 +5024,18 @@
         if (!c) return fieldError(form, err, { message: '请输入老师给你的邀请码', field: 'code' });
         try {
           const r = await api('/api/next/class/find', { code: c });
+          // 年龄段 first, and under 14 a guardian's agreement (privacy_service): asked here when not on record yet
+          const needAge = !S.user.age || (S.user.age === 'u14' && !S.user.guardian);
           found.innerHTML = `<div class="card sunk cls-found"><b>${esc(r.name)}</b><span class="small muted">老师 ${esc(r.teacher)}</span></div>
-            ${r.teaching ? '<p class="small muted">你是这个班的老师，不用加入；在「我的 → 我的班级」里看全班汇总。</p>' : '<button class="btn primary" id="clsJoin" type="button">加入这个班</button>'}`;
+            ${r.teaching ? '<p class="small muted">你是这个班的老师，不用加入；在「我的 → 我的班级」里看全班汇总。</p>' : `${needAge ? ageFields(S.user.age, S.user.guardian) : ''}<button class="btn primary" id="clsJoin" type="button">加入这个班</button>`}`;
           found.hidden = false;
+          if (needAge) bindAge(found, S.user.guardian);
           const j = found.querySelector('#clsJoin');
           if (j) j.onclick = async () => {
+            const a = needAge ? readAge(found) : {}, p = needAge ? ageProblem(a, true, S.user.guardian) : '';
+            if (p) { err.textContent = p; return; }
             j.disabled = true;
-            try { S.myClass = await api('/api/next/class/join', { code: c }); closeSheet(); toast(`已加入「${r.name}」`); const v = document.getElementById('meClassV'); if (v) v.textContent = r.name; if (location.hash.startsWith('#/invite')) location.replace('#/me'); }
+            try { S.myClass = await api('/api/next/class/join', { code: c, ...a }); if (needAge) Object.assign(S.user, { age: a.age, guardian: S.user.guardian || a.guardian }); closeSheet(); toast(`已加入「${r.name}」`); const v = document.getElementById('meClassV'); if (v) v.textContent = r.name; if (location.hash.startsWith('#/invite')) location.replace('#/me'); }
             catch (x) { err.textContent = x.message; j.disabled = false; }
           };
         } catch (x) { fieldError(form, err, { message: x.message, field: 'code' }); }

@@ -31,11 +31,24 @@ def backup():
   # Only remove completed backups created by this tool, keeping the most recent 14.
   completed=sorted([p for p in BACKUPS.glob('flow-*') if (p/'manifest.json').is_file()],key=lambda p:p.stat().st_mtime,reverse=True)
   for old in completed[14:]:shutil.rmtree(old)
+  prune_deploy_copies()
  except Exception:
   status={'ok':False,'created':time.time()};raise
  finally:
   status_file=ROOT/'data/backup-status.json';temp=status_file.with_suffix('.tmp');temp.write_text(json.dumps(status));temp.chmod(0o644);temp.replace(status_file)
  return folder
+
+def prune_deploy_copies(ops=Path('/root/claude-ops'),days=14,now=None):
+ """tools/flow-pull.sh keeps a copy of the database from before each deploy. After 14 days the copy goes (the code files
+ stay, for a rollback), so an account deleted with 注销账号 is gone from every backup within 14 days, as the 隐私说明 says."""
+ now=now or time.time();gone=0
+ try:copies=list(ops.glob('backup-pull*/flow-before.sqlite3'))
+ except OSError:return 0
+ for f in copies:
+  try:
+   if now-f.stat().st_mtime>days*86400:f.unlink();gone+=1
+  except OSError:pass
+ return gone
 
 def restore(folder,apply):
  folder=Path(folder).resolve();source=folder/'flow.sqlite3';check(source)

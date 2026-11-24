@@ -325,6 +325,7 @@
           d.items.map(function (r) {
             return '<tr class="click' + (r.disabled ? ' dim' : '') + '" data-uid="' + r.id + '" tabindex="0"><td><b>' + esc(r.username) + '</b> ' +
               (r.staff ? '<span class="pill blue">员工</span> ' : '') + (r.disabled ? '<span class="pill danger">已停用</span>' : '') +
+              (r.age === 'u14' || r.age === '14-17' ? '<span class="pill warn">' + esc(r.age_label) + '</span> ' : '') +
               '<span class="sub">#' + r.id + ' · ' + (r.has_email ? esc(r.email) : '没有绑定邮箱') + '</span></td>' +
               '<td>' + (r.level ? esc(r.level) : '<span class="muted">未填</span>') + (r.goal ? '<span class="sub">' + esc(r.goal) + '</span>' : '') + '</td>' +
               '<td>' + esc(rel(r.last_seen)) + (r.last_study ? '<span class="sub">学习 ' + esc(relDay(r.last_study)) + '</span>' : '') + '</td>' +
@@ -393,6 +394,8 @@
         '<section class="card"><dl class="kv">' +
           '<dt>邮箱</dt><dd>' + (a.has_email ? esc(a.email) + '（打码显示）' : '没有绑定，忘了密码只能由管理员生成重设链接') + '</dd>' +
           '<dt>注册</dt><dd>' + (a.joined ? esc(when(a.joined)) + (a.joined_known ? '' : '（没有注册时间，按开始学习算）') : '早于记录') + '</dd>' +
+          '<dt>年龄段</dt><dd>' + esc(a.age_label || '没填') + (a.age === 'u14' ? (a.guardian ? '<div class="muted small">监护人同意：' + esc(when(a.guardian)) + ' 勾选</div>'
+            : '<div class="muted small">还没有监护人同意：交给 AI 的批改和录音先停着，其他照常</div>') : !a.age ? '<div class="muted small">下次打开语流时会问</div>' : '') + '</dd>' +
           '<dt>最近打开</dt><dd>' + esc(rel(a.last_open)) + ' · 登录着的设备 ' + n(a.sessions) + ' 台</dd>' +
           (p ? '<dt>学习目标</dt><dd>' + esc(p.goal) + ' · 每天 ' + n(p.minutes) + ' 分钟 · 每周 ' + n(p.weekly_goal) + ' 天' + (p.themes.length ? ' · ' + p.themes.map(esc).join('、') : '') + '</dd>' : '') +
           (d.classes && (d.classes.member || d.classes.teaching.length) ? '<dt>班级</dt><dd>' + (d.classes.member ? '<a href="#classes/' + d.classes.member.id + '">' + esc(d.classes.member.name) + '</a>（' + esc(d.classes.member.joined) + ' 加入）' : '') +

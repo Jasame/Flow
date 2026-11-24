@@ -129,6 +129,9 @@ PYEOF
 chmod 600 "$BK/flow-before.sqlite3"
 for x in "${CHANGED[@]}"; do src=${x%%|*}; dest=${x#*|}; mkdir -p "$(dirname "$dest")"; install -m 644 -o root -g root "$STAGE/files/$src" "$dest"; done
 echo "installed; backup in $BK"
+# 隐私说明: a deleted account is gone from every backup within 14 days. The database copies older than that go
+# (flow/ops.py does the same every day); the code files stay, for a rollback.
+find "$OPS" -maxdepth 2 -path "$OPS/backup-pull*/flow-before.sqlite3" -mtime +13 -print -delete 2>/dev/null | sed 's/^/pruned old database copy: /' || true
 
 rollback() {
   echo "FAIL -> ROLLBACK"; journalctl -u "$SVC" -n 30 --no-pager
