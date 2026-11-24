@@ -10,6 +10,7 @@ from pathlib import Path
 
 TZ = datetime.timezone(datetime.timedelta(hours=8))
 STEPS = ('listen', 'read', 'check', 'output')
+UP_LEVEL = {'A2': 'B1', 'B1': 'B2', 'B2': 'C1'}  # where 今日 goes once a level's featured texts are all learned
 LEVELS = {
     'A2': {'label': '入门', 'pack': 'A2', 'hard_rank': 2000, 'sample': 'I usually take the bus to school. It is cheap and quick.',
            'desc': '能看懂简单句子，日常交流还比较吃力'},
@@ -472,6 +473,7 @@ def _card(pack, done=None, extra=None):
             'theme_label': THEMES.get(pack['theme'], ''), 'genre': pack.get('genre', ''), 'words': words, 'minutes': max(3, round(words / 30) + 4),
             'preview': pack.get('summary_zh') or sentences(pack['body'])[0][:140], 'preview_en': sentences(pack['body'])[0][:160],
             'daily': bool(pack.get('daily_day')), 'featured': featured(pack), 'grammar': pack.get('grammar', []),
+            'brief': not featured(pack) and not pack.get('daily_day') and not pack.get('imported'),  # 简版: the older, shorter texts
             'steps': sorted(done or [], key=STEPS.index), **(extra or {})}
 
 
@@ -697,6 +699,13 @@ def _card_norms(c, uid):
         "SELECT text, norm, source FROM next_cards WHERE user_id=? AND known=0 AND (source='saved' OR COALESCE(rank, 99999)>3000)", (uid,))]
 
 
+def featured_left(c, uid, level, done=None):
+    """How many of a level's featured texts the learner has not learned yet (every episode of a serial counts).
+    今日 says so from seven down (r27 content line); other parts of 今日 can use it too (今日好句 avoids the last few)."""
+    done = _done(c, uid) if done is None else done
+    return sum(1 for r, p in _public_packs(c, level) if r['origin'] != 'daily' and featured(p) and 'check' not in done.get(p['id'], set()))
+
+
 def home(c, uid, level=None, themes=None):
     prof = profile(c, uid)
     level = (prof or {}).get('level') or (level if level in LEVELS else 'B1')
@@ -706,9 +715,27 @@ def home(c, uid, level=None, themes=None):
     # A serial is recommended one episode at a time: only its next unread episode, never one from the middle.
     serial_next = {s['next'] for s in series_list(c, uid)}
     pool = [(r, p) for r, p in _public_packs(c, level) if r['origin'] != 'daily' and (not p.get('series') or p['id'] in serial_next)]
-    if len(pool) < 6 and level == 'C1':
-        pool += [(r, p) for r, p in _public_packs(c, 'B2') if r['origin'] != 'daily']
-    fresh = [(r, p) for r, p in pool if 'check' not in done.get(p['id'], set())] or pool
+    learned = lambda p: 'check' in done.get(p['id'], set())
+    # What 今日 recommends, tier by tier, until there are three (r27 content line, audit 3.2; the user's choices):
+    # this level's featured texts not learned yet; then the next level's (with a word that this level is done); then
+    # 精读重学, this level's featured texts again, the longest ago first; only then the older texts (简版); and if even
+    # that is empty, anything at this level. C1 has no next level, so it goes straight to 精读重学.
+    feat = [rp for rp in pool if featured(rp[1])]
+    tiers = [('', [rp for rp in feat if not learned(rp[1])])]
+    up = UP_LEVEL.get(level)
+    if up:
+        tiers.append(('up', [rp for rp in _public_packs(c, up) if rp[0]['origin'] != 'daily' and featured(rp[1]) and not rp[1].get('series')
+                             and not learned(rp[1])]))
+    last = {}
+    if uid:
+        # The latest time each text was learned: the first time (next_progress) or again (next_step_log, since #51)
+        last = {r['pack']: r['t'] for r in c.execute(
+            "SELECT pack, MAX(created) t FROM (SELECT pack, created FROM next_progress WHERE user_id=? AND step='check' "
+            "UNION ALL SELECT pack, created FROM next_step_log WHERE user_id=? AND step='check') GROUP BY pack", (uid, uid))}
+    tiers.append(('redo', sorted((rp for rp in feat if learned(rp[1])), key=lambda rp: (last.get(rp[1]['id'], 0), rp[1]['id']))))
+    tiers.append(('brief', [rp for rp in pool if not featured(rp[1]) and not learned(rp[1])]))
+    tiers.append(('any', pool))
+    left = featured_left(c, uid, level, done)
     states = graph_states(c, uid) if uid else {}
     focus = set(LEVEL_NODES.get(level, ())) or None
     meta_titles = {k: v['title'] for k, v in nodes_meta(c).items()}
@@ -749,12 +776,30 @@ def home(c, uid, level=None, themes=None):
             s += min(3, 1.5 * len(hits)); reasons.insert(0, f'你收藏的「{t}」又出现了' if src == 'saved' else f'你在背的「{t}」在这篇里')
         return s, reasons[:2]
 
-    scored = []
-    for r, p in fresh:
-        s, reasons = score(p)
-        scored.append((-s, seed(p), p, reasons))
-    scored.sort(key=lambda x: (x[0], x[1]))
-    picks = [_card(p, done.get(p['id']), {'reasons': reasons}) for _, _, p, reasons in scored[:3]]
+    picks, taken = [], set()
+    for kind, rows in tiers:
+        if len(picks) >= 3:
+            break
+        if kind == 'redo':  # the longest ago first, not by score: each text comes round again in turn
+            ranked = [(p, []) for _, p in rows]
+        else:
+            ranked = sorted(((p,) + score(p) for _, p in rows), key=lambda x: (-x[1], seed(x[0])))
+            ranked = [(p, reasons) for p, _, reasons in ranked]
+        for p, reasons in ranked:
+            if len(picks) >= 3:
+                break
+            if p['id'] in taken:
+                continue
+            taken.add(p['id'])
+            extra = {'reasons': reasons}
+            if kind == 'up':
+                extra['reasons'] = [f'这一级的精选学完了，先试试 {up} 的'] + reasons[:1]
+            elif kind == 'redo':
+                # calendar days in Beijing time, not 24-hour periods: last night's text is 「昨天学过」 this morning
+                days = (datetime.date.fromisoformat(_day()) - datetime.date.fromisoformat(_day(last.get(p['id'], time.time())))).days
+                when = '今天学过' if days <= 0 else '昨天学过' if days == 1 else f'{days} 天前学过'
+                extra = {'reasons': [f'精读重学：{when}' if p['id'] in last else '精读重学'], 'redo': True}
+            picks.append(_card(p, done.get(p['id']), extra))
     news = None
     for r, p in sorted(_public_packs(c), key=lambda rp: -rp[0]['created']):
         if r['origin'] == 'daily' and r['created'] > time.time() - 3 * 86400:
@@ -778,6 +823,7 @@ def home(c, uid, level=None, themes=None):
     # 今日好句 (r27, daily_line.py): a public-domain line or a sentence from a featured text, not today's own article
     line = __import__('daily_line').today(c, uid, level, skip={p['id'] for p in picks[:1]})
     out = {'profile': prof, 'level': level, 'level_label': LEVELS[level]['label'], 'today': picks, 'news': news, 'resume': resume, 'line': line,
+           'featured_left': left if uid else None, 'level_up': up,
            'stats': stats(c, uid) if uid else None, 'graph': g,
            'announce': __import__('console_ops').current_announcement(c),
            'trial_survey': bool(uid) and __import__('class_service').survey_due(c, uid)}  # 公告 from the xmc.hk console, at the top of 今日

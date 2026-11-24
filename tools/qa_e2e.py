@@ -338,6 +338,9 @@ def persona_b1(cl):
     check(who, 'ability after speaking/writing', s == 200, ab.get('weakest') if isinstance(ab, dict) else ab)
     s, h = cl.get('/api/next/home')
     check(who, 'home', s == 200, s)
+    check(who, 'home says how many featured texts are left and marks each card\'s kind (精选/重学/简版)',
+          isinstance(h.get('featured_left'), int) and all(isinstance(m.get('brief'), bool) for m in h.get('today') or []),
+          {'featured_left': h.get('featured_left'), 'brief': [m.get('brief') for m in h.get('today') or []]})
 
 
 ESSAY = ('Many people think noise cancelling headphones is only for rich travellers, but I disagree. In my opinion they are useful for '
