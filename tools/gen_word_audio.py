@@ -3,7 +3,9 @@
 Words are packed 100 to a file ("sprites") so a day of reviews needs a few requests, not hundreds:
   <out>/<accent>/w000.m4a ...    and    <out>/index.json  {"us": {"word": ["w000", start, end]}, "uk": {...}}
 Frequency-book words go in w### files, exam-only words in x###, pronunciation-practice extras in p###, so no group reshuffles another.
-Run on a machine with the Kokoro model files (see tools/gen_audio.py), then copy <out> to flow/audio/words.
+Run again on an <out> that already has an index.json and only the book words it lacks are made (words of the data books,
+flow/corpus_data/wordbooks*.json, and of book lists that changed since): they go in new b### files after the last one, and
+no earlier file is touched. Copy the new files and index.json to the server's audio/words (see tools/media/README.md).
 
 usage: gen_word_audio.py <flow dir> <models dir> <out dir> [workers]
 """
@@ -19,6 +21,7 @@ PER = 100
 GAP, PAD = 0.2, 0.04  # silence between words; margin kept around each word when trimming
 BITRATE = '24000'  # plenty for one voice saying one word; keeps ~17k words x 2 accents near 100 MB
 _kokoro = None
+SAY = {'dvd': 'DVD', 'cd': 'CD', 'tv': 'TV', 'pc': 'PC'}  # said as letters, not as a word
 
 
 def kokoro():
@@ -54,7 +57,7 @@ def render(job):
         return accent, sprite, 'skip'
     sr, chunks, marks, clock = 24000, [], {}, 0.0
     for w in words:
-        samples, sr = kokoro().create(w, voice=voice, speed=0.92, lang=lang)
+        samples, sr = kokoro().create(SAY.get(w, w), voice=voice, speed=0.92, lang=lang)
         samples = trim(samples, sr)
         dur = len(samples) / sr
         marks[w] = [round(clock, 3), round(clock + dur, 3)]
@@ -68,9 +71,22 @@ def render(job):
     return accent, sprite, 'ok'
 
 
+def known_words():
+    """Words <out> already has a pronunciation for (US list; both accents are always made together)."""
+    f = OUT / 'index.json'
+    return set(json.loads(f.read_text()).get('us', {})) if f.exists() else set()
+
+
 def main():
     import vocab_service as vs
     bw = vs.book_words()
+    have = known_words()
+    if have:  # top up: every book word still missing, in study order of the books, in new b### files
+        missing = list(dict.fromkeys(w for k in bw for _, w in bw[k] if w not in have))
+        first = 1 + max((int(f.stem[1:]) for f in (OUT / 'us').glob('b[0-9][0-9][0-9].json')), default=-1)
+        jobs = [(a, f'b{first + k // PER:03d}', missing[k:k + PER]) for a in ACCENTS for k in range(0, len(missing), PER)]
+        print(f'{len(have)} words already made; {len(missing)} missing, {len(jobs)} new files from b{first:03d}', flush=True)
+        return run(jobs)
     freq = [w for _, w in sorted({(r, w) for k in vs.BOOKS for r, w in bw[k]})]
     seen = set(freq)
     exam = [w for _, w in sorted({(r, w) for k in vs.EXAM_BOOKS for r, w in bw[k] if w not in seen})]
@@ -80,6 +96,10 @@ def main():
     jobs = [(a, f'{prefix}{k // PER:03d}', words[k:k + PER]) for prefix, words in (('w', freq), ('x', exam), ('p', extra))
             for a in ACCENTS for k in range(0, len(words), PER)]
     print(f'{len(freq)} + {len(exam)} + {len(extra)} words, {len(jobs)} files, {WORKERS} workers', flush=True)
+    run(jobs)
+
+
+def run(jobs):
     t0 = time.time()
     with ProcessPoolExecutor(WORKERS) as ex:
         for n, (a, sprite, state) in enumerate(ex.map(render, jobs), 1):
@@ -87,7 +107,7 @@ def main():
                 print(f'{n}/{len(jobs)} {a}/{sprite} {state} elapsed {time.time() - t0:.0f}s', flush=True)
     index = {a: {} for a in ACCENTS}
     for a in ACCENTS:
-        for f in sorted((OUT / a).glob('[wxp][0-9][0-9][0-9].json')):
+        for f in sorted((OUT / a).glob('[wxpb][0-9][0-9][0-9].json')):
             for w, (s, e) in json.loads(f.read_text()).items():
                 index[a][w] = [f.stem, s, e]
     (OUT / 'index.json').write_text(json.dumps(index, separators=(',', ':')))

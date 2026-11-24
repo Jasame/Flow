@@ -47,6 +47,32 @@ def gaps(pg):
     return 'keep'  # the page stays scrolled where the step left it
 
 
+# Steps that record use Chrome's fake microphone (a tone); the simulated AI answers. They return 'keep' to keep the scroll.
+def shadow(pg):
+    pg.click('[data-mode="shadow"]'); pg.wait_for_selector('.line.sh.cur [data-r="0"]')
+    pg.click('[data-r="0"]'); pg.wait_for_selector('[data-r="0"].on', timeout=5000); pg.wait_for_timeout(1200); pg.click('[data-r="0"]')
+    pg.wait_for_selector('[data-ai="0"]:not([disabled])', timeout=5000); pg.click('[data-ai="0"]')
+    pg.wait_for_selector('.line[data-i="0"] .sh-res .pron', timeout=10000); pg.wait_for_timeout(900)
+    pg.evaluate("() => { const r = document.querySelector('.line[data-i=\"0\"] .sh-ctl').getBoundingClientRect(); scrollBy(0, r.top - 70); }")
+    return 'keep'
+
+
+def ielts_card(pg):
+    pg.click('#p2Start'); pg.wait_for_selector('.p2-clock.prep', timeout=5000)
+    pg.fill('#p2Notes', 'cooking · grandma · one year · saves money')
+    pg.wait_for_timeout(2200)
+
+
+def ielts_feedback(pg):
+    pg.click('#p2Start'); pg.wait_for_selector('.p2-clock.prep', timeout=5000); pg.click('#p2Go')
+    pg.wait_for_selector('.p2-clock.talk', timeout=3000); pg.wait_for_timeout(5600)
+    pg.evaluate('() => { const now = Date.now; Date.now = () => now() + 88000; }')  # reads like a 1½-minute answer, not the test's few seconds
+    pg.click('#p2Done')
+    pg.wait_for_selector('#ieOut .ielts-fb', timeout=15000); pg.wait_for_timeout(900)
+    pg.evaluate("() => { const r = document.querySelector('#ieOut').getBoundingClientRect(); scrollBy(0, r.top - 70); }")
+    return 'keep'
+
+
 def week(pg):
     pg.click('#weekCard')
     pg.wait_for_selector('.wk-sheet', timeout=6000)
@@ -81,6 +107,9 @@ SHOTS = {
     'practice': ('#/practice', None, True),
     'easy': ('#/easy', None, True),
     'speak': ('#/speak', None, True),
+    'shadow': (f'#/m/{PID}/listen', shadow, True),
+    'ielts': ('#/speak/ielts/p2-skill', ielts_card, True),
+    'ielts-fb': ('#/speak/ielts/p2-skill', ielts_feedback, True),
     'exam': ('#/exam', None, True),
     'radar': ('#/radar', None, True),
     'radartest': ('#/radar/test', None, True),
@@ -110,7 +139,7 @@ def main(only):
     cfg = json.loads((state / 'sessions.json').read_text())
     base = cfg['base']
     with sync_playwright() as p:
-        browser = p.chromium.launch(channel='chrome')  # the installed Chrome, as tools/ui_test.py does
+        browser = p.chromium.launch(channel='chrome', args=['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'])  # the installed Chrome, as tools/ui_test.py does
         for name in names:
             route, step, signed, *who = SHOTS[name]
             token = cfg['learners'][who[0] if who else 'guide']['token']
@@ -118,6 +147,7 @@ def main(only):
                                       reduced_motion='reduce', service_workers='block', bypass_csp=True)
             if signed:
                 ctx.add_cookies([{'name': 'flow_session', 'value': token, 'url': base}])
+            ctx.grant_permissions(['microphone'], origin=base)
             pg = ctx.new_page()
             pg.goto(base + '/' + route)
             pg.wait_for_function("() => !document.querySelector('#view .skeleton') && !document.querySelector('#view .loading')", timeout=15000)
