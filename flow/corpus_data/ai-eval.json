@@ -49,5 +49,13 @@
     {"id": "close-enough", "level": "B2", "sentence": "The result is not silence, but it is close enough to make a long journey feel shorter.", "zh": "结果并不是完全安静，但已经足以让一段长途旅程显得短一些。", "good": "The result isn't complete silence, but it's close enough to make a long trip feel shorter.", "bad": "The result is not quiet, but it is enough close, long travel feel short."},
     {"id": "pressure-wave", "level": "B2", "sentence": "Every noise is a wave of pressure, with peaks and troughs that reach your ear in a regular rhythm.", "zh": "每一种噪音都是一种压力波，它的波峰和波谷以规律的节奏传到你的耳朵。", "good": "Every noise is a pressure wave, whose peaks and troughs reach your ear in a regular rhythm.", "bad": "Every noise is pressure, it have top and bottom, go to your ear regular."},
     {"id": "worse-rather-than-better", "level": "B2", "sentence": "If the headphones tried to cancel every sudden sound, they would risk making the noise worse rather than better.", "zh": "如果耳机想把每一个突然出现的声音都抵消掉，反而可能让噪音更糟，而不是更好。", "good": "If the headphones tried to cancel every sudden sound, they might make the noise worse instead of better.", "bad": "If headphone cancel all sudden sound, noise will more bad."}
-  ]
+  ],
+  "content": {
+    "about": "内容类任务（讲解、例句、难度改写、对话开场、翻译原句）：没有标准答案，只查能不能直接给学习者看——格式对、讲的是原句里的片段、例句真的用了这个词、改写不丢原文的数字、开场白是短短的英文。",
+    "explain": [{"id": "explain-not-so-much-as", "i": 1}, {"id": "explain-microphone-chip", "i": 3}],
+    "examples": [{"id": "examples-b2-words", "level": "B2", "words": ["critical", "conduct", "conflict", "perspective", "political", "skiing"]}],
+    "variant": [{"id": "variant-a2", "level": "A2"}],
+    "dialog": [{"id": "dialog-opening"}],
+    "transsrc": [{"id": "transsrc-interference", "i": 5}]
+  }
 }

@@ -86,12 +86,14 @@ FLOW_FILES=(
   ai_eval.py
   ai_help_service.py
   ai_jobs.py
+  ai_routes.py
   ai_stream.py
   app.py
   attempt_service.py
   audio_validation.py
   auth_service.py
   chat_service.py
+  class_service.py
   coach_service.py
   console_data.py
   console_ops.py
