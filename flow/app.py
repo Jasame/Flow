@@ -142,6 +142,9 @@ def shell_file(name):
  if name=='about.html':return body.replace(b'__ABOUT__',asset_version(ABOUT_ASSETS).encode()).replace(b'__CHANNEL__',CHANNEL.encode())
  if name not in ('next.html','sw.js'):return body
  return body.replace(b'__ASSET__',asset_version().encode()).replace(b'__CHANNEL__',CHANNEL.encode())
+
+PAGE_CACHE='max-age=0, stale-while-revalidate=2592000'  # the learning page: see do_GET '/'
+
 # 认识语流 (/about): the introduction page for people who have not used Flow yet; its own small files, so it opens fast
 # and never loads the learning site. Its pictures are real screenshots (tools/about_shots.py) in public/about/.
 ABOUT_ASSETS=('about.js','about.css')
@@ -395,8 +398,13 @@ class Handler(BaseHTTPRequestHandler):
    return self.send_audio(path)
   if path=='/':
    # The learning site is the only site: any query string (old /?classic=1, /?account=1#login, trial links) opens it too.
+   # The page opens from the browser's own copy at once and is fetched again in the background for next time
+   # (stale-while-revalidate): iPhone WeChat has no service worker, so without this every opening first waited for a
+   # round trip to the server (0.1-0.7 s from the mainland, r26 data). The copy names its own next.js/next.css version,
+   # so an old copy runs the release it came with, once; sw.js fetches this page with cache 'no-cache', so phones with
+   # the service worker get a new release exactly as before.
    body=shell_file('next.html')
-   self.send_response(200);self.headers_common('text/html; charset=utf-8');self.send_header('Cache-Control','no-cache')
+   self.send_response(200);self.headers_common('text/html; charset=utf-8');self.send_header('Cache-Control',PAGE_CACHE)
    self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
   if path not in files:return self.send({'error':'页面不存在'},404)
   name,mime=files[path];body=shell_file(name);self.send_response(200);self.headers_common(mime)

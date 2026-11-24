@@ -684,7 +684,7 @@
       const token = decodeURIComponent(location.hash.slice(7)); history.replaceState(null, '', location.pathname + location.search + '#/');
       setTimeout(() => resetByLink(token), 0);
     }
-    TTS.stop(); NAR.stop(); CLIP.stop(); MIC.stop(); MINI.hide(); hideSelbar(); view.ontouchstart = view.ontouchmove = view.ontouchend = null; document.body.classList.remove('reviewing'); bar.classList.remove('hide'); document.onselectionchange = null; document.onkeydown = null;
+    TTS.stop(); NAR.stop(); CLIP.stop(); MIC.stop(); MINI.hide(); hideSelbar(); swipeOff(); document.body.classList.remove('reviewing', 'onboarding'); bar.classList.remove('hide'); document.onselectionchange = null; document.onkeydown = null;
     const [name, a, b] = parts();
     if (name === 'about') { location.replace('/about'); return; }  // 认识语流 is its own page (the guide links here)
     const last = S.lastRoute.split('/');
@@ -700,14 +700,14 @@
       // Only the personalised home needs the level questions first; everything else works for a new guest too.
       else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix', 'easy', 'words', 'speak', 'growth', 'radar', 'practice', 'guide', 'feedback', 'weekly-off', 'invite', 'class'].includes(name)) { location.replace('#/welcome'); return; }
       else if (name === 'placement') { setNav('practice'); await placementView(); }
-      else if (name === 'exam') { setNav('practice'); await examView(a); }
+      else if (name === 'exam') { setNav('practice'); await (b ? examTypeView(a, decodeURIComponent(b)) : examView(a)); }
       else if (name === 'series') { setNav('today'); await seriesView(decodeURIComponent(a || '')); }
       else if (name === 'easy') { setNav('practice'); await (a ? easyRead(decodeURIComponent(a)) : easyView()); }
       else if (name === 'words' && a === 'confuse') { setNav('cards'); await (b ? confuseRound(decodeURIComponent(b)) : confuseView()); }
       else if (name === 'speak') { setNav('practice'); await (a === 'ielts' ? (b ? ieltsPractice(decodeURIComponent(b)) : ieltsView()) : a ? speakScene(decodeURIComponent(a)) : speakView()); }
       else if (name === 'radar') { setNav('practice'); await (a === 'goals' ? radarGoals() : a === 'test' && (b === 'reading' || b === 'listening') ? assessComprehension(b) : a === 'test' && (b === 'speaking' || b === 'writing') ? assessJudged(b) : a === 'test' ? radarTests() : radarView()); }
       else if (name === 'growth') { setNav('me'); await growthView(a ? decodeURIComponent(a) : ''); }
-      else if (name === 'mix') { setNav('practice'); await mixView(a === 'pair' || a === 'topic' ? a : 'due', b ? decodeURIComponent(b) : ''); }
+      else if (name === 'mix') { setNav('practice'); await mixView(a === 'pair' || a === 'topic' || a === 'exam' ? a : 'due', b ? decodeURIComponent(b) : ''); }
       else if (name === 'm' && a) { setNav('today'); await study(decodeURIComponent(a), b || 'listen', sameMaterial); }
       else if (name === 'graph') { setNav('practice'); await (a ? nodeView(decodeURIComponent(a)) : graphView()); }
       else if (name === 'cards') { setNav('cards'); await vocabView('', 1, a || ''); }
@@ -1034,57 +1034,117 @@
     }
     return { matrix, draw };
   })();
-  /* ---------- welcome ---------- */
+  /* ---------- 启动动画 (r27): on every opening, over the page while it is drawn underneath ---------- */
+  // The mark (next.html, styled by 05-start.css) is on screen from the first paint: its five bars rise in about 0.4 s.
+  // The first time, the name and line come up under it and it stays about a second; after that only the mark plays, and
+  // it leaves as soon as the first page is drawn (at least 0.4 s after the page began, so it never just flickers). A tap
+  // skips it; with reduced motion it only fades. If the script never runs, the stylesheet fades it after 3 s.
+  const SPLASH = (() => {
+    const el = document.getElementById('splash');
+    if (!el) return { done() {} };
+    const first = !load('flow-splash-seen');
+    if (first) { el.classList.add('first'); save('flow-splash-seen', 1); }
+    let gone = false;
+    const hide = () => {
+      if (gone) return; gone = true;
+      el.classList.add('out');
+      setTimeout(() => el.remove(), REDUCED ? 0 : 300);
+    };
+    el.addEventListener('click', hide);
+    return { done() { setTimeout(hide, Math.max(0, (REDUCED ? 0 : first ? 1000 : 400) - performance.now())); } };
+  })();
+
+  /* ---------- 选方向和目标 (r27): once, for a new learner; the same page edits it from 我的 ---------- */
+  // One page: what English is for (考试 opens which exam and its date, written to the exam goal of 考试冲刺), then the
+  // level to reach, suggested from the exam or the goal. The current level is not asked: until a test says more,
+  // materials start one band below the target (level_source 'guess'); 今日 then suggests a test (levelGuessHTML).
+  const BANDS = ['A2', 'B1', 'B2', 'C1'];
+  const below = t => BANDS[Math.max(0, BANDS.indexOf(t) - 1)] || 'B1';
   async function welcome(edit) {
-    if (!S.meta) S.meta = await api('/api/next/meta');
-    const cur = (S.home && S.home.profile) || S.guest || {};
-    // Back from the starting check with a level: the level question is answered, go on with the rest.
-    const st = { step: S.placed ? 1 : 0, level: S.placed || cur.level || '', goal: cur.goal || '', themes: (cur.themes || []).slice(), minutes: cur.minutes || 10 };
-    S.placed = '';
-    const total = 4;
-    function draw() {
-      let body = '';
-      // A first visit (often from a link in WeChat) can start with today's article right away: no questions, no account.
-      const trial = !edit && !S.user && !cur.level && S.home && S.home.today && S.home.today[0];
-      if (st.step === 0 && trial) body = `<div class="card sunk try-first stack-s"><b>先试读一篇，觉得有用再定水平</b>
-          <span class="small muted">「${esc(trial.title)}」 · 约 ${trial.minutes} 分钟：听一遍、读一遍、做几道理解题。不用回答问题，也不用注册。</span>
-          <a class="btn primary" href="#/m/${encodeURIComponent(trial.id)}" data-tap="welcome-try">先试读一篇</a></div><p class="tiny muted tc">或者先回答 4 个问题，按你的水平推荐</p>`;
-      // A first visit also gets one quiet line to 认识语流 (/about), for those who want to know what this is first.
-      const aboutLine = trial ? `<p class="tiny tc about-line"><a class="link" href="/about" data-tap="welcome-about">第一次来？先花一分钟看看语流能帮你做什么</a></p>` : '';
-      if (st.step === 0) body += `<h1 class="h1">你能轻松读懂哪一句？</h1><p class="muted">选你不查词典也能读懂的最难一句。之后随时可以改。</p>
-        <div class="choice opts four">${S.meta.levels.map(l => `<button class="opt" data-v="${l.id}" aria-pressed="${st.level === l.id}"><div class="row between"><span class="l">${esc(l.label)}</span><span class="pill">${l.id}</span></div><div class="s">${esc(l.sample)}</div><div class="d">${esc(l.desc)}</div></button>`).join('')}</div>
-        <a class="link small place-link" href="#/placement">拿不准？做个 16 题的语法小测，帮你定起点 →</a>${aboutLine}`;
-      if (st.step === 1) body = `<h1 class="h1">你学英语主要为了什么？</h1><div class="choice opts">${S.meta.goals.map(g => `<button class="opt" data-v="${g.id}" aria-pressed="${st.goal === g.id}"><span class="l">${esc(g.label)}</span></button>`).join('')}</div>`;
-      if (st.step === 2) body = `<h1 class="h1">你对哪些话题感兴趣？</h1><p class="muted">可以多选，不选就每天随机。</p><div class="chips">${S.meta.themes.map(t => `<button class="chip" data-t="${t.id}" aria-pressed="${st.themes.includes(t.id)}">${esc(t.label)}</button>`).join('')}</div>`;
-      if (st.step === 3) body = `<h1 class="h1">每天想学多久？</h1><p class="muted">5 分钟够复习单词再做一小步；一篇完整材料约 8–15 分钟，可以分两天学完。少一点但每天来，比偶尔学很久更有用。</p><div class="choice opts">${S.meta.minutes.map(m => `<button class="opt" data-v="${m}" aria-pressed="${st.minutes === m}"><span class="l">${m} 分钟</span></button>`).join('')}</div>`;
-      const canNext = st.step === 0 ? !!st.level : st.step === 1 ? !!st.goal : true;
-      const prevW = (st.step / total * 100);
-      view.innerHTML = `<div class="progress-line"><i id="wp"></i></div><div class="stack" id="wbody">${body}
-        <div class="row between wnav"><button class="btn ghost" id="wBack" ${st.step === 0 && !edit ? 'hidden' : ''}>${st.step === 0 ? '取消' : '上一步'}</button>
-        <button class="btn primary" id="wNext" ${canNext ? '' : 'disabled'}>${st.step === total - 1 ? '开始学习' : '下一步'}</button></div></div>`;
-      const wp = document.getElementById('wp'); wp.style.width = prevW + '%';
-      requestAnimationFrame(() => requestAnimationFrame(() => { wp.style.width = ((st.step + 1) / total * 100) + '%'; }));
-      enter(document.getElementById('wbody'));
-      view.querySelectorAll('.opt').forEach(b => b.onclick = () => {
-        const v = b.dataset.v; if (st.step === 0) st.level = v; else if (st.step === 1) st.goal = v; else st.minutes = Number(v);
-        view.querySelectorAll('.opt').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-        document.getElementById('wNext').disabled = false;
-        if (st.step < 2) setTimeout(next, REDUCED ? 0 : 240);
-      });
-      view.querySelectorAll('.chip').forEach(b => b.onclick = () => { const t = b.dataset.t; st.themes = st.themes.includes(t) ? st.themes.filter(x => x !== t) : st.themes.concat(t); b.setAttribute('aria-pressed', String(st.themes.includes(t))); });
-      document.getElementById('wNext').onclick = next;
-      document.getElementById('wBack').onclick = () => { if (st.step === 0) history.back(); else { st.step--; draw(); } };
-    }
-    async function next() {
-      if (st.step < total - 1) { st.step++; draw(); return; }
-      const prof = { level: st.level, goal: st.goal, themes: st.themes, minutes: st.minutes };
-      S.guest = prof; save('flow-next-guest', prof);
-      if (S.user) { try { await api('/api/next/profile', prof); } catch (e) { toast(e.message); } }
-      await refreshHome(); S.homeFresh = true; location.hash = '#/';
-    }
-    draw();
+    if (!S.meta || !S.meta.targets) S.meta = await api('/api/next/meta');
+    const M = S.meta, cur = edit ? ((S.home && S.home.profile) || S.guest || {}) : {};
+    const st = { goal: cur.goal || '', exam: cur.exam || '', date: cur.exam_date || '', target: cur.target || '', level: cur.level || '',
+                 minutes: cur.minutes || 10, themes: (cur.themes || []).slice() };
+    let picked = !!cur.target;  // a target chosen by hand is not replaced by the suggestion
+    const suggest = () => M.target_for[st.goal === 'exam' && st.exam ? st.exam : st.goal] || 'B1';
+    const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    const radio = (attr, v, on, inner, cls = 'chip') => `<button class="${cls}" type="button" role="radio" data-${attr}="${esc(v)}" aria-checked="${on}">${inner}</button>`;
+    document.body.classList.toggle('onboarding', !edit);
+    view.innerHTML = `<div class="stack wg">
+      <div>${edit ? '<span class="kicker">学习目标和水平</span>' : ''}<h1 class="h1">你学英语主要为了什么？</h1><p class="muted small">选一个，之后在「我的」里随时能改。</p></div>
+      <div class="wg-goals" role="radiogroup" aria-label="学英语主要为了什么">${[...M.goals].sort((a, b) => (b.id === 'exam') - (a.id === 'exam')).map(g => radio('goal', g.id, g.id === st.goal,
+        `<span class="l">${esc(g.label)}</span><span class="d">${esc((M.goal_hints || {})[g.id] || '')}</span>`, 'opt')).join('')}</div>
+      <section class="stack-s" id="wgExam" aria-labelledby="wgExamH" hidden><h2 class="h3" id="wgExamH">准备哪个考试？</h2>
+        <div class="chips" role="radiogroup" aria-labelledby="wgExamH">${M.exams.map(e => radio('exam', e.id, e.id === st.exam, esc(e.short))).join('')}</div>
+        <div class="stack-s" id="wgDate" hidden><label class="small" for="wgDateIn">考试日期（选填，不确定可以先空着）</label><input type="date" id="wgDateIn" min="${today}" value="${esc(st.date)}"></div></section>
+      <section class="stack-s" aria-labelledby="wgTargetH"><h2 class="h3" id="wgTargetH">想达到什么水平？</h2>
+        <div class="wg-targets" role="radiogroup" aria-labelledby="wgTargetH">${M.targets.map(t => radio('target', t.id, t.id === st.target,
+          `<b>${t.id}</b><span class="d">${esc(t.label)}</span><span class="rec" hidden>推荐</span>`, 'opt')).join('')}</div>
+        <p class="tiny muted">${edit ? '' : '现在的水平不用先测：文章先按比目标低一档挑，以后在「能力」里测一下就更准。'}</p></section>
+      ${edit ? `<section class="stack-s" aria-labelledby="wgLevelH"><h2 class="h3" id="wgLevelH">现在的水平</h2>
+          <div class="chips" role="radiogroup" aria-labelledby="wgLevelH">${M.levels.map(l => radio('level', l.id, l.id === st.level, `${l.id} ${esc(l.label)}`)).join('')}</div>
+          <p class="tiny muted">${cur.level_source === 'guess' ? '这是按目标估的。' : cur.level_source === 'placed' ? '这是语法起点小测给的。' : ''}<a class="link" href="#/radar">去能力里测一下</a>，比自己估更准。</p></section>
+        <section class="stack-s" aria-labelledby="wgMinH"><h2 class="h3" id="wgMinH">每天想学多久？</h2>
+          <div class="chips" role="radiogroup" aria-labelledby="wgMinH">${M.minutes.map(m => radio('min', m, m === st.minutes, `${m} 分钟`)).join('')}</div></section>
+        <section class="stack-s" aria-labelledby="wgThemeH"><h2 class="h3" id="wgThemeH">感兴趣的话题</h2><p class="tiny muted">可以多选，不选就每天随机。</p>
+          <div class="chips" role="group" aria-labelledby="wgThemeH">${M.themes.map(t => `<button class="chip" type="button" data-theme="${t.id}" aria-pressed="${st.themes.includes(t.id)}">${esc(t.label)}</button>`).join('')}</div></section>` : ''}
+      <p class="small wg-plan" id="wgPlan" aria-live="polite" hidden></p>
+      <div class="wg-go stack-s"><button class="btn primary block" id="wgGo" type="button" data-tap="welcome-start">${edit ? '保存' : '开始学习'}</button>
+        <p class="tiny muted tc" id="wgNeed" aria-live="polite" hidden></p>
+        ${edit ? '<a class="btn ghost block" href="#/me">取消</a>' : S.user ? '' : '<button class="link small tc" id="wgLogin" type="button" data-tap="welcome-login">已有账号？登录</button>'}</div>
+      ${edit ? '' : '<p class="tiny tc about-line"><a class="link" href="/about" data-tap="welcome-about">第一次来？先花一分钟看看语流能帮你做什么</a></p>'}</div>`;  // 认识语流 (#32)
+    const sync = () => {
+      if (!picked) st.target = suggest();
+      view.querySelectorAll('[data-goal]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.goal === st.goal)));
+      view.querySelectorAll('[data-exam]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.exam === st.exam)));
+      view.querySelectorAll('[data-target]').forEach(b => { b.setAttribute('aria-checked', String(b.dataset.target === st.target)); b.querySelector('.rec').hidden = !st.goal || b.dataset.target !== suggest(); });
+      document.getElementById('wgExam').hidden = st.goal !== 'exam';
+      document.getElementById('wgDate').hidden = st.goal !== 'exam' || !st.exam;
+      document.getElementById('wgGo').disabled = !st.goal;
+      // with an exam and no word plan yet, starting makes one on the exam's book (save_profile): said here first
+      const e = st.goal === 'exam' && M.exams.find(x => x.id === st.exam), plan = document.getElementById('wgPlan');
+      const hasPlan = !!(S.home && S.home.stats && S.home.stats.vocab_plan);
+      plan.hidden = !e || hasPlan;
+      if (e && !hasPlan) plan.textContent = S.user ? `${edit ? '保存' : '开始学习'}后会为你建好《${e.book_title}》每天 10 个新词，可以在「单词」里改。`
+        : `登录后会为你建好《${e.book_title}》每天 10 个新词的背词计划，可以在「单词」里改。`;
+      const need = document.getElementById('wgNeed'); need.textContent = st.goal ? '' : '先选一个目标'; need.hidden = !!st.goal;
+    };
+    view.querySelectorAll('[data-goal]').forEach(b => b.onclick = () => { st.goal = b.dataset.goal; sync(); });
+    view.querySelectorAll('[data-exam]').forEach(b => b.onclick = () => { st.exam = b.dataset.exam; sync(); });
+    view.querySelectorAll('[data-target]').forEach(b => b.onclick = () => { st.target = b.dataset.target; picked = true; sync(); });
+    view.querySelectorAll('[data-level]').forEach(b => b.onclick = () => { st.level = b.dataset.level; view.querySelectorAll('[data-level]').forEach(x => x.setAttribute('aria-checked', String(x === b))); });
+    view.querySelectorAll('[data-min]').forEach(b => b.onclick = () => { st.minutes = Number(b.dataset.min); view.querySelectorAll('[data-min]').forEach(x => x.setAttribute('aria-checked', String(x === b))); });
+    view.querySelectorAll('[data-theme]').forEach(b => b.onclick = () => { const t = b.dataset.theme; st.themes = st.themes.includes(t) ? st.themes.filter(x => x !== t) : st.themes.concat(t); b.setAttribute('aria-pressed', String(st.themes.includes(t))); });
+    const login = document.getElementById('wgLogin'); if (login) login.onclick = () => openLogin();
+    sync();
+    document.getElementById('wgGo').onclick = async e => {
+      const btn = e.currentTarget; btn.disabled = true;
+      const exam = st.goal === 'exam' ? st.exam : '', date = exam ? document.getElementById('wgDateIn').value : '';
+      // the level: from the starting check if it was just taken; from 我的 as chosen (or kept); otherwise one band below the target
+      const level = S.placed ? S.placed : edit ? st.level || below(st.target) : below(st.target);
+      const source = S.placed ? 'placed' : edit && st.level === cur.level ? (cur.level_source || 'self') : edit && st.level ? 'self' : 'guess';
+      const prof = { goal: st.goal, target: st.target, level, level_source: source, themes: st.themes, minutes: st.minutes, exam, exam_date: date };
+      let made = null;
+      if (S.user) { try { made = (await api('/api/next/profile', prof)).plan_made; } catch (x) { btn.disabled = false; toast(x.message); return; } }
+      S.placed = ''; S.guest = { ...(S.guest || {}), ...prof }; save('flow-next-guest', S.guest);
+      document.body.classList.remove('onboarding');
+      await refreshHome(); S.homeFresh = true;
+      if (made) toast(`已为你建好《${made.title}》每天 ${made.daily_new} 个新词`); else if (edit) toast('已保存');
+      location.hash = edit ? '#/me' : '#/';
+    };
   }
 
+  // 今日: the level was guessed from the target and nothing has been tested yet; one notice suggests a test (the
+  // 能力 tab comes in r28; until then 能力雷达's test page). 「以后再说」 puts it off for a week.
+  function levelGuessHTML(h) {
+    if (!h.level_guess || Date.now() - (load('flow-level-hint-later') || 0) < 7 * 864e5) return '';
+    return `<div class="card sunk section notice stack-s" id="levelGuess"><b>文章先按比目标低一档挑的（${esc(h.level)}）</b>
+      <span class="small">去能力里测一下现在的水平，推荐会更准，每天的计划也会跟着调整。</span>
+      <div class="row"><a class="btn small primary" href="#/radar/test" data-tap="notice-test">去能力里测一下</a><button class="btn small ghost" id="lgLater" type="button">以后再说</button></div></div>`;
+  }
+  function bindLevelGuess(redraw) {
+    const b = document.getElementById('lgLater'); if (b) b.onclick = () => { save('flow-level-hint-later', Date.now()); redraw(); };
+  }
   /* ---------- today ---------- */
   function greeting() { const h = new Date().getHours(); return h < 5 ? '夜深了' : h < 11 ? '早上好' : h < 14 ? '中午好' : h < 18 ? '下午好' : '晚上好'; }
   function stepDots(steps) { return `<span class="steps-dots" aria-label="已完成 ${steps.length} / 4 步">${STEPS.map(s => `<i class="${steps.includes(s) ? 'on' : ''}"></i>`).join('')}</span>`; }
@@ -1111,12 +1171,14 @@
       const p = h.path, nextK = p.steps.findIndex(s => !s.done), next = p.steps[nextK], read = p.steps.find(s => s.key === 'read');
       readId = read ? decodeURIComponent(read.href.split('/')[2] || '') : '';
       const art = [pick, h.resume, ...h.today].find(m => m && m.id === readId);
+      // 再学一篇 (r27): the next recommendation itself, not the whole library (that only when there is none)
+      const more1 = h.today.find(m => m && m.id !== readId && !(m.steps || []).includes('check'));
       top = `<section class="today-plan" aria-labelledby="tpTitle">
         <div class="tp-head"><div><h1 class="h1" id="tpTitle">${next ? '今天的计划' : '今天的计划完成了'}</h1>
-          <span class="muted small">${p.total} 步 · 约 ${p.minutes} 分钟 · 已完成 ${p.done} / ${p.total}</span></div>
+          <span class="muted small">${p.total} 步 · 约 ${p.minutes} 分钟 · 已完成 ${p.done} / ${p.total}</span>${sprintLine(h)}</div>
           <span class="ring" data-p="${Math.round(p.done / Math.max(1, p.total) * 100)}" aria-hidden="true"><b>${p.done}/${p.total}</b></span></div>
         ${next ? `<a class="btn primary block go-next" href="${esc(next.href)}">${p.done ? '继续' : '开始'}第 ${nextK + 1} 步<span aria-hidden="true">→</span></a>`
-          : `<div class="tp-done">${doneRing}<span>都完成了。想多学一点，就再读一篇。</span></div><a class="btn primary block go-next" href="#/library">再学一篇<span aria-hidden="true">→</span></a>`}
+          : `<div class="tp-done">${doneRing}<span>都完成了。${more1 ? `想多学一点，下一篇是《${esc(more1.title)}》。` : '想多学一点，就再挑一篇。'}</span></div><a class="btn primary block go-next" href="${more1 ? '#/m/' + encodeURIComponent(more1.id) : '#/library'}" data-tap="home-more-one">再学一篇<span aria-hidden="true">→</span></a>`}
         <div class="plist">${p.steps.map((s, k) => {
           const a = s.key === 'read' ? art : null;
           return `<a class="prow${s.done ? ' done' : ''}${s === next ? ' next' : ''}" href="${esc(s.href)}"><span class="num">${s.done ? '✓' : k + 1}</span>
@@ -1132,31 +1194,36 @@
     } else top = '<div class="empty">今天没有可推荐的材料了。</div>';
     const resume = h.resume && h.resume.id !== readId ? h.resume : null, news = h.news && h.news.id !== readId ? h.news : null;
     const more = h.today.filter(m => m.id !== readId && (path || m !== pick) && (!resume || m.id !== resume.id) && (!news || m.id !== news.id)).slice(0, 3);
+    // 好句 and 热点 come first, except on a screen too short for them and the plan's button together (a phone held
+    // sideways): there the plan comes first, so its next step is still on the first screen.
+    const short = innerHeight < 500 && innerWidth > innerHeight;
     view.innerHTML = `<div class="greet-row"><span class="kicker greet">${greeting()}${name ? `，<span class="nm">${esc(name)}</span>` : ''}</span>
-        ${st && st.progress ? '' : st && st.habit ? habitChip(st.habit) : st ? `<span class="wk" title="本周学了 ${weekN} 天"><span class="tiny muted">本周 ${weekN} 天</span><span class="week" aria-hidden="true">${st.week.map(d => `<span class="${d.active ? 'on' : ''}"></span>`).join('')}</span></span>` : ''}</div>
+        ${st && st.habit ? habitChip(st.habit) : st ? `<span class="wk" title="本周学了 ${weekN} 天"><span class="tiny muted">本周 ${weekN} 天</span><span class="week" aria-hidden="true">${st.week.map(d => `<span class="${d.active ? 'on' : ''}"></span>`).join('')}</span></span>` : ''}</div>
       ${announceHTML(h)}
-      ${weekCardHTML(h)}
+      ${short ? '' : lineCardHTML(h) + newsCardHTML(news)}
       ${top}
+      ${short ? lineCardHTML(h) + newsCardHTML(news) : ''}
+      ${weekCardSlot()}
       <div id="notice"></div>
       ${S.user && !path ? vocabHome(st) : ''}
       <section class="section" aria-labelledby="mTitle"><div class="section-head"><h2 class="h2" id="mTitle">也可以读</h2><a class="link small" href="#/welcome/edit">按 ${h.level} 挑选 · 调整</a></div>
-        <div class="mlist">${resume ? mrow(resume, ['继续', 'green'], `#/m/${encodeURIComponent(resume.id)}/${nextStep(resume.steps)}`, 'home-resume') : ''}${news ? mrow(news, ['热点', 'amber'], '', 'home-news') : ''}${more.map(m => mrow(m, null, '', 'home-pick')).join('')}
-          <a class="mrow more" href="#/library" data-tap="home-more"><span class="t"><b>更多材料</b><span class="tiny muted">按话题和级别挑一篇</span></span><span class="go" aria-hidden="true">›</span></a></div>
-        ${news ? '<p class="tiny muted">「热点」是联网检索后改写的，未经人工审核。</p>' : ''}</section>`;
+        <div class="mlist">${resume ? mrow(resume, ['继续', 'green'], `#/m/${encodeURIComponent(resume.id)}/${nextStep(resume.steps)}`, 'home-resume') : ''}${more.map(m => mrow(m, null, '', 'home-pick')).join('')}
+          <a class="mrow more" href="#/library" data-tap="home-more"><span class="t"><b>更多材料</b><span class="tiny muted">按话题和级别挑一篇</span></span><span class="go" aria-hidden="true">›</span></a></div></section>`;
     const ring = view.querySelector('.ring'); if (ring) ring.style.setProperty('--p', ring.dataset.p + '%');  // CSP: no inline style attributes
     fillNotice(h);
     bindAnnounce(h);
-    bindWeekCard();  // 这周进步 (11-progress.js)
-    const hb = document.getElementById('habitBtn'); if (hb) hb.onclick = habitSheet;
+    bindLine(h);  // 今日好句 (12-daily-line.js)
+    mountWeekCards(view);  // 这周进步 (11-progress.js)
+    const hb = document.getElementById('habitBtn'); if (hb) hb.onclick = weekSheet;
     if (st && st.habit) cheerWeek(st.habit);
     const nextRead = readId || (pick && pick.id);
     if (nextRead) setTimeout(() => preloadMaterial(nextRead), 600);  // after the page is drawn, not before
   }
   // 每周目标: this week's days (Monday to Sunday) against the goal; a missed day breaks nothing while the week still
-  // reaches it. The weeks reached are counted up, never as a run that breaks (r27). A tap changes the goal. Signed in,
-  // the 这周进步 card (11-progress.js) shows all this, and the chip is only for a 今日 kept from before it.
+  // reaches it. The weeks reached are counted up, never as a run that breaks (r27). A tap opens 这周进步's details
+  // (11-progress.js), where the goal can be changed.
   function habitChip(hb) {
-    return `<button class="wk habit" id="habitBtn" type="button" aria-label="本周学了 ${hb.done} 天，目标 ${hb.goal} 天${hb.weeks ? '，已达成 ' + hb.weeks + ' 周' : ''}。点这里改每周目标" data-tap="home-habit">
+    return `<button class="wk habit" id="habitBtn" type="button" aria-label="本周学了 ${hb.done} 天，目标 ${hb.goal} 天${hb.weeks ? '，已达成 ' + hb.weeks + ' 周' : ''}。点这里看这周进步" data-tap="home-habit">
       <span class="tiny ${hb.met ? 'met' : 'muted'}">本周 ${hb.done}/${hb.goal} 天${hb.weeks ? ` · 已达成 ${hb.weeks} 周` : ''}</span>
       <span class="week" aria-hidden="true">${hb.days.map(d => `<span class="${d.active ? 'on' : ''}${d.today ? ' today' : ''}"></span>`).join('')}</span></button>`;
   }
@@ -1172,7 +1239,7 @@
           if (S.home && S.home.stats) S.home.stats.habit = r.habit;
           card.querySelectorAll('[data-goal]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
           const v = document.getElementById('meHabitV'); if (v) v.textContent = `每周 ${r.habit.goal} 天`;
-          const chip = document.getElementById('habitBtn'); if (chip) { chip.outerHTML = habitChip(r.habit); const n = document.getElementById('habitBtn'); if (n) n.onclick = habitSheet; }
+          const chip = document.getElementById('habitBtn'); if (chip) { chip.outerHTML = habitChip(r.habit); const n = document.getElementById('habitBtn'); if (n) n.onclick = weekSheet; }
           refreshWeekCard();
           toast(`每周目标：${r.habit.goal} 天`);
         } catch (e) { toast(e.message); }
@@ -1210,6 +1277,7 @@
   function noticeHTML(h) {
     if (!S.user) return `<div class="card sunk section notice stack-s"><b>登录后，进度和收藏的表达会保存下来</b><span class="muted small">不登录也可以听、读和做理解题。</span><div><button class="btn small" id="loginCta" data-tap="notice-login">登录 / 注册</button></div></div>`;
     if (h.suggest && Date.now() - (load('flow-next-suggest-skip') || 0) > 7 * 864e5) return suggestHTML(h.suggest);
+    const lg = levelGuessHTML(h); if (lg) return lg;  // 09-start.js: a level guessed from the target, no test yet
     const hb = h.stats && h.stats.habit;  // on Monday and Tuesday: how last week went, once
     if (hb && hb.last_week.done && (hb.days[0].today || hb.days[1].today) && load('flow-habit-lastweek') !== hb.monday)
       return `<div class="card sunk section notice stack-s" id="lastWeek"><b>${hb.last_week.met ? `上周学了 ${hb.last_week.done} 天，目标达成了 🎉` : `上周学了 ${hb.last_week.done} 天，离目标还差 ${hb.goal - hb.last_week.done} 天`}</b>
@@ -1226,6 +1294,7 @@
     slot.innerHTML = noticeHTML(h);
     const cta = document.getElementById('loginCta'); if (cta) cta.onclick = () => openLogin();
     if (h.suggest) bindSuggest(h, () => fillNotice(h));
+    bindLevelGuess(() => fillNotice(h));
     bindMailNudge(() => fillNotice(h));
     const lw = document.getElementById('lwOk'); if (lw) lw.onclick = () => { save('flow-habit-lastweek', h.stats.habit.monday); fillNotice(h); };
     const lwr = document.querySelector('#lastWeek a'); if (lwr) lwr.addEventListener('click', () => save('flow-habit-lastweek', h.stats.habit.monday));
@@ -1242,10 +1311,13 @@
   }
   function nextStep(steps) { return STEPS.find(s => !steps.includes(s)) || 'output'; }
 
-  /* ---------- 这周进步 (r27): the week so far, at the top of 今日; its details; the Sunday mail ---------- */
+  /* ---------- 这周进步 (r27): a card that stands on its own; its details; the Sunday mail ---------- */
   // Four numbers from the learner's own records (progress_service.week): words remembered for the first time (a later
   // day's review still recalled them), texts finished, the share of questions answered right without a hint against
   // last week, and the weekly goal with the weeks reached so far (they only count up). A tap opens the details.
+  // A part of its own: any page puts weekCardSlot() where it wants the card and calls mountWeekCards(root). The card
+  // draws from the home data when that is here (今日 needs no second request), else it asks for its own
+  // (GET /api/next/week?brief=1). It makes no assumption about what is above or below it (今日 today; 能力 later).
   const WEEKDAYS = '一二三四五六日';
   function accText(a) {
     const n = a.now, b = a.before;
@@ -1254,29 +1326,41 @@
       : n.rate == null ? (n.total ? `满 ${a.min} 题才算` : '这周还没做题') : b.total ? '上周题太少' : '上周没做题';
     return { value, sub };
   }
-  function weekCardHTML(h) {
-    const st = h && h.stats, p = st && st.progress, hb = st && st.habit;
-    if (!S.user || !p || !hb) return '';
-    const acc = accText(p.accuracy), weeks = hb.weeks || 0;
-    const empty = !p.remembered.now && !p.finished.now && !p.accuracy.now.total && !hb.done;
+  // d: {remembered, finished, accuracy, habit} (the brief week). first: the card that carries the id #weekCard.
+  function weekCardHTML(d, first) {
+    const hb = d && d.habit;
+    if (!S.user || !d || !d.remembered || !hb) return '';
+    const acc = accText(d.accuracy), weeks = hb.weeks || 0;
+    const empty = !d.remembered.now && !d.finished.now && !d.accuracy.now.total && !hb.done;
     const tile = (cls, value, label, sub) => `<span class="wk-tile${cls ? ' ' + cls : ''}"><b>${value}</b><span class="tiny muted">${label}</span><span class="tiny sub">${sub}</span></span>`;
-    const label = `这周进步：记住 ${p.remembered.now} 个新词，学完 ${p.finished.now} 篇，做题正确率 ${p.accuracy.now.rate != null ? p.accuracy.now.rate + '%' : '还不够算'}，`
+    const label = `这周进步：记住 ${d.remembered.now} 个新词，学完 ${d.finished.now} 篇，做题正确率 ${d.accuracy.now.rate != null ? d.accuracy.now.rate + '%' : '还不够算'}，`
       + `本周学了 ${hb.done} 天，目标 ${hb.goal} 天${weeks ? `，已达成 ${weeks} 周` : ''}。点开看明细`;
-    return `<button class="card week-card" id="weekCard" type="button" data-tap="home-week" aria-label="${esc(label)}">
+    return `<button class="card week-card"${first !== false ? ' id="weekCard"' : ''} type="button" data-tap="home-week" aria-label="${esc(label)}">
       <span class="wk-head"><b>这周进步</b><span class="tiny wk-total${weeks ? ' on' : ''}">${weeks ? `已达成 ${weeks} 周` : '看明细'}<span aria-hidden="true"> ›</span></span></span>
-      <span class="wk-tiles">${tile('', p.remembered.now, '记住的新词', `上周 ${p.remembered.before}`)}${tile('', p.finished.now, '学完的文章', `上周 ${p.finished.before}`)}`
+      <span class="wk-tiles">${tile('', d.remembered.now, '记住的新词', `上周 ${d.remembered.before}`)}${tile('', d.finished.now, '学完的文章', `上周 ${d.finished.before}`)}`
       + `${tile('', acc.value, '做题正确率', acc.sub)}${tile('goal' + (hb.met ? ' met' : ''), `${hb.done}<small>/${hb.goal}天</small>`, '每周目标', hb.met ? '达成 ✓' : `还差 ${hb.goal - hb.done} 天`)}</span>
-      <span class="wk-foot"><span class="week" aria-hidden="true">${hb.days.map(d => `<span class="${d.active ? 'on' : ''}${d.today ? ' today' : ''}"></span>`).join('')}</span>
+      <span class="wk-foot"><span class="week" aria-hidden="true">${hb.days.map(x => `<span class="${x.active ? 'on' : ''}${x.today ? ' today' : ''}"></span>`).join('')}</span>
         <span class="tiny muted">${empty ? '做完今天的第一步，这里就开始记录' : '数字都来自你自己的学习记录'}</span></span></button>`;
   }
-  function bindWeekCard() {
-    const b = document.getElementById('weekCard'); if (b) b.onclick = weekSheet;
+  function weekCardSlot() { return S.user ? '<div class="week-slot" data-week-card></div>' : ''; }
+  // Fills every slot under root. fresh: ask the server even when the home data is here (after the goal changed).
+  async function mountWeekCards(root, fresh) {
+    const slots = [...(root || document).querySelectorAll('[data-week-card]')];
+    if (!slots.length || !S.user) return;
+    const draw = d => slots.forEach((s, k) => {
+      if (!s.isConnected) return;
+      s.innerHTML = weekCardHTML(d, k === 0);
+      const b = s.querySelector('.week-card'); if (b) b.onclick = weekSheet;
+    });
+    const st = S.home && S.home.stats;
+    if (!fresh && st && st.progress && st.habit) return draw({ ...st.progress, habit: st.habit });
+    try {
+      const d = await api('/api/next/week?brief=1');
+      if (st) { st.progress = { remembered: d.remembered, finished: d.finished, accuracy: d.accuracy, mail: d.mail, monday: d.monday, from: d.from, to: d.to }; st.habit = d.habit; }
+      draw(d);
+    } catch (e) { if (!slots.some(s => s.firstChild)) slots.forEach(s => s.remove()); }
   }
-  // After the goal changes (habitSheet): the card is drawn again from the new numbers.
-  function refreshWeekCard() {
-    const b = document.getElementById('weekCard'); if (!b || !S.home) return;
-    b.outerHTML = weekCardHTML(S.home); bindWeekCard();
-  }
+  function refreshWeekCard() { mountWeekCards(document, true); }
   async function weekSheet() {
     openSheet('<div class="stack"><h2 class="h2" id="sheetTitle">这周进步</h2><div class="loading"><span class="spin"></span></div></div>');
     let w;
@@ -1305,12 +1389,19 @@
     });
   }
   // 我的 → 每周进度邮件: on by default for an account with an email; the mail's own link turns it off too.
+  const MAILSTATE = { m: null };
+  const mailState = () => (S.home && S.home.stats && S.home.stats.progress && S.home.stats.progress.mail) || MAILSTATE.m;
   function weeklyMailLabel() {
-    const m = S.home && S.home.stats && S.home.stats.progress && S.home.stats.progress.mail;
+    const m = mailState();
     return !m ? '' : !m.email ? '绑定邮箱后可以收' : m.on ? '每周日晚上 8 点' : '已关闭';
   }
+  // 我的: the row's value, asked for when the home data does not have it
+  function fillMailRow() {
+    if (mailState() || !S.user) return;
+    api('/api/next/weekly-mail').then(m => { MAILSTATE.m = m; const v = document.getElementById('meMailV'); if (v) v.textContent = weeklyMailLabel(); }).catch(() => {});
+  }
   function weeklyMailSheet() {
-    const p = S.home && S.home.stats && S.home.stats.progress, m = (p && p.mail) || { on: true, email: false };
+    const p = S.home && S.home.stats && S.home.stats.progress, m = mailState() || { on: true, email: false };
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">每周进度邮件</h2>
       <p class="small">每周日晚上 8 点，把这周的进步发到你绑定的邮箱：记住的新词、学完的文章、做题正确率和每周目标。这周没学的话，会提醒你一下；连着几周没学就不再发。</p>
       ${m.email ? `<div class="chips" role="radiogroup" aria-label="收不收每周进度邮件">${[[true, '每周收'], [false, '不收']].map(([v, l]) => `<button class="chip" type="button" role="radio" data-mail="${v}" aria-checked="${m.on === v}">${l}</button>`).join('')}</div>
@@ -1320,7 +1411,7 @@
       card.querySelectorAll('[data-mail]').forEach(b => b.onclick = async () => {
         try {
           const r = await api('/api/next/weekly-mail', { on: b.dataset.mail === 'true' });
-          if (p) p.mail = r;
+          if (p) p.mail = r; MAILSTATE.m = r;
           card.querySelectorAll('[data-mail]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
           const v = document.getElementById('meMailV'); if (v) v.textContent = weeklyMailLabel();
           toast(r.on ? '每周日晚上会收到进度邮件' : '不再发每周进度邮件');
@@ -1348,6 +1439,73 @@
       const undo = document.getElementById('offUndo'); if (undo) undo.onclick = send(true);
     };
     draw(false);
+  }
+  /* ---------- 今日好句 and 今日热点 (r27): the top of 今日 ---------- */
+  // 好句 (daily_line.py, in the home data): a public-domain line one day, a sentence from a 语流 text the next, with its
+  // meaning and where it comes from. 听一遍 (the text's own narration when it has one, else the browser voice),
+  // 跟读 (record, play back after the original; signed in, the AI says what to fix) and 收藏 (into review).
+  function lineCardHTML(h) {
+    const l = h && h.line; if (!l) return '';
+    let en = esc(l.en).split(' / ').join('<br>');
+    if (l.expression) { const k = l.en.toLowerCase().indexOf(l.expression.toLowerCase()); if (k >= 0) en = esc(l.en.slice(0, k)) + '<b>' + esc(l.en.slice(k, k + l.expression.length)) + '</b>' + esc(l.en.slice(k + l.expression.length)); }
+    return `<section class="card line-card" id="lineCard" aria-labelledby="lineTitle">
+      <div class="lc-head"><h2 class="lc-title" id="lineTitle">今日好句</h2><span class="pill${l.kind === 'text' ? ' green' : ''}">${esc(l.label)}</span></div>
+      <p class="lc-en${l.say.length > 100 ? ' long' : ''}" lang="en">${en}</p>
+      <p class="lc-zh">${esc(l.zh)}</p>${l.note ? `<p class="tiny muted lc-note">${esc(l.note)}</p>` : ''}
+      <p class="lc-src tiny">${l.kind === 'quote' ? '— ' : ''}${esc(l.source)}${l.href ? ` · <a class="link" href="${esc(l.href)}" data-tap="line-read">读原文</a>` : ''}</p>
+      <div class="lc-acts"><button class="btn small" id="lcSay" type="button" data-tap="line-say">${ICON.speak}听一遍</button>
+        <button class="btn small" id="lcShadow" type="button" data-tap="line-shadow" aria-expanded="false" aria-controls="lcPanel">跟读</button>
+        <button class="btn small" id="lcKeep" type="button" data-tap="line-keep">${ICON.star}收藏</button></div>
+      <div id="lcPanel" hidden></div></section>`;
+  }
+  function sayLine(l, done) {
+    if (l.kind === 'text' && l.audio) CLIP.sentence({ pack: l.pack, i: l.i, text: l.say, audio: l.audio });
+    else TTS.say(l.say, done);
+  }
+  function bindLine(h) {
+    const l = h && h.line, box = document.getElementById('lineCard'); if (!l || !box) return;
+    box.querySelector('#lcSay').onclick = () => sayLine(l);
+    box.querySelector('#lcKeep').onclick = e => saveCard(l.kind === 'text'
+      ? { text: l.expression, meaning: l.meaning, context: l.en, pack: l.pack }
+      : { text: l.say, meaning: l.zh, context: l.source }, e.currentTarget);
+    const tog = box.querySelector('#lcShadow'), panel = box.querySelector('#lcPanel');
+    let blob = null, url = '';
+    tog.onclick = () => {
+      const open = panel.hidden; panel.hidden = !open; tog.setAttribute('aria-expanded', String(open));
+      if (!open) { MIC.stop(); return; }
+      panel.innerHTML = `<div class="lc-sh stack-s"><p class="small">先听一遍，再点红点读出来（最长 15 秒），读完和原句对比着听。</p>
+        <div class="row"><button class="btn small" id="lsOrig" type="button">${ICON.speak}原句</button>${recBtn('lsRec', '录音')}
+          <button class="btn small" id="lsBack" type="button" disabled>对比回放</button><button class="btn small" id="lsAI" type="button" disabled>✦ AI 点评</button></div>
+        <div class="lc-out" aria-live="polite"></div></div>`;
+      const rec = panel.querySelector('#lsRec'), back = panel.querySelector('#lsBack'), ai = panel.querySelector('#lsAI');
+      panel.querySelector('#lsOrig').onclick = () => sayLine(l);
+      rec.onclick = () => MIC.toggle(rec, 15, b => { blob = b; if (url) URL.revokeObjectURL(url); url = URL.createObjectURL(b); back.disabled = false; ai.disabled = false; toast('录好了，可以对比回放'); });
+      back.onclick = () => { const mine = () => { const a = new Audio(url); a.play().catch(() => {}); }; if (l.kind === 'text' && l.audio) { sayLine(l); setTimeout(mine, 600 + l.say.length * 70); } else sayLine(l, mine); };
+      ai.onclick = async () => {
+        if (!S.user) return needLogin('登录后，AI 会听你的跟读，指出漏读、读错和需要连读的地方。');
+        if (!blob) return;
+        ai.disabled = true; ai.innerHTML = '<span class="spin"></span>';
+        try {
+          const body = { audio: await MIC.payload(blob), request_id: rid('ls'), ...(l.kind === 'text' ? { pack: l.pack, i: l.i } : { quote: l.id.slice(2) }) };
+          const x = (await api('/api/next/shadow', body)).result;
+          const flu = { smooth: '流畅', ok: '基本流畅', choppy: '有点断断续续' }[x.fluency] || '';
+          const sc = x.score;  // 发音分 (r27 C, the same as 听 → 跟读): accuracy, fluency and how much of the line was said
+          panel.querySelector('.lc-out').innerHTML = `<div class="card flat stack-s enter">${sc ? `<div class="small"><b class="lc-score">${sc.total}</b> 发音分 · 准确 ${sc.accuracy} · 流利 ${sc.fluency} · 完整 ${x.matched}/${x.words.length}<span class="tiny muted">（AI 估计，仅供参考）</span></div>` : ''}
+            <div class="small">${x.words.map(w => `<span class="${w.ok ? '' : 'miss'}" lang="en">${esc(w.w)}</span>`).join(' ')}</div>
+            <div class="tiny muted">AI 听到：<span lang="en">${esc(x.transcript || '（没听清）')}</span> · 读到 ${x.matched}/${x.words.length} 个词${flu && !sc ? ' · ' + flu : ''}</div>
+            ${(x.sounds || []).map(sd => `<div class="small"><b lang="en">${esc(sd.sound)} ${esc(sd.word)}</b>：${esc(sd.note)}${sd.set ? ` <a class="link" href="#/sounds/${encodeURIComponent(sd.set)}" data-tap="shadow-sound">去练 ${esc(sd.set_title)} →</a>` : ''}</div>`).join('')}
+            ${x.issues.map(it => `<div class="small"><b lang="en">${esc(it.word)}</b>：${esc(it.note)}</div>`).join('')}${x.tip ? `<div class="small">建议：${esc(x.tip)}</div>` : ''}</div>`;
+        } catch (e) { toast(e.message); }
+        ai.disabled = false; ai.textContent = '✦ AI 点评';
+      };
+    };
+  }
+  // 今日热点: today's news text, rewritten by AI from what it found online and not checked by a person, said on it.
+  function newsCardHTML(n) {
+    if (!n) return '';
+    return `<a class="card news-card" href="#/m/${encodeURIComponent(n.id)}" data-tap="home-news"><span class="lc-head"><span class="lc-title nc-title">今日热点</span><span class="pill amber">AI 改写 · 未经人工审核</span></span>
+      <b class="nc-h">${esc(n.title)}</b>${n.preview ? `<span class="small muted nc-p">${esc(n.preview)}</span>` : ''}
+      <span class="tiny muted">${n.level} · ${esc(n.theme_label || '')}${n.minutes ? ` · 约 ${n.minutes} 分钟` : ''}<span class="nc-go">读这篇 →</span></span></a>`;
   }
   /* ---------- study ---------- */
   let selbar = null;
@@ -1975,9 +2133,9 @@
             const sx = pane.querySelector('#shareX'); if (sx) sx.onclick = () => shareFromMaterial(m);
             pane.querySelector('#toOut').onclick = () => go('output');
             // After a first article tried without any questions: offer the level questions (and an account) next.
-            if (!S.user && !hasProfile()) pane.querySelector('#score').insertAdjacentHTML('beforeend', `<div class="card stack-s enter try-next"><b>觉得有用？按你的水平每天推荐一篇</b>
-              <span class="small muted">回答 4 个问题，大约 1 分钟；注册以后，进度和收藏会保存下来。</span>
-              <div class="row"><a class="btn primary" href="#/welcome" data-tap="trial-level">回答 4 个问题</a><button class="btn" id="trialReg" type="button">注册 / 登录</button></div></div>`);
+            if (!S.user && !hasProfile()) pane.querySelector('#score').insertAdjacentHTML('beforeend', `<div class="card stack-s enter try-next"><b>觉得有用？按你的目标每天推荐一篇</b>
+              <span class="small muted">选学习目标和想达到的水平，大约 20 秒；注册以后，进度和收藏会保存下来。</span>
+              <div class="row"><a class="btn primary" href="#/welcome" data-tap="trial-level">选学习目标</a><button class="btn" id="trialReg" type="button">注册 / 登录</button></div></div>`);
             const tr = pane.querySelector('#trialReg'); if (tr) tr.onclick = () => openLogin();
           }
         } catch (e) { toast(e.message); delete answered[i]; box.querySelectorAll('.ans').forEach(x => x.disabled = false); }
@@ -2523,7 +2681,7 @@
       announce('小测结束，建议从 ' + r.level + ' 开始');
       document.getElementById('pUse').onclick = async () => {
         if (!cur) { S.placed = r.level; location.hash = '#/welcome'; return; }  // first visit: the other questions still to come
-        const prof = { ...cur, level: r.level };
+        const prof = { ...cur, level: r.level, level_source: 'placed' };
         S.guest = prof; save('flow-next-guest', prof);
         if (S.user) { try { await api('/api/next/profile', prof); } catch (e) { toast(e.message); return; } }
         await refreshHome(); S.homeFresh = true; location.hash = '#/';
@@ -2532,33 +2690,43 @@
   }
   /* ---------- exam practice: a timed set at 中考 … 专八 / IELTS difficulty ---------- */
   const mmss = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-  function examHist(h) {
-    return h.length ? `<div class="exam-hist" role="img" aria-label="最近 ${h.length} 次正确率：${h.map(x => x.pct + '%').join('、')}">${h.map(x => `<i data-h="${Math.max(6, x.pct)}"></i>`).join('')}</div>` : '';
-  }
-  function sizeHist() { view.querySelectorAll('.exam-hist i').forEach(i => i.style.height = i.dataset.h + '%'); }  // CSP: no inline styles
   async function examView(pick) {
     const o = await api('/api/next/exam');
-    const cur = o.exams.find(e => e.id === pick) || null;
+    // 考试冲刺 (42-sprint.js): with an exam set, the page opens on it; another exam opens in the list as before.
+    let cur = null;
+    const pickList = list => list.length ? `<div class="exam-pick choice">${list.map(e => `<a class="opt" href="#/exam/${e.id}" aria-pressed="${cur && cur.id === e.id}"><span class="l">${esc(e.title)}</span>
+        <span class="d">${esc(e.blurb)}</span><span class="tiny muted">约 ${e.minutes} 分钟${e.history.length ? ` · 上次 ${e.history[e.history.length - 1].pct}%` : ''}</span></a>`).join('')}</div>` : '';
+    if (o.goal && (!pick || pick === o.goal.exam) && o.exams.some(e => e.id === o.goal.exam)) return sprintHub(o, pickList);
+    cur = o.exams.find(e => e.id === pick) || null;
     // The chosen exam opens right under its own card (with eight exams, a block under the list was a scroll away): the
     // list is cut after it, so the details sit between the two halves and keep their own button styles.
     const at = cur ? o.exams.indexOf(cur) : o.exams.length - 1;
-    const pickList = list => list.length ? `<div class="exam-pick choice">${list.map(e => `<a class="opt" href="#/exam/${e.id}" aria-pressed="${cur && cur.id === e.id}"><span class="l">${esc(e.title)}</span>
-        <span class="d">${esc(e.blurb)}</span><span class="tiny muted">约 ${e.minutes} 分钟${e.history.length ? ` · 上次 ${e.history[e.history.length - 1].pct}%` : ''}</span></a>`).join('')}</div>` : '';
     const detail = cur ? `<div class="stack-s exam-cur" id="examCur"><h2 class="h2">${esc(cur.title)}</h2>
         <ul class="steps-list small"><li>词汇 10 题：${esc(cur.book_title)}里的词，选中文意思</li><li>语法 8 题：这个考试常考的语法点</li><li>阅读 2 篇短文，4 题</li></ul>
-        ${cur.history.length ? `<div class="stack-s"><span class="tiny muted">最近 ${cur.history.length} 次的正确率</span>${examHist(cur.history)}</div>` : ''}
+        ${cur.trend.length ? `<div class="stack-s"><span class="tiny muted">成绩走势</span>${trendHTML(cur.trend)}</div>` : ''}
         <button class="btn primary block" id="exStart">开始一套（约 ${cur.minutes} 分钟）</button>
         ${S.user ? (o.plan && o.plan.book === cur.book ? `<p class="tiny muted">你现在就在用「${esc(cur.book_title)}」背单词（${cur.words} 词）。</p>` :
           `<div class="row"><button class="btn small" id="exBook">改用「${esc(cur.book_title)}」背单词</button><span class="tiny muted">${cur.words} 词，按遗忘曲线每天背</span></div>`) :
-          '<p class="tiny muted">登录后成绩会保存，语法错题进错题本，没认出的词可以一键加进单词本。</p>'}</div>` : '';
+          '<p class="tiny muted">登录后成绩会保存，语法错题进错题本，没认出的词可以一键加进单词本。</p>'}
+        ${S.user ? `<button class="btn small" type="button" id="exGoal" data-tap="exam-goal">${o.goal ? '改成我的考试' : '设为我的考试'}</button>` : ''}
+        ${typesHTML(cur.id, cur.types, o.types_note)}</div>` : '';
+    // Signed in without an exam: one line says what setting it gives.
+    const invite = S.user && !o.goal ? `<div class="card sunk stack-s sp-invite"><b>在准备哪个考试？</b><span class="small">设好考试和日期，这一页就是你的备考主页：倒计时、每天该背多少词、成绩走势和题型专练。</span>
+        <div><button class="btn small primary" type="button" id="exInvite" data-tap="exam-goal">设定我的考试</button></div></div>` : '';
     view.innerHTML = `<div class="stack"><div><span class="kicker">考试练习</span><h1 class="h1">按考试难度练一套</h1>
         <p class="muted small">${esc(o.note)}</p></div>
-      ${cur ? '' : '<p class="muted small">选一个考试开始。每套约 12–20 分钟，每周做一套就能看到变化。</p>'}
+      ${invite}${cur ? '' : '<p class="muted small">选一个考试开始。每套约 12–20 分钟，每周做一套就能看到变化。</p>'}
       ${pickList(o.exams.slice(0, at + 1))}${detail}${pickList(o.exams.slice(at + 1))}</div>`;
-    sizeHist();
+    drawTrends();
+    const inv = document.getElementById('exInvite'); if (inv) inv.onclick = () => examGoalSheet(() => examView());
     if (!cur) return;
     requestAnimationFrame(() => { const d = document.getElementById('examCur'); if (d && d.getBoundingClientRect().bottom > innerHeight) d.scrollIntoView({ block: 'nearest', behavior: REDUCED ? 'auto' : 'smooth' }); });
     document.getElementById('exStart').onclick = () => examPaper(cur.id);
+    const mine = document.getElementById('exGoal');
+    if (mine) mine.onclick = async () => {
+      try { await api('/api/next/exam/goal', { exam: cur.id, date: '' }); await refreshHome(); toast(`我的考试：${cur.short}。填上日期就能倒计时`); examView(cur.id); }
+      catch (e) { toast(e.message); }
+    };
     const book = document.getElementById('exBook');
     if (book) book.onclick = async () => {
       const p = o.plan || { daily_new: 10, retention: 0.9 };
@@ -2620,7 +2788,8 @@
     view.innerHTML = `<div class="stack"><div><span class="kicker">${esc(r.title)} · 练习结果</span><h1 class="h1">${r.total} 题做对 ${r.score} 题（${r.pct}%）</h1>
         <p class="muted small">用时 ${mmss(r.seconds)}${late ? `，比建议的 ${r.minutes} 分钟多了 ${mmss(r.seconds - r.minutes * 60)}` : `，在建议的 ${r.minutes} 分钟以内`}。</p></div>
       <div class="exam-score">${r.parts.map(x => `<div><span class="tiny muted">${esc(x.title)}</span><b>${x.right}/${x.of}</b></div>`).join('')}</div>
-      ${r.history.length > 1 ? `<div class="stack-s"><span class="tiny muted">最近 ${r.history.length} 次的正确率</span>${examHist(r.history)}</div>` : ''}
+      ${r.history.length > 1 ? `<div class="stack-s"><span class="tiny muted">成绩走势</span>${trendHTML(r.history.map(x => ({ pct: x.pct, day: new Date(x.created * 1000).toISOString().slice(0, 10),
+        parts: Object.fromEntries(x.parts.filter(t => t.of).map(t => [t.key, Math.round(100 * t.right / t.of)])) })))}</div>` : ''}
       ${missed.length ? `<div class="section stack-s"><h2 class="h2">没认出的 ${missed.length} 个词</h2><div class="plist">${missed.map(v => `<div class="crow"><button class="icon-btn" data-say="${esc(v.word)}" aria-label="朗读">${ICON.speak}</button><span><span class="en">${esc(v.word)}</span><span class="tiny muted">${esc(v.answer)}</span></span></div>`).join('')}</div>
         ${S.user ? '<button class="btn" id="exAdd">全部加进单词本</button>' : ''}</div>` : ''}
       ${nodes.length ? `<div class="section stack-s"><h2 class="h2">要补的语法点</h2><p class="small muted">${r.saved ? '错题已经放进错题本，这些点也排进了每天的计划。' : '登录后错题会进错题本。'}</p>
@@ -2632,7 +2801,7 @@
           return r.reading.map((x, i) => `<div class="pit"><div class="small">${esc(items[i].prompt)}</div><div class="${x.correct ? 'good' : 'bad'} small">${x.correct ? '✓ 答对' : '✗ 答案'}：${esc(items[i].options[x.answer])}</div>${x.evidence ? `<div class="tiny muted">原文依据：${esc(x.evidence)}</div>` : ''}</div>`).join(''); })()}
       </div></details>
       <div class="row"><button class="btn primary" id="exAgain">再来一套</button><a class="btn ghost" href="#/exam/${esc(r.exam)}">回到考试练习</a></div></div>`;
-    sizeHist();
+    drawTrends();
     announce(`练习结果：${r.total} 题做对 ${r.score} 题`);
     view.querySelectorAll('[data-say]').forEach(b => b.onclick = () => TTS.say(b.dataset.say));
     const add = document.getElementById('exAdd');
@@ -2643,16 +2812,265 @@
     };
     document.getElementById('exAgain').onclick = () => examPaper(r.exam);
   }
+  /* ---------- 考试冲刺 (r27): my exam and its date, the countdown word plan, the score trend, question-type practice ---------- */
+  // The data comes from exam_sprint.py. With an exam set, 考试练习 opens on it (sprintHub): the countdown and whether the
+  // word plan keeps up, the trend of the full sets, the question types, the full set; the other exams fold away below.
+  const mdDay = iso => { const [, m, d] = String(iso).split('-').map(Number); return `${m}月${d}日`; };
+  const num = n => Number(n || 0).toLocaleString();
+  const PART_TITLE = { vocab: '词汇', grammar: '语法', reading: '阅读' };
+  function examLabel(p) {
+    if (!p || !p.exam) return '未设置';
+    const short = { zk: '中考', gk: '高考', cet4: '四级', cet6: '六级', ky: '考研', tem4: '专四', tem8: '专八', ielts: '雅思' }[p.exam] || p.exam;
+    return `${short} · ${p.exam_date ? mdDay(p.exam_date) : '没填日期'}`;
+  }
+  // 今日: one line under the plan's title, never a card (the top of 今日 belongs to 看得见的进步).
+  function sprintLine(h) {
+    const s = h && h.sprint;
+    if (!s || s.status === 'past') return '';
+    const when = s.days == null ? '填上考试日期 ›' : s.days === 0 ? '今天考试，加油' : `还有 ${s.days} 天`;
+    // (no plan yet: the plan's first step already says 选一本词书, so this line does not say it again)
+    const pace = s.days ? { on_time: '背词跟得上', behind: '背词跟不上', other_book: '还没背这本考试词书', done: '词书背完了' }[s.status] : '';
+    return `<a class="sprint-line small${s.status === 'behind' ? ' behind' : ''}" href="#/exam/${esc(s.exam)}" data-tap="home-sprint"><b>${esc(s.short)}</b><span>${when}</span>${pace ? `<span class="pace">${pace}</span>` : ''}</a>`;
+  }
+
+  // ---- the countdown word plan, said plainly ----
+  function paceHTML(cd) {
+    if (!cd) return '';
+    const book = `《${esc(cd.book_title)}》`, btn = (n, label) => `<button class="btn primary small" type="button" data-daily="${n}" data-tap="exam-pace">${label}</button>`;
+    const slow = cd.daily && cd.plan_days >= 7 && cd.week_avg < cd.daily * 0.7 ? `<p class="small">最近 7 天平均每天只学了 ${cd.week_avg} 个新词，比计划的 ${cd.daily} 个少：计划的数要每天学完才算数。</p>` : '';
+    let head = '', body = '', act = '';
+    if (cd.status === 'past') { head = '考试日期已经过了'; body = `<p class="small">${mdDay(cd.date)} 已经过了。下一个考试是什么？改一下考试和日期，倒计时就会重新算。</p>`; act = '<button class="btn small" type="button" data-goal-edit>改考试或日期</button>'; }
+    else if (cd.status === 'today') { head = '今天就考试了，加油'; body = '<p class="small">今天不背新词了。看看错题本里最近的错题，放松一点，按平时的节奏去考。</p>'; act = '<a class="btn small" href="#/cards/mistake">看错题本</a>'; }
+    else if (cd.status === 'done') { head = '背词节奏：词书背完了 ✓'; body = `<p class="small">${book}的 ${num(cd.size)} 个词都学过了。考前每天把到期的复习做完，记得更牢。</p>`; }
+    else if (cd.status === 'no_date') {
+      head = '还没填考试日期';
+      body = `<p class="small">${book}还有 ${num(cd.left)} 个词没学${cd.daily && cd.finish ? `；按每天 ${cd.daily} 个，${mdDay(cd.finish)} 能学完` : ''}。填上考试日期，就能算出每天该背多少、跟不跟得上。</p>`;
+      act = '<button class="btn primary small" type="button" data-goal-edit>填考试日期</button>';
+    } else if (cd.status === 'no_plan' || cd.status === 'other_book') {
+      head = cd.status === 'no_plan' ? '还没有背词计划' : `还没在背${book}`;
+      body = `<p class="small">${cd.status === 'other_book' ? `你现在背的是《${esc(cd.plan_book_title)}》。` : ''}倒计时按${book}算：还有 ${num(cd.left)} 个词没学，要在 ${mdDay(cd.last_new)} 前（考前留 ${cd.review_days} 天复习）学完，每天要 ${cd.need} 个。</p>
+        ${cd.too_many ? `<p class="small">每天 ${cd.need} 个太多了，记不住。建议每天 ${cd.suggest} 个，先背最常用的前 ${num(cd.suggest_reach)} 个（词书越靠前的词越常用）。</p>` : ''}`;
+      act = btn(cd.suggest, `用${book}背，每天 ${cd.suggest} 个`);
+    } else if (cd.status === 'on_time') {
+      head = '背词节奏：跟得上 ✓';
+      body = `<p class="small">${book}还有 ${num(cd.left)} 个词没学。每天 ${cd.daily} 个，${mdDay(cd.last_new)} 前能学完，考前留 ${cd.review_days} 天只复习。</p>${slow}`;
+    } else {
+      head = '背词节奏：跟不上';
+      body = `<p class="small">${book}还有 ${num(cd.left)} 个词没学。现在每天 ${cd.daily} 个，到 ${mdDay(cd.last_new)}（考前留 ${cd.review_days} 天复习）只能学 ${num(cd.reach)} 个。</p>
+        ${cd.too_many ? `<p class="small">全部学完每天要 ${cd.need} 个，太多了：一个月后每天要复习好几百个，记不住。建议每天 ${cd.suggest} 个，先背最常用的前 ${num(cd.suggest_reach)} 个（词书越靠前的词越常用）。</p>`
+          : `<p class="small">要按时学完，每天需要 ${cd.need} 个。</p>`}${slow}`;
+      act = btn(cd.suggest, `改成每天 ${cd.suggest} 个`);
+    }
+    return `<section class="card flat sp-pace st-${cd.status}" aria-labelledby="spPaceH"><h2 class="h3" id="spPaceH">${head}</h2>${body}${act ? `<div class="row">${act}</div>` : ''}</section>`;
+  }
+  function bindPace(cd, redraw) {
+    view.querySelectorAll('[data-goal-edit]').forEach(b => b.onclick = () => examGoalSheet(redraw));
+    view.querySelectorAll('[data-daily]').forEach(b => b.onclick = async () => {
+      const n = Number(b.dataset.daily); b.disabled = true;
+      try {
+        await api('/api/next/vocab/plan', { book: cd.book, daily_new: n, retention: cd.retention || 0.9 });
+        await refreshHome(); toast(`已改成《${cd.book_title}》每天 ${n} 个新词`); redraw();
+      } catch (e) { b.disabled = false; toast(e.message); }
+    });
+  }
+
+  // ---- 成绩走势: the total as one line, then 词汇 / 语法 / 阅读 as three small lines side by side ----
+  function trendHTML(tr) {
+    if (!tr || !tr.length) return '<p class="small muted">还没做过完整的一套。做完第一套，这里会出现分数；做满两套就能看出走势。</p>';
+    const parts = ['vocab', 'grammar', 'reading'].filter(k => tr.some(t => t.parts && t.parts[k] != null));
+    const first = tr[0], last = tr[tr.length - 1];
+    if (tr.length === 1) return `<p class="small">第一套：总分 ${first.pct}%（${parts.map(k => `${PART_TITLE[k]} ${first.parts[k]}%`).join(' · ')}）。再做一套就能看出走势。</p>`;
+    const line = (vals, kind, label) => `<div class="trend-chart ${kind}" data-v="${vals.join(',')}" role="img" aria-label="${esc(label)}"></div>`;
+    const ofPart = k => tr.map(t => t.parts[k]).filter(v => v != null);
+    return `<div class="trend"><div class="trend-head"><span class="small">总分</span><b>${first.pct}% → ${last.pct}%</b></div>
+      ${line(tr.map(t => t.pct), 'big', `总分：第一套 ${first.pct}%，最近一套 ${last.pct}%，共 ${tr.length} 套`)}
+      <div class="trend-parts">${parts.map(k => { const v = ofPart(k);
+        return `<div class="tp"><span class="tiny muted">${PART_TITLE[k]}</span><b class="small">${v[0]} → ${v[v.length - 1]}</b>${line(v, 'small', `${PART_TITLE[k]}：从 ${v[0]}% 到 ${v[v.length - 1]}%`)}</div>`; }).join('')}</div>
+      <p class="tiny muted">${tr.length} 套，从 ${mdDay(first.day)} 到 ${mdDay(last.day)}。分数只用来看自己的变化，不能换算成考试分数。</p></div>`;
+  }
+  // Drawn at the width the box really has (the page is laid out first), so dots stay round and lines stay thin.
+  function drawTrends(root) {
+    (root || view).querySelectorAll('.trend-chart').forEach(box => {
+      const v = box.dataset.v.split(',').map(Number), big = box.classList.contains('big');
+      const W = Math.max(60, Math.round(box.clientWidth)), H = big ? 112 : 40, L = big ? 34 : 4, R = 8, T = 8, B = big ? 10 : 6;
+      const x = i => L + (v.length > 1 ? i * (W - L - R) / (v.length - 1) : (W - L - R) / 2), y = p => T + (1 - p / 100) * (H - T - B);
+      const grid = big ? [0, 50, 100].map(p => `<line class="g" x1="${L}" x2="${W - R}" y1="${y(p)}" y2="${y(p)}"/><text x="${L - 6}" y="${y(p) + 4}" text-anchor="end">${p}%</text>`).join('') : '';
+      const pts = v.map((p, i) => `${x(i).toFixed(1)},${y(p).toFixed(1)}`).join(' ');
+      const dots = v.map((p, i) => `<circle class="${i === v.length - 1 ? 'last' : ''}" cx="${x(i).toFixed(1)}" cy="${y(p).toFixed(1)}" r="${big ? (i === v.length - 1 ? 5 : 3.5) : (i === v.length - 1 ? 3.5 : 2.2)}"/>`).join('');
+      box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true" focusable="false">${grid}<polyline points="${pts}"/>${dots}</svg>`;
+    });
+  }
+  let trendTimer = 0;
+  addEventListener('resize', () => { clearTimeout(trendTimer); trendTimer = setTimeout(() => { if (view.querySelector('.trend-chart')) drawTrends(); }, 150); });
+
+  // ---- 题型专练: the list on an exam ----
+  function typesHTML(exam, types, note) {
+    if (!types || !types.length) return '';
+    return `<section class="section stack-s" aria-labelledby="spTypesH"><h2 class="h2" id="spTypesH">题型专练</h2><p class="tiny muted">${esc(note)}</p>
+      <div class="mlist">${types.map(t => `<a class="mrow" href="#/exam/${esc(exam)}/${esc(t.id)}" data-tap="exam-type"><span class="t"><b>${esc(t.title)}</b>
+        <span class="tiny muted">${t.items} 题，分 ${t.sets} 组${t.last ? ` · 上次 ${t.last.right}/${t.last.of}` : ' · 还没做'}</span></span><span class="go" aria-hidden="true">›</span></a>`).join('')}</div></section>`;
+  }
+
+  // ---- the hub: 考试练习 when an exam is set ----
+  function sprintHub(o, pickList) {
+    const g = o.goal, cd = o.countdown, cur = o.exams.find(e => e.id === g.exam);
+    const others = o.exams.filter(e => e.id !== g.exam);
+    const when = !g.date ? '还没填考试日期' : cd && cd.days > 0 ? `${mdDay(g.date)} · 还有 ${cd.days} 天` : cd && cd.days === 0 ? `${mdDay(g.date)} · 就是今天` : `${mdDay(g.date)} · 已经过了`;
+    view.innerHTML = `<div class="stack sprint"><div><span class="kicker">考试练习 · 我的考试</span><h1 class="h1">${esc(cur.title)}</h1>
+        <p class="sp-when"><span class="small">${when}</span><button class="link small" type="button" data-goal-edit data-tap="exam-goal">改考试或日期</button></p></div>
+      ${paceHTML(cd)}
+      <section class="section stack-s" aria-labelledby="spTrendH"><h2 class="h2" id="spTrendH">成绩走势${cur.trend.length > 1 ? `<span class="tiny muted">（最近 ${cur.trend.length} 套）</span>` : ''}</h2>${trendHTML(cur.trend)}</section>
+      ${typesHTML(cur.id, cur.types, o.types_note)}
+      <section class="section stack-s" aria-labelledby="spFullH"><h2 class="h2" id="spFullH">完整一套</h2>
+        <p class="small muted">词汇 10 题（${esc(cur.book_title)}）· 语法 8 题 · 阅读 2 篇 4 题，计时做完再看解析。${cd && cd.sprint ? '考前这几周，今日的计划里每周排一套。' : ''}</p>
+        <button class="btn primary block" id="exStart">开始一套（约 ${cur.minutes} 分钟）</button><p class="tiny muted">${esc(o.note)}</p></section>
+      ${others.length ? `<details class="section sp-others"><summary class="small">其他考试（${others.length} 个）</summary>${pickList(others)}</details>` : ''}</div>`;
+    drawTrends();
+    bindPace(cd, () => examView(g.exam));
+    document.getElementById('exStart').onclick = () => examPaper(cur.id);
+  }
+
+  // ---- 我的考试: which exam and when (我的, 考试练习; 背词计划 sets it with its chips) ----
+  async function examGoalSheet(onSaved) {
+    const o = await api('/api/next/exam/goal');
+    let exam = o.goal ? o.goal.exam : '';
+    const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">我的考试</h2>
+      <p class="muted small">设好考试和日期，「考试练习」会变成你的备考主页：倒计时、每天该背多少词、成绩走势和题型专练；考前最后四周，今日的计划会加上每周一套和这个考试的语法点。</p>
+      <div class="chips" role="radiogroup" aria-label="在准备哪个考试">${[{ id: '', short: '不考试' }, ...o.exams].map(e => `<button class="chip" type="button" role="radio" data-exam="${e.id}" aria-checked="${e.id === exam}">${esc(e.short)}</button>`).join('')}</div>
+      <div class="stack-s" id="egDate"><label class="small" for="egIn">考试日期（选填，不确定可以先空着）</label>
+        <input type="date" id="egIn" min="${today}" value="${esc(o.goal && o.goal.date || '')}"></div>
+      <p class="err" id="egErr" role="alert"></p>
+      <div class="row"><button class="btn primary" type="button" id="egSave">保存</button><button class="btn ghost" type="button" data-close>取消</button></div></div>`, card => {
+      const date = card.querySelector('#egDate'), sync = () => { date.hidden = !exam; };
+      card.querySelectorAll('[data-exam]').forEach(b => b.onclick = () => { exam = b.dataset.exam; card.querySelectorAll('[data-exam]').forEach(x => x.setAttribute('aria-checked', String(x === b))); sync(); });
+      sync();
+      card.querySelector('#egSave').onclick = async e => {
+        e.currentTarget.disabled = true;
+        try {
+          const r = await api('/api/next/exam/goal', { exam, date: exam ? card.querySelector('#egIn').value : '' });
+          closeSheet(); await refreshHome();
+          toast(r.goal ? `我的考试：${r.goal.short}${r.goal.date ? ' · ' + mdDay(r.goal.date) : ''}` : '已改成不考试');
+          if (onSaved) onSaved();
+        } catch (x) { e.currentTarget.disabled = false; card.querySelector('#egErr').textContent = x.message; }
+      };
+    });
+  }
+
+  // ---- 背词计划: the date under the exam chips, and how many words a day the date asks for ----
+  function planExamRow(p) {
+    const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    return `<div class="stack-s plan-exam" id="pxRow" hidden><label class="small" for="pxDate">考试日期（选填）</label>
+      <input type="date" id="pxDate" min="${today}" value="${esc(p && p.exam_date || '')}"><span class="tiny muted" id="pxHint" aria-live="polite"></span></div>`;
+  }
+  function planExamHint(exam, date, b, chosen, daily, done) {
+    if (!exam) return '';
+    if (!date) return '填上日期，就能算出每天要背多少个新词才来得及。';
+    const days = Math.round((new Date(date + 'T00:00:00') - new Date(new Date().toDateString())) / 864e5);
+    if (days <= 0) return days === 0 ? '今天就考试了。' : '这个日期已经过了。';
+    if (chosen !== exam) return `离考试还有 ${days} 天。倒计时按这个考试的词书算，你现在选的是另一本。`;
+    const left = Math.max(0, (b.size || 0) - (b.skippable || 0) - done), study = Math.max(1, days - Math.min(7, Math.floor(days / 3))), need = Math.ceil(left / study);
+    if (!left) return `离考试还有 ${days} 天，这本词书都学过了。`;
+    return `离考试还有 ${days} 天，最后 ${days - study} 天留着复习，前 ${study} 天要学完剩下的 ${num(left)} 个词：每天需要 ${need} 个新词` +
+      (daily >= need ? '，现在选的够了。' : need > 40 ? `。太多了，记不住：建议每天 40 个，先背最常用的前 ${num(40 * study)} 个。` : `；现在选的每天 ${daily} 个跟不上。`);
+  }
+
+  // ---- one question type: a set of original items, handed in once, then every answer with its reason ----
+  const LETTERS = 'ABCDEFGHIJKLMNO', ROMAN = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x', 'xi', 'xii'], TFNG = ['TRUE', 'FALSE', 'NOT GIVEN'];
+  const tapWords = line => line.split(/\s+/).filter(Boolean);
+  async function examTypeView(exam, tid, setId) {
+    const r = await api(`/api/next/exam/type?exam=${encodeURIComponent(exam)}&type=${encodeURIComponent(tid)}${setId ? '&set=' + encodeURIComponent(setId) : ''}`);
+    const s = r.set, k = s.kind, n = s.items.length, ans = Array(n).fill(null);
+    const label = (i, a) => a == null ? '' : k === 'bank' ? `${LETTERS[a]}. ${s.bank[a]}` : k === 'headings' ? `${ROMAN[a]}. ${s.bank[a]}` : k === 'match' ? `${LETTERS[a]} 段`
+      : k === 'tfng' ? TFNG[a] : k === 'proof' ? a : s.items[i].options[a];
+    const gapText = t => esc(t).replace(/\{(\d+)\}/g, (_, d) => k === 'bank' ? `<button class="gap" type="button" data-gap="${d - 1}" aria-label="第 ${d} 空，点这里选">(${d}) <span class="gv">＿＿＿</span></button>`
+      : `<span class="gap ro" data-gap="${d - 1}">(${d}) <span class="gv">＿＿＿</span></span>`);
+    const opts = (i, list, fmt) => `<div class="xt-opts">${list.map((x, j) => `<button class="ans" type="button" data-i="${i}" data-o="${j}"><span class="k">${fmt ? fmt(j) : LETTERS[j]}</span><span>${esc(x)}</span></button>`).join('')}</div>`;
+    let body = '';
+    if (k === 'cloze') body = `<div class="exam-passage xt-text">${gapText(s.text)}</div><div class="stack-s">${s.items.map((it, i) => `<div class="q gq xt-q" data-q="${i}"><div class="prompt">第 ${i + 1} 空</div>${opts(i, it.options)}</div>`).join('')}</div>`;
+    if (k === 'bank') body = `<div class="xt-bank card sunk"><b class="small">选项（每个只用一次）</b><ol class="xt-banklist${s.bank.every(x => x.length <= 16) ? ' words' : ''}">${s.bank.map((x, j) => `<li data-b="${j}"><span class="k">${LETTERS[j]}</span><span>${esc(x)}</span></li>`).join('')}</ol></div>
+      <div class="exam-passage xt-text${s.bank.some(x => x.length > 30) ? ' long' : ''}">${gapText(s.text)}</div>`;
+    if (k === 'headings') body = `<div class="xt-bank card sunk"><b class="small">标题（每个只用一次，有几个用不上）</b><ol class="xt-banklist">${s.bank.map((x, j) => `<li data-b="${j}"><span class="k">${ROMAN[j]}</span><span>${esc(x)}</span></li>`).join('')}</ol></div>
+      ${s.paras.map((p, i) => `<div class="xt-para"><div class="row"><b>${LETTERS[i]}</b><button class="gap" type="button" data-gap="${i}" aria-label="${LETTERS[i]} 段的标题，点这里选"><span class="gv">选标题</span></button></div><p class="exam-passage">${esc(p)}</p></div>`).join('')}`;
+    if (k === 'match') body = `${s.paras.map((p, i) => `<p class="exam-passage xt-para"><b>${LETTERS[i]}</b> ${esc(p)}</p>`).join('')}
+      <div class="stack-s">${s.items.map((it, i) => `<div class="q gq xt-q" data-q="${i}"><div class="prompt">${i + 1}. ${esc(it.prompt)}</div><div class="xt-letters">${s.paras.map((_, j) => `<button class="ans" type="button" data-i="${i}" data-o="${j}" aria-label="${LETTERS[j]} 段">${LETTERS[j]}</button>`).join('')}</div></div>`).join('')}</div>`;
+    if (k === 'tfng') body = `<div class="exam-passage xt-text">${esc(s.text)}</div><div class="stack-s">${s.items.map((it, i) => `<div class="q gq xt-q" data-q="${i}"><div class="prompt">${i + 1}. ${esc(it.prompt)}</div><div class="xt-tf">${TFNG.map((x, j) => `<button class="ans" type="button" data-i="${i}" data-o="${j}">${x}</button>`).join('')}</div></div>`).join('')}</div>`;
+    if (k === 'choice') body = `<div class="stack-s">${s.items.map((it, i) => `<div class="q gq xt-q" data-q="${i}"><div class="prompt">${i + 1}. ${esc(it.prompt)}</div>${opts(i, it.options)}</div>`).join('')}</div>`;
+    if (k === 'proof') body = `<div class="stack-s">${s.lines.map((line, i) => `<div class="q gq xt-q xt-line" data-q="${i}"><div class="tiny muted">第 ${i + 1} 行</div><div class="xt-words">${tapWords(line).map((w, j) => `<button class="xw" type="button" data-i="${i}" data-w="${j}" aria-pressed="false">${esc(w)}</button>`).join('')}</div></div>`).join('')}</div>`;
+    view.innerHTML = `<div class="stack xt"><div><span class="kicker">${esc(r.exam_title)} · 题型专练</span><h1 class="h1">${esc(r.title)}</h1>
+        <p class="small">${esc(r.how)}</p><p class="tiny muted">${esc(r.note)}</p></div>
+      <div class="row between"><span class="tiny muted">第 ${r.index} 组，共 ${r.of} 组${s.title ? ` · <span lang="en">${esc(s.title)}</span>` : ''}</span><span class="tiny muted" id="xtLeft">还有 ${n} 题</span></div>
+      ${body}
+      <button class="btn primary block" id="xtDone" type="button">交卷</button>
+      <a class="link small" href="#/exam/${esc(exam)}">回到考试练习</a></div>`;
+    const left = () => { const m = ans.filter(a => a == null).length; document.getElementById('xtLeft').textContent = m ? `还有 ${m} 题` : '都做完了'; };
+    const fillGap = i => { const g = view.querySelector(`[data-gap="${i}"] .gv`); if (g) g.textContent = ans[i] == null ? (k === 'headings' ? '选标题' : '＿＿＿') : label(i, ans[i]); };
+    view.querySelectorAll('.ans').forEach(b => b.onclick = () => {
+      const i = +b.dataset.i; ans[i] = +b.dataset.o;
+      view.querySelectorAll(`.ans[data-i="${i}"]`).forEach(x => x.classList.toggle('chosen', x === b));
+      if (k === 'cloze') fillGap(i);
+      left();
+    });
+    view.querySelectorAll('.xw').forEach(b => b.onclick = () => {
+      const i = +b.dataset.i, on = !b.classList.contains('chosen');
+      view.querySelectorAll(`.xw[data-i="${i}"]`).forEach(x => { x.classList.toggle('chosen', on && x === b); x.setAttribute('aria-pressed', String(on && x === b)); });
+      ans[i] = on ? b.textContent : null; left();
+    });
+    // 选词填空、七选五、段落标题: tap a gap, pick from the options in a sheet (one already used shows where)
+    const used = () => { view.querySelectorAll('.xt-banklist li').forEach(li => li.classList.toggle('used', ans.includes(+li.dataset.b))); };
+    view.querySelectorAll('button.gap').forEach(g => g.onclick = () => {
+      const i = +g.dataset.gap, fmt = j => k === 'headings' ? ROMAN[j] : LETTERS[j];
+      openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">${k === 'headings' ? `${LETTERS[i]} 段的标题` : `第 ${i + 1} 空`}</h2>
+        <div class="stack-s xt-pick">${s.bank.map((x, j) => { const at = ans.indexOf(j);
+          return `<button class="ans${ans[i] === j ? ' chosen' : ''}" type="button" data-pick="${j}"><span class="k">${fmt(j)}</span><span>${esc(x)}${at >= 0 && at !== i ? `<span class="tiny muted">（已用在${k === 'headings' ? ` ${LETTERS[at]} 段` : `第 ${at + 1} 空`}）</span>` : ''}</span></button>`; }).join('')}</div>
+        <div class="row">${ans[i] != null ? '<button class="btn ghost" type="button" id="xtClear">清空这一空</button>' : ''}<button class="btn ghost" type="button" data-close>取消</button></div></div>`, card => {
+        card.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => {
+          const j = +b.dataset.pick, was = ans.indexOf(j);
+          if (was >= 0 && was !== i) { ans[was] = null; fillGap(was); }  // one option, one gap: it moves here
+          ans[i] = j; fillGap(i); used(); left(); closeSheet();
+          const nextGap = view.querySelector(`button.gap[data-gap="${i + 1}"]`); if (nextGap && ans[i + 1] == null) nextGap.focus({ preventScroll: true });
+        });
+        const cl = card.querySelector('#xtClear'); if (cl) cl.onclick = () => { ans[i] = null; fillGap(i); used(); left(); closeSheet(); };
+      });
+    });
+    let warned = false;
+    document.getElementById('xtDone').onclick = async e => {
+      const btn = e.currentTarget, m = ans.filter(a => a == null).length;
+      if (m && !warned) { warned = true; btn.textContent = `还有 ${m} 题没做，再点一次交卷`; return; }
+      btn.disabled = true;
+      let out;
+      try { out = await api('/api/next/exam/type', { exam, type: tid, set: s.id, answers: ans }); }
+      catch (x) { btn.disabled = false; toast(x.message); return; }
+      window.scrollTo(0, 0); typeResult(r, ans, out, label);
+    };
+  }
+  function typeResult(r, ans, out, label) {
+    const s = r.set, k = s.kind;
+    const what = i => k === 'cloze' || k === 'bank' ? `第 ${i + 1} 空` : k === 'headings' ? `${LETTERS[i]} 段` : k === 'proof' ? `第 ${i + 1} 行` : `${i + 1}. ${s.items[i].prompt}`;
+    const right = (it, i) => k === 'proof' ? `${it.wrong} → ${it.fix || '删去'}` : label(i, it.answer);
+    const text = k === 'match' || k === 'headings' ? s.paras.map((p, i) => `${LETTERS[i]}  ${p}`).join('\n\n') : k === 'proof' ? s.lines.join('\n')
+      : s.text ? s.text.replace(/\{(\d+)\}/g, (_, d) => `(${d}) ${label(d - 1, out.items[d - 1].answer)}`) : '';  // 单选题 have no passage
+    view.innerHTML = `<div class="stack xt"><div><span class="kicker">${esc(r.exam_title)} · ${esc(r.title)}</span><h1 class="h1">${out.of} 题做对 ${out.right} 题</h1>
+        <p class="small muted">${out.saved ? '结果已记下，题型列表会显示上次的成绩。' : '登录后会记下每次的成绩。'}每题都写了答案在原文里的依据。</p></div>
+      <div class="stack-s">${out.items.map((it, i) => `<div class="pit"><div class="small">${esc(what(i))}</div>
+        <div class="${it.correct ? 'ok' : 'no'} small">${it.correct ? '✓ 答对' : '✗ 答错了，答案是'}：${esc(right(it, i))}${!it.correct && ans[i] != null ? `<span class="tiny muted">（你选的：${esc(k === 'proof' ? ans[i] : label(i, ans[i]))}）</span>` : ''}</div>
+        <div class="tiny muted">${esc(it.why)}</div></div>`).join('')}</div>
+      ${text ? `<details class="section"><summary class="small">看原文${k === 'cloze' || k === 'bank' ? '（空里填的是答案）' : ''}</summary><div class="exam-passage xt-text">${esc(text)}</div></details>` : ''}
+      <div class="row"><button class="btn primary" id="xtNext" type="button">再做一组</button><a class="btn ghost" href="#/exam/${esc(r.exam)}">回到考试练习</a></div></div>`;
+    announce(`${out.of} 题做对 ${out.right} 题`);
+    document.getElementById('xtNext').onclick = () => { window.scrollTo(0, 0); examTypeView(r.exam, r.type, out.next); };
+  }
   /* ---------- mixed grammar rounds: several points interleaved (today's review, a confusable pair, a whole topic) ---------- */
   // Questions on different points mixed together make the learner decide which rule applies first: that decision is
   // what real use asks for, and it is what one-point-at-a-time practice never trains.
   async function mixView(kind, arg) {
-    const q = kind === 'pair' ? '?pair=' + encodeURIComponent(arg) : kind === 'topic' ? '?topic=' + encodeURIComponent(arg) : guestQuery(true);
+    const q = kind === 'pair' ? '?pair=' + encodeURIComponent(arg) : kind === 'topic' ? '?topic=' + encodeURIComponent(arg) : kind === 'exam' ? '?exam=' + encodeURIComponent(arg) : guestQuery(true);
     const m = await api('/api/next/mix' + q);
-    const TITLE = { due: '今天的语法复习', practice: '语法混合练习', pair: '辨析练习', topic: '这一类混着练' };
+    const TITLE = { due: '今天的语法复习', practice: '语法混合练习', pair: '辨析练习', topic: '这一类混着练', exam: '考点语法' };
     const intro = m.kind === 'due' ? `${m.nodes.length} 个点混在一起出题：先想清楚这题考的是哪条规则，再选。${m.left ? `还有 ${m.left} 个点明天接着练。` : ''}`
       : m.kind === 'pair' ? '两个容易混的点交替出题，做的时候先判断是哪一个。'
-      : m.kind === 'practice' ? '今天没有到期要复习的点。先混着练几个你这个级别的，做对的会点亮。' : '这一类里的每个点各出一题。';
+      : m.kind === 'practice' ? '今天没有到期要复习的点。先混着练几个你这个级别的，做对的会点亮。'
+      : m.kind === 'exam' ? '这个考试常考的语法点混在一起出题，要你标出来的和到期该复习的排在前面。' : '这一类里的每个点各出一题。';
     const items = m.items, before = Object.fromEntries(m.nodes.map(n => [n.id, n.status])), after = {}, per = {};
     let i = 0, right = 0, streak = 0;
     view.innerHTML = `<div class="stack mix"><div><span class="kicker">${esc(TITLE[m.kind])}</span><h1 class="h1">${m.kind === 'pair' ? esc(m.nodes.map(n => n.title).join(' vs ')) : `${items.length} 道题，${m.nodes.length} 个点`}</h1>
@@ -2675,7 +3093,7 @@
     async function answer(it, b, box) {
       box.querySelectorAll('.ans').forEach(x => { x.disabled = true; });
       let r;
-      try { r = await api('/api/next/node/answer', { question: it.id, choice: Number(b.dataset.o), from: 'mix' }); }
+      try { r = await api('/api/next/node/answer', { question: it.id, choice: Number(b.dataset.o), from: m.kind === 'exam' ? 'exam' : 'mix' }); }
       catch (e) { toast(e.message); box.querySelectorAll('.ans').forEach(x => { x.disabled = false; }); return; }
       box.querySelectorAll('.ans').forEach(x => { if (Number(x.dataset.o) === r.answer) x.classList.add('right'); });
       if (!r.correct) b.classList.add('wrong');
@@ -2705,7 +3123,7 @@
         <div class="plist">${rows.map((n, k) => { const a = after[n.id] || n, pr = per[n.id];
           return `<a class="nrow st st-${a.status} pop-in" data-k="${k}" href="#/graph/${encodeURIComponent(n.id)}"><i class="dot" aria-hidden="true"></i><span class="t"><b>${esc(n.title)}</b><span class="tiny muted">${esc(a.label || '')}</span></span><span class="lv">${pr.right}/${pr.of}</span><span class="go" aria-hidden="true">›</span></a>`; }).join('')}</div>
         ${S.user ? '' : '<p class="muted small">登录后，做对的点会点亮在你的语法地图里，错的会按遗忘曲线回来。</p>'}
-        <div class="row center"><a class="btn" href="#/graph">语法地图</a>${m.kind === 'due' ? '<a class="btn primary" href="#/">回到今日</a>' : '<button class="btn primary" id="mixAgain">再来一轮</button>'}</div></div>`;
+        <div class="row center"><a class="btn" href="#/graph">语法地图</a>${m.kind === 'due' || m.kind === 'exam' ? '<a class="btn primary" href="#/">回到今日</a>' : '<button class="btn primary" id="mixAgain">再来一轮</button>'}</div></div>`;
       view.querySelectorAll('.pop-in').forEach(el => el.style.setProperty('--d', (Number(el.dataset.k) * 90 + 200) + 'ms'));
       const again = document.getElementById('mixAgain'); if (again) again.onclick = () => mixView(kind, arg);
       announce(`${items.length} 题做对 ${right} 题`);
@@ -3555,6 +3973,9 @@
     const o = await api('/api/next/vocab');
     const cur = o.plan || { book: o.suggested_book, daily_new: 10, retention: 0.9 };
     let book = cur.book, daily = cur.daily_new, ret = cur.retention;
+    // 考试冲刺: the chip pressed is the exam being prepared for (saved with the plan), with its date (42-sprint.js).
+    const prof = (S.home && S.home.profile) || {}, exam0 = prof.exam || '', date0 = prof.exam_date || '';
+    let examSel = exam0;
     // One book in the picker: title, word count and what it is for; a data book (专四、专八…) also says how it was made.
     const bookCard = b => `<div class="bookcell"><button class="card flat bookc" data-book="${esc(b.id)}" aria-pressed="${b.id === book}">
         <span class="bk-top"><b>${esc(b.title)}</b><span class="bk-tags">${b.id === o.suggested_book ? '<span class="pill green">推荐</span>' : ''}<span class="pill bk-on">已选</span><span class="tiny muted bk-n">${(b.count || b.size || 0).toLocaleString()} 词</span></span></span>
@@ -3563,7 +3984,7 @@
     view.innerHTML = `<h1 class="h1">背词计划</h1><span class="muted small">随时可以改，已学的进度不会丢。</span>
       <div class="section stack-s"><h2 class="h2">词书</h2>
         ${(o.exam_goals || []).length ? `<div class="stack-s"><span class="small" id="goalQ">你在准备什么考试？点一下就选好对应的词书。</span>
-          <div class="chips" id="goal" role="group" aria-labelledby="goalQ">${[{ title: '不考试', book: '' }, ...o.exam_goals].map(g => `<button class="chip" data-goal="${esc(g.book)}" aria-pressed="false">${esc(g.title)}</button>`).join('')}</div></div>` : ''}
+          <div class="chips" id="goal" role="group" aria-labelledby="goalQ">${[{ title: '不考试', book: '' }, ...o.exam_goals].map(g => `<button class="chip" data-goal="${esc(g.book)}" data-exam="${g.exam ? esc(g.book) : ''}" aria-pressed="false">${esc(g.title)}</button>`).join('')}</div>${planExamRow(prof)}</div>` : ''}
         <div class="card flat booksel stack-s"><div class="row between"><span class="small" id="bookNow" aria-live="polite"></span>
           <button class="link small" id="moreBooks" type="button" aria-expanded="false" aria-controls="allBooks">换一本（共 ${o.books.length} 本）</button></div><div id="bookSelInfo"></div></div>
         <div class="bookgroups" id="allBooks" hidden><span class="muted tiny">按词频的词书从你的水平往上走；其他词书按考试或用途分组，点一本就选中。</span>${(o.groups || [...new Set(o.books.map(b => b.group))]).map(g => `<section class="bookgroup" aria-label="${esc(g)}"><div class="kicker">${esc(g)}</div><div class="books">${o.books.filter(b => b.group === g).map(bookCard).join('')}</div></section>`).join('')}</div>
@@ -3590,13 +4011,16 @@
       document.getElementById('bookNow').textContent = b.title ? `已选《${b.title}》，${(b.count || b.size || 0).toLocaleString()} 词` : '还没选词书';
       document.getElementById('bookSelInfo').innerHTML = b.title ? `${b.blurb ? `<span class="small">${esc(b.blurb)}</span>` : ''}${book === o.suggested_book ? ' <span class="pill green">推荐</span>' : ''}
         ${b.basis ? `<details class="basis"><summary>这份词书怎么来的</summary><p class="tiny muted">${esc(b.basis)}</p></details>` : ''}` : '<span class="small muted">点上面的考试，或点「换一本」挑一本。</span>';
+      const px = document.getElementById('pxRow');
+      if (px) { px.hidden = !examSel; document.getElementById('pxHint').textContent = planExamHint(examSel, document.getElementById('pxDate').value, meta(examSel), book, daily, o.book && o.book.id === examSel ? o.book.started : 0); }
       document.getElementById('dnHint').textContent = !b.title ? '先在上面选一本词书。' : `学完《${b.title}》大约需要 ${days} 天${skip ? `（跳过 ${skip} 个常用词）` : ''}；每天 ${daily} 个新词，一个月后每天大约要复习 ${daily * 3}–${daily * 5} 个${daily >= 50 ? '，量很大，记得留出时间' : ''}。`;
     };
     // The exam chips follow the chosen book: its exam, or 「不考试」 for a book by frequency; another book (学术、商务…) lights none.
-    const syncGoal = () => view.querySelectorAll('[data-goal]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.goal ? x.dataset.goal === book : meta(book).group === '按词频')));
+    const syncGoal = () => view.querySelectorAll('[data-goal]').forEach(x => x.setAttribute('aria-pressed', String(examSel ? x.dataset.exam === examSel : x.dataset.goal ? x.dataset.goal === book : meta(book).group === '按词频')));
     const choose = id => { book = id; view.querySelectorAll('[data-book]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.book === id))); syncGoal(); hint(); };
     view.querySelectorAll('[data-book]').forEach(b => b.onclick = () => choose(b.dataset.book));
-    view.querySelectorAll('[data-goal]').forEach(b => b.onclick = () => choose(b.dataset.goal || o.suggested_book));
+    view.querySelectorAll('[data-goal]').forEach(b => b.onclick = () => { examSel = b.dataset.exam || ''; choose(b.dataset.goal || o.suggested_book); });
+    const pxDate = document.getElementById('pxDate'); if (pxDate) pxDate.oninput = hint;
     const more = document.getElementById('moreBooks'), all = document.getElementById('allBooks');
     more.onclick = () => { const open = all.hidden; all.hidden = !open; more.setAttribute('aria-expanded', String(open)); more.textContent = open ? '收起' : `换一本（共 ${o.books.length} 本）`; };
     syncGoal();
@@ -3613,10 +4037,15 @@
     const saveRemind = async () => { rCal.href = '/api/next/vocab/reminder.ics?hour=' + rHour.value; try { await api('/api/next/vocab/reminder', { enabled: rMail.checked, hour: Number(rHour.value) }); toast(rMail.checked ? `每天 ${rHour.value}:00 会提醒你` : '提醒时间已更新'); } catch (x) { toast(x.message); rMail.checked = false; } };
     rHour.onchange = saveRemind; rMail.onchange = saveRemind;
     document.getElementById('savePlan').onclick = async e => {
-      e.currentTarget.disabled = true;
+      const btn = e.currentTarget; btn.disabled = true;
       const sk = document.getElementById('skipKnown');
-      try { await api('/api/next/vocab/plan', { book, daily_new: daily, retention: ret, ...(sk ? { skip_known: sk.checked } : {}) }); await refreshHome(); toast('计划已保存'); location.hash = '#/cards'; }
-      catch (x) { toast(x.message); e.currentTarget.disabled = false; }
+      const date = examSel && pxDate ? pxDate.value : '';
+      try {
+        await api('/api/next/vocab/plan', { book, daily_new: daily, retention: ret, ...(sk ? { skip_known: sk.checked } : {}) });
+        if (examSel !== exam0 || date !== date0) await api('/api/next/exam/goal', { exam: examSel, date });
+        await refreshHome(); toast('计划已保存'); location.hash = '#/cards';
+      }
+      catch (x) { toast(x.message); btn.disabled = false; }
     };
   }
 
@@ -3636,7 +4065,7 @@
     }
     function answer(yes) { answers[items[i]] = yes; i++; show(); }
     async function finish() {
-      document.onkeydown = null; document.body.classList.remove('reviewing');
+      document.onkeydown = null; swipeOff(); document.body.classList.remove('reviewing');
       view.innerHTML = `<p class="loading"><span class="spin"></span> 正在估算…</p>`;
       const r = await api('/api/next/vocab/test', { answers });
       if (!S.user) save('flow-next-guest-test', { answers, at: Date.now() });  // kept, and saved to the account after signing in
@@ -3656,10 +4085,38 @@
           await api('/api/next/vocab/test', { answers }); await refreshHome(); location.hash = '#/cards'; } catch (e) { toast(e.message); }
       };
     }
+    swipeOn(() => (i < items.length ? { right: () => answer(true), left: () => answer(false) } : null));  // as on the buttons: ← 不认识, 认识 →
     show();
   }
 
   /* ---------- review: recognise -> recall -> spell as an item gets stronger ---------- */
+  // Swiping a card (the review, the vocabulary test): right and left call what acts() returns at that moment
+  // ({ right, left }, either may be missing). The whole screen takes the swipe, not only the card: on a wide screen (an
+  // iPad sideways) the card is a column in the middle and the thumb rests beside it, or below it. Not from a link or a
+  // field, and not while a sheet is open. A swipe is mostly sideways, without a strict
+  // height limit (on a big screen it drifts). Leaving the page takes it off (swipeOff, in route()).
+  function swipeOn(acts) {
+    let sx = null;
+    const cardEl = () => view.querySelector('.review');
+    const settle = () => { const card = cardEl(); if (card) card.style.transform = ''; };
+    document.ontouchstart = e => {
+      // The card's own buttons count (on a phone the answer buttons are where the thumb rests; a finger that moves does
+      // not press them); links, fields and buttons elsewhere (撤销) are left to themselves.
+      const t = e.target, off = t.closest('a,input,select,textarea,label,.sheet') || (t.closest('button') && !t.closest('.review'));
+      sx = e.touches.length === 1 && sheetEl.hidden && !isTyping(e) && !off ? [e.touches[0].clientX, e.touches[0].clientY] : null;
+    };
+    document.ontouchmove = e => {
+      if (!sx || !acts()) return; const t = e.touches[0], dx = t.clientX - sx[0], card = cardEl();
+      if (card && Math.abs(dx) > Math.abs(t.clientY - sx[1])) card.style.transform = `translateX(${dx * 0.35}px) rotate(${dx * 0.02}deg)`;
+    };
+    document.ontouchend = e => {
+      settle(); const a = acts();
+      if (!sx || !a) return; const t = e.changedTouches[0], dx = t.clientX - sx[0], dy = t.clientY - sx[1]; sx = null;
+      if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 1.4) { const f = dx > 0 ? a.right : a.left; if (f) f(); }
+    };
+    document.ontouchcancel = () => { sx = null; settle(); };  // the browser took the gesture (a scroll, the system): the card goes back
+  }
+  function swipeOff() { document.ontouchstart = document.ontouchmove = document.ontouchend = document.ontouchcancel = null; }
   async function reviewView() {
     if (!S.user) return needLogin('登录后才能复习。');
     document.body.classList.add('reviewing');
@@ -3707,14 +4164,7 @@
       const u = document.getElementById('undo'); if (u) u.onclick = takeBack;
     };
     const keys = map => { document.onkeydown = e => { if (!sheetEl.hidden || e.metaKey || e.ctrlKey || e.altKey) return; if (e.target.matches && e.target.matches('input,textarea')) { if (e.key === 'Enter' && map.Enter && ['spellIn', 'fixIn'].includes(e.target.id)) { e.preventDefault(); map.Enter(); } return; } const f = map[e.key] || map[e.key.toLowerCase()]; if (f) { e.preventDefault(); f(); } }; };
-    let sx = null;
-    view.ontouchstart = e => { sx = e.touches.length === 1 && !isTyping(e) && !e.target.closest('button,a,input') ? [e.touches[0].clientX, e.touches[0].clientY] : null; };
-    view.ontouchmove = e => { if (!sx || !swipe) return; const dx = e.touches[0].clientX - sx[0], card = view.querySelector('.review'); if (card && Math.abs(dx) > Math.abs(e.touches[0].clientY - sx[1])) card.style.transform = `translateX(${dx * 0.35}px) rotate(${dx * 0.02}deg)`; };
-    view.ontouchend = e => {
-      const card = view.querySelector('.review'); if (card) card.style.transform = '';
-      if (!sx || !swipe) return; const t = e.changedTouches[0], dx = t.clientX - sx[0], dy = t.clientY - sx[1]; sx = null;
-      if (Math.abs(dx) > 80 && Math.abs(dy) < 70) { const f = dx > 0 ? swipe.right : swipe.left; if (f) f(); }
-    };
+    swipeOn(() => swipe);
     if (TOUCH && !load('flow-next-swipe-tip')) { save('flow-next-swipe-tip', 1); setTimeout(() => toast('小技巧：右滑「认识」，左滑「不认识」'), 600); }
     // A saved sentence pattern: the frame's fixed words become gaps in its example, so the front does not give it away.
     const frameCloze = (example, frame) => {
@@ -3951,7 +4401,7 @@
         left = q;
       } catch (e) { /* show the summary anyway */ }
       refreshHome().catch(() => {});
-      view.ontouchstart = view.ontouchmove = view.ontouchend = null; document.body.classList.remove('reviewing');
+      swipeOff(); document.body.classList.remove('reviewing');
       undo = null;
       const rated = tally.again + tally.hard + tally.good + tally.easy, mins = Math.max(1, Math.round((Date.now() - started) / 60000));
       view.innerHTML = `<div class="card done-card enter">${doneRing}<h2 class="h2">这一轮复习了 ${doneIds.size} 个</h2>
@@ -4224,8 +4674,8 @@
     const installed = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
     const groups = [
       u && ['进步', [grow('#/radar', '能力雷达', '离目标还差多少', '', 'me-radar'), grow('#/growth', '我的进步', '每月对比和里程碑', '', 'me-growth'), grow('#/report', '这周的报告', '', '', 'me-report'), grow('#/cards/mistake', '错题本', '', '', 'me-mistake')]],
-      ['设置', [grow('#/welcome/edit', '学习目标和水平', [goal && esc(goal.label), lv && lv.id].filter(Boolean).join(' · ') || '未设置', '', 'me-level'),
-        u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', u ? grow('meClass', '班级', '<span class="spin"></span>', 'meClassV', 'me-class') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), grow('meText', '字号和行距', textLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '加到手机日历', '', 'me-remind'),
+      ['设置', [grow('#/welcome/edit', '学习目标和水平', [goal && esc(goal.label), p.target && '目标 ' + p.target, lv && (p.target ? '现在 ' : '') + lv.id].filter(Boolean).join(' · ') || '未设置', '', 'me-level'),
+        u ? grow('meExam', '我的考试', examLabel(p), 'meExamV', 'me-exam') : '', u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', u ? grow('meClass', '班级', '<span class="spin"></span>', 'meClassV', 'me-class') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), grow('meText', '字号和行距', textLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '加到手机日历', '', 'me-remind'),
         u ? grow('meMail', '每周进度邮件', weeklyMailLabel(), 'meMailV', 'me-weekly-mail') : '',
         installed ? '' : grow('meInstall', '添加到桌面', '像 App 一样打开', '', 'me-install')]],
       u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
@@ -4244,8 +4694,9 @@
     document.getElementById('meVoice').onclick = voiceSheet;
     document.getElementById('meText').onclick = textSheet;
     const mh = document.getElementById('meHabit'); if (mh) mh.onclick = habitSheet;
+    const me = document.getElementById('meExam'); if (me) me.onclick = () => examGoalSheet(() => meView());
     document.getElementById('meRemind').onclick = () => remindSheet(p.minutes || 10);
-    const mm = document.getElementById('meMail'); if (mm) mm.onclick = weeklyMailSheet;  // 11-progress.js
+    const mm = document.getElementById('meMail'); if (mm) { mm.onclick = weeklyMailSheet; fillMailRow(); }  // 11-progress.js
     const mi = document.getElementById('meInstall'); if (mi) mi.onclick = installSheet;
     if (u) {
       document.getElementById('meClass').onclick = () => classSheet();
@@ -4657,7 +5108,11 @@
   // failed, a sound the browser would not play) and, once per visit, how long until the first page was on screen and
   // where the time went. No account and no address go with them; each problem is sent once per visit, 20 at most.
   // The last few errors also go with a 问题反馈 report (ERRS).
-  const FIELD = { q: [], seen: new Set(), sent: 0, firstView: null, openSent: false, t: 0 };
+  // t0: when this script began to run (after it was downloaded and compiled); hidden: the page was opened out of sight
+  // (a tab in the background, a link WeChat loaded ahead): its time on screen is not a wait, so the console leaves it
+  // out. page: which page this visit opened on (a link to a material waits for that material, not for 今日).
+  const FIELD = { q: [], seen: new Set(), sent: 0, firstView: null, openSent: false, t: 0, t0: performance.now(),
+    hidden: document.visibilityState === 'hidden', page: (s => (!s ? 'today' : s === 'm' ? 'material' : 'other'))((location.hash.split('/')[1] || '')) };
   const ERRS = [];
   function beacon(url, data) {
     const body = JSON.stringify(data);
@@ -4696,7 +5151,7 @@
     const n = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
     if (n) return n;
     const t = performance.timing; if (!t || !t.navigationStart) return null;  // older in-app browsers
-    const o = {}; ['domainLookupStart', 'domainLookupEnd', 'connectStart', 'connectEnd', 'secureConnectionStart', 'requestStart', 'responseStart', 'responseEnd']
+    const o = {}; ['fetchStart', 'domainLookupStart', 'domainLookupEnd', 'connectStart', 'connectEnd', 'secureConnectionStart', 'requestStart', 'responseStart', 'responseEnd']
       .forEach(k => { o[k] = t[k] ? t[k] - t.navigationStart : 0; });
     return o;
   }
@@ -4710,12 +5165,14 @@
       const ms = x => (x == null || !isFinite(x) || x < 0 ? null : Math.round(x)), fv = FIELD.firstView;
       beacon('/api/next/opentime', {
         domain: location.host, first_view: ms(fv), waited: ms(performance.now()),
-        dns: ms(n.domainLookupEnd - n.domainLookupStart), connect: ms(n.connectEnd - n.connectStart),
+        startup: ms(n.fetchStart), dns: ms(n.domainLookupEnd - n.domainLookupStart), connect: ms(n.connectEnd - n.connectStart),
         tls: n.secureConnectionStart > 0 ? ms(n.connectEnd - n.secureConnectionStart) : null,
         ttfb: ms(n.responseStart - n.requestStart), html: ms(n.responseEnd - n.responseStart),
-        scripts: js ? ms(js.responseEnd - n.responseEnd) : null, home_api: home ? ms(home.duration) : null,
+        scripts: js ? ms(js.responseEnd - n.responseEnd) : null, boot: ms(FIELD.t0 - (js ? js.responseEnd : n.responseEnd)),
+        home_api: home ? ms(home.duration) : null,
         render: fv != null && home ? ms(fv - home.responseEnd) : null,
         repeat: !!(navigator.serviceWorker && navigator.serviceWorker.controller), snap: DATA.fromSnap, standalone: STANDALONE(),
+        hidden: FIELD.hidden, page: FIELD.page,
         net: c.effectiveType || '', tz: (Intl.DateTimeFormat().resolvedOptions().timeZone || '').slice(0, 40) });
     } catch (e) { /* not counted */ }
   }
@@ -4825,7 +5282,7 @@
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
     // The copy of the last 今日 kept on the phone (05-data.js): the page is drawn from it at once, then from the
     // server's answer, quietly, if anything changed. Offline, the copy stays on screen. The first visit waits.
-    const snap = snapGet(), drawn = () => { firstViewDrawn(); prefetchTabs(); keepTodayOffline(); };
+    const snap = snapGet(), drawn = () => { SPLASH.done(); firstViewDrawn(); prefetchTabs(); keepTodayOffline(); };
     if (snap && snap.home && snap.home.session) {
       S.home = snap.home; S.user = snap.home.session.user || null; S.csrf = ''; DATA.fromSnap = true; S.homeFresh = true; setDueBadge();
       const drawnFor = location.hash;

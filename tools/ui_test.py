@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Multi-device UI tests for Flow /next: phone, phone sideways, tablet and desktop; touch, keyboard and mouse.
 
-    python3 tools/ui_test.py [out dir] [phone|phone-land|tablet|desktop|progress|listen-speak …]   # needs: pip install playwright
+    python3 tools/ui_test.py [out dir] [phone|phone-land|tablet|desktop|progress|listen-speak|sprint|start …]   # needs: pip install playwright
 
 Starts its own local server (tools/ui_server.py: throwaway database, simulated AI, one signed-in learner per device),
 so every run begins from the same state, and drives the installed Google Chrome.
@@ -79,7 +79,9 @@ def check(dev, name, ok, detail=''):
 
 
 def settle(pg, sel='#view h1, #view .review, #view .empty, #view .done-card', timeout=8000):
-    pg.wait_for_function("() => !document.querySelector('#view .skeleton')", timeout=timeout)
+    # waits that poll without eval, so they work under the page's CSP in WebKit too (it does not honour bypass_csp)
+    pg.wait_for_selector('#view .skeleton', state='detached', timeout=timeout)
+    pg.wait_for_selector('#splash', state='detached', timeout=timeout)  # 启动动画 (09-start.js) has left
     try:
         pg.wait_for_selector(sel, timeout=timeout)
     except Exception:
@@ -583,12 +585,12 @@ def run_device(pw, dev, opts):
     h = pg.text_content('#view h1') or ''
     check(dev, 'radar: a short text is judged and recorded', '约 B1' in h, h)
 
-    # ---- welcome: the next button is reachable without scrolling on a phone
+    # ---- 学习目标和水平 (the start page from 我的): goals two across on phones, three on wide screens; 保存 reachable
     go(pg, '#/welcome/edit')
-    nb = pg.evaluate("() => { const r = document.getElementById('wNext').getBoundingClientRect(); return [Math.round(r.top), Math.round(r.bottom), innerHeight]; }")
-    check(dev, 'welcome: next button is on screen', nb[1] <= nb[2] and nb[0] >= 0, nb)
-    cols = pg.evaluate("() => getComputedStyle(document.querySelector('.choice.opts')).gridTemplateColumns.split(' ').length")
-    check(dev, 'welcome: level cards in 1 column on phones, 2 on wide screens', cols == (1 if opts['viewport']['width'] < 600 else 2), cols)
+    cols = pg.evaluate("() => getComputedStyle(document.querySelector('.wg-goals')).gridTemplateColumns.split(' ').length")
+    check(dev, 'welcome: goals in 2 columns on phones, 3 on wide screens', cols == (2 if opts['viewport']['width'] < 768 else 3), cols)
+    nb = pg.evaluate("() => { const b = document.getElementById('wgGo'); b.scrollIntoView({ block: 'center' }); const r = b.getBoundingClientRect(); return [Math.round(r.top), Math.round(r.bottom), innerHeight]; }")
+    check(dev, 'welcome: 保存 can be brought on screen above the tabs', nb[0] >= 0 and nb[1] <= nb[2], nb)
 
     # ---- account email, exam word lists, import topic
     go(pg, '#/me'); pg.wait_for_function("() => !document.querySelector('#acctEmail .spin')", timeout=5000)
@@ -768,6 +770,8 @@ def platform_run(pw):
         pg.goto(BASE + '/#/cards', wait_until='networkidle'); settle(pg); pg.wait_for_timeout(2200)
         ot = json.loads((sent.get('opentime') or ['{}'])[0])
         check(dev, 'the opening time is sent once the first page is drawn', len(sent.get('opentime', [])) == 1 and (ot.get('first_view') or 0) > 0 and ot.get('ttfb') is not None, ot)
+        check(dev, 'the opening time says when the page asked, when the script ran, and which page it opened on',
+              ot.get('startup') is not None and ot.get('boot') is not None and ot.get('hidden') is False and ot.get('page') == 'other', ot)  # opened on #/cards
         pg.evaluate("() => { setTimeout(() => { throw new Error('ui-test boom'); }, 0); const i = new Image(); i.src = '/no-such-picture.png'; document.body.appendChild(i); }")
         pg.wait_for_timeout(600); pg.evaluate("() => dispatchEvent(new Event('pagehide'))"); pg.wait_for_timeout(400)
         items = [x for body in sent.get('issues', []) for x in json.loads(body)['items']]
@@ -1073,13 +1077,15 @@ def ux_run(pw):
         again = pg.text_content('#view .review') or ''
         check(dev, '撤销: the latest rating is taken back and the same card comes up again', has and again[:40] == first[:40], (has, first[:40], again[:40]))
         ctx.close()
-        # a first visit: no questions first, today's article can be tried at once
+        # a first visit: the one start page (goal, level to reach), then 今日; a shared material still opens without it
         ctx = browser.new_context(**phone); pg = ctx.new_page()
-        pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg, '.try-first')
-        link = pg.get_attribute('.try-first a', 'href') or ''
-        if link:
-            pg.click('.try-first a'); pg.wait_for_selector('#view .steps', timeout=6000)
-        check(dev, 'first visit: 先试读一篇 opens today\'s article without questions or an account', link.startswith('#/m/') and '/m/' in pg.evaluate('location.hash'), link)
+        pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg)
+        start = pg.evaluate('location.hash')
+        pg.click('[data-goal="daily"]'); pg.click('#wgGo'); pg.wait_for_function("() => location.hash === '#/'", timeout=6000); settle(pg)
+        today = pg.query_selector('#view .hello') is not None
+        pg.goto(BASE + f'/#/m/{PID}/read'); settle(pg)
+        check(dev, 'first visit: the start page, then 今日 for the level chosen; a link to a material opens it directly', start == '#/welcome' and today and pg.query_selector('#view .steps') is not None,
+              (start, today))
         ctx.close()
     finally:
         browser.close()
@@ -1106,7 +1112,8 @@ def learner_run(pw):
         pg.wait_for_selector('#sheetCard [data-goal="3"]', timeout=4000)
         pg.click('#sheetCard [data-goal="3"]'); pg.wait_for_timeout(600); pg.evaluate(closing)
         goal = (pg.text_content('#weekCard .wk-tile.goal b') or '').strip()
-        check(dev, '每周目标: the goal set from 今日 shows on the 这周进步 card', goal.endswith('/3天') and not pg.query_selector('#habitBtn'), goal[:40])
+        chip = (pg.text_content('#habitBtn') or '').strip()
+        check(dev, '每周目标: the goal set from 今日 shows on the 这周进步 card and the chip by the greeting at once', goal.endswith('/3天') and '/3 天' in chip, (goal[:40], chip[:40]))
         # 分享卡片: after the questions, a learned expression becomes a picture with a QR code back to the site
         go(pg, f'#/m/{PID}/check'); pg.wait_for_selector('#pane .q', timeout=6000)
         for q in pg.query_selector_all('#pane .q'):
@@ -1457,6 +1464,144 @@ def a11y_run(pw):
         browser.close()
 
 
+# ---- 考试冲刺 (r27): the exam hub, the line on 今日, question-type practice, my exam and its date; five sizes, light and dark
+SPRINT_PAGES = ['#/exam', '#/', '#/exam/cet4/banked', '#/exam/cet4/match', '#/exam/ielts/headings', '#/exam/ielts/tfng', '#/exam/tem8/proof',
+                '#/exam/gk/seven', '#/exam/ky/cloze', '#/exam/tem4/choice', '#/vocab/plan', '#/mix/exam/cet4']
+SPRINT_SIZES = {'phone': (390, 844, True), 'phone-360': (360, 780, True), 'phone-land': (844, 390, True), 'tablet': (820, 1180, True), 'desktop': (1440, 900, False)}
+
+
+def sprint_run(pw):
+    dev = 'sprint'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    tok = CFG['learners']['sprint']['token']
+
+    def context(w, h, touch, theme='light'):
+        ctx = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=touch, has_touch=touch, device_scale_factor=2, locale='zh-CN',
+                                  color_scheme=theme, bypass_csp=True)
+        ctx.add_cookies([{'name': 'flow_session', 'value': tok, 'url': BASE}])
+        pg = ctx.new_page(); errs = []
+        pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+        return ctx, pg, errs
+
+    def pick_all(pg, n):  # gap i takes option i (one option per gap)
+        for i in range(n):
+            pg.click(f'button.gap[data-gap="{i}"]'); pg.wait_for_selector('#sheetCard [data-pick]'); pg.click(f'#sheetCard [data-pick="{i}"]'); pg.wait_for_timeout(120)
+    try:
+        # every page at every size: nothing wider than the screen, no squeezed text, controls big enough to tap
+        for size, (w, h, touch) in SPRINT_SIZES.items():
+            ctx, pg, errs = context(w, h, touch)
+            for page in SPRINT_PAGES:
+                go(pg, page); pg.wait_for_timeout(250)
+                lay = pg.evaluate(LAYOUT_JS, touch)
+                check(dev, f'{size} {page}: no sideways scroll, no squeezed text', lay['overflow'] <= 1 and not lay['squeezed'], (lay['overflow'], lay['wide'], lay['squeezed']))
+                if touch:
+                    check(dev, f'{size} {page}: controls at least 32×32, fields 16px', not lay.get('small') and not lay.get('smallFields'), (lay.get('small'), lay.get('smallFields')))
+                if page == '#/' and h > w:  # with 这周进步 on top and the exam line under the title, the next step is still on the first screen
+                    b = pg.evaluate("Math.round(document.querySelector('#view .go-next').getBoundingClientRect().bottom)")
+                    check(dev, f'{size} 今日: the next-step button is on the first screen', b <= h, (b, h))
+                pg.screenshot(path=str(OUT / f"sprint-{size}-{page.strip('#/').replace('/', '_') or 'today'}.png"))
+            # the hub at this size: the trend is drawn to the width it has, inside the screen
+            go(pg, '#/exam'); pg.wait_for_timeout(300)
+            tr = pg.evaluate("""() => { const s = document.querySelector('.trend-chart.big svg'); if (!s) return null; const r = s.getBoundingClientRect();
+              return [document.querySelectorAll('.trend-chart.big circle').length, Math.round(r.right) <= innerWidth, document.querySelectorAll('.trend-parts .tp').length]; }""")
+            check(dev, f'{size} hub: the score trend has four sets and three parts, inside the screen', tr == [4, True, 3], tr)
+            check(dev, f'{size}: no script errors', not errs, errs[:3])
+            ctx.close()
+        # light and dark: contrast, names and labels on the new pages
+        for theme in ('light', 'dark'):
+            ctx, pg, errs = context(390, 844, True, theme)
+            bad = []
+            for page in ('#/exam', '#/exam/cet4/banked', '#/exam/ielts/headings', '#/exam/tem8/proof', '#/exam/ielts/tfng'):
+                go(pg, page); pg.wait_for_timeout(250)
+                for kind, items in pg.evaluate(A11Y_JS).items():
+                    bad += [f'{page} {kind}: {x if isinstance(x, str) else json.dumps(x, ensure_ascii=False)}' for x in items]
+            check(dev, f'{theme}: contrast, names and labels on the exam pages', not bad, f'{len(bad)}: ' + ' | '.join(bad[:4]))
+            pg.screenshot(path=str(OUT / f'sprint-{theme}-tfng.png'))
+            ctx.close()
+
+        ctx, pg, errs = context(390, 844, True)
+        # the hub
+        go(pg, '#/exam'); pg.wait_for_timeout(300)
+        hub = pg.evaluate("""() => ({h: document.querySelector('#view h1').textContent, pace: (document.querySelector('.sp-pace') || {}).textContent || '',
+          types: [...document.querySelectorAll('#spTypesH ~ .mlist .mrow b')].map(b => b.textContent), start: !!document.getElementById('exStart'),
+          note: document.querySelector('#spTypesH + p').textContent})""")
+        check(dev, 'hub: my exam on top, the pace said plainly, two question types labelled original, the full set',
+              hub['h'] == '大学英语四级' and '背词节奏：跟不上' in hub['pace'] and '每天 40 个' in hub['pace'] and hub['types'] == ['选词填空', '段落匹配']
+              and hub['start'] and '不是真题' in hub['note'], hub)
+        pg.screenshot(path=str(OUT / 'sprint-hub.png'))
+        pg.click('.sp-pace [data-daily]')
+        pg.wait_for_function("() => (document.querySelector('.sp-pace') || {}).textContent && document.querySelector('.sp-pace').textContent.includes('现在每天 40 个')", timeout=6000)
+        check(dev, 'hub: one tap sets the suggested number of new words a day', True)
+        # 今日: one line under the plan's title; in the last four weeks the plan has the exam's set and its grammar points
+        go(pg, '#/'); pg.wait_for_timeout(300)
+        t = pg.evaluate("""() => ({line: (document.querySelector('.tp-head .sprint-line') || {}).textContent || '',
+          steps: [...document.querySelectorAll('.today-plan .prow')].map(a => a.getAttribute('href'))})""")
+        check(dev, '今日: 「四级 还有 19 天」 under the title; the plan has the exam set and 考点语法',
+              '四级' in t['line'] and '还有 19 天' in t['line'] and '#/exam/cet4' in t['steps'] and '#/mix/exam/cet4' in t['steps'], t)
+        go(pg, '#/mix/exam/cet4'); pg.wait_for_selector('#mixQ .ans', timeout=6000)
+        check(dev, "考点语法: a mixed round on the exam's points", '考点语法' in (pg.text_content('#view .kicker') or ''), pg.text_content('#view .kicker'))
+        # 选词填空: a gap opens the options, one option fills one gap (picked again, it moves), then every answer with its reason
+        go(pg, '#/exam/cet4/banked'); pg.wait_for_selector('button.gap', timeout=6000)
+        pg.click('button.gap[data-gap="0"]'); pg.wait_for_selector('#sheetCard [data-pick]'); pg.click('#sheetCard [data-pick="0"]'); pg.wait_for_timeout(200)
+        first = pg.text_content('button.gap[data-gap="0"] .gv')
+        pg.click('button.gap[data-gap="1"]'); pg.wait_for_selector('#sheetCard [data-pick]')
+        note = pg.text_content('#sheetCard [data-pick="0"]') or ''
+        pg.screenshot(path=str(OUT / 'sprint-banked-sheet.png'))
+        pg.click('#sheetCard [data-pick="0"]'); pg.wait_for_timeout(200)
+        moved = (pg.text_content('button.gap[data-gap="0"] .gv'), pg.text_content('button.gap[data-gap="1"] .gv'))
+        check(dev, '选词填空: a picked option fills its gap, and picked for another gap it moves there',
+              first.startswith('A.') and '已用在第 1 空' in note and moved[0] == '＿＿＿' and moved[1].startswith('A.'), (first, note[-12:], moved))
+        pick_all(pg, 10)
+        used = pg.evaluate("document.querySelectorAll('.xt-banklist li.used').length")
+        pg.click('#xtDone'); pg.wait_for_selector('.xt .pit', timeout=6000)
+        res = pg.evaluate("""() => ({h: document.querySelector('#view h1').textContent, n: document.querySelectorAll('.xt .pit').length,
+          why: [...document.querySelectorAll('.xt .pit .tiny')].every(x => x.textContent.trim().length > 4)})""")
+        check(dev, '选词填空: ten gaps marked used, handed in, ten answers each with its reason', used == 10 and '题做对' in res['h'] and res['n'] == 10 and res['why'], (used, res))
+        pg.screenshot(path=str(OUT / 'sprint-banked-result.png'))
+        # the other kinds: the first choice everywhere, handed in
+        for page, n in (('#/exam/cet4/match', 10), ('#/exam/ielts/tfng', 7), ('#/exam/tem4/choice', 10), ('#/exam/ky/cloze', 10)):
+            go(pg, page); pg.wait_for_selector('.xt-q', timeout=6000)
+            pg.evaluate("() => document.querySelectorAll('.xt-q').forEach(q => q.querySelector('.ans').click())")
+            pg.click('#xtDone'); pg.wait_for_selector('.xt .pit', timeout=6000)
+            got = pg.evaluate("document.querySelectorAll('.xt .pit').length")
+            check(dev, f'{page}: answered and handed in, {n} answers explained', got == n, got)
+        go(pg, '#/exam/tem8/proof'); pg.wait_for_selector('.xw', timeout=6000)
+        pg.click('.xt-line[data-q="0"] .xw[data-w="1"]'); pg.wait_for_timeout(100)
+        pressed = pg.get_attribute('.xt-line[data-q="0"] .xw[data-w="1"]', 'aria-pressed')
+        pg.evaluate("() => document.querySelectorAll('.xt-line').forEach(l => l.querySelector('.xw').click())")
+        pg.click('#xtDone'); pg.wait_for_selector('.xt .pit', timeout=6000)
+        fix = pg.text_content('.xt .pit') or ''
+        check(dev, '改错: a tapped word is marked, and the result gives each correction', pressed == 'true' and '→' in fix, (pressed, fix[:60]))
+        go(pg, '#/exam/ielts/headings'); pg.wait_for_selector('button.gap', timeout=6000)
+        pick_all(pg, pg.evaluate("document.querySelectorAll('button.gap').length"))
+        pg.click('#xtDone'); pg.wait_for_selector('.xt .pit', timeout=6000)
+        check(dev, '段落标题匹配: every paragraph gets a heading, then the answers', pg.evaluate("document.querySelectorAll('.xt .pit').length") == 7)
+        go(pg, '#/exam'); pg.wait_for_timeout(300)
+        last = pg.evaluate("[...document.querySelectorAll('#spTypesH ~ .mlist .mrow .tiny')].map(x => x.textContent)")
+        check(dev, 'hub: the question types show the last result', any('上次' in x for x in last), last)
+        # 我的 → 我的考试: another exam and date; 考试练习 and 背词计划 follow
+        go(pg, '#/me'); pg.click('#meExam'); pg.wait_for_selector('#egSave')
+        pg.click('#sheetCard [data-exam="ielts"]')
+        checked = pg.get_attribute('#sheetCard [data-exam="ielts"]', 'aria-checked')
+        import datetime
+        pg.fill('#egIn', (datetime.date.today() + datetime.timedelta(days=60)).isoformat())
+        pg.click('#egSave'); pg.wait_for_function("() => document.getElementById('sheet').hidden", timeout=6000); settle(pg)
+        val = pg.text_content('#meExamV') or ''
+        go(pg, '#/exam'); h1 = pg.text_content('#view h1')
+        go(pg, '#/vocab/plan'); pg.wait_for_timeout(300)
+        plan = pg.evaluate("""() => ({on: [...document.querySelectorAll('#goal [aria-pressed=true]')].map(x => x.textContent), row: !document.getElementById('pxRow').hidden,
+          hint: document.getElementById('pxHint').textContent})""")
+        check(dev, '我的考试: 雅思 in 60 days; 我的, 考试练习 and 背词计划 all follow',
+              checked == 'true' and '雅思' in val and h1 == '雅思' and plan['on'] == ['雅思'] and plan['row'] and '离考试还有 60 天' in plan['hint'], (checked, val, h1, plan))
+        pg.evaluate("document.getElementById('goal').scrollIntoView()"); pg.wait_for_timeout(200)
+        pg.screenshot(path=str(OUT / 'sprint-plan.png'))
+        check(dev, 'no script errors in the flows', not errs, errs[:3])
+        ctx.close()
+    finally:
+        browser.close()
+
+
 def about_run(pw):
     """认识语流 (/about), the introduction page: on every device and at 360 px, light and dark, under the page's own CSP:
     nothing scrolls sideways, every part comes in as it is scrolled to, the screenshots load, no errors; then the demos
@@ -1555,7 +1700,7 @@ CARD_JS = r"""() => {
     values: tiles.map(t => t.querySelector('b').textContent.trim()),
     clipped: tiles.filter(t => t.scrollWidth > t.clientWidth + 1 || [...t.children].some(x => r(x).right > r(t).right + 1)).map(t => t.textContent.trim()),
     wrapped: tiles.filter(t => [...t.querySelectorAll('.tiny')].some(l => r(l).height > parseFloat(getComputedStyle(l).lineHeight) * 1.5)).map(t => t.textContent.trim()),
-    above: !plan || r(c).bottom <= r(plan).top + 1, inView: r(c).left >= 0 && r(c).right <= innerWidth,
+    below: !plan || r(c).top >= r(plan).bottom - 1, inView: r(c).left >= 0 && r(c).right <= innerWidth,
     goBottom: go ? Math.round(r(go).bottom) : null, H: innerHeight,
     wide: document.scrollingElement.scrollWidth - innerWidth,
     surface: bg !== getComputedStyle(document.body).backgroundColor,
@@ -1564,6 +1709,78 @@ CARD_JS = r"""() => {
     chip: !!document.getElementById('habitBtn'),
   };
 }"""
+
+# 今日 from the top: 好句, 热点, the plan, 这周进步; nothing in the 好句 card cut off; its buttons big enough to tap
+TOP_JS = r"""() => {
+  const r = el => el.getBoundingClientRect();
+  const blocks = [['lineCard', '#lineCard'], ['news', '#view .news-card'], ['plan', '#view .today-plan'], ['week', '#weekCard']]
+    .map(([k, sel]) => [k, document.querySelector(sel)]).filter(([, el]) => el).sort((a, b) => r(a[1]).top - r(b[1]).top).map(([k]) => k);
+  const card = document.getElementById('lineCard');
+  return { order: blocks, wide: document.scrollingElement.scrollWidth - innerWidth,
+           clipped: card ? [...card.querySelectorAll('*')].filter(e => r(e).right > r(card).right + 1).map(e => e.className || e.tagName).slice(0, 3) : ['no card'],
+           small: card ? [...card.querySelectorAll('button')].filter(b => r(b).height < 40).map(b => b.textContent.trim()) : [] };
+}"""
+
+SWIPE_SIZES = {'ipad-land': (1180, 820), 'ipad-mini-land': (1133, 744), 'phone': (390, 844)}
+SWIPE_AT = """([x, y, dx, dy]) => {
+  const el = document.elementFromPoint(x, y) || document.documentElement;  // a finger's touches go to what is under it
+  const mk = (type, X, Y) => { const t = new Touch({ identifier: 1, target: el, clientX: X, clientY: Y });
+    el.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches: type === 'touchend' ? [] : [t], changedTouches: [t] })); };
+  mk('touchstart', x, y); for (let k = 1; k <= 6; k++) mk('touchmove', x + dx * k / 6, y + dy * k / 6); mk('touchend', x + dx, y + dy);
+  return el.tagName + (el.id ? '#' + el.id : '');
+}"""
+CARD_STATE = """() => ({ front: !!document.querySelector('[data-claim]'), back: !!document.querySelector('.open-card'),
+  rates: [...document.querySelectorAll('[data-rate]')].map(b => b.dataset.rate), foot: ((document.querySelector('.rfoot, .vtest .tc') || {}).textContent || '').trim(),
+  word: ((document.querySelector('.wordbig') || {}).textContent || '').trim() })"""
+
+
+def swipe_run(pw):
+    """认识 / 不认识 by swiping, from anywhere on the screen: on an iPad sideways the card is a column in the middle and
+    a swipe that started beside it or below it did nothing (r27). Not from a button, and not a scroll."""
+    dev = 'swipe'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    try:
+        for size, (w, h) in SWIPE_SIZES.items():
+            ctx = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners'][f'swipe-{size}']['token'], 'url': BASE}])
+            pg = ctx.new_page(); errors = []; pg.on('pageerror', lambda e: errors.append(page_error(pg, e)))
+            sw = lambda x, y, dx, dy=0: (pg.evaluate(SWIPE_AT, [x, y, dx, dy]), pg.wait_for_timeout(450))[0]
+            state = lambda: pg.evaluate(CARD_STATE)
+            pg.goto(BASE + f'/?swipe={size}#/review', wait_until='networkidle'); pg.wait_for_selector('[data-claim]', timeout=8000)
+            box = pg.evaluate("() => { const r = document.querySelector('.review').getBoundingClientRect(); return [r.left, r.right, r.bottom]; }")
+            s0 = state()
+            sw(int(w / 2), int(h * 0.45), 0, 0)  # a touch that does not move: nothing
+            check(f'{dev} {size}', 'a touch that does not move rates nothing', state() == s0, state())
+            sw(int(w / 2), int(h * 0.4), 90, 220)  # mostly down: a scroll, not a swipe
+            check(f'{dev} {size}', 'a mostly-down drag is a scroll, not 认识', state() == s0, state())
+            end = pg.evaluate("() => { const b = document.querySelector('.rtop a'); const r = b.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }")
+            sw(int(end[0]), int(end[1]), 160)
+            check(f'{dev} {size}', 'a swipe that starts on a link (结束) is left to the link', state() == s0, state())
+            x = max(12, int(box[0] / 2)) if box[0] > 40 else 24  # beside the card where there is room, else near its edge
+            tgt = sw(x, int(h / 2), 160)
+            s1 = state()
+            check(f'{dev} {size}', f'swipe right from beside the card ({tgt}) is 认识: the answer shows', s1['back'] and s1['rates'] == ['again', 'good'], s1)
+            tgt = sw(int(w / 2), h - 24, 160)  # below the card, near the bottom of the screen
+            s2 = state()
+            check(f'{dev} {size}', f'on the answer, swipe right from below the card ({tgt}) is 没错，下一个', s2['front'] and s2['foot'] != s1['foot'], [s1['foot'], s2['foot']])
+            tgt = sw(w - (max(12, int((w - box[1]) / 2)) if w - box[1] > 40 else 24), int(h / 2), -160)
+            s3 = state()
+            check(f'{dev} {size}', f'swipe left from the other side ({tgt}) is 不认识', s3['back'] and s3['rates'] == ['again'], s3)
+            btn = pg.evaluate("() => { const b = document.querySelector('[data-rate]'); const r = b.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }")
+            tgt = sw(int(btn[0]) - 60 if btn[0] > w / 2 else int(btn[0]), int(btn[1]), 160)
+            s4 = state()
+            check(f'{dev} {size}', f'a swipe that starts on an answer button ({tgt}) counts: on a phone the thumb rests there', s4['foot'] != s3['foot'] and not s4['back'], [s3['foot'], s4['foot']])
+            # the vocabulary test: the buttons say ← 不认识 and 认识 →, and the swipe does what they say
+            pg.goto(BASE + f'/?swipe={size}-t#/vocab/test', wait_until='networkidle'); pg.wait_for_selector('.vtest', timeout=8000)
+            t0 = state()['foot']; sw(24, int(h / 2), 160); t1 = state()['foot']; sw(w // 2, h - 24, -160); t2 = state()['foot']
+            check(f'{dev} {size}', 'vocabulary test: swipe right, then left, answers two words', t0.startswith('1 /') and t1.startswith('2 /') and t2.startswith('3 /'), [t0, t1, t2])
+            pg.goto(BASE + f'/?swipe={size}-u#/cards', wait_until='networkidle'); settle(pg)
+            before = pg.url; sw(w // 2, int(h / 2), 160)
+            check(f'{dev} {size}', 'away from the card pages a swipe does nothing', pg.url == before and pg.evaluate("() => !document.body.classList.contains('reviewing')"), pg.url)
+            check(f'{dev} {size}', 'no script errors', not errors, errors[:3])
+            ctx.close()
+    finally:
+        browser.close()
 
 
 def progress_run(pw):
@@ -1586,7 +1803,10 @@ def progress_run(pw):
                 acc = pr['accuracy']['now']
                 want = [str(pr['remembered']['now']), str(pr['finished']['now']),
                         f"{acc['rate']}%" if acc['rate'] is not None else (f"{acc['right']}/{acc['total']}" if acc['total'] else '—'), f"{hb['done']}/{hb['goal']}天"]
-                check(dev, f'{tag}: 这周进步 sits above the plan, in place of the week chip', card and card['above'] and not card['chip'] and card['inView'], card)
+                check(dev, f'{tag}: 这周进步 sits under the plan, the week chip by the greeting', card and card['below'] and card['chip'] and card['inView'], card)
+                top = pg.evaluate(TOP_JS)
+                check(dev, f'{tag}: 今日 runs 好句, 热点, the plan, 这周进步 from the top (the plan first on a phone held sideways), nothing cut off or wider than the screen',
+                      top['order'] == (['plan', 'lineCard', 'news', 'week'] if h < 500 else ['lineCard', 'news', 'plan', 'week']) and not top['clipped'] and top['wide'] <= 0 and (not touch or top['small'] == []), top)
                 check(dev, f'{tag}: its four numbers are the learner\'s own (as the server counts them)', card and card['values'] == want, (card and card['values'], want))
                 check(dev, f'{tag}: four numbers in one row, nothing cut off or wrapped', card and card['tiles'] == 4 and card['oneRow'] and not card['clipped'] and not card['wrapped'],
                       card and (card['oneRow'], card['clipped'], card['wrapped']))
@@ -1628,6 +1848,35 @@ def progress_run(pw):
                     check(dev, f'{tag}: 我的 → 每周进度邮件 says how it stands and opens its switch', '每周进度邮件' in row and '绑定邮箱' in row and title == '每周进度邮件', (row, title))
                 check(dev, f'{tag}: no page errors', not errors, errors[:3])
                 ctx.close()
+        ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
+        ctx.add_init_script(FAKE_TTS)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['guide']['token'], 'url': BASE}])
+        pg = ctx.new_page(); pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg); pg.wait_for_selector('#lineCard', timeout=8000)
+        line = pg.evaluate("fetch('/api/next/home').then(r => r.json()).then(h => h.line)")
+        pg.click('#lcSay'); pg.wait_for_timeout(300)
+        said = pg.evaluate('window.__said || []')
+        pg.click('#lcShadow'); pg.wait_for_timeout(200)
+        panel = pg.evaluate("() => { const p = document.getElementById('lcPanel'); return [p.hidden, !!p.querySelector('#lsRec'), document.getElementById('lsBack').disabled, document.getElementById('lcShadow').getAttribute('aria-expanded')]; }")
+        pg.click('#lcShadow'); pg.wait_for_timeout(150)
+        closed = pg.evaluate("document.getElementById('lcPanel').hidden")
+        check(dev, '好句: 听一遍 says the line (verse without its line marks), 跟读 opens a recorder and closes again',
+              (said[-1:] == [line['say']] or line['kind'] == 'text') and panel == [False, True, True, 'true'] and closed, (said[-1:], line['say'], panel, closed))
+        pg.click('#lcKeep'); pg.wait_for_timeout(700)
+        cards = pg.evaluate("fetch('/api/next/cards?q=&page=1&f=').then(r => r.json())")
+        kept = line['say'] if line['kind'] == 'quote' else line['expression']
+        check(dev, '好句: 收藏 puts it into the word book, for review', any(x.get('text') == kept for x in cards.get('items', [])), kept)
+        # a sentence from a 语流 text: its expression marked, its meaning, where it comes from, a link to the text
+        m = pg.evaluate(f"fetch('/api/next/material?id={PID}').then(r => r.json())")
+        ex = m['expressions'][0]; k = next(i for i, x in enumerate(m['sentences']) if ex['text'].lower() in x.lower())
+        fake = {'kind': 'text', 'id': f'm:{PID}:{k}', 'label': '语流文章', 'en': m['sentences'][k], 'say': m['sentences'][k], 'zh': f"「{ex['text']}」：{ex['meaning']}",
+                'note': ex.get('note', ''), 'expression': ex['text'], 'meaning': ex['meaning'], 'source': f"出自《{m['title']}》 · B2", 'pack': PID, 'i': k,
+                'title': m['title'], 'level': 'B2', 'audio': 0, 'href': f'#/m/{PID}/read', 'day': '2026-11-25'}
+        pg.route('**/api/next/home*', lambda route: (lambda r: route.fulfill(response=r, json={**r.json(), 'line': fake}))(route.fetch()))
+        pg.evaluate("() => { localStorage.removeItem('flow-snap'); }"); pg.reload(wait_until='networkidle'); settle(pg); pg.wait_for_selector('#lineCard .lc-en b', timeout=8000)
+        shown = pg.evaluate("() => { const c = document.getElementById('lineCard'); return [c.querySelector('.lc-en b').textContent, c.querySelector('.lc-src a').getAttribute('href'), c.querySelector('.pill').textContent]; }")
+        check(dev, '好句 from a 语流 text: its expression marked, a link to the text, labelled as 语流文章', shown == [ex['text'], f'#/m/{PID}/read', '语流文章'], shown)
+        pg.screenshot(path=str(OUT / 'progress-line-text.png'))
+        ctx.close()
         # the link in the mail opens without signing in, asks before it turns anything off, and says when a link is wrong
         ctx = browser.new_context(viewport={'width': 360, 'height': 780}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True)
         pg = ctx.new_page(); pg.goto(BASE + '/#/weekly-off/not-a-real-link-0123456789', wait_until='networkidle'); settle(pg)
@@ -1636,6 +1885,129 @@ def progress_run(pw):
         err = pg.inner_text('#view .err')
         check(dev, 'the unsubscribe link opens signed out, asks first, and explains a link that no longer works',
               first == ('#/weekly-off/not-a-real-link-0123456789', '退订每周进度邮件') and '失效' in err, (first, err))
+        ctx.close()
+    finally:
+        browser.close()
+
+
+# ---- 启动动画 and 选方向和目标 (r27): the mark on every opening, the one page a new learner answers once, the same page
+# from 我的; five sizes, light and dark
+START_SIZES = {'phone': (390, 844, True), 'phone-360': (360, 780, True), 'phone-land': (844, 390, True), 'tablet': (820, 1180, True), 'desktop': (1440, 900, False)}
+SPLASH_JS = "() => { const s = document.getElementById('splash'); return s ? [s.className, getComputedStyle(s).visibility] : null; }"
+
+
+def start_run(pw):
+    dev = 'start'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    try:
+        for size, (w, h, touch) in START_SIZES.items():
+            for theme in ('light', 'dark'):
+                tag = f'{size} {theme}'
+                ctx = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=touch, has_touch=touch, device_scale_factor=2, locale='zh-CN',
+                                          color_scheme=theme, bypass_csp=True)
+                pg = ctx.new_page(); errs = []
+                pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+                # a first visit: the full mark (name and line), about a second, then the page, which is the one-page start
+                pg.goto(BASE + '/', wait_until='commit'); pg.wait_for_selector('#splash', state='attached', timeout=5000); pg.wait_for_timeout(120)
+                first = pg.evaluate(SPLASH_JS)
+                if size == 'phone':
+                    pg.wait_for_timeout(500); pg.screenshot(path=str(OUT / f'start-splash-{theme}.png'))
+                pg.wait_for_selector('#splash', state='detached', timeout=5000)
+                gone = pg.evaluate('Math.round(performance.now())')
+                check(dev, f'{tag}: a first visit shows the full mark for about a second, then the start page', first and 'first' in first[0] and 900 <= gone <= 2500
+                      and pg.evaluate('location.hash') == '#/welcome', (first, gone, pg.evaluate('location.hash')))
+                settle(pg); pg.wait_for_timeout(200)
+                lay = pg.evaluate(LAYOUT_JS, touch)
+                tabs = pg.evaluate("getComputedStyle(document.querySelector('.tabs')).display")
+                check(dev, f'{tag}: the start page fits (no sideways scroll, nothing squeezed, controls big enough), without the tabs',
+                      lay['overflow'] <= 1 and not lay['squeezed'] and not lay.get('small') and not lay.get('smallFields') and tabs == 'none',
+                      (lay['overflow'], lay['squeezed'], lay.get('small'), lay.get('smallFields'), tabs))
+                bad = []
+                for kind, items in pg.evaluate(A11Y_JS).items():
+                    bad += [f'{kind}: {x if isinstance(x, str) else json.dumps(x, ensure_ascii=False)}' for x in items]
+                check(dev, f'{tag}: contrast, names and labels on the start page', not bad, f'{len(bad)}: ' + ' | '.join(bad[:4]))
+                # 考试 opens the exams; an exam suggests a level (推荐), picked unless one was chosen by hand
+                pg.click('[data-goal="exam"]'); pg.click('[data-exam="cet4"]'); pg.wait_for_timeout(150)
+                rec = pg.evaluate("[...document.querySelectorAll('[data-target]')].filter(b => !b.querySelector('.rec').hidden).map(b => [b.dataset.target, b.getAttribute('aria-checked')])")
+                pg.click('[data-exam="cet6"]'); pg.wait_for_timeout(100)
+                rec6 = pg.evaluate("document.querySelector('[data-target][aria-checked=true]').dataset.target")
+                pg.click('[data-target="C1"]'); pg.click('[data-exam="ielts"]'); pg.wait_for_timeout(100)
+                kept = pg.evaluate("document.querySelector('[data-target][aria-checked=true]').dataset.target")
+                check(dev, f'{tag}: 考试 opens the exams; 四级 suggests B1, 六级 B2; a level picked by hand stays', rec == [['B1', 'true']] and rec6 == 'B2' and kept == 'C1', (rec, rec6, kept))
+                if size == 'phone':
+                    pg.click('[data-target="B2"]'); pg.wait_for_timeout(100)
+                    pg.screenshot(path=str(OUT / f'start-page-{theme}.png'), full_page=True)
+                pg.fill('#wgDateIn', (__import__('datetime').date.today() + __import__('datetime').timedelta(days=60)).isoformat())
+                pg.click('#wgGo'); pg.wait_for_function("() => location.hash === '#/'", timeout=6000); settle(pg)
+                guest = pg.evaluate("JSON.parse(localStorage.getItem('flow-next-guest'))")
+                check(dev, f'{tag}: started as a guest: the choices kept on the phone, materials one band below the target, today shown',
+                      guest['goal'] == 'exam' and guest['exam'] == 'ielts' and guest['level_source'] == 'guess' and guest['level'] == {'C1': 'B2', 'B2': 'B1'}[guest['target']]
+                      and pg.query_selector('#view .hello, #view .today-plan') is not None, guest)
+                # the next opening: the mark alone and short; never the start page again
+                pg.reload(wait_until='commit'); pg.wait_for_selector('#splash', state='attached', timeout=5000)
+                again = pg.evaluate(SPLASH_JS)
+                pg.wait_for_selector('#splash', state='detached', timeout=5000); settle(pg)
+                check(dev, f'{tag}: opened again: the short mark only, then 今日 (the start page does not come back)', again and 'first' not in again[0] and pg.evaluate('location.hash') in ('', '#/'),
+                      (again, pg.evaluate('location.hash')))
+                check(dev, f'{tag}: no script errors', not errs, errs[:3])
+                ctx.close()
+        # a new account without settings: the page, written to the account in one call; 今日 then suggests a test
+        ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['fresh']['token'], 'url': BASE}])
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+        check(dev, 'a signed-in account without settings gets the start page (no 登录 link there)', pg.evaluate('location.hash') == '#/welcome' and not pg.query_selector('#wgLogin'), pg.evaluate('location.hash'))
+        pg.click('[data-goal="exam"]'); pg.click('[data-exam="cet6"]'); pg.wait_for_timeout(100)
+        said = pg.evaluate("(el => el && !el.hidden ? el.textContent : '')(document.getElementById('wgPlan'))")
+        pg.screenshot(path=str(OUT / 'start-plan-note.png'), full_page=True)
+        pg.click('#wgGo')
+        pg.wait_for_function("() => location.hash === '#/'", timeout=6000); settle(pg); pg.wait_for_timeout(300)
+        vp = pg.evaluate("fetch('/api/next/vocab').then(r => r.json()).then(o => o.plan && [o.plan.book, o.plan.daily_new])")
+        check(dev, 'with an exam, the page says a word plan will be made, and starting makes it: the exam\'s book, 10 a day',
+              '《六级词汇》每天 10 个新词' in said and vp == ['cet6', 10], (said, vp))
+        prof = pg.evaluate("fetch('/api/next/home').then(r => r.json()).then(h => [h.profile, h.level_guess])")
+        note = pg.evaluate("(document.getElementById('levelGuess') || {}).textContent || ''")
+        check(dev, 'the account keeps goal, exam (the exam goal of 考试冲刺), target and a guessed level; 今日 suggests a test',
+              prof[0]['goal'] == 'exam' and prof[0]['exam'] == 'cet6' and prof[0]['target'] == 'B2' and prof[0]['level'] == 'B1' and prof[1]
+              and '去能力里测一下' in note and pg.get_attribute('#levelGuess a', 'href') == '#/radar/test', (prof, note[:40]))
+        pg.screenshot(path=str(OUT / 'start-today-hint.png'))
+        pg.click('#lgLater'); pg.wait_for_timeout(200)
+        check(dev, '「以后再说」 puts the suggestion away', pg.query_selector('#levelGuess') is None)
+        # 我的 → 学习目标和水平: the same page, with the current level, minutes and topics; saved, it goes back to 我的
+        go(pg, '#/me'); pg.click('a[href="#/welcome/edit"]'); settle(pg)
+        edit = pg.evaluate("""() => ({goal: (document.querySelector('[data-goal][aria-checked=true]') || {}).dataset, level: (document.querySelector('[data-level][aria-checked=true]') || {}).textContent,
+          exam: (document.querySelector('[data-exam][aria-checked=true]') || {}).textContent, tabs: getComputedStyle(document.querySelector('.tabs')).display})""")
+        pg.click('[data-level="B2"]'); pg.click('[data-min="20"]'); pg.click('#wgGo')
+        pg.wait_for_function("() => location.hash === '#/me'", timeout=6000); settle(pg)
+        p2 = pg.evaluate("fetch('/api/next/home').then(r => r.json()).then(h => h.profile)")
+        check(dev, '我的 opens the same page with what was chosen (tabs shown); a level chosen there counts as the learner choice',
+              edit['level'] and edit['level'].startswith('B1') and edit['exam'] == '六级' and edit['tabs'] != 'none'
+              and (p2['level'], p2['level_source'], p2['minutes'], p2['exam']) == ('B2', 'self', 20, 'cet6'), (edit, p2))
+        check(dev, 'no script errors (account)', not errs, errs[:3])
+        ctx.close()
+        # no word plan yet: 今日's first step asks for a book (not ticked); with an exam set, 背词计划 opens with its book chosen
+        ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['fresh2']['token'], 'url': BASE}])
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+        pg.click('[data-goal="daily"]'); pg.click('#wgGo'); pg.wait_for_function("() => location.hash === '#/'", timeout=6000); settle(pg)
+        step = pg.evaluate("(a => a && [a.querySelector('b').textContent, a.getAttribute('href'), a.classList.contains('done')])(document.querySelector('.today-plan .prow'))")
+        pg.screenshot(path=str(OUT / 'start-choose-book.png'))
+        csrf = CFG['learners']['fresh2']['csrf']
+        pg.evaluate("t => fetch('/api/next/exam/goal', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': t}, body: JSON.stringify({exam: 'cet4', date: ''})})", csrf)
+        go(pg, '#/vocab/plan'); pg.wait_for_timeout(300)
+        chosen = pg.evaluate("[document.getElementById('bookNow').textContent, [...document.querySelectorAll('#goal [aria-pressed=true]')].map(x => x.textContent)]")
+        check(dev, 'no word plan: 今日 starts with 选一本词书 (not ticked, to 背词计划), which opens with the exam\'s book chosen',
+              step == ['选一本词书（1 分钟）', '#/vocab/plan', False] and '《四级词汇》' in chosen[0] and chosen[1] == ['四级'], (step, chosen))
+        check(dev, 'no script errors (no word plan)', not errs, errs[:3])
+        ctx.close()
+        # reduced motion: no rising bars, the mark only fades
+        ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_init_script("document.addEventListener('DOMContentLoaded', () => { const i = document.querySelector('.sp-mark i'); window.__spAnim = i ? getComputedStyle(i).animationName : 'gone'; })")
+        pg = ctx.new_page(); pg.goto(BASE + '/', wait_until='domcontentloaded')
+        anim = pg.evaluate('window.__spAnim')
+        pg.wait_for_selector('#splash', state='detached', timeout=5000)
+        check(dev, 'reduced motion: the bars do not move and the mark leaves once the page is drawn', anim == 'none', anim)
         ctx.close()
     finally:
         browser.close()
@@ -1684,12 +2056,30 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('progress', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'swipe' in ONLY:
+            try:
+                swipe_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('swipe', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'listen-speak' in ONLY:
             try:
                 listen_speak_run(pw)
             except Exception:
                 print(traceback.format_exc())
                 check('listen-speak', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'start' in ONLY:
+            try:
+                start_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('start', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'sprint' in ONLY:
+            try:
+                sprint_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('sprint', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'class' in ONLY:
             try:
                 class_run(pw)
@@ -1707,6 +2097,7 @@ def main():
                 try:
                     layout_run(pw, engine)
                 except Exception:
+                    print(traceback.format_exc())
                     check('layout-' + engine, 'run finished', False, traceback.format_exc()[-600:])
     failed = [r for r in RESULTS if not r['ok']]
     (OUT / 'ui-report.json').write_text(json.dumps({'total': len(RESULTS), 'failed': failed, 'results': RESULTS}, ensure_ascii=False, indent=1))

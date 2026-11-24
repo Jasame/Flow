@@ -674,8 +674,10 @@ def overview(c, uid):
         b['skippable'] = _skipped(b['id'], ((p.get('test_skip') or skip_rank) if p else 0) or 0, force=True)
     ids = {b['id'] for b in books}
     return {'plan': p, 'book': book, 'books': books, 'groups': book_groups(books), 'daily_new_options': list(DAILY_NEW), 'retention_options': list(RETENTION),
-            'exam_goals': [{'title': t, 'book': b} for t, b in EXAM_GOALS if b in ids],
-            'suggested_book': (p.get('suggest') if p and p.get('suggest') in book_words() else None) or LEVEL_BOOK.get(_level(c, uid), 'mid'), 'mastered': mastered, 'learning': learning, 'total': len(rows),
+            'exam_goals': [{'title': t, 'book': b, 'exam': b in __import__('exam_service').EXAMS} for t, b in EXAM_GOALS if b in ids],
+            # no plan yet: the book of the learner's exam (考试冲刺) comes first, then the one the vocabulary test suggested, then the level's
+            'suggested_book': (None if p else ((nx.profile(c, uid) or {}).get('exam') if (nx.profile(c, uid) or {}).get('exam') in book_words() else None))
+                              or (p.get('suggest') if p and p.get('suggest') in book_words() else None) or LEVEL_BOOK.get(_level(c, uid), 'mid'), 'mastered': mastered, 'learning': learning, 'total': len(rows),
             'forecast': forecast, 'calendar': calendar, 'reminder': reminder(c, uid), **counts(c, uid, now)}
 
 

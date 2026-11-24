@@ -1,7 +1,10 @@
-  /* ---------- 这周进步 (r27): the week so far, at the top of 今日; its details; the Sunday mail ---------- */
+  /* ---------- 这周进步 (r27): a card that stands on its own; its details; the Sunday mail ---------- */
   // Four numbers from the learner's own records (progress_service.week): words remembered for the first time (a later
   // day's review still recalled them), texts finished, the share of questions answered right without a hint against
   // last week, and the weekly goal with the weeks reached so far (they only count up). A tap opens the details.
+  // A part of its own: any page puts weekCardSlot() where it wants the card and calls mountWeekCards(root). The card
+  // draws from the home data when that is here (今日 needs no second request), else it asks for its own
+  // (GET /api/next/week?brief=1). It makes no assumption about what is above or below it (今日 today; 能力 later).
   const WEEKDAYS = '一二三四五六日';
   function accText(a) {
     const n = a.now, b = a.before;
@@ -10,29 +13,41 @@
       : n.rate == null ? (n.total ? `满 ${a.min} 题才算` : '这周还没做题') : b.total ? '上周题太少' : '上周没做题';
     return { value, sub };
   }
-  function weekCardHTML(h) {
-    const st = h && h.stats, p = st && st.progress, hb = st && st.habit;
-    if (!S.user || !p || !hb) return '';
-    const acc = accText(p.accuracy), weeks = hb.weeks || 0;
-    const empty = !p.remembered.now && !p.finished.now && !p.accuracy.now.total && !hb.done;
+  // d: {remembered, finished, accuracy, habit} (the brief week). first: the card that carries the id #weekCard.
+  function weekCardHTML(d, first) {
+    const hb = d && d.habit;
+    if (!S.user || !d || !d.remembered || !hb) return '';
+    const acc = accText(d.accuracy), weeks = hb.weeks || 0;
+    const empty = !d.remembered.now && !d.finished.now && !d.accuracy.now.total && !hb.done;
     const tile = (cls, value, label, sub) => `<span class="wk-tile${cls ? ' ' + cls : ''}"><b>${value}</b><span class="tiny muted">${label}</span><span class="tiny sub">${sub}</span></span>`;
-    const label = `这周进步：记住 ${p.remembered.now} 个新词，学完 ${p.finished.now} 篇，做题正确率 ${p.accuracy.now.rate != null ? p.accuracy.now.rate + '%' : '还不够算'}，`
+    const label = `这周进步：记住 ${d.remembered.now} 个新词，学完 ${d.finished.now} 篇，做题正确率 ${d.accuracy.now.rate != null ? d.accuracy.now.rate + '%' : '还不够算'}，`
       + `本周学了 ${hb.done} 天，目标 ${hb.goal} 天${weeks ? `，已达成 ${weeks} 周` : ''}。点开看明细`;
-    return `<button class="card week-card" id="weekCard" type="button" data-tap="home-week" aria-label="${esc(label)}">
+    return `<button class="card week-card"${first !== false ? ' id="weekCard"' : ''} type="button" data-tap="home-week" aria-label="${esc(label)}">
       <span class="wk-head"><b>这周进步</b><span class="tiny wk-total${weeks ? ' on' : ''}">${weeks ? `已达成 ${weeks} 周` : '看明细'}<span aria-hidden="true"> ›</span></span></span>
-      <span class="wk-tiles">${tile('', p.remembered.now, '记住的新词', `上周 ${p.remembered.before}`)}${tile('', p.finished.now, '学完的文章', `上周 ${p.finished.before}`)}`
+      <span class="wk-tiles">${tile('', d.remembered.now, '记住的新词', `上周 ${d.remembered.before}`)}${tile('', d.finished.now, '学完的文章', `上周 ${d.finished.before}`)}`
       + `${tile('', acc.value, '做题正确率', acc.sub)}${tile('goal' + (hb.met ? ' met' : ''), `${hb.done}<small>/${hb.goal}天</small>`, '每周目标', hb.met ? '达成 ✓' : `还差 ${hb.goal - hb.done} 天`)}</span>
-      <span class="wk-foot"><span class="week" aria-hidden="true">${hb.days.map(d => `<span class="${d.active ? 'on' : ''}${d.today ? ' today' : ''}"></span>`).join('')}</span>
+      <span class="wk-foot"><span class="week" aria-hidden="true">${hb.days.map(x => `<span class="${x.active ? 'on' : ''}${x.today ? ' today' : ''}"></span>`).join('')}</span>
         <span class="tiny muted">${empty ? '做完今天的第一步，这里就开始记录' : '数字都来自你自己的学习记录'}</span></span></button>`;
   }
-  function bindWeekCard() {
-    const b = document.getElementById('weekCard'); if (b) b.onclick = weekSheet;
+  function weekCardSlot() { return S.user ? '<div class="week-slot" data-week-card></div>' : ''; }
+  // Fills every slot under root. fresh: ask the server even when the home data is here (after the goal changed).
+  async function mountWeekCards(root, fresh) {
+    const slots = [...(root || document).querySelectorAll('[data-week-card]')];
+    if (!slots.length || !S.user) return;
+    const draw = d => slots.forEach((s, k) => {
+      if (!s.isConnected) return;
+      s.innerHTML = weekCardHTML(d, k === 0);
+      const b = s.querySelector('.week-card'); if (b) b.onclick = weekSheet;
+    });
+    const st = S.home && S.home.stats;
+    if (!fresh && st && st.progress && st.habit) return draw({ ...st.progress, habit: st.habit });
+    try {
+      const d = await api('/api/next/week?brief=1');
+      if (st) { st.progress = { remembered: d.remembered, finished: d.finished, accuracy: d.accuracy, mail: d.mail, monday: d.monday, from: d.from, to: d.to }; st.habit = d.habit; }
+      draw(d);
+    } catch (e) { if (!slots.some(s => s.firstChild)) slots.forEach(s => s.remove()); }
   }
-  // After the goal changes (habitSheet): the card is drawn again from the new numbers.
-  function refreshWeekCard() {
-    const b = document.getElementById('weekCard'); if (!b || !S.home) return;
-    b.outerHTML = weekCardHTML(S.home); bindWeekCard();
-  }
+  function refreshWeekCard() { mountWeekCards(document, true); }
   async function weekSheet() {
     openSheet('<div class="stack"><h2 class="h2" id="sheetTitle">这周进步</h2><div class="loading"><span class="spin"></span></div></div>');
     let w;
@@ -61,12 +76,19 @@
     });
   }
   // 我的 → 每周进度邮件: on by default for an account with an email; the mail's own link turns it off too.
+  const MAILSTATE = { m: null };
+  const mailState = () => (S.home && S.home.stats && S.home.stats.progress && S.home.stats.progress.mail) || MAILSTATE.m;
   function weeklyMailLabel() {
-    const m = S.home && S.home.stats && S.home.stats.progress && S.home.stats.progress.mail;
+    const m = mailState();
     return !m ? '' : !m.email ? '绑定邮箱后可以收' : m.on ? '每周日晚上 8 点' : '已关闭';
   }
+  // 我的: the row's value, asked for when the home data does not have it
+  function fillMailRow() {
+    if (mailState() || !S.user) return;
+    api('/api/next/weekly-mail').then(m => { MAILSTATE.m = m; const v = document.getElementById('meMailV'); if (v) v.textContent = weeklyMailLabel(); }).catch(() => {});
+  }
   function weeklyMailSheet() {
-    const p = S.home && S.home.stats && S.home.stats.progress, m = (p && p.mail) || { on: true, email: false };
+    const p = S.home && S.home.stats && S.home.stats.progress, m = mailState() || { on: true, email: false };
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">每周进度邮件</h2>
       <p class="small">每周日晚上 8 点，把这周的进步发到你绑定的邮箱：记住的新词、学完的文章、做题正确率和每周目标。这周没学的话，会提醒你一下；连着几周没学就不再发。</p>
       ${m.email ? `<div class="chips" role="radiogroup" aria-label="收不收每周进度邮件">${[[true, '每周收'], [false, '不收']].map(([v, l]) => `<button class="chip" type="button" role="radio" data-mail="${v}" aria-checked="${m.on === v}">${l}</button>`).join('')}</div>
@@ -76,7 +98,7 @@
       card.querySelectorAll('[data-mail]').forEach(b => b.onclick = async () => {
         try {
           const r = await api('/api/next/weekly-mail', { on: b.dataset.mail === 'true' });
-          if (p) p.mail = r;
+          if (p) p.mail = r; MAILSTATE.m = r;
           card.querySelectorAll('[data-mail]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
           const v = document.getElementById('meMailV'); if (v) v.textContent = weeklyMailLabel();
           toast(r.on ? '每周日晚上会收到进度邮件' : '不再发每周进度邮件');

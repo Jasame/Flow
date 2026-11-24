@@ -72,6 +72,14 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
         c.execute("ALTER TABLE next_profiles ADD COLUMN voice TEXT NOT NULL DEFAULT 'us-f'")
     if 'weekly_goal' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:
         c.execute('ALTER TABLE next_profiles ADD COLUMN weekly_goal INTEGER NOT NULL DEFAULT 4')  # 每周目标: days a week
+    if 'exam' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:  # 考试冲刺: the exam (exam_service.EXAMS) and its date
+        c.execute('ALTER TABLE next_profiles ADD COLUMN exam TEXT')
+        c.execute('ALTER TABLE next_profiles ADD COLUMN exam_date TEXT')
+    if 'target' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:
+        # 选方向和目标 (r27): the level the learner wants to reach, and where the current level came from:
+        # 'guess' (one band below the target, until a test says more), 'placed' (语法起点小测), 'self' (chosen; older rows: NULL)
+        c.execute('ALTER TABLE next_profiles ADD COLUMN target TEXT')
+        c.execute('ALTER TABLE next_profiles ADD COLUMN level_source TEXT')
     import vocab_service  # word books, daily plan and FSRS state live on top of next_cards
     vocab_service.schema(c)
     __import__('skills_service').schema(c)  # ability profile, mistake book, weekly report
@@ -84,6 +92,7 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
     __import__('word_links').schema(c)  # practice on words Chinese speakers mix up
     __import__('ability_radar').schema(c)  # goals, assessments and radar snapshots
     __import__('exam_service').schema(c)  # exam practice papers and results
+    __import__('exam_sprint').schema(c)  # question-type practice results
     __import__('progress_service').schema(c)  # 这周进步: weekly goals by week, the Sunday mail's switch and link
 
 
@@ -339,25 +348,64 @@ def profile(c, uid):
     if not r:
         return None
     return {'level': r['level'], 'goal': r['goal'], 'themes': json.loads(r['themes']), 'minutes': r['minutes'],
-            'voice': r['voice'] if r['voice'] in VOICES else 'us-f', 'weekly_goal': r['weekly_goal'] if 'weekly_goal' in r.keys() else 4}
+            'voice': r['voice'] if r['voice'] in VOICES else 'us-f', 'weekly_goal': r['weekly_goal'] if 'weekly_goal' in r.keys() else 4,
+            'exam': r['exam'] if 'exam' in r.keys() else None, 'exam_date': r['exam_date'] if 'exam_date' in r.keys() else None,
+            'target': r['target'] if 'target' in r.keys() else None, 'level_source': (r['level_source'] if 'level_source' in r.keys() else None) or 'self'}
+
+
+BANDS = ('A2', 'B1', 'B2', 'C1')
+# 想达到什么水平: what each target means, and the one suggested for an exam or a goal (the page marks it 推荐)
+TARGETS = {'A2': '简单日常', 'B1': '读懂一般文章', 'B2': '自如讨论', 'C1': '接近母语'}
+TARGET_FOR = {'zk': 'A2', 'gk': 'B1', 'cet4': 'B1', 'cet6': 'B2', 'ky': 'B2', 'tem4': 'B2', 'tem8': 'C1', 'ielts': 'B2',
+              'daily': 'B1', 'work': 'B2', 'abroad': 'B2', 'media': 'B2', 'interest': 'B1', 'exam': 'B1'}
+GOAL_HINT = {'exam': '中考到考研、专四专八、雅思', 'daily': '出门、聊天、看懂身边的英文', 'work': '邮件、会议、写报告',
+             'abroad': '上课、租房、办事', 'media': '不看字幕也能跟上', 'interest': '没有具体目标，想慢慢学'}
+
+
+def below(target):
+    """Untested, materials start one band below the target (A2 stays A2)."""
+    return BANDS[max(0, BANDS.index(target) - 1)] if target in BANDS else 'B1'
 
 
 def save_profile(c, uid, data):
-    level = data.get('level')
-    if level not in LEVELS:
-        return {'error': '请选择水平'}, 400
-    goal = data.get('goal') if data.get('goal') in GOALS else 'daily'
-    themes = [t for t in (data.get('themes') or []) if t in THEMES][:6]
-    minutes = data.get('minutes') if data.get('minutes') in MINUTES else 10
+    """The learner's settings. 选方向和目标 sends goal, target and (for 考试) exam and exam_date, with no level: the level
+    is then one band below the target until a test says more (level_source 'guess'). Fields left out keep what was saved."""
     old = profile(c, uid) or {}
+    target = data.get('target') if data.get('target') in BANDS else old.get('target')
+    level, source = data.get('level'), data.get('level_source')
+    if level in LEVELS:
+        source = source if source in ('self', 'placed', 'guess') else 'self'
+    elif data.get('target') in BANDS:
+        level, source = below(target), 'guess'
+    else:
+        return {'error': '请选择水平'}, 400
+    goal = data.get('goal') if data.get('goal') in GOALS else old.get('goal') or 'daily'
+    themes = [t for t in (data.get('themes') or []) if t in THEMES][:6] if 'themes' in data else old.get('themes') or []
+    minutes = data.get('minutes') if data.get('minutes') in MINUTES else old.get('minutes') or 10
     voice = data.get('voice') if data.get('voice') in VOICES else old.get('voice', 'us-f')
+    sp = __import__('exam_sprint')
+    if 'exam' in data and data.get('exam') and data.get('exam') not in sp.available():
+        return {'error': '没有这个考试'}, 400
     now = time.time()
-    c.execute('''INSERT INTO next_profiles(user_id, level, goal, themes, minutes, created, updated, voice) VALUES(?,?,?,?,?,?,?,?)
+    c.execute('''INSERT INTO next_profiles(user_id, level, goal, themes, minutes, created, updated, voice, target, level_source) VALUES(?,?,?,?,?,?,?,?,?,?)
       ON CONFLICT(user_id) DO UPDATE SET level=excluded.level, goal=excluded.goal, themes=excluded.themes,
-      minutes=excluded.minutes, updated=excluded.updated, voice=excluded.voice''',
-              (uid, level, goal, json.dumps(themes), minutes, now, now, voice))
+      minutes=excluded.minutes, updated=excluded.updated, voice=excluded.voice, target=excluded.target, level_source=excluded.level_source''',
+              (uid, level, goal, json.dumps(themes), minutes, now, now, voice, target, source))
+    # the exam goal (考试冲刺) in the same call, when it changed (an exam whose date has passed does not block other settings)
+    if 'exam' in data and ((data.get('exam') or None), (data.get('exam_date') or None)) != (old.get('exam'), old.get('exam_date')):
+        out, code = sp.set_goal(c, uid, {'exam': data.get('exam') or '', 'date': data.get('exam_date') or ''})
+        if code != 200:
+            c.commit()
+            return out, code
     c.commit()
-    return {'profile': profile(c, uid)}, 200
+    # 选方向和目标 with an exam and no word plan yet: one is made on the exam's book, 10 new words a day (the page says so;
+    # 单词 → 背词计划 changes it). A guest's choices reach here at sign-in, so the plan comes then.
+    import vocab_service as vs
+    made, exam = None, (profile(c, uid) or {}).get('exam')
+    if data.get('exam') and exam and exam in vs.book_words() and not vs.plan(c, uid):
+        vs.save_plan(c, uid, {'book': exam, 'daily_new': 10, 'retention': 0.9})
+        made = {'book': exam, 'title': vs.book_title(exam), 'daily_new': 10}
+    return {'profile': profile(c, uid), 'plan_made': made}, 200
 
 
 def set_voice(c, uid, data):
@@ -572,8 +620,8 @@ def node_answer(c, uid, data):
     if uid:
         day = int(time.time() // 86400)
         __import__('event_service').record(c, uid, q['node'], f"next-node:{q['id']}:{day}", 'choice', str(q['id']), 'question:' + str(q['id']),
-                                           int(correct), 0, 'rule', {'choice': choice, 'from': data.get('from') if data.get('from') in ('review', 'mix') else 'node-page'})
-        if not correct and data.get('from') not in ('review', 'mix'):  # those rounds already reschedule the point
+                                           int(correct), 0, 'rule', {'choice': choice, 'from': data.get('from') if data.get('from') in ('review', 'mix', 'exam') else 'node-page'})
+        if not correct and data.get('from') not in ('review', 'mix', 'exam'):  # those rounds already reschedule the point
             __import__('skills_service').add_mistake(c, uid, 'question', q['prompt'], f"gq:{q['id']}", '', '', 'grammar', node=q['node'],
                                                      extra={'options': options, 'answer': q['answer'], 'evidence': q['explanation'] or ''}, commit=False)
         review = GB.schedule(c, uid, q['node'], correct)
@@ -715,11 +763,16 @@ def home(c, uid, level=None, themes=None):
         watch = [n for n, s in states.items() if s['status'] == 'watch']
         g['watch'] = [{'id': n, 'title': meta_titles.get(n, n)} for n in watch[:3]]
         g['due'] = [{'id': n, 'title': meta_titles.get(n, n)} for n in GB.due(c, uid) if n not in watch][:3]
-    out = {'profile': prof, 'level': level, 'level_label': LEVELS[level]['label'], 'today': picks, 'news': news, 'resume': resume,
+    # 今日好句 (r27, daily_line.py): a public-domain line or a sentence from a featured text, not today's own article
+    line = __import__('daily_line').today(c, uid, level, skip={p['id'] for p in picks[:1]})
+    out = {'profile': prof, 'level': level, 'level_label': LEVELS[level]['label'], 'today': picks, 'news': news, 'resume': resume, 'line': line,
            'stats': stats(c, uid) if uid else None, 'graph': g,
            'announce': __import__('console_ops').current_announcement(c)}  # 公告 from the xmc.hk console, at the top of 今日
     if uid and prof:
         import skills_service as sk
+        out['sprint'] = __import__('exam_sprint').brief(c, uid)  # 考试冲刺: the exam and its days left, in the plan's header line
+        # 选方向和目标: a level guessed from the target, with no test taken yet: 今日 suggests one (ability_radar)
+        out['level_guess'] = prof.get('level_source') == 'guess' and not c.execute('SELECT 1 FROM next_assess WHERE user_id=? LIMIT 1', (uid,)).fetchone()
         out['path'] = sk.daily_path(c, uid, out)
         out['suggest'] = sk.suggest_level(c, uid)
     return out
@@ -979,7 +1032,8 @@ def check(c, uid, data):
 def mark(c, uid, pid, step, commit=True):
     if step not in STEPS:
         raise ValueError('步骤不正确')
-    c.execute('INSERT OR IGNORE INTO next_progress VALUES(?,?,?,?)', (uid, pid, step, time.time()))
+    c.execute('INSERT OR IGNORE INTO next_progress VALUES(?,?,?,?)', (uid, pid, step, time.time()))  # the first time only
+    __import__('progress_service').log_step(c, uid, pid, step)  # and every day it is done (a text studied again)
     if commit:
         c.commit()
 
@@ -1231,15 +1285,20 @@ def shadow(c, uid, data):
     from audio_validation import validate_audio
     if not audio_enabled():
         return {'error': 'AI 听录音暂未开启，可以先用「对比回放」自己听'}, 503
-    row = _pack_row(c, uid, str(data.get('pack', '')))
-    if not row:
-        return {'error': '材料不存在'}, 404
-    p = json.loads(row['content'])
-    sents = sentences(p['body'])
-    i = data.get('i')
-    if not isinstance(i, int) or not 0 <= i < len(sents):
-        return {'error': '句子不存在'}, 400
-    sentence = re.sub(r'^[A-Z][a-z]+(?: [A-Z][a-z]+)?:\s+', '', sents[i])  # dialogue labels are not read aloud
+    quote = __import__('daily_line').sentence_of(data)  # 今日好句 (r27): a public-domain line, by its id
+    if quote:
+        sentence, pid, i, lvl = quote, None, str(data.get('quote')), None
+    else:
+        row = _pack_row(c, uid, str(data.get('pack', '')))
+        if not row:
+            return {'error': '材料不存在'}, 404
+        p = json.loads(row['content'])
+        sents = sentences(p['body'])
+        i = data.get('i')
+        if not isinstance(i, int) or not 0 <= i < len(sents):
+            return {'error': '句子不存在'}, 400
+        sentence = re.sub(r'^[A-Z][a-z]+(?: [A-Z][a-z]+)?:\s+', '', sents[i])  # dialogue labels are not read aloud
+        pid, lvl = p['id'], cefr(p)
     audio = data.get('audio')
     raw_audio = validate_audio(audio)
     level = (profile(c, uid) or {}).get('level') or 'B1'
@@ -1282,8 +1341,8 @@ def shadow(c, uid, data):
                 out['issues'].append({'word': clean_text(it['word'], 1, 80), 'note': clean_text(it['note'], 1, 300)})
         return out
 
-    spec = {'pack': p['id'], 'i': i, 'audio_sha256': hashlib.sha256(raw_audio).hexdigest()}
-    result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-shadow', p['id'], 'speaking', spec,
+    spec = {'pack': pid or 'daily-line', 'i': i, 'audio_sha256': hashlib.sha256(raw_audio).hexdigest()}
+    result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-shadow', pid or 'daily-line', 'speaking', spec,
                              lambda: request_model([{'role': 'system', 'content': system}, {'role': 'user', 'content': user}], audio=audio), convert, mark_replay=True)
     if status == 200:
         r = result['result']
@@ -1294,11 +1353,11 @@ def shadow(c, uid, data):
         if result.get('replayed'):
             return result, status
         import skills_service as sk
-        sk.log(c, uid, 'speaking', 'shadow', r['matched'] / max(1, len(r['words'])), cefr(p), p['id'], commit=False)
+        sk.log(c, uid, 'speaking', 'shadow', r['matched'] / max(1, len(r['words'])), lvl, pid, commit=False)
         if r['score']:
-            sk.log(c, uid, 'pronunciation', 'shadow-pron', r['score']['total'] / 100, cefr(p), p['id'], commit=False)
+            sk.log(c, uid, 'pronunciation', 'shadow-pron', r['score']['total'] / 100, lvl, pid, commit=False)
         for it in ([{'word': x['word'], 'note': x['sound'] + '：' + x['note']} for x in r.get('sounds') or []] + r['issues'])[:2]:
-            sk.add_mistake(c, uid, 'sound', it['word'], 'sound:' + _norm(it['word']), it['note'], sentence, 'pronunciation', pack=p['id'], commit=False)
+            sk.add_mistake(c, uid, 'sound', it['word'], 'sound:' + _norm(it['word']), it['note'], sentence, 'pronunciation', pack=pid, commit=False)
         c.commit()
     return result, status
 
@@ -1400,7 +1459,10 @@ def variant(c, uid, data):
 def meta():
     return {'levels': [{'id': k, 'label': v['label'], 'desc': v['desc'], 'sample': v['sample']} for k, v in LEVELS.items()],
             'goals': [{'id': k, 'label': v} for k, v in GOALS.items()], 'themes': [{'id': k, 'label': v} for k, v in THEMES.items()],
-            'minutes': list(MINUTES), 'voices': [{'id': k, 'label': v} for k, v in VOICES.items()]}
+            'minutes': list(MINUTES), 'voices': [{'id': k, 'label': v} for k, v in VOICES.items()],
+            'goal_hints': GOAL_HINT, 'targets': [{'id': k, 'label': v} for k, v in TARGETS.items()], 'target_for': TARGET_FOR,
+            'exams': [{'id': k, 'short': __import__('exam_sprint').short(k), 'book_title': __import__('vocab_service').book_title(k)}
+                      for k in __import__('exam_sprint').available()]}
 
 
 def get(c, uid, path, q):
@@ -1456,9 +1518,11 @@ def get(c, uid, path, q):
     if path == '/api/next/ielts':
         return __import__('ielts_speaking').listing(c, uid), 200
     if path == '/api/next/mix':
-        return GB.mix(c, uid, pair=one('pair') or None, topic=one('topic') or None, level=one('level') or None)
+        return GB.mix(c, uid, pair=one('pair') or None, topic=one('topic') or None, level=one('level') or None, exam=one('exam') or None)
     if path == '/api/next/exam':
         return __import__('exam_service').overview(c, uid)
+    if path == '/api/next/exam/type':
+        return __import__('exam_sprint').get(c, uid, path, q)
     if path == '/api/next/lookup':
         w = one('w')[:40]
         if not WORD.fullmatch(w or ''):
@@ -1484,6 +1548,8 @@ def get(c, uid, path, q):
         return __import__('ability_radar').comprehension_test(c, uid, one('kind'))
     if path == '/api/next/assess/task':
         return __import__('ability_radar').task(c, uid, one('kind'))
+    if path == '/api/next/exam/goal':
+        return __import__('exam_sprint').get(c, uid, path, q)
     return None
 
 
@@ -1518,6 +1584,8 @@ def post_public(c, uid, path, data):
         return __import__('exam_service').paper(c, uid, data.get('exam'))
     if path == '/api/next/exam/submit':
         return __import__('exam_service').submit(c, uid, data)
+    if path == '/api/next/exam/type':
+        return __import__('exam_sprint').post_public(c, uid, path, data)
     if path == '/api/next/weekly-mail/off':  # the link in the Sunday mail: no sign-in, its token stands for the account
         return __import__('progress_service').post_public(c, path, data)
     return None
@@ -1536,6 +1604,8 @@ def post(c, uid, path, data):
         return save_profile(c, uid, data)
     if path == '/api/next/habit':
         return set_weekly_goal(c, uid, data)
+    if path == '/api/next/exam/goal':
+        return __import__('exam_sprint').set_goal(c, uid, data)
     if path == '/api/next/weekly-mail':
         return __import__('progress_service').post(c, uid, path, data)
     if path == '/api/next/relisten':
