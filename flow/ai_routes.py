@@ -4,8 +4,8 @@ Routes. A text task goes to one model name on the xmc-api gateway, with the same
 FLOW_TEXT_AI_MODEL (flow-text: Gemini 3.8 Flash first). The others are the gateway's flow-text-* names, which point at
 models on Alibaba Cloud 百炼 (Model Studio, OpenAI-compatible mode: 通义千问, DeepSeek, Kimi, GLM … one key), each with
 Gemini as the gateway's backup line (tools/ai-gateway/README.md). A task's model is set in the console
-(console-settings.json 'ai_routes': {kind: name, '*': name}); FLOW_AI_ROUTES (JSON of the same shape) is the server's
-default; with neither, every task stays on flow-text, as before. The console offers the gateway's flow-text* names
+(console-settings.json 'ai_routes': {kind: name, '*': name}); FLOW_AI_ROUTES is the server's default (a model name for
+every task, or *=name,kind=name pairs; see parse_routes, which also reads JSON); with neither, every task stays on flow-text, as before. The console offers the gateway's flow-text* names
 (GET /v1/models with the site's key) and FLOW_AI_CHOICES. Audio and web search never take a route: they go to the main
 model. When a route's lines all fail, Flow still falls back to the main model (chat_service.request_model).
 
@@ -106,12 +106,56 @@ def _settings():
         return {}
 
 
-def _env_routes():
+_ENV = {'raw': None, 'routes': {}, 'problem': None}
+
+
+def parse_routes(raw):
+    """FLOW_AI_ROUTES in any of its written forms -> ({kind or '*': model name}, problem or None).
+
+    - a model name alone: every task (FLOW_AI_ROUTES=flow-text-ds-flash);
+    - kind=name pairs, comma-separated (FLOW_AI_ROUTES=*=flow-text-ds-flash,next-essay=flow-text);
+    - JSON ('{"*": "flow-text-ds-flash"}'), and JSON whose quotes systemd's EnvironmentFile took away ({*:flow-text-ds-flash}).
+    Anything else is a problem: no routes, and the reason (logged once, shown in the console)."""
+    raw = (raw or '').strip()
+    if not raw:
+        return {}, None
+    bad = f'FLOW_AI_ROUTES 看不懂：{raw[:120]}（写法：一个模型名，或 *=名字,任务=名字）'
     try:
-        v = json.loads(os.getenv('FLOW_AI_ROUTES', '') or '{}')
-        return v if isinstance(v, dict) else {}
+        v = json.loads(raw)
     except ValueError:
-        return {}
+        v = None
+    else:  # proper JSON: it has to be {kind: model name}
+        if isinstance(v, dict) and all(isinstance(k, str) and isinstance(x, str) and NAME.fullmatch(x) for k, x in v.items()):
+            return dict(v), None
+        return {}, bad
+    if NAME.fullmatch(raw) and ':' not in raw and '=' not in raw:
+        return {'*': raw}, None
+    body = raw[1:-1] if raw.startswith('{') and raw.endswith('}') else raw
+    out = {}
+    for part in (x.strip() for x in body.split(',') if x.strip()):
+        sep = '=' if '=' in part else ':'
+        k, _, v = part.partition(sep)
+        k, v = k.strip().strip('"\''), v.strip().strip('"\'')
+        if not k or not NAME.fullmatch(v) or not (k == '*' or re.fullmatch(r'[a-z][a-z0-9-]{1,40}', k)):
+            return {}, bad
+        out[k] = v
+    return out, None
+
+
+def _env_routes():
+    raw = os.getenv('FLOW_AI_ROUTES', '')
+    if raw != _ENV['raw']:
+        routes, problem = parse_routes(raw)
+        _ENV.update(raw=raw, routes=routes, problem=problem)
+        if problem:
+            print('ai_routes: ' + problem + '; every task stays on its console route or the default', file=sys.stderr, flush=True)
+    return _ENV['routes']
+
+
+def env_problem():
+    """Why the server's FLOW_AI_ROUTES was not understood, or None."""
+    _env_routes()
+    return _ENV['problem']
 
 
 def default_model():
@@ -504,7 +548,7 @@ def summary(c, days=14):
     return {'days': days, 'kinds': out_kinds, 'models': sorted(model_rows, key=lambda m: -m['calls']),
             'by_day': days_list, 'total': finish(total), 'today': round(spent(c), 4), 'budget': budget_state(c),
             'prices': table, 'platforms': {k: {**v, 'discount': discounts()[k]} for k, v in PLATFORMS.items()},
-            'choices': choices(), 'default_model': default_model(),
+            'choices': choices(), 'default_model': default_model(), 'server_routes_problem': env_problem(),
             'note': '费用 = 每次调用的实际 token × 官方标价 × 平台折扣（北京时间）。百炼回报命中缓存的 token；Gemini 走自己的中转站，不回报用量：'
                     '这部分 token 按文字长度估算（标「估算」），它的思考 token 也收费但算不进来，所以 Gemini 的实际费用会比这里高。'}
 

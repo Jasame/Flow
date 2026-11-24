@@ -128,6 +128,30 @@ class RouteTests(Site):
         for bad in ({'routes': {'next-rewrite': 'flow-gpt'}}, {'routes': {'nope': 'flow-text-qwen-plus'}}, {'routes': {}}):
             self.assertEqual(ai_routes.set_routes(bad, 'boss')[1], 400)  # only names the gateway has
 
+    def test_the_server_default_reads_however_it_was_written(self):
+        P = ai_routes.parse_routes
+        want = {'*': 'flow-text-ds-flash'}
+        for raw in ('flow-text-ds-flash', '*=flow-text-ds-flash', '{"*": "flow-text-ds-flash"}',
+                    '{*:flow-text-ds-flash}', '{*: flow-text-ds-flash}'):  # the last two: JSON after systemd's EnvironmentFile ate the quotes
+            self.assertEqual(P(raw), (want, None), raw)
+        self.assertEqual(P('*=flow-text-ds-flash, next-essay=flow-text'), ({'*': 'flow-text-ds-flash', 'next-essay': 'flow-text'}, None))
+        self.assertEqual(P('{*:flow-text-ds-flash,next-essay:flow-text}'), ({'*': 'flow-text-ds-flash', 'next-essay': 'flow-text'}, None))
+        self.assertEqual(P(''), ({}, None))
+        for bad in ('{"*": 3}', '*=', 'next essay=flow-text', '{*:flow text}'):
+            routes, problem = P(bad)
+            self.assertEqual(routes, {}, bad)
+            self.assertIn('看不懂', problem, bad)
+        err = io.StringIO()
+        with patch.dict(os.environ, {'FLOW_AI_ROUTES': '{*:flow-text-ds-flash}'}):
+            self.assertEqual(ai_routes.route('next-rewrite'), 'flow-text-ds-flash')
+            self.assertIsNone(ai_routes.env_problem())
+        with patch.dict(os.environ, {'FLOW_AI_ROUTES': 'next essay=flow-text'}), patch('sys.stderr', err):
+            self.assertEqual(ai_routes.route('next-rewrite'), 'flow-text')  # not understood: the default, never a guess
+            self.assertIn('看不懂', ai_routes.env_problem())
+            with app.db() as c:
+                self.assertIn('看不懂', ai_routes.summary(c)['server_routes_problem'])
+        self.assertIn('FLOW_AI_ROUTES 看不懂', err.getvalue())  # logged once
+
     def test_the_console_offers_the_gateways_flow_names(self):
         ai_routes._CHOICES.update(at=0)
         sent = []
