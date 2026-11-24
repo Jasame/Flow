@@ -234,6 +234,9 @@ def run_device(pw, dev, opts):
 
     # ---- exam practice: a timed paper of 22 questions, handed in once, scored by part
     go(pg, '#/exam/cet4')
+    ex = pg.evaluate("""() => { const c = document.querySelector('#view .opt[aria-pressed=true]'), d = document.getElementById('examCur');
+      return c && d ? [Math.round(d.getBoundingClientRect().top - c.getBoundingClientRect().bottom), getComputedStyle(document.getElementById('exStart')).backgroundColor !== getComputedStyle(document.querySelector('#view .opt:not([aria-pressed=true])')).backgroundColor] : null; }""")
+    check(dev, 'exam: the chosen exam opens right under its card, 开始一套 in the primary style', ex and 0 <= ex[0] <= 40 and ex[1], ex)
     pg.click('#exStart'); pg.wait_for_selector('.exam-bar', timeout=8000); pg.wait_for_timeout(300)
     n = pg.evaluate("() => document.querySelectorAll('.exam-part .gq').length")
     check(dev, 'exam: a paper of 22 questions in three parts with a clock', n == 22 and pg.evaluate("() => document.querySelectorAll('.exam-part').length") == 3, n)
@@ -263,6 +266,17 @@ def run_device(pw, dev, opts):
     s125 = pg.text_content('#psum') or ''
     pg.click('#view [data-rate="1"]'); pg.click('#view .playset > summary')
     check(dev, 'listen: 播放设置 opens the choices, and the line follows them', '1.25×' in s125 and pg.evaluate("() => !document.querySelector('#view .playset').open"), s125)
+    if dev == 'phone-land':
+        pa = pg.evaluate("() => { const r = document.getElementById('playAll').getBoundingClientRect(); return [Math.round(r.bottom), innerHeight]; }")
+        check(dev, 'listen: a phone held sideways shows 播放全文 on the first screen (a short study header)', pa[0] <= pa[1], pa)
+    pg.click('#view [data-mode="shadow"]'); pg.wait_for_selector('#view .line.sh', timeout=5000)
+    def shadow_tools():
+        return pg.evaluate("""() => [...document.querySelectorAll('#view .line.sh')].map(l => [l.classList.contains('cur'), !!(l.querySelector('[data-r]') || {}).offsetParent, !!(l.querySelector('[data-o]') || {}).offsetParent])""")
+    t0 = shadow_tools()
+    pg.click('#view .line.sh[data-i="2"] .txt'); t2 = shadow_tools()
+    check(dev, '跟读: ● 对比 AI 点评 under the sentence being practised only, ▶ on every one; a tap picks another',
+          [x[1] for x in t0].count(True) == 1 and t0[0][1] and all(x[2] for x in t0) and t2[2][0] and t2[2][1] and [x[1] for x in t2].count(True) == 1, (t0[:3], t2[:3]))
+    pg.click('#view [data-mode="listen"]'); pg.wait_for_selector('#playAll', timeout=5000)
     pg.click('#playAll')
     pg.wait_for_timeout(250)
     mini = pg.evaluate("() => { const m = document.querySelector('.mini-player'); if (!m || m.hidden) return null; const r = m.getBoundingClientRect(); return [r.top, r.bottom, innerHeight]; }")
@@ -406,6 +420,11 @@ def run_device(pw, dev, opts):
     if pg.query_selector('#zhGuide'):
         pg.click('#zhGuide'); opened = pg.is_visible('#zhText'); pg.click('#zhGuide')
         check(dev, 'read: 中文导读 opens under the row and closes again', opened and not pg.is_visible('#zhText'))
+
+    # ---- 用出来: the sub-tab names the exercise, the card does not repeat it
+    go(pg, f'#/m/{PID}/output/retell')
+    k = pg.evaluate("() => [...document.querySelectorAll('#pane .task .kicker')].map(e => e.textContent.trim())")
+    check(dev, '用出来: no heading under the tabs that repeats the tab (复述、对话、用出来)', not set(k) & {'复述', '情景对话', '用出来'}, k)
 
     # ---- 练习: the grammar map is the wide first card of the 语法 group
     go(pg, '#/practice')

@@ -7,7 +7,7 @@
     const needAI = reason => { if (!S.user) { needLogin(reason); return true; } return false; };
 
     function retellMode() {
-      pane.innerHTML = `${outTabs('retell')}<div class="card flat task stack-s"><div class="kicker">复述</div><b>不看原文，用自己的话把这篇讲一遍</b>
+      pane.innerHTML = `${outTabs('retell')}<div class="card flat task stack-s"><b>不看原文，用自己的话把这篇讲一遍</b>
           <span class="muted small">可以打字，也可以点 ● 直接说（最长 2 分钟）。AI 会提炼原文要点，看你讲到了哪些，并改出最影响理解的错误。</span></div>
         <textarea id="rtText" aria-label="用英文复述这篇" rows="6" maxlength="2500" lang="en" data-submit="#rtGo" placeholder="In this article, ..."></textarea>
         <div class="row between"><span class="row">${recBtn('rtMic', '说出来')}<span class="muted tiny" id="rtState">打字或录音都行</span></span><button class="btn primary" id="rtGo">AI 看看我的复述</button></div>
@@ -41,7 +41,7 @@
 
     function dialogMode() {
       const hist = [];
-      pane.innerHTML = `${outTabs('dialog')}<div class="card flat task stack-s"><div class="kicker">情景对话</div><b>${esc(m.speaking_task || '围绕这篇的话题和 AI 聊几句')}</b>
+      pane.innerHTML = `${outTabs('dialog')}<div class="card flat task stack-s"><b>${esc(m.speaking_task || '围绕这篇的话题和 AI 聊几句')}</b>
           <span class="muted small">AI 扮演情景里的另一方。可以打字或说，每说一句它会顺手纠正；聊 4–6 轮后点「结束并总结」。</span></div>
         <div class="chat" id="chat"></div>
         <div id="dlgIn" class="stack-s" hidden><div class="tiny muted" id="dlgHint"></div>
@@ -137,7 +137,7 @@
       // The task's own word count wins ("写 200–250 词"); otherwise a range that fits the level.
       const asked = /(\d{2,3})\s*[–~\-—至到]\s*(\d{2,3})\s*(?:个)?(?:英文)?词/.exec(m.writing_task || '');
       const range = asked ? [Number(asked[1]), Number(asked[2])] : { A2: [60, 120], B1: [80, 160], B2: [120, 250], C1: [180, 350] }[lv] || [80, 200];
-      pane.innerHTML = `${outTabs('essay')}<div class="card flat task stack-s"><div class="kicker">写作 · 建议 ${range[0]}–${range[1]} 词</div><b>${esc(m.writing_task || '围绕这篇的话题，写一段你自己的看法或经历。')}</b>
+      pane.innerHTML = `${outTabs('essay')}<div class="card flat task stack-s"><div class="kicker">建议 ${range[0]}–${range[1]} 词</div><b>${esc(m.writing_task || '围绕这篇的话题，写一段你自己的看法或经历。')}</b>
           <span class="muted small">按内容、结构、准确、丰富四个维度批改，给段落点评和示范段落；改出来的错误进错题本。</span></div>
         <textarea id="esIn" aria-label="你的英文作文" rows="10" maxlength="3000" lang="en" data-submit="#esGo" placeholder="Write here…">${esc(load(key) || '')}</textarea>
         <div class="row between"><span class="counter" id="esN"></span><button class="btn primary" id="esGo">AI 批改</button></div><div id="esOut"></div>`;
@@ -174,7 +174,7 @@
       if (om === 'essay') return essayMode();
       const key = 'flow-next-draft-' + id;
       const draft = load(key) || '';
-      pane.innerHTML = `${outTabs('model')}<div class="stack"><div class="card flat task"><div class="kicker">用出来</div><b>${esc(m.task.prompt)}</b>
+      pane.innerHTML = `${outTabs('model')}<div class="stack"><div class="card flat task"><b>${esc(m.task.prompt)}</b>
           ${m.task.model ? `<div class="model">${esc(m.task.model)} <button class="icon-btn" id="sayModel" aria-label="朗读参考句">${ICON.speak}</button></div>` : ''}
           ${m.task.hint ? `<div class="muted small">${esc(m.task.hint)}</div>` : ''}
           ${(m.mine || []).length ? `<div class="muted small">可以试着用上你在背的词：${[...new Set(m.mine.map(x => x.form))].slice(0, 5).map(w => `<b>${esc(w)}</b>`).join('、')}（用对了算一次成功复习）</div>` : ''}</div>

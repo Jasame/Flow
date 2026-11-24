@@ -17,6 +17,7 @@ details[open]>summary{margin-bottom:8px}
 .exam-pick .opt{display:grid;gap:4px;align-content:start;text-align:left;text-decoration:none;color:inherit}
 .exam-pick .opt .l{font-weight:700;font-size:16px}
 .exam-pick .opt .d{font-size:13px;color:var(--ink2);line-height:1.5}
+.exam-cur{padding:14px;background:var(--paper);border-radius:var(--r)}  /* the chosen exam, between the two halves of the list */
 /* the series link in an episode's header is a real tap target */
 .study-head .kicker a.link{display:inline-flex;align-items:center;min-height:32px}
 .exam-bar{position:sticky;top:64px;z-index:15;display:flex;justify-content:space-between;align-items:center;gap:12px;

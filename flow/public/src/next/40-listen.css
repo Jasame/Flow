@@ -12,6 +12,10 @@
 .seg.modes{margin-bottom:14px}
 .line.sh{grid-template-columns:minmax(0,1fr);gap:8px}
 .sh-ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+/* 跟读: ▶ on every sentence, the recording tools (●, 对比, AI 点评) under the one being practised; a tap picks it */
+.line.sh{cursor:pointer}
+.line.sh.cur{cursor:default;background:var(--green-soft);border-radius:10px;box-shadow:0 0 0 8px var(--green-soft)}
+.line.sh:not(.cur) .sh-ctl>:not([data-o]){display:none}
 .icon-btn.rec .dot{width:14px;height:14px;border-radius:50%;background:var(--red);display:block;transition:transform .2s,border-radius .2s}
 .icon-btn.rec.on{border-color:var(--red);background:var(--red-soft)}
 .icon-btn.rec.on .dot{border-radius:3px;transform:scale(.85);animation:pulse 1s ease-in-out infinite}

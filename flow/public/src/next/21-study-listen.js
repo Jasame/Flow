@@ -175,8 +175,10 @@
 
     async function shadowMode() {
       const ls = lines(), nm = await narration(ls);
-      pane.innerHTML = `${listenHead()}<p class="muted small">先点 ▶ 听原声，再点 ● 跟着读一遍（再点一次停止）。「对比」先放原声再放你的录音；${S.user ? '「AI 点评」会写出它听到的内容，并指出要改的地方。' : '登录后可以让 AI 点评。'}</p>
-        <div class="lines">${ls.map((s, i) => `<div class="line sh" data-i="${i}"><div class="txt">${esc(s)}</div>
+      // Every sentence keeps its ▶; the recording tools (●, 对比, AI 点评) show under the sentence being practised only,
+      // so eleven rows of four buttons do not bury the text. A tap anywhere on a sentence makes it the one.
+      pane.innerHTML = `${listenHead()}<p class="muted small">点一句开始练：先点 ▶ 听原声，再点 ● 跟着读一遍（再点一次停止）。「对比」先放原声再放你的录音；${S.user ? '「AI 点评」会写出它听到的内容，并指出要改的地方。' : '登录后可以让 AI 点评。'}</p>
+        <div class="lines">${ls.map((s, i) => `<div class="line sh${i === 0 ? ' cur' : ''}" data-i="${i}"><div class="txt">${esc(s)}</div>
           <div class="sh-ctl"><button class="icon-btn" data-o="${i}" aria-label="听原声">${ICON.play.replace('<svg', '<svg fill="currentColor"')}</button>
             <button class="icon-btn rec" data-r="${i}" aria-label="录音"><span class="dot"></span></button>
             <button class="btn small" data-c="${i}" disabled>对比</button><button class="btn small" data-ai="${i}" disabled>✦ AI 点评</button></div>
@@ -184,6 +186,10 @@
         <div class="section row between"><span></span><button class="btn" id="toRead">去读 →</button></div>`;
       const REC = { mr: null, blobs: {}, timer: 0, url: {} };
       const row = i => pane.querySelector(`.line[data-i="${i}"]`);
+      pane.querySelectorAll('.line.sh').forEach(l => l.addEventListener('click', () => {
+        if (l.classList.contains('cur')) return;
+        pane.querySelectorAll('.line.sh.cur').forEach(x => x.classList.remove('cur')); l.classList.add('cur');
+      }, true));  // capture: a tap on ▶ of another sentence plays it and makes it the one
       const stop = () => { TTS.stop(); NAR.stop(); CLIP.stop(); if (REC.mr && REC.mr.state === 'recording') REC.mr.stop(); };
       const orig = (i, then) => { if (nm) NAR.play(nm.sentences[i].s, nm.sentences[i].e, null, then); else TTS.say(stripLabel(ls[i]), then); };
       async function record(i, btn) {

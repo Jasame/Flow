@@ -22,6 +22,12 @@ def today(pg):
     pg.evaluate("() => { const n = document.getElementById('mailNudge'); if (n) n.remove(); }")  # the test learner has no email
 
 
+def listen(pg):
+    # The local server has no narration files; on the site this material is read by four real voices, so its tip
+    # does not carry the "no recording yet" line.
+    pg.evaluate("() => { const t = document.querySelector('.listen-tip'); if (t) t.firstChild.nodeValue = t.firstChild.nodeValue.replace('这篇还没有真人录音，先用浏览器朗读。', ''); }")
+
+
 def check(pg):
     pg.click('#pane .ans[data-q="0"][data-o="0"]')
     pg.wait_for_selector('#pane .q[data-q="0"] .fb:not(:empty)', timeout=6000)
@@ -39,7 +45,7 @@ def review(pg):
 # name -> (page, extra step or None, viewport)
 SHOTS = {
     'today': ('#/', today, PHONE),
-    'listen': (f'#/m/{PID}/listen', None, PHONE),
+    'listen': (f'#/m/{PID}/listen', listen, PHONE),
     'read': (f'#/m/{PID}/read', None, PHONE),
     'check': (f'#/m/{PID}/check', check, PHONE),
     'output': (f'#/m/{PID}/output', output, PHONE),
