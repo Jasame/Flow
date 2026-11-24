@@ -242,6 +242,24 @@ class CostTests(Site):
         self.assertEqual(ai_routes.cost('mystery-model', noon, 1_000_000, 0, 1_000_000), 0.0)
         self.assertEqual(ai_routes.price_of('deepseek-v4.1-flash-1017')['label'], 'DeepSeek V4.1 Flash（百炼）')
 
+    def test_read_aloud_is_priced_per_character_and_counts_in_the_budget(self):
+        noon = at(2026, 11, 25, 12)
+        self.assertAlmostEqual(ai_routes.cost('cosyvoice-v3-flash', noon, 10_000, 0, 0), 1.0 * 0.65)  # ¥1 per 10,000 characters
+        self.assertEqual(ai_routes.LABEL['tts'], 'AI 朗读（声音）')
+        self.assertNotIn('tts', ai_routes.routes())  # in the costs, never a route to choose
+        started = time.monotonic()
+        with ai_routes.task('tts'):  # how tts_service records one call
+            ai_routes.record('tts', 'flow-tts', started, [], info={'usage': (12_000, 0, 0, 0), 'served': 'cosyvoice-v3-flash'})
+        c = app.db()
+        try:
+            s = ai_routes.summary(c)
+            row = next(k for k in s['kinds'] if k['kind'] == 'tts')
+            self.assertEqual(row['label'], 'AI 朗读（声音）')
+            self.assertAlmostEqual(row['cost'], 1.2 * 0.65, places=4)
+            self.assertAlmostEqual(ai_routes.spent(c), 1.2 * 0.65, places=4)  # the daily budget sees it
+        finally:
+            c.close()
+
     def test_deepseek_on_bailian_is_half_price_at_night_and_gemini_doubles_in_2027(self):
         day, night = at(2026, 11, 23, 10), at(2026, 11, 23, 23)
         full = ai_routes.cost('deepseek-v4.1-flash', day, 1_000_000, 0, 1_000_000)
@@ -290,10 +308,11 @@ class BudgetTests(Site):
                 self.assertEqual(ai_routes.check_budget(c), ['over'])
                 self.assertTrue(ai_routes.over_budget(c))
                 self.assertEqual(ai_routes.check_budget(c), [])
-            mails = sorted(outbox.iterdir())
+            mails = sorted(outbox.glob('*.txt'))  # each mail's text (its HTML is the .html beside it)
             self.assertEqual(len(mails), 2)
             self.assertIn('To: ' + BOSS, mails[1].read_text())
             self.assertIn('超过今日预算', mails[1].read_text())
+            self.assertIn('https://xmc.hk/flow#ai', mails[1].with_suffix('.html').read_text())  # the shared layout, with a button
 
     def test_no_budget_no_mail(self):
         self.spend(500)

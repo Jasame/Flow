@@ -103,9 +103,9 @@ class WeeklyReportTests(unittest.TestCase):
             c.commit()
             n = sk.send_weekly(c, sunday, send=lambda to, subject, body: sent.append(body))
         self.assertEqual(n, 1)
-        self.assertIn('轻松读 1 篇，共 400 个词，每分钟 130 词', sent[0])
-        self.assertIn('口语情景练了 1 个', sent[0])
-        self.assertRegex(sent[0], r'能力雷达上涨：阅读 \d+→\d+')
+        self.assertIn('· 轻松读：1 篇，共 400 个词，每分钟 130 词', sent[0])
+        self.assertIn('· 口语情景：练了 1 个', sent[0])
+        self.assertRegex(sent[0], r'· 能力雷达上涨：阅读 \d+→\d+')
 
 
 if __name__ == '__main__':
