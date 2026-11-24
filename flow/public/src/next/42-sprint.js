@@ -94,7 +94,8 @@
     if (!types || !types.length) return '';
     return `<section class="section stack-s" aria-labelledby="spTypesH"><h2 class="h2" id="spTypesH">题型专练</h2><p class="tiny muted">${esc(note)}</p>
       <div class="mlist">${types.map(t => `<a class="mrow" href="#/exam/${esc(exam)}/${esc(t.id)}" data-tap="exam-type"><span class="t"><b>${esc(t.title)}</b>
-        <span class="tiny muted">${t.items} 题，分 ${t.sets} 组${t.last ? ` · 上次 ${t.last.right}/${t.last.of}` : ' · 还没做'}</span></span><span class="go" aria-hidden="true">›</span></a>`).join('')}</div></section>`;
+        <span class="tiny muted">${t.items} 题，分 ${t.sets} 组${t.last ? ` · 上次 ${t.last.right}/${t.last.of}` : ' · 还没做'}</span></span><span class="go" aria-hidden="true">›</span></a>`).join('')}
+        <a class="mrow" href="#/exam/${esc(exam)}/reading" data-tap="exam-reading"><span class="t"><b>阅读一篇</b><span class="tiny muted">这个考试难度的一篇原创短文，4 题；今日计划里的「考试小练」也会排到它</span></span><span class="go" aria-hidden="true">›</span></a></div></section>`;
   }
 
   // ---- the hub: 考试练习 when an exam is set ----
@@ -182,10 +183,12 @@
       <div class="stack-s">${s.items.map((it, i) => `<div class="q gq xt-q" data-q="${i}"><div class="prompt">${i + 1}. ${esc(it.prompt)}</div><div class="xt-letters">${s.paras.map((_, j) => `<button class="ans" type="button" data-i="${i}" data-o="${j}" aria-label="${LETTERS[j]} 段">${LETTERS[j]}</button>`).join('')}</div></div>`).join('')}</div>`;
     if (k === 'tfng') body = `<div class="exam-passage xt-text">${esc(s.text)}</div><div class="stack-s">${s.items.map((it, i) => `<div class="q gq xt-q" data-q="${i}"><div class="prompt">${i + 1}. ${esc(it.prompt)}</div><div class="xt-tf">${TFNG.map((x, j) => `<button class="ans" type="button" data-i="${i}" data-o="${j}">${x}</button>`).join('')}</div></div>`).join('')}</div>`;
     if (k === 'choice') body = `<div class="stack-s">${s.items.map((it, i) => `<div class="q gq xt-q" data-q="${i}"><div class="prompt">${i + 1}. ${esc(it.prompt)}</div>${opts(i, it.options)}</div>`).join('')}</div>`;
+    // 阅读一篇 (考试小练, r28): a passage at the exam's level, then its questions
+    if (k === 'reading') body = `<div class="exam-passage xt-text" lang="en">${esc(s.text)}</div><div class="stack-s">${s.items.map((it, i) => `<div class="q gq xt-q" data-q="${i}"><div class="prompt" lang="en">${i + 1}. ${esc(it.prompt)}</div>${opts(i, it.options)}</div>`).join('')}</div>`;
     if (k === 'proof') body = `<div class="stack-s">${s.lines.map((line, i) => `<div class="q gq xt-q xt-line" data-q="${i}"><div class="tiny muted">第 ${i + 1} 行</div><div class="xt-words">${tapWords(line).map((w, j) => `<button class="xw" type="button" data-i="${i}" data-w="${j}" aria-pressed="false">${esc(w)}</button>`).join('')}</div></div>`).join('')}</div>`;
-    view.innerHTML = `<div class="stack xt"><div><span class="kicker">${esc(r.exam_title)} · 题型专练</span><h1 class="h1">${esc(r.title)}</h1>
+    view.innerHTML = `<div class="stack xt"><div><span class="kicker">${esc(r.exam_title)} · ${k === 'reading' ? '考试小练' : '题型专练'}</span><h1 class="h1">${esc(r.title)}</h1>
         <p class="small">${esc(r.how)}</p><p class="tiny muted">${esc(r.note)}</p></div>
-      <div class="row between"><span class="tiny muted">第 ${r.index} 组，共 ${r.of} 组${s.title ? ` · <span lang="en">${esc(s.title)}</span>` : ''}</span><span class="tiny muted" id="xtLeft">还有 ${n} 题</span></div>
+      <div class="row between"><span class="tiny muted">${[r.of > 1 ? `第 ${r.index} 组，共 ${r.of} 组` : '', s.title ? `<span lang="en">${esc(s.title)}</span>` : ''].filter(Boolean).join(' · ')}</span><span class="tiny muted" id="xtLeft">还有 ${n} 题</span></div>
       ${body}
       <button class="btn primary block" id="xtDone" type="button">交卷</button>
       <a class="link small" href="#/exam/${esc(exam)}">回到考试练习</a></div>`;
@@ -242,7 +245,7 @@
         <div class="${it.correct ? 'ok' : 'no'} small">${it.correct ? '✓ 答对' : '✗ 答错了，答案是'}：${esc(right(it, i))}${!it.correct && ans[i] != null ? `<span class="tiny muted">（你选的：${esc(k === 'proof' ? ans[i] : label(i, ans[i]))}）</span>` : ''}</div>
         <div class="tiny muted">${esc(it.why)}</div></div>`).join('')}</div>
       ${text ? `<details class="section"><summary class="small">看原文${k === 'cloze' || k === 'bank' ? '（空里填的是答案）' : ''}</summary><div class="exam-passage xt-text">${esc(text)}</div></details>` : ''}
-      <div class="row"><button class="btn primary" id="xtNext" type="button">再做一组</button><a class="btn ghost" href="#/exam/${esc(r.exam)}">回到考试练习</a></div></div>`;
+      <div class="row"><button class="btn primary" id="xtNext" type="button">${k === 'reading' ? '再读一篇' : '再做一组'}</button><a class="btn ghost" href="#/exam/${esc(r.exam)}">回到考试练习</a></div></div>`;
     announce(`${out.of} 题做对 ${out.right} 题`);
     document.getElementById('xtNext').onclick = () => { window.scrollTo(0, 0); examTypeView(r.exam, r.type, out.next); };
   }

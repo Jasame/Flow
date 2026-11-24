@@ -378,7 +378,10 @@ def persona_exam(cl):
         s, r = cl.post('/api/next/placement', {'answers': [{'question': i['id'], 'choice': None} for i in t['items'][:4]]})
         check(who, 'starting check: decided after a band answered "不会"', s == 200 and r.get('done') and r.get('level') == 'A2', r)
     s, pp = cl.post('/api/next/exam/paper', {'exam': 'cet6'})
-    check(who, 'exam practice: a CET-6 paper of 22 questions', s == 200 and sum(len(x.get('items') or [q for ps in x['passages'] for q in ps['items']]) for x in pp['parts']) == 22, s)
+    # 词汇 10 + 语法 8, and 2 questions a passage: 1–3 passages by the learner's minutes a day (r28)
+    npass = len(next((x['passages'] for x in pp.get('parts', []) if x.get('key') == 'reading'), [])) if s == 200 else 0
+    check(who, f'exam practice: a CET-6 paper of 18 questions + 2 for each of its {npass} passages', s == 200 and 1 <= npass <= 3
+          and sum(len(x.get('items') or [q for ps in x['passages'] for q in ps['items']]) for x in pp['parts']) == 18 + 2 * npass, s)
     if s == 200:
         s, r = cl.post('/api/next/exam/submit', {'paper': pp['paper'], 'answers': {}, 'seconds': 60})
         check(who, 'exam practice: handed in and saved', s == 200 and r.get('total') == 22 and r.get('saved') and len(r.get('history', [])) >= 1, r if s != 200 else r.get('parts'))

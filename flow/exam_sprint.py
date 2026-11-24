@@ -8,7 +8,7 @@ not remembered (a month later the reviews come to four or five times that), so p
 the most common words first (every word book is ordered most common first). In the last SPRINT_DAYS days 今日's plan
 adds the weekly practice set and a round on that exam's grammar points (skills_service.daily_path).
 """
-import datetime, json, math, random, time
+import datetime, json, math, random, re, time
 
 import next_service as nx
 import exam_service as ES
@@ -207,6 +207,8 @@ def _public_set(t, s):
 
 def type_set(c, uid, exam, tid, want=None):
     """The next set of a type: the one done least often (a set asked for by id when given)."""
+    if _reading_tid(tid):
+        return reading_set(c, uid, exam, tid, want)
     t = _type(exam, tid)
     if not t or exam not in available():
         return {'error': '没有这个题型'}, 404
@@ -231,6 +233,8 @@ def _norm(w):
 
 def type_submit(c, uid, data):
     exam, tid, sid = data.get('exam'), data.get('type'), data.get('set')
+    if isinstance(exam, str) and _reading_tid(tid):
+        return reading_submit(c, uid, data)
     t = _type(exam, tid) if isinstance(exam, str) and isinstance(tid, str) else None
     s = next((x for x in t['sets'] if x['id'] == sid), None) if t else None
     if not s:
@@ -254,6 +258,143 @@ def type_submit(c, uid, data):
         c.commit()
     nxt = t['sets'][(t['sets'].index(s) + 1) % len(t['sets'])]['id']
     return {'right': right, 'of': len(items), 'items': items, 'saved': bool(uid), 'next': nxt}, 200
+
+
+# ---------- 考试小练 (r28 第 4 段): a few minutes of the exam every day, sized to the minutes 今日's plan gives it ----------
+# Today's piece is one passage at the exam's reading level (阅读一篇, 2 or 4 questions) or one set of its two question
+# types, whichever fits the minutes: the weakest part of the last full set first when that was reading, else the three
+# in turn, day by day. Time: the text once at 130 words a minute, then each item (21–36 s by kind).
+WPM = 130
+ITEM_SECS = {'cloze': 21, 'bank': 24, 'choice': 24, 'tfng': 30, 'match': 30, 'headings': 36, 'proof': 36, 'reading': 30}
+READING = 'reading'  # 阅读一篇; 'reading-2' asks only the first two questions (a short budget)
+
+
+def _reading_tid(tid):
+    return isinstance(tid, str) and tid in (READING, READING + '-2')
+
+
+def est_minutes(kind, words, items):
+    return max(2, math.ceil(words / WPM + items * ITEM_SECS[kind] / 60))
+
+
+def _set_words(s):
+    text = s.get('text') or ' '.join(s.get('paras') or []) or ' '.join(s.get('lines') or []) or ' '.join(it.get('prompt', '') for it in s['items'])
+    return len(re.sub(r'\{\d+\}', ' ', text).split())
+
+
+def _next_set(c, uid, exam, t):
+    done = {}
+    if uid:
+        for (sid,) in c.execute('SELECT set_id FROM next_exam_type_results WHERE user_id=? AND exam=? AND type=?', (uid, exam, t['id'])):
+            done[sid] = done.get(sid, 0) + 1
+    return min(t['sets'], key=lambda x: (done.get(x['id'], 0), t['sets'].index(x)))
+
+
+def _reading_packs(c, exam):
+    level = ES.EXAMS[exam]['reading']
+    return sorted((p for _, p in nx._public_packs(c) if nx.cefr(p) == level and str(p['id']).startswith('v5-') and len(p.get('questions') or []) >= 2
+                   and not p.get('series')), key=lambda p: p['id'])
+
+
+def _reading_pack(c, uid, exam, now=None):
+    """Today's passage: one the learner has not answered here nor checked in 学一篇, the same all day."""
+    packs = _reading_packs(c, exam)
+    seen = set()
+    if uid:
+        seen = {r[0] for r in c.execute("SELECT set_id FROM next_exam_type_results WHERE user_id=? AND exam=? AND type=?", (uid, exam, READING))}
+        seen |= {pid for pid, steps in nx._done(c, uid).items() if 'check' in steps}
+    pool = [p for p in packs if p['id'] not in seen] or packs
+    return random.Random(f'{uid}|{nx._day(now)}|{exam}|{READING}').choice(pool) if pool else None
+
+
+def reading_set(c, uid, exam, tid, want=None):
+    """阅读一篇 as a set of the 题型专练 page: an original passage at the exam's level, its questions without answers."""
+    if exam not in available():
+        return {'error': '没有这个题型'}, 404
+    p = next((x for x in _reading_packs(c, exam) if x['id'] == want), None) if want else _reading_pack(c, uid, exam)
+    if not p:
+        return {'error': '没有这一组'}, 404
+    qs = p['questions'][:2 if tid.endswith('-2') else 4]
+    level = ES.EXAMS[exam]['reading']
+    return {'exam': exam, 'exam_title': ES.EXAMS[exam]['title'], 'type': tid, 'title': '阅读一篇',
+            'how': f'读一篇 {level} 难度的原创短文，回答 {len(qs)} 道题。每题的依据都在文章里。', 'note': TYPES_NOTE,
+            'set': {'id': p['id'], 'title': p.get('title_en') or p['title'], 'kind': READING, 'text': p['body'],
+                    'items': [{'prompt': q['prompt'], 'options': q['options']} for q in qs]},
+            'index': 1, 'of': 1}, 200
+
+
+def reading_submit(c, uid, data):
+    exam, tid, sid = data.get('exam'), data.get('type'), data.get('set')
+    p = next((x for x in _reading_packs(c, exam) if x['id'] == sid), None) if exam in available() and isinstance(sid, str) else None
+    if not p:
+        return {'error': '没有这一组'}, 404
+    qs = p['questions'][:2 if tid.endswith('-2') else 4]
+    answers = data.get('answers') if isinstance(data.get('answers'), list) else []
+    items = []
+    for i, q in enumerate(qs):
+        a = answers[i] if i < len(answers) else None
+        pick = a if type(a) is int and 0 <= a < len(q['options']) else None
+        items.append({'correct': pick == q['answer'], 'choice': pick, 'answer': q['answer'], 'why': q.get('evidence') or '', 'evidence': q.get('evidence') or ''})
+    right = sum(x['correct'] for x in items)
+    if uid:
+        c.execute('INSERT INTO next_exam_type_results(user_id,exam,type,set_id,right,total,created) VALUES(?,?,?,?,?,?,?)',
+                  (uid, exam, READING, p['id'], right, len(items), time.time()))
+        c.commit()
+    nxt = _reading_pack(c, uid, exam)
+    return {'right': right, 'of': len(items), 'items': items, 'saved': bool(uid), 'next': nxt['id'] if nxt and nxt['id'] != p['id'] else None}, 200
+
+
+def _day_start(now=None):
+    return datetime.datetime.combine(_today(now), datetime.time(), nx.TZ).timestamp()
+
+
+def drill_pick(c, uid, exam, minutes, now=None):
+    """What today's 考试小练 is: {'tid', 'title', 'items', 'minutes'} — the piece that fits `minutes` (a minute over is
+    fine), the weakest part first, else in turn by day. 阅读一篇 is always there: two questions when four do not fit."""
+    out = []
+    p = _reading_pack(c, uid, exam, now)
+    if p:
+        words, nq = len(p['body'].split()), min(4, len(p['questions']))
+        q = nq if est_minutes(READING, words, nq) <= minutes + 1 else 2
+        out.append({'tid': READING if q > 2 else READING + '-2', 'title': '阅读一篇', 'items': q, 'minutes': est_minutes(READING, words, q)})
+    for t in _types(exam):
+        st = _next_set(c, uid, exam, t)
+        m = est_minutes(t['kind'], _set_words(st), len(st['items']))
+        if m <= minutes + 1:
+            out.append({'tid': t['id'], 'title': t['title'], 'items': len(st['items']), 'minutes': m})
+    if not out:
+        return None
+    tr = trend(c, uid, exam, 1)
+    parts = tr[-1]['parts'] if tr else {}
+    if parts.get('reading') is not None and parts['reading'] < min(v for k, v in parts.items() if k != 'reading') and out[0]['tid'].startswith(READING):
+        return out[0]  # the last full set's reading was its weakest part
+    return out[_today(now).toordinal() % len(out)]
+
+
+def drill_step(c, uid, minutes, now=None):
+    if not uid or not minutes or minutes <= 0:
+        return None
+    g = goal(c, uid)
+    exam = g and g.get('exam')
+    if not exam or exam not in available():
+        return None
+    short_ = short(exam)
+    # done today: any 题型专练 set or passage of this exam, or a full set
+    last = c.execute('SELECT type, right, total FROM next_exam_type_results WHERE user_id=? AND exam=? AND created>=? ORDER BY created DESC LIMIT 1',
+                     (uid, exam, _day_start(now))).fetchone()
+    full = c.execute('SELECT score, total FROM next_exam_results WHERE user_id=? AND exam=? AND created>=? ORDER BY created DESC LIMIT 1',
+                     (uid, exam, _day_start(now))).fetchone()
+    if last or full:
+        r = last or full
+        title = '阅读一篇' if last and last['type'] == READING else (_type(exam, last['type']) or {}).get('title', '一套练习') if last else '一套练习'
+        return {'key': 'exam-drill', 'title': f'考试小练：{short_}{title}', 'sub': f"今天做过了：{r['total']} 题对 {r['right' if last else 'score']} 题",
+                'href': f'#/exam/{exam}', 'done': True, 'minutes': 0}
+    pick = drill_pick(c, uid, exam, minutes, now)
+    if not pick:
+        return None
+    what = f"{ES.EXAMS[exam]['reading']} 难度的原创短文，{pick['items']} 题" if pick['tid'].startswith(READING) else f"一组 {pick['items']} 题，原创，不是真题"
+    return {'key': 'exam-drill', 'title': f"考试小练：{short_}{pick['title']}", 'sub': f"{what} · 约 {pick['minutes']} 分钟",
+            'href': f"#/exam/{exam}/{pick['tid']}", 'done': False, 'minutes': pick['minutes']}
 
 
 # ---------- 考点语法: the exam's grammar points in one mixed round ----------

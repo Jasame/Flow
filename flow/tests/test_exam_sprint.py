@@ -230,6 +230,83 @@ class SprintTests(unittest.TestCase):
         self.assertEqual(sp.type_submit(self.c, 1, {'exam': 'ielts', 'type': 'tfng', 'set': 'nope', 'answers': []})[1], 404)
         self.assertEqual(sp.type_set(self.c, 1, 'cet4', 'nope')[1], 404)
 
+    # ---------------- r28 第 4 段: 考试小练 every day, the full set sized to the minutes a day ----------------
+
+    def test_full_set_follows_the_minutes_a_day(self):
+        for exam, e in ex.EXAMS.items():  # 词汇 + 语法, then each passage its share of the exam's suggested minutes
+            share = (e['minutes'] - ex.BASE_MINUTES) / 2
+            self.assertEqual([ex.set_minutes(exam, m) for m in (10, 15, 20, 60)], [int(ex.BASE_MINUTES + n * share + 0.5) for n in (1, 1, 2, 2)], exam)
+            self.assertEqual(ex.set_minutes(exam, 15, sprint=True), int(ex.BASE_MINUTES + 3 * share + 0.5), exam)
+        reading = lambda p: len(next(x for x in p['parts'] if x['key'] == 'reading')['passages'])
+        p, _ = ex.paper(self.c, 1, 'cet4')  # 15 minutes a day (setUp)
+        self.assertEqual((reading(p), p['minutes']), (1, ex.set_minutes('cet4', 15)))
+        nx.save_profile(self.c, 1, {**nx.profile(self.c, 1), 'minutes': 30})
+        p, _ = ex.paper(self.c, 1, 'cet4')
+        self.assertEqual((reading(p), p['minutes']), (2, ex.set_minutes('cet4', 30)))
+        self.goal('cet4', 20)  # the last four weeks before this exam: three passages
+        p, _ = ex.paper(self.c, 1, 'cet4')
+        self.assertEqual((reading(p), p['minutes']), (3, ex.set_minutes('cet4', 30, sprint=True)))
+        self.assertEqual(reading(ex.paper(self.c, 1, 'cet6')[0]), 2)  # another exam than the one coming
+        g, _ = ex.paper(self.c, None, 'cet4')  # a guest: the set as before
+        self.assertEqual((reading(g), g['minutes']), (2, ex.EXAMS['cet4']['minutes']))
+        r, _ = ex.submit(self.c, 1, {'paper': p['paper'], 'answers': {}, 'seconds': 60})
+        self.assertEqual((r['minutes'], r['parts'][-1]['of']), (p['minutes'], 3 * ex.READING_Q))
+        cet4 = next(x for x in ex.overview(self.c, 1)[0]['exams'] if x['id'] == 'cet4')
+        self.assertEqual(cet4['minutes'], ex.set_minutes('cet4', 30, sprint=True))
+
+    def test_reading_drill_hides_its_answers_and_is_graded(self):
+        s, code = sp.type_set(self.c, 1, 'cet6', 'reading')
+        self.assertEqual((code, s['set']['kind'], s['title']), (200, 'reading', '阅读一篇'))
+        pack = next(p for p in sp._reading_packs(self.c, 'cet6') if p['id'] == s['set']['id'])
+        self.assertEqual(nx.cefr(pack), ex.EXAMS['cet6']['reading'])
+        self.assertEqual(len(s['set']['items']), min(4, len(pack['questions'])))
+        self.assertNotIn('"answer"', json.dumps(s['set'])); self.assertIn('不是真题', s['note'])
+        right = [q['answer'] for q in pack['questions'][:4]]
+        out, code = sp.type_submit(self.c, 1, {'exam': 'cet6', 'type': 'reading', 'set': pack['id'], 'answers': right[:-1] + [None]})
+        self.assertEqual((code, out['right'], out['of'], out['saved']), (200, len(right) - 1, len(right), True))
+        self.assertTrue(all(i['why'] for i in out['items']))
+        self.assertNotEqual(out['next'], pack['id'])
+        self.assertNotEqual(sp.type_set(self.c, 1, 'cet6', 'reading')[0]['set']['id'], pack['id'])  # a passage answered is not served again first
+        two, _ = sp.type_set(self.c, 1, 'cet6', 'reading-2', pack['id'])
+        self.assertEqual(len(two['set']['items']), 2)
+        self.assertEqual(sp.type_list(self.c, 1, 'cet6'), sp.type_list(self.c, 1, 'cet6'))  # the passage is not one of the two types
+        self.assertNotIn('reading', [t['id'] for t in sp.type_list(self.c, 1, 'cet6')])
+        self.assertEqual(sp.type_set(self.c, 1, 'cet6', 'reading', 'v5-not-a-pack')[1], 404)
+        a2 = next(p['id'] for p in sp._reading_packs(self.c, 'zk'))  # a passage of another level is not this exam's
+        self.assertEqual(sp.type_submit(self.c, 1, {'exam': 'cet6', 'type': 'reading', 'set': a2, 'answers': []})[1], 404)
+        self.assertFalse(sp.type_submit(self.c, None, {'exam': 'cet6', 'type': 'reading', 'set': pack['id'], 'answers': right})[0]['saved'])
+
+    def test_drill_step_fits_the_minutes_and_ticks_when_done(self):
+        self.assertIsNone(ex.drill_step(self.c, 1, 5))  # no exam goal
+        self.goal('cet4', 60)
+        self.assertIsNone(ex.drill_step(self.c, 1, 0))
+        self.assertIsNone(ex.drill_step(self.c, None, 5))
+        tids = {'reading', 'reading-2'} | {t['id'] for t in T.TYPES['cet4']}
+        for m in (3, 4, 5, 6, 8, 10):
+            st = ex.drill_step(self.c, 1, m, self.now)
+            self.assertEqual((st['key'], st['done']), ('exam-drill', False))
+            self.assertLessEqual(st['minutes'], m + 1, (m, st))  # a minute over fits, as the plan packs it
+            self.assertTrue(st['href'].startswith('#/exam/cet4/') and st['href'].split('/')[-1] in tids, st)
+            self.assertTrue(st['title'].startswith('考试小练：四级'))
+            self.assertIn(f"约 {st['minutes']} 分钟", st['sub'])
+        # the same piece all day
+        self.assertEqual(ex.drill_step(self.c, 1, 6, self.now), ex.drill_step(self.c, 1, 6, self.now))
+        # 3 minutes: no 10-item set fits, so a passage
+        self.assertTrue(ex.drill_step(self.c, 1, 3, self.now)['href'].split('/')[-1].startswith('reading'))
+        # the last full set's reading its weakest part: reading first, whatever the day
+        parts = [{'key': 'vocab', 'title': '词汇', 'right': 9, 'of': 10}, {'key': 'grammar', 'title': '语法', 'right': 6, 'of': 8},
+                 {'key': 'reading', 'title': '阅读', 'right': 0, 'of': 2}]
+        self.c.execute('INSERT INTO next_exam_results(user_id,exam,paper,score,total,parts,seconds,created) VALUES(1,?,?,?,?,?,?,?)',
+                       ('cet4', 'p-weak', 15, 20, json.dumps(parts), 600, self.now - DAY)); self.c.commit()
+        for d in range(3):
+            self.assertIn('/reading', ex.drill_step(self.c, 1, 6, self.now + d * DAY)['href'])
+        # done today: any set or passage of this exam ticks it
+        sp.type_submit(self.c, 1, {'exam': 'cet4', 'type': 'banked', 'set': 'banked-1', 'answers': []})
+        st = ex.drill_step(self.c, 1, 6)
+        self.assertEqual((st['done'], st['title']), (True, '考试小练：四级选词填空'))
+        self.assertIn('今天做过了', st['sub'])
+        self.assertFalse(ex.drill_step(self.c, 1, 6, self.now + DAY)['done'])  # tomorrow: a new one
+
     def test_routes(self):
         self.assertEqual(nx.get(self.c, None, '/api/next/exam/type', {'exam': ['ky'], 'type': ['newtype']})[1], 200)
         self.assertEqual(nx.get(self.c, None, '/api/next/exam/goal', {})[1], 401)
