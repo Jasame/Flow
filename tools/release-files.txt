@@ -345,6 +345,7 @@ flow/tests/test_slim.py
 flow/tests/test_speak_rounds.py
 flow/tests/test_survey.py
 flow/tests/test_trial_survey.py
+flow/tests/test_tts.py
 flow/tests/test_ux_round.py
 flow/tests/test_vertex.py
 flow/tests/test_vocab.py
@@ -355,6 +356,7 @@ flow/tests/test_wordbooks_open.py
 flow/tools/build_graded.py
 flow/tools/build_reference.py
 flow/tools/revise_pedagogy.py
+flow/tts_service.py
 flow/upgrade.sh
 flow/user_guide.py
 flow/vertex_auth.py

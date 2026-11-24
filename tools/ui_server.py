@@ -139,6 +139,13 @@ def fake(messages, audio=None, grounding=False):
 
 chat_service.request_model = fake
 
+# The server voice (tts_service): on, answered by a CosyVoice sample instead of the gateway; files in this run's folder.
+os.environ['FLOW_TTS_MODEL'] = 'flow-tts'
+import tts_service  # noqa: E402
+TTS_SAMPLE = (Path(__file__).with_name('ui-fixtures') / 'tts-sample.mp3').read_bytes()
+tts_service._speak = lambda text, voice: TTS_SAMPLE
+tts_service.directory = lambda: Path(tmp) / 'tts'
+
 PID = 'v5-science-b2-noise-cancelling'
 LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'science']), 'exam': ('B2', 'exam', ['science']),
             # one learner per device in tools/ui_test.py, so each device starts from the same state

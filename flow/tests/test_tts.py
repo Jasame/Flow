@@ -1,0 +1,203 @@
+"""Server voice (tts_service, r28): a sentence the browser used to say is made by CosyVoice through the gateway once per
+voice, stored, and served to everyone after; guests get stored ones only; caps per learner and per day; overnight the
+fixed sentences are made while the server is idle; nothing happens without FLOW_TTS_MODEL."""
+import json, os, sys, tempfile, threading, time, unittest, urllib.error, urllib.request
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from unittest.mock import patch
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import app, next_service as nx, tts_service as tts  # noqa: E402
+
+MP3 = b'ID3' + b'\x00' * 400
+
+
+class Gateway:
+    """A stand-in for the xmc-api gateway's /v1/audio/speech: answers mp3 bytes (or a set status) and records requests."""
+    def __init__(self):
+        self.seen, self.status = [], 200
+        outer = self
+
+        class H(BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def do_POST(self):
+                body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+                outer.seen.append({'path': self.path, 'auth': self.headers.get('Authorization'), **body})
+                if outer.status != 200:
+                    self.send_response(outer.status); self.send_header('Content-Length', '0'); self.end_headers(); return
+                self.send_response(200); self.send_header('Content-Type', 'audio/mpeg'); self.send_header('Content-Length', str(len(MP3)))
+                self.end_headers(); self.wfile.write(MP3)
+        self.srv = ThreadingHTTPServer(('127.0.0.1', 0), H)
+        threading.Thread(target=self.srv.serve_forever, daemon=True).start()
+        self.url = f'http://127.0.0.1:{self.srv.server_address[1]}/v1/chat/completions'
+
+    def close(self):
+        self.srv.shutdown(); self.srv.server_close()
+
+
+class TtsCase(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        root = Path(self.tmp.name)
+        self.gw = Gateway()
+        self.patches = [patch.object(app, 'DB', root / 't.db'), patch.object(nx, 'AUDIO_DIR', root / 'audio'),
+                        patch.dict(os.environ, {'FLOW_AI_URL': self.gw.url, 'FLOW_AI_KEY': 'flow-key', 'FLOW_TTS_MODEL': 'flow-tts',
+                                                'FLOW_TTS_USER_CHARS': '400', 'FLOW_TTS_DAILY_CHARS': '1000', 'FLOW_COOKIE_SECURE': '0'})]
+        for p in self.patches:
+            p.start()
+        app.init(); self.c = app.db()
+        for n in ('lin', 'mei'):
+            self.c.execute('INSERT INTO users(username,password) VALUES(?,?)', (n, 'h'))
+        self.c.commit()
+
+    def tearDown(self):
+        self.c.close()
+        for p in reversed(self.patches):
+            p.stop()
+        self.gw.close(); self.tmp.cleanup()
+
+
+class ServerVoiceTests(TtsCase):
+    def test_off_without_a_model_and_the_gateway_address(self):
+        with patch.dict(os.environ, {'FLOW_TTS_MODEL': ''}):
+            self.assertFalse(tts.enabled())
+            self.assertEqual(tts.post(self.c, 1, {'text': 'Hello there.'})[1], 503)
+        self.assertTrue(tts.enabled())
+        self.assertTrue(tts.speech_url().endswith('/v1/audio/speech'))
+        with patch.dict(os.environ, {'FLOW_AI_URL': 'https://api.example.test', 'FLOW_TTS_URL': ''}):
+            self.assertEqual(tts.speech_url(), 'https://api.example.test/v1/audio/speech')
+
+    def test_made_once_per_voice_then_served_to_everyone(self):
+        text = "Hi there!  What can I get for you today?"
+        body, st = tts.post(self.c, 1, {'text': text, 'voice': 'uk-f'})
+        self.assertEqual((st, body['made']), (200, True))
+        self.assertRegex(body['url'], r'^/audio/tts/uk-f/[0-9a-f]{32}\.mp3$')
+        g = self.gw.seen[0]
+        self.assertEqual((g['path'], g['auth'], g['model'], g['voice'], g['input'], g['response_format']),
+                         ('/v1/audio/speech', 'Bearer flow-key', 'flow-tts', 'loongemily_v3', 'Hi there! What can I get for you today?', 'mp3'))
+        f = tts.file('uk-f', body['url'].rsplit('/', 1)[1])
+        self.assertEqual(f.read_bytes(), MP3); self.assertEqual(oct(f.stat().st_mode & 0o777), '0o644')
+        again, _ = tts.post(self.c, 2, {'text': text + ' ', 'voice': 'uk-f'})  # another learner, the same sentence
+        guest, _ = tts.post(self.c, None, {'text': text, 'voice': 'uk-f'})
+        self.assertEqual((again['url'], again['made'], guest['url']), (body['url'], False, body['url']))
+        self.assertEqual(len(self.gw.seen), 1)  # made once
+        other, _ = tts.post(self.c, 1, {'text': text, 'voice': 'us-m'})
+        self.assertNotEqual(other['url'], body['url']); self.assertEqual(self.gw.seen[-1]['voice'], 'loongandy_v3')
+        self.assertEqual({v: tts.VOICES[v] for v in ('us-f', 'us-m', 'uk-f', 'uk-m')},
+                         {'us-f': 'loongabby_v3', 'us-m': 'loongandy_v3', 'uk-f': 'loongemily_v3', 'uk-m': 'loongeric_v3'})
+
+    def test_guests_get_stored_sentences_only(self):
+        body, st = tts.post(self.c, None, {'text': 'Nothing stored yet.'})
+        self.assertEqual((st, body['code']), (404, 'guest')); self.assertEqual(self.gw.seen, [])
+
+    def test_bad_text_and_unknown_voice(self):
+        for t in ('', '   ', '你好世界', '1234 5678', 'x' * (tts.MAX_CHARS + 1)):
+            self.assertEqual(tts.post(self.c, 1, {'text': t})[1], 400, t[:10])
+        body, st = tts.post(self.c, 1, {'text': 'Hello there.', 'voice': 'zz-x'})
+        self.assertEqual(st, 200); self.assertIn('/us-f/', body['url'])  # the default voice
+
+    def test_caps_per_learner_and_per_day(self):
+        line = 'This sentence is a little longer than the others, on purpose. ' * 3  # ~190 characters
+        self.assertEqual(tts.post(self.c, 1, {'text': line})[1], 200)
+        self.assertEqual(tts.post(self.c, 1, {'text': line + 'Again.'})[1], 200)
+        body, st = tts.post(self.c, 1, {'text': line + 'Third.'})
+        self.assertEqual((st, body['code']), (429, 'cap'))  # learner 1 over 400 characters today
+        self.assertEqual(tts.post(self.c, 1, {'text': line})[1], 200)  # a stored sentence costs nothing
+        for k in range(2):
+            self.assertEqual(tts.post(self.c, 2, {'text': line + f'Other {k}.'})[1], 200)
+        self.assertEqual(tts.post(self.c, 2, {'text': 'Short one.'})[1], 200)
+        made = len(self.gw.seen)
+        self.assertEqual(tts.post(self.c, 2, {'text': line[:300] + 'Over the site cap.'})[1], 429)  # the site's 1,000
+        self.assertEqual(len(self.gw.seen), made)
+        site = self.c.execute('SELECT chars, files FROM tts_usage WHERE who=0').fetchone()
+        self.assertEqual(site['files'], made); self.assertLessEqual(site['chars'], 1000)
+
+    def test_a_gateway_failure_stores_and_charges_nothing(self):
+        self.gw.status = 502
+        body, st = tts.post(self.c, 1, {'text': 'The gateway is down.'})
+        self.assertEqual((st, body['code']), (502, 'gateway'))
+        self.assertIsNone(self.c.execute('SELECT 1 FROM tts_usage').fetchone())
+        self.assertFalse((nx.AUDIO_DIR / 'tts').exists() and any((nx.AUDIO_DIR / 'tts').rglob('*.mp3')))
+
+    def test_stored_names_are_checked(self):
+        self.assertIsNone(tts.file('us-f', '../../t.db')); self.assertIsNone(tts.file('xx', 'a' * 32 + '.mp3'))
+        self.assertIsNone(tts.file('us-f', 'a' * 32 + '.mp3'))  # well-formed, not stored
+
+
+class RouteTests(TtsCase):
+    def setUp(self):
+        super().setUp()
+        self.srv = ThreadingHTTPServer(('127.0.0.1', 0), app.Handler)
+        threading.Thread(target=self.srv.serve_forever, daemon=True).start()
+
+    def tearDown(self):
+        self.srv.shutdown(); self.srv.server_close()
+        super().tearDown()
+
+    def call(self, path, body=None, headers=None):
+        req = urllib.request.Request(f'http://127.0.0.1:{self.srv.server_address[1]}{path}', data=None if body is None else json.dumps(body).encode(),
+                                     headers={'Content-Type': 'application/json', **(headers or {})}, method='GET' if body is None else 'POST')
+        try:
+            with urllib.request.urlopen(req, timeout=10) as r:
+                return r.status, r.read(), dict(r.headers)
+        except urllib.error.HTTPError as e:
+            return e.code, e.read(), dict(e.headers)
+
+    def test_the_page_learns_it_is_on_and_the_file_is_served_with_ranges(self):
+        st, body, _ = self.call('/api/session')
+        self.assertTrue(json.loads(body)['tts'])
+        u, made = tts.ensure(self.c, 1, 'Served from here.', 'us-f')
+        st, body, h = self.call(u, headers={'Range': 'bytes=0-2'})
+        self.assertEqual((st, body, h['Content-Type']), (206, b'ID3', 'audio/mpeg'))
+        st, body, _ = self.call('/api/next/tts', {'text': 'Served from here.', 'voice': 'us-f'})  # a guest: stored, so given
+        self.assertEqual((st, json.loads(body)['url']), (200, u))
+        self.assertEqual(self.call('/api/next/tts', {'text': 'Not stored for guests.'})[0], 404)
+        self.assertEqual(self.call('/audio/tts/us-f/' + 'b' * 32 + '.mp3')[0], 404)
+
+
+class NightTests(TtsCase):
+    def test_fixed_sentences_come_from_the_content(self):
+        import ielts_speaking as ie, daily_line as dl
+        fixed = tts.fixed_texts()
+        self.assertIn(tts.norm(next(iter(ie.PART1.values()))[2][0]), fixed)
+        self.assertIn(dl.QUOTES[0][1].replace(' / ', ', '), fixed)
+        self.assertFalse([t for t in fixed if '…' in t])  # templates with a gap are left to a tap
+        self.assertEqual(len(fixed), len(set(fixed)))
+
+    def test_prewarm_makes_them_within_the_budget_once(self):
+        fixed = tts.fixed_texts()
+        budget = sum(len(t) for t in fixed[:5]) + 1
+        r = tts.prewarm(self.c, budget=budget)
+        self.assertEqual((r['status'], r['made']), ('budget', 5))
+        self.assertEqual(self.c.execute('SELECT chars FROM tts_usage WHERE who=-1').fetchone()[0], budget - 1)
+        self.assertIsNone(self.c.execute('SELECT 1 FROM tts_usage WHERE who=0').fetchone())  # not the learners' share
+        r = tts.prewarm(self.c, budget=10 ** 6)
+        self.assertEqual((r['status'], r['made'], r['stored']), ('done', len(fixed) - 5, 5))
+        self.assertEqual(len(self.gw.seen), len(fixed))
+        self.assertEqual(tts.prewarm(self.c, budget=10 ** 6)['made'], 0)  # all stored: nothing asked again
+
+    def test_voices_in_use_follow_active_learners(self):
+        self.assertEqual(tts.voices_in_use(self.c), ['us-f'])
+        nx.save_profile(self.c, 2, {'level': 'B1', 'goal': 'work', 'themes': [], 'minutes': 15})
+        self.c.execute("UPDATE next_profiles SET voice='uk-m' WHERE user_id=2")
+        self.c.execute("INSERT INTO next_progress(user_id,pack,step,created) VALUES(2,'v5-x','read',?)", (time.time(),)); self.c.commit()
+        self.assertEqual(tts.voices_in_use(self.c), ['us-f', 'uk-m'])
+
+    def test_tick_runs_at_night_once(self):
+        started = []
+        with patch.object(tts.threading, 'Thread', lambda target, args, daemon: type('T', (), {'start': lambda s: started.append(args)})()):
+            tts._NIGHT['day'] = None
+            noon = 1_795_000_000  # some day, 12:xx in China (UTC+8) or not: find 03:30 and 12:30 of that day
+            import datetime
+            day = datetime.datetime.fromtimestamp(noon, nx.TZ).replace(hour=3, minute=30, second=0)
+            tts.tick(app.db, day.replace(hour=12).timestamp()); self.assertEqual(started, [])
+            tts.tick(app.db, day.timestamp()); tts.tick(app.db, day.timestamp() + 600)
+            self.assertEqual(len(started), 1)
+            with patch.dict(os.environ, {'FLOW_TTS_MODEL': ''}):
+                tts._NIGHT['day'] = None; tts.tick(app.db, day.timestamp()); self.assertEqual(len(started), 1)
+
+
+if __name__ == '__main__':
+    unittest.main()

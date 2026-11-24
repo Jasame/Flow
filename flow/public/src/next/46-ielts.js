@@ -45,7 +45,7 @@
     bringIntoView(out);
     if (S.user) refreshHome().catch(() => {});
   }
-  const ieltsSay = t => { if (TTS.ok) TTS.say(t); };  // WeChat has no browser voice: the question is on screen anyway
+  const ieltsSay = t => { if (TTS.can()) TTS.say(t); };  // WeChat has no browser voice; the server voice (when on) works there
 
   /* Part 1: the examiner's four questions in order. Each answer: what the AI heard and, folded, a better way to say it. */
   function ieltsPart1(d, x) {

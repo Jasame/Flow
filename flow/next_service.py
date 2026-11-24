@@ -1630,6 +1630,8 @@ def tap(c, data):
 
 def post_public(c, uid, path, data):
     """Routes open to guests (no state change for guests)."""
+    if path == '/api/next/tts':  # the server voice: guests get stored sentences, learners may make new ones (tts_service)
+        return __import__('tts_service').post(c, uid, data)
     if path == '/api/next/tap':
         return tap(c, data)
     if path == '/api/next/check':
