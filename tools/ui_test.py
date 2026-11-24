@@ -2448,12 +2448,15 @@ def backlog_run(pw):
         # 背词计划: 20 new words a day at 90 % comes to over half an hour a month in: the number, the way out, and one tap to 10
         go(pg, '#/vocab/plan'); pg.click('#dn [data-v="20"]'); pg.wait_for_timeout(200)
         hint = pg.text_content('#dnHint') or ''
-        check(dev, 'plan: half an hour or more says the minutes and offers 10 a day, one tap away',
-              '按现在的设置，一个月后每天大约要' in hint and '可以改成每天 10 个新词' in hint and pg.is_visible('#dnTen'), hint)
-        pg.click('#dnTen'); pg.wait_for_timeout(200)
-        hint = pg.text_content('#dnHint') or ''
-        check(dev, 'plan: after the tap, 10 a day is chosen and the hint is calm again',
-              pg.get_attribute('#dn [data-v="10"]', 'aria-pressed') == 'true' and not pg.is_visible('#dnTen') and '连新词约' in hint, hint)
+        # every learner has the day's word time now (time_budget, r28 第 1 段: 15 minutes at 60 a day), so the way out is the
+        # number of new words that time keeps up with (单词每天, r28 第 3 段), not a flat 10
+        wmh = pg.text_content('#wmHint') or ''
+        fit = pg.get_attribute('#wmFit', 'data-n')
+        check(dev, 'plan: more than the day\'s word time says the minutes and offers the number that fits, one tap away',
+              '连新词约' in hint and '按单词每天 15 分钟' in wmh and '比 15 分钟多' in wmh and pg.is_visible('#wmFit') and not pg.is_visible('#dnTen'), (hint, wmh))
+        pg.click('#wmFit'); pg.wait_for_timeout(200)
+        check(dev, 'plan: after the tap, that number is chosen and the offer is gone',
+              fit and pg.input_value('#dnOwn') == fit and not pg.is_visible('#wmFit'), (fit, pg.input_value('#dnOwn'), pg.text_content('#wmHint')))
         # r28 section 3: 单词每天 5 分钟. The 40 answered above are past it: today's words are done, the rest waits for the
         # coming days, 继续复习 goes on past the cap
         csrf = CFG['learners']['pile']['csrf']
