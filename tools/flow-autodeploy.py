@@ -18,14 +18,26 @@ For each request it
 Once a day (04:00–05:00 server time, when no release is waiting) it also runs the end-to-end test against what is
 deployed, from the copy kept by the last release that ran it, and writes data/e2e-daily.json (shown as "daily" in
 /api/deploy-status, which the GitHub monitor checks).
+
+With --beta it does the same for the 内测版 (flow.jasa.hk: /www/wwwroot/flow-beta, its own data, service flow-beta
+on port 8092, no console files): tags b<N>, its own state in /root/claude-ops/autodeploy-beta, its own copies of these
+tools in /root/claude-ops/beta (a version on trial never replaces the ones 语流's releases run with), no daily run.
 """
-import base64, datetime, fcntl, hashlib, json, re, shutil, subprocess, sys, time, urllib.error, urllib.request
+import base64, datetime, fcntl, hashlib, json, os, re, shutil, subprocess, sys, time, urllib.error, urllib.request
 from pathlib import Path
 
 REPO = 'Jasame/Flow'
 OPS = Path('/root/claude-ops')
-AD = OPS / 'autodeploy'
-STATUS = Path('/www/wwwroot/flow/data/deploy-status.json')
+BETA = '--beta' in sys.argv[1:]
+SITE = {  # where each site lives on the server; flow-pull.sh and qa_e2e.py read the same names
+    False: {'prefix': 'r', 'ad': OPS / 'autodeploy', 'home': OPS, 'data': Path('/www/wwwroot/flow/data'), 'env': {}},
+    True: {'prefix': 'b', 'ad': OPS / 'autodeploy-beta', 'home': OPS / 'beta', 'data': Path('/www/wwwroot/flow-beta/data'),
+           'env': {'FLOW_DIR': '/www/wwwroot/flow-beta', 'FLOW_SERVICE': 'flow-beta', 'FLOW_URL': 'http://127.0.0.1:8092',
+                   'FLOW_XMC': '', 'FLOW_ADMIN_URL': '', 'QA_BASE': 'http://127.0.0.1:8092', 'QA_DB': '/www/wwwroot/flow-beta/data/flow.sqlite3'}},
+}[BETA]
+AD = SITE['ad']
+STATUS = SITE['data'] / 'deploy-status.json'
+ENV = {**os.environ, **SITE['env']}
 HOSTS = ['cdn.jsdelivr.net', 'fastly.jsdelivr.net', 'gcore.jsdelivr.net', 'testingcf.jsdelivr.net']
 TOOLS = ['tools/flow-pull.sh', 'tools/flow-pull-rollback.sh', 'tools/flow-autodeploy.py', 'tools/qa_e2e.py']
 AUDIO = 'tools/qa-audio/'
@@ -102,15 +114,15 @@ def e2e_summary(work):
 def run_e2e(work, log):
     with log.open('w') as out:
         try:
-            subprocess.run([sys.executable, '-I', str(work / 'qa_e2e.py')], cwd=work, stdout=out, stderr=subprocess.STDOUT, timeout=1500)
+            subprocess.run([sys.executable, '-I', str(work / 'qa_e2e.py')], cwd=work, env=ENV, stdout=out, stderr=subprocess.STDOUT, timeout=1500)
         except subprocess.TimeoutExpired:
             pass
     return e2e_summary(work)
 
 
 def daily():
-    """The once-a-day end-to-end run against what is deployed."""
-    if time.localtime().tm_hour != DAILY_HOUR:
+    """The once-a-day end-to-end run against what is deployed (语流 only)."""
+    if BETA or time.localtime().tm_hour != DAILY_HOUR:
         return
     src = DAILY if (DAILY / 'qa_e2e.py').exists() else next(  # before any release kept a copy: the newest one that ran it
         (d for d in sorted(AD.glob('r*'), key=lambda d: d.stat().st_mtime, reverse=True)
@@ -144,7 +156,7 @@ def main():
     except BlockingIOError:
         return
     n = int((AD / 'next').read_text().strip()) if (AD / 'next').exists() else 1
-    tag = f'r{n}'
+    tag = f"{SITE['prefix']}{n}"
     try:
         req = request_for(tag)
     except Exception:
@@ -176,10 +188,14 @@ def main():
     except Exception as e:
         write_status({**st, 'state': 'done', 'result': 'ABORT_FETCH', 'error': str(e)[:300], 'finished': now()})
         return
+    if BETA and b'F=${FLOW_DIR:-' not in (work / 'flow-pull.sh').read_bytes():
+        # a commit from before the two sites: its flow-pull.sh knows only 语流's folder and service
+        write_status({**st, 'state': 'done', 'result': 'ABORT_OLD_TOOLS', 'error': 'this commit cannot be installed on the 内测版: merge main into it first', 'finished': now()})
+        return
     log = work / 'deploy.log'
     with log.open('w') as out:
         try:
-            subprocess.run(['bash', str(work / 'flow-pull.sh'), sha, manifest], stdout=out, stderr=subprocess.STDOUT, timeout=1800)
+            subprocess.run(['bash', str(work / 'flow-pull.sh'), sha, manifest], env=ENV, stdout=out, stderr=subprocess.STDOUT, timeout=1800)
         except subprocess.TimeoutExpired:
             pass
     text = log.read_text(errors='replace')
@@ -190,15 +206,16 @@ def main():
     st['manifest_ok'] = 'manifest mismatch' not in text
     write_status(st)
     if st['result'] in ('DEPLOYED', 'NOTHING_TO_DO'):
-        # keep the server's copies of the tools in step with what was just deployed
+        # keep the server's copies of the tools in step with what was just deployed (the 内测版 keeps its own)
+        SITE['home'].mkdir(parents=True, exist_ok=True)
         for name in ('flow-pull.sh', 'flow-pull-rollback.sh', 'flow-autodeploy.py'):
             if (work / name).exists():
-                shutil.copy2(work / name, OPS / name)
+                shutil.copy2(work / name, SITE['home'] / name)
     if e2e and st['result'] in ('DEPLOYED', 'NOTHING_TO_DO') and (work / 'qa_e2e.py').exists():
         st['state'] = 'testing'
         write_status(st)
         st['e2e'] = run_e2e(work, work / 'e2e.log')
-        if (work / 'qa-audio').is_dir() and any((work / 'qa-audio').iterdir()):  # keep this release's test for the daily run
+        if not BETA and (work / 'qa-audio').is_dir() and any((work / 'qa-audio').iterdir()):  # keep this release's test for the daily run
             shutil.rmtree(DAILY, ignore_errors=True)
             DAILY.mkdir(parents=True)
             shutil.copy2(work / 'qa_e2e.py', DAILY / 'qa_e2e.py')
