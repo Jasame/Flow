@@ -1,3 +1,3 @@
-c8112d33081781765567fa9a459918f4c133e0e6 522dcc6471a44f0c1155a10d888562d36d333a17b093a05e5c876ec42aa56c58 e2e light
-# b18 main: Merge pull request #102 from Jasame/ai-eval-filler = build of 1d31d69f687e
+ec7da430010f214ffdd97a985e7e7d22f6161477 1909e2812ca59543f4e0694e46a88c4d1cee724d2bf746e258c35a5d7acfa172 e2e light
+# b19 main: Merge pull request #103 from Jasame/content-batch2 = build of 3613895dc33f
 # Format: <commit sha> <manifest sha256> [e2e [light]]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
