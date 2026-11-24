@@ -2,7 +2,7 @@
 """例句预生成: AI example sentences written ahead of time for word-book words that no Flow text uses.
 
     python3 fill_examples.py [--env-file /etc/flow.env] [--books tem8,gre] [--per-call 16] [--max-calls N]
-                             [--pause 1.0] [--dry-run] [--status FILE]
+                             [--pause 1.0] [--dry-run] [--status FILE] [--offpeak]
 
 A word card shows up to two sentences from Flow's texts, else the dictionary's example, else an AI example. That last
 one is written the first time someone opens the card (the card says 「正在找例句…」 for a few seconds) and is then
@@ -17,10 +17,14 @@ for once. Books go in the order given (default: the exam and data books first, t
 progress every 20 calls and stops after 5 failed calls in a row. Exit status 0 when nothing is left to do, 1 when
 words are left (stopped early or --max-calls reached), 2 when no model is configured.
 
+--offpeak: when the examples' route is DeepSeek (ai_routes), wait out its peak hours (Beijing time, weekdays 9–12 and
+14–18), when its price is double. It also stops for the day once the console's daily AI budget is spent (state
+budget); run it again tomorrow. Every call is in ai_calls as 例句预生成（批量）.
+
 Run it in the background on the server, e.g.
     cd /www/wwwroot/flow && nohup python3 fill_examples.py > /root/claude-ops/fill-examples.log 2>&1 &
 or from the xmc.hk console (运维 → 后台任务, r26), which starts it with --status and shows that file's progress:
-{state: running | done | left | no-model, total, looked, calls, made, left, books, updated}.
+{state: running | waiting | done | left | budget | no-model, total, looked, calls, made, left, books, updated, until}.
 """
 import argparse, json, os, sqlite3, sys, time
 from pathlib import Path
@@ -53,6 +57,7 @@ def main(argv=None):
     ap.add_argument('--pause', type=float, default=1.0, help='两次请求之间停几秒')
     ap.add_argument('--dry-run', action='store_true', help='只数还缺多少，不请求')
     ap.add_argument('--status', help='把进度写进这个 JSON 文件（后台的「后台任务」读它）')
+    ap.add_argument('--offpeak', action='store_true', help='例句走 DeepSeek 时，避开它的高峰时段（北京时间工作日 9–12、14–18 点，价格翻倍）')
     a = ap.parse_args(argv)
     status = {'state': 'running', 'books': [], 'total': None, 'looked': 0, 'calls': 0, 'made': 0, 'left': None}
 
@@ -74,6 +79,7 @@ def main(argv=None):
     from vertex_auth import ai_enabled
     from chat_service import request_model
     from lab_service import parse
+    import ai_routes
     db = Path(os.environ.get('FLOW_DATA_DIR') or HERE / 'data') / 'flow.sqlite3'
     if not db.is_file():
         print(f'找不到网站数据库：{db}')
@@ -104,9 +110,19 @@ def main(argv=None):
             i += 1
         if not batch:
             continue
+        if ai_routes.over_budget():
+            print('今天的 AI 预算已用完：停下，明天再跑。', flush=True)
+            report(state='budget', looked=i, calls=calls, made=made)
+            return 1
+        while a.offpeak and ai_routes.route('fill-examples') == 'deepseek' and ai_routes.peak(time.time()):
+            until = ai_routes.next_offpeak(time.time())
+            report(state='waiting', until=until)
+            time.sleep(min(600, max(5, until - time.time())))
+        report(state='running', until=None)
         calls += 1
         try:
-            reply, _ = request_model(vs.example_messages(batch, level))
+            with ai_routes.task('fill-examples'):
+                reply, _ = request_model(vs.example_messages(batch, level))
             out = vs.example_results(parse(reply), batch)
             vs.save_examples(c, out)
             made += len(out)

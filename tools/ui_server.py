@@ -117,7 +117,7 @@ def fake(messages, audio=None, grounding=False):
     if '要讲解的句子：' in prompt:
         return J({'translation': '（演示）这句话的中文。', 'structure': '主干 + 从句。', 'points': [{'text': 'The', 'note': '开头先交代主语。', 'node': None}],
                   'pattern': {'frame': 'not A so much as B', 'example': 'It is not talent so much as practice.'}})
-    yours = prompt.split('学习者写的英文：\n', 1)[1].split('\n\n输出', 1)[0] if '学习者写的英文：\n' in prompt else 'I like it.'
+    yours = prompt.split('学习者写的英文：\n', 1)[1].split('\n\n', 1)[0] if '学习者写的英文：\n' in prompt else 'I like it.'
     return J({'verdict': 'minor', 'summary': '意思清楚。', 'corrected': yours, 'changes': [],
               'versions': [{'label': '更自然', 'text': yours, 'why': '—'}], 'used_well': [], 'keep': None})
 

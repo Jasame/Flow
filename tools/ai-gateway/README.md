@@ -93,6 +93,30 @@ cd /www/wwwroot/flow && python3 ai_check.py
 - 管理页：https://xmc.hk/api-admin/fallbacks.html。也可以用接口：`GET/POST /api-admin/api/fallbacks`，`PATCH/DELETE /api-admin/api/fallbacks/{id}`。
 - 数据存在网关的 `model_fallbacks` 表里。现在所有模型都还没有配备用线路。
 
+## 按任务选 DeepSeek 或 Gemini（2026-11-24 起，ai_routes.py）
+
+Flow 现在可以按任务选线路，不用删了再建 `flow-text`：
+
+```
+Flow 文字任务 ─┬─ 线路 gemini   → 模型 flow-text      → Gemini（备用：DeepSeek）
+               └─ 线路 deepseek → 模型 flow-deepseek  → DeepSeek（备用：Gemini）
+两条都不通时，Flow 再换主模型 gemini-3.8-flash；录音、联网检索一直走主模型。
+```
+
+网关里要有这几样（DeepSeek 的密钥由你本人填，别人不经手）：
+
+| 在哪里 | 加什么 |
+| --- | --- |
+| 上游连接 | `deepseek`，地址 `https://api.deepseek.com`，密钥填 DeepSeek 开放平台的 API Key，点「测试连接」 |
+| 模型与倍率 | `flow-deepseek`：上游 `deepseek`，实际模型 `deepseek-flash` |
+| 备用线路 | `flow-deepseek` 的备用：`gemini-flow` / `gemini-3.8-flash`；`flow-text` 的备用：`deepseek` / `deepseek-flash` |
+
+- 不用改 `/etc/flow.env`：`flow-deepseek` 是默认名字（要换名字时写 `FLOW_DEEPSEEK_AI_MODEL`）。
+- 每个任务走哪条线路，在 xmc.hk/flow →「AI 用量、费用和质量」里选，改了马上生效，记进操作记录；服务器上的默认值是 `FLOW_AI_ROUTES`（例如 `{"*": "deepseek"}`）。两样都没有时，全部走 `flow-text`，和以前一样。
+- Flow 每个文字请求都带 `"thinking": {"type": "disabled"}`（DeepSeek 默认会先思考，又慢又多花输出 token），走 DeepSeek 的 JSON 任务还带 `response_format: json_object`。Gemini 中转站会忽略这两个字段。
+- **换线路之前先考试**：在香港用内测版代码的一份副本跑 `python3 ai_eval.py --env-file /etc/flow-beta.env --route gemini --output …`，再 `--route deepseek`，比较通过数和报告里的 `usage`（token、命中缓存、估算费用）。哪个任务 DeepSeek 没过，那个任务就留在 Gemini。
+- 后台每晚 2–5 点（DeepSeek 半价时段）自动跑一次小评测（`ai_eval.py --quick`，约 17 次调用），结果画在同一页上。
+
 ## 日常：切换厂商
 
 在「模型与倍率」和「备用线路」里操作，改完立即生效，Flow 不用动：

@@ -53,8 +53,18 @@ def main():
         text,reason=chat_service._request_text_service([{'role':'user','content':'Give one short English greeting for a beginner.'}])
         if reason!='stop' or not text.strip():raise ValueError('Incomplete answer')
         return {'model':tp[2],'characters':len(text)}
+    import ai_routes
+    ds=ai_routes.model_name('deepseek')
+    used=sorted({v['route'] for v in ai_routes.routes().values()})
+    report['routes']={'in_use':used,'deepseek_model':ds}
+    def deepseek_check():
+        # straight to the DeepSeek route's model, "no thinking" and JSON as the site sends them
+        text,reason=chat_service._request_text_service([{'role':'user','content':'Return only JSON {"greeting": "<one short English greeting for a beginner>"}.'}],ds,ai_routes.extra_body('deepseek','ai-check-json'))
+        if reason!='stop' or not json.loads(text.strip().removeprefix('```json').removesuffix('```')).get('greeting'):raise ValueError('Incomplete answer')
+        return {'model':ds,'served':getattr(chat_service.INFO,'served',''),'usage':getattr(chat_service.INFO,'usage',None)}
     if not args.configuration_only:
         if tp:run('文字模型（'+tp[2]+'）',text_model_check)
+        if 'deepseek' in used and chat_service.text_provider(ds):run('DeepSeek 线路（'+ds+'）',deepseek_check)
         run('普通文字调用',text_check);run('真实流式输出',stream_check);run('学习反馈结构校验',structured_check)
         if args.grounding:
             def grounding():

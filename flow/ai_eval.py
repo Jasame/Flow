@@ -1,22 +1,28 @@
 #!/usr/bin/env python3
 """批改考题集: the AI's marking checked on fixed questions, before a model or a prompt is changed.
 
-    python3 ai_eval.py [--env-file /etc/flow.env] [--text-model NAME] [--main-model NAME] [--only rewrite,essay,translate]
-                       [--output report.json]
+    python3 ai_eval.py [--env-file /etc/flow.env] [--text-model NAME] [--main-model NAME] [--route gemini|deepseek]
+                       [--only rewrite,essay,translate,content] [--quick] [--output report.json]
 
 The questions are in corpus_data/ai-eval.json:
 - rewrite (仿写): learners' sentences with one typical error each, which must be put right in the expected way, and
   correct sentences, which must be left alone;
 - essay (写作): three short texts on the same task, good, middling and weak, marked twice each: the totals must come
   out in that order, and the two marks of one text close to each other;
-- translate (翻译): two translations of the same sentence, a good and a poor one, which must be scored well apart.
+- translate (翻译): two translations of the same sentence, a good and a poor one, which must be scored well apart;
+- content (内容): a sentence explained, example sentences, a level rewrite, a role-play's opening line, a sentence
+  translated: no right answer, but each must be fit to show a learner (the shape, the explanation quoting the sentence,
+  each example using its word, the rewrite keeping the text's numbers, the opening line a short English sentence).
 
 It runs the site's own marking code (next_service.rewrite, output_service.essay and output_service.translate: the
 same prompts and the same reading of the answers) with the model of the env file, in a throwaway database, so the
 site's data is never read or written. --text-model / --main-model try another model of the gateway for this run
-only (nothing on the server changes). Each answer says which service gave it: when the text service fails, the main
-one answers, and the report counts those. About 40 model calls a run. Exit status 0 when every question passed,
-1 when some did not, 2 when no model is configured.
+only (nothing on the server changes); --route sends every task down one route (ai_routes: gemini or deepseek) for this
+run; without it the tasks take the server's routes (FLOW_AI_ROUTES, or the console's with --site-settings). Each answer
+says which service gave it: when the text service fails, the main one answers, and the report counts those. The report
+also has the run's tokens and estimated cost by task and model (usage). About 90 model calls a run; --quick (the
+nightly check, ai_routes.nightly) is a sample of about 17. Exit status 0 when every question passed, 1 when some did
+not, 2 when no model is configured.
 """
 import argparse, json, os, re, secrets, statistics, sys, tempfile, time
 from pathlib import Path
@@ -25,6 +31,9 @@ HERE = Path(__file__).resolve().parent
 CASES = HERE / 'corpus_data' / 'ai-eval.json'
 HAN = re.compile(r'[㐀-鿿]')
 KINDS = ('rewrite', 'essay', 'translate')
+CONTENT = ('explain', 'examples', 'variant', 'dialog', 'transsrc')
+QUICK = {'rewrite': ('third-person-s', 'although-but', 'if-will', 'suggest-somebody-to', 'keep-second-conditional', 'keep-inversion'),
+         'translate': 1}  # the nightly sample: 4 errors to put right, 2 correct sentences to leave alone, 1 translation pair
 STABLE = 2         # the two marks of one essay (4–20 points) differ by this much at most
 GAP = 1            # a better essay scores at least this much more (on the average of its marks)
 GOOD, POOR, APART = 0.7, 0.5, 0.3   # translation scores: the good one at least, the poor one at most, and this far apart
@@ -108,25 +117,76 @@ def check_translation(case, good, poor):
     return why
 
 
+def check_content(kind, case, result, status, ctx):
+    """The reasons this generated content is not fit to show a learner ([] when it is)."""
+    if status != 200:
+        return [f'没有结果（{status}：{(result or {}).get("error", "")}）']
+    why = []
+    if kind == 'explain':
+        r = result['result']
+        if not HAN.search(r.get('translation') or ''):
+            why.append('翻译不是中文')
+        quoted = [pt for pt in r.get('points') or [] if has(ctx['sentence'], pt.get('text') or '')]
+        if len(quoted) < 2:
+            why.append(f'讲解的片段只有 {len(quoted)} 个出自原句')
+        if not (r.get('pattern') or {}).get('frame'):
+            why.append('没有可模仿的句型')
+    elif kind == 'examples':
+        got = result.get('examples') or {}
+        if len(got) < len(case['words']) - 1:
+            why.append(f'{len(case["words"])} 个词只写出 {len(got)} 个例句')
+        for w, items in got.items():
+            e = items[0]
+            if not HAN.search(e.get('zh') or ''):
+                why.append(f'{w} 的例句没有中文翻译')
+            if not 6 <= len(words(e.get('text'))) <= 32:
+                why.append(f'{w} 的例句长度不对（{len(words(e.get("text")))} 个词）')
+    elif kind == 'variant':
+        nums = set(re.findall(r'\d+(?:\.\d+)?', ctx['body']))
+        lost = sorted(n for n in nums if n not in result.get('body', ''))
+        if lost:
+            why.append('改写丢了原文的数字：' + '、'.join(lost))
+        if HAN.search(result.get('body') or ''):
+            why.append('改写的正文里有中文')
+    elif kind == 'dialog':
+        r = result['result']
+        reply = r.get('reply') or ''
+        if HAN.search(reply) or not words(reply):
+            why.append('第一句不是英文')
+        if len(re.findall(r'[.!?](?:\s|$)', reply)) > 3:
+            why.append('第一句太长（超过 3 句）')
+        if not HAN.search(r.get('scene') or ''):
+            why.append('情景说明不是中文')
+    elif kind == 'transsrc':
+        zh = (result.get('result') or {}).get('zh') or result.get('zh') or ''
+        if len(HAN.findall(zh)) < 8 or re.search(r'[A-Za-z]{4,}', zh):
+            why.append('译文不是通顺的中文：' + zh[:60])
+    return why
+
+
 # ---------- the run ----------
 
-def run(cases, kinds=KINDS, repeat=2, say=print):
+def run(cases, kinds=KINDS + ('content',), repeat=2, say=print, quick=False):
     """Every question of these kinds through the site's marking code, in a throwaway database. The report."""
     import app
     keep = (app.DB, app.DATA)
     tmp = Path(tempfile.mkdtemp(prefix='flow-ai-eval-'))
     app.DB, app.DATA = tmp / 'eval.sqlite3', tmp
     try:
-        return _run(cases, kinds, repeat, say)
+        return _run(cases, kinds, repeat, say, quick)
     finally:
         app.DB, app.DATA = keep
 
 
-def _run(cases, kinds, repeat, say):
-    import app, chat_service, next_service as nx, output_service as out
+def _run(cases, kinds, repeat, say, quick=False):
+    import app, ai_routes, chat_service, next_service as nx, output_service as out, vocab_service as vs
     app.init()
-    report = {'when': time.strftime('%Y-%m-%d %H:%M:%S'), 'models': {'main': os.getenv('FLOW_AI_MODEL', ''), 'text': os.getenv('FLOW_TEXT_AI_MODEL', '')},
-              'items': [], 'summary': {}}
+    report = {'when': time.strftime('%Y-%m-%d %H:%M:%S'), 'models': {'main': os.getenv('FLOW_AI_MODEL', ''), 'text': os.getenv('FLOW_TEXT_AI_MODEL', ''),
+                                                                 'deepseek': ai_routes.model_name('deepseek')},
+              'routes': {k: v['route'] for k, v in ai_routes.routes().items()}, 'quick': quick, 'items': [], 'summary': {}}
+    if quick:
+        cases = {**cases, 'rewrite': [x for x in cases['rewrite'] if x['id'] in QUICK['rewrite']], 'translate': cases['translate'][:QUICK['translate']]}
+        repeat = 1
     pack = cases['pack']
     with app.db() as c:
         c.execute('INSERT INTO users(username,password) VALUES(?,?)', ('ai-eval', 'no-login'))
@@ -184,6 +244,40 @@ def _run(cases, kinds, repeat, say):
                 report['items'].append({'kind': 'translate', 'id': case['id'], 'ok': not why, 'why': why, 'scores': [score(good), score(poor)],
                                         'seconds': good[2]['seconds'] + poor[2]['seconds'], 'service': poor[2]['service'], 'status': max(good[1], poor[1])})
                 say(('  ✓ ' if not why else '  ✗ ') + f"翻译 {case['id']}（好 {score(good)} / 差 {score(poor)}）" + ('' if not why else '：' + '；'.join(why)))
+        if 'content' in kinds:
+            cc = cases.get('content') or {}
+            for case in cc.get('explain', []):
+                sent = out._sentence(p, case['i'])
+                result, status, meta = call('explain', case, nx.explain, {'sentence': sent})
+                why = check_content('explain', case, result, status, {'sentence': sent})
+                report['items'].append({'kind': 'content', 'task': 'explain', 'id': case['id'], 'ok': not why, 'why': why, 'status': status, **meta})
+            for case in cc.get('examples', []):
+                c.execute('UPDATE next_profiles SET level=? WHERE user_id=?', (case.get('level', 'B2'), uid)); c.commit()
+                todo = [w for w in case['words'] if vs.needs_example(c, w)]
+                result, status, meta = call('examples', case, vs.ai_examples, {'words': todo})
+                why = check_content('examples', {**case, 'words': todo}, result, status, {})
+                report['items'].append({'kind': 'content', 'task': 'examples', 'id': case['id'], 'ok': not why, 'why': why, 'status': status, **meta})
+            for case in cc.get('variant', []):
+                result, status, meta = call('variant', case, nx.variant, {'level': case['level']})
+                why = check_content('variant', case, result, status, {'body': p['body']})
+                report['items'].append({'kind': 'content', 'task': 'variant', 'id': case['id'], 'ok': not why, 'why': why, 'status': status, **meta})
+            for case in cc.get('dialog', []):
+                result, status, meta = call('dialog', case, out.dialog, {'history': []})
+                why = check_content('dialog', case, result, status, {})
+                report['items'].append({'kind': 'content', 'task': 'dialog', 'id': case['id'], 'ok': not why, 'why': why, 'status': status, **meta})
+            for case in cc.get('transsrc', []):
+                result, status, meta = call('transsrc', case, out.translate_source, {'i': case['i']})
+                why = check_content('transsrc', case, result, status, {})
+                report['items'].append({'kind': 'content', 'task': 'transsrc', 'id': case['id'], 'ok': not why, 'why': why, 'status': status, **meta})
+            for x in report['items']:
+                if x['kind'] == 'content':
+                    say(('  ✓ ' if x['ok'] else '  ✗ ') + f"内容 {x['id']}" + ('' if x['ok'] else '：' + '；'.join(x['why'])))
+        s = ai_routes.summary(c, days=1)
+        report['usage'] = {'calls': s['total']['calls'], 'cost': s['total']['cost'], 'prompt': s['total']['prompt'], 'cached': s['total']['cached'],
+                           'completion': s['total']['completion'], 'estimated': s['total']['estimated'],
+                           'by_task': {k['kind']: {x: k[x] for x in ('calls', 'failed', 'backup', 'prompt', 'cached', 'completion', 'cost', 'seconds')}
+                                       for k in s['kinds'] if k['calls']},
+                           'models': {m['name']: {x: m[x] for x in ('calls', 'prompt', 'cached', 'completion', 'cost')} for m in s['models']}}
     report['summary'] = summarize(report['items'])
     return report
 
@@ -195,19 +289,24 @@ def summarize(items):
     return {'passed': sum(1 for x in items if x['ok']), 'total': len(items),
             'rewrite_fix': part([x for x in rw if x['expect'] == 'fix']), 'rewrite_keep': part([x for x in rw if x['expect'] == 'keep']),
             'essay': part([x for x in items if x['kind'] == 'essay']), 'translate': part([x for x in items if x['kind'] == 'translate']),
+            'content': part([x for x in items if x['kind'] == 'content']),
             'no_answer': sum(1 for x in items if x.get('status') not in (200, None)),
             'services': {k: sum(1 for x in items if x.get('service') == k) for k in ('text', 'main')},
             'seconds': {'median': round(statistics.median(secs), 1) if secs else None, 'max': round(max(secs), 1) if secs else None}}
 
 
-def describe(s, models):
+def describe(s, models, usage=None):
     pc = lambda d: f"{d['passed']}/{d['total']}"
     lines = [f"模型：文字 {models['text'] or '（没有单独的文字模型）'} · 主模型 {models['main'] or '—'}",
-             f"错句改对：{pc(s['rewrite_fix'])}　正确句没被改：{pc(s['rewrite_keep'])}　写作评分：{pc(s['essay'])}　翻译评分：{pc(s['translate'])}",
+             f"错句改对：{pc(s['rewrite_fix'])}　正确句没被改：{pc(s['rewrite_keep'])}　写作评分：{pc(s['essay'])}　翻译评分：{pc(s['translate'])}"
+             + (f"　内容：{pc(s['content'])}" if s.get('content', {}).get('total') else ''),
              f"合计 {s['passed']}/{s['total']} 题通过；没拿到结果 {s['no_answer']} 次；由文字服务回答 {s['services']['text']} 题、主服务 {s['services']['main']} 题"
              + (f"；每题用时中位数 {s['seconds']['median']} 秒，最长 {s['seconds']['max']} 秒" if s['seconds']['median'] is not None else '')]
     if models['text'] and s['services']['main']:
         lines.append('注意：有题目是主服务答的（文字服务出错后自动换了），这部分不代表文字模型的水平。')
+    if usage:
+        lines.append(f"这一轮 {usage['calls']} 次调用，输入 {usage['prompt']:,} token（命中缓存 {usage['cached']:,}），输出 {usage['completion']:,}，"
+                     f"估算 ¥{usage['cost']:.3f}" + ('；Gemini 部分按文字长度估算，不含思考 token' if usage.get('estimated') else ''))
     return '\n'.join(lines)
 
 
@@ -216,7 +315,10 @@ def main(argv=None):
     ap.add_argument('--env-file', default='/etc/flow.env')
     ap.add_argument('--text-model', help='这次改用网关里的另一个文字模型（服务器设置不变）')
     ap.add_argument('--main-model', help='这次改用另一个主模型')
-    ap.add_argument('--only', help='只考其中几类：rewrite,essay,translate')
+    ap.add_argument('--route', choices=('gemini', 'deepseek'), help='这次所有任务都走这条线路（ai_routes）')
+    ap.add_argument('--site-settings', help='用这个网站的后台设置（console-settings.json）里的线路')
+    ap.add_argument('--quick', action='store_true', help='只考一小部分（每晚的小评测，约 17 次调用）')
+    ap.add_argument('--only', help='只考其中几类：rewrite,essay,translate,content')
     ap.add_argument('--cases', default=str(CASES))
     ap.add_argument('--output', help='把每道题的详细结果写进这个 JSON 文件')
     args = ap.parse_args(argv)
@@ -229,6 +331,15 @@ def main(argv=None):
         os.environ['FLOW_TEXT_AI_MODEL'] = args.text_model
     if args.main_model:
         os.environ['FLOW_AI_MODEL'] = args.main_model
+    if args.site_settings:  # the site's console routes, read before the run's own throwaway data folder takes over
+        try:
+            routes = json.loads(Path(args.site_settings).read_text(encoding='utf-8')).get('ai_routes') or {}
+        except (OSError, ValueError):
+            routes = {}
+        if routes:
+            os.environ['FLOW_AI_ROUTES'] = json.dumps(routes)
+    if args.route:
+        os.environ['FLOW_AI_ROUTES'] = json.dumps({'*': args.route})
     # the run's own throwaway data, and no daily cap on it (the site's counts are elsewhere and untouched)
     os.environ['FLOW_DATA_DIR'] = tempfile.mkdtemp(prefix='flow-ai-eval-data-')
     os.environ['FLOW_AI_USER_DAILY_LIMIT'] = os.environ['FLOW_AI_DAILY_LIMIT'] = '100000'
@@ -237,9 +348,9 @@ def main(argv=None):
     if not ai_enabled():
         print('没有配置 AI 模型（FLOW_AI_MODEL 等），无法考试。')
         return 2
-    kinds = tuple(k for k in (args.only or ','.join(KINDS)).split(',') if k in KINDS)
-    report = run(load(args.cases), kinds)
-    print(describe(report['summary'], report['models']))
+    kinds = tuple(k for k in (args.only or ','.join(KINDS + ('content',))).split(',') if k in KINDS + ('content',))
+    report = run(load(args.cases), kinds, quick=args.quick)
+    print(describe(report['summary'], report['models'], report.get('usage')))
     if args.output:
         Path(args.output).write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding='utf-8')
     return 0 if report['summary']['passed'] == report['summary']['total'] else 1
