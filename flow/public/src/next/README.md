@@ -9,7 +9,8 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `00-head.js` | page elements, state, utilities, input helpers (touch, typing, scrolling), icons |
 | `01-audio-offline.js` | browser voice, Kokoro narration, word and sentence clips, mini player, offline review queue |
 | `02-shell.js` | sheets (focus, swipe), keyboard shortcuts, session and sign-in, router |
-| `10-welcome-today.js` | onboarding questions, today's page |
+| `09-start.js` | 启动动画 (the mark in next.html, timed against the first page drawn) and 选方向和目标: one page for a new learner (goal, exam and date, the level to reach), the same page edits it from 我的; the 今日 notice for a guessed level |
+| `10-welcome-today.js` | today's page |
 | `11-progress.js` | 这周进步 (r27): the card at the top of 今日 and its details, 每周进度邮件 in 我的, the mail's unsubscribe page |
 | `20-study.js` | `study()`: material header, step bar, step bookkeeping |
 | `21-study-listen.js` | 听: whole-text playback, shadowing, dictation |
@@ -39,6 +40,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `80-library.js` | 全部材料, serial stories and their episode list |
 | `81-me.js` | 我的, email binding |
 | `99-boot.js` | start-up |
+| `05-start.css` | 启动动画 and 选方向和目标 |
 | `00-base.css` … `70-input-devices.css` | tokens and base; pages; motion and graph; words; listening; phone pass; learner pages; input methods and devices |
 | `80-flat.css` | the flat look: surfaces instead of outlines, frosted bars, the home plan and its next-step button, review focus mode |
 | `89-radar.css` | the radar chart and its rows |
