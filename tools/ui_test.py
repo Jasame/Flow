@@ -411,10 +411,10 @@ def run_device(pw, dev, opts):
     go(pg, '#/practice')
     pm = pg.evaluate("() => { const m = document.querySelector('#view .ptile.pmap'); return m ? [m.getAttribute('href'), m.closest('.pgroup').querySelector('h2').textContent, Math.round(m.getBoundingClientRect().width / m.parentElement.getBoundingClientRect().width * 100), Math.round(m.getBoundingClientRect().top), innerHeight] : null; }")
     check(dev, 'practice: the grammar map is the wide card of the 语法 group, on the first screen', pm and pm[0] == '#/graph' and pm[1] == '语法' and pm[2] >= 98 and pm[3] < pm[4], pm)
-    pr = pg.evaluate("""() => ({rows: document.querySelectorAll('#view .plist .prow').length, tiles: document.querySelectorAll('#view .ptile:not(.pmap)').length,
-      noicon: [...document.querySelectorAll('#view .prow .pico svg')].filter(x => !x.children.length).length,
-      wide: [...document.querySelectorAll('#view .prow')].filter(e => e.getBoundingClientRect().right > innerWidth + 1).length,
-      tall: [...document.querySelectorAll('#view .prow .t .tiny')].filter(e => e.getBoundingClientRect().height > 24).length})""")
+    pr = pg.evaluate("""() => ({rows: document.querySelectorAll('#view .px-list .px-row').length, tiles: document.querySelectorAll('#view .ptile:not(.pmap)').length,
+      noicon: [...document.querySelectorAll('#view .px-row .pico svg')].filter(x => !x.children.length).length,
+      wide: [...document.querySelectorAll('#view .px-row')].filter(e => e.getBoundingClientRect().right > innerWidth + 1).length,
+      tall: [...document.querySelectorAll('#view .px-row .t .tiny')].filter(e => e.getBoundingClientRect().height > 24).length})""")
     check(dev, '练习: one row per practice, each with an icon and a one-line note, inside the screen',
           pr['rows'] >= 15 and pr['tiles'] == 0 and pr['noicon'] == 0 and pr['wide'] == 0 and pr['tall'] == 0, pr)
     # r20: a tap on a counted entry point sends its key only (the console compares releases with these counts)

@@ -41,17 +41,17 @@
 }
 
 /* 练习: one-line rows with an icon, grouped like 我的 (two columns on a wide screen); the grammar map stays a wide card */
-.plist{display:grid;gap:2px;background:var(--paper);border-radius:var(--r);padding:6px}
-.prow{display:grid;grid-template-columns:36px minmax(0,1fr) 14px;gap:12px;align-items:center;min-height:56px;padding:8px 10px;border-radius:12px;text-decoration:none;color:inherit}
-.prow:hover{background:var(--sunk)}
-.prow:active{background:var(--sunk)}
-.prow .pico{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:var(--green-soft);color:var(--green-ink)}
-.prow .t{display:grid;gap:2px;min-width:0}
-.prow .t b{font-size:15.5px;display:flex;align-items:center;gap:6px;min-width:0}
-.prow .t .tiny{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.prow .go{color:var(--muted);font-size:20px}
+.px-list{display:grid;gap:2px;background:var(--paper);border-radius:var(--r);padding:6px}
+.px-row{display:grid;grid-template-columns:36px minmax(0,1fr) 14px;gap:12px;align-items:center;min-height:56px;padding:8px 10px;border-radius:12px;text-decoration:none;color:inherit}
+.px-row:hover{background:var(--sunk)}
+.px-row:active{background:var(--sunk)}
+.px-row .pico{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:var(--green-soft);color:var(--green-ink)}
+.px-row .t{display:grid;gap:2px;min-width:0}
+.px-row .t b{font-size:15.5px;display:flex;align-items:center;gap:6px;min-width:0}
+.px-row .t .tiny{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.px-row .go{color:var(--muted);font-size:20px}
 .pgroup .ptile.pmap{margin-bottom:2px}
-@media (min-width:760px){.plist{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:760px){.px-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 /* 全部材料: on a phone 范围 and 难度 side by side, 话题 on its own row, so no choice is cut off at 360 px */
 @media (max-width:759px){
