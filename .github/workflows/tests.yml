@@ -60,6 +60,6 @@ jobs:
       - name: Frontend build and syntax checks
         run: |
           python3 tools/build_front.py --check
-          for js in flow/public/next.js flow/public/sw.js flow/public/survey.js xmc-admin/admin.js; do
+          for js in flow/public/next.js flow/public/sw.js flow/public/survey.js flow/public/about.js xmc-admin/admin.js; do
             node --check "$js"
           done

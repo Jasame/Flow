@@ -69,6 +69,32 @@ class ClassicArchivedTests(Servers):
         for path in ('/next.js', '/next.css', '/survey', '/sw.js', '/literata.woff2'):
             self.assertEqual(self.call(self.site, path, raw=True)[0], 200, path)
 
+    def test_the_introduction_page_and_its_files(self):
+        """认识语流 (/about): its own page, script and styles under a content version, real screenshots, the CSP."""
+        import re
+        v = app.asset_version(app.ABOUT_ASSETS)
+        st, body, h = self.call(self.site, '/about', raw=True)
+        self.assertEqual(st, 200); self.assertTrue(h['Content-Type'].startswith('text/html'))
+        self.assertIn(f'/about.js?v={v}'.encode(), body); self.assertIn(f'/about.css?v={v}'.encode(), body)
+        self.assertIn(b'data-channel="prod"', body); self.assertIn("script-src 'self'", h['Content-Security-Policy'])
+        self.assertNotIn(b'<script>', body); self.assertNotIn(b' style="', body)  # nothing inline: the CSP would refuse it
+        for name in app.ABOUT_ASSETS:
+            st, _, h = self.call(self.site, f'/{name}?v={v}', raw=True)
+            self.assertEqual((st, h['Cache-Control']), (200, 'public, max-age=31536000, immutable'), name)
+            self.assertEqual(self.call(self.site, f'/{name}?v=old', raw=True)[2]['Cache-Control'], 'no-cache', name)
+        pictures = set(re.findall(rb'/about/([\w-]+\.jpg)', body))
+        self.assertGreaterEqual(len(pictures), 10)
+        for name in pictures:
+            st, img, h = self.call(self.site, '/about/' + name.decode(), raw=True)
+            self.assertEqual((st, h['Content-Type'], img[:2]), (200, 'image/jpeg', b'\xff\xd8'), name)
+        for path in ('/about/nothing.jpg', '/about/..%2fapp.py', '/about/today.png', '/about.html'):
+            self.assertEqual(self.call(self.site, path, raw=True)[0], 404, path)
+        st, _, h = self.call(self.site, '/about/', raw=True)
+        self.assertEqual((st, h.get('Location')), (301, '/about'))
+        with patch.object(app, 'CHANNEL', 'beta'):  # the 内测版 says so on this page too and stays out of search results
+            st, body, h = self.call(self.site, '/about', raw=True)
+            self.assertIn(b'data-channel="beta"', body); self.assertEqual(h.get('X-Robots-Tag'), 'noindex, nofollow')
+
     def test_no_file_of_the_server_is_exposed_and_the_page_keeps_its_csp(self):
         # (kept from the archived classic tests, test_flow.py)
         for path in ('/../data/flow.sqlite3', '/data/flow.sqlite3', '/.env', '/app.py', '/flow_admin.py'):
@@ -198,7 +224,7 @@ class TapTests(Servers):
         self.assertEqual(cols, ['day', 'key', 'n'])  # nothing about who
 
     def test_every_counted_entry_point_is_on_the_page_and_known_to_the_console(self):
-        js = (Path(app.ROOT) / 'public' / 'next.js').read_text(encoding='utf-8')
+        js = (Path(app.ROOT) / 'public' / 'next.js').read_text(encoding='utf-8') + (Path(app.ROOT) / 'public' / 'about.html').read_text(encoding='utf-8')  # 认识语流 counts its buttons too
         import re
         used = set(re.findall(r'data-tap="([a-z-]+)"', js)) | set(re.findall(r"'([a-z]+-[a-z-]+)'", js)) & set(flow_admin.TAP_LABEL)
         self.assertEqual(set(flow_admin.TAP_LABEL) - used, set())

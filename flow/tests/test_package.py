@@ -11,7 +11,7 @@ class UpgradePackageTests(unittest.TestCase):
     (target/name).parent.mkdir(parents=True,exist_ok=True);shutil.copy2(ROOT/name,target/name)
    (target/'public').mkdir()
    for name in lists[1].split():shutil.copy2(ROOT/'public'/name,target/'public'/name)
-   for page_name in ('next.html','survey.html'):  # r20: the classic index.html is archived
+   for page_name in ('next.html','survey.html','about.html'):  # r20: the classic index.html is archived
     page=(target/'public'/page_name).read_text()
     for asset in re.findall(r'(?:src|href)="/([^"?]+)',page):
      if asset.endswith(('.js','.css','.png','.woff2','.webmanifest')):self.assertTrue((target/'public'/asset).is_file(),asset)
