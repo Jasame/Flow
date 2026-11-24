@@ -701,7 +701,7 @@
       else if (name === 'series') { setNav('today'); await seriesView(decodeURIComponent(a || '')); }
       else if (name === 'easy') { setNav('practice'); await (a ? easyRead(decodeURIComponent(a)) : easyView()); }
       else if (name === 'words' && a === 'confuse') { setNav('cards'); await (b ? confuseRound(decodeURIComponent(b)) : confuseView()); }
-      else if (name === 'speak') { setNav('practice'); await (a ? speakScene(decodeURIComponent(a)) : speakView()); }
+      else if (name === 'speak') { setNav('practice'); await (a === 'ielts' ? (b ? ieltsPractice(decodeURIComponent(b)) : ieltsView()) : a ? speakScene(decodeURIComponent(a)) : speakView()); }
       else if (name === 'radar') { setNav('practice'); await (a === 'goals' ? radarGoals() : a === 'test' && (b === 'reading' || b === 'listening') ? assessComprehension(b) : a === 'test' && (b === 'speaking' || b === 'writing') ? assessJudged(b) : a === 'test' ? radarTests() : radarView()); }
       else if (name === 'growth') { setNav('me'); await growthView(a ? decodeURIComponent(a) : ''); }
       else if (name === 'mix') { setNav('practice'); await mixView(a === 'pair' || a === 'topic' ? a : 'due', b ? decodeURIComponent(b) : ''); }
@@ -1594,15 +1594,34 @@
     }
     const wordsHTML = ws => `<div class="wdiff">${ws.map(w => `<span class="${w.ok ? 'ok' : 'miss'}">${esc(w.w)}</span>`).join(' ')}</div>`;
 
+    // 发音分 of 跟读: accuracy and fluency are the AI's estimate from the recording, completeness is counted from what it
+    // heard (next_service.pron_score). Each sentence's latest score stays on its row while the material is open.
+    const shScores = m._shScores || (m._shScores = {});
+    function shAvgHTML() {
+      const v = Object.values(shScores);
+      return `<p class="tiny muted" id="shAvg"${v.length ? '' : ' hidden'}>${v.length ? `这篇已经点评 ${v.length} 句，发音分平均 ${Math.round(v.reduce((a, b) => a + b, 0) / v.length)}（AI 估计）` : ''}</p>`;
+    }
+    function pronHTML(x) {
+      const sc = x.score;
+      if (!sc) return x.matched ? '' : '<div class="small err">AI 没听清这一句。离手机近一点，完整读一遍再点评。</div>';
+      const bar = (l, v, txt) => `<div class="ab"><span class="nm">${l}</span><span class="vbar"><i data-w="${v}"></i></span><span class="lv">${txt == null ? v : txt}</span></div>`;
+      return `<div class="pron"><div class="pron-top"><b class="pron-n">${sc.total}</b><span class="stack-xs"><b>发音分</b><span class="tiny muted">AI 听录音给的估计，仅供参考</span></span></div>
+          <div class="ab-list">${bar('准确', sc.accuracy)}${bar('流利', sc.fluency)}${bar('完整', sc.complete, `${x.matched}/${x.words.length}`)}</div></div>`;
+    }
+    function soundsHTML(ss) {
+      return ss && ss.length ? `<div class="stack-s"><b class="small">要练的音</b>${ss.map(s => `<div class="snd small"><b class="ph">${esc(s.sound)}</b>
+          <span><b>${esc(s.word)}</b>：${esc(s.note)}${s.set ? ` <a class="link" href="#/sounds/${encodeURIComponent(s.set)}" data-tap="shadow-sound">去练 ${esc(s.set_title)} →</a>` : ''}</span></div>`).join('')}</div>` : '';
+    }
     async function shadowMode() {
       const ls = lines(), nm = await narration(ls);
       // Every sentence keeps its ▶; the recording tools (●, 对比, AI 点评) show under the sentence being practised only,
       // so eleven rows of four buttons do not bury the text. A tap anywhere on a sentence makes it the one.
-      pane.innerHTML = `${listenHead()}<p class="muted small">点一句开始练：先点 ▶ 听原声，再点 ● 跟着读一遍（再点一次停止）。「对比」先放原声再放你的录音；${S.user ? '「AI 点评」会写出它听到的内容，并指出要改的地方。' : '登录后可以让 AI 点评。'}</p>
+      pane.innerHTML = `${listenHead()}<p class="muted small">点一句开始练：先点 ▶ 听原声，再点 ● 跟着读一遍（再点一次停止）。「对比」先放原声再放你的录音；${S.user ? '「AI 点评」给一个发音分（AI 估计），写出它听到的内容和要练的音。' : '登录后可以让 AI 点评、给发音分。'}</p>
+        ${shAvgHTML()}
         <div class="lines">${ls.map((s, i) => `<div class="line sh${i === 0 ? ' cur' : ''}" data-i="${i}"><div class="txt">${esc(s)}</div>
           <div class="sh-ctl"><button class="icon-btn" data-o="${i}" aria-label="听原声">${ICON.play.replace('<svg', '<svg fill="currentColor"')}</button>
             <button class="icon-btn rec" data-r="${i}" aria-label="录音"><span class="dot"></span></button>
-            <button class="btn small" data-c="${i}" disabled>对比</button><button class="btn small" data-ai="${i}" disabled>✦ AI 点评</button></div>
+            <button class="btn small" data-c="${i}" disabled>对比</button><button class="btn small" data-ai="${i}" disabled>✦ AI 点评</button>${shScores[i] != null ? `<span class="pron-chip" data-sc="${i}" title="这一句的发音分（AI 估计）">${shScores[i]}</span>` : `<span class="pron-chip" data-sc="${i}" hidden></span>`}</div>
           <div class="sh-out"></div></div>`).join('')}</div>
         <div class="section row between"><span></span><button class="btn" id="toRead">去读 →</button></div>`;
       const REC = { mr: null, blobs: {}, timer: 0, url: {} };
@@ -1646,9 +1665,17 @@
           const mime = /mp4|m4a|aac/.test(blob.type) ? 'audio/mp4' : /ogg/.test(blob.type) ? 'audio/ogg' : 'audio/webm';
           const x = (await api('/api/next/shadow', { pack: id, i, audio: { mime_type: mime, data }, request_id: rid('sh') })).result;
           const flu = { smooth: '流畅', ok: '基本流畅', choppy: '有点断断续续' }[x.fluency];
-          row(i).querySelector('.sh-out').innerHTML = `<div class="card flat sh-res stack-s enter">${wordsHTML(x.words)}
-            <div class="tiny muted">AI 听到：${esc(x.transcript || '（没听清）')} · 读到 ${x.matched}/${x.words.length} 个词 · ${flu}</div>
-            ${x.issues.map(it => `<div class="small"><b>${esc(it.word)}</b>：${esc(it.note)}</div>`).join('')}${x.tip ? `<div class="small tip">建议：${esc(x.tip)}</div>` : ''}</div>`;
+          const out = row(i).querySelector('.sh-out');
+          out.innerHTML = `<div class="card flat sh-res stack-s enter">${pronHTML(x)}${soundsHTML(x.sounds)}
+            ${x.issues.length ? `<div class="stack-s"><b class="small">${x.sounds && x.sounds.length ? '其他要注意的' : '要注意的'}</b>${x.issues.map(it => `<div class="small"><b>${esc(it.word)}</b>：${esc(it.note)}</div>`).join('')}</div>` : ''}
+            ${x.tip ? `<div class="small tip">建议：${esc(x.tip)}</div>` : ''}
+            <div class="stack-xs">${wordsHTML(x.words)}<div class="tiny muted">AI 听到：${esc(x.transcript || '（没听清）')} · 读到 ${x.matched}/${x.words.length} 个词${x.score ? '' : ' · ' + flu}</div></div></div>`;
+          requestAnimationFrame(() => requestAnimationFrame(() => out.querySelectorAll('.vbar i').forEach(b => { b.style.width = b.dataset.w + '%'; })));
+          if (x.score) {
+            shScores[i] = x.score.total;
+            const chip = row(i).querySelector('[data-sc]'); chip.textContent = x.score.total; chip.hidden = false;
+            const avg = pane.querySelector('#shAvg'); if (avg) avg.outerHTML = shAvgHTML();
+          }
         } catch (e) { toast(e.message); }
         btn.disabled = false; btn.textContent = '✦ AI 点评';
       }
@@ -2778,6 +2805,191 @@
     };
     ask();
   }
+  /* ---------- 雅思口语练习 (ielts_speaking): Part 1 questions and Part 2 cue cards, on the four criteria ---------- */
+  // Every band shown is the AI's estimate for practice, and each page with one says so (d.notice).
+  const IELTS_BACK = '<div><a class="link small" href="#/speak/ielts">← 雅思口语</a></div>';
+  const bandTxt = b => (b == null ? '—' : b.toFixed(1));
+  async function ieltsView() {
+    const d = await api('/api/next/ielts');
+    const row = (href, title, sub, last) => `<a class="nrow ${last != null ? 'st st-solid' : 'st st-untouched'}" href="${href}"><i class="dot" aria-hidden="true"></i>
+        <span class="t"><b>${esc(title)}</b><span class="tiny muted">${esc(sub)}${last != null ? ` · 上次约 ${bandTxt(last)}` : ''}</span></span><span></span><span class="go" aria-hidden="true">›</span></a>`;
+    view.innerHTML = `<div><a class="link small" href="#/speak">← 口语路线</a></div>
+      <div class="stack"><div><span class="kicker">雅思口语 · 练习</span><h1 class="h1">像考场一样开口说</h1>
+        <p class="muted small">Part 1 考官问日常问题，一题一题答；Part 2 拿到一张话题卡，准备 1 分钟，说 1–2 分钟。说完按雅思口语的四项标准（流利与连贯、词汇、语法、发音）给出估计分和改法。</p>
+        <p class="tiny ielts-note">${esc(d.notice)}</p></div>
+      <section class="stack-s"><h2 class="h2">Part 1 · 日常问答</h2><p class="tiny muted">每个话题 4 个问题，大约 3 分钟。考官不打断你，每句下面可以看「这句可以更好」。</p>
+        <div class="plist">${d.part1.map(x => row(`#/speak/ielts/p1-${x.id}`, x.title, x.title_en, x.last)).join('')}</div></section>
+      <section class="stack-s"><h2 class="h2">Part 2 · 话题卡</h2><p class="tiny muted">准备 1 分钟（可以记关键词），时间到自动开始录音，最多说 2 分钟。</p>
+        <div class="plist">${d.part2.map(x => row(`#/speak/ielts/p2-${x.id}`, x.title, x.task, x.last)).join('')}</div></section></div>`;
+  }
+  async function ieltsPractice(key) {
+    const d = await api('/api/next/ielts');
+    const m = /^p([12])-([a-z-]+)$/.exec(key || ''), list = m && (m[1] === '1' ? d.part1 : d.part2), x = list && list.find(t => t.id === m[2]);
+    if (!x) { view.innerHTML = '<div class="empty"><p>没有这个练习。</p><a class="btn" href="#/speak/ielts">雅思口语</a></div>'; return; }
+    return m[1] === '1' ? ieltsPart1(d, x) : ieltsPart2(d, x);
+  }
+  // The feedback of either part: overall estimate, the four criteria (a bar each, what went well, what to do next),
+  // what was said, a model answer to listen to, and the corrections (already in the mistake book).
+  function ieltsFeedbackHTML(r, said) {
+    return `<div class="result enter stack ielts-fb">
+        <div class="card ielts-top"><div class="ielts-overall"><b>${r.overall == null ? '—' : '约 ' + bandTxt(r.overall)}</b><span class="small">总体估计</span></div>
+          <p class="tiny ielts-note">${esc(r.notice)}</p>${r.summary ? `<p class="small">${esc(r.summary)}</p>` : ''}</div>
+        <div class="stack-s ielts-crit">${r.criteria.map(c => `<div class="crit">
+            <div class="ab"><span class="nm">${esc(c.title)}</span><span class="vbar"><i data-w="${c.band == null ? 0 : Math.round(c.band / 9 * 100)}"></i></span><span class="lv">${bandTxt(c.band)}</span></div>
+            ${c.band == null && c.id === 'p' ? '<div class="tiny muted">这次是打字作答，不评发音。</div>' : ''}
+            ${c.good ? `<div class="tiny"><span class="ok-mark" aria-hidden="true">✓</span> ${esc(c.good)}</div>` : ''}${c.next ? `<div class="tiny"><span class="up" aria-hidden="true">↑</span> ${esc(c.next)}</div>` : ''}</div>`).join('')}</div>
+        ${said}
+        ${r.model ? `<details class="card flat fold" open><summary><b class="small">示范回答${r.model_q ? '：' + esc(r.model_q) : ''}</b></summary><div class="stack-s">
+          <div class="row"><button class="btn small" id="ieModel" type="button">${ICON.speak.replace('<svg', '<svg width="16" height="16"')}<span>朗读</span></button><span class="tiny muted">AI 写的示范，学说法，不用背</span></div>
+          <p class="text ielts-model">${esc(r.model)}</p></div></details>` : ''}
+        ${r.fixes.length ? `<div class="stack-s"><b>要改的地方</b>${fixesHTML(r.fixes)}</div>` : ''}
+        <div class="row"><button class="btn" id="ieAgain" type="button">再练一次</button><a class="btn primary" href="#/speak/ielts">换一个</a></div></div>`;
+  }
+  function bindIeltsFeedback(out, r, again) {
+    requestAnimationFrame(() => requestAnimationFrame(() => out.querySelectorAll('.vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; })));
+    const md = out.querySelector('#ieModel'); if (md) md.onclick = () => TTS.say(r.model);
+    out.querySelector('#ieAgain').onclick = () => { TTS.stop(); scrollTo({ top: 0 }); again(); };
+    bringIntoView(out);
+    if (S.user) refreshHome().catch(() => {});
+  }
+  const ieltsSay = t => { if (TTS.ok) TTS.say(t); };  // WeChat has no browser voice: the question is on screen anyway
+
+  /* Part 1: the examiner's four questions in order. Each answer: what the AI heard and, folded, a better way to say it. */
+  function ieltsPart1(d, x) {
+    const answers = [];
+    let q = 0;
+    view.innerHTML = `${IELTS_BACK}<div class="stack"><div><span class="kicker">雅思口语 Part 1 · 练习</span><h1 class="h1">${esc(x.title)}</h1><div class="title-en">${esc(x.title_en)}</div>
+        <p class="small">考官一题一题问，不会打断你。每题说 2–4 句：先直接回答，再加一个理由或例子。可以说，也可以打字（打字不评发音）。</p></div>
+      <div class="chat" id="chat"></div>
+      <div id="ieIn" class="stack-s" hidden><div class="tiny muted" id="ieQn"></div>
+        <div class="chat-in"><textarea id="ieText" rows="2" maxlength="600" lang="en" enterkeyhint="send" placeholder="用英文回答，或者点 ● 说出来"></textarea>${recBtn('ieMic', '说出来')}<button class="btn primary" id="ieSend">发送</button></div>
+        <div class="row between"><span class="tiny muted">说完再点一次 ● 停止，最长 45 秒</span><button class="btn small ghost" id="ieEnd">结束并看反馈</button></div></div>
+      <div><button class="btn primary block" id="ieStart">开始</button></div><div id="ieOut"></div></div>`;
+    const chat = view.querySelector('#chat'), box = view.querySelector('#ieIn');
+    const bubble = (role, text, extra) => { chat.insertAdjacentHTML('beforeend', `<div class="msg ${role}"><div class="b">${esc(text)}</div>${extra || ''}</div>`); chat.lastElementChild.scrollIntoView({ block: 'nearest', behavior: REDUCED ? 'auto' : 'smooth' }); };
+    const busy = on => ['#ieSend', '#ieEnd', '#ieMic'].forEach(s => { const b = view.querySelector(s); if (b) b.disabled = on; });
+    const ask = () => {
+      const t = x.questions[q]; bubble('ai', t, `<span class="tiny muted who">考官 · 第 ${q + 1} / ${x.questions.length} 题</span>`); ieltsSay(t);
+      view.querySelector('#ieQn').textContent = `第 ${q + 1} / ${x.questions.length} 题`;
+    };
+    view.querySelector('#ieStart').onclick = e => {
+      if (!S.user) { needLogin('登录后可以练雅思口语，AI 会听你的回答并给估计分。'); return; }
+      e.currentTarget.parentNode.remove(); box.hidden = false; ask();
+      if (!TOUCH) view.querySelector('#ieText').focus({ preventScroll: true });
+    };
+    async function feedback() {
+      MIC.stop(); box.hidden = true; TTS.stop();
+      const out = view.querySelector('#ieOut'); out.innerHTML = '<div class="card sunk small row"><span class="spin"></span><span>考官在看你的回答，给四项估计分（约 10–20 秒）</span></div>';
+      try {
+        const r = (await api('/api/next/ielts', { step: 'part1', topic: x.id, answers, request_id: rid('ie') })).result;
+        const said = `<details class="card flat fold"><summary><b class="small">你的回答（${r.answered} 题）</b></summary><div class="stack-s">${answers.map(a => `<div class="small"><div class="muted">${esc(x.questions[a.q])}</div><div class="text">${esc(a.text)}</div></div>`).join('')}</div></details>`;
+        out.innerHTML = ieltsFeedbackHTML(r, said);
+        bindIeltsFeedback(out, r, () => ieltsPart1(d, x));
+      } catch (e) {
+        out.innerHTML = `<div class="card sunk stack-s"><span class="small">${esc(e.message)}</span><button class="btn small" id="ieRetry">再试一次</button></div>`;
+        out.querySelector('#ieRetry').onclick = feedback;
+      }
+    }
+    async function send(text, blob) {
+      busy(true);
+      let r;
+      try { r = (await api('/api/next/ielts', { step: 'answer', topic: x.id, q, request_id: rid('ie'), ...(blob ? { audio: await MIC.payload(blob) } : { text }) })).result; }
+      catch (e) { toast(e.message); busy(false); if (text) view.querySelector('#ieText').value = text; return; }
+      busy(false);
+      const said = (r.heard || text || '').trim() || '[听不清]';
+      bubble('me', said, r.better ? `<details class="better"><summary class="tiny">这句可以更好</summary><div class="small text">${esc(r.better.text)}</div>${r.better.why ? `<div class="tiny muted">${esc(r.better.why)}</div>` : ''}</details>` : '');
+      answers.push({ q, text: said.slice(0, 1200), note: r.note || '', spoken: !!blob });
+      q += 1;
+      if (q >= x.questions.length) { bubble('ai', 'Thank you. That\'s the end of Part 1.'); feedback(); return; }
+      ask();
+    }
+    view.querySelector('#ieSend').onclick = () => { const t = view.querySelector('#ieText'), v = t.value.trim(); if (!v) return; t.value = ''; send(v); };
+    view.querySelector('#ieText').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); view.querySelector('#ieSend').click(); } });
+    const mic = view.querySelector('#ieMic'); mic.onclick = () => MIC.toggle(mic, 45, b => send('', b));
+    view.querySelector('#ieEnd').onclick = () => { if (!answers.length) { toast('先回答一题再看反馈'); return; } feedback(); };
+  }
+
+  /* Part 2: the cue card. 开始准备 asks for the microphone inside the tap (WeChat and iPhones allow it only there), one
+     minute to prepare with a box for notes, then the recording starts by itself and stops at two minutes. */
+  const LONGREC = {
+    stream: null, mr: null, chunks: [], t0: 0,
+    async open() {
+      if (!navigator.mediaDevices || !window.MediaRecorder) throw new Error('这个浏览器不能录音，可以打字作答，或换 Safari / Chrome');
+      try { this.stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { throw new Error('没有拿到麦克风权限，可以在浏览器设置里打开，或者打字作答'); }
+    },
+    start(onStop) {
+      const type = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
+      // a low bitrate keeps two minutes of speech under the 1.4 MB a recording may be
+      const opts = Object.assign(type ? { mimeType: type } : {}, { audioBitsPerSecond: 32000 });
+      let mr; try { mr = new MediaRecorder(this.stream, opts); } catch (e) { mr = new MediaRecorder(this.stream); }
+      this.mr = mr; this.chunks = []; this.t0 = Date.now();
+      mr.ondataavailable = e => { if (e.data && e.data.size) this.chunks.push(e.data); };
+      mr.onstop = () => { const secs = Math.round((Date.now() - this.t0) / 1000), blob = new Blob(this.chunks, { type: mr.mimeType || type || 'audio/webm' }); this.close(); onStop(blob, secs); };
+      mr.start(1000);
+    },
+    stop() { if (this.mr && this.mr.state === 'recording') this.mr.stop(); else this.close(); },
+    close() { if (this.stream) this.stream.getTracks().forEach(t => t.stop()); this.stream = null; },
+  };
+  function ieltsPart2(d, x) {
+    let timer = 0;
+    const alive = () => document.body.contains(card);  // left the page: let go of the microphone
+    view.innerHTML = `${IELTS_BACK}<div class="stack"><div><span class="kicker">雅思口语 Part 2 · 练习</span><h1 class="h1">${esc(x.title)}</h1></div>
+      <div class="cue" id="cue" lang="en"><b>${esc(x.task)}</b><div class="small">You should say:</div><ul>${x.points.map(p => `<li>${esc(p)}</li>`).join('')}</ul><div class="small">${esc(x.last_point)}</div></div>
+      <div id="p2" class="stack-s"><p class="small">点「开始准备」：1 分钟准备，可以在下面记几个关键词；时间到自动开始录音，最多说 2 分钟，到时间自动停。也可以提前开始、提前结束。尽量说满 1 分钟以上。</p>
+        <button class="btn primary block" id="p2Start">开始准备</button><button class="btn small ghost" id="p2Type" type="button">不方便说话？打字作答（不评发音）</button></div>
+      <div id="ieOut"></div></div>`;
+    const card = view.querySelector('#cue'), stage = view.querySelector('#p2'), out = view.querySelector('#ieOut');
+    const meter = (label, s, total, cls) => `<div class="p2-clock ${cls}" role="timer" aria-live="off"><span class="lbl">${label}</span><b id="p2T">${mmss(Math.max(0, s))}</b><span class="vbar"><i id="p2Bar" style="width:${Math.round((total - s) / total * 100)}%"></i></span></div>`;
+    const tick = (s, total) => { const t = view.querySelector('#p2T'), b = view.querySelector('#p2Bar'); if (t) t.textContent = mmss(Math.max(0, s)); if (b) b.style.width = Math.round((total - s) / total * 100) + '%'; };
+    async function submit(body) {
+      stage.innerHTML = '<div class="card sunk small row"><span class="spin"></span><span>AI 在听你的回答，按四项标准估计分数（约 20–40 秒）</span></div>';
+      try {
+        const r = (await api('/api/next/ielts', { step: 'part2', card: x.id, request_id: rid('ie'), ...body })).result;
+        stage.innerHTML = '';
+        const cov = r.covered ? `<div class="tiny muted">话题卡的 4 个要点：${r.covered.map((c, k) => `<span class="${c ? 'ok-mark' : 'bad-mark'}">${c ? '✓' : '✗'}</span> ${esc(k < 3 ? x.points[k] : 'explain…')}`).join('　')}</div>` : '';
+        const said = `<details class="card flat fold"><summary><b class="small">你说的${r.spoken ? '（AI 转写' + (r.seconds ? ' · ' + mmss(r.seconds) : '') + '）' : ''}</b></summary><div class="stack-s"><p class="text">${esc(r.transcript || '（没听清）')}</p>${cov}</div></details>`;
+        out.innerHTML = ieltsFeedbackHTML(r, said);
+        bindIeltsFeedback(out, r, () => ieltsPart2(d, x));
+      } catch (e) {
+        stage.innerHTML = `<div class="card sunk stack-s"><span class="small">${esc(e.message)}</span><button class="btn small" id="p2Retry">再试一次</button></div>`;
+        stage.querySelector('#p2Retry').onclick = () => submit(body);
+      }
+    }
+    function talk() {
+      clearInterval(timer);
+      let left = d.talk;
+      const notes = view.querySelector('#p2Notes'), kept = notes ? notes.value : '';
+      stage.innerHTML = `${meter('<span class="dot rec-dot" aria-hidden="true"></span>正在录音', left, d.talk, 'talk')}
+        ${kept ? `<div class="card sunk tiny p2-kept">你的笔记：${esc(kept)}</div>` : ''}<button class="btn primary block" id="p2Done">说完了</button>`;
+      LONGREC.start(async (blob, secs) => {
+        clearInterval(timer);
+        if (!alive()) return;
+        if (secs < 5 || blob.size < 2000) { stage.innerHTML = '<p class="small">录音太短了。</p><button class="btn primary" id="p2Re">重新开始</button>'; stage.querySelector('#p2Re').onclick = () => ieltsPart2(d, x); return; }
+        let audio; try { audio = await MIC.payload(blob); } catch (e) { stage.innerHTML = `<p class="small">${esc(e.message)}</p>`; return; }
+        submit({ audio, seconds: secs });
+      });
+      timer = setInterval(() => { if (!alive()) { clearInterval(timer); LONGREC.stop(); return; } left -= 1; tick(left, d.talk); if (left <= 0) LONGREC.stop(); }, 1000);
+      stage.querySelector('#p2Done').onclick = () => LONGREC.stop();
+      card.scrollIntoView({ block: 'start', behavior: REDUCED ? 'auto' : 'smooth' });  // the card in view while speaking
+    }
+    stage.querySelector('#p2Start').onclick = async e => {
+      if (!S.user) { needLogin('登录后可以练雅思口语，AI 会听你的回答并给估计分。'); return; }
+      const b = e.currentTarget; b.disabled = true;
+      try { await LONGREC.open(); } catch (err) { b.disabled = false; toast(err.message); return; }
+      let left = d.prep;
+      stage.innerHTML = `${meter('准备', left, d.prep, 'prep')}
+        <textarea id="p2Notes" rows="3" maxlength="300" lang="en" placeholder="记几个关键词，例如：cooking · grandma · 3 months · saves money" autocapitalize="off" spellcheck="false"></textarea>
+        <button class="btn block" id="p2Go">提前开始说</button>`;
+      stage.querySelector('#p2Go').onclick = talk;
+      timer = setInterval(() => { if (!alive()) { clearInterval(timer); LONGREC.close(); return; } left -= 1; tick(left, d.prep); if (left <= 0) talk(); }, 1000);
+    };
+    stage.querySelector('#p2Type').onclick = () => {
+      if (!S.user) { needLogin('登录后可以练雅思口语，AI 会看你的回答并给估计分。'); return; }
+      stage.innerHTML = `<textarea id="p2Txt" rows="8" maxlength="3000" lang="en" placeholder="像说话一样写下你的回答（至少 20 个英文词）"></textarea>
+        <div class="row between"><span class="tiny muted">打字作答不评发音，其他三项照常估计</span><button class="btn primary" id="p2Send">提交</button></div>`;
+      stage.querySelector('#p2Send').onclick = () => { const v = stage.querySelector('#p2Txt').value.trim(); if ((v.match(/[A-Za-z]+/g) || []).length < 20) { toast('至少写 20 个英文词'); return; } submit({ text: v }); };
+    };
+  }
   /* ---------- the speaking route: role-play scenes from ordering a coffee to answering a sceptical boss ---------- */
   async function speakView() {
     const d = await api('/api/next/speak' + guestQuery(true));
@@ -2786,6 +2998,8 @@
         <p class="muted small">AI 扮演情景里的另一方：店员、房东、面试官……你用英文完成任务，可以说也可以打字。每说一句它会顺手纠正一处，结束时告诉你哪里说得好、哪里要改。</p></div>
       ${d.next ? `<a class="btn primary block" href="#/speak/${encodeURIComponent(d.next)}">下一个：${esc(d.items.find(x => x.id === d.next).title)}<span aria-hidden="true">→</span></a>` : ''}
       <p class="small muted">已完成 ${d.done} / ${d.total} 个情景</p>
+      <a class="card flat ielts-entry" href="#/speak/ielts" data-tap="speak-ielts"><span class="stack-xs"><b>雅思口语 · Part 1 和 Part 2</b>
+        <span class="tiny muted">考官提问、话题卡计时，按四项标准给 AI 估计分（练习用，不是官方成绩）</span></span><span class="go" aria-hidden="true">›</span></a>
       ${['A2', 'B1', 'B2', 'C1'].map(lv => { const xs = d.items.filter(x => x.level === lv); return xs.length ? `<section class="stack-s section"><h2 class="h2">${lv} · ${LV[lv]}</h2>
         <div class="plist">${xs.map(x => `<a class="nrow ${x.done ? 'st st-solid' : 'st st-untouched'}" href="#/speak/${encodeURIComponent(x.id)}"><i class="dot" aria-hidden="true"></i>
           <span class="t"><b>${esc(x.title)}</b><span class="tiny muted">你：${esc(x.me)} · AI：${esc(x.ai)}${x.done ? ' · 完成过' : ''}</span></span><span></span><span class="go" aria-hidden="true">›</span></a>`).join('')}</div></section>` : ''; }).join('')}</div>`;

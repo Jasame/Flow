@@ -264,6 +264,45 @@ class ReadingLinkedTests(unittest.TestCase):
         self.assertEqual(nx.shadow(self.c, 1, {'pack': 'v5-science-b2-noise-cancelling', 'i': 999, 'audio': audio})[1], 400)
         with patch.dict(os.environ, {'FLOW_AI_AUDIO': '0'}):
             self.assertEqual(nx.shadow(self.c, 1, {'pack': 'v5-science-b2-noise-cancelling', 'i': 0, 'audio': audio})[1], 503)
+        self.assertIsNone(r['score'])  # an older-style reply (no estimate) shows no score
+
+    def test_shadowing_pronunciation_score(self):
+        pid = 'v5-science-b2-noise-cancelling'
+        audio = {'mime_type': 'audio/webm', 'data': base64.b64encode(b'\x1aE\xdf\xa3' + b'\0' * 80).decode()}
+        reply = {'transcript': 'The first time you switch a pair of headphones', 'accuracy': 81.4, 'fluency_score': 70, 'fluency': 'ok',
+                 'sounds': [{'sound': '/θ/', 'word': 'think', 'note': '不在原句里，不该出现', 'set': 'th-s'},
+                            {'sound': '/ɪ/', 'word': 'switch', 'note': '读成了 /iː/：短一点、放松', 'set': 'i-long-short'},
+                            {'sound': '/f/', 'word': 'first', 'note': 'f 要上齿碰下唇', 'set': 'no-such-set'}],
+                 'issues': [{'word': 'on', 'note': '漏读了 on'}], 'tip': '把 switch on 连起来读'}
+        with patch('chat_service.request_model', return_value=(json.dumps(reply, ensure_ascii=False), 'stop')) as model:
+            out, s = nx.shadow(self.c, 1, {'pack': pid, 'i': 0, 'audio': audio, 'request_id': 'next-sh-score-1'})
+        self.assertEqual(s, 200)
+        prompt = model.call_args[0][0][1]['content']
+        self.assertIn('th-s（/θ/ 和 /s/）', prompt)  # the AI picks from 发音入门's own sets
+        r = out['result']
+        self.assertEqual([x['word'] for x in r['sounds']], ['switch', 'first'])  # a word not in the sentence is dropped
+        self.assertEqual((r['sounds'][0]['set'], r['sounds'][0]['set_title']), ('i-long-short', '/iː/ 和 /ɪ/'))
+        self.assertEqual(r['sounds'][1]['set'], '')  # unknown set ids are not linked
+        sc = r['score']
+        self.assertEqual((sc['accuracy'], sc['fluency']), (81, 70))
+        self.assertEqual(sc['complete'], round(100 * r['matched'] / len(r['words'])))
+        self.assertEqual(sc['total'], round(0.5 * 81 + 0.25 * 70 + 0.25 * sc['complete']))
+        ev = self.c.execute("SELECT skill, score FROM next_skill_events WHERE user_id=1 AND kind='shadow-pron'").fetchall()
+        self.assertEqual([(e['skill'], e['score']) for e in ev], [('pronunciation', sc['total'] / 100)])
+        self.assertEqual(self.c.execute("SELECT COUNT(*) FROM next_skill_events WHERE user_id=1 AND kind='shadow'").fetchone()[0], 1)
+        mk = self.c.execute("SELECT text, meaning FROM next_cards WHERE user_id=1 AND kind='sound' ORDER BY id").fetchall()
+        self.assertEqual(mk[0]['text'], 'switch'); self.assertTrue(mk[0]['meaning'].startswith('/ɪ/：'))
+        # the same request again is a replay: same score, nothing logged twice
+        with patch('chat_service.request_model', return_value=(json.dumps(reply, ensure_ascii=False), 'stop')):
+            again, _ = nx.shadow(self.c, 1, {'pack': pid, 'i': 0, 'audio': audio, 'request_id': 'next-sh-score-1'})
+        self.assertEqual(again['result']['score'], sc)
+        self.assertEqual(self.c.execute("SELECT COUNT(*) FROM next_skill_events WHERE user_id=1 AND kind='shadow-pron'").fetchone()[0], 1)
+        # nothing of the sentence heard: no score (the page asks to read it again)
+        with patch('chat_service.request_model', return_value=(json.dumps({**reply, 'transcript': '[听不清]'}, ensure_ascii=False), 'stop')):
+            quiet, _ = nx.shadow(self.c, 1, {'pack': pid, 'i': 0, 'audio': audio, 'request_id': 'next-sh-score-2'})
+        self.assertIsNone(quiet['result']['score'])
+        self.assertEqual(nx.pron_score({'accuracy': 90, 'fluency_score': None, 'words': [{'ok': True}], 'matched': 1}),
+                         {'accuracy': 90, 'fluency': 72, 'complete': 100, 'total': round(45 + 18 + 25)})
 
     def test_admin_learning_dashboard(self):
         import flow_admin
