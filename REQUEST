@@ -1,3 +1,3 @@
-b2d6dec1ee7f702abee92c0309e91e49cd8a022d eeb2386dc8ab1f08d087b8208d9adf7c1cf1b9d5bc809a386b8b360cc8ced314 e2e
-# b2 wordbooks: Merge main (PR #25 merged, guide PDF fix) into wordbooks
+7488cc5472c253a3387b666c3ac6f3d57ec31a27 dff903e9277dddd8f6a2ec5e3f211ed2054d64e28e6aaddbfa5915f945501b9d e2e
+# b3 main: Merge pull request #30 from Jasame/rewrite-minimal
 # Format: <commit sha> <manifest sha256> [e2e]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
