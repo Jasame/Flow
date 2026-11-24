@@ -95,6 +95,22 @@ class ClassicArchivedTests(Servers):
             st, body, h = self.call(self.site, '/about', raw=True)
             self.assertIn(b'data-channel="beta"', body); self.assertEqual(h.get('X-Robots-Tag'), 'noindex, nofollow')
 
+    def test_the_introduction_page_says_what_the_data_says(self):
+        """认识语流 shows the word books with their sizes and a tap-a-word demo with dictionary entries, copied into
+        about.js. When a word book or the dictionary changes, this says which figure on the page to update."""
+        import re
+        import vocab_service
+        src = (Path(app.ROOT) / 'public' / 'about.js').read_text(encoding='utf-8')
+        shown = {title: int(n) for title, n in re.findall(r"\['([^']+)', (\d+), '", src)}
+        real = {b['title']: b['count'] for b in vocab_service.registry()}
+        self.assertEqual(shown, real, 'update SHELF in flow/public/about.js')
+        words = json.loads(re.search(r'const DICT = (\{.*?\});\n', src).group(1))
+        self.assertGreaterEqual(len(words), 15)
+        for k, e in words.items():
+            hit = nx.lookup(k)
+            self.assertEqual((e['w'], e['p'], e['m'], e['t']), (hit['word'], hit.get('phonetic', ''), hit['meaning'], hit.get('tags', [])),
+                             f'update DICT["{k}"] in flow/public/about.js')
+
     def test_no_file_of_the_server_is_exposed_and_the_page_keeps_its_csp(self):
         # (kept from the archived classic tests, test_flow.py)
         for path in ('/../data/flow.sqlite3', '/data/flow.sqlite3', '/.env', '/app.py', '/flow_admin.py'):
