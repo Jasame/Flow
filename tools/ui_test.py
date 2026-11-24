@@ -1956,6 +1956,71 @@ def progress_run(pw):
         browser.close()
 
 
+# The area that takes a tap around an element: true when points 20 px out from its centre, on all four sides, land on it
+# (44 x 44 at least, even where the text itself is smaller: .hit44 in 70-input-devices.css).
+TAP44_JS = """sel => { const el = document.querySelector(sel); if (!el) return null; el.scrollIntoView({block: 'center'});
+  const r = el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+  const hit = (dx, dy) => { const t = document.elementFromPoint(x + dx, y + dy); return !!t && (t === el || el.contains(t)); };
+  return { ok: [[-20, 0], [20, 0], [0, -20], [0, 20]].every(([a, b]) => hit(a, b)), w: Math.round(r.width), h: Math.round(r.height) }; }"""
+
+
+def backlog_run(pw):
+    """Reviews piled up after a break (ux-longterm-audit 1.1, 11, 16, 2026-11-24): no new words today and the word page
+    says so; the review page says 「先做 40 个（还有 N 个）」 and, after those 40, offers a place to stop; the small links
+    a finger needs (结束, 去读, 去练, 按 B1 挑选 · 调整, 怎么写的) take a tap 44 px around them."""
+    dev = 'backlog'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    try:
+        ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['pile']['token'], 'url': BASE}])
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        pg.goto(BASE + '/#/cards', wait_until='networkidle'); settle(pg)
+        o = pg.evaluate("fetch('/api/next/vocab').then(r => r.json())")
+        note = pg.text_content('#newPaused') if pg.query_selector('#newPaused') else ''
+        check(dev, 'reviews piled up (60 > 3 x 10): no new words today, and the word page says why',
+              o['new_paused'] and o['due'] >= 60 and note.strip() == '到期的词比较多，今天先复习，新词明天继续。', (o['due'], o['new'], o['new_paused'], note))
+        home = pg.evaluate("fetch('/api/next/home').then(r => r.json())")
+        step = next((x for x in (home.get('path') or {}).get('steps', []) if x.get('key') == 'review'), {})
+        check(dev, "today's word step says new words wait", '新词明天继续' in step.get('sub', ''), step)
+        go(pg, '#/review'); pg.wait_for_timeout(300)
+        total = o['due'] + o['new']
+        foot = pg.text_content('.rfoot') or ''
+        check(dev, 'the review page says 先做 40 个（还有 N 个）, not 1 / 40 alone', f'先做 40 个（还有 {total - 40} 个）' in foot and '1 / 40' in foot, foot)
+        check(dev, '结束 on the review page takes a tap 44 px around it', (pg.evaluate(TAP44_JS, '.rtop a.link') or {}).get('ok'), pg.evaluate(TAP44_JS, '.rtop a.link'))
+        for k in range(60):
+            if pg.query_selector('.done-card'):
+                break
+            if pg.query_selector('[data-claim]'):
+                pg.keyboard.press('1'); pg.wait_for_selector('.open-card', timeout=4000); pg.keyboard.press('Enter'); pg.wait_for_timeout(120); continue
+            if pg.query_selector('[data-self]'):
+                pg.click('[data-self="good"]'); pg.wait_for_timeout(150); continue
+            break
+        head = pg.text_content('.done-card h2') if pg.query_selector('.done-card') else ''
+        stop = pg.text_content('#stopOk') if pg.query_selector('#stopOk') else ''
+        again = pg.text_content('#again') if pg.query_selector('#again') else ''
+        check(dev, 'after the 40: a place to stop, 今天做到这里也行 as the main button, 再做 beside it', head.startswith('这一轮复习了 40 个') and '今天做到这里也行' in stop
+              and again.startswith('再做') and 'primary' not in (pg.get_attribute('#again', 'class') or '')
+              and (pg.text_content('.done-card a.btn.primary[href="#/"]') or '').strip() == '今天就到这里', (head, stop, again))
+        for page, sel, name in (('#/report', '.card a.link[href="#/easy"]', '周报「去读」'), ('#/report', '.card a.link[href="#/speak"]', '周报「去练」'),
+                                ('#/', '.section-head a.link[href="#/welcome/edit"]', '今日「按 B1 挑选 · 调整」'), (f'#/m/{PID}/listen', '#originMore', '材料的「怎么写的」')):
+            go(pg, page); pg.wait_for_timeout(300)
+            t = pg.evaluate(TAP44_JS, sel)
+            check(dev, f'{name} takes a tap 44 px around it', t is not None and t['ok'], t)
+        # 背词计划: 20 new words a day at 90 % comes to over half an hour a month in: the number, the way out, and one tap to 10
+        go(pg, '#/vocab/plan'); pg.click('#dn [data-v="20"]'); pg.wait_for_timeout(200)
+        hint = pg.text_content('#dnHint') or ''
+        check(dev, 'plan: half an hour or more says the minutes and offers 10 a day, one tap away',
+              '按现在的设置，一个月后每天大约要' in hint and '可以改成每天 10 个新词' in hint and pg.is_visible('#dnTen'), hint)
+        pg.click('#dnTen'); pg.wait_for_timeout(200)
+        hint = pg.text_content('#dnHint') or ''
+        check(dev, 'plan: after the tap, 10 a day is chosen and the hint is calm again',
+              pg.get_attribute('#dn [data-v="10"]', 'aria-pressed') == 'true' and not pg.is_visible('#dnTen') and '连新词约' in hint, hint)
+        check(dev, 'no script errors', not errs, errs[:3])
+        ctx.close()
+    finally:
+        browser.close()
+
+
 # ---- 启动动画 and 选方向和目标 (r27): the mark on every opening, the one page a new learner answers once, the same page
 # from 我的; five sizes, light and dark
 START_SIZES = {'phone': (390, 844, True), 'phone-360': (360, 780, True), 'phone-land': (844, 390, True), 'tablet': (820, 1180, True), 'desktop': (1440, 900, False)}
@@ -2146,6 +2211,12 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('sprint', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'backlog' in ONLY:
+            try:
+                backlog_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('backlog', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'privacy' in ONLY:
             try:
                 privacy_run(pw)
