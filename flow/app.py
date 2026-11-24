@@ -132,25 +132,30 @@ def shell_file(name):
  next.js and next.css are sent slimmed (slim.py: no comments or indentation, the same lines), once per change.
  The page shell also says which site it is (__CHANNEL__), and the 内测版's home-screen app is named as such."""
  f=ROOT/'public'/name;body=f.read_bytes()
- if name in ('next.js','next.css'):
+ if name in ('next.js','next.css','about.js','about.css'):
   key=f.stat().st_mtime_ns
   if _SLIM.get(name,(None,))[0]!=key:_SLIM[name]=(key,__import__('slim').slim(name,body))
   return _SLIM[name][1]
  if name=='manifest.webmanifest' and CHANNEL=='beta':
   m=json.loads(body);m.update(name='语流 Flow 内测版',short_name='语流内测');return json.dumps(m,ensure_ascii=False,indent=1).encode()
+ if name=='about.html':return body.replace(b'__ABOUT__',asset_version(ABOUT_ASSETS).encode()).replace(b'__CHANNEL__',CHANNEL.encode())
  if name not in ('next.html','sw.js'):return body
  return body.replace(b'__ASSET__',asset_version().encode()).replace(b'__CHANNEL__',CHANNEL.encode())
 
 PAGE_CACHE='max-age=0, stale-while-revalidate=2592000'  # the learning page: see do_GET '/'
 
-def asset_version():
- """The content version of next.js and next.css (10 hex digits); recomputed when either file changes."""
- key=tuple((ROOT/'public'/n).stat().st_mtime_ns for n in ('next.js','next.css'))
- if _ASSET.get('key')!=key:
+# 认识语流 (/about): the introduction page for people who have not used Flow yet; its own small files, so it opens fast
+# and never loads the learning site. Its pictures are real screenshots (tools/about_shots.py) in public/about/.
+ABOUT_ASSETS=('about.js','about.css')
+def asset_version(names=('next.js','next.css')):
+ """The content version of next.js and next.css (10 hex digits), or of the files named; recomputed when one changes."""
+ key=tuple((ROOT/'public'/n).stat().st_mtime_ns for n in names)
+ got=_ASSET.get(names)
+ if not got or got[0]!=key:
   h=hashlib.sha256()
-  for n in ('next.js','next.css'):h.update((ROOT/'public'/n).read_bytes())
-  _ASSET.update(key=key,v=h.hexdigest()[:10])
- return _ASSET['v']
+  for n in names:h.update((ROOT/'public'/n).read_bytes())
+  got=_ASSET[names]=(key,h.hexdigest()[:10])
+ return got[1]
 def csp():
  # The media domain (R2, media.py) is the second line for audio and its timings, when FLOW_MEDIA_BASE is set.
  m=__import__('media').origin();extra=' '+m if m else ''
@@ -367,6 +372,9 @@ class Handler(BaseHTTPRequestHandler):
    '/next.js':('next.js','text/javascript; charset=utf-8'),
    '/next.css':('next.css','text/css; charset=utf-8'),
    '/survey':('survey.html','text/html; charset=utf-8'),
+   '/about':('about.html','text/html; charset=utf-8'),
+   '/about.js':('about.js','text/javascript; charset=utf-8'),
+   '/about.css':('about.css','text/css; charset=utf-8'),
    '/survey.js':('survey.js','text/javascript; charset=utf-8'),
    '/survey.css':('survey.css','text/css; charset=utf-8'),
    '/literata.woff2':('literata.woff2','font/woff2')}
@@ -377,6 +385,14 @@ class Handler(BaseHTTPRequestHandler):
    body=f.read_bytes();self.send_response(200);self.headers_common('application/pdf' if path=='/guide.pdf' else 'image/jpeg')
    if path=='/guide.pdf':self.send_header('Content-Disposition',"inline; filename=\"flow-guide.pdf\"; filename*=UTF-8''%E8%AF%AD%E6%B5%81%E6%93%8D%E4%BD%9C%E6%8C%87%E5%8D%97.pdf")
    self.send_header('Cache-Control','public, max-age=3600');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
+  if path.startswith('/about/') and path.endswith('.jpg') and path[7:-4].replace('-','').isalnum() and path[7:-4].isascii():
+   # 认识语流's screenshots
+   f=ROOT/'public'/'about'/path[7:]
+   if not f.is_file():return self.send({'error':'页面不存在'},404)
+   body=f.read_bytes();self.send_response(200);self.headers_common('image/jpeg')
+   self.send_header('Cache-Control','public, max-age=86400');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
+  if path=='/about/':
+   self.send_response(301);self.send_header('Location','/about');self.send_header('Content-Length','0');self.end_headers();return
   if path.startswith('/audio/'):
    return self.send_audio(path)
   if path=='/':
@@ -393,7 +409,8 @@ class Handler(BaseHTTPRequestHandler):
   name,mime=files[path];body=shell_file(name);self.send_response(200);self.headers_common(mime)
   # next.js and next.css under their current ?v= never change, so browsers and Cloudflare may keep them for a year;
   # any other version asked for (an old page) gets today's file and must check again.
-  versioned=name in ('next.js','next.css') and parse_qs(urlsplit(self.path).query).get('v',[''])[0]==asset_version()
+  v=parse_qs(urlsplit(self.path).query).get('v',[''])[0]
+  versioned=(name in ('next.js','next.css') and v==asset_version()) or (name in ABOUT_ASSETS and v==asset_version(ABOUT_ASSETS))
   self.send_header('Cache-Control','public, max-age=31536000, immutable' if name.endswith('.woff2') or versioned else 'no-cache');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def do_POST(self):
   try:self.post()
@@ -410,7 +427,7 @@ class Handler(BaseHTTPRequestHandler):
  def post(self):
   length=int(self.headers.get('Content-Length',0))
   # /api/feedback: up to three screenshots shrunk on the phone, sent as base64; under nginx's 3 MB (client_max_body_size 3m)
-  limit=2900000 if self.path=='/api/feedback' else 2200000 if self.path in ('/api/lab/audio','/api/next/shadow','/api/next/retell','/api/next/dialog','/api/next/say') else 800000 if self.path=='/api/vocab/import' else 40000 if self.path in ('/api/next/import','/api/next/essay','/api/next/dialog') else 20000
+  limit=2900000 if self.path=='/api/feedback' else 2200000 if self.path in ('/api/lab/audio','/api/next/shadow','/api/next/retell','/api/next/dialog','/api/next/say','/api/next/ielts') else 800000 if self.path=='/api/vocab/import' else 40000 if self.path in ('/api/next/import','/api/next/essay','/api/next/dialog') else 20000
   if length<1 or length>limit:return self.send({'error':'请求大小不正确'},400)
   if self.headers.get('Sec-Fetch-Site')=='cross-site':return self.send({'error':'不允许跨站请求'},403)
   if not api_open('POST',self.path.split('?')[0]):return self.send({'error':'接口不存在'},404)
