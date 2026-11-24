@@ -154,11 +154,15 @@ cd /www/wwwroot/flow && python3 ai_check.py
 - **`POST /v1/audio/speech`（朗读，2026-11-24 23:14 上线）**：模型名 `flow-tts` → aliyun / cosyvoice-v3-flash。请求和 OpenAI 一样：
   `{"model":"flow-tts","input":文字,"voice":"loongabby_v3","response_format":"mp3"}`，返回音频。声音只有 loongabby_v3、loongandy_v3、
   loongemily_v3、loongeric_v3，文字最多 1500 字符。按字符记用量（标价每万字符 ¥1）。Flow 里的 `FLOW_TTS_MODEL` 打开它。
-- **`POST /v1/search/completions`（联网检索，代码已测好，装到网关之前先问站长）**：模型名 `flow-search-*`，例如
-  `flow-search-ds-flash` → aliyun / deepseek-v4.1-flash-1017、`flow-search-qwen-plus` → aliyun / qwen-plus。网关调百炼原生接口，
+- **`POST /v1/search/completions`（联网检索，2026-11-25 00:05 上线）**：模型名 `flow-search-*`。`flow-search-qwen-plus` → aliyun / qwen-plus 能用；
+  `flow-search-ds-flash` 用不了（百炼上 DeepSeek V4.1 只走多模态接口，回 400「url error」）。2026-11-25 的评测里 qwen-plus 搜到的多是中文网页，今日热点暂时留在 Gemini。网关调百炼原生接口，
   打开 `enable_search` 和来源，回答形状同 chat.completion，另外带 `search_info.search_results`（index、title、url、site_name），
   正文用 `[ref_N]` 标出处。请求：`{"model":…,"messages":[…],"max_tokens":2048,"search":{"strategy":"turbo","freshness":7}}`。
   检索费按次另算（turbo 每千次 ¥3、max ¥4）。Flow 里的 `FLOW_SEARCH_AI_MODEL` 让今日热点先用它，失败时 Gemini 接着搜。
+- **听录音（2026-11-25 起，走普通的 `/v1/chat/completions`，不用新接口）**：模型名 `flow-audio-omni-flash` → aliyun / qwen3.8-omni-flash
+  （评测用 `flow-eval-omni-flash`）。Flow 的 `FLOW_AUDIO_ROUTES` 让某几个录音任务先走它：录音作为 `input_audio`（data URL，webm / mp4 / wav / mp3 原样），
+  提示词不变，流式、不思考；失败就换 Gemini（主模型的 `flow_audio`）。网关里**不要**给它配 Gemini 备用线路：中转站看不懂 `input_audio`，
+  回退由 Flow 来做。评测：`voice_eval.py`（情景对话一句，三条路的速度和效果）。
 - **换之前先测**：`python3 search_eval.py --env-file /etc/flow-beta.env --routes gemini,flow-search-ds-flash,flow-search-qwen-plus --output …`。
   它用今日热点自己的提示词，每个话题每条线路问一次，然后检查：来源链接能不能打开（只开公网地址）、简报里有没有 48 小时内的日期、
   来源页标的发布日期、简报里的数字和名字在来源里找不找得到，还有用时和费用。最好隔几天各跑一次。

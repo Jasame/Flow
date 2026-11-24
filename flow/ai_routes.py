@@ -62,6 +62,8 @@ PRICES = {
     'qwen3.8-flash': {'label': '通义千问 3.8 Flash', 'platform': 'bailian', 'in': 0.8, 'cached': 0.16, 'out': 2.7, 'note': '默认思考，Flow 关掉'},
     'deepseek-v4.1-flash': {'label': 'DeepSeek V4.1 Flash（百炼）', 'platform': 'bailian', 'in': 2.0, 'cached': 0.04, 'out': 8.0,
                             'offpeak': 0.5, 'busy': [8, 22], 'note': '百炼上北京时间 22:00–08:00 半价'},
+    'qwen3.8-omni-flash': {'label': '通义千问 3.8 Omni Flash（听录音）', 'platform': 'bailian', 'in': 0.8, 'cached': 0.1, 'out': 2.7,
+                           'note': '录音按 token 计（约每秒 7 个），只回文字；不思考'},
     'gemini-3.8-flash': {'label': 'Gemini 3.8 Flash', 'platform': 'google', 'in': 5.33, 'cached': 0.53, 'out': 26.63,
                          'after': {'2027-01-01': {'in': 10.65, 'cached': 1.07, 'out': 53.25}},
                          'note': '按 1 美元 = 7.1 元；2026-12-31 前是推广价，2027-01-01 起翻倍；思考 token 也按输出计费，但中转站不回报，算不进来'},
@@ -152,6 +154,24 @@ def _env_routes():
     return _ENV['routes']
 
 
+_AUDIO_ENV = {'raw': None, 'routes': {}}
+
+
+def audio_route(kind=None):
+    """The gateway model name a recording of this task goes to first (FLOW_AUDIO_ROUTES, same forms as FLOW_AI_ROUTES:
+    one name, or *=name,task=name pairs), in this process's lane; '' = Gemini hears it on the main service, as before.
+    2026-11-25: Qwen-Omni on 百炼 (e.g. flow-audio-omni-flash) for 情景对话, 复述 and 雅思; Gemini stays the backup."""
+    kind = kind or current()
+    raw = os.getenv('FLOW_AUDIO_ROUTES', '')
+    if raw != _AUDIO_ENV['raw']:
+        routes, problem = parse_routes(raw)
+        _AUDIO_ENV.update(raw=raw, routes=routes)
+        if problem:
+            print('ai_routes: ' + problem.replace('FLOW_AI_ROUTES', 'FLOW_AUDIO_ROUTES') + '; recordings stay on the main model', file=sys.stderr, flush=True)
+    r = _AUDIO_ENV['routes'].get(kind) or _AUDIO_ENV['routes'].get('*') or ''
+    return in_lane(r) if isinstance(r, str) and NAME.fullmatch(r) else ''
+
+
 def env_problem():
     """Why the server's FLOW_AI_ROUTES was not understood, or None."""
     _env_routes()
@@ -188,8 +208,8 @@ def in_lane(name, lane=None):
     lane = lane if lane is not None else os.getenv('FLOW_AI_LANE', '').strip()
     if lane not in LANES:
         return name
-    if name.startswith('flow-text-'):
-        other = f'flow-{lane}-' + name[len('flow-text-'):]
+    if name.startswith(('flow-text-', 'flow-audio-')):
+        other = f'flow-{lane}-' + name.split('-', 2)[2]
     elif name == 'flow-text':
         other = f'flow-{lane}'
     else:
