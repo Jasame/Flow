@@ -28,7 +28,7 @@
   function aiWait(path, body) {
     if (!body || typeof body.request_id !== 'string' || AI_QUIET.test(path)) return () => {};
     const btn = Date.now() - lastPress.at < 1500 ? lastPress.el : null;
-    if (!btn) return () => {};
+    if (!btn || btn.closest('[data-own-wait]')) return () => {};  // the page shows its own progress (口语情景: seconds, resend)
     let line = null;
     const t = setTimeout(() => {
       if (!btn.isConnected) return;

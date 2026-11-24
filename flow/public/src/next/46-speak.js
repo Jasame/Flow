@@ -27,7 +27,7 @@
       ${swap ? '' : `<details class="useful"><summary class="small">用得上的说法（${x.useful.length}）</summary><div class="plist">${x.useful.map(u => `<div class="crow"><button class="icon-btn" data-say="${esc(u.text)}" aria-label="朗读">${ICON.speak}</button><span><span class="en">${esc(u.text)}</span><span class="tiny muted">${esc(u.meaning)}</span></span></div>`).join('')}</div></details>`}
       <div class="chat" id="chat"></div>
       <div id="dlgIn" class="stack-s" hidden><div class="tiny muted" id="dlgHint"></div>
-        <div class="chat-in"><textarea id="dlgText" rows="2" maxlength="480" lang="en" enterkeyhint="send" placeholder="用英文回答，或者点 ● 说出来"></textarea>${recBtn('dlgMic', '说出来')}<button class="btn primary" id="dlgSend">发送</button></div>
+        <div class="chat-in"><textarea id="dlgText" rows="2" maxlength="480" lang="en" enterkeyhint="send" placeholder="用英文回答，或者点 ● 说出来"></textarea>${recBtn('dlgMic', '说出来')}<button class="btn primary" id="dlgSend" data-own-wait>发送</button></div>
         <div class="row between"><span class="tiny muted" id="dlgCount"></span><button class="btn small ghost" id="dlgEnd">结束并看反馈</button></div></div>
       <div><button class="btn primary block" id="dlgStart">开始对话</button></div><div id="dlgOut"></div></div>`;
     view.querySelectorAll('[data-say]').forEach(b => b.onclick = () => TTS.say(b.dataset.say));
@@ -47,12 +47,50 @@
       const r = await turn({}); if (!r) { btn.disabled = false; btn.textContent = '开始对话'; return; }
       btn.parentNode.remove();
       chat.insertAdjacentHTML('beforeend', `<div class="scene small">${esc(r.scene)}${r.role ? `（AI 扮演：${esc(r.role)}）` : ''}</div>`);
-      bubble('ai', r.reply); TTS.say(r.reply); hist.push({ role: 'ai', text: r.reply });
+      bubble('ai', r.reply); speakReply(r.reply, r.voice); hist.push({ role: 'ai', text: r.reply });
       view.querySelector('#dlgIn').hidden = false; showInput(); if (!TOUCH) view.querySelector('#dlgText').focus({ preventScroll: true });
     };
+    // The AI's line in its role's voice (r.voice, scenarios.voice_for), which the server began making along with the reply
+    // (声音接力). Past 5 s the browser voice says it, rather than leave the learner waiting in silence.
+    async function speakReply(text, voice) {
+      if (!voice || !SV.on()) { TTS.say(text); return; }
+      const t = ++TTS.token; if (TTS.ok) speechSynthesis.cancel();
+      let u = null;
+      try {
+        await DATA.ready;
+        u = await Promise.race([request('/api/next/tts', { text, voice }, true).then(x => x.j.url), new Promise(ok => setTimeout(() => ok(null), 5000))]);
+      } catch (e) { if (e.status === 503 || e.status === 429) SV.off = true; }
+      if (t !== TTS.token) return;  // a recording started, or the page changed, while it was being made
+      if (u) { CLIP.play(u, 0, 1e6, text); TTS.token = t; } else TTS.browser(text);
+    }
+    // 说完就显示进度: from the moment an answer is sent, a line at the end of the chat says what is happening and for how
+    // long (the seconds are not read aloud); a recording that did not get through stays to be sent again, not said twice.
+    function waiting(spoken) {
+      const el = document.createElement('div'), t0 = Date.now();
+      el.className = 'dlg-wait small muted'; el.setAttribute('role', 'status');
+      el.innerHTML = `<span class="spin" aria-hidden="true"></span><span>${spoken ? '正在听你说的…' : '对方正在回…'}</span> <span class="secs" aria-hidden="true">0 秒</span>`;
+      const secs = el.querySelector('.secs'), timer = setInterval(() => { secs.textContent = Math.floor((Date.now() - t0) / 1000) + ' 秒'; }, 1000);
+      chat.append(el); el.scrollIntoView({ block: 'nearest', behavior: REDUCED ? 'auto' : 'smooth' });
+      return {
+        done() { clearInterval(timer); el.remove(); },
+        failed(again) {
+          clearInterval(timer);
+          el.innerHTML = '<span>这段录音没有发出去。</span> <button class="btn small" type="button" data-own-wait>重发这段录音</button>';
+          el.querySelector('button').onclick = () => { el.remove(); again(); };
+        },
+      };
+    }
     async function send(text, blob) {
-      const body = blob ? { audio: await MIC.payload(blob) } : { text };
-      const r = await turn(body); if (!r) return;
+      const w = waiting(!!blob);
+      let body;
+      try { body = blob ? { audio: await MIC.payload(blob) } : { text }; } catch (e) { w.done(); toast(e.message); return; }
+      const r = await turn(body);
+      if (!r) {
+        if (blob) { w.failed(() => send('', blob)); return; }
+        w.done(); const box = view.querySelector('#dlgText'); if (box && !box.value) box.value = text;  // typed: back in the box
+        return;
+      }
+      w.done();
       const me = r.heard || text;
       // 按回答调难度 (scenarios.pace): the AI's next line follows this answer's length and mistakes; say so in one line
       const pace = r.pace === 'easier' ? '放慢了一点' : r.pace === 'harder' ? '加深了一点' : '';
@@ -60,7 +98,7 @@
       bubble('me', me, (r.correction ? `<div class="fix tiny"><del>${esc(r.correction.original)}</del> → <b>${esc(r.correction.better)}</b> <span class="muted">${esc(r.correction.why)}</span></div>` : '')
         + (pace ? `<div class="pace tiny muted" data-pace="${r.pace}">↳ AI 按你的回答${pace}</div>` : ''));
       hist.push({ role: 'me', text: me });
-      bubble('ai', r.reply); TTS.say(r.reply); hist.push({ role: 'ai', text: r.reply });
+      bubble('ai', r.reply); speakReply(r.reply, r.voice); hist.push({ role: 'ai', text: r.reply });
       const hint = view.querySelector('#dlgHint');
       hint.innerHTML = (r.hint ? esc('提示：' + r.hint) : '') + (r.say ? `<span class="say-line">${r.hint ? '' : '提示：'}可以说 <b lang="en">${esc(r.say)}</b><button class="icon-btn" type="button" id="dlgSay" aria-label="朗读这句">${ICON.speak}</button></span>` : '');
       const sb = hint.querySelector('#dlgSay'); if (sb) sb.onclick = () => TTS.say(r.say);
@@ -69,7 +107,7 @@
     }
     view.querySelector('#dlgSend').onclick = () => { const t = view.querySelector('#dlgText'); const v = t.value.trim(); if (!v) return; t.value = ''; send(v); };
     view.querySelector('#dlgText').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); view.querySelector('#dlgSend').click(); } });
-    const mic = view.querySelector('#dlgMic'); mic.onclick = () => MIC.toggle(mic, 30, b => send('', b));
+    const mic = view.querySelector('#dlgMic'); mic.dataset.ownWait = ''; mic.onclick = () => MIC.toggle(mic, 30, b => send('', b));
     view.querySelector('#dlgEnd').onclick = async e => {
       if (mine() < 1) { toast('先说一两句再看反馈'); return; }
       const btn = e.currentTarget; btn.innerHTML = '<span class="spin"></span>';
@@ -77,7 +115,7 @@
       view.querySelector('#dlgIn').hidden = true; TTS.stop();
       view.querySelector('#dlgOut').innerHTML = `<div class="result enter stack"><div class="card verdict"><span class="dot"></span><div>${esc(r.summary)}</div></div>
         ${r.good.length ? `<div class="stack-s"><b>说得好的句子</b>${r.good.map(g => `<div class="small text">${esc(g)}</div>`).join('')}</div>` : ''}
-        ${r.fixes.length ? `<div class="stack-s"><b>要改的地方</b><span class="tiny muted">已经放进错题本，会按遗忘曲线回来。</span>${fixesHTML(r.fixes)}</div>` : ''}
+        ${r.fixes.length ? `<div class="stack-s"><b>要改的地方</b>${fixesHTML(r.fixes)}</div>` : ''}
         ${r.challenge ? `<div class="round-extra small"><b>这一轮的要求：</b>${esc(r.challenge)}${typeof r.challenge_met === 'boolean' ? (r.challenge_met ? ' <span class="ok-mark">✓ 做到了</span>' : ' <span class="muted">· 这次还没做到，下一轮再试</span>') : ''}</div>` : ''}
         ${paced.easier || paced.harder ? `<p class="tiny muted">这一轮 AI 按你的回答${paced.easier ? `放慢了 ${paced.easier} 次` : ''}${paced.easier && paced.harder ? '、' : ''}${paced.harder ? `加深了 ${paced.harder} 次` : ''}。</p>` : ''}
         ${r.expressions.length ? `<div class="stack-s"><b>可以学的表达</b>${r.expressions.map((ex, k) => `<div class="row between small"><span><b>${esc(ex.text)}</b> <span class="muted">${esc(ex.meaning)}</span></span><button class="btn small" data-kx="${k}">收藏</button></div>`).join('')}</div>` : ''}
