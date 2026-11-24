@@ -253,6 +253,7 @@ flow/public/guide/radartest.jpg
 flow/public/guide/read.jpg
 flow/public/guide/report.jpg
 flow/public/guide/review.jpg
+flow/public/guide/scene.jpg
 flow/public/guide/shadow.jpg
 flow/public/guide/speak.jpg
 flow/public/guide/sprint.jpg
@@ -337,6 +338,7 @@ flow/tests/test_reliability.py
 flow/tests/test_relisten.py
 flow/tests/test_rewrite_minimal.py
 flow/tests/test_slim.py
+flow/tests/test_speak_rounds.py
 flow/tests/test_survey.py
 flow/tests/test_ux_round.py
 flow/tests/test_vertex.py

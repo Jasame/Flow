@@ -324,9 +324,12 @@ def daily_path(c, uid, home, now=None):
         sp = None if to_ielts else __import__('scenarios').listing(c, uid, level)
         if sp and (sp['next'] or spoke):
             nxt = next((x for x in sp['items'] if x['id'] == sp['next']), None)
-            steps.append({'key': 'speak', 'title': '口语：' + (nxt['title'] if nxt and not spoke else '情景对话'), 'done': bool(spoke),
-                          'href': '#/speak/' + nxt['id'] if nxt else '#/speak',
-                          'sub': '今天说过了' if spoke else '和 AI 演一个情景，说四五句，约 5 分钟'})
+            # a scene done before comes back as round 2, 3…: one more requirement, or the roles swapped (scenarios.mode_of)
+            again = nxt and nxt['rounds'] > 0
+            sub = ('今天说过了' if spoke else f"这次多一条：{nxt['challenge']}" if again and nxt['mode'] == 'challenge'
+                   else f"换角色：你演{nxt['ai']}，AI 演{nxt['me']}" if again else '和 AI 演一个情景，说四五句，约 5 分钟')
+            steps.append({'key': 'speak', 'title': '口语：' + (nxt['title'] + (f" · 第 {nxt['round']} 轮" if again else '') if nxt and not spoke else '情景对话'),
+                          'done': bool(spoke), 'href': '#/speak/' + nxt['id'] if nxt else '#/speak', 'sub': sub})
     if minutes >= 15 and key != 'dictate' and pick:
         steps.append({'key': 'dictate', 'title': '听写三句', 'sub': f"练耳朵，也练拼写 · 今天 {min(3, kind_n.get('dictation', 0))}/3", 'href': f"#/m/{pick['id']}/listen",
                       'done': kind_n.get('dictation', 0) >= 3})

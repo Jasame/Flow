@@ -113,7 +113,9 @@ def retell(c, uid, data):
 def dialog(c, uid, data):
     """Role-play around the material's speaking task, or a scene of the speaking route (data['scenario']).
     The client keeps the history; each call is one AI turn."""
-    sc = __import__('scenarios').pack(data.get('scenario')) if isinstance(data.get('scenario'), str) else None
+    SC = __import__('scenarios')
+    sid = data.get('scenario') if isinstance(data.get('scenario'), str) else None
+    sc = SC.pack(sid, SC.mode_for(c, uid, sid)) if sid in SC.SCENES else None
     if sc:
         p, level = sc, (nx.profile(c, uid) or {}).get('level') or sc['cefr']
     else:
@@ -144,39 +146,54 @@ def dialog(c, uid, data):
     task = p.get('speaking') or f"围绕「{p['title']}」这个话题聊一聊"
     system = ('你在和一位中国英语学习者做情景对话练习。你扮演情景里的另一方，说话自然、简短（1–3 句），'
               '用学习者水平能听懂的英语，适时追问让对方多说。不要替学习者回答。只输出 JSON。' + LEVEL_NOTE.get(level, ''))
+    if sc:  # 按回答调难度: the next line follows the learner's last answer (scenarios.pace has the same rule)
+        system += (f'按学习者刚才这句调整你下一句的难度：如果这句很短（不到 {SC.PACE_SHORT} 个词），或者不到 {SC.PACE_MID} 个词而且有明显错误，'
+                   '你的下一句要更短、用更常见的词，并在 say 里给一句学习者可以直接套用的英文；如果这句有 '
+                   f'{SC.PACE_LONG} 个词以上而且基本没错，你的下一句可以更地道，并追问一个需要展开说的问题；其他情况保持原来的难度。')
     scene = (f"情景：{p['title']}（{p['title_en']}）\n{p['body']}\n口语任务：{task}" if sc else
              f"材料：{p['title']}\n材料内容：{p['body'][:1500]}\n口语任务：{task}")
     if not hist:
         user = scene + '\n\n开始对话：先用一句中文说明情景和你扮演的角色，再用英文说第一句。输出 JSON：{"scene":"中文情景说明","role":"你扮演的角色（中文）","reply":"你的第一句英文"}'
     elif end:
-        user = (scene + '\n\n对话记录：\n' + '\n'.join(turns) + '\n\n对话结束。请总结学习者这轮的表现。输出 JSON：'
+        user = (scene + '\n\n对话记录：\n' + '\n'.join(turns) + '\n\n对话结束。请总结学习者这轮的表现。' +
+                (f'这一轮学习者有一条额外要求：「{sc["challenge"]}」，summary 里要说一句做到了没有。' if sc and sc.get('challenge') else '') + '输出 JSON：'
                 '{"summary":"两三句中文总评，先说优点","good":["学习者说得好的英文句子"],"fixes":[' + FIX + '],'
-                '"expressions":[{"text":"值得学的英文表达","meaning":"中文"}],"score":0.0到1.0之间的数字}')
+                '"expressions":[{"text":"值得学的英文表达","meaning":"中文"}],"score":0.0到1.0之间的数字' +
+                (',"challenge_met":true或false' if sc and sc.get('challenge') else '') + '}')
     else:
         user = (scene + '\n\n对话记录：\n' + '\n'.join(turns) +
                 ('\n学习者刚才说了一句话（录音，先忠实转写）。' if audio else '\n学习者刚说：' + text) +
                 '\n\n接着对话。输出 JSON：{' + ('"heard":"转写",' if audio else '') +
                 '"reply":"你的下一句英文","correction":{"original":"学习者原话里有问题的部分","better":"更自然的说法","why":"中文原因"} 或 null,'
-                '"hint":"给学习者的一句中文提示：下一句可以怎么接"}')
+                '"hint":"给学习者的一句中文提示：下一句可以怎么接"' + (',"say":"需要放慢时：学习者下一句可以直接套用的一句英文；否则空字符串"' if sc else '') + '}')
 
     def convert(raw):
         if not isinstance(raw, dict):
             raise ValueError('bad')
+        rnd = {'mode': sc['mode'], 'challenge': sc['challenge']} if sc else {}
         if not hist:
-            return {'scene': _clean(raw.get('scene'), 1, 300), 'role': _clean(raw.get('role') or '', 0, 60), 'reply': _clean(raw.get('reply'), 1, 400)}
+            return {'scene': _clean(raw.get('scene'), 1, 300), 'role': _clean(raw.get('role') or '', 0, 60), 'reply': _clean(raw.get('reply'), 1, 400), **rnd}
         if end:
+            met = raw.get('challenge_met')
             return {'summary': _clean(raw.get('summary'), 1, 500), 'good': [_clean(g, 1, 300) for g in (raw.get('good') or [])[:3] if isinstance(g, str) and g],
                     'fixes': _fixes(raw.get('fixes'), valid),
                     'expressions': [{'text': _clean(e.get('text'), 1, 120), 'meaning': _clean(e.get('meaning') or '', 0, 120)}
                                     for e in (raw.get('expressions') or [])[:4] if isinstance(e, dict) and e.get('text')],
-                    'score': max(0.0, min(1.0, float(raw.get('score') or 0)))}
+                    'score': max(0.0, min(1.0, float(raw.get('score') or 0))), **rnd,
+                    **({'challenge_met': met} if sc and sc['challenge'] and isinstance(met, bool) else {})}
         corr = raw.get('correction')
         corr = {'original': _clean(corr.get('original') or '', 0, 300), 'better': _clean(corr.get('better'), 1, 300), 'why': _clean(corr.get('why') or '', 0, 300)} \
             if isinstance(corr, dict) and corr.get('better') else None
-        return {'heard': _clean(raw.get('heard') or '', 0, 500) if audio else text, 'reply': _clean(raw.get('reply'), 1, 400),
-                'correction': corr, 'hint': _clean(raw.get('hint') or '', 0, 200)}
+        heard = _clean(raw.get('heard') or '', 0, 500) if audio else text
+        out = {'heard': heard, 'reply': _clean(raw.get('reply'), 1, 400), 'correction': corr, 'hint': _clean(raw.get('hint') or '', 0, 200)}
+        if sc:
+            out['pace'] = SC.pace(heard, bool(corr))
+            say = raw.get('say')
+            out['say'] = _clean(say, 1, 200) if out['pace'] == 'easier' and isinstance(say, str) and nx.WORD.search(say) else ''
+        return out
 
-    spec = {'pack': p['id'], 'turns': len(hist), 'text': text, 'end': end, 'audio': bool(audio), 'last': hist[-1]['text'] if hist else ''}
+    spec = {'pack': p['id'], 'turns': len(hist), 'text': text, 'end': end, 'audio': bool(audio), 'last': hist[-1]['text'] if hist else '',
+            **({'mode': sc['mode']} if sc else {})}
     result, status = _ai(c, uid, data, 'next-dialog', p['id'], 'speaking', spec, system, user, convert, audio)
     if status == 200 and not hist:
         c.execute('INSERT OR IGNORE INTO next_dialog_openers VALUES(?,?,?,?)', (p['id'], level, json.dumps(result['result'], ensure_ascii=False), time.time()))

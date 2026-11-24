@@ -36,4 +36,10 @@
   .cue{font-size:15px;line-height:1.4;padding:10px 14px}
   .p2-clock.talk{position:sticky;bottom:8px;z-index:2;box-shadow:var(--shadow)}
 }
+/* 口语情景 rounds and pace (46-speak.js): the round's extra requirement, the pace note under an answer, a sentence to use */
+.round-extra{margin-top:8px;padding:8px 12px;border-radius:10px;background:var(--paper);border:1px dashed var(--green-line)}
+.msg .pace{padding:0 6px}
+.say-line{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.say-line b{font-family:var(--serif);font-weight:600;color:var(--ink)}
+.say-line .icon-btn{width:32px;height:32px;border-radius:8px}.say-line .icon-btn svg{width:16px;height:16px}
 @media (prefers-reduced-motion:reduce){.rec-dot{animation:none}.p2-clock .vbar i{transition:none}}
