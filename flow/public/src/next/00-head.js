@@ -36,6 +36,8 @@
         S.user = null; S.csrf = ''; e.message = '登录已过期，请重新登录';
         if (sheetEl.hidden) setTimeout(() => openLogin('登录已过期，请重新登录。登录后会回到这一页。'), 0);
       }
+      // under 14 without a guardian's agreement: the AI on the learner's own words waits for it (81-privacy.js)
+      if (r.status === 403 && j.code === 'guardian' && !quiet) setTimeout(() => guardianSheet(), 0);
       throw e;
     }
     return { j, t };

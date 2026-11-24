@@ -209,6 +209,7 @@ flow/pedagogy_service.py
 flow/pilot_service.py
 flow/placement_content.py
 flow/practice_service.py
+flow/privacy_service.py
 flow/progress_service.py
 flow/public/about.css
 flow/public/about.html
@@ -331,6 +332,7 @@ flow/tests/test_package.py
 flow/tests/test_pedagogy.py
 flow/tests/test_practice.py
 flow/tests/test_practice_hub.py
+flow/tests/test_privacy.py
 flow/tests/test_progress.py
 flow/tests/test_quota.py
 flow/tests/test_reference.py

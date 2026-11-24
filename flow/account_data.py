@@ -137,7 +137,8 @@ def _value(v):
 
 def records(c, u):
     uid = u['id']
-    row = c.execute('SELECT username, email FROM users WHERE id=?', (uid,)).fetchone()
+    row = c.execute('SELECT * FROM users WHERE id=?', (uid,)).fetchone()
+    import privacy_service as pv
     tables = {}
     for t in _tables(c):
         if t in LEFT_OUT_TABLES:
@@ -152,7 +153,8 @@ def records(c, u):
             tables[t] = [{k: _value(r[i]) for i, k in enumerate(keep)} for r in rows]
     out = {'说明': '语流 Flow 为这个账号保存的全部学习记录。时间是 Unix 时间戳（秒）；每张表一组记录，常用的几张在「目录」里有说明。',
            'exported_at': datetime.datetime.now(CN).isoformat(timespec='seconds'),
-           'account': {'username': row['username'], 'email': row['email'] or ''},
+           'account': {'username': row['username'], 'email': row['email'] or '', '年龄段': pv.label(pv.info(row)['age']),
+                       **({'监护人同意': _day(row['guardian_ok'])} if pv.info(row)['guardian'] else {})},
            **__import__('class_service').export_rows(c, uid),
            '目录': {t: GUIDE[t] for t in tables if t in GUIDE}, 'tables': tables}
     return json.dumps(out, ensure_ascii=False, indent=1).encode('utf-8')

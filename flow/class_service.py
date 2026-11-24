@@ -239,6 +239,16 @@ def join(c, uid, data):
         return err
     if k['teacher'] == uid:
         return {'error': '你是这个班的老师，不用加入；在「我的 → 我的班级」里看全班汇总', 'field': 'code'}, 409
+    import privacy_service as pv  # the 年龄段 first (asked in the same sheet), and under 14 a guardian's agreement
+    if data.get('age'):
+        got = pv.set_age(c, uid, data)
+        if got[1] != 200:
+            return got
+    u = c.execute('SELECT age_band, guardian_ok FROM users WHERE id=?', (uid,)).fetchone()
+    if not pv.info(u)['age']:
+        return {'error': '加入班级前，先选一下你的年龄段', 'field': 'age', 'code': 'age'}, 409
+    if pv.needs_guardian(u):
+        return {'error': pv.NEED_GUARDIAN + '勾选后才能加入班级。', 'field': 'guardian', 'code': 'guardian'}, 409
     now_in = c.execute('SELECT k.id, k.name FROM class_members m JOIN classes k ON k.id=m.class_id WHERE m.user_id=? AND m.left_at IS NULL', (uid,)).fetchone()
     if now_in:
         if now_in['id'] == k['id']:
