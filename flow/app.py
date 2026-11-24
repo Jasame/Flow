@@ -118,7 +118,7 @@ SESSION_DAYS=30
 # r20: the classic site is archived (archive/classic/). The learner site serves only what the learning site (next.html),
 # the survey, sign-in and the account need, and the operations checks; every other /api/ path answers 404. Operator
 # functions live in the xmc.hk console (flow_admin.py, port FLOW_ADMIN_PORT), never on the learner site.
-OPEN_API={'GET':('/api/health','/api/survey','/api/deploy-status','/api/session','/api/account','/api/next/'),
+OPEN_API={'GET':('/api/health','/api/version','/api/survey','/api/deploy-status','/api/session','/api/account','/api/next/'),
  'POST':('/api/survey','/api/feedback','/api/next/','/api/recovery/','/api/login','/api/register','/api/auth/code','/api/auth/reset','/api/logout','/api/password','/api/account/')}
 def api_open(method,path):return any(path==p or (p.endswith('/') and path.startswith(p)) for p in OPEN_API[method])
 def session_cookie(token):
@@ -281,6 +281,9 @@ class Handler(BaseHTTPRequestHandler):
   path=self.path.split('?')[0]
   if path.startswith('/api/') and not api_open('GET',path):return self.send({'error':'接口不存在'},404)
   if path=='/api/health':return self.send({'ok':True,'version':'4.5.0','mail':account.configured(),'channel':CHANNEL})
+  # The version of next.js/next.css the server sends now: a home-screen app asleep for days asks it when it wakes
+  # (04-home-app.js) and takes a new one when it is safe to. No database, nothing about anyone.
+  if path=='/api/version':return self.send({'asset':asset_version()})
   if path=='/robots.txt':
    body=('User-agent: *\nDisallow: /\n' if CHANNEL=='beta' else 'User-agent: *\nDisallow: /api/\nAllow: /\n').encode()
    self.send_response(200);self.headers_common('text/plain; charset=utf-8');self.send_header('Cache-Control','public, max-age=3600')

@@ -82,7 +82,12 @@ def norm(text):
 
 
 def name_of(text, voice):
-    return hashlib.sha256((voice + '\n' + norm(text)).encode()).hexdigest()[:32] + '.mp3'
+    """The stored file's name. Everything that changes the sound is in the hash: the model (FLOW_TTS_MODEL), the
+    upstream voice and the format, so a site on another model or a remapped voice never gets the old files (语流 2,
+    2026-11-24). The gateway alias hides the upstream model: pointing flow-tts at another model means a new alias name
+    (flow-tts-2) and FLOW_TTS_MODEL set to it, which starts a fresh set of files."""
+    key = '\n'.join((model(), VOICES.get(voice, voice), 'mp3', norm(text)))
+    return hashlib.sha256(key.encode()).hexdigest()[:32] + '.mp3'
 
 
 def directory():

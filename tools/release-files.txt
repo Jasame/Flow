@@ -156,6 +156,7 @@ flow/corpus_data/v5/work.C1.2.json
 flow/corpus_data/v5/work.C1.3.json
 flow/corpus_data/v5/work.C1.4.json
 flow/corpus_data/v5/work.C1.json
+flow/corpus_data/voice-eval.json
 flow/corpus_data/wordbooks-open.json
 flow/corpus_data/wordbooks.json
 flow/corpus_data/wordroots-flow.json
@@ -351,6 +352,7 @@ flow/tests/test_tts.py
 flow/tests/test_ux_round.py
 flow/tests/test_vertex.py
 flow/tests/test_vocab.py
+flow/tests/test_voice_eval.py
 flow/tests/test_welcome.py
 flow/tests/test_word_clip.py
 flow/tests/test_wordbook_registry.py
@@ -365,6 +367,7 @@ flow/user_guide.py
 flow/vertex_auth.py
 flow/vertex_native.py
 flow/vocab_service.py
+flow/voice_eval.py
 flow/word_clip.py
 flow/word_links.py
 tests/test_release.py

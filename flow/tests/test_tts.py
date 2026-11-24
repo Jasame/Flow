@@ -88,6 +88,20 @@ class ServerVoiceTests(TtsCase):
         self.assertEqual({v: tts.VOICES[v] for v in ('us-f', 'us-m', 'uk-f', 'uk-m')},
                          {'us-f': 'loongabby_v3', 'us-m': 'loongandy_v3', 'uk-f': 'loongemily_v3', 'uk-m': 'loongeric_v3'})
 
+    def test_another_model_or_upstream_voice_never_gets_the_old_file(self):
+        # both sites share the folder: a site on another model (or a remapped voice) must make its own files
+        text = 'The same sentence, another model.'
+        first, _ = tts.post(self.c, 1, {'text': text})
+        with patch.dict(os.environ, {'FLOW_TTS_MODEL': 'flow-tts-2'}):
+            second, _ = tts.post(self.c, 1, {'text': text})
+        with patch.dict(tts.VOICES, {'us-f': 'longxiaochun_v3'}):
+            third, _ = tts.post(self.c, 1, {'text': text})
+        self.assertEqual(len({first['url'], second['url'], third['url']}), 3)
+        self.assertTrue(first['made'] and second['made'] and third['made'])
+        self.assertEqual([g['model'] for g in self.gw.seen], ['flow-tts', 'flow-tts-2', 'flow-tts'])
+        again, _ = tts.post(self.c, 2, {'text': text})
+        self.assertEqual((again['url'], again['made']), (first['url'], False))  # back on flow-tts: the first file
+
     def test_guests_get_stored_sentences_only(self):
         body, st = tts.post(self.c, None, {'text': 'Nothing stored yet.'})
         self.assertEqual((st, body['code']), (404, 'guest')); self.assertEqual(self.gw.seen, [])
