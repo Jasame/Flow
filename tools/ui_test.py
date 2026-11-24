@@ -1147,14 +1147,14 @@ def learner_run(pw):
                   shown and graded and waiting >= 1 and sent == 0, (shown, graded, waiting, sent))
         else:
             check(dev, '存到手机: a second material to keep', False, 'no other material in the library')
-        # 复听: from 今日, the text hidden at first; the answer to 听懂了多少 shows it and says when it comes back
+        # 复听: from 今日, the text hidden at first; the answer to 听懂了多少 shows it and says whether it comes back
         go(pg, f'#/m/{PID}/listen/again'); pg.wait_for_selector('#relisten [data-und]', timeout=6000)
         hidden = pg.evaluate("document.querySelectorAll('#pane .line .txt.blind').length")
         pg.wait_for_timeout(300); pg.screenshot(path=str(OUT / 'learner-relisten.png'))
         pg.click('#relisten [data-und="2"]'); pg.wait_for_function("() => !document.querySelector('#relisten [data-und]')", timeout=6000)
         said = (pg.text_content('#relisten') or '').strip()
         shown = pg.evaluate("document.querySelectorAll('#pane .line .txt.blind').length")
-        check(dev, '复听: the text is hidden until 听懂了多少 is answered, then shown with when it comes back', hidden > 0 and shown == 0 and '7 天后再听一次' in said, (hidden, shown, said[:60]))
+        check(dev, '复听: the text is hidden until 听懂了多少 is answered, then shown; understood mostly, it is not brought back again (r27)', hidden > 0 and shown == 0 and '这篇已经听熟了，以后不再安排复听' in said, (hidden, shown, said[:60]))
         # 导出我的数据: the word book as a table for Excel (UTF-8 with a BOM), from 我的
         go(pg, '#/me'); pg.click('#meData'); pg.wait_for_selector('#sheetCard a[href$="cards.csv"]', timeout=4000)
         with pg.expect_download(timeout=8000) as dl:
@@ -1312,6 +1312,22 @@ def listen_speak_run(pw):
             if size == 'phone':
                 pg.click('.line[data-i="0"] .snd a'); pg.wait_for_timeout(600)
                 check(dev, '跟读: 去练 opens that 发音入门 set', pg.evaluate("location.hash").startswith('#/sounds/') and bool(pg.query_selector('#view h1')), pg.evaluate('location.hash'))
+
+            if size == 'phone':  # 留学: today's speaking step is the next 雅思口语 Part 1 topic, and it opens that topic
+                # its own learner: by now the device learners have set radar goals and spoken, which changes today's steps
+                me = CFG['learners']['abroad']
+                c2 = browser.new_context(**opts, locale='zh-CN', bypass_csp=True)
+                c2.add_cookies([{'name': 'flow_session', 'value': me['token'], 'url': BASE}])
+                p2 = c2.new_page(); p2.goto(BASE + '/', wait_until='networkidle'); settle(p2)
+                st = p2.evaluate("([csrf]) => fetch('/api/next/profile', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf}, "
+                                 "body: JSON.stringify({level: 'B1', goal: 'abroad', themes: ['campus'], minutes: 20})}).then(r => r.status)", [me['csrf']])
+                p2.goto(BASE + '/#/', wait_until='networkidle'); settle(p2); p2.wait_for_timeout(500)
+                step = p2.evaluate("() => { const a = [...document.querySelectorAll('#view a[href^=\"#/speak/ielts/p1-\"]')][0]; return a ? [a.getAttribute('href'), a.textContent.replace(/\\s+/g, ' ')] : null; }")
+                check(dev, '留学: 今日 speaks 雅思 Part 1, the next topic', st == 200 and step and step[0] == '#/speak/ielts/p1-study-work' and '雅思 Part 1 · 学习还是工作' in step[1], (st, step))
+                if step:
+                    p2.click(f'#view a[href="{step[0]}"]'); settle(p2)
+                    check(dev, '留学: the step opens that Part 1 topic', p2.evaluate('location.hash') == step[0] and bool(p2.query_selector('#ieStart')), p2.evaluate('location.hash'))
+                c2.close()
 
             # 口语路线: the 雅思口语 entry is on the first screen; the list says the bands are estimates
             go(pg, '#/speak')
