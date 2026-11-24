@@ -26,6 +26,8 @@ class Db(unittest.TestCase):
             self.uid = c.execute("SELECT id FROM users WHERE username='lin'").fetchone()[0]
             nx.save_profile(c, self.uid, {'level': 'B2', 'goal': next(iter(nx.GOALS)), 'themes': [], 'minutes': 15})
             self.now = time.time()
+            # a few words answered yesterday: an ordinary day, not the short day back after days away (r28 回归模式)
+            c.execute("INSERT INTO next_reviews(user_id,card,rating,created) VALUES(?,0,'good',?)", (self.uid, self.now - DAY)); c.commit()
 
     def tearDown(self):
         for p in reversed(self.patches):
