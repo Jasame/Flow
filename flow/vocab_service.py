@@ -11,6 +11,7 @@ import math
 import os
 import random
 import re
+import sys
 import time
 from pathlib import Path
 
@@ -32,6 +33,14 @@ EXAM_BOOKS = {  # id -> (title, blurb); word lists from ECDICT's exam tags, most
     'toefl': ('托福词汇', 'TOEFL 常考词汇'),
     'gre': ('GRE 词汇', 'GRE 常考词汇，难度最高'),
 }
+EXAM_GROUP = {'cet4': '大学英语', 'cet6': '大学英语', 'ky': '大学英语', 'ielts': '出国留学', 'toefl': '出国留学', 'gre': '出国留学'}
+# The picker shows books under these headings, in this order; a data book's own group not listed here comes last.
+GROUPS = ('按词频', '中学英语', '大学英语', '英语专业', '出国留学', '学术与职场')
+# Data books (专四、专八、中考、高考…): flow/corpus_data/wordbooks*.json, read in file-name order, each
+#   {"notice": "...", "books": {"tem4": {"title", "group", "blurb", "basis", "words": [norm, … in study order]}}}
+# FLOW_WORDBOOKS (paths joined by os.pathsep) or WORDBOOK_FILES (a list, for tests) replaces the default files.
+WORDBOOK_FILES = None
+BOOK_ID = re.compile(r'[a-z][a-z0-9_-]{0,23}')
 LEVEL_BOOK = {'A2': 'core', 'B1': 'mid', 'B2': 'high', 'C1': 'adv'}
 CORE_SKIP = 150  # "the", "be", "of"…: everyone knows them, and a flashcard of their dictionary entry helps no one
 DAILY_NEW = (5, 10, 15, 20, 30, 50, 80, 100)  # suggested; any number from 1 to DAILY_MAX is accepted
@@ -48,6 +57,7 @@ WORD_AUDIO_DIR = Path(os.getenv('FLOW_AUDIO_DIR') or Path(__file__).resolve().pa
 ACCENTS = ('us', 'uk')
 
 _BOOK = None
+_DATA = None
 _EX = None
 _ROOTS = None
 _WA = {'mtime': None, 'index': {}}
@@ -98,14 +108,64 @@ CREATE TABLE IF NOT EXISTS next_reminders(user_id INTEGER PRIMARY KEY REFERENCES
 
 # ---------- data ----------
 
-def book_words():
-    """book id -> [(rank, word)] in frequency order: plain lower-case words that have a Chinese meaning.
+def _warn(msg):
+    print(f'word books: {msg}', file=sys.stderr, flush=True)
 
-    Frequency books use the reference list only (so their contents never shift); exam books use ECDICT's tags."""
+
+def wordbook_files():
+    if WORDBOOK_FILES is not None:
+        return [Path(f) for f in WORDBOOK_FILES]
+    if os.getenv('FLOW_WORDBOOKS') is not None:
+        return [Path(f) for f in os.environ['FLOW_WORDBOOKS'].split(os.pathsep) if f.strip()]
+    return sorted((Path(__file__).resolve().parent / 'corpus_data').glob('wordbooks*.json'))
+
+
+def _line(v, limit):
+    return ' '.join(v.split())[:limit] if isinstance(v, str) else ''
+
+
+def data_books():
+    """Word books from the data files: id -> {title, group, blurb, basis, words, file}, in file order.
+
+    A missing or broken file adds nothing; a book with a bad or taken id (a built-in book, or one from an earlier
+    file) is left out. Words are checked against the dictionary in book_words(). Problems are logged, never raised."""
+    global _DATA
+    if _DATA is None:
+        out = {}
+        for f in wordbook_files():
+            try:
+                books = json.loads(f.read_text(encoding='utf-8'))['books']
+                if not isinstance(books, dict):
+                    raise ValueError('"books" is not an object')
+            except FileNotFoundError:
+                _warn(f'{f.name}: not found'); continue
+            except (OSError, ValueError, KeyError, TypeError) as e:
+                _warn(f'{f.name}: not used ({type(e).__name__}: {e})'); continue
+            for bid, b in books.items():
+                if not isinstance(bid, str) or not BOOK_ID.fullmatch(bid):
+                    _warn(f'{f.name}: book id {bid!r} is not a short lower-case id, left out'); continue
+                if bid in BOOKS or bid in EXAM_BOOKS or bid in out:
+                    _warn(f"{f.name}: book id {bid!r} is already {'built in' if bid not in out else 'used by ' + out[bid]['file']}, left out"); continue
+                if not isinstance(b, dict) or not _line(b.get('title'), 30) or not isinstance(b.get('words'), list):
+                    _warn(f'{f.name}: {bid} has no title or no word list, left out'); continue
+                words = [w.strip().lower() for w in b['words'] if isinstance(w, str) and w.strip()]
+                out[bid] = {'title': _line(b['title'], 30), 'group': _line(b.get('group'), 12) or '其他词书', 'blurb': _line(b.get('blurb'), 80),
+                            'basis': _line(b.get('basis'), 400), 'words': list(dict.fromkeys(words)), 'file': f.name}
+        _DATA = out
+    return _DATA
+
+
+def book_words():
+    """book id -> [(rank, word)]: plain lower-case words that have a Chinese meaning (rank: frequency rank).
+
+    Frequency books use the reference list only (so their contents never shift); exam books use ECDICT's tags; both
+    are in frequency order. Data books keep their file's study order, without the words the dictionary lacks; a data
+    book left with no word is not offered at all."""
     global _BOOK
     if _BOOK is None:
+        d = nx.dictionary()
         out = {k: [] for k in (*BOOKS, *EXAM_BOOKS)}
-        for norm, e in nx.dictionary().items():
+        for norm, e in d.items():
             if not re.fullmatch(r'[a-z]+(?:-[a-z]+)*', norm) or len(norm) < 2 or not e['meaning'] or e['word'][:1].isupper():
                 continue
             if e.get('ref', True):
@@ -118,12 +178,43 @@ def book_words():
                     out[t].append((e['rank'], norm))
         for v in out.values():
             v.sort()
+        for bid, b in data_books().items():
+            ok = [(d[w].get('rank') or 99999, w) for w in b['words'] if re.fullmatch(r'[a-z]+(?:-[a-z]+)*', w) and (d.get(w) or {}).get('meaning')]
+            if len(ok) < len(b['words']):
+                kept = {w for _, w in ok}
+                gone = [w for w in b['words'] if w not in kept]
+                _warn(f"{b['file']}: {bid} skips {len(gone)} of {len(b['words'])} words not in the dictionary or without a meaning, e.g. {gone[:5]}")
+            if ok:
+                out[bid] = ok
+            else:
+                _warn(f"{b['file']}: {bid} has no usable word, not offered")
         _BOOK = out
     return _BOOK
 
 
 def book_title(book):
-    return (BOOKS.get(book) or EXAM_BOOKS.get(book) or ('词书',))[0]
+    if book in BOOKS or book in EXAM_BOOKS:
+        return (BOOKS.get(book) or EXAM_BOOKS.get(book))[0]
+    return (data_books().get(book) or {}).get('title') or '词书'
+
+
+def registry():
+    """Every word book a learner can choose, grouped in GROUPS order (books keep their order inside a group):
+    [{id, kind (freq | exam | data), title, group, blurb, count, size (= count), range (freq), basis (data)}]."""
+    bw = book_words()
+    items = ([{'id': k, 'kind': 'freq', 'title': v[0], 'group': '按词频', 'blurb': v[3], 'range': f'{v[1]}–{v[2]}'} for k, v in BOOKS.items()]
+             + [{'id': k, 'kind': 'exam', 'title': v[0], 'group': EXAM_GROUP.get(k, '其他词书'), 'blurb': v[1]} for k, v in EXAM_BOOKS.items()]
+             + [{'id': k, 'kind': 'data', 'title': b['title'], 'group': b['group'], 'blurb': b['blurb'], 'basis': b['basis']}
+                for k, b in data_books().items() if k in bw])
+    for b in items:
+        b['count'] = b['size'] = len(bw[b['id']])
+    order = list(GROUPS) + list(dict.fromkeys(b['group'] for b in items if b['group'] not in GROUPS))
+    return sorted(items, key=lambda b: order.index(b['group']))
+
+
+def book_groups(books):
+    """The group headings, in order, that have at least one book."""
+    return list(dict.fromkeys(b['group'] for b in books))
 
 
 def examples_index():
@@ -336,7 +427,7 @@ def introduce(c, uid, now=None):
         return 0
     have = {r[0] for r in c.execute('SELECT norm FROM next_cards WHERE user_id=?', (uid,))}
     d = nx.dictionary()
-    skip = (p.get('skip_rank') or 0) if p['book'] in EXAM_BOOKS else CORE_SKIP if p['book'] == 'core' else 0  # frequency books: chosen by level
+    skip = _skip_below(p['book'], p.get('skip_rank'))
     added = 0
     for rank, w in book_words()[p['book']]:
         if w in have or (skip and rank <= skip):
@@ -470,7 +561,7 @@ def more_new(c, uid, data):
     now = time.time()
     have = {r[0] for r in c.execute('SELECT norm FROM next_cards WHERE user_id=?', (uid,))}
     d = nx.dictionary()
-    skip = (p.get('skip_rank') or 0) if p['book'] in EXAM_BOOKS else CORE_SKIP if p['book'] == 'core' else 0
+    skip = _skip_below(p['book'], p.get('skip_rank'))
     added = 0
     for rank, w in book_words()[p['book']]:
         if w in have or (skip and rank <= skip):
@@ -530,19 +621,19 @@ def mine_in_text(c, uid, text):
 
 # ---------- plan, stats, test, import ----------
 
-def books_meta():
-    bw = book_words()
-    return ([{'id': k, 'kind': 'freq', 'title': v[0], 'blurb': v[3], 'size': len(bw[k]), 'range': f'{v[1]}–{v[2]}'} for k, v in BOOKS.items()]
-            + [{'id': k, 'kind': 'exam', 'title': v[0], 'blurb': v[1], 'size': len(bw[k])} for k, v in EXAM_BOOKS.items()])
+def _skip_below(book, skip_rank):
+    """Frequency rank up to which a plan leaves a book's words out: the everyday words of the first frequency book;
+    in exam and data books, the bands the vocabulary test showed as known (skip_rank); other frequency books are
+    chosen by level and skip nothing."""
+    if book == 'core':
+        return CORE_SKIP
+    return 0 if book in BOOKS else (skip_rank or 0)
 
 
 def _skipped(book, skip_rank, force=False):
-    """Words a plan leaves out: everyday words for the first frequency book, words the test showed as known for exam books."""
-    if book == 'core':
-        return sum(1 for r, _ in book_words()[book] if r <= CORE_SKIP)
-    if book in EXAM_BOOKS and skip_rank:
-        return sum(1 for r, _ in book_words()[book] if r <= skip_rank)
-    return 0
+    """How many words a plan leaves out (see _skip_below)."""
+    skip = _skip_below(book, skip_rank)
+    return sum(1 for r, _ in book_words().get(book, ()) if r <= skip) if skip else 0
 
 
 def overview(c, uid):
@@ -574,17 +665,17 @@ def overview(c, uid):
         left = max(0, len(words) - started - skipped)
         book = {'id': p['book'], 'title': book_title(p['book']), 'size': len(words), 'started': started, 'skipped': skipped,
                 'finish': nx._day(now + math.ceil(left / max(1, p['daily_new'])) * fsrs.DAY) if left else None}
-    books = books_meta()
+    books = registry()
     for b in books:  # how many words a plan would skip in each book, for the estimate on the plan page
         b['skippable'] = _skipped(b['id'], ((p.get('test_skip') or skip_rank) if p else 0) or 0, force=True)
-    return {'plan': p, 'book': book, 'books': books, 'daily_new_options': list(DAILY_NEW), 'retention_options': list(RETENTION),
+    return {'plan': p, 'book': book, 'books': books, 'groups': book_groups(books), 'daily_new_options': list(DAILY_NEW), 'retention_options': list(RETENTION),
             'suggested_book': (p.get('suggest') if p and p.get('suggest') in book_words() else None) or LEVEL_BOOK.get(_level(c, uid), 'mid'), 'mastered': mastered, 'learning': learning, 'total': len(rows),
             'forecast': forecast, 'calendar': calendar, 'reminder': reminder(c, uid), **counts(c, uid, now)}
 
 
 def save_plan(c, uid, data):
     book = data.get('book')
-    if book not in BOOKS and book not in EXAM_BOOKS:
+    if not isinstance(book, str) or book not in book_words():  # built-in books, and the data books that have words
         return {'error': '请选择词书'}, 400
     daily = data.get('daily_new', 10)
     retention = data.get('retention', 0.9)
@@ -672,7 +763,7 @@ def score_test(c, uid, data):
         ar = __import__('ability_radar')  # the vocabulary test is the radar's vocabulary assessment
         ar.record(c, uid, 'vocab', ar.vocab_index(estimate), {'estimate': estimate})
     return {'estimate': estimate, 'suggest': suggest, 'bands': {k: round(v, 2) for k, v in known.items()}, 'ceiling': ceiling,
-            'titles': {**{k: v[0] for k, v in BOOKS.items()}, **{k: v[0] for k, v in EXAM_BOOKS.items()}, 'beyond': '超纲难词'},
+            'titles': {**{b['id']: b['title'] for b in registry()}, 'beyond': '超纲难词'},
             'guessing': fa > 0.2, 'skip_rank': skip_rank}, 200
 
 

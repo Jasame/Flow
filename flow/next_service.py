@@ -156,14 +156,16 @@ def build_dictionary():
     base = Path(__file__).resolve().parent / 'corpus_data'
     data = json.loads((base / 'yl-reference.json').read_text(encoding='utf-8'))
     try:
-        ec = json.loads((base / 'ecdict-flow.json').read_text(encoding='utf-8'))['words']
+        ecdoc = json.loads((base / 'ecdict-flow.json').read_text(encoding='utf-8'))
     except OSError:
-        ec = {}
+        ecdoc = {'words': {}}
+    ec = ecdoc['words']
+    lower = set(ecdoc.get('lower', ()))  # common words the reference list capitalises ("Supreme"): shown as "supreme"
     out = {}
     for t in data['terms']:
         v = t['variants'][0]
         e = ec.get(t['norm'])
-        out[t['norm']] = {'word': t['word'], 'phonetic': ipa(v.get('phonetic', '')) or (_ec_phonetic(e) if e else ''),
+        out[t['norm']] = {'word': t['norm'] if t['norm'] in lower else t['word'], 'phonetic': ipa(v.get('phonetic', '')) or (_ec_phonetic(e) if e else ''),
                           'meaning': (_ec_meaning(e) if e else '') or v.get('meaning', ''), 'rank': t.get('rank') or 99999,
                           'example': (v.get('examples') or '').split('\n')[0][3:].strip() if v.get('examples') else '',
                           'ref': True, 'tags': e[2] if e else [], 'collins': e[3] if e else 0}
