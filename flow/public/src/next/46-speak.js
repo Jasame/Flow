@@ -61,7 +61,8 @@
         u = await Promise.race([request('/api/next/tts', { text, voice }, true).then(x => x.j.url), new Promise(ok => setTimeout(() => ok(null), 5000))]);
       } catch (e) { if (e.status === 503 || e.status === 429) SV.off = true; }
       if (t !== TTS.token) return;  // a recording started, or the page changed, while it was being made
-      if (u) { CLIP.play(u, 0, 1e6, text); TTS.token = t; } else TTS.browser(text);
+      // as SV.say plays it (#78): Web Audio where it can, so an iPhone does not swallow the first word
+      if (u) { CLIP.play(u, 0, 1e6, text, null, null, { url: u, from: 0, to: Infinity, title: '语流' }); TTS.token = t; } else TTS.browser(text);
     }
     // 说完就显示进度: from the moment an answer is sent, a line at the end of the chat says what is happening and for how
     // long (the seconds are not read aloud); a recording that did not get through stays to be sent again, not said twice.
