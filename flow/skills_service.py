@@ -195,14 +195,15 @@ def daily_path(c, uid, home, now=None):
     n = vs.counts(c, uid, now)
     pick = (home.get('today') or [None])[0]
     # The material studied today stays "today's" even after it is finished (the recommendations move on).
-    row = c.execute("SELECT pack FROM next_progress WHERE user_id=? AND created>=? ORDER BY (step IN ('check','output')) DESC, created DESC LIMIT 1",
-                    (uid, start)).fetchone()
+    # Today's steps, a text studied again included (progress_service.steps_since: next_progress keeps the first time only).
+    import progress_service as ps
+    today_steps = ps.steps_since(c, uid, start)
+    row = max(today_steps, key=lambda r: (r['step'] in ('check', 'output'), r['created']), default=None)
     if row:
         pr = nx._pack_row(c, uid, row['pack'])
         if pr:
             pick = {'id': row['pack'], 'title': json.loads(pr['content'])['title']}
-    done_steps = {r['step'] for r in c.execute('SELECT step FROM next_progress WHERE user_id=? AND pack=? AND created>=?',
-                                                (uid, pick['id'] if pick else '', start))}
+    done_steps = {r['step'] for r in today_steps if pick and r['pack'] == pick['id']}
     kind_n = {r['kind']: r['n'] for r in c.execute('SELECT kind, COUNT(*) n FROM next_skill_events WHERE user_id=? AND created>=? GROUP BY kind', (uid, start))}
     today_kinds = set(kind_n)
     steps = []
@@ -229,12 +230,11 @@ def daily_path(c, uid, home, now=None):
     if minutes >= 45 and pick:
         # A longer day gets a second material: the next recommendation, or the one already started today.
         other = next((m for m in (home.get('today') or []) if m and m['id'] != pick['id']), None)
-        row2 = c.execute("SELECT pack FROM next_progress WHERE user_id=? AND created>=? AND pack!=? ORDER BY created DESC LIMIT 1",
-                         (uid, start, pick['id'])).fetchone()
+        row2 = next((r for r in reversed(today_steps) if r['pack'] != pick['id']), None)
         if row2 and nx._pack_row(c, uid, row2['pack']):
             other = {'id': row2['pack'], 'title': json.loads(nx._pack_row(c, uid, row2['pack'])['content'])['title']}
         if other:
-            st2 = {r['step'] for r in c.execute('SELECT step FROM next_progress WHERE user_id=? AND pack=? AND created>=?', (uid, other['id'], start))}
+            st2 = {r['step'] for r in today_steps if r['pack'] == other['id']}
             steps.append({'key': 'read2', 'title': '再读一篇', 'sub': other['title'], 'href': f"#/m/{other['id']}", 'done': 'check' in st2 or 'output' in st2})
     # With goals set, the output step works on the skill furthest from its goal on the radar; otherwise the weakest estimate.
     weakest = __import__('ability_radar').weakest(c, uid, now) or ability(c, uid, now)['weakest']
@@ -320,18 +320,22 @@ def report(c, uid, now=None):
     skills = [{'id': sk, 'label': SKILLS[sk], 'now': avg(sk, week, now), 'before': avg(sk, prev, week),
                'count': sum(1 for e in evts if e['skill'] == sk and e['created'] > week)} for sk in EVENT_SKILLS]
     reviews = q("SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND created>? AND rating IN ('again','hard','good','easy')", uid, week)
-    learned = q("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND kind='word' AND created>?", uid, week)
+    import progress_service as ps
+    learned = ps.new_words(c, uid, week, now + 1)  # first answered this week, not just put into the queue
     mastered = q("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND kind='word' AND stability>=21 AND last>?", uid, week)
     fixed = q("SELECT COUNT(DISTINCT r.card) FROM next_reviews r JOIN next_cards k ON k.id=r.card WHERE r.user_id=? AND r.created>? AND k.source='mistake' AND r.rating IN ('good','easy')", uid, week)
     new_mistakes = q("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND source='mistake' AND created>?", uid, week)
-    materials = q("SELECT COUNT(DISTINCT pack) FROM next_progress WHERE user_id=? AND step='check' AND created>?", uid, week)
+    materials = len(ps._finished(c, uid, week, now + 1))  # a text studied again this week counts too
     outputs = q("SELECT COUNT(*) FROM next_skill_events WHERE user_id=? AND created>? AND kind IN ('rewrite','retell','dialog','essay','translate')", uid, week)
     minutes = round(reviews * 0.15 + materials * 9 + outputs * 4 + q('SELECT COUNT(*) FROM next_skill_events WHERE user_id=? AND created>?', uid, week) * 0.5)
     meta = nx.nodes_meta(c)
     watch = [{'id': n, 'title': meta.get(n, {}).get('title', n)} for n, s in nx.graph_states(c, uid).items() if s['status'] == 'watch'][:3]
     ab = ability(c, uid, now)
     focus = None
-    if ab['weakest']:
+    backlog = __import__('vocab_service').counts(c, uid, now)['due']
+    if backlog > 100:  # a pile of words due comes first: it only grows while other things are practised
+        focus = f'先把单词积压清掉：现在有 {backlog} 个单词到了复习时间。下周每天先复习一轮，再学新的内容。'
+    elif ab['weakest']:
         name = SKILLS[ab['weakest']]
         what = {'speaking': '每天复述一篇或和 AI 对话一轮', 'writing': '写一段短文让 AI 批改', 'listening': '每天听写三句', 'reading': '先读懂再做理解题'}
         focus = f"{name}是现在最弱的一项，下周{what.get(ab['weakest'], '多练这一项')}。"

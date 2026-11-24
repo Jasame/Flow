@@ -1109,12 +1109,14 @@
       const p = h.path, nextK = p.steps.findIndex(s => !s.done), next = p.steps[nextK], read = p.steps.find(s => s.key === 'read');
       readId = read ? decodeURIComponent(read.href.split('/')[2] || '') : '';
       const art = [pick, h.resume, ...h.today].find(m => m && m.id === readId);
+      // 再学一篇 (r27): the next recommendation itself, not the whole library (that only when there is none)
+      const more1 = h.today.find(m => m && m.id !== readId && !(m.steps || []).includes('check'));
       top = `<section class="today-plan" aria-labelledby="tpTitle">
         <div class="tp-head"><div><h1 class="h1" id="tpTitle">${next ? '今天的计划' : '今天的计划完成了'}</h1>
           <span class="muted small">${p.total} 步 · 约 ${p.minutes} 分钟 · 已完成 ${p.done} / ${p.total}</span></div>
           <span class="ring" data-p="${Math.round(p.done / Math.max(1, p.total) * 100)}" aria-hidden="true"><b>${p.done}/${p.total}</b></span></div>
         ${next ? `<a class="btn primary block go-next" href="${esc(next.href)}">${p.done ? '继续' : '开始'}第 ${nextK + 1} 步<span aria-hidden="true">→</span></a>`
-          : `<div class="tp-done">${doneRing}<span>都完成了。想多学一点，就再读一篇。</span></div><a class="btn primary block go-next" href="#/library">再学一篇<span aria-hidden="true">→</span></a>`}
+          : `<div class="tp-done">${doneRing}<span>都完成了。${more1 ? `想多学一点，下一篇是《${esc(more1.title)}》。` : '想多学一点，就再挑一篇。'}</span></div><a class="btn primary block go-next" href="${more1 ? '#/m/' + encodeURIComponent(more1.id) : '#/library'}" data-tap="home-more-one">再学一篇<span aria-hidden="true">→</span></a>`}
         <div class="plist">${p.steps.map((s, k) => {
           const a = s.key === 'read' ? art : null;
           return `<a class="prow${s.done ? ' done' : ''}${s === next ? ' next' : ''}" href="${esc(s.href)}"><span class="num">${s.done ? '✓' : k + 1}</span>

@@ -981,7 +981,8 @@ def check(c, uid, data):
 def mark(c, uid, pid, step, commit=True):
     if step not in STEPS:
         raise ValueError('步骤不正确')
-    c.execute('INSERT OR IGNORE INTO next_progress VALUES(?,?,?,?)', (uid, pid, step, time.time()))
+    c.execute('INSERT OR IGNORE INTO next_progress VALUES(?,?,?,?)', (uid, pid, step, time.time()))  # the first time only
+    __import__('progress_service').log_step(c, uid, pid, step)  # and every day it is done (a text studied again)
     if commit:
         c.commit()
 
