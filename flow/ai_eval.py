@@ -183,7 +183,11 @@ def check_content(kind, case, result, status, ctx):
             why.append('把说对的句子也改了：' + (corr.get('original') or '') + ' → ' + (corr.get('better') or ''))
     elif kind == 'dialog_end':  # the summary after the last turn (output_service.dialog end=True); status != 200 = the site refused it
         r = result['result']
-        if not HAN.search(r.get('summary') or ''):
+        # since #90 the site fills in a line when the model wrote no summary; the model still did not write one
+        filler = getattr(__import__('output_service'), 'SUMMARY_FILLER', '这一轮练完了，下面是具体的反馈。')
+        if (r.get('summary') or '').strip() == filler:
+            why.append('模型没写总评（网站补了默认句）')
+        elif not HAN.search(r.get('summary') or ''):
             why.append('总评不是中文')
         if not r.get('score'):
             why.append('没有给分')
