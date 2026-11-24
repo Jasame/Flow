@@ -71,8 +71,14 @@ python3 tools/audit_meanings.py --min-rank 0        # 连最常用的 150 个词
 修订后，rank > 150 的 20,611 个词里只剩 4 个被标记：ie、etc、mm、ohp，它们的主要用法本来就是缩写。
 `test_meaning_fixes` 的审计测试现在覆盖全部词书。
 
+## 2026-11-24 词条拼写和音标
+
+- 拼错的词条：`next_service.HEADWORD_FIXES` 把 reservior 并进 reservoir（四级标签一起转过去，四级词书里现在是正确拼写），
+  saut 改成 saute（释义注明也写作 sauté）。专八因此少了 saut 一个词（4,892 词）。
+- ECDICT 有的音标用 ^ 代替 ɡ（postgraduate、glandular、fungi 等 24 个词），`_ec_phonetic()` 统一换成 ɡ。
+- 32 个 -ing 词的音标原来只是原形的读音（changing [tʃendʒ]、buying [bai]），另有 umm、thirds、web-based 等 9 个明显错的，
+  在 `phonetics` 里逐个写对，现在共 117 条。
+
 ## 还没做的
 
-- 词条拼写：ECDICT 有拼错或去掉重音的词条，比如 reservior（四级词书里，应为 reservoir）、saut（应为 sauté）。
-  释义里已经注明了正确写法，词条本身要在重建 ECDICT 子集时改。
-- 还有一些音标看起来不对，比如 umm、spraying、tightening、widening，这一轮没有动。
+- 目前没有已知的机械问题；审计还剩 ie、etc、mm、ohp 四个按缩写使用的词。
