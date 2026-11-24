@@ -1,3 +1,3 @@
 54f7776e9a2a15a4dd91dece8baf56ed6f13078f 93028b9d2d96d7ea9a0f33b81b8260cf728a425c6e290cb23b5ffdf8c2a0c58a e2e
-# b7 main: Merge pull request #60 from Jasame/fast-ci = build of dc4a9500f3b9
+# b8 content-b1-old: Merge pull request #60 from Jasame/fast-ci = build of dc4a9500f3b9
 # Format: <commit sha> <manifest sha256> [e2e]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
