@@ -11,6 +11,12 @@ See `flow/public/src/next/README.md` for which part holds what.
 `flow/corpus_data/dictionary-flow.json` is built too: after changing `yl-reference.json`, `ecdict-flow.json`,
 `meaning-fixes.json` or `irregular-flow.json`, run `python3 tools/build_dictionary.py` (tests and `deploy.sh` check it).
 The app loads this compact file instead of parsing ~38 MB of source JSON, which kept the server process ~100 MB larger.
+`flow/corpus_data/wordbooks-open.json` (中考, 高考, NAWL, BSL word books) is built by `tools/build_open_wordbooks.py`
+from downloaded ECDICT and NGSL Project files; `flow/WORDBOOKS-OPEN.md` has the sources, licences and commands.
+
+`flow/corpus_data/wordbooks.json` (the 专四 / 专八 word books) is built by `python3 tools/build_wordbooks.py` from the
+frequency list, the ECDICT subset and the dictionary's word list; `--check` fails when it is out of date (the tests run it).
+The selection rule, its sources and sizes are in `flow/WORDBOOKS.md`.
 
 ## Deploy (push-to-deploy)
 
@@ -18,6 +24,7 @@ The app loads this compact file instead of parsing ~38 MB of source JSON, which 
 tools/deploy.sh              # deploy HEAD, then the end-to-end test on the server (real AI, ~20 calls)
 tools/deploy.sh --no-e2e     # deploy only
 tools/deploy.sh <commit>     # deploy a commit that is already on GitHub
+tools/deploy.sh --beta <commit>   # the same for the 内测版 (flow.jasa.hk); see 发布顺序 below
 ```
 
 `deploy.sh` pushes, computes the manifest hash from git (`release_manifest.py`), writes
@@ -32,6 +39,34 @@ Each tag is handled once; to retry, run `deploy.sh` again (new tag).
 One-time server setup: `flow-autodeploy.py` in `/root/claude-ops`, the `.service` and `.timer` in
 `/etc/systemd/system`, `systemctl enable --now flow-autodeploy.timer`, and the next tag number in
 `/root/claude-ops/autodeploy/next`.
+
+## 发布顺序: 内测版 first, then 语流
+
+There are two sites on the Hong Kong server: **语流** (flowlang.cn, the public site; tags `r<N>` on `release`) and
+the **内测版** (flow.jasa.hk, its own data, open to anyone with the link; `tools/deploy.sh --beta`, tags `b<N>` on
+`release-beta`). The rule is that 语流 only ever gets a commit that ran on the 内测版 first, **the same sha**.
+The owner agreed this order on 2026-11-24.
+
+1. **One branch and one PR per change, targeting main.** Don't stack PRs. If one has to sit on another, retarget it
+   to main as soon as the one below merges. CI (backend, frontend, ui) must be green.
+2. **Merge into main.** No approval needed. main is "waiting for release". Merging changes no site.
+3. **内测版:** `tools/deploy.sh --beta <main sha>`. The beta's autodeploy installs it and runs `qa_e2e.py` there.
+4. **The owner tries flow.jasa.hk.** A problem goes back through 1–3 as a new `b<N>`.
+5. **语流, only after the owner says so (「发正式版」):** `tools/deploy.sh <the same sha>`, with the end-to-end
+   test. A failed deploy or test rolls back by itself.
+6. **Afterwards:** the public changelog, the version in the guide header, the ops log.
+
+Conventions:
+
+- **One session merges and releases.** Others finish and test their PR, then hand it over. Two sessions merging at
+  the same time is how stacked merges go wrong.
+- **Trying a PR before it merges:** merge main into that PR's branch and beta-deploy the result. Don't build
+  one-off combination branches. 语流 still only gets commits from main.
+- **Hotfixes take the same path.** The beta's e2e run takes a few minutes. Skip the beta only when the owner says so.
+- **Database schema changes** run against the 内测版's data before they reach 语流's.
+- **A commit from before the two-site split** has a `tools/flow-pull.sh` without `F=${FLOW_DIR:-`. That script
+  would install into 语流. `deploy.sh --beta` and the beta's autodeploy (status `ABORT_OLD_TOOLS`) both refuse it,
+  so merge main into such a branch before beta-deploying it.
 
 ## End-to-end test on the server (`qa_e2e.py`)
 
@@ -65,3 +100,32 @@ control, step switching and list filters. Screenshots of every page go to the ou
 - **External check**: `.github/workflows/monitor.yml` checks the site every 15 minutes (pages and APIs answer, fewer
   than 10 errors a day, memory under 350 MB, last release fine, daily test recent and passing). GitHub emails a
   failed run to whoever last changed that schedule. It runs from `main`.
+
+## 操作指南 (user guide)
+
+The guide has one source, `flow/public/guide/guide.md`. The site shows it at `#/guide` and offers it as a PDF.
+`flow/tests/test_guide.py` fails when the guide falls behind: a page or a 练习 tile that the guide never links, a
+missing or unused screenshot, a PDF older than the text, or a guide file missing from `release-files.txt`.
+
+When a change adds, renames or removes a page, button or flow:
+
+1. Edit `flow/public/guide/guide.md`. Every page needs a `[去看看](#/page)` line in the chapter that explains it.
+2. If what a page looks like changed, run `python3 tools/guide_shots.py [name …]` (local UI server, simulated AI).
+3. Run `python3 tools/build_guide.py`, which rebuilds `flow-guide.pdf` and `manifest.json`.
+4. Add any new screenshot to `tools/release-files.txt` and commit the guide in the same change.
+
+## Text model vendors (xmc-api, api.xmc.hk)
+
+Flow's text calls can use a cheaper model than the main one. With `FLOW_TEXT_AI_MODEL=flow-text` in
+`/etc/flow.env`, they go to the same gateway and key as the main model (api.xmc.hk, the xmc-api gateway) under the
+model name `flow-text`. The gateway's console (xmc.hk/api-admin/) decides which vendor answers it: DeepSeek, Qwen,
+or Gemini. If `flow-text` fails or is switched off, the main model answers. `tools/ai-gateway/README.md` is the
+step-by-step checklist (in Chinese), and `flow/ai_check.py` checks the text model on its own.
+
+## Audio: this server first, Cloudflare R2 as the second line and the master copy
+
+`tools/push_media.py` uploads the audio that `tools/gen_audio.py` and `tools/gen_word_audio.py` write to the R2 bucket
+(only new or changed files) and writes `flow/corpus_data/media-manifest.json`. After a release with that manifest, the
+server fetches a listed file from R2 the first time someone asks for it (`flow/media.py`, with `FLOW_MEDIA_BASE` set),
+so audio is never copied onto the server by hand; the page plays from R2 by itself when this server cannot answer.
+`tools/media/README.md` is the set-up checklist (in Chinese): bucket, domain, CORS, the upload token, and switching it on.

@@ -1,5 +1,12 @@
 name: Tests
-on: [push, pull_request, workflow_dispatch]
+# A pull request is tested once, by its pull_request run; main is tested again after each merge. Testing every
+# branch push as well ran each PR twice: with five PRs being tested that took all 20 jobs a free account runs at
+# once, so the next push had to wait (2026-11-24).
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
@@ -8,7 +15,7 @@ concurrency:
 jobs:
   backend:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 25  # the website suite takes about 13 minutes on a hosted runner (2026-11); keep room to grow
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -28,7 +35,7 @@ jobs:
     # tools/ui_test.py: every page on a phone, a phone held sideways, a tablet and a desktop, with touch, keyboard
     # and mouse; uses the runner's Google Chrome through Playwright and a local server with a simulated AI.
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30  # the UI suite took about 13 minutes on a hosted runner (2026-11-24) and passed 15 with the /about checks
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -55,9 +62,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Frontend behavior checks
-        working-directory: flow
+      # r20: the classic site and its behavior tests are archived (archive/classic/); the learning site's behavior is
+      # covered by the ui job. Here: the built files match their parts, and every script the site serves parses.
+      - name: Frontend build and syntax checks
         run: |
-          for test in tests/ui_*.cjs; do
-            node "$test"
+          python3 tools/build_front.py --check
+          for js in flow/public/next.js flow/public/sw.js flow/public/survey.js flow/public/about.js xmc-admin/admin.js; do
+            node --check "$js"
           done

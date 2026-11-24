@@ -16,6 +16,9 @@ def schema(c):
  ai_jobs.schema(c,'chat_turns')
 
 def daily_limit(name):
+ # r26: a value set in the xmc.hk console (console-settings.json) wins over /etc/flow.env, at once
+ v=__import__('console_ops').limit_override(name)
+ if v is not None:return v
  try:return max(0,int(os.getenv(name,'0') or 0))
  except ValueError:return 0
 
@@ -77,7 +80,76 @@ def context(c,uid,topic,question):
  messages.append({'role':'user','content':question})
  return messages
 
+TRANSIENT_HTTP=(408,429,500,502,503,504)
+LAST={'provider':None}  # which service answered the last call in this process (diagnostics only)
+
+
+def transient(exc):
+ """A failure worth trying again or elsewhere: timeouts, network trouble, rate limits and server errors; never a refusal or a configuration error."""
+ from vertex_auth import AIConfigurationError
+ if isinstance(exc,AIConfigurationError):return False
+ if isinstance(exc,urllib.error.HTTPError):return exc.code in TRANSIENT_HTTP
+ return isinstance(exc,(urllib.error.URLError,TimeoutError,socket.timeout,ConnectionError)) or (isinstance(exc,ValueError) and 'Incomplete' in str(exc))
+
+
+LOOPBACK=re.compile(r'http://(127\.0\.0\.1|localhost|\[::1\])(:\d{1,5})?/')
+
+
+def endpoint_ok(url):
+ """https anywhere; plain http only to this machine (a model service on 127.0.0.1)."""
+ return url.startswith('https://') or bool(LOOPBACK.match(url))
+
+
+def text_provider():
+ """Where text-only requests go first, or None (then everything goes to the main service).
+ FLOW_TEXT_AI_MODEL alone: the same gateway and key as the main service (FLOW_AI_URL / FLOW_AI_KEY), another model
+ name, e.g. flow-text on api.xmc.hk, whose console points it at DeepSeek, Qwen or Gemini (tools/ai-gateway/README.md).
+ With FLOW_TEXT_AI_URL too: a separate service, which then needs its own FLOW_TEXT_AI_KEY; the main key is never
+ sent to another address."""
+ url,key,model=os.getenv('FLOW_TEXT_AI_URL',''),os.getenv('FLOW_TEXT_AI_KEY',''),os.getenv('FLOW_TEXT_AI_MODEL','')
+ if model and not url and not vertex_enabled():
+  url,key=os.getenv('FLOW_AI_URL',''),os.getenv('FLOW_AI_KEY','')
+ return (url,key,model) if endpoint_ok(url) and key and model else None
+
+
+def refused(exc):
+ """The request itself was refused (malformed, too large): the main service would refuse it too."""
+ return isinstance(exc,urllib.error.HTTPError) and exc.code in (400,413,422)
+
+
 def request_model(messages,audio=None,grounding=False):
+ """One model call. Text goes to the text service when one is configured, else to the main one; audio and grounded
+ requests only to the main one, which can hear and search. When the text service fails for any reason but a refused
+ request (down, model disabled in the gateway's console, key rejected, rate-limited), the main service answers; with
+ only one service, a transient failure is retried once after a short pause (not after a rate limit), so a single
+ hiccup does not cost the learner their answer."""
+ order=[]
+ if not audio and not grounding and text_provider():order.append('text')
+ order.append('main')
+ if len(order)==1:order.append('main')  # one retry on the only service
+ last=None
+ for i,which in enumerate(order):
+  started=time.monotonic()
+  try:
+   out=_request_text_service(messages) if which=='text' else _request_main(messages,audio,grounding)
+   LAST['provider']=which
+   return out
+  except Exception as exc:
+   last=exc
+   if which=='text' and not refused(exc) and time.monotonic()-started<=60:continue  # the main service takes over
+   if i==len(order)-1 or not transient(exc) or time.monotonic()-started>60:raise
+   if order[i+1]==which:
+    if isinstance(exc,urllib.error.HTTPError) and exc.code==429:raise  # rate-limited: asking the same service again at once will not help
+    time.sleep(1.5)
+ raise last
+
+
+def _request_text_service(messages):
+ url,key,model=text_provider() or ('','','')
+ return _openai_compatible(url,key,model,messages,None,False)
+
+
+def _request_main(messages,audio=None,grounding=False):
  endpoint=os.getenv('FLOW_AI_URL','');key=os.getenv('FLOW_AI_KEY','');model=os.getenv('FLOW_AI_MODEL','')
  from vertex_auth import AIConfigurationError
  if vertex_enabled():
@@ -86,7 +158,12 @@ def request_model(messages,audio=None,grounding=False):
   if audio or grounding:
    from vertex_native import request_native
    return request_native(messages,model,key,audio,grounding)
- if not endpoint.startswith('https://') or not model or not key:raise AIConfigurationError('AI configuration incomplete')
+ return _openai_compatible(endpoint,key,model,messages,audio,grounding)
+
+
+def _openai_compatible(endpoint,key,model,messages,audio,grounding):
+ from vertex_auth import AIConfigurationError
+ if not endpoint_ok(endpoint) or not model or not key:raise AIConfigurationError('AI configuration incomplete')
  payload={'model':model,'messages':messages,'max_tokens':4096}
  if ai_stream.active():payload['stream']=True
  if grounding:payload['flow_grounding']=True

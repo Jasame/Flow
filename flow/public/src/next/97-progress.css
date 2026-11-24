@@ -1,0 +1,76 @@
+/* ---- 这周进步 (r27): the card at the top of 今日, its details sheet, the summary after a text, the unsubscribe page ---- */
+/* the card brings no outer margin: the page that holds it spaces its slot (today: under the plan) */
+.week-slot{margin:18px 0 2px}
+.week-slot:empty{display:none}
+/* four numbers side by side down to a 360 px phone: no boxes around them, thin rules between, labels of five characters */
+.week-card{display:grid;gap:10px;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;padding:14px 16px 12px;margin:0;
+  background:var(--paper);border:0;border-radius:var(--r);box-shadow:none;-webkit-tap-highlight-color:transparent;transition:background .15s}
+.week-card:hover{background:color-mix(in srgb,var(--paper) 88%,var(--green-soft))}
+.week-card:active{transform:scale(.995)}
+.wk-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.wk-head b{font-size:15.5px}
+.wk-total{color:var(--muted);white-space:nowrap}
+.wk-total.on{color:var(--green-ink);font-weight:600}
+.wk-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.wk-tile{display:grid;gap:1px;align-content:start;min-width:0;padding:0 6px}
+.wk-tile:first-child{padding-left:0}
+.wk-tile+.wk-tile{border-left:1px solid var(--line)}
+.wk-tile b{font-size:24px;line-height:1.2;font-weight:750;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.wk-tile b small{font-size:13px;font-weight:600;color:var(--muted);margin-left:1px}
+.wk-tile .tiny{line-height:1.35}
+.wk-tile .sub{color:var(--muted)}
+.wk-tile .up{color:var(--green-ink);font-weight:600}
+.wk-tile.goal.met b,.wk-tile.goal.met .sub{color:var(--green-ink)}
+.wk-tile.goal.met .sub{font-weight:600}
+.wk-foot{display:flex;align-items:center;gap:10px;min-width:0}
+.wk-foot .week{width:112px;flex:none;gap:4px;margin:0}
+.wk-foot .week span{height:5px}
+.wk-foot .week span.today{outline:1.5px solid var(--green);outline-offset:1px}
+.wk-foot .tiny{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+@media (min-width:760px){
+  .week-card{padding:18px 20px 14px}
+  .wk-tile{padding:0 14px}
+  .wk-tile b{font-size:28px}
+  .wk-foot .week{width:150px}
+}
+@media (max-width:374px){
+  .week-card{padding:12px 12px 10px}
+  .wk-tile{padding:0 4px}
+  .wk-tile b{font-size:21px}
+  .wk-tile .tiny{font-size:11.5px}
+}
+
+/* the details sheet */
+.wk-sheet .wk-sec{display:grid;gap:6px;padding:12px 14px;border-radius:12px;background:var(--sunk)}
+.wk-sheet .wk-sec p{margin:0}
+.wk-sheet .met{color:var(--green-ink);font-weight:600}
+.wk-num{font-size:20px;font-weight:750;font-variant-numeric:tabular-nums}
+.wk-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin:2px 0}
+.wk-days>span{display:grid;justify-items:center;gap:3px;color:var(--muted)}
+.wk-days i{width:100%;max-width:36px;height:8px;border-radius:4px;background:var(--line)}
+.wk-days .on i{background:var(--green)}
+.wk-days .today i{outline:1.5px solid var(--green);outline-offset:1px}
+.wk-days .today .tiny{color:var(--green-ink);font-weight:700}
+.wk-words{display:flex;flex-wrap:wrap;gap:6px}
+.wk-words .pill{background:var(--paper);font-family:var(--serif);font-weight:500;font-size:13px}
+.wk-list{display:grid;gap:4px;justify-items:start}
+.wk-list .link{text-align:left}
+.wk-sec .btn:not(.primary){background:var(--paper)}
+
+/* 这篇完成了: three lines, each going where that work continues */
+.done-card.fin{display:grid;gap:10px;justify-items:center}
+.done-card.fin .row{justify-content:center}
+.fin-sum{display:grid;gap:2px;width:100%;text-align:left;background:var(--sunk);border-radius:12px;padding:4px;margin:4px 0 2px}
+.fin-wait{display:flex;align-items:center;gap:8px;justify-content:center;padding:14px;color:var(--muted);font-size:13.5px}
+.fin-row{display:grid;grid-template-columns:44px minmax(0,1fr) 12px;gap:10px;align-items:center;padding:10px;border-radius:10px;text-decoration:none;color:inherit;min-height:48px}
+div.fin-row{grid-template-columns:44px minmax(0,1fr)}
+a.fin-row:hover{background:var(--paper)}
+.fin-row .k{font-size:12.5px;font-weight:700;color:var(--green-ink);background:var(--green-soft);border-radius:99px;text-align:center;padding:2px 0;align-self:start;margin-top:2px}
+.fin-row .t{font-size:14.5px;line-height:1.55;overflow-wrap:anywhere}
+.fin-row .t b{font-family:var(--serif);font-weight:600}
+.fin-row .go{color:var(--muted);font-size:18px}
+@media (hover:none){a.fin-row:hover{background:none}}
+
+/* the link in the Sunday mail */
+.weekly-off{max-width:520px}
+.weekly-off .err:empty{display:none}

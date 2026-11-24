@@ -1,0 +1,29 @@
+/* ---------- r17: ability radar ---------- */
+.radar-box{display:grid;justify-items:center;gap:6px}
+.radar{width:100%;max-width:400px;height:auto;overflow:visible}
+.radar .rg{fill:none;stroke:var(--line);stroke-width:1}
+.radar .ax{stroke:var(--line);stroke-width:1}
+.radar .goal{fill:none;stroke:var(--green);stroke-width:1.5;stroke-dasharray:5 4;opacity:.7}
+.radar .prev{fill:none;stroke:var(--muted);stroke-width:1.5;stroke-dasharray:3 3}
+.radar .cur{transform-origin:160px 160px;transform:scale(.2);opacity:0;transition:transform .8s var(--ease-spring),opacity .4s}
+.radar .cur.on{transform:scale(1);opacity:1}
+.radar .area{fill:color-mix(in srgb,var(--green) 22%,transparent);stroke:var(--green);stroke-width:2.5;stroke-linejoin:round}
+.radar .dt{fill:var(--green);stroke:var(--paper);stroke-width:2}
+.radar .dt.none{fill:var(--paper);stroke:var(--muted)}
+.radar .lb{font-size:13px;fill:var(--ink);font-weight:600}
+.radar .lb .sc{fill:var(--green-ink);font-weight:700}
+.radar-legend{display:flex;gap:14px;color:var(--muted)}
+.radar-legend .lg::before{content:"";display:inline-block;width:16px;height:0;margin-right:6px;vertical-align:middle;border-top:2px solid}
+.radar-legend .goal::before{border-color:var(--green);border-top-style:dashed}
+.radar-legend .prev::before{border-color:var(--muted);border-top-style:dotted}
+.radar-legend .cur::before{border-color:var(--green);border-top-width:3px}
+.rdim{display:grid;gap:4px;padding:10px 4px}
+.rbar{display:flex;align-items:center;gap:10px}
+.rbar .num{font-size:18px;font-variant-numeric:tabular-nums;min-width:30px}
+.rbar .up{color:var(--green-ink);font-weight:700;font-size:13px}
+.rbar .down{color:var(--red);font-weight:700;font-size:13px}
+.spark{width:60px;height:20px;flex:none}
+.spark polyline{fill:none;stroke:var(--green);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+.goal-row{padding:6px 0}
+@media (prefers-reduced-motion:reduce){.radar .cur{transition:none;transform:none;opacity:1}}
+.rdim .tiny a.link{display:inline-block;white-space:nowrap;padding:4px 0}

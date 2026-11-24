@@ -2,21 +2,35 @@
 .preread{margin-bottom:14px}
 .preread{padding:12px 14px}
 .pr-list{display:grid;gap:6px}
-.pr{display:grid;grid-template-columns:32px 1fr;gap:8px;align-items:center;min-width:0}
+.pr{display:grid;grid-template-columns:32px minmax(0,1fr);gap:8px;align-items:center;min-width:0}
 .pr>div{min-width:0}
 .pr .icon-btn{width:32px;height:32px;border-radius:8px}.pr .icon-btn svg{width:16px;height:16px}
 .pr b{font-family:var(--serif);font-size:16px}
 .pr .ph{color:var(--muted);font-family:var(--serif);font-size:13px}
 .pr .tiny{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-@media (min-width:560px){.pr-list{grid-template-columns:1fr 1fr;column-gap:16px}}
+@media (min-width:560px){.pr-list{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:16px}}
 .seg.modes{margin-bottom:14px}
-.line.sh{grid-template-columns:1fr;gap:8px}
+.line.sh{grid-template-columns:minmax(0,1fr);gap:8px}
 .sh-ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+/* 跟读: ▶ on every sentence, the recording tools (●, 对比, AI 点评) under the one being practised; a tap picks it */
+.line.sh{cursor:pointer}
+.line.sh.cur{cursor:default;background:var(--green-soft);border-radius:10px;box-shadow:0 0 0 8px var(--green-soft)}
+.line.sh:not(.cur) .sh-ctl>:not([data-o]){display:none}
 .icon-btn.rec .dot{width:14px;height:14px;border-radius:50%;background:var(--red);display:block;transition:transform .2s,border-radius .2s}
 .icon-btn.rec.on{border-color:var(--red);background:var(--red-soft)}
 .icon-btn.rec.on .dot{border-radius:3px;transform:scale(.85);animation:pulse 1s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.45}}
 .sh-res .tip{color:var(--green-ink)}
+/* 发音分 (AI estimate): the total, then 准确 / 流利 / 完整 as bars; a sentence that has one shows it on its row */
+.pron{display:grid;gap:10px}
+.pron-top{display:flex;align-items:center;gap:12px}
+.pron-n{font-size:30px;line-height:1;font-weight:800;font-variant-numeric:tabular-nums;color:var(--green-ink);min-width:2ch}
+.pron .ab{grid-template-columns:36px minmax(0,1fr) 48px}
+.pron .ab .nm{font-weight:500;color:var(--ink2)}
+.snd{display:grid;grid-template-columns:minmax(44px,max-content) minmax(0,1fr);gap:8px;align-items:baseline}
+.snd .ph{font-family:var(--serif);color:var(--amber-fill)}
+.pron-chip{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--green-ink);background:var(--paper);border:1px solid var(--green-line);border-radius:99px;padding:2px 9px}
+.line.sh:not(.cur) .sh-ctl>.pron-chip:not([hidden]){display:inline-block}
 .wdiff{font-family:var(--serif);font-size:17px;line-height:1.8}
 .wdiff .ok{color:var(--green-ink)}
 .wdiff .miss{color:var(--red);text-decoration:underline wavy color-mix(in srgb,var(--red) 60%,transparent);text-underline-offset:4px}

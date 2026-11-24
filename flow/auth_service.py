@@ -7,6 +7,11 @@
   and the login page offers password only. It turns on by itself once mail is configured.
 Codes are stored only as salted hashes, expire after 10 minutes, allow 5 tries and are single use.
 Mail delivery reuses account_service (FLOW_SMTP_* in the service environment).
+
+r19: the same codes reset a forgotten password (purpose reset, signs the learner in and ends every other session)
+and bind an email from 我的 (purpose bind). Password login locks an account for 15 minutes after 5 wrong
+passwords in 15 minutes (code login and reset still work), and new usernames cannot contain spaces or @, so a
+username never reads as an email address.
 """
 import time,secrets,hashlib,hmac,re
 import account_service as account
@@ -15,11 +20,15 @@ TRIES=5
 RESEND=60
 PER_IP_HOUR=30
 EMAIL=re.compile(r'[^\s@<>"\'(),;:]+@[^\s@<>"\'(),;:]+\.[A-Za-z]{2,}')
-PURPOSES={'register':'注册','login':'登录'}
+PURPOSES={'register':'注册','login':'登录','reset':'重设密码','bind':'绑定邮箱'}
+USERNAME=re.compile(r'[^\s@<>"\'\\/]{2,40}')
+LOCK_TRIES=5
+LOCK_WINDOW=900
 
 def schema(c):
  c.executescript('''CREATE TABLE IF NOT EXISTS email_codes(id INTEGER PRIMARY KEY,email TEXT NOT NULL,purpose TEXT NOT NULL,salt TEXT NOT NULL,digest TEXT NOT NULL,expires REAL NOT NULL,tries INTEGER NOT NULL DEFAULT 0,used INTEGER NOT NULL DEFAULT 0,created REAL NOT NULL);
- CREATE INDEX IF NOT EXISTS email_codes_lookup ON email_codes(email,purpose,used);''')
+ CREATE INDEX IF NOT EXISTS email_codes_lookup ON email_codes(email,purpose,used);
+ CREATE TABLE IF NOT EXISTS login_failures(key TEXT PRIMARY KEY,count INTEGER NOT NULL,first REAL NOT NULL,until REAL NOT NULL DEFAULT 0);''')
  if 'ip' not in {r[1] for r in c.execute('PRAGMA table_info(email_codes)')}:c.execute('ALTER TABLE email_codes ADD COLUMN ip TEXT')
 
 def normalize(value):
@@ -31,14 +40,19 @@ def _hash(salt,code):return hashlib.sha256((salt+':'+code).encode()).hexdigest()
 def owner(c,email):return c.execute('SELECT * FROM users WHERE email=?',(email,)).fetchone()
 
 def request(c,data,ip):
- """POST /api/auth/code {email, purpose}. Returns (body, status)."""
+ """POST /api/auth/code {email, purpose}: register, login or reset. Returns (body, status)."""
  purpose=data.get('purpose');email=normalize(data.get('email'))
- if purpose not in PURPOSES:return {'error':'请求类型不正确'},400
+ if purpose not in ('register','login','reset'):return {'error':'请求类型不正确'},400
  if not email:return {'error':'请输入有效的邮箱地址'},400
  if not account.configured():return {'error':'邮件服务暂未开启。'+('请稍后再注册。' if purpose=='register' else '请先用密码登录。')},503
  exists=owner(c,email)
  if purpose=='register' and exists:return {'error':'这个邮箱已经注册，可以直接用验证码登录。','code':'email_taken'},409
- if purpose=='login' and not exists:return {'error':'这个邮箱还没有绑定账号。老账号请先用密码登录，再到设置里绑定邮箱。','code':'email_unknown'},404
+ if purpose=='login' and not exists:return {'error':'这个邮箱还没有绑定账号。老账号请先用密码登录，再到「我的」里绑定邮箱。','code':'email_unknown'},404
+ if purpose=='reset' and not exists:return {'error':'没有找到绑定这个邮箱的账号。注册时没有填邮箱的话，请联系老师或管理员，在后台为你生成一个重设密码的链接。','code':'email_unknown','field':'email'},404
+ return send(c,email,purpose,ip)
+
+def send(c,email,purpose,ip):
+ """Mail a fresh code for this email and purpose (the caller has checked who may ask)."""
  # Per address: at most PER_IP_HOUR codes an hour; per email: one code a minute.
  if c.execute('SELECT COUNT(*) FROM email_codes WHERE ip=? AND created>?',(ip,time.time()-3600)).fetchone()[0]>=PER_IP_HOUR:return {'error':'这台设备获取验证码太频繁，请一小时后再试'},429
  if account.limited(c,'code:'+purpose+':'+account.digest(email),RESEND):return {'error':'验证码已发送，请 60 秒后再重新获取'},429
@@ -47,6 +61,9 @@ def request(c,data,ip):
  c.execute('DELETE FROM email_codes WHERE expires<?',(now-86400,))
  c.execute('INSERT INTO email_codes(email,purpose,salt,digest,expires,created,ip) VALUES(?,?,?,?,?,?,?)',(email,purpose,salt,_hash(salt,code),now+TTL,now,ip));c.commit()
  text=f'你的语流 Flow {PURPOSES[purpose]}验证码是：{code}\n\n10 分钟内有效，只能使用一次。如果不是你本人操作，请忽略这封邮件。'
+ if purpose=='reset':  # a learner who forgot the password often forgot the username too
+  u=owner(c,email)
+  if u:text+=f'\n\n你的用户名是：{u["username"]}（登录时用户名和这个邮箱都可以用）。'
  try:account.mail(email,f'Flow {PURPOSES[purpose]}验证码 {code}',text);state='sent'
  except Exception:state='failed';c.execute('UPDATE email_codes SET used=1 WHERE email=? AND purpose=? AND used=0',(email,purpose))
  c.execute('INSERT INTO mail_events(status,created) VALUES(?,?)',(state,time.time()));c.commit()
@@ -76,17 +93,28 @@ def register(c,data,hash_password):
  Without mail configured, sign-up stays username + password (as in 3.5) and any email is ignored,
  because an unverified address must not be bound to an account."""
  name=str(data.get('username','')).strip();p=str(data.get('password',''));email=normalize(data.get('email'))
- if not 3<=len(name)<=40 or not 10<=len(p)<=200:return None,({'error':'用户名需 3–40 个字符，密码需 10–200 个字符'},400)
+ if not USERNAME.fullmatch(name):return None,({'error':'用户名需 2–40 个字符，不能有空格、@ 和 < > " \' / \\','field':'username'},400)
+ if not 10<=len(p)<=200:return None,({'error':'密码需 10–200 个字符','field':'password'},400)
  if c.execute('SELECT 1 FROM users WHERE username=?',(name,)).fetchone():return None,({'error':'这个用户名已被使用，换一个试试'},409)
  if not account.configured():
-  c.execute('INSERT INTO users(username,password) VALUES(?,?)',(name,hash_password(p)));c.commit()
+  c.execute('INSERT INTO users(username,password,created) VALUES(?,?,?)',(name,hash_password(p),time.time()));c.commit()
   return c.execute('SELECT * FROM users WHERE username=?',(name,)).fetchone(),None
  if not email:return None,({'error':'请输入有效的邮箱地址'},400)
  if owner(c,email):return None,({'error':'这个邮箱已经注册，可以直接用验证码登录。','code':'email_taken'},409)
  problem=check(c,email,'register',data.get('code'))
  if problem:return None,({'error':problem,'field':'code'},400)
- c.execute('INSERT INTO users(username,password,email) VALUES(?,?,?)',(name,hash_password(p),email));c.commit()
+ c.execute('INSERT INTO users(username,password,email,created) VALUES(?,?,?,?)',(name,hash_password(p),email,time.time()));c.commit()
  return c.execute('SELECT * FROM users WHERE username=?',(name,)).fetchone(),None
+
+def failed(c,key,row,now):
+ """One more wrong password for this account (key u:<id>): 5 in 15 minutes pause password login, and 注销账号
+ (account_data.erase), for 15 minutes. Returns the count so far."""
+ if row and row['first']>now-LOCK_WINDOW:
+  count=row['count']+1;c.execute('UPDATE login_failures SET count=?,until=? WHERE key=?',(count,now+LOCK_WINDOW if count>=LOCK_TRIES else 0,key))
+ else:
+  count=1;c.execute('INSERT OR REPLACE INTO login_failures(key,count,first,until) VALUES(?,1,?,0)',(key,now))
+ c.execute('DELETE FROM login_failures WHERE first<? AND until<?',(now-86400,now));c.commit()
+ return count
 
 def login(c,data,verify):
  """Password login by username or email, or code login by email."""
@@ -101,5 +129,30 @@ def login(c,data,verify):
  name=str(data.get('username','')).strip();p=str(data.get('password',''))
  if not name or not 1<=len(p)<=200:return None,({'error':'请输入用户名或邮箱，以及密码'},400)
  u=owner(c,normalize(name)) if '@' in name and normalize(name) else c.execute('SELECT * FROM users WHERE username=?',(name,)).fetchone()
- if not u or not verify(p,u['password']):return None,({'error':'用户名、邮箱或密码不正确'},401)
+ # One lock per account (or per name tried, when there is no such account, so both read the same).
+ key='u:%d'%u['id'] if u else 'n:'+hashlib.sha256(name.lower().encode()).hexdigest()
+ now=time.time();row=c.execute('SELECT * FROM login_failures WHERE key=?',(key,)).fetchone()
+ if row and row['until']>now:
+  return None,({'error':'密码错了太多次，这个账号的密码登录暂停 %d 分钟。可以用「验证码登录」或「忘记密码」。'%max(1,round((row['until']-now)/60)),'code':'locked'},429)
+ if not u or not verify(p,u['password']):
+  left=LOCK_TRIES-failed(c,key,row,now)
+  return None,({'error':'用户名、邮箱或密码不正确'+('，再错 %d 次会暂停 15 分钟'%left if 0<left<=2 else '，密码登录已暂停 15 分钟' if left<=0 else '')},401)
+ if row:c.execute('DELETE FROM login_failures WHERE key=?',(key,));c.commit()
+ return u,None
+
+def reset(c,data,hash_password):
+ """POST /api/auth/reset {email, code, password}: a forgotten password, reset with an emailed code.
+ Ends every session of the account and clears its lock; the caller signs the learner in."""
+ email=normalize(data.get('email'));p=str(data.get('password',''))
+ if not email:return None,({'error':'请输入有效的邮箱地址','field':'email'},400)
+ if not 10<=len(p)<=200:return None,({'error':'新密码需 10–200 个字符','field':'password'},400)
+ u=owner(c,email)
+ if not u:return None,({'error':'这个邮箱还没有绑定账号','code':'email_unknown'},404)
+ problem=check(c,email,'reset',data.get('code'))
+ if problem:return None,({'error':problem,'field':'code'},400)
+ c.execute('UPDATE users SET password=? WHERE id=?',(hash_password(p),u['id']))
+ c.execute('DELETE FROM sessions WHERE user_id=?',(u['id'],))
+ c.execute('UPDATE recovery_tokens SET used=1 WHERE user_id=?',(u['id'],))
+ c.execute('DELETE FROM login_failures WHERE key=?',('u:%d'%u['id'],));c.commit()
+ account.password_changed(c,u['id'],'通过邮箱验证码重设')
  return u,None

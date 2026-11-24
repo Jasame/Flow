@@ -77,6 +77,8 @@ CREATE TABLE IF NOT EXISTS ai_usage(user_id INTEGER,day TEXT,count INTEGER,PRIMA
   growth.schema(c)
   reference.schema(c)
   __import__('ops_errors').schema(c)
+  __import__('feedback_service').schema(c)
+  __import__('field_service').schema(c)
   core_words.schema(c)
   practice.schema(c)
   foundation.schema(c)
@@ -87,6 +89,8 @@ CREATE TABLE IF NOT EXISTS ai_usage(user_id INTEGER,day TEXT,count INTEGER,PRIMA
   meeting.schema(c)
   __import__('survey_service').schema(c)
   __import__('next_service').schema(c)
+  __import__('relisten_service').schema(c)
+  __import__('flow_admin').schema(c)
 def wrong_questions(c,uid):
  return c.execute('''SELECT q.id,q.topic,q.prompt,q.options,q.explanation,q.answer,a.selected FROM questions q
  JOIN attempts a ON a.question_id=q.id WHERE q.status='published' AND a.user_id=? AND a.correct=0
@@ -107,24 +111,60 @@ def live_status():
   with db() as c:out['errors_24h']=__import__('ops_errors').count_since(c,86400)
  except Exception:pass
  return out
+SESSION_DAYS=30
+# r20: the classic site is archived (archive/classic/). The learner site serves only what the learning site (next.html),
+# the survey, sign-in and the account need, and the operations checks; every other /api/ path answers 404. Operator
+# functions live in the xmc.hk console (flow_admin.py, port FLOW_ADMIN_PORT), never on the learner site.
+OPEN_API={'GET':('/api/health','/api/survey','/api/deploy-status','/api/session','/api/account','/api/next/'),
+ 'POST':('/api/survey','/api/feedback','/api/next/','/api/recovery/','/api/login','/api/register','/api/auth/code','/api/auth/reset','/api/logout','/api/password','/api/account/')}
+def api_open(method,path):return any(path==p or (p.endswith('/') and path.startswith(p)) for p in OPEN_API[method])
+def session_cookie(token):
+ return 'flow_session='+token+'; HttpOnly; SameSite=Lax; Path=/; Max-Age='+str(SESSION_DAYS*86400)+('; Secure' if SECURE else '')
 _ASSET={}
+# Two sites from one code base (2026-11-24): flowlang.cn is 语流's site (FLOW_CHANNEL unset, "prod"); flow.jasa.hk is
+# the 内测版 (FLOW_CHANNEL=beta), a second instance with its own data, where versions waiting for release run first.
+# The 内测版 says so on every page, sends its mail marked 【内测版】 and asks search engines to stay away.
+CHANNEL='beta' if os.getenv('FLOW_CHANNEL','').strip().lower()=='beta' else 'prod'
+_SLIM={}
 def shell_file(name):
  """A public file; the page shell and the service worker get the asset version filled in (__ASSET__): a hash of
- next.js and next.css, so any change to them gives new URLs and a changed service worker, and phones update."""
- body=(ROOT/'public'/name).read_bytes()
+ next.js and next.css, so any change to them gives new URLs and a changed service worker, and phones update.
+ next.js and next.css are sent slimmed (slim.py: no comments or indentation, the same lines), once per change.
+ The page shell also says which site it is (__CHANNEL__), and the 内测版's home-screen app is named as such."""
+ f=ROOT/'public'/name;body=f.read_bytes()
+ if name in ('next.js','next.css','about.js','about.css'):
+  key=f.stat().st_mtime_ns
+  if _SLIM.get(name,(None,))[0]!=key:_SLIM[name]=(key,__import__('slim').slim(name,body))
+  return _SLIM[name][1]
+ if name=='manifest.webmanifest' and CHANNEL=='beta':
+  m=json.loads(body);m.update(name='语流 Flow 内测版',short_name='语流内测');return json.dumps(m,ensure_ascii=False,indent=1).encode()
+ if name=='about.html':return body.replace(b'__ABOUT__',asset_version(ABOUT_ASSETS).encode()).replace(b'__CHANNEL__',CHANNEL.encode())
  if name not in ('next.html','sw.js'):return body
- return body.replace(b'__ASSET__',asset_version().encode())
-def asset_version():
- """The content version of next.js and next.css (10 hex digits); recomputed when either file changes."""
- key=tuple((ROOT/'public'/n).stat().st_mtime_ns for n in ('next.js','next.css'))
- if _ASSET.get('key')!=key:
+ return body.replace(b'__ASSET__',asset_version().encode()).replace(b'__CHANNEL__',CHANNEL.encode())
+
+PAGE_CACHE='max-age=0, stale-while-revalidate=2592000'  # the learning page: see do_GET '/'
+
+# 认识语流 (/about): the introduction page for people who have not used Flow yet; its own small files, so it opens fast
+# and never loads the learning site. Its pictures are real screenshots (tools/about_shots.py) in public/about/.
+ABOUT_ASSETS=('about.js','about.css')
+def asset_version(names=('next.js','next.css')):
+ """The content version of next.js and next.css (10 hex digits), or of the files named; recomputed when one changes."""
+ key=tuple((ROOT/'public'/n).stat().st_mtime_ns for n in names)
+ got=_ASSET.get(names)
+ if not got or got[0]!=key:
   h=hashlib.sha256()
-  for n in ('next.js','next.css'):h.update((ROOT/'public'/n).read_bytes())
-  _ASSET.update(key=key,v=h.hexdigest()[:10])
- return _ASSET['v']
+  for n in names:h.update((ROOT/'public'/n).read_bytes())
+  got=_ASSET[names]=(key,h.hexdigest()[:10])
+ return got[1]
+def csp():
+ # The media domain (R2, media.py) is the second line for audio and its timings, when FLOW_MEDIA_BASE is set.
+ m=__import__('media').origin();extra=' '+m if m else ''
+ return "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'"+extra+"; media-src 'self' blob:"+extra+"; frame-src 'self' about:; frame-ancestors 'none'"
 def session_info(u):
  """What /api/session answers; /api/next/home carries the same, so the page needs one request to start."""
- return {'user':{k:u[k] for k in ('id','username','admin','csrf')} if u else None,'ai_enabled':ai_enabled()}
+ # email_bound: the page reminds an account without one that a forgotten password could not be reset by itself.
+ # media: where audio can also be fetched when this server cannot answer (None unless R2 is in use).
+ return {'user':{**{k:u[k] for k in ('id','username','admin','csrf')},'email_bound':bool(u['email'])} if u else None,'ai_enabled':ai_enabled(),'mail':account.configured(),'media':__import__('media').info()}
 def verify(p,stored): return hmac.compare_digest(password(p,stored.split(':')[0]),stored)
 def topics(c):
  out=[]
@@ -159,11 +199,14 @@ class Handler(BaseHTTPRequestHandler):
  def send(self,obj,status=200,cookie=None):
   if getattr(self,'ai_transport',None):return self.ai_transport.finish(obj,status)
   body=public_text(json.dumps(obj,ensure_ascii=False)).encode(); self.send_response(status);self.headers_common('application/json; charset=utf-8');self.send_header('Cache-Control','no-store')
+  renew,self.renew=getattr(self,'renew',None),None
   if cookie:self.send_header('Set-Cookie',cookie)
+  elif renew:self.send_header('Set-Cookie',session_cookie(renew))  # a session in use stays signed in (user())
   self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def headers_common(self,mime):
   self.send_header('Permissions-Policy','camera=(), geolocation=(), microphone=(self)')
-  self.send_header('Content-Type',mime);self.send_header('X-Content-Type-Options','nosniff');self.send_header('X-Frame-Options','DENY');self.send_header('Referrer-Policy','same-origin');self.send_header('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; media-src 'self' blob:; frame-src 'self' about:; frame-ancestors 'none'")
+  self.send_header('Content-Type',mime);self.send_header('X-Content-Type-Options','nosniff');self.send_header('X-Frame-Options','DENY');self.send_header('Referrer-Policy','same-origin');self.send_header('Content-Security-Policy',csp())
+  if CHANNEL=='beta':self.send_header('X-Robots-Tag','noindex, nofollow')  # the 内测版 stays out of search results
  def visitor_address(self):
   ip=self.client_address[0]
   if ip in ('127.0.0.1','::1'):
@@ -197,11 +240,19 @@ class Handler(BaseHTTPRequestHandler):
   if status==206:self.send_header('Content-Range',f'bytes {start}-{end}/{size}')
   self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def user(self,c):
+  self.renew=None
   jar=SimpleCookie()
   try:jar.load(self.headers.get('Cookie',''))
   except Exception:return None
   token=jar['flow_session'].value if 'flow_session' in jar else ''
-  return c.execute('SELECT users.id,username,admin,csrf,token FROM sessions JOIN users ON users.id=user_id WHERE token=? AND expires>?',(token,time.time())).fetchone()
+  now=time.time()
+  # an account an operator stopped (xmc.hk console) has no session: its sessions are deleted and none is read
+  u=c.execute('SELECT users.id,username,admin,csrf,token,expires,email FROM sessions JOIN users ON users.id=user_id WHERE token=? AND expires>? AND NOT COALESCE(users.disabled,0)',(token,now)).fetchone()
+  # Sliding sessions: a learner who keeps coming back stays signed in; SESSION_DAYS after the last visit it ends.
+  # At most one write a day per session; the cookie is renewed with the same answer (send()).
+  if u and u['expires']<now+(SESSION_DAYS-1)*86400:
+   c.execute('UPDATE sessions SET expires=? WHERE token=?',(now+SESSION_DAYS*86400,token));c.commit();self.renew=token
+  return u
  def do_GET(self):
   try:self.get()
   except (BrokenPipeError,ConnectionResetError):pass
@@ -209,10 +260,13 @@ class Handler(BaseHTTPRequestHandler):
   except Exception as exc:__import__('ops_errors').record(db,'GET',self.path,exc);self.send({'error':'服务暂时异常，请稍后重试'},500)
  def get(self):
   path=self.path.split('?')[0]
-  if path=='/api/health':return self.send({'ok':True,'version':'4.5.0','mail':account.configured()})
+  if path.startswith('/api/') and not api_open('GET',path):return self.send({'error':'接口不存在'},404)
+  if path=='/api/health':return self.send({'ok':True,'version':'4.5.0','mail':account.configured(),'channel':CHANNEL})
+  if path=='/robots.txt':
+   body=('User-agent: *\nDisallow: /\n' if CHANNEL=='beta' else 'User-agent: *\nDisallow: /api/\nAllow: /\n').encode()
+   self.send_response(200);self.headers_common('text/plain; charset=utf-8');self.send_header('Cache-Control','public, max-age=3600')
+   self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
   if path=='/api/survey':return self.send(__import__('survey_service').SURVEY)
-  if path=='/api/meeting/previews':
-   return self.send({'previews':[meeting_path.task(day) for day in meeting_path.PUBLIC.values()]})
   if path=='/api/deploy-status':
    # Written by tools/flow-autodeploy.py: release tag, commit, result, health checks and test counts. Nothing private.
    try:st=json.loads((DATA/'deploy-status.json').read_text())
@@ -220,6 +274,9 @@ class Handler(BaseHTTPRequestHandler):
    try:st['daily']=json.loads((DATA/'e2e-daily.json').read_text())  # the daily end-to-end test (flow-autodeploy.py)
    except (OSError,ValueError):pass
    st['live']=live_status()
+   try:
+    with db() as c:__import__('flow_admin').note_release(c,st)
+   except Exception:pass
    body=json.dumps(st,ensure_ascii=False).encode()
    self.send_response(200);self.headers_common('application/json; charset=utf-8');self.send_header('Cache-Control','no-store')
    self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
@@ -233,6 +290,14 @@ class Handler(BaseHTTPRequestHandler):
    with db() as c:
     u=self.user(c)
     if path=='/api/session':return self.send(session_info(u))
+    if path.startswith('/api/next/export/'):
+     # 我的 → 我的数据: the word book for Excel or Anki, or every record of the account (account_data.py)
+     if not u:return self.send({'error':'请先登录'},401)
+     ad=__import__('account_data');out=ad.export(c,u,path)
+     if out is None:return self.send({'error':'接口不存在'},404)
+     body,mime,ascii_name,name=out
+     self.send_response(200);self.headers_common(mime);self.send_header('Content-Disposition',ad.disposition(ascii_name,name))
+     self.send_header('Cache-Control','no-store');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
     if path.startswith('/api/next/'):
      q=parse_qs(urlsplit(self.path).query)
      if path=='/api/next/home' and u:q={k:v for k,v in q.items() if k not in ('level','themes')}  # a guest's choices; signed in, the profile decides
@@ -245,7 +310,7 @@ class Handler(BaseHTTPRequestHandler):
     result=meeting.get(c,u['id'],u['admin'],path)
     if result is not None:return self.send(*result)
     if path=='/api/ai/status':
-     configured=bool(os.getenv('FLOW_AI_MODEL')) and (bool(os.getenv('GOOGLE_CLOUD_PROJECT')) if vertex_enabled() else bool(os.getenv('FLOW_AI_KEY')) and os.getenv('FLOW_AI_URL','').startswith('https://'))
+     configured=bool(os.getenv('FLOW_AI_MODEL')) and (bool(os.getenv('GOOGLE_CLOUD_PROJECT')) if vertex_enabled() else bool(os.getenv('FLOW_AI_KEY')) and __import__('chat_service').endpoint_ok(os.getenv('FLOW_AI_URL','')))
      last=c.execute("SELECT MAX(updated) FROM lab_jobs WHERE user_id=? AND status='complete'",(u['id'],)).fetchone()[0]
      chat_last=c.execute("SELECT MAX(updated) FROM chat_turns WHERE user_id=? AND status='complete' AND finish_reason!='lesson'",(u['id'],)).fetchone()[0]
      last=max(last or 0,chat_last or 0) or None
@@ -287,10 +352,6 @@ class Handler(BaseHTTPRequestHandler):
     if result is not None:return self.send(*result)
     result=learning.get(c,u['id'],u['admin'],path,parse_qs(urlsplit(self.path).query))
     if result is not None:return self.send(*result)
-    if path=='/api/manage/backup':
-     if not u['admin']:return self.send({'error':'需要管理员权限'},403)
-     status_file=DATA/'backup-status.json'
-     return self.send({'last':json.loads(status_file.read_text()) if status_file.exists() else None})
     if path=='/api/account':
      result=account.private(c,u,path,{},verify);return self.send(*result)
     if path=='/api/dashboard':return self.send(report(c,u['id']))
@@ -298,34 +359,58 @@ class Handler(BaseHTTPRequestHandler):
      topic=parse_qs(urlsplit(self.path).query).get('topic',[''])[0];out,status=chat_history(c,u['id'],topic);return self.send(out,status)
     if path=='/api/wrongs':return self.send({'items':[dict(r) for r in wrong_questions(c,u['id'])]})
     if path=='/api/history':return self.send({'items':[dict(r) for r in c.execute('SELECT prompt,selected,correct,questions.explanation,created,options FROM attempts JOIN questions ON questions.id=question_id WHERE user_id=? ORDER BY attempts.id DESC LIMIT 50',(u['id'],))]})
-    if path=='/api/admin':
-     if not u['admin']:return self.send({'error':'需要管理员权限'},403)
-     return self.send({'users':c.execute('SELECT COUNT(*) FROM users').fetchone()[0],'attempts':c.execute('SELECT COUNT(*) FROM attempts').fetchone()[0],'questions':c.execute('SELECT COUNT(*) FROM questions').fetchone()[0],'ai_enabled':ai_enabled(),'ai_provider':'Vertex ADC' if vertex_enabled() else '兼容接口','ai_model':os.getenv('FLOW_AI_MODEL',''),'ai_daily_limit':int(os.getenv('FLOW_AI_DAILY_LIMIT','0'))})
    return self.send({'error':'接口不存在'},404)
-  if path.startswith('/practice/') and path.endswith('/'):
-   slug=path.removeprefix('/practice/').removesuffix('/')
-   if slug in meeting_path.PUBLIC:
-    body=meeting_path.public_page(slug)
-    self.send_response(200);self.headers_common('text/html; charset=utf-8');self.send_header('Cache-Control','no-cache')
-    self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
-  files={'/sw.js':('sw.js','text/javascript; charset=utf-8'),'/manifest.webmanifest':('manifest.webmanifest','application/manifest+json; charset=utf-8'),
-   '/icon-192.png':('icon-192.png','image/png'),'/icon-512.png':('icon-512.png','image/png'),'/apple-touch-icon.png':('apple-touch-icon.png','image/png'),
-   '/next':('next.html','text/html; charset=utf-8'),'/next.js':('next.js','text/javascript; charset=utf-8'),'/next.css':('next.css','text/css; charset=utf-8'),'/survey':('survey.html','text/html; charset=utf-8'),'/survey.js':('survey.js','text/javascript; charset=utf-8'),'/survey.css':('survey.css','text/css; charset=utf-8'),'/guest-first.js':('guest-first.js','text/javascript; charset=utf-8'),'/flow4.css':('flow4.css','text/css; charset=utf-8'),'/flow-motion.js':('flow-motion.js','text/javascript; charset=utf-8'),'/flow-mindmap.js':('flow-mindmap.js','text/javascript; charset=utf-8'),'/literata.woff2':('literata.woff2','font/woff2'),'/core-words.js':('core-words.js','text/javascript; charset=utf-8'),'/meeting.js':('meeting.js','text/javascript; charset=utf-8'),'/meeting.css':('meeting.css','text/css; charset=utf-8'),'/flow36.js':('flow36.js','text/javascript; charset=utf-8'),'/flow36.css':('flow36.css','text/css; charset=utf-8'),'/phone.css':('phone.css','text/css; charset=utf-8'),'/pilot.js':('pilot.js','text/javascript; charset=utf-8'),'/pilot.css':('pilot.css','text/css; charset=utf-8'),'/learning35.js':('learning35.js','text/javascript; charset=utf-8'),'/learning35.css':('learning35.css','text/css; charset=utf-8'),'/ai-live.js':('ai-live.js','text/javascript; charset=utf-8'),'/ai-live.css':('ai-live.css','text/css; charset=utf-8'),'/continuity.js':('continuity.js','text/javascript; charset=utf-8'),'/continuity.css':('continuity.css','text/css; charset=utf-8'),'/foundation.js':('foundation.js','text/javascript; charset=utf-8'),'/foundation.css':('foundation.css','text/css; charset=utf-8'),'/mobile.js':('mobile.js','text/javascript; charset=utf-8'),'/mobile.css':('mobile.css','text/css; charset=utf-8'),'/practice.js':('practice.js','text/javascript; charset=utf-8'),'/practice.css':('practice.css','text/css; charset=utf-8'),'/reference.js':('reference.js','text/javascript; charset=utf-8'),'/reference.css':('reference.css','text/css; charset=utf-8'),'/atlas.js':('atlas.js','text/javascript; charset=utf-8'),'/atlas.css':('atlas.css','text/css; charset=utf-8'),'/':('index.html','text/html; charset=utf-8'),'/app.js':('app.js','text/javascript; charset=utf-8'),'/tutor.js':('tutor.js','text/javascript; charset=utf-8'),'/style.css':('style.css','text/css; charset=utf-8'),'/advanced.js':('advanced.js','text/javascript; charset=utf-8'),'/studio.js':('studio.js','text/javascript; charset=utf-8'),'/growth.js':('growth.js','text/javascript; charset=utf-8'),'/growth.css':('growth.css','text/css; charset=utf-8'),'/design-bridge.css':('design-bridge.css','text/css; charset=utf-8'),'/coach.js':('coach.js','text/javascript; charset=utf-8'),'/coach.css':('coach.css','text/css; charset=utf-8'),'/adaptive.js':('adaptive.js','text/javascript; charset=utf-8'),'/adaptive.css':('adaptive.css','text/css; charset=utf-8'),'/knowledge.js':('knowledge.js','text/javascript; charset=utf-8'),'/layout.css':('layout.css','text/css; charset=utf-8')}
+  if path=='/classic' or (path.startswith('/practice/') and path.endswith('/')):
+   # archived classic pages: an old bookmark lands on the learning site
+   self.send_response(302);self.send_header('Location','/');self.send_header('Content-Length','0');self.end_headers();return
+  files={'/sw.js':('sw.js','text/javascript; charset=utf-8'),
+   '/manifest.webmanifest':('manifest.webmanifest','application/manifest+json; charset=utf-8'),
+   '/icon-192.png':('icon-192.png','image/png'),
+   '/icon-512.png':('icon-512.png','image/png'),
+   '/apple-touch-icon.png':('apple-touch-icon.png','image/png'),
+   '/next':('next.html','text/html; charset=utf-8'),
+   '/next.js':('next.js','text/javascript; charset=utf-8'),
+   '/next.css':('next.css','text/css; charset=utf-8'),
+   '/survey':('survey.html','text/html; charset=utf-8'),
+   '/about':('about.html','text/html; charset=utf-8'),
+   '/about.js':('about.js','text/javascript; charset=utf-8'),
+   '/about.css':('about.css','text/css; charset=utf-8'),
+   '/survey.js':('survey.js','text/javascript; charset=utf-8'),
+   '/survey.css':('survey.css','text/css; charset=utf-8'),
+   '/literata.woff2':('literata.woff2','font/woff2')}
+  if path=='/guide.pdf' or (path.startswith('/guide/') and path.endswith('.jpg') and path[7:-4].replace('-','').isalnum() and path[7:-4].isascii()):
+   # the 操作指南: its screenshots and the PDF made from the same source (user_guide.py)
+   f=ROOT/'public'/'guide'/('flow-guide.pdf' if path=='/guide.pdf' else path[7:])
+   if not f.is_file():return self.send({'error':'页面不存在'},404)
+   body=f.read_bytes();self.send_response(200);self.headers_common('application/pdf' if path=='/guide.pdf' else 'image/jpeg')
+   if path=='/guide.pdf':self.send_header('Content-Disposition',"inline; filename=\"flow-guide.pdf\"; filename*=UTF-8''%E8%AF%AD%E6%B5%81%E6%93%8D%E4%BD%9C%E6%8C%87%E5%8D%97.pdf")
+   self.send_header('Cache-Control','public, max-age=3600');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
+  if path.startswith('/about/') and path.endswith('.jpg') and path[7:-4].replace('-','').isalnum() and path[7:-4].isascii():
+   # 认识语流's screenshots
+   f=ROOT/'public'/'about'/path[7:]
+   if not f.is_file():return self.send({'error':'页面不存在'},404)
+   body=f.read_bytes();self.send_response(200);self.headers_common('image/jpeg')
+   self.send_header('Cache-Control','public, max-age=86400');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
+  if path=='/about/':
+   self.send_response(301);self.send_header('Location','/about');self.send_header('Content-Length','0');self.end_headers();return
   if path.startswith('/audio/'):
    return self.send_audio(path)
-  if path=='/classic':
-   self.send_response(302);self.send_header('Location','/?classic=1');self.send_header('Content-Length','0');self.end_headers();return
-  if path=='/' and not urlsplit(self.path).query:
-   # The Flow learning loop (next.html) is the main site; the classic site stays at /?classic=1
-   # (any query string, e.g. old /?account=1#login and trial links, still opens the classic page).
+  if path=='/':
+   # The learning site is the only site: any query string (old /?classic=1, /?account=1#login, trial links) opens it too.
+   # The page opens from the browser's own copy at once and is fetched again in the background for next time
+   # (stale-while-revalidate): iPhone WeChat has no service worker, so without this every opening first waited for a
+   # round trip to the server (0.1-0.7 s from the mainland, r26 data). The copy names its own next.js/next.css version,
+   # so an old copy runs the release it came with, once; sw.js fetches this page with cache 'no-cache', so phones with
+   # the service worker get a new release exactly as before.
    body=shell_file('next.html')
-   self.send_response(200);self.headers_common('text/html; charset=utf-8');self.send_header('Cache-Control','no-cache')
+   self.send_response(200);self.headers_common('text/html; charset=utf-8');self.send_header('Cache-Control',PAGE_CACHE)
    self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
   if path not in files:return self.send({'error':'页面不存在'},404)
   name,mime=files[path];body=shell_file(name);self.send_response(200);self.headers_common(mime)
   # next.js and next.css under their current ?v= never change, so browsers and Cloudflare may keep them for a year;
   # any other version asked for (an old page) gets today's file and must check again.
-  versioned=name in ('next.js','next.css') and parse_qs(urlsplit(self.path).query).get('v',[''])[0]==asset_version()
+  v=parse_qs(urlsplit(self.path).query).get('v',[''])[0]
+  versioned=(name in ('next.js','next.css') and v==asset_version()) or (name in ABOUT_ASSETS and v==asset_version(ABOUT_ASSETS))
   self.send_header('Cache-Control','public, max-age=31536000, immutable' if name.endswith('.woff2') or versioned else 'no-cache');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def do_POST(self):
   try:self.post()
@@ -341,19 +426,37 @@ class Handler(BaseHTTPRequestHandler):
     ai_stream.LOCAL.callback=None
  def post(self):
   length=int(self.headers.get('Content-Length',0))
-  limit=2200000 if self.path in ('/api/lab/audio','/api/next/shadow','/api/next/retell','/api/next/dialog','/api/next/say') else 800000 if self.path=='/api/vocab/import' else 40000 if self.path in ('/api/next/import','/api/next/essay','/api/next/dialog') else 20000
+  # /api/feedback: up to three screenshots shrunk on the phone, sent as base64; under nginx's 3 MB (client_max_body_size 3m)
+  limit=2900000 if self.path=='/api/feedback' else 2200000 if self.path in ('/api/lab/audio','/api/next/shadow','/api/next/retell','/api/next/dialog','/api/next/say','/api/next/ielts') else 800000 if self.path=='/api/vocab/import' else 40000 if self.path in ('/api/next/import','/api/next/essay','/api/next/dialog') else 20000
   if length<1 or length>limit:return self.send({'error':'请求大小不正确'},400)
   if self.headers.get('Sec-Fetch-Site')=='cross-site':return self.send({'error':'不允许跨站请求'},403)
+  if not api_open('POST',self.path.split('?')[0]):return self.send({'error':'接口不存在'},404)
   if self.path=='/api/lab/audio':
    with db() as c:
     owner=self.user(c)
     if not owner:return self.send({'error':'请先登录'},401)
     if not hmac.compare_digest(self.headers.get('X-CSRF-Token',''),owner['csrf']):return self.send({'error':'安全校验失败'},403)
+  if self.path.startswith('/api/next/weekly-mail/off?'):
+   # RFC 8058 one-click unsubscribe from a mail app's own button: a form post to the List-Unsubscribe address
+   body=self.rfile.read(length).decode('utf-8','replace')
+   if body.strip()!='List-Unsubscribe=One-Click':return self.send({'error':'请求格式不正确'},400)
+   with db() as c:return self.send(*__import__('progress_service').unsubscribe(c,parse_qs(urlsplit(self.path).query).get('t',[''])[0]))
   data=json.loads(self.rfile.read(length));path=self.path
   if not isinstance(data,dict):return self.send({'error':'请求必须为 JSON 对象'},400)
   if path=='/api/survey':
    # Anonymous: no session lookup; the address is only used for a short-lived hashed rate limit.
    with db() as c:return self.send(*__import__('survey_service').submit(c,data,self.visitor_address()))
+  if path=='/api/feedback':
+   # Signed in or not: the account is attached only with the session's CSRF token; a guest is limited by a hashed address.
+   with db() as c:
+    u=self.user(c);signed=bool(u) and hmac.compare_digest(self.headers.get('X-CSRF-Token',''),u['csrf'])
+    return self.send(*__import__('feedback_service').submit(c,data,self.visitor_address(),u['id'] if signed else None))
+  if path in ('/api/next/issues','/api/next/opentime'):
+   # What the browser reports about the site itself (field_service): no session, no address; the User-Agent only for
+   # its family (iPhone · Safari, Android · 微信 …).
+   with db() as c:
+    f=__import__('field_service')
+    return self.send(*(f.issues if path=='/api/next/issues' else f.open_time)(c,data,self.headers.get('User-Agent','')))
   if path.startswith('/api/next/'):
    import next_service
    with db() as c:
@@ -384,7 +487,7 @@ class Handler(BaseHTTPRequestHandler):
      except ValueError:pass
     result=account.public(c,path,data,password,ip)
     if result is not None:return self.send(*result)
-  if path in ['/api/login','/api/register','/api/auth/code']:
+  if path in ['/api/login','/api/register','/api/auth/code','/api/auth/reset']:
    # Rate-limit by directly connected address; loopback proxy intentionally shares a ceiling.
    key=self.client_address[0]
    if key in ('127.0.0.1','::1'):
@@ -400,15 +503,21 @@ class Handler(BaseHTTPRequestHandler):
    with db() as c:
     if path=='/api/auth/code':return self.send(*auth_service.request(c,data,key))
     # 3.6: sign-up needs a verified email code; login accepts username/email + password or email + code.
-    u,problem=auth_service.register(c,data,password) if path=='/api/register' else auth_service.login(c,data,verify)
+    # r19: a forgotten password is reset with an emailed code, which also signs the learner in.
+    u,problem=auth_service.register(c,data,password) if path=='/api/register' else auth_service.reset(c,data,password) if path=='/api/auth/reset' else auth_service.login(c,data,verify)
     if problem:return self.send(*problem)
+    if 'disabled' in u.keys() and u['disabled']:return self.send({'error':'这个账号已停用。如有疑问，请联系语流。','code':'disabled'},403)
     token=secrets.token_urlsafe(32);csrf=secrets.token_urlsafe(24)
-    c.execute('DELETE FROM sessions WHERE expires<?',(time.time(),));c.execute('INSERT INTO sessions VALUES(?,?,?,?)',(token,u['id'],csrf,time.time()+86400*7))
-   return self.send({'ok':True},cookie='flow_session='+token+'; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800'+('; Secure' if SECURE else ''))
+    c.execute('DELETE FROM sessions WHERE expires<?',(time.time(),));c.execute('INSERT INTO sessions VALUES(?,?,?,?)',(token,u['id'],csrf,time.time()+SESSION_DAYS*86400))
+   return self.send({'ok':True,'username':u['username']},cookie=session_cookie(token))
   with db() as c:
    u=self.user(c)
    if not u:return self.send({'error':'登录已过期'},401)
    if not hmac.compare_digest(self.headers.get('X-CSRF-Token',''),u['csrf']):return self.send({'error':'安全校验失败，请刷新页面'},403)
+   if path=='/api/account/delete':
+    # 注销账号: the password once more, then everything the account has is deleted (account_data.py)
+    result=__import__('account_data').erase(c,u,data,verify)
+    return self.send(*result,cookie='flow_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax' if result[1]==200 else None)
    result=meeting.post(c,u['id'],path,data)
    if result is not None:
     c.commit();return self.send(*result)
@@ -423,12 +532,6 @@ class Handler(BaseHTTPRequestHandler):
     except TimeoutError:return self.send({'error':'排队较久，本次未调用模型。草稿保留，可稍后重试。'},503)
     current=self.user(c)
     if not current or not hmac.compare_digest(current['csrf'],u['csrf']):return self.send({'error':'登录已过期，请重新登录'},401)
-   if path=='/api/daily/run':
-    if not u['admin']:return self.send({'error':'需要管理员权限'},403)
-    def generate_daily():
-     with db() as connection:daily.run(connection)
-    threading.Thread(target=generate_daily,daemon=True).start()
-    return self.send({'ok':True,'message':'已请求生成，稍后刷新查看；同日成功缓存不会重建。'},202)
    if path=='/api/ai/help':
     import ai_help_service
     return self.send(*ai_help_service.help(c,u['id'],data))
@@ -457,7 +560,10 @@ class Handler(BaseHTTPRequestHandler):
    result=learning.post(c,u['id'],u['admin'],path,data,tutor_chat)
    if result is not None:return self.send(*result)
    if path=='/api/logout':
-    c.execute('DELETE FROM sessions WHERE token=?',(u['token'],));c.commit();return self.send({'ok':True},cookie='flow_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax')
+    # {"all": true} signs this account out on every device (a lost phone, a shared computer).
+    if data.get('all') is True:c.execute('DELETE FROM sessions WHERE user_id=?',(u['id'],))
+    else:c.execute('DELETE FROM sessions WHERE token=?',(u['token'],))
+    c.commit();return self.send({'ok':True},cookie='flow_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax')
    if path=='/api/password':
     old=str(data.get('old_password',''));new=str(data.get('new_password',''))
     if not 10<=len(new)<=200:return self.send({'error':'新密码需 10–200 个字符'},400)
@@ -467,6 +573,7 @@ class Handler(BaseHTTPRequestHandler):
     c.execute('UPDATE users SET password=? WHERE id=?',(password(new),u['id']))
     c.execute('UPDATE recovery_tokens SET used=1 WHERE user_id=?',(u['id'],))
     c.execute('DELETE FROM sessions WHERE user_id=?',(u['id'],));c.commit()
+    account.password_changed(c,u['id'],'在「我的」里修改')
     return self.send({'ok':True},cookie='flow_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax')
    if path=='/api/lesson/complete':
     topic=data.get('topic')
@@ -528,30 +635,33 @@ class Handler(BaseHTTPRequestHandler):
     c.execute('UPDATE quizzes SET used=1 WHERE token=?',(token,))
     if session:attempts.complete(c,token,answers,out)
     c.commit();return self.send(out)
-   if path=='/api/admin/question':
-    if not u['admin']:return self.send({'error':'需要管理员权限'},403)
-    learning.save_question(c,u['id'],{**data,'status':'published'});c.commit();return self.send({'ok':True})
    if path=='/api/chat':
     out,status=tutor_chat(c,u['id'],data);return self.send(out,status)
   self.send({'error':'接口不存在'},404)
 if __name__=='__main__':
- init();parser=argparse.ArgumentParser();parser.add_argument('--create-admin',action='store_true');args=parser.parse_args()
- if args.create_admin:
+ init();parser=argparse.ArgumentParser();parser.add_argument('--create-admin',action='store_true')
+ parser.add_argument('--reset-link',metavar='用户名或邮箱',help='给忘了密码、又没绑定邮箱的账号生成一次性重设链接（24 小时内有效）')
+ args=parser.parse_args()
+ if args.reset_link:
+  with db() as c:body,status=account.admin_link(c,args.reset_link)
+  if status!=200:raise SystemExit(body['error'])
+  print(f"账号：{body['username']}\n重设链接（{body['hours']} 小时内有效，只能用一次；当面或私信发给本人，不要发到群里）：\n{body['link']}")
+ elif args.create_admin:
   name=input('管理员用户名: ').strip();p=getpass.getpass('密码（至少10位）: ')
   if not 3<=len(name)<=40 or not 10<=len(p)<=200:raise SystemExit('用户名或密码长度不符合要求')
-  with db() as c:c.execute('INSERT INTO users(username,password,admin) VALUES(?,?,1)',(name,password(p)))
+  with db() as c:c.execute('INSERT INTO users(username,password,admin,created) VALUES(?,?,1,?)',(name,password(p),time.time()))
   print('管理员已创建')
  else:
   import ai_jobs
   with db() as c:ai_jobs.recover_interrupted(c)
   __import__('flow_admin').start()
   def remind_loop():
-   # Daily vocabulary reminder emails, at each learner's chosen hour (Asia/Shanghai).
+   # Daily vocabulary reminder emails, at each learner's chosen hour (Asia/Shanghai), and the Sunday progress mail.
    while True:
     try:
      with db() as c:
+      __import__('progress_service').send_weekly(c)  # Sunday evening, before the daily reminder: it says the words due too
       __import__('vocab_service').send_reminders(c)
-      __import__('skills_service').send_weekly(c)
     except Exception as exc:print('reminders failed:',type(exc).__name__,flush=True)
     time.sleep(300)
   threading.Thread(target=remind_loop,daemon=True).start()

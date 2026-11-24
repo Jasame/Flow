@@ -462,10 +462,11 @@ def mix_nodes(c, uid, now=None):
     return watch + [n for n in due(c, uid, now) if n not in watch]
 
 
-def mix(c, uid, pair=None, topic=None, level=None, seed=None):
+def mix(c, uid, pair=None, topic=None, level=None, seed=None, exam=None):
     """An interleaved round of grammar questions across several points (questions on different points mixed together
     make the learner decide which rule applies, which is what using a language asks for).
-    pair 'a,b': a confusable pair, three questions each; topic: one question on each point of a topic;
+    pair 'a,b': a confusable pair, three questions each; topic: one question on each point of a topic; exam (考点语法,
+    考试冲刺): six of that exam's points, flagged and due ones first (exam_sprint.grammar_nodes);
     otherwise today's review (flagged and due points), or, with none, practice on the learner's next points."""
     import next_service as nx, graph_links as GL
     rnd = random.Random(seed)
@@ -476,6 +477,12 @@ def mix(c, uid, pair=None, topic=None, level=None, seed=None):
         if len(nodes) != 2:
             return {'error': '没有这组语法点'}, 404
         kind, per, note = 'pair', 3, GL.pair_note(*nodes)
+    elif exam:
+        nodes = __import__('exam_sprint').grammar_nodes(c, uid, exam)[:6]
+        if not nodes:
+            return {'error': '没有这个考试'}, 404
+        kind, per = 'exam', 2
+        rnd = random.Random(seed if seed is not None else f'{uid}|{nx._day()}|{exam}')
     elif topic:
         nodes = [n for n, m in meta.items() if m['topic'] == topic]
         if not nodes:
@@ -646,6 +653,8 @@ def placement_score(c, uid, data, now=None):
             ev.record(c, uid, g['node'], f"next-place:{g['id']}:{day}", 'choice', str(g['id']), 'placement', False, 0, 'rule', {'via': 'placement'}, now)
             schedule(c, uid, g['node'], False, now)
         c.commit()
+        ar = __import__('ability_radar')  # the starting check is the radar's grammar assessment
+        ar.record(c, uid, 'grammar', ar.ladder_index({b: scores[b] / counts[b] for b in scores}), {'scores': scores})
     title = lambda n: meta.get(n, {}).get('title', n)
     return {'done': True, 'level': level, 'scores': [{'band': b, 'right': scores[b], 'of': sum(1 for g in graded if g['band'] == b)} for b in BANDS if b in scores],
             'gaps': [{'id': g['node'], 'title': title(g['node']), 'band': g['band']} for g in gaps],

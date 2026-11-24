@@ -1,0 +1,54 @@
+/* ---------- r18: the practice hub and the guide ---------- */
+.pgroup{margin-top:18px}
+.pgroup-h{font-size:14px;font-weight:600;color:var(--muted);letter-spacing:.04em}
+.ptiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ptile{display:grid;gap:4px;align-content:start;text-decoration:none;color:inherit;padding:14px;min-height:88px;transition:transform .18s var(--ease-spring),background .18s}
+.ptile:hover{background:var(--sunk)}
+.ptile:active{transform:scale(.97)}
+.ptile b{font-size:15px;display:flex;align-items:center;gap:6px}
+.pbadge{font-style:normal;font-size:11px;font-weight:700;line-height:1;padding:3px 6px;border-radius:999px;background:var(--amber-fill);color:var(--on-amber)}
+.psuggest{display:grid;gap:6px;text-decoration:none;color:inherit;padding:16px;background:var(--green-soft);border:0}
+.psuggest .tiny{color:var(--green-ink);font-weight:600;letter-spacing:.04em}
+.psuggest b{font-size:17px}
+.psuggest .btn{justify-self:start;margin-top:4px}
+.guide-cta{margin-top:20px}
+@media (min-width:760px){.ptiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* guide */
+.guide-toc{display:grid;gap:2px}
+.guide-toc a{display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;align-items:center;text-decoration:none;color:inherit;padding:10px 8px;border-radius:10px;min-height:44px}
+.guide-toc a:hover{background:var(--sunk)}
+.guide-toc .n{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--sunk);color:var(--muted)}
+.guide-search{width:100%}
+.guide-body{font-size:15px;line-height:1.75}
+.guide-body h2{font-size:20px;margin:28px 0 8px;scroll-margin-top:80px}
+.guide-body h3{font-size:16px;margin:20px 0 6px}
+.guide-body ol,.guide-body ul{padding-left:1.4em;margin:6px 0}
+.guide-body li{margin:4px 0}
+.guide-body .tip{padding:10px 12px;border-radius:12px;background:var(--amber-soft);margin:10px 0}
+.guide-body .shot{margin:12px auto;max-width:320px}
+.guide-body .shot img{width:100%;height:auto;border-radius:16px;border:1px solid var(--line);display:block;background:var(--sunk)}
+.guide-body .shot figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:6px}
+.guide-body .go{display:inline-flex;min-height:36px;align-items:center}
+.guide-body kbd{font-family:inherit;font-size:13px;padding:1px 6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;background:var(--paper)}
+.guide-hit{background:var(--mark)}
+.guide-body pre.cmd{margin:8px 0;padding:10px 12px;border-radius:10px;background:var(--sunk);overflow-x:auto;font-size:13px;line-height:1.5}
+.ab .up{color:var(--green-ink);font-weight:700}
+.guide-body table{width:100%;border-collapse:collapse;font-size:14px;margin:10px 0}
+.guide-body th,.guide-body td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
+.guide-body th{font-weight:600;color:var(--muted);font-size:13px}
+.guide-body td:first-child{white-space:nowrap;font-weight:600}
+.guide-body section{padding-top:4px;scroll-margin-top:72px}  /* clear of the top bar after a jump to a chapter */
+.guide-body .shot img{aspect-ratio:390/760;object-fit:cover;object-position:top}
+/* ---------- r19: sign in, sign up, account and security ---------- */
+.pw-wrap{position:relative;display:block}
+.pw-wrap input{width:100%;padding-right:52px}
+.pw-eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:44px;height:44px;display:grid;place-items:center;border:0;background:none;color:var(--muted);border-radius:10px;cursor:pointer}
+.pw-eye svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.pw-eye[aria-pressed=true]{color:var(--green-ink)}
+.field .hint,.auth .hint{display:block;font-size:12px;font-weight:400;color:var(--muted);line-height:1.5}
+.code-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
+.code-row .btn{min-height:44px;white-space:nowrap}
+.auth-links{display:flex;justify-content:flex-end}
+.auth-links .link{min-height:40px;padding:0 4px;background:none;border:0;cursor:pointer}
+.field input[aria-invalid=true]{border-color:var(--red);box-shadow:0 0 0 3px var(--red-soft)}
+.acct-actions{flex-wrap:wrap;gap:8px}

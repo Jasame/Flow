@@ -1,5 +1,25 @@
   /* ---------- sheet ---------- */
   let sheetReturn = null;
+  // Screen readers read the page in Chinese (lang="zh-CN"); English on it (a text, a question, a word, an example)
+  // gets lang="en" as it appears, so it is read with an English voice. An element is marked when all of its text is
+  // English; one that mixes both is left as it is (VoiceOver and TalkBack still switch for the Latin letters).
+  const HAN = /[\u3400-\u9fff\uf900-\ufaff]/, LATIN2 = /[A-Za-z]{2}/;  // Chinese characters (not the full-width punctuation)
+  function markEnglish(root) {
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), seen = new Set(); let n;
+    while ((n = w.nextNode())) {
+      const el = n.parentElement;
+      if (!el || seen.has(el) || !LATIN2.test(n.nodeValue)) continue;
+      seen.add(el);
+      const own = el.closest('[lang]');
+      if (own && own !== document.documentElement) continue;  // it says its language already
+      if (!HAN.test(el.textContent) && !/^(SCRIPT|STYLE|TEXTAREA|OPTION)$/.test(el.tagName)) el.lang = 'en';
+    }
+  }
+  const EN_NEW = new Set(); let enFrame = 0;
+  new MutationObserver(ms => {
+    for (const m of ms) for (const x of m.addedNodes) { const e = x.nodeType === 1 ? x : x.parentElement; if (e) EN_NEW.add(e); }
+    if (EN_NEW.size && !enFrame) enFrame = requestAnimationFrame(() => { enFrame = 0; EN_NEW.forEach(e => { if (e.isConnected) markEnglish(e); }); EN_NEW.clear(); });
+  }).observe(document.body, { childList: true, subtree: true });
   function openSheet(html, onMount) {
     if (sheetEl.hidden) sheetReturn = document.activeElement;
     sheetCard.innerHTML = '<div class="grab" aria-hidden="true"></div>' + html; sheetEl.hidden = false; document.body.classList.add('sheet-open');
@@ -58,55 +78,179 @@
   // The home data carries the session too (who is signed in, the CSRF token): one request, not two in a row,
   // which on a line from mainland China to the server is about a second saved. Signed in, the server ignores the
   // guest's level and themes in the query, so asking before S.user is known gives the same answer.
+  // The home data: who is signed in, today's plan and counts. Kept on the phone for the next visit (05-data.js).
+  // Says whether anything changed since the copy the page was drawn from.
   async function refreshHome() {
+    const before = S.home ? JSON.stringify(S.home) : '';
     S.home = await api('/api/next/home' + guestQuery(true));
     if (S.home.session) { S.user = S.home.session.user; S.csrf = S.user ? S.user.csrf : ''; }
+    S.homeFromSnap = false; DATA.ok();
+    const changed = before !== JSON.stringify(S.home);
+    if (changed) snapHome();
     if (S.home.profile && S.home.profile.voice) { S.voice = S.home.profile.voice; save('flow-next-voice', S.voice); }
-    const due = S.home.stats ? S.home.stats.due + S.home.stats.new : 0;
+    setDueBadge();
+    return changed;
+  }
+  function setDueBadge() {
+    const due = S.home && S.home.stats ? S.home.stats.due + S.home.stats.new : 0;
     const b = document.getElementById('dueBadge'); b.hidden = !due; b.textContent = due > 99 ? '99+' : due;
   }
+  // The page drawn again with fresher data, without the loading skeleton or the entrance animation, and only when it
+  // would not take anything from the learner (a sheet open, typing in a field, another page by now).
+  function redrawQuietly(drawnFor) {
+    if (location.hash !== drawnFor || !sheetEl.hidden || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName))) return;
+    S.homeFresh = true; route(true, true);
+  }
   function needLogin(reason) { openLogin(reason); return false; }
-  function openLogin(reason, tab) {
-    tab = tab || 'pw';
-    const tabs = [['pw', '密码登录'], ['code', '验证码登录'], ['reg', '注册']];
-    openSheet(`<div class="stack">
-      <div><h2 class="h2" id="sheetTitle">登录语流</h2>${reason ? `<p class="muted small">${esc(reason)}</p>` : ''}</div>
-      <div class="seg" role="tablist">${tabs.map(([k, l]) => `<button role="tab" data-tab="${k}" aria-selected="${k === tab}">${l}</button>`).join('')}</div>
-      <form id="authForm" class="stack" novalidate>${authFields(tab)}</form>
+  /* ---------- sign in, sign up, a forgotten password ---------- */
+  // With mail configured (production), sign-up, code login and a forgotten password use an emailed 6-digit code;
+  // without it only username + password is offered, as the server then accepts.
+  async function mailOn() {
+    if (S.home && S.home.session && 'mail' in S.home.session) return !!S.home.session.mail;  // carried by the home data
+    if (S.mail == null) { try { S.mail = !!(await api('/api/health')).mail; } catch (e) { return true; } }
+    return S.mail;
+  }
+  // An account without an email cannot reset a forgotten password by itself: say so on 今日 until it binds one
+  // (or the learner says 以后再说, which waits 14 days).
+  function mailNudgeHTML() {
+    const u = S.user, mail = S.home && S.home.session && S.home.session.mail;
+    if (!u || u.email_bound !== false || !mail || Date.now() - (load('flow-next-mail-nudge') || 0) < 14 * 864e5) return '';
+    return `<div class="card sunk section mail-nudge stack-s" id="mailNudge"><b>还没有绑定邮箱</b>
+      <span class="small">忘记密码时，绑定了邮箱就能自己用验证码找回；没绑定的话只能请老师或管理员帮忙重设。</span>
+      <div class="row"><button class="btn small primary" id="mnBind" type="button" data-tap="notice-mail">绑定邮箱</button><button class="btn small ghost" id="mnLater" type="button">以后再说</button></div></div>`;
+  }
+  // A few entry points are counted, how many taps a day and nothing about who, so the operator console can compare
+  // the weeks before and after a release (flow_admin.TAP_LABEL lists them). Best effort: a lost count does not matter.
+  document.addEventListener('click', e => {
+    const t = e.target.closest && e.target.closest('[data-tap]'); if (!t) return;
+    const fold = t.tagName === 'SUMMARY' && t.parentElement; if (fold && fold.open) return;
+    try { navigator.sendBeacon('/api/next/tap', JSON.stringify({ k: t.dataset.tap })); } catch (x) { /* not counted */ }
+  }, true);
+  // In WeChat's built-in browser: a slim bar, under the top bar, on opening the page in the phone's browser, where every
+  // sound plays and the app can be put on the home screen. Closed, it stays away for a week.
+  function wechatBar() {
+    if (!WECHAT) return;
+    const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent), menu = ios ? '在默认浏览器中打开' : '在浏览器打开';
+    // The first visit in WeChat: an arrow to the ··· menu, the two steps, and a way to copy the address instead.
+    if (!load('flow-wx-guide')) {
+      save('flow-wx-guide', Date.now());
+      const g = document.createElement('div'); g.className = 'wx-guide'; g.setAttribute('role', 'dialog'); g.setAttribute('aria-label', '在浏览器里打开');
+      g.innerHTML = `<svg class="wx-arrow" viewBox="0 0 120 120" aria-hidden="true"><path d="M20 110 C 40 60, 70 40, 104 16" /><path d="M86 14 L106 14 L102 34" /></svg>
+        <div class="wx-steps"><b>在浏览器里打开，用起来更顺</b>
+          <ol><li>点右上角的「···」</li><li>选「${menu}」</li></ol>
+          <span class="small">在浏览器里可以听全部录音、用浏览器朗读，还能把语流放到手机桌面。</span>
+          <div class="row"><button class="btn" type="button" id="wxCopy">复制网址</button><button class="btn primary" type="button" id="wxStay">先在微信里看看</button></div></div>`;
+      document.body.appendChild(g);
+      g.querySelector('#wxStay').onclick = () => g.remove();
+      g.querySelector('#wxCopy').onclick = async () => {
+        const url = location.origin + '/';
+        try { await navigator.clipboard.writeText(url); toast('网址已复制，到浏览器里粘贴打开'); } catch (e) { toast('长按复制：' + url); }
+      };
+    }
+    if (Date.now() - (load('flow-wx-bar') || 0) < 7 * 864e5) return;
+    const el = document.createElement('div'); el.className = 'wx-bar'; el.setAttribute('role', 'note');
+    el.innerHTML = `<span>微信里部分声音和安装功能用不了。点右上角「···」，选「${menu}」，可以听全部音频，还能把语流装到桌面。</span>
+      <button type="button" class="wx-x" aria-label="关闭提示">×</button>`;
+    el.querySelector('.wx-x').onclick = () => { save('flow-wx-bar', Date.now()); el.remove(); };
+    document.getElementById('bar').after(el);
+  }
+  function bindMailNudge(after) {
+    const b = document.getElementById('mnBind'), l = document.getElementById('mnLater');
+    if (b) b.onclick = () => bindEmailSheet('');
+    if (l) l.onclick = () => { save('flow-next-mail-nudge', Date.now()); if (after) after(); else { const n = document.getElementById('mailNudge'); if (n) n.remove(); } };
+  }
+  const USERNAME_OK = /^[^\s@<>"'\\/]{2,40}$/;
+  function pwField(label, name, auto, hint) {
+    return `<label class="field">${label}<span class="pw-wrap"><input name="${name}" type="password" autocomplete="${auto}" ${auto === 'new-password' ? 'minlength="10"' : ''} required>
+      <button class="pw-eye" type="button" aria-label="显示密码" aria-pressed="false" data-eye>${ICON.eye}</button></span>${hint ? `<span class="hint">${hint}</span>` : ''}</label>`;
+  }
+  function bindEyes(card) {
+    card.querySelectorAll('[data-eye]').forEach(b => b.onclick = () => {
+      const i = b.previousElementSibling, show = i.type === 'password';
+      i.type = show ? 'text' : 'password'; b.setAttribute('aria-pressed', String(show)); b.setAttribute('aria-label', show ? '隐藏密码' : '显示密码'); i.focus();
+    });
+  }
+  function fieldError(form, err, x) {  // the message under the form, and the field it is about marked and focused
+    err.textContent = x.message;
+    form.querySelectorAll('[aria-invalid]').forEach(i => i.removeAttribute('aria-invalid'));
+    const f = x.field && form.elements[x.field]; if (f) { f.setAttribute('aria-invalid', 'true'); f.focus(); }
+  }
+  async function openLogin(reason, tab) {
+    const mail = await mailOn();
+    tab = tab || 'pw'; if (!mail && (tab === 'code' || tab === 'reset')) tab = 'pw';
+    const tabs = mail ? [['pw', '密码登录'], ['code', '验证码登录'], ['reg', '注册']] : [['pw', '密码登录'], ['reg', '注册']];
+    const reset = tab === 'reset';
+    openSheet(`<div class="stack auth">
+      <div><h2 class="h2" id="sheetTitle">${reset ? '找回密码' : tab === 'reg' ? '注册语流' : '登录语流'}</h2>${reason ? `<p class="muted small">${esc(reason)}</p>` : ''}</div>
+      ${reset ? '<p class="small">填绑定的邮箱，收到验证码后设一个新密码。设好就直接登录，其他手机和电脑上的登录会退出。</p>'
+        : `<div class="seg" role="tablist" aria-label="登录方式">${tabs.map(([k, l]) => `<button role="tab" data-tab="${k}" aria-selected="${k === tab}">${l}</button>`).join('')}</div>`}
+      <form id="authForm" class="stack" novalidate>${authFields(tab, mail)}</form>
       <p class="err" id="authErr" role="alert"></p>
-      <button class="btn ghost" data-close type="button">先不登录</button></div>`, card => {
+      ${reset ? '<button class="btn ghost" type="button" data-tab="pw">返回登录</button>' : '<button class="btn ghost" data-close type="button">先不登录</button>'}</div>`, card => {
       card.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => openLogin(reason, b.dataset.tab));
-      const form = card.querySelector('#authForm');
+      bindEyes(card);
+      const form = card.querySelector('#authForm'), err = card.querySelector('#authErr');
       const sendBtn = card.querySelector('[data-send]');
       if (sendBtn) sendBtn.onclick = async () => {
-        const email = form.email.value.trim(); const err = card.querySelector('#authErr'); err.textContent = '';
-        sendBtn.disabled = true;
-        try { const r = await api('/api/auth/code', { email, purpose: tab === 'reg' ? 'register' : 'login' }); toast(r.message || '验证码已发送，请查看邮箱'); countdown(sendBtn); }
-        catch (e) { err.textContent = e.message; sendBtn.disabled = false; }
+        err.textContent = ''; sendBtn.disabled = true;
+        try {
+          const r = await api('/api/auth/code', { email: form.email.value.trim(), purpose: { reg: 'register', code: 'login', reset: 'reset' }[tab] });
+          toast(r.message || '验证码已发送，请查看邮箱'); countdown(sendBtn); form.code.focus();
+        } catch (x) { fieldError(form, err, { message: x.message, field: x.field || 'email' }); sendBtn.disabled = false; }
       };
       form.onsubmit = async e => {
-        e.preventDefault(); const err = card.querySelector('#authErr'); err.textContent = '';
+        e.preventDefault(); err.textContent = '';
+        const v = n => (form.elements[n] ? form.elements[n].value : '');
+        // the checks the server would make, said at once and without a round trip
+        if (tab === 'reg' && !USERNAME_OK.test(v('username').trim())) return fieldError(form, err, { message: '用户名需 2–40 个字符，不能有空格和 @', field: 'username' });
+        if ((tab === 'reg' || tab === 'reset') && v('password').length < 10) return fieldError(form, err, { message: '密码至少 10 位', field: 'password' });
+        if ((tab === 'code' || tab === 'reset' || (tab === 'reg' && mail)) && !/^\d{6}$/.test(v('code').trim())) return fieldError(form, err, { message: '请输入邮件里的 6 位验证码', field: 'code' });
         const btn = form.querySelector('[type=submit]'); btn.disabled = true;
         try {
-          if (tab === 'pw') await api('/api/login', { username: form.username.value.trim(), password: form.password.value });
-          else if (tab === 'code') await api('/api/login', { method: 'code', email: form.email.value.trim(), code: form.code.value.trim() });
-          else await api('/api/register', { email: form.email.value.trim(), code: form.code.value.trim(), username: form.username.value.trim(), password: form.password.value });
-          await afterLogin(); closeSheet(); toast('已登录'); route(true);
-        } catch (x) { err.textContent = x.message; btn.disabled = false; }
+          let r;
+          if (tab === 'pw') r = await api('/api/login', { username: v('username').trim(), password: v('password') });
+          else if (tab === 'code') r = await api('/api/login', { method: 'code', email: v('email').trim(), code: v('code').trim() });
+          else if (reset) r = await api('/api/auth/reset', { email: v('email').trim(), code: v('code').trim(), password: v('password') });
+          else r = await api('/api/register', { email: v('email').trim(), code: v('code').trim(), username: v('username').trim(), password: v('password') });
+          await afterLogin(); closeSheet();
+          const name = (S.user && S.user.username) || r.username || '';
+          toast(reset ? '密码已重设，已经登录' : tab === 'reg' ? `注册成功，欢迎你${name ? '，' + name : ''}` : `欢迎回来${name ? '，' + name : ''}`);
+          route(true);
+        } catch (x) { fieldError(form, err, x); btn.disabled = false; }
       };
     });
   }
-  function authFields(tab) {
-    if (tab === 'pw') return `<label class="field">用户名或邮箱<input name="username" type="text" autocomplete="username" required></label>
-      <label class="field">密码<input name="password" type="password" autocomplete="current-password" required></label>
+  function authFields(tab, mail) {
+    const email = '<label class="field">邮箱<input name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" required></label>';
+    const code = `<div class="code-row"><label class="field">验证码<input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="\\d{6}" required></label>
+      <button class="btn small" type="button" data-send>发送验证码</button></div><span class="hint">验证码 10 分钟内有效。收不到就看看垃圾邮件，60 秒后可以重发。</span>`;
+    if (tab === 'pw') return `<label class="field">用户名或邮箱<input name="username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" required></label>
+      ${pwField('密码', 'password', 'current-password')}
+      <div class="auth-links">${mail ? '<button class="link small" type="button" data-tab="reset">忘记密码？</button>' : '<span class="tiny muted">忘记密码：请联系老师或管理员重设。</span>'}</div>
       <button class="btn primary block" type="submit">登录</button>`;
-    const codeRow = `<label class="field">邮箱<input name="email" type="email" autocomplete="email" inputmode="email" required></label>
-      <div class="row"><label class="field grow">验证码<input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required></label></div>
-      <button class="btn small" type="button" data-send>发送验证码</button>`;
-    if (tab === 'code') return codeRow + '<button class="btn primary block" type="submit">登录</button>';
-    return codeRow + `<label class="field">用户名（3–40 个字符）<input name="username" type="text" autocomplete="username" required></label>
-      <label class="field">密码（至少 10 位）<input name="password" type="password" autocomplete="new-password" minlength="10" required></label>
+    if (tab === 'code') return email + code + '<button class="btn primary block" type="submit">登录</button>';
+    if (tab === 'reset') return email + code + pwField('新密码', 'password', 'new-password', '至少 10 位，最好是一句只有你知道的话') + '<button class="btn primary block" type="submit">设置新密码并登录</button>';
+    return (mail ? email + code : '') + `<label class="field">用户名<input name="username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" maxlength="40" required>
+        <span class="hint">2–40 个字符，可以用中文，不能有空格和 @。登录时用户名和邮箱都可以用。</span></label>
+      ${pwField('密码', 'password', 'new-password', '至少 10 位，最好是一句只有你知道的话')}
+      ${mail ? '' : '<span class="hint">注册后可以在「我的」里绑定邮箱，忘记密码时用它找回。</span>'}
       <button class="btn primary block" type="submit">注册并登录</button>`;
+  }
+  // An older password-reset email links to /#reset=<token>: set the new password here, then sign in with it.
+  function resetByLink(token) {
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">设置新密码</h2><p class="small">链接 30 分钟内有效。设好以后，用新密码登录；其他设备上的登录会退出。</p>
+      <form id="rlForm" class="stack" novalidate>${pwField('新密码', 'password', 'new-password', '至少 10 位')}<button class="btn primary block" type="submit">保存新密码</button></form>
+      <p class="err" id="rlErr" role="alert"></p><button class="btn ghost" data-close type="button">取消</button></div>`, card => {
+      bindEyes(card);
+      const form = card.querySelector('#rlForm'), err = card.querySelector('#rlErr');
+      form.onsubmit = async e => {
+        e.preventDefault(); err.textContent = '';
+        if (form.password.value.length < 10) return fieldError(form, err, { message: '密码至少 10 位', field: 'password' });
+        const b = form.querySelector('[type=submit]'); b.disabled = true;
+        try { await api('/api/recovery/reset', { token, password: form.password.value }); toast('密码已重设'); openLogin('密码已重设，请用新密码登录。', 'pw'); }
+        catch (x) { fieldError(form, err, x); b.disabled = false; }
+      };
+    });
   }
   function countdown(btn) { let n = 60; btn.textContent = `${n} 秒后可重发`; const t = setInterval(() => { n--; if (n <= 0) { clearInterval(t); btn.disabled = false; btn.textContent = '重新发送'; } else btn.textContent = `${n} 秒后可重发`; }, 1000); }
   async function afterLogin() {
@@ -116,47 +260,81 @@
     if (gt && gt.answers) { try { await api('/api/next/vocab/test', { answers: gt.answers }); save('flow-next-guest-test', null); } catch (e) { /* try next time */ } }
   }
 
+  /* ---------- 字号和行距 (81-me.js): set before anything is drawn ---------- */
+  const TEXT = Object.assign({ size: 'm', lh: 'n' }, load('flow-next-text') || {});
+  function applyText() { document.documentElement.dataset.size = TEXT.size; document.documentElement.dataset.lh = TEXT.lh; }
+  applyText();
+
+  /* ---------- the tab bar's place ---------- */
+  // On phones the tabs are fixed to the bottom, outside the sticky top bar: iOS Safari moves a fixed element along
+  // with a sticky ancestor, and inside the bar the tabs slid up the screen on a long page. On wide screens they are a
+  // row of links in the top bar.
+  const WIDE = matchMedia('(min-width:760px)');
+  function placeTabs() {
+    const t = document.querySelector('.tabs'), bar = document.getElementById('bar');
+    if (!t || !bar) return;
+    if (WIDE.matches && t.parentElement !== bar) bar.appendChild(t);
+    else if (!WIDE.matches && t.parentElement === bar) bar.after(t);
+  }
+  placeTabs();
+  if (WIDE.addEventListener) WIDE.addEventListener('change', placeTabs); else if (WIDE.addListener) WIDE.addListener(placeTabs);
+
   /* ---------- router ---------- */
   function setNav(name) { document.querySelectorAll('[data-nav]').forEach(a => a.dataset.nav === name ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')); }
   function parts() { return location.hash.replace(/^#\/?/, '').split('/'); }
-  async function route(keepScroll) {
-    TTS.stop(); NAR.stop(); CLIP.stop(); MIC.stop(); MINI.hide(); hideSelbar(); view.ontouchstart = view.ontouchmove = view.ontouchend = null; document.body.classList.remove('reviewing'); bar.classList.remove('hide'); document.onselectionchange = null; document.onkeydown = null;
+  async function route(keepScroll, quiet) {
+    if (/^#reset=/.test(location.hash)) {  // an older password-reset email
+      const token = decodeURIComponent(location.hash.slice(7)); history.replaceState(null, '', location.pathname + location.search + '#/');
+      setTimeout(() => resetByLink(token), 0);
+    }
+    TTS.stop(); NAR.stop(); CLIP.stop(); MIC.stop(); MINI.hide(); hideSelbar(); swipeOff(); document.body.classList.remove('reviewing'); bar.classList.remove('hide'); document.onselectionchange = null; document.onkeydown = null;
     const [name, a, b] = parts();
+    if (name === 'about') { location.replace('/about'); return; }  // 认识语流 is its own page (the guide links here)
     const last = S.lastRoute.split('/');
     const sameMaterial = name === 'm' && last[0] === 'm' && last[1] === a && !!view.querySelector('#pane');
-    S.lastRoute = parts().join('/');
-    if (!sameMaterial) view.innerHTML = skeleton();
+    S.prevRoute = S.lastRoute; S.lastRoute = parts().join('/');  // 问题反馈 says which page it came from
+    if (!sameMaterial && !quiet) view.innerHTML = skeleton();
     let fresh = S.homeFresh; S.homeFresh = false;  // home data fetched just before this page: today() need not ask again
     try {
       if (!S.home) { await refreshHome(); fresh = true; }
+      // 认识语流's 「注册账号」 (/#/join): the first page with the sign-up sheet open over it; signed in, just the first page.
+      if (name === 'join') { location.replace('#/'); if (!S.user) setTimeout(() => openLogin('', 'reg'), 0); return; }
       if (name === 'welcome') { setNav(''); await welcome(a === 'edit'); }
       // Only the personalised home needs the level questions first; everything else works for a new guest too.
-      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix', 'easy', 'words', 'speak', 'growth'].includes(name)) { location.replace('#/welcome'); return; }
-      else if (name === 'placement') { setNav('graph'); await placementView(); }
-      else if (name === 'exam') { setNav('me'); await examView(a); }
+      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix', 'easy', 'words', 'speak', 'growth', 'radar', 'practice', 'guide', 'feedback', 'weekly-off'].includes(name)) { location.replace('#/welcome'); return; }
+      else if (name === 'placement') { setNav('practice'); await placementView(); }
+      else if (name === 'exam') { setNav('practice'); await (b ? examTypeView(a, decodeURIComponent(b)) : examView(a)); }
       else if (name === 'series') { setNav('today'); await seriesView(decodeURIComponent(a || '')); }
-      else if (name === 'easy') { setNav('today'); await (a ? easyRead(decodeURIComponent(a)) : easyView()); }
+      else if (name === 'easy') { setNav('practice'); await (a ? easyRead(decodeURIComponent(a)) : easyView()); }
       else if (name === 'words' && a === 'confuse') { setNav('cards'); await (b ? confuseRound(decodeURIComponent(b)) : confuseView()); }
-      else if (name === 'speak') { setNav('me'); await (a ? speakScene(decodeURIComponent(a)) : speakView()); }
+      else if (name === 'speak') { setNav('practice'); await (a === 'ielts' ? (b ? ieltsPractice(decodeURIComponent(b)) : ieltsView()) : a ? speakScene(decodeURIComponent(a)) : speakView()); }
+      else if (name === 'radar') { setNav('practice'); await (a === 'goals' ? radarGoals() : a === 'test' && (b === 'reading' || b === 'listening') ? assessComprehension(b) : a === 'test' && (b === 'speaking' || b === 'writing') ? assessJudged(b) : a === 'test' ? radarTests() : radarView()); }
       else if (name === 'growth') { setNav('me'); await growthView(a ? decodeURIComponent(a) : ''); }
-      else if (name === 'mix') { setNav('graph'); await mixView(a === 'pair' || a === 'topic' ? a : 'due', b ? decodeURIComponent(b) : ''); }
+      else if (name === 'mix') { setNav('practice'); await mixView(a === 'pair' || a === 'topic' || a === 'exam' ? a : 'due', b ? decodeURIComponent(b) : ''); }
       else if (name === 'm' && a) { setNav('today'); await study(decodeURIComponent(a), b || 'listen', sameMaterial); }
-      else if (name === 'graph') { setNav('graph'); await (a ? nodeView(decodeURIComponent(a)) : graphView()); }
+      else if (name === 'graph') { setNav('practice'); await (a ? nodeView(decodeURIComponent(a)) : graphView()); }
       else if (name === 'cards') { setNav('cards'); await vocabView('', 1, a || ''); }
-      else if (name === 'import') { setNav('today'); await importView(); }
-      else if (name === 'sounds') { setNav('me'); await soundsView(a ? decodeURIComponent(a) : ''); }
+      else if (name === 'import') { setNav('practice'); await importView(); }
+      else if (name === 'sounds') { setNav('practice'); await soundsView(a ? decodeURIComponent(a) : ''); }
       else if (name === 'report') { setNav('me'); await reportView(); }
+      else if (name === 'weekly-off') { setNav('me'); await weeklyOffView(decodeURIComponent(a || '')); }  // the link in the Sunday mail
       else if (name === 'vocab') { setNav('cards'); await (a === 'plan' ? planView() : a === 'test' ? vocabTest() : vocabView()); }
       else if (name === 'review') { setNav('cards'); await reviewView(); }
-      else if (name === 'library') { setNav('today'); await libraryView(); }
+      else if (name === 'library') { setNav('practice'); await libraryView(); }
+      else if (name === 'practice') { setNav('practice'); await practiceView(); }
+      else if (name === 'guide') { setNav('practice'); await guideView(a ? decodeURIComponent(a) : ''); }
       else if (name === 'me') { setNav('me'); await meView(); }
+      else if (name === 'feedback') { setNav('me'); await feedbackView(); }
       else { setNav('today'); await today(fresh); }
-      if (!sameMaterial && name !== 'welcome') enter(view);
-      if (!sameMaterial) { const h = view.querySelector('h1'); announce(h ? h.textContent : document.title); }
+      if (!sameMaterial && name !== 'welcome' && !quiet) enter(view);
+      if (!sameMaterial && !quiet) { const h = view.querySelector('h1'); announce(h ? h.textContent : document.title); }
     } catch (e) {
-      view.innerHTML = `<div class="empty"><div class="big">⚠︎</div><p>${esc(e.message)}</p><button class="btn" id="retry">重试</button></div>`;
+      const kept = e.network ? OFF.list() : [];  // offline: what can still be studied
+      view.innerHTML = `<div class="empty"><div class="big">⚠︎</div><p>${esc(e.message)}</p><button class="btn" id="retry">重试</button>
+        ${kept.length ? `<p class="small">没网时，这些已存到手机的材料还能学：</p><div class="mlist">${kept.map(k => mrow(k, null, '', '')).join('')}</div>` : ''}
+        <p class="small"><a class="link" href="#/feedback">反馈这个问题</a></p></div>`;
       document.getElementById('retry').onclick = () => route();
-    } finally { if (!keepScroll && !sameMaterial) view.focus({ preventScroll: true }); }
+    } finally { if (!keepScroll && !sameMaterial && !quiet) view.focus({ preventScroll: true }); }
   }
   window.addEventListener('hashchange', () => {
     const [name, a] = parts(), last = S.lastRoute.split('/');

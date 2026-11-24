@@ -70,6 +70,11 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
  created REAL NOT NULL, PRIMARY KEY(pack, sentence, level));''')
     if 'voice' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:
         c.execute("ALTER TABLE next_profiles ADD COLUMN voice TEXT NOT NULL DEFAULT 'us-f'")
+    if 'weekly_goal' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:
+        c.execute('ALTER TABLE next_profiles ADD COLUMN weekly_goal INTEGER NOT NULL DEFAULT 4')  # 每周目标: days a week
+    if 'exam' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:  # 考试冲刺: the exam (exam_service.EXAMS) and its date
+        c.execute('ALTER TABLE next_profiles ADD COLUMN exam TEXT')
+        c.execute('ALTER TABLE next_profiles ADD COLUMN exam_date TEXT')
     import vocab_service  # word books, daily plan and FSRS state live on top of next_cards
     vocab_service.schema(c)
     __import__('skills_service').schema(c)  # ability profile, mistake book, weekly report
@@ -80,7 +85,10 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
     __import__('graph_links').install(c)  # prerequisite fixes and confusable edges (once)
     __import__('easy_reading').schema(c)  # easy reading: words read, speed, how hard it felt
     __import__('word_links').schema(c)  # practice on words Chinese speakers mix up
+    __import__('ability_radar').schema(c)  # goals, assessments and radar snapshots
     __import__('exam_service').schema(c)  # exam practice papers and results
+    __import__('exam_sprint').schema(c)  # question-type practice results
+    __import__('progress_service').schema(c)  # 这周进步: weekly goals by week, the Sunday mail's switch and link
 
 
 # ---------- helpers ----------
@@ -116,7 +124,7 @@ def ipa(p):
 
 
 def _ec_phonetic(e):
-    p = ipa(e[0])
+    p = ipa(e[0]).replace('^', 'ɡ')  # ECDICT writes the IPA ɡ as ^ in some entries (postgraduate, glandular, fungi)
     return f'[{p}]' if p else ''
 
 
@@ -136,6 +144,8 @@ def dictionary():
 DICT_FIELDS = ('word', 'phonetic', 'meaning', 'rank', 'example', 'ref', 'tags', 'collins')
 DICT_FILE = Path(__file__).resolve().parent / 'corpus_data' / 'dictionary-flow.json'
 DICT_SOURCES = ('yl-reference.json', 'ecdict-flow.json', 'meaning-fixes.json', 'irregular-flow.json')
+# Headwords ECDICT spells wrongly (reservior is tagged 四级; saut is sauté without its accent): built under the right one
+HEADWORD_FIXES = {'reservior': 'reservoir', 'saut': 'saute'}
 
 
 def _load_dictionary():
@@ -153,14 +163,16 @@ def build_dictionary():
     base = Path(__file__).resolve().parent / 'corpus_data'
     data = json.loads((base / 'yl-reference.json').read_text(encoding='utf-8'))
     try:
-        ec = json.loads((base / 'ecdict-flow.json').read_text(encoding='utf-8'))['words']
+        ecdoc = json.loads((base / 'ecdict-flow.json').read_text(encoding='utf-8'))
     except OSError:
-        ec = {}
+        ecdoc = {'words': {}}
+    ec = ecdoc['words']
+    lower = set(ecdoc.get('lower', ()))  # common words the reference list capitalises ("Supreme"): shown as "supreme"
     out = {}
     for t in data['terms']:
         v = t['variants'][0]
         e = ec.get(t['norm'])
-        out[t['norm']] = {'word': t['word'], 'phonetic': ipa(v.get('phonetic', '')) or (_ec_phonetic(e) if e else ''),
+        out[t['norm']] = {'word': t['norm'] if t['norm'] in lower else t['word'], 'phonetic': ipa(v.get('phonetic', '')) or (_ec_phonetic(e) if e else ''),
                           'meaning': (_ec_meaning(e) if e else '') or v.get('meaning', ''), 'rank': t.get('rank') or 99999,
                           'example': (v.get('examples') or '').split('\n')[0][3:].strip() if v.get('examples') else '',
                           'ref': True, 'tags': e[2] if e else [], 'collins': e[3] if e else 0}
@@ -169,13 +181,25 @@ def build_dictionary():
             continue  # skip inflections of words we already have: "cities" should look up "city"
         out[k] = {'word': k, 'phonetic': _ec_phonetic(e), 'meaning': _ec_meaning(e), 'rank': e[6] or e[5] or 30000,
                   'example': '', 'ref': False, 'tags': e[2], 'collins': e[3]}
+    for wrong, right in HEADWORD_FIXES.items():  # ECDICT misspellings: the entry and its exam tags go to the right spelling
+        e = out.pop(wrong, None)
+        if e is None:
+            continue
+        if right in out:
+            out[right]['tags'] = list(dict.fromkeys(list(out[right]['tags']) + list(e['tags'])))
+        else:
+            out[right] = {**e, 'word': right}
     try:  # senses reviewed by hand for common words whose dictionary order misleads (mean: 吝啬的 before 意思是)
-        fixes = json.loads((base / 'meaning-fixes.json').read_text(encoding='utf-8'))['words']
+        fx = json.loads((base / 'meaning-fixes.json').read_text(encoding='utf-8'))
+        fixes, phonetics = fx['words'], fx.get('phonetics') or {}
     except (OSError, ValueError, KeyError):
-        fixes = {}
+        fixes, phonetics = {}, {}
     for k, m in fixes.items():
         if k in out:
             out[k]['meaning'] = m
+    for k, p in phonetics.items():  # transcriptions reviewed by hand: missing in ECDICT (theatre, cosy) or broken there (pouring [por])
+        if k in out:
+            out[k]['phonetic'] = p
     return out
 
 
@@ -250,6 +274,28 @@ def featured(p):
     return p['id'].startswith('v5-')
 
 
+# Where a text comes from, for the line under its title (r20). A corpus file may say more per material: source (who
+# made it), source_url (the original it was adapted from), references (what its facts were checked against, a list of
+# {title, url}) and ai (how AI took part). The production corpus (v5) is written by the Flow editors with AI help under
+# corpus_data/v5/SPEC.md; daily news is AI-rewritten web search; an imported article is the learner's own text.
+V5_AI = 'AI 辅助编写'
+
+
+def origin(p):
+    def links(items, n):
+        return [{'title': str(r.get('title') or r.get('url'))[:120], 'url': r['url']} for r in items or []
+                if isinstance(r, dict) and str(r.get('url', '')).startswith('https://')][:n]
+    if p.get('daily_day'):
+        return {'kind': 'news', 'label': '今日热点（联网检索）', 'ai': 'AI 改写', 'reviewed': False, 'url': '',
+                'references': links((p.get('provenance') or {}).get('sources'), 5)}
+    if p.get('imported'):
+        return {'kind': 'import', 'label': '我导入的文章', 'ai': 'AI 出题' if p.get('questions') else '', 'reviewed': None,
+                'url': p['source_url'] if str(p.get('source_url', '')).startswith('https://') else '', 'references': []}
+    return {'kind': 'original', 'label': p.get('source') or 'Flow 编辑部原创', 'ai': p.get('ai', V5_AI if featured(p) else ''),
+            'reviewed': p.get('reviewed'), 'url': p['source_url'] if str(p.get('source_url', '')).startswith('https://') else '',
+            'references': links(p.get('references'), 8)}
+
+
 def _pack_row(c, uid, pid):
     row = c.execute('SELECT * FROM lab_packs WHERE id=? AND (owner IS NULL OR owner=?)', (pid, uid or -1)).fetchone()
     if not row:
@@ -262,9 +308,10 @@ def _pack_row(c, uid, pid):
 _PACKS = {'key': None, 'at': 0.0, 'rows': []}
 
 
-def _public_packs(c, level=None):
+def _public_packs(c, level=None, with_hidden=False):
     """[(row, pack)] for every public material; parsed once and reused until a pack is added or 60 s pass.
-    Callers treat the packs as read-only."""
+    Callers treat the packs as read-only. A material an operator took off the lists (xmc.hk console, r26) is left out
+    unless with_hidden; it still opens by its address (_pack_row), so history and links keep working."""
     from content_v30 import SUPERSEDED
     key = tuple(c.execute('SELECT COUNT(*), MAX(rowid) FROM lab_packs WHERE owner IS NULL').fetchone())
     if _PACKS['key'] != key or time.time() - _PACKS['at'] > 60:
@@ -274,7 +321,8 @@ def _public_packs(c, level=None):
             if p['id'] not in SUPERSEDED:
                 rows.append(({'id': row['id'], 'origin': row['origin'], 'created': row['created']}, p))
         _PACKS.update(key=key, at=time.time(), rows=rows)
-    return [rp for rp in _PACKS['rows'] if not level or cefr(rp[1]) == level]
+    hidden = () if with_hidden else __import__('console_ops').hidden_packs(c)
+    return [rp for rp in _PACKS['rows'] if (not level or cefr(rp[1]) == level) and rp[0]['id'] not in hidden]
 
 
 _TOKENS = {}
@@ -295,7 +343,8 @@ def profile(c, uid):
     if not r:
         return None
     return {'level': r['level'], 'goal': r['goal'], 'themes': json.loads(r['themes']), 'minutes': r['minutes'],
-            'voice': r['voice'] if r['voice'] in VOICES else 'us-f'}
+            'voice': r['voice'] if r['voice'] in VOICES else 'us-f', 'weekly_goal': r['weekly_goal'] if 'weekly_goal' in r.keys() else 4,
+            'exam': r['exam'] if 'exam' in r.keys() else None, 'exam_date': r['exam_date'] if 'exam_date' in r.keys() else None}
 
 
 def save_profile(c, uid, data):
@@ -326,7 +375,12 @@ def set_voice(c, uid, data):
 
 
 def audio_index():
-    """{material id: [voices]} from audio/index.json, reloaded when the file changes."""
+    """{material id: [voices]} and its version. With R2 in use (media.py), from the release's media manifest, so a
+    material has narration as soon as it is uploaded; otherwise from audio/index.json, reloaded when it changes."""
+    import media
+    listed = media.narration()
+    if listed is not None:
+        return {k: [v for v in vs if v in VOICES] for k, vs in listed.items()}, media.version()
     f = AUDIO_DIR / 'index.json'
     try:
         mtime = f.stat().st_mtime
@@ -345,8 +399,8 @@ def audio_file(voice, pid, ext):
     """Path of a narration file, or None. Names are validated so nothing outside AUDIO_DIR can be served."""
     if voice not in VOICES or ext not in ('m4a', 'mp4', 'json') or not re.fullmatch(r'v5-[a-z0-9]+(?:-[a-z0-9]+)*', pid or ''):
         return None
-    f = AUDIO_DIR / voice / (pid + '.' + ('m4a' if ext == 'mp4' else ext))  # .mp4 is the same file, for edge caching
-    return f if f.is_file() else None
+    name = pid + '.' + ('m4a' if ext == 'mp4' else ext)  # .mp4 is the same file, for edge caching
+    return __import__('media').path(f'{voice}/{name}', AUDIO_DIR / voice / name)  # fetched from R2 when missing here
 
 
 def _done(c, uid):
@@ -523,8 +577,8 @@ def node_answer(c, uid, data):
     if uid:
         day = int(time.time() // 86400)
         __import__('event_service').record(c, uid, q['node'], f"next-node:{q['id']}:{day}", 'choice', str(q['id']), 'question:' + str(q['id']),
-                                           int(correct), 0, 'rule', {'choice': choice, 'from': data.get('from') if data.get('from') in ('review', 'mix') else 'node-page'})
-        if not correct and data.get('from') not in ('review', 'mix'):  # those rounds already reschedule the point
+                                           int(correct), 0, 'rule', {'choice': choice, 'from': data.get('from') if data.get('from') in ('review', 'mix', 'exam') else 'node-page'})
+        if not correct and data.get('from') not in ('review', 'mix', 'exam'):  # those rounds already reschedule the point
             __import__('skills_service').add_mistake(c, uid, 'question', q['prompt'], f"gq:{q['id']}", '', '', 'grammar', node=q['node'],
                                                      extra={'options': options, 'answer': q['answer'], 'evidence': q['explanation'] or ''}, commit=False)
         review = GB.schedule(c, uid, q['node'], correct)
@@ -606,6 +660,8 @@ def home(c, uid, level=None, themes=None):
     saved = _card_norms(c, uid)
     # Ties are broken per day and level, not per account, so signing in does not swap the article a guest was shown.
     seed = lambda p: hashlib.sha256(f"{day}|{level}|{p['id']}".encode()).hexdigest()
+    # New grammar counts only once the learner has some (a new account ranks like the guest it was a minute ago).
+    personal = bool(uid) and any(v.get('status') != 'untouched' for v in states.values())
 
     def score(p):
         s, reasons = 0.0, []
@@ -617,7 +673,7 @@ def home(c, uid, level=None, themes=None):
             st = states.get(n, {}).get('status', 'untouched')
             if st == 'watch':
                 s += 4; reasons.append(f'补一补「{meta_titles.get(n, n)}」')
-            elif st in ('met', 'untouched') and (focus is None or n in focus) and uid:
+            elif st in ('met', 'untouched') and (focus is None or n in focus) and personal:
                 s += 1.2 if st == 'untouched' else 0.8
                 if st == 'untouched' and len(reasons) < 1:
                     reasons.append(f'新知识点「{meta_titles.get(n, n)}」')
@@ -664,10 +720,14 @@ def home(c, uid, level=None, themes=None):
         watch = [n for n, s in states.items() if s['status'] == 'watch']
         g['watch'] = [{'id': n, 'title': meta_titles.get(n, n)} for n in watch[:3]]
         g['due'] = [{'id': n, 'title': meta_titles.get(n, n)} for n in GB.due(c, uid) if n not in watch][:3]
-    out = {'profile': prof, 'level': level, 'level_label': LEVELS[level]['label'], 'today': picks, 'news': news, 'resume': resume,
-           'stats': stats(c, uid) if uid else None, 'graph': g}
+    # 今日好句 (r27, daily_line.py): a public-domain line or a sentence from a featured text, not today's own article
+    line = __import__('daily_line').today(c, uid, level, skip={p['id'] for p in picks[:1]})
+    out = {'profile': prof, 'level': level, 'level_label': LEVELS[level]['label'], 'today': picks, 'news': news, 'resume': resume, 'line': line,
+           'stats': stats(c, uid) if uid else None, 'graph': g,
+           'announce': __import__('console_ops').current_announcement(c)}  # 公告 from the xmc.hk console, at the top of 今日
     if uid and prof:
         import skills_service as sk
+        out['sprint'] = __import__('exam_sprint').brief(c, uid)  # 考试冲刺: the exam and its days left, in the plan's header line
         out['path'] = sk.daily_path(c, uid, out)
         out['suggest'] = sk.suggest_level(c, uid)
     return out
@@ -681,6 +741,8 @@ def stats(c, uid):
         days.add(_day(t))
     for (t,) in c.execute('SELECT created FROM next_reviews WHERE user_id=? AND created>?', (uid, week_start)):
         days.add(_day(t))
+    for (t,) in c.execute('SELECT created FROM next_relisten WHERE user_id=? AND created>?', (uid, week_start)):
+        days.add(_day(t))
     week = [_day(now - i * 86400) for i in range(6, -1, -1)]
     import vocab_service
     vocab_service.introduce(c, uid, now)  # today's new words from the learner's word book, so home shows the real task
@@ -691,7 +753,47 @@ def stats(c, uid):
         'materials_done': c.execute("SELECT COUNT(DISTINCT pack) FROM next_progress WHERE user_id=? AND step='check'", (uid,)).fetchone()[0],
         'reviews_week': c.execute('SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND created>?', (uid, week_start)).fetchone()[0],
         'week': [{'day': d, 'active': d in days} for d in week],
+        'habit': habit(c, uid, ((profile(c, uid) or {}).get('weekly_goal')) or 4, now),
+        'progress': __import__('progress_service').week(c, uid, now),  # 这周进步 at the top of 今日 (r27)
     }
+
+
+def habit(c, uid, goal, now=None):
+    """每周目标: this week's study days (Monday to Sunday, China time) against the learner's goal, the weeks that reached
+    their goal in total (weeks: only counts up, a missed day or week takes none away), how many in a row (streak, kept
+    for older pages) and last week's result for the Monday notice. A day counts when anything was learned
+    (progress_service.study_days: a step of a material, a review, a relisten, easy reading, a practice, a question)."""
+    PS = __import__('progress_service')
+    now = now or time.time()
+    D = datetime.timedelta
+    today = datetime.datetime.fromtimestamp(now, TZ).date()
+    monday = today - D(days=today.weekday())
+    days = PS.study_days(c, uid)
+    count = lambda mon: sum(1 for k in range(7) if mon + D(days=k) in days)
+    done, last = count(monday), count(monday - D(weeks=1))
+    streak, w = 0, monday - D(weeks=1)
+    while streak < 52 and count(w) >= goal:
+        streak += 1; w -= D(weeks=1)
+    return {'goal': goal, 'done': done, 'met': done >= goal, 'streak': streak + (done >= goal), 'monday': monday.isoformat(),
+            'weeks': PS.weeks_reached(c, uid, goal, days, monday),
+            'days': [{'day': (monday + D(days=k)).isoformat(), 'active': monday + D(days=k) in days, 'today': monday + D(days=k) == today} for k in range(7)],
+            'last_week': {'done': last, 'met': last >= goal}}
+
+
+def set_weekly_goal(c, uid, data):
+    try:
+        goal = int(data.get('goal'))
+    except (TypeError, ValueError):
+        goal = 0
+    if not 1 <= goal <= 7:
+        return {'error': '每周目标是 1 到 7 天'}, 400
+    old = (profile(c, uid) or {}).get('weekly_goal')
+    if not c.execute('UPDATE next_profiles SET weekly_goal=?, updated=? WHERE user_id=?', (goal, time.time(), uid)).rowcount:
+        return {'error': '请先设置学习目标和水平'}, 400
+    if old != goal:  # the weeks before keep the goal they had: a new goal never takes away a week already reached
+        __import__('progress_service').goal_changed(c, uid, old, goal)
+    c.commit()
+    return {'habit': habit(c, uid, goal)}, 200
 
 
 def library(c, uid, level=None, theme=None, page=1, per=12, featured_only=False):
@@ -799,7 +901,9 @@ def _task(pack, level):
     return {'prompt': '挑一个这篇里你喜欢的表达，用它写一两句和你自己有关的话。', 'model': '', 'hint': ''}
 
 
-def material(c, uid, pid, level=None):
+def material(c, uid, pid, level=None, offline=False):
+    """offline: also the answers and their evidence, for a copy kept on the phone (the page grades there without a
+    connection and sends the answers later, so the mistake book and progress are recorded as usual)."""
     row = _pack_row(c, uid, pid)
     if not row:
         return {'error': '材料不存在'}, 404
@@ -846,11 +950,13 @@ def material(c, uid, pid, level=None):
             'variant': variant, 'vocabulary': list(vocab.values()), 'expressions': p.get('expressions', []), 'hard': hard, 'questions': qs,
             'notes': notes, 'task': _task(p, level), 'steps': sorted(done, key=STEPS.index), 'dictation_index': p.get('dictation_index'),
             'provenance': [{'title': s['title'], 'url': s['url']} for s in (p.get('provenance') or {}).get('sources', [])][:5],
+            'origin': origin(p),
             'mine': __import__('vocab_service').mine_in_text(c, uid, text),
             'preread': __import__('vocab_service').preread(c, uid, hard),
             'speaking_task': p.get('speaking', ''), 'writing_task': p.get('writing', ''), 'imported': bool(p.get('imported')),
             'user_level': level, 'can_variant': level != cefr(p) and not variant,
-            'audio': {'voices': audio_index()[0].get(p['id'], []), 'version': audio_index()[1]}, 'series': _series_nav(c, p)}, 200
+            'audio': {'voices': audio_index()[0].get(p['id'], []), 'version': audio_index()[1]}, 'series': _series_nav(c, p),
+            **({'answers': [{'answer': q['answer'], 'evidence': q.get('evidence', '')} for q in p.get('questions', [])]} if offline else {})}, 200
 
 
 def check(c, uid, data):
@@ -881,7 +987,8 @@ def check(c, uid, data):
 def mark(c, uid, pid, step, commit=True):
     if step not in STEPS:
         raise ValueError('步骤不正确')
-    c.execute('INSERT OR IGNORE INTO next_progress VALUES(?,?,?,?)', (uid, pid, step, time.time()))
+    c.execute('INSERT OR IGNORE INTO next_progress VALUES(?,?,?,?)', (uid, pid, step, time.time()))  # the first time only
+    __import__('progress_service').log_step(c, uid, pid, step)  # and every day it is done (a text studied again)
     if commit:
         c.commit()
 
@@ -960,8 +1067,22 @@ def _node_list(c):
     return '；'.join(f"{k}={v['title']}" for k, v in nodes_meta(c).items())
 
 
+def kept_own_sentence(answer, corrected):
+    """Whether corrected is the learner's own sentence put right (at least half of its words kept, and not a much
+    longer text), not another sentence written in its place, such as one on the lesson's topic in the lesson's pattern."""
+    from collections import Counter
+    a, b = [w.lower() for w in WORD.findall(answer or '')], [w.lower() for w in WORD.findall(corrected or '')]
+    if not a or not b:
+        return False
+    return sum((Counter(a) & Counter(b)).values()) * 2 >= len(a) and len(b) <= 2 * len(a) + 4
+
+
 def rewrite(c, uid, data):
-    from lab_service import run_job, text as clean_text
+    """仿写: the learner's own sentence marked. corrected is that sentence put right with the smallest change, never
+    another sentence; better ways to say the same thing go in versions, in the learner's own words and topic; using
+    the lesson's pattern is suggested in the summary, not done for them. An answer whose corrected is another sentence
+    is asked for once more; if it is still not the learner's sentence, it is not shown (ai_eval.py checks this)."""
+    from lab_service import run_job, text as clean_text, parse
     from chat_service import request_model
     row = _pack_row(c, uid, str(data.get('pack', '')))
     if not row:
@@ -983,15 +1104,19 @@ def rewrite(c, uid, data):
             studied.append(hit['lemma'])
     studied = studied[:6]
     system = ('你是一位耐心、专业的英语写作教练，学习者的水平是 ' + level + '（' + LEVELS[level]['label'] + '）。' + _level_voice(level) +
-              '先肯定写得好的地方，再改错，最后给出更好的说法。不要编造学习者没写的内容。只输出 JSON。')
-    user = ('学习任务：' + task['prompt'] + ('\n参考句：' + task['model'] if task['model'] else '') +
+              '先肯定写得好的地方，再改错，最后给出更好的说法。不要编造学习者没写的内容。'
+              '最重要的一条：corrected 只能是学习者自己这句话的最小改动，只改语法、用词、拼写和标点上的错误，保留原来的意思、结构和话题；'
+              '绝不能换成另一句话，也不要为了套用本课的句型或话题去改写。没有错误时 verdict 写 natural，corrected 原样返回，changes 为空数组。'
+              'versions 是同一个意思的更好说法：用学习者自己的意思和话题来写，不要换成课文的话题；本课的目标表达能自然用上时，可以在其中一个版本里用。'
+              '学习者没有用上本课的目标表达时，在 summary 里用中文提一句可以怎么用，不要替他改写原句。只输出 JSON。')
+    user = ('学习任务（供参考，用来看学习者有没有用上目标表达；不要据此改写学习者的句子）：' + task['prompt'] + ('\n参考句：' + task['model'] if task['model'] else '') +
             '\n材料主题：' + p['title'] + '\n本篇练习的语法节点：' + (', '.join(targets) or '无') +
             '\n全部语法节点（id=名称）：' + _node_list(c) +
             '\n学习者写的英文：\n' + answer +
             '\n\n输出 JSON，结构：{"verdict":"natural|minor|rewrite","summary":"一句话总评（中文，先说优点）",'
-            '"corrected":"在保留原意的前提下改对的版本（若已正确则原样返回）",'
+            '"corrected":"学习者原句的最小改动：只改错误，保留原意和话题，不写新句子（若已正确则原样返回）",'
             '"changes":[{"from":"原文片段","to":"改后片段","why":"为什么（简短）","node":"相关语法节点 id，没有就写 null"}],'
-            '"versions":[{"label":"更自然","text":"...","why":"和原句的差别"},{"label":"更正式","text":"...","why":"..."},{"label":"更简洁","text":"...","why":"..."}],'
+            '"versions":[{"label":"更自然","text":"同一个意思的更自然说法","why":"和原句的差别"},{"label":"更正式","text":"...","why":"..."},{"label":"更简洁","text":"...","why":"..."}],'
             '"used_well":["学习者用对了的语法节点 id"],'
             '"keep":{"text":"最值得收藏的一个英文表达（短语）","meaning":"中文意思"}' +
             (',"word_use":[{"word":"单词原形","ok":true,"note":"一句中文：用法对在哪里，或错在哪里、应该怎么用"}]' if studied else '') +
@@ -1004,6 +1129,8 @@ def rewrite(c, uid, data):
         out = {'verdict': raw.get('verdict') if raw.get('verdict') in ('natural', 'minor', 'rewrite') else 'minor',
                'summary': clean_text(raw.get('summary'), 1, 300), 'corrected': clean_text(raw.get('corrected'), 1, 900),
                'changes': [], 'versions': [], 'keep': None, 'used_well': []}
+        if not kept_own_sentence(answer, out['corrected']):
+            raise ValueError('corrected is another sentence')  # asked for once more already (invoke): not shown
         for ch in (raw.get('changes') or [])[:5]:
             if isinstance(ch, dict) and ch.get('to'):
                 n = ch.get('node') if ch.get('node') in valid_nodes else None
@@ -1014,6 +1141,8 @@ def rewrite(c, uid, data):
                 out['versions'].append({'label': clean_text(v.get('label') or '参考', 1, 20), 'text': clean_text(v['text'], 1, 900), 'why': clean_text(v.get('why') or '', 0, 300)})
         if not out['versions']:
             raise ValueError('no versions')
+        if WORD.findall(out['corrected'].lower()) == WORD.findall(answer.lower()) and out['verdict'] != 'natural':
+            out['verdict'] = 'minor' if out['changes'] else 'natural'  # nothing was changed: it was right
         out['used_well'] = [n for n in (raw.get('used_well') or []) if n in valid_nodes][:3]
         k = raw.get('keep')
         if isinstance(k, dict) and isinstance(k.get('text'), str) and WORD.search(k['text']) and len(k['text']) <= 160:
@@ -1024,8 +1153,23 @@ def rewrite(c, uid, data):
                 out['word_use'].append({'word': u['word'], 'ok': u['ok'], 'note': clean_text(u.get('note') or '', 0, 300)})
         return out
 
-    result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-rewrite', p['id'], 'writing', spec,
-                             lambda: request_model([{'role': 'system', 'content': system}, {'role': 'user', 'content': user}]), convert, mark_replay=True)
+    msgs = [{'role': 'system', 'content': system}, {'role': 'user', 'content': user}]
+
+    def invoke():
+        # An answer whose corrected is another sentence (one on the lesson's topic, in its pattern) is asked for once more.
+        reply, reason = request_model(msgs)
+        try:
+            raw = parse(reply)
+        except ValueError:
+            return reply, reason  # not JSON: reported as before
+        fixed = raw.get('corrected') if isinstance(raw, dict) else None
+        if not isinstance(fixed, str) or kept_own_sentence(answer, fixed):
+            return reply, reason
+        return request_model(msgs + [{'role': 'assistant', 'content': reply}, {'role': 'user', 'content':
+            '这次的 corrected 不是学习者原句的最小改动，而是另一句话：「' + fixed[:200] + '」。请重新输出完整的 JSON：corrected 只改学习者原句里的错误，'
+            '保留原意和话题（没有错误就原样返回，verdict 写 natural）；更好的说法只放进 versions，也用学习者自己的意思。'}])
+
+    result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-rewrite', p['id'], 'writing', spec, invoke, convert, mark_replay=True)
     if status == 200:
         r = result['result']
         rid = str(data.get('request_id', ''))
@@ -1075,6 +1219,20 @@ def compare_words(target, heard):
     return out
 
 
+PRON_WEIGHTS = {'accuracy': 0.5, 'fluency': 0.25, 'complete': 0.25}
+
+
+def pron_score(r):
+    """跟读 score of one sentence, 0–100: accuracy and fluency are the AI's estimate from the recording; completeness is
+    counted here (the words of the sentence found in what it heard). None when the AI gave no estimate or heard none of
+    the sentence (then there is nothing to score)."""
+    if r.get('accuracy') is None or not r.get('words') or not r.get('matched'):
+        return None
+    complete = round(100 * r['matched'] / len(r['words']))
+    parts = {'accuracy': r['accuracy'], 'fluency': r.get('fluency_score') if r.get('fluency_score') is not None else 72, 'complete': complete}
+    return {**parts, 'total': round(sum(PRON_WEIGHTS[k] * v for k, v in parts.items()))}
+
+
 def shadow(c, uid, data):
     """Shadowing: the learner reads one sentence aloud; AI transcribes it and points out what to fix."""
     from lab_service import run_job, text as clean_text, audio_enabled
@@ -1082,48 +1240,79 @@ def shadow(c, uid, data):
     from audio_validation import validate_audio
     if not audio_enabled():
         return {'error': 'AI 听录音暂未开启，可以先用「对比回放」自己听'}, 503
-    row = _pack_row(c, uid, str(data.get('pack', '')))
-    if not row:
-        return {'error': '材料不存在'}, 404
-    p = json.loads(row['content'])
-    sents = sentences(p['body'])
-    i = data.get('i')
-    if not isinstance(i, int) or not 0 <= i < len(sents):
-        return {'error': '句子不存在'}, 400
-    sentence = re.sub(r'^[A-Z][a-z]+(?: [A-Z][a-z]+)?:\s+', '', sents[i])  # dialogue labels are not read aloud
+    quote = __import__('daily_line').sentence_of(data)  # 今日好句 (r27): a public-domain line, by its id
+    if quote:
+        sentence, pid, i, lvl = quote, None, str(data.get('quote')), None
+    else:
+        row = _pack_row(c, uid, str(data.get('pack', '')))
+        if not row:
+            return {'error': '材料不存在'}, 404
+        p = json.loads(row['content'])
+        sents = sentences(p['body'])
+        i = data.get('i')
+        if not isinstance(i, int) or not 0 <= i < len(sents):
+            return {'error': '句子不存在'}, 400
+        sentence = re.sub(r'^[A-Z][a-z]+(?: [A-Z][a-z]+)?:\s+', '', sents[i])  # dialogue labels are not read aloud
+        pid, lvl = p['id'], cefr(p)
     audio = data.get('audio')
     raw_audio = validate_audio(audio)
     level = (profile(c, uid) or {}).get('level') or 'B1'
+    import sounds as snd
+    sets = '；'.join(f"{x['id']}（{x['title']}）" for x in snd.SETS)
     system = ('你是英语口语老师，正在听一位中国学习者（' + level + '）跟读一句英文。先忠实转写你实际听到的英文，听不清的部分写 [听不清]，'
-              '不要按原句补全。然后对照原句给出简短、具体、能马上改的建议：漏读或读错的词、明显的重音/元音/尾音问题、该连读或停顿的地方。'
-              '只在有把握时指出发音问题，不要打分。只输出 JSON。')
-    user = ('原句：' + sentence + '\n\n输出 JSON：{"transcript":"你听到的英文","issues":[{"word":"原句中的词或短语","note":"中文：问题和改法"}],'
-            '"tip":"一句最重要的中文建议","fluency":"smooth|ok|choppy"}。issues 最多 4 条，读得好就给空数组。')
+              '不要按原句补全。然后只根据录音本身估计发音：accuracy 是发音准确度（0–100：90 以上几乎每个音都准；75–89 个别音不准、不影响听懂；'
+              '60–74 有几处明显错音、要仔细听；40–59 很多词读错或含糊；40 以下大部分听不清），fluency_score 是流利度（0–100：语速自然、'
+              '停顿在意群之间为高；一词一顿、反复重来为低）。口音本身不扣分，只看别人能不能听清。漏读的词不算进准确度（完整度另算）。'
+              '再找出最需要练的音（最多 3 个，只在有把握时写）和其他要注意的地方（漏读、重音、连读、停顿）。只输出 JSON。')
+    user = ('原句：' + sentence + '\n\n发音入门里能练的音（set 填其中一个 id，都不合适就填空字符串）：' + sets +
+            '\n\n输出 JSON：{"transcript":"你听到的英文","accuracy":0-100,"fluency_score":0-100,"fluency":"smooth|ok|choppy",'
+            '"sounds":[{"sound":"音标，如 /v/","word":"原句中读错这个音的词","note":"中文：读成了什么、怎么改","set":"发音入门的 id 或空字符串"}],'
+            '"issues":[{"word":"原句中的词或短语","note":"中文：问题和改法"}],"tip":"一句最重要的中文建议"}。'
+            'sounds 最多 3 条，issues 最多 3 条，读得好就给空数组。')
+
+    def score_of(v):
+        try:
+            return max(0, min(100, int(round(float(v)))))
+        except (TypeError, ValueError):
+            return None
 
     def convert(raw):
         if not isinstance(raw, dict):
             raise ValueError('bad')
+        flu = raw.get('fluency') if raw.get('fluency') in ('smooth', 'ok', 'choppy') else 'ok'
         out = {'transcript': clean_text(raw.get('transcript') or '', 0, 600), 'tip': clean_text(raw.get('tip') or '', 0, 300),
-               'fluency': raw.get('fluency') if raw.get('fluency') in ('smooth', 'ok', 'choppy') else 'ok', 'issues': []}
-        for it in (raw.get('issues') or [])[:4]:
+               'fluency': flu, 'accuracy': score_of(raw.get('accuracy')), 'fluency_score': score_of(raw.get('fluency_score')), 'issues': [], 'sounds': []}
+        if out['fluency_score'] is None and out['accuracy'] is not None:
+            out['fluency_score'] = {'smooth': 88, 'ok': 72, 'choppy': 50}[flu]
+        said = set(_words(sentence))
+        titles = {x['id']: x['title'] for x in snd.SETS}
+        for it in (raw.get('sounds') or [])[:3]:
+            if isinstance(it, dict) and it.get('sound') and it.get('note') and _words(str(it.get('word') or ''))[:1] and set(_words(str(it['word']))) <= said:
+                sid = it.get('set') if it.get('set') in titles else ''
+                out['sounds'].append({'sound': clean_text(it['sound'], 1, 16), 'word': clean_text(it['word'], 1, 40), 'note': clean_text(it['note'], 1, 200),
+                                      'set': sid, 'set_title': titles.get(sid, '')})
+        for it in (raw.get('issues') or [])[:3]:
             if isinstance(it, dict) and it.get('word') and it.get('note'):
                 out['issues'].append({'word': clean_text(it['word'], 1, 80), 'note': clean_text(it['note'], 1, 300)})
         return out
 
-    spec = {'pack': p['id'], 'i': i, 'audio_sha256': hashlib.sha256(raw_audio).hexdigest()}
-    result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-shadow', p['id'], 'speaking', spec,
+    spec = {'pack': pid or 'daily-line', 'i': i, 'audio_sha256': hashlib.sha256(raw_audio).hexdigest()}
+    result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-shadow', pid or 'daily-line', 'speaking', spec,
                              lambda: request_model([{'role': 'system', 'content': system}, {'role': 'user', 'content': user}], audio=audio), convert, mark_replay=True)
     if status == 200:
         r = result['result']
         r['words'] = compare_words(sentence, r['transcript'])
         r['matched'] = sum(1 for w in r['words'] if w['ok'])
         r['sentence'] = sentence
+        r['score'] = pron_score(r)
         if result.get('replayed'):
             return result, status
         import skills_service as sk
-        sk.log(c, uid, 'speaking', 'shadow', r['matched'] / max(1, len(r['words'])), cefr(p), p['id'], commit=False)
-        for it in r['issues'][:2]:
-            sk.add_mistake(c, uid, 'sound', it['word'], 'sound:' + _norm(it['word']), it['note'], sentence, 'pronunciation', pack=p['id'], commit=False)
+        sk.log(c, uid, 'speaking', 'shadow', r['matched'] / max(1, len(r['words'])), lvl, pid, commit=False)
+        if r['score']:
+            sk.log(c, uid, 'pronunciation', 'shadow-pron', r['score']['total'] / 100, lvl, pid, commit=False)
+        for it in ([{'word': x['word'], 'note': x['sound'] + '：' + x['note']} for x in r.get('sounds') or []] + r['issues'])[:2]:
+            sk.add_mistake(c, uid, 'sound', it['word'], 'sound:' + _norm(it['word']), it['note'], sentence, 'pronunciation', pack=pid, commit=False)
         c.commit()
     return result, status
 
@@ -1240,6 +1429,8 @@ def get(c, uid, path, q):
         if not uid:
             return {'error': '请先登录'}, 401
         return (__import__('skills_service') if path != '/api/next/import' else __import__('import_service')).get(c, uid, path, q)
+    if path == '/api/next/guide':
+        return __import__('user_guide').api(), 200
     if path == '/api/next/meta':
         return meta(), 200
     if path == '/api/next/home':
@@ -1247,7 +1438,7 @@ def get(c, uid, path, q):
     if path == '/api/next/library':
         return library(c, uid, one('level') or None, one('theme') or None, int(one('page', '1') or 1), featured_only=one('featured') == '1'), 200
     if path == '/api/next/material':
-        return material(c, uid, one('id'), one('level'))
+        return material(c, uid, one('id'), one('level'), one('offline') == '1')
     if path == '/api/next/graph':
         return graph(c, uid, one('level')), 200
     if path == '/api/next/node':
@@ -1270,17 +1461,22 @@ def get(c, uid, path, q):
         return {'items': WL.round_of(groups, per=3 if len(groups) == 1 else 2), 'groups': [{'id': g, 'words': WL.GROUPS[g][1], 'how': WL.GROUPS[g][2]} for g in groups]}, 200
     if path == '/api/next/speak':
         return __import__('scenarios').listing(c, uid, (profile(c, uid) or {}).get('level') or one('level') or None), 200
+    if path == '/api/next/ielts':
+        return __import__('ielts_speaking').listing(c, uid), 200
     if path == '/api/next/mix':
-        return GB.mix(c, uid, pair=one('pair') or None, topic=one('topic') or None, level=one('level') or None)
+        return GB.mix(c, uid, pair=one('pair') or None, topic=one('topic') or None, level=one('level') or None, exam=one('exam') or None)
     if path == '/api/next/exam':
         return __import__('exam_service').overview(c, uid)
+    if path == '/api/next/exam/type':
+        return __import__('exam_sprint').get(c, uid, path, q)
     if path == '/api/next/lookup':
         w = one('w')[:40]
         if not WORD.fullmatch(w or ''):
             return {'error': '只能查英文单词'}, 400
         hit = lookup(w)
-        if hit:  # words Chinese speakers mix up with this one (a copy: the cached entry stays as it is)
-            hit = {**hit, 'confusable': __import__('word_links').group_of(hit['lemma']) or __import__('word_links').group_of(w)}
+        if hit:  # words Chinese speakers mix up with this one, and its recorded pronunciation (a copy: the cached entry stays as it is)
+            hit = {**hit, 'confusable': __import__('word_links').group_of(hit['lemma']) or __import__('word_links').group_of(w),
+                   'audio': __import__('vocab_service').word_audio(hit['lemma'])}
         return ({'entry': hit} if hit else {'entry': None, 'query': w}), 200
     if not uid:
         return ({'error': '请先登录'}, 401) if path.startswith('/api/next/') else None
@@ -1288,13 +1484,36 @@ def get(c, uid, path, q):
         return cards(c, uid, one('q')[:80], int(one('page', '1') or 1), f=one('f')), 200
     if path == '/api/next/stats':
         return stats(c, uid), 200
+    if path in ('/api/next/week', '/api/next/text-summary', '/api/next/weekly-mail'):
+        return __import__('progress_service').get(c, uid, path, q)
     if path == '/api/next/growth':
         return __import__('growth_report').month(c, uid, one('month') or None)
+    if path == '/api/next/radar':
+        return __import__('ability_radar').radar(c, uid), 200
+    if path == '/api/next/assess/test':
+        return __import__('ability_radar').comprehension_test(c, uid, one('kind'))
+    if path == '/api/next/assess/task':
+        return __import__('ability_radar').task(c, uid, one('kind'))
+    if path == '/api/next/exam/goal':
+        return __import__('exam_sprint').get(c, uid, path, q)
     return None
+
+
+def tap(c, data):
+    """One tap on a counted entry point (flow_admin.TAP_LABEL): per day and key only, nothing about who."""
+    key = str(data.get('k', ''))[:40]
+    if key not in __import__('flow_admin').TAP_LABEL:
+        return {'error': '未知的入口'}, 400
+    day = datetime.datetime.now(TZ).date().isoformat()
+    c.execute('INSERT INTO ui_taps(day, key, n) VALUES(?,?,1) ON CONFLICT(day, key) DO UPDATE SET n=n+1 WHERE n<20000', (day, key))
+    c.commit()
+    return {'ok': True}, 200
 
 
 def post_public(c, uid, path, data):
     """Routes open to guests (no state change for guests)."""
+    if path == '/api/next/tap':
+        return tap(c, data)
     if path == '/api/next/check':
         return check(c, uid, data)
     if path == '/api/next/vocab/test':
@@ -1311,16 +1530,35 @@ def post_public(c, uid, path, data):
         return __import__('exam_service').paper(c, uid, data.get('exam'))
     if path == '/api/next/exam/submit':
         return __import__('exam_service').submit(c, uid, data)
+    if path == '/api/next/exam/type':
+        return __import__('exam_sprint').post_public(c, uid, path, data)
+    if path == '/api/next/weekly-mail/off':  # the link in the Sunday mail: no sign-in, its token stands for the account
+        return __import__('progress_service').post_public(c, path, data)
     return None
 
 
-AI_PATHS = ('/api/next/rewrite', '/api/next/variant', '/api/next/explain', '/api/next/shadow', '/api/next/vocab/examples', '/api/next/import/enrich',
-            '/api/next/retell', '/api/next/dialog', '/api/next/essay', '/api/next/translate/source', '/api/next/translate', '/api/next/say')
+AI_PATHS = ('/api/next/assess/speaking', '/api/next/assess/writing', '/api/next/rewrite', '/api/next/variant', '/api/next/explain', '/api/next/shadow', '/api/next/vocab/examples', '/api/next/import/enrich',
+            '/api/next/retell', '/api/next/dialog', '/api/next/essay', '/api/next/translate/source', '/api/next/translate', '/api/next/say',
+            '/api/next/ielts')
 
 
 def post(c, uid, path, data):
     if path == '/api/next/profile':
         return save_profile(c, uid, data)
+    if path == '/api/next/habit':
+        return set_weekly_goal(c, uid, data)
+    if path == '/api/next/exam/goal':
+        return __import__('exam_sprint').set_goal(c, uid, data)
+    if path == '/api/next/weekly-mail':
+        return __import__('progress_service').post(c, uid, path, data)
+    if path == '/api/next/relisten':
+        return __import__('relisten_service').record(c, uid, data)
+    if path == '/api/next/radar/goals':
+        return __import__('ability_radar').set_goals(c, uid, data)
+    if path == '/api/next/assess/comprehension':
+        return __import__('ability_radar').comprehension_score(c, uid, data)
+    if path in ('/api/next/assess/speaking', '/api/next/assess/writing'):
+        return __import__('ability_radar').judged(c, uid, path.rsplit('/', 1)[1], data)
     if path == '/api/next/voice':
         return set_voice(c, uid, data)
     if path == '/api/next/progress':
@@ -1332,7 +1570,7 @@ def post(c, uid, path, data):
         return save_card(c, uid, data)
     if path == '/api/next/cards/delete':
         return delete_card(c, uid, data)
-    if path.startswith('/api/next/vocab/') or path == '/api/next/review':
+    if path.startswith('/api/next/vocab/') or path in ('/api/next/review', '/api/next/review/undo'):
         import vocab_service
         if path == '/api/next/vocab/met':
             hit = vocab_service.met_in_reading(c, uid, str(data.get('word', ''))[:40])
@@ -1346,6 +1584,8 @@ def post(c, uid, path, data):
         return explain(c, uid, data)
     if path == '/api/next/shadow':
         return shadow(c, uid, data)
+    if path == '/api/next/ielts':
+        return __import__('ielts_speaking').post(c, uid, data)
     if path == '/api/next/skill':
         return __import__('skills_service').post(c, uid, path, data)
     if path.startswith('/api/next/import'):

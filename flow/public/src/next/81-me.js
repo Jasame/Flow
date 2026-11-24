@@ -1,79 +1,243 @@
-  /* ---------- me ---------- */
+  /* ---------- me: one grouped list, like a phone's settings; each row opens a page or a sheet ---------- */
+  // A row: a link (to starts with # or /) or a button (to is its id); the value sits on the right, greyed.
+  function grow(to, label, value, vid, tapKey) {
+    const tag = to[0] === '#' || to[0] === '/' ? 'a' : 'button';
+    return `<${tag} class="grow" ${tag === 'a' ? `href="${to}"` : `type="button" id="${to}"`}${tapKey ? ` data-tap="${tapKey}"` : ''}><span class="t">${label}</span><span class="v small muted"${vid ? ` id="${vid}"` : ''}>${value || ''}</span><span class="go" aria-hidden="true">›</span></${tag}>`;
+  }
   async function meView() {
     if (!S.meta) S.meta = await api('/api/next/meta');
-    const p = (S.home && S.home.profile) || S.guest || {};
+    const p = (S.home && S.home.profile) || S.guest || {}, u = S.user, st = S.home && S.home.stats;
     const lv = S.meta.levels.find(l => l.id === p.level), goal = S.meta.goals.find(g => g.id === p.goal);
-    const themes = S.meta.themes.filter(t => (p.themes || []).includes(t.id)).map(t => t.label);
-    const st = S.home && S.home.stats;
-    view.innerHTML = `<h1 class="h1">${S.user ? esc(S.user.username) : '我的'}</h1>
-      ${S.user ? '' : `<div class="card sunk stack-s"><b>还没有登录</b><span class="muted small">登录后才能保存进度、收藏表达和使用 AI。</span><div><button class="btn primary small" id="lg">登录 / 注册</button></div></div>`}
-      ${st ? `<div class="stat-grid"><div class="card flat stat"><b>${st.week.filter(d => d.active).length}</b><span class="tiny muted">本周学习天数</span></div><div class="card flat stat"><b>${st.materials_done}</b><span class="tiny muted">学完的材料</span></div><div class="card flat stat"><b>${st.cards}</b><span class="tiny muted">单词与表达</span></div></div>` : ''}
-      <div class="card flat stack-s"><div class="row between"><b>学习设置</b><a class="link small" href="#/welcome/edit">修改</a></div>
-        <div class="small">水平：${lv ? esc(lv.label) + '（' + lv.id + '）' : '未设置'}</div><div class="small">目标：${goal ? esc(goal.label) : '未设置'}</div>
-        <div class="small">话题：${themes.length ? esc(themes.join('、')) : '随机'}</div><div class="small">每天：${p.minutes || 10} 分钟</div>
-        <div class="small">朗读声音：</div>${voiceChips(null)}<p class="muted tiny">精选材料用真人声（Kokoro）朗读，可以随时在「听」这一步切换。</p></div>
-      <div class="card flat stack-s" id="remind"><b>每天提醒</b><span class="muted small">加到手机日历：每天到点提醒你打开今天的计划。不用装 App、不用邮箱，iPhone 和安卓都能用。</span>
-        <div class="row"><select id="mHour" aria-label="提醒时间">${Array.from({ length: 18 }, (_, k) => k + 6).map(h => `<option value="${h}" ${h === 20 ? 'selected' : ''}>每天 ${h}:00</option>`).join('')}</select>
-        <a class="btn small" id="mCal" href="/api/next/vocab/reminder.ics?kind=plan&hour=20&minutes=${p.minutes || 10}">加到手机日历</a></div>
-        <span class="tiny muted">打开下载的文件，选「添加到日历」即可；不想要了就在日历里删掉这个日程。</span></div>
-      ${matchMedia('(display-mode: standalone)').matches || navigator.standalone ? '' : `<div class="card flat stack-s" id="install"><b>添加到手机桌面</b>
-        <span class="muted small">像 App 一样从桌面打开，界面全屏；听过的音频会缓存下来，网络差的时候也能复习。</span>
-        ${installPrompt ? '<div><button class="btn small primary" id="doInstall">添加到桌面</button></div>' : /iPhone|iPad|iPod/.test(navigator.userAgent)
-          ? '<span class="small">iPhone：用 Safari 打开，点底部的「分享」按钮，再选「添加到主屏幕」。</span>' : '<span class="small">安卓：在浏览器菜单里选「添加到主屏幕」或「安装应用」。</span>'}</div>`}
-      ${S.user ? `<div class="card flat stack-s" id="acct"><div class="row between"><b>邮箱</b><span class="small muted" id="acctEmail"><span class="spin"></span></span></div>
-        <span class="muted tiny">绑定后可以收复习提醒和周报、用验证码登录、找回密码。</span><div><button class="btn small" id="bindMail" hidden>绑定邮箱</button></div></div>` : ''}
-      ${S.user ? '<div id="abSlot"><div class="card flat"><p class="loading"><span class="spin"></span></p></div></div>' : ''}
-      <div class="card flat list">
-        ${S.user ? '<a href="#/growth">我的进步：每月对比和里程碑 <span>→</span></a><a href="#/report">这周的学习报告 <span>→</span></a><a href="#/cards/mistake">错题本 <span>→</span></a>' : ''}
-        <a href="#/easy">轻松读：读得多、读得快 <span>→</span></a>
-        <a href="#/speak">口语路线：12 个情景对话 <span>→</span></a>
-        <a href="#/words/confuse">词汇辨析：中国学习者最常混的词 <span>→</span></a>
-        <a href="#/sounds">发音入门：容易混的音 <span>→</span></a>
-        <a href="#/import">我的文章：导入任何英文来学 <span>→</span></a>
-        <a href="#/graph">我的知识图谱 <span>→</span></a>
-        <a href="#/placement">语法起点小测：重新定水平 <span>→</span></a>
-        <a href="#/exam">考试练习：四六级、考研、雅思 <span>→</span></a>
-        <a href="#/library">全部材料 <span>→</span></a>
-        <a href="/survey">参与匿名问卷：你想要什么样的英语学习网站 <span>→</span></a>
-        <a href="/?classic=1">经典版（AI 私教、诊断测评、内容管理）<span>→</span></a>
-        ${S.user ? '<button id="out">退出登录 <span>→</span></button>' : ''}</div>`;
+    const installed = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    const groups = [
+      u && ['进步', [grow('#/radar', '能力雷达', '离目标还差多少', '', 'me-radar'), grow('#/growth', '我的进步', '每月对比和里程碑', '', 'me-growth'), grow('#/report', '这周的报告', '', '', 'me-report'), grow('#/cards/mistake', '错题本', '', '', 'me-mistake')]],
+      ['设置', [grow('#/welcome/edit', '学习目标和水平', [goal && esc(goal.label), lv && lv.id].filter(Boolean).join(' · ') || '未设置', '', 'me-level'),
+        u ? grow('meExam', '我的考试', examLabel(p), 'meExamV', 'me-exam') : '', u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), grow('meText', '字号和行距', textLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '加到手机日历', '', 'me-remind'),
+        u ? grow('meMail', '每周进度邮件', weeklyMailLabel(), 'meMailV', 'me-weekly-mail') : '',
+        installed ? '' : grow('meInstall', '添加到桌面', '像 App 一样打开', '', 'me-install')]],
+      u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
+        grow('meData', '导出我的数据', '单词本 · 学习记录', '', 'me-data'), grow('meDelete', '注销账号', '', '', 'me-delete')],
+        '绑定邮箱后，可以用验证码登录，忘记密码时自己找回。30 天内来过就一直保持登录；在别人的手机或电脑上用完，记得退出。'],
+      ['帮助', [grow('#/guide', '操作指南', '每个页面怎么用', '', 'me-guide'), grow('/about', '认识语流', '一页看完语流能帮你做什么', '', 'me-about'),grow('#/feedback', '问题反馈', '页面不对、功能用不了，告诉我们', '', 'me-feedback'), grow('/survey', '匿名问卷', '你想要什么样的英语学习网站', '', 'me-survey')]],
+    ].filter(Boolean);
+    view.innerHTML = `<div class="card flat me-head"><div class="me-id">${u ? `<span class="avatar" aria-hidden="true">${esc([...u.username][0].toUpperCase())}</span>` : ''}
+        <div class="t"><h1 class="h1">${u ? esc(u.username) : '我的'}</h1><span class="small muted">${lv ? `${esc(lv.label)}（${lv.id}）` : '还没有设置水平'} · 每天 ${p.minutes || 10} 分钟</span></div></div>
+        ${st ? `<div class="me-nums">${[[st.habit ? st.habit.done : st.week.filter(d => d.active).length, '本周学习天数'], [st.materials_done, '学完的材料'], [st.cards, '单词与表达']].map(([n, l]) => `<div><b>${n}</b><span class="tiny muted">${l}</span></div>`).join('')}</div>`
+          : u ? '' : `<div class="stack-s"><span class="muted small">登录后才能保存进度、收藏表达和使用 AI。</span><div><button class="btn primary small" id="lg">登录 / 注册</button></div></div>`}</div>
+      ${groups.map(([h, rows, foot]) => `<section class="gsec" aria-label="${h}"><h2 class="ghead">${h}</h2><div class="glist">${rows.join('')}</div>${foot ? `<p class="tiny muted gfoot">${foot}</p>` : ''}</section>`).join('')}
+      ${u ? '<div class="glist gsec"><button class="grow danger" id="out" type="button"><span class="t">退出登录</span></button></div>' : ''}`;
     const lg = document.getElementById('lg'); if (lg) lg.onclick = () => openLogin();
-    const mHour = document.getElementById('mHour'), mCal = document.getElementById('mCal');
-    mHour.onchange = () => { mCal.href = `/api/next/vocab/reminder.ics?kind=plan&hour=${mHour.value}&minutes=${p.minutes || 10}`; };
-    const slot = document.getElementById('abSlot');
-    if (slot) api('/api/next/ability').then(ab => { slot.innerHTML = abilityHTML(ab); requestAnimationFrame(() => requestAnimationFrame(() => slot.querySelectorAll('.vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; }))); }).catch(() => { slot.innerHTML = ''; });
-    if (S.user) api('/api/account').then(a => {
-      const el = document.getElementById('acctEmail'), b = document.getElementById('bindMail'); if (!el) return;
-      el.textContent = a.email || '还没有绑定';
-      if (a.mail_enabled) { b.hidden = false; b.textContent = a.email ? '更换邮箱' : '绑定邮箱'; b.onclick = () => bindEmailSheet(a.email); }
-      else el.textContent += a.email ? '' : '（邮件服务暂未开启）';
-    }).catch(() => { const el = document.getElementById('acctEmail'); if (el) el.textContent = ''; });
-    const di = document.getElementById('doInstall'); if (di) di.onclick = async () => { installPrompt.prompt(); try { await installPrompt.userChoice; } catch (e) { /* dismissed */ } installPrompt = null; meView(); };
-    view.querySelectorAll('[data-voice]').forEach(b => b.onclick = async () => { await setVoice(b.dataset.voice); view.querySelectorAll('[data-voice]').forEach(x => { x.setAttribute('aria-pressed', String(x === b)); x.setAttribute('aria-checked', String(x === b)); }); toast('朗读声音：' + VOICE_LABELS[b.dataset.voice]); });
-    const out = document.getElementById('out');
-    if (out) out.onclick = async () => { try { await api('/api/logout', {}); } catch (e) { /* ignore */ } S.user = null; S.csrf = ''; await refreshHome(); toast('已退出'); route(); };
+    document.getElementById('meVoice').onclick = voiceSheet;
+    document.getElementById('meText').onclick = textSheet;
+    const mh = document.getElementById('meHabit'); if (mh) mh.onclick = habitSheet;
+    const me = document.getElementById('meExam'); if (me) me.onclick = () => examGoalSheet(() => meView());
+    document.getElementById('meRemind').onclick = () => remindSheet(p.minutes || 10);
+    const mm = document.getElementById('meMail'); if (mm) { mm.onclick = weeklyMailSheet; fillMailRow(); }  // 11-progress.js
+    const mi = document.getElementById('meInstall'); if (mi) mi.onclick = installSheet;
+    if (u) {
+      const b = document.getElementById('bindMail'); b.disabled = true;
+      api('/api/account').then(a => {
+        const el = document.getElementById('acctEmail'); if (!el) return;
+        el.textContent = a.email || '还没有绑定';
+        if (a.mail_enabled) { b.disabled = false; b.setAttribute('aria-label', a.email ? '邮箱：' + a.email + '，点这里更换' : '绑定邮箱'); b.onclick = () => bindEmailSheet(a.email); }
+        else if (!a.email) el.textContent += '（邮件服务暂未开启）';
+      }).catch(() => { const el = document.getElementById('acctEmail'); if (el) el.textContent = ''; });
+      document.getElementById('chPw').onclick = () => changePasswordSheet();
+      document.getElementById('outAll').onclick = () => signOutEverywhere();
+      document.getElementById('meData').onclick = dataSheet;
+      document.getElementById('meDelete').onclick = deleteAccountSheet;
+      document.getElementById('out').onclick = async () => { await OUTBOX.flush(); try { await api('/api/logout', {}); } catch (e) { /* ignore */ } snapClear(); S.user = null; S.csrf = ''; await refreshHome(); toast('已退出'); route(); };
+    }
+  }
+  // 字号和行距: the reading text (a material, the listening lines, review sentences, questions, the guide, meanings)
+  // larger and with more room between lines; menus and buttons stay as they are. Kept on the phone (applyText, 02-shell.js).
+  const TEXT_SIZES = [['m', '标准'], ['l', '大'], ['xl', '特大']], TEXT_LH = [['n', '标准'], ['w', '宽松']];
+  function textLabel() { return [TEXT_SIZES.find(x => x[0] === TEXT.size)[1], TEXT.lh === 'w' ? '行距宽松' : ''].filter(Boolean).join(' · '); }
+  function textSheet() {
+    const chips = (list, key, cur) => list.map(([k, l]) => `<button class="chip" type="button" role="radio" data-${key}="${k}" aria-checked="${cur === k}">${l}</button>`).join('');
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">字号和行距</h2>
+      <div class="stack-s"><b>字号</b><div class="chips" role="radiogroup" aria-label="字号">${chips(TEXT_SIZES, 'ts', TEXT.size)}</div></div>
+      <div class="stack-s"><b>行距</b><div class="chips" role="radiogroup" aria-label="行距">${chips(TEXT_LH, 'tl', TEXT.lh)}</div></div>
+      <p class="text tsample">Reading a little every day is how a new language slowly becomes your own.</p>
+      <p class="muted small">课文、听力句子、讲解和释义的字会变大，菜单和按钮不变。</p><button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      card.querySelectorAll('[data-ts], [data-tl]').forEach(b => b.onclick = () => {
+        const k = 'ts' in b.dataset ? 'size' : 'lh'; TEXT[k] = b.dataset.ts || b.dataset.tl; save('flow-next-text', TEXT); applyText();
+        card.querySelectorAll(k === 'size' ? '[data-ts]' : '[data-tl]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
+        const v = document.getElementById('meTextV'); if (v) v.textContent = textLabel();
+      });
+    });
+  }
+  function voiceSheet() {
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">朗读声音</h2>${voiceChips(null)}
+      <p class="muted small">精选材料用真人声（Kokoro）朗读。学一篇材料时，也可以在「听」这一步随时切换。</p><button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      card.querySelectorAll('[data-voice]').forEach(b => b.onclick = async () => {
+        await setVoice(b.dataset.voice);
+        card.querySelectorAll('[data-voice]').forEach(x => { x.setAttribute('aria-pressed', String(x === b)); x.setAttribute('aria-checked', String(x === b)); });
+        const v = document.getElementById('meVoiceV'); if (v) v.textContent = VOICE_LABELS[b.dataset.voice];
+        toast('朗读声音：' + VOICE_LABELS[b.dataset.voice]);
+      });
+    });
+  }
+  function remindSheet(minutes) {
+    const ics = h => `/api/next/vocab/reminder.ics?kind=plan&hour=${h}&minutes=${minutes}`;
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">每天提醒</h2>
+      <p class="muted small">加到手机日历：每天到点提醒你打开今天的计划。不用装 App、不用邮箱，iPhone 和安卓都能用。</p>
+      <div class="row"><select id="mHour" aria-label="提醒时间">${Array.from({ length: 18 }, (_, k) => k + 6).map(h => `<option value="${h}" ${h === 20 ? 'selected' : ''}>每天 ${h}:00</option>`).join('')}</select>
+        <a class="btn primary" id="mCal" href="${ics(20)}">加到手机日历</a></div>
+      <p class="tiny muted">打开下载的文件，选「添加到日历」即可；不想要了就在日历里删掉这个日程。</p><button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      const hour = card.querySelector('#mHour'), cal = card.querySelector('#mCal');
+      hour.onchange = () => { cal.href = ics(hour.value); };
+    });
+  }
+  /* ---------- on the home screen: two steps for the phone in hand, or one tap where the browser offers it ---------- */
+  const STANDALONE = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const IN_WECHAT = /MicroMessenger/i.test(navigator.userAgent);  // WeChat cannot install; its own bar says how to leave it
+  function installKind() {
+    const ua = navigator.userAgent, ipad = /iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);  // iPadOS says Mac
+    if (IN_WECHAT && !/iPhone|iPod/.test(ua) && !ipad) return 'wechat';
+    if (/iPhone|iPod/.test(ua) || ipad) return /CriOS|FxiOS|EdgiOS|OPiOS|MicroMessenger|QQ\//.test(ua) ? 'ios-other' : ipad ? 'ipad' : 'iphone';
+    if (installPrompt) return 'prompt';
+    return /Android/i.test(ua) ? 'android' : 'desktop';
+  }
+  addEventListener('appinstalled', () => { save('flow-installed', Date.now()); installPrompt = null; const n = document.getElementById('installNudge'); if (n) n.remove(); });
+  // The 今日 notice: a phone browser (not WeChat, not already on the home screen) of a learner who has studied once.
+  function installNudgeDue(h) {
+    return !!(S.user && TOUCH && !IN_WECHAT && !STANDALONE() && !load('flow-installed') && h.stats && (h.stats.materials_done || 0) >= 1
+      && Date.now() - (load('flow-install-later') || 0) > 30 * 864e5);
+  }
+  function installSheet() {
+    const k = installKind(), share = '<svg class="ishare" viewBox="0 0 24 24" aria-label="分享按钮"><path d="M12 15V3M8 7l4-4 4 4"/><path d="M7 10H6v10h12V10h-1"/></svg>';
+    const steps = {
+      iphone: [`点屏幕<b>底部中间</b>的分享按钮 ${share}`, '往下滑，点「<b>添加到主屏幕</b>」，再点右上角的「添加」'],
+      ipad: [`点<b>右上角</b>的分享按钮 ${share}`, '往下滑，点「<b>添加到主屏幕</b>」，再点「添加」'],
+      'ios-other': ['苹果手机要用 <b>Safari</b> 才能放到桌面：点下面的「复制网址」，打开 Safari，粘贴并前往', `在 Safari 里点底部中间的分享按钮 ${share}，选「<b>添加到主屏幕</b>」`],
+      wechat: ['微信里不能放到桌面：点右上角「<b>···</b>」，选「<b>在浏览器打开</b>」', '在浏览器里打开「我的 → 添加到桌面」，按那里的两步做'],
+      android: ['点浏览器右上角的 <b>⋮</b>（有的浏览器在底部，是 <b>≡</b>）', '选「<b>添加到主屏幕</b>」或「<b>安装应用</b>」（有的手机叫「添加到桌面」）'],
+      desktop: ['用 Chrome 或 Edge 打开语流，点地址栏右边的「安装」图标', '装好以后，可以从开始菜单或程序坞打开'],
+    }[k];
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">把语流放到桌面</h2>
+      <p class="muted small">像 App 一样从桌面一点就开，界面全屏；听过的音频会缓存下来，网络差的时候也能复习。</p>
+      ${k === 'prompt' ? '<button class="btn primary" id="doInstall" type="button">安装到桌面</button>' : `<ol class="isteps">${steps.map(x => `<li>${x}</li>`).join('')}</ol>`}
+      ${k === 'ios-other' ? '<button class="btn" id="copyUrl" type="button">复制网址</button>' : ''}
+      <button class="btn ghost" data-close type="button">${k === 'prompt' ? '取消' : '知道了'}</button></div>`, card => {
+      const di = card.querySelector('#doInstall');
+      if (di) di.onclick = async () => {
+        const p = installPrompt; if (!p) return closeSheet();
+        let ok = false; p.prompt(); try { ok = (await p.userChoice).outcome === 'accepted'; } catch (e) { /* dismissed */ }
+        installPrompt = null; closeSheet();
+        if (ok) { save('flow-installed', Date.now()); toast('放好了，在桌面上找「语流」'); }
+        route(true);
+      };
+      const cu = card.querySelector('#copyUrl');
+      if (cu) cu.onclick = () => { const u = location.origin + '/'; (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => toast('网址已复制，去 Safari 粘贴打开'), () => prompt('复制这个网址，到 Safari 里打开', u)); };
+    });
   }
 
+  // Binding an email: the current password, then a 6-digit code sent to the new address (as at sign-up).
   function bindEmailSheet(cur) {
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">${cur ? '更换' : '绑定'}邮箱</h2>
-      <p class="muted small">先发一封验证邮件到新邮箱；邮件里有一串验证令牌，复制回来粘贴到这里就完成了（30 分钟内有效）。</p>
-      <form id="bm1" class="stack" novalidate><label class="field">邮箱<input name="email" type="email" autocomplete="email" inputmode="email" required></label>
-        <label class="field">当前密码（确认是你本人）<input name="password" type="password" autocomplete="current-password" required></label>
-        <button class="btn primary" type="submit">发送验证邮件</button></form>
-      <form id="bm2" class="stack" novalidate hidden><label class="field">验证令牌<input name="token" type="text" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" required></label>
+      <p class="muted small">先输入当前密码确认是你本人，再把发到新邮箱的 6 位验证码填回来。</p>
+      <form id="bm" class="stack" novalidate><label class="field">邮箱<input name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" required></label>
+        ${pwField('当前密码', 'password', 'current-password')}
+        <div class="code-row"><label class="field">验证码<input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required></label>
+          <button class="btn small" type="button" data-send>发送验证码</button></div>
         <button class="btn primary" type="submit">完成绑定</button></form>
       <p class="err" id="bmErr" role="alert"></p><button class="btn ghost" data-close type="button">取消</button></div>`, card => {
-      const f1 = card.querySelector('#bm1'), f2 = card.querySelector('#bm2'), err = card.querySelector('#bmErr');
-      f1.onsubmit = async e => {
-        e.preventDefault(); err.textContent = ''; const b = f1.querySelector('button'); b.disabled = true;
-        try { await api('/api/account/email/request', { email: f1.email.value.trim(), password: f1.password.value }); f1.hidden = true; f2.hidden = false; f2.token.focus(); toast('验证邮件已发出，请查看邮箱'); }
-        catch (x) { err.textContent = x.message; b.disabled = false; }
+      bindEyes(card);
+      const form = card.querySelector('#bm'), err = card.querySelector('#bmErr'), send = card.querySelector('[data-send]');
+      send.onclick = async () => {
+        err.textContent = ''; send.disabled = true;
+        try { const r = await api('/api/account/email/request', { email: form.email.value.trim(), password: form.password.value, mode: 'code' }); toast(r.message || '验证码已发送'); countdown(send); form.code.focus(); }
+        catch (x) { fieldError(form, err, { message: x.message, field: x.field || 'email' }); send.disabled = false; }
       };
-      f2.onsubmit = async e => {
-        e.preventDefault(); err.textContent = ''; const b = f2.querySelector('button'); b.disabled = true;
-        try { await api('/api/account/email/confirm', { token: f2.token.value.trim() }); closeSheet(); toast('邮箱已绑定'); meView(); }
-        catch (x) { err.textContent = x.message; b.disabled = false; }
+      form.onsubmit = async e => {
+        e.preventDefault(); err.textContent = '';
+        if (!/^\d{6}$/.test(form.code.value.trim())) return fieldError(form, err, { message: '请先发送验证码，再填邮件里的 6 位数字', field: 'code' });
+        const b = form.querySelector('[type=submit]'); b.disabled = true;
+        try { await api('/api/account/email/confirm', { email: form.email.value.trim(), code: form.code.value.trim() }); closeSheet(); toast('邮箱已绑定，忘记密码时可以自己找回了'); await refreshHome(); route(true); }
+        catch (x) { fieldError(form, err, x); b.disabled = false; }
       };
     });
   }
+  // A new password ends every session, this one too: sign in again with it.
+  function changePasswordSheet() {
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">修改密码</h2>
+      <p class="muted small">改好以后，所有手机和电脑上的登录都会退出，用新密码重新登录就行。</p>
+      <form id="cp" class="stack" novalidate>${pwField('原密码', 'old', 'current-password')}${pwField('新密码', 'new', 'new-password', '至少 10 位，最好是一句只有你知道的话')}
+        ${pwField('再输一次新密码', 'again', 'new-password')}<button class="btn primary" type="submit">保存新密码</button></form>
+      <p class="err" id="cpErr" role="alert"></p><button class="btn ghost" data-close type="button">取消</button></div>`, card => {
+      bindEyes(card);
+      const form = card.querySelector('#cp'), err = card.querySelector('#cpErr');
+      form.onsubmit = async e => {
+        e.preventDefault(); err.textContent = '';
+        if (form.new.value.length < 10) return fieldError(form, err, { message: '新密码至少 10 位', field: 'new' });
+        if (form.new.value !== form.again.value) return fieldError(form, err, { message: '两次输入的新密码不一样', field: 'again' });
+        const b = form.querySelector('[type=submit]'); b.disabled = true;
+        try {
+          await api('/api/password', { old_password: form.old.value, new_password: form.new.value });
+          S.user = null; S.csrf = ''; closeSheet(); await refreshHome(); route();
+          openLogin('密码已修改，请用新密码登录。', 'pw');
+        } catch (x) { fieldError(form, err, { message: x.message, field: /原密码/.test(x.message) ? 'old' : /新密码/.test(x.message) ? 'new' : '' }); b.disabled = false; }
+      };
+    });
+  }
+  // 我的数据 (account_data.py): the word book for Excel/WPS/Numbers or for Anki, or every record of the account. Plain
+  // links: the server sends them as files. WeChat does not save files, so there the way out is the phone's browser.
+  const EXPORTS = [['/api/next/export/cards.csv', '单词本 · Excel 表格', '.csv', 'export-csv'],
+    ['/api/next/export/cards-anki.txt', '单词本 · 导入 Anki', '.txt', 'export-anki'],
+    ['/api/next/export/records.json', '全部学习记录', '.json', 'export-json']];
+  function dataSheet() {
+    const n = S.home && S.home.stats ? S.home.stats.cards : null;
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">导出我的数据</h2>
+      ${IN_WECHAT ? '<p class="small card sunk">微信里不能保存文件：点右上角「…」，选「在浏览器打开」，再到「我的 → 导出我的数据」。</p>' : ''}
+      <div class="glist">${EXPORTS.map(([href, label, ext, tap], k) => `<a class="grow" href="${href}" download data-tap="${tap}"><span class="t">${label}</span><span class="v small muted">${k < 2 && n != null ? n + ' 条 · ' : ''}${ext}</span><span class="go" aria-hidden="true">↓</span></a>`).join('')}</div>
+      <p class="tiny muted">表格用 Excel、WPS 或 Numbers 直接打开：英文、中文意思、原文例句、来源和复习情况各占一列。Anki：在电脑上「文件 → 导入」选这个文件，正面是英文，背面是中文意思和原文例句。全部学习记录是一个 JSON 文件，有单词本、每次复习、学过的材料、测评和设置，留底或换地方用。</p>
+      <button class="btn ghost" data-close type="button">完成</button></div>`);
+  }
+  // 注销账号: what goes (all of it, for good), a copy first if wanted, the password once more. Afterwards this phone
+  // forgets the account too.
+  function deleteAccountSheet() {
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">注销账号</h2>
+      <p class="small">注销后，这个账号和它的全部学习记录都会删除，<b>不能恢复</b>：单词本和复习安排、学过的材料、测评和能力雷达、写作和口语的批改记录、发过的问题反馈和截图。同样的用户名和邮箱以后可以重新注册，但会从头开始。</p>
+      <p class="small">想留一份？<button class="link" id="dlFirst" type="button">先导出单词本和学习记录</button></p>
+      <form id="da" class="stack" novalidate>${pwField('输入密码确认', 'password', 'current-password')}
+        <button class="btn danger-btn" type="submit">永久注销这个账号</button></form>
+      <p class="err" id="daErr" role="alert"></p><button class="btn ghost" data-close type="button">取消</button></div>`, card => {
+      bindEyes(card);
+      card.querySelector('#dlFirst').onclick = dataSheet;
+      const form = card.querySelector('#da'), err = card.querySelector('#daErr');
+      form.onsubmit = async e => {
+        e.preventDefault(); err.textContent = '';
+        if (!form.password.value) return fieldError(form, err, { message: '请输入密码', field: 'password' });
+        const b = form.querySelector('[type=submit]'); b.disabled = true;
+        try {
+          await api('/api/account/delete', { password: form.password.value });
+          forgetAccountHere(); S.user = null; S.csrf = ''; closeSheet(); await refreshHome();
+          location.hash = '#/'; route(); toast('账号已注销，学习记录已全部删除');
+        } catch (x) { fieldError(form, err, { message: x.message, field: 'password' }); b.disabled = false; }
+      };
+    });
+  }
+  // What this phone kept for the account: the copies (snapClear) and the small notes of where the learner was.
+  // The phone's own choices (voice, text size, 复读) stay.
+  function forgetAccountHere() {
+    snapClear();
+    try {
+      ['flow-habit-lastweek', 'flow-habit-cheered', 'flow-next-mail-nudge', 'flow-next-suggest-skip', 'flow-words-stats'].forEach(k => localStorage.removeItem(k));
+      Object.keys(localStorage).filter(k => k.startsWith('flow-next-steps-')).forEach(k => localStorage.removeItem(k));
+    } catch (e) { /* private mode */ }
+  }
+  // A lost phone, a shared computer: end the account's sessions everywhere, this one included.
+  function signOutEverywhere() {
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">退出所有设备？</h2>
+      <p class="small">所有手机、平板和电脑上的语流都会退出登录，包括这一台。学习记录不会丢，重新登录就回来了。</p>
+      <button class="btn primary" id="soAll" type="button">退出所有设备</button><button class="btn ghost" data-close type="button">取消</button></div>`, card => {
+      card.querySelector('#soAll').onclick = async e => {
+        e.currentTarget.disabled = true;
+        await OUTBOX.flush(); try { await api('/api/logout', { all: true }); } catch (x) { /* signed out already */ } snapClear();
+        S.user = null; S.csrf = ''; closeSheet(); await refreshHome(); toast('已在所有设备上退出'); route();
+      };
+    });
+  }
+
 

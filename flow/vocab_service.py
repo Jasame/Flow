@@ -11,6 +11,7 @@ import math
 import os
 import random
 import re
+import sys
 import time
 from pathlib import Path
 
@@ -32,7 +33,19 @@ EXAM_BOOKS = {  # id -> (title, blurb); word lists from ECDICT's exam tags, most
     'toefl': ('托福词汇', 'TOEFL 常考词汇'),
     'gre': ('GRE 词汇', 'GRE 常考词汇，难度最高'),
 }
+EXAM_GROUP = {'cet4': '大学英语', 'cet6': '大学英语', 'ky': '大学英语', 'ielts': '出国留学', 'toefl': '出国留学', 'gre': '出国留学'}
+# The picker shows books under these headings, in this order; a data book's own group not listed here comes last.
+GROUPS = ('按词频', '中学英语', '大学英语', '英语专业', '出国留学', '学术与职场')
+# Data books (专四、专八、中考、高考…): flow/corpus_data/wordbooks*.json, read in file-name order, each
+#   {"notice": "...", "books": {"tem4": {"title", "group", "blurb", "basis", "words": [norm, … in study order]}}}
+# FLOW_WORDBOOKS (paths joined by os.pathsep) or WORDBOOK_FILES (a list, for tests) replaces the default files.
+WORDBOOK_FILES = None
+BOOK_ID = re.compile(r'[a-z][a-z0-9_-]{0,23}')
 LEVEL_BOOK = {'A2': 'core', 'B1': 'mid', 'B2': 'high', 'C1': 'adv'}
+# 「你在准备什么考试？」 at the top of the plan page: one tap picks that exam's book (「不考试」 picks suggested_book).
+# A chip shows only when its book is in the registry (the data books can be missing).
+EXAM_GOALS = (('中考', 'zk'), ('高考', 'gk'), ('四级', 'cet4'), ('六级', 'cet6'), ('考研', 'ky'), ('专四', 'tem4'),
+              ('专八', 'tem8'), ('雅思', 'ielts'), ('托福', 'toefl'), ('GRE', 'gre'))
 CORE_SKIP = 150  # "the", "be", "of"…: everyone knows them, and a flashcard of their dictionary entry helps no one
 DAILY_NEW = (5, 10, 15, 20, 30, 50, 80, 100)  # suggested; any number from 1 to DAILY_MAX is accepted
 DAILY_MAX = 200
@@ -48,6 +61,7 @@ WORD_AUDIO_DIR = Path(os.getenv('FLOW_AUDIO_DIR') or Path(__file__).resolve().pa
 ACCENTS = ('us', 'uk')
 
 _BOOK = None
+_DATA = None
 _EX = None
 _ROOTS = None
 _WA = {'mtime': None, 'index': {}}
@@ -73,6 +87,8 @@ def schema(c):
     for name, decl in (('mode', 'TEXT'), ('ms', 'INTEGER'), ('elapsed', 'REAL'), ('stability', 'REAL')):
         if name not in rcols:
             c.execute(f'ALTER TABLE next_reviews ADD COLUMN {name} {decl}')
+    # 撤销: the latest rating of each learner can be taken back for ten minutes (the card as it was, and that review)
+    c.execute('CREATE TABLE IF NOT EXISTS next_undo(user_id INTEGER PRIMARY KEY, card INTEGER NOT NULL, review INTEGER NOT NULL, prior TEXT NOT NULL, created REAL NOT NULL)')
     c.executescript('''
 CREATE TABLE IF NOT EXISTS next_vocab_plans(user_id INTEGER PRIMARY KEY REFERENCES users(id), book TEXT NOT NULL,
  daily_new INTEGER NOT NULL DEFAULT 10, retention REAL NOT NULL DEFAULT 0.9, estimate INTEGER, created REAL NOT NULL, updated REAL NOT NULL);
@@ -96,14 +112,64 @@ CREATE TABLE IF NOT EXISTS next_reminders(user_id INTEGER PRIMARY KEY REFERENCES
 
 # ---------- data ----------
 
-def book_words():
-    """book id -> [(rank, word)] in frequency order: plain lower-case words that have a Chinese meaning.
+def _warn(msg):
+    print(f'word books: {msg}', file=sys.stderr, flush=True)
 
-    Frequency books use the reference list only (so their contents never shift); exam books use ECDICT's tags."""
+
+def wordbook_files():
+    if WORDBOOK_FILES is not None:
+        return [Path(f) for f in WORDBOOK_FILES]
+    if os.getenv('FLOW_WORDBOOKS') is not None:
+        return [Path(f) for f in os.environ['FLOW_WORDBOOKS'].split(os.pathsep) if f.strip()]
+    return sorted((Path(__file__).resolve().parent / 'corpus_data').glob('wordbooks*.json'))
+
+
+def _line(v, limit):
+    return ' '.join(v.split())[:limit] if isinstance(v, str) else ''
+
+
+def data_books():
+    """Word books from the data files: id -> {title, group, blurb, basis, words, file}, in file order.
+
+    A missing or broken file adds nothing; a book with a bad or taken id (a built-in book, or one from an earlier
+    file) is left out. Words are checked against the dictionary in book_words(). Problems are logged, never raised."""
+    global _DATA
+    if _DATA is None:
+        out = {}
+        for f in wordbook_files():
+            try:
+                books = json.loads(f.read_text(encoding='utf-8'))['books']
+                if not isinstance(books, dict):
+                    raise ValueError('"books" is not an object')
+            except FileNotFoundError:
+                _warn(f'{f.name}: not found'); continue
+            except (OSError, ValueError, KeyError, TypeError) as e:
+                _warn(f'{f.name}: not used ({type(e).__name__}: {e})'); continue
+            for bid, b in books.items():
+                if not isinstance(bid, str) or not BOOK_ID.fullmatch(bid):
+                    _warn(f'{f.name}: book id {bid!r} is not a short lower-case id, left out'); continue
+                if bid in BOOKS or bid in EXAM_BOOKS or bid in out:
+                    _warn(f"{f.name}: book id {bid!r} is already {'built in' if bid not in out else 'used by ' + out[bid]['file']}, left out"); continue
+                if not isinstance(b, dict) or not _line(b.get('title'), 30) or not isinstance(b.get('words'), list):
+                    _warn(f'{f.name}: {bid} has no title or no word list, left out'); continue
+                words = [w.strip().lower() for w in b['words'] if isinstance(w, str) and w.strip()]
+                out[bid] = {'title': _line(b['title'], 30), 'group': _line(b.get('group'), 12) or '其他词书', 'blurb': _line(b.get('blurb'), 80),
+                            'basis': _line(b.get('basis'), 400), 'words': list(dict.fromkeys(words)), 'file': f.name}
+        _DATA = out
+    return _DATA
+
+
+def book_words():
+    """book id -> [(rank, word)]: plain lower-case words that have a Chinese meaning (rank: frequency rank).
+
+    Frequency books use the reference list only (so their contents never shift); exam books use ECDICT's tags; both
+    are in frequency order. Data books keep their file's study order, without the words the dictionary lacks; a data
+    book left with no word is not offered at all."""
     global _BOOK
     if _BOOK is None:
+        d = nx.dictionary()
         out = {k: [] for k in (*BOOKS, *EXAM_BOOKS)}
-        for norm, e in nx.dictionary().items():
+        for norm, e in d.items():
             if not re.fullmatch(r'[a-z]+(?:-[a-z]+)*', norm) or len(norm) < 2 or not e['meaning'] or e['word'][:1].isupper():
                 continue
             if e.get('ref', True):
@@ -116,12 +182,43 @@ def book_words():
                     out[t].append((e['rank'], norm))
         for v in out.values():
             v.sort()
+        for bid, b in data_books().items():
+            ok = [(d[w].get('rank') or 99999, w) for w in b['words'] if re.fullmatch(r'[a-z]+(?:-[a-z]+)*', w) and (d.get(w) or {}).get('meaning')]
+            if len(ok) < len(b['words']):
+                kept = {w for _, w in ok}
+                gone = [w for w in b['words'] if w not in kept]
+                _warn(f"{b['file']}: {bid} skips {len(gone)} of {len(b['words'])} words not in the dictionary or without a meaning, e.g. {gone[:5]}")
+            if ok:
+                out[bid] = ok
+            else:
+                _warn(f"{b['file']}: {bid} has no usable word, not offered")
         _BOOK = out
     return _BOOK
 
 
 def book_title(book):
-    return (BOOKS.get(book) or EXAM_BOOKS.get(book) or ('词书',))[0]
+    if book in BOOKS or book in EXAM_BOOKS:
+        return (BOOKS.get(book) or EXAM_BOOKS.get(book))[0]
+    return (data_books().get(book) or {}).get('title') or '词书'
+
+
+def registry():
+    """Every word book a learner can choose, grouped in GROUPS order (books keep their order inside a group):
+    [{id, kind (freq | exam | data), title, group, blurb, count, size (= count), range (freq), basis (data)}]."""
+    bw = book_words()
+    items = ([{'id': k, 'kind': 'freq', 'title': v[0], 'group': '按词频', 'blurb': v[3], 'range': f'{v[1]}–{v[2]}'} for k, v in BOOKS.items()]
+             + [{'id': k, 'kind': 'exam', 'title': v[0], 'group': EXAM_GROUP.get(k, '其他词书'), 'blurb': v[1]} for k, v in EXAM_BOOKS.items()]
+             + [{'id': k, 'kind': 'data', 'title': b['title'], 'group': b['group'], 'blurb': b['blurb'], 'basis': b['basis']}
+                for k, b in data_books().items() if k in bw])
+    for b in items:
+        b['count'] = b['size'] = len(bw[b['id']])
+    order = list(GROUPS) + list(dict.fromkeys(b['group'] for b in items if b['group'] not in GROUPS))
+    return sorted(items, key=lambda b: order.index(b['group']))
+
+
+def book_groups(books):
+    """The group headings, in order, that have at least one book."""
+    return list(dict.fromkeys(b['group'] for b in books))
 
 
 def examples_index():
@@ -226,10 +323,10 @@ def extra_examples(c, norm):
 
 def word_audio(norm):
     """{accent: [sprite, start, end]} for a word's pre-generated pronunciation (tools/gen_word_audio.py)."""
-    f = WORD_AUDIO_DIR / 'index.json'
+    f = __import__('media').path('words/index.json', WORD_AUDIO_DIR / 'index.json')  # kept in step with R2 when in use
     try:
         m = f.stat().st_mtime
-    except OSError:
+    except (OSError, AttributeError):
         return {}
     if _WA['mtime'] != m:
         _WA['index'], _WA['mtime'] = json.loads(f.read_text()), m
@@ -237,10 +334,9 @@ def word_audio(norm):
 
 
 def word_audio_file(accent, sprite):
-    if accent not in ACCENTS or not re.fullmatch(r'[wxp]\d{3}', sprite or ''):
+    if accent not in ACCENTS or not re.fullmatch(r'[wxpb]\d{3}', sprite or ''):
         return None
-    f = WORD_AUDIO_DIR / accent / f'{sprite}.m4a'
-    return f if f.is_file() else None
+    return __import__('media').path(f'words/{accent}/{sprite}.m4a', WORD_AUDIO_DIR / accent / f'{sprite}.m4a')
 
 
 # ---------- helpers ----------
@@ -335,7 +431,7 @@ def introduce(c, uid, now=None):
         return 0
     have = {r[0] for r in c.execute('SELECT norm FROM next_cards WHERE user_id=?', (uid,))}
     d = nx.dictionary()
-    skip = (p.get('skip_rank') or 0) if p['book'] in EXAM_BOOKS else CORE_SKIP if p['book'] == 'core' else 0  # frequency books: chosen by level
+    skip = _skip_below(p['book'], p.get('skip_rank'))
     added = 0
     for rank, w in book_words()[p['book']]:
         if w in have or (skip and rank <= skip):
@@ -392,11 +488,36 @@ def rate(c, uid, data):
         known = 1  # done with: it leaves the review queue (the same mistake made again brings it back)
     c.execute('UPDATE next_cards SET state=?, step=?, stability=?, difficulty=?, last=?, due=?, lapses=?, interval=?, reps=reps+1, known=? WHERE id=?',
               (n['state'], n['step'], n['stability'], n['difficulty'], n['last'], n['due'], n['lapses'], n['interval'], known, r['id']))
-    c.execute('INSERT INTO next_reviews(user_id,card,rating,created,mode,ms,elapsed,stability) VALUES(?,?,?,?,?,?,?,?)',
-              (uid, r['id'], rating, now, m, ms, elapsed, n['stability']))
+    rid = c.execute('INSERT INTO next_reviews(user_id,card,rating,created,mode,ms,elapsed,stability) VALUES(?,?,?,?,?,?,?,?)',
+                    (uid, r['id'], rating, now, m, ms, elapsed, n['stability'])).lastrowid
+    c.execute('INSERT OR REPLACE INTO next_undo VALUES(?,?,?,?,?)', (uid, r['id'], rid, json.dumps({k: r[k] for k in UNDO_FIELDS}), time.time()))
     c.commit()
     r2 = c.execute('SELECT * FROM next_cards WHERE id=?', (r['id'],)).fetchone()
     return {'card': card_out(r2, now), 'outcome': outcome, **counts(c, uid, now)}, 200
+
+
+UNDO_FIELDS = ('state', 'step', 'stability', 'difficulty', 'last', 'due', 'lapses', 'interval', 'reps', 'known')
+UNDO_SECONDS = 600
+
+
+def undo(c, uid, data):
+    """Take back the learner's latest rating (a slip of the finger): the card as it was, that review gone. Only the
+    latest, only within ten minutes, only for the card named."""
+    u = c.execute('SELECT * FROM next_undo WHERE user_id=?', (uid,)).fetchone()
+    try:
+        card = int(data.get('id') or 0)
+    except (TypeError, ValueError):
+        card = 0
+    if not u or u['card'] != card or time.time() - u['created'] > UNDO_SECONDS:
+        return {'error': '这一张已经不能撤销了'}, 409
+    prior = json.loads(u['prior'])
+    c.execute('UPDATE next_cards SET ' + ', '.join(f'{k}=?' for k in UNDO_FIELDS) + ' WHERE id=? AND user_id=?',
+              (*[prior[k] for k in UNDO_FIELDS], card, uid))
+    c.execute('DELETE FROM next_reviews WHERE id=? AND user_id=?', (u['review'], uid))
+    c.execute('DELETE FROM next_undo WHERE user_id=?', (uid,))
+    c.commit()
+    now = time.time()
+    return {'card': card_out(c.execute('SELECT * FROM next_cards WHERE id=?', (card,)).fetchone(), now), **counts(c, uid, now)}, 200
 
 
 MISSES_A_DAY = 2  # a card missed this many times today waits for tomorrow: a review session always ends
@@ -444,7 +565,7 @@ def more_new(c, uid, data):
     now = time.time()
     have = {r[0] for r in c.execute('SELECT norm FROM next_cards WHERE user_id=?', (uid,))}
     d = nx.dictionary()
-    skip = (p.get('skip_rank') or 0) if p['book'] in EXAM_BOOKS else CORE_SKIP if p['book'] == 'core' else 0
+    skip = _skip_below(p['book'], p.get('skip_rank'))
     added = 0
     for rank, w in book_words()[p['book']]:
         if w in have or (skip and rank <= skip):
@@ -504,19 +625,19 @@ def mine_in_text(c, uid, text):
 
 # ---------- plan, stats, test, import ----------
 
-def books_meta():
-    bw = book_words()
-    return ([{'id': k, 'kind': 'freq', 'title': v[0], 'blurb': v[3], 'size': len(bw[k]), 'range': f'{v[1]}–{v[2]}'} for k, v in BOOKS.items()]
-            + [{'id': k, 'kind': 'exam', 'title': v[0], 'blurb': v[1], 'size': len(bw[k])} for k, v in EXAM_BOOKS.items()])
+def _skip_below(book, skip_rank):
+    """Frequency rank up to which a plan leaves a book's words out: the everyday words of the first frequency book;
+    in exam and data books, the bands the vocabulary test showed as known (skip_rank); other frequency books are
+    chosen by level and skip nothing."""
+    if book == 'core':
+        return CORE_SKIP
+    return 0 if book in BOOKS else (skip_rank or 0)
 
 
 def _skipped(book, skip_rank, force=False):
-    """Words a plan leaves out: everyday words for the first frequency book, words the test showed as known for exam books."""
-    if book == 'core':
-        return sum(1 for r, _ in book_words()[book] if r <= CORE_SKIP)
-    if book in EXAM_BOOKS and skip_rank:
-        return sum(1 for r, _ in book_words()[book] if r <= skip_rank)
-    return 0
+    """How many words a plan leaves out (see _skip_below)."""
+    skip = _skip_below(book, skip_rank)
+    return sum(1 for r, _ in book_words().get(book, ()) if r <= skip) if skip else 0
 
 
 def overview(c, uid):
@@ -548,17 +669,19 @@ def overview(c, uid):
         left = max(0, len(words) - started - skipped)
         book = {'id': p['book'], 'title': book_title(p['book']), 'size': len(words), 'started': started, 'skipped': skipped,
                 'finish': nx._day(now + math.ceil(left / max(1, p['daily_new'])) * fsrs.DAY) if left else None}
-    books = books_meta()
+    books = registry()
     for b in books:  # how many words a plan would skip in each book, for the estimate on the plan page
         b['skippable'] = _skipped(b['id'], ((p.get('test_skip') or skip_rank) if p else 0) or 0, force=True)
-    return {'plan': p, 'book': book, 'books': books, 'daily_new_options': list(DAILY_NEW), 'retention_options': list(RETENTION),
+    ids = {b['id'] for b in books}
+    return {'plan': p, 'book': book, 'books': books, 'groups': book_groups(books), 'daily_new_options': list(DAILY_NEW), 'retention_options': list(RETENTION),
+            'exam_goals': [{'title': t, 'book': b, 'exam': b in __import__('exam_service').EXAMS} for t, b in EXAM_GOALS if b in ids],
             'suggested_book': (p.get('suggest') if p and p.get('suggest') in book_words() else None) or LEVEL_BOOK.get(_level(c, uid), 'mid'), 'mastered': mastered, 'learning': learning, 'total': len(rows),
             'forecast': forecast, 'calendar': calendar, 'reminder': reminder(c, uid), **counts(c, uid, now)}
 
 
 def save_plan(c, uid, data):
     book = data.get('book')
-    if book not in BOOKS and book not in EXAM_BOOKS:
+    if not isinstance(book, str) or book not in book_words():  # built-in books, and the data books that have words
         return {'error': '请选择词书'}, 400
     daily = data.get('daily_new', 10)
     retention = data.get('retention', 0.9)
@@ -643,8 +766,10 @@ def score_test(c, uid, data):
         c.execute('UPDATE next_vocab_plans SET estimate=?, skip_rank=?, test_skip=?, suggest=?, updated=? WHERE user_id=?',
                   (estimate, skip_rank, skip_rank, suggest, time.time(), uid))
         c.commit()
+        ar = __import__('ability_radar')  # the vocabulary test is the radar's vocabulary assessment
+        ar.record(c, uid, 'vocab', ar.vocab_index(estimate), {'estimate': estimate})
     return {'estimate': estimate, 'suggest': suggest, 'bands': {k: round(v, 2) for k, v in known.items()}, 'ceiling': ceiling,
-            'titles': {**{k: v[0] for k, v in BOOKS.items()}, **{k: v[0] for k, v in EXAM_BOOKS.items()}, 'beyond': '超纲难词'},
+            'titles': {**{b['id']: b['title'] for b in registry()}, 'beyond': '超纲难词'},
             'guessing': fa > 0.2, 'skip_rank': skip_rank}, 200
 
 
@@ -737,41 +862,63 @@ def add_many(c, uid, data):
     return {'added': added, 'skipped': skipped, **counts(c, uid, now)}, 200
 
 
-def ai_examples(c, uid, data):
-    """One AI call writes example sentences for up to 8 words that no material uses; cached for everyone."""
-    from lab_service import run_job, text as clean_text
-    from chat_service import request_model
-    words = [w for w in (data.get('words') or []) if isinstance(w, str) and re.fullmatch(r'[a-z]+(?:-[a-z]+)*', w)][:8]
+def example_messages(words, level):
+    """The chat messages that ask for one example sentence (and its translation) per word; shared by the learner's
+    request (ai_examples) and the batch that writes them ahead of time (fill_examples.py)."""
     d = nx.dictionary()
-    words = [w for w in dict.fromkeys(words) if w in d and not examples(w) and not extra_examples(c, w)]
-    if not words:
-        return {'examples': {}}, 200
-    level = _level(c, uid)
     system = '你是英语词典编辑。为每个单词写一个自然、常用、贴近生活的英文例句（10–20 词，' + level + ' 学习者能读懂），并给出准确的中文翻译。只输出 JSON。'
     user = ('单词（附中文义项）：\n' + '\n'.join(f'{w}：{short_meaning(d[w]["meaning"])}' for w in words) +
             '\n\n输出 JSON：{"examples":[{"word":"单词原形","sentence":"英文例句（必须包含这个词或它的变形）","translation":"中文翻译"}]}')
+    return [{'role': 'system', 'content': system}, {'role': 'user', 'content': user}]
+
+
+def example_results(raw, words):
+    """{word: {sentence, translation}} from the model's JSON: only sentences that really use the word (or a form of it)."""
+    from lab_service import text as clean_text
+    out = {}
+    for e in (raw.get('examples') if isinstance(raw, dict) else None) or []:
+        if not isinstance(e, dict) or e.get('word') not in words or not isinstance(e.get('sentence'), str):
+            continue
+        sent = clean_text(e['sentence'], 8, 240)
+        lemmas = {(nx.lookup(t) or {}).get('lemma') for t in nx.WORD.findall(sent)}
+        if e['word'] in lemmas or e['word'] in sent.lower():
+            out[e['word']] = {'sentence': sent, 'translation': clean_text(e.get('translation') or '', 0, 240)}
+    return out
+
+
+def save_examples(c, made, now=None):
+    now = now or time.time()
+    for w, e in made.items():
+        c.execute('INSERT OR IGNORE INTO next_word_examples VALUES(?,?,?,?)', (w, e['sentence'], e['translation'], now))
+    c.commit()
+
+
+def needs_example(c, w):
+    """No sentence from Flow's texts, no dictionary example and no AI example cached yet."""
+    return not examples(w) and not extra_examples(c, w)
+
+
+def ai_examples(c, uid, data):
+    """One AI call writes example sentences for up to 8 words that no material uses; cached for everyone."""
+    from lab_service import run_job
+    from chat_service import request_model
+    words = [w for w in (data.get('words') or []) if isinstance(w, str) and re.fullmatch(r'[a-z]+(?:-[a-z]+)*', w)][:8]
+    d = nx.dictionary()
+    words = [w for w in dict.fromkeys(words) if w in d and needs_example(c, w)]
+    if not words:
+        return {'examples': {}}, 200
 
     def convert(raw):
-        out = {}
-        for e in (raw.get('examples') if isinstance(raw, dict) else None) or []:
-            if not isinstance(e, dict) or e.get('word') not in words or not isinstance(e.get('sentence'), str):
-                continue
-            sent = clean_text(e['sentence'], 8, 240)
-            lemmas = {(nx.lookup(t) or {}).get('lemma') for t in nx.WORD.findall(sent)}
-            if e['word'] in lemmas or e['word'] in sent.lower():
-                out[e['word']] = {'sentence': sent, 'translation': clean_text(e.get('translation') or '', 0, 240)}
+        out = example_results(raw, words)
         if not out:
             raise ValueError('no usable examples')
         return out
 
     result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-examples', 'vocab', 'vocabulary', {'words': words},
-                             lambda: request_model([{'role': 'system', 'content': system}, {'role': 'user', 'content': user}]), convert)
+                             lambda: request_model(example_messages(words, _level(c, uid))), convert)
     if status != 200:
         return result, status
-    now = time.time()
-    for w, e in result['result'].items():
-        c.execute('INSERT OR IGNORE INTO next_word_examples VALUES(?,?,?,?)', (w, e['sentence'], e['translation'], now))
-    c.commit()
+    save_examples(c, result['result'])
     made = {w: [{'pack': None, 'i': None, 'text': e['sentence'], 'form': w, 'title': 'AI 例句', 'zh': e['translation'], 'audio': 0, 'ai': True}]
             for w, e in result['result'].items()}
     return {'examples': made, 'remaining': result.get('remaining')}, 200
@@ -826,7 +973,7 @@ def send_reminders(c, now=None, send=None):
     now = now or time.time()
     local = datetime.datetime.fromtimestamp(now, nx.TZ)
     today = local.date().isoformat()
-    origin = os.getenv('FLOW_PUBLIC_URL', 'https://flow.jasa.hk').rstrip('/')
+    origin = os.getenv('FLOW_PUBLIC_URL', 'https://flowlang.cn').rstrip('/')
     if send is None:
         from account_service import mail as send
     if 'email' not in {x[1] for x in c.execute('PRAGMA table_info(users)')}:
@@ -835,12 +982,13 @@ def send_reminders(c, now=None, send=None):
                      "WHERE r.enabled=1 AND r.hour=? AND (r.last_sent IS NULL OR r.last_sent<?) AND u.email IS NOT NULL AND u.email!=''",
                      (local.hour, today)).fetchall()
     sent = 0
+    weekly = __import__('progress_service').mailed_today
     for r in rows:
         introduce(c, r['user_id'], now)
         n = counts(c, r['user_id'], now)
         c.execute('UPDATE next_reminders SET last_sent=? WHERE user_id=?', (today, r['user_id']))
         c.commit()
-        if not n['due'] and not n['new']:
+        if not n['due'] and not n['new'] or weekly(c, r['user_id'], now):  # Sunday evening: the weekly mail said it already
             continue
         text = (f"{r['username']}，你好：\n\n今天有 {n['due']} 个单词该复习了" + (f"，还有 {n['new']} 个新词" if n['new'] else '') +
                 f"，大约 {n['minutes']} 分钟。\n记忆曲线到点了，现在复习效果最好：{origin}/#/review\n\n"
@@ -859,7 +1007,7 @@ def ics(hour, kind='vocab', minutes=10):
     import os
     hour = hour if hour in REMIND_HOURS else 20
     minutes = minutes if minutes in (5, 10, 15, 20, 30) else 10
-    origin = os.getenv('FLOW_PUBLIC_URL', 'https://flow.jasa.hk').rstrip('/')
+    origin = os.getenv('FLOW_PUBLIC_URL', 'https://flowlang.cn').rstrip('/')
     start = datetime.datetime.now(nx.TZ).replace(hour=hour, minute=0, second=0, microsecond=0)
     utc = start.astimezone(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     stamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
@@ -927,4 +1075,6 @@ def post(c, uid, path, data):
         return more_new(c, uid, data)
     if path == '/api/next/review':
         return rate(c, uid, data)
+    if path == '/api/next/review/undo':
+        return undo(c, uid, data)
     return None

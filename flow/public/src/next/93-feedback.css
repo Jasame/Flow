@@ -1,0 +1,11 @@
+/* 问题反馈: up to three screenshot thumbnails in a row, each with a button to take it out again */
+.fb-shots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.fb-shots:empty{display:none}
+.fb-shot{position:relative;aspect-ratio:9/16;border-radius:12px;overflow:hidden;background:var(--sunk)}
+.fb-shot img{display:block;width:100%;height:100%;object-fit:cover}
+.fb-shot button{position:absolute;top:4px;right:4px;width:36px;height:36px;border:0;border-radius:50%;font-size:20px;line-height:36px;
+  background:color-mix(in srgb,var(--ink) 72%,transparent);color:var(--bg)}
+#fbAdd{cursor:pointer}
+#fbAdd.busy{opacity:.6;pointer-events:none}
+.fb .err:empty{display:none}
+.fb-done .big{font-size:40px;color:var(--green)}

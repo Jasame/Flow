@@ -66,10 +66,11 @@ def check_requirements(files):
                 continue
             if directory + '/' + name not in files:
                 raise ValueError('Missing upgrade input: ' + directory + '/' + name)
-    page = files['flow/public/index.html'].decode()
-    for asset in re.findall(r'(?:src|href)="/([^"?]+)', page):
-        if 'flow/public/' + asset not in files:
-            raise ValueError('Missing frontend asset: ' + asset)
+    for page_name in ('flow/public/next.html', 'flow/public/survey.html', 'flow/public/about.html'):
+        page = files[page_name].decode()
+        for asset in re.findall(r'(?:src|href)="/([^"?]+)', page):
+            if asset.endswith(('.js', '.css', '.png', '.woff2', '.webmanifest')) and 'flow/public/' + asset not in files:
+                raise ValueError('Missing frontend asset: ' + asset)
     if not any(n.startswith('flow/tests/') for n in files):
         raise ValueError('Missing website tests')
     if 'flow-gateway/tests/test_gateway.py' not in files:

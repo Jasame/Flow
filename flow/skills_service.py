@@ -195,14 +195,15 @@ def daily_path(c, uid, home, now=None):
     n = vs.counts(c, uid, now)
     pick = (home.get('today') or [None])[0]
     # The material studied today stays "today's" even after it is finished (the recommendations move on).
-    row = c.execute("SELECT pack FROM next_progress WHERE user_id=? AND created>=? ORDER BY (step IN ('check','output')) DESC, created DESC LIMIT 1",
-                    (uid, start)).fetchone()
+    # Today's steps, a text studied again included (progress_service.steps_since: next_progress keeps the first time only).
+    import progress_service as ps
+    today_steps = ps.steps_since(c, uid, start)
+    row = max(today_steps, key=lambda r: (r['step'] in ('check', 'output'), r['created']), default=None)
     if row:
         pr = nx._pack_row(c, uid, row['pack'])
         if pr:
             pick = {'id': row['pack'], 'title': json.loads(pr['content'])['title']}
-    done_steps = {r['step'] for r in c.execute('SELECT step FROM next_progress WHERE user_id=? AND pack=? AND created>=?',
-                                                (uid, pick['id'] if pick else '', start))}
+    done_steps = {r['step'] for r in today_steps if pick and r['pack'] == pick['id']}
     kind_n = {r['kind']: r['n'] for r in c.execute('SELECT kind, COUNT(*) n FROM next_skill_events WHERE user_id=? AND created>=? GROUP BY kind', (uid, start))}
     today_kinds = set(kind_n)
     steps = []
@@ -210,20 +211,33 @@ def daily_path(c, uid, home, now=None):
     title = '单词：' + ' · '.join(x for x in (f"复习 {n['due']}" if n['due'] else '', f"新词 {n['new']}" if n['new'] else '') if x) if todo else '单词'
     steps.append({'key': 'review', 'title': title, 'sub': f"约 {n['minutes']} 分钟" if todo else '今天的都完成了',
                   'href': '#/review', 'done': not todo})
+    if minutes >= 10:
+        # 复听 (relisten_service): a text from a few days ago heard again without the words, before today's new one
+        import relisten_service as rl
+        heard, waiting = rl.today(c, uid, start), None
+        if not heard:
+            waiting = next(iter(rl.due(c, uid, now, exclude={pick['id']} if pick else set())), None)
+        it = {'pack': heard[-1]['pack']} if heard else waiting
+        row3 = it and nx._pack_row(c, uid, it['pack'])
+        if row3:
+            name = json.loads(row3['content'])['title']
+            ago = max(1, round((now - waiting['first']) / 86400)) if waiting else 0
+            steps.append({'key': 'relisten', 'title': '复听：' + name, 'href': f"#/m/{it['pack']}/listen/again", 'done': bool(heard),
+                          'sub': f"今天复听过了：听懂了{rl.LABELS[heard[-1]['understood']]}" if heard else f'{ago} 天前学过 · 先不看原文听一遍，约 3 分钟'})
     if pick:
         steps.append({'key': 'read', 'title': '今天这篇', 'sub': pick['title'], 'href': f"#/m/{pick['id']}",
                       'done': 'check' in done_steps or 'output' in done_steps})
     if minutes >= 45 and pick:
         # A longer day gets a second material: the next recommendation, or the one already started today.
         other = next((m for m in (home.get('today') or []) if m and m['id'] != pick['id']), None)
-        row2 = c.execute("SELECT pack FROM next_progress WHERE user_id=? AND created>=? AND pack!=? ORDER BY created DESC LIMIT 1",
-                         (uid, start, pick['id'])).fetchone()
+        row2 = next((r for r in reversed(today_steps) if r['pack'] != pick['id']), None)
         if row2 and nx._pack_row(c, uid, row2['pack']):
             other = {'id': row2['pack'], 'title': json.loads(nx._pack_row(c, uid, row2['pack'])['content'])['title']}
         if other:
-            st2 = {r['step'] for r in c.execute('SELECT step FROM next_progress WHERE user_id=? AND pack=? AND created>=?', (uid, other['id'], start))}
+            st2 = {r['step'] for r in today_steps if r['pack'] == other['id']}
             steps.append({'key': 'read2', 'title': '再读一篇', 'sub': other['title'], 'href': f"#/m/{other['id']}", 'done': 'check' in st2 or 'output' in st2})
-    weakest = ability(c, uid, now)['weakest']
+    # With goals set, the output step works on the skill furthest from its goal on the radar; otherwise the weakest estimate.
+    weakest = __import__('ability_radar').weakest(c, uid, now) or ability(c, uid, now)['weakest']
     level = prof.get('level') or 'B1'
     if level == 'A2' and minutes <= 10 and 'say' not in today_kinds:
         key, title, sub = 'sounds', '发音入门', '容易混的音，听辨 + 跟读'
@@ -253,13 +267,36 @@ def daily_path(c, uid, home, now=None):
             names = '、'.join(titles.get(n, {}).get('title', n) for n in nodes[:2]) + (f' 等 {len(nodes)} 个点' if len(nodes) > 2 else '')
             steps.append({'key': 'grammar', 'title': '语法混合复习：' + names, 'href': '#/mix',
                           'sub': f'{size} 道题混着做，约 {max(2, size // 2)} 分钟', 'done': False})
-    if prof.get('goal') == 'exam' and minutes >= 10:
+    # 考试冲刺 (exam_sprint): in the last four weeks before the learner's exam, the weekly set of that exam and a round
+    # on its grammar points join the plan, whatever the minutes.
+    sprint = home.get('sprint') if 'sprint' in home else __import__('exam_sprint').brief(c, uid, now)
+    sprinting = bool(sprint and sprint['sprint'])
+    if (prof.get('goal') == 'exam' and minutes >= 10) or sprinting:
         # One practice set a week: shown when the last one is a week old (or none yet), ticked on the day it is done.
-        last = c.execute('SELECT MAX(created) t FROM next_exam_results WHERE user_id=?', (uid,)).fetchone()['t']
+        ex = sprint['exam'] if sprint else ''
+        last = c.execute('SELECT MAX(created) t FROM next_exam_results WHERE user_id=?' + (' AND exam=?' if ex else ''), (uid, ex) if ex else (uid,)).fetchone()['t']
+        title, href = ('考试练习：' + sprint['short'], '#/exam/' + ex) if ex else ('考试练习', '#/exam')
         if last and last >= start:
-            steps.append({'key': 'exam', 'title': '考试练习', 'sub': '这周的一套做完了', 'href': '#/exam', 'done': True})
+            steps.append({'key': 'exam', 'title': title, 'sub': '这周的一套做完了', 'href': href, 'done': True})
         elif not last or last < now - 6 * 86400:
-            steps.append({'key': 'exam', 'title': '考试练习', 'sub': '每周一套：词汇、语法、阅读，约 15–20 分钟', 'href': '#/exam', 'done': False})
+            steps.append({'key': 'exam', 'title': title, 'sub': f"考前 {sprint['days']} 天 · 每周一套：词汇、语法、阅读，约 15–20 分钟" if sprinting else '每周一套：词汇、语法、阅读，约 15–20 分钟',
+                          'href': href, 'done': False})
+    if sprinting:
+        import exam_sprint as sp
+        answered = sp.grammar_today(c, uid, now)
+        pts = sp.grammar_nodes(c, uid, sprint['exam'], now)[:6]
+        if pts:
+            titles = nx.nodes_meta(c)
+            names = '、'.join(titles.get(n, {}).get('title', n) for n in pts[:2]) + (f' 等 {len(pts)} 个点' if len(pts) > 2 else '')
+            steps.append({'key': 'exam-grammar', 'title': f"考点语法：{names}", 'href': '#/mix/exam/' + sprint['exam'], 'done': answered >= 4,
+                          'sub': f'今天做了 {answered} 题' if answered >= 4 else f"{sprint['short']}常考的语法点混着练，8 道题，约 4 分钟"})
+    stale = __import__('ability_radar').due_today(c, uid, now)
+    last_test = c.execute('SELECT MAX(created) FROM next_assess WHERE user_id=?', (uid,)).fetchone()[0]
+    if stale and not (last_test and start - 2 * 86400 <= last_test < start):  # a test every few days, not every day
+        tested = c.execute('SELECT COUNT(*) FROM next_assess WHERE user_id=? AND created>=?', (uid, start)).fetchone()[0]
+        names = '、'.join(dict(__import__('ability_radar').DIMS)[k] for k in stale[:3])
+        steps.append({'key': 'assess', 'title': '能力测评', 'href': '#/radar/test', 'done': bool(tested),
+                      'sub': '今天测过了，雷达图已更新' if tested else f'{names}{"等" if len(stale) > 3 else ""}该测一测了，选一项就行，约 5 分钟'})
     if minutes >= 30:
         # Easy reading: a lot of easy text builds fluency; one short text a day on longer days.
         n_easy = __import__('easy_reading').read_today(c, uid, start)
@@ -289,7 +326,8 @@ def report(c, uid, now=None):
     q = lambda sql, *a: c.execute(sql, a).fetchone()[0]
     days = set()
     for (t,) in c.execute('SELECT created FROM next_progress WHERE user_id=? AND created>? UNION ALL SELECT created FROM next_reviews WHERE user_id=? AND created>? '
-                          'UNION ALL SELECT created FROM next_skill_events WHERE user_id=? AND created>?', (uid, week, uid, week, uid, week)):
+                          'UNION ALL SELECT created FROM next_skill_events WHERE user_id=? AND created>? UNION ALL SELECT created FROM next_relisten WHERE user_id=? AND created>?',
+                          (uid, week, uid, week, uid, week, uid, week)):
         days.add(nx._day(t))
     evts = _events(c, uid, prev)
     def avg(sk, lo, hi):
@@ -298,18 +336,22 @@ def report(c, uid, now=None):
     skills = [{'id': sk, 'label': SKILLS[sk], 'now': avg(sk, week, now), 'before': avg(sk, prev, week),
                'count': sum(1 for e in evts if e['skill'] == sk and e['created'] > week)} for sk in EVENT_SKILLS]
     reviews = q("SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND created>? AND rating IN ('again','hard','good','easy')", uid, week)
-    learned = q("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND kind='word' AND created>?", uid, week)
+    import progress_service as ps
+    learned = ps.new_words(c, uid, week, now + 1)  # first answered this week, not just put into the queue
     mastered = q("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND kind='word' AND stability>=21 AND last>?", uid, week)
     fixed = q("SELECT COUNT(DISTINCT r.card) FROM next_reviews r JOIN next_cards k ON k.id=r.card WHERE r.user_id=? AND r.created>? AND k.source='mistake' AND r.rating IN ('good','easy')", uid, week)
     new_mistakes = q("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND source='mistake' AND created>?", uid, week)
-    materials = q("SELECT COUNT(DISTINCT pack) FROM next_progress WHERE user_id=? AND step='check' AND created>?", uid, week)
+    materials = len(ps._finished(c, uid, week, now + 1))  # a text studied again this week counts too
     outputs = q("SELECT COUNT(*) FROM next_skill_events WHERE user_id=? AND created>? AND kind IN ('rewrite','retell','dialog','essay','translate')", uid, week)
     minutes = round(reviews * 0.15 + materials * 9 + outputs * 4 + q('SELECT COUNT(*) FROM next_skill_events WHERE user_id=? AND created>?', uid, week) * 0.5)
     meta = nx.nodes_meta(c)
     watch = [{'id': n, 'title': meta.get(n, {}).get('title', n)} for n, s in nx.graph_states(c, uid).items() if s['status'] == 'watch'][:3]
     ab = ability(c, uid, now)
     focus = None
-    if ab['weakest']:
+    backlog = __import__('vocab_service').counts(c, uid, now)['due']
+    if backlog > 100:  # a pile of words due comes first: it only grows while other things are practised
+        focus = f'先把单词积压清掉：现在有 {backlog} 个单词到了复习时间。下周每天先复习一轮，再学新的内容。'
+    elif ab['weakest']:
         name = SKILLS[ab['weakest']]
         what = {'speaking': '每天复述一篇或和 AI 对话一轮', 'writing': '写一段短文让 AI 批改', 'listening': '每天听写三句', 'reading': '先读懂再做理解题'}
         focus = f"{name}是现在最弱的一项，下周{what.get(ab['weakest'], '多练这一项')}。"
@@ -317,43 +359,32 @@ def report(c, uid, now=None):
         focus = '这周还没开始：每天 10 分钟，先从今天这篇开始。'
     return {'from': nx._day(now - 6 * 86400), 'to': nx._day(now), 'days': len(days), 'minutes': minutes, 'materials': materials, 'outputs': outputs,
             'reviews': reviews, 'learned': learned, 'mastered': mastered, 'mistakes_new': new_mistakes, 'mistakes_fixed': fixed,
-            'skills': skills, 'watch': watch, 'focus': focus, 'ability': ab['skills']}
+            'skills': skills, 'watch': watch, 'focus': focus, 'ability': ab['skills'], 'relisten': __import__('relisten_service').week(c, uid, week),
+            **_week_more(c, uid, now, week, prev)}
+
+
+def _week_more(c, uid, now, week, prev):
+    """The rest of the week: easy reading (texts, words, speed), speaking scenes, and how the ability radar moved."""
+    import ability_radar as ar, scenarios
+    n, words, wpm = c.execute('SELECT COUNT(*), COALESCE(SUM(words),0), AVG(wpm) FROM next_easy_reads WHERE user_id=? AND created>?', (uid, week)).fetchone()
+    wpm0 = c.execute('SELECT AVG(wpm) FROM next_easy_reads WHERE user_id=? AND created>? AND created<=?', (uid, prev, week)).fetchone()[0]
+    scene = lambda since: {r[0][6:] for r in c.execute("SELECT DISTINCT pack FROM next_skill_events WHERE user_id=? AND kind='dialog' AND pack LIKE 'scene-%' AND created>?", (uid, since))} & set(scenarios.SCENES)
+    g, chosen = ar.goals(c, uid)
+    snaps = [(r[0], json.loads(r[1]), r[2]) for r in c.execute('SELECT created, scores, source FROM next_radar WHERE user_id=? ORDER BY created', (uid,))]
+    last = lambda k, until: next((s[1][k] for s in reversed(snaps) if s[0] <= until and s[1].get(k) is not None), None)
+    moves = []
+    for k, label in ar.DIMS:  # each skill's latest measure, against its latest one from before this week
+        now_s = ar._score(last(k, now), g[k])
+        if now_s is not None:
+            moves.append({'id': k, 'label': label, 'now': now_s, 'before': ar._score(last(k, week), g[k])})
+    return {'easy': {'texts': n, 'words': words, 'wpm': round(wpm) if wpm else None, 'wpm_before': round(wpm0) if wpm0 else None},
+            'speaking': {'scenes_week': len(scene(week)), 'scenes_done': len(scene(0)), 'scenes_total': len(scenarios.SCENES)},
+            'radar': {'moves': moves, 'tests_week': sum(1 for s in snaps if s[0] > week and s[2] != 'auto'), 'goals_chosen': chosen}}
 
 
 def send_weekly(c, now=None, send=None):
-    """Sunday, at the learner's reminder hour: the weekly report by email (learners who turned reminders on)."""
-    import os
-    now = now or time.time()
-    local = datetime.datetime.fromtimestamp(now, nx.TZ)
-    if local.weekday() != 6 or 'email' not in {x[1] for x in c.execute('PRAGMA table_info(users)')}:
-        return 0
-    if send is None:
-        from account_service import mail as send
-    today = local.date().isoformat()
-    origin = os.getenv('FLOW_PUBLIC_URL', 'https://flow.jasa.hk').rstrip('/')
-    sent = 0
-    rows = c.execute("SELECT r.user_id, u.email, u.username FROM next_reminders r JOIN users u ON u.id=r.user_id LEFT JOIN next_weekly w ON w.user_id=r.user_id "
-                     "WHERE r.enabled=1 AND r.hour=? AND u.email IS NOT NULL AND u.email!='' AND (w.last_sent IS NULL OR w.last_sent<?)",
-                     (local.hour, today)).fetchall()
-    for r in rows:
-        c.execute('INSERT INTO next_weekly(user_id,last_sent) VALUES(?,?) ON CONFLICT(user_id) DO UPDATE SET last_sent=excluded.last_sent', (r['user_id'], today))
-        c.commit()
-        rp = report(c, r['user_id'], now)
-        if not rp['days']:
-            continue
-        lines = [f"{r['username']}，这是你这周（{rp['from']} – {rp['to']}）的学习小结：", '',
-                 f"· 学了 {rp['days']} 天，约 {rp['minutes']} 分钟", f"· 学完 {rp['materials']} 篇材料，做了 {rp['outputs']} 次输出练习",
-                 f"· 复习 {rp['reviews']} 次，新学 {rp['learned']} 个词，{rp['mastered']} 个词进入长期记忆",
-                 f"· 新错题 {rp['mistakes_new']} 个，改对 {rp['mistakes_fixed']} 个"]
-        if rp['focus']:
-            lines += ['', '下周重点：' + rp['focus']]
-        lines += ['', f'完整周报：{origin}/#/report', '—— 语流 Flow']
-        try:
-            send(r['email'], f"语流 · 你这周学了 {rp['days']} 天", '\n'.join(lines))
-            sent += 1
-        except Exception:
-            pass
-    return sent
+    """The Sunday mail (r27: progress_service.send_weekly): every learner with a bound email, with a link to stop it."""
+    return __import__('progress_service').send_weekly(c, now, send)
 
 
 # ---------- routes ----------

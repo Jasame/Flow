@@ -126,7 +126,12 @@ class LoopTests(unittest.TestCase):
 
     def test_exam_papers_hide_answers_and_build_from_the_right_levels(self):
         o, _ = ex.overview(self.c, 1)
-        self.assertEqual([e['id'] for e in o['exams']], ['cet4', 'cet6', 'ky', 'ielts']); self.assertTrue(all(e['words'] > 3000 for e in o['exams']))
+        self.assertEqual([e['id'] for e in o['exams']], ['zk', 'gk', 'cet4', 'cet6', 'ky', 'tem4', 'tem8', 'ielts'])
+        self.assertTrue(all(e['words'] > 1000 for e in o['exams']))
+        self.assertTrue(all('不是官方词表' in e['blurb'] for e in o['exams'] if e['id'] in ('tem4', 'tem8')))
+        with patch.object(vs, 'WORDBOOK_FILES', []), patch.object(vs, '_DATA', None), patch.object(vs, '_BOOK', None):  # no data books: no 专四 and the like
+            self.assertEqual([e['id'] for e in ex.overview(self.c, 1)[0]['exams']], ['cet4', 'cet6', 'ky', 'ielts'])
+            self.assertEqual(ex.paper(self.c, 1, 'tem4')[1], 400)
         for exam, e in ex.EXAMS.items():
             p, code = ex.paper(self.c, 1, exam)
             self.assertEqual(code, 200)
@@ -201,7 +206,7 @@ class LoopTests(unittest.TestCase):
     def test_whole_plan_calendar_reminder_is_folded_and_points_at_today(self):
         cal = vs.ics(7, 'plan', 15)
         self.assertIn('SUMMARY:语流：今天的学习（约 15 分钟）', cal.replace('\r\n ', ''))
-        self.assertIn('URL:https://flow.jasa.hk/#/', cal); self.assertIn('DURATION:PT15M', cal)
+        self.assertIn('URL:https://flowlang.cn/#/', cal); self.assertIn('DURATION:PT15M', cal)
         self.assertTrue(all(len(line.encode()) <= 75 for line in cal.split('\r\n')))
         self.assertIn('UID:flow-vocab-21@flow', vs.ics(21))  # the word-only reminder keeps its id
 
