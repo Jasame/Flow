@@ -84,6 +84,7 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
     __import__('word_links').schema(c)  # practice on words Chinese speakers mix up
     __import__('ability_radar').schema(c)  # goals, assessments and radar snapshots
     __import__('exam_service').schema(c)  # exam practice papers and results
+    __import__('progress_service').schema(c)  # 这周进步: weekly goals by week, the Sunday mail's switch and link
 
 
 # ---------- helpers ----------
@@ -745,29 +746,28 @@ def stats(c, uid):
         'reviews_week': c.execute('SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND created>?', (uid, week_start)).fetchone()[0],
         'week': [{'day': d, 'active': d in days} for d in week],
         'habit': habit(c, uid, ((profile(c, uid) or {}).get('weekly_goal')) or 4, now),
+        'progress': __import__('progress_service').week(c, uid, now),  # 这周进步 at the top of 今日 (r27)
     }
 
 
 def habit(c, uid, goal, now=None):
-    """每周目标: this week's study days (Monday to Sunday, China time) against the learner's goal, how many weeks in a
-    row the goal was met (a missed day breaks nothing while the week still reaches it), and last week's result for the
-    Monday notice. A day counts when anything was learned: a step of a material or a review."""
+    """每周目标: this week's study days (Monday to Sunday, China time) against the learner's goal, the weeks that reached
+    their goal in total (weeks: only counts up, a missed day or week takes none away), how many in a row (streak, kept
+    for older pages) and last week's result for the Monday notice. A day counts when anything was learned
+    (progress_service.study_days: a step of a material, a review, a relisten, easy reading, a practice, a question)."""
+    PS = __import__('progress_service')
     now = now or time.time()
     D = datetime.timedelta
     today = datetime.datetime.fromtimestamp(now, TZ).date()
     monday = today - D(days=today.weekday())
-    since = datetime.datetime.combine(monday - D(weeks=52), datetime.time(), TZ).timestamp()
-    days = set()
-    for sql in ('SELECT created FROM next_progress WHERE user_id=? AND created>=?', 'SELECT created FROM next_reviews WHERE user_id=? AND created>=?',
-                'SELECT created FROM next_relisten WHERE user_id=? AND created>=?'):  # 复听 (relisten_service) counts too
-        for (t,) in c.execute(sql, (uid, since)):
-            days.add(datetime.datetime.fromtimestamp(t, TZ).date())
+    days = PS.study_days(c, uid)
     count = lambda mon: sum(1 for k in range(7) if mon + D(days=k) in days)
     done, last = count(monday), count(monday - D(weeks=1))
     streak, w = 0, monday - D(weeks=1)
     while streak < 52 and count(w) >= goal:
         streak += 1; w -= D(weeks=1)
     return {'goal': goal, 'done': done, 'met': done >= goal, 'streak': streak + (done >= goal), 'monday': monday.isoformat(),
+            'weeks': PS.weeks_reached(c, uid, goal, days, monday),
             'days': [{'day': (monday + D(days=k)).isoformat(), 'active': monday + D(days=k) in days, 'today': monday + D(days=k) == today} for k in range(7)],
             'last_week': {'done': last, 'met': last >= goal}}
 
@@ -779,8 +779,11 @@ def set_weekly_goal(c, uid, data):
         goal = 0
     if not 1 <= goal <= 7:
         return {'error': '每周目标是 1 到 7 天'}, 400
+    old = (profile(c, uid) or {}).get('weekly_goal')
     if not c.execute('UPDATE next_profiles SET weekly_goal=?, updated=? WHERE user_id=?', (goal, time.time(), uid)).rowcount:
         return {'error': '请先设置学习目标和水平'}, 400
+    if old != goal:  # the weeks before keep the goal they had: a new goal never takes away a week already reached
+        __import__('progress_service').goal_changed(c, uid, old, goal)
     c.commit()
     return {'habit': habit(c, uid, goal)}, 200
 
@@ -1465,6 +1468,8 @@ def get(c, uid, path, q):
         return cards(c, uid, one('q')[:80], int(one('page', '1') or 1), f=one('f')), 200
     if path == '/api/next/stats':
         return stats(c, uid), 200
+    if path in ('/api/next/week', '/api/next/text-summary', '/api/next/weekly-mail'):
+        return __import__('progress_service').get(c, uid, path, q)
     if path == '/api/next/growth':
         return __import__('growth_report').month(c, uid, one('month') or None)
     if path == '/api/next/radar':
@@ -1507,6 +1512,8 @@ def post_public(c, uid, path, data):
         return __import__('exam_service').paper(c, uid, data.get('exam'))
     if path == '/api/next/exam/submit':
         return __import__('exam_service').submit(c, uid, data)
+    if path == '/api/next/weekly-mail/off':  # the link in the Sunday mail: no sign-in, its token stands for the account
+        return __import__('progress_service').post_public(c, path, data)
     return None
 
 
@@ -1520,6 +1527,8 @@ def post(c, uid, path, data):
         return save_profile(c, uid, data)
     if path == '/api/next/habit':
         return set_weekly_goal(c, uid, data)
+    if path == '/api/next/weekly-mail':
+        return __import__('progress_service').post(c, uid, path, data)
     if path == '/api/next/relisten':
         return __import__('relisten_service').record(c, uid, data)
     if path == '/api/next/radar/goals':

@@ -23,15 +23,15 @@
     QR.draw(g, SHARE_URL, W - 300, H - 300, 220, '#13261b', '#ffffff');
     g.fillStyle = '#6f7369'; g.font = shareFont(24, 400); g.textAlign = 'center'; g.fillText('扫码一起学', W - 190, H - 52); g.textAlign = 'left';
   }
-  // The week, said only when there is something to say: a streak of weeks, or the days of this one. Shared right after
-  // studying (studiedNow), today counts even before 今日 is fetched again. The week's card has its days already
-  // (streakOnly; its seven days are not the calendar week either).
-  function habitNote(studiedNow, streakOnly) {
+  // The week, said only when there is something to say: the weeks that reached the goal (counted up, never a run that
+  // breaks), or the days of this one. Shared right after studying (studiedNow), today counts even before 今日 is
+  // fetched again. The week's card has its days already (weeksOnly; its seven days are not the calendar week either).
+  function habitNote(studiedNow, weeksOnly) {
     const hb = S.user && S.home && S.home.stats && S.home.stats.habit;
     if (!hb) return '';
     const t = (hb.days || []).find(d => d.today), done = hb.done + (studiedNow && t && !t.active ? 1 : 0);
-    const streak = hb.streak + (done >= hb.goal && !hb.met ? 1 : 0);
-    return streak > 1 ? `已经连续 ${streak} 周达成学习目标` : done > 0 && !streakOnly ? `这周学了 ${done} 天` : '';
+    const weeks = (hb.weeks || 0) + (done >= hb.goal && !hb.met ? 1 : 0);
+    return weeks > 1 ? `一共有 ${weeks} 周达成了学习目标` : done > 0 && !weeksOnly ? `这周学了 ${done} 天` : '';
   }
   // A learned expression: big, its meaning, the sentence it came in, and where from.
   function sentenceCard(x, from, title) {

@@ -38,14 +38,14 @@ def review(pg):
     pg.wait_for_selector('#view .review', timeout=6000)
 
 
-# Steps that record use Chrome's fake microphone (a tone); the simulated AI answers. They return True to keep the scroll.
+# Steps that record use Chrome's fake microphone (a tone); the simulated AI answers. They return 'keep' to keep the scroll.
 def shadow(pg):
     pg.click('[data-mode="shadow"]'); pg.wait_for_selector('.line.sh.cur [data-r="0"]')
     pg.click('[data-r="0"]'); pg.wait_for_selector('[data-r="0"].on', timeout=5000); pg.wait_for_timeout(1200); pg.click('[data-r="0"]')
     pg.wait_for_selector('[data-ai="0"]:not([disabled])', timeout=5000); pg.click('[data-ai="0"]')
     pg.wait_for_selector('.line[data-i="0"] .sh-res .pron', timeout=10000); pg.wait_for_timeout(900)
     pg.evaluate("() => { const r = document.querySelector('.line[data-i=\"0\"] .sh-ctl').getBoundingClientRect(); scrollBy(0, r.top - 70); }")
-    return True
+    return 'keep'
 
 
 def ielts_card(pg):
@@ -61,7 +61,22 @@ def ielts_feedback(pg):
     pg.click('#p2Done')
     pg.wait_for_selector('#ieOut .ielts-fb', timeout=15000); pg.wait_for_timeout(900)
     pg.evaluate("() => { const r = document.querySelector('#ieOut').getBoundingClientRect(); scrollBy(0, r.top - 70); }")
-    return True
+    return 'keep'
+
+
+def week(pg):
+    pg.click('#weekCard')
+    pg.wait_for_selector('.wk-sheet', timeout=6000)
+    pg.wait_for_timeout(500)
+
+
+def finish(pg):  # 用出来 done: the finish card with its three lines, in the middle of the screen
+    output(pg)
+    pg.click('#go')
+    pg.wait_for_selector('#finSum .fin-row', timeout=10000)
+    pg.evaluate("() => document.getElementById('finCard').scrollIntoView({ block: 'center' })")
+    pg.wait_for_timeout(500)
+    return 'keep'  # the page stays scrolled where the step left it
 
 
 # name -> (page, extra step or None, signed in?)
@@ -69,10 +84,12 @@ SHOTS = {
     'welcome': ('#/welcome', None, False),
     'login': ('#/me', login, False),
     'today': ('#/', None, True),
+    'week': ('#/', week, True),
     'listen': (f'#/m/{PID}/listen', None, True),
     'read': (f'#/m/{PID}/read', None, True),
     'lookup': (f'#/m/{PID}/read', lookup, True),
     'output': (f'#/m/{PID}/output', output, True),
+    'finish': (f'#/m/{PID}/output', finish, True),
     'cards': ('#/cards', None, True),
     'plan': ('#/vocab/plan', None, True),
     'review': ('#/review', review, True),
@@ -124,8 +141,8 @@ def main(only):
             pg.wait_for_function("() => !document.querySelector('#view .skeleton') && !document.querySelector('#view .loading')", timeout=15000)
             pg.wait_for_selector('#view h1, #view .review, #view .empty', timeout=10000)
             pg.wait_for_timeout(700)
-            keep = step(pg) if step else False
-            pg.evaluate("(keep) => { const t = document.getElementById('toast'); if (t) t.style.display = 'none'; if (!keep) window.scrollTo(0, 0); }", bool(keep))
+            keep = step(pg) == 'keep' if step else False
+            pg.evaluate("keep => { const t = document.getElementById('toast'); if (t) t.style.display = 'none'; if (!keep) window.scrollTo(0, 0); }", keep)
             pg.wait_for_timeout(300)
             pg.screenshot(path=str(OUT / f'{name}.jpg'), type='jpeg', quality=62)
             print(f"{name}: {(OUT / f'{name}.jpg').stat().st_size // 1024} KB", flush=True)
