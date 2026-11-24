@@ -322,7 +322,7 @@ class TaskTests(Console):
             self.assertEqual((st, body['state']), (202, 'running'))
             cmd = popen.call_args[0][0]
             self.assertEqual(cmd[1:], [str(Path(console_ops.HERE) / 'fill_examples.py'), '--env-file', os.devnull, '--status',
-                                       str(Path(self.tmp.name) / 'fill-examples-status.json'), '--books', 'gre', '--max-calls', '20'])
+                                       str(Path(self.tmp.name) / 'fill-examples-status.json'), '--books', 'gre', '--max-calls', '20', '--offpeak'])
             self.assertEqual(popen.call_args[1]['env']['FLOW_DATA_DIR'], self.tmp.name)
             self.assertEqual(self.console('/tasks/examples/start', {})[0], 409)  # one run at a time
             self.assertEqual(self.console('/tasks', email=INTERN)[1]['examples']['state'], 'running')

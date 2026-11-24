@@ -74,14 +74,17 @@ def retell(c, uid, data):
         return err
     valid = set(nx.nodes_meta(c))
     exprs = [e['text'] for e in p.get('expressions', [])][:6]
-    system = ('你是英语老师，学习者刚读完一篇材料，正在用自己的话复述。' + LEVEL_NOTE.get(level, '') +
+    # fixed part first (rules, node list, answer shape), then the level: the same opening for everyone (prompt cache)
+    system = ('你是英语老师，学习者刚读完一篇材料，正在用自己的话复述。'
               '先从原文里提炼 4–6 个要点，再判断复述讲到了哪些、漏了哪些；表扬用上的原文表达；改出最影响理解的语言错误（最多 4 条）；'
-              '最后给一段同等水平、80–120 词的示范复述。不要编造原文没有的内容。只输出 JSON。')
-    user = ('原文：\n' + p['body'] + '\n\n原文里的地道表达：' + ('、'.join(exprs) or '无') + '\n可用语法节点：' + nx._node_list(c) +
-            ('\n\n学习者的复述（录音，请先忠实转写，听不清写 [听不清]）。' if audio else '\n\n学习者的复述：\n' + text) +
-            '\n\n输出 JSON：{' + ('"transcript":"转写",' if audio else '') +
-            '"points":[{"point":"中文要点","covered":true}],"used":["学习者用上的原文表达"],"fixes":[' + FIX + '],'
-            '"comment":"一两句中文总评，先说优点","model":"示范复述（英文）"}')
+              '最后给一段同等水平、80–120 词的示范复述。不要编造原文没有的内容。只输出 JSON。'
+              '\n可用语法节点：' + nx._node_list(c) +
+              '\n\n输出 JSON：{' + ('"transcript":"转写",' if audio else '') +
+              '"points":[{"point":"中文要点","covered":true}],"used":["学习者用上的原文表达"],"fixes":[' + FIX + '],'
+              '"comment":"一两句中文总评，先说优点","model":"示范复述（英文）"}'
+              '\n\n' + LEVEL_NOTE.get(level, ''))
+    user = ('原文：\n' + p['body'] + '\n\n原文里的地道表达：' + ('、'.join(exprs) or '无') +
+            ('\n\n学习者的复述（录音，请先忠实转写，听不清写 [听不清]）。' if audio else '\n\n学习者的复述：\n' + text))
 
     def convert(raw):
         if not isinstance(raw, dict) or not isinstance(raw.get('points'), list):
@@ -120,6 +123,12 @@ def dialog(c, uid, data):
     hist = data.get('history') or []
     if not isinstance(hist, list) or len(hist) > 16:
         return {'error': '对话太长了，先结束这一轮吧'}, 400
+    if not hist:
+        # The opening (scene, role, first line) is the same for everyone on this text at this level: asked once, kept.
+        row = c.execute('SELECT result FROM next_dialog_openers WHERE pack=? AND level=?', (p['id'], level)).fetchone()
+        if row:
+            from chat_service import remaining
+            return {'result': json.loads(row['result']), 'request_id': str(data.get('request_id', '')), 'remaining': remaining(c, uid), 'cached': True}, 200
     turns = []
     for h in hist:
         if not isinstance(h, dict) or h.get('role') not in ('ai', 'me') or not isinstance(h.get('text'), str) or len(h['text']) > 500:
@@ -133,8 +142,8 @@ def dialog(c, uid, data):
             return err
     valid = set(nx.nodes_meta(c))
     task = p.get('speaking') or f"围绕「{p['title']}」这个话题聊一聊"
-    system = ('你在和一位中国英语学习者做情景对话练习。' + LEVEL_NOTE.get(level, '') + '你扮演情景里的另一方，说话自然、简短（1–3 句），'
-              '用学习者水平能听懂的英语，适时追问让对方多说。不要替学习者回答。只输出 JSON。')
+    system = ('你在和一位中国英语学习者做情景对话练习。你扮演情景里的另一方，说话自然、简短（1–3 句），'
+              '用学习者水平能听懂的英语，适时追问让对方多说。不要替学习者回答。只输出 JSON。' + LEVEL_NOTE.get(level, ''))
     scene = (f"情景：{p['title']}（{p['title_en']}）\n{p['body']}\n口语任务：{task}" if sc else
              f"材料：{p['title']}\n材料内容：{p['body'][:1500]}\n口语任务：{task}")
     if not hist:
@@ -169,6 +178,9 @@ def dialog(c, uid, data):
 
     spec = {'pack': p['id'], 'turns': len(hist), 'text': text, 'end': end, 'audio': bool(audio), 'last': hist[-1]['text'] if hist else ''}
     result, status = _ai(c, uid, data, 'next-dialog', p['id'], 'speaking', spec, system, user, convert, audio)
+    if status == 200 and not hist:
+        c.execute('INSERT OR IGNORE INTO next_dialog_openers VALUES(?,?,?,?)', (p['id'], level, json.dumps(result['result'], ensure_ascii=False), time.time()))
+        c.commit()
     if status == 200 and end and not result.get('replayed'):
         r = result['result']
         sk.log(c, uid, 'speaking', 'dialog', r['score'], nx.cefr(p), p['id'], commit=False)
@@ -189,14 +201,16 @@ def essay(c, uid, data):
     valid = set(nx.nodes_meta(c))
     goal = (nx.profile(c, uid) or {}).get('goal')
     task = p.get('writing') or f"围绕「{p['title']}」写一段你自己的看法或经历"
-    system = ('你是英语写作老师，按 CEFR 能力描述批改一篇短文。' + LEVEL_NOTE.get(level, '') +
-              ('学习者在备考，评语可以联系考试写作的评分要求，但不要给出任何官方分数。' if goal == 'exam' else '') +
+    system = ('你是英语写作老师，按 CEFR 能力描述批改一篇短文。'
               '四个维度各打 1–5 分：内容切题（content）、结构衔接（organization）、语言准确（accuracy）、词汇句式丰富（range）。'
-              '指出最重要的修改（最多 6 条），把两句改得更好，再写一段同主题的示范段落（不超过 120 词）。不要编造学习者没写的内容。只输出 JSON。')
-    user = ('写作任务：' + task + '\n可用语法节点：' + nx._node_list(c) + '\n\n学习者的短文：\n' + text +
-            '\n\n输出 JSON：{"scores":{"content":1-5,"organization":1-5,"accuracy":1-5,"range":1-5},"level":"A2|B1|B2|C1（这篇体现的水平）",'
-            '"comment":"两三句中文总评，先说优点","paragraphs":[{"para":1,"note":"这一段的中文点评"}],"fixes":[' + FIX + '],'
-            '"better":[{"from":"原句","to":"更好的写法","why":"中文"}],"model":"示范段落（英文）"}')
+              '指出最重要的修改（最多 6 条），把两句改得更好，再写一段同主题的示范段落（不超过 120 词）。不要编造学习者没写的内容。只输出 JSON。'
+              '\n可用语法节点：' + nx._node_list(c) +
+              '\n\n输出 JSON：{"scores":{"content":1-5,"organization":1-5,"accuracy":1-5,"range":1-5},"level":"A2|B1|B2|C1（这篇体现的水平）",'
+              '"comment":"两三句中文总评，先说优点","paragraphs":[{"para":1,"note":"这一段的中文点评"}],"fixes":[' + FIX + '],'
+              '"better":[{"from":"原句","to":"更好的写法","why":"中文"}],"model":"示范段落（英文）"}'
+              '\n\n' + LEVEL_NOTE.get(level, '') +
+              ('学习者在备考，评语可以联系考试写作的评分要求，但不要给出任何官方分数。' if goal == 'exam' else ''))
+    user = '写作任务：' + task + '\n\n学习者的短文：\n' + text
 
     def convert(raw):
         s = raw.get('scores') if isinstance(raw, dict) else None
@@ -268,10 +282,13 @@ def translate(c, uid, data):
         task = f'中文原句：{zh}\n参考英文（原文）：{en}\n学习者的英文译文：{text}'
     else:
         task = f'英文原句：{en}\n学习者的中文译文：{text}'
-    system = ('你是翻译老师。' + LEVEL_NOTE.get(level, '') + '评价学习者的译文：意思是否准确完整、表达是否自然。参考译文只是一种说法，'
-              '意思对、表达自然的不同译法也算对。只输出 JSON。')
-    user = (task + '\n可用语法节点：' + nx._node_list(c) + '\n\n输出 JSON：{"score":0.0到1.0,"accuracy":"中文：意思准确吗，漏译或误译了什么",'
-            '"fluency":"中文：表达是否自然","fixes":[' + FIX + '],"reference":"' + ('一个自然的英文译法' if direction == 'zh2en' else '一个自然的中文译法') + '"}')
+    system = ('你是翻译老师。评价学习者的译文：意思是否准确完整、表达是否自然。参考译文只是一种说法，'
+              '意思对、表达自然的不同译法也算对。只输出 JSON。'
+              '\n可用语法节点：' + nx._node_list(c) +
+              '\n\n输出 JSON：{"score":0.0到1.0,"accuracy":"中文：意思准确吗，漏译或误译了什么",'
+              '"fluency":"中文：表达是否自然","fixes":[' + FIX + '],"reference":"一个自然的译法（和学习者的译文同一种语言）"}'
+              '\n\n' + LEVEL_NOTE.get(level, ''))
+    user = task + ('\n\nreference 写一个自然的英文译法。' if direction == 'zh2en' else '\n\nreference 写一个自然的中文译法。')
 
     def convert(raw):
         if not isinstance(raw, dict) or raw.get('score') is None:
@@ -339,6 +356,7 @@ AI_PATHS = ('/api/next/retell', '/api/next/dialog', '/api/next/essay', '/api/nex
 
 def schema(c):
     c.execute('CREATE TABLE IF NOT EXISTS next_translations(pack TEXT NOT NULL, sentence TEXT NOT NULL, zh TEXT NOT NULL, created REAL NOT NULL, PRIMARY KEY(pack, sentence))')
+    c.execute('CREATE TABLE IF NOT EXISTS next_dialog_openers(pack TEXT NOT NULL, level TEXT NOT NULL, result TEXT NOT NULL, created REAL NOT NULL, PRIMARY KEY(pack, level))')
     c.commit()
 
 

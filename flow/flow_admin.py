@@ -30,10 +30,12 @@ def server_label():
 
 # 只看数据 sees the numbers; 管理员 also sees people (accounts, answers in full, error traces) and may change things.
 VIEWER_GET = {'/me', '/overview', '/learning', '/survey/definition', '/survey/summary', '/releases', '/compare', '/speed',
-              '/funnel', '/cohorts', '/content', '/books', '/ai', '/tasks', '/announcements'}
+              '/funnel', '/cohorts', '/content', '/books', '/ai', '/ai/samples', '/tasks', '/announcements'}
 ADMIN_GET = {'/users', '/survey/responses', '/survey/export.csv', '/errors', '/log', '/feedback', '/feedback/image',
-             '/learners', '/learner', '/export/learners.csv', '/export/materials.csv', '/export/ai.csv'}
-CSV_EXPORTS = {'/export/learners.csv': ('learners', '学员'), '/export/materials.csv': ('materials', '材料'), '/export/ai.csv': ('ai', 'AI 用量')}
+             '/learners', '/learner', '/export/learners.csv', '/export/materials.csv', '/export/ai.csv',
+             '/classes', '/class', '/export/classes.csv'}
+CSV_EXPORTS = {'/export/learners.csv': ('learners', '学员'), '/export/materials.csv': ('materials', '材料'), '/export/ai.csv': ('ai', 'AI 用量'),
+               '/export/classes.csv': ('classes', '班级试用人次')}
 ROLE_LABEL = {'admin': '管理员', 'viewer': '只看数据'}
 
 
@@ -54,6 +56,7 @@ def schema(c):
     __import__('feedback_service').schema(c)  # problem reports from the learning site (问题反馈)
     __import__('field_service').schema(c)  # page errors and opening times the browsers report
     __import__('console_ops').schema(c)  # materials off the lists, 公告 (r26)
+    __import__('class_service').schema(c)  # 班级试用: classes, who is in which (2026-11-24)
 
 
 def log_action(c, op, action, target='', detail=''):
@@ -70,7 +73,11 @@ ACTION_LABEL = {'reset-link': '生成重设密码链接', 'survey-hide': '隐藏
                 'account-staff-on': '设为员工账号', 'account-staff-off': '取消员工账号', 'account-level': '改水平',
                 'account-daily-new': '改每日新词', 'material-hide': '下架材料', 'material-show': '恢复材料',
                 'daily-again': '重新生成今日热点', 'ai-limits': '改 AI 额度', 'examples-start': '开始例句预生成',
-                'examples-stop': '停止例句预生成', 'announce': '发布公告', 'announce-end': '结束公告', 'export': '导出 CSV'}
+                'examples-stop': '停止例句预生成', 'announce': '发布公告', 'announce-end': '结束公告', 'export': '导出 CSV',
+                # 班级试用
+                'class-create': '新建班级', 'class-rename': '班级改名', 'class-teacher': '换班级老师', 'class-code': '换邀请码',
+                'class-stop': '停用班级', 'class-start': '重新启用班级',
+                'ai-routes': '改任务用的模型', 'ai-budget': '改 AI 预算和评测', 'ai-redo': '让 AI 重写一条内容'}
 
 
 def operator_log(c, limit=200):
@@ -219,11 +226,19 @@ def overview(c):
         'hidden_materials': q('SELECT COUNT(*) FROM material_hidden'),
         'errors_24h': __import__('ops_errors').count_since(c, 86400),
         'announce': __import__('console_ops').current_announcement(c),
+        'classes': _class_numbers(c),
         'task': __import__('console_ops').task_status()['state'],
         'backup': backup_status(), 'daily': __import__('daily_service').status(c),
         'server': server_label(),
         'generated_at': now,
     }
+
+
+def _class_numbers(c):
+    """班级试用 in the overview: how many classes, members, 试用人数 and 试用人次 (numbers only, so 只看数据 sees them too)."""
+    got = __import__('class_service').console_list(c)
+    return {'count': sum(1 for x in got['items'] if x['active']), 'members': got['members'], 'trial_people': got['trial_people'],
+            'trial_days': got['trial_days']}
 
 
 def backup_status():
@@ -318,6 +333,8 @@ def console_get(c, path, one, op):
         return out
     if path == '/learners':
         return cd.learner_list(c, one('q')[:60], one('filter', 'all'), one('sort', 'recent'), int(one('page', '1') or 1))
+    if path == '/classes':
+        return __import__('class_service').console_list(c)
 
 
 ACCOUNT_POSTS = {'/learner/disable', '/learner/signout', '/learner/staff', '/learner/level', '/learner/daily-new'}
@@ -360,6 +377,22 @@ def console_post(c, path, data, op):
         if status == 200:
             log_action(c, op, 'ai-limits', 'AI 额度', co.limits_text(body))
         return body, status
+    if path == '/settings/ai-routes':
+        import ai_routes
+        body, status, changes = ai_routes.set_routes(data, who)
+        if status == 200 and changes:
+            log_action(c, op, 'ai-routes', 'AI 模型', ai_routes.changes_text(changes)[:300])
+        return body, status
+    if path == '/settings/ai-budget':
+        body, status = co.set_ai_budget(data, who)
+        if status == 200:
+            log_action(c, op, 'ai-budget', 'AI 预算', co.ai_budget_text(body))
+        return body, status
+    if path == '/ai/samples/redo':
+        body, status = co.redo_sample(c, data.get('kind'), data.get('key'))
+        if status == 200:
+            log_action(c, op, 'ai-redo', __import__('console_data').KIND_LABEL.get(data['kind'], data['kind']), ' / '.join(data['key'])[:160])
+        return body, status
     if path == '/tasks/examples/start':
         body, status = co.start_examples(data, who)
         if status == 202:
@@ -381,7 +414,22 @@ def console_post(c, path, data, op):
         if status == 200:
             log_action(c, op, 'announce-end', f"#{body['id']}")
         return body, status
+    if path == '/class/create':
+        body, status, tgt = __import__('class_service').create(c, data, who)
+        if status == 200:
+            log_action(c, op, 'class-create', tgt)
+        return body, status
+    if path in CLASS_POSTS:
+        what = path.rsplit('/', 1)[1]
+        body, status, tgt, detail = __import__('class_service').change(c, {**data, '_what': what})
+        if status == 200:
+            action = 'class-' + (what if what != 'active' else 'start' if data.get('active') else 'stop')
+            log_action(c, op, action, tgt, detail)
+        return body, status
     return None
+
+
+CLASS_POSTS = {'/class/rename', '/class/teacher', '/class/code', '/class/active'}
 
 
 class AdminHandler(BaseHTTPRequestHandler):
@@ -450,13 +498,23 @@ class AdminHandler(BaseHTTPRequestHandler):
                 if path == '/learner':
                     got = __import__('console_data').learner(c, int(one('id')))
                     return self._send(got) if got else self._send({'error': '没有找到这个学员'}, 404)
-                if path in ('/funnel', '/cohorts', '/content', '/books', '/ai', '/tasks', '/announcements', '/learners'):
+                if path == '/class':
+                    got = __import__('class_service').console_detail(c, one('id'))
+                    if not got:
+                        return self._send({'error': '没有找到这个班级'}, 404)
+                    for r in got['log']:
+                        r['action_label'] = ACTION_LABEL.get(r['action'], r['action'])
+                    return self._send(got)
+                if path == '/ai/samples':
+                    return self._send(*__import__('console_data').ai_samples(c, one('kind'), int(one('n', '5') or 5)))
+                if path in ('/funnel', '/cohorts', '/content', '/books', '/ai', '/tasks', '/announcements', '/learners', '/classes'):
                     return self._send(console_get(c, path, one, op))
                 if path in CSV_EXPORTS:
                     import console_data as cd
                     kind, label = CSV_EXPORTS[path]
                     name = f"flow-{kind}-{time.strftime('%Y%m%d')}.csv"
-                    body = {'learners': cd.learners_csv, 'materials': cd.materials_csv, 'ai': cd.ai_csv}[kind](c)
+                    body = {'learners': cd.learners_csv, 'materials': cd.materials_csv, 'ai': cd.ai_csv,
+                            'classes': __import__('class_service').classes_csv}[kind](c)
                     log_action(c, op, 'export', name, label)
                     return self._send(None, body=body, mime='text/csv; charset=utf-8', extra={'Content-Disposition': f'attachment; filename="{name}"'})
                 if path == '/survey/definition':

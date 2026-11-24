@@ -32,7 +32,7 @@ def marker(keep_changed=False, leave_error=None, essay_scores=None, poor_scores=
             return 'Sorry, I cannot help with that.', 'stop'
         user = messages[-1]['content']
         if '学习者写的英文：' in user:
-            text = between(user, '学习者写的英文：\n', '\n\n输出 JSON')
+            text = user.split('学习者写的英文：\n', 1)[1].split('\n\n')[0]
             case = BY_TEXT[text]
             if case['expect'] == 'keep':
                 fixed, verdict, changes = (text.replace('.', ' indeed.').replace('?', ' indeed?') if keep_changed else text), 'natural', []
@@ -42,16 +42,32 @@ def marker(keep_changed=False, leave_error=None, essay_scores=None, poor_scores=
             return json.dumps({'verdict': verdict, 'summary': '意思清楚，有一处要改。', 'corrected': fixed, 'changes': changes,
                                'versions': [{'label': '更自然', 'text': fixed, 'why': '—'}], 'used_well': [], 'keep': None}), 'stop'
         if '学习者的短文：' in user:
-            case = ESSAY[between(user, '学习者的短文：\n', '\n\n输出 JSON')]
+            case = ESSAY[user.split('学习者的短文：\n', 1)[1]]
             n = calls['essay'][case['id']] = calls['essay'].get(case['id'], 0) + 1
             s = (essay_scores or {1: [5, 5, 4, 5], 2: [3, 3, 3, 3], 3: [2, 2, 1, 2]})[case['rank']]
             s = s[n - 1] if isinstance(s[0], list) else s
             return json.dumps({'scores': dict(zip(('content', 'organization', 'accuracy', 'range'), s)), 'level': 'B1', 'comment': '结构清楚，用词准确。',
                                'paragraphs': [], 'fixes': [], 'better': [], 'model': 'A model paragraph.'}), 'stop'
         if '学习者的英文译文：' in user:
-            case, good = TRANS[between(user, '学习者的英文译文：', '\n可用语法节点')]
+            case, good = TRANS[between(user, '学习者的英文译文：', '\n\nreference')]
             return json.dumps({'score': 0.9 if good else poor_scores, 'accuracy': '意思准确完整。' if good else '漏译了一部分。', 'fluency': '自然。',
                                'fixes': [], 'reference': case['sentence']}), 'stop'
+        system = messages[0]['content']
+        if '要讲解的句子：' in user:  # content: what a good model writes, fit to show a learner
+            sent = user.split('要讲解的句子：', 1)[1].split('\n')[0]
+            w = sent.split()
+            return json.dumps({'translation': '中文翻译。', 'structure': '主干和修饰。', 'pattern': {'frame': 'not A so much as B', 'example': 'It is not luck so much as practice.'},
+                               'points': [{'text': ' '.join(w[:3]), 'note': '讲解', 'node': None}, {'text': ' '.join(w[3:6]), 'note': '讲解', 'node': None}]}), 'stop'
+        if '你是英语词典编辑' in system:
+            ws = [line.split('：')[0] for line in user.split('\n') if '：' in line and not line.startswith('单词')]
+            return json.dumps({'examples': [{'word': x, 'sentence': f'She talked about the {x} idea with her friends after class.', 'translation': '她下课后和朋友们聊了这个想法。'}
+                                            for x in ws]}), 'stop'
+        if '把下面的英文材料改写成' in user:
+            return json.dumps({'body': user.split('原文：\n', 1)[1].split('\n\n输出 JSON')[0], 'notes': []}), 'stop'
+        if '开始对话' in user:
+            return json.dumps({'scene': '你在火车上，旁边的人戴着降噪耳机。', 'role': '乘客', 'reply': 'Hi! Do those headphones really block out the engine noise?'}), 'stop'
+        if '你是专业翻译' in system:
+            return json.dumps({'zh': '工程师把这叫作相消干涉，它对稳定、可以预测的声音效果最好。'}), 'stop'
         raise AssertionError('unexpected prompt')
     return request_model
 
@@ -106,8 +122,9 @@ class MarkingTests(Site):
         report = self.run_with()
         s = report['summary']
         self.assertEqual(self.failed(report), {})
-        n = sum(len(CASES[k]) for k in ai_eval.KINDS)
+        n = sum(len(CASES[k]) for k in ai_eval.KINDS) + sum(len(CASES['content'][k]) for k in ai_eval.CONTENT)
         self.assertEqual((s['passed'], s['total'], s['no_answer'], s['services']), (n, n, 0, {'text': n, 'main': 0}))
+        self.assertEqual(s['content'], {'passed': 6, 'total': 6})
         self.assertEqual(app.DB, site_db)  # put back after the run
         with app.db() as c:
             self.assertIsNone(c.execute("SELECT 1 FROM users WHERE username='ai-eval'").fetchone())
