@@ -100,6 +100,17 @@ cd /www/wwwroot/flow && python3 ai_check.py
 - **企业账号**（协议价，六七折）：正式版和内测版学员的调用都走它。网关上游 `bailian`。
 - **站长个人的学生账号**（一张 300 元「云工开物」券，领取后一年内有效，只能抵扣学生用券中心「大模型服务」里列出的模型）：跑研发和批量的活，包括 ai_eval 对比、每晚小评测、例句预生成、语音模型试验。网关上游 `bailian-dev`。**学生账号上跑哪些模型，以站长在学生用券中心看到的那份列表为准**，不在列表里的模型券抵不了。
 
+**2026-11-24 评测后的决定（用户：「都用 DeepSeek」）**：所有文字任务都用百炼上的 **DeepSeek V4.1 Flash**。ai_eval 48 题全对（和 Gemini 一样），单次中位数 2.2 秒（Gemini 5.1 秒），按标价约 Gemini 的四分之一；千问各档在批改上都有丢分。网关里已经有：
+
+- `flow-text-ds-flash` → `aliyun` / `deepseek-v4.1-flash-1017`，备用 `gemini-flow` / `gemini-3.8-flash`（学员用）
+- `flow-batch-ds-flash` → 同上，不配备用（例句预生成）
+- `flow-eval-ds-flash` → 同上，不配备用（ai_eval、每晚小评测）
+- `flow-eval-qwen*`：评测用过的候选，留着以后对比，不用可以删
+
+这个阶段 `aliyun` 是站长的学生账号（用户：先用学生券，用完或正式商用再换企业账号）；换企业账号时只把这几个名字改指新的上游。
+
+切换：内测版在 `/etc/flow-beta.env` 写 `FLOW_AI_ROUTES={"*": "flow-text-ds-flash"}` 并重启 flow-beta；正式版发版后在后台「AI 用量、费用和质量」选「所有任务都用这个」→ `flow-text-ds-flash`，「百炼折扣」在学生券阶段填 1.0（券按标价扣），每日预算先填 3 元。
+
 网关里的模型名按用途分三种前缀，Flow 自己会挑：
 
 ```
