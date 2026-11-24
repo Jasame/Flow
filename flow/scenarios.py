@@ -3,6 +3,12 @@
 Each scene is played with the AI through the existing dialogue endpoint (output_service.dialog with a scenario id):
 the AI takes the other part, corrects one thing at a time, and sums up at the end. A scene counts as done once a
 dialogue on it has been finished and summed up. All content is original.
+
+Rounds (r28): a scene practised before comes back. Round 2 adds one harder requirement (CHALLENGE); from round 3 the
+roles alternate: odd rounds swap them (the learner plays the shop assistant, the landlord…, with SWAP's goals), even
+rounds bring back the challenge. Once every scene has been done, 「下一个」 (and the plan's speaking step) is a scene
+practised at least REPEAT_DAYS ago, the one that went least well first, so speaking never drops out of the plan.
+A round is a day on which the scene was finished.
 """
 
 # id -> level, title, English title, AI's part, learner's part, brief (Chinese), scene for the AI (English), goals, useful expressions
@@ -81,26 +87,117 @@ SCENES = {
                          ('One limitation is …', '一个局限是……'), ('I\'d suggest we start with a small pilot.', '我建议先小范围试点')]),
 }
 ORDER = ('A2', 'B1', 'B2', 'C1')
+REPEAT_DAYS = 14
+
+# round 2 (and later even rounds): one more thing to do, in Chinese, as the learner sees it
+CHALLENGE = {
+    'cafe-order': '问店员一个关于菜单的问题，比如有没有不含奶的饮品',
+    'ask-way': '路线听完以后，用自己的话完整复述一遍再确认',
+    'hotel-check-in': '提一个额外的请求，比如换一间安静的房间或者寄存行李',
+    'see-doctor': '说清症状是怎么开始的、哪个时候最难受',
+    'flat-viewing': '主动问房东一个问题，并且说出你最在意的一点',
+    'return-item': '店员先给的方案你不满意，礼貌地说明理由，再争取一次',
+    'group-project': '用上 2 个连接词（because、so、but……）说清你为什么这样分工',
+    'phone-booking': '最后用一句话把订位信息完整复述一遍',
+    'job-interview': '每个回答都举一个具体的例子',
+    'disagree-meeting': '先复述对方的提议，再说你的方案，并说出一个可以量化的理由',
+    'landlord-repair': '把你的要求说成一个具体的期限，并提一个对方也能接受的折中',
+    'presentation-qa': '每个回答都先用一句话直接回答，再补充数据或理由',
+}
+# odd rounds from 3: the learner takes the AI's part; these are the learner's goals then
+SWAP = {
+    'cafe-order': ['问顾客想喝什么、要多大杯', '推荐一样吃的', '问清在店里吃还是带走，说出价格'],
+    'ask-way': ['听懂对方要去哪', '用 straight on、turn left 这样的说法指路', '说清大概要走多久'],
+    'hotel-check-in': ['确认预订和入住几晚', '说明早餐时间和 Wi-Fi', '交代退房时间'],
+    'see-doctor': ['问清哪里不舒服、多久了', '问有没有过敏', '给出简单的建议和吃药方法'],
+    'flat-viewing': ['介绍房子的优点', '回答房租、押金和合同期限', '问对方一两个关于入住的问题'],
+    'return-item': ['问清买了什么、什么问题', '查看小票', '给出维修、换货或退款的方案'],
+    'group-project': ['提出你想负责的部分', '说出你哪天没空', '同意一个检查进度的时间'],
+    'phone-booking': ['问清人数、日期和时间', '说明七点已满，提供别的时间', '记下特殊要求并要电话号码'],
+    'job-interview': ['请对方介绍经历', '问一个难处理的情况', '邀请对方提问并回答'],
+    'disagree-meeting': ['提议把发布提前两周', '说出提前的好处', '对方提出顾虑时，讨论一个折中'],
+    'landlord-repair': ['先道歉并说明维修工很忙', '被说服后给出一个更早的时间', '提出一点补偿'],
+    'presentation-qa': ['追问样本够不够、有没有偏差', '问成本', '要求一个明确的下一步'],
+}
 
 
-def pack(sid):
-    """A scene in the shape the dialogue code expects of a material."""
+def mode_of(round_no):
+    """'first' (round 1), 'challenge' (even rounds) or 'swap' (odd rounds from 3)."""
+    return 'first' if round_no <= 1 else 'challenge' if round_no % 2 == 0 else 'swap'
+
+
+def pack(sid, mode='first'):
+    """A scene in the shape the dialogue code expects of a material; mode 'challenge' adds round 2's requirement,
+    'swap' gives the learner the other part (and its goals)."""
     s = SCENES.get(sid or '')
     if not s:
         return None
     level, title, title_en, ai, me, brief, scene, goals, useful = s
+    if mode == 'swap':
+        ai, me, goals = me, ai, SWAP[sid]
     body = (f'Scene: {scene}\nThe AI plays: {ai}. The learner plays: {me}.\nThe learner\'s goals: ' + '；'.join(goals) +
-            '\nUseful expressions: ' + '; '.join(u[0] for u in useful))
+            ('' if mode == 'swap' else '\nUseful expressions: ' + '; '.join(u[0] for u in useful)))
+    task = f'情景对话：{title}。你扮演{me}，AI 扮演{ai}。目标：' + '；'.join(goals)
+    if mode == 'swap':
+        body += '\nThis round the roles are swapped: the learner plays the part the AI usually plays. Ask and answer as that character would.'
+    if mode == 'challenge':
+        body += '\nThis round the learner has one extra requirement (in Chinese): ' + CHALLENGE[sid]
+        task += '。这一轮多一条要求：' + CHALLENGE[sid]
     return {'id': 'scene-' + sid, 'title': title, 'title_en': title_en, 'body': body, 'cefr': level, 'level': level,
-            'speaking': f'情景对话：{title}。你扮演{me}，AI 扮演{ai}。目标：' + '；'.join(goals)}
+            'speaking': task, 'mode': mode if mode in ('challenge', 'swap') else 'first', 'challenge': CHALLENGE[sid] if mode == 'challenge' else ''}
 
 
-def listing(c, uid, level=None):
-    done = {r[0][6:] for r in c.execute("SELECT DISTINCT pack FROM next_skill_events WHERE user_id=? AND kind='dialog' AND pack LIKE 'scene-%'", (uid,))} if uid else set()
-    items = [{'id': k, 'level': s[0], 'title': s[1], 'title_en': s[2], 'ai': s[3], 'me': s[4], 'brief': s[5], 'goals': s[7],
-              'useful': [{'text': u[0], 'meaning': u[1]} for u in s[8]], 'done': k in done}
-             for k, s in sorted(SCENES.items(), key=lambda kv: ORDER.index(kv[1][0]))]
+def _history(c, uid):
+    """{scene id: {'rounds': days it was finished, 'last': when, 'score': the last round's score}}."""
+    import datetime, next_service as nx
+    out = {}
+    if not uid:
+        return out
+    for pk, score, t in c.execute("SELECT pack, score, created FROM next_skill_events WHERE user_id=? AND kind='dialog' AND pack LIKE 'scene-%' "
+                                  "ORDER BY created", (uid,)):
+        h = out.setdefault(pk[6:], {'days': set(), 'last': 0, 'score': None})
+        h['days'].add(datetime.datetime.fromtimestamp(t, nx.TZ).date()); h['last'] = t; h['score'] = score
+    return {k: {'rounds': len(v['days']), 'last': v['last'], 'score': v['score']} for k, v in out.items()}
+
+
+def mode_for(c, uid, sid):
+    """The mode of this learner's next round of a scene (see mode_of)."""
+    return mode_of(_history(c, uid).get(sid, {'rounds': 0})['rounds'] + 1)
+
+
+def pace(heard, corrected):
+    """How the AI should pitch its next line, from the learner's answer: 'easier' when it was very short or short with
+    a mistake, 'harder' when it was long and needed no correction, else 'same'. The same rule is in the AI's prompt."""
+    import next_service as nx
+    n = len(nx.WORD.findall(heard or ''))
+    return 'easier' if n < PACE_SHORT or (corrected and n < PACE_MID) else 'harder' if n >= PACE_LONG and not corrected else 'same'
+
+
+PACE_SHORT, PACE_MID, PACE_LONG = 4, 8, 10  # words in the learner's answer
+
+
+def listing(c, uid, level=None, now=None):
+    import time
+    now = now or time.time()
+    hist = _history(c, uid)
+    items = []
+    for k, s in sorted(SCENES.items(), key=lambda kv: ORDER.index(kv[1][0])):
+        h = hist.get(k, {'rounds': 0, 'last': 0, 'score': None})
+        mode = mode_of(h['rounds'] + 1)
+        items.append({'id': k, 'level': s[0], 'title': s[1], 'title_en': s[2], 'ai': s[3], 'me': s[4], 'brief': s[5], 'goals': s[7],
+                      'useful': [{'text': u[0], 'meaning': u[1]} for u in s[8]], 'done': h['rounds'] > 0, 'rounds': h['rounds'],
+                      'round': h['rounds'] + 1, 'mode': mode, 'challenge': CHALLENGE[k] if mode == 'challenge' else '',
+                      'swap_goals': SWAP[k] if mode == 'swap' else []})
     lv = level if level in ORDER else 'B1'
-    # next: the first scene not done at the learner's level, then the levels around it
-    ranked = sorted((x for x in items if not x['done']), key=lambda x: (abs(ORDER.index(x['level']) - ORDER.index(lv)), ORDER.index(x['level'])))
-    return {'items': items, 'next': ranked[0]['id'] if ranked else None, 'done': len(done & set(SCENES)), 'total': len(SCENES)}
+    near = lambda x: (abs(ORDER.index(x['level']) - ORDER.index(lv)), ORDER.index(x['level']))
+    # next: the first scene not done at the learner's level, then the levels around it; once all are done, a scene
+    # practised REPEAT_DAYS or more ago (the one that went least well first), else the one practised longest ago
+    fresh = sorted((x for x in items if not x['done']), key=near)
+    if fresh:
+        nxt = fresh[0]['id']
+    else:
+        rested = [x for x in items if hist[x['id']]['last'] <= now - REPEAT_DAYS * 86400]
+        nxt = (min(rested, key=lambda x: (hist[x['id']]['score'] if hist[x['id']]['score'] is not None else 1, near(x)))['id'] if rested
+               else min(items, key=lambda x: hist[x['id']]['last'])['id'])
+    done = sum(1 for x in items if x['done'])
+    return {'items': items, 'next': nxt, 'done': done, 'total': len(SCENES), 'round_two': done == len(SCENES)}

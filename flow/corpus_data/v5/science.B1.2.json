@@ -8,6 +8,7 @@
     "cefr": "B1",
     "theme": "science",
     "genre": "explainer",
+    "purposes": ["expository"],
     "body": "Many people believe that a microwave oven cooks food from the inside out, but that is not quite what happens. Inside the oven, a small device sends out microwaves, invisible waves similar to radio waves. They bounce around the metal walls and pass into the food. Water molecules in the food have a slightly positive end and a slightly negative end, so they try to turn and line up with the waves. Because the waves change direction extremely quickly, the molecules keep spinning and bumping into each other, and all that movement turns into heat. However, the waves only reach a few centimetres into the food. The middle of a thick dish heats up more slowly, as heat spreads inwards from the outer layers. That is why the instructions often tell you to stir your soup halfway through. If you didn't stir it, you could end up with a burning-hot edge and an icy centre. The waves also form a pattern of hot and cold spots inside the oven. For this reason, most models have a turning plate to keep the food moving. And what about metal? Thin foil with sharp edges could create sparks, so it is safer to use a dish designed for microwaves.",
     "questions": [
       {
@@ -131,6 +132,7 @@
     "cefr": "B1",
     "theme": "science",
     "genre": "dialogue",
+    "purposes": ["daily-life"],
     "body": "Rosa: Look at that tree! It was completely green a few weeks ago, and now it's on fire. Jake: I wish I knew how they do that. Do trees paint their leaves every autumn? Rosa: Not really, because most of that yellow and orange was there all summer. Jake: So why couldn't we see it before? Rosa: Because the green covers it up. Leaves are full of a green substance called chlorophyll, which they use to make food from sunlight. Jake: Okay, so what changes in autumn? Rosa: The days get shorter and cooler, so the tree stops making new chlorophyll. It pulls useful materials back into its branches before the leaves fall. As the green fades, the hidden colours finally show through. Jake: So neither the yellow nor the orange is new. Rosa: Exactly, but red is a different story, because some trees actually produce red colour in autumn. Jake: Why bother, if the leaves are going to fall anyway? Rosa: Scientists aren't completely sure, but one idea is that it protects the leaves from strong sunlight while the tree saves what it can. Jake: I wish I had a camera with me. Rosa: You have a phone, Jake. Jake: Oh, right.",
     "questions": [
       {
@@ -259,6 +261,7 @@
     "cefr": "B1",
     "theme": "science",
     "genre": "interview",
+    "purposes": ["expository"],
     "body": "Tom Price has kept bees in his back garden for many years. We asked him how bees share news about food. Q: Is it true that bees can dance? Tom: It is! When a worker bee finds a good patch of flowers, she flies home to tell her sisters. Inside the dark hive, she performs what is called the waggle dance. Q: What does it look like? Tom: She runs in a straight line, shaking her body from side to side. Then she loops back and does it again, over and over. The other bees crowd around her, following every step. Q: And that tells them where to go? Tom: Yes. The angle of that straight run shows the direction of the flowers compared with the sun. Q: What about distance? Tom: The longer she waggles, the further away the food is. She also carries the smell of the flowers, which helps the others find the right ones. Q: Could you read a dance yourself? Tom: If I watched very carefully, I could probably guess the direction. But the bees are far better at it than I am. Q: Do you ever get tired of watching? Tom: Never. It still feels like spying on a secret meeting.",
     "questions": [
       {
@@ -382,6 +385,7 @@
     "cefr": "B1",
     "theme": "science",
     "genre": "guide",
+    "purposes": ["expository"],
     "body": "To make a simple compass, you need a steel needle, a magnet, a bowl of water and something light that can sit on water. Either a piece of cork or a small leaf works well. First, hold the needle by its eye and rub it from end to end with one side of the magnet, always in the same direction. Lift the magnet away after each rub and repeat this about twenty times. Next, lay the needle gently on the leaf, or push it carefully through the cork. Place your little boat in the middle of the bowl. Resting on the water, it will slowly turn and then settle in one direction. Check it against the compass app on a phone: one end should point roughly north. So what is going on? Steel is full of tiny magnetic areas pointing in all directions. Rubbing it lines many of them up, turning the needle into a weak magnet. The Earth acts like a huge magnet too, so any magnet that can turn freely lines up with it. If the needle were made of plastic, nothing would happen, because plastic cannot become magnetic. Needles are sharp, so ask an adult to help, and keep magnets away from small children.",
     "questions": [
       {

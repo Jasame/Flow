@@ -1,0 +1,311 @@
+[
+ {
+  "id": "v5-work-b2-feedback-after-rejection",
+  "title": "求职被拒后，礼貌地要反馈",
+  "title_en": "Asking for Feedback After a Job Rejection",
+  "summary_zh": "面试没通过，还能做什么？这封邮件示范怎样不卑不亢地请对方给几点反馈：不质疑结果，又为下一次机会留了门。读完你能写一封得体的“请求反馈”邮件。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "work",
+  "genre": "email",
+  "purposes": [
+   "workplace"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Dear Ms Patel, thank you for letting me know the outcome of my application for the junior designer position. Although I was disappointed not to be offered the role, I really enjoyed meeting the team and hearing about your current projects. I am writing to ask whether you would be willing to share some feedback on my interview. I understand how busy you are, so even two or three short points would be very helpful. In particular, I would like to know whether my portfolio gave you a clear picture of what I can do. I was also unsure about my answer to the question on working to tight deadlines, and I wonder if it came across the way I intended. To be clear, I am asking because I want to improve before my next interview, not because I want to question your decision. If it is easier for you, I would be happy to have a ten-minute call at a time that suits you. Whatever you decide, I appreciate the time you have already given me. I will keep following your studio's work with interest. If a similar position opens up in the future, I hope you will consider me again. Thank you once more for the chance to meet you. Best regards, Lena Fischer",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the main purpose of Lena's email?",
+    "options": [
+     "To ask the company to change its decision",
+     "To ask for feedback that will help her improve",
+     "To apply for a different position at the studio",
+     "To complain about how the interview was organised"
+    ],
+    "answer": 1,
+    "evidence": "I am writing to ask whether you would be willing to share some feedback on my interview."
+   },
+   {
+    "type": "inference",
+    "prompt": "Why does Lena write \"To be clear\"?",
+    "options": [
+     "She wants to correct a mistake in her application",
+     "She thinks Ms Patel misunderstood her portfolio",
+     "She wants to make sure her request is not read as a challenge to the decision",
+     "She is angry about the result and wants an explanation"
+    ],
+    "answer": 2,
+    "evidence": "not because I want to question your decision"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"came across\" mean in \"I wonder if it came across the way I intended\"?",
+    "options": [
+     "was understood by the listener",
+     "was found by chance",
+     "was written down",
+     "travelled a long distance"
+    ],
+    "answer": 0,
+    "evidence": "I wonder if it came across the way I intended"
+   },
+   {
+    "type": "detail",
+    "prompt": "What does Lena offer in order to make things easier for Ms Patel?",
+    "options": [
+     "To send a new portfolio",
+     "To visit the studio in person",
+     "To take a written test",
+     "A ten-minute call at a convenient time"
+    ],
+    "answer": 3,
+    "evidence": "I would be happy to have a ten-minute call at a time that suits you"
+   }
+  ],
+  "dictation_index": 3,
+  "vocabulary": [
+   {
+    "term": "outcome",
+    "meaning": "结果",
+    "example": "We are still waiting for the outcome of the vote."
+   },
+   {
+    "term": "portfolio",
+    "meaning": "作品集",
+    "example": "She showed her portfolio of drawings at the interview."
+   },
+   {
+    "term": "intended",
+    "meaning": "打算的；预期的",
+    "example": "The joke did not have the effect he intended."
+   },
+   {
+    "term": "appreciate",
+    "meaning": "感谢；感激",
+    "example": "I really appreciate your help with the move."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "letting me know",
+    "meaning": "告诉我；通知我",
+    "note": "邮件开头感谢对方告知结果的常用说法：Thanks for letting me know."
+   },
+   {
+    "text": "working to tight deadlines",
+    "meaning": "在紧迫的期限下工作",
+    "note": "work to a deadline 表示“按期限完成工作”，招聘和面试里很常见。"
+   },
+   {
+    "text": "came across",
+    "meaning": "给人……的印象；被理解为",
+    "note": "come across as + 形容词/名词：He came across as confident."
+   },
+   {
+    "text": "To be clear",
+    "meaning": "说明一下；我想说清楚的是",
+    "note": "用来提前消除误会，语气客气但坚定。"
+   },
+   {
+    "text": "a time that suits you",
+    "meaning": "你方便的时间",
+    "note": "suit 表示“对……合适”，约时间时很礼貌：Does Friday suit you?"
+   },
+   {
+    "text": "opens up",
+    "meaning": "（职位、机会）出现",
+    "note": "A position opens up 表示有空缺出现。"
+   }
+  ],
+  "grammar": [
+   "nonfinite-infinitive",
+   "clause-noun",
+   "conditional-real"
+  ],
+  "knowledge": [
+   {
+    "node": "nonfinite-infinitive",
+    "quote": "Although I was disappointed not to be offered the role",
+    "explanation": "not to be offered 是不定式的否定加被动：否定词 not 放在 to 前面，be offered 表示“被给予（职位）”。"
+   },
+   {
+    "node": "clause-noun",
+    "quote": "I am writing to ask whether you would be willing to share some feedback on my interview.",
+    "explanation": "whether 引导宾语从句，作 ask 的宾语；would be willing to 比 will 更委婉，适合正式请求。"
+   },
+   {
+    "node": "conditional-real",
+    "quote": "If a similar position opens up in the future, I hope you will consider me again.",
+    "explanation": "真实条件句：if 从句用一般现在时 opens up 表示将来可能发生的事，主句用 will。"
+   }
+  ],
+  "speaking": "用 1 分钟练习：假设你参加社团或实习面试没通过，打电话请负责人给你两点改进建议。用上 I'd like to know whether… 和 To be clear…。",
+  "writing": "用 120–150 词写一封英文邮件：一次申请（实习、社团、奖学金）没通过，请对方给一两点反馈。要感谢、说明目的、提出一个方便对方的方式，结尾留个好印象。",
+  "task": {
+   "prompt": "仿照这句，用 Although I was disappointed not to …, I really … 写一句话，得体地回应一次让你失望的结果。",
+   "model": "Although I was disappointed not to be offered the role, I really enjoyed meeting the team"
+  },
+  "tags": [
+   "职场邮件",
+   "求职"
+  ],
+  "source": "Flow 编辑部原创"
+ },
+ {
+  "id": "v5-work-b2-inside-a-dubbing-studio",
+  "title": "配音演员：用别人的口型说话",
+  "title_en": "Lending a Voice: Inside a Dubbing Studio",
+  "summary_zh": "配音不只是“念台词”：每句话都要对上屏幕上演员的口型，还要演出情绪。跟着一位配音演员，看看这份“做得好就没人发现”的工作。读完你能用英语描述一份职业的难点。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "work",
+  "genre": "interview",
+  "purposes": [
+   "film-culture",
+   "workplace"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Interviewer: What does a dubbing actor actually do? Sofia: I replace the original voices in a film or series with voices in another language, so that viewers can watch without reading subtitles. The hardest part is that my words have to fit someone else's mouth. Interviewer: Do you mean the lip movements? Sofia: Exactly. If the actor on screen opens his mouth wide, I can't use a word that keeps my lips closed, or it looks strange. The translator and I often change a line several times until it matches the picture and still sounds natural. Interviewer: How do you prepare for a role? Sofia: Usually I don't get much time, because studios work to very tight schedules. I watch each scene a few times, listen to the original performance, and then try to copy the emotion rather than the exact sound. Interviewer: Is it tiring? Sofia: More than people expect. Shouting in an action scene for an hour can leave my voice exhausted, so I drink a lot of warm water and avoid long phone calls after a session. Interviewer: What do you enjoy most? Sofia: The moment when a viewer tells me they forgot the film was dubbed. Nobody should notice my work if I've done it well. Interviewer: Any advice for someone who wants to try? Sofia: Record yourself reading aloud every day, and listen back honestly, even when it's embarrassing.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the interview mainly about?",
+    "options": [
+     "Why dubbed films are better than subtitled ones",
+     "How to become a film translator",
+     "What dubbing actors do and what makes the job difficult",
+     "The history of a famous film studio"
+    ],
+    "answer": 2,
+    "evidence": "The hardest part is that my words have to fit someone else's mouth."
+   },
+   {
+    "type": "inference",
+    "prompt": "Why does Sofia say nobody should notice her work?",
+    "options": [
+     "Good dubbing feels so natural that viewers forget it is there",
+     "She is shy and does not like attention",
+     "Studios do not allow dubbing actors to be named",
+     "She works only on films that few people watch"
+    ],
+    "answer": 0,
+    "evidence": "The moment when a viewer tells me they forgot the film was dubbed."
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"exhausted\" mean in \"leave my voice exhausted\"?",
+    "options": [
+     "louder than usual",
+     "very tired and unable to work well",
+     "completely silent for ever",
+     "excited and full of energy"
+    ],
+    "answer": 1,
+    "evidence": "can leave my voice exhausted"
+   },
+   {
+    "type": "detail",
+    "prompt": "What does Sofia try to copy from the original performance?",
+    "options": [
+     "the exact sound of the voice",
+     "the accent of the actor",
+     "the length of every pause",
+     "the emotion"
+    ],
+    "answer": 3,
+    "evidence": "try to copy the emotion rather than the exact sound"
+   }
+  ],
+  "dictation_index": 2,
+  "vocabulary": [
+   {
+    "term": "replace",
+    "meaning": "替换；取代",
+    "example": "We need to replace the old battery."
+   },
+   {
+    "term": "movements",
+    "meaning": "动作；移动",
+    "example": "The dancer's movements were slow and careful."
+   },
+   {
+    "term": "schedules",
+    "meaning": "时间表；日程",
+    "example": "Our schedules are so busy that we rarely meet."
+   },
+   {
+    "term": "exhausted",
+    "meaning": "筋疲力尽的",
+    "example": "After the long climb, everyone was exhausted."
+   },
+   {
+    "term": "embarrassing",
+    "meaning": "令人尴尬的",
+    "example": "It was embarrassing to forget his name."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "on screen",
+    "meaning": "在屏幕上；在影视作品里",
+    "note": "常用于说演员的表现：She looks much taller on screen."
+   },
+   {
+    "text": "work to very tight schedules",
+    "meaning": "按非常紧的时间表工作",
+    "note": "work to a schedule / deadline 表示“按……完成”。"
+   },
+   {
+    "text": "More than people expect",
+    "meaning": "比人们想的更……",
+    "note": "回答问题时先给程度，再展开，口语里很自然。"
+   },
+   {
+    "text": "reading aloud",
+    "meaning": "朗读；大声读",
+    "note": "练口语的好方法：Reading aloud helps your pronunciation."
+   },
+   {
+    "text": "listen back",
+    "meaning": "回听（录音）",
+    "note": "录完自己的声音再听一遍：Listen back to your recording."
+   }
+  ],
+  "grammar": [
+   "conditional-real",
+   "nonfinite-gerund",
+   "clause-relative"
+  ],
+  "knowledge": [
+   {
+    "node": "conditional-real",
+    "quote": "If the actor on screen opens his mouth wide, I can't use a word that keeps my lips closed, or it looks strange.",
+    "explanation": "真实条件句：if 从句和主句都用一般现在时，表示经常发生的情况；or 在这里意思是“否则”。"
+   },
+   {
+    "node": "nonfinite-gerund",
+    "quote": "Shouting in an action scene for an hour can leave my voice exhausted",
+    "explanation": "动名词短语 Shouting in an action scene for an hour 作主语；leave + 宾语 + 形容词 表示“使……处于某种状态”。"
+   },
+   {
+    "node": "clause-relative",
+    "quote": "The moment when a viewer tells me they forgot the film was dubbed.",
+    "explanation": "when 引导定语从句，修饰表示时间的 The moment，相当于 at which。"
+   }
+  ],
+  "speaking": "用 1 分钟说说：你喜欢看配音版还是原声加字幕？为什么？用上 rather than 和 More than people expect。",
+  "writing": "用 120–150 词介绍一份你觉得“做得好就没人注意到”的工作（如字幕、音响、校对），说说它难在哪里。用一个 If… 条件句和一个动名词作主语的句子。",
+  "task": {
+   "prompt": "仿照这句，用 I try to copy … rather than … 写一句话，说说你学英语时模仿的重点。",
+   "model": "try to copy the emotion rather than the exact sound"
+  },
+  "tags": [
+   "影视文化",
+   "职业访谈"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

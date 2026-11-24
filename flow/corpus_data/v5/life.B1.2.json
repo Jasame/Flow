@@ -8,6 +8,7 @@
     "cefr": "B1",
     "theme": "life",
     "genre": "dialogue",
+    "purposes": ["daily-life"],
     "body": "Priya: Tom, have you seen my cheese? I bought it on Saturday, and now it's gone. Tom: Not me, I promise, which means either Dan or his friends have been at it again. Priya: Honestly, I wish we had a lock on this fridge. Tom: A lock might be a bit much, but I know what you mean. Half the time I can't find anything in there, and the rest of the time I find things nobody remembers buying. Priya: Like that soup at the back. Tom: Exactly, so what if we gave everyone their own shelf? If each of us had a shelf, we could see straight away when something was missing. Priya: And the door could be for shared stuff, like milk and butter. Tom: Good idea, although neither Dan nor I am great at remembering whose turn it is to buy milk. Priya: Then let's put a list on the door. Whoever finishes the milk buys the next one. Tom: Fair. Should we tell Dan tonight? Priya: Yes, but nicely. I'd rather sort it out than keep leaving angry notes. Tom: Speaking of notes, was that big red one on the fridge yours? Priya: Maybe.",
     "questions": [
       {
@@ -69,6 +70,7 @@
     "cefr": "B1",
     "theme": "life",
     "genre": "interview",
+    "purposes": ["daily-life"],
     "body": "Q: You learned to swim as an adult. Why did you wait so long? Ines: Nobody taught me when I was a child, and after a while I was too embarrassed to ask. On holidays, I always found a reason to stay on the beach with a book. Q: What changed? Ines: My daughter started lessons, and she asked me to come in the water with her. I had to say no, and I hated it. So I signed up for an adult class to prove something to myself. Q: How did the first lesson go? Ines: Badly. Standing at the edge of the pool, I could feel my heart beating in my ears. The teacher just asked me to sit on the steps and put my face in the water, and that was the whole lesson. Q: And now? Ines: Now I can swim two lengths without stopping. It's not fast, but it's mine. Q: Is anything still difficult? Ines: Deep water. I wish I felt as relaxed in it as my daughter does. She swims like a fish. Q: What would you say to other adults who can't swim? Ines: Don't wait for the fear to go away first. It goes away in the water, not before.",
     "questions": [
       {
@@ -130,6 +132,7 @@
     "cefr": "B1",
     "theme": "life",
     "genre": "guide",
+    "purposes": ["expository", "daily-life"],
     "body": "You don't need a garden to grow your own food. A small balcony, a few pots and a bit of patience are enough to get started. First, watch your balcony for a day and notice how much sun it gets. Tomatoes love long, hot afternoons, but if your balcony only gets morning light, you could try salad leaves or herbs like mint instead. Next, choose your containers. Almost anything can work, from old buckets to wooden boxes, as long as there are holes in the bottom to let extra water out. Fill them with fresh soil sold for growing vegetables. Plants grown in pots dry out much faster than plants in the ground, so check them every evening in summer. If the soil feels dry, water slowly until it comes out of the bottom. Start small. Three pots that you look after well will give you more than ten that you forget about. And don't be discouraged if something fails, because even experienced gardeners lose a plant or two every year. The first time you pick a tomato you have grown yourself, you might find that it tastes better than anything from a shop.",
     "questions": [
       {
@@ -191,6 +194,7 @@
     "cefr": "B1",
     "theme": "life",
     "genre": "email",
+    "purposes": ["daily-life"],
     "body": "Hi Ollie, Guess what? My grandmother's old lamp works again! You know, the one that has been sitting in my wardrobe since I moved. On Saturday I took it to the repair café at the library. I'd never been before, so I didn't know what to expect. It's basically a big room full of tables, with volunteers who fix things for free while you watch. There were people holding broken toasters, torn jackets and even a bicycle. I waited for a while with a cup of tea, chatting to a woman whose kettle had stopped working. Then a retired electrician called Bernard looked at my lamp. He said that either the switch or the wires were the problem, and in the end it was both. Instead of doing it all for me, he showed me how to replace the switch myself. It took half an hour, and I was surprisingly proud of it. The whole thing cost nothing, although there's a jar for donations. If you came with me next month, you could finally bring that radio you keep talking about. Let me know! Love, Mia",
     "questions": [
       {

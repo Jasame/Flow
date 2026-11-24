@@ -1,0 +1,162 @@
+[
+ {
+  "id": "v5-life-c1-library-as-living-room",
+  "title": "图书馆成了城市的客厅",
+  "title_en": "The Library as a Living Room",
+  "summary_zh": "有人以为电子书会让图书馆消失，结果它成了城市里少有的“不用消费也能待一下午”的地方。读完你能用 not… but…、Not long ago… Instead… 写出有观察、有对比的社会短评。",
+  "level": "B2",
+  "cefr": "C1",
+  "theme": "life",
+  "genre": "article",
+  "purposes": [
+   "news-commentary",
+   "daily-life"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Walk into a public library on a weekday afternoon and you may struggle to find a quiet corner. A retired engineer is teaching himself to code at one table, two teenagers are arguing over a chemistry worksheet at another, and a young mother is reading picture books aloud to a toddler who keeps interrupting with questions. Not long ago, commentators were predicting that libraries would fade away once every book could be downloaded. Instead, many have become something closer to a shared living room, one of the few places left where you can spend a whole afternoon without being expected to buy anything. That last point matters more than it might seem. Cafés offer company and wifi, but the price of a seat is a coffee every hour or so, and the staff notice when you stop ordering. A library asks only that you behave reasonably and return what you borrow. Nobody checks how long you have been sitting there, and nobody suggests you might be more comfortable somewhere else. For people living in small flats, or for students with nowhere calm to work, that is not a luxury but a lifeline. The shift has not been entirely smooth. Some regular visitors miss the old silence and complain that the reading room now sounds like a railway station at rush hour. Librarians, for their part, find themselves helping people fill in online forms and print tickets as often as they recommend novels. Yet the underlying idea has barely changed since public libraries first opened their doors: knowledge, and a place to pursue it, should not depend on the size of your wallet. The building is simply learning to serve that idea in a noisier age.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the main point of the article?",
+    "options": [
+     "Public libraries are disappearing because people download books",
+     "Cafés have become better places to study than libraries",
+     "Librarians should stop helping visitors with online forms",
+     "Libraries have changed into shared public spaces while keeping their original purpose"
+    ],
+    "answer": 3,
+    "evidence": "Yet the underlying idea has barely changed since public libraries first opened their doors"
+   },
+   {
+    "type": "inference",
+    "prompt": "What does the writer suggest about spending an afternoon in a café?",
+    "options": [
+     "It is free for anyone who brings a book",
+     "It has a hidden cost",
+     "It is quieter than a library",
+     "It is popular with retired engineers"
+    ],
+    "answer": 1,
+    "evidence": "the price of a seat is a coffee every hour or so"
+   },
+   {
+    "type": "vocab",
+    "prompt": "In \"not a luxury but a lifeline\", what does \"lifeline\" mean?",
+    "options": [
+     "something a person depends on to manage their life",
+     "something pleasant but unnecessary",
+     "a long queue at the entrance",
+     "a line printed on a library card"
+    ],
+    "answer": 0,
+    "evidence": "that is not a luxury but a lifeline"
+   },
+   {
+    "type": "detail",
+    "prompt": "What do some regular visitors complain about?",
+    "options": [
+     "The library has too few new books",
+     "Librarians recommend too many novels",
+     "The reading room has become noisy",
+     "The library closes too early in the evening"
+    ],
+    "answer": 2,
+    "evidence": "complain that the reading room now sounds like a railway station at rush hour"
+   }
+  ],
+  "dictation_index": 6,
+  "vocabulary": [
+   {
+    "term": "toddler",
+    "meaning": "刚学走路的孩子",
+    "example": "The toddler wanted to press every button in the lift."
+   },
+   {
+    "term": "commentators",
+    "meaning": "评论员；时事评论者",
+    "example": "Some commentators expected the plan to fail."
+   },
+   {
+    "term": "luxury",
+    "meaning": "奢侈品；奢侈",
+    "example": "A quiet morning feels like a luxury during exam week."
+   },
+   {
+    "term": "lifeline",
+    "meaning": "救命稻草；赖以生存的东西",
+    "example": "For many older people, the bus service is a lifeline."
+   },
+   {
+    "term": "underlying",
+    "meaning": "根本的；潜在的",
+    "example": "We need to fix the underlying problem, not just the symptoms."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "fade away",
+    "meaning": "逐渐消失",
+    "note": "常用于声音、记忆、传统：The old custom has slowly faded away."
+   },
+   {
+    "text": "every hour or so",
+    "meaning": "大约每小时",
+    "note": "or so 放在数量、时间后面，表示“左右”：in ten minutes or so。"
+   },
+   {
+    "text": "at rush hour",
+    "meaning": "在高峰时段",
+    "note": "固定搭配，不加 the：Avoid the city centre at rush hour."
+   },
+   {
+    "text": "for their part",
+    "meaning": "就他们而言；他们那一方",
+    "note": "在描写多方立场时引出另一方：The students, for their part, wanted more time."
+   },
+   {
+    "text": "fill in online forms",
+    "meaning": "填写网上表格",
+    "note": "fill in（英式）/ fill out（美式）a form，都表示填表。"
+   },
+   {
+    "text": "the size of your wallet",
+    "meaning": "你的钱包有多鼓（经济条件）",
+    "note": "用具体的东西指代抽象的“财力”，评论文章里常见。"
+   }
+  ],
+  "grammar": [
+   "tense-past",
+   "clause-relative",
+   "nonfinite-gerund"
+  ],
+  "knowledge": [
+   {
+    "node": "tense-past",
+    "quote": "Not long ago, commentators were predicting that libraries would fade away once every book could be downloaded.",
+    "explanation": "were predicting 用过去进行时，描写当时持续流行的看法；宾语从句里的 would fade away 是“过去将来”，表示当时预测的未来。"
+   },
+   {
+    "node": "clause-relative",
+    "quote": "one of the few places left where you can spend a whole afternoon",
+    "explanation": "where 引导定语从句修饰 places，相当于 in which；left 是过去分词作后置定语，意思是“剩下的”。"
+   },
+   {
+    "node": "nonfinite-gerund",
+    "quote": "without being expected to buy anything",
+    "explanation": "介词 without 后面接动名词；being expected 是动名词的被动形式，表示“不被期待（去消费）”。"
+   }
+  ],
+  "speaking": "用 1 分钟说说：你家附近或学校的图书馆里，现在大家都在做什么？你最常在哪里学习？用上 not a luxury but a lifeline。",
+  "writing": "用 200–250 词写一篇短评：城市里还需不需要免费的公共空间（图书馆、公园、社区中心）？用上 Not long ago… Instead… 的对比，和一个 where 定语从句。",
+  "task": {
+   "prompt": "仿照这句，用 … is not a luxury but a lifeline 写一句话，说说一样对某些人来说必不可少的东西。",
+   "model": "that is not a luxury but a lifeline"
+  },
+  "tags": [
+   "城市生活",
+   "社会观察"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

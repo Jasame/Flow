@@ -1,0 +1,158 @@
+[
+ {
+  "id": "v5-work-c1-who-owns-your-evening",
+  "title": "下班后的时间归谁",
+  "title_en": "Who Owns Your Evening?",
+  "summary_zh": "晚上九点一条“不急”的消息，为什么能把人拉回办公室？作者认为问题不在消息本身，而在“秒回＝敬业”的默认规则。读完你能用 less… than…、强调句等结构写出有分寸的评论。",
+  "level": "B2",
+  "cefr": "C1",
+  "theme": "work",
+  "genre": "opinion",
+  "purposes": [
+   "news-commentary",
+   "workplace",
+   "argumentative"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "It usually begins with a harmless message sent at nine in the evening, the kind that says there is no rush and it can wait until tomorrow. The sender means it kindly, yet the recipient, now staring at a phone on the sofa, has already been pulled back into the office. Multiply that moment across a team and you have a culture in which nobody is ever quite off duty, even though nobody has ever been told to stay on. Defenders of the always-on habit argue that flexibility cuts both ways. If I can leave early to collect my child, the reasoning goes, surely I can answer a quick question after dinner. There is something to this, and a rigid wall between work and home would not suit everyone. Plenty of people would rather finish a task at home than stay late at their desks. But the bargain is rarely as balanced as it sounds. The person who replies within minutes is quietly rewarded with a reputation for commitment, while the colleague who waits until morning starts to look slow, however good their work is. Over time, availability becomes a measure of loyalty, and that is a contest no one can win. The solution is less a matter of banning messages than of changing what they signal. Managers who schedule their late-night emails to arrive at eight the next morning send a clearer message than any policy document. Teams can agree that urgent problems deserve a phone call, which makes everything else, by definition, able to wait. Not every evening has to be protected at all costs, but it should be the worker, not the inbox, who decides when an evening is given up.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the writer's main argument?",
+    "options": [
+     "Managers should be forbidden from sending any email after office hours",
+     "Flexible working has failed and should be replaced by fixed hours",
+     "Workers, rather than a habit of constant messaging, should decide when their evenings are given up",
+     "Replying quickly is the best way to show commitment to a team"
+    ],
+    "answer": 2,
+    "evidence": "it should be the worker, not the inbox, who decides when an evening is given up"
+   },
+   {
+    "type": "inference",
+    "prompt": "Why does the writer call availability \"a contest no one can win\"?",
+    "options": [
+     "Because someone can always reply faster, so the pressure never ends",
+     "Because managers punish the people who reply fastest",
+     "Because most evening messages are sent by mistake",
+     "Because companies have banned phones from the office"
+    ],
+    "answer": 0,
+    "evidence": "availability becomes a measure of loyalty, and that is a contest no one can win"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"flexibility cuts both ways\" mean here?",
+    "options": [
+     "Flexibility harms workers and employers equally",
+     "Flexibility brings both benefits and obligations",
+     "Flexibility should be reduced for everyone",
+     "Flexibility only helps people with children"
+    ],
+    "answer": 1,
+    "evidence": "flexibility cuts both ways"
+   },
+   {
+    "type": "detail",
+    "prompt": "According to the writer, how should urgent problems be handled?",
+    "options": [
+     "With a late-night email",
+     "In a written policy document",
+     "At a team meeting the next morning",
+     "With a phone call"
+    ],
+    "answer": 3,
+    "evidence": "urgent problems deserve a phone call"
+   }
+  ],
+  "dictation_index": 7,
+  "vocabulary": [
+   {
+    "term": "recipient",
+    "meaning": "收件人；接受者",
+    "example": "Check the name of the recipient before you press send."
+   },
+   {
+    "term": "rigid",
+    "meaning": "死板的；不灵活的",
+    "example": "The school has rather rigid rules about uniforms."
+   },
+   {
+    "term": "reputation",
+    "meaning": "名声；声誉",
+    "example": "She has a reputation for keeping her promises."
+   },
+   {
+    "term": "availability",
+    "meaning": "可联系到；随时有空",
+    "example": "Constant availability can be exhausting."
+   },
+   {
+    "term": "signal",
+    "meaning": "表明；发出信号",
+    "example": "A short reply can signal that you are busy, not annoyed."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "off duty",
+    "meaning": "下班；不当班",
+    "note": "原指警察、医生不值班，现在泛指“不在工作状态”：I'm off duty this weekend."
+   },
+   {
+    "text": "cuts both ways",
+    "meaning": "对双方都适用；有利也有弊",
+    "note": "常用来提醒对方：一条理由也可以反过来用：That argument cuts both ways."
+   },
+   {
+    "text": "There is something to this",
+    "meaning": "这话有点道理",
+    "note": "议论文里先让步时很好用，语气比 You are right 更有保留。"
+   },
+   {
+    "text": "by definition",
+    "meaning": "按定义；理所当然地",
+    "note": "用来说明某事从概念上就成立：A shortcut is, by definition, not the usual way."
+   },
+   {
+    "text": "at all costs",
+    "meaning": "不惜一切代价",
+    "note": "常和 avoid、protect 等搭配：We must avoid delays at all costs."
+   }
+  ],
+  "grammar": [
+   "compare-pattern",
+   "emph-cleft",
+   "clause-relative"
+  ],
+  "knowledge": [
+   {
+    "node": "compare-pattern",
+    "quote": "The solution is less a matter of banning messages than of changing what they signal.",
+    "explanation": "less A than B 意思是“与其说是 A，不如说是 B”。A、B 要结构对称：这里都是 of + 动名词短语。"
+   },
+   {
+    "node": "emph-cleft",
+    "quote": "it should be the worker, not the inbox, who decides when an evening is given up",
+    "explanation": "It is/should be… who… 是强调句，突出“由谁来决定”；被强调的是人，所以用 who。插入的 not the inbox 用来对比。"
+   },
+   {
+    "node": "clause-relative",
+    "quote": "The person who replies within minutes is quietly rewarded with a reputation for commitment",
+    "explanation": "who replies within minutes 修饰 The person；主语中心词是 person，所以谓语用单数 is rewarded。"
+   }
+  ],
+  "speaking": "用 1 分钟说说：晚上收到老师或同事的消息，你会马上回吗？你觉得什么样的事才值得下班后打扰别人？用上 cuts both ways 和 by definition。",
+  "writing": "用 200–250 词写一篇短评：学校或公司该不该规定“晚上 9 点以后不发工作消息”？先承认对方的理由（There is something to this…），再给出你的方案。至少用一个 It is… who… 强调句。",
+  "task": {
+   "prompt": "仿照这句，用 The solution is less a matter of … than of … 写一句话，为你身边的一个问题提出思路。",
+   "model": "The solution is less a matter of banning messages than of changing what they signal"
+  },
+  "tags": [
+   "职场沟通",
+   "观点评论"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

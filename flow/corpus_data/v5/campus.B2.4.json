@@ -1,0 +1,151 @@
+[
+ {
+  "id": "v5-campus-b2-office-hours",
+  "title": "答疑时间，不只为解决问题",
+  "title_en": "Office Hours Are Not Only for Problems",
+  "summary_zh": "很多学生以为只有成绩出了问题才去找老师。Mei 带着一个“没问题”的问题走进办公室，收获了一条阅读路线和一个好建议。读完你能用英语自然地向老师请教、约时间。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "campus",
+  "genre": "dialogue",
+  "purposes": [
+   "campus-life"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Mei: Excuse me, Dr Shaw, is this still your office hour? Dr Shaw: It is, come in. Is something wrong with your essay? Mei: No, nothing's wrong, which is actually why I nearly didn't come. I thought office hours were only for students who were struggling. Dr Shaw: That's a very common idea, and it means I spend a lot of Thursdays alone with my tea. What's on your mind? Mei: I enjoyed the reading on urban planning last week, and I'd like to go further, but I don't know where to start. Dr Shaw: That's exactly the kind of question I genuinely hoped someone would ask. Have you looked at the further reading at the end of the course guide? Mei: I've skimmed it, but there are so many titles that I didn't know which one to pick first. Dr Shaw: Fair enough. Start with the second one on the list, because it's short and it'll give you the main debates in an afternoon. Then come back and tell me which argument annoyed you most. Mei: Annoyed me? Dr Shaw: Absolutely, because the argument that annoys you is usually the one worth writing about. Mei: I'll keep that in mind. Can I come back next week, even if I don't have a problem? Dr Shaw: Please do, and bring a friend who thinks office hours are only for emergencies.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the conversation mainly about?",
+    "options": [
+     "A student complaining about a low essay grade",
+     "A student discovering that office hours can be used to explore ideas, not only to fix problems",
+     "A lecturer cancelling her office hours for the term",
+     "Two students planning a group presentation"
+    ],
+    "answer": 1,
+    "evidence": "I thought office hours were only for students who were struggling."
+   },
+   {
+    "type": "inference",
+    "prompt": "What does Dr Shaw suggest when she says she spends \"a lot of Thursdays alone with my tea\"?",
+    "options": [
+     "Few students come to her office hours",
+     "She prefers to work without students around",
+     "She does not enjoy her job",
+     "Her office is too small for visitors"
+    ],
+    "answer": 0,
+    "evidence": "it means I spend a lot of Thursdays alone with my tea"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"skimmed\" mean in \"I've skimmed it\"?",
+    "options": [
+     "copied it out carefully",
+     "lost it somewhere",
+     "translated it into Chinese",
+     "read it quickly without looking at every detail"
+    ],
+    "answer": 3,
+    "evidence": "I've skimmed it"
+   },
+   {
+    "type": "detail",
+    "prompt": "Why does Dr Shaw recommend the second book on the list?",
+    "options": [
+     "It is the newest book",
+     "She wrote it herself",
+     "It is short and covers the main debates",
+     "It will be tested in the exam"
+    ],
+    "answer": 2,
+    "evidence": "because it's short and it'll give you the main debates in an afternoon"
+   }
+  ],
+  "dictation_index": 12,
+  "vocabulary": [
+   {
+    "term": "struggling",
+    "meaning": "吃力的；处境困难的",
+    "example": "If you are struggling with the homework, ask for help early."
+   },
+   {
+    "term": "skimmed",
+    "meaning": "略读；浏览",
+    "example": "I skimmed the article on the bus this morning."
+   },
+   {
+    "term": "debates",
+    "meaning": "辩论；争论",
+    "example": "The debates about the new library went on for months."
+   },
+   {
+    "term": "emergencies",
+    "meaning": "紧急情况",
+    "example": "Keep this number for emergencies only."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "What's on your mind",
+    "meaning": "你在想什么？有什么事吗？",
+    "note": "老师、上司开启谈话时很常用，语气友好：So, what's on your mind?"
+   },
+   {
+    "text": "go further",
+    "meaning": "更深入；走得更远",
+    "note": "学习上表示“深入研究”：If you want to go further, read the original paper."
+   },
+   {
+    "text": "Fair enough",
+    "meaning": "有道理；可以理解",
+    "note": "口语里表示接受对方的理由，不完全同意也可以用。"
+   },
+   {
+    "text": "keep that in mind",
+    "meaning": "记住这一点",
+    "note": "比 remember 更口语：Keep in mind that the shop closes early."
+   },
+   {
+    "text": "worth writing about",
+    "meaning": "值得写",
+    "note": "be worth + 动名词：The museum is worth visiting."
+   }
+  ],
+  "grammar": [
+   "clause-relative",
+   "link-purpose",
+   "tense-past"
+  ],
+  "knowledge": [
+   {
+    "node": "clause-relative",
+    "quote": "the argument that annoys you is usually the one worth writing about",
+    "explanation": "that annoys you 是定语从句，修饰 the argument；后半句 the one worth writing about 用 worth doing 作后置定语，相当于 the one that is worth writing about。"
+   },
+   {
+    "node": "link-purpose",
+    "quote": "there are so many titles that I didn't know which one to pick first",
+    "explanation": "so many + 可数名词 + that… 表示“太多以至于……”；不可数名词要用 so much。"
+   },
+   {
+    "node": "tense-past",
+    "quote": "I thought office hours were only for students who were struggling.",
+    "explanation": "主句是过去时 thought，宾语从句跟着用过去时 were，描写过去的想法；现在她已经改变了看法。"
+   }
+  ],
+  "speaking": "用 1 分钟练习：假装你去老师的答疑时间，不是因为遇到问题，而是想就一门课多学一点。先说明来意，再问一个具体问题。用上 go further 和 keep that in mind。",
+  "writing": "用 120–150 词写一封英文邮件给老师，说明你对课上某个话题感兴趣，想约答疑时间请教延伸阅读。用一个 so… that… 句子。",
+  "task": {
+   "prompt": "仿照这句，用 There are so many … that I didn't know … 写一句话，说说你曾经面对太多选择的经历。",
+   "model": "there are so many titles that I didn't know which one to pick first"
+  },
+  "tags": [
+   "大学生活",
+   "师生沟通"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

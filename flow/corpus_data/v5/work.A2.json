@@ -8,6 +8,7 @@
     "cefr": "A2",
     "theme": "work",
     "genre": "story",
+    "purposes": ["story", "workplace"],
     "body": "Lina arrived at her new job twenty minutes early, but the front door was locked. She didn't know the code, and nobody answered the bell. It was raining, and she started to feel a little silly. Then a man with a bike stopped next to her. \"You must be the new designer,\" he said with a smile. \"I'm Omar. Don't worry, everyone gets stuck out here on day one.\" He typed the code and held the door open for her. Inside, Omar showed her the kitchen, the printer and her desk by the window. At lunch, he invited her to eat with the team. Everyone had a funny story about their own first day. By five o'clock, Lina felt like part of the team. On the way home, she saved the door code in her phone and smiled.",
     "questions": [
       {
@@ -67,6 +68,7 @@
     "cefr": "A2",
     "theme": "work",
     "genre": "dialogue",
+    "purposes": ["workplace"],
     "body": "Kenji: Morning, Ana! Is the coffee machine working today? Ana: No, it's broken again. I'm making tea instead. Do you want some? Kenji: Yes, please. How was your weekend? Ana: Pretty good, thanks. I went hiking with my sister, and my legs are still tired. What about you? Kenji: Oh, nothing special. I stayed home and watched a cooking show. Now I want to make pasta from scratch. Ana: Nice! If it goes well, bring some in for lunch. Kenji: Ha, only if it goes well. Ana: Here's your tea. Do you take milk? Kenji: Just a little, thanks. So, are you ready for the big meeting at ten? Ana: Not really. I'm still working on my slides. Kenji: You'll be fine. If you need help, send me a message. Ana: Thanks, Kenji. Right, back to work!",
     "questions": [
       {
@@ -126,6 +128,7 @@
     "cefr": "A2",
     "theme": "work",
     "genre": "email",
+    "purposes": ["workplace"],
     "body": "Hi Tomás, I hope your week is going well. I'm writing to ask you a small favor. My cousin is getting married next Saturday, and I really want to be there. The problem is that I'm working the morning shift that day. Could you take my Saturday shift? In return, I can work your Sunday evening shift. I know Sunday evenings are busy, so I'm happy to do the cleaning at closing time too. If you can't swap, that's completely fine. Just let me know by Wednesday, so I have time to ask someone else. I've also talked to our manager, Rosa, and she says it's okay with her. Thanks a lot, and sorry for the short notice! Best, Aisha",
     "questions": [
       {
@@ -185,6 +188,7 @@
     "cefr": "A2",
     "theme": "work",
     "genre": "story",
+    "purposes": ["story", "workplace"],
     "body": "In his first week at the hotel, Jun worked at the front desk. One evening, a guest asked him which bus went to the old market. Jun had no idea. He wanted to guess, because he didn't want to look stupid. But he said, \"I'm not sure, but I'll find out for you.\" He called his colleague Nadia, who knew the city well. Two minutes later, he gave the guest the bus number and drew a small map. The guest thanked him and left with a big smile. Later that night, the manager came over to Jun's desk. \"I heard that,\" she said. \"Good answer. When you guess, guests sometimes get lost. When you check, they come back.\" Jun felt proud. Saying \"I don't know\" was hard, but it was the right thing to do.",
     "questions": [
       {

@@ -1,0 +1,313 @@
+[
+ {
+  "id": "v5-culture-c1-in-defence-of-spoilers",
+  "title": "为剧透说句公道话",
+  "title_en": "In Defence of Spoilers",
+  "summary_zh": "被剧透真的会毁掉一部作品吗？作者认为，我们反复重看喜欢的故事，享受的是“怎么发生”，而不是“发生了什么”。读完你能用“让步—反驳”的结构，得体地表达一个和多数人不同的观点。",
+  "level": "B2",
+  "cefr": "C1",
+  "theme": "culture",
+  "genre": "opinion",
+  "purposes": [
+   "news-commentary",
+   "film-culture",
+   "argumentative"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Few social crimes are punished as swiftly as the spoiler. Mention a plot twist within earshot of someone who has not finished a series, and you can expect the kind of glare usually reserved for people who talk during a concert. The outrage rests on a simple assumption: that a story is a puzzle, and once you know the answer, the pleasure has gone. I want to suggest that this assumption, however widely shared, deserves far more scrutiny than it gets. Think about how we treat the stories we love most. We reread favourite novels, rewatch films whose endings we could recite, and return to plays that have been performed for centuries. If knowing the outcome really ruined a story, none of this would make sense. What keeps us coming back is not the question of what happens but the pleasure of how it happens: the timing of a line, the way a camera lingers on a face, the slow tightening of a scene we know is heading for disaster. Admittedly, surprise has its own value, and I would not want to rob anyone of a gasp they were looking forward to. A good mystery depends on the reader being one step behind the detective. Yet a film that collapses the moment its secret is revealed was probably resting on a single trick rather than on craft. Knowing the ending can even sharpen our attention, because we stop racing towards the finish and start noticing the clues the writer has scattered along the way. None of this licenses ruining a friend's evening on purpose; good manners still apply. But the next time someone apologises for giving away the ending, it may be kinder to reassure them that a story worth watching will survive the news.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the writer's main argument?",
+    "options": [
+     "People who reveal plot twists are usually trying to spoil the fun for others",
+     "Spoilers should be banned from online discussions of new films and series",
+     "A well-made story rarely depends on surprise, because much of its pleasure lies in how events unfold",
+     "Mysteries are the only kind of story that a spoiler can really damage"
+    ],
+    "answer": 2,
+    "evidence": "What keeps us coming back is not the question of what happens but the pleasure of how it happens"
+   },
+   {
+    "type": "inference",
+    "prompt": "What does the writer imply about a film that \"collapses the moment its secret is revealed\"?",
+    "options": [
+     "It was probably made for a very young audience",
+     "It relied on one surprise more than on skilful storytelling",
+     "It becomes more enjoyable the second time it is watched",
+     "It should only be discussed after everyone has seen it"
+    ],
+    "answer": 1,
+    "evidence": "was probably resting on a single trick rather than on craft"
+   },
+   {
+    "type": "vocab",
+    "prompt": "In \"deserves far more scrutiny than it gets\", what does \"scrutiny\" mean?",
+    "options": [
+     "careful, critical examination",
+     "public praise and approval",
+     "quick and willing acceptance",
+     "a strict legal punishment"
+    ],
+    "answer": 0,
+    "evidence": "deserves far more scrutiny than it gets"
+   },
+   {
+    "type": "detail",
+    "prompt": "According to the writer, how can knowing the ending help a viewer?",
+    "options": [
+     "It makes the film feel shorter",
+     "It helps them guess what the next series will be about",
+     "It lets them finish the story more quickly",
+     "It frees them to notice the clues placed along the way"
+    ],
+    "answer": 3,
+    "evidence": "start noticing the clues the writer has scattered along the way"
+   }
+  ],
+  "dictation_index": 9,
+  "vocabulary": [
+   {
+    "term": "outrage",
+    "meaning": "愤怒；义愤",
+    "example": "The sudden price rise caused outrage among regular customers."
+   },
+   {
+    "term": "scrutiny",
+    "meaning": "仔细审查；严格检视",
+    "example": "Her claims did not survive close scrutiny."
+   },
+   {
+    "term": "lingers",
+    "meaning": "停留；徘徊不去",
+    "example": "The camera lingers on the empty chair after everyone has left."
+   },
+   {
+    "term": "scattered",
+    "meaning": "散布；撒落",
+    "example": "Small hints are scattered throughout the first chapter."
+   },
+   {
+    "term": "reassure",
+    "meaning": "使安心；打消疑虑",
+    "example": "I called my parents to reassure them that I had arrived safely."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "within earshot of",
+    "meaning": "在……听得到的地方",
+    "note": "常用来提醒说话场合：Don't discuss the surprise party within earshot of Mia."
+   },
+   {
+    "text": "rests on a simple assumption",
+    "meaning": "建立在一个简单的假设上",
+    "note": "rest on 表示“以……为基础”，议论文里常用来点出对方观点的前提，再去质疑它。"
+   },
+   {
+    "text": "heading for disaster",
+    "meaning": "正走向灾难",
+    "note": "be heading for + 结局，表示事情朝某个方向发展：The project is heading for trouble."
+   },
+   {
+    "text": "rob anyone of",
+    "meaning": "剥夺某人的（乐趣、机会）",
+    "note": "rob sb of sth 比 take away 更有分量，多用于抽象的东西：Stress robbed him of sleep."
+   },
+   {
+    "text": "one step behind",
+    "meaning": "慢一步；落后一步",
+    "note": "既可以指字面上的位置，也可以指理解、信息上的落后：I always feel one step behind in meetings."
+   },
+   {
+    "text": "giving away the ending",
+    "meaning": "透露结局",
+    "note": "give away 表示“泄露（秘密、答案）”：Don't give away the answer."
+   }
+  ],
+  "grammar": [
+   "clause-noun",
+   "subjunctive-now",
+   "link-contrast"
+  ],
+  "knowledge": [
+   {
+    "node": "clause-noun",
+    "quote": "What keeps us coming back is not the question of what happens but the pleasure of how it happens",
+    "explanation": "What 引导的主语从句作整句主语，谓语是 is；not… but… 对比两个名词短语，介词 of 后面又接了 what happens / how it happens 两个名词性从句。"
+   },
+   {
+    "node": "subjunctive-now",
+    "quote": "If knowing the outcome really ruined a story, none of this would make sense.",
+    "explanation": "if 从句用过去式 ruined、主句用 would make，是与现在事实相反的假设：作者借此说明“知道结局就毁了故事”这个前提并不成立。"
+   },
+   {
+    "node": "link-contrast",
+    "quote": "Admittedly, surprise has its own value, and I would not want to rob anyone of a gasp they were looking forward to.",
+    "explanation": "Admittedly 先让步，承认对方有道理的地方；接下来两句用 Yet 转回自己的立场。这是议论文“让步—反驳”的常用写法。"
+   }
+  ],
+  "speaking": "用 1 分钟说说：你介意被剧透吗？举一部你看过不止一遍的电影或剧（不用讲剧情），说说重看时你注意到了什么。用上 what keeps me coming back is… 和 admittedly。",
+  "writing": "用 200–250 词写一篇短评，回应“剧透会毁掉作品”这个说法。先用 Admittedly 让步，再用 Yet 反驳，最后给出你的建议。至少用一个 What… is… 主语从句。",
+  "task": {
+   "prompt": "仿照这句，用 What keeps me coming back to … is not … but … 写一句话，说说你反复去做的一件事（重看、重听、重游）真正吸引你的是什么。",
+   "model": "What keeps us coming back is not the question of what happens but the pleasure of how it happens"
+  },
+  "tags": [
+   "影视文化",
+   "观点评论"
+  ],
+  "source": "Flow 编辑部原创"
+ },
+ {
+  "id": "v5-culture-c1-craft-of-subtitling",
+  "title": "字幕背后的手艺",
+  "title_en": "The Invisible Craft of Subtitling",
+  "summary_zh": "字幕翻译不只是把话翻过去：它要和时间赛跑，要留住人物的性格，还要让笑话在同一秒响起。跟着一位字幕译者，看看你每天读的字幕是怎么来的。",
+  "level": "B2",
+  "cefr": "C1",
+  "theme": "culture",
+  "genre": "interview",
+  "purposes": [
+   "film-culture",
+   "expository"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Most viewers only notice subtitles when something goes wrong, which is exactly how Nadia, a subtitler who works on films and documentaries, prefers it. Interviewer: People often assume your job is simply translation. Is it? Nadia: Translation is only the starting point, because a subtitle is also a race against the clock. Viewers can read only so many words before the picture changes, so I am constantly cutting a line down to its essentials without losing the speaker's personality. Interviewer: What gets lost first? Nadia: Usually the padding, the little words people use to buy time when they talk, although I try to keep one if it tells you something about the character. A nervous teenager and a confident judge might say the same thing, and the audience should still be able to hear the difference in the way they say it. Cutting words is easy; knowing which ones quietly carry the meaning takes years. Interviewer: Jokes must be a nightmare. Nadia: They are the hardest part of the job, and I would be lying if I said I always succeed. A pun that works perfectly in one language may have no equivalent in another, so I sometimes replace it with a different joke that lands at the same moment. Purists hate that, but a translation that is accurate and leaves the cinema silent has failed in its own way. Interviewer: Do you ever watch a film just for pleasure? Nadia: Rarely, I'm afraid, because I can't switch off the part of my brain that counts characters on the screen. Still, when a subtitle disappears at exactly the right moment and nobody in the room notices it was there, I feel a quiet kind of pride.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the main idea of the interview?",
+    "options": [
+     "Subtitlers should translate every word exactly as it is spoken",
+     "Good subtitling depends on careful choices so that meaning, character and timing all survive",
+     "Most films would be better without any subtitles at all",
+     "Jokes cannot be translated, so subtitlers simply leave them out"
+    ],
+    "answer": 1,
+    "evidence": "Translation is only the starting point, because a subtitle is also a race against the clock."
+   },
+   {
+    "type": "inference",
+    "prompt": "What does Nadia suggest about a translation that is accurate but gets no laugh?",
+    "options": [
+     "It is the best result a subtitler can hope for",
+     "It will be corrected by the audience later",
+     "It is only a problem in documentaries",
+     "It has not really done its job"
+    ],
+    "answer": 3,
+    "evidence": "a translation that is accurate and leaves the cinema silent has failed in its own way"
+   },
+   {
+    "type": "vocab",
+    "prompt": "In \"Usually the padding, the little words people use to buy time\", what does \"padding\" mean?",
+    "options": [
+     "soft material sewn inside clothes",
+     "extra payment for difficult work",
+     "words that add little meaning but fill time",
+     "the most important words in a line"
+    ],
+    "answer": 2,
+    "evidence": "Usually the padding, the little words people use to buy time when they talk"
+   },
+   {
+    "type": "detail",
+    "prompt": "Why does Nadia rarely watch a film just for pleasure?",
+    "options": [
+     "She keeps counting the characters on the screen",
+     "She has no free time in the evenings",
+     "She dislikes most modern films",
+     "Cinemas no longer show films with subtitles"
+    ],
+    "answer": 0,
+    "evidence": "I can't switch off the part of my brain that counts characters on the screen"
+   }
+  ],
+  "dictation_index": 12,
+  "vocabulary": [
+   {
+    "term": "assume",
+    "meaning": "以为；想当然地认为",
+    "example": "Don't assume that everyone has read the instructions."
+   },
+   {
+    "term": "essentials",
+    "meaning": "要点；最基本的部分",
+    "example": "The guide covers only the essentials of the software."
+   },
+   {
+    "term": "equivalent",
+    "meaning": "对应的事物；对等词",
+    "example": "There is no exact English equivalent for this Chinese phrase."
+   },
+   {
+    "term": "purists",
+    "meaning": "纯粹主义者；讲究正统的人",
+    "example": "Purists insist that real tea should be drunk without sugar."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "a race against the clock",
+    "meaning": "和时间赛跑",
+    "note": "形容时间非常紧张：Finishing the report before the meeting was a race against the clock."
+   },
+   {
+    "text": "down to its essentials",
+    "meaning": "精简到只剩要点",
+    "note": "cut sth down to its essentials 常用来说删减文字或计划：Cut your talk down to its essentials."
+   },
+   {
+    "text": "buy time",
+    "meaning": "拖延时间；争取时间",
+    "note": "口语、职场都常用：He asked a question just to buy time."
+   },
+   {
+    "text": "I would be lying if I said",
+    "meaning": "说实话，我不能说……",
+    "note": "坦白承认的句式，语气谦虚、真诚：I'd be lying if I said I wasn't nervous."
+   },
+   {
+    "text": "switch off the part of my brain",
+    "meaning": "让大脑的那部分停下来",
+    "note": "switch off 原指关掉电器，引申为“不再想、放松下来”：I find it hard to switch off after work."
+   },
+   {
+    "text": "a quiet kind of pride",
+    "meaning": "一种不声张的自豪",
+    "note": "a quiet kind of + 名词，描述含蓄的情绪，报刊和散文里常见。"
+   }
+  ],
+  "grammar": [
+   "clause-relative",
+   "clause-adverb"
+  ],
+  "knowledge": [
+   {
+    "node": "clause-relative",
+    "quote": "A pun that works perfectly in one language may have no equivalent in another",
+    "explanation": "that works perfectly in one language 是限定性定语从句，修饰 A pun；整句主干是 A pun may have no equivalent，may 表示可能。"
+   },
+   {
+    "node": "clause-adverb",
+    "quote": "when a subtitle disappears at exactly the right moment and nobody in the room notices it was there, I feel a quiet kind of pride",
+    "explanation": "when 引导时间状语从句，从句里有两个并列的部分（a subtitle disappears… and nobody notices…）；主句放在最后，把重点落在情绪上。"
+   }
+  ],
+  "speaking": "用 1 分钟说说：你看外语片时开不开字幕？开中文、英文，还是都不开？为什么？用上 a race against the clock 或 buy time。",
+  "writing": "用 200–250 词写一段说明：如果你来给一部外语短片做中文字幕，遇到笑话或双关语时你会怎么处理？用上一个 that 定语从句和一个 when 状语从句。",
+  "task": {
+   "prompt": "仿照这句，用 I would be lying if I said I always … 写一句话，坦白一件你还做不好的事。",
+   "model": "I would be lying if I said I always succeed"
+  },
+  "tags": [
+   "影视文化",
+   "人物访谈",
+   "翻译"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

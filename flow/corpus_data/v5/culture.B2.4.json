@@ -1,0 +1,162 @@
+[
+ {
+  "id": "v5-culture-b2-how-trailers-are-built",
+  "title": "两分钟预告片是怎么剪出来的",
+  "title_en": "How a Film Trailer Is Built",
+  "summary_zh": "两分钟要说服你花两小时：预告片的每个镜头、每个音符都是设计过的。读完你会看懂预告片的套路，并学会用被动语态和条件句写一段清楚的说明文。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "culture",
+  "genre": "explainer",
+  "purposes": [
+   "film-culture",
+   "expository"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "A good trailer has about two minutes to persuade you to spend two hours on a film, and almost everything in it has been chosen with that goal in mind. Trailers are often made by specialist editors rather than by the film's director, and they often work from footage that is not yet finished. Their first job is to establish the world of the story quickly: a few shots tell you whether you are in a quiet village, a busy newsroom or a spaceship far from home. Next comes the problem, the moment when something goes wrong and the main character is forced to act. Many trailers then speed up, cutting faster and faster while the music builds, so that your heart beats faster even though you have learned very little about the plot. The rhythm is often more important than the content. Sound plays a bigger role than most viewers realise. A single loud note, followed by a second of silence, can make an ordinary scene feel dangerous. Editors also face a difficult balance between showing enough and showing too much. If a trailer reveals every twist, people may feel they have already seen the film; if it reveals too little, they may not care. Some trailers even include shots that never appear in the final version, because the film changed after the trailer was cut. So the next time a trailer gives you goosebumps, remember that the feeling was designed. That does not make it fake, but it is worth asking whether the film can keep the promise its trailer made.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the text mainly about?",
+    "options": [
+     "Why directors should always make their own trailers",
+     "The history of the film industry",
+     "How to become a professional film editor",
+     "How trailers are carefully designed to make people want to see a film"
+    ],
+    "answer": 3,
+    "evidence": "almost everything in it has been chosen with that goal in mind"
+   },
+   {
+    "type": "inference",
+    "prompt": "Why might a trailer include a shot that is not in the final film?",
+    "options": [
+     "The editors wanted to trick the audience",
+     "The trailer was made before the film was finished",
+     "The director disliked that scene",
+     "Cinemas asked for extra scenes"
+    ],
+    "answer": 1,
+    "evidence": "because the film changed after the trailer was cut"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"goosebumps\" refer to in \"a trailer gives you goosebumps\"?",
+    "options": [
+     "a feeling of boredom",
+     "a sudden headache",
+     "small bumps on the skin caused by excitement or fear",
+     "a strong wish to laugh"
+    ],
+    "answer": 2,
+    "evidence": "gives you goosebumps"
+   },
+   {
+    "type": "detail",
+    "prompt": "According to the text, what can a single loud note followed by silence do?",
+    "options": [
+     "Make an ordinary scene feel dangerous",
+     "Explain the plot of the film",
+     "Introduce the main character",
+     "Tell viewers the trailer is ending"
+    ],
+    "answer": 0,
+    "evidence": "can make an ordinary scene feel dangerous"
+   }
+  ],
+  "dictation_index": 5,
+  "vocabulary": [
+   {
+    "term": "persuade",
+    "meaning": "说服",
+    "example": "It took me an hour to persuade my brother to come."
+   },
+   {
+    "term": "footage",
+    "meaning": "（影视）镜头；片段",
+    "example": "The news showed footage of the storm."
+   },
+   {
+    "term": "establish",
+    "meaning": "确立；建立",
+    "example": "It takes time to establish trust with a new team."
+   },
+   {
+    "term": "reveals",
+    "meaning": "揭示；透露",
+    "example": "The last page reveals who sent the letter."
+   },
+   {
+    "term": "goosebumps",
+    "meaning": "鸡皮疙瘩",
+    "example": "That song always gives me goosebumps."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "with that goal in mind",
+    "meaning": "以此为目标",
+    "note": "with … in mind 表示“考虑到……；为了……”：The park was designed with children in mind."
+   },
+   {
+    "text": "far from home",
+    "meaning": "远离家乡",
+    "note": "常用于故事和旅行：It was her first winter far from home."
+   },
+   {
+    "text": "forced to act",
+    "meaning": "被迫行动",
+    "note": "be forced to do 表示不得不做：We were forced to cancel the trip."
+   },
+   {
+    "text": "plays a bigger role",
+    "meaning": "起更大的作用",
+    "note": "play a role in… 是说明文里的高频搭配。"
+   },
+   {
+    "text": "keep the promise",
+    "meaning": "兑现承诺",
+    "note": "keep a promise 守信；反义是 break a promise。"
+   },
+   {
+    "text": "worth asking",
+    "meaning": "值得问一问",
+    "note": "it is worth asking whether… 是委婉地提出质疑的好方法。"
+   }
+  ],
+  "grammar": [
+   "voice-basic",
+   "conditional-real",
+   "nonfinite-participle"
+  ],
+  "knowledge": [
+   {
+    "node": "voice-basic",
+    "quote": "Trailers are often made by specialist editors rather than by the film's director",
+    "explanation": "被动语态 are made by…，强调预告片“由谁制作”；rather than 连接两个 by 短语，进行对比。"
+   },
+   {
+    "node": "conditional-real",
+    "quote": "If a trailer reveals every twist, people may feel they have already seen the film",
+    "explanation": "真实条件句：if 从句用一般现在时，主句用 may 表示可能的结果。"
+   },
+   {
+    "node": "nonfinite-participle",
+    "quote": "A single loud note, followed by a second of silence, can make an ordinary scene feel dangerous.",
+    "explanation": "followed by a second of silence 是过去分词短语作插入的后置定语，说明这个音符“后面跟着”一秒的安静；主语是 A single loud note。"
+   }
+  ],
+  "speaking": "用 1 分钟说说：你看过最让你想去看正片的一支预告片是什么样的（不用讲剧情）？它用了哪些手法？用上 plays a bigger role 和 keep the promise。",
+  "writing": "用 120–150 词写一段说明：介绍一种你熟悉的“吸引人点开”的手法（预告片、短视频开头、商品详情页）。用一个被动句和一个 If… 条件句。",
+  "task": {
+   "prompt": "仿照这句，用 … has been chosen with that goal in mind 写一句话，说说某样东西是怎样为一个目的而设计的。",
+   "model": "almost everything in it has been chosen with that goal in mind"
+  },
+  "tags": [
+   "影视文化",
+   "说明文"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

@@ -8,6 +8,7 @@
     "cefr": "B2",
     "theme": "campus",
     "genre": "dialogue",
+    "purposes": ["campus-life"],
     "body": "Hannah: Has Marcus sent anything yet, or is it still just the two of us? Kenji: Not a word, and the deadline is nine days away, so his section is still a blank page with his name at the top. Hannah: Honestly, I'm tempted to just write it myself and be done with it. Kenji: And then he gets the same mark as us for doing nothing at all? I think we should email the tutor tonight. Hannah: Maybe, but hang on a second. He's turned up to every single meeting, and he's never once been late. If he were really that lazy, he wouldn't bother coming at all, would he? Kenji: Fair enough, but sitting there nodding isn't the same as contributing. Hannah: True. Then again, did we ever actually ask him to do anything specific, or did we just say he could take the research part and leave it there? Kenji: So you think he's overwhelmed and simply doesn't know where to start? Hannah: It's possible, because he only transferred here this term and he barely says a word in seminars. If we went straight to the tutor, it might feel like an ambush to him. Kenji: Okay, so what do you suggest instead? Hannah: Let's message him tonight with something concrete and manageable, like three sources to read and a one-page summary by Friday. Kenji: And if Friday comes and there's still nothing? Hannah: Then we talk to the tutor, and at least we'll have the messages to show that we tried. Kenji: Fine, but I'm writing the message, because you'll be far too nice.",
     "questions": [
       {
@@ -136,6 +137,7 @@
     "cefr": "B2",
     "theme": "campus",
     "genre": "explainer",
+    "purposes": ["expository", "campus-life"],
     "body": "Almost every student has spent at least one night surrounded by highlighted notes and cold coffee, trying to fit a whole term into a few hours. Cramming is popular for a simple reason: it seems to work. By midnight, the pages look familiar, the diagrams make sense, and you walk into the exam feeling ready. The trouble is that familiarity and memory are not the same thing. Recognising an idea when it is in front of you is far easier than pulling it out of your head when the page is blank. The confidence produced by rereading the same notes again and again is often misleading, because it measures how well you recognise the material, not how well you can recall it. Spacing out your revision works differently. When you return to a topic after a few days, part of it has already faded, so you have to make an effort to rebuild it. That effort is exactly the point: each time you struggle to remember something and succeed, it becomes easier to find the next time. Spaced revision feels slower and more frustrating, which is why many people abandon it. Yet a student who reviews a chapter for twenty minutes on three different days is likely to remember more than one who spends an hour on it the night before. None of this means cramming is useless; it can get you through tomorrow's test. It just leaves very little behind for the test after that.",
     "questions": [
       {
@@ -264,6 +266,7 @@
     "cefr": "B2",
     "theme": "campus",
     "genre": "story",
+    "purposes": ["story", "campus-life"],
     "body": "Tariq had rehearsed his presentation on coastal erosion so many times that he could recite it in his sleep. He had twenty-two slides, a script printed in large type, and a joke about sandcastles planned for exactly the third minute. What he didn't have, as it turned out, was a working projector. Two minutes before he was due to start, the screen flickered and went black, and the technician was nowhere to be found. Standing at the front of the room with a useless remote in his hand, Tariq felt his carefully memorised script start to dissolve. His tutor offered to let him go last, but he shook his head, put the papers down and simply started talking. He drew the coastline on the whiteboard, used his hands to show how waves drag sand away, and asked a classmate who had grown up by the sea what she had noticed there. Without the slides to hide behind, he looked at his audience instead of the screen, and they looked back. The joke about sandcastles never happened, yet people laughed twice anyway. Afterwards, his tutor told him it was the most engaging talk of the day. Tariq was pleased but slightly annoyed. If he had known how little the slides really mattered, he would have spent the night before sleeping instead of polishing animations. He still uses slides now, but only a handful, and he never writes a script.",
     "questions": [
       {
@@ -392,6 +395,7 @@
     "cefr": "B2",
     "theme": "campus",
     "genre": "opinion",
+    "purposes": ["argumentative", "campus-life"],
     "body": "Ask a room of students what they look at first when an essay comes back, and the answer is almost always the same: the number at the top. Only after that, if at all, do they read the comments in the margin. This is not laziness. A grade is instant, unambiguous and easy to compare with a friend's, while comments take effort to understand. The problem is what happens next. A student who gets a disappointing mark often feels judged rather than taught, and a student who gets a high one has little reason to read further. Either way, the comments, which contain almost everything useful, are skimmed or ignored. What a grade cannot tell you is how to do better next time. Unless it comes with specific advice, a mark is less like feedback and more like a verdict. I don't think the answer is to abolish grades. Universities and employers need some way of comparing people, and many students find a clear target motivating. But the order matters. Some teachers now return essays with comments only and release the grade a few days later, once students have responded to the feedback. Neither the teacher nor the student loses anything by this delay, and the comments finally get the attention they deserve. Grades, in other words, should be the end of a conversation about learning, not the whole of it.",
     "questions": [
       {
