@@ -19,33 +19,49 @@ words are left (stopped early or --max-calls reached), 2 when no model is config
 
 --offpeak: when the model the examples' route usually reaches has busy hours (DeepSeek on 百炼: 08:00–22:00 Beijing
 time; half price the rest of the day), wait them out. Qwen models have none (their half price is 百炼's batch API).
-The calls take the batch lane (ai_routes): flow-batch-X for the examples' flow-text-X where the gateway has it. It also stops for the day once the console's daily AI budget is spent (state
-budget); run it again tomorrow. Every call is in ai_calls as 例句预生成（批量）.
+The calls take the batch lane (ai_routes): flow-batch-X for the examples' flow-text-X where the gateway has it. It also
+stops for the day once the console's daily AI budget is spent (state budget); run it again tomorrow. Every call is in ai_calls as 例句预生成（批量）.
 
-Run it in the background on the server, e.g.
-    cd /www/wwwroot/flow && nohup python3 fill_examples.py > /root/claude-ops/fill-examples.log 2>&1 &
-or from the xmc.hk console (运维 → 后台任务, r26), which starts it with --status and shows that file's progress:
-{state: running | waiting | done | left | budget | no-model, total, looked, calls, made, left, books, updated, until}.
+On the server, run it as the site's own user (www), never as root. The database is in WAL mode: a root process can
+leave root-owned flow.sqlite3-wal / -shm files behind, and then the site (running as www) can no longer write to its
+own database. The env file is readable by root only, so let systemd read it and start the script as www, with the
+site's interpreter (systemctl show flow -p ExecStart) and a folder www can write for the log and status:
+
+    mkdir -p /tmp/flow-fill && chown www:www /tmp/flow-fill
+    systemd-run --collect --unit=flow-fill --uid=www --gid=www -p EnvironmentFile=/etc/flow.env \
+      --working-directory=/www/wwwroot/flow -p StandardOutput=append:/tmp/flow-fill/run.log -p StandardError=append:/tmp/flow-fill/run.log \
+      <python3.11 of the flow service> fill_examples.py --env-file /dev/null --status /tmp/flow-fill/status.json
+
+(--env-file /dev/null: the environment already comes from systemd. For the 内测版: /etc/flow-beta.env and
+/www/wwwroot/flow-beta. Add --wait to stay until it ends; try --dry-run and --max-calls 5 first, as on b5, 2026-11-24.)
+Or start it from the xmc.hk console (运维 → 后台任务, r26), which runs it as the site does, with --status, and shows
+that file's progress: {state: running | waiting | done | left | budget | no-model, total, looked, calls, made, left, other_sense, books, updated,
+until}.
+
+Each word is written at its own level (vocab_service.example_level: the school and basic books A2, 四级 B1, the rest
+B2), in its first sense unless that one is clearly a rare use; the sense used is kept with the example.
 """
 import argparse, json, os, sqlite3, sys, time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ORDER = ('zk', 'gk', 'cet4', 'cet6', 'ky', 'tem4', 'ielts', 'tem8', 'toefl', 'gre', 'nawl', 'bsl', 'core', 'mid', 'high', 'adv', 'ext')
-EASY = {'core', 'mid', 'zk', 'gk', 'cet4'}  # books whose examples are written for B1 learners; the rest for B2
 
 
 def pending(c, vs, books):
-    """[(book, level, word)] still without any example, each word once, in book order and frequency order."""
+    """[(book, level, word)] still without any example, each word once, in book order; within a book by level (so a
+    call takes words of one level) and then by frequency."""
     seen, out = set(), []
     words = vs.book_words()
     for b in books:
+        mine = []
         for _, w in words.get(b, []):
             if w in seen:
                 continue
             seen.add(w)
             if vs.needs_example(c, w):
-                out.append((b, 'B1' if b in EASY else 'B2', w))
+                mine.append((b, vs.example_level(w), w))
+        out += sorted(mine, key=lambda x: x[1])  # stable: frequency order kept within a level
     return out
 
 
@@ -60,7 +76,7 @@ def main(argv=None):
     ap.add_argument('--status', help='把进度写进这个 JSON 文件（后台的「后台任务」读它）')
     ap.add_argument('--offpeak', action='store_true', help='例句用的模型有忙时价（百炼上的 DeepSeek：北京时间 8–22 点）时，等到半价时段再跑')
     a = ap.parse_args(argv)
-    status = {'state': 'running', 'books': [], 'total': None, 'looked': 0, 'calls': 0, 'made': 0, 'left': None}
+    status = {'state': 'running', 'books': [], 'total': None, 'looked': 0, 'calls': 0, 'made': 0, 'other_sense': 0, 'left': None}
 
     def report(**kw):
         if not a.status:
@@ -98,7 +114,8 @@ def main(argv=None):
         print('没有配置 AI 模型（FLOW_AI_MODEL 等），不能写例句。')
         report(state='no-model')
         return 2
-    calls = made = fails = 0
+    calls = made = fails = other = 0
+    d = __import__('next_service').dictionary()
     i = 0
     while i < len(todo):
         if a.max_calls and calls >= a.max_calls:
@@ -128,6 +145,8 @@ def main(argv=None):
             out = vs.example_results(parse(reply), batch)
             vs.save_examples(c, out)
             made += len(out)
+            # an example in another sense than the first: counted, so a run shows how often the model chose to
+            other += sum(1 for w, e in out.items() if e.get('sense') and vs.first_sense(d[w]['meaning']) not in e['sense'])
             fails = 0
         except Exception as exc:  # noqa: BLE001 - one failed call is logged and the run goes on
             fails += 1
@@ -138,11 +157,11 @@ def main(argv=None):
             time.sleep(10)
         if calls % 20 == 0:
             print(f'{calls} calls, {made} examples written, {i}/{len(todo)} words looked at', flush=True)
-        report(looked=i, calls=calls, made=made)
+        report(looked=i, calls=calls, made=made, other_sense=other)
         time.sleep(a.pause)
     left = len(pending(c, vs, books))
-    print(f'done: {calls} calls, {made} examples written, {left} words still without an example', flush=True)
-    report(state='done' if not left else 'left', looked=i, calls=calls, made=made, left=left)
+    print(f'done: {calls} calls, {made} examples written ({other} in another sense than the first), {left} words still without an example', flush=True)
+    report(state='done' if not left else 'left', looked=i, calls=calls, made=made, other_sense=other, left=left)
     return 0 if not left else 1
 
 

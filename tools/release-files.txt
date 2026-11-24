@@ -298,6 +298,7 @@ flow/tests/test_learner.py
 flow/tests/test_learning.py
 flow/tests/test_learning_loop.py
 flow/tests/test_exam_sprint.py
+flow/tests/test_welcome.py
 flow/tests/test_learning_more.py
 flow/tests/test_learning_system.py
 flow/tests/test_login.py
