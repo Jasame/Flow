@@ -1,0 +1,163 @@
+[
+ {
+  "id": "v5-life-b2-phones-at-the-table",
+  "title": "餐桌上该不该收手机",
+  "title_en": "Should Restaurants Ask for Your Phone?",
+  "summary_zh": "一家小餐馆推出“手机放进木盒，就送一份甜点”。作者觉得这是好主意，但前提是自愿。读完你能用 on balance、If… were… 等说法写出一篇有让步、有条件的观点短文。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "life",
+  "genre": "opinion",
+  "purposes": [
+   "argumentative",
+   "news-commentary",
+   "daily-life"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "A small restaurant near my flat has started offering a free dessert to any table that agrees to put their phones in a wooden box until the bill arrives. The idea has divided my friends. Some think it is a charming way to bring back proper conversation; others find it patronising, as if adults could not be trusted to decide when to look at a screen. I understand both reactions, but on balance I think the box is a good idea, as long as it stays optional. We have all seen tables where four people sit together and talk to nobody. Each person is checking messages, and the meal becomes something that happens in the background. A box does not force anyone to talk, but it removes the easiest excuse not to. It also takes away a small pressure that most of us rarely notice: the feeling that we must reply to everything immediately. Of course, there are good reasons to keep a phone nearby. A parent might be waiting for a call from a babysitter, and a doctor on call cannot simply disappear for two hours. That is exactly why a ban would be a mistake. If the rule were compulsory, it would punish the people with the best reasons to stay reachable. As a friendly offer with a dessert attached, however, it simply invites us to try something different for one evening.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the writer's position on the phone box?",
+    "options": [
+     "It is a good idea as long as customers can choose",
+     "It should be required in every restaurant",
+     "It is patronising and should be removed",
+     "It works only for groups of four people"
+    ],
+    "answer": 0,
+    "evidence": "on balance I think the box is a good idea, as long as it stays optional"
+   },
+   {
+    "type": "inference",
+    "prompt": "Why does the writer mention the parent and the doctor?",
+    "options": [
+     "To describe the restaurant's regular customers",
+     "To argue that phones are dangerous at meals",
+     "To explain who invented the wooden box",
+     "To show that some people have good reasons to keep their phones"
+    ],
+    "answer": 3,
+    "evidence": "there are good reasons to keep a phone nearby"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"patronising\" mean in \"others find it patronising\"?",
+    "options": [
+     "generous and kind",
+     "treating people as if they were not able to decide for themselves",
+     "expensive and unnecessary",
+     "old-fashioned and boring"
+    ],
+    "answer": 1,
+    "evidence": "others find it patronising, as if adults could not be trusted to decide when to look at a screen"
+   },
+   {
+    "type": "detail",
+    "prompt": "What does the restaurant give to tables that use the box?",
+    "options": [
+     "A discount on drinks",
+     "A better table by the window",
+     "A free dessert",
+     "Free wifi"
+    ],
+    "answer": 2,
+    "evidence": "offering a free dessert to any table"
+   }
+  ],
+  "dictation_index": 6,
+  "vocabulary": [
+   {
+    "term": "patronising",
+    "meaning": "居高临下的；把人当小孩的",
+    "example": "His patronising tone annoyed everyone in the meeting."
+   },
+   {
+    "term": "optional",
+    "meaning": "可选的；非强制的",
+    "example": "The evening class is optional, but most students go."
+   },
+   {
+    "term": "compulsory",
+    "meaning": "强制的；必须的",
+    "example": "Wearing a helmet is compulsory on the building site."
+   },
+   {
+    "term": "reachable",
+    "meaning": "联系得上的",
+    "example": "I will be reachable by email all week."
+   },
+   {
+    "term": "excuse",
+    "meaning": "借口",
+    "example": "Being tired is not an excuse for being rude."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "bring back",
+    "meaning": "恢复；找回",
+    "note": "bring back old habits / memories：The song brought back happy memories."
+   },
+   {
+    "text": "on balance",
+    "meaning": "总的来说；权衡之后",
+    "note": "议论文里给出结论前常用：On balance, the benefits outweigh the costs."
+   },
+   {
+    "text": "as long as",
+    "meaning": "只要",
+    "note": "引出条件：You can borrow it as long as you return it by Friday."
+   },
+   {
+    "text": "in the background",
+    "meaning": "在背景里；不被注意地",
+    "note": "The TV was on in the background."
+   },
+   {
+    "text": "on call",
+    "meaning": "随时待命的",
+    "note": "多用于医生、技术人员：She is on call this weekend."
+   },
+   {
+    "text": "takes away",
+    "meaning": "去掉；带走",
+    "note": "take away the pressure / pain / fun 都很常用。"
+   }
+  ],
+  "grammar": [
+   "subjunctive-now",
+   "clause-relative",
+   "link-contrast"
+  ],
+  "knowledge": [
+   {
+    "node": "subjunctive-now",
+    "quote": "If the rule were compulsory, it would punish the people with the best reasons to stay reachable.",
+    "explanation": "与现在事实相反的假设：规定现在并不是强制的，所以 if 从句用 were，主句用 would punish。"
+   },
+   {
+    "node": "clause-relative",
+    "quote": "We have all seen tables where four people sit together and talk to nobody.",
+    "explanation": "where 引导定语从句修饰 tables，相当于 at which；从句里有两个并列谓语 sit 和 talk。"
+   },
+   {
+    "node": "link-contrast",
+    "quote": "As a friendly offer with a dessert attached, however, it simply invites us to try something different for one evening.",
+    "explanation": "however 放在句中，用逗号隔开，表示和上一句（强制规定的问题）形成对比；比放在句首更自然。"
+   }
+  ],
+  "speaking": "用 1 分钟说说：吃饭时你会把手机放一边吗？你支持餐厅“收手机换甜点”吗？用上 on balance 和 as long as。",
+  "writing": "用 120–150 词写一篇短评：学校该不该在午饭时间收手机？先写对方的一个理由（Of course…），再用 If… were…, it would… 说明强制规定的问题。",
+  "task": {
+   "prompt": "仿照这句，用 … does not force anyone to …, but it removes the easiest excuse not to 写一句话，评价一条你觉得有用的规定。",
+   "model": "A box does not force anyone to talk, but it removes the easiest excuse not to"
+  },
+  "tags": [
+   "生活观点",
+   "议论文"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

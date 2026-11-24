@@ -8,6 +8,7 @@
     "cefr": "A2",
     "theme": "culture",
     "genre": "email",
+    "purposes": ["daily-life"],
     "body": "Hi Lena, I have some good news. I have just got my first library card in this city! The library is near my flat, so I walked there after work. A woman who works at the front desk helped me. She asked for my address and took a quick photo. The card was ready in five minutes, and it is free. I didn't know that! The library has a lot more than books. There is a quiet room with big tables, and there are free English classes on Saturdays. I have already borrowed two cookbooks and a film. Every Tuesday, people meet there to play chess, so I want to join them next week. I feel a bit less like a visitor now. Write back soon! Love, Jia",
     "questions": [
       {
@@ -68,6 +69,7 @@
     "cefr": "A2",
     "theme": "culture",
     "genre": "dialogue",
+    "purposes": ["daily-life"],
     "body": "Ruby: Hi, is this the folk dance class? Dev: Yes, come in! Are you new? Ruby: I am. I've never danced like this before. Dev: Don't worry. Most of us have only been coming for a few weeks. Ruby: Everyone is holding hands in a circle. What happens next? Dev: The teacher plays the music, and we all step to the left. Then we clap twice and turn. Ruby: That sounds easy. Dev: It is, until the music gets faster! Ruby: Oh no. What if I step on someone's foot? Dev: Then you say sorry and keep going. I've stepped on the teacher's foot three times. She just laughs. She says the dance is about the group, not about being perfect. Ruby: Which hand do I give you? Dev: Your right one. And smile. It helps more than you think!",
     "questions": [
       {
@@ -127,6 +129,7 @@
     "cefr": "A2",
     "theme": "culture",
     "genre": "explainer",
+    "purposes": ["expository"],
     "body": "Some dish names are hard to translate. Think of a dish that is called \"ants climbing a tree\". In English, it sounds strange, and some people may not want to try it. But there are no ants in it! It is made with noodles and small pieces of meat. So what can you do when a name doesn't work in another language? A good idea is to say what the food is, not what the name says. For example, you can say: It's glass noodles with minced pork. Then add the fun name later, like a small story. People usually love that part. If a friend asks about a dish that you like, tell them three things: what it is made of, how it tastes, and when people eat it. After that, the strange name becomes a nice surprise.",
     "questions": [
       {
@@ -187,6 +190,7 @@
     "cefr": "A2",
     "theme": "culture",
     "genre": "article",
+    "purposes": ["expository"],
     "body": "Every Sunday morning, I sit at the kitchen table and practise calligraphy for one hour. I have done this for six months now. My brush is an old one that my uncle gave me. I use cheap paper, because I make a lot of mistakes. My teacher, who runs a small class near the park, has one rule: write slowly. At first, I hated this rule. I wanted to finish a page in ten minutes. But slow lines are strong lines. Now I breathe in before each line and breathe out as I write. Some weeks my characters look messy. Other weeks, one or two look good, and I put them on the fridge. My phone stays in another room. For one hour, the only sound is the brush on the paper. It is the quietest part of my week.",
     "questions": [
       {

@@ -94,6 +94,7 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
     __import__('exam_service').schema(c)  # exam practice papers and results
     __import__('exam_sprint').schema(c)  # question-type practice results
     __import__('progress_service').schema(c)  # 这周进步: weekly goals by week, the Sunday mail's switch and link
+    __import__('content_v50').sync(c)  # additive edits of published materials (more questions, tags) reach the database
 
 
 # ---------- helpers ----------
@@ -298,7 +299,9 @@ def origin(p):
                 'url': p['source_url'] if str(p.get('source_url', '')).startswith('https://') else '', 'references': []}
     return {'kind': 'original', 'label': p.get('source') or 'Flow 编辑部原创', 'ai': p.get('ai', V5_AI if featured(p) else ''),
             'reviewed': p.get('reviewed'), 'url': p['source_url'] if str(p.get('source_url', '')).startswith('https://') else '',
-            'references': links(p.get('references'), 8)}
+            'references': links(p.get('references'), 8),
+            'quotes': [{k: qt[k] for k in ('text', 'author', 'work', 'year')} for qt in p.get('quotes') or []
+                       if isinstance(qt, dict) and all(qt.get(k) for k in ('text', 'author', 'work', 'year'))][:3]}
 
 
 def _pack_row(c, uid, pid):
@@ -972,7 +975,9 @@ def material(c, uid, pid, level=None, offline=False):
         hit = lookup(w)
         if hit and easiest_rank(w) > hard_rank and not hit['meaning'].startswith('num.'):  # forty, eighty: numbers are not "hard"
             hard[key] = {'meaning': hit['meaning'][:80], 'rank': hit['rank']}
-    qs = [{'prompt': q['prompt'], 'options': q['options']} for q in p.get('questions', [])]
+    qtypes = __import__('content_v50').QUESTION_TYPES
+    qs = [{'prompt': q['prompt'], 'options': q['options'], **({'type': qtypes[q['type']]} if q.get('type') in qtypes else {})}
+          for q in p.get('questions', [])]
     done = _done(c, uid).get(pid, set())
     states = graph_states(c, uid)
     meta = nodes_meta(c)

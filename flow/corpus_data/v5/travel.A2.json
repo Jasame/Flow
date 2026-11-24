@@ -8,6 +8,7 @@
     "cefr": "A2",
     "theme": "travel",
     "genre": "dialogue",
+    "purposes": ["daily-life"],
     "body": "Kenji: Excuse me, can you help me? My first train was late, and I missed my connection to Lakeside. Staff: Oh no, I'm sorry about that. Can I see your ticket, please? Kenji: Sure, here it is. Do I need to buy a new one? Staff: No, don't worry. Your ticket is still good, because the delay wasn't your fault. Kenji: That's a relief! When is the next train? Staff: There's one in forty minutes, from platform six. Kenji: Is it a direct train, or do I need to change again? Staff: It's direct, so it goes straight there. If you're hungry, there's a small coffee shop upstairs. Kenji: Great, thanks. Sorry, which way is platform six? Staff: Go down these stairs and turn left. You can't miss it. Kenji: Thank you so much. You're a lifesaver!",
     "questions": [
       {
@@ -131,6 +132,7 @@
     "cefr": "A2",
     "theme": "travel",
     "genre": "dialogue",
+    "purposes": ["daily-life"],
     "body": "Amara: Excuse me, sorry to bother you. I'm trying to find the old market. Is it far from here? Rosa: Not really. It's about ten minutes on foot. Do you have a map? Amara: Only on my phone, and the battery is almost dead. Rosa: Ah, OK. Go straight on until you get to the river. Amara: Straight on to the river. Got it. Rosa: Then cross the bridge and take the first street on the right. You'll hear the market before you see it, because the sellers shout a lot! Amara: Ha, that sounds fun. Is there a bus, just in case? Rosa: There is, but it's slow. Walking is quicker, and the view from the bridge is lovely. Amara: Perfect. Thanks so much! Rosa: You're welcome. Enjoy the market, and don't forget to try the fresh bread!",
     "questions": [
       {
@@ -254,6 +256,7 @@
     "cefr": "A2",
     "theme": "travel",
     "genre": "story",
+    "purposes": ["story", "daily-life"],
     "body": "On my second night in the little town, I was very hungry. But I couldn't read a single word on the menu. There were no pictures, and the waiter didn't speak English. I looked around the small room. At the next table, an old couple were eating something that smelled amazing. So I smiled at the waiter and pointed at their plates: \"That one, please.\" He laughed and nodded. The woman at the next table understood too. She showed me how to eat it: first the fish, then the rice, then a little of the green sauce. When the food arrived, it was hot and spicy, and I enjoyed every bite. I still don't know the name of the dish. But now, when I travel, I always look at other people's tables first.",
     "questions": [
       {
@@ -372,6 +375,7 @@
     "cefr": "A2",
     "theme": "travel",
     "genre": "guide",
+    "purposes": ["expository", "daily-life"],
     "body": "Do you always carry a heavy bag on holiday? Here is a simple way to pack light. First, put everything you want to take on your bed. Then take away half of it. It sounds hard, but you won't miss most of those things. Choose clothes in two or three colours, so everything goes with everything. Wear your biggest shoes and your warmest jacket on the journey to save space. If you need something small, like soap or a phone charger, you can usually buy it there. Take one bag, not three. A light bag makes every day easier. You can walk from the station, run up the stairs and jump on a crowded bus. And at the end of the trip, you'll still have room for a little gift for someone at home.",
     "questions": [
       {

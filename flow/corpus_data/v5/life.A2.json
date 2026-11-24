@@ -8,6 +8,7 @@
     "cefr": "A2",
     "theme": "life",
     "genre": "dialogue",
+    "purposes": ["daily-life"],
     "body": "Mr Patel: Hi, you must be Sofia. Come in, mind the step. Sofia: Thanks! Oh, it's brighter than I expected. Mr Patel: Yes, the living room gets the sun all afternoon. Sofia: Lovely. Is the heating included in the rent? Mr Patel: No, but the flat is small, so it warms up fast. Sofia: Can I see the kitchen? Mr Patel: Sure, it's through here. Sofia: It's quite noisy outside, though. Mr Patel: The bus stops here, I'm afraid. But it goes quiet after ten. Sofia: Fair enough. If I take it, when can I move in? Mr Patel: It's free from next month. Sofia: Great, can I think about it and call you tomorrow? Mr Patel: Of course, take your time. But if you like it, don't wait too long. Two other people are coming this weekend.",
     "questions": [
       {
@@ -120,6 +121,7 @@
     "cefr": "A2",
     "theme": "life",
     "genre": "email",
+    "purposes": ["daily-life"],
     "body": "Hi there, I'm Hana from Flat 3, just below you. I hope you're settling in well. I'm writing to ask for a small favour. Last week, I heard loud music late at night, on Tuesday and again on Thursday. I also heard chairs moving around after midnight. I know it's not easy to move into a new place, and I'm sure you didn't mean to keep anyone awake. The problem is that I start work at seven, so I go to bed early. Could you please keep the music down after ten on weeknights? Weekends are no problem at all. And if you ever hear noise from my flat, please tell me too! Thanks so much, and welcome to the building. Hana (Flat 3)",
     "questions": [
       {
@@ -232,6 +234,7 @@
     "cefr": "A2",
     "theme": "life",
     "genre": "guide",
+    "purposes": ["expository", "daily-life"],
     "body": "Many new plant owners make the same mistake: they love their plants too much. With your first plant, you want to look after it, so you water it every day. But too much water is bad for the roots. Here is a simple rule: put your finger in the soil. If the top feels dry, give the plant a drink. If it still feels wet, leave it alone. Most green plants like a bright room, but not hot sun all day. When the leaves turn yellow, the plant is often getting too much water. When they turn brown and dry, it probably needs more. Don't worry if a leaf falls off now and then. That's normal. Be patient, and try not to move your plant often. Plants, like people, need a while to get used to a new home.",
     "questions": [
       {
@@ -344,6 +347,7 @@
     "cefr": "A2",
     "theme": "life",
     "genre": "story",
+    "purposes": ["story", "daily-life"],
     "body": "In the spring, my neighbour Mr Novak lent me his ladder. I needed it to paint my kitchen ceiling. \"Bring it back when you're done,\" he told me. \"No rush.\" The job took two days. Then I put the ladder in my garage and forgot about it. Summer came and went. One day in October, I noticed Mr Novak in his garden. He was standing on a chair to pick apples from his tree. The chair didn't look safe at all. Suddenly, I remembered. \"I've had his ladder for six months!\" I ran home, carried it over and apologised again and again. Mr Novak just laughed. \"I knew you had it. I just didn't want to ask.\" Now I always return things in the same week. And every autumn, he brings me a bag of apples.",
     "questions": [
       {

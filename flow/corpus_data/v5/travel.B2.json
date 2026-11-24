@@ -8,6 +8,7 @@
     "cefr": "B2",
     "theme": "travel",
     "genre": "email",
+    "purposes": ["daily-life"],
     "body": "Dear Guest Services Team, I am writing about my recent three-night stay at your hotel, which I booked specifically because your website promised a quiet room with a sea view. Unfortunately, the room I was given faced a busy car park, and building work next door started at seven every morning. When I raised the issue at the front desk on the first day, the staff member was polite but told me that no other rooms were available. Having checked the booking site that evening, however, I could see several sea-view rooms still being offered for the same dates. I want to stress that your staff were friendly throughout, and the breakfast was excellent. My concern is not with any individual, but with how the problem was handled. Had I been told about the building work in advance, I would have chosen different dates or another hotel altogether. As it was, I spent most of my short break tired and frustrated. I would be grateful if you could look into why I was not offered a different room, and let me know what you are able to offer by way of compensation, whether a partial refund or a discount on a future stay. I have attached a copy of my booking confirmation and two photos taken from the room's window. I look forward to hearing from you, and I hope this feedback will help other guests avoid a similar experience. Yours faithfully, Nadia Rahimi",
     "questions": [
       {
@@ -136,6 +137,7 @@
     "cefr": "B2",
     "theme": "travel",
     "genre": "explainer",
+    "purposes": ["expository", "daily-life"],
     "body": "Anyone who has flown across several time zones knows the strange feeling of being wide awake at midnight and desperate for sleep at lunchtime. Jet lag is not simply tiredness from a long journey. It happens because your body runs on an internal clock, a rhythm of roughly a day that tells you when to feel alert, when to get hungry and when to wind down. This clock is set mainly by light. Morning light reaching your eyes signals that the day has begun, while darkness in the evening tells the brain to prepare for sleep. When you land in a new time zone, the local sun is suddenly out of step with your internal schedule. Your watch says it is breakfast time, but your body, still following the old pattern, insists it is the middle of the night. The clock can adjust, but only gradually, shifting a little each day rather than all at once. That is why the first few days of a trip can feel foggy, even if you slept well on the plane. Many people find that flying east is harder than flying west. Travelling west stretches your day, which the body tends to accept fairly easily, whereas travelling east asks it to fall asleep before it feels ready. Not every part of the body adjusts at the same speed, either, so for a while your appetite and your sleepiness may seem to be running on two different schedules. This is why getting outside in daylight and eating at local mealtimes are the habits many travellers rely on to help the clock catch up.",
     "questions": [
       {
@@ -264,6 +266,7 @@
     "cefr": "B2",
     "theme": "travel",
     "genre": "story",
+    "purposes": ["story", "daily-life"],
     "body": "Leila and I have been friends since primary school, so I knew what I was signing up for when we booked a week in the city together. Within a day, she had sent me a colour-coded schedule: breakfast at eight, the castle at nine, a walking tour at eleven, and lunch at a place she had found on a food blog. Even the coffee breaks had their own row. If I hadn't grown up with her, I would probably find it exhausting, but I've learned that planning is how Leila relaxes. She loves looking forward to things, and a full schedule makes her feel safe in a place she doesn't know. Still, by the third day I was secretly wishing we had a single empty afternoon. Then, on Thursday, the plan fell apart. The gallery we were heading to was closed for repairs, and there was nothing about it online. Leila stood on the steps, scrolling through her phone and looking genuinely lost. I suggested we just walk and see where we ended up. She hated the idea for about ten minutes. After that, we found a tiny square where an old man was selling lemons from a cart, wandered down a street of second-hand bookshops, and ate the best soup of the whole trip in a place with no sign outside. That evening, Leila admitted it had been her favourite afternoon. I didn't say anything, but I noticed that her schedule for the next day had a new row in it, labelled simply: wander.",
     "questions": [
       {
@@ -387,6 +390,7 @@
     "cefr": "B2",
     "theme": "travel",
     "genre": "opinion",
+    "purposes": ["argumentative", "news-commentary", "daily-life"],
     "body": "These days, it takes real effort to get lost. A blue dot follows us everywhere, and a calm voice tells us exactly when to turn. I understand why we love it, but I've come to believe that the moments when that dot fails us are often the best part of a trip. Getting lost forces you to pay attention. Instead of staring at a screen, you start reading street names, noticing which way the hill slopes and watching where local people are going. You ask a shopkeeper for help and end up chatting about her grandson. You wander into a neighbourhood that no guidebook mentions, where washing hangs between balconies and children play football against a garage door. On my first visit to a port city years ago, I took a wrong turn looking for a famous fish market. If I hadn't missed that turning, I would never have found the little bakery where I ate breakfast every day for the rest of the week. I'm not arguing that we should throw our phones into the sea. Unless you are short of time, travelling at night or somewhere that feels unsafe, there is no reason to keep the map open every minute. Try putting it away for an hour in the afternoon and following whatever looks interesting. The worst that can happen is that you walk a little further than planned. The best is that you come home with a story nobody else has. After all, the sights everyone photographs will still be there tomorrow, but the street you stumbled onto by accident belongs only to you.",
     "questions": [
       {
