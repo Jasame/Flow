@@ -1146,10 +1146,21 @@
   /* ---------- today ---------- */
   function greeting() { const h = new Date().getHours(); return h < 5 ? '夜深了' : h < 11 ? '早上好' : h < 14 ? '中午好' : h < 18 ? '下午好' : '晚上好'; }
   function stepDots(steps) { return `<span class="steps-dots" aria-label="已完成 ${steps.length} / 4 步">${STEPS.map(s => `<i class="${steps.includes(s) ? 'on' : ''}"></i>`).join('')}</span>`; }
+  // 精选, or 重学 (a featured text recommended again) or 简版 (an older, shorter text): the kind of text, on every card
+  function kindPill(m) { return m.redo ? '<span class="pill">重学</span>' : m.brief ? '<span class="pill">简版</span>' : m.featured ? '<span class="pill feat">精选</span>' : ''; }
+  // How many featured texts are left at this level, from seven down; once none are, what 今日 recommends instead
+  function featLeftHTML(h) {
+    const n = h.featured_left;
+    if (n == null || n > 7) return '';
+    const msg = n > 0 ? `这一级（${h.level}）的精选还剩 ${n} 篇没学。${h.level_up ? `学完以后先推 ${h.level_up} 的精选，再推精读重学。` : '学完以后先推精读重学，每周也会加新的。'}`
+      : h.level_up ? `这一级（${h.level}）的精选你都学过了：先推 ${h.level_up} 的精选，也可以<a class="link" href="#/welcome/edit">换个水平</a>。`
+      : `${h.level} 的精选你都学过了：先精读重学，每周也会加新的。`;
+    return `<p class="tiny muted feat-left">${msg}</p>`;
+  }
   function reasonsHTML(m) { return m.reasons && m.reasons.length ? `<div class="reasons">${m.reasons.map(r => `<span class="reason">${esc(r)}</span>`).join('')}</div>` : ''; }
   function miniCard(m, tag) {
     return `<a class="card flat mini" href="#/m/${encodeURIComponent(m.id)}"><span class="t">${esc(m.title)}</span>
-      <span class="meta">${m.featured ? '<span class="pill feat">精选</span>' : ''}${tag ? `<span class="pill amber">${esc(tag)}</span>` : ''}<span class="pill">${m.level}</span></span>
+      <span class="meta">${kindPill(m)}${tag ? `<span class="pill amber">${esc(tag)}</span>` : ''}<span class="pill">${m.level}</span></span>
       <span class="p">${esc(m.preview)}</span><span class="tiny muted">${esc(m.theme_label)} · ${m.words} 词 · 约 ${m.minutes} 分钟</span>${m.steps.length ? stepDots(m.steps) : ''}${reasonsHTML(m)}</a>`;
   }
   async function today(fresh) {
@@ -1170,7 +1181,7 @@
       readId = read ? decodeURIComponent(read.href.split('/')[2] || '') : '';
       const art = [pick, h.resume, ...h.today].find(m => m && m.id === readId);
       // 再学一篇 (r27): the next recommendation itself, not the whole library (that only when there is none)
-      const more1 = h.today.find(m => m && m.id !== readId && !(m.steps || []).includes('check'));
+      const more1 = h.today.find(m => m && m.id !== readId && (!(m.steps || []).includes('check') || m.redo));  // 精读重学 counts: it is what 今日 recommends once a level is done
       top = `<section class="today-plan" aria-labelledby="tpTitle">
         <div class="tp-head"><div><h1 class="h1" id="tpTitle">${next ? '今天的计划' : '今天的计划完成了'}</h1>
           <span class="muted small">${p.total} 步 · 约 ${p.minutes} 分钟 · 已完成 ${p.done} / ${p.total}</span>${sprintLine(h)}</div>
@@ -1185,7 +1196,7 @@
         }).join('')}</div></section>`;
     } else if (pick) {
       top = `<div class="hello"><h1 class="h1">今天学一篇，用上一句。</h1><span class="muted small">按「${esc(h.level_label)}（${h.level}）」为你挑选 · <a class="link" href="#/welcome/edit">调整</a></span></div>
-        <article class="card hero"><div class="meta">${pick.featured ? '<span class="pill feat">精选</span>' : ''}<span class="pill green">今日推荐</span><span class="pill">${pick.level}</span><span class="pill">${esc(pick.theme_label)}</span></div>
+        <article class="card hero"><div class="meta">${kindPill(pick)}<span class="pill green">今日推荐</span><span class="pill">${pick.level}</span><span class="pill">${esc(pick.theme_label)}</span></div>
         <h2 class="title">${esc(pick.title)}</h2>${pick.title_en ? `<div class="title-en">${esc(pick.title_en)}</div>` : ''}<p class="preview">${esc(pick.preview)}</p>${reasonsHTML(pick)}
         <span class="muted small">${pick.words} 词 · 约 ${pick.minutes} 分钟 · 听、读、理解、用出来</span>
         <a class="btn primary block go-next" href="#/m/${encodeURIComponent(pick.id)}">开始学习<span aria-hidden="true">→</span></a></article>`;
@@ -1204,7 +1215,7 @@
       ${weekCardSlot()}
       <div id="notice"></div>
       ${S.user && !path ? vocabHome(st) : ''}
-      <section class="section" aria-labelledby="mTitle"><div class="section-head"><h2 class="h2" id="mTitle">也可以读</h2><a class="link small hit44" href="#/welcome/edit">按 ${h.level} 挑选 · 调整</a></div>
+      <section class="section" aria-labelledby="mTitle"><div class="section-head"><h2 class="h2" id="mTitle">也可以读</h2><a class="link small hit44" href="#/welcome/edit">按 ${h.level} 挑选 · 调整</a></div>${featLeftHTML(h)}
         <div class="mlist">${resume ? mrow(resume, ['继续', 'green'], `#/m/${encodeURIComponent(resume.id)}/${nextStep(resume.steps)}`, 'home-resume') : ''}${more.map(m => mrow(m, null, '', 'home-pick')).join('')}
           <a class="mrow more" href="#/library" data-tap="home-more"><span class="t"><b>更多材料</b><span class="tiny muted">按话题和级别挑一篇</span></span><span class="go" aria-hidden="true">›</span></a></div></section>`;
     const ring = view.querySelector('.ring'); if (ring) ring.style.setProperty('--p', ring.dataset.p + '%');  // CSP: no inline style attributes
@@ -1254,7 +1265,7 @@
   function mrow(m, tag, href, tapKey) {
     return `<a class="mrow" href="${href || '#/m/' + encodeURIComponent(m.id)}"${tapKey ? ` data-tap="${tapKey}"` : ''}><span class="t"><b>${esc(m.title)}</b>
       <span class="tiny muted">${m.level} · ${esc(m.theme_label)}${m.minutes ? ` · 约 ${m.minutes} 分钟` : ''}${m.steps && m.steps.length ? ` · 学了 ${m.steps.length}/4 步` : ''}${OFF.has(m.id) ? ' · 已存到手机' : ''}</span></span>
-      ${tag ? `<span class="pill ${tag[1]}">${tag[0]}</span>` : m.featured ? '<span class="pill feat">精选</span>' : ''}<span class="go" aria-hidden="true">›</span></a>`;
+      ${tag ? `<span class="pill ${tag[1]}">${tag[0]}</span>` : kindPill(m)}<span class="go" aria-hidden="true">›</span></a>`;
   }
   // 公告 from the operators (xmc.hk console, r26): one line at the very top of 今日, for everyone, until it ends.
   // 「知道了」 (or going to its page) hides that one on this phone; a new one shows again.
