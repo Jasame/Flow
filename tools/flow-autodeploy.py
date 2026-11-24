@@ -102,10 +102,21 @@ def verified(sha, path, flat):
     raise RuntimeError(f'{path}: {last!r}')
 
 
+def short(detail, n=160):
+    """A failed check's detail on one line, at most n characters: its start (the status, the error the app sent) and its
+    end (the last line of a traceback)."""
+    text = ' '.join(str(detail).split())
+    return text if len(text) <= n else text[:n - 50] + ' … ' + text[-47:]
+
+
 def e2e_summary(work):
     try:
         r = json.loads((work / 'report.json').read_text())
         return {'checks': r['checks']['total'], 'failed': r['checks']['failed'], 'failed_names': [f['who'] + ': ' + f['name'] for f in r['failed']][:40],
+                # why each failed, short (the status code, the error the app sent): readable in /api/deploy-status and in
+                # the release's Actions log, so a failure needs no look at the server (b12's two failures did, 2026-11-25).
+                # Test accounts only, and their rows are gone by now.
+                'failed_details': [f"{f['who']}: {f['name']}: {short(f.get('detail', ''))}" for f in r['failed']][:10],
                 'light': bool(r.get('light')),
                 'server_errors': len(r['server_errors']), 'ai_calls': r['ai_calls_used'], 'seconds': r['seconds'],
                 'cleanup_ok': not any(f['who'] == 'cleanup' for f in r['failed'])}

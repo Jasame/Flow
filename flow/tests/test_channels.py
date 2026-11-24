@@ -159,12 +159,19 @@ class LightEndToEndTests(unittest.TestCase):
         self.assertIn("st['e2e'] = run_e2e(work, work / 'e2e.log', light)", src)
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)
-            (work / 'report.json').write_text(json.dumps({'checks': {'total': 3, 'failed': 0}, 'failed': [], 'server_errors': [],
+            failed = [{'who': 'b1', 'name': 'dialog end gives feedback', 'detail': {'error': 'AI 这次的回答不完整，没有保存。', 'x': 'y ' * 200}}]
+            (work / 'report.json').write_text(json.dumps({'checks': {'total': 3, 'failed': 1}, 'failed': failed, 'server_errors': [],
                                                           'ai_calls_used': 1, 'seconds': 1, 'light': True}))
             seen = []
             with patch.object(mod.subprocess, 'run', lambda *a, **k: seen.append(k['env'])):
-                self.assertTrue(mod.run_e2e(work, work / 'e2e.log', True)['light'])
+                summary = mod.run_e2e(work, work / 'e2e.log', True)
+                self.assertTrue(summary['light'])
                 mod.run_e2e(work, work / 'e2e.log')
+        # why it failed travels with the name, short: the deploy status (and the Actions log) show it
+        self.assertEqual(summary['failed_names'], ['b1: dialog end gives feedback'])
+        detail = summary['failed_details'][0]
+        self.assertTrue(detail.startswith('b1: dialog end gives feedback: '), detail)
+        self.assertLessEqual(len(detail), len('b1: dialog end gives feedback: ') + 160)
         self.assertEqual(seen[0].get('QA_LIGHT'), '1')
         self.assertNotIn('QA_LIGHT', seen[1])
         self.assertEqual(seen[0].get('FLOW_SERVICE'), 'flow-beta')  # the 内测版's settings are kept
