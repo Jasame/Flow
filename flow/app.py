@@ -419,6 +419,11 @@ class Handler(BaseHTTPRequestHandler):
     owner=self.user(c)
     if not owner:return self.send({'error':'请先登录'},401)
     if not hmac.compare_digest(self.headers.get('X-CSRF-Token',''),owner['csrf']):return self.send({'error':'安全校验失败'},403)
+  if self.path.startswith('/api/next/weekly-mail/off?'):
+   # RFC 8058 one-click unsubscribe from a mail app's own button: a form post to the List-Unsubscribe address
+   body=self.rfile.read(length).decode('utf-8','replace')
+   if body.strip()!='List-Unsubscribe=One-Click':return self.send({'error':'请求格式不正确'},400)
+   with db() as c:return self.send(*__import__('progress_service').unsubscribe(c,parse_qs(urlsplit(self.path).query).get('t',[''])[0]))
   data=json.loads(self.rfile.read(length));path=self.path
   if not isinstance(data,dict):return self.send({'error':'请求必须为 JSON 对象'},400)
   if path=='/api/survey':
@@ -634,12 +639,12 @@ if __name__=='__main__':
   with db() as c:ai_jobs.recover_interrupted(c)
   __import__('flow_admin').start()
   def remind_loop():
-   # Daily vocabulary reminder emails, at each learner's chosen hour (Asia/Shanghai).
+   # Daily vocabulary reminder emails, at each learner's chosen hour (Asia/Shanghai), and the Sunday progress mail.
    while True:
     try:
      with db() as c:
+      __import__('progress_service').send_weekly(c)  # Sunday evening, before the daily reminder: it says the words due too
       __import__('vocab_service').send_reminders(c)
-      __import__('skills_service').send_weekly(c)
     except Exception as exc:print('reminders failed:',type(exc).__name__,flush=True)
     time.sleep(300)
   threading.Thread(target=remind_loop,daemon=True).start()

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Multi-device UI tests for Flow /next: phone, phone sideways, tablet and desktop; touch, keyboard and mouse.
 
-    python3 tools/ui_test.py [out dir] [phone|phone-land|tablet|desktop …]   # needs: pip install playwright
+    python3 tools/ui_test.py [out dir] [phone|phone-land|tablet|desktop|progress …]   # needs: pip install playwright
 
 Starts its own local server (tools/ui_server.py: throwaway database, simulated AI, one signed-in learner per device),
 so every run begins from the same state, and drives the installed Google Chrome.
@@ -42,7 +42,7 @@ PAGES = ['#/', '#/library', f'#/m/{PID}/listen', f'#/m/{PID}/read', f'#/m/{PID}/
          '#/mix', '#/mix/pair/tense-past,tense-perfect', '#/graph/link-contrast',
          '#/easy', '#/words/confuse', '#/words/confuse/borrow-lend,make-do', '#/speak', '#/speak/cafe-order', '#/growth', '#/series/a-new-term',
          '#/radar', '#/radar/goals', '#/radar/test', '#/radar/test/reading', '#/radar/test/writing',
-         '#/practice', '#/guide', '#/guide/words', '#/feedback']
+         '#/practice', '#/guide', '#/guide/words', '#/feedback', '#/weekly-off/not-a-real-link-0123456789']
 RESULTS = []
 NEXT_PARTS = sorted((Path(__file__).resolve().parent.parent / 'flow/public/src/next').glob('*.js'))
 
@@ -1095,11 +1095,13 @@ def learner_run(pw):
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['exam']['token'], 'url': BASE}])
         pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
         pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
-        # 每周目标: the chip on 今日 opens its sheet, and the goal chosen there shows on the chip at once
-        pg.click('#habitBtn'); pg.wait_for_selector('#sheetCard [data-goal="3"]', timeout=4000)
+        # 每周目标: from the 这周进步 card on 今日 (r27: it replaced the chip), 改每周目标 opens its sheet, and the goal
+        # chosen there shows on the card at once
+        pg.click('#weekCard'); pg.wait_for_selector('#wkGoal', timeout=6000); pg.click('#wkGoal')
+        pg.wait_for_selector('#sheetCard [data-goal="3"]', timeout=4000)
         pg.click('#sheetCard [data-goal="3"]'); pg.wait_for_timeout(600); pg.evaluate(closing)
-        chip = (pg.text_content('#habitBtn') or '').strip()
-        check(dev, '每周目标: the goal set from 今日 shows on its chip', '/3 天' in chip, chip[:40])
+        goal = (pg.text_content('#weekCard .wk-tile.goal b') or '').strip()
+        check(dev, '每周目标: the goal set from 今日 shows on the 这周进步 card', goal.endswith('/3天') and not pg.query_selector('#habitBtn'), goal[:40])
         # 分享卡片: after the questions, a learned expression becomes a picture with a QR code back to the site
         go(pg, f'#/m/{PID}/check'); pg.wait_for_selector('#pane .q', timeout=6000)
         for q in pg.query_selector_all('#pane .q'):
@@ -1304,6 +1306,108 @@ def a11y_run(pw):
         browser.close()
 
 
+# ---- 这周进步 (r27): the card at the top of 今日 on phones (390 and 360 px), a phone held sideways, a tablet and a
+# computer, in light and dark; its details; the three lines after a text; 每周进度邮件 in 我的; the mail's link
+PROGRESS_SIZES = {'phone-390': (390, 844), 'phone-360': (360, 780), 'phone-land': (844, 390), 'tablet': (820, 1180), 'desktop': (1440, 900)}
+CARD_JS = r"""() => {
+  const c = document.getElementById('weekCard'); if (!c) return null;
+  const r = el => el.getBoundingClientRect(), plan = document.querySelector('#view .today-plan, #view .hello'), go = document.querySelector('#view .go-next');
+  const tiles = [...c.querySelectorAll('.wk-tile')];
+  const rgb = s => (s.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+  const lum = s => { const [R, G, B] = rgb(s).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }); return .2126 * R + .7152 * G + .0722 * B; };
+  const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+  const bg = getComputedStyle(c).backgroundColor;
+  return {
+    tiles: tiles.length, oneRow: new Set(tiles.map(t => Math.round(r(t).top))).size === 1,
+    values: tiles.map(t => t.querySelector('b').textContent.trim()),
+    clipped: tiles.filter(t => t.scrollWidth > t.clientWidth + 1 || [...t.children].some(x => r(x).right > r(t).right + 1)).map(t => t.textContent.trim()),
+    wrapped: tiles.filter(t => [...t.querySelectorAll('.tiny')].some(l => r(l).height > parseFloat(getComputedStyle(l).lineHeight) * 1.5)).map(t => t.textContent.trim()),
+    above: !plan || r(c).bottom <= r(plan).top + 1, inView: r(c).left >= 0 && r(c).right <= innerWidth,
+    goBottom: go ? Math.round(r(go).bottom) : null, H: innerHeight,
+    wide: document.scrollingElement.scrollWidth - innerWidth,
+    surface: bg !== getComputedStyle(document.body).backgroundColor,
+    contrast: Math.min(ratio(getComputedStyle(c.querySelector('.wk-tile b')).color, bg), ratio(getComputedStyle(c.querySelector('.wk-tile .muted')).color, bg),
+                       ratio(getComputedStyle(c.querySelector('.wk-tile .sub')).color, bg)),
+    chip: !!document.getElementById('habitBtn'),
+  };
+}"""
+
+
+def progress_run(pw):
+    dev = 'progress'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    try:
+        for size, (w, h) in PROGRESS_SIZES.items():
+            for theme in ('light', 'dark'):
+                tag = f'{size} {theme}'
+                touch = w < 1000
+                ctx = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=touch, has_touch=touch, device_scale_factor=2 if touch else 1,
+                                          color_scheme=theme, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+                ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['guide']['token'], 'url': BASE}])
+                pg = ctx.new_page(); errors = []
+                pg.on('pageerror', lambda e: errors.append(str(e)))
+                pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg); pg.wait_for_selector('#weekCard', timeout=8000)
+                card = pg.evaluate(CARD_JS)
+                home = pg.evaluate("fetch('/api/next/home').then(r => r.json())")
+                pr, hb = home['stats']['progress'], home['stats']['habit']
+                acc = pr['accuracy']['now']
+                want = [str(pr['remembered']['now']), str(pr['finished']['now']),
+                        f"{acc['rate']}%" if acc['rate'] is not None else (f"{acc['right']}/{acc['total']}" if acc['total'] else '—'), f"{hb['done']}/{hb['goal']}天"]
+                check(dev, f'{tag}: 这周进步 sits above the plan, in place of the week chip', card and card['above'] and not card['chip'] and card['inView'], card)
+                check(dev, f'{tag}: its four numbers are the learner\'s own (as the server counts them)', card and card['values'] == want, (card and card['values'], want))
+                check(dev, f'{tag}: four numbers in one row, nothing cut off or wrapped', card and card['tiles'] == 4 and card['oneRow'] and not card['clipped'] and not card['wrapped'],
+                      card and (card['oneRow'], card['clipped'], card['wrapped']))
+                check(dev, f'{tag}: no sideways scrolling; a surface of its own; text contrast at least 4.5:1',
+                      card and card['wide'] <= 0 and card['surface'] and card['contrast'] >= 4.5, card and (card['wide'], card['surface'], round(card['contrast'], 2)))
+                if size in ('phone-390', 'phone-360'):
+                    check(dev, f'{tag}: the plan\'s next-step button is still on the first screen', card['goBottom'] is not None and card['goBottom'] <= card['H'], (card['goBottom'], card['H']))
+                pg.screenshot(path=str(OUT / f'progress-today-{size}-{theme}.png'))
+                # the details: the same numbers, the words behind them, closes with Escape (or a tap on 关闭)
+                pg.click('#weekCard'); pg.wait_for_selector('.wk-sheet', timeout=8000); pg.wait_for_timeout(250)
+                sheet = pg.evaluate("""() => { const s = document.querySelector('.wk-sheet'), c = document.getElementById('sheetCard');
+                  return { nums: [...s.querySelectorAll('.wk-num')].map(n => n.textContent.trim()), words: s.querySelectorAll('.wk-words .pill').length,
+                           days: s.querySelectorAll('.wk-days > span').length, wide: c.scrollWidth - c.clientWidth }; }""")
+                check(dev, f'{tag}: the details show the same numbers and the words remembered',
+                      sheet['nums'][:3] == want[:3] and sheet['words'] == min(40, pr['remembered']['now']) and sheet['days'] == 7 and sheet['wide'] <= 0, (sheet, want))
+                if size == 'phone-390' and theme == 'light':
+                    pg.screenshot(path=str(OUT / 'progress-sheet.png'))
+                pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
+                check(dev, f'{tag}: the details close', pg.evaluate("document.getElementById('sheet').hidden"))
+                # the three lines after a text, each going on to its work
+                go(pg, f'#/m/{PID}/output'); pg.wait_for_selector('#ans', timeout=8000)
+                pg.fill('#ans', 'I usually wear headphones on the train, so the noise is less.'); pg.click('#go')
+                pg.wait_for_selector('#finSum .fin-row', timeout=15000); pg.wait_for_timeout(250)
+                fin = pg.evaluate("""() => { const b = document.getElementById('finSum'), c = document.getElementById('finCard');
+                  return { rows: [...b.querySelectorAll('.fin-row')].map(r => [r.querySelector('.k').textContent, r.getAttribute('href') || '']),
+                           inside: b.getBoundingClientRect().right <= c.getBoundingClientRect().right + 1, wide: document.scrollingElement.scrollWidth - innerWidth,
+                           share: !!document.getElementById('shareDone') }; }""")
+                check(dev, f'{tag}: 这篇完成了 has three lines (expressions, words, a grammar point), each with where to go',
+                      [r[0] for r in fin['rows']] == ['表达', '新词', '语法'] and fin['rows'][2][1] == '#/graph/agreement-head' and fin['rows'][1][1] == '#/cards/word'
+                      and fin['inside'] and fin['wide'] <= 0 and fin['share'], fin)
+                pg.evaluate("document.getElementById('finCard').scrollIntoView({ block: 'center' })"); pg.wait_for_timeout(200)
+                pg.screenshot(path=str(OUT / f'progress-finish-{size}-{theme}.png'))
+                if theme == 'light':
+                    go(pg, '#/me'); pg.wait_for_selector('#meMail', timeout=6000)
+                    row = pg.inner_text('#meMail')
+                    pg.click('#meMail'); pg.wait_for_timeout(250)
+                    title = pg.evaluate("(document.getElementById('sheetTitle') || {}).textContent")
+                    pg.keyboard.press('Escape')
+                    check(dev, f'{tag}: 我的 → 每周进度邮件 says how it stands and opens its switch', '每周进度邮件' in row and '绑定邮箱' in row and title == '每周进度邮件', (row, title))
+                check(dev, f'{tag}: no page errors', not errors, errors[:3])
+                ctx.close()
+        # the link in the mail opens without signing in, asks before it turns anything off, and says when a link is wrong
+        ctx = browser.new_context(viewport={'width': 360, 'height': 780}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True)
+        pg = ctx.new_page(); pg.goto(BASE + '/#/weekly-off/not-a-real-link-0123456789', wait_until='networkidle'); settle(pg)
+        first = (pg.evaluate('location.hash'), pg.inner_text('#view h1'))
+        pg.click('#offGo'); pg.wait_for_timeout(600)
+        err = pg.inner_text('#view .err')
+        check(dev, 'the unsubscribe link opens signed out, asks first, and explains a link that no longer works',
+              first == ('#/weekly-off/not-a-real-link-0123456789', '退订每周进度邮件') and '失效' in err, (first, err))
+        ctx.close()
+    finally:
+        browser.close()
+
+
 def main():
     with sync_playwright() as pw:
         for dev, opts in DEVICES.items():
@@ -1335,6 +1439,12 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('learner', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'progress' in ONLY:
+            try:
+                progress_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('progress', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'a11y' in ONLY:
             try:
                 a11y_run(pw)

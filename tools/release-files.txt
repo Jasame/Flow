@@ -157,6 +157,7 @@ flow/console_data.py
 flow/console_ops.py
 flow/slim.py
 flow/relisten_service.py
+flow/progress_service.py
 flow/flow-backup.service
 flow/flow-backup.timer
 flow/flow-daily.service
@@ -197,6 +198,7 @@ flow/public/apple-touch-icon.png
 flow/public/guide/cards.jpg
 flow/public/guide/easy.jpg
 flow/public/guide/exam.jpg
+flow/public/guide/finish.jpg
 flow/public/guide/flow-guide.pdf
 flow/public/guide/graph.jpg
 flow/public/guide/guide.md
@@ -216,6 +218,7 @@ flow/public/guide/report.jpg
 flow/public/guide/review.jpg
 flow/public/guide/speak.jpg
 flow/public/guide/today.jpg
+flow/public/guide/week.jpg
 flow/public/guide/welcome.jpg
 flow/public/icon-192.png
 flow/public/icon-512.png
@@ -278,6 +281,7 @@ flow/tests/test_package.py
 flow/tests/test_pedagogy.py
 flow/tests/test_practice.py
 flow/tests/test_practice_hub.py
+flow/tests/test_progress.py
 flow/tests/test_quota.py
 flow/tests/test_reference.py
 flow/tests/test_reliability.py

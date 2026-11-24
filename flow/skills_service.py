@@ -363,46 +363,8 @@ def _week_more(c, uid, now, week, prev):
 
 
 def send_weekly(c, now=None, send=None):
-    """Sunday, at the learner's reminder hour: the weekly report by email (learners who turned reminders on)."""
-    import os
-    now = now or time.time()
-    local = datetime.datetime.fromtimestamp(now, nx.TZ)
-    if local.weekday() != 6 or 'email' not in {x[1] for x in c.execute('PRAGMA table_info(users)')}:
-        return 0
-    if send is None:
-        from account_service import mail as send
-    today = local.date().isoformat()
-    origin = os.getenv('FLOW_PUBLIC_URL', 'https://flowlang.cn').rstrip('/')
-    sent = 0
-    rows = c.execute("SELECT r.user_id, u.email, u.username FROM next_reminders r JOIN users u ON u.id=r.user_id LEFT JOIN next_weekly w ON w.user_id=r.user_id "
-                     "WHERE r.enabled=1 AND r.hour=? AND u.email IS NOT NULL AND u.email!='' AND (w.last_sent IS NULL OR w.last_sent<?)",
-                     (local.hour, today)).fetchall()
-    for r in rows:
-        c.execute('INSERT INTO next_weekly(user_id,last_sent) VALUES(?,?) ON CONFLICT(user_id) DO UPDATE SET last_sent=excluded.last_sent', (r['user_id'], today))
-        c.commit()
-        rp = report(c, r['user_id'], now)
-        if not rp['days']:
-            continue
-        lines = [f"{r['username']}，这是你这周（{rp['from']} – {rp['to']}）的学习小结：", '',
-                 f"· 学了 {rp['days']} 天，约 {rp['minutes']} 分钟", f"· 学完 {rp['materials']} 篇材料，做了 {rp['outputs']} 次输出练习",
-                 f"· 复习 {rp['reviews']} 次，新学 {rp['learned']} 个词，{rp['mastered']} 个词进入长期记忆",
-                 f"· 新错题 {rp['mistakes_new']} 个，改对 {rp['mistakes_fixed']} 个"]
-        if rp['easy']['texts']:
-            lines.append(f"· 轻松读 {rp['easy']['texts']} 篇，共 {rp['easy']['words']} 个词" + (f"，每分钟 {rp['easy']['wpm']} 词" if rp['easy']['wpm'] else ''))
-        if rp['speaking']['scenes_week']:
-            lines.append(f"· 口语情景练了 {rp['speaking']['scenes_week']} 个（一共完成 {rp['speaking']['scenes_done']} / {rp['speaking']['scenes_total']}）")
-        up = [m for m in rp['radar']['moves'] if m['before'] is not None and m['now'] > m['before']]
-        if up:
-            lines.append('· 能力雷达上涨：' + '、'.join(f"{m['label']} {m['before']}→{m['now']}" for m in up))
-        if rp['focus']:
-            lines += ['', '下周重点：' + rp['focus']]
-        lines += ['', f'完整周报：{origin}/#/report', '—— 语流 Flow']
-        try:
-            send(r['email'], f"语流 · 你这周学了 {rp['days']} 天", '\n'.join(lines))
-            sent += 1
-        except Exception:
-            pass
-    return sent
+    """The Sunday mail (r27: progress_service.send_weekly): every learner with a bound email, with a link to stop it."""
+    return __import__('progress_service').send_weekly(c, now, send)
 
 
 # ---------- routes ----------
