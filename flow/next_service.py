@@ -293,9 +293,10 @@ def _pack_row(c, uid, pid):
 _PACKS = {'key': None, 'at': 0.0, 'rows': []}
 
 
-def _public_packs(c, level=None):
+def _public_packs(c, level=None, with_hidden=False):
     """[(row, pack)] for every public material; parsed once and reused until a pack is added or 60 s pass.
-    Callers treat the packs as read-only."""
+    Callers treat the packs as read-only. A material an operator took off the lists (xmc.hk console, r26) is left out
+    unless with_hidden; it still opens by its address (_pack_row), so history and links keep working."""
     from content_v30 import SUPERSEDED
     key = tuple(c.execute('SELECT COUNT(*), MAX(rowid) FROM lab_packs WHERE owner IS NULL').fetchone())
     if _PACKS['key'] != key or time.time() - _PACKS['at'] > 60:
@@ -305,7 +306,8 @@ def _public_packs(c, level=None):
             if p['id'] not in SUPERSEDED:
                 rows.append(({'id': row['id'], 'origin': row['origin'], 'created': row['created']}, p))
         _PACKS.update(key=key, at=time.time(), rows=rows)
-    return [rp for rp in _PACKS['rows'] if not level or cefr(rp[1]) == level]
+    hidden = () if with_hidden else __import__('console_ops').hidden_packs(c)
+    return [rp for rp in _PACKS['rows'] if (not level or cefr(rp[1]) == level) and rp[0]['id'] not in hidden]
 
 
 _TOKENS = {}
@@ -703,7 +705,8 @@ def home(c, uid, level=None, themes=None):
         g['watch'] = [{'id': n, 'title': meta_titles.get(n, n)} for n in watch[:3]]
         g['due'] = [{'id': n, 'title': meta_titles.get(n, n)} for n in GB.due(c, uid) if n not in watch][:3]
     out = {'profile': prof, 'level': level, 'level_label': LEVELS[level]['label'], 'today': picks, 'news': news, 'resume': resume,
-           'stats': stats(c, uid) if uid else None, 'graph': g}
+           'stats': stats(c, uid) if uid else None, 'graph': g,
+           'announce': __import__('console_ops').current_announcement(c)}  # 公告 from the xmc.hk console, at the top of 今日
     if uid and prof:
         import skills_service as sk
         out['path'] = sk.daily_path(c, uid, out)

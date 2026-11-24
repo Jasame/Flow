@@ -8,7 +8,11 @@ def configured():
  return bool(os.getenv('FLOW_SMTP_HOST') and os.getenv('FLOW_SMTP_FROM') and os.getenv('FLOW_SMTP_USER') and os.getenv('FLOW_SMTP_PASSWORD'))
 
 def schema(c):
- if 'email' not in {r[1] for r in c.execute('PRAGMA table_info(users)')}:c.execute('ALTER TABLE users ADD COLUMN email TEXT')
+ cols={r[1] for r in c.execute('PRAGMA table_info(users)')}
+ if 'email' not in cols:c.execute('ALTER TABLE users ADD COLUMN email TEXT')
+ # r26: when an account signed up (older accounts: unknown), and an account an operator stopped (xmc.hk console)
+ if 'created' not in cols:c.execute('ALTER TABLE users ADD COLUMN created REAL')
+ if 'disabled' not in cols:c.execute('ALTER TABLE users ADD COLUMN disabled INTEGER NOT NULL DEFAULT 0')
  c.executescript('''CREATE UNIQUE INDEX IF NOT EXISTS verified_email ON users(email) WHERE email IS NOT NULL;
  CREATE TABLE IF NOT EXISTS recovery_tokens(digest TEXT PRIMARY KEY,user_id INTEGER REFERENCES users(id),email TEXT,purpose TEXT,expires REAL,used INTEGER DEFAULT 0);
  CREATE TABLE IF NOT EXISTS mail_limits(key TEXT PRIMARY KEY,last REAL);

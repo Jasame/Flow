@@ -1,5 +1,8 @@
-"""Operator API for xmc.hk/flow/ (read-mostly; the writes: a one-time password-reset link, hiding a survey answer,
-generating today's news material).
+"""Operator API for xmc.hk/flow/. Reads: the numbers (概览, 学习, 留存漏斗, 发版对比, 打开速度, 问卷, 材料, 词书和考试, AI),
+and for 管理员 the people (学员 one by one, answers, feedback, error traces, the operator log, CSV files). Writes
+(管理员 only): accounts (reset link, stop / restore, sign out everywhere, level, daily new words, 员工账号), materials
+(off the lists and back), today's news, the AI limits, 例句预生成, 公告, survey answers and feedback status. The data
+is in console_data.py, the changes in console_ops.py (r26).
 
 Listens only on 127.0.0.1:FLOW_ADMIN_PORT. The sole route in is the xmc.hk
 nginx location /flow/api/, which sits behind Cloudflare Access; flow.jasa.hk
@@ -26,8 +29,11 @@ def server_label():
 
 
 # 只看数据 sees the numbers; 管理员 also sees people (accounts, answers in full, error traces) and may change things.
-VIEWER_GET = {'/me', '/overview', '/learning', '/survey/definition', '/survey/summary', '/releases', '/compare', '/speed'}
-ADMIN_GET = {'/users', '/survey/responses', '/survey/export.csv', '/errors', '/log', '/feedback', '/feedback/image'}
+VIEWER_GET = {'/me', '/overview', '/learning', '/survey/definition', '/survey/summary', '/releases', '/compare', '/speed',
+              '/funnel', '/cohorts', '/content', '/books', '/ai', '/tasks', '/announcements'}
+ADMIN_GET = {'/users', '/survey/responses', '/survey/export.csv', '/errors', '/log', '/feedback', '/feedback/image',
+             '/learners', '/learner', '/export/learners.csv', '/export/materials.csv', '/export/ai.csv'}
+CSV_EXPORTS = {'/export/learners.csv': ('learners', '学员'), '/export/materials.csv': ('materials', '材料'), '/export/ai.csv': ('ai', 'AI 用量')}
 ROLE_LABEL = {'admin': '管理员', 'viewer': '只看数据'}
 
 
@@ -47,6 +53,7 @@ def schema(c):
     c.execute('CREATE TABLE IF NOT EXISTS ui_taps(day TEXT NOT NULL, key TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(day, key))')
     __import__('feedback_service').schema(c)  # problem reports from the learning site (问题反馈)
     __import__('field_service').schema(c)  # page errors and opening times the browsers report
+    __import__('console_ops').schema(c)  # materials off the lists, 公告 (r26)
 
 
 def log_action(c, op, action, target='', detail=''):
@@ -57,7 +64,13 @@ def log_action(c, op, action, target='', detail=''):
 
 ACTION_LABEL = {'reset-link': '生成重设密码链接', 'survey-hide': '隐藏问卷回答', 'survey-show': '恢复问卷回答',
                 'survey-export': '导出问卷 CSV', 'daily-run': '生成今日热点', 'feedback-done': '标记反馈已处理',
-                'feedback-reopen': '重新打开反馈'}
+                'feedback-reopen': '重新打开反馈',
+                # r26
+                'account-disable': '停用账号', 'account-enable': '恢复账号', 'account-signout': '退出所有设备',
+                'account-staff-on': '设为员工账号', 'account-staff-off': '取消员工账号', 'account-level': '改水平',
+                'account-daily-new': '改每日新词', 'material-hide': '下架材料', 'material-show': '恢复材料',
+                'daily-again': '重新生成今日热点', 'ai-limits': '改 AI 额度', 'examples-start': '开始例句预生成',
+                'examples-stop': '停止例句预生成', 'announce': '发布公告', 'announce-end': '结束公告', 'export': '导出 CSV'}
 
 
 def operator_log(c, limit=200):
@@ -159,7 +172,12 @@ TAP_LABEL = {
     'beta-main': '内测版 · 去正式版',
     'me-about': '我的 · 认识语流', 'welcome-about': '第一次打开 · 认识语流',
     'about-start': '认识语流 · 开始学', 'about-join': '认识语流 · 注册账号', 'about-guide': '认识语流 · 操作指南', 'about-vocab-test': '认识语流 · 测词汇量',
+    'announce-open': '今日 · 公告：去看看',
 }
+
+
+ACTIVE_SINCE = ('SELECT COUNT(DISTINCT user_id) FROM (SELECT user_id FROM learning_events WHERE created>? UNION '
+                'SELECT user_id FROM next_progress WHERE created>? UNION SELECT user_id FROM next_reviews WHERE created>?)')
 
 
 def overview(c):
@@ -172,19 +190,28 @@ def overview(c):
         'feedback_open': __import__('feedback_service').open_count(c),
         'users': q('SELECT COUNT(*) FROM users'),
         'admins': q('SELECT COUNT(*) FROM users WHERE admin=1'),
-        'active_7d': q('SELECT COUNT(DISTINCT user_id) FROM learning_events WHERE created>?', now - 7 * 86400),
-        'active_1d': q('SELECT COUNT(DISTINCT user_id) FROM learning_events WHERE created>?', now - 86400),
+        # r26: a material step or a review counts too (as in 学习数据), not only the older learning events
+        'active_7d': q(ACTIVE_SINCE, *[now - 7 * 86400] * 3),
+        'active_1d': q(ACTIVE_SINCE, *[now - 86400] * 3),
         'events_7d': q('SELECT COUNT(*) FROM learning_events WHERE created>?', now - 7 * 86400),
         'ai': {
             'today': q('SELECT COALESCE(SUM(count),0) FROM ai_usage WHERE day=?', day),
             'week': [{'day': d, 'count': q('SELECT COALESCE(SUM(count),0) FROM ai_usage WHERE day=?', d)} for d in reversed(week)],
             'site_limit': chat_service.daily_limit('FLOW_AI_DAILY_LIMIT'),
+            'limits': __import__('console_ops').limits(),
             'user_limit': chat_service.daily_limit('FLOW_AI_USER_DAILY_LIMIT'),
             'users_at_limit': (q('SELECT COUNT(*) FROM ai_usage WHERE day=? AND user_id>0 AND count>=?', day, chat_service.daily_limit('FLOW_AI_USER_DAILY_LIMIT'))
                                if chat_service.daily_limit('FLOW_AI_USER_DAILY_LIMIT') else 0),
             'model': os.getenv('FLOW_AI_MODEL', ''),
         },
         'survey_responses': q('SELECT COUNT(*) FROM survey_responses WHERE survey=? AND hidden=0', survey.SURVEY_ID),
+        'profiles': q('SELECT COUNT(*) FROM next_profiles'),
+        'never_started': q('SELECT COUNT(*) FROM users WHERE admin=0 AND id NOT IN (SELECT user_id FROM next_progress UNION SELECT user_id FROM next_reviews)'),
+        'disabled': q('SELECT COUNT(*) FROM users WHERE disabled=1'),
+        'hidden_materials': q('SELECT COUNT(*) FROM material_hidden'),
+        'errors_24h': __import__('ops_errors').count_since(c, 86400),
+        'announce': __import__('console_ops').current_announcement(c),
+        'task': __import__('console_ops').task_status()['state'],
         'backup': backup_status(), 'daily': __import__('daily_service').status(c),
         'server': server_label(),
         'generated_at': now,
@@ -251,6 +278,104 @@ def learning(c):
     }
 
 
+def console_get(c, path, one, op):
+    """The r26 views (console_data.py); the learner pages and the people in the AI view only for 管理员."""
+    import console_data as cd, console_ops as co
+    days = lambda d: int(one('days', d) or d)
+    if path == '/funnel':
+        return cd.funnel(c, days('0') if one('days') in ('7', '30', '90') else 0)
+    if path == '/cohorts':
+        return cd.cohorts(c)
+    if path == '/content':
+        return cd.content(c, days('0') if one('days') in ('7', '30', '90') else 0)
+    if path == '/books':
+        return {'books': cd.books(c), 'exams': cd.exams(c)}
+    admin = op['role'] == 'admin'
+    if path == '/ai':
+        out = cd.ai(c, days('14'), people=admin)
+        if not admin:
+            out['limits'].pop('by', None)  # 只看数据 sees the numbers, not which operator changed them
+        return out
+    if path == '/tasks':
+        ex = co.task_status()
+        if not admin:
+            ex['task'].pop('by', None)
+        return {'examples': ex, 'daily': __import__('daily_service').status(c), 'backup': backup_status(),
+                'books': [{'id': b['id'], 'title': b['title'], 'group': b['group']} for b in __import__('vocab_service').registry()]}
+    if path == '/announcements':
+        out = co.announcements(c)
+        if not admin:
+            for x in out['items']:
+                x.pop('by', None)
+        return out
+    if path == '/learners':
+        return cd.learner_list(c, one('q')[:60], one('filter', 'all'), one('sort', 'recent'), int(one('page', '1') or 1))
+
+
+ACCOUNT_POSTS = {'/learner/disable', '/learner/signout', '/learner/staff', '/learner/level', '/learner/daily-new'}
+
+
+def console_post(c, path, data, op):
+    """The r26 changes (console_ops.py), each written to the operator log. Returns (body, status) or None."""
+    import console_ops as co
+    who = op['email'] or op['label']
+    if path in ACCOUNT_POSTS:
+        uid = data.get('id')
+        if path == '/learner/disable':
+            on = bool(data.get('disabled', True))
+            body, status, u = co.set_disabled(c, uid, on)
+            action, detail = ('account-disable' if on else 'account-enable'), (f"结束了 {body.get('sessions_ended', 0)} 个登录" if on and status == 200 else '')
+        elif path == '/learner/signout':
+            body, status, u = co.sign_out(c, uid)
+            action, detail = 'account-signout', (f"结束了 {body.get('sessions_ended', 0)} 个登录" if status == 200 else '')
+        elif path == '/learner/staff':
+            on = bool(data.get('staff'))
+            body, status, u = co.set_staff(c, uid, on)
+            action, detail = ('account-staff-on' if on else 'account-staff-off'), ''
+        elif path == '/learner/level':
+            body, status, u = co.set_level(c, uid, data.get('level'))
+            action, detail = 'account-level', str(data.get('level'))[:10]
+        else:
+            body, status, u = co.set_daily_new(c, uid, data.get('daily_new'))
+            action, detail = 'account-daily-new', f"每天 {data.get('daily_new')} 个"
+        if u is not None:
+            log_action(c, op, action, co.target(u), detail if status == 200 else body.get('error', status))
+        return body, status
+    if path == '/material/hide':
+        hidden = bool(data.get('hidden', True))
+        body, status, title = co.set_hidden(c, data.get('pack'), hidden, data.get('reason', ''), who)
+        if status == 200:
+            log_action(c, op, 'material-hide' if hidden else 'material-show', f"{title} ({body['pack']})", str(data.get('reason') or '')[:120] if hidden else '')
+        return body, status
+    if path == '/settings/ai-limits':
+        body, status = co.set_limits(data, who)
+        if status == 200:
+            log_action(c, op, 'ai-limits', 'AI 额度', co.limits_text(body))
+        return body, status
+    if path == '/tasks/examples/start':
+        body, status = co.start_examples(data, who)
+        if status == 202:
+            books = data.get('books') or []
+            log_action(c, op, 'examples-start', '例句预生成', ('词书 ' + ','.join(books) if books else '全部词书') + (f"，最多 {data['max_calls']} 次请求" if data.get('max_calls') else ''))
+        return body, status
+    if path == '/tasks/examples/stop':
+        body, status = co.stop_examples()
+        if status == 200:
+            log_action(c, op, 'examples-stop', '例句预生成')
+        return body, status
+    if path == '/announcements/create':
+        body, status = co.announce(c, data, who)
+        if status == 200:
+            log_action(c, op, 'announce', f"#{body['id']}", body['text'][:120])
+        return body, status
+    if path == '/announcements/end':
+        body, status = co.end_announcement(c, data.get('id'))
+        if status == 200:
+            log_action(c, op, 'announce-end', f"#{body['id']}")
+        return body, status
+    return None
+
+
 class AdminHandler(BaseHTTPRequestHandler):
     server_version = 'FlowAdmin'
 
@@ -314,6 +439,18 @@ class AdminHandler(BaseHTTPRequestHandler):
                     if not got:
                         return self._send({'error': '没有这张截图'}, 404)
                     return self._send(None, body=got[0], mime=got[1])
+                if path == '/learner':
+                    got = __import__('console_data').learner(c, int(one('id')))
+                    return self._send(got) if got else self._send({'error': '没有找到这个学员'}, 404)
+                if path in ('/funnel', '/cohorts', '/content', '/books', '/ai', '/tasks', '/announcements', '/learners'):
+                    return self._send(console_get(c, path, one, op))
+                if path in CSV_EXPORTS:
+                    import console_data as cd
+                    kind, label = CSV_EXPORTS[path]
+                    name = f"flow-{kind}-{time.strftime('%Y%m%d')}.csv"
+                    body = {'learners': cd.learners_csv, 'materials': cd.materials_csv, 'ai': cd.ai_csv}[kind](c)
+                    log_action(c, op, 'export', name, label)
+                    return self._send(None, body=body, mime='text/csv; charset=utf-8', extra={'Content-Disposition': f'attachment; filename="{name}"'})
                 if path == '/survey/definition':
                     return self._send(survey.SURVEY)
                 if path == '/survey/summary':
@@ -355,12 +492,17 @@ class AdminHandler(BaseHTTPRequestHandler):
                     return self._send(body, code)
                 if path == '/daily/run':
                     # Today's news material, made now instead of waiting for the timer (it used to be on the classic site).
+                    # again: today's failed (or cut off) — allow one more round of two tries (r26).
+                    again = bool(data.get('again')) and __import__('console_ops').daily_again(c)
                     def run():
                         with app.db() as conn:
                             __import__('daily_service').run(conn)
                     threading.Thread(target=run, daemon=True).start()
-                    log_action(c, op, 'daily-run', time.strftime('%Y-%m-%d'))
+                    log_action(c, op, 'daily-again' if again else 'daily-run', time.strftime('%Y-%m-%d'))
                     return self._send({'ok': True, 'message': '已开始生成，几分钟后刷新查看；今天已经成功生成过的不会重做。'}, 202)
+                got = console_post(c, path, data, op)
+                if got is not None:
+                    return self._send(*got)
         return self._send({'error': '接口不存在'}, 404)
 
     def do_GET(self):
