@@ -124,6 +124,14 @@ class PlanApiTests(unittest.TestCase):
             self.assertIn(k, tem8)
         self.assertEqual(o['suggested_book'], 'mid')
 
+    def test_exam_goals_name_only_books_that_exist(self):
+        # 中考、高考 come from wordbooks-open.json, which this fixture leaves out: no chip may point at a missing book
+        o, _ = nx.get(self.c, 1, '/api/next/vocab', {})
+        self.assertEqual([(g['title'], g['book']) for g in o['exam_goals']],
+                         [('四级', 'cet4'), ('六级', 'cet6'), ('考研', 'ky'), ('专四', 'tem4'), ('专八', 'tem8'), ('雅思', 'ielts'), ('托福', 'toefl'), ('GRE', 'gre')])
+        ids = {b['id'] for b in o['books']}
+        self.assertTrue(all(g['book'] in ids for g in o['exam_goals']))
+
     def test_a_data_book_plan_teaches_its_words_in_study_order(self):
         self.assertEqual(nx.post(self.c, 1, '/api/next/vocab/plan', {'book': 'empty', 'daily_new': 5, 'retention': 0.9})[1], 400)  # hidden
         self.assertEqual(nx.post(self.c, 1, '/api/next/vocab/plan', {'book': ['tem4'], 'daily_new': 5, 'retention': 0.9})[1], 400)

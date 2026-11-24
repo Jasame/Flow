@@ -301,6 +301,7 @@ flow/tests/test_learner_round.py
 flow/tests/test_slim.py
 flow/tests/test_relisten.py
 flow/tests/test_ai_eval.py
+flow/tests/test_rewrite_minimal.py
 flow/tests/test_vertex.py
 flow/tests/test_vocab.py
 flow/tests/test_wordbook_registry.py

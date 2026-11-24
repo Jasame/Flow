@@ -1038,8 +1038,22 @@ def _node_list(c):
     return '；'.join(f"{k}={v['title']}" for k, v in nodes_meta(c).items())
 
 
+def kept_own_sentence(answer, corrected):
+    """Whether corrected is the learner's own sentence put right (at least half of its words kept, and not a much
+    longer text), not another sentence written in its place, such as one on the lesson's topic in the lesson's pattern."""
+    from collections import Counter
+    a, b = [w.lower() for w in WORD.findall(answer or '')], [w.lower() for w in WORD.findall(corrected or '')]
+    if not a or not b:
+        return False
+    return sum((Counter(a) & Counter(b)).values()) * 2 >= len(a) and len(b) <= 2 * len(a) + 4
+
+
 def rewrite(c, uid, data):
-    from lab_service import run_job, text as clean_text
+    """仿写: the learner's own sentence marked. corrected is that sentence put right with the smallest change, never
+    another sentence; better ways to say the same thing go in versions, in the learner's own words and topic; using
+    the lesson's pattern is suggested in the summary, not done for them. An answer whose corrected is another sentence
+    is asked for once more; if it is still not the learner's sentence, it is not shown (ai_eval.py checks this)."""
+    from lab_service import run_job, text as clean_text, parse
     from chat_service import request_model
     row = _pack_row(c, uid, str(data.get('pack', '')))
     if not row:
@@ -1061,15 +1075,19 @@ def rewrite(c, uid, data):
             studied.append(hit['lemma'])
     studied = studied[:6]
     system = ('你是一位耐心、专业的英语写作教练，学习者的水平是 ' + level + '（' + LEVELS[level]['label'] + '）。' + _level_voice(level) +
-              '先肯定写得好的地方，再改错，最后给出更好的说法。不要编造学习者没写的内容。只输出 JSON。')
-    user = ('学习任务：' + task['prompt'] + ('\n参考句：' + task['model'] if task['model'] else '') +
+              '先肯定写得好的地方，再改错，最后给出更好的说法。不要编造学习者没写的内容。'
+              '最重要的一条：corrected 只能是学习者自己这句话的最小改动，只改语法、用词、拼写和标点上的错误，保留原来的意思、结构和话题；'
+              '绝不能换成另一句话，也不要为了套用本课的句型或话题去改写。没有错误时 verdict 写 natural，corrected 原样返回，changes 为空数组。'
+              'versions 是同一个意思的更好说法：用学习者自己的意思和话题来写，不要换成课文的话题；本课的目标表达能自然用上时，可以在其中一个版本里用。'
+              '学习者没有用上本课的目标表达时，在 summary 里用中文提一句可以怎么用，不要替他改写原句。只输出 JSON。')
+    user = ('学习任务（供参考，用来看学习者有没有用上目标表达；不要据此改写学习者的句子）：' + task['prompt'] + ('\n参考句：' + task['model'] if task['model'] else '') +
             '\n材料主题：' + p['title'] + '\n本篇练习的语法节点：' + (', '.join(targets) or '无') +
             '\n全部语法节点（id=名称）：' + _node_list(c) +
             '\n学习者写的英文：\n' + answer +
             '\n\n输出 JSON，结构：{"verdict":"natural|minor|rewrite","summary":"一句话总评（中文，先说优点）",'
-            '"corrected":"在保留原意的前提下改对的版本（若已正确则原样返回）",'
+            '"corrected":"学习者原句的最小改动：只改错误，保留原意和话题，不写新句子（若已正确则原样返回）",'
             '"changes":[{"from":"原文片段","to":"改后片段","why":"为什么（简短）","node":"相关语法节点 id，没有就写 null"}],'
-            '"versions":[{"label":"更自然","text":"...","why":"和原句的差别"},{"label":"更正式","text":"...","why":"..."},{"label":"更简洁","text":"...","why":"..."}],'
+            '"versions":[{"label":"更自然","text":"同一个意思的更自然说法","why":"和原句的差别"},{"label":"更正式","text":"...","why":"..."},{"label":"更简洁","text":"...","why":"..."}],'
             '"used_well":["学习者用对了的语法节点 id"],'
             '"keep":{"text":"最值得收藏的一个英文表达（短语）","meaning":"中文意思"}' +
             (',"word_use":[{"word":"单词原形","ok":true,"note":"一句中文：用法对在哪里，或错在哪里、应该怎么用"}]' if studied else '') +
@@ -1082,6 +1100,8 @@ def rewrite(c, uid, data):
         out = {'verdict': raw.get('verdict') if raw.get('verdict') in ('natural', 'minor', 'rewrite') else 'minor',
                'summary': clean_text(raw.get('summary'), 1, 300), 'corrected': clean_text(raw.get('corrected'), 1, 900),
                'changes': [], 'versions': [], 'keep': None, 'used_well': []}
+        if not kept_own_sentence(answer, out['corrected']):
+            raise ValueError('corrected is another sentence')  # asked for once more already (invoke): not shown
         for ch in (raw.get('changes') or [])[:5]:
             if isinstance(ch, dict) and ch.get('to'):
                 n = ch.get('node') if ch.get('node') in valid_nodes else None
@@ -1092,6 +1112,8 @@ def rewrite(c, uid, data):
                 out['versions'].append({'label': clean_text(v.get('label') or '参考', 1, 20), 'text': clean_text(v['text'], 1, 900), 'why': clean_text(v.get('why') or '', 0, 300)})
         if not out['versions']:
             raise ValueError('no versions')
+        if WORD.findall(out['corrected'].lower()) == WORD.findall(answer.lower()) and out['verdict'] != 'natural':
+            out['verdict'] = 'minor' if out['changes'] else 'natural'  # nothing was changed: it was right
         out['used_well'] = [n for n in (raw.get('used_well') or []) if n in valid_nodes][:3]
         k = raw.get('keep')
         if isinstance(k, dict) and isinstance(k.get('text'), str) and WORD.search(k['text']) and len(k['text']) <= 160:
@@ -1102,8 +1124,23 @@ def rewrite(c, uid, data):
                 out['word_use'].append({'word': u['word'], 'ok': u['ok'], 'note': clean_text(u.get('note') or '', 0, 300)})
         return out
 
-    result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-rewrite', p['id'], 'writing', spec,
-                             lambda: request_model([{'role': 'system', 'content': system}, {'role': 'user', 'content': user}]), convert, mark_replay=True)
+    msgs = [{'role': 'system', 'content': system}, {'role': 'user', 'content': user}]
+
+    def invoke():
+        # An answer whose corrected is another sentence (one on the lesson's topic, in its pattern) is asked for once more.
+        reply, reason = request_model(msgs)
+        try:
+            raw = parse(reply)
+        except ValueError:
+            return reply, reason  # not JSON: reported as before
+        fixed = raw.get('corrected') if isinstance(raw, dict) else None
+        if not isinstance(fixed, str) or kept_own_sentence(answer, fixed):
+            return reply, reason
+        return request_model(msgs + [{'role': 'assistant', 'content': reply}, {'role': 'user', 'content':
+            '这次的 corrected 不是学习者原句的最小改动，而是另一句话：「' + fixed[:200] + '」。请重新输出完整的 JSON：corrected 只改学习者原句里的错误，'
+            '保留原意和话题（没有错误就原样返回，verdict 写 natural）；更好的说法只放进 versions，也用学习者自己的意思。'}])
+
+    result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-rewrite', p['id'], 'writing', spec, invoke, convert, mark_replay=True)
     if status == 200:
         r = result['result']
         rid = str(data.get('request_id', ''))
