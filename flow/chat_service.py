@@ -112,6 +112,19 @@ def text_provider(model=None):
  return (url,key,model) if endpoint_ok(url) and key and model else None
 
 
+SEARCH_STRATEGIES=('turbo','max')
+
+
+def search_provider():
+ """Where a grounded request (今日热点's news search) goes first, or None (then Gemini searches on the main service).
+ FLOW_SEARCH_AI_MODEL: a gateway model name on a 百炼 upstream, e.g. flow-search-ds-flash, asked through the gateway's
+ POST /v1/search/completions (百炼's own search, which names its sources; tools/ai-gateway/README.md) with the main
+ gateway address and key. FLOW_SEARCH_STRATEGY: turbo (default) or max."""
+ model=os.getenv('FLOW_SEARCH_AI_MODEL','').strip();url,key=os.getenv('FLOW_AI_URL',''),os.getenv('FLOW_AI_KEY','')
+ if not model or vertex_enabled() or not endpoint_ok(url) or not key or not url.endswith('/chat/completions'):return None
+ return url[:-len('/chat/completions')]+'/search/completions',key,model
+
+
 def refused(exc):
  """The request itself was refused (malformed, too large): the main service would refuse it too."""
  return isinstance(exc,urllib.error.HTTPError) and exc.code in (400,413,422)
@@ -126,26 +139,32 @@ def request_model(messages,audio=None,grounding=False):
  Which text model: the calling task's route (ai_routes: a gateway model name; FLOW_TEXT_AI_MODEL by default, a 百炼
  line such as flow-qwen-plus when the console says so). On a 百炼 line even a refused request goes to the main service
  once, which is another vendor. Every attempt is written to ai_calls (tokens, the model that answered, failures and
- fallbacks) for the console."""
+ fallbacks) for the console.
+ A grounded request goes first to 百炼's search when FLOW_SEARCH_AI_MODEL names one (search_provider); if that fails for
+ any reason, Gemini searches instead (the main service), so a bad day at one vendor costs no news."""
  import ai_routes
  text_model=ai_routes.route()
+ search=search_provider() if grounding and not audio else None
  order=[]
- if not audio and not grounding and text_provider(text_model):order.append('text')
+ if search:order.append('search')
+ elif not audio and not grounding and text_provider(text_model):order.append('text')
  order.append('main')
  if len(order)==1:order.append('main')  # one retry on the only service
- ai_routes.CTX.route=text_model if order[0]=='text' else ''
+ ai_routes.CTX.route=text_model if order[0]=='text' else search[2] if order[0]=='search' else ''
  last=None
  for i,which in enumerate(order):
   started=time.monotonic();INFO.__dict__.clear()
-  model=text_model if which=='text' else os.getenv('FLOW_AI_MODEL','')
+  model=text_model if which=='text' else search[2] if which=='search' else os.getenv('FLOW_AI_MODEL','')
   try:
-   out=_request_text_service(messages,text_model,ai_routes.extra_body(text_model)) if which=='text' else _request_main(messages,audio,grounding)
+   out=(_request_text_service(messages,text_model,ai_routes.extra_body(text_model)) if which=='text' else
+        _request_search_service(messages) if which=='search' else _request_main(messages,audio,grounding))
    LAST['provider']=which
    ai_routes.record(which,model,started,messages,out[0],dict(INFO.__dict__),fallback=i>0)
    return out
   except Exception as exc:
    last=exc
    ai_routes.record(which,model,started,messages,None,dict(INFO.__dict__),exc,fallback=i>0)
+   if which=='search':continue  # Gemini searches instead
    if which=='text' and time.monotonic()-started<=60 and (not refused(exc) or (ai_routes.is_bailian(text_model) and getattr(exc,'code',None)!=413)):continue  # the main service takes over
    if i==len(order)-1 or not transient(exc) or time.monotonic()-started>60:raise
    if order[i+1]==which:
@@ -160,6 +179,27 @@ INFO=__import__('threading').local()  # the last call's usage and answering mode
 def _request_text_service(messages,model=None,extra=None):
  url,key,model=text_provider(model) or ('','','')
  return _openai_compatible(url,key,model,messages,None,False,extra)
+
+
+def _request_search_service(messages):
+ """百炼's search through the gateway: (reply, reason, metadata). The reply cites its sources as [ref_N]; metadata is
+ {'engine': 'bailian', 'search_results': [{index, url, title, site_name}], 'searches': n} (daily_service.provenance)."""
+ from vertex_auth import AIConfigurationError
+ found=search_provider()
+ if not found:raise AIConfigurationError('Search configuration incomplete')
+ url,key,model=found
+ strategy=os.getenv('FLOW_SEARCH_STRATEGY','turbo').strip() or 'turbo'
+ payload={'model':model,'messages':[{'role':m['role'],'content':m['content']} for m in messages],'max_tokens':2048,
+          'search':{'strategy':strategy if strategy in SEARCH_STRATEGIES else 'turbo','freshness':7}}
+ req=urllib.request.Request(url,data=json.dumps(payload,ensure_ascii=False).encode(),headers={'User-Agent':'jasa-flow/1.0','Authorization':'Bearer '+key,'Content-Type':'application/json'})
+ with urllib.request.urlopen(req,timeout=120) as r:d=json.load(r)
+ import ai_routes
+ INFO.usage=ai_routes.usage_of(d);INFO.served=str(d.get('model') or '')[:80]
+ choice=d['choices'][0];reply=choice['message']['content'];reason=choice.get('finish_reason','stop')
+ if not isinstance(reply,str) or not reply.strip():raise ValueError('Empty model reply')
+ info=d.get('search_info') if isinstance(d.get('search_info'),dict) else {}
+ results=info.get('search_results') if isinstance(info.get('search_results'),list) else []
+ return reply[:20000],reason,{'engine':'bailian','search_results':results[:50],'searches':(d.get('search_usage') or {}).get('count')}
 
 
 def _request_main(messages,audio=None,grounding=False):

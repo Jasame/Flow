@@ -262,6 +262,7 @@ FLOW_FILES=(
   relisten_service.py
   requirements-vertex.txt
   scenarios.py
+  search_eval.py
   seed.py
   settings_service.py
   skills_service.py
