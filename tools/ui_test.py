@@ -2012,6 +2012,16 @@ def about_run(pw):
                     check(tag, 'the word-book shelf switches groups and says 专四、专八 are not official lists', '专四词汇' in shelf and '6,161' in shelf and '不是官方词表' in shelf, shelf[:160])
                     pg.click('#faq .qa:first-child summary'); pg.wait_for_timeout(600)
                     check(tag, 'a question opens', pg.evaluate("document.querySelector('#faq .qa').open"))
+                    # 一分钟看懂语流: plays by itself once on screen, a bar jumps to its part, the button pauses
+                    pg.evaluate("document.getElementById('fmStage').scrollIntoView({block: 'center', behavior: 'instant'})"); pg.wait_for_timeout(1600)
+                    t1 = pg.evaluate("document.getElementById('fmTime').textContent"); pg.wait_for_timeout(1200)
+                    t2 = pg.evaluate("document.getElementById('fmTime').textContent")
+                    check(tag, 'the one-minute film plays by itself once it is on screen', t1 != t2 and pg.evaluate("document.getElementById('fmPlayL').textContent") == '暂停', (t1, t2))
+                    pg.click('#fmCh .fm-cb:nth-child(5)'); pg.wait_for_timeout(500)
+                    now = pg.evaluate("[document.getElementById('fmNow').textContent, document.querySelector('.fm-sc[data-seg=daily]').classList.contains('on')]")
+                    pg.click('#fmPlay'); pg.wait_for_timeout(200)
+                    t3 = pg.evaluate("document.getElementById('fmTime').textContent"); pg.wait_for_timeout(700)
+                    check(tag, 'a bar under the film jumps to its part (5 · 每天一篇) and the button pauses it', now == ['5 / 10 · 每天一篇', True] and t3 == pg.evaluate("document.getElementById('fmTime').textContent"), (now, t3))
                     if dev == 'desktop':
                         pg.evaluate("document.querySelector('.step[data-step=\"2\"]').scrollIntoView({block: 'center', behavior: 'instant'})"); pg.wait_for_timeout(900)
                         on = pg.evaluate("[document.querySelector('.layer.on') && document.querySelector('.layer.on').dataset.i, getComputedStyle(document.querySelector('.stage-in')).position]")
@@ -2036,6 +2046,9 @@ def about_run(pw):
             pg = ctx.new_page(); pg.goto(BASE + '/about', wait_until='networkidle'); pg.wait_for_timeout(300)
             shown = pg.evaluate("[...document.querySelectorAll('.rv, .display .w')].every(e => getComputedStyle(e).opacity === '1')")
             check('about', f'with less motion every part is shown at once ({theme})', shown)
+            pg.evaluate("document.getElementById('fmStage').scrollIntoView({block: 'center', behavior: 'instant'})"); pg.wait_for_timeout(1500)
+            still = pg.evaluate("[document.getElementById('fmPlayL').textContent, document.getElementById('fmNow').textContent, document.querySelector('.fm-sc[data-seg=speak]').classList.contains('on')]")
+            check('about', f'with less motion the film does not play by itself and shows the café conversation ({theme})', still == ['播放', '2 / 10 · 口语情景', True], still)
             for kind, items in pg.evaluate(A11Y_JS).items():
                 found.setdefault((kind, theme), []).extend(items)
             ctx.close()
