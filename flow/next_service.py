@@ -720,7 +720,9 @@ def home(c, uid, level=None, themes=None):
         watch = [n for n, s in states.items() if s['status'] == 'watch']
         g['watch'] = [{'id': n, 'title': meta_titles.get(n, n)} for n in watch[:3]]
         g['due'] = [{'id': n, 'title': meta_titles.get(n, n)} for n in GB.due(c, uid) if n not in watch][:3]
-    out = {'profile': prof, 'level': level, 'level_label': LEVELS[level]['label'], 'today': picks, 'news': news, 'resume': resume,
+    # 今日好句 (r27, daily_line.py): a public-domain line or a sentence from a featured text, not today's own article
+    line = __import__('daily_line').today(c, uid, level, skip={p['id'] for p in picks[:1]})
+    out = {'profile': prof, 'level': level, 'level_label': LEVELS[level]['label'], 'today': picks, 'news': news, 'resume': resume, 'line': line,
            'stats': stats(c, uid) if uid else None, 'graph': g,
            'announce': __import__('console_ops').current_announcement(c)}  # 公告 from the xmc.hk console, at the top of 今日
     if uid and prof:
@@ -985,7 +987,8 @@ def check(c, uid, data):
 def mark(c, uid, pid, step, commit=True):
     if step not in STEPS:
         raise ValueError('步骤不正确')
-    c.execute('INSERT OR IGNORE INTO next_progress VALUES(?,?,?,?)', (uid, pid, step, time.time()))
+    c.execute('INSERT OR IGNORE INTO next_progress VALUES(?,?,?,?)', (uid, pid, step, time.time()))  # the first time only
+    __import__('progress_service').log_step(c, uid, pid, step)  # and every day it is done (a text studied again)
     if commit:
         c.commit()
 
@@ -1237,15 +1240,20 @@ def shadow(c, uid, data):
     from audio_validation import validate_audio
     if not audio_enabled():
         return {'error': 'AI 听录音暂未开启，可以先用「对比回放」自己听'}, 503
-    row = _pack_row(c, uid, str(data.get('pack', '')))
-    if not row:
-        return {'error': '材料不存在'}, 404
-    p = json.loads(row['content'])
-    sents = sentences(p['body'])
-    i = data.get('i')
-    if not isinstance(i, int) or not 0 <= i < len(sents):
-        return {'error': '句子不存在'}, 400
-    sentence = re.sub(r'^[A-Z][a-z]+(?: [A-Z][a-z]+)?:\s+', '', sents[i])  # dialogue labels are not read aloud
+    quote = __import__('daily_line').sentence_of(data)  # 今日好句 (r27): a public-domain line, by its id
+    if quote:
+        sentence, pid, i, lvl = quote, None, str(data.get('quote')), None
+    else:
+        row = _pack_row(c, uid, str(data.get('pack', '')))
+        if not row:
+            return {'error': '材料不存在'}, 404
+        p = json.loads(row['content'])
+        sents = sentences(p['body'])
+        i = data.get('i')
+        if not isinstance(i, int) or not 0 <= i < len(sents):
+            return {'error': '句子不存在'}, 400
+        sentence = re.sub(r'^[A-Z][a-z]+(?: [A-Z][a-z]+)?:\s+', '', sents[i])  # dialogue labels are not read aloud
+        pid, lvl = p['id'], cefr(p)
     audio = data.get('audio')
     raw_audio = validate_audio(audio)
     level = (profile(c, uid) or {}).get('level') or 'B1'
@@ -1288,8 +1296,8 @@ def shadow(c, uid, data):
                 out['issues'].append({'word': clean_text(it['word'], 1, 80), 'note': clean_text(it['note'], 1, 300)})
         return out
 
-    spec = {'pack': p['id'], 'i': i, 'audio_sha256': hashlib.sha256(raw_audio).hexdigest()}
-    result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-shadow', p['id'], 'speaking', spec,
+    spec = {'pack': pid or 'daily-line', 'i': i, 'audio_sha256': hashlib.sha256(raw_audio).hexdigest()}
+    result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-shadow', pid or 'daily-line', 'speaking', spec,
                              lambda: request_model([{'role': 'system', 'content': system}, {'role': 'user', 'content': user}], audio=audio), convert, mark_replay=True)
     if status == 200:
         r = result['result']
@@ -1300,11 +1308,11 @@ def shadow(c, uid, data):
         if result.get('replayed'):
             return result, status
         import skills_service as sk
-        sk.log(c, uid, 'speaking', 'shadow', r['matched'] / max(1, len(r['words'])), cefr(p), p['id'], commit=False)
+        sk.log(c, uid, 'speaking', 'shadow', r['matched'] / max(1, len(r['words'])), lvl, pid, commit=False)
         if r['score']:
-            sk.log(c, uid, 'pronunciation', 'shadow-pron', r['score']['total'] / 100, cefr(p), p['id'], commit=False)
+            sk.log(c, uid, 'pronunciation', 'shadow-pron', r['score']['total'] / 100, lvl, pid, commit=False)
         for it in ([{'word': x['word'], 'note': x['sound'] + '：' + x['note']} for x in r.get('sounds') or []] + r['issues'])[:2]:
-            sk.add_mistake(c, uid, 'sound', it['word'], 'sound:' + _norm(it['word']), it['note'], sentence, 'pronunciation', pack=p['id'], commit=False)
+            sk.add_mistake(c, uid, 'sound', it['word'], 'sound:' + _norm(it['word']), it['note'], sentence, 'pronunciation', pack=pid, commit=False)
         c.commit()
     return result, status
 

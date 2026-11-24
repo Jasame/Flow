@@ -268,7 +268,9 @@ def persona_b1(cl):
     check(who, 'AI scores shadowing (native-like clip)', s == 200 and isinstance(r, dict), j if s != 200 else {k: r.get(k) for k in list(r)[:6]})
     if s == 200:
         sc = r.get('score', r.get('accuracy'))
-        check(who, 'shadow of a clean reading scores well', sc is None or (isinstance(sc, (int, float)) and sc >= (0.6 if sc <= 1 else 60)), sc)
+        if isinstance(sc, dict):  # since r27 (#41): {accuracy, fluency, complete, total}, 0–100 each
+            sc = sc.get('total')
+        check(who, 'shadow of a clean reading scores well', sc is None or (isinstance(sc, (int, float)) and sc >= (0.6 if sc <= 1 else 60)), r.get('score', sc))
     s, j, r = cl.ai('/api/next/variant', {'pack': PID, 'level': 'B1'}, 'nv')
     check(who, 'AI makes a B1 version', s == 200, j if s != 200 else (r or j).get('level') if isinstance(r or j, dict) else j)
     s, j, r = cl.ai('/api/next/explain', {'pack': PID, 'sentence': sents[1] if len(sents) > 1 else sents[0]}, 'ex')
