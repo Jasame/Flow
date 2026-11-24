@@ -589,6 +589,15 @@ def persona_guard(cl, others):
     for p, want in (('/', 200), ('/sw.js', 200), ('/manifest.webmanifest', 200), ('/next.js?v=11', 200), ('/icon-192.png', 200)):
         s, _ = raw.get(p)
         check(who, f'static {p}', s == want, s)
+    # the 操作指南 PDF is printed when a commit is released (tools/build_release.py): the site offers it, and it downloads
+    s, g = raw.get('/api/next/guide')
+    check(who, 'the guide offers its PDF', s == 200 and isinstance(g, dict) and g.get('pdf') == '/guide.pdf', (s, g.get('pdf') if isinstance(g, dict) else str(g)[:100]))
+    try:
+        with urllib.request.urlopen(BASE + '/guide.pdf', timeout=30) as r:
+            head = r.read(5)
+            check(who, 'the guide PDF downloads', r.status == 200 and head == b'%PDF-' and r.headers.get('Content-Type') == 'application/pdf', (r.status, head))
+    except urllib.error.HTTPError as e:
+        check(who, 'the guide PDF downloads', False, e.code)
     s, wi = cl.get('/api/next/material?id=' + PID)
     au = (wi.get('audio') or {}) if isinstance(wi, dict) else {}
     src = f"/audio/{au['voices'][0]}/{PID}.mp4" if au.get('voices') else None

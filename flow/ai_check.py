@@ -53,8 +53,20 @@ def main():
         text,reason=chat_service._request_text_service([{'role':'user','content':'Give one short English greeting for a beginner.'}])
         if reason!='stop' or not text.strip():raise ValueError('Incomplete answer')
         return {'model':tp[2],'characters':len(text)}
+    import ai_routes
+    lines=sorted({v['route'] for v in ai_routes.routes().values() if ai_routes.is_bailian(v['route'])})
+    report['routes']={'in_use':sorted({v['route'] for v in ai_routes.routes().values()})}
+    def line_check(name):
+        # straight to one 百炼 line, with "no thinking" and JSON as the site sends them (no fallback to the main model)
+        def check():
+            text,reason=chat_service._request_text_service([{'role':'user','content':'Return only JSON {"greeting": "<one short English greeting for a beginner>"}.'}],name,ai_routes.extra_body(name,'ai-check-json'))
+            if reason!='stop' or not json.loads(text.strip().removeprefix('```json').removesuffix('```')).get('greeting'):raise ValueError('Incomplete answer')
+            return {'model':name,'served':getattr(chat_service.INFO,'served',''),'usage':getattr(chat_service.INFO,'usage',None)}
+        return check
     if not args.configuration_only:
         if tp:run('文字模型（'+tp[2]+'）',text_model_check)
+        for name in lines:
+            if chat_service.text_provider(name):run('百炼线路（'+name+'）',line_check(name))
         run('普通文字调用',text_check);run('真实流式输出',stream_check);run('学习反馈结构校验',structured_check)
         if args.grounding:
             def grounding():

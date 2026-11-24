@@ -3,7 +3,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 class UpgradePackageTests(unittest.TestCase):
  def test_upgrade_copies_a_bootable_application_and_all_frontend_assets(self):
-  script=(ROOT/'upgrade.sh').read_text();lists=re.findall(r'for name in ([^;]+); do',script)
+  script=(ROOT/'upgrade.sh').read_text();lists=re.findall(r'^FLOW_(?:PUBLIC_)?FILES=\(\n(.*?)^\)',script,re.S|re.M)
   self.assertGreaterEqual(len(lists),2)
   with tempfile.TemporaryDirectory() as tmp:
    target=Path(tmp)
