@@ -56,9 +56,13 @@ def overview(c, uid):
     import vocab_service as vs
     books = vs.book_words()
     plan = vs.plan(c, uid) if uid else None
-    return {'note': NOTE, 'plan': {k: plan[k] for k in ('book', 'daily_new', 'retention')} if plan else None,
-            'exams': [{'id': k, 'title': e['title'], 'blurb': e['blurb'], 'minutes': e['minutes'], 'words': len(books.get(e['book'], [])),
-                       'book': e['book'], 'book_title': vs.book_title(e['book']), 'history': history(c, uid, k)} for k, e in EXAMS.items() if e['book'] in books]}, 200
+    import exam_sprint as sp  # 考试冲刺: the learner's exam on top, with its countdown, score trend and question types
+    g = sp.goal(c, uid)
+    return {'note': NOTE, 'types_note': sp.TYPES_NOTE, 'plan': {k: plan[k] for k in ('book', 'daily_new', 'retention')} if plan else None,
+            'goal': g, 'countdown': sp.countdown(c, uid, g=g) if g else None, 'signed_in': bool(uid),
+            'exams': [{'id': k, 'title': e['title'], 'short': sp.short(k), 'blurb': e['blurb'], 'minutes': e['minutes'], 'words': len(books.get(e['book'], [])),
+                       'book': e['book'], 'book_title': vs.book_title(e['book']), 'history': history(c, uid, k), 'trend': sp.trend(c, uid, k),
+                       'types': sp.type_list(c, uid, k)} for k, e in EXAMS.items() if e['book'] in books]}, 200
 
 
 def _vocab(rnd, book, n):

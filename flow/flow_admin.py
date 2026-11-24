@@ -154,6 +154,8 @@ def compare(c, at, days=14):
 
 # The entry points the learning site counts (next_service.tap accepts only these), and what each one is.
 TAP_LABEL = {
+    'home-sprint': '今日 · 考试倒计时', 'me-exam': '我的 · 我的考试', 'exam-goal': '考试练习 · 设定考试', 'exam-pace': '考试练习 · 按倒计时改每天新词',
+    'exam-type': '考试练习 · 题型专练',
     'notice-login': '今日 · 提醒：登录', 'notice-level': '今日 · 提醒：换水平', 'notice-mail': '今日 · 提醒：绑定邮箱', 'notice-guide': '今日 · 提醒：看指南',
     'home-resume': '今日 · 继续上次', 'home-news': '今日 · 今日热点', 'home-pick': '今日 · 也可以读', 'home-more': '今日 · 更多材料',
     'practice-map': '练习 · 知识图谱大卡', 'practice-tip': '练习 · 今天建议',

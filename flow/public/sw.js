@@ -13,7 +13,11 @@ const SHELL_FILES = ['/', '/next.css?v=__ASSET__', '/next.js?v=__ASSET__', '/man
 const AUDIO_MAX = 160;
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(SHELL).then(c => c.addAll(SHELL_FILES)).then(() => self.skipWaiting()));
+  // The page is asked of the server itself ('no-cache'): the browser may keep a copy of it to open at once
+  // (stale-while-revalidate, app.py), and a new release must not install that old copy. The versioned files may come
+  // from the browser's cache: they never change under their ?v=.
+  const files = SHELL_FILES.map(u => (u === '/' ? new Request(u, { cache: 'no-cache' }) : u));
+  e.waitUntil(caches.open(SHELL).then(c => c.addAll(files)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
@@ -30,7 +34,7 @@ self.addEventListener('fetch', e => {
   if (req.mode === 'navigate') {
     if (url.pathname !== '/' || url.search) return;  // old links with a query string and other pages stay network-only
     let saved;
-    const net = fetch(req).then(r => {
+    const net = fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' }).then(r => {  // past the browser's copy of the page
       if (r.ok) { const copy = r.clone(); saved = caches.open(SHELL).then(c => c.put('/', copy)); }  // cloned before the page reads it
       return r;
     });

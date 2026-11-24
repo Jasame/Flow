@@ -2,12 +2,13 @@
   // Questions on different points mixed together make the learner decide which rule applies first: that decision is
   // what real use asks for, and it is what one-point-at-a-time practice never trains.
   async function mixView(kind, arg) {
-    const q = kind === 'pair' ? '?pair=' + encodeURIComponent(arg) : kind === 'topic' ? '?topic=' + encodeURIComponent(arg) : guestQuery(true);
+    const q = kind === 'pair' ? '?pair=' + encodeURIComponent(arg) : kind === 'topic' ? '?topic=' + encodeURIComponent(arg) : kind === 'exam' ? '?exam=' + encodeURIComponent(arg) : guestQuery(true);
     const m = await api('/api/next/mix' + q);
-    const TITLE = { due: '今天的语法复习', practice: '语法混合练习', pair: '辨析练习', topic: '这一类混着练' };
+    const TITLE = { due: '今天的语法复习', practice: '语法混合练习', pair: '辨析练习', topic: '这一类混着练', exam: '考点语法' };
     const intro = m.kind === 'due' ? `${m.nodes.length} 个点混在一起出题：先想清楚这题考的是哪条规则，再选。${m.left ? `还有 ${m.left} 个点明天接着练。` : ''}`
       : m.kind === 'pair' ? '两个容易混的点交替出题，做的时候先判断是哪一个。'
-      : m.kind === 'practice' ? '今天没有到期要复习的点。先混着练几个你这个级别的，做对的会点亮。' : '这一类里的每个点各出一题。';
+      : m.kind === 'practice' ? '今天没有到期要复习的点。先混着练几个你这个级别的，做对的会点亮。'
+      : m.kind === 'exam' ? '这个考试常考的语法点混在一起出题，要你标出来的和到期该复习的排在前面。' : '这一类里的每个点各出一题。';
     const items = m.items, before = Object.fromEntries(m.nodes.map(n => [n.id, n.status])), after = {}, per = {};
     let i = 0, right = 0, streak = 0;
     view.innerHTML = `<div class="stack mix"><div><span class="kicker">${esc(TITLE[m.kind])}</span><h1 class="h1">${m.kind === 'pair' ? esc(m.nodes.map(n => n.title).join(' vs ')) : `${items.length} 道题，${m.nodes.length} 个点`}</h1>
@@ -30,7 +31,7 @@
     async function answer(it, b, box) {
       box.querySelectorAll('.ans').forEach(x => { x.disabled = true; });
       let r;
-      try { r = await api('/api/next/node/answer', { question: it.id, choice: Number(b.dataset.o), from: 'mix' }); }
+      try { r = await api('/api/next/node/answer', { question: it.id, choice: Number(b.dataset.o), from: m.kind === 'exam' ? 'exam' : 'mix' }); }
       catch (e) { toast(e.message); box.querySelectorAll('.ans').forEach(x => { x.disabled = false; }); return; }
       box.querySelectorAll('.ans').forEach(x => { if (Number(x.dataset.o) === r.answer) x.classList.add('right'); });
       if (!r.correct) b.classList.add('wrong');
@@ -60,7 +61,7 @@
         <div class="plist">${rows.map((n, k) => { const a = after[n.id] || n, pr = per[n.id];
           return `<a class="nrow st st-${a.status} pop-in" data-k="${k}" href="#/graph/${encodeURIComponent(n.id)}"><i class="dot" aria-hidden="true"></i><span class="t"><b>${esc(n.title)}</b><span class="tiny muted">${esc(a.label || '')}</span></span><span class="lv">${pr.right}/${pr.of}</span><span class="go" aria-hidden="true">›</span></a>`; }).join('')}</div>
         ${S.user ? '' : '<p class="muted small">登录后，做对的点会点亮在你的语法地图里，错的会按遗忘曲线回来。</p>'}
-        <div class="row center"><a class="btn" href="#/graph">语法地图</a>${m.kind === 'due' ? '<a class="btn primary" href="#/">回到今日</a>' : '<button class="btn primary" id="mixAgain">再来一轮</button>'}</div></div>`;
+        <div class="row center"><a class="btn" href="#/graph">语法地图</a>${m.kind === 'due' || m.kind === 'exam' ? '<a class="btn primary" href="#/">回到今日</a>' : '<button class="btn primary" id="mixAgain">再来一轮</button>'}</div></div>`;
       view.querySelectorAll('.pop-in').forEach(el => el.style.setProperty('--d', (Number(el.dataset.k) * 90 + 200) + 'ms'));
       const again = document.getElementById('mixAgain'); if (again) again.onclick = () => mixView(kind, arg);
       announce(`${items.length} 题做对 ${right} 题`);
