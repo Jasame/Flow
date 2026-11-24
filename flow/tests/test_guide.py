@@ -12,7 +12,7 @@ import user_guide as ug  # noqa: E402
 
 SRC = ROOT / 'public' / 'src' / 'next'
 # pages that need an id and are reached from pages the guide explains (a material from 今日 / 全部材料, a 连载 story)
-DYNAMIC = {'m', 'series'}
+DYNAMIC = {'m', 'series', 'class'}  # class: one page per class, for its teacher (我的 → 我的班级)
 
 
 def routes():
