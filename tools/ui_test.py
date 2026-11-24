@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Multi-device UI tests for Flow /next: phone, phone sideways, tablet and desktop; touch, keyboard and mouse.
 
-    python3 tools/ui_test.py [out dir] [phone|phone-land|tablet|desktop …]   # needs: pip install playwright
+    python3 tools/ui_test.py [out dir] [phone|phone-land|tablet|desktop|listen-speak …]   # needs: pip install playwright
 
 Starts its own local server (tools/ui_server.py: throwaway database, simulated AI, one signed-in learner per device),
 so every run begins from the same state, and drives the installed Google Chrome.
@@ -40,7 +40,7 @@ PAGES = ['#/', '#/library', f'#/m/{PID}/listen', f'#/m/{PID}/read', f'#/m/{PID}/
          '#/vocab/test', '#/review', '#/sounds', '#/sounds/th-s', '#/report', '#/me', '#/import', '#/graph', '#/graph/voice-basic', '#/graph/emph-inversion', '#/welcome/edit',
          '#/placement', '#/exam', '#/exam/cet6', '#/series/lighthouse-ledger', '#/m/v5-culture-c1-lighthouse-ledger-1/read',
          '#/mix', '#/mix/pair/tense-past,tense-perfect', '#/graph/link-contrast',
-         '#/easy', '#/words/confuse', '#/words/confuse/borrow-lend,make-do', '#/speak', '#/speak/cafe-order', '#/growth', '#/series/a-new-term',
+         '#/easy', '#/words/confuse', '#/words/confuse/borrow-lend,make-do', '#/speak', '#/speak/cafe-order', '#/speak/ielts', '#/speak/ielts/p1-mornings', '#/speak/ielts/p2-skill', '#/growth', '#/series/a-new-term',
          '#/radar', '#/radar/goals', '#/radar/test', '#/radar/test/reading', '#/radar/test/writing',
          '#/practice', '#/guide', '#/guide/words', '#/feedback']
 RESULTS = []
@@ -864,6 +864,11 @@ def wechat_run(pw):
             pg.click('#sayW'); pg.wait_for_timeout(400)
         new = [x for x in plays()[n0:] if '/audio/words/' in x['src']]
         check(dev, 'a review card says its word, by itself and on the speaker button', new and all(x['ok'] for x in new), plays()[n0:])
+        # 雅思口语 Part 1: WeChat has no browser voice, so the examiner's question is on screen, with no "cannot play" notice
+        pg.evaluate("location.hash = '#/speak/ielts/p1-mornings'"); settle(pg, '#ieStart'); pg.wait_for_timeout(2600)  # an earlier notice has gone
+        pg.evaluate("document.getElementById('toast').classList.remove('show')"); pg.click('#ieStart'); pg.wait_for_timeout(600)
+        note = pg.evaluate("(document.querySelector('.toast.show') || {}).textContent || ''")
+        check(dev, '雅思口语 Part 1 starts: the question on screen, no notice about sound', pg.is_visible('#chat .msg.ai') and not note, note)
         check(dev, 'every sound started was one WeChat allows', all(x['ok'] for x in plays()), [x for x in plays() if not x['ok']][:3])
         check(dev, 'no script errors', not errors, errors[:3])
         browser.close()
@@ -1240,6 +1245,103 @@ A11Y_JS = """() => {
   return out;
 }"""
 
+# ---- r27 听和说: the 跟读 pronunciation score and 雅思口语 Part 1 / Part 2, on phone (390 and 360), phone sideways, tablet
+# and desktop, with Chrome's fake microphone (a tone) so recording, the timers and the AI round trip really run.
+LS_SIZES = {'phone': ('phone', DEVICES['phone']), 'phone-360': ('phone-360', dict(viewport={'width': 360, 'height': 780}, is_mobile=True, has_touch=True, device_scale_factor=2)),
+            'phone-land': ('phone-land', DEVICES['phone-land']), 'tablet': ('tablet', DEVICES['tablet']), 'desktop': ('desktop', DEVICES['desktop'])}
+
+
+def listen_speak_run(pw):
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv,
+                                 args=['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'])
+    try:
+        for size, (learner, opts) in LS_SIZES.items():
+            dev = 'ls-' + size
+            ctx = browser.new_context(**opts, locale='zh-CN', bypass_csp=True)
+            ctx.grant_permissions(['microphone'], origin=BASE)
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners'][learner]['token'], 'url': BASE}])
+            pg = ctx.new_page(); errors = []
+            pg.on('pageerror', lambda e: errors.append(str(e)))
+            touch = opts['has_touch']
+            lay = lambda what: (lambda l: (check(dev, f'{what}: no sideways scroll', l['overflow'] <= 1, f"{l['overflow']}px {l['wide']}"),
+                                           check(dev, f'{what}: no squeezed text', not l['squeezed'], l['squeezed'])))(pg.evaluate(LAYOUT_JS, touch))
+            shot = lambda name: pg.screenshot(path=str(OUT / f'{dev}-{name}.png'), full_page=False)
+            pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+
+            # 跟读: record the first sentence, AI 点评 -> 发音分 with 准确 / 流利 / 完整 and the sound to practise
+            go(pg, f'#/m/{PID}/listen'); pg.click('[data-mode="shadow"]'); pg.wait_for_selector('.line.sh.cur [data-r="0"]')
+            pg.click('[data-r="0"]'); pg.wait_for_selector('[data-r="0"].on', timeout=5000); pg.wait_for_timeout(1200); pg.click('[data-r="0"]')
+            pg.wait_for_selector('[data-ai="0"]:not([disabled])', timeout=5000); pg.click('[data-ai="0"]')
+            pg.wait_for_selector('.line[data-i="0"] .sh-res .pron', timeout=10000); pg.wait_for_timeout(400)
+            r = pg.evaluate("""() => { const o = document.querySelector('.line[data-i="0"] .sh-res'), n = o.querySelector('.pron-n'), chip = document.querySelector('[data-sc="0"]');
+                const link = o.querySelector('.snd a'); return {n: n && n.textContent, est: o.textContent.includes('AI 听录音给的估计'), bars: [...o.querySelectorAll('.pron .ab .nm')].map(x => x.textContent),
+                  widths: [...o.querySelectorAll('.pron .vbar i')].map(i => parseFloat(i.style.width) || 0), link: link && link.getAttribute('href'), chip: chip && !chip.hidden && chip.textContent,
+                  avg: (document.querySelector('#shAvg') || {}).textContent || '', heard: o.textContent.includes('AI 听到：') }; }""")
+            check(dev, '跟读: 发音分 shows as an AI estimate', r['n'] and r['n'].isdigit() and r['est'], r)
+            check(dev, '跟读: 准确 / 流利 / 完整 as three filled bars', r['bars'] == ['准确', '流利', '完整'] and len(r['widths']) == 3 and all(w > 0 for w in r['widths']), r)
+            check(dev, '跟读: the sound to practise links to 发音入门', (r['link'] or '').startswith('#/sounds/'), r['link'])
+            check(dev, '跟读: the sentence row keeps its score, and the text an average', r['chip'] == r['n'] and ('平均 ' + r['n']) in r['avg'] and r['heard'], r)
+            lay('跟读 result'); pg.evaluate("document.querySelector('.line[data-i=\"0\"] .sh-res').scrollIntoView({block: 'center'})"); shot('shadow')
+            if size == 'phone':
+                pg.click('.line[data-i="0"] .snd a'); pg.wait_for_timeout(600)
+                check(dev, '跟读: 去练 opens that 发音入门 set', pg.evaluate("location.hash").startswith('#/sounds/') and bool(pg.query_selector('#view h1')), pg.evaluate('location.hash'))
+
+            # 口语路线: the 雅思口语 entry is on the first screen; the list says the bands are estimates
+            go(pg, '#/speak')
+            e = pg.evaluate("() => { const a = document.querySelector('#view .ielts-entry'); const r = a && a.getBoundingClientRect(); return a ? [a.getAttribute('href'), Math.round(r.bottom), innerHeight] : null; }")
+            check(dev, '口语路线: 雅思口语 entry', e and e[0] == '#/speak/ielts' and (e[1] <= e[2] or size == 'phone-land'), e)
+            pg.click('#view .ielts-entry'); settle(pg)
+            li = pg.evaluate("() => ({rows: document.querySelectorAll('#view .plist .nrow').length, note: (document.querySelector('#view .ielts-note') || {}).textContent || ''})")
+            check(dev, '雅思口语: 8 Part 1 topics, 8 cue cards, an honest note', li['rows'] == 16 and '不是官方成绩' in li['note'] and '不是真题' in li['note'], li)
+            lay('雅思口语 list'); shot('ielts')
+
+            # Part 1: four questions, typed; each answer has a folded 「这句可以更好」; then the four criteria
+            go(pg, '#/speak/ielts/p1-mornings'); pg.click('#ieStart'); pg.wait_for_selector('#ieText')
+            for k in range(4):
+                pg.fill('#ieText', 'I am more of a morning person, because I feel more fresh in the morning.')
+                if k == 0:
+                    pg.press('#ieText', 'Enter')
+                else:
+                    pg.click('#ieSend')
+                pg.wait_for_function(f"document.querySelectorAll('#chat .msg.me').length >= {k + 1}", timeout=8000)
+                if k == 0:
+                    q = pg.evaluate("() => [document.querySelectorAll('#chat .msg.ai').length, !!document.querySelector('#chat .msg.me details.better'), document.querySelector('#ieQn').textContent]")
+                    check(dev, 'Part 1: the examiner asks the next question; a better way to say it is folded', q[0] == 2 and q[1] and '第 2 / 4 题' in q[2], q)
+                    pg.click('#chat .msg.me details.better summary'); lay('Part 1 chat'); shot('ielts-p1-chat')
+            pg.wait_for_selector('#ieOut .ielts-fb', timeout=10000); pg.wait_for_timeout(400)
+            f = pg.evaluate("""() => { const o = document.querySelector('#ieOut'); return {overall: o.querySelector('.ielts-overall b').textContent, crit: [...o.querySelectorAll('.crit .nm')].map(x => x.textContent),
+                note: o.querySelector('.ielts-note').textContent, bands: [...o.querySelectorAll('.crit .lv')].map(x => x.textContent), model: !!o.querySelector('#ieModel'), fix: !!o.querySelector('.change'), input: !document.querySelector('#ieIn').hidden}; }""")
+            check(dev, 'Part 1 feedback: an overall estimate and the four criteria', f['overall'] == '约 6.0' and f['crit'] == ['流利与连贯', '词汇', '语法', '发音'] and f['bands'][:3] == ['6.0', '6.5', '5.5'], f)
+            check(dev, 'Part 1 feedback: says it is an estimate, has a model answer and the fixes', '不是官方成绩' in f['note'] and f['model'] and f['fix'] and not f['input'], f)
+            check(dev, 'Part 1: typed only, so 发音 is not judged', f['bands'][3] == '—', f['bands'])
+            lay('Part 1 feedback'); pg.evaluate("document.querySelector('#ieOut').scrollIntoView()"); shot('ielts-p1-feedback')
+
+            # Part 2: 开始准备 -> the one-minute clock and notes -> 提前开始说 -> recording -> 说完了 -> feedback
+            go(pg, '#/speak/ielts/p2-skill')
+            cue = pg.evaluate("() => { const c = document.querySelector('#cue'); return c && [c.querySelectorAll('li').length, c.textContent.includes('You should say')]; }")
+            check(dev, 'Part 2: the cue card with three points and the last one', cue == [3, True], cue)
+            pg.click('#p2Start'); pg.wait_for_selector('.p2-clock.prep', timeout=5000); pg.wait_for_timeout(1200)
+            t = pg.text_content('#p2T')
+            check(dev, 'Part 2: one minute to prepare, counting down', t in ('0:59', '0:58'), t)
+            pg.fill('#p2Notes', 'cooking · grandma · one year · saves money'); lay('Part 2 preparing'); shot('ielts-p2-prep')
+            pg.click('#p2Go'); pg.wait_for_selector('.p2-clock.talk', timeout=3000)
+            check(dev, 'Part 2: recording starts with a two-minute clock and the notes kept', pg.text_content('#p2T') in ('2:00', '1:59') and 'grandma' in (pg.text_content('.p2-kept') or ''))
+            pg.wait_for_timeout(5600); lay('Part 2 recording'); shot('ielts-p2-talk'); pg.click('#p2Done')
+            pg.wait_for_selector('#ieOut .ielts-fb', timeout=15000); pg.wait_for_timeout(400)
+            f = pg.evaluate("""() => { const o = document.querySelector('#ieOut'); return {overall: o.querySelector('.ielts-overall b').textContent, p: [...o.querySelectorAll('.crit .lv')].map(x => x.textContent)[3],
+                said: (o.querySelector('details summary') || {}).textContent || '', cov: o.querySelectorAll('.ok-mark, .bad-mark').length}; }""")
+            check(dev, 'Part 2 feedback: spoken, so 发音 is judged; what was said, with its length', f['overall'] == '约 6.0' and f['p'] == '6.0' and 'AI 转写' in f['said'] and '0:0' in f['said'], f)
+            lay('Part 2 feedback'); pg.evaluate("document.querySelector('#ieOut').scrollIntoView()"); shot('ielts-p2-feedback')
+            if size == 'desktop':  # no microphone: typed answer, 发音 not judged
+                go(pg, '#/speak/ielts/p2-place'); pg.click('#p2Type')
+                pg.fill('#p2Txt', ' '.join(['I often go to the small park near my flat after work because it is quiet and green.'] * 2)); pg.click('#p2Send')
+                pg.wait_for_selector('#ieOut .ielts-fb', timeout=10000)
+                check(dev, 'Part 2 typed: feedback without 发音', '不评发音' in pg.text_content('#ieOut'))
+            check(dev, 'no script errors', not errors, errors[:3])
+            ctx.close()
+    finally:
+        browser.close()
+
 
 def a11y_run(pw):
     dev = 'a11y'
@@ -1317,6 +1419,12 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('learner', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'listen-speak' in ONLY:
+            try:
+                listen_speak_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('listen-speak', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'a11y' in ONLY:
             try:
                 a11y_run(pw)

@@ -6,6 +6,8 @@
         <p class="muted small">AI 扮演情景里的另一方：店员、房东、面试官……你用英文完成任务，可以说也可以打字。每说一句它会顺手纠正一处，结束时告诉你哪里说得好、哪里要改。</p></div>
       ${d.next ? `<a class="btn primary block" href="#/speak/${encodeURIComponent(d.next)}">下一个：${esc(d.items.find(x => x.id === d.next).title)}<span aria-hidden="true">→</span></a>` : ''}
       <p class="small muted">已完成 ${d.done} / ${d.total} 个情景</p>
+      <a class="card flat ielts-entry" href="#/speak/ielts" data-tap="speak-ielts"><span class="stack-xs"><b>雅思口语 · Part 1 和 Part 2</b>
+        <span class="tiny muted">考官提问、话题卡计时，按四项标准给 AI 估计分（练习用，不是官方成绩）</span></span><span class="go" aria-hidden="true">›</span></a>
       ${['A2', 'B1', 'B2', 'C1'].map(lv => { const xs = d.items.filter(x => x.level === lv); return xs.length ? `<section class="stack-s section"><h2 class="h2">${lv} · ${LV[lv]}</h2>
         <div class="plist">${xs.map(x => `<a class="nrow ${x.done ? 'st st-solid' : 'st st-untouched'}" href="#/speak/${encodeURIComponent(x.id)}"><i class="dot" aria-hidden="true"></i>
           <span class="t"><b>${esc(x.title)}</b><span class="tiny muted">你：${esc(x.me)} · AI：${esc(x.ai)}${x.done ? ' · 完成过' : ''}</span></span><span></span><span class="go" aria-hidden="true">›</span></a>`).join('')}</div></section>` : ''; }).join('')}</div>`;

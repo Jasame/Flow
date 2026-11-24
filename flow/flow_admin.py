@@ -171,6 +171,7 @@ TAP_LABEL = {
     'me-guide': '我的 · 操作指南', 'me-feedback': '我的 · 问题反馈', 'me-survey': '我的 · 匿名问卷',
     'beta-main': '内测版 · 去正式版',
     'announce-open': '今日 · 公告：去看看',
+    'shadow-sound': '跟读 · 去练要练的音', 'speak-ielts': '口语路线 · 雅思口语',
 }
 
 

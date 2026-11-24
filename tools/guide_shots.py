@@ -38,6 +38,32 @@ def review(pg):
     pg.wait_for_selector('#view .review', timeout=6000)
 
 
+# Steps that record use Chrome's fake microphone (a tone); the simulated AI answers. They return True to keep the scroll.
+def shadow(pg):
+    pg.click('[data-mode="shadow"]'); pg.wait_for_selector('.line.sh.cur [data-r="0"]')
+    pg.click('[data-r="0"]'); pg.wait_for_selector('[data-r="0"].on', timeout=5000); pg.wait_for_timeout(1200); pg.click('[data-r="0"]')
+    pg.wait_for_selector('[data-ai="0"]:not([disabled])', timeout=5000); pg.click('[data-ai="0"]')
+    pg.wait_for_selector('.line[data-i="0"] .sh-res .pron', timeout=10000); pg.wait_for_timeout(900)
+    pg.evaluate("() => { const r = document.querySelector('.line[data-i=\"0\"] .sh-ctl').getBoundingClientRect(); scrollBy(0, r.top - 70); }")
+    return True
+
+
+def ielts_card(pg):
+    pg.click('#p2Start'); pg.wait_for_selector('.p2-clock.prep', timeout=5000)
+    pg.fill('#p2Notes', 'cooking · grandma · one year · saves money')
+    pg.wait_for_timeout(2200)
+
+
+def ielts_feedback(pg):
+    pg.click('#p2Start'); pg.wait_for_selector('.p2-clock.prep', timeout=5000); pg.click('#p2Go')
+    pg.wait_for_selector('.p2-clock.talk', timeout=3000); pg.wait_for_timeout(5600)
+    pg.evaluate('() => { const now = Date.now; Date.now = () => now() + 88000; }')  # reads like a 1½-minute answer, not the test's few seconds
+    pg.click('#p2Done')
+    pg.wait_for_selector('#ieOut .ielts-fb', timeout=15000); pg.wait_for_timeout(900)
+    pg.evaluate("() => { const r = document.querySelector('#ieOut').getBoundingClientRect(); scrollBy(0, r.top - 70); }")
+    return True
+
+
 # name -> (page, extra step or None, signed in?)
 SHOTS = {
     'welcome': ('#/welcome', None, False),
@@ -55,6 +81,9 @@ SHOTS = {
     'practice': ('#/practice', None, True),
     'easy': ('#/easy', None, True),
     'speak': ('#/speak', None, True),
+    'shadow': (f'#/m/{PID}/listen', shadow, True),
+    'ielts': ('#/speak/ielts/p2-skill', ielts_card, True),
+    'ielts-fb': ('#/speak/ielts/p2-skill', ielts_feedback, True),
     'exam': ('#/exam', None, True),
     'radar': ('#/radar', None, True),
     'radartest': ('#/radar/test', None, True),
@@ -82,21 +111,21 @@ def main(only):
     cfg = json.loads((state / 'sessions.json').read_text())
     base, token = cfg['base'], cfg['learners']['guide']['token']
     with sync_playwright() as p:
-        browser = p.chromium.launch(channel='chrome')  # the installed Chrome, as tools/ui_test.py does
+        browser = p.chromium.launch(channel='chrome', args=['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'])  # the installed Chrome, as tools/ui_test.py does
         for name in names:
             route, step, signed = SHOTS[name]
             ctx = browser.new_context(viewport={'width': 390, 'height': 760}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN',
                                       reduced_motion='reduce', service_workers='block', bypass_csp=True)
             if signed:
                 ctx.add_cookies([{'name': 'flow_session', 'value': token, 'url': base}])
+            ctx.grant_permissions(['microphone'], origin=base)
             pg = ctx.new_page()
             pg.goto(base + '/' + route)
             pg.wait_for_function("() => !document.querySelector('#view .skeleton') && !document.querySelector('#view .loading')", timeout=15000)
             pg.wait_for_selector('#view h1, #view .review, #view .empty', timeout=10000)
             pg.wait_for_timeout(700)
-            if step:
-                step(pg)
-            pg.evaluate("() => { const t = document.getElementById('toast'); if (t) t.style.display = 'none'; window.scrollTo(0, 0); }")
+            keep = step(pg) if step else False
+            pg.evaluate("(keep) => { const t = document.getElementById('toast'); if (t) t.style.display = 'none'; if (!keep) window.scrollTo(0, 0); }", bool(keep))
             pg.wait_for_timeout(300)
             pg.screenshot(path=str(OUT / f'{name}.jpg'), type='jpeg', quality=62)
             print(f"{name}: {(OUT / f'{name}.jpg').stat().st_size // 1024} KB", flush=True)
