@@ -153,6 +153,8 @@ flow/feedback_service.py
 flow/field_service.py
 flow/account_data.py
 flow/fill_examples.py
+flow/console_data.py
+flow/console_ops.py
 flow/slim.py
 flow/relisten_service.py
 flow/flow-backup.service

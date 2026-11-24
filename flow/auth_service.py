@@ -97,13 +97,13 @@ def register(c,data,hash_password):
  if not 10<=len(p)<=200:return None,({'error':'密码需 10–200 个字符','field':'password'},400)
  if c.execute('SELECT 1 FROM users WHERE username=?',(name,)).fetchone():return None,({'error':'这个用户名已被使用，换一个试试'},409)
  if not account.configured():
-  c.execute('INSERT INTO users(username,password) VALUES(?,?)',(name,hash_password(p)));c.commit()
+  c.execute('INSERT INTO users(username,password,created) VALUES(?,?,?)',(name,hash_password(p),time.time()));c.commit()
   return c.execute('SELECT * FROM users WHERE username=?',(name,)).fetchone(),None
  if not email:return None,({'error':'请输入有效的邮箱地址'},400)
  if owner(c,email):return None,({'error':'这个邮箱已经注册，可以直接用验证码登录。','code':'email_taken'},409)
  problem=check(c,email,'register',data.get('code'))
  if problem:return None,({'error':problem,'field':'code'},400)
- c.execute('INSERT INTO users(username,password,email) VALUES(?,?,?)',(name,hash_password(p),email));c.commit()
+ c.execute('INSERT INTO users(username,password,email,created) VALUES(?,?,?,?)',(name,hash_password(p),email,time.time()));c.commit()
  return c.execute('SELECT * FROM users WHERE username=?',(name,)).fetchone(),None
 
 def failed(c,key,row,now):

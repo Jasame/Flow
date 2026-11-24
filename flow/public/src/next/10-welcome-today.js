@@ -96,6 +96,7 @@
     const more = h.today.filter(m => m.id !== readId && (path || m !== pick) && (!resume || m.id !== resume.id) && (!news || m.id !== news.id)).slice(0, 3);
     view.innerHTML = `<div class="greet-row"><span class="kicker greet">${greeting()}${name ? `，<span class="nm">${esc(name)}</span>` : ''}</span>
         ${st && st.habit ? habitChip(st.habit) : st ? `<span class="wk" title="本周学了 ${weekN} 天"><span class="tiny muted">本周 ${weekN} 天</span><span class="week" aria-hidden="true">${st.week.map(d => `<span class="${d.active ? 'on' : ''}"></span>`).join('')}</span></span>` : ''}</div>
+      ${announceHTML(h)}
       ${top}
       <div id="notice"></div>
       ${S.user && !path ? vocabHome(st) : ''}
@@ -105,6 +106,7 @@
         ${news ? '<p class="tiny muted">「热点」是联网检索后改写的，未经人工审核。</p>' : ''}</section>`;
     const ring = view.querySelector('.ring'); if (ring) ring.style.setProperty('--p', ring.dataset.p + '%');  // CSP: no inline style attributes
     fillNotice(h);
+    bindAnnounce(h);
     const hb = document.getElementById('habitBtn'); if (hb) hb.onclick = habitSheet;
     if (st && st.habit) cheerWeek(st.habit);
     const nextRead = readId || (pick && pick.id);
@@ -146,6 +148,20 @@
     return `<a class="mrow" href="${href || '#/m/' + encodeURIComponent(m.id)}"${tapKey ? ` data-tap="${tapKey}"` : ''}><span class="t"><b>${esc(m.title)}</b>
       <span class="tiny muted">${m.level} · ${esc(m.theme_label)}${m.minutes ? ` · 约 ${m.minutes} 分钟` : ''}${m.steps && m.steps.length ? ` · 学了 ${m.steps.length}/4 步` : ''}${OFF.has(m.id) ? ' · 已存到手机' : ''}</span></span>
       ${tag ? `<span class="pill ${tag[1]}">${tag[0]}</span>` : m.featured ? '<span class="pill feat">精选</span>' : ''}<span class="go" aria-hidden="true">›</span></a>`;
+  }
+  // 公告 from the operators (xmc.hk console, r26): one line at the very top of 今日, for everyone, until it ends.
+  // 「知道了」 (or going to its page) hides that one on this phone; a new one shows again.
+  function announceHTML(h) {
+    const a = h.announce;
+    if (!a || load('flow-announce-seen') === a.id) return '';
+    return `<div class="card sunk section notice announce stack-s" id="announce" role="status"><b>${esc(a.text)}</b>
+      <div class="row">${a.link ? `<a class="btn small primary" href="${esc(a.link)}" data-tap="announce-open">去看看</a>` : ''}<button class="btn small ghost" id="annOk" type="button">知道了</button></div></div>`;
+  }
+  function bindAnnounce(h) {
+    const box = document.getElementById('announce'); if (!box) return;
+    const seen = () => { save('flow-announce-seen', h.announce.id); box.remove(); };
+    document.getElementById('annOk').onclick = seen;
+    const go = box.querySelector('a'); if (go) go.addEventListener('click', () => save('flow-announce-seen', h.announce.id));
   }
   // One notice at a time under the plan, the most useful first: sign in (guest), a level that fits better, an email
   // for getting back in, then the guide for the first few days. Putting one off brings up the next.
