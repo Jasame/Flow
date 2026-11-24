@@ -2725,6 +2725,19 @@ def home_app_run(pw):
         ver = pg.evaluate("fetch('/api/version').then(r => r.json())")
         check(dev, 'the same version: /api/version answers it, and nothing reloads or shows', ver.get('asset') and len(loads) == 1 and pg.query_selector('#updateBar') is None, (ver, len(loads)))
         ctx.close()
+        # light → dark while open (an iPhone keeps the status-bar strip of the page's load: a white band): no reload while
+        # answering questions; the next tab page reloads to repaint it (tools/ios_sim_check.py checks the strip itself)
+        ctx, pg, errs = context('iphone-15-pro')
+        loads = []
+        pg.on('load', lambda: loads.append(1))
+        pg.goto(BASE + f'/#/m/{PID}/check', wait_until='networkidle'); settle(pg)
+        pg.emulate_media(color_scheme='dark'); pg.wait_for_timeout(1200)
+        stayed = len(loads) == 1
+        go(pg, '#/'); pg.wait_for_timeout(1500)
+        check(dev, 'light → dark while answering: no reload there; the next tab page reloads once (the status-bar strip)', stayed and len(loads) == 2, (stayed, len(loads)))
+        pg.wait_for_timeout(1500)
+        check(dev, 'after that reload: no second one', len(loads) == 2, len(loads))
+        ctx.close()
     finally:
         browser.close()
 
