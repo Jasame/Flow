@@ -39,7 +39,7 @@ def names(p, sents):
     add = lambda w: found.append(w) if w not in found else None
     for s in sents:
         m = LABEL.match(s)
-        if m:
+        if m and m.group(1) not in NOT_NAMES:
             add(m.group(1))
         s = LABEL.sub('', s)
         for m in re.finditer(r"\b((?:Dr|Mr|Mrs|Ms) [A-Z][a-z]+|[A-Z][a-z]+(?: [A-Z][a-z]+)*)", s):
