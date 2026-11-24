@@ -208,7 +208,8 @@ def daily_path(c, uid, home, now=None):
     steps = []
     todo = n['due'] + n['new']
     title = '单词：' + ' · '.join(x for x in (f"复习 {n['due']}" if n['due'] else '', f"新词 {n['new']}" if n['new'] else '') if x) if todo else '单词'
-    steps.append({'key': 'review', 'title': title, 'sub': f"约 {n['minutes']} 分钟" if todo else '今天的都完成了',
+    sub = (f"约 {n['minutes']} 分钟" + (' · 先复习，新词明天继续' if n.get('new_paused') else '')) if todo else '今天的都完成了'
+    steps.append({'key': 'review', 'title': title, 'sub': sub,
                   'href': '#/review', 'done': not todo})
     if minutes >= 10:
         # 复听 (relisten_service): a text from a few days ago heard again without the words, before today's new one

@@ -1592,6 +1592,61 @@ def progress_run(pw):
         browser.close()
 
 
+# The area that takes a tap around an element: true when points 20 px out from its centre, on all four sides, land on it
+# (44 x 44 at least, even where the text itself is smaller: .hit44 in 70-input-devices.css).
+TAP44_JS = """sel => { const el = document.querySelector(sel); if (!el) return null; el.scrollIntoView({block: 'center'});
+  const r = el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+  const hit = (dx, dy) => { const t = document.elementFromPoint(x + dx, y + dy); return !!t && (t === el || el.contains(t)); };
+  return { ok: [[-20, 0], [20, 0], [0, -20], [0, 20]].every(([a, b]) => hit(a, b)), w: Math.round(r.width), h: Math.round(r.height) }; }"""
+
+
+def backlog_run(pw):
+    """Reviews piled up after a break (ux-longterm-audit 1.1, 11, 16, 2026-11-24): no new words today and the word page
+    says so; the review page says 「先做 40 个（还有 N 个）」 and, after those 40, offers a place to stop; the small links
+    a finger needs (结束, 去读, 去练, 按 B1 挑选 · 调整, 怎么写的) take a tap 44 px around them."""
+    dev = 'backlog'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    try:
+        ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['pile']['token'], 'url': BASE}])
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        pg.goto(BASE + '/#/cards', wait_until='networkidle'); settle(pg)
+        o = pg.evaluate("fetch('/api/next/vocab').then(r => r.json())")
+        note = pg.text_content('#newPaused') if pg.query_selector('#newPaused') else ''
+        check(dev, 'reviews piled up (60 > 3 x 10): no new words today, and the word page says why',
+              o['new_paused'] and o['due'] >= 60 and '先把到期的复习完，新词明天继续' in note and '3 倍' in note, (o['due'], o['new'], o['new_paused'], note))
+        home = pg.evaluate("fetch('/api/next/home').then(r => r.json())")
+        step = next((x for x in (home.get('path') or {}).get('steps', []) if x.get('key') == 'review'), {})
+        check(dev, "today's word step says new words wait", '新词明天继续' in step.get('sub', ''), step)
+        go(pg, '#/review'); pg.wait_for_timeout(300)
+        total = o['due'] + o['new']
+        foot = pg.text_content('.rfoot') or ''
+        check(dev, 'the review page says 先做 40 个（还有 N 个）, not 1 / 40 alone', f'先做 40 个（还有 {total - 40} 个）' in foot and '1 / 40' in foot, foot)
+        check(dev, '结束 on the review page takes a tap 44 px around it', (pg.evaluate(TAP44_JS, '.rtop a.link') or {}).get('ok'), pg.evaluate(TAP44_JS, '.rtop a.link'))
+        for k in range(60):
+            if pg.query_selector('.done-card'):
+                break
+            if pg.query_selector('[data-claim]'):
+                pg.keyboard.press('1'); pg.wait_for_selector('.open-card', timeout=4000); pg.keyboard.press('Enter'); pg.wait_for_timeout(120); continue
+            if pg.query_selector('[data-self]'):
+                pg.click('[data-self="good"]'); pg.wait_for_timeout(150); continue
+            break
+        head = pg.text_content('.done-card h2') if pg.query_selector('.done-card') else ''
+        stop = pg.text_content('#stopOk') if pg.query_selector('#stopOk') else ''
+        again = pg.text_content('#again') if pg.query_selector('#again') else ''
+        check(dev, 'after the 40: a place to stop, 今天做到这里也行, and 再做 for the rest', head.startswith('这一轮复习了 40 个') and '今天做到这里也行' in stop
+              and again.startswith('再做') and pg.query_selector('.done-card a[href="#/"]') is not None, (head, stop, again))
+        for page, sel, name in (('#/report', '.card a.link[href="#/easy"]', '周报「去读」'), ('#/report', '.card a.link[href="#/speak"]', '周报「去练」'),
+                                ('#/', '.section-head a.link[href="#/welcome/edit"]', '今日「按 B1 挑选 · 调整」'), (f'#/m/{PID}/listen', '#originMore', '材料的「怎么写的」')):
+            go(pg, page); pg.wait_for_timeout(300)
+            t = pg.evaluate(TAP44_JS, sel)
+            check(dev, f'{name} takes a tap 44 px around it', t is not None and t['ok'], t)
+        check(dev, 'no script errors', not errs, errs[:3])
+        ctx.close()
+    finally:
+        browser.close()
+
+
 def main():
     with sync_playwright() as pw:
         if not ONLY or 'about' in ONLY:
@@ -1641,6 +1696,12 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('listen-speak', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'backlog' in ONLY:
+            try:
+                backlog_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('backlog', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'a11y' in ONLY:
             try:
                 a11y_run(pw)

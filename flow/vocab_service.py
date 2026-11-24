@@ -52,6 +52,14 @@ DAILY_MAX = 200
 MORE_MAX = 50  # one extra batch of new words today, on request
 RETENTION = (0.8, 0.85, 0.9, 0.95)
 MASTERED = 21  # days of stability from which an item counts as mastered
+# What a day of word review costs, from 90 days simulated with the real FSRS and this file (ux-longterm-audit,
+# 2026-11-24): a review card due today is answered about 1.2 times (a miss comes back the same day), a new word about
+# 3 times (its first steps); an answer takes about 9.5 seconds until the learner has answers of their own. A month in,
+# the reviews of a day are about this many times the daily new words, by target retention (days 26-31 of the runs).
+ANSWERS_PER_REVIEW, ANSWERS_PER_NEW, ANSWER_SECONDS = 1.2, 3, 9.5
+MONTH_REVIEWS_PER_NEW = {0.8: 4, 0.85: 4.5, 0.9: 6, 0.95: 8}
+PAUSE_OVER = 3  # new words wait for a day while more reviews are due than this many times the daily new words
+BATCH = 40  # one review session: the most urgent 40; the review page offers a place to stop after them
 SPELL_FROM, RECALL_FROM = 21, 3  # stability (days) at which reviews move to spelling / active recall
 LEVEL_ORDER = {'A2': 0, 'B1': 1, 'B2': 2, 'C1': 3}
 # Made-up words for the vocabulary test: saying you know them reveals guessing, which the estimate corrects for.
@@ -102,6 +110,8 @@ CREATE TABLE IF NOT EXISTS next_reminders(user_id INTEGER PRIMARY KEY REFERENCES
         c.execute('ALTER TABLE next_vocab_plans ADD COLUMN skip_rank INTEGER NOT NULL DEFAULT 0')
     if 'suggest' not in pcols:  # the book the vocabulary test recommended
         c.execute('ALTER TABLE next_vocab_plans ADD COLUMN suggest TEXT')
+    if 'paused_on' not in pcols:  # the day new words were held back because too many reviews were due
+        c.execute('ALTER TABLE next_vocab_plans ADD COLUMN paused_on TEXT')
     if 'test_skip' not in pcols:  # what the test said may be skipped, kept so "skip known words" can be turned back on
         c.execute('ALTER TABLE next_vocab_plans ADD COLUMN test_skip INTEGER NOT NULL DEFAULT 0')
         c.execute('UPDATE next_vocab_plans SET test_skip=skip_rank')
@@ -429,6 +439,15 @@ def introduce(c, uid, now=None):
     need = min(p['daily_new'] - today_new, p['daily_new'] - waiting)
     if need <= 0:
         return 0
+    # Reviews piled up (a break, too many new words a day): no new words today, so the day stays doable; the word page
+    # says why. Once held back, the rest of the day stays without them, even after the reviews are done.
+    day = nx._day(now)
+    if p.get('paused_on') == day:
+        return 0
+    if _reviews_due(c, uid, now) > p['daily_new'] * PAUSE_OVER:
+        c.execute('UPDATE next_vocab_plans SET paused_on=? WHERE user_id=?', (day, uid))
+        c.commit()
+        return 0
     have = {r[0] for r in c.execute('SELECT norm FROM next_cards WHERE user_id=?', (uid,))}
     d = nx.dictionary()
     skip = _skip_below(p['book'], p.get('skip_rank'))
@@ -446,11 +465,11 @@ def introduce(c, uid, now=None):
     return added
 
 
-def queue(c, uid, limit=40):
+def queue(c, uid, limit=BATCH):
     """Today's session: items most at risk of being forgotten first, then ones still in learning steps, then new words."""
     now = time.time()
     introduce(c, uid, now)
-    rows = c.execute('SELECT * FROM next_cards WHERE user_id=? AND known=0 AND due<=?', (uid, now)).fetchall()
+    rows = c.execute('SELECT * FROM next_cards WHERE user_id=? AND known=0 AND ' + DUE_TODAY, (uid, _day_start(now) + fsrs.DAY, now)).fetchall()
     reviews = sorted((r for r in rows if r['state'] == 'review'), key=lambda r: recall_now(r, now) or 0)
     steps = sorted((r for r in rows if r['state'] in ('learning', 'relearning')), key=lambda r: r['due'])
     new = sorted((r for r in rows if r['state'] == 'new'), key=lambda r: (r['source'] == 'book', r['rank'] or 0, r['created']))
@@ -459,13 +478,38 @@ def queue(c, uid, limit=40):
     return {'items': [card_out(r, now, level, rich=True, c=c) for r in picked], **counts(c, uid, now)}
 
 
+# Due today: a review card from midnight on (a card reviewed last night is not due again only this evening, so a plan
+# done in the morning stays done); a card in its learning steps (minutes apart) and a new word from the moment they are.
+DUE_TODAY = "((state='review' AND due<?) OR (state!='review' AND due<=?))"
+
+
+def _reviews_due(c, uid, now):
+    return c.execute("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND known=0 AND state!='new' AND " + DUE_TODAY,
+                     (uid, _day_start(now) + fsrs.DAY, now)).fetchone()[0]
+
+
+def answer_seconds(c, uid, now=None):
+    """This learner's own seconds per answer: the mean of their last 300 answers in 30 days (an answer over a minute
+    is someone who looked away, and is left out); ANSWER_SECONDS until there are 30."""
+    now = now or time.time()
+    ms = [r[0] for r in c.execute('SELECT ms FROM next_reviews WHERE user_id=? AND created>? AND ms BETWEEN 1000 AND 60000 '
+                                  'ORDER BY created DESC LIMIT 300', (uid, now - 30 * fsrs.DAY))]
+    return round(sum(ms) / len(ms) / 1000, 1) if len(ms) >= 30 else ANSWER_SECONDS
+
+
+def minutes_for(reviews, new, seconds):
+    """Minutes for a day of words: the answers it takes (a review about 1.2, a new word about 3) at this pace."""
+    return max(1, round((reviews * ANSWERS_PER_REVIEW + new * ANSWERS_PER_NEW) * seconds / 60))
+
+
 def counts(c, uid, now=None):
     now = now or time.time()
-    q = lambda sql: c.execute(sql, (uid, now)).fetchone()[0]
-    due = q("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND known=0 AND state!='new' AND due<=?")
-    new = q("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND known=0 AND state='new' AND due<=?")
+    due = _reviews_due(c, uid, now)
+    new = c.execute("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND known=0 AND state='new' AND due<=?", (uid, now)).fetchone()[0]
     done = c.execute('SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND created>=?', (uid, _day_start(now))).fetchone()[0]
-    return {'due': due, 'new': new, 'done_today': done, 'minutes': max(1, round(due * 0.12 + new * 0.4))}
+    p = plan(c, uid)
+    return {'due': due, 'new': new, 'done_today': done, 'minutes': minutes_for(due, new, answer_seconds(c, uid, now)),
+            'new_paused': bool(p and p.get('paused_on') == nx._day(now)), 'batch': BATCH}
 
 
 def rate(c, uid, data):
@@ -676,7 +720,11 @@ def overview(c, uid):
     return {'plan': p, 'book': book, 'books': books, 'groups': book_groups(books), 'daily_new_options': list(DAILY_NEW), 'retention_options': list(RETENTION),
             'exam_goals': [{'title': t, 'book': b} for t, b in EXAM_GOALS if b in ids],
             'suggested_book': (p.get('suggest') if p and p.get('suggest') in book_words() else None) or LEVEL_BOOK.get(_level(c, uid), 'mid'), 'mastered': mastered, 'learning': learning, 'total': len(rows),
-            'forecast': forecast, 'calendar': calendar, 'reminder': reminder(c, uid), **counts(c, uid, now)}
+            'forecast': forecast, 'calendar': calendar, 'reminder': reminder(c, uid),
+            # the plan page's 「一个月后每天大约要复习…」 uses the same numbers as the day's estimate
+            'load': {'answer_seconds': answer_seconds(c, uid, now), 'per_review': ANSWERS_PER_REVIEW, 'per_new': ANSWERS_PER_NEW,
+                     'month_reviews_per_new': {str(k): v for k, v in MONTH_REVIEWS_PER_NEW.items()}},
+            **counts(c, uid, now)}
 
 
 def save_plan(c, uid, data):
@@ -990,11 +1038,18 @@ def send_reminders(c, now=None, send=None):
         c.commit()
         if not n['due'] and not n['new'] or weekly(c, r['user_id'], now):  # Sunday evening: the weekly mail said it already
             continue
-        text = (f"{r['username']}，你好：\n\n今天有 {n['due']} 个单词该复习了" + (f"，还有 {n['new']} 个新词" if n['new'] else '') +
-                f"，大约 {n['minutes']} 分钟。\n记忆曲线到点了，现在复习效果最好：{origin}/#/review\n\n"
-                "不想再收到提醒，可以在「单词 → 调整计划」里关掉。\n—— 语流 Flow")
+        if n['due'] + n['new'] > BATCH:  # piled up: the first 40 is a session that can be done, not the whole heap
+            first = minutes_for(min(n['due'], BATCH), max(0, BATCH - n['due']), answer_seconds(c, r['user_id'], now))
+            text = (f"{r['username']}，你好：\n\n先复习最要紧的 {BATCH} 个，大约 {first} 分钟。最容易忘的排在前面，"
+                    f"做完这些今天就可以停，剩下的之后几天接着来。\n{origin}/#/review\n\n")
+            subject = f"语流 · 先复习最要紧的 {BATCH} 个，约 {first} 分钟"
+        else:
+            text = (f"{r['username']}，你好：\n\n今天有 {n['due']} 个单词该复习了" + (f"，还有 {n['new']} 个新词" if n['new'] else '') +
+                    f"，大约 {n['minutes']} 分钟。\n记忆曲线到点了，现在复习效果最好：{origin}/#/review\n\n")
+            subject = f"语流 · 今天有 {n['due'] + n['new']} 个单词等你"
+        text += "不想再收到提醒，可以在「单词 → 调整计划」里关掉。\n—— 语流 Flow"
         try:
-            send(r['email'], f"语流 · 今天有 {n['due'] + n['new']} 个单词等你", text)
+            send(r['email'], subject, text)
             sent += 1
         except Exception:
             pass  # a mail outage must not stop the loop; tomorrow is another try
