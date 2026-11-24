@@ -21,7 +21,8 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `30-lookup.js` | word look-up, AI sentence explanation, saving cards |
 | `40-graph.js` | knowledge graph: learning route and full map; grammar-point pages (Chinese-speaker trap, connected points, rounds of 4 from a bank of 10) |
 | `41-placement.js` | 语法起点小测: 16 questions band by band, places the learner and lights the graph |
-| `42-exam.js` | 考试练习: timed CET-4 / CET-6 / 考研 / IELTS sets, results and history |
+| `42-exam.js` | 考试练习: timed sets for 中考 … 专八 / IELTS, results and their trend |
+| `42-sprint.js` | 考试冲刺 (r27): the exam hub (my exam and its date, the countdown word plan, the score trend), the line on 今日, 我的考试, the date on 背词计划, question-type practice (exam_sprint.py, exam_types.py) |
 | `43-mix.js` | mixed grammar rounds: today's review, confusable pairs, a whole topic (interleaved) |
 | `44-easy.js` | 轻松读: easy texts a level down, reading speed, words read |
 | `45-confuse.js` | 词汇辨析: word groups Chinese speakers mix up, interleaved rounds |
@@ -46,6 +47,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `88-more.css` | easy reading, word confusables, speaking scenes, my progress |
 | `87-route.css` | learning route, relation map, Chinese-speaker traps, mixed rounds, review passage |
 | `86-loop.css` | starting check, re-check tags, exam practice, serial episode list |
+| `86-sprint.css` | 考试冲刺: the line on 今日, the exam hub, the score trend, question-type practice |
 | `85-phone.css` | phone layout from a 360 px audit (16px fields, card layouts, listen controls, one level of surface), the knowledge graph tiles and grammar-point pages |
 | `96-tidy.css` | phone tidy-up from a full-length audit: 存到手机 on the kicker line, 听's settings folded into one line, 读's tools in one row, the word-book picker folded, the 练习 list, 全部材料 filters |
 | `97-progress.css` | 这周进步: the four-number card, its details sheet, the three lines after a text, the unsubscribe page |

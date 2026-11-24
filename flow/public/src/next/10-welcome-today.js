@@ -77,7 +77,7 @@
       const art = [pick, h.resume, ...h.today].find(m => m && m.id === readId);
       top = `<section class="today-plan" aria-labelledby="tpTitle">
         <div class="tp-head"><div><h1 class="h1" id="tpTitle">${next ? '今天的计划' : '今天的计划完成了'}</h1>
-          <span class="muted small">${p.total} 步 · 约 ${p.minutes} 分钟 · 已完成 ${p.done} / ${p.total}</span></div>
+          <span class="muted small">${p.total} 步 · 约 ${p.minutes} 分钟 · 已完成 ${p.done} / ${p.total}</span>${sprintLine(h)}</div>
           <span class="ring" data-p="${Math.round(p.done / Math.max(1, p.total) * 100)}" aria-hidden="true"><b>${p.done}/${p.total}</b></span></div>
         ${next ? `<a class="btn primary block go-next" href="${esc(next.href)}">${p.done ? '继续' : '开始'}第 ${nextK + 1} 步<span aria-hidden="true">→</span></a>`
           : `<div class="tp-done">${doneRing}<span>都完成了。想多学一点，就再读一篇。</span></div><a class="btn primary block go-next" href="#/library">再学一篇<span aria-hidden="true">→</span></a>`}
