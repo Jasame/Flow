@@ -195,8 +195,12 @@ class MailTests(Db):
         m = self.mails()[0]
         self.assertIn('Subject: 语流 · 这周进步：记住 1 个新词，学完 1 篇', m)
         self.assertIn('· 每周目标：学了 2 天，目标 4 天，这周差 2 天。', m)
-        self.assertIn('· 记住了 1 个新词（隔天复习还记得的）：commute', m)
+        self.assertIn('· 记住了 1 个新词：隔天复习还记得的：commute。', m)
         self.assertIn('· 学完 1 篇：《', m)
+        page = sorted(self.outbox.glob('*.html'))[0].read_text(encoding='utf-8')  # the same mail in the one look of 语流's mails
+        self.assertIn('class="fl-card"', page)
+        self.assertIn('记住了 1 个新词', page)
+        self.assertIn('/#/weekly-off/', page)
         token = re.search(r'https://flow\.test/#/weekly-off/([\w-]+)', m).group(1)
         self.assertIn(f'List-Unsubscribe: <https://flow.test/api/next/weekly-mail/off?t={token}>', m)
         self.assertIn('List-Unsubscribe-Post: List-Unsubscribe=One-Click', m)

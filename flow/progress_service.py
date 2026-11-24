@@ -270,7 +270,10 @@ def _date(d):
 
 
 def compose(c, uid, name, now, origin):
-    """(subject, text, unsubscribe token) of the Sunday mail, or None when there is nothing to send (no study for a while)."""
+    """(subject, text, html, unsubscribe token) of the Sunday mail in the one look of 语流's mails (mail_layout, the
+    owner's 「A 简洁卡片」): a greeting, then one row per fact (heading, detail), a button back to 语流, and the link to
+    stop the mail in the footer. None when there is nothing to send (no study for a while)."""
+    import mail_layout
     today, monday, lo, prev = _bounds(now)
     days = study_days(c, uid, _start(monday - D(weeks=NUDGE_WEEKS)))
     if not days:
@@ -281,15 +284,14 @@ def compose(c, uid, name, now, origin):
     import vocab_service as vs
     due = vs.counts(c, uid, now)['due']
     span = f'{_date(monday)} – {_date(monday + D(days=6))}'
-    words_due = f'现在有 {due} 个单词到了复习时间，复习一轮大约 {max(1, round(due * 0.15))} 分钟。' if due else ''
+    words_due = ('单词复习', f'现在有 {due} 个单词到了复习时间，复习一轮大约 {max(1, round(due * 0.15))} 分钟。') if due else None
+    rows = []
     if not hb['done']:
         last = max(days)
         subject = '语流 · 这周还没学，下周一起开个头'
-        lines = [f'{name}，你好：', '', f'这周（{span}）你还没有打开语流学习。上次学习是 {_date(last)}（周{WEEKDAY[last.weekday()]}）。',
-                 f"你的每周目标是 {hb['goal']} 天。没学的周不会把以前的记录清零" + (f"，你已经有 {hb['weeks']} 周达成了目标。" if hb['weeks'] else '。'),
-                 '下周从周一开始：学一步材料或复习几个词，就算学了一天。']
-        if words_due:
-            lines += ['', words_due]
+        paragraphs = [f'{name}，你好：', f'这周（{span}）你还没有打开语流学习。上次学习是 {_date(last)}（周{WEEKDAY[last.weekday()]}）。',
+                      f"你的每周目标是 {hb['goal']} 天。没学的周不会把以前的记录清零" + (f"，你已经有 {hb['weeks']} 周达成了目标。" if hb['weeks'] else '。'),
+                      '下周从周一开始：学一步材料或复习几个词，就算学了一天。']
     else:
         rem, fin, acc = w['remembered'], w['finished'], w['accuracy']
         if hb['met']:
@@ -298,37 +300,38 @@ def compose(c, uid, name, now, origin):
             subject = '语流 · 这周进步：' + '，'.join(x for x in (f"记住 {rem['now']} 个新词" if rem['now'] else '', f"学完 {fin['now']} 篇" if fin['now'] else '') if x)
         else:
             subject = f"语流 · 你这周学了 {hb['done']} 天"
-        goal = (f"· 每周目标：学了 {hb['done']} 天，目标 {hb['goal']} 天，达成了！一共达成 {hb['weeks']} 周。" if hb['met'] else
-                f"· 每周目标：学了 {hb['done']} 天，目标 {hb['goal']} 天，这周差 {hb['goal'] - hb['done']} 天。" + (f"已经达成过 {hb['weeks']} 周，不会因为这周清零。" if hb['weeks'] else ''))
-        lines = [f'{name}，你好：', '', f'这是你这周（{span}）的进步，数字都来自你自己的学习记录：', '', goal]
+        paragraphs = [f'{name}，你好：', f'这是你这周（{span}）的进步，数字都来自你自己的学习记录。']
+        rows.append(('每周目标', f"学了 {hb['done']} 天，目标 {hb['goal']} 天，达成了！一共达成 {hb['weeks']} 周。" if hb['met'] else
+                     f"学了 {hb['done']} 天，目标 {hb['goal']} 天，这周差 {hb['goal'] - hb['done']} 天。" + (f"已经达成过 {hb['weeks']} 周，不会因为这周清零。" if hb['weeks'] else '')))
         if rem['now']:
             shown = '、'.join(rem['words'][:8]) + ('等' if rem['now'] > 8 else '')
-            lines.append(f"· 记住了 {rem['now']} 个新词（隔天复习还记得的）：{shown}" + (f"。上周 {rem['before']} 个" if rem['before'] else ''))
+            rows.append((f"记住了 {rem['now']} 个新词", f'隔天复习还记得的：{shown}。' + (f"上周 {rem['before']} 个。" if rem['before'] else '')))
         elif rem['before']:
-            lines.append(f"· 这周还没有新记住的词（上周 {rem['before']} 个）。新词要隔天复习还记得才算。")
+            rows.append(('记住的新词', f"这周还没有（上周 {rem['before']} 个）。新词要隔天复习还记得才算。"))
         if fin['now']:
-            lines.append(f"· 学完 {fin['now']} 篇：" + '、'.join(f"《{t['title']}》" for t in fin['titles'][:4]) + (f"。上周 {fin['before']} 篇" if fin['before'] else ''))
+            rows.append((f"学完 {fin['now']} 篇", '、'.join(f"《{t['title']}》" for t in fin['titles'][:4]) + (f"。上周 {fin['before']} 篇。" if fin['before'] else '')))
         a, b = acc['now'], acc['before']
         if a['rate'] is not None:
-            lines.append(f"· 做题正确率 {a['rate']}%（{a['total']} 题对 {a['right']} 题）" + (f"，上周 {b['rate']}%" if b['rate'] is not None else ''))
+            rows.append((f"做题正确率 {a['rate']}%", f"{a['total']} 题对 {a['right']} 题" + (f"，上周 {b['rate']}%。" if b['rate'] is not None else '。')))
         elif a['total']:
-            lines.append(f"· 这周做了 {a['total']} 题，对了 {a['right']} 题（满 {MIN_ANSWERS} 题才算正确率）")
+            rows.append((f"做了 {a['total']} 题", f"对了 {a['right']} 题，满 {MIN_ANSWERS} 题才算正确率。"))
         import skills_service as sk
         more = sk._week_more(c, uid, now, lo, prev)
         e, sp = more['easy'], more['speaking']
         if e['texts']:
-            lines.append(f"· 轻松读 {e['texts']} 篇，共 {e['words']} 个词" + (f"，每分钟 {e['wpm']} 词" if e['wpm'] else ''))
+            rows.append(('轻松读', f"{e['texts']} 篇，共 {e['words']} 个词" + (f"，每分钟 {e['wpm']} 词。" if e['wpm'] else '。')))
         if sp['scenes_week']:
-            lines.append(f"· 口语情景练了 {sp['scenes_week']} 个（一共完成 {sp['scenes_done']} / {sp['scenes_total']}）")
+            rows.append(('口语情景', f"练了 {sp['scenes_week']} 个，一共完成 {sp['scenes_done']} / {sp['scenes_total']}。"))
         up = [m for m in more['radar']['moves'] if m['before'] is not None and m['now'] > m['before']]
         if up:
-            lines.append('· 能力雷达上涨：' + '、'.join(f"{m['label']} {m['before']}→{m['now']}" for m in up))
-        if words_due:
-            lines += ['', words_due]
+            rows.append(('能力雷达上涨', '、'.join(f"{m['label']} {m['before']}→{m['now']}" for m in up) + '。'))
+    if words_due:
+        rows.append(words_due)
     token = _token(c, uid)
-    lines += ['', f'接着学：{origin}/#/', f'这周的报告：{origin}/#/report', '', '—— 语流 Flow', '',
-              f'不想再收到每周进度邮件，点这里退订：{origin}/#/weekly-off/{token}', '也可以在「我的 → 每周进度邮件」里关掉。']
-    return subject, '\n'.join(lines), token
+    text, page = mail_layout.message(paragraphs, rows=rows, button=('打开语流接着学', f'{origin}/#/'),
+                                     foot=[('这周的完整报告', f'{origin}/#/report'), ('不想再收到每周进度邮件，点这里退订', f'{origin}/#/weekly-off/{token}'),
+                                           ('也可以在「我的 → 每周进度邮件」里关掉。', None)])
+    return subject, text, page, token
 
 
 def send_weekly(c, now=None, send=None):
@@ -352,13 +355,13 @@ def send_weekly(c, now=None, send=None):
         mail = compose(c, r['id'], r['username'], now, origin)
         if not mail:
             continue
-        subject, text, token = mail
+        subject, text, page, token = mail
         c.execute('UPDATE next_weekly SET mailed=? WHERE user_id=?', (today, r['id']))
         c.commit()
         try:
             if send is None:
                 link = f'{origin}/api/next/weekly-mail/off?t={token}'
-                account.mail(r['email'], subject, text, headers={'List-Unsubscribe': f'<{link}>', 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'})
+                account.mail(r['email'], subject, text, headers={'List-Unsubscribe': f'<{link}>', 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'}, html=page)
             else:
                 send(r['email'], subject, text)
             sent += 1
