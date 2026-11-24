@@ -90,6 +90,7 @@ CREATE TABLE IF NOT EXISTS ai_usage(user_id INTEGER,day TEXT,count INTEGER,PRIMA
   __import__('survey_service').schema(c)
   __import__('next_service').schema(c)
   __import__('relisten_service').schema(c)
+  __import__('tts_service').schema(c)
   __import__('class_service').schema(c)
   __import__('flow_admin').schema(c)
   __import__('ai_routes').schema(c)
@@ -167,7 +168,7 @@ def session_info(u):
  # email_bound: the page reminds an account without one that a forgotten password could not be reset by itself.
  # media: where audio can also be fetched when this server cannot answer (None unless R2 is in use).
  # age/guardian: 年龄段 and a guardian's agreement under 14 (privacy_service): an account without a band is asked once.
- return {'user':{**{k:u[k] for k in ('id','username','admin','csrf')},'email_bound':bool(u['email']),**__import__('privacy_service').info(u)} if u else None,'ai_enabled':ai_enabled(),'mail':account.configured(),'media':__import__('media').info()}
+ return {'user':{**{k:u[k] for k in ('id','username','admin','csrf')},'email_bound':bool(u['email']),**__import__('privacy_service').info(u)} if u else None,'ai_enabled':ai_enabled(),'mail':account.configured(),'media':__import__('media').info(),'tts':__import__('tts_service').enabled()}
 def verify(p,stored): return hmac.compare_digest(password(p,stored.split(':')[0]),stored)
 def topics(c):
  out=[]
@@ -218,11 +219,13 @@ class Handler(BaseHTTPRequestHandler):
     except ValueError:pass
   return ip
  def send_audio(self,path):
-  # /audio/<voice>/<material>.(m4a|json): pre-generated narration; /audio/words/<accent>/<sprite>.m4a: word pronunciations.
+  # /audio/<voice>/<material>.(m4a|json): pre-generated narration; /audio/words/<accent>/<sprite>.m4a: word pronunciations;
+  # /audio/tts/<voice>/<hash>.mp3: a sentence the server voice made (tts_service).
   # Byte ranges so Safari can seek.
   import next_service
   parts=path.split('/')
   if len(parts)==5 and parts[2]=='words' and parts[4][-4:] in ('.m4a','.mp4'):f=__import__('vocab_service').word_audio_file(parts[3],parts[4][:-4])
+  elif len(parts)==5 and parts[2]=='tts':f=__import__('tts_service').file(parts[3],parts[4])
   else:f=next_service.audio_file(parts[2],parts[3].rsplit('.',1)[0],parts[3].rsplit('.',1)[-1]) if len(parts)==4 and '.' in parts[3] else None
   if not f:return self.send({'error':'音频不存在'},404)
   data=f.read_bytes();size=len(data);start,end=0,size-1;status=200
@@ -238,7 +241,7 @@ class Handler(BaseHTTPRequestHandler):
    except ValueError:
     self.send_response(416);self.send_header('Content-Range',f'bytes */{size}');self.send_header('Content-Length','0');self.end_headers();return
   body=data[start:end+1]
-  self.send_response(status);self.headers_common('audio/mp4' if f.suffix=='.m4a' else 'application/json; charset=utf-8')
+  self.send_response(status);self.headers_common({'.m4a':'audio/mp4','.mp3':'audio/mpeg'}.get(f.suffix,'application/json; charset=utf-8'))
   self.send_header('Accept-Ranges','bytes');self.send_header('Cache-Control','public, max-age=604800')
   if status==206:self.send_header('Content-Range',f'bytes {start}-{end}/{size}')
   self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
@@ -674,6 +677,8 @@ if __name__=='__main__':
     try:
      with db() as c:__import__('ai_routes').tick(c)  # AI budget mails, the nightly marking check, old call rows pruned
     except Exception as exc:print('ai budget/check failed:',type(exc).__name__,flush=True)
+    try:__import__('tts_service').tick(db)  # 03:00–05:00: the fixed sentences the server voice says, made while idle
+    except Exception as exc:print('tts prewarm failed:',type(exc).__name__,flush=True)
     time.sleep(300)
   threading.Thread(target=remind_loop,daemon=True).start()
   class Server(ThreadingHTTPServer):

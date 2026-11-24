@@ -888,9 +888,13 @@ def wechat_run(pw):
         check(dev, 'a review card says its word, by itself and on the speaker button', new and all(x['ok'] for x in new), plays()[n0:])
         # 雅思口语 Part 1: WeChat has no browser voice, so the examiner's question is on screen, with no "cannot play" notice
         pg.evaluate("location.hash = '#/speak/ielts/p1-mornings'"); settle(pg, '#ieStart'); pg.wait_for_timeout(2600)  # an earlier notice has gone
-        pg.evaluate("document.getElementById('toast').classList.remove('show')"); pg.click('#ieStart'); pg.wait_for_timeout(600)
+        n0 = len(plays())
+        pg.evaluate("document.getElementById('toast').classList.remove('show')"); pg.click('#ieStart'); pg.wait_for_timeout(1500)
         note = pg.evaluate("(document.querySelector('.toast.show') || {}).textContent || ''")
         check(dev, '雅思口语 Part 1 starts: the question on screen, no notice about sound', pg.is_visible('#chat .msg.ai') and not note, note)
+        # the server voice (tts_service): WeChat has no browser voice, so the examiner is heard through a stored mp3
+        said = [x for x in plays()[n0:] if '/audio/tts/' in x['src']]
+        check(dev, 'the examiner is heard in WeChat: the server voice, on the player the first tap unlocked', said and all(x['ok'] for x in said), plays()[n0:])
         check(dev, 'every sound started was one WeChat allows', all(x['ok'] for x in plays()), [x for x in plays() if not x['ok']][:3])
         check(dev, 'no script errors', not errors, errors[:3])
         browser.close()
@@ -1393,6 +1397,10 @@ def listen_speak_run(pw):
             check(dev, '口语情景: round 2 shows the round and its extra requirement', '第 2 轮' in hd[0] and '这一轮多一条' in hd[1], hd)
             l3 = p3.evaluate(LAYOUT_JS, touch); check(dev, '口语情景 round 2: no sideways scroll', l3['overflow'] <= 1, f"{l3['overflow']}px {l3['wide']}")
             p3.click('#dlgStart'); p3.wait_for_selector('#chat .msg.ai', timeout=8000)
+            if size == 'phone':  # the AI's line is said by the server voice (an mp3 made once and stored), not the browser voice
+                p3.wait_for_function("performance.getEntriesByType('resource').some(e => e.name.includes('/api/next/tts'))", timeout=8000)
+                src = p3.evaluate("new Promise(r => setTimeout(() => r(performance.getEntriesByType('resource').filter(e => e.name.includes('/audio/tts/')).map(e => e.name.split('/audio/')[1])), 1200))")
+                check(dev, '口语情景: the AI line is spoken by the server voice', bool(src) and src[0].startswith('tts/us-f/') and src[0].endswith('.mp3'), src)
             p3.fill('#dlgText', 'yes'); p3.click('#dlgSend'); p3.wait_for_selector('#chat .msg.me .pace', timeout=8000)
             sl = p3.evaluate("() => [document.querySelector('#chat .msg.me .pace').dataset.pace, document.querySelector('#chat .msg.me .pace').textContent, (document.querySelector('#dlgHint .say-line b') || {}).textContent || '']")
             check(dev, '口语情景: a one-word answer slows the AI down, says so, and offers a sentence to use', sl[0] == 'easier' and '放慢' in sl[1] and len(sl[2].split()) >= 3, sl)
@@ -2038,8 +2046,10 @@ def progress_run(pw):
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['guide']['token'], 'url': BASE}])
         pg = ctx.new_page(); pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg); pg.wait_for_selector('#lineCard', timeout=8000)
         line = pg.evaluate("fetch('/api/next/home').then(r => r.json()).then(h => h.line)")
-        pg.click('#lcSay'); pg.wait_for_timeout(300)
-        said = pg.evaluate('window.__said || []')
+        voiced = []  # the server voice (tts_service) says it now; the browser voice when that is off
+        pg.on('request', lambda r: voiced.append(json.loads(r.post_data or '{}').get('text')) if '/api/next/tts' in r.url else None)
+        pg.click('#lcSay'); pg.wait_for_timeout(600)
+        said = pg.evaluate('window.__said || []') + voiced
         pg.click('#lcShadow'); pg.wait_for_timeout(200)
         panel = pg.evaluate("() => { const p = document.getElementById('lcPanel'); return [p.hidden, !!p.querySelector('#lsRec'), document.getElementById('lsBack').disabled, document.getElementById('lcShadow').getAttribute('aria-expanded')]; }")
         pg.click('#lcShadow'); pg.wait_for_timeout(150)

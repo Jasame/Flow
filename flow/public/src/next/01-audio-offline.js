@@ -12,7 +12,13 @@
       this.voice = pref.map(n => vs.find(v => v.name.includes(n))).find(Boolean) || vs.find(v => /en-US/i.test(v.lang)) || vs[0] || null;
       return this.voice;
     },
+    // A short sentence with no word highlighting goes to the server voice when it is on (SV below: CosyVoice, made once
+    // and stored, works in WeChat too); reading a text along word by word keeps the browser voice, which reports words.
     say(text, onend, onword) {
+      if (!onword && SV.on() && text && text.length <= SV.MAX) { SV.say(text, onend); return; }
+      this.browser(text, onend, onword);
+    },
+    browser(text, onend, onword) {
       if (!this.ok) { noSound('不能用电脑朗读的声音'); return; }
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
@@ -26,9 +32,35 @@
       u.onstart = () => clearTimeout(watch); u.onerror = () => clearTimeout(watch);
       speechSynthesis.speak(u);
     },
-    stop() { this.token++; if (this.ok) speechSynthesis.cancel(); },
+    stop() { this.token++; if (this.ok) speechSynthesis.cancel(); if (SV.active) { SV.active = false; CLIP.stop(); } },
+    can() { return this.ok || SV.on(); },  // some voice can say a sentence here
   };
   if (TTS.ok) speechSynthesis.onvoiceschanged = () => TTS.pick();
+
+  /* ---------- server voice (tts_service): what the browser would say, in CosyVoice, made once and stored for everyone ---------- */
+  // The first tap on a sentence asks the server for it (made then, 1–4 s, or already stored: at once); the file is played
+  // on the short-clip player, which the first tap anywhere has unlocked (WeChat plays only sound started that way).
+  // A guest gets only stored sentences; anything the server cannot give falls back to the browser voice.
+  const SV = {
+    MAX: 1500, urls: new Map(), active: false, off: false,
+    on() { const s = S.home && S.home.session; return !!(s && s.tts) && !this.off; },
+    async say(text, onend) {
+      const t = ++TTS.token; if (TTS.ok) speechSynthesis.cancel();
+      const key = S.voice + '|' + text;
+      let u = this.urls.get(key);
+      if (!u) {
+        try { await DATA.ready; u = (await request('/api/next/tts', { text, voice: S.voice }, true)).j.url; this.urls.set(key, u); }  // not api(): it empties the data layer
+        catch (e) {
+          if (e.status === 503 || e.status === 429) this.off = true;  // off, or today's share is used: the browser voice from now on
+          if (t === TTS.token) TTS.browser(text, onend);
+          return;
+        }
+      }
+      if (t !== TTS.token) return;  // stopped, or something else spoke, while the sentence was being made
+      CLIP.play(u, 0, 1e6, text, () => { this.active = false; if (onend) onend(); });
+      this.active = true; TTS.token = t;  // CLIP.play stops the browser voice (a new token); keep this one current
+    },
+  };
   // Words of one sentence as spans that know their character offset, so boundary events can light them up.
   function wordSpans(sentence, cls, extra) {
     let html = '', off = 0;
@@ -50,7 +82,7 @@
   // S.home.session.media = {base: '<media domain>/audio', version} when the server keeps audio in R2 (flow/media.py).
   function mediaAlt(url) {
     const m = S.home && S.home.session && S.home.session.media;
-    if (!m || !m.base || !/^\/audio\//.test(url || '')) return '';
+    if (!m || !m.base || !/^\/audio\//.test(url || '') || /^\/audio\/tts\//.test(url)) return '';  // server-voice files are not in R2
     return `${m.base}/${url.split('?')[0].slice(7).replace(/\.mp4$/, '.m4a')}?v=${encodeURIComponent(m.version)}`;
   }
   const mainDown = () => Date.now() - (S.mediaMainDown || 0) < 120000;  // after a failure, the other line for 2 minutes
@@ -149,10 +181,10 @@
     // play() is called right away, inside the tap: in-app browsers (WeChat) and iPhones refuse a play() that starts
     // later, when the file has loaded. A new file plays muted until it has jumped to the clip.
     // text: said by the browser voice if neither line can play the clip.
-    play(src, from, to, text) {
+    play(src, from, to, text, onend) {
       NAR.stop(); TTS.stop(); this.stop();
-      const a = this.audio, want = this.want = { from, to, text };
-      const loop = () => { if (this.want !== want) return; if (a.currentTime >= to || a.ended) { a.pause(); return; } this.raf = requestAnimationFrame(loop); };
+      const a = this.audio, want = this.want = { from, to, text, onend };
+      const loop = () => { if (this.want !== want) return; if (a.currentTime >= to || a.ended) { a.pause(); this.want = null; if (onend) onend(); return; } this.raf = requestAnimationFrame(loop); };
       const refused = e => { if (this.want === want && e && e.name === 'NotAllowedError') noSound('没有放出声音'); };
       claim(a); a.playbackRate = TTS.rate; a.dataset.want = '1'; a._from = from;
       if (a.dataset.src === src && a.readyState >= 1) {
@@ -183,7 +215,7 @@
   };
   CLIP.audio.addEventListener('error', () => {
     const w = CLIP.want; if (!w || !mediaGaveUp(CLIP.audio)) return;
-    CLIP.stop(); if (w.text) TTS.say(w.text);
+    CLIP.stop(); if (w.text) TTS.browser(w.text, w.onend);  // not TTS.say: that may be this player again (the server voice); onend still runs (对比回放 plays the recording then)
   });
   /* ---------- preloading: the recording likely to be played next is fetched while the page is open ---------- */
   // iPhones and WeChat's browser download a recording only when it is played: on a phone network that is a second or
