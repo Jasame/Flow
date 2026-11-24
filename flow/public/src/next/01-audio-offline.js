@@ -82,7 +82,8 @@
   // S.home.session.media = {base: '<media domain>/audio', version} when the server keeps audio in R2 (flow/media.py).
   function mediaAlt(url) {
     const m = S.home && S.home.session && S.home.session.media;
-    if (!m || !m.base || !/^\/audio\//.test(url || '') || /^\/audio\/tts\//.test(url)) return '';  // server-voice files are not in R2
+    // server-voice files and word clips (.aac, cut by this server from a sprite) are not in R2
+    if (!m || !m.base || !/^\/audio\//.test(url || '') || /^\/audio\/tts\//.test(url) || /\.aac(\?|$)/.test(url)) return '';
     return `${m.base}/${url.split('?')[0].slice(7).replace(/\.mp4$/, '.m4a')}?v=${encodeURIComponent(m.version)}`;
   }
   const mainDown = () => Date.now() - (S.mediaMainDown || 0) < 120000;  // after a failure, the other line for 2 minutes
@@ -174,6 +175,11 @@
     const el = container.querySelector(`[data-c="${charOffset}"]`); if (el) el.classList.add('cur');
   }
   /* ---------- short clips: a word's pronunciation, or one sentence from a material's narration ---------- */
+  // iPhones and iPads (Safari, an app on the home screen, WeChat) wake their audio when play() is called, and the
+  // sprite's clock runs meanwhile: a word played from the middle of its sprite lost its start (2026-11-24). There a word
+  // is its own small file, cut by the server with 0.3 s of silence in front (word_clip.py), played from its start: the
+  // waking happens in the silence. Elsewhere the sprite is played as before.
+  const WORD_CLIPS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const CLIP = {
     audio: new Audio(), raf: 0, metas: {}, want: null,
     accent() { return (S.voice || 'us-f').startsWith('uk') ? 'uk' : 'us'; },
@@ -181,9 +187,10 @@
     // play() is called right away, inside the tap: in-app browsers (WeChat) and iPhones refuse a play() that starts
     // later, when the file has loaded. A new file plays muted until it has jumped to the clip.
     // text: said by the browser voice if neither line can play the clip.
-    play(src, from, to, text, onend) {
+    // to: Infinity plays a file to its end (a word clip). fallback: [src, from, to] played instead if src fails.
+    play(src, from, to, text, onend, fallback) {
       NAR.stop(); TTS.stop(); this.stop();
-      const a = this.audio, want = this.want = { from, to, text, onend };
+      const a = this.audio, want = this.want = { from, to, text, onend, fallback };
       const loop = () => { if (this.want !== want) return; if (a.currentTime >= to || a.ended) { a.pause(); this.want = null; if (onend) onend(); return; } this.raf = requestAnimationFrame(loop); };
       const refused = e => { if (this.want === want && e && e.name === 'NotAllowedError') noSound('没有放出声音'); };
       claim(a); a.playbackRate = TTS.rate; a.dataset.want = '1'; a._from = from;
@@ -191,7 +198,9 @@
         try { a.currentTime = from; } catch (e) { /* not seekable yet */ }
         a.muted = false; a.play().catch(refused); this.raf = requestAnimationFrame(loop); return;
       }
-      mediaSrc(a, src); a.muted = true;
+      mediaSrc(a, src);
+      if (!from && to === Infinity) { a.muted = false; a.play().catch(refused); this.raf = requestAnimationFrame(loop); return; }  // from its start: no jump to wait for
+      a.muted = true;
       a.addEventListener('loadedmetadata', () => { if (this.want === want) { try { a.currentTime = from; } catch (e) { /* ignore */ } } }, { once: true });
       a.addEventListener('seeked', () => { if (this.want !== want) return; a.muted = false; this.raf = requestAnimationFrame(loop); }, { once: true });
       a.play().catch(refused);
@@ -200,7 +209,16 @@
     word(c) {
       const au = c.audio || {}, ac = au[this.accent()] ? this.accent() : au.us ? 'us' : au.uk ? 'uk' : null;
       if (!ac) { TTS.say(c.text); return; }
-      const w = au[ac]; this.play(`/audio/words/${ac}/${w[0]}.mp4`, w[1], w[2], c.text);
+      const w = au[ac], sprite = `/audio/words/${ac}/${w[0]}.mp4`;
+      if (WORD_CLIPS) this.play(this.wordSrc(c), 0, Infinity, c.text, null, [sprite, w[1], w[2]]);
+      else this.play(sprite, w[1], w[2], c.text);
+    },
+    // the file word(c) plays: the word's own clip on an iPhone or iPad, its sprite elsewhere (prefetched by the review)
+    wordSrc(c) {
+      const au = (c && c.audio) || {}, ac = au[this.accent()] ? this.accent() : au.us ? 'us' : au.uk ? 'uk' : null;
+      if (!ac) return null;
+      const w = au[ac];
+      return WORD_CLIPS ? `/audio/words/${ac}/${w[0]}.aac?s=${w[1]}&e=${w[2]}` : `/audio/words/${ac}/${w[0]}.mp4`;
     },
     // ex: {pack, i, text, audio: narration version or 0}
     async sentence(ex) {
@@ -215,6 +233,7 @@
   };
   CLIP.audio.addEventListener('error', () => {
     const w = CLIP.want; if (!w || !mediaGaveUp(CLIP.audio)) return;
+    if (w.fallback) { CLIP.play(w.fallback[0], w.fallback[1], w.fallback[2], w.text, w.onend); return; }  // no clip from the server: the sprite, as before
     CLIP.stop(); if (w.text) TTS.browser(w.text, w.onend);  // not TTS.say: that may be this player again (the server voice); onend still runs (对比回放 plays the recording then)
   });
   /* ---------- preloading: the recording likely to be played next is fetched while the page is open ---------- */

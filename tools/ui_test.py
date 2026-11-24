@@ -816,6 +816,8 @@ def platform_run(pw):
 # play() is one WeChat would allow, and that the bar telling how to open the page in the browser is there).
 WECHAT_UA = ('Mozilla/5.0 (Linux; Android 13; V2241A Build/TP1A.220624.014; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 '
              'Chrome/116.0.0.0 Mobile Safari/537.36 XWEB/1160065 MMWEBSDK/20231202 MicroMessenger/8.0.47.2560(0x28002F30) WeChat/arm64 Weixin NetType/WIFI Language/zh_CN ABI/arm64')
+IPHONE_WECHAT_UA = ('Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 '
+                    'MicroMessenger/8.0.47(0x18002f2c) NetType/WIFI Language/zh_CN')
 WECHAT_RULES = """(() => {
   let tap = false;
   const on = () => { tap = true; setTimeout(() => { tap = false; }, 0); };
@@ -896,7 +898,42 @@ def wechat_run(pw):
         said = [x for x in plays()[n0:] if '/audio/tts/' in x['src']]
         check(dev, 'the examiner is heard in WeChat: the server voice, on the player the first tap unlocked', said and all(x['ok'] for x in said), plays()[n0:])
         check(dev, 'every sound started was one WeChat allows', all(x['ok'] for x in plays()), [x for x in plays() if not x['ok']][:3])
+        check(dev, 'Android: words play from their sprite, as before (no clip)', all('.aac' not in x['src'] for x in plays() if '/audio/words/' in x['src']),
+              [x['src'] for x in plays() if '/audio/words/' in x['src']][:3])
         check(dev, 'no script errors', not errors, errors[:3])
+        # iPhone (Safari, the app on the home screen, WeChat): a word is its own small clip with 0.3 s of silence in front,
+        # played from its start (word_clip.py: an iPhone waking its audio lost the start of a word played inside its sprite)
+        ictx = browser.new_context(**DEVICES['phone'], user_agent=IPHONE_WECHAT_UA, locale='zh-CN', bypass_csp=True, service_workers='block')
+        ictx.add_cookies([{'name': 'flow_session', 'value': cfg['learners']['phone']['token'], 'url': base}])
+        ictx.add_init_script(WECHAT_RULES)
+        ip = ictx.new_page(); ierrors = []
+        ip.on('pageerror', lambda e: ierrors.append(page_error(ip, e)))
+        iplays = lambda: ip.evaluate('window.__plays')
+        word = lambda: (ip.click('#reader .w:text-is("drains")'), ip.wait_for_selector('#sheetCard .word', timeout=5000), ip.wait_for_timeout(700))
+        ip.goto(base + '/#/m/' + pid + '/read', wait_until='load'); settle(ip, '#reader'); ip.wait_for_timeout(600)
+        away = lambda: [ip.click(sel) for sel in ('#wxStay', '.wx-bar .wx-x') if ip.query_selector(sel) and ip.is_visible(sel)]  # WeChat's first-visit guide
+        away(); ip.wait_for_timeout(200)
+        word()
+        new = [x for x in iplays() if '/audio/words/' in x['src']]
+        check(dev, 'iPhone: a looked-up word plays its own clip (.aac, from its start), as WeChat allows',
+              new and all(x['ok'] and '.aac?s=' in x['src'] for x in new), new)
+        ip.wait_for_function("[...document.querySelectorAll('audio')].some(x => (x.currentSrc || x.src || '').includes('.aac') && (x.ended || x.paused))", timeout=5000)
+        info = ip.evaluate("""async () => { const a = [...document.querySelectorAll('audio')].find(x => (x.currentSrc || x.src || '').includes('.aac'));
+          if (!a) return null; const r = await fetch(a.currentSrc || a.src); const b = await r.arrayBuffer();
+          const buf = await new OfflineAudioContext(1, 1, 44100).decodeAudioData(b);
+          return { type: r.headers.get('content-type'), dur: buf.duration, played: a.currentTime, ended: a.ended }; }""")
+        idx = json.loads((Path(__file__).with_name('ui-fixtures') / 'audio' / 'words' / 'index.json').read_text())['us']['drain']
+        want = 0.3 + (idx[2] - idx[1])  # silence, then the word; then a little of the gap after it
+        check(dev, 'iPhone: the clip is audio/aac with 0.3 s of silence, the whole word and a little after, and it plays to its end',
+              info and info['type'].startswith('audio/aac') and want <= info['dur'] <= want + 0.4 and info['ended'], (info, want))
+        # no clip from the server (an older server, an error): the word plays from its sprite, as before
+        ip.route('**/*.aac*', lambda r: r.fulfill(status=404, content_type='application/json', body='{}'))
+        ip.reload(wait_until='load'); settle(ip, '#reader'); ip.wait_for_timeout(600); away()
+        n0 = len(iplays()); word()
+        new = [x for x in iplays()[n0:] if '/audio/words/' in x['src']]
+        check(dev, 'iPhone: without a clip, the sprite plays instead', any('.aac' not in x['src'] and x['ok'] for x in new), new)
+        check(dev, 'iPhone: no script errors', not ierrors, ierrors[:3])
+        ictx.close()
         browser.close()
     finally:
         srv.terminate()
@@ -2303,6 +2340,7 @@ def main():
             try:
                 wechat_run(pw)
             except Exception:
+                print(traceback.format_exc())
                 check('wechat', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'ux' in ONLY:
             try:

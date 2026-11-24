@@ -350,6 +350,7 @@ flow/tests/test_ux_round.py
 flow/tests/test_vertex.py
 flow/tests/test_vocab.py
 flow/tests/test_welcome.py
+flow/tests/test_word_clip.py
 flow/tests/test_wordbook_registry.py
 flow/tests/test_wordbooks.py
 flow/tests/test_wordbooks_open.py
@@ -362,6 +363,7 @@ flow/user_guide.py
 flow/vertex_auth.py
 flow/vertex_native.py
 flow/vocab_service.py
+flow/word_clip.py
 flow/word_links.py
 tests/test_release.py
 tools/build_ecdict_subset.py
