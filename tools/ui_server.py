@@ -216,6 +216,27 @@ with app.db() as c:
             sk.log(c, uid, 'speaking', 'ielts', 6.0 / 9, 'B2', 'ielts-p1-mornings')  # 雅思口语: 「上次约 6.0」 on the list
         c.commit()
         out[name] = {'token': token, 'csrf': csrf, 'id': uid, **({'password': secret} if secret else {})}
+    # 班级试用: ui-teacher's class with 5 members who studied and got grammar points wrong this week (class_run)
+    now = time.time()
+    cid = c.execute("INSERT INTO classes(name, code, teacher, by, created, updated) VALUES('高一（3）班', 'UICLS2', ?, 'ui', ?, ?)", (out['teacher']['id'], now, now)).lastrowid
+    nodes = [r[0] for r in c.execute('SELECT id FROM subskills ORDER BY rowid LIMIT 3')]
+    for k in range(5):
+        c.execute('INSERT INTO users(username,password) VALUES(?,?)', (f'ui-member-{k}', 'ui-no-login:' + secrets.token_hex(8)))
+        mid = c.execute('SELECT id FROM users WHERE username=?', (f'ui-member-{k}',)).fetchone()[0]
+        c.execute('INSERT INTO class_members(user_id, class_id, joined_at) VALUES(?,?,?)', (mid, cid, now - 20 * 86400))
+        c.execute("INSERT INTO next_progress VALUES(?,?,'listen',?)", (mid, PID, now - 3600 - k * 86400 * 3))
+        for n in nodes[:3 - k % 3]:
+            c.execute("INSERT INTO learning_events(user_id,node,source,kind,item,correct,evaluator,created) VALUES(?,?,?,'choice','q',0,'rule',?)", (mid, n, f'ui:{mid}:{n}', now - 7200))
+    c.commit()
+# 今日热点 (r27: its own card under 今日好句): one news text of today, as the daily job would leave it, clearly a sample
+with app.db() as c:
+    base = json.loads(c.execute("SELECT content FROM lab_packs WHERE id=?", (PID,)).fetchone()[0])
+    base.update(id='daily-ui-sample', title='示例热点：城市开通夜间公交线路', title_en='Sample news: night buses start running',
+                source='示例来源（测试数据）', summary_zh='示例：这里是今日热点的一句话介绍，真正的热点每天由 AI 联网找新闻改写。', daily_day=time.strftime('%Y-%m-%d'))
+    c.execute("INSERT OR REPLACE INTO lab_packs VALUES(?,NULL,'daily',?,?)", ('daily-ui-sample', json.dumps(base, ensure_ascii=False), time.time()))
+    c.commit()
+(STATE / 'sessions.json').write_text(json.dumps({'base': f'http://127.0.0.1:{PORT}', 'pid': PID, 'learners': out, 'class': {'id': cid, 'code': 'UICLS2', 'name': '高一（3）班'}}))
+
 
 from http.server import ThreadingHTTPServer  # noqa: E402
 
