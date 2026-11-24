@@ -78,6 +78,7 @@
       if (d.announce) info.push(['#announce', '学员正在看到公告', esc(d.announce.text.slice(0, 24)) + (d.announce.text.length > 24 ? '…' : '')]);
       if (d.hidden_materials) info.push(['#content', '已下架的材料', n(d.hidden_materials) + ' 篇']);
       if (isAdmin() && d.disabled) info.push(['#learners/f=disabled', '已停用的账号', n(d.disabled) + ' 个']);
+      if (d.classes && d.classes.count) info.push([isAdmin() ? '#classes' : '#overview', '班级试用', n(d.classes.count) + ' 个班 · ' + n(d.classes.members) + ' 人 · 试用人次 ' + n(d.classes.trial)]);
       var li = function (x) { return '<li><a href="' + x[0] + '"><b>' + x[1] + '</b><span class="muted">' + x[2] + ' →</span></a></li>'; };
       main.innerHTML =
         '<div class="head-row"><div><h1>语流 Flow 概览</h1><p class="muted">flowlang.cn · ' + (d.server ? '数据来自' + esc(d.server) + ' · ' : '') + '更新于 ' + new Date(d.generated_at * 1000).toLocaleString('zh-CN') + '</p></div>' +
@@ -352,9 +353,10 @@
   var drawer = document.getElementById('drawer'), drawerBg = document.getElementById('drawerBg');
   function closeDrawer(nav) {
     if (drawer.hidden) return;
-    drawer.hidden = drawerBg.hidden = true; drawer.innerHTML = ''; drawer.dataset.uid = '';
+    drawer.hidden = drawerBg.hidden = true; drawer.innerHTML = ''; drawer.dataset.uid = drawer.dataset.cid = '';
     document.body.style.overflow = '';
-    if (nav !== false && /^#learners\/\d+/.test(location.hash)) history.replaceState(null, '', '#learners');
+    var m = /^#(learners|classes)\/\d+/.exec(location.hash);
+    if (nav !== false && m) history.replaceState(null, '', '#' + m[1]);
   }
   drawerBg.onclick = function () { closeDrawer(); };
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
@@ -369,7 +371,7 @@
     drawer.hidden = drawerBg.hidden = false;
     document.body.style.overflow = 'hidden';
     if (String(drawer.dataset.uid) !== String(id)) drawer.scrollTop = 0;  // another learner starts at the top; the same one (after an action) stays put
-    drawer.dataset.uid = id;
+    drawer.dataset.uid = id; drawer.dataset.cid = '';
     drawer.innerHTML = '<div class="dr-head"><h2 id="drawerTitle">正在加载…</h2><button class="btn" type="button" data-close>关闭</button></div>';
     drawer.querySelector('[data-close]').onclick = function () { closeDrawer(); };
     getJSON('/learner?id=' + encodeURIComponent(id)).then(function (d) { drawLearner(d); }).catch(function (e) {
@@ -393,6 +395,8 @@
           '<dt>注册</dt><dd>' + (a.joined ? esc(when(a.joined)) + (a.joined_known ? '' : '（没有注册时间，按开始学习算）') : '早于记录') + '</dd>' +
           '<dt>最近打开</dt><dd>' + esc(rel(a.last_open)) + ' · 登录着的设备 ' + n(a.sessions) + ' 台</dd>' +
           (p ? '<dt>学习目标</dt><dd>' + esc(p.goal) + ' · 每天 ' + n(p.minutes) + ' 分钟 · 每周 ' + n(p.weekly_goal) + ' 天' + (p.themes.length ? ' · ' + p.themes.map(esc).join('、') : '') + '</dd>' : '') +
+          (d.classes && (d.classes.member || d.classes.teaching.length) ? '<dt>班级</dt><dd>' + (d.classes.member ? '<a href="#classes/' + d.classes.member.id + '">' + esc(d.classes.member.name) + '</a>（' + esc(d.classes.member.joined) + ' 加入）' : '') +
+            (d.classes.teaching.length ? (d.classes.member ? '<br>' : '') + '老师：' + d.classes.teaching.map(function (k) { return '<a href="#classes/' + k.id + '">' + esc(k.name) + '</a>'; }).join('、') : '') + '</dd>' : '') +
         '</dl></section>' +
         (isAdmin() ? '<section class="card dr-actions"><h3>操作</h3>' +
           '<div class="toolbar"><button class="btn" data-act="reset">生成重设密码链接</button><button class="btn" data-act="signout"' + (a.sessions ? '' : ' disabled') + '>退出所有设备</button>' +
@@ -468,6 +472,107 @@
       var k = Number(document.getElementById('drDaily').value);
       if (!(k >= 1 && k <= 200) || k === v.plan.daily_new) return;
       busy(b, postJSON('/learner/daily-new', { id: a.id, daily_new: k })).then(after);
+    });
+  }
+
+  /* ---------- 班级试用：建班级、邀请码、老师；每个班的人数、近 7 天在学和试用人次（class_service.py） ---------- */
+  var JOIN = 'https://flowlang.cn/#/join/';
+  var CL = { shown: false };
+  function classesView() {
+    return getJSON('/classes').then(function (d) {
+      var live = d.items.filter(function (x) { return x.active; }).length;
+      main.innerHTML =
+        '<div class="head-row"><div><h1>班级</h1><p class="muted">学员凭邀请码自愿加入，随时可以退出。老师用自己的语流账号，在「我的 → 我的班级」里只看全班汇总：近 7 天几人在学、全班最常错的 5 个语法点；看不到任何学生的名字、作业和记录。不满 ' + d.min + ' 人的班不显示。</p></div>' +
+        '<div class="toolbar"><a class="btn" href="' + API + '/export/classes.csv">导出试用人次 CSV</a></div></div>' +
+        '<div class="kpi-grid k3">' + kpi('使用中的班级', n(live), '一共 ' + n(d.items.length) + ' 个') + kpi('现在在班里', n(d.members), '不算老师和员工账号') +
+          kpi('试用人次', n(d.trial), '全部班级合计，同一人只算一次') + '</div>' +
+        '<section class="card"><h2>新建班级</h2><form class="toolbar" id="clF"><input class="input" name="name" maxlength="30" placeholder="班级名，如 高一（3）班" style="width:220px">' +
+          '<input class="input" name="teacher" maxlength="60" placeholder="老师的语流用户名" style="width:180px"><button class="btn primary">新建</button></form>' +
+          '<p class="err" id="clErr" hidden></p><p class="muted small" style="margin:0">老师要先在语流注册账号。新建后生成 6 位邀请码；老师在自己的「我的班级」页面也能看到邀请码，复制链接或出二维码发给学生。</p></section>' +
+        '<section class="card">' + (d.items.length ? '<div class="tbl-wrap"><table class="cmp"><thead><tr><th>班级</th><th>老师</th><th class="num">人数</th><th class="num">近 7 天在学</th><th class="num">试用人次</th><th class="opt">邀请码</th><th class="opt">创建</th></tr></thead><tbody>' +
+          d.items.map(function (x) {
+            return '<tr class="click' + (x.active ? '' : ' dim') + '" data-cid="' + x.id + '" tabindex="0"><td><b>' + esc(x.name) + '</b> ' + (x.active ? '' : '<span class="pill off">已停用</span>') +
+              (x.active && !x.ready ? '<span class="pill warn">不满 ' + d.min + ' 人</span>' : '') + '</td>' +
+              '<td>' + (x.teacher ? esc(x.teacher.username) + '<span class="sub">#' + x.teacher.id + '</span>' : '<span class="muted">没有老师</span>') + '</td>' +
+              '<td class="num">' + n(x.members) + '</td><td class="num">' + n(x.active_7d) + '</td><td class="num"><b>' + n(x.trial) + '</b></td>' +
+              '<td class="opt"><code>' + esc(x.code) + '</code></td><td class="opt">' + esc(x.created) + '</td></tr>';
+          }).join('') + '</tbody></table></div>' : '<p class="muted">还没有班级。</p>') +
+          '<p class="muted small">' + esc(d.rule) + '</p><p class="muted small" style="margin:0">' + esc(d.study_rule) + '</p></section>';
+      CL.shown = true;
+      var f = document.getElementById('clF'), err = document.getElementById('clErr');
+      f.onsubmit = function (e) {
+        e.preventDefault(); err.hidden = true;
+        busy(f.querySelector('button'), postJSON('/class/create', { name: f.name.value.trim(), teacher: f.teacher.value.trim() }).catch(function (x) { err.textContent = x.message; err.hidden = false; throw x; }))
+          .then(function (r) { location.hash = '#classes/' + r.id; classesView(); }, function () { /* shown above */ });
+      };
+      main.querySelectorAll('tr[data-cid]').forEach(function (tr) {
+        var open = function () { location.hash = '#classes/' + tr.dataset.cid; };
+        tr.onclick = open;
+        tr.onkeydown = function (e) { if (e.key === 'Enter') open(); };
+      });
+    }).catch(fail);
+  }
+  function openClass(id) {
+    drawer.hidden = drawerBg.hidden = false;
+    document.body.style.overflow = 'hidden';
+    if (String(drawer.dataset.cid) !== String(id)) drawer.scrollTop = 0;
+    drawer.dataset.cid = id; drawer.dataset.uid = '';
+    drawer.innerHTML = '<div class="dr-head"><h2 id="drawerTitle">正在加载…</h2><button class="btn" type="button" data-close>关闭</button></div>';
+    drawer.querySelector('[data-close]').onclick = function () { closeDrawer(); };
+    getJSON('/class?id=' + encodeURIComponent(id)).then(drawClass).catch(function (e) {
+      drawer.innerHTML = '<div class="dr-head"><h2 id="drawerTitle">' + esc(e.message) + '</h2><button class="btn" type="button" data-close>关闭</button></div>';
+      drawer.querySelector('[data-close]').onclick = function () { closeDrawer(); };
+    });
+  }
+  function drawClass(d) {
+    var link = JOIN + d.code, top = Math.max.apply(null, d.weeks.map(function (w) { return Math.max(w.studied, w.new_trial); }).concat([1]));
+    drawer.innerHTML =
+      '<div class="dr-head"><div><h2 id="drawerTitle">' + esc(d.name) + '</h2><div class="dr-pills"><span class="pill off">#c' + d.id + '</span>' +
+        (d.active ? '<span class="pill">使用中</span>' : '<span class="pill danger">已停用</span>') +
+        (d.active && d.members < d.min ? '<span class="pill warn">不满 ' + d.min + ' 人：老师还看不到汇总</span>' : '') + '</div></div>' +
+        '<button class="btn" type="button" data-close>关闭</button></div>' +
+      '<div class="dr-body">' +
+        '<section class="card"><dl class="kv">' +
+          '<dt>老师</dt><dd>' + (d.teacher ? '<a href="#learners/' + d.teacher.id + '">' + esc(d.teacher.username) + '</a> #' + d.teacher.id : '没有（老师的账号注销了）') + '</dd>' +
+          '<dt>邀请码</dt><dd><code>' + esc(d.code) + '</code><div class="muted small">加入链接 ' + esc(link) + ' <button class="btn" type="button" id="clCopy">复制</button></div></dd>' +
+          '<dt>人数</dt><dd>现在 ' + n(d.members) + ' 人 · 加入过 ' + n(d.joined) + ' 人 · 退出了 ' + n(d.left) + ' 人<div class="muted small">现在的人数不算老师和员工账号</div></dd>' +
+          '<dt>试用人次</dt><dd><b>' + n(d.trial) + '</b><div class="muted small">' + esc(d.rule) + '</div></dd>' +
+          '<dt>创建</dt><dd>' + esc(d.created) + (d.by ? ' · ' + esc(d.by) : '') + '</dd>' +
+        '</dl></section>' +
+        '<section class="card"><h3>近 8 周</h3><table class="cmp"><thead><tr><th>每 7 天</th><th class="num">在学</th><th class="num">新增试用</th><th></th></tr></thead><tbody>' +
+          d.weeks.map(function (w) {
+            return '<tr><td>' + esc(w.label) + '</td><td class="num">' + n(w.studied) + '</td><td class="num">' + n(w.new_trial) + '</td>' +
+              '<td style="width:40%"><div class="prog"><i style="width:' + pct(w.studied, top) + '%"></i></div></td></tr>';
+          }).join('') + '</tbody></table><p class="muted small" style="margin:8px 0 0">在学：这 7 天里以班级成员身份学过至少一步（包括后来退出的人）。新增试用：第一次以这个班的成员身份学习。</p></section>' +
+        (isAdmin() ? '<section class="card dr-actions"><h3>操作</h3>' +
+          '<div class="toolbar"><span class="inline-form"><input class="input" id="clName" maxlength="30" value="' + esc(d.name) + '" style="width:180px"><button class="btn" data-act="rename">改名</button></span>' +
+            '<span class="inline-form"><input class="input" id="clTeacher" maxlength="60" placeholder="新老师的用户名" style="width:150px"><button class="btn" data-act="teacher">换老师</button></span></div>' +
+          '<div class="toolbar"><button class="btn" data-act="code">换邀请码</button><button class="btn danger" data-act="active">' + (d.active ? '停用班级' : '重新启用') + '</button></div>' +
+          '<p class="muted small" style="margin:0">每个操作都会记进「操作记录」。换邀请码：旧码马上作废，已经在班里的人不受影响。停用：不能再加入，老师看不到汇总；班里的人照常学习，可以随时退出。</p></section>' : '') +
+        (d.log.length ? '<section class="card"><h3>管理员对这个班做过的事</h3><table class="cmp"><tbody>' + d.log.map(function (r) {
+          return '<tr><td>' + esc(when(r.created)) + '<span class="sub">' + esc(r.email) + '</span></td><td>' + esc(r.action_label) + (r.detail ? '<span class="sub">' + esc(r.detail) + '</span>' : '') + '</td></tr>'; }).join('') + '</tbody></table></section>' : '') +
+      '</div>';
+    drawer.querySelector('[data-close]').onclick = function () { closeDrawer(); };
+    drawer.querySelector('[data-close]').focus();
+    document.getElementById('clCopy').onclick = function (e) { (navigator.clipboard ? navigator.clipboard.writeText(link) : Promise.reject()).then(function () { e.target.textContent = '已复制'; }, function () { prompt('复制这个链接', link); }); };
+    var act = function (name, fn) { var b = drawer.querySelector('[data-act="' + name + '"]'); if (b) b.onclick = function () { fn(b); }; };
+    var after = function () { openClass(d.id); if (CL.shown && ST.tab === 'classes') classesView(); };
+    act('rename', function (b) {
+      var v = document.getElementById('clName').value.trim(); if (!v || v === d.name) return;
+      busy(b, postJSON('/class/rename', { id: d.id, name: v })).then(after);
+    });
+    act('teacher', function (b) {
+      var v = document.getElementById('clTeacher').value.trim(); if (!v) return;
+      if (!confirm('把「' + d.name + '」的老师换成「' + v + '」？\n\n原来的老师马上看不到这个班的汇总。')) return;
+      busy(b, postJSON('/class/teacher', { id: d.id, teacher: v })).then(after);
+    });
+    act('code', function (b) {
+      if (!confirm('给「' + d.name + '」换一个邀请码？\n\n旧邀请码和旧链接马上作废；已经在班里的人不受影响。')) return;
+      busy(b, postJSON('/class/code', { id: d.id })).then(after);
+    });
+    act('active', function (b) {
+      if (d.active && !confirm('停用「' + d.name + '」？\n\n之后不能再加入，老师也看不到汇总；班里的人照常学习，可以随时退出。可以重新启用。')) return;
+      busy(b, postJSON('/class/active', { id: d.id, active: !d.active })).then(after);
     });
   }
 
@@ -803,8 +908,8 @@
 
   /* ---------- 路由：#tab 或 #tab/参数（#learners/12 打开 12 号学员；#learners/f=disabled 先筛选） ---------- */
   var VIEWS = { overview: overview, learning: learningView, funnel: funnelView, compare: compareView, speed: speedView, survey: surveyStats, responses: responses,
-    learners: learnersView, feedback: feedbackView, content: contentView, books: booksView, announce: announceView, ai: aiView, tasks: tasksView, errors: errorsView, log: logView };
-  var ADMIN_TABS = ['responses', 'learners', 'feedback', 'errors', 'log'];
+    learners: learnersView, classes: classesView, feedback: feedbackView, content: contentView, books: booksView, announce: announceView, ai: aiView, tasks: tasksView, errors: errorsView, log: logView };
+  var ADMIN_TABS = ['responses', 'learners', 'classes', 'feedback', 'errors', 'log'];
   var GROUP_HOME = { data: 'overview', people: 'learners', content: 'content', ops: 'ai' };
   function route() {
     var h = (location.hash || '#overview').slice(1), cut = h.indexOf('/');
@@ -828,8 +933,13 @@
       if (/^\d+$/.test(arg)) { if (!same) learnersView(); ST.drawn = true; openLearner(arg); return; }
       closeDrawer(false);
       if (same && LR.shown) return;  // the drawer was closed: the list is still there
+    } else if (tab === 'classes') {
+      if (/^\d+$/.test(arg)) { if (!same) classesView(); ST.drawn = true; openClass(arg); return; }
+      closeDrawer(false);
+      if (same && CL.shown) return;
     } else closeDrawer(false);
     if (/^\d+$/.test(arg) === false && tab !== 'learners') LR.shown = false;
+    if (tab !== 'classes') CL.shown = false;
     main.innerHTML = '<p class="muted">正在加载…</p>';
     ST.drawn = true;
     VIEWS[tab]();

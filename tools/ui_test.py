@@ -1241,6 +1241,55 @@ A11Y_JS = """() => {
 }"""
 
 
+def class_run(pw):
+    """班级试用: a learner opens the teacher's link, reads what the teacher sees and not, joins and leaves again; the
+    teacher's page shows the class's numbers only (no member's name), its bars, and a QR code that reads back as the link."""
+    dev = 'class'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    phone = dict(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN')
+    k = CFG['class']
+    wide = "document.documentElement.scrollWidth <= innerWidth + 1"
+    try:
+        ctx = browser.new_context(**phone)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['student']['token'], 'url': BASE}])
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.goto(BASE + '/#/join/' + k['code'].lower(), wait_until='networkidle')
+        pg.wait_for_selector('#clsJoin', timeout=8000)
+        terms, found = pg.text_content('#sheetCard .cls-terms') or '', pg.text_content('#clsFound') or ''
+        fits = pg.evaluate("() => document.getElementById('clsJoin').getBoundingClientRect().bottom <= innerHeight")
+        check(dev, '加入班级: the link opens the sheet with the code filled in, says what the teacher sees and not, and finds the class',
+              '老师看不到' in terms and '你的名字' in terms and k['name'] in found and fits, (found[:60], fits))
+        pg.screenshot(path=str(OUT / 'class-join.png'))
+        pg.click('#clsJoin'); pg.wait_for_timeout(900); settle(pg)
+        pg.wait_for_function("document.getElementById('meClassV') && document.getElementById('meClassV').textContent.length > 1", timeout=6000)
+        val = pg.text_content('#meClassV') or ''
+        check(dev, '加入班级: after joining, 我的 → 班级 shows the class', k['name'] in val, val)
+        pg.click('#meClass'); pg.wait_for_selector('#clsOut', timeout=4000); pg.click('#clsOut')
+        pg.wait_for_selector('#clsOutYes', timeout=4000); pg.click('#clsOutYes'); pg.wait_for_timeout(900)
+        val = pg.text_content('#meClassV') or ''
+        check(dev, '退出班级: confirmed once, and 班级 says 未加入 again', val == '未加入', val)
+        ctx.close()
+        ctx = browser.new_context(**phone)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['teacher']['token'], 'url': BASE}])
+        pg = ctx.new_page(); pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.goto(BASE + '/#/me', wait_until='networkidle'); settle(pg)
+        pg.wait_for_selector('#meTeach a[href="#/class/%d"]' % k['id'], timeout=6000)
+        pg.click('#meTeach a[href="#/class/%d"]' % k['id']); pg.wait_for_selector('.cls-weeks', timeout=6000)
+        heights = pg.evaluate("[...document.querySelectorAll('.cls-weeks i')].map(i => i.getBoundingClientRect().height)")
+        text = pg.text_content('#view') or ''
+        points = pg.evaluate("document.querySelectorAll('.cls-points li').length")
+        check(dev, '老师: the summary has the bars and the grammar points, and no member\'s name', len(heights) == 4 and heights[-1] > 10 and points >= 1
+              and 'ui-member' not in text and pg.evaluate(wide), (heights, points))
+        pg.click('#clsQr'); pg.wait_for_timeout(300)
+        read = pg.evaluate(QR_READ, '#clsQrC')
+        check(dev, '老师: the QR code reads back as the class\'s join link', read in (None, [BASE + '/#/join/' + k['code']]),
+              read if read is not None else 'no BarcodeDetector here (Linux): read on macOS')
+        pg.screenshot(path=str(OUT / 'class-teacher.png'), full_page=True)
+        check(dev, 'no page errors', not errs, errs[:3])
+    finally:
+        browser.close()
+
+
 def a11y_run(pw):
     dev = 'a11y'
     browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
@@ -1317,6 +1366,12 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('learner', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'class' in ONLY:
+            try:
+                class_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('class', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'a11y' in ONLY:
             try:
                 a11y_run(pw)

@@ -1382,3 +1382,33 @@ html[data-channel=beta] .auth::before{content:'这是内测版：账号和正式
   .study-head .title-en,.study-head .origin{display:none}
   .study-head .h1{font-size:19px;margin:0}
 }
+/* 班级试用 (82-class.js): what the teacher sees and not, the class found by its code, the teacher's summary page */
+.cls-terms{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:14px}
+.cls-terms ul{list-style:none;margin:4px 0 0;padding:0;display:grid;gap:4px}
+.cls-terms li{padding-left:20px;position:relative;line-height:1.45}
+.cls-terms li::before{position:absolute;left:0;top:0;font-weight:700}
+.cls-terms li.yes::before{content:'✓';color:var(--green)}
+.cls-terms li.no::before{content:'✗';color:var(--red)}
+@media (max-width:420px){.cls-terms{grid-template-columns:1fr}}
+.cls-found{display:flex;flex-direction:column;gap:2px;padding:12px 14px}
+.cls-found b{font-size:17px}
+.cls-big{display:flex;align-items:baseline;gap:6px}
+.cls-big b{font-size:40px;line-height:1;font-variant-numeric:tabular-nums;color:var(--green-ink)}
+.cls-big span{color:var(--muted)}
+.cls-weeks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:8px}
+.cls-weeks .w{display:flex;flex-direction:column;text-align:center;gap:2px;min-width:0}
+.cls-weeks .col{height:72px;display:flex;align-items:flex-end}
+.cls-weeks i{display:block;width:100%;background:var(--green-line);border-radius:6px 6px 2px 2px}
+.cls-weeks .w.now i{background:var(--green)}
+.cls-weeks b{font-size:14px;font-variant-numeric:tabular-nums}
+.cls-weeks span{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cls-points{list-style:none;margin:0;padding:0;counter-reset:p}
+.cls-points li{counter-increment:p;border-top:1px solid var(--line)}
+.cls-points li:first-child{border-top:0}
+.cls-points a{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:11px 0;color:inherit;text-decoration:none;min-height:44px}
+.cls-points a::before{content:counter(p);width:22px;height:22px;border-radius:50%;background:var(--sunk);display:grid;place-items:center;font-size:12px;font-weight:700}
+.cls-points .t{font-weight:600}
+.cls-points .go{color:var(--green-ink)}
+.cls-code{font-size:30px;font-weight:700;letter-spacing:.18em;font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+#clsQrC{width:200px;height:200px;border-radius:8px;image-rendering:pixelated}
+#clsF input[name=code]{text-transform:uppercase;letter-spacing:.12em;font-variant-numeric:tabular-nums}

@@ -1372,6 +1372,12 @@ def get(c, uid, path, q):
         if not uid:
             return {'error': '请先登录'}, 401
         return (__import__('skills_service') if path != '/api/next/import' else __import__('import_service')).get(c, uid, path, q)
+    if path in ('/api/next/class', '/api/next/class/teach'):
+        # 班级试用 (class_service.py): the class this learner is in; for its teacher, numbers for the whole class only
+        if not uid:
+            return {'error': '请先登录'}, 401
+        cs = __import__('class_service')
+        return cs.mine(c, uid) if path == '/api/next/class' else cs.teach(c, uid, one('id'))
     if path == '/api/next/guide':
         return __import__('user_guide').api(), 200
     if path == '/api/next/meta':
@@ -1473,6 +1479,9 @@ AI_PATHS = ('/api/next/assess/speaking', '/api/next/assess/writing', '/api/next/
 
 
 def post(c, uid, path, data):
+    if path in ('/api/next/class/find', '/api/next/class/join', '/api/next/class/leave'):
+        cs = __import__('class_service')  # 班级试用: join of one's own accord with an invite code, leave at any time
+        return cs.leave(c, uid) if path.endswith('/leave') else (cs.find if path.endswith('/find') else cs.join)(c, uid, data)
     if path == '/api/next/profile':
         return save_profile(c, uid, data)
     if path == '/api/next/habit':

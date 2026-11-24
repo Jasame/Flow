@@ -221,7 +221,7 @@ def learner(c, uid):
                   'steps': sum(v[0] for v in days.values()), 'reviews': sum(v[1] for v in days.values()), 'calendar': calendar},
         'vocab': vo, 'card_sources': sources, 'mistakes': mistakes, 'ratings_30d': ratings,
         'retention_30d': round(mature[1] / mature[0], 3) if mature and mature[0] else None,
-        'materials': mats, 'exams': exams,
+        'materials': mats, 'exams': exams, 'classes': __import__('class_service').membership(c, uid),
         'ai': {'kinds': sorted(ai.values(), key=lambda k: -(k['complete'] + k['failed'])),
                'days': [{'day': (td - datetime.timedelta(days=i)).isoformat(), 'count': ai_days.get((td - datetime.timedelta(days=i)).isoformat(), 0)} for i in range(13, -1, -1)],
                'remaining': chat_service.remaining(c, uid)},

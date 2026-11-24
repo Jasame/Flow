@@ -108,7 +108,8 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             **{d: ('B1', 'work', ['work', 'science']) for d in ('phone', 'phone-land', 'tablet', 'desktop')},
             'guide': ('B1', 'work', ['work', 'science']),  # the 操作指南 screenshots (tools/guide_shots.py)
             'leaver': ('B1', 'work', ['work', 'science']),  # 注销账号 in tools/ui_test.py (learner_run)
-            'a11y': ('B1', 'work', ['work', 'science'])}  # the screen-reader and contrast audit (a11y_run)
+            'a11y': ('B1', 'work', ['work', 'science']),  # the screen-reader and contrast audit (a11y_run)
+            'teacher': ('B1', 'work', ['work']), 'student': ('B1', 'work', ['work'])}  # 班级试用 (class_run)
 out = {}
 with app.db() as c:
     for name, (level, goal, themes) in LEARNERS.items():
@@ -143,7 +144,19 @@ with app.db() as c:
                 ar.record(c, uid, dim, idx, now=now - 3600)
         c.commit()
         out[name] = {'token': token, 'csrf': csrf, 'id': uid, **({'password': secret} if secret else {})}
-(STATE / 'sessions.json').write_text(json.dumps({'base': f'http://127.0.0.1:{PORT}', 'pid': PID, 'learners': out}))
+    # 班级试用: ui-teacher's class with 5 members who studied and got grammar points wrong this week (class_run)
+    now = time.time()
+    cid = c.execute("INSERT INTO classes(name, code, teacher, by, created, updated) VALUES('高一（3）班', 'UICLS2', ?, 'ui', ?, ?)", (out['teacher']['id'], now, now)).lastrowid
+    nodes = [r[0] for r in c.execute('SELECT id FROM subskills ORDER BY rowid LIMIT 3')]
+    for k in range(5):
+        c.execute('INSERT INTO users(username,password) VALUES(?,?)', (f'ui-member-{k}', 'ui-no-login:' + secrets.token_hex(8)))
+        mid = c.execute('SELECT id FROM users WHERE username=?', (f'ui-member-{k}',)).fetchone()[0]
+        c.execute('INSERT INTO class_members(user_id, class_id, joined_at) VALUES(?,?,?)', (mid, cid, now - 20 * 86400))
+        c.execute("INSERT INTO next_progress VALUES(?,?,'listen',?)", (mid, PID, now - 3600 - k * 86400 * 3))
+        for n in nodes[:3 - k % 3]:
+            c.execute("INSERT INTO learning_events(user_id,node,source,kind,item,correct,evaluator,created) VALUES(?,?,?,'choice','q',0,'rule',?)", (mid, n, f'ui:{mid}:{n}', now - 7200))
+    c.commit()
+(STATE / 'sessions.json').write_text(json.dumps({'base': f'http://127.0.0.1:{PORT}', 'pid': PID, 'learners': out, 'class': {'id': cid, 'code': 'UICLS2', 'name': '高一（3）班'}}))
 
 from http.server import ThreadingHTTPServer  # noqa: E402
 

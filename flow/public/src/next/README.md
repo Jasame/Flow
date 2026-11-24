@@ -35,6 +35,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `73-report.js` | weekly report and share picture |
 | `80-library.js` | 全部材料, serial stories and their episode list |
 | `81-me.js` | 我的, email binding |
+| `82-class.js` | 班级试用: joining a class with an invite code and leaving it (我的 → 班级), the teacher's whole-class summary (#/class/<id>) |
 | `99-boot.js` | start-up |
 | `00-base.css` … `70-input-devices.css` | tokens and base; pages; motion and graph; words; listening; phone pass; learner pages; input methods and devices |
 | `80-flat.css` | the flat look: surfaces instead of outlines, frosted bars, the home plan and its next-step button, review focus mode |
@@ -45,3 +46,4 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `86-loop.css` | starting check, re-check tags, exam practice, serial episode list |
 | `85-phone.css` | phone layout from a 360 px audit (16px fields, card layouts, listen controls, one level of surface), the knowledge graph tiles and grammar-point pages |
 | `96-tidy.css` | phone tidy-up from a full-length audit: 存到手机 on the kicker line, 听's settings folded into one line, 读's tools in one row, the word-book picker folded, the 练习 list, 全部材料 filters |
+| `97-class.css` | 班级试用: what a teacher sees and not, the class found by its code, the teacher's summary page |
