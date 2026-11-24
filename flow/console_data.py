@@ -444,7 +444,7 @@ SAMPLES = {'next-explain': ('句子讲解', 'SELECT e.pack, e.sentence, e.level,
            'daily-news': ('今日热点', "SELECT id, content, created FROM lab_packs WHERE origin='daily' AND owner IS NULL")}
 
 
-def _title(c, pack, cache):
+def _public_title(c, pack, cache):
     """A public text's title (a material or a speaking-route scene); None for a learner's own imported text."""
     if pack not in cache:
         r = c.execute('SELECT content FROM lab_packs WHERE id=? AND owner IS NULL', (pack,)).fetchone()
@@ -463,7 +463,7 @@ def ai_samples(c, kind, n=5):
     except Exception:  # noqa: BLE001 - an older database without the table
         rows = []
     items, cache = [], {}
-    _t = lambda pack: _title(c, pack, cache)
+    _t = lambda pack: _public_title(c, pack, cache)
     for r in rows:
         r = tuple(r)
         if kind == 'next-explain':
