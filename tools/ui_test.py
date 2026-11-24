@@ -1077,11 +1077,13 @@ def learner_run(pw):
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['exam']['token'], 'url': BASE}])
         pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
         pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
-        # 每周目标: the chip on 今日 opens its sheet, and the goal chosen there shows on the chip at once
-        pg.click('#habitBtn'); pg.wait_for_selector('#sheetCard [data-goal="3"]', timeout=4000)
+        # 每周目标: from the 这周进步 card on 今日 (r27: it replaced the chip), 改每周目标 opens its sheet, and the goal
+        # chosen there shows on the card at once
+        pg.click('#weekCard'); pg.wait_for_selector('#wkGoal', timeout=6000); pg.click('#wkGoal')
+        pg.wait_for_selector('#sheetCard [data-goal="3"]', timeout=4000)
         pg.click('#sheetCard [data-goal="3"]'); pg.wait_for_timeout(600); pg.evaluate(closing)
-        chip = (pg.text_content('#habitBtn') or '').strip()
-        check(dev, '每周目标: the goal set from 今日 shows on its chip', '/3 天' in chip, chip[:40])
+        goal = (pg.text_content('#weekCard .wk-tile.goal b') or '').strip()
+        check(dev, '每周目标: the goal set from 今日 shows on the 这周进步 card', goal.endswith('/3天') and not pg.query_selector('#habitBtn'), goal[:40])
         # 分享卡片: after the questions, a learned expression becomes a picture with a QR code back to the site
         go(pg, f'#/m/{PID}/check'); pg.wait_for_selector('#pane .q', timeout=6000)
         for q in pg.query_selector_all('#pane .q'):
