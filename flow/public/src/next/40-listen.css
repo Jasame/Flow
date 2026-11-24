@@ -2,15 +2,15 @@
 .preread{margin-bottom:14px}
 .preread{padding:12px 14px}
 .pr-list{display:grid;gap:6px}
-.pr{display:grid;grid-template-columns:32px 1fr;gap:8px;align-items:center;min-width:0}
+.pr{display:grid;grid-template-columns:32px minmax(0,1fr);gap:8px;align-items:center;min-width:0}
 .pr>div{min-width:0}
 .pr .icon-btn{width:32px;height:32px;border-radius:8px}.pr .icon-btn svg{width:16px;height:16px}
 .pr b{font-family:var(--serif);font-size:16px}
 .pr .ph{color:var(--muted);font-family:var(--serif);font-size:13px}
 .pr .tiny{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-@media (min-width:560px){.pr-list{grid-template-columns:1fr 1fr;column-gap:16px}}
+@media (min-width:560px){.pr-list{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:16px}}
 .seg.modes{margin-bottom:14px}
-.line.sh{grid-template-columns:1fr;gap:8px}
+.line.sh{grid-template-columns:minmax(0,1fr);gap:8px}
 .sh-ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .icon-btn.rec .dot{width:14px;height:14px;border-radius:50%;background:var(--red);display:block;transition:transform .2s,border-radius .2s}
 .icon-btn.rec.on{border-color:var(--red);background:var(--red-soft)}

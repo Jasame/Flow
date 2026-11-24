@@ -44,7 +44,7 @@
 .grow:disabled .go{visibility:hidden}
 .grow:disabled:hover{background:none}
 .gfoot{margin:6px 12px 0}
-.grow.danger{grid-template-columns:1fr;justify-items:center;color:var(--red);font-weight:600}
+.grow.danger{grid-template-columns:minmax(0,1fr);justify-items:center;color:var(--red);font-weight:600}
 /* a folded card: its summary is the heading, a chevron turns when it opens */
 details.fold>summary{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;list-style:none;padding:0 26px 0 0;color:inherit;position:relative;min-height:24px}
 details.fold>summary::-webkit-details-marker{display:none}
@@ -90,3 +90,11 @@ details.preread>summary .tiny{flex-basis:100%}
 /* on the home screen: two numbered steps, the share icon drawn as the phone shows it */
 .isteps{margin:0;padding-left:1.4em;display:grid;gap:10px;font-size:15px;line-height:1.6}
 .ishare{width:20px;height:20px;vertical-align:-4px;fill:none;stroke:var(--accent,#0a84ff);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+/* 复读: how many times each sentence, and the pause after it */
+.loopbar{display:grid;gap:8px;margin-top:10px}
+.loopbar .lg{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.loopbar .tiny{min-width:2.4em}
+.loopbar .chip[aria-pressed=true]{background:var(--green-soft);border-color:var(--green);color:var(--green-ink);font-weight:600}
+/* 撤销 in the review's top bar */
+.rtop .undo{margin-left:auto;white-space:nowrap;min-height:36px;padding:0 6px}
+.rsum{margin:4px 0 0;color:var(--ink2)}

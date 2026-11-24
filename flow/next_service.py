@@ -634,6 +634,8 @@ def home(c, uid, level=None, themes=None):
     saved = _card_norms(c, uid)
     # Ties are broken per day and level, not per account, so signing in does not swap the article a guest was shown.
     seed = lambda p: hashlib.sha256(f"{day}|{level}|{p['id']}".encode()).hexdigest()
+    # New grammar counts only once the learner has some (a new account ranks like the guest it was a minute ago).
+    personal = bool(uid) and any(v.get('status') != 'untouched' for v in states.values())
 
     def score(p):
         s, reasons = 0.0, []
@@ -645,7 +647,7 @@ def home(c, uid, level=None, themes=None):
             st = states.get(n, {}).get('status', 'untouched')
             if st == 'watch':
                 s += 4; reasons.append(f'补一补「{meta_titles.get(n, n)}」')
-            elif st in ('met', 'untouched') and (focus is None or n in focus) and uid:
+            elif st in ('met', 'untouched') and (focus is None or n in focus) and personal:
                 s += 1.2 if st == 'untouched' else 0.8
                 if st == 'untouched' and len(reasons) < 1:
                     reasons.append(f'新知识点「{meta_titles.get(n, n)}」')
@@ -1389,7 +1391,7 @@ def post(c, uid, path, data):
         return save_card(c, uid, data)
     if path == '/api/next/cards/delete':
         return delete_card(c, uid, data)
-    if path.startswith('/api/next/vocab/') or path == '/api/next/review':
+    if path.startswith('/api/next/vocab/') or path in ('/api/next/review', '/api/next/review/undo'):
         import vocab_service
         if path == '/api/next/vocab/met':
             hit = vocab_service.met_in_reading(c, uid, str(data.get('word', ''))[:40])

@@ -142,6 +142,8 @@ flow/daily_service.py
 flow/easy_reading.py
 flow/event_service.py
 flow/exam_service.py
+flow/feedback_service.py
+flow/field_service.py
 flow/flow-backup.service
 flow/flow-backup.timer
 flow/flow-daily.service
@@ -236,7 +238,10 @@ flow/tests/test_continuity.py
 flow/tests/test_corpus.py
 flow/tests/test_corpus_v5.py
 flow/tests/test_daily_knowledge.py
+flow/tests/test_feedback.py
+flow/tests/test_field.py
 flow/tests/test_foundation.py
+flow/tests/test_front_layout.py
 flow/tests/test_growth.py
 flow/tests/test_guide.py
 flow/tests/test_inapp_audio.py
@@ -260,6 +265,7 @@ flow/tests/test_quota.py
 flow/tests/test_reference.py
 flow/tests/test_reliability.py
 flow/tests/test_survey.py
+flow/tests/test_ux_round.py
 flow/tests/test_vertex.py
 flow/tests/test_vocab.py
 flow/tools/build_graded.py

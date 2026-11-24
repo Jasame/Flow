@@ -77,6 +77,8 @@ CREATE TABLE IF NOT EXISTS ai_usage(user_id INTEGER,day TEXT,count INTEGER,PRIMA
   growth.schema(c)
   reference.schema(c)
   __import__('ops_errors').schema(c)
+  __import__('feedback_service').schema(c)
+  __import__('field_service').schema(c)
   core_words.schema(c)
   practice.schema(c)
   foundation.schema(c)
@@ -113,7 +115,7 @@ SESSION_DAYS=30
 # the survey, sign-in and the account need, and the operations checks; every other /api/ path answers 404. Operator
 # functions live in the xmc.hk console (flow_admin.py, port FLOW_ADMIN_PORT), never on the learner site.
 OPEN_API={'GET':('/api/health','/api/survey','/api/deploy-status','/api/session','/api/account','/api/next/'),
- 'POST':('/api/survey','/api/next/','/api/recovery/','/api/login','/api/register','/api/auth/code','/api/auth/reset','/api/logout','/api/password','/api/account/')}
+ 'POST':('/api/survey','/api/feedback','/api/next/','/api/recovery/','/api/login','/api/register','/api/auth/code','/api/auth/reset','/api/logout','/api/password','/api/account/')}
 def api_open(method,path):return any(path==p or (p.endswith('/') and path.startswith(p)) for p in OPEN_API[method])
 def session_cookie(token):
  return 'flow_session='+token+'; HttpOnly; SameSite=Lax; Path=/; Max-Age='+str(SESSION_DAYS*86400)+('; Secure' if SECURE else '')
@@ -371,7 +373,8 @@ class Handler(BaseHTTPRequestHandler):
     ai_stream.LOCAL.callback=None
  def post(self):
   length=int(self.headers.get('Content-Length',0))
-  limit=2200000 if self.path in ('/api/lab/audio','/api/next/shadow','/api/next/retell','/api/next/dialog','/api/next/say') else 800000 if self.path=='/api/vocab/import' else 40000 if self.path in ('/api/next/import','/api/next/essay','/api/next/dialog') else 20000
+  # /api/feedback: up to three screenshots shrunk on the phone, sent as base64; under nginx's 3 MB (client_max_body_size 3m)
+  limit=2900000 if self.path=='/api/feedback' else 2200000 if self.path in ('/api/lab/audio','/api/next/shadow','/api/next/retell','/api/next/dialog','/api/next/say') else 800000 if self.path=='/api/vocab/import' else 40000 if self.path in ('/api/next/import','/api/next/essay','/api/next/dialog') else 20000
   if length<1 or length>limit:return self.send({'error':'请求大小不正确'},400)
   if self.headers.get('Sec-Fetch-Site')=='cross-site':return self.send({'error':'不允许跨站请求'},403)
   if not api_open('POST',self.path.split('?')[0]):return self.send({'error':'接口不存在'},404)
@@ -385,6 +388,17 @@ class Handler(BaseHTTPRequestHandler):
   if path=='/api/survey':
    # Anonymous: no session lookup; the address is only used for a short-lived hashed rate limit.
    with db() as c:return self.send(*__import__('survey_service').submit(c,data,self.visitor_address()))
+  if path=='/api/feedback':
+   # Signed in or not: the account is attached only with the session's CSRF token; a guest is limited by a hashed address.
+   with db() as c:
+    u=self.user(c);signed=bool(u) and hmac.compare_digest(self.headers.get('X-CSRF-Token',''),u['csrf'])
+    return self.send(*__import__('feedback_service').submit(c,data,self.visitor_address(),u['id'] if signed else None))
+  if path in ('/api/next/issues','/api/next/opentime'):
+   # What the browser reports about the site itself (field_service): no session, no address; the User-Agent only for
+   # its family (iPhone · Safari, Android · 微信 …).
+   with db() as c:
+    f=__import__('field_service')
+    return self.send(*(f.issues if path=='/api/next/issues' else f.open_time)(c,data,self.headers.get('User-Agent','')))
   if path.startswith('/api/next/'):
    import next_service
    with db() as c:

@@ -1,5 +1,5 @@
 /* ---------- r14: learning route, relations, Chinese-speaker traps, mixed rounds, kinder review ---------- */
-.seg.two{grid-template-columns:1fr 1fr}
+.seg.two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 /* the route: one metro line per level */
 .route{display:grid;gap:22px}
 .rband-h{display:flex;align-items:baseline;gap:10px;margin-bottom:4px}

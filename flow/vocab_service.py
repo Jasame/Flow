@@ -73,6 +73,8 @@ def schema(c):
     for name, decl in (('mode', 'TEXT'), ('ms', 'INTEGER'), ('elapsed', 'REAL'), ('stability', 'REAL')):
         if name not in rcols:
             c.execute(f'ALTER TABLE next_reviews ADD COLUMN {name} {decl}')
+    # 撤销: the latest rating of each learner can be taken back for ten minutes (the card as it was, and that review)
+    c.execute('CREATE TABLE IF NOT EXISTS next_undo(user_id INTEGER PRIMARY KEY, card INTEGER NOT NULL, review INTEGER NOT NULL, prior TEXT NOT NULL, created REAL NOT NULL)')
     c.executescript('''
 CREATE TABLE IF NOT EXISTS next_vocab_plans(user_id INTEGER PRIMARY KEY REFERENCES users(id), book TEXT NOT NULL,
  daily_new INTEGER NOT NULL DEFAULT 10, retention REAL NOT NULL DEFAULT 0.9, estimate INTEGER, created REAL NOT NULL, updated REAL NOT NULL);
@@ -391,11 +393,36 @@ def rate(c, uid, data):
         known = 1  # done with: it leaves the review queue (the same mistake made again brings it back)
     c.execute('UPDATE next_cards SET state=?, step=?, stability=?, difficulty=?, last=?, due=?, lapses=?, interval=?, reps=reps+1, known=? WHERE id=?',
               (n['state'], n['step'], n['stability'], n['difficulty'], n['last'], n['due'], n['lapses'], n['interval'], known, r['id']))
-    c.execute('INSERT INTO next_reviews(user_id,card,rating,created,mode,ms,elapsed,stability) VALUES(?,?,?,?,?,?,?,?)',
-              (uid, r['id'], rating, now, m, ms, elapsed, n['stability']))
+    rid = c.execute('INSERT INTO next_reviews(user_id,card,rating,created,mode,ms,elapsed,stability) VALUES(?,?,?,?,?,?,?,?)',
+                    (uid, r['id'], rating, now, m, ms, elapsed, n['stability'])).lastrowid
+    c.execute('INSERT OR REPLACE INTO next_undo VALUES(?,?,?,?,?)', (uid, r['id'], rid, json.dumps({k: r[k] for k in UNDO_FIELDS}), time.time()))
     c.commit()
     r2 = c.execute('SELECT * FROM next_cards WHERE id=?', (r['id'],)).fetchone()
     return {'card': card_out(r2, now), 'outcome': outcome, **counts(c, uid, now)}, 200
+
+
+UNDO_FIELDS = ('state', 'step', 'stability', 'difficulty', 'last', 'due', 'lapses', 'interval', 'reps', 'known')
+UNDO_SECONDS = 600
+
+
+def undo(c, uid, data):
+    """Take back the learner's latest rating (a slip of the finger): the card as it was, that review gone. Only the
+    latest, only within ten minutes, only for the card named."""
+    u = c.execute('SELECT * FROM next_undo WHERE user_id=?', (uid,)).fetchone()
+    try:
+        card = int(data.get('id') or 0)
+    except (TypeError, ValueError):
+        card = 0
+    if not u or u['card'] != card or time.time() - u['created'] > UNDO_SECONDS:
+        return {'error': '这一张已经不能撤销了'}, 409
+    prior = json.loads(u['prior'])
+    c.execute('UPDATE next_cards SET ' + ', '.join(f'{k}=?' for k in UNDO_FIELDS) + ' WHERE id=? AND user_id=?',
+              (*[prior[k] for k in UNDO_FIELDS], card, uid))
+    c.execute('DELETE FROM next_reviews WHERE id=? AND user_id=?', (u['review'], uid))
+    c.execute('DELETE FROM next_undo WHERE user_id=?', (uid,))
+    c.commit()
+    now = time.time()
+    return {'card': card_out(c.execute('SELECT * FROM next_cards WHERE id=?', (card,)).fetchone(), now), **counts(c, uid, now)}, 200
 
 
 MISSES_A_DAY = 2  # a card missed this many times today waits for tomorrow: a review session always ends
@@ -928,4 +955,6 @@ def post(c, uid, path, data):
         return more_new(c, uid, data)
     if path == '/api/next/review':
         return rate(c, uid, data)
+    if path == '/api/next/review/undo':
+        return undo(c, uid, data)
     return None

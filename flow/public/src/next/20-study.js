@@ -22,7 +22,13 @@
   async function study(id, step, same) {
     let m = (same || (MAT[id] && Date.now() - (MAT[id]._preloaded || 0) < 6e5)) && MAT[id];
     if (m) delete m._preloaded;
-    if (!m) { m = await api('/api/next/material?id=' + encodeURIComponent(id) + (S.user ? '' : '&level=' + encodeURIComponent(level()))); MAT[id] = m; }
+    if (!m) {
+      // A copy kept on the phone (one of the last five opened) shows at once; the server's copy replaces it for the
+      // next step. Otherwise the request is often already on its way: preloaded from 今日 or when the link was touched.
+      const path = materialPath(id), kept = snapMaterialGet(path);
+      if (kept) { m = kept; MAT[id] = m; api(path).then(f => { if (MAT[id] === kept) MAT[id] = f; snapMaterial(path, f); }).catch(() => {}); }
+      else { m = await api(path); MAT[id] = m; snapMaterial(path, m); }
+    }
     const done = new Set(m.steps.concat(load('flow-next-steps-' + id) || []));
     const st = { step: STEPS.includes(step) ? step : 'listen', showOriginal: !!m._showOriginal, blind: false };
     const lines = () => st.showOriginal && m.original ? m.original : m.sentences;

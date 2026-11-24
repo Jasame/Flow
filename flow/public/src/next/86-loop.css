@@ -5,11 +5,11 @@
 .place-link{display:inline-block;margin-top:4px}
 .place .q .prompt{font-size:18px;line-height:1.5}
 .ans.chosen{border-color:var(--ink2);background:var(--sunk)}
-.bands{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.band{display:grid;gap:2px;justify-items:center;padding:10px 4px;border-radius:12px;background:var(--green-soft);color:var(--green-ink)}
-.band.low{background:var(--sunk);color:var(--muted)}
-.band b{font-size:13px}
-.band span{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+.pl-bands{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.pl-band{display:grid;gap:2px;justify-items:center;padding:10px 4px;border-radius:12px;background:var(--green-soft);color:var(--green-ink)}
+.pl-band.low{background:var(--sunk);color:var(--muted)}
+.pl-band b{font-size:13px}
+.pl-band span{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
 details>summary{cursor:pointer;padding:8px 0;color:var(--ink2)}
 details[open]>summary{margin-bottom:8px}
 /* exam practice */
@@ -35,11 +35,11 @@ details[open]>summary{margin-bottom:8px}
 .exam-hist i:last-child{background:var(--green)}
 /* serial stories */
 .serial{display:grid;gap:10px}
-.serial .ep{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;padding:10px 8px;border-radius:12px;text-decoration:none;color:inherit}
+.serial .ep{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 8px;border-radius:12px;text-decoration:none;color:inherit}
 .serial .ep:hover{background:var(--sunk)}
 .serial .ep .n{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--sunk)}
 .serial .ep.done .n{background:var(--green);color:#fff}
 .serial .ep.next .n{box-shadow:0 0 0 2px var(--green)}
 .serial .ep .t{display:grid;gap:2px;min-width:0}
-@media (max-width:420px){.exam-pick{grid-template-columns:1fr}.bands{gap:6px}.band span{font-size:16px}}
+@media (max-width:420px){.exam-pick{grid-template-columns:minmax(0,1fr)}.pl-bands{gap:6px}.pl-band span{font-size:16px}}
 @media (hover:none){.serial .ep:hover{background:none}}

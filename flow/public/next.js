@@ -19,21 +19,35 @@
   function save(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private mode */ } }
   function rid(prefix) { return prefix + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10); }
   function toast(msg) { toastEl.textContent = msg; toastEl.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => toastEl.classList.remove('show'), 2400); }
-  async function api(path, body) {
+  // One request to the server: an error becomes a message the page can show, and a session that ended asks to sign in
+  // again (not for a preload: quiet). Returns the answer parsed (j) and as text (t, for the data layer to share).
+  async function request(path, body, quiet) {
     const opt = { credentials: 'same-origin', headers: {} };
     if (body !== undefined) { opt.method = 'POST'; opt.headers['Content-Type'] = 'application/json'; if (S.csrf) opt.headers['X-CSRF-Token'] = S.csrf; opt.body = JSON.stringify(body); }
     let r;
-    try { r = await fetch(path, opt); } catch (x) { const e = new Error('网络连接失败，请检查网络'); e.network = true; throw e; }
-    const j = await r.json().catch(() => ({}));
+    try { r = await fetch(path, opt); } catch (x) { noteIssue('api', '网络连接失败', path.split('?')[0]); const e = new Error('网络连接失败，请检查网络'); e.network = true; throw e; }
+    const t = await r.text().catch(() => '');
+    let j = {}; try { j = t ? JSON.parse(t) : {}; } catch (x) { /* not JSON: an error page */ }
     if (!r.ok) {
+      if (r.status >= 500) noteIssue('api', `服务器返回 ${r.status}`, path.split('?')[0]);  // 4xx are answers (a wrong password …), not faults
       const e = new Error(j.error || ('请求失败（' + r.status + '）')); e.status = r.status; e.field = j.field; e.code = j.code;
       // Signed out on the server (30 days away, a password change, 退出所有设备): say so and offer to sign in again.
-      if (r.status === 401 && S.user && !/^\/api\/(login|register|auth\/)/.test(path)) {
+      if (r.status === 401 && S.user && !quiet && !/^\/api\/(login|register|auth\/)/.test(path)) {
         S.user = null; S.csrf = ''; e.message = '登录已过期，请重新登录';
         if (sheetEl.hidden) setTimeout(() => openLogin('登录已过期，请重新登录。登录后会回到这一页。'), 0);
       }
       throw e;
     }
+    return { j, t };
+  }
+  // Reading goes through the data layer (05-data.js: shared, kept a short while, preloaded). Sending waits until the
+  // server has said who is signed in (the page may first be drawn from the copy kept on the phone), and empties the
+  // data layer's memory, since what was sent may change what the pages show.
+  async function api(path, body) {
+    if (body === undefined) return dataGet(path);
+    await DATA.ready;
+    const { j } = await request(path, body);
+    dataForget();
     return j;
   }
   const ICON = {
@@ -73,7 +87,7 @@
   // WeChat's built-in browser (and some other in-app browsers) cannot use the browser voice, and plays sound only when it
   // starts inside a tap; the way out it offers is 「在浏览器打开」.
   const WECHAT = /MicroMessenger/i.test(navigator.userAgent);
-  function noSound(what) { toast(WECHAT ? `微信里${what}：点右上角「···」，选「在浏览器打开」就能听` : `这个浏览器${what}，换 Safari 或 Chrome 试试`); }
+  function noSound(what) { noteIssue('audio', what + (WECHAT ? '（微信）' : '')); toast(WECHAT ? `微信里${what}：点右上角「···」，选「在浏览器打开」就能听` : `这个浏览器${what}，换 Safari 或 Chrome 试试`); }
   const TTS = {
     ok: 'speechSynthesis' in window, rate: Number(load('flow-next-rate')) || 1, voice: null, token: 0,
     pick() {
@@ -194,7 +208,7 @@
       this.raf = requestAnimationFrame(loop);
     },
     finish() { this.stopLoop(); this.audio.dataset.want = ''; const cb = this.onEnd; this.onEnd = null; this.onTick = null; if (cb) cb(); },
-    gaveUp() { if (!this.raf && !this.onEnd) return; toast('音频暂时没加载出来，稍后再点一次'); this.finish(); },
+    gaveUp() { if (!this.raf && !this.onEnd) return; noteIssue('audio', '全文录音没加载出来', this.net ? this.net.split('?')[0] : ''); toast('音频暂时没加载出来，稍后再点一次'); this.finish(); },
     stopLoop() { cancelAnimationFrame(this.raf); this.raf = 0; },
     stop() { this.stopLoop(); this.audio.dataset.want = ''; this.onEnd = null; this.onTick = null; try { this.audio.pause(); } catch (e) { /* ignore */ } },
     // -> [sentence index, char offset of the current word] at time t
@@ -286,8 +300,8 @@
   async function preloadMaterial(id) {
     if (!id || MAT[id] || PRELOAD.frugal()) return;
     try {
-      const m = await api('/api/next/material?id=' + encodeURIComponent(id) + (S.user ? '' : '&level=' + encodeURIComponent(level())));
-      MAT[id] = m; m._preloaded = Date.now();
+      const m = await api(materialPath(id));
+      MAT[id] = m; m._preloaded = Date.now(); snapMaterial(materialPath(id), m);
       const vs = (m.audio && m.audio.voices) || [];
       if (vs.length) PRELOAD.warm(`/audio/${vs.includes(S.voice) ? S.voice : vs[0]}/${encodeURIComponent(id)}.mp4?v=${m.audio.version}`);
     } catch (e) { /* it loads when opened */ }
@@ -342,6 +356,8 @@
     key: 'flow-next-outbox',
     list() { return load(this.key) || []; },
     push(item) { const l = this.list(); l.push(item); save(this.key, l.slice(-500)); },
+    // 撤销 of a rating made offline: it has not been sent, so it is simply taken out again
+    unpush(item) { const l = this.list(), k = l.map(x => JSON.stringify(x)).lastIndexOf(JSON.stringify(item)); if (k >= 0) { l.splice(k, 1); save(this.key, l); return true; } return false; },
     async flush() {
       if (this.busy || !S.user || !navigator.onLine) return 0;
       this.busy = true; let sent = 0;
@@ -438,12 +454,28 @@
   // The home data carries the session too (who is signed in, the CSRF token): one request, not two in a row,
   // which on a line from mainland China to the server is about a second saved. Signed in, the server ignores the
   // guest's level and themes in the query, so asking before S.user is known gives the same answer.
+  // The home data: who is signed in, today's plan and counts. Kept on the phone for the next visit (05-data.js).
+  // Says whether anything changed since the copy the page was drawn from.
   async function refreshHome() {
+    const before = S.home ? JSON.stringify(S.home) : '';
     S.home = await api('/api/next/home' + guestQuery(true));
     if (S.home.session) { S.user = S.home.session.user; S.csrf = S.user ? S.user.csrf : ''; }
+    S.homeFromSnap = false; DATA.ok();
+    const changed = before !== JSON.stringify(S.home);
+    if (changed) snapHome();
     if (S.home.profile && S.home.profile.voice) { S.voice = S.home.profile.voice; save('flow-next-voice', S.voice); }
-    const due = S.home.stats ? S.home.stats.due + S.home.stats.new : 0;
+    setDueBadge();
+    return changed;
+  }
+  function setDueBadge() {
+    const due = S.home && S.home.stats ? S.home.stats.due + S.home.stats.new : 0;
     const b = document.getElementById('dueBadge'); b.hidden = !due; b.textContent = due > 99 ? '99+' : due;
+  }
+  // The page drawn again with fresher data, without the loading skeleton or the entrance animation, and only when it
+  // would not take anything from the learner (a sheet open, typing in a field, another page by now).
+  function redrawQuietly(drawnFor) {
+    if (location.hash !== drawnFor || !sheetEl.hidden || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName))) return;
+    S.homeFresh = true; route(true, true);
   }
   function needLogin(reason) { openLogin(reason); return false; }
   /* ---------- sign in, sign up, a forgotten password ---------- */
@@ -473,10 +505,27 @@
   // In WeChat's built-in browser: a slim bar, under the top bar, on opening the page in the phone's browser, where every
   // sound plays and the app can be put on the home screen. Closed, it stays away for a week.
   function wechatBar() {
-    if (!WECHAT || Date.now() - (load('flow-wx-bar') || 0) < 7 * 864e5) return;
-    const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (!WECHAT) return;
+    const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent), menu = ios ? '在默认浏览器中打开' : '在浏览器打开';
+    // The first visit in WeChat: an arrow to the ··· menu, the two steps, and a way to copy the address instead.
+    if (!load('flow-wx-guide')) {
+      save('flow-wx-guide', Date.now());
+      const g = document.createElement('div'); g.className = 'wx-guide'; g.setAttribute('role', 'dialog'); g.setAttribute('aria-label', '在浏览器里打开');
+      g.innerHTML = `<svg class="wx-arrow" viewBox="0 0 120 120" aria-hidden="true"><path d="M20 110 C 40 60, 70 40, 104 16" /><path d="M86 14 L106 14 L102 34" /></svg>
+        <div class="wx-steps"><b>在浏览器里打开，用起来更顺</b>
+          <ol><li>点右上角的「···」</li><li>选「${menu}」</li></ol>
+          <span class="small">在浏览器里可以听全部录音、用浏览器朗读，还能把语流放到手机桌面。</span>
+          <div class="row"><button class="btn" type="button" id="wxCopy">复制网址</button><button class="btn primary" type="button" id="wxStay">先在微信里看看</button></div></div>`;
+      document.body.appendChild(g);
+      g.querySelector('#wxStay').onclick = () => g.remove();
+      g.querySelector('#wxCopy').onclick = async () => {
+        const url = location.origin + '/';
+        try { await navigator.clipboard.writeText(url); toast('网址已复制，到浏览器里粘贴打开'); } catch (e) { toast('长按复制：' + url); }
+      };
+    }
+    if (Date.now() - (load('flow-wx-bar') || 0) < 7 * 864e5) return;
     const el = document.createElement('div'); el.className = 'wx-bar'; el.setAttribute('role', 'note');
-    el.innerHTML = `<span>微信里部分声音和安装功能用不了。点右上角「···」，选「${ios ? '在默认浏览器中打开' : '在浏览器打开'}」，可以听全部音频，还能把语流装到桌面。</span>
+    el.innerHTML = `<span>微信里部分声音和安装功能用不了。点右上角「···」，选「${menu}」，可以听全部音频，还能把语流装到桌面。</span>
       <button type="button" class="wx-x" aria-label="关闭提示">×</button>`;
     el.querySelector('.wx-x').onclick = () => { save('flow-wx-bar', Date.now()); el.remove(); };
     document.getElementById('bar').after(el);
@@ -587,10 +636,29 @@
     if (gt && gt.answers) { try { await api('/api/next/vocab/test', { answers: gt.answers }); save('flow-next-guest-test', null); } catch (e) { /* try next time */ } }
   }
 
+  /* ---------- 字号和行距 (81-me.js): set before anything is drawn ---------- */
+  const TEXT = Object.assign({ size: 'm', lh: 'n' }, load('flow-next-text') || {});
+  function applyText() { document.documentElement.dataset.size = TEXT.size; document.documentElement.dataset.lh = TEXT.lh; }
+  applyText();
+
+  /* ---------- the tab bar's place ---------- */
+  // On phones the tabs are fixed to the bottom, outside the sticky top bar: iOS Safari moves a fixed element along
+  // with a sticky ancestor, and inside the bar the tabs slid up the screen on a long page. On wide screens they are a
+  // row of links in the top bar.
+  const WIDE = matchMedia('(min-width:760px)');
+  function placeTabs() {
+    const t = document.querySelector('.tabs'), bar = document.getElementById('bar');
+    if (!t || !bar) return;
+    if (WIDE.matches && t.parentElement !== bar) bar.appendChild(t);
+    else if (!WIDE.matches && t.parentElement === bar) bar.after(t);
+  }
+  placeTabs();
+  if (WIDE.addEventListener) WIDE.addEventListener('change', placeTabs); else if (WIDE.addListener) WIDE.addListener(placeTabs);
+
   /* ---------- router ---------- */
   function setNav(name) { document.querySelectorAll('[data-nav]').forEach(a => a.dataset.nav === name ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')); }
   function parts() { return location.hash.replace(/^#\/?/, '').split('/'); }
-  async function route(keepScroll) {
+  async function route(keepScroll, quiet) {
     if (/^#reset=/.test(location.hash)) {  // an older password-reset email
       const token = decodeURIComponent(location.hash.slice(7)); history.replaceState(null, '', location.pathname + location.search + '#/');
       setTimeout(() => resetByLink(token), 0);
@@ -599,14 +667,14 @@
     const [name, a, b] = parts();
     const last = S.lastRoute.split('/');
     const sameMaterial = name === 'm' && last[0] === 'm' && last[1] === a && !!view.querySelector('#pane');
-    S.lastRoute = parts().join('/');
-    if (!sameMaterial) view.innerHTML = skeleton();
+    S.prevRoute = S.lastRoute; S.lastRoute = parts().join('/');  // 问题反馈 says which page it came from
+    if (!sameMaterial && !quiet) view.innerHTML = skeleton();
     let fresh = S.homeFresh; S.homeFresh = false;  // home data fetched just before this page: today() need not ask again
     try {
       if (!S.home) { await refreshHome(); fresh = true; }
       if (name === 'welcome') { setNav(''); await welcome(a === 'edit'); }
       // Only the personalised home needs the level questions first; everything else works for a new guest too.
-      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix', 'easy', 'words', 'speak', 'growth', 'radar', 'practice', 'guide'].includes(name)) { location.replace('#/welcome'); return; }
+      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix', 'easy', 'words', 'speak', 'growth', 'radar', 'practice', 'guide', 'feedback'].includes(name)) { location.replace('#/welcome'); return; }
       else if (name === 'placement') { setNav('practice'); await placementView(); }
       else if (name === 'exam') { setNav('practice'); await examView(a); }
       else if (name === 'series') { setNav('today'); await seriesView(decodeURIComponent(a || '')); }
@@ -628,13 +696,14 @@
       else if (name === 'practice') { setNav('practice'); await practiceView(); }
       else if (name === 'guide') { setNav('practice'); await guideView(a ? decodeURIComponent(a) : ''); }
       else if (name === 'me') { setNav('me'); await meView(); }
+      else if (name === 'feedback') { setNav('me'); await feedbackView(); }
       else { setNav('today'); await today(fresh); }
-      if (!sameMaterial && name !== 'welcome') enter(view);
-      if (!sameMaterial) { const h = view.querySelector('h1'); announce(h ? h.textContent : document.title); }
+      if (!sameMaterial && name !== 'welcome' && !quiet) enter(view);
+      if (!sameMaterial && !quiet) { const h = view.querySelector('h1'); announce(h ? h.textContent : document.title); }
     } catch (e) {
-      view.innerHTML = `<div class="empty"><div class="big">⚠︎</div><p>${esc(e.message)}</p><button class="btn" id="retry">重试</button></div>`;
+      view.innerHTML = `<div class="empty"><div class="big">⚠︎</div><p>${esc(e.message)}</p><button class="btn" id="retry">重试</button><p class="small"><a class="link" href="#/feedback">反馈这个问题</a></p></div>`;
       document.getElementById('retry').onclick = () => route();
-    } finally { if (!keepScroll && !sameMaterial) view.focus({ preventScroll: true }); }
+    } finally { if (!keepScroll && !sameMaterial && !quiet) view.focus({ preventScroll: true }); }
   }
   window.addEventListener('hashchange', () => {
     const [name, a] = parts(), last = S.lastRoute.split('/');
@@ -650,6 +719,94 @@
     lastY = y;
   }, { passive: true });
 
+  /* ---------- data: pages that show at once, preloading, one request per page at a time ---------- */
+  // Three layers, so a page appears without waiting and the next one is often ready before it is tapped:
+  // - In memory: GET answers are shared and kept two minutes (the site's lists of levels and goals a day), and a
+  //   request in flight is shared too, so a page and a preload of it never fetch twice. Anything sent (a POST) may
+  //   change them, so it empties this memory.
+  // - On the phone (localStorage): the last 今日 and the last five materials, per account. The next visit draws the
+  //   page from them at once while the fresh data loads, and draws it again, quietly, if anything changed. Signing
+  //   out clears them; the session's CSRF token is never kept there (sending waits for the server's answer instead).
+  // - Preloading: once the first page is on screen and the phone is idle, the data of the other tabs; when a finger
+  //   touches a link, the data of the page it leads to. Nothing that changes data is preloaded (the review queue
+  //   brings in today's new words, so it is fetched only on a touch of 复习). Not with Save-Data or on 2G, except on
+  //   a touch: that page was asked for.
+  const DATA = { mem: new Map(), ok: null, ready: null, fromSnap: false };
+  DATA.ready = new Promise(ok => { DATA.ok = ok; });
+  const KEEP_MS = [[/^\/api\/next\/meta$/, 864e5], [/./, 12e4]];
+  const parseJSON = t => { try { return t ? JSON.parse(t) : {}; } catch (e) { return {}; } };
+  function dataGet(path, quiet) {
+    const now = Date.now(), e = DATA.mem.get(path);
+    if (e && now - e.at < KEEP_MS.find(([re]) => re.test(path))[1]) return e.p.then(parseJSON);
+    const p = request(path, undefined, quiet).then(x => x.t);
+    DATA.mem.set(path, { at: now, p });
+    p.catch(() => { const x = DATA.mem.get(path); if (x && x.p === p) DATA.mem.delete(path); });
+    return p.then(parseJSON);
+  }
+  function dataForget() { for (const k of [...DATA.mem.keys()]) if (!/^\/api\/next\/meta$/.test(k)) DATA.mem.delete(k); }
+  function prefetch(path) { if (path) dataGet(path, true).catch(() => {}); }
+  const materialPath = id => '/api/next/material?id=' + encodeURIComponent(id) + (S.user ? '' : '&level=' + encodeURIComponent(level()));
+  function libraryPath(f) {
+    if (!f) { try { f = JSON.parse(sessionStorage.getItem('flow-next-lib') || 'null'); } catch (e) { f = null; } }
+    f = f || { level: hasProfile() ? level() : '', theme: '', page: 1, featured: '1' };
+    return `/api/next/library?level=${f.level}&theme=${f.theme}&page=${f.page}&featured=${f.featured}`;
+  }
+
+  // ---- the copy kept on the phone
+  const SNAP = 'flow-snap';
+  const snapOwner = () => (S.user ? 'u' + S.user.id : 'guest');
+  function snapGet() { const s = load(SNAP); return s && s.v === 1 ? s : null; }
+  function snapPut(fn) {
+    try {
+      const old = snapGet(), s = old && old.owner === snapOwner() ? old : { v: 1, owner: snapOwner(), mats: {} };
+      fn(s); save(SNAP, s);
+    } catch (e) { /* full or private mode: the next visit simply waits for the server */ }
+  }
+  function snapHome() {
+    // S.home without the session's CSRF token (sending waits for the server's own answer)
+    const h = JSON.parse(JSON.stringify(S.home || {}));
+    if (h.session && h.session.user) delete h.session.user.csrf;
+    snapPut(s => { s.home = h; s.at = Date.now(); });
+  }
+  function snapMaterial(path, m) {
+    snapPut(s => {
+      s.mats[path] = { at: Date.now(), m };
+      Object.keys(s.mats).sort((a, b) => s.mats[b].at - s.mats[a].at).slice(5).forEach(k => delete s.mats[k]);
+    });
+  }
+  function snapMaterialGet(path) { const s = snapGet(); return s && s.owner === snapOwner() && s.mats[path] ? s.mats[path].m : null; }
+  function snapClear() { save(SNAP, null); DATA.mem.clear(); }
+
+  // ---- preloading
+  const idle = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 2500 }) : setTimeout(f, 900));
+  function prefetchTabs() {
+    if (PRELOAD.frugal()) return;
+    idle(() => {
+      if (S.user) { prefetch('/api/next/vocab'); prefetch('/api/next/cards?q=&page=1&f='); prefetch('/api/next/radar'); }
+      if (!S.meta) prefetch('/api/next/meta');
+      prefetch(libraryPath());
+    });
+  }
+  // A link's page, and the data it will ask for first: fetched while the finger is still on the screen.
+  const ROUTE_DATA = [
+    [/^#\/m\/([^/?]+)/, m => [materialPath(decodeURIComponent(m[1]))]],
+    [/^#\/cards\/?$/, () => (S.user ? ['/api/next/vocab', '/api/next/cards?q=&page=1&f='] : [])],
+    [/^#\/review$/, () => (S.user ? ['/api/next/review'] : [])],
+    [/^#\/library$/, () => [libraryPath()]],
+    [/^#\/practice$/, () => (S.user ? ['/api/next/radar'] : [])],
+    [/^#\/me$/, () => (S.meta ? [] : ['/api/next/meta'])],
+    [/^#\/graph$/, () => ['/api/next/graph' + guestQuery(true)]],
+    [/^#\/growth$/, () => (S.user ? ['/api/next/growth'] : [])],
+    [/^#\/report$/, () => (S.user ? ['/api/next/report'] : [])],
+    [/^#\/series\/([^/?]+)/, m => ['/api/next/series?id=' + encodeURIComponent(decodeURIComponent(m[1]))]],
+  ];
+  function prefetchFor(hash) {
+    for (const [re, f] of ROUTE_DATA) { const m = hash.match(re); if (m) { f(m).forEach(prefetch); return; } }
+  }
+  addEventListener('pointerdown', e => {
+    const a = e.target && e.target.closest && e.target.closest('a[href^="#/"]');
+    if (a) prefetchFor(a.getAttribute('href'));
+  }, { capture: true, passive: true });
   /* ---------- welcome ---------- */
   async function welcome(edit) {
     if (!S.meta) S.meta = await api('/api/next/meta');
@@ -660,7 +817,12 @@
     const total = 4;
     function draw() {
       let body = '';
-      if (st.step === 0) body = `<h1 class="h1">你能轻松读懂哪一句？</h1><p class="muted">选你不查词典也能读懂的最难一句。之后随时可以改。</p>
+      // A first visit (often from a link in WeChat) can start with today's article right away: no questions, no account.
+      const trial = !edit && !S.user && !cur.level && S.home && S.home.today && S.home.today[0];
+      if (st.step === 0 && trial) body = `<div class="card sunk try-first stack-s"><b>先试读一篇，觉得有用再定水平</b>
+          <span class="small muted">「${esc(trial.title)}」 · 约 ${trial.minutes} 分钟：听一遍、读一遍、做几道理解题。不用回答问题，也不用注册。</span>
+          <a class="btn primary" href="#/m/${encodeURIComponent(trial.id)}" data-tap="welcome-try">先试读一篇</a></div><p class="tiny muted tc">或者先回答 4 个问题，按你的水平推荐</p>`;
+      if (st.step === 0) body += `<h1 class="h1">你能轻松读懂哪一句？</h1><p class="muted">选你不查词典也能读懂的最难一句。之后随时可以改。</p>
         <div class="choice opts four">${S.meta.levels.map(l => `<button class="opt" data-v="${l.id}" aria-pressed="${st.level === l.id}"><div class="row between"><span class="l">${esc(l.label)}</span><span class="pill">${l.id}</span></div><div class="s">${esc(l.sample)}</div><div class="d">${esc(l.desc)}</div></button>`).join('')}</div>
         <a class="link small place-link" href="#/placement">拿不准？做个 16 题的语法小测，帮你定起点 →</a>`;
       if (st.step === 1) body = `<h1 class="h1">你学英语主要为了什么？</h1><div class="choice opts">${S.meta.goals.map(g => `<button class="opt" data-v="${g.id}" aria-pressed="${st.goal === g.id}"><span class="l">${esc(g.label)}</span></button>`).join('')}</div>`;
@@ -704,7 +866,12 @@
       <span class="p">${esc(m.preview)}</span><span class="tiny muted">${esc(m.theme_label)} · ${m.words} 词 · 约 ${m.minutes} 分钟</span>${m.steps.length ? stepDots(m.steps) : ''}${reasonsHTML(m)}</a>`;
   }
   async function today(fresh) {
-    if (!fresh) await refreshHome();
+    // Drawn at once from the home data already here; the server's answer follows and, if anything changed, the page is
+    // drawn again quietly (05-data.js). Only the very first visit, with nothing here yet, waits.
+    if (!fresh) {
+      if (S.home) { const drawnFor = location.hash; refreshHome().then(changed => { if (changed) redrawQuietly(drawnFor); }).catch(() => {}); }
+      else await refreshHome();
+    }
     const h = S.home, pick = h.today[0], st = h.stats;
     const name = S.user ? S.user.username : '';
     const path = S.user && h.path, weekN = st ? st.week.filter(d => d.active).length : 0;
@@ -810,7 +977,13 @@
   async function study(id, step, same) {
     let m = (same || (MAT[id] && Date.now() - (MAT[id]._preloaded || 0) < 6e5)) && MAT[id];
     if (m) delete m._preloaded;
-    if (!m) { m = await api('/api/next/material?id=' + encodeURIComponent(id) + (S.user ? '' : '&level=' + encodeURIComponent(level()))); MAT[id] = m; }
+    if (!m) {
+      // A copy kept on the phone (one of the last five opened) shows at once; the server's copy replaces it for the
+      // next step. Otherwise the request is often already on its way: preloaded from 今日 or when the link was touched.
+      const path = materialPath(id), kept = snapMaterialGet(path);
+      if (kept) { m = kept; MAT[id] = m; api(path).then(f => { if (MAT[id] === kept) MAT[id] = f; snapMaterial(path, f); }).catch(() => {}); }
+      else { m = await api(path); MAT[id] = m; snapMaterial(path, m); }
+    }
     const done = new Set(m.steps.concat(load('flow-next-steps-' + id) || []));
     const st = { step: STEPS.includes(step) ? step : 'listen', showOriginal: !!m._showOriginal, blind: false };
     const lines = () => st.showOriginal && m.original ? m.original : m.sentences;
@@ -856,6 +1029,7 @@
       const ok = await NAR.load(id, S.voice, m.audio.version);
       return ok && NAR.meta && NAR.meta.sentences.length === ls.length ? NAR.meta : null;
     }
+    const LOOP = Object.assign({ rep: 1, gap: 0 }, load('flow-next-loop') || {});  // 复读, kept on the phone
     async function listen() {
       if (st.mode === 'shadow') return shadowMode();
       if (st.mode === 'dictate') return dictateMode();
@@ -866,7 +1040,10 @@
           <button class="btn primary" id="playAll">${ICON.play.replace('<svg', '<svg width="18" height="18" fill="currentColor"')}<span>播放全文</span></button>
           <div class="speed" role="group" aria-label="语速">${[0.75, 1, 1.25].map(r => `<button data-rate="${r}" aria-pressed="${TTS.rate === r}">${r}×</button>`).join('')}</div>
           <button class="icon-btn ${st.blind ? 'on' : ''}" id="blind" aria-pressed="${st.blind}" title="盲听：先只听不看" aria-label="盲听">${ICON.eye}</button>
-        </div>${voices.length ? voiceChips(voices) : ''}${prereadHTML()}
+        </div>
+        <div class="loopbar"><div class="lg" role="group" aria-label="复读：每句几遍"><span class="tiny muted">每句</span>${[[1, '1 遍'], [3, '3 遍'], [5, '5 遍'], [0, '循环']].map(([n, l]) => `<button class="chip small" data-rep="${n}" aria-pressed="${LOOP.rep === n}">${l}</button>`).join('')}</div>
+          <div class="lg" role="group" aria-label="复读：句后停顿"><span class="tiny muted">句后</span>${[[0, '不停'], [2, '停 2 秒'], [-1, '留时间跟说']].map(([n, l]) => `<button class="chip small" data-gap="${n}" aria-pressed="${LOOP.gap === n}">${l}</button>`).join('')}</div></div>
+        ${voices.length ? voiceChips(voices) : ''}${prereadHTML()}
         ${nm ? '' : (TTS.ok ? '<p class="muted tiny">这篇暂时没有真人声录音，先用浏览器朗读。</p>' : '<p class="err">这个浏览器不支持朗读，可以直接去「读」。</p>')}
         <p class="muted small">想练耳朵，可以先点 👁 只听不看；听不懂的句子单独点开反复听。播放时正在读的词会亮起来${TOUCH ? '' : '（空格键播放 / 停止）'}。</p>
         <div class="lines">${ls.map((s, i) => `<div class="line" data-i="${i}"><button class="icon-btn" data-say="${i}" aria-label="播放第 ${i + 1} 句">${ICON.speak}</button><div class="txt ${st.blind ? 'blind' : ''}">${wordSpans(s, () => 'kw')}</div></div>`).join('')}</div>
@@ -880,7 +1057,21 @@
         if (si !== shown) { shown = si; setNow(si); MINI.update(`第 ${si + 1} / ${ls.length} 句`); const el = lineEl(si); if (el && playing >= 0) el.scrollIntoView({ block: 'center', behavior: REDUCED ? 'auto' : 'smooth' }); }
         if (si >= 0) lightAt(lineEl(si), wc);
       };
-      const stopAll = () => { TTS.stop(); NAR.stop(); playing = -1; shown = -1; setNow(-1); setBtn(false); MINI.hide(); };
+      const stopAll = () => { loopTok++; clearTimeout(loopTimer); TTS.stop(); NAR.stop(); playing = -1; shown = -1; setNow(-1); setBtn(false); MINI.hide(); };
+      // 复读: a sentence said LOOP.rep times (0: until stopped), with a pause after it: none, 2 s, or as long as the
+      // sentence itself and a little more, to say it back.
+      let loopTok = 0, loopTimer = 0;
+      const gapMs = i => (LOOP.gap === -1 ? Math.max(1500, nm ? (nm.sentences[i].e - nm.sentences[i].s) * 1300 : ls[i].split(' ').length * 450) : LOOP.gap * 1000);
+      const sayRepeated = (i, then, n = 0) => {
+        const tok = loopTok;
+        sayLine(i, () => {
+          if (tok !== loopTok) return;
+          const more = LOOP.rep === 0 || n + 1 < LOOP.rep, next = () => { if (tok === loopTok) { if (more) sayRepeated(i, then, n + 1); else if (then) then(); } };
+          const g = more || then ? gapMs(i) : 0;
+          if (g) loopTimer = setTimeout(next, g); else next();
+        });
+      };
+      const looping = () => LOOP.rep !== 1 || LOOP.gap !== 0;
       const sayLine = (i, then) => {
         if (nm) { shown = -1; NAR.play(nm.sentences[i].s, nm.sentences[i].e, follow, then); return; }
         const el = lineEl(i); TTS.say(ls[i], then, c => lightWord(el, c));
@@ -889,15 +1080,24 @@
         if (i >= ls.length) { stopAll(); markStep('listen'); return; }
         playing = i; setNow(i); MINI.update(`第 ${i + 1} / ${ls.length} 句`);
         const el = lineEl(i); if (el) el.scrollIntoView({ block: 'center', behavior: REDUCED ? 'auto' : 'smooth' });
-        sayLine(i, () => playFrom(i + 1));
+        sayRepeated(i, () => playFrom(i + 1));
       };
       pane.querySelector('#playAll').onclick = () => {
         if (playing >= 0) return stopAll();
         setBtn(true); MINI.show('正在播放全文', stopAll);
-        if (nm) { playing = 0; shown = -1; NAR.play(nm.sentences[0].s, null, follow, () => { stopAll(); markStep('listen'); }); }
+        // one sentence after another (each said again, and pauses, when 复读 is set); otherwise the narration straight through
+        if (nm && !looping()) { playing = 0; shown = -1; NAR.play(nm.sentences[0].s, null, follow, () => { stopAll(); markStep('listen'); }); }
         else playFrom(0);
       };
-      pane.querySelectorAll('[data-say]').forEach(b => b.onclick = () => { const i = Number(b.dataset.say); stopAll(); setNow(i); sayLine(i, () => setNow(-1)); });
+      pane.querySelectorAll('[data-say]').forEach(b => b.onclick = () => {
+        const i = Number(b.dataset.say); stopAll(); setNow(i);
+        if (looping()) MINI.show(`复读第 ${i + 1} 句`, stopAll);  // a stop button on screen while it repeats
+        sayRepeated(i, () => { setNow(-1); MINI.hide(); });
+      });
+      pane.querySelectorAll('[data-rep], [data-gap]').forEach(b => b.onclick = () => {
+        const k = 'rep' in b.dataset ? 'rep' : 'gap'; LOOP[k] = Number(b.dataset[k]); save('flow-next-loop', LOOP);
+        pane.querySelectorAll(`[data-${k}]`).forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      });
       pane.querySelectorAll('.line .txt').forEach((t, i) => t.onclick = e => { if (e.target.dataset.w && !st.blind) lookupSheet(e.target.dataset.w, ls[i], id); });
       pane.querySelectorAll('[data-rate]').forEach(b => b.onclick = () => { TTS.rate = Number(b.dataset.rate); save('flow-next-rate', TTS.rate); NAR.audio.playbackRate = TTS.rate; pane.querySelectorAll('[data-rate]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); });
       pane.querySelectorAll('[data-voice]').forEach(b => b.onclick = async () => { if (b.disabled) return; stopAll(); await setVoice(b.dataset.voice); listen(); toast('已切换为' + VOICE_LABELS[b.dataset.voice]); });
@@ -1283,6 +1483,11 @@
             markStep('check');
             pane.querySelector('#score').innerHTML = `<div class="card sunk row between enter"><span><b>${right} / ${m.questions.length}</b> 题答对</span><button class="btn primary" id="toOut">去用出来 →</button></div>`;
             pane.querySelector('#toOut').onclick = () => go('output');
+            // After a first article tried without any questions: offer the level questions (and an account) next.
+            if (!S.user && !hasProfile()) pane.querySelector('#score').insertAdjacentHTML('beforeend', `<div class="card stack-s enter try-next"><b>觉得有用？按你的水平每天推荐一篇</b>
+              <span class="small muted">回答 4 个问题，大约 1 分钟；注册以后，进度和收藏会保存下来。</span>
+              <div class="row"><a class="btn primary" href="#/welcome" data-tap="trial-level">回答 4 个问题</a><button class="btn" id="trialReg" type="button">注册 / 登录</button></div></div>`);
+            const tr = pane.querySelector('#trialReg'); if (tr) tr.onclick = () => openLogin();
           }
         } catch (e) { toast(e.message); delete answered[i]; box.querySelectorAll('.ans').forEach(x => x.disabled = false); }
       });
@@ -1770,7 +1975,7 @@
       const cur = (S.home && S.home.profile) || S.guest || null;
       view.innerHTML = `<div class="place stack"><div><span class="kicker">小测结果</span><h1 class="h1">建议从 ${esc(r.level)} 开始</h1>
           ${lv ? `<p class="muted">${esc(lv.label)}：${esc(lv.desc)}</p>` : ''}</div>
-        <div class="bands">${r.scores.map(s => `<div class="band${s.right <= per / 2 ? ' low' : ''}"><b>${esc(s.band)}</b><span>${s.right} / ${s.of}</span></div>`).join('')}</div>
+        <div class="pl-bands">${r.scores.map(s => `<div class="pl-band${s.right <= per / 2 ? ' low' : ''}"><b>${esc(s.band)}</b><span>${s.right} / ${s.of}</span></div>`).join('')}</div>
         <button class="btn primary block" id="pUse">${cur && cur.level === r.level ? `保持 ${esc(r.level)}，去学习` : `用 ${esc(r.level)} 开始学`}</button>
         ${r.gaps.length ? `<div class="section stack-s"><h2 class="h2">先补这 ${r.gaps.length} 个点</h2><p class="small muted">在你的起点以内做错了。${r.saved ? '已经标为“要留意”，每天的计划会先排一个来补。' : '登录后再测，它们会排进每天的计划。'}</p>
           <div class="plist">${r.gaps.map(g => `<a class="nrow st st-watch" href="#/graph/${encodeURIComponent(g.id)}"><i class="dot" aria-hidden="true"></i><span class="t"><b>${esc(g.title)}</b></span><span class="lv">${esc(g.band)}</span><span class="go" aria-hidden="true">›</span></a>`).join('')}</div></div>` : ''}
@@ -2669,7 +2874,7 @@
       const titles = r.titles || {}, title = titles[r.suggest] || r.suggest;
       view.innerHTML = `<div class="card done-card enter stack"><div class="kicker">词汇量估计</div><div class="huge">${r.estimate.toLocaleString()}</div>
         <p class="muted small">${r.guessing ? '你选了不少假词，估计可能偏高，已经按比例扣除。' : '按词频分段抽样估算，误差约几百词。'}</p>
-        <div class="bands">${Object.entries(r.bands).map(([k, v]) => `<div class="row between small"><span>${esc(titles[k] || k)}</span><span class="vbar"><i data-w="${v * 100}"></i></span><span class="muted">${Math.round(v * 100)}%</span></div>`).join('')}</div>
+        <div class="vt-bands">${Object.entries(r.bands).map(([k, v]) => `<div class="row between small"><span>${esc(titles[k] || k)}</span><span class="vbar"><i data-w="${v * 100}"></i></span><span class="muted">${Math.round(v * 100)}%</span></div>`).join('')}</div>
         <p>${r.ceiling ? `常用的 2 万词你几乎都认识，超出了这个测试能测的范围。建议用《${esc(title)}》这类考试词表，或在「单词」页导入专四、专八或专业词表。` : `建议从《${esc(title)}》开始。`}</p>
         ${S.user ? '' : '<p class="muted small">结果已经记下，登录后会存到你的账号。</p>'}
         <div class="row center"><button class="btn primary" id="useBook">用《${esc(title)}》开始</button><button class="btn" id="retest">重新测</button><a class="btn ghost" href="#/cards">返回单词</a></div></div>`;
@@ -2711,9 +2916,13 @@
       tomorrow: '今天先到这儿，明天再见它', 'once-more': '答对了，下次再换一道题确认一次' };
     // Progress counts cards, not answers: a card shown again to consolidate it does not grow the total.
     const uniq = new Set(items.map(x => x.id)), doneIds = new Set();
-    const pos = () => c.repeat ? '再巩固一次' : `${Math.min(uniq.size, doneIds.size + 1)} / ${uniq.size}${c.source === 'book' && c.state === 'new' ? ' · 新词' : ''}`;
+    // How long the rest will take, from this session's own pace (about 9 seconds a card until there is one).
+    const started = Date.now(); let spent = 0;
+    const eta = () => { const rest = uniq.size - doneIds.size; if (rest < 3) return ''; const per = doneN ? spent / doneN : 9000; return ` · 约 ${Math.max(1, Math.round(rest * per / 60000))} 分钟`; };
+    const pos = () => c.repeat ? '再巩固一次' : `${Math.min(uniq.size, doneIds.size + 1)} / ${uniq.size}${c.source === 'book' && c.state === 'new' ? ' · 新词' : ''}${eta()}`;
     const foot = () => `<p class="muted tiny tc rfoot">${pos()}</p>`;
-    const top = () => `<div class="rtop"><a class="link small" href="#/cards">结束</a><div class="bar-progress"><i id="rp"></i></div></div>`;
+    let undo = null;  // the latest rating, while it can be taken back (撤销)
+    const top = () => `<div class="rtop"><a class="link small" href="#/cards">结束</a><div class="bar-progress"><i id="rp"></i></div>${undo ? `<button class="link small undo" id="undo" type="button" aria-label="撤销上一张：${esc(undo.c.text)}">↶ 撤销</button>` : ''}</div>`;
     const badge = res => { const b = document.getElementById('dueBadge'); if (b && res && res.due != null) { const n = res.due + res.new; b.hidden = !n; b.textContent = n > 99 ? '99+' : n; } };
     // Touch: swipe the card right for "I know it" (or the main button), left for "I don't".
     let swipe = null;
@@ -2723,7 +2932,10 @@
       view.innerHTML = `<div class="empty"><div class="big">✓</div><p>现在没有要复习的单词。</p><div class="row center"><a class="btn" href="#/cards">单词</a><a class="btn primary" href="#/">回到今日</a></div></div>`; return;
     }
     let c, t0, claim;
-    const bar = () => { const rp = document.getElementById('rp'); if (rp) rp.style.width = (doneIds.size / Math.max(1, uniq.size) * 100) + '%'; };
+    const bar = () => {
+      const rp = document.getElementById('rp'); if (rp) rp.style.width = (doneIds.size / Math.max(1, uniq.size) * 100) + '%';
+      const u = document.getElementById('undo'); if (u) u.onclick = takeBack;
+    };
     const keys = map => { document.onkeydown = e => { if (!sheetEl.hidden || e.metaKey || e.ctrlKey || e.altKey) return; if (e.target.matches && e.target.matches('input,textarea')) { if (e.key === 'Enter' && map.Enter && ['spellIn', 'fixIn'].includes(e.target.id)) { e.preventDefault(); map.Enter(); } return; } const f = map[e.key] || map[e.key.toLowerCase()]; if (f) { e.preventDefault(); f(); } }; };
     let sx = null;
     view.ontouchstart = e => { sx = e.touches.length === 1 && !isTyping(e) && !e.target.closest('button,a,input') ? [e.touches[0].clientX, e.touches[0].clientY] : null; };
@@ -2772,7 +2984,8 @@
           <div class="row center">${recBtn('sndMic', '读一遍')}<span class="muted tiny" id="sndOut">${S.user ? '点 ● 读一遍，AI 听你读得准不准' : ''}</span></div>
           <div class="choice">${['读准了', '还不稳', '不会读'].map((t, k) => `<button class="${['good', '', 'again'][k]}" data-self="${['good', 'hard', 'again'][k]}">${t}</button>`).join('')}</div>`;
       }
-      view.innerHTML = `${top()}<div class="review enter">${body}${foot()}</div>`;
+      // A question or a sentence to fix has no word to put in the middle of the screen: it starts at the top.
+      view.innerHTML = `${top()}<div class="review enter${c.mode === 'sound' ? '' : ' q'}">${body}${foot()}</div>`;
       bar(); swipe = null;
       const after = (r, html) => {
         const ms = Date.now() - t0;
@@ -2912,17 +3125,18 @@
       if (busy) return; busy = true; document.onkeydown = null;
       try {
         const body = { id: c.id, rating: r, mode: c.mode, ms: Math.min(ms, 3599999), at: Math.floor(Date.now() / 1000) };
+        const before = { c, r, i, had: doneIds.has(c.id), left, inserted: -1, offline: false, body };
         let res;
         try { res = await api('/api/next/review', body); }
         catch (e) {
           if (!e.network) throw e;
-          OUTBOX.push({ path: '/api/next/review', body });  // offline: keep going, sync later
+          OUTBOX.push({ path: '/api/next/review', body }); before.offline = true;  // offline: keep going, sync later
           const learning = c.state !== 'review' || r === 'again';
           res = { card: { ...c, state: learning && r !== 'easy' ? (c.state === 'review' ? 'relearning' : 'learning') : 'review' }, due: left ? left.due : 0, new: left ? left.new : 0 };
           if (r === 'good' && c.state === 'learning' && (c.step || 0) >= 1) res.card.state = 'review';
           res.card.step = (c.step || 0) + 1;
         }
-        tally[r]++; doneN++; left = res; i++; doneIds.add(c.id); badge(res);
+        tally[r]++; doneN++; left = res; i++; doneIds.add(c.id); badge(res); spent += Math.min(ms, 60000); undo = before;
         const n = res.card;
         if (res.outcome && OUTCOME[res.outcome]) toast(OUTCOME[res.outcome]);
         if ((r === 'good' || r === 'easy') && n.due) farthest = Math.max(farthest, Math.round((n.due * 1000 - Date.now()) / 86400000));
@@ -2933,11 +3147,25 @@
         const parked = ['tomorrow', 'later', 'passed', 'reread'].includes(res.outcome) || (c.tries || 0) >= 1;
         if ((n.state === 'learning' || n.state === 'relearning') && soon && !parked) {
           const again = { ...c, ...n, mode: c.kind === 'word' ? 'recognize' : c.mode, repeat: true, tries: (c.tries || 0) + 1 };
-          items.splice(Math.min(items.length, i + 4), 0, again);
+          before.inserted = Math.min(items.length, i + 4); items.splice(before.inserted, 0, again);
         }
         const el = view.querySelector('.review'); if (el) el.classList.add('out');
         setTimeout(ask, REDUCED ? 0 : 180);
       } catch (e) { toast(e.message); keys({}); }
+      finally { busy = false; }
+    }
+    // 撤销: the latest rating taken back (a slip of the finger); the same card comes up again to answer.
+    async function takeBack() {
+      const u = undo; if (!u || busy) return; busy = true;
+      try {
+        let res = u.left;
+        if (u.offline) OUTBOX.unpush({ path: '/api/next/review', body: u.body });
+        else res = await api('/api/next/review/undo', { id: u.c.id });
+        tally[u.r]--; doneN--; if (!u.had) doneIds.delete(u.c.id);
+        if (u.inserted >= 0) items.splice(u.inserted, 1);
+        i = u.i; left = res; undo = null; badge(res);
+        toast('已撤销，再答一次这一张'); ask();
+      } catch (e) { undo = null; toast(e.message); const b = document.getElementById('undo'); if (b) b.remove(); }
       finally { busy = false; }
     }
     async function known() {
@@ -2954,12 +3182,16 @@
       } catch (e) { /* show the summary anyway */ }
       refreshHome().catch(() => {});
       view.ontouchstart = view.ontouchmove = view.ontouchend = null; document.body.classList.remove('reviewing');
-      view.innerHTML = `<div class="card done-card enter">${doneRing}<h2 class="h2">这一轮复习了 ${doneIds.size} 个</h2>${doneN > doneIds.size ? `<p class="muted tiny">共作答 ${doneN} 次，其中 ${doneN - doneIds.size} 次是再巩固</p>` : ''}
+      undo = null;
+      const rated = tally.again + tally.hard + tally.good + tally.easy, mins = Math.max(1, Math.round((Date.now() - started) / 60000));
+      view.innerHTML = `<div class="card done-card enter">${doneRing}<h2 class="h2">这一轮复习了 ${doneIds.size} 个</h2>
+        <p class="small rsum">用时约 ${mins} 分钟${rated ? ` · 记住了 ${Math.round((tally.good + tally.easy) / rated * 100)}%` : ''}<span id="tmr"></span></p>${doneN > doneIds.size ? `<p class="muted tiny">共作答 ${doneN} 次，其中 ${doneN - doneIds.size} 次是再巩固</p>` : ''}
         <p class="muted small">记得 ${tally.good + tally.easy} · 模糊 ${tally.hard} · 忘了 ${tally.again}${tally.known ? ' · 熟知 ' + tally.known : ''}。</p>
         <p class="small cheer">${tally.good + tally.easy ? `记得的都往后推了${farthest > 1 ? `，最远的要 ${farthest} 天后才再见` : ''}。` : ''}${tally.again ? `忘了的 ${tally.again} 个明天再来：忘了再想起来，正是记牢的过程。` : tally.good + tally.easy ? '这一轮全都记得，很稳。' : ''}</p>
         ${left && (left.due + left.new) ? `<p class="small">还有 ${left.due + left.new} 个可以继续。</p>` : ''}
         <div class="row center"><a class="btn" href="#/cards">单词</a>${left && (left.due + left.new) ? '<button class="btn primary" id="again">继续</button>' : '<a class="btn primary" href="#/">回到今日</a>'}</div>
         ${left && !(left.due + left.new) ? '<div class="row center"><button class="btn ghost small" id="moreNew">还想多背：再学 10 个新词</button></div>' : ''}</div>`;
+      api('/api/next/vocab').then(o => { const t = document.getElementById('tmr'); if (t && o.forecast && o.forecast[1] != null) t.textContent = ` · 明天大约复习 ${o.forecast[1]} 个`; }).catch(() => {});
       const ag = document.getElementById('again'); if (ag) ag.onclick = () => reviewView();
       const mn = document.getElementById('moreNew');
       if (mn) mn.onclick = async () => { mn.disabled = true; try { const r = await api('/api/next/vocab/more', { n: 10 }); if (r.added) reviewView(); else { toast('词书里的词都学过了'); } } catch (e) { toast(e.message); mn.disabled = false; } };
@@ -3181,7 +3413,7 @@
     let saved = null; try { saved = JSON.parse(sessionStorage.getItem('flow-next-lib') || 'null'); } catch (e) { /* private mode */ }
     f = f || saved || { level: hasProfile() ? level() : '', theme: '', page: 1, featured: '1' };
     try { sessionStorage.setItem('flow-next-lib', JSON.stringify(f)); } catch (e) { /* private mode */ }
-    const d = await api(`/api/next/library?level=${f.level}&theme=${f.theme}&page=${f.page}&featured=${f.featured}`);
+    const d = await api(libraryPath(f));  // the same address a touch of the link already preloaded
     const pages = Math.max(1, Math.ceil(d.total / d.per));
     view.innerHTML = `<div class="row between"><h1 class="h1">全部材料</h1><span class="row"><a class="btn small" href="#/easy">轻松读</a><a class="btn small" href="#/import">我的文章</a></span></div><span class="muted small">${d.total} 篇${f.featured === '1' ? ' · 精选' : ''}</span>
       <div class="filters"><select id="ff" aria-label="范围"><option value="1" ${f.featured === '1' ? 'selected' : ''}>精选</option><option value="" ${f.featured !== '1' ? 'selected' : ''}>全部材料</option></select>
@@ -3228,11 +3460,11 @@
     const groups = [
       u && ['进步', [grow('#/radar', '能力雷达', '离目标还差多少', '', 'me-radar'), grow('#/growth', '我的进步', '每月对比和里程碑', '', 'me-growth'), grow('#/report', '这周的报告', '', '', 'me-report'), grow('#/cards/mistake', '错题本', '', '', 'me-mistake')]],
       ['设置', [grow('#/welcome/edit', '学习目标和水平', [goal && esc(goal.label), lv && lv.id].filter(Boolean).join(' · ') || '未设置', '', 'me-level'),
-        grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), grow('meRemind', '每天提醒', '加到手机日历', '', 'me-remind'),
+        grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), grow('meText', '字号和行距', textLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '加到手机日历', '', 'me-remind'),
         installed ? '' : grow('meInstall', '添加到桌面', '像 App 一样打开', '', 'me-install')]],
       u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备')],
         '绑定邮箱后，可以用验证码登录，忘记密码时自己找回。30 天内来过就一直保持登录；在别人的手机或电脑上用完，记得退出。'],
-      ['帮助', [grow('#/guide', '操作指南', '每个页面怎么用', '', 'me-guide'), grow('/survey', '匿名问卷', '你想要什么样的英语学习网站', '', 'me-survey')]],
+      ['帮助', [grow('#/guide', '操作指南', '每个页面怎么用', '', 'me-guide'), grow('#/feedback', '问题反馈', '页面不对、功能用不了，告诉我们', '', 'me-feedback'), grow('/survey', '匿名问卷', '你想要什么样的英语学习网站', '', 'me-survey')]],
     ].filter(Boolean);
     view.innerHTML = `<div class="card flat me-head"><div class="me-id">${u ? `<span class="avatar" aria-hidden="true">${esc([...u.username][0].toUpperCase())}</span>` : ''}
         <div class="t"><h1 class="h1">${u ? esc(u.username) : '我的'}</h1><span class="small muted">${lv ? `${esc(lv.label)}（${lv.id}）` : '还没有设置水平'} · 每天 ${p.minutes || 10} 分钟</span></div></div>
@@ -3242,6 +3474,7 @@
       ${u ? '<div class="glist gsec"><button class="grow danger" id="out" type="button"><span class="t">退出登录</span></button></div>' : ''}`;
     const lg = document.getElementById('lg'); if (lg) lg.onclick = () => openLogin();
     document.getElementById('meVoice').onclick = voiceSheet;
+    document.getElementById('meText').onclick = textSheet;
     document.getElementById('meRemind').onclick = () => remindSheet(p.minutes || 10);
     const mi = document.getElementById('meInstall'); if (mi) mi.onclick = installSheet;
     if (u) {
@@ -3254,8 +3487,26 @@
       }).catch(() => { const el = document.getElementById('acctEmail'); if (el) el.textContent = ''; });
       document.getElementById('chPw').onclick = () => changePasswordSheet();
       document.getElementById('outAll').onclick = () => signOutEverywhere();
-      document.getElementById('out').onclick = async () => { try { await api('/api/logout', {}); } catch (e) { /* ignore */ } S.user = null; S.csrf = ''; await refreshHome(); toast('已退出'); route(); };
+      document.getElementById('out').onclick = async () => { try { await api('/api/logout', {}); } catch (e) { /* ignore */ } snapClear(); S.user = null; S.csrf = ''; await refreshHome(); toast('已退出'); route(); };
     }
+  }
+  // 字号和行距: the reading text (a material, the listening lines, review sentences, questions, the guide, meanings)
+  // larger and with more room between lines; menus and buttons stay as they are. Kept on the phone (applyText, 02-shell.js).
+  const TEXT_SIZES = [['m', '标准'], ['l', '大'], ['xl', '特大']], TEXT_LH = [['n', '标准'], ['w', '宽松']];
+  function textLabel() { return [TEXT_SIZES.find(x => x[0] === TEXT.size)[1], TEXT.lh === 'w' ? '行距宽松' : ''].filter(Boolean).join(' · '); }
+  function textSheet() {
+    const chips = (list, key, cur) => list.map(([k, l]) => `<button class="chip" type="button" role="radio" data-${key}="${k}" aria-checked="${cur === k}">${l}</button>`).join('');
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">字号和行距</h2>
+      <div class="stack-s"><b>字号</b><div class="chips" role="radiogroup" aria-label="字号">${chips(TEXT_SIZES, 'ts', TEXT.size)}</div></div>
+      <div class="stack-s"><b>行距</b><div class="chips" role="radiogroup" aria-label="行距">${chips(TEXT_LH, 'tl', TEXT.lh)}</div></div>
+      <p class="text tsample">Reading a little every day is how a new language slowly becomes your own.</p>
+      <p class="muted small">课文、听力句子、讲解和释义的字会变大，菜单和按钮不变。</p><button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      card.querySelectorAll('[data-ts], [data-tl]').forEach(b => b.onclick = () => {
+        const k = 'ts' in b.dataset ? 'size' : 'lh'; TEXT[k] = b.dataset.ts || b.dataset.tl; save('flow-next-text', TEXT); applyText();
+        card.querySelectorAll(k === 'size' ? '[data-ts]' : '[data-tl]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
+        const v = document.getElementById('meTextV'); if (v) v.textContent = textLabel();
+      });
+    });
   }
   function voiceSheet() {
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">朗读声音</h2>${voiceChips(null)}
@@ -3378,19 +3629,190 @@
       <button class="btn primary" id="soAll" type="button">退出所有设备</button><button class="btn ghost" data-close type="button">取消</button></div>`, card => {
       card.querySelector('#soAll').onclick = async e => {
         e.currentTarget.disabled = true;
-        try { await api('/api/logout', { all: true }); } catch (x) { /* signed out already */ }
+        try { await api('/api/logout', { all: true }); } catch (x) { /* signed out already */ } snapClear();
         S.user = null; S.csrf = ''; closeSheet(); await refreshHome(); toast('已在所有设备上退出'); route();
       };
     });
   }
 
 
+  /* ---------- 问题反馈: what happened, the page it happened on, and up to three screenshots ---------- */
+  // Anyone can send one, signed in or not (the server limits guests by a hashed address). The report carries the page
+  // the learner came from, the site's version, the phone and browser, and the last few script errors: a page that
+  // broke often says why in the console (ERRS, kept by 84-field.js). Read and closed in the operator console; nothing is
+  // sent back.
+  const FB_KINDS = [['display', '页面显示不对'], ['broken', '功能用不了'], ['content', '内容有错'], ['idea', '建议'], ['other', '其他']];
+  const ASSET = (((document.querySelector('script[src*="next.js"]') || {}).src || '').split('v=')[1] || '').slice(0, 20);
+
+  // A phone screenshot is large (1290 × 2796 on an iPhone): drawn at most 1600 px on its long side and sent as JPEG
+  // under 650 KB, so three fit in one request. Read as a data: URL (the page's CSP allows data: images, not blob:).
+  function shrinkShot(file) {
+    return new Promise((ok, no) => {
+      if (file.type && !/^image\//.test(file.type)) return no(new Error('只能添加图片'));
+      const fr = new FileReader();
+      fr.onerror = () => no(new Error('读不出这张图片，请换一张'));
+      fr.onload = () => {
+        const img = new Image();
+        img.onerror = () => no(new Error('这个文件打不开，请换一张截图'));
+        img.onload = () => {
+          const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight, 1));
+          const cv = document.createElement('canvas');
+          cv.width = Math.max(1, Math.round(img.naturalWidth * k)); cv.height = Math.max(1, Math.round(img.naturalHeight * k));
+          const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, cv.width, cv.height); g.drawImage(img, 0, 0, cv.width, cv.height);
+          for (const q of [0.82, 0.7, 0.55, 0.4]) { const d = cv.toDataURL('image/jpeg', q); if (d.length * 0.75 <= 650000) return ok(d); }
+          no(new Error('这张图太大了，请裁小一点'));
+        };
+        img.src = fr.result;
+      };
+      fr.readAsDataURL(file);
+    });
+  }
+
+  async function feedbackView() {
+    const from = S.prevRoute && !/^feedback/.test(S.prevRoute) ? '#/' + S.prevRoute : '';
+    let kind = 'display';
+    const shots = [];
+    view.innerHTML = `<div class="stack"><div><h1 class="h1">问题反馈</h1><span class="muted small">页面显示不对、功能用不了、内容有错，或者有建议，都可以告诉我们。</span></div>
+      <form class="card stack fb" id="fbForm" novalidate>
+        <div class="chips" role="radiogroup" aria-label="反馈类型">${FB_KINDS.map(([k, l]) => `<button type="button" class="chip" role="radio" data-k="${k}" aria-checked="${k === kind}">${l}</button>`).join('')}</div>
+        <label class="stack-s" for="fbText"><b>发生了什么</b><span class="tiny muted">在哪个页面、点了什么、看到了什么。</span></label>
+        <textarea id="fbText" rows="5" maxlength="1000" placeholder="比如：在「单词」页往下滑，底部的按钮跑到了屏幕中间。"></textarea>
+        <div class="row between"><span class="tiny err" id="fbErr" role="alert"></span><span class="tiny muted" id="fbCount">0 / 1000</span></div>
+        <div class="stack-s"><b>截图 <span class="tiny muted">可选，最多 3 张</span></b>
+          <div class="fb-shots" id="fbShots"></div>
+          <div><label class="btn" id="fbAdd">添加截图<input type="file" id="fbFile" accept="image/*" multiple class="sr-only"></label></div></div>
+        ${S.user ? '' : `<label class="stack-s" for="fbContact"><b>联系方式 <span class="tiny muted">可不填</span></b></label>
+        <input type="text" id="fbContact" maxlength="100" autocomplete="email" placeholder="邮箱或微信，方便我们问你细节">`}
+        <label class="sr-only" aria-hidden="true">网址<input name="website" id="fbHp" tabindex="-1" autocomplete="off"></label>
+        <p class="tiny muted">会一起发送：${from ? '你刚才在的页面、' : ''}网站版本、手机和浏览器型号${S.user ? '、你的账号' : ''}。截图只有管理员能看。</p>
+        <button class="btn primary block" id="fbSend" type="submit">提交</button>
+      </form></div>`;
+    const form = document.getElementById('fbForm'), ta = document.getElementById('fbText'), box = document.getElementById('fbShots');
+    const file = document.getElementById('fbFile'), add = document.getElementById('fbAdd'), send = document.getElementById('fbSend');
+    const say = m => { document.getElementById('fbErr').textContent = m || ''; };
+    form.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
+      kind = b.dataset.k; form.querySelectorAll('[data-k]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
+    });
+    ta.oninput = () => { document.getElementById('fbCount').textContent = `${ta.value.length} / 1000`; say(''); };
+    const drawShots = () => {
+      box.innerHTML = shots.map((d, k) => `<div class="fb-shot"><img src="${d}" alt="截图 ${k + 1}"><button type="button" data-rm="${k}" aria-label="去掉截图 ${k + 1}">×</button></div>`).join('');
+      box.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { shots.splice(Number(b.dataset.rm), 1); drawShots(); });
+      add.hidden = shots.length >= 3;
+    };
+    file.onchange = async () => {
+      const list = [...file.files].slice(0, 3 - shots.length); file.value = '';
+      add.classList.add('busy');
+      for (const f of list) { try { shots.push(await shrinkShot(f)); say(''); } catch (x) { say(x.message); } }
+      add.classList.remove('busy'); drawShots();
+    };
+    form.onsubmit = async e => {
+      e.preventDefault();
+      const text = ta.value.trim();
+      if (text.length < 4) { say('请写几句发生了什么（至少 4 个字）'); ta.focus(); return; }
+      send.disabled = true; send.textContent = '正在提交…';
+      const c = document.getElementById('fbContact');
+      try {
+        await api('/api/feedback', { kind, text, contact: c ? c.value.trim() : '', page: from, images: shots, website: document.getElementById('fbHp').value,
+          device: { ua: navigator.userAgent, w: innerWidth, h: innerHeight, dpr: devicePixelRatio || 1, lang: navigator.language || '', asset: ASSET,
+            theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light', standalone: STANDALONE(), wechat: IN_WECHAT, errors: ERRS.slice() } });
+        view.innerHTML = `<div class="card done-card enter stack fb-done"><div class="big" aria-hidden="true">✓</div><h1 class="h1">已收到，谢谢！</h1>
+          <p class="muted">${shots.length ? `连同 ${shots.length} 张截图一起收到了。` : ''}我们会尽快看，修好后会在新版本里更新。</p>
+          <div class="row center"><a class="btn primary" href="${esc(from || '#/me')}">${from ? '回到刚才的页面' : '返回「我的」'}</a><button class="btn ghost" id="fbMore" type="button">再提一个</button></div></div>`;
+        document.getElementById('fbMore').onclick = () => feedbackView();
+      } catch (x) { say(x.message); send.disabled = false; send.textContent = '提交'; }
+    };
+  }
+  /* ---------- what this browser tells the site about the site itself (field_service.py) ---------- */
+  // Page errors (a script that broke, a promise nobody caught, a picture or sound that did not load, a request that
+  // failed, a sound the browser would not play) and, once per visit, how long until the first page was on screen and
+  // where the time went. No account and no address go with them; each problem is sent once per visit, 20 at most.
+  // The last few errors also go with a 问题反馈 report (ERRS).
+  const FIELD = { q: [], seen: new Set(), sent: 0, firstView: null, openSent: false, t: 0 };
+  const ERRS = [];
+  function beacon(url, data) {
+    const body = JSON.stringify(data);
+    try { if (navigator.sendBeacon && navigator.sendBeacon(url, body)) return; } catch (e) { /* fall back to fetch */ }
+    try { fetch(url, { method: 'POST', body, keepalive: true, credentials: 'same-origin', headers: { 'Content-Type': 'application/json' } }).catch(() => {}); } catch (e) { /* not counted */ }
+  }
+  function noteIssue(kind, message, source) {
+    try {
+      const page = location.hash.split('?')[0] || '#/', msg = String(message || '').slice(0, 200), src = String(source || '').slice(0, 120);
+      if (kind === 'js' || kind === 'promise') { ERRS.push((msg + (src ? ' @ ' + src : '')).slice(0, 200)); if (ERRS.length > 5) ERRS.shift(); }
+      const key = [kind, page, msg, src].join('|');
+      if (!msg || FIELD.seen.has(key) || FIELD.sent + FIELD.q.length >= 20) return;
+      FIELD.seen.add(key); FIELD.q.push({ kind, page, message: msg, source: src });
+      clearTimeout(FIELD.t); FIELD.t = setTimeout(flushIssues, 5000);
+    } catch (e) { /* the report must never break the page */ }
+  }
+  function flushIssues() {
+    if (!FIELD.q.length) return;
+    const items = FIELD.q.splice(0); FIELD.sent += items.length;
+    beacon('/api/next/issues', { items, asset: ASSET, standalone: STANDALONE() });
+  }
+  // Script errors, and pictures, sounds and scripts that did not load: those do not bubble, hence the capture phase.
+  addEventListener('error', e => {
+    const t = e && e.target;
+    if (t && t !== window && t.tagName) {
+      const src = String(t.currentSrc || t.src || t.href || '').replace(location.origin, '').split('?')[0];
+      if (src && !src.startsWith('blob:') && !src.startsWith('data:')) noteIssue('resource', `${t.tagName.toLowerCase()} 没加载出来：${src}`);
+      return;
+    }
+    if (e && e.message) noteIssue('js', e.message, `${String(e.filename || '').split('/').pop().split('?')[0]}:${e.lineno || 0}`);
+  }, true);
+  addEventListener('unhandledrejection', e => { const r = e && e.reason; if (!(r && r.network)) noteIssue('promise', (r && r.message) || String(r)); });
+
+  // Opening time: navigation timing (when the browser has it) and the moment the first page was drawn.
+  function navTiming() {
+    const n = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+    if (n) return n;
+    const t = performance.timing; if (!t || !t.navigationStart) return null;  // older in-app browsers
+    const o = {}; ['domainLookupStart', 'domainLookupEnd', 'connectStart', 'connectEnd', 'secureConnectionStart', 'requestStart', 'responseStart', 'responseEnd']
+      .forEach(k => { o[k] = t[k] ? t[k] - t.navigationStart : 0; });
+    return o;
+  }
+  function sendOpenTime() {
+    if (FIELD.openSent) return; FIELD.openSent = true;
+    try {
+      const n = navTiming(); if (!n) return;
+      const res = (performance.getEntriesByType && performance.getEntriesByType('resource')) || [];
+      const first = re => res.filter(r => re.test(r.name)).sort((a, b) => a.startTime - b.startTime)[0];
+      const home = first(/\/api\/next\/home/), js = first(/\/next\.js/), c = navigator.connection || {};
+      const ms = x => (x == null || !isFinite(x) || x < 0 ? null : Math.round(x)), fv = FIELD.firstView;
+      beacon('/api/next/opentime', {
+        domain: location.host, first_view: ms(fv), waited: ms(performance.now()),
+        dns: ms(n.domainLookupEnd - n.domainLookupStart), connect: ms(n.connectEnd - n.connectStart),
+        tls: n.secureConnectionStart > 0 ? ms(n.connectEnd - n.secureConnectionStart) : null,
+        ttfb: ms(n.responseStart - n.requestStart), html: ms(n.responseEnd - n.responseStart),
+        scripts: js ? ms(js.responseEnd - n.responseEnd) : null, home_api: home ? ms(home.duration) : null,
+        render: fv != null && home ? ms(fv - home.responseEnd) : null,
+        repeat: !!(navigator.serviceWorker && navigator.serviceWorker.controller), snap: DATA.fromSnap, standalone: STANDALONE(),
+        net: c.effectiveType || '', tz: (Intl.DateTimeFormat().resolvedOptions().timeZone || '').slice(0, 40) });
+    } catch (e) { /* not counted */ }
+  }
+  function firstViewDrawn() {
+    if (FIELD.firstView != null) return;
+    FIELD.firstView = performance.now();
+    setTimeout(sendOpenTime, 1500);
+  }
+  // Leaving (or switching away): what is queued goes now; a visit that leaves before anything showed counts too.
+  addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { flushIssues(); sendOpenTime(); } });
+  addEventListener('pagehide', () => { flushIssues(); sendOpenTime(); });
   /* ---------- boot ---------- */
   (async function boot() {
     wechatBar();
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
-    try { await refreshHome(); S.homeFresh = true; } catch (e) { /* offline: route() asks again and offers a retry */ }
-    route();
+    // The copy of the last 今日 kept on the phone (05-data.js): the page is drawn from it at once, then from the
+    // server's answer, quietly, if anything changed. Offline, the copy stays on screen. The first visit waits.
+    const snap = snapGet(), drawn = () => { firstViewDrawn(); prefetchTabs(); };
+    if (snap && snap.home && snap.home.session) {
+      S.home = snap.home; S.user = snap.home.session.user || null; S.csrf = ''; DATA.fromSnap = true; S.homeFresh = true; setDueBadge();
+      const drawnFor = location.hash;
+      route().then(drawn);
+      try { if (await refreshHome()) redrawQuietly(drawnFor); } catch (e) { DATA.ok(); }
+    } else {
+      try { await refreshHome(); S.homeFresh = true; } catch (e) { DATA.ok(); /* offline: route() asks again and offers a retry */ }
+      route().then(drawn);  // the opening time ends when the first page is drawn
+    }
     OUTBOX.flush();
   })();
 })();
