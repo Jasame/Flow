@@ -16,8 +16,10 @@ import struct
 from bisect import bisect_right
 from functools import lru_cache
 
-LEAD = 0.3   # seconds before the word starts: an iPhone waking its audio fits in this
-PAD = 0.12   # seconds of the sprite's own gap kept on each side of the word (the gap is 0.2 s)
+LEAD = 0.2   # seconds before the word starts: an iPhone waking its audio fits in this (try others with ?lead=)
+LEADS = (0.05, 0.4)  # the range a request may ask for
+PAD = 0.12   # seconds of the sprite's own gap kept before the word (the gap is 0.2 s), and after a sentence
+TRIM = 0.03  # a word's timings end in 40-65 ms of quiet (measured in Chrome): this much of it is left out
 MAX = 5.0    # a word clip is never longer than this (a sentence of a narration: SENTENCE)
 SENTENCE = 40.0
 
@@ -168,21 +170,25 @@ def _adts(frame, aot, sfi, ch):
                   (n >> 3) & 0xFF, (n & 7) << 5 | 0x1F, 0xFC)) + frame
 
 
-def clip(path, start, end, longest=MAX):
-    """ADTS bytes of one word (or one sentence of a narration: longest 40): LEAD seconds before it (silence) and PAD
-    after it. start/end: its place in the file in seconds, as index.json (or the narration's timings) gives it."""
-    if not (0 <= start < end and end - start <= longest):
+def clip(path, start, end, longest=MAX, lead=LEAD, tail=0.0, trim=0.0):
+    """ADTS bytes of one word (or one sentence of a narration: longest 40): `lead` seconds before it (silence), and
+    after it `tail` seconds of the file (a word: none, so the file stays short; see below). start/end: its place in the
+    file in seconds, as index.json (or the narration's timings) gives it.
+    A word ends with the frame that holds its end: on an iPhone an <audio> shorter than 0.95 s is never shown in Now
+    Playing (WebKit MediaElementSession, YouveGotMailDuration), and a word's own timings already end in about 50 ms of
+    quiet, so nothing of the word is lost (measured in Chrome)."""
+    if not (0 <= start < end and end - start <= longest) or not LEADS[0] <= lead <= LEADS[1]:
         raise ValueError('not a word clip')
     from pathlib import Path
     p = Path(path)
     buf, scale, offsets, sizes, starts, durs, prime, aot, sfi, ch = _tables(str(p), p.stat().st_mtime_ns)
     frame = lambda t: max(0, min(len(starts) - 1, bisect_right(starts, t) - 1))  # the frame playing at media time t
-    m0, m1 = prime + (start - PAD) * scale, prime + (end + PAD) * scale
-    first, last = frame(max(0, m0)), frame(m1) + 1  # one frame more at the end: the decoder needs the next one to finish
-    last = min(last, len(starts) - 1)
+    front = min(PAD, lead)
+    m0, m1 = prime + (start - front) * scale, prime + (max(start + 0.05, end - trim) + tail) * scale
+    first, last = frame(max(0, m0)), frame(m1)
     # silence in front: copies of a frame from the middle of the gap before the word (or the first frame of the file)
     quiet = frame(max(0, prime + (start - 0.1) * scale))
-    lead = max(0, round(((LEAD - PAD) * scale - (m0 - starts[first])) / (durs[quiet] or 1024)))
-    out = [_adts(buf[offsets[quiet]:offsets[quiet] + sizes[quiet]], aot, sfi, ch)] * lead
+    copies = max(0, round(((lead - front) * scale - (m0 - starts[first])) / (durs[quiet] or 1024)))
+    out = [_adts(buf[offsets[quiet]:offsets[quiet] + sizes[quiet]], aot, sfi, ch)] * copies
     out += [_adts(buf[offsets[k]:offsets[k] + sizes[k]], aot, sfi, ch) for k in range(first, last + 1)]
     return b''.join(out)
