@@ -1,3 +1,3 @@
-ade1e388291fa29e42da18545c4273b0f4e0ff6b 447aa24d7e95f2d5d8e7743012ab564137df15c097c95d8c386fa462a879491c e2e light
-# b23 main: Merge pull request #111 from Jasame/r28-start-weekdays = build of da3a81e14d35
+7aacbde96d89bb468cec7f9fd0a816817754cf22 8356178e5560d7d6069cee7ee2651f6b73a7336237ff9206e73e66fd9808a38c e2e light
+# b24 main: Merge pull request #104 from Jasame/time-box = build of 7a61d03e339e
 # Format: <commit sha> <manifest sha256> [e2e [light]]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
