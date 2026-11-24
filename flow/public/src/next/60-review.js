@@ -1,4 +1,31 @@
   /* ---------- review: recognise -> recall -> spell as an item gets stronger ---------- */
+  // Swiping a card (the review, the vocabulary test): right and left call what acts() returns at that moment
+  // ({ right, left }, either may be missing). The whole screen takes the swipe, not only the card: on a wide screen (an
+  // iPad sideways) the card is a column in the middle and the thumb rests beside it, or below it. Not from a link or a
+  // field, and not while a sheet is open. A swipe is mostly sideways, without a strict
+  // height limit (on a big screen it drifts). Leaving the page takes it off (swipeOff, in route()).
+  function swipeOn(acts) {
+    let sx = null;
+    const cardEl = () => view.querySelector('.review');
+    const settle = () => { const card = cardEl(); if (card) card.style.transform = ''; };
+    document.ontouchstart = e => {
+      // The card's own buttons count (on a phone the answer buttons are where the thumb rests; a finger that moves does
+      // not press them); links, fields and buttons elsewhere (撤销) are left to themselves.
+      const t = e.target, off = t.closest('a,input,select,textarea,label,.sheet') || (t.closest('button') && !t.closest('.review'));
+      sx = e.touches.length === 1 && sheetEl.hidden && !isTyping(e) && !off ? [e.touches[0].clientX, e.touches[0].clientY] : null;
+    };
+    document.ontouchmove = e => {
+      if (!sx || !acts()) return; const t = e.touches[0], dx = t.clientX - sx[0], card = cardEl();
+      if (card && Math.abs(dx) > Math.abs(t.clientY - sx[1])) card.style.transform = `translateX(${dx * 0.35}px) rotate(${dx * 0.02}deg)`;
+    };
+    document.ontouchend = e => {
+      settle(); const a = acts();
+      if (!sx || !a) return; const t = e.changedTouches[0], dx = t.clientX - sx[0], dy = t.clientY - sx[1]; sx = null;
+      if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 1.4) { const f = dx > 0 ? a.right : a.left; if (f) f(); }
+    };
+    document.ontouchcancel = () => { sx = null; settle(); };  // the browser took the gesture (a scroll, the system): the card goes back
+  }
+  function swipeOff() { document.ontouchstart = document.ontouchmove = document.ontouchend = document.ontouchcancel = null; }
   async function reviewView() {
     if (!S.user) return needLogin('登录后才能复习。');
     document.body.classList.add('reviewing');
@@ -46,14 +73,7 @@
       const u = document.getElementById('undo'); if (u) u.onclick = takeBack;
     };
     const keys = map => { document.onkeydown = e => { if (!sheetEl.hidden || e.metaKey || e.ctrlKey || e.altKey) return; if (e.target.matches && e.target.matches('input,textarea')) { if (e.key === 'Enter' && map.Enter && ['spellIn', 'fixIn'].includes(e.target.id)) { e.preventDefault(); map.Enter(); } return; } const f = map[e.key] || map[e.key.toLowerCase()]; if (f) { e.preventDefault(); f(); } }; };
-    let sx = null;
-    view.ontouchstart = e => { sx = e.touches.length === 1 && !isTyping(e) && !e.target.closest('button,a,input') ? [e.touches[0].clientX, e.touches[0].clientY] : null; };
-    view.ontouchmove = e => { if (!sx || !swipe) return; const dx = e.touches[0].clientX - sx[0], card = view.querySelector('.review'); if (card && Math.abs(dx) > Math.abs(e.touches[0].clientY - sx[1])) card.style.transform = `translateX(${dx * 0.35}px) rotate(${dx * 0.02}deg)`; };
-    view.ontouchend = e => {
-      const card = view.querySelector('.review'); if (card) card.style.transform = '';
-      if (!sx || !swipe) return; const t = e.changedTouches[0], dx = t.clientX - sx[0], dy = t.clientY - sx[1]; sx = null;
-      if (Math.abs(dx) > 80 && Math.abs(dy) < 70) { const f = dx > 0 ? swipe.right : swipe.left; if (f) f(); }
-    };
+    swipeOn(() => swipe);
     if (TOUCH && !load('flow-next-swipe-tip')) { save('flow-next-swipe-tip', 1); setTimeout(() => toast('小技巧：右滑「认识」，左滑「不认识」'), 600); }
     // A saved sentence pattern: the frame's fixed words become gaps in its example, so the front does not give it away.
     const frameCloze = (example, frame) => {
@@ -290,7 +310,7 @@
         left = q;
       } catch (e) { /* show the summary anyway */ }
       refreshHome().catch(() => {});
-      view.ontouchstart = view.ontouchmove = view.ontouchend = null; document.body.classList.remove('reviewing');
+      swipeOff(); document.body.classList.remove('reviewing');
       undo = null;
       const rated = tally.again + tally.hard + tally.good + tally.easy, mins = Math.max(1, Math.round((Date.now() - started) / 60000));
       view.innerHTML = `<div class="card done-card enter">${doneRing}<h2 class="h2">这一轮复习了 ${doneIds.size} 个</h2>
