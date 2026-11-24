@@ -1,3 +1,3 @@
-7e360fade8b488c4b9b4a329c184ade367ef988c 21f87188e3f76c94bf2e13301e06bd9f33bd266ff78c9234001c1309d3714ee2 e2e
-# r22 domains: Merge remote-tracking branch 'origin/main' into domains
+e51ad4f103ff7a3e1f7d0e1a20e4fcc9c7236dcd d9930efa0fbfe34b6269ff156b0946f99df76f8abe82e98ee5a1c2e41a91df88
+# r23 domains: 操作指南 PDF：链接和封面改用 flowlang.cn（r22 带出去的 PDF 还是 flow.jasa.hk，会把读者带到内测版）
 # Format: <commit sha> <manifest sha256> [e2e]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
