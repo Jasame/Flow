@@ -149,25 +149,73 @@ class ConsoleAndExportTests(Privacy):
 
 
 class BackupTests(unittest.TestCase):
-    def test_deploy_time_database_copies_go_after_14_days_and_the_code_stays(self):
-        with tempfile.TemporaryDirectory() as d:
-            ops_dir = Path(d)
-            old, new = ops_dir / 'backup-pull-20261001-000000', ops_dir / 'backup-pull-beta-20261124-000000'
-            for f in (old, new):
-                (f / 'files').mkdir(parents=True)
-                (f / 'flow-before.sqlite3').write_bytes(b'x')
-                (f / 'new-files.txt').write_text('')
-            past = time.time() - 15 * 86400
-            os.utime(old / 'flow-before.sqlite3', (past, past))
-            self.assertEqual(ops.prune_deploy_copies(ops_dir), 1)
-            self.assertFalse((old / 'flow-before.sqlite3').exists())
-            self.assertTrue((old / 'new-files.txt').exists() and (old / 'files').is_dir())  # a rollback still has its files
-            self.assertTrue((new / 'flow-before.sqlite3').exists())
-            self.assertEqual(ops.prune_deploy_copies(Path(d) / 'missing'), 0)
+    """Deploy-time database copies: each site prunes only its own (backup-pull-<date> 语流, backup-pull-beta-<date> 内测版),
+    logs each copy with its size first, and the 内测版 only lists them unless told otherwise."""
+    OLD = time.time() - 15 * 86400
 
-    def test_the_deploy_script_prunes_them_too(self):
+    def make(self, root, name, old=True, size=2048):
+        d = root / name
+        (d / 'files').mkdir(parents=True)
+        (d / 'new-files.txt').write_text('')
+        f = d / 'flow-before.sqlite3'
+        f.write_bytes(b'x' * size)
+        if old:
+            os.utime(f, (self.OLD, self.OLD))
+        return f
+
+    def test_the_beta_never_touches_the_main_sites_copies(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            prod_old, beta_old = self.make(root, 'backup-pull-20261101-020304'), self.make(root, 'backup-pull-beta-20261101-020304')
+            lines = []
+            got = ops.prune_deploy_copies(root, channel='beta', dry_run=False, say=lines.append)
+            self.assertEqual([g[0] for g in got], [beta_old])
+            self.assertTrue(prod_old.exists())
+            self.assertFalse(beta_old.exists())
+            self.assertTrue((beta_old.parent / 'new-files.txt').exists() and (beta_old.parent / 'files').is_dir())  # a rollback keeps its files
+
+    def test_the_main_site_never_touches_the_betas_or_unknown_folders(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            prod_old, prod_new = self.make(root, 'backup-pull-20261101-020304'), self.make(root, 'backup-pull-20261124-020304', old=False)
+            keep = [self.make(root, n) for n in ('backup-pull-beta-20261101-020304', 'backup-pull-20261101', 'backup-pull-x-20261101-020304',
+                                                 'beta-setup-20261101-020304', 'backup-pull-20261101-020304-old')]
+            got = ops.prune_deploy_copies(root, channel='prod', dry_run=False, say=lambda *_: None)
+            self.assertEqual([g[0] for g in got], [prod_old])
+            self.assertFalse(prod_old.exists())
+            self.assertTrue(prod_new.exists() and all(f.exists() for f in keep))
+            self.assertEqual(ops.prune_deploy_copies(root, channel='test', say=lambda *_: None), [])  # an unknown site: nothing
+
+    def test_the_beta_lists_only_by_default_and_every_copy_is_logged_with_its_size(self):
+        with tempfile.TemporaryDirectory() as d, patch.dict(os.environ, {}, clear=False):
+            os.environ.pop('FLOW_PRUNE_DRY_RUN', None)
+            root = Path(d)
+            beta_old = self.make(root, 'backup-pull-beta-20261101-020304', size=3 * 1048576)
+            lines = []
+            got = ops.prune_deploy_copies(root, channel='beta', say=lines.append)
+            self.assertEqual(len(got), 1)
+            self.assertTrue(beta_old.exists())  # listed, not deleted
+            self.assertIn('只列不删', lines[0])
+            self.assertIn(str(beta_old), lines[0])
+            self.assertIn('3.0 MB', lines[0])
+            self.assertIn('1 个超过 14 天的旧数据库副本，共 3.0 MB', lines[-1])
+            os.environ['FLOW_PRUNE_DRY_RUN'] = '0'
+            ops.prune_deploy_copies(root, channel='beta', say=lines.append)
+            self.assertFalse(beta_old.exists())
+            os.environ['FLOW_PRUNE_DRY_RUN'] = '1'
+            prod_old = self.make(root, 'backup-pull-20261101-020304')
+            ops.prune_deploy_copies(root, channel='prod', say=lines.append)
+            self.assertTrue(prod_old.exists())  # the switch holds 语流 back too
+            os.environ.pop('FLOW_PRUNE_DRY_RUN')
+            self.assertTrue(ops.dry_default('beta'))
+            self.assertFalse(ops.dry_default('prod'))
+            self.assertEqual(ops.prune_deploy_copies(Path(d) / 'missing', say=lambda *_: None), [])
+
+    def test_the_deploy_script_prunes_only_its_own_site(self):
         script = (HERE.parent / 'tools' / 'flow-pull.sh').read_text()
-        self.assertIn('-path "$OPS/backup-pull*/flow-before.sqlite3" -mtime +13 -print -delete', script)
+        self.assertIn('case "$SVC" in flow) CH=prod;; flow-beta) CH=beta;; *) CH=;; esac', script)
+        self.assertIn('"$F/ops.py" prune-deploy --channel "$CH"', script)
+        self.assertNotIn('find "$OPS" -maxdepth 2', script)  # the old rule matched both sites
 
 
 class PromiseTests(unittest.TestCase):
