@@ -84,6 +84,15 @@ class AudioRouteTests(unittest.TestCase):
         finally:
             c.close()
 
+    def test_the_last_try_after_unusable_answers_skips_omni(self):
+        # lab_service.run_job's third try (chat_service.main_only, #90): Gemini hears the recording, Omni is not asked
+        env = {'FLOW_AUDIO_ROUTES': 'next-dialog=flow-audio-omni-flash'}
+        with cs.main_only():
+            (reply, reason), sent = self.ask([gemini()], env=env)
+        self.assertEqual([b['model'] for _, b, _ in sent], ['gemini-3.8-flash'])
+        self.assertEqual(sent[0][1]['flow_audio'], WEBM)
+        self.assertEqual([(r['service'], r['ok']) for r in self.rows()], [('main', 1)])
+
     def test_without_the_setting_gemini_hears_it_as_before(self):
         (reply, reason), sent = self.ask([gemini()])
         self.assertEqual(sent[0][1]['model'], 'gemini-3.8-flash')

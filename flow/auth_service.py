@@ -58,6 +58,9 @@ def send(c,email,purpose,ip):
  if c.execute('SELECT COUNT(*) FROM email_codes WHERE ip=? AND created>?',(ip,time.time()-3600)).fetchone()[0]>=PER_IP_HOUR:return {'error':'这台设备获取验证码太频繁，请一小时后再试'},429
  if account.limited(c,'code:'+purpose+':'+account.digest(email),RESEND):return {'error':'验证码已发送，请 60 秒后再重新获取'},429
  code=f'{secrets.randbelow(10**6):06d}';salt=secrets.token_hex(8);now=time.time()
+ # The same address and purpose asked again within account.AGAIN (the learner's 「重新发送」): this one goes by the
+ # fallback channel first, in case the first was refused later, went to junk or is late (account_service).
+ again=c.execute('SELECT 1 FROM email_codes WHERE email=? AND purpose=? AND created>?',(email,purpose,now-account.AGAIN)).fetchone()
  c.execute('UPDATE email_codes SET used=1 WHERE email=? AND purpose=? AND used=0',(email,purpose))
  c.execute('DELETE FROM email_codes WHERE expires<?',(now-86400,))
  c.execute('INSERT INTO email_codes(email,purpose,salt,digest,expires,created,ip) VALUES(?,?,?,?,?,?,?)',(email,purpose,salt,_hash(salt,code),now+TTL,now,ip));c.commit()
@@ -69,9 +72,10 @@ def send(c,email,purpose,ip):
   u=owner(c,email)
   if u:paras.append(f'你的用户名是：{u["username"]}（登录时用户名和这个邮箱都可以用）。')
  text,page=__import__('mail_layout').message(paras,code=code)
- try:account.mail(email,f'语流 Flow {PURPOSES[purpose]}验证码：{code}',text,html=page);state='sent'
+ channel=None
+ try:channel=account.mail(email,f'语流 Flow {PURPOSES[purpose]}验证码：{code}',text,html=page,prefer='fallback' if again else None);state='sent'
  except Exception:state='failed';c.execute('UPDATE email_codes SET used=1 WHERE email=? AND purpose=? AND used=0',(email,purpose))
- c.execute('INSERT INTO mail_events(status,created) VALUES(?,?)',(state,time.time()));c.commit()
+ account.mail_event(c,state,channel)
  if state!='sent':return {'error':'验证码邮件发送失败，请稍后再试'},502
  return {'ok':True,'message':'验证码已发送到 '+mask(email)+'，10 分钟内有效。','resend_after':RESEND},200
 

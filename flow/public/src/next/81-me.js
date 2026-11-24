@@ -72,20 +72,29 @@
       });
     });
   }
-  // iPhones and iPads: how words, examples and short sentences are played (01-audio-offline.js AUDIO / CLIP). Kept on
-  // this phone: the app on the home screen keeps its own, and has no address bar for ?audio=.
-  const SOUND_MODES = [['auto', '自动', '从第一个音开始放；连着点单词时，灵动岛会一直显示「语流 · 单词」，停下 20 秒后收起。'],
-    ['compat', '兼容模式', '每个词是一个前面留了一点静音的小音频，大部分单词不会出现在灵动岛上。「自动」没有声音时选这个。']];
-  const soundLabel = () => (SOUND_MODES.find(m => m[0] === AUDIO.mode()) || SOUND_MODES[0])[1];
+  // iPhones and iPads: how words, examples and short sentences are played (01-audio-offline.js AUDIO / CLIP), and the
+  // silence in front of a word in 标准. Kept on this phone: the app on the home screen keeps its own, and has no address
+  // bar for ?audio= and ?lead= (the owner compares the two ways on an iPhone before the default is chosen).
+  const SOUND_MODES = [['auto', '连续', '从第一个音开始放；连着点单词时，灵动岛会一直显示「语流 · 单词」，停下 20 秒后收起。（默认）'],
+    ['compat', '标准', '每个词是一个前面留了一点静音的小音频，大部分单词不会出现在灵动岛上。「连续」没有声音时选这个。']];
+  const soundLabel = () => AUDIO.mode() === 'compat' ? `标准 · 前面 ${AUDIO.lead()} 秒` : '连续';
   function soundSheet() {
+    const leadChips = () => AUDIO.LEADS.map(v => `<button class="chip" type="button" data-lead="${v}" aria-pressed="${AUDIO.lead() === v}">${v} 秒${v === AUDIO.LEAD_DEFAULT ? '（默认）' : ''}</button>`).join('');
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">单词读音方式</h2>
       <div class="choice" role="radiogroup" aria-labelledby="sheetTitle">${SOUND_MODES.map(([k, t, d]) => `<button class="opt" type="button" role="radio" data-sound="${k}" aria-checked="${AUDIO.mode() === k}" aria-pressed="${AUDIO.mode() === k}"><b>${t}</b><span class="small muted">${d}</span></button>`).join('')}</div>
+      <div class="stack-s" id="leadBox"><b class="small" id="leadTitle">「标准」时单词前面留的静音</b><div class="chips" role="group" aria-labelledby="leadTitle">${leadChips()}</div>
+      <p class="tiny muted">开头还被吞，就选长一点；开头都全，可以选短一点，出现在灵动岛上的单词会更少。</p></div>
       <p class="muted small">两种方式在静音键打开时都能听到。只影响这台手机。</p><button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      const shown = () => { const v = document.getElementById('meSoundV'); if (v) v.textContent = soundLabel(); };
       card.querySelectorAll('[data-sound]').forEach(b => b.onclick = () => {
         AUDIO.setMode(b.dataset.sound);
         card.querySelectorAll('[data-sound]').forEach(x => { x.setAttribute('aria-checked', String(x === b)); x.setAttribute('aria-pressed', String(x === b)); });
-        const v = document.getElementById('meSoundV'); if (v) v.textContent = soundLabel();
-        toast('单词读音方式：' + soundLabel());
+        shown(); toast('单词读音方式：' + soundLabel());
+      });
+      card.querySelectorAll('[data-lead]').forEach(b => b.onclick = () => {
+        AUDIO.setLead(Number(b.dataset.lead));
+        card.querySelectorAll('[data-lead]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+        shown(); toast(`「标准」时单词前面留 ${AUDIO.lead()} 秒静音`);
       });
     });
   }

@@ -381,6 +381,7 @@ def _db():
 
 def record(service, model, started, messages, reply=None, info=None, exc=None, fallback=False):
     """One attempt, into ai_calls. Never raises: the learner's answer matters more than the bookkeeping."""
+    CTX.last_call = None  # set again only when this row is written: mark_shape must never touch an older row
     info = info or {}
     try:
         status = getattr(exc, 'code', None) if exc is not None else 200
@@ -396,8 +397,26 @@ def record(service, model, started, messages, reply=None, info=None, exc=None, f
         if c is None:
             return
         with c:
-            c.execute('INSERT INTO ai_calls(ts,kind,route,service,model,served,ok,status,prompt,cached,completion,reasoning,estimated,ms,fallback,error) '
-                      'VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', row)
+            CTX.last_call = c.execute('INSERT INTO ai_calls(ts,kind,route,service,model,served,ok,status,prompt,cached,completion,reasoning,estimated,ms,fallback,error) '
+                                      'VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', row).lastrowid
+        c.close()
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def mark_shape(code):
+    """The last call on this thread answered, but the answer could not be used (lab_service.Shape): its row says so, with
+    a fixed code such as json_parse or summary_empty, never the text. Never raises."""
+    rid = getattr(CTX, 'last_call', None)
+    if not rid:
+        return
+    CTX.last_call = None
+    try:
+        c = _db()
+        if c is None:
+            return
+        with c:
+            c.execute('UPDATE ai_calls SET ok=0, error=? WHERE id=?', ('shape: ' + str(code)[:40], rid))
         c.close()
     except Exception:  # noqa: BLE001
         pass

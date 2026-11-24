@@ -75,6 +75,11 @@ jobs:
           git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
           if [ "$E2E_MODE" = full ]; then light=""; else light="--light"; fi
           bash tools/deploy.sh --beta $light "$(git rev-parse HEAD)"
+      - name: Log the release (LOG.md on release-beta; the ledger is docs/releases.md)
+        # also after a failed test, which is worth keeping; a failure here never fails the release
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: python3 tools/changelog.py record --main "$(git rev-parse HEAD)" --push
   dry-run:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
