@@ -209,6 +209,7 @@ flow/pedagogy_service.py
 flow/pilot_service.py
 flow/placement_content.py
 flow/practice_service.py
+flow/privacy_service.py
 flow/progress_service.py
 flow/public/about.css
 flow/public/about.html
@@ -331,6 +332,7 @@ flow/tests/test_package.py
 flow/tests/test_pedagogy.py
 flow/tests/test_practice.py
 flow/tests/test_practice_hub.py
+flow/tests/test_privacy.py
 flow/tests/test_progress.py
 flow/tests/test_quota.py
 flow/tests/test_reference.py
@@ -340,6 +342,7 @@ flow/tests/test_rewrite_minimal.py
 flow/tests/test_slim.py
 flow/tests/test_speak_rounds.py
 flow/tests/test_survey.py
+flow/tests/test_trial_survey.py
 flow/tests/test_ux_round.py
 flow/tests/test_vertex.py
 flow/tests/test_vocab.py
@@ -366,7 +369,9 @@ tools/flow-pull.sh
 tools/gen_audio.py
 tools/gen_word_audio.py
 tools/make_icons.py
+tools/narration_pack.py
 tools/release-files.txt
 tools/release.py
 tools/release_manifest.py
+tools/review_list.py
 tools/target_coverage.py

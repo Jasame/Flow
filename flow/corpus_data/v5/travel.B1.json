@@ -12,6 +12,7 @@
     "body": "Farah: Hi, I've booked a bed for three nights under the name Farah Haddad. Diego: Welcome, let me just check the system. Hmm, I'm sorry, but I can't find anything under that name. Farah: Really? I got a confirmation email last week, so it should be there somewhere. Diego: Could you show it to me on your phone? Ah, I see what happened. You booked for next month, not this month. Farah: Oh no, you're joking. I must have picked the wrong date when I was booking on the bus. Is there any chance you have a bed for tonight? Diego: We're almost full because of the music festival, but let me have a look. There's one bed left in the eight-person room, though it's a bit noisy, I'm afraid. Farah: Honestly, I'll take anything at this point. I've been travelling since five this morning, and I can hardly keep my eyes open. Diego: Fair enough. You can have that bed tonight, and a quieter room might open up tomorrow, unless someone extends their stay. Farah: That sounds perfect. What about the booking for next month, though? Diego: Don't worry, I'll cancel it for you, so you won't pay twice. Farah: You're a star. Thank you so much!",
     "questions": [
       {
+        "type": "main",
         "prompt": "What caused Farah's problem at the hostel?",
         "options": [
           "The hostel never received her confirmation email",
@@ -23,6 +24,7 @@
         "evidence": "You booked for next month, not this month."
       },
       {
+        "type": "vocab",
         "prompt": "When Diego says a quieter room \"might open up\", what does he mean?",
         "options": [
           "It might become free for a new guest",
@@ -32,7 +34,9 @@
         ],
         "answer": 0,
         "evidence": "a quieter room might open up tomorrow, unless someone extends their stay"
-      }
+      },
+      {"type": "inference", "prompt": "Why does Farah say \"You're a star\"?", "options": ["Diego is famous", "She wants a quieter room", "She is grateful that Diego has solved her problems", "She loves music festivals"], "answer": 2, "evidence": "I'll cancel it for you, so you won't pay twice"},
+      {"type": "detail", "prompt": "Why is the hostel almost full?", "options": ["Because some rooms are being repaired", "Because of a public holiday", "Because of a conference", "Because of the music festival"], "answer": 3, "evidence": "We're almost full because of the music festival"}
     ],
     "dictation_index": 14,
     "vocabulary": [
@@ -141,6 +145,7 @@
     "body": "Ingrid had planned the perfect day by the sea: a long walk along the cliffs, a picnic by the lighthouse and a swim before dinner. But when she opened the curtains, the rain was coming down so hard that she could barely see the street. Her dad, who never complains about anything, just shrugged and said they could find something else to do. They ran through the rain and ended up in a tiny bookshop at the end of the harbour. The owner was an old fisherman with a loud laugh. He made them hot chocolate and started telling stories about storms, lost boats and a cat that once lived in the lighthouse. Without really noticing, they stayed there for three hours. Later, they ate fish soup in a busy little restaurant full of wet coats and steamy windows. The sun finally came out in the evening, just as they were walking back to the hotel. Ingrid laughed, because the cliffs could wait. Looking back, it's the day of the trip she talks about most.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main point of the story?",
         "options": [
           "Bad weather ruined Ingrid's holiday by the sea",
@@ -152,6 +157,7 @@
         "evidence": "Looking back, it's the day of the trip she talks about most."
       },
       {
+        "type": "inference",
         "prompt": "What does \"the cliffs could wait\" suggest about Ingrid?",
         "options": [
           "She was angry about missing the walk",
@@ -161,7 +167,9 @@
         ],
         "answer": 1,
         "evidence": "Ingrid laughed, because the cliffs could wait."
-      }
+      },
+      {"type": "vocab", "prompt": "What does \"barely\" mean in \"she could barely see the street\"?", "options": ["often", "almost not", "clearly", "easily"], "answer": 1, "evidence": "she could barely see the street"},
+      {"type": "detail", "prompt": "Who owned the tiny bookshop?", "options": ["A young student", "The hotel owner", "Ingrid's dad", "An old fisherman with a loud laugh"], "answer": 3, "evidence": "The owner was an old fisherman with a loud laugh."}
     ],
     "dictation_index": 6,
     "vocabulary": [
@@ -270,6 +278,7 @@
     "body": "Hi Mina, I'm writing to you from a little guesthouse in the mountains, and I still can't believe I'm doing this on my own. You know how nervous I was before I left. On the first evening, I almost went straight back to my room after dinner, because eating alone in a restaurant felt so strange. But something has changed since then. Every morning I decide what to do over breakfast, and nobody has to agree with me. Yesterday I spent two hours in a tiny tea shop just because I liked the music. I've also talked to more people in five days than I usually do in a month. When you travel alone, people seem to notice you more, and they're kinder than I expected. Of course, there are still lonely moments, especially at night. I've learned to fill them with small things, like a phone call home, a good book or a walk around the square. I'll tell you everything when I'm back, but I wanted you to know that I'm fine. Better than fine, actually. Love, Hana",
     "questions": [
       {
+        "type": "main",
         "prompt": "How have Hana's feelings about travelling alone changed?",
         "options": [
           "She was relaxed at first but now feels nervous",
@@ -281,6 +290,7 @@
         "evidence": "I wanted you to know that I'm fine. Better than fine, actually."
       },
       {
+        "type": "detail",
         "prompt": "According to Hana, what is one good thing about travelling alone?",
         "options": [
           "You never feel lonely at night",
@@ -290,7 +300,9 @@
         ],
         "answer": 1,
         "evidence": "When you travel alone, people seem to notice you more, and they're kinder than I expected."
-      }
+      },
+      {"type": "inference", "prompt": "What does Hana mean by \"Better than fine, actually\"?", "options": ["She wants to come home", "She is feeling ill", "She has lost her money", "She is really enjoying the trip"], "answer": 3, "evidence": "I wanted you to know that I'm fine."},
+      {"type": "vocab", "prompt": "What does \"lonely\" mean in \"there are still lonely moments\"?", "options": ["sad because you are alone", "dangerous", "boring", "quiet"], "answer": 0, "evidence": "there are still lonely moments, especially at night"}
     ],
     "dictation_index": 6,
     "vocabulary": [
@@ -389,6 +401,7 @@
     "body": "Kwame: Sorry, is anyone sitting here? Elif: No, go ahead, it looks like we're going to be here for a while. Kwame: Yeah, they've just announced another hour. Are you heading home or going away? Elif: Going away, for my cousin's wedding. If this delay gets any longer, I'll miss the big family dinner the night before. Kwame: Oh, that would be a shame after travelling all that way. Is it a big wedding? Elif: Huge, because everyone in my family is coming, even the relatives who never leave their village. What about you, are you off somewhere nice? Kwame: Home, actually, and it's a bit of a secret. I've been working abroad for a year, and my mum has no idea I'm coming back this week. Elif: No way, that's so sweet! She's going to be thrilled when she opens the door and sees you. Kwame: I hope so, as long as she's actually at home when I knock. Elif: Ha, good point. Do you want some of these crisps, by the way? I bought far too many. Kwame: Go on, then, thanks. Oh, listen, they're finally calling our flight. Elif: Well, good luck with the surprise, and I hope she's in! Kwame: Thanks, and enjoy the wedding!",
     "questions": [
       {
+        "type": "main",
         "prompt": "Why is Kwame's trip special?",
         "options": [
           "He is going to a family wedding",
@@ -400,6 +413,7 @@
         "evidence": "my mum has no idea I'm coming back this week"
       },
       {
+        "type": "vocab",
         "prompt": "When Elif offers crisps, Kwame says \"Go on, then.\" What does he mean?",
         "options": [
           "He wants her to leave",
@@ -409,7 +423,9 @@
         ],
         "answer": 1,
         "evidence": "Go on, then, thanks."
-      }
+      },
+      {"type": "inference", "prompt": "What does Kwame mean by \"as long as she's actually at home when I knock\"?", "options": ["The surprise could fail if his mother is out", "He does not know where she lives", "He thinks she will not open the door", "He has forgotten his keys"], "answer": 0, "evidence": "my mum has no idea I'm coming back this week"},
+      {"type": "detail", "prompt": "Why is Elif travelling?", "options": ["To go home", "For her cousin's wedding", "For work", "To visit her mother"], "answer": 1, "evidence": "Going away, for my cousin's wedding."}
     ],
     "dictation_index": 5,
     "vocabulary": [

@@ -13,6 +13,7 @@ def schema(c):
  # r26: when an account signed up (older accounts: unknown), and an account an operator stopped (xmc.hk console)
  if 'created' not in cols:c.execute('ALTER TABLE users ADD COLUMN created REAL')
  if 'disabled' not in cols:c.execute('ALTER TABLE users ADD COLUMN disabled INTEGER NOT NULL DEFAULT 0')
+ __import__('privacy_service').schema(c)  # 年龄段, a guardian's agreement under 14
  c.executescript('''CREATE UNIQUE INDEX IF NOT EXISTS verified_email ON users(email) WHERE email IS NOT NULL;
  CREATE TABLE IF NOT EXISTS recovery_tokens(digest TEXT PRIMARY KEY,user_id INTEGER REFERENCES users(id),email TEXT,purpose TEXT,expires REAL,used INTEGER DEFAULT 0);
  CREATE TABLE IF NOT EXISTS mail_limits(key TEXT PRIMARY KEY,last REAL);

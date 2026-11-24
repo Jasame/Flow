@@ -1,0 +1,10 @@
+/* 年龄段 (81-privacy.js): three chips (radio buttons) and, under 14, the guardian's agreement */
+.agefs{border:0;margin:0;padding:0;display:grid;gap:8px;min-width:0}
+.agefs legend{padding:0;margin-bottom:6px;font-weight:600;font-size:14.5px;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+.agefs legend .hint{font-weight:400}
+.agechip{display:inline-flex;align-items:center;cursor:pointer;min-height:40px}
+.agechip input{position:absolute;opacity:0;width:1px;height:1px}
+.agechip:focus-within{outline:2px solid var(--green);outline-offset:2px}
+.agefs .guard{display:grid;gap:4px;padding:10px 12px;border-radius:10px;background:var(--amber-soft)}
+.agefs .guard[hidden]{display:none}
+.agechip[data-on=true]{background:var(--green-soft);color:var(--green-ink);font-weight:600;box-shadow:inset 0 0 0 1.5px var(--green)}

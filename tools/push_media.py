@@ -16,7 +16,8 @@ default ~/.config/flow/r2.env (mode 600, never committed):
   R2_ACCOUNT_ID=…  R2_BUCKET=flow-media  R2_ACCESS_KEY_ID=…  R2_SECRET_ACCESS_KEY=…
 Nothing secret is ever printed. Uses only the Python standard library (AWS Signature Version 4, which R2 accepts).
 """
-import argparse, datetime, hashlib, hmac, json, os, random, sys, urllib.error, urllib.parse, urllib.request
+import argparse, datetime, hashlib, hmac, json, os, random, re, sys, urllib.error, urllib.parse, urllib.request
+NARRATION_ID = re.compile(r'(?:v5|graded|graph|campus|travel|life|work|culture|science)-[a-z0-9]+(?:-[a-z0-9]+)*')  # = next_service.NARRATION_ID
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -81,8 +82,8 @@ def collect(src):
     """{path in the bucket under audio/: local file} for everything the site serves."""
     out = {}
     for v in VOICES:
-        for f in sorted((src / v).glob('v5-*')):
-            if f.suffix in ('.m4a', '.json') and f.is_file():
+        for f in sorted((src / v).glob('*')):
+            if f.suffix in ('.m4a', '.json') and f.is_file() and NARRATION_ID.fullmatch(f.stem):
                 out[f'{v}/{f.name}'] = f
     if (src / 'words' / 'index.json').is_file():
         out['words/index.json'] = src / 'words' / 'index.json'

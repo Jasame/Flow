@@ -255,6 +255,7 @@ FLOW_FILES=(
   pilot_service.py
   placement_content.py
   practice_service.py
+  privacy_service.py
   progress_service.py
   quality_service.py
   reference_service.py

@@ -6,7 +6,7 @@ Sentences come from flow's own next_service.sentences(), so indices match what t
 Sentence times are exact (measured from synthesis); word times are spread inside each sentence by
 phoneme count, which is close enough for read-along highlighting.
 
-usage: uv run --with kokoro-onnx --with soundfile python tools/gen_audio.py flow <models dir> flow/audio [workers] [only-id ...]
+usage: uv run --with kokoro-onnx --with soundfile python tools/gen_audio.py flow <models dir> flow/audio [workers] [--old|--all] [only-id ...]
 Models: kokoro-v1.0.int8.onnx + voices-v1.0.bin from github.com/thewh1teagle/kokoro-onnx releases (Apache-2.0).
 macOS only as written (uses afconvert for AAC).
 """
@@ -16,7 +16,9 @@ from pathlib import Path
 
 FLOW, MODELS, OUT = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
 WORKERS = int(sys.argv[4]) if len(sys.argv) > 4 else 3
-ONLY = set(sys.argv[5:])
+# --old: the older materials (简版) instead of v5; --all: both. Any other arguments are ids to make.
+SET = next((a[2:] for a in sys.argv[5:] if a in ('--old', '--all')), 'v5')
+ONLY = set(a for a in sys.argv[5:] if a not in ('--old', '--all'))
 sys.path.insert(0, str(FLOW))
 
 VOICES = {  # key -> (kokoro voice, lang, accent, gender)
@@ -148,8 +150,11 @@ def render(job):
 
 def main():
     import next_service as nx
-    from content_v50 import v5_materials
-    jobs = [(p['id'], key, nx.sentences(p['body'])) for p in v5_materials() if not ONLY or p['id'] in ONLY for key in VOICES]
+    from content_v50 import v5_materials, all_materials, SUPERSEDED
+    packs = {'v5': v5_materials, 'old': lambda: [p for p in all_materials() if not p['id'].startswith('v5-')],
+             'all': all_materials}[SET]()
+    packs = [p for p in packs if p['id'] not in SUPERSEDED and nx.NARRATION_ID.fullmatch(p['id'])]
+    jobs = [(p['id'], key, nx.sentences(p['body'])) for p in packs if not ONLY or p['id'] in ONLY for key in VOICES]
     print(f'{len(jobs)} jobs, {WORKERS} workers', flush=True)
     t0, done = time.time(), 0
     with ProcessPoolExecutor(WORKERS) as ex:

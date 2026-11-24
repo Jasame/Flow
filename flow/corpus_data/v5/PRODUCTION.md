@@ -77,13 +77,14 @@ uv run --with kokoro-onnx --with soundfile python tools/gen_audio.py flow ~/Flow
 
 - 先备份：`cp ~/Flow-media/tts/audio/index.json ~/Flow-media/tts/audio/index.before-<批次>.json`。
 - 生成脚本会重建 `index.json`，盖住所有已录的材料。
+- 旧材料（简版：graded-*、graph-* 和最早的分话题短文）用 `--old` 一次录完，`--all` 是全部；id 规则见 `next_service.NARRATION_ID`。简版的手工包要加 `--index index-old.json`，条目写进单独的索引文件。更早版本的代码不读这个文件，所以什么时候装都安全。
 - 在 zsh 里用变量传 id 时，要写成 `${=IDS}`，否则不会按空格拆开。
 - 核对每篇 4 个声音的 `.json` 里，句子数和 `sentences(body)` 一样。
 - 母本在 `~/Flow-media`，不要放在 /tmp。
 
 **上线**：
 - **有 R2 之后**：`python3 tools/push_media.py ~/Flow-media/tts/audio --verify https://media.flowlang.cn`，提交 manifest，发版。
-- **R2 之前**：做一个手工包，照第 1 批的 `narration-content1`（在共享笔记 `content-batch1-audio/`），经宝塔放到香港运行。装之前要用户点头。
+- **R2 之前**：用 `python3 tools/narration_pack.py ~/Flow-media/tts/audio <输出目录> <包名> <本周的 id …>` 做一个手工包（第 1 批的例子在共享笔记 `content-batch1-audio/`），经宝塔放到香港运行。装之前要用户点头。
   - 脚本核对 sha；
   - 文件已存在就拒绝；
   - 先备份 `index.json`，只追加；
@@ -109,16 +110,17 @@ uv run --with kokoro-onnx --with soundfile python tools/gen_audio.py flow ~/Flow
    - 根目录 `python3 -m unittest discover -s tests`；
    - `tools/ui_test.py <out>`。
 3. **同步指南**：学习者看得到的变化（比如数量、题型、热点话题）要同步改 `flow/public/guide/guide.md`，并用 `env -u FLOW_PUBLIC_URL python3 tools/build_guide.py` 重建 PDF。
-4. **开 PR**：每批一个 PR 进 main，开自动合并。PR 里附**抽查清单**：
-   - 4 篇，每级 1 篇；
-   - 每篇看正文、导读、题和答案依据，再听 30 秒录音；
-   - 用户每周约 30 分钟。
-5. **通知**：PR 号告诉语流 1（发内测版）和语流 2（合并、发正式版）。正式版只在用户说「发正式版」后才发。
+4. **开 PR**：每批一个 PR 进 main。不要自己开自动合并，由语流 2 排队合并。
+5. **通知**：PR 号告诉语流 1 和语流 2。正式版只在用户说「发正式版」后才发。
+6. **抽查清单**（用户定的，2026-11-24）：每级每周随机抽 2 篇，每周 8 篇，约 30 分钟。
+   - 这批上了内测版以后，运行 `python3 tools/review_list.py <共享笔记>/content-review-<日期>.md <本周的文件 …>`，再告诉语流 1。
+   - 清单里每篇附内测版链接，并从正文里列出该重点看的地方：难度和级别对不对得上、带数字或研究结论的句子、人名地名、引用和出处、最长的两句（中式英语多半藏在这里）、导读、4 道题的答案和依据，最后听 30 秒录音。
+   - 用户发现的问题：先改那一篇。同一类问题出现两次以上，就改写作提示词和 `corpus_validate.py`，让下一批起整批避免；改了什么写进共享笔记 content-line.md。
 
 ## 8. 每周花的时间（参考）
 
 | 谁 | 做什么 | 时间 |
 |---|---|---|
 | AI | 选题、写 28 篇、自查、校验、录音、开 PR | 一个会话 |
-| 用户 | 抽查 4 篇 + 听录音，在内测版点开看一眼 | 约 35 分钟 |
+| 用户 | 按清单抽查 8 篇（每级 2 篇），每篇听 30 秒录音 | 约 30 分钟 |
 | 用户 | 同意装录音包、说「发正式版」 | 两句话 |

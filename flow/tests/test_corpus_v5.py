@@ -105,6 +105,30 @@ class CorpusV5Tests(unittest.TestCase):
         del p['reviewed'], p['quotes'], p['references']
         self.assertEqual(cv.check_v51(p, p['body'], {'sentences': 14})[0], [])
 
+    def test_every_public_material_can_have_narration(self):
+        """r27 content line: the older materials (简版) get narration too, so the id rule must accept every public
+        corpus material and still refuse anything that could leave the audio folder."""
+        import next_service as nx
+        ids = [p['id'] for p in content_v50.all_materials() if p['id'] not in content_v50.SUPERSEDED]
+        self.assertEqual([i for i in ids if not nx.NARRATION_ID.fullmatch(i)], [])
+        for bad in ('../v5-x', 'v5-x/../../etc', 'daily-2026-11-24', 'rev-abc', 'V5-x', ''):
+            self.assertIsNone(nx.audio_file('us-f', bad, 'm4a'), bad)
+
+    def test_old_narration_has_its_own_index(self):
+        """The 简版 narration is listed in audio/index-old.json, which releases before it never read, so installing
+        the files early cannot make an older release offer narration it would refuse to serve."""
+        import next_service as nx
+        with tempfile.TemporaryDirectory() as tmp, patch.object(nx, 'AUDIO_DIR', Path(tmp)), \
+                patch.dict(nx._AUDIO, {'mtime': None, 'index': {}}), patch('media.narration', return_value=None):
+            self.assertEqual(nx.audio_index(), ({}, 0))
+            (Path(tmp) / 'index.json').write_text(json.dumps({'v5-a': ['us-f', 'xx'], 'evil/../x': ['us-f']}))
+            self.assertEqual(nx.audio_index()[0], {'v5-a': ['us-f']})
+            (Path(tmp) / 'index-old.json').write_text(json.dumps({'graded-quiet-room-a2-r30': ['us-f', 'uk-m']}))
+            os.utime(Path(tmp) / 'index-old.json', (2e9, 2e9))
+            got, version = nx.audio_index()
+            self.assertEqual(got, {'v5-a': ['us-f'], 'graded-quiet-room-a2-r30': ['us-f', 'uk-m']})
+            self.assertEqual(version, int(2e9))
+
 
 if __name__ == '__main__':
     unittest.main()

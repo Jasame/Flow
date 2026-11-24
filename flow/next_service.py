@@ -25,6 +25,9 @@ THEMES = {'campus': '校园学习', 'travel': '旅行生活', 'life': '日常生
 MINUTES = (5, 10, 15, 20, 30, 45, 60)
 # Pre-generated Kokoro narration (see tools/gen_audio.py): audio/<voice>/<material>.m4a + .json timings.
 VOICES = {'us-f': '美音 · 女声', 'us-m': '美音 · 男声', 'uk-f': '英音 · 女声', 'uk-m': '英音 · 男声'}
+# Which ids can have narration files: the v5 corpus and, since the r27 content line, the older materials too (简版:
+# graded-*, graph-* and the first theme-level texts), so WeChat on Android, which has no browser voice, can play them.
+NARRATION_ID = re.compile(r'(?:v5|graded|graph|campus|travel|life|work|culture|science)-[a-z0-9]+(?:-[a-z0-9]+)*')
 AUDIO_DIR = Path(os.getenv('FLOW_AUDIO_DIR') or Path(__file__).resolve().parent / 'audio')
 _AUDIO = {'mtime': None, 'index': {}}
 WORD = re.compile(r"[A-Za-z]+(?:'[A-Za-z]+)?")
@@ -422,28 +425,34 @@ def set_voice(c, uid, data):
 
 def audio_index():
     """{material id: [voices]} and its version. With R2 in use (media.py), from the release's media manifest, so a
-    material has narration as soon as it is uploaded; otherwise from audio/index.json, reloaded when it changes."""
+    material has narration as soon as it is uploaded; otherwise from audio/index.json, reloaded when it changes.
+    audio/index-old.json lists the narration of the older materials (简版, r27 content line). It is a separate file
+    because code before it serves only v5 ids: had their entries gone into index.json, an older release would have
+    offered narration it then refused to serve."""
     import media
     listed = media.narration()
     if listed is not None:
         return {k: [v for v in vs if v in VOICES] for k, vs in listed.items()}, media.version()
-    f = AUDIO_DIR / 'index.json'
-    try:
-        mtime = f.stat().st_mtime
-    except OSError:
+    files = (AUDIO_DIR / 'index.json', AUDIO_DIR / 'index-old.json')
+    mtimes = tuple(f.stat().st_mtime if f.exists() else 0 for f in files)
+    if not any(mtimes):
         return {}, 0
-    if _AUDIO['mtime'] != mtime:
-        try:
-            _AUDIO['index'] = {k: [v for v in vs if v in VOICES] for k, vs in json.loads(f.read_text()).items()}
-        except (OSError, ValueError):
-            _AUDIO['index'] = {}
-        _AUDIO['mtime'] = mtime
-    return _AUDIO['index'], int(mtime)
+    if _AUDIO['mtime'] != mtimes:
+        index = {}
+        for f in files:
+            try:
+                index.update({k: [v for v in vs if v in VOICES] for k, vs in json.loads(f.read_text()).items()
+                              if NARRATION_ID.fullmatch(k)})
+            except (OSError, ValueError, AttributeError):
+                pass
+        _AUDIO['index'] = index
+        _AUDIO['mtime'] = mtimes
+    return _AUDIO['index'], int(max(mtimes))
 
 
 def audio_file(voice, pid, ext):
     """Path of a narration file, or None. Names are validated so nothing outside AUDIO_DIR can be served."""
-    if voice not in VOICES or ext not in ('m4a', 'mp4', 'json') or not re.fullmatch(r'v5-[a-z0-9]+(?:-[a-z0-9]+)*', pid or ''):
+    if voice not in VOICES or ext not in ('m4a', 'mp4', 'json') or not NARRATION_ID.fullmatch(pid or ''):
         return None
     name = pid + '.' + ('m4a' if ext == 'mp4' else ext)  # .mp4 is the same file, for edge caching
     return __import__('media').path(f'{voice}/{name}', AUDIO_DIR / voice / name)  # fetched from R2 when missing here
@@ -770,7 +779,8 @@ def home(c, uid, level=None, themes=None):
     line = __import__('daily_line').today(c, uid, level, skip={p['id'] for p in picks[:1]})
     out = {'profile': prof, 'level': level, 'level_label': LEVELS[level]['label'], 'today': picks, 'news': news, 'resume': resume, 'line': line,
            'stats': stats(c, uid) if uid else None, 'graph': g,
-           'announce': __import__('console_ops').current_announcement(c)}  # 公告 from the xmc.hk console, at the top of 今日
+           'announce': __import__('console_ops').current_announcement(c),
+           'trial_survey': bool(uid) and __import__('class_service').survey_due(c, uid)}  # 公告 from the xmc.hk console, at the top of 今日
     if uid and prof:
         import skills_service as sk
         out['sprint'] = __import__('exam_sprint').brief(c, uid)  # 考试冲刺: the exam and its days left, in the plan's header line
