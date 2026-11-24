@@ -41,24 +41,50 @@
       const box = el.closest('#sheetCard, form, section, .card, .stack') || el.parentElement;
       return [...box.querySelectorAll('button.primary, .btn.primary, button[type=submit]')].find(b => el.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) || null;
     };
+    // Client rects → the part of the screen in sight: before iOS 26 they are against the layout viewport, which the
+    // visual one may have panned down by offsetTop; on iOS 26+ (27.2 in the simulator) they are against what is in
+    // sight already, offsetTop says something else, and pageTop ≈ scrollY. scrollY − pageTop is right for both.
+    const shift = () => scrollY - vv.pageTop;
+    // the sticky top bar and the study steps under it: a field brought into sight must not end up under them
+    const headLine = () => Math.max(0, ...[bar, document.querySelector('main .steps')].filter(x => x && x.offsetParent !== null && /sticky|fixed/.test(getComputedStyle(x).position))
+      .map(x => x.getBoundingClientRect()).filter(r => r.top < 120).map(r => r.bottom + shift()));
+    let kbSeen = 0;  // the keyboard's height the last time it was up (iPhone portrait: about half the screen)
     const fit = () => {
       const kb = Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop));
-      root.style.setProperty('--kb', kb + 'px');
-      document.body.classList.toggle('kb-open', kb > 80);
+      root.style.setProperty('--kb', kb + 'px');  // where fixed things (the sheet) stand
+      // Up or not from the screen part covered: on iOS 26+ innerHeight shrinks with the keyboard, so kb above is 0 there.
+      const covered = Math.round(root.clientHeight - vv.height), up = covered > 80;
+      if (up) kbSeen = covered;
+      document.body.classList.toggle('kb-open', up);
       const el = document.activeElement;
-      if (kb <= 80 || !el || !isTyping({ target: el })) return;
-      const btn = submitOf(el), card = el.closest('#sheetCard');
+      if (!up || !el || !isTyping({ target: el })) return;
+      const btn = submitOf(el), card = el.closest('#sheetCard'), s = shift();
       const r = el.getBoundingClientRect(), b = btn && btn.offsetParent !== null ? btn.getBoundingClientRect() : r;
-      const top = vv.offsetTop + 8, bottom = vv.offsetTop + vv.height - 8;
-      const over = Math.max(r.bottom, b.bottom) - bottom;
-      const by = over > 0 ? Math.min(over, r.top - top) : r.top < top ? r.top - top : 0;  // never push the field's top out
+      const top = (card ? 0 : headLine()) + 8, bottom = vv.height - 8;
+      const fieldTop = r.top + s, over = Math.max(r.bottom, b.bottom) + s - bottom;
+      const by = over > 0 ? Math.min(over, fieldTop - top) : fieldTop < top ? fieldTop - top : 0;  // never push the field's top out
       if (by) (card || window).scrollBy({ top: by, behavior: 'auto' });
+    };
+    // On iPhones and iPads the page moves first, at the tap: when a field near the end of the page is to come into
+    // sight, iOS 26+ moves the whole web view without telling the page (scrollY stays, the client rects do not
+    // change) and stops at the keyboard itself, so its ∧ ∨ ✓ bar covers the field and its button (对话, 导入文章 —
+    // tools/ios_sim_check.py, 2026-11-25). With room below the page and the field and its button already where the
+    // keyboard will leave them in sight, iOS has nothing to move; fit() above then corrects what is left.
+    const IOS_KB = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const makeRoom = el => {
+      if (!IOS_KB || el.closest('#sheetCard') || root.clientHeight - vv.height > 80) return;  // a sheet stands on the keyboard; up already: fit()
+      document.body.classList.add('kb-room');
+      const btn = submitOf(el), s = shift(), r = el.getBoundingClientRect(), b = btn && btn.offsetParent !== null ? btn.getBoundingClientRect() : r;
+      const kbH = kbSeen || Math.round(root.clientHeight * (innerWidth > innerHeight ? 0.62 : 0.5));
+      const fieldTop = r.top + s, by = Math.min(Math.max(r.bottom, b.bottom) + s - (root.clientHeight - kbH - 12), fieldTop - headLine() - 12);
+      if (by > 4 || fieldTop < headLine()) window.scrollBy({ top: by, behavior: 'auto' });
     };
     let raf = 0;
     const later = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(fit); };
     vv.addEventListener('resize', later);
     vv.addEventListener('scroll', later);
-    document.addEventListener('focusin', e => { if (isTyping(e)) setTimeout(fit, 320); });  // after iOS has moved things itself
+    document.addEventListener('focusin', e => { if (!isTyping(e)) return; makeRoom(e.target); setTimeout(fit, 320); });  // fit after iOS has moved things itself
+    document.addEventListener('focusout', () => setTimeout(() => { if (!isTyping({ target: document.activeElement })) document.body.classList.remove('kb-room'); }, 0));
   }
 
   // ---- 新版本: back in front (or when the service worker changes), ask the server which version it serves. A new one
@@ -120,3 +146,17 @@
   if (navigator.serviceWorker) navigator.serviceWorker.addEventListener('controllerchange', () => { swSwitched = true; checkVersion(true); });
   addEventListener('hashchange', () => setTimeout(updateWhenSafe, 300));  // a pending version is taken on the next resting page
   setTimeout(() => checkVersion(true), 4000);  // once after opening (the page itself may have come from the cache), off the first screen's way
+
+  // ---- 深色/浅色: an iPhone paints the strip under the status bar from the page when it loads and keeps it. A home-screen
+  // app left open while the phone turns dark (or light) keeps a light strip on the dark page — a white band — until the
+  // page loads again; going home and back does not change it, nor does a new theme-color (tools/ios_sim_check.py,
+  // 2026-11-25). So a change of scheme is taken like a new version: a reload at once on a resting page, else on the next.
+  if (navigator.standalone === true && window.matchMedia) {
+    let schemeStale = false;
+    const takeScheme = () => { if (schemeStale && restingNow()) { schemeStale = false; location.reload(); } };
+    const mq = matchMedia('(prefers-color-scheme: dark)');
+    const changed = () => { schemeStale = true; setTimeout(takeScheme, 300); };
+    if (mq.addEventListener) mq.addEventListener('change', changed); else if (mq.addListener) mq.addListener(changed);
+    document.addEventListener('visibilitychange', () => setTimeout(takeScheme, 300));
+    addEventListener('hashchange', () => setTimeout(takeScheme, 300));
+  }
