@@ -359,16 +359,16 @@ document.documentElement.classList.add('js');
      (sentences read by CosyVoice, tts_service) and 'fast' (typed scene turns on a 百炼 model); the server writes the
      ones in force into <html data-film> (app.py about_film). With less motion nothing plays by itself. */
   const FILM_SEGS = [  // id, label, length in the long cut, [start in the scene, length] in the short cut, a still frame
-    { id: 'open', label: '开场', dur: 5, short: [0, 3], still: 4 },
-    { id: 'speak', label: '口语情景', dur: 14, short: [2.4, 8], still: 12.5 },
-    { id: 'rounds', label: '循环复练', dur: 10, still: 9 },
-    { id: 'ielts', label: '雅思和跟读', dur: 7, still: 6.5 },
-    { id: 'daily', label: '每天一篇', dur: 11, short: [3.4, 6], still: 9.5 },
-    { id: 'words', label: '单词', dur: 7, short: [1, 3], still: 6 },
+    { id: 'open', label: '开场', dur: 5, short: [0, 3.4], still: 4 },
+    { id: 'speak', label: '口语情景', dur: 14.5, short: [2.4, 8.2], still: 12.5 },
+    { id: 'rounds', label: '循环复练', dur: 10.5, still: 9 },
+    { id: 'ielts', label: '雅思和跟读', dur: 8, still: 7.5 },
+    { id: 'daily', label: '每天一篇', dur: 11, short: [3.4, 7], still: 9.5 },
+    { id: 'words', label: '单词', dur: 7, short: [1, 3.9], still: 6 },
     { id: 'exam', label: '考试和进步', dur: 8, still: 7.5 },
-    { id: 'any', label: '随时随地', dur: 7, short: [0.8, 2.6], still: 6.5 },
+    { id: 'any', label: '随时随地', dur: 6.5, short: [0.8, 3.1], still: 6.2 },
     { id: 'class', label: '老师和班级', dur: 4, still: 3.8 },
-    { id: 'end', label: '结尾', dur: 7, short: [0, 3.4], still: 6 },
+    { id: 'end', label: '结尾', dur: 7, short: [0, 3.2], still: 6 },
   ];
   // Captions: [scene, from, to (seconds from the scene's start in that cut), text]; a function picks the words the
   // server's settings allow. web: false = only in the videos (the end card already says it on the page).
@@ -377,26 +377,26 @@ document.documentElement.classList.add('js');
   const FILM_CAPS = {
     long: [
       ['open', 0.3, 5, '单词背了不少，一开口还是卡住？'],
-      ['speak', 0.3, 7.3, '语流的口语情景：AI 扮演店员、房东、面试官，你用英文把事情办成。'],
-      ['speak', 7.4, 14, L02B],
+      ['speak', 0.3, 7.6, '语流的口语情景：AI 扮演店员、房东、面试官，你用英文把事情办成。'],
+      ['speak', 7.7, 14.5, L02B],
       ['rounds', 0.2, 4.9, '说短了，它就放慢；说得好，它就加深。'],
-      ['rounds', 5, 10, '练过的情景，两周后再来，多一条要求，还会换角色。'],
-      ['ielts', 0.2, 7, '雅思口语 Part 1、Part 2，按四项标准给估计分；跟读一句，看发音分。'],
+      ['rounds', 5, 10.5, '练过的情景，两周后再来，多一条要求，还会换角色。'],
+      ['ielts', 0.2, 8, '雅思口语 Part 1、Part 2，按四项标准给估计分；跟读一句，看发音分。'],
       ['daily', 0.2, 6, '每天一篇短文：听、读、理解、用出来，十几分钟。'],
       ['daily', 6.1, 11, '生词点一下就懂。'],
       ['words', 0.2, 7, '17 本词书，从中考到 GRE；快忘的时候，正好再练一次。'],
       ['exam', 0.2, 8, '备考有倒计时和题型专练；这周学了几天、记住了哪些词，都看得见。'],
-      ['any', 0.2, 7, '加到手机桌面，像 App 一样用；没网也能学。'],
+      ['any', 0.2, 6.5, '加到手机桌面，像 App 一样用；没网也能学。'],
       ['class', 0.2, 4, '老师可以开班级，只看全班的数字。'],
       ['end', 0.3, 7, '语流 Flow，每天十几分钟，把英语用起来。', false],
     ],
     short: [
-      ['open', 0.2, 3, '单词背了不少，一开口还是卡住？'],
-      ['speak', 0.1, 8, f => f.fast ? '语流的口语情景：AI 扮店员，你用英文把事办成，打字一两秒就有回应。' : '语流的口语情景：AI 扮店员，你用英文把事办成。'],
-      ['daily', 0.1, 6, '每天一篇短文，听、读、理解、用出来；生词点一下就懂。'],
-      ['words', 0.1, 3, '17 本词书，快忘的时候正好再练。'],
-      ['any', 0.1, 2.6, '加到手机桌面，没网也能学。'],
-      ['end', 0.2, 3.4, '语流 Flow，把英语用起来。', false],
+      ['open', 0.2, 3.4, '单词背了不少，一开口还是卡住？'],
+      ['speak', 0.1, 8.2, f => f.fast ? '语流的口语情景：AI 扮店员，你用英文把事办成，打字一两秒就有回应。' : '语流的口语情景：AI 扮店员，你用英文把事办成。'],
+      ['daily', 0.1, 7, '每天一篇短文，听、读、理解、用出来；生词点一下就懂。'],
+      ['words', 0.1, 3.9, '17 本词书，快忘的时候正好再练。'],
+      ['any', 0.1, 3.1, '加到手机桌面，没网也能学。'],
+      ['end', 0.2, 3.2, '语流 Flow，把英语用起来。', false],
     ],
   };
   const ease = k => 1 - Math.pow(1 - k, 3);
