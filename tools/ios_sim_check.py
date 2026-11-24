@@ -530,6 +530,9 @@ if UI_SERVER:
         sys.exit('--ui-server is for the local test server (--host localhost:PORT) only')
     state, _, who = UI_SERVER.partition(':')
     tok = json.loads((Path(state) / 'sessions.json').read_text())['learners'][who or 'home-app']['token']
+    # an earlier run's session cookie is HttpOnly (the server renews it so), which a page script cannot overwrite
+    try: p.cmd('Page.deleteCookie', {'cookieName': 'flow_session', 'url': f'http://{HOST}/'})
+    except Exception: pass
     p.js(f"document.cookie = 'flow_session={tok}; path=/; SameSite=Lax'"); p.reload()
 if p.js("location.hash").startswith('#/welcome'):
     for t in ('留在内测版', '日常交流', 'B1读懂一般文章', '开始学习'):
