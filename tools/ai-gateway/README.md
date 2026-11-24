@@ -115,6 +115,7 @@ cd /www/wwwroot/flow && python3 ai_check.py
 ```
 
 - 后台给某个任务选了 `flow-text-qwen37-plus`：学员的请求问它（企业账号）。`ai_eval.py` 和每晚小评测问 `flow-eval-qwen37-plus`，例句预生成问 `flow-batch-qwen37-plus`，这两个都走学生账号。网关里没有对应的 eval / batch 名字时，退回学员用的那个名字（企业账号）。评测报告里的 `asked` 会写明实际问了哪些名字。
+- 学员的任务都还在 `flow-text`（Gemini）时，例句预生成也可以先用学生账号：网关里建一个不带后缀的 `flow-batch`（指向 `bailian-dev` 上评测选出的便宜模型），例句预生成就问它；ai_eval 的 `flow-eval` 同理。没有这个名字就照旧问 `flow-text`。
 - **学生券用完或过期后**：在网关里把 `flow-eval-*`、`flow-batch-*` 改指 `bailian` 上游（删了重建，或者直接删掉，让 Flow 退回 `flow-text-*`）。Flow 代码不用动。
 - 这些都是候选，评测后不用的可以删。max 档、Kimi、deepseek-v4-pro 贵 5–20 倍，这几类任务用不上，不加。
 

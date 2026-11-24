@@ -138,11 +138,18 @@ def route(kind=None):
 
 
 def in_lane(name, lane=None):
-    """flow-text-X as flow-eval-X / flow-batch-X when this process runs in that lane and the gateway has the name."""
+    """flow-text-X as flow-eval-X / flow-batch-X when this process runs in that lane and the gateway has the name;
+    the default flow-text as plain flow-batch / flow-eval when the gateway has that (batch work on the owner's account
+    before any learner task has moved off Gemini)."""
     lane = lane if lane is not None else os.getenv('FLOW_AI_LANE', '').strip()
-    if lane not in LANES or not name.startswith('flow-text-'):
+    if lane not in LANES:
         return name
-    other = f'flow-{lane}-' + name[len('flow-text-'):]
+    if name.startswith('flow-text-'):
+        other = f'flow-{lane}-' + name[len('flow-text-'):]
+    elif name == 'flow-text':
+        other = f'flow-{lane}'
+    else:
+        return name
     return other if other in gateway_models() else name
 
 

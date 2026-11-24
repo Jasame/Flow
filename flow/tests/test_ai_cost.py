@@ -154,7 +154,11 @@ class RouteTests(Site):
         self.assertEqual(ai_routes.route('fill-examples'), 'flow-batch-qwen37-flash')  # 例句预生成
         self.assertEqual(ai_routes.route('next-examples'), 'flow-text-qwen37-flash')
         self.route('next-examples', 'flow-text')
-        self.assertEqual(ai_routes.route('fill-examples'), 'flow-text')  # Gemini has no lanes
+        self.assertEqual(ai_routes.route('fill-examples'), 'flow-text')  # no plain flow-batch on the gateway: Gemini
+        ai_routes._CHOICES['names'].append('flow-batch')
+        self.assertEqual(ai_routes.route('fill-examples'), 'flow-batch')  # the owner's account, while learners stay on Gemini
+        self.assertEqual(ai_routes.route('next-examples'), 'flow-text')
+        ai_routes._CHOICES['names'].remove('flow-batch')
         _, sent = self.ask('fill-examples', {'flow-text': [answer('{}', 'gemini-3.8-flash')]})
         self.assertEqual(sent[0]['model'], 'flow-text')
 
