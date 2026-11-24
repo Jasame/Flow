@@ -1,3 +1,3 @@
-44b4cc05fb04dc82ff0f36aa131ccad0ffe91b89 d4951f01e7f4f5f2f3ebe249d54605ef1d8178d28085fec6cdced500f6ddb755 e2e light
-# b10 mail-layout: Merge pull request #70 from Jasame/a11y-focus-wait = build of 457160eb29c0
+c04db4e4a1366399568795fdef97bd02d04e9e9e 33b1622257d07463bac1ccef667a7c14019fa831a1bbceb5fddeace1076bda05 e2e light
+# b11 main: Merge pull request #77 from Jasame/voice-eval = build of 8d4f2e494ab0
 # Format: <commit sha> <manifest sha256> [e2e [light]]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
