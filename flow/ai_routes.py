@@ -659,7 +659,7 @@ def nightly_on():
 
 
 def nightly(c, now=None):
-    """Once a night (02:00–05:00 Beijing), the quick marking check (ai_eval.py --quick, about 17 calls, a throwaway
+    """Once a night (02:00–05:00 Beijing), the quick marking check (ai_eval.py --quick, about 21 calls, a throwaway
     database, the site's routes) as a child process; its report is <data>/ai-eval/<day>.json for the console.
     Not on the 内测版, not when turned off in the console, not once the day's budget is spent. Returns True if started."""
     now = now or time.time()
