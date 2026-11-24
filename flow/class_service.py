@@ -239,6 +239,16 @@ def join(c, uid, data):
         return err
     if k['teacher'] == uid:
         return {'error': '你是这个班的老师，不用加入；在「我的 → 我的班级」里看全班汇总', 'field': 'code'}, 409
+    import privacy_service as pv  # the 年龄段 first (asked in the same sheet), and under 14 a guardian's agreement
+    if data.get('age'):
+        got = pv.set_age(c, uid, data)
+        if got[1] != 200:
+            return got
+    u = c.execute('SELECT age_band, guardian_ok FROM users WHERE id=?', (uid,)).fetchone()
+    if not pv.info(u)['age']:
+        return {'error': '加入班级前，先选一下你的年龄段', 'field': 'age', 'code': 'age'}, 409
+    if pv.needs_guardian(u):
+        return {'error': pv.NEED_GUARDIAN + '勾选后才能加入班级。', 'field': 'guardian', 'code': 'guardian'}, 409
     now_in = c.execute('SELECT k.id, k.name FROM class_members m JOIN classes k ON k.id=m.class_id WHERE m.user_id=? AND m.left_at IS NULL', (uid,)).fetchone()
     if now_in:
         if now_in['id'] == k['id']:
@@ -397,6 +407,17 @@ def change(c, data):
         return {'error': '接口不存在'}, 404, '', ''
     c.commit()
     return {'ok': True, 'code': _class(c, k['id'])['code']}, 200, target(_class(c, k['id'])), detail
+
+
+SURVEY_AFTER = 21 * DAY  # the trial survey is offered on 今日 three weeks after joining (survey_service.TRIAL)
+
+
+def survey_due(c, uid, now=None):
+    """Whether 今日 offers the anonymous trial survey: in a class now, joined at least three weeks ago. Whether it was
+    answered or closed is kept on the phone only, so nothing links an account to an answer."""
+    r = c.execute('SELECT m.joined_at FROM class_members m JOIN classes k ON k.id=m.class_id WHERE m.user_id=? AND m.left_at IS NULL AND k.active=1',
+                  (uid,)).fetchone()
+    return bool(r) and (now or time.time()) - r['joined_at'] >= SURVEY_AFTER
 
 
 def membership(c, uid):

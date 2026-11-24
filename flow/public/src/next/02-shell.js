@@ -33,10 +33,11 @@
     if (sheetReturn && document.contains(sheetReturn) && sheetReturn.focus) sheetReturn.focus({ preventScroll: true });
     sheetReturn = null;
   }
-  sheetEl.addEventListener('click', e => { if (e.target.closest('[data-close]')) closeSheet(); });
+  const sheetLocked = () => !!sheetCard.querySelector('[data-lock]');  // a sheet that waits for an answer (askAgeOnce)
+  sheetEl.addEventListener('click', e => { const c = e.target.closest('[data-close]'); if (c && (!sheetLocked() || sheetCard.contains(c))) closeSheet(); });
   document.addEventListener('keydown', e => {
     if (sheetEl.hidden) return;
-    if (e.key === 'Escape') { e.preventDefault(); closeSheet(); return; }
+    if (e.key === 'Escape') { e.preventDefault(); if (!sheetLocked()) closeSheet(); return; }
     if (e.key !== 'Tab') return;
     const f = [...sheetCard.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select,[tabindex="0"]')].filter(x => x.offsetParent !== null);
     if (!f.length) return;
@@ -50,7 +51,7 @@
     let y0 = null, dy = 0;
     sheetCard.addEventListener('touchstart', e => { y0 = sheetCard.scrollTop <= 0 && e.touches.length === 1 ? e.touches[0].clientY : null; dy = 0; }, { passive: true });
     sheetCard.addEventListener('touchmove', e => { if (y0 == null) return; dy = e.touches[0].clientY - y0; if (dy > 0) sheetCard.style.transform = `translateY(${dy}px)`; }, { passive: true });
-    sheetCard.addEventListener('touchend', () => { if (y0 == null) return; y0 = null; if (dy > 90) closeSheet(); else sheetCard.style.transform = ''; });
+    sheetCard.addEventListener('touchend', () => { if (y0 == null) return; y0 = null; if (dy > 90 && !sheetLocked()) closeSheet(); else sheetCard.style.transform = ''; });
   })();
   // On phones the bottom tabs step aside while typing, so the keyboard never covers the field and its button.
   document.addEventListener('focusin', e => { if (TOUCH && isTyping(e)) document.body.classList.add('typing'); });
@@ -83,7 +84,7 @@
   async function refreshHome() {
     const before = S.home ? JSON.stringify(S.home) : '';
     S.home = await api('/api/next/home' + guestQuery(true));
-    if (S.home.session) { S.user = S.home.session.user; S.csrf = S.user ? S.user.csrf : ''; }
+    if (S.home.session) { S.user = S.home.session.user; S.csrf = S.user ? S.user.csrf : ''; setTimeout(askAgeOnce, 400); }
     S.homeFromSnap = false; DATA.ok();
     const changed = before !== JSON.stringify(S.home);
     if (changed) snapHome();
@@ -173,7 +174,7 @@
   function fieldError(form, err, x) {  // the message under the form, and the field it is about marked and focused
     err.textContent = x.message;
     form.querySelectorAll('[aria-invalid]').forEach(i => i.removeAttribute('aria-invalid'));
-    const f = x.field && form.elements[x.field]; if (f) { f.setAttribute('aria-invalid', 'true'); f.focus(); }
+    const f = x.field && form.elements[x.field]; if (f && f.setAttribute) { f.setAttribute('aria-invalid', 'true'); f.focus(); } else if (f && f[0]) f[0].focus();  // a radio group: its first
   }
   async function openLogin(reason, tab) {
     const mail = await mailOn();
@@ -189,6 +190,7 @@
       ${reset ? '<button class="btn ghost" type="button" data-tab="pw">返回登录</button>' : '<button class="btn ghost" data-close type="button">先不登录</button>'}</div>`, card => {
       card.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => openLogin(reason, b.dataset.tab));
       bindEyes(card);
+      if (tab === 'reg') bindAge(card, false);
       const form = card.querySelector('#authForm'), err = card.querySelector('#authErr');
       const sendBtn = card.querySelector('[data-send]');
       if (sendBtn) sendBtn.onclick = async () => {
@@ -205,13 +207,15 @@
         if (tab === 'reg' && !USERNAME_OK.test(v('username').trim())) return fieldError(form, err, { message: '用户名需 2–40 个字符，不能有空格和 @', field: 'username' });
         if ((tab === 'reg' || tab === 'reset') && v('password').length < 10) return fieldError(form, err, { message: '密码至少 10 位', field: 'password' });
         if ((tab === 'code' || tab === 'reset' || (tab === 'reg' && mail)) && !/^\d{6}$/.test(v('code').trim())) return fieldError(form, err, { message: '请输入邮件里的 6 位验证码', field: 'code' });
+        const ag = readAge(form), agp = tab === 'reg' ? ageProblem(ag, true, false) : '';
+        if (agp) return fieldError(form, err, { message: agp, field: ag.age ? 'guardian' : 'age' });
         const btn = form.querySelector('[type=submit]'); btn.disabled = true;
         try {
           let r;
           if (tab === 'pw') r = await api('/api/login', { username: v('username').trim(), password: v('password') });
           else if (tab === 'code') r = await api('/api/login', { method: 'code', email: v('email').trim(), code: v('code').trim() });
           else if (reset) r = await api('/api/auth/reset', { email: v('email').trim(), code: v('code').trim(), password: v('password') });
-          else r = await api('/api/register', { email: v('email').trim(), code: v('code').trim(), username: v('username').trim(), password: v('password') });
+          else r = await api('/api/register', { email: v('email').trim(), code: v('code').trim(), username: v('username').trim(), password: v('password'), age: ag.age, guardian: ag.guardian });
           await afterLogin(); closeSheet();
           const name = (S.user && S.user.username) || r.username || '';
           toast(reset ? '密码已重设，已经登录' : tab === 'reg' ? `注册成功，欢迎你${name ? '，' + name : ''}` : `欢迎回来${name ? '，' + name : ''}`);
@@ -234,7 +238,9 @@
         <span class="hint">2–40 个字符，可以用中文，不能有空格和 @。登录时用户名和邮箱都可以用。</span></label>
       ${pwField('密码', 'password', 'new-password', '至少 10 位，最好是一句只有你知道的话')}
       ${mail ? '' : '<span class="hint">注册后可以在「我的」里绑定邮箱，忘记密码时用它找回。</span>'}
-      <button class="btn primary block" type="submit">注册并登录</button>`;
+      ${ageFields('', false)}
+      <button class="btn primary block" type="submit">注册并登录</button>
+      <span class="hint">注册即表示你已了解<a class="link" href="${PRIVACY}" target="_blank" rel="noopener">隐私说明</a>：数据存在哪里、哪些内容交给哪家 AI。</span>`;
   }
   // An older password-reset email links to /#reset=<token>: set the new password here, then sign in with it.
   function resetByLink(token) {

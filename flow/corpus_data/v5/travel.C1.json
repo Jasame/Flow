@@ -12,6 +12,7 @@
     "body": "There is a particular kind of exhaustion that only a well-planned holiday can produce. You know the type: five cities in eight days, alarms set for dawn, and a list of landmarks crossed off with grim satisfaction on the train to the next place. Measured by the number of sights seen, such a trip is a triumph. Measured by what you actually remember, it is often a blur of queues, station platforms and the backs of other tourists' heads. Slow travel starts from a different question. Rather than asking how much of a place you can see, it asks how well you can come to know a small part of it. That might mean staying a week in a single town, shopping at the same market until the stallholders recognise you, or returning to one bakery so often that your order is being wrapped before you have finished saying it. None of this is glamorous, and it rarely makes for dramatic photographs. Yet it is precisely in these repeated, unremarkable moments that a place stops being scenery and starts to feel lived in. To be fair, the checklist approach has its defenders, and they are not entirely wrong. Not everyone has the luxury of unlimited time, and for someone who may visit a country only once, wanting to see its most famous sights is hardly unreasonable. Neither the rushed tourist nor the slow traveller holds a monopoly on meaningful experience. But I suspect many of us rush less out of genuine curiosity than out of a fear of missing out, as if an unvisited museum were a personal failure. If we treated a trip less like an exam to be passed and more like a conversation to be continued, we might return home less tired and, oddly, with more to say. The sights, after all, will outlast us. The chance to sit still somewhere unfamiliar and simply pay attention is rarer, and far easier to waste.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's main argument?",
         "options": [
           "Seeing famous sights is a waste of a traveller's time",
@@ -23,6 +24,7 @@
         "evidence": "it is precisely in these repeated, unremarkable moments that a place stops being scenery and starts to feel lived in"
       },
       {
+        "type": "vocab",
         "prompt": "What does \"a blur of queues\" suggest about a rushed trip?",
         "options": [
           "The traveller remembers every detail clearly",
@@ -32,7 +34,9 @@
         ],
         "answer": 1,
         "evidence": "it is often a blur of queues, station platforms and the backs of other tourists' heads"
-      }
+      },
+      {"type": "inference", "prompt": "What does the writer mean by treating a trip \"more like a conversation to be continued\"?", "options": ["Trips should always be repeated every year", "Travellers should talk more on trains", "Travel should build a connection with a place over time", "Every trip should be planned in detail"], "answer": 2, "evidence": "more like a conversation to be continued"},
+      {"type": "detail", "prompt": "What reason does the writer give for why many of us rush when we travel?", "options": ["A fear of missing out", "Bad weather", "Cheap train tickets", "Short opening hours"], "answer": 0, "evidence": "out of a fear of missing out"}
     ],
     "dictation_index": 2,
     "vocabulary": [
@@ -141,6 +145,7 @@
     "body": "Almost every home contains a small museum of other places: a fridge magnet shaped like a lighthouse, a carved wooden elephant, a snow globe that nobody remembers buying. We tend to think of souvenirs as faintly embarrassing, the kind of thing sold in identical shops beside every famous view. Yet the urge to carry something back is remarkably persistent, and it says something about how memory works. What we actually bring home is rarely the object itself. A cheap ceramic bowl is worth very little on a shelf, but it can return you, in an instant, to the hot afternoon when you bargained for it in a language you barely spoke. The object works less like a trophy than like a key, unlocking a scene that would otherwise fade. This is why the most treasured souvenirs are so often things no shop would bother to sell: a ticket stub, a pebble from a particular beach, a recipe scribbled by a host whose handwriting you can still picture. Their value lies in the story attached to them, which is invisible to anyone else. The meaning of such objects has little to do with what they cost or how well they were made. Some travellers go further and argue that the best souvenirs are not things at all. A new habit, such as an afternoon rest or a different way of making coffee, can travel home in your head and quietly reshape your days. So can a single phrase picked up from a stranger and repeated so often that your friends start using it too. None of this means the fridge magnet deserves our scorn. Even the most ordinary object, chosen at the end of a good trip, can punch above its weight. The question worth asking before we buy is simply whether it will remind us of something we want to keep.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main idea of the article?",
         "options": [
           "Souvenirs sold near famous sights are usually poor value",
@@ -152,6 +157,7 @@
         "evidence": "Their value lies in the story attached to them, which is invisible to anyone else."
       },
       {
+        "type": "inference",
         "prompt": "Why does the writer compare a souvenir to \"a key\"?",
         "options": [
           "It opens up a memory that might otherwise be lost",
@@ -161,7 +167,9 @@
         ],
         "answer": 0,
         "evidence": "unlocking a scene that would otherwise fade"
-      }
+      },
+      {"type": "vocab", "prompt": "What does \"punch above its weight\" mean in \"can punch above its weight\"?", "options": ["be heavier than it looks", "have more effect or value than you would expect", "break easily", "cost more than it should"], "answer": 1, "evidence": "can punch above its weight"},
+      {"type": "detail", "prompt": "According to the writer, what kind of souvenir can travel home \"in your head\"?", "options": ["A snow globe", "A new habit, such as an afternoon rest", "A fridge magnet", "A carved wooden elephant"], "answer": 1, "evidence": "A new habit, such as an afternoon rest or a different way of making coffee, can travel home in your head"}
     ],
     "dictation_index": 3,
     "vocabulary": [
@@ -270,6 +278,7 @@
     "body": "For the first week of his language course, Olu was quietly convinced that his host family was trying to fatten him up. Every evening, Astrid, his host mother, would set down a generous plate of stew, and every evening Olu would work his way through it, determined not to leave a single bite. His grandmother had raised him to believe that an unfinished plate was an insult to the cook, and he was not about to insult a woman who had welcomed a stranger into her home. The trouble was that the moment his fork touched an empty plate, Astrid would smile, say something warm that he couldn't quite follow, and fill it again. By the fourth night he was eating what amounted to two dinners and sleeping badly. Too polite to refuse and too proud to admit he didn't understand, he began skipping lunch to make room. It was Astrid's youngest son, Nils, who finally solved the mystery. Watching Olu struggle through a third helping of potatoes, the boy leaned across the table and whispered, in careful English, that in their house an empty plate meant only one thing: the guest was still hungry. Olu stared at him, then at the potatoes, and burst out laughing so hard that the whole family joined in without knowing why. Once Nils had translated, Astrid laughed even harder and confessed that she had been secretly alarmed by how much he seemed to need. Looking back, Olu finds the episode both comic and oddly instructive. Each of them was following a rule so familiar that it no longer felt like a rule at all. Had he simply asked on the first night, he wouldn't now be remembered in that household as the boy who ate two dinners. Then again, he suspects he would never have learned, quite so vividly, that kindness can speak in two different dialects, and that the only way to understand either is to ask.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What was the real cause of the problem at dinner?",
         "options": [
           "Astrid believed Olu disliked her cooking",
@@ -281,6 +290,7 @@
         "evidence": "Each of them was following a rule so familiar that it no longer felt like a rule at all."
       },
       {
+        "type": "detail",
         "prompt": "Why did Olu start skipping lunch?",
         "options": [
           "He wanted to save money during the course",
@@ -290,7 +300,9 @@
         ],
         "answer": 2,
         "evidence": "he began skipping lunch to make room"
-      }
+      },
+      {"type": "inference", "prompt": "Why did the whole family laugh \"without knowing why\"?", "options": ["They were laughing at Olu's accent", "Astrid had dropped the potatoes", "Nils had told a joke in English", "Olu's laughter spread before anyone understood the joke"], "answer": 3, "evidence": "burst out laughing so hard that the whole family joined in without knowing why"},
+      {"type": "vocab", "prompt": "What does \"instructive\" mean in \"both comic and oddly instructive\"?", "options": ["confusing", "teaching something useful", "embarrassing", "boring"], "answer": 1, "evidence": "both comic and oddly instructive"}
     ],
     "dictation_index": 5,
     "vocabulary": [
@@ -399,6 +411,7 @@
     "body": "Interviewer: You've spent years photographing people in markets, villages and city streets. What's the first rule you would give a traveller with a camera? Mariana: Ask before you shoot, which sounds obvious, but it's the rule people break most often, usually without meaning to. They see a striking face or a colourful stall, and the camera is up before they've even said hello. Interviewer: Doesn't asking ruin the moment, though, since the natural expression disappears as soon as someone knows they're being photographed? Mariana: Sometimes it does, and I've made my peace with that. A slightly stiff portrait of someone who agreed to it is worth far more to me than a perfect one taken from behind a pillar. Besides, if you stay a while, chat and perhaps buy something, people relax again, and the picture you get twenty minutes later is often better than the one you would have stolen. Interviewer: What if you don't share a language with the person? Mariana: Then you ask with your face and your hands: lift the camera slightly, raise your eyebrows and wait. If someone shakes their head or turns away, you should lower it, smile and move on, because no photograph is worth making a person feel like an exhibit. Interviewer: Are there situations where you wouldn't take pictures at all? Mariana: Every village and every market has its own unwritten rules, so I spend time watching how local people behave before I do anything. I never photograph children unless a parent is right there and has clearly said yes, and I'm wary of anyone in a vulnerable moment, however striking the image might be. Interviewer: Do you ever show people the results? Mariana: Whenever I can, because turning the screen around is the simplest way to share a moment rather than simply take it. People laugh, point at their friends and ask for another one, and occasionally they end up taking my photo instead, which seems only fair.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is Mariana's overall attitude to photographing local people?",
         "options": [
           "A great photo matters more than how people feel",
@@ -410,6 +423,7 @@
         "evidence": "no photograph is worth making a person feel like an exhibit"
       },
       {
+        "type": "detail",
         "prompt": "According to Mariana, why can staying a while lead to a better photo?",
         "options": [
           "The light usually improves later in the day",
@@ -419,7 +433,9 @@
         ],
         "answer": 1,
         "evidence": "if you stay a while, chat and perhaps buy something, people relax again"
-      }
+      },
+      {"type": "inference", "prompt": "What does Mariana mean by not making a person \"feel like an exhibit\"?", "options": ["Museums should not display photographs", "People should not be treated as objects to be looked at", "Exhibitions are too expensive to visit", "Portraits belong only in galleries"], "answer": 1, "evidence": "no photograph is worth making a person feel like an exhibit"},
+      {"type": "vocab", "prompt": "What does \"wary\" mean in \"I'm wary of anyone in a vulnerable moment\"?", "options": ["excited", "unaware", "cautious and careful", "jealous"], "answer": 2, "evidence": "I'm wary of anyone in a vulnerable moment"}
     ],
     "dictation_index": 6,
     "vocabulary": [

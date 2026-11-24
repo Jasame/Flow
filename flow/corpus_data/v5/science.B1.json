@@ -12,6 +12,7 @@
     "body": "A rainbow can seem to appear by magic, but it follows a simple rule: you need the sun behind you and rain in front of you. Sunlight looks white, yet it is really a mix of colours. When it enters a raindrop, the light bends, and each colour bends by a slightly different amount. As a result, the colours spread out like a fan. The light then bounces off the back of the drop and comes out again towards your eyes. Here is the strange part. Each drop sends only one colour to your eye, depending on where it is in the sky. Drops higher up send you red, while drops lower down send you violet. Millions of drops, which are all doing the same thing at once, build the whole arc. This means that the person standing next to you is actually seeing a different rainbow, made by different drops. It also explains why you can never reach the end of a rainbow. If you walk towards it, it moves with you, because it is not an object in one place. It is a meeting point between the sun, the rain and your own eyes.",
     "questions": [
       {
+        "type": "detail",
         "prompt": "Why can't two people see exactly the same rainbow?",
         "options": [
           "Because rainbows change colour every few seconds",
@@ -23,6 +24,7 @@
         "evidence": "the person standing next to you is actually seeing a different rainbow, made by different drops"
       },
       {
+        "type": "detail",
         "prompt": "What do you need in order to see a rainbow?",
         "options": [
           "The sun behind you and rain in front of you",
@@ -32,7 +34,9 @@
         ],
         "answer": 0,
         "evidence": "you need the sun behind you and rain in front of you"
-      }
+      },
+      {"type": "main", "prompt": "What does the text mainly explain?", "options": ["How a rainbow forms and why it depends on where you stand", "Why rain falls from clouds", "How to photograph a rainbow", "Why the sky is blue"], "answer": 0, "evidence": "It is a meeting point between the sun, the rain and your own eyes."},
+      {"type": "vocab", "prompt": "What does \"arc\" mean in \"build the whole arc\"?", "options": ["a straight line", "a curved shape like part of a circle", "a colour", "a cloud"], "answer": 1, "evidence": "build the whole arc"}
     ],
     "dictation_index": 2,
     "vocabulary": [
@@ -74,6 +78,7 @@
     "body": "The first loaf of bread I ever made came out as flat as a pancake. I had followed the recipe carefully, or so I thought. My grandmother, who has baked bread all her life, took one look at it and asked how hot my water had been. I told her it had been very hot, so that the yeast would wake up quickly. She laughed and explained my mistake. Yeast is a tiny living thing, a kind of fungus. When you mix it with flour and warm water, it feeds on the sugars in the flour and gives off carbon dioxide gas. Kneading the dough builds stretchy threads of gluten, which trap the gas in tiny bubbles, so the dough slowly rises. But yeast is alive, and water that is too hot kills it. No living yeast means no gas, and no gas means flat bread. The next weekend, I had another go, using water that felt just warm on my wrist. I left the bowl in a warm corner of the kitchen and waited. Two hours later, the dough had nearly doubled in size. When the bread came out of the oven, the whole house smelled wonderful, and my grandmother gave me a proud nod.",
     "questions": [
       {
+        "type": "main",
         "prompt": "Why was the writer's first loaf flat?",
         "options": [
           "There was not enough flour in the dough",
@@ -85,6 +90,7 @@
         "evidence": "But yeast is alive, and water that is too hot kills it."
       },
       {
+        "type": "inference",
         "prompt": "What does \"gave me a proud nod\" suggest about the grandmother at the end?",
         "options": [
           "She was too tired to say anything",
@@ -94,7 +100,9 @@
         ],
         "answer": 2,
         "evidence": "my grandmother gave me a proud nod"
-      }
+      },
+      {"type": "vocab", "prompt": "What does \"Kneading\" mean in \"Kneading the dough builds stretchy threads\"?", "options": ["cutting", "freezing", "pressing and folding dough with your hands", "baking"], "answer": 2, "evidence": "Kneading the dough builds stretchy threads of gluten"},
+      {"type": "detail", "prompt": "What does yeast give off when it feeds on the sugars in flour?", "options": ["Salt", "Carbon dioxide gas", "Water", "Oxygen"], "answer": 1, "evidence": "gives off carbon dioxide gas"}
     ],
     "dictation_index": 1,
     "vocabulary": [
@@ -136,6 +144,7 @@
     "body": "Open the fridge on a hot day and you feel a rush of cool air. It is natural to think the fridge makes cold, but that is not quite right. What a fridge really does is move heat from the inside to the outside. To do this, it uses a special liquid that flows round a closed loop of pipes. This liquid boils at a very low temperature. Inside the fridge, it turns into a gas, and changing into a gas takes heat from everything nearby, including your milk and vegetables. You have felt the same effect after swimming: as the water dries on your skin, it carries heat away, and you shiver. Next, a pump called a compressor squeezes the gas hard, which makes it hot. The hot gas then flows through pipes at the back, where it gives its heat to the room and turns back into a liquid. After that, it passes through a tiny opening that lowers its pressure, and the cycle starts again. That is why the back of a fridge often feels warm. Unless that heat can escape, the fridge has to work harder, so it is a good idea to leave a little space behind it.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main idea of the text?",
         "options": [
           "A fridge creates cold air with a special machine",
@@ -147,6 +156,7 @@
         "evidence": "What a fridge really does is move heat from the inside to the outside."
       },
       {
+        "type": "inference",
         "prompt": "Why does the writer mention swimming?",
         "options": [
           "To show that cold water is good for your health",
@@ -156,7 +166,9 @@
         ],
         "answer": 2,
         "evidence": "as the water dries on your skin, it carries heat away"
-      }
+      },
+      {"type": "vocab", "prompt": "What does \"squeezes\" mean in \"squeezes the gas hard\"?", "options": ["presses tightly", "lets out", "mixes", "cools"], "answer": 0, "evidence": "squeezes the gas hard"},
+      {"type": "detail", "prompt": "Why does the back of a fridge often feel warm?", "options": ["The motor is broken", "The light is at the back", "Hot gas gives its heat to the room there", "Most food is stored at the back"], "answer": 2, "evidence": "where it gives its heat to the room"}
     ],
     "dictation_index": 2,
     "vocabulary": [
@@ -198,6 +210,7 @@
     "body": "Sam: How does my phone know exactly where I am? We're in the middle of nowhere. Nina: It's listening to satellites. Dozens of them are circling the Earth, and each one keeps sending out a simple message. Sam: What does the message say? Nina: Basically: here's where I am, and here's the exact time. Sam: That's it? Nina: That's it. The signal travels at the speed of light, but it still takes a tiny moment to reach you. Your phone checks how late each message arrives and works out how far away each satellite is. Sam: And with a few distances, it can find the one spot that fits them all? Nina: Exactly. It needs at least four satellites to get it right. Sam: Wait, so my phone doesn't send anything to space? Nina: Nope. It only listens. The tricky part is the timing. The satellites carry extremely accurate clocks, because if those clocks were even slightly wrong, your map would put you in the middle of the lake. Sam: Good thing they aren't, then. Nina: Yes, because I have no idea how to read a paper map.",
     "questions": [
       {
+        "type": "main",
         "prompt": "According to Nina, how does a phone find its position?",
         "options": [
           "It sends a signal to the satellites and waits for an answer",
@@ -209,6 +222,7 @@
         "evidence": "Your phone checks how late each message arrives and works out how far away each satellite is."
       },
       {
+        "type": "detail",
         "prompt": "Why do the satellites need extremely accurate clocks?",
         "options": [
           "Because the signals travel very slowly",
@@ -218,7 +232,9 @@
         ],
         "answer": 3,
         "evidence": "if those clocks were even slightly wrong, your map would put you in the middle of the lake"
-      }
+      },
+      {"type": "inference", "prompt": "What does Nina's last line suggest?", "options": ["She prefers paper maps", "She wants Sam to drive", "She depends on her phone to find her way", "She builds satellites for a living"], "answer": 2, "evidence": "I have no idea how to read a paper map"},
+      {"type": "vocab", "prompt": "What does \"circling\" mean in \"Dozens of them are circling the Earth\"?", "options": ["taking photos of", "leaving", "moving round and round", "falling towards"], "answer": 2, "evidence": "Dozens of them are circling the Earth"}
     ],
     "dictation_index": 8,
     "vocabulary": [

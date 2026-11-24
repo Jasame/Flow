@@ -12,6 +12,7 @@
   "body": "I signed up for the fossil walk mainly to get my teenage son out of the house, and I'll admit I was skeptical that a gray January beach could hold anyone's attention for three hours. Our guide, a retired marine biologist named Ruth, seemed to have anticipated this. Before we had even reached the waterline, she crouched down, turned over a flat stone and showed us the faint ribbed outline of a shell that, she said, had been lying there since long before there were any humans to find it. My son, who had spent the drive pretending to be asleep, leaned in for a closer look. What struck me over the next few hours was that the real skill lay not in knowing what to look for but in knowing where. Ruth talked about the geography of the coast as if it were a library whose shelves were constantly being rearranged: winter storms tear chunks out of the soft cliffs, the tide sorts whatever falls, and the probability of finding something worthwhile is highest in the brief window after a big storm and before the next high tide. She was equally firm that we keep well away from the base of the cliffs, which can collapse without warning. Not everything we found was ancient. A gull had left a crab shell on a rock, and offshore a small boat from the local fishery was working its way along a line of buoys, two figures aboard hauling up pots. At noon Ruth passed around cups of something sweet and warming from a flask, and my son, without being asked, showed her the spiral-shaped fragment he had been guarding in his palm all morning. I can't promise the day will turn him into a scientist. But I came home oddly hopeful, and it occurred to me that the things which stun us most are often not rare at all; they have simply been lying in plain sight, waiting for someone to bend down.",
   "questions": [
    {
+    "type": "main",
     "prompt": "What does the writer suggest at the end of the article?",
     "options": [
      "Fossils are much rarer than most people believe",
@@ -23,6 +24,7 @@
     "evidence": "the things which stun us most are often not rare at all; they have simply been lying in plain sight, waiting for someone to bend down"
    },
    {
+    "type": "detail",
     "prompt": "According to Ruth, what gives you the best chance of finding fossils?",
     "options": [
      "Visiting on calm summer days when the beach is quiet",
@@ -32,7 +34,9 @@
     ],
     "answer": 1,
     "evidence": "the probability of finding something worthwhile is highest in the brief window after a big storm and before the next high tide"
-   }
+   },
+   {"type": "inference", "prompt": "What does the son's behaviour at noon suggest?", "options": ["He wanted to go home early", "He had found something the guide had lost", "He had become genuinely interested in the walk", "He was hungry and bored"], "answer": 2, "evidence": "without being asked, showed her the spiral-shaped fragment he had been guarding in his palm all morning"},
+   {"type": "vocab", "prompt": "What does \"skeptical\" mean in \"I was skeptical that a gray January beach could hold anyone's attention\"?", "options": ["certain", "doubtful", "excited", "frightened"], "answer": 1, "evidence": "I was skeptical that a gray January beach could hold anyone's attention for three hours"}
   ],
   "dictation_index": 3,
   "vocabulary": [
@@ -142,6 +146,7 @@
   "body": "A while ago our neighborhood newsletter ran an editorial urging readers to commit one random act of kindness every week, and I was surprised by how much it irritated me. I have nothing against kindness, obviously; what bothered me was the word 'random' itself. Philosophers have argued for centuries about whether goodness lives in individual acts or in settled character, and while I am in no position to resolve that debate, ordinary life seems to have taken a side. The people I would nominate as genuinely good are rarely the ones who make dramatic gestures. They are the ones whose kindness is predictable. My upstairs neighbor is a fine illustration. As far as I know, she has never paid for a stranger's coffee or left an anonymous note under a windshield wiper. But for as long as I have lived here, she has taken in everyone's parcels, remembered who is allergic to what, and noticed, before anyone else, when the elderly man on the ground floor stopped collecting his mail. That kind of consistency is less photogenic than a grand gesture, and it is easy to neglect precisely because it never makes a good story. I am skeptical, too, of efforts to make kindness mandatory, as though it could be scheduled like a dental appointment or announced in an office memo. Kindness performed to meet a quota tends to look for an audience; kindness that has become habit hardly notices itself. None of this means the newsletter was wrong to try. But I would rather we stopped treating goodness as a pleasant surprise and started treating it as a practice, built slowly through small attentions that nobody applauds. That may sound less exciting. I find it far more hopeful, because it means goodness is not reserved for heroes; it is available to anyone willing to keep showing up.",
   "questions": [
    {
+    "type": "main",
     "prompt": "What is the writer's main argument?",
     "options": [
      "Random acts of kindness do more harm than good",
@@ -153,6 +158,7 @@
     "evidence": "They are the ones whose kindness is predictable."
    },
    {
+    "type": "inference",
     "prompt": "Why does the writer mention the upstairs neighbor?",
     "options": [
      "To show that dramatic gestures are more memorable than daily habits",
@@ -162,7 +168,9 @@
     ],
     "answer": 1,
     "evidence": "My upstairs neighbor is a fine illustration."
-   }
+   },
+   {"type": "vocab", "prompt": "What does \"photogenic\" mean in \"That kind of consistency is less photogenic\"?", "options": ["old-fashioned", "attractive or impressive in pictures", "easy to remember", "expensive"], "answer": 1, "evidence": "That kind of consistency is less photogenic than a grand gesture"},
+   {"type": "detail", "prompt": "What irritated the writer about the newsletter's editorial?", "options": ["Its call for kindness itself", "The word \"random\"", "Its mention of philosophers", "Its unusual length"], "answer": 1, "evidence": "what bothered me was the word 'random' itself"}
   ],
   "dictation_index": 3,
   "vocabulary": [
@@ -267,6 +275,7 @@
   "body": "For as long as anyone could remember, the upright piano in the village hall had been used mainly as a shelf. Raffle prizes were stacked on it at the summer fair, and children occasionally banged out a few notes before being told to stop. So when Edwin, a retired composer who had recently moved into the cottage by the bridge, asked the hall committee whether he might take a look at it, most of them assumed he was simply being polite. He was not. He spent an entire afternoon inspecting it, lifting the lid, testing every key and peering at the hammers with a torch, before delivering his verdict: decades of neglect, but nothing a patient restoration couldn't put right. What followed was the most intensive piece of village cooperation anyone could recall. A retired joiner repaired the cracked casing; two teenagers, bribed with pizza, sanded the legs; Edwin himself replaced felts and strings over a long, cold winter, working in the unheated hall in fingerless gloves. The hall was not much to look at, a plain brick box said to stand on medieval foundations, but by spring the piano gleamed in one corner like something borrowed from a far grander room. The committee had printed thirty programmes for the opening evening, so the crowd that squeezed through the doors was enough to stun them. Edwin made no attempt to entertain anyone with brilliant tricks. He played a slow, simple piece he had written for the occasion, and as the final chord faded, there was a surge of applause so sudden that a toddler near the front burst into tears. Someone later suggested nominating the project for a heritage award, but Edwin waved the idea away. The point, he said, was not that the piano looked stunning again, but that it would now be played badly by children for another fifty years, which was exactly what pianos were for.",
   "questions": [
    {
+    "type": "inference",
     "prompt": "What does Edwin's final comment suggest about his attitude to the piano?",
     "options": [
      "It should be protected and played only by skilled musicians",
@@ -278,6 +287,7 @@
     "evidence": "it would now be played badly by children for another fifty years, which was exactly what pianos were for"
    },
    {
+    "type": "detail",
     "prompt": "Why was the committee stunned on the opening evening?",
     "options": [
      "Edwin played a piece that nobody had heard before",
@@ -287,7 +297,9 @@
     ],
     "answer": 1,
     "evidence": "The committee had printed thirty programmes for the opening evening, so the crowd that squeezed through the doors was enough to stun them."
-   }
+   },
+   {"type": "main", "prompt": "What is the story mainly about?", "options": ["A composer's career in a big city", "A competition for a heritage award", "A village working together to restore a neglected piano", "A child learning to play the piano"], "answer": 2, "evidence": "What followed was the most intensive piece of village cooperation anyone could recall."},
+   {"type": "vocab", "prompt": "What does \"neglect\" mean in \"decades of neglect\"?", "options": ["bad weather", "a lack of care and attention", "careful repair", "heavy daily use"], "answer": 1, "evidence": "decades of neglect"}
   ],
   "dictation_index": 1,
   "vocabulary": [
@@ -392,6 +404,7 @@
   "body": "Hi Sam, I've been meaning to write for weeks, but family life has taken a slightly bizarre turn and I needed time to process it. You'll remember that Dad retired in the spring after more than thirty years of teaching geography. We all assumed he'd take up golf or finally clear out the garage. Instead, he signed up for an intensive summer course on the history of ideas at the local college, and he has come back a changed man. He now quotes ancient philosophers over breakfast the way other people read out the weather forecast. Last Sunday, just as Mum was carving the roast, he asked whether goodness was something you were born with or something you practised, and refused to pass the potatoes until each of us had given an answer. Mum, who has a wonderfully dry sense of humour, responded by sending the whole family a memo, printed and stuck to the fridge, declaring that philosophical questions are banned before ten in the morning and that attendance at Sunday lunch remains mandatory, whatever anyone's views on free will. Honestly, though, I've started to enjoy it. On the ferry over to see them last weekend, he spent the entire crossing explaining a medieval puzzle about a donkey that starves because it can't choose between two identical piles of hay, and by the time we docked, half the passengers aboard had joined the argument. Watching him, I felt a sudden surge of affection. I hadn't seen him so animated since he used to entertain my school friends with stories about volcanoes, and I suspect retirement frightened him more than he ever let on. Anyway, please come and visit soon. Mum is making her delicious lemon cake, and Dad has promised, not entirely convincingly, not to ask you about the meaning of life. Love, Ella",
   "questions": [
    {
+    "type": "inference",
     "prompt": "Why does Ella think her father has thrown himself into philosophy?",
     "options": [
      "He wants to prove that he is cleverer than his wife",
@@ -403,6 +416,7 @@
     "evidence": "I suspect retirement frightened him more than he ever let on"
    },
    {
+    "type": "detail",
     "prompt": "What does Mum's memo say?",
     "options": [
      "Philosophy may not be discussed at Sunday lunch",
@@ -412,7 +426,9 @@
     ],
     "answer": 1,
     "evidence": "declaring that philosophical questions are banned before ten in the morning"
-   }
+   },
+   {"type": "main", "prompt": "What is the main purpose of Ella's email?", "options": ["To describe a ferry crossing in detail", "To ask Sam for help with a philosophy course", "To tell Sam about their father's new passion and invite Sam to visit", "To complain about their mother's rules"], "answer": 2, "evidence": "Anyway, please come and visit soon."},
+   {"type": "vocab", "prompt": "What does \"animated\" mean in \"I hadn't seen him so animated\"?", "options": ["angry", "confused", "tired", "lively and full of energy"], "answer": 3, "evidence": "I hadn't seen him so animated"}
   ],
   "dictation_index": 2,
   "vocabulary": [

@@ -12,6 +12,7 @@
     "body": "When a group of overseas students at a small university decided to bring a dragon dance to the town square for Spring Festival, they assumed the hard part would be the dancing. They were wrong. The dragon itself, red and gold cloth stitched by hand in a shared kitchen, came together surprisingly quickly. The real challenge was the bureaucracy. To perform in a public space, the group needed a permit, proof of insurance and a written plan showing exactly where the crowd would stand, and every form seemed to lead to another. Things got worse when an unfortunate scheduling error put the dance on the same morning as the weekly farmers' market. For a few days, the chief organizer, a chemistry student named Wei, was ready to give up. Instead, he asked for a meeting with the council and offered a concession: the group would cut the drumming short and finish before the market got busy. Having expected a long argument, he was surprised when the officials agreed within minutes. On the day, the performance was not perfectly authentic, since the drums were borrowed from a school and several dancers had learned the steps from videos, but nobody in the crowd seemed to mind. Wei meant the dance as a tribute to his grandfather, who had led the dragon in his home village for decades. The organizers had also made the event interactive: at the end, local children were invited to duck under the dragon and help carry its tail around the fountain. The council subsequently wrote to say the morning had been beneficial for local shops and to ask whether the group would return next year. If Wei had given up that first week, the town would have missed a celebration worthy of its whole square.",
     "questions": [
       {
+        "type": "main",
         "prompt": "According to the article, what turned out to be the group's biggest problem?",
         "options": [
           "Learning the dance steps in time",
@@ -23,6 +24,7 @@
         "evidence": "The real challenge was the bureaucracy."
       },
       {
+        "type": "detail",
         "prompt": "Why does the writer say the performance was \"not perfectly authentic\"?",
         "options": [
           "The dragon was much shorter than a traditional one",
@@ -32,7 +34,9 @@
         ],
         "answer": 2,
         "evidence": "since the drums were borrowed from a school and several dancers had learned the steps from videos"
-      }
+      },
+      {"type": "inference", "prompt": "Why did the council probably agree so quickly?", "options": ["Wei threatened to complain to a newspaper", "The council had always loved dragon dances", "Wei offered a sensible compromise that solved the clash with the market", "The farmers' market had been cancelled"], "answer": 2, "evidence": "the group would cut the drumming short and finish before the market got busy"},
+      {"type": "vocab", "prompt": "What does \"concession\" mean in \"offered a concession\"?", "options": ["a free ticket", "a complaint", "something you give up to reach an agreement", "a type of permit"], "answer": 2, "evidence": "offered a concession"}
     ],
     "dictation_index": 8,
     "vocabulary": [
@@ -142,6 +146,7 @@
     "body": "I only bought the box because it was cheap and I liked the old biscuit tin on top. Most of what was inside turned out to be junk: odd buttons, a broken watch, a stack of blank postcards. At the bottom, however, lay a thick bundle of paper tied with string, the knot so tight that I had to cut it with scissors. It was a handwritten manuscript of dozens of folk tales, copied out in careful blue ink, each ending with a line about the lesson it was meant to teach. Some of the morality felt old-fashioned, but many of the stories were funny, and a few were moving. Under closer scrutiny, I noticed that the handwriting changed as the pages went on: the early letters were stiff and uneven, the later ones relaxed and confident. Then I found a note slipped inside the back cover, as if the writer had wanted to conceal it. \"I learned to write so that I could keep these,\" it said. \"My mother could not, and her stories nearly disappeared with her.\" The author, it seemed, had joined an adult literacy class late in life and used the tales as her practice. I decided to type the whole thing up, staying as faithful as I could to her spelling and the odd little drawings in the margins. Subsequently, a notice I put up at the market led me to her granddaughter, who had no idea the manuscript existed. When we met, she read the note twice and laughed, saying her grandmother had always claimed she couldn't spell. I don't believe in destiny, exactly, but if I hadn't stopped for that biscuit tin, those stories would still be sitting in a box, waiting for someone curious enough to open it.",
     "questions": [
       {
+        "type": "inference",
         "prompt": "What does the change in the handwriting most likely show?",
         "options": [
           "Several different people wrote the manuscript",
@@ -153,6 +158,7 @@
         "evidence": "the early letters were stiff and uneven, the later ones relaxed and confident"
       },
       {
+        "type": "detail",
         "prompt": "According to her note, why did the author learn to write?",
         "options": [
           "To keep stories that her mother had not been able to write down",
@@ -162,7 +168,9 @@
         ],
         "answer": 0,
         "evidence": "I learned to write so that I could keep these"
-      }
+      },
+      {"type": "main", "prompt": "What is the story mainly about?", "options": ["Writing a new book of folk tales", "Finding a handwritten collection of stories and the woman behind it", "Buying cheap antiques at a market", "Learning to repair a broken watch"], "answer": 1, "evidence": "It was a handwritten manuscript of dozens of folk tales"},
+      {"type": "vocab", "prompt": "What does \"conceal\" mean in \"as if the writer had wanted to conceal it\"?", "options": ["sign", "hide", "copy", "decorate"], "answer": 1, "evidence": "as if the writer had wanted to conceal it"}
     ],
     "dictation_index": 6,
     "vocabulary": [
@@ -272,6 +280,7 @@
     "body": "Lin: So let me get this straight: you want me to pay to watch four strangers pretend to be a band that split up before we were born? Sam: When you put it like that, it sounds terrible, but the original band is never getting back together, so a tribute act is the only viable way to hear those songs live. Lin: Or I could just play the album at home for free. Sam: Sure, but at home you don't get a whole room singing the chorus too fast, and that's half the fun. Lin: Fine, but it's not exactly authentic, is it? Sam: Depends what you mean by authentic, since the songs and the sweat are real enough. Honestly, they're scarily faithful to the old recordings, and the guitarist even copies the bit where the original player hits a wrong note in the second verse. Lin: That's either brilliant or a bit sad. Sam: It's both, which is exactly why it works. The singer keeps up a running commentary between songs too, pretending it's still the eighties and complaining about the price of petrol. Lin: Isn't that slightly inappropriate, making fun of the real guy? Sam: Not at all, it's affectionate, and the organizer told me some of the original fans travel for hours to every show. Lin: If they're that good, they sound worthy of a bigger stage than a pub. Sam: Probably, but the pub is part of the charm, and the only unfortunate thing is the menu, which is soda and junk food, so eat first. Lin: Okay, I'll come, but if I end up enjoying it, I'm blaming you. Sam: Deal, but I bet by the third song the nostalgia will creep up on you, even for a decade you never lived through.",
     "questions": [
       {
+        "type": "main",
         "prompt": "Why does Sam think the tribute band is worth seeing?",
         "options": [
           "It is cheaper than buying the original album",
@@ -283,6 +292,7 @@
         "evidence": "a tribute act is the only viable way to hear those songs live"
       },
       {
+        "type": "vocab",
         "prompt": "When Sam says the band is \"scarily faithful to the old recordings\", what does he mean?",
         "options": [
           "They are nervous about changing the songs",
@@ -292,7 +302,9 @@
         ],
         "answer": 1,
         "evidence": "the guitarist even copies the bit where the original player hits a wrong note"
-      }
+      },
+      {"type": "inference", "prompt": "What does Sam mean by \"the nostalgia will creep up on you\"?", "options": ["Lin will remember the eighties", "Lin will slowly start to feel nostalgic without expecting to", "The band will play very quietly", "Lin will want to leave early"], "answer": 1, "evidence": "the nostalgia will creep up on you, even for a decade you never lived through"},
+      {"type": "detail", "prompt": "What does Sam warn Lin about?", "options": ["The tickets are expensive", "The singer can be rude", "The show starts very late", "The menu is only soda and junk food, so she should eat first"], "answer": 3, "evidence": "the menu, which is soda and junk food, so eat first"}
     ],
     "dictation_index": 9,
     "vocabulary": [
@@ -402,6 +414,7 @@
     "body": "If you have ever admired a red decorative knot hanging in a doorway and thought you could never make one, this guide is for you. Traditional knotting looks complicated, but most designs are built from a handful of basic knots repeated and combined, so the first step is to learn one simple knot properly rather than ten badly. Start with a long, smooth cord and an online tutorial that offers a clear breakdown of each step; interactive videos that let you pause and replay a single loop are especially useful. Expect your first attempts to look lopsided. A little variance between loops is normal at the beginning, and your fingers will learn to keep the tension even long before you can explain how. Mistakes tend to creep in when you are tired, so stop after half an hour instead of forcing it. When you finish a knot, don't try to conceal the loose ends with glue; trim them neatly and tuck them in, as experienced makers do. It also helps to know what you are making. In many families, a red knot is hung for good luck, and the single unbroken cord is often said to embody destiny, the old idea that people who are meant to meet are tied together by an invisible thread. Knowing that, many learners find the practice strangely calming, and some say it is beneficial on stressful evenings, partly because it is impossible to scroll on your phone while both hands are busy. Above all, treat yourself with the same compassion you would show a friend who was just starting out. Machines can manufacture perfect knots by the thousand, but nobody hangs a machine's first attempt on the wall with pride.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the guide's main advice for beginners?",
         "options": [
           "Learn many different knots quickly to find a favourite",
@@ -413,6 +426,7 @@
         "evidence": "the first step is to learn one simple knot properly rather than ten badly"
       },
       {
+        "type": "detail",
         "prompt": "What does the guide say about small differences between loops at first?",
         "options": [
           "They are normal at the beginning",
@@ -422,7 +436,9 @@
         ],
         "answer": 0,
         "evidence": "A little variance between loops is normal at the beginning"
-      }
+      },
+      {"type": "inference", "prompt": "What does the final sentence of the guide suggest?", "options": ["Knots should not be hung on walls", "Machine-made knots are better", "Your own imperfect first knot has a value that perfect machine-made ones lack", "Beginners should buy their knots instead"], "answer": 2, "evidence": "nobody hangs a machine's first attempt on the wall with pride"},
+      {"type": "vocab", "prompt": "What does \"lopsided\" mean in \"Expect your first attempts to look lopsided\"?", "options": ["brightly coloured", "perfectly neat", "uneven, not balanced", "very small"], "answer": 2, "evidence": "Expect your first attempts to look lopsided."}
     ],
     "dictation_index": 5,
     "vocabulary": [

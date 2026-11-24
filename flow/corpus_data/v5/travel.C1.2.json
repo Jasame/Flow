@@ -12,6 +12,7 @@
     "body": "Ask any seasoned traveller whose advice they trust, and you will probably hear a familiar story: the guidebook sent them to an overpriced café full of tourists, while a stranger at a bus stop pointed them towards the best meal of the trip. It is a satisfying tale, and it contains some truth, but I would argue that treating locals as infallible and guidebooks as obsolete is a mistake. The two sources answer different questions, and the skill lies in knowing which one to ask. A good guidebook excels at the things that rarely change: how to get from the station to the old town, which museums close early on certain days, why a particular ruin matters. Its writers have usually compared dozens of options, which is precisely what a single resident, however well-meaning, cannot do. Locals, by contrast, are unbeatable on what is happening now: which bakery has just opened, which street is being dug up, where people actually go on a weekday evening. Critics of guidebooks point out, fairly, that once a place appears in print it can be overrun by readers, losing the very charm that earned it a mention. Yet asking locals has its own blind spots. People naturally recommend what they personally enjoy, and unless you happen to share their tastes, their favourite restaurant may leave you puzzled. Some will also steer visitors towards a cousin's shop, which is perfectly human but hardly impartial. The sensible approach, then, is not choosing a side but combining the two. Use the book to sketch the outline of a trip, and let conversations fill in the colour. When the two disagree, it is worth asking why, since the answer often reveals how a place has changed. Far from being rivals, the printed page and the voice at the bus stop work best as a team.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's central argument?",
         "options": [
           "Local people almost always give better advice than guidebooks",
@@ -23,6 +24,7 @@
         "evidence": "The two sources answer different questions, and the skill lies in knowing which one to ask."
       },
       {
+        "type": "detail",
         "prompt": "Why might a local's favourite restaurant disappoint a visitor?",
         "options": [
           "Locals rarely eat in restaurants themselves",
@@ -32,7 +34,9 @@
         ],
         "answer": 1,
         "evidence": "unless you happen to share their tastes, their favourite restaurant may leave you puzzled"
-      }
+      },
+      {"type": "inference", "prompt": "Why does the writer suggest asking why a guidebook and a local disagree?", "options": ["The disagreement often shows how a place has changed", "Guidebooks are always out of date", "Locals usually dislike tourists", "One of them is probably lying"], "answer": 0, "evidence": "the answer often reveals how a place has changed"},
+      {"type": "vocab", "prompt": "What does \"impartial\" mean in \"hardly impartial\"?", "options": ["expensive", "well informed", "friendly and welcoming", "fair and not favouring anyone"], "answer": 3, "evidence": "perfectly human but hardly impartial"}
     ],
     "dictation_index": 2,
     "vocabulary": [
@@ -141,6 +145,7 @@
     "body": "There is a faster way to reach Tamsin, of course: a new road cuts through the hills and covers the distance in an afternoon. But the people who choose the slow boat are not really trying to arrive. They are paying, in a sense, for three days of doing very little, and the boat delivers exactly that. It leaves the river port shortly after dawn, its long wooden deck crowded with plastic chairs, sacks of rice and a surprising number of bicycles. For the first few hours, passengers behave as they would on any other transport, checking their phones and asking how long the next stop will be. By midday the signal has gone, and something shifts. Conversations start between people who would never otherwise have spoken: a retired teacher swapping card tricks with two students, a farmer explaining which trees along the bank bear fruit. Watching the riverbank slide by becomes an activity in itself. Children wave from villages that no road reaches; fishermen lift their nets without looking up; a water buffalo stares at the boat as though it has seen far too many of them. The pace takes some getting used to. On the first afternoon, several travellers paced the deck restlessly, as if their movement could somehow hurry the engine. By the second evening, most had stopped checking the time altogether. What the boat offers, in the end, is not scenery so much as permission: to be bored, to talk to strangers, to let a day pass without having anything to show for it. Few journeys are so unproductive, and fewer still are so hard to forget. When the boat finally docks at Tamsin, there is a strange reluctance to step off, as if the river had been the destination all along.",
     "questions": [
       {
+        "type": "main",
         "prompt": "According to the writer, what is the real appeal of the slow boat?",
         "options": [
           "It is the cheapest way to reach Tamsin",
@@ -152,6 +157,7 @@
         "evidence": "What the boat offers, in the end, is not scenery so much as permission"
       },
       {
+        "type": "detail",
         "prompt": "What happens once the phone signal disappears?",
         "options": [
           "Passengers start talking to people they would normally ignore",
@@ -161,7 +167,9 @@
         ],
         "answer": 0,
         "evidence": "Conversations start between people who would never otherwise have spoken"
-      }
+      },
+      {"type": "inference", "prompt": "What does the writer suggest with \"as if the river had been the destination all along\"?", "options": ["The boat never actually reached Tamsin", "The journey itself mattered more than arriving", "The passengers wanted to live on the river", "Tamsin is not worth visiting"], "answer": 1, "evidence": "as if the river had been the destination all along"},
+      {"type": "vocab", "prompt": "What does \"restlessly\" mean in \"paced the deck restlessly\"?", "options": ["calmly", "slowly and carefully", "unable to keep still because of impatience", "cheerfully"], "answer": 2, "evidence": "several travellers paced the deck restlessly"}
     ],
     "dictation_index": 10,
     "vocabulary": [
@@ -270,6 +278,7 @@
     "body": "I have a confession to make: I usually avoid guided walking tours. Shuffling behind a raised umbrella with thirty strangers, straining to hear a script recited at speed, is not my idea of discovering a city. So it was with some reluctance that I joined the Hidden Courtyards walk in the old quarter of Brindell, and with some surprise that I came away recommending it. The first thing to say is that the group was small, which made all the difference. With only eight of us, our guide, a former bookseller named Ivo, could talk to people rather than at them. He began not with a date but with a door, asking why some houses in the quarter have two knockers, one high and one low, and inviting us to guess. Answers ranged from the sensible to the absurd, and by the time he revealed the real one, which I will not spoil here, the group had started to relax and joke together. The route itself is cleverly designed to avoid the main squares, slipping instead through passages most visitors would walk straight past. Ivo's habit of pausing in each courtyard to let the noise of the city fade was perhaps the most memorable part: you hear a fountain, a radio, someone practising scales on a piano. The tour is not flawless. The second hour drags slightly, with too long a stop outside an unremarkable merchant's house, and anyone who finds walking difficult should know that the cobbles are uneven and the steps steep. Unless you are genuinely curious about how ordinary people lived, you may also find the lack of grand monuments disappointing. For everyone else, though, it is a gentle, intelligent introduction to the city, and an excellent way to get your bearings before exploring on your own.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the reviewer's overall judgement of the tour?",
         "options": [
           "It is perfect for every kind of visitor",
@@ -281,6 +290,7 @@
         "evidence": "with some surprise that I came away recommending it"
       },
       {
+        "type": "detail",
         "prompt": "Why did the small size of the group matter?",
         "options": [
           "It meant the tour finished earlier",
@@ -290,7 +300,9 @@
         ],
         "answer": 1,
         "evidence": "could talk to people rather than at them"
-      }
+      },
+      {"type": "inference", "prompt": "Why did Ivo probably begin with a question about door knockers rather than a date?", "options": ["To test the group's knowledge of history", "Because the whole tour was about doors", "Because he did not know any dates", "To get the group involved and relaxed"], "answer": 3, "evidence": "the group had started to relax and joke together"},
+      {"type": "vocab", "prompt": "What does \"get your bearings\" mean in \"an excellent way to get your bearings\"?", "options": ["meet other travellers", "rest after a long walk", "buy souvenirs to take home", "understand where you are and how a place is laid out"], "answer": 3, "evidence": "an excellent way to get your bearings before exploring on your own"}
     ],
     "dictation_index": 3,
     "vocabulary": [
@@ -399,6 +411,7 @@
     "body": "Interviewer: You've kept a journal on every trip for most of your adult life, so why not just take photos? Ines: Photos are wonderful, but they record what was in front of the lens, not what was going on in my head. Writing forces me to decide what actually mattered that day, and that decision is where the memory gets made. Interviewer: Plenty of people start a travel journal and abandon it by the third day. How do you keep going? Ines: By lowering the bar almost to the floor. I promise myself three lines before bed, nothing more, and on a good night those three lines turn into three pages. The real trap is treating the journal as a performance. Unless you are planning to publish it, nobody is grading your sentences, so you're free to be boring, repetitive or simply wrong. Interviewer: What goes into a typical entry? Ines: Hardly ever the famous sights, since those are already in every guidebook. I write down the small things instead: the dish I couldn't pronounce, the joke a ferry captain told, the smell of a station at six in the morning. I also tape in bits and pieces, such as tickets, sugar wrappers and the occasional pressed leaf. Interviewer: Do you ever reread them? Ines: Constantly, and that's the real reward. Reading an entry from years ago, I'm often embarrassed by my opinions but grateful for the details, because I would have lost them otherwise. Interviewer: Any advice for someone who is just starting out? Ines: Buy a notebook small enough to carry everywhere, and get into the habit of writing in it before you check your phone. Once the screen is on, your day starts to blur into everybody else's.",
     "questions": [
       {
+        "type": "main",
         "prompt": "According to Ines, what can a journal do that photos cannot?",
         "options": [
           "Record more accurately what a place looked like",
@@ -410,6 +423,7 @@
         "evidence": "they record what was in front of the lens, not what was going on in my head"
       },
       {
+        "type": "detail",
         "prompt": "How does Ines avoid giving up on her journal?",
         "options": [
           "She writes for an hour every evening",
@@ -419,7 +433,9 @@
         ],
         "answer": 1,
         "evidence": "I promise myself three lines before bed, nothing more"
-      }
+      },
+      {"type": "inference", "prompt": "What does Ines mean by \"your day starts to blur into everybody else's\"?", "options": ["Looking at a screen fills your mind with other people's experiences", "Everyone visits the same famous places", "Her eyesight gets worse after writing", "Her phone camera stops working properly"], "answer": 0, "evidence": "Once the screen is on, your day starts to blur into everybody else's."},
+      {"type": "vocab", "prompt": "What does \"lowering the bar\" mean in \"By lowering the bar almost to the floor\"?", "options": ["making the target very easy to reach", "writing fewer pages each year", "giving up the habit completely", "staying in cheaper hotels"], "answer": 0, "evidence": "By lowering the bar almost to the floor."}
     ],
     "dictation_index": 2,
     "vocabulary": [

@@ -87,8 +87,9 @@ The owner agreed this order on 2026-11-24.
 
 Conventions:
 
-- **One session merges and releases.** Others finish and test their PR, then hand it over. Two sessions merging at
-  the same time is how stacked merges go wrong.
+- **Who merges:** the author of the PR, once CI is green and it merges cleanly (see the working agreement below).
+  Before #60 (generated files built at release time, sharded CI) one session merged in order, because the generated
+  files made PRs collide.
 - **Trying a PR before it merges:** pause the automatic release (`BETA_AUTO` off), merge main into that PR's branch and
   beta-deploy the result by hand (`tools/deploy.sh --beta <branch sha>`). Don't build one-off combination branches.
   语流 still only gets commits from main.
@@ -108,6 +109,28 @@ Conventions:
 - **A commit from before the two-site split** has a `tools/flow-pull.sh` without `F=${FLOW_DIR:-`. That script
   would install into 语流. `deploy.sh --beta` and the beta's autodeploy (status `ABORT_OLD_TOOLS`) both refuse it,
   so merge main into such a branch before beta-deploying it.
+
+### Working agreement (from 2026-11-24)
+
+The owner approved these on 2026-11-24 (「按你的建议改，b6 发完就写进去」). They apply from #60 (in main since 2026-11-24).
+
+1. **Authors merge their own PRs.** When CI is green and the PR merges cleanly into main, the session that wrote it
+   turns on auto-merge. The release session (语流 2) handles releases and the servers. 语流 still gets a release only
+   when the owner says 「发正式版」.
+2. **The 内测版 follows main.** Every merge to main that passes CI goes to the beta by itself
+   (`.github/workflows/beta.yml`, GitHub Actions, the owner's choice; #66), with the light end-to-end test, so the beta
+   always shows main and nobody releases it by hand. To keep a version there while the owner tries it, pause with
+   `gh variable set BETA_AUTO --body off -R Jasame/Flow` (`gh variable delete BETA_AUTO -R Jasame/Flow` resumes).
+3. **Small steps.** A change goes to 语流 once the owner has tried it on the beta, or with the weekly release, whichever
+   comes first. Never "wait until all of version X is done". Unfinished work merges behind a switch that is off on 语流.
+4. **One owner per area.** One long-lived session owns each area: 今日和计划, 开局和考试, 单词, 听和说, 内容, 后台和班级,
+   AI, 发版, and CI/build tooling. 总控 coordinates. Only the area's owner changes it at a time. A one-off session is
+   archived once its PR is in main.
+5. **Habits.**
+   - Before pushing, run only the test groups the change touches (see 推之前跑哪些测试 below); CI runs everything.
+   - Tests compute counts from the data. Never hard-code how many questions, columns or items there are.
+   - A change to an API response shape updates `tools/qa_e2e.py` in the same PR (b5's e2e broke on exactly this).
+   - Progress goes into the area's shared note, so other sessions read it instead of waiting for relayed messages.
 
 ## 推之前跑哪些测试 (what to run before pushing)
 

@@ -12,6 +12,7 @@
     "body": "Ines had a question about her history essay, and she had a whole week to ask it. Every Tuesday from two to four, Professor Adeyemi kept her office door open for students. On Monday, Ines wrote the question in her notebook. On Tuesday, she walked to the third floor, saw the open door and kept walking. She was worried that the question was too simple. What if the professor thought she hadn't done the reading? She went back to the library and practised the question again in her head. At half past three, she tried a second time. This time she stopped outside the door, but she could hear someone laughing inside, so she left. At five to four, she finally knocked. Professor Adeyemi was alone, eating a sandwich over a pile of papers. She looked genuinely pleased and told Ines she was her first visitor all month. The conversation took ten minutes, and the answer turned out to be easy. Walking home, Ines couldn't stop smiling. All that worrying had taken far longer than the question itself.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main point of the story?",
         "options": [
           "Professor Adeyemi was too busy to help students",
@@ -23,6 +24,7 @@
         "evidence": "All that worrying had taken far longer than the question itself."
       },
       {
+        "type": "detail",
         "prompt": "Why did Ines leave the second time?",
         "options": [
           "The office door was closed",
@@ -32,7 +34,9 @@
         ],
         "answer": 2,
         "evidence": "she could hear someone laughing inside, so she left"
-      }
+      },
+      {"type": "inference", "prompt": "Why was Professor Adeyemi so pleased to see Ines?", "options": ["Very few students came to her office hours", "She was about to go home", "Ines had brought her lunch", "Ines had written the best essay"], "answer": 0, "evidence": "she was her first visitor all month"},
+      {"type": "vocab", "prompt": "What does \"genuinely\" mean in \"She looked genuinely pleased\"?", "options": ["really; honestly", "slightly", "quickly", "falsely"], "answer": 0, "evidence": "She looked genuinely pleased"}
     ],
     "dictation_index": 6,
     "vocabulary": [
@@ -141,6 +145,7 @@
     "body": "Dear Professor Lindqvist, I am writing to ask whether I could have a short extension on my Urban Planning essay, which is due this Friday. On Tuesday evening, my laptop stopped working, and I lost most of the draft I had saved on it. I know I should have kept a backup, and I've learned that lesson the hard way. Since then, I have rewritten the introduction and the first section from my notes. However, I still need time to finish the rest properly. I would be very grateful if I could submit it on Monday instead. I've attached what I have so far, so you can see that the work is well under way. I completely understand if this isn't possible, and in that case I will hand in the best version I can by Friday. Thank you for considering my request, and I'm sorry for the short notice. Best wishes, Arjun Mehta",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main purpose of Arjun's email?",
         "options": [
           "To ask for a few more days to finish his essay",
@@ -152,6 +157,7 @@
         "evidence": "I am writing to ask whether I could have a short extension on my Urban Planning essay"
       },
       {
+        "type": "inference",
         "prompt": "Why does Arjun attach part of his essay?",
         "options": [
           "The professor asked everyone to send a first draft",
@@ -161,7 +167,9 @@
         ],
         "answer": 2,
         "evidence": "so you can see that the work is well under way"
-      }
+      },
+      {"type": "vocab", "prompt": "What does \"extension\" mean in \"a short extension on my Urban Planning essay\"?", "options": ["a new topic", "a longer essay", "a lower mark", "extra time to finish something"], "answer": 3, "evidence": "a short extension on my Urban Planning essay"},
+      {"type": "detail", "prompt": "What will Arjun do if the extension is not possible?", "options": ["Leave the course", "Hand in the best version he can by Friday", "Ask another professor", "Buy a new laptop first"], "answer": 1, "evidence": "I will hand in the best version I can by Friday"}
     ],
     "dictation_index": 5,
     "vocabulary": [
@@ -270,6 +278,7 @@
     "body": "Most students write a lot in lectures and use very little of it later. The problem is usually not how much you write, but what you write. Instead of copying every word on the slides, listen for the point the lecturer keeps coming back to. That is often the idea that matters most in the exam. Write it in your own words, even if your sentence is messy. Unless you can explain a note in plain language, you probably haven't understood it yet. It also helps to leave a wide space on the left side of each page. After the lecture, use that space to write two or three questions that the notes answer. A week later, cover the notes and try to answer the questions from memory. This takes ten minutes, but it shows you exactly what you have forgotten. Finally, don't worry if your notes look ugly. Notes that only you can read are fine, as long as they help you think. The goal is not a beautiful notebook but a clearer head.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's main advice?",
         "options": [
           "Copy the slides carefully so you don't miss anything",
@@ -281,6 +290,7 @@
         "evidence": "The problem is usually not how much you write, but what you write."
       },
       {
+        "type": "detail",
         "prompt": "What should you use the wide space on the left of each page for?",
         "options": [
           "Writing questions that the notes answer",
@@ -290,7 +300,9 @@
         ],
         "answer": 0,
         "evidence": "use that space to write two or three questions that the notes answer"
-      }
+      },
+      {"type": "inference", "prompt": "Why does the writer say \"Notes that only you can read are fine\"?", "options": ["Notes are there to help you think, not to look nice", "Other students should not read your notes", "Messy notes get better marks", "Teachers never check notebooks"], "answer": 0, "evidence": "The goal is not a beautiful notebook but a clearer head."},
+      {"type": "vocab", "prompt": "What does \"plain language\" mean in \"explain a note in plain language\"?", "options": ["simple, clear words", "a foreign language", "written words only", "technical words"], "answer": 0, "evidence": "explain a note in plain language"}
     ],
     "dictation_index": 5,
     "vocabulary": [
@@ -394,6 +406,7 @@
     "body": "Ravi: Okay, can I say something slightly awkward? We've been here for over an hour, and nobody has opened the textbook. Nadia: That's not true. I opened it. Ravi: You used it to hold your coffee cup. Chloe: Fair point. We did spend twenty minutes talking about that cooking show. Nadia: It was a really good episode, though. Ravi: I know, and I'm not blaming anyone, because I talked as much as you two did. But the exam is next Thursday, and I still don't get chapter four. Chloe: Me neither, to be honest, so what's the plan? Ravi: How about this? Each of us takes one chapter, explains it to the others in ten minutes, and then we test each other. Nadia: And if anyone picks up their phone, they buy the next round of coffee. Chloe: Harsh, but I like it. Ravi: And once we finish, we can chat as much as we want. Nadia: Deal, but I'm still telling you how that show ends. Chloe: Only after we finish chapter four, Nadia.",
     "questions": [
       {
+        "type": "main",
         "prompt": "Why does Ravi start the conversation?",
         "options": [
           "He wants to talk about the cooking show",
@@ -405,6 +418,7 @@
         "evidence": "We've been here for over an hour, and nobody has opened the textbook."
       },
       {
+        "type": "vocab",
         "prompt": "When Chloe says \"Fair point\", what does she mean?",
         "options": [
           "She agrees with what Ravi just said",
@@ -414,7 +428,9 @@
         ],
         "answer": 0,
         "evidence": "Fair point. We did spend twenty minutes talking about that cooking show."
-      }
+      },
+      {"type": "inference", "prompt": "Why does Ravi say he is \"not blaming anyone\"?", "options": ["He wants to leave the group", "He wants to change the group's habit without upsetting his friends", "He thinks Nadia is to blame", "He had not said a word all hour"], "answer": 1, "evidence": "I'm not blaming anyone, because I talked as much as you two did"},
+      {"type": "detail", "prompt": "What happens if anyone picks up their phone?", "options": ["They explain an extra chapter", "They have to leave the group", "They buy the next round of coffee", "They tell everyone how the show ends"], "answer": 2, "evidence": "if anyone picks up their phone, they buy the next round of coffee"}
     ],
     "dictation_index": 12,
     "vocabulary": [

@@ -1462,6 +1462,115 @@ def class_run(pw):
         browser.close()
 
 
+def privacy_run(pw):
+    """年龄段 and a guardian's agreement (privacy_service): the sign-up form asks a band and, under 14, the tick, before any
+    request; an older account is asked once and cannot dismiss the question; under 14 without the agreement, the AI on
+    the learner's own words asks for it and then goes on; the 隐私说明 opens from 我的."""
+    dev = 'privacy'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    phone = dict(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN')
+    try:
+        errs = []
+        ctx = browser.new_context(**phone); gp = ctx.new_page(); gp.on('pageerror', lambda e: errs.append(str(e)))
+        gp.goto(BASE + '/#/me', wait_until='networkidle'); settle(gp)
+        gp.click('#lg'); gp.wait_for_selector('#authForm', timeout=4000); gp.click('[data-tab=reg]'); gp.wait_for_selector('#authForm .agefs', timeout=4000)
+        chips = gp.evaluate("[...document.querySelectorAll('#authForm .agechip')].map(c => c.textContent.trim())")
+        guard_hidden = gp.evaluate("document.querySelector('#authForm .guard').hidden")
+        for name, val in (('email', 'young@example.com'), ('code', '123456'), ('username', 'xiaomei'), ('password', 'a long password 1')):
+            if gp.query_selector(f'#authForm [name={name}]'):
+                gp.fill(f'#authForm [name={name}]', val)
+        gp.click('#authForm [type=submit]'); gp.wait_for_timeout(200)
+        no_age = gp.text_content('#authErr') or ''
+        gp.click('#authForm .agechip:has-text("不满 14 岁")'); gp.wait_for_timeout(150)
+        shown = gp.is_visible('#authForm .guard')
+        gp.click('#authForm [type=submit]'); gp.wait_for_timeout(200)
+        no_tick = gp.text_content('#authErr') or ''
+        check(dev, '注册: three bands, the tick only under 14, and each said before any request',
+              chips == ['不满 14 岁', '14–17 岁', '18 岁及以上'] and guard_hidden and '年龄段' in no_age and shown and '家长' in no_tick, (chips, no_age, no_tick))
+        gp.screenshot(path=str(OUT / 'privacy-signup.png'))
+        gp.click('#authForm .agechip:has-text("14–17 岁")'); gp.wait_for_timeout(150)
+        check(dev, '注册: another band hides the tick again', not gp.is_visible('#authForm .guard'))
+        ctx.close()
+        # an older account without a band: asked once, the question stays until answered
+        ctx = browser.new_context(**phone)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['ageless']['token'], 'url': BASE}])
+        pg = ctx.new_page(); pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.goto(BASE + '/#/', wait_until='networkidle'); pg.wait_for_selector('#ageF', timeout=8000)
+        pg.keyboard.press('Escape'); pg.wait_for_timeout(200); pg.click('.sheet-scrim', position={'x': 20, 'y': 20}, force=True); pg.wait_for_timeout(200)
+        stays = pg.is_visible('#ageF')
+        pg.screenshot(path=str(OUT / 'privacy-ask.png'))
+        pg.click('#ageF .agechip:has-text("18 岁及以上")'); pg.click('#ageF [type=submit]'); pg.wait_for_timeout(600)
+        gone = pg.evaluate("document.getElementById('sheet').hidden")
+        pg.goto(BASE + '/#/me', wait_until='networkidle'); settle(pg); pg.wait_for_timeout(800)
+        again = pg.query_selector('#ageF') is not None
+        val = (pg.text_content('#meAgeV') or '').strip()
+        check(dev, '老账号: asked once, Esc and the backdrop do not dismiss it, answered it is not asked again', stays and gone and not again and val == '18 岁及以上',
+              (stays, gone, again, val))
+        pg.click('a[href="#/guide/privacy"]'); pg.wait_for_timeout(1200)
+        text = pg.text_content('#view') or ''
+        check(dev, '我的 → 隐私说明 opens the chapter', '香港的服务器' in text and '阿里云百炼' in text, text[:60])
+        ctx.close()
+        # 不满 14 岁 without the agreement: 仿写 asks for it, then goes on
+        ctx = browser.new_context(**phone)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['young']['token'], 'url': BASE}])
+        pg = ctx.new_page(); pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.goto(BASE + f'/#/m/{PID}/output', wait_until='networkidle'); pg.wait_for_selector('#ans', timeout=10000)
+        pg.fill('#ans', 'I usually wear headphones on the train, so the noise is less.'); pg.click('#go')
+        pg.wait_for_selector('#guardF', timeout=8000)
+        pg.screenshot(path=str(OUT / 'privacy-guardian.png'))
+        pg.click('#guardF [type=submit]'); pg.wait_for_timeout(200)
+        unticked = pg.text_content('#guardErr') or ''
+        pg.check('#guardF [name=guardian]'); pg.click('#guardF [type=submit]'); pg.wait_for_timeout(600)
+        pg.click('#go'); pg.wait_for_selector('#finSum, .rw-result, .fb', timeout=15000)
+        check(dev, '不满 14 岁: 仿写 waits for the tick, then goes on', '勾选' in unticked and pg.evaluate("document.getElementById('sheet').hidden"), unticked)
+        check(dev, 'no page errors', not errs, errs[:3])
+    finally:
+        browser.close()
+
+
+def trial_survey_run(pw):
+    """班级试用问卷: three weeks in a class, 今日 offers the anonymous survey once; 「不用了」 puts it away for good on that
+    phone; the survey opens as the trial one, takes the answers and says thanks, and 今日 stops offering it."""
+    dev = 'trial-survey'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    phone = dict(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN')
+    cookie = [{'name': 'flow_session', 'value': CFG['learners']['veteran']['token'], 'url': BASE}]
+    try:
+        errs = []
+        ctx = browser.new_context(**phone); ctx.add_cookies(cookie)
+        pg = ctx.new_page(); pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg); pg.wait_for_selector('#trialSv', timeout=8000)
+        text = pg.text_content('#trialSv') or ''
+        pg.screenshot(path=str(OUT / 'trial-survey-today.png'))
+        pg.click('#tsClose'); pg.wait_for_timeout(200)
+        gone = pg.query_selector('#trialSv') is None
+        pg.reload(wait_until='networkidle'); settle(pg); pg.wait_for_timeout(500)
+        check(dev, '今日: three weeks in, one quiet line; 「不用了」 puts it away for good', '匿名问卷' in text and gone and pg.query_selector('#trialSv') is None, text[:40])
+        ctx.close()
+        ctx = browser.new_context(**phone); ctx.add_cookies(cookie)
+        pg = ctx.new_page(); pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg); pg.wait_for_selector('#trialSv a', timeout=8000)
+        pg.click('#trialSv a'); pg.wait_for_selector('.sv-hero h1', timeout=8000)
+        title = pg.text_content('.sv-hero h1') or ''
+        # as if the survey had been open for a minute (it refuses answers sent within 20 seconds)
+        pg.evaluate("""() => { sessionStorage.setItem('flow-survey-draft:id', 'trial-2026-12'); sessionStorage.setItem('flow-survey-draft:start', String(Date.now() - 60000)); }""")
+        pg.reload(wait_until='networkidle'); pg.wait_for_selector('#sv-form', timeout=8000)
+        for q in pg.query_selector_all('#sv-form [data-q]'):
+            first = q.query_selector('input')
+            if first:
+                first.click()
+        pg.fill('#sv-form textarea', '希望多一些考试题')
+        pg.click('#sv-form .sv-btn'); pg.wait_for_selector('.sv-done', timeout=8000)
+        thanks = pg.text_content('.sv-done') or ''
+        pg.screenshot(path=str(OUT / 'trial-survey-done.png'))
+        pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg); pg.wait_for_timeout(500)
+        check(dev, '问卷: the trial survey takes the answers, thanks, and 今日 stops offering it',
+              '班级试用' in title and '结项' in thanks and pg.query_selector('#trialSv') is None, (title, thanks[:40]))
+        check(dev, 'no page errors', not errs, errs[:3])
+    finally:
+        browser.close()
+
+
 def a11y_run(pw):
     dev = 'a11y'
     browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
@@ -2194,6 +2303,18 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('backlog', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'trial-survey' in ONLY:
+            try:
+                trial_survey_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('trial-survey', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'privacy' in ONLY:
+            try:
+                privacy_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('privacy', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'class' in ONLY:
             try:
                 class_run(pw)

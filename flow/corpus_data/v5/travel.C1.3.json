@@ -12,6 +12,7 @@
   "body": "Most of us have done it: returned from a disappointing dinner abroad, opened a review site and, still irritated, typed out a single furious line. It feels like justice at the time. In reality, a one-star rant tells future travellers almost nothing, and it can do lasting harm to a small family business that has no way of answering back. I would argue that writing reviews has become a minor civic duty of the modern traveller, and like any duty, it is worth doing well. The first principle is to separate a critique of the experience from a verdict on the people. \"The waiter was rude\" is an accusation; \"we waited nearly an hour and nobody explained why\" is information, and information is what readers can actually use. The second principle is proportion. A delicious meal served on a chipped plate is still a delicious meal, and a guesthouse that was perfectly comfortable should not be punished for failing to entertain you like a theme park. Equally, if the heating was inadequate in midwinter, say so plainly, but leave out the sarcasm. Reviewers who strive for fairness tend to be believed; those who rage are quietly ignored. Specificity is the third principle, and perhaps the most overlooked. A single concrete illustration — the cold soup, the broken lift, the owner who drove you to the station at dawn — does more than a paragraph of adjectives. Some platforms now invite users to nominate their favourite places for annual awards, and it is striking how often the winners are crowned not for luxury but for small acts of care that a reviewer bothered to describe. None of this means pretending, of course. A restaurant that has become a smash hit online may well deserve a cooler assessment from someone who simply ate there and paid the bill. Honesty and generosity, after all, are not opposites. The best reviews read like advice from a well-travelled friend: candid about what went wrong, precise about what went right, and written in the knowledge that a real person, somewhere, will read every word.",
   "questions": [
    {
+    "type": "main",
     "prompt": "What is the writer's main argument?",
     "options": [
      "Travellers should stop posting negative reviews altogether",
@@ -23,6 +24,7 @@
     "evidence": "it is worth doing well"
    },
    {
+    "type": "inference",
     "prompt": "Why does the writer contrast 'The waiter was rude' with a sentence about waiting nearly an hour?",
     "options": [
      "To show that rude staff should be named in reviews",
@@ -32,7 +34,9 @@
     ],
     "answer": 1,
     "evidence": "information is what readers can actually use"
-   }
+   },
+   {"type": "vocab", "prompt": "What does \"candid\" mean in \"candid about what went wrong\"?", "options": ["angry", "secretive", "polite but vague", "honest and direct"], "answer": 3, "evidence": "candid about what went wrong"},
+   {"type": "detail", "prompt": "According to the writer, why does a one-star rant do harm?", "options": ["It tells future travellers little and can hurt a small business that cannot reply", "It is always deleted by the website", "It is usually written by staff", "It makes prices go up"], "answer": 0, "evidence": "a one-star rant tells future travellers almost nothing"}
   ],
   "dictation_index": 9,
   "vocabulary": [
@@ -141,6 +145,7 @@
   "body": "Interviewer: You've been leading walks on this glacier for most of your working life. What has changed the most? Ingrid: The approach, more than anything. When I started, you stepped off the path almost straight onto the ice, whereas now there's a long walk across the bare rock and rubble that the glacier has left behind. We've even had to build a suspension bridge over a gorge that simply wasn't there before. Visitors often ask whether that's the warming they read about, and the honest answer is yes, although I'm a guide, not a scientist, so I try not to dress my impressions up as data. Interviewer: Does all this make the work more dangerous? Ingrid: It makes it less predictable, which in the mountains amounts to the same thing. Retreating ice behaves differently: crevasses open in places where there were none, and the rock above us loosens as it thaws. Interviewer: Is there a time of day you try to avoid? Ingrid: The afternoon, wherever possible. As the sun works on the ice, the meltwater streams swell, and you can get a sudden surge through a channel that was ankle-deep an hour earlier. The probability of rockfall rises in the heat too, so we start early and are usually off the ice by lunch. Interviewer: How do you prepare new guides? Ingrid: With an intensive season of training before they lead anyone alone: rope work, rescue, and above all reading the snow. Where fresh snow has been allowed to accumulate over a crevasse, it can form a bridge that looks solid and isn't. Every season seems to bring some new complication, so the training never stays the same for long. Interviewer: Do you ever feel you're guiding people to say goodbye? Ingrid: Some come with that idea, and I understand it. But I'd rather they left curious than mournful. If people see the ice with their own eyes, they tend to care about it in a way that no photograph manages. That, at least, keeps me hopeful.",
   "questions": [
    {
+    "type": "main",
     "prompt": "Which best describes Ingrid's attitude to the changes on the glacier?",
     "options": [
      "She thinks visitors exaggerate them and pays them little attention",
@@ -152,6 +157,7 @@
     "evidence": "That, at least, keeps me hopeful."
    },
    {
+    "type": "detail",
     "prompt": "Why does Ingrid's group usually leave the ice by lunch?",
     "options": [
      "The suspension bridge is closed in the afternoon",
@@ -161,7 +167,9 @@
     ],
     "answer": 1,
     "evidence": "The probability of rockfall rises in the heat too, so we start early and are usually off the ice by lunch."
-   }
+   },
+   {"type": "inference", "prompt": "Why does Ingrid try \"not to dress my impressions up as data\"?", "options": ["She has no time to collect measurements", "She does not want to claim a scientific authority she lacks", "She dislikes scientists", "She does not believe the ice is melting"], "answer": 1, "evidence": "I'm a guide, not a scientist"},
+   {"type": "vocab", "prompt": "What does \"accumulate\" mean in \"allowed to accumulate over a crevasse\"?", "options": ["melt away", "be cleared away", "gradually build up", "freeze solid"], "answer": 2, "evidence": "Where fresh snow has been allowed to accumulate over a crevasse"}
   ],
   "dictation_index": 15,
   "vocabulary": [
@@ -270,6 +278,7 @@
   "body": "For most of the year, a small lakeside town runs quietly enough: the buses are half empty, the bakery knows every customer by name, and the single cash machine is rarely out of order. Then summer arrives, and within a few weeks the place can feel as if its population has multiplied. Coping with that seasonal surge is less about grand plans than about dozens of small decisions made months in advance, most of which visitors never notice. Water is often the first concern. Systems designed for the people who live there all year can be inadequate when every holiday flat is full, and in a dry season the needs of tourism and farming may pull in opposite directions. Local councils therefore devise schedules early, deciding which supplies to draw on first and when to ask hotels to cut back, long before the first coach pulls in. Transport is the next headache. Extra buses are useless without drivers, and drivers need somewhere affordable to sleep, which in a popular resort is precisely what is hardest to find. Timing matters as well. Road repairs and the restoration of old buildings are usually scheduled for the off-season, and a project that misses its completion date can leave scaffolding standing through the busiest weeks of the year. In many towns, planners circulate a memo each spring listing every unfinished job, partly so that nothing is quietly forgotten. The most persistent complication, however, is the relationship with residents. Most councils strive to keep a balance, but when parking, noise and rubbish are managed badly, goodwill wears away faster than any harbour wall. The towns that cope best tend to share one habit: they do not neglect the quiet months. Winter is when footpaths are mended, complaints are reviewed and new ideas are tried out on a smaller scale. A good summer, in other words, is mostly built in the rain of the winter before.",
   "questions": [
    {
+    "type": "main",
     "prompt": "What is the main point of the text?",
     "options": [
      "Small towns should limit how many tourists arrive each summer",
@@ -281,6 +290,7 @@
     "evidence": "A good summer, in other words, is mostly built in the rain of the winter before."
    },
    {
+    "type": "detail",
     "prompt": "Why are extra buses not a simple solution?",
     "options": [
      "The town's roads are too narrow for large vehicles",
@@ -290,7 +300,9 @@
     ],
     "answer": 1,
     "evidence": "Extra buses are useless without drivers, and drivers need somewhere affordable to sleep"
-   }
+   },
+   {"type": "inference", "prompt": "What does the writer mean by \"A good summer... is mostly built in the rain of the winter before\"?", "options": ["Building work should only happen in summer", "Success in the busy season depends on work done in the quiet months", "Summers in lakeside towns are usually wet", "Rainy winters bring more tourists"], "answer": 1, "evidence": "they do not neglect the quiet months"},
+   {"type": "vocab", "prompt": "What does \"inadequate\" mean in \"can be inadequate when every holiday flat is full\"?", "options": ["very modern", "easy to repair", "too expensive", "not good enough for what is needed"], "answer": 3, "evidence": "can be inadequate when every holiday flat is full"}
   ],
   "dictation_index": 13,
   "vocabulary": [
@@ -399,6 +411,7 @@
   "body": "I signed up for the course in a moment of optimism, the way some people sign up for marathons. Six days of intensive drawing classes in a hill town, with a room and meals thrown in: it sounded like a holiday with homework. I arrived with a shiny new box of pencils and the confidence of someone who had not been taught anything for twenty years, and discovered within a morning that I was the oldest student in the room by a comfortable margin. The others were art students in their twenties, quick, unembarrassed and alarmingly good at drawing hands. Being a mature beginner, I soon realised, has one real disadvantage and one surprising advantage. The disadvantage is pride. Each evening our teacher, a brisk woman called Elena, pinned our work to the wall for a group critique, and on the first night she remarked, quite kindly, that I drew buildings as though I were filling in a tax form. It stung, mostly because it was true. The advantage is that I no longer mind looking foolish for long. While the younger students seemed to strive for perfection, rubbing out every line that disappointed them, I asked questions constantly, which is, I suspect, how anything is actually learned. By midweek we were sketching outdoors, and I spent a whole afternoon on the green copper dome of the old observatory, the town's most beloved landmark. The woman who ran the café below kept me supplied with delicious almond biscuits and seemed to feel it was her job to entertain me. \"My goodness, that's actually good,\" she said when she saw the finished page, which may have been kindness but felt like a medal. On the last day the group nominated me to give the thank-you speech, presumably on the grounds that I was least likely to cry. I did not quite manage that. Holding my certificate of completion, I realised that the week had been oddly healing: after years of being good at my job, it was a relief to be a beginner again, and to be forgiven for it.",
   "questions": [
    {
+    "type": "detail",
     "prompt": "According to the writer, what is the main advantage of being an older beginner?",
     "options": [
      "Older students can afford better materials",
@@ -410,6 +423,7 @@
     "evidence": "The advantage is that I no longer mind looking foolish for long."
    },
    {
+    "type": "detail",
     "prompt": "Why did Elena's comment on the first night sting?",
     "options": [
      "Because she said it in a harsh, unkind way",
@@ -419,7 +433,9 @@
     ],
     "answer": 1,
     "evidence": "It stung, mostly because it was true."
-   }
+   },
+   {"type": "main", "prompt": "What is the article mainly about?", "options": ["Why young art students draw hands so well", "How being a beginner again on a drawing course proved humbling but rewarding", "The best cafés in a hill town", "How to become a professional artist"], "answer": 1, "evidence": "it was a relief to be a beginner again, and to be forgiven for it"},
+   {"type": "vocab", "prompt": "What does \"brisk\" mean in \"a brisk woman called Elena\"?", "options": ["shy", "quick and efficient in manner", "unfriendly", "elderly"], "answer": 1, "evidence": "a brisk woman called Elena"}
   ],
   "dictation_index": 3,
   "vocabulary": [

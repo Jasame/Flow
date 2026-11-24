@@ -36,13 +36,18 @@
         if (!c) return fieldError(form, err, { message: '请输入老师给你的邀请码', field: 'code' });
         try {
           const r = await api('/api/next/class/find', { code: c });
+          // 年龄段 first, and under 14 a guardian's agreement (privacy_service): asked here when not on record yet
+          const needAge = !S.user.age || (S.user.age === 'u14' && !S.user.guardian);
           found.innerHTML = `<div class="card sunk cls-found"><b>${esc(r.name)}</b><span class="small muted">老师 ${esc(r.teacher)}</span></div>
-            ${r.teaching ? '<p class="small muted">你是这个班的老师，不用加入；在「我的 → 我的班级」里看全班汇总。</p>' : '<button class="btn primary" id="clsJoin" type="button">加入这个班</button>'}`;
+            ${r.teaching ? '<p class="small muted">你是这个班的老师，不用加入；在「我的 → 我的班级」里看全班汇总。</p>' : `${needAge ? ageFields(S.user.age, S.user.guardian) : ''}<button class="btn primary" id="clsJoin" type="button">加入这个班</button>`}`;
           found.hidden = false;
+          if (needAge) bindAge(found, S.user.guardian);
           const j = found.querySelector('#clsJoin');
           if (j) j.onclick = async () => {
+            const a = needAge ? readAge(found) : {}, p = needAge ? ageProblem(a, true, S.user.guardian) : '';
+            if (p) { err.textContent = p; return; }
             j.disabled = true;
-            try { S.myClass = await api('/api/next/class/join', { code: c }); closeSheet(); toast(`已加入「${r.name}」`); const v = document.getElementById('meClassV'); if (v) v.textContent = r.name; if (location.hash.startsWith('#/invite')) location.replace('#/me'); }
+            try { S.myClass = await api('/api/next/class/join', { code: c, ...a }); if (needAge) Object.assign(S.user, { age: a.age, guardian: S.user.guardian || a.guardian }); closeSheet(); toast(`已加入「${r.name}」`); const v = document.getElementById('meClassV'); if (v) v.textContent = r.name; if (location.hash.startsWith('#/invite')) location.replace('#/me'); }
             catch (x) { err.textContent = x.message; j.disabled = false; }
           };
         } catch (x) { fieldError(form, err, { message: x.message, field: 'code' }); }

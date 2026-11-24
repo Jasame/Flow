@@ -12,6 +12,7 @@
     "body": "Somewhere online, at this very moment, someone is explaining how they wake before dawn, write three pages in a journal, stretch on a spotless mat and finish a workout before most of us have located our slippers. The videos are soothing to watch, and that, I suspect, is precisely the problem. What they sell is less a routine than an identity: the calm, disciplined person you would be if only you could get up an hour earlier. I spent one winter trying to become that person. I set an alarm for half past five, bought a notebook with a gold cover, and stuck to the plan with grim determination for almost three weeks. Had I been honest with myself from the start, I would not be writing this now with a certain amount of embarrassment, because I am, and always have been, someone who thinks best late at night. The early mornings did not make me more productive; they made me tired by lunchtime and quietly resentful of everyone who seemed to manage them effortlessly. The trouble with the perfect morning routine is that it treats a personal preference as a moral achievement. Waking early is not inherently virtuous, any more than enjoying broccoli is. Plenty of thoughtful, accomplished people do their best work after dark, and plenty of early risers spend their golden hours scrolling through their phones. None of this means routines are useless. A predictable start to the day can be genuinely steadying, especially when the rest of life feels chaotic. But a routine worth keeping is one built around the person you actually are, not the one you see on a screen. Mine now involves coffee, a short walk and no notebook at all. It would not make a very compelling video, which is perhaps the best evidence that it works.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's main argument?",
         "options": [
           "Getting up early is the most reliable way to become productive",
@@ -23,6 +24,7 @@
         "evidence": "a routine worth keeping is one built around the person you actually are, not the one you see on a screen"
       },
       {
+        "type": "inference",
         "prompt": "Why does the writer say their new routine \"would not make a very compelling video\"?",
         "options": [
           "They are too embarrassed to film themselves in the morning",
@@ -32,7 +34,9 @@
         ],
         "answer": 2,
         "evidence": "which is perhaps the best evidence that it works"
-      }
+      },
+      {"type": "vocab", "prompt": "What does \"inherently virtuous\" mean in \"Waking early is not inherently virtuous\"?", "options": ["good in itself, by its very nature", "good for your health", "difficult to achieve", "popular online"], "answer": 0, "evidence": "Waking early is not inherently virtuous"},
+      {"type": "detail", "prompt": "What happened when the writer tried getting up at half past five?", "options": ["The writer finished writing a book", "The writer became far more productive", "The writer felt tired by lunchtime and resentful of others", "The writer started making videos"], "answer": 2, "evidence": "they made me tired by lunchtime and quietly resentful"}
     ],
     "dictation_index": 7,
     "vocabulary": [
@@ -141,6 +145,7 @@
     "body": "When Ingrid's parents decided to move somewhere smaller, she was given one weekend to empty the bedroom she had grown up in. She arrived with a roll of bin bags and a firm philosophy borrowed from countless tidying guides: if an object no longer served a purpose, it had to go. The philosophy lasted until mid-morning. It was not the obviously sentimental things that defeated her — the photo albums and school reports were easy to box up and take home — but the peculiar, unremarkable ones: a chipped mug, a cinema ticket kept inside a dictionary, a jumper several sizes too small. None of them was useful, and yet throwing them away felt uncomfortably close to editing her own memory. This is the part that most decluttering advice tends to skip. We are often told to treat our possessions as a burden, as though every object were quietly draining our energy from the corner of the room. Sometimes that is true; a drawer stuffed with cables we will never untangle is not a treasure. But the things we keep are rarely about the things themselves. A mug can be a vessel for a particular kitchen, a particular voice asking whether anyone wants tea. What we are really deciding, when we hover over the bin, is which versions of ourselves we are prepared to let go of. Ingrid eventually found a compromise. She photographed most of what she couldn't bear to throw out, gave the jumper to a neighbour's daughter, and allowed herself one shoebox for everything that defied explanation. By Sunday evening the room was empty and the shoebox was full. It is time we stopped measuring a tidy life purely by how little it contains. A home with fewer things can certainly feel lighter, but the point of clearing space is to see more clearly what matters, not to pretend that nothing does.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What point does the writer make about most decluttering advice?",
         "options": [
           "It is too gentle about throwing things away",
@@ -152,6 +157,7 @@
         "evidence": "But the things we keep are rarely about the things themselves."
       },
       {
+        "type": "detail",
         "prompt": "What did Ingrid find hardest to throw away?",
         "options": [
           "Photo albums and school reports",
@@ -161,7 +167,9 @@
         ],
         "answer": 2,
         "evidence": "It was not the obviously sentimental things that defeated her"
-      }
+      },
+      {"type": "inference", "prompt": "Why did throwing away the ordinary objects feel \"close to editing her own memory\"?", "options": ["She was planning to sell them", "Her parents had asked her to keep them", "The objects were linked to moments and people in her past", "The objects were valuable antiques"], "answer": 2, "evidence": "the things we keep are rarely about the things themselves"},
+      {"type": "vocab", "prompt": "What does \"defied explanation\" mean in \"everything that defied explanation\"?", "options": ["had been broken", "belonged to someone else", "was easy to describe", "could not be explained"], "answer": 3, "evidence": "everything that defied explanation"}
     ],
     "dictation_index": 8,
     "vocabulary": [
@@ -270,6 +278,7 @@
     "body": "For most of our teenage years, Nadia and I were the kind of friends who finished each other's sentences and borrowed each other's clothes without asking. We had planned to share a flat after school, travel together, and live, as she once put it, \"within shouting distance\" for the rest of our lives. Then she left to study at the other end of the country, I stayed at home to work, and the gaps between our calls lengthened without either of us deciding they should. There was no argument, no betrayal, nothing dramatic enough to explain it. We simply began inhabiting different weeks: hers full of lectures and names I didn't know, mine full of early shifts and a routine she would have found unbearably dull. I used to think friendships ended the way they do in films, with a door slammed or a secret revealed. I have since learned that most of them simply erode, worn down by a long series of postponed conversations. Last spring, after several years of birthday messages and little else, we finally met for coffee. I had rehearsed a small speech in my head, half apology and half accusation. I never gave it. Within ten minutes we were laughing at the same things, although it was unmistakable that we were no longer the same people. She had become decisive in a way I envied; I had become patient in a way she seemed to admire. If we had stayed as close as we planned, we might not be such good friends now, because we would never have had to get to know each other again. The thought unsettled me at first, then oddly consoled me. Perhaps a friendship that survives a long silence isn't a diminished version of the original, but a different one, built on choice rather than habit. We meet every few months now. It isn't what we imagined at fifteen, and I've stopped wishing it were.",
     "questions": [
       {
+        "type": "main",
         "prompt": "How does the writer now see the friendship with Nadia?",
         "options": [
           "As a weaker copy of what they had at school",
@@ -281,6 +290,7 @@
         "evidence": "built on choice rather than habit"
       },
       {
+        "type": "detail",
         "prompt": "According to the writer, how do most friendships end?",
         "options": [
           "Suddenly, after a secret is revealed",
@@ -290,7 +300,9 @@
         ],
         "answer": 2,
         "evidence": "most of them simply erode, worn down by a long series of postponed conversations"
-      }
+      },
+      {"type": "inference", "prompt": "Why does the writer think staying close might have made them worse friends?", "options": ["They would have argued more often", "They would have lost touch anyway", "They would have fallen out over a shared flat", "They would never have had to get to know each other again"], "answer": 3, "evidence": "we would never have had to get to know each other again"},
+      {"type": "vocab", "prompt": "What does \"erode\" mean in \"most of them simply erode\"?", "options": ["grow stronger", "end suddenly", "become well known", "wear away slowly"], "answer": 3, "evidence": "most of them simply erode"}
     ],
     "dictation_index": 6,
     "vocabulary": [
@@ -394,6 +406,7 @@
     "body": "Dear Marcus, I owe you an apology, or at least an explanation, for taking nine days to answer a message that deserved a reply within the hour. It wasn't that I'd forgotten you; quite the opposite. A few weeks ago I swapped my smartphone for a basic one that can make calls and send texts and not much more, and I'm still adjusting to the slower pace. The first fortnight was genuinely uncomfortable. I kept reaching for my pocket in queues and at bus stops, only to find a device that offered nothing to scroll through. Neither my friends nor my sister was particularly sympathetic; most of them assumed I was making some sort of statement. If I'm honest, I wasn't entirely sure myself why I'd done it, beyond a vague sense that my attention had been quietly auctioned off to whoever shouted loudest. What has surprised me is not the extra time, although there is some, but the change in its texture. Waiting for a train has become an opportunity to notice things, or simply to be bored, which turns out to be a surprisingly fertile state. I've read more this month than in the previous six, and I've taken up cooking again, with mixed results. The drawbacks are real, of course. I can't check directions on the move, and I missed at least one party because the invitation existed only in a group chat. Had I known how much of social life now happens there, I might have warned people sooner. Should you ever try something similar, I'd suggest telling everyone in advance and keeping a laptop for the practical things. I'm not trying to convert you, I promise. I know your work depends on being reachable, and I'd rather you didn't throw your phone into a river on my account. But if you fancy a proper conversation, the old-fashioned kind, ring me on Sunday. I'll be the one who actually picks up. Warmly, Elif",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main purpose of Elif's email?",
         "options": [
           "To persuade Marcus to give up his smartphone",
@@ -405,6 +418,7 @@
         "evidence": "I owe you an apology, or at least an explanation, for taking nine days to answer a message"
       },
       {
+        "type": "vocab",
         "prompt": "What does Elif mean by \"the change in its texture\"?",
         "options": [
           "Her free time feels different in quality, not just longer",
@@ -414,7 +428,9 @@
         ],
         "answer": 0,
         "evidence": "What has surprised me is not the extra time, although there is some, but the change in its texture."
-      }
+      },
+      {"type": "inference", "prompt": "What does Elif suggest by saying her attention had been \"auctioned off to whoever shouted loudest\"?", "options": ["Her friends had been shouting at her", "She had sold her old phone at an auction", "Apps competing for attention had been controlling her focus", "She had been working long hours"], "answer": 2, "evidence": "my attention had been quietly auctioned off to whoever shouted loudest"},
+      {"type": "detail", "prompt": "What does Elif advise anyone who wants to try a basic phone?", "options": ["Throw the old phone into a river", "Buy a second smartphone for emergencies", "Tell everyone in advance and keep a laptop for practical things", "Leave every group chat at once"], "answer": 2, "evidence": "I'd suggest telling everyone in advance and keeping a laptop for the practical things"}
     ],
     "dictation_index": 12,
     "vocabulary": [

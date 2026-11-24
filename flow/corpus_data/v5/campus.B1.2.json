@@ -12,6 +12,7 @@
     "body": "Hi Mei, I have some bad news, and I'm telling you first because you won't panic. I failed my statistics exam. I got the result this morning, and I've been walking around campus ever since, trying to work out what went wrong. Honestly, I already know the answer. I read my notes again and again, but I never practised a single problem on my own. In the exam, I recognised every question and still couldn't solve most of them. I wish I had your patience with numbers, but wishing won't help, so I've made a plan. There's a resit at the end of the summer, and I'm going to do two practice problems every day instead of rereading. I've also booked a meeting with my tutor to go through my paper. If I could go back to the start of term, I would ask for help in the first week, not the last. Please don't tell Mum and Dad yet. I'd rather tell them myself once I have a plan that works. Could you call me this weekend? If you had half an hour, you could test me on the basics. Love, Lin",
     "questions": [
       {
+        "type": "main",
         "prompt": "What does Lin think was the real reason she failed?",
         "options": [
           "She did not have enough time to read her notes",
@@ -23,6 +24,7 @@
         "evidence": "I read my notes again and again, but I never practised a single problem on my own."
       },
       {
+        "type": "detail",
         "prompt": "Why doesn't Lin want Mei to tell their parents yet?",
         "options": [
           "She thinks their parents will blame Mei",
@@ -32,7 +34,9 @@
         ],
         "answer": 2,
         "evidence": "I'd rather tell them myself once I have a plan that works."
-      }
+      },
+      {"type": "inference", "prompt": "Why does Lin tell Mei the news first?", "options": ["Mei failed the same exam", "Mei is her tutor", "Mei will tell their parents for her", "She thinks Mei will stay calm"], "answer": 3, "evidence": "I'm telling you first because you won't panic"},
+      {"type": "vocab", "prompt": "What does \"resit\" mean in \"There's a resit at the end of the summer\"?", "options": ["a summer holiday", "a second chance to take an exam", "a new class", "a piece of homework"], "answer": 1, "evidence": "There's a resit at the end of the summer"}
     ],
     "dictation_index": 6,
     "vocabulary": [
@@ -141,6 +145,7 @@
     "body": "Ella: Thanks for doing this, Ravi, because I've been staring at question four for an hour. Ravi: No problem, so what's confusing you? Ella: Everything, to be honest: neither the lecture slides nor the textbook explains why the answer is negative. Ravi: Okay, forget the answer for now and explain the question to me in your own words. Ella: You want me to explain it to you? You're the one who got top marks. Ravi: Trust me, it helps, because talking it through shows us exactly where you get stuck. Ella: Fine, so a ball is thrown straight up, and we need its velocity after two seconds. Ravi: And what's happening to it during those two seconds? Ella: It's going up, but it's slowing down the whole time — oh, wait! Ravi: Keep going. Ella: So by two seconds it has already stopped and started to fall, and that's why the answer is negative! Ravi: Exactly, and the minus sign just shows the direction. Ella: But why didn't you just tell me that? Ravi: Because you'd have forgotten it by Friday. You worked it out yourself, so it'll stay with you. And honestly, explaining things helps me remember them too.",
     "questions": [
       {
+        "type": "main",
         "prompt": "Why does Ravi ask Ella to explain the question herself?",
         "options": [
           "He has forgotten how to solve the problem",
@@ -152,6 +157,7 @@
         "evidence": "You worked it out yourself, so it'll stay with you."
       },
       {
+        "type": "detail",
         "prompt": "What does Ella realise about the ball?",
         "options": [
           "It has already started falling after two seconds",
@@ -161,7 +167,9 @@
         ],
         "answer": 0,
         "evidence": "So by two seconds it has already stopped and started to fall"
-      }
+      },
+      {"type": "inference", "prompt": "Why does Ravi say \"you'd have forgotten it by Friday\"?", "options": ["Ravi will be away on Friday", "Answers you are simply told are easy to forget", "The exam is on Friday", "Ella has a very bad memory"], "answer": 1, "evidence": "You worked it out yourself, so it'll stay with you."},
+      {"type": "vocab", "prompt": "What does \"velocity\" mean in \"we need its velocity after two seconds\"?", "options": ["speed in a particular direction", "weight", "colour", "height"], "answer": 0, "evidence": "we need its velocity after two seconds"}
     ],
     "dictation_index": 15,
     "vocabulary": [
@@ -265,6 +273,7 @@
     "body": "Electives are the only part of your timetable that you get to choose freely, so it's worth thinking carefully before you click. Here are four questions to ask yourself. First, would you still take this class if none of your friends were taking it? Choosing a course just to stay with your group often means a whole term of boredom. Second, what could this class give you that your main subject can't? A history student might learn more from a basic coding course than from yet another history module. Third, have you read the course description properly? Look for the way students are assessed. A class marked entirely on one final exam feels very different from one built around weekly projects. Fourth, can you talk to someone who has already taken it? Second-year students are usually happy to tell you whether the reading list is manageable. Finally, leave a little room for curiosity. Some of the best classes are the ones people choose almost by accident, simply because the title made them smile.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main purpose of the guide?",
         "options": [
           "To help students think carefully about which electives to take",
@@ -276,6 +285,7 @@
         "evidence": "Here are four questions to ask yourself."
       },
       {
+        "type": "vocab",
         "prompt": "In the guide, what does \"manageable\" suggest about a reading list?",
         "options": [
           "It is very interesting to read",
@@ -285,7 +295,9 @@
         ],
         "answer": 1,
         "evidence": "whether the reading list is manageable"
-      }
+      },
+      {"type": "inference", "prompt": "Why does the writer mention a history student taking a coding course?", "options": ["To say that history is boring", "Because coding is a required subject", "Because history students are bad at coding", "To show that an elective can give skills your main subject cannot"], "answer": 3, "evidence": "what could this class give you that your main subject can't?"},
+      {"type": "detail", "prompt": "Who does the writer suggest talking to before choosing?", "options": ["The head of the university", "A first-year student", "Your parents", "Someone who has already taken the class"], "answer": 3, "evidence": "can you talk to someone who has already taken it?"}
     ],
     "dictation_index": 8,
     "vocabulary": [
@@ -394,6 +406,7 @@
     "body": "Interviewer: Daniel, you work at the bike repair shop near the main gate. How did that start? Daniel: I came in with a flat tyre in my first month, and the owner was so busy that I offered to help. By the end of the week, he'd offered me a job. Interviewer: How many hours do you work? Daniel: Two evenings a week and Saturday mornings. Interviewer: Is it hard to balance work and study? Daniel: Sometimes. During exam weeks, either my boss or my classmates have to be patient with me. Usually I swap shifts with another student working there, and that saves me. Interviewer: What's the best part of the job? Daniel: Honestly, the people. Students come in looking stressed because they're late for class, and twenty minutes later they ride off smiling. Interviewer: And the worst part? Daniel: I wish I had more free evenings. My friends go to the cinema on Thursdays, and I'm usually covered in oil at that time. Interviewer: Would you recommend a part-time job to other students? Daniel: Yes, but only if it's flexible. Find a boss who understands that you're a student first.",
     "questions": [
       {
+        "type": "detail",
         "prompt": "What does Daniel enjoy most about his job?",
         "options": [
           "Earning money to go to the cinema",
@@ -405,6 +418,7 @@
         "evidence": "and twenty minutes later they ride off smiling"
       },
       {
+        "type": "detail",
         "prompt": "How does Daniel usually manage during exam weeks?",
         "options": [
           "He stops working until the exams are over",
@@ -414,7 +428,9 @@
         ],
         "answer": 1,
         "evidence": "Usually I swap shifts with another student working there"
-      }
+      },
+      {"type": "main", "prompt": "What is the interview mainly about?", "options": ["Why students should not have jobs", "A student's experience of a part-time job at a bike shop", "How to repair a flat tyre", "A shop owner's business plan"], "answer": 1, "evidence": "you work at the bike repair shop near the main gate"},
+      {"type": "vocab", "prompt": "What does \"flexible\" mean in \"only if it's flexible\"?", "options": ["easy", "well paid", "able to change to suit your needs", "close to home"], "answer": 2, "evidence": "only if it's flexible"}
     ],
     "dictation_index": 3,
     "vocabulary": [
