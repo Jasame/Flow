@@ -97,6 +97,8 @@ CREATE INDEX IF NOT EXISTS next_reviews_card ON next_reviews(card, created);
 CREATE TABLE IF NOT EXISTS next_word_examples(norm TEXT PRIMARY KEY, sentence TEXT NOT NULL, translation TEXT NOT NULL DEFAULT '', created REAL NOT NULL);
 CREATE TABLE IF NOT EXISTS next_reminders(user_id INTEGER PRIMARY KEY REFERENCES users(id), enabled INTEGER NOT NULL DEFAULT 0,
  hour INTEGER NOT NULL DEFAULT 20, last_sent TEXT, updated REAL NOT NULL);''')
+    if 'sense' not in {r[1] for r in c.execute('PRAGMA table_info(next_word_examples)')}:  # the meaning an AI example uses
+        c.execute("ALTER TABLE next_word_examples ADD COLUMN sense TEXT NOT NULL DEFAULT ''")
     pcols = {r[1] for r in c.execute('PRAGMA table_info(next_vocab_plans)')}
     if 'skip_rank' not in pcols:
         c.execute('ALTER TABLE next_vocab_plans ADD COLUMN skip_rank INTEGER NOT NULL DEFAULT 0')
@@ -293,6 +295,32 @@ def brief_meaning(meaning, k=3):
         pos, rest = '', first
     senses = [x.strip() for x in rest.split(', ') if x.strip()][:k]
     return ((pos + '. ') if pos else '') + ', '.join(senses)
+
+
+# An example sentence is written for the word, not for whoever opens the card first (it is cached for everyone): its
+# other words must be easier than the word itself, so a learner sees at once what it means. Words of the school and
+# basic books get A2 sentences, 四级 words B1, everything else B2.
+EXAMPLE_LEVELS = (('A2', ('core', 'zk', 'mid', 'gk')), ('B1', ('cet4',)))
+_EXAMPLE_LEVEL = None
+
+
+def example_level(word):
+    global _EXAMPLE_LEVEL
+    if _EXAMPLE_LEVEL is None:
+        lv = {}
+        for level, books in reversed(EXAMPLE_LEVELS):  # the easiest book a word is in wins
+            for b in books:
+                for _, w in book_words().get(b, ()):
+                    lv[w] = level
+        _EXAMPLE_LEVEL = lv
+    return _EXAMPLE_LEVEL.get(word, 'B2')
+
+
+def first_sense(meaning):
+    """The first gloss of a dictionary meaning: 「n. 老鼠, 胆小羞怯的人, 鼠标；vi. 捕鼠」 -> 「老鼠」."""
+    head = re.split(r'[；;]', meaning or '', maxsplit=1)[0]
+    head = re.sub(r'^\s*(?:[a-z]+\.\s*)+', '', head)
+    return re.split(r'[,，、]', head, maxsplit=1)[0].strip(' （）()')
 
 
 def short_meaning(meaning, n=2):
@@ -862,13 +890,19 @@ def add_many(c, uid, data):
     return {'added': added, 'skipped': skipped, **counts(c, uid, now)}, 200
 
 
-def example_messages(words, level):
+def example_messages(words, level=None):
     """The chat messages that ask for one example sentence (and its translation) per word; shared by the learner's
-    request (ai_examples) and the batch that writes them ahead of time (fill_examples.py)."""
+    request (ai_examples) and the batch that writes them ahead of time (fill_examples.py). The level is the easiest of
+    the words' own (example_level), unless given."""
     d = nx.dictionary()
-    system = '你是英语词典编辑。为每个单词写一个自然、常用、贴近生活的英文例句（10–20 词，' + level + ' 学习者能读懂），并给出准确的中文翻译。只输出 JSON。'
-    user = ('单词（附中文义项）：\n' + '\n'.join(f'{w}：{short_meaning(d[w]["meaning"])}' for w in words) +
-            '\n\n输出 JSON：{"examples":[{"word":"单词原形","sentence":"英文例句（必须包含这个词或它的变形）","translation":"中文翻译"}]}')
+    level = level or min((example_level(w) for w in words), default='B1')
+    system = ('你是英语词典编辑，给中国学生写例句。为每个单词写一个自然、常用、贴近生活的英文例句（10–20 词，' + level +
+              ' 学习者能读懂）：句子里其他的词都要比这个单词简单，让学生一眼就看懂它的意思。'
+              '优先用词书给的第一个义项；只有第一个义项明显是生僻用法时才换别的义项。给出准确的中文翻译。只输出 JSON。')
+    user = ('单词（附中文义项，括号里是第一个义项）：\n' +
+            '\n'.join(f'{w}：{short_meaning(d[w]["meaning"])}（第一个义项：{first_sense(d[w]["meaning"])}）' for w in words) +
+            '\n\n输出 JSON：{"examples":[{"word":"单词原形","sense":"例句用的义项（中文，照抄上面的一个义项）",'
+            '"sentence":"英文例句（必须包含这个词或它的变形）","translation":"中文翻译"}]}')
     return [{'role': 'system', 'content': system}, {'role': 'user', 'content': user}]
 
 
@@ -882,14 +916,16 @@ def example_results(raw, words):
         sent = clean_text(e['sentence'], 8, 240)
         lemmas = {(nx.lookup(t) or {}).get('lemma') for t in nx.WORD.findall(sent)}
         if e['word'] in lemmas or e['word'] in sent.lower():
-            out[e['word']] = {'sentence': sent, 'translation': clean_text(e.get('translation') or '', 0, 240)}
+            out[e['word']] = {'sentence': sent, 'translation': clean_text(e.get('translation') or '', 0, 240),
+                              'sense': clean_text(e.get('sense') or '', 0, 40) if isinstance(e.get('sense'), str) else ''}
     return out
 
 
 def save_examples(c, made, now=None):
     now = now or time.time()
     for w, e in made.items():
-        c.execute('INSERT OR IGNORE INTO next_word_examples VALUES(?,?,?,?)', (w, e['sentence'], e['translation'], now))
+        c.execute('INSERT OR IGNORE INTO next_word_examples(norm,sentence,translation,created,sense) VALUES(?,?,?,?,?)',
+                  (w, e['sentence'], e['translation'], now, e.get('sense') or ''))
     c.commit()
 
 
@@ -915,7 +951,7 @@ def ai_examples(c, uid, data):
         return out
 
     result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-examples', 'vocab', 'vocabulary', {'words': words},
-                             lambda: request_model(example_messages(words, _level(c, uid))), convert)
+                             lambda: request_model(example_messages(words)), convert)  # by the words' level, not the learner's
     if status != 200:
         return result, status
     save_examples(c, result['result'])
