@@ -25,6 +25,9 @@ THEMES = {'campus': '校园学习', 'travel': '旅行生活', 'life': '日常生
 MINUTES = (5, 10, 15, 20, 30, 45, 60)
 # Pre-generated Kokoro narration (see tools/gen_audio.py): audio/<voice>/<material>.m4a + .json timings.
 VOICES = {'us-f': '美音 · 女声', 'us-m': '美音 · 男声', 'uk-f': '英音 · 女声', 'uk-m': '英音 · 男声'}
+# Which ids can have narration files: the v5 corpus and, since the r27 content line, the older materials too (简版:
+# graded-*, graph-* and the first theme-level texts), so WeChat on Android, which has no browser voice, can play them.
+NARRATION_ID = re.compile(r'(?:v5|graded|graph|campus|travel|life|work|culture|science)-[a-z0-9]+(?:-[a-z0-9]+)*')
 AUDIO_DIR = Path(os.getenv('FLOW_AUDIO_DIR') or Path(__file__).resolve().parent / 'audio')
 _AUDIO = {'mtime': None, 'index': {}}
 WORD = re.compile(r"[A-Za-z]+(?:'[A-Za-z]+)?")
@@ -395,7 +398,7 @@ def audio_index():
 
 def audio_file(voice, pid, ext):
     """Path of a narration file, or None. Names are validated so nothing outside AUDIO_DIR can be served."""
-    if voice not in VOICES or ext not in ('m4a', 'mp4', 'json') or not re.fullmatch(r'v5-[a-z0-9]+(?:-[a-z0-9]+)*', pid or ''):
+    if voice not in VOICES or ext not in ('m4a', 'mp4', 'json') or not NARRATION_ID.fullmatch(pid or ''):
         return None
     name = pid + '.' + ('m4a' if ext == 'mp4' else ext)  # .mp4 is the same file, for edge caching
     return __import__('media').path(f'{voice}/{name}', AUDIO_DIR / voice / name)  # fetched from R2 when missing here

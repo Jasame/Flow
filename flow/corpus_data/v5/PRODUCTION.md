@@ -77,6 +77,7 @@ uv run --with kokoro-onnx --with soundfile python tools/gen_audio.py flow ~/Flow
 
 - 先备份：`cp ~/Flow-media/tts/audio/index.json ~/Flow-media/tts/audio/index.before-<批次>.json`。
 - 生成脚本会重建 `index.json`，盖住所有已录的材料。
+- 旧材料（简版：graded-*、graph-* 和最早的分话题短文）用 `--old` 一次录完，`--all` 是全部；id 规则见 `next_service.NARRATION_ID`。
 - 在 zsh 里用变量传 id 时，要写成 `${=IDS}`，否则不会按空格拆开。
 - 核对每篇 4 个声音的 `.json` 里，句子数和 `sentences(body)` 一样。
 - 母本在 `~/Flow-media`，不要放在 /tmp。

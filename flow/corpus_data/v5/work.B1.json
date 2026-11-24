@@ -12,6 +12,7 @@
     "body": "Asking for help at work can feel risky, especially when you are new. You worry that people will think you can't do your job. In fact, most colleagues are happy to help, as long as you make it easy for them. Here are four simple habits. First, try something before you ask. Spend fifteen minutes looking for the answer yourself, and then explain what you have already tried. Saying \"I checked the guide and searched our old emails, but I couldn't find the login steps\" sounds very different from \"How do I log in?\" Second, be specific. A question like \"Can you help me with the report?\" is hard to answer, because the other person doesn't know how big the job is. \"Could you look at the numbers on page two?\" is much easier to say yes to. Third, think about timing. If someone is clearly busy, ask \"Do you have five minutes later today?\" instead of interrupting them. Finally, close the loop. When the problem is solved, tell the person who helped you. It shows that you value their time, and it makes them more likely to help you again.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's main advice?",
         "options": [
           "Wait until you are no longer new before asking for help",
@@ -23,6 +24,7 @@
         "evidence": "most colleagues are happy to help, as long as you make it easy for them"
       },
       {
+        "type": "vocab",
         "prompt": "In the passage, what does \"close the loop\" mean?",
         "options": [
           "Stop asking the same person for help",
@@ -32,7 +34,9 @@
         ],
         "answer": 2,
         "evidence": "When the problem is solved, tell the person who helped you."
-      }
+      },
+      {"type": "inference", "prompt": "Why is \"Could you look at the numbers on page two?\" easier to say yes to?", "options": ["It is shorter to read", "The other person knows exactly how big the job is", "It is more polite than other questions", "Page two is always easy"], "answer": 1, "evidence": "the other person doesn't know how big the job is"},
+      {"type": "detail", "prompt": "How long does the writer suggest you spend looking for the answer yourself first?", "options": ["A whole day", "Five minutes", "An hour", "Fifteen minutes"], "answer": 3, "evidence": "Spend fifteen minutes looking for the answer yourself"}
     ],
     "dictation_index": 5,
     "vocabulary": [
@@ -136,6 +140,7 @@
     "body": "Priya: Morning, everyone, let's keep this short as usual. Tell us what you finished yesterday, what you're working on today, and whether anything is blocking you. Hana, do you want to start? Hana: Sure, I've finished the new sign-up page, and today I'm testing it on different phones. There are no problems so far, so I don't need anything from anyone. Priya: Great, thanks. Marco, how about you? Marco: So, yesterday I found a strange bug in the payment form. At first I thought it was the browser, so I tried three different ones, and then I noticed that the page... Priya: Sorry, Marco, can I stop you there? It sounds important, but let's take it offline. Could you and Leon look at it together straight after this? Marco: Yeah, fair enough, it's probably a long story anyway. Leon, have you got twenty minutes at ten? Leon: Sure, and actually I've seen something similar before on another project. Priya: Perfect. And what about your own work, Leon? Leon: I'm still waiting for the new images from the design team, so I'm a bit stuck on the home page. Priya: OK, I'll chase them this morning and let you know. Anything else from anyone? Then that's it, thanks, everyone.",
     "questions": [
       {
+        "type": "inference",
         "prompt": "Why does Priya stop Marco?",
         "options": [
           "She thinks the bug he found is not important",
@@ -147,6 +152,7 @@
         "evidence": "It sounds important, but let's take it offline."
       },
       {
+        "type": "detail",
         "prompt": "What is stopping Leon from doing his own work?",
         "options": [
           "He has found a strange bug in the payment form",
@@ -156,7 +162,9 @@
         ],
         "answer": 3,
         "evidence": "I'm still waiting for the new images from the design team"
-      }
+      },
+      {"type": "main", "prompt": "What is the conversation mainly about?", "options": ["A job interview", "A short daily team meeting about progress and problems", "Planning the design of a new home page", "A long discussion of a payment bug"], "answer": 1, "evidence": "Tell us what you finished yesterday, what you're working on today, and whether anything is blocking you."},
+      {"type": "vocab", "prompt": "What does \"take it offline\" mean in \"let's take it offline\"?", "options": ["turn off the internet", "forget about it", "write an email about it", "discuss it separately, outside the meeting"], "answer": 3, "evidence": "let's take it offline"}
     ],
     "dictation_index": 10,
     "vocabulary": [
@@ -254,6 +262,7 @@
     "body": "At six o'clock on Friday, just as Ravi was closing his laptop, a message from his manager appeared on the screen: \"Can we talk on Monday morning?\" That was all. There was no smiley face and no explanation. On the train home, Ravi started to wonder what he had done wrong. Was it the report he had sent late last month? Had a client complained? By Saturday afternoon, he had gone through every email from the past three weeks. He barely slept on Sunday night. On Monday, he walked into the meeting room ready to apologize. His manager, Grace, looked up and smiled. \"Thanks for coming in. We're starting a new project with the Lisbon office, and I'd like you to lead it.\" Ravi laughed out loud, and then told her about his weekend. Grace looked shocked. \"I'm so sorry,\" she said. \"I was in a hurry and didn't think about how it sounded.\" Since then, she has changed one small habit. Every time she asks someone for a chat, she adds a few words about the topic, even if it's just \"nothing serious, just planning.\"",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main point of the story?",
         "options": [
           "Managers should never send messages after six o'clock",
@@ -265,6 +274,7 @@
         "evidence": "I was in a hurry and didn't think about how it sounded."
       },
       {
+        "type": "detail",
         "prompt": "Why did Grace want to talk to Ravi?",
         "options": [
           "She wanted to discuss a report he had sent late",
@@ -274,7 +284,9 @@
         ],
         "answer": 1,
         "evidence": "I'd like you to lead it"
-      }
+      },
+      {"type": "inference", "prompt": "Why did Grace look shocked?", "options": ["Ravi had made a mistake", "She had not realised her short message would worry Ravi", "Ravi refused the new project", "Ravi was late for the meeting"], "answer": 1, "evidence": "I was in a hurry and didn't think about how it sounded."},
+      {"type": "vocab", "prompt": "What does \"barely\" mean in \"He barely slept on Sunday night\"?", "options": ["well", "almost not", "early", "deeply"], "answer": 1, "evidence": "He barely slept on Sunday night."}
     ],
     "dictation_index": 5,
     "vocabulary": [
@@ -373,6 +385,7 @@
     "body": "Hi Daniel, As you know, I'm away from Monday for two weeks, so here is a quick handover for the client workshop. The good news is that most of the big jobs are done. The room is booked, the invitations have gone out, and twenty-two people have already said yes. There are three things left. First, the catering company needs the final number of guests by next Thursday. Second, Tom Brandt from the client side still hasn't sent his slides, so please send him a friendly reminder on Wednesday. Third, someone needs to print the name cards, which are in the shared folder called \"Workshop Final\". If anything changes with the room, call Joanna at reception. She has been really helpful, and I've copied her on this email. Unless it's urgent, please don't call me, as I'll be somewhere in the mountains with very little signal! For anything small, just use your own judgement. I trust you completely. Thanks so much for covering for me. Best wishes, Elif",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main purpose of Elif's email?",
         "options": [
           "To invite Daniel to a client workshop next month",
@@ -384,6 +397,7 @@
         "evidence": "so here is a quick handover for the client workshop"
       },
       {
+        "type": "vocab",
         "prompt": "What does Elif mean by \"use your own judgement\"?",
         "options": [
           "Daniel can decide small things by himself",
@@ -393,7 +407,9 @@
         ],
         "answer": 0,
         "evidence": "For anything small, just use your own judgement."
-      }
+      },
+      {"type": "inference", "prompt": "What does Elif mean by \"I trust you completely\"?", "options": ["She wants him to call her often", "She is sure Daniel can make good decisions on his own", "She thinks the workshop will go badly", "She is worried about Joanna"], "answer": 1, "evidence": "For anything small, just use your own judgement."},
+      {"type": "detail", "prompt": "What does the catering company need by next Thursday?", "options": ["The final number of guests", "The name cards", "Tom's slides", "The room booking"], "answer": 0, "evidence": "the catering company needs the final number of guests by next Thursday"}
     ],
     "dictation_index": 4,
     "vocabulary": [

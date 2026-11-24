@@ -12,6 +12,7 @@
     "body": "The night train to Morrow left at ten, and I had the top bunk in a tiny cabin for four. My cabin mates were an older couple and a student called Pia, who was already asleep with her headphones on. Climbing the narrow ladder, I hit my head on the ceiling twice. The couple laughed kindly and offered me a biscuit. For the first hour, I lay awake, listening to the wheels and watching dark villages flash past the window. Every so often the train slowed down at a small station, and yellow lights moved across the walls. I had expected to hate it, but the gentle rocking was strangely relaxing. At some point I fell asleep, and when I woke up, the sky was pink and we were passing a lake covered in mist. Pia was already making tea with hot water from a flask she had brought. Drinking it at the window, I felt as if I were in an old film. Now I'm back at my desk, and I wish I had a view like that on my way to work. A plane would have been quicker, but it could never have given me that sunrise.",
     "questions": [
       {
+        "type": "inference",
         "prompt": "How does the writer feel about the journey now?",
         "options": [
           "Sorry that it took so long",
@@ -23,6 +24,7 @@
         "evidence": "I wish I had a view like that on my way to work"
       },
       {
+        "type": "vocab",
         "prompt": "What does \"flash past\" suggest about the villages?",
         "options": [
           "They were full of bright lights",
@@ -32,7 +34,9 @@
         ],
         "answer": 1,
         "evidence": "watching dark villages flash past the window"
-      }
+      },
+      {"type": "main", "prompt": "What is the story mainly about?", "options": ["A student who loves music", "A flight to Morrow", "A night journey on a sleeper train that turned out better than expected", "A couple's holiday by a lake"], "answer": 2, "evidence": "I had expected to hate it, but the gentle rocking was strangely relaxing."},
+      {"type": "detail", "prompt": "What was Pia doing when the writer woke up?", "options": ["Sleeping with her headphones on", "Reading a book", "Eating a biscuit", "Making tea with hot water from a flask"], "answer": 3, "evidence": "Pia was already making tea with hot water from a flask she had brought"}
     ],
     "dictation_index": 6,
     "vocabulary": [
@@ -131,6 +135,7 @@
     "body": "Agent: Excuse me, are you on the flight to Elmsford? It's overbooked today, and we're looking for two passengers to take a later flight. Would you be interested? Leo: Maybe, but it depends on when the next one leaves. Agent: Either the evening flight or the first one tomorrow morning has seats for you. Leo: If I took the evening flight, what time would I arrive? Agent: Just after eleven tonight. We'd also give you a meal voucher and a travel credit to use on a future trip. Leo: That sounds fair, but my sister is picking me up at the airport, and neither she nor her kids want to wait until midnight. Agent: I understand. If you chose the morning flight, we could book you a hotel near the airport as well. Leo: Hmm, give me a minute to call her. Agent: Of course, take your time. Leo: OK, I've just spoken to her. She says tonight is fine, as long as I bring snacks. Agent: Wonderful, so the evening flight? Leo: Yes, and could I have a window seat? Agent: Here's your new boarding pass. Thanks for helping us out. Leo: Not at all. Honestly, I could use a few quiet hours to finish my book.",
     "questions": [
       {
+        "type": "detail",
         "prompt": "Why does Leo not say yes immediately?",
         "options": [
           "He thinks the airline is not offering enough",
@@ -142,6 +147,7 @@
         "evidence": "my sister is picking me up at the airport"
       },
       {
+        "type": "detail",
         "prompt": "What would the airline do if Leo chose the morning flight?",
         "options": [
           "Book him a hotel near the airport",
@@ -151,7 +157,9 @@
         ],
         "answer": 0,
         "evidence": "If you chose the morning flight, we could book you a hotel near the airport as well."
-      }
+      },
+      {"type": "main", "prompt": "What is the conversation mainly about?", "options": ["Choosing a window seat", "Booking a hotel near the airport", "A passenger agreeing to take a later flight because the first one is overbooked", "A passenger complaining about lost luggage"], "answer": 2, "evidence": "It's overbooked today, and we're looking for two passengers to take a later flight."},
+      {"type": "vocab", "prompt": "What does \"overbooked\" mean in \"It's overbooked today\"?", "options": ["delayed", "more seats have been sold than there are on the plane", "very cheap", "cancelled"], "answer": 1, "evidence": "It's overbooked today"}
     ],
     "dictation_index": 1,
     "vocabulary": [
@@ -255,6 +263,7 @@
     "body": "Street food is one of the best ways to taste a new place, and it rarely costs much. A few simple habits will help you enjoy it without worrying. First, follow the crowd. If a stall is busy with local families and office workers, the food is probably fresh, because it doesn't sit around for long. Second, choose dishes cooked in front of you. Watching the cook fry noodles or grill meat over a hot fire is half the fun, and you can see that everything is served hot. Third, look at the stall itself. A clean counter and a cook using tongs or gloves are good signs. If you can't find a place to wash your hands, you should carry a small bottle of hand gel. It's also smart to order small portions at first. That way you can try four or five different things instead of filling up on one big plate. Finally, don't be afraid to point and smile if you don't know the names of the dishes. Most cooks are proud of their food and happy to show you what's in it.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main message of the guide?",
         "options": [
           "Street food is too risky for most travellers",
@@ -266,6 +275,7 @@
         "evidence": "A few simple habits will help you enjoy it without worrying."
       },
       {
+        "type": "detail",
         "prompt": "Why does a busy stall usually mean fresh food?",
         "options": [
           "The cook buys more expensive ingredients",
@@ -275,7 +285,9 @@
         ],
         "answer": 1,
         "evidence": "the food is probably fresh, because it doesn't sit around for long"
-      }
+      },
+      {"type": "inference", "prompt": "Why is watching the cook \"half the fun\"?", "options": ["The cooks perform tricks for money", "It is enjoyable and also shows you the food is cooked fresh and hot", "It is free entertainment", "It teaches you how to cook"], "answer": 1, "evidence": "you can see that everything is served hot"},
+      {"type": "vocab", "prompt": "What does \"tongs\" mean in \"a cook using tongs or gloves\"?", "options": ["a kind of sauce", "a tool for picking up food", "a kind of hat", "a cooking pot"], "answer": 1, "evidence": "a cook using tongs or gloves"}
     ],
     "dictation_index": 11,
     "vocabulary": [
@@ -379,6 +391,7 @@
     "body": "Hi Sam, you won't believe how my trip started. My train reached Kessing almost two hours late, and by then neither the buses nor the last tram was running. There was just one taxi outside the station, and a woman with a huge backpack got to it at the same moment as me. Holding the door open, she smiled and suggested sharing it. I wasn't sure at first, but her hotel turned out to be on the same street as mine, so it made sense. Her name was Noor, and she was travelling alone for three months. She chatted with the driver in his own language, which she had learned from videos, and he ended up giving us tips about the best breakfast places. When we arrived, we split the fare, so it cost each of us very little. I usually keep to myself on trips, but that ride reminded me that strangers can be the best part of travelling. Honestly, I wish I had half her confidence. I'll tell you more when I'm home. Take care, Ella",
     "questions": [
       {
+        "type": "main",
         "prompt": "What does Ella learn from the taxi ride?",
         "options": [
           "Taxis are always cheaper than trams",
@@ -390,6 +403,7 @@
         "evidence": "that ride reminded me that strangers can be the best part of travelling"
       },
       {
+        "type": "detail",
         "prompt": "Why did sharing the taxi make sense?",
         "options": [
           "The driver asked them to share",
@@ -399,7 +413,9 @@
         ],
         "answer": 1,
         "evidence": "her hotel turned out to be on the same street as mine, so it made sense"
-      }
+      },
+      {"type": "inference", "prompt": "What does Ella mean by \"I wish I had half her confidence\"?", "options": ["She wants a backpack like Noor's", "She is more confident than Noor", "She is annoyed with Noor", "She admires how easily Noor talks to people"], "answer": 3, "evidence": "She chatted with the driver in his own language"},
+      {"type": "vocab", "prompt": "What does \"split the fare\" mean in \"we split the fare\"?", "options": ["paid twice as much", "argued about the price", "shared the cost of the ride", "left without paying"], "answer": 2, "evidence": "we split the fare"}
     ],
     "dictation_index": 3,
     "vocabulary": [
