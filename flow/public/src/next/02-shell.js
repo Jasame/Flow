@@ -287,7 +287,7 @@
       const token = decodeURIComponent(location.hash.slice(7)); history.replaceState(null, '', location.pathname + location.search + '#/');
       setTimeout(() => resetByLink(token), 0);
     }
-    TTS.stop(); NAR.stop(); CLIP.stop(); MIC.stop(); MINI.hide(); hideSelbar(); swipeOff(); document.body.classList.remove('reviewing'); bar.classList.remove('hide'); document.onselectionchange = null; document.onkeydown = null;
+    TTS.stop(); NAR.stop(); CLIP.stop(); MIC.stop(); MINI.hide(); hideSelbar(); swipeOff(); document.body.classList.remove('reviewing', 'onboarding'); bar.classList.remove('hide'); document.onselectionchange = null; document.onkeydown = null;
     const [name, a, b] = parts();
     if (name === 'about') { location.replace('/about'); return; }  // 认识语流 is its own page (the guide links here)
     const last = S.lastRoute.split('/');
@@ -301,7 +301,7 @@
       if (name === 'join') { location.replace('#/'); if (!S.user) setTimeout(() => openLogin('', 'reg'), 0); return; }
       if (name === 'welcome') { setNav(''); await welcome(a === 'edit'); }
       // Only the personalised home needs the level questions first; everything else works for a new guest too.
-      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix', 'easy', 'words', 'speak', 'growth', 'radar', 'practice', 'guide', 'feedback', 'weekly-off'].includes(name)) { location.replace('#/welcome'); return; }
+      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix', 'easy', 'words', 'speak', 'growth', 'radar', 'practice', 'guide', 'feedback', 'weekly-off', 'invite', 'class'].includes(name)) { location.replace('#/welcome'); return; }
       else if (name === 'placement') { setNav('practice'); await placementView(); }
       else if (name === 'exam') { setNav('practice'); await (b ? examTypeView(a, decodeURIComponent(b)) : examView(a)); }
       else if (name === 'series') { setNav('today'); await seriesView(decodeURIComponent(a || '')); }
@@ -324,6 +324,8 @@
       else if (name === 'practice') { setNav('practice'); await practiceView(); }
       else if (name === 'guide') { setNav('practice'); await guideView(a ? decodeURIComponent(a) : ''); }
       else if (name === 'me') { setNav('me'); await meView(); }
+      else if (name === 'invite') { setNav('me'); await joinRoute(decodeURIComponent(a || '')); }
+      else if (name === 'class' && a) { setNav('me'); await classView(decodeURIComponent(a)); }
       else if (name === 'feedback') { setNav('me'); await feedbackView(); }
       else { setNav('today'); await today(fresh); }
       if (!sameMaterial && name !== 'welcome' && !quiet) enter(view);

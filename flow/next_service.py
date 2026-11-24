@@ -75,6 +75,11 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
     if 'exam' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:  # 考试冲刺: the exam (exam_service.EXAMS) and its date
         c.execute('ALTER TABLE next_profiles ADD COLUMN exam TEXT')
         c.execute('ALTER TABLE next_profiles ADD COLUMN exam_date TEXT')
+    if 'target' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:
+        # 选方向和目标 (r27): the level the learner wants to reach, and where the current level came from:
+        # 'guess' (one band below the target, until a test says more), 'placed' (语法起点小测), 'self' (chosen; older rows: NULL)
+        c.execute('ALTER TABLE next_profiles ADD COLUMN target TEXT')
+        c.execute('ALTER TABLE next_profiles ADD COLUMN level_source TEXT')
     import vocab_service  # word books, daily plan and FSRS state live on top of next_cards
     vocab_service.schema(c)
     __import__('skills_service').schema(c)  # ability profile, mistake book, weekly report
@@ -347,25 +352,63 @@ def profile(c, uid):
         return None
     return {'level': r['level'], 'goal': r['goal'], 'themes': json.loads(r['themes']), 'minutes': r['minutes'],
             'voice': r['voice'] if r['voice'] in VOICES else 'us-f', 'weekly_goal': r['weekly_goal'] if 'weekly_goal' in r.keys() else 4,
-            'exam': r['exam'] if 'exam' in r.keys() else None, 'exam_date': r['exam_date'] if 'exam_date' in r.keys() else None}
+            'exam': r['exam'] if 'exam' in r.keys() else None, 'exam_date': r['exam_date'] if 'exam_date' in r.keys() else None,
+            'target': r['target'] if 'target' in r.keys() else None, 'level_source': (r['level_source'] if 'level_source' in r.keys() else None) or 'self'}
+
+
+BANDS = ('A2', 'B1', 'B2', 'C1')
+# 想达到什么水平: what each target means, and the one suggested for an exam or a goal (the page marks it 推荐)
+TARGETS = {'A2': '简单日常', 'B1': '读懂一般文章', 'B2': '自如讨论', 'C1': '接近母语'}
+TARGET_FOR = {'zk': 'A2', 'gk': 'B1', 'cet4': 'B1', 'cet6': 'B2', 'ky': 'B2', 'tem4': 'B2', 'tem8': 'C1', 'ielts': 'B2',
+              'daily': 'B1', 'work': 'B2', 'abroad': 'B2', 'media': 'B2', 'interest': 'B1', 'exam': 'B1'}
+GOAL_HINT = {'exam': '中考到考研、专四专八、雅思', 'daily': '出门、聊天、看懂身边的英文', 'work': '邮件、会议、写报告',
+             'abroad': '上课、租房、办事', 'media': '不看字幕也能跟上', 'interest': '没有具体目标，想慢慢学'}
+
+
+def below(target):
+    """Untested, materials start one band below the target (A2 stays A2)."""
+    return BANDS[max(0, BANDS.index(target) - 1)] if target in BANDS else 'B1'
 
 
 def save_profile(c, uid, data):
-    level = data.get('level')
-    if level not in LEVELS:
-        return {'error': '请选择水平'}, 400
-    goal = data.get('goal') if data.get('goal') in GOALS else 'daily'
-    themes = [t for t in (data.get('themes') or []) if t in THEMES][:6]
-    minutes = data.get('minutes') if data.get('minutes') in MINUTES else 10
+    """The learner's settings. 选方向和目标 sends goal, target and (for 考试) exam and exam_date, with no level: the level
+    is then one band below the target until a test says more (level_source 'guess'). Fields left out keep what was saved."""
     old = profile(c, uid) or {}
+    target = data.get('target') if data.get('target') in BANDS else old.get('target')
+    level, source = data.get('level'), data.get('level_source')
+    if level in LEVELS:
+        source = source if source in ('self', 'placed', 'guess') else 'self'
+    elif data.get('target') in BANDS:
+        level, source = below(target), 'guess'
+    else:
+        return {'error': '请选择水平'}, 400
+    goal = data.get('goal') if data.get('goal') in GOALS else old.get('goal') or 'daily'
+    themes = [t for t in (data.get('themes') or []) if t in THEMES][:6] if 'themes' in data else old.get('themes') or []
+    minutes = data.get('minutes') if data.get('minutes') in MINUTES else old.get('minutes') or 10
     voice = data.get('voice') if data.get('voice') in VOICES else old.get('voice', 'us-f')
+    sp = __import__('exam_sprint')
+    if 'exam' in data and data.get('exam') and data.get('exam') not in sp.available():
+        return {'error': '没有这个考试'}, 400
     now = time.time()
-    c.execute('''INSERT INTO next_profiles(user_id, level, goal, themes, minutes, created, updated, voice) VALUES(?,?,?,?,?,?,?,?)
+    c.execute('''INSERT INTO next_profiles(user_id, level, goal, themes, minutes, created, updated, voice, target, level_source) VALUES(?,?,?,?,?,?,?,?,?,?)
       ON CONFLICT(user_id) DO UPDATE SET level=excluded.level, goal=excluded.goal, themes=excluded.themes,
-      minutes=excluded.minutes, updated=excluded.updated, voice=excluded.voice''',
-              (uid, level, goal, json.dumps(themes), minutes, now, now, voice))
+      minutes=excluded.minutes, updated=excluded.updated, voice=excluded.voice, target=excluded.target, level_source=excluded.level_source''',
+              (uid, level, goal, json.dumps(themes), minutes, now, now, voice, target, source))
+    # the exam goal (考试冲刺) in the same call, when it changed (an exam whose date has passed does not block other settings)
+    if 'exam' in data and ((data.get('exam') or None), (data.get('exam_date') or None)) != (old.get('exam'), old.get('exam_date')):
+        out, code = sp.set_goal(c, uid, {'exam': data.get('exam') or '', 'date': data.get('exam_date') or ''})
+        if code != 200:
+            c.commit()
+            return out, code
     c.commit()
-    return {'profile': profile(c, uid)}, 200
+    # 选方向和目标 with an exam and no word plan yet: one is made on the exam's book, 10 new words a day (the page says so;
+    # 单词 → 背词计划 changes it). A guest's choices reach here at sign-in, so the plan comes then.
+    import vocab_service as vs
+    made, exam = None, (profile(c, uid) or {}).get('exam')
+    if data.get('exam') and exam and exam in vs.book_words() and not vs.plan(c, uid):
+        vs.save_plan(c, uid, {'book': exam, 'daily_new': 10, 'retention': 0.9})
+        made = {'book': exam, 'title': vs.book_title(exam), 'daily_new': 10}
+    return {'profile': profile(c, uid), 'plan_made': made}, 200
 
 
 def set_voice(c, uid, data):
@@ -723,12 +766,16 @@ def home(c, uid, level=None, themes=None):
         watch = [n for n, s in states.items() if s['status'] == 'watch']
         g['watch'] = [{'id': n, 'title': meta_titles.get(n, n)} for n in watch[:3]]
         g['due'] = [{'id': n, 'title': meta_titles.get(n, n)} for n in GB.due(c, uid) if n not in watch][:3]
-    out = {'profile': prof, 'level': level, 'level_label': LEVELS[level]['label'], 'today': picks, 'news': news, 'resume': resume,
+    # 今日好句 (r27, daily_line.py): a public-domain line or a sentence from a featured text, not today's own article
+    line = __import__('daily_line').today(c, uid, level, skip={p['id'] for p in picks[:1]})
+    out = {'profile': prof, 'level': level, 'level_label': LEVELS[level]['label'], 'today': picks, 'news': news, 'resume': resume, 'line': line,
            'stats': stats(c, uid) if uid else None, 'graph': g,
            'announce': __import__('console_ops').current_announcement(c)}  # 公告 from the xmc.hk console, at the top of 今日
     if uid and prof:
         import skills_service as sk
         out['sprint'] = __import__('exam_sprint').brief(c, uid)  # 考试冲刺: the exam and its days left, in the plan's header line
+        # 选方向和目标: a level guessed from the target, with no test taken yet: 今日 suggests one (ability_radar)
+        out['level_guess'] = prof.get('level_source') == 'guess' and not c.execute('SELECT 1 FROM next_assess WHERE user_id=? LIMIT 1', (uid,)).fetchone()
         out['path'] = sk.daily_path(c, uid, out)
         out['suggest'] = sk.suggest_level(c, uid)
     return out
@@ -990,7 +1037,8 @@ def check(c, uid, data):
 def mark(c, uid, pid, step, commit=True):
     if step not in STEPS:
         raise ValueError('步骤不正确')
-    c.execute('INSERT OR IGNORE INTO next_progress VALUES(?,?,?,?)', (uid, pid, step, time.time()))
+    c.execute('INSERT OR IGNORE INTO next_progress VALUES(?,?,?,?)', (uid, pid, step, time.time()))  # the first time only
+    __import__('progress_service').log_step(c, uid, pid, step)  # and every day it is done (a text studied again)
     if commit:
         c.commit()
 
@@ -1105,25 +1153,27 @@ def rewrite(c, uid, data):
         if hit and hit['lemma'] in learning and hit['lemma'] not in studied:
             studied.append(hit['lemma'])
     studied = studied[:6]
-    system = ('你是一位耐心、专业的英语写作教练，学习者的水平是 ' + level + '（' + LEVELS[level]['label'] + '）。' + _level_voice(level) +
+    # The fixed part first (rules, the node list, the answer's shape), the learner's level after it: the same opening
+    # for every learner, which a model's prompt cache can serve cheaply (百炼's implicit cache needs 1024 tokens or more).
+    system = ('你是一位耐心、专业的英语写作教练。'
               '先肯定写得好的地方，再改错，最后给出更好的说法。不要编造学习者没写的内容。'
               '最重要的一条：corrected 只能是学习者自己这句话的最小改动，只改语法、用词、拼写和标点上的错误，保留原来的意思、结构和话题；'
               '绝不能换成另一句话，也不要为了套用本课的句型或话题去改写。没有错误时 verdict 写 natural，corrected 原样返回，changes 为空数组。'
               'versions 是同一个意思的更好说法：用学习者自己的意思和话题来写，不要换成课文的话题；本课的目标表达能自然用上时，可以在其中一个版本里用。'
-              '学习者没有用上本课的目标表达时，在 summary 里用中文提一句可以怎么用，不要替他改写原句。只输出 JSON。')
+              '学习者没有用上本课的目标表达时，在 summary 里用中文提一句可以怎么用，不要替他改写原句。只输出 JSON。'
+              '\n全部语法节点（id=名称）：' + _node_list(c) +
+              '\n\n输出 JSON，结构：{"verdict":"natural|minor|rewrite","summary":"一句话总评（中文，先说优点）",'
+              '"corrected":"学习者原句的最小改动：只改错误，保留原意和话题，不写新句子（若已正确则原样返回）",'
+              '"changes":[{"from":"原文片段","to":"改后片段","why":"为什么（简短）","node":"相关语法节点 id，没有就写 null"}],'
+              '"versions":[{"label":"更自然","text":"同一个意思的更自然说法","why":"和原句的差别"},{"label":"更正式","text":"...","why":"..."},{"label":"更简洁","text":"...","why":"..."}],'
+              '"used_well":["学习者用对了的语法节点 id"],'
+              '"keep":{"text":"最值得收藏的一个英文表达（短语）","meaning":"中文意思"}}。changes 最多 5 条，没有错误就给空数组。'
+              '\n\n学习者的水平是 ' + level + '（' + LEVELS[level]['label'] + '）。' + _level_voice(level))
     user = ('学习任务（供参考，用来看学习者有没有用上目标表达；不要据此改写学习者的句子）：' + task['prompt'] + ('\n参考句：' + task['model'] if task['model'] else '') +
             '\n材料主题：' + p['title'] + '\n本篇练习的语法节点：' + (', '.join(targets) or '无') +
-            '\n全部语法节点（id=名称）：' + _node_list(c) +
             '\n学习者写的英文：\n' + answer +
-            '\n\n输出 JSON，结构：{"verdict":"natural|minor|rewrite","summary":"一句话总评（中文，先说优点）",'
-            '"corrected":"学习者原句的最小改动：只改错误，保留原意和话题，不写新句子（若已正确则原样返回）",'
-            '"changes":[{"from":"原文片段","to":"改后片段","why":"为什么（简短）","node":"相关语法节点 id，没有就写 null"}],'
-            '"versions":[{"label":"更自然","text":"同一个意思的更自然说法","why":"和原句的差别"},{"label":"更正式","text":"...","why":"..."},{"label":"更简洁","text":"...","why":"..."}],'
-            '"used_well":["学习者用对了的语法节点 id"],'
-            '"keep":{"text":"最值得收藏的一个英文表达（短语）","meaning":"中文意思"}' +
-            (',"word_use":[{"word":"单词原形","ok":true,"note":"一句中文：用法对在哪里，或错在哪里、应该怎么用"}]' if studied else '') +
-            '}。changes 最多 5 条，没有错误就给空数组。' +
-            ('\n学习者正在背这些单词，并在上面的句子里用到了：' + '、'.join(studied) + '。请在 word_use 里逐个判断词义和搭配是否用对。' if studied else ''))
+            ('\n\n学习者正在背这些单词，并在上面的句子里用到了：' + '、'.join(studied) + '。请在 JSON 里再加一个字段 '
+             '"word_use":[{"word":"单词原形","ok":true,"note":"一句中文：用法对在哪里，或错在哪里、应该怎么用"}]，逐个判断词义和搭配是否用对。' if studied else ''))
 
     def convert(raw):
         if not isinstance(raw, dict):
@@ -1242,15 +1292,20 @@ def shadow(c, uid, data):
     from audio_validation import validate_audio
     if not audio_enabled():
         return {'error': 'AI 听录音暂未开启，可以先用「对比回放」自己听'}, 503
-    row = _pack_row(c, uid, str(data.get('pack', '')))
-    if not row:
-        return {'error': '材料不存在'}, 404
-    p = json.loads(row['content'])
-    sents = sentences(p['body'])
-    i = data.get('i')
-    if not isinstance(i, int) or not 0 <= i < len(sents):
-        return {'error': '句子不存在'}, 400
-    sentence = re.sub(r'^[A-Z][a-z]+(?: [A-Z][a-z]+)?:\s+', '', sents[i])  # dialogue labels are not read aloud
+    quote = __import__('daily_line').sentence_of(data)  # 今日好句 (r27): a public-domain line, by its id
+    if quote:
+        sentence, pid, i, lvl = quote, None, str(data.get('quote')), None
+    else:
+        row = _pack_row(c, uid, str(data.get('pack', '')))
+        if not row:
+            return {'error': '材料不存在'}, 404
+        p = json.loads(row['content'])
+        sents = sentences(p['body'])
+        i = data.get('i')
+        if not isinstance(i, int) or not 0 <= i < len(sents):
+            return {'error': '句子不存在'}, 400
+        sentence = re.sub(r'^[A-Z][a-z]+(?: [A-Z][a-z]+)?:\s+', '', sents[i])  # dialogue labels are not read aloud
+        pid, lvl = p['id'], cefr(p)
     audio = data.get('audio')
     raw_audio = validate_audio(audio)
     level = (profile(c, uid) or {}).get('level') or 'B1'
@@ -1293,8 +1348,8 @@ def shadow(c, uid, data):
                 out['issues'].append({'word': clean_text(it['word'], 1, 80), 'note': clean_text(it['note'], 1, 300)})
         return out
 
-    spec = {'pack': p['id'], 'i': i, 'audio_sha256': hashlib.sha256(raw_audio).hexdigest()}
-    result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-shadow', p['id'], 'speaking', spec,
+    spec = {'pack': pid or 'daily-line', 'i': i, 'audio_sha256': hashlib.sha256(raw_audio).hexdigest()}
+    result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-shadow', pid or 'daily-line', 'speaking', spec,
                              lambda: request_model([{'role': 'system', 'content': system}, {'role': 'user', 'content': user}], audio=audio), convert, mark_replay=True)
     if status == 200:
         r = result['result']
@@ -1305,11 +1360,11 @@ def shadow(c, uid, data):
         if result.get('replayed'):
             return result, status
         import skills_service as sk
-        sk.log(c, uid, 'speaking', 'shadow', r['matched'] / max(1, len(r['words'])), cefr(p), p['id'], commit=False)
+        sk.log(c, uid, 'speaking', 'shadow', r['matched'] / max(1, len(r['words'])), lvl, pid, commit=False)
         if r['score']:
-            sk.log(c, uid, 'pronunciation', 'shadow-pron', r['score']['total'] / 100, cefr(p), p['id'], commit=False)
+            sk.log(c, uid, 'pronunciation', 'shadow-pron', r['score']['total'] / 100, lvl, pid, commit=False)
         for it in ([{'word': x['word'], 'note': x['sound'] + '：' + x['note']} for x in r.get('sounds') or []] + r['issues'])[:2]:
-            sk.add_mistake(c, uid, 'sound', it['word'], 'sound:' + _norm(it['word']), it['note'], sentence, 'pronunciation', pack=p['id'], commit=False)
+            sk.add_mistake(c, uid, 'sound', it['word'], 'sound:' + _norm(it['word']), it['note'], sentence, 'pronunciation', pack=pid, commit=False)
         c.commit()
     return result, status
 
@@ -1332,12 +1387,13 @@ def explain(c, uid, data):
     if cached:
         return {'result': json.loads(cached['result']), 'cached': True}, 200
     hints = [f"{k['node']}（{meta.get(k['node'], {}).get('title', '')}）：{k['quote']}" for k in p.get('knowledge', []) if k.get('quote') and k['quote'] in sentence]
-    system = ('你是英语老师，学习者水平 ' + level + '（' + LEVELS[level]['label'] + '）。' + _level_voice(level) + '讲解要短、准、能模仿。只输出 JSON。')
-    user = ('材料：' + p['title'] + '\n要讲解的句子：' + sentence + ('\n这句关联的语法节点：' + '；'.join(hints) if hints else '') +
-            '\n可用语法节点（id=名称）：' + _node_list(c) +
-            '\n\n输出 JSON：{"translation":"自然的中文翻译","structure":"一句话拆解句子主干和修饰成分",'
-            '"points":[{"text":"句中原样片段","note":"讲解（为什么这样用、语气、搭配）","node":"相关语法节点 id 或 null"}],'
-            '"pattern":{"frame":"可替换的句型框架，如 not A so much as B","example":"用这个框架造的一个新句子"}}。points 2–4 条。')
+    system = ('你是英语老师。讲解要短、准、能模仿。只输出 JSON。'
+              '\n可用语法节点（id=名称）：' + _node_list(c) +
+              '\n\n输出 JSON：{"translation":"自然的中文翻译","structure":"一句话拆解句子主干和修饰成分",'
+              '"points":[{"text":"句中原样片段","note":"讲解（为什么这样用、语气、搭配）","node":"相关语法节点 id 或 null"}],'
+              '"pattern":{"frame":"可替换的句型框架，如 not A so much as B","example":"用这个框架造的一个新句子"}}。points 2–4 条。'
+              '\n\n学习者水平 ' + level + '（' + LEVELS[level]['label'] + '）。' + _level_voice(level))
+    user = ('材料：' + p['title'] + '\n要讲解的句子：' + sentence + ('\n这句关联的语法节点：' + '；'.join(hints) if hints else ''))
 
     def convert(raw):
         if not isinstance(raw, dict):
@@ -1411,7 +1467,10 @@ def variant(c, uid, data):
 def meta():
     return {'levels': [{'id': k, 'label': v['label'], 'desc': v['desc'], 'sample': v['sample']} for k, v in LEVELS.items()],
             'goals': [{'id': k, 'label': v} for k, v in GOALS.items()], 'themes': [{'id': k, 'label': v} for k, v in THEMES.items()],
-            'minutes': list(MINUTES), 'voices': [{'id': k, 'label': v} for k, v in VOICES.items()]}
+            'minutes': list(MINUTES), 'voices': [{'id': k, 'label': v} for k, v in VOICES.items()],
+            'goal_hints': GOAL_HINT, 'targets': [{'id': k, 'label': v} for k, v in TARGETS.items()], 'target_for': TARGET_FOR,
+            'exams': [{'id': k, 'short': __import__('exam_sprint').short(k), 'book_title': __import__('vocab_service').book_title(k)}
+                      for k in __import__('exam_sprint').available()]}
 
 
 def get(c, uid, path, q):
@@ -1426,6 +1485,12 @@ def get(c, uid, path, q):
         if not uid:
             return {'error': '请先登录'}, 401
         return (__import__('skills_service') if path != '/api/next/import' else __import__('import_service')).get(c, uid, path, q)
+    if path in ('/api/next/class', '/api/next/class/teach'):
+        # 班级试用 (class_service.py): the class this learner is in; for its teacher, numbers for the whole class only
+        if not uid:
+            return {'error': '请先登录'}, 401
+        cs = __import__('class_service')
+        return cs.mine(c, uid) if path == '/api/next/class' else cs.teach(c, uid, one('id'))
     if path == '/api/next/guide':
         return __import__('user_guide').api(), 200
     if path == '/api/next/meta':
@@ -1540,6 +1605,9 @@ AI_PATHS = ('/api/next/assess/speaking', '/api/next/assess/writing', '/api/next/
 
 
 def post(c, uid, path, data):
+    if path in ('/api/next/class/find', '/api/next/class/join', '/api/next/class/leave'):
+        cs = __import__('class_service')  # 班级试用: join of one's own accord with an invite code, leave at any time
+        return cs.leave(c, uid) if path.endswith('/leave') else (cs.find if path.endswith('/find') else cs.join)(c, uid, data)
     if path == '/api/next/profile':
         return save_profile(c, uid, data)
     if path == '/api/next/habit':

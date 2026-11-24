@@ -68,5 +68,67 @@ class FillExamplesTests(unittest.TestCase):
         m.assert_not_called()
 
 
+
+class LevelAndSenseTests(FillExamplesTests):
+    """An example is written for the word: other words easier than it (school and basic books A2, 四级 B1, the rest
+    B2), in the first sense unless that one is a rare use, and the sense used is kept (b5 trial, 2026-11-24)."""
+    def test_the_level_is_the_words_own(self):
+        books = vs.book_words()
+        only = lambda b, others: next(w for _, w in books[b] if all(w not in {x for _, x in books[o]} for o in others))
+        self.assertEqual(vs.example_level('mouse'), 'A2')  # 中考 and the basic book
+        self.assertEqual(vs.example_level(only('cet4', ('core', 'zk', 'mid', 'gk'))), 'B1')
+        self.assertEqual(vs.example_level(only('gre', ('core', 'zk', 'mid', 'gk', 'cet4'))), 'B2')
+        msgs = vs.example_messages(['mouse', only('gre', ('core', 'zk', 'mid', 'gk', 'cet4'))])
+        self.assertIn('A2 学习者', msgs[0]['content'])  # the easiest of the words asked together
+        self.assertIn('比这个单词简单', msgs[0]['content'])
+
+    def test_the_first_sense_is_named_and_preferred(self):
+        self.assertEqual(vs.first_sense('n. 老鼠, 胆小羞怯的人, 鼠标；vi. 捕鼠, 窥探'), '老鼠')
+        self.assertEqual(vs.first_sense('n. 玫瑰；（rise 的过去式）'), '玫瑰')
+        self.assertEqual(vs.first_sense('n. 伦敦'), '伦敦')
+        self.assertEqual(vs.first_sense('vt. 认出, 承认；vi. 认可'), '认出')
+        msgs = vs.example_messages(['mouse'])
+        self.assertIn('mouse：', msgs[1]['content']); self.assertIn('（第一个义项：老鼠）', msgs[1]['content'])
+        self.assertIn('优先用词书给的第一个义项', msgs[0]['content']); self.assertIn('"sense"', msgs[1]['content'])
+
+    def test_the_sense_used_is_kept_and_counted(self):
+        def model(messages, audio=None, grounding=False):
+            words = re.findall(r'^([a-z-]+)：', messages[-1]['content'], re.M)
+            return json.dumps({'examples': [{'word': w, 'sense': '别的意思' if k == 0 else vs.first_sense(vs.nx.dictionary()[w]['meaning']),
+                                             'sentence': f'People often say {w} at work.', 'translation': '一个例句。'} for k, w in enumerate(words)]}), 'stop'
+        status = Path(self.tmp.name) / 'status.json'
+        with patch('chat_service.request_model', model):
+            fill_examples.main(self.args + ['--per-call', '4', '--max-calls', '1', '--status', str(status)])
+        rows = {r['norm']: r['sense'] for r in self.c.execute('SELECT norm, sense FROM next_word_examples')}
+        self.assertEqual(len(rows), 4); self.assertEqual(sorted(rows.values()).count('别的意思'), 1)
+        self.assertEqual(json.loads(status.read_text())['other_sense'], 1)
+
+    def test_a_learners_request_is_written_at_the_words_level_not_the_learners(self):
+        self.c.execute("INSERT INTO users(username,password) VALUES('c1','x')"); self.c.commit()
+        uid = self.c.execute("SELECT id FROM users WHERE username='c1'").fetchone()[0]
+        __import__('next_service').save_profile(self.c, uid, {'level': 'C1', 'goal': 'exam', 'themes': [], 'minutes': 15})
+        seen = []
+
+        def model(messages, audio=None, grounding=False):
+            seen.append(messages[0]['content'])
+            return json.dumps({'examples': [{'word': 'mouse', 'sense': '老鼠', 'sentence': 'A small mouse ran across the kitchen floor.', 'translation': '一只小老鼠跑过厨房地板。'}]}), 'stop'
+        with patch('chat_service.request_model', model):
+            r, st = vs.ai_examples(self.c, uid, {'words': ['mouse'], 'request_id': 'ex-request-0001'})
+        self.assertEqual(st, 200); self.assertIn('A2 学习者', seen[0])
+        self.assertEqual(self.c.execute("SELECT sense FROM next_word_examples WHERE norm='mouse'").fetchone()[0], '老鼠')
+
+    def test_an_old_table_gets_the_sense_column(self):
+        c = self.c
+        c.execute('ALTER TABLE next_word_examples DROP COLUMN sense')  # as before this change
+        c.execute("INSERT INTO next_word_examples VALUES('mouse','A mouse ran.','',1)"); c.commit()
+        vs.schema(c); vs.schema(c)  # twice: the second run finds the column there
+        self.assertIn('sense', {r[1] for r in c.execute('PRAGMA table_info(next_word_examples)')})
+        self.assertEqual(c.execute("SELECT sense FROM next_word_examples WHERE norm='mouse'").fetchone()[0], '')
+
+    def test_the_docstring_says_to_run_as_www(self):
+        doc = fill_examples.__doc__
+        self.assertIn('systemd-run', doc); self.assertIn('--uid=www', doc); self.assertIn('never as root', doc)
+        self.assertNotIn('nohup python3 fill_examples.py', doc)
+
 if __name__ == '__main__':
     unittest.main()

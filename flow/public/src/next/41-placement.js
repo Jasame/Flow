@@ -58,7 +58,7 @@
       announce('小测结束，建议从 ' + r.level + ' 开始');
       document.getElementById('pUse').onclick = async () => {
         if (!cur) { S.placed = r.level; location.hash = '#/welcome'; return; }  // first visit: the other questions still to come
-        const prof = { ...cur, level: r.level };
+        const prof = { ...cur, level: r.level, level_source: 'placed' };
         S.guest = prof; save('flow-next-guest', prof);
         if (S.user) { try { await api('/api/next/profile', prof); } catch (e) { toast(e.message); return; } }
         await refreshHome(); S.homeFresh = true; location.hash = '#/';

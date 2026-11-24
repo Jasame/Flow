@@ -47,10 +47,10 @@ def _figures(c, uid, lo, hi):
     return {
         'days': _days(c, uid, lo, hi),
         'words_read': _words_read(c, uid, lo, hi),
-        'materials': q("SELECT COUNT(DISTINCT pack) FROM next_progress WHERE user_id=? AND step IN ('check','output') AND created>=? AND created<?", uid, lo, hi),
+        'materials': len(__import__('progress_service')._finished(c, uid, lo, hi, ('check', 'output'))),
         'wpm': round(sum(speeds) / len(speeds)) if speeds else None,
         'reviews': q('SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND created>=? AND created<?', uid, lo, hi),
-        'new_words': q("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND kind='word' AND created>=? AND created<?", uid, lo, hi),
+        'new_words': __import__('progress_service').new_words(c, uid, lo, hi),  # first answered, not just queued
         'grammar_checks': q("SELECT COUNT(*) FROM learning_events WHERE user_id=? AND correct IS NOT NULL AND evaluator='rule' AND created>=? AND created<?", uid, lo, hi),
         'speaking': q("SELECT COUNT(*) FROM next_skill_events WHERE user_id=? AND skill IN ('speaking','pronunciation') AND created>=? AND created<?", uid, lo, hi),
         'writing': q("SELECT COUNT(*) FROM next_skill_events WHERE user_id=? AND skill IN ('writing','translation') AND created>=? AND created<?", uid, lo, hi),

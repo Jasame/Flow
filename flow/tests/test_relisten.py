@@ -1,5 +1,6 @@
 """复听 (relisten_service): a text learned a few days ago comes back in 今日, is heard without the words, rated by how
-much was understood, and comes back again further apart (or sooner, when it was hard to follow)."""
+much was understood, and comes back after 3 days while it is hard to follow; once mostly understood it is known.
+The one due most recently comes first, and a long queue keeps only the last two weeks' texts (r27)."""
 import json, os, sys, tempfile, time, unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -39,17 +40,17 @@ class Db(unittest.TestCase):
 
 
 class ScheduleTests(unittest.TestCase):
-    def test_three_days_then_seven_then_twenty_one_and_done(self):
+    def test_three_days_then_known_once_mostly_understood(self):
         t0 = 1_000_000.0
         self.assertEqual(rl.next_time(t0, []), (t0 + 3 * DAY, 0))
-        self.assertEqual(rl.next_time(t0, [(2, t0 + 3 * DAY)]), (t0 + 10 * DAY, 1))
-        self.assertEqual(rl.next_time(t0, [(3, t0 + 3 * DAY), (2, t0 + 10 * DAY)]), (t0 + 31 * DAY, 2))
-        self.assertEqual(rl.next_time(t0, [(3, t0 + 3 * DAY), (3, t0 + 10 * DAY), (2, t0 + 31 * DAY)]), (None, 3))  # known: no more
+        self.assertEqual(rl.next_time(t0, [(2, t0 + 3 * DAY)]), (None, 1))  # 大部分: known, no 7 and 21 days any more
+        self.assertEqual(rl.next_time(t0, [(3, t0 + 3 * DAY)]), (None, 1))
 
-    def test_a_hard_listen_comes_back_in_three_days_without_moving_on(self):
+    def test_a_hard_listen_comes_back_in_three_days_until_understood(self):
         t0 = 1_000_000.0
         self.assertEqual(rl.next_time(t0, [(1, t0 + 3 * DAY)]), (t0 + 6 * DAY, 0))
-        self.assertEqual(rl.next_time(t0, [(3, t0 + 3 * DAY), (0, t0 + 10 * DAY)]), (t0 + 13 * DAY, 1))
+        self.assertEqual(rl.next_time(t0, [(1, t0 + 3 * DAY), (0, t0 + 6 * DAY)]), (t0 + 9 * DAY, 0))
+        self.assertEqual(rl.next_time(t0, [(1, t0 + 3 * DAY), (0, t0 + 6 * DAY), (2, t0 + 9 * DAY)]), (None, 1))
 
 
 class PlanTests(Db):
@@ -85,7 +86,7 @@ class PlanTests(Db):
         with app.db() as c:
             self.studied(c, PID, 4)
             body, st = nx.post(c, self.uid, '/api/next/relisten', {'pack': PID, 'understood': 2})
-            self.assertEqual((st, body['label'], body['next_days'], body['known']), (200, '大部分', 7, False))
+            self.assertEqual((st, body['label'], body['next_days'], body['known']), (200, '大部分', None, True))
             s = self.plan(c)['relisten']
             self.assertTrue(s['done'])
             self.assertIn('听懂了大部分', s['sub'])
@@ -101,20 +102,34 @@ class RecordTests(Db):
                 self.assertEqual(rl.record(c, self.uid, {'pack': PID, 'understood': bad})[1], 400, bad)
             self.assertEqual(rl.record(c, self.uid, {'pack': 'nothing-here', 'understood': 2})[1], 404)
             self.assertEqual(rl.record(c, self.uid, {'pack': PID, 'understood': 0})[0]['next_days'], 3)
-            body, _ = rl.record(c, self.uid, {'pack': PID, 'understood': 3})
-            self.assertEqual(body['next_days'], 7)
+            body, _ = rl.record(c, self.uid, {'pack': PID, 'understood': 3})  # changed their mind: almost all, known
+            self.assertEqual((body['next_days'], body['known']), (None, True))
             self.assertEqual(c.execute('SELECT COUNT(*) FROM next_relisten').fetchone()[0], 1)
 
-    def test_the_longest_waiting_comes_first_and_a_known_text_never_again(self):
+    def test_the_one_due_most_recently_comes_first_and_a_known_text_never_again(self):
         with app.db() as c:
             other = next(r[0] for r in c.execute("SELECT id FROM lab_packs WHERE owner IS NULL AND id LIKE 'v5-%' AND id!=? LIMIT 1", (PID,)))
             self.studied(c, PID, 5); self.studied(c, other, 9)
-            self.assertEqual([d['pack'] for d in rl.due(c, self.uid, self.now)], [other, PID])
-            for days, u in ((6, 3), (0.5, 3)):
-                self.heard(c, other, u, days)
-            self.assertEqual([d['pack'] for d in rl.due(c, self.uid, self.now)], [PID])  # other: next in 21 days
-            self.heard(c, PID, 3, 2); self.heard(c, PID, 3, 1.5); self.heard(c, PID, 2, 1)
-            self.assertEqual(rl.due(c, self.uid, self.now + 400 * DAY), [])  # PID known; other too old by then
+            self.assertEqual([d['pack'] for d in rl.due(c, self.uid, self.now)], [PID, other])  # due 2 days ago before 6 days ago
+            self.heard(c, PID, 1, 1)  # half or less: back in 3 days
+            self.assertEqual([d['pack'] for d in rl.due(c, self.uid, self.now)], [other])
+            self.assertEqual([d['pack'] for d in rl.due(c, self.uid, self.now + 2 * DAY)], [PID, other])
+            self.heard(c, other, 2, 0.5)
+            self.assertEqual([d['pack'] for d in rl.due(c, self.uid, self.now + 2 * DAY)], [PID])  # other: known
+            self.heard(c, PID, 3, 0.2)
+            self.assertEqual(rl.due(c, self.uid, self.now + 30 * DAY), [])
+
+    def test_a_long_queue_keeps_the_last_two_weeks(self):
+        with app.db() as c:
+            packs = [r[0] for r in c.execute("SELECT id FROM lab_packs WHERE owner IS NULL AND id LIKE 'v5-%' ORDER BY id LIMIT 10")]
+            for k, pk in enumerate(packs[:7]):
+                self.studied(c, pk, 20 + k)  # seven old ones, 20–26 days ago
+            self.assertEqual(len(rl.due(c, self.uid, self.now)), 7)  # seven waiting: all offered, oldest last
+            self.studied(c, packs[7], 5); self.studied(c, packs[8], 12)
+            self.heard(c, packs[6], 1, 1)  # an old text heard yesterday (half or less) is recent again, but not due yet
+            d = rl.due(c, self.uid, self.now)
+            self.assertEqual([x['pack'] for x in d], [packs[7], packs[8]])  # eight waiting: only the last two weeks'
+            self.assertEqual(rl.due(c, self.uid, self.now + 2.5 * DAY)[0]['pack'], packs[6])  # its 3 days are up: it comes first
 
     def test_the_account_data_carries_and_drops_the_listens(self):
         import account_data

@@ -15,6 +15,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1] / 'flow'
 PORT, STATE = int(sys.argv[1]), Path(sys.argv[2])
 STATE.mkdir(parents=True, exist_ok=True)
+# next.js and next.css are built from their parts, not kept in git (tools/build_release.py): built here for this run
+import subprocess  # noqa: E402
+subprocess.run([sys.executable, str(ROOT.parent / 'tools' / 'build_front.py')], check=True, stdout=subprocess.DEVNULL)
 tmp = tempfile.mkdtemp(prefix='flow-ui-')
 # Mail is on, as in production (sign-up, code login and a forgotten password then use emailed codes): messages are
 # written to <data>/outbox as files, never sent.
@@ -117,7 +120,7 @@ def fake(messages, audio=None, grounding=False):
     if '要讲解的句子：' in prompt:
         return J({'translation': '（演示）这句话的中文。', 'structure': '主干 + 从句。', 'points': [{'text': 'The', 'note': '开头先交代主语。', 'node': None}],
                   'pattern': {'frame': 'not A so much as B', 'example': 'It is not talent so much as practice.'}})
-    yours = prompt.split('学习者写的英文：\n', 1)[1].split('\n\n输出', 1)[0] if '学习者写的英文：\n' in prompt else 'I like it.'
+    yours = prompt.split('学习者写的英文：\n', 1)[1].split('\n\n', 1)[0] if '学习者写的英文：\n' in prompt else 'I like it.'
     return J({'verdict': 'minor', 'summary': '意思清楚。', 'corrected': yours, 'changes': [],
               'versions': [{'label': '更自然', 'text': yours, 'why': '—'}], 'used_well': [], 'keep': None})
 
@@ -131,9 +134,13 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             'guide': ('B1', 'work', ['work', 'science']),  # the 操作指南 screenshots (tools/guide_shots.py)
             'leaver': ('B1', 'work', ['work', 'science']),  # 注销账号 in tools/ui_test.py (learner_run)
             'a11y': ('B1', 'work', ['work', 'science']),  # the screen-reader and contrast audit (a11y_run)
+            'pile': ('B1', 'work', ['work', 'science']),  # back from a break: reviews piled up (backlog_run)
             'sprint': ('B1', 'exam', ['campus']),  # 考试冲刺: 四级 in 19 days, four practice sets done (sprint_run; the guide's exam pictures)
+            'fresh': ('', '', []), 'fresh2': ('', '', []),  # 选方向和目标: accounts with no settings yet (start_run)
+            'abroad': ('B1', 'abroad', ['campus']),  # 留学: the plan's speaking step is 雅思 Part 1 (listen_speak_run); nothing else uses it
             # swiping the review card from anywhere on the screen (swipe_run): one learner per screen size, each starting fresh
-            **{f'swipe-{k}': ('B1', 'work', ['work', 'science']) for k in ('ipad-land', 'ipad-mini-land', 'phone')}}
+            **{f'swipe-{k}': ('B1', 'work', ['work', 'science']) for k in ('ipad-land', 'ipad-mini-land', 'phone')},
+            'teacher': ('B1', 'work', ['work']), 'student': ('B1', 'work', ['work'])}  # 班级试用 (class_run)
 out = {}
 with app.db() as c:
     for name, (level, goal, themes) in LEARNERS.items():
@@ -144,6 +151,9 @@ with app.db() as c:
         token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(24)
         c.execute('INSERT INTO sessions VALUES(?,?,?,?)', (token, uid, csrf, time.time() + 86400))
         c.commit()
+        if name.startswith('fresh'):
+            out[name] = {'token': token, 'csrf': csrf, 'id': uid}
+            continue
         nx.save_profile(c, uid, {'level': level, 'goal': goal if goal in nx.GOALS else next(iter(nx.GOALS)), 'themes': [t for t in themes if t in nx.THEMES], 'minutes': 15})
         vs.save_plan(c, uid, {'book': 'core' if level == 'A2' else 'mid', 'daily_new': 10, 'retention': 0.9})
         for w, ctx in (('commute', 'I commute to work by train.'), ('deadline', 'The deadline is on Friday.'), ('make ends meet', 'It is hard to make ends meet.')):
@@ -209,9 +219,35 @@ with app.db() as c:
                 ev.record(c, uid, 'skill:reading', f'guide-prev:{k}', 'choice', str(k), 'q', int(k % 10 not in (1, 4, 8)), 0, 'rule', created=at(monday - dt.timedelta(days=1 + k % 7), 10) + k)
             c.execute("INSERT INTO next_node_notes(user_id,node,pack,kind,detail,created) VALUES(?,?,?,?,?,?)", (uid, 'agreement-head', PID, 'flag', 'guide|it make → it makes', now - 7200))
             sk.log(c, uid, 'speaking', 'ielts', 6.0 / 9, 'B2', 'ielts-p1-mornings')  # 雅思口语: 「上次约 6.0」 on the list
+        if name == 'pile':  # 60 word reviews due, more than 3 x the 10 new words a day: no new words today (ux audit 1.1, 11)
+            c.execute("DELETE FROM next_cards WHERE user_id=? AND source='book'", (uid,))
+            now, d = time.time(), nx.dictionary()
+            for k, (rank, w) in enumerate(vs.book_words()['mid'][:60]):
+                c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,rank,stability,difficulty,last,reps) "
+                          "VALUES(?,?,?,?,'','word',?,?,'review','book',?,1,5,?,1)", (uid, d[w]['word'], w, d[w]['meaning'][:300], now - 20 * 86400, now - 3600 - k, rank, now - 2 * 86400))
         c.commit()
         out[name] = {'token': token, 'csrf': csrf, 'id': uid, **({'password': secret} if secret else {})}
-(STATE / 'sessions.json').write_text(json.dumps({'base': f'http://127.0.0.1:{PORT}', 'pid': PID, 'learners': out}))
+    # 班级试用: ui-teacher's class with 5 members who studied and got grammar points wrong this week (class_run)
+    now = time.time()
+    cid = c.execute("INSERT INTO classes(name, code, teacher, by, created, updated) VALUES('高一（3）班', 'UICLS2', ?, 'ui', ?, ?)", (out['teacher']['id'], now, now)).lastrowid
+    nodes = [r[0] for r in c.execute('SELECT id FROM subskills ORDER BY rowid LIMIT 3')]
+    for k in range(5):
+        c.execute('INSERT INTO users(username,password) VALUES(?,?)', (f'ui-member-{k}', 'ui-no-login:' + secrets.token_hex(8)))
+        mid = c.execute('SELECT id FROM users WHERE username=?', (f'ui-member-{k}',)).fetchone()[0]
+        c.execute('INSERT INTO class_members(user_id, class_id, joined_at) VALUES(?,?,?)', (mid, cid, now - 20 * 86400))
+        c.execute("INSERT INTO next_progress VALUES(?,?,'listen',?)", (mid, PID, now - 3600 - k * 86400 * 3))
+        for n in nodes[:3 - k % 3]:
+            c.execute("INSERT INTO learning_events(user_id,node,source,kind,item,correct,evaluator,created) VALUES(?,?,?,'choice','q',0,'rule',?)", (mid, n, f'ui:{mid}:{n}', now - 7200))
+    c.commit()
+# 今日热点 (r27: its own card under 今日好句): one news text of today, as the daily job would leave it, clearly a sample
+with app.db() as c:
+    base = json.loads(c.execute("SELECT content FROM lab_packs WHERE id=?", (PID,)).fetchone()[0])
+    base.update(id='daily-ui-sample', title='示例热点：城市开通夜间公交线路', title_en='Sample news: night buses start running',
+                source='示例来源（测试数据）', summary_zh='示例：这里是今日热点的一句话介绍，真正的热点每天由 AI 联网找新闻改写。', daily_day=time.strftime('%Y-%m-%d'))
+    c.execute("INSERT OR REPLACE INTO lab_packs VALUES(?,NULL,'daily',?,?)", ('daily-ui-sample', json.dumps(base, ensure_ascii=False), time.time()))
+    c.commit()
+(STATE / 'sessions.json').write_text(json.dumps({'base': f'http://127.0.0.1:{PORT}', 'pid': PID, 'learners': out, 'class': {'id': cid, 'code': 'UICLS2', 'name': '高一（3）班'}}))
+
 
 from http.server import ThreadingHTTPServer  # noqa: E402
 

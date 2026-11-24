@@ -99,7 +99,7 @@ def run_job(c,uid,rid,kind,pack,skill,spec,invoke,convert,mark_replay=False):
  else:c.execute("INSERT INTO lab_jobs(user_id,request_id,kind,pack,skill,fingerprint,status,created,updated) VALUES(?,?,?,?,?,?,'pending',?,?)",(uid,rid,kind,pack,skill,fp,now,now))
  lease=ai_jobs.reserve(c,'lab_jobs',uid,rid);c.commit()
  try:
-  with ai_jobs.renewing(c,'lab_jobs',uid,rid,lease):reply,reason=invoke()
+  with ai_jobs.renewing(c,'lab_jobs',uid,rid,lease),__import__('ai_routes').task(kind):reply,reason=invoke()
   if reason in ('length','max_tokens','content_filter'):raise ValueError('模型输出未完成，请重试或缩短内容')
   result=convert(parse(reply));encoded=json.dumps(result,ensure_ascii=False)
   changed=c.execute("UPDATE lab_jobs SET status='complete',result=?,updated=? WHERE user_id=? AND request_id=? AND lease=?",(encoded,time.time(),uid,rid,lease)).rowcount;c.commit()
