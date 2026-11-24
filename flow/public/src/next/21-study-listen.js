@@ -213,16 +213,16 @@
       const orig = (i, then) => { if (nm) NAR.play(nm.sentences[i].s, nm.sentences[i].e, null, then); else TTS.say(stripLabel(ls[i]), then); };
       async function record(i, btn) {
         if (REC.mr && REC.mr.state === 'recording') { REC.mr.stop(); return; }
+        if (!micReady(() => record(i, btn))) return;
         stop();
-        if (!navigator.mediaDevices || !window.MediaRecorder) { toast('这个浏览器不支持录音，换 Safari 或 Chrome 试试'); return; }
         let stream;
-        try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { toast('没有拿到麦克风权限，可以在浏览器设置里打开'); return; }
+        try { stream = await micOpen(); } catch (e) { toast(e.message); return; }  // 70-learner.js: open only while recording
         const type = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
         const mr = new MediaRecorder(stream, type ? { mimeType: type } : undefined), chunks = [];
         REC.mr = mr;
         mr.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
         mr.onstop = () => {
-          stream.getTracks().forEach(t => t.stop()); clearTimeout(REC.timer); btn.classList.remove('on'); btn.setAttribute('aria-label', '录音');
+          micClose(stream); clearTimeout(REC.timer); btn.classList.remove('on'); btn.setAttribute('aria-label', '录音');
           if (!chunks.length) return;
           REC.blobs[i] = new Blob(chunks, { type: mr.mimeType || type || 'audio/webm' });
           if (REC.url[i]) URL.revokeObjectURL(REC.url[i]);
