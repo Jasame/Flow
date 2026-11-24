@@ -12,6 +12,7 @@
     "body": "In English, a direct \"no\" can sound much colder than the speaker intends, so people often wrap their refusals in softer language. Imagine a colleague asks you to join a project you have no time for. \"No, I can't\" would be perfectly honest, but it might leave the other person feeling brushed off. A more common choice is something like \"I'm not sure that works for me\", which signals a refusal while leaving room for discussion. Each of these softer phrases does a slightly different job. \"I'd love to, but I'm snowed under this week\" shows goodwill before the bad news arrives. \"That might be a bit tricky\" points to a problem without spelling it out. \"Let me check and get back to you\" buys time, although if you use it too often, people may stop believing you will ever get back to them. The real skill is knowing when softness helps and when it simply confuses. Some learners soften a refusal so much that the listener hears a yes, and the misunderstanding ends up costing more than a clear answer would have. One practical approach is to follow the soft phrase with something concrete: a reason, a different time, or another person who might help. Offering an alternative turns a closed door into a half-open one, and it makes clear that you are turning down the request, not the person. With practice, you will notice that a polite no rarely damages a relationship; it is the vague, half-hearted yes that tends to cause trouble later.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's main advice?",
         "options": [
           "Always refuse directly so that nobody is ever confused",
@@ -23,6 +24,7 @@
         "evidence": "The real skill is knowing when softness helps and when it simply confuses."
       },
       {
+        "type": "detail",
         "prompt": "Why might \"Let me check and get back to you\" become a problem?",
         "options": [
           "It sounds too direct for most workplaces",
@@ -32,7 +34,9 @@
         ],
         "answer": 3,
         "evidence": "if you use it too often, people may stop believing you will ever get back to them"
-      }
+      },
+      {"type": "inference", "prompt": "What does the writer mean by \"Offering an alternative turns a closed door into a half-open one\"?", "options": ["Office doors should be left open", "An alternative keeps the relationship and other possibilities open", "Refusals should be made in writing", "You should always say yes in the end"], "answer": 1, "evidence": "it makes clear that you are turning down the request, not the person"},
+      {"type": "vocab", "prompt": "What does \"snowed under\" mean in \"I'm snowed under this week\"?", "options": ["having too much work to do", "feeling cold", "feeling unwell", "away on holiday"], "answer": 0, "evidence": "I'm snowed under this week"}
     ],
     "dictation_index": 4,
     "vocabulary": [
@@ -141,6 +145,7 @@
     "body": "People love to argue about whether paper books are better than screens, as though one side had to win. I read on both, and I have come to think the real question is not which is better, but what each one is better for. On my phone, I skim. I jump between articles, answer a message, come back and lose my place without noticing. Surrounded by notifications, even a gripping story has to compete for my attention, and it usually loses. A paperback, by contrast, does exactly one thing. It never offers me a video or reminds me about a sale. What I value most about paper is not the famous smell or the feel of the pages, but the sense of where I am in the story: a third of the way in, or a thumb's width from the end. On a screen, every page looks like every other page, and the story seems to float. That said, I would be lying if I claimed paper always wins. Screens let me make the text larger at night, look up a word in a second and carry a whole shelf of books on a crowded train. I just wish my phone were a little less eager to interrupt me. If it were as quiet as a book, I might never buy paper again. Until then, I follow a simple rule: anything I want to remember, I read on paper; anything I just need to know, I read on a screen.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's main opinion?",
         "options": [
           "Paper books are better than screens in every way",
@@ -152,6 +157,7 @@
         "evidence": "the real question is not which is better, but what each one is better for"
       },
       {
+        "type": "inference",
         "prompt": "What does the writer mean by saying the story \"seems to float\" on a screen?",
         "options": [
           "The text moves around too much to follow",
@@ -161,7 +167,9 @@
         ],
         "answer": 2,
         "evidence": "On a screen, every page looks like every other page, and the story seems to float."
-      }
+      },
+      {"type": "vocab", "prompt": "What does \"gripping\" mean in \"even a gripping story\"?", "options": ["very exciting and holding your attention", "very short", "old-fashioned", "badly written"], "answer": 0, "evidence": "even a gripping story has to compete for my attention"},
+      {"type": "detail", "prompt": "What is the writer's simple rule?", "options": ["Read everything twice", "Never read anything on a phone", "Read on paper what you want to remember, and on a screen what you just need to know", "Read paper books only at night"], "answer": 2, "evidence": "anything I want to remember, I read on paper; anything I just need to know, I read on a screen"}
     ],
     "dictation_index": 4,
     "vocabulary": [
@@ -265,6 +273,7 @@
     "body": "Hao: I don't get it — I've watched every season of that hospital drama, and I still freeze whenever someone actually speaks English to me. Leila: Let me guess, with Chinese subtitles? Hao: Well, yes, otherwise I'd miss half the plot. Leila: Then that's the problem, because you've basically been reading Chinese for months, with English playing quietly in the background. Hao: Ouch, but it's not completely useless, is it? Leila: No, you've probably picked up the rhythm of how people talk. But if you want the words to stick, you have to work a bit harder. Take one short scene, watch it with English subtitles, then pause and say the lines out loud. Hao: Like an actor? Leila: Exactly, copy the tone, the speed, even the sighs, and although it feels ridiculous at first, it works. Hao: Honestly, if I'd known that two years ago, I'd have saved myself a lot of time. Leila: Don't think of it that way. You enjoyed the show, which is why you kept going, and plenty of people give up on textbooks after a week. Hao: So what's the catch? Leila: The catch is that films give you scripted English. Real people interrupt each other, mumble and change their minds halfway through a sentence, so you'll still need to talk to actual humans. Hao: Fine, shall we start now, then? Leila: Sure, say something, and I'll mumble back.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is Leila's main point about learning English through films?",
         "options": [
           "Films are useless for learning a language",
@@ -276,6 +285,7 @@
         "evidence": "But if you want the words to stick, you have to work a bit harder."
       },
       {
+        "type": "detail",
         "prompt": "What is \"the catch\" that Leila mentions?",
         "options": [
           "Film English is scripted and cleaner than real speech",
@@ -285,7 +295,9 @@
         ],
         "answer": 0,
         "evidence": "The catch is that films give you scripted English."
-      }
+      },
+      {"type": "inference", "prompt": "Why does Leila tell Hao \"Don't think of it that way\"?", "options": ["She disagrees with using subtitles at all", "She thinks he should give up English", "She wants him to watch more episodes", "She thinks his time was not wasted, because enjoying the show kept him going"], "answer": 3, "evidence": "You enjoyed the show, which is why you kept going"},
+      {"type": "vocab", "prompt": "What does \"mumble\" mean in \"Real people interrupt each other, mumble and change their minds\"?", "options": ["sing", "shout", "tell secrets", "speak quietly and unclearly"], "answer": 3, "evidence": "Real people interrupt each other, mumble and change their minds"}
     ],
     "dictation_index": 6,
     "vocabulary": [
@@ -394,6 +406,7 @@
     "body": "In my family, there is one story that turns up at every holiday dinner, usually just after the main course. It is the story of the summer my grandfather drove three hours to the seaside and ended up at a cabbage farm, having followed the wrong signs with total confidence. Everyone at the table knows how it ends. Nobody is surprised by the cabbages. And yet, the moment someone says \"Remember the beach trip?\", the whole room leans in. Why do we keep telling stories that carry no new information? I have come to believe that the facts were never the point. Told for the hundredth time, the story is no longer news; it is more like a song that everyone knows the words to. Each of my aunts tells it differently. One focuses on my grandmother's stony silence in the passenger seat, another on the farmer who kindly offered them lunch, and the details shift a little every year. What stays the same is the feeling of belonging that comes from laughing at exactly the same moment. You can tell a lot about a family from the stories it repeats, because they show what it values, what it forgives and what it finds funny. I understood this most clearly when my sister's husband, who had heard the story at half a dozen dinners, finally told it himself, complete with my grandfather's proud wave at the cabbages. Nobody corrected him. Nobody needed to. By telling our story, he had quietly become part of it.",
     "questions": [
       {
+        "type": "main",
         "prompt": "According to the writer, why does the family keep telling the same story?",
         "options": [
           "To make sure the facts are remembered correctly",
@@ -405,6 +418,7 @@
         "evidence": "What stays the same is the feeling of belonging that comes from laughing at exactly the same moment."
       },
       {
+        "type": "inference",
         "prompt": "What does the moment when the sister's husband tells the story suggest?",
         "options": [
           "He wanted to correct the family's version",
@@ -414,7 +428,9 @@
         ],
         "answer": 3,
         "evidence": "By telling our story, he had quietly become part of it."
-      }
+      },
+      {"type": "vocab", "prompt": "What does \"stony\" mean in \"my grandmother's stony silence\"?", "options": ["nervous", "cold and showing no feeling", "loud", "cheerful"], "answer": 1, "evidence": "my grandmother's stony silence in the passenger seat"},
+      {"type": "detail", "prompt": "Where did the grandfather end up instead of the seaside?", "options": ["At a fish market", "At a cabbage farm", "At a train station", "In a different city"], "answer": 1, "evidence": "ended up at a cabbage farm"}
     ],
     "dictation_index": 6,
     "vocabulary": [

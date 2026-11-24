@@ -12,6 +12,7 @@
   "body": "Every autumn, a reminder lands in my inbox announcing that the mandatory ethics module is due, and every autumn I click through it with the same mixture of guilt and impatience. The scenarios barely change. A client offers you an expensive gift; a manager makes an inappropriate remark at a team dinner; a supplier hints that a contract might go more smoothly if certain details were overlooked. In each case there is an obviously correct answer, and the course congratulates you for choosing it. For years I was openly skeptical of the whole exercise. Philosophers have argued for centuries about what makes an action right, and it seemed faintly absurd to imagine that a short online quiz could settle the matter for an office full of tired adults. Yet I have come to think that the critics, my earlier self included, are asking the module to do a job it was never designed to do. It cannot teach morality; nobody arrives at work without a conscience and leaves the training with one. What it can do, at its best, is give people a shared vocabulary, so that when something feels wrong, there is a name for it and someone specific to tell. The real weakness lies elsewhere. Ethical habits are learned far less from slides than from watching what the people in charge actually do under pressure. A firm whose senior staff embody the values on the poster will rarely need to repeat them; one whose leaders quietly ignore them will discover that no amount of training repairs the damage. What employees notice above all is consistency: whether the same rules apply to the star salesperson as to the newest intern, and whether someone who raises a concern is met with compassion or with suspicion. Such questions seldom receive the scrutiny that a compliance report does, partly because they are harder to measure. But they, far more than any quiz, decide what a workplace actually believes.",
   "questions": [
    {
+    "type": "main",
     "prompt": "What is the writer's position on mandatory ethics training?",
     "options": [
      "It can offer a shared language, but leaders' behavior matters far more",
@@ -23,6 +24,7 @@
     "evidence": "Ethical habits are learned far less from slides than from watching what the people in charge actually do under pressure."
    },
    {
+    "type": "detail",
     "prompt": "According to the writer, what do employees pay most attention to?",
     "options": [
      "How often the training module is updated",
@@ -32,7 +34,9 @@
     ],
     "answer": 3,
     "evidence": "whether the same rules apply to the star salesperson as to the newest intern"
-   }
+   },
+   {"type": "inference", "prompt": "Why does the writer say critics ask the module \"to do a job it was never designed to do\"?", "options": ["The course cannot create morality; it can only offer a shared vocabulary", "The module was written only for managers", "The critics have never taken the course", "The course is far too short to be useful"], "answer": 0, "evidence": "It cannot teach morality"},
+   {"type": "vocab", "prompt": "What does \"embody\" mean in \"senior staff embody the values on the poster\"?", "options": ["write down", "show something clearly through their behaviour", "pay for", "criticise"], "answer": 1, "evidence": "senior staff embody the values on the poster"}
   ],
   "dictation_index": 10,
   "vocabulary": [
@@ -141,6 +145,7 @@
   "body": "Long before anyone wrote a job description, the craft guilds of medieval European towns had worked out answers to questions that still preoccupy employers. A guild was an association of people in the same trade, whether they baked bread, wove cloth or made vinegar, and its main purpose was to control who could practice that trade and how. Training followed a fixed path. An apprentice lived and worked in a master's household for years, learning the craft by doing it, before becoming a journeyman, a qualified worker who was paid by the day and could travel to gain experience. To be accepted as a master, a journeyman often had to submit a sample of their finest work for judgment, which is where the word 'masterpiece' originally comes from. Guild officials also inspected goods on sale, and a baker caught selling underweight loaves, or a weaver passing off junk as fine cloth, could be fined or publicly shamed. Philosophers have long debated whether doing a job well is a moral achievement or merely a useful one; the guilds had no such doubts. For them, quality was a matter of morality as much as commerce, because a bad product betrayed the whole trade, not just one customer. There was, admittedly, a darker side. Guilds could be deeply suspicious of outsiders, and their rules sometimes hardened into a bureaucracy whose chief purpose was to protect existing members from competition. For many people, geography and family amounted to destiny, since a child born into a weaver's household in a particular town was likely to stay there and become a weaver too. Yet the central idea deserves a second look. A guild member was expected to embody the standards of the craft, and it was the consistency of those standards, rather than the brilliance of any single worker, that allowed strangers to trust goods they had never seen being made. Companies that complain about thin, rushed training might find that the old system still has something to teach them.",
   "questions": [
    {
+    "type": "main",
     "prompt": "Which statement best sums up the writer's view of the guilds?",
     "options": [
      "They were mainly a clever way for members to keep prices high and rivals out",
@@ -152,6 +157,7 @@
     "evidence": "it was the consistency of those standards, rather than the brilliance of any single worker, that allowed strangers to trust goods they had never seen being made"
    },
    {
+    "type": "inference",
     "prompt": "Why does the writer say that geography and family \"amounted to destiny\" for many people?",
     "options": [
      "Guild officials assigned each child a trade at random",
@@ -161,7 +167,9 @@
     ],
     "answer": 1,
     "evidence": "since a child born into a weaver's household in a particular town was likely to stay there and become a weaver too"
-   }
+   },
+   {"type": "vocab", "prompt": "What does \"preoccupy\" mean in \"questions that still preoccupy employers\"?", "options": ["confuse", "keep someone thinking and worrying about something", "bore", "surprise"], "answer": 1, "evidence": "questions that still preoccupy employers"},
+   {"type": "detail", "prompt": "Where does the word \"masterpiece\" originally come from, according to the text?", "options": ["A famous painting in a guild hall", "A prize given to the best apprentice", "The sample of finest work a journeyman submitted to become a master", "The name of a medieval town"], "answer": 2, "evidence": "which is where the word 'masterpiece' originally comes from"}
   ],
   "dictation_index": 13,
   "vocabulary": [
@@ -270,6 +278,7 @@
   "body": "Most people treat a concession as a small defeat, something to be surrendered reluctantly once the other side has pushed hard enough. Experienced negotiators see it differently: a concession is a currency, and like any currency, it loses value if you spend it carelessly. The first rule is never to give anything away for nothing. If a client asks for a lower price, the useful reply is neither yes nor no but a question about what they can offer in return, whether that is a longer contract, faster payment or a larger order. Trading in this way signals that every point has a cost, which makes the next request less likely. The second rule concerns pace. Concessions that shrink as the talks go on suggest that you are approaching your limit, whereas concessions that stay the same size suggest there is plenty more to come. Third, ask for a breakdown of any figure you are expected to accept. A supplier who quotes a single total for shipping goods from overseas may turn out to be far less confident about the individual costs once each line is open to scrutiny, and it is entirely reasonable to be skeptical of a number that its owner seems unwilling to explain. Finally, watch for the slow drift known as scope creep. A client agrees to a price for one piece of work, and then, over a series of friendly emails, the piece of work quietly grows. One project manager I know agreed to produce an extra report 'just this once' and subsequently found herself writing it every week. Had each extra request been raised at the start, it would have been priced; arriving one at a time, such requests rarely are. The remedy is unglamorous: write down what was agreed, and when something new appears, point to the original document politely but promptly. None of this requires aggression. It simply requires deciding in advance what you can give, and what you expect in return.",
   "questions": [
    {
+    "type": "main",
     "prompt": "According to the guide, how should a concession be treated?",
     "options": [
      "As something of value to be exchanged rather than handed over",
@@ -281,6 +290,7 @@
     "evidence": "a concession is a currency, and like any currency, it loses value if you spend it carelessly"
    },
    {
+    "type": "inference",
     "prompt": "What does the writer suggest about concessions that get smaller as talks continue?",
     "options": [
      "They tend to make the other side angry",
@@ -290,7 +300,9 @@
     ],
     "answer": 2,
     "evidence": "Concessions that shrink as the talks go on suggest that you are approaching your limit"
-   }
+   },
+   {"type": "vocab", "prompt": "What does \"scope creep\" refer to in the guide?", "options": ["a client cancelling a contract", "a delay in payment", "a sudden rise in prices", "a gradual, unplanned growth in the work that was agreed"], "answer": 3, "evidence": "the slow drift known as scope creep"},
+   {"type": "detail", "prompt": "What reply does the writer suggest when a client asks for a lower price?", "options": ["A firm no", "A question about what they can offer in return", "An immediate yes", "A request to meet their manager"], "answer": 1, "evidence": "the useful reply is neither yes nor no but a question about what they can offer in return"}
   ],
   "dictation_index": 4,
   "vocabulary": [
@@ -399,6 +411,7 @@
   "body": "When Ruth was hired to write the music for a documentary about a small crab fishery, she assumed the hard part would be the big moments: boats heading out into a storm, pots breaking the surface at dawn. Instead, she spent most of her time on the quiet scenes. The footage was stunning, and that, she soon realized, was precisely the problem. Images that beautiful tempt a composer to underline them, adding sweeping strings whenever the camera rises above the cliffs, until the film starts to feel like an advertisement for the coast. The director wanted something humbler. In their first editorial meeting, he showed her a scene of an old fisherman retying a knot on a crab pot, his fingers stiff with cold, and asked whether it needed music at all. Ruth's instinct was to say yes. She subsequently admitted that he had been right: the scene worked because nothing told the audience how to feel. Much of a film composer's job, she argues, is a negotiation with things that are not music. The narrator's commentary sits in much the same range as a cello, so every line of voice-over forces a choice about which of the two should give way. Background sound, such as gulls, engines and the knock of a hull against the quay, carries its own rhythm, which a careless score can easily flatten. More often than she expected, the best solution was to let a theme creep in so quietly that viewers noticed it only once it was already there. Composers are sometimes tempted to talk about destiny, as if a melody were simply waiting to be discovered. Ruth is skeptical of that language; her process involves dozens of discarded drafts, and the version that survives is rarely the one she would have predicted. She hopes the finished film will not stun anyone with its music. If audiences leave remembering the fishermen and forgetting the score, she will consider the job well done.",
   "questions": [
    {
+    "type": "main",
     "prompt": "What does Ruth's experience on the documentary mainly show?",
     "options": [
      "Strong images always need equally powerful music",
@@ -410,6 +423,7 @@
     "evidence": "the scene worked because nothing told the audience how to feel"
    },
    {
+    "type": "inference",
     "prompt": "Why was the stunning footage \"precisely the problem\"?",
     "options": [
      "Beautiful images tempt a composer to overstate them with music",
@@ -419,7 +433,9 @@
     ],
     "answer": 0,
     "evidence": "Images that beautiful tempt a composer to underline them"
-   }
+   },
+   {"type": "vocab", "prompt": "What does \"underline\" mean in \"tempt a composer to underline them\"?", "options": ["ignore", "emphasise strongly", "remove", "draw a line under"], "answer": 1, "evidence": "tempt a composer to underline them"},
+   {"type": "detail", "prompt": "Why does every line of voice-over force a choice, according to Ruth?", "options": ["The narrator's voice sits in much the same range as a cello", "The director dislikes music", "The narrator speaks too quickly", "The gulls are louder than the narrator"], "answer": 0, "evidence": "The narrator's commentary sits in much the same range as a cello"}
   ],
   "dictation_index": 7,
   "vocabulary": [

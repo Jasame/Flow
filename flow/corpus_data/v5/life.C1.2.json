@@ -12,6 +12,7 @@
     "body": "Learning to drive in your thirties is an education in humility that nobody warns you about. Teenagers, whatever their nerves, tend to approach the wheel with a cheerful sense that the world will get out of their way. Adults bring something heavier into the car: years of watching other people drive, a fairly detailed knowledge of what can go wrong, and a reputation for competence that they would rather not lose in front of a stranger. My instructor, a patient woman who hummed quietly whenever I stalled, noticed this within minutes. After our second lesson she told me, kindly but firmly, that I was not bad at driving so much as bad at being a beginner. Whereas at work I was used to knowing the answers, in the car I was paying someone to watch me mix up left and right at a roundabout. Treating each mistake as information rather than as a verdict on my character made the lessons almost enjoyable. I began keeping a small notebook in the glove box, recording one thing I had done badly and one thing I had done well after every drive. Unless you have been an adult beginner at something, it is hard to explain how much that second column mattered. There were setbacks, of course. I failed my first test for drifting too close to a parked van, and spent the evening composing a dignified explanation for friends who had not asked for one. Yet the second attempt felt different, not because my driving had improved dramatically, but because I had stopped needing to look competent. The real lesson, I suspect, extends well beyond the car. Most of us arrange our adult lives so that we rarely have to be visibly bad at anything. Choosing to learn something new in public, at an age when you are supposed to have things figured out, is uncomfortable precisely because it strips that protection away. It is also, I am now convinced, one of the more useful things a grown-up can do.",
     "questions": [
       {
+        "type": "main",
         "prompt": "According to the writer, what made learning to drive hard as an adult?",
         "options": [
           "Adults react more slowly than teenagers do",
@@ -23,6 +24,7 @@
         "evidence": "I was not bad at driving so much as bad at being a beginner"
       },
       {
+        "type": "detail",
         "prompt": "What does \"that second column\" refer to?",
         "options": [
           "The list of mistakes made on each drive",
@@ -32,7 +34,9 @@
         ],
         "answer": 2,
         "evidence": "recording one thing I had done badly and one thing I had done well after every drive"
-      }
+      },
+      {"type": "inference", "prompt": "Why did the writer compose \"a dignified explanation for friends who had not asked for one\"?", "options": ["The test results had been made public", "The writer still felt a strong need to look competent", "The friends had criticised the writer's driving", "The instructor had asked for a written report"], "answer": 1, "evidence": "composing a dignified explanation for friends who had not asked for one"},
+      {"type": "vocab", "prompt": "What does \"verdict\" mean in \"a verdict on my character\"?", "options": ["a final judgement", "a written lesson", "a small mistake", "a kind remark"], "answer": 0, "evidence": "rather than as a verdict on my character"}
     ],
     "dictation_index": 6,
     "vocabulary": [
@@ -75,6 +79,7 @@
     "body": "Most of us learn to say sorry before we can tie our shoelaces, yet surprisingly few adults are good at it. The word itself is easy; what is difficult is everything that has to surround it. A useful way to think about an apology is to treat it not so much as a performance of regret as an attempt to repair something that has been damaged. Seen in that light, several familiar habits turn out to work against us. The first is the apology that hinges on the word 'if', as in being sorry if someone happened to feel hurt, which quietly shifts the responsibility onto the person who was wronged. The second is the apology with an explanation attached. Explaining why you were late or why you snapped may feel like honesty, but unless the other person has asked for it, it usually sounds like a defence. The third is apologising too much: a flood of self-criticism that forces the injured party to comfort the person who hurt them. By contrast, apologies that genuinely land tend to share a few features. They name the specific thing that went wrong rather than gesturing vaguely at everything. They acknowledge its effect on the other person without arguing about whether that effect was reasonable. And, where possible, they offer something concrete: to replace what was broken, to change a habit, or simply to do better next time. None of this guarantees forgiveness, nor should it. An apology is an offer, not a transaction, and the other person is entitled to take their time. What a good apology does do is make forgiveness easier to give. Perhaps the most underrated ingredient is timing. Apologising too quickly can sound like an attempt to close the subject, while waiting too long allows resentment to settle in. The best moment is usually once you understand what you did, and before the other person has had to ask.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's main point about apologies?",
         "options": [
           "An apology is only sincere if it includes a full explanation",
@@ -86,6 +91,7 @@
         "evidence": "to treat it not so much as a performance of regret as an attempt to repair something that has been damaged"
       },
       {
+        "type": "detail",
         "prompt": "Why can apologising too much be a problem?",
         "options": [
           "It makes the person who was hurt look after the person who hurt them",
@@ -95,7 +101,9 @@
         ],
         "answer": 0,
         "evidence": "a flood of self-criticism that forces the injured party to comfort the person who hurt them"
-      }
+      },
+      {"type": "inference", "prompt": "Why does the writer call an apology \"an offer, not a transaction\"?", "options": ["A good apology should include a payment", "Forgiveness should be given straight away", "Apologies should always be made in writing", "Saying sorry does not oblige the other person to forgive you"], "answer": 3, "evidence": "An apology is an offer, not a transaction, and the other person is entitled to take their time."},
+      {"type": "vocab", "prompt": "What does \"hinges on\" mean in \"the apology that hinges on the word 'if'\"?", "options": ["depends on", "ends with", "repeats", "avoids"], "answer": 0, "evidence": "the apology that hinges on the word 'if'"}
     ],
     "dictation_index": 3,
     "vocabulary": [
@@ -138,6 +146,7 @@
     "body": "Keeping a journal is one of those habits that almost everyone admires and hardly anyone sustains. Bookshops are full of handsome notebooks bought with good intentions and abandoned within weeks. The question, then, is whether writing about your own life is genuinely worth the effort. I would argue that it is, though not for the reasons usually given. The most common case for journaling is that it preserves memories. This is true, but it is also the weakest argument, since our phones now do much of that work for us. The stronger case is that writing forces a kind of thinking that rarely happens in our heads. While a worry can circle endlessly in the mind, it has to take a definite shape on the page, and once it has a shape, it can be examined, questioned and sometimes dismissed. In this sense, a journal works more like a workshop than an archive. There are, admittedly, reasonable objections. Critics point out that journaling takes time that most people do not have, and that dwelling on one's feelings can turn reflection into self-absorption. Some people find that writing about a bad day simply makes them live through it twice. These concerns deserve to be taken seriously, but they are arguments about how to keep a journal rather than whether to keep one. A few lines written at the end of the day take minutes, not hours. Focusing on what you might do differently, rather than on how badly things went, keeps the exercise practical instead of self-indulgent. Nor is anyone obliged to write every day; a journal opened only when something needs untangling is still doing its job. In the end, the value of a journal lies not in the quality of the prose or the regularity of the entries, but in the habit of pausing to ask what actually happened and what it meant. That habit is worth cultivating, and for most of us, a pen and a few blank pages remain the simplest way to practise it.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's main argument?",
         "options": [
           "Journals are valuable mainly because they preserve our memories",
@@ -149,6 +158,7 @@
         "evidence": "The stronger case is that writing forces a kind of thinking that rarely happens in our heads."
       },
       {
+        "type": "detail",
         "prompt": "How does the writer respond to the critics' objections?",
         "options": [
           "By claiming that the critics have never tried keeping a journal",
@@ -158,7 +168,9 @@
         ],
         "answer": 2,
         "evidence": "they are arguments about how to keep a journal rather than whether to keep one"
-      }
+      },
+      {"type": "inference", "prompt": "What does the writer mean by saying a journal \"works more like a workshop than an archive\"?", "options": ["It should be shared with other people", "It is mainly useful for professional writers", "It should be kept at your workplace", "It is a place for working problems out, not just for storing memories"], "answer": 3, "evidence": "In this sense, a journal works more like a workshop than an archive."},
+      {"type": "vocab", "prompt": "What does \"self-absorption\" mean in \"turn reflection into self-absorption\"?", "options": ["a lack of confidence", "learning things on one's own", "too much attention to oneself", "careful planning"], "answer": 2, "evidence": "dwelling on one's feelings can turn reflection into self-absorption"}
     ],
     "dictation_index": 3,
     "vocabulary": [
@@ -201,6 +213,7 @@
     "body": "I signed up for the Thursday evening cooking class at our local community centre expecting to pick up a few recipes. Six weeks later, I came away with rather more than that, along with a few complaints worth mentioning. The class is run by Dimitra, a former restaurant cook whose teaching style might best be described as affectionate impatience. She has no interest in recipes measured to the gram. Instead, she wants her students to taste constantly, to adjust as they go and to trust their own judgement, which is unnerving at first for anyone used to following instructions line by line. Each session is built around a single dish, from a simple lentil soup to a surprisingly ambitious fish stew, and the group cooks in pairs before sitting down together to eat whatever has been produced. It is in that final half hour that the class really comes alive. Strangers who arrived barely saying hello end up arguing cheerfully about how much garlic is too much. If the cooking is the official lesson, the shared meal is the hidden one. There are drawbacks, however. Because the kitchen is small, you can spend almost as much time on busy evenings waiting for the oven as actually using it. The equipment, while perfectly adequate, has clearly seen better days, and anyone hoping to learn advanced techniques will be disappointed. Unless you are genuinely a beginner, or at least a nervous cook, the early sessions may feel slow. Yet these are minor criticisms of something that does exactly what it sets out to do. The class makes no attempt to turn anyone into a chef. Its aim is to make cooking feel less like a test and more like a conversation, and on that measure it succeeds. I left with three dishes I now make without looking anything up and, more unexpectedly, a standing arrangement to make dinner with my cooking partner from the second week. It is warmly recommended, especially for anyone who cooks alone more often than they would like.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What does the reviewer seem to value most about the class?",
         "options": [
           "The chance to learn advanced restaurant techniques",
@@ -212,6 +225,7 @@
         "evidence": "Its aim is to make cooking feel less like a test and more like a conversation, and on that measure it succeeds."
       },
       {
+        "type": "vocab",
         "prompt": "What does \"has clearly seen better days\" suggest about the equipment?",
         "options": [
           "It is brand new but difficult to use",
@@ -221,7 +235,9 @@
         ],
         "answer": 1,
         "evidence": "The equipment, while perfectly adequate, has clearly seen better days"
-      }
+      },
+      {"type": "inference", "prompt": "What does the writer mean by \"the shared meal is the hidden one\"?", "options": ["The meal is served in a separate room", "Students have to hide what they cook", "Eating together teaches something as valuable as the cooking", "The teacher does not allow anyone to eat"], "answer": 2, "evidence": "If the cooking is the official lesson, the shared meal is the hidden one."},
+      {"type": "detail", "prompt": "What does Dimitra want her students to do?", "options": ["Follow each recipe line by line", "Cook alone without talking", "Measure every ingredient to the gram", "Taste constantly and trust their own judgement"], "answer": 3, "evidence": "she wants her students to taste constantly, to adjust as they go and to trust their own judgement"}
     ],
     "dictation_index": 8,
     "vocabulary": [

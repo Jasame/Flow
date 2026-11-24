@@ -12,6 +12,7 @@
     "body": "Mei had expected the job to be quiet, but she had not expected it to smell of the sea. The museum occupied the ground floor of an old customs house, and its archive, if the word could be stretched that far, consisted of forty cardboard boxes stacked against a wall that was always faintly damp. Ruth, the director, had shown her the boxes on her first morning with the air of someone apologising for a difficult relative. \"Nobody has opened most of these since the lighthouse closed,\" she said. \"The last volunteer lasted a fortnight.\" Mei, who had spent four years translating technical manuals in a glass tower two hundred kilometres inland, did not find this discouraging. She had taken the summer contract precisely because it promised nothing urgent: no clients, no deadlines, only objects waiting patiently to be described. By the end of the first week she had catalogued tide tables, a broken barometer and a surprising number of unpaid bills. Then, at the bottom of the eleventh box, she found the ledger, wrapped in oilcloth. It was the keeper's daily log, a heavy book bound in cracked leather, in which every entry followed the same pattern: the time the lamp was lit, the weather, the ships sighted, the time the lamp was put out. The handwriting was cramped and impatient, as though the writer resented every word he was obliged to put down. Halfway through, however, something changed. For several months the entries were written in a different hand, rounder and far more careful, and the weather was no longer simply \"rough\" or \"fair\" but described with a precision that bordered on the poetic. On one page, someone had crossed out a single word in the keeper's entry and written above it, in the rounder hand, a correction that made no sense to her yet: \"Not fog. Smoke.\"",
     "questions": [
       {
+        "type": "detail",
         "prompt": "Why did Mei accept the summer contract at the museum?",
         "options": [
           "She hoped it would turn into a permanent job in a museum",
@@ -23,6 +24,7 @@
         "evidence": "She had taken the summer contract precisely because it promised nothing urgent"
       },
       {
+        "type": "detail",
         "prompt": "What changed halfway through the ledger?",
         "options": [
           "The entries stopped completely for several months",
@@ -32,7 +34,9 @@
         ],
         "answer": 1,
         "evidence": "the entries were written in a different hand, rounder and far more careful"
-      }
+      },
+      {"type": "inference", "prompt": "What does the description of the keeper's handwriting suggest about him?", "options": ["He disliked having to keep the log", "He was a careful and patient writer", "He was writing the log for future visitors", "He was still learning to write"], "answer": 0, "evidence": "as though the writer resented every word he was obliged to put down"},
+      {"type": "vocab", "prompt": "What does \"catalogued\" mean in \"she had catalogued tide tables\"?", "options": ["listed and described in an organised record", "thrown away", "sold", "repaired"], "answer": 0, "evidence": "she had catalogued tide tables"}
     ],
     "dictation_index": 7,
     "vocabulary": [
@@ -145,6 +149,7 @@
     "body": "Ruth's first theory was that the keeper had simply fallen ill and an assistant had covered for him. \"Lighthouses nearly always had assistants,\" she said, pouring tea that had been brewing for far too long. \"Somebody young, usually, who wanted the room and the wages.\" Mei wanted to believe her, but the more closely she compared the two hands, the less convinced she became. An assistant, she reasoned, would have copied the keeper's habits in order not to attract attention; the second writer had done the opposite, abandoning the keeper's abbreviations and replacing them with full sentences, as if determined to leave a record that someone, one day, would actually read. There was also the matter of the signatures. The keeper had signed each page with a hurried \"T. Hale\", whereas the second hand had signed nothing at all, which seemed less like modesty than caution. On Saturday Mei took photographs of both scripts to the harbour café, where Ollie, who had delivered the town's post for thirty-eight years, held court every morning over a single cup of coffee. He studied the pictures for a long time before answering. \"Hale had a daughter,\" he said eventually. \"Ada. My mother used to say she knew the coastline better than he did, though nobody would have dared say that to his face.\" He could not remember what had become of her; she had left the town, he thought, long before he was born, and the family had not been the kind that people talked about kindly. Mei walked back along the sea wall, turning the name over in her mind. It explained the careful hand and the missing signature, but it raised a question she could not yet answer: if Ada had kept the light, why had no one ever said so?",
     "questions": [
       {
+        "type": "detail",
         "prompt": "Why does Mei doubt Ruth's theory about an assistant?",
         "options": [
           "Assistants were not allowed to write in the keeper's ledger",
@@ -156,6 +161,7 @@
         "evidence": "the second writer had done the opposite, abandoning the keeper's abbreviations"
       },
       {
+        "type": "inference",
         "prompt": "What does the remark by Ollie's mother suggest about Ada?",
         "options": [
           "She was often rude to her father in public",
@@ -165,7 +171,9 @@
         ],
         "answer": 1,
         "evidence": "she knew the coastline better than he did, though nobody would have dared say that to his face"
-      }
+      },
+      {"type": "main", "prompt": "What is the main development in this part of the story?", "options": ["Ollie gives Mei a box of old letters", "Mei decides to leave the town", "Ruth finds the keeper's signature on the missing pages", "Mei learns that the second writer may have been the keeper's daughter"], "answer": 3, "evidence": "Hale had a daughter"},
+      {"type": "vocab", "prompt": "What does \"held court\" mean in \"where Ollie... held court every morning\"?", "options": ["worked as a judge", "read the newspaper alone", "talked to people who gathered round him, as the centre of attention", "served customers behind the counter"], "answer": 2, "evidence": "held court every morning over a single cup of coffee"}
     ],
     "dictation_index": 5,
     "vocabulary": [
@@ -278,6 +286,7 @@
     "body": "The corrected entry belonged to a night in late November, and once Mei knew what to look for, the surrounding pages told the story with unsettling clarity. The original line was in the keeper's cramped hand and read simply: \"Fog from nine. Lamp lit. No traffic.\" He must have written it from his sickbed, Mei guessed, going by what he could see from his window. Above it Ada had written her correction, and below it, squeezed into the margin, a longer note that Mei needed a magnifying glass to decipher. Ada had noticed that the \"fog\" was drifting against the wind, which fog does not do, and that it smelled of burning coal. Rather than assume it would clear, she had climbed to the gallery, seen a faint glow beyond the northern rocks and concluded that a steamer was on fire somewhere out of sight. What she did next was not, strictly speaking, permitted: she changed the light to the pattern reserved for emergencies, which brought the lifeboat crew out within the hour. The local newspaper, which Mei found the following week in the library's basement, reported that eleven sailors had been brought ashore and that the keeper \"had shown admirable judgement in difficult conditions\". There was no mention of Ada. Reading the article for the third time, Mei felt something closer to anger than to surprise. Had the rescue gone wrong, she suspected, the blame would have fallen entirely on the young woman who had broken the rules; because it had gone right, the credit had passed silently to the man whose name was on the door. It was an old pattern, and she recognised it from her own working life, though on a far smaller scale: the junior colleague whose careful revisions became the senior partner's triumph at the client meeting. She closed the newspaper and went back to the ledger, no longer reading it as a record of the weather but as evidence.",
     "questions": [
       {
+        "type": "detail",
         "prompt": "How did Ada realise that what she saw was not fog?",
         "options": [
           "The lifeboat crew told her there was a fire at sea",
@@ -289,6 +298,7 @@
         "evidence": "was drifting against the wind, which fog does not do"
       },
       {
+        "type": "inference",
         "prompt": "What does Mei believe about the way credit was given after the rescue?",
         "options": [
           "The newspaper was right to praise the keeper's judgement",
@@ -298,7 +308,9 @@
         ],
         "answer": 1,
         "evidence": "Had the rescue gone wrong, she suspected, the blame would have fallen entirely on the young woman who had broken the rules"
-      }
+      },
+      {"type": "main", "prompt": "What does Mei discover in this part of the story?", "options": ["Ada spotted a burning ship and called the lifeboat, but her father got the credit", "The lifeboat crew ignored the emergency signal", "The keeper wrote every entry in the ledger himself", "The newspaper praised Ada by name"], "answer": 0, "evidence": "There was no mention of Ada."},
+      {"type": "vocab", "prompt": "What does \"decipher\" mean in \"a longer note that Mei needed a magnifying glass to decipher\"?", "options": ["copy quickly", "work out the meaning of something hard to read", "hide from others", "translate into another language"], "answer": 1, "evidence": "a longer note that Mei needed a magnifying glass to decipher"}
     ],
     "dictation_index": 11,
     "vocabulary": [
@@ -411,6 +423,7 @@
     "body": "Mei expected Ruth to be delighted, and for a few minutes she was. Then the director put down the magnifying glass and asked the question Mei had been avoiding: what, exactly, could they prove? A change of handwriting was not a signature, and a note in the margin, however vivid, was not the same as an official record. \"If we put Ada's name on that wall,\" Ruth said, \"we are making a claim on behalf of the museum, and people will repeat it as fact.\" Mei argued that the official record was itself a kind of claim, and a less honest one, since it had clearly been written by people who had not climbed the tower that night. Ruth conceded the point but would not move on the principle. Museums, she said, were trusted precisely because they were slow to say things; it was not their job to correct every injustice the past had committed, only to avoid adding new errors of their own. Mei found the argument infuriating, partly because she could not entirely dismiss it. In her old job she had seen what happened when a confident sentence travelled faster than the evidence behind it: a mistranslated safety warning, repeated in three languages before anyone checked the original. Still, it seemed to her that caution could become its own kind of distortion, and that a museum which displayed only what had been officially recorded would end up displaying, in effect, the opinions of whoever had held the pen. They argued until the café across the square switched off its lights. By the end they had agreed on very little, except that Mei would keep looking, and that if she found nothing more, the label would mention the second hand without naming it.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main disagreement between Mei and Ruth?",
         "options": [
           "Whether the ledger should be sold to a larger archive",
@@ -422,6 +435,7 @@
         "evidence": "we are making a claim on behalf of the museum, and people will repeat it as fact"
       },
       {
+        "type": "inference",
         "prompt": "Why does Mei find Ruth's argument \"infuriating\"?",
         "options": [
           "Ruth refuses to look at the evidence Mei has collected",
@@ -431,7 +445,9 @@
         ],
         "answer": 1,
         "evidence": "partly because she could not entirely dismiss it"
-      }
+      },
+      {"type": "vocab", "prompt": "What does \"distortion\" mean in \"caution could become its own kind of distortion\"?", "options": ["an official document", "a kind of politeness", "a useful habit", "a twisting of the truth"], "answer": 3, "evidence": "caution could become its own kind of distortion"},
+      {"type": "detail", "prompt": "What did Mei and Ruth agree on by the end of their argument?", "options": ["The ledger would be sent to another museum", "Ada's name would go on the wall immediately", "Mei would keep looking, and if nothing more turned up the label would mention the second hand without a name", "Mei would stop working on the archive"], "answer": 2, "evidence": "the label would mention the second hand without naming it"}
     ],
     "dictation_index": 5,
     "vocabulary": [
@@ -544,6 +560,7 @@
     "body": "It was the binding, in the end, that gave Ada away. Mei had been photographing the ledger page by page for the digital catalogue when she noticed that the back cover was thicker than the front, and that the leather there had been glued down more neatly than an old bookbinder would have bothered to. With Ruth watching anxiously and a conservator from the county archive giving instructions over the phone, she eased the lining away from the board. Inside was a single folded sheet, addressed not to the authorities or to a newspaper but simply to \"Father\". Ada wrote that she had kept the light for three months while he lay ill, that she had told no one because a woman alone in the tower would have been sent home within a week, and that she was leaving to train as a navigator in a port far to the south, where, she had heard, such things were no longer impossible. She did not ask him to tell anyone. \"You will say it was you,\" she wrote, \"and I would rather you did, because the lamp is what matters, not whose name is in the book.\" The letter ended with a practical reminder about the stiff hinge on the gallery door. Mei read it twice and then sat for a long time without speaking. What struck her most was not the injustice, which she had already guessed at, but the absence of bitterness: Ada had apparently decided, at nineteen or twenty, that being right mattered less to her than being free, and had left a record only in case someone, someday, needed the truth more than she did. Ruth, who according to Ollie had not cried in front of a colleague in thirty years, went out to the car park and stayed there for some time. When she came back, she said only: \"Well. Now we can prove it.\"",
     "questions": [
       {
+        "type": "detail",
         "prompt": "Why had Ada told no one that she was keeping the light?",
         "options": [
           "She was afraid that her father would be angry with her",
@@ -555,6 +572,7 @@
         "evidence": "a woman alone in the tower would have been sent home within a week"
       },
       {
+        "type": "detail",
         "prompt": "What affected Mei most when she read the letter?",
         "options": [
           "Ada blamed her father bitterly for taking the credit",
@@ -564,7 +582,9 @@
         ],
         "answer": 1,
         "evidence": "but the absence of bitterness"
-      }
+      },
+      {"type": "inference", "prompt": "What does Ruth mean when she says \"Now we can prove it\"?", "options": ["She thinks the conservator made a mistake", "The letter gives them the evidence they needed to name Ada", "She wants to sell the ledger to the archive", "She no longer believes Ada's story"], "answer": 1, "evidence": "Well. Now we can prove it."},
+      {"type": "vocab", "prompt": "What does \"bitterness\" mean in \"the absence of bitterness\"?", "options": ["fear of being found out", "angry resentment about being treated unfairly", "deep sadness about leaving home", "a sour taste"], "answer": 1, "evidence": "the absence of bitterness"}
     ],
     "dictation_index": 5,
     "vocabulary": [
@@ -672,6 +692,7 @@
     "body": "The museum's labels were limited to forty words, a rule Ruth defended with the fervour of a convert, and Mei spent her final week discovering how much a sentence could carry before it collapsed. Her first draft told the whole story and ran to two hundred words; her fifth was accurate but so cautious that it seemed to apologise for Ada's existence. The difficulty, she realised, was not length but emphasis: whichever fact came first would become, for most visitors, the only fact they remembered. In the end she began not with the injustice but with the act itself, because that was what Ada had cared about, and let the missing credit appear only at the end, where a careful reader would find it and a hurried one would not be misled. \"For three months Ada Hale kept this light while her father was ill. One November night she realised a ship was burning and called out the lifeboat. Eleven sailors were saved. The report named her father. She asked for nothing.\" Ruth changed one word and pronounced it the best label in the building. On her last morning Mei caught the early bus to the city for an interview she had arranged weeks earlier, with a firm that wanted her back on better terms. She had expected to feel relieved at the prospect of returning to proper work, as she still privately called it. Instead she found herself rereading the photograph of Ada's letter and thinking that she had spent four years making other people's sentences clear without once asking whose name ended up on them. When the interviewer asked what she had been doing all summer, she heard herself say, with more conviction than she had intended, that she had been helping someone get the credit she was owed.",
     "questions": [
       {
+        "type": "detail",
         "prompt": "Why did Mei put the missing credit at the end of the label?",
         "options": [
           "Ruth insisted that it should appear at the end",
@@ -683,6 +704,7 @@
         "evidence": "she began not with the injustice but with the act itself"
       },
       {
+        "type": "inference",
         "prompt": "How has the summer changed the way Mei thinks about her own work?",
         "options": [
           "She now believes translation matters less than museum work",
@@ -692,7 +714,9 @@
         ],
         "answer": 1,
         "evidence": "without once asking whose name ended up on them"
-      }
+      },
+      {"type": "main", "prompt": "What is this final part of the story mainly about?", "options": ["Mei turns down a job in the city", "Mei finds a second letter from Ada", "Mei writes Ada's label and realises how the summer has changed her view of credit", "Ruth decides to close the museum"], "answer": 2, "evidence": "she had been helping someone get the credit she was owed"},
+      {"type": "vocab", "prompt": "What does \"fervour\" mean in \"a rule Ruth defended with the fervour of a convert\"?", "options": ["complete indifference", "gentle humour", "strong, almost passionate enthusiasm", "quiet doubt"], "answer": 2, "evidence": "a rule Ruth defended with the fervour of a convert"}
     ],
     "dictation_index": 9,
     "vocabulary": [

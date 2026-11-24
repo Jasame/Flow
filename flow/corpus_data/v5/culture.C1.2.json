@@ -12,6 +12,7 @@
     "body": "Few questions in the museum world provoke as much feeling as whether objects should be returned to the places they came from. My own view is that, wherever an object was taken without the meaningful consent of its original owners, returning it should be the starting point of the conversation rather than a reluctant last resort. Museums like to describe themselves as guardians of a shared human heritage, and there is truth in that. Yet keeping an object far from the community that made it can turn a living tradition into a mere exhibit, admired behind glass by visitors who have no idea what it once meant. A carved mask is not simply a beautiful object; to the families who made it, it may hold stories, songs and memories that only make full sense in the place where it was used. Opponents raise serious objections, and they deserve a fair hearing. Some argue that large museums can offer conservation expertise, security and a vast international audience that a smaller institution might struggle to match. Others worry that if every disputed object were sent home, great collections would be emptied and visitors would lose the chance to see many cultures side by side. These concerns are real, but they are not decisive. Expertise can be shared, through training, loans and joint research, without insisting on ownership. And the value of seeing cultures side by side shrinks considerably once we remember that some of those cultures were never asked whether they wished to be displayed at all. Unless a museum can show that an object was acquired fairly, it should be prepared to discuss its return openly, without treating every request as a threat. Returning an object need not mean losing a relationship; it can be the beginning of a more honest one, in which both sides decide together how a piece of the past should be cared for and seen.",
     "questions": [
       {
+        "type": "main",
         "prompt": "Which statement best summarises the writer's position?",
         "options": [
           "Museums should keep their collections, because they protect a shared heritage",
@@ -23,6 +24,7 @@
         "evidence": "returning it should be the starting point of the conversation rather than a reluctant last resort"
       },
       {
+        "type": "detail",
         "prompt": "How does the writer respond to the argument that large museums have more expertise?",
         "options": [
           "By claiming that expertise is not important for old objects",
@@ -32,7 +34,9 @@
         ],
         "answer": 1,
         "evidence": "Expertise can be shared, through training, loans and joint research, without insisting on ownership."
-      }
+      },
+      {"type": "inference", "prompt": "Why does the writer say the value of seeing cultures side by side \"shrinks considerably\"?", "options": ["Because some of those cultures never agreed to be displayed", "Because objects are often damaged when they travel", "Because smaller museums have better collections", "Because visitors have lost interest in museums"], "answer": 0, "evidence": "some of those cultures were never asked whether they wished to be displayed at all"},
+      {"type": "vocab", "prompt": "What does \"decisive\" mean in \"they are not decisive\"?", "options": ["strong enough to settle the question", "rude or unkind", "recently discovered", "easy to understand"], "answer": 0, "evidence": "These concerns are real, but they are not decisive."}
     ],
     "dictation_index": 9,
     "vocabulary": [
@@ -142,6 +146,7 @@
     "body": "Halfway through Two Clocks, a quiet new drama about a woman who left her hometown twenty years earlier, there is a scene that sums up the whole film. Lena, now a translator in a grey northern city, is cooking a dish from her childhood when she realises she can no longer remember whether her mother added the ginger before or after the garlic. She phones her sister, who is not sure either, and the two of them end up laughing, then falling silent, as though they had both noticed something slipping away at the same moment. Rather than building towards a dramatic return home, the film moves back and forth between past and present so smoothly that you sometimes need a moment to work out where you are. This can be frustrating, but it is clearly deliberate: memory, the film suggests, does not arrive in chronological order. The two clocks of the title hang side by side in Lena's kitchen, one set to local time and one to the time back home, and the director returns to them often enough to make the point without ever hammering it. The performances are restrained to a fault. Although the lead actor conveys a great deal with a single glance, some viewers will wish she had been given one scene in which her feelings could finally spill over. The supporting cast fares better, especially the young actor playing Lena's teenage son, whose embarrassment at his mother's accent slowly turns into curiosity about the language he has never bothered to learn. What lingers afterwards is less any single event than a mood: the strange experience of feeling at home in two places and not quite at home in either. Not every film about migration manages to avoid sentimentality, and this one occasionally drifts close to it, but its honesty about small losses makes it well worth seeing.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the reviewer's overall opinion of the film?",
         "options": [
           "It is a fast-moving drama that never slows down",
@@ -153,6 +158,7 @@
         "evidence": "its honesty about small losses makes it well worth seeing"
       },
       {
+        "type": "detail",
         "prompt": "According to the reviewer, why does the film keep moving between past and present?",
         "options": [
           "To keep the ending a surprise for as long as possible",
@@ -162,7 +168,9 @@
         ],
         "answer": 1,
         "evidence": "memory, the film suggests, does not arrive in chronological order"
-      }
+      },
+      {"type": "inference", "prompt": "What does the scene with the ginger and the garlic suggest about Lena and her sister?", "options": ["They both sense that something from their shared past is fading", "They are planning to return home together", "They have not spoken to each other for years", "They disagree about how to cook the dish"], "answer": 0, "evidence": "as though they had both noticed something slipping away at the same moment"},
+      {"type": "vocab", "prompt": "What does \"restrained to a fault\" mean in \"The performances are restrained to a fault\"?", "options": ["perfectly balanced", "too loud and dramatic", "full of obvious mistakes", "so controlled that it becomes a weakness"], "answer": 3, "evidence": "The performances are restrained to a fault."}
     ],
     "dictation_index": 4,
     "vocabulary": [
@@ -272,6 +280,7 @@
     "body": "I had always assumed that my hands, unlike my vocabulary, needed no translation. That belief lasted until my second week in a shared flat, when I beckoned my new flatmate Yara over to taste a soup by curling my finger towards me, palm up. She came, but slowly, with an expression I could not read. Later that evening, over the washing-up, she explained that in the town where she had grown up, that particular gesture was mostly used to call a dog, and that from a stranger it would have seemed faintly insulting. She had decided, generously, that I could not possibly have meant it. After that conversation, I began noticing how much of my communication I had been leaving to my hands without ever checking what they were saying. At the café on the corner, I would raise a hand, palm outward, to mean \"no more coffee, thanks\", and the waiter, who read it as a cheerful hello, would wave back and keep pouring. In a team meeting, a colleague who tilted his head to one side while I spoke turned out not to be doubting me at all; for him, it simply meant that he was following. Although none of these moments was dramatic, together they made me realise that gestures are learned habits, picked up so early that they feel like nature. Unless someone points them out, you have no reason to suspect that your wave or your nod might be landing differently. I have not stopped gesturing, which would be impossible, but I have started asking. Yara now teases me by beckoning me into the kitchen with a deliberately exaggerated curl of the finger, and we both laugh, which is perhaps the best outcome a misunderstanding can have: it becomes a private joke rather than a quiet grudge.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main lesson the writer draws from her experiences?",
         "options": [
           "Gestures mean the same everywhere, so they are safer than words",
@@ -283,6 +292,7 @@
         "evidence": "gestures are learned habits, picked up so early that they feel like nature"
       },
       {
+        "type": "detail",
         "prompt": "How did Yara first react when the writer beckoned her?",
         "options": [
           "She laughed and made a joke about it straight away",
@@ -292,7 +302,9 @@
         ],
         "answer": 2,
         "evidence": "She came, but slowly, with an expression I could not read."
-      }
+      },
+      {"type": "inference", "prompt": "What does the word \"generously\" suggest about Yara's reaction?", "options": ["She expected to be thanked for her help", "She had not noticed the gesture at all", "She chose to assume good intentions instead of taking offence", "She found the gesture flattering"], "answer": 2, "evidence": "She had decided, generously, that I could not possibly have meant it."},
+      {"type": "vocab", "prompt": "What does \"grudge\" mean in \"a private joke rather than a quiet grudge\"?", "options": ["a lasting feeling of resentment", "a secret plan", "a polite greeting", "a small present"], "answer": 0, "evidence": "it becomes a private joke rather than a quiet grudge"}
     ],
     "dictation_index": 10,
     "vocabulary": [
@@ -402,6 +414,7 @@
     "body": "Few social situations are as oddly scripted as the thirty seconds you spend in a lift with a stranger. The space is small, the exit is temporarily out of reach, and there is nothing to look at except the doors and the slowly changing numbers above them, which may be why so many of us stare at those numbers as though they contained urgent news. What makes the lift awkward is not the silence itself but the closeness. In most everyday settings, we manage the distance between ourselves and others without thinking about it, stepping back when someone feels too near. A lift removes that option, so people compensate in other ways: by facing the same direction, by avoiding eye contact, or by suddenly finding their phones fascinating. Small talk, when it happens, tends to follow a narrow script. Asking which floor someone needs is the safest opening, because it is practical rather than personal and offers an obvious next step: pressing the button for them. Comments on the weather or on how slow the lift is work in a similar way, inviting agreement without demanding anything more. What rarely works is a question that requires a long answer, since both people know the conversation has a built-in deadline. If you have ever been halfway through a story when the doors opened on your floor, you will know the peculiar choice that follows: abandon the story mid-sentence, or step out still talking and leave the other person wondering whether to hold the doors. Unless the two of you already know each other, the kindest approach is usually to keep things short enough to finish between floors. None of this is a universal rule, and plenty of people happily chat their way from the ground floor to the top. Still, understanding why the lift feels the way it does can make those thirty seconds less of an ordeal, and occasionally even rather pleasant.",
     "questions": [
       {
+        "type": "main",
         "prompt": "According to the writer, what really makes sharing a lift uncomfortable?",
         "options": [
           "The long silence between strangers",
@@ -413,6 +426,7 @@
         "evidence": "What makes the lift awkward is not the silence itself but the closeness."
       },
       {
+        "type": "detail",
         "prompt": "Why is asking which floor someone needs described as a good opening?",
         "options": [
           "It shows real interest in the other person's life",
@@ -422,7 +436,9 @@
         ],
         "answer": 2,
         "evidence": "because it is practical rather than personal and offers an obvious next step"
-      }
+      },
+      {"type": "inference", "prompt": "What does the writer imply about people who stare at the changing floor numbers?", "options": ["They are looking for something to focus on in an awkward space", "They are hoping to start a conversation", "They are checking how late they are", "They are afraid the lift has broken down"], "answer": 0, "evidence": "there is nothing to look at except the doors and the slowly changing numbers above them"},
+      {"type": "vocab", "prompt": "What does \"ordeal\" mean in \"less of an ordeal\"?", "options": ["a lucky chance", "a formal ceremony", "a short, friendly chat", "an unpleasant experience that is hard to bear"], "answer": 3, "evidence": "can make those thirty seconds less of an ordeal"}
     ],
     "dictation_index": 2,
     "vocabulary": [

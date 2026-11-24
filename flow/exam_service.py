@@ -30,6 +30,9 @@ EXAMS = {  # id -> title, word book (ECDICT tag or data book), grammar levels, r
               'blurb': '雅思常考词汇、中级到高级语法、一篇 B2 阅读'},
 }
 VOCAB_N, GRAMMAR_N = 10, 8
+# Reading: two passages, the first two questions of each (the paper is 「阅读 2 篇短文，4 题」 and timed for that).
+# Materials now carry up to four questions (r27 content line); the first two are the original ones and never move.
+READING_Q = 2
 SKIP_COMMON = 300  # the most frequent words of every list ("about", "use"): knowing them says nothing about the exam
 PAPER_TTL = 2 * 86400
 NOTE = '按考试难度出的练习题，全部是原创内容，不是真题；分数只用来看自己的变化，不能换算成考试分数。'
@@ -140,7 +143,7 @@ def paper(c, uid, exam):
     vocab, grammar, reading = _vocab(rnd, e['book'], VOCAB_N), _grammar(c, rnd, e['levels'], GRAMMAR_N), _reading(c, uid, rnd, e['reading'])
     pid = secrets.token_urlsafe(12)
     content = {'vocab': vocab, 'grammar': [{'id': q['id']} for q in grammar],
-               'reading': [{'pack': p['id'], 'answer': q['answer'], 'evidence': q.get('evidence', '')} for p in reading for q in p['questions']]}
+               'reading': [{'pack': p['id'], 'answer': q['answer'], 'evidence': q.get('evidence', '')} for p in reading for q in p['questions'][:READING_Q]]}
     c.execute('INSERT INTO next_exam_papers(id,user_id,exam,content,created) VALUES(?,?,?,?,?)', (pid, uid, exam, json.dumps(content, ensure_ascii=False), now))
     c.commit()
     parts = [{'key': 'vocab', 'title': '词汇', 'hint': '选出单词的中文意思', 'items': [{k: v[k] for k in ('word', 'phonetic', 'options')} for v in vocab]},
@@ -148,7 +151,7 @@ def paper(c, uid, exam):
     if reading:
         parts.append({'key': 'reading', 'title': '阅读', 'hint': '读短文，回答问题',
                       'passages': [{'pack': p['id'], 'title': p.get('title_en') or p['title'], 'body': p['body'],
-                                    'items': [{'prompt': q['prompt'], 'options': q['options']} for q in p['questions']]} for p in reading]})
+                                    'items': [{'prompt': q['prompt'], 'options': q['options']} for q in p['questions'][:READING_Q]]} for p in reading]})
     return {'paper': pid, 'exam': exam, 'title': e['title'], 'minutes': e['minutes'], 'note': NOTE, 'parts': parts}, 200
 
 
