@@ -1,0 +1,161 @@
+[
+ {
+  "id": "v5-science-c1-time-speeds-up",
+  "title": "为什么年纪越大，时间过得越快",
+  "title_en": "Why Time Seems to Speed Up as We Get Older",
+  "summary_zh": "为什么长大后一年好像一眨眼就过去？比起「一年占人生的比例变小」，新鲜经历和记忆更能解释这种感觉。读完你会明白其中的道理，还能学会写一段留有余地的说明文。",
+  "level": "B2",
+  "cefr": "C1",
+  "theme": "science",
+  "genre": "explainer",
+  "purposes": [
+   "expository"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Almost everyone over thirty has said it at some point: the years seem to pass more quickly than they used to, and a summer that once felt endless now disappears in what feels like a few weeks. The clock, of course, has not changed, so the explanation must lie in how we experience and remember time. One popular idea is proportional: a year is a huge slice of a seven-year-old's life but a thin one of a fifty-year-old's, so it feels smaller as we age. The idea is neat, but on its own it explains rather little, since nobody actually experiences their life as a fraction. A more convincing account focuses on novelty and memory. When we are young, a great deal of what happens is new: the first day at a school, the first trip abroad, the first job. New experiences tend to be stored in rich detail, and when we look back, a period full of such memories seems long. As adult life settles into routines, many weeks resemble one another so closely that they leave few distinct traces behind. Looking back on a year like that, the mind finds little to measure it by, and the year seems to have shrunk. There is an odd twist here, because the same routine weeks can drag while we are living through them and then vanish once they are over. If this account is broadly right, the remedy is not to slow the clock but to give memory more to hold on to. Learning a skill, travelling somewhere unfamiliar or simply changing a daily route can make a stretch of time feel fuller in hindsight. Researchers still debate the details, but the practical lesson is encouraging: we cannot add hours to the day, yet we may be able to make the hours we have feel longer.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What does the text mainly explain?",
+    "options": [
+     "How clocks measure time",
+     "Why time may feel faster as we age, and what might help",
+     "Why children sleep more than adults",
+     "Why summers are shorter than they used to be"
+    ],
+    "answer": 1,
+    "evidence": "the explanation must lie in how we experience and remember time"
+   },
+   {
+    "type": "inference",
+    "prompt": "Why does the writer say the proportional idea \"explains rather little\"?",
+    "options": [
+     "The maths behind it is wrong",
+     "Children cannot count years",
+     "People do not actually feel their life as a fraction",
+     "Nobody has ever tested it"
+    ],
+    "answer": 2,
+    "evidence": "nobody actually experiences their life as a fraction"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"in hindsight\" mean in \"feel fuller in hindsight\"?",
+    "options": [
+     "at the very beginning",
+     "in a hurry",
+     "without thinking",
+     "when you look back on it later"
+    ],
+    "answer": 3,
+    "evidence": "feel fuller in hindsight"
+   },
+   {
+    "type": "detail",
+    "prompt": "According to the text, what can make a stretch of time feel fuller?",
+    "options": [
+     "Learning a skill or travelling somewhere unfamiliar",
+     "Sleeping longer every night",
+     "Keeping exactly the same routine",
+     "Working more hours each week"
+    ],
+    "answer": 0,
+    "evidence": "Learning a skill, travelling somewhere unfamiliar or simply changing a daily route"
+   }
+  ],
+  "dictation_index": 4,
+  "vocabulary": [
+   {
+    "term": "proportional",
+    "meaning": "成比例的",
+    "example": "The price is proportional to the size of the room."
+   },
+   {
+    "term": "novelty",
+    "meaning": "新鲜感；新奇",
+    "example": "The novelty of the new phone wore off after a week."
+   },
+   {
+    "term": "distinct",
+    "meaning": "清晰可辨的；不同的",
+    "example": "I have a distinct memory of my first day at school."
+   },
+   {
+    "term": "resemble",
+    "meaning": "像；类似",
+    "example": "The twins resemble each other closely."
+   },
+   {
+    "term": "hindsight",
+    "meaning": "事后的认识",
+    "example": "With hindsight, we should have left earlier."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "at some point",
+    "meaning": "在某个时候",
+    "note": "泛指某个时刻：At some point, everyone feels lost."
+   },
+   {
+    "text": "on its own",
+    "meaning": "单独地；靠它自己",
+    "note": "常用来说“仅凭这一点还不够”。"
+   },
+   {
+    "text": "settles into routines",
+    "meaning": "进入固定的生活规律",
+    "note": "settle into a routine / a new job：慢慢习惯下来。"
+   },
+   {
+    "text": "living through them",
+    "meaning": "亲身经历（它们）",
+    "note": "live through 常指经历一段时期，尤其是难熬的时期。"
+   },
+   {
+    "text": "hold on to",
+    "meaning": "抓住；留住",
+    "note": "可以是实物，也可以是记忆、希望。"
+   },
+   {
+    "text": "in hindsight",
+    "meaning": "事后看来",
+    "note": "回顾时用：In hindsight, it was a good decision."
+   }
+  ],
+  "grammar": [
+   "nonfinite-clause",
+   "link-purpose",
+   "conditional-real"
+  ],
+  "knowledge": [
+   {
+    "node": "nonfinite-clause",
+    "quote": "Looking back on a year like that, the mind finds little to measure it by",
+    "explanation": "现在分词短语 Looking back… 作状语，逻辑主语和主句主语 the mind 一致，表示“回顾时”。"
+   },
+   {
+    "node": "link-purpose",
+    "quote": "many weeks resemble one another so closely that they leave few distinct traces behind",
+    "explanation": "so + 副词 + that… 表示“如此……以至于”，前面说程度，后面说结果。"
+   },
+   {
+    "node": "conditional-real",
+    "quote": "If this account is broadly right, the remedy is not to slow the clock but to give memory more to hold on to.",
+    "explanation": "真实条件句：如果这种解释大体对，那么……；主句用 not A but B 对比两种做法。"
+   }
+  ],
+  "speaking": "用 1 分钟说说：你觉得哪一年过得特别快、哪一年特别慢？为什么？用上 in hindsight 和 settle into。",
+  "writing": "用 200–250 词写一段说明文，解释一个常见的「感觉」（如时间变快、周一特别长）背后可能的原因。说「目前的解释」时要留有余地，至少用一个 so… that… 句子。",
+  "task": {
+   "prompt": "仿照这句，用 we cannot …, yet we may be able to … 写一句话，给出一个现实的建议。",
+   "model": "we cannot add hours to the day, yet we may be able to make the hours we have feel longer"
+  },
+  "tags": [
+   "心理学",
+   "说明文"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

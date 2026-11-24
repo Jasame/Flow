@@ -19,6 +19,7 @@ NODES = ('tense-present', 'tense-past', 'tense-perfect', 'clause-relative', 'cla
          'conditional-real', 'conditional-unless', 'conditional-modal', 'subjunctive-now', 'subjunctive-past',
          'subjunctive-mixed', 'nonfinite-infinitive', 'nonfinite-gerund', 'nonfinite-participle',
          'agreement-head', 'agreement-each', 'agreement-either')
+BASE_NODES = NODES  # the knowledge graph links materials through these 18 (test_corpus_v5)
 # The 26 further points (voice, modals, determiners, comparison, linking, prepositions, emphasis) are valid tags too.
 NODES += tuple(n['id'] for n in __import__('grammar_more').NODES_MORE)
 WORDS = {'A2': (90, 140), 'B1': (140, 210), 'B2': (210, 300), 'C1': (280, 380)}
@@ -123,6 +124,8 @@ def check_pack(p, theme, cefr, seen):
     g = p['grammar']
     if not isinstance(g, list) or not 1 <= len(g) <= 3 or any(n not in NODES for n in g):
         E.append('grammar 需要 1–3 个合法节点 id')
+    elif not set(g) & set(BASE_NODES):
+        E.append('grammar 至少要有 1 个基础节点（18 个之一），知识图谱靠它把材料连上语法点')
     kn = p['knowledge']
     if not isinstance(kn, list) or not 1 <= len(kn) <= 3:
         E.append('knowledge 需要 1–3 条')

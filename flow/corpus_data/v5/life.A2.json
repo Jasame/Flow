@@ -12,6 +12,7 @@
     "body": "Mr Patel: Hi, you must be Sofia. Come in, mind the step. Sofia: Thanks! Oh, it's brighter than I expected. Mr Patel: Yes, the living room gets the sun all afternoon. Sofia: Lovely. Is the heating included in the rent? Mr Patel: No, but the flat is small, so it warms up fast. Sofia: Can I see the kitchen? Mr Patel: Sure, it's through here. Sofia: It's quite noisy outside, though. Mr Patel: The bus stops here, I'm afraid. But it goes quiet after ten. Sofia: Fair enough. If I take it, when can I move in? Mr Patel: It's free from next month. Sofia: Great, can I think about it and call you tomorrow? Mr Patel: Of course, take your time. But if you like it, don't wait too long. Two other people are coming this weekend.",
     "questions": [
       {
+        "type": "inference",
         "prompt": "Why does Mr Patel mention the two other people at the end?",
         "options": [
           "To explain why the street is so noisy",
@@ -23,6 +24,7 @@
         "evidence": "But if you like it, don't wait too long."
       },
       {
+        "type": "detail",
         "prompt": "Why does the flat warm up fast?",
         "options": [
           "Because the heating is new",
@@ -32,7 +34,9 @@
         ],
         "answer": 1,
         "evidence": "No, but the flat is small, so it warms up fast."
-      }
+      },
+      {"type": "main", "prompt": "What is the dialogue mainly about?", "options": ["Sofia moving into her new flat", "Sofia looking round a flat she might rent", "A noisy bus stop", "Mr Patel selling his kitchen"], "answer": 1, "evidence": "Hi, you must be Sofia. Come in, mind the step."},
+      {"type": "vocab", "prompt": "What does \"included\" mean in \"Is the heating included in the rent?\"", "options": ["part of the price", "broken", "very expensive", "turned on"], "answer": 0, "evidence": "Is the heating included in the rent?"}
     ],
     "dictation_index": 14,
     "vocabulary": [
@@ -125,6 +129,7 @@
     "body": "Hi there, I'm Hana from Flat 3, just below you. I hope you're settling in well. I'm writing to ask for a small favour. Last week, I heard loud music late at night, on Tuesday and again on Thursday. I also heard chairs moving around after midnight. I know it's not easy to move into a new place, and I'm sure you didn't mean to keep anyone awake. The problem is that I start work at seven, so I go to bed early. Could you please keep the music down after ten on weeknights? Weekends are no problem at all. And if you ever hear noise from my flat, please tell me too! Thanks so much, and welcome to the building. Hana (Flat 3)",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main purpose of Hana's note?",
         "options": [
           "To invite her new neighbour to a party",
@@ -136,6 +141,7 @@
         "evidence": "Could you please keep the music down after ten on weeknights?"
       },
       {
+        "type": "detail",
         "prompt": "Why does Hana go to bed early?",
         "options": [
           "Because the music makes her tired",
@@ -145,7 +151,9 @@
         ],
         "answer": 2,
         "evidence": "I start work at seven, so I go to bed early"
-      }
+      },
+      {"type": "inference", "prompt": "Why does Hana ask her neighbour to tell her about noise from her flat too?", "options": ["She plays loud music", "She wants to complain more", "Her flat is very noisy", "To keep things friendly and fair"], "answer": 3, "evidence": "And if you ever hear noise from my flat, please tell me too!"},
+      {"type": "vocab", "prompt": "What does \"keep the music down\" mean?", "options": ["make the music quieter", "play the music downstairs", "turn the music off for ever", "play slower songs"], "answer": 0, "evidence": "Could you please keep the music down after ten on weeknights?"}
     ],
     "dictation_index": 7,
     "vocabulary": [
@@ -238,6 +246,7 @@
     "body": "Many new plant owners make the same mistake: they love their plants too much. With your first plant, you want to look after it, so you water it every day. But too much water is bad for the roots. Here is a simple rule: put your finger in the soil. If the top feels dry, give the plant a drink. If it still feels wet, leave it alone. Most green plants like a bright room, but not hot sun all day. When the leaves turn yellow, the plant is often getting too much water. When they turn brown and dry, it probably needs more. Don't worry if a leaf falls off now and then. That's normal. Be patient, and try not to move your plant often. Plants, like people, need a while to get used to a new home.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main message of this guide?",
         "options": [
           "Plants need hot sun all day to stay green",
@@ -249,6 +258,7 @@
         "evidence": "they love their plants too much"
       },
       {
+        "type": "detail",
         "prompt": "How can you tell if your plant needs water?",
         "options": [
           "Feel the top of the soil with your finger",
@@ -258,7 +268,9 @@
         ],
         "answer": 0,
         "evidence": "put your finger in the soil"
-      }
+      },
+      {"type": "inference", "prompt": "Why does the writer say new owners \"love their plants too much\"?", "options": ["They talk to them too much", "They move them every day", "They water them too often", "They buy too many plants"], "answer": 2, "evidence": "you want to look after it, so you water it every day"},
+      {"type": "vocab", "prompt": "What are \"roots\" in \"too much water is bad for the roots\"?", "options": ["the leaves", "the parts of a plant under the soil", "the pot", "the flowers"], "answer": 1, "evidence": "But too much water is bad for the roots."}
     ],
     "dictation_index": 4,
     "vocabulary": [
@@ -351,6 +363,7 @@
     "body": "In the spring, my neighbour Mr Novak lent me his ladder. I needed it to paint my kitchen ceiling. \"Bring it back when you're done,\" he told me. \"No rush.\" The job took two days. Then I put the ladder in my garage and forgot about it. Summer came and went. One day in October, I noticed Mr Novak in his garden. He was standing on a chair to pick apples from his tree. The chair didn't look safe at all. Suddenly, I remembered. \"I've had his ladder for six months!\" I ran home, carried it over and apologised again and again. Mr Novak just laughed. \"I knew you had it. I just didn't want to ask.\" Now I always return things in the same week. And every autumn, he brings me a bag of apples.",
     "questions": [
       {
+        "type": "inference",
         "prompt": "Why didn't Mr Novak ask for his ladder back?",
         "options": [
           "He had forgotten that he lent it",
@@ -362,6 +375,7 @@
         "evidence": "I just didn't want to ask."
       },
       {
+        "type": "detail",
         "prompt": "What made the writer remember the ladder?",
         "options": [
           "Painting the kitchen ceiling again",
@@ -371,7 +385,9 @@
         ],
         "answer": 2,
         "evidence": "He was standing on a chair to pick apples from his tree."
-      }
+      },
+      {"type": "main", "prompt": "What is the story mainly about?", "options": ["Buying a new ladder", "Picking apples in autumn", "Forgetting to return a borrowed ladder for months", "Painting a kitchen ceiling"], "answer": 2, "evidence": "I've had his ladder for six months!"},
+      {"type": "vocab", "prompt": "What does \"lent\" mean in \"Mr Novak lent me his ladder\"?", "options": ["sold it to me", "let me use it for a short time", "broke it", "painted it"], "answer": 1, "evidence": "my neighbour Mr Novak lent me his ladder"}
     ],
     "dictation_index": 4,
     "vocabulary": [
