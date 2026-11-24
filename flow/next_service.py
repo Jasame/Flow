@@ -72,6 +72,9 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
         c.execute("ALTER TABLE next_profiles ADD COLUMN voice TEXT NOT NULL DEFAULT 'us-f'")
     if 'weekly_goal' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:
         c.execute('ALTER TABLE next_profiles ADD COLUMN weekly_goal INTEGER NOT NULL DEFAULT 4')  # 每周目标: days a week
+    if 'exam' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:  # 考试冲刺: the exam (exam_service.EXAMS) and its date
+        c.execute('ALTER TABLE next_profiles ADD COLUMN exam TEXT')
+        c.execute('ALTER TABLE next_profiles ADD COLUMN exam_date TEXT')
     import vocab_service  # word books, daily plan and FSRS state live on top of next_cards
     vocab_service.schema(c)
     __import__('skills_service').schema(c)  # ability profile, mistake book, weekly report
@@ -84,6 +87,7 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
     __import__('word_links').schema(c)  # practice on words Chinese speakers mix up
     __import__('ability_radar').schema(c)  # goals, assessments and radar snapshots
     __import__('exam_service').schema(c)  # exam practice papers and results
+    __import__('exam_sprint').schema(c)  # question-type practice results
     __import__('progress_service').schema(c)  # 这周进步: weekly goals by week, the Sunday mail's switch and link
     __import__('content_v50').sync(c)  # additive edits of published materials (more questions, tags) reach the database
 
@@ -342,7 +346,8 @@ def profile(c, uid):
     if not r:
         return None
     return {'level': r['level'], 'goal': r['goal'], 'themes': json.loads(r['themes']), 'minutes': r['minutes'],
-            'voice': r['voice'] if r['voice'] in VOICES else 'us-f', 'weekly_goal': r['weekly_goal'] if 'weekly_goal' in r.keys() else 4}
+            'voice': r['voice'] if r['voice'] in VOICES else 'us-f', 'weekly_goal': r['weekly_goal'] if 'weekly_goal' in r.keys() else 4,
+            'exam': r['exam'] if 'exam' in r.keys() else None, 'exam_date': r['exam_date'] if 'exam_date' in r.keys() else None}
 
 
 def save_profile(c, uid, data):
@@ -575,8 +580,8 @@ def node_answer(c, uid, data):
     if uid:
         day = int(time.time() // 86400)
         __import__('event_service').record(c, uid, q['node'], f"next-node:{q['id']}:{day}", 'choice', str(q['id']), 'question:' + str(q['id']),
-                                           int(correct), 0, 'rule', {'choice': choice, 'from': data.get('from') if data.get('from') in ('review', 'mix') else 'node-page'})
-        if not correct and data.get('from') not in ('review', 'mix'):  # those rounds already reschedule the point
+                                           int(correct), 0, 'rule', {'choice': choice, 'from': data.get('from') if data.get('from') in ('review', 'mix', 'exam') else 'node-page'})
+        if not correct and data.get('from') not in ('review', 'mix', 'exam'):  # those rounds already reschedule the point
             __import__('skills_service').add_mistake(c, uid, 'question', q['prompt'], f"gq:{q['id']}", '', '', 'grammar', node=q['node'],
                                                      extra={'options': options, 'answer': q['answer'], 'evidence': q['explanation'] or ''}, commit=False)
         review = GB.schedule(c, uid, q['node'], correct)
@@ -723,6 +728,7 @@ def home(c, uid, level=None, themes=None):
            'announce': __import__('console_ops').current_announcement(c)}  # 公告 from the xmc.hk console, at the top of 今日
     if uid and prof:
         import skills_service as sk
+        out['sprint'] = __import__('exam_sprint').brief(c, uid)  # 考试冲刺: the exam and its days left, in the plan's header line
         out['path'] = sk.daily_path(c, uid, out)
         out['suggest'] = sk.suggest_level(c, uid)
     return out
@@ -1455,9 +1461,11 @@ def get(c, uid, path, q):
     if path == '/api/next/ielts':
         return __import__('ielts_speaking').listing(c, uid), 200
     if path == '/api/next/mix':
-        return GB.mix(c, uid, pair=one('pair') or None, topic=one('topic') or None, level=one('level') or None)
+        return GB.mix(c, uid, pair=one('pair') or None, topic=one('topic') or None, level=one('level') or None, exam=one('exam') or None)
     if path == '/api/next/exam':
         return __import__('exam_service').overview(c, uid)
+    if path == '/api/next/exam/type':
+        return __import__('exam_sprint').get(c, uid, path, q)
     if path == '/api/next/lookup':
         w = one('w')[:40]
         if not WORD.fullmatch(w or ''):
@@ -1483,6 +1491,8 @@ def get(c, uid, path, q):
         return __import__('ability_radar').comprehension_test(c, uid, one('kind'))
     if path == '/api/next/assess/task':
         return __import__('ability_radar').task(c, uid, one('kind'))
+    if path == '/api/next/exam/goal':
+        return __import__('exam_sprint').get(c, uid, path, q)
     return None
 
 
@@ -1517,6 +1527,8 @@ def post_public(c, uid, path, data):
         return __import__('exam_service').paper(c, uid, data.get('exam'))
     if path == '/api/next/exam/submit':
         return __import__('exam_service').submit(c, uid, data)
+    if path == '/api/next/exam/type':
+        return __import__('exam_sprint').post_public(c, uid, path, data)
     if path == '/api/next/weekly-mail/off':  # the link in the Sunday mail: no sign-in, its token stands for the account
         return __import__('progress_service').post_public(c, path, data)
     return None
@@ -1532,6 +1544,8 @@ def post(c, uid, path, data):
         return save_profile(c, uid, data)
     if path == '/api/next/habit':
         return set_weekly_goal(c, uid, data)
+    if path == '/api/next/exam/goal':
+        return __import__('exam_sprint').set_goal(c, uid, data)
     if path == '/api/next/weekly-mail':
         return __import__('progress_service').post(c, uid, path, data)
     if path == '/api/next/relisten':

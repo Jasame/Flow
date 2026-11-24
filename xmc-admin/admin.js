@@ -262,7 +262,7 @@
   function speedView() {
     getJSON('/speed?days=' + SP.days).then(function (d) {
       var o = d.overall, sec = function (v) { return v == null ? '—' : (v / 1000).toFixed(1) + ' 秒'; };
-      var PH = { dns: '查域名', connect: '建立连接', tls: '加密握手', ttfb: '服务器响应', html: '下载页面', scripts: '等脚本下载完', home_api: '取首页数据', render: '画出页面' };
+      var PH = { startup: '打开前（跳转、唤醒、后台脚本）', dns: '查域名', connect: '建立连接', tls: '加密握手', ttfb: '服务器响应', html: '下载页面', scripts: '等脚本下载完', boot: '运行脚本', home_api: '取首页数据', render: '画出页面' };
       // one bar per set of medians: every visit, then the slowest quarter (where a slow opening really waits)
       var bar = function (ph) {
         return '<div class="sp-bar">' + Object.keys(PH).map(function (k, i) {
@@ -280,9 +280,9 @@
         '<div class="toolbar"><select id="spDays"><option value="7"' + (SP.days === 7 ? ' selected' : '') + '>近 7 天</option><option value="30"' + (SP.days === 30 ? ' selected' : '') + '>近 30 天</option></select></div></div>' +
         '<div class="kpi-grid">' + kpi('打开次数', n(o.visits), '近 ' + d.days + ' 天') + kpi('中位数', sec(o.p50), '一半的人在这个时间内看到页面') + kpi('90% 的人', sec(o.p90), '慢的那一成要等这么久') + kpi('没等到就离开', o.left_pct + '%', n(o.left) + ' 次，页面还没出来就关了') + '</div>' +
         (o.visits ? '<section class="card"><h2>时间花在哪（各段的中位数）</h2>' + bar(d.phases) +
-          (d.slow_visits ? '<h2>最慢的四分之一（' + n(d.slow_visits) + ' 次）时间花在哪</h2>' + bar(d.phases_slow || {}) : '') + '<p class="muted small">「查域名」「建立连接」「加密握手」慢，多半是网络线路的问题；「服务器响应」「取首页数据」慢，是服务器的问题；「等脚本下载完」慢，是网页太大或网络带宽不够。</p></section>' +
+          (d.slow_visits ? '<h2>最慢的四分之一（' + n(d.slow_visits) + ' 次）时间花在哪</h2>' + bar(d.phases_slow || {}) : '') + '<p class="muted small">「打开前」慢，多半是手机或微信自己（检查链接、从后台唤醒、启动后台脚本）；「运行脚本」慢，是手机性能不够；「查域名」「建立连接」「加密握手」慢，多半是网络线路的问题；「服务器响应」「取首页数据」慢，是服务器的问题；「等脚本下载完」慢，是网页太大或网络带宽不够。' + (d.hidden_visits ? '另有 ' + n(d.hidden_visits) + ' 次是在后台打开的（比如微信预先加载了链接），没有人在等，不算进这一页的任何数字。' : '') + '</p></section>' +
           table('按访问的网址', d.by.domain) + table('按手机', d.by.platform) + table('按浏览器（微信、Safari…）', d.by.browser) +
-          table('先显示上次的内容 / 等服务器的回答', d.by.snap || []) + table('第一次打开 / 再次打开', d.by.repeat) + table('从桌面打开 / 在浏览器里', d.by.standalone) + table('按网络（安卓浏览器会告诉）', d.by.net) +
+          table('先显示上次的内容 / 等服务器的回答', d.by.snap || []) + table('先打开的页面', d.by.page || []) + table('第一次打开 / 再次打开', d.by.repeat) + table('从桌面打开 / 在浏览器里', d.by.standalone) + table('按网络（安卓浏览器会告诉）', d.by.net) +
           table('按天', d.daily.map(function (x) { return Object.assign({ group: x.day }, x); })) : '<section class="card"><p class="muted">还没有数据：发版后学员打开网站就会开始记录。</p></section>');
       document.getElementById('spDays').onchange = function (e) { SP.days = Number(e.target.value); speedView(); };
     }).catch(fail);

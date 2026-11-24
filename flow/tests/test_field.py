@@ -129,6 +129,40 @@ class OpenTimeTests(Servers):
         self.assertEqual((d['phases']['home_api'], d['phases_slow']['home_api'], d['phases_slow']['scripts']), (116, 4800, 20))
 
 
+    def test_startup_boot_and_the_first_page_are_kept(self):
+        body = {'domain': 'flowlang.cn', 'first_view': 900, 'startup': 420, 'boot': 130, 'scripts': 200, 'page': 'material', 'hidden': False}
+        self.post('/api/next/opentime', body, WECHAT)
+        self.post('/api/next/opentime', {'domain': 'flowlang.cn', 'first_view': 300, 'page': 'admin', 'hidden': 'yes'}, WECHAT)
+        a, b = sorted(self.rows('open_times'), key=lambda r: r['id'])
+        self.assertEqual((a['startup'], a['boot'], a['page'], a['hidden']), (420, 130, 'material', 0))
+        self.assertEqual((b['startup'], b['boot'], b['page'], b['hidden']), (None, None, '', 0))  # only known pages, only true
+
+    def test_a_page_opened_out_of_sight_is_left_out_and_counted_apart(self):
+        for v, hidden, page in ((400, False, 'today'), (600, False, 'today'), (800, False, 'material'), (11000, True, 'today')):
+            self.post('/api/next/opentime', {'domain': 'flowlang.cn', 'first_view': v, 'startup': 50, 'hidden': hidden, 'page': page}, WECHAT)
+        d = self.console('/speed', email='intern@example.com')[1]
+        self.assertEqual((d['overall']['visits'], d['overall']['p90'], d['hidden_visits']), (3, 800, 1))
+        self.assertEqual(d['phases']['startup'], 50)
+        self.assertEqual(list(d['phases']), list(fs.PHASES))
+        self.assertEqual(fs.PHASES[0], 'startup'); self.assertEqual(fs.PHASES.index('boot'), fs.PHASES.index('scripts') + 1)
+        by = {g['group']: g['visits'] for g in d['by']['page']}
+        self.assertEqual(by, {'今日': 2, '从链接打开的材料页': 1})
+
+    def test_a_table_from_before_r27_gets_the_new_columns(self):
+        import sqlite3
+        c = sqlite3.connect(':memory:'); c.row_factory = sqlite3.Row
+        c.execute('CREATE TABLE open_times(id INTEGER PRIMARY KEY, created REAL NOT NULL, day TEXT NOT NULL, domain TEXT NOT NULL, '
+                  'platform TEXT NOT NULL, browser TEXT NOT NULL, net TEXT NOT NULL, tz TEXT NOT NULL, repeat INTEGER NOT NULL, standalone INTEGER NOT NULL, '
+                  'first_view INTEGER, waited INTEGER NOT NULL DEFAULT 0, dns INTEGER, connect INTEGER, tls INTEGER, ttfb INTEGER, html INTEGER, '
+                  'scripts INTEGER, home_api INTEGER, render INTEGER)')  # as r20 made it: no snap either
+        c.execute("INSERT INTO open_times(created, day, domain, platform, browser, net, tz, repeat, standalone, first_view) "
+                  "VALUES(1, ?, 'flowlang.cn', 'iPhone', '微信', '', '', 0, 0, 700)", (fs._today(),))
+        fs.schema(c); fs.schema(c)  # twice: the second run finds every column there
+        cols = {r[1] for r in c.execute('PRAGMA table_info(open_times)')}
+        self.assertTrue({'snap', 'startup', 'boot', 'hidden', 'page'} <= cols)
+        d = fs.speed(c)
+        self.assertEqual((d['overall']['visits'], d['hidden_visits'], d['by']['page'][0]['group']), (1, 0, 'r26 以前（没有记录）'))
+
 class ConsoleTests(Servers):
     def test_page_errors_sit_with_the_server_errors_for_administrators(self):
         self.post('/api/next/issues', {'items': [{'kind': 'audio', 'page': '#/m/v5-x/listen', 'message': '没有放出声音（微信）'}]}, WECHAT)
