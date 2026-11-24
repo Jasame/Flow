@@ -78,7 +78,8 @@ class WelcomeTests(unittest.TestCase):
         import vocab_service as vs
         nx.save_profile(self.c, 2, {'goal': 'daily', 'target': 'B2'})
         first = nx.home(self.c, 2)['path']['steps'][0]
-        self.assertEqual((first['title'], first['href'], first['done']), ('选一本词书（1 分钟）', '#/vocab/plan', False))
+        self.assertEqual((first['title'], first['href'], first['done']), ('选一本词书', '#/vocab/plan', False))
+        self.assertEqual((first['minutes'], first['group']), (1, 'must'))
         self.assertIn('进阶词汇', first['sub'])  # the level's book (B1, one band below B2)
         sp.set_goal(self.c, 2, {'exam': 'cet4', 'date': ''})  # an exam set elsewhere, still no plan: its book comes first
         self.assertIn('《四级词汇》', nx.home(self.c, 2)['path']['steps'][0]['sub'])

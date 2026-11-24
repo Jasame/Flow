@@ -185,40 +185,71 @@ OUTPUTS = {  # what to practise when this skill is the weak spot; href is comple
 }
 
 
+# Minutes of each output task, and the one that fits two minutes (r28: 15 and 20 minutes a day give output two).
+OUT_MIN = {'model': 2, 'sounds': 3, 'dictate': 3, 'retell': 4, 'translate': 5, 'essay': 8}
+MODEL = ('model', '仿写一句', '照今天这篇里的一句话，换成你自己的内容，AI 帮你改')
+EXTRA = 4  # 「还有时间的话」 shows at most this many
+READ_SUB = {'glance': '只听一遍，或只读一段', 'listen-read': '听一遍，再读一遍', 'core': '听、读、做理解题'}
+
+
 def daily_path(c, uid, home, now=None):
-    """Today's plan sized to the learner's minutes: review, today's material, one output task matched to the weak skill."""
+    """Today's plan packed into the learner's minutes (time_budget, r28 第 1 段). Every step says about how long it takes
+    ('minutes') and which part of the day's budget it uses ('part'). 必做 ('group': 'must') holds the words, today's text
+    and whatever fits its part; the rest is 「还有时间的话」 ('extra', not counted in done / total); the week's exam set
+    is 本周任务 ('week'). 'studied' is today's minutes from the learner's own records; 'over' once they pass the
+    minutes chosen by a fifth with 必做 not done."""
+    import inspect
+    import progress_service as ps
+    import time_budget as tb
     import vocab_service as vs
     now = now or time.time()
     start = _day_start(now)
     prof = nx.profile(c, uid) or {}
     minutes = prof.get('minutes') or 10
-    n = vs.counts(c, uid, now)
+    # 考试冲刺 (exam_sprint): in the last four weeks before the learner's exam, the weekly set of that exam and a round
+    # on its grammar points join the plan, whatever the goal.
+    sprint = home.get('sprint') if 'sprint' in home else __import__('exam_sprint').brief(c, uid, now)
+    sprinting = bool(sprint and sprint['sprint'])
+    exams = __import__('exam_service')
+    drill = getattr(exams, 'drill_step', None)  # 考试小练 (r28 第 4 段); until it exists exam learners keep the usual day
+    b = tb.budget(minutes, exam=bool(drill) and (prof.get('goal') == 'exam' or sprinting))
+    # The words step is capped (r28 第 3 段): vocab_service sizes the day's share once it takes the cap.
+    n = vs.counts(c, uid, now, cap=b['words']) if 'cap' in inspect.signature(vs.counts).parameters else vs.counts(c, uid, now)
     pick = (home.get('today') or [None])[0]
     # The material studied today stays "today's" even after it is finished (the recommendations move on).
     # Today's steps, a text studied again included (progress_service.steps_since: next_progress keeps the first time only).
-    import progress_service as ps
     today_steps = ps.steps_since(c, uid, start)
+
+    def material(pid):
+        pr = nx._pack_row(c, uid, pid)
+        if not pr:
+            return None
+        d = json.loads(pr['content'])
+        return {'id': pid, 'title': d['title'], 'words': len((d.get('body') or '').split())}
     row = max(today_steps, key=lambda r: (r['step'] in ('check', 'output'), r['created']), default=None)
     if row:
-        pr = nx._pack_row(c, uid, row['pack'])
-        if pr:
-            pick = {'id': row['pack'], 'title': json.loads(pr['content'])['title']}
+        pick = material(row['pack']) or pick
     done_steps = {r['step'] for r in today_steps if pick and r['pack'] == pick['id']}
     kind_n = {r['kind']: r['n'] for r in c.execute('SELECT kind, COUNT(*) n FROM next_skill_events WHERE user_id=? AND created>=? GROUP BY kind', (uid, start))}
     today_kinds = set(kind_n)
     steps = []
+
+    def add(step, mins, parts, rank, must=None):
+        """rank: the order in which 必做 is filled part by part, and 「还有时间的话」 is listed; must: always 必做."""
+        steps.append({**step, 'minutes': max(0, int(mins)), '_parts': parts, '_rank': rank, '_must': must})
     todo = n['due'] + n['new']
     if not todo and not vs.plan(c, uid):
         # No word book yet: 「单词」 would only tick itself, and a newcomer (one preparing for an exam above all) would not
         # know a book is waiting to be chosen. Ask for one; 背词计划 opens with the exam's book (or the level's) chosen.
         exam = prof.get('exam') if prof.get('exam') in vs.book_words() else None
         book = exam or vs.LEVEL_BOOK.get(prof.get('level') or 'B1', 'mid')
-        steps.append({'key': 'review', 'title': '选一本词书（1 分钟）', 'href': '#/vocab/plan', 'done': False,
-                      'sub': f"按你的考试先选好了《{vs.book_title(book)}》，确认一下就能每天背" if exam else f"先给你挑了《{vs.book_title(book)}》，每天背几个新词"})
+        add({'key': 'review', 'title': '选一本词书', 'href': '#/vocab/plan', 'done': False,
+             'sub': f"按你的考试先选好了《{vs.book_title(book)}》，确认一下就能每天背" if exam else f"先给你挑了《{vs.book_title(book)}》，每天背几个新词"},
+            1, ('words',), 0, must=True)
     else:
         title = '单词：' + ' · '.join(x for x in (f"复习 {n['due']}" if n['due'] else '', f"新词 {n['new']}" if n['new'] else '') if x) if todo else '单词'
-        sub = (f"约 {n['minutes']} 分钟" + (' · 今天先复习，新词明天继续' if n.get('new_paused') else '')) if todo else '今天的都完成了'
-        steps.append({'key': 'review', 'title': title, 'sub': sub, 'href': '#/review', 'done': not todo})
+        sub = ('今天先复习，新词明天继续' if n.get('new_paused') else '复习到期的词，再学新词' if n['new'] and n['due'] else '') if todo else '今天的都完成了'
+        add({'key': 'review', 'title': title, 'sub': sub, 'href': '#/review', 'done': not todo}, n['minutes'] if todo else 0, ('words',), 0, must=True)
     if minutes >= 10:
         # 复听 (relisten_service): a text from a few days ago heard again without the words, before today's new one
         import relisten_service as rl
@@ -226,24 +257,28 @@ def daily_path(c, uid, home, now=None):
         if not heard:
             waiting = next(iter(rl.due(c, uid, now, exclude={pick['id']} if pick else set())), None)
         it = {'pack': heard[-1]['pack']} if heard else waiting
-        row3 = it and nx._pack_row(c, uid, it['pack'])
-        if row3:
-            name = json.loads(row3['content'])['title']
+        m3 = it and material(it['pack'])
+        if m3:
             ago = max(1, round((now - waiting['first']) / 86400)) if waiting else 0
-            steps.append({'key': 'relisten', 'title': '复听：' + name, 'href': f"#/m/{it['pack']}/listen/again", 'done': bool(heard),
-                          'sub': f"今天复听过了：听懂了{rl.LABELS[heard[-1]['understood']]}" if heard else f'{ago} 天前学过 · 先不看原文听一遍，约 3 分钟'})
+            add({'key': 'relisten', 'title': '复听：' + m3['title'], 'href': f"#/m/{it['pack']}/listen/again", 'done': bool(heard),
+                 'sub': f"今天复听过了：听懂了{rl.LABELS[heard[-1]['understood']]}" if heard else f'{ago} 天前学过 · 先不看原文听一遍'},
+                3, ('relisten',), 2)
     if pick:
-        steps.append({'key': 'read', 'title': '今天这篇', 'sub': pick['title'], 'href': f"#/m/{pick['id']}",
-                      'done': 'check' in done_steps or 'output' in done_steps})
+        # Today's text, in the day's mode: at 5 minutes one listen or one paragraph; with 考试小练 at 10, heard and read.
+        mode = b['read_mode']
+        did = done_steps if mode == 'glance' else done_steps & {'read', 'check', 'output'} if mode == 'listen-read' else done_steps & {'check', 'output'}
+        add({'key': 'read', 'title': '今天这篇', 'sub': pick['title'], 'href': f"#/m/{pick['id']}", 'done': bool(did), 'mode': mode, 'mode_label': READ_SUB[mode]},
+            tb.read_minutes(pick.get('words'), mode), ('read',), 1, must=True)
     if minutes >= 45 and pick:
         # A longer day gets a second material: the next recommendation, or the one already started today.
         other = next((m for m in (home.get('today') or []) if m and m['id'] != pick['id']), None)
         row2 = next((r for r in reversed(today_steps) if r['pack'] != pick['id']), None)
-        if row2 and nx._pack_row(c, uid, row2['pack']):
-            other = {'id': row2['pack'], 'title': json.loads(nx._pack_row(c, uid, row2['pack'])['content'])['title']}
+        if row2 and material(row2['pack']):
+            other = material(row2['pack'])
         if other:
             st2 = {r['step'] for r in today_steps if r['pack'] == other['id']}
-            steps.append({'key': 'read2', 'title': '再读一篇', 'sub': other['title'], 'href': f"#/m/{other['id']}", 'done': 'check' in st2 or 'output' in st2})
+            add({'key': 'read2', 'title': '再读一篇', 'sub': other['title'], 'href': f"#/m/{other['id']}", 'done': 'check' in st2 or 'output' in st2},
+                tb.read_minutes(other.get('words'), 'core'), ('read', 'other'), 8)
     # With goals set, the output step works on the skill furthest from its goal on the radar; otherwise the weakest estimate.
     weakest = __import__('ability_radar').weakest(c, uid, now) or ability(c, uid, now)['weakest']
     level = prof.get('level') or 'B1'
@@ -257,8 +292,15 @@ def daily_path(c, uid, home, now=None):
         if minutes <= 5 and key == 'essay':
             key, title, sub = OUTPUTS['speaking']
         href = f"#/m/{pick['id']}/output/{key}" if pick and key != 'dictate' else (f"#/m/{pick['id']}/listen" if pick else '#/library')
-    kinds = {'retell': {'retell'}, 'essay': {'essay'}, 'translate': {'translate'}, 'dictate': {'dictation'}, 'sounds': {'say', 'discriminate'}}
-    steps.append({'key': key, 'title': title, 'sub': sub, 'href': href, 'done': bool(kinds.get(key, set()) & today_kinds)})
+    kinds = {'retell': {'retell'}, 'essay': {'essay'}, 'translate': {'translate'}, 'dictate': {'dictation'}, 'sounds': {'say', 'discriminate'}, 'model': {'rewrite'}}
+    out_step = {'key': key, 'title': title, 'sub': sub, 'href': href, 'done': bool(kinds.get(key, set()) & today_kinds)}
+    if b['output'] + 1 < OUT_MIN[key] and pick and b['output'] >= OUT_MIN['model']:
+        # Too little time for the weak skill's task: one sentence modelled on today's text is 必做, the task waits below.
+        mk, mt, ms = MODEL
+        add({'key': mk, 'title': mt, 'sub': ms, 'href': f"#/m/{pick['id']}/output", 'done': bool(kinds[mk] & today_kinds)}, OUT_MIN[mk], ('output',), 3)
+        add(out_step, OUT_MIN[key], ('output', 'other'), 4)
+    else:
+        add(out_step, OUT_MIN[key], ('output',), 3)
     # Grammar: one mixed review a day of the points flagged in writing or practice and those whose re-check has come
     # (several points interleaved, one or two questions each). The step is done once a round's worth is answered today;
     # whatever was missed comes back tomorrow on a different question, so the day always ends.
@@ -269,26 +311,32 @@ def daily_path(c, uid, home, now=None):
         size = min(8, max(4, min(len(nodes), 6))) if nodes else 4
         if practised >= min(4, size):
             left = len(nodes)
-            steps.append({'key': 'grammar', 'title': '语法复习', 'href': '#/mix',
-                          'sub': f'今天做了 {practised} 题' + (f' · 还有 {left} 个点明天接着练' if left else ' · 都练到了'), 'done': True})
+            add({'key': 'grammar', 'title': '语法复习', 'href': '#/mix',
+                 'sub': f'今天做了 {practised} 题' + (f' · 还有 {left} 个点明天接着练' if left else ' · 都练到了'), 'done': True}, max(1, practised // 2), ('grammar',), 7)
         else:
             names = '、'.join(titles.get(n, {}).get('title', n) for n in nodes[:2]) + (f' 等 {len(nodes)} 个点' if len(nodes) > 2 else '')
-            steps.append({'key': 'grammar', 'title': '语法混合复习：' + names, 'href': '#/mix',
-                          'sub': f'{size} 道题混着做，约 {max(2, size // 2)} 分钟', 'done': False})
-    # 考试冲刺 (exam_sprint): in the last four weeks before the learner's exam, the weekly set of that exam and a round
-    # on its grammar points join the plan, whatever the minutes.
-    sprint = home.get('sprint') if 'sprint' in home else __import__('exam_sprint').brief(c, uid, now)
-    sprinting = bool(sprint and sprint['sprint'])
+            add({'key': 'grammar', 'title': '语法混合复习：' + names, 'href': '#/mix', 'sub': f'{size} 道题混着做', 'done': False},
+                max(2, size // 2), ('grammar',), 7)
+    if drill and b['exam']:
+        st = drill(c, uid, b['exam'], now)
+        if st:
+            add(st, st.get('minutes') or b['exam'], ('exam',), 5)
+    week = []
     if (prof.get('goal') == 'exam' and minutes >= 10) or sprinting:
-        # One practice set a week: shown when the last one is a week old (or none yet), ticked on the day it is done.
+        # 本周任务: the week's timed set, any day of the week (Monday on), outside the daily budget. A newcomer's first
+        # week calls it a first look that can be skipped.
         ex = sprint['exam'] if sprint else ''
+        monday = ps._bounds(now)[2]
         last = c.execute('SELECT MAX(created) t FROM next_exam_results WHERE user_id=?' + (' AND exam=?' if ex else ''), (uid, ex) if ex else (uid,)).fetchone()['t']
+        made = c.execute('SELECT created FROM next_profiles WHERE user_id=?', (uid,)).fetchone()
+        first = not last and not sprinting and bool(made and made['created'] and made['created'] > now - 7 * 86400)
+        set_minutes = getattr(exams, 'set_minutes', None)
+        mins = set_minutes(ex, minutes, sprinting) if set_minutes and ex else exams.EXAMS[ex]['minutes'] if ex in exams.EXAMS else 15
         title, href = ('考试练习：' + sprint['short'], '#/exam/' + ex) if ex else ('考试练习', '#/exam')
-        if last and last >= start:
-            steps.append({'key': 'exam', 'title': title, 'sub': '这周的一套做完了', 'href': href, 'done': True})
-        elif not last or last < now - 6 * 86400:
-            steps.append({'key': 'exam', 'title': title, 'sub': f"考前 {sprint['days']} 天 · 每周一套：词汇、语法、阅读，约 15–20 分钟" if sprinting else '每周一套：词汇、语法、阅读，约 15–20 分钟',
-                          'href': href, 'done': False})
+        done = bool(last and last >= monday)
+        week.append({'key': 'exam', 'title': title, 'href': href, 'done': done, 'minutes': mins, 'part': 'week', 'group': 'week', 'first': first,
+                     'sub': '这周的一套做完了' if done else (f"考前 {sprint['days']} 天 · " if sprinting else '摸底，可以跳过 · ' if first else '')
+                     + '词汇、语法、阅读限时一套，这周哪天做都行'})
     if sprinting:
         import exam_sprint as sp
         answered = sp.grammar_today(c, uid, now)
@@ -296,20 +344,20 @@ def daily_path(c, uid, home, now=None):
         if pts:
             titles = nx.nodes_meta(c)
             names = '、'.join(titles.get(n, {}).get('title', n) for n in pts[:2]) + (f' 等 {len(pts)} 个点' if len(pts) > 2 else '')
-            steps.append({'key': 'exam-grammar', 'title': f"考点语法：{names}", 'href': '#/mix/exam/' + sprint['exam'], 'done': answered >= 4,
-                          'sub': f'今天做了 {answered} 题' if answered >= 4 else f"{sprint['short']}常考的语法点混着练，8 道题，约 4 分钟"})
+            add({'key': 'exam-grammar', 'title': f"考点语法：{names}", 'href': '#/mix/exam/' + sprint['exam'], 'done': answered >= 4,
+                 'sub': f'今天做了 {answered} 题' if answered >= 4 else f"{sprint['short']}常考的语法点混着练，8 道题"}, 4, ('grammar', 'exam'), 6)
     stale = __import__('ability_radar').due_today(c, uid, now)
     last_test = c.execute('SELECT MAX(created) FROM next_assess WHERE user_id=?', (uid,)).fetchone()[0]
     if stale and not (last_test and start - 2 * 86400 <= last_test < start):  # a test every few days, not every day
         tested = c.execute('SELECT COUNT(*) FROM next_assess WHERE user_id=? AND created>=?', (uid, start)).fetchone()[0]
         names = '、'.join(dict(__import__('ability_radar').DIMS)[k] for k in stale[:3])
-        steps.append({'key': 'assess', 'title': '能力测评', 'href': '#/radar/test', 'done': bool(tested),
-                      'sub': '今天测过了，雷达图已更新' if tested else f'{names}{"等" if len(stale) > 3 else ""}该测一测了，选一项就行，约 5 分钟'})
+        add({'key': 'assess', 'title': '能力测评', 'href': '#/radar/test', 'done': bool(tested),
+             'sub': '今天测过了，雷达图已更新' if tested else f'{names}{"等" if len(stale) > 3 else ""}该测一测了，选一项就行'}, 5, ('other',), 11)
     if minutes >= 30:
         # Easy reading: a lot of easy text builds fluency; one short text a day on longer days.
         n_easy = __import__('easy_reading').read_today(c, uid, start)
-        steps.append({'key': 'easy', 'title': '轻松读一篇', 'href': '#/easy', 'done': bool(n_easy),
-                      'sub': f'今天读了 {n_easy} 篇' if n_easy else '比你的水平低一点，只读不做题，约 3 分钟'})
+        add({'key': 'easy', 'title': '轻松读一篇', 'href': '#/easy', 'done': bool(n_easy),
+             'sub': f'今天读了 {n_easy} 篇' if n_easy else '比你的水平低一点，只读不做题'}, 3, ('other',), 10)
     ielts = __import__('ielts_speaking')
     to_ielts = ielts.for_ielts(c, uid, prof)
     if key != 'retell' and (minutes >= 30 or ((prof.get('goal') in ('abroad', 'daily', 'work') or to_ielts) and minutes >= 20)):
@@ -318,22 +366,38 @@ def daily_path(c, uid, home, now=None):
         spoke = c.execute("SELECT COUNT(*) FROM next_skill_events WHERE user_id=? AND skill='speaking' AND created>=?", (uid, start)).fetchone()[0]
         if to_ielts:
             t = ielts.next_part1(c, uid)
-            steps.append({'key': 'speak', 'title': '口语：' + ('雅思 Part 1 · ' + t['title'] if not spoke else '雅思口语'), 'done': bool(spoke),
-                          'href': f"#/speak/ielts/p1-{t['id']}",
-                          'sub': '今天说过了' if spoke else '考官问 4 个问题，说完看四项估计分，约 5 分钟' + ('（再练一轮）' if t['round'] else '')})
+            add({'key': 'speak', 'title': '口语：' + ('雅思 Part 1 · ' + t['title'] if not spoke else '雅思口语'), 'done': bool(spoke),
+                 'href': f"#/speak/ielts/p1-{t['id']}",
+                 'sub': '今天说过了' if spoke else '考官问 4 个问题，说完看四项估计分' + ('（再练一轮）' if t['round'] else '')}, 5, ('other',), 9)
         sp = None if to_ielts else __import__('scenarios').listing(c, uid, level)
         if sp and (sp['next'] or spoke):
             nxt = next((x for x in sp['items'] if x['id'] == sp['next']), None)
             # a scene done before comes back as round 2, 3…: one more requirement, or the roles swapped (scenarios.mode_of)
             again = nxt and nxt['rounds'] > 0
             sub = ('今天说过了' if spoke else f"这次多一条：{nxt['challenge']}" if again and nxt['mode'] == 'challenge'
-                   else f"换角色：你演{nxt['ai']}，AI 演{nxt['me']}" if again else '和 AI 演一个情景，说四五句，约 5 分钟')
-            steps.append({'key': 'speak', 'title': '口语：' + (nxt['title'] + (f" · 第 {nxt['round']} 轮" if again else '') if nxt and not spoke else '情景对话'),
-                          'done': bool(spoke), 'href': '#/speak/' + nxt['id'] if nxt else '#/speak', 'sub': sub})
+                   else f"换角色：你演{nxt['ai']}，AI 演{nxt['me']}" if again else '和 AI 演一个情景，说四五句')
+            add({'key': 'speak', 'title': '口语：' + (nxt['title'] + (f" · 第 {nxt['round']} 轮" if again else '') if nxt and not spoke else '情景对话'),
+                 'done': bool(spoke), 'href': '#/speak/' + nxt['id'] if nxt else '#/speak', 'sub': sub}, 5, ('other',), 9)
     if minutes >= 15 and key != 'dictate' and pick:
-        steps.append({'key': 'dictate', 'title': '听写三句', 'sub': f"练耳朵，也练拼写 · 今天 {min(3, kind_n.get('dictation', 0))}/3", 'href': f"#/m/{pick['id']}/listen",
-                      'done': kind_n.get('dictation', 0) >= 3})
-    return {'minutes': minutes, 'steps': steps, 'done': sum(1 for s in steps if s['done']), 'total': len(steps)}
+        add({'key': 'dictate', 'title': '听写三句', 'sub': f"练耳朵，也练拼写 · 今天 {min(3, kind_n.get('dictation', 0))}/3", 'href': f"#/m/{pick['id']}/listen",
+             'done': kind_n.get('dictation', 0) >= 3}, 3, ('other',), 12)
+    # Packing: part by part in rank order, a step is 必做 if its part has its minutes left (a minute over is fine).
+    room = {p: b[p] for p in tb.PARTS}
+    for s in sorted(steps, key=lambda s: s['_rank']):
+        part = s['_parts'][0] if s['_must'] else next((p for p in s['_parts'] if s['minutes'] <= room[p] + 1), None)
+        s['group'], s['part'] = ('must', part) if part else ('extra', s['_parts'][0])
+        if part:
+            room[part] -= s['minutes']
+    must = [s for s in steps if s['group'] == 'must']
+    extra = sorted((s for s in steps if s['group'] == 'extra'), key=lambda s: s['_rank'])[:EXTRA]
+    for s in must + extra:
+        for k in ('_parts', '_rank', '_must'):
+            s.pop(k)
+    done = sum(1 for s in must if s['done'])
+    studied = ps.active_minutes(c, uid, start, now + 1)
+    return {'minutes': minutes, 'budget': b, 'steps': must + extra + week, 'done': done, 'total': len(must),
+            'must_minutes': sum(s['minutes'] for s in must), 'left_minutes': sum(s['minutes'] for s in must if not s['done']),
+            'studied': studied, 'over': studied >= tb.over_at(minutes) and done < len(must)}
 
 
 # ---------- weekly report ----------

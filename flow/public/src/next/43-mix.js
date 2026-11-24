@@ -2,7 +2,7 @@
   // Questions on different points mixed together make the learner decide which rule applies first: that decision is
   // what real use asks for, and it is what one-point-at-a-time practice never trains.
   async function mixView(kind, arg) {
-    const q = kind === 'pair' ? '?pair=' + encodeURIComponent(arg) : kind === 'topic' ? '?topic=' + encodeURIComponent(arg) : kind === 'exam' ? '?exam=' + encodeURIComponent(arg) : guestQuery(true);
+    const q = kind === 'pair' ? '?pair=' + encodeURIComponent(arg) : kind === 'topic' ? '?topic=' + encodeURIComponent(arg) : kind === 'exam' ? '?exam=' + encodeURIComponent(arg) : kind === 'more' ? '?n=4' : guestQuery(true);  // more: 4 questions once 今日's plan is done (r28)
     const m = await api('/api/next/mix' + q);
     const TITLE = { due: '今天的语法复习', practice: '语法混合练习', pair: '辨析练习', topic: '这一类混着练', exam: '考点语法' };
     const intro = m.kind === 'due' ? `${m.nodes.length} 个点混在一起出题：先想清楚这题考的是哪条规则，再选。${m.left ? `还有 ${m.left} 个点明天接着练。` : ''}`

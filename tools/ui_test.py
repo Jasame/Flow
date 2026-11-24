@@ -2217,6 +2217,17 @@ def swipe_run(pw):
         browser.close()
 
 
+# 按时间打包 (r28): today's plan in its groups, as the page draws them
+PLAN_JS = r"""() => {
+  const s = document.querySelector('#view .today-plan'); if (!s) return null;
+  const sum = s.querySelector('.tp-extra > summary'), head = s.querySelector('.tp-head .muted.small'), over = s.querySelector('.tp-over');
+  return { must: s.querySelectorAll(':scope > .plist .prow').length, extra: s.querySelectorAll('.tp-extra .prow').length,
+           week: s.querySelectorAll('.tp-week .prow').length, head: head ? head.textContent.trim() : '', open: s.querySelector('.tp-extra') ? s.querySelector('.tp-extra').open : null,
+           summaryH: sum ? Math.round(sum.getBoundingClientRect().height) : null, wide: s.scrollWidth - s.clientWidth, over: !!over,
+           shown: [...s.querySelectorAll('.tp-extra .prow')].every(r => r.getBoundingClientRect().height > 0) };
+}"""
+
+
 def progress_run(pw):
     dev = 'progress'
     browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
@@ -2242,6 +2253,18 @@ def progress_run(pw):
                 check(dev, f'{tag}: 今日 runs 好句, 热点, the plan, 这周进步 from the top (the plan first on a phone held sideways), nothing cut off or wider than the screen',
                       top['order'] == (['plan', 'lineCard', 'news', 'week'] if h < 500 else ['lineCard', 'news', 'plan', 'week']) and not top['clipped'] and top['wide'] <= 0 and (not touch or top['small'] == []), top)
                 check(dev, f'{tag}: its four numbers are the learner\'s own (as the server counts them)', card and card['values'] == want, (card and card['values'], want))
+                path = home['path']; plan = pg.evaluate(PLAN_JS)
+                grp = {g: [x for x in path['steps'] if x.get('group', 'must') == g] for g in ('must', 'extra', 'week')}
+                head = (f"约 {path['must_minutes']} 分钟" if not path['done'] else '都做完了' if path['done'] >= path['total'] else f"还要约 {path['left_minutes']} 分钟")
+                check(dev, f'{tag}: the plan shows 必做 (counted), 还有时间的话 folded and 本周任务 as the server packs them, its title the real minutes of 必做',
+                      plan and (plan['must'], plan['extra'], plan['week']) == (path['total'], len(grp['extra']), len(grp['week'])) and head in plan['head']
+                      and plan['wide'] <= 0 and (not grp['extra'] or (plan['summaryH'] >= 44 and plan['open'] == (path['done'] >= path['total']))), (plan, head))
+                if grp['extra'] and not plan['open']:
+                    pg.click('#view .tp-extra > summary'); pg.wait_for_timeout(150)
+                    check(dev, f'{tag}: 还有时间的话 opens with a tap and its rows show', pg.evaluate(PLAN_JS)['shown'] and pg.evaluate(PLAN_JS)['open'], pg.evaluate(PLAN_JS))
+                    if size == 'phone-390':
+                        pg.screenshot(path=str(OUT / f'progress-plan-extra-{theme}.png'))
+                    pg.click('#view .tp-extra > summary'); pg.wait_for_timeout(100)
                 check(dev, f'{tag}: four numbers in one row, nothing cut off or wrapped', card and card['tiles'] == 4 and card['oneRow'] and not card['clipped'] and not card['wrapped'],
                       card and (card['oneRow'], card['clipped'], card['wrapped']))
                 check(dev, f'{tag}: no sideways scrolling; a surface of its own; text contrast at least 4.5:1',
@@ -2499,7 +2522,7 @@ def start_run(pw):
         go(pg, '#/vocab/plan'); pg.wait_for_timeout(300)
         chosen = pg.evaluate("[document.getElementById('bookNow').textContent, [...document.querySelectorAll('#goal [aria-pressed=true]')].map(x => x.textContent)]")
         check(dev, 'no word plan: 今日 starts with 选一本词书 (not ticked, to 背词计划), which opens with the exam\'s book chosen',
-              step == ['选一本词书（1 分钟）', '#/vocab/plan', False] and '《四级词汇》' in chosen[0] and chosen[1] == ['四级'], (step, chosen))
+              step == ['选一本词书', '#/vocab/plan', False] and '《四级词汇》' in chosen[0] and chosen[1] == ['四级'], (step, chosen))
         check(dev, 'no script errors (no word plan)', not errs, errs[:3])
         ctx.close()
         # reduced motion: no rising bars, the mark only fades
