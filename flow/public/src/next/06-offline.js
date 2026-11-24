@@ -28,6 +28,7 @@
         const base = `/audio/${vs.includes(S.voice) ? S.voice : vs[0]}/${encodeURIComponent(id)}`;
         sw.postMessage({ type: 'prefetch', urls: [`${base}.json?v=${m.audio.version}`, `${base}.mp4?v=${m.audio.version}`] });
       }
+      if (!quiet) toast('已存到手机，没网也能学');  // the chip itself is short now, so the toast says what it means
       return true;
     } catch (e) { if (!quiet) toast(e.network ? '现在没网，存不了' : e.message); return false; }
   }
@@ -40,9 +41,9 @@
   }
   // On a material's page: 存到手机, or that it is kept.
   function offChip(id) {
-    // a phone with a down arrow in front: set apart from 怎么写的 on the source line, on the same line or the next
+    // a phone with a down arrow in front, at the right of the kicker line (the full meaning is in the title and the toast)
     const icon = '<svg class="offi" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M12 7.5v7m-3-3 3 3 3-3"/></svg>';
-    return OFF.has(id) ? '<span class="offk on" id="keepOff">✓ 已存到手机，没网也能学</span>' : `<button class="link small offk" id="keepOff" type="button" data-tap="study-keep">${icon}存到手机，没网也能学</button>`;
+    return OFF.has(id) ? '<span class="offk on" id="keepOff" title="没网也能学">✓ 已存到手机</span>' : `<button class="link small offk" id="keepOff" type="button" data-tap="study-keep" title="存到手机，没网也能学">${icon}存到手机</button>`;
   }
   function bindOffChip(id) {
     const b = document.getElementById('keepOff'); if (!b || b.tagName !== 'BUTTON') return;
