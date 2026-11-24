@@ -176,10 +176,8 @@ td.heat.none{color:var(--muted);background:none}
 
 /* learner drawer */
 .drawer-bg{position:fixed;inset:0;background:rgba(0,0,0,.28);z-index:40}
-.drawer{position:fixed;top:0;right:0;bottom:0;width:min(640px,100%);z-index:41;background:var(--bg);border-left:1px solid var(--line);overflow-y:auto;overscroll-behavior:contain;box-shadow:-12px 0 32px rgba(0,0,0,.12);animation:dr-in .18s ease-out}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(640px,100%);z-index:41;background:var(--bg);border-left:1px solid var(--line);overflow-y:auto;overscroll-behavior:contain;box-shadow:-12px 0 32px rgba(0,0,0,.12)}
 .drawer[hidden],.drawer-bg[hidden]{display:none}
-@keyframes dr-in{from{transform:translateX(24px)}to{transform:none}}
-@media (prefers-reduced-motion:reduce){.drawer{animation:none}}
 .dr-head{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:16px 20px 12px;background:color-mix(in srgb,var(--bg) 92%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .dr-head h2{margin:0;font-size:19px;font-weight:600;overflow-wrap:anywhere}
 .dr-body{padding:16px 20px 48px;display:grid;gap:16px}

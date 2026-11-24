@@ -174,6 +174,10 @@ TAP_LABEL = {
 }
 
 
+ACTIVE_SINCE = ('SELECT COUNT(DISTINCT user_id) FROM (SELECT user_id FROM learning_events WHERE created>? UNION '
+                'SELECT user_id FROM next_progress WHERE created>? UNION SELECT user_id FROM next_reviews WHERE created>?)')
+
+
 def overview(c):
     import chat_service
     now = time.time()
@@ -184,8 +188,9 @@ def overview(c):
         'feedback_open': __import__('feedback_service').open_count(c),
         'users': q('SELECT COUNT(*) FROM users'),
         'admins': q('SELECT COUNT(*) FROM users WHERE admin=1'),
-        'active_7d': q('SELECT COUNT(DISTINCT user_id) FROM learning_events WHERE created>?', now - 7 * 86400),
-        'active_1d': q('SELECT COUNT(DISTINCT user_id) FROM learning_events WHERE created>?', now - 86400),
+        # r26: a material step or a review counts too (as in 学习数据), not only the older learning events
+        'active_7d': q(ACTIVE_SINCE, *[now - 7 * 86400] * 3),
+        'active_1d': q(ACTIVE_SINCE, *[now - 86400] * 3),
         'events_7d': q('SELECT COUNT(*) FROM learning_events WHERE created>?', now - 7 * 86400),
         'ai': {
             'today': q('SELECT COALESCE(SUM(count),0) FROM ai_usage WHERE day=?', day),

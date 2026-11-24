@@ -161,6 +161,8 @@ class LearnerTests(Console):
         self.assertEqual((one['exams'][0]['title'], one['exams'][0]['pct']), ('大学英语四级', 75))
         self.assertEqual([m['id'] for m in one['materials']], [packs[1], packs[0]])
         self.assertEqual(self.console('/learner?id=9999')[0], 404)
+        self.assertEqual(self.console('/overview')[1]['active_7d'], 1)  # a material step counts as active
+        self.assertEqual(self.console('/overview')[1]['never_started'], 1)
 
     def test_stopping_an_account_signs_it_out_and_keeps_it_out_until_restored(self):
         cookie = self.register('xiaolin')
