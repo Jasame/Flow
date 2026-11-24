@@ -286,11 +286,19 @@ def daily_path(c, uid, home, now=None):
         n_easy = __import__('easy_reading').read_today(c, uid, start)
         steps.append({'key': 'easy', 'title': '轻松读一篇', 'href': '#/easy', 'done': bool(n_easy),
                       'sub': f'今天读了 {n_easy} 篇' if n_easy else '比你的水平低一点，只读不做题，约 3 分钟'})
-    if key != 'retell' and (minutes >= 30 or (prof.get('goal') in ('abroad', 'daily', 'work') and minutes >= 20)):
-        # The speaking route: one role-play scene, unless today's output step is already spoken.
-        sp = __import__('scenarios').listing(c, uid, level)
+    ielts = __import__('ielts_speaking')
+    to_ielts = ielts.for_ielts(c, uid, prof)
+    if key != 'retell' and (minutes >= 30 or ((prof.get('goal') in ('abroad', 'daily', 'work') or to_ielts) and minutes >= 20)):
+        # The speaking route: one role-play scene, unless today's output step is already spoken. Heading for IELTS
+        # (abroad, or the IELTS exam): the next 雅思口语 Part 1 topic instead, round after round.
         spoke = c.execute("SELECT COUNT(*) FROM next_skill_events WHERE user_id=? AND skill='speaking' AND created>=?", (uid, start)).fetchone()[0]
-        if sp['next'] or spoke:
+        if to_ielts:
+            t = ielts.next_part1(c, uid)
+            steps.append({'key': 'speak', 'title': '口语：' + ('雅思 Part 1 · ' + t['title'] if not spoke else '雅思口语'), 'done': bool(spoke),
+                          'href': f"#/speak/ielts/p1-{t['id']}",
+                          'sub': '今天说过了' if spoke else '考官问 4 个问题，说完看四项估计分，约 5 分钟' + ('（再练一轮）' if t['round'] else '')})
+        sp = None if to_ielts else __import__('scenarios').listing(c, uid, level)
+        if sp and (sp['next'] or spoke):
             nxt = next((x for x in sp['items'] if x['id'] == sp['next']), None)
             steps.append({'key': 'speak', 'title': '口语：' + (nxt['title'] if nxt and not spoke else '情景对话'), 'done': bool(spoke),
                           'href': '#/speak/' + nxt['id'] if nxt else '#/speak',

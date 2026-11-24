@@ -1306,6 +1306,18 @@ def listen_speak_run(pw):
                 pg.click('.line[data-i="0"] .snd a'); pg.wait_for_timeout(600)
                 check(dev, '跟读: 去练 opens that 发音入门 set', pg.evaluate("location.hash").startswith('#/sounds/') and bool(pg.query_selector('#view h1')), pg.evaluate('location.hash'))
 
+            if size == 'phone':  # 留学: today's speaking step is the next 雅思口语 Part 1 topic, and it opens that topic
+                me = CFG['learners'][learner]
+                prof = lambda goal, minutes: pg.evaluate("([csrf, goal, minutes]) => fetch('/api/next/profile', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf}, "
+                                                         "body: JSON.stringify({level: 'B1', goal, themes: ['work', 'science'], minutes})}).then(r => r.status)", [me['csrf'], goal, minutes])
+                st = prof('abroad', 20); pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg); pg.wait_for_timeout(500)
+                step = pg.evaluate("() => { const a = [...document.querySelectorAll('#view a[href^=\"#/speak/ielts/p1-\"]')][0]; return a ? [a.getAttribute('href'), a.textContent.replace(/\\s+/g, ' ')] : null; }")
+                check(dev, '留学: 今日 speaks 雅思 Part 1, the next topic (ticked: 跟读 above already spoke today)', st == 200 and step and step[0] == '#/speak/ielts/p1-study-work' and '雅思口语' in step[1] and '今天说过了' in step[1], (st, step))
+                if step:
+                    pg.click(f'#view a[href="{step[0]}"]'); settle(pg)
+                    check(dev, '留学: the step opens that Part 1 topic', pg.evaluate('location.hash') == step[0] and bool(pg.query_selector('#ieStart')), pg.evaluate('location.hash'))
+                prof('work', 15)
+
             # 口语路线: the 雅思口语 entry is on the first screen; the list says the bands are estimates
             go(pg, '#/speak')
             e = pg.evaluate("() => { const a = document.querySelector('#view .ielts-entry'); const r = a && a.getBoundingClientRect(); return a ? [a.getAttribute('href'), Math.round(r.bottom), innerHeight] : null; }")
