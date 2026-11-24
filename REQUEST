@@ -1,3 +1,3 @@
-14413eac8e24561a041221b18a381946f5980edb 10d6152015515efaa05f13a97e5f3469dd5b84b4317b7010f48507aa07f1847e e2e light
-# b21 main: Merge pull request #107 from Jasame/week-days = build of 6d88b35ea51e
+a5508a2fc6416403593fe692371e93432b7a17b5 dcffe2c9615ec3aae36c3ba835fc00a3dfdad01ef148e59f2ce12c105fbf7fdc e2e light
+# b22 main: Merge pull request #109 from Jasame/ios-shell-fixes = build of a771fddc10fb
 # Format: <commit sha> <manifest sha256> [e2e [light]]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
