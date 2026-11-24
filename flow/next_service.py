@@ -1597,7 +1597,9 @@ def get(c, uid, path, q):
     if path == '/api/next/ielts':
         return __import__('ielts_speaking').listing(c, uid), 200
     if path == '/api/next/mix':
-        return GB.mix(c, uid, pair=one('pair') or None, topic=one('topic') or None, level=one('level') or None, exam=one('exam') or None)
+        n = one('n')
+        return GB.mix(c, uid, pair=one('pair') or None, topic=one('topic') or None, level=one('level') or None, exam=one('exam') or None,
+                      most=int(n) if n.isdigit() else None)
     if path == '/api/next/exam':
         return __import__('exam_service').overview(c, uid)
     if path == '/api/next/exam/type':

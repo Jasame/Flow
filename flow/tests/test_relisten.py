@@ -62,8 +62,12 @@ class PlanTests(Db):
         with app.db() as c:
             self.assertNotIn('relisten', self.plan(c))  # nothing studied yet
             self.studied(c, PID, 4)
+            # 15 minutes a day leave no room for it (r28 time budget): under 还有时间的话; from 20 minutes it is 必做
+            self.assertEqual(self.plan(c)['relisten']['group'], 'extra')
+            c.execute('UPDATE next_profiles SET minutes=20'); c.commit()
             steps = sk.daily_path(c, self.uid, nx.home(c, self.uid), self.now)['steps']
             self.assertEqual([s['key'] for s in steps][:2], ['review', 'relisten'])
+            self.assertEqual((steps[1]['group'], steps[1]['minutes']), ('must', 3))
             s = steps[1]
             self.assertEqual((s['href'], s['done']), (f'#/m/{PID}/listen/again', False))
             self.assertIn('4 天前学过', s['sub'])

@@ -462,12 +462,13 @@ def mix_nodes(c, uid, now=None):
     return watch + [n for n in due(c, uid, now) if n not in watch]
 
 
-def mix(c, uid, pair=None, topic=None, level=None, seed=None, exam=None):
+def mix(c, uid, pair=None, topic=None, level=None, seed=None, exam=None, most=None):
     """An interleaved round of grammar questions across several points (questions on different points mixed together
     make the learner decide which rule applies, which is what using a language asks for).
     pair 'a,b': a confusable pair, three questions each; topic: one question on each point of a topic; exam (考点语法,
     考试冲刺): six of that exam's points, flagged and due ones first (exam_sprint.grammar_nodes);
-    otherwise today's review (flagged and due points), or, with none, practice on the learner's next points."""
+    otherwise today's review (flagged and due points), or, with none, practice on the learner's next points.
+    most: at most this many questions (4 for 「做 4 道语法题」 once 今日's plan is done, r28); 8 otherwise."""
     import next_service as nx, graph_links as GL
     rnd = random.Random(seed)
     meta = nx.nodes_meta(c)
@@ -506,7 +507,7 @@ def mix(c, uid, pair=None, topic=None, level=None, seed=None, exam=None):
         for q in draw(c, n, per, rnd.random()):
             items.append({**q, 'node': n, 'node_title': meta[n]['title']})
     states = nx.graph_states(c, uid)
-    return {'kind': kind, 'items': _interleave(items, rnd)[:8], 'note': note, 'left': left,
+    return {'kind': kind, 'items': _interleave(items, rnd)[:max(1, min(8, most or 8))], 'note': note, 'left': left,
             'nodes': [{'id': n, 'title': meta[n]['title'], 'status': states[n]['status'], 'label': nx.STATUS_LABEL[states[n]['status']]} for n in nodes]}, 200
 
 

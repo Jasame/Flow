@@ -324,7 +324,7 @@ class WordCapTests(unittest.TestCase):
         import types
         self.plan(0)
         nx.save_profile(self.c, 1, {'level': 'B1', 'goal': 'daily', 'themes': [], 'minutes': 15})
-        self.assertIsNone(vs.word_cap(self.c, 1, self.now))  # no time_budget yet: no cap
+        self.assertEqual(vs.word_cap(self.c, 1, self.now), __import__('time_budget').budget(15)['words'])  # the day's plan (time_budget, r28 第 1 段)
         tb = types.ModuleType('time_budget'); tb.budget = lambda minutes, exam=False: {'words': {15: 5}.get(minutes, 9)}
         with patch.dict(sys.modules, {'time_budget': tb}):
             self.assertEqual(vs.word_cap(self.c, 1, self.now), 5)

@@ -246,6 +246,8 @@ with app.db() as c:
             sk.log(c, uid, 'speaking', 'ielts', 6.0 / 9, 'B2', 'ielts-p1-mornings')  # 雅思口语: 「上次约 6.0」 on the list
             c.execute("INSERT INTO next_skill_events(user_id,skill,kind,score,level,pack,created) VALUES(?,'speaking','dialog',0.6,'A2','scene-cafe-order',?)", (uid, now - 20 * 86400))  # 情景第 2 轮 (the guide's scene picture)
         if name == 'pile':  # 60 word reviews due, more than 3 x the 10 new words a day: no new words today (ux audit 1.1, 11)
+            # 60 minutes a day: the words' share of the day's time (time_budget, r28 第 1 段: 15 minutes) holds all 60
+            c.execute('UPDATE next_profiles SET minutes=60 WHERE user_id=?', (uid,))
             c.execute("DELETE FROM next_cards WHERE user_id=? AND source='book'", (uid,))
             now, d = time.time(), nx.dictionary()
             for k, (rank, w) in enumerate(vs.book_words()['mid'][:60]):
