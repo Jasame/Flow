@@ -8,6 +8,8 @@
 - 服务器按地区叫：**香港**（Flow 两个站、AI 网关）、**杭州**（xmc.hk 后台、jasa.hk 等）。
 - 时间是北京时间。备份和日志默认在香港的 `/root/claude-ops/`。
 - 每次动服务器以前先备份；改完要从服务本身验证（真的发一次请求，或者看那个进程的环境和挂载），只从外面看不算。
+- **`/etc/flow.env`、`/etc/flow-beta.env` 只按行撤回**：好几个会话都往这两个文件里加过行，整份恢复旧备份会把后来别人加的行一起抹掉。
+  下面写的「备份」是改之前的那份，用来对照，不要整份拷回去。
 - 证书、宝塔、杭州面板和其他项目的维护记在杭州的 ops-log.md，这里只记跟 Flow 有关的。
 - 以后每改一次就在最上面加一条。
 
@@ -23,10 +25,28 @@
 | 语流打开服务器朗读 | 内测版 11-24 23:31 已开；语流没开 | 下次发正式版会自动装 `flow.service.d/61-flow-tts.conf`；装上后在服务里证明写得进 `audio/tts`，用户同意后加 `FLOW_TTS_MODEL=flow-tts` |
 | 删内测版手工加的 `70-tts-write.conf` | 还在 | b11 起每次部署自己装 `61-flow-tts.conf`，确认装上后找个没人用的时候删掉 70，`daemon-reload` 再重启 flow-beta |
 | 数据库副本只留 14 天（#58） | 内测版只列不删；语流还没发 #58 | 第一次在语流上清理以前，先 `ops.py prune-deploy --channel prod --dry-run`，把清单给用户看，用户同意才删 |
-| 系统邮件改用 @flowlang.cn 发 | 用户 11-25 00:15 选了阿里云邮件推送；00:20 同意「验证通过就切」内测版 | 语流 16 等阿里云验证通过 |
+| 语流的系统邮件改用 flowlang.cn 发 | 内测版 11-25 凌晨已切到阿里云邮件推送；语流还是用户的 jasa.hk 飞书邮箱 | 语流 3 的「被拒收就改走备用」代码和 #85（EHLO 用站点域名）上正式版以后，用户在语流 16 同意再切 `/etc/flow.env`（杭州的 xmc-hz-watch 也读这几行，要一起看） |
 | 上传用过的整包 `/root/claude-ops/flow-audio-packs.tar`（112 MB） | 还在，内容已装好 | 可以删，删以前问一下 |
 
 ## 2026-11-25
+
+### 凌晨 · 内测版：系统邮件改用 flowlang.cn 发（阿里云邮件推送）
+
+- **改了什么**：Cloudflare 上给 `mail.flowlang.cn` 加了 MX、SPF、DKIM 和 DMARC（p=none），只在 mail 子域名下，根域名 flowlang.cn
+  留着以后收信用。`/etc/flow-beta.env` 的 `FLOW_SMTP_*` 改成阿里云邮件推送（465 端口），发件人「语流 Flow」，不收回信；
+  另加 `FLOW_SMTP_FALLBACK_*` 指向原来的飞书邮箱，作备用。
+- **谁、为什么**：语流 16。原来两个站都用用户自己的 jasa.hk 飞书邮箱发（免费版每天 100 封、50 个外部收件人）。用户选了
+  「阿里云邮件推送」，同意「验证通过就切」内测版；用户定的规矩是优先用 flowlang.cn 发，被拒收再改用原来的飞书邮箱。
+- **备份**：`/root/claude-ops/flow-beta.env.bak-20261125-mail`。
+- **撤回**：`/root/claude-ops/mail-sender-undo-beta.py`（先 `--dry-run`），按行改回去。
+- **测试**：Gmail、QQ、jasa.hk 进收件箱；Outlook 进垃圾箱；iCloud 第二封被退回（554，只在阿里云的发送详情里看得到）。
+  网易没测。语流的 `/etc/flow.env` 没动（见上表）。
+
+### 00:47 · 内测版：服务器朗读每天的总字数上限
+
+- **改了什么**：`/etc/flow-beta.env` 加了 `FLOW_TTS_DAILY_CHARS`（全站每天最多合成多少字，#69 的开关之一）。
+- **谁**：语流 2。数值、原因和备份以语流 2 在香港 `/root/claude-ops/ops-notes.log` 里的记录为准，这里还没核对。
+- **撤回**：删掉这一行，重启 flow-beta（不设时用代码里的默认值）。
 
 ### 00:05 · AI 网关：加联网检索接口和 4 个评测用模型名
 
@@ -59,7 +79,7 @@
   （www:www 755，原来的 audio 目录是 root:root 755，www 写不进）。`/etc/flow.env` 没动。
 - **谁、为什么**：语流 2，#69 的服务器朗读默认关着，要设这一项才开。用户：「可以，打开」（之前在语流 1 说过「直接打开」）。
 - **备份**：`/root/claude-ops/flow-beta.env.bak-tts-20261124-233048`。
-- **撤回**：恢复备份（或删掉这一行），重启 flow-beta。页面会自己退回浏览器的声音。
+- **撤回**：删掉这一行，重启 flow-beta。页面会自己退回浏览器的声音。
 - **出过的问题**：沙箱不让写，23:46 修好（上一条）。
 - **要记住**：两个站共用 `audio/tts`。文件名由声音和句子算出来；#76 起文件名里还带上模型、上游声音和格式。哪天两个站用不同的
   朗读模型，文件名会自己分开。
@@ -101,7 +121,7 @@
 - **备份**：`/root/claude-ops/flow-beta.env.bak-20261124-222514`。`/etc/flow.env` 没动。
 - **验证**：进程环境里读得到；b8 自检里所有文字任务都是 route=model=`flow-text-ds-flash`，实际回答的是 deepseek-v4.1-flash，
   每次 1.7–4.8 秒。录音那条路不走这个设置，还是 Gemini。
-- **撤回**：恢复备份，重启 flow-beta。
+- **撤回**：删掉这一行，重启 flow-beta。
 
 ### 22:11 · 内测版：测试账号 duet-tester
 
@@ -179,7 +199,7 @@
   Cloudflare）和 `FLOW_TEXT_AI_MODEL=flow-text`，重启 flow。`ai_check.py` 4/4（要用 root 跑，它自己读 `/etc/flow.env`）。
 - **谁**：服务器会话（现在的语流 1）。用户：「r20 后改」。
 - **备份**：`/etc/flow.env.bak-20261123-2247`。
-- **撤回**：恢复备份，重启 flow。
+- **撤回**：把这两行改回去（`FLOW_AI_URL` 改回 `https://api.xmc.hk/v1/chat/completions`，删掉 `FLOW_TEXT_AI_MODEL`），重启 flow。
 - **要记住**：网关或 Flow 换到别的机器时，`FLOW_AI_URL` 要改回 `https://api.xmc.hk/v1/chat/completions`（杭州 RECOVERY.md 写了）。
 
 ### 21:54 · 香港：删掉存在服务器上的一份 Gemini key
