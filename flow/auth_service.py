@@ -21,6 +21,7 @@ RESEND=60
 PER_IP_HOUR=30
 EMAIL=re.compile(r'[^\s@<>"\'(),;:]+@[^\s@<>"\'(),;:]+\.[A-Za-z]{2,}')
 PURPOSES={'register':'注册','login':'登录','reset':'重设密码','bind':'绑定邮箱'}
+FOR={'register':'注册语流 Flow','login':'登录语流 Flow','reset':'重设语流 Flow 密码','bind':'给语流 Flow 账号绑定这个邮箱'}
 USERNAME=re.compile(r'[^\s@<>"\'\\/]{2,40}')
 LOCK_TRIES=5
 LOCK_WINDOW=900
@@ -57,16 +58,24 @@ def send(c,email,purpose,ip):
  if c.execute('SELECT COUNT(*) FROM email_codes WHERE ip=? AND created>?',(ip,time.time()-3600)).fetchone()[0]>=PER_IP_HOUR:return {'error':'这台设备获取验证码太频繁，请一小时后再试'},429
  if account.limited(c,'code:'+purpose+':'+account.digest(email),RESEND):return {'error':'验证码已发送，请 60 秒后再重新获取'},429
  code=f'{secrets.randbelow(10**6):06d}';salt=secrets.token_hex(8);now=time.time()
+ # The same address and purpose asked again within account.AGAIN (the learner's 「重新发送」): this one goes by the
+ # fallback channel first, in case the first was refused later, went to junk or is late (account_service).
+ again=c.execute('SELECT 1 FROM email_codes WHERE email=? AND purpose=? AND created>?',(email,purpose,now-account.AGAIN)).fetchone()
  c.execute('UPDATE email_codes SET used=1 WHERE email=? AND purpose=? AND used=0',(email,purpose))
  c.execute('DELETE FROM email_codes WHERE expires<?',(now-86400,))
  c.execute('INSERT INTO email_codes(email,purpose,salt,digest,expires,created,ip) VALUES(?,?,?,?,?,?,?)',(email,purpose,salt,_hash(salt,code),now+TTL,now,ip));c.commit()
- text=f'你的语流 Flow {PURPOSES[purpose]}验证码是：{code}\n\n10 分钟内有效，只能使用一次。如果不是你本人操作，请忽略这封邮件。'
+ # So that phones and password managers pick the code up (mail_layout): the code in the subject, 「验证码：123456」 as
+ # the first line, the code as one run of digits; how long it lasts and not to pass it on.
+ paras=[f'这是你{FOR[purpose]}的验证码，{TTL//60} 分钟内有效，只能用一次。',
+        '请勿把验证码转发或告诉任何人，语流不会向你索要验证码。如果不是你本人操作，忽略这封邮件即可。']
  if purpose=='reset':  # a learner who forgot the password often forgot the username too
   u=owner(c,email)
-  if u:text+=f'\n\n你的用户名是：{u["username"]}（登录时用户名和这个邮箱都可以用）。'
- try:account.mail(email,f'Flow {PURPOSES[purpose]}验证码 {code}',text);state='sent'
+  if u:paras.append(f'你的用户名是：{u["username"]}（登录时用户名和这个邮箱都可以用）。')
+ text,page=__import__('mail_layout').message(paras,code=code)
+ channel=None
+ try:channel=account.mail(email,f'语流 Flow {PURPOSES[purpose]}验证码：{code}',text,html=page,prefer='fallback' if again else None);state='sent'
  except Exception:state='failed';c.execute('UPDATE email_codes SET used=1 WHERE email=? AND purpose=? AND used=0',(email,purpose))
- c.execute('INSERT INTO mail_events(status,created) VALUES(?,?)',(state,time.time()));c.commit()
+ account.mail_event(c,state,channel)
  if state!='sent':return {'error':'验证码邮件发送失败，请稍后再试'},502
  return {'ok':True,'message':'验证码已发送到 '+mask(email)+'，10 分钟内有效。','resend_after':RESEND},200
 

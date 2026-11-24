@@ -51,10 +51,48 @@ class ShareTests(unittest.TestCase):
             self.assertEqual([int(x) for x in matrix.split(',')], list(range(1, count + 1)), shares)
             self.assertIn(f'--shard ${{{{ matrix.share }}}}/{count}', jobs[shares])
             # the gate runs when a share failed (a skipped required check would count as passed)
-            self.assertIn(f'needs: {shares}', jobs[gate]); self.assertIn('!cancelled()', jobs[gate])
+            self.assertRegex(jobs[gate], rf'needs: (\[changes, )?{shares}\]?\n'); self.assertIn('!cancelled()', jobs[gate])
             self.assertIn(f'needs.{shares}.result }}}}" = success', jobs[gate])
             self.assertNotIn('\n    name:', jobs[gate])  # the check is named after the job: backend, ui
         self.assertIn('tools/build_release.py --here', jobs['backend-share'])  # the guide PDF the guide tests check
+
+
+class MainFirstTests(unittest.TestCase):
+    """main's runs finish (the next merge does not cancel them), and a pull request that cannot change the UI skips the
+    UI shares, so main is not starved of runners (2026-11-25: b12 stayed for hours while PRs filled all 20)."""
+
+    def setUp(self):
+        wf = (ROOT / '.github' / 'workflows' / 'tests.yml').read_text(encoding='utf-8')
+        self.wf = wf
+        self.jobs = dict(re.findall(r'^  ([a-z-]+):\n(.*?)(?=^  [a-z-]+:\n|\Z)', wf.split('\njobs:\n', 1)[1], re.S | re.M))
+
+    def test_only_a_pull_requests_older_run_is_cancelled(self):
+        self.assertIn("cancel-in-progress: ${{ github.event_name == 'pull_request' }}", self.wf)
+        self.assertNotIn('cancel-in-progress: true', self.wf)
+
+    def test_the_ui_shares_are_skipped_only_when_changes_says_so(self):
+        self.assertIn("needs: changes\n    if: needs.changes.outputs.ui == 'true'", self.jobs['ui-share'])
+        gate = self.jobs['ui']
+        self.assertIn('test "${{ needs.changes.result }}" = success', gate)  # a failed check of the paths fails the gate
+        self.assertIn('if [ "${{ needs.changes.outputs.ui }}" = false ]; then', gate)  # only an explicit false skips
+        self.assertIn('else test "${{ needs.ui-share.result }}" = success; fi', gate)
+        ch = self.jobs['changes']
+        self.assertIn('if [ "${{ github.event_name }}" != pull_request ]; then echo ui=true', ch)  # main: always
+        self.assertIn('git diff --name-only HEAD^1 HEAD', ch); self.assertIn('fetch-depth: 2', ch)
+        for job in ('backend-share', 'frontend'):
+            self.assertNotIn('needs: changes', self.jobs[job])  # the website tests always run
+
+    def test_what_counts_as_a_ui_change(self):
+        for paths in ([], [''], ['flow/app.py'], ['flow/public/guide/guide.md'], ['docs/x.md', 'flow/corpus_data/v5/a.json'],
+                      ['tools/ui_test.py'], ['tools/ui_server.py'], ['tools/ui-fixtures/wordbooks.json'], ['tools/build_front.py'],
+                      ['tools/run_tests.py'], ['.github/workflows/tests.yml']):
+            self.assertTrue(rt.ui_needed(paths), paths)
+        for paths in (['tools/qa_e2e.py'], ['tools/README.md', 'CONTRIBUTING.md'], ['tools/deploy.sh', 'tools/flow-autodeploy.py'],
+                      ['.github/workflows/beta.yml'], ['tests/test_ci.py'], ['tools/ai-gateway/README.md']):
+            self.assertFalse(rt.ui_needed(paths), paths)
+        r = subprocess.run([sys.executable, str(ROOT / 'tools' / 'run_tests.py'), '--ui-needed'], input='tools/qa_e2e.py\n',
+                           capture_output=True, text=True)
+        self.assertEqual(r.stdout.strip(), 'ui=false')
 
 
 class BetaReleaseTests(unittest.TestCase):

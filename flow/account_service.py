@@ -5,7 +5,27 @@ from email.message import EmailMessage
 def configured():
  # FLOW_MAIL_OUTBOX is for local development and tests only: messages are written to files instead of sent.
  if os.getenv('FLOW_MAIL_OUTBOX'):return True
- return bool(os.getenv('FLOW_SMTP_HOST') and os.getenv('FLOW_SMTP_FROM') and os.getenv('FLOW_SMTP_USER') and os.getenv('FLOW_SMTP_PASSWORD'))
+ return bool(smtp_settings('primary'))
+
+# Two ways out (owner's rule, 2026-11-25: 「被拒收就用 i@jasa.hk，当然，优先 flowlang」):
+# - primary, FLOW_SMTP_HOST/_PORT/_USER/_PASSWORD/_FROM: 语流's own address (no-reply@mail.flowlang.cn);
+# - fallback, FLOW_SMTP_FALLBACK_HOST/_PORT/_USER/_PASSWORD/_FROM: another mailbox (i@jasa.hk). Not set: mail goes
+#   exactly as before, by the primary alone.
+# A mail goes by the primary; when that fails on the spot (connecting, signing in, or the server refusing the mail),
+# it goes once more by the fallback. A code mail asked for again within AGAIN seconds goes by the fallback first
+# (prefer='fallback', auth_service.send and issue below): a refusal that comes back only later as a bounce, a mail
+# in the junk folder or one that is late are all things mail() cannot see, and the learner's 「重新发送」 is the sign.
+# The weekly mail and the vocab reminder never ask for the fallback first, to spare its daily limit.
+CHANNELS=('primary','fallback')
+AGAIN=600
+
+def smtp_settings(which):
+ """The settings of one channel ('primary' or 'fallback'), or None when it is not set up."""
+ pre='FLOW_SMTP_' if which=='primary' else 'FLOW_SMTP_FALLBACK_'
+ conf={k:os.getenv(pre+k.upper()) for k in ('host','from','user','password')}
+ port=os.getenv(pre+'PORT') or '465'
+ if not all(conf.values()) or not port.isdigit():return None
+ conf['port']=int(port);return conf
 
 def schema(c):
  cols={r[1] for r in c.execute('PRAGMA table_info(users)')}
@@ -18,37 +38,79 @@ def schema(c):
  CREATE TABLE IF NOT EXISTS recovery_tokens(digest TEXT PRIMARY KEY,user_id INTEGER REFERENCES users(id),email TEXT,purpose TEXT,expires REAL,used INTEGER DEFAULT 0);
  CREATE TABLE IF NOT EXISTS mail_limits(key TEXT PRIMARY KEY,last REAL);
  CREATE TABLE IF NOT EXISTS mail_events(id INTEGER PRIMARY KEY,status TEXT,created REAL);''')
+ # which channel took a mail (primary / fallback; none when it failed), for the console
+ if 'channel' not in {r[1] for r in c.execute('PRAGMA table_info(mail_events)')}:c.execute('ALTER TABLE mail_events ADD COLUMN channel TEXT')
+
+def mail_event(c,state,channel=None):
+ c.execute('INSERT INTO mail_events(status,channel,created) VALUES(?,?,?)',(state,channel if channel in CHANNELS else None,time.time()));c.commit()
 
 def digest(token):return hashlib.sha256(token.encode()).hexdigest()
 
-def mail(to,subject,text,headers=None):
+def ehlo_name():
+ # The name given to the mail server (EHLO/HELO): the site's own domain (FLOW_PUBLIC_URL; flowlang.cn by default).
+ # smtplib's default is the machine's internal name (socket.getfqdn()), which every mail would then carry in its
+ # Received header, and which counts against delivery.
+ # A local address (localhost, 127.0.0.1) is no domain to give, so it falls back too.
+ import ipaddress;from urllib.parse import urlsplit
+ name=urlsplit(os.getenv('FLOW_PUBLIC_URL','').strip()).hostname or ''
+ try:ipaddress.ip_address(name);name=''
+ except ValueError:pass
+ return name if '.' in name else 'flowlang.cn'
+
+def smtp_send(conf,msg):
+ """One try by one channel. Raises an SMTP or network error unless the server took the mail."""
+ took=False;ctx=ssl.create_default_context()
+ try:
+  if conf['port']==465:connection=smtplib.SMTP_SSL(conf['host'],conf['port'],local_hostname=ehlo_name(),timeout=12,context=ctx)
+  else:
+   connection=smtplib.SMTP(conf['host'],conf['port'],local_hostname=ehlo_name(),timeout=12);connection.ehlo();connection.starttls(context=ctx);connection.ehlo()
+  with connection as s:
+   s.login(conf['user'],conf['password']);s.send_message(msg);took=True
+ except (smtplib.SMTPException,OSError):
+  if not took:raise  # once the server has taken it, a failed goodbye (QUIT) is no reason to send a second copy
+
+def mail(to,subject,text,headers=None,html=None,prefer=None):
+ """Send one mail; returns the channel that took it ('primary' or 'fallback'), raises when none did.
+ prefer='fallback': try the fallback first (a code mail asked for again, see AGAIN)."""
+ # html: the same mail laid out (mail_layout.message); sent as multipart/alternative with the text, so a mail app
+ # that shows only text loses nothing. In the outbox (tests, local runs) it is written beside the .txt as .html.
  # the 内测版 (FLOW_CHANNEL=beta, flow.jasa.hk) marks every mail it sends, so nobody takes it for 语流's own
  if os.getenv('FLOW_CHANNEL','').strip().lower()=='beta' and not subject.startswith('【内测版】'):subject='【内测版】'+subject
+ order=('fallback','primary') if prefer=='fallback' else CHANNELS
+ ways=[(name,smtp_settings(name)) for name in order];ways=[(name,conf) for name,conf in ways if conf]
  outbox=os.getenv('FLOW_MAIL_OUTBOX')
  if outbox:
   os.makedirs(outbox,exist_ok=True)
   name=os.path.join(outbox,f'{time.time():.6f}-{secrets.token_hex(3)}.txt')
   with open(name,'w',encoding='utf-8') as f:f.write('To: '+to+'\nSubject: '+subject+'\n'+''.join(k+': '+v+'\n' for k,v in (headers or {}).items())+'\n'+text)
-  return
- msg=EmailMessage();msg['From']=os.environ['FLOW_SMTP_FROM'];msg['To']=to;msg['Subject']=subject;msg.set_content(text)
- for k,v in (headers or {}).items():msg[k]=v  # List-Unsubscribe on the Sunday mail (progress_service)
- host=os.environ['FLOW_SMTP_HOST'];port=int(os.getenv('FLOW_SMTP_PORT','465'));ctx=ssl.create_default_context()
- if port==465:connection=smtplib.SMTP_SSL(host,port,timeout=12,context=ctx)
- else:
-  connection=smtplib.SMTP(host,port,timeout=12);connection.ehlo();connection.starttls(context=ctx);connection.ehlo()
- with connection as s:
-  s.login(os.environ['FLOW_SMTP_USER'],os.environ['FLOW_SMTP_PASSWORD']);s.send_message(msg)
+  if html:
+   with open(name[:-4]+'.html','w',encoding='utf-8') as f:f.write(html)
+  return ways[0][0] if ways else 'primary'  # the channel it would have gone by
+ if not ways:raise RuntimeError('mail is not set up (FLOW_SMTP_*)')
+ for n,(name,conf) in enumerate(ways):
+  msg=EmailMessage();msg['From']=conf['from'];msg['To']=to;msg['Subject']=subject;msg.set_content(text)
+  if html:msg.add_alternative(html,subtype='html')
+  for k,v in (headers or {}).items():msg[k]=v  # List-Unsubscribe on the Sunday mail (progress_service)
+  try:smtp_send(conf,msg);return name
+  except (smtplib.SMTPException,OSError):
+   if n==len(ways)-1:raise
 
 def issue(c,uid,email,purpose):
+ # asked again within AGAIN (a token lives 1800 s, so its expiry tells when it was made): the fallback first
+ again=c.execute('SELECT 1 FROM recovery_tokens WHERE email=? AND purpose=? AND expires>?',(email,purpose,time.time()+1800-AGAIN)).fetchone()
  token=secrets.token_urlsafe(32);c.execute('UPDATE recovery_tokens SET used=1 WHERE user_id=? AND purpose=?',(uid,purpose))
  c.execute('DELETE FROM recovery_tokens WHERE expires<?',(time.time(),));c.execute('INSERT INTO recovery_tokens VALUES(?,?,?,?,?,0)',(digest(token),uid,email,purpose,time.time()+1800));c.commit()
  origin=os.getenv('FLOW_PUBLIC_URL','https://flowlang.cn').rstrip('/')
  url=origin+'/#reset='+token if purpose=='reset' else None
- text=('请在 30 分钟内打开此链接设置新密码：\n'+url) if url else '请在 Flow 账号设置中输入以下验证令牌（30 分钟内有效）：\n'+token
- try:mail(email,'Flow 密码找回' if purpose=='reset' else 'Flow 邮箱验证',text+'\n\n如非本人操作，请忽略。');state='sent'
+ # The text stays as it was (the link or the token on the line after the first); the HTML is the shared layout.
+ text=(('请在 30 分钟内打开此链接设置新密码：\n'+url) if url else '请在 Flow 账号设置中输入以下验证令牌（30 分钟内有效）：\n'+token)+'\n\n如非本人操作，请忽略。'
+ page=__import__('mail_layout').message(['请在 30 分钟内打开下面的链接设置新密码。','如果不是你本人操作，忽略这封邮件即可。'],button=('设置新密码',url))[1] if url else \
+  __import__('mail_layout').message(['请在语流的账号设置里输入下面这串验证令牌，30 分钟内有效。',token,'如果不是你本人操作，忽略这封邮件即可。'])[1]
+ channel=None
+ try:channel=mail(email,'Flow 密码找回' if purpose=='reset' else 'Flow 邮箱验证',text,html=page,prefer='fallback' if again else None);state='sent'
  except Exception:
   state='failed';c.execute('UPDATE recovery_tokens SET used=1 WHERE digest=?',(digest(token),))
- c.execute('INSERT INTO mail_events(status,created) VALUES(?,?)',(state,time.time()));c.commit()
+ mail_event(c,state,channel)
  return state=='sent'
 
 ADMIN_TTL=86400
@@ -59,10 +121,13 @@ def password_changed(c,uid,how):
  row=c.execute('SELECT username,email FROM users WHERE id=?',(uid,)).fetchone()
  if not row or not row['email'] or not configured():return False
  origin=os.getenv('FLOW_PUBLIC_URL','https://flowlang.cn').rstrip('/')
- text=(f'你的语流 Flow 账号（用户名：{row["username"]}）的密码刚刚{how}了，所有手机和电脑上的登录都已退出。\n\n'
-       f'如果是你本人操作，不用理会这封邮件。\n如果不是你，请马上打开 {origin} ，在登录框点「忘记密码？」用这个邮箱重设密码。')
+ import mail_layout
+ text,page=mail_layout.message([f'你的语流 Flow 账号（用户名：{row["username"]}）的密码刚刚{how}了，所有手机和电脑上的登录都已退出。',
+                                '如果是你本人操作，不用理会这封邮件。',
+                                '如果不是你，请马上打开语流，在登录框点「忘记密码？」用这个邮箱重设密码。'],
+                               title='密码已修改',button=('打开语流',origin))
  def go():
-  try:mail(row['email'],'Flow 密码已修改',text)
+  try:mail(row['email'],'Flow 密码已修改',text,html=page)
   except Exception:pass
  __import__('threading').Thread(target=go,daemon=True).start()
  return True

@@ -22,7 +22,7 @@ def between(text, start, end):
     return text[i:text.index(end, i)]
 
 
-def marker(keep_changed=False, leave_error=None, essay_scores=None, poor_scores=0.3, broken=False):
+def marker(keep_changed=False, leave_error=None, essay_scores=None, poor_scores=0.3, broken=False, dialog_end=None, over_correct=False):
     """A stand-in for the model that marks the way it is told; by default as a good teacher would."""
     calls = {'essay': {}}
 
@@ -64,6 +64,17 @@ def marker(keep_changed=False, leave_error=None, essay_scores=None, poor_scores=
                                             for x in ws]}), 'stop'
         if '把下面的英文材料改写成' in user:
             return json.dumps({'body': user.split('原文：\n', 1)[1].split('\n\n输出 JSON')[0], 'notes': []}), 'stop'
+        if '对话结束' in user:  # the summary after the last turn; dialog_end changes it (a key set to None is left out)
+            end = {'summary': '整体流利，有几处小错。', 'good': ['They block out most of the noise.'],
+                   'fixes': [{'from': 'they works', 'to': 'they work', 'why': '主谓一致', 'node': None}, {'from': 'It take', 'to': 'It takes', 'why': '第三人称单数', 'node': None}],
+                   'expressions': [{'text': 'block out', 'meaning': '挡住'}], 'score': 0.8}
+            end.update(dialog_end or {})
+            return json.dumps({k: v for k, v in end.items() if v is not None}), 'stop'
+        if '学习者刚说：' in user:
+            said = user.split('学习者刚说：', 1)[1].split('\n')[0]
+            corr = ({'original': 'they works', 'better': 'they work', 'why': '主谓一致'} if 'works' in said else
+                    {'original': said[:20], 'better': 'Sure.', 'why': '更简洁'} if over_correct else None)
+            return json.dumps({'reply': 'That sounds great. Where are you going?', 'correction': corr, 'hint': '说说目的地', 'say': ''}), 'stop'
         if '开始对话' in user:
             return json.dumps({'scene': '你在火车上，旁边的人戴着降噪耳机。', 'role': '乘客', 'reply': 'Hi! Do those headphones really block out the engine noise?'}), 'stop'
         if '你是专业翻译' in system:
@@ -124,7 +135,8 @@ class MarkingTests(Site):
         self.assertEqual(self.failed(report), {})
         n = sum(len(CASES[k]) for k in ai_eval.KINDS) + sum(len(CASES['content'][k]) for k in ai_eval.CONTENT)
         self.assertEqual((s['passed'], s['total'], s['no_answer'], s['services']), (n, n, 0, {'text': n, 'main': 0}))
-        self.assertEqual(s['content'], {'passed': 6, 'total': 6})
+        n_content = sum(len(v) for k, v in CASES['content'].items() if k != 'about')  # every content question
+        self.assertEqual(s['content'], {'passed': n_content, 'total': n_content})
         self.assertEqual(app.DB, site_db)  # put back after the run
         with app.db() as c:
             self.assertIsNone(c.execute("SELECT 1 FROM users WHERE username='ai-eval'").fetchone())
@@ -150,6 +162,17 @@ class MarkingTests(Site):
     def test_a_poor_translation_scored_like_a_good_one_is_caught(self):
         failed = self.failed(self.run_with(poor_scores=0.8))
         self.assertEqual(sorted(k for k in failed if k in {t['id'] for t in CASES['translate']}), sorted(t['id'] for t in CASES['translate']))
+
+    def test_a_role_play_turn_and_its_summary_are_checked(self):
+        self.assertEqual({k: v for k, v in self.failed(self.run_with()).items() if k.startswith('dialog')}, {})
+        failed = self.failed(self.run_with(over_correct=True))
+        self.assertEqual(set(k for k in failed if k.startswith('dialog')), {'dialog-turn-correct'})  # a right sentence was corrected
+        failed = self.failed(self.run_with(dialog_end={'summary': None}))  # the beta's 2026-11-25 case: no summary, the site refuses it
+        self.assertIn('dialog-end-three-errors', failed)
+        self.assertIn('没有结果', failed['dialog-end-three-errors'][0])
+        self.assertEqual(self.failed(self.run_with(dialog_end={'score': '0.8'})).get('dialog-end-three-errors'), None)  # a score as text is read
+        failed = self.failed(self.run_with(dialog_end={'fixes': [{'from': 'they works', 'to': 'they work', 'why': '…'}]}))
+        self.assertEqual(failed['dialog-end-three-errors'], ['学员的 3 处错误只指出 1 处'])
 
     def test_no_usable_answer_is_counted(self):
         report = self.run_with(broken=True)

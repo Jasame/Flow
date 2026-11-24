@@ -118,9 +118,65 @@ class RoundTests(unittest.TestCase):
     def test_material_dialogues_are_unchanged(self):
         pid = 'v5-science-b2-noise-cancelling'
         reply = {'heard': 'yes', 'reply': 'Why?', 'correction': None, 'hint': ''}
-        with patch('chat_service.request_model', return_value=(json.dumps(reply), 'stop')) as m:
+        with patch('chat_service.request_model', return_value=(json.dumps(reply), 'stop')) as m, patch('tts_service.start') as soon:
             r, code = out.dialog(self.c, 1, {'pack': pid, 'history': [{'role': 'ai', 'text': 'Do you like them?'}], 'text': 'yes', 'request_id': 'material-req-01'})
         self.assertEqual(code, 200); self.assertNotIn('pace', r['result']); self.assertNotIn('不到 4 个词', m.call_args[0][0][0]['content'])
+        self.assertNotIn('voice', r['result']); soon.assert_called_once_with(1, 'Why?', 'us-f')  # the partner speaks in the learner's voice
+
+
+class HumanTests(RoundTests):
+    """像真人 and the voice (owner, 2026-11-24: 「语音比较僵硬，回复速度比较慢，不像真人」): short spoken turns in character,
+    each role its own voice, and the server starts making that voice while the reply travels (声音接力)."""
+
+    def test_every_scene_has_a_way_of_talking_and_a_voice(self):
+        self.assertEqual(set(SC.PERSONA), set(SC.SCENES))
+        self.assertTrue(all(len(p) > 20 and g in ('f', 'm') for p, g in SC.PERSONA.values()))
+        self.assertEqual({g for _, g in SC.PERSONA.values()}, {'f', 'm'})  # not one voice for everyone
+
+    def test_the_role_sets_the_voice_and_the_learner_the_accent(self):
+        g = SC.PERSONA['see-doctor'][1]
+        self.assertEqual(SC.voice_for('see-doctor', 'first', 'uk-f'), 'uk-' + g)
+        self.assertEqual(SC.voice_for('see-doctor', 'challenge', 'us-f'), 'us-' + g)
+        self.assertEqual(SC.voice_for('see-doctor', 'swap', 'us-f'), 'us-' + ('m' if g == 'f' else 'f'))  # the AI plays the patient
+        self.assertEqual(SC.voice_for('see-doctor', 'first', None), 'us-' + g)
+
+    def test_short_spoken_turns_in_character_and_the_voice_starts_at_once(self):
+        replies = [{'scene': '你在咖啡店。', 'role': '店员', 'reply': "Hi there! What can I get you?"},
+                   {'reply': "Sure thing. Hot or iced?", 'correction': None, 'hint': '', 'say': ''}]
+        calls = []
+        def fake(msgs, audio=None):
+            calls.append(msgs); return json.dumps(replies[len(calls) - 1], ensure_ascii=False), 'stop'
+        with patch('chat_service.request_model', side_effect=fake), patch('tts_service.start') as soon:
+            r, _ = out.dialog(self.c, 1, {'scenario': 'cafe-order', 'history': [], 'request_id': 'human-req-0001'})
+            voice = SC.voice_for('cafe-order', 'first', 'us-f')
+            self.assertEqual(r['result']['voice'], voice); soon.assert_called_with(1, replies[0]['reply'], voice)
+            system = calls[0][0]['content']
+            for rule in ('1–2 句', '不超过 25 个英文词', '先接住对方刚说的内容', '一次只问一个问题', '不纠错', SC.PERSONA['cafe-order'][0]):
+                self.assertIn(rule, system)
+            r, _ = out.dialog(self.c, 1, {'scenario': 'cafe-order', 'history': [{'role': 'ai', 'text': replies[0]['reply']}], 'text': 'A latte, please.',
+                                          'request_id': 'human-req-0002'})
+            self.assertEqual(r['result']['voice'], voice); soon.assert_called_with(1, replies[1]['reply'], voice)
+            # a second learner gets the kept opening, and its voice, without asking the AI
+            self.c.execute('INSERT INTO users(username,password) VALUES(?,?)', ('second', 'h')); self.c.commit()
+            nx.save_profile(self.c, 2, {'level': 'B1', 'goal': 'daily', 'themes': [], 'minutes': 15})  # the same level: the same opening
+            r, _ = out.dialog(self.c, 2, {'scenario': 'cafe-order', 'history': [], 'request_id': 'human-req-0003'})
+            self.assertEqual((r.get('cached'), r['result']['reply'], r['result']['voice'], len(calls)), (True, replies[0]['reply'], voice, 2))
+
+    def test_openings_kept_before_the_personas_are_not_used(self):
+        old = {'scene': '旧的开场', 'role': '店员', 'reply': 'Welcome to our café, what would you like to order today from our menu?'}
+        self.c.execute('INSERT INTO next_dialog_openers VALUES(?,?,?,?)', ('scene-cafe-order', 'B1', json.dumps(old), time.time())); self.c.commit()
+        new = {'scene': '你在咖啡店。', 'role': '店员', 'reply': 'Hi! What can I get you?'}
+        with patch('chat_service.request_model', return_value=(json.dumps(new, ensure_ascii=False), 'stop')), patch('tts_service.start'):
+            r, _ = out.dialog(self.c, 1, {'scenario': 'cafe-order', 'history': [], 'request_id': 'human-req-0004'})
+        self.assertEqual(r['result']['reply'], new['reply'])
+
+    def test_a_swapped_round_plays_the_learners_usual_part(self):
+        self.did('see-doctor', 40); self.did('see-doctor', 20)  # two days done: round 3 swaps
+        reply = {'scene': '你是医生。', 'role': '病人', 'reply': "Hi, doctor. I've had a sore throat for three days."}
+        with patch('chat_service.request_model', return_value=(json.dumps(reply, ensure_ascii=False), 'stop')) as m, patch('tts_service.start'):
+            r, _ = out.dialog(self.c, 1, {'scenario': 'see-doctor', 'history': [], 'request_id': 'human-req-0005'})
+        self.assertEqual((r['result']['mode'], r['result']['voice']), ('swap', SC.voice_for('see-doctor', 'swap', 'us-f')))
+        self.assertIn('an ordinary person in this part (病人)', m.call_args[0][0][0]['content'])
 
 
 if __name__ == '__main__':

@@ -895,14 +895,16 @@ def ios_audio_run(pw):
             pg.click('#reader .w:text-is("drains")'); pg.wait_for_selector('#sheetCard .word', timeout=5000); pg.wait_for_timeout(600)
 
         elements = "[...document.querySelectorAll('audio')].map(a => a.getAttribute('src') || '').filter(s => s.includes('/audio/words/'))"
+        length = word[2] - word[1]
+        clip_url = f"/audio/words/us/{word[0]}.aac?s={word[1]}&e={word[2]}&l=0.2"
+        # 自动 (the default): Web Audio, from just before the word, under a 'playback' session, named on the lock screen
         ctx, pg, errs, asked = page()
         tap_word(pg)
         wa = pg.evaluate('window.__wa')
         st = wa['starts'][-1] if wa['starts'] else {}
-        length = word[2] - word[1]
-        check(dev, 'a word plays on Web Audio from its clip: from just before the word (0.28 s in) for its length, at the reading speed',
-              st and abs(st['off'] - 0.28) < 0.005 and abs(st['dur'] - (length + 0.06)) < 0.005 and st['rate'] == 1
-              and any(f"/audio/words/us/{word[0]}.aac?s={word[1]}&e={word[2]}" in u for u in asked) and not pg.evaluate(elements), (st, asked[-3:]))
+        check(dev, 'by default a word plays on Web Audio from its clip: from just before the word for its length, at the reading speed',
+              st and abs(st['off'] - 0.18) < 0.005 and abs(st['dur'] - (length + 0.06)) < 0.005 and st['rate'] == 1
+              and any(clip_url in u for u in asked) and not pg.evaluate(elements), (st, asked[-3:]))
         check(dev, "the audio session is 'playback' (the ringer switch does not mute it), and the context was started inside the first tap",
               'playback' in wa['types'] and wa['created'] == 1 and wa['resumed'] >= 1, wa)
         title = pg.evaluate("navigator.mediaSession && navigator.mediaSession.metadata && navigator.mediaSession.metadata.title")
@@ -912,27 +914,48 @@ def ios_audio_run(pw):
         check(dev, 'leaving the page closes the context (iOS 26 home-screen apps went silent with an old one) and clears the lock screen',
               wa['closed'] == 1 and pg.evaluate("!(navigator.mediaSession && navigator.mediaSession.metadata)"), wa)
         pg.evaluate("Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true }); document.dispatchEvent(new Event('visibilitychange'))")
-        check(dev, 'no script errors (Web Audio)', not errs, errs[:3])
+        # 我的 → 设置 → 单词读音方式: the switch the home-screen app can reach (no address bar there), kept on the phone
+        pg.evaluate("document.querySelector('#sheet [data-close]').click()"); pg.wait_for_timeout(300)  # the word's card
+        pg.evaluate("location.hash = '#/me'"); settle(pg); pg.wait_for_timeout(300)
+        row = pg.text_content('#meSound') if pg.query_selector('#meSound') else ''
+        pg.click('#meSound'); pg.wait_for_selector('#sheetCard [data-sound="compat"]', timeout=4000); pg.click('#sheetCard [data-sound="compat"]'); pg.wait_for_timeout(200)
+        picked = pg.text_content('#meSoundV')
+        pg.click('#sheetCard [data-lead="0.15"]'); pg.wait_for_timeout(200)
+        leaded = pg.text_content('#meSoundV')
+        pg.evaluate("document.querySelector('#sheet [data-close]').click()")
+        pg.reload(wait_until='load'); settle(pg); pg.wait_for_timeout(300)
+        kept = pg.text_content('#meSoundV') if pg.query_selector('#meSoundV') else ''
+        check(dev, '我的 → 设置 has 单词读音方式 (连续 by default); 标准 and 0.15 s chosen there stay after the app is opened again',
+              '单词读音方式' in row and '连续' in row and picked == '标准 · 前面 0.2 秒' and leaded == kept == '标准 · 前面 0.15 秒', (row, picked, leaded, kept))
+        n = len(pg.evaluate('window.__wa.starts')); pg.evaluate("location.hash = '#/m/" + pid + "/read'"); settle(pg, '#reader'); pg.wait_for_timeout(400)
+        asked.clear(); tap_word(pg)
+        check(dev, '标准: the word plays its <audio> clip with the silence chosen (0.15 s), not Web Audio',
+              any(clip_url.replace('l=0.2', 'l=0.15') in u for u in asked) and len(pg.evaluate('window.__wa.starts')) == n, asked[-3:])
+        pg.wait_for_timeout(1500)
+        check(dev, '标准: a clip that has ended lets its source go (WebKit then stops counting it for Now Playing)', not pg.evaluate(elements), pg.evaluate(elements))
+        check(dev, 'no script errors (连续 and 标准)', not errs, errs[:3])
+        ctx.close()
+        # ?audio=element in Safari: the same 兼容模式; ?lead=: the silence in front (0.05–0.4 s)
+        ctx, pg, errs, asked = page('?audio=element&lead=0.15')
+        tap_word(pg)
+        check(dev, '?audio=element is 标准, and ?lead=0.15 asks for a clip with 0.15 s of silence',
+              not pg.evaluate('window.__wa.starts') and any(clip_url.replace('l=0.2', 'l=0.15') in u for u in asked), asked[-3:])
+        pg.goto(base + '/?audio=auto&lead=auto#/m/' + pid + '/read', wait_until='load'); settle(pg, '#reader'); pg.wait_for_timeout(400)
+        tap_word(pg)
+        check(dev, '?audio=auto: Web Audio again', len(pg.evaluate('window.__wa.starts')) >= 1, pg.evaluate('window.__wa'))
         ctx.close()
         # decoding fails: the <audio> clip instead
         ctx, pg, errs, asked = page(undecodable=True)
         tap_word(pg)
-        check(dev, 'a clip Web Audio cannot decode plays on an <audio> instead', not pg.evaluate('window.__wa.starts') and any('.aac?s=' in x for x in pg.evaluate(elements)), pg.evaluate(elements))
+        check(dev, 'a clip Web Audio cannot decode plays on an <audio> instead',
+              not pg.evaluate('window.__wa.starts') and sum(clip_url in u for u in asked) >= 2, asked[-3:])  # fetched for Web Audio, then by the <audio>
         ctx.close()
         # the type refused (a browser that does not let the page set it): <audio> clips, which the ringer switch does not mute
         ctx, pg, errs, asked = page(refuse=True)
         tap_word(pg)
         wa = pg.evaluate('window.__wa')
-        check(dev, "where 'playback' is refused, words play on an <audio> clip (no Web Audio, so the ringer switch cannot mute them)",
-              not wa['starts'] and 'playback' in wa['types'] and any('.aac?s=' in x for x in pg.evaluate(elements)), (wa, pg.evaluate(elements)))
-        ctx.close()
-        # ?audio=element: the switch for trying the old way on a phone
-        ctx, pg, errs, asked = page('?audio=element')
-        tap_word(pg)
-        check(dev, '?audio=element turns Web Audio off (and ?audio=auto back on)', not pg.evaluate('window.__wa.starts') and any('.aac?s=' in x for x in pg.evaluate(elements)), pg.evaluate('window.__wa'))
-        pg.goto(base + '/?audio=auto#/m/' + pid + '/read', wait_until='load'); settle(pg, '#reader'); pg.wait_for_timeout(400)
-        tap_word(pg)
-        check(dev, '?audio=auto: Web Audio again', len(pg.evaluate('window.__wa.starts')) >= 1, pg.evaluate('window.__wa'))
+        check(dev, "where 'playback' is refused, words play their <audio> clip (no Web Audio, so the ringer switch cannot mute them)",
+              not wa['starts'] and 'playback' in wa['types'] and any(clip_url in u for u in asked), (wa, asked[-3:]))
         ctx.close()
         # a whole text: <audio> (the lock screen controls it), named, and a pause from outside shows on the page
         ctx, pg, errs, asked = page(narration=True)
@@ -1045,15 +1068,16 @@ def wechat_run(pw):
         new = [x for x in iplays() if '/audio/words/' in x['src']]
         check(dev, 'iPhone: a looked-up word plays its own clip (.aac, from its start), as WeChat allows',
               new and all(x['ok'] and '.aac?s=' in x['src'] for x in new), new)
-        ip.wait_for_function("[...document.querySelectorAll('audio')].some(x => (x.currentSrc || x.src || '').includes('.aac') && (x.ended || x.paused))", timeout=5000)
-        info = ip.evaluate("""async () => { const a = [...document.querySelectorAll('audio')].find(x => (x.currentSrc || x.src || '').includes('.aac'));
-          if (!a) return null; const r = await fetch(a.currentSrc || a.src); const b = await r.arrayBuffer();
+        clip = next(x['src'] for x in new if '.aac?s=' in x['src']) if new else ''
+        # it plays to its end, then lets its source go (no Now Playing for it after that)
+        ip.wait_for_function("![...document.querySelectorAll('audio')].some(x => (x.getAttribute('src') || '').includes('.aac'))", timeout=5000)
+        info = ip.evaluate("""async u => { const r = await fetch(u); const b = await r.arrayBuffer();
           const buf = await new OfflineAudioContext(1, 1, 44100).decodeAudioData(b);
-          return { type: r.headers.get('content-type'), dur: buf.duration, played: a.currentTime, ended: a.ended }; }""")
+          return { type: r.headers.get('content-type'), dur: buf.duration, ended: true }; }""", clip)
         idx = json.loads((Path(__file__).with_name('ui-fixtures') / 'audio' / 'words' / 'index.json').read_text())['us']['drain']
-        want = 0.3 + (idx[2] - idx[1])  # silence, then the word; then a little of the gap after it
-        check(dev, 'iPhone: the clip is audio/aac with 0.3 s of silence, the whole word and a little after, and it plays to its end',
-              info and info['type'].startswith('audio/aac') and want <= info['dur'] <= want + 0.4 and info['ended'], (info, want))
+        want = 0.2 + (idx[2] - idx[1])  # silence, then the word (its quiet tail trimmed, to the end of a frame)
+        check(dev, 'iPhone: the clip is audio/aac with 0.2 s of silence and the whole word, and it plays to its end',
+              info and info['type'].startswith('audio/aac') and want - 0.12 <= info['dur'] <= want + 0.15 and info['ended'], (info, want))
         # no clip from the server (an older server, an error): the word plays from its sprite, as before
         ip.route('**/*.aac*', lambda r: r.fulfill(status=404, content_type='application/json', body='{}'))
         ip.reload(wait_until='load'); settle(ip, '#reader'); ip.wait_for_timeout(600); away()
@@ -1455,6 +1479,16 @@ def listen_speak_run(pw):
             dev = 'ls-' + size
             ctx = browser.new_context(**opts, locale='zh-CN', bypass_csp=True)
             ctx.grant_permissions(['microphone'], origin=BASE)
+            # every microphone stream the page opens, to check each one is let go when its recording ends (an iPhone
+            # plays everything through the earpiece while one is open); the one-time 「要用一下麦克风」 sheet: on the phone
+            ctx.add_init_script("""(() => { const md = navigator.mediaDevices; if (!md || !md.getUserMedia) return; window.__mics = [];
+                const g = md.getUserMedia.bind(md); md.getUserMedia = c => g(c).then(s => { window.__mics.push(s); return s; }); })()""")
+            # Chrome has no navigator.audioSession (iOS 16.4+): a stand-in that remembers what the page set it to
+            ctx.add_init_script("""(() => { if (navigator.audioSession) return; let t = 'auto';
+                Object.defineProperty(navigator, 'audioSession', { configurable: true, value: { get type() { return t; }, set type(v) { t = v; } } }); })()""")
+            if size != 'phone':
+                ctx.add_init_script("try { localStorage.setItem('flow-mic-explained', '1'); } catch (e) {}")
+            mic_free = "window.__mics.length > 0 && window.__mics.every(s => s.getTracks().every(t => t.readyState === 'ended'))"
             ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners'][learner]['token'], 'url': BASE}])
             pg = ctx.new_page(); errors = []
             pg.on('pageerror', lambda e: errors.append(str(e)))
@@ -1466,8 +1500,19 @@ def listen_speak_run(pw):
 
             # 跟读: record the first sentence, AI 点评 -> 发音分 with 准确 / 流利 / 完整 and the sound to practise
             go(pg, f'#/m/{PID}/listen'); pg.click('[data-mode="shadow"]'); pg.wait_for_selector('.line.sh.cur [data-r="0"]')
-            pg.click('[data-r="0"]'); pg.wait_for_selector('[data-r="0"].on', timeout=5000); pg.wait_for_timeout(1200); pg.click('[data-r="0"]')
-            pg.wait_for_selector('[data-ai="0"]:not([disabled])', timeout=5000); pg.click('[data-ai="0"]')
+            pg.click('[data-r="0"]')
+            if size == 'phone':  # the first time on a device: why the microphone is asked for, then a fresh tap records
+                pg.wait_for_selector('#micGo', timeout=3000)
+                sh = pg.text_content('#sheetCard') or ''
+                check(dev, '麦克风: the first time, a sheet says when it is open and that iPhones ask again', '只在你点' in sh and 'iOS 的规定' in sh, sh[:90])
+                pg.click('#micGo')
+            pg.wait_for_selector('[data-r="0"].on', timeout=5000); pg.wait_for_timeout(1200)
+            during = pg.evaluate('navigator.audioSession.type'); pg.click('[data-r="0"]')
+            pg.wait_for_selector('[data-ai="0"]:not([disabled])', timeout=5000)
+            check(dev, '跟读: the microphone is let go when the recording ends', pg.evaluate(mic_free), pg.evaluate('window.__mics.length'))
+            after = pg.evaluate('navigator.audioSession.type')
+            check(dev, '跟读: iPhone audio session is play-and-record while recording, playback after', (during, after) == ('play-and-record', 'playback'), (during, after))
+            pg.click('[data-ai="0"]')
             pg.wait_for_selector('.line[data-i="0"] .sh-res .pron', timeout=10000); pg.wait_for_timeout(400)
             r = pg.evaluate("""() => { const o = document.querySelector('.line[data-i="0"] .sh-res'), n = o.querySelector('.pron-n'), chip = document.querySelector('[data-sc="0"]');
                 const link = o.querySelector('.snd a'); return {n: n && n.textContent, est: o.textContent.includes('AI 听录音给的估计'), bars: [...o.querySelectorAll('.pron .ab .nm')].map(x => x.textContent),
@@ -1540,6 +1585,8 @@ def listen_speak_run(pw):
             check(dev, 'Part 2: recording starts with a two-minute clock and the notes kept', pg.text_content('#p2T') in ('2:00', '1:59') and 'grandma' in (pg.text_content('.p2-kept') or ''))
             pg.wait_for_timeout(5600); lay('Part 2 recording'); shot('ielts-p2-talk'); pg.click('#p2Done')
             pg.wait_for_selector('#ieOut .ielts-fb', timeout=15000); pg.wait_for_timeout(400)
+            check(dev, 'Part 2: the microphone is let go when the talk ends', pg.evaluate(mic_free), pg.evaluate('window.__mics.length'))
+            check(dev, 'Part 2: the audio session is back to playback for the feedback', pg.evaluate('navigator.audioSession.type') == 'playback')
             f = pg.evaluate("""() => { const o = document.querySelector('#ieOut'); return {overall: o.querySelector('.ielts-overall b').textContent, p: [...o.querySelectorAll('.crit .lv')].map(x => x.textContent)[3],
                 said: (o.querySelector('details summary') || {}).textContent || '', cov: o.querySelectorAll('.ok-mark, .bad-mark').length}; }""")
             check(dev, 'Part 2 feedback: spoken, so 发音 is judged; what was said, with its length', f['overall'] == '约 6.0' and f['p'] == '6.0' and 'AI 转写' in f['said'] and '0:0' in f['said'], f)
@@ -1562,10 +1609,17 @@ def listen_speak_run(pw):
             check(dev, '口语情景: round 2 shows the round and its extra requirement', '第 2 轮' in hd[0] and '这一轮多一条' in hd[1], hd)
             l3 = p3.evaluate(LAYOUT_JS, touch); check(dev, '口语情景 round 2: no sideways scroll', l3['overflow'] <= 1, f"{l3['overflow']}px {l3['wide']}")
             p3.click('#dlgStart'); p3.wait_for_selector('#chat .msg.ai', timeout=8000)
-            if size == 'phone':  # the AI's line is said by the server voice (an mp3 made once and stored), not the browser voice
+            if size == 'phone':  # the AI's line is said by the server voice (an mp3 made once and stored), not the browser voice,
+                # in its role's voice: the barista is a woman, the accent is the learner's (set to uk-m for this check, then back)
                 p3.wait_for_function("performance.getEntriesByType('resource').some(e => e.name.includes('/api/next/tts'))", timeout=8000)
                 src = p3.evaluate("new Promise(r => setTimeout(() => r(performance.getEntriesByType('resource').filter(e => e.name.includes('/audio/tts/')).map(e => e.name.split('/audio/')[1])), 1200))")
                 check(dev, '口语情景: the AI line is spoken by the server voice', bool(src) and src[0].startswith('tts/us-f/') and src[0].endswith('.mp3'), src)
+                set_voice = "([v, csrf]) => fetch('/api/next/voice', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf}, body: JSON.stringify({voice: v})}).then(r => r.status)"
+                p3.evaluate(set_voice, ['uk-m', me3['csrf']])
+                rv = p3.evaluate("([csrf]) => fetch('/api/next/dialog', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf}, "
+                                 "body: JSON.stringify({scenario: 'cafe-order', history: [], request_id: 'ui-role-voice-01'})}).then(r => r.json()).then(j => j.result.voice)", [me3['csrf']])
+                p3.evaluate(set_voice, ['us-f', me3['csrf']])
+                check(dev, '口语情景: the role has its own voice, in the learner\'s accent (barista: uk-f for a uk-m learner)', rv == 'uk-f', rv)
             p3.fill('#dlgText', 'yes'); p3.click('#dlgSend'); p3.wait_for_selector('#chat .msg.me .pace', timeout=8000)
             sl = p3.evaluate("() => [document.querySelector('#chat .msg.me .pace').dataset.pace, document.querySelector('#chat .msg.me .pace').textContent, (document.querySelector('#dlgHint .say-line b') || {}).textContent || '']")
             check(dev, '口语情景: a one-word answer slows the AI down, says so, and offers a sentence to use', sl[0] == 'easier' and '放慢' in sl[1] and len(sl[2].split()) >= 3, sl)
@@ -1575,10 +1629,26 @@ def listen_speak_run(pw):
             check(dev, '口语情景: a long, correct answer makes the AI go deeper', pc == ['easier', 'harder'], pc)
             l3 = p3.evaluate(LAYOUT_JS, touch); check(dev, '口语情景 with pace notes: no sideways scroll', l3['overflow'] <= 1, f"{l3['overflow']}px {l3['wide']}")
             p3.screenshot(path=str(OUT / f'{dev}-scene-round2.png'), full_page=False)
+            if size == 'desktop':  # 说完就显示进度: a slow reply shows what is happening and for how long; a failed one gives the answer back
+                # the reply held back 2.2 s in the page (a blocking route handler would stall the test's own event loop)
+                p3.evaluate("""() => { const f = window.fetch; window.__slow = true;
+                    window.fetch = (u, o) => (window.__slow && String(u).includes('/api/next/dialog')) ? new Promise(r => setTimeout(r, 2200)).then(() => f(u, o)) : f(u, o); }""")
+                p3.fill('#dlgText', 'And a small croissant, please.'); p3.click('#dlgSend')
+                p3.wait_for_selector('#chat .dlg-wait', timeout=3000); p3.wait_for_timeout(1300)
+                wt = p3.text_content('#chat .dlg-wait') or ''
+                p3.wait_for_function("document.querySelectorAll('#chat .msg.me').length >= 3", timeout=8000)
+                check(dev, '口语情景: while the reply is on its way, a line says so with the seconds, gone when it comes',
+                      '对方正在回' in wt and '1 秒' in wt and not p3.query_selector('#chat .dlg-wait'), wt)
+                p3.evaluate('window.__slow = false')
+                p3.route('**/api/next/dialog', lambda route: route.fulfill(status=502, json={'error': 'AI 服务暂时繁忙'}))
+                p3.fill('#dlgText', 'Can I pay by card?'); p3.click('#dlgSend'); p3.wait_for_timeout(800)
+                check(dev, '口语情景: an answer that did not get through goes back into the box', p3.input_value('#dlgText') == 'Can I pay by card?' and not p3.query_selector('#chat .dlg-wait'))
+                p3.unroute('**/api/next/dialog'); p3.fill('#dlgText', '')
             if size == 'desktop':  # the end of the round: whether the requirement was met, and how often the AI adjusted
                 p3.click('#dlgEnd'); p3.wait_for_selector('#dlgOut .result', timeout=10000)
                 end = p3.text_content('#dlgOut') or ''
                 check(dev, '口语情景: the feedback says the requirement was met and how the AI adjusted', '这一轮的要求' in end and '做到了' in end and '放慢了 1 次' in end and '加深了 1 次' in end, end[:160])
+                check(dev, '口语情景: 「放进错题本」 said once, not twice', end.count('放进错题本') <= 1, end.count('放进错题本'))
             c3.close()
             check(dev, 'no script errors', not errors, errors[:3])
             ctx.close()
