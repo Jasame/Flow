@@ -1,0 +1,317 @@
+[
+ {
+  "id": "v5-travel-c1-first-hour-in-a-new-city",
+  "title": "到陌生城市的第一个小时",
+  "title_en": "Your First Hour in an Unfamiliar City",
+  "summary_zh": "刚到一座陌生城市，第一个小时常常在找路、找电、找车中手忙脚乱。这篇指南告诉你出发前准备什么、到了以后按什么顺序做，让旅程有个从容的开头。读完你能用 Only then… 等句式给出有条理的建议。",
+  "level": "B2",
+  "cefr": "C1",
+  "theme": "travel",
+  "genre": "guide",
+  "purposes": [
+   "daily-life",
+   "expository"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "The first hour in an unfamiliar city tends to set the mood for the whole trip, and it is often spent badly: dragging a suitcase in the wrong direction, squinting at a phone that is about to die, and paying too much for a taxi out of sheer exhaustion. A little preparation, most of it done before you leave home, can turn that hour into something calmer. Start by deciding how you will get from the station or airport to your bed, and write it down somewhere that does not depend on a signal. A screenshot of the route, the name of the stop in the local script and the address of your accommodation will rescue you more often than any app. It is also worth carrying a small amount of local cash, since the ticket machine you need will inevitably be the one that refuses your card. Once you arrive, resist the urge to rush. Find somewhere to stand out of the flow of people, take a breath and look for signs before you start walking; travellers who set off confidently in the wrong direction lose far more time than those who pause for a minute. If you are unsure, ask someone who looks as though they work there rather than a fellow passenger, who may be just as lost as you are. Next, deal with the practical things in a sensible order: charge your phone, buy water, and check that your accommodation knows you are coming. Only then should you think about sightseeing, however tempting the view from the station steps may be. Finally, give yourself permission to do something small and pleasant within that first hour, such as sitting in a café or walking around the block. It sounds trivial, but a city you have already enjoyed for twenty minutes feels far less intimidating than one you have only fought your way through. The aim is not to plan every moment of the trip, but to make sure that the beginning does not decide how the rest of it feels.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the main purpose of the text?",
+    "options": [
+     "To recommend the best travel apps",
+     "To suggest ways of making the first hour in a new city less stressful",
+     "To argue that taxis are always too expensive",
+     "To describe the writer's worst trip"
+    ],
+    "answer": 1,
+    "evidence": "A little preparation, most of it done before you leave home, can turn that hour into something calmer."
+   },
+   {
+    "type": "inference",
+    "prompt": "Why does the writer suggest asking someone who works there rather than a fellow passenger?",
+    "options": [
+     "Staff are paid to give directions to tourists",
+     "Passengers are usually unfriendly",
+     "Other passengers may know no more than you do",
+     "Staff always speak several languages"
+    ],
+    "answer": 2,
+    "evidence": "who may be just as lost as you are"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"intimidating\" mean in \"far less intimidating\"?",
+    "options": [
+     "frightening, making you feel nervous",
+     "expensive",
+     "crowded",
+     "boring"
+    ],
+    "answer": 0,
+    "evidence": "feels far less intimidating than one you have only fought your way through"
+   },
+   {
+    "type": "detail",
+    "prompt": "Why does the writer advise carrying a little local cash?",
+    "options": [
+     "Taxis only accept cash",
+     "Cafés do not take phone payments",
+     "It is required at the border",
+     "The ticket machine you need may refuse your card"
+    ],
+    "answer": 3,
+    "evidence": "the ticket machine you need will inevitably be the one that refuses your card"
+   }
+  ],
+  "dictation_index": 1,
+  "vocabulary": [
+   {
+    "term": "exhaustion",
+    "meaning": "筋疲力尽",
+    "example": "After the long flight, exhaustion hit me all at once."
+   },
+   {
+    "term": "inevitably",
+    "meaning": "不可避免地；总是",
+    "example": "The one day I forget my umbrella, it inevitably rains."
+   },
+   {
+    "term": "trivial",
+    "meaning": "琐碎的；不重要的",
+    "example": "It seemed trivial at the time, but it changed my mood."
+   },
+   {
+    "term": "intimidating",
+    "meaning": "令人胆怯的",
+    "example": "A big new office can be intimidating on your first day."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "set the mood",
+    "meaning": "定下基调",
+    "note": "set the mood for… 常用来说开头对整体气氛的影响：Good music sets the mood for a party."
+   },
+   {
+    "text": "out of sheer exhaustion",
+    "meaning": "纯粹因为太累",
+    "note": "out of + 名词 表示原因，sheer 强调“完全是”：out of sheer curiosity。"
+   },
+   {
+    "text": "resist the urge to",
+    "meaning": "忍住……的冲动",
+    "note": "比 don't 更生动：Resist the urge to check your phone."
+   },
+   {
+    "text": "out of the flow of people",
+    "meaning": "避开人流",
+    "note": "flow 指人流、车流；out of the flow 就是站到一边，不挡路。"
+   },
+   {
+    "text": "give yourself permission to",
+    "meaning": "允许自己……",
+    "note": "常用于建议放松、别太苛求自己：Give yourself permission to rest."
+   },
+   {
+    "text": "fought your way through",
+    "meaning": "费力地穿过",
+    "note": "fight one's way through a crowd / a city，形象地说“挤过去”。"
+   }
+  ],
+  "grammar": [
+   "emph-inversion",
+   "clause-relative",
+   "nonfinite-gerund"
+  ],
+  "knowledge": [
+   {
+    "node": "emph-inversion",
+    "quote": "Only then should you think about sightseeing",
+    "explanation": "Only then 放在句首时，后面要部分倒装（should you think），强调“只有到那时才”。正式的建议和说明里常见。"
+   },
+   {
+    "node": "clause-relative",
+    "quote": "ask someone who looks as though they work there rather than a fellow passenger",
+    "explanation": "who looks as though they work there 修饰 someone；as though 引出“看起来像……”的样子。"
+   },
+   {
+    "node": "nonfinite-gerund",
+    "quote": "dragging a suitcase in the wrong direction, squinting at a phone that is about to die, and paying too much for a taxi",
+    "explanation": "冒号后面用三个并列的 -ing 结构，具体说明“第一个小时”是怎么过的，节奏整齐。"
+   }
+  ],
+  "speaking": "用 1 分钟说说：你到一座陌生城市，第一个小时一般怎么过？给第一次出远门的朋友三条建议。用上 resist the urge to 和 set the mood。",
+  "writing": "用 200–250 词写一份「到达新城市的第一小时」指南，按先后顺序给出建议。至少用一个 Only then… 倒装句和一个 who 定语从句。",
+  "task": {
+   "prompt": "仿照这句，用 Only then should you … 写一句话，给别人一个按顺序做事的建议。",
+   "model": "Only then should you think about sightseeing"
+  },
+  "tags": [
+   "旅行指南",
+   "生活技巧"
+  ],
+  "source": "Flow 编辑部原创"
+ },
+ {
+  "id": "v5-travel-c1-night-bus-over-the-pass",
+  "title": "翻山的夜班车",
+  "title_en": "The Night Bus Over the Pass",
+  "summary_zh": "为了省钱选了夜班大巴：晚点、拌嘴、半夜路边的甜茶，还有一位递来毯子的老太太。天亮翻过山口时，作者明白了为什么这段路比飞机更难忘。读完你能用倒装虚拟句讲好一个旅行故事。",
+  "level": "B2",
+  "cefr": "C1",
+  "theme": "travel",
+  "genre": "story",
+  "purposes": [
+   "story",
+   "daily-life"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "The night bus was supposed to leave at nine, but by half past ten the driver was still arguing cheerfully with a man who wanted to bring a crate of live chickens on board. I had chosen the bus over the morning flight to save money, and as I watched the dispute unfold I began to suspect that I had made a mistake. When we finally pulled out of the town, the chickens had been relegated to the luggage hold and most passengers had wrapped themselves in blankets as though they had done this many times before. The road climbed almost immediately, twisting back on itself so sharply that the headlights kept sweeping across the faces of the people opposite me. Somewhere near midnight we stopped at a roadside stall lit by a single bulb, where a woman was selling sweet tea from an enormous kettle. Nobody seemed to be in a hurry, and the driver, who had been so animated earlier, sat on an upturned bucket and stared at the stars. An elderly passenger noticed me shivering and, without saying a word, handed me a spare blanket that smelled faintly of wood smoke. I tried to thank her in my clumsy version of the local language, and she laughed so warmly that I suspected I had said something entirely different. For the next few hours I drifted in and out of sleep, waking now and then to see moonlit snow on the slopes and the lights of tiny villages far beneath us. At dawn the bus crested the pass, and the whole valley on the other side came into view, pale gold and utterly silent. Several passengers applauded, though whether they were cheering the view or the driver I never found out. Had I taken the flight, I would have arrived rested and on time, and I would have remembered nothing about the journey at all. As it is, I still have the blanket, which the woman refused to take back when we arrived, and I still think of that kettle whenever someone tells me that a bus is just a slower way of getting somewhere.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the story mainly about?",
+    "options": [
+     "The writer's fear of flying",
+     "A slow, uncomfortable bus journey that became a memorable experience",
+     "An argument about a crate of chickens",
+     "How to save money on travel"
+    ],
+    "answer": 1,
+    "evidence": "I would have remembered nothing about the journey at all"
+   },
+   {
+    "type": "inference",
+    "prompt": "Why does the writer suspect they \"had said something entirely different\"?",
+    "options": [
+     "The woman's laughter suggested the words had come out wrong",
+     "The writer spoke the language perfectly",
+     "The woman looked angry",
+     "The driver corrected the writer"
+    ],
+    "answer": 0,
+    "evidence": "she laughed so warmly that I suspected I had said something entirely different"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"relegated\" mean in \"the chickens had been relegated to the luggage hold\"?",
+    "options": [
+     "set free",
+     "sold to another passenger",
+     "counted carefully",
+     "moved to a less important place"
+    ],
+    "answer": 3,
+    "evidence": "the chickens had been relegated to the luggage hold"
+   },
+   {
+    "type": "detail",
+    "prompt": "What did the elderly passenger give the writer?",
+    "options": [
+     "A cup of sweet tea",
+     "A seat by the window",
+     "A spare blanket",
+     "A map of the pass"
+    ],
+    "answer": 2,
+    "evidence": "handed me a spare blanket that smelled faintly of wood smoke"
+   }
+  ],
+  "dictation_index": 9,
+  "vocabulary": [
+   {
+    "term": "dispute",
+    "meaning": "争执；纠纷",
+    "example": "The dispute over the parking space lasted all morning."
+   },
+   {
+    "term": "relegated",
+    "meaning": "被降到（次要的位置）",
+    "example": "The old sofa was relegated to the garage."
+   },
+   {
+    "term": "shivering",
+    "meaning": "发抖",
+    "example": "We stood at the bus stop, shivering in the wind."
+   },
+   {
+    "term": "crested",
+    "meaning": "到达（山顶、坡顶）",
+    "example": "The car crested the hill and the sea appeared below."
+   },
+   {
+    "term": "applauded",
+    "meaning": "鼓掌",
+    "example": "The audience applauded for a full minute."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "pulled out of",
+    "meaning": "（车）驶离",
+    "note": "The train pulled out of the station on time."
+   },
+   {
+    "text": "without saying a word",
+    "meaning": "一句话也没说",
+    "note": "描写动作时很生动：She left without saying a word."
+   },
+   {
+    "text": "in and out of sleep",
+    "meaning": "时睡时醒",
+    "note": "drift in and out of sleep，长途旅行或生病时常用。"
+   },
+   {
+    "text": "now and then",
+    "meaning": "时不时",
+    "note": "和 every now and then 意思相同，口语和故事里都常见。"
+   },
+   {
+    "text": "came into view",
+    "meaning": "出现在眼前",
+    "note": "come into view 表示“进入视线”：The castle came into view."
+   },
+   {
+    "text": "As it is",
+    "meaning": "实际上；事实是",
+    "note": "常接在虚拟句后面，把话拉回现实：As it is, we arrived late."
+   }
+  ],
+  "grammar": [
+   "subjunctive-past",
+   "clause-nondefining",
+   "tense-past-perfect"
+  ],
+  "knowledge": [
+   {
+    "node": "subjunctive-past",
+    "quote": "Had I taken the flight, I would have arrived rested and on time",
+    "explanation": "省略 if、把 had 提前，表示与过去事实相反的假设（= If I had taken the flight）；主句用 would have arrived。"
+   },
+   {
+    "node": "clause-nondefining",
+    "quote": "a roadside stall lit by a single bulb, where a woman was selling sweet tea from an enormous kettle",
+    "explanation": "逗号后的 where 是非限制性定语从句，补充说明这个小摊上的情景；lit by a single bulb 是过去分词作后置定语。"
+   },
+   {
+    "node": "tense-past-perfect",
+    "quote": "I had chosen the bus over the morning flight to save money",
+    "explanation": "过去完成时 had chosen 表示在“看着争吵”之前就已经做了的选择，交代故事的背景。"
+   }
+  ],
+  "speaking": "用 1 分钟讲一次「慢旅行」或坐长途车的经历：有什么意外的收获？用上 now and then 和 came into view。",
+  "writing": "用 200–250 词写一段旅行回忆，写一次不太舒服却难忘的路程。用一个 Had I…, I would have… 倒装虚拟句，最后用 As it is… 收尾。",
+  "task": {
+   "prompt": "仿照这句，用 Had I …, I would have … 写一句话，说说一个让你庆幸的「错误」选择。",
+   "model": "Had I taken the flight, I would have arrived rested and on time"
+  },
+  "tags": [
+   "旅行故事",
+   "慢旅行"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

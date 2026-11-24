@@ -1,0 +1,157 @@
+[
+ {
+  "id": "v5-culture-b2-films-better-at-home",
+  "title": "有些电影，在家看更好",
+  "title_en": "Some Films Are Better at Home",
+  "summary_zh": "影迷常说电影只有在大银幕上才算看过。作者却觉得，安静的文艺片在家看反而更能看出细节，还能暂停讨论。读完你能用让步和虚拟语气写一篇有分寸的影视观点文。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "culture",
+  "genre": "opinion",
+  "purposes": [
+   "film-culture",
+   "argumentative"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Cinema lovers often insist that a film can only be properly experienced on a big screen, surrounded by strangers in the dark. For spectacular action films, they have a point. Yet I have come to believe that some films are actually better at home, and it has little to do with the size of the screen. Quiet dramas, for example, often depend on small details: a pause before an answer, a glance across a room, a line spoken almost in a whisper. In a crowded cinema, those moments compete with rustling snack bags and the glow of someone checking a phone. At home, with the lights low and no one around, it is easier to notice them. Home viewing also lets you pause, which purists dislike but which can be a gift with a complicated story. Stopping to discuss a confusing scene with a friend, or rewinding a line you missed, can turn watching into a conversation. Subtitles, too, are easier to follow when you control the pace. Of course, something is lost. Laughing with a hundred strangers at the same joke is a pleasure no sofa can copy, and a cinema protects you from the temptation to look at your own phone. But the question should not be which place is better in general; it should be which place suits a particular film. If cinemas and living rooms stopped being treated as rivals, we might simply choose the right room for each story, the way we choose quiet music for some evenings and loud music for others.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the writer's main argument?",
+    "options": [
+     "Cinemas should close down",
+     "Action films are boring at home",
+     "Some films, especially quiet ones, can be better watched at home",
+     "Watching at home is always better"
+    ],
+    "answer": 2,
+    "evidence": "some films are actually better at home"
+   },
+   {
+    "type": "inference",
+    "prompt": "Why does the writer mention music at the end?",
+    "options": [
+     "To recommend film soundtracks",
+     "To show that the place should depend on what you are watching",
+     "To complain about loud cinemas",
+     "To compare the prices of music and films"
+    ],
+    "answer": 1,
+    "evidence": "choose the right room for each story"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"rustling\" mean in \"rustling snack bags\"?",
+    "options": [
+     "making a soft, crackling noise",
+     "shining brightly",
+     "smelling strongly",
+     "falling to the floor"
+    ],
+    "answer": 0,
+    "evidence": "rustling snack bags"
+   },
+   {
+    "type": "detail",
+    "prompt": "What does the writer say a cinema protects you from?",
+    "options": [
+     "Expensive snacks",
+     "Bad subtitles",
+     "Noisy neighbours at home",
+     "The temptation to look at your own phone"
+    ],
+    "answer": 3,
+    "evidence": "a cinema protects you from the temptation to look at your own phone"
+   }
+  ],
+  "dictation_index": 5,
+  "vocabulary": [
+   {
+    "term": "spectacular",
+    "meaning": "壮观的",
+    "example": "The fireworks were spectacular this year."
+   },
+   {
+    "term": "glance",
+    "meaning": "一瞥",
+    "example": "She gave me a quick glance and smiled."
+   },
+   {
+    "term": "rustling",
+    "meaning": "沙沙作响的",
+    "example": "I could hear rustling paper in the back row."
+   },
+   {
+    "term": "rewinding",
+    "meaning": "倒回",
+    "example": "Try rewinding the video to the start."
+   },
+   {
+    "term": "temptation",
+    "meaning": "诱惑",
+    "example": "It is hard to resist the temptation to check messages."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "have a point",
+    "meaning": "有道理",
+    "note": "You have a point, but I still disagree."
+   },
+   {
+    "text": "has little to do with",
+    "meaning": "和……关系不大",
+    "note": "Success has little to do with luck."
+   },
+   {
+    "text": "in a whisper",
+    "meaning": "低声地",
+    "note": "She told me the news in a whisper."
+   },
+   {
+    "text": "compete with",
+    "meaning": "与……竞争；争夺注意力",
+    "note": "Small shops find it hard to compete with big chains."
+   },
+   {
+    "text": "in general",
+    "meaning": "总的来说；笼统地说",
+    "note": "In general, I prefer quieter places."
+   }
+  ],
+  "grammar": [
+   "tense-perfect",
+   "nonfinite-gerund",
+   "subjunctive-now"
+  ],
+  "knowledge": [
+   {
+    "node": "tense-perfect",
+    "quote": "I have come to believe that some films are actually better at home",
+    "explanation": "have come to believe 用现在完成时，表示看法是慢慢形成、一直延续到现在的。"
+   },
+   {
+    "node": "nonfinite-gerund",
+    "quote": "Stopping to discuss a confusing scene with a friend, or rewinding a line you missed, can turn watching into a conversation.",
+    "explanation": "两个动名词短语用 or 连接，一起作主语；turn A into B 表示“把 A 变成 B”。"
+   },
+   {
+    "node": "subjunctive-now",
+    "quote": "If cinemas and living rooms stopped being treated as rivals, we might simply choose the right room for each story",
+    "explanation": "与现在事实相反的假设：现在两者还被当成对手，所以 if 从句用过去式 stopped，主句用 might choose。"
+   }
+  ],
+  "speaking": "用 1 分钟说说：你更喜欢在电影院还是在家看电影？什么样的片子适合在哪儿看？用上 have a point 和 in general。",
+  "writing": "用 120–150 词写一篇短评：电影院和在家看，各适合什么样的片子？用一个 If… stopped…, we might… 虚拟句。",
+  "task": {
+   "prompt": "仿照这句，用 I have come to believe that … 写一句话，说说你的一个看法是怎样慢慢形成的。",
+   "model": "I have come to believe that some films are actually better at home"
+  },
+  "tags": [
+   "影视文化",
+   "观点评论"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

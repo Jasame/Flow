@@ -1,0 +1,161 @@
+[
+ {
+  "id": "v5-science-a2-lightning-before-thunder",
+  "title": "为什么先看到闪电，再听到雷声",
+  "title_en": "Why We See Lightning Before We Hear Thunder",
+  "summary_zh": "闪电和雷声其实是同时发生的，可我们总是先看到光、过几秒才听到声音。原因是光比声音快得多。读完你会用数秒的办法估算雷雨离你多远，也能用比较级和 if 句子解释一个现象。",
+  "level": "A2",
+  "cefr": "A2",
+  "theme": "science",
+  "genre": "explainer",
+  "purposes": [
+   "expository"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "During a storm, you often see a flash of lightning first. A few seconds later, you hear the thunder. But they happen at the same time. So why don't we see and hear them together? The answer is speed. Light travels very, very fast. It reaches your eyes almost at once. Sound is much slower. It needs about three seconds to travel one kilometre. This means you can guess how far away a storm is. When you see the lightning, start counting slowly. Stop when you hear the thunder. If you count six seconds, the storm is about two kilometres away. If the time between them gets shorter, the storm is coming closer, so it is a good idea to go inside.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What does the text explain?",
+    "options": [
+     "How lightning starts",
+     "Why we hear thunder after we see lightning",
+     "How to take photos of storms",
+     "Why storms happen in summer"
+    ],
+    "answer": 1,
+    "evidence": "So why don't we see and hear them together?"
+   },
+   {
+    "type": "inference",
+    "prompt": "Why do we see the lightning first?",
+    "options": [
+     "Lightning happens earlier than thunder",
+     "Our eyes work better than our ears",
+     "Thunder is very quiet at first",
+     "Light travels much faster than sound"
+    ],
+    "answer": 3,
+    "evidence": "Light travels very, very fast."
+   },
+   {
+    "type": "vocab",
+    "prompt": "What is a \"flash\" in \"a flash of lightning\"?",
+    "options": [
+     "a sudden, short bright light",
+     "a loud noise",
+     "heavy rain",
+     "a strong wind"
+    ],
+    "answer": 0,
+    "evidence": "you often see a flash of lightning first"
+   },
+   {
+    "type": "detail",
+    "prompt": "If you count six seconds, how far away is the storm?",
+    "options": [
+     "About six kilometres",
+     "About three kilometres",
+     "About two kilometres",
+     "Less than one kilometre"
+    ],
+    "answer": 2,
+    "evidence": "If you count six seconds, the storm is about two kilometres away."
+   }
+  ],
+  "dictation_index": 8,
+  "vocabulary": [
+   {
+    "term": "flash",
+    "meaning": "闪光",
+    "example": "I saw a flash of light in the sky."
+   },
+   {
+    "term": "lightning",
+    "meaning": "闪电",
+    "example": "The lightning lit up the whole street."
+   },
+   {
+    "term": "thunder",
+    "meaning": "雷声",
+    "example": "The dog is afraid of thunder."
+   },
+   {
+    "term": "storm",
+    "meaning": "暴风雨",
+    "example": "The storm lasted all night."
+   },
+   {
+    "term": "travel",
+    "meaning": "（光、声音）传播",
+    "example": "Sound can travel through water."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "at the same time",
+    "meaning": "同时",
+    "note": "We both laughed at the same time."
+   },
+   {
+    "text": "almost at once",
+    "meaning": "几乎立刻",
+    "note": "The water boiled almost at once."
+   },
+   {
+    "text": "how far away",
+    "meaning": "多远",
+    "note": "How far away is the station?"
+   },
+   {
+    "text": "start counting",
+    "meaning": "开始数",
+    "note": "start + -ing 表示开始做某事。"
+   },
+   {
+    "text": "it is a good idea to",
+    "meaning": "最好……",
+    "note": "It is a good idea to take an umbrella."
+   },
+   {
+    "text": "coming closer",
+    "meaning": "越来越近",
+    "note": "The train is coming closer."
+   }
+  ],
+  "grammar": [
+   "compare-basic",
+   "conditional-real",
+   "clause-adverb"
+  ],
+  "knowledge": [
+   {
+    "node": "compare-basic",
+    "quote": "Sound is much slower.",
+    "explanation": "much + 比较级 slower 表示“慢得多”：和光比，声音慢很多。"
+   },
+   {
+    "node": "conditional-real",
+    "quote": "If you count six seconds, the storm is about two kilometres away.",
+    "explanation": "真实条件句：if 从句和主句都用一般现在时，说一个总是成立的估算方法。"
+   },
+   {
+    "node": "clause-adverb",
+    "quote": "When you see the lightning, start counting slowly.",
+    "explanation": "When 引导时间状语从句；后半句是祈使句 start counting…，告诉你该怎么做。"
+   }
+  ],
+  "speaking": "用 1 分钟给家人解释：打雷时为什么先看到闪电再听到雷声？怎么估算雷雨离你多远？用上 at the same time 和 much faster。",
+  "writing": "用 50–70 词写一段话，解释一个和速度有关的日常现象（如回声、闪电、跑步比赛），至少用一个比较级和一个 If… 句子。",
+  "task": {
+   "prompt": "仿照这句，用 If you …, … is about … 写一句话，教别人一个简单的估算方法。",
+   "model": "If you count six seconds, the storm is about two kilometres away."
+  },
+  "tags": [
+   "自然科学",
+   "日常科学"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

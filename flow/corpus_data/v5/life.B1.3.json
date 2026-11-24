@@ -1,0 +1,157 @@
+[
+ {
+  "id": "v5-life-b1-pocket-money",
+  "title": "孩子该不该有零花钱",
+  "title_en": "Should Children Get Pocket Money?",
+  "summary_zh": "该不该每周给孩子零花钱？作者认为应该：少量、固定、让孩子自己做主，才能学会管钱。读完你能用 should、if 和 instead of 表达并支持自己的观点。",
+  "level": "B1",
+  "cefr": "B1",
+  "theme": "life",
+  "genre": "opinion",
+  "purposes": [
+   "argumentative",
+   "daily-life"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Parents often disagree about whether children should get pocket money. Some think it teaches children to expect money for nothing, while others see it as a useful lesson. In my view, a small amount of pocket money each week is one of the best ways for children to learn about money. The main reason is practice. Adults have to plan, save and sometimes say no to things they want. Children can only learn these skills if they have real money to manage. If a child spends all their money on sweets on Monday, they will have nothing left on Friday. That is a small mistake, but it is a much cheaper lesson at eight than at twenty-eight. Pocket money can also help children save for something bigger, like a book or a football, instead of asking their parents for it. Of course, the amount should be small, and it should match the family's budget. Some families link it to jobs around the house, which can work well. However, I think simple jobs like making your bed should be done anyway, without payment. What matters most is that children make their own choices, even when those choices are not perfect.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the writer's main opinion?",
+    "options": [
+     "Children should never have their own money",
+     "Parents should pay children for every job",
+     "A small weekly amount of pocket money helps children learn about money",
+     "Pocket money should be spent on books only"
+    ],
+    "answer": 2,
+    "evidence": "a small amount of pocket money each week is one of the best ways for children to learn about money"
+   },
+   {
+    "type": "inference",
+    "prompt": "Why does the writer say the mistake is \"cheaper at eight than at twenty-eight\"?",
+    "options": [
+     "Sweets cost less for children",
+     "Learning from small mistakes early costs less than learning later",
+     "Adults never make money mistakes",
+     "Children get more money than adults"
+    ],
+    "answer": 1,
+    "evidence": "it is a much cheaper lesson at eight than at twenty-eight"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"budget\" mean in \"match the family's budget\"?",
+    "options": [
+     "the money a family has to spend",
+     "the size of a family",
+     "a family holiday",
+     "a shopping list"
+    ],
+    "answer": 0,
+    "evidence": "it should match the family's budget"
+   },
+   {
+    "type": "detail",
+    "prompt": "What does the writer think about simple jobs like making your bed?",
+    "options": [
+     "Children should be paid for them",
+     "Only parents should do them",
+     "They are not important",
+     "They should be done without payment"
+    ],
+    "answer": 3,
+    "evidence": "simple jobs like making your bed should be done anyway, without payment"
+   }
+  ],
+  "dictation_index": 5,
+  "vocabulary": [
+   {
+    "term": "manage",
+    "meaning": "管理；处理",
+    "example": "It is not easy to manage a busy week."
+   },
+   {
+    "term": "budget",
+    "meaning": "预算",
+    "example": "We are on a tight budget this month."
+   },
+   {
+    "term": "payment",
+    "meaning": "报酬；付款",
+    "example": "He did the work without payment."
+   },
+   {
+    "term": "perfect",
+    "meaning": "完美的",
+    "example": "Nobody is perfect."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "money for nothing",
+    "meaning": "不劳而获的钱",
+    "note": "说钱来得太容易，不用付出。"
+   },
+   {
+    "text": "In my view",
+    "meaning": "在我看来",
+    "note": "议论文里引出自己的观点。"
+   },
+   {
+    "text": "say no to",
+    "meaning": "拒绝",
+    "note": "It is hard to say no to cake."
+   },
+   {
+    "text": "save for",
+    "meaning": "为……攒钱",
+    "note": "I am saving for a new bike."
+   },
+   {
+    "text": "instead of",
+    "meaning": "而不是",
+    "note": "Let's walk instead of taking the bus."
+   },
+   {
+    "text": "What matters most is",
+    "meaning": "最重要的是",
+    "note": "总结观点时常用。"
+   }
+  ],
+  "grammar": [
+   "conditional-real",
+   "modal-obligation",
+   "clause-noun"
+  ],
+  "knowledge": [
+   {
+    "node": "conditional-real",
+    "quote": "If a child spends all their money on sweets on Monday, they will have nothing left on Friday.",
+    "explanation": "真实条件句：if 从句用一般现在时 spends，主句用 will have，说很可能发生的结果。"
+   },
+   {
+    "node": "modal-obligation",
+    "quote": "the amount should be small, and it should match the family's budget",
+    "explanation": "should 表示建议：零花钱应该少一点，应该和家里的预算相符。"
+   },
+   {
+    "node": "clause-noun",
+    "quote": "What matters most is that children make their own choices",
+    "explanation": "What matters most 是主语从句，that children make… 是表语从句。"
+   }
+  ],
+  "speaking": "用 1 分钟说说：你小时候有零花钱吗？你觉得孩子该不该有零花钱？用上 in my view 和 instead of。",
+  "writing": "用 80–100 词写一段话，说说你对零花钱的看法，给出一个理由和一个例子。用一个 If… will… 句子和一个 should 句子。",
+  "task": {
+   "prompt": "仿照这句，用 What matters most is that … 写一句话，说说你认为某件事里最重要的是什么。",
+   "model": "What matters most is that children make their own choices"
+  },
+  "tags": [
+   "家庭生活",
+   "观点表达"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]
