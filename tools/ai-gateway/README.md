@@ -109,7 +109,7 @@ cd /www/wwwroot/flow && python3 ai_check.py
 
 这个阶段 `aliyun` 是站长的学生账号（用户：先用学生券，用完或正式商用再换企业账号）；换企业账号时只把这几个名字改指新的上游。
 
-切换：内测版在 `/etc/flow-beta.env` 写 `FLOW_AI_ROUTES={"*": "flow-text-ds-flash"}` 并重启 flow-beta；正式版发版后在后台「AI 用量、费用和质量」选「所有任务都用这个」→ `flow-text-ds-flash`，「百炼折扣」在学生券阶段填 1.0（券按标价扣），每日预算先填 3 元。
+切换：内测版在 `/etc/flow-beta.env` 写 `FLOW_AI_ROUTES=flow-text-ds-flash`（不带引号；systemd 读这个文件时会吃掉双引号，写 JSON 要整个用单引号括起来）并重启 flow-beta；正式版发版后在后台「AI 用量、费用和质量」选「所有任务都用这个」→ `flow-text-ds-flash`，「百炼折扣」在学生券阶段填 1.0（券按标价扣），每日预算先填 3 元。
 
 网关里的模型名按用途分三种前缀，Flow 自己会挑：
 
@@ -139,7 +139,7 @@ cd /www/wwwroot/flow && python3 ai_check.py
 | 备用线路 | 每个百炼名字的备用：`gemini-flow` / `gemini-3.8-flash`；`flow-text` 的备用：`bailian` / `qwen-plus` |
 
 - **地域**：百炼的 key 按地域分，不能混用。阿里云中国站（华北2 北京）的兼容地址是 `https://dashscope.aliyuncs.com/compatible-mode/v1`。官方建议改用工作空间域名 `https://<WorkspaceId>.cn-beijing.maas.aliyuncs.com/compatible-mode/v1`：2026-09-30 起新功能只上工作空间域名，WorkspaceId 在百炼控制台看。国际站是新加坡 `dashscope-intl.aliyuncs.com`，另外还有中国香港地域。两个账号各按自己的地域填。网关会在 base_url 后面接 `/chat/completions`，所以地址填到 `/v1` 为止。
-- 每个任务问哪个模型名，在 xmc.hk/flow →「AI 用量、费用和质量」里选。下拉框列的是网关里的 `flow-text`、`flow-text-*`：Flow 用自己的密钥问 `GET /v1/models`。改了马上生效，记进操作记录。服务器上的默认值写在 `FLOW_AI_ROUTES` 里（例如 `{"*": "flow-text-qwen37-plus"}`）。两样都没有时，全部走 `flow-text`，和以前一样。**正式版上换模型之前先问过站长。**
+- 每个任务问哪个模型名，在 xmc.hk/flow →「AI 用量、费用和质量」里选。下拉框列的是网关里的 `flow-text`、`flow-text-*`：Flow 用自己的密钥问 `GET /v1/models`。改了马上生效，记进操作记录。服务器上的默认值写在 `FLOW_AI_ROUTES` 里：一个模型名就是所有任务（`FLOW_AI_ROUTES=flow-text-ds-flash`），分任务写成 `*=flow-text-ds-flash,next-essay=flow-text`。写错了 Flow 会在日志里记一行，后台这一页也会用红字提示。两样都没有时，全部走 `flow-text`，和以前一样。**正式版上换模型之前先问过站长。**
 - Flow 每个文字请求都带 `"enable_thinking": false`。qwen-plus、qwen-flash 默认就不思考；百炼上的 DeepSeek 和 qwen3.5 以后的型号默认会思考，又慢，又多花输出 token。走百炼的 JSON 任务还带 `response_format: {"type": "json_object"}`：百炼要求提示词里有 JSON 字样，Flow 的提示词都有。Gemini 中转站会忽略这两个字段。思考默认全关；哪个批改任务效果不够，再单独给它试开（要改 Flow 代码里的 `extra_body`）。
 - 费用：后台按官方标价 × 平台折扣算。百炼默认按 0.65 折，后台可以改；单价也可以改，还可以加模型。学生账号上跑的（每晚小评测、例句预生成）也按这个价估，实际由学生券抵扣，券还剩多少要到百炼控制台看。
 - 缓存：百炼的隐式缓存命中按输入价的 20% 算，但要 1024 token 以上才可能命中。Flow 提示词里每次相同的开头只有 500–750 token，整条提示词也大多不到 1000，所以基本吃不到。qwen-turbo 已经不在价格表里了。

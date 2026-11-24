@@ -711,6 +711,7 @@
         return '<select data-route="' + esc(k.kind) + '">' + options(k.route) + '</select>';
       };
       var PF = cs.platforms || {}, bl = PF.bailian || {};
+      var envBad = cs.server_routes_problem ? '<p class="err small">服务器设置有问题，任务都没按它走：' + esc(cs.server_routes_problem) + '</p>' : '';
       var budPill = bud.level === 'over' ? '<span class="pill danger">超过预算</span>' : bud.level === 'warn' ? '<span class="pill warn">已到 80%</span>' : '';
       var ev = d.evals || [], ev0 = ev[0];
       main.innerHTML =
@@ -725,7 +726,7 @@
         '<section class="card"><h2>每个任务用哪个模型</h2>' +
           '<p class="muted small">这里列的是 AI 网关（xmc.hk/api-admin）里给学员用的模型名：<code>' + esc(cs.default_model || '—') + '</code> 是 Gemini（默认），flow-text- 开头的是阿里云百炼企业账号上的模型（通义千问、DeepSeek 等），各自配了 Gemini 备用。评测和例句预生成会自动改问 flow-eval- / flow-batch- 同名模型（站长的学生账号）。两条都不通时，Flow 再换主模型。录音、联网检索一直用 Gemini，不在这里。' +
           (isAdmin() ? '改了马上生效，记进操作记录。换之前先看下面「每晚小评测」和抽样，效果不降再换；正式版上换之前先问过站长。' : '') + '</p>' +
-          (isAdmin() && CH.length > 1 ? '<div class="toolbar" style="margin:8px 0"><select id="allRoute">' + options(cs.default_model) + '</select><button class="btn" id="allGo">所有任务都用这个</button></div>' : '') +
+          envBad + (isAdmin() && CH.length > 1 ? '<div class="toolbar" style="margin:8px 0"><select id="allRoute">' + options(cs.default_model) + '</select><button class="btn" id="allGo">所有任务都用这个</button></div>' : '') +
           '<table class="cmp"><thead><tr><th>任务</th><th>模型</th><th class="num">次数</th><th class="num opt">失败</th><th class="num opt">备用答</th><th class="num opt">输入 / 命中 / 输出 token</th><th class="num">费用</th><th class="num opt">平均</th></tr></thead><tbody>' +
           cs.kinds.map(function (k) {
             return '<tr' + (k.calls ? '' : ' class="dim"') + '><td>' + esc(k.label) + (k.group === 'grading' ? '<span class="sub">批改</span>' : k.group === 'content' ? '<span class="sub">内容，全站共用</span>' : '') + '</td><td>' + routeCell(k) + '</td>' +
