@@ -97,8 +97,9 @@
     const resume = h.resume && h.resume.id !== readId ? h.resume : null, news = h.news && h.news.id !== readId ? h.news : null;
     const more = h.today.filter(m => m.id !== readId && (path || m !== pick) && (!resume || m.id !== resume.id) && (!news || m.id !== news.id)).slice(0, 3);
     view.innerHTML = `<div class="greet-row"><span class="kicker greet">${greeting()}${name ? `，<span class="nm">${esc(name)}</span>` : ''}</span>
-        ${st && st.habit ? habitChip(st.habit) : st ? `<span class="wk" title="本周学了 ${weekN} 天"><span class="tiny muted">本周 ${weekN} 天</span><span class="week" aria-hidden="true">${st.week.map(d => `<span class="${d.active ? 'on' : ''}"></span>`).join('')}</span></span>` : ''}</div>
+        ${st && st.progress ? '' : st && st.habit ? habitChip(st.habit) : st ? `<span class="wk" title="本周学了 ${weekN} 天"><span class="tiny muted">本周 ${weekN} 天</span><span class="week" aria-hidden="true">${st.week.map(d => `<span class="${d.active ? 'on' : ''}"></span>`).join('')}</span></span>` : ''}</div>
       ${announceHTML(h)}
+      ${weekCardHTML(h)}
       ${top}
       <div id="notice"></div>
       ${S.user && !path ? vocabHome(st) : ''}
@@ -109,16 +110,18 @@
     const ring = view.querySelector('.ring'); if (ring) ring.style.setProperty('--p', ring.dataset.p + '%');  // CSP: no inline style attributes
     fillNotice(h);
     bindAnnounce(h);
+    bindWeekCard();  // 这周进步 (11-progress.js)
     const hb = document.getElementById('habitBtn'); if (hb) hb.onclick = habitSheet;
     if (st && st.habit) cheerWeek(st.habit);
     const nextRead = readId || (pick && pick.id);
     if (nextRead) setTimeout(() => preloadMaterial(nextRead), 600);  // after the page is drawn, not before
   }
   // 每周目标: this week's days (Monday to Sunday) against the goal; a missed day breaks nothing while the week still
-  // reaches it. Weeks in a row are shown from two on. A tap changes the goal.
+  // reaches it. The weeks reached are counted up, never as a run that breaks (r27). A tap changes the goal. Signed in,
+  // the 这周进步 card (11-progress.js) shows all this, and the chip is only for a 今日 kept from before it.
   function habitChip(hb) {
-    return `<button class="wk habit" id="habitBtn" type="button" aria-label="本周学了 ${hb.done} 天，目标 ${hb.goal} 天${hb.streak > 1 ? '，已连续 ' + hb.streak + ' 周达成' : ''}。点这里改每周目标" data-tap="home-habit">
-      <span class="tiny ${hb.met ? 'met' : 'muted'}">本周 ${hb.done}/${hb.goal} 天${hb.streak > 1 ? ` · 连续 ${hb.streak} 周` : ''}</span>
+    return `<button class="wk habit" id="habitBtn" type="button" aria-label="本周学了 ${hb.done} 天，目标 ${hb.goal} 天${hb.weeks ? '，已达成 ' + hb.weeks + ' 周' : ''}。点这里改每周目标" data-tap="home-habit">
+      <span class="tiny ${hb.met ? 'met' : 'muted'}">本周 ${hb.done}/${hb.goal} 天${hb.weeks ? ` · 已达成 ${hb.weeks} 周` : ''}</span>
       <span class="week" aria-hidden="true">${hb.days.map(d => `<span class="${d.active ? 'on' : ''}${d.today ? ' today' : ''}"></span>`).join('')}</span></button>`;
   }
   function habitSheet() {
@@ -134,6 +137,7 @@
           card.querySelectorAll('[data-goal]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
           const v = document.getElementById('meHabitV'); if (v) v.textContent = `每周 ${r.habit.goal} 天`;
           const chip = document.getElementById('habitBtn'); if (chip) { chip.outerHTML = habitChip(r.habit); const n = document.getElementById('habitBtn'); if (n) n.onclick = habitSheet; }
+          refreshWeekCard();
           toast(`每周目标：${r.habit.goal} 天`);
         } catch (e) { toast(e.message); }
       });
@@ -143,7 +147,7 @@
   function cheerWeek(hb) {
     if (!hb.met || load('flow-habit-cheered') === hb.monday) return;
     save('flow-habit-cheered', hb.monday);
-    toast(hb.streak > 1 ? `本周目标达成！已经连续 ${hb.streak} 周` : '本周目标达成！');
+    toast(hb.weeks > 1 ? `本周目标达成！一共达成 ${hb.weeks} 周了` : '本周目标达成！');
   }
   // A material as one row: title, then level, topic and time; a pill says why it is on the list.
   function mrow(m, tag, href, tapKey) {

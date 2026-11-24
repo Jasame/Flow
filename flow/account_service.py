@@ -20,16 +20,17 @@ def schema(c):
 
 def digest(token):return hashlib.sha256(token.encode()).hexdigest()
 
-def mail(to,subject,text):
+def mail(to,subject,text,headers=None):
  # the 内测版 (FLOW_CHANNEL=beta, flow.jasa.hk) marks every mail it sends, so nobody takes it for 语流's own
  if os.getenv('FLOW_CHANNEL','').strip().lower()=='beta' and not subject.startswith('【内测版】'):subject='【内测版】'+subject
  outbox=os.getenv('FLOW_MAIL_OUTBOX')
  if outbox:
   os.makedirs(outbox,exist_ok=True)
   name=os.path.join(outbox,f'{time.time():.6f}-{secrets.token_hex(3)}.txt')
-  with open(name,'w',encoding='utf-8') as f:f.write('To: '+to+'\nSubject: '+subject+'\n\n'+text)
+  with open(name,'w',encoding='utf-8') as f:f.write('To: '+to+'\nSubject: '+subject+'\n'+''.join(k+': '+v+'\n' for k,v in (headers or {}).items())+'\n'+text)
   return
  msg=EmailMessage();msg['From']=os.environ['FLOW_SMTP_FROM'];msg['To']=to;msg['Subject']=subject;msg.set_content(text)
+ for k,v in (headers or {}).items():msg[k]=v  # List-Unsubscribe on the Sunday mail (progress_service)
  host=os.environ['FLOW_SMTP_HOST'];port=int(os.getenv('FLOW_SMTP_PORT','465'));ctx=ssl.create_default_context()
  if port==465:connection=smtplib.SMTP_SSL(host,port,timeout=12,context=ctx)
  else:

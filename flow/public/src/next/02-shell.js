@@ -301,7 +301,7 @@
       if (name === 'join') { location.replace('#/'); if (!S.user) setTimeout(() => openLogin('', 'reg'), 0); return; }
       if (name === 'welcome') { setNav(''); await welcome(a === 'edit'); }
       // Only the personalised home needs the level questions first; everything else works for a new guest too.
-      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix', 'easy', 'words', 'speak', 'growth', 'radar', 'practice', 'guide', 'feedback'].includes(name)) { location.replace('#/welcome'); return; }
+      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix', 'easy', 'words', 'speak', 'growth', 'radar', 'practice', 'guide', 'feedback', 'weekly-off'].includes(name)) { location.replace('#/welcome'); return; }
       else if (name === 'placement') { setNav('practice'); await placementView(); }
       else if (name === 'exam') { setNav('practice'); await examView(a); }
       else if (name === 'series') { setNav('today'); await seriesView(decodeURIComponent(a || '')); }
@@ -317,6 +317,7 @@
       else if (name === 'import') { setNav('practice'); await importView(); }
       else if (name === 'sounds') { setNav('practice'); await soundsView(a ? decodeURIComponent(a) : ''); }
       else if (name === 'report') { setNav('me'); await reportView(); }
+      else if (name === 'weekly-off') { setNav('me'); await weeklyOffView(decodeURIComponent(a || '')); }  // the link in the Sunday mail
       else if (name === 'vocab') { setNav('cards'); await (a === 'plan' ? planView() : a === 'test' ? vocabTest() : vocabView()); }
       else if (name === 'review') { setNav('cards'); await reviewView(); }
       else if (name === 'library') { setNav('practice'); await libraryView(); }
