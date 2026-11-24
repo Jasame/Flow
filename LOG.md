@@ -96,3 +96,10 @@
   - #109 主屏 App：键盘不再挡住对话/导入的按钮；切深色浅色后状态栏跟着变（开局和考试）
 - 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 149/149，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45470855664
+
+### b23 · 2026-11-25 03:41
+- main `da3a81e`，构建 `ade1e38`
+- 新合并的 PR（自 b22 起）：
+  - #111 r28 第 6 段：「选方向和目标」页加「一周大概能学几天？」（开局和考试、操作指南）
+- 自检：DEPLOYED，装了 5 个文件（0 个新的）；轻量 e2e 149/149，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45472606652
