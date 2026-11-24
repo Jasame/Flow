@@ -94,11 +94,15 @@
     } else top = '<div class="empty">今天没有可推荐的材料了。</div>';
     const resume = h.resume && h.resume.id !== readId ? h.resume : null, news = h.news && h.news.id !== readId ? h.news : null;
     const more = h.today.filter(m => m.id !== readId && (path || m !== pick) && (!resume || m.id !== resume.id) && (!news || m.id !== news.id)).slice(0, 3);
+    // 好句 and 热点 come first, except on a screen too short for them and the plan's button together (a phone held
+    // sideways): there the plan comes first, so its next step is still on the first screen.
+    const short = innerHeight < 500 && innerWidth > innerHeight;
     view.innerHTML = `<div class="greet-row"><span class="kicker greet">${greeting()}${name ? `，<span class="nm">${esc(name)}</span>` : ''}</span>
         ${st && st.habit ? habitChip(st.habit) : st ? `<span class="wk" title="本周学了 ${weekN} 天"><span class="tiny muted">本周 ${weekN} 天</span><span class="week" aria-hidden="true">${st.week.map(d => `<span class="${d.active ? 'on' : ''}"></span>`).join('')}</span></span>` : ''}</div>
       ${announceHTML(h)}
-      ${lineCardHTML(h)}${newsCardHTML(news)}
+      ${short ? '' : lineCardHTML(h) + newsCardHTML(news)}
       ${top}
+      ${short ? lineCardHTML(h) + newsCardHTML(news) : ''}
       ${weekCardSlot()}
       <div id="notice"></div>
       ${S.user && !path ? vocabHome(st) : ''}
