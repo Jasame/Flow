@@ -92,6 +92,17 @@ class RouteTests(unittest.TestCase):
         self.assertEqual((st, part, h['Content-Range']), (206, body[:2], f'bytes 0-1/{len(body)}'))
         self.assertEqual(self.get('/audio/words/us/w000.mp4')[0], 200)  # the sprite itself, as before
 
+    def test_a_sentence_of_a_narration_is_cut_the_same_way(self):
+        import next_service as nx
+        voices = Path(self.tmp.name) / 'audio'; (voices / 'us-f').mkdir(parents=True)
+        shutil.copy(FIXTURE / 'us' / 'w000.m4a', voices / 'us-f' / 'v5-science-b2-noise-cancelling.m4a')  # AAC in MP4, as narrations are
+        with patch.object(nx, 'AUDIO_DIR', voices):
+            st, h, body = self.get('/audio/us-f/v5-science-b2-noise-cancelling.aac?v=1&s=0.2&e=0.9')
+            self.assertEqual((st, h['Content-Type']), (200, 'audio/aac'))
+            self.assertTrue(frames(body))
+            self.assertEqual(self.get('/audio/us-f/v5-science-b2-noise-cancelling.aac?v=1&s=0.2&e=60')[0], 404)  # longer than a sentence
+            self.assertEqual(self.get('/audio/zz/v5-science-b2-noise-cancelling.aac?v=1&s=0.2&e=0.9')[0], 404)
+
     def test_a_clip_that_cannot_be_cut_is_not_found(self):
         for path in ('/audio/words/us/w000.aac', '/audio/words/us/w000.aac?s=x&e=1', '/audio/words/us/w000.aac?s=0.9&e=0.2',
                      '/audio/words/us/w999.aac?s=0.2&e=0.9', '/audio/words/zz/w000.aac?s=0.2&e=0.9', '/audio/words/us/../w000.aac?s=0.2&e=0.9'):
@@ -103,8 +114,18 @@ class FrontEndTests(unittest.TestCase):
         js = (ROOT / 'public' / 'src' / 'next' / '01-audio-offline.js').read_text(encoding='utf-8')
         self.assertIn("const WORD_CLIPS = /iPhone|iPad|iPod/.test(navigator.userAgent)", js)
         self.assertIn("`/audio/words/${ac}/${w[0]}.aac?s=${w[1]}&e=${w[2]}`", js)
-        self.assertIn('if (w.fallback) { CLIP.play(w.fallback[0], w.fallback[1], w.fallback[2], w.text, w.onend); return; }', js)
+        self.assertIn('if (w.fallback) { const n = CLIP.want = { ...w, fallback: null }; CLIP.element(w.fallback[0], w.fallback[1], w.fallback[2], w.text, w.onend, null, n); return; }', js)
         self.assertIn('/\\.aac(\\?|$)/.test(url)) return', js)  # never looked for in R2
+        # Web Audio on iPhones: a 'playback' session (the ringer switch), named on the lock screen, rested after 20 s;
+        # the browser voice stays the last resort of a failed clip (not TTS.say: that may be the server voice again)
+        self.assertIn("if (this.session('playback') !== 'playback') { this.off = true; return false; }", js)
+        self.assertIn("MS.claim('short', title || '语流'", js); self.assertIn('}, 20000);', js)
+        self.assertIn('CLIP.stop(); if (w.text) TTS.browser(w.text, w.onend);', js)
+        self.assertIn("const CLIP_LEAD = 0.3;", js); self.assertEqual(wc.LEAD, 0.3)
+        # the learner's recordings (对比回放 of 今日好句 and of 跟读) play through it, beside the original
+        for part in ('12-daily-line.js', '21-study-listen.js'):
+            src = (ROOT / 'public' / 'src' / 'next' / part).read_text(encoding='utf-8')
+            self.assertIn('CLIP.mine(', src, part); self.assertNotIn('new Audio(url)', src.replace('CLIP.mine(url)', ''), part)
         review = (ROOT / 'public' / 'src' / 'next' / '60-review.js').read_text(encoding='utf-8')
         self.assertIn('CLIP.wordSrc(x)', review)  # the review prefetches the file a word will play
 

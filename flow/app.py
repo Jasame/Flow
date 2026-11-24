@@ -232,6 +232,12 @@ class Handler(BaseHTTPRequestHandler):
    try:data=__import__('word_clip').clip(f,float(q.get('s',[''])[0]),float(q.get('e',[''])[0])) if f and f.is_file() else None
    except (ValueError,OSError,IndexError,KeyError,StopIteration,TypeError,__import__('struct').error):data=None
    f=f if data else None;mime='audio/aac'
+  elif len(parts)==4 and parts[3].endswith('.aac'):
+   # /audio/<voice>/<material>.aac?v=&s=&e=: one sentence of a narration, cut the same way (played by Web Audio on iPhones)
+   f=next_service.audio_file(parts[2],parts[3][:-4],'m4a');q=parse_qs(urlsplit(self.path).query);wc=__import__('word_clip')
+   try:data=wc.clip(f,float(q.get('s',[''])[0]),float(q.get('e',[''])[0]),wc.SENTENCE) if f and f.is_file() else None
+   except (ValueError,OSError,IndexError,KeyError,StopIteration,TypeError,__import__('struct').error):data=None
+   f=f if data else None;mime='audio/aac'
   elif len(parts)==5 and parts[2]=='tts':f=__import__('tts_service').file(parts[3],parts[4])
   else:f=next_service.audio_file(parts[2],parts[3].rsplit('.',1)[0],parts[3].rsplit('.',1)[-1]) if len(parts)==4 and '.' in parts[3] else None
   if not f:return self.send({'error':'音频不存在'},404)

@@ -18,7 +18,8 @@ from functools import lru_cache
 
 LEAD = 0.3   # seconds before the word starts: an iPhone waking its audio fits in this
 PAD = 0.12   # seconds of the sprite's own gap kept on each side of the word (the gap is 0.2 s)
-MAX = 5.0    # a word clip is never longer than this
+MAX = 5.0    # a word clip is never longer than this (a sentence of a narration: SENTENCE)
+SENTENCE = 40.0
 
 
 def _boxes(buf, start, end):
@@ -167,10 +168,10 @@ def _adts(frame, aot, sfi, ch):
                   (n >> 3) & 0xFF, (n & 7) << 5 | 0x1F, 0xFC)) + frame
 
 
-def clip(path, start, end):
-    """ADTS bytes of one word: LEAD seconds before it (silence) and PAD after it. start/end: the word's place in the
-    sprite in seconds, as index.json gives it."""
-    if not (0 <= start < end and end - start <= MAX):
+def clip(path, start, end, longest=MAX):
+    """ADTS bytes of one word (or one sentence of a narration: longest 40): LEAD seconds before it (silence) and PAD
+    after it. start/end: its place in the file in seconds, as index.json (or the narration's timings) gives it."""
+    if not (0 <= start < end and end - start <= longest):
         raise ValueError('not a word clip')
     from pathlib import Path
     p = Path(path)

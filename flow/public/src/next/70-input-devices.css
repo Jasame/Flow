@@ -45,7 +45,8 @@ body.sheet-open{overflow:hidden}
 /* mini player: stop is always on screen while a whole text plays */
 .mini-player{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(80px + env(safe-area-inset-bottom));z-index:45;display:flex;align-items:center;gap:10px;background:var(--ink);color:var(--bg);border-radius:99px;padding:6px 6px 6px 14px;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
 .mini-player .lbl{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mini-player .stop{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:99px;background:var(--fill);color:var(--on-fill);font-weight:700;padding:8px 14px;min-height:40px}
+.mini-player .stop,.mini-player .resume{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:99px;background:var(--fill);color:var(--on-fill);font-weight:700;padding:8px 14px;min-height:40px}
+.mini-player.paused .eq i{animation:none;opacity:.5}
 .mini-player .eq{display:inline-flex;gap:2px;align-items:flex-end;height:14px}
 .mini-player .eq i{width:3px;height:6px;background:var(--green);border-radius:2px;animation:eq 1s ease-in-out infinite}
 .mini-player .eq i:nth-child(2){animation-delay:.2s}.mini-player .eq i:nth-child(3){animation-delay:.4s}
