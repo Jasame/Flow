@@ -108,7 +108,9 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             **{d: ('B1', 'work', ['work', 'science']) for d in ('phone', 'phone-land', 'tablet', 'desktop')},
             'guide': ('B1', 'work', ['work', 'science']),  # the 操作指南 screenshots (tools/guide_shots.py)
             'leaver': ('B1', 'work', ['work', 'science']),  # 注销账号 in tools/ui_test.py (learner_run)
-            'a11y': ('B1', 'work', ['work', 'science'])}  # the screen-reader and contrast audit (a11y_run)
+            'a11y': ('B1', 'work', ['work', 'science']),  # the screen-reader and contrast audit (a11y_run)
+            # swiping the review card from anywhere on the screen (swipe_run): one learner per screen size, each starting fresh
+            **{f'swipe-{k}': ('B1', 'work', ['work', 'science']) for k in ('ipad-land', 'ipad-mini-land', 'phone')}}
 out = {}
 with app.db() as c:
     for name, (level, goal, themes) in LEARNERS.items():
