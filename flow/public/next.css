@@ -1286,3 +1286,8 @@ details.preread>summary .tiny{flex-basis:100%}
 :is(.text,.line .txt,.review .cloze,.prompt-q,.passage-q .ptext,.exam-passage,.easy-reader,.guide-body,.mean-q,.mean-a,.sheet .mean,.wdiff,.tsample){zoom:var(--read-zoom)}
 :root[data-lh=w] :is(.text,.line .txt,.review .cloze,.prompt-q,.passage-q .ptext,.exam-passage,.easy-reader,.guide-body,.mean-q,.mean-a,.sheet .mean,.wdiff,.tsample){line-height:2}
 .tsample{margin:0;padding:12px 14px;border-radius:12px;background:var(--sunk)}
+/* 内测版 (flow.jasa.hk, 03-channel.js): a line under the top bar on every page, and a note in the sign-in sheet */
+.beta-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px 10px;margin:0;padding:6px var(--gut);background:var(--amber-soft);color:var(--ink);font-size:13px;line-height:1.5;text-align:center}
+.beta-bar b{background:var(--amber-fill,#9a5a0c);color:var(--on-amber,#fff);border-radius:99px;padding:0 8px;font-size:12px}
+.beta-bar a{color:var(--green-ink);font-weight:600}
+html[data-channel=beta] .auth::before{content:'这是内测版：账号和正式版 flowlang.cn 分开，第一次来请先注册。';display:block;padding:8px 12px;border-radius:10px;background:var(--amber-soft);color:var(--ink);font-size:13px;line-height:1.5}

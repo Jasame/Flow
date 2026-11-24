@@ -121,18 +121,25 @@ def api_open(method,path):return any(path==p or (p.endswith('/') and path.starts
 def session_cookie(token):
  return 'flow_session='+token+'; HttpOnly; SameSite=Lax; Path=/; Max-Age='+str(SESSION_DAYS*86400)+('; Secure' if SECURE else '')
 _ASSET={}
+# Two sites from one code base (2026-11-24): flowlang.cn is 语流's site (FLOW_CHANNEL unset, "prod"); flow.jasa.hk is
+# the 内测版 (FLOW_CHANNEL=beta), a second instance with its own data, where versions waiting for release run first.
+# The 内测版 says so on every page, sends its mail marked 【内测版】 and asks search engines to stay away.
+CHANNEL='beta' if os.getenv('FLOW_CHANNEL','').strip().lower()=='beta' else 'prod'
 _SLIM={}
 def shell_file(name):
  """A public file; the page shell and the service worker get the asset version filled in (__ASSET__): a hash of
  next.js and next.css, so any change to them gives new URLs and a changed service worker, and phones update.
- next.js and next.css are sent slimmed (slim.py: no comments or indentation, the same lines), once per change."""
+ next.js and next.css are sent slimmed (slim.py: no comments or indentation, the same lines), once per change.
+ The page shell also says which site it is (__CHANNEL__), and the 内测版's home-screen app is named as such."""
  f=ROOT/'public'/name;body=f.read_bytes()
  if name in ('next.js','next.css'):
   key=f.stat().st_mtime_ns
   if _SLIM.get(name,(None,))[0]!=key:_SLIM[name]=(key,__import__('slim').slim(name,body))
   return _SLIM[name][1]
+ if name=='manifest.webmanifest' and CHANNEL=='beta':
+  m=json.loads(body);m.update(name='语流 Flow 内测版',short_name='语流内测');return json.dumps(m,ensure_ascii=False,indent=1).encode()
  if name not in ('next.html','sw.js'):return body
- return body.replace(b'__ASSET__',asset_version().encode())
+ return body.replace(b'__ASSET__',asset_version().encode()).replace(b'__CHANNEL__',CHANNEL.encode())
 def asset_version():
  """The content version of next.js and next.css (10 hex digits); recomputed when either file changes."""
  key=tuple((ROOT/'public'/n).stat().st_mtime_ns for n in ('next.js','next.css'))
@@ -191,6 +198,7 @@ class Handler(BaseHTTPRequestHandler):
  def headers_common(self,mime):
   self.send_header('Permissions-Policy','camera=(), geolocation=(), microphone=(self)')
   self.send_header('Content-Type',mime);self.send_header('X-Content-Type-Options','nosniff');self.send_header('X-Frame-Options','DENY');self.send_header('Referrer-Policy','same-origin');self.send_header('Content-Security-Policy',csp())
+  if CHANNEL=='beta':self.send_header('X-Robots-Tag','noindex, nofollow')  # the 内测版 stays out of search results
  def visitor_address(self):
   ip=self.client_address[0]
   if ip in ('127.0.0.1','::1'):
@@ -244,7 +252,11 @@ class Handler(BaseHTTPRequestHandler):
  def get(self):
   path=self.path.split('?')[0]
   if path.startswith('/api/') and not api_open('GET',path):return self.send({'error':'接口不存在'},404)
-  if path=='/api/health':return self.send({'ok':True,'version':'4.5.0','mail':account.configured()})
+  if path=='/api/health':return self.send({'ok':True,'version':'4.5.0','mail':account.configured(),'channel':CHANNEL})
+  if path=='/robots.txt':
+   body=('User-agent: *\nDisallow: /\n' if CHANNEL=='beta' else 'User-agent: *\nDisallow: /api/\nAllow: /\n').encode()
+   self.send_response(200);self.headers_common('text/plain; charset=utf-8');self.send_header('Cache-Control','public, max-age=3600')
+   self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
   if path=='/api/survey':return self.send(__import__('survey_service').SURVEY)
   if path=='/api/deploy-status':
    # Written by tools/flow-autodeploy.py: release tag, commit, result, health checks and test counts. Nothing private.

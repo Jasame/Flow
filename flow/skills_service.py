@@ -372,7 +372,7 @@ def send_weekly(c, now=None, send=None):
     if send is None:
         from account_service import mail as send
     today = local.date().isoformat()
-    origin = os.getenv('FLOW_PUBLIC_URL', 'https://flow.jasa.hk').rstrip('/')
+    origin = os.getenv('FLOW_PUBLIC_URL', 'https://flowlang.cn').rstrip('/')
     sent = 0
     rows = c.execute("SELECT r.user_id, u.email, u.username FROM next_reminders r JOIN users u ON u.id=r.user_id LEFT JOIN next_weekly w ON w.user_id=r.user_id "
                      "WHERE r.enabled=1 AND r.hour=? AND u.email IS NOT NULL AND u.email!='' AND (w.last_sent IS NULL OR w.last_sent<?)",

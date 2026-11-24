@@ -156,6 +156,7 @@ TAP_LABEL = {
     'me-data': '我的 · 导出我的数据', 'me-delete': '我的 · 注销账号', 'words-export': '单词 · 导出单词本',
     'export-csv': '导出 · Excel 表格', 'export-anki': '导出 · Anki', 'export-json': '导出 · 全部学习记录',
     'me-guide': '我的 · 操作指南', 'me-feedback': '我的 · 问题反馈', 'me-survey': '我的 · 匿名问卷',
+    'beta-main': '内测版 · 去正式版',
 }
 
 
