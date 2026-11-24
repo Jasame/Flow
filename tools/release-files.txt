@@ -356,6 +356,7 @@ tools/flow-pull-rollback.sh
 tools/flow-pull.sh
 tools/gen_audio.py
 tools/narration_pack.py
+tools/review_list.py
 tools/gen_word_audio.py
 tools/make_icons.py
 tools/release-files.txt
