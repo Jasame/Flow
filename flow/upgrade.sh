@@ -68,8 +68,13 @@ for wordbook in "$FLOW_SOURCE_DIR"/corpus_data/wordbooks*.json; do
   if [ -f "$wordbook" ]; then install -m 644 "$wordbook" "$FLOW_TARGET_DIR/corpus_data/"; fi
 done
 install -d -m 755 "$FLOW_TARGET_DIR/public"
-for name in literata.woff2 survey.html survey.js survey.css next.html next.js next.css sw.js manifest.webmanifest icon-192.png icon-512.png apple-touch-icon.png; do
+for name in literata.woff2 survey.html survey.js survey.css about.html about.js about.css next.html next.js next.css sw.js manifest.webmanifest icon-192.png icon-512.png apple-touch-icon.png; do
   install -m 644 "$FLOW_SOURCE_DIR/public/$name" "$FLOW_TARGET_DIR/public/$name"
+done
+# 认识语流 (/about): its screenshots
+install -d -m 755 "$FLOW_TARGET_DIR/public/about"
+for about_file in "$FLOW_SOURCE_DIR"/public/about/*.jpg; do
+  if [ -f "$about_file" ]; then install -m 644 "$about_file" "$FLOW_TARGET_DIR/public/about/"; fi
 done
 # the 操作指南: its source, screenshots and PDF (user_guide.py reads them)
 install -d -m 755 "$FLOW_TARGET_DIR/public/guide"
