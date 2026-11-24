@@ -816,6 +816,8 @@ def platform_run(pw):
 # play() is one WeChat would allow, and that the bar telling how to open the page in the browser is there).
 WECHAT_UA = ('Mozilla/5.0 (Linux; Android 13; V2241A Build/TP1A.220624.014; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 '
              'Chrome/116.0.0.0 Mobile Safari/537.36 XWEB/1160065 MMWEBSDK/20231202 MicroMessenger/8.0.47.2560(0x28002F30) WeChat/arm64 Weixin NetType/WIFI Language/zh_CN ABI/arm64')
+IPHONE_WECHAT_UA = ('Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 '
+                    'MicroMessenger/8.0.47(0x18002f2c) NetType/WIFI Language/zh_CN')
 WECHAT_RULES = """(() => {
   let tap = false;
   const on = () => { tap = true; setTimeout(() => { tap = false; }, 0); };
@@ -832,6 +834,134 @@ WECHAT_RULES = """(() => {
   for (const o of [window, Window.prototype]) { try { delete o.speechSynthesis; delete o.SpeechSynthesisUtterance; } catch (e) {} }
 })();"""
 
+
+# iPhones and iPads: short sounds on Web Audio (01-audio-offline.js AUDIO). A stand-in AudioContext records what is
+# started (offset, length, rate), the audio session type asked for, and the lock-screen handlers (navigator.mediaSession).
+IOS_AUDIO_FAKE = """(() => {
+  const W = window.__wa = { created: 0, resumed: 0, suspended: 0, closed: 0, starts: [], stops: 0, types: [], failDecode: false, refuse: false, ms: {} };
+  class Src { constructor() { this.playbackRate = { value: 1 }; this.buffer = null; this.onended = null; }
+    connect() {} start(when, off, dur) { W.starts.push({ when, off, dur, rate: this.playbackRate.value }); setTimeout(() => { if (this.onended) this.onended(); }, 250); }
+    stop() { W.stops++; } }
+  class Ctx { constructor() { W.created++; this.state = 'suspended'; this.currentTime = 0; this.destination = {}; this.onstatechange = null; }
+    resume() { W.resumed++; this.state = 'running'; return Promise.resolve(); }
+    suspend() { W.suspended++; this.state = 'suspended'; return Promise.resolve(); }
+    close() { W.closed++; this.state = 'closed'; return Promise.resolve(); }
+    createBufferSource() { return new Src(); }
+    decodeAudioData(buf, ok, no) { if (W.failDecode) { const e = new Error('cannot decode'); if (no) no(e); return Promise.reject(e); } const b = { duration: 5 }; if (ok) ok(b); return Promise.resolve(b); } }
+  window.AudioContext = Ctx; window.webkitAudioContext = Ctx;
+  let type = 'auto';
+  Object.defineProperty(navigator, 'audioSession', { configurable: true, value: { get type() { return type; }, set type(v) { W.types.push(v); if (!W.refuse) type = v; } } });
+  if (navigator.mediaSession) { const set = navigator.mediaSession.setActionHandler.bind(navigator.mediaSession); navigator.mediaSession.setActionHandler = (k, f) => { W.ms[k] = f; try { set(k, f); } catch (e) {} }; }
+})();"""
+
+
+def ios_audio_run(pw):
+    """iPhone (Safari / the home-screen app): a word, an example sentence and the learner's recording play on Web Audio
+    from their first sound, under a 'playback' audio session (the ringer switch does not mute it) and named 「语流 · …」
+    on the lock screen; where that cannot be (decoding fails, the type is refused, ?audio=element) the <audio> clip
+    plays; a whole text keeps its <audio>, with the lock screen's controls and a page that follows a pause from outside."""
+    dev = 'ios-audio'
+    state = Path(tempfile.mkdtemp(prefix='flow-ui-ios-'))
+    with socket.socket() as so:
+        so.bind(('127.0.0.1', 0)); port = so.getsockname()[1]
+    srv = subprocess.Popen([sys.executable, str(Path(__file__).with_name('ui_server.py')), str(port), str(state)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                           env={**os.environ, 'FLOW_AUDIO_DIR': str(Path(__file__).with_name('ui-fixtures') / 'audio')})
+    browser = None
+    try:
+        for _ in range(120):
+            if (state / 'sessions.json').exists():
+                break
+            time.sleep(0.25)
+        time.sleep(0.5)
+        cfg = json.loads((state / 'sessions.json').read_text()); base, pid = cfg['base'], cfg['pid']
+        word = json.loads((Path(__file__).with_name('ui-fixtures') / 'audio' / 'words' / 'index.json').read_text())['us']['drain']
+        browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+
+        sample = (Path(__file__).with_name('ui-fixtures') / 'tts-sample.mp3').read_bytes()
+
+        def page(query='', refuse=False, undecodable=False, narration=False):
+            ctx = browser.new_context(**DEVICES['phone'], user_agent=IPHONE_UA, locale='zh-CN', bypass_csp=True, service_workers='block')
+            ctx.add_cookies([{'name': 'flow_session', 'value': cfg['learners']['phone']['token'], 'url': base}])
+            ctx.add_init_script(IOS_AUDIO_FAKE + ('window.__wa.refuse = true;' if refuse else '') + ('window.__wa.failDecode = true;' if undecodable else ''))
+            pg = ctx.new_page(); errs = []; asked = []
+            pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+            pg.on('request', lambda r: asked.append(r.url.split(base, 1)[-1]) if '/audio/' in r.url else None)
+            if narration:  # this server has the narration's timings, not its sound: a short mp3 stands in, before the page asks
+                pg.route(f'**/audio/*/{pid}.mp4*', lambda r: r.fulfill(status=200, content_type='audio/mpeg', body=sample))
+            pg.goto(base + '/' + query + '#/m/' + pid + '/read', wait_until='load'); settle(pg, '#reader'); pg.wait_for_timeout(500)
+            return ctx, pg, errs, asked
+
+        def tap_word(pg):
+            pg.click('#reader .w:text-is("drains")'); pg.wait_for_selector('#sheetCard .word', timeout=5000); pg.wait_for_timeout(600)
+
+        elements = "[...document.querySelectorAll('audio')].map(a => a.getAttribute('src') || '').filter(s => s.includes('/audio/words/'))"
+        ctx, pg, errs, asked = page()
+        tap_word(pg)
+        wa = pg.evaluate('window.__wa')
+        st = wa['starts'][-1] if wa['starts'] else {}
+        length = word[2] - word[1]
+        check(dev, 'a word plays on Web Audio from its clip: from just before the word (0.28 s in) for its length, at the reading speed',
+              st and abs(st['off'] - 0.28) < 0.005 and abs(st['dur'] - (length + 0.06)) < 0.005 and st['rate'] == 1
+              and any(f"/audio/words/us/{word[0]}.aac?s={word[1]}&e={word[2]}" in u for u in asked) and not pg.evaluate(elements), (st, asked[-3:]))
+        check(dev, "the audio session is 'playback' (the ringer switch does not mute it), and the context was started inside the first tap",
+              'playback' in wa['types'] and wa['created'] == 1 and wa['resumed'] >= 1, wa)
+        title = pg.evaluate("navigator.mediaSession && navigator.mediaSession.metadata && navigator.mediaSession.metadata.title")
+        check(dev, 'the lock screen and the Dynamic Island say 「语流 · 单词」, not an address', title == '语流 · 单词', title)
+        pg.evaluate("Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); document.dispatchEvent(new Event('visibilitychange'))")
+        wa = pg.evaluate('window.__wa')
+        check(dev, 'leaving the page closes the context (iOS 26 home-screen apps went silent with an old one) and clears the lock screen',
+              wa['closed'] == 1 and pg.evaluate("!(navigator.mediaSession && navigator.mediaSession.metadata)"), wa)
+        pg.evaluate("Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true }); document.dispatchEvent(new Event('visibilitychange'))")
+        check(dev, 'no script errors (Web Audio)', not errs, errs[:3])
+        ctx.close()
+        # decoding fails: the <audio> clip instead
+        ctx, pg, errs, asked = page(undecodable=True)
+        tap_word(pg)
+        check(dev, 'a clip Web Audio cannot decode plays on an <audio> instead', not pg.evaluate('window.__wa.starts') and any('.aac?s=' in x for x in pg.evaluate(elements)), pg.evaluate(elements))
+        ctx.close()
+        # the type refused (a browser that does not let the page set it): <audio> clips, which the ringer switch does not mute
+        ctx, pg, errs, asked = page(refuse=True)
+        tap_word(pg)
+        wa = pg.evaluate('window.__wa')
+        check(dev, "where 'playback' is refused, words play on an <audio> clip (no Web Audio, so the ringer switch cannot mute them)",
+              not wa['starts'] and 'playback' in wa['types'] and any('.aac?s=' in x for x in pg.evaluate(elements)), (wa, pg.evaluate(elements)))
+        ctx.close()
+        # ?audio=element: the switch for trying the old way on a phone
+        ctx, pg, errs, asked = page('?audio=element')
+        tap_word(pg)
+        check(dev, '?audio=element turns Web Audio off (and ?audio=auto back on)', not pg.evaluate('window.__wa.starts') and any('.aac?s=' in x for x in pg.evaluate(elements)), pg.evaluate('window.__wa'))
+        pg.goto(base + '/?audio=auto#/m/' + pid + '/read', wait_until='load'); settle(pg, '#reader'); pg.wait_for_timeout(400)
+        tap_word(pg)
+        check(dev, '?audio=auto: Web Audio again', len(pg.evaluate('window.__wa.starts')) >= 1, pg.evaluate('window.__wa'))
+        ctx.close()
+        # a whole text: <audio> (the lock screen controls it), named, and a pause from outside shows on the page
+        ctx, pg, errs, asked = page(narration=True)
+        pg.evaluate("location.hash = '#/m/" + pid + "/listen'"); settle(pg, '#playAll'); pg.wait_for_timeout(600)
+        pg.click('#playAll')
+        playing = "[...document.querySelectorAll('audio')].find(a => !a.paused && a.currentTime > 0)"  # the narration (its preloaded copy is a blob: URL)
+        pg.wait_for_function(f"!!{playing}", timeout=8000)
+        pg.evaluate(f"window.__nar = {playing}")
+        ms = pg.evaluate("({ title: navigator.mediaSession.metadata && navigator.mediaSession.metadata.title, state: navigator.mediaSession.playbackState, acts: Object.keys(window.__wa.ms).filter(k => window.__wa.ms[k]) })")
+        check(dev, 'a whole text: the lock screen shows 「语流 · 标题」 with play, pause, previous and next sentence',
+              (ms['title'] or '').startswith('语流 · ') and ms['state'] == 'playing' and {'play', 'pause', 'previoustrack', 'nexttrack'} <= set(ms['acts']), ms)
+        nar = "window.__nar"
+        pg.evaluate(f"{nar}.pause()"); pg.wait_for_timeout(300)  # what a call does
+        mini = pg.evaluate("({ label: document.querySelector('.mini-player .lbl').textContent, resume: !!document.querySelector('.mini-player .resume'), state: navigator.mediaSession.playbackState })")
+        check(dev, 'paused by a call: the page says 已暂停 with 继续 (not still playing), and so does the lock screen',
+              mini['label'] == '已暂停' and mini['resume'] and mini['state'] == 'paused', mini)
+        pg.click('.mini-player .resume'); pg.wait_for_timeout(400)
+        mini = pg.evaluate(f"({{ resume: !!document.querySelector('.mini-player .resume'), playing: !{nar}.paused, state: navigator.mediaSession.playbackState }})")
+        check(dev, '继续 plays on from where it was', mini['playing'] and not mini['resume'] and mini['state'] == 'playing', mini)
+        t0 = pg.evaluate(f"{nar}.currentTime"); pg.evaluate('window.__wa.ms.nexttrack()'); pg.wait_for_timeout(200)
+        check(dev, "the lock screen's next goes to the next sentence", pg.evaluate(f"{nar}.currentTime") > t0, (t0, pg.evaluate(f"{nar}.currentTime")))
+        pg.evaluate("(m => m && !m.hidden && m.querySelector('.stop').click())(document.querySelector('.mini-player'))"); pg.wait_for_timeout(300)  # or the short sample ended
+        check(dev, '停止 (or the end) clears the lock screen', pg.evaluate("!navigator.mediaSession.metadata && navigator.mediaSession.playbackState === 'none'"), pg.evaluate("navigator.mediaSession.playbackState"))
+        check(dev, 'no script errors (a whole text)', not errs, errs[:3])
+        ctx.close()
+    finally:
+        if browser:
+            browser.close()
+        srv.terminate()
 
 def wechat_run(pw):
     dev = 'wechat'
@@ -896,7 +1026,42 @@ def wechat_run(pw):
         said = [x for x in plays()[n0:] if '/audio/tts/' in x['src']]
         check(dev, 'the examiner is heard in WeChat: the server voice, on the player the first tap unlocked', said and all(x['ok'] for x in said), plays()[n0:])
         check(dev, 'every sound started was one WeChat allows', all(x['ok'] for x in plays()), [x for x in plays() if not x['ok']][:3])
+        check(dev, 'Android: words play from their sprite, as before (no clip)', all('.aac' not in x['src'] for x in plays() if '/audio/words/' in x['src']),
+              [x['src'] for x in plays() if '/audio/words/' in x['src']][:3])
         check(dev, 'no script errors', not errors, errors[:3])
+        # iPhone (Safari, the app on the home screen, WeChat): a word is its own small clip with 0.3 s of silence in front,
+        # played from its start (word_clip.py: an iPhone waking its audio lost the start of a word played inside its sprite)
+        ictx = browser.new_context(**DEVICES['phone'], user_agent=IPHONE_WECHAT_UA, locale='zh-CN', bypass_csp=True, service_workers='block')
+        ictx.add_cookies([{'name': 'flow_session', 'value': cfg['learners']['phone']['token'], 'url': base}])
+        ictx.add_init_script(WECHAT_RULES)
+        ip = ictx.new_page(); ierrors = []
+        ip.on('pageerror', lambda e: ierrors.append(page_error(ip, e)))
+        iplays = lambda: ip.evaluate('window.__plays')
+        word = lambda: (ip.click('#reader .w:text-is("drains")'), ip.wait_for_selector('#sheetCard .word', timeout=5000), ip.wait_for_timeout(700))
+        ip.goto(base + '/#/m/' + pid + '/read', wait_until='load'); settle(ip, '#reader'); ip.wait_for_timeout(600)
+        away = lambda: [ip.click(sel) for sel in ('#wxStay', '.wx-bar .wx-x') if ip.query_selector(sel) and ip.is_visible(sel)]  # WeChat's first-visit guide
+        away(); ip.wait_for_timeout(200)
+        word()
+        new = [x for x in iplays() if '/audio/words/' in x['src']]
+        check(dev, 'iPhone: a looked-up word plays its own clip (.aac, from its start), as WeChat allows',
+              new and all(x['ok'] and '.aac?s=' in x['src'] for x in new), new)
+        ip.wait_for_function("[...document.querySelectorAll('audio')].some(x => (x.currentSrc || x.src || '').includes('.aac') && (x.ended || x.paused))", timeout=5000)
+        info = ip.evaluate("""async () => { const a = [...document.querySelectorAll('audio')].find(x => (x.currentSrc || x.src || '').includes('.aac'));
+          if (!a) return null; const r = await fetch(a.currentSrc || a.src); const b = await r.arrayBuffer();
+          const buf = await new OfflineAudioContext(1, 1, 44100).decodeAudioData(b);
+          return { type: r.headers.get('content-type'), dur: buf.duration, played: a.currentTime, ended: a.ended }; }""")
+        idx = json.loads((Path(__file__).with_name('ui-fixtures') / 'audio' / 'words' / 'index.json').read_text())['us']['drain']
+        want = 0.3 + (idx[2] - idx[1])  # silence, then the word; then a little of the gap after it
+        check(dev, 'iPhone: the clip is audio/aac with 0.3 s of silence, the whole word and a little after, and it plays to its end',
+              info and info['type'].startswith('audio/aac') and want <= info['dur'] <= want + 0.4 and info['ended'], (info, want))
+        # no clip from the server (an older server, an error): the word plays from its sprite, as before
+        ip.route('**/*.aac*', lambda r: r.fulfill(status=404, content_type='application/json', body='{}'))
+        ip.reload(wait_until='load'); settle(ip, '#reader'); ip.wait_for_timeout(600); away()
+        n0 = len(iplays()); word()
+        new = [x for x in iplays()[n0:] if '/audio/words/' in x['src']]
+        check(dev, 'iPhone: without a clip, the sprite plays instead', any('.aac' not in x['src'] and x['ok'] for x in new), new)
+        check(dev, 'iPhone: no script errors', not ierrors, ierrors[:3])
+        ictx.close()
         browser.close()
     finally:
         srv.terminate()
@@ -2474,7 +2639,14 @@ def main():
             try:
                 wechat_run(pw)
             except Exception:
+                print(traceback.format_exc())
                 check('wechat', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'ios-audio' in ONLY:
+            try:
+                ios_audio_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('ios-audio', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'ux' in ONLY:
             try:
                 ux_run(pw)

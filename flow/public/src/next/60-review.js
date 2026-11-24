@@ -38,10 +38,8 @@
       first = { ...cached.q, items: cached.q.items.filter(x => !done.has(x.id)) };
     }
     if (offline) toast('现在没有网络：先用缓存的复习，联网后自动同步');
-    prefetchAudio(first.items.flatMap(x => {
-      const au = x.audio || {}, ac = au[CLIP.accent()] ? CLIP.accent() : au.us ? 'us' : null;
-      return [ac ? `/audio/words/${ac}/${au[ac][0]}.mp4` : null, ...(x.examples || []).filter(e => e.audio).map(e => `/audio/${S.voice}/${encodeURIComponent(e.pack)}.json?v=${e.audio}`)];
-    }));
+    // the file each word will play (CLIP.wordSrc: its own small clip on an iPhone or iPad, its sprite elsewhere)
+    prefetchAudio(first.items.flatMap(x => [CLIP.wordSrc(x), ...(x.examples || []).filter(e => e.audio).map(e => `/audio/${S.voice}/${encodeURIComponent(e.pack)}.json?v=${e.audio}`)]));
     const lacking = first.items.filter(x => x.kind === 'word' && !(x.examples || []).length).map(x => x.text.toLowerCase()).slice(0, 8);
     if (lacking.length && !offline) api('/api/next/vocab/examples', { words: lacking, request_id: rid('ve') }).then(r => {
       Object.entries(r.examples || {}).forEach(([w, ex]) => items.forEach(x => { if (x.text.toLowerCase() === w && !(x.examples || []).length) x.examples = ex; }));
