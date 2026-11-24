@@ -26,27 +26,29 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 FLOW = ROOT / 'flow'
 TESTS = FLOW / 'tests'
-# Seconds each file took in CI's single run on main (2026-11-24, a 4-CPU hosted runner): only used to balance the
-# shares. A file not listed counts as DEFAULT_SECONDS; a slower or faster file just makes one share a little longer.
+# Seconds each file took in CI with 4 files at once on a 4-CPU hosted runner (PR #60, 2026-11-24): only used to
+# balance the shares. A file not listed (new, or under 3 s) counts as DEFAULT_SECONDS; a wrong guess only makes one
+# share a little longer.
 SECONDS = {
-    'test_ability_radar': 20, 'test_account_data': 24, 'test_adaptive': 69, 'test_admin_roles': 46, 'test_ai_eval': 33,
-    'test_ai_stream': 6, 'test_atlas': 22, 'test_channels': 6, 'test_chat': 15, 'test_coach': 59, 'test_continuity': 39,
-    'test_corpus': 13, 'test_corpus_v5': 7, 'test_daily_knowledge': 22, 'test_daily_line': 8, 'test_exam_sprint': 22,
-    'test_feedback': 25, 'test_field': 46, 'test_fill_examples': 10, 'test_flow_admin_console': 52, 'test_foundation': 23,
-    'test_front_layout': 3, 'test_growth': 61, 'test_guide': 9, 'test_ielts_speaking': 25, 'test_inapp_audio': 3,
-    'test_lab': 25, 'test_learner': 107, 'test_learner_round': 17, 'test_learning': 21, 'test_learning_loop': 31,
-    'test_learning_more': 22, 'test_learning_system': 20, 'test_login': 66, 'test_loop': 14, 'test_meaning_fixes': 4,
-    'test_media': 11, 'test_migration': 3, 'test_next': 93, 'test_origin_install': 3, 'test_package': 3, 'test_pedagogy': 27,
-    'test_practice': 31, 'test_practice_hub': 11, 'test_progress': 50, 'test_quota': 17, 'test_reference': 27,
-    'test_reliability': 42, 'test_relisten': 16, 'test_rewrite_minimal': 14, 'test_slim': 4, 'test_survey': 26,
-    'test_ux_round': 8, 'test_vocab': 47, 'test_welcome': 14, 'test_wordbook_registry': 17, 'test_wordbooks': 1,
+    'test_ability_radar': 37, 'test_account_data': 28, 'test_adaptive': 124, 'test_admin_roles': 53,
+    'test_ai_eval': 37, 'test_ai_stream': 3, 'test_atlas': 23, 'test_channels': 12, 'test_chat': 15, 'test_coach': 64,
+    'test_continuity': 67, 'test_corpus': 34, 'test_corpus_v5': 3, 'test_daily_knowledge': 42, 'test_daily_line': 21,
+    'test_exam_sprint': 21, 'test_feedback': 43, 'test_field': 76, 'test_fill_examples': 52,
+    'test_flow_admin_console': 90, 'test_foundation': 52, 'test_growth': 118, 'test_guide': 7,
+    'test_ielts_speaking': 33, 'test_lab': 46, 'test_learner': 116, 'test_learner_round': 15, 'test_learning': 26,
+    'test_learning_loop': 36, 'test_learning_more': 42, 'test_learning_system': 39, 'test_login': 74, 'test_loop': 31,
+    'test_media': 12, 'test_migration': 4, 'test_next': 169, 'test_pedagogy': 30, 'test_practice': 61,
+    'test_practice_hub': 8, 'test_progress': 55, 'test_quota': 31, 'test_reference': 51, 'test_reliability': 49,
+    'test_relisten': 37, 'test_rewrite_minimal': 26, 'test_survey': 33, 'test_ux_round': 15, 'test_vocab': 114,
+    'test_welcome': 18, 'test_wordbook_registry': 19,
 }
-DEFAULT_SECONDS = 20
-# The groups of tools/ui_test.py, one list per CI job (about five minutes each on a hosted runner, 2026-11-24).
-# A name ui_test.py does not have yet is allowed ('class' arrives with PR #42); every name it has must be here.
+DEFAULT_SECONDS = 30
+# The groups of tools/ui_test.py, one list per CI job (4.4–5.9 minutes each on a hosted runner, PR #60, 2026-11-24).
+# Every group ui_test.py has must be in one (tests/test_ci.py checks): a new group goes into the shortest share.
+# A name ui_test.py does not have yet is allowed: 'privacy' and 'trial-survey' arrive with PRs #58 and #59.
 UI_SHARDS = [
     ['about'],
-    ['phone', 'phone-land'],
+    ['phone', 'phone-land', 'privacy', 'trial-survey'],
     ['tablet', 'desktop', 'platforms', 'wechat', 'ux'],
     ['learner', 'progress', 'swipe', 'listen-speak', 'start', 'sprint', 'backlog', 'class'],
     ['a11y', 'layout'],
