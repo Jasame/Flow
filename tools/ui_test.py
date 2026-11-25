@@ -13,6 +13,7 @@ playback stop button, step switching, list filters. Screenshots of every page pe
 import atexit, json, os, re, socket, subprocess, sys, tempfile, time, traceback
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from quiet import silent  # every browser it starts makes no sound (tools/quiet.py)
 
 OUT = Path(sys.argv[1] if len(sys.argv) > 1 else tempfile.mkdtemp(prefix='flow-ui-out-'))
 OUT.mkdir(parents=True, exist_ok=True)
@@ -3121,6 +3122,7 @@ def home_app_run(pw):
 
 def main():
     with sync_playwright() as pw:
+        silent(pw)
         if not ONLY or 'about' in ONLY:
             try:
                 about_run(pw)

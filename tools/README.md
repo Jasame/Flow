@@ -160,8 +160,12 @@ The owner approved these on 2026-11-24 (「按你的建议改，b6 发完就写�
 8. **Reports.** 总控 (语流 1) gives the owner a summary about every two hours.
 9. **Automation stays silent** (the owner, 2026-11-25: 「后台运行的应用不要播放系统声音」). Sessions work on the owner's
    Mac, so nothing they run in the background may make a sound:
-   - browser and simulator automation is muted: Chrome and Playwright start with `--mute-audio`, media elements on the
-     page are set `muted`, and the app has a mute switch for tests;
+   - browser automation is muted: every tool that starts a browser calls `silent(pw)` from `tools/quiet.py` right
+     after `with sync_playwright()` (`tests/test_ci.py` checks). Chrome starts with `--mute-audio`, and every page gets
+     a script first: media at volume 0 once it plays, Web Audio through a gain of 0, the browser voice at volume 0 (on a
+     Mac that voice is the system's speech, which `--mute-audio` does not reach). `.muted` is left to the app. Playback
+     still runs (play, currentTime, ended, the voice's events), so tests of sound keep checking it, unheard;
+   - simulator automation mutes on the web side the same way (`tools/ios_sim_check.py`);
    - no `say`, `afplay` or `osascript` beep;
    - no Escape key press when there is nothing to cancel (macOS beeps);
    - a test that has to be heard is asked for first.

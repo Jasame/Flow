@@ -10,6 +10,7 @@ share.jpg, the picture a shared link shows. Nothing here touches production.
 import base64, json, socket, subprocess, sys, tempfile, time, atexit
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from quiet import silent  # every browser it starts makes no sound (tools/quiet.py)
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'flow' / 'public' / 'about'
@@ -96,6 +97,7 @@ def main(only):
     cfg = json.loads((state / 'sessions.json').read_text())
     base, token = cfg['base'], cfg['learners']['guide']['token']
     with sync_playwright() as p:
+        silent(p)
         browser = p.chromium.launch(channel='chrome')  # the installed Chrome, as tools/ui_test.py does
         for name in [n for n in names if n in SHOTS]:
             route, step, size = SHOTS[name]
