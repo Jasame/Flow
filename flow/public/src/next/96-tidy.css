@@ -60,5 +60,5 @@
 @media (max-height:500px) and (orientation:landscape){
   .study-head{gap:2px;margin-bottom:6px}
   .study-head .title-en,.study-head .origin{display:none}
-  .study-head .h1{font-size:19px;margin:0}
+  .study-head .h1{font-size:20px;margin:0}
 }

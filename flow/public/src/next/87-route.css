@@ -60,7 +60,7 @@
   body.reviewing .mix .q{gap:8px}
   body.reviewing .mix .fb:empty{display:none}
   body.reviewing .mix .ans{padding-top:8px;padding-bottom:8px;min-height:44px}
-  body.reviewing .mix .h1{font-size:19px;line-height:1.3}
+  body.reviewing .mix .h1{font-size:20px;line-height:1.3}
   body.reviewing .mix .kicker{margin-bottom:2px}
   body.reviewing .mix .howto{padding-top:9px;padding-bottom:9px}
   body.reviewing .mix>div:first-child>p.muted{display:none}
