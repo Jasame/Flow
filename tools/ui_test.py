@@ -1234,7 +1234,9 @@ def ux_run(pw):
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a2']['token'], 'url': BASE}])
         ctx.add_init_script(FAKE_TTS)
         pg = ctx.new_page(); pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
-        # 复读: 3 遍, no pause: one tap on a sentence says it three times
+        # 复读: 3 遍, no pause: one tap on a sentence says it three times. The server voice is off on this page (the server's
+        # own answer when it is), so the browser voice, faked to end at once, says it and the three times can be counted
+        pg.route('**/api/next/tts', lambda r: r.fulfill(status=503, json={'error': '服务器朗读没有开启', 'code': 'off'}))
         go(pg, f'#/m/{PID}/listen'); pg.wait_for_selector('#view .playset', timeout=5000)
         pg.evaluate("document.querySelector('#view .playset').open = true"); pg.wait_for_timeout(100)  # 播放设置: remembered open after the reload below
         pg.click('[data-rep="3"]'); pg.evaluate('window.__said = []')
@@ -1243,6 +1245,7 @@ def ux_run(pw):
         pg.wait_for_timeout(900)
         said = pg.evaluate('window.__said')
         check(dev, '复读: a sentence is said three times, with a stop button on screen meanwhile', len(said) == 3 and len(set(said)) == 1 and mini, (len(said), mini))
+        pg.unroute('**/api/next/tts')
         pg.reload(); settle(pg, '[data-rep]')
         check(dev, '复读: the choice is remembered', pg.get_attribute('[data-rep="3"]', 'aria-pressed') == 'true')
         pg.click('[data-rep="1"]')
