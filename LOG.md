@@ -198,3 +198,10 @@
   - #86 发布状态的自检汇总带上失败原因（每项 ≤160 字），Actions 日志里直接能看到（发版和构建）
 - 自检：DEPLOYED，装了 10 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45535216633
+
+### b36 · 2026-11-25 10:57
+- main `7343be8`，构建 `f893e07`
+- 新合并的 PR（自 b35 起）：
+  - #129 朗读：没有录音也用自然人声，不再悄悄换成机器声；长内容可以暂停、继续，并记住进度（单词、听和说、开局和考试、操作指南）
+- 自检：DEPLOYED，装了 5 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45536452349
