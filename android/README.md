@@ -31,7 +31,11 @@ cd android
 adb install -r app/build/outputs/apk/beta/debug/app-beta-debug.apk
 ```
 
-模拟器：`avdmanager create avd -n flow37 -k "system-images;android-37.0;google_apis;arm64-v8a" -d pixel_8`，然后 `emulator -avd flow37`。
+模拟器：`avdmanager create avd -n flow37 -k "system-images;android-37.0;google_apis;arm64-v8a" -d pixel_8`，然后：
+
+```bash
+emulator -avd flow37 -no-window -no-audio      # 测试时一律不出声（工作约定第 9 条）；原生播放照样能测
+```
 
 调试包可以用 Chrome 的 `chrome://inspect` 看网页（正式签名的包关掉了）。
 
@@ -45,6 +49,7 @@ tools/release-apk.sh both     # → dist/flow-beta-<版本>.apk 和 dist/flow-<�
 - 签名用主人 Mac 上的 `~/.flow-android/flow-release.jks`（别名 `flow`）。它的密码在 macOS 钥匙串里，条目名是 `flow-android-release`。脚本从钥匙串里取密码，再交给 `apksigner`；Gradle 碰不到密码，仓库里也没有。
 - **这个 keystore 要备份**（加密 U 盘、密码管理器都行），密码也要一起备份。丢了以后，新版本就不能覆盖安装了：每个人都得先卸载再装，App 里的登录也要重新登。证书指纹是 SHA-256 `76:88:9C:6F:7E:E0:C6:C6:72:84:4B:05:17:91:9C:33:FB:6D:86:40:D2:EF:22:6A:47:20:AF:2B:12:82:89:27`。
 - 怎么装到手机上，见 [INSTALL-zh.md](INSTALL-zh.md)。
+- 改 `tools/release-apk.sh` 或别的签名相关内容的 PR，合并前要先问用户（`docs/releases.md` 2026-11-25 11:15 的规矩）。把 APK 发给试用的同学之前，也要先问用户，并提前告诉语流 03，由它把指南里 App 的权限说明放上去。
 
 CI（Linux）上跑 `./gradlew assembleBetaDebug testBetaDebugUnitTest`，不需要签名：release 包不签名，`release-apk.sh` 只在主人的 Mac 上跑。
 
