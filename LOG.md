@@ -758,3 +758,12 @@
   - #334 单词详细模式：AI 常用搭配和近义词（生成、检查、反馈，加上按计划夜里跑半量）（AI、发版和构建）
 - 自检：DEPLOYED，装了 10 个文件（1 个新的）；轻量 e2e 159/159，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45674635549
+
+### b94 · 2026-11-26 02:37
+- main `de7027c`，构建 `2915783`
+- 新合并的 PR（自 b93 起）：
+  - #363 详细翻面：词性那一列按内容宽（B9 r36 巡检 P3）（单词）
+  - #364 盲听：藏起来的句子在 Safari 里也选不中（补 -webkit-user-select）（今日和计划）
+  - #365 ios_sim_check：今日好句的检查跟上「公版名句」标签和可折叠的卡片（网站其他）
+- 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45676754855
