@@ -189,7 +189,8 @@ class TermsTests(Privacy):
             self.assertEqual((st, home['session']['user']['terms']), (200, None))
             self.assertEqual(self.call('/api/next/export/records.json', headers=h, raw=True)[0], 200)
             # what it is asked to agree to can be read: the guide, and one chapter of it (the tick's names open it)
-            self.assertEqual(self.call('/api/next/guide', headers=h)[0], 200)
+            st, guide, _ = self.call('/api/next/guide', headers=h)
+            self.assertEqual(st, 200); self.assertLessEqual({'terms', 'privacy'}, {ch['id'] for ch in guide['chapters']})
             st, doc, _ = self.call('/api/next/guide?chapter=terms', headers=h)
             self.assertEqual((st, doc['chapter']['title'], doc['chapter']['anchor']), (200, '语流用户协议', None))
             self.assertEqual(self.call('/api/account/terms', {'agree': False}, h)[0], 400)  # nothing to decline: it stays held
