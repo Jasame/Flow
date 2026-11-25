@@ -25,6 +25,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         AudioSessionManager.shared.prepare()
         UNUserNotificationCenter.current().delegate = self
         Shell.registerBackgroundRefresh()
+        Packs.register()
         _ = Shell.shared
         return true
     }
