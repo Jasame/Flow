@@ -9,6 +9,8 @@ final class TTSFetcher {
     private var made: [String: URL] = [:]
     private var running: [String: Task<URL, Error>] = [:]
     private let dir: URL
+    /// The server gave a sentence's address (text, voice, pack, url): the page keeps it in its SV address book (audio-made)
+    var resolved: ((String, String, String?, String) -> Void)?
 
     init(site: SiteClient) {
         self.site = site
@@ -36,59 +38,61 @@ final class TTSFetcher {
 
     func ready(text: String, voice: String, pack: String?) -> Bool { onDisk(key(text, voice, pack)) != nil }
 
-    func prefetch(text: String, voice: String, pack: String?, csrf: String?) {
-        _ = start(text: text, voice: voice, pack: pack, csrf: csrf)
+    func prefetch(text: String, voice: String, pack: String?, csrf: String?, known: String? = nil) {
+        _ = start(text: text, voice: voice, pack: pack, csrf: csrf, known: known)
     }
 
-    func file(text: String, voice: String, pack: String?, csrf: String?) async throws -> URL {
-        try await start(text: text, voice: voice, pack: pack, csrf: csrf).value
+    /// known: the address the page already has for this sentence (its SV address book): no need to ask the server for it
+    func file(text: String, voice: String, pack: String?, csrf: String?, known: String? = nil) async throws -> URL {
+        try await start(text: text, voice: voice, pack: pack, csrf: csrf, known: known).value
     }
 
-    private func start(text: String, voice: String, pack: String?, csrf: String?) -> Task<URL, Error> {
+    private func start(text: String, voice: String, pack: String?, csrf: String?, known: String?) -> Task<URL, Error> {
         let k = key(text, voice, pack)
         if let f = onDisk(k) { return Task { f } }
         if let t = running[k] { return t }
         let name = name(k)
         let t = Task { [site, dir] () throws -> URL in
             defer { self.running[k] = nil }
+            // the file at u, kept on the phone under this sentence's name
+            let fetch = { (u: String) async throws -> URL in
+                let (data, http) = try await site.send(u, timeout: 20)
+                guard (200..<300).contains(http.statusCode), data.count > 100 else { throw SiteError.status(http.statusCode, code: "file", message: "") }
+                let ext = URL(string: u)?.pathExtension.isEmpty == false ? URL(string: u)!.pathExtension : "mp3"
+                let f = dir.appendingPathComponent(name + "." + ext)
+                try data.write(to: f, options: .atomic)
+                self.made[k] = f
+                return f
+            }
+            // the page's address first; one it had kept that is gone (or anything else wrong with it): the server is asked
+            if let known, !known.isEmpty, let f = try? await fetch(known) { return f }
             var body: [String: Any] = ["text": text, "voice": voice]
             if let pack { body["pack"] = pack }
             let j = try await site.json("/api/next/tts", body: body, csrf: csrf, timeout: 20)
             guard let u = j["url"] as? String else { throw SiteError.shape }
-            let (data, http) = try await site.send(u, timeout: 20)
-            guard (200..<300).contains(http.statusCode), data.count > 100 else { throw SiteError.status(http.statusCode, code: "file", message: "") }
-            let ext = URL(string: u)?.pathExtension.isEmpty == false ? URL(string: u)!.pathExtension : "mp3"
-            let f = dir.appendingPathComponent(name + "." + ext)
-            try data.write(to: f, options: .atomic)
-            self.made[k] = f
-            return f
+            if u != known { self.resolved?(text, voice, pack, u) }
+            return try await fetch(u)
         }
         running[k] = t
         return t
     }
 
-    /// A line for the page and the learner: why this sentence is in the iPhone's voice (tts_service's codes).
-    static func reason(_ error: Error) -> String {
-        let tail = "，这句先用 iPhone 自带的声音"
+    /// Why this sentence is in the phone's own voice, for the page to say (docs/native-bridge.md §3 fail: {code, server}):
+    /// the page's SV.why writes the line, one wording for the whole site, once a reason. The app writes no reason itself.
+    static func failure(_ error: Error) -> [String: String] {
         if let e = error as? URLError {
             switch e.code {
-            case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed: return "离线中" + tail
-            case .timedOut: return "自然人声这次生成得太慢" + tail
-            default: return "网络不好" + tail
+            case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed: return ["code": "offline", "server": ""]
+            case .timedOut: return ["code": "slow", "server": ""]
+            default: return ["code": "net", "server": ""]
             }
         }
-        if case SiteError.signedOut = error { return "登录后可以用自然人声朗读" + tail }
-        if case SiteError.status(_, let code, _) = error {
-            switch code {
-            case "guest": return "登录后可以用自然人声朗读" + tail
-            case "off", "store": return "自然人声暂时用不了" + tail
-            case "cap": return "今天的自然人声用完了" + tail
-            case "import_cap": return "今天导入文章的自然人声用完了" + tail
-            case "busy": return "今天用自然人声的人多" + tail
-            default: break
-            }
+        if case SiteError.signedOut = error { return ["code": "guest", "server": ""] }
+        if case SiteError.status(let status, let code, let message) = error {
+            if code == "file" { return ["code": "net", "server": ""] }  // the file itself did not come
+            return ["code": code.isEmpty ? (status >= 500 ? "gateway" : "other") : code, "server": message]
         }
-        return "这句自然人声没做出来" + tail
+        return ["code": "other", "server": ""]
     }
 
     /// The server said no for the rest of the day (switched off, the day's limit), as the page's SV.off: not worth asking
