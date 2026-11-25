@@ -234,3 +234,11 @@
   - #138 App 外壳：iOS App（FlowiOS）里也当主屏 App，键盘交给 App（开局和考试、后台和班级）
 - 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45540971829
+
+### b41 · 2026-11-25 11:45
+- main `20e57d4`，构建 `38cd16c`
+- 新合并的 PR（自 b40 起）：
+  - #139 单词：「认识」默认放右边（可在「我的」里换）；复习提醒可以只改下一次的时间（单词、今日和计划、开局和考试、后台和班级、操作指南、发版和构建）
+  - #141 工作约定：用户 11:15 定的新协作规则（发版和构建）
+- 自检：DEPLOYED，装了 8 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45542031763
