@@ -1,3 +1,3 @@
-becad05d057e4520c40f3e83e65380f7ae828aff 4c8ba32565017f7b201bc9053eeac1d7143311c84abcfb089735a04024c848eb e2e ref=build-b61147f8aa8f
-# r32 main: Merge pull request #205 from Jasame/msi-slots = build of b61147f8aa8f
-# Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
+6b70516ae8c3bc5f7b7d010b6a7460077f78b743 6642f23ff7b5062d32e8cd146dc0f351953def8f417468cf822ff816b595c6b2 e2e ref=build-68aa1bbe9223 tag=r33 tools=597561c34526117206a9ab50909c31f43f5c04458741bfe6feb69478d5de0d67
+# r33 main: Merge pull request #272 from Jasame/class-signup-limits = build of 68aa1bbe9223
+# Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
