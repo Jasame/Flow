@@ -670,3 +670,10 @@
   - #319 旧设备兼容：系统太旧时说清楚怎么办；color-mix、dvh、:has 补退路；报错页先换新版（单词、听和说、今日和计划、开局和考试、操作指南）
 - 自检：DEPLOYED，装了 6 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45644411831
+
+### b85 · 2026-11-26 00:36
+- main `2522c2c`，构建 `e32b944`
+- 新合并的 PR（自 b84 起）：
+  - #337 iOS：语流内测换成橙色图标（AppIcon-Beta），正式版不动（网站其他）
+- 自检：DEPLOYED，装了 2 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45655374730
