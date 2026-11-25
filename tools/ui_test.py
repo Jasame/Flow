@@ -1744,6 +1744,18 @@ def listen_speak_run(pw):
                 lay('听 从第 N 句继续')
                 pg.click('#playAll'); pg.wait_for_function(f"{now} >= 0", timeout=10000)
                 check(dev, '从第 N 句继续 starts there', pg.evaluate(now) == k, (k, pg.evaluate(now)))
+                # the mini player fits its words: the label whole, 暂停 on one line, at 390 and 360 px (it was half the screen
+                # wide, 「第 4 / 1…」 and 暂停 one character per line: 语流 20's iPhone screenshot)
+                fits = []
+                for w in (390, 360):
+                    pg.set_viewport_size({'width': w, 'height': 780}); pg.wait_for_timeout(150)
+                    fits.append(pg.evaluate("""() => { const m = document.querySelector('.mini-player'), l = m.querySelector('.lbl'), t = m.querySelector('.toggle'), x = m.querySelector('.close');
+                        const one = el => { const r = el.getBoundingClientRect(); return r.height <= 48; };
+                        return { w: innerWidth, label: l.textContent, whole: l.scrollWidth <= l.clientWidth + 1, toggle: one(t), close: one(x),
+                                 inside: m.getBoundingClientRect().left >= 0 && m.getBoundingClientRect().right <= innerWidth }; }"""))
+                pg.set_viewport_size(opts['viewport']); pg.wait_for_timeout(150)
+                check(dev, 'the mini player fits: the label whole, 暂停 and ✕ on one line, inside the screen (390 and 360 px)',
+                      all(f['whole'] and f['toggle'] and f['close'] and f['inside'] for f in fits), fits)
                 pg.click('.mini-player .close'); pg.wait_for_timeout(200)
                 pg.click('#playRestart'); pg.wait_for_function(f"{now} >= 0", timeout=10000)
                 check(dev, '从头开始 starts at the first sentence', pg.evaluate(now) == 0, pg.evaluate(now))
