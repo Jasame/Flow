@@ -778,6 +778,7 @@ def run_device(pw, dev, opts):
 # install offer), where a text comes from, and a 360-pixel-wide phone
 IPHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1'
 ANDROID_UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36'
+HARMONY_UA = 'Mozilla/5.0 (Phone; OpenHarmony 5.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 ArkWeb/4.1.6.1 Mobile HuaweiBrowser/5.0.4.300'
 OFFER = """window.__prompted = 0; addEventListener('load', () => { const e = new Event('beforeinstallprompt');
   e.prompt = () => { window.__prompted++; }; e.userChoice = Promise.resolve({ outcome: 'accepted' }); dispatchEvent(e); });"""
 
@@ -827,6 +828,11 @@ def platform_run(pw):
         ctx, pg = page(ANDROID_UA)
         t = install_text(pg)
         check(dev, 'Android: the browser menu, then 添加到主屏幕 / 安装应用', '⋮' in t and '安装应用' in t, t[:120])
+        ctx.close()
+        # HarmonyOS NEXT (华为浏览器, ArkWeb: OpenHarmony and no Android in its user agent): its menu, not a computer's Chrome
+        ctx, pg = page(HARMONY_UA)
+        t = install_text(pg)
+        check(dev, 'HarmonyOS: the browser menu, then 添加到桌面 (not Chrome or Edge)', '≡' in t and '添加到桌面' in t and 'Chrome' not in t, t[:120])
         ctx.close()
         # Android with the offer (beforeinstallprompt): one button, the browser's own install
         ctx, pg = page(ANDROID_UA, init=OFFER)
