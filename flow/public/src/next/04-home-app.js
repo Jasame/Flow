@@ -9,7 +9,7 @@
   // own menu). Any of Flow's apps also says so before the page's scripts: window.FlowApp ({platform: 'ios' | 'windows' |
   // 'macos' …}). The keyboard work-around is for iPhones and iPads only, so the desktop leaves it alone anyway.
   const IN_IOS_APP = /FlowiOS\//.test(navigator.userAgent);
-  const IN_APP = IN_IOS_APP || /FlowDesktop\//.test(navigator.userAgent) || !!window.FlowApp;
+  const IN_APP = /Flow(iOS|Android|Desktop)\//.test(navigator.userAgent) || !!window.FlowApp;  // as docs/native-bridge.md (#162) names them
   const HOME_APP = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true || IN_APP;
   document.documentElement.classList.toggle('home-app', HOME_APP);
 
