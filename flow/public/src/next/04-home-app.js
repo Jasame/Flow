@@ -9,7 +9,7 @@
   // own menu). Any of Flow's apps also says so before the page's scripts: window.FlowApp ({platform: 'ios' | 'windows' |
   // 'macos' …}). The keyboard work-around is for iPhones and iPads only, so the desktop leaves it alone anyway.
   const IN_IOS_APP = /FlowiOS\//.test(navigator.userAgent);
-  const IN_APP = IN_IOS_APP || /FlowDesktop\//.test(navigator.userAgent) || !!window.FlowApp;
+  const IN_APP = /Flow(iOS|Android|Desktop)\//.test(navigator.userAgent) || !!window.FlowApp;  // as docs/native-bridge.md (#162) names them
   const HOME_APP = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true || IN_APP;
   document.documentElement.classList.toggle('home-app', HOME_APP);
 
@@ -65,15 +65,22 @@
     const headLine = () => Math.max(0, ...[bar, document.querySelector('main .steps')].filter(x => x && x.offsetParent !== null && /sticky|fixed/.test(getComputedStyle(x).position))
       .map(x => x.getBoundingClientRect()).filter(r => r.top < 120).map(r => r.bottom + shift()));
     let kbSeen = 0;  // the keyboard's height the last time it was up (iPhone portrait: about half the screen)
+    // Flow's apps make the page itself shorter for the keyboard (Android's WebView, the iOS app's web view that ends at
+    // the keyboard; 语流 21, 20): nothing is covered, but a field near the end and its button (登录, 发送) are now below the
+    // page's own end. The page's height without a keyboard, per width, tells that: shorter while typing = a keyboard.
+    let tallest = innerHeight, wide = innerWidth;
     const fit = () => {
       const kb = Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop));
       root.style.setProperty('--kb', kb + 'px');  // where fixed things (the sheet) stand
       // Up or not from the screen part covered: on iOS 26+ innerHeight shrinks with the keyboard, so kb above is 0 there.
       const covered = Math.round(root.clientHeight - vv.height), up = covered > 80;
       if (up) kbSeen = covered;
-      document.body.classList.toggle('kb-open', up);
-      const el = document.activeElement;
-      if (!up || !el || !isTyping({ target: el })) return;
+      const el = document.activeElement, typing = !!el && isTyping({ target: el });
+      if (innerWidth !== wide) { wide = innerWidth; tallest = innerHeight; }  // turned: its own height again
+      if (!typing) tallest = Math.max(tallest, innerHeight);
+      const shrunk = typing && tallest - innerHeight > 80;
+      document.body.classList.toggle('kb-open', up || shrunk);
+      if (!(up || shrunk) || !typing) return;
       const btn = submitOf(el), card = el.closest('#sheetCard'), s = shift();
       const r = el.getBoundingClientRect(), b = btn && btn.offsetParent !== null ? btn.getBoundingClientRect() : r;
       const top = (card ? 0 : headLine()) + 8, bottom = vv.height - 8;
