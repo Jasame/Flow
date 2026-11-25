@@ -2733,11 +2733,6 @@ def progress_run(pw):
                 want = [str(pr['remembered']['now']), str(pr['finished']['now']),
                         f"{acc['rate']}%" if acc['rate'] is not None else (f"{acc['right']}/{acc['total']}" if acc['total'] else '—'), f"{hb['done']}/{hb['goal']}天"]
                 check(dev, f'{tag}: 这周进步 sits under the plan, the week chip by the greeting', card and card['below'] and card['chip'] and card['inView'], card)
-                top = pg.evaluate(TOP_JS)
-                check(dev, f'{tag}: 今日 runs 好句, 今日一读, the plan, 这周进步 from the top (the plan first on a phone held sideways), nothing cut off or wider than the screen',
-                      top['order'] == (['plan', 'lineCard', 'news', 'week'] if h < 500 else ['lineCard', 'news', 'plan', 'week']) and not top['clipped'] and top['wide'] <= 0 and (not touch or top['small'] == []), top)
-                nc = pg.text_content('#view .news-card') or ''
-                check(dev, f'{tag}: the card is 今日一读, marked AI 生成, never an old 今日热点', '今日一读' in nc and 'AI 生成' in nc and '旧热点' not in nc, nc[:80])
                 # phones (the owner, 2026-11-25): 好句 and 今日一读 one line each, 「AI 生成」 on 今日一读's line, so 今天的计划 and its
                 # button are on the first screen; a tap opens 好句 in place, again closes it. iPad and computer: both cards whole
                 fold = pg.evaluate(FOLD_JS)
@@ -2748,6 +2743,11 @@ def progress_run(pw):
                           fold['lineH'] <= 70 and fold['newsH'] <= 64 and fold['newsAI'] and fold['planInView'] and not fold['say'] and opened['say'] and not closed['say'], (fold, opened['say'], closed['say']))
                 else:
                     check(dev, f'{tag}: 好句 and 今日一读 shown whole (no fold on a wide screen)', fold['say'] and not fold['foldShown'] and fold['newsH'] > 70, fold)
+                top = pg.evaluate(TOP_JS)
+                check(dev, f'{tag}: 今日 runs 好句, 今日一读, the plan, 这周进步 from the top (the plan first on a phone held sideways), nothing cut off or wider than the screen',
+                      top['order'] == (['plan', 'lineCard', 'news', 'week'] if h < 500 else ['lineCard', 'news', 'plan', 'week']) and not top['clipped'] and top['wide'] <= 0 and (not touch or top['small'] == []), top)
+                nc = pg.text_content('#view .news-card') or ''
+                check(dev, f'{tag}: the card is 今日一读, marked AI 生成, never an old 今日热点', '今日一读' in nc and 'AI 生成' in nc and '旧热点' not in nc, nc[:80])
                 check(dev, f'{tag}: its four numbers are the learner\'s own (as the server counts them)', card and card['values'] == want, (card and card['values'], want))
                 path = home['path']; plan = pg.evaluate(PLAN_JS)
                 grp = {g: [x for x in path['steps'] if x.get('group', 'must') == g] for g in ('must', 'extra', 'week')}
