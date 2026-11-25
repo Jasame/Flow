@@ -1,3 +1,3 @@
-02567c9c6f46d8d86297fa0205a60ce3804cbbd2 1b127033c4544282a108883e74124ca92e25701eddd192b6abe0bbba45c77946 e2e light ref=build-225cb124a622 tag=b75 tools=597561c34526117206a9ab50909c31f43f5c04458741bfe6feb69478d5de0d67
-# b75 main: Merge pull request #300 from Jasame/ios-fail-items = build of 225cb124a622
+fa65179aaa18e7031753da41d134882414a70021 75e6f687f626030c86d98d82ac1574f3451590f681172e2cc5a8ea7d481ced86 e2e light ref=build-61020f09cbe0 tag=b76 tools=597561c34526117206a9ab50909c31f43f5c04458741bfe6feb69478d5de0d67
+# b76 main: Merge pull request #301 from Jasame/tap-label-links = build of 61020f09cbe0
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
