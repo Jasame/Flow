@@ -44,7 +44,7 @@
       top = `<section class="today-plan" aria-labelledby="tpTitle">${backHTML(p, next)}
         <div class="tp-head"><div><h1 class="h1" id="tpTitle">${next ? '今天的计划' : '今天的计划完成了'}</h1>
           <span class="muted small">${planHeadText(p)}</span>${sprintLine(h)}</div>
-          <span class="ring" data-p="${Math.round(p.done / Math.max(1, p.total) * 100)}" aria-hidden="true"><b>${p.done}/${p.total}</b></span></div>
+          <span class="ring" data-p="${Math.round(p.done / Math.max(1, p.total) * 100)}" role="img" aria-label="今天的计划，已完成 ${p.done} 步，共 ${p.total} 步"><b aria-hidden="true">${p.done}/${p.total}</b></span></div>
         ${next ? `<a class="btn primary block go-next" href="${esc(next.href)}">${p.done ? '继续' : '开始'}第 ${nextK + 1} 步<span aria-hidden="true">→</span></a>${overLineHTML(p, next)}`
           : `<div class="tp-done">${doneRing}<span>都完成了。${more1 ? `想多学一点，下一篇是《${esc(more1.title)}》。` : '想多学一点，就再挑一篇。'}多学的照样算进「这周进步」。</span></div>
             <div class="tp-more"><a class="btn primary block go-next" href="${more1 ? '#/m/' + encodeURIComponent(more1.id) : '#/library'}" data-tap="home-more-one">再学一篇<span aria-hidden="true">→</span></a>

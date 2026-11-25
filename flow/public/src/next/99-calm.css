@@ -11,7 +11,6 @@
 
 /* 使用提示 (08-tips.js): said once, put away with 知道了 */
 .tip-once{display:flex;align-items:center;gap:8px;font-size:13.5px;line-height:1.5;color:var(--ink2);background:var(--sunk);border-radius:12px;padding:4px 4px 4px 12px;margin:0 0 10px}
-.tip-once[hidden]{display:none}
 .tip-once span{flex:1}
 .tip-once .link{flex:none}
 

@@ -467,19 +467,25 @@ def run_device(pw, dev, opts):
     go(pg, f'#/m/{PID}/read')
     # 使用提示 (08-tips.js, 学优秀 UI 第一批): 「点词查词…」 said once above the text, 知道了 puts it away and the account
     # keeps that (not after a reload either); 我的 → 帮助 → 更多 →「重新显示使用提示」 brings it back
+    # the server's list and the phone's copy of it (08-tips.js keeps one per account, so the tip is drawn with the page)
     tips_reset = """async () => { const s = await (await fetch('/api/session')).json();
-        await fetch('/api/next/tips', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': s.user.csrf }, body: JSON.stringify({ reset: true }) }); }"""
+        await fetch('/api/next/tips', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': s.user.csrf }, body: JSON.stringify({ reset: true }) });
+        Object.keys(localStorage).filter(k => k.startsWith('flow-tips')).forEach(k => localStorage.removeItem(k));
+        [s.user.id, s.user.username].filter(Boolean).forEach(w => localStorage.setItem('flow-tips-' + w, '[]')); }"""
     pg.evaluate(tips_reset); pg.reload(wait_until='load'); settle(pg)
-    shown = bool(pg.wait_for_selector('#tip-read:not([hidden])', timeout=6000)); text = pg.text_content('#tip-read') or ''
+    shown = bool(pg.wait_for_selector('#tip-read', timeout=6000)); text = pg.text_content('#tip-read') or ''
+    y0 = pg.evaluate("Math.round(document.getElementById('reader').getBoundingClientRect().top)"); pg.wait_for_timeout(1500)
+    y1 = pg.evaluate("Math.round(document.getElementById('reader').getBoundingClientRect().top)")
+    check(dev, 'read: the first-time tip is drawn with the page (kept on the phone), the text does not move when the server answers', y0 == y1, (y0, y1))
     pg.click('#tip-read button'); pg.wait_for_timeout(300); gone = pg.query_selector('#tip-read') is None
     pg.reload(wait_until='load'); settle(pg); pg.wait_for_timeout(800)
-    again = pg.query_selector('#tip-read:not([hidden])') is not None
+    again = pg.query_selector('#tip-read') is not None
     seen = pg.evaluate("fetch('/api/next/tips').then(r => r.json())")
     check(dev, 'read: 「点词查词…」 is a first-time tip: shown once above the text, 知道了 puts it away, the account keeps it',
           shown and '点词查词' in text and gone and not again and 'read' in seen.get('seen', []), (text[:30], gone, again, seen))
     if dev == 'phone':
         go(pg, '#/me'); pg.click('#meMore'); pg.wait_for_selector('#meTips', timeout=4000); pg.click('#meTips'); pg.wait_for_timeout(500)
-        go(pg, f'#/m/{PID}/read'); back = bool(pg.wait_for_selector('#tip-read:not([hidden])', timeout=6000))
+        go(pg, f'#/m/{PID}/read'); back = bool(pg.wait_for_selector('#tip-read', timeout=6000))
         check(dev, '我的 → 帮助 → 更多 →「重新显示使用提示」 brings the 读 tip back', back)
         pg.click('#tip-read button'); pg.wait_for_timeout(300); go(pg, f'#/m/{PID}/read')
     rd = pg.evaluate("""() => { const r = document.getElementById('reader'), t = document.querySelector('#view .read-tools');
@@ -3203,6 +3209,9 @@ def progress_run(pw):
                 ec.close()
                 check(dev, f'{tag}: its four numbers are the learner\'s own (as the server counts them)', card and card['values'] == want, (card and card['values'], want))
                 path = home['path']; plan = pg.evaluate(PLAN_JS)
+                ring = pg.get_attribute('#view .today-plan .ring', 'aria-label') or ''
+                check(dev, f'{tag}: the ring says the steps done to a screen reader (the line under the title gives the minutes only)',
+                      ring == f"今天的计划，已完成 {path['done']} 步，共 {path['total']} 步", ring)
                 grp = {g: [x for x in path['steps'] if x.get('group', 'must') == g] for g in ('must', 'extra', 'week')}
                 head = (f"约 {path['must_minutes']} 分钟" if not path['done'] else '都做完了' if path['done'] >= path['total'] else f"还要约 {path['left_minutes']} 分钟")
                 check(dev, f'{tag}: the plan shows 必做 (counted), 还有时间的话 folded and 本周任务 as the server packs them, its title the real minutes of 必做',
