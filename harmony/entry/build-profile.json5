@@ -1,0 +1,16 @@
+{
+  "apiType": "stageMode",
+  "buildOption": {
+    "arkOptions": {
+      // read as BuildProfile.FLOW_* (common/Site.ets); each product in ../build-profile.json5 sets its own
+      "buildProfileFields": {
+        "FLOW_SITE": "https://flow.jasa.hk",
+        "FLOW_BETA": "true",
+        "FLOW_BUILD": "dev"
+      }
+    }
+  },
+  "targets": [
+    { "name": "default" }
+  ]
+}

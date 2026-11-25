@@ -1,0 +1,46 @@
+{
+  "app": {
+    // Signing stays out of git: DevEco's automatic signing (or tools in README) adds a local signingConfig; never commit it.
+    "signingConfigs": [],
+    "products": [
+      {
+        // 「语流内测」 cn.flowlang.app.beta → https://flow.jasa.hk (the one DevEco runs by default)
+        "name": "default",
+        "bundleName": "cn.flowlang.app.beta",
+        "label": "$string:app_name_beta",
+        "compatibleSdkVersion": "5.0.0(12)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "arkOptions": {
+            "buildProfileFields": { "FLOW_SITE": "https://flow.jasa.hk", "FLOW_BETA": "true", "FLOW_BUILD": "dev" }
+          }
+        }
+      },
+      {
+        // 「语流」 cn.flowlang.app → https://flowlang.cn
+        "name": "prod",
+        "bundleName": "cn.flowlang.app",
+        "compatibleSdkVersion": "5.0.0(12)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "arkOptions": {
+            "buildProfileFields": { "FLOW_SITE": "https://flowlang.cn", "FLOW_BETA": "false", "FLOW_BUILD": "dev" }
+          }
+        }
+      }
+    ],
+    "buildModeSet": [
+      { "name": "debug" },
+      { "name": "release" }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        { "name": "default", "applyToProducts": ["default", "prod"] }
+      ]
+    }
+  ]
+}
