@@ -80,7 +80,7 @@ enum BridgeTestPage {
     $('feats').onclick = feats;
     // every switch of 「iOS 专属功能」 back to how it comes (a test that stopped half way may have left one on)
     $('featreset').onclick = async () => {
-      for (const id of ['lock-study', 'smart-resume', 'offline-packs', 'haptics', 'frugal']) await A.call('app.feature', { id });
+      for (const id of Object.keys(await A.call('app.features'))) await A.call('app.feature', { id });
       feats();
     };
     $('buzz').onclick = () => A.call('app.haptic', { kind: 'success' }).then(r => { $('feel').textContent = 'feel: haptic ' + r.ok; }, fail);

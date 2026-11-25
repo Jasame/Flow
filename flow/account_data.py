@@ -231,6 +231,17 @@ def erase(c, u, data, verify, data_dir=None):
     if not stored or not verify(p, stored['password']):
         left = auth_service.LOCK_TRIES - auth_service.failed(c, key, lock, now)
         return {'error': '密码不正确' + ('，再错 %d 次会暂停 15 分钟' % left if 0 < left <= 2 else '，已暂停 15 分钟' if left <= 0 else ''), 'field': 'password'}, 400
+    return {'ok': True, 'rows': forget(c, uid, data_dir)}, 200
+
+
+def forget(c, uid, data_dir=None):
+    """Delete the account uid and everything it has (its rows in every table, its own articles' voice, its feedback
+    pictures): 注销账号 once the password is right (erase), and a paused account PAUSE_DAYS on (privacy_service.purge_paused).
+    Returns how many rows went. The caller has checked who may; a staff account is never passed here."""
+    key = 'u:%d' % uid
+    stored = c.execute('SELECT email FROM users WHERE id=?', (uid,)).fetchone()
+    if not stored:
+        return 0
     shots = [r[0] for r in c.execute("SELECT id FROM feedback WHERE user_id=? AND images!='[]'", (uid,)).fetchall()] if 'feedback' in _tables(c) else []
     refs = _references(c)
     c.commit()
@@ -263,4 +274,4 @@ def erase(c, u, data, verify, data_dir=None):
         base = feedback_service.folder() if data_dir is None else data_dir / 'feedback'
         for rid in shots:
             shutil.rmtree(base / str(rid), ignore_errors=True)
-    return {'ok': True, 'rows': n}, 200
+    return n
