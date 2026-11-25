@@ -17,10 +17,12 @@
 .review .roots .k,.sheet .roots .k{color:inherit;font-weight:400}
 /* 复习: the line above the card, and the buttons at the bottom (80-flat.css keeps them in one place on a phone) */
 .rtop+.rvoice{margin:2px 0 0;pointer-events:none}  /* a line to read, not to tap: 结束's 44-px tap area runs under it */
-.rtop+.rsub{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 0;min-height:18px;pointer-events:none}
+.rtop+.rsub{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 0;min-height:18px;pointer-events:none;position:relative;z-index:1}
+/* z 1: above the card (.review.zoned is positioned and comes later), so 「太简单」's 44 px reaching onto the card's top edge stay its own (B9, 2026-11-26) */
 .rsub .rvoice{margin:0;text-align:left}
 /* 「太简单」 at the line's right end: grey, not bold; a 32-px box (99-tap.css makes it 44 to a finger) set low, so the line stays 18 px */
 .rsub button.easy-btn{pointer-events:auto;flex:none;min-height:32px;min-width:32px;margin:-3px 0 -11px;padding:3px 2px 0;align-items:flex-start;font-size:13px;line-height:18px;font-weight:400;color:var(--muted)}  /* the word on the note's line, the box hanging below */
+.rsub button.easy-btn::after{top:auto;bottom:-19px;height:44px;transform:translateX(-50%)}  /* its 44 px hang down from under 简|详 (which keep theirs), 16 px onto the card's top edge */
 .rtop .undo:disabled{color:var(--muted);opacity:.5;cursor:default}
 .ractions{display:grid;gap:10px}
 .ractions>.too-easy{justify-self:center;color:var(--muted);font-weight:500}

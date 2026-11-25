@@ -3589,6 +3589,16 @@ def review_side_run(pw):
         pg.click('.easy-bar button'); pg.wait_for_timeout(600); w2 = (pg.text_content('.review .wordbig') or '').strip()
         check(dev, '太简单 (under the bar, right end, out of the three parts): the card leaves at once, 「已标为太简单 … 撤销」 for six seconds, 撤销 brings it back',
               w0 and w1 != w0 and '已标为太简单' in bar and w2 == w0 and not pg.query_selector('.easy-bar'), [w0, w1, bar, w2])
+        # 太简单's 44 px reach past its 32-px box onto the card's top edge (B9, 2026-11-26): the card comes later in the page
+        # and is positioned, so it used to cover that part — a tap 3 px low turned the card over as 认识
+        pg.wait_for_timeout(700)
+        below = pg.evaluate("""() => { const b = document.getElementById('easyBtn').getBoundingClientRect(), x = b.left + b.width / 2, y = b.bottom + 6;
+          const e = document.elementFromPoint(x, y); return { x, y, hit: e ? (e.closest('#easyBtn') ? 'easyBtn' : (e.id || e.className || e.tagName).toString().slice(0, 30)) : null }; }""")
+        n_rated = len(bodies); pg.touchscreen.tap(below['x'], below['y']); pg.wait_for_timeout(500)
+        bar3, turned = bool(pg.query_selector('.easy-bar')), bool(pg.query_selector('#view .open-card'))
+        check(dev, '太简单: a tap 6 px under its box is still 太简单 (its 44 px), not the card\'s 认识', below['hit'] == 'easyBtn' and bar3 and not turned and len(bodies) == n_rated, [below, bar3, turned])
+        if bar3:
+            pg.click('.easy-bar button'); pg.wait_for_timeout(700)
         pg.evaluate("localStorage.setItem('flow-know-side', 'left')"); pg.reload(wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(700)
         tap_card(pg, 0); z6 = pg.evaluate(ZONE_JS)
         check(dev, '点卡片作答 with 「认识」 on the left: the left third is 认识, and the back is mirrored too (没错 · 模糊 · 记错了)', z6['back'] and z6['rates'] == ['good', 'hard', 'again'], z6)
