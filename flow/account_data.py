@@ -249,7 +249,7 @@ def erase(c, u, data, verify, data_dir=None):
         n += _cascade(c, refs, 'users', 'id', [uid])  # what refers to the account by another name (owner), and the account
         if stored['email']:
             n += c.execute('DELETE FROM email_codes WHERE email=?', (stored['email'],)).rowcount
-        c.execute('DELETE FROM login_failures WHERE key IN (?, ?)', (key, 'class:%d' % uid))  # and the invite-code pause
+        c.execute('DELETE FROM login_failures WHERE key IN (?, ?, ?)', (key, 'class:%d' % uid, 'pw:%d' % uid))  # and the invite-code and own-password pauses
         if 'mail_limits' in _tables(c):
             c.execute('DELETE FROM mail_limits WHERE key=?', ('bind:%d' % uid,))
         c.commit()

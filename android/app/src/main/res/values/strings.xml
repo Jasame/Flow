@@ -24,4 +24,31 @@
     <string name="ics_calendar">系统日历</string>
     <string name="no_calendar">这台手机上没有能用的日历 App</string>
     <string name="no_browser">没有找到能打开这个链接的 App</string>
+    <!-- new versions (update/Updater.kt, 语流 only) -->
+    <string name="update_title">有新版本 %1$s</string>
+    <string name="update_how">点「下载」，语流会先下载新版本的安装包（约 %1$s），核对无误后交给手机安装。手机会再问你一次，点「更新」（有的手机叫「安装」）就好。从网站直接装的 App 没法自己悄悄更新，每次都要你点这一下。</string>
+    <string name="update_download">下载</string>
+    <string name="update_later">稍后</string>
+    <string name="update_downloading">正在下载新版本…%1$d%%</string>
+    <string name="update_bad_title">安装包核对不过</string>
+    <string name="update_bad">下载下来的安装包和网站上登记的不一样，可能没下完整，所以没有安装。可以重新下载试试。</string>
+    <string name="update_net_title">新版本没下载下来</string>
+    <string name="update_net">看看网络，再试一次。</string>
+    <string name="update_retry">重新下载</string>
+    <string name="update_wrong">这个安装包不能用来更新这台手机上的语流（%1$s），所以没有安装。可以到下载页重新下载。</string>
+    <string name="update_wrong_unreadable">打不开这个安装包</string>
+    <string name="update_wrong_package">不是语流的安装包</string>
+    <string name="update_wrong_old">版本不比现在的新</string>
+    <string name="update_wrong_key">签名和现在装的语流不一样</string>
+    <string name="update_allow_title">允许语流安装新版本</string>
+    <string name="update_allow">安卓的规矩：App 要自己装新版本，得先在设置里允许它「安装未知应用」。打开后，语流只用它来装语流自己的新版本，装完也可以再关掉。\n\n点「去设置」，打开「允许从此来源安装应用」，然后返回。</string>
+    <string name="update_allow_no">没有打开「安装未知应用」，在 App 里装不了。也可以用浏览器打开 flowlang.cn/download 下载新版本，再点开安装。</string>
+    <string name="update_open_page">打开下载页</string>
+    <string name="update_failed_title">新版本没有装上</string>
+    <string name="update_install_failed">原因：%1$s。可以到下载页下载新版本，再点开安装。</string>
+    <string name="update_fail_storage">手机空间不够</string>
+    <string name="update_fail_conflict">和手机上的语流对不上（签名不同）</string>
+    <string name="update_fail_blocked">被手机拦下了</string>
+    <string name="update_fail_other">手机没有装成功</string>
+    <string name="update_aborted">这次没有更新。明天打开语流时会再提醒你。</string>
 </resources>

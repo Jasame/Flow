@@ -28,7 +28,7 @@
         const base = `/audio/${vs.includes(S.voice) ? S.voice : vs[0]}/${encodeURIComponent(id)}`;
         sw.postMessage({ type: 'prefetch', urls: [`${base}.json?v=${m.audio.version}`, `${base}.mp4?v=${m.audio.version}`] });
       }
-      if (!quiet) toast('已存到手机，没网也能学');  // the chip itself is short now, so the toast says what it means
+      if (!quiet) toast('已存到本机，没网也能学');  // the chip itself is short now, so the toast says what it means
       return true;
     } catch (e) { if (!quiet) toast(e.network ? '现在没网，存不了' : e.message); return false; }
   }
@@ -43,12 +43,12 @@
   function offChip(id) {
     // a phone with a down arrow in front, at the right of the kicker line (the full meaning is in the title and the toast)
     const icon = '<svg class="offi" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M12 7.5v7m-3-3 3 3 3-3"/></svg>';
-    return OFF.has(id) ? '<span class="offk on" id="keepOff" title="没网也能学">✓ 已存到手机</span>' : `<button class="link small offk" id="keepOff" type="button" data-tap="study-keep" title="存到手机，没网也能学">${icon}存到手机</button>`;
+    return OFF.has(id) ? '<span class="offk on" id="keepOff" title="没网也能学">✓ 已存到本机</span>' : `<button class="link small offk" id="keepOff" type="button" data-tap="study-keep" title="存到本机，没网也能学">${icon}存到本机</button>`;
   }
   function bindOffChip(id) {
     const b = document.getElementById('keepOff'); if (!b || b.tagName !== 'BUTTON') return;
     b.onclick = async () => { b.disabled = true; b.textContent = '正在存…'; const ok = await keepOffline(id); b.outerHTML = offChip(id); if (!ok) bindOffChip(id); };
   }
   // Losing and finding the connection: said once each way; what waited is sent.
-  addEventListener('offline', () => { const n = OFF.count(); toast(n ? `现在没网：已存到手机的 ${n} 篇还能学` : '现在没网：复习单词还能做，联网后自动同步'); });
+  addEventListener('offline', () => { const n = OFF.count(); toast(n ? `现在没网：已存到本机的 ${n} 篇还能学` : '现在没网：复习单词还能做，联网后自动同步'); });
   addEventListener('online', () => { OUTBOX.flush(); });  // it says how much was synced
