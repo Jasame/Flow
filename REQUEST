@@ -1,3 +1,3 @@
-ade1e388291fa29e42da18545c4273b0f4e0ff6b 447aa24d7e95f2d5d8e7743012ab564137df15c097c95d8c386fa462a879491c e2e
-# r28 main: Merge pull request #111 from Jasame/r28-start-weekdays = build of da3a81e14d35
+6bde7881e691d3fafaac8492fe82e840074c0e3f 075582ca0bc28fa3e40258d161ea3692e79d7b651922dc21e4872b0febabfc4b e2e
+# r29 main: Merge pull request #121 from Jasame/teacher-mode = build of c0862dbef443
 # Format: <commit sha> <manifest sha256> [e2e [light]]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
