@@ -43,7 +43,7 @@ body.sheet-open{overflow:hidden}
 /* typing on a phone: the tabs step aside so the keyboard never covers the field or its button */
 @media (max-width:759px){body.typing .tabs,body.typing .mini-player{display:none}body.typing{padding-bottom:12px}}
 /* mini player: stop is always on screen while a whole text plays */
-.mini-player{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(80px + var(--sab));z-index:45;display:flex;align-items:center;gap:10px;background:var(--ink);color:var(--bg);border-radius:99px;padding:6px 6px 6px 14px;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
+.mini-player{position:fixed;left:50%;width:max-content;transform:translateX(-50%);bottom:calc(80px + var(--sab));z-index:45;display:flex;align-items:center;gap:10px;background:var(--ink);color:var(--bg);border-radius:99px;padding:6px 6px 6px 14px;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
 .mini-player .lbl{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mini-player .stop,.mini-player .resume{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:99px;background:var(--fill);color:var(--on-fill);font-weight:700;padding:8px 14px;min-height:40px}
 .mini-player.paused .eq i{animation:none;opacity:.5}
