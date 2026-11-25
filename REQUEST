@@ -1,3 +1,3 @@
-789dc2fd37e33eaa2a1b56c4b49f3c76b79e42bc b9ca1684bb598c66d620d9b1fad7a7d9c2ed1906b785c7b19e84a41b1f8fdfd8 e2e light ref=build-dd91786d0afd tag=b66 tools=6cabec437d5331a86b772d0870d9963fd1fd12348cff64715122415ab19d1c77
-# b66 main: Merge pull request #248 from Jasame/rules-msi-changed = build of dd91786d0afd
+57a87a565158e4a4295062487db5cabe854c5a98 0de9266582671dae7315a41e6e0a9233d55fb15ba36f59ce90c8058ccf71e232 e2e light ref=build-b745e105e5d7 tag=b67 tools=5c7593a26e23a7cb6f7ed385dafc63096b2facddc186bf3cfb5da4866cde246c
+# b67 main: Merge pull request #255 from Jasame/report-week-days = build of b745e105e5d7
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
