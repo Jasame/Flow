@@ -11,6 +11,8 @@ pub struct Settings {
     pub notify: bool,
     /// Windows: closing the window keeps 语流 in the tray (the reminders are the system's either way)
     pub close_to_tray: bool,
+    /// the latest 「这次什么时候复习」 time the app knew of (schedule::Input::once_seen): its day gets no second reminder
+    pub once_seen: Option<f64>,
 }
 
 pub fn load(path: &Path) -> Settings {
@@ -47,12 +49,13 @@ mod tests {
             load(&p),
             Settings {
                 notify: true,
-                close_to_tray: false
+                ..Default::default()
             }
         );
         let s = Settings {
             notify: true,
             close_to_tray: true,
+            once_seen: Some(1764140400.0),
         };
         save(&p, &s).unwrap();
         assert_eq!(load(&p), s);
