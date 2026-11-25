@@ -189,22 +189,24 @@ speaking、pending 照实；2.5 秒内一定发 start；getVoices() 有带 lang 
 - rec：AVAudioRecorder；notify：UNUserNotificationCenter + BGAppRefreshTask。
 - 静音开关：`-FlowMuteAudio YES`（AVPlayer.isMuted、朗读音量 0，网页的 `<audio>`、Web Audio、speechSynthesis 也静音）。
 
-### 安卓（语流 21，`android/`）
+### 安卓（语流 C2，`android/`）
 
 Kotlin，minSdk 26，targetSdk 37；说明在 `android/README.md`。flavor `beta`（cn.flowlang.app.beta，「语流内测」，flow.jasa.hk）和 `prod`（cn.flowlang.app，「语流」，flowlang.cn）。
 
-- **注入**：`WebViewCompat.addDocumentStartJavaScript`，在 document start 注入，规则里只有本站的源。文件 `android/app/src/main/assets/flowapp.js`，形状和 iOS 的 FlowBridge.js 一样（第 2 节），只有最底下的传输不同。
-  - `FlowApp` 冻结；html 加 class `flow-android`；`build` 是 CI 的提交前 7 位（本机构建是 `"dev"`）；`beta` 看 flavor。
+- **注入**：`WebViewCompat.addDocumentStartJavaScript`，在 document start 注入，规则里只有本站的源。注入的是两个文件拼在一起：
+  - 先是安卓自己的 `android/app/src/main/assets/flowapp-android.js`：`__flowAppTransport`（传输、`extend` 里加 `_back`、`ready` 里收端口消息和发 hello），再加上 speechSynthesis 和静音开关；
+  - 后面是共用的 `native/flowapp.js`，原样放进去（打包时 Gradle 把 `native/` 加进 assets，第 2 节「共用的包装」）。
+  - `build` 是 CI 的提交前 7 位（本机构建是 `"dev"`）；`beta` 看 flavor。
 - **传输**：`WebViewCompat.addWebMessageListener` 的 `flowNative` 通道，不用 `addJavascriptInterface`。
   - 网页发 `postMessage(JSON {id, cmd, args})`，App 用 JavaScriptReplyProxy 回 `{id, ok, result | error}`。
-  - App → 网页走同一个通道，发 `{ev, detail}`，flowapp.js 转给 `FlowApp._emit`。
+  - App → 网页走同一个通道，发 `{ev, detail}`，flowapp-android.js 转给 `FlowApp._emit`（speech 的事件转给 speechSynthesis 那一段）。
   - 只认本站主框架（isMainFrame 加 origin 检查）。WebView 太旧、缺这两个功能时什么都不挂，网页照浏览器的做法。
 - **外壳**：
   - UA 末尾是 `FlowAndroid/<版本>`；返回键先发 `flowapp:back`（第 2 节）；别的网站、`mailto:`、`tel:` 交给系统打开；
   - 深色和浅色切换不重新加载；键盘弹出时整个 WebView 变矮，网页里 visualViewport 看不到键盘；
   - WebView 的使用统计和 Safe Browsing 关掉，不做云备份。
 - **audio**：Media3 ExoPlayer 加 MediaSessionService（前台服务，类型 mediaPlayback）。
-  - 锁屏、通知栏、耳机和蓝牙按键：播放、暂停、上一句、下一句。SimpleBasePlayer 显示「标题 · 第 n / N 句」；句间停顿和正在生成的句子也显示成在放。
+  - 锁屏、通知栏、耳机和蓝牙按键：播放、暂停、上一句、下一句。SimpleBasePlayer 显示标题和「AI 朗读 · 第 n / N 句」（合成声音的显式标识）；句间停顿和正在生成的句子也显示成在放。
   - 音频焦点自己管：
     - 短暂失去（来电、闹钟、导航）：暂停，回来后自己接着放；
     - 彻底失去（别的 App 放声音）：暂停（why = other）；

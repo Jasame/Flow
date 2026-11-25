@@ -270,6 +270,17 @@ fn downloads_path(dir: Option<PathBuf>, url: &Url, suggested: &std::path::Path) 
     p
 }
 
+fn debug_theme() -> Option<tauri::Theme> {
+    if !cfg!(debug_assertions) {
+        return None;
+    }
+    match std::env::var("FLOW_DESKTOP_THEME").ok().as_deref() {
+        Some("light") => Some(tauri::Theme::Light),
+        Some("dark") => Some(tauri::Theme::Dark),
+        _ => None,
+    }
+}
+
 fn build_window(app: &AppHandle, hidden: bool) -> tauri::Result<WebviewWindow> {
     let st = app.state::<AppState>();
     let site = st.site.clone();
@@ -286,6 +297,9 @@ fn build_window(app: &AppHandle, hidden: bool) -> tauri::Result<WebviewWindow> {
     );
     let builder = WebviewWindowBuilder::new(app, MAIN, WebviewUrl::External(site.clone()))
         .title(st.channel.name())
+        // debug builds: FLOW_DESKTOP_THEME=light|dark shows the window (and the page's prefers-color-scheme) in that
+        // look whatever the system uses, e.g. light screenshots on a Mac in dark mode; release builds follow the system
+        .theme(debug_theme())
         .inner_size(1180.0, 820.0)
         .min_inner_size(380.0, 560.0)
         .visible(!hidden)

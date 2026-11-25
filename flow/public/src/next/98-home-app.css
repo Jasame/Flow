@@ -1,5 +1,6 @@
 /* ---------- 主屏 App (04-home-app.js): the top bar clear of the Dynamic Island / status bar and the sides, the back
    button, the keyboard, the new-version line ---------- */
+:root{--bar-h:48px}  /* the top bar's height; 04-home-app.js sets the measured one (safe area and back button included) */
 .bar{padding-top:calc(10px + var(--sat));padding-left:max(var(--gut),var(--sal));padding-right:max(var(--gut),var(--sar))}
 .bar.hide{top:calc(-72px - var(--sat))}
 .steps{top:calc(57px + var(--sat))}
