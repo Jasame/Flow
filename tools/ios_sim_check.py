@@ -138,6 +138,8 @@ class RWI:
                     self.send('_rpc_forwardGetListing:', {'WIRApplicationIdentifierKey': aid})
             self.pump(0.8)
             for aid, l in self.listing.items():
+                if self.apps.get(aid, {}).get('WIRApplicationBundleIdentifierKey') != bundle:
+                    continue  # Safari sends its own listings unasked: only the app asked for counts
                 for key, p in l.items():
                     if p.get('WIRTypeKey') == 'WIRTypeWebPage' and host in (p.get('WIRURLKey') or ''):
                         return Page(self, aid, p.get('WIRPageIdentifierKey', int(key)))
