@@ -2,7 +2,7 @@
 audio route on 正式版 and every attempt failed; A1 and B3 asked for this guard). No AI is called and nothing is spent: a
 stand-in gateway answers. PROD_AUDIO_ROUTES is what the servers' FLOW_AUDIO_ROUTES should say (/etc/flow.env line 41,
 /etc/flow-beta.env line 50 add next-say); A1 checks a server change against it."""
-import base64, io, json, os, sys, unittest
+import base64, importlib.util, io, json, os, sys, unittest
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -14,7 +14,7 @@ PROD = {'FLOW_AI_PROVIDER': 'openai', 'FLOW_AI_URL': 'https://gw.test/v1/chat/co
         'FLOW_AI_MODEL': 'gemini-3.8-flash', 'FLOW_AI_AUDIO': '1', 'FLOW_TEXT_AI_MODEL': 'flow-text',
         'FLOW_AI_ROUTES': '*=flow-text-ds-flash', 'FLOW_MAIN_AI': 'off', 'FLOW_BACKUP_AI_MODEL': 'flow-text-qwen-plus',
         'FLOW_ASR_AI_MODEL': '', 'FLOW_AUDIO_ROUTES': PROD_AUDIO_ROUTES}
-# The route each recording endpoint's handler runs its AI under (B3 checks it against the handlers).
+# The route each recording endpoint's handler runs its AI under (B3 checked it against the handlers on main, 2026-11-26).
 KIND_OF = {'/api/lab/audio': 'audio', '/api/next/shadow': 'next-shadow', '/api/next/retell': 'next-retell',
            '/api/next/dialog': 'next-dialog', '/api/next/say': 'next-say', '/api/next/ielts': 'next-ielts',
            '/api/next/assess/speaking': 'next-assess-speaking'}
@@ -53,8 +53,14 @@ class AudioLineTests(unittest.TestCase):
             p.start(); self.addCleanup(p.stop)
 
     def test_every_recording_endpoint_is_in_the_list(self):
-        self.assertEqual(sorted(KIND_OF), sorted(app.AUDIO_PATHS),
-                         'a route that reads a recording was added or removed: give it its AI kind in KIND_OF')
+        # B3: found from the code itself (test_request_size.recording_routes), a step before app.AUDIO_PATHS; the routes
+        # that only share a recording handler (SHARES_A_HANDLER) take no recording of their own
+        spec = importlib.util.spec_from_file_location('request_size', Path(__file__).with_name('test_request_size.py'))
+        rs = importlib.util.module_from_spec(spec); spec.loader.exec_module(rs)
+        found = set(rs.recording_routes()) - set(rs.SHARES_A_HANDLER)
+        self.assertEqual(sorted(found - set(KIND_OF)), [], 'these read a recording: give each its AI kind in KIND_OF')
+        self.assertEqual(sorted(set(KIND_OF) - found), [], 'these no longer read a recording: take them out of KIND_OF')
+        self.assertEqual(sorted(KIND_OF), sorted(app.AUDIO_PATHS))
 
     def test_the_servers_line_is_understood(self):
         routes, problem = ai_routes.parse_routes(PROD_AUDIO_ROUTES)
