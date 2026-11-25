@@ -9,7 +9,7 @@ top, the words on one white card, one grey line at the bottom. Each mail goes as
 The HTML is what mail apps render reliably: one column of tables (no sideways scrolling on a phone), inline styles for
 the light look, dark overrides in one <style> under prefers-color-scheme (Apple 邮件 and others that support it; the rest
 keep the light look or darken it themselves), a button that is a table cell (Outlook too), no web fonts.
-The logo is the site's icon as a PNG the site serves (LOGO, 3x, width and height fixed), never inlined as base64
+The logo is the site's icon as a PNG the site serves (/icon-192.png, width and height fixed), never inlined as base64
 (Gmail and QQ 邮箱 block that), with 「语流 Flow」 as real text beside it: a mail app that blocks pictures still shows
 the name, and the name follows dark mode. Every string given here is plain text and is escaped.
 
@@ -21,7 +21,6 @@ the same 「验证码：482915」. Apple documents that iOS 17 / macOS 14 offer 
 fields should say autocomplete="one-time-code" (ours do); it does not document a mail format, so this keeps to the
 plainest one.
 """
-import base64
 import html as _html
 import os
 import re
@@ -37,29 +36,6 @@ DARK = ('.fl-bg{background:#111412!important}.fl-card{background:#1a1e1b!importa
 NUMERALS = {5: '五', 10: '十', 15: '十五', 20: '二十', 30: '三十', 60: '六十'}
 
 
-# The icon at the top of every mail (/mail-logo.png, served by app.py from here; 96 px, shown at 32): the site's mark
-# (next.html's .brand svg: a #1f9d55 rounded square, rx 9 of 32, four white bars) rendered by Chrome with a
-# transparent ground, so it sits on the light and the dark mail background alike.
-LOGO_PNG = base64.b64decode(
-    'iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAFBUlEQVR4nOydPYwTRxiG39lzRZFESiIlBXaUxlFAilLFaRGRokhEkYIvde6ORK'
-    'ny0+ZK6gQqfu96bCgACQlxHY2pEBKHuAZxpgCJo7jmKthhvvWu8c+uvfbO7syOv0c63fq8d7p9X8/sNz/2W4FmPtv8+Rvf9xpCiK8AWZfAYQF8'
-    'qJ46hHJxoP73V+p/fwaIHSnlA8/zO09Xrt2DRgQ0ULu0/AM8nFSCn1APP4Lb7CnZbsLH1d1TrVvISCYDqpebfwqBP9RhHYuJahk4111rn8WczG'
-    'VAdbP5GyTW1S8fBqOkUN2UwOnuSvsiZmQmAz6/0Ky+qWBDHR4HE8fW0musPvm93U37C6kNqG4sLwvIK2CmIiF+6a62WmnO9dKcVNts/svip4e0'
-    'Is3SnLs07YTa5eX/1LdUf4wZ4tgHPx59f//G9u1JJ000IBBfyL/BzIfAt9NMSDQgbEL8ys8KmfDTkdf71x/djX86Br7h6ifpxjxmQFhq7oLRji'
-    'pRa6Ml6lgVFNb5TA7EaTtkQDDC5UFWnhwPNe4z3ALU9AKYfBnRuG9AMLHGczu5QxqT1tHjvgHhrCZTAINaBwYE8/mLO6VsgnqoedgCgsUUplBC'
-    'zcMuKFjJsorGp0fw19dNuEtPc0FruFJ6HVgCiT4q/Jn77eDLNYTwG0vvnTh6Ut0UvocFxIlPUGsgOi8ewSWkFA+93u4FO5jU5dBzkRGuQNpXaO'
-    'sILMA1cdMh6560ZPDV+ORLLeeUCdK+Em6aYgxA2qsuqHQ71lziUKpFeSY/nDfA9gFdBY4yOqagYxsHdE4akDSgi35mkwlOdkFlGtA51wLKNqBz'
-    'rgWUbUDHZahh2ADDsAGG0W6AqytZeV2XtiqoLAOfWcn7urQYUKaBzywUcV1auiBXV7KKuK7MLcDVlayiritzC3B1Jauo6+Iy1DBsgGHYAMOwAY'
-    'ZhAwzDBhiGDTAMG2AYNsAwbIBh2ADDOLsxKytp3gyi4w0jbEAGOs+3kRXughIgcSctuFi1IuYqkch5vmmQDZhCJDaZQH2+jm5nEDYgJXmta2c2'
-    'oKhqwVUKaQG6m61LZK6CiqoWXEVLCyiiWnAVbV1Q3tWCq2i/B/ArfjacK0PLVpUt5DjApu7RubmgslVlTraAMlVlZMABHPy8iJJUZQeVMKrJ2Q'
-    '/ssLkqI+29Xk6WeRZxTom09yikDCXBvcGd2PEoIQ4WsIhzSr10Ps+35iMrk6oUV+eUSPsgwKG20XwJyyIIF2BOaW93tf1xOA4QN1WD+BUW4f6c'
-    'EmkejYR9XAVTLKHm/QwZ1Q09Bn+CelHsqO7nCzrozwVRKiiYQhjUeihFqbrR7HKKRr5Q8mp3tV2NHg/PhgqcBpMvIxqP5Yipe8EdcJJSXmypvv'
-    '+7wR+MrQdQHi6YXIjTdswASnqj2D0wWiFN44KeY8M8929sb1MApTo8BiY7Auvqxns+7qnENFVK/6QoVkoDBTM/Uvyv+v3EgLyJecKUg8smZIDE'
-    'X2v9M+mUqYnagQncHc2O6nYmvfLfnZYSzhhOT1J2cBypt6XQH6Q8XHW4BSaJLdIorfhE6hYwSBDJKrHO0xY9aHqBRrjdlfZFzMhcBkQECay9YM'
-    'pFnUXdoYm17lr7LOYkkwERQTBlkI0YxPNZtbKWA3vBYoqaz9891bqFjGgxYBCKRvR9r9ELiJN1imoKk5rKtvfoINwz9Yx2L/QW0P3O05Vr96CR'
-    'twAAAP//MZ/zMgAAAAZJREFUAwDkV+nzLYRuNwAAAABJRU5ErkJggg==')
-
-
 def esc(s):
     return _html.escape(str(s), quote=True)
 
@@ -70,8 +46,9 @@ def minutes(n):
 
 
 def logo_url():
-    """The site's icon for mails, from the site that sends them (FLOW_PUBLIC_URL: flowlang.cn, or the beta's own)."""
-    return os.getenv('FLOW_PUBLIC_URL', 'https://flowlang.cn').rstrip('/') + '/mail-logo.png'
+    """The site's icon for mails: the app icon both sites already serve (/icon-192.png, 6x for 32 px; the same mark as the
+    page's .brand), from the site that sends them (FLOW_PUBLIC_URL: flowlang.cn, or the beta's own)."""
+    return os.getenv('FLOW_PUBLIC_URL', 'https://flowlang.cn').rstrip('/') + '/icon-192.png'
 
 
 def message(paragraphs, code=None, code_label='验证码', rows=None, button=None, foot=None, title=None):

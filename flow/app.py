@@ -461,10 +461,6 @@ class Handler(BaseHTTPRequestHandler):
    '/survey.js':('survey.js','text/javascript; charset=utf-8'),
    '/survey.css':('survey.css','text/css; charset=utf-8'),
    '/literata.woff2':('literata.woff2','font/woff2')}
-  if path=='/mail-logo.png':
-   # the icon at the top of every mail (mail_layout.LOGO_PNG): mail apps fetch it from here, a day's cache
-   body=__import__('mail_layout').LOGO_PNG;self.send_response(200);self.headers_common('image/png')
-   self.send_header('Cache-Control','public, max-age=86400');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
   if path=='/guide.pdf' or (path.startswith('/guide/') and path.endswith('.jpg') and path[7:-4].replace('-','').isalnum() and path[7:-4].isascii()):
    # the 操作指南: its screenshots and the PDF made from the same source (user_guide.py)
    f=ROOT/'public'/'guide'/('flow-guide.pdf' if path=='/guide.pdf' else path[7:])

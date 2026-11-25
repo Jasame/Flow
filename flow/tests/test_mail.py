@@ -25,14 +25,14 @@ class LayoutTests(unittest.TestCase):
             self.assertNotIn(bad, page)
         # the one picture: the logo the site serves (never inlined: Gmail and QQ 邮箱 block that), its size fixed, and
         # 「语流 Flow」 as text beside it for a mail app that blocks pictures
-        self.assertEqual(re.findall(r'<img src="([^"]+)" width="32" height="32"', page), ['https://flowlang.cn/mail-logo.png'])
+        self.assertEqual(re.findall(r'<img src="([^"]+)" width="32" height="32"', page), ['https://flowlang.cn/icon-192.png'])
         self.assertEqual(page.count(' src='), 1)
         self.assertIn('>语流 Flow</td>', page)
         self.assertNotIn('>流</td>', page)
         with patch.dict(os.environ, {'FLOW_PUBLIC_URL': 'https://flow.jasa.hk/'}):
-            self.assertIn('src="https://flow.jasa.hk/mail-logo.png"', mail_layout.message(['x'])[1])
-        self.assertEqual(mail_layout.LOGO_PNG[:8], b'\x89PNG\r\n\x1a\n')
-        self.assertEqual(struct.unpack('>II', mail_layout.LOGO_PNG[16:24]), (96, 96))  # 3x for 32 px
+            self.assertIn('src="https://flow.jasa.hk/icon-192.png"', mail_layout.message(['x'])[1])
+        icon = (Path(app.ROOT) / 'public' / 'icon-192.png').read_bytes()  # what both sites serve, 6x for 32 px
+        self.assertEqual((icon[:8], struct.unpack('>II', icon[16:24])), (b'\x89PNG\r\n\x1a\n', (192, 192)))
         # the button is a table cell with its colour (Outlook), one column at most 560 px wide
         self.assertRegex(page, r'<td class="fl-btn" bgcolor="#1f9d55"[^>]*><a href="https://flowlang.cn/#/review"')
         self.assertIn('max-width:560px', page)
