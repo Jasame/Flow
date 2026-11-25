@@ -184,7 +184,8 @@ def session_info(u):
  # email_bound: the page reminds an account without one that a forgotten password could not be reset by itself.
  # media: where audio can also be fetched when this server cannot answer (None unless R2 is in use).
  # age/guardian: 年龄段 and a guardian's agreement under 14 (privacy_service): an account without a band is asked once.
- return {'user':{**{k:u[k] for k in ('id','username','admin','csrf')},'email_bound':bool(u['email']),**__import__('privacy_service').info(u)} if u else None,'ai_enabled':ai_enabled(),'mail':account.configured(),'media':__import__('media').info(),'tts':__import__('tts_service').enabled()}
+ # say_wav: the 发音 check records 16 kHz WAV (70-learner.js WAV16) for a pronunciation scorer; off unless FLOW_SAY_WAV=1.
+ return {'user':{**{k:u[k] for k in ('id','username','admin','csrf')},'email_bound':bool(u['email']),**__import__('privacy_service').info(u)} if u else None,'ai_enabled':ai_enabled(),'mail':account.configured(),'media':__import__('media').info(),'tts':__import__('tts_service').enabled(),'say_wav':os.environ.get('FLOW_SAY_WAV','')=='1'}
 def verify(p,stored): return hmac.compare_digest(password(p,stored.split(':')[0]),stored)
 def topics(c):
  out=[]

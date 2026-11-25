@@ -158,6 +158,22 @@ class LearnerModelTests(unittest.TestCase):
         with answered_by('main', miss):
             self.assertTrue(out.say(self.c, 1, {'text': 'think', 'audio': AUDIO, 'request_id': self.rid()})[0]['result']['confirmed'])
 
+    def test_a_16k_wav_from_the_page_reaches_the_ai_as_wav(self):
+        # the 发音 check can record 16 kHz mono 16-bit WAV (70-learner.js WAV16) for a pronunciation scorer, which 语流 12
+        # is trying on Aliyun; the page does it only when the server says say_wav (FLOW_SAY_WAV=1), off by default
+        import io, wave
+        b = io.BytesIO()
+        with wave.open(b, 'wb') as w:
+            w.setnchannels(1); w.setsampwidth(2); w.setframerate(16000); w.writeframes(b'\0\0' * 16000)
+        wav = {'mime_type': 'audio/wav', 'data': base64.b64encode(b.getvalue()).decode()}
+        with ai({'heard': 'think', 'ok': True, 'note': '', 'tip': ''}) as m:
+            r, st = out.say(self.c, 1, {'text': 'think', 'audio': wav, 'request_id': self.rid()})
+        self.assertEqual((st, r['result']['ok']), (200, True))
+        self.assertEqual(m.call_args.kwargs['audio'], wav)  # as recorded, not converted on the way
+        self.assertFalse(app.session_info(None)['say_wav'])
+        with patch.dict(os.environ, {'FLOW_SAY_WAV': '1'}):
+            self.assertTrue(app.session_info(None)['say_wav'])
+
     def test_import_article_study_and_enrich(self):
         r = imp.save(self.c, 1, {'title': 'Night migration', 'text': ARTICLE})[0]
         pid = r['id']; self.assertTrue(pid.startswith('imp-'))
