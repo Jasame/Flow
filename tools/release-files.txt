@@ -336,6 +336,7 @@ flow/tests/test_ai_shape.py
 flow/tests/test_ai_stream.py
 flow/tests/test_aigc_label.py
 flow/tests/test_atlas.py
+flow/tests/test_audio_lines.py
 flow/tests/test_audio_route.py
 flow/tests/test_auth_limits.py
 flow/tests/test_backup_age.py
