@@ -102,7 +102,7 @@
   function planRowHTML(s, num, isNext, a, tap) {
     const mins = s.minutes && !s.done ? `约 ${s.minutes} 分钟` : '';
     const sub = a ? [`${a.redo ? '精读重学 · ' : ''}今天这篇 · ${a.level} · ${a.theme_label}`, s.mode_label, mins] : [s.sub, mins];
-    return `<a class="prow${s.done ? ' done' : ''}${isNext ? ' next' : ''}${s.group === 'extra' ? ' extra' : s.group === 'week' ? ' week' : ''}" href="${esc(s.href)}"${tap ? ` data-tap="${tap}"` : ''}>
+    return `<a class="prow${s.done ? ' done' : ''}${isNext ? ' next' : ''}${s.group === 'extra' ? ' extra' : s.group === 'week' ? ' wtask' : ''}" href="${esc(s.href)}"${tap ? ` data-tap="${tap}"` : ''}>
       <span class="num">${s.done ? '✓' : num}</span><span class="t"><b>${esc(a ? a.title : s.title)}</b><span class="muted tiny">${esc(sub.filter(Boolean).join(' · '))}</span></span>
       <span class="go" aria-hidden="true">›</span></a>`;
   }
