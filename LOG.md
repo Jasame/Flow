@@ -265,3 +265,10 @@
   - #149 复习提醒：App 里的通知说法按平台（iPhone、手机、Windows、Mac）（单词）
 - 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45546043447
+
+### b45 · 2026-11-25 12:33
+- main `edacfbf`，构建 `3af2136`
+- 新合并的 PR（自 b44 起）：
+  - #150 CI：只改原生 App（ios/、android/、desktop/）的 PR 跳过网站测试和 UI（发版和构建）
+- 自检：DEPLOYED，装了 2 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45547470440
