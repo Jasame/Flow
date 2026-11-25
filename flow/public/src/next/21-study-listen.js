@@ -49,7 +49,9 @@
       // (MINI, docked), where the thumb is, and the text starts higher on the first screen; 播放设置 opens from 「1×」 as a
       // sheet; 「从头开始」 and 👁 are on the line above the sentences, playing or not; the how-to is a first-use tip (08-tips.js).
       const rateL = r => `${r}×`;
-      const lead = nm ? '' : SV.on() ? aiVoiceNote('这篇还没有录音，用 AI 朗读（自然人声）一句一句读。', 'span', 'in') : '这篇还没有录音，先用浏览器朗读。';
+      // 「AI 合成」 is said once, in the bar by the play button (the user, 2026-11-25: no second line); the browser's own
+      // voice is not AI, and only this line says so
+      const lead = nm || SV.on() ? '' : '这篇还没有录音，先用浏览器朗读。';
       const hint = `点 👁 只听不看，点句子前的喇叭单句反复听${TOUCH ? '' : '；空格键播放 / 暂停'}。`;
       pane.innerHTML = `${again ? relistenHTML() : ''}${modeTabs()}${prereadHTML()}
         <p class="tiny muted sv-prep" id="lsPrep" role="status" hidden></p>
