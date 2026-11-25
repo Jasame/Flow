@@ -22,7 +22,7 @@
 | 事情 | 现在 | 等什么 |
 | --- | --- | --- |
 | Gemini 中转站并发从 2 改成 6（#68） | 代码已合（11-24 22:49），中转站上还是 2 | 用户在 Google Cloud Shell 里执行 `flow-gateway/set_slots.sh 6`（步骤在 #68 和 flow-gateway 的说明里）。上线后语流 12 对比前后的 503/504 和等待时间 |
-| 发音（说一句）恢复 | 13:05 停用 Gemini 以后，正式版的发音先暂停；对话、复述、雅思口语、跟读还走 Qwen-Omni | 今晚换成百炼语音识别（语流 9、12），连同 #175（备用改 qwen-plus）随 21:00 的正式版上，到时问用户 |
+| 语流的发音（说一句）恢复 | 13:05 停用 Gemini 以后，语流的发音先暂停（回 403）；内测版已改走 Omni；对话、复述、雅思口语、跟读两个站都走 Qwen-Omni | 今晚换成百炼语音识别（`flow-audio-asr-flash`），随 #175 和 21:00 的正式版一起上，到时问用户；页面上的提示也要跟着改 |
 | 数据库副本只留 14 天（#58） | r27 已带上正式版；内测版只列不删 | 语流上最早的副本是 11-23 的，约 12-07 起开始真正删除（语流 2 记着） |
 | 发信的后续 | 两个站 11-25 都已改用 flowlang.cn 发信 | DMARC 从 p=none 改成 quarantine（报告干净一段时间后，先问用户）；隐私说明要不要写明发信服务商（用户待定）；网易邮箱和 iCloud 的「重发走备用」还没实测 |
 | 上传用过的整包 `/root/claude-ops/flow-audio-packs.tar`（112 MB） | 还在，内容已装好 | 可以删，删以前问一下 |
@@ -31,13 +31,62 @@
 
 ## 2026-11-25
 
-### 13:05 · 两个站：学员请求不再走 Gemini（细节待补）
+### 13:10 · AI 网关：给 #175 加两个模型名
 
-- **改了什么**：13:05 起学员的请求不再走 Gemini。正式版的发音（说一句）先暂停，回 403；今日热点的检索也停了。
-  备用线路和最后一次重问改成 qwen-plus，那是 #175，计划随今晚 21:00 的正式版上。
-- **为什么**：合规。Gemini 在国内没有备案，学员录音发给谷歌又算个人信息出境（见共享笔记 ip-advisor.md）。Gemini 只留给内部开发和评测。
-- **影响**：正式版 r30 的完整自检里，发音两项和一次语音对话的转写回了 403（见 releases.md 的 r30）。发音今晚换成百炼语音识别。
-- **待补**：具体改在哪（网关的模型名或路由、哪个文件或设置）、谁改的、用户的原话、备份在哪、怎么按行撤回，已经去问语流 12。
+- **改了什么**：网关数据库的 models 表加了两个名字，都加进了 flow 这把钥匙的允许列表：
+  - `flow-text-qwen-plus` → aliyun 上游的 qwen-plus；
+  - `flow-audio-asr-flash` → aliyun 上游的 qwen3-asr-flash。
+  
+  这两个名字是给 #175（备用改成 qwen-plus、发音换百炼语音识别）准备的，还没有哪个站在用。
+- **谁、为什么**：语流 12。用户在选项卡上选了「可以（推荐）」。
+- **备份**：`/root/claude-ops/api.sqlite3.before-aliases-20261125-131036`（数据库里有 key，root 600，不外传）。
+- **撤回**：`DELETE FROM models WHERE alias IN ('flow-text-qwen-plus','flow-audio-asr-flash');`，再从 flow 钥匙的允许列表里去掉这两个名字。
+
+### 13:05 · 两个站：学员请求不再走 Gemini
+
+- **为什么**：合规。用户在语流 1 选了「换成国内已备案模型（推荐）」。语流 23 的结论是：Gemini 在国内没有生成式 AI 备案，
+  学员录音发过去又算个人信息出境。Gemini 只留给内部开发和评测。
+- **改了什么**：在香港的 AI 网关里。网关数据库是 `/www/xmc-api/data/api.sqlite3`，每次请求都现读，所以不用重启 xmc-api。改了三处：
+  - tokens 表里 name='flow' 这把钥匙（两个站共用）的 allowed_models，从不限改成只列 `flow-*` 的模型名
+    （flow-audio-*、flow-batch-*、flow-eval-*、flow-search-*、flow-text、flow-text-ds-flash、flow-text-qwen-plus、flow-tts）。
+    这样语流再要 `gemini-3.8-flash` 就回 403。别的钥匙不受影响。
+  - model_fallbacks 表：`flow-text-ds-flash` → gemini-flow 这条备用线路关了（enabled=0）。
+  - models 表：`flow-text` 原来指 gemini-flow 上的 gemini-3.8-flash，改指 aliyun 上的 deepseek-v4.1-flash。两个站的
+    `FLOW_TEXT_AI_MODEL=flow-text` 不用改。
+  - 内测版：`/etc/flow-beta.env` 第 50 行 `FLOW_AUDIO_ROUTES` 末尾加 `,next-say=flow-audio-omni-flash`，重启 flow-beta，
+    确认运行中的进程已经用上，所以内测版的发音改走 Omni。
+  - 语流的设置文件没动。语流的发音（next-say）走的是 Gemini，所以现在回 403，等于暂停；页面上的提示还是 r28、r30 的旧说法。
+  - 热点检索这次没改：它走主模型 Gemini 加搜索，所以跟着一起停了。热点本身已经由 #171 暂停。
+- **谁**：语流 12，用户在语流 12 的选项卡里同意。问的是「现在就停掉学员那边的 Gemini……发音打分怎么办？」，
+  用户选了「内测版改 Omni，正式版暂停（推荐）」。
+- **核对**：主模型 Gemini 回 403；`flow-text` 由 deepseek-v4.1-flash 回答。正式版 r30 的完整自检里，发音两项和一次语音对话的转写
+  回了 403（见 releases.md 的 r30），和预想的一样。
+- **备份**（香港，root 600，数据库里有 key，不外传）：`/root/claude-ops/api.sqlite3.before-nogemini-20261125-130550`，
+  `/root/claude-ops/flow-beta.env.bak-say-20261125-130550`；日志 `/root/claude-ops/nogemini-20261125.log`。
+  网关说明书第 6.5 节和变更记录都同步了，运维记录 13:24 写过。
+- **撤回**：撤回会让学员重新用上 Gemini，和合规决定相反，要用户点头才做。在香港对网关数据库用 sqlite3 执行：
+  - `UPDATE tokens SET allowed_models='null' WHERE name='flow';`
+  - `UPDATE model_fallbacks SET enabled=1 WHERE alias='flow-text-ds-flash' AND upstream_id=(SELECT id FROM upstreams WHERE name='gemini-flow');`
+  - `UPDATE models SET upstream_id=(SELECT id FROM upstreams WHERE name='gemini-flow'), target='gemini-3.8-flash' WHERE alias='flow-text';`
+  - 内测版：`sed -i '/^FLOW_AUDIO_ROUTES=/ s/,next-say=flow-audio-omni-flash//' /etc/flow-beta.env && systemctl restart flow-beta`
+    （只动这一行）。
+
+### 10:27 · AI 网关：不再为已经离开的调用方试备用线路
+
+- **改了什么**：xmc-api 的 `control_plane.py`（patch_nobackup）：调用方已经断开的请求，不再去试备用线路。
+  起因是内测版 b30 自检里「导入补题」失败：10:00:36 那次 next-enrich 发给百炼 DeepSeek，600 秒没回。Flow 85 秒就放弃了，
+  网关等满 600 秒以后又去问备用的 Gemini，答案没人收。Flow 这边同时有 #130（文字请求 45 秒没回就换）。
+- **谁**：语流 12。用户：「测好就装」。
+- **备份**：`/root/claude-ops/xmc-api-control_plane.py.before-nobackup-20261125-102756`。
+- **撤回**：把这份备份换回去，重启 xmc-api。前提是之后没人再改过这个文件，换之前先对一下。
+
+### 10:20 · AI 网关：客户端断开后放掉位子
+
+- **改了什么**：xmc-api 的 `control_plane.py`（patch_disconnect）：客户端已经断开，或者流交出去 30 秒还没开始，网关就放掉它占的
+  并发位子，并照常记账（记成 499）。起因同上（b30 的导入补题）。上游读超时还是 600 秒，以后再定。
+- **谁**：语流 12。用户：「测好就装」。
+- **备份**：`/root/claude-ops/xmc-api-control_plane.py.before-disconnect-20261125-102016`。
+- **撤回**：把这份备份换回去，重启 xmc-api。它在 10:27 那次之前，要撤就两次一起按顺序撤。
 
 ### 09:46 · 杭州：jasa.hk 的 Flow 介绍页换成「一分钟看懂语流」
 
