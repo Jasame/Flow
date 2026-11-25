@@ -81,13 +81,15 @@ CI（`.github/workflows/android.yml`，语流 15）：
   - 选系统日历：打开手机日历的新建日程页，内容已经填好，不需要日历权限。
 - 反馈里的「添加截图」可以从相册选图片。网页出不来时显示「网络连不上 · 重试」。系统回收网页进程以后，App 自己重新打开网页。
 
-## 网页和 App 之间的桥（`bridge/`、`assets/flowapp.js`）
+## 网页和 App 之间的桥（`bridge/`、`assets/flowapp-android.js`、共用的 `native/flowapp.js`）
 
 约定是 iOS、安卓、桌面共用的 `docs/native-bridge.md`（语流 20 牵头），安卓的实现写在它最后一节「各平台实现 · 安卓」。网页只调 `window.FlowApp`，不判断是哪个平台；平台不同的说法用 `FlowApp.platform`（这里是 `'android'`）。
 
 **传输方式**：
 
 - App 在网页脚本运行之前放好 `window.FlowApp`（`WebViewCompat.addDocumentStartJavaScript`），只放在本站的源上。
+  - `window.FlowApp` 由三个 App 共用的 `native/flowapp.js` 做出来。打包时 Gradle 把仓库的 `native/` 加进 assets，原样放进 App，不要在安卓里改它；要改先跟语流 20 说，三个 App 一起改。
+  - 它前面是安卓自己的 `assets/flowapp-android.js`：传输（`window.__flowAppTransport`，包装用完就删掉），返回键 `_back`，系统朗读补丁，测试静音。
 - 消息走 `WebViewCompat.addWebMessageListener` 的 `flowNative` 通道：网页发 `{id, cmd, args}`，App 回 `{id, ok, result | error}`，事件用 `{ev, detail}` 发过来。
 - App 只认本站主框架发来的消息。手机上的 WebView 太旧、缺这两个功能时，App 什么都不加，网页就按普通浏览器的方式运行。
 
