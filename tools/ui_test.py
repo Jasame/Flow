@@ -1297,6 +1297,38 @@ def ux_run(pw):
         check(dev, '复读 in the server voice: the sentence is played three times (each time it ends, the next), not the browser voice, a stop button meanwhile',
               got['plays'] == 3 and got['said'] == 0 and mini2 and not got['mini'], {**got, 'mini_while': mini2})
         c2.close()
+        # the browser voice as iOS sometimes treats it (语流 07, iPhone 17e and iPad simulators): an utterance spoken right
+        # after cancel() ends at once without starting, or never starts. 播放全文 with the server voice off: dropped once,
+        # the sentence is said again and the text goes on; dropped every time, or never started, the text waits paused at
+        # that sentence with why, instead of racing to its end (marked heard) or sitting there "playing". The blank
+        # utterance the first tap speaks to unlock the voice is left out
+        drops = {
+            'once': "let n = 0; speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); const k = n++; setTimeout(() => { if (k > 0 && u.onstart) u.onstart(); u.onend && u.onend(); }, 30); };",
+            'always': "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); setTimeout(() => { u.onend && u.onend(); }, 30); };",
+            'never': "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); };",
+        }
+        seen = {}
+        for kind, js in drops.items():
+            c3 = browser.new_context(**phone)
+            c3.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a2']['token'], 'url': BASE}])
+            c3.add_init_script("(() => { window.__said = []; if (!window.speechSynthesis) return; speechSynthesis.cancel = () => {}; speechSynthesis.getVoices = () => []; " + js + " })()")
+            p3 = c3.new_page()
+            p3.route('**/api/next/tts', lambda r: r.fulfill(status=503, json={'error': '服务器朗读没有开启', 'code': 'off'}))
+            p3.route('**/api/next/tts/have', lambda r: r.fulfill(status=503, json={'error': '服务器朗读没有开启', 'code': 'off'}))
+            p3.goto(BASE + f'/#/m/{PID}/listen', wait_until='networkidle'); settle(p3, '#playAll')
+            p3.evaluate("localStorage.removeItem('flow-progress')")
+            p3.click('#playAll'); p3.wait_for_timeout(3400 if kind == 'never' else 1500)
+            seen[kind] = p3.evaluate("""() => ({ said: window.__said.slice(), n: document.querySelectorAll('#view .line').length,
+                btn: document.querySelector('#playAll').textContent.trim(), now: (document.querySelector('#view .line.now') || {dataset: {}}).dataset.i,
+                note: (document.querySelector('#lsPrep') || {}).textContent || '', mini: (document.querySelector('.mini-player:not([hidden]) .lbl') || {}).textContent || '' })""")
+            c3.close()
+        o, al, nv = seen['once'], seen['always'], seen['never']
+        check(dev, 'browser voice dropped once (iOS): that sentence is said again and the text reads on to its end',
+              len(o['said']) == o['n'] + 1 and o['said'][0] == o['said'][1] and o['btn'] == '播放全文', {k: o[k] for k in ('n', 'btn', 'now')} | {'said': len(o['said'])})
+        check(dev, 'browser voice dropped every time: tried twice, then the text waits paused at that sentence and says why (not "read")',
+              len(al['said']) == 2 and al['btn'] == '继续' and al['now'] == '0' and '没有读出' in al['note'] and al['mini'] == '已暂停', al)
+        check(dev, 'browser voice never starting: after 2.5 s the text waits paused at that sentence and says why',
+              len(nv['said']) == 1 and nv['btn'] == '继续' and nv['now'] == '0' and '没有读出' in nv['note'], nv)
         pg.reload(); settle(pg, '[data-rep]')
         check(dev, '复读: the choice is remembered', pg.get_attribute('[data-rep="3"]', 'aria-pressed') == 'true')
         pg.click('[data-rep="1"]')
