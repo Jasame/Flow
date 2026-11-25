@@ -57,7 +57,10 @@
         if (x && x.ok) { this.mimeType = x.format === 'm4a' ? 'audio/mp4' : 'audio/wav'; return; }
         toast((x && x.message) || '录音没能开始'); this.done(null);
       }, () => this.done(null));
-      this.off = FlowApp.on('rec', d => { if (d.state === 'done' || d.state === 'cut') this.stop(); });  // max reached, or a call
+      this.off = FlowApp.on('rec', d => {  // max reached, or cut short (a call, the app left): what was said is kept
+        if (d.state === 'cut') toast('录音被打断了，已经说的这段先用上');
+        if (d.state === 'done' || d.state === 'cut') this.stop();
+      });
     }
     stop() {
       if (this.state !== 'recording') return;
