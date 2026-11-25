@@ -62,7 +62,7 @@
     async toggle(btn, maxSecs, onDone) {
       if (this.busy()) { this.mr.stop(); return; }
       if (!micReady(() => this.toggle(btn, maxSecs, onDone))) return;
-      TTS.stop(); NAR.stop(); CLIP.stop();
+      LONG.other(); TTS.stop(); NAR.stop(); CLIP.stop();  // a whole text being read waits, paused where it was
       let stream;
       try { stream = await micOpen(); } catch (e) { toast(e.message); return; }
       const type = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';

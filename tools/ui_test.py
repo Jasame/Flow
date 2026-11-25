@@ -307,14 +307,14 @@ def run_device(pw, dev, opts):
     mini = pg.evaluate("() => { const m = document.querySelector('.mini-player'); if (!m || m.hidden) return null; const r = m.getBoundingClientRect(); return [r.top, r.bottom, innerHeight]; }")
     check(dev, 'playing shows the floating stop control in view', mini and mini[0] >= 0 and mini[1] <= mini[2], mini)
     btn = pg.inner_html('#playAll')
-    check(dev, 'play button turns into a stop button', '停止' in btn and '<rect' in btn, btn[:120])
+    check(dev, 'play button turns into a pause button', '暂停' in btn and '<rect' in btn, btn[:120])
     if mini:
         pg.click('.mini-player .stop')
         pg.wait_for_timeout(150)
     check(dev, 'stop hides the control', pg.evaluate("() => { const m = document.querySelector('.mini-player'); return !m || m.hidden; }"))
     if not touch:
         pg.keyboard.press('Space'); pg.wait_for_timeout(200)
-        check(dev, 'Space starts playback (desktop)', '停止' in pg.inner_html('#playAll'))
+        check(dev, 'Space starts playback (desktop)', '暂停' in pg.inner_html('#playAll'))
         pg.keyboard.press('Space'); pg.wait_for_timeout(150)
 
     # ---- audio: when this server cannot send a material's narration, the page fetches it from the media domain itself
@@ -1239,7 +1239,9 @@ def ux_run(pw):
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a2']['token'], 'url': BASE}])
         ctx.add_init_script(FAKE_TTS)
         pg = ctx.new_page(); pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
-        # 复读: 3 遍, no pause: one tap on a sentence says it three times
+        # 复读: 3 遍, no pause: one tap on a sentence says it three times. The server voice is off on this page (the server's
+        # own answer when it is), so the browser voice, faked to end at once, says it and the three times can be counted
+        pg.route('**/api/next/tts', lambda r: r.fulfill(status=503, json={'error': '服务器朗读没有开启', 'code': 'off'}))
         go(pg, f'#/m/{PID}/listen'); pg.wait_for_selector('#view .playset', timeout=5000)
         pg.evaluate("document.querySelector('#view .playset').open = true"); pg.wait_for_timeout(100)  # 播放设置: remembered open after the reload below
         pg.click('[data-rep="3"]'); pg.evaluate('window.__said = []')
@@ -1248,6 +1250,33 @@ def ux_run(pw):
         pg.wait_for_timeout(900)
         said = pg.evaluate('window.__said')
         check(dev, '复读: a sentence is said three times, with a stop button on screen meanwhile', len(said) == 3 and len(set(said)) == 1 and mini, (len(said), mini))
+        pg.unroute('**/api/next/tts')
+        # 复读 on the path learners hear: the server voice. A 0.3 s silent WAV for the sentence (its own page with the service
+        # worker held off, so the test answers the file), each play() of it counted: three, and the stop button meanwhile
+        import io, wave
+        buf = io.BytesIO()
+        with wave.open(buf, 'wb') as w:
+            w.setnchannels(1); w.setsampwidth(2); w.setframerate(16000); w.writeframes(b'\0\0' * 4800)
+        short = buf.getvalue()
+        c2 = browser.new_context(**phone, service_workers='block')
+        c2.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a2']['token'], 'url': BASE}])
+        c2.add_init_script(FAKE_TTS)
+        c2.add_init_script("""(() => { window.__plays = []; const p = HTMLMediaElement.prototype.play;
+            HTMLMediaElement.prototype.play = function () { window.__plays.push(this.getAttribute('src') || ''); return p.apply(this, arguments); }; })()""")
+        p2 = c2.new_page()
+        p2.route('**/api/next/tts', lambda r: r.fulfill(json={'url': '/audio/tts/us-f/ux-short-0001.wav', 'made': False}))
+        p2.route('**/audio/tts/us-f/ux-short-0001.wav', lambda r: r.fulfill(status=200, content_type='audio/wav', body=short))
+        p2.goto(BASE + f'/#/m/{PID}/listen', wait_until='networkidle'); settle(p2, '#view .playset')
+        p2.evaluate("document.querySelector('#view .playset').open = true"); p2.wait_for_timeout(100)
+        p2.click('[data-rep="3"]'); p2.evaluate('window.__plays = []; window.__said = []')
+        p2.click('[data-say="0"]'); p2.wait_for_timeout(60)
+        mini2 = p2.is_visible('.mini-player')
+        p2.wait_for_function("window.__plays.filter(s => s.includes('ux-short')).length >= 3", timeout=8000)
+        p2.wait_for_timeout(900)  # a fourth would have started by now
+        got = p2.evaluate("({ plays: window.__plays.filter(s => s.includes('ux-short')).length, said: window.__said.length, mini: !!document.querySelector('.mini-player:not([hidden])') })")
+        check(dev, '复读 in the server voice: the sentence is played three times (each time it ends, the next), not the browser voice, a stop button meanwhile',
+              got['plays'] == 3 and got['said'] == 0 and mini2 and not got['mini'], {**got, 'mini_while': mini2})
+        c2.close()
         pg.reload(); settle(pg, '[data-rep]')
         check(dev, '复读: the choice is remembered', pg.get_attribute('[data-rep="3"]', 'aria-pressed') == 'true')
         pg.click('[data-rep="1"]')
@@ -1488,6 +1517,8 @@ def listen_speak_run(pw):
             # plays everything through the earpiece while one is open); the one-time 「要用一下麦克风」 sheet: on the phone
             ctx.add_init_script("""(() => { const md = navigator.mediaDevices; if (!md || !md.getUserMedia) return; window.__mics = [];
                 const g = md.getUserMedia.bind(md); md.getUserMedia = c => g(c).then(s => { window.__mics.push(s); return s; }); })()""")
+            ctx.add_init_script("""(() => { window.__speaks = []; if (!window.speechSynthesis) return; const s = speechSynthesis.speak.bind(speechSynthesis);
+                speechSynthesis.speak = u => { if (u && u.text && u.text.trim()) window.__speaks.push(u.text); return s(u); }; })()""")
             # Chrome has no navigator.audioSession (iOS 16.4+): a stand-in that remembers what the page set it to
             ctx.add_init_script("""(() => { if (navigator.audioSession) return; let t = 'auto';
                 Object.defineProperty(navigator, 'audioSession', { configurable: true, value: { get type() { return t; }, set type(v) { t = v; } } }); })()""")
@@ -1550,6 +1581,69 @@ def listen_speak_run(pw):
                 st = op.goto(BASE + got['own'][0]).status if got['own'] else 0
                 other.close()
                 check(dev, '伴读 of an import: someone else (signed out) cannot fetch its voice', st == 404, st)
+
+                # 听 of the same import (no recording): 播放全文 in the server voice, never the browser's (the owner's bug,
+                # 2026-11-25: the browser voice, a robot to them, whenever the sentence had not been made before); the
+                # sentences 伴读 made are the same files (one address book); 暂停 / 继续 goes on in the same sentence, not
+                # from the top; leaving and coming back offers 「从第 N 句继续」 and 从头开始
+                pg.evaluate("window.__speaks = []")
+                go(pg, f"#/m/{imp['id']}/listen"); pg.wait_for_selector('[data-mode="listen"]'); pg.click('[data-mode="listen"]'); pg.wait_for_selector('#playAll')
+                asked = []
+                on_req = lambda q: asked.append((q.post_data_json or {}).get('text')) if q.url.endswith('/api/next/tts') and q.method == 'POST' else None
+                pg.on('request', on_req)
+                pg.click('#playAll')
+                now = "(() => { const l = document.querySelector('#view .line.now'); return l ? Number(l.dataset.i) : -1; })()"
+                pg.wait_for_function(f"{now} >= 1", timeout=20000)
+                got = pg.evaluate(f"() => ({{ speaks: window.__speaks.slice(), btn: document.querySelector('#playAll').textContent, now: {now} }})")
+                check(dev, '听 without a recording: 播放全文 is the server voice sentence by sentence, the browser voice never asked',
+                      not got['speaks'] and '暂停' in got['btn'] and got['now'] >= 1, got)
+                pg.remove_listener('request', on_req)
+                check(dev, '听 and 读 share one address book: the sentence 伴读 made is not asked for again', 'The library opens early on weekdays.' not in asked, asked)
+                pg.click('#playAll'); pg.wait_for_timeout(300)
+                k = pg.evaluate(now)
+                paused = pg.evaluate("({ btn: document.querySelector('#playAll').textContent, mini: (document.querySelector('.mini-player .lbl') || {}).textContent, ms: navigator.mediaSession.playbackState })")
+                pg.wait_for_timeout(1500)
+                check(dev, '暂停: the button says 继续, the mini player 已暂停, the lock screen paused, and the reading waits',
+                      '继续' in paused['btn'] and paused['mini'] == '已暂停' and paused['ms'] == 'paused' and pg.evaluate(now) == k, (paused, k, pg.evaluate(now)))
+                pg.click('#playAll'); pg.wait_for_timeout(400)
+                check(dev, '继续 goes on in the sentence it stopped in, not from the first', pg.evaluate(now) >= k >= 1 and '暂停' in pg.text_content('#playAll'), (k, pg.evaluate(now)))
+                pg.click('.mini-player .toggle'); pg.wait_for_timeout(200)  # the mini player's 暂停 too
+                k = pg.evaluate(now)
+                go(pg, '#/')
+                kept = pg.evaluate("(JSON.parse(localStorage.getItem('flow-progress') || '{}')['listen:" + imp['id'] + "'] || {}).i")
+                check(dev, 'leaving the page keeps where 听 was, on this phone, under 听 (读 keeps its own)', kept == k, (k, kept))
+                go(pg, f"#/m/{imp['id']}/listen"); pg.wait_for_selector('#playAll')
+                back = pg.evaluate("({ btn: document.querySelector('#playAll').textContent, restart: !document.querySelector('#playRestart').hidden, mini: !!document.querySelector('.mini-player:not([hidden])') })")
+                check(dev, 'back on the page: 「从第 N 句继续」 where it was left, 从头开始 beside it, nothing playing',
+                      back['btn'].strip() == f'从第 {k + 1} 句继续' and back['restart'] and not back['mini'], (k, back))
+                lay('听 从第 N 句继续')
+                pg.click('#playAll'); pg.wait_for_function(f"{now} >= 0", timeout=10000)
+                check(dev, '从第 N 句继续 starts there', pg.evaluate(now) == k, (k, pg.evaluate(now)))
+                pg.click('.mini-player .close'); pg.wait_for_timeout(200)
+                pg.click('#playRestart'); pg.wait_for_function(f"{now} >= 0", timeout=10000)
+                check(dev, '从头开始 starts at the first sentence', pg.evaluate(now) == 0, pg.evaluate(now))
+                pg.click('.mini-player .close'); pg.wait_for_timeout(200)
+                check(dev, 'no browser voice anywhere in this', not pg.evaluate('window.__speaks'), pg.evaluate('window.__speaks'))
+                # the server out of reach (offline): a sentence heard before plays from the address kept on this phone, not the
+                # browser voice; one it cannot make: the browser voice for that sentence, and the reason said, on the page too
+                p4 = ctx.new_page(); p4.on('pageerror', lambda e: errors.append(str(e)))
+                p4.route('**/api/next/tts', lambda r: r.abort()); p4.route('**/api/next/tts/have', lambda r: r.abort())
+                p4.goto(BASE + f"/#/m/{imp['id']}/listen", wait_until='networkidle'); settle(p4)
+                p4.click('[data-mode="listen"]'); p4.wait_for_selector('#playAll'); p4.evaluate("window.__speaks = []")
+                p4.click('#playAll'); p4.wait_for_function(f"{now} >= 0", timeout=10000); p4.wait_for_timeout(1200)
+                off = p4.evaluate(f"({{ speaks: window.__speaks.slice(), now: {now}, prep: document.querySelector('#lsPrep').textContent }})")
+                check(dev, 'offline: a sentence heard before plays from the address kept on the phone (no browser voice)', not off['speaks'] and not off['prep'], off)
+                p4.click('.mini-player .close'); p4.wait_for_timeout(200)
+                p4.unroute('**/api/next/tts'); p4.unroute('**/api/next/tts/have')
+                p4.route('**/api/next/tts', lambda r: r.fulfill(status=502, json={'error': 'AI 朗读暂时没有生成出来', 'code': 'gateway'}))
+                p4.route('**/api/next/tts/have', lambda r: r.fulfill(json={'urls': [None] * 6}))
+                p4.evaluate("localStorage.removeItem('flow-sv-urls'); localStorage.removeItem('flow-progress')"); p4.reload(wait_until='networkidle'); settle(p4)
+                p4.click('[data-mode="listen"]'); p4.wait_for_selector('#playAll'); p4.evaluate("window.__speaks = []")
+                p4.click('#playAll'); p4.wait_for_function("window.__speaks.length > 0", timeout=25000)
+                fail = p4.evaluate("({ speaks: window.__speaks.slice(0, 1), prep: document.querySelector('#lsPrep').textContent, toast: document.getElementById('toast').textContent })")
+                check(dev, 'a sentence the server cannot make: the browser voice reads it, and the page says why',
+                      fail['speaks'] == ['The library opens early on weekdays.'] and '没有生成出来' in fail['prep'] and '没有生成出来' in fail['toast'], fail)
+                p4.close()
 
             if size == 'phone':  # 留学: today's speaking step is the next 雅思口语 Part 1 topic, and it opens that topic
                 # its own learner: by now the device learners have set radar goals and spoken, which changes today's steps

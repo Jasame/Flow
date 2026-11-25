@@ -87,7 +87,8 @@
       const variantBar = m.variant ? `<div class="seg" role="tablist"><button data-ver="v" aria-selected="${!st.showOriginal}">适合我的版本（${m.variant.level} · AI 改写）</button><button data-ver="o" aria-selected="${st.showOriginal}">原文（${m.original_level}）</button><span></span></div>` : '';
       pane.innerHTML = `<div class="read-tools">${m.summary_zh ? '<button class="chip small" id="zhGuide" type="button" aria-expanded="false" aria-controls="zhText">中文导读</button>' : ''}
           ${m.can_variant ? `<button class="chip small" id="mkVar" type="button" title="这篇原文是 ${m.original_level}，你选的是 ${m.user_level}">改写成 ${m.user_level} 难度</button>` : ''}
-          <button class="btn small" id="readAlong" title="边听录音边看文字，读到哪句亮哪句">${playIcon(false, 14)}<span>伴读</span></button></div>
+          <button class="btn small" id="readAlong" title="边听边看文字，读到哪句亮哪句">${playIcon(false, 14)}<span>伴读</span></button>
+          <button class="link tiny" id="alongRestart" type="button" hidden>从头开始</button></div>
         <p class="tiny muted sv-prep" id="svPrep" role="status" hidden></p>
         ${m.summary_zh ? `<p class="guide-zh small" id="zhText" hidden>${esc(m.summary_zh)}</p>` : ''}${variantBar}
         <div class="read-hint tiny muted"><div class="legend"><span>本篇词汇</span><span class="h">可能超出你的水平</span>${(m.mine || []).length ? '<span class="m">你在背的词</span>' : ''}</div>
@@ -113,73 +114,44 @@
         const ex = e.target.closest('[data-ex]'); if (ex) return explainSheet(ls[Number(ex.dataset.ex)], id);
         const w = e.target.closest('.w'); if (w && !String(getSelection()).trim()) lookupSheet(w.dataset.w, ls[Number(w.dataset.s)], id, w.classList.contains('mine'));
       };
-      // Read-along: sentence by sentence; the current sentence stays bright, the rest dims, the current word lights up.
-      let along = false, alongShown = -1;
-      const ra = pane.querySelector('#readAlong');
-      const stopAlong = () => { along = false; TTS.stop(); NAR.stop(); CLIP.stop(); MINI.hide(); reader.classList.remove('reading'); reader.querySelectorAll('.now,.cur').forEach(x => x.classList.remove('now', 'cur')); ra.innerHTML = playIcon(false, 14) + '<span>伴读</span>'; };
-      const alongAudio = nm => {
-        alongShown = -1;
-        NAR.play(nm.sentences[0].s, null, t => {
-          const [si, wc] = NAR.locate(t);
-          const s = reader.querySelector(`.sent[data-si="${si}"]`);
-          if (si !== alongShown && s) { alongShown = si; MINI.update(`伴读 · 第 ${si + 1} / ${ls.length} 句`); reader.querySelectorAll('.sent.now').forEach(x => x.classList.remove('now')); s.classList.add('now'); s.scrollIntoView({ block: 'center', behavior: REDUCED ? 'auto' : 'smooth' }); }
-          if (s) lightAt(s, wc);
-        }, () => { stopAlong(); markStep('read'); });
+      // Read-along (LONG, 01-audio-offline.js): sentence by sentence; the current sentence stays bright, the rest dims, the
+      // current word lights up when a recording (or the browser voice) says which. A text without a recording (an imported
+      // article, a 热点 before its recording) is read by the server voice (owner, 2026-11-25): each sentence made once and
+      // kept (an import's for its owner only), the next two asked for while one plays, a line while one is being made; the
+      // browser voice only for a sentence the server cannot give, with the reason. 暂停 / 继续, and where it was left is
+      // kept on this phone (「从第 N 句继续」) until the end is reached.
+      const ra = pane.querySelector('#readAlong'), restart = pane.querySelector('#alongRestart'), prep = pane.querySelector('#svPrep');
+      const RKEY = 'read:' + id, sentEl = i => reader.querySelector(`.sent[data-si="${i}"]`);
+      let alongShown = -1;
+      const setRa = () => {
+        const r = LONG.of(RKEY), at = r ? r.i : PROG.at(RKEY, ls.length);
+        ra.innerHTML = r && r.state !== 'paused' ? `${pauseIcon(14)}<span>暂停</span>` : `${playIcon(false, 14)}<span>${r ? '继续' : at ? `从第 ${at + 1} 句继续` : '伴读'}</span>`;
+        restart.hidden = !at; reader.classList.toggle('reading', !!r);
       };
-      // A text without a recording (an imported article, a 热点 before its recording) is read by the server voice, sentence by
-      // sentence (owner, 2026-11-25): each sentence made once and kept (an import's for its owner only), the sentence being
-      // read lit, the next two asked for and fetched while it plays, so one follows the other without a pause. A sentence the
-      // server cannot give (6 s) is read by the browser voice and the reading goes on; a share used up says why, once.
-      const SRV = { urls: new Map(), ready: 0, note: '', asked: false };
-      const prep = pane.querySelector('#svPrep');
-      const showPrep = () => {
-        if (SRV.note) { prep.textContent = SRV.note; prep.hidden = false; return; }
-        prep.textContent = `正在准备朗读 ${SRV.ready}/${ls.length} 句`; prep.hidden = SRV.ready >= ls.length;
-      };
-      const svAsk = i => {
-        if (!SRV.urls.has(i)) {
-          SRV.urls.set(i, request('/api/next/tts', { text: ls[i], voice: S.voice, pack: id }, true).then(r => { SRV.ready += 1; showPrep(); return r.j.url; }, e => {
-            if (['import_cap', 'busy', 'cap', 'off', 'store'].includes(e.code)) { SRV.note = e.message; showPrep(); }
-            return null;
-          }));
-        }
-        return SRV.urls.get(i);
-      };
-      async function svReady() {  // what is made already (an import is made in the background after importing)
-        if (SRV.asked) return; SRV.asked = true;
-        try {
-          const r = await request('/api/next/tts/have', { pack: id, voice: S.voice, texts: ls }, true);
-          r.j.urls.forEach((u, i) => { if (u && !SRV.urls.has(i)) { SRV.urls.set(i, Promise.resolve(u)); SRV.ready += 1; } });
-        } catch (e) { /* each sentence is asked for on its own */ }
-        showPrep();
-      }
-      const alongFrom = async i => {
-        if (!along) return;
-        if (i >= ls.length) { stopAlong(); markStep('read'); return; }
-        reader.querySelectorAll('.sent.now').forEach(x => x.classList.remove('now'));
-        const s = reader.querySelector(`.sent[data-si="${i}"]`); s.classList.add('now'); s.scrollIntoView({ block: 'center', behavior: REDUCED ? 'auto' : 'smooth' });
-        MINI.update(`伴读 · 第 ${i + 1} / ${ls.length} 句`);
-        if (!SV.on() || SRV.note) { TTS.say(ls[i], () => alongFrom(i + 1), c => lightWord(s, c)); return; }
-        const t = ++TTS.token; if (TTS.ok) speechSynthesis.cancel();
-        for (const k of [i + 1, i + 2]) if (k < ls.length) svAsk(k).then(u => { if (u) PRELOAD.warm(u); });
-        const u = await Promise.race([svAsk(i), new Promise(ok => setTimeout(() => ok(null), 6000))]);
-        if (!along || t !== TTS.token) return;  // stopped, or something else spoke, while it was being made
-        if (u) { CLIP.play(u, 0, 1e6, ls[i], () => alongFrom(i + 1), null, { url: u, from: 0, to: Infinity, title: '语流 · 伴读' }); TTS.token = t; }
-        else TTS.browser(ls[i], () => alongFrom(i + 1), c => lightWord(s, c));
-      };
+      const stopAlong = () => LONG.stop();
+      const readAlong = from => LONG.start({
+        key: RKEY, texts: ls, nm: nmNow, pack: id, title: m.title, label: i => `伴读 · 第 ${i + 1} / ${ls.length} 句`,
+        onState: (state, i, note) => {
+          setRa(); prep.textContent = note || ''; prep.hidden = !note;
+          if (state === 'idle') { alongShown = -1; reader.querySelectorAll('.now,.cur').forEach(x => x.classList.remove('now', 'cur')); return; }
+          const s = sentEl(i);
+          if (i !== alongShown && s) { alongShown = i; reader.querySelectorAll('.sent.now').forEach(x => x.classList.remove('now')); s.classList.add('now'); if (state !== 'paused') s.scrollIntoView({ block: 'center', behavior: REDUCED ? 'auto' : 'smooth' }); }
+        },
+        onWord: (i, c) => { const s = sentEl(i); if (!s) return; if (c == null) s.querySelectorAll('.cur').forEach(x => x.classList.remove('cur')); else lightWord(s, c); },
+        onDone: () => markStep('read'),
+      }, from);
       ra.onclick = async () => {
-        if (along) return stopAlong();
-        along = true; reader.classList.add('reading'); ra.innerHTML = playIcon(true, 14) + '<span>停止</span>'; MINI.show('伴读中', stopAlong);
-        const nm = nmNow || await narration(ls);
-        if (!along) return;
-        if (nm) { alongAudio(nm); return; }
-        if (SV.on()) await svReady();
-        if (along) alongFrom(0);
+        if (LONG.of(RKEY)) { LONG.toggle(); return; }
+        if (!nmNow) { ra.disabled = true; nmNow = await narration(ls); ra.disabled = false; }  // fetched when the page opened, as a rule
+        readAlong(PROG.at(RKEY, ls.length));
       };
-      // An expression is read by the browser voice; where there is none (WeChat on Android), its sentence from the narration.
+      restart.onclick = async () => { LONG.stop(); PROG.clear(RKEY); if (!nmNow) nmNow = await narration(ls); readAlong(0); };
+      setRa();
+      // An expression is read by the server voice (the browser voice where it is off); with neither (WeChat on Android,
+      // the server voice off), its sentence from the narration.
       pane.querySelectorAll('[data-sayx]').forEach(b => b.onclick = () => {
         const x = m.expressions[Number(b.dataset.sayx)], k = ls.findIndex(s => s.toLowerCase().includes(x.text.toLowerCase()));
-        if (!TTS.ok && nmNow && k >= 0) NAR.play(nmNow.sentences[k].s, nmNow.sentences[k].e, null, null); else TTS.say(x.text);
+        if (!TTS.can() && nmNow && k >= 0) NAR.play(nmNow.sentences[k].s, nmNow.sentences[k].e, null, null); else TTS.say(x.text, null, null, { pack: id });
       });
       pane.querySelectorAll('[data-sx]').forEach(b => b.onclick = () => { const x = m.expressions[Number(b.dataset.sx)]; saveCard({ text: x.text, meaning: x.meaning + (x.note ? '｜' + x.note : ''), context: findContext(x.text, ls), pack: id }, b); });
       pane.querySelectorAll('[data-sv]').forEach(b => b.onclick = () => { const v = m.vocabulary[Number(b.dataset.sv)]; saveCard({ text: v.term, meaning: v.meaning, context: findContext(v.term, ls) || v.example, pack: id }, b); });

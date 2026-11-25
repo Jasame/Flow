@@ -3,8 +3,8 @@
     async function narration(ls) {
       const voices = (m.audio && m.audio.voices) || [];
       if (!voices.length || (m.variant && !st.showOriginal)) return null;
-      if (!voices.includes(S.voice)) S.voice = voices[0];
-      const ok = await NAR.load(id, S.voice, m.audio.version);
+      // not recorded in the learner's voice: another of its recordings, for this text only (S.voice, the setting, stays)
+      const ok = await NAR.load(id, voices.includes(S.voice) ? S.voice : voices[0], m.audio.version);
       return ok && NAR.meta && NAR.meta.sentences.length === ls.length ? NAR.meta : null;
     }
     const LOOP = Object.assign({ rep: 1, gap: 0 }, load('flow-next-loop') || {});  // 复读, kept on the phone
@@ -51,6 +51,7 @@
       pane.innerHTML = `${again ? relistenHTML() : ''}${modeTabs()}<div class="player">
           <button class="btn primary" id="playAll">${ICON.play.replace('<svg', '<svg width="18" height="18" fill="currentColor"')}<span>播放全文</span></button>
           <button class="icon-btn ${st.blind ? 'on' : ''}" id="blind" aria-pressed="${st.blind}" title="盲听：先只听不看" aria-label="盲听">${ICON.eye}</button>
+          <button class="link tiny" id="playRestart" type="button" hidden>从头开始</button>
         </div>
         <details class="playset" ${load('flow-next-playset') ? 'open' : ''}><summary data-tap="listen-settings"><span class="tiny muted" id="psum">${psum()}</span><span class="tiny link">播放设置</span></summary>
           <div class="loopbar"><div class="lg" role="group" aria-label="语速"><span class="tiny muted">语速</span>${[0.75, 1, 1.25].map(r => `<button class="chip small" data-rate="${r}" aria-pressed="${TTS.rate === r}">${r}×</button>`).join('')}</div>
@@ -58,20 +59,26 @@
             <div class="lg" role="group" aria-label="复读：句后停顿"><span class="tiny muted">句后</span>${[[0, '不停'], [2, '停 2 秒'], [-1, '留时间跟说']].map(([n, l]) => `<button class="chip small" data-gap="${n}" aria-pressed="${LOOP.gap === n}">${l}</button>`).join('')}</div>
             ${voices.length ? `<div class="lg"><span class="tiny muted">声音</span>${voiceChips(voices)}</div>` : ''}</div></details>
         ${prereadHTML()}
-        ${!nm && !TTS.ok ? '<p class="err">这个浏览器不支持朗读，可以直接去「读」。</p>' : ''}
-        <p class="muted tiny listen-tip">${nm ? '' : '这篇还没有录音，先用浏览器朗读。'}点 👁 只听不看，点句子前的喇叭单句反复听${TOUCH ? '' : '；空格键播放 / 停止'}。</p>
+        <p class="tiny muted sv-prep" id="lsPrep" role="status" hidden></p>
+        ${!nm && !TTS.can() ? '<p class="err">这个浏览器不支持朗读，可以直接去「读」。</p>' : ''}
+        <p class="muted tiny listen-tip">${nm ? '' : SV.on() ? '这篇还没有录音，用 AI 朗读（自然人声）一句一句读。' : '这篇还没有录音，先用浏览器朗读。'}点 👁 只听不看，点句子前的喇叭单句反复听${TOUCH ? '' : '；空格键播放 / 停止'}。</p>
         <div class="lines">${ls.map((s, i) => `<div class="line" data-i="${i}"><button class="icon-btn" data-say="${i}" aria-label="播放第 ${i + 1} 句">${ICON.speak}</button><div class="txt ${st.blind ? 'blind' : ''}">${wordSpans(s, () => 'kw')}</div></div>`).join('')}</div>
         <div class="section row between"><span class="muted small">共 ${ls.length} 句${nm ? ' · ' + Math.round(nm.duration / 60 * 10) / 10 + ' 分钟' : ''}</span><button class="btn" id="toRead">听完了，去读 →</button></div>`;
-      let playing = -1, shown = -1;
+      let shown = -1;
       const lineEl = i => pane.querySelector(`.line[data-i="${i}"]`);
       const setNow = i => pane.querySelectorAll('.line').forEach(el => { const on = Number(el.dataset.i) === i; el.classList.toggle('now', on); if (!on) el.querySelectorAll('.cur').forEach(x => x.classList.remove('cur')); });
-      const setBtn = on => { const b = pane.querySelector('#playAll'); if (b) { b.innerHTML = playIcon(on) + `<span>${on ? '停止' : '播放全文'}</span>`; b.setAttribute('aria-pressed', String(on)); } };
-      const follow = t => {
-        const [si, wc] = NAR.locate(t);
-        if (si !== shown) { shown = si; setNow(si); MINI.update(`第 ${si + 1} / ${ls.length} 句`); const el = lineEl(si); if (el && playing >= 0) el.scrollIntoView({ block: 'center', behavior: REDUCED ? 'auto' : 'smooth' }); }
-        if (si >= 0) lightAt(lineEl(si), wc);
+      const light = (el, c) => { if (!el) return; if (c == null) el.querySelectorAll('.cur').forEach(x => x.classList.remove('cur')); else lightWord(el, c); };
+      // 播放全文 (LONG, 01-audio-offline.js): 暂停 / 继续, and where it was left kept on this phone: 「从第 N 句继续」
+      const PKEY = 'listen:' + id;
+      const setBtn = () => {
+        const b = pane.querySelector('#playAll'), rs = pane.querySelector('#playRestart'); if (!b) return;
+        const r = LONG.of(PKEY), at = r ? r.i : PROG.at(PKEY, ls.length);
+        b.innerHTML = r && r.state !== 'paused' ? `${pauseIcon()}<span>暂停</span>` : `${playIcon(false)}<span>${r ? '继续' : at ? `从第 ${at + 1} 句继续` : '播放全文'}</span>`;
+        b.setAttribute('aria-pressed', String(!!r && r.state !== 'paused'));
+        if (rs) rs.hidden = !at;
       };
-      const stopAll = () => { loopTok++; clearTimeout(loopTimer); TTS.stop(); NAR.stop(); playing = -1; shown = -1; setNow(-1); setBtn(false); MINI.hide(); };
+      const prepLine = note => { const p = pane.querySelector('#lsPrep'); if (p) { p.textContent = note || ''; p.hidden = !note; } };
+      const stopAll = () => { loopTok++; clearTimeout(loopTimer); LONG.stop(); TTS.stop(); NAR.stop(); shown = -1; setNow(-1); setBtn(); MINI.hide(); };
       // 复读: a sentence said LOOP.rep times (0: until stopped), with a pause after it: none, 2 s, or as long as the
       // sentence itself and a little more, to say it back.
       let loopTok = 0, loopTimer = 0;
@@ -86,23 +93,28 @@
         });
       };
       const looping = () => LOOP.rep !== 1 || LOOP.gap !== 0;
+      // one sentence: its part of the recording, else the server voice (the browser voice only when that cannot)
       const sayLine = (i, then) => {
-        if (nm) { shown = -1; NAR.play(nm.sentences[i].s, nm.sentences[i].e, follow, then); return; }
-        const el = lineEl(i); TTS.say(ls[i], then, c => lightWord(el, c));
+        if (nm) { NAR.play(nm.sentences[i].s, nm.sentences[i].e, t => { const [si, wc] = NAR.locate(t); if (si === i) lightAt(lineEl(i), wc); }, then); return; }
+        const el = lineEl(i); TTS.say(ls[i], then, c => lightWord(el, c), { pack: id, title: '语流 · ' + m.title });
       };
-      const playFrom = i => {
-        if (i >= ls.length) { stopAll(); markStep('listen'); return; }
-        playing = i; setNow(i); MINI.update(`第 ${i + 1} / ${ls.length} 句`);
-        const el = lineEl(i); if (el) el.scrollIntoView({ block: 'center', behavior: REDUCED ? 'auto' : 'smooth' });
-        sayRepeated(i, () => playFrom(i + 1));
-      };
+      const readAll = from => LONG.start({
+        key: PKEY, texts: ls, nm, pack: id, title: m.title, loop: looping(), rep: () => LOOP.rep, gap: gapMs, label: i => `第 ${i + 1} / ${ls.length} 句`,
+        onState: (state, i, note) => {
+          setBtn(); prepLine(note);
+          if (state === 'idle') { shown = -1; setNow(-1); return; }
+          if (i !== shown) { shown = i; setNow(i); const el = lineEl(i); if (el && state !== 'paused') el.scrollIntoView({ block: 'center', behavior: REDUCED ? 'auto' : 'smooth' }); }
+        },
+        onWord: (i, c) => light(lineEl(i), c),
+        onDone: () => markStep('listen'),
+      }, from);
       pane.querySelector('#playAll').onclick = () => {
-        if (playing >= 0) return stopAll();
-        setBtn(true); MINI.show('正在播放全文', stopAll);
-        // one sentence after another (each said again, and pauses, when 复读 is set); otherwise the narration straight through
-        if (nm && !looping()) { playing = 0; shown = -1; NAR.play(nm.sentences[0].s, null, follow, () => { stopAll(); markStep('listen'); }); }
-        else playFrom(0);
+        if (LONG.of(PKEY)) { LONG.toggle(); return; }
+        loopTok++; clearTimeout(loopTimer);  // a sentence repeating
+        readAll(PROG.at(PKEY, ls.length));
       };
+      pane.querySelector('#playRestart').onclick = () => { LONG.stop(); PROG.clear(PKEY); readAll(0); };
+      setBtn();
       pane.querySelectorAll('[data-say]').forEach(b => b.onclick = () => {
         const i = Number(b.dataset.say); stopAll(); setNow(i);
         if (looping()) MINI.show(`复读第 ${i + 1} 句`, stopAll);  // a stop button on screen while it repeats
@@ -210,7 +222,7 @@
         pane.querySelectorAll('.line.sh.cur').forEach(x => x.classList.remove('cur')); l.classList.add('cur');
       }, true));  // capture: a tap on ▶ of another sentence plays it and makes it the one
       const stop = () => { TTS.stop(); NAR.stop(); CLIP.stop(); if (REC.mr && REC.mr.state === 'recording') REC.mr.stop(); };
-      const orig = (i, then) => { if (nm) NAR.play(nm.sentences[i].s, nm.sentences[i].e, null, then); else TTS.say(stripLabel(ls[i]), then); };
+      const orig = (i, then) => { if (nm) NAR.play(nm.sentences[i].s, nm.sentences[i].e, null, then); else TTS.say(stripLabel(ls[i]), then, null, { pack: id }); };
       async function record(i, btn) {
         if (REC.mr && REC.mr.state === 'recording') { REC.mr.stop(); return; }
         if (!micReady(() => record(i, btn))) return;
@@ -273,7 +285,7 @@
       const stop = () => { TTS.stop(); NAR.stop(); CLIP.stop(); };
       const play = slow => {
         stop(); const keep = TTS.rate; TTS.rate = slow ? 0.75 : keep;
-        if (nm) NAR.play(nm.sentences[i].s, nm.sentences[i].e, null, null); else TTS.say(stripLabel(ls[i]));
+        if (nm) NAR.play(nm.sentences[i].s, nm.sentences[i].e, null, null); else TTS.say(stripLabel(ls[i]), null, null, { pack: id });
         TTS.rate = keep;
       };
       function render() {
