@@ -585,8 +585,10 @@
   // in memory as a blob: URL, so a tap plays at once. Not with Save-Data or on 2G; at most 8 recordings are kept.
   // (Word sounds are not preloaded: a word's file holds about 100 words, and the player fetches only that word's bytes.)
   const PRELOAD = {
-    done: new Map(), going: new Map(),
-    frugal() { const c = navigator.connection; return !!(c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || ''))); },
+    done: new Map(), going: new Map(), app: false,
+    // Save-Data, 2G, or 语流's iOS app saving power (低电量模式, iOS 27 asking apps to do less: FlowApp 'frugal', C1):
+    // nothing fetched ahead (today's texts kept offline, the next material, its recording, the next sentences)
+    frugal() { const c = navigator.connection; return this.app || !!(c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || ''))); },
     url(u) { return this.done.get(u) || u; },
     warm(u) {
       if (!u) return Promise.resolve(null);
@@ -605,6 +607,11 @@
       this.going.set(u, p); return p;
     },
   };
+  if (window.FlowApp && FlowApp.has && FlowApp.has('frugal')) {
+    const take = d => { PRELOAD.app = !!(d && d.on); };
+    Promise.resolve(FlowApp.call('app.frugal')).then(take, () => {});
+    if (FlowApp.on) FlowApp.on('frugal', take);
+  }
   // From 今日: the material most likely opened next, and its recording, so the study page opens and plays without a wait.
   async function preloadMaterial(id) {
     if (!id || MAT[id] || PRELOAD.frugal()) return;
@@ -715,13 +722,24 @@
       const k = JSON.stringify(this.knobs(r));
       if (force || k !== this.sent) { this.sent = k; FlowApp.audio.set(this.knobs(r)).catch(() => {}); }
     },
+    // The app's own 语速 and 单句循环, changed on the lock screen (iOS 27, 语流 C1's #335: rate, rep and loop in 'audio' and
+    // state(), why 'remote'): the page takes them, its chips follow, and nothing is pushed back (a forced set put 1× back).
+    // 单句循环 there is rep 0 with loop; turned off, the app sends the page's own back. An older app sends none: false.
+    takeKnobs(d, r) {
+      if (!d || typeof d.rate !== 'number' || !(d.rate > 0)) return false;
+      if (d.rate !== TTS.rate) { TTS.rate = d.rate; save('flow-next-rate', TTS.rate); NAR.audio.playbackRate = TTS.rate; }
+      if (typeof d.rep === 'number' && d.rep >= 0 && r.setRep) r.setRep(d.rep);
+      this.sent = JSON.stringify(this.knobs(r));
+      if (r.onKnobs) r.onKnobs();
+      return true;
+    },
     start(r) {
       const d = this.last;
       if (this.lone === r.key && d && d.key === r.key && d.state !== 'idle') {
         // this page loaded again while the app went on with this very text: take it back where the app is, no new start
         this.lone = null; if (typeof d.i === 'number') r.i = d.i; r.state = d.state === 'paused' ? 'playing' : d.state; r.note = '';
         if (d.state === 'paused') FlowApp.audio.resume().catch(() => {});
-        MINI.paused(false); this.retune(true); LONG.save(); LONG.emit(); this.loop(); return;
+        MINI.paused(false); if (!this.takeKnobs(d, r)) this.retune(true); LONG.save(); LONG.emit(); this.loop(); return;  // the app's knobs, else the page's
       }
       const o = { key: r.key, title: r.title || '', from: r.i, ...this.knobs(r) };
       if (S.csrf) o.csrf = S.csrf;
@@ -744,7 +762,8 @@
       // the app fell back to the phone's own voice: why, said by the page as everywhere on the site (SV.why: once a reason)
       r.state = d.state; r.note = d.fail ? SV.why(d.fail) : (d.note || '');
       MINI.paused(d.state === 'paused');
-      this.retune();  // 复读 or 语速 changed meanwhile
+      if (d.why === 'remote') this.takeKnobs(d, r);  // 语速 or 单句循环 changed on the lock screen
+      this.retune();  // 复读 or 语速 changed on the page meanwhile
       LONG.emit(); this.loop();
     },
     // the app made a sentence this phone had no address for: kept in the SV address book (§3 audio-made), so it is

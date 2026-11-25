@@ -150,7 +150,7 @@
     try { v = await fetch('/api/version', { cache: 'no-store', credentials: 'same-origin' }).then(r => (r.ok ? r.json() : null)); } catch (e) { return; }
     if (!v || !v.asset || v.asset === MY_ASSET) return;
     NEW_ASSET = v.asset;
-    try { const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); if (reg) reg.update(); } catch (e) { /* no worker: the reload asks the server */ }
+    try { const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); if (reg) reg.update().catch(() => {}); } catch (e) { /* no worker: the reload asks the server */ }  // the reload into the new version cuts the check short (WebKit: an unhandled "sw.js load failed")
     updateWhenSafe();
   }
   // Something playing or recording (the narration, a clip or the server/browser voice in 01-audio-offline.js, the

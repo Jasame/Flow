@@ -4,4 +4,6 @@
     <color name="flow_text">#E8EEEA</color>
     <color name="flow_green">#3CCF7C</color>
     <color name="flow_indigo">#8EAEFC</color>
+    <color name="flow_surface">#1A211E</color>
+    <color name="flow_line">#2EE8EEEA</color>
 </resources>

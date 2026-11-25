@@ -15,9 +15,11 @@ import cn.flowlang.app.Accent
 import cn.flowlang.app.BuildConfig
 import cn.flowlang.app.MainActivity
 import cn.flowlang.app.Mute
+import cn.flowlang.app.R
 import cn.flowlang.app.Site
 import cn.flowlang.app.audio.FlowAudio
 import cn.flowlang.app.notify.Reminders
+import cn.flowlang.app.privacy.Consent
 import cn.flowlang.app.rec.Recorder
 import cn.flowlang.app.speech.Speech
 import kotlinx.coroutines.launch
@@ -88,6 +90,15 @@ class Bridge(private val activity: MainActivity) : WebViewCompat.WebMessageListe
             // Android's own (assets/flowapp-android.js): the page's 主题色, for the app's dialogs and notifications
             "app.accent" -> { Accent.set(activity, o.optString("accent")); true }
 
+            // Android's own (docs/native-bridge.md §10, privacy/Consent.kt): the first start's answer and what the page's
+            // 「我的 → 设置」 offers about it: 撤回同意, 权限管理, and the APP 备案号 for 「关于」 (empty until there is one)
+            "privacy.state" -> JSONObject().put("state", Consent.name(activity.privacy)).put("version", Consent.docs(activity).version)
+                .put("beian", BuildConfig.BEIAN).put("store", BuildConfig.STORE)
+            "privacy.ask" -> { activity.consented(); Consent.name(activity.privacy) }
+            "privacy.withdraw" -> activity.withdraw()
+            "privacy.permissions" -> activity.permissions()
+            "privacy.settings" -> { activity.openPermissionSettings(o.optString("what")); true }
+
             "audio.play" -> FlowAudio.play(o)
             "audio.pause" -> FlowAudio.pause(if (o.optString("why") == "other") "other" else "user")
             "audio.resume" -> FlowAudio.resume()
@@ -99,10 +110,12 @@ class Bridge(private val activity: MainActivity) : WebViewCompat.WebMessageListe
             "audio.progress" -> FlowAudio.progressJson(args as? String ?: o.optString("key"))
 
             "rec.permission" -> activity.micPermission()
-            "rec.ask" -> activity.askMic()
+            // 基本模式: the microphone and the app's reminders ask for the agreement first (MainActivity.consented)
+            "rec.ask" -> activity.consented(R.string.consent_why_mic) && activity.askMic()
             "rec.start" -> {
                 val token = Recorder.begin()
                 when {
+                    !activity.consented(R.string.consent_why_mic) -> JSONObject().put("ok", false).put("why", "denied").put("message", "没有同意《隐私和数据》，不能录音")
                     !activity.askMic() -> JSONObject().put("ok", false).put("why", "denied").put("message", "没有拿到麦克风权限")
                     !Recorder.stillWanted(token) -> JSONObject().put("ok", false).put("why", "cancelled")  // stopped while asking
                     else -> Recorder.start(activity, o.optInt("max", 60), o.optString("format").ifEmpty { null })
@@ -112,11 +125,13 @@ class Bridge(private val activity: MainActivity) : WebViewCompat.WebMessageListe
             "rec.cancel" -> { Recorder.cancel(); true }
 
             "notify.permission" -> activity.notifyPermission()
-            "notify.ask" -> activity.askNotify()
+            "notify.ask" -> activity.consented(R.string.consent_why_notify) && activity.askNotify()
             "notify.sync" -> {
                 val off = args == null || args == JSONObject.NULL
-                if (!off && o.optBoolean("ask")) activity.askNotify()
-                Reminders.sync(activity, if (off) null else o, activity.notifyPermission())
+                if (!off && o.optBoolean("ask") && activity.consented(R.string.consent_why_notify)) activity.askNotify()
+                if (off || activity.privacy == Consent.State.AGREED) Reminders.sync(activity, if (off) null else o, activity.notifyPermission())
+                else JSONObject().put("ok", true).put("permission", activity.notifyPermission()).put("scheduled", 0)
+                    .put("next", JSONObject.NULL).put("exact", Reminders.exact(activity))  // 基本模式: nothing is scheduled
             }
             "notify.pending" -> Reminders.pendingJson(activity)
             "notify.off" -> Reminders.sync(activity, JSONObject().put("app", false), activity.notifyPermission())
@@ -152,7 +167,7 @@ class Bridge(private val activity: MainActivity) : WebViewCompat.WebMessageListe
 
     companion object {
         private const val TAG = "FlowBridge"
-        val FEATURES = listOf("audio", "rec", "notify", "speech")
+        val FEATURES = listOf("audio", "rec", "notify", "speech", "privacy")
         val supported: Boolean
             get() = WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER) &&
                 WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)
