@@ -48,5 +48,5 @@ details[open]>summary{margin-bottom:8px}
 @media (max-height:620px){
   .place.stack{gap:8px}
   .place .h1{margin-bottom:2px}
-  .place .steps-list{gap:2px;line-height:1.5}
+  .place .steps-list{display:none}  /* 「做完有什么」: the intro above says the gist; the 内测版's line (27 px) has to fit too */
 }
