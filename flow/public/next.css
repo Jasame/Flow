@@ -1,0 +1,1866 @@
+/* Flow Next · calm reading-first design. Warm paper, ink, one green. */
+@font-face{font-family:'Flow Serif';src:url(/literata.woff2?v=1) format('woff2');font-weight:300 800;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+2000-206F,U+2212}
+:root{
+  color-scheme:light dark;
+  --bg:#fbfaf6;--paper:#ffffff;--sunk:#f3f1ea;--line:#e7e3d8;--line2:#d6d1c3;
+  --ink:#1b1d1a;--ink2:#4b4f48;--muted:#666a60;
+  --green:#1f9d55;--green-ink:#12733c;--green-soft:#e9f5ee;--green-line:#bfe3cd;
+  --amber:#b4690e;--amber-soft:#fbf1e1;--red:#b42318;--red-soft:#fdeceb;
+  --mark:#fff2b8;
+  /* solid fills behind text (buttons, badges, the current step): 4.5:1 or more for the text on them, in both themes */
+  --fill:#188546;--on-fill:#fff;--on-red:#fff;--amber-fill:#9a5a0c;--on-amber:#fff;
+  --sans:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  --serif:'Flow Serif',Georgia,'Songti SC','Noto Serif CJK SC',serif;
+  --r:14px;--r-s:10px;--gut:16px;--max:720px;
+  /* the phone's safe areas (the Dynamic Island or status bar, the home bar, the sides held sideways), as variables so
+     every rule reads one place and the UI tests can stand in for an iPhone (tools/ui_test.py home-app) */
+  --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px);
+  --shadow:0 1px 2px rgba(30,30,20,.05),0 8px 24px rgba(30,30,20,.06);
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#101412;--paper:#171c19;--sunk:#1d231f;--line:#28302b;--line2:#36403a;
+  --ink:#ecefe9;--ink2:#c3c9c0;--muted:#97a097;
+  --green:#3ccf7c;--green-ink:#6ee0a0;--green-soft:#173024;--green-line:#24553a;
+  --amber:#f2b55b;--amber-soft:#2f2617;--red:#ff8a80;--red-soft:#351c1a;--mark:#4a4116;
+  --fill:#3ccf7c;--on-fill:#0b1f12;--on-red:#2a0e0c;--amber-fill:#f2b55b;--on-amber:#2a1a05;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 var(--sans);-webkit-font-smoothing:antialiased;padding-bottom:calc(72px + var(--sab))}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+[hidden]{display:none!important}
+.skip{position:absolute;left:-999px}.skip:focus{left:8px;top:8px;z-index:99;background:var(--paper);padding:8px 12px;border-radius:8px}
+:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+
+/* ---- top bar / nav ---- */
+/* No backdrop-filter on phones: it would make the fixed bottom tabs position relative to this bar. */
+.bar{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+.bar{display:flex;align-items:center;justify-content:space-between;max-width:none;padding:10px var(--gut);gap:12px}
+.brand{display:flex;align-items:center;gap:8px;text-decoration:none;font-weight:700}
+.brand svg{width:28px;height:28px}.brand-bg{fill:var(--green)}.brand-fg{stroke:#fff;stroke-width:3;stroke-linecap:round;fill:none}
+.brand em{font-style:normal;font-size:11.5px;font-weight:600;color:var(--green-ink);background:var(--green-soft);border-radius:99px;padding:1px 8px}
+.tabs{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-around;background:var(--paper);border-top:1px solid var(--line);padding:6px 8px calc(6px + var(--sab));z-index:30}
+.tabs a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none;font-size:12px;color:var(--muted);padding:4px 0;position:relative;border-radius:10px}
+.tabs svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tabs a[aria-current=page]{color:var(--green-ink);font-weight:600}
+.badge{position:absolute;top:0;left:calc(50% + 6px);min-width:18px;height:18px;border-radius:9px;background:var(--red);color:var(--on-red);font-size:11px;line-height:18px;text-align:center;padding:0 5px;font-weight:700}
+@media (min-width:760px){
+  body{padding-bottom:0}
+  .bar{background:color-mix(in srgb,var(--bg) 90%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+  .tabs{position:static;border:0;background:none;padding:0;gap:4px;justify-content:flex-end}
+  .tabs a{flex:none;flex-direction:row;gap:6px;font-size:14px;padding:8px 14px}
+  .tabs a[aria-current=page]{background:var(--green-soft)}
+  .tabs svg{width:18px;height:18px}
+  .badge{position:static;margin-left:2px}
+}
+
+/* ---- layout ---- */
+main{max-width:var(--max);margin:0 auto;padding:20px var(--gut) 40px;outline:none;overflow-x:clip}
+.loading{color:var(--muted);text-align:center;padding:48px 0}
+h1,h2,h3{margin:0;line-height:1.25}
+.h1{font-size:26px;font-weight:700;letter-spacing:-.01em}
+.h2{font-size:18px;font-weight:700}
+.kicker{font-size:12.5px;font-weight:600;letter-spacing:.06em;color:var(--green-ink);text-transform:uppercase;margin-bottom:6px}
+.muted{color:var(--muted)}.small{font-size:13.5px}.tiny{font-size:12px}
+.stack{display:grid;gap:14px}.stack-s{display:grid;gap:8px}.stack-xs{display:grid;gap:3px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row.between{justify-content:space-between}
+.section{margin-top:28px}
+.section-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;gap:10px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--shadow)}
+.card.flat{box-shadow:none}
+.card.sunk{background:var(--sunk);box-shadow:none}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;border-radius:99px;padding:2px 9px;background:var(--sunk);color:var(--ink2);white-space:nowrap}
+.pill.green{background:var(--green-soft);color:var(--green-ink)}
+.pill.amber{background:var(--amber-soft);color:var(--amber)}
+.link{color:var(--green-ink);font-weight:600;text-decoration:none;background:none;border:0;padding:0}
+.link:hover{text-decoration:underline}
+
+/* ---- buttons / inputs ---- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 18px;border-radius:12px;border:1px solid var(--line2);background:var(--paper);font-weight:600;font-size:15px;text-decoration:none;transition:background .15s,border-color .15s}
+.btn:hover{border-color:var(--green)}
+.btn.primary{background:var(--fill);border-color:var(--fill);color:var(--on-fill)}
+.btn.primary:hover{filter:brightness(1.05)}
+.btn.ghost{border-color:transparent;background:none}
+.btn.small{min-height:36px;padding:0 12px;font-size:13.5px;border-radius:10px}
+.btn.block{width:100%}
+.btn[disabled]{opacity:.55;cursor:not-allowed}
+.icon-btn{width:40px;height:40px;display:inline-grid;place-items:center;border-radius:10px;border:1px solid var(--line2);background:var(--paper)}
+.icon-btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.icon-btn.on{background:var(--green-soft);border-color:var(--green-line);color:var(--green-ink)}
+input[type=text],input[type=email],input[type=password],input[type=search],textarea,select{width:100%;min-height:46px;padding:10px 12px;border-radius:12px;border:1px solid var(--line2);background:var(--paper);font-size:16px}
+textarea{min-height:120px;resize:vertical;line-height:1.55;font-family:var(--serif);font-size:18px}
+label.field{display:grid;gap:6px;font-size:14px;font-weight:600}
+.err{color:var(--red);font-size:14px;min-height:1.3em;margin:0}
+
+/* ---------- 启动动画 and 选方向和目标 (r27, 09-start.js) ---------- */
+/* The mark is in next.html, so it is on screen from the first paint; its bars rise in 0.4 s. The name and line show
+   only the first time (.first, set by the script). If the script never runs, the mark fades by itself after 3 s. */
+.splash{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  background:var(--bg);color:var(--ink);animation:sp-gone .3s ease 3s forwards}
+.sp-mark{width:96px;height:96px;border-radius:26px;background:var(--green);display:flex;align-items:center;justify-content:center;gap:7px}
+.sp-mark i{display:block;width:8px;border-radius:4px;background:#fff;animation:sp-bar .42s cubic-bezier(.2,.8,.2,1) both}
+.sp-mark i:nth-child(1){height:26px}
+.sp-mark i:nth-child(2){height:48px;animation-delay:.05s}
+.sp-mark i:nth-child(3){height:36px;animation-delay:.1s}
+.sp-mark i:nth-child(4){height:56px;animation-delay:.15s}
+.sp-mark i:nth-child(5){height:30px;animation-delay:.2s}
+.sp-name,.sp-tag{opacity:0}
+.sp-name{font-size:30px;font-weight:700;letter-spacing:1px;margin-top:4px}
+.sp-tag{font-size:15px;color:var(--ink2);margin-top:-10px}
+.splash.first .sp-name{animation:sp-in .4s ease .3s both}
+.splash.first .sp-tag{animation:sp-in .4s ease .45s both}
+.splash.out{animation:sp-gone .26s ease forwards;pointer-events:none}
+@keyframes sp-bar{from{transform:scaleY(.12)}to{transform:none}}
+@keyframes sp-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes sp-gone{to{opacity:0;visibility:hidden}}
+@media (prefers-reduced-motion:reduce){
+  .sp-mark i,.splash.first .sp-name,.splash.first .sp-tag{animation:none}
+  .splash.first .sp-name,.splash.first .sp-tag{opacity:1}
+  .splash.out{animation-duration:.01s}
+}
+
+/* the first time: the page alone, without the tabs */
+body.onboarding .tabs{display:none}
+body.onboarding{padding-bottom:var(--sab)}
+.wg{padding-bottom:12px}
+.wg h2.h3{font-size:17px;margin:4px 0 0}
+.wg-goals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.wg-goals .opt{display:grid;gap:2px;align-content:start;text-align:left;padding:14px;min-height:72px}
+.wg-goals .opt .l{font-weight:700;font-size:15.5px}
+.wg-goals .opt .d{font-size:12.5px;line-height:1.45;color:var(--ink2)}
+.wg-targets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+/* 一周学几天: 2–7 in one row, even on a small phone */
+.chips.wg-days{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}  /* over .chips (flex), loaded later */
+.chips.wg-days .chip{justify-content:center;text-align:center;padding-left:4px;padding-right:4px;white-space:nowrap;min-width:0}
+.wg-targets .opt{display:grid;justify-items:center;gap:2px;padding:10px 4px;text-align:center;min-height:72px;position:relative}
+.wg-targets .opt b{font-size:16px}
+.wg-targets .opt .d{font-size:12px;line-height:1.35;color:var(--ink2)}
+.wg-targets .rec{font-size:11.5px;font-weight:700;color:var(--on-fill);background:var(--fill);border-radius:99px;padding:0 7px;line-height:1.6}
+.wg .opt[aria-checked=true] .d{color:var(--green-ink)}
+.wg input[type=date]{width:100%;max-width:280px;min-height:46px;padding:8px 12px;border-radius:12px;border:1px solid var(--line2);background:var(--paper);font-size:16px}
+.wg-go{margin-top:8px}
+.wg-plan{margin:4px 0 0;padding:10px 12px;border-radius:12px;background:var(--green-soft);color:var(--green-ink)}
+.wg-go .link{min-height:40px;align-self:center}
+@media (min-width:768px){.wg-goals{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* ---- today ---- */
+.hello{display:grid;gap:4px;margin-bottom:18px}
+.week{display:flex;gap:6px;margin-top:10px}
+.week span{flex:1;height:6px;border-radius:3px;background:var(--line)}
+.week span.on{background:var(--green)}
+.hero{position:relative;overflow:hidden;padding:20px}
+.hero .title{font-size:22px;font-weight:700;margin:8px 0 6px}
+.hero .preview{font-family:var(--serif);font-size:18px;line-height:1.55;color:var(--ink2);margin:0 0 16px}
+.meta{display:flex;gap:6px;flex-wrap:wrap}
+.mini{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;text-decoration:none;padding:14px 16px}
+.mini .t{font-weight:600}
+.mini .p{grid-column:1/-1;font-family:var(--serif);color:var(--ink2);font-size:15.5px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mini:hover{border-color:var(--green-line)}
+.due{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.due b{font-size:28px;font-variant-numeric:tabular-nums}
+.steps-dots{display:flex;gap:4px}
+.steps-dots i{width:8px;height:8px;border-radius:50%;background:var(--line2)}
+.steps-dots i.on{background:var(--green)}
+
+/* ---- onboarding ---- */
+.choice{display:grid;gap:10px}
+.opt{display:block;text-align:left;width:100%;border:1.5px solid var(--line2);background:var(--paper);border-radius:var(--r);padding:14px 16px}
+.opt:hover{border-color:var(--green-line)}
+.opt[aria-pressed=true],.opt[aria-checked=true]{border-color:var(--green);background:var(--green-soft)}
+.opt .l{font-weight:700}
+.opt .d{color:var(--muted);font-size:13.5px}
+.opt .s{font-family:var(--serif);font-size:16.5px;margin-top:6px;color:var(--ink2)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--line2);background:var(--paper);border-radius:99px;padding:8px 14px;font-size:14.5px}
+.chip[aria-pressed=true]{border-color:var(--green);background:var(--green-soft);color:var(--green-ink);font-weight:600}
+.progress-line{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:18px}
+.progress-line i{display:block;height:100%;background:var(--green);transition:width .25s}
+
+/* ---- study ---- */
+.study-head{display:grid;gap:8px;margin-bottom:12px}
+.study-head .h1{font-size:22px}
+.steps{position:sticky;top:57px;z-index:10;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:var(--bg);padding:8px 0;margin:0 0 12px}
+.steps button{border:0;background:var(--sunk);border-radius:10px;padding:9px 4px;font-size:14px;font-weight:600;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:5px}
+.steps button[aria-selected=true]{background:var(--fill);color:var(--on-fill)}
+.steps button .ok{width:16px;height:16px;border-radius:50%;background:var(--fill);color:var(--on-fill);font-size:11px;line-height:16px;text-align:center}
+.steps button[aria-selected=true] .ok{background:var(--on-fill);color:var(--fill)}
+.text{font-family:var(--serif);font-size:19px;line-height:1.75;letter-spacing:.005em}
+.text p{margin:0 0 4px}
+.sent{border-radius:6px;padding:1px 2px;transition:background .2s}
+.sent.now{background:var(--mark)}
+.w{cursor:pointer;border-radius:3px}
+.w:hover{background:var(--green-soft)}
+.w.hard{text-decoration:underline dotted var(--amber) 2px;text-underline-offset:4px}
+.w.vocab{text-decoration:underline var(--green) 2px;text-underline-offset:4px}
+.w.sel{background:var(--green-soft);outline:1px solid var(--green-line)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin:4px 0 14px}
+.legend span::before{content:'';display:inline-block;width:18px;height:0;border-bottom:2px solid var(--green);margin-right:6px;vertical-align:4px}
+.legend span.h::before{border-bottom:2px dotted var(--amber)}
+.player{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.speed{display:inline-flex;border:1px solid var(--line2);border-radius:10px;overflow:hidden}
+.speed button{border:0;background:var(--paper);padding:8px 10px;font-size:13.5px;font-variant-numeric:tabular-nums}
+.speed button[aria-pressed=true]{background:var(--green-soft);color:var(--green-ink);font-weight:700}
+.lines{display:grid;gap:8px}
+.line{display:grid;grid-template-columns:40px minmax(0,1fr);gap:10px;align-items:start;padding:10px;border-radius:12px;border:1px solid transparent}
+.line.now{background:var(--green-soft);border-color:var(--green-line)}
+.line .txt{font-family:var(--serif);font-size:18px;line-height:1.6}
+.line .txt.blind{color:transparent;text-shadow:0 0 9px color-mix(in srgb,var(--ink) 55%,transparent);user-select:none}
+.selbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + var(--sab));z-index:40;background:var(--ink);color:var(--bg);border-radius:99px;padding:6px 6px 6px 14px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
+.selbar span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;font-family:var(--serif)}
+.selbar button{border:0;border-radius:99px;background:var(--fill);color:var(--on-fill);font-weight:700;padding:8px 14px}
+@media (min-width:760px){.selbar{bottom:24px}}
+.vocab-list{display:grid;gap:8px}
+.vrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:10px 12px;border-radius:12px;background:var(--sunk)}
+.vrow .term{font-family:var(--serif);font-weight:700;font-size:17px}
+.vrow .vex{grid-column:1/-1;font-family:var(--serif);color:var(--ink2);font-size:15px}
+.note{border-left:3px solid var(--green);padding:6px 0 6px 12px}
+.note q{font-family:var(--serif);font-style:italic;quotes:none}
+.q{display:grid;gap:10px}
+.q .prompt{font-family:var(--serif);font-size:18px;font-weight:600}
+.ans{text-align:left;border:1.5px solid var(--line2);background:var(--paper);border-radius:12px;padding:12px 14px;font-family:var(--serif);font-size:16.5px;display:flex;gap:10px;align-items:flex-start}
+.ans .k{font-family:var(--sans);font-weight:700;color:var(--muted);flex:none}
+.ans.right{border-color:var(--green);background:var(--green-soft)}
+.ans.wrong{border-color:var(--red);background:var(--red-soft)}
+.ans[disabled]{cursor:default}
+.evidence{background:var(--mark);border-radius:6px;padding:8px 10px;font-family:var(--serif)}
+.task{display:grid;gap:8px}
+.model{font-family:var(--serif);font-size:18px;background:var(--sunk);border-radius:12px;padding:12px 14px}
+.counter{text-align:right;font-size:12px;color:var(--muted)}
+.result{display:grid;gap:14px}
+.verdict{display:flex;gap:10px;align-items:flex-start}
+.verdict .dot{flex:none;width:10px;height:10px;border-radius:50%;margin-top:8px;background:var(--amber)}
+.verdict.natural .dot{background:var(--green)}.verdict.rewrite .dot{background:var(--red)}
+.compare{display:grid;gap:8px}
+.compare .yours{font-family:var(--serif);color:var(--muted);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--red) 60%,transparent)}
+.compare .fixed{font-family:var(--serif);font-size:18px}
+.change{display:grid;gap:2px;font-size:14.5px;padding:8px 0;border-top:1px dashed var(--line)}
+.change:first-child{border-top:0}
+.change .ft{font-family:var(--serif)}.change del{color:var(--red)}.change ins{color:var(--green-ink);text-decoration:none;font-weight:600}
+.change .why{color:var(--muted)}
+.version{display:grid;gap:6px;padding:14px;border-radius:12px;background:var(--sunk)}
+.version .v{font-family:var(--serif);font-size:18px;line-height:1.5}
+.done-card{text-align:center;padding:28px 18px}
+.done-card .big{font-size:40px;line-height:1}
+
+/* ---- cards / review ---- */
+.searchrow{display:flex;gap:8px;margin:12px 0}
+.xcard{display:grid;gap:6px;padding:14px 16px}
+.xcard .x{font-family:var(--serif);font-size:19px;font-weight:700}
+.xcard .ctx{font-family:var(--serif);color:var(--ink2);font-size:15.5px}
+.xcard .ctx mark{background:var(--mark);color:inherit;border-radius:3px;padding:0 2px}
+.review{min-height:52vh;display:grid;align-content:center;gap:18px;text-align:center}
+.review .cloze{font-family:var(--serif);font-size:22px;line-height:1.6}
+.review .gap{display:inline-block;min-width:4em;border-bottom:2px solid var(--green);color:transparent}
+.review .gap.open{color:var(--green-ink);font-weight:700;border-color:transparent;background:var(--green-soft);border-radius:4px;padding:0 4px}
+.review .hint{color:var(--muted)}
+.rate{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.rate button{border:1.5px solid var(--line2);background:var(--paper);border-radius:12px;padding:10px 4px;font-weight:700;display:grid;gap:2px}
+.rate button small{font-weight:500;color:var(--muted);font-size:11.5px}
+.rate .again{border-color:color-mix(in srgb,var(--red) 50%,var(--line2))}
+.rate .good{border-color:var(--green)}
+.bar-progress{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.bar-progress i{display:block;height:100%;background:var(--green)}
+.empty{text-align:center;padding:40px 16px;color:var(--muted)}
+.empty .big{font-size:36px}
+
+/* ---- library ---- */
+.filters{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin:12px 0}
+.filters select{width:auto;min-height:38px;padding:4px 10px;font-size:14px}
+.grid-list{display:grid;gap:10px}
+.pager{display:flex;justify-content:center;gap:10px;align-items:center;margin-top:16px}
+
+/* ---- me ---- */
+.stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.stat{padding:14px;text-align:center}
+.stat b{display:block;font-size:24px;font-variant-numeric:tabular-nums}
+.list{display:grid}
+.list a,.list button{display:flex;justify-content:space-between;align-items:center;padding:14px 4px;border:0;border-bottom:1px solid var(--line);background:none;text-align:left;text-decoration:none;font-size:15.5px;width:100%}
+.list a:last-child,.list button:last-child{border-bottom:0}
+
+/* ---- sheet / toast ---- */
+.sheet{position:fixed;inset:0;z-index:60;display:grid;align-items:end}
+.sheet-scrim{position:absolute;inset:0;background:rgba(10,12,10,.4)}
+.sheet-card{position:relative;background:var(--paper);border-radius:20px 20px 0 0;padding:20px var(--gut) calc(20px + var(--sab));max-height:86vh;overflow:auto;width:100%;max-width:var(--max);margin:0 auto;box-shadow:0 -8px 30px rgba(0,0,0,.15);animation:up .2s ease-out}
+@keyframes up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
+@media (min-width:760px){.sheet{align-items:center}.sheet-card{border-radius:20px;max-width:460px}}
+@media (prefers-reduced-motion:reduce){.sheet-card{animation:none}}
+.sheet .word{font-family:var(--serif);font-size:28px;font-weight:700}
+.sheet .ph{color:var(--muted);font-family:var(--serif)}
+.sheet .mean{font-size:16px;line-height:1.6}
+.seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;background:var(--sunk);border-radius:12px;padding:4px;margin-bottom:14px}
+.seg button{border:0;background:none;border-radius:9px;padding:8px;font-weight:600;color:var(--muted)}
+.seg button[aria-selected=true]{background:var(--paper);color:var(--ink);box-shadow:var(--shadow)}
+.toast{position:fixed;left:50%;bottom:calc(90px + var(--sab));transform:translate(-50%,20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:99px;font-size:14px;opacity:0;pointer-events:none;transition:.2s;z-index:80;max-width:calc(100% - 32px);text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media (min-width:760px){.toast{bottom:32px}}
+.ai-wait{flex-basis:100%;margin:6px 0 0;color:var(--muted);animation:aiwait .3s ease-out}
+@keyframes aiwait{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.ai-wait{animation:none}}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .8s linear infinite;vertical-align:-3px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.grow{flex:1}.row.center{justify-content:center}.tc{text-align:center}
+.searchrow .btn{flex:none;white-space:nowrap}
+.legend span.muted::before{display:none}
+
+/* =====================================================================
+   v2 · knowledge graph, AI explain, expressions, and learning-focused motion
+   Motion rules: short (120–420ms), ease-out, only transform/opacity/background;
+   every animation is removed under prefers-reduced-motion.
+   ===================================================================== */
+:root{--ease:cubic-bezier(.2,.8,.2,1);--ease-spring:cubic-bezier(.34,1.56,.64,1);
+  --st-untouched:#c9c4b6;--st-met:#e3b04b;--st-used:#4aa874;--st-solid:#1f9d55;--st-watch:#d4553f}
+@media (prefers-color-scheme:dark){:root{--st-untouched:#46504a;--st-met:#d9a43c;--st-used:#45b97a;--st-solid:#3ccf7c;--st-watch:#ff7b6b}}
+
+/* page enter: content rises in, children stagger */
+.enter>*{animation:rise .42s var(--ease) both}
+.enter>*:nth-child(2){animation-delay:.04s}.enter>*:nth-child(3){animation-delay:.08s}.enter>*:nth-child(4){animation-delay:.12s}
+.enter>*:nth-child(5){animation-delay:.16s}.enter>*:nth-child(6){animation-delay:.2s}.enter>*:nth-child(n+7){animation-delay:.24s}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.pane-enter{animation:pane .32s var(--ease) both}
+@keyframes pane{from{opacity:0;transform:translateX(var(--dir,12px))}to{opacity:1;transform:none}}
+.skeleton{display:grid;gap:12px;padding-top:8px}
+.skeleton i{display:block;height:16px;border-radius:8px;background:linear-gradient(90deg,var(--sunk) 0%,var(--line) 40%,var(--sunk) 80%);background-size:300% 100%;animation:shimmer 1.3s linear infinite}
+.skeleton i.t{height:28px;width:60%}.skeleton i.s{width:40%}.skeleton i.b{height:120px;border-radius:14px}
+@keyframes shimmer{from{background-position:100% 0}to{background-position:-100% 0}}
+
+/* press feedback */
+.btn,.icon-btn,.ans,.opt,.chip,.rate button,.mini,.steps button{transition:transform .12s var(--ease),background .2s,border-color .2s,color .2s,box-shadow .2s}
+.btn:active,.icon-btn:active,.opt:active,.chip:active,.rate button:active,.steps button:active{transform:scale(.97)}
+.mini:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+
+/* header auto-hides while reading (focus mode) */
+/* Hide by moving the sticky bar's offset, not with transform: a transformed bar would carry the fixed
+   bottom tabs (which live inside it on phones) up to the top of the screen. */
+.bar{transition:top .28s var(--ease)}
+.bar.hide{top:-72px}
+.steps{transition:top .28s var(--ease)}
+.bar.hide~main .steps{top:0}
+
+/* step tabs: sliding indicator */
+.steps{position:sticky}
+.steps .ind{position:absolute;top:8px;bottom:8px;left:0;border-radius:10px;background:var(--fill);transition:transform .32s var(--ease),width .32s var(--ease);z-index:0}
+.steps button{position:relative;z-index:1;background:transparent}
+.steps{background:var(--bg)}
+.steps::before{content:'';position:absolute;inset:8px 0;border-radius:10px;background:var(--sunk);z-index:0}
+.steps button[aria-selected=true]{background:transparent;color:var(--on-fill)}
+.steps button .ok{animation:pop .4s var(--ease-spring) both}
+
+/* reading: karaoke word highlight, sentence focus, evidence sweep */
+.w,.kw{transition:background .15s,color .15s}
+.kw.cur,.w.cur{background:var(--fill);color:var(--on-fill);border-radius:4px;box-shadow:0 0 0 2px var(--fill)}
+.line{transition:background .25s,border-color .25s,transform .25s var(--ease)}
+.line.now{transform:translateX(2px)}
+.text.reading .sent:not(.now){opacity:.55;transition:opacity .3s}
+.text.reading .sent.now{opacity:1}
+.sent.flash{animation:flash 1.6s var(--ease)}
+@keyframes flash{0%{background:transparent}20%{background:var(--mark)}100%{background:transparent}}
+.evidence{background:linear-gradient(90deg,var(--mark) 50%,transparent 50%);background-size:200% 100%;background-position:100% 0;animation:sweep .7s .1s var(--ease) forwards}
+@keyframes sweep{to{background-position:0 0}}
+
+/* answers */
+.ans.right{animation:pop .42s var(--ease-spring)}
+.ans.wrong{animation:shake .4s var(--ease)}
+@keyframes pop{0%{transform:scale(.96)}60%{transform:scale(1.02)}100%{transform:scale(1)}}
+@keyframes shake{0%,100%{transform:none}20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+.fb{overflow:hidden}
+.fb>*{animation:rise .3s var(--ease) both}
+
+/* save: star burst + tab badge bump */
+.icon-btn.on svg{fill:currentColor;animation:star .5s var(--ease-spring)}
+@keyframes star{0%{transform:scale(.6) rotate(-20deg)}70%{transform:scale(1.25) rotate(8deg)}100%{transform:none}}
+.badge.bump,.tabs a.bump svg{animation:bump .5s var(--ease-spring)}
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}
+.flyer{position:fixed;z-index:90;pointer-events:none;font-family:var(--serif);font-weight:700;color:var(--green-ink);background:var(--green-soft);border:1px solid var(--green-line);border-radius:99px;padding:4px 10px;font-size:14px;transition:transform .6s var(--ease),opacity .6s var(--ease);white-space:nowrap}
+
+/* review */
+.review .gap{transition:color .3s,background .3s,border-color .3s}
+.review .gap.open{animation:fillin .45s var(--ease) both}
+@keyframes fillin{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+.review.out{animation:out .22s var(--ease) both}
+@keyframes out{to{opacity:0;transform:translateX(-24px)}}
+.bar-progress i,.progress-line i{transition:width .4s var(--ease)}
+.week span{transform-origin:left;animation:grow .5s var(--ease) both}
+.week span:nth-child(2){animation-delay:.04s}.week span:nth-child(3){animation-delay:.08s}.week span:nth-child(4){animation-delay:.12s}.week span:nth-child(5){animation-delay:.16s}.week span:nth-child(6){animation-delay:.2s}.week span:nth-child(7){animation-delay:.24s}
+@keyframes grow{from{transform:scaleX(0)}to{transform:none}}
+
+/* completion */
+.done-ring{width:72px;height:72px;margin:0 auto}
+.done-ring circle{fill:none;stroke:var(--green);stroke-width:5;stroke-linecap:round;stroke-dasharray:190;stroke-dashoffset:190;animation:draw .8s .1s var(--ease) forwards}
+.done-ring path{fill:none;stroke:var(--green);stroke-width:5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:40;stroke-dashoffset:40;animation:draw .4s .75s var(--ease) forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+
+/* reasons & badges */
+.reasons{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.reason{font-size:12.5px;color:var(--green-ink);background:var(--green-soft);border-radius:8px;padding:3px 8px}
+.pill.feat{background:var(--ink);color:var(--bg)}
+.title-en{font-family:var(--serif);color:var(--muted);font-size:15px;font-style:italic}
+
+/* summary / expressions */
+details.guide{background:var(--sunk);border-radius:12px;padding:10px 14px;margin-bottom:14px}
+details.guide summary{cursor:pointer;font-weight:600;font-size:14px;list-style:none}
+details.guide summary::-webkit-details-marker{display:none}
+details.guide summary::after{content:'＋';float:right;color:var(--muted);transition:transform .2s}
+details.guide[open] summary::after{transform:rotate(45deg)}
+details.guide p{margin:8px 0 0;font-size:15px}
+.expr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--paper)}
+.expr .e{font-family:var(--serif);font-weight:700;font-size:17px}
+.expr .m{font-size:14px}
+.expr .n{grid-column:1/-1;font-size:13px;color:var(--muted)}
+.mark-expr{background:linear-gradient(transparent 62%,color-mix(in srgb,var(--green) 28%,transparent) 62%);border-radius:2px}
+
+/* knowledge graph */
+.st{--c:var(--st-untouched)}
+.st-met{--c:var(--st-met)}.st-used{--c:var(--st-used)}.st-solid{--c:var(--st-solid)}.st-watch{--c:var(--st-watch)}
+.node-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line2);background:var(--paper);border-radius:99px;padding:4px 10px 4px 8px;font-size:13px;text-decoration:none;font-weight:600}
+.node-chip::before{content:'';width:9px;height:9px;border-radius:50%;background:var(--c)}
+.node-chip:hover{border-color:var(--c)}
+.knote{display:grid;gap:6px;padding:12px 14px;border-radius:12px;background:var(--sunk)}
+.knote q{font-family:var(--serif);font-style:italic;quotes:none}
+.glegend{display:flex;flex-wrap:wrap;gap:10px 14px;justify-content:center;font-size:12.5px;color:var(--muted);margin:10px 0 4px}
+.glegend span{display:inline-flex;align-items:center;gap:6px}
+.glegend span::before{content:'';width:10px;height:10px;border-radius:50%;background:var(--c)}
+.topic-list{display:grid;gap:10px}
+.topic{padding:14px 16px}
+.topic .nodes{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.gsum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.gsum div{text-align:center;padding:10px 4px;border-radius:12px;background:var(--sunk)}
+.gsum b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+.gsum span{font-size:11.5px;color:var(--muted)}
+.gbar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--line);margin-top:10px}
+.gbar i{display:block;height:100%;background:var(--c);transition:width .6s var(--ease)}
+.ex-quote{font-family:var(--serif);font-size:16.5px;border-left:3px solid var(--green);padding:4px 0 4px 12px;text-decoration:none;display:block}
+
+/* AI explain */
+.explain{display:grid;gap:12px}
+.explain .tr{font-size:16.5px}
+.explain .pt{display:grid;gap:4px;padding:10px 12px;border-radius:12px;background:var(--sunk)}
+.explain .pt b{font-family:var(--serif)}
+.explain .frame{font-family:var(--serif);font-size:17px;font-weight:700;color:var(--green-ink)}
+.sent-tools{display:inline-flex;gap:4px;vertical-align:middle}
+.used-well{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+}
+main>*+*{margin-top:14px}
+main>.section,main>*+.section{margin-top:28px}
+.gsum .st b{color:var(--c)}
+.brand em{display:none}
+.voices{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.chip.small{padding:6px 12px;font-size:13.5px}
+.chip[disabled]{opacity:.4;cursor:not-allowed}
+
+/* ---------- words: plan, forecast, memory curve, review modes ---------- */
+.w.mine{background:color-mix(in srgb,var(--green) 22%,transparent);border-radius:4px;padding:0 2px;margin:0 -2px}
+.legend span.m::before{height:10px;border:0;border-radius:3px;background:color-mix(in srgb,var(--green) 22%,transparent);vertical-align:-1px}
+.vtoday .big-line{font-size:17px}.vtoday .big-line b{font-size:26px;font-variant-numeric:tabular-nums;margin:0 2px}
+.vbar{display:block;flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden;min-width:60px}
+.vbar i{display:block;height:100%;width:0;background:var(--green);border-radius:3px;transition:width .6s var(--ease)}
+.forecast{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;height:118px;align-items:end;text-align:center}
+.forecast div{display:grid;grid-template-rows:16px 1fr 16px;height:100%;align-items:end;gap:4px}
+.forecast i{display:block;width:62%;margin:0 auto;height:3%;background:var(--green);border-radius:5px 5px 2px 2px;opacity:.85;transition:height .6s var(--ease)}
+.forecast div:first-child i{opacity:1}
+.forecast .n{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink2)}
+.cal{display:grid;grid-template-columns:repeat(35,minmax(0,1fr));gap:3px;margin-top:4px}
+.cal i{aspect-ratio:1;border-radius:3px;background:var(--line)}
+.cal i.l1{background:color-mix(in srgb,var(--green) 28%,var(--line))}.cal i.l2{background:color-mix(in srgb,var(--green) 52%,var(--line))}
+.cal i.l3{background:color-mix(in srgb,var(--green) 76%,var(--line))}.cal i.l4{background:var(--green)}
+button.xcard{text-align:left;width:100%;font:inherit;color:inherit;cursor:pointer}
+button.xcard:hover{border-color:var(--green-line)}
+.books{display:grid;gap:10px}
+.bookc{display:grid;gap:4px;text-align:left;font:inherit;color:inherit;cursor:pointer;border-width:1.5px}
+.bookc[aria-pressed=true]{border-color:var(--green);background:var(--green-soft)}
+/* the picker: books under group headings (按词频, 大学英语, 英语专业 …); a data book's note on how it was made under its card */
+.bookgroups{display:grid;gap:18px;margin-top:2px}
+.bookgroup .kicker{margin-bottom:8px}
+.bookcell{display:grid;grid-template-rows:1fr auto;min-width:0}
+.bk-top{display:flex;justify-content:space-between;align-items:center;gap:8px;min-width:0}
+.bk-tags{display:inline-flex;align-items:center;gap:6px;flex:none}
+.bk-n{font-variant-numeric:tabular-nums;white-space:nowrap}
+.bookc .bk-on{display:none}
+.bookc[aria-pressed=true] .bk-on{display:inline-flex;background:var(--fill);color:var(--on-fill)}
+details.basis>summary{display:flex;align-items:center;gap:4px;min-height:36px;padding:4px 4px 0;font-size:12.5px;color:var(--ink2);list-style:none;cursor:pointer}
+details.basis>summary::-webkit-details-marker{display:none}
+details.basis>summary::after{content:"";width:6px;height:6px;margin-left:2px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(45deg) translateY(-2px);transition:transform .2s var(--ease)}
+details.basis[open]>summary::after{transform:rotate(225deg) translateY(-1px)}
+details.basis>p{margin:2px 4px 4px;line-height:1.6}
+details.basis[open]>summary{margin-bottom:0}
+.curve{width:100%;height:auto;display:block}
+.curve .line{fill:none;stroke:var(--green);stroke-width:2.5;stroke-linecap:round}
+.curve .target{stroke:var(--line2);stroke-dasharray:4 4}
+.curve .due{stroke:var(--amber);stroke-dasharray:3 3}
+.curve .now{fill:var(--paper);stroke:var(--green-ink);stroke-width:2.5}
+.curve .lbl{font-size:10.5px;fill:var(--muted)}
+.exs{display:grid;gap:10px}
+.ex{display:grid;grid-template-columns:40px minmax(0,1fr);gap:10px;align-items:start;text-align:left}
+.ex .text{font-family:var(--serif);font-size:16px;line-height:1.55}
+.ex .gap.open{color:var(--green-ink);font-weight:700;background:var(--green-soft);border-radius:4px;padding:0 3px}
+.wordbig{font-family:var(--serif);font-size:clamp(34px,9vw,46px);font-weight:700;letter-spacing:-.01em;line-height:1.1;word-break:break-word}
+.review .ph{color:var(--muted);font-family:var(--serif);display:flex;gap:8px;align-items:center;justify-content:center}
+.mean-q{font-size:18px;line-height:1.6}
+.mean-a{font-size:16px;line-height:1.6;color:var(--ink2)}
+.review.open-card{align-content:start;padding-top:12px}
+.review.open-card .exs{margin-top:4px}
+.choice{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.choice.two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.choice button{border:1.5px solid var(--line2);background:var(--paper);border-radius:14px;min-height:58px;padding:8px 4px;font-weight:700;font-size:16px;display:grid;gap:2px;transition:transform .12s,border-color .15s}
+.choice button:active{transform:scale(.97)}
+.choice button small{font-weight:500;color:var(--muted);font-size:11px}
+.choice .good{border-color:var(--green);color:var(--green-ink)}
+.choice .again{border-color:color-mix(in srgb,var(--red) 45%,var(--line2))}
+.icon-btn.big{width:64px;height:64px;border-radius:50%}.icon-btn.big svg{width:30px;height:30px}
+.spell{font:inherit;font-family:var(--serif);font-size:24px;text-align:center;padding:10px 14px;border:1.5px solid var(--line2);border-radius:12px;background:var(--paper);color:var(--ink);width:min(320px,100%);margin:0 auto}
+.spell:focus{outline:none;border-color:var(--green)}
+.review .ok{color:var(--green-ink);font-weight:700}.review .warn{color:var(--amber);font-weight:600}.review .bad{color:var(--red);font-weight:600}
+.review s{opacity:.8}
+.huge{font-size:54px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+.vt-bands{display:grid;gap:8px;text-align:left}
+.vt-bands .row{flex-wrap:nowrap;gap:10px}.vt-bands .row span:first-child{width:72px;flex:none}.vt-bands .row span:last-child{width:3em;flex:none;text-align:right}
+.vtest .wordbig{margin:18px 0}
+#impText{font:inherit;width:100%;border:1.5px solid var(--line2);border-radius:12px;padding:12px;background:var(--paper);color:var(--ink);resize:vertical}
+#impText:focus{outline:none;border-color:var(--green)}
+@media (prefers-reduced-motion:reduce){.vbar i,.forecast i{transition:none}}
+#view:focus{outline:none}
+.books{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+
+/* 「认识」换到右边了 (60-review.js, once for those who reviewed before 2026-11-26) */
+.know-tip{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;margin:0 auto 6px;max-width:440px;background:var(--sunk);border:1px solid var(--line);border-radius:12px;text-align:left}
+/* 这次什么时候复习 on 今日's finished plan (10-welcome-today.js): a quiet link under the two buttons */
+.today-plan .tp-remind{justify-self:center}
+/* 复习提醒 in Flow's apps: 「已开启：在这台 iPhone 上到点用 App 通知提醒」 and its 关闭 / 通知设置 on one line; the words
+   wrap before the link, the link does not drop to a line of its own on a narrow phone (语流 C1, iOS simulator) */
+#rAppRow:has(#rAppOn){flex-wrap:nowrap}
+#rAppRow #rAppOn{flex:1 1 auto;min-width:0}
+#rAppRow #rAppOff,#rAppRow #rAppSet{flex:none}
+/* 「AI 朗读」 (aiVoice, 《标识办法》: a synthetic voice is said so where it plays): beside a word's play button, and once
+   at the head of a list of examples (every word and example sound in 语流 is synthetic: Kokoro, CosyVoice or the browser's) */
+.say-ai{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.say-ai .ai-mark{font-family:var(--sans)}  /* in the phonetic line (serif) the label keeps the page's own type */
+.exs .ex-ai{display:flex;justify-content:flex-end;margin-bottom:-4px}
+/* ---------- listen modes, pre-reading words, shadowing, dictation, new words ---------- */
+.preread{margin-bottom:14px}
+.preread{padding:12px 14px}
+.pr-list{display:grid;gap:6px}
+.pr{display:grid;grid-template-columns:32px minmax(0,1fr);gap:8px;align-items:center;min-width:0}
+.pr>div{min-width:0}
+.pr .icon-btn{width:32px;height:32px;border-radius:8px}.pr .icon-btn svg{width:16px;height:16px}
+.pr b{font-family:var(--serif);font-size:16px}
+.pr .ph{color:var(--muted);font-family:var(--serif);font-size:13px}
+.pr .tiny{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (min-width:560px){.pr-list{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:16px}}
+.seg.modes{margin-bottom:14px}
+.line.sh{grid-template-columns:minmax(0,1fr);gap:8px}
+.sh-ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+/* 跟读: ▶ on every sentence, the recording tools (●, 对比, AI 点评) under the one being practised; a tap picks it */
+.line.sh{cursor:pointer}
+.line.sh.cur{cursor:default;background:var(--green-soft);border-radius:10px;box-shadow:0 0 0 8px var(--green-soft)}
+.line.sh:not(.cur) .sh-ctl>:not([data-o]){display:none}
+.icon-btn.rec .dot{width:14px;height:14px;border-radius:50%;background:var(--red);display:block;transition:transform .2s,border-radius .2s}
+.icon-btn.rec.on{border-color:var(--red);background:var(--red-soft)}
+.icon-btn.rec.on .dot{border-radius:3px;transform:scale(.85);animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.45}}
+.sh-res .tip{color:var(--green-ink)}
+/* 发音分 (AI estimate): the total, then 准确 / 流利 / 完整 as bars; a sentence that has one shows it on its row */
+.pron{display:grid;gap:10px}
+.pron-top{display:flex;align-items:center;gap:12px}
+.pron-n{font-size:30px;line-height:1;font-weight:800;font-variant-numeric:tabular-nums;color:var(--green-ink);min-width:2ch}
+.pron .ab{grid-template-columns:36px minmax(0,1fr) 48px}
+.pron .ab .nm{font-weight:500;color:var(--ink2)}
+.snd{display:grid;grid-template-columns:minmax(44px,max-content) minmax(0,1fr);gap:8px;align-items:baseline}
+.snd .ph{font-family:var(--serif);color:var(--amber-fill)}
+.pron-chip{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--green-ink);background:var(--paper);border:1px solid var(--green-line);border-radius:99px;padding:2px 9px}
+.line.sh:not(.cur) .sh-ctl>.pron-chip:not([hidden]){display:inline-block}
+.wdiff{font-family:var(--serif);font-size:17px;line-height:1.8}
+.wdiff .ok{color:var(--green-ink)}
+.wdiff .miss{color:var(--red);text-decoration:underline wavy color-mix(in srgb,var(--red) 60%,transparent);text-underline-offset:4px}
+.dict textarea{min-height:88px;font-size:17px}
+.nw-list{display:flex;flex-wrap:wrap;gap:8px}
+.nw{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line2);border-radius:99px;padding:6px 12px 6px 8px;background:var(--paper);cursor:pointer;max-width:100%}
+.nw input{width:18px;height:18px;accent-color:var(--green);margin:0}
+.nw .tiny{max-width:12em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.roots{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.sheet .roots{justify-content:flex-start}
+.root{font-size:12.5px;background:var(--sunk);border-radius:8px;padding:3px 8px;color:var(--ink2)}
+.root .k{color:var(--green-ink);font-weight:600}
+.checkline{display:flex;gap:8px;align-items:flex-start;font-size:14px;line-height:1.5}
+.checkline input{width:18px;height:18px;margin-top:2px;accent-color:var(--green);flex:none}
+select{font:inherit;font-size:15px;color:var(--ink);background:var(--paper);border:1.5px solid var(--line2);border-radius:10px;padding:8px 12px;min-height:42px}
+.ok-mark{color:var(--green-ink);font-weight:800}.bad-mark{color:var(--red);font-weight:800}
+
+/* ---------- phone layout pass ---------- */
+.filters{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr);overflow:visible}
+.filters select{width:100%;min-width:0;padding:4px 8px;text-overflow:ellipsis}
+#reader [data-ex]{padding:8px 5px;margin:-8px -2px;min-width:28px}
+@media (max-width:420px){
+  main{padding:14px 14px 32px}
+  .h1{font-size:23px}
+  .text{font-size:18px;line-height:1.72}
+  .line{grid-template-columns:36px minmax(0,1fr);gap:8px;padding:8px}
+  .line .icon-btn{width:36px;height:36px}
+  .line .txt{font-size:17px}
+  .steps button{font-size:13.5px;padding:9px 2px}
+  .card{padding:14px}
+  .player{gap:6px}
+  .speed button{padding:8px 8px}
+  .voices{gap:6px}
+  .voices .chip{padding:6px 10px;font-size:13px}
+  .rate{gap:6px}.choice{gap:8px}
+  .choice button{min-height:56px;font-size:15.5px}
+  .stat b{font-size:21px}
+  .wordbig{font-size:clamp(30px,10vw,40px)}
+  .sheet-card{padding:16px 14px calc(16px + var(--sab))}
+  .sheet .word{font-size:25px}
+  .bookc{padding:12px}
+  .review{min-height:46vh;gap:14px}
+  .forecast{height:104px}
+  .row.center .btn{flex:1 1 auto}
+}
+/* keyboard open on phones: handled by body.typing (see the end of this file); a height rule also hid the tabs in landscape */
+#dn,#rt{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}#rt{grid-template-columns:repeat(4,minmax(0,1fr))}
+#dn .chip,#rt .chip{padding:8px 0;text-align:center}
+.mean-a,.mean-q{text-align:left;max-width:32em;margin:0 auto;width:fit-content}
+
+/* ---------- learner model: today's plan, ability profile, level suggestion ---------- */
+.psteps{display:grid;gap:6px;margin-top:6px}
+.pstep{display:grid;grid-template-columns:30px minmax(0,1fr) 16px;gap:10px;align-items:center;padding:10px 8px;border-radius:12px;text-decoration:none;color:inherit;background:var(--sunk)}
+.pstep:hover{background:var(--green-soft)}
+.pstep .num{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;background:var(--paper);border:1.5px solid var(--line2)}
+.pstep.done .num{background:var(--fill);border-color:var(--fill);color:var(--on-fill)}
+.pstep.done b{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line2)}
+.pstep .t{display:grid;min-width:0}.pstep .t .tiny{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pstep .go{color:var(--muted);font-size:20px}
+.suggest{gap:10px;align-items:center}
+.ab-list{display:grid;gap:8px}
+.ab{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:4px 10px;align-items:center}
+.ab .nm{font-size:14px;font-weight:600}.ab .lv{font-weight:700;font-variant-numeric:tabular-nums;text-align:right;font-size:14px}
+.ab .ev{grid-column:2 / 4}
+.ab.none .vbar i{background:var(--line2)}
+/* ---------- output practice ---------- */
+.seg.outmodes{grid-template-columns:repeat(5,minmax(0,1fr))}
+.seg a{text-align:center;border-radius:9px;padding:8px 2px;font-weight:600;color:var(--muted);text-decoration:none;font-size:14.5px}
+.seg a[aria-selected=true]{background:var(--paper);color:var(--ink);box-shadow:var(--shadow)}
+.seg.two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.chat{display:grid;gap:10px;margin:12px 0}
+.chat .scene{color:var(--muted);text-align:center;padding:4px 8px}
+.msg{display:grid;gap:4px;max-width:88%}
+.msg .b{padding:10px 14px;border-radius:16px;font-family:var(--serif);font-size:16.5px;line-height:1.5}
+.msg.ai{justify-self:start}.msg.ai .b{background:var(--sunk);border-bottom-left-radius:6px}
+.msg.me{justify-self:end}.msg.me .b{background:var(--green-soft);border-bottom-right-radius:6px}
+.msg .fix{padding:0 6px}.msg .fix del{color:var(--red)}
+.chat-in{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:end}
+.chat-in textarea{min-height:52px;font-size:16px}
+.counter.warn{color:var(--amber)}
+/* ---------- mistakes in review ---------- */
+.prompt-q{font-family:var(--serif);font-size:19px;line-height:1.5;text-align:left}
+.qopts{display:grid;gap:8px;text-align:left}
+.qopt{border:1.5px solid var(--line2);background:var(--paper);border-radius:12px;padding:12px 14px;font:inherit;font-size:15px;text-align:left;color:inherit}
+.qopt.right{border-color:var(--green);background:var(--green-soft)}.qopt.wrong{border-color:var(--red);background:var(--red-soft)}
+.choice button.good{border-color:var(--green)}.choice button.again{border-color:var(--red)}
+.chips.filt{margin:-4px 0 12px}
+/* ---------- pronunciation, imports, report ---------- */
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;padding:12px}
+.pw{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pw b{font-family:var(--serif);font-size:19px;min-width:4.2em}
+.pw .icon-btn{width:36px;height:36px}
+.imp b{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.share-img{width:100%;max-width:360px;border-radius:12px;border:1px solid var(--line);display:block;margin-bottom:10px}
+@media (max-width:420px){
+  .seg a{font-size:13.5px}
+  .pair{grid-template-columns:minmax(0,1fr)}
+  .stat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+
+/* =====================================================================
+   QA round · input methods (keyboard, touch, mouse) and multi-device layout
+   ===================================================================== */
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.kicker .nm{text-transform:none;letter-spacing:0}
+/* touch: no double-tap zoom delay, no grey tap flash, targets a finger can hit */
+button,a,.w,.chip,.opt,.ans,.qopt,select,label{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+@media (pointer:coarse){
+  .icon-btn{width:44px;height:44px}
+  .pr .icon-btn{width:40px;height:40px}
+  .line{grid-template-columns:44px minmax(0,1fr)}
+  .btn.small{min-height:40px}
+  .chip.small{min-height:38px}
+  .speed button{min-height:40px;padding:8px 12px}
+  #reader [data-ex]{padding:10px 7px;margin:-10px -3px;min-width:36px}
+  .ex .link{display:inline-block;padding:8px 0;margin:-4px 0}
+  .link.tiny{padding:6px 2px}
+  .steps button{min-height:42px}
+  .seg button,.seg a{min-height:40px;display:grid;place-items:center}
+  .tabs a{min-height:48px;justify-content:center}
+}
+/* hover effects only where something can hover (no "stuck" hover after a tap) */
+@media (hover:none){
+  .mini:hover{transform:none;box-shadow:none;border-color:var(--line)}
+  .w:hover{background:none}
+  .btn:hover{border-color:var(--line2)}.btn.primary:hover{filter:none;border-color:var(--fill)}
+  .link:hover{text-decoration:none}
+  button.xcard:hover,.opt:hover,.pstep:hover{border-color:var(--line);background:var(--paper)}
+  .pstep:hover{background:var(--sunk)}
+}
+/* keyboard: focus always visible, mouse clicks leave no ring */
+:focus:not(:focus-visible){outline:none}
+.w.kfocus{outline:2px solid var(--green);outline-offset:1px;background:var(--green-soft)}
+#reader:focus-visible{outline:2px dashed var(--green-line);outline-offset:6px;border-radius:8px}
+kbd{font:600 12px/1 var(--sans);border:1px solid var(--line2);border-bottom-width:2px;border-radius:6px;padding:3px 6px;background:var(--paper);color:var(--ink)}
+dl.keys{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 14px;margin:0;align-items:center}
+dl.keys dt{margin:0;white-space:nowrap}dl.keys dd{margin:0;font-size:14px}
+/* sheets: grab handle, follows the finger when dragged down */
+.sheet-card{outline:none;transition:transform .18s var(--ease)}
+.sheet-card .grab{width:40px;height:5px;border-radius:3px;background:var(--line2);margin:-8px auto 10px}
+@media (min-width:760px){.sheet-card .grab{display:none}}
+body.sheet-open{overflow:hidden}
+/* typing on a phone: the tabs step aside so the keyboard never covers the field or its button */
+@media (max-width:759px){body.typing .tabs,body.typing .mini-player{display:none}body.typing{padding-bottom:12px}}
+/* mini player: stop is always on screen while a whole text plays */
+.mini-player{position:fixed;left:50%;width:max-content;transform:translateX(-50%);bottom:calc(80px + var(--sab));z-index:45;display:flex;align-items:center;gap:10px;background:var(--ink);color:var(--bg);border-radius:99px;padding:6px 6px 6px 14px;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
+.mini-player .lbl{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini-player .stop,.mini-player .resume{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:99px;background:var(--fill);color:var(--on-fill);font-weight:700;padding:8px 14px;min-height:40px}
+.mini-player.paused .eq i{animation:none;opacity:.5}
+.mini-player .eq{display:inline-flex;gap:2px;align-items:flex-end;height:14px}
+.mini-player .eq i{width:3px;height:6px;background:var(--green);border-radius:2px;animation:eq 1s ease-in-out infinite}
+.mini-player .eq i:nth-child(2){animation-delay:.2s}.mini-player .eq i:nth-child(3){animation-delay:.4s}
+@keyframes eq{0%,100%{height:4px}50%{height:14px}}
+@media (min-width:760px){.mini-player{bottom:24px}}
+body.playing .selbar{bottom:calc(138px + var(--sab))}
+body.playing .toast{bottom:calc(142px + var(--sab))}
+@media (min-width:760px){body.playing .selbar{bottom:84px}body.playing .toast{bottom:88px}}
+/* reading */
+.nobr{white-space:nowrap}
+.sent.turn::before{content:'';display:block;height:.35em}
+.here{font-size:16px;line-height:1.6}
+.mean.dict{font-size:14px;color:var(--muted)}
+.fixline{font-family:var(--serif);font-size:17px}.fixline del{color:var(--red)}.fixline ins{color:var(--green-ink);text-decoration:none;font-weight:700}
+/* review */
+.rtop{display:flex;align-items:center;gap:12px}.rtop .bar-progress{flex:1}
+.review .pill,.review .rtag,#tooEasy{justify-self:center}
+.cloze mark,.xcard .ctx mark,.ex mark{background:none;color:inherit;text-decoration:underline wavy var(--red) 1.5px;text-underline-offset:5px;padding:0}
+.review .cloze{max-width:34em;margin:0 auto}
+.review .cloze.fixq{text-align:left}
+.wordbig.phrase{font-size:clamp(24px,6vw,32px)}
+.review{transition:transform .15s var(--ease)}
+.rfoot{margin:0}
+/* lists swap in place (filters, search, pages) without a page flash */
+#listSlot{transition:opacity .15s}#listSlot.busy{opacity:.5}
+/* onboarding: one column on phones, two on wider screens; the next button stays reachable */
+.choice.opts{grid-template-columns:minmax(0,1fr)}
+@media (min-width:600px){.choice.opts.four{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+/* the next button of onboarding stays on screen on any device (short phones held sideways included) */
+.wnav{position:sticky;bottom:calc(72px + var(--sab));background:var(--bg);padding:10px 0;z-index:5}
+@media (min-width:760px){.wnav{bottom:0}}
+/* score rows: labels never break mid-word */
+.ab{grid-template-columns:minmax(0,max-content) minmax(0,1fr) 52px}
+.ab .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+/* pronunciation pairs */
+.pw .wd{display:grid;min-width:4.6em}.pw .wd .ph{font-family:var(--serif);font-size:12.5px;color:var(--muted)}
+/* quicker page transitions (the stagger used to add up to ~0.7 s) */
+.enter>*{animation-duration:.22s}
+.enter>*:nth-child(2){animation-delay:.02s}.enter>*:nth-child(3){animation-delay:.04s}.enter>*:nth-child(4){animation-delay:.06s}
+.enter>*:nth-child(5){animation-delay:.08s}.enter>*:nth-child(6){animation-delay:.1s}.enter>*:nth-child(n+7){animation-delay:.12s}
+.pane-enter{animation-duration:.2s}
+#dlgIn{scroll-margin-bottom:calc(88px + var(--sab))}
+@media (min-width:760px){#dlgIn{scroll-margin-bottom:24px}}
+
+/* ---------- multi-device layout ---------- */
+/* notched phones held sideways: keep text off the rounded corners */
+main{padding-left:max(var(--gut),var(--sal));padding-right:max(var(--gut),var(--sar))}
+/* tablets and up: two columns of cards; review cards keep a comfortable width */
+@media (min-width:640px){
+  .grid-list{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .grid-list>.empty{grid-column:1/-1}
+  .review{max-width:560px;margin-left:auto;margin-right:auto;width:100%}
+  .pair{padding:14px 16px}
+}
+/* large screens: a little more room and a larger reading size */
+@media (min-width:1024px){
+  :root{--max:780px}
+  .h1{font-size:28px}
+  .text{font-size:20px}
+}
+/* phones held sideways: little height, so compact chrome and icon-only tabs */
+@media (max-height:500px) and (orientation:landscape){
+  .bar{padding-top:6px;padding-bottom:6px}
+  .steps{top:46px}
+  .review{min-height:auto;gap:10px}
+  .wordbig{font-size:30px}
+  .tabs a span{display:none}
+  .tabs{padding-top:4px;padding-bottom:calc(4px + var(--sab))}
+  body{padding-bottom:calc(54px + var(--sab))}
+  .mini-player{bottom:calc(60px + var(--sab))}
+  .wnav{bottom:0}
+  .tabs a{min-height:40px;padding:4px 12px}
+}
+/* a small text link a finger must still hit (复习的「结束」, 周报的「去读」「去练」, 「按 B2 挑选 · 调整」, 「怎么写的」):
+   the area that takes the tap grows to at least 44×44 around it, while the text and the layout stay where they are */
+.hit44{position:relative}
+.hit44::after{content:"";position:absolute;left:50%;top:50%;width:100%;height:100%;min-width:44px;min-height:44px;transform:translate(-50%,-50%)}
+/* touch: standalone links ("全部材料 →", "调整计划", "← 全部") and knowledge chips are buttons for a finger too */
+@media (pointer:coarse){
+  a.link.small,button.link.small,.section-head .link,.row>.link,.row>a.link,.rtop .link{display:inline-flex;align-items:center;min-height:36px}
+  .node-chip{min-height:36px}
+  .checkline{min-height:40px;align-items:center}
+  .nw{min-height:40px}
+}
+@media (pointer:coarse){a.link.small,button.link.small,.row>.link,.row>a.link,.rtop .link{min-width:44px;justify-content:center}}
+/* =====================================================================
+   Flat look: surfaces and spacing instead of outlines, frosted bars, one clear action on the home page.
+   Outlines stay only where they mean something: a focused field, a chosen option, a right or wrong answer.
+   ===================================================================== */
+@media (prefers-color-scheme:light){:root{--bg:#f5f3ed;--sunk:#eeebe3;--shadow:0 1px 2px rgba(30,30,20,.04),0 6px 20px rgba(30,30,20,.05)}}
+@media (prefers-color-scheme:dark){:root{--sunk:#1f2521;--shadow:none}}
+
+/* frosted top bar and bottom tabs, no hairlines. The blur sits on a layer behind the bar, not on the bar itself:
+   a backdrop-filter on the bar would make the fixed bottom tabs (inside it on phones) position against the bar. */
+.bar{border-bottom:0;background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none}
+.bar::before{content:'';position:absolute;inset:0;z-index:-1;background:color-mix(in srgb,var(--bg) 76%,transparent);
+  -webkit-backdrop-filter:saturate(180%) blur(18px);backdrop-filter:saturate(180%) blur(18px)}
+@media (max-width:759px){
+  .tabs{border-top:0;background:color-mix(in srgb,var(--paper) 72%,transparent);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px)}
+}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .bar::before{background:var(--bg)}
+  @media (max-width:759px){.tabs{background:var(--paper)}}
+}
+
+/* surfaces without outlines */
+.card,.card.flat,button.xcard,.mini,.bookc,.share-img{border-color:transparent}
+.card.flat{box-shadow:none}
+.mini:hover,button.xcard:hover{border-color:transparent;background:color-mix(in srgb,var(--green) 4%,var(--paper))}
+.expr{border-color:transparent;background:var(--sunk)}
+.list a,.list button{border-bottom:0}
+.change{border-top:0;padding:6px 0}
+.line.now{border-color:transparent}
+.node-chip{border-color:transparent;background:var(--sunk)}
+.nw{border-color:transparent;background:var(--sunk)}
+
+/* controls: soft fills; the primary action stays solid green */
+.btn{border-color:transparent;background:var(--sunk)}
+.btn:hover{border-color:transparent;background:color-mix(in srgb,var(--green) 10%,var(--sunk))}
+.btn.primary,.btn.primary:hover{border-color:var(--fill);background:var(--fill)}
+.btn.ghost{background:none}
+.icon-btn{border-color:transparent;background:var(--sunk)}
+.icon-btn.on{border-color:transparent}
+.icon-btn.rec.on{border-color:transparent}
+.chip{border-color:transparent;background:var(--sunk)}
+.chip[aria-pressed=true]{border-color:transparent;box-shadow:inset 0 0 0 1.5px var(--green)}
+.speed{border:0;background:var(--sunk);padding:2px;gap:2px}
+.speed button{background:transparent;border-radius:8px}
+.speed button[aria-pressed=true]{background:var(--paper);box-shadow:var(--shadow)}
+/* inside a sunk surface, controls step up to the page colour so they stay visible */
+.card.sunk .btn:not(.primary),.vrow .icon-btn,.expr .icon-btn,.version .icon-btn,.pr .icon-btn,.card.sunk .chip,.card.sunk .icon-btn{background:var(--paper)}
+/* fields: filled, outlined only when focused */
+input[type=text],input[type=email],input[type=password],input[type=search],textarea,select,.spell,#impText{border-color:transparent;background:var(--sunk)}
+input[type=text]:focus,input[type=email]:focus,input[type=password]:focus,input[type=search]:focus,textarea:focus,select:focus,.spell:focus,#impText:focus{outline:none;border-color:var(--green);background:var(--paper)}
+.card.sunk input,.card.sunk textarea{background:var(--paper)}
+
+/* choices: tinted fills; a chosen, right or wrong answer gets its ring */
+.opt,.ans,.qopt,.rate button,.choice button{border-color:transparent;background:var(--paper)}
+.card .ans,.card .qopt,.card .opt{background:var(--sunk)}
+.opt[aria-pressed=true],.opt[aria-checked=true],.bookc[aria-pressed=true]{border-color:transparent;box-shadow:inset 0 0 0 2px var(--green);background:var(--green-soft)}
+.ans.right,.qopt.right{border-color:transparent;box-shadow:inset 0 0 0 2px var(--green);background:var(--green-soft)}
+.ans.wrong,.qopt.wrong{border-color:transparent;box-shadow:inset 0 0 0 2px var(--red);background:var(--red-soft)}
+.choice .good,.choice button.good{border-color:transparent;background:var(--green-soft);color:var(--green-ink)}
+.choice .again,.choice button.again{border-color:transparent;background:var(--red-soft);color:var(--red)}
+.choice button:not(.good):not(.again){background:var(--sunk)}
+.review .choice button[disabled]{opacity:.7}
+
+/* Chinese summaries read better in the sans face; serif stays for English text */
+.hero .preview,.mini .p{font-family:var(--sans)}
+.hero .preview{font-size:16px;line-height:1.65;color:var(--ink2)}
+.mini .p{font-size:14.5px}
+
+/* home: one clear next action, then the plan as plain rows */
+.greet{display:block;margin-bottom:4px}
+.today-plan{display:grid;gap:14px}
+.tp-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.ring{--p:0%;flex:none;width:58px;height:58px;border-radius:50%;display:grid;place-items:center;
+  background:radial-gradient(closest-side,var(--bg) 78%,transparent 80% 100%),conic-gradient(var(--green) var(--p),var(--line) 0)}
+.ring b{font-size:13px;font-variant-numeric:tabular-nums}
+.go-next{min-height:56px;font-size:17px;border-radius:16px;justify-content:space-between;padding:0 20px;box-shadow:0 6px 18px color-mix(in srgb,var(--green) 28%,transparent)}
+.go-next span{font-size:20px}
+.tp-done{display:flex;align-items:center;gap:12px}.tp-done .done-ring{width:44px;height:44px;margin:0}
+.plist{display:grid;gap:2px;background:var(--paper);border-radius:var(--r);padding:6px}
+.prow{display:grid;grid-template-columns:32px minmax(0,1fr) 14px;gap:12px;align-items:center;padding:12px 10px;border-radius:12px;text-decoration:none;color:inherit}
+.prow:hover{background:var(--sunk)}
+.prow .num{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;background:var(--sunk);color:var(--muted)}
+.prow.next .num{background:var(--fill);color:var(--on-fill)}
+.prow.next b{color:var(--green-ink)}
+.prow.done .num{background:var(--green-soft);color:var(--green-ink)}
+.prow.done b{color:var(--muted);font-weight:600}
+.prow .t{display:grid;gap:2px;min-width:0}
+.prow .t b{font-size:15.5px}
+.prow .go{color:var(--muted);font-size:20px}
+.hero{display:grid;gap:10px}
+.hero .go-next{margin-top:4px}
+@media (hover:none){.prow:hover{background:none}}
+
+/* review: a sideways swipe is the page's (认识 / 不认识), so the browser keeps only up-down scrolling and zoom for itself */
+body.reviewing{touch-action:pan-y pinch-zoom}
+/* review and the vocabulary test on phones: no tabs, answers where the thumb is */
+@media (max-width:759px){
+  body.reviewing .tabs{display:none}
+  /* exactly one screen, whatever the top bar is: --bar-h is its real height (98-home-app.css / 04-home-app.js: the
+     status bar or Dynamic Island in the home-screen app and the back button included). The page below it is a column
+     the card fills, so the line above the card (结束, progress, 撤销) can change height without a number to keep. */
+  body.reviewing{padding-bottom:0}
+  body.reviewing main{display:flex;flex-direction:column;min-height:calc(100dvh - var(--bar-h,48px));padding-bottom:calc(12px + var(--sab))}
+  body.reviewing .review:not(.open-card):not(.q){display:flex;flex-direction:column;flex:1 0 auto;gap:14px}
+  body.reviewing .sr-only{top:0}  /* the live region after main (1px, absolute where it stands) would hang below the screen */
+  body.reviewing .review:not(.open-card):not(.q)>:first-child{margin-top:auto}
+  body.reviewing .review:not(.open-card):not(.q) .choice{margin-top:auto}
+  body.reviewing .choice button{min-height:64px;font-size:16.5px}
+  body.reviewing .open-card>.row.center{position:sticky;bottom:calc(10px + var(--sab));padding:10px 0;background:linear-gradient(transparent,var(--bg) 35%)}
+}
+@media (max-width:759px){body.reviewing .toast{bottom:calc(132px + var(--sab))}}
+/* =====================================================================
+   Phone layout, from a 360 px audit of every page (tools/ui_test.py checks the parts that can be measured).
+   ===================================================================== */
+
+/* iOS Safari zooms the page when a field smaller than 16px gets focus, and it stays zoomed afterwards:
+   on touch screens every field is 16px, whatever the component above set. */
+@media (pointer:coarse),(max-width:759px){
+  input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea{font-size:16px!important}
+}
+
+/* material cards (home, node pages): level and 精选 above the title, so the title gets the whole width;
+   the reason ("新知识点…") on its own line instead of squeezed beside the word count */
+.mini{grid-template-columns:minmax(0,1fr);gap:6px}
+.mini>*{grid-column:1/-1;min-width:0}
+.mini .meta{order:-1;display:flex;flex-wrap:wrap;gap:6px;justify-self:start}
+.mini .reasons{justify-self:start}
+
+/* read step: the word legend and the 伴读 button on one centred line */
+.read-tools{align-items:center;gap:10px;margin:2px 0 12px}
+.read-tools .legend{margin:0}
+
+/* 地道表达: the expression gets the full width; its meaning shares the next line with the two buttons */
+.expr{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"e e" "m a" "n n";gap:4px 10px;align-items:center}
+.expr .e{grid-area:e;min-width:0}
+.expr>.row{grid-area:a;gap:6px;flex-wrap:nowrap}
+.expr .m{grid-area:m;min-width:0}
+.expr .n{grid-area:n}
+
+/* words to know before listening: the speaker button sized by itself, with room before the word */
+.pr{grid-template-columns:auto minmax(0,1fr);gap:12px}
+
+/* listen controls on a phone: play and 盲听 on the first line, the three speeds across the second */
+@media (max-width:759px){
+  .player{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+  .player #playAll{grid-column:1;grid-row:1;justify-content:center}
+  .player #blind{grid-column:2;grid-row:1}
+  .player .speed{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .player .speed button{padding:9px 0}
+}
+
+/* one level of surface: a question, the writing task and the new-words list sit on the page;
+   their answers, reference sentence and words are the surfaces (no card inside a card) */
+.card.flat.q,.card.flat.task,#newWords{background:none;box-shadow:none;padding:0;border-radius:0}
+.card.flat.q .ans,.card.flat.q .qopt,.card.flat.q .opt{background:var(--paper)}
+.card.flat.q .prompt{margin-bottom:2px}
+.task .model{background:var(--paper)}
+#newWords .nw{background:var(--paper)}
+.card.flat.q+.card.flat.q{margin-top:10px}
+
+/* study header on a phone: once past 听 and 读, a shorter header leaves the question or task on the first screen */
+@media (max-width:759px){
+  .study-head[data-at=check] .title-en,.study-head[data-at=output] .title-en,
+  .study-head[data-at=check]>.tiny,.study-head[data-at=output]>.tiny{display:none}
+  .study-head[data-at=check] .h1,.study-head[data-at=output] .h1{font-size:20px;margin:2px 0 0}
+}
+
+/* small text stays readable */
+.graph-legend,.graph-legend span,.stat-strip small{font-size:12.5px}
+
+/* ---------- knowledge graph: next point, topic tiles, point rows ---------- */
+.gnext{display:grid;gap:8px}
+.topic{padding:0}
+.topic-list{gap:26px}
+.topic .h2{margin:0}
+.topic .plist{margin-top:8px}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.tile{display:grid;justify-items:center;gap:6px;padding:12px 4px 10px;border-radius:14px;background:var(--paper);text-decoration:none;color:inherit;position:relative}
+.tile:hover{background:color-mix(in srgb,var(--green) 5%,var(--paper))}
+.tile .ring{--p:0%;position:relative;width:54px;height:54px;border-radius:50%;display:grid;place-items:center;
+  background:radial-gradient(closest-side,var(--paper) 76%,transparent 78% 100%),conic-gradient(var(--green) var(--p),var(--line) 0)}
+.tile .ring b{font-size:12.5px;font-variant-numeric:tabular-nums}
+.tile .warn{position:absolute;top:2px;right:2px;width:10px;height:10px;border-radius:50%;background:var(--st-watch);box-shadow:0 0 0 2px var(--paper)}
+.tile .tl{font-size:13.5px;font-weight:600;text-align:center;line-height:1.3}
+.glegend .fz::before{background:none;box-shadow:inset 0 0 0 2px var(--green)}
+.nrow{display:grid;grid-template-columns:12px minmax(0,1fr) auto 14px;gap:12px;align-items:center;padding:12px 10px;border-radius:12px;text-decoration:none;color:inherit}
+.nrow:hover{background:var(--sunk)}
+.nrow .dot{width:12px;height:12px;border-radius:50%;background:var(--c)}
+.nrow.focus .dot{box-shadow:0 0 0 3px var(--paper),0 0 0 5px var(--green)}
+.nrow .t{display:grid;gap:2px;min-width:0}
+.nrow .t b{font-size:15px}
+.nrow .lv{font-size:12px;font-weight:700;color:var(--muted);background:var(--sunk);border-radius:6px;padding:2px 6px}
+.nrow .go{color:var(--muted);font-size:20px}
+@media (hover:none){.nrow:hover,.tile:hover{background:var(--paper)}.nrow:hover{background:none}}
+
+/* a point's page: teaching text as plain sections, one surface per item */
+.node-head{display:grid;gap:6px}
+.lesson .goal{font-size:16.5px;line-height:1.6;font-weight:600}
+.steps-list{margin:0;padding-left:1.3em;display:grid;gap:8px;line-height:1.6}
+.steps-list li::marker{color:var(--green);font-weight:700}
+.crow{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center;padding:10px}
+.crow>span{display:grid;gap:2px}
+.crow .en{font-family:var(--serif);font-size:17px}
+.pit{display:grid;gap:4px;padding:12px 14px;border-radius:12px;background:var(--paper)}
+.pit .bad{color:var(--red);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--red) 55%,transparent);font-family:var(--serif)}
+.pit .bad span,.pit .good span{text-decoration:none;display:inline-block;font-family:var(--sans);font-weight:700;margin-right:4px}
+.pit .good{color:var(--green-ink);font-family:var(--serif);font-size:16.5px}
+.gq .ans{background:var(--paper)}
+.gq .fb{font-size:14px;line-height:1.55}
+/* ---------- learning loop: grammar re-checks, starting check, exam practice, serial stories ---------- */
+.due-tag{color:var(--amber);font-weight:700}
+.place-cta{display:grid;gap:4px;text-decoration:none;color:inherit;padding:14px 16px}
+.place-cta b{font-size:15px}
+.place-link{display:inline-block;margin-top:4px}
+.place .q .prompt{font-size:18px;line-height:1.5}
+.ans.chosen{border-color:var(--ink2);background:var(--sunk)}
+.pl-bands{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.pl-band{display:grid;gap:2px;justify-items:center;padding:10px 4px;border-radius:12px;background:var(--green-soft);color:var(--green-ink)}
+.pl-band.low{background:var(--sunk);color:var(--muted)}
+.pl-band b{font-size:13px}
+.pl-band span{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+details>summary{cursor:pointer;padding:8px 0;color:var(--ink2)}
+details[open]>summary{margin-bottom:8px}
+/* exam practice */
+.exam-pick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.exam-pick .opt{display:grid;gap:4px;align-content:start;text-align:left;text-decoration:none;color:inherit}
+.exam-pick .opt .l{font-weight:700;font-size:16px}
+.exam-pick .opt .d{font-size:13px;color:var(--ink2);line-height:1.5}
+.exam-cur{padding:14px;background:var(--paper);border-radius:var(--r)}  /* the chosen exam, between the two halves of the list */
+/* the series link in an episode's header is a real tap target */
+.study-head .kicker a.link{display:inline-flex;align-items:center;min-height:32px}
+.exam-bar{position:sticky;top:64px;z-index:15;display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:10px 14px;border-radius:12px;background:var(--paper);box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.exam-bar .clock{font-variant-numeric:tabular-nums;font-weight:700}
+.exam-bar .clock.late{color:var(--red)}
+.exam-part{display:grid;gap:12px}
+.exam-part>h2{margin-top:8px}
+.exam-part h3{font-size:16px;margin:8px 0 0}
+.exam-passage{font-family:var(--serif);font-size:17px;line-height:1.75;white-space:pre-line}
+.exam-score{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.exam-score div{display:grid;gap:2px;padding:12px 8px;border-radius:12px;background:var(--sunk);text-align:center}
+.exam-score b{font-size:22px;font-variant-numeric:tabular-nums}
+.exam-hist{display:flex;gap:6px;align-items:flex-end;height:56px}
+.exam-hist i{flex:1;min-width:6px;max-width:28px;border-radius:4px 4px 0 0;background:var(--green-line)}
+.exam-hist i:last-child{background:var(--green)}
+/* serial stories */
+.serial{display:grid;gap:10px}
+.serial .ep{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 8px;border-radius:12px;text-decoration:none;color:inherit}
+.serial .ep:hover{background:var(--sunk)}
+.serial .ep .n{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--sunk)}
+.serial .ep.done .n{background:var(--fill);color:var(--on-fill)}
+.serial .ep.next .n{box-shadow:0 0 0 2px var(--green)}
+.serial .ep .t{display:grid;gap:2px;min-width:0}
+@media (max-width:420px){.exam-pick{grid-template-columns:minmax(0,1fr)}.pl-bands{gap:6px}.pl-band span{font-size:16px}}
+@media (hover:none){.serial .ep:hover{background:none}}
+/* ---------- 考试冲刺 (r27): the line on 今日, the exam hub, the score trend, question-type practice ---------- */
+/* 今日: under the plan's title, one line (never a card) */
+.sprint-line{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:6px;text-decoration:none;color:var(--ink2);min-height:32px}
+.sprint-line b{color:var(--green-ink)}
+.sprint-line .pace{padding:1px 8px;border-radius:99px;background:var(--green-soft);color:var(--green-ink);font-size:12.5px}
+.sprint-line.behind .pace{background:var(--amber-soft);color:var(--amber)}
+
+/* the hub */
+.sp-when{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin:4px 0 0}
+.sp-when .link{min-height:32px}
+.sp-pace{display:grid;gap:8px;padding:16px;border-left:4px solid var(--line2)}
+.sp-pace h2{margin:0;font-size:17px}
+.sp-pace p{margin:0}
+.sp-pace.st-on_time,.sp-pace.st-done{border-left-color:var(--green)}
+.sp-pace.st-behind,.sp-pace.st-other_book,.sp-pace.st-no_plan,.sp-pace.st-past{border-left-color:var(--amber)}
+.sp-others summary{min-height:44px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none}
+.sp-others summary::-webkit-details-marker{display:none}
+.sp-others summary::after{content:'展开 ›';color:var(--green-ink)}
+.sp-others[open] summary::after{content:'收起'}
+.sp-others .exam-pick{margin-top:8px}
+.sp-invite{padding:14px}
+.h2 .tiny{font-weight:400;margin-left:6px}
+
+/* 成绩走势: the total, then three small lines */
+.trend{display:grid;gap:10px}
+.trend-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.trend-head b{font-variant-numeric:tabular-nums}
+.trend-chart{width:100%;overflow:hidden}
+.trend-chart.big{height:112px}
+.trend-chart.small{height:40px}
+.trend-chart svg{display:block}
+.trend-chart polyline{fill:none;stroke:var(--green);stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round}
+.trend-chart.small polyline{stroke-width:1.8}
+.trend-chart circle{fill:var(--paper);stroke:var(--green);stroke-width:2}
+.trend-chart circle.last{fill:var(--green)}
+.trend-chart line.g{stroke:var(--line);stroke-width:1}
+.trend-chart text{fill:var(--muted);font:11px var(--sans)}
+.trend-parts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.trend-parts .tp{display:grid;gap:2px;padding:10px;border-radius:12px;background:var(--sunk);min-width:0}
+.trend-parts b{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* a chip in a radio group (我的考试, 每周目标, 字号): the chosen one looks chosen */
+.chip[aria-checked=true]{border-color:var(--green);background:var(--green-soft);color:var(--green-ink);font-weight:600}
+
+/* dates */
+.plan-exam input[type=date],#sheetCard input[type=date]{width:100%;max-width:280px;min-height:46px;padding:8px 12px;border-radius:12px;border:1px solid var(--line2);background:var(--paper);font-size:16px}
+.plan-exam{margin-top:4px}
+
+/* one question type */
+.xt .exam-passage{margin:0}
+.xt-text{padding:4px 0}
+.xt .gap{display:inline;font:inherit;color:inherit;line-height:inherit;padding:2px 6px;border:0;border-bottom:2px solid var(--green);border-radius:6px;background:var(--green-soft)}
+.xt button.gap{min-height:32px;cursor:pointer}
+.xt .gap.ro{background:transparent}
+.xt .gap .gv{font-family:var(--sans);font-size:.92em;color:var(--green-ink)}
+.xt-bank{display:grid;gap:8px;padding:14px}
+.xt-banklist{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.xt-banklist li{display:flex;gap:10px;align-items:baseline;font-family:var(--serif);font-size:16px;line-height:1.5}
+.xt-banklist .k{font:700 14px var(--sans);color:var(--ink2);min-width:1.8em;flex:none}
+.xt-banklist.words{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 12px}
+.xt-banklist li.used span:last-child{color:var(--muted)}
+.xt-banklist li.used .k::after{content:' ✓';color:var(--green-ink)}
+.xt-para{display:grid;gap:6px}
+.xt-para>.row{gap:10px;align-items:center}
+.xt-para>.row>b,.xt-para>p>b,p.xt-para>b{font-family:var(--sans);color:var(--green-ink)}
+.xt-q .prompt{font-family:var(--serif);font-size:16.5px;line-height:1.55}
+.xt-opts{display:grid;gap:6px}
+.xt-letters{display:flex;flex-wrap:wrap;gap:6px}
+.xt-letters .ans{min-width:44px;min-height:44px;justify-content:center;padding:8px 0;font-family:var(--sans);font-weight:600}
+.xt-tf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.xt-tf .ans{justify-content:center;text-align:center;padding:10px 4px;font:600 13.5px var(--sans);min-height:44px}
+.xt-words{display:flex;flex-wrap:wrap;gap:6px}
+.xw{min-height:36px;min-width:32px;padding:4px 8px;border:1px solid var(--line2);border-radius:8px;background:var(--paper);font-family:var(--serif);font-size:16px}
+.xw.chosen{border-color:var(--amber);background:var(--amber-soft);box-shadow:inset 0 0 0 1px var(--amber)}
+.xt-pick .ans{width:100%}
+.xt-pick .ans .tiny{display:block}
+.xt .pit .ok{color:var(--green-ink)}
+.xt .pit .no{color:var(--red)}
+.xt .pit .tiny.muted{display:block}
+@media (min-width:768px){.xt-opts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#sheetCard .xt-pick .ans{background:var(--sunk)}
+#sheetCard .xt-pick .ans.chosen{box-shadow:inset 0 0 0 2px var(--green);background:var(--green-soft)}
+/* ---------- r14: learning route, relations, Chinese-speaker traps, mixed rounds, kinder review ---------- */
+.seg.two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+/* the route: one metro line per level */
+.route{display:grid;gap:22px}
+.rband-h{display:flex;align-items:baseline;gap:10px;margin-bottom:4px}
+.rband-h b{font-size:18px}
+.rline{list-style:none;margin:0;padding:0}
+.rnode{position:relative}
+.rnode::before{content:"";position:absolute;left:19px;top:0;bottom:0;width:3px;border-radius:2px;background:var(--line2);transform-origin:top;transform:scaleY(0);transition:transform .35s var(--ease) var(--d,0ms)}
+.rnode:first-child::before{top:50%}
+.rnode:last-child::before{bottom:50%}
+.rnode:only-child::before{display:none}
+.rnode.drawn::before{transform:scaleY(1)}
+.rnode.lit::before{background:var(--green)}
+.rnode a{position:relative;display:grid;grid-template-columns:24px minmax(0,1fr) 14px;gap:12px;align-items:center;min-height:48px;padding:8px 8px 8px 8px;border-radius:12px;text-decoration:none;color:inherit}
+.rnode a:hover{background:var(--sunk)}
+.rnode .dot{position:relative;z-index:1;width:16px;height:16px;margin-left:4px;border-radius:50%;background:var(--paper);box-shadow:0 0 0 2px var(--line2)}
+.rnode.lit .dot{background:var(--c);box-shadow:0 0 0 2px var(--c)}
+.rnode.st-watch .dot{background:var(--c);box-shadow:0 0 0 2px var(--c)}
+.rnode .t{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:15px;font-weight:600;min-width:0}
+.rnode .go{color:var(--muted);font-size:20px}
+.here-tag{font-size:12px;font-weight:700;color:var(--on-fill);background:var(--fill);border-radius:999px;padding:1px 8px}
+.rnode .due-tag{font-size:12px;border-radius:999px;padding:1px 8px;background:var(--amber-soft)}
+.rnode.here a{background:var(--green-soft)}
+.rnode.here .dot{animation:here 1.8s var(--ease) infinite}
+@keyframes here{0%{box-shadow:0 0 0 2px var(--green),0 0 0 2px color-mix(in srgb,var(--green) 40%,transparent)}70%{box-shadow:0 0 0 2px var(--green),0 0 0 12px transparent}100%{box-shadow:0 0 0 2px var(--green),0 0 0 2px transparent}}
+@media (hover:none){.rnode a:hover{background:none}.rnode.here a:hover{background:var(--green-soft)}}
+/* a point's page: the Chinese-speaker trap and the points it connects to */
+.l1{display:grid;gap:8px;padding:14px 16px;border-radius:14px;background:var(--sunk)}
+.l1-rows{display:grid;gap:6px;font-size:15px}
+.l1-rows .zh{display:flex;gap:8px;align-items:baseline}
+.l1-rows .bad{color:var(--red);text-decoration:line-through;text-decoration-thickness:1px}
+.l1-rows .bad span{text-decoration:none;display:inline-block}
+.l1-rows .good{color:var(--green-ink);font-weight:600}
+.rel-flow{display:grid;justify-items:start;gap:0}
+.rel-step{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:4px 0}
+.rel-step .chips{display:flex;flex-wrap:wrap;gap:6px}
+.rel-step.me .node-chip{font-weight:700;box-shadow:0 0 0 2px var(--c,var(--green))}
+.rel-arrow{display:block;width:2px;height:16px;margin-left:44px;background:var(--line2);position:relative}
+.rel-arrow::after{content:"";position:absolute;left:-4px;bottom:-2px;border:5px solid transparent;border-top-color:var(--line2)}
+.confuse{display:grid;gap:4px;padding:6px 0}
+.howto{display:grid;gap:4px;padding:12px 14px;border-radius:12px;background:var(--amber-soft)}
+/* mixed rounds */
+.mix-dots{display:flex;gap:6px}
+.mix-dots i{flex:1;height:5px;border-radius:3px;background:var(--line2);transition:background .25s}
+.mix-dots i.now{background:var(--ink2)}
+.mix-dots i.ok{background:var(--green)}
+.mix-dots i.no{background:var(--red)}
+.mix .fb{display:grid;gap:8px;margin-top:4px}
+.mix .fb .ok{color:var(--green-ink);font-weight:700}
+.mix .fb .bad{color:var(--red);font-weight:700}
+.mix-done .done-burst{display:flex;justify-content:center}
+.pop-in{animation:pop-in .45s var(--ease-spring) var(--d,0ms) both}
+@keyframes pop-in{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+.cheer{color:var(--green-ink);font-weight:600}
+.node-chip.lit-up{animation:lit-up .9s var(--ease-spring)}
+@keyframes lit-up{0%{transform:scale(1);box-shadow:0 0 0 0 color-mix(in srgb,var(--green) 55%,transparent)}40%{transform:scale(1.12)}100%{transform:scale(1);box-shadow:0 0 0 14px transparent}}
+.done-burst.all .done-ring{animation:pop .6s var(--ease-spring)}
+/* review: a reading question comes back with its passage */
+.passage-q{display:grid;gap:6px;padding:12px 14px;border-radius:12px;background:var(--sunk);text-align:left}
+.passage-q .ptext{margin:0;font-family:var(--serif);font-size:16px;line-height:1.7}
+.passage-q mark{background:var(--mark);border-radius:3px;padding:0 2px}
+.num-in{width:96px;min-height:44px}
+@media (prefers-reduced-motion:reduce){.rnode::before{transition:none;transform:none}.rnode.here .dot,.pop-in,.node-chip.lit-up{animation:none}}
+#mixNext{scroll-margin-bottom:calc(96px + var(--sab))}
+@media (min-width:760px){#mixNext{scroll-margin-bottom:24px}}
+/* ---------- r15: easy reading, word confusables, the speaking route, my progress ---------- */
+.easy-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.easy-stats div{display:grid;gap:2px;padding:12px 8px;border-radius:12px;background:var(--sunk);text-align:center}
+.easy-stats b{font-size:22px;font-variant-numeric:tabular-nums}
+.easy-reader{font-family:var(--serif);font-size:19px;line-height:1.85}
+.easy-reader .w{cursor:pointer;border-radius:3px}
+.easy-reader .w:hover{background:var(--mark)}
+.choice.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.choice.three .opt{text-align:center;justify-content:center}
+.easy-done{display:grid;gap:10px;margin-top:6px}
+.cf-list{display:grid;gap:2px}
+.cf-row{display:grid;grid-template-columns:24px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:10px 8px;border-radius:12px;cursor:pointer}
+.cf-row:hover{background:var(--sunk)}
+.cf-row input{width:20px;height:20px;accent-color:var(--green)}
+.cf-row .t{display:grid;gap:2px;min-width:0}
+.cf-row.tried .t b::after{content:" ·";color:var(--green)}
+.cf-hint{display:grid;gap:4px;padding:10px 12px;border-radius:12px;background:var(--amber-soft)}
+.scene-goals{display:grid;gap:6px;padding:12px 14px;border-radius:12px;background:var(--sunk)}
+.useful>summary{cursor:pointer}
+.gtiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.gtile{display:grid;gap:2px;padding:12px;border-radius:12px;background:var(--sunk)}
+.gtile b{font-size:22px;font-variant-numeric:tabular-nums}
+.gtile .up{font-size:12px;color:var(--green-ink);font-weight:600}
+.miles{display:grid;gap:8px}
+.mile{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:center;padding:10px 4px}
+.mile .mi{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--sunk);color:var(--muted)}
+.mile.done .mi{background:var(--fill);color:var(--on-fill)}
+.mile .t{display:grid;gap:4px;min-width:0}
+.mile .vbar{height:6px}
+@media (min-width:760px){.gtiles{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (hover:none){.cf-row:hover,.easy-reader .w:hover{background:none}}
+/* ---------- r17: ability radar ---------- */
+.radar-box{display:grid;justify-items:center;gap:6px}
+.radar{width:100%;max-width:400px;height:auto;overflow:visible}
+.radar .rg{fill:none;stroke:var(--line);stroke-width:1}
+.radar .ax{stroke:var(--line);stroke-width:1}
+.radar .goal{fill:none;stroke:var(--green);stroke-width:1.5;stroke-dasharray:5 4;opacity:.7}
+.radar .prev{fill:none;stroke:var(--muted);stroke-width:1.5;stroke-dasharray:3 3}
+.radar .cur{transform-origin:160px 160px;transform:scale(.2);opacity:0;transition:transform .8s var(--ease-spring),opacity .4s}
+.radar .cur.on{transform:scale(1);opacity:1}
+.radar .area{fill:color-mix(in srgb,var(--green) 22%,transparent);stroke:var(--green);stroke-width:2.5;stroke-linejoin:round}
+.radar .dt{fill:var(--green);stroke:var(--paper);stroke-width:2}
+.radar .dt.none{fill:var(--paper);stroke:var(--muted)}
+.radar .lb{font-size:13px;fill:var(--ink);font-weight:600}
+.radar .lb .sc{fill:var(--green-ink);font-weight:700}
+.radar-legend{display:flex;gap:14px;color:var(--muted)}
+.radar-legend .lg::before{content:"";display:inline-block;width:16px;height:0;margin-right:6px;vertical-align:middle;border-top:2px solid}
+.radar-legend .goal::before{border-color:var(--green);border-top-style:dashed}
+.radar-legend .prev::before{border-color:var(--muted);border-top-style:dotted}
+.radar-legend .cur::before{border-color:var(--green);border-top-width:3px}
+.rdim{display:grid;gap:4px;padding:10px 4px}
+.rbar{display:flex;align-items:center;gap:10px}
+.rbar .num{font-size:18px;font-variant-numeric:tabular-nums;min-width:30px}
+.rbar .up{color:var(--green-ink);font-weight:700;font-size:13px}
+.rbar .down{color:var(--red);font-weight:700;font-size:13px}
+.spark{width:60px;height:20px;flex:none}
+.spark polyline{fill:none;stroke:var(--green);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+.goal-row{padding:6px 0}
+@media (prefers-reduced-motion:reduce){.radar .cur{transition:none;transform:none;opacity:1}}
+.rdim .tiny a.link{display:inline-block;white-space:nowrap;padding:4px 0}
+/* ---------- r18: the practice hub and the guide ---------- */
+.pgroup{margin-top:18px}
+.pgroup-h{font-size:14px;font-weight:600;color:var(--muted);letter-spacing:.04em}
+.ptiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ptile{display:grid;gap:4px;align-content:start;text-decoration:none;color:inherit;padding:14px;min-height:88px;transition:transform .18s var(--ease-spring),background .18s}
+.ptile:hover{background:var(--sunk)}
+.ptile:active{transform:scale(.97)}
+.ptile b{font-size:15px;display:flex;align-items:center;gap:6px}
+.pbadge{font-style:normal;font-size:11px;font-weight:700;line-height:1;padding:3px 6px;border-radius:999px;background:var(--amber-fill);color:var(--on-amber)}
+.psuggest{display:grid;gap:6px;text-decoration:none;color:inherit;padding:16px;background:var(--green-soft);border:0}
+.psuggest .tiny{color:var(--green-ink);font-weight:600;letter-spacing:.04em}
+.psuggest b{font-size:17px}
+.psuggest .btn{justify-self:start;margin-top:4px}
+.guide-cta{margin-top:20px}
+@media (min-width:760px){.ptiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* guide */
+.guide-toc{display:grid;gap:2px}
+.guide-toc a{display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;align-items:center;text-decoration:none;color:inherit;padding:10px 8px;border-radius:10px;min-height:44px}
+.guide-toc a:hover{background:var(--sunk)}
+.guide-toc .n{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--sunk);color:var(--muted)}
+.guide-search{width:100%}
+.guide-body{font-size:15px;line-height:1.75}
+.guide-body h2{font-size:20px;margin:28px 0 8px;scroll-margin-top:80px}
+.guide-body h3{font-size:16px;margin:20px 0 6px}
+.guide-body ol,.guide-body ul{padding-left:1.4em;margin:6px 0}
+.guide-body li{margin:4px 0}
+.guide-body .tip{padding:10px 12px;border-radius:12px;background:var(--amber-soft);margin:10px 0}
+.guide-body .shot{margin:12px auto;max-width:320px}
+.guide-body .shot img{width:100%;height:auto;border-radius:16px;border:1px solid var(--line);display:block;background:var(--sunk)}
+.guide-body .shot figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:6px}
+.guide-body .go{display:inline-flex;min-height:36px;align-items:center}
+.guide-body kbd{font-family:inherit;font-size:13px;padding:1px 6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;background:var(--paper)}
+.guide-hit{background:var(--mark)}
+.guide-body pre.cmd{margin:8px 0;padding:10px 12px;border-radius:10px;background:var(--sunk);overflow-x:auto;font-size:13px;line-height:1.5}
+.ab .up{color:var(--green-ink);font-weight:700}
+.guide-body table{width:100%;border-collapse:collapse;font-size:14px;margin:10px 0}
+.guide-body th,.guide-body td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
+.guide-body th{font-weight:600;color:var(--muted);font-size:13px}
+.guide-body td:first-child{white-space:nowrap;font-weight:600}
+.guide-body section{padding-top:4px;scroll-margin-top:72px}  /* clear of the top bar after a jump to a chapter */
+.guide-body .shot img{aspect-ratio:390/760;object-fit:cover;object-position:top}
+/* ---------- r19: sign in, sign up, account and security ---------- */
+.pw-wrap{position:relative;display:block}
+.pw-wrap input{width:100%;padding-right:52px}
+.pw-eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:44px;height:44px;display:grid;place-items:center;border:0;background:none;color:var(--muted);border-radius:10px;cursor:pointer}
+.pw-eye svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.pw-eye[aria-pressed=true]{color:var(--green-ink)}
+.field .hint,.auth .hint{display:block;font-size:12px;font-weight:400;color:var(--muted);line-height:1.5}
+.code-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
+.code-row .btn{min-height:44px;white-space:nowrap}
+.auth-links{display:flex;justify-content:flex-end}
+.auth-links .link{min-height:40px;padding:0 4px;background:none;border:0;cursor:pointer}
+.field input[aria-invalid=true]{border-color:var(--red);box-shadow:0 0 0 3px var(--red-soft)}
+.acct-actions{flex-wrap:wrap;gap:8px}
+/* ---------- r20: four tabs, one main action on 今日, 我的 as a grouped list, one-line rows ---------- */
+/* 今日: the week as seven small bars beside the greeting */
+.greet-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:4px}
+.greet-row .greet{margin:0;min-width:0}
+.wk{display:flex;align-items:center;gap:8px;flex:none}
+.wk .week{display:flex;gap:3px;width:70px;margin:0}
+.wk .week span{height:5px}
+/* one-line rows: materials on 今日, settings on 我的 */
+.mlist,.glist{display:grid;gap:2px;background:var(--paper);border-radius:var(--r);padding:6px}
+.mrow,.grow{display:grid;grid-template-columns:minmax(0,1fr) auto 14px;gap:10px;align-items:center;min-height:52px;padding:9px 10px;border-radius:12px;text-decoration:none;color:inherit;
+  border:0;background:none;width:100%;text-align:left;font:inherit;cursor:pointer}
+.mrow:hover,.grow:hover{background:var(--sunk)}
+.mrow .t,.grow .t{display:grid;gap:2px;min-width:0}
+.mrow .t b{font-size:15.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mrow .t .tiny{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mrow .go,.grow .go,.notice .go{color:var(--muted);font-size:20px}
+.mrow.more b{color:var(--green-ink)}
+.mrow:not(:has(.pill)){grid-template-columns:minmax(0,1fr) 14px}
+.mlist+.tiny{margin-top:8px}
+@media (hover:none){.mrow:hover,.grow:hover{background:none}}
+/* the single notice slot */
+.notice.guide-hint{display:grid;grid-template-columns:minmax(0,1fr) 14px;gap:10px;align-items:center;text-decoration:none;color:inherit}
+.notice.guide-hint b{font-size:15.5px}
+/* 练习: the grammar map is the 语法 group's wide card */
+.ptile.pmap{grid-column:1/-1;min-height:0;gap:6px}
+.ptile.pmap .row{flex-wrap:nowrap}
+.ptile.pmap .gbar{margin-top:4px}
+/* 我的: a header card, then groups of one-line rows; a row opens a page or a sheet */
+.me-head{display:grid;gap:14px}
+.me-id{display:flex;align-items:center;gap:14px;min-width:0}
+.me-id .t{display:grid;gap:2px;min-width:0}
+.me-id .h1{margin:0;overflow:hidden;text-overflow:ellipsis}
+.avatar{flex:none;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--green-soft);color:var(--green-ink);font-size:22px;font-weight:700}
+.me-nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;border-top:1px solid var(--line);padding-top:12px}
+.me-nums div{display:grid;justify-items:center;gap:2px;text-align:center}
+.me-nums b{font-size:20px;font-variant-numeric:tabular-nums}
+.gsec{margin-top:22px}
+.ghead{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.04em;margin:0 12px 6px}
+.grow{position:relative;grid-template-columns:auto minmax(0,1fr) 14px}
+.glist>.grow+.grow::before{content:"";position:absolute;left:10px;right:10px;top:-1px;height:1px;background:var(--line)}
+.grow .t{font-size:15.5px}
+.grow .v{justify-self:end;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.grow:disabled{cursor:default;color:inherit}
+.grow:disabled .go{visibility:hidden}
+.grow:disabled:hover{background:none}
+.gfoot{margin:6px 12px 0}
+.grow.danger{grid-template-columns:minmax(0,1fr);justify-items:center;color:var(--red);font-weight:600}
+/* a folded card: its summary is the heading, a chevron turns when it opens */
+details.fold>summary{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;list-style:none;padding:0 26px 0 0;color:inherit;position:relative;min-height:24px}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary::after{content:"";position:absolute;right:6px;top:6px;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .2s var(--ease)}
+details.fold[open]>summary::after{transform:rotate(225deg);top:10px}
+details.fold[open]>summary{margin-bottom:12px}
+/* 单词: a row of tools, the stats folded, one row per word (its sentence and curve are on the card's sheet) */
+.tools{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.tools a,.tools button{display:grid;justify-items:center;align-content:center;gap:4px;min-height:66px;padding:8px 2px;border:0;border-radius:12px;background:var(--paper);
+  color:var(--ink2);font:inherit;font-size:12.5px;text-decoration:none;cursor:pointer}
+.tools a:hover,.tools button:hover{background:var(--sunk)}
+.tools svg{width:22px;height:22px;fill:none;stroke:var(--green-ink);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tools span{white-space:nowrap}
+.xlist{display:grid;gap:2px;background:var(--paper);border-radius:var(--r);padding:6px}
+.xrow{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;min-height:56px;padding:8px 10px;border:0;border-radius:12px;
+  background:none;text-align:left;font:inherit;color:inherit;cursor:pointer;width:100%}
+.xlist>.xrow+.xrow::before{content:"";position:absolute;left:10px;right:10px;top:-1px;height:1px;background:var(--line)}
+.xrow:hover{background:var(--sunk)}
+.xrow .t{display:grid;gap:1px;min-width:0}
+.xrow .x{font-family:var(--serif);font-size:17px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xrow .tiny{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (hover:none){.xrow:hover{background:none}.tools a:hover,.tools button:hover{background:var(--paper)}}
+/* 图谱: one level open at a time; a folded level is a bar with its count */
+.route{gap:10px}
+details.rband>summary.rband-h{margin:0;padding:12px 40px 12px 12px;border-radius:12px;background:var(--paper)}
+details.rband>summary::after{right:16px;top:calc(50% - 7px)}
+details.rband[open]>summary::after{top:calc(50% - 3px)}
+details.rband[open]>summary{margin-bottom:6px}
+/* the study steps and 全部材料: the main action first, the extras folded */
+.mhead{margin-bottom:8px}
+.preread{margin:4px 0 14px}
+details.preread>summary .tiny{flex-basis:100%}
+.gains .gtabs{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);margin-bottom:12px}
+.gpane .vocab-list{margin:0}
+.gpane>.link{justify-self:start}
+/* where a text comes from: one quiet line under the title, tags for how AI took part */
+.origin{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:6px;line-height:1.5}
+.origin .link{padding:0}
+/* 「AI 生成 · 经规范检查」 opens what the checks are (#/guide/ai-check): the note reads as a link, the tag stays as it is */
+.ai-link{display:flex;align-items:center;width:fit-content;min-height:32px;color:inherit;text-decoration:none;margin-top:2px}  /* a tap target of 32 px on a phone */
+.ai-link .ai-line>span:last-child{text-decoration:underline dotted;text-underline-offset:3px}
+.otag{display:inline-flex;align-items:center;font-size:11.5px;font-weight:600;padding:1px 7px;border-radius:99px;background:var(--sunk);color:var(--ink2);white-space:nowrap}
+.otag.warn{background:var(--amber-soft);color:var(--amber)}
+.origin-rules{margin:0;padding-left:1.2em;display:grid;gap:4px}
+@media (max-width:759px){.study-head[data-at=check] .origin,.study-head[data-at=output] .origin{display:none}}
+/* on the home screen: two numbered steps, the share icon drawn as the phone shows it */
+.isteps{margin:0;padding-left:1.4em;display:grid;gap:10px;font-size:15px;line-height:1.6}
+.ishare{width:20px;height:20px;vertical-align:-4px;fill:none;stroke:var(--accent,#0a84ff);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+/* 复读: how many times each sentence, and the pause after it */
+.loopbar{display:grid;gap:8px;margin-top:10px}
+.loopbar .lg{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.loopbar .tiny{min-width:2.4em}
+.loopbar .chip[aria-pressed=true]{background:var(--green-soft);border-color:var(--green);color:var(--green-ink);font-weight:600}
+/* 撤销 in the review's top bar */
+.rtop .undo{margin-left:auto;white-space:nowrap;min-height:36px;padding:0 6px}
+.rsum{margin:4px 0 0;color:var(--ink2)}
+/* 每周目标 on 今日: a button (a tap changes the goal); today's day marked; the goal reached in green */
+.wk.habit{border:0;background:none;padding:4px 0;font:inherit;color:inherit;cursor:pointer;min-height:36px}
+.wk.habit .met{color:var(--green-ink);font-weight:600}
+.wk .week span.today{outline:1.5px solid var(--green);outline-offset:1px}
+/* 存到手机 on a material's page */
+.offk{display:inline-flex;align-items:center;font-size:13px;min-height:24px}
+.offk .offi{width:15px;height:15px;margin-right:3px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.origin .offk{margin-left:4px}  /* on the source line: the icon sets it apart from 怎么写的 */
+.offk.on{color:var(--green-ink)}
+/* 分享卡片: the preview fits the sheet */
+#sheetCard .share-img{display:block;width:auto;height:auto;max-width:100%;max-height:min(48vh,520px);margin:0 auto;border-radius:14px;box-shadow:0 2px 14px rgba(0,0,0,.12);background:#fff}
+/* the expressions to pick from: one row that scrolls sideways, so the picture and its buttons stay in view */
+.chips.share-pick{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.chips.share-pick::-webkit-scrollbar{display:none}
+.share-pick .chip{flex:none;max-width:78%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 注销账号: the one button that cannot be undone, red in both themes (red on its soft tint keeps the contrast) */
+.btn.danger-btn{background:var(--red-soft);border-color:var(--red);color:var(--red);font-weight:600}
+/* right and wrong answers carry a mark, not only a colour (red and green look alike to many colour-blind learners) */
+.ans.right::after,.qopt.right::after{content:'✓';margin-left:auto;padding-left:8px;font-family:var(--sans);font-weight:800;color:var(--green-ink)}
+.ans.wrong::after,.qopt.wrong::after{content:'✗';margin-left:auto;padding-left:8px;font-family:var(--sans);font-weight:800;color:var(--red)}
+/* 复听: the card above the player on #/m/<id>/listen/again */
+.relisten{margin-bottom:12px}
+.relisten .chips{margin-top:2px}
+/* ---------- r20: WeChat's built-in browser: how to open the page in the phone's browser ---------- */
+.wx-bar{display:flex;align-items:flex-start;gap:8px;padding:8px var(--gut);background:var(--amber-soft);color:var(--ink);font-size:13.5px;line-height:1.55}
+.wx-bar span{flex:1;min-width:0;padding-top:4px}
+.wx-x{flex:none;display:grid;place-items:center;width:36px;height:36px;margin:-2px -8px -2px 0;border:0;border-radius:10px;background:none;color:var(--muted);font-size:22px;line-height:1;cursor:pointer}
+.wx-x:hover{background:color-mix(in srgb,var(--ink) 6%,transparent)}
+@media (min-width:760px){.wx-bar{justify-content:center}.wx-bar span{flex:0 1 auto;max-width:var(--max)}}
+/* the first visit in WeChat: a dimmed screen, an arrow to the ··· menu (WeChat's own, top right), the two steps */
+.wx-guide{position:fixed;inset:0;z-index:95;background:rgba(10,14,12,.78);color:#fff;display:flex;flex-direction:column;align-items:flex-end;padding:calc(8px + var(--sat)) 18px 18px}
+.wx-arrow{width:110px;height:110px;fill:none;stroke:#fff;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;margin-right:6px}
+.wx-steps{align-self:stretch;display:grid;gap:10px;max-width:420px;margin:8px auto 0;font-size:17px;line-height:1.6}
+.wx-steps ol{margin:0;padding-left:1.4em;font-size:19px;font-weight:700}
+.wx-steps .small{color:rgba(255,255,255,.82)}
+.wx-steps .btn:not(.primary){background:transparent;color:#fff;border-color:rgba(255,255,255,.6)}
+/* 先试读一篇 on the first visit, and the offer after it */
+.try-first{margin-bottom:18px}.try-first .btn{justify-self:start}
+.try-next{margin-top:10px}
+/* 问题反馈: up to three screenshot thumbnails in a row, each with a button to take it out again */
+.fb-shots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.fb-shots:empty{display:none}
+.fb-shot{position:relative;aspect-ratio:9/16;border-radius:12px;overflow:hidden;background:var(--sunk)}
+.fb-shot img{display:block;width:100%;height:100%;object-fit:cover}
+.fb-shot button{position:absolute;top:4px;right:4px;width:36px;height:36px;border:0;border-radius:50%;font-size:20px;line-height:36px;
+  background:color-mix(in srgb,var(--ink) 72%,transparent);color:var(--bg)}
+#fbAdd{cursor:pointer}
+#fbAdd.busy{opacity:.6;pointer-events:none}
+.fb .err:empty{display:none}
+.fb-done .big{font-size:40px;color:var(--green)}
+/* 字号和行距 (我的 → 设置): the reading text scaled as a whole (zoom reflows it to the width it has, so nothing gets
+   wider than the screen); menus and buttons keep their size. */
+:root{--read-zoom:1}
+:root[data-size=l]{--read-zoom:1.12}
+:root[data-size=xl]{--read-zoom:1.25}
+:is(.text,.line .txt,.review .cloze,.prompt-q,.passage-q .ptext,.exam-passage,.easy-reader,.guide-body,.mean-q,.mean-a,.sheet .mean,.wdiff,.tsample){zoom:var(--read-zoom)}
+:root[data-lh=w] :is(.text,.line .txt,.review .cloze,.prompt-q,.passage-q .ptext,.exam-passage,.easy-reader,.guide-body,.mean-q,.mean-a,.sheet .mean,.wdiff,.tsample){line-height:2}
+.tsample{margin:0;padding:12px 14px;border-radius:12px;background:var(--sunk)}
+/* 内测版 (flow.jasa.hk, 03-channel.js): a line under the top bar on every page, and a note in the sign-in sheet */
+/* one thin row (it pushed one-screen pages past a phone's screen when it wrapped), closable */
+.beta-bar{display:flex;align-items:center;gap:8px;margin:0;padding:2px 4px 2px max(var(--gut),var(--sal,0px));background:var(--amber-soft);color:var(--ink);font-size:12.5px;line-height:1.45;white-space:nowrap}
+.beta-bar b{flex:none;background:var(--amber-fill,#9a5a0c);color:var(--on-amber,#fff);border-radius:99px;padding:0 7px;font-size:11.5px}
+.beta-bar span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.beta-bar .bb-x{flex:none;border:0;background:transparent;color:var(--muted);font-size:14px;min-width:40px;min-height:36px;margin:-6px 0;border-radius:8px;cursor:pointer}
+.beta-bar .bb-x:active{background:var(--line)}
+/* 复习 and 测词汇量 on a phone fill one screen with the tabs folded away: the line too (「内测」 stays by the logo) */
+@media (max-width:759px){body.reviewing .beta-bar{display:none}}
+.beta-new{padding:10px 14px;border-top:1px solid var(--line)}
+.beta-new ul{margin:4px 0 0;padding-left:1.2em}
+.beta-new .beta-changed{background:var(--amber-soft);border-radius:6px;padding:2px 6px;margin-left:-6px;list-style-position:inside}
+.beta-pill{background:var(--amber-fill,#9a5a0c);color:var(--on-amber,#fff);border-radius:99px;padding:1px 7px;font-size:11px;font-weight:700;line-height:1.5}
+html[data-channel=beta] .auth::before{content:'这是内测版：账号和正式版 flowlang.cn 分开，第一次来请先注册。';display:block;padding:8px 12px;border-radius:10px;background:var(--amber-soft);color:var(--ink);font-size:13px;line-height:1.5}
+/* Phone tidy-up (2026-11-24, from a full-length audit of the main pages at 360 and 390 px): less stacked above the
+   content, one line where three rows of controls were, long lists folded. */
+
+/* study header: 存到手机 at the right of the kicker line; on a phone 听 drops the English title (读 keeps it) */
+.sh-top{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.sh-top .kicker{min-width:0}
+.sh-top .offk{flex:none;white-space:nowrap;padding:0;margin:0}
+@media (max-width:759px){
+  .study-head{gap:4px}
+  .study-head[data-at=listen] .title-en{display:none}
+}
+
+/* 听: one line for 语速 · 复读 · 停顿, the choices folded under it */
+.playset{margin:-6px 0 10px}
+.playset>summary{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:40px;cursor:pointer;list-style:none}
+.playset>summary::-webkit-details-marker{display:none}
+.playset>summary .link{flex:none;font-weight:600}
+.playset>summary .link::after{content:" ▾"}
+.playset[open]>summary .link::after{content:" ▴"}
+.playset .loopbar{margin-top:2px;padding:10px 12px;background:var(--sunk);border-radius:12px}
+.playset .loopbar .chip[aria-pressed=true]{background:var(--green-soft);border-color:var(--green);color:var(--green-ink);font-weight:600}
+.playset .voices{display:flex;flex-wrap:wrap;gap:6px}
+.listen-tip{margin:4px 0 10px}
+
+/* 读: 中文导读、改写 and 伴读 in one row; the colour key and the tap hints in one line under it */
+.read-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:6px}
+.read-tools #readAlong{margin-left:auto}
+.read-tools .chip[aria-expanded=true]{background:var(--green-soft);border-color:var(--green);color:var(--green-ink)}
+.guide-zh{margin:0 0 10px;padding:10px 12px;background:var(--sunk);border-radius:12px;line-height:1.7}
+.read-hint{display:flex;flex-wrap:wrap;align-items:center;gap:2px 12px;margin:0 0 10px}
+.read-hint .legend{margin:0}
+
+/* 背词计划: the chosen book on top (换一本 opens the whole list); 保存 stays in reach above the tab bar */
+.booksel{padding:12px 14px;gap:6px}
+.booksel .basis{margin:0}
+.booksel #moreBooks{flex:none;font-weight:600}
+#allBooks{display:grid;gap:14px}
+#allBooks[hidden]{display:none}
+@media (max-width:759px){
+  .savebar{position:sticky;bottom:calc(72px + var(--sab));z-index:5;background:var(--bg);padding:10px 0;box-shadow:0 -1px 0 var(--line)}
+}
+
+/* 练习: one-line rows with an icon, grouped like 我的 (two columns on a wide screen); the grammar map stays a wide card */
+.px-list{display:grid;gap:2px;background:var(--paper);border-radius:var(--r);padding:6px}
+.px-row{display:grid;grid-template-columns:36px minmax(0,1fr) 14px;gap:12px;align-items:center;min-height:56px;padding:8px 10px;border-radius:12px;text-decoration:none;color:inherit}
+.px-row:hover{background:var(--sunk)}
+.px-row:active{background:var(--sunk)}
+.px-row .pico{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:var(--green-soft);color:var(--green-ink)}
+.px-row .t{display:grid;gap:2px;min-width:0}
+.px-row .t b{font-size:15.5px;display:flex;align-items:center;gap:6px;min-width:0}
+.px-row .t .tiny{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.px-row .go{color:var(--muted);font-size:20px}
+.pgroup .ptile.pmap{margin-bottom:2px}
+@media (min-width:760px){.px-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* 全部材料: on a phone 范围 and 难度 side by side, 话题 on its own row, so no choice is cut off at 360 px */
+@media (max-width:759px){
+  .filters{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .filters #ft{grid-column:1/-1}
+}
+
+/* 复习: 认识 / 模糊 / 不认识 centred in their buttons (they were set at the top of a 58 px grid) */
+.choice button,.rate button{align-content:center;justify-items:center}
+
+/* A phone held sideways (about 390 px high): the study header as short as on a phone held upright, so the step
+   bar and the first controls fit on the screen */
+@media (max-height:500px) and (orientation:landscape){
+  .study-head{gap:2px;margin-bottom:6px}
+  .study-head .title-en,.study-head .origin{display:none}
+  .study-head .h1{font-size:19px;margin:0}
+}
+/* ---------- 雅思口语练习 (46-ielts.js): entry on the speaking route, Part 1 chat, Part 2 cue card and clock, feedback ---------- */
+.card.ielts-entry{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:14px 16px;text-decoration:none;color:inherit;border-left:3px solid var(--green)}
+.ielts-entry .go{color:var(--muted);font-size:20px}
+.ielts-note{color:var(--amber-fill);margin:0}  /* the darker amber: 5:1 on the page, as small text needs */
+.msg .who{padding:0 6px}
+.msg .better{padding:0 6px}
+.msg .better summary{cursor:pointer;color:var(--green-ink);list-style:none;padding:4px 0;min-height:24px}
+.msg .better summary::-webkit-details-marker{display:none}
+.msg .better summary::before{content:'▸ '}
+.msg .better[open] summary::before{content:'▾ '}
+.msg .better .text{font-family:var(--serif);font-size:15.5px;line-height:1.5;background:var(--paper);border:1px solid var(--green-line);border-radius:10px;padding:8px 12px;margin:4px 0}
+.cue{border:1.5px solid var(--line2);border-radius:var(--r);padding:14px 16px;background:var(--paper);font-family:var(--serif);font-size:16.5px;line-height:1.55;display:grid;gap:4px;overflow-wrap:anywhere}
+.cue{scroll-margin-top:84px}
+.cue ul{margin:0;padding-left:1.2em}
+.cue .small{font-family:var(--sans);color:var(--ink2)}
+.p2-clock{display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:10px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--sunk)}
+.p2-clock .lbl{font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.p2-clock b{font-size:24px;font-variant-numeric:tabular-nums;min-width:3.2ch}
+.p2-clock .vbar i{transition:width 1s linear}
+.p2-clock.talk{background:var(--red-soft)}
+.p2-clock.talk .vbar i{background:var(--red)}
+.rec-dot{width:10px;height:10px;border-radius:50%;background:var(--red);display:inline-block;animation:pulse 1s ease-in-out infinite}
+#p2Notes,#p2Txt{font-size:16px}
+.p2-kept{white-space:pre-wrap;overflow-wrap:anywhere}
+.ielts-top{display:grid;gap:8px}
+.ielts-overall{display:flex;align-items:baseline;gap:10px}
+.ielts-overall b{font-size:32px;line-height:1.1;color:var(--green-ink);font-variant-numeric:tabular-nums}
+.ielts-crit{gap:12px}
+.ielts-crit .crit{display:grid;gap:3px}
+.ielts-crit .ab{grid-template-columns:5.5em minmax(0,1fr) 3em}
+.ielts-crit .ab .nm{white-space:nowrap}
+.ielts-crit .up{color:var(--green-ink);font-weight:700}
+.ielts-model{font-size:16px;line-height:1.6;margin:0}
+/* a phone held sideways: while speaking, the card stays at the top and the clock at the foot of the screen */
+@media (max-height:500px) and (orientation:landscape){
+  .cue{font-size:15px;line-height:1.4;padding:10px 14px}
+  .p2-clock.talk{position:sticky;bottom:8px;z-index:2;box-shadow:var(--shadow)}
+}
+/* 口语情景 rounds and pace (46-speak.js): the round's extra requirement (the last task, marked), the pace note under an
+   answer, a sentence to use. On a phone 「开始对话」 stays on screen above the tab bar, however long the brief (B8's audit:
+   on a 375 phone it sat under the tab bar). */
+div.round-extra{margin-top:8px;padding:8px 12px;border-radius:10px;background:var(--paper);border:1px dashed var(--green-line)}  /* in the feedback: met or not */
+.steps-list .round-extra b{color:var(--green-ink)}
+@media (max-width:759px){
+  .dlg-go{position:sticky;bottom:calc(72px + var(--sab));z-index:5;background:var(--bg);padding:10px 0;box-shadow:0 -1px 0 var(--line)}
+}
+.msg .pace{padding:0 6px}
+.say-line{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.say-line b{font-family:var(--serif);font-weight:600;color:var(--ink)}
+.say-line .icon-btn{width:32px;height:32px;border-radius:8px}.say-line .icon-btn svg{width:16px;height:16px}
+/* 说完就显示进度 (46-speak.js waiting): what is happening and for how long, at the end of the chat; resend when it failed */
+.dlg-wait{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:4px 2px}.dlg-wait .secs{font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:reduce){.rec-dot{animation:none}.p2-clock .vbar i{transition:none}}
+/* 伴读 in the server voice (22-study-read.js): 「正在准备朗读 12/30 句」, or why it reads with the browser voice */
+.sv-prep{margin:6px 0 0}
+/* 朗读 (01-audio-offline.js SV, LONG): 「正在准备朗读…」 over the page while a sentence is made; 暂停 / 继续 and ✕ in the
+   mini player (✕ keeps where it was); 从头开始 beside 播放全文 and 伴读 once there is a place to go on from */
+.sv-wait{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(136px + var(--sab));z-index:46;background:var(--ink);color:var(--bg);border-radius:99px;padding:8px 14px;font-size:14px;box-shadow:var(--shadow);max-width:calc(100% - 32px);pointer-events:none}
+.sv-wait[hidden]{display:none}
+.mini-player .toggle{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:99px;background:var(--fill);color:var(--on-fill);font-weight:700;padding:8px 14px;min-height:40px}
+.mini-player .close{background:transparent;color:var(--bg);padding:8px 12px;min-width:40px;justify-content:center;font-weight:600}
+#playRestart,#alongRestart{min-height:40px;padding:0 6px}
+@media (min-width:760px){.sv-wait{bottom:80px}}
+/* the mini player as wide as its content needs (width:max-content, in 70-input-devices.css with the rest of it; up to
+   the screen less the margins): at left:50% its shrink-to-fit width was capped at half the screen, so on a 390-px iPhone the label was cut to 「第 4 / 1…」 and 「暂停」 broke into one character
+   per line (语流 20's screenshot, 2026-11-25). The label gives way (ellipsis), the buttons never wrap */
+.mini-player .lbl{flex:1 1 auto;min-width:0}
+.mini-player .toggle,.mini-player .stop,.mini-player .resume{flex-shrink:0;white-space:nowrap}
+/* 「AI 朗读」 in the mini player (aiVoice, 《标识办法》); on a phone narrower than 420 px the sound bars give it their room
+   (暂停 / 继续 says the state already), so 「第 12 / 30 句」 stays whole at 360 px */
+.mini-player .ai-voice{flex-shrink:0}
+@media (max-width:419px){.mini-player .eq{display:none}}
+/* ---- 这周进步 (r27): the card at the top of 今日, its details sheet, the summary after a text, the unsubscribe page ---- */
+/* the card brings no outer margin: the page that holds it spaces its slot (today: under the plan) */
+.week-slot{margin:18px 0 2px}
+.week-slot:empty{display:none}
+/* four numbers side by side down to a 360 px phone: no boxes around them, thin rules between, labels of five characters */
+.week-card{display:grid;gap:10px;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;padding:14px 16px 12px;margin:0;
+  background:var(--paper);border:0;border-radius:var(--r);box-shadow:none;-webkit-tap-highlight-color:transparent;transition:background .15s}
+.week-card:hover{background:color-mix(in srgb,var(--paper) 88%,var(--green-soft))}
+.week-card:active{transform:scale(.995)}
+.wk-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.wk-head b{font-size:15.5px}
+.wk-total{color:var(--muted);white-space:nowrap}
+.wk-total.on{color:var(--green-ink);font-weight:600}
+.wk-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.wk-tile{display:grid;gap:1px;align-content:start;min-width:0;padding:0 6px}
+.wk-tile:first-child{padding-left:0}
+.wk-tile+.wk-tile{border-left:1px solid var(--line)}
+.wk-tile b{font-size:24px;line-height:1.2;font-weight:750;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.wk-tile b small{font-size:13px;font-weight:600;color:var(--muted);margin-left:1px}
+.wk-tile .tiny{line-height:1.35}
+.wk-tile .sub{color:var(--muted)}
+.wk-tile .up{color:var(--green-ink);font-weight:600}
+.wk-tile.goal.met b,.wk-tile.goal.met .sub{color:var(--green-ink)}
+.wk-tile.goal.met .sub{font-weight:600}
+.wk-foot{display:flex;align-items:center;gap:10px;min-width:0}
+.wk-foot .week{width:112px;flex:none;gap:4px;margin:0}
+.wk-foot .week span{height:5px}
+.wk-foot .week span.today{outline:1.5px solid var(--green);outline-offset:1px}
+.wk-foot .tiny{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+@media (min-width:760px){
+  .week-card{padding:18px 20px 14px}
+  .wk-tile{padding:0 14px}
+  .wk-tile b{font-size:28px}
+  .wk-foot .week{width:150px}
+}
+@media (max-width:374px){
+  .week-card{padding:12px 12px 10px}
+  .wk-tile{padding:0 4px}
+  .wk-tile b{font-size:21px}
+  .wk-tile .tiny{font-size:11.5px}
+}
+
+/* the details sheet */
+.wk-sheet .wk-sec{display:grid;gap:6px;padding:12px 14px;border-radius:12px;background:var(--sunk)}
+.wk-sheet .wk-sec p{margin:0}
+.wk-sheet .met{color:var(--green-ink);font-weight:600}
+.wk-num{font-size:20px;font-weight:750;font-variant-numeric:tabular-nums}
+.wk-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin:2px 0}
+.wk-days>span{display:grid;justify-items:center;gap:3px;color:var(--muted)}
+.wk-days i{width:100%;max-width:36px;height:8px;border-radius:4px;background:var(--line)}
+.wk-days .on i{background:var(--green)}
+.wk-days .today i{outline:1.5px solid var(--green);outline-offset:1px}
+.wk-days .today .tiny{color:var(--green-ink);font-weight:700}
+.wk-words{display:flex;flex-wrap:wrap;gap:6px}
+.wk-words .pill{background:var(--paper);font-family:var(--serif);font-weight:500;font-size:13px}
+.wk-list{display:grid;gap:4px;justify-items:start}
+.wk-list .link{text-align:left}
+.wk-sec .btn:not(.primary){background:var(--paper)}
+
+/* 这篇完成了: three lines, each going where that work continues */
+.done-card.fin{display:grid;gap:10px;justify-items:center}
+.done-card.fin .row{justify-content:center}
+.fin-sum{display:grid;gap:2px;width:100%;text-align:left;background:var(--sunk);border-radius:12px;padding:4px;margin:4px 0 2px}
+.fin-wait{display:flex;align-items:center;gap:8px;justify-content:center;padding:14px;color:var(--muted);font-size:13.5px}
+.fin-row{display:grid;grid-template-columns:44px minmax(0,1fr) 12px;gap:10px;align-items:center;padding:10px;border-radius:10px;text-decoration:none;color:inherit;min-height:48px}
+div.fin-row{grid-template-columns:44px minmax(0,1fr)}
+a.fin-row:hover{background:var(--paper)}
+.fin-row .k{font-size:12.5px;font-weight:700;color:var(--green-ink);background:var(--green-soft);border-radius:99px;text-align:center;padding:2px 0;align-self:start;margin-top:2px}
+.fin-row .t{font-size:14.5px;line-height:1.55;overflow-wrap:anywhere}
+.fin-row .t b{font-family:var(--serif);font-weight:600}
+.fin-row .go{color:var(--muted);font-size:18px}
+@media (hover:none){a.fin-row:hover{background:none}}
+
+/* the link in the Sunday mail */
+.weekly-off{max-width:520px}
+.weekly-off .err:empty{display:none}
+/* 按时间打包今日计划 (r28): 还有时间的话 folded under 必做, 本周任务, the line once the day's minutes are past; 欢迎回来 */
+.today-plan .tp-over{margin:0;padding:10px 12px;border-radius:12px;background:var(--amber-soft);color:var(--ink);border-left:3px solid var(--amber-fill)}
+.today-plan .tp-more{display:grid;gap:8px}
+.today-plan .tp-extra,.today-plan .tp-week{display:grid;gap:6px}
+.today-plan .tp-extra>summary{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:44px;padding:0 10px;
+  border-radius:12px;background:var(--sunk);cursor:pointer;font-weight:600;list-style:none}
+.today-plan .tp-extra>summary::-webkit-details-marker{display:none}
+.today-plan .tp-extra>summary>span:first-child::after{content:'›';display:inline-block;margin-left:8px;color:var(--muted);transform:rotate(90deg);transition:transform .2s}
+.today-plan .tp-extra[open]>summary>span:first-child::after{transform:rotate(-90deg)}
+.today-plan .tp-extra>summary:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.today-plan .tp-week-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;padding:0 4px}
+.today-plan .tp-week-head .h3{margin:0;font-size:16px}
+.prow.extra .num,.prow.week .num{background:transparent;border:1.5px dashed var(--line2);color:var(--muted)}
+.prow.extra.done .num,.prow.week.done .num{border:0;background:var(--green-soft);color:var(--green-ink)}
+@media (prefers-reduced-motion:reduce){.today-plan .tp-extra>summary>span:first-child::after{transition:none}}
+.today-plan .tp-back{display:grid;gap:2px;margin:0;padding:12px 14px;border-radius:14px;background:var(--green-soft);color:var(--ink)}
+.today-plan .tp-back b{color:var(--green-ink);font-size:16px}
+/* ---- 今日好句 and 今日热点 (r27): the top of 今日 ---- */
+.line-card{display:grid;gap:8px;padding:18px;margin:2px 0 12px;background:var(--paper);border:0;box-shadow:none}
+.lc-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.lc-title{margin:0;font-size:13px;line-height:1.4;font-weight:700;color:var(--green-ink);letter-spacing:.02em}
+.lc-en{margin:2px 0 0;font-family:var(--serif);font-size:22px;line-height:1.4;font-weight:500;color:var(--ink);overflow-wrap:anywhere}
+.lc-en.long{font-size:19px}
+.lc-en b{font-weight:600;background:linear-gradient(transparent 62%,var(--mark) 0)}
+.lc-zh{margin:0;font-size:14.5px;line-height:1.6;color:var(--ink2)}
+.lc-note{margin:0}
+.lc-src{margin:0;color:var(--muted);line-height:1.5}
+.lc-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.lc-acts .btn{gap:6px}
+.lc-acts .ai-voice{align-self:center}  /* 「AI 朗读」 by 听一遍: every voice on this card is synthesized (aiVoice, 00-head.js) */
+@media (max-width:374px){.lc-acts{gap:6px}.lc-acts .btn{padding-left:11px;padding-right:11px}}  /* with the label, the three buttons still fit one row at 360 */
+.lc-acts .btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.lc-acts .btn.on{background:var(--green-soft);color:var(--green-ink)}
+.lc-sh{padding:12px;border-radius:12px;background:var(--sunk)}
+.lc-sh p{margin:0}
+.lc-sh .row{flex-wrap:wrap;gap:8px}
+.lc-sh .btn{background:var(--paper)}
+.lc-sh .btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.lc-out .miss{color:var(--red);text-decoration:underline wavy}
+.lc-out:empty{display:none}
+.lc-score{font-size:20px;font-variant-numeric:tabular-nums;color:var(--green-ink);margin-right:2px}
+.news-card{display:grid;gap:5px;padding:16px 18px;margin:0 0 18px;background:var(--paper);border:0;box-shadow:none;text-decoration:none;color:inherit}
+.news-card:hover{background:color-mix(in srgb,var(--paper) 90%,var(--amber-soft))}
+/* the darker amber (text on white needs 4.5:1; --amber gives 4.2) */
+.news-card .nc-title,.news-card .pill.amber{color:var(--amber-fill)}
+.nc-h{font-size:16.5px;line-height:1.45}
+.nc-p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.news-card .nc-why{color:var(--green-ink);font-weight:600}  /* 和你的目标相关, in place of the topic: the card keeps its height */
+.nc-go{float:right;color:var(--green-ink);font-weight:600;font-size:13px}
+@media (min-width:760px){
+  .line-card{padding:22px 24px}
+  .lc-en{font-size:26px}
+  .lc-en.long{font-size:22px}
+}
+@media (max-width:374px){
+  .line-card{padding:16px}
+  .lc-en{font-size:20px}
+  .lc-en.long{font-size:17.5px}
+}
+/* ---------- 主屏 App (04-home-app.js): the top bar clear of the Dynamic Island / status bar and the sides, the back
+   button, the keyboard, the new-version line ---------- */
+/* the top bar's height, and all above the page (the bar, and on the 内测版 its line); 04-home-app.js sets the measured ones */
+:root{--bar-h:48px;--top-h:48px}
+.bar{padding-top:calc(10px + var(--sat));padding-left:max(var(--gut),var(--sal));padding-right:max(var(--gut),var(--sar))}
+.bar.hide{top:calc(-72px - var(--sat))}
+.steps{top:calc(57px + var(--sat))}
+.tabs{padding-left:max(8px,var(--sal));padding-right:max(8px,var(--sar))}
+/* 40 px to tap, but no taller a row than the logo's: the bar keeps its height on every page (a back button made it
+   12 px taller, which pushed one-screen pages past the screen — the owner's iPhone, 2026-11-25) */
+.back-btn{display:inline-flex;align-items:center;gap:2px;min-height:40px;min-width:44px;padding:4px 10px 4px 4px;margin:-6px 0 -6px -6px;border:0;border-radius:10px;
+  background:transparent;color:var(--green-ink);font:600 16px/1 var(--sans);cursor:pointer}
+.back-btn svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.back-btn:active{background:var(--green-soft)}
+/* the keyboard: the sheet stands on it; the page has room below to bring a field's button above it */
+.sheet{bottom:var(--kb,0px)}
+.sheet-card{max-height:min(86vh,calc(100vh - var(--kb,0px) - var(--sat) - 24px))}
+body.kb-open{padding-bottom:calc(var(--kb) + 16px)}
+/* iPhone/iPad, while a field has focus: room to bring a field near the end of the page above the keyboard ourselves */
+body.kb-room{padding-bottom:max(60vh,calc(var(--kb) + 16px))}
+/* a new version waiting (04-home-app.js): one line just under the top bar, clear of 返回 */
+.update-bar{position:fixed;z-index:70;top:calc(var(--sat) + 64px);left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:2px;
+  max-width:calc(100vw - 24px);background:var(--ink);color:var(--bg);border-radius:99px;box-shadow:var(--shadow);padding:2px}
+.update-bar button{border:0;background:transparent;color:inherit;font:600 14px/1 var(--sans);min-height:40px;cursor:pointer}
+.update-bar .ub-go{padding:0 8px 0 16px;white-space:nowrap}
+.update-bar .ub-x{min-width:40px;font-size:18px;opacity:.85}
+/* 更新记录 (#/updates) and 今日's 「语流更新了」 card (83-updates.js) */
+.upd-l{margin:0;padding-left:1.2em;display:grid;gap:4px;line-height:1.55}
+.upd-h{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.04em;margin:4px 0 2px}
+.upd .h2{margin:0}
+.upd-note{margin:2px 0 0}
+.upd-card .upd-l{gap:2px}
+.upd-card b .tiny{font-weight:400}
+.upd-go{white-space:nowrap;margin-left:2px}
+.upd-changed{background:var(--amber-soft);border-radius:12px;padding:8px 12px 10px}
+.upd-changed .upd-h{color:var(--amber)}
+/* 「AI 生成」标识（2026-11-25，《人工智能生成合成内容标识办法》）。aiTag() / aiMark(note) 在 00-head.js。
+   看得清，但不抢内容：灰边小圆角，正文色，前面一个 ✦（和「✦ AI 点评」按钮一样）。深色模式跟着颜色变量走。 */
+.ai-mark{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:600;line-height:18px;border:1px solid var(--line2);border-radius:99px;padding:0 7px;color:var(--ink2);background:var(--paper);white-space:nowrap;vertical-align:middle;letter-spacing:.02em}
+.ai-mark::before{content:'✦';font-size:10px;opacity:.75}
+.ai-line{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px;line-height:1.5;color:var(--muted)}
+.result>.ai-line:first-child,.card>.ai-line:first-child{margin-bottom:2px}
+/* 班级试用 (82-class.js): what the teacher sees and not, the class found by its code, the teacher's summary page */
+.cls-terms{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;font-size:14px}
+.cls-terms ul{list-style:none;margin:4px 0 0;padding:0;display:grid;gap:4px}
+.cls-terms li{padding-left:20px;position:relative;line-height:1.45}
+.cls-terms li::before{position:absolute;left:0;top:0;font-weight:700}
+.cls-terms li.yes::before{content:'✓';color:var(--green)}
+.cls-terms li.no::before{content:'✗';color:var(--red)}
+@media (max-width:420px){.cls-terms{grid-template-columns:minmax(0,1fr)}}
+.cls-found{display:flex;flex-direction:column;gap:2px;padding:12px 14px}
+.cls-found b{font-size:17px}
+.cls-big{display:flex;align-items:baseline;gap:6px}
+.cls-big b{font-size:40px;line-height:1;font-variant-numeric:tabular-nums;color:var(--green-ink)}
+.cls-big span{color:var(--muted)}
+.cls-weeks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:8px}
+.cls-weeks .w{display:flex;flex-direction:column;text-align:center;gap:2px;min-width:0}
+.cls-weeks .col{height:72px;display:flex;align-items:flex-end}
+.cls-weeks i{display:block;width:100%;background:var(--green-line);border-radius:6px 6px 2px 2px}
+.cls-weeks .w.now i{background:var(--green)}
+.cls-weeks b{font-size:14px;font-variant-numeric:tabular-nums}
+.cls-weeks span{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cls-points{list-style:none;margin:0;padding:0;counter-reset:p}
+.cls-points li{counter-increment:p;border-top:1px solid var(--line)}
+.cls-points li:first-child{border-top:0}
+.cls-points a{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:11px 0;color:inherit;text-decoration:none;min-height:44px}
+.cls-points a::before{content:counter(p);width:22px;height:22px;border-radius:50%;background:var(--sunk);display:grid;place-items:center;font-size:12px;font-weight:700}
+.cls-points .t{font-weight:600}
+.cls-points .go{color:var(--green-ink)}
+.cls-code{font-size:30px;font-weight:700;letter-spacing:.18em;font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+#clsQrC{width:200px;height:200px;border-radius:8px;image-rendering:pixelated}
+#clsF input[name=code]{text-transform:uppercase;letter-spacing:.12em;font-variant-numeric:tabular-nums}
+/* 老师模式: the teacher's class list (82-class.js teachHome) */
+.cls-row{display:flex;align-items:center;justify-content:space-between;gap:12px;text-decoration:none;color:inherit}
+.cls-row:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.cls-list{margin:0;padding-left:1.2em;display:grid;gap:4px}
+/* 年龄段 (81-privacy.js): three chips (radio buttons) and, under 14, the guardian's agreement */
+.agefs{border:0;margin:0;padding:0;display:grid;gap:8px;min-width:0}
+.agefs legend{padding:0;margin-bottom:6px;font-weight:600;font-size:14.5px;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+.agefs legend .hint{font-weight:400}
+.agechip{display:inline-flex;align-items:center;cursor:pointer;min-height:40px}
+.agechip input{position:absolute;opacity:0;width:1px;height:1px}
+.agechip:focus-within{outline:2px solid var(--green);outline-offset:2px}
+.agefs .guard{display:grid;gap:4px;padding:10px 12px;border-radius:10px;background:var(--amber-soft)}
+.agefs .guard[hidden]{display:none}
+.agechip[data-on=true]{background:var(--green-soft);color:var(--green-ink);font-weight:600;box-shadow:inset 0 0 0 1.5px var(--green)}
+/* 数据存放在香港 (81-privacy.js): the separate tick, in the sign-up form and on the page that asks */
+.storagefs{display:grid;gap:4px;padding:10px 12px;border-radius:10px;background:var(--green-soft)}
+.storage-page .row.wrap{flex-wrap:wrap}
