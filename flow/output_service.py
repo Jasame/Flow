@@ -12,6 +12,10 @@ import next_service as nx
 import skills_service as sk
 from lab_service import Shape, mbool, mnum  # lenient readers of what a model wrote (DeepSeek words JSON unlike Gemini)
 
+# The end of a role-play without a summary from the model gets this line instead (#90); ai_eval reads it to report
+# 「模型没写总评」 (语流 12), so the text lives in one place.
+SUMMARY_FILLER = '这一轮练完了，下面是具体的反馈。'
+
 LEVEL_NOTE = {'A2': '学习者是入门水平，反馈用简单中文，示范用最常见的词和短句。', 'B1': '学习者是中级水平，反馈用中文，示范句清楚自然。',
               'B2': '学习者是中高级水平，关注搭配、语气和衔接。', 'C1': '学习者是高级水平，关注措辞精确、语域和行文层次。'}
 FIX = '{"from":"学习者原文片段","to":"改后片段","why":"简短中文原因","node":"相关语法节点 id 或 null"}'
@@ -189,7 +193,7 @@ def dialog(c, uid, data):
             return {'scene': _clean(raw.get('scene'), 1, 300, 'scene_empty'), 'role': _clean(raw.get('role') or '', 0, 60), 'reply': _clean(raw.get('reply'), 1, 400, 'reply_empty'), **rnd}
         if end:
             met = raw.get('challenge_met')
-            return {'summary': _clean(raw.get('summary'), 1, 500, default='这一轮练完了，下面是具体的反馈。'), 'good': [_clean(g, 1, 300) for g in (raw.get('good') or [])[:3] if isinstance(g, str) and g],
+            return {'summary': _clean(raw.get('summary'), 1, 500, default=SUMMARY_FILLER), 'good': [_clean(g, 1, 300) for g in (raw.get('good') or [])[:3] if isinstance(g, str) and g],
                     'fixes': _fixes(raw.get('fixes'), valid),
                     'expressions': [{'text': _clean(e.get('text'), 1, 120), 'meaning': _clean(e.get('meaning') or '', 0, 120)}
                                     for e in (raw.get('expressions') or [])[:4] if isinstance(e, dict) and e.get('text')],
