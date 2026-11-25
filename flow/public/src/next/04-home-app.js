@@ -1,7 +1,11 @@
   /* ---------- 主屏 App (Safari 「添加到主屏幕」, r28): a way back, the keyboard, and the version after a long sleep ---------- */
   // Opened from the home screen there is no browser around the page: no back button, no swipe back, and the app may
   // stay in the background for days. html.home-app marks it (also the Android/desktop install, display-mode standalone).
-  const HOME_APP = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  // The iOS app (语流 20, ios/: Flow in a WKWebView, its user agent ending in FlowiOS/<version>) has no browser around
+  // the page either, but there navigator.standalone and display-mode are not standalone. It follows theme-color and the
+  // keyboard itself (the web view ends at the keyboard), so the two iOS work-arounds below stay off in it.
+  const IN_IOS_APP = /FlowiOS\//.test(navigator.userAgent);
+  const HOME_APP = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true || IN_IOS_APP;
   document.documentElement.classList.toggle('home-app', HOME_APP);
 
   // ---- 返回: in the top bar, in place of the logo, on every page but the four tabs and the first-visit page.
@@ -77,7 +81,7 @@
     // change) and stops at the keyboard itself, so its ∧ ∨ ✓ bar covers the field and its button (对话, 导入文章 —
     // tools/ios_sim_check.py, 2026-11-25). With room below the page and the field and its button already where the
     // keyboard will leave them in sight, iOS has nothing to move; fit() above then corrects what is left.
-    const IOS_KB = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const IOS_KB = !IN_IOS_APP && (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
     const makeRoom = el => {
       if (!IOS_KB || el.closest('#sheetCard') || root.clientHeight - vv.height > 80) return;  // a sheet stands on the keyboard; up already: fit()
       document.body.classList.add('kb-room');
