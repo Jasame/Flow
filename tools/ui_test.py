@@ -2623,6 +2623,26 @@ def review_side_run(pw):
         check(dev, '取消这次: back to every day at the hour', r['once'] is None, r)
         check(dev, 'no script errors (computer)', not errs, errs[:3])
         ctx.close()
+        # in an app (iOS, Android, desktop; FlowApp before the page): the reminder goes to its notifications, said for its device
+        ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
+        ctx.add_init_script("window.__synced = []; window.FlowApp = { v: 1, platform: 'macos', has: k => k === 'notify', notify: { ask: () => Promise.resolve(true), sync: r => window.__synced.push(r), permission: () => 'granted' } };")
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        pg.goto(BASE + '/#/vocab/plan', wait_until='load'); settle(pg); pg.wait_for_selector('#rApp', timeout=5000)
+        note = pg.text_content('#rAppNote') or ''
+        pg.click('#rApp'); pg.wait_for_timeout(500)
+        synced = pg.evaluate('window.__synced')
+        check(dev, 'in the desktop app on a Mac: 到点用 App 通知提醒 says 这台 Mac, and hands the reminder (with the forecast) to the app',
+              note.startswith('在这台 Mac 上') and synced and synced[-1].get('hour') == 20 and isinstance(synced[-1].get('forecast'), list), (note, synced[-1:]))
+        pg.click('#onceBtn'); pg.wait_for_selector('#oncePicks [data-at]', timeout=5000); pick = pg.get_attribute('#oncePicks [data-at]', 'data-at')
+        pg.click('#oncePicks [data-at]'); pg.wait_for_selector('#onceOk', timeout=5000)
+        synced = pg.evaluate('window.__synced')
+        check(dev, 'in the app: a time picked for the next review goes to its notifications too', synced and synced[-1].get('once') == float(pick), synced[-1:])
+        pg.click('#sheetCard [data-close]'); pg.wait_for_timeout(200); pg.click('#onceBtn')  # opened again: 取消这次 is there now
+        pg.wait_for_selector('#sheetCard #onceOff', timeout=5000); pg.click('#sheetCard #onceOff'); pg.wait_for_timeout(300)
+        check(dev, 'in the app: 取消这次 too', pg.evaluate('window.__synced')[-1].get('once') is None, pg.evaluate('window.__synced')[-1:])
+        check(dev, 'no script errors (app)', not errs, errs[:3])
+        ctx.close()
         # a phone: the swipe follows the side
         ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
