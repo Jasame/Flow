@@ -66,10 +66,7 @@ final class Reminders {
         if let on = r["app"] as? Bool { input.app = on }
         if (r["ask"] as? Bool) == true { _ = await ask() }
         if let h = Bridge.int(r["hour"]), ReminderPlan.hours.contains(h) { input.hour = h }
-        if r.keys.contains("once") {
-            input.once = Bridge.double(r["once"])
-            if let o = input.once { input.onceSeen = max(o, input.onceSeen ?? 0) }
-        }
+        if r.keys.contains("once") { input.once = Bridge.double(r["once"]) }
         if let f = r["forecast"] as? [Any] { input.forecast = f.compactMap(Bridge.int) }
         save()
         await refresh(force: true)
@@ -87,10 +84,7 @@ final class Reminders {
             input.planMinutes = a.minutes
         } else {
             if let h = a.hour { input.hour = h }
-            if let at = a.at {
-                input.once = at.timeIntervalSince1970
-                input.onceSeen = max(at.timeIntervalSince1970, input.onceSeen ?? 0)
-            }
+            if let at = a.at { input.once = at.timeIntervalSince1970 }
         }
         save()
         let outcome = await refresh(force: true)
@@ -139,6 +133,8 @@ final class Reminders {
 
     func schedule() async {
         let slots = await allowed() ? ReminderPlan.slots(input, now: Date()) : []
+        input = ReminderPlan.remember(input, scheduled: slots)
+        save()
         await clear()
         for s in slots { await add(s) }
     }

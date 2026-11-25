@@ -15,7 +15,7 @@ struct ReminderPlan {
     struct Input: Codable, Equatable {
         var hour = 20
         var once: Double?           // seconds since 1970, ahead (the server forgets it once past)
-        var onceSeen: Double?       // the latest once the app knew of, kept after it passed (that day's daily is skipped)
+        var onceSeen: Double?       // the latest once the app put on the phone (that day had words): kept after it passed, that day's daily is skipped
         var due = 0                 // today, still to review now
         var new = 0                 // today's new words still to learn
         var later = 0               // due today beyond the day's share (the mail counts them too)
@@ -110,10 +110,7 @@ struct ReminderPlan {
         var x = old
         if let r = j["reminder"] as? [String: Any] {
             if let h = Bridge.int(r["hour"]), hours.contains(h) { x.hour = h }
-            if r.keys.contains("once") {  // an older server does not know it: what the app had stays
-                x.once = Bridge.double(r["once"])
-                if let o = x.once { x.onceSeen = max(o, x.onceSeen ?? 0) }
-            }
+            if r.keys.contains("once") { x.once = Bridge.double(r["once"]) }  // an older server does not know it: the app's stays
         }
         x.due = Bridge.int(j["due"]) ?? 0
         x.new = Bridge.int(j["new"]) ?? 0
@@ -125,6 +122,15 @@ struct ReminderPlan {
         let paused = (j["new_paused"] as? Bool) ?? false
         x.dailyNew = bookOn && !paused ? max(0, Bridge.int(plan?["daily_new"]) ?? 0) : 0
         x.hasWords = (Bridge.int(j["total"]) ?? 0) > 0
+        return x
+    }
+
+    /// After scheduling: a once that went on the phone is remembered, so once it has passed (and the server forgot it) that
+    /// day's daily reminder still stays away. A once with nothing to review was not scheduled: it lapses, and that day's
+    /// hour comes as usual (vocab_service.send_reminders).
+    static func remember(_ x: Input, scheduled: [Slot]) -> Input {
+        var x = x
+        if let o = x.once, scheduled.contains(where: { $0.id == "review-once" }) { x.onceSeen = max(o, x.onceSeen ?? 0) }
         return x
     }
 

@@ -132,6 +132,23 @@ final class ReminderPlanTests: XCTestCase {
         XCTAssertEqual(s.first?.id, "review-2026-11-26")
     }
 
+    @MainActor func testOnlyAOnceThatWasScheduledTakesItsDay() {
+        // 15:00 chosen with words: scheduled and remembered; after it passed, 20:00 that day stays away
+        let once = at(25, 15)
+        var x = input { $0.once = once.timeIntervalSince1970 }
+        x = ReminderPlan.remember(x, scheduled: ReminderPlan.slots(x, now: at(25, 9), calendar: cal))
+        XCTAssertEqual(x.onceSeen, once.timeIntervalSince1970)
+        x.once = nil  // the server forgot it
+        XCTAssertFalse(ReminderPlan.slots(x, now: at(25, 16), calendar: cal).map(\.id).contains("review-2026-11-25"))
+        // 15:00 chosen with nothing to review: not scheduled, not remembered; new words due by 20:00 still get their reminder
+        var y = input { $0.once = once.timeIntervalSince1970; $0.due = 0; $0.new = 0; $0.later = 0 }
+        y = ReminderPlan.remember(y, scheduled: ReminderPlan.slots(y, now: at(25, 9), calendar: cal))
+        XCTAssertNil(y.onceSeen)
+        y.once = nil
+        y.due = 4
+        XCTAssertTrue(ReminderPlan.slots(y, now: at(25, 16), calendar: cal).map(\.id).contains("review-2026-11-25"))
+    }
+
     @MainActor func testOnceWithNothingToReviewDoesNotCome() {
         // tomorrow 8:00 chosen, nothing due then and no book: no reminder then, and none before it
         let s = ReminderPlan.slots(input { $0.once = self.at(26, 8).timeIntervalSince1970; $0.due = 0; $0.forecast = [0, 0, 0, 0, 0, 0, 0]; $0.hasWords = false },
@@ -171,10 +188,8 @@ final class ReminderPlanTests: XCTestCase {
         XCTAssertEqual(x.dailyNew, 10)
         XCTAssertTrue(x.hasWords)
         XCTAssertEqual(x.planHour, 8, "the app's own setting is kept")
-        XCTAssertEqual(x.onceSeen, 1_795_600_000)
         let cleared = ReminderPlan.input(from: ["reminder": ["hour": 21, "once": NSNull()]], keeping: x)
         XCTAssertNil(cleared.once)
-        XCTAssertEqual(cleared.onceSeen, 1_795_600_000, "the day of a once that came is remembered")
         let older = ReminderPlan.input(from: ["reminder": ["hour": 21]], keeping: x)
         XCTAssertEqual(older.once, 1_795_600_000, "a server without once leaves the app's alone")
         let finished = ReminderPlan.input(from: ["plan": ["daily_new": 10], "book": ["done": true]], keeping: x)
