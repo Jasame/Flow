@@ -32,7 +32,7 @@
 .guide-body kbd{font-family:inherit;font-size:13px;padding:1px 6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;background:var(--paper)}
 .guide-hit{background:var(--mark)}
 .guide-body pre.cmd{margin:8px 0;padding:10px 12px;border-radius:10px;background:var(--sunk);overflow-x:auto;font-size:13px;line-height:1.5}
-.ab .up{color:var(--green-ink);font-weight:700}
+.ab .up{color:var(--ok-ink);font-weight:700}
 .guide-body table{width:100%;border-collapse:collapse;font-size:14px;margin:10px 0}
 .guide-body th,.guide-body td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
 .guide-body th{font-weight:600;color:var(--muted);font-size:13px}

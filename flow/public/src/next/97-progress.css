@@ -19,7 +19,7 @@
 .wk-tile b small{font-size:13px;font-weight:600;color:var(--muted);margin-left:1px}
 .wk-tile .tiny{line-height:1.35}
 .wk-tile .sub{color:var(--muted)}
-.wk-tile .up{color:var(--green-ink);font-weight:600}
+.wk-tile .up{color:var(--ok-ink);font-weight:600}
 .wk-tile.goal.met b,.wk-tile.goal.met .sub{color:var(--green-ink)}
 .wk-tile.goal.met .sub{font-weight:600}
 .wk-foot{display:flex;align-items:center;gap:10px;min-width:0}

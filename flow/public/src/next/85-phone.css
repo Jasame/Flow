@@ -93,6 +93,6 @@
 .pit{display:grid;gap:4px;padding:12px 14px;border-radius:12px;background:var(--paper)}
 .pit .bad{color:var(--red);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--red) 55%,transparent);font-family:var(--serif)}
 .pit .bad span,.pit .good span{text-decoration:none;display:inline-block;font-family:var(--sans);font-weight:700;margin-right:4px}
-.pit .good{color:var(--green-ink);font-family:var(--serif);font-size:16.5px}
+.pit .good{color:var(--ok-ink);font-family:var(--serif);font-size:16.5px}
 .gq .ans{background:var(--paper)}
 .gq .fb{font-size:14px;line-height:1.55}

@@ -21,7 +21,8 @@ subprocess.run([sys.executable, str(ROOT.parent / 'tools' / 'build_front.py')], 
 tmp = tempfile.mkdtemp(prefix='flow-ui-')
 # Mail is on, as in production (sign-up, code login and a forgotten password then use emailed codes): messages are
 # written to <data>/outbox as files, never sent.
-os.environ.update({'FLOW_DATA_DIR': tmp, 'FLOW_COOKIE_SECURE': '0', 'FLOW_MAIL_OUTBOX': os.path.join(tmp, 'outbox'), 'FLOW_AI_PROVIDER': 'openai', 'FLOW_AI_KEY': 'ui-test', 'FLOW_AI_MODEL': 'ui-test',
+os.environ.update({'FLOW_TOUR_FROM': '4102444800',  # 新手引导 for no account made here, but the two given theirs below
+                   'FLOW_DATA_DIR': tmp, 'FLOW_COOKIE_SECURE': '0', 'FLOW_MAIL_OUTBOX': os.path.join(tmp, 'outbox'), 'FLOW_AI_PROVIDER': 'openai', 'FLOW_AI_KEY': 'ui-test', 'FLOW_AI_MODEL': 'ui-test',
                    'FLOW_AI_URL': 'https://ai.invalid/v1/chat/completions', 'FLOW_AI_USER_DAILY_LIMIT': '500', 'FLOW_AI_DAILY_LIMIT': '5000', 'FLOW_AI_AUDIO': '1'})
 # Data word books (专四、专八、中考、学术…): small fixtures instead of flow/corpus_data/wordbooks*.json, so the picker
 # always shows the same groups and books whatever data files the checkout has.
@@ -158,6 +159,7 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             'a11y': ('B1', 'work', ['work', 'science']),  # the screen-reader and contrast audit (a11y_run)
             'pile': ('B1', 'work', ['work', 'science']),  # back from a break: reviews piled up (backlog_run)
             'side': ('B1', 'work', ['work']),  # 「认识」放在 and 这次什么时候复习 (review_side_run): 20 words due
+            'nowords': ('B1', 'work', ['work']),  # settings done, no words and no word book yet: the word page's first look (review_side_run)
             'screen': ('B1', 'work', ['work']),  # 复习 and 测词汇量 fill one phone screen (one_screen_run): as 'side'
             'sprint': ('B1', 'exam', ['campus']),  # 考试冲刺: 四级 in 19 days, four practice sets done (sprint_run; the guide's exam pictures)
             'home-app': ('B1', 'work', ['work', 'science']),  # 主屏 App (home_app_run): the iPhone home-screen app
@@ -170,7 +172,8 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             'teacher': ('B1', 'work', ['work']), 'student': ('B1', 'work', ['work']),  # 班级试用 (class_run)
             'ageless': ('B1', 'work', ['work']), 'young': ('B1', 'work', ['work']),
             'unasked': ('B1', 'work', ['work']),  # 数据存放在香港 (privacy_run): an older account, not asked yet
-            'veteran': ('B1', 'work', ['work'])}  # 班级试用问卷 (trial_survey_run): in the class for 25 days  # 年龄段 (privacy_run): none yet; 不满 14 岁 without a guardian's agreement
+            'veteran': ('B1', 'work', ['work']),  # 班级试用问卷 (trial_survey_run): in the class for 25 days  # 年龄段 (privacy_run): none yet; 不满 14 岁 without a guardian's agreement
+            'tour': ('B1', 'work', ['work', 'science']), 'tour-teacher': ('B1', 'work', ['work'])}  # 新手引导 (tour_run): theirs still to see
 out = {}
 with app.db() as c:
     for name, (level, goal, themes) in LEARNERS.items():
@@ -259,6 +262,8 @@ with app.db() as c:
                 c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,rank,stability,difficulty,last,reps) "
                           "VALUES(?,?,?,?,'','word',?,?,'review','book',?,1,5,?,1)", (uid, d[w]['word'], w, d[w]['meaning'][:300], now - 20 * 86400, now - 3600 - k, rank, now - 2 * 86400))
             c.execute("INSERT INTO next_reviews(user_id,card,rating,created) VALUES(?,0,'good',?)", (uid, now - 3 * 86400))  # reviewed before the move
+        if name == 'nowords':  # a new account's word page: no cards, no word book
+            c.execute('DELETE FROM next_cards WHERE user_id=?', (uid,)); c.execute('DELETE FROM next_vocab_plans WHERE user_id=?', (uid,))
         if name == 'pile':  # 60 word reviews due, more than 3 x the 10 new words a day: no new words today (ux audit 1.1, 11)
             # 60 minutes a day: the words' share of the day's time (time_budget, r28 第 1 段: 15 minutes) holds all 60
             c.execute('UPDATE next_profiles SET minutes=60 WHERE user_id=?', (uid,))
@@ -275,6 +280,10 @@ with app.db() as c:
     c.execute("UPDATE users SET age_band='u14', age_set=? WHERE username='ui-young'", (time.time(),))
     # 数据存放在香港 (privacy_service): every learner agreed at sign-up, but ui-unasked (the page asks it; privacy_run)
     c.execute("UPDATE users SET storage_ok=?, terms_ok=?, terms_version=? WHERE username!='ui-unasked'", (time.time(), time.time(), __import__('privacy_service').CONSENT_VERSION))
+    # 新手引导 (tour_service): no account here gets it (FLOW_TOUR_FROM is far ahead) but these two, given theirs (tour_run)
+    c.execute("UPDATE users SET role='teacher' WHERE username='ui-tour-teacher'")
+    for who, tour in (('tour', 'learner'), ('tour-teacher', 'teacher')):
+        c.execute("INSERT INTO next_tours(user_id, tour, result, created) VALUES(?,?,'pending',?)", (out[who]['id'], tour, time.time()))
     # 班级试用: ui-teacher's class with 5 members who studied and got grammar points wrong this week (class_run)
     now = time.time()
     cid = c.execute("INSERT INTO classes(name, code, teacher, by, created, updated) VALUES('高一（3）班', 'UICLS2', ?, 'ui', ?, ?)", (out['teacher']['id'], now, now)).lastrowid

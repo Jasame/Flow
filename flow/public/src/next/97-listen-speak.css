@@ -29,7 +29,7 @@
 .ielts-crit .crit{display:grid;gap:3px}
 .ielts-crit .ab{grid-template-columns:5.5em minmax(0,1fr) 3em}
 .ielts-crit .ab .nm{white-space:nowrap}
-.ielts-crit .up{color:var(--green-ink);font-weight:700}
+.ielts-crit .up{color:var(--ok-ink);font-weight:700}
 .ielts-model{font-size:16px;line-height:1.6;margin:0}
 /* a phone held sideways: while speaking, the card stays at the top and the clock at the foot of the screen */
 @media (max-height:500px) and (orientation:landscape){
