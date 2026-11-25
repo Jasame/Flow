@@ -501,8 +501,8 @@ def daily_texts(c):
     """(id, sentences) of the newest 今日热点 written in the last 36 hours and not narrated; (None, []) otherwise."""
     import next_service as nx
     row = c.execute("SELECT id, content, created FROM lab_packs WHERE origin='daily' ORDER BY created DESC LIMIT 1").fetchone()
-    if not row or row[2] < time.time() - 36 * 3600:
-        return None, []
+    if not row or row[2] < time.time() - 36 * 3600 or __import__('daily_service').retired(json.loads(row[1])):
+        return None, []  # none new, or 今日热点 news (paused 2026-11-25)
     try:
         if nx.audio_index()[0].get(row[0]):
             return row[0], []  # it has a recording: nothing to make

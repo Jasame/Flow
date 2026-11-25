@@ -1943,7 +1943,7 @@ def class_run(pw):
         pg.fill('#authForm [name=email]', 'ui-teacher-new@example.com'); pg.click('#authForm [data-send]'); pg.wait_for_timeout(800)
         mail = sorted(Path(CFG['outbox']).glob('*.txt'), key=lambda f: f.stat().st_mtime)[-1].read_text(encoding='utf-8')
         pg.fill('#authForm [name=code]', re.search(r'验证码：(\d{6})', mail).group(1))
-        pg.fill('#authForm [name=username]', 'ui-new-teacher'); pg.fill('#authForm [name=password]', 'correct horse 1')
+        pg.fill('#authForm [name=username]', 'ui-new-teacher'); pg.fill('#authForm [name=password]', 'correct horse 1'); pg.check('#authForm [name=storage]')
         pg.click('#authForm [type=submit]'); pg.wait_for_selector('#tNew', timeout=8000); settle(pg)
         tab = pg.text_content('[data-nav="today"] span') or ''
         check(dev, '老师账号: after signing up, the home is 我的班级 and the first tab says 班级', '我的班级' in (pg.text_content('h1') or '') and tab == '班级', tab)
@@ -2021,6 +2021,29 @@ def privacy_run(pw):
         gp.screenshot(path=str(OUT / 'privacy-signup.png'))
         gp.click('#authForm .agechip:has-text("14–17 岁")'); gp.wait_for_timeout(150)
         check(dev, '注册: another band hides the tick again', not gp.is_visible('#authForm .guard'))
+        gp.click('#authForm [type=submit]'); gp.wait_for_timeout(200)
+        no_store = gp.text_content('#authErr') or ''
+        check(dev, '注册: the separate 香港 tick is required, and said before any request', '香港' in no_store and gp.is_visible('#authForm [name=storage]'), no_store)
+        ctx.close()
+        # 数据存放在香港 (privacy_service): an older account is asked on a page of its own, before any other page;
+        # 不同意 pauses it (export, delete, sign out, agree again), and ticking goes on
+        ctx = browser.new_context(**phone)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['unasked']['token'], 'url': BASE}])
+        pg = ctx.new_page(); pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.goto(BASE + '/#/', wait_until='networkidle'); pg.wait_for_selector('#stoF', timeout=8000)
+        asked = '补一个同意' in (pg.text_content('h1') or '') and pg.is_visible('#stoNo')
+        pg.screenshot(path=str(OUT / 'privacy-storage-ask.png'))
+        pg.goto(BASE + '/#/cards', wait_until='networkidle'); pg.wait_for_selector('#stoF', timeout=8000)
+        other = '补一个同意' in (pg.text_content('h1') or '')
+        pg.click('#stoNo'); pg.wait_for_selector('h1:has-text("这个账号已暂停")', timeout=8000)
+        paused = pg.is_visible('a[href="/api/next/export/records.json"]') and pg.is_visible('#stoDel') and pg.is_visible('#stoOut')
+        pg.screenshot(path=str(OUT / 'privacy-storage-paused.png'))
+        pg.click('#stoF [type=submit]'); pg.wait_for_timeout(200)
+        err = pg.text_content('#stoErr') or ''
+        pg.check('#stoF [name=storage]'); pg.click('#stoF [type=submit]'); pg.wait_for_timeout(1500); settle(pg)
+        back = pg.query_selector('#stoF') is None
+        check(dev, '数据存放: an older account is asked first on every page, 不同意 pauses it, ticking goes on',
+              asked and other and paused and '勾选' in err and back, (asked, other, paused, err, back))
         ctx.close()
         # an older account without a band: asked once, the question stays until answered
         ctx = browser.new_context(**phone)
@@ -2534,8 +2557,8 @@ def progress_run(pw):
                         f"{acc['rate']}%" if acc['rate'] is not None else (f"{acc['right']}/{acc['total']}" if acc['total'] else '—'), f"{hb['done']}/{hb['goal']}天"]
                 check(dev, f'{tag}: 这周进步 sits under the plan, the week chip by the greeting', card and card['below'] and card['chip'] and card['inView'], card)
                 top = pg.evaluate(TOP_JS)
-                check(dev, f'{tag}: 今日 runs 好句, 热点, the plan, 这周进步 from the top (the plan first on a phone held sideways), nothing cut off or wider than the screen',
-                      top['order'] == (['plan', 'lineCard', 'news', 'week'] if h < 500 else ['lineCard', 'news', 'plan', 'week']) and not top['clipped'] and top['wide'] <= 0 and (not touch or top['small'] == []), top)
+                check(dev, f'{tag}: 今日 runs 好句, the plan, 这周进步 from the top (今日热点 paused 2026-11-25, no card) (the plan first on a phone held sideways), nothing cut off or wider than the screen',
+                      top['order'] == (['plan', 'lineCard', 'week'] if h < 500 else ['lineCard', 'plan', 'week']) and not top['clipped'] and top['wide'] <= 0 and (not touch or top['small'] == []), top)
                 check(dev, f'{tag}: its four numbers are the learner\'s own (as the server counts them)', card and card['values'] == want, (card and card['values'], want))
                 path = home['path']; plan = pg.evaluate(PLAN_JS)
                 grp = {g: [x for x in path['steps'] if x.get('group', 'must') == g] for g in ('must', 'extra', 'week')}
@@ -3218,6 +3241,41 @@ def home_app_run(pw):
             check(dev, f'{label}: a home app — 返回 on a sub-page, the logo on a tab page, no 「添加到桌面」',
                   home and bk and bk['label'] and tab is None and not install, (home, bk, tab, install))
             ctx.close()
+        # the Android app (语流 21): its WebView gets shorter for the keyboard, nothing is covered, so a field near the end
+        # and its button would sit below the page's end (登录 under the keyboard): both are brought into sight
+        android = dict(viewport={'width': 393, 'height': 852}, is_mobile=True, has_touch=True, device_scale_factor=3, locale='zh-CN', bypass_csp=True,
+                       user_agent='Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Mobile Safari/537.36 FlowAndroid/1.0')
+        SIGHT = """([f, b]) => { const r = document.querySelector(f).getBoundingClientRect(), bt = document.querySelector(b), q = bt && bt.getBoundingClientRect();
+          return { field: [Math.round(r.top), Math.round(r.bottom)], button: q ? Math.round(q.bottom) : null, h: innerHeight, open: document.body.classList.contains('kb-open') }; }"""
+        for where, page, opener, field, button in (('导入文章', '#/import', None, '#view textarea', '#view .btn.primary'),
+                                                   ('背词计划 → 导入词表 (a sheet)', '#/vocab/plan', '#impBook', '#impText', '#impGo')):
+            ctx = browser.new_context(**android); ctx.add_init_script("window.FlowApp = { platform: 'android' }")
+            ctx.add_cookies([{'name': 'flow_session', 'value': tok, 'url': BASE}])
+            pg = ctx.new_page(); pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg)
+            go(pg, page)
+            if opener:
+                pg.wait_for_selector(opener, timeout=8000); pg.click(opener)
+            pg.wait_for_selector(field, timeout=8000); pg.wait_for_timeout(300)
+            pg.evaluate(f"document.querySelector({json.dumps(field)}).scrollIntoView({{block: 'start'}})"); pg.focus(field); pg.wait_for_timeout(200)
+            pg.set_viewport_size({'width': 393, 'height': 852 - 330}); pg.wait_for_timeout(600)  # the keyboard: the WebView 330 px shorter
+            got = pg.evaluate(SIGHT, [field, button])
+            check(dev, f'the Android app, {where}: with the page shorter for the keyboard, the field and its button in sight',
+                  got['button'] is not None and got['button'] <= got['h'] and got['field'][0] >= 0 and got['field'][1] <= got['h'] and got['open'], got)
+            ctx.close()
+        # the 内测版 in one of Flow's apps: the learner installed it on purpose, and flowlang.cn would open the system
+        # browser — the line stays without its link, the once-per-phone sheet is not shown (a browser still gets both)
+        BETA = "new MutationObserver((m, o) => { if (document.documentElement) { document.documentElement.dataset.channel = 'beta'; o.disconnect(); } }).observe(document, {childList: true, subtree: true})"
+        seen = {}
+        for label, app in (('in an app', True), ('in a browser', False)):
+            ctx = browser.new_context(viewport={'width': 393, 'height': 852}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True)
+            ctx.add_init_script(BETA)
+            if app:
+                ctx.add_init_script("window.FlowApp = { platform: 'android' }")
+            pg = ctx.new_page(); pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg); pg.wait_for_timeout(1200)
+            seen[label] = pg.evaluate("() => ({ bar: !!document.getElementById('betaBar'), link: !!document.querySelector('#betaBar a'), sheet: !document.getElementById('sheet').hidden && /内测版/.test(document.getElementById('sheetCard').innerText) })")
+            ctx.close()
+        check(dev, 'the 内测版 in an app: the line without 「去正式版」, no sheet (a browser: both, as before)',
+              seen['in an app'] == {'bar': True, 'link': False, 'sheet': False} and seen['in a browser'] == {'bar': True, 'link': True, 'sheet': True}, seen)
     finally:
         browser.close()
 

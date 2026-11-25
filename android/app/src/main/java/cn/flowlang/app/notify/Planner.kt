@@ -20,6 +20,8 @@ import java.time.temporal.ChronoUnit
  *   daily one that day; after it, every day again. A once with nothing to review lapses (that day's hour comes as usual).
  * - The day's plan (我的 → 每天提醒, chosen in the app): every day at its hour; a word reminder at the same time is left out
  *   (the plan has the words in it). It needs no account.
+ * - An account that has not agreed to 数据存放在香港 (403 code storage): no reminders at all, the plan's neither, until the
+ *   site answers again (the site sends that account none either, privacy_service).
  * No Android here, so the JVM tests can check it.
  */
 object Planner {
@@ -44,11 +46,12 @@ object Planner {
         // The learner turned the app's reminders on (notify.ask / 「到点用 App 通知提醒」). Off until then on Android: before
         // Android 13 the phone allows notifications without asking, so that cannot be the question (iOS: it is).
         var app: Boolean = false,
+        var paused: Boolean = false,    // the account has not agreed to 数据存放在香港 (403 code storage): no reminders at all
     ) {
         fun toJson(): JSONObject = JSONObject().put("hour", hour).put("once", once ?: JSONObject.NULL).put("onceSeen", onceSeen ?: JSONObject.NULL)
             .put("due", due).put("new", new).put("later", later).put("minutes", minutes).put("forecast", JSONArray(forecast))
             .put("dailyNew", dailyNew).put("hasWords", hasWords).put("planHour", planHour ?: JSONObject.NULL).put("planMinutes", planMinutes)
-            .put("app", app)
+            .put("app", app).put("paused", paused)
 
         companion object {
             fun fromJson(o: JSONObject?): Input {
@@ -58,7 +61,7 @@ object Planner {
                     due = o.optInt("due"), new = o.optInt("new"), later = o.optInt("later"), minutes = o.optInt("minutes"),
                     forecast = o.optJSONArray("forecast").ints(), dailyNew = o.optInt("dailyNew"), hasWords = o.optBoolean("hasWords"),
                     planHour = if (o.isNull("planHour") || !o.has("planHour")) null else o.optInt("planHour"),
-                    planMinutes = o.optInt("planMinutes", 10), app = o.optBoolean("app", false),
+                    planMinutes = o.optInt("planMinutes", 10), app = o.optBoolean("app", false), paused = o.optBoolean("paused", false),
                 )
             }
         }
@@ -67,7 +70,7 @@ object Planner {
     data class Slot(val id: String, val at: Long, val title: String, val body: String, val path: String)
 
     fun slots(x: Input, now: Instant, zone: ZoneId = ZONE): List<Slot> {
-        if (!x.app) return emptyList()
+        if (!x.app || x.paused) return emptyList()
         val out = ArrayList<Slot>()
         val today = now.atZone(zone).toLocalDate()
         fun dayOf(i: Instant) = ChronoUnit.DAYS.between(today, i.atZone(zone).toLocalDate()).toInt()
@@ -133,6 +136,7 @@ object Planner {
         val paused = j.optBoolean("new_paused", false)
         x.dailyNew = if (bookOn && !paused) (plan?.optInt("daily_new", 0) ?: 0).coerceAtLeast(0) else 0
         x.hasWords = j.optInt("total", 0) > 0
+        x.paused = false  // the site answered: the account is in use again
         return x
     }
 
@@ -145,6 +149,13 @@ object Planner {
 
     /** Signed out: no word reminders for an account that is not here (the day's plan needs none). */
     fun signedOut(old: Input) = Input(planHour = old.planHour, planMinutes = old.planMinutes, app = old.app)
+
+    /**
+     * The account has not agreed to 数据存放在香港 (an older account until it answers, a paused one after 不同意): every
+     * signed-in request is 403 code storage and the site sends it no reminders; neither does the app, not even the day's
+     * plan. The hours are kept: the next answer from the site brings them back.
+     */
+    fun paused(old: Input) = signedOut(old).copy(paused = true)
 
     private fun secs(s: Double): Instant = Instant.ofEpochMilli((s * 1000).toLong())
     private fun JSONObject.optDoubleOrNull(k: String): Double? = if (!has(k) || isNull(k)) null else optDouble(k).takeIf { !it.isNaN() }

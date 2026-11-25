@@ -1,0 +1,17 @@
+// Release: opens the 正式版 (flowlang.cn). For TestFlight and, later, the App Store.
+#include "Shared.xcconfig"
+// your team (Config/Local.xcconfig) — before the settings below, so its Beta bundle id never reaches Release
+#include? "Local.xcconfig"
+
+FLOW_SITE_URL = https:/$()/flowlang.cn
+FLOW_SITE_HOST = flowlang.cn
+FLOW_BOUND_EXTRA = www.flowlang.cn
+FLOW_BUNDLE_ID = cn.flowlang.app
+FLOW_DISPLAY_NAME = 语流
+
+SWIFT_COMPILATION_MODE = wholemodule
+SWIFT_OPTIMIZATION_LEVEL = -O
+DEBUG_INFORMATION_FORMAT = dwarf-with-dsym
+VALIDATE_PRODUCT = YES
+ENABLE_NS_ASSERTIONS = NO
+MTL_ENABLE_DEBUG_INFO = NO
