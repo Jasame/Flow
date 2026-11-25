@@ -9,11 +9,13 @@ import WebKit
 final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
     static let name = "flow"
     static let version = 1
-    static let features = ["audio", "rec", "notify"]
+    static let features = ["audio", "rec", "notify", "settings"]
 
     weak var webView: WKWebView?
     /// the page's 主题色 changed (Accent): the app's own controls take it
     var onAccent: ((String) -> Void)?
+    /// 我的 → 设置 → iOS 专属功能: the app's own page (FeaturesView); false when it cannot be shown now
+    var onSettings: (() -> Bool)?
     let player: LongPlayer
     let recorder: Recorder
     let reminders: Reminders
@@ -91,6 +93,10 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
             Accent.save(name)
             onAccent?(name)
             return true
+        case "app.settings":  // 我的 → 设置 → 「iOS 专属功能」 (docs/native-bridge.md §2 settings)
+            return ["ok": onSettings?() ?? false]
+        case "app.features":  // which of them this phone has, and whether each is on
+            return Features.state
 
         case "audio.play":
             guard let r = LongPlayer.Request(json: a, base: webView?.url ?? AppConfig.site) else { return ["ok": false, "why": "bad request"] }
@@ -120,6 +126,18 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
             return true
         #if BETA
         case "notify.test": return await reminders.testSchedule(a)
+        case "audio.remote":  // the lock screen's buttons, for tests (a simulator has no Now Playing to press)
+            switch a["cmd"] as? String {
+            case "rate": player.setRate(Float(Self.double(a["v"]) ?? 1))
+            case "repeat": player.setRepeatOne((a["on"] as? Bool) ?? true)
+            case "back": player.skipBack(Self.double(a["v"]) ?? 5)
+            default: return ["ok": false, "why": "bad command"]
+            }
+            return player.snapshot()
+        case "app.feature":  // a switch of 「iOS 专属功能」, for tests
+            guard let f = (a["id"] as? String).flatMap(Feature.init(rawValue:)) else { return ["ok": false, "why": "no such feature"] }
+            Features.set(f, (a["on"] as? Bool) ?? f.defaultOn)
+            return Features.state
         #endif
         default:
             return ["ok": false, "why": "unknown command"]

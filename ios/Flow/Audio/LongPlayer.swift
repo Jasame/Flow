@@ -107,6 +107,7 @@ final class LongPlayer: NSObject {
     private var resumeAt: Double?      // where 继续 starts a recording that had to be loaded again (a new line, after a failure)
     private var seeking = 0            // seeks on their way: the time observer still reports the old second meanwhile
     private var serverVoiceOff: [String: String]?  // the server said no for this text (switched off, the day's share): no more asking
+    private var beforeRepeat: (loop: Bool, rep: Int)?  // 单句循环 from the lock screen: the page's 复读 to go back to
     private var player = AVPlayer()
     private var timeObserver: Any?
     private var statusWatch: NSKeyValueObservation?
@@ -152,6 +153,19 @@ final class LongPlayer: NSObject {
             let item = (note.object as AnyObject?).map(ObjectIdentifier.init)
             MainActor.assumeIsolated { self?.itemFailed(item) }
         }
+        if #available(iOS 27, *) {
+            // iOS 27 says when the sound may go on again (a call ended, Siri done), and why it was taken away
+            nc.addObserver(forName: AVAudioSession.resumptionRecommendationNotification, object: nil, queue: .main) { [weak self] note in
+                let go = (note.userInfo?[AVAudioSession.resumptionContextKey] as? AVAudioSession.ResumptionContext)?.recommendation == .shouldResume
+                MainActor.assumeIsolated { self?.resumption(go) }
+            }
+            nc.addObserver(forName: AVAudioSession.didBecomeInactiveNotification, object: nil, queue: .main) { [weak self] note in
+                let c = note.userInfo?[AVAudioSession.deactivationContextKey] as? AVAudioSession.DeactivationContext
+                let taken = c?.source == .system && c?.interruptionContext.map { $0.reason != .appWasSuspended } ?? false
+                MainActor.assumeIsolated { if taken, let self, self.state == .playing || self.state == .waiting { self.pause(why: .interrupted) } }
+            }
+            LockScreen27.player = self
+        }
         speech.done = { [weak self] tok in self?.speechDone(tok) }
         RemoteCommands.install(self)
     }
@@ -174,6 +188,13 @@ final class LongPlayer: NSObject {
 
     func play(_ r: Request) async -> [String: Any] {
         stopNow(save: true, why: nil)  // another text: where the last one was is kept
+        if let src = r.src {
+            if let v = Packs.voice(of: src) { UserDefaults.standard.set(v, forKey: "packs.voice") }  // the next 离线朗读包 in it
+            // no connection and no copy in the app: the page plays it from its own (存到手机, sw.js), as in Safari
+            if Self.handBack(kept: Packs.shared.local(for: src) != nil, online: Packs.shared.online) {
+                return ["ok": false, "why": "offline", "message": "现在没网，这篇的录音没存到 App 里，先在页面里放"]
+            }
+        }
         token += 1
         let tok = token
         var r = r  // the page decides where to start (「从第 N 句继续」); the app's own copy is for progress(key)
@@ -256,6 +277,81 @@ final class LongPlayer: NSObject {
 
     func toggle() { if state == .paused { resume(why: .remote) } else { pause(why: .remote) } }
 
+    /// A recording with no connection: the app hands it back to the page unless it has the file itself (离线朗读包).
+    nonisolated static func handBack(kept: Bool, online: Bool) -> Bool { !kept && !online }
+
+    // MARK: iOS 27's lock screen (LockScreen27): 语速, 单句循环, 退回 5 秒
+
+    var repeatOne: Bool { beforeRepeat != nil }
+
+    /// 语速 from the lock screen: as the page's chip; the page hears it with the next `audio` (rate)
+    func setRate(_ v: Float) {
+        guard req != nil else { return }
+        set(["rate": Double(v)])
+        set(state, why: .remote)
+    }
+
+    /// 单句循环 on: the sentence playing now, again and again, from its start; off: the page's 复读 as it was, going on
+    /// from where it is. The page hears it with the next `audio` (rep, loop).
+    func setRepeatOne(_ on: Bool) {
+        guard var r = req, on != repeatOne else { return }
+        if on {
+            beforeRepeat = (r.loop, r.rep)
+            var i = index
+            if r.straight, let at = Self.sentence(at: player.currentTime().seconds, in: r.sentences) { i = at }
+            r.loop = true
+            r.rep = 0
+            req = r
+            if state == .playing || state == .waiting {
+                jump(to: i)
+            } else {  // paused: 继续 starts that sentence (a recording, too, now that it goes sentence by sentence)
+                index = i
+                reps = 0
+                midSentence = false
+                resumeAt = nil
+                save()
+                set(state, why: .remote)
+            }
+            return
+        }
+        endRepeatOne(&r)
+        req = r
+        set(state, why: .remote)
+    }
+
+    /// back to the page's 复读; a recording straight through again plays past the end of this sentence. true: it was on
+    @discardableResult
+    private func endRepeatOne(_ r: inout Request) -> Bool {
+        guard let b = beforeRepeat else { return false }
+        beforeRepeat = nil
+        r.loop = b.loop
+        r.rep = b.rep
+        reps = 0
+        if r.straight { player.currentItem?.forwardPlaybackEndTime = .invalid }
+        return true
+    }
+
+    /// 退回 5 秒: a recording straight through goes back that much; read sentence by sentence, this sentence again
+    func skipBack(_ secs: Double) {
+        guard let r = req else { return }
+        if r.straight && !dead {
+            let t = max(0, player.currentTime().seconds.finiteOr(0) - max(1, secs))
+            scrub(to: t)
+            return
+        }
+        if state == .paused {
+            midSentence = false
+            resumeAt = nil
+            reps = 0
+            set(state, why: .remote)
+        } else {
+            jump(to: index)
+        }
+    }
+
+    /// 「锁屏上的学习按钮」 switched while a text plays: the lock screen the other way from now on
+    func lockScreenChanged() { if req != nil { set(state) } }
+
     /// previous / next sentence (the lock screen, the page)
     func step(_ d: Int) {
         guard let r = req else { return }
@@ -314,7 +410,11 @@ final class LongPlayer: NSObject {
     /// 复读 changed on the page while it plays: rep (times each sentence), gap, rate
     func set(_ o: [String: Any]) {
         guard var r = req else { return }
-        if let v = Bridge.int(o["rep"]) { r.rep = max(0, v) }
+        var ended = false
+        if let v = Bridge.int(o["rep"]) {
+            ended = endRepeatOne(&r)  // the page's 复读 changed: the lock screen's 单句循环 ends
+            r.rep = max(0, v)
+        }
         if let g = o["gap"] as? [Any] { r.gaps = g.compactMap(Bridge.int) } else if let g = Bridge.int(o["gap"]) { r.gaps = [g] }
         if let v = Bridge.double(o["rate"]) {
             r.rate = Float(min(2, max(0.5, v)))
@@ -322,6 +422,7 @@ final class LongPlayer: NSObject {
             if player.rate > 0 { player.rate = r.rate }
         }
         req = r
+        if ended { set(state) }  // the lock screen's repeat button shows it off again
     }
 
     func stop(why: Why) { stopNow(save: true, why: why) }
@@ -337,6 +438,8 @@ final class LongPlayer: NSObject {
             o["title"] = r.title
             if r.src != nil { o["t"] = player.currentTime().seconds.finiteOr(0) }
             o["rate"] = r.rate
+            o["rep"] = r.rep
+            o["loop"] = r.loop
         }
         if let why { o["why"] = why }
         return o
@@ -356,8 +459,13 @@ final class LongPlayer: NSObject {
     }
 
     private func load(_ src: URL) async {
-        let cookies = AppConfig.isOwn(src) ? await site.cookies(for: src) : []
-        let asset = AVURLAsset(url: src, options: [AVURLAssetHTTPCookiesKey: cookies])
+        let asset: AVURLAsset
+        if let kept = Packs.shared.local(for: src) {  // 离线朗读包: the copy on this phone, the same recording
+            asset = AVURLAsset(url: kept)
+        } else {
+            let cookies = AppConfig.isOwn(src) ? await site.cookies(for: src) : []
+            asset = AVURLAsset(url: src, options: [AVURLAssetHTTPCookiesKey: cookies])
+        }
         let item = AVPlayerItem(asset: asset)
         item.audioTimePitchAlgorithm = .timeDomain
         watch(item)
@@ -588,10 +696,11 @@ final class LongPlayer: NSObject {
         altLoading = false
         resumeAt = nil
         resumeAfterInterruption = false
+        beforeRepeat = nil
         state = .idle
         note = ""
         fail = nil
-        NowPlaying.clear()
+        LockScreen.clear()
         releaseBackground()
         AudioSessionManager.shared.deactivate()
         if let why { emit?("audio", ["key": r.key, "state": "idle", "i": index, "n": r.count, "why": why.rawValue, "note": ""]) }
@@ -615,8 +724,9 @@ final class LongPlayer: NSObject {
         state = s
         guard let r = req else { return }
         let t = r.src != nil ? player.currentTime().seconds.finiteOr(0) : nil
-        NowPlaying.show(title: r.title, i: index, n: r.count, elapsed: r.straight ? t : nil,
-                        duration: r.straight ? r.sentences.last?.e : nil, rate: r.rate, playing: s == .playing || s == .waiting)
+        LockScreen.show(LockScreen.Now(key: r.key, title: r.title, i: index, n: r.count, elapsed: r.straight ? t : nil,
+                                       duration: r.straight ? r.sentences.last?.e : nil, rate: r.rate, playing: s == .playing || s == .waiting,
+                                       waiting: s == .waiting, interrupted: s == .paused && lastWhy == .interrupted, repeatOne: repeatOne))
         var o = snapshot()
         if let why { o["why"] = why.rawValue }
         emit?("audio", o)
@@ -648,12 +758,23 @@ final class LongPlayer: NSObject {
             if reason == 1 { return }  // AVAudioSession.InterruptionReason.appWasSuspended: not a real interruption
             if state == .playing || state == .waiting { pause(why: .interrupted) }
         case .ended:
-            let go = AVAudioSession.InterruptionOptions(rawValue: options).contains(.shouldResume)
-            if go, resumeAfterInterruption, state == .paused, lastWhy == .interrupted { resume(why: .interrupted) }
-            resumeAfterInterruption = false
+            if AVAudioSession.InterruptionOptions(rawValue: options).contains(.shouldResume) {
+                resumption(true)
+            } else if !Self.recommends {
+                resumeAfterInterruption = false
+            }  // iOS 27: its recommendation may still come (resumption)
         @unknown default:
             break
         }
+    }
+
+    /// iOS 27 sends a recommendation of its own (AVAudioSession.resumptionRecommendationNotification)
+    nonisolated static var recommends: Bool { if #available(iOS 27, *) { true } else { false } }
+
+    /// iOS says the sound may go on (or not): with 「来电以后接着放」 on, a text a call paused goes on by itself
+    private func resumption(_ go: Bool) {
+        if go, Features.on(.smartResume), resumeAfterInterruption, state == .paused, lastWhy == .interrupted { resume(why: .interrupted) }
+        resumeAfterInterruption = false
     }
 
     private func servicesReset() {
