@@ -1,6 +1,6 @@
 # 语流 App 和网页之间的桥（FlowApp v1）
 
-iOS（语流 C1）、安卓（语流 C2）、桌面 Windows 和 macOS（语流 C3）共用这一份约定。网页只认一个入口 `window.FlowApp`，
+iOS（语流 C1）、安卓（语流 C2）、桌面 Windows、macOS 和 Linux（语流 C3）共用这一份约定。网页只认一个入口 `window.FlowApp`，
 命令、事件、字段、错误码只在这里写一次；各平台怎么实现写在最后一节。
 
 - 约定由语流 C1（iOS）牵头改；各平台的小节由各自的会话写（会话名对照见共享笔记 session-names.md）。要改共用部分，先在 PR 里提，三边同意再合。
@@ -11,9 +11,9 @@ iOS（语流 C1）、安卓（语流 C2）、桌面 Windows 和 macOS（语流 C
 
 - **功能一律看 `window.FlowApp`**：App 在网页自己的脚本之前放好它（document start，只在本站的主框架里）。
   先判断 `window.FlowApp && FlowApp.has('<能力>')`，没有就照网页原来的做法。Safari、主屏 App、微信、电脑浏览器都不受影响。
-- **User-Agent 末尾**：`FlowiOS/<版本>`、`FlowAndroid/<版本>`、`FlowDesktop/<版本> (Windows)` 或 `(macOS)`。
+- **User-Agent 末尾**：`FlowiOS/<版本>`、`FlowAndroid/<版本>`、`FlowDesktop/<版本> (Windows)`、`(macOS)` 或 `(Linux)`。
   UA 只用来决定外壳的样子（04-home-app.js：返回按钮、不显示「添加到桌面」），写成 `/Flow(iOS|Android|Desktop)\//`。不要靠 UA 判断能力。
-- `FlowApp.platform`：`'ios'` | `'android'` | `'windows'` | `'macos'`。说法跟着平台走，比如通知、麦克风权限去哪里打开：
+- `FlowApp.platform`：`'ios'` | `'android'` | `'windows'` | `'macos'` | `'linux'`。说法跟着平台走，比如通知、麦克风权限去哪里打开：
 
 | platform | 通知 | 麦克风 |
 |---|---|---|
@@ -21,6 +21,9 @@ iOS（语流 C1）、安卓（语流 C2）、桌面 Windows 和 macOS（语流 C
 | android | 「设置 → 应用 → 语流 → 通知」 | 「设置 → 应用 → 语流 → 权限 → 麦克风」 |
 | windows | 「设置 → 系统 → 通知」 | 「设置 → 隐私和安全性 → 麦克风」 |
 | macos | 「系统设置 → 通知」 | 「系统设置 → 隐私与安全性 → 麦克风」 |
+| linux | 「系统设置里的通知」 | 「系统设置 → 隐私 → 麦克风」 |
+
+- linux 的说法：各个桌面叫法不一样，通知就笼统写；麦克风这一项是 GNOME 的，KDE 一般不用设。
 
 - 其他字段：`FlowApp.v`（桥的版本，现在 1）、`FlowApp.app`（App 版本）、`FlowApp.build`、`FlowApp.beta`（打开的是内测版）。
 
@@ -33,12 +36,12 @@ iOS（语流 C1）、安卓（语流 C2）、桌面 Windows 和 macOS（语流 C
 - 事件：`FlowApp.on(type, fn)` 返回退订函数，`FlowApp.off(type, fn)` 也行；同时在 `window` 上发 `flowapp:<type>` 事件（detail 同参数）。
 - 能力 `FlowApp.has(名字)`：
 
-| 能力 | 意思 | iOS | 安卓 | 桌面 |
+| 能力 | 意思 | iOS | 安卓 | 桌面（Windows、macOS、Linux） |
 |---|---|---|---|---|
 | `audio` | 整篇朗读交给 App 放（锁屏、来电、后台） | 有 | 有 | 没有 |
 | `rec` | 录音由 App 录 | 有 | 有 | 没有（网页 getUserMedia） |
 | `notify` | 复习提醒用本地通知 | 有 | 有 | 有 |
-| `media` | 网页自己放声音，App 把 navigator.mediaSession 交给系统（媒体键、「正在播放」） | 没有 | 没有 | 有 |
+| `media` | 网页自己放声音，App 把 navigator.mediaSession 交给系统（媒体键、「正在播放」） | 没有 | 没有 | 有（Linux 走 MPRIS） |
 | `speech` | App 替网页补上 speechSynthesis（浏览器声音） | 没有 | 有 | 没有 |
 | `settings` | App 自己的「专属功能」设置页：「我的 → 设置」最后一行，点了调 `FlowApp.call('app.settings')` | 有 | 没有 | 没有 |
 | `haptic` | 让手机轻轻一震：`FlowApp.call('app.haptic', {kind})`（见下） | 有 | 没有 | 没有 |
@@ -169,7 +172,7 @@ window.__flowAppTransport = {
 
 ## 6. 系统媒体控制 `media`（桌面）
 
-网页照常自己放声音，App 盯着 navigator.mediaSession 交给系统（Windows SMTC、macOS「正在播放」），媒体键再回调网页登记的动作。网页的 MS 层要守住：
+网页照常自己放声音，App 盯着 navigator.mediaSession 交给系统（Windows SMTC、macOS「正在播放」、Linux MPRIS），媒体键再回调网页登记的动作。网页的 MS 层要守住：
 
 - owner `'nar'` 和 `'long'` 登记 play、pause、stop、previoustrack、nexttrack（整篇用 'nar' 一口气放时才有上一句、下一句）；owner `'short'` 只登记 pause、stop。
 - 暂停、继续时 playbackState 跟着变；放完或停下时 release：metadata 清空、状态 `'none'`。
@@ -278,7 +281,7 @@ Kotlin，minSdk 26，targetSdk 37；说明在 `android/README.md`。flavor `beta
 
 ### 桌面（语流 C3，`desktop/`）
 
-Tauri 2，一套代码出 Windows（WebView2）和 macOS（WKWebView）；说明在 `desktop/README.md`。
+Tauri 2，一套代码出 Windows（WebView2）、macOS（WKWebView）和 Linux（系统的 WebKitGTK 4.1；AppImage 和 deb，x86_64）；说明在 `desktop/README.md`。
 
 - 注入：`initialization_script`，document start；脚本开头先对 `location.origin`，不是本站就什么都不挂。文件 `desktop/src-tauri/src/bridge.js`。
   `FlowApp` 冻结；`build` 是构建的提交（CI 的 GITHUB_SHA 前 7 位，本机构建是 `"dev"`）。
@@ -286,7 +289,7 @@ Tauri 2，一套代码出 Windows（WebView2）和 macOS（WKWebView）；说明
   只有本站两个 origin 能调，而且只能调 `media_update`、`notify_*`、`smoke_report` 这几条（`capabilities/site.json`，每条命令各有权限）。
   App → 网页：`webview.eval("FlowApp._media(action)")` 和 `FlowApp._emit(type, detail)`。别的网站、`.ics`、`mailto:` 交给系统打开，从不在窗口里加载。
 - media：bridge.js 包住 `navigator.mediaSession`（metadata、setActionHandler、playbackState）和 `HTMLMediaElement.play`，用来拿位置和时长（≥ 20 秒才给系统时间轴）。
-  原生用 souvlaki 交给 Windows SMTC、macOS MPNowPlayingInfoCenter / MPRemoteCommandCenter。按键对应的动作：
+  原生用 souvlaki 交给 Windows SMTC、macOS MPNowPlayingInfoCenter / MPRemoteCommandCenter、Linux MPRIS（D-Bus 名字 `org.mpris.MediaPlayer2.<bundle id>`）。按键对应的动作：
   - 播放/暂停键：按 playbackState 选 pause 或 play；
   - 上一首、下一首：previoustrack、nexttrack；
   - 网页没登记的动作：不做任何事。
@@ -297,12 +300,17 @@ Tauri 2，一套代码出 Windows（WebView2）和 macOS（WKWebView）；说明
   - 401 = 退出登录，撤掉单词提醒。403 且 code 是 `'storage'`（「数据存放在香港」还没同意）：撤掉全部提醒，开关和钟点留着；同意以后，下一次重排时提醒自己回来。
   - macOS：UNCalendarNotificationTrigger。
   - Windows：ScheduledToastNotification。AUMID 就是 bundle id，安装程序放在开始菜单快捷方式上；点通知走 `flowlang://review` 或 `flowlang://open`（内测版是 `flowlang-beta://`），App 没开也能打开。
-  - App 关着时，提醒由系统按时弹出。
+  - Linux：系统没有替 App 定时弹通知的接口，App 自己计时，到点弹 freedesktop 通知（notify-rust），点通知打开复习页。所以**只在 App 开着时提醒**：
+    Linux 上「关窗口后留在托盘」默认打开，再勾上「开机时启动」就等于一直开着；到点时没在运行（关机、睡眠）、迟了 10 分钟以上的那条不补。
+  - Windows、macOS：App 关着时，提醒由系统按时弹出。
   - permission() 照第 5 节说的，是 App 的提醒开没开：系统允许并且开着是 `'granted'`，没开或关了是 `'undetermined'`，系统里关了是 `'denied'`。Windows 在第一次弹通知之前读不到系统设置，这时只看开关；ask() 不弹框。
+    Linux 没有通知权限可问：桌面有通知服务（`org.freedesktop.Notifications`）就看开关，没有就是 `'denied'`。
   - 「每天的计划」（plan）：字段保留了；桌面的 `.ics` 链接还是交给系统日历。
-- 不做：`audio`、`rec`、`speech`。桌面网页本来就能放声音、getUserMedia，麦克风只给本站。
+- 不做：`audio`、`rec`、`speech`。桌面网页本来就能放声音、getUserMedia，麦克风只给本站（WebKitGTK 默认关着 media stream，Linux 上 App 把它打开）。
+  Linux 的网页引擎靠 GStreamer 解码：AAC 要 libav 插件，AppImage 自带，deb 依赖它；别的装法缺的话，网页对 AAC 放不了的情况改用 AI 朗读（B3）。
 - 静音开关：环境变量 `FLOW_MUTE=1`。冒烟测试 `--smoke-test=<file>` 一律静音：网页的 `<audio>` 静音，Web Audio 接一个音量为 0 的节点，speechSynthesis 音量 0，通知不带声音。
 - 测试：
   - Rust 单元测试；
   - `--smoke-test=<file>` 在页面里检查第 1–2 节的形状，`desktop/tools/check_smoke.py` 判定；
-  - CI `.github/workflows/desktop.yml` 在 windows-latest（装好 NSIS 安装包后）和 macos-latest 上各跑一次。Windows 上加了 `FLOW_SMOKE_NOTIFY=1`，真的排提醒、弹一条测试通知，之后清掉；冒烟测试从不改学员的设置。
+  - CI `.github/workflows/desktop.yml` 在 windows-latest（装好 NSIS 安装包后）、macos-latest 和 ubuntu-22.04（AppImage，xvfb + dbus-run-session，dunst 当通知服务）上各跑一次。
+    Windows 和 Linux 上加了 `FLOW_SMOKE_NOTIFY=1`，真的排提醒、弹一条测试通知，之后清掉；冒烟测试从不改学员的设置。

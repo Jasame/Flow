@@ -484,7 +484,7 @@ final class FeatureTests: XCTestCase {
         // as on the plan (ios-27-features.md): the lock screen and going on after a call on, the packs off (they take room)
         XCTAssertEqual(Features.on(.smartResume), true)
         XCTAssertEqual(Features.on(.offlinePacks), false)
-        if #available(iOS 27, *) { XCTAssertTrue(Features.on(.lockScreenStudy)) } else { XCTAssertFalse(Features.on(.lockScreenStudy), "not shown, counts as off") }
+        XCTAssertEqual(Features.on(.lockScreenStudy), Feature.lockScreenStudy.available, "on where the system has it; elsewhere not shown, counts as off")
         var heard: [(Feature, Bool)] = []
         Features.changed.append { heard.append(($0, $1)) }
         defer { Features.changed.removeLast() }
@@ -575,6 +575,7 @@ final class FeatureTests: XCTestCase {
         XCTAssertFalse(LongPlayer.handBack(kept: false, online: true))
     }
 
+    #if canImport(NowPlaying)  // the iOS 27 SDK: CI's Xcode 26 has no NowPlaying
     @MainActor func testTheLockScreenStates() throws {
         guard #available(iOS 27, *) else { throw XCTSkip("iOS 27's NowPlaying") }
         var n = LockScreen.Now(key: "k", title: "t", i: 0, n: 3, rate: 1.25, playing: true)
@@ -604,6 +605,7 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(MPNowPlayingInfoCenter.default().nowPlayingInfo?[MPMediaItemPropertyTitle] as? String, "AI 朗读 · Radio host")
         LockScreen.clear()
     }
+    #endif
 }
 
 /// 「iOS 专属功能」 second group: the light tap the page asks for, less work while the phone saves power

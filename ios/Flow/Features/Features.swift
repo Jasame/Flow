@@ -55,8 +55,10 @@ nonisolated enum Feature: String, CaseIterable, Identifiable, Sendable {
     /// The system can do it (the switch is shown).
     var available: Bool {
         switch self {
-        case .lockScreenStudy:
+        case .lockScreenStudy:  // iOS 27, and an app built with its SDK (LockScreen27)
+            #if canImport(NowPlaying)
             if #available(iOS 27, *) { return true }
+            #endif
             return false
         case .smartResume, .offlinePacks, .haptics, .frugal:
             return true

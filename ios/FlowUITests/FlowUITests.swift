@@ -246,7 +246,7 @@ final class FlowUITests: XCTestCase {
         tapButton("iOS 专属功能")
         wait(app.navigationBars["iOS 专属功能"], 10, "the app's own page")
         XCTAssertTrue(app.switches["feature.smart-resume"].exists)
-        if #available(iOS 27, *) { XCTAssertTrue(app.switches["feature.lock-study"].exists, "iOS 27: the lock screen's buttons") }
+        if feats.label.contains("lock-study") { XCTAssertTrue(app.switches["feature.lock-study"].exists, "iOS 27: the lock screen's buttons") }
         shot("08-ios-features")
         XCUIDevice.shared.appearance = .dark
         Thread.sleep(forTimeInterval: 3)  // the sheet takes the dark look a moment later
