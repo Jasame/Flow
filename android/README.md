@@ -39,19 +39,32 @@ emulator -avd flow37 -no-window -no-audio      # 测试时一律不出声（工�
 
 调试包可以用 Chrome 的 `chrome://inspect` 看网页（正式签名的包关掉了）。
 
-## 发 APK（给自己和内测的人装）
+## 发 APK
 
-```bash
-tools/release-apk.sh both     # → dist/flow-beta-<版本>.apk 和 dist/flow-<版本>.apk
-```
+两个 flavor 用两把签名钥匙（用户 2026-11-25 选的）。两把的别名都是 `flow`。
 
-- 每发一个新 APK，先把 `gradle.properties` 里的 `flow.versionCode` 加 1。只有 versionCode 更大，手机才会把它当成升级。
-- 签名用主人 Mac 上的 `~/.flow-android/flow-release.jks`（别名 `flow`）。它的密码在 macOS 钥匙串里，条目名是 `flow-android-release`。脚本从钥匙串里取密码，再交给 `apksigner`；Gradle 碰不到密码，仓库里也没有。
-- **这个 keystore 要备份**（加密 U 盘、密码管理器都行），密码也要一起备份。丢了以后，新版本就不能覆盖安装了：每个人都得先卸载再装，App 里的登录也要重新登。证书指纹是 SHA-256 `76:88:9C:6F:7E:E0:C6:C6:72:84:4B:05:17:91:9C:33:FB:6D:86:40:D2:EF:22:6A:47:20:AF:2B:12:82:89:27`。
+| | 内测版「语流内测」 | 正式版「语流」 |
+|---|---|---|
+| 钥匙 | `~/.flow-android/flow-beta.jks` | `~/.flow-android/flow-release.jks` |
+| 密码 | macOS 钥匙串 `flow-android-beta` | macOS 钥匙串 `flow-android-release` |
+| 另外一份 | GitHub Actions Secrets：`FLOW_BETA_KEYSTORE`（base64）、`FLOW_BETA_KS_PW` | 没有，只在主人的 Mac 上 |
+| 证书 SHA-256 | `C2:22:FE:38:31:FD:BC:17:49:7F:7D:9C:78:28:7B:8A:4C:D6:12:BF:53:BB:08:2A:12:85:E7:7E:BD:BA:BF:13` | `76:88:9C:6F:7E:E0:C6:C6:72:84:4B:05:17:91:9C:33:FB:6D:86:40:D2:EF:22:6A:47:20:AF:2B:12:82:89:27` |
+| 谁来打包 | 每次合进 main（只改 `android/` 时），CI 自动打包 | 主人在 Mac 上跑 `tools/release-apk.sh prod` |
+
+- **内测包**：在 GitHub 的 Actions →「Android」里找最新一次 main 的 run，下载 artifact `flow-beta-apk`（zip 里就是 APK），留 30 天。
+  - versionCode 是 100 加上 run 的编号，每个新包都能直接覆盖上一个。
+  - 本机也能打：`tools/release-apk.sh beta`。
+- **正式包**：`tools/release-apk.sh prod` → `dist/flow-<版本>.apk`。发之前先把 `gradle.properties` 里的 `flow.versionCode` 加 1，versionCode 更大的包才能覆盖旧的。
+- 脚本从钥匙串里取密码，交给 `apksigner`；CI 上从 Secrets 取。Gradle 碰不到密码，仓库里也没有。
+- **两把钥匙都要备份**（加密 U 盘、密码管理器都行），密码也要一起备份。丢了以后，新版本就不能覆盖安装：每个人都得先卸载再装，App 里的登录也要重新登。
 - 怎么装到手机上，见 [INSTALL-zh.md](INSTALL-zh.md)。
-- 改 `tools/release-apk.sh` 或别的签名相关内容的 PR，合并前要先问用户（`docs/releases.md` 2026-11-25 11:15 的规矩）。把 APK 发给试用的同学之前，也要先问用户，并提前告诉语流 03，由它把指南里 App 的权限说明放上去。
+- 两类事要先问用户：
+  - 改 `tools/release-apk.sh`、签名、Secrets 或 `.github/workflows/android.yml` 的 PR，合并之前（`docs/releases.md` 2026-11-25 11:15 的规矩）；
+  - 把 APK 发给试用的同学、或者放到别的地方之前。这件事也要提前告诉语流 03，由它把指南里 App 的权限说明放上去。
 
-CI（Linux）上跑 `./gradlew assembleBetaDebug testBetaDebugUnitTest`，不需要签名：release 包不签名，`release-apk.sh` 只在主人的 Mac 上跑。
+CI（`.github/workflows/android.yml`，语流 15）：
+- 每个改 `android/` 的 PR 都跑 `assembleBetaDebug testBetaDebugUnitTest lintBetaDebug`。
+- main 上另外打签名的内测包。PR 拿不到钥匙。
 
 ## 外壳做了什么（`MainActivity`）
 
