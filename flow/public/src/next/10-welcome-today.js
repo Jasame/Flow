@@ -40,11 +40,12 @@
       const art = [pick, h.resume, ...h.today].find(m => m && m.id === readId);
       // 再学一篇 (r27): the next recommendation itself, not the whole library (that only when there is none)
       const more1 = h.today.find(m => m && m.id !== readId && (!(m.steps || []).includes('check') || m.redo));  // 精读重学 counts: it is what 今日 recommends once a level is done
-      top = `<section class="today-plan" aria-labelledby="tpTitle">${overLineHTML(p, next)}
+      // the line past the day's minutes goes under the button, so it never pushes 开始 / 继续 off the first screen
+      top = `<section class="today-plan" aria-labelledby="tpTitle">
         <div class="tp-head"><div><h1 class="h1" id="tpTitle">${next ? '今天的计划' : '今天的计划完成了'}</h1>
           <span class="muted small">${planHeadText(p)}</span>${sprintLine(h)}</div>
           <span class="ring" data-p="${Math.round(p.done / Math.max(1, p.total) * 100)}" aria-hidden="true"><b>${p.done}/${p.total}</b></span></div>
-        ${next ? `<a class="btn primary block go-next" href="${esc(next.href)}">${p.done ? '继续' : '开始'}第 ${nextK + 1} 步<span aria-hidden="true">→</span></a>`
+        ${next ? `<a class="btn primary block go-next" href="${esc(next.href)}">${p.done ? '继续' : '开始'}第 ${nextK + 1} 步<span aria-hidden="true">→</span></a>${overLineHTML(p, next)}`
           : `<div class="tp-done">${doneRing}<span>都完成了。${more1 ? `想多学一点，下一篇是《${esc(more1.title)}》。` : '想多学一点，就再挑一篇。'}多学的照样算进「这周进步」。</span></div>
             <div class="tp-more"><a class="btn primary block go-next" href="${more1 ? '#/m/' + encodeURIComponent(more1.id) : '#/library'}" data-tap="home-more-one">再学一篇<span aria-hidden="true">→</span></a>
             <a class="btn ghost block" href="#/mix/more" data-tap="home-more-grammar">做 4 道语法题</a></div>`}
@@ -102,7 +103,7 @@
       <span class="num">${s.done ? '✓' : num}</span><span class="t"><b>${esc(a ? a.title : s.title)}</b><span class="muted tiny">${esc(sub.filter(Boolean).join(' · '))}</span></span>
       <span class="go" aria-hidden="true">›</span></a>`;
   }
-  // Past the day's minutes by a fifth with 必做 not done: said once a day, above the plan, and nothing is stopped.
+  // Past the day's minutes by a fifth with 必做 not done: said once a day, under the plan's button, and nothing is stopped.
   // It stays for the quiet redraw and a quick look away (two minutes), then not again that day.
   function overLineHTML(p, next) {
     if (!p.over || !next) return '';
