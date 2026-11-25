@@ -35,7 +35,8 @@
     }),
     // review reminders as local notifications: sync(reminder) after the page changed one
     notify: Object.freeze({
-      permission: () => call('notify.permission'), ask: () => call('notify.ask'), sync: r => call('notify.sync', r), pending: () => call('notify.pending'),
+      permission: () => call('notify.permission'), ask: () => call('notify.ask'), sync: r => call('notify.sync', r === null ? { app: false } : r),
+      pending: () => call('notify.pending'), off: () => call('notify.off'), settings: () => call('notify.settings'),
     }),
   };
   Object.defineProperty(window, 'FlowApp', { value: Object.freeze(FlowApp), enumerable: false, configurable: false, writable: false });

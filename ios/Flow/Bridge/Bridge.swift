@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import WebKit
 
 /// window.FlowApp, the page's way to the native parts (ios/README.md, 「网页和 App 之间的桥」).
@@ -94,6 +95,10 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
         case "notify.ask": return await reminders.ask()
         case "notify.sync": return await reminders.sync(a)
         case "notify.pending": return await reminders.pending()
+        case "notify.off": return await reminders.sync(["app": false])
+        case "notify.settings":  // the system's notification settings for this app
+            if let u = URL(string: UIApplication.openNotificationSettingsURLString) { await UIApplication.shared.open(u) }
+            return true
         #if BETA
         case "notify.test": return await reminders.testSchedule(a)
         #endif

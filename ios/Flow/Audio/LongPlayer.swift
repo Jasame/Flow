@@ -37,7 +37,7 @@ final class LongPlayer: NSObject {
 
         var count: Int { src != nil ? sentences.count : texts.count }
         var straight: Bool { src != nil && !loop }
-        /// ms of quiet before sentence i is said (LONG.after: r.gap(r.i), after r.i moved on)
+        /// ms of quiet after sentence i, each time it was said (复读's 「留时间跟说」: sized by the sentence just read)
         func gap(_ i: Int) -> Int { gaps.isEmpty ? 0 : max(0, gaps.count == 1 ? gaps[0] : (i < gaps.count ? gaps[i] : 0)) }
 
         init() {}
@@ -468,6 +468,7 @@ final class LongPlayer: NSObject {
     /// One sentence said: again (复读), or the next one after its pause.
     private func after() {
         guard let r = req else { return }
+        let said = index  // the pause after a sentence is that sentence's own (09, 2026-11-25), none after the last
         reps += 1
         if !(r.rep == 0 || reps < r.rep) {
             reps = 0
@@ -476,7 +477,7 @@ final class LongPlayer: NSObject {
             save()
         }
         set(.playing)
-        let g = r.gap(index), tok = token
+        let g = r.gap(said), tok = token
         if g > 0 {
             holdBackground()
             gapTask = Task { [weak self] in
