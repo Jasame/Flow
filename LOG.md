@@ -151,3 +151,11 @@
   - #126 今日计划：超时那句放到按钮下面（修 main 的 ui phone-360）（今日和计划、操作指南）
 - 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45528251944
+
+### b30 · 2026-11-25 09:59
+- main `f3ec33b`，构建 `2d0bc20`
+- 新合并的 PR（自 b29 起）：
+  - #120 跟读：只有录音里确实漏读或读错的词进错题本（听和说、操作指南）
+  - #123 指南「交给哪家 AI」：对话、复述、雅思、跟读走 Omni（两个站都已切换），发音留在 Gemini；补上 CosyVoice 朗读（操作指南）
+- 自检：DEPLOYED，装了 7 个文件（0 个新的）；轻量 e2e 145/147，没过：exam: AI adds questions/expressions to the import；db: no AI job failed，服务器报错 1
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45529545580
