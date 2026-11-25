@@ -6,5 +6,5 @@
   "remote": {
     "urls": ["https://flowlang.cn", "https://flowlang.cn/*", "https://flow.jasa.hk", "https://flow.jasa.hk/*"]
   },
-  "permissions": ["allow-media-update", "allow-notify-permission", "allow-notify-ask", "allow-notify-due", "allow-notify-sync", "allow-smoke-report"]
+  "permissions": ["allow-media-update", "allow-notify-permission", "allow-notify-ask", "allow-notify-due", "allow-notify-plan", "allow-notify-signed-out", "allow-notify-off", "allow-notify-pending", "allow-smoke-report"]
 }

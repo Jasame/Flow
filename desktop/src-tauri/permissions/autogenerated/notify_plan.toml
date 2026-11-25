@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-notify-plan"
+description = "Enables the notify_plan command without any pre-configured scope."
+commands.allow = ["notify_plan"]
+
+[[permission]]
+identifier = "deny-notify-plan"
+description = "Denies the notify_plan command without any pre-configured scope."
+commands.deny = ["notify_plan"]

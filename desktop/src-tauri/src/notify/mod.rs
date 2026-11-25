@@ -20,12 +20,15 @@ pub fn silent() -> bool {
     SILENT.load(std::sync::atomic::Ordering::Relaxed)
 }
 
-/// FlowApp.notify.permission(): 'granted' | 'denied' | 'undetermined' (the same words as the iOS app)
+/// FlowApp.notify.permission(): 'granted' | 'denied' | 'undetermined' | 'provisional' (docs/native-bridge.md §5)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Permission {
     Granted,
     Denied,
     Undetermined,
+    /// macOS: delivered quietly to Notification Centre — still allowed
+    #[allow(dead_code)]
+    Provisional,
 }
 
 impl Permission {
@@ -34,7 +37,12 @@ impl Permission {
             Permission::Granted => "granted",
             Permission::Denied => "denied",
             Permission::Undetermined => "undetermined",
+            Permission::Provisional => "provisional",
         }
+    }
+    /// notifications will be shown
+    pub fn ok(self) -> bool {
+        matches!(self, Permission::Granted | Permission::Provisional)
     }
 }
 
@@ -71,14 +79,32 @@ pub fn xml_escape(s: &str) -> String {
     o
 }
 
-/// The click target of a notification id (all reminders open the review).
+/// The click target of a notification id: word reminders open the review, the day's plan the home page.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub fn route_of(id: &str) -> Option<&'static str> {
-    if id.starts_with("flow-daily-") || id == "flow-once" {
+    if id.starts_with("review-") {
         Some("/review")
+    } else if id.starts_with("plan-") {
+        Some("/")
     } else {
         None
     }
+}
+
+/// Windows tags are at most 16 characters: review-2026-11-27 → r20261127, plan-… → p…, review-once → once.
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
+pub fn tag_of(id: &str) -> String {
+    let short = |prefix: &str, rest: &str| format!("{prefix}{}", rest.replace('-', ""));
+    let t = if id == "review-once" {
+        "once".to_string()
+    } else if let Some(r) = id.strip_prefix("review-") {
+        short("r", r)
+    } else if let Some(r) = id.strip_prefix("plan-") {
+        short("p", r)
+    } else {
+        id.to_string()
+    };
+    t.chars().take(16).collect()
 }
 
 /// A system without a backend (other targets, unit tests): nothing is scheduled.
@@ -93,7 +119,7 @@ mod none {
     pub fn ask() -> bool {
         false
     }
-    pub fn schedule(_items: &[Planned], _launch: &str) -> Result<usize, String> {
+    pub fn schedule(_items: &[Planned], _scheme: &str) -> Result<usize, String> {
         Ok(0)
     }
     pub fn clear() {}
@@ -132,9 +158,15 @@ mod tests {
 
     #[test]
     fn reminder_clicks_open_the_review() {
-        assert_eq!(route_of("flow-daily-20261125"), Some("/review"));
-        assert_eq!(route_of("flow-once"), Some("/review"));
+        assert_eq!(route_of("review-2026-11-25"), Some("/review"));
+        assert_eq!(route_of("review-once"), Some("/review"));
+        assert_eq!(route_of("plan-2026-11-25"), Some("/"));
         assert_eq!(route_of("flow-test"), None);
         assert_eq!(Permission::Undetermined.as_str(), "undetermined");
+        assert!(Permission::Provisional.ok() && !Permission::Undetermined.ok());
+        assert_eq!(tag_of("review-2026-11-27"), "r20261127");
+        assert_eq!(tag_of("plan-2026-11-27"), "p20261127");
+        assert_eq!(tag_of("review-once"), "once");
+        assert!(tag_of("something-much-longer-than-sixteen").chars().count() <= 16);
     }
 }

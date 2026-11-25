@@ -209,7 +209,7 @@ pub fn clear() {
     }
 }
 
-pub fn schedule(items: &[Planned], _launch: &str) -> Result<usize, String> {
+pub fn schedule(items: &[Planned], _scheme: &str) -> Result<usize, String> {
     let Some(c) = center() else { return Ok(0) };
     c.removeAllPendingNotificationRequests();
     for p in items {
