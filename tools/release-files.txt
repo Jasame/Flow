@@ -384,6 +384,7 @@ flow/tests/test_quota.py
 flow/tests/test_reference.py
 flow/tests/test_reliability.py
 flow/tests/test_relisten.py
+flow/tests/test_request_size.py
 flow/tests/test_rewrite_minimal.py
 flow/tests/test_search_route.py
 flow/tests/test_shadow_eval.py
