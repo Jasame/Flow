@@ -79,6 +79,15 @@ def mbool(value,code='flag_missing'):
  if isinstance(value,str) and value.strip().lower() in ('true','yes','y','是','对','1'):return True
  if isinstance(value,str) and value.strip().lower() in ('false','no','n','否','不','错','0'):return False
  raise Shape(code)
+def mheard(value,maximum=600):
+ """What a model says it heard in a recording, cut when long. Empty is a miss only when Qwen-Omni answered
+ (ai_routes.CTX.last_service == 'audio'): on 正式版 2026-11-25 08:26 it answered a dialogue turn whole with nothing heard,
+ and 20 tries of the same clip never did it again. Shape('heard_empty') makes run_job ask again (Omni once more, then
+ Gemini, as for any Shape); when Gemini hears nothing too, the recording may really be silent, so empty is taken."""
+ import ai_routes
+ v=mtext(value,0,maximum)
+ if not v and getattr(ai_routes.CTX,'last_service',None)=='audio':raise Shape('heard_empty')
+ return v
 def text(value,minimum=1,maximum=4000):
  if not isinstance(value,str) or not minimum<=len(value.strip())<=maximum:raise ValueError('文本长度不正确')
  return value.strip()

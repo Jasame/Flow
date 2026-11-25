@@ -135,6 +135,29 @@ class LearnerModelTests(unittest.TestCase):
         self.assertEqual(tuple(card), ('sound', 'think'))
         self.assertEqual(out.say(self.c, 1, {'text': 'zzzqqq', 'audio': AUDIO})[1], 400)
 
+    def test_a_word_judged_by_qwen_omni_is_a_reference_only(self):
+        # owner 2026-11-25: 跟读 and 发音 off Gemini (「延迟太高了」); Omni once heard a correct "think" as "zink" 3 times in 3,
+        # so its verdict on one word is shown as maybe wrong, counted as practice and never filed as a mistake
+        import ai_routes
+        miss = {'heard': 'zink', 'ok': False, 'note': '/θ/ 读成了 /z/', 'tip': '舌尖放在上下齿之间'}
+
+        def answered_by(service, reply):
+            def fake(msgs, audio=None):
+                ai_routes.CTX.last_service = service  # as ai_routes.record notes it for the call that answered
+                return json.dumps(reply, ensure_ascii=False), 'stop'
+            return patch('chat_service.request_model', side_effect=fake)
+        for _ in range(3):
+            with answered_by('audio', miss):
+                r = out.say(self.c, 1, {'text': 'think', 'audio': AUDIO, 'request_id': self.rid()})[0]['result']
+            self.assertEqual((r['ok'], r['tentative'], r['confirmed']), (False, True, False))
+        self.assertIsNone(self.c.execute("SELECT 1 FROM next_cards WHERE source='mistake'").fetchone())
+        self.assertEqual({x[0] for x in self.c.execute("SELECT score FROM next_skill_events WHERE kind='say'")}, {0.5})  # practice, not judged
+        with answered_by('main', miss):  # Gemini answered (the backup): judged as before
+            r = out.say(self.c, 1, {'text': 'think', 'audio': AUDIO, 'request_id': self.rid()})[0]['result']
+        self.assertEqual((r['tentative'], r['confirmed']), (False, False))  # the Omni misses before it were not misses
+        with answered_by('main', miss):
+            self.assertTrue(out.say(self.c, 1, {'text': 'think', 'audio': AUDIO, 'request_id': self.rid()})[0]['result']['confirmed'])
+
     def test_import_article_study_and_enrich(self):
         r = imp.save(self.c, 1, {'title': 'Night migration', 'text': ARTICLE})[0]
         pid = r['id']; self.assertTrue(pid.startswith('imp-'))

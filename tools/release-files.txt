@@ -81,6 +81,7 @@ flow/corpus_data/pilot/audio/cbe83da54b5578a2889b.m4a
 flow/corpus_data/pilot/flow-pack-001.json
 flow/corpus_data/pilot/pilot-001-audio.json
 flow/corpus_data/revised-packs.json
+flow/corpus_data/shadow-eval.json
 flow/corpus_data/v5/SPEC.md
 flow/corpus_data/v5/campus.A2.2.json
 flow/corpus_data/v5/campus.A2.3.json
@@ -305,6 +306,7 @@ flow/scenarios.py
 flow/search_eval.py
 flow/seed.py
 flow/settings_service.py
+flow/shadow_eval.py
 flow/skills_service.py
 flow/slim.py
 flow/sounds.py
@@ -339,6 +341,7 @@ flow/tests/test_fill_examples.py
 flow/tests/test_flow_admin_console.py
 flow/tests/test_foundation.py
 flow/tests/test_front_layout.py
+flow/tests/test_goal_recommend.py
 flow/tests/test_growth.py
 flow/tests/test_guide.py
 flow/tests/test_ielts_speaking.py
@@ -370,6 +373,7 @@ flow/tests/test_reliability.py
 flow/tests/test_relisten.py
 flow/tests/test_rewrite_minimal.py
 flow/tests/test_search_route.py
+flow/tests/test_shadow_eval.py
 flow/tests/test_slim.py
 flow/tests/test_speak_rounds.py
 flow/tests/test_survey.py

@@ -165,13 +165,12 @@ class WorkersTests(FillExamplesTests):
         q.slow(); self.assertEqual(q.now, 1)
 
     def test_a_rate_limited_batch_is_asked_again(self):
-        import urllib.error
+        import itertools, urllib.error
         todo = [w for _, _, w in fill_examples.pending(self.c, vs, ['gre'])]
-        write, left = writer()[0], [2]
+        write, order = writer()[0], itertools.count()  # next() on a count is atomic: exactly the first two calls fail
 
         def model(messages, audio=None, grounding=False):
-            if left[0]:
-                left[0] -= 1
+            if next(order) < 2:
                 raise urllib.error.HTTPError('https://ai.invalid', 429, 'busy', None, None)
             return write(messages)
         status = Path(self.tmp.name) / 'status.json'
@@ -183,12 +182,12 @@ class WorkersTests(FillExamplesTests):
         self.assertTrue(any(x.args[0] >= 5 for x in sleep.call_args_list))  # waited before the next call
 
     def test_a_batch_line_of_its_own_never_falls_back_to_the_main_model(self):
-        import chat_service, urllib.error
-        write, seen = writer()[0], []
+        import chat_service, itertools, urllib.error
+        write, seen, order = writer()[0], [], itertools.count()  # next() on a count is atomic: exactly one call fails
 
         def line(messages, model=None, extra=None):
             seen.append(model)
-            if len(seen) == 1:
+            if next(order) == 0:
                 raise urllib.error.HTTPError('https://ai.invalid', 503, 'down', None, None)
             chat_service.INFO.served = 'deepseek-v4.1-flash'
             return write(messages)
@@ -196,8 +195,9 @@ class WorkersTests(FillExamplesTests):
                 patch.object(chat_service, '_request_main', side_effect=AssertionError('no fallback')), patch('time.sleep'):
             fill_examples.main(self.args + ['--per-call', '4', '--max-calls', '3', '--workers', '2'])
         self.assertEqual(seen, ['flow-batch-x'] * 3)
-        rows = self.c.execute("SELECT model, ok, status, served FROM ai_calls WHERE kind='fill-examples' ORDER BY id").fetchall()
-        self.assertEqual([tuple(r) for r in rows], [('flow-batch-x', 0, 503, ''), ('flow-batch-x', 1, 200, 'deepseek-v4.1-flash'), ('flow-batch-x', 1, 200, 'deepseek-v4.1-flash')])
+        # two calls at once: their ai_calls rows land in either order
+        rows = sorted(tuple(r) for r in self.c.execute("SELECT model, ok, status, served FROM ai_calls WHERE kind='fill-examples'"))
+        self.assertEqual(rows, [('flow-batch-x', 0, 503, ''), ('flow-batch-x', 1, 200, 'deepseek-v4.1-flash'), ('flow-batch-x', 1, 200, 'deepseek-v4.1-flash')])
         self.assertEqual(len(self.cached()), 8)
 
     def test_max_yuan_stops_new_calls(self):
@@ -214,6 +214,50 @@ class WorkersTests(FillExamplesTests):
         st = json.loads(status.read_text())
         self.assertEqual((st['calls'], st['yuan'], st['state']), (2, 2.0, 'left'))
 
+
+
+class ReviewTests(unittest.TestCase):
+    """2026-11-25, the owner: AI examples must not mock or stereotype (illness, disability, race, nationality, gender,
+    places). The prompt says so (vocab_service.FAIR); --review finds the old ones, takes them out and writes them again."""
+    setUp, tearDown, cached = FillExamplesTests.setUp, FillExamplesTests.tearDown, FillExamplesTests.cached
+
+    def test_the_prompt_asks_for_fair_examples(self):
+        system = vs.example_messages(['mouse'], 'A2')[0]['content']
+        for part in ('刻板印象', '疾病', '残障', '种族', '性别', '地域', '疯子'):
+            self.assertIn(part, system)
+
+    def test_review_takes_out_what_the_editor_names_and_the_fill_writes_it_again(self):
+        todo = [w for _, _, w in fill_examples.pending(self.c, vs, ['gre'])]
+        w0, w1 = todo[0], todo[1]
+        vs.save_examples(self.c, {w0: {'sentence': f'The mad man shouts {w0} all day.', 'translation': '那个疯子整天喊。'},
+                                  w1: {'sentence': f'An old woman sells {w1} at the market.', 'translation': '一位老太太在市场上卖东西。'},
+                                  'apple': {'sentence': 'I eat an apple every morning.', 'translation': '我每天早上吃一个苹果。'}})
+        self.assertEqual([r['norm'] for r in fill_examples.candidates(self.c)], sorted([w0, w1]))  # apple: no review word
+        write, asked = writer()
+
+        def model(messages, audio=None, grounding=False):
+            if '审读编辑' in messages[0]['content']:  # the editor: only the mad man
+                asked.append('review')
+                lines = messages[-1]['content'].split('\n')
+                return json.dumps({'flag': [{'id': k, 'why': '嘲笑精神状况'} for k, line in enumerate(lines, 1) if 'mad man' in line]
+                                   + [{'id': 99}, {'id': 'x'}]}), 'stop'  # ids outside the batch are ignored
+            return write(messages)
+        log = Path(self.tmp.name) / 'review.jsonl'
+        with patch('chat_service.request_model', model):
+            fill_examples.main(self.args + ['--review', '--review-log', str(log), '--per-call', '4', '--max-calls', '1'])
+        got = self.cached()
+        self.assertEqual(got[w0], f'People often say {w0} at work.')  # written again, with today's prompt
+        self.assertEqual(got[w1], f'An old woman sells {w1} at the market.')  # neutral: kept
+        self.assertIn('apple', got)
+        lines = [json.loads(x) for x in log.read_text(encoding='utf-8').splitlines()]
+        self.assertEqual([(x['norm'], x['why']) for x in lines], [(w0, '嘲笑精神状况')])
+        self.assertEqual(asked[0], 'review')
+
+    def test_a_dry_run_review_only_counts(self):
+        vs.save_examples(self.c, {'mouse': {'sentence': 'The crazy mouse runs.', 'translation': '疯狂的老鼠在跑。'}})
+        with patch('chat_service.request_model', side_effect=AssertionError('no call in a dry run')):
+            self.assertEqual(fill_examples.main(self.args + ['--review', '--dry-run']), 1)
+        self.assertIn('mouse', self.cached())
 
 if __name__ == '__main__':
     unittest.main()

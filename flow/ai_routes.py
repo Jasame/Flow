@@ -166,7 +166,8 @@ _AUDIO_ENV = {'raw': None, 'routes': {}}
 def audio_route(kind=None):
     """The gateway model name a recording of this task goes to first (FLOW_AUDIO_ROUTES, same forms as FLOW_AI_ROUTES:
     one name, or *=name,task=name pairs), in this process's lane; '' = Gemini hears it on the main service, as before.
-    2026-11-25: Qwen-Omni on 百炼 (e.g. flow-audio-omni-flash) for 情景对话, 复述 and 雅思; Gemini stays the backup."""
+    2026-11-25: Qwen-Omni on 百炼 (e.g. flow-audio-omni-flash) for 情景对话, 复述 and 雅思, then 跟读 (next-shadow) and 发音
+    (next-say: its verdict a reference only, output_service.say); Gemini stays the backup."""
     kind = kind or current()
     raw = os.getenv('FLOW_AUDIO_ROUTES', '')
     if raw != _AUDIO_ENV['raw']:
@@ -382,6 +383,7 @@ def _db():
 def record(service, model, started, messages, reply=None, info=None, exc=None, fallback=False):
     """One attempt, into ai_calls. Never raises: the learner's answer matters more than the bookkeeping."""
     CTX.last_call = None  # set again only when this row is written: mark_shape must never touch an older row
+    CTX.last_service = service  # who answered (or was asked) last on this thread: output_service.say trusts some only
     info = info or {}
     try:
         status = getattr(exc, 'code', None) if exc is not None else 200

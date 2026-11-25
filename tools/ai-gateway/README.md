@@ -162,7 +162,7 @@ cd /www/wwwroot/flow && python3 ai_check.py
 - **听录音（2026-11-25 起，走普通的 `/v1/chat/completions`，不用新接口）**：模型名 `flow-audio-omni-flash` → aliyun / qwen3.8-omni-flash
   （评测用 `flow-eval-omni-flash`）。Flow 的 `FLOW_AUDIO_ROUTES` 让某几个录音任务先走它：录音作为 `input_audio`（data URL，webm / mp4 / wav / mp3 原样），
   提示词不变，流式、不思考；失败就换 Gemini（主模型的 `flow_audio`）。网关里**不要**给它配 Gemini 备用线路：中转站看不懂 `input_audio`，
-  回退由 Flow 来做。评测：`voice_eval.py`（情景对话一句，三条路的速度和效果）。
+  回退由 Flow 来做。评测：`voice_eval.py`（情景对话一句，三条路的速度和效果）；`shadow_eval.py`（跟读的分数和发音的对错，Omni 和 Gemini 听同一批录音）。
 - **换之前先测**：`python3 search_eval.py --env-file /etc/flow-beta.env --routes gemini,flow-search-ds-flash,flow-search-qwen-plus --output …`。
   它用今日热点自己的提示词，每个话题每条线路问一次，然后检查：来源链接能不能打开（只开公网地址）、简报里有没有 48 小时内的日期、
   来源页标的发布日期、简报里的数字和名字在来源里找不找得到，还有用时和费用。最好隔几天各跑一次。

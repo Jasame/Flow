@@ -70,7 +70,7 @@ class JobTests(unittest.TestCase):
         with patch('chat_service._request_main', return_value=(reply, 'stop')) as m:
             r, st = self.end()
         self.assertEqual(st, 200); self.assertEqual(m.call_count, 1)
-        self.assertEqual((r['result']['score'], r['result']['summary']), (0.7, '这一轮练完了，下面是具体的反馈。'))
+        self.assertEqual((r['result']['score'], r['result']['summary']), (0.7, out.SUMMARY_FILLER))
         self.assertNotIn('extra', r['result'])
 
     def test_an_unusable_answer_is_asked_for_once_more(self):
@@ -104,6 +104,48 @@ class JobTests(unittest.TestCase):
             ai_routes.record('main', 'gemini-test', _t.monotonic(), [], 'x')  # this one could not be written
         ai_routes.mark_shape('json_parse')
         self.assertEqual(self.calls(), [('main', 1, '')])
+
+    def omni_then_gemini(self, *heard):
+        # each call answered by Qwen-Omni ('audio'), the last of run_job's three by Gemini ('main'), as ai_routes notes it
+        import ai_routes, chat_service
+        it, by = iter(heard), []
+        self.addCleanup(setattr, ai_routes.CTX, 'last_service', None)
+
+        def fake(msgs, audio=None, grounding=False):
+            s = 'main' if getattr(chat_service.MAIN_ONLY, 'on', False) else 'audio'
+            ai_routes.CTX.last_service = s; by.append(s)
+            return json.dumps({'heard': next(it), 'reply': 'Sure. Anything else?', 'correction': None, 'hint': ''}), 'stop'
+        return patch('chat_service.request_model', side_effect=fake), by
+
+    def spoken_turn(self, rid):
+        import base64
+        audio = {'mime_type': 'audio/webm', 'data': base64.b64encode(b'\x1aE\xdf\xa3' + b'\0' * 64).decode()}
+        with patch.dict(os.environ, {'FLOW_AI_AUDIO': '1'}), patch('tts_service.start', create=True):
+            return out.dialog(self.c, 1, {'scenario': 'cafe-order', 'history': HIST, 'audio': audio, 'request_id': rid})
+
+    def test_omni_hearing_nothing_is_asked_again(self):
+        # 正式版 2026-11-25 08:26: Qwen-Omni answered a spoken turn whole with nothing heard (0 times in 20 with that clip)
+        p, by = self.omni_then_gemini('', 'A latte, please.')
+        with p:
+            r, st = self.spoken_turn('shape-heard-0001')
+        self.assertEqual((st, r['result']['heard'], by), (200, 'A latte, please.', ['audio', 'audio']))
+
+    def test_when_gemini_hears_nothing_too_the_recording_may_be_silent(self):
+        p, by = self.omni_then_gemini('', '', '')
+        with p:
+            r, st = self.spoken_turn('shape-heard-0002')
+        self.assertEqual((st, r['result']['heard'], by), (200, '', ['audio', 'audio', 'main']))
+
+    def test_an_empty_transcript_from_gemini_is_not_a_miss(self):
+        import ai_routes
+        self.addCleanup(setattr, ai_routes.CTX, 'last_service', None)  # thread-local: not left for the next test
+        ai_routes.CTX.last_service = 'main'
+        self.assertEqual(lab.mheard('  '), '')
+        ai_routes.CTX.last_service = 'audio'
+        with self.assertRaises(lab.Shape) as e:
+            lab.mheard(None)
+        self.assertEqual(e.exception.code, 'heard_empty')
+        self.assertEqual(lab.mheard('x' * 900, 600), 'x' * 600)
 
     def test_a_cut_off_answer_counts_as_a_miss(self):
         good = json.dumps(END, ensure_ascii=False)

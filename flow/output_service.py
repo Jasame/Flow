@@ -10,7 +10,11 @@ import time
 
 import next_service as nx
 import skills_service as sk
-from lab_service import Shape, mbool, mnum  # lenient readers of what a model wrote (DeepSeek words JSON unlike Gemini)
+from lab_service import Shape, mbool, mheard, mnum  # lenient readers of what a model wrote (DeepSeek words JSON unlike Gemini)
+
+# The end of a role-play without a summary from the model gets this line instead (#90); ai_eval reads it to report
+# 「模型没写总评」 (语流 12), so the text lives in one place.
+SUMMARY_FILLER = '这一轮练完了，下面是具体的反馈。'
 
 LEVEL_NOTE = {'A2': '学习者是入门水平，反馈用简单中文，示范用最常见的词和短句。', 'B1': '学习者是中级水平，反馈用中文，示范句清楚自然。',
               'B2': '学习者是中高级水平，关注搭配、语气和衔接。', 'C1': '学习者是高级水平，关注措辞精确、语域和行文层次。'}
@@ -94,7 +98,7 @@ def retell(c, uid, data):
         pts = [{'point': _clean(x.get('point'), 1, 200), 'covered': bool(x.get('covered'))} for x in raw['points'][:8] if isinstance(x, dict) and x.get('point')]
         if not pts:
             raise Shape('points_missing')
-        return {'transcript': _clean(raw.get('transcript') or '', 0, 2500) if audio else text, 'points': pts,
+        return {'transcript': mheard(raw.get('transcript'), 2500) if audio else text, 'points': pts,
                 'used': [_clean(u, 1, 120) for u in (raw.get('used') or [])[:6] if isinstance(u, str) and u.strip()],
                 'fixes': _fixes(raw.get('fixes'), valid), 'comment': _clean(raw.get('comment') or '', 0, 400), 'model': _clean(raw.get('model') or '', 0, 1500)}
 
@@ -189,7 +193,7 @@ def dialog(c, uid, data):
             return {'scene': _clean(raw.get('scene'), 1, 300, 'scene_empty'), 'role': _clean(raw.get('role') or '', 0, 60), 'reply': _clean(raw.get('reply'), 1, 400, 'reply_empty'), **rnd}
         if end:
             met = raw.get('challenge_met')
-            return {'summary': _clean(raw.get('summary'), 1, 500, default='这一轮练完了，下面是具体的反馈。'), 'good': [_clean(g, 1, 300) for g in (raw.get('good') or [])[:3] if isinstance(g, str) and g],
+            return {'summary': _clean(raw.get('summary'), 1, 500, default=SUMMARY_FILLER), 'good': [_clean(g, 1, 300) for g in (raw.get('good') or [])[:3] if isinstance(g, str) and g],
                     'fixes': _fixes(raw.get('fixes'), valid),
                     'expressions': [{'text': _clean(e.get('text'), 1, 120), 'meaning': _clean(e.get('meaning') or '', 0, 120)}
                                     for e in (raw.get('expressions') or [])[:4] if isinstance(e, dict) and e.get('text')],
@@ -198,7 +202,7 @@ def dialog(c, uid, data):
         corr = raw.get('correction')
         corr = {'original': _clean(corr.get('original') or '', 0, 300), 'better': _clean(corr.get('better'), 1, 300), 'why': _clean(corr.get('why') or '', 0, 300)} \
             if isinstance(corr, dict) and corr.get('better') else None
-        heard = _clean(raw.get('heard') or '', 0, 500) if audio else text
+        heard = mheard(raw.get('heard'), 500) if audio else text
         out = {'heard': heard, 'reply': _clean(raw.get('reply'), 1, 400, 'reply_empty'), 'correction': corr, 'hint': _clean(raw.get('hint') or '', 0, 200)}
         if sc:
             out['pace'] = SC.pace(heard, bool(corr))
@@ -350,6 +354,12 @@ def translate(c, uid, data):
 
 # ---------- pronunciation ----------
 
+# Who may judge one word well enough to file a mistake: Gemini (the main service) for now; a dedicated pronunciation
+# scorer joins when 语流 12 connects one. A verdict from another model (Qwen-Omni, since the owner moved 跟读 and 发音 off
+# Gemini on 2026-11-25: 「延迟太高了」) is a reference only: counted as practice, never a mistake, said to be maybe wrong.
+SAY_TRUSTED = ('main',)
+
+
 def say(c, uid, data):
     """One word or short phrase read aloud: did the target sound come through?"""
     import sounds
@@ -371,9 +381,12 @@ def say(c, uid, data):
     def convert(raw):
         if not isinstance(raw, dict):
             raise Shape('json_shape')
-        return {'heard': _clean(raw.get('heard') or '', 0, 80), 'ok': mbool(raw.get('ok'), 'ok_missing'), 'note': _clean(raw.get('note') or '', 0, 300), 'tip': _clean(raw.get('tip') or '', 0, 300)}
+        by = getattr(ai_routes.CTX, 'last_service', None)  # the call whose answer this is (same thread, just recorded)
+        return {'heard': _clean(raw.get('heard') or '', 0, 80), 'ok': mbool(raw.get('ok'), 'ok_missing'), 'note': _clean(raw.get('note') or '', 0, 300),
+                'tip': _clean(raw.get('tip') or '', 0, 300), 'tentative': by is not None and by not in SAY_TRUSTED}
 
-    import hashlib
+    import hashlib, ai_routes
+    ai_routes.CTX.last_service = None
     result, status = _ai(c, uid, data, 'next-say', 'sounds', 'speaking', {'text': target, 'audio_sha256': hashlib.sha256(raw_audio).hexdigest()},
                          system, user, convert, data.get('audio'))
     if status == 200 and not result.get('replayed'):
@@ -383,8 +396,9 @@ def say(c, uid, data):
         # a miss asks for another try; a second miss in a row on the same word (within a week) makes the card.
         last = c.execute("SELECT score FROM next_skill_events WHERE user_id=? AND kind='say' AND pack=? AND created>? ORDER BY id DESC LIMIT 1",
                          (uid, key, time.time() - 7 * 86400)).fetchone()
-        sk.log(c, uid, 'pronunciation', 'say', 1.0 if r['ok'] else 0.0, pack=key, commit=False)
-        r['confirmed'] = not r['ok'] and last is not None and last['score'] == 0
+        # a reference verdict counts as practice (today's 发音 step) at a neutral 0.5: never one of the two misses, no pull on 能力
+        sk.log(c, uid, 'pronunciation', 'say', 0.5 if r.get('tentative') else 1.0 if r['ok'] else 0.0, pack=key, commit=False)
+        r['confirmed'] = not r.get('tentative') and not r['ok'] and last is not None and last['score'] == 0
         if r['confirmed']:
             sk.add_mistake(c, uid, 'sound', target, 'sound:' + target.lower(), r['tip'] or r['note'], '', 'pronunciation', extra={'focus': focus}, commit=False)
         c.commit()
