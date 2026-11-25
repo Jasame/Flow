@@ -1646,6 +1646,53 @@ def ux_run(pw):
         check(dev, '播放全文 right after opening an article: the fresher 今日 coming in does not stop the reading',
               kept['btn'] == '暂停' and kept['mini'] and kept['said'] >= 2, kept)
         c5.close()
+        # a device that cannot decode AAC (a Linux desktop without its codec, 语流 C3): a text with a recording is read
+        # sentence by sentence in AI 朗读, the recording never fetched, the reason said once on the page and in a toast;
+        # not 「音频暂时没加载出来，稍后再点一次」 for a file that can never play there
+        c6 = browser.new_context(**phone, service_workers='block')
+        c6.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a2']['token'], 'url': BASE}])
+        # WebKitGTK without libav (C3): the container is known ('maybe'), only the codec question answers ''
+        c6.add_init_script("HTMLMediaElement.prototype.canPlayType = t => (/mp4a\\.40\\.2/.test(t) ? '' : 'maybe'); window.__toasts = []; "
+                           "document.addEventListener('DOMContentLoaded', () => new MutationObserver(() => { const t = document.querySelector('.toast'); "
+                           "if (t && t.textContent && window.__toasts[window.__toasts.length - 1] !== t.textContent) window.__toasts.push(t.textContent); }).observe(document.body, { subtree: true, childList: true, characterData: true }));")
+        p6 = c6.new_page(); got6 = []
+        p6.on('request', lambda q: got6.append(q.url) if ('/audio/' in q.url and 'lighthouse-ledger-3' in q.url) or q.url.endswith('/api/next/tts') else None)
+        p6.route('**/api/next/tts', lambda r: r.fulfill(json={'url': '/audio/tts/us-f/no-aac-0001.wav', 'made': False}))
+        p6.route('**/audio/tts/us-f/no-aac-0001.wav', lambda r: r.fulfill(status=200, content_type='audio/wav', body=short))
+        p6.goto(BASE + '/#/m/v5-culture-c1-lighthouse-ledger-3/listen', wait_until='networkidle'); settle(p6, '#playAll'); p6.wait_for_timeout(300)
+        lead = p6.text_content('#view .listen-tip') or ''
+        p6.click('#playAll')
+        for _ in range(40):  # the first AI 朗读 request: a moment on a busy CI runner (1.5 s was too short on the MSI)
+            p6.wait_for_timeout(200)
+            if any(u.endswith('/api/next/tts') for u in got6): break
+        p6.wait_for_timeout(300)
+        six = p6.evaluate("() => ({ toasts: window.__toasts.filter(t => t.includes('放不了录音的格式')).length, btn: document.getElementById('playAll') ? document.getElementById('playAll').textContent.trim() : '' })")
+        rec = [u for u in got6 if '/audio/' in u and 'lighthouse-ledger-3' in u]
+        check(dev, 'no AAC on this device: the recording is never fetched, the text is read sentence by sentence in AI 朗读, why said once',
+              not rec and any(u.endswith('/api/next/tts') for u in got6) and '放不了录音的格式' in lead and six['toasts'] == 1 and six['btn'] == '暂停',
+              {'lead': lead, 'recording_asked': rec[:2], 'tts': sum(u.endswith('/api/next/tts') for u in got6), **six})
+        c6.close()
+        # canPlayType said yes, but the recording the server has will not decode (code 4 with the file there): the text goes
+        # on sentence by sentence in AI 朗读 from where it was, why said once; a file that is missing still says 没加载出来
+        med = 'v5-culture-c1-lighthouse-ledger-3'  # listed with a recording (ui_server.py MEDIA_PID)
+        c8 = browser.new_context(**phone, service_workers='block')
+        c8.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a2']['token'], 'url': BASE}])
+        n8 = len(c8.request.get(BASE + f'/api/next/material?id={med}').json()['sentences'])
+        meta = {'sentences': [{'s': k * 2.0, 'e': k * 2.0 + 1.8, 'w': [[0, k * 2.0]]} for k in range(n8)], 'duration': n8 * 2.0}
+        c8.add_init_script("window.__toasts = []; document.addEventListener('DOMContentLoaded', () => new MutationObserver(() => { const t = document.querySelector('.toast'); "
+                           "if (t && t.textContent && window.__toasts[window.__toasts.length - 1] !== t.textContent) window.__toasts.push(t.textContent); }).observe(document.body, { subtree: true, childList: true, characterData: true }));")
+        p8 = c8.new_page(); tts8 = []
+        p8.on('request', lambda q: tts8.append(q.url) if q.url.endswith('/api/next/tts') else None)
+        p8.route(f'**/{med}.json*', lambda r: r.fulfill(json=meta))
+        p8.route(f'**/{med}.m*', lambda r: r.fulfill(status=200, content_type='audio/mp4', body=b'this is not audio at all ' * 40))
+        p8.route('**/api/next/tts', lambda r: r.fulfill(json={'url': '/audio/tts/us-f/no-aac-0001.wav', 'made': False}))
+        p8.route('**/audio/tts/us-f/no-aac-0001.wav', lambda r: r.fulfill(status=200, content_type='audio/wav', body=short))
+        p8.goto(BASE + f'/#/m/{med}/listen', wait_until='networkidle'); settle(p8, '#playAll'); p8.wait_for_timeout(300)
+        p8.click('#playAll'); p8.wait_for_timeout(2500)
+        eight = p8.evaluate("() => ({ toasts: window.__toasts.filter(t => t.includes('放不了录音的格式')).length, missing: window.__toasts.filter(t => t.includes('没加载出来')).length, btn: (document.getElementById('playAll') || {}).textContent || '' })")
+        check(dev, 'a recording that will not decode here (code 4, the file there): the text goes on in AI 朗读 sentence by sentence, why said once',
+              eight['toasts'] == 1 and eight['missing'] == 0 and len(tts8) >= 1 and eight['btn'].strip() == '暂停', {**eight, 'tts': len(tts8)})
+        c8.close()
         # no connection, a text never read (B5's offline runs; B3's repro 2026-11-26): each sentence goes to the browser
         # voice at once, saying 「离线中…」, not after 1–2 s of 「正在准备朗读第 N 句…」 for a request that cannot go out
         c7 = browser.new_context(**phone, service_workers='block')
