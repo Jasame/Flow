@@ -2485,6 +2485,146 @@ def updates_run(pw):
         browser.close()
 
 
+# ---- 新手引导 (08-tour.js, tour_service.py): the first time a new account opens 今日, the real buttons one after another
+TOUR_JS = """() => { const t = document.querySelector('.tour'); if (!t) return null;
+  const tip = t.querySelector('.tour-tip'), hole = t.querySelector('.tour-hole'), r = tip.getBoundingClientRect(), h = hole.getBoundingClientRect();
+  const next = t.querySelector('[data-tour=next]'), skip = t.querySelector('[data-tour=skip]');
+  const cs = getComputedStyle(tip), se = document.scrollingElement;
+  return {n: (t.querySelector('.tour-n') || {}).textContent, title: (t.querySelector('#tourT') || {}).textContent, text: (t.querySelector('#tourD') || {}).textContent,
+          next: next && next.textContent, skip: skip && skip.textContent, focus: document.activeElement === next,
+          role: t.getAttribute('role'), modal: t.getAttribute('aria-modal'), named: (t.getAttribute('aria-labelledby') || '').split(' ').filter(Boolean).every(id => !!document.getElementById(id)) && !!t.getAttribute('aria-labelledby'),
+          tip: [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)], W: innerWidth, H: innerHeight,
+          inside: r.left >= 0 && r.top >= 0 && r.right <= innerWidth + 0.5 && r.bottom <= innerHeight + 0.5,
+          hole: [Math.round(h.left), Math.round(h.top), Math.round(h.width), Math.round(h.height)],
+          overlap: !(r.bottom <= h.top || r.top >= h.bottom || r.right <= h.left || r.left >= h.right) && h.width > 0,
+          wide: se.scrollWidth > innerWidth + 1, bg: cs.backgroundColor, motion: getComputedStyle(hole).transitionDuration,
+          day: document.documentElement.classList.contains('tour-day')}; }"""
+TOUR_LEARNER = ['今天的计划', '单词', '学一篇', '口语和更多练习', '我的']
+
+
+def tour_run(pw):
+    """新手引导: a new account sees it on 今日 at once (375 px, a small iPhone): five steps, each pointing at its button
+    with the card on screen beside it, 下一步 to the end, the last button opens today's first task; it does not come
+    back (not on reload, not on another phone); an older account never sees it; 我的 → 帮助 → 「再看一遍新手引导」 plays
+    it again at 390 px and on a computer, light and dark, with reduced motion; the focus stays in the card; a 老师账号
+    gets its own three on 我的班级, and 跳过 ends it for good."""
+    dev = 'tour'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=['--mute-audio'])
+    small = dict(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN')
+    phone = dict(DEVICES['phone'], locale='zh-CN')
+    errs = []
+
+    def open_(who, size, hash_='#/', **kw):
+        ctx = browser.new_context(**size, **kw); ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners'][who]['token'], 'url': BASE}])
+        pg = ctx.new_page(); pg.on('pageerror', lambda e: errs.append(f'{who}: {e}'))
+        pg.goto(BASE + '/' + hash_, wait_until='load'); settle(pg)
+        return ctx, pg
+
+    def shown(pg, timeout=6000):
+        try:
+            pg.wait_for_selector('.tour .tour-tip', timeout=timeout); pg.wait_for_timeout(350)  # the hole's move is .22 s
+        except Exception:
+            return None
+        return pg.evaluate(TOUR_JS)
+
+    def due(pg):
+        return pg.evaluate("() => fetch('/api/next/tour', {credentials: 'same-origin'}).then(r => r.json())")
+
+    def walk(pg, tag, shots=False):
+        seen = []
+        for k in range(len(TOUR_LEARNER)):
+            st = pg.evaluate(TOUR_JS); seen.append(st)
+            if shots:
+                pg.screenshot(path=str(OUT / f'tour-{tag}-{k + 1}.png'))
+            if k < len(TOUR_LEARNER) - 1:
+                pg.click('.tour [data-tour=next]'); pg.wait_for_timeout(350)
+        return seen
+
+    try:
+        # a new account, a small iPhone: it shows by itself
+        ctx, pg = open_('tour', small)
+        first = shown(pg)
+        check(dev, '375 px: a new account sees it on 今日 by itself, a modal dialog with its title, the focus on 下一步',
+              bool(first) and first['role'] == 'dialog' and first['modal'] == 'true' and first['named'] and first['focus'], first)
+        check(dev, 'one notice at a time: the first day 「语流更新了」 and the reminders step aside, a 公告 while the tour is open',
+              bool(first) and first['day'] and pg.evaluate("""() => { const v = document.getElementById('view'), x = [];
+                for (const [id, cls] of [['notice', 'notice'], ['updCard', 'notice'], ['announce', 'notice']]) {
+                  let e = document.getElementById(id); if (!e) { e = document.createElement('div'); e.id = id; e.className = cls; e.textContent = 'x'; v.appendChild(e); x.push(e); }
+                  if (getComputedStyle(e).display !== 'none') return false; }
+                x.forEach(e => e.remove()); return true; }"""))
+        steps = walk(pg, '375', shots=True) if first else []
+        check(dev, '375 px: five steps — 今天的计划, 单词, 学一篇, 口语和更多练习, 我的 — 「第 N 步，共 5 步」',
+              [s['title'] for s in steps] == TOUR_LEARNER and all(s['n'] == f'第 {k + 1} 步，共 5 步' for k, s in enumerate(steps)), [s and (s['n'], s['title']) for s in steps])
+        check(dev, '375 px: each step points at its button (a hole round it) with the card beside it, not over it, all on one screen, no sideways scroll',
+              len(steps) == 5 and all(s['hole'][2] > 0 and not s['overlap'] and s['inside'] and not s['wide'] for s in steps), [(s['title'], s['hole'], s['tip'], s['H'], s['overlap'], s['inside'], s['wide']) for s in steps])
+        check(dev, '跳过 on every step but the last (关闭 there); the last button is 「开始今天的第一项」',
+              len(steps) == 5 and all(s['skip'] == '跳过' for s in steps[:4]) and steps[4]['skip'] == '关闭' and steps[4]['next'] == '开始今天的第一项', [s and (s['skip'], s['next']) for s in steps])
+        # Tab stays in the card
+        if steps:
+            pg.keyboard.press('Tab'); pg.keyboard.press('Tab'); pg.keyboard.press('Tab')
+            check(dev, 'Tab keeps the focus in the card while it is open', pg.evaluate("() => !!document.activeElement.closest('.tour')"))
+        to = pg.evaluate("() => { const a = document.querySelector('#view .go-next'); return a && a.getAttribute('href'); }")
+        with pg.expect_response(lambda r: r.url.endswith('/api/next/tour') and r.request.method == 'POST', timeout=6000) as resp:
+            pg.click('.tour [data-tour=next]')
+        pg.wait_for_timeout(400)
+        check(dev, 'the last button opens today\'s first task and the card goes',
+              bool(to) and pg.evaluate('location.hash') == to and pg.query_selector('.tour') is None and resp.value.json().get('counted') is True, (to, pg.evaluate('location.hash')))
+        check(dev, 'kept on the server: not due any more', due(pg) == {'learner': False, 'teacher': False}, due(pg))
+        pg.goto(BASE + '/#/', wait_until='load'); settle(pg)
+        check(dev, 'reload: it does not come back', shown(pg, 2500) is None)
+        ctx.close()
+        # the same account on another phone: nothing either
+        ctx, pg = open_('tour', phone)
+        check(dev, 'another phone, same account: it does not come back', shown(pg, 2500) is None)
+        # 我的 → 帮助 → 更多 → 「再看一遍新手引导」 (390 px; 简洁化: in the 更多 sheet)
+        go(pg, '#/me'); pg.click('#meMore'); pg.wait_for_selector('#sheetCard #meTour', timeout=4000); pg.click('#meTour')
+        again = shown(pg)
+        check(dev, '390 px: 我的 → 帮助 → 更多 → 「再看一遍新手引导」 opens it on 今日 from step 1',
+              bool(again) and pg.evaluate('location.hash') in ('#/', '') and again['title'] == TOUR_LEARNER[0] and again['inside'], again)
+        if again:
+            with pg.expect_response(lambda r: r.url.endswith('/api/next/tour') and r.request.method == 'POST', timeout=6000) as resp:
+                pg.click('.tour [data-tour=skip]')
+            check(dev, '再看一遍 and 跳过: the card goes, not counted again', pg.query_selector('.tour') is None and resp.value.json().get('counted') is False, resp.value.json())
+        ctx.close()
+        # a computer, dark, reduced motion
+        ctx, pg = open_('tour', dict(viewport={'width': 1280, 'height': 800}, locale='zh-CN'), '#/me', color_scheme='dark', reduced_motion='reduce')
+        pg.click('#meMore'); pg.wait_for_selector('#sheetCard #meTour', timeout=4000); pg.click('#meTour')
+        st = shown(pg)
+        steps = walk(pg, 'desktop-dark', shots=True) if st else []
+        lum = (lambda c: sum(int(x) for x in re.findall(r'\d+', c)[:3]) / 3)(st['bg']) if st else 255
+        check(dev, '1280 px, dark: five steps, each with its button and the card on screen, no sideways scroll',
+              [s['title'] for s in steps] == TOUR_LEARNER and all(s['hole'][2] > 0 and not s['overlap'] and s['inside'] and not s['wide'] for s in steps), [(s['title'], s['hole'], s['tip'], s['overlap'], s['inside'], s['wide']) for s in steps])
+        check(dev, 'dark: the card is dark too; reduced motion: the hole jumps, it does not glide', lum < 90 and float(st['motion'].rstrip('s') or 1) < 0.01, st and (st['bg'], st['motion']))
+        pg.keyboard.press('Escape'); pg.wait_for_timeout(200)  # the open card is what Escape closes
+        check(dev, 'Escape closes it', pg.query_selector('.tour') is None)
+        ctx.close()
+        # an older account (made before the tour): never
+        ctx, pg = open_('phone', small)
+        check(dev, 'an older account never sees it', shown(pg, 2500) is None and due(pg) == {'learner': False, 'teacher': False})
+        ctx.close()
+        # a 老师账号: three steps on 我的班级, 跳过 ends it for good
+        ctx, pg = open_('tour-teacher', small)
+        t1 = shown(pg)
+        pg.screenshot(path=str(OUT / 'tour-teacher-1.png'))
+        tnew = pg.evaluate("() => { const r = document.getElementById('tNew').getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.width)]; }") if t1 else None
+        check(dev, '老师账号: its own tour on 我的班级, step 1 at 「新建班级」',
+              bool(t1) and t1['title'] == '建一个班' and t1['n'] == '第 1 步，共 3 步' and tnew and abs(t1['hole'][0] + 6 - tnew[0]) <= 2 and abs(t1['hole'][2] - 12 - tnew[2]) <= 2 and t1['inside'], (t1, tnew))
+        t2 = None
+        if t1:
+            pg.click('.tour [data-tour=next]'); pg.wait_for_timeout(350); t2 = pg.evaluate(TOUR_JS)
+            pg.screenshot(path=str(OUT / 'tour-teacher-2.png'))
+        check(dev, '老师账号, no class yet: step 2 says where the 6-digit code will be, mid-screen',
+              bool(t2) and t2['title'] == '把邀请码发给学生' and '建好班以后' in t2['text'] and t2['hole'][2] == 0 and t2['inside'], t2)
+        if t2:
+            pg.click('.tour [data-tour=skip]'); pg.wait_for_timeout(300)
+        pg.goto(BASE + '/#/', wait_until='load'); settle(pg)
+        check(dev, '老师账号: 跳过 ends it for good', shown(pg, 2500) is None and due(pg) == {'learner': False, 'teacher': False})
+        ctx.close()
+        check(dev, 'no page errors', not errs, errs[:3])
+    finally:
+        browser.close()
+
+
 def a11y_run(pw):
     dev = 'a11y'
     browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
@@ -4114,6 +4254,12 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('updates', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'tour' in ONLY:
+            try:
+                tour_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('tour', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'privacy' in ONLY:
             try:
                 privacy_run(pw)

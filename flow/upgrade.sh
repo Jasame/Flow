@@ -303,6 +303,7 @@ FLOW_FILES=(
   teacher_service.py
   time_budget.py
   topic_guard.py
+  tour_service.py
   tts_service.py
   updates_service.py
   user_guide.py
