@@ -10,7 +10,6 @@ share.jpg, the picture a shared link shows. Nothing here touches production.
 import base64, json, socket, subprocess, sys, tempfile, time, atexit
 from pathlib import Path
 from playwright.sync_api import sync_playwright
-import silent  # noqa: F401  (rule 9 in tools/README.md: every browser started here is muted)
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'flow' / 'public' / 'about'
