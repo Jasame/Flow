@@ -1,3 +1,3 @@
-50e03e2df90cfa4e7ad181d533b4b5407c75f6c3 5749b8c0aa6d9642093e7bcef9ea97b910a0043a5ea36aa948f70d111f2c85f4 e2e light
-# b26 main: Merge pull request #114 from Jasame/examples-fair = build of 1db9b7ae1c5a
+166cb8ce3348146cc2f12991254e4aa10b879de9 2343335d6f241528944dc1da4e964d2131e414e661e592dc6a156499bd3ee979 e2e light
+# b27 main: Merge pull request #119 from Jasame/ledger-ttsrate = build of f499b4323f1a
 # Format: <commit sha> <manifest sha256> [e2e [light]]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
