@@ -97,30 +97,43 @@
   }
   // a document's full text over the page (the guide's chapter), 返回 to the form as it was; its links to other chapters stay
   // in this layer, so nothing typed is lost (in the apps too, where a new tab would leave the page)
-  async function docOver(id) {
-    let g;
-    try { g = S.guide || (S.guide = await api('/api/next/guide')); } catch (x) { toast(x.message); return; }
+  const DOC_NAME = { terms: '语流用户协议', privacy: '隐私和数据' };
+  function docOver(id) {
     const back = document.activeElement, el = document.createElement('div');
     el.className = 'doc-over'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true');
-    const show = cid => {
-      const ch = g.chapters.find(c => c.id === cid); if (!ch) return false;
-      el.setAttribute('aria-label', ch.title);
-      el.innerHTML = `<div class="doc-bar"><button class="btn small" type="button" data-doc-close>← 返回</button><b>${esc(ch.title)}</b></div>
-        <div class="guide-body doc-body">${ch.html}</div><div class="doc-foot"><button class="btn primary block" type="button" data-doc-close>返回</button></div>`;
-      el.scrollTop = 0; el.querySelector('[data-doc-close]').focus(); return true;
+    const frame = (title, body) => {
+      el.setAttribute('aria-label', title);
+      el.innerHTML = `<div class="doc-bar"><button class="btn small" type="button" data-doc-close>← 返回</button><b>${esc(title)}</b></div>
+        <div class="guide-body doc-body">${body}</div><div class="doc-foot"><button class="btn primary block" type="button" data-doc-close>返回</button></div>`;
+      el.scrollTop = 0;
     };
-    if (!show(id)) return;
+    // just this chapter (/api/next/guide?chapter=, open before any agreement too), kept for the page's life; shown at
+    // once as 「正在打开」, and a failure says so with 再试一次, never a page that keeps retrying
+    const show = async cid => {
+      const name = DOC_NAME[cid] || '操作指南';
+      S.docs = S.docs || {};
+      if (!S.docs[cid]) frame(name, '<p class="muted">正在打开…</p>');
+      try {
+        const ch = S.docs[cid] || (S.docs[cid] = (await api('/api/next/guide?chapter=' + encodeURIComponent(cid))).chapter);
+        if (el.isConnected) frame(ch.title, ch.html);
+        const at = ch.anchor && el.querySelector('#g-' + CSS.escape(ch.anchor)); if (at) at.scrollIntoView({ block: 'start' });
+      } catch (x) {
+        frame(name, `<p>暂时打不开。请检查网络后再试一次；也可以稍后在「操作指南」里看《语流用户协议》和《隐私和数据》两章。</p><button class="btn" type="button" data-doc-retry="${esc(cid)}">再试一次</button>`);
+      }
+      const f = el.querySelector('[data-doc-close]'); if (f) f.focus();
+    };
     const close = () => { el.remove(); document.removeEventListener('keydown', key, true); if (back && back.focus) back.focus(); };
     // over the sign-up sheet: Esc closes this layer only, and Tab stays here (the sheet would pull focus back into itself)
     const key = e => { if (e.key === 'Escape') { e.stopImmediatePropagation(); e.preventDefault(); close(); } else if (e.key === 'Tab') e.stopImmediatePropagation(); };
     el.onclick = e => {
       if (e.target.closest('[data-doc-close]')) return close();
+      const again = e.target.closest('[data-doc-retry]'); if (again) return show(again.dataset.docRetry);
       const a = e.target.closest('a[href]'); if (!a) return;
       const h = a.getAttribute('href'), m = h.match(/^\/?#\/guide\/([\w-]+)/);
       if (m) { e.preventDefault(); show(m[1]); } else if (h.startsWith('#') || h.startsWith('/#')) e.preventDefault(); else { a.target = '_blank'; a.rel = 'noopener'; }
     };
     document.addEventListener('keydown', key, true);
-    document.body.appendChild(el); el.querySelector('[data-doc-close]').focus();
+    document.body.appendChild(el); show(id);
   }
   document.addEventListener('click', e => {
     const a = e.target.closest && e.target.closest('a[data-doc]');

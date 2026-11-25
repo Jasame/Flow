@@ -23,3 +23,6 @@
 .doc-bar b{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .doc-body{max-width:720px;margin:12px auto 0}
 .doc-foot{max-width:720px;margin:20px auto 0}
+.doc-body [id]{scroll-margin-top:72px}
+/* a tick focused after 「请先勾选」 stays clear of the sticky top bar and the bottom tabs */
+.storagefs input{scroll-margin:96px 0 120px}

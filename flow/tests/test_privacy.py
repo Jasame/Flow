@@ -188,10 +188,23 @@ class TermsTests(Privacy):
             st, home, _ = self.call('/api/next/home', headers=h)  # the page starts: a guest's home, with the session to ask
             self.assertEqual((st, home['session']['user']['terms']), (200, None))
             self.assertEqual(self.call('/api/next/export/records.json', headers=h, raw=True)[0], 200)
+            # what it is asked to agree to can be read: the guide, and one chapter of it (the tick's names open it)
+            self.assertEqual(self.call('/api/next/guide', headers=h)[0], 200)
+            st, doc, _ = self.call('/api/next/guide?chapter=terms', headers=h)
+            self.assertEqual((st, doc['chapter']['title'], doc['chapter']['anchor']), (200, '语流用户协议', None))
             self.assertEqual(self.call('/api/account/terms', {'agree': False}, h)[0], 400)  # nothing to decline: it stays held
             st, r, _ = self.call('/api/account/terms', {'agree': True}, h)
             self.assertEqual((st, r['terms']), (200, 'ok'))
             self.assertEqual(self.call('/api/next/class', headers=h)[0], 200)
+
+    def test_one_chapter_of_the_guide_for_a_ticks_names(self):
+        st, doc, _ = self.call('/api/next/guide?chapter=privacy')  # no sign-in needed
+        self.assertEqual((st, doc['chapter']['id'], doc['chapter']['anchor']), (200, 'privacy', None))
+        self.assertIn('香港的服务器', doc['chapter']['html'])
+        self.assertNotIn('chapters', doc)  # just the one, not the whole guide
+        st, doc, _ = self.call('/api/next/guide?chapter=apps')  # a section's id: its chapter, and where in it
+        self.assertEqual((st, doc['chapter']['id'], doc['chapter']['anchor']), (200, 'privacy', 'apps'))
+        self.assertEqual(self.call('/api/next/guide?chapter=no-such-thing')[0], 404)
 
     def test_a_new_version_asks_everyone_again(self):
         h, me = self.signed('xiaolin', age='18+')

@@ -1636,7 +1636,14 @@ def get(c, uid, path, q):
         cs = __import__('class_service')
         return cs.mine(c, uid) if path == '/api/next/class' else cs.teach(c, uid, one('id'))
     if path == '/api/next/guide':
-        return __import__('user_guide').api(), 200
+        g = __import__('user_guide').api()
+        if one('chapter'):  # one chapter (a tick's 《用户协议》《隐私和数据》, 81-privacy.js): a few KB, not the whole guide
+            cid = one('chapter')  # a chapter's id, or a section's (## … {#id}): then its chapter, and where in it
+            ch = next((x for x in g['chapters'] if x['id'] == cid), None) or next((x for x in g['chapters'] if f'id="g-{cid}"' in x['html']), None)
+            if not ch:
+                return {'error': '没有这一章'}, 404
+            return {'updated': g['updated'], 'chapter': {'id': ch['id'], 'title': ch['title'], 'html': ch['html'], 'anchor': cid if cid != ch['id'] else None}}, 200
+        return g, 200
     if path == '/api/next/updates':
         return __import__('updates_service').listing(), 200  # 更新记录 (#/updates)
     if path == '/api/next/meta':
