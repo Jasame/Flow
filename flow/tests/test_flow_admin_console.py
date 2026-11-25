@@ -386,8 +386,9 @@ class PageTests(unittest.TestCase):
             self.assertIn(f'data-tab="{tab}"', html)
             self.assertIn(f'function {fn}', js)
         self.assertIn('data-tab="learners" data-admin', html)
-        v = html.split('admin.js?v=')[1].split('"')[0]
-        self.assertEqual(v, html.split('admin.css?v=')[1].split('"')[0])
+        # each file is asked for by its own content (?v=<sha256[:10]>, tests/test_release.py), so a changed one is fetched at once
+        for name in ('admin.js', 'admin.css'):
+            self.assertRegex(html.split(name + '?v=')[1].split('"')[0], r'^[0-9a-f]{10}$')
         self.assertNotIn('data-tab="accounts"', html)  # 账号 is part of 学员 now; #accounts still opens it
         self.assertIn("if (tab === 'accounts') tab = 'learners'", js)
 
