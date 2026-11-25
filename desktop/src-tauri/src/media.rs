@@ -121,7 +121,7 @@ pub mod system {
     ) -> Result<(), String> {
         let config = PlatformConfig {
             display_name,
-            dbus_name: "cn.flowlang.desktop",
+            dbus_name: "cn.flowlang.app",
             hwnd,
         };
         let mut c = MediaControls::new(config).map_err(|e| format!("{e:?}"))?;

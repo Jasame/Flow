@@ -1,7 +1,7 @@
 """The 操作指南: one source (public/guide/guide.md) for the in-site guide (#/guide) and the PDF (tools/build_guide.py).
 
 The source is a small, fixed Markdown subset, so a teacher or the next developer can edit it as text:
-  % title / % updated line          # 章 {#id}          ## 小节          blank line = new paragraph
+  % title / % updated line          # 章 {#id}          ## 小节 (## 小节 {#id}: a place #/guide/id can open)          blank line = new paragraph
   - bullet     1. step (indent 2–4 spaces for a bullet or a numbered step under it)     > 提示        | table | rows |
   ![caption](shot:name)  -> public/guide/name.jpg (tools/guide_shots.py takes these from the local UI server)
   [去看看](#/route) on its own line -> a button to that page;  **bold**  `key`;  ``` … ``` -> a command, shown as is
@@ -17,6 +17,7 @@ MANIFEST = DIR / 'manifest.json'
 SHOT = re.compile(r'^!\[([^\]]*)\]\(shot:([a-z0-9-]+)\)$')
 GO = re.compile(r'^\[([^\]]+)\]\((#/[^)\s]*)\)$')
 HEAD = re.compile(r'^# (.+?)\s*\{#([a-z0-9-]+)\}$')
+SUBHEAD = re.compile(r'^## (.+?)\s*\{#([a-z0-9-]+)\}$')  # a section a page links to, e.g. 「经规范检查」 → #/guide/ai-check
 _CACHE = {}
 
 
@@ -80,10 +81,11 @@ def parse(text=None, shot_url=lambda n: f'/guide/{n}.jpg', link=lambda h: h):
             continue
         if not line.strip():
             flush(); continue
-        cur['text'].append(re.sub(r'\]\([^)]*\)|[*`>#|!\[\]]|^\s*- ', ' ', line))
+        cur['text'].append(re.sub(r'\]\([^)]*\)|[*`>#|!\[\]]|^\s*- ', ' ', re.sub(r'\s*\{#[a-z0-9-]+\}$', '', line)))
         cur['links'] += re.findall(r'\]\((#/[^)\s]*)\)', line)
         if line.startswith('## '):
-            flush(); out(f'<h3>{_inline(line[3:].strip(), link)}</h3>'); continue
+            m = SUBHEAD.match(line.strip())
+            flush(); out(f'<h3 id="g-{m.group(2)}">{_inline(m.group(1), link)}</h3>' if m else f'<h3>{_inline(line[3:].strip(), link)}</h3>'); continue
         m = SHOT.match(line.strip())
         if m:
             flush(); cur['shots'].append(m.group(2))

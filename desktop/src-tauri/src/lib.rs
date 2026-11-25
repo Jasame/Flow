@@ -57,6 +57,8 @@ pub struct AppState {
     pub smoke: Option<PathBuf>,
     pub media_ok: std::sync::atomic::AtomicBool,
     pub media_title: Mutex<Option<String>>,
+    /// the reminders last handed to the system (for FlowApp.notify.pending())
+    pub last_plan: Mutex<Vec<schedule::Planned>>,
     /// FLOW_MUTE=1 or a smoke test: no sound from the page or the notifications
     pub mute: bool,
 }
@@ -72,6 +74,9 @@ impl AppState {
     pub fn update_settings(&self, f: impl FnOnce(&mut Settings)) {
         let mut s = self.settings.lock().unwrap();
         f(&mut s);
+        if self.smoke.is_some() {
+            return; // a smoke test never changes the learner's settings
+        }
         if let Err(e) = settings::save(&self.settings_path, &s) {
             log::warn!("settings not saved: {e}");
         }
@@ -147,7 +152,7 @@ fn test_notification(app: &AppHandle) {
         let launch = format!("{}://open", st.channel.scheme());
         let p = notify::permission();
         log::info!("notification permission before the test: {p:?}");
-        if p != notify::Permission::Granted && !notify::ask() {
+        if !p.ok() && !notify::ask() {
             log::warn!("notifications are off for this app: opening the system settings");
             open_notification_settings(&app);
             return;
@@ -175,13 +180,13 @@ fn toggle_notify(app: &AppHandle) {
         let st = app.state::<AppState>();
         if st.settings().notify {
             st.update_settings(|s| s.notify = false);
+            st.last_plan.lock().unwrap().clear();
             notify::clear();
-        } else if notify::permission() == notify::Permission::Granted || notify::ask() {
+        } else if notify::permission().ok() || notify::ask() {
             st.update_settings(|s| s.notify = true);
-            st.last_sync.store(0, std::sync::atomic::Ordering::Relaxed);
-            // the page fetches the reminder and syncs (bridge.js resync)
+            // the page fetches /api/next/vocab with its login and plans (bridge.js)
             if let Some(w) = app.get_webview_window(MAIN) {
-                let _ = w.eval("document.dispatchEvent(new Event('visibilitychange'))");
+                let _ = w.eval("window.FlowApp && FlowApp._replan()");
             }
         } else {
             open_notification_settings(&app);
@@ -283,7 +288,14 @@ fn build_window(app: &AppHandle, hidden: bool) -> tauri::Result<WebviewWindow> {
         .min_inner_size(380.0, 560.0)
         .visible(!hidden)
         .user_agent(&user_agent)
-        .initialization_script(bridge::script(&origin, &version, os.platform(), st.mute))
+        .initialization_script(bridge::script(&bridge::ScriptVars {
+            origin: &origin,
+            version: &version,
+            build: bridge::build_id(),
+            platform: os.platform(),
+            beta: st.channel == Channel::Beta,
+            mute: st.mute,
+        }))
         .zoom_hotkeys_enabled(cfg!(target_os = "windows"))
         .on_navigation(move |u| match links::classify(&s1, u) {
             links::Nav::InApp => true,
@@ -361,6 +373,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         smoke: smoke::path_from_args(std::env::args()),
         media_ok: Default::default(),
         media_title: Mutex::new(None),
+        last_plan: Mutex::new(vec![]),
         mute: std::env::var_os("FLOW_MUTE").is_some_and(|v| v != "0")
             || smoke::path_from_args(std::env::args()).is_some(),
     });
@@ -473,7 +486,11 @@ pub fn run() {
             bridge::notify_permission,
             bridge::notify_ask,
             bridge::notify_due,
-            bridge::notify_sync,
+            bridge::notify_plan,
+            bridge::notify_signed_out,
+            bridge::notify_off,
+            bridge::notify_hold,
+            bridge::notify_pending,
             smoke::smoke_report
         ])
         .on_menu_event(|app, e| on_menu(app, e.id().as_ref()))

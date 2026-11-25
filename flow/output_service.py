@@ -370,14 +370,41 @@ def say_by_asr():
     return os.getenv('FLOW_SAY_JUDGE', '').strip() == 'asr' and bool(chat_service.asr_model())
 
 
+FULL_VOWELS = set('aeiouyæɑɒɔɛɪʊʌɜɚɝ')  # every vowel but the weak ə
+
+
+def sounds_of(word):
+    """How the dictionary says exactly this word (no base form: "rights" is not looked up as "right"), ready to compare:
+    stress marks, notes like "(for v.)", optional sounds like "(ə)" and spaces dropped, ɛ written e. Length marks stay:
+    the dictionary writes a few short vowels the old way ([bin] for bin, [nil] for nil), and without the marks bean and
+    bin, kneel and nil would sound alike. Weak forms ([ðə] for there) and fragments ([en-]) are left out when the word
+    also has a full form."""
+    ph = (nx.dictionary().get(word) or {}).get('phonetic') or ''
+    ph = re.sub(r'\([^)]*\)|\b(?:strong|weak) form\b', '', ph)
+    forms = set()
+    for v in re.split(r'[;；,，/]', ph):
+        v = re.sub(r"[ˈˌ'\s\[\]]", '', v.replace('ɛ', 'e').replace('ɡ', 'g'))
+        if v and '-' not in v:
+            forms.add(v)
+    return {v for v in forms if set(v) & FULL_VOWELS} or forms
+
+
+def same_sound(a, b):
+    """Two different words the dictionary says alike (their / there, right / write, too / two)."""
+    return a != b and bool(sounds_of(a) & sounds_of(b))
+
+
 def say_verdict(target, partner, heard):
     """What the recogniser wrote down -> the answer say() reads. The target counts only as a whole word (hat is not
     in "that"). Wrong when it heard the pair word and not the target, or, for a word without a pair, another real word
-    (it heard as "sit"); a third word next to a pair is let through, and said as heard; nothing heard is a reference."""
+    (it heard as "sit"); a third word next to a pair is let through, and said as heard; nothing heard is a reference.
+    One word alone is often written as another that sounds the same (their as there, 语流 09): a word the dictionary
+    says like the target is right, one it says like the pair word is the pair word."""
     import difflib, sounds
     t, p = target.lower().strip(), (partner or '').lower().strip()
     words = re.findall(r"[a-z']+", (heard or '').lower())
     said = ' '.join(words)
+    one = words[0] if len(words) == 1 else ''
     tip = sounds.tip_of(t)
     if not words:
         return {'heard': '', 'ok': True, 'note': '这次没听清读的是什么，可以再读一遍', 'tip': '', 'unclear': True}
@@ -386,6 +413,10 @@ def say_verdict(target, partner, heard):
         return {'heard': said, 'ok': False, 'note': f'听起来像 {p}，不像 {t}', 'tip': tip}
     if hit:
         return {'heard': said, 'ok': True, 'note': f'听起来是 {t}', 'tip': ''}
+    if one and same_sound(t, one):
+        return {'heard': said, 'ok': True, 'note': f'听起来是 {t}（和 {one} 同音）', 'tip': ''}
+    if p and one and same_sound(p, one):  # the pair word, written as one that sounds like it (right as write)
+        return {'heard': said, 'ok': False, 'note': f'听起来像 {p}（和 {one} 同音），不像 {t}', 'tip': tip}
     if p:  # neither the target nor its pair: not the mistake this pair practises
         return {'heard': said, 'ok': True, 'note': f'听起来像 {said}，没有读成 {p}', 'tip': ''}
     other = len(words) == 1 and words[0] != t and nx.lookup(words[0])

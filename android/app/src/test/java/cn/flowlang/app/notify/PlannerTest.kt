@@ -1,62 +1,164 @@
 package cn.flowlang.app.notify
 
+import org.json.JSONArray
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.LocalDate
+import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 
+/** The same examples as the iOS app's ReminderPlanTests (docs/native-bridge.md §5), so the platforms agree. */
 class PlannerTest {
     private val zone = ZoneId.of("Asia/Shanghai")
-    private fun at(s: String) = LocalDateTime.parse(s).atZone(zone).toInstant()
-    private fun show(slots: List<Planner.Slot>) = slots.map { java.time.Instant.ofEpochMilli(it.atMillis).atZone(zone).toLocalDateTime().toString() + " " + it.kind }
+    private fun at(day: Int, hour: Int, minute: Int = 0): Instant = LocalDateTime.of(2026, 11, day, hour, minute).atZone(zone).toInstant()
+    private fun secs(i: Instant) = i.epochSecond.toDouble()
 
-    @Test fun everyDayAtTheHourForAWeek() {
-        val p = Planner.plan(20, null, null, null, at("2026-11-25T10:00"), zone)
-        assertEquals(7, p.size)
-        assertEquals("2026-11-25T20:00 DAILY", show(p).first())
-        assertEquals("2026-12-01T20:00 DAILY", show(p).last())
+    private fun input(f: Planner.Input.() -> Unit = {}): Planner.Input =
+        Planner.Input(hour = 20, due = 12, new = 0, minutes = 6, forecast = listOf(12, 5, 0, 7, 3, 0, 2), hasWords = true, app = true).apply(f)
+
+    private fun ids(s: List<Planner.Slot>) = s.map { it.id }
+
+    @Test fun everyDayAtTheHourOnlyWithWords() {
+        val s = Planner.slots(input(), at(25, 9), zone)
+        val ids = ids(s)
+        assertEquals("review-2026-11-25", ids.first())
+        assertTrue(ids.contains("review-2026-11-26"))
+        assertTrue("words not reviewed stay due (the mail counts them)", ids.contains("review-2026-11-27"))
+        assertTrue("after the forecast: every day while there are words", ids.contains("review-2026-12-08"))
+        assertEquals(at(25, 20).toEpochMilli(), s.first().at)
+        assertTrue(s.first().body.contains("12 个词"))
+        assertTrue(s.all { it.path == "#/review" })
     }
 
-    @Test fun todaysHourGoneStartsTomorrow() {
-        val p = Planner.plan(8, null, null, null, at("2026-11-25T10:00"), zone)
-        assertEquals("2026-11-26T08:00 DAILY", show(p).first())
-        assertEquals(6, p.size)
+    @Test fun noWordsAtAllNoReminders() {
+        val s = Planner.slots(input { due = 0; forecast = listOf(0, 0, 0, 0, 0, 0, 0); hasWords = false }, at(25, 9), zone)
+        assertTrue(ids(s).joinToString(" "), s.isEmpty())
     }
 
-    @Test fun noReminderOnADayWithNothingDue() {
-        val p = Planner.plan(20, null, intArrayOf(3, 0, 5, 2, 0, 1, 4), LocalDate.parse("2026-11-25"), at("2026-11-25T10:00"), zone)
-        assertEquals(listOf("2026-11-25T20:00 DAILY", "2026-11-27T20:00 DAILY", "2026-11-28T20:00 DAILY", "2026-11-30T20:00 DAILY", "2026-12-01T20:00 DAILY"), show(p))
-        assertEquals(3, p.first().due)
+    @Test fun chinaTimeByDefault() {
+        val s = Planner.slots(input(), at(25, 9))  // Planner.ZONE: UTC+8 whatever the phone's zone
+        assertEquals(at(25, 20).toEpochMilli(), s.first().at)
     }
 
-    @Test fun onceReplacesTheDailiesBeforeItAndItsOwnDay() {
-        // once tomorrow 12:30: today 20:00 (before it) and tomorrow 20:00 (its day) go; every day again after
-        val once = at("2026-11-26T12:30").epochSecond.toDouble()
-        val p = Planner.plan(20, once, null, null, at("2026-11-25T10:00"), zone)
-        assertEquals(listOf("2026-11-26T12:30 ONCE", "2026-11-27T20:00 DAILY"), show(p).take(2))
-        assertEquals(6, p.size)
+    @Test fun nothingLeftTodayMeansNoReminderToday() {
+        assertFalse(ids(Planner.slots(input { due = 0; new = 0 }, at(25, 9), zone)).contains("review-2026-11-25"))
+        assertTrue("beyond the day's share counts too", ids(Planner.slots(input { due = 0; new = 0; later = 30 }, at(25, 9), zone)).contains("review-2026-11-25"))
     }
 
-    @Test fun onceLaterTodayKeepsTomorrow() {
-        val once = at("2026-11-25T21:00").epochSecond.toDouble()
-        val p = Planner.plan(20, once, null, null, at("2026-11-25T10:00"), zone)
-        assertEquals(listOf("2026-11-25T21:00 ONCE", "2026-11-26T20:00 DAILY"), show(p).take(2))
+    @Test fun pastTheHourTodayStartsTomorrow() {
+        assertEquals("review-2026-11-26", Planner.slots(input(), at(25, 21), zone).first().id)
     }
 
-    @Test fun aPastOnceIsForgotten() {
-        val once = at("2026-11-25T09:00").epochSecond.toDouble()
-        val p = Planner.plan(20, once, null, null, at("2026-11-25T10:00"), zone)
-        assertTrue(p.none { it.kind == Planner.Kind.ONCE })
-        assertEquals("2026-11-25T20:00 DAILY", show(p).first())
+    @Test fun onceReplacesTheDailyOnesUntilThenAndThatDay() {
+        // 这次什么时候复习: tomorrow 12:30 — no 20:00 today, none tomorrow evening, then daily again
+        val once = at(26, 12, 30)
+        val s = Planner.slots(input { this.once = secs(once) }, at(25, 9), zone)
+        val ids = ids(s)
+        assertEquals("review-once", ids.first())
+        assertEquals(once.toEpochMilli(), s.first().at)
+        assertFalse(ids.contains("review-2026-11-25"))
+        assertFalse(ids.contains("review-2026-11-26"))
+        assertTrue(ids.contains("review-2026-11-28"))
     }
 
-    @Test fun theForecastIsReadFromTheDayItWasMade() {
-        // made yesterday: today is its index 1
-        val p = Planner.plan(20, null, intArrayOf(9, 0, 4, 4, 4, 4, 4), LocalDate.parse("2026-11-24"), at("2026-11-25T10:00"), zone)
-        assertEquals("2026-11-26T20:00 DAILY", show(p).first())
-        assertEquals(4, p.first().due)
-        assertEquals(null, p.last().due)  // beyond the forecast: still reminded, count unknown
+    @Test fun aOnceThatCameTakesThatDay() {
+        // 12:30 came (the server forgot it, the app did not): no second reminder at 20:00 that day
+        val s = Planner.slots(input { once = null; onceSeen = secs(at(25, 12, 30)) }, at(25, 13), zone)
+        assertFalse(ids(s).contains("review-once"))
+        assertFalse(ids(s).contains("review-2026-11-25"))
+        assertEquals("review-2026-11-26", s.first().id)
+    }
+
+    @Test fun onlyAOnceThatWasScheduledTakesItsDay() {
+        // 15:00 chosen with words: scheduled and remembered; after it passed, 20:00 that day stays away
+        val once = at(25, 15)
+        var x = input { this.once = secs(once) }
+        x = Planner.remember(x, Planner.slots(x, at(25, 9), zone))
+        assertEquals(secs(once), x.onceSeen)
+        x.once = null  // the server forgot it
+        assertFalse(ids(Planner.slots(x, at(25, 16), zone)).contains("review-2026-11-25"))
+        // 15:00 chosen with nothing to review: not scheduled, not remembered; new words due by 20:00 still get their reminder
+        var y = input { this.once = secs(once); due = 0; new = 0; later = 0 }
+        y = Planner.remember(y, Planner.slots(y, at(25, 9), zone))
+        assertNull(y.onceSeen)
+        y.once = null
+        y.due = 4
+        assertTrue(ids(Planner.slots(y, at(25, 16), zone)).contains("review-2026-11-25"))
+    }
+
+    @Test fun onceWithNothingToReviewDoesNotCome() {
+        // tomorrow 8:00 chosen, nothing due then and no book: no reminder then, and none before it
+        val s = Planner.slots(input { once = secs(at(26, 8)); due = 0; forecast = listOf(0, 0, 0, 0, 0, 0, 0); hasWords = false }, at(25, 9), zone)
+        assertTrue(ids(s).joinToString(" "), s.isEmpty())
+    }
+
+    @Test fun thePlanReminderAndNoDoubleAtTheSameHour() {
+        val s = Planner.slots(input { planHour = 20; planMinutes = 15 }, at(25, 9), zone)
+        val today = s.filter { it.id.endsWith("2026-11-25") }
+        assertEquals("the plan has the words in it", listOf("plan-2026-11-25"), today.map { it.id })
+        assertTrue(today[0].body.contains("15 分钟"))
+        assertEquals("#/", today[0].path)
+    }
+
+    @Test fun turnedOffInTheApp() {
+        assertTrue(Planner.slots(input { app = false }, at(25, 9), zone).isEmpty())
+    }
+
+    @Test fun offUntilTheLearnerTurnsItOnOnAndroid() {
+        assertFalse(Planner.Input().app)
+    }
+
+    @Test fun inputFromTheSite() {
+        val j = JSONObject().put("reminder", JSONObject().put("hour", 21).put("once", 1_795_600_000.0).put("enabled", false))
+            .put("due", 4).put("new", 10).put("minutes", 7).put("forecast", JSONArray(listOf(4, 3, 2, 1, 0, 0, 5)))
+            .put("plan", JSONObject().put("daily_new", 10).put("book", "cet4")).put("total", 120)
+        val x = Planner.input(j, Planner.Input(planHour = 8))
+        assertEquals(21, x.hour)
+        assertEquals(1_795_600_000.0, x.once!!, 0.0)
+        assertEquals(4, x.due)
+        assertEquals(10, x.new)
+        assertEquals(listOf(4, 3, 2, 1, 0, 0, 5), x.forecast)
+        assertEquals(10, x.dailyNew)
+        assertTrue(x.hasWords)
+        assertEquals("the app's own setting is kept", 8, x.planHour)
+        assertNull(Planner.input(JSONObject().put("reminder", JSONObject().put("hour", 21).put("once", JSONObject.NULL)), x).once)
+        assertEquals("a server without once leaves the app's alone", 1_795_600_000.0, Planner.input(JSONObject().put("reminder", JSONObject().put("hour", 21)), x).once!!, 0.0)
+        assertEquals("a finished book brings no new words", 0,
+            Planner.input(JSONObject().put("plan", JSONObject().put("daily_new", 10)).put("book", JSONObject().put("done", true)), x).dailyNew)
+        assertEquals("hours outside REMIND_HOURS are not taken", 21, Planner.input(JSONObject().put("reminder", JSONObject().put("hour", 3)), x).hour)
+    }
+
+    @Test fun notAgreedToHongKongStorageNoRemindersUntilAgreed() {
+        // 403 code storage (an older account before it answers, a paused one after 不同意): the site sends no reminders,
+        // the app neither, not even the day's plan; agreeing brings them back on the next refresh
+        val once = secs(at(26, 12))
+        val x = Planner.paused(input { planHour = 8; this.once = once })
+        assertTrue(x.paused)
+        assertEquals("the plan's hour is kept for later", 8, x.planHour)
+        assertTrue(Planner.slots(x, at(25, 7), zone).isEmpty())
+        assertTrue("still paused after the app is closed", Planner.Input.fromJson(JSONObject(x.toJson().toString())).paused)
+        val back = Planner.input(JSONObject().put("reminder", JSONObject().put("hour", 21)).put("due", 3)
+            .put("forecast", JSONArray(listOf(3, 2))).put("total", 40), x)
+        assertFalse(back.paused)
+        val s = Planner.slots(back, at(25, 7), zone)
+        assertTrue(s.any { it.id == "review-2026-11-25" && it.at == at(25, 21).toEpochMilli() })
+        assertTrue(s.any { it.id == "plan-2026-11-25" })
+        assertFalse("signing out (or in as someone else) starts over", Planner.signedOut(x).paused)
+    }
+
+    @Test fun signedOutKeepsOnlyThePlan() {
+        val x = Planner.signedOut(input { planHour = 8 })
+        val s = Planner.slots(x, at(25, 7), zone)
+        assertFalse(s.isEmpty())
+        assertTrue(s.all { it.id.startsWith("plan-") })
+    }
+
+    @Test fun keptAndReadBack() {
+        val x = input { once = 1_795_600_000.0; planHour = 8 }
+        assertEquals(x, Planner.Input.fromJson(JSONObject(x.toJson().toString())))
     }
 }

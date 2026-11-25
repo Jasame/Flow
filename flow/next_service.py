@@ -309,6 +309,8 @@ def origin(p):
                 'url': p['source_url'] if str(p.get('source_url', '')).startswith('https://') else '', 'references': []}
     return {'kind': 'original', 'label': p.get('source') or 'Flow 编辑部原创', 'ai': p.get('ai', V5_AI if featured(p) else ''),
             'reviewed': p.get('reviewed'), 'url': p['source_url'] if str(p.get('source_url', '')).startswith('https://') else '',
+            # 经人工审核: only a text the user has read themselves (SPEC v5.1 reviewed_by_human, with the day), never by default
+            'reviewed_by_human': p.get('reviewed_by_human') is True,
             'references': links(p.get('references'), 8),
             'quotes': [{k: qt[k] for k in ('text', 'author', 'work', 'year')} for qt in p.get('quotes') or []
                        if isinstance(qt, dict) and all(qt.get(k) for k in ('text', 'author', 'work', 'year'))][:3]}
@@ -320,6 +322,8 @@ def _pack_row(c, uid, pid):
         return None
     if __import__('quality_service').info(c, row)['status'] == 'disabled':
         return None
+    if row['origin'] == 'daily' and __import__('daily_service').retired(json.loads(row['content'])):
+        return None  # 今日热点 news, paused 2026-11-25: kept in the database, not shown
     return row
 
 
@@ -340,7 +344,8 @@ def _public_packs(c, level=None, with_hidden=False):
                 rows.append(({'id': row['id'], 'origin': row['origin'], 'created': row['created']}, p))
         _PACKS.update(key=key, at=time.time(), rows=rows)
     hidden = () if with_hidden else __import__('console_ops').hidden_packs(c)
-    return [rp for rp in _PACKS['rows'] if (not level or cefr(rp[1]) == level) and rp[0]['id'] not in hidden]
+    retired = (lambda p: False) if with_hidden else __import__('daily_service').retired  # 今日热点 news: paused, kept, not shown
+    return [rp for rp in _PACKS['rows'] if (not level or cefr(rp[1]) == level) and rp[0]['id'] not in hidden and not retired(rp[1])]
 
 
 _TOKENS = {}
@@ -488,6 +493,7 @@ def _card(pack, done=None, extra=None):
             'preview': pack.get('summary_zh') or sentences(pack['body'])[0][:140], 'preview_en': sentences(pack['body'])[0][:160],
             'daily': bool(pack.get('daily_day')), 'featured': featured(pack), 'grammar': pack.get('grammar', []),
             'brief': not featured(pack) and not pack.get('daily_day') and not pack.get('imported'),  # 简版: the older, shorter texts
+            'ai': not pack.get('imported'),  # 「AI 生成」 on the card: everything Flow wrote is (featured, 简版, 热点); an imported article is the learner's
             'steps': sorted(done or [], key=STEPS.index), **(extra or {})}
 
 

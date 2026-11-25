@@ -83,6 +83,9 @@ details.preread>summary .tiny{flex-basis:100%}
 /* where a text comes from: one quiet line under the title, tags for how AI took part */
 .origin{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:6px;line-height:1.5}
 .origin .link{padding:0}
+/* 「AI 生成 · 经规范检查」 opens what the checks are (#/guide/ai-check): the note reads as a link, the tag stays as it is */
+.ai-link{display:flex;align-items:center;width:fit-content;min-height:32px;color:inherit;text-decoration:none;margin-top:2px}  /* a tap target of 32 px on a phone */
+.ai-link .ai-line>span:last-child{text-decoration:underline dotted;text-underline-offset:3px}
 .otag{display:inline-flex;align-items:center;font-size:11.5px;font-weight:600;padding:1px 7px;border-radius:99px;background:var(--sunk);color:var(--ink2);white-space:nowrap}
 .otag.warn{background:var(--amber-soft);color:var(--amber)}
 .origin-rules{margin:0;padding-left:1.2em;display:grid;gap:4px}

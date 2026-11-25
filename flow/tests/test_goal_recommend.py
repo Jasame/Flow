@@ -74,9 +74,12 @@ class GoalRecommendTests(unittest.TestCase):
         self.assertEqual(len(h['today']), 3)
         self.assertFalse(any(r in nx.GOAL_REASON.values() for m in h['today'] for r in m['reasons']))
 
-    def daily(self, day, level, purpose, age_days):
+    def daily(self, day, level, purpose, age_days, kind='topic'):
+        # the daily piece of the kind that replaces news (kind 'topic'); a news text from before the pause is shown nowhere
         p = copy.deepcopy(self.featured('B1')[0])
         p.update(id='daily-' + day, daily_day=day, purposes=[purpose], level='B2' if level == 'C1' else level, title='热点 ' + day)
+        if kind:
+            p['kind'] = kind
         p.pop('cefr', None)
         if level == 'C1':
             p['cefr'] = 'C1'
@@ -88,6 +91,7 @@ class GoalRecommendTests(unittest.TestCase):
         self.daily('2026-11-24', 'B2', 'expository', 1)
         self.daily('2026-11-23', 'B1', 'film-culture', 2)
         self.daily('2026-11-20', 'B1', 'workplace', 5)  # too old
+        self.daily('2026-11-22', 'B1', 'film-culture', 3, kind=None)  # news, from before the pause: never shown
         self.learner('B1', 'media')
         news = nx.home(self.c, 1)['news']
         self.assertEqual(news['id'], 'daily-2026-11-23')

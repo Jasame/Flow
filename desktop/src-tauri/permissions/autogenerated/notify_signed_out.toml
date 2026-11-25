@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-notify-signed-out"
+description = "Enables the notify_signed_out command without any pre-configured scope."
+commands.allow = ["notify_signed_out"]
+
+[[permission]]
+identifier = "deny-notify-signed-out"
+description = "Denies the notify_signed_out command without any pre-configured scope."
+commands.deny = ["notify_signed_out"]

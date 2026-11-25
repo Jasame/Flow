@@ -260,6 +260,43 @@ class BacklogTests(unittest.TestCase):
         self.assertIn('learner，你好：', txt)
 
 
+class Stale:
+    """A connection for a request that read before another one wrote (b38, 2026-11-25: 今日 opened at once twice):
+    it sees no book words added today and no cards; everything else as it is."""
+    def __init__(self, c): self.c = c
+    def execute(self, sql, params=()):
+        if sql.startswith("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND source='book'"):
+            return self.c.execute('SELECT 0')
+        if sql.startswith('SELECT norm FROM next_cards WHERE user_id=?') or sql.startswith('SELECT 1 FROM next_cards WHERE user_id=? AND norm=?'):
+            return self.c.execute('SELECT 1 WHERE 0')
+        return self.c.execute(sql, params)
+    def __getattr__(self, k): return getattr(self.c, k)
+
+
+class ConcurrentWriteTests(unittest.TestCase):
+    """Two requests of one learner at once: the second one's insert of a word the first just added is passed over, not a
+    500 on UNIQUE(user_id, norm), and today's new words are added once, not twice."""
+    setUp, tearDown = BacklogTests.setUp, BacklogTests.tearDown
+
+    def book_cards(self):
+        return self.c.execute("SELECT COUNT(*) FROM next_cards WHERE user_id=1 AND source='book'").fetchone()[0]
+
+    def test_todays_new_words_are_added_once_when_two_requests_read_at_the_same_time(self):
+        vs.save_plan(self.c, 1, {'book': 'core', 'daily_new': 5, 'retention': 0.9})
+        self.c.execute('DELETE FROM next_cards'); self.c.commit()
+        self.assertEqual(vs.introduce(self.c, 1, self.now), 5)
+        self.assertEqual(vs.introduce(Stale(self.c), 1, self.now), 0)  # it read before the first wrote: nothing new, no error
+        self.assertEqual(self.book_cards(), 5)
+        self.assertEqual(vs.more_new(Stale(self.c), 1, {'n': 5})[0]['added'], 0)  # 再学 10 个 tapped twice: the same, once
+        self.assertEqual(self.book_cards(), 5)
+
+    def test_a_word_list_imported_twice_at_once_skips_what_the_other_added(self):
+        self.c.execute('DELETE FROM next_cards'); self.c.commit()
+        self.assertEqual(vs.import_words(self.c, 1, {'text': 'deadline\ncommute'})[0]['added'], 2)
+        r, st = vs.import_words(Stale(self.c), 1, {'text': 'deadline\ncommute\nnegotiate'})
+        self.assertEqual((st, r['added'], r['skipped']), (200, 1, 2))
+
+
 class OnceReminderTests(unittest.TestCase):
     """这次什么时候复习 (a trial student, 2026-11-25): a time today or tomorrow for the next reminder only; the mail goes
     then if there are words and none went that day, and the reminder is back to every day at its hour."""
@@ -323,6 +360,12 @@ class OnceReminderTests(unittest.TestCase):
         start = datetime.datetime.fromtimestamp(at, datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
         self.assertIn(f'DTSTART:{start}', cal)
         self.assertIn('RRULE:FREQ=DAILY', vs.ics(20))  # the daily one unchanged
+
+    def test_the_daily_plan_event_lasts_as_long_as_the_learners_daily_time(self):
+        for m in nx.MINUTES:  # 45 and 60 too (语流 20: they came out as 10)
+            cal = vs.ics(20, 'plan', m)
+            self.assertIn(f'约 {m} 分钟', cal); self.assertIn(f'DURATION:PT{m}M', cal)
+        self.assertIn('约 10 分钟', vs.ics(20, 'plan', 7))  # not a choice of 我的: the usual 10
 
 class WordCapTests(unittest.TestCase):
     """r28 section 3 (the owner chose the recommended plan, 2026-11-25): a day of words capped in minutes, reviews most
