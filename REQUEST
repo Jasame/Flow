@@ -1,3 +1,3 @@
-7aacbde96d89bb468cec7f9fd0a816817754cf22 8356178e5560d7d6069cee7ee2651f6b73a7336237ff9206e73e66fd9808a38c e2e light
-# b24 main: Merge pull request #104 from Jasame/time-box = build of 7a61d03e339e
+d8328166f0987f3b0c673530ccc05cc17a0ada71 289ef4524da5609deb289d757f8e03cead39524a7f74f3a1fb864de39354a2f1 e2e light
+# b25 main: Merge pull request #113 from Jasame/say-omni-guard = build of 967d787cb57f
 # Format: <commit sha> <manifest sha256> [e2e [light]]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
