@@ -121,6 +121,7 @@ SESSION_DAYS=30
 # functions live in the xmc.hk console (flow_admin.py, port FLOW_ADMIN_PORT), never on the learner site.
 OPEN_API={'GET':('/api/health','/api/version','/api/survey','/api/deploy-status','/api/session','/api/account','/api/next/'),
  'POST':('/api/survey','/api/feedback','/api/next/','/api/recovery/','/api/teacher/check','/api/login','/api/register','/api/auth/code','/api/auth/reset','/api/logout','/api/password','/api/account/')}
+SIGN_IN_ROUTES=('/api/login','/api/register','/api/auth/code','/api/auth/reset','/api/recovery/request','/api/recovery/reset','/api/teacher/check')
 def api_open(method,path):return any(path==p or (p.endswith('/') and path.startswith(p)) for p in OPEN_API[method])
 def session_cookie(token):
  return 'flow_session='+token+'; HttpOnly; SameSite=Lax; Path=/; Max-Age='+str(SESSION_DAYS*86400)+('; Secure' if SECURE else '')
@@ -129,6 +130,12 @@ _ASSET={}
 # the 内测版 (FLOW_CHANNEL=beta), a second instance with its own data, where versions waiting for release run first.
 # The 内测版 says so on every page, sends its mail marked 【内测版】 and asks search engines to stay away.
 CHANNEL='beta' if os.getenv('FLOW_CHANNEL','').strip().lower()=='beta' else 'prod'
+# Every POST that carries a recording (base64 in JSON): the page keeps a recording to 1.4 MB (MIC.payload, 70-learner.js),
+# 1.87 MB as base64, and audio_validation to 1.5 MB, so these take up to 2.2 MB, under nginx's 3 MB. A route left out
+# of this list answered every real recording with 「请求大小不正确」 (/api/next/assess/speaking, 2026-11-25), so
+# tests/test_request_size.py finds the routes whose handlers read audio and fails when one is missing here.
+AUDIO_PATHS=('/api/lab/audio','/api/next/shadow','/api/next/retell','/api/next/dialog','/api/next/say','/api/next/ielts','/api/next/assess/speaking')
+TOO_LONG='录音太长了，请在 1 分钟内说完再交'
 _SLIM={}
 def shell_file(name):
  """A public file; the page shell and the service worker get the asset version filled in (__ASSET__): a hash of
@@ -192,7 +199,7 @@ def asset_version(names=('next.js','next.css')):
 def csp():
  # The media domain (R2, media.py) is the second line for audio and its timings, when FLOW_MEDIA_BASE is set.
  m=__import__('media').origin();extra=' '+m if m else ''
- return "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'"+extra+"; media-src 'self' blob:"+extra+"; frame-src 'self' about:; frame-ancestors 'none'"
+ return "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'"+extra+"; media-src 'self' blob:"+extra+"; frame-src 'self' about:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'"
 def session_info(u):
  """What /api/session answers; /api/next/home carries the same, so the page needs one request to start."""
  # email_bound: the page reminds an account without one that a forgotten password could not be reset by itself.
@@ -243,9 +250,11 @@ class Handler(BaseHTTPRequestHandler):
   self.send_header('Content-Type',mime);self.send_header('X-Content-Type-Options','nosniff');self.send_header('X-Frame-Options','DENY');self.send_header('Referrer-Policy','same-origin');self.send_header('Content-Security-Policy',csp())
   if CHANNEL=='beta':self.send_header('X-Robots-Tag','noindex, nofollow')  # the 内测版 stays out of search results
  def visitor_address(self):
+  # The address nginx saw (X-Real-IP). CF-Connecting-IP only when the site really sits behind Cloudflare's proxy
+  # (FLOW_TRUST_CF=1): flowlang.cn and flow.jasa.hk are DNS-only, so there a visitor could write any address into it.
   ip=self.client_address[0]
   if ip in ('127.0.0.1','::1'):
-   for header in ('CF-Connecting-IP','X-Real-IP'):
+   for header in (('CF-Connecting-IP','X-Real-IP') if os.getenv('FLOW_TRUST_CF')=='1' else ('X-Real-IP',)):
     try:return str(ipaddress.ip_address(self.headers.get(header,'').strip()))
     except ValueError:pass
   return ip
@@ -309,7 +318,7 @@ class Handler(BaseHTTPRequestHandler):
   token=jar['flow_session'].value if 'flow_session' in jar else ''
   now=time.time()
   # an account an operator stopped (xmc.hk console) has no session: its sessions are deleted and none is read
-  u=c.execute('SELECT users.id,username,admin,csrf,token,expires,email,age_band,guardian_ok,role,storage_ok,storage_no FROM sessions JOIN users ON users.id=user_id WHERE token=? AND expires>? AND NOT COALESCE(users.disabled,0)',(token,now)).fetchone()
+  u=c.execute('SELECT users.id,username,admin,csrf,token,expires,email,age_band,guardian_ok,role,storage_ok,storage_no,terms_version FROM sessions JOIN users ON users.id=user_id WHERE token=? AND expires>? AND NOT COALESCE(users.disabled,0)',(token,now)).fetchone()
   # Sliding sessions: a learner who keeps coming back stays signed in; SESSION_DAYS after the last visit it ends.
   # At most one write a day per session; the cookie is renewed with the same answer (send()).
   if u and u['expires']<now+(SESSION_DAYS-1)*86400:
@@ -323,7 +332,8 @@ class Handler(BaseHTTPRequestHandler):
  def get(self):
   path=self.path.split('?')[0]
   if path.startswith('/api/') and not api_open('GET',path):return self.send({'error':'接口不存在'},404)
-  if path=='/api/health':return self.send({'ok':True,'version':'4.5.0','mail':account.configured(),'channel':CHANNEL})
+  # consent: the 用户协议 and 隐私和数据 version a sign-up agrees to now (privacy_service; the release check's test accounts use it)
+  if path=='/api/health':return self.send({'ok':True,'version':'4.5.0','mail':account.configured(),'channel':CHANNEL,'consent':__import__('privacy_service').CONSENT_VERSION})
   # The version of next.js/next.css the server sends now: a home-screen app asleep for days asks it when it wakes
   # (04-home-app.js) and takes a new one when it is safe to. No database, nothing about anyone.
   if path=='/api/version':return self.send({'asset':asset_version()})
@@ -364,10 +374,10 @@ class Handler(BaseHTTPRequestHandler):
      body,mime,ascii_name,name=out
      self.send_response(200);self.headers_common(mime);self.send_header('Content-Disposition',ad.disposition(ascii_name,name))
      self.send_header('Cache-Control','no-store');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
-    if u and __import__('privacy_service').storage(u)!='ok':
-     # 数据存放在香港 not agreed (yet): nothing of the account's learning; the home is a guest's, with the session, so the
-     # page can ask (privacy_service). Export above stays open.
-     if path!='/api/next/home':return self.send(*__import__('privacy_service').STORAGE_HELD)
+    if u and not __import__('privacy_service').consented(u):
+     # 数据存放在香港 or 用户协议 not agreed (yet): nothing of the account's learning; the home is a guest's, with the
+     # session, so the page can ask (privacy_service). Export above stays open.
+     if path!='/api/next/home':return self.send(*__import__('privacy_service').storage_held(u,path))
      result=__import__('next_service').get(c,None,path,parse_qs(urlsplit(self.path).query))
      if result and result[1]==200:result[0]['session']=session_info(u)
      return self.send(*result)
@@ -509,10 +519,16 @@ class Handler(BaseHTTPRequestHandler):
  def post(self):
   length=int(self.headers.get('Content-Length',0))
   # /api/feedback: up to three screenshots shrunk on the phone, sent as base64; under nginx's 3 MB (client_max_body_size 3m)
-  limit=2900000 if self.path=='/api/feedback' else 2200000 if self.path in ('/api/lab/audio','/api/next/shadow','/api/next/retell','/api/next/dialog','/api/next/say','/api/next/ielts') else 800000 if self.path=='/api/vocab/import' else 40000 if self.path in ('/api/next/import','/api/next/essay','/api/next/dialog') else 20000
+  limit=2900000 if self.path=='/api/feedback' else 2200000 if self.path in AUDIO_PATHS else 800000 if self.path=='/api/vocab/import' else 40000 if self.path in ('/api/next/import','/api/next/essay') else 20000
+  if length>limit and self.path in AUDIO_PATHS:return self.send({'error':TOO_LONG,'code':'too_long'},413)
   if length<1 or length>limit:return self.send({'error':'请求大小不正确'},400)
   if self.headers.get('Sec-Fetch-Site')=='cross-site':return self.send({'error':'不允许跨站请求'},403)
   if not api_open('POST',self.path.split('?')[0]):return self.send({'error':'接口不存在'},404)
+  # Sign-in, sign-up and code routes need no session, so the CSRF token cannot guard them: they take JSON only. Another
+  # site's form can send text/plain, not application/json (that needs a CORS preflight, which this server never grants);
+  # Sec-Fetch-Site above already stops it in browsers that send that header.
+  if self.path.split('?')[0] in SIGN_IN_ROUTES and self.headers.get('Content-Type','').split(';')[0].strip().lower()!='application/json':
+   return self.send({'error':'请求格式不正确，请刷新页面再试'},415)
   if self.path=='/api/lab/audio':
    with db() as c:
     owner=self.user(c)
@@ -545,7 +561,7 @@ class Handler(BaseHTTPRequestHandler):
     u=self.user(c)
     # Open routes still record progress for a signed-in learner: only with the session's CSRF token (else as a guest).
     # An account that has not agreed to 数据存放在香港 (privacy_service) records nothing: as a guest here, held below.
-    signed=bool(u) and hmac.compare_digest(self.headers.get('X-CSRF-Token',''),u['csrf']) and __import__('privacy_service').storage(u)=='ok'
+    signed=bool(u) and hmac.compare_digest(self.headers.get('X-CSRF-Token',''),u['csrf']) and __import__('privacy_service').consented(u)
     result=next_service.post_public(c,u['id'] if signed else None,path,data)
     if result is not None:return self.send(*result)
     if not u:return self.send({'error':'请先登录'},401)
@@ -589,7 +605,10 @@ class Handler(BaseHTTPRequestHandler):
    # Code requests have their own per-email and per-address caps (auth_service).
    if path!='/api/auth/code':
     with LOCK:
-     now=time.time();times=[t for t in RATE.get(key,[]) if t>now-60];RATE[key]=times
+     now=time.time()
+     if len(RATE)>5000:  # addresses not seen for a minute are dropped, so many addresses cannot grow this without end
+      for k in [k for k,v in RATE.items() if not v or v[-1]<=now-60]:del RATE[k]
+     times=[t for t in RATE.get(key,[]) if t>now-60];RATE[key]=times
      if len(times)>=30:return self.send({'error':'操作过于频繁，请稍后再试'},429)
      times.append(now)
    import auth_service
@@ -597,7 +616,7 @@ class Handler(BaseHTTPRequestHandler):
     if path=='/api/auth/code':return self.send(*auth_service.request(c,data,key))
     # 3.6: sign-up needs a verified email code; login accepts username/email + password or email + code.
     # r19: a forgotten password is reset with an emailed code, which also signs the learner in.
-    u,problem=auth_service.register(c,data,password,key) if path=='/api/register' else auth_service.reset(c,data,password) if path=='/api/auth/reset' else auth_service.login(c,data,verify)
+    u,problem=auth_service.register(c,data,password,key) if path=='/api/register' else auth_service.reset(c,data,password,key) if path=='/api/auth/reset' else auth_service.login(c,data,verify,key)
     if problem:return self.send(*problem)
     if 'disabled' in u.keys() and u['disabled']:return self.send({'error':'这个账号已停用。如有疑问，请联系语流。','code':'disabled'},403)
     token=secrets.token_urlsafe(32);csrf=secrets.token_urlsafe(24)
@@ -609,6 +628,7 @@ class Handler(BaseHTTPRequestHandler):
    if not hmac.compare_digest(self.headers.get('X-CSRF-Token',''),u['csrf']):return self.send({'error':'安全校验失败，请刷新页面'},403)
    if path=='/api/account/age':return self.send(*__import__('privacy_service').set_age(c,u['id'],data))  # 年龄段, asked later
    if path=='/api/account/storage':return self.send(*__import__('privacy_service').set_storage(c,u['id'],data))  # 数据存放在香港
+   if path=='/api/account/terms':return self.send(*__import__('privacy_service').set_terms(c,u['id'],data))  # 用户协议和隐私和数据
    held=__import__('privacy_service').storage_held(u,path) or __import__('privacy_service').gate(u,path)
    if held:return self.send(*held)
    if path=='/api/account/delete':
@@ -664,8 +684,8 @@ class Handler(BaseHTTPRequestHandler):
    if path=='/api/password':
     old=str(data.get('old_password',''));new=str(data.get('new_password',''))
     if not 10<=len(new)<=200:return self.send({'error':'新密码需 10–200 个字符'},400)
-    stored=c.execute('SELECT password FROM users WHERE id=?',(u['id'],)).fetchone()[0]
-    if not verify(old,stored):return self.send({'error':'原密码不正确'},400)
+    wrong=__import__('auth_service').own_password(c,u['id'],old,verify,'原密码不正确')  # 5 wrong in 15 minutes: a pause
+    if wrong:return self.send({'error':wrong},400)
     if old==new:return self.send({'error':'新密码不能与原密码相同'},400)
     c.execute('UPDATE users SET password=? WHERE id=?',(password(new),u['id']))
     c.execute('UPDATE recovery_tokens SET used=1 WHERE user_id=?',(u['id'],))

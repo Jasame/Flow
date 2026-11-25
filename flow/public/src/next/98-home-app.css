@@ -24,3 +24,14 @@ body.kb-room{padding-bottom:max(60vh,calc(var(--kb) + 16px))}
 .update-bar button{border:0;background:transparent;color:inherit;font:600 14px/1 var(--sans);min-height:40px;cursor:pointer}
 .update-bar .ub-go{padding:0 8px 0 16px;white-space:nowrap}
 .update-bar .ub-x{min-width:40px;font-size:18px;opacity:.85}
+/* a sub-page's own 「← 口语路线」 line, when the top bar's 返回 says it already (04-home-app.js homeBackLink) */
+#view .pg-back{display:none}
+/* a sheet closing (02-shell.js sheetGhost): its copy slides down and fades in 0.16 s, from where a finger let it go */
+.sheet-ghost{z-index:59;pointer-events:none}
+.sheet-ghost .sheet-scrim{animation:sheet-scrim-out .16s ease-in forwards}
+.sheet-ghost .sheet-card{animation:sheet-down .16s ease-in forwards}
+@keyframes sheet-down{to{transform:translateY(105%);opacity:.2}}
+@keyframes sheet-scrim-out{to{opacity:0}}
+@media (min-width:760px){.sheet-ghost .sheet-card{animation-name:sheet-away}}
+@keyframes sheet-away{to{transform:translateY(24px);opacity:0}}
+@media (prefers-reduced-motion:reduce){.sheet-ghost{display:none}}

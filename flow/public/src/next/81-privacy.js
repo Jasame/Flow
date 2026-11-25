@@ -30,7 +30,7 @@
   // site; the sheet stays until a band is chosen. locked: no 关闭, the scrim, Esc and a swipe down do nothing.
   let ageAsked = false;
   function askAgeOnce() {
-    if (!S.user || S.user.age || ageAsked || !sheetEl.hidden || S.user.storage !== 'ok') return;  // storage first (storageView)
+    if (!S.user || S.user.age || ageAsked || !sheetEl.hidden || S.user.storage !== 'ok' || S.user.terms !== 'ok') return;  // the consents first (storageView)
     ageAsked = true; ageSheet(true);
   }
   function ageSheet(locked) {
@@ -84,23 +84,37 @@
     Object.assign(S.user, r); S.homeFresh = false; await refreshHome();
   }
   // #/ and every page but the guide, while the account has not agreed: one short page (asked) or the paused page.
+  // The 用户协议 and 隐私和数据 tick (privacy_service.TERMS_TEXT): at sign-up next to the storage one, never merged with it;
+  // both names open the full text.
+  const TERMS = '/#/guide/terms';
+  function termsField() {
+    return `<div class="storagefs"><label class="checkline"><input type="checkbox" name="terms"><span>我已阅读并同意<a class="link" href="${TERMS}" target="_blank" rel="noopener">《用户协议》</a>和<a class="link" href="${PRIVACY}" target="_blank" rel="noopener">《隐私和数据》</a></span></label></div>`;
+  }
+  // #/ and every page but the guide, while an answer is missing: the storage in Hong Kong (asked, or paused) and/or the
+  // current 用户协议 and 隐私和数据 (never agreed, or a new version since). One page, one button.
   async function storageView() {
-    const paused = S.user.storage === 'no';
-    view.innerHTML = `<div class="stack storage-page"><div><span class="kicker">数据存放</span><h1 class="h1">${paused ? '这个账号已暂停' : '补一个同意'}</h1></div>
+    const paused = S.user.storage === 'no', needStorage = S.user.storage !== 'ok', needTerms = S.user.terms !== 'ok';
+    const termsOnly = needTerms && !needStorage;
+    view.innerHTML = `<div class="stack storage-page"><div><span class="kicker">${termsOnly ? '用户协议和隐私说明' : '数据存放'}</span><h1 class="h1">${paused ? '这个账号已暂停' : '补一个同意'}</h1></div>
       ${paused ? `<div class="card flat stack-s"><p>你没有同意（或者撤回了同意）在香港的服务器上存放和处理你的数据，所以语流暂停了这个账号的学习：不会再给你发邮件，班级的数字里也不算你。</p>
         <p>你的数据还在，没有删除。30 天内重新同意，就能接着学${S.user.storage_until ? `（${esc(S.user.storage_until)} 以前）` : ''}；30 天后还没有重新同意，语流会删除这个账号和数据，备份里的副本 14 天内清除。</p></div>` : ''}
-      <form class="card flat stack-s" id="stoF" novalidate>${paused ? '<b>想继续用这个账号</b>' : `<p>${STORAGE_WHY}</p>`}${storageField()}
+      <form class="card flat stack-s" id="stoF" novalidate>${paused ? '<b>想继续用这个账号</b>' : termsOnly ? '<p>请先看一下《用户协议》和《隐私和数据》（点名字就能打开全文），同意以后就能继续。以后这两份有实质改动时，也会请你再看一次。</p>' : `<p>${STORAGE_WHY}</p>`}${needTerms ? termsField() : ''}${needStorage ? storageField() : ''}
         <button class="btn primary" type="submit">${paused ? '同意，继续学习' : '同意并继续'}</button><p class="err" id="stoErr" role="alert"></p></form>
-      <div class="card flat stack-s">${paused ? '<b>不想继续</b>' : '<b>不同意的话</b><p class="small muted">这个账号会暂停，不能学习。30 天内可以回来同意或导出数据；30 天后，语流会删除这个账号和数据。</p>'}
-        <div class="row wrap">${paused ? '' : '<button class="btn" id="stoNo" type="button">不同意</button>'}<a class="btn ghost" href="/api/next/export/records.json" download>导出我的数据</a>
+      <div class="card flat stack-s">${paused ? '<b>不想继续</b>' : termsOnly ? '<b>不想同意的话</b><p class="small muted">这个账号就先停在这里，不能学习；你可以导出数据、注销账号，或者退出登录。</p>' : '<b>不同意存放在香港的话</b><p class="small muted">这个账号会暂停，不能学习。30 天内可以回来同意或导出数据；30 天后，语流会删除这个账号和数据。</p>'}
+        <div class="row wrap">${paused || termsOnly ? '' : '<button class="btn" id="stoNo" type="button">不同意</button>'}<a class="btn ghost" href="/api/next/export/records.json" download>导出我的数据</a>
           <button class="btn ghost" id="stoDel" type="button">注销账号</button><button class="btn ghost" id="stoOut" type="button">退出登录</button></div>
         <p class="tiny muted">退出登录后，也可以不登录先看看语流：那时的进度只存在这台设备上。</p></div></div>`;
     const f = document.getElementById('stoF'), err = document.getElementById('stoErr');
     f.onsubmit = async e => {
       e.preventDefault(); err.textContent = '';
-      if (!f.storage.checked) return fieldError(f, err, { message: '勾选同意以后才能继续', field: 'storage' });
+      if (needTerms && !f.terms.checked) return fieldError(f, err, { message: '勾选同意《用户协议》和《隐私和数据》以后才能继续', field: 'terms' });
+      if (needStorage && !f.storage.checked) return fieldError(f, err, { message: '勾选同意以后才能继续', field: 'storage' });
       const b = f.querySelector('[type=submit]'); b.disabled = true;
-      try { await storageAnswer(true); toast('好了，谢谢'); route(); } catch (x) { err.textContent = x.message; b.disabled = false; }
+      try {
+        if (needTerms) Object.assign(S.user, await api('/api/account/terms', { agree: true }));
+        if (needStorage) await storageAnswer(true); else { S.homeFresh = false; await refreshHome(); }
+        toast('好了，谢谢'); route();
+      } catch (x) { err.textContent = x.message; b.disabled = false; }
     };
     const no = document.getElementById('stoNo');
     if (no) no.onclick = async () => { no.disabled = true; try { await storageAnswer(false); route(); } catch (x) { err.textContent = x.message; no.disabled = false; } };

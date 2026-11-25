@@ -155,7 +155,8 @@ def records(c, u):
            'exported_at': datetime.datetime.now(CN).isoformat(timespec='seconds'),
            'account': {'username': row['username'], 'email': row['email'] or '', '年龄段': pv.label(pv.info(row)['age']),
                        **({'监护人同意': _day(row['guardian_ok'])} if pv.info(row)['guardian'] else {}),
-                       '数据存放在香港': {'ok': '同意（' + _day(row['storage_ok']) + '）', 'no': '不同意或撤回（' + _day(row['storage_no']) + '），账号暂停'}.get(pv.storage(row), '还没问') if 'storage_ok' in row.keys() else '还没问'},
+                       '数据存放在香港': {'ok': '同意（' + _day(row['storage_ok']) + '）', 'no': '不同意或撤回（' + _day(row['storage_no']) + '），账号暂停'}.get(pv.storage(row), '还没问') if 'storage_ok' in row.keys() else '还没问',
+                       '用户协议和隐私和数据': ('同意 ' + row['terms_version'] + '（' + _day(row['terms_ok']) + '）') if 'terms_version' in row.keys() and row['terms_version'] else '还没同意'},
            **__import__('class_service').export_rows(c, uid),
            '目录': {t: GUIDE[t] for t in tables if t in GUIDE}, 'tables': tables}
     return json.dumps(out, ensure_ascii=False, indent=1).encode('utf-8')
@@ -249,7 +250,7 @@ def erase(c, u, data, verify, data_dir=None):
         n += _cascade(c, refs, 'users', 'id', [uid])  # what refers to the account by another name (owner), and the account
         if stored['email']:
             n += c.execute('DELETE FROM email_codes WHERE email=?', (stored['email'],)).rowcount
-        c.execute('DELETE FROM login_failures WHERE key IN (?, ?)', (key, 'class:%d' % uid))  # and the invite-code pause
+        c.execute('DELETE FROM login_failures WHERE key IN (?, ?, ?)', (key, 'class:%d' % uid, 'pw:%d' % uid))  # and the invite-code and own-password pauses
         if 'mail_limits' in _tables(c):
             c.execute('DELETE FROM mail_limits WHERE key=?', ('bind:%d' % uid,))
         c.commit()

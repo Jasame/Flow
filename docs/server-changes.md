@@ -31,6 +31,39 @@
 
 ## 2026-11-25
 
+### 18:43 · 香港：桌面版 0.1.1 和自动更新
+
+- **改了什么**（18:3x 上传，18:43 生效）：
+  - `/www/wwwroot/flow-downloads/` 加了三个文件：`flow-windows-0.1.1-setup.exe`、`flow-mac-0.1.1.dmg`，还有 Mac 自动更新用的
+    `flow-mac-0.1.1.app.tar.gz`。0.1.0 的文件留着。
+  - 新文件 `/www/wwwroot/flow-downloads/desktop/latest.json`，对外地址是 `flowlang.cn/desktop/latest.json`，不缓存。这是桌面版的
+    自动更新清单，装了 0.1.1 的电脑会来查它。
+  - `/download/latest.json`：windows、mac 两项换成 0.1.1。
+  - nginx 片段 `extension/flowlang.cn/download.conf`：放行 `.tar.gz`，加上 `/desktop/latest.json`。`nginx -t` 通过后才 reload。
+- **谁、为什么**：语流 A1·发版和服务器（原 2），桌面版 0.1.1（#253）。用户在 A1 那边点了「放」。
+- **验证**：从外网核对了 sha256、文件类型、不缓存，清单和本地的一字不差。
+- **备份**：原来的 nginx 片段和 `latest.json` 都在 `/root/claude-ops`。
+- **撤回**：删掉 `desktop/latest.json`，自动更新就停了；`/download/latest.json` 改回 0.1.0；nginx 只改回那两项。
+
+### 18:4x · GitHub：桌面版的 Release `desktop-v0.1.1`
+
+- **改了什么**：在公开仓库建了 Release `desktop-v0.1.1`，tag 打在 `e68fc08`。附件只有 `SHA256SUMS.txt` 和两个 `.sig`，安装包本身
+  放在香港的下载目录里。
+- **谁、为什么**：语流 A1，用户点了「发」。桌面版的自动更新要核对签名，签名文件就从这里取。
+- **撤回**：删掉这个 Release 和 tag。
+### 17:27 · 香港：SSH 只开给杭州，root 只能用钥匙登
+
+- **改了什么**（17:27:49）：
+  - 防火墙（ufw）：新加一条，22 端口只开给杭州服务器；删掉对全网开放的 22 规则，IPv4、IPv6 都删了。80、443 不变。
+  - sshd：`PermitRootLogin` 从 `yes` 改成 `prohibit-password`，root 只能用钥匙登。`sshd -t` 通过以后 reload。
+- **谁、为什么**：语流 A1·发版和服务器（原 2），安全检查的一项，接着 17:09 那条做的。用户 17:2x 在 A1 那边点了「都做」。
+- **怎么防止把自己锁在外面**：改之前排了一个 10 分钟后自动回退的任务，核对通过以后 17:29:49 取消了。核对了三件事：
+  - 杭州照常登录；
+  - 后台隧道正常；
+  - 外面的连接被防火墙挡下。
+- **备份**：`/root/claude-ops/backup-sshd_config-20261125-172748`。
+- **撤回**：运行 `/root/claude-ops/ssh-lock-rollback.sh`。它会重新放开 22/tcp、删掉只许杭州那条、恢复 sshd_config 并 reload。
+
 ### 17:21 · 香港：安卓 1.0.2 放进下载目录，`latest.json` 换成 1.0.2
 
 - **改了什么**：
