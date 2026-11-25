@@ -208,6 +208,8 @@ class MsiRunnerTests(unittest.TestCase):
         self.assertIn('read -rs -p "token: " T', sh)
         self.assertIn('RUNNERS=${RUNNERS:-6}', sh)
         self.assertIn('sha256sum -c', sh)
+        self.assertNotIn('api.github.com', sh)  # unauthenticated API calls get 403 now and then (PR #128's first check)
+        self.assertRegex(sh, r'RUNNER_SHA256=\$\{RUNNER_SHA256:-[0-9a-f]{64}\}')
 
 
 class BetaReleaseTests(unittest.TestCase):

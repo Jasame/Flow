@@ -9,9 +9,9 @@
 # at the end let you type that yourself.
 #
 # 1. packages: Python 3.11 (deadsnakes), Google Chrome (Google's signed apt repository), Chinese and emoji fonts (the
-#    guide PDF and the pages), git, jq
+#    guide PDF and the pages), git
 # 2. a Python 3.11 venv with Playwright for the self-check (a CI job makes its own venv each time)
-# 3. RUNNERS (default 6) runner folders ~/actions-runner/msi-1 … msi-N: GitHub's runner, sha256-checked, and a hook that
+# 3. RUNNERS (default 6) runner folders ~/actions-runner/msi-1 … msi-N: GitHub's runner (pinned version, sha256-checked) and a hook that
 #    empties a job's workspace after every job
 # 4. the self-check: the front end builds, the 操作指南 PDF prints with a Chinese font, two website test files and one UI
 #    share pass (about 5 minutes; SKIP_CHECK=1 skips it)
@@ -21,6 +21,10 @@
 # More would squeeze the UI tests, which wait on animations and time-outs. RUNNERS=4 for a smaller share of the PC.
 set -euo pipefail
 RUNNERS=${RUNNERS:-6}
+# GitHub's runner, pinned with its sha256 (from its release notes; the API refuses unauthenticated machines now and then,
+# a download does not). A registered runner updates itself to GitHub's newest version, so this only needs to be recent.
+RUNNER_VERSION=${RUNNER_VERSION:-2.338.2}
+RUNNER_SHA256=${RUNNER_SHA256:-baebf204307bac6193480852732f0aba2ae97b6c5597c244f4d5558390147c40}
 REPO=$(cd "$(dirname "$0")/.." && pwd)
 STATE=$HOME/.local/share/flow-ci
 VENV=$STATE/venv
@@ -34,7 +38,7 @@ mkdir -p "$STATE" "$HOME/.cache/flow-ci"
 
 say "1/4 packages"
 sudo apt-get update -qq
-sudo apt-get install -y -qq software-properties-common ca-certificates curl gnupg git jq fonts-noto-cjk fonts-noto-color-emoji >/dev/null
+sudo apt-get install -y -qq software-properties-common ca-certificates curl gnupg git fonts-noto-cjk fonts-noto-color-emoji >/dev/null
 if ! command -v python3.11 >/dev/null; then
   sudo add-apt-repository -y ppa:deadsnakes/ppa >/dev/null
   sudo apt-get update -qq
@@ -70,10 +74,7 @@ exit 0
 EOF
 chmod 755 "$HOOK"
 if [ "$RUNNERS" -gt 0 ]; then
-  rel=$(curl -fsSL https://api.github.com/repos/actions/runner/releases/latest)
-  ver=$(jq -r .tag_name <<<"$rel"); ver=${ver#v}
-  sha=$(jq -r .body <<<"$rel" | sed -n 's/.*<!-- BEGIN SHA linux-x64 -->\([0-9a-f]\{64\}\)<!-- END SHA linux-x64 -->.*/\1/p' | head -1)
-  [[ $sha =~ ^[0-9a-f]{64}$ ]] || { echo "could not read the runner's sha256 from its release notes"; exit 1; }
+  ver=$RUNNER_VERSION; sha=$RUNNER_SHA256
   tgz=$HOME/.cache/flow-ci/actions-runner-linux-x64-$ver.tar.gz
   [ -f "$tgz" ] || curl -fsSL -o "$tgz" "https://github.com/actions/runner/releases/download/v$ver/actions-runner-linux-x64-$ver.tar.gz"
   echo "$sha  $tgz" | sha256sum -c --quiet - || { rm -f "$tgz"; echo "runner download does not match its sha256: removed, run again"; exit 1; }
