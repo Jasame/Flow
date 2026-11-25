@@ -26,3 +26,4 @@
 .doc-body [id]{scroll-margin-top:72px}
 /* a tick focused after 「请先勾选」 stays clear of the sticky top bar and the bottom tabs */
 .storagefs input{scroll-margin:96px 0 120px}
+.pers-text p{margin:0}.pers-text p+p{margin-top:12px}  /* 按我的学习记录推荐: the two paragraphs read as one block (B9: no 40 px hole between them) */
