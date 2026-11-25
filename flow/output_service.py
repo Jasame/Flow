@@ -5,6 +5,7 @@ Each call is one AI job (shared daily quota). Results feed the learner model: a 
 ability profile, and corrections into the mistake book.
 """
 import json
+import os
 import re
 import time
 
@@ -357,7 +358,33 @@ def translate(c, uid, data):
 # Who may judge one word well enough to file a mistake: Gemini (the main service) for now; a dedicated pronunciation
 # scorer joins when 语流 12 connects one. A verdict from another model (Qwen-Omni, since the owner moved 跟读 and 发音 off
 # Gemini on 2026-11-25: 「延迟太高了」) is a reference only: counted as practice, never a mistake, said to be maybe wrong.
-SAY_TRUSTED = ('main',)
+SAY_TRUSTED = ('main', 'asr')
+
+
+def say_by_asr():
+    """FLOW_SAY_JUDGE=asr (2026-11-25, the owner: 「换成国内已备案模型」): one word judged by 百炼's speech recognition
+    (chat_service.transcribe, FLOW_ASR_AI_MODEL) told the word and its pair word, instead of a model that listens and
+    decides. say_pairs_eval (24 pairs, 192 judgements each): a correct English-voice reading called wrong 1 time in 48
+    (Qwen-Omni with this page's prompt: 18), a wrong one caught 42 of 48, 0.6 s."""
+    import chat_service
+    return os.getenv('FLOW_SAY_JUDGE', '').strip() == 'asr' and bool(chat_service.asr_model())
+
+
+def say_verdict(target, partner, heard):
+    """What the recogniser wrote down -> the answer say() reads. Wrong only when it heard the pair word and not the
+    target (or, without a pair, a clearly different word); nothing heard is a reference, not a verdict."""
+    import difflib, sounds
+    t, p = target.lower().strip(), (partner or '').lower().strip()
+    words = re.findall(r"[a-z']+", (heard or '').lower())
+    said = ' '.join(words)
+    tip = sounds.tip_of(t)
+    if not words:
+        return {'heard': '', 'ok': True, 'note': '这次没听清读的是什么，可以再读一遍', 'tip': '', 'unclear': True}
+    if p and p in words and t not in words:
+        return {'heard': said, 'ok': False, 'note': f'听起来像 {p}，不像 {t}', 'tip': tip}
+    if t in said or (not p and difflib.SequenceMatcher(None, t, words[0]).ratio() >= 0.6) or p:
+        return {'heard': said, 'ok': True, 'note': f'听起来是 {t}', 'tip': ''}
+    return {'heard': said, 'ok': False, 'note': f'听起来像 {said}', 'tip': tip}
 
 
 def say(c, uid, data):
@@ -383,12 +410,21 @@ def say(c, uid, data):
             raise Shape('json_shape')
         by = getattr(ai_routes.CTX, 'last_service', None)  # the call whose answer this is (same thread, just recorded)
         return {'heard': _clean(raw.get('heard') or '', 0, 80), 'ok': mbool(raw.get('ok'), 'ok_missing'), 'note': _clean(raw.get('note') or '', 0, 300),
-                'tip': _clean(raw.get('tip') or '', 0, 300), 'tentative': by is not None and by not in SAY_TRUSTED}
+                'tip': _clean(raw.get('tip') or '', 0, 300), 'tentative': (by is not None and by not in SAY_TRUSTED) or raw.get('unclear') is True}
 
     import hashlib, ai_routes
     ai_routes.CTX.last_service = None
-    result, status = _ai(c, uid, data, 'next-say', 'sounds', 'speaking', {'text': target, 'audio_sha256': hashlib.sha256(raw_audio).hexdigest()},
-                         system, user, convert, data.get('audio'))
+    spec = {'text': target, 'audio_sha256': hashlib.sha256(raw_audio).hexdigest()}
+    if say_by_asr():
+        import chat_service
+        from lab_service import run_job
+
+        def invoke():
+            heard = chat_service.transcribe(data.get('audio'), [target, partner])
+            return json.dumps(say_verdict(target, partner, heard), ensure_ascii=False), 'stop'
+        result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-say', 'sounds', 'speaking', spec, invoke, convert, mark_replay=True)
+    else:
+        result, status = _ai(c, uid, data, 'next-say', 'sounds', 'speaking', spec, system, user, convert, data.get('audio'))
     if status == 200 and not result.get('replayed'):
         r = result['result']
         key = 'say:' + target.lower()[:60]
