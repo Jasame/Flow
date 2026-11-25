@@ -640,3 +640,40 @@ class ReadingLinkedTests(unittest.TestCase):
         self.assertEqual(d['active_today'], 1); self.assertEqual(d['funnel_7d']['read'], 1)
         self.assertEqual(d['ratings_7d'], {'good': 1}); self.assertEqual(len(d['active_days']), 14)
         self.assertGreaterEqual(d['materials'], 192)
+
+
+class SaveCardTwiceTests(unittest.TestCase):
+    """A word saved twice at once (a double tap, the page open twice): both saves answer 200 and there is one card; a
+    save of a card already there still takes the meaning and the sentence it brings (语流 02, 2026-11-25: a 500 on
+    UNIQUE(user_id, norm) when the check and the insert were two steps)."""
+    setUp, tearDown = BacklogTests.setUp, BacklogTests.tearDown
+
+    def test_two_saves_at_once_both_answer_and_leave_one_card(self):
+        import threading
+        words = [f'serendipity{k}' for k in range(30)]
+        gate, out = threading.Barrier(2), []
+
+        def saver():
+            c = app.db()
+            try:
+                for w in words:
+                    gate.wait(timeout=10)
+                    out.append(nx.save_card(c, 1, {'text': w, 'context': f'It was pure {w}.'})[1])
+            finally:
+                c.close()
+        ts = [threading.Thread(target=saver) for _ in range(2)]
+        for t in ts:
+            t.start()
+        for t in ts:
+            t.join()
+        self.assertEqual(out, [200] * 60)
+        rows = dict(self.c.execute("SELECT norm, COUNT(*) FROM next_cards WHERE user_id=1 AND norm LIKE 'serendipity%' GROUP BY norm").fetchall())
+        self.assertEqual(rows, {w: 1 for w in words})
+
+    def test_saving_again_takes_the_new_meaning_and_keeps_the_card(self):
+        first, st = nx.save_card(self.c, 1, {'text': 'decisions', 'context': 'We need to explain our decisions.'})
+        self.assertEqual((st, first['existing']), (200, False))
+        again, st = nx.save_card(self.c, 1, {'text': 'Decisions!', 'meaning': '决策'})
+        self.assertEqual((st, again['existing'], again['card']['id']), (200, True, first['card']['id']))
+        self.assertEqual(again['card']['meaning'], '决策'); self.assertEqual(again['card']['context'], 'We need to explain our decisions.')  # an empty one keeps it
+
