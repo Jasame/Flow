@@ -819,3 +819,10 @@
   - #379 复习页：评分还在保存时离开，不再把复习卡画到下一页上（单词）
 - 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45691863573
+
+### b102 · 2026-11-26 04:20
+- main `969c62f`，构建 `fc59010`
+- 新合并的 PR（自 b101 起）：
+  - #375 精听：👁 进播放条正文上移，深色播放条暗一档，播放中留着 1×（B9 r36 审计 F1–F3）（听和说、操作指南）
+- 自检：DEPLOYED，装了 5 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45693850751
