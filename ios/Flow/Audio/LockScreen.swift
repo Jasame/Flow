@@ -35,6 +35,7 @@ enum LockScreen {
     }
 
     static func show(_ now: Now) {
+        #if canImport(NowPlaying)  // the iOS 27 SDK (Xcode 27); CI's Xcode 26 builds the app without it (older lock screen only)
         if #available(iOS 27, *) {
             if Features.on(.lockScreenStudy) {
                 RemoteCommands.enable(false)  // the session's own buttons: the older ones would answer as well
@@ -43,6 +44,7 @@ enum LockScreen {
             }
             LockScreen27.clear()  // switched off while a text plays: the older lock screen from here on
         }
+        #endif
         RemoteCommands.enable(true)
         let (title, i, n, elapsed, duration, rate, playing) = (now.title, now.i, now.n, now.elapsed, now.duration, now.rate, now.playing)
         let shown = labels(title: title, i: i, n: n)
@@ -64,7 +66,9 @@ enum LockScreen {
     }
 
     static func clear() {
+        #if canImport(NowPlaying)
         if #available(iOS 27, *) { LockScreen27.clear() }
+        #endif
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
 }

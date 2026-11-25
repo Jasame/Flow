@@ -153,6 +153,7 @@ final class LongPlayer: NSObject {
             let item = (note.object as AnyObject?).map(ObjectIdentifier.init)
             MainActor.assumeIsolated { self?.itemFailed(item) }
         }
+        #if canImport(NowPlaying)  // the iOS 27 SDK (Xcode 27); CI's Xcode 26 builds the app without it (older lock screen only)
         if #available(iOS 27, *) {
             // iOS 27 says when the sound may go on again (a call ended, Siri done), and why it was taken away
             nc.addObserver(forName: AVAudioSession.resumptionRecommendationNotification, object: nil, queue: .main) { [weak self] note in
@@ -166,6 +167,7 @@ final class LongPlayer: NSObject {
             }
             LockScreen27.player = self
         }
+        #endif
         speech.done = { [weak self] tok in self?.speechDone(tok) }
         RemoteCommands.install(self)
     }
@@ -769,7 +771,12 @@ final class LongPlayer: NSObject {
     }
 
     /// iOS 27 sends a recommendation of its own (AVAudioSession.resumptionRecommendationNotification)
-    nonisolated static var recommends: Bool { if #available(iOS 27, *) { true } else { false } }
+    nonisolated static var recommends: Bool {
+        #if canImport(NowPlaying)
+        if #available(iOS 27, *) { return true }
+        #endif
+        return false
+    }
 
     /// iOS says the sound may go on (or not): with 「来电以后接着放」 on, a text a call paused goes on by itself
     private func resumption(_ go: Bool) {

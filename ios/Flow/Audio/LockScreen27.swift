@@ -1,3 +1,4 @@
+#if canImport(NowPlaying)  // the iOS 27 SDK (Xcode 27); CI's Xcode 26 builds the app without it (older lock screen only)
 import NowPlaying
 import Observation
 import UIKit
@@ -88,3 +89,4 @@ enum LockScreen27 {
         return c
     }
 }
+#endif
