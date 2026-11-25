@@ -629,9 +629,10 @@ def run_unify(p, aid, recorded, extra=None):
     g = 'unify-' + ('recorded' if recorded else 'no-recording')
     kind = '有录音的文章' if recorded else '没有录音的文章'
     p.reload(); fresh_listen(p, aid)
-    tip = p.js("(document.querySelector('#view .listen-tip') || {}).textContent || ''")
-    if recorded == ('还没有录音' in tip):
-        check(g, f'{kind}: the page says so', False, tip); return
+    # a recording gives the length in minutes at the foot (21-study-listen.js); the 「AI 合成」 line is in the bar since #325
+    foot = p.js("(document.querySelector('#view .section.row .muted.small') || {}).textContent || ''")
+    if recorded != ('分钟' in foot):
+        check(g, f'{kind}: the page says so', False, foot); return
     # 1① 播放全文: sentence by sentence, the natural voice, a line while a sentence is being made
     t0 = time.time(); p.tap('#playAll', 0.2)
     p.until(LS + '.now >= 2', 45, 0.3); st = p.js(LS); s = shot(f'{g}-playing')
