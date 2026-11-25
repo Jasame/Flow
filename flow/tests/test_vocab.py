@@ -759,7 +759,7 @@ class ReviewSplitTests(unittest.TestCase):
         self.assertEqual(other, sorted(['Which is right?', 'they went', 'as soon as', 'I would rather stay at home than go out tonight.']))
         self.assertEqual(vs.counts(self.c, 1, self.now)['due'], 2)
         o = vs.other_counts(self.c, 1, self.now)
-        self.assertEqual(o['due'], 4)
+        self.assertEqual((o['due'], o['mistakes']), (4, 2))  # 错题本 counts its two mistakes; the pattern and sentence are 其他 too
         self.assertEqual(o['minutes'], max(1, round(4 * vs.OTHER_SECONDS / 60)))
 
     def test_a_new_mistake_counts_in_its_own_queue_not_as_a_new_word(self):

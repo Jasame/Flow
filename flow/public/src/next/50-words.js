@@ -227,7 +227,7 @@
     q = q || ''; page = page || 1;
     const st = { q, page };
     const [list, ov] = await Promise.all([api('/api/next/cards?f=mistake&q=' + encodeURIComponent(q) + '&page=' + page), api('/api/next/vocab')]);
-    const due = (ov.other || {}).due || 0;
+    const due = (ov.other || {}).mistakes || 0;  // the mistakes due: this page is about mistakes (the patterns are counted on 练习)
     const body = l => l.items.length ? listHTML(l, st.q, st.page, '')
       : `<div class="empty"><p>${st.q ? `没找到「${esc(st.q)}」。可以换个写法，或者搜中文。` : '还没有错题。理解题答错、写作和口语里被改出的错误、读不准的发音、做错的语法题和辨析题，都会自动收进来。'}</p>${st.q ? '<div class="row center"><button class="btn small" type="button" id="sfClear">清除搜索</button></div>' : ''}</div>`;
     view.innerHTML = `<div><a class="link small hit44" href="#/practice">← 练习</a></div>

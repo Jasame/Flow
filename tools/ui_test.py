@@ -3589,8 +3589,8 @@ def review_side_run(pw):
         # 错题本 (练习 → 复习 → 错题本): a page of its own, not the word page with a filter (语流 B9, A0)
         go(pg, '#/cards'); go(pg, '#/cards/mistake'); pg.wait_for_timeout(500)
         mb = pg.evaluate("({ h1: (document.querySelector('main h1') || {}).textContent, back: !!document.querySelector('#view a[href=\"#/practice\"]'), nav: (document.querySelector('.tabs a.on, .tabs a[aria-current]') || {}).textContent || '', review: (document.getElementById('mbReview') || {}).textContent || '', rows: [...document.querySelectorAll('#listSlot .xrow .x')].map(x => x.textContent), wordPage: !!(document.getElementById('vStats') || document.querySelector('#view .tools') || document.querySelector('#view [data-f]')) })")
-        check(dev, '错题本 is its own page: ← 练习, 错题本, 练习 lit, 复习到期的 2 道, the mistakes only, no word page around it',
-              mb['h1'] == '错题本' and mb['back'] and '练习' in mb['nav'] and '复习到期的 2 道' in mb['review'] and mb['rows'] == ['went'] and not mb['wordPage'], mb)
+        check(dev, '错题本 is its own page: ← 练习, 错题本, 练习 lit, 复习到期的 1 道 (the mistakes due, as its 共 1 道), the mistakes only, no word page around it',
+              mb['h1'] == '错题本' and mb['back'] and '练习' in mb['nav'] and '复习到期的 1 道' in mb['review'] and mb['rows'] == ['went'] and not mb['wordPage'], mb)
         check(dev, 'no script errors (单词 and 其他复习 apart)', not errs, errs[:3])
         ctx.close()
         # 复习时的轻触震动 (语流 C1): in the app (has('haptic')), turning a card is 'select' and the rating says how it went;

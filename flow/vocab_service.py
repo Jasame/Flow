@@ -625,7 +625,9 @@ def other_counts(c, uid, now=None):
     now = now or time.time()
     due = c.execute('SELECT COUNT(*) FROM next_cards WHERE user_id=? AND known=0 AND ' + OTHER + ' AND ' + DUE_TODAY,
                     (uid, _day_start(now) + fsrs.DAY, now)).fetchone()[0]
-    return {'due': due, 'minutes': max(1, round(due * answer_seconds(c, uid, now, 'other') / 60)) if due else 0,
+    mistakes = c.execute("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND known=0 AND COALESCE(source,'')='mistake' AND " + DUE_TODAY,
+                         (uid, _day_start(now) + fsrs.DAY, now)).fetchone()[0]  # 错题本's own count (the patterns are 其他 too)
+    return {'due': due, 'mistakes': mistakes, 'minutes': max(1, round(due * answer_seconds(c, uid, now, 'other') / 60)) if due else 0,
             'done_today': _answers_today(c, uid, now, 'other')}
 
 
