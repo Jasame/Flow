@@ -1,3 +1,3 @@
-29157835244a7b0b720af2eefeff55bbc0e7a628 53b49d76e88a1dd1a43d7e17fe86a913635c6c5312ecee98da45186292a02681 e2e light ref=build-de7027c2136a tag=b94 tools=c8f8bc8e43fd5f240d1e4b9541d9e4edc8f88c917b5795e6ecafd8f51af4bfbb
-# b94 main: Merge pull request #365 from Jasame/sim-check-quote = build of de7027c2136a
+edef30d231c5865ce496c4d73cc479ee6d0b74fb 08cb517a13ad042156d275fdc2b8911e33cf6b9002daa2441278c40470a48cf4 e2e light ref=build-0ac1961003b4 tag=b95 tools=c8f8bc8e43fd5f240d1e4b9541d9e4edc8f88c917b5795e6ecafd8f51af4bfbb
+# b95 main: Merge pull request #370 from Jasame/b3-offline-second = build of 0ac1961003b4
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
