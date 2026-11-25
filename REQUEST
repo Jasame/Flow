@@ -1,3 +1,3 @@
-6e2be23139642f33f0fcab6f0e6141622431f79a 2f4c98c00958bb916cfc31304c7ee6075dbc9c552106bbd5a5f0da9fee4278e2 e2e light ref=build-03d644623140
-# b60 main: Merge pull request #225 from Jasame/ui-shards-balance = build of 03d644623140
+e5dc3da2025ce42faeaa9ff71d67fa99afac9053 f6ac56af81a6adccb8744c15a7c71f7ef680ee7508a7ffe607049c3f9084ce54 e2e light ref=build-66456801fc51
+# b61 main: Merge pull request #230 from Jasame/daily-topic-quote-fit = build of 66456801fc51
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
