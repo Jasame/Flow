@@ -1,3 +1,3 @@
-6bde7881e691d3fafaac8492fe82e840074c0e3f 075582ca0bc28fa3e40258d161ea3692e79d7b651922dc21e4872b0febabfc4b e2e
-# r29 main: Merge pull request #121 from Jasame/teacher-mode = build of c0862dbef443
-# Format: <commit sha> <manifest sha256> [e2e [light]]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
+6f8879b0fbece03d1668c089e96d3051b3b22c4f 27984837425523c750beb59148fc1d54602cae4125cd519ed10cf92089e0cf6d e2e ref=build-9875a69553e2
+# r30 main: Merge pull request #157 from Jasame/revert-151 = build of 9875a69553e2
+# Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
