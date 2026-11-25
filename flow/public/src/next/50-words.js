@@ -63,12 +63,15 @@
   const APP_PLACES = { ios: ['这台 iPhone', 'iPhone 的「设置 → 语流 → 通知」'], android: ['这台手机', '手机的「设置 → 应用 → 语流 → 通知」'],
     windows: ['这台电脑', 'Windows 的「设置 → 系统 → 通知」'], macos: ['这台 Mac', 'Mac 的「系统设置 → 通知」'] };
   const appPlace = () => APP_PLACES[(window.FlowApp && FlowApp.platform) || 'ios'] || ['这台设备', '系统设置里的「通知」'];
-  const appOn = () => { try { return FlowApp.notify.permission() === 'granted'; } catch (e) { return false; } };
-  // the app's row on the plan page: off, a button to turn it on; on, said so, with 关闭 where the app can (Android: notify.off)
-  // or the system's settings where it opens them (notify.settings); neither (iOS, desktop): the system's settings say how
-  function appRowHTML() {
+  // Every bridge call answers a Promise (native-bridge.md 2: iOS can only answer asynchronously): whether the app's
+  // reminder is on is awaited, never compared as it comes (语流 20, 2026-11-25: 「已开启」 never showed in the apps).
+  // permission() is the app's reminder: 'undetermined' again after off(); ask() true turns it on again.
+  const appOn = async () => { try { return (await Promise.resolve(FlowApp.notify.permission())) === 'granted'; } catch (e) { return false; } };
+  // the app's row on the plan page: off, a button to turn it on; on, said so, with 关闭 where the app can (notify.off: iOS,
+  // Android) or the system's settings where it opens them (notify.settings); neither: the system's settings say how
+  function appRowHTML(on) {
     const [place] = appPlace(), at = `在${place}${/[A-Za-z]$/.test(place) ? ' ' : ''}上`;
-    if (!appOn()) return `<button class="btn small" type="button" id="rApp">到点用 App 通知提醒</button><span class="muted tiny" id="rAppNote">${at}，按上面的时间弹通知，不用邮箱</span>`;
+    if (!on) return `<button class="btn small" type="button" id="rApp">到点用 App 通知提醒</button><span class="muted tiny" id="rAppNote">${at}，按上面的时间弹通知，不用邮箱</span>`;
     return `<span class="small" id="rAppOn">已开启：${at}到点用 App 通知提醒</span>${typeof FlowApp.notify.off === 'function' ? '<button class="link small hit44" type="button" id="rAppOff">关闭</button>'
       : typeof FlowApp.notify.settings === 'function' ? '<button class="link small hit44" type="button" id="rAppSet">通知设置</button>' : ''}`;
   }
@@ -317,7 +320,7 @@
         <div class="row"><select id="rHour" aria-label="提醒时间">${Array.from({ length: 18 }, (_, k) => k + 6).map(h => `<option value="${h}" ${h === o.reminder.hour ? 'selected' : ''}>每天 ${h}:00</option>`).join('')}</select></div>
         <label class="checkline"><input type="checkbox" id="rMail" ${o.reminder.enabled ? 'checked' : ''} ${o.reminder.has_email ? '' : 'disabled'}><span>到点发邮件提醒（只在有词要复习时发）${o.reminder.has_email ? '' : '<br><span class="muted tiny">账号还没绑定邮箱：可以在<a class="link" href="#/me">「我的」</a>里绑定，或者先用下面的日历提醒。</span>'}</span></label>
         <div class="row"><a class="btn small" id="rCal" href="/api/next/vocab/reminder.ics?hour=${o.reminder.hour}">加到手机日历</a><span class="muted tiny">日历每天到点提醒，不依赖任何 App</span></div>
-        ${window.FlowApp && FlowApp.has && FlowApp.has('notify') ? `<div class="row" id="rAppRow">${appRowHTML()}</div>` : ''}
+        ${window.FlowApp && FlowApp.has && FlowApp.has('notify') ? `<div class="row" id="rAppRow">${appRowHTML(false)}</div>` : ''}
         <div class="row between" id="onceRow"><span class="small" id="onceNow">${o.reminder.once ? `下一次：${onceLabel(o.reminder.once)}（只管这一次）` : '哪天这个点没空，可以只改下一次的时间。'}</span><button class="btn small" type="button" id="onceBtn">这次什么时候复习</button></div></div>`;
     const meta = id => o.books.find(b => b.id === id) || {};
     // Days left: words not yet studied, minus the ones this plan skips (everyday words; for exam and data books, what the test showed you know).
@@ -377,7 +380,7 @@
     rHour.onchange = saveRemind; rMail.onchange = saveRemind;
     const bindApp = () => {  // the app (iOS, Android, desktop): ask once for notifications, then schedule them from the reminder
       const row = document.getElementById('rAppRow'); if (!row) return;
-      const redo = () => { row.innerHTML = appRowHTML(); bindApp(); };
+      const redo = async () => { const on = await appOn(); if (!document.contains(row)) return; row.innerHTML = appRowHTML(on); bindApp(); };
       const on = document.getElementById('rApp');
       if (on) on.onclick = async () => {
         let ok = false; try { ok = await Promise.resolve(FlowApp.notify.ask()); } catch (e) { ok = false; }
@@ -391,6 +394,8 @@
       if (set) set.onclick = () => { try { FlowApp.notify.settings(); } catch (e) { toast(`可以到${appPlace()[1]}里改`); } };
     };
     bindApp();
+    const appRow = document.getElementById('rAppRow');  // drawn as off at first; then as the app says (asynchronously)
+    if (appRow) appOn().then(on => { if (on && document.contains(appRow)) { appRow.innerHTML = appRowHTML(true); bindApp(); } });
     document.getElementById('onceBtn').onclick = () => remindOnce(x => { document.getElementById('onceNow').textContent = x.once ? `下一次：${onceLabel(x.once)}（只管这一次）` : '哪天这个点没空，可以只改下一次的时间。'; });
     document.getElementById('savePlan').onclick = async e => {
       const btn = e.currentTarget; btn.disabled = true;

@@ -2706,7 +2706,7 @@ def review_side_run(pw):
         # in an app (iOS, Android, desktop; FlowApp before the page): the reminder goes to its notifications, said for its device
         ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
-        ctx.add_init_script("window.__synced = []; window.__perm = 'undetermined'; window.FlowApp = { v: 1, platform: 'macos', has: k => k === 'notify', notify: { ask: () => { window.__perm = 'granted'; return Promise.resolve(true); }, sync: r => window.__synced.push(r), permission: () => window.__perm, settings: () => { window.__settings = 1; } } };")
+        ctx.add_init_script("window.__synced = []; window.__perm = 'undetermined'; window.FlowApp = { v: 1, platform: 'macos', has: k => k === 'notify', notify: { ask: () => { window.__perm = 'granted'; return Promise.resolve(true); }, sync: r => { window.__synced.push(r); return Promise.resolve({}); }, permission: () => Promise.resolve(window.__perm), settings: () => { window.__settings = 1; return Promise.resolve(); } } };")  # every call a Promise, as the real apps (native-bridge.md 2)
         pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
         pg.goto(BASE + '/#/vocab/plan', wait_until='load'); settle(pg); pg.wait_for_selector('#rApp', timeout=5000)
         note = pg.text_content('#rAppNote') or ''
@@ -2730,13 +2730,14 @@ def review_side_run(pw):
         # the Android app: on already (permission granted), and it can turn its notifications off itself (notify.off)
         ctx = browser.new_context(viewport={'width': 412, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
-        ctx.add_init_script("window.__perm = 'granted'; window.FlowApp = { v: 1, platform: 'android', has: k => k === 'notify', notify: { ask: () => { window.__perm = 'granted'; return true; }, sync: () => {}, permission: () => window.__perm, off: () => { window.__perm = 'undetermined'; window.__off = 1; }, settings: () => {} } };")
+        ctx.add_init_script("window.__perm = 'granted'; window.FlowApp = { v: 1, platform: 'android', has: k => k === 'notify', notify: { ask: () => { window.__perm = 'granted'; return Promise.resolve(true); }, sync: () => Promise.resolve({ exact: false }), permission: () => Promise.resolve(window.__perm), off: () => { window.__perm = 'undetermined'; window.__off = 1; return Promise.resolve(); }, settings: () => Promise.resolve() } };")
         pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
-        pg.goto(BASE + '/#/vocab/plan', wait_until='load'); settle(pg); pg.wait_for_selector('#rAppRow', timeout=5000)
+        pg.goto(BASE + '/#/vocab/plan', wait_until='load'); settle(pg); pg.wait_for_selector('#rAppOn', timeout=5000)  # once the app has answered
         on = pg.text_content('#rAppOn') if pg.query_selector('#rAppOn') else ''
         pg.click('#rAppOff'); pg.wait_for_timeout(300)
-        check(dev, 'Android app: 已开启：在这台手机上…, and 关闭 turns it off and offers to turn it on again',
-              on.startswith('已开启：在这台手机上') and pg.evaluate('window.__off') == 1 and pg.query_selector('#rApp') is not None, on)
+        pg.click('#rApp'); pg.wait_for_selector('#rAppOn', timeout=5000)  # on again: ask() true turns it back on
+        check(dev, 'Android app: 已开启：在这台手机上…, 关闭 turns it off, and the button turns it on again',
+              on.startswith('已开启：在这台手机上') and pg.evaluate('window.__off') == 1 and pg.query_selector('#rAppOn') is not None, on)
         check(dev, 'no script errors (Android app)', not errs, errs[:3])
         ctx.close()
         # a phone: the swipe follows the side
