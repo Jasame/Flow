@@ -1490,6 +1490,19 @@ def ux_run(pw):
             'never': "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); };",
             'throws': "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); throw new Error('refused'); };",
             'no-end': "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); setTimeout(() => { u.onstart && u.onstart(); }, 30); };",
+            # 'speaking' for ever, no end (语流 B5's boundary probe, 2026-11-25): an iPad reports two words, then nothing;
+            # a voice that reports every word but never the end
+            'stuck': "let on = false; Object.defineProperty(speechSynthesis, 'speaking', { get: () => on, configurable: true }); speechSynthesis.cancel = () => { on = false; }; "
+                     "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); on = true; const ws = [...u.text.matchAll(/\\S+/g)]; "
+                     "setTimeout(() => { u.onstart && u.onstart(); }, 30); setTimeout(() => ws.slice(0, 2).forEach(w => u.onboundary && u.onboundary({ name: 'word', charIndex: w.index })), 400); };",
+            # voices there, but this sentence never started (an iPad offline, 语流 B5): no 「换 Safari 或 Chrome」, only why at the sentence
+            'never-voices': "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); }; "
+                            "speechSynthesis.getVoices = () => [{ name: 'Amélie', lang: 'fr-CA', voiceURI: 'Amélie' }]; window.__toasts = []; "  # a voice list, none the page assigns (a plain object as u.voice would throw)
+                            "document.addEventListener('DOMContentLoaded', () => new MutationObserver(() => { const t = document.querySelector('.toast'); "
+                            "if (t && t.textContent) window.__toasts.push(t.textContent); }).observe(document.body, { subtree: true, childList: true, characterData: true }));",
+            'all-words': "let on = false; Object.defineProperty(speechSynthesis, 'speaking', { get: () => on, configurable: true }); speechSynthesis.cancel = () => { on = false; }; "
+                         "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); on = true; const ws = [...u.text.matchAll(/\\S+/g)]; "
+                         "setTimeout(() => { u.onstart && u.onstart(); }, 30); ws.forEach((w, k) => setTimeout(() => u.onboundary && u.onboundary({ name: 'word', charIndex: w.index }), 60 + k * 40)); };",
         }
         seen = {}
         for kind, js in drops.items():
@@ -1501,8 +1514,8 @@ def ux_run(pw):
             p3.route('**/api/next/tts/have', lambda r: r.fulfill(status=503, json={'error': '服务器朗读没有开启', 'code': 'off'}))
             p3.goto(BASE + f'/#/m/{PID}/listen', wait_until='networkidle'); settle(p3, '#playAll')
             p3.evaluate("localStorage.removeItem('flow-progress')")
-            p3.click('#playAll'); p3.wait_for_timeout(3400 if kind == 'never' else 1500)
-            seen[kind] = p3.evaluate("""() => ({ said: window.__said.slice(), n: document.querySelectorAll('#view .line').length,
+            p3.click('#playAll'); p3.wait_for_timeout({'never': 3400, 'never-voices': 3400, 'stuck': 4200, 'all-words': 5200}.get(kind, 1500))
+            seen[kind] = p3.evaluate("""() => ({ said: window.__said.slice(), n: document.querySelectorAll('#view .line').length, toasts: (window.__toasts || []).join(' | '),
                 btn: document.querySelector('#playAll').textContent.trim(), now: (document.querySelector('#view .line.now') || {dataset: {}}).dataset.i,
                 note: (document.querySelector('#lsPrep') || {}).textContent || '', mini: (document.querySelector('.mini-player:not([hidden]) .lbl') || {}).textContent || '' })""")
             c3.close()
@@ -1555,7 +1568,14 @@ def ux_run(pw):
         check(dev, '播放全文 right after opening an article: the fresher 今日 coming in does not stop the reading',
               kept['btn'] == '暂停' and kept['mini'] and kept['said'] >= 2, kept)
         c5.close()
-        o, al, nv, th, ne = seen['once'], seen['always'], seen['never'], seen['throws'], seen['no-end']
+        o, al, nv, th, ne, sk, aw = seen['once'], seen['always'], seen['never'], seen['throws'], seen['no-end'], seen['stuck'], seen['all-words']
+        nvv = seen['never-voices']
+        check(dev, 'browser voice with voices but not starting (an iPad offline): the text waits at that sentence saying why, and never says 「换 Safari 或 Chrome」',
+              nvv['btn'] == '继续' and nvv['now'] == '0' and '没有读出' in nvv['note'] and '换 Safari' not in nvv['toasts'], nvv)
+        check(dev, 'browser voice stuck part-way (an iPad: two words, then "speaking" for ever): within seconds the text waits at that sentence and says why',
+              len(sk['said']) == 1 and sk['btn'] == '继续' and sk['now'] == '0' and '没有读出' in sk['note'], sk)
+        check(dev, 'browser voice saying every word but never the end: the sentence counts as said and the text reads on',
+              len(aw['said']) >= 2 and aw['said'][0] != aw['said'][1] and '没有读出' not in aw['note'], {k: aw[k] for k in ('btn', 'now', 'note')} | {'said': len(aw['said'])})
         check(dev, 'browser voice dropped once (iOS): that sentence is said again and the text reads on to its end',
               len(o['said']) == o['n'] + 1 and o['said'][0] == o['said'][1] and o['btn'] == '播放全文', {k: o[k] for k in ('n', 'btn', 'now')} | {'said': len(o['said'])})
         check(dev, 'browser voice dropped every time: tried twice, then the text waits paused at that sentence and says why (not "read")',
