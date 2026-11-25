@@ -55,7 +55,7 @@ UI_SHARDS = [
     ['about', 'wait', 'updates', 'tour'],                                          # 456 s + tour (~31 s)
     ['layout', 'sprint', 'backlog', 'review-side', 'app-audio'],                  # 465 s (app-audio about 20 s)
     ['home-app', 'phone-land', 'progress', 'ios-audio', 'swipe', 'privacy', 'one-screen'],  # 454 s + one-screen
-    ['phone', 'tablet', 'start', 'ux', 'platforms', 'learner'],                    # 454 s
+    ['phone', 'tablet', 'start', 'ux', 'platforms', 'learner', 'shell'],           # 454 s + shell
     ['listen-speak', 'desktop', 'a11y', 'wechat', 'class', 'trial-survey'],       # 454 s
 ]
 

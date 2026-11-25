@@ -38,32 +38,48 @@
         if (t !== this.token) return;
         const u = new SpeechSynthesisUtterance(text), uk = (S.voice || '').startsWith('uk');
         u.lang = uk ? 'en-GB' : 'en-US'; u.rate = this.rate; const v = this.voice && this.accent === (uk ? 'uk' : 'us') ? this.voice : this.pick(); if (v) u.voice = v;
-        let started = false, ended = false, poll = 0;
-        const give = () => { clearTimeout(watch); clearInterval(poll); if (t !== this.token) return; if (onfail) onfail(); else if (onend) onend(); };
+        let started = false, ended = false, poll = 0, heard = 0, reach = -1;
+        const give = () => { ended = true; clearTimeout(watch); clearInterval(poll); if (t !== this.token) return; if (onfail) onfail(); else if (onend) onend(); };  // final: an end the cancel brings later is not counted
         const again = () => { clearTimeout(watch); clearInterval(poll); if (t !== this.token) return; if (++tries < 2) setTimeout(say, 250); else give(); };
         const done = () => { if (ended) return; ended = true; clearInterval(poll); if (t === this.token && onend) onend(); };
-        if (onword) u.onboundary = e => { if (t === this.token && e.name !== 'sentence') onword(e.charIndex); };
+        // Word boundaries say how far the voice really got (each word as it is said): kept whether or not words are lit
+        const words = [...text.matchAll(/\S+/g)], lastWord = words.length ? words[words.length - 1].index : 0;
+        u.onboundary = e => {
+          if (e.name === 'sentence') return;
+          heard = Date.now(); reach = Math.max(reach, e.charIndex);
+          if (onword && t === this.token) onword(e.charIndex);
+        };
         u.onstart = () => {
           started = true; clearTimeout(watch); if (t === this.token && onstart) onstart();
-          // Started, then never said it ended (an iPad, offline, 语流 B5's run 2026-11-25: start, then silence and no end
-          // or error, the text stuck "playing"): once the voice has been quiet for half a second without an end, the
-          // sentence counts as said; one still "speaking" far past any length it could have is let go as not said.
+          // Started, then never said it ended. Two kinds (语流 B5's runs, 2026-11-25), told apart by the word boundaries:
+          // - the voice went quiet without an end (speaking false): after half a second the sentence counts as said;
+          // - the voice says "speaking" on and on: with the words reported up to the last one and then nothing for a
+          //   moment, it was said (end not reported); stuck part-way (an iPad offline: two words, then nothing, the next
+          //   sentence pending for ever) it was not: stop it and let the text wait at that sentence, saying why.
+          //   A voice that reports no words at all is let go after the longest the sentence could take.
           let quiet = 0;
-          const cap = Date.now() + Math.max(15000, text.length * 160 / (this.rate || 1));
+          const rate = this.rate || 1, t0 = Date.now(), lull = Math.max(2500, 2000 / rate);
+          const cap = t0 + Math.max(8000, words.length * 700 / rate + 3000);
           poll = setInterval(() => {
             if (t !== this.token || ended) { clearInterval(poll); return; }
-            if (!speechSynthesis.speaking && !speechSynthesis.pending) { if (++quiet >= 2) done(); } else quiet = 0;
-            if (!ended && Date.now() > cap) { clearInterval(poll); speechSynthesis.cancel(); give(); }
+            if (!speechSynthesis.speaking && !speechSynthesis.pending) { if (++quiet >= 2) done(); return; }
+            quiet = 0;
+            const now = Date.now();
+            if (heard && reach >= lastWord && now - heard > 1500 / rate) { clearInterval(poll); speechSynthesis.cancel(); done(); return; }  // all said
+            if ((heard && reach < lastWord && now - heard > lull) || now > cap) { clearInterval(poll); speechSynthesis.cancel(); give(); }  // stuck
           }, 250);
         };
         u.onend = () => { clearTimeout(watch); if (t !== this.token || ended) return; if (started) done(); else again(); };
         u.onerror = e => { if (e && /interrupted|canceled/.test(e.error || '')) { clearTimeout(watch); clearInterval(poll); return; } if (!ended) again(); };  // ours: stopped, or a new sentence
         // A browser with speechSynthesis but no voice to speak with (WeChat on Android) neither starts nor fails: after
-        // 2.5 s without a start, say so (and stop counting on it when it has no voices at all) instead of waiting in silence.
+        // 2.5 s without a start, say so (and stop counting on it) instead of waiting in silence. One that has voices but
+        // did not start this time (an iPad offline, 语流 B5's run 2026-11-25) is no reason to send anyone to another
+        // browser: a whole text says why at its sentence (onfail), a single sentence asks for one more tap.
         const watch = setTimeout(() => {
           if (t !== this.token || started) return;
-          speechSynthesis.cancel(); if (!speechSynthesis.getVoices().length) this.ok = false;
-          noSound('不能用电脑朗读的声音'); give();
+          speechSynthesis.cancel();
+          if (!speechSynthesis.getVoices().length) { this.ok = false; noSound('不能用电脑朗读的声音'); } else if (!onfail) toast('浏览器的声音这次没读出来，再点一次试试');
+          give();
         }, 2500);
         try { speechSynthesis.speak(u); } catch (e) { again(); }  // refused outright: as a dropped sentence
       };

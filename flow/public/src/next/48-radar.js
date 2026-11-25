@@ -86,7 +86,8 @@
     const name = kind === 'reading' ? '阅读' : '听力';
     const show = () => {
       const p = t.passages[k]; plays = 0;
-      view.innerHTML = `<div class="stack"><div class="row between"><span class="kicker">${name}测评 · 第 ${k + 1} / ${t.passages.length} 段</span><span class="pill">${esc(p.level)}</span></div>
+      // a title for a screen reader (the page has no visible one: the passage's own heading, or none for 听力; B8 audit)
+      view.innerHTML = `<div class="stack"><h1 class="sr-only">${name}测评</h1><div class="row between"><span class="kicker">${name}测评 · 第 ${k + 1} / ${t.passages.length} 段</span><span class="pill">${esc(p.level)}</span></div>
         ${kind === 'reading' ? `<h2 class="h2">${esc(p.title)} ${aiTag()}</h2><div class="exam-passage">${esc(p.body)}</div>` :
           `<p class="small muted">听一段录音，然后回答两道题。最多听两遍，听的时候看不到原文。 ${aiTag()} ${aiVoice()}</p><button class="btn primary block" id="aPlay">▶ 播放录音</button><p class="tiny muted" id="aNote" role="status" hidden></p><p class="tiny muted" id="aPlays"></p>`}
         <div id="aQs" ${kind === 'listening' ? 'hidden' : ''}>${p.questions.map(q => `<div class="q gq" data-i="${q.i}"><div class="prompt">${esc(q.prompt)}</div>

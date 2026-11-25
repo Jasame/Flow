@@ -33,7 +33,7 @@
             ${x.model ? `<div class="card flat stack-s"><div class="row between"><b>示范复述</b><button class="icon-btn" id="rtSay" aria-label="朗读">${ICON.speak}</button></div><div class="text small">${esc(x.model)}</div></div>` : ''}</div>`;
           const say = pane.querySelector('#rtSay'); if (say) say.onclick = () => TTS.say(x.model);
           bringIntoView(pane.querySelector('#rtOut'));
-          markStep('output'); showFinish(pane, m, id); blob = null; state.textContent = '打字或录音都行'; draftDone('retell-' + id);
+          markStep('output'); showFinish(pane, m, id); blob = null; state.textContent = '打字或录音都行'; if (body.text) draftDone('retell-' + id);  // a recording sent: the typed draft stays
         } catch (x) { toast(x.message); }
         btn.disabled = false; btn.textContent = 'AI 看看我的复述';
       };

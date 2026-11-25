@@ -51,7 +51,23 @@
     const tab = tabOf(TAB_OF[nav] ? nav : 'today'), prev = HIST.length > 1;
     btn.querySelector('span').textContent = prev ? '返回' : tab[1];
     btn.setAttribute('aria-label', prev ? '返回上一页' : '返回' + tab[1]);
-    btn.onclick = () => { if (HIST.length > 1) history.back(); else location.hash = tab[0]; };
+    btn.onclick = () => { if (HIST.length > 1) history.back(); else location.hash = homeBack.up || tab[0]; };
+    homeBack.up = '';
+  }
+  // A sub-page's own 「← 口语路线」 line (a .link.small at the top of the page, before its title) says the same as the
+  // top bar's 返回 and takes a line of the screen: in the app it is hidden, and 返回 with no page before goes where it
+  // went (‹ 口语路线), not to the tab. In Safari there is no 返回 in the bar: the line stays.
+  function homeBackLink() {
+    const btn = document.getElementById('backBtn');
+    if (!HOME_APP || !btn || btn.hidden) return;
+    const h1 = view.querySelector('h1');
+    const a = [...view.querySelectorAll('a.link.small')].find(x => /^←/.test(x.textContent.trim()) && (!h1 || x.compareDocumentPosition(h1) & Node.DOCUMENT_POSITION_FOLLOWING));
+    if (!a) return;
+    const box = a.parentElement !== view && a.parentElement.children.length === 1 && !a.parentElement.textContent.replace(a.textContent, '').trim() ? a.parentElement : a;
+    box.classList.add('pg-back');
+    if (HIST.length > 1) return;
+    const to = a.getAttribute('href'), name = a.textContent.trim().replace(/^←\s*/, '');
+    homeBack.up = to; btn.querySelector('span').textContent = name; btn.setAttribute('aria-label', '返回' + name);
   }
 
   // ---- 键盘: a field being typed in and its button stay above the keyboard. iOS lays fixed things (the bottom sheet)

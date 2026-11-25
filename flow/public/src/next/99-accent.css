@@ -1,0 +1,5 @@
+/* 主题色 (我的 → 外观, 07-accent.js): 靛蓝 changes only the accent — buttons, progress, links, what is selected. Paper, ink,
+   the logo, right / wrong (--ok, --red) and the AI marks stay as they are. Values from 配色方案 C; 4.5:1 or more for text
+   and button labels on the page's own surfaces in both themes (eidos-color-proposal.md). */
+:root[data-accent=indigo]{--green:#3461d1;--green-ink:#2a4fae;--green-soft:#e8eefb;--green-line:#c3d1f2;--fill:#2c56c4;--on-fill:#fff}
+@media (prefers-color-scheme:dark){:root[data-accent=indigo]{--green:#8eaefc;--green-ink:#a9c1ff;--green-soft:#1b2540;--green-line:#2f4170;--fill:#8eaefc;--on-fill:#0b1530}}

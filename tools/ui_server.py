@@ -159,6 +159,7 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             'a11y': ('B1', 'work', ['work', 'science']),  # the screen-reader and contrast audit (a11y_run)
             'pile': ('B1', 'work', ['work', 'science']),  # back from a break: reviews piled up (backlog_run)
             'side': ('B1', 'work', ['work']),  # 「认识」放在 and 这次什么时候复习 (review_side_run): 20 words due
+            'nowords': ('B1', 'work', ['work']),  # settings done, no words and no word book yet: the word page's first look (review_side_run)
             'screen': ('B1', 'work', ['work']),  # 复习 and 测词汇量 fill one phone screen (one_screen_run): as 'side'
             'sprint': ('B1', 'exam', ['campus']),  # 考试冲刺: 四级 in 19 days, four practice sets done (sprint_run; the guide's exam pictures)
             'home-app': ('B1', 'work', ['work', 'science']),  # 主屏 App (home_app_run): the iPhone home-screen app
@@ -261,6 +262,8 @@ with app.db() as c:
                 c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,rank,stability,difficulty,last,reps) "
                           "VALUES(?,?,?,?,'','word',?,?,'review','book',?,1,5,?,1)", (uid, d[w]['word'], w, d[w]['meaning'][:300], now - 20 * 86400, now - 3600 - k, rank, now - 2 * 86400))
             c.execute("INSERT INTO next_reviews(user_id,card,rating,created) VALUES(?,0,'good',?)", (uid, now - 3 * 86400))  # reviewed before the move
+        if name == 'nowords':  # a new account's word page: no cards, no word book
+            c.execute('DELETE FROM next_cards WHERE user_id=?', (uid,)); c.execute('DELETE FROM next_vocab_plans WHERE user_id=?', (uid,))
         if name == 'pile':  # 60 word reviews due, more than 3 x the 10 new words a day: no new words today (ux audit 1.1, 11)
             # 60 minutes a day: the words' share of the day's time (time_budget, r28 第 1 段: 15 minutes) holds all 60
             c.execute('UPDATE next_profiles SET minutes=60 WHERE user_id=?', (uid,))
@@ -276,7 +279,7 @@ with app.db() as c:
     c.execute("UPDATE users SET age_band='18+', age_set=? WHERE username NOT IN ('ui-ageless', 'ui-young')", (time.time(),))
     c.execute("UPDATE users SET age_band='u14', age_set=? WHERE username='ui-young'", (time.time(),))
     # 数据存放在香港 (privacy_service): every learner agreed at sign-up, but ui-unasked (the page asks it; privacy_run)
-    c.execute("UPDATE users SET storage_ok=? WHERE username!='ui-unasked'", (time.time(),))
+    c.execute("UPDATE users SET storage_ok=?, terms_ok=?, terms_version=? WHERE username!='ui-unasked'", (time.time(), time.time(), __import__('privacy_service').CONSENT_VERSION))
     # 新手引导 (tour_service): no account here gets it (FLOW_TOUR_FROM is far ahead) but these two, given theirs (tour_run)
     c.execute("UPDATE users SET role='teacher' WHERE username='ui-tour-teacher'")
     for who, tour in (('tour', 'learner'), ('tour-teacher', 'teacher')):
