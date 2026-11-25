@@ -1,3 +1,3 @@
-0c54902505fd44638841962c035c0a5090bb77a8 c13c05c61d595d0ecd237f462abd2d00161d2664d52ab777bf545aa10386cb70 e2e light
-# b32 main: Merge pull request #127 from Jasame/home-app-teacher-tab = build of 7b7fe8c60ca4
+6bde7881e691d3fafaac8492fe82e840074c0e3f 075582ca0bc28fa3e40258d161ea3692e79d7b651922dc21e4872b0febabfc4b e2e light
+# b33 main: Merge pull request #121 from Jasame/teacher-mode = build of c0862dbef443
 # Format: <commit sha> <manifest sha256> [e2e [light]]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
