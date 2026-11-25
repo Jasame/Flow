@@ -195,6 +195,9 @@
       const pv = document.getElementById('pv'), nx = document.getElementById('nx');
       if (pv) pv.onclick = () => { st.page--; reload().then(() => bringIntoView(document.getElementById('sf'))); };
       if (nx) nx.onclick = () => { st.page++; reload().then(() => bringIntoView(document.getElementById('sf'))); };
+      const sc = document.getElementById('sfClear'), sa = document.getElementById('sfAll');
+      if (sc) sc.onclick = () => { const i = document.querySelector('#sf input'); if (i) { i.value = ''; if (!TOUCH) i.focus(); } st.q = ''; st.page = 1; reload(); };
+      if (sa) sa.onclick = () => { st.f = ''; st.page = 1; view.querySelectorAll('[data-f]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.f === ''))); reload(); };
     };
     if (!none) document.getElementById('sf').onsubmit = e => { e.preventDefault(); st.q = e.target.q.value.trim(); st.page = 1; reload(); };
     view.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { st.f = b.dataset.f; st.page = 1; view.querySelectorAll('[data-f]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); reload(); });
@@ -206,12 +209,14 @@
   }
   function listHTML(list, q, page, f) {
     const pages = Math.max(1, Math.ceil(list.total / list.per));
-    const none = q ? '没有找到。' : { word: '还没有单词。选一本词书，或者读文章时点词收藏。', phrase: '还没有收藏的表达。读文章时选中一段文字，或在「地道表达」里点 ☆。',
+    // nothing found: say what was searched, and a way out (清除搜索; with a filter on, the search across all of them) (语流 B9)
+    const FILT = { word: '单词', phrase: '表达', mistake: '错题' };
+    const none = q ? `没找到「${esc(q)}」${f && FILT[f] ? `（只在「${FILT[f]}」里找了）` : ''}。可以换个写法，或者搜中文意思。` : { word: '还没有单词。选一本词书，或者读文章时点词收藏。', phrase: '还没有收藏的表达。读文章时选中一段文字，或在「地道表达」里点 ☆。',
       mistake: '还没有错题。理解题答错、写作和口语里被改出的错误，都会自动收进来。' }[f] || '还没有单词。选一本词书，或者学一篇材料时点词收藏。';
     const sub = c => c.source === 'mistake' ? '错题 · ' + ({ fix: '改错', question: '理解题', sound: '发音' }[c.kind] || '') + (c.context ? ' · ' + esc(c.context) : '')
       : esc(c.meaning || c.context || SOURCE[c.source] || '');
     return `${list.items.length ? `<div class="xlist" id="clist">${list.items.map(c => `<button class="xrow" type="button" data-card="${c.id}"><span class="t"><span class="x">${esc(c.text)}</span><span class="tiny muted">${sub(c)}</span></span>${recallPill(c)}</button>`).join('')}</div>`
-        : `<div class="empty"><p>${none}</p></div>`}
+        : `<div class="empty"><p>${none}</p>${q ? `<div class="row center">${f && FILT[f] ? '<button class="btn small" type="button" id="sfAll">在全部里找</button>' : ''}<button class="btn small" type="button" id="sfClear">清除搜索</button></div>` : ''}</div>`}
       ${pages > 1 ? `<div class="pager"><button class="btn small" id="pv" ${page <= 1 ? 'disabled' : ''}>上一页</button><span class="muted small">${page} / ${pages}</span><button class="btn small" id="nx" ${page >= pages ? 'disabled' : ''}>下一页</button></div>` : ''}`;
   }
 

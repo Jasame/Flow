@@ -2973,6 +2973,26 @@ def review_side_run(pw):
               e['start'] and not e['stats'] and not e['search'] and not e['chips'] and not e['count'], e)
         check(dev, 'no script errors (no words yet)', not errs, errs[:3])
         ctx.close()
+        # a search that finds nothing says what was searched and offers a way out (语流 B9): 清除搜索, and with a filter on, 在全部里找
+        ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        pg.goto(BASE + '/#/cards', wait_until='load'); settle(pg)
+        n0 = pg.evaluate("document.querySelectorAll('#listSlot [data-card]').length")
+        pg.fill('#sf input', 'zzqx'); pg.press('#sf input', 'Enter'); pg.wait_for_selector('#sfClear', timeout=5000)
+        msg = pg.text_content('#listSlot .empty p')
+        pg.click('#sfClear'); pg.wait_for_selector('#listSlot [data-card]', timeout=5000)
+        back = [pg.input_value('#sf input'), pg.evaluate("document.querySelectorAll('#listSlot [data-card]').length")]
+        check(dev, '单词 search with no result: 没找到「zzqx」 and 清除搜索 brings the whole list back', '没找到「zzqx」' in msg and back == ['', n0] and n0 > 0, [msg, back, n0])
+        pg.click('[data-f="mistake"]'); pg.wait_for_timeout(300)
+        pg.fill('#sf input', 'zzqx'); pg.press('#sf input', 'Enter'); pg.wait_for_selector('#sfAll', timeout=5000)
+        msg2 = pg.text_content('#listSlot .empty p')
+        pg.click('#sfAll'); pg.wait_for_timeout(400)
+        all_on = pg.get_attribute('[data-f=""]', 'aria-pressed')
+        check(dev, 'with a filter on: says where it looked (只在「错题」里找了); 在全部里找 searches all of them',
+              '只在「错题」里找了' in msg2 and all_on == 'true' and '只在' not in (pg.text_content('#listSlot .empty p') or ''), [msg2, all_on])
+        check(dev, 'no script errors (search)', not errs, errs[:3])
+        ctx.close()
         # a phone: the swipe follows the side
         ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
