@@ -85,6 +85,9 @@ jobs:
       - name: Build
         run: |
           conf=""; [ "$CHANNEL" = beta ] && conf="--config src-tauri/tauri.beta.conf.json"
+          # Debian takes no Chinese in a package name: Linux gets flow (tauri.linux.conf.json, merged by Tauri there) and,
+          # for the beta, flow-beta (语流 C3); the names people see stay 语流 and 语流内测
+          [ "$CHANNEL" = beta ] && [ "${{ matrix.name }}" = linux ] && conf="$conf --config src-tauri/tauri.linux-beta.conf.json"
           target=""; [ "${{ matrix.name }}" = macos ] && target="--target universal-apple-darwin"
           npx tauri build $conf $target --bundles ${{ matrix.bundles }}
       - name: Smoke test (Windows, installed)
