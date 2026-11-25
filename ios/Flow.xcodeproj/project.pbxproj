@@ -342,7 +342,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 6A2AB7B46815A5A87C73EEA5 /* Beta.xcconfig */;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = "$(FLOW_APP_ICON)";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Flow/Info.plist;
@@ -367,7 +367,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 58994FA7E4E9FB910499DC22 /* Release.xcconfig */;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = "$(FLOW_APP_ICON)";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Flow/Info.plist;

@@ -8,6 +8,7 @@ FLOW_SITE_HOST = flow.jasa.hk
 FLOW_BOUND_EXTRA = localhost
 FLOW_BUNDLE_ID = cn.flowlang.app.beta
 FLOW_DISPLAY_NAME = 语流内测
+FLOW_APP_ICON = AppIcon-Beta  // 语流内测: the same logo on orange (#e8590c), so the two apps look different on the home screen
 
 SWIFT_ACTIVE_COMPILATION_CONDITIONS = BETA DEBUG
 SWIFT_OPTIMIZATION_LEVEL = -Onone
