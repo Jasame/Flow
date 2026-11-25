@@ -9,7 +9,11 @@ GitHub never moves a queued job to another machine, so the choice is made before
 1. the switch is on: the repository variable MSI_RUNNER is "on" (unset or anything else: GitHub's machines);
 2. the run is main's (push, Run workflow) or a pull request from this repository, never one from a fork, whose code
    would then run on the owner's machine;
-3. the MSI is not full: fewer than MSI_SLOTS of its jobs are queued or running now;
+3. the MSI is not full: fewer than MSI_SLOTS of its jobs are queued or running now, and when some are, this run's
+   shares fit in what is left (NEED_WEB / NEED_UI from the changes job: 2 website and 5 UI shares). A run that has
+   the MSI to itself goes there even with more shares than runners: the last one starts when the first ends. One
+   that would wait behind another run's shares goes to GitHub's machines instead, so it is never left waiting
+   long enough for `watch` to cancel it;
 4. the MSI is there: a probe (.github/workflows/msi-probe.yml) dispatched now starts within MSI_PROBE_WAIT seconds.
 Anything that cannot be asked (an API error, no probe workflow on main yet) means GitHub's machines.
 
@@ -30,6 +34,7 @@ MSI = ['self-hosted', 'msi']
 SLOTS = int(os.getenv('MSI_SLOTS') or 6)
 PROBE_WAIT = int(os.getenv('MSI_PROBE_WAIT', '45'))
 WATCH_MINUTES = int(os.getenv('MSI_WATCH', '10'))
+WEB_SHARES, UI_SHARES = 2, 5  # tests.yml's backend-share and ui-share matrices (tests/test_ci.py checks)
 PROBE = 'msi-probe.yml'
 
 
@@ -78,6 +83,11 @@ def probe(api, nonce, ref, wait=None, sleep=time.sleep):
     return False
 
 
+def need(env):
+    """How many jobs this run sends to the MSI, from what the changes job found (0: not known)."""
+    return WEB_SHARES * (env.get('NEED_WEB') == 'true') + UI_SHARES * (env.get('NEED_UI') == 'true')
+
+
 def decide(env, api, sleep=time.sleep):
     """(runner labels, 'msi' or 'hosted', reason)."""
     if env.get('MSI_RUNNER') != 'on':
@@ -94,6 +104,8 @@ def decide(env, api, sleep=time.sleep):
         busy = msi_load(api, env.get('GITHUB_RUN_ID'))
         if busy >= SLOTS:
             return HOSTED, 'hosted', f'the MSI is full ({busy} jobs queued or running there)'
+        if busy and busy + need(env) > SLOTS:
+            return HOSTED, 'hosted', f'the MSI has room for {SLOTS - busy} more jobs and this run has {need(env)}'
         nonce = f"{env.get('GITHUB_RUN_ID', '0')}-{env.get('GITHUB_RUN_ATTEMPT', '1')}"
         if not probe(api, nonce, env.get('DEFAULT_BRANCH') or 'main', sleep=sleep):
             return HOSTED, 'hosted', f'the MSI did not answer within {PROBE_WAIT} s (off, or all its runners busy)'
