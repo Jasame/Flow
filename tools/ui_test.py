@@ -1721,10 +1721,19 @@ def class_run(pw):
               read if read is not None else 'no BarcodeDetector here (Linux): read on macOS')
         pg.screenshot(path=str(OUT / 'class-teacher.png'), full_page=True)
         ctx.close()
-        # 老师模式: a 老师注册链接 signs up a 老师账号 (no 年龄段); its home is its classes, and it makes one
-        ctx = browser.new_context(**phone)
-        pg = ctx.new_page(); pg.on('pageerror', lambda e: errs.append(str(e)))
-        pg.goto(BASE + '/#/teacher/' + CFG['teacher_link'], wait_until='networkidle')
+        # 老师模式: a 管理员 makes a 老师注册链接 on the console page (班级 → 老师注册链接), shown once and listed 未使用
+        ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN')
+        cp = ctx.new_page(); cp.on('pageerror', lambda e: errs.append('console: ' + str(e)))
+        cp.goto(CFG['console'] + '#classes', wait_until='networkidle'); cp.wait_for_selector('#tlF', timeout=8000)
+        cp.fill('#tlF [name=note]', 'UI 测试 王老师'); cp.fill('#tlF [name=days]', '3'); cp.click('#tlF button')
+        cp.wait_for_selector('#tlNew code', timeout=8000); cp.wait_for_selector('#tlList tbody tr', timeout=8000)
+        made, row = cp.text_content('#tlNew code') or '', cp.text_content('#tlList tbody tr') or ''
+        check(dev, '后台: 生成老师注册链接 shows the link once and lists it as 未使用', '/#/teacher/' in made and 'UI 测试 王老师' in row and '未使用' in row, (made[-20:], row[:60]))
+        cp.screenshot(path=str(OUT / 'class-console-link.png'), full_page=True)
+        # the link signs up a 老师账号 (no 年龄段); its home is its classes, and it makes one
+        pctx = browser.new_context(**phone)
+        pg = pctx.new_page(); pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.goto(BASE + '/#/teacher/' + made.rsplit('/#/teacher/', 1)[1], wait_until='networkidle')
         pg.wait_for_selector('#authForm [name=username]', timeout=8000)
         bar, ages = pg.evaluate('location.hash'), pg.locator('#authForm [name=age]').count()
         check(dev, '老师注册链接: the sign-up opens, the token leaves the address bar, and no 年龄段 is asked', bar == '#/teacher' and ages == 0, (bar, ages))
@@ -1739,6 +1748,10 @@ def class_run(pw):
         code = (pg.text_content('.cls-code') or '').strip()
         check(dev, '老师账号: a new class opens on its page with a 6-character invite code', re.fullmatch(r'[A-Z2-9]{6}', code) is not None and pg.evaluate(wide), code)
         pg.screenshot(path=str(OUT / 'class-new-teacher.png'), full_page=True)
+        cp.reload(wait_until='networkidle'); cp.wait_for_selector('#tlList tbody tr', timeout=8000)
+        row = cp.text_content('#tlList tbody tr') or ''
+        check(dev, '后台: the used link now says 已注册 and names the new teacher account', '已注册' in row and 'ui-new-teacher' in row, row[:80])
+        pctx.close()
         check(dev, 'no page errors', not errs, errs[:3])
     finally:
         browser.close()
