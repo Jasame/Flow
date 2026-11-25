@@ -17,9 +17,9 @@
       <p class="lc-en${l.say.length > 100 ? ' long' : ''}" lang="en">${en}</p>
       <p class="lc-zh">${esc(l.zh)}</p>${l.note ? `<p class="tiny muted lc-note">${esc(l.note)}</p>` : ''}
       <p class="lc-src tiny">${l.kind === 'quote' ? '— ' : ''}${esc(l.source)}${l.href ? ` · <a class="link" href="${esc(l.href)}" data-tap="line-read">读原文</a>` : ''}</p>
-      <div class="lc-acts"><button class="btn small" id="lcSay" type="button" data-tap="line-say">${ICON.speak}听一遍</button>${aiVoice()}
+      <div class="lc-acts"><button class="btn small" id="lcSay" type="button" data-tap="line-say">${ICON.speak}听一遍</button>
         <button class="btn small" id="lcShadow" type="button" data-tap="line-shadow" aria-expanded="false" aria-controls="lcPanel">跟读</button>
-        <button class="btn small" id="lcKeep" type="button" data-tap="line-keep">${ICON.star}收藏</button></div>
+        <button class="btn small" id="lcKeep" type="button" data-tap="line-keep">${ICON.star}收藏</button>${aiVoiceNote('AI 合成', 'span')}</div>
       <div id="lcPanel" hidden></div></div></section>`;
   }
   function lineDay(l) { return new Date().toDateString() + ' ' + l.id; }

@@ -1,0 +1,31 @@
+/* 单词卡（复习、背新词、单词详情、查词）, 2026-11-25, the user: 「不应该是音标居中吗？播放按钮设计得也很不自然」 — the way
+   the common word apps lay it out: the word big and centred, the phonetics centred under it, a plain grey speaker beside
+   them (no box, 44 px to tap); the word itself plays too. Its roots a grey line, not pills. 「读音由 AI 合成」 one grey line
+   (aiVoiceNote, 99-ai-mark.css), not a label by every speaker. */
+.review .ph,.wd-head .ph{display:flex;align-items:center;justify-content:center;gap:2px;min-height:44px}
+.say-btn{width:44px;height:44px;border:0;background:none;color:var(--muted);border-radius:50%}
+.say-btn svg{width:22px;height:22px}
+.exs .icon-btn{width:44px;height:44px;border:0;background:none;color:var(--muted);border-radius:50%}
+.exs .icon-btn svg{width:18px;height:18px}
+@media (hover:hover){.say-btn:hover,.exs .icon-btn:hover{color:var(--ink2);background:var(--sunk)}}
+/* the word can be tapped: a pointer and a faint underline under the mouse */
+.tapsay{cursor:pointer}
+@media (hover:hover){.tapsay:hover{text-decoration:underline;text-decoration-thickness:1px;text-decoration-color:var(--line2);text-underline-offset:.16em}}
+.review .roots,.sheet .roots{display:block;text-align:center;color:var(--muted);font-size:13px;line-height:1.6}
+.review .roots .root,.sheet .roots .root{display:inline;background:none;padding:0;border:0;font-size:inherit;color:inherit}
+.review .roots .root+.root::before,.sheet .roots .root+.root::before{content:' · '}
+.review .roots .k,.sheet .roots .k{color:inherit;font-weight:400}
+/* 复习: the line above the card, and the buttons at the bottom (80-flat.css keeps them in one place on a phone) */
+.rtop+.rvoice{margin:2px 0 0;pointer-events:none}  /* a line to read, not to tap: 结束's 44-px tap area runs under it */
+.ractions{display:grid;gap:10px}
+.ractions>.too-easy{justify-self:center;color:var(--muted);font-weight:500}
+.choice.one{grid-template-columns:minmax(0,1fr)}
+.choice button.primary:not(.good){background:var(--fill);color:var(--on-fill)}
+/* 单词详情 and 查词: the same head, centred, and what the card says of itself one grey line */
+.wd-head{display:grid;justify-items:center;gap:0;text-align:center;margin-top:4px}
+.wd-head .word{font-size:34px;line-height:1.15}
+.wd-head .ph{font-family:var(--serif);color:var(--muted)}
+.wd-meta{color:var(--muted);font-size:13px;text-align:center}
+.say-pair{display:inline-flex;align-items:center;gap:2px}  /* 查词's AI 讲解: the speaker and 「AI 合成」 */
+/* the top bar is see-through (80-flat.css); in review a long answer scrolls under it, so there it has the page's colour (B2) */
+body.reviewing .bar{background:var(--bg)}

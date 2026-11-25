@@ -19,7 +19,8 @@
   function originHTML(m, extra = '') {  // extra: 存到手机 (06-offline.js), on the same line so the step below stays in view
     const o = m.origin || { kind: 'original', label: m.source, ai: '', reviewed: null, url: '', references: m.provenance || [] };
     const note = aiNote(m);
-    return `${note === null ? '' : m.featured ? aiCheckLink(aiMark(note)) : aiMark(note)}<div class="origin tiny"><span class="muted">来源：${o.url ? `<a class="link" href="${esc(o.url)}" target="_blank" rel="noopener noreferrer">${esc(o.label)}</a>` : esc(o.label)}</span>${note === null && o.ai ? `<span class="otag">${esc(o.ai)}</span>` : ''}${note === null && o.reviewed === false ? '<span class="otag warn">未经人工审核</span>' : ''}${o.kind === 'import' ? '' : `<button class="link tiny hit44" type="button" id="originMore" data-tap="study-origin">${o.references.length ? `${o.kind === 'news' ? '来源' : '参考资料'} ${o.references.length} 条` : '怎么写的'}</button>`}${extra}</div>`;
+    // 「AI 生成 · 经规范检查」 and 来源 share one grey line under the title (2026-11-25, B7: the same words, quieter); two links stay two
+    return `<div class="head-note">${note === null ? '' : m.featured ? aiCheckLink(aiMark(note)) : aiMark(note)}<div class="origin tiny"><span class="muted">来源：${o.url ? `<a class="link" href="${esc(o.url)}" target="_blank" rel="noopener noreferrer">${esc(o.label)}</a>` : esc(o.label)}</span>${note === null && o.ai ? `<span class="otag">${esc(o.ai)}</span>` : ''}${note === null && o.reviewed === false ? '<span class="otag warn">未经人工审核</span>' : ''}${o.kind === 'import' ? '' : `<button class="link tiny hit44" type="button" id="originMore" data-tap="study-origin">${o.references.length ? `${o.kind === 'news' ? '来源' : '参考资料'} ${o.references.length} 条` : '怎么写的'}</button>`}${extra}</div></div>`;
   }
   function originSheet(m) {
     const o = m.origin, news = o.kind === 'news', topic = o.kind === 'topic';

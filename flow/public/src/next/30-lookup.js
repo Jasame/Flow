@@ -14,8 +14,7 @@
     const here = mt && (mt.vocabulary || []).find(v => { const t = v.term.toLowerCase(); return t === word.toLowerCase() || (e && t === e.lemma); });
     if (e && mt) { (mt._looked = mt._looked || new Map()).set(e.lemma, { word: e.lemma, meaning: meaning.split('；').slice(0, 2).join('；').slice(0, 40), sentence }); if (mt._onLook) mt._onLook(); }
     openSheet(`<div class="stack">
-      <div class="row between"><div><div class="word" id="sheetTitle">${esc(e ? e.word : word)}</div><div class="ph">${esc(e ? e.phonetic : '')}${e && e.lemma !== word.toLowerCase() ? ' · 原形 ' + esc(e.lemma) : ''}</div></div>
-        <span class="say-ai"><button class="icon-btn" id="sayW" aria-label="朗读">${ICON.speak}</button>${aiVoice()}</span></div>
+      ${wordHead(e ? e.word : word, (e ? e.phonetic : '') + (e && e.lemma !== word.toLowerCase() ? ' · 原形 ' + e.lemma : ''))}
       ${here ? `<div class="here"><span class="pill green">在这篇里</span> ${esc(here.meaning)}</div>` : ''}
       <div class="mean${here ? ' dict' : ''}">${e ? esc(meaning).replace(/；|;/g, '<br>') : '<span class="muted">词典里没有这个词，可以先收藏，复习时再查。</span>'}</div>
       ${e && e.example ? `<div class="small muted text">${esc(e.example)}</div>` : ''}
@@ -24,7 +23,7 @@
       <div class="card sunk small text">${esc(sentence)}</div>
       <div class="row"><button class="btn primary" id="saveW">${ICON.star.replace('<svg', '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"')}收藏这个词</button><button class="btn" id="saveS">收藏整句</button><button class="btn" id="exS">✦ AI 讲解整句</button></div>
       <button class="btn ghost" data-close>关闭</button></div>`, card => {
-      card.querySelector('#sayW').onclick = sayWord;
+      card.querySelectorAll('#sayW, .tapsay').forEach(b => { b.onclick = sayWord; });
       card.querySelector('#saveW').onclick = () => saveCard({ text: e ? e.lemma : word, meaning: here ? here.meaning + '；' + meaning : meaning, context: sentence, pack }, card.querySelector('#saveW')).then(ok => {
         if (!ok || !mt) return;
         const forms = new Set([word.toLowerCase(), e ? e.lemma : word.toLowerCase()]);
@@ -43,7 +42,7 @@
     try {
       const r = await api('/api/next/explain', { pack, sentence, request_id: rid('nx') });
       const x = r.result;
-      openSheet(`<div class="stack explain enter"><div class="row between"><div class="kicker">AI 讲解</div>${aiTag()}<span class="say-ai"><button class="icon-btn" id="sayS" aria-label="朗读">${ICON.speak}</button>${aiVoice()}</span></div>
+      openSheet(`<div class="stack explain enter"><div class="row between"><div class="kicker">AI 讲解</div>${aiTag()}<span class="say-pair"><button class="icon-btn say-btn" id="sayS" type="button" aria-label="朗读这句（AI 朗读）">${ICON.speak}</button>${aiVoiceNote('AI 合成', 'span')}</span></div>
         <div class="text" id="sheetTitle">${esc(sentence)}</div>
         <div class="tr">${esc(x.translation)}</div>${x.structure ? `<div class="small muted">${esc(x.structure)}</div>` : ''}
         ${x.points.map(p => `<div class="pt"><b>${esc(p.text)}</b><span class="small">${esc(p.note)}</span>${p.node ? `<span>${nodeChip({ id: p.node, title: p.node_title || p.node, status: 'met' })}</span>` : ''}</div>`).join('')}
