@@ -374,6 +374,7 @@ flow/tests/test_search_route.py
 flow/tests/test_slim.py
 flow/tests/test_speak_rounds.py
 flow/tests/test_survey.py
+flow/tests/test_time_budget.py
 flow/tests/test_trial_survey.py
 flow/tests/test_tts.py
 flow/tests/test_ux_round.py
@@ -385,6 +386,7 @@ flow/tests/test_word_clip.py
 flow/tests/test_wordbook_registry.py
 flow/tests/test_wordbooks.py
 flow/tests/test_wordbooks_open.py
+flow/time_budget.py
 flow/tools/build_graded.py
 flow/tools/build_reference.py
 flow/tools/revise_pedagogy.py

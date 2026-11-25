@@ -121,6 +121,40 @@ def _answers(c, uid, lo, hi):
     return {'right': right, 'total': total, 'rate': round(right / total * 100) if total >= MIN_ANSWERS else None}
 
 
+# 今天学了几分钟 (r28 按时间打包今日计划): from the learner's own records, never a timer. Records less than ACTIVE_GAP
+# apart are one sitting and the time between them counts; a sitting's first record counts a minute before it (the
+# answer or step it records took that long at least); an exam set counts its own seconds.
+ACTIVE_GAP = 600
+
+
+def active_minutes(c, uid, since, until=None):
+    """Minutes studied in [since, until)."""
+    until = until or time.time() + 1
+    spans = []
+    for t in DAY_TABLES + ('next_assess',):
+        try:
+            spans += [(r[0] - 60, r[0]) for r in c.execute(f'SELECT created FROM {t} WHERE user_id=? AND created>=? AND created<?', (uid, since, until))]
+        except Exception:  # a table a fresh database has not made yet
+            pass
+    try:
+        spans += [(r[0] - min(r[1], 3 * 3600), r[0]) for r in
+                  c.execute('SELECT created, seconds FROM next_exam_results WHERE user_id=? AND created>=? AND created<?', (uid, since, until))]
+    except Exception:
+        pass
+    total, cur = 0, None
+    for a, z in sorted(spans):
+        a = max(a, since)
+        if cur and a <= cur[1] + ACTIVE_GAP:
+            cur[1] = max(cur[1], z)
+        else:
+            if cur:
+                total += cur[1] - cur[0]
+            cur = [a, z]
+    if cur:
+        total += cur[1] - cur[0]
+    return round(total / 60)
+
+
 def log_step(c, uid, pid, step, now=None):
     """A step of a material done today (next_service.mark): kept once a day, the first time and every time after."""
     now = now or time.time()

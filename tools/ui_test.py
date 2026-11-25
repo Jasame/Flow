@@ -1557,7 +1557,8 @@ def listen_speak_run(pw):
                 p2.goto(BASE + '/#/', wait_until='networkidle'); settle(p2); p2.wait_for_timeout(500)
                 step = p2.evaluate("() => { const a = [...document.querySelectorAll('#view a[href^=\"#/speak/ielts/p1-\"]')][0]; return a ? [a.getAttribute('href'), a.textContent.replace(/\\s+/g, ' ')] : null; }")
                 check(dev, '留学: 今日 speaks 雅思 Part 1, the next topic', st == 200 and step and step[0] == '#/speak/ielts/p1-study-work' and '雅思 Part 1 · 学习还是工作' in step[1], (st, step))
-                if step:
+                if step:  # at 20 minutes a day the speaking step is under 还有时间的话 (r28 time budget): open it first
+                    p2.evaluate("h => { const a = document.querySelector(`#view a[href=\"${h}\"]`), d = a && a.closest('details'); if (d) d.open = true; }", step[0])
                     p2.click(f'#view a[href="{step[0]}"]'); settle(p2)
                     check(dev, '留学: the step opens that Part 1 topic', p2.evaluate('location.hash') == step[0] and bool(p2.query_selector('#ieStart')), p2.evaluate('location.hash'))
                 c2.close()
@@ -2261,6 +2262,17 @@ def swipe_run(pw):
         browser.close()
 
 
+# 按时间打包 (r28): today's plan in its groups, as the page draws them
+PLAN_JS = r"""() => {
+  const s = document.querySelector('#view .today-plan'); if (!s) return null;
+  const sum = s.querySelector('.tp-extra > summary'), head = s.querySelector('.tp-head .muted.small'), over = s.querySelector('.tp-over');
+  return { must: s.querySelectorAll(':scope > .plist .prow').length, extra: s.querySelectorAll('.tp-extra .prow').length,
+           week: s.querySelectorAll('.tp-week .prow').length, head: head ? head.textContent.trim() : '', open: s.querySelector('.tp-extra') ? s.querySelector('.tp-extra').open : null,
+           summaryH: sum ? Math.round(sum.getBoundingClientRect().height) : null, wide: s.scrollWidth - s.clientWidth, over: !!over,
+           shown: [...s.querySelectorAll('.tp-extra .prow')].every(r => r.getBoundingClientRect().height > 0) };
+}"""
+
+
 def progress_run(pw):
     dev = 'progress'
     browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
@@ -2286,6 +2298,18 @@ def progress_run(pw):
                 check(dev, f'{tag}: 今日 runs 好句, 热点, the plan, 这周进步 from the top (the plan first on a phone held sideways), nothing cut off or wider than the screen',
                       top['order'] == (['plan', 'lineCard', 'news', 'week'] if h < 500 else ['lineCard', 'news', 'plan', 'week']) and not top['clipped'] and top['wide'] <= 0 and (not touch or top['small'] == []), top)
                 check(dev, f'{tag}: its four numbers are the learner\'s own (as the server counts them)', card and card['values'] == want, (card and card['values'], want))
+                path = home['path']; plan = pg.evaluate(PLAN_JS)
+                grp = {g: [x for x in path['steps'] if x.get('group', 'must') == g] for g in ('must', 'extra', 'week')}
+                head = (f"约 {path['must_minutes']} 分钟" if not path['done'] else '都做完了' if path['done'] >= path['total'] else f"还要约 {path['left_minutes']} 分钟")
+                check(dev, f'{tag}: the plan shows 必做 (counted), 还有时间的话 folded and 本周任务 as the server packs them, its title the real minutes of 必做',
+                      plan and (plan['must'], plan['extra'], plan['week']) == (path['total'], len(grp['extra']), len(grp['week'])) and head in plan['head']
+                      and plan['wide'] <= 0 and (not grp['extra'] or (plan['summaryH'] >= 44 and plan['open'] == (path['done'] >= path['total']))), (plan, head))
+                if grp['extra'] and not plan['open']:
+                    pg.click('#view .tp-extra > summary'); pg.wait_for_timeout(150)
+                    check(dev, f'{tag}: 还有时间的话 opens with a tap and its rows show', pg.evaluate(PLAN_JS)['shown'] and pg.evaluate(PLAN_JS)['open'], pg.evaluate(PLAN_JS))
+                    if size == 'phone-390':
+                        pg.screenshot(path=str(OUT / f'progress-plan-extra-{theme}.png'))
+                    pg.click('#view .tp-extra > summary'); pg.wait_for_timeout(100)
                 check(dev, f'{tag}: four numbers in one row, nothing cut off or wrapped', card and card['tiles'] == 4 and card['oneRow'] and not card['clipped'] and not card['wrapped'],
                       card and (card['oneRow'], card['clipped'], card['wrapped']))
                 check(dev, f'{tag}: no sideways scrolling; a surface of its own; text contrast at least 4.5:1',
@@ -2381,7 +2405,8 @@ TAP44_JS = """sel => { const el = document.querySelector(sel); if (!el) return n
 def backlog_run(pw):
     """Reviews piled up after a break (ux-longterm-audit 1.1, 11, 16, 2026-11-24): no new words today and the word page
     says so; the review page says 「先做 40 个（还有 N 个）」 and, after those 40, offers a place to stop; the small links
-    a finger needs (结束, 去读, 去练, 按 B1 挑选 · 调整, 怎么写的) take a tap 44 px around them."""
+    a finger needs (结束, 去读, 去练, 按 B1 挑选 · 调整, 怎么写的) take a tap 44 px around them. r28 section 3: 单词每天
+    (a cap in minutes: done at the cap, 继续复习 past it, the new words a day it keeps up with) and a finished book's next."""
     dev = 'backlog'
     browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
     try:
@@ -2423,12 +2448,60 @@ def backlog_run(pw):
         # 背词计划: 20 new words a day at 90 % comes to over half an hour a month in: the number, the way out, and one tap to 10
         go(pg, '#/vocab/plan'); pg.click('#dn [data-v="20"]'); pg.wait_for_timeout(200)
         hint = pg.text_content('#dnHint') or ''
-        check(dev, 'plan: half an hour or more says the minutes and offers 10 a day, one tap away',
-              '按现在的设置，一个月后每天大约要' in hint and '可以改成每天 10 个新词' in hint and pg.is_visible('#dnTen'), hint)
-        pg.click('#dnTen'); pg.wait_for_timeout(200)
-        hint = pg.text_content('#dnHint') or ''
-        check(dev, 'plan: after the tap, 10 a day is chosen and the hint is calm again',
-              pg.get_attribute('#dn [data-v="10"]', 'aria-pressed') == 'true' and not pg.is_visible('#dnTen') and '连新词约' in hint, hint)
+        # every learner has the day's word time now (time_budget, r28 第 1 段: 15 minutes at 60 a day), so the way out is the
+        # number of new words that time keeps up with (单词每天, r28 第 3 段), not a flat 10
+        wmh = pg.text_content('#wmHint') or ''
+        fit = pg.get_attribute('#wmFit', 'data-n')
+        check(dev, 'plan: more than the day\'s word time says the minutes and offers the number that fits, one tap away',
+              '连新词约' in hint and '按单词每天 15 分钟' in wmh and '比 15 分钟多' in wmh and pg.is_visible('#wmFit') and not pg.is_visible('#dnTen'), (hint, wmh))
+        pg.click('#wmFit'); pg.wait_for_timeout(200)
+        check(dev, 'plan: after the tap, that number is chosen and the offer is gone',
+              fit and pg.input_value('#dnOwn') == fit and not pg.is_visible('#wmFit'), (fit, pg.input_value('#dnOwn'), pg.text_content('#wmHint')))
+        # r28 section 3: 单词每天 5 分钟. The 40 answered above are past it: today's words are done, the rest waits for the
+        # coming days, 继续复习 goes on past the cap
+        csrf = CFG['learners']['pile']['csrf']
+        plan = pg.evaluate("fetch('/api/next/vocab').then(r => r.json()).then(o => o.plan)")
+        st = pg.evaluate("([p, csrf]) => fetch('/api/next/vocab/plan', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf}, "
+                         "body: JSON.stringify({book: p.book, daily_new: 10, retention: p.retention, word_minutes: 5})}).then(r => r.status)", [plan, csrf])
+        fresh = lambda: (pg.reload(wait_until='load'), settle(pg), go(pg, '#/cards'), pg.wait_for_timeout(300))  # the page keeps API answers in memory (05-data.js)
+        fresh()
+        o = pg.evaluate("fetch('/api/next/vocab').then(r => r.json())")
+        later = pg.text_content('#laterLine') if pg.query_selector('#laterLine') else ''
+        check(dev, 'a cap of 5 minutes already used: 今天的单词做完了, the rest waits, 继续复习 one tap away',
+              st == 200 and o['cap'] == 5 and o['due'] + o['new'] == 0 and o['later'] > 0 and f"还有 {o['later']} 个复习留到之后几天" in later
+              and '单词每天 5 分钟' in later and pg.is_visible('#moreRev'), (st, o.get('cap'), o.get('due'), o.get('later'), later))
+        pg.click('#moreRev'); pg.wait_for_timeout(500)
+        check(dev, '继续复习 goes on past the cap', 'review/more' in pg.url and bool(pg.query_selector('[data-claim], [data-self]')), pg.url)
+        # the plan page: 5 minutes keep up with about 3 new words a day; 10 a day is more: the number that fits, one tap away
+        go(pg, '#/vocab/plan'); pg.wait_for_timeout(300)
+        wmh = pg.text_content('#wmHint') or ''
+        check(dev, 'plan: 单词每天 5 分钟 says the new words a day it keeps up with, and offers that number',
+              pg.get_attribute('#wm [data-m="5"]', 'aria-pressed') == 'true' and '按单词每天 5 分钟，每天大约能学 3 个新词' in wmh and pg.is_visible('#wmFit'), wmh)
+        pg.click('#wmFit'); pg.wait_for_timeout(200)
+        check(dev, 'plan: after the tap, 3 new words a day and no more offer', pg.input_value('#dnOwn') == '3' and not pg.is_visible('#wmFit'),
+              (pg.input_value('#dnOwn'), pg.text_content('#wmHint')))
+        # a book nearly done, then done: what comes next, one tap away (the API's answer is changed here; test_vocab tests vocab_service)
+        def book(route, kind):
+            r = route.fetch(); o = r.json()
+            o['book'].update(left=12, days=2, soon=kind == 'soon', done=kind == 'done', finish=None if kind == 'done' else o['book'].get('finish'),
+                             next={'id': 'high', 'title': '高阶词汇', 'new': 2400}, exam_first=False)
+            route.fulfill(response=r, json=o)
+        pg.route('**/api/next/vocab', lambda route: book(route, 'soon'))
+        fresh()
+        soon = pg.text_content('#bookSoon') if pg.query_selector('#bookSoon') else ''
+        check(dev, 'a book nearly done: the new words left, the days, and the next book with its new words',
+              '还剩 12 个新词，大约 2 天背完' in soon and '接下来推荐《高阶词汇》' in soon and '还剩约 2,400 个新词' in soon, soon)
+        pg.unroute('**/api/next/vocab'); pg.route('**/api/next/vocab', lambda route: book(route, 'done'))
+        fresh()
+        done = pg.text_content('#bookDone') if pg.query_selector('#bookDone') else ''
+        check(dev, 'a finished book: 背完了, 换成 the next one as the main button, 先只复习 beside it',
+              '背完了' in done and (pg.text_content('#bookNext') or '') == '换成《高阶词汇》' and 'primary' in (pg.get_attribute('#bookNext', 'class') or '')
+              and pg.is_visible('#bookRest'), done)
+        pg.click('#bookRest'); pg.wait_for_timeout(100)
+        gone = not pg.query_selector('#bookDone')
+        fresh()
+        check(dev, '先只复习 puts the card away, and it stays away', gone and not pg.query_selector('#bookDone'), gone)
+        pg.unroute('**/api/next/vocab')
         check(dev, 'no script errors', not errs, errs[:3])
         ctx.close()
     finally:
@@ -2479,6 +2552,12 @@ def start_run(pw):
                 pg.click('[data-target="C1"]'); pg.click('[data-exam="ielts"]'); pg.wait_for_timeout(100)
                 kept = pg.evaluate("document.querySelector('[data-target][aria-checked=true]').dataset.target")
                 check(dev, f'{tag}: 考试 opens the exams; 四级 suggests B1, 六级 B2; a level picked by hand stays', rec == [['B1', 'true']] and rec6 == 'B2' and kept == 'C1', (rec, rec6, kept))
+                # 一周学几天 (每周目标): 5 for an exam, 4 otherwise, until picked by hand
+                days = lambda: pg.evaluate("(b => b && +b.dataset.days)(document.querySelector('[data-days][aria-checked=true]'))")
+                d_exam = days(); pg.click('[data-goal="daily"]'); d_daily = days()
+                pg.click('[data-days="6"]'); pg.click('[data-goal="exam"]'); d_kept = days()
+                row = pg.evaluate("new Set([...document.querySelectorAll('[data-days]')].map(b => Math.round(b.getBoundingClientRect().top))).size")
+                check(dev, f'{tag}: 一周学几天: 5 days for an exam, 4 otherwise, 2–7 in one row; a number picked by hand stays', (d_exam, d_daily, d_kept, row) == (5, 4, 6, 1), (d_exam, d_daily, d_kept, row))
                 if size == 'phone':
                     pg.click('[data-target="B2"]'); pg.wait_for_timeout(100)
                     pg.screenshot(path=str(OUT / f'start-page-{theme}.png'), full_page=True)
@@ -2486,7 +2565,7 @@ def start_run(pw):
                 pg.click('#wgGo'); pg.wait_for_function("() => location.hash === '#/'", timeout=6000); settle(pg)
                 guest = pg.evaluate("JSON.parse(localStorage.getItem('flow-next-guest'))")
                 check(dev, f'{tag}: started as a guest: the choices kept on the phone, materials one band below the target, today shown',
-                      guest['goal'] == 'exam' and guest['exam'] == 'ielts' and guest['level_source'] == 'guess' and guest['level'] == {'C1': 'B2', 'B2': 'B1'}[guest['target']]
+                      guest['goal'] == 'exam' and guest['exam'] == 'ielts' and guest['level_source'] == 'guess' and guest['level'] == {'C1': 'B2', 'B2': 'B1'}[guest['target']] and guest['weekly_goal'] == 6
                       and pg.query_selector('#view .hello, #view .today-plan') is not None, guest)
                 # the next opening: the mark alone and short; never the start page again
                 pg.reload(wait_until='commit'); pg.wait_for_selector('#splash', state='attached', timeout=5000)
@@ -2513,7 +2592,7 @@ def start_run(pw):
         prof = pg.evaluate("fetch('/api/next/home').then(r => r.json()).then(h => [h.profile, h.level_guess])")
         note = pg.evaluate("(document.getElementById('levelGuess') || {}).textContent || ''")
         check(dev, 'the account keeps goal, exam (the exam goal of 考试冲刺), target and a guessed level; 今日 suggests a test',
-              prof[0]['goal'] == 'exam' and prof[0]['exam'] == 'cet6' and prof[0]['target'] == 'B2' and prof[0]['level'] == 'B1' and prof[1]
+              prof[0]['goal'] == 'exam' and prof[0]['exam'] == 'cet6' and prof[0]['target'] == 'B2' and prof[0]['level'] == 'B1' and prof[0]['weekly_goal'] == 5 and prof[1]
               and '去能力里测一下' in note and pg.get_attribute('#levelGuess a', 'href') == '#/radar/test', (prof, note[:40]))
         pg.screenshot(path=str(OUT / 'start-today-hint.png'))
         pg.click('#lgLater'); pg.wait_for_timeout(200)
@@ -2543,7 +2622,7 @@ def start_run(pw):
         go(pg, '#/vocab/plan'); pg.wait_for_timeout(300)
         chosen = pg.evaluate("[document.getElementById('bookNow').textContent, [...document.querySelectorAll('#goal [aria-pressed=true]')].map(x => x.textContent)]")
         check(dev, 'no word plan: 今日 starts with 选一本词书 (not ticked, to 背词计划), which opens with the exam\'s book chosen',
-              step == ['选一本词书（1 分钟）', '#/vocab/plan', False] and '《四级词汇》' in chosen[0] and chosen[1] == ['四级'], (step, chosen))
+              step == ['选一本词书', '#/vocab/plan', False] and '《四级词汇》' in chosen[0] and chosen[1] == ['四级'], (step, chosen))
         check(dev, 'no script errors (no word plan)', not errs, errs[:3])
         ctx.close()
         # reduced motion: no rising bars, the mark only fades
@@ -2724,6 +2803,19 @@ def home_app_run(pw):
         pg.goto(BASE + '/', wait_until='networkidle'); settle(pg); pg.wait_for_timeout(5500)
         ver = pg.evaluate("fetch('/api/version').then(r => r.json())")
         check(dev, 'the same version: /api/version answers it, and nothing reloads or shows', ver.get('asset') and len(loads) == 1 and pg.query_selector('#updateBar') is None, (ver, len(loads)))
+        ctx.close()
+        # light → dark while open (an iPhone keeps the status-bar strip of the page's load: a white band): no reload while
+        # answering questions; the next tab page reloads to repaint it (tools/ios_sim_check.py checks the strip itself)
+        ctx, pg, errs = context('iphone-15-pro')
+        loads = []
+        pg.on('load', lambda: loads.append(1))
+        pg.goto(BASE + f'/#/m/{PID}/check', wait_until='networkidle'); settle(pg)
+        pg.emulate_media(color_scheme='dark'); pg.wait_for_timeout(1200)
+        stayed = len(loads) == 1
+        go(pg, '#/'); pg.wait_for_timeout(1500)
+        check(dev, 'light → dark while answering: no reload there; the next tab page reloads once (the status-bar strip)', stayed and len(loads) == 2, (stayed, len(loads)))
+        pg.wait_for_timeout(1500)
+        check(dev, 'after that reload: no second one', len(loads) == 2, len(loads))
         ctx.close()
     finally:
         browser.close()

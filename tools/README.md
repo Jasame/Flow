@@ -195,6 +195,22 @@ nothing hidden under the bottom tabs, touch targets of at least 32 px, and the i
 shortcuts, Enter in answer boxes, swipes in review, closing sheets by key or by dragging, the playback stop
 control, step switching and list filters. Screenshots of every page go to the out dir.
 
+## The iPhone checklist in the iOS Simulator (`ios_sim_check.py`)
+
+```bash
+python3 tools/ios_sim_check.py <out dir> [--only shell,keyboard,audio,mic,update] [--udid UDID] [--safari]
+python3 tools/ios_sim_check.py <out dir> --host localhost:PORT --ui-server <ui_server state dir>[:learner]
+```
+
+Runs the home-screen-app part of the iPhone checklist on the simulator's real WebKit (Mac with Xcode): back
+buttons, logo and tabs clear of the Dynamic Island and the home bar, the status-bar strip in light and dark,
+landscape, the real on-screen keyboard (judged from the screenshot: iOS 26+ moves the web view without telling the
+page), word sound in 连续 and 标准 with the time from tap to sound, the lock-screen title, the microphone sheet and
+the microphone let go after recording, and the new-version line. It talks to the simulator's Web Inspector socket,
+so it reaches the home-screen app, which safaridriver cannot. Adding the site to the home screen, turning the device
+and the system's microphone 「允许」 are taps (steps at the top of the file). On the beta it stays a guest; pages that
+need an account run against `ui_server.py` with `--ui-server`. Results and screenshots: `<out dir>/<device>-report.md`.
+
 ## Monitoring
 
 - **Server errors**: anything that reaches a learner as 「服务暂时异常」 is written to the journal (`journalctl -u flow`)
