@@ -41,6 +41,7 @@ iOS（语流 20）、安卓（语流 21）、桌面 Windows 和 macOS（语流 2
 
 - 一个 App 在回到前台、网页重新加载以后，会把正在放的状态再发一次（`audio` 事件），网页不用猜。网页可见时也可以调 `FlowApp.call('app.visible')` 让它重发。
 - `FlowApp.call('hello')` → `{v, app, build, platform, features}`。
+- 安卓的返回键：App 先在 `window` 上发可以取消的 `flowapp:back` 事件，网页 `preventDefault()` 就算处理了；没人处理时 App 关掉开着的 sheet，再回到上一页。iOS、桌面没有这个键，不发。
 
 ## 3. 整篇朗读 `audio`
 
@@ -58,7 +59,7 @@ iOS（语流 20）、安卓（语流 21）、桌面 Windows 和 macOS（语流 2
 | `items` + `voice` + `pack` | 没有录音：`[{text, url}]`，已经知道的地址网页直接给（SV 地址簿），不知道的 `url: null`，App 自己调 `POST /api/next/tts {text, voice, pack}` |
 | `csrf` | 网页的 CSRF token（App 调 /api/next/tts 时带上） |
 | `from` / `at` | 从第几句 / 第几秒开始 |
-| `loop`、`rep`、`gap` | 复读：有录音时也一句一句放；每句几遍（0 = 一直重复）；每句前停多少毫秒（数字，或每句一个的数组，`gap[i]` 是第 i 句之前） |
+| `loop`、`rep`、`gap` | 复读：有录音时也一句一句放；每句几遍（0 = 一直重复）；`gap[i]` 是第 i 句**每次读完之后**停的毫秒数（「留时间跟说」，按刚读完的那句算；复读的每一遍之后都停，整篇最后一句之后不停）；也可以给一个数，每句一样 |
 | `rate` | 语速 0.5–2 |
 
 旧写法 `texts: [句子]` 等于 `items` 里 url 都是 null，App 照样认。
@@ -103,7 +104,7 @@ iOS（语流 20）、安卓（语流 21）、桌面 Windows 和 macOS（语流 2
 
 ## 5. 复习提醒 `notify`
 
-- `permission()` → `'granted'` | `'denied'` | `'undetermined'` | `'provisional'`；`ask()` → true/false。
+- `permission()` → `'granted'` | `'denied'` | `'undetermined'` | `'provisional'`；`ask()` → true/false；`off()`：关掉 App 的提醒（等于 `sync({app: false})`）；`settings()`：打开系统里这个 App 的通知设置。
 - `sync(r)`：r 是 `/api/next/vocab` 的 `reminder`（`{hour, once, enabled, has_email}`）加上 `forecast`。`{app: false}` 或 `sync(null)`：关掉 App 的提醒。
   网页在改了提醒（每天的钟点、这次什么时候复习、取消这次）以后、学员点「到点用 App 通知提醒」以后调用。
 - `pending()` → `[{id, at, title, body}]`。
