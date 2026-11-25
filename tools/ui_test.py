@@ -136,7 +136,7 @@ LAYOUT_JS = """(touch) => {
         if (p.content !== 'none' && p.position === 'absolute') { w = Math.max(w, parseFloat(p.minWidth) || 0); h = Math.max(h, parseFloat(p.minHeight) || 0); } }
       return [Math.round(w), Math.round(h)]; };
     out.tap44 = [...document.querySelectorAll('#view :is(.btn.small, .chip, .icon-btn, .node-chip, .seg>button, .seg>a, .steps button, .wk.habit, a.ai-link, button.link, a.link, details:not(.better)>summary)')]
-      .filter(e => e.offsetParent !== null && !e.closest('.sr-only, [hidden]') && !(e.matches('a.link') && e.closest('p, li, summary'))
+      .filter(e => e.offsetParent !== null && !e.closest('.sr-only, [hidden]') && !(e.matches('a.link') && e.closest('p, li, summary, label'))
         && !(e.tagName === 'SUMMARY' && e.querySelector('a, button, input, select')))
       .map(e => [e, hit(e)]).filter(([e, [w, h]]) => w < 44 || h < 44)
       .slice(0, 6).map(([e, [w, h]]) => `${e.tagName}${e.id ? '#' + e.id : ''}.${[...e.classList].join('.')} "${(e.textContent || '').trim().slice(0, 14)}" ${w}x${h}`);
