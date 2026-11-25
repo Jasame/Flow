@@ -249,3 +249,12 @@
   - #142 自检汇总带上 5xx 的接口（方法、路由、状态码），并发读取那项写出状态码（发版和构建）
 - 自检：DEPLOYED，装了 2 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45543213099
+
+### b43 · 2026-11-25 12:07
+- main `8640943`，构建 `df51b7e`
+- 新合并的 PR（自 b42 起）：
+  - #144 add_mistake：同一个错同时记两次不再 500（INSERT … ON CONFLICT）（今日和计划）
+  - #145 单词卡：同一个词同时存两次不再 500（检查和插入合成一条 upsert）（测试）
+  - #146 工作约定：后台运行的程序不出声（发版和构建）
+- 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45544409605
