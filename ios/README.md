@@ -73,7 +73,7 @@ App 在网页自己的脚本之前放好 `window.FlowApp`（只在本站的主�
 | 字段 | 意思 |
 |---|---|
 | `key` | `'listen:<id>'` / `'read:<id>'`，就是网页 PROG 的 key |
-| `title` | 锁屏显示「语流 · 标题」 |
+| `title` | 锁屏、控制中心显示「AI 朗读 · 标题」，第二行「语流 · 第 N / M 句」（《人工智能生成合成内容标识办法》：合成的声音在播放的地方写明） |
 | `src` + `sentences` | 有录音：`src` 是相对本站的地址，`sentences` 是 `[[开始秒, 结束秒], …]`；`alt` 可选，另一条线路 |
 | `texts` + `voice` + `pack` | 没有录音：App 自己调 `POST /api/next/tts`（带登录 cookie 和 `csrf`）一句一句读，先做后面两句；服务器给不了的那一句用 iPhone 自带的声音，原因放在 `note` |
 | `from` / `at` | 从第几句 / 第几秒开始 |

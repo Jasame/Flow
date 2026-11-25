@@ -294,6 +294,16 @@ final class LongPlayerRequestTests: XCTestCase {
         XCTAssertEqual(TTSFetcher.reason(SiteError.status(403, code: "cap", message: "")), "今天的自然人声用完了，这句先用 iPhone 自带的声音")
     }
 
+    @MainActor func testTheLockScreenSaysAIVoice() {
+        // 《人工智能生成合成内容标识办法》: a synthesized voice is said so where it plays (every voice 语流 has is one)
+        let a = NowPlaying.labels(title: "今日好句", i: 2, n: 18)
+        XCTAssertEqual(a.title, "AI 朗读 · 今日好句")
+        XCTAssertEqual(a.artist, "语流 · 第 3 / 18 句")
+        XCTAssertEqual(NowPlaying.labels(title: " ", i: 0, n: 1).title, "AI 朗读", "no title: the label alone")
+        XCTAssertEqual(NowPlaying.labels(title: "x", i: 30, n: 18).artist, "语流 · 第 18 / 18 句")
+        XCTAssertEqual(NowPlaying.labels(title: "x", i: 0, n: 0).artist, "语流")
+    }
+
     @MainActor func testSentenceLookupLikeTheWebPage() {
         let ss: [LongPlayer.Span] = [.init(s: 0, e: 2.9), .init(s: 3.4, e: 6), .init(s: 7, e: 9)]
         XCTAssertEqual(LongPlayer.sentence(at: 1, in: ss), 0)

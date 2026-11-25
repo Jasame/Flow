@@ -77,7 +77,7 @@ window.__flowAppTransport = {
 | 字段 | 意思 |
 |---|---|
 | `key` | `'listen:<id>'` / `'read:<id>'`（网页 PROG 的 key；`''` 不记进度） |
-| `title` | 锁屏、通知栏显示「语流 · 标题」 |
+| `title` | 锁屏、通知栏显示「AI 朗读 · 标题」（见下面的规矩） |
 | `src` + `sentences` (+ `alt`) | 有录音（Kokoro）：相对本站的地址、`[[开始秒, 结束秒], …]`；`alt` 是另一条线路，可选 |
 | `items` + `voice` + `pack` | 没有录音：`[{text, url}]`，已经知道的地址网页直接给（SV 地址簿），不知道的 `url: null`，App 自己调 `POST /api/next/tts {text, voice, pack}` |
 | `csrf` | 网页的 CSRF token（App 调 /api/next/tts 时带上） |
@@ -114,6 +114,8 @@ window.__flowAppTransport = {
   `idle` 且 `why = ended`：两边都清（App 留一个 ended 记号，给错过这个事件的页面看）；其他的 `idle`：两边都记。
 - 继续时 iOS 不给声音（正在通话、正在录音）：App 发 `audio` `{state: 'paused', why: 'interrupted'}`，网页照它显示。
 - App 在放的时候，网页不 claim navigator.mediaSession（锁屏只有 App 一家）；播放条 MINI 照常显示，暂停、继续、✕ 走桥。
+- App 自己画的播放信息（锁屏、控制中心、灵动岛、通知栏的「正在播放」）：标题前写「AI 朗读 · 」，比如「AI 朗读 · 今日好句」，第几句放第二行。
+  《人工智能生成合成内容标识办法》要求合成的声音在播放的地方写明；语流现在没有真人录音，Kokoro 录音、CosyVoice、系统自带的声音都算（语流 12）。
 - 系统自带声音按 voice 挑英音（`uk-*`）、美音，语速跟 `rate`。
 
 ## 4. 录音 `rec`

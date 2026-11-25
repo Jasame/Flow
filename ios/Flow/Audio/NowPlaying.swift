@@ -1,8 +1,8 @@
 import MediaPlayer
 import UIKit
 
-/// What the lock screen, Control Center and the Dynamic Island show while a whole text plays: 「语流 · 标题」, the
-/// sentence (第 3 / 18 句), and for a recording straight through its time.
+/// What the lock screen, Control Center and the Dynamic Island show while a whole text plays: 「AI 朗读 · 标题」, then
+/// 「语流 · 第 3 / 18 句」, and for a recording straight through its time.
 @MainActor
 enum NowPlaying {
     private static let art: MPMediaItemArtwork? = {
@@ -10,11 +10,20 @@ enum NowPlaying {
         return MPMediaItemArtwork(boundsSize: img.size) { @Sendable _ in img }
     }()
 
+    /// Every voice 语流 plays is synthesized (Kokoro recordings, CosyVoice, the iPhone's own voice): 《人工智能生成合成内容
+    /// 标识办法》 wants it said where it plays, as the page's aiVoice() does. It leads the title, the line every one of
+    /// these screens shows; the sentence goes on the second line.
+    nonisolated static func labels(title: String, i: Int, n: Int) -> (title: String, artist: String) {
+        let t = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (t.isEmpty ? "AI 朗读" : "AI 朗读 · " + t, n > 0 ? "语流 · 第 \(min(max(i, 0) + 1, n)) / \(n) 句" : "语流")
+    }
+
     static func show(title: String, i: Int, n: Int, elapsed: Double?, duration: Double?, rate: Float, playing: Bool) {
+        let shown = labels(title: title, i: i, n: n)
         var info: [String: Any] = [
-            MPMediaItemPropertyTitle: "语流 · " + (title.isEmpty ? "朗读" : title),
-            MPMediaItemPropertyArtist: "语流 Flow",
-            MPMediaItemPropertyAlbumTitle: "第 \(min(i + 1, n)) / \(n) 句",
+            MPMediaItemPropertyTitle: shown.title,
+            MPMediaItemPropertyArtist: shown.artist,
+            MPMediaItemPropertyAlbumTitle: "语流 Flow",
             MPNowPlayingInfoPropertyPlaybackRate: playing ? Double(rate) : 0.0,
             MPNowPlayingInfoPropertyDefaultPlaybackRate: Double(rate),
             MPNowPlayingInfoPropertyMediaType: MPNowPlayingInfoMediaType.audio.rawValue,
