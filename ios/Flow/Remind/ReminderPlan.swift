@@ -38,7 +38,7 @@ struct ReminderPlan {
 
     static let days = 14
     static let hours = 6...23  // vocab_service.REMIND_HOURS
-    static let planMinutes: Set<Int> = [5, 10, 15, 20, 30]  // vocab_service.ics()
+    static let planMinutes: Set<Int> = [5, 10, 15, 20, 30, 45, 60]  // the profile's MINUTES (the server's .ics clamps 45/60 to 10: its bug)
 
     /// China time (UTC+8), as the server's mail, its forecast days and its .ics.
     static var serverCalendar: Calendar {

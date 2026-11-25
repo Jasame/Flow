@@ -127,7 +127,7 @@ final class ProgressStore {
     func set(_ k: String, i: Int, t: Double?) {
         guard !k.isEmpty else { return }
         var o = all()
-        if i > 0 || (t ?? 0) > 1 {
+        if i > 0 || (t ?? 0) > 1 {  // a place to go on from (replaces an 'ended' mark)
             var v: [String: Any] = ["i": i, "at": Date().timeIntervalSince1970 * 1000]
             if let t, t.isFinite { v["t"] = t }
             o[k] = v
@@ -143,6 +143,14 @@ final class ProgressStore {
     func clear(_ k: String) {
         var o = all()
         o[k] = nil
+        UserDefaults.standard.set(o, forKey: key)
+    }
+
+    /// Read to the end: {ended: true, at} instead of a place, so a page that missed the 'ended' event clears its own copy.
+    func ended(_ k: String) {
+        guard !k.isEmpty else { return }
+        var o = all()
+        o[k] = ["i": 0, "ended": true, "at": Date().timeIntervalSince1970 * 1000]
         UserDefaults.standard.set(o, forKey: key)
     }
 }

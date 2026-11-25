@@ -26,10 +26,13 @@ final class Recorder: NSObject, AVAudioRecorderDelegate {
         NotificationCenter.default.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { [weak self] note in
             let type = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt
             MainActor.assumeIsolated {
-                guard type == AVAudioSession.InterruptionType.began.rawValue, let self, let r = self.rec, r.isRecording else { return }
-                self.cut = true  // a call: what was said so far is kept, stop() still gives it
-                self.lengthMs = Int(r.currentTime * 1000)
+                // a call, Siri: what was said so far is kept, stop() still gives it. iOS may already have stopped the
+                // recorder (and then sends no "finished"), so it is handled here whether or not it still records.
+                guard type == AVAudioSession.InterruptionType.began.rawValue, let self, let r = self.rec, self.lengthMs == nil else { return }
+                self.cut = true
+                self.lengthMs = r.isRecording ? Int(r.currentTime * 1000) : Int(Date().timeIntervalSince(self.startedAt ?? Date()) * 1000)
                 r.stop()
+                self.finished(ObjectIdentifier(r))
             }
         }
     }
@@ -135,8 +138,11 @@ final class Recorder: NSObject, AVAudioRecorderDelegate {
         Task { @MainActor in self.finished(id) }
     }
 
+    private var reported: ObjectIdentifier?  // the recording whose end was already told to the page
+
     private func finished(_ id: ObjectIdentifier) {
-        guard let rec, ObjectIdentifier(rec) == id else { return }  // a late call from an earlier recording
+        guard let rec, ObjectIdentifier(rec) == id, reported != id else { return }  // a late call, or told already
+        reported = id
         let ms = lengthMs ?? Int(Date().timeIntervalSince(startedAt ?? Date()) * 1000)
         lengthMs = ms
         AudioSessionManager.shared.endRecording(stillPlaying: keepSession?() ?? false)

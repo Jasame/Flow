@@ -59,11 +59,17 @@ final class Shell {
         BGTaskScheduler.shared.register(forTaskWithIdentifier: refreshTask, using: .main) { task in
             guard let task = task as? BGAppRefreshTask else { return }
             MainActor.assumeIsolated {
+                var done = false
                 let job = Task {
                     await Shell.shared.reminders.refresh(force: true)
-                    task.setTaskCompleted(success: true)
+                    if !done { done = true; task.setTaskCompleted(success: true) }
                 }
-                task.expirationHandler = { job.cancel() }
+                task.expirationHandler = {  // out of time: say so now (the cookie calls do not stop on cancel)
+                    MainActor.assumeIsolated {
+                        job.cancel()
+                        if !done { done = true; task.setTaskCompleted(success: false) }
+                    }
+                }
                 scheduleRefresh()
             }
         }

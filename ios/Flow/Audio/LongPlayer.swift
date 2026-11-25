@@ -93,6 +93,7 @@ final class LongPlayer: NSObject {
     private var statusWatch: NSKeyValueObservation?
     private var controlWatch: NSKeyValueObservation?
     private var loading = false        // the player is waiting for the network: the page shows 「准备中」, not playing
+    private var waitTask: Task<Void, Never>?
     private var gapTask: Task<Void, Never>?
     private var noteTask: Task<Void, Never>?
     private var background = UIBackgroundTaskIdentifier.invalid
@@ -200,7 +201,11 @@ final class LongPlayer: NSObject {
 
     func resume(why: Why) {
         guard let r = req, state == .paused else { return }
-        guard AudioSessionManager.shared.activate() else { return }
+        // the microphone is open, or iOS will not give the sound (a call): it stays paused, and the page is told so
+        guard !AudioSessionManager.shared.recording, AudioSessionManager.shared.activate() else {
+            set(.paused, why: .interrupted)
+            return
+        }
         lastWhy = why
         resumeAfterInterruption = false
         if dead, let src = r.src {  // 「录音没加载出来…」 then 继续: the recording anew, from where it was
@@ -423,13 +428,20 @@ final class LongPlayer: NSObject {
     private func controlStatus(_ s: AVPlayer.TimeControlStatus) {
         guard req != nil, midSentence else { return }
         switch s {
-        case .waitingToPlayAtSpecifiedRate:
-            if state == .playing {
-                loading = true
-                note = "正在加载录音…"
-                set(.waiting)
+        case .waitingToPlayAtSpecifiedRate:  // every start passes here for a moment: only a real wait (0.6 s) is shown
+            guard state == .playing, waitTask == nil else { return }
+            waitTask = Task { [weak self] in
+                try? await Task.sleep(for: .milliseconds(600))
+                guard let self, !Task.isCancelled else { return }
+                self.waitTask = nil
+                guard self.state == .playing, self.midSentence, self.player.timeControlStatus == .waitingToPlayAtSpecifiedRate else { return }
+                self.loading = true
+                self.note = "正在加载录音…"
+                self.set(.waiting)
             }
         case .playing:
+            waitTask?.cancel()
+            waitTask = nil
             if state == .waiting && loading {
                 loading = false
                 note = ""
@@ -523,7 +535,7 @@ final class LongPlayer: NSObject {
 
     private func finish() {
         guard let r = req else { return }
-        store.clear(r.key)
+        store.ended(r.key)  // progress(key) says so: a page loaded again meanwhile clears its 「从第 N 句继续」
         stopNow(save: false, why: .ended)
     }
 
