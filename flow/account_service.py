@@ -190,8 +190,8 @@ def private(c,u,path,data,verify):
   if not configured():return {'error':'管理员尚未配置邮件服务'},503
   email=str(data.get('email','')).strip().lower()
   if len(email)>254 or not re.fullmatch(r'[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+',email):return {'error':'邮箱格式不正确'},400
-  stored=c.execute('SELECT password FROM users WHERE id=?',(u['id'],)).fetchone()[0]
-  if not verify(str(data.get('password','')),stored):return {'error':'当前密码不正确','field':'password'},400
+  wrong=__import__('auth_service').own_password(c,u['id'],data.get('password'),verify,'当前密码不正确')  # 5 wrong: a pause
+  if wrong:return {'error':wrong,'field':'password'},400
   if c.execute('SELECT 1 FROM users WHERE email=? AND id!=?',(email,u['id'])).fetchone():return {'error':'该邮箱无法绑定'},400
   if data.get('mode')=='code':
    # r19: a 6-digit code, as at sign-up, instead of a long token to copy out of the mail.

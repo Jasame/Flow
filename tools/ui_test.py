@@ -447,6 +447,9 @@ def run_device(pw, dev, opts):
     rd = pg.evaluate("""() => { const r = document.getElementById('reader'), t = document.querySelector('#view .read-tools');
       return {tools: t ? [...t.querySelectorAll('button')].map(b => b.id) : [], top: r ? Math.round(r.getBoundingClientRect().top) : null, h: innerHeight}; }""")
     check(dev, 'read: the tools sit in one row above the text', 'readAlong' in rd['tools'], rd)
+    kinds = pg.evaluate("() => [...document.querySelectorAll('#view .read-tools button:not([hidden])')].map(b => b.className.includes('btn small') ? 'btn' : b.id)")
+    check(dev, 'read: one kind of button in the row, 「AI 朗读 · 声音由 AI 合成」 on its own line under it',
+          all(k == 'btn' for k in kinds) and pg.is_visible('#view .read-ai .ai-voice') and '合成' in (pg.text_content('#view .read-ai') or ''), kinds)
     if dev == 'phone':
         check(dev, 'read: the text starts on the first screen of a phone', rd['top'] is not None and rd['top'] < rd['h'] * 0.6, rd)
     if pg.query_selector('#zhGuide'):
@@ -1404,6 +1407,12 @@ def ux_run(pw):
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a2']['token'], 'url': BASE}])
         ctx.add_init_script(FAKE_TTS)
         pg = ctx.new_page(); pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+        # the server out of order with no message of ours (nginx's 502 page while it restarts): plain words, no status code
+        pg.route('**/api/next/report*', lambda r: r.fulfill(status=502, content_type='text/html', body='<html><body><h1>502 Bad Gateway</h1>nginx</body></html>'))
+        go(pg, '#/report'); pg.wait_for_selector('#view .empty', timeout=5000)
+        said = pg.text_content('#view .empty') or ''
+        check(dev, 'a server error without a message of ours reads 「服务暂时有点忙，请稍后重试」, no status code', '服务暂时有点忙' in said and '502' not in said and '请求失败' not in said, said[:80])
+        pg.unroute('**/api/next/report*')
         # 复读: 3 遍, no pause: one tap on a sentence says it three times. The server voice is off on this page (the server's
         # own answer when it is), so the browser voice, faked to end at once, says it and the three times can be counted
         pg.route('**/api/next/tts', lambda r: r.fulfill(status=503, json={'error': '服务器朗读没有开启', 'code': 'off'}))
@@ -1568,6 +1577,20 @@ def ux_run(pw):
         check(dev, 'first visit: the start page, then 今日 for the level chosen; a link to a material opens it directly', start == '#/welcome' and today and pg.query_selector('#view .steps') is not None,
               (start, today))
         ctx.close()
+        # 语法混合 and 辨析练习 while answering (43-mix.js, body.reviewing): no tabs, the question and its four answers on one
+        # screen in the home-screen app, 375×667 and 390×844 (UI audit 2026-11-25: 17–133 px past it on the smallest iPhone)
+        for (w, h, t, b) in ((375, 667, 20, 0), (390, 844, 47, 34)):
+            ctx = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
+            ctx.add_init_script(HOME_INIT % json.dumps([t, b, 0]))
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a2']['token'], 'url': BASE}])
+            pg = ctx.new_page(); pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+            for page in ('#/mix', '#/mix/pair/tense-past,tense-perfect'):
+                go(pg, page); pg.wait_for_selector('#mixQ .ans', timeout=8000); pg.wait_for_timeout(500)
+                got = pg.evaluate("[document.scrollingElement.scrollHeight - innerHeight, getComputedStyle(document.querySelector('.tabs')).display]")
+                check(dev, f'{w}×{h} home-screen app {page}: no tabs while answering, the question and its answers on one screen', got[0] <= 1 and got[1] == 'none', got)
+            go(pg, '#/practice')
+            check(dev, f'{w}×{h}: the tabs come back on the next page', pg.evaluate("getComputedStyle(document.querySelector('.tabs')).display") != 'none')
+            ctx.close()
     finally:
         browser.close()
 
@@ -1830,8 +1853,8 @@ def listen_speak_run(pw):
                             first: (document.querySelector('#reader .sent.now') || {}).dataset.si}; }""")
                 check(dev, '伴读 of an import: read by the server voice from the learner\'s own files, the sentence lit',
                       got['have'] and got['own'] and got['own'][0].startswith('/audio/own/us-f/') and got['first'] == '0', got)
-                marks = pg.evaluate("() => [!!document.querySelector('#view .read-tools .ai-voice'), !!document.querySelector('.mini-player:not([hidden]) .ai-voice'), (document.querySelector('.mini-player .lbl') || {}).textContent]")
-                check(dev, '伴读: 「AI 朗读」 beside the button and in the mini player (《标识办法》), the label just 第 N / M 句',
+                marks = pg.evaluate("() => [!!document.querySelector('#view .read-ai .ai-voice'), !!document.querySelector('.mini-player:not([hidden]) .ai-voice'), (document.querySelector('.mini-player .lbl') || {}).textContent]")
+                check(dev, '伴读: 「AI 朗读」 on the line under the button and in the mini player (《标识办法》), the label just 第 N / M 句',
                       marks[0] and marks[1] and (marks[2] or '').startswith('第 ') and '伴读' not in (marks[2] or ''), marks)
                 pg.click('#readAlong')
                 other = browser.new_context(); op = other.new_page()
@@ -2000,7 +2023,12 @@ def listen_speak_run(pw):
             hd = p3.evaluate("() => [document.querySelector('#view .kicker').textContent, (document.querySelector('#view .round-extra') || {}).textContent || '']")
             check(dev, '口语情景: round 2 shows the round and its extra requirement', '第 2 轮' in hd[0] and '这一轮多一条' in hd[1], hd)
             vm = p3.evaluate("() => { const l = [...document.querySelectorAll('#view .ai-line')].find(x => x.querySelector('.ai-voice')); return l ? l.textContent : ''; }")
-            check(dev, '口语情景: 「AI 朗读」 says the role\'s voice is synthesized', '角色说话的声音也由 AI 合成' in vm, vm)
+            check(dev, '口语情景: 「AI 朗读」 says the role\'s voice is synthesized', '角色、纠正和声音都由 AI 生成' in vm and 'AI 生成' in vm, vm)
+            if size == 'phone':  # B8's audit: on a small phone, Safari's toolbars showing, 「开始对话」 sat under the tab bar
+                vp = p3.viewport_size; p3.set_viewport_size({'width': 375, 'height': 553})
+                go_at = p3.evaluate("() => { const b = document.getElementById('dlgStart').getBoundingClientRect(), t = document.querySelector('.tabs').getBoundingClientRect(); return [Math.round(b.top), Math.round(b.bottom), Math.round(t.top)]; }")
+                check(dev, '口语情景 round 2 at 375×553: 「开始对话」 on the first screen, above the tab bar', 0 < go_at[0] and go_at[1] <= go_at[2], go_at)
+                p3.set_viewport_size(vp)
             l3 = p3.evaluate(LAYOUT_JS, touch); check(dev, '口语情景 round 2: no sideways scroll', l3['overflow'] <= 1, f"{l3['overflow']}px {l3['wide']}")
             p3.click('#dlgStart'); p3.wait_for_selector('#chat .msg.ai', timeout=8000)
             if size == 'phone':  # the AI's line is said by the server voice (an mp3 made once and stored), not the browser voice,
@@ -2464,6 +2492,11 @@ def sprint_run(pw):
                 if page == '#/' and h > w:  # with 这周进步 on top and the exam line under the title, the next step is still on the first screen
                     b = pg.evaluate("Math.round(document.querySelector('#view .go-next').getBoundingClientRect().bottom)")
                     check(dev, f'{size} 今日: the next-step button is on the first screen', b <= h, (b, h))
+                if page == '#/':  # 正式版反馈 #2 (2026-11-25): a.prow.week took 10-pages.css's .week span bars, grey 6 px strips over the words
+                    wk = pg.evaluate("""() => [...document.querySelectorAll('#view .tp-week .prow')].map(r => { const t = r.querySelector('.t'), b = t.querySelector('b'), s = t.querySelector('.muted');
+                      const rr = r.getBoundingClientRect(), br = b.getBoundingClientRect(), sr = s ? s.getBoundingClientRect() : null;
+                      return {fill: [t, b, s].filter(Boolean).some(x => getComputedStyle(x).backgroundColor !== 'rgba(0, 0, 0, 0)'), tall: br.height >= 16 && (!sr || sr.height >= 12), inside: !sr || sr.bottom <= rr.bottom + 1}; })""")
+                    check(dev, f'{size} 今日: 本周任务 shows its title and line in full, no grey bars over them', bool(wk) and all(not x['fill'] and x['tall'] and x['inside'] for x in wk), wk)
                 pg.screenshot(path=str(OUT / f"sprint-{size}-{page.strip('#/').replace('/', '_') or 'today'}.png"))
             # the hub at this size: the trend is drawn to the width it has, inside the screen
             go(pg, '#/exam'); pg.wait_for_timeout(300)
@@ -3063,6 +3096,55 @@ def review_side_run(pw):
         browser.close()
 
 
+# 复习 and 测词汇量 on a phone are one screen: the card below the top bar, the answers at the bottom where the thumb is,
+# nothing to scroll. On an iPhone's home-screen app the back button (r30) and the status bar / Dynamic Island made the top
+# bar taller and the page ran past the screen (the owner, 2026-11-25). Sizes: an iPhone SE (its status bar 20px in the
+# home-screen app), an iPhone 14 (notch 47, home bar 34) and an iPhone 15 Pro (Dynamic Island 59, home bar 34), each in
+# Safari and from the home screen.
+ONE_SCREEN_JS = """() => { const H = innerHeight, m = document.querySelector('main').getBoundingClientRect(), bar = document.getElementById('bar').getBoundingClientRect();
+  const sab = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sab')) || 0;
+  const answers = [...document.querySelectorAll('.review .choice button')].map(b => Math.round(b.getBoundingClientRect().bottom));
+  const last = document.querySelector('.review').lastElementChild.getBoundingClientRect();
+  return { H, page: document.scrollingElement.scrollHeight, bar: Math.round(bar.height), barH: getComputedStyle(document.documentElement).getPropertyValue('--bar-h').trim(),
+           mainBottom: Math.round(m.bottom), answers, lastBottom: Math.round(last.bottom), sab, tip: !!document.getElementById('knowTip') }; }"""
+
+
+def one_screen_run(pw):
+    dev = 'one-screen'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    tok = CFG['learners']['screen']['token']
+    sizes = {'iphone-se': (375, 667, 20, 0), 'iphone-14': (390, 844, 47, 34), 'iphone-15-pro': HOME_SIZES['iphone-15-pro'][:4]}
+    try:
+        for size, (w, h, top, bottom) in sizes.items():
+            for home in (False, True):
+                where = f"{size} {'home-screen app' if home else 'Safari'}"
+                ctx = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=True, has_touch=True, device_scale_factor=3, locale='zh-CN',
+                                          bypass_csp=True, reduced_motion='reduce')
+                if home:
+                    ctx.add_init_script(HOME_INIT % json.dumps([top, bottom, 0]))
+                ctx.add_cookies([{'name': 'flow_session', 'value': tok, 'url': BASE}])
+                pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+                pg.goto(BASE + '/#/cards', wait_until='load'); settle(pg)
+                # this device reviewed before, so the one-time 「认识」换到右边了 tip shows too: the tallest the card gets
+                pg.evaluate("localStorage.setItem('flow-next-review-cache', JSON.stringify({at: Date.now(), q: {items: []}}))")
+                for page, wait in (('#/review', '[data-claim]'), ('#/vocab/test', '.vtest [data-a]')):
+                    go(pg, page); pg.wait_for_selector(wait, timeout=8000); pg.wait_for_timeout(400)
+                    s = pg.evaluate(ONE_SCREEN_JS)
+                    name = '复习卡' if page == '#/review' else '测词汇量'
+                    pg.screenshot(path=str(OUT / f"one-screen-{size}-{'home' if home else 'safari'}-{page.strip('#/').replace('/', '_')}.png"))
+                    check(dev, f'{where} {name}: one screen, nothing to scroll ({s["page"]} of {s["H"]}px)', s['page'] <= s['H'], s)
+                    check(dev, f'{where} {name}: the page fills the screen, the answers at the bottom', abs(s['mainBottom'] - s['H']) <= 1 and min(s['answers'] or [0]) > s['H'] * 0.6, s)
+                    check(dev, f'{where} {name}: the answers and the line below them clear the home bar', s['answers'] and max(s['answers'] + [s['lastBottom']]) <= s['H'] - s['sab'], s)
+                    if page == '#/review':
+                        check(dev, f'{where}: the 「认识」换到右边了 tip is on the card (the tallest it gets)', s['tip'], s)
+                    if home:
+                        check(dev, f'{where} {name}: --bar-h is the top bar\'s height', s['barH'] == f"{s['bar']}px", s)
+                check(dev, f'{where}: no script errors', not errs, errs[:3])
+                ctx.close()
+    finally:
+        browser.close()
+
+
 def backlog_run(pw):
     """Reviews piled up after a break (ux-longterm-audit 1.1, 11, 16, 2026-11-24): no new words today and the word page
     says so; the review page says 「先做 40 个（还有 N 个）」 and, after those 40, offers a place to stop; the small links
@@ -3560,6 +3642,37 @@ def home_app_run(pw):
             check(dev, f'the Android app, {where}: with the page shorter for the keyboard, the field and its button in sight',
                   got['button'] is not None and got['button'] <= got['h'] and got['field'][0] >= 0 and got['field'][1] <= got['h'] and got['open'], got)
             ctx.close()
+        # one-screen pages (复习's card, 测词汇量, 起点小测) fit one screen whatever sits above them: the top bar with
+        # 返回 (it made the bar 12 px taller), the 内测版's line, the safe area — the owner's iPhone, 2026-11-25. The
+        # home-screen app and Safari, 375×667 and 390×844, 语流 and its 内测版: no vertical scroll.
+        ONE = {'375x667': (375, 667, 20, 0), '390x844': (390, 844, 47, 34)}
+        BETA_CH = "new MutationObserver((m, o) => { if (document.documentElement) { document.documentElement.dataset.channel = 'beta'; o.disconnect(); } }).observe(document, {childList: true, subtree: true})"
+        over = {}
+        for size, (w, h, t, b) in ONE.items():
+            for env in ('home app', 'Safari'):
+                for ch in ('语流', '内测版'):
+                    ctx = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
+                    if env == 'home app':
+                        ctx.add_init_script(HOME_INIT % json.dumps([t, b, 0]))
+                    if ch == '内测版':
+                        ctx.add_init_script(BETA_CH)
+                    ctx.add_init_script("try { localStorage.setItem('flow-channel', '\"beta\"') } catch (e) {}")  # no once-per-phone sheet
+                    ctx.add_cookies([{'name': 'flow_session', 'value': tok, 'url': BASE}])
+                    pg = ctx.new_page(); pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg)
+                    for page, sel in (('#/review', '.review'), ('#/vocab/test', '.review.vtest'), ('#/placement', '#view')):
+                        # the card's way in (its parts slide up, a tip comes and goes) can show a few px past the screen for a moment:
+                        # what counts is the page at rest, given up to 4 s to settle
+                        go(pg, page); pg.wait_for_selector(sel, timeout=8000); pg.wait_for_timeout(600)
+                        try:
+                            pg.wait_for_function("document.scrollingElement.scrollHeight - innerHeight <= 0", timeout=4000)
+                        except Exception:
+                            pg.screenshot(path=str(OUT / f"one-screen-{page.strip('#/').replace('/', '_')}-{size}-{'home' if env == 'home app' else 'safari'}-{'beta' if ch == '内测版' else 'main'}.png"), full_page=True)
+                        over[(size, env, ch, page)] = pg.evaluate("document.scrollingElement.scrollHeight - innerHeight")
+                    ctx.close()
+        for page in ('#/review', '#/vocab/test', '#/placement'):
+            got = {f'{s} {e} {c}': v for (s, e, c, p), v in over.items() if p == page}
+            check(dev, f'one screen: {page} — no vertical scroll in the home-screen app or Safari, 375×667 and 390×844, 语流 and 内测版',
+                  all(v <= 0 for v in got.values()), {k: v for k, v in got.items() if v > 0} or got)
         # the 内测版 in one of Flow's apps: the learner installed it on purpose, and flowlang.cn would open the system
         # browser — the line stays without its link, the once-per-phone sheet is not shown (a browser still gets both)
         BETA = "new MutationObserver((m, o) => { if (document.documentElement) { document.documentElement.dataset.channel = 'beta'; o.disconnect(); } }).observe(document, {childList: true, subtree: true})"
@@ -3569,11 +3682,31 @@ def home_app_run(pw):
             ctx.add_init_script(BETA)
             if app:
                 ctx.add_init_script("window.FlowApp = { platform: 'android' }")
-            pg = ctx.new_page(); pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg); pg.wait_for_timeout(1200)
-            seen[label] = pg.evaluate("() => ({ bar: !!document.getElementById('betaBar'), link: !!document.querySelector('#betaBar a'), sheet: !document.getElementById('sheet').hidden && /内测版/.test(document.getElementById('sheetCard').innerText) })")
+            ctx.add_cookies([{'name': 'flow_session', 'value': tok, 'url': BASE}])
+            pg = ctx.new_page()
+            # the ledger's beta entry as the 内测版 server gives it (this test server is 语流's: it answers beta: null)
+            pg.route('**/api/next/updates', lambda r: r.fulfill(status=200, content_type='application/json', body=json.dumps({'released': [], 'beta': {
+                'date': '2026-11-25', 'changed': [{'text': '「认识」可以放在右边', 'link': '#/me'}], 'new': ['今日的计划按时间排'], 'better': [{'text': '复习卡正好一屏'}], 'fixed': []}}, ensure_ascii=False)))
+            pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg); pg.wait_for_timeout(1200)
+            LINE = "() => ({ bar: !!document.getElementById('betaBar'), link: !!document.querySelector('#betaBar a'), pill: !!document.querySelector('#bar .beta-pill'), h: Math.round((document.getElementById('betaBar') || {getBoundingClientRect: () => ({height: 0})}).getBoundingClientRect().height), sheet: !document.getElementById('sheet').hidden && /内测版/.test(document.getElementById('sheetCard').innerText) })"
+            seen[label] = pg.evaluate(LINE)
+            pg.evaluate("document.querySelector('#sheet:not([hidden]) [data-close]')?.click()")
+            go(pg, '#/me'); pg.wait_for_timeout(300)
+            seen[label]['me'] = pg.evaluate("""() => ({ section: [...document.querySelectorAll('.gsec h2')].some(h => h.textContent === '内测版'), main: !!document.querySelector('[data-tap=me-beta-main]'), feedback: !!document.querySelector('[data-tap=me-beta-feedback]'),
+              changes: [...document.querySelectorAll('#meBetaNew li')].map(li => (li.classList.contains('beta-changed') ? '!' : '') + li.textContent.trim()), go: (document.querySelector('#meBetaNew a') || {}).hash || null })""")
+            pg.evaluate("document.querySelector('#betaBar .bb-x').click()"); pg.wait_for_timeout(200)
+            pg.reload(wait_until='load'); settle(pg); pg.wait_for_timeout(800)  # 我的 keeps asking (no network idle)
+            seen[label]['after ✕ and a reload'] = pg.evaluate(LINE)
             ctx.close()
-        check(dev, 'the 内测版 in an app: the line without 「去正式版」, no sheet (a browser: both, as before)',
-              seen['in an app'] == {'bar': True, 'link': False, 'sheet': False} and seen['in a browser'] == {'bar': True, 'link': True, 'sheet': True}, seen)
+        a, b = seen['in an app'], seen['in a browser']
+        check(dev, 'the 内测版: one thin line (no link: 去正式版 is in 我的), 「内测」 by the logo, ✕ closes it for good on this device',
+              a['bar'] and b['bar'] and not a['link'] and not b['link'] and a['pill'] and b['pill'] and b['h'] <= 34
+              and not a['after ✕ and a reload']['bar'] and not b['after ✕ and a reload']['bar'] and b['after ✕ and a reload']['pill'], seen)
+        check(dev, 'the 内测版: 我的 has 内测版 (feedback; 去正式版 in a browser, not in an app); the once-per-phone sheet in a browser only',
+              a['me']['section'] and b['me']['section'] and a['me']['feedback'] and b['me']['main'] and not a['me']['main'] and not a['sheet'] and b['sheet'], seen)
+        ch = b['me']['changes']
+        check(dev, 'the 内测版 in 我的: what changed in this version, 「用法变了」 first and marked, a link inside the site',
+              len(ch) == 3 and ch[0].startswith('!用法变了') and '去看看' in ch[0] and b['me']['go'] == '#/me', b['me'])
     finally:
         browser.close()
 
@@ -3671,6 +3804,12 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('review-side', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'one-screen' in ONLY:
+            try:
+                one_screen_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('one-screen', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'backlog' in ONLY:
             try:
                 backlog_run(pw)
