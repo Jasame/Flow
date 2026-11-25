@@ -27,8 +27,8 @@
     <!-- the first start's question (privacy/Consent.kt): its words follow the guide's 《用户协议》 and 《隐私和数据》 -->
     <string name="consent_title">欢迎使用语流</string>
     <string name="consent_title_feature">先同意，再继续</string>
-    <string name="consent_body">语流是一个英语自学工具。开始之前，请读一读《用户协议》和《隐私和数据》。简单说：\n\n• 只收学英语用得上的信息：账号、学习记录、你写的作文和翻译。录音只在批改的那一次交给 AI，不保存。\n• 账号和学习数据存放在香港的服务器上，注册时还会单独问你。\n• App 没有接第三方 SDK，不做跟踪。麦克风和通知都是第一次用到时才问。\n• 运营者：语流的运营者（公司注册完成后会写上公司名称）。联系我们：「我的 → 问题反馈」，或写信到 i@jasa.hk。\n\n点「同意」，表示你已阅读并同意《用户协议》和《隐私和数据》。</string>
-    <string name="consent_tail_first">不同意也可以进入基本模式，先看看。</string>
+    <string name="consent_body">语流是一个英语自学工具。开始之前，请读一读《用户协议》和《隐私和数据》。简单说：\n\n• 收的都是学英语用得上的信息：账号（用户名、邮箱、年龄段）、学习记录、你写的作文和翻译、你主动发的问题反馈。完整清单见《隐私和数据》。\n• 你写的作文、翻译和说的录音，批改时会交给阿里云百炼上的 AI；录音不保存。\n• 账号和学习数据存放在香港的服务器上，注册时还会单独问你。\n• 不满 14 岁的，要先告诉家长（或监护人）并得到同意。\n• App 没有接第三方 SDK，不做跟踪。麦克风和通知都是第一次用到时才问。\n• 运营者：语流的运营者（公司注册完成后会写上公司名称）。联系我们：「我的 → 问题反馈」，或写信到 i@jasa.hk。\n\n点「同意」，表示你已阅读并同意《用户协议》和《隐私和数据》。</string>
+    <string name="consent_tail_first">不同意也可以进入基本模式：不登录，进度只存在这台手机上。</string>
     <string name="consent_tail_basic">不同意的话，继续用基本模式。</string>
     <string name="consent_agree">同意</string>
     <string name="consent_decline">不同意</string>
