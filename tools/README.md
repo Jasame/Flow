@@ -192,6 +192,10 @@ The owner approved these on 2026-11-24 (「按你的建议改，b6 发完就写�
    - no `say`, `afplay` or `osascript` beep;
    - no Escape key press when there is nothing to cancel (macOS beeps);
    - a test that has to be heard is asked for first.
+10. **A fork's pull request that touches `.github/` is never approved to run.** GitHub asks the owner to approve
+    workflows for outside contributors' pull requests; one that changes anything under `.github/` (workflows,
+    actions, settings files) is declined, whatever it says it does: its own workflow would run with what it wrote in
+    it. Ask for the change without `.github/`, and a session here makes that part.
 
 ## 推之前跑哪些测试 (what to run before pushing)
 
