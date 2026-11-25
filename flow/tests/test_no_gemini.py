@@ -198,6 +198,32 @@ class VerdictTests(unittest.TestCase):
         self.assertTrue(out.say_verdict('library', '', 'Libary.')['ok'])
         self.assertFalse(out.say_verdict('library', '', 'Banana.')['ok'])
 
+    def test_a_word_written_as_one_that_sounds_the_same_is_right(self):  # 语流 09: their written as there
+        for target, heard in (('their', 'There.'), ('right', 'Write.'), ('too', 'two'), ('whole', 'Hole.'),
+                              ('weather', 'Whether.'), ('flour', 'Flower.'), ('know', 'No.'), ('to', 'Too.')):
+            v = out.say_verdict(target, '', heard)
+            self.assertTrue(v['ok'], (target, heard))
+            self.assertEqual(v['note'], f'听起来是 {target}（和 {heard.strip(".").lower()} 同音）')
+
+    def test_sounding_alike_needs_the_same_vowel_length_and_a_full_form(self):
+        for target, partner, heard in (('ship', '', 'Sheep.'), ('ship', 'sheep', 'Sheep.'), ('bean', '', 'Bin.'),
+                                       ('there', '', 'The.'), ('ear', '', 'Year.')):
+            self.assertFalse(out.say_verdict(target, partner, heard)['ok'], (target, heard))
+        self.assertFalse(out.same_sound('bean', 'bin'))  # [biːn] / [bin]: the length mark tells them apart
+        self.assertFalse(out.same_sound('there', 'the'))  # [ðə] is only there's weak form
+
+    def test_the_pair_word_written_as_one_that_sounds_like_it_is_still_the_pair_word(self):
+        v = out.say_verdict('light', 'right', 'Write.')
+        self.assertFalse(v['ok'])
+        self.assertEqual(v['note'], '听起来像 right（和 write 同音），不像 light')
+
+    def test_no_practice_pair_sounds_alike_in_the_dictionary(self):
+        import sounds
+        self.assertGreater(len(sounds.SETS), 5)
+        for s in sounds.SETS:
+            for a, b in s['pairs']:
+                self.assertFalse(out.same_sound(a, b), (a, b))
+
 
 class SayTests(unittest.TestCase):
     def setUp(self):
