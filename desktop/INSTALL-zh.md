@@ -55,6 +55,23 @@ sudo xattr -dr com.apple.quarantine "/Applications/语流内测.app"
 
 ---
 
+## Linux（试用中）
+
+有两种包，选一个：
+
+- **AppImage**（推荐，各种发行版都能用，会自动更新）：下载 `flow-linux-<版本>-x86_64.AppImage`，在终端里运行
+  `chmod +x flow-linux-*.AppImage && ./flow-linux-*.AppImage`。
+  Ubuntu 22.04 及以后如果打不开，提示缺 FUSE，先运行 `sudo apt install libfuse2`。
+- **deb**（Ubuntu 22.04+、Debian 12+、深度、统信 UOS、麒麟）：运行 `sudo apt install ./flow-linux-<版本>-amd64.deb`，装好以后在应用菜单里找「语流」。
+  deb 不会自己更新，有新版本时会弹通知，到下载页下载新的 deb 再装一次。
+
+几点说明：
+
+- **没有声音**：缺解码器，先运行 `sudo apt install gstreamer1.0-libav gstreamer1.0-plugins-good`（Fedora 等发行版要装 ffmpeg 或 gstreamer1-libav 之类的包）。
+- **复习提醒只在「语流」开着时弹**：Linux 上关掉窗口，「语流」会留在托盘里继续提醒（托盘菜单里可以关掉这个设置）。
+  想开机就有提醒，在托盘菜单里勾选「开机时启动」。
+- **GNOME 桌面默认看不到托盘图标**：要装「AppIndicator」扩展；不装也没关系，关掉窗口后从应用菜单再点一次「语流」，窗口就回来了。
+
 ## 以后的新版本
 
 从 0.1.1 起，「语流」会自己更新：打开后在后台下载新版本，关掉时装上，下次打开就是新版。也可以在菜单（Mac）或托盘（Windows）里点「检查更新…」马上装。

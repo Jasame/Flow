@@ -22,7 +22,9 @@
     "targets": [
       "app",
       "dmg",
-      "nsis"
+      "nsis",
+      "appimage",
+      "deb"
     ],
     "category": "Education",
     "publisher": "语流 Flow",
@@ -55,6 +57,18 @@
           "SimpChinese"
         ],
         "displayLanguageSelector": false
+      }
+    },
+    "linux": {
+      "appimage": {
+        "bundleMediaFramework": true
+      },
+      "deb": {
+        "depends": [
+          "gstreamer1.0-plugins-good",
+          "gstreamer1.0-libav"
+        ],
+        "section": "education"
       }
     }
   },
