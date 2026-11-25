@@ -328,8 +328,9 @@ class Handler(BaseHTTPRequestHandler):
    self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
   if path=='/api/next/vocab/reminder.ics':
    # A daily calendar event: a reminder that works on every phone without an app, email or push service.
-   q=parse_qs(urlsplit(self.path).query);hour=q.get('hour',['20'])[0];kind=q.get('kind',['vocab'])[0];mins=q.get('minutes',['10'])[0]
-   body=__import__('vocab_service').ics(int(hour) if hour.isdigit() else 20,'plan' if kind=='plan' else 'vocab',int(mins) if mins.isdigit() else 10).encode()
+   q=parse_qs(urlsplit(self.path).query);hour=q.get('hour',['20'])[0];kind=q.get('kind',['vocab'])[0];mins=q.get('minutes',['10'])[0];at=q.get('at',[''])[0]
+   # ?at=<seconds>: one event (这次什么时候复习, vocab_service.set_once), the daily one unchanged
+   body=__import__('vocab_service').ics(int(hour) if hour.isdigit() else 20,'plan' if kind=='plan' else 'vocab',int(mins) if mins.isdigit() else 10,int(at) if at.isdigit() and len(at)<=11 else None).encode()
    self.send_response(200);self.headers_common('text/calendar; charset=utf-8');self.send_header('Content-Disposition','attachment; filename="flow-'+('plan' if kind=='plan' else 'review')+'.ics"')
    self.send_header('Cache-Control','no-store');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
   if path.startswith('/api/'):

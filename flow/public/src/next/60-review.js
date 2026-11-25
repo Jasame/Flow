@@ -31,6 +31,7 @@
     if (!S.user) return needLogin('登录后才能复习。');
     document.body.classList.add('reviewing');
     const R = goOn ? '/api/next/review?more=1' : '/api/next/review';
+    const seenOld = !!(load('flow-next-review-cache') || load('flow-next-swipe-tip'));  // this device reviewed before (the cache is saved just below)
     let first, offline = false;
     try { await OUTBOX.flush(); first = await api(R); save('flow-next-review-cache', { at: Date.now(), q: first }); }
     catch (e) {
@@ -76,7 +77,7 @@
     };
     const keys = map => { document.onkeydown = e => { if (!sheetEl.hidden || e.metaKey || e.ctrlKey || e.altKey) return; if (e.target.matches && e.target.matches('input,textarea')) { if (e.key === 'Enter' && map.Enter && ['spellIn', 'fixIn'].includes(e.target.id)) { e.preventDefault(); map.Enter(); } return; } const f = map[e.key] || map[e.key.toLowerCase()]; if (f) { e.preventDefault(); f(); } }; };
     swipeOn(() => swipe);
-    if (TOUCH && !load('flow-next-swipe-tip')) { save('flow-next-swipe-tip', 1); setTimeout(() => toast('小技巧：右滑「认识」，左滑「不认识」'), 600); }
+    if (TOUCH && !load('flow-next-swipe-tip')) { save('flow-next-swipe-tip', 1); setTimeout(() => toast(KNOW.side() === 'right' ? '小技巧：右滑「认识」，左滑「不认识」' : '小技巧：左滑「认识」，右滑「不认识」'), 600); }
     // A saved sentence pattern: the frame's fixed words become gaps in its example, so the front does not give it away.
     const frameCloze = (example, frame) => {
       const fixed = (frame.match(/[A-Za-z']+/g) || []).filter(w => !/^(A|B|C|sb|sth|do|doing|done|adj|n|v|X|Y)$/.test(w)).map(w => w.toLowerCase());
@@ -113,7 +114,7 @@
         body = `${tag}<div class="wordbig">${esc(c.text)}</div><div><button class="icon-btn big" id="sayW" aria-label="听">${ICON.speak}</button></div>
           ${c.meaning ? `<div class="mean-q small">${esc(c.meaning)}</div>` : ''}
           <div class="row center">${recBtn('sndMic', '读一遍')}<span class="muted tiny" id="sndOut">${S.user ? '点 ● 读一遍，AI 听你读得准不准' : ''}</span></div>
-          <div class="choice">${['读准了', '还不稳', '不会读'].map((t, k) => `<button class="${['good', '', 'again'][k]}" data-self="${['good', 'hard', 'again'][k]}">${t}</button>`).join('')}</div>`;
+          <div class="choice">${KNOW.order([['读准了', 'good', 'good'], ['还不稳', '', 'hard'], ['不会读', 'again', 'again']]).map(([t, cls, r]) => `<button class="${cls}" data-self="${r}">${t}</button>`).join('')}</div>`;
       }
       // A question or a sentence to fix has no word to put in the middle of the screen: it starts at the top.
       view.innerHTML = `${top()}<div class="review enter${c.mode === 'sound' ? '' : ' q'}">${body}${foot()}</div>`;
@@ -177,7 +178,7 @@
           catch (e) { out.textContent = e.message; }
         });
         view.querySelectorAll('[data-self]').forEach(b => b.onclick = () => rate(b.dataset.self, Date.now() - t0));
-        onSwipe(() => rate('good', Date.now() - t0), () => rate('again', Date.now() - t0));
+        onSwipe(...KNOW.swipe(() => rate('good', Date.now() - t0), () => rate('again', Date.now() - t0)));
       }
     }
     function ask() {
@@ -205,8 +206,13 @@
       }
       view.innerHTML = `${top()}<div class="review enter">${body}
         ${m === 'spell' ? '<div class="row center"><button class="btn primary" id="check">确定</button><button class="btn ghost" id="giveup">不会</button></div>'
-          : `<div class="choice">${choices.map((t, k) => `<button class="${['good', '', 'again'][k]}" data-claim="${['know', 'fuzzy', 'forgot'][k]}">${t}${TOUCH ? '' : `<small>${k + 1}</small>`}</button>`).join('')}</div>`}
+          : `<div class="choice">${KNOW.order(choices.map((t, k) => [t, ['good', '', 'again'][k], ['know', 'fuzzy', 'forgot'][k]])).map(([t, cls, how], k) => `<button class="${cls}" data-claim="${how}">${t}${TOUCH ? '' : `<small>${k + 1}</small>`}</button>`).join('')}</div>`}
         ${foot()}</div>`;
+      // 「认识」 moved to the right (2026-11-25): said once to those who reviewed before, so a habit does not answer wrong
+      if (m !== 'spell' && first.veteran && seenOld && KNOW.side() === 'right' && !load('flow-know-tip')) {
+        view.querySelector('.review').insertAdjacentHTML('afterbegin', `<div class="know-tip" id="knowTip" role="note"><span class="small">「认识」换到右边了，想换回去：我的 → 设置</span><button class="btn small" type="button" id="knowTipOk">知道了</button></div>`);
+        document.getElementById('knowTipOk').onclick = () => { save('flow-know-tip', 1); const t = document.getElementById('knowTip'); if (t) t.remove(); };
+      }
       bar(); swipe = null;
       const say = document.getElementById('sayW'); if (say) say.onclick = () => CLIP.word(c);
       if (m === 'recognize' || m === 'spell') CLIP.word(c);
@@ -217,8 +223,8 @@
         keys({ Enter: check });
       } else {
         view.querySelectorAll('[data-claim]').forEach(b => b.onclick = () => reveal(b.dataset.claim));
-        keys({ 1: () => reveal('know'), 2: () => reveal('fuzzy'), 3: () => reveal('forgot') });
-        onSwipe(() => reveal('know'), () => reveal('forgot'));
+        keys(KNOW.keys([...view.querySelectorAll('[data-claim]')].map(b => () => reveal(b.dataset.claim))));
+        onSwipe(...KNOW.swipe(() => reveal('know'), () => reveal('forgot')));
       }
     }
     function answerHTML() {
@@ -227,7 +233,7 @@
     }
     function reveal(how) {
       claim = how; const ms = Date.now() - t0;
-      const next = how === 'know' ? [['记错了', 'again', 'again x'], ['没错，下一个', 'good', 'good primary']] : [[how === 'fuzzy' ? '下一个' : '记住了，下一个', how === 'fuzzy' ? 'hard' : 'again', 'primary']];
+      const next = how === 'know' ? KNOW.order([['没错，下一个', 'good', 'good primary'], ['记错了', 'again', 'again x']]) : [[how === 'fuzzy' ? '下一个' : '记住了，下一个', how === 'fuzzy' ? 'hard' : 'again', 'primary']];
       view.innerHTML = `${top()}<div class="review open-card">${answerHTML()}
         <div class="row center">${next.map(([t, r, cls]) => `<button class="btn ${cls.includes('primary') ? 'primary' : ''}" data-rate="${r}">${t}</button>`).join('')}</div>
         ${c.kind === 'word' && how === 'know' ? '<button class="btn ghost small" id="tooEasy">太简单了，以后不用再背</button>' : ''}${foot()}</div>`;
@@ -236,9 +242,9 @@
       if (c.mode !== 'recognize') CLIP.word(c);
       view.querySelectorAll('[data-rate]').forEach(b => b.onclick = () => rate(b.dataset.rate, ms));
       const te = document.getElementById('tooEasy'); if (te) te.onclick = () => known();
-      const primary = next[next.length - 1][1];
-      keys({ Enter: () => rate(primary, ms), ' ': () => rate(primary, ms), x: () => how === 'know' && rate('again', ms) });
-      onSwipe(() => rate(primary, ms), how === 'know' ? () => rate('again', ms) : null);
+      const primary = next.find(x => x[2].includes('primary'))[1];
+      keys({ ...KNOW.keys(next.map(([, r]) => () => rate(r, ms))), Enter: () => rate(primary, ms), ' ': () => rate(primary, ms), x: () => how === 'know' && rate('again', ms) });
+      onSwipe(...KNOW.swipe(() => rate(primary, ms), how === 'know' ? () => rate('again', ms) : null));
     }
     function spellResult(v) {
       const ms = Date.now() - t0, want = c.text.toLowerCase(), got = v.toLowerCase();
@@ -249,7 +255,7 @@
       view.innerHTML = `${top()}<div class="review open-card">${msg}${answerHTML()}<div class="row center"><button class="btn primary" id="go">下一个</button></div>${foot()}</div>`;
       bar(); bindExamples(view, c); document.getElementById('sayW').onclick = () => CLIP.word(c); CLIP.word(c);
       document.getElementById('go').onclick = () => rate(r, ms); keys({ Enter: () => rate(r, ms), ' ': () => rate(r, ms) });
-      onSwipe(() => rate(r, ms), null);
+      onSwipe(...KNOW.swipe(() => rate(r, ms), null));
     }
     let busy = false;
     async function rate(r, ms) {
@@ -330,10 +336,12 @@
         <div class="row center">${left && (left.due + left.new) && uniq.size >= batchN
           ? `<button class="btn" id="again">再做 ${Math.min(batchN, left.due + left.new)} 个</button><a class="btn primary" href="#/">今天就到这里</a>`
           : `${left && !(left.due + left.new) && left.later ? '<button class="btn" id="againMore">继续复习</button>' : '<a class="btn" href="#/cards">单词</a>'}${left && (left.due + left.new) ? '<button class="btn primary" id="again">继续</button>' : '<a class="btn primary" href="#/">回到今日</a>'}`}</div>
-        ${left && !(left.due + left.new) && !left.later ? '<div class="row center"><button class="btn ghost small" id="moreNew">还想多背：再学 10 个新词</button></div>' : ''}</div>`;
+        ${left && !(left.due + left.new) && !left.later ? '<div class="row center"><button class="btn ghost small" id="moreNew">还想多背：再学 10 个新词</button></div>' : ''}
+        ${left && !(left.due + left.new) ? '<div class="row center"><button class="link small hit44" type="button" id="onceAsk">今天或明天什么时候有空复习？</button></div>' : ''}</div>`;
       api('/api/next/vocab').then(o => { const t = document.getElementById('tmr'); if (t && o.forecast && o.forecast[1] != null) t.textContent = ` · 明天大约复习 ${o.forecast[1]} 个`; }).catch(() => {});
       const ag = document.getElementById('again'); if (ag) ag.onclick = () => reviewView(goOn);
       const am = document.getElementById('againMore'); if (am) am.onclick = () => reviewView(true);
+      const oa = document.getElementById('onceAsk'); if (oa) oa.onclick = () => remindOnce();
       const mn = document.getElementById('moreNew');
       if (mn) mn.onclick = async () => { mn.disabled = true; try { const r = await api('/api/next/vocab/more', { n: 10 }); if (r.added) reviewView(true); else { toast('词书里的词都学过了'); } } catch (e) { toast(e.message); mn.disabled = false; } };
     }

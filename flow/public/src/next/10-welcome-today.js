@@ -48,7 +48,8 @@
         ${next ? `<a class="btn primary block go-next" href="${esc(next.href)}">${p.done ? '继续' : '开始'}第 ${nextK + 1} 步<span aria-hidden="true">→</span></a>${overLineHTML(p, next)}`
           : `<div class="tp-done">${doneRing}<span>都完成了。${more1 ? `想多学一点，下一篇是《${esc(more1.title)}》。` : '想多学一点，就再挑一篇。'}多学的照样算进「这周进步」。</span></div>
             <div class="tp-more"><a class="btn primary block go-next" href="${more1 ? '#/m/' + encodeURIComponent(more1.id) : '#/library'}" data-tap="home-more-one">再学一篇<span aria-hidden="true">→</span></a>
-            <a class="btn ghost block" href="#/mix/more" data-tap="home-more-grammar">做 4 道语法题</a></div>`}
+            <a class="btn ghost block" href="#/mix/more" data-tap="home-more-grammar">做 4 道语法题</a>
+            <button class="link small hit44 tp-remind" type="button" id="remindOnce" data-tap="home-remind-once">今天或明天什么时候有空复习？</button></div>`}
         <div class="plist">${must.map((s, k) => planRowHTML(s, String(k + 1), s === next, s.key === 'read' ? art : null)).join('')}</div>
         ${extra.length ? `<details class="tp-extra"${next ? '' : ' open'}><summary><span>还有时间的话</span><span class="tiny muted">${extra.length} 项 · 不算进今天的计划</span></summary>
           <div class="plist">${extra.map(s => planRowHTML(s, '+', false, null, 'home-extra')).join('')}</div></details>` : ''}
@@ -83,6 +84,7 @@
     fillNotice(h);
     bindAnnounce(h); bindTrialSurvey();
     bindLine(h);  // 今日好句 (12-daily-line.js)
+    const ro = document.getElementById('remindOnce'); if (ro) ro.onclick = () => remindOnce();  // 这次什么时候复习 (50-words.js)
     mountWeekCards(view);  // 这周进步 (11-progress.js)
     const hb = document.getElementById('habitBtn'); if (hb) hb.onclick = weekSheet;
     if (st && st.habit) cheerWeek(st.habit);

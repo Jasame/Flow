@@ -259,6 +259,71 @@ class BacklogTests(unittest.TestCase):
         self.assertIn('去复习：', txt); self.assertIn('class="fl-card"', html)
         self.assertIn('learner，你好：', txt)
 
+
+class OnceReminderTests(unittest.TestCase):
+    """这次什么时候复习 (a trial student, 2026-11-25): a time today or tomorrow for the next reminder only; the mail goes
+    then if there are words and none went that day, and the reminder is back to every day at its hour."""
+    setUp, tearDown, card = BacklogTests.setUp, BacklogTests.tearDown, BacklogTests.card
+
+    def mails(self, at):
+        sent = []
+        n = vs.send_reminders(self.c, at, lambda to, sub, text, html=None: sent.append((to, sub)))
+        self.assertEqual(n, len(sent))
+        return n
+
+    def test_a_time_tonight_takes_the_place_of_the_hour_and_then_the_hour_is_back(self):
+        vs.set_reminder(self.c, 1, {'enabled': True, 'hour': 20})
+        self.card('w1', 'review', self.now - 3600)
+        r, st = vs.set_once(self.c, 1, {'at': self.day + 21 * 3600 + 17}, now=self.now)
+        self.assertEqual((st, r['once']), (200, self.day + 21 * 3600))  # to the minute
+        self.assertEqual(self.mails(self.day + 20 * 3600 + 300), 0)  # 20:05: not the daily one while a time is chosen
+        self.assertEqual(self.mails(self.day + 21 * 3600 + 60), 1)  # 21:01: the chosen time
+        self.assertIsNone(vs.reminder(self.c, 1, self.day + 21 * 3600 + 60)['once'])
+        self.assertEqual(self.mails(self.day + 21 * 3600 + 600), 0)  # once a day
+        self.assertEqual(self.mails(self.day + 86400 + 20 * 3600 + 300), 1)  # tomorrow: every day at 20:00 again
+
+    def test_tomorrow_morning_comes_instead_of_tonight_and_that_day_has_no_second_mail(self):
+        vs.set_reminder(self.c, 1, {'enabled': True, 'hour': 20})
+        self.card('w1', 'review', self.now - 3600)
+        vs.set_once(self.c, 1, {'at': self.day + 86400 + 8 * 3600}, now=self.now)
+        self.assertEqual(self.mails(self.day + 20 * 3600 + 300), 0)
+        self.assertEqual(self.mails(self.day + 86400 + 8 * 3600 + 60), 1)
+        self.assertEqual(self.mails(self.day + 86400 + 20 * 3600 + 300), 0)
+
+    def test_nothing_to_review_at_the_chosen_time_sends_nothing_and_the_hour_still_may(self):
+        vs.set_reminder(self.c, 1, {'enabled': True, 'hour': 20})
+        vs.set_once(self.c, 1, {'at': self.day + 12 * 3600}, now=self.now)
+        self.assertEqual(self.mails(self.day + 12 * 3600 + 60), 0)
+        self.assertIsNone(vs.reminder(self.c, 1, self.day + 12 * 3600 + 60)['once'])  # used up all the same
+        self.card('w1', 'review', self.day + 13 * 3600)
+        self.assertEqual(self.mails(self.day + 20 * 3600 + 300), 1)
+
+    def test_a_chosen_time_mails_even_without_the_daily_mail_and_a_long_past_one_is_only_cleared(self):
+        self.card('w1', 'review', self.now - 3600)
+        vs.set_once(self.c, 1, {'at': self.day + 9 * 3600}, now=self.now)
+        self.assertFalse(vs.reminder(self.c, 1, self.now)['enabled'])
+        self.assertEqual(self.mails(self.day + 9 * 3600 + 60), 1)  # asked for just now: it goes
+        vs.set_once(self.c, 1, {'at': self.day + 86400 + 9 * 3600}, now=self.now)
+        self.assertEqual(self.mails(self.day + 86400 + 15 * 3600), 0)  # six hours late (the server was down): not now
+        self.assertIsNone(vs.reminder(self.c, 1, self.day + 86400 + 15 * 3600)['once'])
+
+    def test_only_today_or_tomorrow_and_none_clears_it(self):
+        for at in (self.now + 60, self.now + 3 * 86400, True, 'tonight', [1]):
+            self.assertEqual(vs.set_once(self.c, 1, {'at': at}, now=self.now)[1], 400, at)
+        vs.set_once(self.c, 1, {'at': self.now + 3600}, now=self.now)
+        r, st = vs.set_once(self.c, 1, {'at': None}, now=self.now)
+        self.assertEqual((st, r['once'], r['hour']), (200, None, 20))
+        r, st = vs.post(self.c, 1, '/api/next/vocab/reminder/once', {'at': time.time() + 7200})  # the route the sheet posts to
+        self.assertEqual((st, r['once']), (200, float(int((time.time() + 7200) // 60 * 60))))
+
+    def test_the_calendar_gets_one_event_at_that_time(self):
+        at = int(self.day + 86400 + 8 * 3600)
+        cal = vs.ics(20, at=at)
+        self.assertNotIn('RRULE', cal); self.assertIn(f'UID:flow-vocab-once-{at}@flow', cal)
+        start = datetime.datetime.fromtimestamp(at, datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+        self.assertIn(f'DTSTART:{start}', cal)
+        self.assertIn('RRULE:FREQ=DAILY', vs.ics(20))  # the daily one unchanged
+
 class WordCapTests(unittest.TestCase):
     """r28 section 3 (the owner chose the recommended plan, 2026-11-25): a day of words capped in minutes, reviews most
     at risk first and new words in the time left; after a break the most urgent 40, the rest over 5 days; a finished
