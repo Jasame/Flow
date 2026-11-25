@@ -518,7 +518,7 @@
         '<section class="card"><h2>老师注册链接</h2><p class="muted small">一条链接只能注册一个老师账号，用过就失效；有效期 1–' + TL.max + ' 天。普通注册永远是学生账号。链接只在生成时显示一次（语流只存它的指纹），请马上复制发给老师。</p>' +
           '<form class="toolbar" id="tlF"><input class="input" name="note" maxlength="40" placeholder="备注，如 某中学 王老师" style="width:220px"><label class="muted small">有效 <input class="input" name="days" type="number" min="1" max="30" value="7" style="width:64px"> 天</label><button class="btn primary">生成链接</button></form>' +
           '<p class="err" id="tlErr" hidden></p><div id="tlNew"></div><div id="tlList"><p class="muted">正在加载…</p></div></section>' +
-        '<section class="card">' + (d.items.length ? '<div class="tbl-wrap"><table class="cmp"><thead><tr><th>班级</th><th>老师</th><th class="num">人数</th><th class="num">近 7 天在学</th><th class="num">试用人数</th><th class="num">试用人次</th><th class="num opt" title="近 24 小时从这个班的邀请链接注册的账号 / 上限（80 和班级人数×2 取大）">24 小时经邀请注册</th><th class="opt">邀请码</th><th class="opt">创建</th></tr></thead><tbody>' +
+        '<section class="card">' + (d.items.length ? '<div class="tbl-wrap"><table class="cmp"><thead><tr><th>班级</th><th>老师</th><th class="num">人数</th><th class="num">近 7 天在学</th><th class="num">试用人数</th><th class="num">试用人次</th><th class="num opt" title="近 24 小时从这个班的邀请链接注册的账号 / 上限（80，或加入满 1 天、在班里学过的人数 × 2，取大的）">24 小时经邀请注册</th><th class="opt">邀请码</th><th class="opt">创建</th></tr></thead><tbody>' +
           d.items.map(function (x) {
             return '<tr class="click' + (x.active ? '' : ' dim') + '" data-cid="' + x.id + '" tabindex="0"><td><b>' + esc(x.name) + '</b> ' + (x.active ? '' : '<span class="pill off">已停用</span>') +
               (x.active && !x.ready ? '<span class="pill warn">不满 ' + d.min + ' 人</span>' : '') + '</td>' +

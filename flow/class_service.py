@@ -152,6 +152,17 @@ def _members(c, k):
         'WHERE m.class_id=? AND m.left_at IS NULL AND COALESCE(u.admin,0)=0 AND u.storage_no IS NULL AND m.user_id IS NOT ?', (k['id'], k['teacher']))]
 
 
+def settled(c, cid, now=None):
+    """Members now who joined a day or more ago and studied in the class on at least one day (试用人数's rule): what a
+    class's invite cap grows with (auth_service.class_signups), so accounts just made from the invite do not raise it."""
+    now = now or time.time()
+    k = _class(c, cid)
+    if not k:
+        return 0
+    trial = _trial(c, k['id'])
+    return sum(1 for uid, joined in _members(c, k) if joined <= now - DAY and (uid, k['id']) in trial)
+
+
 def _points(c, members, now, n=5):
     """The grammar points most members got wrong in the last 7 days (after they joined): [{node, title, learners}]."""
     joined = dict(members)

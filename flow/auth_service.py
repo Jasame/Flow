@@ -34,7 +34,7 @@ PER_IP_HOUR=30
 CLASS_CODES_PER_HOUR=120
 SIGNUPS_PER_IP_DAY=60
 # A class code travels (it is posted in class chats): the accounts one class's invite makes in 24 hours are capped at
-# CLASS_SIGNUPS_PER_DAY, or twice the class's members when that is more; at the cap the console's 管理员 get one mail
+# CLASS_SIGNUPS_PER_DAY, or twice the class's settled members (in the class a day and studied there) when that is more; at the cap the console's 管理员 get one mail
 # (a class, a day). class_signups keeps the class and when only (no account, no address), CLASS_SIGNUPS_KEEP_DAYS,
 # for the console's count (语流 A5, 2026-11-25).
 CLASS_SIGNUPS_PER_DAY=80
@@ -74,7 +74,9 @@ def invited_class(c,code):
 def class_signups(c,cid,now=None):
  """(accounts this class's invite made in the last 24 hours, the cap for it)."""
  now=now or time.time()
- members=c.execute('SELECT COUNT(*) FROM class_members WHERE class_id=? AND left_at IS NULL',(cid,)).fetchone()[0] if c.execute("SELECT 1 FROM sqlite_master WHERE name='class_members'").fetchone() else 0
+ # members who have been in the class a day and studied there (class_service.settled), so a batch of accounts made
+ # from a passed-round code does not double tomorrow's cap
+ members=__import__('class_service').settled(c,cid,now) if c.execute("SELECT 1 FROM sqlite_master WHERE name='class_members'").fetchone() else 0
  made=c.execute('SELECT COUNT(*) FROM class_signups WHERE class_id=? AND created>?',(cid,now-86400)).fetchone()[0] if c.execute("SELECT 1 FROM sqlite_master WHERE name='class_signups'").fetchone() else 0
  return made,max(CLASS_SIGNUPS_PER_DAY,2*members)
 

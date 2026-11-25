@@ -152,12 +152,19 @@ class ClassSignupTests(unittest.TestCase):
             self.assertIn('To: boss@example.com', text); self.assertIn('K3ABCD', text); self.assertIn('换一个邀请码', text)
             # the same people without the invite: their network's own limits, as any sign-up
             self.assertEqual(self.sign_up(4, ip='198.51.100.44')[0], 200)
-            # the cap grows with the class: twice its members
+            # the cap grows with the class: twice the members who have been in it a day and studied there (试用人数's
+            # rule), so accounts just made from the invite do not raise it
+            now = time.time()
             with app.db() as c:
                 cid = c.execute("SELECT id FROM classes WHERE code='K3ABCD'").fetchone()[0]
-                for uid in [r[0] for r in c.execute("SELECT id FROM users WHERE username LIKE 'student%'")]:
-                    c.execute('INSERT INTO class_members(user_id,class_id,joined_at) VALUES(?,?,?)', (uid, cid, time.time()))
-                self.assertEqual(auth_service.class_signups(c, cid), (2, 6))
+                uids = [r[0] for r in c.execute("SELECT id FROM users WHERE username LIKE 'student%' ORDER BY id")]
+                for k, uid in enumerate(uids):  # student0, student1, student4: joined 2 days ago, 2 days ago, just now
+                    c.execute('INSERT INTO class_members(user_id,class_id,joined_at) VALUES(?,?,?)', (uid, cid, now - (0 if k == 2 else 2 * 86400)))
+                    c.execute('INSERT OR REPLACE INTO next_progress VALUES(?,?,?,?)', (uid, 'p1', 'read', now - 3600))
+                c.execute('DELETE FROM next_progress WHERE user_id=?', (uids[1],))  # in the class two days, never studied there
+                self.assertEqual(auth_service.class_signups(c, cid), (2, 2))
+                c.execute('INSERT OR REPLACE INTO next_progress VALUES(?,?,?,?)', (uids[1], 'p1', 'read', now - 3600))
+                self.assertEqual(auth_service.class_signups(c, cid), (2, 4))
             self.past_the_minute()
             self.assertEqual(self.sign_up(5, ip='198.51.100.45', **{'class': 'K3ABCD'})[0], 200)
         with app.db() as c:
@@ -165,7 +172,7 @@ class ClassSignupTests(unittest.TestCase):
             self.assertEqual([r[1] for r in c.execute('PRAGMA table_info(class_signups)')], ['class_id', 'created'])
             self.assertEqual(c.execute('SELECT COUNT(*) FROM class_signups').fetchone()[0], 3)
             listed = {x['code']: x for x in __import__('class_service').console_list(c)['items']}
-            self.assertEqual((listed['K3ABCD']['invited_24h'], listed['K3ABCD']['invite_cap']), (3, max(auth_service.CLASS_SIGNUPS_PER_DAY, 6)))
+            self.assertEqual((listed['K3ABCD']['invited_24h'], listed['K3ABCD']['invite_cap']), (3, max(auth_service.CLASS_SIGNUPS_PER_DAY, 4)))
             self.assertEqual(listed['OLD123']['invited_24h'], 0)
 
     def test_a_code_asked_for_from_a_class_that_stops_is_no_invite_any_more(self):
