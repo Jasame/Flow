@@ -892,6 +892,129 @@ IOS_AUDIO_FAKE = """(() => {
 })();"""
 
 
+# 语流's iOS / Android app as the page sees it (docs/native-bridge.md §2–3): the apps' own native/flowapp.js behind a
+# made-up transport that writes down every command and answers like the app (what it plays survives a reload, in
+# localStorage); the test sends the app's news (FlowApp._emit) itself.
+APP_AUDIO_FAKE = """(() => {
+  const KEEP = 'ui-fake-app';
+  const st = () => { try { return JSON.parse(localStorage.getItem(KEEP)) || {}; } catch (e) { return {}; } };
+  const put = o => localStorage.setItem(KEEP, JSON.stringify(Object.assign(st(), o)));
+  window.__cmds = []; window.__fakeApp = { st, put }; window.__said = [];
+  if (window.speechSynthesis) { const s = speechSynthesis.speak.bind(speechSynthesis); speechSynthesis.speak = u => { if (u && u.text && u.text.trim()) window.__said.push(u.text); return s(u); }; }
+  window.__flowAppTransport = {
+    cfg: { v: 1, app: '1.0.0', build: 'ui', beta: true, platform: 'ios', features: ['audio'] },
+    send(cmd, args) {
+      window.__cmds.push([cmd, args]);
+      const s = st();
+      if (cmd === 'audio.play') {
+        put({ playing: { key: args.key, state: 'playing', i: args.from || 0, n: (args.texts || args.sentences || []).length, title: args.title } });
+        return Promise.resolve({ ok: true, state: 'playing' });
+      }
+      if (cmd === 'audio.state') return Promise.resolve(s.playing || { state: 'idle' });
+      if (cmd === 'audio.progress') return Promise.resolve((s.progress || {})[args.key] || null);
+      if (cmd === 'audio.resume') return Promise.resolve(Object.assign({ ok: true }, s.playing || {}));
+      return Promise.resolve({ ok: true });
+    },
+  };
+})();
+""" + (Path(__file__).resolve().parents[1] / 'native' / 'flowapp.js').read_text()
+
+
+def app_audio_run(pw):
+    """In 语流's iOS / Android app (window.FlowApp has 'audio'), 听's 播放全文 and 读's 伴读 are played by the app: the page
+    sends play / pause / set and follows the app's news: the button, the mini player, the lit sentence and where it got
+    to (PROG). Loaded again while the app plays, the page takes the text back without starting it over; the app's newer
+    place counts, its 读完 clears this phone's (docs/native-bridge.md §3; 语流 B3's review of PR #152)."""
+    dev = 'app-audio'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    try:
+        ctx = browser.new_context(**DEVICES['phone'], locale='zh-CN', bypass_csp=True, service_workers='block')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['app-audio']['token'], 'url': BASE}])
+        ctx.add_init_script(APP_AUDIO_FAKE)
+        pg = ctx.new_page(); errs = []; tts = []
+        pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        pg.on('request', lambda r: tts.append(r.url) if '/api/next/tts' in r.url else None)
+        key = f'listen:{PID}'
+        cmds = lambda: pg.evaluate('window.__cmds.map(c => c[0])')
+        last = lambda name: pg.evaluate("n => { const c = window.__cmds.filter(x => x[0] === n); return c.length ? c[c.length - 1][1] : null; }", name)
+        emit = lambda typ, d: pg.evaluate('([t, d]) => FlowApp._emit(t, d)', [typ, d])
+        prog = lambda k=key: pg.evaluate("k => { const p = JSON.parse(localStorage.getItem('flow-progress') || '{}')[k]; return p ? p.i : null; }", k)
+        btn = lambda sel='#playAll': (pg.text_content(sel) or '').strip()
+        mini = lambda: pg.evaluate("(() => { const m = document.querySelector('.mini-player'); return m && !m.hidden ? m.querySelector('.lbl').textContent : null; })()")
+        lit = lambda: pg.evaluate("(() => { const l = document.querySelector('.line.now'); return l ? l.dataset.i : null; })()")
+        listen = lambda: (go(pg, f'#/m/{PID}/listen'), pg.wait_for_selector('#playAll'), pg.wait_for_timeout(400))
+
+        pg.goto(BASE + '/', wait_until='load'); settle(pg)
+        listen()
+        n = pg.evaluate("document.querySelectorAll('.line[data-i]').length")
+        pg.click('#playAll'); pg.wait_for_timeout(300)
+        play = last('audio.play')
+        check(dev, '播放全文: the app plays it (audio.play with the key, the sentences, 复读 and 语速)',
+              bool(play) and play.get('key') == key and play.get('from') == 0 and bool(play.get('texts') or play.get('sentences'))
+              and play.get('rate') == 1 and 'rep' in play and len(play.get('gap') or []) == n, play)
+        check(dev, '播放全文: the page plays nothing itself (no server voice asked, no browser voice)', not tts and not pg.evaluate('window.__said.length'), tts[:3])
+        emit('audio', {'key': key, 'state': 'playing', 'i': 2, 'n': n, 'title': 't'}); pg.wait_for_timeout(200)
+        check(dev, "the app's news moves the page: 暂停 on the button, 第 3 句 on the mini player, that line lit, 第 3 句 kept",
+              btn().endswith('暂停') and (mini() or '').startswith('第 3 /') and lit() == '2' and prog() == 2, (btn(), mini(), lit(), prog()))
+        pg.evaluate("k => FlowApp._emit('audio-tick', { key: k, i: 3, t: 12.5, at: Date.now(), rate: 1 })", key); pg.wait_for_timeout(200)
+        check(dev, 'a tick from the next sentence moves the page on too (第 4 句)', (mini() or '').startswith('第 4 /') and lit() == '3' and prog() == 3, (mini(), lit(), prog()))
+        # the app reads a sentence in the phone's own voice (offline): the page says why, as everywhere on the site, once
+        pg.evaluate(TOASTS_JS)
+        emit('audio', {'key': key, 'state': 'playing', 'i': 3, 'n': n, 'title': 't', 'fail': {'code': 'offline', 'server': ''}}); pg.wait_for_timeout(200)
+        line = (pg.text_content('#lsPrep') or '').strip() if pg.is_visible('#lsPrep') else ''
+        emit('audio', {'key': key, 'state': 'playing', 'i': 3, 'n': n, 'title': 't', 'fail': {'code': 'offline', 'server': ''}}); pg.wait_for_timeout(200)
+        said = [x for x in (pg.evaluate('window.__toasts') or []) if x.startswith('离线中')]
+        check(dev, "the app fell back to the phone's voice (offline): the line under 播放全文 and one toast say why",
+              line.startswith('离线中，这句还没存到本机') and len(said) == 1, (line, said))
+        emit('audio', {'key': key, 'state': 'playing', 'i': 3, 'n': n, 'title': 't'}); pg.wait_for_timeout(200)
+        check(dev, 'the next sentence in the AI voice again: the line goes', not pg.is_visible('#lsPrep') or not (pg.text_content('#lsPrep') or '').strip(), pg.text_content('#lsPrep'))
+        pg.evaluate("document.querySelector('.playset').open = true")  # 语速 and 复读 sit in 播放设置
+        pg.click('[data-rate="0.75"]'); pg.wait_for_timeout(200)
+        s = last('audio.set')
+        check(dev, '语速 0.75× while the app plays: it gets it at once (audio.set)', bool(s) and s.get('rate') == 0.75, s)
+        pg.click('[data-rate="1"]'); pg.wait_for_timeout(100)
+        pg.click('#playAll'); pg.wait_for_timeout(200)
+        check(dev, '暂停 goes to the app, the button says 继续', 'audio.pause' in cmds()[-2:] and btn().endswith('继续'), (cmds()[-3:], btn()))
+        pg.click('#playAll'); pg.wait_for_timeout(200)
+        check(dev, '继续 goes to the app', 'audio.resume' in cmds()[-2:] and btn().endswith('暂停'), (cmds()[-3:], btn()))
+
+        # loaded again while the app plays on (第 5 句): the page keeps that place and takes the text back, no new start
+        pg.evaluate(f"k => window.__fakeApp.put({{ playing: {{ key: k, state: 'playing', i: 4, n: {n}, title: 't' }} }})", key)
+        pg.reload(wait_until='load'); settle(pg); pg.wait_for_selector('#playAll'); pg.wait_for_timeout(500)
+        check(dev, 'loaded again while the app plays: the mini player is back on 第 5 句, and so is the kept place',
+              (mini() or '').startswith('t · 第 5 /') and prog() == 4 and btn().endswith('从第 5 句继续'), (mini(), prog(), btn()))
+        emit('audio', {'key': key, 'state': 'playing', 'i': 5, 'n': n, 'title': 't'}); pg.wait_for_timeout(200)
+        check(dev, '…and while the app reads on, the button follows it (从第 6 句继续)', btn().endswith('从第 6 句继续') and prog() == 5 and (mini() or '').startswith('t · 第 6 /'), (btn(), prog(), mini()))
+        pg.click('#playAll'); pg.wait_for_timeout(300)
+        after = cmds()
+        check(dev, "…and 播放全文 takes the app's text back: no new audio.play, 复读 and 语速 sent, 暂停, 第 6 句 lit",
+              'audio.play' not in after and 'audio.set' in after and btn().endswith('暂停') and lit() == '5', (after, btn(), lit()))
+        emit('audio', {'key': key, 'state': 'idle', 'why': 'ended', 'i': n - 1, 'n': n}); pg.wait_for_timeout(200)
+        check(dev, 'read to the end: the kept place cleared, the mini player gone, 播放全文 again',
+              prog() is None and mini() is None and btn().endswith('播放全文'), (prog(), mini(), btn()))
+
+        # the app played on while this page slept: its newer place counts; its 读完 clears this phone's
+        k = max(1, n - 2)
+        pg.evaluate("([key, k]) => { window.__fakeApp.put({ playing: null, progress: { [key]: { i: k, t: 30, at: Date.now() } } });"
+                    " const o = JSON.parse(localStorage.getItem('flow-progress') || '{}'); o[key] = { i: 1, at: Date.now() - 60000 };"
+                    " localStorage.setItem('flow-progress', JSON.stringify(o)); }", [key, k])
+        pg.reload(wait_until='load'); settle(pg); pg.wait_for_selector('#playAll'); pg.wait_for_timeout(500)
+        check(dev, f"the app's newer place counts: 从第 {k + 1} 句继续", btn().endswith(f'从第 {k + 1} 句继续') and prog() == k, (btn(), prog()))
+        pg.evaluate("key => window.__fakeApp.put({ progress: { [key]: { i: 0, ended: true, at: Date.now() } } })", key)
+        pg.reload(wait_until='load'); settle(pg); pg.wait_for_selector('#playAll'); pg.wait_for_timeout(500)
+        check(dev, "the app read it to the end since: 播放全文 again", btn().endswith('播放全文') and prog() is None, (btn(), prog()))
+
+        # 读's 伴读 goes to the app the same way
+        go(pg, f'#/m/{PID}/read'); pg.wait_for_selector('#readAlong'); pg.wait_for_timeout(300)
+        pg.click('#readAlong'); pg.wait_for_timeout(600)
+        p = last('audio.play')
+        check(dev, '伴读: the app plays it too', bool(p) and p.get('key') == f'read:{PID}' and btn('#readAlong').endswith('暂停'), (p and p.get('key'), btn('#readAlong')))
+        check(dev, 'no server voice asked, no browser voice, no script errors', not tts and not pg.evaluate('window.__said.length') and not errs, (tts[:3], errs[:3]))
+        ctx.close()
+    finally:
+        browser.close()
+
+
 def ios_audio_run(pw):
     """iPhone (Safari / the home-screen app): a word, an example sentence and the learner's recording play on Web Audio
     from their first sound, under a 'playback' audio session (the ringer switch does not mute it) and named 「语流 · …」
@@ -3697,6 +3820,12 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('ios-audio', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'app-audio' in ONLY:
+            try:
+                app_audio_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('app-audio', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'ux' in ONLY:
             try:
                 ux_run(pw)
