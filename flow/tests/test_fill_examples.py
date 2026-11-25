@@ -253,6 +253,16 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual([(x['norm'], x['why']) for x in lines], [(w0, '嘲笑精神状况')])
         self.assertEqual(asked[0], 'review')
 
+    def test_a_flag_whose_own_why_clears_it_is_no_flag(self):
+        # 2026-11-26 on 语流: denigrate came back flagged with a why saying it does not count
+        rows = [{'norm': f'w{k}', 'sentence': 's', 'translation': 't'} for k in range(1, 9)]
+        whys = ['嘲笑精神状况', '只是提到疾病，不列入', '不属偏见，只是中性描述', '无明显偏见', '说法中性尊重',
+                '把农村人写得愚昧，不够中性', '刻板地描写某国人', '并非歧视']
+        got = fill_examples.flagged({'flag': [{'id': k, 'why': w} for k, w in enumerate(whys, 1)]}, rows)
+        self.assertEqual([(r['norm'], why) for r, why in got],
+                         [('w1', '嘲笑精神状况'), ('w6', '把农村人写得愚昧，不够中性'), ('w7', '刻板地描写某国人')])
+        self.assertEqual(fill_examples.flagged({'flag': ['x', {'id': 2}]}, rows), [(rows[1], '')])  # no why: still a flag
+
     def test_a_dry_run_review_only_counts(self):
         vs.save_examples(self.c, {'mouse': {'sentence': 'The crazy mouse runs.', 'translation': '疯狂的老鼠在跑。'}})
         with patch('chat_service.request_model', side_effect=AssertionError('no call in a dry run')):
