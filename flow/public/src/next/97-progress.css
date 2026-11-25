@@ -5,7 +5,7 @@
 /* four numbers side by side down to a 360 px phone: no boxes around them, thin rules between, labels of five characters */
 .week-card{display:grid;gap:10px;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;padding:14px 16px 12px;margin:0;
   background:var(--paper);border:0;border-radius:var(--r);box-shadow:none;-webkit-tap-highlight-color:transparent;transition:background .15s}
-.week-card:hover{background:color-mix(in srgb,var(--paper) 88%,var(--green-soft))}
+.week-card:hover{background:var(--sunk);background:color-mix(in srgb,var(--paper) 88%,var(--green-soft))}
 .week-card:active{transform:scale(.995)}
 .wk-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 .wk-head b{font-size:15.5px}
