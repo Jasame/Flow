@@ -35,6 +35,9 @@ app.DB = Path(tmp) / 'flow.sqlite3'
 # domain itself; the test intercepts that address. Other materials have narration only as before (audio/index.json).
 MEDIA_PID = 'v5-culture-c1-lighthouse-ledger-3'
 os.environ['FLOW_MEDIA_BASE'] = 'http://127.0.0.1:9'
+# 更新记录 (updates_service.py): none here, so 今日's notice slot shows what the other runs expect; updates_run gives
+# the page its own data through the browser
+os.environ['FLOW_UPDATES_FILE'] = os.path.join(tmp, 'no-updates.json')
 import media  # noqa: E402
 media.MANIFEST = Path(tmp) / 'media-manifest.json'
 # Narration this server has (the WeChat run's FLOW_AUDIO_DIR=tools/ui-fixtures/audio) stays listed, sent from here.

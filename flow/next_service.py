@@ -879,7 +879,8 @@ def home(c, uid, level=None, themes=None):
            'featured_left': left if uid else None, 'level_up': up,
            'stats': stats(c, uid) if uid else None, 'graph': g,
            'announce': __import__('console_ops').current_announcement(c),
-           'trial_survey': bool(uid) and __import__('class_service').survey_due(c, uid)}  # 公告 from the xmc.hk console, at the top of 今日
+           'trial_survey': bool(uid) and __import__('class_service').survey_due(c, uid),  # 公告 from the xmc.hk console, at the top of 今日
+           'update': __import__('updates_service').latest()}  # 「语流更新了」 on 今日: the newest release's highlights (updates_service.py)
     if uid and prof:
         import skills_service as sk
         out['sprint'] = __import__('exam_sprint').brief(c, uid)  # 考试冲刺: the exam and its days left, in the plan's header line
@@ -1619,6 +1620,8 @@ def get(c, uid, path, q):
         return cs.mine(c, uid) if path == '/api/next/class' else cs.teach(c, uid, one('id'))
     if path == '/api/next/guide':
         return __import__('user_guide').api(), 200
+    if path == '/api/next/updates':
+        return __import__('updates_service').listing(), 200  # 更新记录 (#/updates)
     if path == '/api/next/meta':
         return meta(), 200
     if path == '/api/next/home':

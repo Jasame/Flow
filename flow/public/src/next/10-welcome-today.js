@@ -185,9 +185,11 @@
     document.getElementById('annOk').onclick = seen;
     const go = box.querySelector('a'); if (go) go.addEventListener('click', () => save('flow-announce-seen', h.announce.id));
   }
-  // One notice at a time under the plan, the most useful first: sign in (guest), a level that fits better, an email
-  // for getting back in, then the guide for the first few days. Putting one off brings up the next.
+  // One notice at a time under the plan, the most useful first: 「语流更新了」 once per release (83-updates.js), sign in
+  // (guest), a level that fits better, an email for getting back in, then the guide for the first few days. Putting one
+  // off brings up the next.
   function noticeHTML(h) {
+    if (updateCardDue(h)) return updateCardHTML(h);
     if (!S.user) return `<div class="card sunk section notice stack-s"><b>登录后，进度和收藏的表达会保存下来</b><span class="muted small">不登录也可以听、读和做理解题。</span><div><button class="btn small" id="loginCta" data-tap="notice-login">登录 / 注册</button></div></div>`;
     if (h.suggest && Date.now() - (load('flow-next-suggest-skip') || 0) > 7 * 864e5) return suggestHTML(h.suggest);
     const lg = levelGuessHTML(h); if (lg) return lg;  // 09-start.js: a level guessed from the target, no test yet
@@ -213,6 +215,7 @@
     const slot = document.getElementById('notice'); if (!slot) return;
     slot.innerHTML = noticeHTML(h);
     const cta = document.getElementById('loginCta'); if (cta) cta.onclick = () => openLogin();
+    bindUpdateCard(h, () => fillNotice(h));
     if (h.suggest) bindSuggest(h, () => fillNotice(h));
     bindLevelGuess(() => fillNotice(h));
     bindMailNudge(() => fillNotice(h));

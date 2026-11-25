@@ -131,6 +131,7 @@ FLOW_FILES=(
   corpus_data/pilot/pilot-001-audio.json
   corpus_data/revised-packs.json
   corpus_data/shadow-eval.json
+  corpus_data/updates.json
   corpus_data/v5/SPEC.md
   corpus_data/v5/campus.A2.2.json
   corpus_data/v5/campus.A2.3.json
@@ -300,6 +301,7 @@ FLOW_FILES=(
   teacher_service.py
   time_budget.py
   tts_service.py
+  updates_service.py
   user_guide.py
   vertex_auth.py
   vertex_native.py

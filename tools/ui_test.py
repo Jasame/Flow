@@ -2146,6 +2146,82 @@ def trial_survey_run(pw):
         browser.close()
 
 
+def updates_run(pw):
+    """更新记录: 今日's 「语流更新了」 is the first notice, once per release on a phone that saw an earlier one; 「知道了」 and
+    「查看全部」 both put it away; a phone new to 语流 just notes the release; at 360 px it fits without sideways scroll and
+    takes well under a screen; 我的 → 帮助 opens the record, newest first, under 新功能 / 改进 / 修好的问题."""
+    dev = 'updates'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=['--mute-audio'])
+    # service workers blocked: page.route sees the page's own requests only when no worker answers them
+    phone = dict(viewport={'width': 360, 'height': 740}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', service_workers='block')
+    cookie = [{'name': 'flow_session', 'value': CFG['learners']['veteran']['token'], 'url': BASE}]
+    release = {'id': 't1'}
+    data = {'released': [
+        {'id': 't2', 'date': '2026-11-26', 'label': '11 月 26 日晚上', 'new': ['今日计划多了一步。'], 'better': ['朗读更自然了。'], 'fixed': ['修好了一个按钮。'], 'note': '某个练习暂时停用。'},
+        {'id': 't1', 'date': '2026-11-25', 'label': '11 月 25 日下午', 'new': ['每天一份考试小练。'], 'better': [], 'fixed': ['同时保存两次不再出错。']}],
+        'beta': None}
+
+    def home(route):
+        resp = route.fetch()
+        body = resp.json()
+        e = next(x for x in data['released'] if x['id'] == release['id'])
+        body['update'] = {'id': e['id'], 'label': e['label'], 'highlights': ['第一条要点', '第二条要点，写得长一些看看会不会换行', '第三条要点']}
+        route.fulfill(response=resp, json=body)
+
+    def wire(pg):
+        pg.route('**/api/next/home*', home)
+        pg.route('**/api/next/updates', lambda r: r.fulfill(json=data))
+
+    def card(pg):
+        pg.goto(BASE + '/#/', wait_until='networkidle'); pg.reload(wait_until='networkidle'); settle(pg); pg.wait_for_timeout(400)
+        return pg.evaluate("""() => { const c = document.getElementById('updCard'); if (!c) return null; const r = c.getBoundingClientRect();
+            return {text: c.textContent, items: c.querySelectorAll('li').length, h: Math.round(r.height), vh: innerHeight,
+                    wide: document.documentElement.scrollWidth > innerWidth + 1, first: document.querySelector('#notice > *') === c}; }""")
+    try:
+        errs = []
+        ctx = browser.new_context(**phone); ctx.add_cookies(cookie)
+        pg = ctx.new_page(); pg.on('pageerror', lambda e: errs.append(str(e))); wire(pg)
+        # a phone that opened an earlier release
+        pg.goto(BASE + '/#/', wait_until='networkidle'); pg.evaluate("() => localStorage.setItem('flow-update-seen', JSON.stringify('t0'))")
+        c = card(pg)
+        pg.evaluate("() => { const c = document.getElementById('updCard'); if (c) c.scrollIntoView({ block: 'center' }); }")
+        pg.screenshot(path=str(OUT / 'updates-today-card.png'))
+        check(dev, '今日: 「语流更新了」, first in the one notice slot, with its highlights', bool(c) and '语流更新了' in c['text'] and c['items'] == 3 and c['first'], c)
+        check(dev, '360 px: the card fits, no sideways scroll, well under a screen', bool(c) and not c['wide'] and c['h'] < c['vh'] * 0.45, c and (c['h'], c['vh'], c['wide']))
+        pg.click('#updOk'); pg.wait_for_timeout(200)
+        gone = pg.query_selector('#updCard') is None
+        check(dev, '「知道了」 puts it away, the same release does not come back', gone and card(pg) is None)
+        release['id'] = 't2'
+        c = card(pg)
+        check(dev, 'the next release shows once more', bool(c) and '11 月 26 日晚上' in c['text'], c)
+        pg.click('#updAll'); pg.wait_for_selector('.upd-page', timeout=8000)
+        page = pg.evaluate("""() => ({h: [...document.querySelectorAll('.upd h2')].map(x => x.textContent),
+            groups: [...document.querySelectorAll('.upd')][0].querySelectorAll('.upd-h').length, note: !!document.querySelector('.upd-note'),
+            wide: document.documentElement.scrollWidth > innerWidth + 1, beta: !!document.querySelector('.upd-beta')})""")
+        pg.screenshot(path=str(OUT / 'updates-page.png'), full_page=True)
+        check(dev, '更新记录: newest first, 新功能 / 改进 / 修好的问题 and the note, no 内测中 on 语流, no sideways scroll',
+              page['h'] == ['11 月 26 日晚上', '11 月 25 日下午'] and page['groups'] == 3 and page['note'] and not page['beta'] and not page['wide'], page)
+        check(dev, '「查看全部」 marks it seen: 今日 does not offer it again', card(pg) is None)
+        pg.goto(BASE + '/#/me', wait_until='networkidle'); settle(pg)
+        row = pg.query_selector('#view a[href="#/updates"]')
+        check(dev, '我的 → 帮助 has 更新记录', bool(row) and '更新记录' in (row.text_content() or ''), row and row.text_content())
+        ctx.close()
+        # a learner who has studied (小林, the guide's pictures), on a phone that has noted no release yet: it shows
+        ctx = browser.new_context(**phone); ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['guide']['token'], 'url': BASE}])
+        pg = ctx.new_page(); pg.on('pageerror', lambda e: errs.append(str(e))); wire(pg)
+        c = card(pg)
+        check(dev, 'a learner who has studied, nothing noted on this phone yet: the card shows', bool(c) and '11 月 26 日晚上' in c['text'], c)
+        ctx.close()
+        # someone new to 语流: nothing new to them, so no card
+        ctx = browser.new_context(**phone)
+        pg = ctx.new_page(); pg.on('pageerror', lambda e: errs.append(str(e))); wire(pg)
+        check(dev, 'someone new to 语流: no card', card(pg) is None)
+        ctx.close()
+        check(dev, 'no page errors', not errs, errs[:3])
+    finally:
+        browser.close()
+
+
 def a11y_run(pw):
     dev = 'a11y'
     browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
@@ -3399,6 +3475,12 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('trial-survey', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'updates' in ONLY:
+            try:
+                updates_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('updates', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'privacy' in ONLY:
             try:
                 privacy_run(pw)
