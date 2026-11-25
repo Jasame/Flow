@@ -161,4 +161,30 @@ speaking、pending 照实；2.5 秒内一定发 start；getVoices() 有带 lang 
 
 ### 桌面（语流 22，`desktop/`）
 
-（语流 22 写：Tauri invoke 和事件、`media` 的实现、通知、静音开关。）
+Tauri 2，一套代码出 Windows（WebView2）和 macOS（WKWebView）；说明在 `desktop/README.md`。
+
+- 注入：`initialization_script`，document start；脚本开头先对 `location.origin`，不是本站就什么都不挂。文件 `desktop/src-tauri/src/bridge.js`。
+  `FlowApp` 冻结；`build` 是构建的提交（CI 的 GITHUB_SHA 前 7 位，本机构建是 `"dev"`）。
+- 传输：网页 → App 用 Tauri 的 invoke（`window.__TAURI_INTERNALS__`，网页不要直接用）。
+  只有本站两个 origin 能调，而且只能调 `media_update`、`notify_*`、`smoke_report` 这几条（`capabilities/site.json`，每条命令各有权限）。
+  App → 网页：`webview.eval("FlowApp._media(action)")` 和 `FlowApp._emit(type, detail)`。别的网站、`.ics`、`mailto:` 交给系统打开，从不在窗口里加载。
+- media：bridge.js 包住 `navigator.mediaSession`（metadata、setActionHandler、playbackState）和 `HTMLMediaElement.play`，用来拿位置和时长（≥ 20 秒才给系统时间轴）。
+  原生用 souvlaki 交给 Windows SMTC、macOS MPNowPlayingInfoCenter / MPRemoteCommandCenter。按键对应的动作：
+  - 播放/暂停键：按 playbackState 选 pause 或 play；
+  - 上一首、下一首：previoustrack、nexttrack；
+  - 网页没登记的动作：不做任何事。
+  
+  WebView2 关掉 HardwareMediaKeyHandling，免得网页和 App 同时响应一次按键。
+- notify：规则照第 5 节，和 iOS `ReminderPlan` 一一对应（`desktop/src-tauri/src/schedule.rs`，单元测试有对应的例子）。
+  - 数据：bridge.js 在页面里 `fetch('/api/next/vocab')`，带页面的 cookie，把整份交给 App。时机：App 打开、回到前台（最多 30 分钟一次）、网页调 `sync(r)`。401 = 退出登录，撤掉单词提醒。
+  - macOS：UNCalendarNotificationTrigger。
+  - Windows：ScheduledToastNotification。AUMID 就是 bundle id，安装程序放在开始菜单快捷方式上；点通知走 `flowlang://review` 或 `flowlang://open`（内测版是 `flowlang-beta://`），App 没开也能打开。
+  - App 关着时，提醒由系统按时弹出。
+  - Windows 在第一次弹通知之前读不到设置，permission 返回 `'undetermined'`，不算拒绝；ask() 不弹框。
+  - 「每天的计划」（plan）：字段保留了；桌面的 `.ics` 链接还是交给系统日历。
+- 不做：`audio`、`rec`、`speech`。桌面网页本来就能放声音、getUserMedia，麦克风只给本站。
+- 静音开关：环境变量 `FLOW_MUTE=1`。冒烟测试 `--smoke-test=<file>` 一律静音：网页的 `<audio>` 静音，Web Audio 接一个音量为 0 的节点，speechSynthesis 音量 0，通知不带声音。
+- 测试：
+  - Rust 单元测试；
+  - `--smoke-test=<file>` 在页面里检查第 1–2 节的形状，`desktop/tools/check_smoke.py` 判定；
+  - CI `.github/workflows/desktop.yml` 在 windows-latest（装好 NSIS 安装包后）和 macos-latest 上各跑一次。Windows 上加了 `FLOW_SMOKE_NOTIFY=1`，真的排提醒、弹一条测试通知，之后清掉；冒烟测试从不改学员的设置。
