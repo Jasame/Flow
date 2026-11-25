@@ -767,3 +767,10 @@
   - #365 ios_sim_check：今日好句的检查跟上「公版名句」标签和可折叠的卡片（网站其他）
 - 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45676754855
+
+### b95 · 2026-11-26 02:58
+- main `0ac1961`，构建 `edef30d`
+- 新合并的 PR（自 b94 起）：
+  - #370 没网时朗读不再先问服务器：本机存着就直接用，没有就马上「离线中」改用浏览器的声音（听和说）
+- 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45680335676
