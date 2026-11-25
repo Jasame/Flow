@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=语流
+Comment=语流 Flow 的电脑版：听、读、单词和口语练习
+Exec={{exec}} %u
+StartupWMClass={{exec}}
+Icon={{icon}}
+Categories=Education;Languages;
+Terminal=false
+MimeType=x-scheme-handler/flowlang;
