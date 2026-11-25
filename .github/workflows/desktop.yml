@@ -60,17 +60,16 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: desktop/package-lock.json
-      # WebKitGTK and the tray library for the app; GStreamer, which the AppImage carries for audio (bundleMediaFramework);
-      # xvfb, a D-Bus session and ImageMagick's import for the smoke test. MPRIS and notifications go through zbus (Rust).
+      # WebKitGTK and the tray library for the app; GStreamer's plugins, which WebKitGTK loads at run time and the AppImage
+      # carries (bundleMediaFramework); xvfb, a D-Bus session and ImageMagick's import for the smoke test. No GStreamer
+      # dev packages: nothing links against GStreamer, and on this image they clash with its libunwind-14-dev ("held broken
+      # packages", PR #310's first run). MPRIS and notifications go through zbus (Rust). (语流 C3)
       - name: Linux packages
         if: matrix.name == 'linux'
         run: |
           sudo apt-get update -qq
-          # the image's LLVM brings libunwind-14-dev, which GStreamer's dev packages (libunwind-dev) cannot sit beside:
-          # apt gives up with "held broken packages" (first Linux run, PR #310)
-          if dpkg -s libunwind-14-dev >/dev/null 2>&1; then sudo apt-get remove -y -qq libunwind-14-dev; fi
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf \
-            libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-good gstreamer1.0-libav \
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf \
+            gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-libav \
             xvfb dbus-x11 imagemagick
       - name: Rust
         run: |
