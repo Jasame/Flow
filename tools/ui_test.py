@@ -1291,6 +1291,12 @@ def ux_run(pw):
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a2']['token'], 'url': BASE}])
         ctx.add_init_script(FAKE_TTS)
         pg = ctx.new_page(); pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+        # the server out of order with no message of ours (nginx's 502 page while it restarts): plain words, no status code
+        pg.route('**/api/next/report*', lambda r: r.fulfill(status=502, content_type='text/html', body='<html><body><h1>502 Bad Gateway</h1>nginx</body></html>'))
+        go(pg, '#/report'); pg.wait_for_selector('#view .empty', timeout=5000)
+        said = pg.text_content('#view .empty') or ''
+        check(dev, 'a server error without a message of ours reads 「服务暂时有点忙，请稍后重试」, no status code', '服务暂时有点忙' in said and '502' not in said and '请求失败' not in said, said[:80])
+        pg.unroute('**/api/next/report*')
         # 复读: 3 遍, no pause: one tap on a sentence says it three times. The server voice is off on this page (the server's
         # own answer when it is), so the browser voice, faked to end at once, says it and the three times can be counted
         pg.route('**/api/next/tts', lambda r: r.fulfill(status=503, json={'error': '服务器朗读没有开启', 'code': 'off'}))
