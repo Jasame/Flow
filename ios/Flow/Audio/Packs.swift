@@ -134,13 +134,15 @@ final class Packs {
         busy = true
         defer { busy = false }
         lastRun = Date()
+        note = "正在看今天要学哪几篇…"
         do {
             let home = try await site.json("/api/next/home")
             let ids = Self.todaysTexts(home)
             let voice = ((home["profile"] as? [String: Any])?["voice"] as? String) ?? UserDefaults.standard.string(forKey: "packs.voice") ?? "us-f"
             var got = 0
-            for id in ids {
+            for (n, id) in ids.enumerated() {
                 guard Features.on(.offlinePacks), !Task.isCancelled else { break }
+                note = "正在存第 \(n + 1) / \(ids.count) 篇…"
                 if try await keep(id, voice: voice, site: site) { got += 1 }
             }
             prune(today: ids)
