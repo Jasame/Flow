@@ -43,7 +43,7 @@
     try {
       const r = await api('/api/next/explain', { pack, sentence, request_id: rid('nx') });
       const x = r.result;
-      openSheet(`<div class="stack explain enter"><div class="row between"><div class="kicker">AI 讲解</div><button class="icon-btn" id="sayS" aria-label="朗读">${ICON.speak}</button></div>
+      openSheet(`<div class="stack explain enter"><div class="row between"><div class="kicker">AI 讲解</div>${aiTag()}<button class="icon-btn" id="sayS" aria-label="朗读">${ICON.speak}</button></div>
         <div class="text" id="sheetTitle">${esc(sentence)}</div>
         <div class="tr">${esc(x.translation)}</div>${x.structure ? `<div class="small muted">${esc(x.structure)}</div>` : ''}
         ${x.points.map(p => `<div class="pt"><b>${esc(p.text)}</b><span class="small">${esc(p.note)}</span>${p.node ? `<span>${nodeChip({ id: p.node, title: p.node_title || p.node, status: 'met' })}</span>` : ''}</div>`).join('')}
