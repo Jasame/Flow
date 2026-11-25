@@ -34,7 +34,7 @@
             ${c.good ? `<div class="tiny"><span class="ok-mark" aria-hidden="true">✓</span> ${esc(c.good)}</div>` : ''}${c.next ? `<div class="tiny"><span class="up" aria-hidden="true">↑</span> ${esc(c.next)}</div>` : ''}</div>`).join('')}</div>
         ${said}
         ${r.model ? `<details class="card flat fold" open><summary><b class="small">示范回答${r.model_q ? '：' + esc(r.model_q) : ''}</b></summary><div class="stack-s">
-          <div class="row"><button class="btn small" id="ieModel" type="button">${ICON.speak.replace('<svg', '<svg width="16" height="16"')}<span>朗读</span></button><span class="tiny muted">AI 写的示范，学说法，不用背</span></div>
+          <div class="row"><button class="btn small" id="ieModel" type="button" aria-label="朗读示范（AI 朗读）">${ICON.speak.replace('<svg', '<svg width="16" height="16"')}<span>朗读</span></button><span class="tiny muted">AI 写的示范，学说法，不用背 · ${aiVoiceNote('AI 朗读', 'span', 'in')}</span></div>
           <p class="text ielts-model">${esc(r.model)}</p></div></details>` : ''}
         ${r.fixes.length ? `<div class="stack-s"><b>要改的地方</b>${fixesHTML(r.fixes)}</div>` : ''}
         <div class="row"><button class="btn" id="ieAgain" type="button">再练一次</button><a class="btn primary" href="#/speak/ielts">换一个</a></div></div>`;
@@ -53,7 +53,7 @@
     const answers = [];
     let q = 0;
     view.innerHTML = `${IELTS_BACK}<div class="stack"><div><span class="kicker">雅思口语 Part 1 · 练习</span><h1 class="h1">${esc(x.title)}</h1><div class="title-en">${esc(x.title_en)}</div>
-        <div class="ai-line">${aiVoice()}<span>考官的声音由 AI 合成</span></div><p class="small">考官一题一题问，不会打断你。每题说 2–4 句：先直接回答，再加一个理由或例子。可以说，也可以打字（打字不评发音）。</p></div>
+        <div class="ai-line">${aiVoiceNote('考官的声音由 AI 合成', 'span')}</div><p class="small">考官一题一题问，不会打断你。每题说 2–4 句：先直接回答，再加一个理由或例子。可以说，也可以打字（打字不评发音）。</p></div>
       <div class="chat" id="chat"></div>
       <div id="ieIn" class="stack-s" hidden><div class="tiny muted" id="ieQn"></div>
         <div class="chat-in"><textarea id="ieText" rows="2" maxlength="600" lang="en" enterkeyhint="send" placeholder="用英文回答，或者点 ● 说出来"></textarea>${recBtn('ieMic', '说出来')}<button class="btn primary" id="ieSend">发送</button></div>

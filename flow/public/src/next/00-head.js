@@ -18,8 +18,15 @@
   // 「AI 生成」标识（2026-11-25，《人工智能生成合成内容标识办法》）：AI 写的、给学员看的内容都带它，样式在 99-ai-mark.css。
   // aiMark(note)：放在一块内容最上面的一行，note 是后面的一句小字（可省），如「未经人工审核」；aiTag()：卡片信息行里的小标签。
   function aiTag() { return '<span class="ai-mark" title="这部分由人工智能生成，可能有错，仅供参考">AI 生成</span>'; }
-  // aiVoice()：合成的声音旁边（文章录音、AI 朗读、AI 角色和考官的话、单词和例句读音）：《标识办法》要求合成人声在交互界面上有显著提示
-  function aiVoice() { return '<span class="ai-mark ai-voice" title="这段声音由人工智能合成，不是真人录音">AI 朗读</span>'; }
+  // 合成的声音（文章录音、AI 朗读、AI 角色和考官的话、单词和例句读音）：《标识办法》要求合成人声在交互界面上有显著提示。
+  // 2026-11-25 用户：提示要有，但不抢眼——不再每个喇叭旁边一个胶囊，一页一行小灰字，按播放时它和播放键在同一屏（语流 B7 的最低
+  // 要求：不用点开就看得见、≥12px、浅色深色对比度 ≥4.5、字里有「AI」和「合成」或者「AI 朗读」）。aiVoiceNote(text, tag, cls)：
+  // 这一行（样式在 99-ai-mark.css）；喇叭多、页面要滚动的地方（例句、长单词表）每个喇叭再加一个 aiBadge()，读屏的名字写「（AI 朗读）」。
+  // 每个会放合成声音的页面部分都要调用 aiVoiceNote（tests/test_ai_mark.py 查）。
+  function aiVoiceNote(text, tag, cls) { tag = tag || 'p'; return `<${tag} class="ai-voice-note${cls ? ' ' + cls : ''}" title="这段声音由人工智能合成，不是真人录音">${esc(text || '读音由 AI 合成')}</${tag}>`; }
+  function aiBadge() { return '<i class="ai-badge" aria-hidden="true">AI</i>'; }
+  // a speaker in a list of many (单词表、对比的句子、用得上的说法、改写的几种说法): 「（AI 朗读）」 in its name, a faint 「AI」 on it
+  function sayIcon(attrs, label) { return `<button class="icon-btn has-ai" type="button" ${attrs} aria-label="${esc(label)}（AI 朗读）">${ICON.speak}${aiBadge()}</button>`; }
   function aiMark(note) { return `<div class="ai-line">${aiTag()}${note ? `<span>${esc(note)}</span>` : ''}</div>`; }
   function load(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
   function save(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private mode */ } }

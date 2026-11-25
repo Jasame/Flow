@@ -237,9 +237,13 @@
     const list = [];
     if (c.context) list.push({ text: c.context, form: c.source === 'mistake' ? ((c.extra || {}).from || c.text) : c.text, pack: c.pack, title: c.source === 'mistake' ? '你当时写的' : '你收藏时的原句', audio: 0, mine: true });
     (c.examples || []).forEach(e => list.push(e));
-    return list.length ? `<div class="exs"><div class="ex-ai">${aiVoice()}</div>${list.map((e, k) => `<div class="ex"><button class="icon-btn" data-exp="${k}" aria-label="播放例句">${ICON.speak}</button>
+    // many speakers in a list that can scroll: a faint 「AI」 on each (aiBadge); the grey line is the card's (aiVoiceNote)
+    return list.length ? `<div class="exs">${list.map((e, k) => `<div class="ex"><button class="icon-btn has-ai" type="button" data-exp="${k}" aria-label="播放例句（AI 朗读）">${ICON.speak}${aiBadge()}</button>
       <div><div class="text">${open === false ? gapped(e.text, e.form || c.text, false) : gapped(e.text, e.form || c.text, true)}</div>${e.zh && open !== false ? `<div class="tiny muted">${esc(e.zh)}</div>` : ''}
       ${e.pack ? `<a class="tiny muted link" href="#/m/${encodeURIComponent(e.pack)}/read">${e.mine ? esc(e.title) : '出自《' + esc(e.title) + '》'}${e.audio ? ' · 原文录音' : ''}</a>` : e.ai ? aiTag() : `<span class="tiny muted">${esc(e.title)}</span>`}</div></div>`).join('')}</div>` : '';
+  }
+  function wordHead(word, phonetic) {
+    return `<div class="wd-head"><div class="word tapsay" id="sheetTitle">${esc(word)}</div><div class="ph">${esc(phonetic || '')}<button class="icon-btn say-btn" id="sayW" type="button" aria-label="播放读音（AI 朗读）">${ICON.speak}</button></div>${aiVoiceNote('读音由 AI 合成')}</div>`;
   }
   function rootsHTML(c) {
     return c.roots && c.roots.length ? `<div class="roots">${c.roots.map(r => `<span class="root"><span class="k">${esc(r.kind)}</span> <b>${esc(r.part)}</b> ${esc(r.meaning)}</span>`).join('')}</div>` : '';
@@ -254,15 +258,16 @@
     const c = d.card;
     const tl = { again: '忘了', hard: '模糊', good: '记得', easy: '很熟', known: '熟知', lookup: '读文章时查过' };
     openSheet(`<div class="stack">
-      <div class="row between"><div><div class="word" id="sheetTitle">${esc(c.text)}</div><div class="ph">${esc(c.phonetic || '')}</div></div><span class="say-ai"><button class="icon-btn" id="sayW" aria-label="朗读">${ICON.speak}</button>${aiVoice()}</span></div>
+      ${wordHead(c.text, c.phonetic)}
       ${c.source === 'mistake' && (c.extra || {}).from ? `<div class="fixline"><del>${esc(c.extra.from)}</del> → <ins>${esc(c.text)}</ins></div>` : ''}
       ${c.meaning ? `<div class="mean">${esc(c.meaning).replace(/；|;/g, '<br>')}</div>` : ''}${rootsHTML(c)}
-      <div class="row">${recallPill(c)}${c.stability ? `<span class="pill">记忆稳定性 ${c.stability < 1 ? '不到 1 天' : Math.round(c.stability) + ' 天'}</span>` : ''}${c.state !== 'new' && !c.known ? `<span class="pill">${dueText(c.due)}</span>` : ''}</div>
+      <div class="wd-meta">${[c.known ? '熟知' : c.state === 'new' ? '待学' : `${c.mastered ? '已掌握 · ' : ''}<span title="此刻记得的概率">记得 ${pct(c.recall)}</span>`,
+        c.stability ? `记忆稳定性 ${c.stability < 1 ? '不到 1 天' : Math.round(c.stability) + ' 天'}` : '', c.state !== 'new' && !c.known ? dueText(c.due) : ''].filter(Boolean).join(' · ')}</div>
       ${curveSVG(c, d.retention)}
       <div id="exSlot">${examplesHTML(c) || (c.kind === 'word' && S.user ? '<p class="muted tiny"><span class="spin"></span> 正在找例句…</p>' : '')}</div>
       ${d.history.length ? `<div class="tiny muted">复习记录：${d.history.slice(-8).map(h => `${new Date(h.created * 1000).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })} ${tl[h.rating] || h.rating}`).join(' · ')}</div>` : ''}
       <div class="row"><button class="btn" id="known">${c.known ? '取消熟知，继续复习' : '标为熟知，不再复习'}</button><button class="btn ghost" id="del">删除</button><button class="btn ghost" data-close>关闭</button></div></div>`, card => {
-      card.querySelector('#sayW').onclick = () => CLIP.word(c);
+      card.querySelectorAll('#sayW, .tapsay').forEach(b => { b.onclick = () => CLIP.word(c); });
       bindExamples(card, c);
       if (c.kind === 'word' && S.user && !(c.examples || []).length) {
         api('/api/next/vocab/examples', { words: [c.text.toLowerCase()], request_id: rid('ve') }).then(r => {

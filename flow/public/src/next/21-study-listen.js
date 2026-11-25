@@ -61,7 +61,7 @@
         ${prereadHTML()}
         <p class="tiny muted sv-prep" id="lsPrep" role="status" hidden></p>
         ${!nm && !TTS.can() ? '<p class="err">这个浏览器不支持朗读，可以直接去「读」。</p>' : ''}
-        <p class="muted tiny listen-tip">${aiVoice()} ${nm ? '' : SV.on() ? '这篇还没有录音，用 AI 朗读（自然人声）一句一句读。' : '这篇还没有录音，先用浏览器朗读。'}点 👁 只听不看，点句子前的喇叭单句反复听${TOUCH ? '' : '；空格键播放 / 停止'}。</p>
+        <p class="muted tiny listen-tip">${nm || !SV.on() ? aiVoiceNote('朗读由 AI 合成。', 'span', 'in') : aiVoiceNote('这篇还没有录音，用 AI 朗读（自然人声）一句一句读。', 'span', 'in')}${nm || SV.on() ? '' : '这篇还没有录音，先用浏览器朗读。'}点 👁 只听不看，点句子前的喇叭单句反复听${TOUCH ? '' : '；空格键播放 / 停止'}。</p>
         <div class="lines">${ls.map((s, i) => `<div class="line" data-i="${i}"><button class="icon-btn" data-say="${i}" aria-label="播放第 ${i + 1} 句">${ICON.speak}</button><div class="txt ${st.blind ? 'blind' : ''}">${wordSpans(s, () => 'kw')}</div></div>`).join('')}</div>
         <div class="section row between"><span class="muted small">共 ${ls.length} 句${nm ? ' · ' + Math.round(nm.duration / 60 * 10) / 10 + ' 分钟' : ''}</span><button class="btn" id="toRead">听完了，去读 →</button></div>`;
       let shown = -1;
@@ -209,7 +209,7 @@
       const ls = lines(), nm = await narration(ls);
       // Every sentence keeps its ▶; the recording tools (●, 对比, AI 点评) show under the sentence being practised only,
       // so eleven rows of four buttons do not bury the text. A tap anywhere on a sentence makes it the one.
-      pane.innerHTML = `${listenHead()}<p class="muted small">${aiVoice()} 点一句开始练：先点 ▶ 听原声，再点 ● 跟着读一遍（再点一次停止）。「对比」先放原声再放你的录音；${S.user ? '「AI 点评」给一个发音分（AI 估计），写出它听到的内容和要练的音。' : '登录后可以让 AI 点评、给发音分。'}</p>
+      pane.innerHTML = `${listenHead()}<p class="muted small">${aiVoiceNote('朗读由 AI 合成。', 'span', 'in')}点一句开始练：先点 ▶ 听原声，再点 ● 跟着读一遍（再点一次停止）。「对比」先放原声再放你的录音；${S.user ? '「AI 点评」给一个发音分（AI 估计），写出它听到的内容和要练的音。' : '登录后可以让 AI 点评、给发音分。'}</p>
         ${shAvgHTML()}
         <div class="lines">${ls.map((s, i) => `<div class="line sh${i === 0 ? ' cur' : ''}" data-i="${i}"><div class="txt">${esc(s)}</div>
           <div class="sh-ctl"><button class="icon-btn" data-o="${i}" aria-label="听原声">${ICON.play.replace('<svg', '<svg fill="currentColor"')}</button>
@@ -291,9 +291,9 @@
         TTS.rate = keep;
       };
       function render() {
-        pane.innerHTML = `${listenHead()}<div class="card flat dict stack"><div class="row between"><span class="kicker">听写 · 第 ${i + 1} / ${ls.length} 句 ${aiVoice()}</span>
+        pane.innerHTML = `${listenHead()}<div class="card flat dict stack"><div class="row between"><span class="kicker">听写 · 第 ${i + 1} / ${ls.length} 句</span>
             <span class="muted tiny">${score.total ? '这篇正确率 ' + Math.round(score.got / score.total * 100) + '%' : '可以反复播放'}</span></div>
-          <div class="row"><button class="btn primary" id="dPlay">${ICON.play.replace('<svg', '<svg width="16" height="16" fill="currentColor"')}<span>播放这一句</span></button><button class="btn small" id="dSlow">慢速</button></div>
+          <div class="row"><button class="btn primary" id="dPlay">${ICON.play.replace('<svg', '<svg width="16" height="16" fill="currentColor"')}<span>播放这一句</span></button><button class="btn small" id="dSlow">慢速</button>${aiVoiceNote('AI 合成', 'span')}</div>
           <textarea id="dIn" rows="3" lang="en" enterkeyhint="done" placeholder="听到什么写什么，拼不出的词先空着" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false"></textarea>
           <div class="row"><button class="btn" id="dCheck">检查</button><button class="btn ghost" id="dSkip">跳过这句</button></div><div id="dOut"></div></div>
           <div class="section row between"><span class="muted small">听错的词可以直接加入复习。</span><button class="btn" id="toRead">去读 →</button></div>`;

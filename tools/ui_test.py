@@ -293,8 +293,8 @@ def run_device(pw, dev, opts):
     pg.click('#exDone'); pg.wait_for_timeout(900)
     res = pg.evaluate("() => ({h: (document.querySelector('#view h1') || {}).textContent || '', parts: document.querySelectorAll('.exam-score div').length})")
     check(dev, 'exam: handed in, scored by part', '题做对' in res['h'] and res['parts'] == 3, res)
-    missed = pg.evaluate("() => [...document.querySelectorAll('#view h2')].filter(h => h.textContent.startsWith('没认出')).map(h => !!h.querySelector('.ai-voice'))")
-    check(dev, 'exam: 没认出的词 (their sound is synthesized) says 「AI 朗读」 by its heading', missed in ([], [True]), missed)
+    missed = pg.evaluate("() => [...document.querySelectorAll('#view h2')].filter(h => h.textContent.startsWith('没认出')).map(h => { const n = h.nextElementSibling; return !!n && n.classList.contains('ai-voice-note') && n.textContent.includes('AI') && !!h.parentElement.querySelector('.crow .ai-badge'); })")
+    check(dev, 'exam: 没认出的词 (their sound is synthesized) says 「读音由 AI 合成」 under its heading, a faint 「AI」 on each speaker', missed in ([], [True]), missed)
 
     # ---- serial: six episodes in order, an episode names its place in the series
     go(pg, '#/series/lighthouse-ledger')
@@ -466,8 +466,8 @@ def run_device(pw, dev, opts):
       return {tools: t ? [...t.querySelectorAll('button')].map(b => b.id) : [], top: r ? Math.round(r.getBoundingClientRect().top) : null, h: innerHeight}; }""")
     check(dev, 'read: the tools sit in one row above the text', 'readAlong' in rd['tools'], rd)
     kinds = pg.evaluate("() => [...document.querySelectorAll('#view .read-tools button:not([hidden])')].map(b => b.className.includes('btn small') ? 'btn' : b.id)")
-    check(dev, 'read: one kind of button in the row, 「AI 朗读 · 声音由 AI 合成」 on its own line under it',
-          all(k == 'btn' for k in kinds) and pg.is_visible('#view .read-ai .ai-voice') and '合成' in (pg.text_content('#view .read-ai') or ''), kinds)
+    check(dev, 'read: one kind of button in the row, 「朗读由 AI 合成」 one grey line under it',
+          all(k == 'btn' for k in kinds) and pg.is_visible('#view .read-ai.ai-voice-note') and '合成' in (pg.text_content('#view .read-ai') or ''), kinds)
     if dev == 'phone':
         check(dev, 'read: the text starts on the first screen of a phone', rd['top'] is not None and rd['top'] < rd['h'] * 0.6, rd)
     if pg.query_selector('#zhGuide'):
@@ -622,7 +622,7 @@ def run_device(pw, dev, opts):
         pg.wait_for_timeout(1500)
         got = pg.evaluate("() => ({ speaks: window.__rspeaks.slice(), btn: document.getElementById('aPlay').textContent, status: document.getElementById('aNote').getAttribute('role') })")
         pg.remove_listener('request', on_req)
-        check(dev, 'radar: the listening check says 「AI 朗读」 by its player (a synthesized voice, 《标识办法》)', pg.evaluate("!!document.querySelector('#view .ai-voice')"))
+        check(dev, 'radar: the listening check says 「录音由 AI 合成」 above its player (a synthesized voice, 《标识办法》)', pg.evaluate("!!document.querySelector('#view .ai-voice-note')"))
         check(dev, 'radar: listening without a recording is the server voice sentence by sentence, not the browser voice, a status line for the wait',
               len(asked) >= 2 and all(t and len(t) < 300 and not re.search(r'[.!?]\s+[A-Z]', t[:-1]) for t in asked) and not got['speaks'] and got['status'] == 'status', (asked[:3], got))
         pg.click('.mini-player .close'); pg.wait_for_timeout(300)
@@ -1912,8 +1912,8 @@ def listen_speak_run(pw):
                             first: (document.querySelector('#reader .sent.now') || {}).dataset.si}; }""")
                 check(dev, '伴读 of an import: read by the server voice from the learner\'s own files, the sentence lit',
                       got['have'] and got['own'] and got['own'][0].startswith('/audio/own/us-f/') and got['first'] == '0', got)
-                marks = pg.evaluate("() => [!!document.querySelector('#view .read-ai .ai-voice'), !!document.querySelector('.mini-player:not([hidden]) .ai-voice'), (document.querySelector('.mini-player .lbl') || {}).textContent]")
-                check(dev, '伴读: 「AI 朗读」 on the line under the button and in the mini player (《标识办法》), the label just 第 N / M 句',
+                marks = pg.evaluate("() => [!!document.querySelector('#view .read-ai.ai-voice-note'), !!document.querySelector('.mini-player:not([hidden]) .ai-voice-note'), (document.querySelector('.mini-player .lbl') || {}).textContent]")
+                check(dev, '伴读: 「朗读由 AI 合成」 on the line under the button and 「AI 合成」 in the mini player (《标识办法》), the label just 第 N / M 句',
                       marks[0] and marks[1] and (marks[2] or '').startswith('第 ') and '伴读' not in (marks[2] or ''), marks)
                 pg.click('#readAlong')
                 other = browser.new_context(); op = other.new_page()
@@ -1965,13 +1965,13 @@ def listen_speak_run(pw):
                     pg.set_viewport_size({'width': w, 'height': 780}); pg.wait_for_timeout(150)
                     fits.append(pg.evaluate("""() => { const m = document.querySelector('.mini-player'), l = m.querySelector('.lbl'), t = m.querySelector('.toggle'), x = m.querySelector('.close');
                         const one = el => { const r = el.getBoundingClientRect(); return r.height <= 48; };
-                        return { w: innerWidth, label: l.textContent, whole: l.scrollWidth <= l.clientWidth + 1, toggle: one(t), close: one(x), mark: !!m.querySelector('.ai-voice'),
-                                 tip: !!document.querySelector('#view .listen-tip .ai-voice'),
+                        return { w: innerWidth, label: l.textContent, whole: l.scrollWidth <= l.clientWidth + 1, toggle: one(t), close: one(x), mark: !!m.querySelector('.ai-voice-note'),
+                                 tip: !!document.querySelector('#view .listen-tip .ai-voice-note'),
                                  inside: m.getBoundingClientRect().left >= 0 && m.getBoundingClientRect().right <= innerWidth }; }"""))
                 pg.set_viewport_size(opts['viewport']); pg.wait_for_timeout(150)
-                check(dev, 'the mini player fits: the label whole, 暂停 and ✕ on one line, inside the screen (390 and 360 px), with 「AI 朗读」',
+                check(dev, 'the mini player fits: the label whole, 暂停 and ✕ on one line, inside the screen (390 and 360 px), with 「AI 合成」',
                       all(f['whole'] and f['toggle'] and f['close'] and f['inside'] and f['mark'] for f in fits), fits)
-                check(dev, '听: 「AI 朗读」 by the player (the voice is synthesized: 《标识办法》)', all(f['tip'] for f in fits), fits)
+                check(dev, '听: 「朗读由 AI 合成」 by the player (the voice is synthesized: 《标识办法》)', all(f['tip'] for f in fits), fits)
                 pg.click('.mini-player .close'); pg.wait_for_timeout(200)
                 pg.click('#playRestart'); pg.wait_for_function(f"{now} >= 0", timeout=10000)
                 check(dev, '从头开始 starts at the first sentence', pg.evaluate(now) == 0, pg.evaluate(now))
@@ -2036,8 +2036,8 @@ def listen_speak_run(pw):
                 if k == 0:
                     q = pg.evaluate("() => [document.querySelectorAll('#chat .msg.ai').length, !!document.querySelector('#chat .msg.me details.better'), document.querySelector('#ieQn').textContent]")
                     check(dev, 'Part 1: the examiner asks the next question; a better way to say it is folded', q[0] == 2 and q[1] and '第 2 / 4 题' in q[2], q)
-                    em = pg.evaluate("() => { const l = [...document.querySelectorAll('#view .ai-line')].find(x => x.querySelector('.ai-voice')); return l ? l.textContent : ''; }")
-                    check(dev, 'Part 1: 「AI 朗读」 says the examiner\'s voice is synthesized', '考官的声音由 AI 合成' in em, em)
+                    em = pg.evaluate("() => { const l = [...document.querySelectorAll('#view .ai-line')].find(x => x.querySelector('.ai-voice-note')); return l ? l.textContent : ''; }")
+                    check(dev, 'Part 1: 「考官的声音由 AI 合成」 says the examiner\'s voice is synthesized', '考官的声音由 AI 合成' in em, em)
                     pg.click('#chat .msg.me details.better summary'); lay('Part 1 chat'); shot('ielts-p1-chat')
             pg.wait_for_selector('#ieOut .ielts-fb', timeout=10000); pg.wait_for_timeout(400)
             f = pg.evaluate("""() => { const o = document.querySelector('#ieOut'); return {overall: o.querySelector('.ielts-overall b').textContent, crit: [...o.querySelectorAll('.crit .nm')].map(x => x.textContent),
@@ -2081,8 +2081,8 @@ def listen_speak_run(pw):
             p3.goto(BASE + '/#/speak/cafe-order', wait_until='networkidle'); settle(p3)
             hd = p3.evaluate("() => [document.querySelector('#view .kicker').textContent, (document.querySelector('#view .round-extra') || {}).textContent || '']")
             check(dev, '口语情景: round 2 shows the round and its extra requirement', '第 2 轮' in hd[0] and '这一轮多一条' in hd[1], hd)
-            vm = p3.evaluate("() => { const l = [...document.querySelectorAll('#view .ai-line')].find(x => x.querySelector('.ai-voice')); return l ? l.textContent : ''; }")
-            check(dev, '口语情景: 「AI 朗读」 says the role\'s voice is synthesized', '角色、纠正和声音都由 AI 生成' in vm and 'AI 生成' in vm, vm)
+            vm = p3.evaluate("() => { const l = [...document.querySelectorAll('#view .ai-line')].find(x => x.querySelector('.ai-voice-note')); return l ? l.textContent : ''; }")
+            check(dev, '口语情景: 「AI 朗读」 says the role\'s voice is synthesized', '角色、纠正和声音都由 AI 生成' in vm and 'AI 生成' in vm and 'AI 朗读' in vm, vm)
             if size == 'phone':  # B8's audit: on a small phone, Safari's toolbars showing, 「开始对话」 sat under the tab bar
                 vp = p3.viewport_size; p3.set_viewport_size({'width': 375, 'height': 553})
                 go_at = p3.evaluate("() => { const b = document.getElementById('dlgStart').getBoundingClientRect(), t = document.querySelector('.tabs').getBoundingClientRect(); return [Math.round(b.top), Math.round(b.bottom), Math.round(t.top)]; }")
@@ -3177,9 +3177,9 @@ def progress_run(pw):
         pg.click('#lcFold'); pg.wait_for_timeout(250)  # one line on a phone: open it first
         pg.click('#lcSay'); pg.wait_for_timeout(600)
         said = pg.evaluate('window.__said || []') + voiced
-        mark = pg.evaluate("() => { const m = document.querySelector('#lineCard .lc-acts .ai-voice'), b = document.getElementById('lcSay'); "
-                           "return m && [m.textContent.trim(), Math.abs(m.getBoundingClientRect().top + m.offsetHeight / 2 - b.getBoundingClientRect().top - b.offsetHeight / 2) < 8, !!m.title]; }")
-        check(dev, '好句: 「AI 朗读」 right by 听一遍, on its row, with what it means on hover', mark == ['AI 朗读', True, True], mark)
+        mark = pg.evaluate("() => { const m = document.querySelector('#lineCard .lc-acts .ai-voice-note'), b = document.getElementById('lcSay'); "
+                           "return m && [m.textContent.trim(), Math.abs(m.getBoundingClientRect().top + m.offsetHeight / 2 - b.getBoundingClientRect().top - b.offsetHeight / 2) < 8, !!m.title, parseFloat(getComputedStyle(m).fontSize) >= 12]; }")
+        check(dev, '好句: 「AI 合成」 one grey line at the end of 听一遍\'s row, with what it means on hover, 12px or more', mark == ['AI 合成', True, True, True], mark)
         pg.click('#lcShadow'); pg.wait_for_timeout(200)
         panel = pg.evaluate("() => { const p = document.getElementById('lcPanel'); return [p.hidden, !!p.querySelector('#lsRec'), document.getElementById('lsBack').disabled, document.getElementById('lcShadow').getAttribute('aria-expanded')]; }")
         pg.click('#lcShadow'); pg.wait_for_timeout(150)
@@ -3446,6 +3446,11 @@ ONE_SCREEN_JS = """() => { const H = innerHeight, m = document.querySelector('ma
            mainBottom: Math.round(m.bottom), answers, lastBottom: Math.round(last.bottom), sab, tip: !!document.getElementById('knowTip') }; }"""
 
 
+REVIEW_BAR_JS = """() => { const c = document.querySelector('.review .ractions .choice'), r = c.getBoundingClientRect(), n = document.querySelector('.rtop + .rvoice');
+  return { bottom: Math.round(r.bottom), n: c.querySelectorAll('button').length, word: !!document.querySelector('.review .tapsay'),
+           note: n ? [n.textContent, parseFloat(getComputedStyle(n).fontSize) >= 12] : null }; }"""
+
+
 def one_screen_run(pw):
     dev = 'one-screen'
     browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
@@ -3474,6 +3479,15 @@ def one_screen_run(pw):
                     check(dev, f'{where} {name}: the answers and the line below them clear the home bar', s['answers'] and max(s['answers'] + [s['lastBottom']]) <= s['H'] - s['sab'], s)
                     if page == '#/review':
                         check(dev, f'{where}: the 「认识」换到右边了 tip is on the card (the tallest it gets)', s['tip'], s)
+                        # the answer side (the user, 2026-11-25: 「把操作的按钮全都放在底部」): its buttons where the front's
+                        # three were, at the bottom whatever the answer's length; 「读音由 AI 合成」 one grey line under the progress bar
+                        f = pg.evaluate(REVIEW_BAR_JS)
+                        pg.click('[data-claim="know"]'); pg.wait_for_selector('#view .open-card', timeout=4000); pg.wait_for_timeout(400)
+                        b = pg.evaluate(REVIEW_BAR_JS)
+                        pg.screenshot(path=str(OUT / f"one-screen-{size}-{'home' if home else 'safari'}-review-back.png"))
+                        check(dev, f'{where} 复习卡翻面: the buttons in the front\'s place at the bottom, clear of the home bar', b['bottom'] == f['bottom'] and b['bottom'] <= s['H'] - s['sab'] and b['n'] in (1, 2), [f, b])
+                        check(dev, f'{where} 复习卡: 「读音由 AI 合成」 under the progress bar where the word plays, 12px or more',
+                              b['note'] == ['读音由 AI 合成', True] and (f['note'] == ['读音由 AI 合成', True] if f['word'] else True), [f, b])
                     if home:
                         check(dev, f'{where} {name}: --bar-h is the top bar\'s height', s['barH'] == f"{s['bar']}px", s)
                 # 词汇辨析's round (语流 B8's audit: 119-213 px past the screen): no tabs, 怎么区分 open for the first question,

@@ -12,7 +12,6 @@
 .lc-src{margin:0;color:var(--muted);line-height:1.5}
 .lc-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
 .lc-acts .btn{gap:6px}
-.lc-acts .ai-voice{align-self:center}  /* 「AI 朗读」 by 听一遍: every voice on this card is synthesized (aiVoice, 00-head.js) */
 @media (max-width:374px){.lc-acts{gap:6px}.lc-acts .btn{padding-left:11px;padding-right:11px}}  /* with the label, the three buttons still fit one row at 360 */
 .lc-acts .btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .lc-acts .btn.on{background:var(--green-soft);color:var(--green-ink)}

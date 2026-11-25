@@ -653,7 +653,7 @@
       if (typeof h === 'function') h = { stop: h };
       this.h = h; this.label = label; this.resumeFn = null;
       if (!this.el) { this.el = document.createElement('div'); this.el.className = 'mini-player'; this.el.setAttribute('role', 'region'); this.el.setAttribute('aria-label', '播放控制'); document.body.appendChild(this.el); }
-      this.el.innerHTML = `<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>${aiVoice()}<span class="lbl"></span>`
+      this.el.innerHTML = `<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span><span class="lbl"></span>${aiVoiceNote('AI 合成', 'span')}`
         + (h.toggle ? `<button type="button" class="toggle"></button><button type="button" class="stop close" aria-label="关闭播放（记住读到哪里）">✕</button>`
           : `<button type="button" class="stop">${playIcon(true, 15)}<span>停止</span></button>`);
       this.el.querySelector('.lbl').textContent = label;

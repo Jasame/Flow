@@ -151,7 +151,7 @@
   }
   function voiceSheet() {
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">朗读声音</h2>${voiceChips(null)}
-      <p class="muted small">精选材料用 AI 朗读（自然人声，Kokoro 合成）。学一篇材料时，也可以在「听」这一步随时切换。</p><button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      <p class="muted small">语流里的读音和朗读都是 AI 合成的，不是真人录的：精选材料和单词用 Kokoro，其余（AI 的回复、口语情景、没有录音的句子）用 CosyVoice，都是自然人声。放声音的地方写着一行小灰字「读音由 AI 合成」或「朗读由 AI 合成」，喇叭多的列表里每个喇叭右上角有一个淡淡的「AI」。学一篇材料时，也可以在「听」这一步随时切换声音。</p><button class="btn ghost" data-close type="button">完成</button></div>`, card => {
       card.querySelectorAll('[data-voice]').forEach(b => b.onclick = async () => {
         await setVoice(b.dataset.voice);
         card.querySelectorAll('[data-voice]').forEach(x => { x.setAttribute('aria-pressed', String(x === b)); x.setAttribute('aria-checked', String(x === b)); });
