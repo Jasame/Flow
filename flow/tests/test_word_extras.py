@@ -1,6 +1,6 @@
 """AI 常用搭配和近义词 (word_extras, 2026-11-25): the program's checks, one row per item, the reviewer's doubts kept
 hidden, and a batch from writing to the card, with the models stood in for."""
-import json, os, sqlite3, sys, tempfile, unittest
+import json, os, sqlite3, sys, tempfile, time, unittest
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -213,6 +213,35 @@ class NightlyTests(unittest.TestCase):  # A0 2026-11-26: one nod from the owner 
         plan = self.plan_now(); plan.pop('paused'); plan.pop('paused_at'); plan['hold_after_first'] = False  # B7 has looked
         wx._write(self.d / 'word-extras' / 'plan.json', plan)
         self.assertTrue(self.tick(29)); self.assertEqual(len(self.started), 2)
+
+    def test_the_owner_let_this_run_past_the_caps_for_now(self):  # 「暂时放行预算上限，跑完收紧」
+        plan = {**self.plan, 'own_cap': True, 'first_night_yuan': 2, 'max_yuan': 8, 'total_yuan': 10, 'nights': 4}
+        wx._write(self.d / 'word-extras' / 'plan.json', plan)
+        with patch.object(ai_routes, 'batch_stop', lambda c=None: True):  # the site's caps would stop any other batch work
+            self.assertTrue(self.tick(27))
+        cmd = self.started[0]
+        self.assertIn('--own-cap', cmd); self.assertEqual(cmd[cmd.index('--max-yuan') + 1], '2.0')  # a small first night
+        self.night_report(27, words=2400, rows=7800, left_out=200, hidden=600, failed=0, yuan=1.98, pending_after=5600)
+        self.assertTrue(self.tick(28)); self.assertEqual(self.started[1][self.started[1].index('--max-yuan') + 1], '8.0')
+        self.night_report(28, words=5000, rows=16000, left_out=400, hidden=1300, failed=0, yuan=7.6, pending_after=600)
+        self.assertTrue(self.tick(29)); self.assertEqual(self.started[2][self.started[2].index('--max-yuan') + 1], '0.42')  # what is left of ¥10
+        self.night_report(29, words=600, rows=1900, left_out=50, hidden=150, failed=0, yuan=0.41, pending_after=0)
+        self.assertFalse(self.tick(30)); self.assertIn('done', self.plan_now()); self.assertFalse(wx.own_cap_on())
+
+    def test_the_caps_leave_out_only_that_run_and_only_while_it_lasts(self):
+        c = sqlite3.connect(':memory:'); ai_routes.schema(c)
+        now = time.time()
+        for kind, n in (('word-extras', 7), ('fill-examples', 2), ('next-rewrite', 1)):
+            for _ in range(n):
+                c.execute("INSERT INTO ai_calls(ts,kind,service,model,ok,status) VALUES(?,?,?,?,?,?)", (now - 5, kind, 'text', 'flow-batch-x', 1, 200))
+        with patch.object(ai_routes, 'cost', lambda *a, **k: 1.0), patch.object(ai_routes, 'budget', lambda: 5.0), \
+                patch.object(ai_routes, 'batch_line', lambda: 8.0):
+            self.assertTrue(ai_routes.over_budget(c)); self.assertTrue(ai_routes.batch_full(c))  # no plan: ¥10 today, ¥9 of batch
+            wx._write(self.d / 'word-extras' / 'plan.json', {**self.plan, 'own_cap': True})
+            self.assertFalse(ai_routes.over_budget(c)); self.assertFalse(ai_routes.batch_full(c))  # ¥3 and ¥2 without that run
+            self.assertEqual(ai_routes.budget_state(c)['exempt'], 7.0)
+            wx._write(self.d / 'word-extras' / 'plan.json', {**self.plan, 'own_cap': True, 'done': '2026-11-30'})
+            self.assertTrue(ai_routes.over_budget(c)); self.assertTrue(ai_routes.batch_full(c))  # done: the caps are back
 
     def test_the_nights_and_the_date_are_a_ceiling(self):
         wx._write(self.d / 'word-extras' / 'plan.json', {**self.plan, 'nights': 1})

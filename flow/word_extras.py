@@ -11,7 +11,9 @@ then B2's format and A0's / D2's rules). Written offline in batches, never while
 - Its own data, shared by every book, not merged into any word list (D2: NAWL and BSL stay CC BY-SA lists of their own).
 - Batch work: ai_routes.batch_stop (the day's ¥5 budget, tonight's batch ceiling) stops a run; --max-yuan too.
 - Nightly (A0 2026-11-26: the owner nods once for the whole run): <data>/word-extras/plan.json (books, max_yuan a night,
-  nights, until, hold_after_first: stop after the first night until B7 has looked at it), written only with the owner's OK, lets ai_routes.tick start one run a night (02:00–05:00 Beijing) as a
+  nights, until, hold_after_first: stop after the first night until B7 has looked at it; own_cap with first_night_yuan
+  and total_yuan: the owner's 「暂时放行预算上限，跑完收紧」, the run keeps to its own yuan and is left out of the site's
+  day budget and batch ceiling until the plan is done, so the caps tighten again by themselves), written only with the owner's OK, lets ai_routes.tick start one run a night (02:00–05:00 Beijing) as a
   child process, like the nightly check. The night's report is <data>/word-extras/<day>.json. Done when no word is left,
   the nights are used or the date has passed; paused, never retried on its own, when a night looks wrong (anomaly).
 
@@ -331,6 +333,12 @@ def anomaly(r, plan):
     return ''
 
 
+def own_cap_on():
+    """The owner's plan lets this run past the site's budget and batch ceiling for now (own_cap), until it is done."""
+    plan = _read(plan_dir() / 'plan.json')
+    return isinstance(plan, dict) and bool(plan.get('own_cap')) and not plan.get('done')
+
+
 def status():
     """For the console: the plan and the nights so far."""
     return {'plan': _read(plan_dir() / 'plan.json'), 'nights': reports()[-14:]}
@@ -360,17 +368,23 @@ def nightly(c, now=None):
     if why:
         _write(d / 'plan.json', {**plan, 'paused': why, 'paused_at': day})
         return False
-    if (past and past[-1].get('pending_after') == 0) or len([r for r in past if r.get('words')]) >= int(plan.get('nights', 0)) \
-            or day > str(plan.get('until', '9999')):
+    used = sum(float(r.get('yuan') or 0) for r in past)
+    total = float(plan.get('total_yuan') or 0)
+    ran = [r for r in past if r.get('words')]
+    if (past and past[-1].get('pending_after') == 0) or len(ran) >= int(plan.get('nights', 0)) \
+            or day > str(plan.get('until', '9999')) or (total and used >= total - 0.05):
         _write(d / 'plan.json', {**plan, 'done': day})
         return False
+    cap = float(plan.get('first_night_yuan') or plan.get('max_yuan', 3)) if not ran else float(plan.get('max_yuan', 3))
+    if total:
+        cap = min(cap, round(total - used, 2))
     from vertex_auth import ai_enabled
-    if not ai_enabled() or ai_routes.batch_stop(c):
+    if not ai_enabled() or (not plan.get('own_cap') and ai_routes.batch_stop(c)):
         return False
     import subprocess
     here = os.path.dirname(os.path.abspath(__file__))
     cmd = [sys.executable, os.path.join(here, 'word_extras.py'), '--env-file', os.devnull, '--books', ','.join(plan.get('books') or []),
-           '--max-yuan', str(float(plan.get('max_yuan', 3))), '--output', str(d / f'{day}.json')]
+           '--max-yuan', str(cap), '--output', str(d / f'{day}.json')] + (['--own-cap'] if plan.get('own_cap') else [])
     d.mkdir(parents=True, exist_ok=True)
     with open(d / f'{day}.log', 'w', encoding='utf-8') as log:
         subprocess.Popen(cmd, cwd=here, stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, env={**os.environ, 'PYTHONUNBUFFERED': '1'})
@@ -388,6 +402,7 @@ def main(argv=None):
     ap.add_argument('--max-yuan', type=float, default=3.0, help='这次运行花到这么多元就不再发新请求')
     ap.add_argument('--offpeak', action='store_true', help='北京时间 8–22 点（DeepSeek 忙时价）先等到 22 点再跑')
     ap.add_argument('--no-review', action='store_true')
+    ap.add_argument('--own-cap', action='store_true', help='用户临时放行：不受网站每天预算和每晚批量上限管，只按 --max-yuan')
     ap.add_argument('--dry-run', action='store_true')
     ap.add_argument('--output', default='', help='这一晚的结果写到这个文件（夜里自动跑时用）')
     a = ap.parse_args(argv)
@@ -430,7 +445,7 @@ def _main(a):
     def one(batch):
         db = app.db()
         try:
-            if ai_routes.batch_stop(db) or spent(db, since) >= a.max_yuan:
+            if (not a.own_cap and ai_routes.batch_stop(db)) or spent(db, since) >= a.max_yuan:
                 return None
             return run_batch(db, batch, nx, topic_guard.hits, review=not a.no_review)
         except Exception as exc:  # noqa: BLE001 - one batch failing does not stop the run
