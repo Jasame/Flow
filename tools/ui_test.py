@@ -2552,6 +2552,12 @@ def start_run(pw):
                 pg.click('[data-target="C1"]'); pg.click('[data-exam="ielts"]'); pg.wait_for_timeout(100)
                 kept = pg.evaluate("document.querySelector('[data-target][aria-checked=true]').dataset.target")
                 check(dev, f'{tag}: 考试 opens the exams; 四级 suggests B1, 六级 B2; a level picked by hand stays', rec == [['B1', 'true']] and rec6 == 'B2' and kept == 'C1', (rec, rec6, kept))
+                # 一周学几天 (每周目标): 5 for an exam, 4 otherwise, until picked by hand
+                days = lambda: pg.evaluate("(b => b && +b.dataset.days)(document.querySelector('[data-days][aria-checked=true]'))")
+                d_exam = days(); pg.click('[data-goal="daily"]'); d_daily = days()
+                pg.click('[data-days="6"]'); pg.click('[data-goal="exam"]'); d_kept = days()
+                row = pg.evaluate("new Set([...document.querySelectorAll('[data-days]')].map(b => Math.round(b.getBoundingClientRect().top))).size")
+                check(dev, f'{tag}: 一周学几天: 5 days for an exam, 4 otherwise, 2–7 in one row; a number picked by hand stays', (d_exam, d_daily, d_kept, row) == (5, 4, 6, 1), (d_exam, d_daily, d_kept, row))
                 if size == 'phone':
                     pg.click('[data-target="B2"]'); pg.wait_for_timeout(100)
                     pg.screenshot(path=str(OUT / f'start-page-{theme}.png'), full_page=True)
@@ -2559,7 +2565,7 @@ def start_run(pw):
                 pg.click('#wgGo'); pg.wait_for_function("() => location.hash === '#/'", timeout=6000); settle(pg)
                 guest = pg.evaluate("JSON.parse(localStorage.getItem('flow-next-guest'))")
                 check(dev, f'{tag}: started as a guest: the choices kept on the phone, materials one band below the target, today shown',
-                      guest['goal'] == 'exam' and guest['exam'] == 'ielts' and guest['level_source'] == 'guess' and guest['level'] == {'C1': 'B2', 'B2': 'B1'}[guest['target']]
+                      guest['goal'] == 'exam' and guest['exam'] == 'ielts' and guest['level_source'] == 'guess' and guest['level'] == {'C1': 'B2', 'B2': 'B1'}[guest['target']] and guest['weekly_goal'] == 6
                       and pg.query_selector('#view .hello, #view .today-plan') is not None, guest)
                 # the next opening: the mark alone and short; never the start page again
                 pg.reload(wait_until='commit'); pg.wait_for_selector('#splash', state='attached', timeout=5000)
@@ -2586,7 +2592,7 @@ def start_run(pw):
         prof = pg.evaluate("fetch('/api/next/home').then(r => r.json()).then(h => [h.profile, h.level_guess])")
         note = pg.evaluate("(document.getElementById('levelGuess') || {}).textContent || ''")
         check(dev, 'the account keeps goal, exam (the exam goal of 考试冲刺), target and a guessed level; 今日 suggests a test',
-              prof[0]['goal'] == 'exam' and prof[0]['exam'] == 'cet6' and prof[0]['target'] == 'B2' and prof[0]['level'] == 'B1' and prof[1]
+              prof[0]['goal'] == 'exam' and prof[0]['exam'] == 'cet6' and prof[0]['target'] == 'B2' and prof[0]['level'] == 'B1' and prof[0]['weekly_goal'] == 5 and prof[1]
               and '去能力里测一下' in note and pg.get_attribute('#levelGuess a', 'href') == '#/radar/test', (prof, note[:40]))
         pg.screenshot(path=str(OUT / 'start-today-hint.png'))
         pg.click('#lgLater'); pg.wait_for_timeout(200)
@@ -2797,6 +2803,19 @@ def home_app_run(pw):
         pg.goto(BASE + '/', wait_until='networkidle'); settle(pg); pg.wait_for_timeout(5500)
         ver = pg.evaluate("fetch('/api/version').then(r => r.json())")
         check(dev, 'the same version: /api/version answers it, and nothing reloads or shows', ver.get('asset') and len(loads) == 1 and pg.query_selector('#updateBar') is None, (ver, len(loads)))
+        ctx.close()
+        # light → dark while open (an iPhone keeps the status-bar strip of the page's load: a white band): no reload while
+        # answering questions; the next tab page reloads to repaint it (tools/ios_sim_check.py checks the strip itself)
+        ctx, pg, errs = context('iphone-15-pro')
+        loads = []
+        pg.on('load', lambda: loads.append(1))
+        pg.goto(BASE + f'/#/m/{PID}/check', wait_until='networkidle'); settle(pg)
+        pg.emulate_media(color_scheme='dark'); pg.wait_for_timeout(1200)
+        stayed = len(loads) == 1
+        go(pg, '#/'); pg.wait_for_timeout(1500)
+        check(dev, 'light → dark while answering: no reload there; the next tab page reloads once (the status-bar strip)', stayed and len(loads) == 2, (stayed, len(loads)))
+        pg.wait_for_timeout(1500)
+        check(dev, 'after that reload: no second one', len(loads) == 2, len(loads))
         ctx.close()
     finally:
         browser.close()

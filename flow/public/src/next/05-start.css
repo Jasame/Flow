@@ -35,6 +35,9 @@ body.onboarding{padding-bottom:var(--sab)}
 .wg-goals .opt .l{font-weight:700;font-size:15.5px}
 .wg-goals .opt .d{font-size:12.5px;line-height:1.45;color:var(--ink2)}
 .wg-targets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+/* 一周学几天: 2–7 in one row, even on a small phone */
+.chips.wg-days{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}  /* over .chips (flex), loaded later */
+.chips.wg-days .chip{justify-content:center;text-align:center;padding-left:4px;padding-right:4px;white-space:nowrap;min-width:0}
 .wg-targets .opt{display:grid;justify-items:center;gap:2px;padding:10px 4px;text-align:center;min-height:72px;position:relative}
 .wg-targets .opt b{font-size:16px}
 .wg-targets .opt .d{font-size:12px;line-height:1.35;color:var(--ink2)}
