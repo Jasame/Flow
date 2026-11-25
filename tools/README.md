@@ -181,6 +181,14 @@ GitHub's machines.
   sha256-checked runner folders with a clean-up hook, runs a self-check (front end, guide PDF, two test files, one UI
   share), then prints the commands that register the runners: the owner types the token from the GitHub page there;
   the script never sees it. `msi-setup-check.yml` runs the whole script on a GitHub machine whenever it changes.
+- **Proxy** (the MSI is in mainland China): v2rayN's system proxy on Windows listens on this machine (e.g.
+  `http://127.0.0.1:10808`), and `.wslconfig` (`networkingMode=mirrored`, `autoProxy=true`, `dnsTunneling=true`) hands
+  it to a WSL shell as `https_proxy`. With it, `msi-setup.sh` first checks it can reach github.com (if not: 「先开
+  v2rayN 的系统代理」), then gives it to what does not read the shell's: apt (`/etc/apt/apt.conf.d/95flow-proxy`), the
+  commands it runs with sudo, and every runner's `.env` (`https_proxy`, `http_proxy`, `no_proxy=localhost,127.0.0.1,
+  ::1,100.64.0.0/10`; a runner is a systemd service), restarting a runner whose `.env` changed. Without a proxy none of
+  this is written. A new port: run the script again in a shell that has it. Only a local address is ever written; the
+  node link stays in v2rayN. `msi-setup-check.yml` runs the script through a local squid too.
 - **How a run picks** (`tools/ci_runner.py pick`, in `changes`): the MSI only if the repository variable `MSI_RUNNER`
   is `on`, the run is main's or a pull request from this repository (never a fork's), fewer than 6 MSI jobs are queued
   or running, and a probe (`msi-probe.yml`) starts on it within 45 s. Otherwise GitHub's machines, exactly as before.

@@ -210,6 +210,15 @@ class MsiRunnerTests(unittest.TestCase):
         self.assertIn('sha256sum -c', sh)
         self.assertNotIn('api.github.com', sh)  # unauthenticated API calls get 403 now and then (PR #128's first check)
         self.assertRegex(sh, r'RUNNER_SHA256=\$\{RUNNER_SHA256:-[0-9a-f]{64}\}')
+        # a proxy from the shell reaches what does not read it: apt, sudo, the runners (systemd services)
+        self.assertIn('PROXY=${https_proxy:-${HTTPS_PROXY:-}}', sh)
+        self.assertIn('/etc/apt/apt.conf.d/95flow-proxy', sh)
+        self.assertIn('Acquire::http::Proxy', sh); self.assertIn('Acquire::https::Proxy', sh)
+        self.assertIn('psudo add-apt-repository', sh); self.assertNotIn('\n  sudo add-apt-repository', sh)
+        self.assertIn("NO_PROXY_LIST=localhost,127.0.0.1,::1,100.64.0.0/10", sh)
+        self.assertIn("grep -vE '^(https?_proxy|HTTPS?_PROXY|no_proxy|NO_PROXY)=' \"$d/.env\"", sh)
+        self.assertIn('curl -sSI -m 20 -o /dev/null https://github.com', sh); self.assertIn('先开 v2rayN 的系统代理', sh)
+        self.assertNotRegex(sh, r'(vmess|vless|trojan|ss)://')  # no node link, ever
 
 
 class BetaReleaseTests(unittest.TestCase):
