@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- the site the app opens: Beta.xcconfig / Release.xcconfig -->
+	<key>FlowSiteURL</key>
+	<string>$(FLOW_SITE_URL)</string>
+	<!-- a whole text keeps playing with the screen locked -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+		<string>fetch</string>
+	</array>
+	<!-- a few times a day: the next two weeks of review reminders follow the counts (Shell.refreshTask) -->
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>cn.flowlang.app.refresh</string>
+	</array>
+	<!-- the site's own domains: service worker (offline, audio cache), the JS bridge and cookies only there -->
+	<key>WKAppBoundDomains</key>
+	<array>
+		<string>$(FLOW_SITE_HOST)</string>
+		<string>$(FLOW_BOUND_EXTRA)</string>
+	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchBackground</string>
+	</dict>
+</dict>
+</plist>

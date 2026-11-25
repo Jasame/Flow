@@ -1,0 +1,20 @@
+// Beta: opens the 内测版 (flow.jasa.hk). Used to run on the simulator, for the UI tests, for installing on your own
+// iPhone with the free personal team, and (archived) for TestFlight builds of the 内测版.
+#include "Shared.xcconfig"
+
+FLOW_SITE_URL = https:/$()/flow.jasa.hk
+FLOW_SITE_HOST = flow.jasa.hk
+// a second app-bound domain: the local test server (tools/ui_server.py) for UI tests on the simulator
+FLOW_BOUND_EXTRA = localhost
+FLOW_BUNDLE_ID = cn.flowlang.app.beta
+FLOW_DISPLAY_NAME = 语流内测
+
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = BETA DEBUG
+SWIFT_OPTIMIZATION_LEVEL = -Onone
+GCC_OPTIMIZATION_LEVEL = 0
+DEBUG_INFORMATION_FORMAT = dwarf
+ENABLE_TESTABILITY = YES
+ONLY_ACTIVE_ARCH = YES
+MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE
+
+#include? "Local.xcconfig"
