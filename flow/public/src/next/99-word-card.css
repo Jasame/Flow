@@ -27,3 +27,5 @@
 .wd-head .ph{font-family:var(--serif);color:var(--muted)}
 .wd-meta{color:var(--muted);font-size:13px;text-align:center}
 .say-pair{display:inline-flex;align-items:center;gap:2px}  /* 查词's AI 讲解: the speaker and 「AI 合成」 */
+/* the top bar is see-through (80-flat.css); in review a long answer scrolls under it, so there it has the page's colour (B2) */
+body.reviewing .bar{background:var(--bg)}
