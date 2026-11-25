@@ -156,10 +156,12 @@ The owner approved these on 2026-11-24 (「按你的建议改，b6 发完就写�
    the site's 更新记录. One 「发」 from the owner releases 语流 and publishes the changelog together; the 更新记录
    goes with the release, because it is part of that build. Afterwards the ledger entry, as in 发布顺序 step 6.
    - **更新记录** (the owner: 「然后我们需要完善一下给用户看的版本更新」, 2026-11-25): `flow/corpus_data/updates.json`, read by
-     我的 → 帮助 → 更新记录 (#/updates) and by 今日's 「语流更新了」 card (the first notice, once per release). Each nightly
-     release gets a new entry on top: an internal id (the coming tag, never shown), the date and a label such as
-     「11 月 26 日晚上」, 3–6 plain sentences under `new` / `better` / `fixed`, an optional `note`, and 2–3 short
-     `highlights` for the card. Only what really is live; no tags, PR numbers or model names (`tests/test_updates.py`
+     我的 → 帮助 → 更新记录 (#/updates) and by 今日's 「语流更新了」 card (at the very top, where a 公告 would be; a 公告
+     goes first; once per release). Each nightly release gets a new entry on top: an internal id (the coming tag, never
+     shown), the date and a label such as 「11 月 26 日晚上」, and every change a learner can notice, one sentence each
+     saying where and what changed, under `changed` (用法变了: a button moved, a consent to give; shown first and marked),
+     `new`, `better`, `fixed`, with a `link` to the page where there is one (「去看看」); an optional `note`, and 2–3 short
+     `highlights` for the card (the owner: 「能够让用户看到底有哪些变化，这是比较要紧的事」). Only what really is live; no tags, PR numbers or model names (`tests/test_updates.py`
      checks). The ledger session drafts it from the ledger and merges it into main before the 20:00 list, so the beta
      build shown at 20:00 is the one 语流 installs at 21:00. `beta` lists what is on the 内测版 and not on 语流 yet
      (only the 内测版 shows it); it is emptied into the new entry at each release.

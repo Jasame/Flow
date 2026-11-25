@@ -1,6 +1,7 @@
 """更新记录 (updates_service.py): the learners' record of what each 语流 release changed, and 今日's 「语流更新了」 card.
-The data is checked the way the ledger's rules say it is written: plain words, no PR numbers or model names, a few
-sentences per release, newest first; only the 内测版 sees what is on it and not on 语流 yet."""
+The data is checked the way the ledger's rules say it is written: every change a learner notices, one plain sentence each,
+no PR numbers or model names, links only to pages this site has, newest first; only the 内测版 sees what is on it and not
+on 语流 yet."""
 import json, os, re, sys, tempfile, unittest
 from pathlib import Path
 from unittest import mock
@@ -10,10 +11,14 @@ import updates_service as us  # noqa: E402
 import next_service  # noqa: E402
 
 DATA = json.loads(us.FILE.read_text(encoding='utf-8'))
+ROOT = Path(__file__).resolve().parents[1]
+SHELL = (ROOT / 'public' / 'src' / 'next' / '02-shell.js').read_text(encoding='utf-8')
+GUIDE = (ROOT / 'public' / 'guide' / 'guide.md').read_text(encoding='utf-8')
+ROUTES = set(re.findall(r"name === '([a-z-]+)'", SHELL)) | {''}
 
 
 def texts(e):
-    return [s for g in us.GROUPS for s in e.get(g) or []] + ([e['note']] if e.get('note') else []) + list(e.get('highlights') or [])
+    return [i['text'] for g in us.GROUPS for i in us.items(e, g)] + ([e['note']] if e.get('note') else []) + list(e.get('highlights') or [])
 
 
 class DataTests(unittest.TestCase):
@@ -24,14 +29,24 @@ class DataTests(unittest.TestCase):
         self.assertEqual(nums, sorted(nums, reverse=True), 'newest first, one entry per production release')
         self.assertEqual(len(nums), len(set(nums)))
         for e in rel:
-            items = [s for g in us.GROUPS for s in e.get(g) or []]
-            self.assertTrue(3 <= len(items) <= 6, (e['id'], len(items)))
+            self.assertFalse(set(e) - {'id', 'date', 'label', 'note', 'highlights', *us.GROUPS}, e['id'])
+            items = [i for g in us.GROUPS for i in us.items(e, g)]
+            self.assertTrue(1 <= len(items) <= 20, (e['id'], len(items)))
+            for g in us.GROUPS:
+                for x in e.get(g) or []:
+                    link = x.get('link') if isinstance(x, dict) else None
+                    if link:
+                        self.assertRegex(link, us.LINK, e['id'])
+                        name = link[2:].split('/')[0]
+                        self.assertIn(name, ROUTES, f'{e["id"]}: 「去看看」 goes to a page the router knows: {link}')
+                        if name == 'guide' and link.count('/') > 1:
+                            self.assertIn('{#' + link.split('/')[2] + '}', GUIDE, f'{e["id"]}: the guide has that chapter: {link}')
             self.assertTrue(re.fullmatch(r'\d{4}-\d{2}-\d{2}', e['date']), e['id'])
             self.assertTrue(e['label'] and not re.search(r'\br\d+\b', e['label']), e['id'])  # the tag is never shown
             self.assertTrue(2 <= len(e.get('highlights') or []) <= 3, e['id'])
             for s in texts(e):
                 self.assertIsNone(us.TECH.search(s), f'{e["id"]}: no PR numbers, tags or model names for learners: {s}')
-                self.assertLessEqual(len(s), 80, f'{e["id"]}: one sentence, not a paragraph: {s}')
+                self.assertLessEqual(len(s), 90, f'{e["id"]}: one sentence, not a paragraph: {s}')
             for s in e['highlights']:
                 self.assertLessEqual(len(s), 30, f'{e["id"]}: a highlight fits one line on a phone: {s}')
 
@@ -68,7 +83,7 @@ class ServiceTests(unittest.TestCase):
         self.use({'released': [{'id': 'r1', 'label': '昨天', 'new': ['a']}], 'beta': {'date': '2026-11-25', 'new': ['内测的'], 'better': [], 'fixed': []}})
         self.assertIsNone(us.listing()['beta'])
         os.environ['FLOW_CHANNEL'] = 'beta'
-        self.assertEqual(us.listing()['beta']['new'], ['内测的'])
+        self.assertEqual(us.listing()['beta']['new'], [{'text': '内测的'}])
         self.use({'released': [], 'beta': {'new': [], 'better': [], 'fixed': []}})
         self.assertIsNone(us.listing()['beta'], 'an empty 内测中 card is not shown')
 
@@ -82,10 +97,12 @@ class ServiceTests(unittest.TestCase):
         self.assertIsNone(us.latest())
 
     def test_the_page_reads_it_through_the_learning_api(self):
-        self.use({'released': [{'id': 'r1', 'label': '昨天', 'new': ['a'], 'note': '提醒'}]})
+        self.use({'released': [{'id': 'r1', 'label': '昨天', 'changed': [{'text': '按钮换了位置', 'link': '#/me'}],
+                                'new': ['a', {'text': 'b', 'link': 'https://example.com/'}], 'note': '提醒'}]})
         out, status = next_service.get(None, None, '/api/next/updates', {})
         self.assertEqual(status, 200)
-        self.assertEqual(out['released'][0], {'id': 'r1', 'label': '昨天', 'new': ['a'], 'better': [], 'fixed': [], 'note': '提醒'})
+        self.assertEqual(out['released'][0], {'id': 'r1', 'label': '昨天', 'changed': [{'text': '按钮换了位置', 'link': '#/me'}],
+                                              'new': [{'text': 'a'}, {'text': 'b'}], 'better': [], 'fixed': [], 'note': '提醒'})  # links leave nothing but this site
         self.assertIn("'update': __import__('updates_service').latest()", Path(next_service.__file__).read_text(encoding='utf-8'))
 
 

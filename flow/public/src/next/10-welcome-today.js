@@ -70,7 +70,7 @@
     const short = (innerHeight < 500 && innerWidth > innerHeight) || !!(path && h.path.back);
     view.innerHTML = `<div class="greet-row"><span class="kicker greet">${greeting()}${name ? `，<span class="nm">${esc(name)}</span>` : ''}</span>
         ${st && st.habit ? habitChip(st.habit) : st ? `<span class="wk" title="本周学了 ${weekN} 天"><span class="tiny muted">本周 ${weekN} 天</span><span class="week" aria-hidden="true">${st.week.map(d => `<span class="${d.active ? 'on' : ''}"></span>`).join('')}</span></span>` : ''}</div>
-      ${announceHTML(h)}${trialSurveyHTML(h)}
+      ${announceHTML(h) || updateCardHTML(h)}${trialSurveyHTML(h)}
       ${short ? '' : lineCardHTML(h) + newsCardHTML(news)}
       ${top}
       ${short ? lineCardHTML(h) + newsCardHTML(news) : ''}
@@ -82,7 +82,7 @@
           <a class="mrow more" href="#/library" data-tap="home-more"><span class="t"><b>更多材料</b><span class="tiny muted">按话题和级别挑一篇</span></span><span class="go" aria-hidden="true">›</span></a></div></section>`;
     const ring = view.querySelector('.ring'); if (ring) ring.style.setProperty('--p', ring.dataset.p + '%');  // CSP: no inline style attributes
     fillNotice(h);
-    bindAnnounce(h); bindTrialSurvey();
+    bindAnnounce(h); bindUpdateCard(h); bindTrialSurvey();  // 「语流更新了」 where a 公告 would be (83-updates.js)
     bindLine(h);  // 今日好句 (12-daily-line.js)
     const ro = document.getElementById('remindOnce'); if (ro) ro.onclick = () => remindOnce();  // 这次什么时候复习 (50-words.js)
     mountWeekCards(view);  // 这周进步 (11-progress.js)
@@ -185,11 +185,9 @@
     document.getElementById('annOk').onclick = seen;
     const go = box.querySelector('a'); if (go) go.addEventListener('click', () => save('flow-announce-seen', h.announce.id));
   }
-  // One notice at a time under the plan, the most useful first: 「语流更新了」 once per release (83-updates.js), sign in
-  // (guest), a level that fits better, an email for getting back in, then the guide for the first few days. Putting one
-  // off brings up the next.
+  // One notice at a time under the plan, the most useful first: sign in (guest), a level that fits better, an email
+  // for getting back in, then the guide for the first few days. Putting one off brings up the next.
   function noticeHTML(h) {
-    if (updateCardDue(h)) return updateCardHTML(h);
     if (!S.user) return `<div class="card sunk section notice stack-s"><b>登录后，进度和收藏的表达会保存下来</b><span class="muted small">不登录也可以听、读和做理解题。</span><div><button class="btn small" id="loginCta" data-tap="notice-login">登录 / 注册</button></div></div>`;
     if (h.suggest && Date.now() - (load('flow-next-suggest-skip') || 0) > 7 * 864e5) return suggestHTML(h.suggest);
     const lg = levelGuessHTML(h); if (lg) return lg;  // 09-start.js: a level guessed from the target, no test yet
@@ -215,7 +213,6 @@
     const slot = document.getElementById('notice'); if (!slot) return;
     slot.innerHTML = noticeHTML(h);
     const cta = document.getElementById('loginCta'); if (cta) cta.onclick = () => openLogin();
-    bindUpdateCard(h, () => fillNotice(h));
     if (h.suggest) bindSuggest(h, () => fillNotice(h));
     bindLevelGuess(() => fillNotice(h));
     bindMailNudge(() => fillNotice(h));

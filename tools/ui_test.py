@@ -2147,9 +2147,10 @@ def trial_survey_run(pw):
 
 
 def updates_run(pw):
-    """更新记录: 今日's 「语流更新了」 is the first notice, once per release on a phone that saw an earlier one; 「知道了」 and
-    「查看全部」 both put it away; a phone new to 语流 just notes the release; at 360 px it fits without sideways scroll and
-    takes well under a screen; 我的 → 帮助 opens the record, newest first, under 新功能 / 改进 / 修好的问题."""
+    """更新记录: 「语流更新了」 is the first card of 今日 (where a 公告 would be), once per release on a phone that saw an
+    earlier one; 「知道了」 and 「查看全部变化」 both put it away; a phone new to 语流 just notes the release; at 360 px it fits
+    without sideways scroll and takes well under a screen; 我的 → 帮助 opens the record, newest first, 用法变了 first and
+    marked, then 新功能 / 改进 / 修好的问题, 「去看看」 where a sentence has a page."""
     dev = 'updates'
     browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=['--mute-audio'])
     # service workers blocked: page.route sees the page's own requests only when no worker answers them
@@ -2157,8 +2158,9 @@ def updates_run(pw):
     cookie = [{'name': 'flow_session', 'value': CFG['learners']['veteran']['token'], 'url': BASE}]
     release = {'id': 't1'}
     data = {'released': [
-        {'id': 't2', 'date': '2026-11-26', 'label': '11 月 26 日晚上', 'new': ['今日计划多了一步。'], 'better': ['朗读更自然了。'], 'fixed': ['修好了一个按钮。'], 'note': '某个练习暂时停用。'},
-        {'id': 't1', 'date': '2026-11-25', 'label': '11 月 25 日下午', 'new': ['每天一份考试小练。'], 'better': [], 'fixed': ['同时保存两次不再出错。']}],
+        {'id': 't2', 'date': '2026-11-26', 'label': '11 月 26 日晚上', 'changed': [{'text': '单词复习：「认识」挪到了右边，想换回去在「我的 → 设置」。', 'link': '#/me'}],
+         'new': [{'text': '今日计划多了一步。', 'link': '#/'}], 'better': [{'text': '朗读更自然了。'}], 'fixed': [{'text': '修好了一个按钮。'}], 'note': '某个练习暂时停用。'},
+        {'id': 't1', 'date': '2026-11-25', 'label': '11 月 25 日下午', 'changed': [], 'new': [{'text': '每天一份考试小练。'}], 'better': [], 'fixed': [{'text': '同时保存两次不再出错。'}]}],
         'beta': None}
 
     def home(route):
@@ -2176,7 +2178,8 @@ def updates_run(pw):
         pg.goto(BASE + '/#/', wait_until='networkidle'); pg.reload(wait_until='networkidle'); settle(pg); pg.wait_for_timeout(400)
         return pg.evaluate("""() => { const c = document.getElementById('updCard'); if (!c) return null; const r = c.getBoundingClientRect();
             return {text: c.textContent, items: c.querySelectorAll('li').length, h: Math.round(r.height), vh: innerHeight,
-                    wide: document.documentElement.scrollWidth > innerWidth + 1, first: document.querySelector('#notice > *') === c}; }""")
+                    wide: document.documentElement.scrollWidth > innerWidth + 1, first: document.querySelector('#view .card') === c,
+                    all: (document.getElementById('updAll') || {}).textContent}; }""")
     try:
         errs = []
         ctx = browser.new_context(**phone); ctx.add_cookies(cookie)
@@ -2186,7 +2189,7 @@ def updates_run(pw):
         c = card(pg)
         pg.evaluate("() => { const c = document.getElementById('updCard'); if (c) c.scrollIntoView({ block: 'center' }); }")
         pg.screenshot(path=str(OUT / 'updates-today-card.png'))
-        check(dev, '今日: 「语流更新了」, first in the one notice slot, with its highlights', bool(c) and '语流更新了' in c['text'] and c['items'] == 3 and c['first'], c)
+        check(dev, '今日: 「语流更新了」 is the first card at the top, three highlights and 「查看全部变化」', bool(c) and '语流更新了' in c['text'] and c['items'] == 3 and c['first'] and c['all'] == '查看全部变化', c)
         check(dev, '360 px: the card fits, no sideways scroll, well under a screen', bool(c) and not c['wide'] and c['h'] < c['vh'] * 0.45, c and (c['h'], c['vh'], c['wide']))
         pg.click('#updOk'); pg.wait_for_timeout(200)
         gone = pg.query_selector('#updCard') is None
@@ -2195,12 +2198,14 @@ def updates_run(pw):
         c = card(pg)
         check(dev, 'the next release shows once more', bool(c) and '11 月 26 日晚上' in c['text'], c)
         pg.click('#updAll'); pg.wait_for_selector('.upd-page', timeout=8000)
-        page = pg.evaluate("""() => ({h: [...document.querySelectorAll('.upd h2')].map(x => x.textContent),
-            groups: [...document.querySelectorAll('.upd')][0].querySelectorAll('.upd-h').length, note: !!document.querySelector('.upd-note'),
-            wide: document.documentElement.scrollWidth > innerWidth + 1, beta: !!document.querySelector('.upd-beta')})""")
+        page = pg.evaluate("""() => { const first = document.querySelector('.upd'); return {h: [...document.querySelectorAll('.upd h2')].map(x => x.textContent),
+            groups: [...first.querySelectorAll('.upd-h')].map(x => x.textContent.replace('⚠︎ ', '')), note: !!document.querySelector('.upd-note'),
+            go: [...first.querySelectorAll('.upd-go')].map(a => a.getAttribute('href')), marked: !!first.querySelector('.upd-changed'),
+            wide: document.documentElement.scrollWidth > innerWidth + 1, beta: !!document.querySelector('.upd-beta')}; }""")
         pg.screenshot(path=str(OUT / 'updates-page.png'), full_page=True)
-        check(dev, '更新记录: newest first, 新功能 / 改进 / 修好的问题 and the note, no 内测中 on 语流, no sideways scroll',
-              page['h'] == ['11 月 26 日晚上', '11 月 25 日下午'] and page['groups'] == 3 and page['note'] and not page['beta'] and not page['wide'], page)
+        check(dev, '更新记录: newest first, 用法变了 first and marked, then 新功能 / 改进 / 修好的问题, 「去看看」 links, the note; no 内测中 on 语流, no sideways scroll',
+              page['h'] == ['11 月 26 日晚上', '11 月 25 日下午'] and page['groups'] == ['用法变了', '新功能', '改进', '修好的问题'] and page['marked']
+              and page['go'] == ['#/me', '#/'] and page['note'] and not page['beta'] and not page['wide'], page)
         check(dev, '「查看全部」 marks it seen: 今日 does not offer it again', card(pg) is None)
         pg.goto(BASE + '/#/me', wait_until='networkidle'); settle(pg)
         row = pg.query_selector('#view a[href="#/updates"]')
