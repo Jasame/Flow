@@ -88,6 +88,7 @@ FLOW_FILES=(
   ai_jobs.py
   ai_routes.py
   ai_stream.py
+  aigc_label.py
   app.py
   attempt_service.py
   audio_validation.py
