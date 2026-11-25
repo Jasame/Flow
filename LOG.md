@@ -373,3 +373,12 @@
   - #195 全文朗读不会再卡在「在读」：浏览器声音 4 秒没回音就停在那句并写明原因；speak() 抛错算被吞（听和说）
 - 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45568410266
+
+### b55 · 2026-11-25 15:39
+- main `b61147f`，构建 `becad05`
+- 新合并的 PR（自 b54 起）：
+  - #204 App 外壳：--bar-h 是顶栏的实际高度（给撑满一屏的页面用）（开局和考试）
+  - #175 学员请求不再交给 Gemini：备用换成百炼 qwen-plus 和语音识别，发音由 qwen3-asr 判断（单词、听和说、AI、操作指南）
+  - #205 CI：MSI 能跑几份由 MSI_SLOTS 决定（默认 6），已有别的 run 时放得下才送（发版和构建）
+- 自检：DEPLOYED，装了 11 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45569759804
