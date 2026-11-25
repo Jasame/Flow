@@ -136,6 +136,17 @@ class VerdictTests(unittest.TestCase):
         self.assertEqual((v['heard'], v['note']), ('sink', '听起来像 sink，不像 think'))
         self.assertIn('/θ/', v['tip'])
 
+    def test_the_target_counts_only_as_a_whole_word(self):  # 语流 09's review of #175
+        for target, heard in (('hat', 'That.'), ('it', 'Sit.'), ('ear', 'Year.')):
+            v = out.say_verdict(target, '', heard)
+            self.assertFalse(v['ok'], (target, heard))
+        v = out.say_verdict('ship', 'sheep', 'Worship.')
+        self.assertTrue(v['ok'])  # not the pair's mistake: let through, but said as heard
+        self.assertEqual(v['note'], '听起来像 worship，没有读成 sheep')
+        v = out.say_verdict('think', 'sink', 'Pink.')
+        self.assertEqual(v['note'], '听起来像 pink，没有读成 sink')
+        self.assertNotIn('听起来是 think', v['note'])
+
     def test_nothing_heard_is_a_reference_not_a_verdict(self):
         v = out.say_verdict('think', 'sink', '')
         self.assertTrue(v['unclear'])
