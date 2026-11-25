@@ -31,6 +31,23 @@
 
 ## 2026-11-25
 
+### 15:51 · 香港：开放 App 下载（flowlang.cn/download/）
+
+- **改了什么**：
+  - 新目录 `/www/wwwroot/flow-downloads/`（root，目录 755，文件 644），现在有三个文件：
+    - `flow-windows-0.1.0-setup.exe`（1,660,831 字节，sha256 `a516d337…fcff21`）；
+    - `flow-mac-0.1.0.dmg`（4,492,575 字节，sha256 `57f88042…2ed85491`）；
+    - `latest.json`。
+  - 新的 nginx 片段 `/www/server/panel/vhost/nginx/extension/flowlang.cn/download.conf`，15:51 装上，15:53 修正过一次：
+    - `/download/latest.json` 不缓存；
+    - `/download/flow-*.apk`、`.exe`、`.dmg` 一律作为下载，缓存一年；
+    - `/download/` 下面别的都回 404。
+  
+  Flow 程序和 `/etc/flow.env` 都没动，和发版无关。
+- **谁、为什么**：语流 A1（原 2），放桌面版的第一批安装包。用户：「开放，安卓好了也放」。安卓包以后照同样的步骤加，用户已经同意。
+- **备份**：第一版 nginx 片段 `/root/claude-ops/backup-download-conf-20261125-155353.conf`。
+- **撤回**：删掉 `download.conf`，`nginx -t` 通过后 `nginx -s reload`；三个文件挪到 `/root/claude-ops`。
+
 ### 13:10 · AI 网关：给 #175 加两个模型名
 
 - **改了什么**：网关数据库的 models 表加了两个名字，都加进了 flow 这把钥匙的允许列表：
