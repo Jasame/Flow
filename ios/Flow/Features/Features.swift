@@ -1,0 +1,74 @@
+import Foundation
+
+/// 「iOS 专属功能」 (我的 → 设置 → iOS 专属功能, FeaturesView): what the app does beyond the website, each switched on or
+/// off on this phone only (UserDefaults `feature.<id>`, never sent anywhere). A feature this iOS is too old for is not
+/// shown and counts as off. The owner's ask (2026-11-25): 「对 iOS 27 的特性做特殊优化，可以选择开启与关闭」.
+nonisolated enum Feature: String, CaseIterable, Identifiable, Sendable {
+    case lockScreenStudy = "lock-study"      // iOS 27: 语速, 单句循环 and 退回 5 秒 on the lock screen (LockScreen27)
+    case smartResume = "smart-resume"        // after a call, Siri, an alarm: goes on when iOS says it may (LongPlayer)
+    case offlinePacks = "offline-packs"      // today's recordings kept on the phone, fetched on Wi-Fi (Packs)
+
+    enum Group: String, CaseIterable {
+        case listen = "锁屏听读"
+    }
+
+    var id: String { rawValue }
+    var key: String { "feature." + rawValue }
+    var group: Group { .listen }
+
+    var title: String {
+        switch self {
+        case .lockScreenStudy: "锁屏上的学习按钮"
+        case .smartResume: "来电以后接着放"
+        case .offlinePacks: "离线朗读包"
+        }
+    }
+
+    /// one grey line under the title: what the learner gets
+    var detail: String {
+        switch self {
+        case .lockScreenStudy: "锁屏和灵动岛上调语速（0.75× / 1× / 1.25×）、单句循环、退回 5 秒"
+        case .smartResume: "来电、Siri、闹钟以后，系统说可以就接着放；关掉就停在那里，等你点播放"
+        case .offlinePacks: "连着 Wi-Fi 时，把今天要学的 3 篇文章录音存到手机上，地铁里没网也能放；存满 7 天的自动删掉"
+        }
+    }
+
+    var defaultOn: Bool {
+        switch self {
+        case .lockScreenStudy, .smartResume: true
+        case .offlinePacks: false  // it takes room on the phone: the learner turns it on
+        }
+    }
+
+    /// The system can do it (the switch is shown).
+    var available: Bool {
+        switch self {
+        case .lockScreenStudy:
+            if #available(iOS 27, *) { return true }
+            return false
+        case .smartResume, .offlinePacks:
+            return true
+        }
+    }
+}
+
+@MainActor
+enum Features {
+    /// a switch changed on the page (the parts that act at once: the lock screen, the offline packs)
+    static var changed: [(Feature, Bool) -> Void] = []
+
+    static func on(_ f: Feature) -> Bool {
+        guard f.available else { return false }
+        return UserDefaults.standard.object(forKey: f.key) == nil ? f.defaultOn : UserDefaults.standard.bool(forKey: f.key)
+    }
+
+    static func set(_ f: Feature, _ on: Bool) {
+        UserDefaults.standard.set(on, forKey: f.key)
+        for fn in changed { fn(f, on) }
+    }
+
+    /// what the page and the tests see: {"lock-study": true, …} for the features this iOS has
+    static var state: [String: Bool] {
+        Dictionary(uniqueKeysWithValues: Feature.allCases.filter(\.available).map { ($0.rawValue, on($0)) })
+    }
+}
