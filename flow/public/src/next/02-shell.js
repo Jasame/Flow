@@ -28,7 +28,19 @@
     setTimeout(() => (f || sheetCard).focus({ preventScroll: true }), 30);
     if (onMount) onMount(sheetCard);
   }
+  // Closing slides the sheet down and fades it (0.16 s; B9's design audit, 2026-11-25), from wherever a finger let it
+  // go. The sheet itself is closed at once (everything that asks whether one is open, focus, a sheet opened right after);
+  // what moves is a copy of it, without ids, that nothing can reach and a screen reader does not see.
+  function sheetGhost() {
+    if (REDUCED || sheetEl.hidden || !sheetCard.firstChild) return;
+    const g = sheetEl.cloneNode(true), c = g.querySelector('.sheet-card');
+    g.removeAttribute('id'); g.querySelectorAll('[id]').forEach(x => x.removeAttribute('id'));
+    g.classList.add('sheet-ghost'); g.setAttribute('aria-hidden', 'true'); g.inert = true;
+    document.body.appendChild(g); if (c) c.scrollTop = sheetCard.scrollTop;
+    setTimeout(() => g.remove(), 200);
+  }
   function closeSheet() {
+    sheetGhost();
     sheetEl.hidden = true; sheetCard.innerHTML = ''; sheetCard.style.transform = ''; document.body.classList.remove('sheet-open');
     if (sheetReturn && document.contains(sheetReturn) && sheetReturn.focus) sheetReturn.focus({ preventScroll: true });
     sheetReturn = null;
@@ -354,6 +366,7 @@
       else { setNav('today'); await today(fresh); }
       if (!sameMaterial && name !== 'welcome' && !quiet) enter(view);
       if (!sameMaterial && !quiet) { const h = view.querySelector('h1'); announce(h ? h.textContent : document.title); }
+      homeBackLink();  // 主屏 App: the page's own 「← 上一级」 line gives way to the top bar's 返回 (04-home-app.js)
     } catch (e) {
       const kept = e.network ? OFF.list() : [];  // offline: what can still be studied
       view.innerHTML = `<div class="empty"><div class="big">⚠︎</div><p>${esc(e.message)}</p><button class="btn" id="retry">重试</button>
@@ -362,9 +375,20 @@
       document.getElementById('retry').onclick = () => route();
     } finally { if (!keepScroll && !sameMaterial && !quiet) view.focus({ preventScroll: true }); }
   }
+  // How the page changed (the Navigation API where there is one; else a longer history means a link, and a back or a
+  // redirect cannot be told apart, so neither closes a sheet)
+  const NAV = { type: '', len: history.length };
+  if (window.navigation && navigation.addEventListener) navigation.addEventListener('navigate', e => { NAV.type = e.navigationType || ''; });
   window.addEventListener('hashchange', () => {
     const [name, a] = parts(), last = S.lastRoute.split('/');
     if (!(name === 'm' && last[0] === 'm' && last[1] === a)) window.scrollTo(0, 0);
+    // another page the learner went to (a link, 返回, the browser's or the phone's back): a sheet of the page left closes
+    // with it (one waiting for an answer stays). The app's own redirects (location.replace: #/join → #/ → #/welcome) keep
+    // the sheet a route opened on the way (#/join's 注册). A tip the page left showed is put away, one said on the way
+    // here (「已保存」) stays.
+    const redirect = NAV.type ? NAV.type === 'replace' : history.length === NAV.len; NAV.type = ''; NAV.len = history.length;
+    if (!redirect && !sheetEl.hidden && !sheetLocked()) closeSheet();
+    if (Date.now() - (toast.at || 0) > 400) toastEl.classList.remove('show');
     route();
   });
   // Focus mode: while reading, the top bar slides away on scroll down and comes back on scroll up.

@@ -3238,6 +3238,74 @@ def one_screen_run(pw):
         browser.close()
 
 
+def shell_run(pw):
+    """The app shell (B8's audit, 2026-11-25): in the home-screen app a sub-page's own 「← 口语路线」 line gives way to the
+    top bar's 返回, which goes there when the app has no page before (Safari keeps the line); a sheet closes with its page
+    (a link, or the browser's back); 开局's four level tiles stay one row at 375 px, 推荐 a corner badge; 听力测评 and
+    阅读测评 have a title a screen reader says."""
+    dev = 'shell'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=['--mute-audio'])
+    tok = CFG['learners']['phone']['token']
+    errs = []
+
+    def open_(home, w=375, h=667, hash_='#/'):
+        ctx = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
+        if home:
+            ctx.add_init_script(HOME_INIT % json.dumps([0, 0, 0]))
+        ctx.add_cookies([{'name': 'flow_session', 'value': tok, 'url': BASE}])
+        pg = ctx.new_page(); pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.goto(BASE + '/' + hash_, wait_until='load'); settle(pg); pg.wait_for_timeout(400)
+        return ctx, pg
+
+    BACK = """() => { const b = document.getElementById('backBtn'), a = [...document.querySelectorAll('#view a.link.small')].find(x => /^←/.test(x.textContent.trim()));
+      return {btn: !!b && !b.hidden, label: b && !b.hidden ? b.textContent.trim() : null, line: !!a && a.offsetParent !== null, hash: location.hash}; }"""
+    try:
+        # the home-screen app, opened straight on a sub-page (no page before it in the app)
+        ctx, pg = open_(True, hash_='#/speak/cafe-order')
+        s = pg.evaluate(BACK)
+        pg.screenshot(path=str(OUT / 'shell-home-sub-page.png'))
+        check(dev, 'home-screen app, a sub-page: one 返回 only — the page\'s own 「← 口语路线」 line is hidden, the bar\'s button says where it goes',
+              s['btn'] and not s['line'] and s['label'] == '口语路线', s)
+        pg.click('#backBtn'); pg.wait_for_timeout(500)
+        check(dev, 'home-screen app: that 返回, with no page before, goes where the line went (#/speak), not to the tab', pg.evaluate('location.hash') == '#/speak', pg.evaluate('location.hash'))
+        go(pg, '#/speak/cafe-order'); pg.wait_for_timeout(300); s = pg.evaluate(BACK)
+        check(dev, 'home-screen app: with a page before it, the button says 返回 and the line stays hidden', s['btn'] and not s['line'] and s['label'] == '返回', s)
+        ctx.close()
+        # Safari: no 返回 in the bar, the line is the way back
+        ctx, pg = open_(False, hash_='#/speak/cafe-order'); s = pg.evaluate(BACK)
+        check(dev, 'Safari, a sub-page: the page\'s own 「← 口语路线」 line is there (no 返回 in the bar)', not s['btn'] and s['line'], s)
+        # a sheet goes with its page: a link, and the browser's back
+        go(pg, '#/me'); pg.click('#meText'); pg.wait_for_selector('#sheet:not([hidden])', timeout=4000); pg.wait_for_timeout(300)
+        # closing slides away (B9): the sheet itself is shut at once, a copy without ids, out of reach, goes down and is gone
+        g = pg.evaluate("""async () => { document.querySelector('#sheet [data-close]').click(); const g = document.querySelector('.sheet-ghost');
+          const at = g && {shut: document.getElementById('sheet').hidden, ids: g.querySelectorAll('[id]').length + (g.id ? 1 : 0), hidden: g.getAttribute('aria-hidden'), inert: g.inert,
+                           anim: getComputedStyle(g.querySelector('.sheet-card')).animationName};
+          await new Promise(r => setTimeout(r, 400)); return {at, gone: !document.querySelector('.sheet-ghost')}; }""")
+        check(dev, 'closing a sheet: shut at once, a copy (no ids, inert, hidden from screen readers) slides down and is gone',
+              bool(g['at']) and g['at']['shut'] and g['at']['ids'] == 0 and g['at']['hidden'] == 'true' and g['at']['inert'] and g['at']['anim'] == 'sheet-down' and g['gone'], g)
+        pg.click('#meText'); pg.wait_for_selector('#sheet:not([hidden])', timeout=4000)
+        pg.evaluate("location.hash = '#/practice'"); pg.wait_for_timeout(400)
+        check(dev, 'a sheet open, another page: the sheet closes with its page', pg.evaluate("document.getElementById('sheet').hidden"))
+        go(pg, '#/me'); pg.click('#meText'); pg.wait_for_selector('#sheet:not([hidden])', timeout=4000)
+        pg.go_back(); pg.wait_for_timeout(500)
+        check(dev, 'a sheet open, the browser\'s back: the page before, and no sheet over it', pg.evaluate("document.getElementById('sheet').hidden") and pg.evaluate('location.hash') == '#/practice', pg.evaluate('location.hash'))
+        # 开局: four level tiles in one row at 375 px, all one height, 推荐 on one as a corner badge
+        go(pg, '#/welcome/edit'); pg.wait_for_selector('.wg-targets .opt', timeout=6000)
+        t = pg.evaluate("""() => [...document.querySelectorAll('.wg-targets .opt')].map(o => { const r = o.getBoundingClientRect(), rec = o.querySelector('.rec');
+          return [Math.round(r.top), Math.round(r.height), !!rec && !rec.hidden && getComputedStyle(rec).position === 'absolute']; })""")
+        check(dev, '开局 at 375 px: the four levels in one row, one height (no third line for 推荐), 推荐 a corner badge',
+              len(t) == 4 and len({x[0] for x in t}) == 1 and len({x[1] for x in t}) == 1 and t[0][1] <= 90 and sum(x[2] for x in t) == 1, t)
+        # 能力测评: a title a screen reader says
+        for kind, name in (('listening', '听力测评'), ('reading', '阅读测评')):
+            go(pg, f'#/radar/test/{kind}'); pg.wait_for_timeout(600)
+            h1 = pg.evaluate("(h => h && h.textContent.trim())(document.querySelector('#view h1'))")
+            check(dev, f'{name}: the page has its h1 (for a screen reader)', h1 == name, h1)
+        ctx.close()
+        check(dev, 'no page errors', not errs, errs[:3])
+    finally:
+        browser.close()
+
+
 def backlog_run(pw):
     """Reviews piled up after a break (ux-longterm-audit 1.1, 11, 16, 2026-11-24): no new words today and the word page
     says so; the review page says 「先做 40 个（还有 N 个）」 and, after those 40, offers a place to stop; the small links
@@ -3738,11 +3806,12 @@ def home_app_run(pw):
         # one-screen pages (复习's card, 测词汇量, 起点小测) fit one screen whatever sits above them: the top bar with
         # 返回 (it made the bar 12 px taller), the 内测版's line, the safe area — the owner's iPhone, 2026-11-25. The
         # home-screen app and Safari, 375×667 and 390×844, 语流 and its 内测版: no vertical scroll.
-        ONE = {'375x667': (375, 667, 20, 0), '390x844': (390, 844, 47, 34)}
+        # Safari with its address bar and toolbar showing leaves 553 / 664 px (B8's audit): those are Safari only
+        ONE = {'375x667': (375, 667, 20, 0), '390x844': (390, 844, 47, 34), '375x553': (375, 553, None, None), '390x664': (390, 664, None, None)}
         BETA_CH = "new MutationObserver((m, o) => { if (document.documentElement) { document.documentElement.dataset.channel = 'beta'; o.disconnect(); } }).observe(document, {childList: true, subtree: true})"
         over = {}
         for size, (w, h, t, b) in ONE.items():
-            for env in ('home app', 'Safari'):
+            for env in (('Safari',) if t is None else ('home app', 'Safari')):
                 for ch in ('语流', '内测版'):
                     ctx = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
                     if env == 'home app':
@@ -3764,7 +3833,7 @@ def home_app_run(pw):
                     ctx.close()
         for page in ('#/review', '#/vocab/test', '#/placement'):
             got = {f'{s} {e} {c}': v for (s, e, c, p), v in over.items() if p == page}
-            check(dev, f'one screen: {page} — no vertical scroll in the home-screen app or Safari, 375×667 and 390×844, 语流 and 内测版',
+            check(dev, f'one screen: {page} — no vertical scroll in the home-screen app or Safari (375×667, 390×844; toolbars showing 375×553, 390×664), 语流 and 内测版',
                   all(v <= 0 for v in got.values()), {k: v for k, v in got.items() if v > 0} or got)
         # the 内测版 in one of Flow's apps: the learner installed it on purpose, and flowlang.cn would open the system
         # browser — the line stays without its link, the once-per-phone sheet is not shown (a browser still gets both)
@@ -3897,6 +3966,12 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('review-side', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'shell' in ONLY:
+            try:
+                shell_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('shell', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'one-screen' in ONLY:
             try:
                 one_screen_run(pw)
