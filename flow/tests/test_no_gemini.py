@@ -190,9 +190,11 @@ class VerdictTests(unittest.TestCase):
         self.assertNotIn('听起来是 think', v['note'])
 
     def test_a_third_word_is_right_only_when_it_leans_to_the_target(self):  # 语流 B3, 2026-11-25 (zinc in the r32 e2e)
-        cases = [('think', 'sink', 'Zinc.', False, 'third_near_pair', '听起来像 zinc，更接近 sink，不像 think'),
+        cases = [('think', 'sink', 'Zinc.', False, 'third_near_pair', '听起来像 zinc，不像 think'),  # one sound from both: spelling
                  ('think', 'sink', 'Thing.', True, 'third_ok', '听起来像 thing，接近 think'),
-                 ('think', 'sink', 'Pink.', False, 'third_near_pair', '听起来像 pink，更接近 sink，不像 think'),
+                 ('think', 'sink', 'Pink.', False, 'third_near_pair', '听起来像 pink，不像 think'),
+                 ('think', 'sink', 'Sing.', False, 'third_near_pair', '听起来像 sing，更接近 sink，不像 think'),  # by sound
+                 ('ship', 'sheep', 'Shape.', False, 'third_unclear', '没听出 ship，听着像 shape，可以再读一遍'),  # a tie is never right
                  ('ship', 'sheep', 'Worship.', True, 'third_ok', '听起来像 worship，接近 ship'),
                  ('think', 'sink', 'Banana.', False, 'third_unclear', '没听出 think，听着像 banana，可以再读一遍')]
         for target, partner, heard, ok, reason, note in cases:
