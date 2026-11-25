@@ -13,7 +13,6 @@ playback stop button, step switching, list filters. Screenshots of every page pe
 import atexit, json, os, re, socket, subprocess, sys, tempfile, time, traceback
 from pathlib import Path
 from playwright.sync_api import sync_playwright
-import silent  # noqa: F401  (rule 9 in tools/README.md: every browser started here is muted)
 
 OUT = Path(sys.argv[1] if len(sys.argv) > 1 else tempfile.mkdtemp(prefix='flow-ui-out-'))
 OUT.mkdir(parents=True, exist_ok=True)

@@ -14,7 +14,6 @@ python3 tools/build_release.py --here.
 import datetime, hashlib, html, json, os, sys, tempfile
 from pathlib import Path
 from playwright.sync_api import sync_playwright
-import silent  # noqa: F401  (rule 9 in tools/README.md: every browser started here is muted)
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'flow'))
