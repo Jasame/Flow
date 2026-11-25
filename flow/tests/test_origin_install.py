@@ -48,6 +48,26 @@ class FrontEndTests(unittest.TestCase):
             self.assertIn(rule, spec)  # the sheet says what the writing rules say
         self.assertIn('AI 改写）', (SRC / '22-study-read.js').read_text(encoding='utf-8'))
 
+    def test_ai_written_texts_say_so_under_the_title_and_on_their_cards(self):
+        # 「AI 生成」 (2026-11-25, 人工智能生成合成内容标识办法), in the shared style (aiMark / aiTag, 00-head.js)
+        js = (SRC / '20-study.js').read_text(encoding='utf-8')
+        for note in ('本文由 AI 辅助编写，经过规范检查', '本文由 AI 编写', 'AI 改写 · 未经人工审核'):
+            self.assertIn(note, js)
+        self.assertIn("${note ? aiMark(note) : ''}<div class=\"origin tiny\">", js)
+        self.assertIn('aiMark(aiNote(m))', (SRC / '44-easy.js').read_text(encoding='utf-8'))
+        for f in ('10-welcome-today.js', '44-easy.js'):
+            self.assertIn("m.ai ? ' ' + aiTag() : ''", (SRC / f).read_text(encoding='utf-8'), f)
+        self.assertIn('aiTag()', (SRC / '12-daily-line.js').read_text(encoding='utf-8'))
+        lib = (SRC / '80-library.js').read_text(encoding='utf-8')
+        self.assertIn('aiTag()', lib); self.assertIn("aiMark('本连载由 AI 辅助编写，经过规范检查')", lib)
+
+    def test_cards_say_whether_flow_wrote_the_text_with_ai(self):
+        v5 = __import__('content_v50').v5_materials()[0]
+        self.assertTrue(nx._card(v5)['ai'])
+        self.assertTrue(nx._card(dict(v5, id='daily-2026-11-25', daily_day='2026-11-25'))['ai'])
+        self.assertTrue(nx._card({'id': 'graded-x', 'title': 't', 'level': 'A2', 'theme': 'life', 'body': 'A short text.'})['ai'])
+        self.assertFalse(nx._card(dict(v5, id='imp-3', imported=True))['ai'])
+
     def test_the_install_guide_knows_the_phone_in_hand(self):
         js = (SRC / '81-me.js').read_text(encoding='utf-8')
         for words in ('底部中间', '添加到主屏幕', '右上角', 'Safari', '⋮', '安装应用', '安装到桌面', '在浏览器打开'):

@@ -488,6 +488,7 @@ def _card(pack, done=None, extra=None):
             'preview': pack.get('summary_zh') or sentences(pack['body'])[0][:140], 'preview_en': sentences(pack['body'])[0][:160],
             'daily': bool(pack.get('daily_day')), 'featured': featured(pack), 'grammar': pack.get('grammar', []),
             'brief': not featured(pack) and not pack.get('daily_day') and not pack.get('imported'),  # 简版: the older, shorter texts
+            'ai': not pack.get('imported'),  # 「AI 生成」 on the card: everything Flow wrote is (featured, 简版, 热点); an imported article is the learner's
             'steps': sorted(done or [], key=STEPS.index), **(extra or {})}
 
 
