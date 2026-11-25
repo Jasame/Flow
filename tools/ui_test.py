@@ -3046,7 +3046,15 @@ def shell_run(pw):
         ctx, pg = open_(False, hash_='#/speak/cafe-order'); s = pg.evaluate(BACK)
         check(dev, 'Safari, a sub-page: the page\'s own 「← 口语路线」 line is there (no 返回 in the bar)', not s['btn'] and s['line'], s)
         # a sheet goes with its page: a link, and the browser's back
-        go(pg, '#/me'); pg.click('#meText'); pg.wait_for_selector('#sheet:not([hidden])', timeout=4000)
+        go(pg, '#/me'); pg.click('#meText'); pg.wait_for_selector('#sheet:not([hidden])', timeout=4000); pg.wait_for_timeout(300)
+        # closing slides away (B9): the sheet itself is shut at once, a copy without ids, out of reach, goes down and is gone
+        g = pg.evaluate("""async () => { document.querySelector('#sheet [data-close]').click(); const g = document.querySelector('.sheet-ghost');
+          const at = g && {shut: document.getElementById('sheet').hidden, ids: g.querySelectorAll('[id]').length + (g.id ? 1 : 0), hidden: g.getAttribute('aria-hidden'), inert: g.inert,
+                           anim: getComputedStyle(g.querySelector('.sheet-card')).animationName};
+          await new Promise(r => setTimeout(r, 400)); return {at, gone: !document.querySelector('.sheet-ghost')}; }""")
+        check(dev, 'closing a sheet: shut at once, a copy (no ids, inert, hidden from screen readers) slides down and is gone',
+              bool(g['at']) and g['at']['shut'] and g['at']['ids'] == 0 and g['at']['hidden'] == 'true' and g['at']['inert'] and g['at']['anim'] == 'sheet-down' and g['gone'], g)
+        pg.click('#meText'); pg.wait_for_selector('#sheet:not([hidden])', timeout=4000)
         pg.evaluate("location.hash = '#/practice'"); pg.wait_for_timeout(400)
         check(dev, 'a sheet open, another page: the sheet closes with its page', pg.evaluate("document.getElementById('sheet').hidden"))
         go(pg, '#/me'); pg.click('#meText'); pg.wait_for_selector('#sheet:not([hidden])', timeout=4000)
