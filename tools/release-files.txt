@@ -389,6 +389,7 @@ flow/tests/test_speak_rounds.py
 flow/tests/test_survey.py
 flow/tests/test_teachers.py
 flow/tests/test_time_budget.py
+flow/tests/test_tour.py
 flow/tests/test_trial_survey.py
 flow/tests/test_tts.py
 flow/tests/test_updates.py
@@ -406,6 +407,7 @@ flow/tools/build_graded.py
 flow/tools/build_reference.py
 flow/tools/revise_pedagogy.py
 flow/topic_guard.py
+flow/tour_service.py
 flow/tts_service.py
 flow/updates_service.py
 flow/upgrade.sh
