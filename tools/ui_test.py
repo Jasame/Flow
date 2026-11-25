@@ -1661,7 +1661,11 @@ def ux_run(pw):
         p6.route('**/audio/tts/us-f/no-aac-0001.wav', lambda r: r.fulfill(status=200, content_type='audio/wav', body=short))
         p6.goto(BASE + '/#/m/v5-culture-c1-lighthouse-ledger-3/listen', wait_until='networkidle'); settle(p6, '#playAll'); p6.wait_for_timeout(300)
         lead = p6.text_content('#view .listen-tip') or ''
-        p6.click('#playAll'); p6.wait_for_timeout(1500)
+        p6.click('#playAll')
+        for _ in range(40):  # the first AI 朗读 request: a moment on a busy CI runner (1.5 s was too short on the MSI)
+            p6.wait_for_timeout(200)
+            if any(u.endswith('/api/next/tts') for u in got6): break
+        p6.wait_for_timeout(300)
         six = p6.evaluate("() => ({ toasts: window.__toasts.filter(t => t.includes('放不了录音的格式')).length, btn: document.getElementById('playAll') ? document.getElementById('playAll').textContent.trim() : '' })")
         rec = [u for u in got6 if '/audio/' in u and 'lighthouse-ledger-3' in u]
         check(dev, 'no AAC on this device: the recording is never fetched, the text is read sentence by sentence in AI 朗读, why said once',
