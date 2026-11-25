@@ -1,9 +1,9 @@
 # 语流 App 和网页之间的桥（FlowApp v1）
 
-iOS（语流 C1）、安卓（语流 C2）、桌面 Windows、macOS 和 Linux（语流 C3）共用这一份约定。网页只认一个入口 `window.FlowApp`，
+iOS（语流 C1）、安卓（语流 C2）、桌面 Windows、macOS 和 Linux（语流 C3）、鸿蒙（语流 C4）共用这一份约定。网页只认一个入口 `window.FlowApp`，
 命令、事件、字段、错误码只在这里写一次；各平台怎么实现写在最后一节。
 
-- 约定由语流 C1（iOS）牵头改；各平台的小节由各自的会话写（会话名对照见共享笔记 session-names.md）。要改共用部分，先在 PR 里提，三边同意再合。
+- 约定由语流 C1（iOS）牵头改；各平台的小节由各自的会话写（会话名对照见共享笔记 session-names.md）。要改共用部分，先在 PR 里提，各平台都同意再合。
 - 网页一侧用桥的地方：声音和录音（语流 B3，01-audio-offline.js、70-learner.js），提醒（语流 B2，50-words.js），
   App 外壳的样子（语流 B5，04-home-app.js）。
 
@@ -11,9 +11,9 @@ iOS（语流 C1）、安卓（语流 C2）、桌面 Windows、macOS 和 Linux（
 
 - **功能一律看 `window.FlowApp`**：App 在网页自己的脚本之前放好它（document start，只在本站的主框架里）。
   先判断 `window.FlowApp && FlowApp.has('<能力>')`，没有就照网页原来的做法。Safari、主屏 App、微信、电脑浏览器都不受影响。
-- **User-Agent 末尾**：`FlowiOS/<版本>`、`FlowAndroid/<版本>`、`FlowDesktop/<版本> (Windows)`、`(macOS)` 或 `(Linux)`。
-  UA 只用来决定外壳的样子（04-home-app.js：返回按钮、不显示「添加到桌面」），写成 `/Flow(iOS|Android|Desktop)\//`。不要靠 UA 判断能力。
-- `FlowApp.platform`：`'ios'` | `'android'` | `'windows'` | `'macos'` | `'linux'`。说法跟着平台走，比如通知、麦克风权限去哪里打开：
+- **User-Agent 末尾**：`FlowiOS/<版本>`、`FlowAndroid/<版本>`、`FlowDesktop/<版本> (Windows)`、`(macOS)` 或 `(Linux)`、`FlowHarmony/<版本>`。
+  UA 只用来决定外壳的样子（04-home-app.js：返回按钮、不显示「添加到桌面」），写成 `/Flow(iOS|Android|Desktop|Harmony)\//`（#318）。不要靠 UA 判断能力。
+- `FlowApp.platform`：`'ios'` | `'android'` | `'windows'` | `'macos'` | `'linux'` | `'harmony'`。说法跟着平台走，比如通知、麦克风权限去哪里打开：
 
 | platform | 通知 | 麦克风 |
 |---|---|---|
@@ -22,8 +22,10 @@ iOS（语流 C1）、安卓（语流 C2）、桌面 Windows、macOS 和 Linux（
 | windows | 「设置 → 系统 → 通知」 | 「设置 → 隐私和安全性 → 麦克风」 |
 | macos | 「系统设置 → 通知」 | 「系统设置 → 隐私与安全性 → 麦克风」 |
 | linux | 「系统设置里的通知」 | 「系统设置 → 隐私 → 麦克风」 |
+| harmony | 「设置 → 应用和元服务 → 语流 → 通知」 | 「设置 → 应用和元服务 → 语流 → 麦克风」 |
 
 - linux 的说法：各个桌面叫法不一样，通知就笼统写；麦克风这一项是 GNOME 的，KDE 一般不用设。
+- harmony 的说法：HarmonyOS 5.0.1 模拟器上核对过，App 自己那一页上「通知」「麦克风」就在第一屏。网页 70-learner.js 的 APP_MIC 还没有 harmony，会退回 iPhone 的说法，要补一项（B3）。
 
 - 其他字段：`FlowApp.v`（桥的版本，现在 1）、`FlowApp.app`（App 版本）、`FlowApp.build`、`FlowApp.beta`（打开的是内测版）。
 
@@ -36,17 +38,17 @@ iOS（语流 C1）、安卓（语流 C2）、桌面 Windows、macOS 和 Linux（
 - 事件：`FlowApp.on(type, fn)` 返回退订函数，`FlowApp.off(type, fn)` 也行；同时在 `window` 上发 `flowapp:<type>` 事件（detail 同参数）。
 - 能力 `FlowApp.has(名字)`：
 
-| 能力 | 意思 | iOS | 安卓 | 桌面（Windows、macOS、Linux） |
-|---|---|---|---|---|
-| `audio` | 整篇朗读交给 App 放（锁屏、来电、后台） | 有 | 有 | 没有 |
-| `rec` | 录音由 App 录 | 有 | 有 | 没有（网页 getUserMedia） |
-| `notify` | 复习提醒用本地通知 | 有 | 有 | 有 |
-| `media` | 网页自己放声音，App 把 navigator.mediaSession 交给系统（媒体键、「正在播放」） | 没有 | 没有 | 有（Linux 走 MPRIS） |
-| `speech` | App 替网页补上 speechSynthesis（浏览器声音） | 没有 | 有 | 没有 |
-| `settings` | App 自己的「专属功能」设置页：「我的 → 设置」最后一行，点了调 `FlowApp.call('app.settings')` | 有 | 没有 | 没有 |
-| `haptic` | 让手机轻轻一震：`FlowApp.call('app.haptic', {kind})`（见下） | 有 | 没有 | 没有 |
-| `frugal` | 系统要省着用（低电量模式、iOS 27 的省资源提示）：网页少预载 | 有 | 没有 | 没有 |
-| `privacy` | 第一次打开时的同意和「基本模式」、撤回同意、权限管理页、APP 备案号（命令写在第 10 节安卓一节） | 没有 | 有 | 没有 |
+| 能力 | 意思 | iOS | 安卓 | 桌面（Windows、macOS、Linux） | 鸿蒙 |
+|---|---|---|---|---|---|
+| `audio` | 整篇朗读交给 App 放（锁屏、来电、后台） | 有 | 有 | 没有 | 有 |
+| `rec` | 录音由 App 录 | 有 | 有 | 没有（网页 getUserMedia） | 有 |
+| `notify` | 复习提醒用本地通知 | 有 | 有 | 有 | 没有（等华为开通代理提醒，见第 10 节鸿蒙） |
+| `media` | 网页自己放声音，App 把 navigator.mediaSession 交给系统（媒体键、「正在播放」） | 没有 | 没有 | 有（Linux 走 MPRIS） | 没有 |
+| `speech` | App 替网页补上 speechSynthesis（浏览器声音） | 没有 | 有 | 没有 | 没有（不接系统的 Core Speech Kit） |
+| `settings` | App 自己的「专属功能」设置页：「我的 → 设置」最后一行，点了调 `FlowApp.call('app.settings')` | 有 | 没有 | 没有 | 没有 |
+| `haptic` | 让手机轻轻一震：`FlowApp.call('app.haptic', {kind})`（见下） | 有 | 没有 | 没有 | 没有 |
+| `frugal` | 系统要省着用（低电量模式、iOS 27 的省资源提示）：网页少预载 | 有 | 没有 | 没有 | 没有 |
+| `privacy` | 第一次打开时的同意和「基本模式」、撤回同意、权限管理页、APP 备案号（命令写在第 10 节安卓一节） | 没有 | 有 | 没有 | 没有 |
 
 - 一个 App 在回到前台、网页重新加载以后，会把正在放的状态再发一次（`audio` 事件），网页不用猜。网页可见时也可以调 `FlowApp.call('app.visible')` 让它重发。
 - `FlowApp.call('hello')` → `{v, app, build, platform, features}`。
@@ -56,7 +58,7 @@ iOS（语流 C1）、安卓（语流 C2）、桌面 Windows、macOS 和 Linux（
   学员在 App 的设置里关了「复习时的轻触震动」就回 `ok: false`，什么都不做；网页不用自己判断开关，照常调。iOS 本来就没有 navigator.vibrate，网页在浏览器里不用补。
 - `FlowApp.call('app.frugal')` → `{on}`，变了发 `frugal` 事件 `{on}`（回到前台也会再看一次）。`on` 为 true 时网页少预载（PRELOAD.frugal() 也算它）：不提前存今天的文章、不预取下一篇。
   学员在 App 的设置里关了「省电时少做事」就一直是 false。
-- 安卓的返回键：App 先在 `window` 上发可以取消的 `flowapp:back` 事件，网页 `preventDefault()` 就算处理了；没人处理时 App 关掉开着的 sheet，再回到上一页。iOS、桌面没有这个键，不发。
+- 安卓的返回键、鸿蒙的侧滑返回：App 先在 `window` 上发可以取消的 `flowapp:back` 事件，网页 `preventDefault()` 就算处理了；没人处理时 App 关掉开着的 sheet，再回到上一页。iOS、桌面没有这个键，不发。
 
 ### 共用的包装 `native/flowapp.js`
 
@@ -75,9 +77,9 @@ window.__flowAppTransport = {
 - 包装读完就把 `__flowAppTransport` 从 window 上删掉；已经有 `window.FlowApp` 时什么都不做。
 - iOS：传输是 `webkit.messageHandlers.flow.postMessage({cmd, args})`（Bridge.swift 的 `transport`），文件由 Xcode 项目的 Shared 组直接打进 App；
   单元测试在 JavaScriptCore 里跑这个文件（FlowTests 的 `testTheSharedWrapper`、`testTheIOSTransport`）。
-- 安卓：打包时从 `native/` 复制进 assets（语流 C2）。桌面：要不要用，由语流 C3 定。
+- 安卓：打包时从 `native/` 复制进 assets（语流 C2）。鸿蒙：每次构建由 `harmony/entry/hvigorfile.ts` 复制进 rawfile（语流 C4）。桌面：要不要用，由语流 C3 定。
 - 静音开关、安卓的 speechSynthesis、桌面的 mediaSession 这些各平台自己的东西，不放进这个文件。
-- 改这个文件就是三个 App 一起改：PR 里说明，iOS 的单元测试要过，安卓、桌面再各自打包试一次。
+- 改这个文件就是所有 App 一起改：PR 里说明，iOS 的单元测试要过，安卓、桌面、鸿蒙再各自打包试一次。
 
 ## 3. 整篇朗读 `audio`
 
@@ -193,7 +195,7 @@ speaking、pending 照实；2.5 秒内一定发 start；getVoices() 有带 lang 
 ## 9. 测试
 
 - **测试不出声**（用户 2026-11-25）：每个平台都有静音开关，自动化测试默认打开，靠状态和事件判断：
-  iOS 启动参数 `-FlowMuteAudio YES`；安卓、桌面写在各自小节。浏览器自动化用 `--mute-audio`。真要听声音的测试先问用户。
+  iOS 启动参数 `-FlowMuteAudio YES`；安卓、桌面、鸿蒙写在各自小节。浏览器自动化用 `--mute-audio`。真要听声音的测试先问用户。
 - 网页一侧：`tools/ui_test.py` 用 add_init_script 放一个假的 FlowApp（记下收到的命令，按顺序发事件），测网页的适配；
   原来的组（listen-speak 等）照样全过，说明浏览器里没变。
 
@@ -326,3 +328,41 @@ Tauri 2，一套代码出 Windows（WebView2）、macOS（WKWebView）和 Linux�
   - `--smoke-test=<file>` 在页面里检查第 1–2 节的形状，`desktop/tools/check_smoke.py` 判定；
   - CI `.github/workflows/desktop.yml` 在 windows-latest（装好 NSIS 安装包后）、macos-latest 和 ubuntu-22.04（AppImage，xvfb + dbus-run-session，dunst 当通知服务）上各跑一次。
     Windows 和 Linux 上加了 `FLOW_SMOKE_NOTIFY=1`，真的排提醒、弹一条测试通知，之后清掉；冒烟测试从不改学员的设置。
+
+### 鸿蒙（语流 C4，`harmony/`）
+
+纯血鸿蒙（HarmonyOS 5.0 起，API 12）装不了安卓 APK，所以单独做。ArkTS 的 Stage 模型，一个 UIAbility 里一个 ArkWeb 的 Web 组件；说明在 `harmony/README.md`。
+最低 5.0（compatibleSdkVersion 5.0.0(12)），所以网页要守住 Chromium M114（5.0–5.1 的 ArkWeb 内核；6.0 起是 M132），`tools/check_compat.py` 查。
+product `default`（cn.flowlang.app.beta，「语流内测」，flow.jasa.hk）和 `prod`（cn.flowlang.app，「语流」，flowlang.cn）；名字分别放在 `AppScope/resources_beta|prod` 和 `entry/src/beta|prod`。
+
+- **注入**：Web 组件的 `javaScriptOnDocumentStart`，规则里只有本站的源。注入的是两个文件拼在一起：
+  - 先是鸿蒙自己的 `rawfile/flowapp-harmony.js`：`__flowAppTransport`（传输、`extend` 里加 `_back`、`ready` 里发 hello），再加上静音开关；
+  - 后面是共用的 `native/flowapp.js`，原样放进去。
+- **传输**：
+  - 网页 → App：Web 组件的 `javaScriptProxy`，对象名 `flowNative`，只有一个方法 `post(json)`，`{id, cmd, args}`；
+  - App → 网页：`runJavaScript` 调一个不可枚举的接收函数，名字每次启动 App 时随机生成，放在注入的配置里；回 `{id, ok, result | error}` 或事件 `{ev, detail}`。
+  - App 只回答本站页面的消息（看 Web 组件当前的地址）。
+- **外壳**：
+  - UA 末尾是 `FlowHarmony/<版本>`；深色和浅色跟着手机（`WebDarkMode.Auto`），切换不用重新加载；
+  - 键盘弹出时网页变矮（`RESIZE_CONTENT`），和安卓一样，visualViewport 看不到键盘；
+  - 侧滑返回先发 `flowapp:back`（第 2 节）；别的网站、`mailto:`、下载交给系统打开；
+  - 网页自己的 getUserMedia（没接桥的页面）只给本站，手机允许麦克风以后自动同意；
+  - 「加到手机日历」（`/api/next/vocab/reminder.ics`）：App 拿到这个文件，解析第一个日程，用 Calendar Kit 的 `editEvent` 打开系统日历的「新建日程」页，内容都填好，学员自己点保存。不要日历权限，也不开浏览器。
+- **audio**：AVPlayer，`STREAM_USAGE_AUDIOBOOK`。
+  - AVSession 把标题和「AI 朗读 · 第 n / N 句」放到锁屏和控制中心，有播放、暂停、上一句、下一句；读完或停下时把会话撤掉，卡片跟着消失。
+  - 后台播放靠长时任务 AUDIO_PLAYBACK。来电、别的 App 出声：系统说暂停就暂停（why = interrupted），说继续就接着放；拔耳机暂停（why = route）。
+  - 语速只有固定几档（0.5、0.75、1、1.25、1.5、1.75、2），取最接近的一档。
+  - **没有系统自带的声音**：鸿蒙的系统朗读是 Core Speech Kit，属于系统自带的 AI 能力，按规矩不接（不提供 `speech`）。
+    服务器做不出某一句时，暂停（why = error）并带 `fail {code, server}`，由网页说明原因；点继续再问一次。
+- **rec**：AudioCapturer 录 16 kHz 单声道 PCM，App 自己写 44 字节 WAV 头；m4a 用 AVRecorder（AAC，16 kHz，32 kbps）。
+  - 来电或切到后台时停下（cut）；`ms` 按录到的声音算，不按墙上时间算。
+  - 权限第一次由系统弹窗问；拒绝过以后，用 `requestPermissionOnSetting` 弹系统自己的开启框。
+- **notify**：**暂不提供**（`has('notify')` 为 false）。
+  - 原因：第三方 App 用后台代理提醒（reminderAgentManager），要华为按包名开通；没开通时 `publishReminder` 回 1700002，上限是 0。
+  - 用户 2026-11-26 定了：先只用邮件和「加到手机日历」。
+  - `notify/` 的排期（Planner，和 iOS、安卓同一套规则，最多排 28 条）已经写好，以后开通了在 FEATURES 里加回去就行。
+- **静音开关**：`hdc shell aa start -a EntryAbility -b cn.flowlang.app.beta --pb flow.mute true`（调试包和内测包）。打开以后：AVPlayer 音量 0，网页的 `<audio>` 静音，Web Audio 接一个音量为 0 的节点，speechSynthesis 不出声。
+- **测试**：
+  - 本地单元测试（hypium）：排期、句子、WAV、.ics 解析；
+  - HarmonyOS 5.0.1 模拟器上手动测过：桥、整篇朗读、锁屏卡片和按钮、录音、日历（2026-11-26，`harmony/README.md`）；
+  - CI 现在不构建 `harmony/`。
