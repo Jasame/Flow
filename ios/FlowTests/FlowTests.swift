@@ -1,4 +1,5 @@
 import JavaScriptCore
+import MediaPlayer
 import XCTest
 @testable import Flow
 
@@ -323,12 +324,12 @@ final class LongPlayerRequestTests: XCTestCase {
 
     @MainActor func testTheLockScreenSaysAIVoice() {
         // 《人工智能生成合成内容标识办法》: a synthesized voice is said so where it plays (every voice 语流 has is one)
-        let a = NowPlaying.labels(title: "今日好句", i: 2, n: 18)
+        let a = LockScreen.labels(title: "今日好句", i: 2, n: 18)
         XCTAssertEqual(a.title, "AI 朗读 · 今日好句")
         XCTAssertEqual(a.artist, "语流 · 第 3 / 18 句")
-        XCTAssertEqual(NowPlaying.labels(title: " ", i: 0, n: 1).title, "AI 朗读", "no title: the label alone")
-        XCTAssertEqual(NowPlaying.labels(title: "x", i: 30, n: 18).artist, "语流 · 第 18 / 18 句")
-        XCTAssertEqual(NowPlaying.labels(title: "x", i: 0, n: 0).artist, "语流")
+        XCTAssertEqual(LockScreen.labels(title: " ", i: 0, n: 1).title, "AI 朗读", "no title: the label alone")
+        XCTAssertEqual(LockScreen.labels(title: "x", i: 30, n: 18).artist, "语流 · 第 18 / 18 句")
+        XCTAssertEqual(LockScreen.labels(title: "x", i: 0, n: 0).artist, "语流")
     }
 
     @MainActor func testSentenceLookupLikeTheWebPage() {
@@ -466,5 +467,141 @@ final class BridgeTests: XCTestCase {
         bare.evaluateScript(Bridge.transport(["platform": "ios"]) + Bridge.script)
         XCTAssertEqual(bare.evaluateScript("typeof window.FlowApp")?.toString(), "undefined")
         XCTAssertEqual(bareErrors(), [])
+    }
+}
+
+/// 「iOS 专属功能」: the switches, the offline packs, the lock screen's study buttons (iOS 27)
+final class FeatureTests: XCTestCase {
+    override func setUp() {
+        for f in Feature.allCases { UserDefaults.standard.removeObject(forKey: f.key) }
+    }
+
+    override func tearDown() {
+        for f in Feature.allCases { UserDefaults.standard.removeObject(forKey: f.key) }
+    }
+
+    @MainActor func testDefaultsAndSwitches() {
+        // as on the plan (ios-27-features.md): the lock screen and going on after a call on, the packs off (they take room)
+        XCTAssertEqual(Features.on(.smartResume), true)
+        XCTAssertEqual(Features.on(.offlinePacks), false)
+        if #available(iOS 27, *) { XCTAssertTrue(Features.on(.lockScreenStudy)) } else { XCTAssertFalse(Features.on(.lockScreenStudy), "not shown, counts as off") }
+        var heard: [(Feature, Bool)] = []
+        Features.changed.append { heard.append(($0, $1)) }
+        defer { Features.changed.removeLast() }
+        Features.set(.offlinePacks, true)
+        XCTAssertTrue(Features.on(.offlinePacks))
+        XCTAssertEqual(heard.map(\.0), [.offlinePacks])
+        XCTAssertEqual(Features.state["offline-packs"], true)
+        XCTAssertEqual(Set(Features.state.keys), Set(Feature.allCases.filter(\.available).map(\.rawValue)))
+        for f in Feature.allCases { XCTAssertFalse(f.title.isEmpty || f.detail.isEmpty, f.rawValue) }
+    }
+
+    @MainActor func testTheBridgeSaysItHasTheSettingsPage() async {
+        XCTAssertTrue(Bridge.features.contains("settings"), "the page's 「iOS 专属功能」 row shows for has('settings')")
+        let b = Shell.shared.bridge, was = b.onSettings
+        defer { b.onSettings = was }
+        b.onSettings = nil
+        let none = await b.handle("app.settings", [:]) as? [String: Bool]
+        XCTAssertEqual(none?["ok"], false, "nothing to show it on: says so")
+        b.onSettings = { true }
+        let shown = await b.handle("app.settings", [:]) as? [String: Bool]
+        XCTAssertEqual(shown?["ok"], true)
+        let state = await b.handle("app.features", [:]) as? [String: Bool]
+        XCTAssertEqual(state?["offline-packs"], false)
+    }
+
+    @MainActor func testAKeptRecordingIsFoundByItsAddress() throws {
+        let k = try XCTUnwrap(Packs.key(URL(string: "https://flow.jasa.hk/audio/us-f/v5-campus-a2.mp4?v=41")!))
+        XCTAssertEqual(k, "/audio/us-f/v5-campus-a2.mp4?v=41")
+        XCTAssertEqual(Packs.key(URL(string: "https://flowlang.cn/audio/us-f/v5-campus-a2.mp4?v=41")!), k, "any of the site's hosts")
+        XCTAssertNotEqual(Packs.key(URL(string: "https://flow.jasa.hk/audio/us-f/v5-campus-a2.mp4?v=42")!), k, "a newer recording is another file")
+        XCTAssertNil(Packs.key(URL(string: "https://flow.jasa.hk/audio/tts/us-f/ab.mp3")!), "sentences of the server voice are not packed")
+        XCTAssertNil(Packs.key(URL(string: "https://flow.jasa.hk/api/next/home")!))
+        XCTAssertEqual(Packs.voice(of: URL(string: "https://flow.jasa.hk/audio/uk-m/x.mp4?v=1")!), "uk-m")
+        XCTAssertEqual(Packs.address(id: "a b", voice: "us-f", version: "3"), "/audio/us-f/a%20b.mp4?v=3")
+        XCTAssertEqual(Packs.key(URL(string: "https://flow.jasa.hk" + Packs.address(id: "a b", voice: "us-f", version: "3"))!), "/audio/us-f/a b.mp4?v=3")
+        let odd = Packs.fileName(id: "../x/y", voice: "us-f", version: "3")
+        XCTAssertEqual(odd, "us-f__.._x_y__3.mp4")
+        XCTAssertFalse(odd.contains("/"), "one name in the folder, nothing outside it")
+    }
+
+    @MainActor func testTodaysTextsAsThePageKeepsThem() {
+        // 06-offline.js keepTodayOffline: 今天这篇 first, then 今日's, no repeats, three
+        let home: [String: Any] = [
+            "path": ["steps": [["key": "review", "href": "#/review"], ["key": "read", "href": "#/m/v5-x%20y"]]],
+            "today": [["id": "v5-a"], ["id": "v5-x y"], ["id": "v5-b"], ["id": "v5-c"]],
+        ]
+        XCTAssertEqual(Packs.todaysTexts(home), ["v5-x y", "v5-a", "v5-b"])
+        XCTAssertEqual(Packs.todaysTexts(["today": [["id": "v5-a"]]]), ["v5-a"])
+        XCTAssertEqual(Packs.todaysTexts([:]), [])
+    }
+
+    @MainActor func testKeptFilesGoAfterAWeekAndNineAtMost() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("packs-test-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let p = Packs(dir: dir)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let now = Date()
+        func add(_ id: String, daysAgo: Double) throws {
+            let name = Packs.fileName(id: id, voice: "us-f", version: "1")
+            try Data([1, 2, 3]).write(to: dir.appendingPathComponent(name))
+            p.put("/audio/us-f/\(id).mp4?v=1", .init(id: id, voice: "us-f", version: "1", file: name, bytes: 3, title: id, kept: now.addingTimeInterval(-daysAgo * 86400)))
+        }
+        try add("old", daysAgo: 8)
+        try add("today-old", daysAgo: 8)
+        try add("new", daysAgo: 1)
+        XCTAssertEqual(p.local(for: URL(string: "https://flow.jasa.hk/audio/us-f/new.mp4?v=1")!)?.lastPathComponent, "us-f__new__1.mp4")
+        XCTAssertNil(p.local(for: URL(string: "https://flow.jasa.hk/audio/us-f/new.mp4?v=2")!), "another version is not this file")
+        p.prune(today: ["today-old"], now: now)
+        XCTAssertEqual(Set(p.entries.values.map(\.id)), ["today-old", "new"], "a week old goes, unless it is today's")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: dir.appendingPathComponent(Packs.fileName(id: "old", voice: "us-f", version: "1")).path))
+        for i in 0..<10 { try add("n\(i)", daysAgo: Double(i) / 10) }
+        p.prune(now: now)
+        XCTAssertEqual(p.entries.count, Packs.most)
+        XCTAssertNil(p.entries.values.first { $0.id == "today-old" }, "the oldest go first")
+        // a file iOS cleared meanwhile (Caches): not played from there
+        try FileManager.default.removeItem(at: dir.appendingPathComponent(Packs.fileName(id: "n0", voice: "us-f", version: "1")))
+        XCTAssertNil(p.local(for: URL(string: "https://flow.jasa.hk/audio/us-f/n0.mp4?v=1")!))
+        let again = Packs(dir: dir)
+        XCTAssertEqual(again.entries.count, Packs.most - 1, "the list is kept on the phone")
+        again.clear()
+        XCTAssertTrue(again.entries.isEmpty)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: dir.path), "switched off: nothing stays")
+    }
+
+    @MainActor func testNoConnectionHandsARecordingBackToThePage() {
+        XCTAssertTrue(LongPlayer.handBack(kept: false, online: false), "the page plays it from its own copy (sw.js)")
+        XCTAssertFalse(LongPlayer.handBack(kept: true, online: false), "the app's own copy: the app plays it")
+        XCTAssertFalse(LongPlayer.handBack(kept: false, online: true))
+    }
+
+    @MainActor func testTheLockScreenStates() throws {
+        guard #available(iOS 27, *) else { throw XCTSkip("iOS 27's NowPlaying") }
+        var n = LockScreen.Now(key: "k", title: "t", i: 0, n: 3, rate: 1.25, playing: true)
+        XCTAssertEqual(LockScreen27.state(n), .playing(rate: 1.25))
+        n.waiting = true
+        XCTAssertEqual(LockScreen27.state(n), .buffering, "「准备中」")
+        n = LockScreen.Now(playing: false, interrupted: true)
+        XCTAssertEqual(LockScreen27.state(n), .interrupted, "a call took the sound")
+        n.interrupted = false
+        XCTAssertEqual(LockScreen27.state(n), .paused)
+        XCTAssertEqual(LockScreen27.rates, [0.75, 1, 1.25], "the page's own three (21-study-listen.js)")
+    }
+
+    @MainActor func testTheLockScreenSessionCarriesTheAILabel() async throws {
+        guard #available(iOS 27, *) else { throw XCTSkip("iOS 27's NowPlaying") }
+        Features.set(.lockScreenStudy, true)
+        LockScreen.show(LockScreen.Now(key: "listen:x", title: "Radio host", i: 2, n: 10, elapsed: 12, duration: 100, rate: 1, playing: true))
+        let info = LockScreen27.info
+        XCTAssertEqual(info["title"] as? String, "AI 朗读 · Radio host")
+        XCTAssertEqual(info["subtitle"] as? String, "语流 · 第 3 / 10 句")
+        XCTAssertEqual(info["commands"] as? Int, 10, "play, pause, toggle, stop, next, previous, back 5 s, rate, repeat, the scrubber")
+        XCTAssertFalse(MPRemoteCommandCenter.shared().playCommand.isEnabled, "the older buttons do not answer as well")
+        Features.set(.lockScreenStudy, false)
+        LockScreen.show(LockScreen.Now(key: "listen:x", title: "Radio host", i: 2, n: 10, rate: 1, playing: true))
+        XCTAssertEqual(LockScreen27.info["on"] as? Bool, false, "switched off: the older lock screen")
+        XCTAssertTrue(MPRemoteCommandCenter.shared().playCommand.isEnabled)
+        XCTAssertEqual(MPNowPlayingInfoCenter.default().nowPlayingInfo?[MPMediaItemPropertyTitle] as? String, "AI 朗读 · Radio host")
+        LockScreen.clear()
     }
 }
