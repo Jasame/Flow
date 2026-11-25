@@ -1,4 +1,6 @@
-  function splitSentences(body) { return body.split(/(?<=[.!?]["”’]?)\s+/).map(s => s.trim()).filter(Boolean); }
+  // No lookbehind in a regex: Safari before iOS 16.4 cannot parse it, and one such regex stops the whole of next.js there
+  // (2026-11-25: iPhones and iPads stuck on 「正在打开…」). The split point is marked after the punctuation instead.
+  function splitSentences(body) { return body.replace(/([.!?]["”’]?)\s+/g, '$1\u0001').split('\u0001').map(s => s.trim()).filter(Boolean); }
   function findContext(term, ls) { const t = term.toLowerCase(); return ls.find(s => s.toLowerCase().includes(t)) || ''; }
 
   async function lookupSheet(word, sentence, pack, mine) {
