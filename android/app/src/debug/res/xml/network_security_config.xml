@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug builds only: as src/main, plus plain http to this phone's own loopback for the update tests
+     (`adb reverse tcp:18765 tcp:18765` brings the Mac's test server there; Updater.testUrl). Not 10.0.2.2: Android 17
+     keeps apps that target it off private addresses (the local network) unless they hold that permission.
+     Release builds use src/main's: https only. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+    </domain-config>
+</network-security-config>

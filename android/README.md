@@ -58,12 +58,13 @@ emulator -avd flow37 -no-window -no-audio      # 测试时一律不出声（工�
 - 脚本从钥匙串里取密码，交给 `apksigner`；CI 上从 Secrets 取。Gradle 碰不到密码，仓库里也没有。
 - **两把钥匙都要备份**（加密 U 盘、密码管理器都行），密码也要一起备份。丢了以后，新版本就不能覆盖安装：每个人都得先卸载再装，App 里的登录也要重新登。
 - 怎么装到手机上，见 [INSTALL-zh.md](INSTALL-zh.md)。
+- **公开下载**：正式包放在 `https://flowlang.cn/download/flow-android-<版本>.apk`，由语流 A1 上传，并在 `latest.json` 里写上安卓这一项（见下面「新版本」）。每出一版，把文件、SHA-256、证书指纹和一两句「这一版改了什么」交给 A1；A1 放出去之前问用户。
 - 两类事要先问用户：
   - 改 `tools/release-apk.sh`、签名、Secrets 或 `.github/workflows/android.yml` 的 PR，合并之前（`docs/releases.md` 2026-11-25 11:15 的规矩）；
   - 把 APK 发给试用的同学、或者放到别的地方之前。这件事也要提前告诉语流 B6，由它把指南里 App 的权限说明放上去。
 
 CI（`.github/workflows/android.yml`，语流 A2）：
-- 每个改 `android/` 的 PR 都跑 `assembleBetaDebug testBetaDebugUnitTest lintBetaDebug`。
+- 每个改 `android/` 或 `native/`（三个 App 共用的 FlowApp 包装，会打进 App）的 PR 都跑 `assembleBetaDebug testBetaDebugUnitTest lintBetaDebug`（`native/` 从 A2 的 #193 起）。
 - main 上另外由 job `beta-apk` 打签名的内测包。它绑定 environment `android-beta-signing`，只在 main 上跑，PR 拿不到钥匙，也不放到 MSI 自托管机器上。
   - 先在一个看不到钥匙的步骤里构建（Gradle 和它的插件都碰不到钥匙）；
   - 再在只有 zipalign 和 apksigner 的那一步签名（`FLOW_APK_PREBUILT=1`）；
@@ -183,6 +184,23 @@ CI（`.github/workflows/android.yml`，语流 A2）：
 - 界面测试默认打开这个开关。手动打开的方法：在调试包或内测包上运行 `adb shell am start -n cn.flowlang.app.beta/cn.flowlang.app.MainActivity --ez flow.mute true`。
 - 判断有没有在放，靠状态和事件，不靠听。
 
+## 新版本（`update/`，只有正式版「语流」）
+
+从 1.0.2 起，App 自己看有没有新版本，有就提示，用户点了才下载、才装。直接装的 APK 没法悄悄自动更新：手机每次都要用户点一下「更新」，提示里照实这么说。要完全自动，得等上应用商店。
+
+- **什么时候看**：App 启动时，以及每天第一次回到前台时（`MainActivity.onStart` → `Updater.onStart`）。没连上网就下次再看。
+- **看哪里**：`https://flowlang.cn/download/latest.json` 里的 `android` 一项，由 A1 写：
+  `{"version": "1.0.2", "code": 3, "file": "flow-android-1.0.2.apk", "size": …, "sha256": "…", "cert": "76:88:…", "date": "…", "notes": "这一版改了什么"}`。
+  - 有 `code`（versionCode）就比 versionCode，没有就比版本号；`notes` 是提示里「这一版改了什么」，没有就不写（也认 `changes` 数组）。
+  - 只在比自己新时提示：「有新版本 x.y.z」，下面是 `notes`，按钮「下载」「稍后」。点「稍后」（或返回键），同一个版本当天不再提示；第二天再提示，更新的版本当天也会提示。
+- **下载和核对**：下到 App 自己的缓存目录（`cache/update/`），边下边算 SHA-256；大小或 SHA-256 和 `latest.json` 对不上就删掉、不装，提示重新下载。对上了，再从安装包里读一遍：包名是不是 `cn.flowlang.app`、versionCode 是不是比现在的大、签名证书是不是和手机上这个一样。哪一样不对都不装。
+- **安装**：交给手机自己的安装程序（`PackageInstaller` 会话，`USER_ACTION_REQUIRED`）。手机会弹「要更新此应用吗？」，用户点「更新」才装；装好后旧版本被替换，App 会关掉，再点开就是新的。
+  - 要 `REQUEST_INSTALL_PACKAGES`，只写在 `src/prod/AndroidManifest.xml` 里，内测版没有。安卓要求用户在设置里给语流打开「安装未知应用」：第一次在 App 里装新版本时，先用 App 自己的话说明为什么要，再打开那一页（开关叫「允许从此来源安装应用」）。不打开就装不了，App 会给出下载页 `flowlang.cn/download`。
+  - 装的结果由不导出的 `InstallReceiver` 收，只认自己这次的会话。
+- **手机上存的**：SharedPreferences `flow-update`：上次看新版本的日期、点了「稍后」的版本和日期。下载的安装包交给安装程序后就删。看新版本时不带登录 cookie，只发普通的请求和 User-Agent。
+- **测试**：先 `adb reverse tcp:18765 tcp:18765`，再用 `--es flow.update_url http://127.0.0.1:18765/latest.json` 打开调试包，就指到这台 Mac 上的测试服务器（只有调试包认这个参数；调试包的网络设置只对 `127.0.0.1` 放开 http）。不用 `10.0.2.2`：目标是 Android 17 的 App 默认连不了局域网地址。正式包只看 flowlang.cn，只用 https。
+- 1.0.1 及更早的版本没有这个功能，要用户自己到下载页下载新版本覆盖安装一次。
+
 ## 权限和隐私
 
 | 权限 | 为什么要 |
@@ -194,19 +212,22 @@ CI（`.github/workflows/android.yml`，语流 A2）：
 | `RECEIVE_BOOT_COMPLETED` | 重启手机以后把提醒排回去 |
 | `SCHEDULE_EXACT_ALARM` | 提醒准点（手机允许时） |
 | `ACCESS_NETWORK_STATE` | 由 Media3（ExoPlayer）带进来，用来看网络类型；不弹窗 |
+| `REQUEST_INSTALL_PACKAGES`（只有正式版） | 在 App 里装新版本；要用户自己在设置里打开「安装未知应用」，第一次在 App 里装新版本时才问（见上面「新版本」） |
 
 - 不加任何第三方 SDK，不做统计和跟踪。用到的库只有 AndroidX、Media3、kotlinx-coroutines。
 - WebView 的使用统计和 Safe Browsing 网址检查都关掉了，App 不会因为 WebView 给 Google 发数据。
 - 不备份到云端（`allowBackup=false`）：登录 cookie 和手机上存的东西不会被带到别的手机上。
-- App 只连本站和媒体域名，只用 https。
+- App 只连本站和媒体域名，只用 https。看新版本时读 `flowlang.cn/download/latest.json`，下载安装包，都不带登录 cookie。
 
 ## 测试
 
-- 单元测试（`src/test`，JVM，CI 上可以跑），共 22 个：
+- 单元测试（`src/test`，JVM，CI 上可以跑），共 31 个：
   - 句子定位、上一句和下一句的规则、复读（`Sentences`，和网页 `NAR`、`LONG` 的规则一致）；
   - 提醒排期（`Planner`，用 iOS 的同一组例子）；
   - WAV 文件头；
-  - `.ics` 解析。
+  - `.ics` 解析；
+  - 新版本：`latest.json` 的读法、版本比较、什么时候看、「稍后」当天不再提示（`UpdateInfo`、`UpdateGate`）。
+- 新版本的整个流程在模拟器上手动测过（调试包，见上面「新版本」里的测试办法）：提示、「稍后」、下载和核对、「安装未知应用」的说明和设置页、系统的「要更新此应用吗？」、装好后是新版本；SHA-256 不对、签名不对、没打开权限、在确认页点「取消」，都不装。
 - 界面测试（`src/androidTest`，模拟器或真机，打开内测版，以游客身份，不出声），共 7 个：
   - 打开网站，桥和 `FlowApp` 的字段都在，UA 正确；
   - 登录页；
