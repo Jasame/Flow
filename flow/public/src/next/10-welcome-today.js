@@ -154,11 +154,12 @@
     save('flow-habit-cheered', hb.monday);
     toast(hb.weeks > 1 ? `本周目标达成！一共达成 ${hb.weeks} 周了` : '本周目标达成！');
   }
-  // A material as one row: title, then level, topic and time; a pill says why it is on the list.
+  // A material as one row: title, then level, topic and time; a pill says why it is on the list. tag false: no pill,
+  // where the section or the filter above already says what it would (全部材料 under 精选, B9's audit P2-E7).
   function mrow(m, tag, href, tapKey) {
     return `<a class="mrow" href="${href || '#/m/' + encodeURIComponent(m.id)}"${tapKey ? ` data-tap="${tapKey}"` : ''}><span class="t"><b>${esc(m.title)}</b>
       <span class="tiny muted">${m.level} · ${esc(m.theme_label)}${m.minutes ? ` · 约 ${m.minutes} 分钟` : ''}${m.steps && m.steps.length ? ` · 学了 ${m.steps.length}/4 步` : ''}${OFF.has(m.id) ? ' · 已存到本机' : ''}${m.ai ? ' ' + aiTag() : ''}</span></span>
-      ${tag ? `<span class="pill ${tag[1]}">${tag[0]}</span>` : kindPill(m)}<span class="go" aria-hidden="true">›</span></a>`;
+      ${tag === false ? '' : tag ? `<span class="pill ${tag[1]}">${tag[0]}</span>` : kindPill(m)}<span class="go" aria-hidden="true">›</span></a>`;
   }
   // 公告 from the operators (xmc.hk console, r26): one line at the very top of 今日, for everyone, until it ends.
   // 「知道了」 (or going to its page) hides that one on this phone; a new one shows again.
