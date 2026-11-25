@@ -75,6 +75,14 @@ id=$1; jobs=$2; shift 2
 base=~/msi-run; repo=$base/flow.git; w=$base/w/$id; out=$base/out/$id
 venv=~/.local/share/flow-ci/venv
 mkdir -p "$base/w" "$base/out"
+# leftovers of runs stopped from the Mac (the cleanup below only starts with a slot): snapshots, worktrees and outputs
+# older than a day go; a run waiting or going now is younger than that
+old=$(( $(date +%s) - 86400 ))
+git -C "$repo" for-each-ref --format='%(committerdate:unix) %(refname)' refs/msi-run/ | while read -r t ref; do
+  [ "$t" -lt "$old" ] && git -C "$repo" update-ref -d "$ref"
+done
+find "$base/w" "$base/out" -mindepth 1 -maxdepth 1 -mtime +0 -exec rm -rf {} + 2>/dev/null
+git -C "$repo" worktree prune
 # at most two runs at once: hold one of two lock files for the whole run
 slot=
 while [ -z "$slot" ]; do
