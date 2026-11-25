@@ -77,10 +77,29 @@ class MainFirstTests(unittest.TestCase):
         self.assertIn('if [ "${{ needs.changes.outputs.ui }}" = false ]; then', gate)  # only an explicit false skips
         self.assertIn('else test "${{ needs.ui-share.result }}" = success; fi', gate)
         ch = self.jobs['changes']
-        self.assertIn('if [ "${{ github.event_name }}" != pull_request ]; then echo ui=true', ch)  # main: always
+        self.assertIn('if [ "${{ github.event_name }}" != pull_request ]; then printf \'ui=true\\nweb=true\\n\'', ch)  # main: always
         self.assertIn('git diff --name-only HEAD^1 HEAD', ch); self.assertIn('fetch-depth: 2', ch)
-        for job in ('backend-share', 'frontend'):  # the website tests always run (they only ask changes where to)
-            self.assertNotIn('outputs.ui', self.jobs[job]); self.assertNotIn('\n    if:', self.jobs[job])
+        self.assertNotIn('\n    if:', self.jobs['frontend'])  # always
+        self.assertNotIn('outputs.ui', self.jobs['backend-share'])  # the website tests do not depend on the UI decision
+        self.assertIn("if: needs.changes.outputs.web == 'true'", self.jobs['backend-share'])  # only a native-apps-only PR skips them
+
+    def test_a_pull_request_that_touches_only_the_native_apps_skips_the_website_tests(self):
+        for paths in ([], [''], ['ios/Flow/App.swift', 'flow/app.py'], ['tools/run_tests.py'], ['README.md'], ['iosx/a'],
+                      ['.github/workflows/tests.yml'], ['desktop2/x']):
+            self.assertTrue(rt.web_needed(paths), paths)
+        for paths in (['ios/Flow/App.swift'], ['ios/a', '.github/workflows/ios.yml'], ['desktop/src/main.rs', '.github/workflows/desktop.yml'],
+                      ['android/app/build.gradle']):
+            self.assertFalse(rt.web_needed(paths), paths)
+            self.assertFalse(rt.ui_needed(paths), paths)
+        r = subprocess.run([sys.executable, str(ROOT / 'tools' / 'run_tests.py'), '--needs'], input='ios/Flow/App.swift\n',
+                           capture_output=True, text=True)
+        self.assertEqual(r.stdout.split(), ['ui=false', 'web=false'])
+        gate = self.jobs['backend']
+        self.assertIn('needs: [changes, backend-share]', gate)
+        self.assertIn('test "${{ needs.changes.result }}" = success', gate)
+        self.assertIn('if [ "${{ needs.changes.outputs.web }}" = false ]; then', gate)  # only an explicit false skips
+        self.assertIn('else test "${{ needs.backend-share.result }}" = success; fi', gate)
+        self.assertIn("printf 'ui=true\\nweb=true\\n'", self.jobs['changes'])  # main and Run workflow: everything
 
     def test_what_counts_as_a_ui_change(self):
         for paths in ([], [''], ['flow/app.py'], ['flow/public/guide/guide.md'], ['docs/x.md', 'flow/corpus_data/v5/a.json'],

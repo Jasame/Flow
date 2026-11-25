@@ -9,6 +9,7 @@
     python3 tools/run_tests.py --ui --shard 3/5       # CI: one share of the UI groups
     python3 tools/run_tests.py --list [--ui] [--shard K/N]   # print what would run, run nothing
     git diff --name-only … | python3 tools/run_tests.py --ui-needed   # CI: ui=true unless no path can change the UI
+    git diff --name-only … | python3 tools/run_tests.py --needs       # CI: ui= and web= (web=false: only the native apps)
     options: --jobs N (processes at once; default: the number of CPUs, at most 8)
              --out DIR (UI screenshots and ui-report.json, one folder per process; default /tmp/flow-ui-out)
 
@@ -61,6 +62,17 @@ UI_SHARDS = [
 # (no list of paths, a path under flow/) runs them.
 UI_INPUTS = ('flow/', 'tools/ui_test.py', 'tools/ui_server.py', 'tools/ui-fixtures/', 'tools/build_front.py',
              'tools/run_tests.py', '.github/workflows/tests.yml')
+
+
+# The native apps' folders and their own workflows (iOS 语流 20, desktop 语流 22, Android): nothing of the website is in
+# them, so a pull request that changes only these needs neither the website nor the UI tests; their workflows test them.
+NATIVE_APPS = ('ios/', 'android/', 'desktop/', '.github/workflows/ios.yml', '.github/workflows/android.yml',
+               '.github/workflows/desktop.yml')
+
+
+def web_needed(paths):
+    paths = [p.strip() for p in paths if p.strip()]
+    return not paths or any(not p.startswith(NATIVE_APPS) for p in paths)
 
 
 def ui_needed(paths):
@@ -183,6 +195,10 @@ def run_ui(out, groups_per_process, workers):
 
 
 def main(argv):
+    if '--needs' in argv:
+        paths = sys.stdin.read().splitlines()
+        print(f"ui={'true' if ui_needed(paths) else 'false'}\nweb={'true' if web_needed(paths) else 'false'}")
+        return 0
     if '--ui-needed' in argv:
         print('ui=' + ('true' if ui_needed(sys.stdin.read().splitlines()) else 'false'))
         return 0

@@ -2624,6 +2624,26 @@ def review_side_run(pw):
         check(dev, '取消这次: back to every day at the hour', r['once'] is None, r)
         check(dev, 'no script errors (computer)', not errs, errs[:3])
         ctx.close()
+        # in an app (iOS, Android, desktop; FlowApp before the page): the reminder goes to its notifications, said for its device
+        ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
+        ctx.add_init_script("window.__synced = []; window.FlowApp = { v: 1, platform: 'macos', has: k => k === 'notify', notify: { ask: () => Promise.resolve(true), sync: r => window.__synced.push(r), permission: () => 'granted' } };")
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        pg.goto(BASE + '/#/vocab/plan', wait_until='load'); settle(pg); pg.wait_for_selector('#rApp', timeout=5000)
+        note = pg.text_content('#rAppNote') or ''
+        pg.click('#rApp'); pg.wait_for_timeout(500)
+        synced = pg.evaluate('window.__synced')
+        check(dev, 'in the desktop app on a Mac: 到点用 App 通知提醒 says 这台 Mac, and hands the reminder (with the forecast) to the app',
+              note.startswith('在这台 Mac 上') and synced and synced[-1].get('hour') == 20 and isinstance(synced[-1].get('forecast'), list), (note, synced[-1:]))
+        pg.click('#onceBtn'); pg.wait_for_selector('#oncePicks [data-at]', timeout=5000); pick = pg.get_attribute('#oncePicks [data-at]', 'data-at')
+        pg.click('#oncePicks [data-at]'); pg.wait_for_selector('#onceOk', timeout=5000)
+        synced = pg.evaluate('window.__synced')
+        check(dev, 'in the app: a time picked for the next review goes to its notifications too', synced and synced[-1].get('once') == float(pick), synced[-1:])
+        pg.click('#sheetCard [data-close]'); pg.wait_for_timeout(200); pg.click('#onceBtn')  # opened again: 取消这次 is there now
+        pg.wait_for_selector('#sheetCard #onceOff', timeout=5000); pg.click('#sheetCard #onceOff'); pg.wait_for_timeout(300)
+        check(dev, 'in the app: 取消这次 too', pg.evaluate('window.__synced')[-1].get('once') is None, pg.evaluate('window.__synced')[-1:])
+        check(dev, 'no script errors (app)', not errs, errs[:3])
+        ctx.close()
         # a phone: the swipe follows the side
         ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
@@ -3080,6 +3100,22 @@ def home_app_run(pw):
         check(dev, 'the iOS app (FlowiOS in the user agent): a home app with back buttons, no 「添加到桌面」, the keyboard left to the app',
               app['home'] and not app['standalone'] and bk and bk['label'] and not install and not room, (app, bk, install, room))
         ctx.close()
+        # the desktop app (语流 22: Windows and macOS, FlowDesktop/<version> in the user agent), and any app that says so
+        # only by window.FlowApp: a home app too (返回 on a sub-page, the logo on a tab page), nothing to add to the desktop
+        for label, ua, init in (('the desktop app (FlowDesktop)', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) FlowDesktop/0.1 (macOS)', None),
+                                ('an app known by window.FlowApp only', None, "window.FlowApp = { platform: 'windows' }")):
+            ctx = browser.new_context(viewport={'width': 1280, 'height': 800}, locale='zh-CN', bypass_csp=True, **({'user_agent': ua} if ua else {}))
+            if init:
+                ctx.add_init_script(init)
+            ctx.add_cookies([{'name': 'flow_session', 'value': tok, 'url': BASE}])
+            pg = ctx.new_page()
+            pg.goto(BASE + f'/#/m/{PID}/read', wait_until='networkidle'); settle(pg)
+            home, bk = pg.evaluate("document.documentElement.classList.contains('home-app')"), pg.evaluate(BACK_JS)
+            go(pg, '#/me'); pg.wait_for_timeout(200)
+            tab = pg.evaluate(BACK_JS); install = pg.evaluate("() => !!document.getElementById('meInstall')")
+            check(dev, f'{label}: a home app — 返回 on a sub-page, the logo on a tab page, no 「添加到桌面」',
+                  home and bk and bk['label'] and tab is None and not install, (home, bk, tab, install))
+            ctx.close()
     finally:
         browser.close()
 
