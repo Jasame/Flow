@@ -97,9 +97,11 @@ iOS（语流 20）、安卓（语流 21）、桌面 Windows 和 macOS（语流 2
 - `start({max, format})` → `{ok: true, format, max}` 或 `{ok: false, why, message}`，why：`denied` `busy` `error` `cancelled`。
   - `format`：`wav`（默认：16 kHz 单声道 16 位 PCM，44 字节文件头）或 `m4a`（AAC 16 kHz）。
   - **max 超过 40 秒默认用 m4a**：WAV 每秒 32 KB，网页 `MIC.payload` 的上限是 1.4 MB（服务器 1.5 MB），40 秒的 WAV 是 1,280,044 字节。
-- `stop()` → `{ok: true, mime_type, data, ms, bytes, cut}`（data 是 base64，形状和 `MIC.payload(blob)` 一样），或 `{ok: false, why: 'none'}`。
+- `stop()` → `{ok: true, mime_type, data, ms, bytes, cut}` 或 `{ok: false, why: 'none'}`。`mime_type`、`data`（base64）和 `MIC.payload(blob)` 一样；
+  **上传只带这两项**（服务器 audio_validation 要求正好是 `{mime_type, data}`），`ms`、`bytes`、`cut` 是给网页看的。
   录音还没开始（还在等权限）就 stop，这次录音不再开始。
-- `cancel()`。事件 `rec`：`{state: 'recording' | 'done' | 'cut', ms}`：到 max 自己停是 done，来电打断是 cut（录到的部分还在，stop() 照样拿到）。
+- `cancel()`。事件 `rec`：`{state: 'recording' | 'done' | 'cut', ms}`：到 max 自己停是 done；来电打断、或者 App 切到后台是 cut（录到的部分还在，stop() 照样拿到）。
+  麦克风只在学员看着 App 时开：切走就停，不会在后台接着录。
 - App 里网页不切 navigator.audioSession（会话由 App 切）；第一次的说明卡不写「每次重新打开都会再问」。
 
 ## 5. 复习提醒 `notify`
