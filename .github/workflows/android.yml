@@ -5,10 +5,12 @@ name: Android
 # website pull request, so requiring it would block them all. Whoever merges an Android pull request first checks
 # this run is green. CI belongs to 语流 15.
 #
-# On main (and by hand), the 语流内测 APK is also signed with the beta key from the Actions secrets (FLOW_BETA_KEYSTORE,
-# FLOW_BETA_KS_PW; the user chose a key of its own for the beta, 2026-11-25) and kept as the artifact flow-beta-apk for
-# 30 days: the owner installs it from here whenever, each one over the one before (versionCode 100 + the run number).
-# Pull requests never see the key. The 语流 (prod) key never leaves the owner's Mac (android/tools/release-apk.sh).
+# On main (push, or Run by hand on main), the job beta-apk also makes the 语流内测 APK signed with the beta key (the
+# user chose a key of its own for the beta, 2026-11-25) and keeps it as the artifact flow-beta-apk for 30 days: the owner
+# installs it from here whenever, each one over the one before (versionCode 100 + the run number). The key is a secret of
+# the environment android-beta-signing, which GitHub gives to jobs on main only: no pull request's code can read it, even
+# one that changes this file (语流 15). Never run on the MSI's self-hosted runners. The 语流 (prod) key never leaves the
+# owner's Mac (android/tools/release-apk.sh).
 # Pull requests and main keep the Beta debug APK and the reports for 14 days. Sending an APK to anyone, or putting it
 # anywhere else, needs the owner's yes first. Device tests (connectedBetaDebugAndroidTest) need an emulator and are not
 # run here yet.
@@ -28,9 +30,6 @@ jobs:
   android:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    env:
-      # only whether the key is there, never the key: the signing step below is the one that reads it
-      HAS_BETA_KEY: ${{ secrets.FLOW_BETA_KEYSTORE != '' }}
     defaults:
       run:
         working-directory: android
@@ -52,23 +51,6 @@ jobs:
           ls "$ANDROID_HOME/platforms" "$ANDROID_HOME/build-tools"
       - name: Build, unit tests, lint
         run: ./gradlew --no-daemon assembleBetaDebug testBetaDebugUnitTest lintBetaDebug
-      - name: Signed 语流内测 APK (main and by hand only)
-        if: github.event_name != 'pull_request' && env.HAS_BETA_KEY == 'true'
-        env:
-          FLOW_BETA_KEYSTORE: ${{ secrets.FLOW_BETA_KEYSTORE }}
-          FLOW_BETA_KS_PW: ${{ secrets.FLOW_BETA_KS_PW }}
-        run: |
-          umask 077
-          printf %s "$FLOW_BETA_KEYSTORE" | base64 -d > "$RUNNER_TEMP/flow-beta.jks"
-          export FLOW_BETA_KEYSTORE_FILE="$RUNNER_TEMP/flow-beta.jks" FLOW_VERSION_CODE=$((100 + GITHUB_RUN_NUMBER))
-          tools/release-apk.sh beta
-          rm -f "$RUNNER_TEMP/flow-beta.jks"
-      - uses: actions/upload-artifact@v4
-        if: github.event_name != 'pull_request' && env.HAS_BETA_KEY == 'true'
-        with:
-          name: flow-beta-apk
-          retention-days: 30
-          path: android/dist/flow-beta-*.apk
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -79,3 +61,43 @@ jobs:
             android/app/build/outputs/apk/beta/debug/*.apk
             android/app/build/reports/
             android/app/build/test-results/
+
+  beta-apk:
+    # the signed 语流内测 APK, after the checks above passed, on main only (the environment's rule says so too)
+    needs: android
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: android-beta-signing
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Android SDK (compileSdk and targetSdk 37)
+        run: |
+          sdk="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$sdk" --licenses > /dev/null || true
+          "$sdk" --install "platforms;android-37.0" "build-tools;37.0.0" > /dev/null
+      - name: Signed 语流内测 APK
+        env:
+          FLOW_BETA_KEYSTORE: ${{ secrets.FLOW_BETA_KEYSTORE }}
+          FLOW_BETA_KS_PW: ${{ secrets.FLOW_BETA_KS_PW }}
+        run: |
+          umask 077
+          printf %s "$FLOW_BETA_KEYSTORE" | base64 -d > "$RUNNER_TEMP/flow-beta.jks"
+          export FLOW_BETA_KEYSTORE_FILE="$RUNNER_TEMP/flow-beta.jks" FLOW_VERSION_CODE=$((100 + GITHUB_RUN_NUMBER))
+          tools/release-apk.sh beta
+          rm -f "$RUNNER_TEMP/flow-beta.jks"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flow-beta-apk
+          retention-days: 30
+          path: android/dist/flow-beta-*.apk

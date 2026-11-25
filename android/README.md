@@ -47,7 +47,7 @@ emulator -avd flow37 -no-window -no-audio      # 测试时一律不出声（工�
 |---|---|---|
 | 钥匙 | `~/.flow-android/flow-beta.jks` | `~/.flow-android/flow-release.jks` |
 | 密码 | macOS 钥匙串 `flow-android-beta` | macOS 钥匙串 `flow-android-release` |
-| 另外一份 | GitHub Actions Secrets：`FLOW_BETA_KEYSTORE`（base64）、`FLOW_BETA_KS_PW` | 没有，只在主人的 Mac 上 |
+| 另外一份 | GitHub environment `android-beta-signing` 的 Secrets：`FLOW_BETA_KEYSTORE`（base64）、`FLOW_BETA_KS_PW`。这个 environment 只给 main 用，PR 里的代码拿不到 | 没有，只在主人的 Mac 上 |
 | 证书 SHA-256 | `C2:22:FE:38:31:FD:BC:17:49:7F:7D:9C:78:28:7B:8A:4C:D6:12:BF:53:BB:08:2A:12:85:E7:7E:BD:BA:BF:13` | `76:88:9C:6F:7E:E0:C6:C6:72:84:4B:05:17:91:9C:33:FB:6D:86:40:D2:EF:22:6A:47:20:AF:2B:12:82:89:27` |
 | 谁来打包 | 每次合进 main（只改 `android/` 时），CI 自动打包 | 主人在 Mac 上跑 `tools/release-apk.sh prod` |
 
@@ -64,7 +64,7 @@ emulator -avd flow37 -no-window -no-audio      # 测试时一律不出声（工�
 
 CI（`.github/workflows/android.yml`，语流 15）：
 - 每个改 `android/` 的 PR 都跑 `assembleBetaDebug testBetaDebugUnitTest lintBetaDebug`。
-- main 上另外打签名的内测包。PR 拿不到钥匙。
+- main 上另外由 job `beta-apk` 打签名的内测包。它绑定 environment `android-beta-signing`，只在 main 上跑，PR 拿不到钥匙，也不放到 MSI 自托管机器上。
 
 ## 外壳做了什么（`MainActivity`）
 
