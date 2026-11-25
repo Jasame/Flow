@@ -102,7 +102,7 @@ def learners(c):
     import vocab_service as vs
     out = []
     import privacy_service as pv
-    for u in c.execute('SELECT id, username, email, admin, disabled, created, age_band, guardian_ok, role, storage_ok, storage_no FROM users ORDER BY id DESC'):
+    for u in c.execute('SELECT id, username, email, admin, disabled, created, age_band, guardian_ok, role, storage_ok, storage_no, terms_ok, terms_version FROM users ORDER BY id DESC'):
         uid = u['id']
         days = act.get(uid, {})
         first = min(days) if days else None
@@ -114,7 +114,7 @@ def learners(c):
         plan = plans.get(uid)
         out.append({
             'id': uid, 'username': u['username'], 'email': auth_service.mask(u['email']) if u['email'] else '', 'has_email': bool(u['email']),
-            'staff': bool(u['admin']), 'teacher': u['role'] == 'teacher', 'storage': __import__('privacy_service').storage(u), 'storage_at': u['storage_ok'] or u['storage_no'], 'disabled': bool(u['disabled']), 'joined': joined, 'joined_known': bool(u['created']),
+            'staff': bool(u['admin']), 'teacher': u['role'] == 'teacher', 'storage': __import__('privacy_service').storage(u), 'storage_at': u['storage_ok'] or u['storage_no'], 'terms': __import__('privacy_service').terms(u), 'terms_version': u['terms_version'], 'terms_at': u['terms_ok'], 'disabled': bool(u['disabled']), 'joined': joined, 'joined_known': bool(u['created']),
             'age': u['age_band'], 'age_label': pv.label(u['age_band']), 'guardian': bool(u['guardian_ok']),
             'level': p['level'] if p else None, 'goal': GOAL_LABEL.get(p['goal'], p['goal']) if p else None,
             'last_study': last_study.isoformat() if last_study else None, 'last_seen': last_seen,
@@ -168,7 +168,7 @@ def learner(c, uid):
     learner wrote."""
     import auth_service, vocab_service as vs, exam_service as ex, chat_service, feedback_service
     uid = int(uid)
-    u = c.execute('SELECT id, username, email, admin, disabled, created, age_band, guardian_ok, role, storage_ok, storage_no FROM users WHERE id=?', (uid,)).fetchone()
+    u = c.execute('SELECT id, username, email, admin, disabled, created, age_band, guardian_ok, role, storage_ok, storage_no, terms_ok, terms_version FROM users WHERE id=?', (uid,)).fetchone()
     if not u:
         return None
     now, td = time.time(), today()
@@ -218,7 +218,7 @@ def learner(c, uid):
     seen = _session_seen(c).get(uid)
     return {
         'account': {'id': uid, 'username': u['username'], 'email': auth_service.mask(u['email']) if u['email'] else '', 'has_email': bool(u['email']),
-                    'staff': bool(u['admin']), 'teacher': u['role'] == 'teacher', 'storage': __import__('privacy_service').storage(u), 'storage_at': u['storage_ok'] or u['storage_no'], 'disabled': bool(u['disabled']), 'joined': _joined(u, p['created'] if p else None, first),
+                    'staff': bool(u['admin']), 'teacher': u['role'] == 'teacher', 'storage': __import__('privacy_service').storage(u), 'storage_at': u['storage_ok'] or u['storage_no'], 'terms': __import__('privacy_service').terms(u), 'terms_version': u['terms_version'], 'terms_at': u['terms_ok'], 'disabled': bool(u['disabled']), 'joined': _joined(u, p['created'] if p else None, first),
                     'age': u['age_band'], 'age_label': __import__('privacy_service').label(u['age_band']), 'guardian': u['guardian_ok'],
                     'joined_known': bool(u['created']), 'sessions': sessions, 'last_open': seen,
                     'locked_until': lock['until'] if lock and lock['until'] > now else None},

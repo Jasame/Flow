@@ -272,7 +272,7 @@ with app.db() as c:
     c.execute("UPDATE users SET age_band='18+', age_set=? WHERE username NOT IN ('ui-ageless', 'ui-young')", (time.time(),))
     c.execute("UPDATE users SET age_band='u14', age_set=? WHERE username='ui-young'", (time.time(),))
     # 数据存放在香港 (privacy_service): every learner agreed at sign-up, but ui-unasked (the page asks it; privacy_run)
-    c.execute("UPDATE users SET storage_ok=? WHERE username!='ui-unasked'", (time.time(),))
+    c.execute("UPDATE users SET storage_ok=?, terms_ok=?, terms_version=? WHERE username!='ui-unasked'", (time.time(), time.time(), __import__('privacy_service').CONSENT_VERSION))
     # 班级试用: ui-teacher's class with 5 members who studied and got grammar points wrong this week (class_run)
     now = time.time()
     cid = c.execute("INSERT INTO classes(name, code, teacher, by, created, updated) VALUES('高一（3）班', 'UICLS2', ?, 'ui', ?, ?)", (out['teacher']['id'], now, now)).lastrowid

@@ -51,7 +51,7 @@ class Privacy(unittest.TestCase):
 
     def register(self, name, **extra):
         self.n += 1  # each its own address: sign-ups share a ceiling per address
-        return self.call('/api/register', {'username': name, 'password': PW, 'storage': True, **extra}, {'X-Real-IP': f'10.8.0.{self.n}'})
+        return self.call('/api/register', {'username': name, 'password': PW, 'storage': True, 'terms': True, **extra}, {'X-Real-IP': f'10.8.0.{self.n}'})
 
     def signed(self, name, **extra):
         st, body, h = self.register(name, **extra)
@@ -72,7 +72,7 @@ class StorageTests(Privacy):
 
     def events(self, uid):
         with app.db() as c:
-            return [tuple(r) for r in c.execute('SELECT agree, version FROM consent_events WHERE user_id=? ORDER BY id', (uid,))]
+            return [tuple(r) for r in c.execute("SELECT agree, version FROM consent_events WHERE user_id=? AND kind='storage' ORDER BY id", (uid,))]
 
     def test_sign_up_needs_its_own_tick(self):
         for bad in (False, None, 'yes'):
@@ -140,6 +140,69 @@ class StorageTests(Privacy):
         js = (HERE / 'public/src/next/81-privacy.js').read_text(encoding='utf-8')
         self.assertIn('也同意我的账号和学习数据存放在香港的服务器上', js)
         self.assertIn(pv.STORAGE_TEXT, js)  # the page and the server say the same words
+
+
+
+class TermsTests(Privacy):
+    """用户协议 and 隐私和数据 (the user's choice 2026-11-25): one tick at sign-up for both, next to and never merged with
+    the storage one; an account without the current version (never asked, or agreed to an earlier one) is held until
+    it agrees; every answer is kept with its version."""
+
+    def test_sign_up_needs_the_terms_tick_apart_from_the_storage_one(self):
+        st, body, _ = self.register('dawei', age='18+', terms=False)
+        self.assertEqual((st, body['field'], body['code']), (400, 'terms', 'terms'))
+        st, body, _ = self.register('dawei', age='18+', storage=False)  # the storage tick is still its own
+        self.assertEqual(body['code'], 'storage')
+        _, me = self.signed('dawei', age='18+')
+        self.assertEqual((me['terms'], me['storage']), ('ok', 'ok'))
+        with app.db() as c:
+            kinds = {(r['kind'], r['version']) for r in c.execute('SELECT kind, version FROM consent_events WHERE user_id=?', (me['id'],))}
+        self.assertEqual(kinds, {('storage', pv.STORAGE_VERSION), ('terms', pv.CONSENT_VERSION)})
+
+    def test_an_account_without_the_current_version_is_held_until_it_agrees(self):
+        h, me = self.signed('laowang', age='18+')
+        for earlier in (None, 'an-earlier/version'):
+            with app.db() as c:
+                c.execute('UPDATE users SET terms_version=? WHERE id=?', (earlier, me['id'])); c.commit()
+            self.assertIsNone(self.call('/api/session', headers=h)[1]['user']['terms'])
+            st, body, _ = self.call('/api/next/class', headers=h)
+            self.assertEqual((st, body['code'], body['need']), (403, 'storage', 'terms'))  # code storage: what the Apps out there know
+            st, home, _ = self.call('/api/next/home', headers=h)  # the page starts: a guest's home, with the session to ask
+            self.assertEqual((st, home['session']['user']['terms']), (200, None))
+            self.assertEqual(self.call('/api/next/export/records.json', headers=h, raw=True)[0], 200)
+            self.assertEqual(self.call('/api/account/terms', {'agree': False}, h)[0], 400)  # nothing to decline: it stays held
+            st, r, _ = self.call('/api/account/terms', {'agree': True}, h)
+            self.assertEqual((st, r['terms']), (200, 'ok'))
+            self.assertEqual(self.call('/api/next/class', headers=h)[0], 200)
+
+    def test_a_new_version_asks_everyone_again(self):
+        h, me = self.signed('xiaolin', age='18+')
+        with patch.object(pv, 'CONSENT_VERSION', pv.CONSENT_VERSION + '-next'):
+            self.assertIsNone(self.call('/api/session', headers=h)[1]['user']['terms'])
+            self.assertEqual(self.call('/api/next/class', headers=h)[1]['need'], 'terms')
+
+    def test_the_versions_are_the_chapters_dates(self):
+        """PRIVACY_VERSION is the 隐私和数据 chapter's 生效日期 (when it has one); TERMS_VERSION the 用户协议 chapter's
+        once the text is approved. A new 生效日期 is a new version: everyone agrees again."""
+        import re
+        text = (HERE / 'public/guide/guide.md').read_text(encoding='utf-8')
+        def chapter(tag):
+            ch = text[text.index(tag):]
+            return ch[:ch.index('\n# ', 5)]
+        m = re.search(r'生效日期：(\d{4}-\d{2}-\d{2})', chapter('# 隐私和数据 {#privacy}'))
+        if m:
+            self.assertEqual(pv.PRIVACY_VERSION, m.group(1))
+        if pv.TERMS_VERSION != pv.TERMS_DRAFT:
+            self.assertIn('生效日期：' + pv.TERMS_VERSION, chapter('# 语流用户协议 {#terms}'))
+
+    def test_the_draft_agreement_never_ships(self):
+        """Red on purpose until the owner approves the 用户协议 text: then the chapter gets the text and its dates, and
+        TERMS_VERSION its 生效日期 (privacy_service). Auto-merge waits for green, so the draft cannot go out."""
+        text = (HERE / 'public/guide/guide.md').read_text(encoding='utf-8')
+        terms = text[text.index('# 语流用户协议 {#terms}'):]
+        terms = terms[:terms.index('\n# ', 5)]
+        self.assertNotEqual(pv.TERMS_VERSION, pv.TERMS_DRAFT, 'the 用户协议 text is still a draft: wait for the owner\'s OK')
+        self.assertNotIn('占位', terms)
 
 
 class SignUpTests(Privacy):

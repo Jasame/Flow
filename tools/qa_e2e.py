@@ -24,6 +24,18 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 DB = os.getenv('QA_DB', '/www/wwwroot/flow/data/flow.sqlite3')
 BASE = os.getenv('QA_BASE', 'http://127.0.0.1:8090')
+
+
+def consent_version():
+    """The 用户协议 and 隐私和数据 version the site asks for now (/api/health), for the test accounts."""
+    try:
+        with urllib.request.urlopen(BASE + '/api/health', timeout=20) as r:
+            return json.loads(r.read()).get('consent')
+    except Exception:
+        return None
+
+
+CONSENT = consent_version()
 AUD = Path(os.getenv('QA_AUDIO', HERE / 'qa-audio'))
 PID = 'v5-science-b2-noise-cancelling'
 IDS = {'a2': 990001, 'b1': 990002, 'exam': 990003, 'guard': 990004}
@@ -139,8 +151,10 @@ def setup():
     c.execute("DELETE FROM sessions WHERE user_id IN (%s)" % ','.join('?' * len(IDS)), list(IDS.values()))
     out = {}
     for name, uid in IDS.items():
-        # storage_ok: agreed to 数据存放在香港 (privacy_service), as every sign-up does; without it the account is paused
-        c.execute('INSERT INTO users(id,username,password,admin,storage_ok) VALUES(?,?,?,0,?)', (uid, f'qa-e2e-{name}', 'qa-e2e-no-login:' + secrets.token_hex(16), time.time()))
+        # storage_ok and terms_version: agreed to 数据存放在香港 and to the current 用户协议 and 隐私和数据 (privacy_service),
+        # as every sign-up does; without them the account is held. The version is what the site says it asks for now.
+        c.execute('INSERT INTO users(id,username,password,admin,storage_ok,terms_ok,terms_version) VALUES(?,?,?,0,?,?,?)',
+                  (uid, f'qa-e2e-{name}', 'qa-e2e-no-login:' + secrets.token_hex(16), time.time(), time.time(), CONSENT))
         token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(24)
         c.execute('INSERT INTO sessions VALUES(?,?,?,?)', (token, uid, csrf, time.time() + 3 * 3600))
         out[name] = Client(name, token, csrf)
