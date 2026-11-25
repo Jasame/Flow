@@ -54,13 +54,17 @@ class FrontEndTests(unittest.TestCase):
         for note in ("'经规范检查'", "'经规范检查 · 经人工审核'", "'AI 改写 · 未经人工审核'"):  # the user's words: 「AI 生成，经规范检查」
             self.assertIn(note, js)
         self.assertIn("o.reviewed_by_human ? '经规范检查 · 经人工审核' : '经规范检查'", js)  # 经人工审核 only when set
-        self.assertIn("${note === null ? '' : aiMark(note)}<div class=\"origin tiny\">", js)
+        self.assertIn("${note === null ? '' : m.featured ? aiCheckLink(aiMark(note)) : aiMark(note)}<div class=\"origin tiny\">", js)
+        self.assertIn('href="#/guide/ai-check"', js)  # 「经规范检查」 says what is checked
+        guide = (ROOT / 'public' / 'guide' / 'guide.md').read_text(encoding='utf-8')
+        self.assertIn('## 「经规范检查」查什么 {#ai-check}', guide)
+        self.assertIn('id="g-ai-check"', __import__('user_guide').parse(guide)['chapters'][[c['id'] for c in __import__('user_guide').parse(guide)['chapters']].index('study')]['html'])
         self.assertIn('aiMark(aiNote(m))', (SRC / '44-easy.js').read_text(encoding='utf-8'))
         for f in ('10-welcome-today.js', '44-easy.js'):
             self.assertIn("m.ai ? ' ' + aiTag() : ''", (SRC / f).read_text(encoding='utf-8'), f)
         self.assertIn('aiTag()', (SRC / '12-daily-line.js').read_text(encoding='utf-8'))
         lib = (SRC / '80-library.js').read_text(encoding='utf-8')
-        self.assertIn('aiTag()', lib); self.assertIn("aiMark('经规范检查')", lib)
+        self.assertIn('aiTag()', lib); self.assertIn("aiCheckLink(aiMark('经规范检查'))", lib)
 
     def test_reviewed_by_human_is_off_unless_the_user_read_the_text(self):
         v5 = __import__('content_v50').v5_materials()

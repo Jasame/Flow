@@ -14,10 +14,12 @@
     if (o.kind === 'news') return 'AI 改写 · 未经人工审核';
     return m.featured ? (o.reviewed_by_human ? '经规范检查 · 经人工审核' : '经规范检查') : '';
   }
+  // 「经规范检查」 says what was checked: a tap opens that section of the guide (#/guide/ai-check)
+  function aiCheckLink(mark) { return `<a class="ai-link" href="#/guide/ai-check" data-tap="study-ai-check" aria-label="AI 生成，经规范检查：看规范检查查什么">${mark}</a>`; }
   function originHTML(m, extra = '') {  // extra: 存到手机 (06-offline.js), on the same line so the step below stays in view
     const o = m.origin || { kind: 'original', label: m.source, ai: '', reviewed: null, url: '', references: m.provenance || [] };
     const note = aiNote(m);
-    return `${note === null ? '' : aiMark(note)}<div class="origin tiny"><span class="muted">来源：${o.url ? `<a class="link" href="${esc(o.url)}" target="_blank" rel="noopener noreferrer">${esc(o.label)}</a>` : esc(o.label)}</span>${note === null && o.ai ? `<span class="otag">${esc(o.ai)}</span>` : ''}${note === null && o.reviewed === false ? '<span class="otag warn">未经人工审核</span>' : ''}${o.kind === 'import' ? '' : `<button class="link tiny hit44" type="button" id="originMore" data-tap="study-origin">${o.references.length ? `${o.kind === 'news' ? '来源' : '参考资料'} ${o.references.length} 条` : '怎么写的'}</button>`}${extra}</div>`;
+    return `${note === null ? '' : m.featured ? aiCheckLink(aiMark(note)) : aiMark(note)}<div class="origin tiny"><span class="muted">来源：${o.url ? `<a class="link" href="${esc(o.url)}" target="_blank" rel="noopener noreferrer">${esc(o.label)}</a>` : esc(o.label)}</span>${note === null && o.ai ? `<span class="otag">${esc(o.ai)}</span>` : ''}${note === null && o.reviewed === false ? '<span class="otag warn">未经人工审核</span>' : ''}${o.kind === 'import' ? '' : `<button class="link tiny hit44" type="button" id="originMore" data-tap="study-origin">${o.references.length ? `${o.kind === 'news' ? '来源' : '参考资料'} ${o.references.length} 条` : '怎么写的'}</button>`}${extra}</div>`;
   }
   function originSheet(m) {
     const o = m.origin, news = o.kind === 'news';
