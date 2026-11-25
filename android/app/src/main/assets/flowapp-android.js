@@ -46,6 +46,14 @@
       };
       if (FlowApp.has('speech')) speech(FlowApp.call);
       if (cfg.mute) mute();
+      // 主题色 (「我的 → 外观」): <html data-accent> (none = 松绿, "indigo" = 靛蓝), for the app's own dialogs and notifications
+      let accent = null;
+      const sendAccent = () => {
+        const a = document.documentElement.dataset.accent === 'indigo' ? 'indigo' : 'green';
+        if (a !== accent) { accent = a; FlowApp.call('app.accent', { accent: a }).catch(() => {}); }
+      };
+      new MutationObserver(sendAccent).observe(document.documentElement, { attributes: true, attributeFilter: ['data-accent'] });
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', sendAccent, { once: true }); else sendAccent();
       // hello: the app learns where to send events, says what is playing, and gives the phone's voices
       FlowApp.call('hello', { url: location.href }).then(r => { if (r && r.voices) setVoices(r.voices); }).catch(() => {});
     },

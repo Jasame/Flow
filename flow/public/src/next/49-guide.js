@@ -20,9 +20,17 @@
       });
       none.hidden = shown > 0;
     };
+    // #/guide/<id> (a link from anywhere, or opened directly): to that chapter. The page keeps settling after it is drawn
+    // (the router's own scroll, pictures, the enter animation), so it is put there again a few times until the reader
+    // scrolls themselves.
     if (id) {
       const sec = document.getElementById('g-' + id);
-      if (sec) requestAnimationFrame(() => sec.scrollIntoView({ block: 'start' }));
+      if (sec) {
+        let mine = true; const off = () => { mine = false; };
+        ['wheel', 'touchstart', 'keydown'].forEach(t => addEventListener(t, off, { once: true, passive: true }));
+        const go = () => { if (mine && sec.isConnected) sec.scrollIntoView({ block: 'start' }); };
+        requestAnimationFrame(go); [120, 400, 1000].forEach(ms => setTimeout(go, ms));
+      }
     }
   }
 

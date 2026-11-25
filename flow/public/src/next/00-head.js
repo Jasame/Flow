@@ -80,6 +80,9 @@
       }
       // under 14 without a guardian's agreement: the AI on the learner's own words waits for it (81-privacy.js)
       if (r.status === 403 && j.code === 'guardian' && !quiet) setTimeout(() => guardianSheet(), 0);
+      // the day's AI stop (ai_routes.day_full: 429 code ai_day_full, back at 08:00 Beijing): also what still works.
+      // AI voice says its own line (01-audio-offline.js).
+      if (j.code === 'ai_day_full' && !path.startsWith('/api/next/tts')) e.message = (j.error || '今天的 AI 用量已满，北京时间早上 8 点恢复。') + '学材料、背单词、复习和做题照常能用。';
       throw e;
     }
     return { j, t };

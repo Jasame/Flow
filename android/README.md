@@ -81,6 +81,7 @@ CI（`.github/workflows/android.yml`，语流 A2）：
   - 选 App 通知：按链接排上每天复习（`?hour=`）、约好的一次（`?at=`）或「每天的学习」（`?kind=plan&hour=&minutes=`，不用登录）。
   - 选系统日历：打开手机日历的新建日程页，内容已经填好，不需要日历权限。
 - 反馈里的「添加截图」可以从相册选图片。网页出不来时显示「网络连不上 · 重试」。系统回收网页进程以后，App 自己重新打开网页。
+- **主题色**（网页「我的 → 外观」选松绿或靛蓝，EIDOS #282）：App 自己画的地方跟着变，包括对话框的按钮、复习提醒通知的颜色、新版本下载的进度条（`Accent`）。`assets/flowapp-android.js` 盯着 `<html data-accent>`（没有这个属性就是松绿，`indigo` 是靛蓝），一变就发 `app.accent`；App 记在 `flow-app` 里，App 没开时弹出的提醒也是这个颜色。logo、答对答错的颜色、「AI 生成」「AI 朗读」标识都不变，所以 App 图标和锁屏卡片上的图照旧是绿的。对话框按钮照写的字显示（「App 通知」，不变成「APP 通知」）。
 
 ## 网页和 App 之间的桥（`bridge/`、`assets/flowapp-android.js`、共用的 `native/flowapp.js`）
 
@@ -106,7 +107,7 @@ CI（`.github/workflows/android.yml`，语流 A2）：
 
 ## 原生声音（`audio/`）
 
-整篇朗读（「听」的播放全文、「读」的伴读）由 App 来放，用 Media3 的 ExoPlayer 加 `MediaSessionService`。**要网页调用 `FlowApp.audio` 才会用上**：网页这边是 #152，2026-11-25 时还没合，正式版网页还是自己放，所以现在没有锁屏控制。对外说「锁屏能控制」之前，先确认线上的网页脚本里真的调用了 `FlowApp.audio`。
+整篇朗读（「听」的播放全文、「读」的伴读）由 App 来放，用 Media3 的 ExoPlayer 加 `MediaSessionService`。网页调用 `FlowApp.audio` 才会用上：网页这边是 #152，2026-11-25 21:13 跟着 r33 上了正式版。当晚用公开的 1.0.2 在 flowlang.cn 上核对过：锁屏卡片会显示，锁屏后接着读，暂停、上一句、下一句都管用。以后对外说 App 能做什么之前，都先确认线上的网页脚本真的调用了对应的接口。
 
 - 锁屏和通知栏显示标题和「AI 朗读 · 第 3 / 20 句」，可以播放、暂停、上一句、下一句。耳机按钮、蓝牙按钮也能用。
   - 「AI 朗读」是按《人工智能生成合成内容标识办法》加的显式标识：语流的朗读都是合成声音（Kokoro 录音、CosyVoice、手机自带的声音）。音频文件里的隐式标识由服务器写入。
@@ -212,7 +213,7 @@ CI（`.github/workflows/android.yml`，语流 A2）：
 | `INTERNET` | 打开网站 |
 | `RECORD_AUDIO` | 跟读、口语对话、发音练习；App 自己从不打开，只在网页要录音时打开 |
 | `POST_NOTIFICATIONS` | 复习提醒（Android 13 以上要单独问） |
-| `FOREGROUND_SERVICE`、`FOREGROUND_SERVICE_MEDIA_PLAYBACK`、`WAKE_LOCK` | 锁屏以后整篇朗读还能继续（网页调用原生朗读以后才用到，见上面「原生声音」） |
+| `FOREGROUND_SERVICE`、`FOREGROUND_SERVICE_MEDIA_PLAYBACK`、`WAKE_LOCK` | 锁屏以后整篇朗读还能继续（正式版从 r33 起用到，见上面「原生声音」） |
 | `RECEIVE_BOOT_COMPLETED` | 重启手机以后把提醒排回去 |
 | `SCHEDULE_EXACT_ALARM` | 提醒准点（手机允许时） |
 | `ACCESS_NETWORK_STATE` | 由 Media3（ExoPlayer）带进来，用来看网络类型；不弹窗 |
@@ -225,12 +226,13 @@ CI（`.github/workflows/android.yml`，语流 A2）：
 
 ## 测试
 
-- 单元测试（`src/test`，JVM，CI 上可以跑），共 32 个：
+- 单元测试（`src/test`，JVM，CI 上可以跑），共 34 个：
   - 句子定位、上一句和下一句的规则、复读（`Sentences`，和网页 `NAR`、`LONG` 的规则一致）；
   - 提醒排期（`Planner`，用 iOS 的同一组例子）；
   - WAV 文件头；
   - `.ics` 解析；
   - 新版本：`latest.json` 的读法、版本比较、什么时候看、「稍后」当天不再提示（`UpdateInfo`、`UpdateGate`）。
+  - 主题色：网页传来的值怎么认、两种颜色在浅色和深色下的色值（`Accent`）。
 - 新版本的整个流程在模拟器上手动测过（调试包，见上面「新版本」里的测试办法）：提示、「稍后」、下载和核对、「安装未知应用」的说明和设置页、系统的「要更新此应用吗？」、装好后是新版本；SHA-256 不对、签名不对、没打开权限、在确认页点「取消」，都不装。
 - 界面测试（`src/androidTest`，模拟器或真机，打开内测版，以游客身份，不出声），共 7 个：
   - 打开网站，桥和 `FlowApp` 的字段都在，UA 正确；

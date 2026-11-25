@@ -689,6 +689,29 @@ def persona_guard(cl, others):
             check(who, 'narration audio byte range', False, e.code)
     else:
         note(who, f'material audio field: {json.dumps(au)[:200]}')
+    retick(cl)
+
+
+def retick(cl, who='guard'):
+    """(last in the guard persona) 用户协议 (privacy_service): an account that agreed to an earlier version is held until it ticks again, and can still
+    read what it is asked to agree to — the guide, and each of the two chapters the re-tick page's names open (it once
+    got 403 there, and the page said 重试). The account is held for these few calls."""
+    with contextlib.closing(db()) as c:
+        c.execute('UPDATE users SET terms_version=? WHERE id=?', ('2000-01-01/2000-01-01', IDS[who])); c.commit()
+    s, j = cl.get('/api/next/class')
+    check(who, '用户协议: an earlier version is held (403, need terms)', s == 403 and isinstance(j, dict) and j.get('need') == 'terms', (s, j))
+    s, g = cl.get('/api/next/guide')
+    ids = [ch.get('id') for ch in g.get('chapters', [])] if isinstance(g, dict) else []
+    check(who, '用户协议: held, the guide opens with both chapters', s == 200 and 'terms' in ids and 'privacy' in ids, (s, ids[:5]))
+    for ch in ('terms', 'privacy'):
+        s, d = cl.get('/api/next/guide?chapter=' + ch)
+        check(who, f'用户协议: held, chapter {ch} opens alone', s == 200 and isinstance(d, dict) and (d.get('chapter') or {}).get('id') == ch, s)
+    s, h = cl.get('/api/next/home')
+    check(who, '用户协议: held, home is a guest\'s with the session to ask', s == 200 and isinstance(h, dict) and ((h.get('session') or {}).get('user') or {}).get('terms') is None, s)
+    s, j = cl.post('/api/account/terms', {'agree': True})
+    check(who, '用户协议: ticking again is ok', s == 200 and isinstance(j, dict) and j.get('terms') == 'ok', (s, j))
+    s, j = cl.get('/api/next/class')
+    check(who, '用户协议: after ticking, the account is back', s == 200, (s, j))
 
 
 # ---------- invariants + cleanup ----------

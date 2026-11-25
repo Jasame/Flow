@@ -36,6 +36,19 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("not used") }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        applyAccent(Accent.saved)  // the window is there now: alerts take its tint
+    }
+
+    /// The site's 主题色 on what the app draws itself: the window's tint (alerts, the error view's button), pull-to-refresh
+    func applyAccent(_ name: String?) {
+        let c = Accent.color(name)
+        view.tintColor = c
+        view.window?.tintColor = c
+        refresh.tintColor = c
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         let bg = UIColor(named: "LaunchBackground") ?? .systemBackground
@@ -65,6 +78,8 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
         ])
         refresh.addTarget(self, action: #selector(pulled), for: .valueChanged)
         webView.scrollView.refreshControl = refresh
+        bridge.onAccent = { [weak self] name in self?.applyAccent(name) }
+        applyAccent(Accent.saved)  // the last 主题色 the page showed, until it says again
         Task { await start() }
     }
 

@@ -487,8 +487,8 @@ def run_device(pw, dev, opts):
       noicon: [...document.querySelectorAll('#view .px-row .pico svg')].filter(x => !x.children.length).length,
       wide: [...document.querySelectorAll('#view .px-row')].filter(e => e.getBoundingClientRect().right > innerWidth + 1).length,
       tall: [...document.querySelectorAll('#view .px-row .t .tiny')].filter(e => e.getBoundingClientRect().height > 24).length})""")
-    check(dev, '练习: one row per practice, each with an icon and a one-line note, inside the screen',
-          pr['rows'] >= 15 and pr['tiles'] == 0 and pr['noicon'] == 0 and pr['wide'] == 0 and pr['tall'] == 0, pr)
+    check(dev, '练习: one row per practice, each with an icon (a note only where it says what AI does), inside the screen',
+          pr['rows'] >= 14 and pr['tiles'] == 0 and pr['noicon'] == 0 and pr['wide'] == 0 and pr['tall'] == 0, pr)
     # r20: a tap on a counted entry point sends its key only (the console compares releases with these counts)
     with pg.expect_request(lambda r: r.url.endswith('/api/next/tap'), timeout=4000) as tap:
         pg.click('#view .ptile.pmap')
@@ -677,7 +677,12 @@ def run_device(pw, dev, opts):
     gctx = ctx.browser.new_context(**opts, locale='zh-CN', bypass_csp=True); gp = gctx.new_page()
     gp.goto(BASE + '/#/me'); settle(gp)
     gp.click('#lg'); gp.wait_for_selector('#authForm', timeout=4000)
-    check(dev, 'sign-in: three ways in (password, code, sign-up)', gp.evaluate("() => document.querySelectorAll('#sheet [role=tab]').length") == 3)
+    tabs = gp.evaluate("() => [...document.querySelectorAll('#sheet [role=tab]')].map(b => b.textContent.trim() + (b.getAttribute('aria-selected') === 'true' ? '*' : ''))")
+    check(dev, 'sign-in: 注册 and 登录 are the two tabs, one level (登录 open, titled 登录语流)', tabs == ['注册', '登录*'] and gp.text_content('#sheetTitle') == '登录语流', tabs)
+    gp.click('#authForm [data-tab=code]'); gp.wait_for_selector('#authForm [name=email]', timeout=4000)
+    way = gp.evaluate("() => ({title: document.getElementById('sheetTitle').textContent, on: (document.querySelector('#sheet [role=tab][aria-selected=true]') || {}).textContent, back: !!document.querySelector('#authForm [data-tab=pw]')})")
+    check(dev, 'sign-in: 用邮箱验证码登录 is a choice inside 登录 (登录 still the open tab), with 用密码登录 to go back', way == {'title': '登录语流', 'on': '登录', 'back': True}, way)
+    gp.click('#authForm [data-tab=pw]'); gp.wait_for_selector('#authForm [name=password]', timeout=4000)
     gp.click('[data-tab=reset]'); gp.wait_for_selector('#authForm [name=code]', timeout=4000)
     check(dev, 'sign-in: 忘记密码 opens email, code and new password', all(gp.is_visible(f'#authForm [name={n}]') for n in ('email', 'code', 'password')))
     gp.click('[data-tab=pw]'); gp.click('[data-tab=reg]'); gp.wait_for_selector('#authForm [name=username]', timeout=4000)
@@ -931,6 +936,10 @@ APP_AUDIO_FAKE = """(() => {
       if (cmd === 'audio.state') return Promise.resolve(s.playing || { state: 'idle' });
       if (cmd === 'audio.progress') return Promise.resolve((s.progress || {})[args.key] || null);
       if (cmd === 'audio.resume') return Promise.resolve(Object.assign({ ok: true }, s.playing || {}));
+      if (cmd === 'rec.ask') return Promise.resolve(true);
+      if (cmd === 'rec.permission') return Promise.resolve('granted');
+      if (cmd === 'rec.start') return Promise.resolve({ ok: true, format: 'wav', max: args.max });
+      if (cmd === 'rec.stop') return Promise.resolve({ ok: true, mime_type: 'audio/wav', data: 'UklGRqQMAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YYAMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==', ms: 100, bytes: 3244, cut: false });
       return Promise.resolve({ ok: true });
     },
   };
@@ -968,7 +977,7 @@ def app_audio_run(pw):
         pg.click('#playAll'); pg.wait_for_timeout(300)
         play = last('audio.play')
         check(dev, '播放全文: the app plays it (audio.play with the key, the sentences, 复读 and 语速)',
-              bool(play) and play.get('key') == key and play.get('from') == 0 and bool(play.get('texts') or play.get('sentences'))
+              bool(play) and play.get('key') == key and play.get('from') == 0 and len(play.get('items') or play.get('sentences') or []) == n
               and play.get('rate') == 1 and 'rep' in play and len(play.get('gap') or []) == n, play)
         check(dev, '播放全文: the page plays nothing itself (no server voice asked, no browser voice)', not tts and not pg.evaluate('window.__said.length'), tts[:3])
         emit('audio', {'key': key, 'state': 'playing', 'i': 2, 'n': n, 'title': 't'}); pg.wait_for_timeout(200)
@@ -982,8 +991,8 @@ def app_audio_run(pw):
         line = (pg.text_content('#lsPrep') or '').strip() if pg.is_visible('#lsPrep') else ''
         emit('audio', {'key': key, 'state': 'playing', 'i': 3, 'n': n, 'title': 't', 'fail': {'code': 'offline', 'server': ''}}); pg.wait_for_timeout(200)
         said = [x for x in (pg.evaluate('window.__toasts') or []) if x.startswith('离线中')]
-        check(dev, "the app fell back to the phone's voice (offline): the line under 播放全文 and one toast say why",
-              line.startswith('离线中，这句还没存到本机') and len(said) == 1, (line, said))
+        check(dev, "the app fell back to the phone's voice (offline): the line under 播放全文 and one toast say why, in the app's words (系统自带的声音)",
+              line == '离线中，这句还没存到本机，先用系统自带的声音' and len(said) == 1, (line, said))
         emit('audio', {'key': key, 'state': 'playing', 'i': 3, 'n': n, 'title': 't'}); pg.wait_for_timeout(200)
         check(dev, 'the next sentence in the AI voice again: the line goes', not pg.is_visible('#lsPrep') or not (pg.text_content('#lsPrep') or '').strip(), pg.text_content('#lsPrep'))
         pg.evaluate("document.querySelector('.playset').open = true")  # 语速 and 复读 sit in 播放设置
@@ -996,6 +1005,12 @@ def app_audio_run(pw):
         pg.click('#playAll'); pg.wait_for_timeout(200)
         check(dev, '继续 goes to the app', 'audio.resume' in cmds()[-2:] and btn().endswith('暂停'), (cmds()[-3:], btn()))
 
+        # the app made sentence 2 (the page had no address for it): kept in the SV address book, sent along next time (§3)
+        emit('audio-made', {'key': key, 'i': 1, 'url': '/audio/tts/us-f/made-by-app.mp3'}); pg.wait_for_timeout(150)
+        pg.click('#playRestart'); pg.wait_for_timeout(300)
+        items = (last('audio.play') or {}).get('items') or []
+        check(dev, "audio-made: the app's new address is kept and the next play sends it (items)",
+              len(items) == n and items[1].get('url') == '/audio/tts/us-f/made-by-app.mp3' and items[0].get('url') is None, items[:2])
         # loaded again while the app plays on (第 5 句): the page keeps that place and takes the text back, no new start
         pg.evaluate(f"k => window.__fakeApp.put({{ playing: {{ key: k, state: 'playing', i: 4, n: {n}, title: 't' }} }})", key)
         pg.reload(wait_until='load'); settle(pg); pg.wait_for_selector('#playAll'); pg.wait_for_timeout(500)
@@ -1021,6 +1036,24 @@ def app_audio_run(pw):
         pg.evaluate("key => window.__fakeApp.put({ progress: { [key]: { i: 0, ended: true, at: Date.now() } } })", key)
         pg.reload(wait_until='load'); settle(pg); pg.wait_for_selector('#playAll'); pg.wait_for_timeout(500)
         check(dev, "the app read it to the end since: 播放全文 again", btn().endswith('播放全文') and prog() is None, (btn(), prog()))
+
+        # 跟读 in the app (PR #164): the app records (rec.ask, rec.start, rec.stop), never getUserMedia; its WAV goes up as audio/wav
+        rctx = browser.new_context(**DEVICES['phone'], locale='zh-CN', bypass_csp=True, service_workers='block')
+        rctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['app-audio']['token'], 'url': BASE}])
+        rctx.add_init_script("try { localStorage.setItem('flow-mic-explained', '1'); } catch (e) {}")
+        rctx.add_init_script("window.__gum = 0; if (navigator.mediaDevices) { const g = navigator.mediaDevices.getUserMedia && navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices); navigator.mediaDevices.getUserMedia = c => { window.__gum++; return g(c); }; }")
+        rctx.add_init_script(APP_AUDIO_FAKE.replace("features: ['audio']", "features: ['audio', 'rec']"))
+        rpg = rctx.new_page(); posted = []
+        rpg.on('request', lambda r: posted.append(r.post_data or '') if r.method == 'POST' and '/api/' in r.url else None)
+        rpg.goto(BASE + '/', wait_until='load'); settle(rpg)
+        go(rpg, f'#/m/{PID}/listen'); rpg.click('[data-mode="shadow"]'); rpg.wait_for_selector('.line.sh.cur [data-r="0"]')
+        rpg.click('[data-r="0"]'); rpg.wait_for_timeout(500); rpg.click('[data-r="0"]')
+        rpg.wait_for_selector('[data-ai="0"]:not([disabled])', timeout=5000); rpg.click('[data-ai="0"]'); rpg.wait_for_timeout(1200)
+        rc = rpg.evaluate("window.__cmds.map(c => c[0]).filter(c => c.startsWith('rec.'))")
+        wav = any('"audio/wav"' in (b or '') for b in posted)
+        check(dev, '跟读 in the app: recorded by the app (rec.ask, rec.start, rec.stop), no getUserMedia, sent as audio/wav',
+              rc[:3] == ['rec.ask', 'rec.start', 'rec.stop'] and rpg.evaluate('window.__gum') == 0 and wav, (rc, rpg.evaluate('window.__gum'), wav))
+        rctx.close()
 
         # 读's 伴读 goes to the app the same way
         go(pg, f'#/m/{PID}/read'); pg.wait_for_selector('#readAlong'); pg.wait_for_timeout(300)
@@ -2309,6 +2342,15 @@ def privacy_run(pw):
         pg.goto(BASE + '/#/', wait_until='networkidle'); pg.wait_for_selector('#stoF', timeout=8000)
         asked = '补一个同意' in (pg.text_content('h1') or '') and pg.is_visible('#stoNo')
         pg.screenshot(path=str(OUT / 'privacy-storage-ask.png'))
+        # not agreed yet, the names still open the text, over the page; 返回 leaves the form as it was
+        pg.check('#stoF [name=storage]')
+        pg.click('#stoF a[data-doc=terms]'); pg.wait_for_selector('.doc-over .doc-body h3', timeout=8000)
+        over = '语流用户协议' in (pg.text_content('.doc-over .doc-bar') or '') and len(pg.text_content('.doc-over .doc-body') or '') > 500
+        pg.screenshot(path=str(OUT / 'privacy-terms-over.png'))
+        pg.click('.doc-over .doc-bar [data-doc-close]'); pg.wait_for_timeout(200)
+        over = over and pg.query_selector('.doc-over') is None and pg.is_checked('#stoF [name=storage]') and not pg.is_checked('#stoF [name=terms]')
+        pg.uncheck('#stoF [name=storage]')
+        check(dev, '补勾页: 《用户协议》 opens over the page before agreeing, 返回 keeps the ticks', over)
         pg.goto(BASE + '/#/cards', wait_until='networkidle'); pg.wait_for_selector('#stoF', timeout=8000)
         other = '补一个同意' in (pg.text_content('h1') or '')
         pg.click('#stoNo'); pg.wait_for_selector('h1:has-text("这个账号已暂停")', timeout=8000)
@@ -2576,10 +2618,10 @@ def tour_run(pw):
         # the same account on another phone: nothing either
         ctx, pg = open_('tour', phone)
         check(dev, 'another phone, same account: it does not come back', shown(pg, 2500) is None)
-        # 我的 → 帮助 → 「再看一遍新手引导」 (390 px)
-        go(pg, '#/me'); pg.click('#meTour')
+        # 我的 → 帮助 → 更多 → 「再看一遍新手引导」 (390 px; 简洁化: in the 更多 sheet)
+        go(pg, '#/me'); pg.click('#meMore'); pg.wait_for_selector('#sheetCard #meTour', timeout=4000); pg.click('#meTour')
         again = shown(pg)
-        check(dev, '390 px: 我的 → 帮助 → 「再看一遍新手引导」 opens it on 今日 from step 1',
+        check(dev, '390 px: 我的 → 帮助 → 更多 → 「再看一遍新手引导」 opens it on 今日 from step 1',
               bool(again) and pg.evaluate('location.hash') in ('#/', '') and again['title'] == TOUR_LEARNER[0] and again['inside'], again)
         if again:
             with pg.expect_response(lambda r: r.url.endswith('/api/next/tour') and r.request.method == 'POST', timeout=6000) as resp:
@@ -2588,7 +2630,7 @@ def tour_run(pw):
         ctx.close()
         # a computer, dark, reduced motion
         ctx, pg = open_('tour', dict(viewport={'width': 1280, 'height': 800}, locale='zh-CN'), '#/me', color_scheme='dark', reduced_motion='reduce')
-        pg.click('#meTour')
+        pg.click('#meMore'); pg.wait_for_selector('#sheetCard #meTour', timeout=4000); pg.click('#meTour')
         st = shown(pg)
         steps = walk(pg, 'desktop-dark', shots=True) if st else []
         lum = (lambda c: sum(int(x) for x in re.findall(r'\d+', c)[:3]) / 3)(st['bg']) if st else 255
@@ -2892,7 +2934,9 @@ def about_run(pw):
         pg = ctx.new_page(); pg.goto(BASE + '/#/welcome', wait_until='networkidle'); settle(pg)
         check('about', 'a first visit sees the line to 认识语流 under the starting questions', pg.query_selector('#view a[href="/about"]') is not None)
         pg.goto(BASE + '/#/me'); settle(pg)
-        check('about', '我的 → 帮助 has 认识语流', pg.query_selector('#view a.grow[href="/about"]') is not None)
+        pg.click('#meMore'); pg.wait_for_selector('#sheetCard a.grow[href="/about"]', timeout=4000)  # 简洁化: in 帮助 → 更多
+        check('about', '我的 → 帮助 → 更多 has 认识语流', pg.query_selector('#sheetCard a.grow[href="/about"]') is not None)
+        pg.evaluate("document.querySelector('#sheet [data-close]').click()")
         pg.goto(BASE + '/#/about'); pg.wait_for_url('**/about', timeout=6000)
         check('about', '#/about (the guide links there) opens the page', pg.url.endswith('/about'))
         pg.click('a[href="/#/join"]'); pg.wait_for_selector('#sheetCard', timeout=8000); pg.wait_for_timeout(400)
@@ -3779,6 +3823,24 @@ def start_run(pw):
                 for kind, items in pg.evaluate(A11Y_JS).items():
                     bad += [f'{kind}: {x if isinstance(x, str) else json.dumps(x, ensure_ascii=False)}' for x in items]
                 check(dev, f'{tag}: contrast, names and labels on the start page', not bad, f'{len(bad)}: ' + ' | '.join(bad[:4]))
+                # 注册 and 登录 one level (the owner on WeChat, 2026-11-25: 「注册一般和登录是一级的」): two equal buttons under
+                # 开始学习, and the sheet each opens says which it is, with the other one tab away
+                acct = pg.evaluate("""() => { const r = document.getElementById('wgReg'), l = document.getElementById('wgLogin'); if (!r || !l) return null;
+                  const a = r.getBoundingClientRect(), b = l.getBoundingClientRect(), cr = getComputedStyle(r), cl = getComputedStyle(l), go = document.getElementById('wgGo').getBoundingClientRect();
+                  return {reg: r.textContent.trim(), login: l.textContent.trim(), row: Math.abs(a.top - b.top) < 1 && a.top > go.bottom, h: Math.round(a.height),
+                          same: Math.abs(a.width - b.width) < 1 && Math.abs(a.height - b.height) < 1 && ['backgroundColor', 'color', 'fontSize', 'fontWeight', 'borderTopColor'].every(k => cr[k] === cl[k])}; }""")
+                check(dev, f'{tag}: 「注册账号」 and 「已有账号？登录」 side by side under 开始学习, the same size and look',
+                      bool(acct) and acct['reg'] == '注册账号' and acct['login'] == '已有账号？登录' and acct['row'] and acct['same'] and acct['h'] >= 40, acct)
+                if size == 'phone':
+                    sheet = "() => ({title: document.getElementById('sheetTitle').textContent, tabs: [...document.querySelectorAll('#sheet [role=tab]')].map(b => b.textContent.trim() + (b.getAttribute('aria-selected') === 'true' ? '*' : ''))})"
+                    pg.click('#wgReg'); pg.wait_for_selector('#authForm [name=username]', timeout=4000); pg.wait_for_timeout(300); a = pg.evaluate(sheet)
+                    pg.screenshot(path=str(OUT / f'start-sheet-register-{theme}.png'))
+                    pg.click('#sheet button[data-close]'); pg.wait_for_selector('#sheet', state='hidden', timeout=4000)
+                    pg.click('#wgLogin'); pg.wait_for_selector('#authForm [name=password]', timeout=4000); pg.wait_for_timeout(300); b = pg.evaluate(sheet)
+                    pg.screenshot(path=str(OUT / f'start-sheet-login-{theme}.png'))
+                    pg.click('#sheet button[data-close]'); pg.wait_for_selector('#sheet', state='hidden', timeout=4000)
+                    check(dev, f'{tag}: 注册账号 opens 注册语流 on 注册, 已有账号？登录 opens 登录语流 on 登录; 注册｜登录 the only tabs',
+                          a == {'title': '注册语流', 'tabs': ['注册*', '登录']} and b == {'title': '登录语流', 'tabs': ['注册', '登录*']}, (a, b))
                 # 考试 opens the exams; an exam suggests a level (推荐), picked unless one was chosen by hand
                 pg.click('[data-goal="exam"]'); pg.click('[data-exam="cet4"]'); pg.wait_for_timeout(150)
                 rec = pg.evaluate("[...document.querySelectorAll('[data-target]')].filter(b => !b.querySelector('.rec').hidden).map(b => [b.dataset.target, b.getAttribute('aria-checked')])")
@@ -3815,7 +3877,7 @@ def start_run(pw):
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['fresh']['token'], 'url': BASE}])
         pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
         pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
-        check(dev, 'a signed-in account without settings gets the start page (no 登录 link there)', pg.evaluate('location.hash') == '#/welcome' and not pg.query_selector('#wgLogin'), pg.evaluate('location.hash'))
+        check(dev, 'a signed-in account without settings gets the start page (no 注册 or 登录 there)', pg.evaluate('location.hash') == '#/welcome' and not pg.query_selector('#wgLogin') and not pg.query_selector('#wgReg'), pg.evaluate('location.hash'))
         pg.click('[data-goal="exam"]'); pg.click('[data-exam="cet6"]'); pg.wait_for_timeout(100)
         said = pg.evaluate("(el => el && !el.hidden ? el.textContent : '')(document.getElementById('wgPlan'))")
         pg.screenshot(path=str(OUT / 'start-plan-note.png'), full_page=True)

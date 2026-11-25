@@ -1,0 +1,21 @@
+/* 简洁化 (the user's pick, 2026-11-25; eidos-simplify-proposal.md): 今日 and 单词, 轻度 — fewer shadows, outlines and
+   lines; a label that only names a kind (语流文章, 精选, 待学, 记得) is coloured text, not a pill.
+   Only shadows, outlines, lines and label colours: no size or layout. Classes found on these pages only are used as
+   they are; what also appears elsewhere (.card, .mlist, details.fold) is scoped to the page with #view:has(...) — the
+   单词 page by its tools (nav.tools, there with or without words and searches), 今日 by its plan. A browser without
+   :has() (Safari before 15.4, older Android WebViews and WeChat cores) drops those rules and shows the page as before.
+   The AI marks, the 好句 / 一读 cards' structure (12-daily-line.js) and every tap area stay as they are. */
+
+/* 今日 */
+.line-card .pill.green{background:none;padding-left:0;padding-right:0;color:var(--muted);font-weight:500}
+#view:has(.today-plan) .card,#view:has(.today-plan) .btn.primary{box-shadow:none}
+#view:has(.today-plan) .mlist .pill.feat{background:none;padding-left:0;padding-right:0;color:var(--muted);font-weight:500}
+#view:has(.today-plan) .card.sunk{border-color:transparent}
+
+/* 单词 */
+.tools a,.tools button{background:none}
+.xlist>.xrow+.xrow::before{display:none}
+.xlist .xrow .pill{background:none;padding-left:0;padding-right:0;color:var(--muted);font-weight:500}
+.xlist .xrow .pill.amber{color:var(--amber-fill)}
+#view:has(> nav.tools) .card{box-shadow:none}
+#view:has(> nav.tools) details.card.fold{border-color:transparent}

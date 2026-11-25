@@ -2,7 +2,6 @@ package cn.flowlang.app
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -336,7 +335,7 @@ class MainActivity : ComponentActivity() {
 
     private suspend fun explain(title: Int, body: Int): Boolean {
         val d = CompletableDeferred<Boolean>()
-        AlertDialog.Builder(this).setTitle(title).setMessage(body)
+        Accent.dialog(this).setTitle(title).setMessage(body)
             .setPositiveButton(R.string.ok) { _, _ -> d.complete(true) }
             .setNegativeButton(R.string.not_now) { _, _ -> d.complete(false) }
             .setOnCancelListener { d.complete(false) }
@@ -345,7 +344,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun offerSettings(title: Int, body: Int, go: () -> Unit) {
-        AlertDialog.Builder(this).setTitle(title).setMessage(body)
+        Accent.dialog(this).setTitle(title).setMessage(body)
             .setPositiveButton(R.string.go_settings) { _, _ -> go() }
             .setNegativeButton(R.string.not_now, null)
             .show()
@@ -387,7 +386,7 @@ class MainActivity : ComponentActivity() {
         val hour = u.getQueryParameter("hour")?.toIntOrNull()
         val minutes = u.getQueryParameter("minutes")?.toIntOrNull() ?: 10
         val at = u.getQueryParameter("at")?.toDoubleOrNull()
-        AlertDialog.Builder(this).setTitle(if (plan) R.string.ics_plan_title else R.string.ics_title).setMessage(R.string.ics_body)
+        Accent.dialog(this).setTitle(if (plan) R.string.ics_plan_title else R.string.ics_title).setMessage(R.string.ics_body)
             .setPositiveButton(R.string.ics_app) { _, _ ->
                 lifecycleScope.launch { if (notificationsAllowed()) toast(Reminders.optIn(this@MainActivity, plan, hour, minutes, at)) }
             }

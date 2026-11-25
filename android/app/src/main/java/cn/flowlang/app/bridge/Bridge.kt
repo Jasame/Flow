@@ -11,6 +11,7 @@ import androidx.webkit.JavaScriptReplyProxy
 import androidx.webkit.WebMessageCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
+import cn.flowlang.app.Accent
 import cn.flowlang.app.BuildConfig
 import cn.flowlang.app.MainActivity
 import cn.flowlang.app.Mute
@@ -84,6 +85,8 @@ class Bridge(private val activity: MainActivity) : WebViewCompat.WebMessageListe
                     .put("platform", "android").put("features", JSONArray(FEATURES)).put("voices", Speech.voicesJson())
             }
             "app.visible" -> { FlowAudio.replay(); true }
+            // Android's own (assets/flowapp-android.js): the page's 主题色, for the app's dialogs and notifications
+            "app.accent" -> { Accent.set(activity, o.optString("accent")); true }
 
             "audio.play" -> FlowAudio.play(o)
             "audio.pause" -> FlowAudio.pause(if (o.optString("why") == "other") "other" else "user")
