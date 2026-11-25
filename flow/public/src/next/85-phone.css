@@ -65,7 +65,7 @@
 .topic .plist{margin-top:8px}
 .tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
 .tile{display:grid;justify-items:center;gap:6px;padding:12px 4px 10px;border-radius:14px;background:var(--paper);text-decoration:none;color:inherit;position:relative}
-.tile:hover{background:color-mix(in srgb,var(--green) 5%,var(--paper))}
+.tile:hover{background:var(--sunk);background:color-mix(in srgb,var(--green) 5%,var(--paper))}
 .tile .ring{--p:0%;position:relative;width:54px;height:54px;border-radius:50%;display:grid;place-items:center;
   background:radial-gradient(closest-side,var(--paper) 76%,transparent 78% 100%),conic-gradient(var(--green) var(--p),var(--line) 0)}
 .tile .ring b{font-size:12.5px;font-variant-numeric:tabular-nums}
@@ -91,7 +91,7 @@
 .crow>span{display:grid;gap:2px}
 .crow .en{font-family:var(--serif);font-size:17px}
 .pit{display:grid;gap:4px;padding:12px 14px;border-radius:12px;background:var(--paper)}
-.pit .bad{color:var(--red);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--red) 55%,transparent);font-family:var(--serif)}
+.pit .bad{color:var(--red);text-decoration:line-through;text-decoration-color:var(--red);text-decoration-color:color-mix(in srgb,var(--red) 55%,transparent);font-family:var(--serif)}
 .pit .bad span,.pit .good span{text-decoration:none;display:inline-block;font-family:var(--sans);font-weight:700;margin-right:4px}
 .pit .good{color:var(--ok-ink);font-family:var(--serif);font-size:16.5px}
 .gq .ans{background:var(--paper)}

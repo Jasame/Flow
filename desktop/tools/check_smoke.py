@@ -2,7 +2,7 @@
 capabilities, the User-Agent ends with FlowDesktop/<version> (Windows|macOS), the media-session hook reached the
 app, and the app's media controls started. Exit 1 with the reasons otherwise.
 
-usage: python3 desktop/tools/check_smoke.py smoke.json [windows|macos]"""
+usage: python3 desktop/tools/check_smoke.py smoke.json [windows|macos|linux]"""
 import json
 import re
 import sys
@@ -12,7 +12,7 @@ def problems(d, os_name):
     if 'error' in d:
         return [f"no report: {d['error']} (page: {d.get('url')})"]
     p, n = d.get('page') or {}, d.get('native') or {}
-    label = {'windows': 'Windows', 'macos': 'macOS'}[os_name]
+    label = {'windows': 'Windows', 'macos': 'macOS', 'linux': 'Linux'}[os_name]
     out = []
     want = {'flowapp': True, 'v': 1, 'platform': os_name, 'notify': True, 'media': True, 'audio': False,
             'frozen': True, 'mediaSession': True, 'mediaHandlers': 11, 'muted': True}
@@ -61,7 +61,8 @@ def problems(d, os_name):
 
 def main():
     sys.stdout.reconfigure(encoding='utf-8')  # a Windows runner's console is not UTF-8
-    path, os_name = sys.argv[1], (sys.argv[2] if len(sys.argv) > 2 else ('windows' if sys.platform == 'win32' else 'macos'))
+    default = {'win32': 'windows', 'darwin': 'macos'}.get(sys.platform, 'linux')
+    path, os_name = sys.argv[1], (sys.argv[2] if len(sys.argv) > 2 else default)
     with open(path, encoding='utf-8') as f:
         d = json.load(f)
     print(json.dumps(d, ensure_ascii=False, indent=1))

@@ -35,3 +35,9 @@ body.kb-room{padding-bottom:max(60vh,calc(var(--kb) + 16px))}
 @media (min-width:760px){.sheet-ghost .sheet-card{animation-name:sheet-away}}
 @keyframes sheet-away{to{transform:translateY(24px);opacity:0}}
 @media (prefers-reduced-motion:reduce){.sheet-ghost{display:none}}
+/* next.html's 「正在打开…」 when no page is ever drawn over it (a browser too old to read next.js, a boot error, a very
+   slow network): after 12 s a few lines say what to do. No script: it has to work where next.js does not run. The
+   first page drawn replaces all of #view, this too. */
+.boot-help{visibility:hidden;opacity:0;max-width:30em;margin:0 auto;padding:0 16px;text-align:center;color:var(--ink2);font-size:15px;line-height:1.6;animation:boot-help .3s 12s forwards}
+.boot-help p{margin:0 0 8px}
+@keyframes boot-help{to{visibility:visible;opacity:1}}
