@@ -201,7 +201,7 @@ def answer(c, uid, data):
             raise ValueError('bad')
         b = raw.get('better')
         better = {'text': _clean(b.get('text'), 1, 500), 'why': _clean(b.get('why') or '', 0, 200)} if isinstance(b, dict) and isinstance(b.get('text'), str) and nx.WORD.search(b['text']) else None
-        return {'heard': _clean(raw.get('heard') or '', 0, 1200) if audio else text, 'better': better, 'note': _clean(raw.get('note') or '', 0, 240)}
+        return {'heard': __import__('lab_service').mheard(raw.get('heard'), 1200) if audio else text, 'better': better, 'note': _clean(raw.get('note') or '', 0, 240)}
 
     spec = {'part': 1, 'topic': topic, 'q': q, 'text': text, 'audio': bool(audio)}
     return _ai(c, uid, data, 'next-ielts', pack_id(1, topic), 'speaking', spec, system, user, convert, audio)
@@ -268,7 +268,7 @@ def part2_talk(c, uid, data):
 
     def convert(raw):
         out = _feedback(raw, spoken, valid)
-        out['transcript'] = _clean(raw.get('transcript') or '', 0, 3000) if spoken else text
+        out['transcript'] = __import__('lab_service').mheard(raw.get('transcript'), 3000) if spoken else text
         cov = raw.get('covered') if isinstance(raw.get('covered'), list) else []
         out['covered'] = [bool(x) for x in cov[:4]] if len(cov) >= 4 else None
         out['seconds'] = secs if spoken else None
