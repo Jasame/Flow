@@ -430,7 +430,13 @@ def ai(c, days=14, people=False):
             ((utc_today - datetime.timedelta(days=days - 1)).isoformat(),))]
         out['failures'] = [{'kind': KIND_LABEL.get(r[0], r[0]), 'error': (r[1] or '')[:160], 'created': r[2]} for r in c.execute(
             "SELECT kind, error, created FROM lab_jobs WHERE status='failed' AND created>? ORDER BY id DESC LIMIT 8", (now - days * DAY,))]
-    import ai_routes
+    import ai_routes, chat_service
+    # today's site ceiling as grown with the learners (chat_service.site_limit; lim['site_limit'] is its floor), and the
+    # learners' hard stop (ai_routes.stop_line / day_full: the learners' day from 08:00 Beijing, every paid call)
+    out['site_today'] = chat_service.site_limit(c)
+    line = ai_routes.stop_line()
+    out['stop'] = {'line': line, 'source': 'console' if console_ops.settings().get('ai_stop') is not None else 'default',
+                   'spent': round(ai_routes.spent_since(c, ai_routes.learner_day_start()), 4), 'full': bool(line) and ai_routes.day_full(c)}
     out['costs'] = ai_routes.summary(c, days)
     out['evals'] = ai_routes.eval_reports()
     out['nightly'] = ai_routes.nightly_on()
