@@ -33,6 +33,12 @@ PER_IP_HOUR=30
 # kept one day).
 CLASS_CODES_PER_HOUR=120
 SIGNUPS_PER_IP_DAY=60
+# A class code travels (it is posted in class chats): the accounts one class's invite makes in 24 hours are capped at
+# CLASS_SIGNUPS_PER_DAY, or twice the class's members when that is more; at the cap the console's 管理员 get one mail
+# (a class, a day). class_signups keeps the class and when only (no account, no address), CLASS_SIGNUPS_KEEP_DAYS,
+# for the console's count (语流 A5, 2026-11-25).
+CLASS_SIGNUPS_PER_DAY=80
+CLASS_SIGNUPS_KEEP_DAYS=30
 EMAIL=re.compile(r'[^\s@<>"\'(),;:]+@[^\s@<>"\'(),;:]+\.[A-Za-z]{2,}')
 PURPOSES={'register':'注册','login':'登录','reset':'重设密码','bind':'绑定邮箱'}
 FOR={'register':'注册语流 Flow','login':'登录语流 Flow','reset':'重设语流 Flow 密码','bind':'给语流 Flow 账号绑定这个邮箱'}
@@ -55,6 +61,8 @@ def schema(c):
  if 'ip' not in cols:c.execute('ALTER TABLE email_codes ADD COLUMN ip TEXT')
  if 'class_id' not in cols:c.execute('ALTER TABLE email_codes ADD COLUMN class_id INTEGER')  # asked for from a class invite
  c.execute('CREATE TABLE IF NOT EXISTS signup_ips(ip TEXT NOT NULL,created REAL NOT NULL)')
+ c.execute('CREATE TABLE IF NOT EXISTS class_signups(class_id INTEGER NOT NULL,created REAL NOT NULL)')
+ c.execute('CREATE TABLE IF NOT EXISTS class_signup_alerts(class_id INTEGER NOT NULL,day TEXT NOT NULL,PRIMARY KEY(class_id,day))')
 
 def invited_class(c,code):
  """The id of the active class whose invite code this is, else None (班级试用's sign-up allowance)."""
@@ -62,6 +70,30 @@ def invited_class(c,code):
  if not code:return None
  r=c.execute('SELECT id FROM classes WHERE code=? AND active=1',(code,)).fetchone() if c.execute("SELECT 1 FROM sqlite_master WHERE name='classes'").fetchone() else None
  return r[0] if r else None
+
+def class_signups(c,cid,now=None):
+ """(accounts this class's invite made in the last 24 hours, the cap for it)."""
+ now=now or time.time()
+ members=c.execute('SELECT COUNT(*) FROM class_members WHERE class_id=? AND left_at IS NULL',(cid,)).fetchone()[0] if c.execute("SELECT 1 FROM sqlite_master WHERE name='class_members'").fetchone() else 0
+ made=c.execute('SELECT COUNT(*) FROM class_signups WHERE class_id=? AND created>?',(cid,now-86400)).fetchone()[0] if c.execute("SELECT 1 FROM sqlite_master WHERE name='class_signups'").fetchone() else 0
+ return made,max(CLASS_SIGNUPS_PER_DAY,2*members)
+
+def _class_full(c,cid):
+ """The class's invite reached the cap: one mail a class a day (Beijing) to the console's 管理员."""
+ day=time.strftime('%Y-%m-%d',time.gmtime(time.time()+8*3600))
+ c.execute('DELETE FROM class_signup_alerts WHERE day<?',(time.strftime('%Y-%m-%d',time.gmtime(time.time()-CLASS_SIGNUPS_KEEP_DAYS*86400)),))
+ fresh=c.execute('INSERT OR IGNORE INTO class_signup_alerts(class_id,day) VALUES(?,?)',(cid,day)).rowcount;c.commit()
+ to=[e.strip() for e in os.getenv('FLOW_ADMIN_EMAILS','').split(',') if e.strip()]
+ if not fresh or not to or not account.configured():return
+ k=c.execute('SELECT name,code FROM classes WHERE id=?',(cid,)).fetchone();n,cap=class_signups(c,cid)
+ subject=f'班级「{k["name"]}」的邀请链接今天注册的人数到上限了'
+ text,page=__import__('mail_layout').message(
+  [f'「{k["name"]}」（邀请码 {k["code"]}）近 24 小时通过邀请链接注册了 {n} 个账号，到了上限 {cap} 个，之后从这个班的邀请链接来的注册先拦下了，页面上请他们联系老师。',
+   '如果这不像是这个班的同学在注册，邀请码可能传出去了：在后台这个班的页面换一个邀请码，旧的马上失效，再请老师把新的发给学生。'],
+  title=subject,button=('查看这个班','https://xmc.hk/flow#classes/%d'%cid))
+ for addr in to:
+  try:account.mail(addr,subject,text,html=page)
+  except Exception:continue  # noqa: BLE001 - a mail failure must not fail the answer
 
 def normalize(value):
  email=str(value or '').strip().lower()
@@ -154,9 +186,14 @@ def check(c,email,purpose,code):
  return None
 
 def _signed_up(c,ip,invited):
- """Count this sign-up toward its network's day (SIGNUPS_PER_IP_DAY): the address and when only, kept one day."""
- if not ip or invited:return
- now=time.time();c.execute('DELETE FROM signup_ips WHERE created<?',(now-86400,));c.execute('INSERT INTO signup_ips(ip,created) VALUES(?,?)',(ip,now))
+ """Count this sign-up toward its class's invite (class_signups: the class and when) or else its network's day
+ (SIGNUPS_PER_IP_DAY: the address and when only, kept one day)."""
+ now=time.time()
+ if invited:
+  c.execute('DELETE FROM class_signups WHERE created<?',(now-CLASS_SIGNUPS_KEEP_DAYS*86400,))
+  c.execute('INSERT INTO class_signups(class_id,created) VALUES(?,?)',(invited,now));return
+ if not ip:return
+ c.execute('DELETE FROM signup_ips WHERE created<?',(now-86400,));c.execute('INSERT INTO signup_ips(ip,created) VALUES(?,?)',(ip,now))
 
 def register(c,data,hash_password,ip=''):
  """Returns (user_row, None) or (None, (body, status)).
@@ -174,9 +211,12 @@ def register(c,data,hash_password,ip=''):
  # 班级试用: a sign-up from a class invite (its email code was asked for from the invite link, or data.class) does not
  # count toward SIGNUPS_PER_IP_DAY
  row=c.execute("SELECT class_id FROM email_codes WHERE email=? AND purpose='register' AND used=0 AND expires>? ORDER BY id DESC LIMIT 1",(email,time.time())).fetchone() if email else None
- invited=invited_class(c,data.get('class')) or (row['class_id'] if row else None)
+ invited=invited_class(c,data.get('class')) or (row['class_id'] if row and row['class_id'] and c.execute('SELECT 1 FROM classes WHERE id=? AND active=1',(row['class_id'],)).fetchone() else None)
  if ip and not invited and c.execute('SELECT COUNT(*) FROM signup_ips WHERE ip=? AND created>?',(ip,time.time()-86400)).fetchone()[0]>=SIGNUPS_PER_IP_DAY:
   return None,({'error':'这个网络今天注册的账号已经很多了，请明天再试。班级的同学请用老师发的邀请链接注册。','code':'busy'},429)
+ if invited:
+  n,cap=class_signups(c,invited)
+  if n>=cap:_class_full(c,invited);return None,({'error':'这个班今天通过邀请链接注册的人太多了，请联系老师。','code':'busy'},429)
  if not USERNAME.fullmatch(name):return None,({'error':'用户名需 2–40 个字符，不能有空格、@ 和 < > " \' / \\','field':'username'},400)
  if not 10<=len(p)<=200:return None,({'error':'密码需 10–200 个字符','field':'password'},400)
  if c.execute('SELECT 1 FROM users WHERE username=?',(name,)).fetchone():probed(c,ip);return None,({'error':'这个用户名已被使用，换一个试试'},409)

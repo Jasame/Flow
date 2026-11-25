@@ -307,6 +307,8 @@ def console_list(c, now=None):
                       'active_7d': len(_weeks(c, k['id'], now, 1, True)[0]),
                       'trial_people': sum(1 for (_, cid) in trial if cid == k['id']),
                       'trial_days': sum(len(d) for (_, cid), d in trial.items() if cid == k['id']),
+                      # accounts its invite made in 24 hours and the cap (auth_service.class_signups): a code passed round shows here
+                      **dict(zip(('invited_24h', 'invite_cap'), __import__('auth_service').class_signups(c, k['id'], now))),
                       'created': _day(k['created']), 'by': k['by']})
     people, days = _totals(trial)
     return {'items': items, 'trial_people': people, 'trial_days': days, 'members': sum(x['members'] for x in items),
