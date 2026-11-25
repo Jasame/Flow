@@ -504,9 +504,9 @@ def run_device(pw, dev, opts):
             if touch:
                 touch_swipe(pg, '.review', 160)
             else:
-                pg.keyboard.press('1')
+                pg.keyboard.press('3')  # 1 2 3 by place: 「认识」 is on the right (KNOW, 50-words.js)
             pg.wait_for_timeout(300)
-            check(dev, 'know (swipe right / key 1) reveals the answer', pg.query_selector('.open-card') is not None) if step < 2 else None
+            check(dev, 'know (swipe right / key 3, the right button) reveals the answer', pg.query_selector('.open-card') is not None) if step < 2 else None
             if touch:
                 touch_swipe(pg, '.review', 160)
             else:
@@ -2554,6 +2554,99 @@ TAP44_JS = """sel => { const el = document.querySelector(sel); if (!el) return n
   return { ok: [[-20, 0], [20, 0], [0, -20], [0, 20]].every(([a, b]) => hit(a, b)), w: Math.round(r.width), h: Math.round(r.height) }; }"""
 
 
+SIDE_STATE = """() => ({ claims: [...document.querySelectorAll('.choice [data-claim]')].map(b => b.dataset.claim),
+  keys: [...document.querySelectorAll('.choice [data-claim] small')].map(s => s.textContent),
+  rates: [...document.querySelectorAll('[data-rate]')].map(b => b.dataset.rate), back: !!document.querySelector('.open-card'),
+  foot: (document.querySelector('.rfoot') || {}).textContent || '', tip: !!document.getElementById('knowTip') })"""
+
+
+def review_side_run(pw):
+    """「认识」放在 (a trial student and the owner, 2026-11-25): on the right by default, as in most word apps; 我的 → 设置
+    moves it to the left. The buttons, the keys (1 2 3 and ← → by place), the swipe and the vocabulary test follow it; one
+    who reviewed on this device before sees once that it moved. 这次什么时候复习: a time today or tomorrow is the next
+    reminder, then the daily hour again."""
+    dev = 'review-side'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    try:
+        ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        st = lambda: pg.evaluate(SIDE_STATE)
+        pg.goto(BASE + '/#/cards', wait_until='load'); settle(pg)
+        pg.evaluate("localStorage.setItem('flow-next-review-cache', JSON.stringify({at: Date.now(), q: {items: []}}))")  # this device reviewed before
+        go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(200)
+        s = st()
+        check(dev, 'by default 不认识 / 模糊 / 认识 from left to right, keys 1 2 3 by place',
+              s['claims'] == ['forgot', 'fuzzy', 'know'] and s['keys'] == ['1', '2', '3'], s)
+        tip = pg.text_content('#knowTip') if s['tip'] else ''
+        check(dev, 'one who reviewed before is told once that 认识 moved, and where to move it back', '「认识」换到右边了，想换回去：我的 → 设置' in tip, tip)
+        pg.click('#knowTipOk'); pg.wait_for_timeout(100)
+        gone = not st()['tip']
+        go(pg, '#/cards'); go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000)
+        check(dev, '知道了 puts the tip away for good', gone and not st()['tip'], st())
+        pg.keyboard.press('3'); pg.wait_for_timeout(250); s = st()
+        check(dev, 'key 3 (the right button) is 认识; on the answer 记错了 left, 没错 right', s['back'] and s['rates'] == ['again', 'good'], s)
+        f0 = s['foot']; pg.keyboard.press('ArrowRight'); pg.wait_for_timeout(450); s = st()
+        check(dev, '→ is the right button there: 没错，下一个', not s['back'] and s['claims'] and s['foot'] != f0, [f0, s])
+        pg.keyboard.press('ArrowLeft'); pg.wait_for_timeout(250); s = st()
+        check(dev, '← on the card is the left button: 不认识', s['back'] and s['rates'] == ['again'], s)
+        pg.keyboard.press('Enter'); pg.wait_for_timeout(450)
+        # 我的 → 设置 → 「认识」放在 → 左边
+        go(pg, '#/me'); pg.click('#meKnow'); pg.wait_for_selector('#sheetCard [data-know="left"]'); pg.click('#sheetCard [data-know="left"]'); pg.wait_for_timeout(150)
+        label = pg.text_content('#meKnowV') or ''
+        pg.click('#sheetCard [data-close]'); pg.wait_for_timeout(150)
+        go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000); s = st()
+        check(dev, '我的 → 设置: 「认识」放在左边, and the card says 认识 / 模糊 / 不认识', label.strip() == '左边' and s['claims'] == ['know', 'fuzzy', 'forgot'] and not s['tip'], (label, s))
+        pg.keyboard.press('1'); pg.wait_for_timeout(250); s = st()
+        check(dev, 'left: key 1 is 认识, and on the answer 没错 left, 记错了 right', s['back'] and s['rates'] == ['good', 'again'], s)
+        f0 = s['foot']; pg.keyboard.press('ArrowLeft'); pg.wait_for_timeout(450); s = st()
+        check(dev, 'left: ← is 没错，下一个', not s['back'] and s['foot'] != f0, [f0, s])
+        go(pg, '#/vocab/test'); pg.wait_for_selector('.vtest', timeout=8000)
+        btns = pg.evaluate("[...document.querySelectorAll('.vtest [data-a]')].map(b => b.dataset.a + ':' + b.textContent)")
+        t0 = pg.text_content('.bar-progress') or ''
+        pg.keyboard.press('ArrowLeft'); pg.wait_for_timeout(300)
+        check(dev, 'left: the vocabulary test says 认识 ← and 不认识 →', btns == ['1:认识←', '0:不认识→'], btns)
+        # 这次什么时候复习: the next reminder at a time picked today or tomorrow
+        go(pg, '#/vocab/plan'); pg.click('#onceBtn'); pg.wait_for_selector('#oncePicks [data-at]', timeout=5000)
+        pick = pg.get_attribute('#oncePicks [data-at]', 'data-at'); name = pg.text_content('#oncePicks [data-at]')
+        pg.click('#oncePicks [data-at]'); pg.wait_for_selector('#onceOk', timeout=5000)
+        ok = pg.text_content('#onceOk') or ''; cal = pg.get_attribute('#onceOk a', 'href') or ''
+        r = pg.evaluate("fetch('/api/next/vocab').then(r => r.json()).then(o => o.reminder)")
+        check(dev, f'这次什么时候复习: 「{name}」 is the next reminder, said so, with a calendar event for that time',
+              r['once'] == float(pick) and ok.startswith('好，') and '提醒你复习' in ok and cal.endswith(f'at={int(float(pick))}'), (pick, r, ok, cal))
+        pg.click('#sheetCard [data-close]'); pg.wait_for_timeout(150)
+        check(dev, 'the plan page says when the next reminder is', (pg.text_content('#onceNow') or '').startswith('下一次：'), pg.text_content('#onceNow'))
+        ics = pg.evaluate("u => fetch(u).then(r => r.text())", cal)
+        check(dev, 'the calendar file is one event, not a daily one', 'BEGIN:VEVENT' in ics and 'RRULE' not in ics, ics[:200])
+        pg.click('#onceBtn'); pg.wait_for_selector('#onceOff', timeout=5000); pg.click('#onceOff'); pg.wait_for_timeout(300)
+        r = pg.evaluate("fetch('/api/next/vocab').then(r => r.json()).then(o => o.reminder)")
+        check(dev, '取消这次: back to every day at the hour', r['once'] is None, r)
+        check(dev, 'no script errors (computer)', not errs, errs[:3])
+        ctx.close()
+        # a phone: the swipe follows the side
+        ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        st = lambda: pg.evaluate(SIDE_STATE)
+        pg.goto(BASE + '/#/review', wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(700)
+        touch_swipe(pg, '.review', 160); pg.wait_for_timeout(400); s = st()
+        check(dev, 'phone, by default: swipe right is 认识', s['back'] and s['rates'] == ['again', 'good'], s)
+        f0 = s['foot']; touch_swipe(pg, '.review', 160); pg.wait_for_timeout(500); s = st()
+        check(dev, 'phone: swipe right again is 没错，下一个', not s['back'] and s['foot'] != f0, [f0, s])
+        touch_swipe(pg, '.review', -160); pg.wait_for_timeout(400); s = st()
+        check(dev, 'phone: swipe left is 不认识', s['back'] and s['rates'] == ['again'], s)
+        pg.evaluate("localStorage.setItem('flow-know-side', 'left')")
+        pg.reload(wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(500)
+        touch_swipe(pg, '.review', -160); pg.wait_for_timeout(400); s = st()
+        check(dev, 'phone, 「认识」放在左边: swipe left is 认识', s['back'] and s['rates'] == ['good', 'again'], s)
+        f0 = s['foot']; touch_swipe(pg, '.review', -160); pg.wait_for_timeout(500); s = st()
+        check(dev, 'phone, left: swipe left again is 没错，下一个', not s['back'] and s['foot'] != f0, [f0, s])
+        check(dev, 'no script errors (phone)', not errs, errs[:3])
+        ctx.close()
+    finally:
+        browser.close()
+
+
 def backlog_run(pw):
     """Reviews piled up after a break (ux-longterm-audit 1.1, 11, 16, 2026-11-24): no new words today and the word page
     says so; the review page says 「先做 40 个（还有 N 个）」 and, after those 40, offers a place to stop; the small links
@@ -2582,7 +2675,7 @@ def backlog_run(pw):
             if pg.query_selector('.done-card'):
                 break
             if pg.query_selector('[data-claim]'):
-                pg.keyboard.press('1'); pg.wait_for_selector('.open-card', timeout=4000); pg.keyboard.press('Enter'); pg.wait_for_timeout(120); continue
+                pg.click('[data-claim="know"]'); pg.wait_for_selector('.open-card', timeout=4000); pg.keyboard.press('Enter'); pg.wait_for_timeout(120); continue
             if pg.query_selector('[data-self]'):
                 pg.click('[data-self="good"]'); pg.wait_for_timeout(150); continue
             break
@@ -3070,6 +3163,12 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('sprint', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'review-side' in ONLY:
+            try:
+                review_side_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('review-side', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'backlog' in ONLY:
             try:
                 backlog_run(pw)
