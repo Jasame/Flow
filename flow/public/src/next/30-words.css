@@ -81,6 +81,21 @@ details.basis[open]>summary{margin-bottom:0}
 .zone-guide span{display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;color:var(--ink);border:2px dashed var(--line2);margin:6px;border-radius:12px}
 .zone-guide p{grid-column:1/-1;margin:0;padding:10px 14px 12px;font-size:14px;color:var(--ink2);text-align:center}
 .sheet-card .zones-h{font-size:16px;margin:10px 0 0}
+/* 复习卡 简洁 / 详细 (60-review.js detailed(); words-modes-plan.md) */
+.rtop .vmode{flex:none;padding:0 4px;color:var(--muted);letter-spacing:.02em}
+.rtop .vmode span{padding:0 2px}
+.rtop .vmode .on{color:var(--ink);font-weight:700}
+.review .vmeta{margin-top:-6px}
+.review .mean-pos{display:grid;gap:2px;justify-items:center}
+.review .mean-pos .pos{color:var(--muted);font-style:italic;margin-right:6px}
+.ex-wrap.fold .exs .ex:nth-child(n+2){display:none}
+.ex-wrap .ex-more{display:block;margin:2px auto 0}
+.review .cf-line{text-align:left;max-width:440px;margin:0 auto;width:100%;border-top:1px solid var(--line);padding-top:6px}
+.review .cf-line>summary{min-height:36px;display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--ink2)}
+.review .cf-line p{margin:4px 0 6px}
+.review .vstate{text-align:center}
+.sheet-card .view-row{align-items:center;gap:10px;margin-top:4px}
+.sheet-card .seg{display:flex;gap:6px}
 /* the page's name for a screen reader (复习单词, 测词汇量), first in main: hidden, so it moves nothing below it */
 main>h1.sr-only+*{margin-top:0}
 /* 词汇辨析's round (45-confuse.js) on a phone: one screen like 复习 (body.reviewing: no tabs), 怎么区分 folded to a line

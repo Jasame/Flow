@@ -71,7 +71,7 @@
     // the answer shown and not yet rated: 撤销 turns the card back (a slip on the front, a tap or a button, sent nothing)
     let peek = null;
     // voice: this side plays the word (or its examples) — 「读音由 AI 合成」, one grey line under the progress bar (aiVoiceNote)
-    const top = voice => `<h1 class="sr-only">复习单词</h1><div class="rtop"><a class="link small hit44" href="#/cards">结束</a><div class="bar-progress"><i id="rp"></i></div>${peek ? '<button class="link small undo" id="undo" type="button" aria-label="撤销：回到这一张的正面">↶ 撤销</button>' : undo ? `<button class="link small undo" id="undo" type="button" aria-label="撤销上一张：${esc(undo.c.text)}">↶ 撤销</button>` : ''}</div>${voice ? aiVoiceNote('读音由 AI 合成', 'p', 'tc rvoice') : ''}`;
+    const top = voice => `<h1 class="sr-only">复习单词</h1><div class="rtop"><a class="link small hit44" href="#/cards">结束</a><div class="bar-progress"><i id="rp"></i></div>${peek ? '<button class="link small undo" id="undo" type="button" aria-label="撤销：回到这一张的正面">↶ 撤销</button>' : undo ? `<button class="link small undo" id="undo" type="button" aria-label="撤销上一张：${esc(undo.c.text)}">↶ 撤销</button>` : ''}${viewBtn()}</div>${voice ? aiVoiceNote('读音由 AI 合成', 'p', 'tc rvoice') : ''}`;
     const badge = res => { const b = document.getElementById('dueBadge'); if (b && res && res.due != null) { const n = res.due + res.new; b.hidden = !n; b.textContent = n > 99 ? '99+' : n; } };
     // Touch: swipe the card right for "I know it" (or the main button), left for "I don't".
     let swipe = null;
@@ -84,6 +84,7 @@
     const bar = () => {
       const rp = document.getElementById('rp'); if (rp) rp.style.width = (doneIds.size / Math.max(1, uniq.size) * 100) + '%';
       const u = document.getElementById('undo'); if (u) u.onclick = takeBack;
+      const vm = document.getElementById('vmode'); if (vm) vm.onclick = flipView;
     };
     const keys = map => { document.onkeydown = e => { if (!sheetEl.hidden || e.metaKey || e.ctrlKey || e.altKey) return; if (e.target.matches && e.target.matches('input,textarea')) { if (e.key === 'Enter' && map.Enter && ['spellIn', 'fixIn'].includes(e.target.id)) { e.preventDefault(); map.Enter(); } return; } const f = map[e.key] || map[e.key.toLowerCase()]; if (f) { e.preventDefault(); f(); } }; };
     swipeOn(() => swipe);
@@ -192,7 +193,7 @@
         onSwipe(...KNOW.swipe(() => rate('good', Date.now() - t0), () => rate('again', Date.now() - t0)));
       }
     }
-    function ask() {
+    function ask(quiet) {
       if (i >= items.length) return more();
       c = items[i]; claim = null; t0 = Date.now();
       if (['fix', 'question', 'sound'].includes(c.mode)) return mistakeAsk();
@@ -201,7 +202,7 @@
       const m = (c.mode === 'recall' || c.mode === 'cloze') && !c.meaning && !sent ? 'recognize' : c.mode;
       let body = '', choices = '';
       if (m === 'recognize') {
-        body = wordHTML(c.kind === 'word' ? '' : ' phrase');
+        body = wordHTML(c.kind === 'word' ? '' : ' phrase') + (detailed() ? `<div class="vmeta tiny muted">${esc(metaLine())}</div>` : '');
         choices = ['认识', '模糊', '不认识'];
       } else if (m === 'spell') {
         body = `<div class="muted small">听发音，拼出这个词</div><div class="row center">${sayBtn('再听一次', true)}</div>${meaningHTML(c)}
@@ -225,7 +226,7 @@
       }
       bar(); swipe = null;
       sayable();
-      if (m === 'recognize' || m === 'spell') CLIP.word(c);
+      if (!quiet && (m === 'recognize' || m === 'spell')) CLIP.word(c);
       if (m === 'spell') {
         const inp = document.getElementById('spellIn'); setTimeout(() => inp.focus(), 50);
         const check = () => { const v = inp.value.trim(); if (!v) return; spellResult(v); };
@@ -270,10 +271,45 @@
       view.querySelectorAll('#sayW, .review .tapsay').forEach(b => { b.onclick = () => CLIP.word(c); });
     }
     function answerHTML() {
-      return `${wordHTML()}
-        ${c.meaning ? `<div class="mean-a">${esc(c.meaning).replace(/；|;/g, '<br>')}</div>` : ''}${rootsHTML(c)}${examplesHTML(c)}`;
+      if (!detailed()) return `${wordHTML()}
+        ${c.meaning ? `<div class="mean-a">${esc(c.meaning).replace(/；|;/g, '<br>')}</div>` : ''}${rootsHTML(c)}${examplesHTML({ ...c, examples: (c.examples || []).slice(0, 2) })}`;
+      // 详细: the meaning by part of speech, the roots, the first example open and the rest one tap away, the confusable
+      // group (词汇辨析) with how to tell them apart, and a grey line of how well it is held
+      const pos = (c.meaning || '').split(/；|;/).map(x => x.trim()).filter(Boolean).map(x => { const m = x.match(/^([a-z]+\.)\s*(.*)$/);
+        return m ? `<div><span class="pos">${esc(m[1])}</span>${esc(m[2])}</div>` : `<div>${esc(x)}</div>`; }).join('');
+      const g = (c.confuse || [])[0], n = (c.context ? 1 : 0) + (c.examples || []).length;
+      return `${wordHTML()}${pos ? `<div class="mean-a mean-pos">${pos}</div>` : ''}${rootsHTML(c)}
+        <div class="ex-wrap${n > 1 ? ' fold' : ''}">${examplesHTML(c)}${n > 1 ? `<button class="link small ex-more" type="button" id="exMore">再看 ${n - 1} 句</button>` : ''}</div>
+        ${g ? `<details class="cf-line"><summary class="small">易混：<b>${esc(g.words.join(' / '))}</b> · 怎么区分</summary><p class="small">${esc(g.how)}</p></details>` : ''}
+        <div class="vstate tiny muted">${esc(memLine())}</div>`;
     }
-    function reveal(how) {
+    // 简洁 / 详细 for this card (KNOW.view): words only, new words and reviews apart; the switch at the top changes it for
+    // that kind and keeps it; the card is drawn again in place (not an answer, the clock runs on)
+    function detailed() { return !!c && c.kind === 'word' && KNOW.view(c.state === 'new' ? 'new' : 'review') === 'detailed'; }
+    function viewBtn() {
+      if (!c || c.kind !== 'word' || ['fix', 'question', 'sound'].includes(c.mode)) return '';
+      const d = detailed();
+      return `<button class="link small vmode" id="vmode" type="button" aria-label="复习卡：${d ? '详细，换成简洁' : '简洁，换成详细'}"><span${d ? '' : ' class="on"'}>简</span>/<span${d ? ' class="on"' : ''}>详</span></button>`;
+    }
+    function flipView() {
+      KNOW.setView(c.state === 'new' ? 'new' : 'review', detailed() ? 'simple' : 'detailed');
+      if (view.querySelector('.open-card') && claim) reveal(claim, true);
+      else { const t = t0; ask(true); t0 = t; }
+    }
+    const TAGS = { zk: '中考', gk: '高考', cet4: '四级', cet6: '六级', ky: '考研', tem4: '专四', tem8: '专八', ielts: '雅思', toefl: '托福', gre: 'GRE' };
+    const ago = s => { const d = Math.floor((Date.now() / 1000 - s) / 86400); return d <= 0 ? '今天' : d === 1 ? '昨天' : d + ' 天前'; };
+    // 详细's grey line on the front: which exams list it, how common it is, how many times seen — nothing of its meaning
+    function metaLine() {
+      const r = c.rank || 0, freq = !r ? '' : r <= 2000 ? '最常用' : r <= 5000 ? '常用' : r <= 10000 ? '较常用' : '';
+      const seen = c.state === 'new' || !c.reps ? '新词' : `第 ${c.reps + 1} 次见${c.last ? ' · 上次 ' + ago(c.last) : ''}`;
+      return [...(c.tags || []).map(t => TAGS[t]).filter(Boolean).slice(0, 3), freq, seen].filter(Boolean).join(' · ');
+    }
+    function memLine() {
+      if (c.state === 'new' || !c.reps) return '新词 · 第一次见';
+      const r = c.recall == null ? null : c.recall;
+      return `记得的把握：${r == null ? '—' : r >= 0.9 ? '高' : r >= 0.7 ? '中' : '低'} · 复习过 ${c.reps} 次${c.lapses ? `，忘过 ${c.lapses} 次` : ''}`;
+    }
+    function reveal(how, quiet) {
       claim = how; const ms = Date.now() - t0; peek = { t0 };
       const next = how === 'know' ? KNOW.order([['没错，下一个', 'good', 'good primary'], ['记错了', 'again', 'again x']]) : [[how === 'fuzzy' ? '下一个' : '记住了，下一个', how === 'fuzzy' ? 'hard' : 'again', 'primary']];
       // the same place as the three on the front: 没错 where 认识 was, 记错了 where 不认识 was; 太简单了 a small link above them
@@ -281,7 +317,8 @@
         ${actions(`<div class="choice ${next.length > 1 ? 'two' : 'one'}">${next.map(([t, r, cls], k) => `<button class="${cls}" data-rate="${r}">${t}${TOUCH || next.length < 2 ? '' : `<small>${k + 1}</small>`}</button>`).join('')}</div>`,
           c.kind === 'word' && how === 'know' ? '<button class="link small too-easy" type="button" id="tooEasy">太简单了，以后不用再背</button>' : '')}</div>`;
       bar(); bindExamples(view, c); sayable();
-      if (c.mode !== 'recognize') CLIP.word(c);
+      const em = document.getElementById('exMore'); if (em) em.onclick = () => { em.closest('.ex-wrap').classList.remove('fold'); em.remove(); };
+      if (!quiet && c.mode !== 'recognize') CLIP.word(c);
       view.querySelectorAll('[data-rate]').forEach(b => b.onclick = () => rate(b.dataset.rate, ms));
       const te = document.getElementById('tooEasy'); if (te) te.onclick = () => known();
       const primary = next.find(x => x[2].includes('primary'))[1];
@@ -296,6 +333,7 @@
       const msg = r === 'good' ? '<div class="ok">✓ 拼对了</div>' : r === 'hard' ? `<div class="warn">差一点：你写的是 <s>${esc(v)}</s></div>` : got ? `<div class="bad">你写的是 <s>${esc(v)}</s></div>` : '';
       view.innerHTML = `${top(true)}<div class="review open-card">${msg}${answerHTML()}${actions('<div class="choice one"><button class="primary" id="go">下一个</button></div>')}</div>`;
       bar(); bindExamples(view, c); sayable(); CLIP.word(c);
+      const em = document.getElementById('exMore'); if (em) em.onclick = () => { em.closest('.ex-wrap').classList.remove('fold'); em.remove(); };
       document.getElementById('go').onclick = () => rate(r, ms); keys({ Enter: () => rate(r, ms), ' ': () => rate(r, ms) });
       onSwipe(...KNOW.swipe(() => rate(r, ms), null));
     }
@@ -335,7 +373,7 @@
     }
     // 撤销: the latest rating taken back (a slip of the finger); the same card comes up again to answer.
     async function takeBack() {
-      if (peek && !busy) { const t = peek.t0; peek = null; ask(); t0 = t; return; }  // the front again; the time runs on
+      if (peek && !busy) { const t = peek.t0; peek = null; ask(true); t0 = t; return; }  // the front again; the time runs on
       const u = undo; if (!u || busy) return; busy = true;
       try {
         let res = u.left;

@@ -37,7 +37,7 @@
     const groups = [
       u && ['进步', [grow('#/radar', '能力雷达', '', '', 'me-radar'), grow('#/growth', '我的进步', '', '', 'me-growth'), grow('#/report', '周报', '', '', 'me-report'), grow('#/cards/mistake', '错题本', '', '', 'me-mistake')]],
       ['设置', [grow('#/welcome/edit', '学习目标和水平', [goal && esc(goal.label), p.target && '目标 ' + p.target, lv && (p.target ? '现在 ' : '') + lv.id].filter(Boolean).join(' · ') || '未设置', '', 'me-level'),
-        u ? grow('meExam', '我的考试', examLabel(p), 'meExamV', 'me-exam') : '', u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', u && !u.teacher ? grow('meClass', '班级', '<span class="spin"></span>', 'meClassV', 'me-class') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), WORD_CLIPS ? grow('meSound', '单词读音方式', soundLabel(), 'meSoundV', 'me-sound') : '', grow('meKnow', '「认识」放在', knowLabel(), 'meKnowV', 'me-know'), grow('meText', '外观', lookLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '', '', 'me-remind'),
+        u ? grow('meExam', '我的考试', examLabel(p), 'meExamV', 'me-exam') : '', u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', u && !u.teacher ? grow('meClass', '班级', '<span class="spin"></span>', 'meClassV', 'me-class') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), WORD_CLIPS ? grow('meSound', '单词读音方式', soundLabel(), 'meSoundV', 'me-sound') : '', grow('meKnow', '背词', knowLabel(), 'meKnowV', 'me-know'), grow('meText', '外观', lookLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '', '', 'me-remind'),
         u ? grow('meMail', '每周进度邮件', weeklyMailLabel(), 'meMailV', 'me-weekly-mail') : '',
         installed ? '' : grow('meInstall', '添加到桌面', '', '', 'me-install')]],
       u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
@@ -123,16 +123,26 @@
     ['compat', '标准', '每个词是一个前面留了一点静音的小音频，大部分单词不会出现在灵动岛上。「连续」没有声音时选这个。']];
   const soundLabel = () => AUDIO.mode() === 'compat' ? `标准 · 前面 ${AUDIO.lead()} 秒` : '连续';
   // 「认识」放在 (KNOW, 50-words.js): which side the 认识 button is on in the review and the vocabulary test
-  const knowLabel = () => KNOW.side() === 'right' ? '右边' : '左边';
+  const knowLabel = () => `认识在${KNOW.side() === 'right' ? '右' : '左'} · 新词${KNOW.view('new') === 'detailed' ? '详细' : '简洁'} · 复习${KNOW.view('review') === 'detailed' ? '详细' : '简洁'}`;
   function knowSheet() {
     const opts = [['right', '右边（默认）', '和大多数背词 App 一样，右手点着顺。往右滑是认识，往左滑是不认识。'], ['left', '左边', '往左滑是认识，往右滑是不认识。']];
-    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">「认识」放在</h2>
-      <div class="choice two" role="radiogroup" aria-labelledby="sheetTitle">${opts.map(([k, t, d]) => `<button class="opt" type="button" role="radio" data-know="${k}" aria-checked="${KNOW.side() === k}" aria-pressed="${KNOW.side() === k}"><b>${t}</b><span class="small muted">${d}</span></button>`).join('')}</div>
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">背词设置</h2>
+      <h3 class="zones-h" id="knowTitle">「认识」放在</h3>
+      <div class="choice two" role="radiogroup" aria-labelledby="knowTitle">${opts.map(([k, t, d]) => `<button class="opt" type="button" role="radio" data-know="${k}" aria-checked="${KNOW.side() === k}" aria-pressed="${KNOW.side() === k}"><b>${t}</b><span class="small muted">${d}</span></button>`).join('')}</div>
       <p class="muted small">复习单词和测词汇量都跟着变：按钮的位置、滑动的方向，电脑上的按键（1 2 3 和 ← →）也按按钮在屏幕上的位置。只影响这台设备。</p>
       <h3 class="zones-h" id="zonesTitle">点卡片作答</h3>
       <div class="choice two" role="radiogroup" aria-labelledby="zonesTitle">${[[1, '开', '复习卡的左、中、右三块，和下面三个按钮一样（「认识」那边就是认识）。只翻面看答案，翻面后还是点按钮评分；点错了可以「撤销」。'], [0, '关', '只用下面的按钮、滑动和按键。']].map(([k, t, d]) => `<button class="opt" type="button" role="radio" data-zones="${k}" aria-checked="${KNOW.tap() === !!k}" aria-pressed="${KNOW.tap() === !!k}"><b>${t}</b><span class="small muted">${d}</span></button>`).join('')}</div>
       <p class="muted small">手机和平板默认开，用鼠标的电脑默认关。<button class="link small" type="button" id="zonesGuide">下次复习再看一次说明</button></p>
+      <h3 class="zones-h" id="viewTitle">复习卡：简洁还是详细</h3>
+      ${[['new', '背新词'], ['review', '复习']].map(([k, t]) => `<div class="row between view-row"><b class="small">${t}</b><div class="seg" role="radiogroup" aria-label="${t}">${[['simple', '简洁'], ['detailed', '详细']].map(([v, l]) => `<button class="chip small" type="button" role="radio" data-view="${k}:${v}" aria-checked="${KNOW.view(k) === v}" aria-pressed="${KNOW.view(k) === v}">${l}</button>`).join('')}</div></div>`).join('')}
+      <p class="muted small">详细：翻面后多给释义的词性、第 3 个例句、易混词和记忆情况，正面只多一行灰字，不提示答案。详细每张多花一点时间，每天单词的时间不变，能复习的词会少一些。复习时顶上的「简 / 详」也能随时换。</p>
       <button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      card.querySelectorAll('[data-view]').forEach(b => b.onclick = () => {
+        const [k, v] = b.dataset.view.split(':'); KNOW.setView(k, v);
+        card.querySelectorAll(`[data-view^="${k}:"]`).forEach(x => { x.setAttribute('aria-checked', String(x === b)); x.setAttribute('aria-pressed', String(x === b)); });
+        const lv = document.getElementById('meKnowV'); if (lv) lv.textContent = knowLabel();
+        toast(`${k === 'new' ? '背新词' : '复习'}用${v === 'detailed' ? '详细' : '简洁'}的卡片`);
+      });
       card.querySelectorAll('[data-zones]').forEach(b => b.onclick = () => {
         KNOW.setTap(b.dataset.zones === '1');
         card.querySelectorAll('[data-zones]').forEach(x => { x.setAttribute('aria-checked', String(x === b)); x.setAttribute('aria-pressed', String(x === b)); });
