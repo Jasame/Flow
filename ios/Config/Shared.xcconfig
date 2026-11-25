@@ -24,3 +24,7 @@ DEVELOPMENT_REGION = zh-Hans
 
 CODE_SIGN_STYLE = Automatic
 DEVELOPMENT_TEAM =
+
+// The App Group the app and its widgets share (today's numbers for the widgets: Common/TodayCard.swift). It follows
+// the Bundle ID, so 语流, 语流内测 and a free signing's own Bundle ID each have their own.
+FLOW_APP_GROUP = group.$(FLOW_BUNDLE_ID)

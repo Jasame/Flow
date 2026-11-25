@@ -98,6 +98,7 @@ CREATE TABLE IF NOT EXISTS ai_usage(user_id INTEGER,day TEXT,count INTEGER,PRIMA
   __import__('class_service').schema(c)
   __import__('flow_admin').schema(c)
   __import__('ai_routes').schema(c)
+  __import__('word_extras').schema(c)  # AI 常用搭配和近义词 (单词详细模式)
 def wrong_questions(c,uid):
  return c.execute('''SELECT q.id,q.topic,q.prompt,q.options,q.explanation,q.answer,a.selected FROM questions q
  JOIN attempts a ON a.question_id=q.id WHERE q.status='published' AND a.user_id=? AND a.correct=0
@@ -800,6 +801,9 @@ if __name__=='__main__':
     except Exception as exc:print('ai budget/check failed:',type(exc).__name__,flush=True)
     try:__import__('tts_service').tick(db)  # 03:00–05:00: the fixed sentences the server voice says, made while idle
     except Exception as exc:print('tts prewarm failed:',type(exc).__name__,flush=True)
+    try:
+     with db() as c:__import__('privacy_service').purge_paused(c)  # paused accounts, 30 days on: deleted as 隐私和数据 says
+    except Exception as exc:print('paused-account deletion failed:',type(exc).__name__,flush=True)
     time.sleep(300)
   threading.Thread(target=remind_loop,daemon=True).start()
   class Server(ThreadingHTTPServer):
