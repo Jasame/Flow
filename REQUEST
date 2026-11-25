@@ -1,3 +1,3 @@
-201f00beccdc50f7fc648a8602f961a58ce9bd8c 70f69fdeecd646ec460a5feb09fba5160ddace8232b1bfb8a05ab5012def6ca1 e2e light ref=build-c4eacde57bb1 tag=b84 tools=c8f8bc8e43fd5f240d1e4b9541d9e4edc8f88c917b5795e6ecafd8f51af4bfbb
-# b84 main: Merge pull request #335 from Jasame/ios-lock-listen = build of c4eacde57bb1
+e32b9449edb5913631db88672620ae0cd49b6142 a0dc2b20705ac9c97cf52bd61789ff07c4197958f22a3c8e00ab1f0d7820a204 e2e light ref=build-2522c2c2fc40 tag=b85 tools=c8f8bc8e43fd5f240d1e4b9541d9e4edc8f88c917b5795e6ecafd8f51af4bfbb
+# b85 main: Merge pull request #337 from Jasame/ios-beta-icon = build of 2522c2c2fc40
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
