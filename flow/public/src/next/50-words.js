@@ -220,6 +220,36 @@
     if (vs) vs.addEventListener('toggle', () => { try { localStorage.setItem('flow-words-stats', vs.open ? 'open' : ''); } catch (e) { /* private mode */ } });
     bindList();
   }
+  // 错题本 (练习 → 复习 → 错题本; review-split-plan.md, 语流 B9 and A0): the mistakes on a page of their own under 练习 —
+  // not the word page with a filter — with a way to review the ones due (#/review/other), a search, and nothing else
+  async function mistakeView(q, page) {
+    if (!S.user) return needLogin('登录后才能看错题本。');
+    q = q || ''; page = page || 1;
+    const st = { q, page };
+    const [list, ov] = await Promise.all([api('/api/next/cards?f=mistake&q=' + encodeURIComponent(q) + '&page=' + page), api('/api/next/vocab')]);
+    const due = (ov.other || {}).due || 0;
+    const body = l => l.items.length ? listHTML(l, st.q, st.page, '')
+      : `<div class="empty"><p>${st.q ? `没找到「${esc(st.q)}」。可以换个写法，或者搜中文。` : '还没有错题。理解题答错、写作和口语里被改出的错误、读不准的发音、做错的语法题和辨析题，都会自动收进来。'}</p>${st.q ? '<div class="row center"><button class="btn small" type="button" id="sfClear">清除搜索</button></div>' : ''}</div>`;
+    view.innerHTML = `<div><a class="link small hit44" href="#/practice">← 练习</a></div>
+      <div><h1 class="h1">错题本</h1><span class="muted small">做错的题都在这里，到期了会在「错题和句型复习」里再考你 · 共 ${list.total} 道</span></div>
+      ${due ? `<a class="btn primary" href="#/review/other" id="mbReview">复习到期的 ${due} 道</a>` : ''}
+      ${list.total || q ? `<form class="searchrow section" id="sf" role="search"><input type="search" name="q" aria-label="搜索错题" enterkeyhint="search" placeholder="搜索错题" value="${esc(q)}"></form>` : ''}
+      <div id="listSlot">${body(list)}</div>`;
+    const reload = async () => {
+      const slot = document.getElementById('listSlot'); slot.classList.add('busy');
+      try { const l = await api('/api/next/cards?f=mistake&q=' + encodeURIComponent(st.q) + '&page=' + st.page); slot.innerHTML = body(l); bind(); }
+      catch (e) { toast(e.message); } finally { slot.classList.remove('busy'); }
+    };
+    const bind = () => {
+      view.querySelectorAll('#listSlot [data-card]').forEach(b => b.onclick = () => cardSheet(Number(b.dataset.card), reload));
+      const pv = document.getElementById('pv'), nx = document.getElementById('nx'), sc = document.getElementById('sfClear');
+      if (pv) pv.onclick = () => { st.page--; reload(); };
+      if (nx) nx.onclick = () => { st.page++; reload(); };
+      if (sc) sc.onclick = () => { const i = document.querySelector('#sf input'); if (i) i.value = ''; st.q = ''; st.page = 1; reload(); };
+    };
+    const sf = document.getElementById('sf'); if (sf) sf.onsubmit = e => { e.preventDefault(); st.q = e.target.q.value.trim(); st.page = 1; reload(); };
+    bind();
+  }
   function listHTML(list, q, page, f) {
     const pages = Math.max(1, Math.ceil(list.total / list.per));
     // nothing found: say what was searched, and a way out (清除搜索; with a filter on, the search across all of them) (语流 B9)
