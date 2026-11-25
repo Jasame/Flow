@@ -1,6 +1,7 @@
 name: iOS
-# The iOS app (ios/, 语流 20): the unit tests (FlowTests, 25 tests, about a minute, no network) on every change under
-# ios/ (or this file); on main also the simulator .app for Beta and for Release. The website's runs are unchanged:
+# The iOS app (ios/, 语流 20): the unit tests (FlowTests, about a minute, no network) on every change under ios/,
+# native/ (the FlowApp wrapper the apps share, which the app bundles and FlowTests test) or this file; on main also the
+# simulator .app for Beta and for Release. The website's runs are unchanged:
 # tests.yml skips its shares for a pull request that touches only the native apps (tools/run_tests.py NATIVE_APPS).
 # Not a required check: a path-filtered check never reports on a website pull request, so requiring it would block
 # them all. Whoever merges an iOS pull request first checks this run is green. CI belongs to 语流 15.
@@ -10,10 +11,10 @@ name: iOS
 # The simulator apps are kept 14 days as the run's artifacts; sending one to anyone needs the owner's yes first.
 on:
   pull_request:
-    paths: ['ios/**', '.github/workflows/ios.yml']
+    paths: ['ios/**', 'native/**', '.github/workflows/ios.yml']
   push:
     branches: [main]
-    paths: ['ios/**', '.github/workflows/ios.yml']
+    paths: ['ios/**', 'native/**', '.github/workflows/ios.yml']
   workflow_dispatch:
 permissions:
   contents: read
