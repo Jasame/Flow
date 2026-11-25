@@ -9,5 +9,6 @@
 @media (max-width:759px){body.reviewing .beta-bar{display:none}}
 .beta-new{padding:10px 14px;border-top:1px solid var(--line)}
 .beta-new ul{margin:4px 0 0;padding-left:1.2em}
+.beta-new .beta-changed{background:var(--amber-soft);border-radius:6px;padding:2px 6px;margin-left:-6px;list-style-position:inside}
 .beta-pill{background:var(--amber-fill,#9a5a0c);color:var(--on-amber,#fff);border-radius:99px;padding:1px 7px;font-size:11px;font-weight:700;line-height:1.5}
 html[data-channel=beta] .auth::before{content:'这是内测版：账号和正式版 flowlang.cn 分开，第一次来请先注册。';display:block;padding:8px 12px;border-radius:10px;background:var(--amber-soft);color:var(--ink);font-size:13px;line-height:1.5}

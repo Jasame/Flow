@@ -3415,12 +3415,17 @@ def home_app_run(pw):
             if app:
                 ctx.add_init_script("window.FlowApp = { platform: 'android' }")
             ctx.add_cookies([{'name': 'flow_session', 'value': tok, 'url': BASE}])
-            pg = ctx.new_page(); pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg); pg.wait_for_timeout(1200)
+            pg = ctx.new_page()
+            # the ledger's beta entry as the 内测版 server gives it (this test server is 语流's: it answers beta: null)
+            pg.route('**/api/next/updates', lambda r: r.fulfill(status=200, content_type='application/json', body=json.dumps({'released': [], 'beta': {
+                'date': '2026-11-25', 'changed': [{'text': '「认识」可以放在右边', 'link': '#/me'}], 'new': ['今日的计划按时间排'], 'better': [{'text': '复习卡正好一屏'}], 'fixed': []}}, ensure_ascii=False)))
+            pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg); pg.wait_for_timeout(1200)
             LINE = "() => ({ bar: !!document.getElementById('betaBar'), link: !!document.querySelector('#betaBar a'), pill: !!document.querySelector('#bar .beta-pill'), h: Math.round((document.getElementById('betaBar') || {getBoundingClientRect: () => ({height: 0})}).getBoundingClientRect().height), sheet: !document.getElementById('sheet').hidden && /内测版/.test(document.getElementById('sheetCard').innerText) })"
             seen[label] = pg.evaluate(LINE)
             pg.evaluate("document.querySelector('#sheet:not([hidden]) [data-close]')?.click()")
             go(pg, '#/me'); pg.wait_for_timeout(300)
-            seen[label]['me'] = pg.evaluate("() => ({ section: [...document.querySelectorAll('.gsec h2')].some(h => h.textContent === '内测版'), main: !!document.querySelector('[data-tap=me-beta-main]'), feedback: !!document.querySelector('[data-tap=me-beta-feedback]') })")
+            seen[label]['me'] = pg.evaluate("""() => ({ section: [...document.querySelectorAll('.gsec h2')].some(h => h.textContent === '内测版'), main: !!document.querySelector('[data-tap=me-beta-main]'), feedback: !!document.querySelector('[data-tap=me-beta-feedback]'),
+              changes: [...document.querySelectorAll('#meBetaNew li')].map(li => (li.classList.contains('beta-changed') ? '!' : '') + li.textContent.trim()), go: (document.querySelector('#meBetaNew a') || {}).hash || null })""")
             pg.evaluate("document.querySelector('#betaBar .bb-x').click()"); pg.wait_for_timeout(200)
             pg.reload(wait_until='load'); settle(pg); pg.wait_for_timeout(800)  # 我的 keeps asking (no network idle)
             seen[label]['after ✕ and a reload'] = pg.evaluate(LINE)
@@ -3431,6 +3436,9 @@ def home_app_run(pw):
               and not a['after ✕ and a reload']['bar'] and not b['after ✕ and a reload']['bar'] and b['after ✕ and a reload']['pill'], seen)
         check(dev, 'the 内测版: 我的 has 内测版 (feedback; 去正式版 in a browser, not in an app); the once-per-phone sheet in a browser only',
               a['me']['section'] and b['me']['section'] and a['me']['feedback'] and b['me']['main'] and not a['me']['main'] and not a['sheet'] and b['sheet'], seen)
+        ch = b['me']['changes']
+        check(dev, 'the 内测版 in 我的: what changed in this version, 「用法变了」 first and marked, a link inside the site',
+              len(ch) == 3 and ch[0].startswith('!用法变了') and '去看看' in ch[0] and b['me']['go'] == '#/me', b['me'])
     finally:
         browser.close()
 
