@@ -97,12 +97,24 @@ git -C "$repo" for-each-ref --format='%(committerdate:unix) %(refname)' refs/msi
 done
 find "$base/w" "$base/out" -mindepth 1 -maxdepth 1 -mtime +0 -exec rm -rf {} + 2>/dev/null
 git -C "$repo" worktree prune
-# at most two runs at once: hold one of two lock files for the whole run
-slot=
+# at most two runs at once: hold one of two lock files for the whole run. First come, first served (语流 B5,
+# 2026-11-25: a run waited 37 minutes while later ones went first): a waiting run leaves a ticket in queue/, and only
+# the oldest ticket tries for a place; a ticket whose run has gone (stopped from the Mac) is dropped, so none blocks.
+mkdir -p "$base/queue"
+ticket=$base/queue/$(date +%s%N)-$$; : > "$ticket"
+trap 'rm -f "$ticket"' EXIT
+slot=; said=
 while [ -z "$slot" ]; do
-  for s in 1 2; do exec 9>"$base/slot-$s.lock"; if flock -n 9; then slot=$s; break; fi; done
-  [ -n "$slot" ] || { echo "msi-run: two runs are going on the MSI; waiting for one to finish…"; sleep 15; }
+  for q in "$base/queue"/*; do [ -e "$q" ] || continue; kill -0 "${q##*-}" 2>/dev/null || rm -f "$q"; done
+  if [ "$(ls "$base/queue" | sort | head -1)" = "${ticket##*/}" ]; then
+    for s in 1 2; do exec 9>"$base/slot-$s.lock"; if flock -n 9; then slot=$s; break; fi; done
+  fi
+  if [ -z "$slot" ]; then
+    [ -n "$said" ] || echo "msi-run: two runs are going on the MSI; $(ls "$base/queue" | sort | awk -v me="${ticket##*/}" '$0 < me' | wc -l) more waiting ahead of this one…"
+    said=1; sleep 5
+  fi
 done
+rm -f "$ticket"
 tmp=$(mktemp -d /tmp/msi-run.XXXXXX)
 cleanup() {
   cd "$base"
