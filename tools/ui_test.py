@@ -2279,7 +2279,7 @@ TOUR_JS = """() => { const t = document.querySelector('.tour'); if (!t) return n
   const cs = getComputedStyle(tip), se = document.scrollingElement;
   return {n: (t.querySelector('.tour-n') || {}).textContent, title: (t.querySelector('#tourT') || {}).textContent, text: (t.querySelector('#tourD') || {}).textContent,
           next: next && next.textContent, skip: skip && skip.textContent, focus: document.activeElement === next,
-          role: t.getAttribute('role'), modal: t.getAttribute('aria-modal'), named: !!document.getElementById(t.getAttribute('aria-labelledby')),
+          role: t.getAttribute('role'), modal: t.getAttribute('aria-modal'), named: (t.getAttribute('aria-labelledby') || '').split(' ').filter(Boolean).every(id => !!document.getElementById(id)) && !!t.getAttribute('aria-labelledby'),
           tip: [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)], W: innerWidth, H: innerHeight,
           inside: r.left >= 0 && r.top >= 0 && r.right <= innerWidth + 0.5 && r.bottom <= innerHeight + 0.5,
           hole: [Math.round(h.left), Math.round(h.top), Math.round(h.width), Math.round(h.height)],
