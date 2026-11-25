@@ -233,11 +233,9 @@ pub fn input_from(j: &Value, old: &Input) -> Input {
             x.hour = h;
         }
         if r.contains_key("once") {
-            // an older server does not know it: what the app had stays
+            // an older server does not know it: what the app had stays. once_seen is not touched here:
+            // only a once that was really scheduled is remembered (remember())
             x.once = num(r.get("once"));
-            if let Some(o) = x.once {
-                x.once_seen = Some(o.max(x.once_seen.unwrap_or(0.0)));
-            }
         }
     }
     x.due = int(j.get("due")).unwrap_or(0);
@@ -268,6 +266,19 @@ pub fn input_from(j: &Value, old: &Input) -> Input {
     };
     x.has_words = int(j.get("total")).unwrap_or(0) > 0;
     x
+}
+
+/// After scheduling: a once that went to the system (its day had words) is remembered, so that day gets no daily
+/// one after it came; a once on a day without words is forgotten (that day's hour stays as usual).
+pub fn remember(x: &Input, scheduled: &[Planned]) -> Input {
+    let mut y = x.clone();
+    if let Some(o) = x
+        .once
+        .filter(|_| scheduled.iter().any(|p| p.id == "review-once"))
+    {
+        y.once_seen = Some(o.max(x.once_seen.unwrap_or(0.0)));
+    }
+    y
 }
 
 /// Signed out: no word reminders for an account that is not here (the day's plan needs none).
@@ -442,6 +453,42 @@ mod tests {
     }
 
     #[test]
+    fn only_a_once_that_was_scheduled_is_remembered() {
+        let once = t(2026, 11, 25, 15, 0).timestamp() as f64;
+        // 15:00 with words: scheduled and remembered; after it, today's 20:00 does not come
+        let x = Input {
+            once: Some(once),
+            due: 3,
+            has_words: true,
+            ..Default::default()
+        };
+        let y = remember(&x, &slots(&x, now()));
+        assert_eq!(y.once_seen, Some(once));
+        let after = Input { once: None, ..y };
+        assert_eq!(
+            slots(&after, t(2026, 11, 25, 16, 0))[0].id,
+            "review-2026-11-26"
+        );
+        // 15:00 without words: neither scheduled nor remembered; new words due by 20:00 are reminded as usual
+        let x = Input {
+            once: Some(once),
+            forecast: vec![0, 0],
+            ..Default::default()
+        };
+        let y = remember(&x, &slots(&x, now()));
+        assert_eq!(y.once_seen, None);
+        let later = Input {
+            once: None,
+            due: 4,
+            ..y
+        };
+        assert_eq!(
+            slots(&later, t(2026, 11, 25, 16, 0))[0].id,
+            "review-2026-11-25"
+        );
+    }
+
+    #[test]
     fn the_days_plan_comes_first_and_takes_the_hour() {
         let x = Input {
             plan_hour: Some(20),
@@ -482,10 +529,7 @@ mod tests {
             (21, 3, 2, 1, 6, 15)
         );
         assert_eq!(x.forecast, vec![3, 1, 0, 2, 0, 0, 5]);
-        assert_eq!(
-            (x.once, x.once_seen),
-            (Some(1764140400.0), Some(1764140400.0))
-        );
+        assert_eq!((x.once, x.once_seen), (Some(1764140400.0), None));
         assert!(x.has_words);
         // the book done or new words paused: no new words a day
         let j2: Value =
@@ -494,10 +538,16 @@ mod tests {
         let j3: Value =
             serde_json::from_str(r#"{"plan":{"daily_new":15},"new_paused":true}"#).unwrap();
         assert_eq!(input_from(&j3, &x).daily_new, 0);
-        // once cleared (null): gone, but the day it was seen is remembered; no reminder key: kept
+        // once cleared (null): gone, and what was remembered stays; no reminder key: kept
         let j4: Value = serde_json::from_str(r#"{"reminder":{"hour":20,"once":null}}"#).unwrap();
-        let y = input_from(&j4, &x);
-        assert_eq!((y.once, y.once_seen), (None, Some(1764140400.0)));
+        let y = input_from(
+            &j4,
+            &Input {
+                once_seen: Some(5.0),
+                ..x.clone()
+            },
+        );
+        assert_eq!((y.once, y.once_seen), (None, Some(5.0)));
         let j5: Value = serde_json::from_str(r#"{"reminder":{"hour":99}}"#).unwrap();
         assert_eq!(input_from(&j5, &x).once, x.once);
         assert_eq!(input_from(&j5, &x).hour, 21);

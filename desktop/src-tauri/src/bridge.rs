@@ -140,10 +140,13 @@ fn input_now(st: &AppState) -> Input {
 pub async fn notify_plan(app: AppHandle, v: serde_json::Value) -> PlanResult {
     let st = app.state::<AppState>();
     let x = schedule::input_from(&v, &input_now(&st));
-    if x.once_seen != st.settings().once_seen {
-        st.update_settings(|s| s.once_seen = x.once_seen);
+    let items = schedule::slots(&x, chrono::Utc::now());
+    // a once that went to the system is remembered (its day gets no daily one after it)
+    let seen = schedule::remember(&x, &items).once_seen;
+    if seen != st.settings().once_seen {
+        st.update_settings(|s| s.once_seen = seen);
     }
-    put(&app, schedule::slots(&x, chrono::Utc::now())).await
+    put(&app, items).await
 }
 
 /// Signed out (/api/next/vocab said 401): no word reminders for an account that is not here.
