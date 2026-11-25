@@ -785,9 +785,12 @@ def run_more(p, local):
             return new Response(JSON.stringify(j), { headers: { 'Content-Type': 'application/json' } }); }) : F(u, o); return 'quote'; })()"""
         p.js(quote); p.js(SLOW_TTS); p.go('#/practice', 0.5); p.go('#/', 1.5); p.js(HOOK); p.js('window.__au.length = 0; window.__notes.length = 0')
         label = p.js("(document.querySelector('#view .lc-head .pill') || {}).textContent")
-        if label != '名人名言':
+        if label not in ('名人名言', '公版名句'):  # the quote's label was renamed 公版名句 (a quote day shows the real one)
             skip(g, '今日好句 (名人名言)', f'the page kept its own line ({label})')
         else:
+            # the card folds (12-daily-line.js #lcFold): open it first, or 听一遍 is not there to tap
+            if p.js("(b => !!b && b.getAttribute('aria-expanded') === 'false')(document.getElementById('lcFold'))"):
+                p.tap('#lcFold', 0.6)
             p.tap('#lcSay', 0.2); p.until(f'{SOUNDS} >= 1', 20, 0.3); st = p.js(LS); s = shot(f'{g}-line-quote')
             check(g, '今日好句, a 名人名言 (no recording): 听一遍 in the natural voice, 「正在准备朗读…」 while it is made, no browser voice',
                   p.js(SOUNDS) >= 1 and st['speech'] == 0 and '正在准备朗读…' in st['notes'], {'notes': st['notes'], 'sounds': p.js(SOUNDS), 'speech': st['speech']}, s)
