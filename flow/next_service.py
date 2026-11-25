@@ -301,6 +301,9 @@ def origin(p):
     def links(items, n):
         return [{'title': str(r.get('title') or r.get('url'))[:120], 'url': r['url']} for r in items or []
                 if isinstance(r, dict) and str(r.get('url', '')).startswith('https://')][:n]
+    if p.get('kind') == 'topic':  # 今日一读 (since 2026-11-25): an original text on a lasting topic, AI-written, no news
+        name = __import__('daily_service').DAILY_NAME
+        return {'kind': 'topic', 'label': f'{name}（Flow 原创）', 'ai': 'AI 生成', 'reviewed': None, 'url': '', 'references': []}
     if p.get('daily_day'):
         return {'kind': 'news', 'label': '今日热点（联网检索）', 'ai': 'AI 改写', 'reviewed': False, 'url': '',
                 'references': links((p.get('provenance') or {}).get('sources'), 5)}

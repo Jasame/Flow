@@ -300,6 +300,7 @@ FLOW_FILES=(
   survey_service.py
   teacher_service.py
   time_budget.py
+  topic_guard.py
   tts_service.py
   updates_service.py
   user_guide.py

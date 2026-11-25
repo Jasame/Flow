@@ -24,7 +24,9 @@ def checks(p):
   if not re.search(r'(?<![a-z])'+re.escape(term)+r'(?![a-z])',w.get('example',''),re.I):warnings.append('例句未包含目标词原形：'+term)
  count=len(re.findall(r"[A-Za-z]+(?:'[a-z]+)?",body));band=p.get('level');lo,hi={'A2':(35,180),'B1':(60,260),'B2':(80,400)}.get(band,(0,1000))
  if not lo<=count<=hi:warnings.append('篇幅偏离该教学分级的参考范围，需人工检查难度')
- if not p.get('provenance') and p.get('daily_day'):errors.append('热点材料缺少来源记录')
+ if p.get('daily_day') and p.get('kind')=='topic':  # 今日一读: no news, no politics, no dates or figures (topic_guard)
+  errors+=['今日一读'+h for h in __import__('topic_guard').hits(p)]
+ elif not p.get('provenance') and p.get('daily_day'):errors.append('热点材料缺少来源记录')
  return {'errors':list(dict.fromkeys(errors)),'warnings':list(dict.fromkeys(warnings)),'words':count,'note':'自动检查只能发现结构问题；语言准确性、答案唯一性、难度与事实需人工审核。'}
 
 def info(c,row):

@@ -151,69 +151,8 @@ class RouteTests(unittest.TestCase):
         self.assertEqual(seen, ['https://gw.test/v1/chat/completions'])
 
 
-class DailyRunTests(unittest.TestCase):
-    def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.p = patch.object(app, 'DB', Path(self.tmp.name) / 'daily.db')
-        self.p.start()
-        app.init()
-        self.c = app.db()
-        self.env = patch.dict(os.environ, {'FLOW_AI_GROUNDING': '1', 'FLOW_AI_DAILY_LIMIT': '100'})
-        self.env.start()
-        self.pause = patch.object(daily, 'PAUSED', False)  # the pipeline itself; 今日热点 is paused since 2026-11-25
-        self.pause.start()
-
-    def tearDown(self):
-        self.c.close()
-        self.pause.stop()
-        self.env.stop()
-        self.p.stop()
-        self.tmp.cleanup()
-
-    def raw(self):
-        p = copy.deepcopy(all_materials()[0])
-        p['level'] = daily.plan(daily.today())[0]
-        p['theme'] = 'campus'
-        p['knowledge'] = [{'node': 'tense-present', 'quote': lab.sentences(p['body'])[0], 'explanation': '说明该句的用法'}]
-        if p['level'] == 'C1':
-            p['level'] = 'B2'
-        return p
-
-    def test_a_bailian_searched_pack_keeps_its_sources_and_says_who_searched(self):
-        prompts = []
-
-        def model(messages, grounding=False):
-            prompts.append(messages[-1]['content'])
-            if grounding:
-                cs.INFO.served = 'deepseek-v4.1-flash-1017'
-                return TEXT, 'stop', META
-            cs.INFO.served = 'deepseek-v4.1-flash-1017'
-            return json.dumps(self.raw()), 'stop'
-        with patch.object(daily, 'request_model', side_effect=model):
-            d = daily.run(self.c)
-        self.assertEqual(d['status'], 'complete', d)
-        self.assertNotIn('[ref_', prompts[1])  # the rewrite reads the brief without the marks
-        self.assertIn('Officials said the lanes link two parks.', prompts[1])
-        p = lab.pack_for(self.c, 1, 'daily-' + daily.today())
-        self.assertEqual(p['provenance']['engine'], 'bailian')
-        self.assertEqual([s['url'] for s in p['provenance']['sources']], ['https://news.example.com/bikes', 'https://city.example.gov/notice'])
-        self.assertEqual(p['source'], 'DeepSeek V4.1 Flash（百炼） 联网检索与教学改写 · 未经人工审核')
-
-    def test_gemini_search_with_a_deepseek_rewrite_reads_as_before(self):
-        meta = {'groundingChunks': [{'web': {'uri': 'https://example.org/news', 'title': 'Museum'}}],
-                'groundingSupports': [{'segment': {'text': 'A museum has opened a new room.'}, 'groundingChunkIndices': [0]}],
-                'searchEntryPoint': {'renderedContent': '<a href="https://google.com">x</a>'}}
-
-        def model(messages, grounding=False):
-            if grounding:
-                cs.INFO.served = 'gemini-3.8-flash'
-                return 'A museum has opened a new room. Visitors can read labels.', 'stop', meta
-            cs.INFO.served = 'deepseek-v4.1-flash-1017'
-            return json.dumps(self.raw()), 'stop'
-        with patch.object(daily, 'request_model', side_effect=model):
-            self.assertEqual(daily.run(self.c)['status'], 'complete')
-        p = lab.pack_for(self.c, 1, 'daily-' + daily.today())
-        self.assertEqual(p['source'], 'Gemini 联网检索 · DeepSeek V4.1 Flash（百炼） 教学改写 · 未经人工审核')
+# DailyRunTests (the news search and rewrite of 今日热点) went with 今日热点 on 2026-11-25: 今日一读 searches nothing
+# (tests/test_daily_knowledge.py). provenance() above stays for search_eval.py.
 
 
 class SearchEvalHelperTests(unittest.TestCase):
