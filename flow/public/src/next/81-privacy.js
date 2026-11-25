@@ -75,9 +75,14 @@
   const STORAGE_TEXT = '我同意语流在香港的服务器上存放和处理我的账号和学习数据';
   const STORAGE_WHY = '语流的网站和数据库都在香港的服务器上运行。你的账号、学习记录、写的作文和练习的文字、问题反馈都存在那里。你说的录音不保存，但批改时会经过香港的服务器转给 AI。这些数据由语流的运营者处理，只用来给你提供学习服务。香港在中国内地以外，所以单独问你。';
   const STORAGE_RIGHTS = '你可以随时在「我的 → 账号」里导出数据、注销账号或撤回同意；有问题请用「我的 → 问题反馈」，或写信到 i@jasa.hk。';
+  // A tick is ticked by its box or its words, at once; only a document's name opens it (docOver, over the page: the form
+  // underneath keeps what was typed and ticked). The box takes a 44px tap (.tickbox); the names are not .link, so 99-tap.css
+  // puts no wider tap area of theirs over the box (the user, 2026-11-25: 「一般都是直接勾选」).
+  const tickbox = name => `<span class="tickbox"><input type="checkbox" name="${name}"></span>`;
+  const docLink = (href, id, text) => `<a class="doc-link" href="${href}" data-doc="${id}">${text}</a>`;
   function storageField() {
-    return `<div class="storagefs"><label class="checkline"><input type="checkbox" name="storage"><span>${STORAGE_TEXT}</span></label>
-      <span class="hint">${STORAGE_WHY}不满 14 岁的，要家长（或监护人）也同意。${STORAGE_RIGHTS}<a class="link" href="${PRIVACY}" target="_blank" rel="noopener">看隐私说明</a></span></div>`;
+    return `<div class="storagefs"><label class="checkline">${tickbox('storage')}<span>${STORAGE_TEXT}</span></label>
+      <span class="hint">${STORAGE_WHY}不满 14 岁的，要家长（或监护人）也同意。${STORAGE_RIGHTS}${docLink(PRIVACY, 'privacy', '看隐私说明')}</span></div>`;
   }
   async function storageAnswer(agree) {
     const r = await api('/api/account/storage', { agree });
@@ -88,8 +93,39 @@
   // both names open the full text.
   const TERMS = '/#/guide/terms';
   function termsField() {
-    return `<div class="storagefs"><label class="checkline"><input type="checkbox" name="terms"><span>我已阅读并同意<a class="link" href="${TERMS}" target="_blank" rel="noopener">《用户协议》</a>和<a class="link" href="${PRIVACY}" target="_blank" rel="noopener">《隐私和数据》</a></span></label></div>`;
+    return `<div class="storagefs"><label class="checkline">${tickbox('terms')}<span>我已阅读并同意${docLink(TERMS, 'terms', '《用户协议》')}和${docLink(PRIVACY, 'privacy', '《隐私和数据》')}</span></label></div>`;
   }
+  // a document's full text over the page (the guide's chapter), 返回 to the form as it was; its links to other chapters stay
+  // in this layer, so nothing typed is lost (in the apps too, where a new tab would leave the page)
+  async function docOver(id) {
+    let g;
+    try { g = S.guide || (S.guide = await api('/api/next/guide')); } catch (x) { toast(x.message); return; }
+    const back = document.activeElement, el = document.createElement('div');
+    el.className = 'doc-over'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true');
+    const show = cid => {
+      const ch = g.chapters.find(c => c.id === cid); if (!ch) return false;
+      el.setAttribute('aria-label', ch.title);
+      el.innerHTML = `<div class="doc-bar"><button class="btn small" type="button" data-doc-close>← 返回</button><b>${esc(ch.title)}</b></div>
+        <div class="guide-body doc-body">${ch.html}</div><div class="doc-foot"><button class="btn primary block" type="button" data-doc-close>返回</button></div>`;
+      el.scrollTop = 0; el.querySelector('[data-doc-close]').focus(); return true;
+    };
+    if (!show(id)) return;
+    const close = () => { el.remove(); document.removeEventListener('keydown', key, true); if (back && back.focus) back.focus(); };
+    // over the sign-up sheet: Esc closes this layer only, and Tab stays here (the sheet would pull focus back into itself)
+    const key = e => { if (e.key === 'Escape') { e.stopImmediatePropagation(); e.preventDefault(); close(); } else if (e.key === 'Tab') e.stopImmediatePropagation(); };
+    el.onclick = e => {
+      if (e.target.closest('[data-doc-close]')) return close();
+      const a = e.target.closest('a[href]'); if (!a) return;
+      const h = a.getAttribute('href'), m = h.match(/^\/?#\/guide\/([\w-]+)/);
+      if (m) { e.preventDefault(); show(m[1]); } else if (h.startsWith('#') || h.startsWith('/#')) e.preventDefault(); else { a.target = '_blank'; a.rel = 'noopener'; }
+    };
+    document.addEventListener('keydown', key, true);
+    document.body.appendChild(el); el.querySelector('[data-doc-close]').focus();
+  }
+  document.addEventListener('click', e => {
+    const a = e.target.closest && e.target.closest('a[data-doc]');
+    if (a) { e.preventDefault(); docOver(a.dataset.doc); }
+  });
   // #/ and every page but the guide, while an answer is missing: the storage in Hong Kong (asked, or paused) and/or the
   // current 用户协议 and 隐私和数据 (never agreed, or a new version since). One page, one button.
   async function storageView() {
@@ -98,16 +134,17 @@
     view.innerHTML = `<div class="stack storage-page"><div><span class="kicker">${termsOnly ? '用户协议和隐私说明' : '数据存放'}</span><h1 class="h1">${paused ? '这个账号已暂停' : '补一个同意'}</h1></div>
       ${paused ? `<div class="card flat stack-s"><p>你没有同意（或者撤回了同意）在香港的服务器上存放和处理你的数据，所以语流暂停了这个账号的学习：不会再给你发邮件，班级的数字里也不算你。</p>
         <p>你的数据还在，没有删除。30 天内重新同意，就能接着学${S.user.storage_until ? `（${esc(S.user.storage_until)} 以前）` : ''}；30 天后还没有重新同意，语流会删除这个账号和数据，备份里的副本 14 天内清除。</p></div>` : ''}
-      <form class="card flat stack-s" id="stoF" novalidate>${paused ? '<b>想继续用这个账号</b>' : termsOnly ? '<p>请先看一下《用户协议》和《隐私和数据》（点名字就能打开全文），同意以后就能继续。以后这两份有实质改动时，也会请你再看一次。</p>' : `<p>${STORAGE_WHY}</p>`}${needTerms ? termsField() : ''}${needStorage ? storageField() : ''}
-        <button class="btn primary" type="submit">${paused ? '同意，继续学习' : '同意并继续'}</button><p class="err" id="stoErr" role="alert"></p></form>
-      <div class="card flat stack-s">${paused ? '<b>不想继续</b>' : termsOnly ? '<b>不想同意的话</b><p class="small muted">这个账号就先停在这里，不能学习；你可以导出数据、注销账号，或者退出登录。</p>' : '<b>不同意存放在香港的话</b><p class="small muted">这个账号会暂停，不能学习。30 天内可以回来同意或导出数据；30 天后，语流会删除这个账号和数据。</p>'}
-        <div class="row wrap">${paused || termsOnly ? '' : '<button class="btn" id="stoNo" type="button">不同意</button>'}<a class="btn ghost" href="/api/next/export/records.json" download>导出我的数据</a>
+      <form class="card flat stack-s" id="stoF" novalidate>${paused ? '<b>想继续用这个账号</b>' : termsOnly ? '<p>我们更新了《用户协议》和《隐私和数据》，勾选同意后继续。</p>' : `<p>${STORAGE_WHY}</p>`}${needTerms ? termsField() : ''}${needStorage ? storageField() : ''}
+        <button class="btn primary" type="submit">${paused ? '同意，继续学习' : termsOnly ? '继续' : '同意并继续'}</button><p class="err" id="stoErr" role="alert"></p></form>
+      ${termsOnly ? `<p class="tiny muted sto-quiet">不想同意：<a class="doc-link" href="/api/next/export/records.json" download>导出我的数据</a> · <button class="doc-link" id="stoDel" type="button">注销账号</button> · <button class="doc-link" id="stoOut" type="button">退出登录</button></p>`
+        : `<div class="card flat stack-s">${paused ? '<b>不想继续</b>' : '<b>不同意存放在香港的话</b><p class="small muted">这个账号会暂停，不能学习。30 天内可以回来同意或导出数据；30 天后，语流会删除这个账号和数据。</p>'}
+        <div class="row wrap">${paused ? '' : '<button class="btn" id="stoNo" type="button">不同意</button>'}<a class="btn ghost" href="/api/next/export/records.json" download>导出我的数据</a>
           <button class="btn ghost" id="stoDel" type="button">注销账号</button><button class="btn ghost" id="stoOut" type="button">退出登录</button></div>
-        <p class="tiny muted">退出登录后，也可以不登录先看看语流：那时的进度只存在这台设备上。</p></div></div>`;
+        <p class="tiny muted">退出登录后，也可以不登录先看看语流：那时的进度只存在这台设备上。</p></div>`}</div>`;
     const f = document.getElementById('stoF'), err = document.getElementById('stoErr');
     f.onsubmit = async e => {
       e.preventDefault(); err.textContent = '';
-      if (needTerms && !f.terms.checked) return fieldError(f, err, { message: '勾选同意《用户协议》和《隐私和数据》以后才能继续', field: 'terms' });
+      if (needTerms && !f.terms.checked) return fieldError(f, err, { message: '请先勾选同意《用户协议》和《隐私和数据》', field: 'terms' });
       if (needStorage && !f.storage.checked) return fieldError(f, err, { message: '勾选同意以后才能继续', field: 'storage' });
       const b = f.querySelector('[type=submit]'); b.disabled = true;
       try {

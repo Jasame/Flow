@@ -11,3 +11,15 @@
 /* 数据存放在香港 (81-privacy.js): the separate tick, in the sign-up form and on the page that asks */
 .storagefs{display:grid;gap:4px;padding:10px 12px;border-radius:10px;background:var(--green-soft)}
 .storage-page .row.wrap{flex-wrap:wrap}
+/* the tick's box: a 44×44 tap around an 18px box, the layout unchanged (negative margins); a tap on it is a tap on its label */
+.tickbox{display:inline-flex;align-items:center;justify-content:center;flex:none;width:44px;height:44px;margin:-13px -13px -13px -13px;cursor:pointer}
+.tickbox input{margin:0}
+/* a document's name in a tick's words (and the quiet links under the re-tick form): looks like a link, no wider tap area */
+.doc-link{color:var(--green);text-decoration:underline;text-underline-offset:2px;background:none;border:0;padding:0;font:inherit;cursor:pointer}
+.sto-quiet{text-align:center;margin:4px 0 0}
+/* 《用户协议》《隐私和数据》 over the page (81-privacy.js docOver): above the sign-up sheet, under the toast */
+.doc-over{position:fixed;inset:0;z-index:70;background:var(--bg);overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:0 16px calc(16px + var(--sab))}
+.doc-bar{position:sticky;top:0;display:flex;gap:10px;align-items:center;padding:calc(10px + var(--sat)) 0 10px;background:var(--bg);border-bottom:1px solid var(--line);z-index:1}
+.doc-bar b{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.doc-body{max-width:720px;margin:12px auto 0}
+.doc-foot{max-width:720px;margin:20px auto 0}
