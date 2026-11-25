@@ -95,12 +95,13 @@ body.reviewing{touch-action:pan-y pinch-zoom}
 /* review and the vocabulary test on phones: no tabs, answers where the thumb is */
 @media (max-width:759px){
   body.reviewing .tabs{display:none}
-  body.reviewing{padding-bottom:calc(12px + var(--sab))}
-  /* the card fills what is left of one screen, whatever sits above the page (the top bar with or without 返回, the
-     内测版's line, the safe area: --top-h, 04-home-app.js) and the body's own room at the bottom; #view is that column
-     (a fixed 120 px left the card 36 px past the screen in Safari, 68–129 px in the home-screen app) */
-  body.reviewing #view{display:flex;flex-direction:column;box-sizing:border-box;min-height:calc(100dvh - var(--top-h,48px) - 12px - var(--sab));padding-bottom:0}
-  body.reviewing .review:not(.open-card):not(.q){display:flex;flex-direction:column;flex:1;gap:14px}
+  /* exactly one screen, whatever the top bar is: --bar-h is its real height (98-home-app.css / 04-home-app.js: the
+     status bar or Dynamic Island in the home-screen app and the back button included). The page below it is a column
+     the card fills, so the line above the card (结束, progress, 撤销) can change height without a number to keep. */
+  body.reviewing{padding-bottom:0}
+  body.reviewing main{display:flex;flex-direction:column;min-height:calc(100dvh - var(--bar-h,48px));padding-bottom:calc(12px + var(--sab))}
+  body.reviewing .review:not(.open-card):not(.q){display:flex;flex-direction:column;flex:1 0 auto;gap:14px}
+  body.reviewing .sr-only{top:0}  /* the live region after main (1px, absolute where it stands) would hang below the screen */
   body.reviewing .review:not(.open-card):not(.q)>:first-child{margin-top:auto}
   body.reviewing .review:not(.open-card):not(.q) .choice{margin-top:auto}
   body.reviewing .choice button{min-height:64px;font-size:16.5px}
