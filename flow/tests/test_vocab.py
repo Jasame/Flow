@@ -511,6 +511,20 @@ class ReadingLinkedTests(unittest.TestCase):
             self.assertEqual(nx.shadow(self.c, 1, {'pack': 'v5-science-b2-noise-cancelling', 'i': 0, 'audio': audio})[1], 503)
         self.assertIsNone(r['score'])  # an older-style reply (no estimate) shows no score
 
+    def test_a_right_reading_files_nothing_and_a_misread_word_files_that_word(self):
+        pid = 'v5-science-b2-noise-cancelling'
+        sentence = nx.sentences(next(x for x in __import__('content_v50').v5_materials() if x['id'] == pid)['body'])[0]
+        audio = {'mime_type': 'audio/webm', 'data': base64.b64encode(b'\x1aE\xdf\xa3' + b'\0' * 80).decode()}
+        listed = {'sounds': [{'sound': '/θ/', 'word': 'the', 'note': '舌尖再往前', 'set': 'th-s'}],
+                  'issues': [{'word': 'pair of noise-cancelling headphones on a train', 'note': '连读'}], 'tip': '', 'fluency': 'ok', 'accuracy': 90, 'fluency_score': 85}
+        cards = lambda: [r[0] for r in self.c.execute("SELECT text FROM next_cards WHERE user_id=1 AND kind='sound' ORDER BY id")]
+        with patch('chat_service.request_model', return_value=(json.dumps({**listed, 'transcript': sentence}, ensure_ascii=False), 'stop')):
+            nx.shadow(self.c, 1, {'pack': pid, 'i': 0, 'audio': audio, 'request_id': 'next-sh-right-01'})
+        self.assertEqual(cards(), [])  # read right: what the model listed is shown, nothing filed
+        with patch('chat_service.request_model', return_value=(json.dumps({**listed, 'transcript': sentence.replace('train', 'rain')}, ensure_ascii=False), 'stop')):
+            nx.shadow(self.c, 1, {'pack': pid, 'i': 0, 'audio': audio, 'request_id': 'next-sh-wrong-01'})
+        self.assertEqual(cards(), ['train'])  # the phrase files its misread word, not the whole phrase
+
     def test_shadowing_pronunciation_score(self):
         pid = 'v5-science-b2-noise-cancelling'
         audio = {'mime_type': 'audio/webm', 'data': base64.b64encode(b'\x1aE\xdf\xa3' + b'\0' * 80).decode()}
@@ -536,7 +550,9 @@ class ReadingLinkedTests(unittest.TestCase):
         self.assertEqual([(e['skill'], e['score']) for e in ev], [('pronunciation', sc['total'] / 100)])
         self.assertEqual(self.c.execute("SELECT COUNT(*) FROM next_skill_events WHERE user_id=1 AND kind='shadow'").fetchone()[0], 1)
         mk = self.c.execute("SELECT text, meaning FROM next_cards WHERE user_id=1 AND kind='sound' ORDER BY id").fetchall()
-        self.assertEqual(mk[0]['text'], 'switch'); self.assertTrue(mk[0]['meaning'].startswith('/ɪ/：'))
+        # only what the transcript shows went wrong is filed: "on" was not heard; "switch" and "first" were, so they are
+        # shown under 要练的音 but not filed (语流 12, 2026-11-25: models list sounds on right readings too)
+        self.assertEqual([m['text'] for m in mk], ['on']); self.assertEqual(mk[0]['meaning'], '漏读了 on')
         # the same request again is a replay: same score, nothing logged twice
         with patch('chat_service.request_model', return_value=(json.dumps(reply, ensure_ascii=False), 'stop')):
             again, _ = nx.shadow(self.c, 1, {'pack': pid, 'i': 0, 'audio': audio, 'request_id': 'next-sh-score-1'})
