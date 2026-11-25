@@ -1,3 +1,3 @@
-f893e072959a7aaa038e7fab819f42ead64cd0fe a0185831db0cc6f92d050054bc70a2b786005102ad475b89cb46d1702567d25d e2e light
-# b36 main: Merge pull request #129 from Jasame/audio-pause = build of 7343be80334e
-# Format: <commit sha> <manifest sha256> [e2e [light]]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
+24d4e244a3a84c62afc34752f8701ec457bc8958 47099360e8177d3d94df64c40815dcf79a2043078b403c1ec291c0a74e50cb47 e2e light ref=build-59d700f39f99
+# b37 main: Merge pull request #132 from Jasame/listing-tag-fallback = build of 59d700f39f99
+# Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
