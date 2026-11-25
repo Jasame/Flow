@@ -131,7 +131,7 @@ class NextHttpTests(unittest.TestCase):
         app.SECURE = False
         app.init()
         with app.db() as c:
-            c.execute('INSERT INTO users(username,password) VALUES(?,?)', ('learner', app.password('correct horse battery')))
+            c.execute('INSERT INTO users(username,password,storage_ok,terms_version) VALUES(?,?,1,?)', ('learner', app.password('correct horse battery'), __import__('privacy_service').CONSENT_VERSION))  # agreed to 数据存放在香港
         self.srv = ThreadingHTTPServer(('127.0.0.1', 0), app.Handler); threading.Thread(target=self.srv.serve_forever, daemon=True).start()
         self.cookie = ''
 
@@ -365,7 +365,7 @@ class NextAudioTests(unittest.TestCase):
         nx._AUDIO.update(mtime=None, index={})
         app.init()
         with app.db() as c:
-            c.execute('INSERT INTO users(username,password) VALUES(?,?)', ('learner', app.password('correct horse battery')))
+            c.execute('INSERT INTO users(username,password,storage_ok,terms_version) VALUES(?,?,1,?)', ('learner', app.password('correct horse battery'), __import__('privacy_service').CONSENT_VERSION))  # agreed to 数据存放在香港
         self.pid = 'v5-science-b2-noise-cancelling'
         (self.audio / 'uk-m').mkdir(parents=True)
         (self.audio / 'uk-m' / (self.pid + '.m4a')).write_bytes(bytes(range(256)) * 4)
@@ -411,6 +411,17 @@ class NextAudioTests(unittest.TestCase):
             self.assertEqual(nx.profile(c, 1)['voice'], 'uk-f')
             nx.save_profile(c, 1, {'level': 'B2'})
             self.assertEqual(nx.profile(c, 1)['voice'], 'uk-f')
+
+    def test_accent_is_kept_with_the_account(self):
+        with app.db() as c:
+            nx.save_profile(c, 1, {'level': 'B1'})
+            self.assertEqual(nx.profile(c, 1)['accent'], 'green')  # 配色 A by default
+            self.assertEqual(nx.set_accent(c, 1, {'accent': 'purple'})[1], 400)
+            self.assertEqual(nx.set_accent(c, 1, {'accent': 'indigo'}), ({'accent': 'indigo'}, 200))
+            self.assertEqual(nx.profile(c, 1)['accent'], 'indigo')
+            nx.save_profile(c, 1, {'level': 'B2'})  # other settings saved later keep it
+            self.assertEqual(nx.profile(c, 1)['accent'], 'indigo')
+            self.assertEqual(nx.post(c, 1, '/api/next/accent', {'accent': 'green'}), ({'accent': 'green'}, 200))  # the route
 
 
 if __name__ == '__main__':

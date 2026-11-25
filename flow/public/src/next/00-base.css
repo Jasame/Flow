@@ -5,10 +5,13 @@
   --bg:#fbfaf6;--paper:#ffffff;--sunk:#f3f1ea;--line:#e7e3d8;--line2:#d6d1c3;
   --ink:#1b1d1a;--ink2:#4b4f48;--muted:#666a60;
   --green:#1f9d55;--green-ink:#12733c;--green-soft:#e9f5ee;--green-line:#bfe3cd;
-  --amber:#b4690e;--amber-soft:#fbf1e1;--red:#b42318;--red-soft:#fdeceb;
+  --amber:#9a5a0c;--amber-soft:#fbf1e1;--red:#b42318;--red-soft:#fdeceb;
   --mark:#fff2b8;
   /* solid fills behind text (buttons, badges, the current step): 4.5:1 or more for the text on them, in both themes */
   --fill:#188546;--on-fill:#fff;--on-red:#fff;--amber-fill:#9a5a0c;--on-amber:#fff;
+  /* always green, whatever 主题色 is chosen (99-accent.css changes only the --green* / --fill accent): a right answer,
+     a rise, a ✓ — and the logo */
+  --ok:#1f9d55;--ok-ink:#12733c;--ok-soft:#e9f5ee;--brand:#1f9d55;
   --sans:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
   --serif:'Flow Serif',Georgia,'Songti SC','Noto Serif CJK SC',serif;
   --r:14px;--r-s:10px;--gut:16px;--max:720px;
@@ -23,6 +26,7 @@
   --green:#3ccf7c;--green-ink:#6ee0a0;--green-soft:#173024;--green-line:#24553a;
   --amber:#f2b55b;--amber-soft:#2f2617;--red:#ff8a80;--red-soft:#351c1a;--mark:#4a4116;
   --fill:#3ccf7c;--on-fill:#0b1f12;--on-red:#2a0e0c;--amber-fill:#f2b55b;--on-amber:#2a1a05;
+  --ok:#3ccf7c;--ok-ink:#6ee0a0;--ok-soft:#173024;--brand:#3ccf7c;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
 }}
 *{box-sizing:border-box}
@@ -40,13 +44,13 @@ button{cursor:pointer}
 .bar{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
 .bar{display:flex;align-items:center;justify-content:space-between;max-width:none;padding:10px var(--gut);gap:12px}
 .brand{display:flex;align-items:center;gap:8px;text-decoration:none;font-weight:700}
-.brand svg{width:28px;height:28px}.brand-bg{fill:var(--green)}.brand-fg{stroke:#fff;stroke-width:3;stroke-linecap:round;fill:none}
+.brand svg{width:28px;height:28px}.brand-bg{fill:var(--brand)}.brand-fg{stroke:#fff;stroke-width:3;stroke-linecap:round;fill:none}
 .brand em{font-style:normal;font-size:11.5px;font-weight:600;color:var(--green-ink);background:var(--green-soft);border-radius:99px;padding:1px 8px}
 .tabs{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-around;background:var(--paper);border-top:1px solid var(--line);padding:6px 8px calc(6px + var(--sab));z-index:30}
 .tabs a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none;font-size:12px;color:var(--muted);padding:4px 0;position:relative;border-radius:10px}
 .tabs svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .tabs a[aria-current=page]{color:var(--green-ink);font-weight:600}
-.badge{position:absolute;top:0;left:calc(50% + 6px);min-width:18px;height:18px;border-radius:9px;background:var(--red);color:var(--on-red);font-size:11px;line-height:18px;text-align:center;padding:0 5px;font-weight:700}
+.badge{position:absolute;top:0;left:calc(50% + 6px);min-width:18px;height:18px;border-radius:9px;background:var(--ink);color:var(--bg);font-size:11px;line-height:18px;text-align:center;padding:0 5px;font-weight:700}
 @media (min-width:760px){
   body{padding-bottom:0}
   .bar{background:color-mix(in srgb,var(--bg) 90%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
@@ -63,7 +67,9 @@ main{max-width:var(--max);margin:0 auto;padding:20px var(--gut) 40px;outline:non
 h1,h2,h3{margin:0;line-height:1.25}
 .h1{font-size:26px;font-weight:700;letter-spacing:-.01em}
 .h2{font-size:18px;font-weight:700}
-.kicker{font-size:12.5px;font-weight:600;letter-spacing:.06em;color:var(--green-ink);text-transform:uppercase;margin-bottom:6px}
+/* 配色 A (2026-11-25, the user's pick): green only on what can be pressed or shows progress — small labels above a title
+   are grey, the due-word count on the 单词 tab is ink on paper (red read as an error), amber text one step darker */
+.kicker{font-size:12.5px;font-weight:600;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
 .muted{color:var(--muted)}.small{font-size:13.5px}.tiny{font-size:12px}
 .stack{display:grid;gap:14px}.stack-s{display:grid;gap:8px}.stack-xs{display:grid;gap:3px}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row.between{justify-content:space-between}

@@ -2,7 +2,7 @@
 //! closed. They belong to the app's AppUserModelID — the bundle identifier, which the installer puts on the
 //! Start-menu shortcut — and a click opens flowlang://review, which starts 语流 on the review page.
 
-use super::{silent, toast_xml, Permission};
+use super::{silent, tag_of, toast_xml, Permission};
 use crate::schedule::Planned;
 use std::sync::OnceLock;
 use windows::core::HSTRING;
@@ -95,23 +95,26 @@ pub fn clear() {
     }
 }
 
-pub fn schedule(items: &[Planned], launch: &str) -> Result<usize, String> {
+/// A click opens <scheme>://review (word reminders) or <scheme>://open (the day's plan), which starts 语流 there.
+pub fn schedule(items: &[Planned], scheme: &str) -> Result<usize, String> {
     let n = notifier()?;
     clear();
     let mut done = 0;
     for p in items {
+        let launch = format!(
+            "{scheme}://{}",
+            if p.route == "/review" {
+                "review"
+            } else {
+                "open"
+            }
+        );
         let st = ScheduledToastNotification::CreateScheduledToastNotification(
-            &doc(&p.title, &p.body, launch)?,
+            &doc(&p.title, &p.body, &launch)?,
             when(p.at),
         )
         .map_err(|e| e.message().to_string())?;
-        // tags are at most 16 characters: d20261125 / once
-        let tag = p.id.trim_start_matches("flow-daily-").replace("flow-", "");
-        let _ = st.SetTag(&HSTRING::from(if tag.len() == 8 {
-            format!("d{tag}")
-        } else {
-            tag
-        }));
+        let _ = st.SetTag(&HSTRING::from(tag_of(&p.id)));
         let _ = st.SetGroup(&HSTRING::from("review"));
         n.AddToSchedule(&st).map_err(|e| e.message().to_string())?;
         done += 1;

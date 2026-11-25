@@ -102,6 +102,32 @@ class ClassicArchivedTests(Servers):
                 patch('ai_routes.route', return_value='flow-text-deepseek'), patch.dict(os.environ, {'FLOW_TEXT_AI_MODEL': 'flow-text'}):
             self.assertIn(b'data-film="voice fast"', self.call(self.site, '/about', raw=True)[1])
 
+    def test_the_installers_come_from_their_own_folder_and_the_page_waits_for_them(self):
+        """下载安装 (/about#download): /download/ serves plain files of a few types from DOWNLOADS (outside the release),
+        installers as attachments and the list afresh; with no list it answers an empty one (no failed request on the page)
+        and the page keeps 即将开放 on its three buttons."""
+        import hashlib, re
+        body = self.call(self.site, '/about', raw=True)[1].decode()
+        sec = body[body.index('id="download"'):body.index('<!-- ============ who')]
+        self.assertEqual(re.findall(r'data-app="(\w+)"', sec), ['web', 'android', 'windows', 'mac', 'ios'])
+        self.assertEqual(re.findall(r'data-dl="(\w+)"', sec), ['android', 'windows', 'mac'])  # iPhone and iPad: 开发中, no button
+        self.assertEqual(sec.count('aria-disabled="true">即将开放</a>'), 3)
+        with tempfile.TemporaryDirectory() as d, patch.object(app, 'DOWNLOADS', Path(d)):
+            self.assertEqual(self.call(self.site, '/download/latest.json')[:2], (200, {}))  # nothing yet: 即将开放
+            apk = Path(d) / 'flow-android-1.2.3.apk'; apk.write_bytes(b'PK\x03\x04 an installer')
+            (Path(d) / 'latest.json').write_text(json.dumps({'android': {
+                'file': apk.name, 'version': '1.2.3', 'size': apk.stat().st_size, 'sha256': hashlib.sha256(apk.read_bytes()).hexdigest()}}))
+            (Path(d) / 'notes.txt').write_text('not served'); (Path(d) / '.flow.apk').write_bytes(b'hidden')
+            st, got, h = self.call(self.site, '/download/latest.json', raw=True)
+            self.assertEqual((st, h['Content-Type'], h['Cache-Control']), (200, 'application/json; charset=utf-8', 'no-cache'))
+            self.assertEqual(json.loads(got)['android']['file'], apk.name)
+            st, got, h = self.call(self.site, '/download/' + apk.name, raw=True)
+            self.assertEqual((st, got, h['Content-Type']), (200, apk.read_bytes(), 'application/vnd.android.package-archive'))
+            self.assertEqual(h['Content-Disposition'], f'attachment; filename="{apk.name}"')
+            for path in ('/download/', '/download/notes.txt', '/download/.flow.apk', '/download/..%2fapp.py',
+                         '/download/sub/flow.apk', '/download/flow-9.apk', '/download/' + 'a' * 101 + '.apk'):
+                self.assertEqual(self.call(self.site, path, raw=True)[0], 404, path)
+
     def test_the_introduction_page_says_what_the_data_says(self):
         """认识语流 shows the word books with their sizes and a tap-a-word demo with dictionary entries, copied into
         about.js. When a word book or the dictionary changes, this says which figure on the page to update."""
@@ -170,6 +196,8 @@ class ConsoleRoleTests(Servers):
             st, body, _ = self.console('/users/reset-link', 'boss@example.com', {'user': 'nomail'})
             self.assertEqual(st, 200); token = body['link'].split('#reset=')[1]
             self.assertEqual(self.console('/users/reset-link', 'boss@example.com', {'user': 'nobody-here'})[0], 404)
+            with patch('daily_service.PAUSED', True):  # switched off: the console says so instead of starting it
+                self.assertEqual(self.console('/daily/run', 'boss@example.com', {})[0], 409)
             with patch('daily_service.run', lambda c: None):
                 self.assertEqual(self.console('/daily/run', 'boss@example.com', {})[0], 202)
             st, csv, h = self.console('/survey/export.csv', 'boss@example.com')
@@ -181,7 +209,7 @@ class ConsoleRoleTests(Servers):
         self.assertEqual((rows[3]['target'], rows[3]['detail']), ('nomail', '已生成'))
         self.assertEqual(rows[2]['target'], 'nobody-here'); self.assertNotEqual(rows[2]['detail'], '已生成')
         self.assertNotIn(token, json.dumps(rows))
-        self.assertEqual(rows[1]['action_label'], '生成今日热点')
+        self.assertEqual(rows[1]['action_label'], '生成今日一读')
 
     def test_the_overview_shows_the_last_backup_and_todays_news_material(self):
         (Path(self.tmp.name) / 'backup-status.json').write_text(json.dumps({'ok': True, 'at': '2026-11-23T03:00:00+08:00'}))

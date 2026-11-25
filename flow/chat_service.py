@@ -24,6 +24,23 @@ def daily_limit(name):
 
 def _today():return time.strftime('%Y-%m-%d',time.gmtime())
 
+SITE_PER_LEARNER=40;SITE_MAX=15000
+
+def regulars(c):
+ """Learners who used AI on at least 2 of the last 7 days (UTC days, as ai_usage counts them). An account opened today
+ has one day at most, so a batch of new accounts cannot raise the site's ceiling."""
+ since=time.strftime('%Y-%m-%d',time.gmtime(time.time()-6*86400))
+ return c.execute('SELECT COUNT(*) FROM (SELECT user_id FROM ai_usage WHERE day>=? AND count>0 GROUP BY user_id HAVING COUNT(DISTINCT day)>=2)',(since,)).fetchone()[0]
+
+def site_limit(c):
+ """Today's site-wide ceiling (2026-11-25, the owner: 「按照人数动态设置」, then 「两层都做」; the gateway's own daily
+ cap on the flow key is the last gate): regulars × SITE_PER_LEARNER calls, no lower than FLOW_AI_DAILY_LIMIT (the
+ floor, 2000 on both sites) and no higher than SITE_MAX. A value set in the console wins as it is; 0 = no ceiling."""
+ if __import__('console_ops').limit_override('FLOW_AI_DAILY_LIMIT') is not None:return daily_limit('FLOW_AI_DAILY_LIMIT')
+ floor=daily_limit('FLOW_AI_DAILY_LIMIT')
+ if not floor:return 0
+ return min(max(floor,SITE_PER_LEARNER*regulars(c)),max(floor,SITE_MAX))
+
 def _exempt(c,uid):
  row=c.execute('SELECT admin FROM users WHERE id=?',(uid,)).fetchone()
  return bool(row and row[0])
@@ -35,15 +52,22 @@ def remaining(c,uid):
  row=c.execute('SELECT count FROM ai_usage WHERE user_id=? AND day=?',(uid,_today())).fetchone()
  return max(0,limit-(row[0] if row else 0))
 
+DAY_FULL='今天的 AI 用量已满，北京时间早上 8 点恢复。'  # ai_routes.day_full: the ¥10 stop (code ai_day_full)
+
+def refusal(problem,c,uid):
+ """The 429 body for a refused call: the stop of the day carries code ai_day_full, the page words it (语流 B6)."""
+ return {'error':problem,'remaining':remaining(c,uid),**({'code':'ai_day_full'} if problem==DAY_FULL else {})}
+
 def reserve(c,uid):
  """Count one model call inside the caller's write transaction.
 
  Returns an error message (and counts nothing) when the site-wide
- FLOW_AI_DAILY_LIMIT or the per-account FLOW_AI_USER_DAILY_LIMIT is reached.
+ ceiling (site_limit: FLOW_AI_DAILY_LIMIT grown with the learners) or the per-account FLOW_AI_USER_DAILY_LIMIT is reached.
  Both reset at 00:00 UTC; 0 disables a ceiling; admins skip the per-account one.
  """
+ if __import__('ai_routes').day_full(c):return DAY_FULL
  day=_today();c.execute('INSERT OR IGNORE INTO ai_usage VALUES(?,?,0)',(uid,day))
- site=daily_limit('FLOW_AI_DAILY_LIMIT')
+ site=site_limit(c)
  if site and c.execute('SELECT COALESCE(SUM(count),0) FROM ai_usage WHERE day=?',(day,)).fetchone()[0]>=site:
   return '本站今日 AI 调用额度已用完，请明天再来。'
  if remaining(c,uid)==0:
@@ -148,35 +172,71 @@ def request_model(messages,audio=None,grounding=False):
  text_model=ai_routes.route()
  search=search_provider() if grounding and not audio else None
  hearing=ai_routes.audio_route() if audio and not grounding and audio_provider() else ''
+ main=main_on();backup=backup_model()
  order=[]
  if search:order.append('search')
  elif hearing:order.append('audio')
  elif not audio and not grounding and text_provider(text_model):order.append('text')
- order.append('main')
- if getattr(MAIN_ONLY,'on',False):order=['main']  # run_job's last try after answers it could not take: Gemini only, no route
- if len(order)==1:order.append('main')  # one retry on the only service
+ if main:order.append('main')
+ elif order[:1]==['text'] and backup and backup!=text_model:order.append('backup')  # 百炼's other model, not Gemini
+ elif order[:1]==['audio'] and backup and asr_model() and ai_routes.current() in HEARD_ONLY:order.append('asr')
+ elif not order and backup and not audio and not grounding:order.append('backup')
+ if getattr(MAIN_ONLY,'on',False):  # run_job's last try after answers it could not take (e.g. Omni twice with nothing heard): another model
+  if main:order=['main']
+  elif backup and not audio and not grounding:order=['backup']
+  elif hearing and backup and asr_model() and ai_routes.current() in HEARD_ONLY:order=['asr']  # r30 e2e: Omni's heard empty twice
+ if not order:
+  from vertex_auth import AIConfigurationError
+  raise AIConfigurationError('No AI service for this request')
+ if len(order)==1:order.append(order[0])  # one retry on the only service
  ai_routes.CTX.route=text_model if order[0]=='text' else search[2] if order[0]=='search' else hearing if order[0]=='audio' else ''
  last=None
  for i,which in enumerate(order):
   started=time.monotonic();INFO.__dict__.clear()
-  model=text_model if which=='text' else search[2] if which=='search' else hearing if which=='audio' else os.getenv('FLOW_AI_MODEL','')
+  model=(text_model if which=='text' else search[2] if which=='search' else hearing if which=='audio' else backup if which in ('backup','asr')
+         else os.getenv('FLOW_AI_MODEL',''))
   try:
    out=(_request_text_service(messages,text_model,ai_routes.extra_body(text_model)) if which=='text' else
         _request_search_service(messages) if which=='search' else _request_audio_service(messages,audio,hearing) if which=='audio' else
+        _request_text_service(messages,backup,ai_routes.extra_body(backup)) if which=='backup' else
+        _request_heard_then_text(messages,audio,backup) if which=='asr' else
         _request_main(messages,audio,grounding))
    LAST['provider']=which
-   ai_routes.record(which,model,started,messages,out[0],dict(INFO.__dict__),fallback=i>0)
+   ai_routes.record('backup' if which=='asr' else which,model,started,messages,out[0],dict(INFO.__dict__),fallback=i>0)
    return out
   except Exception as exc:
    last=exc
-   ai_routes.record(which,model,started,messages,None,dict(INFO.__dict__),exc,fallback=i>0)
-   if which in ('search','audio'):continue  # Gemini searches / hears it instead
-   if which=='text' and time.monotonic()-started<=60 and (not refused(exc) or (ai_routes.is_bailian(text_model) and getattr(exc,'code',None)!=413)):continue  # the main service takes over
+   ai_routes.record('backup' if which=='asr' else which,model,started,messages,None,dict(INFO.__dict__),exc,fallback=i>0)
+   if which in ('search','audio') and i<len(order)-1 and order[i+1]!=which:continue  # the next service searches / hears it instead
+   if which=='text' and order[i+1:i+2]!=['text'] and i<len(order)-1 and time.monotonic()-started<=60 and (not refused(exc) or (ai_routes.is_bailian(text_model) and getattr(exc,'code',None)!=413)):continue  # the main service takes over
    if i==len(order)-1 or not transient(exc) or time.monotonic()-started>60:raise
    if order[i+1]==which:
     if isinstance(exc,urllib.error.HTTPError) and exc.code==429:raise  # rate-limited: asking the same service again at once will not help
     time.sleep(1.5)
  raise last
+
+
+# 2026-11-25 (user: 「换成国内已备案模型」; Gemini has no filing in China and a recording sent to it leaves the country):
+# FLOW_MAIN_AI=off keeps the main model (Gemini) out of every learner request. Then a text task that fails on its route
+# goes to FLOW_BACKUP_AI_MODEL (another 百炼 model, e.g. flow-text-qwen-plus), a recording whose audio route fails is
+# written down by FLOW_ASR_AI_MODEL (qwen3-asr-flash) and answered by that backup model (only tasks in HEARD_ONLY: what
+# was said matters, not how it sounded), and run_job's last try asks the backup model. 跟读 and 发音 have no text backup
+# (a score of how it sounded needs the sound); a search has none either.
+HEARD_ONLY={'next-dialog','next-retell','next-ielts'}
+
+
+def main_on():
+ return os.getenv('FLOW_MAIN_AI','on').strip().lower()!='off'
+
+
+def backup_model():
+ m=os.getenv('FLOW_BACKUP_AI_MODEL','').strip()
+ return m if m and text_provider(m) else ''
+
+
+def asr_model():
+ m=os.getenv('FLOW_ASR_AI_MODEL','').strip()
+ return m if m and audio_provider() else ''
 
 
 INFO=__import__('threading').local()  # the last call's usage and answering model (ai_routes.record)
@@ -256,6 +316,87 @@ def _request_audio_service(messages,audio,model):
  if not reply.strip():raise ValueError('Empty model reply')
  if reason not in (None,'stop'):raise ValueError('Model stream not complete')
  return reply,'stop'
+
+
+SAID=[{'role':'user','content':'[recording]'}]  # what ai_calls counts for a transcription (the audio is not text)
+WORD_PROMPT='You write down English speech. The recording is one English word. Output only that word, as you hear it.'
+
+
+def word_model():
+ """The audio route that writes down one read word: 发音's own (next-say) or, without one, 情景对话's (both Qwen-Omni)."""
+ import ai_routes
+ return ai_routes.audio_route('next-say') or ai_routes.audio_route('next-dialog')
+
+
+def hear_word(audio):
+ """One read word written down by Qwen-Omni (filed under 通义千问), told nothing of the word expected; '' = nothing.
+ 2026-11-25 omni_word_eval (24 pairs of 发音入门, synthetic voices, 192 judgements): a correct reading heard as the pair
+ word 1 in 48 (English voice) and 3 in 48 (Chinese voice), a wrong one caught 36 and 35 of 48, 0.9 s; told the two
+ words it did worse (5 and 10 in 48), and qwen3-asr told them (1 and 6) has no filing (Aliyun ticket, 13:58)."""
+ import ai_routes
+ from vertex_auth import AIConfigurationError
+ model=word_model()
+ if not model:raise AIConfigurationError('No audio route to write down a word')
+ msgs=[{'role':'system','content':WORD_PROMPT},{'role':'user','content':'Write down the word.'}]
+ started=time.monotonic();INFO.__dict__.clear()
+ try:
+  reply,_=_request_audio_service(msgs,audio,model)
+ except ValueError as exc:
+  if str(exc)!='Empty model reply':
+   ai_routes.record('word',model,started,SAID,None,dict(INFO.__dict__),exc);raise
+  reply=''
+ except Exception as exc:
+  ai_routes.record('word',model,started,SAID,None,dict(INFO.__dict__),exc);raise
+ ai_routes.record('word',model,started,SAID,reply,dict(INFO.__dict__))
+ return reply.strip()[:200]
+
+
+def transcribe(audio,words=None):
+ """A recording written down by 百炼's speech recognition (FLOW_ASR_AI_MODEL) through the gateway: the text, or ''.
+ words: what the speaker is expected to say (a word and its pair word), given as context so the recogniser hears the
+ likely word (2026-11-25 say_pairs_eval: 1 of 48 correct English-voice readings heard as the other word, 0.6 s)."""
+ from audio_validation import validate_audio
+ from vertex_auth import AIConfigurationError
+ found,model=audio_provider(),asr_model()
+ if not found or not model:raise AIConfigurationError('Speech recognition configuration incomplete')
+ validate_audio(audio)
+ url,key=found
+ msgs=[{'role':'user','content':[{'type':'input_audio','input_audio':{'data':f"data:{audio['mime_type']};base64,{audio['data']}"}}]}]
+ if words:
+  ws=[w for w in words if w]
+  msgs.insert(0,{'role':'system','content':[{'text':'English pronunciation practice. The speaker reads one word: '+' or '.join('"'+w+'"' for w in ws)+'.'}]})
+ payload={'model':model,'messages':msgs,'stream':True,'stream_options':{'include_usage':True},'asr_options':{'language':'en','enable_itn':False}}
+ req=urllib.request.Request(url,data=json.dumps(payload,ensure_ascii=False).encode(),headers={'User-Agent':'jasa-flow/1.0','Authorization':'Bearer '+key,'Content-Type':'application/json'})
+ import ai_routes
+ text='';started=time.monotonic();INFO.__dict__.clear()
+ try:
+  with urllib.request.urlopen(req,timeout=20) as r:
+   for frame in ai_stream.events(r):
+    if time.monotonic()-started>25:raise TimeoutError('Speech recognition deadline exceeded')
+    if frame=='[DONE]':break
+    chunk=json.loads(frame)
+    if chunk.get('model'):INFO.served=str(chunk['model'])[:80]
+    if ai_routes.usage_of(chunk):INFO.usage=ai_routes.usage_of(chunk)
+    for choice in chunk.get('choices') or []:
+     d=(choice.get('delta') or {}).get('content') or ''
+     if isinstance(d,str):text+=d
+     if len(text)>4000:raise ValueError('Transcript too long')
+ except Exception as exc:
+  ai_routes.record('asr',model,started,SAID,None,dict(INFO.__dict__),exc)
+  raise
+ ai_routes.record('asr',model,started,SAID,text,dict(INFO.__dict__))
+ return text.strip()
+
+
+def _request_heard_then_text(messages,audio,model):
+ """The audio route failed: write the recording down (transcribe), then ask the text model with what was said in
+ place of the recording. The task's prompt asks for what was heard; the transcript is that."""
+ heard=transcribe(audio)
+ msgs=[dict(m) for m in messages]
+ last=next(i for i in range(len(msgs)-1,-1,-1) if msgs[i].get('role')=='user')
+ msgs[last]['content']=str(msgs[last]['content'])+'\n\n（录音已由语音识别转成文字，下面就是学习者说的话；把它当作你听到的内容，照原样转写，不要猜测发音。）\n学习者说：'+(heard or '[听不清]')
+ import ai_routes
+ return _request_text_service(msgs,model,ai_routes.extra_body(model))
 
 
 def _request_search_service(messages):
@@ -368,7 +509,7 @@ def chat(c,uid,data):
  enabled=ai_enabled()
  if enabled:
   problem=reserve(c,uid)
-  if problem:c.rollback();return {'error':problem,'remaining':remaining(c,uid)},429
+  if problem:c.rollback();return refusal(problem,c,uid),429
  now=time.time()
  if row:c.execute("UPDATE chat_turns SET status='pending',error='',updated=? WHERE id=?",(now,row['id']))
  else:c.execute("INSERT INTO chat_turns(user_id,topic,request_id,message,status,created,updated) VALUES(?,?,?,?,'pending',?,?)",(uid,topic_id,rid,question,now,now))

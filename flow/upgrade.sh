@@ -79,6 +79,7 @@ FLOW_FILES=(
   WORDBOOKS-OPEN.md
   WORDBOOKS.md
   ability_radar.py
+  access_check.py
   account_data.py
   account_service.py
   adaptive_service.py
@@ -88,6 +89,7 @@ FLOW_FILES=(
   ai_jobs.py
   ai_routes.py
   ai_stream.py
+  aigc_label.py
   app.py
   attempt_service.py
   audio_validation.py
@@ -131,6 +133,7 @@ FLOW_FILES=(
   corpus_data/pilot/pilot-001-audio.json
   corpus_data/revised-packs.json
   corpus_data/shadow-eval.json
+  corpus_data/updates.json
   corpus_data/v5/SPEC.md
   corpus_data/v5/campus.A2.2.json
   corpus_data/v5/campus.A2.3.json
@@ -299,7 +302,10 @@ FLOW_FILES=(
   survey_service.py
   teacher_service.py
   time_budget.py
+  topic_guard.py
+  tour_service.py
   tts_service.py
+  updates_service.py
   user_guide.py
   vertex_auth.py
   vertex_native.py

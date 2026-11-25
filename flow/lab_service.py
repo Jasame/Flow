@@ -6,7 +6,7 @@ from content_v09 import THEMES
 from content_v50 import all_materials
 import corpus_service as corpus
 from audio_validation import validate_audio
-from chat_service import request_model,remaining,reserve
+from chat_service import request_model,remaining,reserve,refusal
 from vertex_auth import ai_enabled
 SKILLS=('listening','speaking','reading','writing')
 LEVELS=('A2','B1','B2');TTL=120
@@ -148,7 +148,7 @@ def run_job(c,uid,rid,kind,pack,skill,spec,invoke,convert,mark_replay=False):
  if not ai_enabled():c.rollback();return {'error':'AI 暂未开启，请先使用内置材料训练'},503
  if c.execute("SELECT 1 FROM lab_jobs WHERE user_id=? AND status='pending' AND updated>? AND request_id!=?",(uid,now-TTL,rid)).fetchone() or c.execute("SELECT 1 FROM chat_turns WHERE user_id=? AND status='pending' AND updated>?",(uid,now-TTL)).fetchone():c.rollback();return {'error':'已有 AI 请求正在处理，请稍候'},409
  problem=reserve(c,uid)
- if problem:c.rollback();return {'error':problem,'remaining':remaining(c,uid)},429
+ if problem:c.rollback();return refusal(problem,c,uid),429
  if old:c.execute("UPDATE lab_jobs SET status='pending',error='',updated=? WHERE id=?",(now,old['id']))
  else:c.execute("INSERT INTO lab_jobs(user_id,request_id,kind,pack,skill,fingerprint,status,created,updated) VALUES(?,?,?,?,?,?,'pending',?,?)",(uid,rid,kind,pack,skill,fp,now,now))
  lease=ai_jobs.reserve(c,'lab_jobs',uid,rid);c.commit()
@@ -174,12 +174,13 @@ def run_job(c,uid,rid,kind,pack,skill,spec,invoke,convert,mark_replay=False):
  except Exception as exc:
   status=502
   error='AI 暂时无法完成这次任务，草稿还在，稍后再试一次。';refund=True
-  if isinstance(exc,__import__('vertex_auth').AIConfigurationError):status=503;error='AI 配置或依赖不完整，请管理员检查模型、接口地址与凭据；反复重试无法修复配置。'
+  learner='这项 AI 功能这会儿用不了，草稿还在，稍后再试一次。'  # what a learner reads when a service is refused or missing; the cause goes to the log
+  if isinstance(exc,__import__('vertex_auth').AIConfigurationError):status=503;error=learner;print('run_job: %s no AI service configured' % kind,file=__import__('sys').stderr,flush=True)
   elif isinstance(exc,ValueError):error='AI 这次的回答不完整，没有保存。请再试一次。';refund=False  # the model ran: it counts
   elif isinstance(exc,(TimeoutError,socket.timeout)):status=504;error='AI 响应超时，草稿还在，稍后再试一次。'
   elif isinstance(exc,urllib.error.HTTPError):
    if exc.code in (400,413):error='模型或网关不支持此请求，请检查模型配置与音频大小。'
-   elif exc.code in (401,403):error='AI 服务认证或访问权限异常，请联系管理员检查网关密钥、Google 权限和访问限制。'
+   elif exc.code in (401,403):error=learner;print('run_job: %s refused by the gateway (HTTP %d)' % (kind,exc.code),file=__import__('sys').stderr,flush=True)
    elif exc.code==429:status=429;error='AI 服务这会儿太忙，请稍后再试；草稿还在。'
    elif exc.code==503:status=503;error='AI 服务暂时繁忙，请稍后重试或先练习内置材料。'
   c.execute("UPDATE lab_jobs SET status='failed',error=?,updated=? WHERE user_id=? AND request_id=? AND lease=?",(error,time.time(),uid,rid,lease))

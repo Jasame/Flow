@@ -17,6 +17,8 @@ needs ReadWritePaths=<audio>/tts (a drop-in); without it every new sentence was 
 2026-11-24 23:40). Now the folder is checked before the gateway is called: not writable → StoreError, 503 code 'store'
 (the page switches to the browser voice), one log line, no charge.
 """
+import sys
+import aigc_label
 import datetime, hashlib, json, os, re, shutil, tempfile, threading, time, urllib.error, urllib.request
 from pathlib import Path
 
@@ -319,6 +321,16 @@ def _speak(text, voice):
             ai_routes.record('tts', model(), started, [], info={'usage': (len(text), 0, 0, 0), 'served': 'cosyvoice-v3-flash'}, exc=err)
 
 
+def labelled(data, name):
+    """The MP3 with its implicit AI label (隐式标识, an ID3 AIGC frame: 《标识办法》第五条). A label that cannot be written
+    never costs the reading: the file is kept as it came, and only the exception type is logged."""
+    try:
+        return aigc_label.mp3(data, 'flow-tts-' + name[:-4])
+    except Exception as exc:  # noqa: BLE001
+        print('tts: AIGC label not written (%s)' % type(exc).__name__, file=sys.stderr, flush=True)
+        return data
+
+
 def _store(f, data):
     f.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=f.parent, prefix='.' + f.name + '.')
@@ -356,6 +368,8 @@ def ensure(c, who, text, voice, cap_left=None, own=False):
     if who is None:
         raise LookupError('not stored')
     n = len(text)
+    if who != -1 and __import__('ai_routes').day_full(c):
+        raise PermissionError('day_full')  # the ¥10 stop counts AI voice too; stored audio still plays
     if who != -1 and (_used(c, who) + n > cap('FLOW_TTS_USER_CHARS') or _used(c, 0) + n > cap('FLOW_TTS_DAILY_CHARS')):
         raise PermissionError('cap')
     if own and _used_import(c, who) + n > cap('FLOW_TTS_IMPORT_CHARS'):
@@ -375,7 +389,7 @@ def ensure(c, who, text, voice, cap_left=None, own=False):
         except (urllib.error.URLError, OSError, ValueError) as e:
             raise OSError(str(e)[:120])
         try:
-            _store(folder / name, data)
+            _store(folder / name, labelled(data, name))
         except OSError as e:
             _warn(folder, e)
             raise StoreError('store')
@@ -407,6 +421,8 @@ def post(c, uid, data):
     except PermissionError as e:
         if e.args and e.args[0] == 'import_cap':
             return {'error': '今天导入文章的 AI 朗读用完了，明天再试；先用浏览器的声音', 'code': 'import_cap'}, 429
+        if e.args and e.args[0] == 'day_full':
+            return {'error': '今天的 AI 用量已满，北京时间早上 8 点恢复；先用浏览器的声音', 'code': 'ai_day_full'}, 429
         if e.args and e.args[0] == 'busy':
             return {'error': '今天用 AI 朗读的人多，导入的文章先用浏览器的声音', 'code': 'busy'}, 429
         return {'error': '今天的 AI 朗读用完了，先用浏览器的声音', 'code': 'cap'}, 429
@@ -501,8 +517,8 @@ def daily_texts(c):
     """(id, sentences) of the newest 今日热点 written in the last 36 hours and not narrated; (None, []) otherwise."""
     import next_service as nx
     row = c.execute("SELECT id, content, created FROM lab_packs WHERE origin='daily' ORDER BY created DESC LIMIT 1").fetchone()
-    if not row or row[2] < time.time() - 36 * 3600:
-        return None, []
+    if not row or row[2] < time.time() - 36 * 3600 or __import__('daily_service').retired(json.loads(row[1])):
+        return None, []  # none new, or 今日热点 news (paused 2026-11-25)
     try:
         if nx.audio_index()[0].get(row[0]):
             return row[0], []  # it has a recording: nothing to make

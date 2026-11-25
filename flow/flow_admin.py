@@ -40,8 +40,15 @@ ROLE_LABEL = {'admin': '管理员', 'viewer': '只看数据'}
 
 
 def operator(headers):
-    """Who is asking (the email Cloudflare Access signed in) and the role that email has."""
+    """Who is asking (the email Cloudflare Access signed in) and the role that email has. With FLOW_ACCESS_AUD and
+    FLOW_ACCESS_TEAM set, the email comes from Access's signed token (access_check.py) and a request without a valid
+    one gets None (403); without them, the header is read as before."""
     email = (headers.get('Cf-Access-Authenticated-User-Email') or '').strip().lower()[:200]
+    check = __import__('access_check').settings()
+    if check:
+        email = __import__('access_check').verify(headers.get('Cf-Access-Jwt-Assertion'), *check)
+        if not email:
+            return None
     admins = {e.strip().lower() for e in os.getenv('FLOW_ADMIN_EMAILS', '').split(',') if e.strip()}
     role = 'admin' if not admins or email in admins else 'viewer'
     return {'email': email, 'role': role, 'label': ROLE_LABEL[role], 'roles_set': bool(admins)}
@@ -67,14 +74,14 @@ def log_action(c, op, action, target='', detail=''):
 
 
 ACTION_LABEL = {'reset-link': '生成重设密码链接', 'survey-hide': '隐藏问卷回答', 'survey-show': '恢复问卷回答',
-                'survey-export': '导出问卷 CSV', 'daily-run': '生成今日热点', 'feedback-done': '标记反馈已处理',
+                'survey-export': '导出问卷 CSV', 'daily-run': '生成今日一读', 'feedback-done': '标记反馈已处理',
                 'feedback-reopen': '重新打开反馈',
                 # r26
                 'account-disable': '停用账号', 'account-enable': '恢复账号', 'account-signout': '退出所有设备',
                 'account-staff-on': '设为员工账号', 'account-staff-off': '取消员工账号',
                 'account-teacher-on': '设为老师账号', 'account-teacher-off': '取消老师账号', 'account-level': '改水平',
                 'account-daily-new': '改每日新词', 'material-hide': '下架材料', 'material-show': '恢复材料',
-                'daily-again': '重新生成今日热点', 'ai-limits': '改 AI 额度', 'examples-start': '开始例句预生成',
+                'daily-again': '重新生成今日一读', 'ai-limits': '改 AI 额度', 'examples-start': '开始例句预生成',
                 'examples-stop': '停止例句预生成', 'announce': '发布公告', 'announce-end': '结束公告', 'export': '导出 CSV',
                 # 班级试用
                 'class-create': '新建班级', 'class-rename': '班级改名', 'class-teacher': '换班级老师', 'class-code': '换邀请码',
@@ -167,10 +174,10 @@ TAP_LABEL = {
     'home-sprint': '今日 · 考试倒计时', 'home-remind-once': '今日 · 计划完成后约复习时间', 'me-exam': '我的 · 我的考试', 'exam-goal': '考试练习 · 设定考试', 'exam-pace': '考试练习 · 按倒计时改每天新词',
     'exam-type': '考试练习 · 题型专练',
     'notice-login': '今日 · 提醒：登录', 'notice-level': '今日 · 提醒：换水平', 'notice-mail': '今日 · 提醒：绑定邮箱', 'notice-guide': '今日 · 提醒：看指南',
-    'home-resume': '今日 · 继续上次', 'home-news': '今日 · 今日热点', 'home-pick': '今日 · 也可以读', 'home-more': '今日 · 更多材料',
+    'home-resume': '今日 · 继续上次', 'home-news': '今日 · 今日一读', 'home-pick': '今日 · 也可以读', 'home-more': '今日 · 更多材料',
     'practice-map': '练习 · 知识图谱大卡', 'practice-tip': '练习 · 今天建议',
     'words-plan': '单词 · 词书计划', 'words-confuse': '单词 · 辨析', 'words-mistake': '单词 · 错题本', 'words-test': '单词 · 测词汇量', 'words-import': '单词 · 导入',
-    'words-stats': '单词 · 展开统计', 'read-gains': '读 · 展开这篇的收获', 'listen-preread': '听 · 展开读前生词',
+    'words-stats': '单词 · 展开统计', 'confuse-how': '词汇辨析 · 展开怎么区分', 'read-gains': '读 · 展开这篇的收获', 'listen-preread': '听 · 展开读前生词',
     'study-origin': '学习页 · 看来源', 'notice-install': '今日 · 提醒：放到桌面',
     'me-radar': '我的 · 能力雷达', 'me-growth': '我的 · 我的进步', 'me-report': '我的 · 这周的报告', 'me-mistake': '我的 · 错题本',
     'me-level': '我的 · 学习目标和水平', 'me-voice': '我的 · 朗读声音', 'me-text': '我的 · 字号和行距', 'me-remind': '我的 · 每天提醒', 'me-install': '我的 · 添加到桌面',
@@ -185,6 +192,7 @@ TAP_LABEL = {
     'beta-main': '内测版 · 去正式版',
     'me-about': '我的 · 认识语流', 'welcome-about': '第一次打开 · 认识语流',
     'about-start': '认识语流 · 开始学', 'about-join': '认识语流 · 注册账号', 'about-guide': '认识语流 · 操作指南', 'about-vocab-test': '认识语流 · 测词汇量',
+    'about-dl-android': '认识语流 · 下载安卓 App', 'about-dl-windows': '认识语流 · 下载 Windows 版', 'about-dl-mac': '认识语流 · 下载 Mac 版',
     'announce-open': '今日 · 公告：去看看',
     'home-week': '今日 · 这周进步', 'me-weekly-mail': '我的 · 每周进度邮件',
     'finish-expr': '学完一篇 · 小结：表达', 'finish-words': '学完一篇 · 小结：新词', 'finish-grammar': '学完一篇 · 小结：语法点',
@@ -216,7 +224,7 @@ def overview(c):
         'ai': {
             'today': q('SELECT COALESCE(SUM(count),0) FROM ai_usage WHERE day=?', day),
             'week': [{'day': d, 'count': q('SELECT COALESCE(SUM(count),0) FROM ai_usage WHERE day=?', d)} for d in reversed(week)],
-            'site_limit': chat_service.daily_limit('FLOW_AI_DAILY_LIMIT'),
+            'site_limit': chat_service.site_limit(c),  # today's, grown with the learners (chat_service.site_limit)
             'limits': __import__('console_ops').limits(),
             'user_limit': chat_service.daily_limit('FLOW_AI_USER_DAILY_LIMIT'),
             'users_at_limit': (q('SELECT COUNT(*) FROM ai_usage WHERE day=? AND user_id>0 AND count>=?', day, chat_service.daily_limit('FLOW_AI_USER_DAILY_LIMIT'))
@@ -480,6 +488,8 @@ class AdminHandler(BaseHTTPRequestHandler):
             return self._send({'error': '接口不存在'}, 404)
         path = path[len(PREFIX):]
         op = operator(self.headers)
+        if op is None:
+            return self._send({'error': '没有通过 Cloudflare Access 的登录核对，请重新打开后台'}, 403)
         with app.db() as c:
             schema(c)
             if method == 'GET':
@@ -580,7 +590,9 @@ class AdminHandler(BaseHTTPRequestHandler):
                         log_action(c, op, 'feedback-done' if status == 'done' else 'feedback-reopen', f"#{int(data['id'])}")
                     return self._send(body, code)
                 if path == '/daily/run':
-                    # Today's news material, made now instead of waiting for the timer (it used to be on the classic site).
+                    # Today's 今日一读 (今日热点 until 2026-11-25), made now instead of waiting for the timer.
+                    if __import__('daily_service').PAUSED:  # off until the samples are read (daily_service.samples)
+                        return self._send({'ok': False, 'message': '今日一读还没打开：先在内测版写几篇样稿看过（daily_service.py samples），确认不碰新闻再打开。'}, 409)
                     # again: today's failed (or cut off) — allow one more round of two tries (r26).
                     again = bool(data.get('again')) and __import__('console_ops').daily_again(c)
                     def run():

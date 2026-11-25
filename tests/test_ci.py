@@ -85,10 +85,10 @@ class MainFirstTests(unittest.TestCase):
 
     def test_a_pull_request_that_touches_only_the_native_apps_skips_the_website_tests(self):
         for paths in ([], [''], ['ios/Flow/App.swift', 'flow/app.py'], ['tools/run_tests.py'], ['README.md'], ['iosx/a'],
-                      ['.github/workflows/tests.yml'], ['desktop2/x']):
+                      ['.github/workflows/tests.yml'], ['desktop2/x'], ['nativex/a'], ['native/flowapp.js', 'docs/native-bridge.md']):
             self.assertTrue(rt.web_needed(paths), paths)
         for paths in (['ios/Flow/App.swift'], ['ios/a', '.github/workflows/ios.yml'], ['desktop/src/main.rs', '.github/workflows/desktop.yml'],
-                      ['android/app/build.gradle']):
+                      ['android/app/build.gradle'], ['native/flowapp.js'], ['native/flowapp.js', 'ios/Flow/Bridge/Bridge.swift']):
             self.assertFalse(rt.web_needed(paths), paths)
             self.assertFalse(rt.ui_needed(paths), paths)
         r = subprocess.run([sys.executable, str(ROOT / 'tools' / 'run_tests.py'), '--needs'], input='ios/Flow/App.swift\n',
@@ -114,6 +114,45 @@ class MainFirstTests(unittest.TestCase):
         self.assertEqual(r.stdout.strip(), 'ui=false')
 
 
+class ReleaseSigningTests(unittest.TestCase):
+    """tools/deploy.sh signs each release request: REQUEST names its tag and the sha256 of TOOLS (what the server runs
+    before installing), and REQUEST.sig is `ssh-keygen -Y sign` over REQUEST, namespace flow-release (语流, the owner's
+    key in the Mac's ssh-agent) or flow-beta-release (the 内测版, beta.yml's key)."""
+
+    def test_deploy_writes_tag_tools_and_the_signature(self):
+        sh = (ROOT / 'tools' / 'deploy.sh').read_text(encoding='utf-8')
+        for need in ('tag=%s%s tools=%s', 'release_manifest.py --tools "$BUILD" > "$WT/TOOLS"', 'NS=flow-release; [ $P = b ] && NS=flow-beta-release',
+                     'ssh-keygen -Y sign -q -f "$KEY" -n "$NS" "$WT/REQUEST"', 'git -C "$WT" add REQUEST TOOLS',
+                     'rm -f "$WT/REQUEST.sig"; git -C "$WT" rm -q --cached --ignore-unmatch REQUEST.sig'):
+            self.assertIn(need, sh)
+
+    def test_tools_lists_every_tool_the_server_takes_from_a_release(self):
+        rm = load('release_manifest')
+        auto = (ROOT / 'tools' / 'flow-autodeploy.py').read_text(encoding='utf-8')
+        tools = re.findall(r"'(tools/[^']+)'", re.search(r'^TOOLS = \[(.*?)\]', auto, re.M)[1])
+        self.assertTrue(tools)
+        self.assertLessEqual(set(tools), set(rm.TOOL_FILES))
+        self.assertIn(re.search(r"^AUDIO = '([^']+)'", auto, re.M)[1], rm.TOOL_DIRS)
+
+    def test_a_signature_checks_out_only_with_its_own_key_and_namespace(self):
+        import shutil
+        if not shutil.which('ssh-keygen'):
+            self.skipTest('no ssh-keygen')
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            run = lambda *a, **kw: subprocess.run(list(a), cwd=d, capture_output=True, **kw)
+            run('ssh-keygen', '-q', '-t', 'ed25519', '-N', '', '-C', 'test', '-f', 'k', check=True)
+            (d / 'REQUEST').write_text('0' * 40 + ' ' + '1' * 64 + ' e2e tag=b9 tools=' + '2' * 64 + '\n# b9 main: test\n')
+            run('ssh-keygen', '-Y', 'sign', '-q', '-f', 'k', '-n', 'flow-beta-release', 'REQUEST', check=True)
+            (d / 'allowed').write_text('flow-beta-release namespaces="flow-beta-release" ' + (d / 'k.pub').read_text())
+            verify = lambda ns, body: run('ssh-keygen', '-Y', 'verify', '-f', 'allowed', '-I', ns, '-n', ns, '-s', 'REQUEST.sig',
+                                          input=body).returncode
+            body = (d / 'REQUEST').read_bytes()
+            self.assertEqual(verify('flow-beta-release', body), 0)
+            self.assertNotEqual(verify('flow-release', body), 0)  # the other namespace: refused
+            self.assertNotEqual(verify('flow-beta-release', body.replace(b'tag=b9', b'tag=b8')), 0)  # changed: refused
+
+
 class MsiRunnerTests(unittest.TestCase):
     """The owner's MSI takes the heavy shares only when switched on, never for a fork, and only when it answers; the
     gates, frontend and releases stay on GitHub's machines; nothing secret goes there (tools/ci_runner.py)."""
@@ -122,6 +161,16 @@ class MsiRunnerTests(unittest.TestCase):
         self.cr = load('ci_runner')
         self.wf = (ROOT / '.github' / 'workflows' / 'tests.yml').read_text(encoding='utf-8')
         self.jobs = dict(re.findall(r'^  ([a-z-]+):\n(.*?)(?=^  [a-z-]+:\n|\Z)', self.wf.split('\njobs:\n', 1)[1], re.S | re.M))
+
+    def test_the_msi_s_slots_come_from_the_repository_variable_and_default_to_6(self):
+        self.assertIn('MSI_SLOTS: ${{ vars.MSI_SLOTS }}', self.jobs['changes'])
+        for value, slots in (('', 6), ('7', 7), (None, 6)):
+            env = {k: v for k, v in os.environ.items() if k != 'MSI_SLOTS'}
+            if value is not None:
+                env['MSI_SLOTS'] = value
+            r = subprocess.run([sys.executable, '-c', 'import ci_runner; print(ci_runner.SLOTS)'], cwd=ROOT / 'tools',
+                               env=env, capture_output=True, text=True)
+            self.assertEqual(r.stdout.strip(), str(slots), (value, r.stderr))
 
     def fake(self, load=0, starts=True, fail=None):
         calls = []
@@ -176,6 +225,28 @@ class MsiRunnerTests(unittest.TestCase):
         self.assertEqual((runner, where), (['self-hosted', 'msi'], 'msi'), reason)
         self.assertIn(('POST', 'actions/workflows/msi-probe.yml/dispatches', {'ref': 'main', 'inputs': {'nonce': '5-1'}}), calls)
         self.assertEqual(self.decide(self.env(GITHUB_EVENT_NAME='push', HEAD_REPO=''), self.fake()[0])[1], 'msi')  # main
+
+    def test_a_run_goes_to_a_busy_msi_only_if_its_shares_fit_in_what_is_left(self):
+        full_run = dict(NEED_WEB='true', NEED_UI='true')
+        self.assertEqual(self.cr.need(self.env(**full_run)), 7)
+        self.assertEqual(self.cr.need(self.env(NEED_WEB='true', NEED_UI='false')), 2)
+        self.assertEqual(self.decide(self.env(**full_run), self.fake(load=0)[0])[1], 'msi')  # the MSI to itself: 7 on 6
+        where, reason = self.decide(self.env(**full_run), self.fake(load=2)[0])[1:]
+        self.assertEqual(where, 'hosted', reason)  # 2 + 7 > 6: it would wait behind the other run
+        self.assertIn('room for 4 more jobs and this run has 7', reason)
+        self.assertEqual(self.decide(self.env(NEED_WEB='true', NEED_UI='false'), self.fake(load=2)[0])[1], 'msi')  # 2 + 2
+        old = self.cr.SLOTS
+        self.cr.SLOTS = 10
+        try:
+            self.assertEqual(self.decide(self.env(**full_run), self.fake(load=3)[0])[1], 'msi')  # 3 + 7 = 10
+            self.assertEqual(self.decide(self.env(**full_run), self.fake(load=4)[0])[1], 'hosted')
+        finally:
+            self.cr.SLOTS = old
+        self.assertIn('NEED_WEB: ${{ steps.paths.outputs.web }}', self.jobs['changes'])
+        self.assertIn('NEED_UI: ${{ steps.paths.outputs.ui }}', self.jobs['changes'])
+        bs, us = self.jobs['backend-share'], self.jobs['ui-share']
+        self.assertIn(f"share: [{', '.join(str(k) for k in range(1, self.cr.WEB_SHARES + 1))}]", bs)
+        self.assertIn(f"share: [{', '.join(str(k) for k in range(1, self.cr.UI_SHARES + 1))}]", us)
 
     def test_the_watch_cancels_a_run_whose_msi_jobs_find_no_machine(self):
         calls = []
@@ -240,6 +311,23 @@ class MsiRunnerTests(unittest.TestCase):
         self.assertNotRegex(sh, r'(vmess|vless|trojan|ss)://')  # no node link, ever
 
 
+class MsiRunTests(unittest.TestCase):
+    """tools/msi-run.sh: the pre-push tests on the MSI from the Mac, without touching the checkout or blocking."""
+
+    def test_it_never_waits_touches_the_checkout_or_keeps_a_slot(self):
+        sh = (ROOT / 'tools' / 'msi-run.sh').read_text()
+        self.assertEqual(subprocess.run(['bash', '-n', str(ROOT / 'tools' / 'msi-run.sh')]).returncode, 0)
+        self.assertIn('BatchMode=yes', sh)  # no password or host-key question can hang a session
+        self.assertNotRegex(sh, r'(^|[\s;(&|])ssh "\$HOST"')  # every ssh goes through the batch-mode options
+        self.assertIn('exit 3', sh)  # the MSI unreachable, told apart from failing tests
+        self.assertIn('GIT_INDEX_FILE=', sh)  # the snapshot is made in a throwaway index
+        self.assertIn('nice -n 10', sh)  # CI's runners keep priority
+        self.assertIn('</dev/null 9>&-', sh)  # the script on stdin is not eaten, the lock is not inherited
+        self.assertIn('-mtime +0', sh); self.assertIn('committerdate:unix', sh)  # leftovers of stopped runs go after a day
+        for word in ('git stash', 'git checkout', 'git reset', 'sudo', 'secrets.'):
+            self.assertNotIn(word, sh)
+
+
 class BetaReleaseTests(unittest.TestCase):
     """.github/workflows/beta.yml releases each main commit that passed Tests to the 内测版, unless BETA_AUTO is off."""
 
@@ -269,7 +357,13 @@ class BetaReleaseTests(unittest.TestCase):
         self.assertIn('permissions:\n      contents: write', self.jobs['release'])
         self.assertNotIn('contents: write', self.jobs['dry-run'])
         self.assertIn('group: beta-release\n      cancel-in-progress: false', self.jobs['release'])
-        self.assertNotIn('secrets.', self.wf)  # nothing but the workflow's own token
+        # one secret, the key that signs the 内测版's requests: in the release job only, which only main may run (its
+        # environment), handed to deploy.sh as a file and gone from the environment of what deploy.sh starts
+        self.assertEqual(set(re.findall(r'secrets\.(\w+)', self.wf)), {'FLOW_BETA_SIGN_KEY'})
+        self.assertNotIn('secrets.', self.jobs['dry-run'])
+        self.assertIn('environment: beta-release-signing', self.jobs['release'])
+        self.assertIn('unset FLOW_BETA_SIGN_KEY\n          bash tools/deploy.sh', self.jobs['release'])
+        self.assertIn("trap 'rm -f \"$key\"' EXIT", self.jobs['release'])
 
     def test_the_guide_pdf_is_printed_with_a_chinese_font(self):
         for job in ('release', 'dry-run'):
@@ -286,6 +380,62 @@ class BetaReleaseTests(unittest.TestCase):
             self.assertTrue(any(c.lower() in n.lower() for n in br.pdf_fonts(f) for c in br.CHINESE_FONTS))
             f.write_bytes(pdf(b'DejaVuSans'))
             self.assertFalse(any(c.lower() in n.lower() for n in br.pdf_fonts(f) for c in br.CHINESE_FONTS))
+
+
+class QuietBrowserTests(unittest.TestCase):
+    """The owner's rule (2026-11-25): what runs in the background makes no sound. Every tool that starts a browser calls
+    quiet.silent(pw) once: Chrome gets --mute-audio, and every context and page gets MUTE_JS (media and Web Audio at volume
+    0, the browser voice at volume 0, which on a Mac is the system's speech and beyond --mute-audio)."""
+
+    def test_every_tool_that_starts_a_browser_makes_it_silent(self):
+        for path in sorted((ROOT / 'tools').glob('*.py')):
+            text = path.read_text(encoding='utf-8')
+            if path.name == 'quiet.py' or not re.search(r'\b(chromium|webkit|firefox)\.launch\(', text):
+                continue
+            self.assertIn('from quiet import silent', text, path.name)
+            self.assertRegex(text, r'with sync_playwright\(\) as (\w+):\n\s+silent\(\1\)', path.name)
+
+    def test_silent_mutes_chrome_and_every_context_and_page(self):
+        quiet = load('quiet')
+        js = quiet.MUTE_JS
+        for part in ("addEventListener('play'", 'volume = 0', 'AudioDestinationNode', 'g.gain.value = 0', 'speechSynthesis.speak = u =>'):
+            self.assertIn(part, js)
+        self.assertNotIn('.muted', js)  # the app sets muted itself
+
+        class Target:
+            def __init__(self):
+                self.scripts = []
+
+            def add_init_script(self, script):
+                self.scripts.append(script)
+
+        class Browser:
+            def new_context(self, **kw):
+                return Target()
+
+            def new_page(self, **kw):
+                return Target()
+
+        class BrowserType:
+            def __init__(self):
+                self.calls = []
+
+            def launch(self, **kw):
+                self.calls.append(kw)
+                return Browser()
+
+        class PW:
+            chromium, webkit = BrowserType(), BrowserType()
+        pw = PW()
+        quiet.silent(pw); quiet.silent(pw)  # twice: wrapped once
+        b = pw.chromium.launch(channel='chrome', args=['--use-fake-ui-for-media-stream', '--mute-audio'])
+        self.assertEqual(pw.chromium.calls[-1]['args'], ['--mute-audio', '--use-fake-ui-for-media-stream'])
+        pw.chromium.launch(channel='chrome')
+        self.assertEqual(pw.chromium.calls[-1]['args'], ['--mute-audio'])
+        self.assertEqual(b.new_context(locale='zh-CN').scripts, [js]); self.assertEqual(b.new_page().scripts, [js])
+        w = pw.webkit.launch()
+        self.assertNotIn('args', pw.webkit.calls[-1])  # WebKit has no --mute-audio: the script does it
+        self.assertEqual(w.new_context().scripts, [js])
 
 
 class MergeFriendlyListTests(unittest.TestCase):

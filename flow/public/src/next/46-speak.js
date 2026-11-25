@@ -2,8 +2,9 @@
   async function speakView() {
     const d = await api('/api/next/speak' + guestQuery(true));
     const LV = { A2: '入门', B1: '中级', B2: '中高级', C1: '高级' };
-    view.innerHTML = `<div class="stack"><div><span class="kicker">口语路线</span><h1 class="h1">开口说，从真实情景开始</h1>
-        <p class="muted small">AI 扮演情景里的另一方：店员、房东、面试官……你用英文完成任务，可以说也可以打字。每说一句它会顺手纠正一处，并按你的回答放慢或加深一点；结束时告诉你哪里说得好、哪里要改。练过的情景过两周会回来：第 2 轮多一条要求，第 3 轮换角色。</p></div>
+    view.innerHTML = `<div class="stack"><div><h1 class="h1">口语路线</h1>
+        ${aiMark('对话里的角色由 AI 扮演')}<p class="muted small">AI 扮演店员、房东、面试官……你用英文完成任务，说或打字都行。</p>
+        <details class="basis"><summary>怎么练</summary><p class="small">每说一句，AI 会顺手纠正一处，并按你的回答放慢或加深一点；结束时告诉你哪里说得好、哪里要改。练过的情景过两周会回来：第 2 轮多一条要求，第 3 轮换角色。</p></details></div>
       ${d.next ? (n => `<a class="btn primary block" href="#/speak/${encodeURIComponent(d.next)}">下一个：${esc(n.title)}${n.rounds ? ` · 第 ${n.round} 轮` : ''}<span aria-hidden="true">→</span></a>`)(d.items.find(x => x.id === d.next)) : ''}
       <p class="small muted">${d.round_two ? `${d.total} 个情景都练过了，现在是复练：练过的情景会多一条要求，或者换角色再演一次。` : `已完成 ${d.done} / ${d.total} 个情景`}</p>
       <a class="card flat ielts-entry" href="#/speak/ielts" data-tap="speak-ielts"><span class="stack-xs"><b>雅思口语 · Part 1 和 Part 2</b>
@@ -21,15 +22,15 @@
     const goals = swap ? x.swap_goals : x.goals;
     view.innerHTML = `<div><a class="link small" href="#/speak">← 口语路线</a></div>
       <div class="stack"><div><span class="kicker">情景对话 · ${esc(x.level)}${again ? ` · 第 ${x.round} 轮` : ''}</span><h1 class="h1">${esc(x.title)}</h1><div class="title-en">${esc(x.title_en)}</div>
-        <p class="small">${swap ? `这一轮换过来：你扮演${esc(x.ai)}，AI 扮演${esc(x.me)}。情景还是：${esc(x.brief)}` : esc(x.brief)}</p></div>
-      <div class="scene-goals"><div class="kicker">你的任务${swap ? `（你是${esc(x.ai)}）` : ''}</div><ol class="steps-list small">${goals.map(g => `<li>${esc(g)}</li>`).join('')}</ol>
-        ${x.mode === 'challenge' ? `<div class="round-extra small"><b>这一轮多一条：</b>${esc(x.challenge)}</div>` : ''}</div>
+        <div class="ai-line">${aiTag()}${aiVoice()}<span>角色、纠正和声音都由 AI 生成</span></div><p class="small">${swap ? `这一轮换过来：你扮演${esc(x.ai)}，AI 扮演${esc(x.me)}。情景还是：${esc(x.brief)}` : esc(x.brief)}</p></div>
+      <div class="scene-goals"><div class="kicker">你的任务${swap ? `（你是${esc(x.ai)}）` : ''}</div><ol class="steps-list small">${goals.map(g => `<li>${esc(g)}</li>`).join('')}
+        ${x.mode === 'challenge' ? `<li class="round-extra"><b>这一轮多一条：</b>${esc(x.challenge)}</li>` : ''}</ol></div>
       ${swap ? '' : `<details class="useful"><summary class="small">用得上的说法（${x.useful.length}）</summary><div class="plist">${x.useful.map(u => `<div class="crow"><button class="icon-btn" data-say="${esc(u.text)}" aria-label="朗读">${ICON.speak}</button><span><span class="en">${esc(u.text)}</span><span class="tiny muted">${esc(u.meaning)}</span></span></div>`).join('')}</div></details>`}
       <div class="chat" id="chat"></div>
       <div id="dlgIn" class="stack-s" hidden><div class="tiny muted" id="dlgHint"></div>
         <div class="chat-in"><textarea id="dlgText" rows="2" maxlength="480" lang="en" enterkeyhint="send" placeholder="用英文回答，或者点 ● 说出来"></textarea>${recBtn('dlgMic', '说出来')}<button class="btn primary" id="dlgSend" data-own-wait>发送</button></div>
         <div class="row between"><span class="tiny muted" id="dlgCount"></span><button class="btn small ghost" id="dlgEnd">结束并看反馈</button></div></div>
-      <div><button class="btn primary block" id="dlgStart">开始对话</button></div><div id="dlgOut"></div></div>`;
+      <div class="dlg-go"><button class="btn primary block" id="dlgStart">开始对话</button></div><div id="dlgOut"></div></div>`;
     view.querySelectorAll('[data-say]').forEach(b => b.onclick = () => TTS.say(b.dataset.say));
     const chat = view.querySelector('#chat');
     const bubble = (role, text, extra) => { chat.insertAdjacentHTML('beforeend', `<div class="msg ${role}"><div class="b">${esc(text)}</div>${extra || ''}</div>`); chat.lastElementChild.scrollIntoView({ block: 'nearest', behavior: REDUCED ? 'auto' : 'smooth' }); };
@@ -108,7 +109,7 @@
       const btn = e.currentTarget; btn.innerHTML = '<span class="spin"></span>';
       const r = await turn({ end: true }); if (!r) { btn.textContent = '结束并看反馈'; return; }
       view.querySelector('#dlgIn').hidden = true; TTS.stop();
-      view.querySelector('#dlgOut').innerHTML = `<div class="result enter stack"><div class="card verdict"><span class="dot"></span><div>${esc(r.summary)}</div></div>
+      view.querySelector('#dlgOut').innerHTML = `<div class="result enter stack">${aiMark('总结和建议由 AI 生成，仅供参考')}<div class="card verdict"><span class="dot"></span><div>${esc(r.summary)}</div></div>
         ${r.good.length ? `<div class="stack-s"><b>说得好的句子</b>${r.good.map(g => `<div class="small text">${esc(g)}</div>`).join('')}</div>` : ''}
         ${r.fixes.length ? `<div class="stack-s"><b>要改的地方</b>${fixesHTML(r.fixes)}</div>` : ''}
         ${r.challenge ? `<div class="round-extra small"><b>这一轮的要求：</b>${esc(r.challenge)}${typeof r.challenge_met === 'boolean' ? (r.challenge_met ? ' <span class="ok-mark">✓ 做到了</span>' : ' <span class="muted">· 这次还没做到，下一轮再试</span>') : ''}</div>` : ''}

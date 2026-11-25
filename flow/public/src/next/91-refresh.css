@@ -31,13 +31,13 @@
 .me-id .t{display:grid;gap:2px;min-width:0}
 .me-id .h1{margin:0;overflow:hidden;text-overflow:ellipsis}
 .avatar{flex:none;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--green-soft);color:var(--green-ink);font-size:22px;font-weight:700}
-.me-nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;border-top:1px solid var(--line);padding-top:12px}
+.me-nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding-top:6px}  /* 简洁化: no line above the numbers */
 .me-nums div{display:grid;justify-items:center;gap:2px;text-align:center}
 .me-nums b{font-size:20px;font-variant-numeric:tabular-nums}
 .gsec{margin-top:22px}
 .ghead{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.04em;margin:0 12px 6px}
 .grow{position:relative;grid-template-columns:auto minmax(0,1fr) 14px}
-.glist>.grow+.grow::before{content:"";position:absolute;left:10px;right:10px;top:-1px;height:1px;background:var(--line)}
+/* 简洁化 (the user's pick, 2026-11-25): rows are told apart by their height and the space between, no line between them */
 .grow .t{font-size:15.5px}
 .grow .v{justify-self:end;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .grow:disabled{cursor:default;color:inherit}
@@ -83,6 +83,9 @@ details.preread>summary .tiny{flex-basis:100%}
 /* where a text comes from: one quiet line under the title, tags for how AI took part */
 .origin{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:6px;line-height:1.5}
 .origin .link{padding:0}
+/* 「AI 生成 · 经规范检查」 opens what the checks are (#/guide/ai-check): the note reads as a link, the tag stays as it is */
+.ai-link{display:flex;align-items:center;width:fit-content;min-height:32px;color:inherit;text-decoration:none;margin-top:2px}  /* a tap target of 32 px on a phone */
+.ai-link .ai-line>span:last-child{text-decoration:underline dotted;text-underline-offset:3px}
 .otag{display:inline-flex;align-items:center;font-size:11.5px;font-weight:600;padding:1px 7px;border-radius:99px;background:var(--sunk);color:var(--ink2);white-space:nowrap}
 .otag.warn{background:var(--amber-soft);color:var(--amber)}
 .origin-rules{margin:0;padding-left:1.2em;display:grid;gap:4px}
@@ -116,7 +119,7 @@ details.preread>summary .tiny{flex-basis:100%}
 /* 注销账号: the one button that cannot be undone, red in both themes (red on its soft tint keeps the contrast) */
 .btn.danger-btn{background:var(--red-soft);border-color:var(--red);color:var(--red);font-weight:600}
 /* right and wrong answers carry a mark, not only a colour (red and green look alike to many colour-blind learners) */
-.ans.right::after,.qopt.right::after{content:'✓';margin-left:auto;padding-left:8px;font-family:var(--sans);font-weight:800;color:var(--green-ink)}
+.ans.right::after,.qopt.right::after{content:'✓';margin-left:auto;padding-left:8px;font-family:var(--sans);font-weight:800;color:var(--ok-ink)}
 .ans.wrong::after,.qopt.wrong::after{content:'✗';margin-left:auto;padding-left:8px;font-family:var(--sans);font-weight:800;color:var(--red)}
 /* 复听: the card above the player on #/m/<id>/listen/again */
 .relisten{margin-bottom:12px}

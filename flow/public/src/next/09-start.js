@@ -61,7 +61,9 @@
       <p class="small wg-plan" id="wgPlan" aria-live="polite" hidden></p>
       <div class="wg-go stack-s"><button class="btn primary block" id="wgGo" type="button" data-tap="welcome-start">${edit ? '保存' : '开始学习'}</button>
         <p class="tiny muted tc" id="wgNeed" aria-live="polite" hidden></p>
-        ${edit ? '<a class="btn ghost block" href="#/me">取消</a>' : S.user ? '' : '<button class="link small tc" id="wgLogin" type="button" data-tap="welcome-login">已有账号？登录</button>'}</div>
+        ${edit ? '<a class="btn ghost block" href="#/me">取消</a>' : S.user ? '' : `<div class="wg-acct"><button class="btn block" id="wgReg" type="button" data-tap="welcome-register">注册账号</button>
+          <button class="btn block" id="wgLogin" type="button" data-tap="welcome-login">已有账号？登录</button></div>
+        <p class="tiny muted tc">不注册也能先学；注册以后，进度换手机、换电脑都在。</p>`}</div>
       ${edit ? '' : '<p class="tiny tc about-line"><a class="link" href="/about" data-tap="welcome-about">第一次来？先花一分钟看看语流能帮你做什么</a></p>'}</div>`;  // 认识语流 (#32)
     const sync = () => {
       if (!picked) st.target = suggest();
@@ -88,7 +90,9 @@
     view.querySelectorAll('[data-level]').forEach(b => b.onclick = () => { st.level = b.dataset.level; view.querySelectorAll('[data-level]').forEach(x => x.setAttribute('aria-checked', String(x === b))); });
     view.querySelectorAll('[data-min]').forEach(b => b.onclick = () => { st.minutes = Number(b.dataset.min); view.querySelectorAll('[data-min]').forEach(x => x.setAttribute('aria-checked', String(x === b))); });
     view.querySelectorAll('[data-theme]').forEach(b => b.onclick = () => { const t = b.dataset.theme; st.themes = st.themes.includes(t) ? st.themes.filter(x => x !== t) : st.themes.concat(t); b.setAttribute('aria-pressed', String(st.themes.includes(t))); });
+    // 注册 and 登录 side by side, one as plain to see as the other (the owner on WeChat, 2026-11-25: 「注册一般和登录是一级的」)
     const login = document.getElementById('wgLogin'); if (login) login.onclick = () => openLogin();
+    const reg = document.getElementById('wgReg'); if (reg) reg.onclick = () => openLogin('', 'reg');
     sync();
     document.getElementById('wgGo').onclick = async e => {
       const btn = e.currentTarget; btn.disabled = true;

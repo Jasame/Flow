@@ -31,6 +31,8 @@ GOAL_REASON = {'daily': '日常交流用得上', 'work': '工作沟通用得上'
                'media': '适合「看懂影视、新闻」', 'interest': '有故事，读着轻松'}
 MINUTES = (5, 10, 15, 20, 30, 45, 60)
 # Pre-generated Kokoro narration (see tools/gen_audio.py): audio/<voice>/<material>.m4a + .json timings.
+# 主题色 (我的 → 外观): the accent the pages are drawn in; green is 配色 A, indigo the optional blue (99-accent.css)
+ACCENTS = ('green', 'indigo')
 VOICES = {'us-f': '美音 · 女声', 'us-m': '美音 · 男声', 'uk-f': '英音 · 女声', 'uk-m': '英音 · 男声'}
 # Which ids can have narration files: the v5 corpus and, since the r27 content line, the older materials too (简版:
 # graded-*, graph-* and the first theme-level texts), so WeChat on Android, which has no browser voice, can play them.
@@ -90,6 +92,8 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
         # 'guess' (one band below the target, until a test says more), 'placed' (语法起点小测), 'self' (chosen; older rows: NULL)
         c.execute('ALTER TABLE next_profiles ADD COLUMN target TEXT')
         c.execute('ALTER TABLE next_profiles ADD COLUMN level_source TEXT')
+    if 'accent' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:  # 主题色, kept with the account
+        c.execute("ALTER TABLE next_profiles ADD COLUMN accent TEXT NOT NULL DEFAULT 'green'")
     import vocab_service  # word books, daily plan and FSRS state live on top of next_cards
     vocab_service.schema(c)
     __import__('skills_service').schema(c)  # ability profile, mistake book, weekly report
@@ -102,6 +106,7 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
     __import__('word_links').schema(c)  # practice on words Chinese speakers mix up
     __import__('ability_radar').schema(c)  # goals, assessments and radar snapshots
     __import__('exam_service').schema(c)  # exam practice papers and results
+    __import__('tour_service').schema(c)  # 新手引导: seen per account, counts without accounts
     __import__('exam_sprint').schema(c)  # question-type practice results
     __import__('progress_service').schema(c)  # 这周进步: weekly goals by week, the Sunday mail's switch and link
     __import__('content_v50').sync(c)  # additive edits of published materials (more questions, tags) reach the database
@@ -301,6 +306,9 @@ def origin(p):
     def links(items, n):
         return [{'title': str(r.get('title') or r.get('url'))[:120], 'url': r['url']} for r in items or []
                 if isinstance(r, dict) and str(r.get('url', '')).startswith('https://')][:n]
+    if p.get('kind') == 'topic':  # 今日一读 (since 2026-11-25): an original text on a lasting topic, AI-written, no news
+        name = __import__('daily_service').DAILY_NAME
+        return {'kind': 'topic', 'label': f'{name}（Flow 原创）', 'ai': 'AI 生成', 'reviewed': None, 'url': '', 'references': []}
     if p.get('daily_day'):
         return {'kind': 'news', 'label': '今日热点（联网检索）', 'ai': 'AI 改写', 'reviewed': False, 'url': '',
                 'references': links((p.get('provenance') or {}).get('sources'), 5)}
@@ -309,6 +317,8 @@ def origin(p):
                 'url': p['source_url'] if str(p.get('source_url', '')).startswith('https://') else '', 'references': []}
     return {'kind': 'original', 'label': p.get('source') or 'Flow 编辑部原创', 'ai': p.get('ai', V5_AI if featured(p) else ''),
             'reviewed': p.get('reviewed'), 'url': p['source_url'] if str(p.get('source_url', '')).startswith('https://') else '',
+            # 经人工审核: only a text the user has read themselves (SPEC v5.1 reviewed_by_human, with the day), never by default
+            'reviewed_by_human': p.get('reviewed_by_human') is True,
             'references': links(p.get('references'), 8),
             'quotes': [{k: qt[k] for k in ('text', 'author', 'work', 'year')} for qt in p.get('quotes') or []
                        if isinstance(qt, dict) and all(qt.get(k) for k in ('text', 'author', 'work', 'year'))][:3]}
@@ -320,6 +330,8 @@ def _pack_row(c, uid, pid):
         return None
     if __import__('quality_service').info(c, row)['status'] == 'disabled':
         return None
+    if row['origin'] == 'daily' and __import__('daily_service').retired(json.loads(row['content'])):
+        return None  # 今日热点 news, paused 2026-11-25: kept in the database, not shown
     return row
 
 
@@ -340,7 +352,8 @@ def _public_packs(c, level=None, with_hidden=False):
                 rows.append(({'id': row['id'], 'origin': row['origin'], 'created': row['created']}, p))
         _PACKS.update(key=key, at=time.time(), rows=rows)
     hidden = () if with_hidden else __import__('console_ops').hidden_packs(c)
-    return [rp for rp in _PACKS['rows'] if (not level or cefr(rp[1]) == level) and rp[0]['id'] not in hidden]
+    retired = (lambda p: False) if with_hidden else __import__('daily_service').retired  # 今日热点 news: paused, kept, not shown
+    return [rp for rp in _PACKS['rows'] if (not level or cefr(rp[1]) == level) and rp[0]['id'] not in hidden and not retired(rp[1])]
 
 
 _TOKENS = {}
@@ -363,7 +376,8 @@ def profile(c, uid):
     return {'level': r['level'], 'goal': r['goal'], 'themes': json.loads(r['themes']), 'minutes': r['minutes'],
             'voice': r['voice'] if r['voice'] in VOICES else 'us-f', 'weekly_goal': r['weekly_goal'] if 'weekly_goal' in r.keys() else 4,
             'exam': r['exam'] if 'exam' in r.keys() else None, 'exam_date': r['exam_date'] if 'exam_date' in r.keys() else None,
-            'target': r['target'] if 'target' in r.keys() else None, 'level_source': (r['level_source'] if 'level_source' in r.keys() else None) or 'self'}
+            'target': r['target'] if 'target' in r.keys() else None, 'level_source': (r['level_source'] if 'level_source' in r.keys() else None) or 'self',
+            'accent': r['accent'] if 'accent' in r.keys() and r['accent'] in ACCENTS else 'green'}
 
 
 BANDS = ('A2', 'B1', 'B2', 'C1')
@@ -438,6 +452,15 @@ def set_voice(c, uid, data):
     return {'voice': voice}, 200
 
 
+def set_accent(c, uid, data):
+    accent = data.get('accent')
+    if accent not in ACCENTS:
+        return {'error': '没有这个主题色'}, 400
+    if c.execute('UPDATE next_profiles SET accent=?, updated=? WHERE user_id=?', (accent, time.time(), uid)).rowcount:
+        c.commit()
+    return {'accent': accent}, 200
+
+
 def audio_index():
     """{material id: [voices]} and its version. With R2 in use (media.py), from the release's media manifest, so a
     material has narration as soon as it is uploaded; otherwise from audio/index.json, reloaded when it changes.
@@ -488,6 +511,7 @@ def _card(pack, done=None, extra=None):
             'preview': pack.get('summary_zh') or sentences(pack['body'])[0][:140], 'preview_en': sentences(pack['body'])[0][:160],
             'daily': bool(pack.get('daily_day')), 'featured': featured(pack), 'grammar': pack.get('grammar', []),
             'brief': not featured(pack) and not pack.get('daily_day') and not pack.get('imported'),  # 简版: the older, shorter texts
+            'ai': not pack.get('imported'),  # 「AI 生成」 on the card: everything Flow wrote is (featured, 简版, 热点); an imported article is the learner's
             'steps': sorted(done or [], key=STEPS.index), **(extra or {})}
 
 
@@ -873,7 +897,8 @@ def home(c, uid, level=None, themes=None):
            'featured_left': left if uid else None, 'level_up': up,
            'stats': stats(c, uid) if uid else None, 'graph': g,
            'announce': __import__('console_ops').current_announcement(c),
-           'trial_survey': bool(uid) and __import__('class_service').survey_due(c, uid)}  # 公告 from the xmc.hk console, at the top of 今日
+           'trial_survey': bool(uid) and __import__('class_service').survey_due(c, uid),  # 公告 from the xmc.hk console, at the top of 今日
+           'update': __import__('updates_service').latest()}  # 「语流更新了」 on 今日: the newest release's highlights (updates_service.py)
     if uid and prof:
         import skills_service as sk
         out['sprint'] = __import__('exam_sprint').brief(c, uid)  # 考试冲刺: the exam and its days left, in the plan's header line
@@ -1595,6 +1620,8 @@ def meta():
 
 def get(c, uid, path, q):
     one = lambda k, d='': (q.get(k) or [d])[0]
+    if path == '/api/next/tour':  # 新手引导 this account has not seen yet (a guest: none)
+        return __import__('tour_service').due(c, uid), 200
     if path.startswith('/api/next/vocab') or path == '/api/next/review':
         if not uid and path != '/api/next/vocab/test':
             return {'error': '请先登录'}, 401
@@ -1612,7 +1639,16 @@ def get(c, uid, path, q):
         cs = __import__('class_service')
         return cs.mine(c, uid) if path == '/api/next/class' else cs.teach(c, uid, one('id'))
     if path == '/api/next/guide':
-        return __import__('user_guide').api(), 200
+        g = __import__('user_guide').api()
+        if one('chapter'):  # one chapter (a tick's 《用户协议》《隐私和数据》, 81-privacy.js): a few KB, not the whole guide
+            cid = one('chapter')  # a chapter's id, or a section's (## … {#id}): then its chapter, and where in it
+            ch = next((x for x in g['chapters'] if x['id'] == cid), None) or next((x for x in g['chapters'] if f'id="g-{cid}"' in x['html']), None)
+            if not ch:
+                return {'error': '没有这一章'}, 404
+            return {'updated': g['updated'], 'chapter': {'id': ch['id'], 'title': ch['title'], 'html': ch['html'], 'anchor': cid if cid != ch['id'] else None}}, 200
+        return g, 200
+    if path == '/api/next/updates':
+        return __import__('updates_service').listing(), 200  # 更新记录 (#/updates)
     if path == '/api/next/meta':
         return meta(), 200
     if path == '/api/next/home':
@@ -1714,6 +1750,8 @@ def post_public(c, uid, path, data):
         return __import__('easy_reading').done(c, uid, data)
     if path == '/api/next/words/confuse/answer':
         return __import__('word_links').answer(c, uid, data)
+    if path == '/api/next/tour':  # 新手引导 ended (finished or skipped, and where)
+        return __import__('tour_service').record(c, uid, data)
     if path == '/api/next/exam/paper':
         return __import__('exam_service').paper(c, uid, data.get('exam'))
     if path == '/api/next/exam/submit':
@@ -1755,6 +1793,8 @@ def post(c, uid, path, data):
         return __import__('ability_radar').judged(c, uid, path.rsplit('/', 1)[1], data)
     if path == '/api/next/voice':
         return set_voice(c, uid, data)
+    if path == '/api/next/accent':
+        return set_accent(c, uid, data)
     if path == '/api/next/progress':
         if not _pack_row(c, uid, str(data.get('pack', ''))):
             return {'error': '材料不存在'}, 404

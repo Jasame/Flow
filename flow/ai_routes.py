@@ -34,6 +34,7 @@ TASKS = [  # kind, label, group (grading: marks what a learner wrote or said; co
     ('next-retell', '复述点评', 'grading'), ('next-dialog', '情景对话', 'grading'), ('next-ielts', '雅思口语点评', 'grading'),
     ('next-explain', '句子讲解', 'content'), ('next-variant', '难度改写', 'content'), ('next-examples', 'AI 例句', 'content'),
     ('next-transsrc', '翻译原句', 'content'), ('next-enrich', '导入文章出题', 'content'), ('daily-news', '今日热点改写', 'content'),
+    ('daily-topic', '今日一读（原创短文）', 'content'),
     ('context-help', '随堂提示', 'chat'), ('chat', '导师问答', 'chat'),
 ]
 LABEL = {k: l for k, l, _ in TASKS}
@@ -615,6 +616,59 @@ def budget_state(c):
     return {'daily': b, 'spent': round(s, 4), 'pct': round(100 * s / b) if b else None, 'level': level}
 
 
+STOP_DEFAULT = 10.0
+_FULL = {'key': None, 'at': 0.0, 'full': False}
+
+
+def stop_line():
+    """Yuan a day past which learners' AI stops too (2026-11-25, the owner on A5's card: 「¥5 提醒，¥10 硬停」): the
+    console's ai_stop, else ¥10; 0 or below set in the console = no stop. The ¥5 budget still only warns."""
+    v = _settings().get('ai_stop')
+    if isinstance(v, (int, float)) and not isinstance(v, bool):
+        return float(v) if v > 0 else 0.0
+    return STOP_DEFAULT
+
+
+def learner_day_start(now=None):
+    """The learners' AI day starts at 00:00 UTC, 08:00 in Beijing, the hour their call counts reset (chat_service)."""
+    t = now or time.time()
+    return t - t % DAY
+
+
+def spent_since(c, start):
+    """Yuan of every answered call since start: status 200, also an answer that could not be used (it was paid for)."""
+    table = prices()
+    try:
+        rows = c.execute('SELECT ts, model, served, prompt, cached, completion FROM ai_calls WHERE ts>=? AND status=200',
+                         (start,)).fetchall()
+    except sqlite3.OperationalError:
+        return 0.0
+    return sum(cost(served_name(r[2], r[1]), r[0], r[3], r[4], r[5], table) for r in rows)
+
+
+def day_full(c=None, now=None):
+    """The learners' day has cost stop_line() or more: their AI (and new AI voice) waits for the next 08:00 Beijing.
+    Worked out at most every 20 seconds per process."""
+    line = stop_line()
+    if not line:
+        return False
+    t = now or time.time()
+    key = (learner_day_start(t), line)
+    if _FULL['key'] == key and t - _FULL['at'] < 20:
+        return _FULL['full']
+    own = c is None
+    c = c or _db()
+    if c is None:
+        return False
+    try:
+        full = spent_since(c, key[0]) >= line
+    finally:
+        if own:
+            c.close()
+    _FULL.update(key=key, at=t, full=full)
+    return full
+
+
 def over_budget(c=None):
     """Today's spend has reached the daily budget: batch work (例句预生成, the nightly check) waits for tomorrow.
     Learners are never stopped by the budget; their daily call limits stay as they are."""
@@ -759,3 +813,4 @@ def tick(c, now=None):
     t = now or time.time()
     if int(t // 300) % 288 == 0:  # about once a day
         prune(c)
+        __import__('output_service').prune_say(c, now)  # 发音 verdict counts: 14 days even when nobody practises

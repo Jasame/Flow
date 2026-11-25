@@ -83,6 +83,18 @@ object Speech {
         return out
     }
 
+    /** Every voice the engine knows, with why some are left out of getVoices() (debug builds: what a phone has). */
+    fun allVoicesJson(): JSONArray {
+        val out = JSONArray()
+        val t = tts ?: return out
+        val vs = try { t.voices.orEmpty() } catch (e: Exception) { emptySet<Voice>() }
+        vs.filter { it.locale.language == "en" }.sortedBy { it.name }.forEach { v ->
+            out.put(JSONObject().put("name", v.name).put("lang", v.locale.toLanguageTag()).put("network", v.isNetworkConnectionRequired)
+                .put("notInstalled", v.features.orEmpty().contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED)))
+        }
+        return out
+    }
+
     /**
      * Say [text]. [cb] gets start / boundary / end / error (the speechSynthesis events). With no engine on the phone
      * nothing happens at all, as with the WebView's own speechSynthesis: the page's 2.5 s check then says so.
@@ -96,7 +108,8 @@ object Speech {
         t.setSpeechRate(rate.coerceIn(0.3f, 3f))
         t.setPitch(pitch.coerceIn(0.5f, 2f))
         callbacks[id] = cb
-        val r = t.speak(text, TextToSpeech.QUEUE_FLUSH, Bundle(), id)
+        val params = Bundle().apply { putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, if (cn.flowlang.app.Mute.on) 0f else 1f) }
+        val r = t.speak(text, TextToSpeech.QUEUE_FLUSH, params, id)
         if (r != TextToSpeech.SUCCESS) fire(id, "error", JSONObject().put("error", "synthesis-failed"), last = true)
     }
 

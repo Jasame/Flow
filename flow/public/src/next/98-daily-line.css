@@ -1,6 +1,8 @@
 /* ---- 今日好句 and 今日热点 (r27): the top of 今日 ---- */
 .line-card{display:grid;gap:8px;padding:18px;margin:2px 0 12px;background:var(--paper);border:0;box-shadow:none}
 .lc-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.lc-body{display:grid;gap:8px}
+.lc-fold{display:none}
 .lc-title{margin:0;font-size:13px;line-height:1.4;font-weight:700;color:var(--green-ink);letter-spacing:.02em}
 .lc-en{margin:2px 0 0;font-family:var(--serif);font-size:22px;line-height:1.4;font-weight:500;color:var(--ink);overflow-wrap:anywhere}
 .lc-en.long{font-size:19px}
@@ -10,6 +12,8 @@
 .lc-src{margin:0;color:var(--muted);line-height:1.5}
 .lc-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
 .lc-acts .btn{gap:6px}
+.lc-acts .ai-voice{align-self:center}  /* 「AI 朗读」 by 听一遍: every voice on this card is synthesized (aiVoice, 00-head.js) */
+@media (max-width:374px){.lc-acts{gap:6px}.lc-acts .btn{padding-left:11px;padding-right:11px}}  /* with the label, the three buttons still fit one row at 360 */
 .lc-acts .btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .lc-acts .btn.on{background:var(--green-soft);color:var(--green-ink)}
 .lc-sh{padding:12px;border-radius:12px;background:var(--sunk)}
@@ -38,3 +42,29 @@
   .lc-en{font-size:20px}
   .lc-en.long{font-size:17.5px}
 }
+
+/* Phones: 今日好句 and 今日一读 one line each, so 今天的计划 and its 开始 / 继续 button are on the first screen (the owner's
+   pick, 2026-11-25). 好句: its name, the start of the sentence and a chevron; a tap anywhere on the line opens it in place
+   (open for the rest of the day, 12-daily-line.js). 今日一读: its name, the title, 「AI 生成」; a tap opens the text. */
+@media (max-width:759px){
+  .line-card{position:relative}
+  .line-card>.lc-head{min-width:0}  /* a grid item: without it the line's whole sentence widens the card */
+  .line-card:not(.open){gap:0;padding-top:6px;padding-bottom:6px}
+  .line-card:not(.open) .lc-body,.line-card:not(.open) .lc-head .pill{display:none}
+  .lc-fold{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:1;min-width:0;min-height:44px;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+  .line-card:not(.open) .lc-fold::after{content:"";position:absolute;inset:0;border-radius:inherit}  /* the whole line takes the tap */
+  .lc-peek{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--serif);font-size:15.5px;color:var(--ink)}
+  .line-card.open .lc-peek{display:none}
+  .line-card.open .lc-fold{flex:none;min-width:44px}
+  .lc-chev{flex:none;width:9px;height:9px;margin:0 4px 4px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .2s}
+  .line-card.open .lc-chev{transform:rotate(225deg);margin-bottom:-4px}
+  .line-card.open .lc-head .pill{margin-left:auto}
+  .news-card{display:flex;align-items:center;gap:8px;min-height:44px;padding-top:10px;padding-bottom:10px}
+  .news-card .lc-head{display:contents}
+  .news-card .nc-title{flex:none}
+  .news-card .nc-h{order:1;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px}
+  .news-card .ai-mark{order:2;flex:none}
+  .news-card .nc-p,.news-card .nc-meta{display:none}
+  .news-card::after{content:"›";order:3;flex:none;color:var(--muted);font-size:20px;line-height:1}
+}
+@media (max-width:759px) and (prefers-reduced-motion:reduce){.lc-chev{transition:none}}

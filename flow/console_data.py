@@ -102,7 +102,7 @@ def learners(c):
     import vocab_service as vs
     out = []
     import privacy_service as pv
-    for u in c.execute('SELECT id, username, email, admin, disabled, created, age_band, guardian_ok, role FROM users ORDER BY id DESC'):
+    for u in c.execute('SELECT id, username, email, admin, disabled, created, age_band, guardian_ok, role, storage_ok, storage_no, terms_ok, terms_version FROM users ORDER BY id DESC'):
         uid = u['id']
         days = act.get(uid, {})
         first = min(days) if days else None
@@ -114,7 +114,7 @@ def learners(c):
         plan = plans.get(uid)
         out.append({
             'id': uid, 'username': u['username'], 'email': auth_service.mask(u['email']) if u['email'] else '', 'has_email': bool(u['email']),
-            'staff': bool(u['admin']), 'teacher': u['role'] == 'teacher', 'disabled': bool(u['disabled']), 'joined': joined, 'joined_known': bool(u['created']),
+            'staff': bool(u['admin']), 'teacher': u['role'] == 'teacher', 'storage': __import__('privacy_service').storage(u), 'storage_at': u['storage_ok'] or u['storage_no'], 'terms': __import__('privacy_service').terms(u), 'terms_version': u['terms_version'], 'terms_at': u['terms_ok'], 'disabled': bool(u['disabled']), 'joined': joined, 'joined_known': bool(u['created']),
             'age': u['age_band'], 'age_label': pv.label(u['age_band']), 'guardian': bool(u['guardian_ok']),
             'level': p['level'] if p else None, 'goal': GOAL_LABEL.get(p['goal'], p['goal']) if p else None,
             'last_study': last_study.isoformat() if last_study else None, 'last_seen': last_seen,
@@ -136,6 +136,7 @@ FILTERS = {
     'teacher': ('老师账号', lambda r, td: r['teacher']),
     'disabled': ('已停用', lambda r, td: r['disabled']),
     'minor': ('未成年', lambda r, td: r['age'] in ('u14', '14-17')),
+    'paused': ('没同意数据存放（暂停）', lambda r, td: r['storage'] == 'no'),
     'no_age': ('没填年龄段', lambda r, td: not r['age']),
 }
 SORTS = {
@@ -167,7 +168,7 @@ def learner(c, uid):
     learner wrote."""
     import auth_service, vocab_service as vs, exam_service as ex, chat_service, feedback_service
     uid = int(uid)
-    u = c.execute('SELECT id, username, email, admin, disabled, created, age_band, guardian_ok, role FROM users WHERE id=?', (uid,)).fetchone()
+    u = c.execute('SELECT id, username, email, admin, disabled, created, age_band, guardian_ok, role, storage_ok, storage_no, terms_ok, terms_version FROM users WHERE id=?', (uid,)).fetchone()
     if not u:
         return None
     now, td = time.time(), today()
@@ -217,7 +218,7 @@ def learner(c, uid):
     seen = _session_seen(c).get(uid)
     return {
         'account': {'id': uid, 'username': u['username'], 'email': auth_service.mask(u['email']) if u['email'] else '', 'has_email': bool(u['email']),
-                    'staff': bool(u['admin']), 'teacher': u['role'] == 'teacher', 'disabled': bool(u['disabled']), 'joined': _joined(u, p['created'] if p else None, first),
+                    'staff': bool(u['admin']), 'teacher': u['role'] == 'teacher', 'storage': __import__('privacy_service').storage(u), 'storage_at': u['storage_ok'] or u['storage_no'], 'terms': __import__('privacy_service').terms(u), 'terms_version': u['terms_version'], 'terms_at': u['terms_ok'], 'disabled': bool(u['disabled']), 'joined': _joined(u, p['created'] if p else None, first),
                     'age': u['age_band'], 'age_label': __import__('privacy_service').label(u['age_band']), 'guardian': u['guardian_ok'],
                     'joined_known': bool(u['created']), 'sessions': sessions, 'last_open': seen,
                     'locked_until': lock['until'] if lock and lock['until'] > now else None},
@@ -338,7 +339,7 @@ def content(c, days=0):
         n = learners.get(pid, 0)
         s = per.get(pid, {})
         items.append({'id': pid, 'title': p.get('title') or pid, 'level': nx.cefr(p), 'theme': nx.THEMES.get(p.get('theme'), p.get('theme') or ''),
-                      'origin': '热点' if row['origin'] == 'daily' else '系列' if p.get('series') else '精选' if nx.featured(p) else '材料',
+                      'origin': ('今日一读' if p.get('kind') == 'topic' else '今日热点（已停）') if row['origin'] == 'daily' else '系列' if p.get('series') else '精选' if nx.featured(p) else '材料',
                       'learners': n, 'steps': {k: s.get(k, 0) for k in nx.STEPS}, 'completion': round(100 * s.get('output', 0) / n) if n else None,
                       'easy_read': easy.get(pid, {}), 'last': last.get(pid), 'hidden': pid in hidden, 'hidden_info': hidden.get(pid)})
     items.sort(key=lambda m: (-m['learners'], -(m['last'] or 0), m['title']))
@@ -429,7 +430,13 @@ def ai(c, days=14, people=False):
             ((utc_today - datetime.timedelta(days=days - 1)).isoformat(),))]
         out['failures'] = [{'kind': KIND_LABEL.get(r[0], r[0]), 'error': (r[1] or '')[:160], 'created': r[2]} for r in c.execute(
             "SELECT kind, error, created FROM lab_jobs WHERE status='failed' AND created>? ORDER BY id DESC LIMIT 8", (now - days * DAY,))]
-    import ai_routes
+    import ai_routes, chat_service
+    # today's site ceiling as grown with the learners (chat_service.site_limit; lim['site_limit'] is its floor), and the
+    # learners' hard stop (ai_routes.stop_line / day_full: the learners' day from 08:00 Beijing, every paid call)
+    out['site_today'] = chat_service.site_limit(c)
+    line = ai_routes.stop_line()
+    out['stop'] = {'line': line, 'source': 'console' if console_ops.settings().get('ai_stop') is not None else 'default',
+                   'spent': round(ai_routes.spent_since(c, ai_routes.learner_day_start()), 4), 'full': bool(line) and ai_routes.day_full(c)}
     out['costs'] = ai_routes.summary(c, days)
     out['evals'] = ai_routes.eval_reports()
     out['nightly'] = ai_routes.nightly_on()
@@ -447,7 +454,7 @@ SAMPLES = {'next-explain': ('句子讲解', 'SELECT e.pack, e.sentence, e.level,
            'next-examples': ('AI 例句', "SELECT norm, sentence, translation, created, COALESCE(sense, '') FROM next_word_examples"),
            'next-transsrc': ('翻译原句', 'SELECT t.pack, t.sentence, t.zh, t.created FROM next_translations t JOIN lab_packs l ON l.id=t.pack AND l.owner IS NULL'),
            'next-dialog': ('对话开场', 'SELECT pack, level, result, created FROM next_dialog_openers'),
-           'daily-news': ('今日热点', "SELECT id, content, created FROM lab_packs WHERE origin='daily' AND owner IS NULL")}
+           'daily-news': ('今日一读（含已停的今日热点）', "SELECT id, content, created FROM lab_packs WHERE origin='daily' AND owner IS NULL")}
 
 
 def _public_title(c, pack, cache):

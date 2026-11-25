@@ -66,6 +66,9 @@ def render(job):
     wav = d / f'{sprite}.wav'
     sf.write(wav, np.concatenate(chunks), sr, subtype='PCM_16')
     subprocess.run(['afconvert', '-f', 'm4af', '-d', 'aac', '-b', BITRATE, str(wav), str(m4a)], check=True, capture_output=True)
+    # 隐式标识 (aigc_label, 2026-11-25): a synthetic voice, so the file says so; the audio frames are not touched
+    import aigc_label
+    m4a.write_bytes(aigc_label.mp4(m4a.read_bytes(), f'flow-words-{accent}-{sprite}'))
     wav.unlink()
     meta.write_text(json.dumps(marks, separators=(',', ':')))
     return accent, sprite, 'ok'

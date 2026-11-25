@@ -36,10 +36,21 @@ pub const PAGE_CHECK: &str = r#"(async () => {
     r.mediaHandlers = played;
     await new Promise(ok => setTimeout(ok, 300));  // media_update is sent after 40 ms
   } catch (e) { r.mediaError = String(e); }
-  // plans the reminders only where 复习提醒用系统通知 is on (never on a fresh install, so not in CI)
+  // the contract's shape (docs/native-bridge.md §1–2)
+  try {
+    r.build = F.build; r.beta = F.beta;
+    const off = F.on('smoke', () => {}); r.onReturnsOff = typeof off === 'function'; off();
+    r.hello = await F.call('hello');
+    r.callUnknownRejects = await F.call('no-such-thing').then(() => false, () => true);
+  } catch (e) { r.shapeError = String(e); }
+  // the reminders: a made-up /api/next/vocab answer, planned only where the reminders are on (FLOW_SMOKE_NOTIFY)
   try {
     const now = Math.floor(Date.now() / 1000);
-    r.synced = await F.notify.sync({ enabled: false, hour: 20, has_email: false, once: now + 75, forecast: [2, 0, 3, 1, 0, 0, 4] });
+    const v = { reminder: { enabled: false, hour: 20, has_email: false, once: now + 75 }, due: 3, new: 0, later: 0, minutes: 2,
+      forecast: [3, 0, 2, 1, 0, 0, 4], plan: { daily_new: 0 }, book: { done: true }, total: 40 };
+    const p = await window.__TAURI_INTERNALS__.invoke('notify_plan', { v });
+    r.synced = p.planned; r.syncOk = p.ok; if (p.why) r.syncError = p.why;
+    r.pendingFromPage = (await F.notify.pending()).map(x => x.id);
   } catch (e) { r.syncError = String(e); }
   await window.__TAURI_INTERNALS__.invoke('smoke_report', { r });
 })().catch(e => window.__TAURI_INTERNALS__.invoke('smoke_report', { r: { error: String(e) } }));"#;
@@ -79,6 +90,7 @@ pub async fn smoke_report(app: AppHandle, r: serde_json::Value) {
             "webview": tauri::webview_version().ok(),
             "media_controls": st.media_ok.load(std::sync::atomic::Ordering::Relaxed),
             "media_last_title": st.media_title.lock().unwrap().clone(),
+            "media_last_artist": st.media_artist.lock().unwrap().clone(),
             "mute": st.mute,
             "notify_setting": st.settings().notify,
             "smoke_notify": notify_wanted(),

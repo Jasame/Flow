@@ -30,8 +30,8 @@
   const WEEKDAY = '日一二三四五六';
   // The 单词 page's tool row: [link or button id, label, icon paths].
   const WORD_TOOLS = [
-    ['#/vocab/plan', '词书计划', '<path d="M5 5a2 2 0 0 1 2-2h11v15H7a2 2 0 0 0-2 2z"/><path d="M5 20a2 2 0 0 0 2 1h11v-3"/>'],
-    ['#/words/confuse', '辨析', '<circle cx="9" cy="12" r="5.5"/><circle cx="15" cy="12" r="5.5"/>'],
+    ['#/vocab/plan', '背词计划', '<path d="M5 5a2 2 0 0 1 2-2h11v15H7a2 2 0 0 0-2 2z"/><path d="M5 20a2 2 0 0 0 2 1h11v-3"/>'],
+    ['#/words/confuse', '词汇辨析', '<circle cx="9" cy="12" r="5.5"/><circle cx="15" cy="12" r="5.5"/>'],
     ['#/cards/mistake', '错题本', '<path d="M6 3h12v18H6z"/><path d="m9.5 9.5 5 5m0-5-5 5"/>'],
     ['#/vocab/test', '测词汇量', '<path d="M4 17a8 8 0 0 1 16 0"/><path d="m12 17 4-5"/>'],
     ['imp', '导入', '<path d="M12 3v11m-4-4 4 4 4-4"/><path d="M5 15v5h14v-5"/>']];
@@ -63,6 +63,18 @@
   const APP_PLACES = { ios: ['这台 iPhone', 'iPhone 的「设置 → 语流 → 通知」'], android: ['这台手机', '手机的「设置 → 应用 → 语流 → 通知」'],
     windows: ['这台电脑', 'Windows 的「设置 → 系统 → 通知」'], macos: ['这台 Mac', 'Mac 的「系统设置 → 通知」'] };
   const appPlace = () => APP_PLACES[(window.FlowApp && FlowApp.platform) || 'ios'] || ['这台设备', '系统设置里的「通知」'];
+  // Every bridge call answers a Promise (native-bridge.md 2: iOS can only answer asynchronously): whether the app's
+  // reminder is on is awaited, never compared as it comes (语流 20, 2026-11-25: 「已开启」 never showed in the apps).
+  // permission() is the app's reminder: 'undetermined' again after off(); ask() true turns it on again.
+  const appOn = async () => { try { return (await Promise.resolve(FlowApp.notify.permission())) === 'granted'; } catch (e) { return false; } };
+  // the app's row on the plan page: off, a button to turn it on; on, said so, with 关闭 where the app can (notify.off: iOS,
+  // Android) or the system's settings where it opens them (notify.settings); neither: the system's settings say how
+  function appRowHTML(on) {
+    const [place] = appPlace(), at = `在${place}${/[A-Za-z]$/.test(place) ? ' ' : ''}上`;
+    if (!on) return `<button class="btn small" type="button" id="rApp">到点用 App 通知提醒</button><span class="muted tiny" id="rAppNote">${at}，按上面的时间弹通知，不用邮箱</span>`;
+    return `<span class="small" id="rAppOn">已开启：${at}到点用 App 通知提醒</span>${typeof FlowApp.notify.off === 'function' ? '<button class="link small hit44" type="button" id="rAppOff">关闭</button>'
+      : typeof FlowApp.notify.settings === 'function' ? '<button class="link small hit44" type="button" id="rAppSet">通知设置</button>' : ''}`;
+  }
   async function remindOnce(after) {
     if (!S.user) return needLogin('登录后才能设复习提醒。');
     let r, forecast; try { const o = await api('/api/next/vocab'); r = o.reminder; forecast = o.forecast; } catch (e) { toast(e.message); return; }
@@ -135,11 +147,13 @@
     let statsOpen = false; try { statsOpen = localStorage.getItem('flow-words-stats') === 'open'; } catch (e) { /* private mode */ }
     const est = o.plan && o.plan.estimate;
     const TAP = { '#/vocab/plan': 'words-plan', '#/words/confuse': 'words-confuse', '#/cards/mistake': 'words-mistake', '#/vocab/test': 'words-test', imp: 'words-import' };
-    view.innerHTML = `<div><h1 class="h1">单词</h1><span class="muted small">共 ${o.total} 个 · 已掌握 ${o.mastered}</span></div>
+    // no words yet (a new account): the card above says how to start; counts of 0, a search box and filters wait for words
+    const none = !o.total;
+    view.innerHTML = `<div><h1 class="h1">单词</h1>${none ? '' : `<span class="muted small">共 ${o.total} 个 · 已掌握 ${o.mastered}</span>`}</div>
       ${today}
       <nav class="tools section" aria-label="单词工具">${WORD_TOOLS.map(([to, label, icon]) => `${to[0] === '#' ? `<a href="${to}" data-tap="${TAP[to]}">` : `<button type="button" id="${to}" data-tap="${TAP[to]}">`}
         <svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg><span>${label}</span>${to[0] === '#' ? '</a>' : '</button>'}`).join('')}</nav>
-      <details class="card flat fold section" id="vStats"${statsOpen ? ' open' : ''}><summary data-tap="words-stats"><b>统计和复习预测</b><span class="tiny muted">已掌握 ${o.mastered} · 学习中 ${o.learning}${est ? ` · 词汇量约 ${est.toLocaleString()}` : ''}</span></summary>
+      ${none ? '' : `<details class="card flat fold section" id="vStats"${statsOpen ? ' open' : ''}><summary data-tap="words-stats"><b>统计和复习预测</b><span class="tiny muted">已掌握 ${o.mastered} · 学习中 ${o.learning}${est ? ` · 词汇量约 ${est.toLocaleString()}` : ''}</span></summary>
         <div class="stack-s">
         <div class="stat-grid"><div class="card sunk stat"><b>${o.mastered}</b><span class="tiny muted">已掌握</span></div><div class="card sunk stat"><b>${o.learning}</b><span class="tiny muted">学习中</span></div>
           <div class="card sunk stat"><b>${est ? est.toLocaleString() : '—'}</b><span class="tiny muted">${est ? '词汇量估计' : '<a class="link" href="#/vocab/test">测词汇量</a>'}</span></div></div>
@@ -149,7 +163,7 @@
         <div class="cal" aria-label="最近 5 周每天复习次数">${o.calendar.map(d => `<i class="l${d.n ? Math.min(4, Math.ceil(d.n / maxC * 4)) : 0}" title="${d.day}：${d.n} 次"></i>`).join('')}</div></div></details>
       <form class="searchrow section" id="sf" role="search"><input type="search" name="q" aria-label="搜索单词、意思或原句" enterkeyhint="search" placeholder="搜索单词、意思或原句${TOUCH ? '' : '（按 / 跳到这里）'}" value="${esc(q)}"><button class="btn">搜索</button></form>
       <div class="chips filt" role="group" aria-label="筛选">${[['', '全部'], ['word', '单词'], ['phrase', '表达'], ['mistake', '错题']].map(([k, l]) => `<button class="chip small" data-f="${k}" aria-pressed="${f === k}">${l}</button>`).join('')}</div>
-      <div id="listSlot">${listHTML(list, q, page, f)}</div>
+      <div id="listSlot">${listHTML(list, q, page, f)}</div>`}
       ${o.total ? '<p class="tc section"><button class="link small" type="button" id="wbExport" data-tap="words-export">导出单词本：Excel 表格或 Anki</button></p>' : ''}`;
     requestAnimationFrame(() => requestAnimationFrame(() => {
       view.querySelectorAll('.vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; });
@@ -181,23 +195,28 @@
       const pv = document.getElementById('pv'), nx = document.getElementById('nx');
       if (pv) pv.onclick = () => { st.page--; reload().then(() => bringIntoView(document.getElementById('sf'))); };
       if (nx) nx.onclick = () => { st.page++; reload().then(() => bringIntoView(document.getElementById('sf'))); };
+      const sc = document.getElementById('sfClear'), sa = document.getElementById('sfAll');
+      if (sc) sc.onclick = () => { const i = document.querySelector('#sf input'); if (i) { i.value = ''; if (!TOUCH) i.focus(); } st.q = ''; st.page = 1; reload(); };
+      if (sa) sa.onclick = () => { st.f = ''; st.page = 1; view.querySelectorAll('[data-f]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.f === ''))); reload(); };
     };
-    document.getElementById('sf').onsubmit = e => { e.preventDefault(); st.q = e.target.q.value.trim(); st.page = 1; reload(); };
+    if (!none) document.getElementById('sf').onsubmit = e => { e.preventDefault(); st.q = e.target.q.value.trim(); st.page = 1; reload(); };
     view.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { st.f = b.dataset.f; st.page = 1; view.querySelectorAll('[data-f]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); reload(); });
     document.getElementById('imp').onclick = importSheet;
     const wx = document.getElementById('wbExport'); if (wx) wx.onclick = dataSheet;
     const vs = document.getElementById('vStats');
-    vs.addEventListener('toggle', () => { try { localStorage.setItem('flow-words-stats', vs.open ? 'open' : ''); } catch (e) { /* private mode */ } });
+    if (vs) vs.addEventListener('toggle', () => { try { localStorage.setItem('flow-words-stats', vs.open ? 'open' : ''); } catch (e) { /* private mode */ } });
     bindList();
   }
   function listHTML(list, q, page, f) {
     const pages = Math.max(1, Math.ceil(list.total / list.per));
-    const none = q ? '没有找到。' : { word: '还没有单词。选一本词书，或者读文章时点词收藏。', phrase: '还没有收藏的表达。读文章时选中一段文字，或在「地道表达」里点 ☆。',
+    // nothing found: say what was searched, and a way out (清除搜索; with a filter on, the search across all of them) (语流 B9)
+    const FILT = { word: '单词', phrase: '表达', mistake: '错题' };
+    const none = q ? `没找到「${esc(q)}」${f && FILT[f] ? `（只在「${FILT[f]}」里找了）` : ''}。可以换个写法，或者搜中文意思。` : { word: '还没有单词。选一本词书，或者读文章时点词收藏。', phrase: '还没有收藏的表达。读文章时选中一段文字，或在「地道表达」里点 ☆。',
       mistake: '还没有错题。理解题答错、写作和口语里被改出的错误，都会自动收进来。' }[f] || '还没有单词。选一本词书，或者学一篇材料时点词收藏。';
     const sub = c => c.source === 'mistake' ? '错题 · ' + ({ fix: '改错', question: '理解题', sound: '发音' }[c.kind] || '') + (c.context ? ' · ' + esc(c.context) : '')
       : esc(c.meaning || c.context || SOURCE[c.source] || '');
     return `${list.items.length ? `<div class="xlist" id="clist">${list.items.map(c => `<button class="xrow" type="button" data-card="${c.id}"><span class="t"><span class="x">${esc(c.text)}</span><span class="tiny muted">${sub(c)}</span></span>${recallPill(c)}</button>`).join('')}</div>`
-        : `<div class="empty"><p>${none}</p></div>`}
+        : `<div class="empty"><p>${none}</p>${q ? `<div class="row center">${f && FILT[f] ? '<button class="btn small" type="button" id="sfAll">在全部里找</button>' : ''}<button class="btn small" type="button" id="sfClear">清除搜索</button></div>` : ''}</div>`}
       ${pages > 1 ? `<div class="pager"><button class="btn small" id="pv" ${page <= 1 ? 'disabled' : ''}>上一页</button><span class="muted small">${page} / ${pages}</span><button class="btn small" id="nx" ${page >= pages ? 'disabled' : ''}>下一页</button></div>` : ''}`;
   }
 
@@ -218,9 +237,9 @@
     const list = [];
     if (c.context) list.push({ text: c.context, form: c.source === 'mistake' ? ((c.extra || {}).from || c.text) : c.text, pack: c.pack, title: c.source === 'mistake' ? '你当时写的' : '你收藏时的原句', audio: 0, mine: true });
     (c.examples || []).forEach(e => list.push(e));
-    return list.length ? `<div class="exs">${list.map((e, k) => `<div class="ex"><button class="icon-btn" data-exp="${k}" aria-label="播放例句">${ICON.speak}</button>
+    return list.length ? `<div class="exs"><div class="ex-ai">${aiVoice()}</div>${list.map((e, k) => `<div class="ex"><button class="icon-btn" data-exp="${k}" aria-label="播放例句">${ICON.speak}</button>
       <div><div class="text">${open === false ? gapped(e.text, e.form || c.text, false) : gapped(e.text, e.form || c.text, true)}</div>${e.zh && open !== false ? `<div class="tiny muted">${esc(e.zh)}</div>` : ''}
-      ${e.pack ? `<a class="tiny muted link" href="#/m/${encodeURIComponent(e.pack)}/read">${e.mine ? esc(e.title) : '出自《' + esc(e.title) + '》'}${e.audio ? ' · 原文录音' : ''}</a>` : `<span class="tiny muted">${esc(e.title)}</span>`}</div></div>`).join('')}</div>` : '';
+      ${e.pack ? `<a class="tiny muted link" href="#/m/${encodeURIComponent(e.pack)}/read">${e.mine ? esc(e.title) : '出自《' + esc(e.title) + '》'}${e.audio ? ' · 原文录音' : ''}</a>` : e.ai ? aiTag() : `<span class="tiny muted">${esc(e.title)}</span>`}</div></div>`).join('')}</div>` : '';
   }
   function rootsHTML(c) {
     return c.roots && c.roots.length ? `<div class="roots">${c.roots.map(r => `<span class="root"><span class="k">${esc(r.kind)}</span> <b>${esc(r.part)}</b> ${esc(r.meaning)}</span>`).join('')}</div>` : '';
@@ -235,7 +254,7 @@
     const c = d.card;
     const tl = { again: '忘了', hard: '模糊', good: '记得', easy: '很熟', known: '熟知', lookup: '读文章时查过' };
     openSheet(`<div class="stack">
-      <div class="row between"><div><div class="word" id="sheetTitle">${esc(c.text)}</div><div class="ph">${esc(c.phonetic || '')}</div></div><button class="icon-btn" id="sayW" aria-label="朗读">${ICON.speak}</button></div>
+      <div class="row between"><div><div class="word" id="sheetTitle">${esc(c.text)}</div><div class="ph">${esc(c.phonetic || '')}</div></div><span class="say-ai"><button class="icon-btn" id="sayW" aria-label="朗读">${ICON.speak}</button>${aiVoice()}</span></div>
       ${c.source === 'mistake' && (c.extra || {}).from ? `<div class="fixline"><del>${esc(c.extra.from)}</del> → <ins>${esc(c.text)}</ins></div>` : ''}
       ${c.meaning ? `<div class="mean">${esc(c.meaning).replace(/；|;/g, '<br>')}</div>` : ''}${rootsHTML(c)}
       <div class="row">${recallPill(c)}${c.stability ? `<span class="pill">记忆稳定性 ${c.stability < 1 ? '不到 1 天' : Math.round(c.stability) + ' 天'}</span>` : ''}${c.state !== 'new' && !c.known ? `<span class="pill">${dueText(c.due)}</span>` : ''}</div>
@@ -262,11 +281,11 @@
   function importSheet() {
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">导入词表</h2>
       <p class="muted small">每行一个单词或短语（也可以用逗号分开），一次最多 500 个。词典里有的会自动配上释义和例句；已经在复习里的会跳过。适合导入老师给的或自己整理的词表。</p>
-      <textarea id="impText" rows="8" placeholder="abandon&#10;make ends meet&#10;serendipity"></textarea>
+      <textarea id="impText" data-draft="words-import" rows="8" placeholder="abandon&#10;make ends meet&#10;serendipity"></textarea>
       <div class="row"><button class="btn primary" id="impGo">导入</button><button class="btn ghost" data-close>取消</button></div></div>`, card => {
       card.querySelector('#impGo').onclick = async e => {
         e.currentTarget.disabled = true;
-        try { const r = await api('/api/next/vocab/import', { text: card.querySelector('#impText').value }); closeSheet(); toast(`导入了 ${r.added} 个${r.skipped ? `，跳过 ${r.skipped} 个已有的` : ''}`); refreshHome().catch(() => {}); vocabView(); }
+        try { const r = await api('/api/next/vocab/import', { text: card.querySelector('#impText').value }); draftDone('words-import'); closeSheet(); toast(`导入了 ${r.added} 个${r.skipped ? `，跳过 ${r.skipped} 个已有的` : ''}`); refreshHome().catch(() => {}); vocabView(); }
         catch (x) { toast(x.message); e.currentTarget.disabled = false; }
       };
     });
@@ -308,7 +327,7 @@
         <div class="row"><select id="rHour" aria-label="提醒时间">${Array.from({ length: 18 }, (_, k) => k + 6).map(h => `<option value="${h}" ${h === o.reminder.hour ? 'selected' : ''}>每天 ${h}:00</option>`).join('')}</select></div>
         <label class="checkline"><input type="checkbox" id="rMail" ${o.reminder.enabled ? 'checked' : ''} ${o.reminder.has_email ? '' : 'disabled'}><span>到点发邮件提醒（只在有词要复习时发）${o.reminder.has_email ? '' : '<br><span class="muted tiny">账号还没绑定邮箱：可以在<a class="link" href="#/me">「我的」</a>里绑定，或者先用下面的日历提醒。</span>'}</span></label>
         <div class="row"><a class="btn small" id="rCal" href="/api/next/vocab/reminder.ics?hour=${o.reminder.hour}">加到手机日历</a><span class="muted tiny">日历每天到点提醒，不依赖任何 App</span></div>
-        ${window.FlowApp && FlowApp.has && FlowApp.has('notify') ? `<div class="row"><button class="btn small" type="button" id="rApp">到点用 App 通知提醒</button><span class="muted tiny" id="rAppNote">在${appPlace()[0]}${/[A-Za-z]$/.test(appPlace()[0]) ? ' ' : ''}上，按上面的时间弹通知，不用邮箱</span></div>` : ''}
+        ${window.FlowApp && FlowApp.has && FlowApp.has('notify') ? `<div class="row" id="rAppRow">${appRowHTML(false)}</div>` : ''}
         <div class="row between" id="onceRow"><span class="small" id="onceNow">${o.reminder.once ? `下一次：${onceLabel(o.reminder.once)}（只管这一次）` : '哪天这个点没空，可以只改下一次的时间。'}</span><button class="btn small" type="button" id="onceBtn">这次什么时候复习</button></div></div>`;
     const meta = id => o.books.find(b => b.id === id) || {};
     // Days left: words not yet studied, minus the ones this plan skips (everyday words; for exam and data books, what the test showed you know).
@@ -366,12 +385,24 @@
     const rHour = document.getElementById('rHour'), rMail = document.getElementById('rMail'), rCal = document.getElementById('rCal');
     const saveRemind = async () => { rCal.href = '/api/next/vocab/reminder.ics?hour=' + rHour.value; try { appNotify({ ...(await api('/api/next/vocab/reminder', { enabled: rMail.checked, hour: Number(rHour.value) })), forecast: o.forecast }); toast(rMail.checked ? `每天 ${rHour.value}:00 会提醒你` : '提醒时间已更新'); } catch (x) { toast(x.message); rMail.checked = false; } };
     rHour.onchange = saveRemind; rMail.onchange = saveRemind;
-    const rApp = document.getElementById('rApp');
-    if (rApp) rApp.onclick = async () => {  // the app (iOS, Android, desktop): ask once for notifications, then schedule them from the reminder
-      let ok = false; try { ok = await Promise.resolve(FlowApp.notify.ask()); } catch (e) { ok = false; }
-      if (!ok) { toast(`通知没有打开：可以到${appPlace()[1]}里打开`); return; }
-      try { const v = await api('/api/next/vocab'); appNotify({ ...v.reminder, forecast: v.forecast }); toast(`好，每天 ${v.reminder.hour}:00 用 App 通知提醒你（有词要复习的日子）`); } catch (e) { toast(e.message); }
+    const bindApp = () => {  // the app (iOS, Android, desktop): ask once for notifications, then schedule them from the reminder
+      const row = document.getElementById('rAppRow'); if (!row) return;
+      const redo = async () => { const on = await appOn(); if (!document.contains(row)) return; row.innerHTML = appRowHTML(on); bindApp(); };
+      const on = document.getElementById('rApp');
+      if (on) on.onclick = async () => {
+        let ok = false; try { ok = await Promise.resolve(FlowApp.notify.ask()); } catch (e) { ok = false; }
+        if (!ok) { toast(`通知没有打开：可以到${appPlace()[1]}里打开`); return; }
+        try { const v = await api('/api/next/vocab'); appNotify({ ...v.reminder, forecast: v.forecast }); toast(`好，每天 ${v.reminder.hour}:00 用 App 通知提醒你（有词要复习的日子）`); } catch (e) { toast(e.message); }
+        redo();
+      };
+      const off = document.getElementById('rAppOff');
+      if (off) off.onclick = async () => { try { await Promise.resolve(FlowApp.notify.off()); toast('App 通知提醒关了；邮件和日历提醒照旧'); } catch (e) { toast(e.message || '没有关掉，再试一次'); } redo(); };
+      const set = document.getElementById('rAppSet');
+      if (set) set.onclick = () => { try { FlowApp.notify.settings(); } catch (e) { toast(`可以到${appPlace()[1]}里改`); } };
     };
+    bindApp();
+    const appRow = document.getElementById('rAppRow');  // drawn as off at first; then as the app says (asynchronously)
+    if (appRow) appOn().then(on => { if (on && document.contains(appRow)) { appRow.innerHTML = appRowHTML(true); bindApp(); } });
     document.getElementById('onceBtn').onclick = () => remindOnce(x => { document.getElementById('onceNow').textContent = x.once ? `下一次：${onceLabel(x.once)}（只管这一次）` : '哪天这个点没空，可以只改下一次的时间。'; });
     document.getElementById('savePlan').onclick = async e => {
       const btn = e.currentTarget; btn.disabled = true;
@@ -392,7 +423,7 @@
     function show() {
       document.body.classList.add('reviewing');
       if (i >= items.length) return finish();
-      view.innerHTML = `<div class="bar-progress"><i id="rp"></i></div><div class="review vtest enter"><p class="muted small">认识这个词吗？看到能想起大概意思就算认识。<br>有几个是编出来的假词，用来校正估计。</p>
+      view.innerHTML = `<h1 class="sr-only">测词汇量</h1><div class="bar-progress"><i id="rp"></i></div><div class="review vtest enter"><p class="muted small">认识这个词吗？看到能想起大概意思就算认识。<br>有几个是编出来的假词，用来校正估计。</p>
         <div class="wordbig">${esc(items[i])}</div>
         <div class="choice two">${KNOW.order([['1', 'good', '认识'], ['0', '', '不认识']]).map(([a, cls, t], k) => `<button class="${cls}" data-a="${a}">${t}<small>${k ? '→' : '←'}</small></button>`).join('')}</div>
         <p class="muted tiny tc">${i + 1} / ${items.length}</p></div>`;

@@ -109,34 +109,61 @@
     return play0.apply(this, arguments);
   };
 
-  /* ---------- the review reminders: the app re-plans them when it opens and comes back to the front ---------- */
-  let resyncing = false;
-  const resync = async () => {
-    if (resyncing || document.visibilityState !== 'visible') return;
-    resyncing = true;
+  /* ---------- the review reminders (docs/native-bridge.md §5) ----------
+   * The app plans them from the whole /api/next/vocab answer (due, later, forecast, the book's new words …), fetched
+   * here with the page's own login: when the app opens, when it comes back to the front (at most every 30 minutes),
+   * and whenever the page calls sync(r) — the page's r says something changed; the server has the details. */
+  let planning = null;
+  const replan = force => planning || (planning = (async () => {
     try {
-      if (!(await invoke('notify_due'))) return;
+      if (!force && !(await invoke('notify_due'))) return { ok: true, planned: 0, why: 'off' };
       const r = await fetch('/api/next/vocab', { credentials: 'same-origin' });
-      if (r.status === 401) { await invoke('notify_sync', { r: null }); return; }  // signed out: no reminders
-      if (!r.ok) return;
-      const j = await r.json();
-      if (j && j.reminder) await invoke('notify_sync', { r: Object.assign({}, j.reminder, { forecast: j.forecast }) });
-    } catch (e) { /* offline: the ones already planned stay */ } finally { resyncing = false; }
-  };
-  addEventListener('load', () => setTimeout(resync, 4000));
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(resync, 1500); });
+      if (r.status === 401) return await invoke('notify_signed_out');  // signed out: no word reminders
+      if (r.status === 403) {
+        // not agreed yet to 「数据存放在香港」 or to the current 用户协议 (the server says code 'storage' for both, with
+        // need: 'storage' | 'terms'; 'terms' as a code is accepted too): no reminders at all (the hour
+        // stays); they come back by themselves on the first plan after the learner agrees. This runs from the bridge,
+        // whatever page is showing.
+        const j = await r.json().catch(() => ({}));
+        if (j && (j.code === 'storage' || j.code === 'terms')) return await invoke('notify_hold');
+      }
+      if (!r.ok) return { ok: false, planned: 0, why: 'http ' + r.status };
+      return await invoke('notify_plan', { v: await r.json() });
+    } catch (e) {
+      return { ok: false, planned: 0, why: 'offline' };  // the ones already planned stay
+    } finally { planning = null; }
+  })());
+  const quietly = () => { if (document.visibilityState === 'visible') replan(false); };
+  addEventListener('load', () => setTimeout(quietly, 4000));
+  document.addEventListener('visibilitychange', () => setTimeout(quietly, 1500));
+  // a window left open for days (or hidden in the Dock / tray): plan again every 3 hours anyway
+  setInterval(() => replan(false), 3 * 3600 * 1000);
 
   const FlowApp = {
     v: 1,
     app: __FLOW_VERSION__,
+    build: __FLOW_BUILD__,
+    beta: __FLOW_BETA__,
     platform: __FLOW_PLATFORM__,
     has: k => CAPS.includes(k),
-    on(type, fn) { if (typeof fn !== 'function') return; const l = subs.get(type) || []; l.push(fn); subs.set(type, l); },
+    on(type, fn) {
+      if (typeof fn !== 'function') return () => {};
+      const l = subs.get(type) || []; l.push(fn); subs.set(type, l);
+      return () => FlowApp.off(type, fn);
+    },
     off(type, fn) { const l = subs.get(type); if (l) subs.set(type, l.filter(f => f !== fn)); },
+    call(name) {
+      if (name === 'hello') return Promise.resolve({ v: 1, app: FlowApp.app, build: FlowApp.build, platform: FlowApp.platform, features: CAPS.slice() });
+      // the page is visible again: send the media state once more (the system's controls follow it)
+      if (name === 'app.visible') { media.sent = ''; push(); return Promise.resolve({ ok: true }); }
+      return Promise.reject(new Error('FlowApp: no command ' + name));
+    },
     notify: Object.freeze({
       permission: () => invoke('notify_permission'),
       ask: () => invoke('notify_ask'),
-      sync: r => invoke('notify_sync', { r: r ? Object.assign({}, r) : null }),
+      // null or {app: false}: the learner turned the app's reminders off; anything else: plan again
+      sync: r => (!r || r.app === false) ? invoke('notify_off') : replan(true),
+      pending: () => invoke('notify_pending'),
     }),
     // the app → the page
     _media(action) {
@@ -144,6 +171,7 @@
       if (typeof fn === 'function') { try { fn({ action }); } catch (e) { console.error(e); } }
       emit('media', { action });
     },
+    _replan: () => replan(true),
     _emit: emit,
   };
   Object.defineProperty(window, 'FlowApp', { value: Object.freeze(FlowApp), configurable: false, writable: false });

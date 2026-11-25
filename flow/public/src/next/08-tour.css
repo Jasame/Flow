@@ -1,0 +1,19 @@
+/* 新手引导 (08-tour.js): the page dimmed but for the button it points at, and a small card beside it */
+.tour{position:fixed;inset:0;z-index:200}
+.tour-hole{position:fixed;border-radius:14px;box-shadow:0 0 0 200vmax rgba(8,12,10,.58);pointer-events:none;transition:left .22s var(--ease),top .22s var(--ease),width .22s var(--ease),height .22s var(--ease)}
+.tour-tip{position:fixed;box-sizing:border-box;width:min(340px,calc(100vw - 32px));max-height:calc(100dvh - 16px);overflow:auto;background:var(--paper);color:var(--ink);border-radius:16px;padding:14px 16px 12px;box-shadow:0 12px 32px rgba(0,0,0,.24)}
+.tour-tip .tour-n{margin:0;color:var(--muted)}
+.tour-tip .tour-t{margin:2px 0 4px;font-size:17px;line-height:1.35}
+.tour-tip p{margin:0}
+.tour-acts{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px}
+.tour-acts .btn{min-height:40px}
+.tour-dots{display:flex;gap:5px}
+.tour-dots i{width:6px;height:6px;border-radius:50%;background:var(--line2,var(--line))}
+.tour-dots i.on{background:var(--green)}
+@media (prefers-reduced-motion:reduce){.tour-hole{transition:none}}
+/* one notice at a time, and the tour is it: while it is open nothing else shows; the rest of a new account's first day
+   「语流更新了」 and the reminders under the plan wait for tomorrow (a 公告 is back once the tour is over) */
+body.touring #announce,html.tour-day #updCard,html.tour-day #notice{display:none}
+/* the tab bar is frosted glass on phones (80-flat.css): while the tour points at a tab it is solid, so the lit tab
+   shows only itself, not the page behind it */
+body.touring .tabs{background:var(--paper)}

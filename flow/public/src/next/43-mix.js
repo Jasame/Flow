@@ -12,12 +12,15 @@
     const items = m.items, before = Object.fromEntries(m.nodes.map(n => [n.id, n.status])), after = {}, per = {};
     let i = 0, right = 0, streak = 0;
     view.innerHTML = `<div class="stack mix"><div><span class="kicker">${esc(TITLE[m.kind])}</span><h1 class="h1">${m.kind === 'pair' ? esc(m.nodes.map(n => n.title).join(' vs ')) : `${items.length} 道题，${m.nodes.length} 个点`}</h1>
-        <p class="muted small">${esc(intro)}</p></div>
+        <p class="muted small">${esc(intro)}</p>${aiMark('题目和讲解由 AI 辅助编写')}</div>
       ${m.note ? `<div class="howto"><b>怎么区分</b><span class="small">${esc(m.note)}</span></div>` : ''}
       <div class="mix-dots" aria-hidden="true">${items.map(() => '<i></i>').join('')}</div>
       <div id="mixQ"></div></div>`;
     const dots = [...view.querySelectorAll('.mix-dots i')];
     function ask() {
+      // answering, on a phone: no tabs, like review (80-flat.css body.reviewing), so the question and its four answers fit
+      // one screen on the smallest iPhone (UI audit 2026-11-25: 17–133 px past it); route() takes the class off again
+      document.body.classList.add('reviewing');
       const it = items[i], box = document.getElementById('mixQ');
       dots.forEach((d, k) => d.classList.toggle('now', k === i));
       box.innerHTML = `<div class="q gq enter"><div class="tiny muted">第 ${i + 1} / ${items.length} 题</div><div class="prompt">${esc(it.prompt)}</div>
@@ -50,7 +53,7 @@
       nx.focus({ preventScroll: true });
     }
     function done() {
-      document.onkeydown = null;
+      document.onkeydown = null; document.body.classList.remove('reviewing');
       const all = right === items.length, rows = m.nodes.filter(n => per[n.id]);
       const lit = rows.filter(n => before[n.id] !== 'solid' && (after[n.id] || {}).status === 'solid');
       const msg = all ? `全对！${S.user ? '这几个点都往后推了，到时间再抽查。' : ''}`

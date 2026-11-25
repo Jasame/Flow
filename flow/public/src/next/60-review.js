@@ -61,7 +61,7 @@
     const pos = () => c.repeat ? '再巩固一次' : `${beyond ? `先做 ${uniq.size} 个（还有 ${beyond} 个） · ` : ''}${Math.min(uniq.size, doneIds.size + 1)} / ${uniq.size}${c.source === 'book' && c.state === 'new' ? ' · 新词' : ''}${eta()}`;
     const foot = () => `<p class="muted tiny tc rfoot">${pos()}</p>`;
     let undo = null;  // the latest rating, while it can be taken back (撤销)
-    const top = () => `<div class="rtop"><a class="link small hit44" href="#/cards">结束</a><div class="bar-progress"><i id="rp"></i></div>${undo ? `<button class="link small undo" id="undo" type="button" aria-label="撤销上一张：${esc(undo.c.text)}">↶ 撤销</button>` : ''}</div>`;
+    const top = () => `<h1 class="sr-only">复习单词</h1><div class="rtop"><a class="link small hit44" href="#/cards">结束</a><div class="bar-progress"><i id="rp"></i></div>${undo ? `<button class="link small undo" id="undo" type="button" aria-label="撤销上一张：${esc(undo.c.text)}">↶ 撤销</button>` : ''}</div>`;
     const badge = res => { const b = document.getElementById('dueBadge'); if (b && res && res.due != null) { const n = res.due + res.new; b.hidden = !n; b.textContent = n > 99 ? '99+' : n; } };
     // Touch: swipe the card right for "I know it" (or the main button), left for "I don't".
     let swipe = null;
@@ -111,7 +111,7 @@
           <input id="fixIn" class="spell" lang="en" enterkeyhint="done" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="划线部分应该怎么写？">
           <div class="row center"><button class="btn primary" id="fixGo">确定</button><button class="btn ghost" id="fixNo">想不起来</button></div>`;
       } else {
-        body = `${tag}<div class="wordbig">${esc(c.text)}</div><div><button class="icon-btn big" id="sayW" aria-label="听">${ICON.speak}</button></div>
+        body = `${tag}<div class="wordbig">${esc(c.text)}</div><div class="say-ai"><button class="icon-btn big" id="sayW" aria-label="听">${ICON.speak}</button>${aiVoice()}</div>
           ${c.meaning ? `<div class="mean-q small">${esc(c.meaning)}</div>` : ''}
           <div class="row center">${recBtn('sndMic', '读一遍')}<span class="muted tiny" id="sndOut">${S.user ? '点 ● 读一遍，AI 听你读得准不准' : ''}</span></div>
           <div class="choice">${KNOW.order([['读准了', 'good', 'good'], ['还不稳', '', 'hard'], ['不会读', 'again', 'again']]).map(([t, cls, r]) => `<button class="${cls}" data-self="${r}">${t}</button>`).join('')}</div>`;
@@ -174,7 +174,7 @@
         const mic = document.getElementById('sndMic'), out = document.getElementById('sndOut');
         mic.onclick = () => MIC.toggle(mic, 4, async blob => {
           out.innerHTML = '<span class="spin"></span>';
-          try { const x = (await api('/api/next/say', { text: c.text, audio: await MIC.payload(blob), request_id: rid('sy') })).result; out.innerHTML = (x.ok ? '<span class="ok-mark">✓ 这次读准了</span>' : `<span class="bad-mark">AI 听成了「${esc(x.heard || '?')}」</span><div class="tiny muted">${esc(x.tip || x.note || '')}</div>`) + (x.tentative ? '<div class="tiny muted">这次的判断可能不准，可以再读一次</div>' : ''); }
+          try { const x = (await api('/api/next/say', { text: c.text, audio: await MIC.payload(blob), request_id: rid('sy') })).result; out.innerHTML = aiTag() + ' ' + (x.ok ? '<span class="ok-mark">✓ 这次读准了</span>' : `<span class="bad-mark">AI 听成了「${esc(x.heard || '?')}」</span><div class="tiny muted">${esc(x.tip || x.note || '')}</div>`) + (x.tentative ? '<div class="tiny muted">AI 的判断只作参考，不会进错题本</div>' : ''); }
           catch (e) { out.textContent = e.message; }
         });
         view.querySelectorAll('[data-self]').forEach(b => b.onclick = () => rate(b.dataset.self, Date.now() - t0));
@@ -190,10 +190,10 @@
       const m = (c.mode === 'recall' || c.mode === 'cloze') && !c.meaning && !sent ? 'recognize' : c.mode;
       let body = '', choices = '';
       if (m === 'recognize') {
-        body = `<div class="wordbig${c.kind === 'word' ? '' : ' phrase'}">${esc(c.text)}</div><div class="ph">${esc(c.phonetic || '')} <button class="icon-btn" id="sayW" aria-label="朗读">${ICON.speak}</button></div>`;
+        body = `<div class="wordbig${c.kind === 'word' ? '' : ' phrase'}">${esc(c.text)}</div><div class="ph">${esc(c.phonetic || '')} <span class="say-ai"><button class="icon-btn" id="sayW" aria-label="朗读">${ICON.speak}</button>${aiVoice()}</span></div>`;
         choices = ['认识', '模糊', '不认识'];
       } else if (m === 'spell') {
-        body = `<div class="muted small">听发音，拼出这个词</div><div><button class="icon-btn big" id="sayW" aria-label="再听一次">${ICON.speak}</button></div>${meaningHTML(c)}
+        body = `<div class="muted small">听发音，拼出这个词</div><div class="say-ai"><button class="icon-btn big" id="sayW" aria-label="再听一次">${ICON.speak}</button>${aiVoice()}</div>${meaningHTML(c)}
           ${sent ? `<div class="cloze">${gapped(sent.text, sent.form, false)}</div>` : ''}
           <input id="spellIn" class="spell" lang="en" enterkeyhint="done" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="拼写" placeholder="输入单词">`;
       } else if (pattern) {
@@ -228,7 +228,7 @@
       }
     }
     function answerHTML() {
-      return `<div class="wordbig">${esc(c.text)}</div><div class="ph">${esc(c.phonetic || '')} <button class="icon-btn" id="sayW" aria-label="朗读">${ICON.speak}</button></div>
+      return `<div class="wordbig">${esc(c.text)}</div><div class="ph">${esc(c.phonetic || '')} <span class="say-ai"><button class="icon-btn" id="sayW" aria-label="朗读">${ICON.speak}</button>${aiVoice()}</span></div>
         ${c.meaning ? `<div class="mean-a">${esc(c.meaning).replace(/；|;/g, '<br>')}</div>` : ''}${rootsHTML(c)}${examplesHTML(c)}`;
     }
     function reveal(how) {
@@ -325,7 +325,7 @@
       swipeOff(); document.body.classList.remove('reviewing');
       undo = null;
       const rated = tally.again + tally.hard + tally.good + tally.easy, mins = Math.max(1, Math.round((Date.now() - started) / 60000));
-      view.innerHTML = `<div class="card done-card enter">${doneRing}<h2 class="h2">这一轮复习了 ${doneIds.size} 个</h2>
+      view.innerHTML = `<h1 class="sr-only">复习单词</h1><div class="card done-card enter">${doneRing}<h2 class="h2">这一轮复习了 ${doneIds.size} 个</h2>
         <p class="small rsum">用时约 ${mins} 分钟${rated ? ` · 记住了 ${Math.round((tally.good + tally.easy) / rated * 100)}%` : ''}<span id="tmr"></span></p>${doneN > doneIds.size ? `<p class="muted tiny">共作答 ${doneN} 次，其中 ${doneN - doneIds.size} 次是再巩固</p>` : ''}
         <p class="muted small">记得 ${tally.good + tally.easy} · 模糊 ${tally.hard} · 忘了 ${tally.again}${tally.known ? ' · 熟知 ' + tally.known : ''}。</p>
         <p class="small cheer">${tally.good + tally.easy ? `记得的都往后推了${farthest > 1 ? `，最远的要 ${farthest} 天后才再见` : ''}。` : ''}${tally.again ? `忘了的 ${tally.again} 个明天再来：忘了再想起来，正是记牢的过程。` : tally.good + tally.easy ? '这一轮全都记得，很稳。' : ''}</p>

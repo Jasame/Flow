@@ -4,7 +4,7 @@ Dynamic Island and home bar, dark mode, landscape, the on-screen keyboard, word 
 the microphone sheet; and the reading (audio-test-plan.md: 听 / 伴读 in the natural voice, 暂停 / 继续 / ✕, where it
 was left, offline, the lines while waiting).
 
-    python3 tools/ios_sim_check.py OUT [--udid UDID] [--safari] [--only shell,keyboard,audio,mic,update,unify,more]
+    python3 tools/ios_sim_check.py OUT [--udid UDID] [--safari] [--only shell,onescreen,keyboard,audio,mic,update,unify,more]
 
 `unify` and `more` (not run unless asked; about 5 minutes): a guest on the beta takes the text of the day (a recording)
 and a 考试练习 result; with --ui-server, the local learner imports three short texts (no recording) and also takes
@@ -51,7 +51,7 @@ OUT = Path(ARGS[0]); OUT.mkdir(parents=True, exist_ok=True)
 def opt(name, default=None):
     return ARGS[ARGS.index(name) + 1] if name in ARGS else default
 UDID = opt('--udid', 'booted')
-ONLY = set((opt('--only') or 'shell,keyboard,audio,mic,update').split(','))
+ONLY = set((opt('--only') or 'shell,onescreen,keyboard,audio,mic,update').split(','))
 HOST = opt('--host', 'flow.jasa.hk')
 # A home-screen app runs in SafariViewService, or (iOS 27.2, an icon added lately: 「Web」 in the status bar) in com.apple.webapp
 BUNDLE = ('com.apple.mobilesafari',) if '--safari' in ARGS else ('com.apple.SafariViewService', 'com.apple.webapp')
@@ -207,7 +207,16 @@ class Page:
         return o.get('value')
 
     def reload(self, settle=3):
-        """Reload the page and follow it to its new inspector target."""
+        """Reload the page and follow it to its new inspector target. The service worker may answer with the copy it
+        kept of an older version, which finds the new one 4 s later and reloads itself when it can (04-home-app.js):
+        mid-test that would cut what the test is doing, so the page is reloaded until it is the server's version."""
+        self._reload_once(settle)
+        for _ in range(3):
+            if not globals().get('VERSION') or self.js("((document.querySelector('script[src*=\"/next.js\"]') || {}).src || '').split('v=')[1] || ''") == VERSION:
+                break
+            self._reload_once(settle)
+
+    def _reload_once(self, settle):
         self.js('setTimeout(() => location.reload(), 50)'); old = self.target; end = time.time() + 15
         while time.time() < end and self.target == old:
             for m in self._msgs(0.5):
@@ -557,6 +566,26 @@ def run_update(p):
     p.reload()  # the page's own fetch back, nothing of the played version left
 
 
+# ---------------------------------------------------------------- one screen (the owner's iPhone, 2026-11-25)
+def run_onescreen(p):
+    """Pages made to fit one screen (复习's card, 测词汇量, 起点小测) fit it on this device, whatever sits above them: the
+    top bar with 返回, the 内测版's line, the Dynamic Island. Measured at rest (a card's way in can show a few px)."""
+    g = 'onescreen'
+    p.js(HOOK)  # silent: a review card says its word as it opens
+    for page, sel in (('#/review', '#view .review'), ('#/vocab/test', '#view .review.vtest'), ('#/placement', '#view')):
+        p.go(page, 1)
+        if p.login:
+            skip(g, page, 'needs an account (run with --ui-server)'); continue
+        p.js("document.querySelector('#sheet:not([hidden]) [data-close]')?.click()"); time.sleep(0.4)  # the 内测版's once-per-phone sheet
+        if not p.until(f"!!document.querySelector({json.dumps(sel)})", 8):
+            skip(g, page, 'the page did not open'); continue
+        p.until("document.scrollingElement.scrollHeight - innerHeight <= 0", 4, 0.3)
+        m = p.js("""({ over: document.scrollingElement.scrollHeight - innerHeight, back: !!document.getElementById('backBtn') && !document.getElementById('backBtn').hidden,
+          bar: Math.round(document.getElementById('bar').getBoundingClientRect().height), line: !!document.getElementById('betaBar') })""")
+        s = shot(f"one-screen-{page.strip('#/').replace('/', '_')}")
+        check(g, f'{page}: fits one screen (no vertical scroll)', m['over'] <= 0, m, s)
+
+
 # ---------------------------------------------------------------- 朗读统一 (语流 9, #129): audio-test-plan.md
 # 听 → 播放全文 and 读 → 伴读 (LONG, 01-audio-offline.js) on the real WebKit: the natural voice, never the browser's
 # unasked; 暂停 / 继续 / ✕; where it was left kept per text and per step; the lines while waiting and when offline.
@@ -587,7 +616,10 @@ def fresh_listen(p, aid, clear=True):
     if clear:
         p.js(f"(o => {{ delete o['listen:{aid}']; delete o['read:{aid}']; localStorage.setItem('flow-progress', JSON.stringify(o)); }})(JSON.parse(localStorage.getItem('flow-progress') || '{{}}'))")
     p.go('#/', 0.6); p.go(f'#/m/{aid}/listen', 1.5)
-    p.js("document.querySelector('[data-mode=\"listen\"]:not([aria-pressed=true])')?.click()"); time.sleep(0.5)
+    # a server just started (or a text just imported) can take longer than the pause above: wait for the page itself
+    p.until("!!document.querySelector('#view .listen-tip, [data-mode=\"listen\"]')", 15, 0.5)
+    p.js("document.querySelector('[data-mode=\"listen\"]:not([aria-pressed=true])')?.click()")
+    p.until("!!document.querySelector('#playAll')", 10, 0.3); time.sleep(0.3)
     p.js(HOOK); p.js('window.__au.length = 0; window.__notes.length = 0')
 
 
@@ -701,10 +733,16 @@ def run_unify(p, aid, recorded, extra=None):
     p.tap('#playAll', 0.3); p.until(LS + '.now >= 2', 40, 0.3); a = p.js(LS); p.tap('.mini-player .close', 0.5)
     check(g, f'{kind}: offline — sentences heard before still play in the natural voice', a['now'] >= 2 and a['speech'] == 0 and p.js(SOUNDS) >= 1, a)
     if extra and extra.get('fresh'):
-        fresh_listen(p, extra['fresh']); p.tap('#playAll', 0.3); p.until(LS + '.speech >= 1', 20, 0.3); time.sleep(0.8); b = p.js(LS); s = shot(f'{g}-offline-new')
+        # the browser voice speaking, seen on speechSynthesis itself (a wrapper on speak() can miss it); polled while it reads
+        fresh_listen(p, extra['fresh']); p.js("window.__spoke = 0; window.__spk = setInterval(() => { if (speechSynthesis.speaking) window.__spoke += 1; }, 100)")
+        p.tap('#playAll', 0.3); p.until(LS + ".speech >= 1 || window.__spoke >= 3", 20, 0.3); time.sleep(0.8); b = p.js(LS); b['spoke'] = p.js('(clearInterval(window.__spk), window.__spoke)'); s = shot(f'{g}-offline-new')
         p.tap('.mini-player .close', 0.5)
         check(g, f'{kind}: offline — a sentence never heard on this phone: the browser voice, and the line says why',
-              b['speech'] >= 1 and any('离线中' in n for n in b['notes']), {'state': b, 'log': [e['k'] + ':' + str(e.get('text') or e.get('src') or e.get('e') or e.get('m') or '') for e in p.js('window.__au')][-8:]}, s)
+              (b['speech'] >= 1 or b['spoke'] >= 3) and any('离线中' in n for n in b['notes']),
+              {'state': b, 'log': [e['k'] + ':' + str(e.get('text') or e.get('src') or e.get('e') or e.get('m') or '') for e in p.js('window.__au')][-8:],
+               # for 语流 9: the browser voice's own state, and whether the page reloaded itself meanwhile (a new version)
+               'synth': p.js("({ speaking: speechSynthesis.speaking, pending: speechSynthesis.pending, paused: speechSynthesis.paused })"),
+               'page': p.js("({ nav: (performance.getEntriesByType('navigation')[0] || {}).type, hooked: !!window.__au, tried: localStorage.getItem('flow-update-tried') })")}, s)
     p.reload()  # online again
     # 5 口语情景: the AI's reply in the role's natural voice; slow to make: 「正在准备朗读…」, then that voice, never the robot
     if extra and extra.get('scene'):
@@ -838,7 +876,7 @@ def unify():
     run_unify(p, a, False, {'other': b, 'fresh': c, 'scene': scene})
 
 
-for part, fn in (('shell', lambda: run_shell(p)), ('keyboard', lambda: run_keyboard(p, PID)), ('audio', lambda: run_audio(p, PID)),
+for part, fn in (('shell', lambda: run_shell(p)), ('onescreen', lambda: run_onescreen(p)), ('keyboard', lambda: run_keyboard(p, PID)), ('audio', lambda: run_audio(p, PID)),
                  ('mic', lambda: run_mic(p)), ('update', lambda: run_update(p)), ('unify', unify), ('more', lambda: current() and run_more(p, bool(UI_SERVER)))):
     if part in ONLY:
         print(f'— {part}', flush=True)

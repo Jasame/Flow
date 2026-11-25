@@ -2,13 +2,24 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "语流内测",
   "mainBinaryName": "flow-beta",
-  "identifier": "cn.flowlang.desktop.beta",
+  "identifier": "cn.flowlang.app.beta",
   "bundle": {
     "shortDescription": "语流内测 · 英语学习（内测版）"
   },
   "plugins": {
     "deep-link": {
-      "desktop": { "schemes": ["flowlang-beta"] }
+      "desktop": {
+        "schemes": [
+          "flowlang-beta"
+        ]
+      }
+    }
+  },
+  "app": {
+    "security": {
+      "capabilities": [
+        "site-beta"
+      ]
     }
   }
 }

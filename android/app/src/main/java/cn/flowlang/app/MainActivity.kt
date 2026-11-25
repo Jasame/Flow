@@ -53,6 +53,7 @@ import cn.flowlang.app.net.Http
 import cn.flowlang.app.notify.Reminders
 import cn.flowlang.app.rec.Recorder
 import cn.flowlang.app.speech.Speech
+import cn.flowlang.app.update.Updater
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.launch
 import java.time.Duration
@@ -85,6 +86,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(saved: Bundle?) {
         super.onCreate(saved)
         bars()
+        // the test switch (docs/native-bridge.md §9): `--ez flow.mute true` on a debug or beta build; the UI tests set it themselves
+        if (intent?.getBooleanExtra("flow.mute", false) == true && (BuildConfig.DEBUG || BuildConfig.FLAVOR == "beta")) Mute.on = true
+        // the update tests: `--es flow.update_url http://127.0.0.1:18765/latest.json` on a debug build, after
+        // `adb reverse tcp:18765 tcp:18765` (update/Updater.kt)
+        if (BuildConfig.DEBUG) intent?.getStringExtra("flow.update_url")?.let { Updater.testUrl = it }
         FlowAudio.init(this)
         Speech.init(this)
         root = FrameLayout(this)
@@ -217,11 +223,13 @@ class MainActivity : ComponentActivity() {
         super.onStart()
         web.onResume()
         FlowAudio.visible = true
-        Reminders.refresh(this)
+        Reminders.refreshLater(this)  // opening and coming back: the reminders as the site has them now
+        Updater.onStart(this)  // 语流 only: a newer version on flowlang.cn/download (at start, then once a day)
     }
 
     override fun onStop() {
         FlowAudio.visible = false
+        Reminders.refreshLater(this)  // going to the background too: a day done is taken off
         if (Recorder.busy) Recorder.cut()  // only an app in front may use the microphone
         CookieManager.getInstance().flush()
         web.onPause()
@@ -297,8 +305,16 @@ class MainActivity : ComponentActivity() {
         return Reminders.permission(this, p.isNotEmpty() && asked(p), p.isNotEmpty() && shouldShowRequestPermissionRationale(p))
     }
 
-    /** 「到点用 App 通知提醒」: the phone's permission (Android 13+), then reminders on, from the server's reminder. */
+    /** 「到点用 App 通知提醒」: the phone's permission (Android 13+), then the app's reminders on, from the server's reminder. */
     suspend fun askNotify(): Boolean {
+        if (!notificationsAllowed()) return false
+        Reminders.setApp(this, true)
+        Reminders.refreshLater(this, force = true)
+        return true
+    }
+
+    /** The phone's own permission for notifications: asked (Android 13+), or the settings offered when it is off for good. */
+    private suspend fun notificationsAllowed(): Boolean {
         if (!Reminders.allowed(this)) {
             if (Build.VERSION.SDK_INT >= 33 && !granted(Manifest.permission.POST_NOTIFICATIONS)) {
                 if (!ask(Manifest.permission.POST_NOTIFICATIONS, R.string.notify_off_title, R.string.notify_off) { openNotifySettings() }) return false
@@ -306,8 +322,6 @@ class MainActivity : ComponentActivity() {
             if (!Reminders.allowed(this)) { offerSettings(R.string.notify_off_title, R.string.notify_off) { openNotifySettings() }; return false }
         }
         Reminders.channel(this)
-        Reminders.setOptedIn(this, true)
-        Reminders.refresh(this)
         return true
     }
 
@@ -337,6 +351,22 @@ class MainActivity : ComponentActivity() {
             .show()
     }
 
+    // ---------------------------------------------------------------- updates (update/Updater.kt)
+
+    private val installSettings = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { Updater.onInstallSettingsBack(this) }
+
+    /** 「安装未知应用」 for 语流, to install the new version it has just downloaded and checked; back in onInstallSettingsBack. */
+    fun openInstallSettings() {
+        try {
+            installSettings.launch(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))
+        } catch (e: ActivityNotFoundException) {
+            Updater.onInstallSettingsBack(this)  // no such screen: the download page is offered instead
+        }
+    }
+
+    /** flowlang.cn/download in the phone's browser (when installing from here is not possible). */
+    fun openDownloadPage() = openOutside(Uri.parse(Updater.DOWNLOAD_PAGE))
+
     // ---------------------------------------------------------------- links
 
     private fun openOutside(u: Uri) {
@@ -348,11 +378,19 @@ class MainActivity : ComponentActivity() {
         try { startActivity(i) } catch (e: ActivityNotFoundException) { toast(getString(R.string.no_browser)) }
     }
 
-    /** 「加到手机日历」 in the app: the app's own notifications, or the phone's calendar. The daily plan's goes to the calendar. */
+    /**
+     * 「加到手机日历」 in the app (docs/native-bridge.md §5): the app's own notifications, or the phone's calendar. The link says
+     * what: the daily word review (?hour=), one time (?at=, 这次什么时候复习) or the day's plan (?kind=plan&hour=&minutes=).
+     */
     private fun reminderLink(u: Uri) {
-        if (u.getQueryParameter("kind") == "plan") { lifecycleScope.launch { addToCalendar(u) }; return }
-        AlertDialog.Builder(this).setTitle(R.string.ics_title).setMessage(R.string.ics_body)
-            .setPositiveButton(R.string.ics_app) { _, _ -> lifecycleScope.launch { if (askNotify()) toast("好，到点用 App 通知提醒你复习（有词要复习的日子）") } }
+        val plan = u.getQueryParameter("kind") == "plan"
+        val hour = u.getQueryParameter("hour")?.toIntOrNull()
+        val minutes = u.getQueryParameter("minutes")?.toIntOrNull() ?: 10
+        val at = u.getQueryParameter("at")?.toDoubleOrNull()
+        AlertDialog.Builder(this).setTitle(if (plan) R.string.ics_plan_title else R.string.ics_title).setMessage(R.string.ics_body)
+            .setPositiveButton(R.string.ics_app) { _, _ ->
+                lifecycleScope.launch { if (notificationsAllowed()) toast(Reminders.optIn(this@MainActivity, plan, hour, minutes, at)) }
+            }
             .setNeutralButton(R.string.ics_calendar) { _, _ -> lifecycleScope.launch { addToCalendar(u) } }
             .setNegativeButton(R.string.cancel, null)
             .show()

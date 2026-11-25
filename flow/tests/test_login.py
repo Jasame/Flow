@@ -23,7 +23,7 @@ class LoginTests(unittest.TestCase):
         app.RATE.clear()  # the per-address ceiling on sign-in attempts (30 a minute) is shared by every test here
         app.init()
         with app.db() as c:
-            c.execute('INSERT INTO users(username,password,email) VALUES(?,?,?)', ('learner', app.password(PW), 'learner@example.com'))
+            c.execute('INSERT INTO users(username,password,email,storage_ok,terms_version) VALUES(?,?,?,1,?)', ('learner', app.password(PW), 'learner@example.com', __import__('privacy_service').CONSENT_VERSION))  # agreed to 数据存放在香港
         self.srv = ThreadingHTTPServer(('127.0.0.1', 0), app.Handler); threading.Thread(target=self.srv.serve_forever, daemon=True).start()
         self.cookie = ''; self.csrf = ''
 
@@ -148,7 +148,7 @@ class LoginTests(unittest.TestCase):
     # ---- binding an email
     def test_an_email_is_bound_with_a_code_after_the_password(self):
         with app.db() as c:
-            c.execute('INSERT INTO users(username,password) VALUES(?,?)', ('nomail', app.password(PW)))
+            c.execute('INSERT INTO users(username,password,storage_ok,terms_version) VALUES(?,?,1,?)', ('nomail', app.password(PW), __import__('privacy_service').CONSENT_VERSION))
         self.sign_in('nomail')
         st, body, _ = self.call('/api/account/email/request', {'email': 'new@example.com', 'password': 'wrong', 'mode': 'code'})
         self.assertEqual((st, body.get('field')), (400, 'password'))
@@ -168,9 +168,9 @@ class LoginTests(unittest.TestCase):
     def test_usernames_may_be_two_chinese_characters_but_never_look_like_an_email(self):
         def register(name, email):
             self.call('/api/auth/code', {'email': email, 'purpose': 'register'}, cookie='')
-            return self.call('/api/register', {'username': name, 'password': 'long enough pw', 'email': email, 'code': self.code('注册')}, cookie='')
+            return self.call('/api/register', {'username': name, 'password': 'long enough pw', 'email': email, 'code': self.code('注册'), 'storage': True, 'terms': True}, cookie='')
         for bad in ('a@b.com', 'two words', 'x', '<b>bold</b>'):
-            st, body, _ = self.call('/api/register', {'username': bad, 'password': 'long enough pw', 'email': 'z@example.com', 'code': '123456'}, cookie='')
+            st, body, _ = self.call('/api/register', {'username': bad, 'password': 'long enough pw', 'email': 'z@example.com', 'code': '123456', 'storage': True, 'terms': True}, cookie='')
             self.assertEqual((st, body.get('field')), (400, 'username'), bad)
         st, body, _ = register('小林', 'lin@example.com')
         self.assertEqual(st, 200); self.assertEqual(body['username'], '小林')
@@ -187,7 +187,7 @@ class LoginTests(unittest.TestCase):
     def test_an_operator_link_resets_an_account_without_email_once(self):
         import account_service as account
         with app.db() as c:
-            c.execute('INSERT INTO users(username,password) VALUES(?,?)', ('nomail', app.password(PW)))
+            c.execute('INSERT INTO users(username,password,storage_ok,terms_version) VALUES(?,?,1,?)', ('nomail', app.password(PW), __import__('privacy_service').CONSENT_VERSION))
             self.assertEqual(account.admin_link(c, 'nobody')[1], 404)
             first = account.admin_link(c, 'nomail')[0]['link']
             body, st = account.admin_link(c, 'nomail')  # a new link voids the old one
@@ -210,7 +210,7 @@ class LoginTests(unittest.TestCase):
     def test_the_operator_api_lists_accounts_with_masked_emails_and_makes_links_only_with_its_marker(self):
         import flow_admin
         with app.db() as c:
-            c.execute('INSERT INTO users(username,password) VALUES(?,?)', ('nomail', app.password(PW)))
+            c.execute('INSERT INTO users(username,password,storage_ok,terms_version) VALUES(?,?,1,?)', ('nomail', app.password(PW), __import__('privacy_service').CONSENT_VERSION))
         srv = ThreadingHTTPServer(('127.0.0.1', 0), flow_admin.AdminHandler); threading.Thread(target=srv.serve_forever, daemon=True).start()
         base = f'http://127.0.0.1:{srv.server_address[1]}/flow/api'
         try:
@@ -237,7 +237,7 @@ class LoginTests(unittest.TestCase):
         flow = Path(__file__).resolve().parents[1]
         subprocess.run([sys.executable, '-c', 'import app; app.init()'], cwd=flow, env=env, check=True, capture_output=True)
         with sqlite3.connect(data / 'flow.sqlite3') as c:
-            c.execute('INSERT INTO users(username,password) VALUES(?,?)', ('nomail', 'x'))
+            c.execute('INSERT INTO users(username,password,storage_ok,terms_version) VALUES(?,?,1,?)', ('nomail', 'x', __import__('privacy_service').CONSENT_VERSION))
         out = subprocess.run([sys.executable, 'app.py', '--reset-link', 'nomail'], cwd=flow, env=env, capture_output=True, text=True, timeout=60)
         self.assertEqual(out.returncode, 0, out.stderr); self.assertIn('#reset=', out.stdout); self.assertIn('24 小时', out.stdout)
         bad = subprocess.run([sys.executable, 'app.py', '--reset-link', 'nobody'], cwd=flow, env=env, capture_output=True, text=True, timeout=60)
@@ -272,7 +272,7 @@ class LoginTests(unittest.TestCase):
         s = self.call('/api/next/home')[1]['session']
         self.assertTrue(s['mail']); self.assertTrue(s['user']['email_bound'])
         with app.db() as c:
-            c.execute('INSERT INTO users(username,password) VALUES(?,?)', ('nomail', app.password(PW)))
+            c.execute('INSERT INTO users(username,password,storage_ok,terms_version) VALUES(?,?,1,?)', ('nomail', app.password(PW), __import__('privacy_service').CONSENT_VERSION))
         self.sign_in('nomail')
         self.assertFalse(self.call('/api/next/home')[1]['session']['user']['email_bound'])
 

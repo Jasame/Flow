@@ -21,7 +21,8 @@ subprocess.run([sys.executable, str(ROOT.parent / 'tools' / 'build_front.py')], 
 tmp = tempfile.mkdtemp(prefix='flow-ui-')
 # Mail is on, as in production (sign-up, code login and a forgotten password then use emailed codes): messages are
 # written to <data>/outbox as files, never sent.
-os.environ.update({'FLOW_DATA_DIR': tmp, 'FLOW_COOKIE_SECURE': '0', 'FLOW_MAIL_OUTBOX': os.path.join(tmp, 'outbox'), 'FLOW_AI_PROVIDER': 'openai', 'FLOW_AI_KEY': 'ui-test', 'FLOW_AI_MODEL': 'ui-test',
+os.environ.update({'FLOW_TOUR_FROM': '4102444800',  # 新手引导 for no account made here, but the two given theirs below
+                   'FLOW_DATA_DIR': tmp, 'FLOW_COOKIE_SECURE': '0', 'FLOW_MAIL_OUTBOX': os.path.join(tmp, 'outbox'), 'FLOW_AI_PROVIDER': 'openai', 'FLOW_AI_KEY': 'ui-test', 'FLOW_AI_MODEL': 'ui-test',
                    'FLOW_AI_URL': 'https://ai.invalid/v1/chat/completions', 'FLOW_AI_USER_DAILY_LIMIT': '500', 'FLOW_AI_DAILY_LIMIT': '5000', 'FLOW_AI_AUDIO': '1'})
 # Data word books (专四、专八、中考、学术…): small fixtures instead of flow/corpus_data/wordbooks*.json, so the picker
 # always shows the same groups and books whatever data files the checkout has.
@@ -35,6 +36,9 @@ app.DB = Path(tmp) / 'flow.sqlite3'
 # domain itself; the test intercepts that address. Other materials have narration only as before (audio/index.json).
 MEDIA_PID = 'v5-culture-c1-lighthouse-ledger-3'
 os.environ['FLOW_MEDIA_BASE'] = 'http://127.0.0.1:9'
+# 更新记录 (updates_service.py): none here, so 今日's notice slot shows what the other runs expect; updates_run gives
+# the page its own data through the browser
+os.environ['FLOW_UPDATES_FILE'] = os.path.join(tmp, 'no-updates.json')
 import media  # noqa: E402
 media.MANIFEST = Path(tmp) / 'media-manifest.json'
 # Narration this server has (the WeChat run's FLOW_AUDIO_DIR=tools/ui-fixtures/audio) stays listed, sent from here.
@@ -155,16 +159,21 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             'a11y': ('B1', 'work', ['work', 'science']),  # the screen-reader and contrast audit (a11y_run)
             'pile': ('B1', 'work', ['work', 'science']),  # back from a break: reviews piled up (backlog_run)
             'side': ('B1', 'work', ['work']),  # 「认识」放在 and 这次什么时候复习 (review_side_run): 20 words due
+            'nowords': ('B1', 'work', ['work']),  # settings done, no words and no word book yet: the word page's first look (review_side_run)
+            'screen': ('B1', 'work', ['work']),  # 复习 and 测词汇量 fill one phone screen (one_screen_run): as 'side'
             'sprint': ('B1', 'exam', ['campus']),  # 考试冲刺: 四级 in 19 days, four practice sets done (sprint_run; the guide's exam pictures)
             'home-app': ('B1', 'work', ['work', 'science']),  # 主屏 App (home_app_run): the iPhone home-screen app
             'fresh': ('', '', []), 'fresh2': ('', '', []),  # 选方向和目标: accounts with no settings yet (start_run)
             'abroad': ('B1', 'abroad', ['campus']),  # 留学: the plan's speaking step is 雅思 Part 1 (listen_speak_run); nothing else uses it
             'rounds': ('B1', 'work', ['work']),  # 口语情景 round 2: 在咖啡店点单 done 20 days ago (listen_speak_run)
+            'app-audio': ('B1', 'work', ['work', 'science']),  # 整篇朗读交给 App (app_audio_run): its kept places, nothing else uses it
             # swiping the review card from anywhere on the screen (swipe_run): one learner per screen size, each starting fresh
             **{f'swipe-{k}': ('B1', 'work', ['work', 'science']) for k in ('ipad-land', 'ipad-mini-land', 'phone')},
             'teacher': ('B1', 'work', ['work']), 'student': ('B1', 'work', ['work']),  # 班级试用 (class_run)
             'ageless': ('B1', 'work', ['work']), 'young': ('B1', 'work', ['work']),
-            'veteran': ('B1', 'work', ['work'])}  # 班级试用问卷 (trial_survey_run): in the class for 25 days  # 年龄段 (privacy_run): none yet; 不满 14 岁 without a guardian's agreement
+            'unasked': ('B1', 'work', ['work']),  # 数据存放在香港 (privacy_run): an older account, not asked yet
+            'veteran': ('B1', 'work', ['work']),  # 班级试用问卷 (trial_survey_run): in the class for 25 days  # 年龄段 (privacy_run): none yet; 不满 14 岁 without a guardian's agreement
+            'tour': ('B1', 'work', ['work', 'science']), 'tour-teacher': ('B1', 'work', ['work'])}  # 新手引导 (tour_run): theirs still to see
 out = {}
 with app.db() as c:
     for name, (level, goal, themes) in LEARNERS.items():
@@ -246,13 +255,15 @@ with app.db() as c:
             c.execute("INSERT INTO next_node_notes(user_id,node,pack,kind,detail,created) VALUES(?,?,?,?,?,?)", (uid, 'agreement-head', PID, 'flag', 'guide|it make → it makes', now - 7200))
             sk.log(c, uid, 'speaking', 'ielts', 6.0 / 9, 'B2', 'ielts-p1-mornings')  # 雅思口语: 「上次约 6.0」 on the list
             c.execute("INSERT INTO next_skill_events(user_id,skill,kind,score,level,pack,created) VALUES(?,'speaking','dialog',0.6,'A2','scene-cafe-order',?)", (uid, now - 20 * 86400))  # 情景第 2 轮 (the guide's scene picture)
-        if name == 'side':  # 20 word reviews due, shown as 不认识 / 模糊 / 认识 (stability 1: recognise)
+        if name in ('side', 'screen'):  # 20 word reviews due, shown as 不认识 / 模糊 / 认识 (stability 1: recognise)
             c.execute("DELETE FROM next_cards WHERE user_id=? AND source='book'", (uid,))
             now, d = time.time(), nx.dictionary()
             for k, (rank, w) in enumerate(vs.book_words()['mid'][100:120]):
                 c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,rank,stability,difficulty,last,reps) "
                           "VALUES(?,?,?,?,'','word',?,?,'review','book',?,1,5,?,1)", (uid, d[w]['word'], w, d[w]['meaning'][:300], now - 20 * 86400, now - 3600 - k, rank, now - 2 * 86400))
             c.execute("INSERT INTO next_reviews(user_id,card,rating,created) VALUES(?,0,'good',?)", (uid, now - 3 * 86400))  # reviewed before the move
+        if name == 'nowords':  # a new account's word page: no cards, no word book
+            c.execute('DELETE FROM next_cards WHERE user_id=?', (uid,)); c.execute('DELETE FROM next_vocab_plans WHERE user_id=?', (uid,))
         if name == 'pile':  # 60 word reviews due, more than 3 x the 10 new words a day: no new words today (ux audit 1.1, 11)
             # 60 minutes a day: the words' share of the day's time (time_budget, r28 第 1 段: 15 minutes) holds all 60
             c.execute('UPDATE next_profiles SET minutes=60 WHERE user_id=?', (uid,))
@@ -267,6 +278,12 @@ with app.db() as c:
     # ui-ageless has none (it is asked), ui-young is 不满 14 岁 with no guardian's agreement yet (AI waits for it)
     c.execute("UPDATE users SET age_band='18+', age_set=? WHERE username NOT IN ('ui-ageless', 'ui-young')", (time.time(),))
     c.execute("UPDATE users SET age_band='u14', age_set=? WHERE username='ui-young'", (time.time(),))
+    # 数据存放在香港 (privacy_service): every learner agreed at sign-up, but ui-unasked (the page asks it; privacy_run)
+    c.execute("UPDATE users SET storage_ok=?, terms_ok=?, terms_version=? WHERE username!='ui-unasked'", (time.time(), time.time(), __import__('privacy_service').CONSENT_VERSION))
+    # 新手引导 (tour_service): no account here gets it (FLOW_TOUR_FROM is far ahead) but these two, given theirs (tour_run)
+    c.execute("UPDATE users SET role='teacher' WHERE username='ui-tour-teacher'")
+    for who, tour in (('tour', 'learner'), ('tour-teacher', 'teacher')):
+        c.execute("INSERT INTO next_tours(user_id, tour, result, created) VALUES(?,?,'pending',?)", (out[who]['id'], tour, time.time()))
     # 班级试用: ui-teacher's class with 5 members who studied and got grammar points wrong this week (class_run)
     now = time.time()
     cid = c.execute("INSERT INTO classes(name, code, teacher, by, created, updated) VALUES('高一（3）班', 'UICLS2', ?, 'ui', ?, ?)", (out['teacher']['id'], now, now)).lastrowid
@@ -280,13 +297,18 @@ with app.db() as c:
             c.execute("INSERT INTO learning_events(user_id,node,source,kind,item,correct,evaluator,created) VALUES(?,?,?,'choice','q',0,'rule',?)", (mid, n, f'ui:{mid}:{n}', now - 7200))
     c.execute('INSERT INTO class_members(user_id, class_id, joined_at) VALUES(?,?,?)', (out['veteran']['id'], cid, now - 25 * 86400))
     c.commit()
-# 今日热点 (r27: its own card under 今日好句): one news text of today, as the daily job would leave it, clearly a sample
+# 今日一读 (since 2026-11-25): today's original short text, as the daily job leaves it (kind 'topic'), clearly a sample.
+# Beside it, one news text of 今日热点 as the job left them before 2026-11-25: kept in the database, shown nowhere
+# (ui_test checks that the card is the 今日一读 one).
 with app.db() as c:
     base = json.loads(c.execute("SELECT content FROM lab_packs WHERE id=?", (PID,)).fetchone()[0])
-    base.update(id='daily-ui-sample', title='示例热点：城市开通夜间公交线路', title_en='Sample news: night buses start running',
-                source='示例来源（测试数据）', summary_zh='示例：这里是今日热点的一句话介绍，真正的热点每天由 AI 联网找新闻改写。', daily_day=time.strftime('%Y-%m-%d'),
-                level='B1')  # 今日 shows the hotspot at the learner's level (r28 第 5 段): the UI learners are B1
     base.pop('cefr', None)
+    old = dict(base, id='daily-ui-old-news', title='示例旧热点：不应显示', daily_day=time.strftime('%Y-%m-%d', time.localtime(time.time() - 86400)),
+               source='示例来源（测试数据）', level='B1')
+    base.update(id='daily-ui-sample', kind='topic', title='示例一读：为什么降噪耳机能“消音”', title_en='Sample: how noise-cancelling headphones work',
+                source='Flow 原创（AI 生成）', ai='AI 生成', summary_zh='示例：这里是今日一读的一句话介绍，真正的今日一读每天由 AI 写一篇原创短文。',
+                daily_day=time.strftime('%Y-%m-%d'), level='B1')  # 今日 shows the one at the learner's level (r28 第 5 段): the UI learners are B1
+    c.execute("INSERT OR REPLACE INTO lab_packs VALUES(?,NULL,'daily',?,?)", (old['id'], json.dumps(old, ensure_ascii=False), time.time() - 86400))
     c.execute("INSERT OR REPLACE INTO lab_packs VALUES(?,NULL,'daily',?,?)", ('daily-ui-sample', json.dumps(base, ensure_ascii=False), time.time()))
     c.commit()
 from http.server import ThreadingHTTPServer  # noqa: E402

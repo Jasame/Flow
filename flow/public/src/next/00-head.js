@@ -18,11 +18,13 @@
   // 「AI 生成」标识（2026-11-25，《人工智能生成合成内容标识办法》）：AI 写的、给学员看的内容都带它，样式在 99-ai-mark.css。
   // aiMark(note)：放在一块内容最上面的一行，note 是后面的一句小字（可省），如「未经人工审核」；aiTag()：卡片信息行里的小标签。
   function aiTag() { return '<span class="ai-mark" title="这部分由人工智能生成，可能有错，仅供参考">AI 生成</span>'; }
+  // aiVoice()：合成的声音旁边（文章录音、AI 朗读、AI 角色和考官的话、单词和例句读音）：《标识办法》要求合成人声在交互界面上有显著提示
+  function aiVoice() { return '<span class="ai-mark ai-voice" title="这段声音由人工智能合成，不是真人录音">AI 朗读</span>'; }
   function aiMark(note) { return `<div class="ai-line">${aiTag()}${note ? `<span>${esc(note)}</span>` : ''}</div>`; }
   function load(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
   function save(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private mode */ } }
   function rid(prefix) { return prefix + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10); }
-  function toast(msg) { toastEl.textContent = msg; toastEl.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => toastEl.classList.remove('show'), 2400); }
+  function toast(msg) { toastEl.textContent = msg; toastEl.classList.add('show'); toast.at = Date.now(); clearTimeout(toast.t); toast.t = setTimeout(() => toastEl.classList.remove('show'), 2400); }
   // An AI request still running after 15 s (the AI busy, a queue at the gateway): a line under the button just pressed,
   // 「AI 还在听…」 for a recording, 「AI 还在想…」 otherwise, gone when the answer comes. Background fills (example
   // sentences while reviewing) have no button and show nothing. Buttons pressed by click, tap or keyboard alike.
@@ -60,7 +62,10 @@
     let j = {}; try { j = t ? JSON.parse(t) : {}; } catch (x) { /* not JSON: an error page */ }
     if (!r.ok) {
       if (r.status >= 500) noteIssue('api', `服务器返回 ${r.status}`, path.split('?')[0]);  // 4xx are answers (a wrong password …), not faults
-      const e = new Error(j.error || ('请求失败（' + r.status + '）')); e.status = r.status; e.field = j.field; e.code = j.code;
+      // No message of ours (an nginx page while the server restarts, a gateway timeout, an upload too large): plain words,
+      // no status code (UI audit 2026-11-25: 「请求失败（502）」 on every page during a release). The server's own messages stay.
+      const plain = r.status === 413 ? '内容太大，传不上去，换小一点的再试' : r.status >= 500 || r.status === 429 ? '服务暂时有点忙，请稍后重试' : '没有成功，请稍后重试';
+      const e = new Error(j.error || plain); e.status = r.status; e.field = j.field; e.code = j.code;
       // Signed out on the server (30 days away, a password change, 退出所有设备): say so and offer to sign in again.
       if (r.status === 401 && S.user && !quiet && !/^\/api\/(login|register|auth\/)/.test(path)) {
         S.user = null; S.csrf = ''; e.message = '登录已过期，请重新登录';
@@ -68,6 +73,9 @@
       }
       // under 14 without a guardian's agreement: the AI on the learner's own words waits for it (81-privacy.js)
       if (r.status === 403 && j.code === 'guardian' && !quiet) setTimeout(() => guardianSheet(), 0);
+      // the day's AI stop (ai_routes.day_full: 429 code ai_day_full, back at 08:00 Beijing): also what still works.
+      // AI voice says its own line (01-audio-offline.js).
+      if (j.code === 'ai_day_full' && !path.startsWith('/api/next/tts')) e.message = (j.error || '今天的 AI 用量已满，北京时间早上 8 点恢复。') + '学材料、背单词、复习和做题照常能用。';
       throw e;
     }
     return { j, t };

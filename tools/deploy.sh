@@ -63,15 +63,39 @@ git worktree add -q --detach "$WT" "origin/$BRANCH"
 FROM=""; [ "$BUILD" = "$SHA" ] || FROM=" = build of ${SHA:0:12}"
 # ref=: the build's tag, which the server lists the tree by when jsDelivr answers 404 for the commit (b34, 2026-11-25)
 REF=""; [ "$BUILD" = "$SHA" ] || REF=" ref=build-${SHA:0:12}"
-printf '%s %s%s%s\n# %s%s %s: %s%s\n# Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.\n' \
-  "$BUILD" "$MAN" "$E2E" "$REF" "$P" "$N" "$BR" "$(git log -1 --format=%s "$SHA")" "$FROM" > "$WT/REQUEST"
-git -C "$WT" add REQUEST
+# TOOLS: what the server runs from this release before installing it (flow-pull.sh, autodeploy, the end-to-end test and
+# its recordings), as "<base64 sha256>  <path>" lines; REQUEST names its sha256 (tools=) and the tag (tag=), and
+# REQUEST.sig signs REQUEST, so the server can check the request, its tag and every tool against one signature.
+python3 tools/release_manifest.py --tools "$BUILD" > "$WT/TOOLS" 2>/dev/null || { echo "could not list the tools of ${BUILD:0:12}"; exit 1; }
+TH=$(python3 -c 'import hashlib, sys; print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest())' "$WT/TOOLS")
+printf '%s %s%s%s tag=%s%s tools=%s\n# %s%s %s: %s%s\n# Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.\n' \
+  "$BUILD" "$MAN" "$E2E" "$REF" "$P" "$N" "$TH" "$P" "$N" "$BR" "$(git log -1 --format=%s "$SHA")" "$FROM" > "$WT/REQUEST"
+# The signature (ssh-keygen -Y sign; the namespaces keep the two keys' signatures apart). 语流: the owner's key, whose
+# private half stays in the Mac's keychain (ssh-agent); the 内测版: the key .github/workflows/beta.yml hands over in
+# FLOW_SIGN_KEY_FILE (a GitHub environment for main only). No key: the request goes out unsigned, and a server that
+# requires signatures refuses it.
+NS=flow-release; [ $P = b ] && NS=flow-beta-release
+KEY=${FLOW_SIGN_KEY_FILE:-}
+if [ -z "$KEY" ] && [ $P = r ]; then
+  KEY=${FLOW_SIGN_KEY:-$HOME/.ssh/flow-release.pub}
+  if [ "$(uname)" = Darwin ]; then ssh-add --apple-load-keychain -q 2>/dev/null || true; fi
+fi
+rm -f "$WT/REQUEST.sig"; git -C "$WT" rm -q --cached --ignore-unmatch REQUEST.sig
+SIGNED=""
+if [ -n "$KEY" ] && [ -f "$KEY" ]; then
+  ssh-keygen -Y sign -q -f "$KEY" -n "$NS" "$WT/REQUEST" \
+    || { echo "could not sign REQUEST with $KEY ($NS): for 语流 the key must be in ssh-agent: ssh-add --apple-use-keychain ~/.ssh/flow-release"; exit 1; }
+  git -C "$WT" add REQUEST.sig; SIGNED=", signed ($NS)"
+else
+  echo "note: $P$N goes out unsigned (no signing key${KEY:+ at $KEY}); a server that requires signatures refuses it"
+fi
+git -C "$WT" add REQUEST TOOLS
 git -C "$WT" commit -qm "release $P$N: ${BUILD:0:12}$FROM ($BR)"
 git -C "$WT" push -q origin "HEAD:refs/heads/$BRANCH"
 git -C "$WT" tag "$P$N"
 git -C "$WT" push -q origin "$P$N"
 curl -s -m 20 -o /dev/null "https://purge.jsdelivr.net/gh/Jasame/Flow@$P$N/REQUEST" || true
-echo "requested $P$N for ${BUILD:0:12}$FROM (manifest ${MAN:0:12}…) on $SITE${E2E:+, with end-to-end test}"
+echo "requested $P$N for ${BUILD:0:12}$FROM (manifest ${MAN:0:12}…) on $SITE${E2E:+, with end-to-end test}$SIGNED"
 # Wait for the server (deploy ~1–3 min after the tag is visible; the test adds ~2 min)
 deadline=$(( $(date +%s) + 2400 )); last=""
 while [ "$(date +%s)" -lt "$deadline" ]; do

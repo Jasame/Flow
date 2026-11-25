@@ -48,6 +48,53 @@ class FrontEndTests(unittest.TestCase):
             self.assertIn(rule, spec)  # the sheet says what the writing rules say
         self.assertIn('AI 改写）', (SRC / '22-study-read.js').read_text(encoding='utf-8'))
 
+    def test_ai_written_texts_say_so_under_the_title_and_on_their_cards(self):
+        # 「AI 生成」 (2026-11-25, 人工智能生成合成内容标识办法), in the shared style (aiMark / aiTag, 00-head.js)
+        js = (SRC / '20-study.js').read_text(encoding='utf-8')
+        for note in ("'经规范检查'", "'经规范检查 · 经人工审核'", "'AI 改写 · 未经人工审核'"):  # the user's words: 「AI 生成，经规范检查」
+            self.assertIn(note, js)
+        self.assertIn("o.reviewed_by_human ? '经规范检查 · 经人工审核' : '经规范检查'", js)  # 经人工审核 only when set
+        self.assertIn("${note === null ? '' : m.featured ? aiCheckLink(aiMark(note)) : aiMark(note)}<div class=\"origin tiny\">", js)
+        self.assertIn('href="#/guide/ai-check"', js)  # 「经规范检查」 says what is checked
+        guide = (ROOT / 'public' / 'guide' / 'guide.md').read_text(encoding='utf-8')
+        self.assertIn('## 「经规范检查」查什么 {#ai-check}', guide)
+        self.assertIn('id="g-ai-check"', __import__('user_guide').parse(guide)['chapters'][[c['id'] for c in __import__('user_guide').parse(guide)['chapters']].index('study')]['html'])
+        self.assertIn('aiMark(aiNote(m))', (SRC / '44-easy.js').read_text(encoding='utf-8'))
+        for f in ('10-welcome-today.js', '44-easy.js'):
+            self.assertIn("m.ai ? ' ' + aiTag() : ''", (SRC / f).read_text(encoding='utf-8'), f)
+        self.assertIn('aiTag()', (SRC / '12-daily-line.js').read_text(encoding='utf-8'))
+        lib = (SRC / '80-library.js').read_text(encoding='utf-8')
+        self.assertIn('aiTag()', lib); self.assertIn("aiCheckLink(aiMark('经规范检查'))", lib)
+
+    def test_reviewed_by_human_is_off_unless_the_user_read_the_text(self):
+        v5 = __import__('content_v50').v5_materials()
+        self.assertFalse(any(nx.origin(p)['reviewed_by_human'] for p in v5))  # nobody has been marked yet
+        self.assertTrue(nx.origin(dict(v5[0], reviewed_by_human=True, reviewed_on='2026-11-26'))['reviewed_by_human'])
+        self.assertFalse(nx.origin(dict(v5[0], reviewed_by_human='yes'))['reviewed_by_human'])  # only a real true
+        sys.path.insert(0, str(ROOT.parent / 'tools'))
+        cv = __import__('corpus_validate')
+        p = dict(v5[0], spec='5.1', reviewed_by_human=True)
+        self.assertTrue(any('reviewed_on' in e for e in cv.check_v51(p, p['body'], {'sentences': 14})[0]))
+        p['reviewed_on'] = '2026-11-26'
+        self.assertFalse(any('reviewed' in e for e in cv.check_v51(p, p['body'], {'sentences': 14})[0]))
+
+    def test_a_row_does_not_repeat_what_the_section_or_filter_says(self):
+        # B9's audit P2-E7: no 连载 pill under 连载故事, no 精选 pill under the 精选 filter (a light one under 全部材料),
+        # no level on an easy-reading card that has the section's level; the 「AI 生成」 tag stays everywhere
+        lib = (SRC / '80-library.js').read_text(encoding='utf-8')
+        self.assertNotIn('<span class="pill green">连载</span>', lib)
+        self.assertIn("if (f.featured === '1') return false;", lib); self.assertIn("return m.featured ? ['精选', ''] : null;", lib)
+        self.assertIn("${tag === false ? '' : tag ?", (SRC / '10-welcome-today.js').read_text(encoding='utf-8'))
+        self.assertIn('${m.level !== d.target ?', (SRC / '44-easy.js').read_text(encoding='utf-8'))
+        self.assertIn('aiTag()', lib)
+
+    def test_cards_say_whether_flow_wrote_the_text_with_ai(self):
+        v5 = __import__('content_v50').v5_materials()[0]
+        self.assertTrue(nx._card(v5)['ai'])
+        self.assertTrue(nx._card(dict(v5, id='daily-2026-11-25', daily_day='2026-11-25'))['ai'])
+        self.assertTrue(nx._card({'id': 'graded-x', 'title': 't', 'level': 'A2', 'theme': 'life', 'body': 'A short text.'})['ai'])
+        self.assertFalse(nx._card(dict(v5, id='imp-3', imported=True))['ai'])
+
     def test_the_install_guide_knows_the_phone_in_hand(self):
         js = (SRC / '81-me.js').read_text(encoding='utf-8')
         for words in ('底部中间', '添加到主屏幕', '右上角', 'Safari', '⋮', '安装应用', '安装到桌面', '在浏览器打开'):

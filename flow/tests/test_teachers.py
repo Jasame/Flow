@@ -23,7 +23,7 @@ class Teachers(Classes):
         return self.call(self.site, '/api/teacher/check', {'token': token}, {'X-Real-IP': ip})
 
     def sign_up(self, name, token, ip='10.21.0.1', **more):
-        st, body = self.call(self.site, '/api/register', {'username': name, 'password': PW, 'teacher': token, **more}, {'X-Real-IP': ip})
+        st, body = self.call(self.site, '/api/register', {'username': name, 'password': PW, 'teacher': token, 'storage': True, 'terms': True, **more}, {'X-Real-IP': ip})
         return st, body
 
     def teacher(self, name='wanglaoshi'):
@@ -31,7 +31,7 @@ class Teachers(Classes):
         _, token = self.link()
         import urllib.request
         req = urllib.request.Request(f'http://127.0.0.1:{self.site.server_address[1]}/api/register',
-                                     data=json.dumps({'username': name, 'password': PW, 'teacher': token}).encode(),
+                                     data=json.dumps({'username': name, 'password': PW, 'teacher': token, 'storage': True, 'terms': True}).encode(),
                                      headers={'Content-Type': 'application/json', 'X-Real-IP': '10.22.0.%d' % (len(self.people) + 1)})
         with urllib.request.urlopen(req, timeout=10) as r:
             cookie = r.headers['Set-Cookie'].split(';')[0]

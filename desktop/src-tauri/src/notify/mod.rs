@@ -20,21 +20,40 @@ pub fn silent() -> bool {
     SILENT.load(std::sync::atomic::Ordering::Relaxed)
 }
 
-/// FlowApp.notify.permission(): 'granted' | 'denied' | 'undetermined' (the same words as the iOS app)
+/// FlowApp.notify.permission(): 'granted' | 'denied' | 'undetermined' | 'provisional' (docs/native-bridge.md §5)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Permission {
     Granted,
     Denied,
     Undetermined,
+    /// macOS: delivered quietly to Notification Centre — still allowed
+    #[allow(dead_code)]
+    Provisional,
 }
 
 impl Permission {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Permission::Granted => "granted",
-            Permission::Denied => "denied",
-            Permission::Undetermined => "undetermined",
+    /// notifications will be shown
+    pub fn ok(self) -> bool {
+        matches!(self, Permission::Granted | Permission::Provisional)
+    }
+}
+
+/// FlowApp.notify.permission() as the contract means it (docs/native-bridge.md §5): whether the app's reminders
+/// are on, not only what the system allows. 'granted' = the system allows and the learner turned them on;
+/// 'undetermined' = not turned on yet, or turned off; 'denied' = turned off in the system's settings.
+/// `lenient`: Windows cannot say before its first toast ('undetermined' there is not a no).
+pub fn app_permission(sys: Permission, on: bool, lenient: bool) -> &'static str {
+    let allowed = sys.ok() || (lenient && sys == Permission::Undetermined);
+    if sys == Permission::Denied {
+        "denied"
+    } else if on && allowed {
+        if sys == Permission::Provisional {
+            "provisional"
+        } else {
+            "granted"
         }
+    } else {
+        "undetermined"
     }
 }
 
@@ -71,14 +90,32 @@ pub fn xml_escape(s: &str) -> String {
     o
 }
 
-/// The click target of a notification id (all reminders open the review).
+/// The click target of a notification id: word reminders open the review, the day's plan the home page.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub fn route_of(id: &str) -> Option<&'static str> {
-    if id.starts_with("flow-daily-") || id == "flow-once" {
+    if id.starts_with("review-") {
         Some("/review")
+    } else if id.starts_with("plan-") {
+        Some("/")
     } else {
         None
     }
+}
+
+/// Windows tags are at most 16 characters: review-2026-11-27 → r20261127, plan-… → p…, review-once → once.
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
+pub fn tag_of(id: &str) -> String {
+    let short = |prefix: &str, rest: &str| format!("{prefix}{}", rest.replace('-', ""));
+    let t = if id == "review-once" {
+        "once".to_string()
+    } else if let Some(r) = id.strip_prefix("review-") {
+        short("r", r)
+    } else if let Some(r) = id.strip_prefix("plan-") {
+        short("p", r)
+    } else {
+        id.to_string()
+    };
+    t.chars().take(16).collect()
 }
 
 /// A system without a backend (other targets, unit tests): nothing is scheduled.
@@ -93,7 +130,7 @@ mod none {
     pub fn ask() -> bool {
         false
     }
-    pub fn schedule(_items: &[Planned], _launch: &str) -> Result<usize, String> {
+    pub fn schedule(_items: &[Planned], _scheme: &str) -> Result<usize, String> {
         Ok(0)
     }
     pub fn clear() {}
@@ -131,10 +168,26 @@ mod tests {
     }
 
     #[test]
+    fn permission_means_the_apps_reminders() {
+        use Permission::*;
+        assert_eq!(app_permission(Granted, true, false), "granted");
+        assert_eq!(app_permission(Granted, false, false), "undetermined"); // not turned on, or turned off
+        assert_eq!(app_permission(Denied, true, false), "denied");
+        assert_eq!(app_permission(Undetermined, true, false), "undetermined");
+        assert_eq!(app_permission(Undetermined, true, true), "granted"); // Windows before its first toast
+        assert_eq!(app_permission(Provisional, true, false), "provisional");
+    }
+
+    #[test]
     fn reminder_clicks_open_the_review() {
-        assert_eq!(route_of("flow-daily-20261125"), Some("/review"));
-        assert_eq!(route_of("flow-once"), Some("/review"));
+        assert_eq!(route_of("review-2026-11-25"), Some("/review"));
+        assert_eq!(route_of("review-once"), Some("/review"));
+        assert_eq!(route_of("plan-2026-11-25"), Some("/"));
         assert_eq!(route_of("flow-test"), None);
-        assert_eq!(Permission::Undetermined.as_str(), "undetermined");
+        assert!(Permission::Provisional.ok() && !Permission::Undetermined.ok());
+        assert_eq!(tag_of("review-2026-11-27"), "r20261127");
+        assert_eq!(tag_of("plan-2026-11-27"), "p20261127");
+        assert_eq!(tag_of("review-once"), "once");
+        assert!(tag_of("something-much-longer-than-sixteen").chars().count() <= 16);
     }
 }

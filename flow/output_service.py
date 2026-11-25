@@ -5,6 +5,7 @@ Each call is one AI job (shared daily quota). Results feed the learner model: a 
 ability profile, and corrections into the mistake book.
 """
 import json
+import os
 import re
 import time
 
@@ -357,7 +358,155 @@ def translate(c, uid, data):
 # Who may judge one word well enough to file a mistake: Gemini (the main service) for now; a dedicated pronunciation
 # scorer joins when 语流 12 connects one. A verdict from another model (Qwen-Omni, since the owner moved 跟读 and 发音 off
 # Gemini on 2026-11-25: 「延迟太高了」) is a reference only: counted as practice, never a mistake, said to be maybe wrong.
-SAY_TRUSTED = ('main',)
+SAY_TRUSTED = ('main', 'asr')
+
+
+def say_counts():
+    """FLOW_SAY_COUNTS=on: Qwen-Omni's written-down word (service 'word') counts like a trusted verdict, two misses in a row
+    make the card. Off by default (2026-11-25, the owner: 「先只作参考」): shown, never a mistake, while a week of anonymous
+    verdicts (say_judgements) is spot-checked with the team's own recordings."""
+    return os.getenv('FLOW_SAY_COUNTS', '').strip().lower() in ('on', '1', 'yes', 'true')
+
+
+def say_trusted():
+    return SAY_TRUSTED + (('word',) if say_counts() else ())
+
+
+def say_judge():
+    """How 发音 hears one word, before say_verdict decides: 'omni' = Qwen-Omni writes down the word it hears, told nothing
+    (chat_service.hear_word; the default once the main model is off, 2026-11-25 the owner: 「不用 qwen3-asr，先用 Omni」);
+    'asr' = FLOW_SAY_JUDGE=asr, 百炼's speech recognition told the word and its pair word (qwen3-asr: no filing, not for
+    learners); '' = the old prompt, its verdict on Omni a reference only (FLOW_SAY_JUDGE=model, or the main model on)."""
+    import chat_service
+    v = os.getenv('FLOW_SAY_JUDGE', '').strip().lower()
+    if v == 'asr':
+        return 'asr' if chat_service.asr_model() else ''
+    if v == 'model':
+        return ''
+    if v == 'omni' or not chat_service.main_on():
+        return 'omni' if chat_service.word_model() else ''
+    return ''
+
+
+def say_by_asr():
+    return say_judge() == 'asr'
+
+
+FULL_VOWELS = set('aeiouyæɑɒɔɛɪʊʌɜɚɝ')  # every vowel but the weak ə
+
+
+def sounds_of(word):
+    """How the dictionary says exactly this word (no base form: "rights" is not looked up as "right"), ready to compare:
+    stress marks, notes like "(for v.)", optional sounds like "(ə)" and spaces dropped, ɛ written e. Length marks stay:
+    the dictionary writes a few short vowels the old way ([bin] for bin, [nil] for nil), and without the marks bean and
+    bin, kneel and nil would sound alike. Weak forms ([ðə] for there) and fragments ([en-]) are left out when the word
+    also has a full form."""
+    ph = (nx.dictionary().get(word) or {}).get('phonetic') or ''
+    ph = re.sub(r'\([^)]*\)|\b(?:strong|weak) form\b', '', ph)
+    forms = set()
+    for v in re.split(r'[;；,，/]', ph):
+        v = re.sub(r"[ˈˌ'\s\[\]]", '', v.replace('ɛ', 'e').replace('ɡ', 'g'))
+        if v and '-' not in v:
+            forms.add(v)
+    return {v for v in forms if set(v) & FULL_VOWELS} or forms
+
+
+def same_sound(a, b):
+    """Two different words the dictionary says alike (their / there, right / write, too / two)."""
+    return a != b and bool(sounds_of(a) & sounds_of(b))
+
+
+def say_verdict(target, partner, heard):
+    """What the recogniser wrote down -> the answer say() reads. The target counts only as a whole word (hat is not
+    in "that"). Wrong when it heard the pair word and not the target, or, for a word without a pair, another real word
+    (it heard as "sit"); nothing heard is a reference. A third word next to a pair (语流 B3, 2026-11-25) is right only
+    when it sounds nearer the target (thing for think); nearer the pair word, or unclear, it is wrong but a reference.
+    One word alone is often written as another that sounds the same (their as there, 语流 09): a word the dictionary
+    says like the target is right, one it says like the pair word is the pair word."""
+    import difflib, sounds
+    t, p = target.lower().strip(), (partner or '').lower().strip()
+    words = re.findall(r"[a-z']+", (heard or '').lower())
+    said = ' '.join(words)
+    one = words[0] if len(words) == 1 else ''
+    tip = sounds.tip_of(t)
+    if not words:
+        return {'heard': '', 'ok': True, 'note': '这次没听清读的是什么，可以再读一遍', 'tip': '', 'unclear': True, 'reason': 'unclear'}
+    hit = re.search(r"(?<![a-z'])" + re.escape(t) + r"(?![a-z'])", said)
+    if p and p in words and not hit:
+        return {'heard': said, 'ok': False, 'note': f'听起来像 {p}，不像 {t}', 'tip': tip, 'reason': 'pair'}
+    if hit:
+        return {'heard': said, 'ok': True, 'note': f'听起来是 {t}', 'tip': '', 'reason': 'target'}
+    if one and same_sound(t, one):
+        return {'heard': said, 'ok': True, 'note': f'听起来是 {t}（和 {one} 同音）', 'tip': '', 'reason': 'same'}
+    if p and one and same_sound(p, one):  # the pair word, written as one that sounds like it (right as write)
+        return {'heard': said, 'ok': False, 'note': f'听起来像 {p}（和 {one} 同音），不像 {t}', 'tip': tip, 'reason': 'pair_same'}
+    if p:  # neither the target nor its pair (语流 B3, 2026-11-25: zinc heard for think must not read as right)
+        w, side, how = _third(words, t, p)
+        if side == 'target' and how != 'tie' and _spelling(w, t) >= 0.6:
+            return {'heard': said, 'ok': True, 'note': f'听起来像 {said}，接近 {t}', 'tip': '', 'reason': 'third_ok'}
+        if side == 'pair' and _near(w, p):  # a reference only: never one of the two misses
+            note = f'听起来像 {said}，更接近 {p}，不像 {t}' if how == 'sound' else f'听起来像 {said}，不像 {t}'
+            return {'heard': said, 'ok': False, 'note': note, 'tip': tip, 'reason': 'third_near_pair', 'reference': True}
+        return {'heard': said, 'ok': False, 'note': f'没听出 {t}，听着像 {said}，可以再读一遍', 'tip': '', 'reason': 'third_unclear', 'reference': True}
+    other = len(words) == 1 and words[0] != t and nx.lookup(words[0])
+    if not other and difflib.SequenceMatcher(None, t, words[0]).ratio() >= 0.6:  # a spelling slip of the recogniser
+        return {'heard': said, 'ok': True, 'note': f'听起来接近 {t}', 'tip': '', 'reason': 'near'}
+    return {'heard': said, 'ok': False, 'note': f'听起来像 {said}', 'tip': tip, 'reason': 'other'}
+
+
+def _spelling(a, b):
+    import difflib
+    return difflib.SequenceMatcher(None, a, b).ratio()
+
+
+def _edits(a, b):
+    """Levenshtein distance between two pronunciations as the dictionary writes them (one sound mark, one step)."""
+    row = list(range(len(b) + 1))
+    for i, x in enumerate(a, 1):
+        prev, row[0] = row[0], i
+        for j, y in enumerate(b, 1):
+            prev, row[j] = row[j], min(row[j] + 1, row[j - 1] + 1, prev + (x != y))
+    return row[-1]
+
+
+SOUND = re.compile(r'tʃ|dʒ|eɪ|aɪ|ɔɪ|aʊ|əʊ|oʊ|ɪə|eə|ʊə|[^ː]ː?')  # one sound each: affricates, diphthongs, long vowels
+
+
+def _sounds(form):
+    return SOUND.findall(form)
+
+
+def _sound_edits(a, b):
+    """Fewest sound changes between two words' dictionary pronunciations, sound by sound (ʃeɪp is three sounds, one
+    from ʃɪp and one from ʃiːp), or None when either has none."""
+    sa, sb = sounds_of(a), sounds_of(b)
+    return min(_edits(_sounds(x), _sounds(y)) for x in sa for y in sb) if sa and sb else None
+
+
+def _closer(w, t, p):
+    """Which of target t and pair word p a third word w is closer to: ('target' | 'pair' | '', how it was told:
+    'sound' or 'spelling'). The pronunciations first; the spelling only when they tie or the dictionary has none."""
+    dt, dp = _sound_edits(w, t), _sound_edits(w, p)
+    if dt is not None and dp is not None and dt != dp:
+        return ('target' if dt < dp else 'pair'), 'sound'
+    a, b = _spelling(w, t), _spelling(w, p)
+    return ('' if a == b else 'target' if a > b else 'pair'), ('tie' if dt is not None and dp is not None else 'spelling')
+
+
+def _near(w, x):
+    """w is near x: one sound apart (two for a long word), or spelt much alike; banana is near neither think nor sink."""
+    d = _sound_edits(w, x)
+    if d is not None and d <= max(1, min(len(_sounds(f)) for f in sounds_of(x)) // 3):
+        return True
+    return _spelling(w, x) >= 0.6
+
+
+def _third(words, t, p):
+    """The heard word nearest either of the two (one word, or the likeliest of several), the side it leans to and how
+    that was told (a tie in the pronunciations never makes it right: shape is one sound from both ship and sheep)."""
+    w = max(words, key=lambda x: max(_spelling(x, t), _spelling(x, p)))
+    side, how = _closer(w, t, p)
+    return w, side, how
 
 
 def say(c, uid, data):
@@ -383,12 +532,26 @@ def say(c, uid, data):
             raise Shape('json_shape')
         by = getattr(ai_routes.CTX, 'last_service', None)  # the call whose answer this is (same thread, just recorded)
         return {'heard': _clean(raw.get('heard') or '', 0, 80), 'ok': mbool(raw.get('ok'), 'ok_missing'), 'note': _clean(raw.get('note') or '', 0, 300),
-                'tip': _clean(raw.get('tip') or '', 0, 300), 'tentative': by is not None and by not in SAY_TRUSTED}
+                'tip': _clean(raw.get('tip') or '', 0, 300), 'tentative': (by is not None and by not in say_trusted()) or raw.get('unclear') is True or raw.get('reference') is True,
+                'reason': raw.get('reason') if raw.get('reason') in SAY_REASONS else ''}
 
     import hashlib, ai_routes
     ai_routes.CTX.last_service = None
-    result, status = _ai(c, uid, data, 'next-say', 'sounds', 'speaking', {'text': target, 'audio_sha256': hashlib.sha256(raw_audio).hexdigest()},
-                         system, user, convert, data.get('audio'))
+    spec = {'text': target, 'audio_sha256': hashlib.sha256(raw_audio).hexdigest()}
+    judge = say_judge()
+    if judge:
+        import chat_service
+        from lab_service import run_job
+
+        def invoke():
+            if judge == 'asr':
+                heard = chat_service.transcribe(data.get('audio'), [target, partner])
+            else:
+                heard = chat_service.hear_word(data.get('audio'))
+            return json.dumps(say_verdict(target, partner, heard), ensure_ascii=False), 'stop'
+        result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-say', 'sounds', 'speaking', spec, invoke, convert, mark_replay=True)
+    else:
+        result, status = _ai(c, uid, data, 'next-say', 'sounds', 'speaking', spec, system, user, convert, data.get('audio'))
     if status == 200 and not result.get('replayed'):
         r = result['result']
         key = 'say:' + target.lower()[:60]
@@ -401,6 +564,8 @@ def say(c, uid, data):
         r['confirmed'] = not r.get('tentative') and not r['ok'] and last is not None and last['score'] == 0
         if r['confirmed']:
             sk.add_mistake(c, uid, 'sound', target, 'sound:' + target.lower(), r['tip'] or r['note'], '', 'pronunciation', extra={'focus': focus}, commit=False)
+        if judge and r.get('reason'):
+            log_say(c, target, partner, judge, r['reason'], r['ok'], not r.get('tentative'))
         c.commit()
     return result, status
 
@@ -410,7 +575,53 @@ def say(c, uid, data):
 AI_PATHS = ('/api/next/retell', '/api/next/dialog', '/api/next/essay', '/api/next/translate/source', '/api/next/translate', '/api/next/say')
 
 
+SAY_REASONS = ('unclear', 'target', 'pair', 'same', 'pair_same', 'third_ok', 'third_near_pair', 'third_unclear', 'near', 'other')  # say_verdict's ways to decide
+SAY_KEEP_DAYS = 14
+
+
+def log_say(c, word, partner, judge, reason, ok, counted):
+    """One 发音 verdict for the spot-check (2026-11-25, the owner: 「先只作参考」, a week of verdicts before deciding whether
+    they count): the practice word and its pair word, the judge, say_verdict's reason code, the verdict, whether it
+    counted. No account, no recording, nothing the learner said, and only the day (Beijing time), not the moment: a
+    moment and a word could be matched to a learner's own practice record. Older than SAY_KEEP_DAYS days: deleted on
+    every write and read here, and once a day by prune_say (ai_routes.tick), so they go even when nobody practises."""
+    c.execute('INSERT INTO say_judgements(day, word, partner, judge, reason, ok, counted) VALUES(?,?,?,?,?,?,?)',
+              (_say_day(), word.lower()[:60], (partner or '').lower()[:60], judge, reason, int(bool(ok)), int(bool(counted))))
+    prune_say(c, commit=False)
+
+
+def _say_day(days_ago=0, now=None):
+    import datetime
+    t = datetime.datetime.fromtimestamp((now or time.time()) - days_ago * 86400, datetime.timezone(datetime.timedelta(hours=8)))
+    return t.strftime('%Y-%m-%d')
+
+
+def prune_say(c, now=None, commit=True):
+    """Verdict rows older than SAY_KEEP_DAYS days go (the privacy chapter: 保留 14 天)."""
+    try:
+        c.execute('DELETE FROM say_judgements WHERE day<?', (_say_day(SAY_KEEP_DAYS, now),))
+        if commit:
+            c.commit()
+    except Exception:  # noqa: BLE001 - a database without the table yet
+        pass
+
+
+def say_summary(c, days=7):
+    """The spot-check's starting point: verdicts per judge and reason code, and the words most often judged wrong (to
+    read again with the team's own recordings, never the learners')."""
+    prune_say(c)
+    since = _say_day(days - 1)
+    by = [dict(judge=j, reason=r, ok=bool(o), n=n) for j, r, o, n in c.execute(
+        'SELECT judge, reason, ok, COUNT(*) FROM say_judgements WHERE day>=? GROUP BY judge, reason, ok ORDER BY 4 DESC', (since,))]
+    wrong = [dict(word=w, partner=p, n=n) for w, p, n in c.execute(
+        'SELECT word, partner, COUNT(*) FROM say_judgements WHERE day>=? AND ok=0 GROUP BY word, partner ORDER BY 3 DESC LIMIT 30', (since,))]
+    return {'days': days, 'by_reason': by, 'wrong_words': wrong}
+
+
 def schema(c):
+    c.execute('CREATE TABLE IF NOT EXISTS say_judgements(id INTEGER PRIMARY KEY, day TEXT NOT NULL, word TEXT NOT NULL, '
+              "partner TEXT NOT NULL DEFAULT '', judge TEXT NOT NULL, reason TEXT NOT NULL, ok INTEGER NOT NULL, counted INTEGER NOT NULL)")
+    c.execute('CREATE INDEX IF NOT EXISTS say_judgements_day ON say_judgements(day)')
     c.execute('CREATE TABLE IF NOT EXISTS next_translations(pack TEXT NOT NULL, sentence TEXT NOT NULL, zh TEXT NOT NULL, created REAL NOT NULL, PRIMARY KEY(pack, sentence))')
     c.execute('CREATE TABLE IF NOT EXISTS next_dialog_openers(pack TEXT NOT NULL, level TEXT NOT NULL, result TEXT NOT NULL, created REAL NOT NULL, PRIMARY KEY(pack, level))')
     c.commit()
