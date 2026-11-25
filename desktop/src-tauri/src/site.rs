@@ -1,5 +1,5 @@
 //! Which 语流 the app opens: the Beta build opens 内测版 (flow.jasa.hk), the Release build 正式版 (flowlang.cn).
-//! The bundle identifier decides it (tauri.beta.conf.json sets `cn.flowlang.desktop.beta`), so one binary
+//! The bundle identifier decides it (tauri.beta.conf.json sets `cn.flowlang.app.beta`; the same ids as the iOS app), so one binary
 //! cannot open the wrong site.
 
 use url::Url;
@@ -97,11 +97,11 @@ mod tests {
     #[test]
     fn channel_from_identifier() {
         assert_eq!(
-            Channel::from_identifier("cn.flowlang.desktop.beta"),
+            Channel::from_identifier("cn.flowlang.app.beta"),
             Channel::Beta
         );
         assert_eq!(
-            Channel::from_identifier("cn.flowlang.desktop"),
+            Channel::from_identifier("cn.flowlang.app"),
             Channel::Release
         );
         assert_eq!(Channel::Beta.site(), "https://flow.jasa.hk/");

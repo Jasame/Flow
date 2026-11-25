@@ -16,8 +16,8 @@ Tauri 2 做的「原生外壳 + 关键功能原生」：窗口里就是网站（
 
 ## 两个配置
 
-- **Release**（`src-tauri/tauri.conf.json`）：「语流」，`cn.flowlang.desktop`，打开正式版，链接协议 `flowlang://`。
-- **Beta**（叠加 `src-tauri/tauri.beta.conf.json`）：「语流内测」，`cn.flowlang.desktop.beta`，打开内测版，`flowlang-beta://`。
+- **Release**（`src-tauri/tauri.conf.json`）：「语流」，`cn.flowlang.app`（和 iOS 正式版同一个），打开正式版，链接协议 `flowlang://`。
+- **Beta**（叠加 `src-tauri/tauri.beta.conf.json`）：「语流内测」，`cn.flowlang.app.beta`（和 iOS 内测版同一个），打开内测版，`flowlang-beta://`。
 
 开哪个网站由 bundle identifier 决定（`src-tauri/src/site.rs`），两个可以同时装。
 
