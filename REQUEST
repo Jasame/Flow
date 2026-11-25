@@ -1,3 +1,3 @@
-15b4c601469d0add1c4e675a9fc6471c09161dd2 c40f1b161be3bfbe86784648eb5f511ca249a7ea4e6e59e25afb1f78d6f81d67 e2e light
-# b31 main: Merge pull request #118 from Jasame/audio-omni-first = build of 4127190bbc87
+0c54902505fd44638841962c035c0a5090bb77a8 c13c05c61d595d0ecd237f462abd2d00161d2664d52ab777bf545aa10386cb70 e2e light
+# b32 main: Merge pull request #127 from Jasame/home-app-teacher-tab = build of 7b7fe8c60ca4
 # Format: <commit sha> <manifest sha256> [e2e [light]]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
