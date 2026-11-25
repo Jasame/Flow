@@ -785,8 +785,11 @@ def home(c, uid, level=None, themes=None):
     themes = (prof or {}).get('themes') or [t for t in (themes or []) if t in THEMES]
     done = _done(c, uid)
     day = _day()
+    # 按我的学习记录推荐 switched off (我的 → 设置; D2: off means the ranking reads no records at all, not that it hides
+    # the reasons): the level the learner chose, featured first, the newest first. Only an account that switched it off.
+    plain = bool(uid) and not follows_records(prof)
     # A serial is recommended one episode at a time: only its next unread episode, never one from the middle.
-    serial_next = {s['next'] for s in series_list(c, uid)}
+    serial_next = set() if plain else {s['next'] for s in series_list(c, uid)}
     pool = [(r, p) for r, p in _public_packs(c, level) if r['origin'] != 'daily' and (not p.get('series') or p['id'] in serial_next)]
     learned = lambda p: 'check' in done.get(p['id'], set())
     # What 今日 recommends, tier by tier, until there are three (r27 content line, audit 3.2; the user's choices):
@@ -800,7 +803,7 @@ def home(c, uid, level=None, themes=None):
         tiers.append(('up', [rp for rp in _public_packs(c, up) if rp[0]['origin'] != 'daily' and featured(rp[1]) and not rp[1].get('series')
                              and not learned(rp[1])]))
     last = {}
-    if uid:
+    if uid and not plain:
         # The latest time each text was learned: the first time (next_progress) or again (next_step_log, since #51)
         last = {r['pack']: r['t'] for r in c.execute(
             "SELECT pack, MAX(created) t FROM (SELECT pack, created FROM next_progress WHERE user_id=? AND step='check' "
@@ -812,7 +815,7 @@ def home(c, uid, level=None, themes=None):
     states = graph_states(c, uid) if uid else {}
     focus = set(LEVEL_NODES.get(level, ())) or None
     meta_titles = {k: v['title'] for k, v in nodes_meta(c).items()}
-    saved = _card_norms(c, uid)
+    saved = [] if plain else _card_norms(c, uid)
     # Ties are broken per day and level, not per account, so signing in does not swap the article a guest was shown.
     seed = lambda p: hashlib.sha256(f"{day}|{level}|{p['id']}".encode()).hexdigest()
     # New grammar counts only once the learner has some (a new account ranks like the guest it was a minute ago).
@@ -857,9 +860,7 @@ def home(c, uid, level=None, themes=None):
     short = bool(prof) and minutes <= 15  # a guest has no day's time: ranked as before
     exam_day = goal == 'exam' and bool(getattr(__import__('exam_service'), 'drill_step', None))  # 考试小练 (r28 第 4 段)
     picks, taken = [], set()
-    # 按我的学习记录推荐 switched off (我的 → 设置): the level the learner chose, featured first, the newest first, and
-    # nothing from their records — no grammar to make up, no saved words, no texts left out for being learned
-    plain = bool(uid) and not follows_records(prof)  # only an account that switched it off
+    # switched off: nothing from the records — no grammar to make up, no saved words, no texts left out for being learned
     if plain:
         rows = [rp for rp in _public_packs(c, level) if rp[0]['origin'] != 'daily' and not rp[1].get('series')]
         rows.sort(key=lambda rp: (0 if featured(rp[1]) else 1, -(rp[0]['created'] or 0), rp[1]['id']))

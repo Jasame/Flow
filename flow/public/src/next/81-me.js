@@ -45,7 +45,8 @@
         u ? grow('meMail', '每周进度邮件', weeklyMailLabel(), 'meMailV', 'me-weekly-mail') : '',
         u && S.home && S.home.profile ? grow('mePers', '按我的学习记录推荐', personalizeLabel(), 'mePersV', 'me-personalize') : '',  // 81-privacy.js
         installed ? '' : grow('meInstall', '添加到桌面', '', '', 'me-install'),
-        appSettings() ? grow('meApp', appSettings()[0], appSettings()[1], '', 'me-app-settings') : '']],
+        appSettings() ? grow('meApp', appSettings()[0], appSettings()[1], '', 'me-app-settings') : ''],
+        u && S.home && S.home.profile ? '关掉「按我的学习记录推荐」以后，推荐只按你选的水平和新旧排，不看你的学习记录。' : ''],
       u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
         grow('meAge', '年龄段', ageLabel(u && u.age), 'meAgeV', 'me-age'), grow('meStorage', '数据存放', '已同意 · 香港'), grow('#/guide/terms', '用户协议', '和隐私说明一起同意'), grow('meData', '导出我的数据', '', '', 'me-data'), grow('meDelete', '注销账号', '', '', 'me-delete')],
         '绑定邮箱后，可以用验证码登录，忘记密码时自己找回。30 天内来过就一直保持登录；在别人的手机或电脑上用完，记得退出。'],

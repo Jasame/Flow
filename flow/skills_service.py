@@ -255,12 +255,14 @@ def daily_path(c, uid, home, now=None):
     # the words most due first (one round of BACK_WORDS), a text half read before or one a level easier, and nothing
     # else; the next day is an ordinary one again.
     back = None
-    before = ps.study_days(c, uid, now - 400 * 86400, start)
+    # 回归模式 reshapes the day from the study record: with 按我的学习记录推荐 switched off there is none (D2: the plan's
+    # shape follows the records → under the switch; by the minutes the learner chose → not)
+    before = ps.study_days(c, uid, now - 400 * 86400, start) if nx.follows_records(prof) else None
     if before:
         missed = (ps._local(now).date() - max(before)).days - 1
         if missed >= getattr(vs, 'BACK_DAYS', BACK_DAYS):
             back = {'days': missed, 'left': 0}
-            if not row and nx.follows_records(prof):  # off (我的 → 设置): no easier text picked from the records
+            if not row:
                 half = home.get('resume') if home.get('resume') and 'check' not in (home['resume'].get('steps') or []) else None
                 pick = half or _easier(c, uid, prof.get('level') or 'B1', now) or pick
                 done_steps = set()

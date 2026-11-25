@@ -61,6 +61,21 @@ class PersonalizeTests(unittest.TestCase):
         self.assertTrue(path)
         self.assertIsNone(sk.suggest_level(self.c, 1))
 
+    def test_off_the_ranking_reads_no_records_at_all(self):
+        # D2: not just the reasons hidden — the saved words, the serials read and the times texts were learned stay unread
+        nx.set_personalize(self.c, 1, {'on': False})
+        with patch.object(nx, '_card_norms', side_effect=AssertionError('saved words read')), \
+                patch.object(nx, 'series_list', side_effect=AssertionError('serials read')):
+            self.assertEqual([x['id'] for x in nx.home(self.c, 1)['today']], self.plain_order('B1'))
+
+    def test_off_there_is_no_day_back_reshaped_from_the_record(self):
+        # 回归模式 follows the study record (days away), so it is under the switch; the plan's length follows the minutes
+        old = __import__('time').time() - 12 * 86400
+        self.c.execute('INSERT INTO next_progress VALUES(?,?,?,?)', (1, self.plain_order('B1')[0], 'read', old)); self.c.commit()
+        self.assertIsNotNone(nx.home(self.c, 1)['path']['back'])
+        nx.set_personalize(self.c, 1, {'on': False})
+        self.assertIsNone(nx.home(self.c, 1)['path']['back'])
+
     def test_a_guest_and_an_account_without_a_profile_are_not_marked_off(self):
         self.assertFalse(nx.home(self.c, None, 'B1')['personalized'])  # no account: nothing personal to say
         self.assertTrue(nx.follows_records(None)); self.assertTrue(nx.follows_records({'level': 'B1'}))
