@@ -90,7 +90,7 @@
           ${m.can_variant ? `<button class="btn small" id="mkVar" type="button" title="这篇原文是 ${m.original_level}，你选的是 ${m.user_level}">改写成 ${m.user_level} 难度</button>` : ''}
           <button class="btn small" id="readAlong" title="边听边看文字，读到哪句亮哪句">${playIcon(false, 14)}<span>伴读</span></button>
           <button class="link tiny" id="alongRestart" type="button" hidden>从头开始</button></div>
-        <div class="ai-line read-ai">${aiVoice()}<span>声音由 AI 合成</span></div>
+        ${aiVoiceNote('朗读由 AI 合成', 'p', 'read-ai')}
         <p class="tiny muted sv-prep" id="svPrep" role="status" hidden></p>
         ${m.summary_zh ? `<p class="guide-zh small" id="zhText" hidden>${esc(m.summary_zh)}</p>` : ''}${variantBar}
         <div class="read-hint tiny muted"><div class="legend"><span>本篇词汇</span><span class="h">可能超出你的水平</span>${(m.mine || []).length ? '<span class="m">你在背的词</span>' : ''}</div>

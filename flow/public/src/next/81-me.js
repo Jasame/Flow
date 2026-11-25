@@ -133,8 +133,18 @@
   function knowSheet() {
     const opts = [['right', '右边（默认）', '和大多数背词 App 一样，右手点着顺。往右滑是认识，往左滑是不认识。'], ['left', '左边', '往左滑是认识，往右滑是不认识。']];
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">「认识」放在</h2>
-      <div class="choice" role="radiogroup" aria-labelledby="sheetTitle">${opts.map(([k, t, d]) => `<button class="opt" type="button" role="radio" data-know="${k}" aria-checked="${KNOW.side() === k}" aria-pressed="${KNOW.side() === k}"><b>${t}</b><span class="small muted">${d}</span></button>`).join('')}</div>
-      <p class="muted small">复习单词和测词汇量都跟着变：按钮的位置、滑动的方向，电脑上的按键（1 2 3 和 ← →）也按按钮在屏幕上的位置。只影响这台设备。</p><button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      <div class="choice two" role="radiogroup" aria-labelledby="sheetTitle">${opts.map(([k, t, d]) => `<button class="opt" type="button" role="radio" data-know="${k}" aria-checked="${KNOW.side() === k}" aria-pressed="${KNOW.side() === k}"><b>${t}</b><span class="small muted">${d}</span></button>`).join('')}</div>
+      <p class="muted small">复习单词和测词汇量都跟着变：按钮的位置、滑动的方向，电脑上的按键（1 2 3 和 ← →）也按按钮在屏幕上的位置。只影响这台设备。</p>
+      <h3 class="zones-h" id="zonesTitle">点卡片作答</h3>
+      <div class="choice two" role="radiogroup" aria-labelledby="zonesTitle">${[[1, '开', '复习卡的左、中、右三块，和下面三个按钮一样（「认识」那边就是认识）。只翻面看答案，翻面后还是点按钮评分；点错了可以「撤销」。'], [0, '关', '只用下面的按钮、滑动和按键。']].map(([k, t, d]) => `<button class="opt" type="button" role="radio" data-zones="${k}" aria-checked="${KNOW.tap() === !!k}" aria-pressed="${KNOW.tap() === !!k}"><b>${t}</b><span class="small muted">${d}</span></button>`).join('')}</div>
+      <p class="muted small">手机和平板默认开，用鼠标的电脑默认关。<button class="link small" type="button" id="zonesGuide">下次复习再看一次说明</button></p>
+      <button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      card.querySelectorAll('[data-zones]').forEach(b => b.onclick = () => {
+        KNOW.setTap(b.dataset.zones === '1');
+        card.querySelectorAll('[data-zones]').forEach(x => { x.setAttribute('aria-checked', String(x === b)); x.setAttribute('aria-pressed', String(x === b)); });
+        toast(KNOW.tap() ? '点卡片的左、中、右也能作答了' : '点卡片作答关了，只用按钮和滑动');
+      });
+      document.getElementById('zonesGuide').onclick = () => { try { localStorage.removeItem('flow-tap-guide'); } catch (e) { /* private mode */ } toast('下次复习时再看一次'); };
       card.querySelectorAll('[data-know]').forEach(b => b.onclick = () => {
         KNOW.set(b.dataset.know); save('flow-know-tip', 1);  // chosen here: the one-time tip of the move is not needed
         card.querySelectorAll('[data-know]').forEach(x => { x.setAttribute('aria-checked', String(x === b)); x.setAttribute('aria-pressed', String(x === b)); });
@@ -165,7 +175,7 @@
   }
   function voiceSheet() {
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">朗读声音</h2>${voiceChips(null)}
-      <p class="muted small">精选材料用 AI 朗读（自然人声，Kokoro 合成）。学一篇材料时，也可以在「听」这一步随时切换。</p><button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      <p class="muted small">语流里的读音和朗读都是 AI 合成的，不是真人录的：精选材料和单词用 Kokoro，其余（AI 的回复、口语情景、没有录音的句子）用 CosyVoice，都是自然人声。放声音的地方写着一行小灰字「读音由 AI 合成」或「朗读由 AI 合成」，喇叭多的列表里每个喇叭右上角有一个淡淡的「AI」。学一篇材料时，也可以在「听」这一步随时切换声音。</p><button class="btn ghost" data-close type="button">完成</button></div>`, card => {
       card.querySelectorAll('[data-voice]').forEach(b => b.onclick = async () => {
         await setVoice(b.dataset.voice);
         card.querySelectorAll('[data-voice]').forEach(x => { x.setAttribute('aria-pressed', String(x === b)); x.setAttribute('aria-checked', String(x === b)); });

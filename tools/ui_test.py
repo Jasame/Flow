@@ -293,8 +293,8 @@ def run_device(pw, dev, opts):
     pg.click('#exDone'); pg.wait_for_timeout(900)
     res = pg.evaluate("() => ({h: (document.querySelector('#view h1') || {}).textContent || '', parts: document.querySelectorAll('.exam-score div').length})")
     check(dev, 'exam: handed in, scored by part', '题做对' in res['h'] and res['parts'] == 3, res)
-    missed = pg.evaluate("() => [...document.querySelectorAll('#view h2')].filter(h => h.textContent.startsWith('没认出')).map(h => !!h.querySelector('.ai-voice'))")
-    check(dev, 'exam: 没认出的词 (their sound is synthesized) says 「AI 朗读」 by its heading', missed in ([], [True]), missed)
+    missed = pg.evaluate("() => [...document.querySelectorAll('#view h2')].filter(h => h.textContent.startsWith('没认出')).map(h => { const n = h.nextElementSibling; return !!n && n.classList.contains('ai-voice-note') && n.textContent.includes('AI') && !!h.parentElement.querySelector('.crow .ai-badge'); })")
+    check(dev, 'exam: 没认出的词 (their sound is synthesized) says 「读音由 AI 合成」 under its heading, a faint 「AI」 on each speaker', missed in ([], [True]), missed)
 
     # ---- serial: six episodes in order, an episode names its place in the series
     go(pg, '#/series/lighthouse-ledger')
@@ -466,8 +466,8 @@ def run_device(pw, dev, opts):
       return {tools: t ? [...t.querySelectorAll('button')].map(b => b.id) : [], top: r ? Math.round(r.getBoundingClientRect().top) : null, h: innerHeight}; }""")
     check(dev, 'read: the tools sit in one row above the text', 'readAlong' in rd['tools'], rd)
     kinds = pg.evaluate("() => [...document.querySelectorAll('#view .read-tools button:not([hidden])')].map(b => b.className.includes('btn small') ? 'btn' : b.id)")
-    check(dev, 'read: one kind of button in the row, 「AI 朗读 · 声音由 AI 合成」 on its own line under it',
-          all(k == 'btn' for k in kinds) and pg.is_visible('#view .read-ai .ai-voice') and '合成' in (pg.text_content('#view .read-ai') or ''), kinds)
+    check(dev, 'read: one kind of button in the row, 「朗读由 AI 合成」 one grey line under it',
+          all(k == 'btn' for k in kinds) and pg.is_visible('#view .read-ai.ai-voice-note') and '合成' in (pg.text_content('#view .read-ai') or ''), kinds)
     if dev == 'phone':
         check(dev, 'read: the text starts on the first screen of a phone', rd['top'] is not None and rd['top'] < rd['h'] * 0.6, rd)
     if pg.query_selector('#zhGuide'):
@@ -622,7 +622,7 @@ def run_device(pw, dev, opts):
         pg.wait_for_timeout(1500)
         got = pg.evaluate("() => ({ speaks: window.__rspeaks.slice(), btn: document.getElementById('aPlay').textContent, status: document.getElementById('aNote').getAttribute('role') })")
         pg.remove_listener('request', on_req)
-        check(dev, 'radar: the listening check says 「AI 朗读」 by its player (a synthesized voice, 《标识办法》)', pg.evaluate("!!document.querySelector('#view .ai-voice')"))
+        check(dev, 'radar: the listening check says 「录音由 AI 合成」 above its player (a synthesized voice, 《标识办法》)', pg.evaluate("!!document.querySelector('#view .ai-voice-note')"))
         check(dev, 'radar: listening without a recording is the server voice sentence by sentence, not the browser voice, a status line for the wait',
               len(asked) >= 2 and all(t and len(t) < 300 and not re.search(r'[.!?]\s+[A-Z]', t[:-1]) for t in asked) and not got['speaks'] and got['status'] == 'status', (asked[:3], got))
         pg.click('.mini-player .close'); pg.wait_for_timeout(300)
@@ -1945,8 +1945,8 @@ def listen_speak_run(pw):
                             first: (document.querySelector('#reader .sent.now') || {}).dataset.si}; }""")
                 check(dev, '伴读 of an import: read by the server voice from the learner\'s own files, the sentence lit',
                       got['have'] and got['own'] and got['own'][0].startswith('/audio/own/us-f/') and got['first'] == '0', got)
-                marks = pg.evaluate("() => [!!document.querySelector('#view .read-ai .ai-voice'), !!document.querySelector('.mini-player:not([hidden]) .ai-voice'), (document.querySelector('.mini-player .lbl') || {}).textContent]")
-                check(dev, '伴读: 「AI 朗读」 on the line under the button and in the mini player (《标识办法》), the label just 第 N / M 句',
+                marks = pg.evaluate("() => [!!document.querySelector('#view .read-ai.ai-voice-note'), !!document.querySelector('.mini-player:not([hidden]) .ai-voice-note'), (document.querySelector('.mini-player .lbl') || {}).textContent]")
+                check(dev, '伴读: 「朗读由 AI 合成」 on the line under the button and 「AI 合成」 in the mini player (《标识办法》), the label just 第 N / M 句',
                       marks[0] and marks[1] and (marks[2] or '').startswith('第 ') and '伴读' not in (marks[2] or ''), marks)
                 pg.click('#readAlong')
                 other = browser.new_context(); op = other.new_page()
@@ -1998,13 +1998,13 @@ def listen_speak_run(pw):
                     pg.set_viewport_size({'width': w, 'height': 780}); pg.wait_for_timeout(150)
                     fits.append(pg.evaluate("""() => { const m = document.querySelector('.mini-player'), l = m.querySelector('.lbl'), t = m.querySelector('.toggle'), x = m.querySelector('.close');
                         const one = el => { const r = el.getBoundingClientRect(); return r.height <= 48; };
-                        return { w: innerWidth, label: l.textContent, whole: l.scrollWidth <= l.clientWidth + 1, toggle: one(t), close: one(x), mark: !!m.querySelector('.ai-voice'),
-                                 tip: !!document.querySelector('#view .listen-tip .ai-voice'),
+                        return { w: innerWidth, label: l.textContent, whole: l.scrollWidth <= l.clientWidth + 1, toggle: one(t), close: one(x), mark: !!m.querySelector('.ai-voice-note'),
+                                 tip: !!document.querySelector('#view .listen-tip .ai-voice-note'),
                                  inside: m.getBoundingClientRect().left >= 0 && m.getBoundingClientRect().right <= innerWidth }; }"""))
                 pg.set_viewport_size(opts['viewport']); pg.wait_for_timeout(150)
-                check(dev, 'the mini player fits: the label whole, 暂停 and ✕ on one line, inside the screen (390 and 360 px), with 「AI 朗读」',
+                check(dev, 'the mini player fits: the label whole, 暂停 and ✕ on one line, inside the screen (390 and 360 px), with 「AI 合成」',
                       all(f['whole'] and f['toggle'] and f['close'] and f['inside'] and f['mark'] for f in fits), fits)
-                check(dev, '听: 「AI 朗读」 by the player (the voice is synthesized: 《标识办法》)', all(f['tip'] for f in fits), fits)
+                check(dev, '听: 「朗读由 AI 合成」 by the player (the voice is synthesized: 《标识办法》)', all(f['tip'] for f in fits), fits)
                 pg.click('.mini-player .close'); pg.wait_for_timeout(200)
                 pg.click('#playRestart'); pg.wait_for_function(f"{now} >= 0", timeout=10000)
                 check(dev, '从头开始 starts at the first sentence', pg.evaluate(now) == 0, pg.evaluate(now))
@@ -2069,8 +2069,8 @@ def listen_speak_run(pw):
                 if k == 0:
                     q = pg.evaluate("() => [document.querySelectorAll('#chat .msg.ai').length, !!document.querySelector('#chat .msg.me details.better'), document.querySelector('#ieQn').textContent]")
                     check(dev, 'Part 1: the examiner asks the next question; a better way to say it is folded', q[0] == 2 and q[1] and '第 2 / 4 题' in q[2], q)
-                    em = pg.evaluate("() => { const l = [...document.querySelectorAll('#view .ai-line')].find(x => x.querySelector('.ai-voice')); return l ? l.textContent : ''; }")
-                    check(dev, 'Part 1: 「AI 朗读」 says the examiner\'s voice is synthesized', '考官的声音由 AI 合成' in em, em)
+                    em = pg.evaluate("() => { const l = [...document.querySelectorAll('#view .ai-line')].find(x => x.querySelector('.ai-voice-note')); return l ? l.textContent : ''; }")
+                    check(dev, 'Part 1: 「考官的声音由 AI 合成」 says the examiner\'s voice is synthesized', '考官的声音由 AI 合成' in em, em)
                     pg.click('#chat .msg.me details.better summary'); lay('Part 1 chat'); shot('ielts-p1-chat')
             pg.wait_for_selector('#ieOut .ielts-fb', timeout=10000); pg.wait_for_timeout(400)
             f = pg.evaluate("""() => { const o = document.querySelector('#ieOut'); return {overall: o.querySelector('.ielts-overall b').textContent, crit: [...o.querySelectorAll('.crit .nm')].map(x => x.textContent),
@@ -2114,8 +2114,8 @@ def listen_speak_run(pw):
             p3.goto(BASE + '/#/speak/cafe-order', wait_until='networkidle'); settle(p3)
             hd = p3.evaluate("() => [document.querySelector('#view .kicker').textContent, (document.querySelector('#view .round-extra') || {}).textContent || '']")
             check(dev, '口语情景: round 2 shows the round and its extra requirement', '第 2 轮' in hd[0] and '这一轮多一条' in hd[1], hd)
-            vm = p3.evaluate("() => { const l = [...document.querySelectorAll('#view .ai-line')].find(x => x.querySelector('.ai-voice')); return l ? l.textContent : ''; }")
-            check(dev, '口语情景: 「AI 朗读」 says the role\'s voice is synthesized', '角色、纠正和声音都由 AI 生成' in vm and 'AI 生成' in vm, vm)
+            vm = p3.evaluate("() => { const l = [...document.querySelectorAll('#view .ai-line')].find(x => x.querySelector('.ai-voice-note')); return l ? l.textContent : ''; }")
+            check(dev, '口语情景: 「AI 朗读」 says the role\'s voice is synthesized', '角色、纠正和声音都由 AI 生成' in vm and 'AI 生成' in vm and 'AI 朗读' in vm, vm)
             if size == 'phone':  # B8's audit: on a small phone, Safari's toolbars showing, 「开始对话」 sat under the tab bar
                 vp = p3.viewport_size; p3.set_viewport_size({'width': 375, 'height': 553})
                 go_at = p3.evaluate("() => { const b = document.getElementById('dlgStart').getBoundingClientRect(), t = document.querySelector('.tabs').getBoundingClientRect(); return [Math.round(b.top), Math.round(b.bottom), Math.round(t.top)]; }")
@@ -3223,9 +3223,9 @@ def progress_run(pw):
         pg.click('#lcFold'); pg.wait_for_timeout(250)  # one line on a phone: open it first
         pg.click('#lcSay'); pg.wait_for_timeout(600)
         said = pg.evaluate('window.__said || []') + voiced
-        mark = pg.evaluate("() => { const m = document.querySelector('#lineCard .lc-acts .ai-voice'), b = document.getElementById('lcSay'); "
-                           "return m && [m.textContent.trim(), Math.abs(m.getBoundingClientRect().top + m.offsetHeight / 2 - b.getBoundingClientRect().top - b.offsetHeight / 2) < 8, !!m.title]; }")
-        check(dev, '好句: 「AI 朗读」 right by 听一遍, on its row, with what it means on hover', mark == ['AI 朗读', True, True], mark)
+        mark = pg.evaluate("() => { const m = document.querySelector('#lineCard .lc-acts .ai-voice-note'), b = document.getElementById('lcSay'); "
+                           "return m && [m.textContent.trim(), Math.abs(m.getBoundingClientRect().top + m.offsetHeight / 2 - b.getBoundingClientRect().top - b.offsetHeight / 2) < 8, !!m.title, parseFloat(getComputedStyle(m).fontSize) >= 12]; }")
+        check(dev, '好句: 「AI 合成」 one grey line at the end of 听一遍\'s row, with what it means on hover, 12px or more', mark == ['AI 合成', True, True, True], mark)
         pg.click('#lcShadow'); pg.wait_for_timeout(200)
         panel = pg.evaluate("() => { const p = document.getElementById('lcPanel'); return [p.hidden, !!p.querySelector('#lsRec'), document.getElementById('lsBack').disabled, document.getElementById('lcShadow').getAttribute('aria-expanded')]; }")
         pg.click('#lcShadow'); pg.wait_for_timeout(150)
@@ -3463,6 +3463,58 @@ def review_side_run(pw):
               e['start'] and not e['stats'] and not e['search'] and not e['chips'] and not e['count'], e)
         check(dev, 'no script errors (no words yet)', not errs, errs[:3])
         ctx.close()
+        # 点卡片作答 (the owner, 2026-11-25): the front card's left, middle and right thirds are the three buttons below, 认识 on
+        # its side; only the front, which sends nothing (撤销 turns the card back); the word plays and answers nothing; the
+        # back's card answers nothing; on by default with a finger, off with a mouse; a first-time guide, put away by a tap
+        ZONE_JS = """() => ({ front: !!document.querySelector('.ractions [data-claim]'), back: !!document.querySelector('.open-card'),
+          rates: [...document.querySelectorAll('.ractions [data-rate]')].map(b => b.dataset.rate), guide: !!document.getElementById('zoneGuide'),
+          undo: !!document.getElementById('undo') })"""
+        def tap_card(pg, third, down=None):  # a third of the card (0 left, 1 middle, 2 right), near its top or `down` of its height
+            r = pg.evaluate("() => { const r = document.querySelector('.review').getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; }")
+            pg.touchscreen.tap(r[0] + r[2] * (third * 2 + 1) / 6, r[1] + (r[3] * down if down else 24)); pg.wait_for_timeout(350)
+        ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['zones']['token'], 'url': BASE}])
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        posts = []; pg.on('request', lambda r: posts.append(r.url) if r.method == 'POST' and re.search(r'/api/next/review(/undo)?$', r.url) else None)
+        pg.goto(BASE + '/#/cards', wait_until='load'); settle(pg)
+        go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(300)
+        z0 = pg.evaluate(ZONE_JS)
+        labels = pg.evaluate("[...document.querySelectorAll('#zoneGuide span')].map(s => s.textContent)")
+        pg.screenshot(path=str(OUT / 'review-side-zone-guide.png'))
+        tap_card(pg, 2); z1 = pg.evaluate(ZONE_JS)
+        check(dev, '点卡片作答 on a phone by default: the first time the three parts are drawn (不认识 / 模糊 / 认识), and a tap puts it away without answering',
+              z0['guide'] and labels == ['不认识', '模糊', '认识'] and not z1['guide'] and z1['front'], [z0, labels, z1])
+        pg.touchscreen.tap(*pg.evaluate("(() => { const r = document.querySelector('.review .tapsay').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; })()")); pg.wait_for_timeout(350)
+        check(dev, '点卡片作答: a tap on the word plays it and answers nothing', pg.evaluate(ZONE_JS)['front'], pg.evaluate(ZONE_JS))
+        tap_card(pg, 2); z2 = pg.evaluate(ZONE_JS)
+        pg.screenshot(path=str(OUT / 'review-side-zone-back.png'))
+        pg.touchscreen.tap(*pg.evaluate("(() => { const r = document.querySelector('.open-card .mean-a, .open-card .ph').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; })()"))
+        pg.wait_for_timeout(350); z3 = pg.evaluate(ZONE_JS)  # the meaning, in the middle of the back's card: not a link, not a speaker
+        check(dev, '点卡片作答: the right third is 认识 (the answer, 没错 / 记错了), nothing sent; a tap on the back\'s card answers nothing',
+              z2['back'] and sorted(z2['rates']) == ['again', 'good'] and z3['back'] and not posts, [z2, z3, posts])
+        pg.click('#undo'); pg.wait_for_timeout(300); z4 = pg.evaluate(ZONE_JS)
+        check(dev, '点卡片作答: 撤销 on the back turns the card back to its front, nothing sent', z4['front'] and not z4['back'] and not posts, [z4, posts])
+        tap_card(pg, 0); z5 = pg.evaluate(ZONE_JS)
+        check(dev, '点卡片作答: the left third is 不认识 (the answer with 记住了，下一个 only)', z5['back'] and z5['rates'] == ['again'], z5)
+        pg.click('.ractions [data-rate]'); pg.wait_for_timeout(500)
+        check(dev, '点卡片作答: a rating is sent only by the back\'s button: one review', len(posts) == 1 and pg.evaluate(ZONE_JS)['front'], posts)
+        pg.evaluate("localStorage.setItem('flow-know-side', 'left')"); pg.reload(wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(300)
+        tap_card(pg, 0); z6 = pg.evaluate(ZONE_JS)
+        check(dev, '点卡片作答 with 「认识」 on the left: the left third is 认识', z6['back'] and sorted(z6['rates']) == ['again', 'good'], z6)
+        pg.click('#undo'); pg.wait_for_timeout(300)
+        pg.evaluate("localStorage.setItem('flow-tap-zones', '0')"); pg.reload(wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(300)
+        tap_card(pg, 0)
+        check(dev, '点卡片作答 off (我的 → 设置): a tap on the card does nothing', pg.evaluate(ZONE_JS)['front'], pg.evaluate(ZONE_JS))
+        check(dev, 'no script errors (点卡片作答)', not errs, errs[:3])
+        ctx.close()
+        ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['zones']['token'], 'url': BASE}])
+        pg = ctx.new_page()
+        pg.goto(BASE + '/#/review', wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(300)
+        r = pg.evaluate("(() => { const r = document.querySelector('.review').getBoundingClientRect(); return [r.left + r.width * 5 / 6, r.top + 24]; })()")
+        pg.mouse.click(*r); pg.wait_for_timeout(300)
+        check(dev, '点卡片作答 with a mouse: off by default, a click into the card answers nothing, no guide', pg.evaluate(ZONE_JS)['front'] and not pg.evaluate(ZONE_JS)['guide'], pg.evaluate(ZONE_JS))
+        ctx.close()
         # a search that finds nothing says what was searched and offers a way out (语流 B9): 清除搜索, and with a filter on, 在全部里找
         ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
@@ -3520,6 +3572,11 @@ ONE_SCREEN_JS = """() => { const H = innerHeight, m = document.querySelector('ma
            mainBottom: Math.round(m.bottom), answers, lastBottom: Math.round(last.bottom), sab, tip: !!document.getElementById('knowTip') }; }"""
 
 
+REVIEW_BAR_JS = """() => { const c = document.querySelector('.review .ractions .choice'), r = c.getBoundingClientRect(), n = document.querySelector('.rtop + .rvoice');
+  return { bottom: Math.round(r.bottom), n: c.querySelectorAll('button').length, word: !!document.querySelector('.review .tapsay'),
+           note: n ? [n.textContent, parseFloat(getComputedStyle(n).fontSize) >= 12] : null }; }"""
+
+
 def one_screen_run(pw):
     dev = 'one-screen'
     browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
@@ -3548,6 +3605,15 @@ def one_screen_run(pw):
                     check(dev, f'{where} {name}: the answers and the line below them clear the home bar', s['answers'] and max(s['answers'] + [s['lastBottom']]) <= s['H'] - s['sab'], s)
                     if page == '#/review':
                         check(dev, f'{where}: the 「认识」换到右边了 tip is on the card (the tallest it gets)', s['tip'], s)
+                        # the answer side (the user, 2026-11-25: 「把操作的按钮全都放在底部」): its buttons where the front's
+                        # three were, at the bottom whatever the answer's length; 「读音由 AI 合成」 one grey line under the progress bar
+                        f = pg.evaluate(REVIEW_BAR_JS)
+                        pg.click('[data-claim="know"]'); pg.wait_for_selector('#view .open-card', timeout=4000); pg.wait_for_timeout(400)
+                        b = pg.evaluate(REVIEW_BAR_JS)
+                        pg.screenshot(path=str(OUT / f"one-screen-{size}-{'home' if home else 'safari'}-review-back.png"))
+                        check(dev, f'{where} 复习卡翻面: the buttons in the front\'s place at the bottom, clear of the home bar', b['bottom'] == f['bottom'] and b['bottom'] <= s['H'] - s['sab'] and b['n'] in (1, 2), [f, b])
+                        check(dev, f'{where} 复习卡: 「读音由 AI 合成」 under the progress bar where the word plays, 12px or more',
+                              b['note'] == ['读音由 AI 合成', True] and (f['note'] == ['读音由 AI 合成', True] if f['word'] else True), [f, b])
                     if home:
                         check(dev, f'{where} {name}: --bar-h is the top bar\'s height', s['barH'] == f"{s['bar']}px", s)
                 # 词汇辨析's round (语流 B8's audit: 119-213 px past the screen): no tabs, 怎么区分 open for the first question,
