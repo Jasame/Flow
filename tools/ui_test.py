@@ -136,7 +136,7 @@ LAYOUT_JS = """(touch) => {
         if (p.content !== 'none' && p.position === 'absolute') { w = Math.max(w, parseFloat(p.minWidth) || 0); h = Math.max(h, parseFloat(p.minHeight) || 0); } }
       return [Math.round(w), Math.round(h)]; };
     out.tap44 = [...document.querySelectorAll('#view :is(.btn.small, .chip, .icon-btn, .node-chip, .seg>button, .seg>a, .steps button, .wk.habit, a.ai-link, button.link, a.link, details:not(.better)>summary)')]
-      .filter(e => e.offsetParent !== null && !e.closest('.sr-only, [hidden]') && !(e.matches('a.link') && e.closest('p, li, summary'))
+      .filter(e => e.offsetParent !== null && !e.closest('.sr-only, [hidden]') && !(e.matches('a.link') && e.closest('p, li, summary, label'))
         && !(e.tagName === 'SUMMARY' && e.querySelector('a, button, input, select')))
       .map(e => [e, hit(e)]).filter(([e, [w, h]]) => w < 44 || h < 44)
       .slice(0, 6).map(([e, [w, h]]) => `${e.tagName}${e.id ? '#' + e.id : ''}.${[...e.classList].join('.')} "${(e.textContent || '').trim().slice(0, 14)}" ${w}x${h}`);
@@ -293,8 +293,8 @@ def run_device(pw, dev, opts):
     pg.click('#exDone'); pg.wait_for_timeout(900)
     res = pg.evaluate("() => ({h: (document.querySelector('#view h1') || {}).textContent || '', parts: document.querySelectorAll('.exam-score div').length})")
     check(dev, 'exam: handed in, scored by part', '题做对' in res['h'] and res['parts'] == 3, res)
-    missed = pg.evaluate("() => [...document.querySelectorAll('#view h2')].filter(h => h.textContent.startsWith('没认出')).map(h => !!h.querySelector('.ai-voice'))")
-    check(dev, 'exam: 没认出的词 (their sound is synthesized) says 「AI 朗读」 by its heading', missed in ([], [True]), missed)
+    missed = pg.evaluate("() => [...document.querySelectorAll('#view h2')].filter(h => h.textContent.startsWith('没认出')).map(h => { const n = h.nextElementSibling; return !!n && n.classList.contains('ai-voice-note') && n.textContent.includes('AI') && !!h.parentElement.querySelector('.crow .ai-badge'); })")
+    check(dev, 'exam: 没认出的词 (their sound is synthesized) says 「读音由 AI 合成」 under its heading, a faint 「AI」 on each speaker', missed in ([], [True]), missed)
 
     # ---- serial: six episodes in order, an episode names its place in the series
     go(pg, '#/series/lighthouse-ledger')
@@ -466,8 +466,8 @@ def run_device(pw, dev, opts):
       return {tools: t ? [...t.querySelectorAll('button')].map(b => b.id) : [], top: r ? Math.round(r.getBoundingClientRect().top) : null, h: innerHeight}; }""")
     check(dev, 'read: the tools sit in one row above the text', 'readAlong' in rd['tools'], rd)
     kinds = pg.evaluate("() => [...document.querySelectorAll('#view .read-tools button:not([hidden])')].map(b => b.className.includes('btn small') ? 'btn' : b.id)")
-    check(dev, 'read: one kind of button in the row, 「AI 朗读 · 声音由 AI 合成」 on its own line under it',
-          all(k == 'btn' for k in kinds) and pg.is_visible('#view .read-ai .ai-voice') and '合成' in (pg.text_content('#view .read-ai') or ''), kinds)
+    check(dev, 'read: one kind of button in the row, 「朗读由 AI 合成」 one grey line under it',
+          all(k == 'btn' for k in kinds) and pg.is_visible('#view .read-ai.ai-voice-note') and '合成' in (pg.text_content('#view .read-ai') or ''), kinds)
     if dev == 'phone':
         check(dev, 'read: the text starts on the first screen of a phone', rd['top'] is not None and rd['top'] < rd['h'] * 0.6, rd)
     if pg.query_selector('#zhGuide'):
@@ -622,7 +622,7 @@ def run_device(pw, dev, opts):
         pg.wait_for_timeout(1500)
         got = pg.evaluate("() => ({ speaks: window.__rspeaks.slice(), btn: document.getElementById('aPlay').textContent, status: document.getElementById('aNote').getAttribute('role') })")
         pg.remove_listener('request', on_req)
-        check(dev, 'radar: the listening check says 「AI 朗读」 by its player (a synthesized voice, 《标识办法》)', pg.evaluate("!!document.querySelector('#view .ai-voice')"))
+        check(dev, 'radar: the listening check says 「录音由 AI 合成」 above its player (a synthesized voice, 《标识办法》)', pg.evaluate("!!document.querySelector('#view .ai-voice-note')"))
         check(dev, 'radar: listening without a recording is the server voice sentence by sentence, not the browser voice, a status line for the wait',
               len(asked) >= 2 and all(t and len(t) < 300 and not re.search(r'[.!?]\s+[A-Z]', t[:-1]) for t in asked) and not got['speaks'] and got['status'] == 'status', (asked[:3], got))
         pg.click('.mini-player .close'); pg.wait_for_timeout(300)
@@ -936,6 +936,10 @@ APP_AUDIO_FAKE = """(() => {
       if (cmd === 'audio.state') return Promise.resolve(s.playing || { state: 'idle' });
       if (cmd === 'audio.progress') return Promise.resolve((s.progress || {})[args.key] || null);
       if (cmd === 'audio.resume') return Promise.resolve(Object.assign({ ok: true }, s.playing || {}));
+      if (cmd === 'rec.ask') return Promise.resolve(true);
+      if (cmd === 'rec.permission') return Promise.resolve('granted');
+      if (cmd === 'rec.start') return Promise.resolve({ ok: true, format: 'wav', max: args.max });
+      if (cmd === 'rec.stop') return Promise.resolve({ ok: true, mime_type: 'audio/wav', data: 'UklGRqQMAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YYAMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==', ms: 100, bytes: 3244, cut: false });
       return Promise.resolve({ ok: true });
     },
   };
@@ -973,7 +977,7 @@ def app_audio_run(pw):
         pg.click('#playAll'); pg.wait_for_timeout(300)
         play = last('audio.play')
         check(dev, '播放全文: the app plays it (audio.play with the key, the sentences, 复读 and 语速)',
-              bool(play) and play.get('key') == key and play.get('from') == 0 and bool(play.get('texts') or play.get('sentences'))
+              bool(play) and play.get('key') == key and play.get('from') == 0 and len(play.get('items') or play.get('sentences') or []) == n
               and play.get('rate') == 1 and 'rep' in play and len(play.get('gap') or []) == n, play)
         check(dev, '播放全文: the page plays nothing itself (no server voice asked, no browser voice)', not tts and not pg.evaluate('window.__said.length'), tts[:3])
         emit('audio', {'key': key, 'state': 'playing', 'i': 2, 'n': n, 'title': 't'}); pg.wait_for_timeout(200)
@@ -987,8 +991,8 @@ def app_audio_run(pw):
         line = (pg.text_content('#lsPrep') or '').strip() if pg.is_visible('#lsPrep') else ''
         emit('audio', {'key': key, 'state': 'playing', 'i': 3, 'n': n, 'title': 't', 'fail': {'code': 'offline', 'server': ''}}); pg.wait_for_timeout(200)
         said = [x for x in (pg.evaluate('window.__toasts') or []) if x.startswith('离线中')]
-        check(dev, "the app fell back to the phone's voice (offline): the line under 播放全文 and one toast say why",
-              line.startswith('离线中，这句还没存到本机') and len(said) == 1, (line, said))
+        check(dev, "the app fell back to the phone's voice (offline): the line under 播放全文 and one toast say why, in the app's words (系统自带的声音)",
+              line == '离线中，这句还没存到本机，先用系统自带的声音' and len(said) == 1, (line, said))
         emit('audio', {'key': key, 'state': 'playing', 'i': 3, 'n': n, 'title': 't'}); pg.wait_for_timeout(200)
         check(dev, 'the next sentence in the AI voice again: the line goes', not pg.is_visible('#lsPrep') or not (pg.text_content('#lsPrep') or '').strip(), pg.text_content('#lsPrep'))
         pg.evaluate("document.querySelector('.playset').open = true")  # 语速 and 复读 sit in 播放设置
@@ -1001,6 +1005,12 @@ def app_audio_run(pw):
         pg.click('#playAll'); pg.wait_for_timeout(200)
         check(dev, '继续 goes to the app', 'audio.resume' in cmds()[-2:] and btn().endswith('暂停'), (cmds()[-3:], btn()))
 
+        # the app made sentence 2 (the page had no address for it): kept in the SV address book, sent along next time (§3)
+        emit('audio-made', {'key': key, 'i': 1, 'url': '/audio/tts/us-f/made-by-app.mp3'}); pg.wait_for_timeout(150)
+        pg.click('#playRestart'); pg.wait_for_timeout(300)
+        items = (last('audio.play') or {}).get('items') or []
+        check(dev, "audio-made: the app's new address is kept and the next play sends it (items)",
+              len(items) == n and items[1].get('url') == '/audio/tts/us-f/made-by-app.mp3' and items[0].get('url') is None, items[:2])
         # loaded again while the app plays on (第 5 句): the page keeps that place and takes the text back, no new start
         pg.evaluate(f"k => window.__fakeApp.put({{ playing: {{ key: k, state: 'playing', i: 4, n: {n}, title: 't' }} }})", key)
         pg.reload(wait_until='load'); settle(pg); pg.wait_for_selector('#playAll'); pg.wait_for_timeout(500)
@@ -1026,6 +1036,24 @@ def app_audio_run(pw):
         pg.evaluate("key => window.__fakeApp.put({ progress: { [key]: { i: 0, ended: true, at: Date.now() } } })", key)
         pg.reload(wait_until='load'); settle(pg); pg.wait_for_selector('#playAll'); pg.wait_for_timeout(500)
         check(dev, "the app read it to the end since: 播放全文 again", btn().endswith('播放全文') and prog() is None, (btn(), prog()))
+
+        # 跟读 in the app (PR #164): the app records (rec.ask, rec.start, rec.stop), never getUserMedia; its WAV goes up as audio/wav
+        rctx = browser.new_context(**DEVICES['phone'], locale='zh-CN', bypass_csp=True, service_workers='block')
+        rctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['app-audio']['token'], 'url': BASE}])
+        rctx.add_init_script("try { localStorage.setItem('flow-mic-explained', '1'); } catch (e) {}")
+        rctx.add_init_script("window.__gum = 0; if (navigator.mediaDevices) { const g = navigator.mediaDevices.getUserMedia && navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices); navigator.mediaDevices.getUserMedia = c => { window.__gum++; return g(c); }; }")
+        rctx.add_init_script(APP_AUDIO_FAKE.replace("features: ['audio']", "features: ['audio', 'rec']"))
+        rpg = rctx.new_page(); posted = []
+        rpg.on('request', lambda r: posted.append(r.post_data or '') if r.method == 'POST' and '/api/' in r.url else None)
+        rpg.goto(BASE + '/', wait_until='load'); settle(rpg)
+        go(rpg, f'#/m/{PID}/listen'); rpg.click('[data-mode="shadow"]'); rpg.wait_for_selector('.line.sh.cur [data-r="0"]')
+        rpg.click('[data-r="0"]'); rpg.wait_for_timeout(500); rpg.click('[data-r="0"]')
+        rpg.wait_for_selector('[data-ai="0"]:not([disabled])', timeout=5000); rpg.click('[data-ai="0"]'); rpg.wait_for_timeout(1200)
+        rc = rpg.evaluate("window.__cmds.map(c => c[0]).filter(c => c.startsWith('rec.'))")
+        wav = any('"audio/wav"' in (b or '') for b in posted)
+        check(dev, '跟读 in the app: recorded by the app (rec.ask, rec.start, rec.stop), no getUserMedia, sent as audio/wav',
+              rc[:3] == ['rec.ask', 'rec.start', 'rec.stop'] and rpg.evaluate('window.__gum') == 0 and wav, (rc, rpg.evaluate('window.__gum'), wav))
+        rctx.close()
 
         # 读's 伴读 goes to the app the same way
         go(pg, f'#/m/{PID}/read'); pg.wait_for_selector('#readAlong'); pg.wait_for_timeout(300)
@@ -1917,8 +1945,8 @@ def listen_speak_run(pw):
                             first: (document.querySelector('#reader .sent.now') || {}).dataset.si}; }""")
                 check(dev, '伴读 of an import: read by the server voice from the learner\'s own files, the sentence lit',
                       got['have'] and got['own'] and got['own'][0].startswith('/audio/own/us-f/') and got['first'] == '0', got)
-                marks = pg.evaluate("() => [!!document.querySelector('#view .read-ai .ai-voice'), !!document.querySelector('.mini-player:not([hidden]) .ai-voice'), (document.querySelector('.mini-player .lbl') || {}).textContent]")
-                check(dev, '伴读: 「AI 朗读」 on the line under the button and in the mini player (《标识办法》), the label just 第 N / M 句',
+                marks = pg.evaluate("() => [!!document.querySelector('#view .read-ai.ai-voice-note'), !!document.querySelector('.mini-player:not([hidden]) .ai-voice-note'), (document.querySelector('.mini-player .lbl') || {}).textContent]")
+                check(dev, '伴读: 「朗读由 AI 合成」 on the line under the button and 「AI 合成」 in the mini player (《标识办法》), the label just 第 N / M 句',
                       marks[0] and marks[1] and (marks[2] or '').startswith('第 ') and '伴读' not in (marks[2] or ''), marks)
                 pg.click('#readAlong')
                 other = browser.new_context(); op = other.new_page()
@@ -1970,13 +1998,13 @@ def listen_speak_run(pw):
                     pg.set_viewport_size({'width': w, 'height': 780}); pg.wait_for_timeout(150)
                     fits.append(pg.evaluate("""() => { const m = document.querySelector('.mini-player'), l = m.querySelector('.lbl'), t = m.querySelector('.toggle'), x = m.querySelector('.close');
                         const one = el => { const r = el.getBoundingClientRect(); return r.height <= 48; };
-                        return { w: innerWidth, label: l.textContent, whole: l.scrollWidth <= l.clientWidth + 1, toggle: one(t), close: one(x), mark: !!m.querySelector('.ai-voice'),
-                                 tip: !!document.querySelector('#view .listen-tip .ai-voice'),
+                        return { w: innerWidth, label: l.textContent, whole: l.scrollWidth <= l.clientWidth + 1, toggle: one(t), close: one(x), mark: !!m.querySelector('.ai-voice-note'),
+                                 tip: !!document.querySelector('#view .listen-tip .ai-voice-note'),
                                  inside: m.getBoundingClientRect().left >= 0 && m.getBoundingClientRect().right <= innerWidth }; }"""))
                 pg.set_viewport_size(opts['viewport']); pg.wait_for_timeout(150)
-                check(dev, 'the mini player fits: the label whole, 暂停 and ✕ on one line, inside the screen (390 and 360 px), with 「AI 朗读」',
+                check(dev, 'the mini player fits: the label whole, 暂停 and ✕ on one line, inside the screen (390 and 360 px), with 「AI 合成」',
                       all(f['whole'] and f['toggle'] and f['close'] and f['inside'] and f['mark'] for f in fits), fits)
-                check(dev, '听: 「AI 朗读」 by the player (the voice is synthesized: 《标识办法》)', all(f['tip'] for f in fits), fits)
+                check(dev, '听: 「朗读由 AI 合成」 by the player (the voice is synthesized: 《标识办法》)', all(f['tip'] for f in fits), fits)
                 pg.click('.mini-player .close'); pg.wait_for_timeout(200)
                 pg.click('#playRestart'); pg.wait_for_function(f"{now} >= 0", timeout=10000)
                 check(dev, '从头开始 starts at the first sentence', pg.evaluate(now) == 0, pg.evaluate(now))
@@ -2041,8 +2069,8 @@ def listen_speak_run(pw):
                 if k == 0:
                     q = pg.evaluate("() => [document.querySelectorAll('#chat .msg.ai').length, !!document.querySelector('#chat .msg.me details.better'), document.querySelector('#ieQn').textContent]")
                     check(dev, 'Part 1: the examiner asks the next question; a better way to say it is folded', q[0] == 2 and q[1] and '第 2 / 4 题' in q[2], q)
-                    em = pg.evaluate("() => { const l = [...document.querySelectorAll('#view .ai-line')].find(x => x.querySelector('.ai-voice')); return l ? l.textContent : ''; }")
-                    check(dev, 'Part 1: 「AI 朗读」 says the examiner\'s voice is synthesized', '考官的声音由 AI 合成' in em, em)
+                    em = pg.evaluate("() => { const l = [...document.querySelectorAll('#view .ai-line')].find(x => x.querySelector('.ai-voice-note')); return l ? l.textContent : ''; }")
+                    check(dev, 'Part 1: 「考官的声音由 AI 合成」 says the examiner\'s voice is synthesized', '考官的声音由 AI 合成' in em, em)
                     pg.click('#chat .msg.me details.better summary'); lay('Part 1 chat'); shot('ielts-p1-chat')
             pg.wait_for_selector('#ieOut .ielts-fb', timeout=10000); pg.wait_for_timeout(400)
             f = pg.evaluate("""() => { const o = document.querySelector('#ieOut'); return {overall: o.querySelector('.ielts-overall b').textContent, crit: [...o.querySelectorAll('.crit .nm')].map(x => x.textContent),
@@ -2086,8 +2114,8 @@ def listen_speak_run(pw):
             p3.goto(BASE + '/#/speak/cafe-order', wait_until='networkidle'); settle(p3)
             hd = p3.evaluate("() => [document.querySelector('#view .kicker').textContent, (document.querySelector('#view .round-extra') || {}).textContent || '']")
             check(dev, '口语情景: round 2 shows the round and its extra requirement', '第 2 轮' in hd[0] and '这一轮多一条' in hd[1], hd)
-            vm = p3.evaluate("() => { const l = [...document.querySelectorAll('#view .ai-line')].find(x => x.querySelector('.ai-voice')); return l ? l.textContent : ''; }")
-            check(dev, '口语情景: 「AI 朗读」 says the role\'s voice is synthesized', '角色、纠正和声音都由 AI 生成' in vm and 'AI 生成' in vm, vm)
+            vm = p3.evaluate("() => { const l = [...document.querySelectorAll('#view .ai-line')].find(x => x.querySelector('.ai-voice-note')); return l ? l.textContent : ''; }")
+            check(dev, '口语情景: 「AI 朗读」 says the role\'s voice is synthesized', '角色、纠正和声音都由 AI 生成' in vm and 'AI 生成' in vm and 'AI 朗读' in vm, vm)
             if size == 'phone':  # B8's audit: on a small phone, Safari's toolbars showing, 「开始对话」 sat under the tab bar
                 vp = p3.viewport_size; p3.set_viewport_size({'width': 375, 'height': 553})
                 go_at = p3.evaluate("() => { const b = document.getElementById('dlgStart').getBoundingClientRect(), t = document.querySelector('.tabs').getBoundingClientRect(); return [Math.round(b.top), Math.round(b.bottom), Math.round(t.top)]; }")
@@ -3117,6 +3145,8 @@ def progress_run(pw):
                           fold['lineH'] <= 70 and fold['newsH'] <= 64 and fold['newsAI'] and fold['planInView'] and not fold['say'] and opened['say'] and not closed['say'], (fold, opened['say'], closed['say']))
                 else:
                     check(dev, f'{tag}: 好句 and 今日一读 shown whole (no fold on a wide screen)', fold['say'] and not fold['foldShown'] and fold['newsH'] > 70, fold)
+                first_h = pg.evaluate("(() => { const h = document.querySelector('#view h1, #view h2, #view h3'); return h ? h.tagName + ' ' + h.textContent.trim() : null; })()")
+                check(dev, f'{tag}: 今日\'s first heading is its h1 (今日好句 names its section, it is not a heading before it)', bool(first_h) and first_h.startswith('H1'), first_h)
                 top = pg.evaluate(TOP_JS)
                 check(dev, f'{tag}: 今日 runs 好句, 今日一读, the plan, 这周进步 from the top (the plan first on a phone held sideways), nothing cut off or wider than the screen',
                       top['order'] == (['plan', 'lineCard', 'news', 'week'] if h < 500 else ['lineCard', 'news', 'plan', 'week']) and not top['clipped'] and top['wide'] <= 0 and (not touch or top['small'] == []), top)
@@ -3193,9 +3223,9 @@ def progress_run(pw):
         pg.click('#lcFold'); pg.wait_for_timeout(250)  # one line on a phone: open it first
         pg.click('#lcSay'); pg.wait_for_timeout(600)
         said = pg.evaluate('window.__said || []') + voiced
-        mark = pg.evaluate("() => { const m = document.querySelector('#lineCard .lc-acts .ai-voice'), b = document.getElementById('lcSay'); "
-                           "return m && [m.textContent.trim(), Math.abs(m.getBoundingClientRect().top + m.offsetHeight / 2 - b.getBoundingClientRect().top - b.offsetHeight / 2) < 8, !!m.title]; }")
-        check(dev, '好句: 「AI 朗读」 right by 听一遍, on its row, with what it means on hover', mark == ['AI 朗读', True, True], mark)
+        mark = pg.evaluate("() => { const m = document.querySelector('#lineCard .lc-acts .ai-voice-note'), b = document.getElementById('lcSay'); "
+                           "return m && [m.textContent.trim(), Math.abs(m.getBoundingClientRect().top + m.offsetHeight / 2 - b.getBoundingClientRect().top - b.offsetHeight / 2) < 8, !!m.title, parseFloat(getComputedStyle(m).fontSize) >= 12]; }")
+        check(dev, '好句: 「AI 合成」 one grey line at the end of 听一遍\'s row, with what it means on hover, 12px or more', mark == ['AI 合成', True, True, True], mark)
         pg.click('#lcShadow'); pg.wait_for_timeout(200)
         panel = pg.evaluate("() => { const p = document.getElementById('lcPanel'); return [p.hidden, !!p.querySelector('#lsRec'), document.getElementById('lsBack').disabled, document.getElementById('lcShadow').getAttribute('aria-expanded')]; }")
         pg.click('#lcShadow'); pg.wait_for_timeout(150)
@@ -3358,6 +3388,28 @@ def review_side_run(pw):
             check(dev, f'iOS app at {w}px: 关闭 stays beside 「已开启：在这台 iPhone 上…」, not on a line of its own',
                   box['offTop'] < box['textBottom'] and box['offBottom'] > box['textTop'] and box['offLeft'] >= box['textRight'] and box['offRight'] <= box['vw'], box)
             ctx.close()
+        # 我的 → 设置 → 「iOS 专属功能」 (语流 C1, 2026-11-25): only in an app that has its own settings page (FlowApp.has('settings')),
+        # one line at 375 px, and a tap asks the app to open it; not in a browser, nor in an app without one
+        rows = {}
+        for name, init in (('iOS app', "window.__calls = []; window.FlowApp = { v: 1, platform: 'ios', has: k => k === 'settings', call: c => { window.__calls.push(c); return Promise.resolve(true); } };"),
+                           ('Android app without one', "window.FlowApp = { v: 1, platform: 'android', has: k => k === 'notify', call: () => Promise.resolve() };"), ('browser', '')):
+            ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
+            if init:
+                ctx.add_init_script(init)
+            pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+            pg.goto(BASE + '/#/me', wait_until='load'); settle(pg); pg.wait_for_timeout(300)
+            row = pg.evaluate("() => { const r = document.getElementById('meApp'); if (!r) return null; const t = r.querySelector('.t').getBoundingClientRect(), v = r.querySelector('.v').getBoundingClientRect(); "
+                              "return { text: r.innerText.replace(/\\s+/g, ' ').trim(), group: r.closest('.gsec').getAttribute('aria-label'), one: Math.abs(t.top - v.top) < 6 && r.getBoundingClientRect().height <= 64 }; }")
+            if row:
+                pg.click('#meApp'); pg.wait_for_timeout(200); row['calls'] = pg.evaluate('window.__calls || []')
+            rows[name] = [row, errs[:2]]
+            ctx.close()
+        ios = rows['iOS app'][0] or {}
+        check(dev, '我的 → 设置: 「iOS 专属功能 · 锁屏、小组件、Siri 等」 in the iOS app, one line at 375 px, a tap opens the app\'s own page (app.settings)',
+              ios.get('group') == '设置' and 'iOS 专属功能' in ios.get('text', '') and '锁屏、小组件、Siri 等' in ios.get('text', '') and ios.get('one') and ios.get('calls') == ['app.settings'], rows)
+        check(dev, '我的: no 「专属功能」 row in a browser, or in an app without a settings page of its own; no script errors',
+              rows['browser'][0] is None and rows['Android app without one'][0] is None and not any(e for _, e in rows.values()), rows)
         # 语流 B8's audit: 知道了 on one line on a phone; 复习 and 测词汇量 name themselves to a screen reader (a hidden h1);
         # 词汇辨析's round is one screen like 复习, 怎么区分 folded from the second question; a word page with no words yet
         # shows how to start, not counts of 0, a search box and filters
@@ -3376,7 +3428,7 @@ def review_side_run(pw):
             if w == 375:
                 check(dev, '复习 and 测词汇量 have a heading for a screen reader: 复习单词, 测词汇量', h1 == ['复习单词'] and h1t == ['测词汇量'], [h1, h1t])
             ctx.close()
-        ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
         pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
         pg.goto(BASE + '/#/words/confuse', wait_until='load'); settle(pg)
@@ -3387,11 +3439,17 @@ def review_side_run(pw):
             a1 = cf()
             pg.click('#mixQ .ans'); pg.wait_for_selector('#mixNext', timeout=4000); pg.click('#mixNext'); pg.wait_for_selector('#mixQ .ans:not([disabled])', timeout=4000); pg.wait_for_timeout(300)
             a2 = cf()
-            check(dev, '词汇辨析 on a phone: no tabs while answering, 怎么区分 open for the first question and folded from the second',
+            check(dev, '词汇辨析 on a phone (390×844): no tabs while answering, 怎么区分 open for the first question and folded from the second',
                   not a1['tabs'] and a1['how'] and not a2['how'], [a1, a2])
-            check(dev, '词汇辨析 at 375×667 from the second question: one screen, the last answer on it', a2['page'] <= a2['H'] and a2['last'] <= a2['H'], a2)
+            check(dev, '词汇辨析 at 390×844: both questions one screen, the last answer on it', a1['page'] <= a1['H'] and a2['page'] <= a2['H'] and a2['last'] <= a2['H'], [a1, a2])
             pg.click('#cfHow summary'); pg.wait_for_timeout(150)
             check(dev, '词汇辨析: a tap on 怎么区分 opens it again', pg.evaluate("document.getElementById('cfHow').open"), None)
+            # a short screen (Safari's bars showing on an iPhone SE, 375×553; borrow / lend and make / do, the longest two):
+            # the first question starts folded, as it would not fit open, and fits
+            pg.set_viewport_size({'width': 375, 'height': 553}); go(pg, '#/words/confuse'); go(pg, '#/words/confuse/borrow-lend,make-do')
+            pg.wait_for_selector('#mixQ .ans', timeout=8000); pg.wait_for_timeout(300)
+            a0 = cf()
+            check(dev, '词汇辨析 at 375×553: 怎么区分 starts folded on the first question (it would not fit open), which fits one screen', not a0['how'] and a0['page'] <= a0['H'] and a0['last'] <= a0['H'], a0)
         else:
             check(dev, '词汇辨析: a group to practise', False, 'no group on #/words/confuse')
         check(dev, 'no script errors (B8 audit pages)', not errs, errs[:3])
@@ -3404,6 +3462,58 @@ def review_side_run(pw):
         check(dev, 'no words yet: the word page shows how to start, without counts of 0, the search box or the filters',
               e['start'] and not e['stats'] and not e['search'] and not e['chips'] and not e['count'], e)
         check(dev, 'no script errors (no words yet)', not errs, errs[:3])
+        ctx.close()
+        # 点卡片作答 (the owner, 2026-11-25): the front card's left, middle and right thirds are the three buttons below, 认识 on
+        # its side; only the front, which sends nothing (撤销 turns the card back); the word plays and answers nothing; the
+        # back's card answers nothing; on by default with a finger, off with a mouse; a first-time guide, put away by a tap
+        ZONE_JS = """() => ({ front: !!document.querySelector('.ractions [data-claim]'), back: !!document.querySelector('.open-card'),
+          rates: [...document.querySelectorAll('.ractions [data-rate]')].map(b => b.dataset.rate), guide: !!document.getElementById('zoneGuide'),
+          undo: !!document.getElementById('undo') })"""
+        def tap_card(pg, third, down=None):  # a third of the card (0 left, 1 middle, 2 right), near its top or `down` of its height
+            r = pg.evaluate("() => { const r = document.querySelector('.review').getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; }")
+            pg.touchscreen.tap(r[0] + r[2] * (third * 2 + 1) / 6, r[1] + (r[3] * down if down else 24)); pg.wait_for_timeout(350)
+        ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['zones']['token'], 'url': BASE}])
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        posts = []; pg.on('request', lambda r: posts.append(r.url) if r.method == 'POST' and re.search(r'/api/next/review(/undo)?$', r.url) else None)
+        pg.goto(BASE + '/#/cards', wait_until='load'); settle(pg)
+        go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(300)
+        z0 = pg.evaluate(ZONE_JS)
+        labels = pg.evaluate("[...document.querySelectorAll('#zoneGuide span')].map(s => s.textContent)")
+        pg.screenshot(path=str(OUT / 'review-side-zone-guide.png'))
+        tap_card(pg, 2); z1 = pg.evaluate(ZONE_JS)
+        check(dev, '点卡片作答 on a phone by default: the first time the three parts are drawn (不认识 / 模糊 / 认识), and a tap puts it away without answering',
+              z0['guide'] and labels == ['不认识', '模糊', '认识'] and not z1['guide'] and z1['front'], [z0, labels, z1])
+        pg.touchscreen.tap(*pg.evaluate("(() => { const r = document.querySelector('.review .tapsay').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; })()")); pg.wait_for_timeout(350)
+        check(dev, '点卡片作答: a tap on the word plays it and answers nothing', pg.evaluate(ZONE_JS)['front'], pg.evaluate(ZONE_JS))
+        tap_card(pg, 2); z2 = pg.evaluate(ZONE_JS)
+        pg.screenshot(path=str(OUT / 'review-side-zone-back.png'))
+        pg.touchscreen.tap(*pg.evaluate("(() => { const r = document.querySelector('.open-card .mean-a, .open-card .ph').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; })()"))
+        pg.wait_for_timeout(350); z3 = pg.evaluate(ZONE_JS)  # the meaning, in the middle of the back's card: not a link, not a speaker
+        check(dev, '点卡片作答: the right third is 认识 (the answer, 没错 / 记错了), nothing sent; a tap on the back\'s card answers nothing',
+              z2['back'] and sorted(z2['rates']) == ['again', 'good'] and z3['back'] and not posts, [z2, z3, posts])
+        pg.click('#undo'); pg.wait_for_timeout(300); z4 = pg.evaluate(ZONE_JS)
+        check(dev, '点卡片作答: 撤销 on the back turns the card back to its front, nothing sent', z4['front'] and not z4['back'] and not posts, [z4, posts])
+        tap_card(pg, 0); z5 = pg.evaluate(ZONE_JS)
+        check(dev, '点卡片作答: the left third is 不认识 (the answer with 记住了，下一个 only)', z5['back'] and z5['rates'] == ['again'], z5)
+        pg.click('.ractions [data-rate]'); pg.wait_for_timeout(500)
+        check(dev, '点卡片作答: a rating is sent only by the back\'s button: one review', len(posts) == 1 and pg.evaluate(ZONE_JS)['front'], posts)
+        pg.evaluate("localStorage.setItem('flow-know-side', 'left')"); pg.reload(wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(300)
+        tap_card(pg, 0); z6 = pg.evaluate(ZONE_JS)
+        check(dev, '点卡片作答 with 「认识」 on the left: the left third is 认识', z6['back'] and sorted(z6['rates']) == ['again', 'good'], z6)
+        pg.click('#undo'); pg.wait_for_timeout(300)
+        pg.evaluate("localStorage.setItem('flow-tap-zones', '0')"); pg.reload(wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(300)
+        tap_card(pg, 0)
+        check(dev, '点卡片作答 off (我的 → 设置): a tap on the card does nothing', pg.evaluate(ZONE_JS)['front'], pg.evaluate(ZONE_JS))
+        check(dev, 'no script errors (点卡片作答)', not errs, errs[:3])
+        ctx.close()
+        ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['zones']['token'], 'url': BASE}])
+        pg = ctx.new_page()
+        pg.goto(BASE + '/#/review', wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(300)
+        r = pg.evaluate("(() => { const r = document.querySelector('.review').getBoundingClientRect(); return [r.left + r.width * 5 / 6, r.top + 24]; })()")
+        pg.mouse.click(*r); pg.wait_for_timeout(300)
+        check(dev, '点卡片作答 with a mouse: off by default, a click into the card answers nothing, no guide', pg.evaluate(ZONE_JS)['front'] and not pg.evaluate(ZONE_JS)['guide'], pg.evaluate(ZONE_JS))
         ctx.close()
         # a search that finds nothing says what was searched and offers a way out (语流 B9): 清除搜索, and with a filter on, 在全部里找
         ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
@@ -3462,6 +3572,11 @@ ONE_SCREEN_JS = """() => { const H = innerHeight, m = document.querySelector('ma
            mainBottom: Math.round(m.bottom), answers, lastBottom: Math.round(last.bottom), sab, tip: !!document.getElementById('knowTip') }; }"""
 
 
+REVIEW_BAR_JS = """() => { const c = document.querySelector('.review .ractions .choice'), r = c.getBoundingClientRect(), n = document.querySelector('.rtop + .rvoice');
+  return { bottom: Math.round(r.bottom), n: c.querySelectorAll('button').length, word: !!document.querySelector('.review .tapsay'),
+           note: n ? [n.textContent, parseFloat(getComputedStyle(n).fontSize) >= 12] : null }; }"""
+
+
 def one_screen_run(pw):
     dev = 'one-screen'
     browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
@@ -3490,11 +3605,25 @@ def one_screen_run(pw):
                     check(dev, f'{where} {name}: the answers and the line below them clear the home bar', s['answers'] and max(s['answers'] + [s['lastBottom']]) <= s['H'] - s['sab'], s)
                     if page == '#/review':
                         check(dev, f'{where}: the 「认识」换到右边了 tip is on the card (the tallest it gets)', s['tip'], s)
+                        # the answer side (the user, 2026-11-25: 「把操作的按钮全都放在底部」): its buttons where the front's
+                        # three were, at the bottom whatever the answer's length; 「读音由 AI 合成」 one grey line under the progress bar
+                        f = pg.evaluate(REVIEW_BAR_JS)
+                        pg.click('[data-claim="know"]'); pg.wait_for_selector('#view .open-card', timeout=4000); pg.wait_for_timeout(400)
+                        b = pg.evaluate(REVIEW_BAR_JS)
+                        pg.screenshot(path=str(OUT / f"one-screen-{size}-{'home' if home else 'safari'}-review-back.png"))
+                        check(dev, f'{where} 复习卡翻面: the buttons in the front\'s place at the bottom, clear of the home bar', b['bottom'] == f['bottom'] and b['bottom'] <= s['H'] - s['sab'] and b['n'] in (1, 2), [f, b])
+                        check(dev, f'{where} 复习卡: 「读音由 AI 合成」 under the progress bar where the word plays, 12px or more',
+                              b['note'] == ['读音由 AI 合成', True] and (f['note'] == ['读音由 AI 合成', True] if f['word'] else True), [f, b])
                     if home:
                         check(dev, f'{where} {name}: --bar-h is the top bar\'s height', s['barH'] == f"{s['bar']}px", s)
                 # 词汇辨析's round (语流 B8's audit: 119-213 px past the screen): no tabs, 怎么区分 open for the first question,
                 # one line from the second; both questions one screen, the answers at the bottom and clear of the home bar
-                go(pg, '#/words/confuse/borrow-lend,make-do'); pg.wait_for_selector('#mixQ .ans', timeout=8000); pg.wait_for_timeout(400)
+                if size == 'iphone-se' and not home:  # Safari with its bars showing: 375×553 (语流 B8 on r33)
+                    for H in (553, 667):
+                        pg.set_viewport_size({'width': 375, 'height': H}); go(pg, '#/words/confuse'); go(pg, '#/words/confuse/borrow-lend,make-do')
+                        pg.wait_for_selector('#mixQ .ans', timeout=8000); pg.wait_for_timeout(400); s = pg.evaluate(ONE_SCREEN_JS)
+                        check(dev, f'375×{H} Safari 词汇辨析第 1 题: one screen whatever the toolbar ({s["page"]} of {s["H"]}px)', s['page'] <= s['H'] and s['answers'] and max(s['answers']) <= s['H'], s)
+                go(pg, '#/words/confuse'); go(pg, '#/words/confuse/borrow-lend,make-do'); pg.wait_for_selector('#mixQ .ans', timeout=8000); pg.wait_for_timeout(400)
                 for k in (1, 2):
                     if k == 2:
                         pg.click('#mixQ .ans'); pg.wait_for_selector('#mixNext', timeout=4000); pg.click('#mixNext')
@@ -3572,6 +3701,26 @@ def shell_run(pw):
             go(pg, f'#/radar/test/{kind}'); pg.wait_for_timeout(600)
             h1 = pg.evaluate("(h => h && h.textContent.trim())(document.querySelector('#view h1'))")
             check(dev, f'{name}: the page has its h1 (for a screen reader)', h1 == name, h1)
+        ctx.close()
+        # an older front end than the server's (B8, 2026-11-25: a copy cached before the terms check got the same error on
+        # every 重试): an error page takes the new version at once, once; its 重试 takes it again rather than repeat
+        ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True, service_workers='block')
+        ctx.add_cookies([{'name': 'flow_session', 'value': tok, 'url': BASE}])
+        pg = ctx.new_page(); loads = []
+        pg.on('load', lambda _: loads.append(1))
+        pg.route('**/api/version', lambda r: r.fulfill(json={'asset': 'zzz-newer'}))
+        pg.route('**/api/next/home*', lambda r: r.fulfill(status=403, json={'error': '请先同意新的用户协议'}))
+        pg.goto(BASE + '/#/', wait_until='load')
+        try:
+            pg.wait_for_function("() => localStorage.getItem('flow-update-tried') === JSON.stringify('zzz-newer')", timeout=10000)
+        except Exception:
+            pass
+        pg.wait_for_timeout(6000)  # a loop would reload again and again by now
+        first = (len(loads), pg.evaluate("localStorage.getItem('flow-update-tried')"), bool(pg.query_selector('#view #retry')), bool(pg.query_selector('#updateBar')))
+        check(dev, 'an error page with a newer version on the server takes it at once, once (no reload loop), then offers it',
+              first[0] == 2 and first[1] == '"zzz-newer"' and first[2] and first[3], first)
+        pg.click('#view #retry'); pg.wait_for_timeout(5000)
+        check(dev, 'and its 重试 takes the new version again instead of repeating the same error', len(loads) == 3, len(loads))
         ctx.close()
         check(dev, 'no page errors', not errs, errs[:3])
     finally:

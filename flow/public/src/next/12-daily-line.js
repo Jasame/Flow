@@ -6,19 +6,20 @@
     const l = h && h.line; if (!l) return '';
     let en = esc(l.en).split(' / ').join('<br>');
     if (l.expression) { const k = l.en.toLowerCase().indexOf(l.expression.toLowerCase()); if (k >= 0) en = esc(l.en.slice(0, k)) + '<b>' + esc(l.en.slice(k, k + l.expression.length)) + '</b>' + esc(l.en.slice(k + l.expression.length)); }
-    // On a phone the card is one line until tapped (the owner, 2026-11-25: 今天的计划 and its button on the first screen);
+    // 今日好句 is the section's name (aria-labelledby), not a heading: 今日's first heading is 今天的计划, the page's h1
+    // (UI audit r33: an h2 came before the h1). On a phone the card is one line until tapped (the owner, 2026-11-25: 今天的计划 and its button on the first screen);
     // opened, it stays open for the rest of the day. iPad and computer always show it whole (98-daily-line.css).
     const open = load('flow-line-open') === lineDay(l);
     return `<section class="card line-card${open ? ' open' : ''}" id="lineCard" aria-labelledby="lineTitle">
-      <div class="lc-head"><h2 class="lc-title" id="lineTitle">今日好句</h2><span class="pill${l.kind === 'text' ? ' green' : ''}">${esc(l.label)}</span>
+      <div class="lc-head"><span class="lc-title" id="lineTitle">今日好句</span><span class="pill${l.kind === 'text' ? ' green' : ''}">${esc(l.label)}</span>
         <button class="lc-fold" id="lcFold" type="button" aria-expanded="${open}" aria-controls="lcBody" aria-label="${open ? '收起' : '展开'}今日好句" data-tap="line-fold"><span class="lc-peek" lang="en" aria-hidden="true">${esc(l.say)}</span><span class="lc-chev" aria-hidden="true"></span></button></div>
       <div class="lc-body" id="lcBody">
       <p class="lc-en${l.say.length > 100 ? ' long' : ''}" lang="en">${en}</p>
       <p class="lc-zh">${esc(l.zh)}</p>${l.note ? `<p class="tiny muted lc-note">${esc(l.note)}</p>` : ''}
       <p class="lc-src tiny">${l.kind === 'quote' ? '— ' : ''}${esc(l.source)}${l.href ? ` · <a class="link" href="${esc(l.href)}" data-tap="line-read">读原文</a>` : ''}</p>
-      <div class="lc-acts"><button class="btn small" id="lcSay" type="button" data-tap="line-say">${ICON.speak}听一遍</button>${aiVoice()}
+      <div class="lc-acts"><button class="btn small" id="lcSay" type="button" data-tap="line-say">${ICON.speak}听一遍</button>
         <button class="btn small" id="lcShadow" type="button" data-tap="line-shadow" aria-expanded="false" aria-controls="lcPanel">跟读</button>
-        <button class="btn small" id="lcKeep" type="button" data-tap="line-keep">${ICON.star}收藏</button></div>
+        <button class="btn small" id="lcKeep" type="button" data-tap="line-keep">${ICON.star}收藏</button>${aiVoiceNote('AI 合成', 'span')}</div>
       <div id="lcPanel" hidden></div></div></section>`;
   }
   function lineDay(l) { return new Date().toDateString() + ' ' + l.id; }

@@ -2,11 +2,17 @@
 # Runs Flow's tests on the owner's MSI from the Mac, instead of on the Mac: the branch as it is now (committed or not)
 # goes over SSH, tools/run_tests.py runs there, its output streams back, and the UI report and screenshots come back.
 #
-#   bash tools/msi-run.sh                          # run_tests.py --changed: the test files for what this branch changed
-#   bash tools/msi-run.sh test_vocab test_next     # these website test files (names as in flow/tests)
-#   bash tools/msi-run.sh --all                    # every website test file
-#   bash tools/msi-run.sh --ui phone desktop       # these UI groups (tools/ui_test.py); report + screenshots in msi-out/
+#   bash tools/msi-run.sh                          # before pushing: run_tests.py --changed --checks, the test files for
+#                                                  # what this branch changed and CI's checks that need no browser
+#   bash tools/msi-run.sh test_vocab test_next     # these website test files (names as in flow/tests), with the checks
+#   bash tools/msi-run.sh --all                    # every website test file   } CI runs these on every pull request:
+#   bash tools/msi-run.sh --ui phone desktop       # these UI groups           } only to look into a CI failure
 #   bash tools/msi-run.sh --ui --shard 3/5         # anything else run_tests.py takes is passed through
+#
+# The rule (the owner, 2026-11-25: 96 test runs that day, most of them the UI and the whole suite run twice, here
+# before pushing and again in CI): before pushing, only the default. The UI and the whole suite are CI's, the one gate
+# before a merge; --ui and --all are for re-running what failed there. The checks (run_tests.py --checks, ~15 s:
+# tools/release-files.txt, the CI setup, the front end, the guide's test) catch here what used to fail a CI round.
 #
 #   MSI_HOST (default msi-flow, the ~/.ssh/config entry)   MSI_RUN_JOBS (default 4: processes at once on the MSI)
 #
@@ -20,10 +26,12 @@
 # Mac's origin/main (which --changed compares against), to a bare repository on the MSI (~/msi-run/flow.git, cloned
 # from GitHub the first time), checked out in a worktree of its own, and both are removed when the run ends.
 #
-# Sharing the MSI with CI (its runners, tools/msi-setup.sh): these runs start at nice 10 and idle I/O priority so CI's
-# jobs keep theirs,
+# Sharing the MSI with CI (its runners, tools/msi-setup.sh): CI's runners are in system.slice and these runs (over SSH)
+# in user.slice, whose CPU weight is 20 (the owner's yes, 2026-11-25 18:28): when both want the CPU, CI gets about 83 %;
+# when CI is idle these use all of it. (nice 10 and idle I/O on top only order these among themselves: under cgroup v2
+# nice does not reach across slices.) They
 # use at most MSI_RUN_JOBS processes, keep their temporary files in a folder of their own under /tmp, and at most
-# two run at once (a third waits for one to finish). Needs: `ssh msi-flow` working (Tailscale), and the MSI set up
+# two run at once, four while CI has at most 3 jobs there (the next waits its turn, first come first served). Needs: `ssh msi-flow` working (Tailscale), and the MSI set up
 # with tools/msi-setup.sh (Python 3.11 venv with Playwright, Google Chrome, the Chinese fonts).
 set -euo pipefail
 
@@ -41,7 +49,15 @@ if ! "${SSH[@]}" "$HOST" true 2>/dev/null; then
   echo "msi-run: MSI 连不上（关机、睡眠或 Tailscale 断了）: $HOST; run the tests here instead: python3 tools/run_tests.py ${*:---changed}" >&2
   exit 3
 fi
+# --no-checks: leave out run_tests.py --checks (CI's checks that need no browser), which every website run gets
+checks=1; kept=()
+for a in ${args[@]+"${args[@]}"}; do if [ "$a" = --no-checks ]; then checks=; else kept+=("$a"); fi; done
+args=(${kept[@]+"${kept[@]}"})
+case " ${args[*]-} " in
+  *" --ui "*|*" --all "*) echo "msi-run: 界面测试和全套交给 CI；只在查 CI 失败时用 --ui / --all（推送前默认那一步就够了）" >&2 ;;
+esac
 if [ ${#args[@]} -eq 0 ]; then args=(--changed); elif [ "${args[0]}" = --all ]; then args=("${args[@]:1}"); fi
+case " ${args[*]-} " in *" --ui "*) ;; *) if [ -n "$checks" ]; then args+=(--checks); fi ;; esac
 
 # New files that would go over: refuse names that look like keys or secrets, even if .gitignore missed them.
 new=$(git ls-files --others --exclude-standard)
@@ -64,7 +80,9 @@ id="$(date +%Y%m%d-%H%M%S)-$(printf '%s' "${branch:-head}" | tr -c 'A-Za-z0-9._-
 
 "${SSH[@]}" "$HOST" 'set -e; mkdir -p ~/msi-run; [ -d ~/msi-run/flow.git ] || git clone -q --bare https://github.com/Jasame/Flow.git ~/msi-run/flow.git'
 pushes=("$snap:refs/msi-run/$id")
-git rev-parse -q --verify refs/remotes/origin/main >/dev/null && pushes+=("+refs/remotes/origin/main:refs/remotes/origin/main")
+# this Mac's origin/main, what --changed compares against: a ref of this run's own (two runs pushing one shared ref
+# collided, and one would compare against the other's main)
+git rev-parse -q --verify refs/remotes/origin/main >/dev/null && pushes+=("+refs/remotes/origin/main:refs/msi-run-base/$id")
 git push -q --no-verify "$HOST:msi-run/flow.git" "${pushes[@]}"
 echo "msi-run: $id ($(git rev-parse --short HEAD)${branch:+ on $branch}) -> $HOST: run_tests.py ${args[*]-}"
 
@@ -81,20 +99,41 @@ old=$(( $(date +%s) - 86400 ))
 git -C "$repo" for-each-ref --format='%(committerdate:unix) %(refname)' refs/msi-run/ | while read -r t ref; do
   [ "$t" -lt "$old" ] && git -C "$repo" update-ref -d "$ref"
 done
+# a run's base points at an older commit of main, so its age is in its name (the run's id starts with the time)
+day=$(date -d '1 day ago' +%Y%m%d-%H%M%S)
+git -C "$repo" for-each-ref --format='%(refname)' refs/msi-run-base/ | while read -r ref; do
+  [[ "${ref#refs/msi-run-base/}" < "$day" ]] && git -C "$repo" update-ref -d "$ref"
+done
 find "$base/w" "$base/out" -mindepth 1 -maxdepth 1 -mtime +0 -exec rm -rf {} + 2>/dev/null
 git -C "$repo" worktree prune
-# at most two runs at once: hold one of two lock files for the whole run
-slot=
+# at most 2 runs at once (4 while CI is light, below): hold one lock file for the whole run. First come, first served (语流 B5,
+# 2026-11-25: a run waited 37 minutes while later ones went first): a waiting run leaves a ticket in queue/, and only
+# the oldest ticket tries for a place; a ticket whose run has gone (stopped from the Mac) is dropped, so none blocks.
+mkdir -p "$base/queue"
+ticket=$base/queue/$(date +%s%N)-$$; : > "$ticket"
+trap 'rm -f "$ticket"' EXIT
+slot=; said=
 while [ -z "$slot" ]; do
-  for s in 1 2; do exec 9>"$base/slot-$s.lock"; if flock -n 9; then slot=$s; break; fi; done
-  [ -n "$slot" ] || { echo "msi-run: two runs are going on the MSI; waiting for one to finish…"; sleep 15; }
+  for q in "$base/queue"/*; do [ -e "$q" ] || continue; kill -0 "${q##*-}" 2>/dev/null || rm -f "$q"; done
+  # places: 4 while CI has at most 3 jobs on the MSI (its runners' Runner.Worker processes), else 2 (语流 A4, 18:03: CI
+  # idle, CPU at 20 %, and 4 runs waiting); CI's jobs come first anyway (user.slice's CPU weight, above)
+  places=2; [ "$(ps -eo comm | grep -c '^Runner.Worker')" -le 3 ] && places=4
+  if [ "$(ls "$base/queue" | sort | head -1)" = "${ticket##*/}" ]; then
+    for s in $(seq 1 "$places"); do exec 9>"$base/slot-$s.lock"; if flock -n 9; then slot=$s; break; fi; done
+  fi
+  if [ -z "$slot" ]; then
+    [ -n "$said" ] || echo "msi-run: $places runs are going on the MSI; $(ls "$base/queue" | sort | awk -v me="${ticket##*/}" '$0 < me' | wc -l) more waiting ahead of this one…"
+    said=1; sleep 5
+  fi
 done
+rm -f "$ticket"
 tmp=$(mktemp -d /tmp/msi-run.XXXXXX)
 cleanup() {
   cd "$base"
   git -C "$repo" worktree remove --force "$w" >/dev/null 2>&1 || rm -rf "$w"
   git -C "$repo" worktree prune
   git -C "$repo" update-ref -d "refs/msi-run/$id" 2>/dev/null
+  git -C "$repo" update-ref -d "refs/msi-run-base/$id" 2>/dev/null
   rm -rf "$tmp"
 }
 trap cleanup EXIT
@@ -105,7 +144,9 @@ case " $* " in *" --jobs "*) ;; *) extra+=(--jobs "$jobs") ;; esac
 case " $* " in *" --ui "*) case " $* " in *" --out "*) ;; *) extra+=(--out "$out") ;; esac ;; esac
 # </dev/null: bash -s reads this script from stdin, so a child reading stdin would eat the lines below.
 # 9>&-: the lock is fd 9; a test process left running (Chrome, ui_server) must not keep the slot taken.
-TMPDIR=$tmp nice -n 10 ionice -c 3 "$venv/bin/python" tools/run_tests.py "$@" "${extra[@]}" </dev/null 9>&-
+# --changed compares against this run's own copy of the Mac's origin/main (run_tests.py FLOW_CHANGED_BASE)
+base_ref=; git -C "$repo" rev-parse -q --verify "refs/msi-run-base/$id" >/dev/null && base_ref=refs/msi-run-base/$id
+FLOW_CHANGED_BASE=${base_ref:-origin/main} TMPDIR=$tmp nice -n 10 ionice -c 3 "$venv/bin/python" tools/run_tests.py "$@" "${extra[@]}" </dev/null 9>&-
 rc=$?
 [ -d "$out" ] && [ -n "$(ls -A "$out" 2>/dev/null)" ] && echo "msi-run-out:$out"
 exit $rc

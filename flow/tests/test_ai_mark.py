@@ -30,11 +30,46 @@ class AiMarkTests(unittest.TestCase):
         self.assertIn('function aiTag()', head)
         self.assertIn('function aiMark(note)', head)
         self.assertIn('>AI 生成<', head)
-        self.assertIn('function aiVoice()', head)  # synthesized voices: 「AI 朗读」 next to the play button
-        self.assertIn('>AI 朗读<', head)
+        # synthesized voices (2026-11-25): one grey line where they play, a faint 「AI」 on each of many speakers
+        self.assertIn('function aiVoiceNote(text, tag, cls)', head)
+        self.assertIn('function aiBadge()', head)
         css = (SRC / '99-ai-mark.css').read_text(encoding='utf-8')
         self.assertIn('.ai-mark{', css)
         self.assertIn('.ai-line{', css)
+        self.assertIn('.ai-voice-note{', css)
+        self.assertIn('.ai-badge{', css)
+
+    def test_every_part_that_plays_a_synthetic_voice_says_so(self):
+        """Every page part that plays a synthesized voice (a word, an example, a sentence, a whole text, the mini player)
+        calls aiVoiceNote: 语流 B7's minimum (《标识办法》) — said where the voice plays, without a tap, ≥12px, 4.5:1. A new
+        part that plays one fails here until it says so. The learner's own recording (CLIP.mine) is not synthetic."""
+        plays = re.compile(r'\b(?:CLIP\.(?:word|sentence)|TTS\.say|SV\.say|NAR\.play|LONG\.start|MINI\.show)\(')
+        missing, checked = [], 0
+        for part in sorted(SRC.glob('*.js')):
+            text = part.read_text(encoding='utf-8')
+            if not plays.search(text):
+                continue
+            checked += 1
+            if 'aiVoiceNote(' not in text:
+                missing.append(part.name)
+        self.assertGreater(checked, 10)
+        self.assertEqual(missing, [], '这些页面会放合成的声音，但没有「AI 合成」提示（aiVoiceNote）')
+
+    def test_what_the_voice_line_says(self):
+        """Each line says 「AI」 and 「合成」, or 「AI 朗读」 (B7); the old pill by every button is gone."""
+        said = []
+        for part in sorted(SRC.glob('*.js')):
+            text = part.read_text(encoding='utf-8')
+            self.assertNotIn('aiVoice()', text, part.name)
+            for t in re.findall(r"aiVoiceNote\('([^']*)'", text):
+                said.append(t)
+                self.assertTrue('AI 朗读' in t or ('AI' in t and '合成' in t), f'{part.name}: 「{t}」')
+        self.assertGreater(len(said), 15)
+        css = (SRC / '99-ai-mark.css').read_text(encoding='utf-8')
+        size = re.search(r'\.ai-voice-note\{[^}]*font-size:(\d+)px', css)
+        self.assertTrue(size and int(size.group(1)) >= 12, 'the line is at least 12px')
+        badge = re.search(r'\.ai-badge\{[^}]*font:\d+ (\d+)px', css)
+        self.assertTrue(badge and int(badge.group(1)) >= 10, 'the badge is at least 10px')
 
     def test_every_page_part_that_shows_ai_output_marks_it(self):
         paths = ai_paths()

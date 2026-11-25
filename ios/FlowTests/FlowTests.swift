@@ -291,7 +291,34 @@ final class LongPlayerRequestTests: XCTestCase {
         // a guest (and an account that has not agreed to 数据存放在香港, answered as one) still gets the stored ones
         XCTAssertFalse(TTSFetcher.refused(SiteError.status(403, code: "guest", message: "")))
         XCTAssertFalse(TTSFetcher.refused(URLError(.timedOut)))
-        XCTAssertEqual(TTSFetcher.reason(SiteError.status(403, code: "cap", message: "")), "今天的自然人声用完了，这句先用 iPhone 自带的声音")
+    }
+
+    @MainActor func testWhyThePhonesVoiceIsForThePageToSay() {
+        // docs/native-bridge.md §3: fail {code, server}, worded by the page's SV.why; the codes as the page's own and Android's
+        XCTAssertEqual(TTSFetcher.failure(URLError(.notConnectedToInternet)), ["code": "offline", "server": ""])
+        XCTAssertEqual(TTSFetcher.failure(URLError(.timedOut)), ["code": "slow", "server": ""])
+        XCTAssertEqual(TTSFetcher.failure(URLError(.cannotFindHost)), ["code": "net", "server": ""])
+        XCTAssertEqual(TTSFetcher.failure(SiteError.signedOut), ["code": "guest", "server": ""])
+        XCTAssertEqual(TTSFetcher.failure(SiteError.status(429, code: "cap", message: "今天的额度用完了")), ["code": "cap", "server": "今天的额度用完了"])
+        XCTAssertEqual(TTSFetcher.failure(SiteError.status(502, code: "", message: "")), ["code": "gateway", "server": ""])
+        XCTAssertEqual(TTSFetcher.failure(SiteError.status(404, code: "file", message: "")), ["code": "net", "server": ""], "the file itself did not come")
+        XCTAssertEqual(TTSFetcher.failure(SiteError.shape), ["code": "other", "server": ""])
+    }
+
+    @MainActor func testItemsBringTheAddressesThePageHas() throws {
+        // §3 play: items [{text, url}]: a known address is fetched as it is, null is asked of the server (and reported back)
+        let r = try XCTUnwrap(LongPlayer.Request(json: ["key": "listen:x", "voice": "us-f", "items": [
+            ["text": "One.", "url": "/audio/tts/us-f/ab12.mp3"], ["text": "Two.", "url": NSNull()],
+            ["text": "Three.", "url": "https://evil.example/x.mp3"], ["text": "Four.", "url": "https://flow.jasa.hk/audio/tts/cd.mp3"],
+        ]], base: base))
+        XCTAssertEqual(r.texts, ["One.", "Two.", "Three.", "Four."])
+        XCTAssertEqual(r.known(0), "/audio/tts/us-f/ab12.mp3")
+        XCTAssertNil(r.known(1))
+        XCTAssertNil(r.known(2), "another host's address is not fetched with the learner's cookies")
+        XCTAssertEqual(r.known(3), "https://flow.jasa.hk/audio/tts/cd.mp3")
+        XCTAssertNil(r.known(9))
+        let old = try XCTUnwrap(LongPlayer.Request(json: ["key": "read:x", "texts": ["One."]], base: base))
+        XCTAssertNil(old.known(0), "the older form: no address known")
     }
 
     @MainActor func testTheLockScreenSaysAIVoice() {
@@ -335,6 +362,22 @@ final class BridgeTests: XCTestCase {
         XCTAssertFalse(AppConfig.isOwn(URL(string: "http://flow.jasa.hk/#/")), "the site over http is not kept in the app")
         XCTAssertFalse(AppConfig.isOwn(URL(string: "ftp://flow.jasa.hk/")))
         XCTAssertFalse(AppConfig.isOwn(URL(string: "http://localhost:8771/#/")), "the local test server only when the app was started on it (FLOW_START_URL)")
+    }
+
+    @MainActor func testTheSiteThemeColour() {
+        // 我的 → 外观 (html data-accent, PR #282): the app's own controls in 松绿 (default) or 靛蓝, light and dark as the site
+        func hex(_ c: UIColor, _ style: UIUserInterfaceStyle) -> String {
+            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+            c.resolvedColor(with: UITraitCollection(userInterfaceStyle: style)).getRed(&r, green: &g, blue: &b, alpha: &a)
+            return String(format: "%02x%02x%02x", Int((r * 255).rounded()), Int((g * 255).rounded()), Int((b * 255).rounded()))
+        }
+        XCTAssertEqual(hex(Accent.color("indigo"), .light), "3461d1")
+        XCTAssertEqual(hex(Accent.color("indigo"), .dark), "8eaefc")
+        XCTAssertEqual(hex(Accent.color("green"), .light), "1f9d55")
+        XCTAssertEqual(hex(Accent.color(nil), .dark), "3ccf7c", "nothing chosen yet: the default green")
+        XCTAssertEqual(Accent.name("indigo"), "indigo")
+        XCTAssertEqual(Accent.name("purple"), "green", "a name the app does not know: the default")
+        XCTAssertTrue(Accent.script.contains("data-accent") || Accent.script.contains("dataset.accent"))
     }
 
     @MainActor func testOnlyWebsitesMailAndPhoneLeaveTheApp() {

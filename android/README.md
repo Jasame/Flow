@@ -107,7 +107,7 @@ CI（`.github/workflows/android.yml`，语流 A2）：
 
 ## 原生声音（`audio/`）
 
-整篇朗读（「听」的播放全文、「读」的伴读）由 App 来放，用 Media3 的 ExoPlayer 加 `MediaSessionService`。**要网页调用 `FlowApp.audio` 才会用上**：网页这边是 #152，2026-11-25 时还没合，正式版网页还是自己放，所以现在没有锁屏控制。对外说「锁屏能控制」之前，先确认线上的网页脚本里真的调用了 `FlowApp.audio`。
+整篇朗读（「听」的播放全文、「读」的伴读）由 App 来放，用 Media3 的 ExoPlayer 加 `MediaSessionService`。网页调用 `FlowApp.audio` 才会用上：网页这边是 #152，2026-11-25 21:13 跟着 r33 上了正式版。当晚用公开的 1.0.2 在 flowlang.cn 上核对过：锁屏卡片会显示，锁屏后接着读，暂停、上一句、下一句都管用。以后对外说 App 能做什么之前，都先确认线上的网页脚本真的调用了对应的接口。
 
 - 锁屏和通知栏显示标题和「AI 朗读 · 第 3 / 20 句」，可以播放、暂停、上一句、下一句。耳机按钮、蓝牙按钮也能用。
   - 「AI 朗读」是按《人工智能生成合成内容标识办法》加的显式标识：语流的朗读都是合成声音（Kokoro 录音、CosyVoice、手机自带的声音）。音频文件里的隐式标识由服务器写入。
@@ -213,7 +213,7 @@ CI（`.github/workflows/android.yml`，语流 A2）：
 | `INTERNET` | 打开网站 |
 | `RECORD_AUDIO` | 跟读、口语对话、发音练习；App 自己从不打开，只在网页要录音时打开 |
 | `POST_NOTIFICATIONS` | 复习提醒（Android 13 以上要单独问） |
-| `FOREGROUND_SERVICE`、`FOREGROUND_SERVICE_MEDIA_PLAYBACK`、`WAKE_LOCK` | 锁屏以后整篇朗读还能继续（网页调用原生朗读以后才用到，见上面「原生声音」） |
+| `FOREGROUND_SERVICE`、`FOREGROUND_SERVICE_MEDIA_PLAYBACK`、`WAKE_LOCK` | 锁屏以后整篇朗读还能继续（正式版从 r33 起用到，见上面「原生声音」） |
 | `RECEIVE_BOOT_COMPLETED` | 重启手机以后把提醒排回去 |
 | `SCHEDULE_EXACT_ALARM` | 提醒准点（手机允许时） |
 | `ACCESS_NETWORK_STATE` | 由 Media3（ExoPlayer）带进来，用来看网络类型；不弹窗 |

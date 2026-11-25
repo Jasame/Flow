@@ -2,15 +2,19 @@
 //! logs can tell the desktop app apart (like `FlowiOS/<版本>` in the iOS app).
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[allow(clippy::enum_variant_names)] // MacOs ends in "Os"; renaming it is not worth the churn
 pub enum Os {
     MacOs,
     Windows,
+    Linux,
 }
 
 impl Os {
     pub fn current() -> Self {
         if cfg!(target_os = "windows") {
             Os::Windows
+        } else if cfg!(target_os = "linux") {
+            Os::Linux
         } else {
             Os::MacOs
         }
@@ -20,12 +24,14 @@ impl Os {
         match self {
             Os::MacOs => "macos",
             Os::Windows => "windows",
+            Os::Linux => "linux",
         }
     }
     fn label(self) -> &'static str {
         match self {
             Os::MacOs => "macOS",
             Os::Windows => "Windows",
+            Os::Linux => "Linux",
         }
     }
 }
@@ -39,6 +45,8 @@ pub fn user_agent(os: Os, app_version: &str, webview: Option<&str>) -> String {
     let base = match os {
         // WKWebView's own (frozen) User-Agent on every macOS version
         Os::MacOs => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko)".to_string(),
+        // WebKitGTK's own form
+        Os::Linux => "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/605.1.15 (KHTML, like Gecko)".to_string(),
         Os::Windows => {
             let full = webview
                 .filter(|v| !v.is_empty() && v.chars().all(|c| c.is_ascii_digit() || c == '.'))
@@ -84,5 +92,7 @@ mod tests {
         }
         assert_eq!(Os::MacOs.platform(), "macos");
         assert_eq!(Os::Windows.platform(), "windows");
+        assert_eq!(Os::Linux.platform(), "linux");
+        assert!(user_agent(Os::Linux, "0.1.2", None).ends_with(" FlowDesktop/0.1.2 (Linux)"));
     }
 }

@@ -1,7 +1,7 @@
 /* ---------- 雅思口语练习 (46-ielts.js): entry on the speaking route, Part 1 chat, Part 2 cue card and clock, feedback ---------- */
 .card.ielts-entry{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:14px 16px;text-decoration:none;color:inherit;border-left:3px solid var(--green)}
 .ielts-entry .go{color:var(--muted);font-size:20px}
-.ielts-note{color:var(--amber-fill);margin:0}  /* the darker amber: 5:1 on the page, as small text needs */
+.ielts-note{color:var(--muted);margin:0}  /* 「AI 估计，练习用，不是官方成绩」: the same words, grey (B7, 2026-11-25), 4.5:1 and more */
 .msg .who{padding:0 6px}
 .msg .better{padding:0 6px}
 .msg .better summary{cursor:pointer;color:var(--green-ink);list-style:none;padding:4px 0;min-height:24px}
@@ -66,7 +66,6 @@ div.round-extra{margin-top:8px;padding:8px 12px;border-radius:10px;background:va
    per line (语流 20's screenshot, 2026-11-25). The label gives way (ellipsis), the buttons never wrap */
 .mini-player .lbl{flex:1 1 auto;min-width:0}
 .mini-player .toggle,.mini-player .stop,.mini-player .resume{flex-shrink:0;white-space:nowrap}
-/* 「AI 朗读」 in the mini player (aiVoice, 《标识办法》); on a phone narrower than 420 px the sound bars give it their room
-   (暂停 / 继续 says the state already), so 「第 12 / 30 句」 stays whole at 360 px */
-.mini-player .ai-voice{flex-shrink:0}
+/* 「AI 合成」 in the mini player (aiVoiceNote, 《标识办法》); on a phone narrower than 420 px the sound bars give it their
+   room (暂停 / 继续 says the state already), so 「第 12 / 30 句」 stays whole at 360 px */
 @media (max-width:419px){.mini-player .eq{display:none}}
