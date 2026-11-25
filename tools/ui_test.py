@@ -2351,6 +2351,11 @@ def sprint_run(pw):
                 if page == '#/' and h > w:  # with 这周进步 on top and the exam line under the title, the next step is still on the first screen
                     b = pg.evaluate("Math.round(document.querySelector('#view .go-next').getBoundingClientRect().bottom)")
                     check(dev, f'{size} 今日: the next-step button is on the first screen', b <= h, (b, h))
+                if page == '#/':  # 正式版反馈 #2 (2026-11-25): a.prow.week took 10-pages.css's .week span bars, grey 6 px strips over the words
+                    wk = pg.evaluate("""() => [...document.querySelectorAll('#view .tp-week .prow')].map(r => { const t = r.querySelector('.t'), b = t.querySelector('b'), s = t.querySelector('.muted');
+                      const rr = r.getBoundingClientRect(), br = b.getBoundingClientRect(), sr = s ? s.getBoundingClientRect() : null;
+                      return {fill: [t, b, s].filter(Boolean).some(x => getComputedStyle(x).backgroundColor !== 'rgba(0, 0, 0, 0)'), tall: br.height >= 16 && (!sr || sr.height >= 12), inside: !sr || sr.bottom <= rr.bottom + 1}; })""")
+                    check(dev, f'{size} 今日: 本周任务 shows its title and line in full, no grey bars over them', bool(wk) and all(not x['fill'] and x['tall'] and x['inside'] for x in wk), wk)
                 pg.screenshot(path=str(OUT / f"sprint-{size}-{page.strip('#/').replace('/', '_') or 'today'}.png"))
             # the hub at this size: the trend is drawn to the width it has, inside the screen
             go(pg, '#/exam'); pg.wait_for_timeout(300)
