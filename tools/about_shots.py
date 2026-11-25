@@ -96,7 +96,7 @@ def main(only):
     cfg = json.loads((state / 'sessions.json').read_text())
     base, token = cfg['base'], cfg['learners']['guide']['token']
     with sync_playwright() as p:
-        browser = p.chromium.launch(channel='chrome')  # the installed Chrome, as tools/ui_test.py does
+        browser = p.chromium.launch(channel='chrome', args=['--mute-audio'])  # the installed Chrome, as tools/ui_test.py does
         for name in [n for n in names if n in SHOTS]:
             route, step, size = SHOTS[name]
             phone = size is PHONE

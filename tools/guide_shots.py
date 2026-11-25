@@ -152,7 +152,7 @@ def main(only):
     cfg = json.loads((state / 'sessions.json').read_text())
     base = cfg['base']
     with sync_playwright() as p:
-        browser = p.chromium.launch(channel='chrome', args=['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'])  # the installed Chrome, as tools/ui_test.py does
+        browser = p.chromium.launch(channel='chrome', args=['--mute-audio', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'])  # the installed Chrome, as tools/ui_test.py does
         for name in names:
             route, step, signed, *who = SHOTS[name]
             token = cfg['learners'][who[0] if who else 'guide']['token']

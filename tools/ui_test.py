@@ -44,6 +44,10 @@ PAGES = ['#/', '#/library', f'#/m/{PID}/listen', f'#/m/{PID}/read', f'#/m/{PID}/
          '#/radar', '#/radar/goals', '#/radar/test', '#/radar/test/reading', '#/radar/test/writing',
          '#/practice', '#/guide', '#/guide/words', '#/feedback', '#/weekly-off/not-a-real-link-0123456789']
 RESULTS = []
+# Chrome makes no sound: pages play narration, clips and the sounds' examples during the tests, and nothing should come
+# out of the owner's speakers while they run in the background (the owner's rule, 2026-11-25). Playback itself still
+# happens (play(), paused, currentTime, ended), so every check of it holds; tests/test_ci.py keeps every launch muted.
+MUTE = ['--mute-audio']
 NEXT_PARTS = sorted((Path(__file__).resolve().parent.parent / 'flow/public/src/next').glob('*.js'))
 
 
@@ -148,7 +152,7 @@ COVER_JS = """() => {
 
 
 def run_device(pw, dev, opts):
-    ctx = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv).new_context(**opts, locale='zh-CN', bypass_csp=True)
+    ctx = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=MUTE).new_context(**opts, locale='zh-CN', bypass_csp=True)
     ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners'][dev]['token'], 'url': BASE}])
     pg = ctx.new_page()
     errors = []
@@ -726,7 +730,7 @@ OFFER = """window.__prompted = 0; addEventListener('load', () => { const e = new
 
 def platform_run(pw):
     dev = 'platforms'
-    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=MUTE)
     token = CFG['learners']['phone']['token']
 
     def page(ua, width=390, init=None):
@@ -899,7 +903,7 @@ def ios_audio_run(pw):
         time.sleep(0.5)
         cfg = json.loads((state / 'sessions.json').read_text()); base, pid = cfg['base'], cfg['pid']
         word = json.loads((Path(__file__).with_name('ui-fixtures') / 'audio' / 'words' / 'index.json').read_text())['us']['drain']
-        browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+        browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=MUTE)
 
         sample = (Path(__file__).with_name('ui-fixtures') / 'tts-sample.mp3').read_bytes()
 
@@ -1024,7 +1028,7 @@ def wechat_run(pw):
             time.sleep(0.25)
         time.sleep(0.5)
         cfg = json.loads((state / 'sessions.json').read_text()); base, pid = cfg['base'], cfg['pid']
-        browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+        browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=MUTE)
         ctx = browser.new_context(**DEVICES['phone'], user_agent=WECHAT_UA, locale='zh-CN', bypass_csp=True)
         ctx.add_cookies([{'name': 'flow_session', 'value': cfg['learners']['phone']['token'], 'url': base}])
         ctx.add_init_script(WECHAT_RULES)
@@ -1156,7 +1160,7 @@ QTOP_JS = """() => { const r = document.querySelector('#view .review'); if (!r |
 def layout_run(pw, engine):
     dev = 'layout-' + engine
     try:
-        browser = pw.webkit.launch() if engine == 'webkit' else pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+        browser = pw.webkit.launch() if engine == 'webkit' else pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=MUTE)
     except Exception as e:
         if engine == 'webkit' and 'webkit' not in ONLY:  # not installed here (CI): the Chrome run still covers the rest
             print(f'SKIP [{dev}] WebKit is not installed (python -m playwright install webkit)'); return
@@ -1251,7 +1255,7 @@ FAKE_TTS = """(() => { window.__said = []; if (!window.speechSynthesis) return;
 
 def ux_run(pw):
     dev = 'ux'
-    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=MUTE)
     phone = dict(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
     try:
         ctx = browser.new_context(**phone)
@@ -1344,7 +1348,7 @@ QR_READ = """async sel => { if (!('BarcodeDetector' in window)) return null;
 
 def learner_run(pw):
     dev = 'learner'
-    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=MUTE)
     phone = dict(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, accept_downloads=True)
     closing = "document.querySelector('#sheet [data-close]').click()"
     try:
@@ -1526,7 +1530,7 @@ LS_SIZES = {'phone': ('phone', DEVICES['phone']), 'phone-360': ('phone-360', dic
 
 def listen_speak_run(pw):
     browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv,
-                                 args=['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'])
+                                 args=MUTE + ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'])
     try:
         for size, (learner, opts) in LS_SIZES.items():
             dev = 'ls-' + size
@@ -1798,7 +1802,7 @@ def class_run(pw):
     """班级试用: a learner opens the teacher's link, reads what the teacher sees and not, joins and leaves again; the
     teacher's page shows the class's numbers only (no member's name), its bars, and a QR code that reads back as the link."""
     dev = 'class'
-    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=MUTE)
     phone = dict(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN')
     k = CFG['class']
     wide = "document.documentElement.scrollWidth <= innerWidth + 1"
@@ -1879,7 +1883,7 @@ def wait_run(pw):
     """A slow AI answer (the gateway queueing, the model busy): after 15 s a line under the button says the AI is still
     thinking, inside the screen, gone when the answer comes. The page's fetch is held back here, so no server change."""
     dev = 'wait'
-    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=MUTE)
     phone = dict(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN')
     try:
         ctx = browser.new_context(**phone)
@@ -1913,7 +1917,7 @@ def privacy_run(pw):
     request; an older account is asked once and cannot dismiss the question; under 14 without the agreement, the AI on
     the learner's own words asks for it and then goes on; the 隐私说明 opens from 我的."""
     dev = 'privacy'
-    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=MUTE)
     phone = dict(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN')
     try:
         errs = []
@@ -1978,7 +1982,7 @@ def trial_survey_run(pw):
     """班级试用问卷: three weeks in a class, 今日 offers the anonymous survey once; 「不用了」 puts it away for good on that
     phone; the survey opens as the trial one, takes the answers and says thanks, and 今日 stops offering it."""
     dev = 'trial-survey'
-    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=MUTE)
     phone = dict(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN')
     cookie = [{'name': 'flow_session', 'value': CFG['learners']['veteran']['token'], 'url': BASE}]
     try:
@@ -2019,7 +2023,7 @@ def trial_survey_run(pw):
 
 def a11y_run(pw):
     dev = 'a11y'
-    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=MUTE)
     try:
         found = {}
         for theme in ('light', 'dark'):
@@ -2076,7 +2080,7 @@ SPRINT_SIZES = {'phone': (390, 844, True), 'phone-360': (360, 780, True), 'phone
 
 def sprint_run(pw):
     dev = 'sprint'
-    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=MUTE)
     tok = CFG['learners']['sprint']['token']
 
     def context(w, h, touch, theme='light'):
@@ -2213,7 +2217,7 @@ def about_run(pw):
     nothing scrolls sideways, every part comes in as it is scrolled to, the screenshots load, no errors; then the demos
     (tap a word, the word-book shelf, the questions), the ways in from the learning site, and the page with less motion
     (screen readers, contrast)."""
-    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=MUTE)
     sizes = {**DEVICES, 'phone-360': dict(viewport={'width': 360, 'height': 780}, is_mobile=True, has_touch=True, device_scale_factor=2)}
     try:
         for dev, opts in sizes.items():
@@ -2369,7 +2373,7 @@ def swipe_run(pw):
     """认识 / 不认识 by swiping, from anywhere on the screen: on an iPad sideways the card is a column in the middle and
     a swipe that started beside it or below it did nothing (r27). Not from a button, and not a scroll."""
     dev = 'swipe'
-    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=MUTE)
     try:
         for size, (w, h) in SWIPE_SIZES.items():
             ctx = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
@@ -2427,7 +2431,7 @@ PLAN_JS = r"""() => {
 
 def progress_run(pw):
     dev = 'progress'
-    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=MUTE)
     try:
         for size, (w, h) in PROGRESS_SIZES.items():
             for theme in ('light', 'dark'):
@@ -2566,7 +2570,7 @@ def review_side_run(pw):
     who reviewed on this device before sees once that it moved. 这次什么时候复习: a time today or tomorrow is the next
     reminder, then the daily hour again."""
     dev = 'review-side'
-    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=MUTE)
     try:
         ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
@@ -2653,7 +2657,7 @@ def backlog_run(pw):
     a finger needs (结束, 去读, 去练, 按 B1 挑选 · 调整, 怎么写的) take a tap 44 px around them. r28 section 3: 单词每天
     (a cap in minutes: done at the cap, 继续复习 past it, the new words a day it keeps up with) and a finished book's next."""
     dev = 'backlog'
-    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=MUTE)
     try:
         ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['pile']['token'], 'url': BASE}])
@@ -2761,7 +2765,7 @@ SPLASH_JS = "() => { const s = document.getElementById('splash'); return s ? [s.
 
 def start_run(pw):
     dev = 'start'
-    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=MUTE)
     try:
         for size, (w, h, touch) in START_SIZES.items():
             for theme in ('light', 'dark'):
@@ -2908,7 +2912,7 @@ BACK_JS = """() => { const b = document.getElementById('backBtn'); if (!b || b.h
 
 def home_app_run(pw):
     dev = 'home-app'
-    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=MUTE)
     tok = CFG['learners']['home-app']['token']
 
     def context(size, theme='light', signed=True):

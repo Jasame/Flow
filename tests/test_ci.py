@@ -269,6 +269,17 @@ class BetaReleaseTests(unittest.TestCase):
             self.assertFalse(any(c.lower() in n.lower() for n in br.pdf_fonts(f) for c in br.CHINESE_FONTS))
 
 
+class QuietBrowserTests(unittest.TestCase):
+    def test_every_chrome_the_tools_start_is_muted(self):
+        """The owner's rule (2026-11-25): what runs in the background makes no sound. Every Chrome a tool starts (UI tests,
+        screenshots, the guide PDF) gets --mute-audio; WebKit has no such switch and plays nothing in these runs."""
+        for path in sorted((ROOT / 'tools').glob('*.py')):
+            text = path.read_text(encoding='utf-8')
+            for m in re.finditer(r'chromium\.launch\((.*?)\)(?:\.|\n)', text, re.S):
+                self.assertTrue('--mute-audio' in m.group(1) or 'args=MUTE' in m.group(1), f'{path.name}: {m.group(0)[:120]}')
+        self.assertIn("MUTE = ['--mute-audio']", (ROOT / 'tools' / 'ui_test.py').read_text())
+
+
 class MergeFriendlyListTests(unittest.TestCase):
     def test_the_upgrade_lists_are_one_name_per_line_and_sorted(self):
         script = (ROOT / 'flow' / 'upgrade.sh').read_text()
