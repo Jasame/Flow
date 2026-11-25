@@ -25,7 +25,8 @@
 /* 读: 中文导读、改写 and 伴读 in one row; the colour key and the tap hints in one line under it */
 .read-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:6px}
 .read-tools #readAlong{margin-left:auto}
-.read-tools .chip[aria-expanded=true]{background:var(--green-soft);border-color:var(--green);color:var(--green-ink)}
+.read-tools [aria-expanded=true]{background:var(--green-soft);border-color:var(--green);color:var(--green-ink)}
+.read-ai{margin:0 0 6px}  /* 「AI 朗读 · 声音由 AI 合成」 under the row of tools */
 .guide-zh{margin:0 0 10px;padding:10px 12px;background:var(--sunk);border-radius:12px;line-height:1.7}
 .read-hint{display:flex;flex-wrap:wrap;align-items:center;gap:2px 12px;margin:0 0 10px}
 .read-hint .legend{margin:0}

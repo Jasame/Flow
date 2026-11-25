@@ -419,7 +419,8 @@ def same_sound(a, b):
 def say_verdict(target, partner, heard):
     """What the recogniser wrote down -> the answer say() reads. The target counts only as a whole word (hat is not
     in "that"). Wrong when it heard the pair word and not the target, or, for a word without a pair, another real word
-    (it heard as "sit"); a third word next to a pair is let through, and said as heard; nothing heard is a reference.
+    (it heard as "sit"); nothing heard is a reference. A third word next to a pair (语流 B3, 2026-11-25) is right only
+    when it sounds nearer the target (thing for think); nearer the pair word, or unclear, it is wrong but a reference.
     One word alone is often written as another that sounds the same (their as there, 语流 09): a word the dictionary
     says like the target is right, one it says like the pair word is the pair word."""
     import difflib, sounds
@@ -439,12 +440,73 @@ def say_verdict(target, partner, heard):
         return {'heard': said, 'ok': True, 'note': f'听起来是 {t}（和 {one} 同音）', 'tip': '', 'reason': 'same'}
     if p and one and same_sound(p, one):  # the pair word, written as one that sounds like it (right as write)
         return {'heard': said, 'ok': False, 'note': f'听起来像 {p}（和 {one} 同音），不像 {t}', 'tip': tip, 'reason': 'pair_same'}
-    if p:  # neither the target nor its pair: not the mistake this pair practises
-        return {'heard': said, 'ok': True, 'note': f'听起来像 {said}，没有读成 {p}', 'tip': '', 'reason': 'third'}
+    if p:  # neither the target nor its pair (语流 B3, 2026-11-25: zinc heard for think must not read as right)
+        w, side, how = _third(words, t, p)
+        if side == 'target' and how != 'tie' and _spelling(w, t) >= 0.6:
+            return {'heard': said, 'ok': True, 'note': f'听起来像 {said}，接近 {t}', 'tip': '', 'reason': 'third_ok'}
+        if side == 'pair' and _near(w, p):  # a reference only: never one of the two misses
+            note = f'听起来像 {said}，更接近 {p}，不像 {t}' if how == 'sound' else f'听起来像 {said}，不像 {t}'
+            return {'heard': said, 'ok': False, 'note': note, 'tip': tip, 'reason': 'third_near_pair', 'reference': True}
+        return {'heard': said, 'ok': False, 'note': f'没听出 {t}，听着像 {said}，可以再读一遍', 'tip': '', 'reason': 'third_unclear', 'reference': True}
     other = len(words) == 1 and words[0] != t and nx.lookup(words[0])
     if not other and difflib.SequenceMatcher(None, t, words[0]).ratio() >= 0.6:  # a spelling slip of the recogniser
         return {'heard': said, 'ok': True, 'note': f'听起来接近 {t}', 'tip': '', 'reason': 'near'}
     return {'heard': said, 'ok': False, 'note': f'听起来像 {said}', 'tip': tip, 'reason': 'other'}
+
+
+def _spelling(a, b):
+    import difflib
+    return difflib.SequenceMatcher(None, a, b).ratio()
+
+
+def _edits(a, b):
+    """Levenshtein distance between two pronunciations as the dictionary writes them (one sound mark, one step)."""
+    row = list(range(len(b) + 1))
+    for i, x in enumerate(a, 1):
+        prev, row[0] = row[0], i
+        for j, y in enumerate(b, 1):
+            prev, row[j] = row[j], min(row[j] + 1, row[j - 1] + 1, prev + (x != y))
+    return row[-1]
+
+
+SOUND = re.compile(r'tʃ|dʒ|eɪ|aɪ|ɔɪ|aʊ|əʊ|oʊ|ɪə|eə|ʊə|[^ː]ː?')  # one sound each: affricates, diphthongs, long vowels
+
+
+def _sounds(form):
+    return SOUND.findall(form)
+
+
+def _sound_edits(a, b):
+    """Fewest sound changes between two words' dictionary pronunciations, sound by sound (ʃeɪp is three sounds, one
+    from ʃɪp and one from ʃiːp), or None when either has none."""
+    sa, sb = sounds_of(a), sounds_of(b)
+    return min(_edits(_sounds(x), _sounds(y)) for x in sa for y in sb) if sa and sb else None
+
+
+def _closer(w, t, p):
+    """Which of target t and pair word p a third word w is closer to: ('target' | 'pair' | '', how it was told:
+    'sound' or 'spelling'). The pronunciations first; the spelling only when they tie or the dictionary has none."""
+    dt, dp = _sound_edits(w, t), _sound_edits(w, p)
+    if dt is not None and dp is not None and dt != dp:
+        return ('target' if dt < dp else 'pair'), 'sound'
+    a, b = _spelling(w, t), _spelling(w, p)
+    return ('' if a == b else 'target' if a > b else 'pair'), ('tie' if dt is not None and dp is not None else 'spelling')
+
+
+def _near(w, x):
+    """w is near x: one sound apart (two for a long word), or spelt much alike; banana is near neither think nor sink."""
+    d = _sound_edits(w, x)
+    if d is not None and d <= max(1, min(len(_sounds(f)) for f in sounds_of(x)) // 3):
+        return True
+    return _spelling(w, x) >= 0.6
+
+
+def _third(words, t, p):
+    """The heard word nearest either of the two (one word, or the likeliest of several), the side it leans to and how
+    that was told (a tie in the pronunciations never makes it right: shape is one sound from both ship and sheep)."""
+    w = max(words, key=lambda x: max(_spelling(x, t), _spelling(x, p)))
+    side, how = _closer(w, t, p)
+    return w, side, how
 
 
 def say(c, uid, data):
@@ -470,7 +532,7 @@ def say(c, uid, data):
             raise Shape('json_shape')
         by = getattr(ai_routes.CTX, 'last_service', None)  # the call whose answer this is (same thread, just recorded)
         return {'heard': _clean(raw.get('heard') or '', 0, 80), 'ok': mbool(raw.get('ok'), 'ok_missing'), 'note': _clean(raw.get('note') or '', 0, 300),
-                'tip': _clean(raw.get('tip') or '', 0, 300), 'tentative': (by is not None and by not in say_trusted()) or raw.get('unclear') is True,
+                'tip': _clean(raw.get('tip') or '', 0, 300), 'tentative': (by is not None and by not in say_trusted()) or raw.get('unclear') is True or raw.get('reference') is True,
                 'reason': raw.get('reason') if raw.get('reason') in SAY_REASONS else ''}
 
     import hashlib, ai_routes
@@ -513,7 +575,7 @@ def say(c, uid, data):
 AI_PATHS = ('/api/next/retell', '/api/next/dialog', '/api/next/essay', '/api/next/translate/source', '/api/next/translate', '/api/next/say')
 
 
-SAY_REASONS = ('unclear', 'target', 'pair', 'same', 'pair_same', 'third', 'near', 'other')  # say_verdict's ways to decide
+SAY_REASONS = ('unclear', 'target', 'pair', 'same', 'pair_same', 'third_ok', 'third_near_pair', 'third_unclear', 'near', 'other')  # say_verdict's ways to decide
 SAY_KEEP_DAYS = 14
 
 

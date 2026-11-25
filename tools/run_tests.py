@@ -54,7 +54,7 @@ DEFAULT_SECONDS = 30
 UI_SHARDS = [
     ['about', 'wait', 'updates'],                                                  # 456 s
     ['layout', 'sprint', 'backlog', 'review-side', 'tour'],                       # 476 s (tour ~31 s)
-    ['home-app', 'phone-land', 'progress', 'ios-audio', 'swipe', 'privacy'],      # 454 s
+    ['home-app', 'phone-land', 'progress', 'ios-audio', 'swipe', 'privacy', 'one-screen'],  # 454 s + one-screen
     ['phone', 'tablet', 'start', 'ux', 'platforms', 'learner'],                    # 454 s
     ['listen-speak', 'desktop', 'a11y', 'wechat', 'class', 'trial-survey'],       # 454 s
 ]

@@ -1,8 +1,25 @@
   /* ---------- me: one grouped list, like a phone's settings; each row opens a page or a sheet ---------- */
   // A row: a link (to starts with # or /) or a button (to is its id); the value sits on the right, greyed.
   function grow(to, label, value, vid, tapKey) {
-    const tag = to[0] === '#' || to[0] === '/' ? 'a' : 'button';
+    const tag = /^(#|\/|https?:)/.test(to) ? 'a' : 'button';
     return `<${tag} class="grow" ${tag === 'a' ? `href="${to}"` : `type="button" id="${to}"`}${tapKey ? ` data-tap="${tapKey}"` : ''}><span class="t">${label}</span><span class="v small muted"${vid ? ` id="${vid}"` : ''}>${value || ''}</span><span class="go" aria-hidden="true">›</span></${tag}>`;
+  }
+  // 我的 → 内测版: this 内测 version's number and when it went up, and what changed in it (the ledger's beta entry)
+  function betaInfo() {
+    fetch('/api/deploy-status', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).then(d => {
+      const el = document.getElementById('meBetaVer'), t = d && d.started ? new Date(d.started) : null;
+      if (el && d && d.tag) el.textContent = ` 现在是 ${d.tag}${t && !isNaN(t) ? `（${t.getMonth() + 1} 月 ${t.getDate()} 日 ${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')} 更新）` : ''}。`;
+    }).catch(() => {});
+    fetch('/api/next/updates', { credentials: 'same-origin' }).then(r => (r.ok ? r.json() : null)).then(x => {
+      // the ledger's beta entry (语流 A3, updates_service): {changed, new, better, fixed}, each a list of {text, link?} —
+      // 「用法变了」 (changed) first and marked; a link is always inside the site (#/…)
+      const b = x && x.beta, el = document.getElementById('meBetaNew'); if (!el || !b) return;
+      const item = (v, changed) => { const t = typeof v === 'string' ? v : (v && v.text) || '', link = v && typeof v === 'object' && /^#\//.test(v.link || '') ? v.link : '';
+        return t ? `<li${changed ? ' class="beta-changed"' : ''}>${changed ? '<b>用法变了：</b>' : ''}${esc(t)}${link ? ` <a class="link" href="${esc(link)}">去看看</a>` : ''}</li>` : ''; };
+      const lines = [...(b.changed || []).map(v => item(v, true)), ...[...(b.new || []), ...(b.better || []), ...(b.fixed || [])].map(v => item(v, false))].filter(Boolean).slice(0, 5);
+      if (!lines.length) return;
+      el.innerHTML = `<div class="small"><b>这一版内测改了什么</b></div><ul class="small">${lines.join('')}</ul>`; el.hidden = false;
+    }).catch(() => {});
   }
   async function meView() {
     if (!S.meta) S.meta = await api('/api/next/meta');
@@ -18,6 +35,12 @@
       u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
         grow('meAge', '年龄段', ageLabel(u && u.age), 'meAgeV', 'me-age'), grow('meStorage', '数据存放', '已同意 · 香港'), grow('meData', '导出我的数据', '单词本 · 学习记录', '', 'me-data'), grow('meDelete', '注销账号', '', '', 'me-delete')],
         '绑定邮箱后，可以用验证码登录，忘记密码时自己找回。30 天内来过就一直保持登录；在别人的手机或电脑上用完，记得退出。'],
+      // 内测版 (flow.jasa.hk) only: what the line under the top bar said, kept here (the line can be closed): the
+      // version and what changed in it (/api/deploy-status, /api/next/updates), 去正式版 (not in Flow's apps: it would
+      // open the system browser), feedback
+      BETA && ['内测版', [grow('#/feedback', '问题反馈', '内测版里不对、用不了，告诉我们', '', 'me-beta-feedback'),
+        IN_FLOW_APP ? '' : grow(MAIN_SITE + '/', '去正式版', 'flowlang.cn', '', 'me-beta-main'), '<div class="beta-new" id="meBetaNew" hidden></div>'],
+        '这里是语流的内测版（flow.jasa.hk），新功能先在这里试。账号和数据都和正式版分开，内测期间可能会清空。<span id="meBetaVer"></span>'],
       ['帮助', [grow('#/guide', '操作指南', '每个页面怎么用', '', 'me-guide'), grow('#/updates', '更新记录', '每一次更新改了什么', '', 'me-updates'), grow('/about', '认识语流', '一页看完语流能帮你做什么', '', 'me-about'),grow('#/feedback', '问题反馈', '页面不对、功能用不了，告诉我们', '', 'me-feedback'), grow('#/guide/privacy', '隐私说明', '数据存在哪里、交给哪家 AI', '', 'me-privacy'), grow('/survey', '匿名问卷', '你想要什么样的英语学习网站', '', 'me-survey'), u ? grow('meTour', '再看一遍新手引导', '今日的几个主要按钮在哪', '', 'me-tour') : '']],
     ].filter(Boolean);
     view.innerHTML = `<div class="card flat me-head"><div class="me-id">${u ? `<span class="avatar" aria-hidden="true">${esc([...u.username][0].toUpperCase())}</span>` : ''}
@@ -38,6 +61,7 @@
     const mm = document.getElementById('meMail'); if (mm) { mm.onclick = weeklyMailSheet; fillMailRow(); }  // 11-progress.js
     const mi = document.getElementById('meInstall'); if (mi) mi.onclick = installSheet;
     const mt = document.getElementById('meTour'); if (mt) mt.onclick = tourAgain;  // 08-tour.js
+    if (BETA) betaInfo();
     if (u) {
       const mc = document.getElementById('meClass'); if (mc) mc.onclick = () => classSheet();  // a 老师账号 has no 班级 row
       meClass();
