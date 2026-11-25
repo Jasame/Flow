@@ -587,7 +587,10 @@ def fresh_listen(p, aid, clear=True):
     if clear:
         p.js(f"(o => {{ delete o['listen:{aid}']; delete o['read:{aid}']; localStorage.setItem('flow-progress', JSON.stringify(o)); }})(JSON.parse(localStorage.getItem('flow-progress') || '{{}}'))")
     p.go('#/', 0.6); p.go(f'#/m/{aid}/listen', 1.5)
-    p.js("document.querySelector('[data-mode=\"listen\"]:not([aria-pressed=true])')?.click()"); time.sleep(0.5)
+    # a server just started (or a text just imported) can take longer than the pause above: wait for the page itself
+    p.until("!!document.querySelector('#view .listen-tip, [data-mode=\"listen\"]')", 15, 0.5)
+    p.js("document.querySelector('[data-mode=\"listen\"]:not([aria-pressed=true])')?.click()")
+    p.until("!!document.querySelector('#playAll')", 10, 0.3); time.sleep(0.3)
     p.js(HOOK); p.js('window.__au.length = 0; window.__notes.length = 0')
 
 
