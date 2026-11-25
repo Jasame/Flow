@@ -84,7 +84,7 @@
     const bar = () => {
       const rp = document.getElementById('rp'); if (rp) rp.style.width = (doneIds.size / Math.max(1, uniq.size) * 100) + '%';
       const u = document.getElementById('undo'); if (u) u.onclick = takeBack;
-      const vm = document.getElementById('vmode'); if (vm) vm.onclick = flipView;
+      document.querySelectorAll('#vmode [data-v]').forEach(x => { x.onclick = () => { if ((x.dataset.v === 'detailed') !== detailed()) flipView(); }; });
     };
     const keys = map => { document.onkeydown = e => { if (!sheetEl.hidden || e.metaKey || e.ctrlKey || e.altKey) return; if (e.target.matches && e.target.matches('input,textarea')) { if (e.key === 'Enter' && map.Enter && ['spellIn', 'fixIn'].includes(e.target.id)) { e.preventDefault(); map.Enter(); } return; } const f = map[e.key] || map[e.key.toLowerCase()]; if (f) { e.preventDefault(); f(); } }; };
     swipeOn(() => swipe);
@@ -202,7 +202,7 @@
       const m = (c.mode === 'recall' || c.mode === 'cloze') && !c.meaning && !sent ? 'recognize' : c.mode;
       let body = '', choices = '';
       if (m === 'recognize') {
-        body = wordHTML(c.kind === 'word' ? '' : ' phrase') + (detailed() ? `<div class="vmeta tiny muted">${esc(metaLine())}</div>` : '');
+        body = wordHTML(c.kind === 'word' ? '' : ' phrase') + (detailed() ? `<div class="detail-line">${esc(metaLine())}</div>` : '');
         choices = ['认识', '模糊', '不认识'];
       } else if (m === 'spell') {
         body = `<div class="muted small">听发音，拼出这个词</div><div class="row center">${sayBtn('再听一次', true)}</div>${meaningHTML(c)}
@@ -273,15 +273,15 @@
     function answerHTML() {
       if (!detailed()) return `${wordHTML()}
         ${c.meaning ? `<div class="mean-a">${esc(c.meaning).replace(/；|;/g, '<br>')}</div>` : ''}${rootsHTML(c)}${examplesHTML({ ...c, examples: (c.examples || []).slice(0, 2) })}`;
-      // 详细: the meaning by part of speech, the roots, the first example open and the rest one tap away, the confusable
-      // group (词汇辨析) with how to tell them apart, and a grey line of how well it is held
+      // 详细 (B9's sheet, words-modes/): the meaning by part of speech, the roots, the examples as many as 简洁 shows (two)
+      // and the rest one tap away, the confusable group (词汇辨析) with how to tell them apart, a grey line of how well it is held
       const pos = (c.meaning || '').split(/；|;/).map(x => x.trim()).filter(Boolean).map(x => { const m = x.match(/^([a-z]+\.)\s*(.*)$/);
-        return m ? `<div><span class="pos">${esc(m[1])}</span>${esc(m[2])}</div>` : `<div>${esc(x)}</div>`; }).join('');
-      const g = (c.confuse || [])[0], n = (c.context ? 1 : 0) + (c.examples || []).length;
+        return m ? `<div><b>${esc(m[1])}</b>${esc(m[2])}</div>` : `<div>${esc(x)}</div>`; }).join('');
+      const g = (c.confuse || [])[0], n = (c.context ? 1 : 0) + (c.examples || []).length, open = 2;
       return `${wordHTML()}${pos ? `<div class="mean-a mean-pos">${pos}</div>` : ''}${rootsHTML(c)}
-        <div class="ex-wrap${n > 1 ? ' fold' : ''}">${examplesHTML(c)}${n > 1 ? `<button class="link small ex-more" type="button" id="exMore">再看 ${n - 1} 句</button>` : ''}</div>
-        ${g ? `<details class="cf-line"><summary class="small">易混：<b>${esc(g.words.join(' / '))}</b> · 怎么区分</summary><p class="small">${esc(g.how)}</p></details>` : ''}
-        <div class="vstate tiny muted">${esc(memLine())}</div>`;
+        <div class="ex-wrap${n > open ? ' fold' : ''}">${examplesHTML(c)}${n > open ? `<button class="ex-more" type="button" id="exMore">再看 ${n - open} 句 ⌄</button>` : ''}</div>
+        ${g ? `<details class="conf-wrap"><summary class="conf-line"><span>易混：${g.words.map(w => `<b>${esc(w)}</b>`).join(' / ')}</span><span class="how">怎么区分 ›</span></summary><p class="small">${esc(g.how)}</p></details>` : ''}
+        <div class="mem-line">${esc(memLine())}</div>`;
     }
     // 简洁 / 详细 for this card (KNOW.view): words only, new words and reviews apart; the switch at the top changes it for
     // that kind and keeps it; the card is drawn again in place (not an answer, the clock runs on)
@@ -289,7 +289,7 @@
     function viewBtn() {
       if (!c || c.kind !== 'word' || ['fix', 'question', 'sound'].includes(c.mode)) return '';
       const d = detailed();
-      return `<button class="link small vmode" id="vmode" type="button" aria-label="复习卡：${d ? '详细，换成简洁' : '简洁，换成详细'}"><span${d ? '' : ' class="on"'}>简</span>/<span${d ? ' class="on"' : ''}>详</span></button>`;
+      return `<div class="vt" id="vmode" role="radiogroup" aria-label="复习卡">${[['simple', '简', '简洁'], ['detailed', '详', '详细']].map(([v, t, l]) => `<button type="button" role="radio" data-v="${v}" aria-label="${l}" aria-checked="${(v === 'detailed') === d}"${(v === 'detailed') === d ? ' class="on"' : ''}>${t}</button>`).join('')}</div>`;
     }
     function flipView() {
       KNOW.setView(c.state === 'new' ? 'new' : 'review', detailed() ? 'simple' : 'detailed');

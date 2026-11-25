@@ -81,19 +81,24 @@ details.basis[open]>summary{margin-bottom:0}
 .zone-guide span{display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;color:var(--ink);border:2px dashed var(--line2);margin:6px;border-radius:12px}
 .zone-guide p{grid-column:1/-1;margin:0;padding:10px 14px 12px;font-size:14px;color:var(--ink2);text-align:center}
 .sheet-card .zones-h{font-size:16px;margin:10px 0 0}
-/* 复习卡 简洁 / 详细 (60-review.js detailed(); words-modes-plan.md) */
-.rtop .vmode{flex:none;padding:0 4px;color:var(--muted);letter-spacing:.02em}
-.rtop .vmode span{padding:0 2px}
-.rtop .vmode .on{color:var(--ink);font-weight:700}
-.review .vmeta{margin-top:-6px}
-.review .mean-pos{display:grid;gap:2px;justify-items:center}
-.review .mean-pos .pos{color:var(--muted);font-style:italic;margin-right:6px}
-.ex-wrap.fold .exs .ex:nth-child(n+2){display:none}
-.ex-wrap .ex-more{display:block;margin:2px auto 0}
-.review .cf-line{text-align:left;max-width:440px;margin:0 auto;width:100%;border-top:1px solid var(--line);padding-top:6px}
-.review .cf-line>summary{min-height:36px;display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--ink2)}
-.review .cf-line p{margin:4px 0 6px}
-.review .vstate{text-align:center}
+/* 复习卡 简洁 / 详细 (60-review.js detailed(); words-modes-plan.md; B9's sheet in words-modes/) */
+.vt{display:inline-flex;background:var(--sunk);border-radius:8px;padding:2px;gap:2px;flex:none}
+.vt button{position:relative;border:0;background:none;font:600 12.5px/1 var(--sans);color:var(--muted);padding:6px 9px;border-radius:6px;cursor:pointer}
+.vt button::after{content:'';position:absolute;inset:-8px -1px}  /* 44 px to tap, the look stays small */
+.vt button.on{background:var(--paper);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.review .detail-line{font-size:12.5px;color:var(--muted);text-align:center;margin-top:-8px}
+.review .mean-pos{display:grid;gap:4px;text-align:left;width:max-content;max-width:100%;margin:0 auto}
+.review .mean-pos div{font-size:16px;line-height:1.5;color:var(--ink2)}
+.review .mean-pos b{display:inline-block;min-width:2.2em;font-weight:600;color:var(--muted);font-size:14px}
+.ex-wrap.fold .exs .ex:nth-child(n+3){display:none}
+.ex-more{display:block;border:0;background:none;font:600 13.5px/1.4 var(--sans);color:var(--green-ink);text-align:left;padding:6px 0 0 52px;cursor:pointer;min-height:32px}
+.review .conf-wrap{max-width:440px;width:100%;margin:0 auto;text-align:left}
+.review .conf-line{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px;color:var(--ink2);background:var(--sunk);border-radius:12px;padding:10px 12px;min-height:44px;cursor:pointer;list-style:none}
+.review .conf-line::-webkit-details-marker{display:none}
+.review .conf-line .how{color:var(--green-ink);font-weight:600;white-space:nowrap}
+.review .conf-wrap[open] .how{visibility:hidden}
+.review .conf-wrap p{margin:8px 12px 0;color:var(--ink2)}
+.review .mem-line{font-size:12.5px;color:var(--muted);text-align:center}
 .sheet-card .view-row{align-items:center;gap:10px;margin-top:4px}
 .sheet-card .seg{display:flex;gap:6px}
 /* the page's name for a screen reader (复习单词, 测词汇量), first in main: hidden, so it moves nothing below it */

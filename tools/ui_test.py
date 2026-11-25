@@ -3490,9 +3490,9 @@ def review_side_run(pw):
         # of speech, examples beyond the first one tap away, the 词汇辨析 group and how well it is held; 简 / 详 at the top
         # switches it for that kind of card and keeps it, without answering; 我的 → 设置 → 背词 sets both
         MODE_JS = """() => ({ front: !!document.querySelector('.ractions [data-claim]'), back: !!document.querySelector('.open-card'), word: (document.querySelector('.review .wordbig') || {}).textContent,
-          meta: (document.querySelector('.review .vmeta') || {}).textContent || '', pos: document.querySelectorAll('.mean-pos .pos').length, fold: !!document.querySelector('.ex-wrap.fold'),
+          meta: (document.querySelector('.review .detail-line') || {}).textContent || '', pos: document.querySelectorAll('.mean-pos b').length, fold: !!document.querySelector('.ex-wrap.fold'),
           shown: [...document.querySelectorAll('.exs .ex')].filter(e => e.offsetParent !== null).length, all: document.querySelectorAll('.exs .ex').length,
-          confuse: (document.querySelector('.cf-line summary') || {}).textContent || '', state: (document.querySelector('.vstate') || {}).textContent || '',
+          confuse: (document.querySelector('.conf-line') || {}).textContent || '', state: (document.querySelector('.mem-line') || {}).textContent || '',
           on: (document.querySelector('#vmode .on') || {}).textContent || '', mean: (document.querySelector('.review .mean-a') || {}).textContent || '' })"""
         ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['modes']['token'], 'url': BASE}])
@@ -3503,16 +3503,16 @@ def review_side_run(pw):
         go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(300)
         m1 = pg.evaluate(MODE_JS)
         check(dev, '复习卡: a review is 简洁 by default (no grey line, 简 marked)', m1['word'] == 'borrow' and not m1['meta'] and m1['on'] == '简', m1)
-        pg.click('#vmode'); pg.wait_for_timeout(300); m2 = pg.evaluate(MODE_JS)
+        pg.click('#vmode [data-v="detailed"]'); pg.wait_for_timeout(300); m2 = pg.evaluate(MODE_JS)
         check(dev, '简 / 详 at the top: the card turns 详细 in place, not an answer; the front gains tags and history only, no meaning',
               m2['front'] and m2['on'] == '详' and '第 3 次见' in m2['meta'] and '借' not in m2['meta'] and not m2['mean'] and not posts and pg.evaluate("localStorage.getItem('flow-card-view-review')") == 'detailed', m2)
         pg.click('.ractions [data-claim="know"]'); pg.wait_for_timeout(400); m3 = pg.evaluate(MODE_JS)
-        check(dev, '详细 back: the meaning by part of speech, one example open and the rest one tap away, borrow / lend from 词汇辨析, how well it is held',
-              m3['back'] and m3['pos'] >= 2 and (m3['all'] < 2 or (m3['fold'] and m3['shown'] == 1)) and 'borrow / lend' in m3['confuse'] and '记得的把握' in m3['state'], m3)
+        check(dev, '详细 back: the meaning by part of speech, as many examples open as 简洁 (two) and the rest one tap away, borrow / lend from 词汇辨析, how well it is held',
+              m3['back'] and m3['pos'] >= 2 and m3['shown'] == min(2, m3['all']) and (m3['all'] <= 2 or m3['fold']) and 'borrow / lend' in m3['confuse'] and '记得的把握' in m3['state'], m3)
         if pg.query_selector('#exMore'):
             pg.click('#exMore'); pg.wait_for_timeout(200); m4 = pg.evaluate(MODE_JS)
             check(dev, '详细 back: 再看 N 句 shows the other examples', not m4['fold'] and m4['shown'] == m4['all'], m4)
-        pg.click('#vmode'); pg.wait_for_timeout(300); m5 = pg.evaluate(MODE_JS)
+        pg.click('#vmode [data-v="simple"]'); pg.wait_for_timeout(300); m5 = pg.evaluate(MODE_JS)
         check(dev, '简 / 详 on the back: 简洁 again, the same back (no rating), at most two examples, no 词汇辨析 line',
               m5['back'] and m5['on'] == '简' and m5['all'] <= 3 and not m5['confuse'] and not m5['state'] and not posts, m5)
         pg.click('.ractions [data-rate="good"]'); pg.wait_for_timeout(600); m6 = pg.evaluate(MODE_JS)
@@ -3629,7 +3629,7 @@ def one_screen_run(pw):
                 pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(400); s = pg.evaluate(ONE_SCREEN_JS)
                 pg.screenshot(path=str(OUT / f"one-screen-{size}-{'home' if home else 'safari'}-review-detailed.png"))
                 check(dev, f'{where} 复习卡（详细）: one screen, nothing to scroll ({s["page"]} of {s["H"]}px)',
-                      s['page'] <= s['H'] and pg.query_selector('.review .vmeta') is not None and s['answers'] and max(s['answers'] + [s['lastBottom']]) <= s['H'] - s['sab'], s)
+                      s['page'] <= s['H'] and pg.query_selector('.review .detail-line') is not None and s['answers'] and max(s['answers'] + [s['lastBottom']]) <= s['H'] - s['sab'], s)
                 if size == 'iphone-se' and not home:  # Safari with its bars showing (375×553): 详细's front still fits
                     pg.set_viewport_size({'width': 375, 'height': 553}); go(pg, '#/cards'); go(pg, '#/review')
                     pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(400); s = pg.evaluate(ONE_SCREEN_JS)
