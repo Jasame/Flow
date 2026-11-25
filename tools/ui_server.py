@@ -272,6 +272,8 @@ with app.db() as c:
             c.execute("INSERT INTO learning_events(user_id,node,source,kind,item,correct,evaluator,created) VALUES(?,?,?,'choice','q',0,'rule',?)", (mid, n, f'ui:{mid}:{n}', now - 7200))
     c.execute('INSERT INTO class_members(user_id, class_id, joined_at) VALUES(?,?,?)', (out['veteran']['id'], cid, now - 25 * 86400))
     c.commit()
+    # 老师模式: one 老师注册链接, for the teacher sign-up (class_run)
+    teacher_link = __import__('teacher_service').make_link(c, {'days': 7, 'note': 'ui'}, 'ui')[0]['link'].rsplit('/#/teacher/', 1)[1]
 # 今日热点 (r27: its own card under 今日好句): one news text of today, as the daily job would leave it, clearly a sample
 with app.db() as c:
     base = json.loads(c.execute("SELECT content FROM lab_packs WHERE id=?", (PID,)).fetchone()[0])
@@ -279,7 +281,8 @@ with app.db() as c:
                 source='示例来源（测试数据）', summary_zh='示例：这里是今日热点的一句话介绍，真正的热点每天由 AI 联网找新闻改写。', daily_day=time.strftime('%Y-%m-%d'))
     c.execute("INSERT OR REPLACE INTO lab_packs VALUES(?,NULL,'daily',?,?)", ('daily-ui-sample', json.dumps(base, ensure_ascii=False), time.time()))
     c.commit()
-(STATE / 'sessions.json').write_text(json.dumps({'base': f'http://127.0.0.1:{PORT}', 'pid': PID, 'learners': out, 'class': {'id': cid, 'code': 'UICLS2', 'name': '高一（3）班'}}))
+(STATE / 'sessions.json').write_text(json.dumps({'base': f'http://127.0.0.1:{PORT}', 'pid': PID, 'learners': out, 'class': {'id': cid, 'code': 'UICLS2', 'name': '高一（3）班'},
+                                                 'teacher_link': teacher_link, 'outbox': os.path.join(tmp, 'outbox')}))
 
 
 from http.server import ThreadingHTTPServer  # noqa: E402

@@ -311,6 +311,7 @@ flow/sounds.py
 flow/state_service.py
 flow/studio_setup.py
 flow/survey_service.py
+flow/teacher_service.py
 flow/tests/test_ability_radar.py
 flow/tests/test_account_data.py
 flow/tests/test_adaptive.py
@@ -373,6 +374,7 @@ flow/tests/test_search_route.py
 flow/tests/test_slim.py
 flow/tests/test_speak_rounds.py
 flow/tests/test_survey.py
+flow/tests/test_teachers.py
 flow/tests/test_time_budget.py
 flow/tests/test_trial_survey.py
 flow/tests/test_tts.py

@@ -12,7 +12,7 @@
     const groups = [
       u && ['进步', [grow('#/radar', '能力雷达', '离目标还差多少', '', 'me-radar'), grow('#/growth', '我的进步', '每月对比和里程碑', '', 'me-growth'), grow('#/report', '这周的报告', '', '', 'me-report'), grow('#/cards/mistake', '错题本', '', '', 'me-mistake')]],
       ['设置', [grow('#/welcome/edit', '学习目标和水平', [goal && esc(goal.label), p.target && '目标 ' + p.target, lv && (p.target ? '现在 ' : '') + lv.id].filter(Boolean).join(' · ') || '未设置', '', 'me-level'),
-        u ? grow('meExam', '我的考试', examLabel(p), 'meExamV', 'me-exam') : '', u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', u ? grow('meClass', '班级', '<span class="spin"></span>', 'meClassV', 'me-class') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), WORD_CLIPS ? grow('meSound', '单词读音方式', soundLabel(), 'meSoundV', 'me-sound') : '', grow('meText', '字号和行距', textLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '加到手机日历', '', 'me-remind'),
+        u ? grow('meExam', '我的考试', examLabel(p), 'meExamV', 'me-exam') : '', u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', u && !u.teacher ? grow('meClass', '班级', '<span class="spin"></span>', 'meClassV', 'me-class') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), WORD_CLIPS ? grow('meSound', '单词读音方式', soundLabel(), 'meSoundV', 'me-sound') : '', grow('meText', '字号和行距', textLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '加到手机日历', '', 'me-remind'),
         u ? grow('meMail', '每周进度邮件', weeklyMailLabel(), 'meMailV', 'me-weekly-mail') : '',
         installed ? '' : grow('meInstall', '添加到桌面', '像 App 一样打开', '', 'me-install')]],
       u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
@@ -37,7 +37,7 @@
     const mm = document.getElementById('meMail'); if (mm) { mm.onclick = weeklyMailSheet; fillMailRow(); }  // 11-progress.js
     const mi = document.getElementById('meInstall'); if (mi) mi.onclick = installSheet;
     if (u) {
-      document.getElementById('meClass').onclick = () => classSheet();
+      const mc = document.getElementById('meClass'); if (mc) mc.onclick = () => classSheet();  // a 老师账号 has no 班级 row
       meClass();
       const b = document.getElementById('bindMail'); b.disabled = true;
       api('/api/account').then(a => {

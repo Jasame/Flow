@@ -1682,6 +1682,9 @@ AI_PATHS = ('/api/next/assess/speaking', '/api/next/assess/writing', '/api/next/
 
 
 def post(c, uid, path, data):
+    if path in ('/api/next/class/create', '/api/next/class/rename'):
+        ts = __import__('teacher_service')  # 老师账号: its own classes (teacher_service.py)
+        return (ts.create_class if path.endswith('/create') else ts.rename_class)(c, uid, data)
     if path in ('/api/next/class/find', '/api/next/class/join', '/api/next/class/leave'):
         cs = __import__('class_service')  # 班级试用: join of one's own accord with an invite code, leave at any time
         return cs.leave(c, uid) if path.endswith('/leave') else (cs.find if path.endswith('/find') else cs.join)(c, uid, data)

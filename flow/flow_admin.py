@@ -33,7 +33,7 @@ VIEWER_GET = {'/me', '/overview', '/learning', '/survey/definition', '/survey/su
               '/funnel', '/cohorts', '/content', '/books', '/ai', '/ai/samples', '/tasks', '/announcements'}
 ADMIN_GET = {'/users', '/survey/responses', '/survey/export.csv', '/errors', '/log', '/feedback', '/feedback/image',
              '/learners', '/learner', '/export/learners.csv', '/export/materials.csv', '/export/ai.csv',
-             '/classes', '/class', '/export/classes.csv'}
+             '/classes', '/class', '/export/classes.csv', '/teacher-links'}
 CSV_EXPORTS = {'/export/learners.csv': ('learners', '学员'), '/export/materials.csv': ('materials', '材料'), '/export/ai.csv': ('ai', 'AI 用量'),
                '/export/classes.csv': ('classes', '班级试用人次')}
 ROLE_LABEL = {'admin': '管理员', 'viewer': '只看数据'}
@@ -57,6 +57,7 @@ def schema(c):
     __import__('field_service').schema(c)  # page errors and opening times the browsers report
     __import__('console_ops').schema(c)  # materials off the lists, 公告 (r26)
     __import__('class_service').schema(c)  # 班级试用: classes, who is in which (2026-11-24)
+    __import__('teacher_service').schema(c)  # 老师账号 and the one-use 老师注册链接 (2026-11-26)
 
 
 def log_action(c, op, action, target='', detail=''):
@@ -77,6 +78,7 @@ ACTION_LABEL = {'reset-link': '生成重设密码链接', 'survey-hide': '隐藏
                 # 班级试用
                 'class-create': '新建班级', 'class-rename': '班级改名', 'class-teacher': '换班级老师', 'class-code': '换邀请码',
                 'class-stop': '停用班级', 'class-start': '重新启用班级',
+                'teacher-link': '生成老师注册链接', 'teacher-link-revoke': '作废老师注册链接',
                 'ai-routes': '改任务用的模型', 'ai-budget': '改 AI 预算和评测', 'ai-redo': '让 AI 重写一条内容'}
 
 
@@ -337,6 +339,8 @@ def console_get(c, path, one, op):
         return cd.learner_list(c, one('q')[:60], one('filter', 'all'), one('sort', 'recent'), int(one('page', '1') or 1))
     if path == '/classes':
         return __import__('class_service').console_list(c)
+    if path == '/teacher-links':
+        return __import__('teacher_service').links(c)
 
 
 ACCOUNT_POSTS = {'/learner/disable', '/learner/signout', '/learner/staff', '/learner/level', '/learner/daily-new'}
@@ -420,6 +424,16 @@ def console_post(c, path, data, op):
         body, status, tgt = __import__('class_service').create(c, data, who)
         if status == 200:
             log_action(c, op, 'class-create', tgt)
+        return body, status
+    if path == '/teacher-link/create':
+        body, status, tgt = __import__('teacher_service').make_link(c, data, who)
+        if status == 200:
+            log_action(c, op, 'teacher-link', tgt, f"有效 {body['days']} 天，到 {body['expires']}")
+        return body, status
+    if path == '/teacher-link/revoke':
+        body, status, tgt = __import__('teacher_service').revoke(c, data)
+        if status == 200:
+            log_action(c, op, 'teacher-link-revoke', tgt)
         return body, status
     if path in CLASS_POSTS:
         what = path.rsplit('/', 1)[1]
@@ -509,7 +523,7 @@ class AdminHandler(BaseHTTPRequestHandler):
                     return self._send(got)
                 if path == '/ai/samples':
                     return self._send(*__import__('console_data').ai_samples(c, one('kind'), int(one('n', '5') or 5)))
-                if path in ('/funnel', '/cohorts', '/content', '/books', '/ai', '/tasks', '/announcements', '/learners', '/classes'):
+                if path in ('/funnel', '/cohorts', '/content', '/books', '/ai', '/tasks', '/announcements', '/learners', '/classes', '/teacher-links'):
                     return self._send(console_get(c, path, one, op))
                 if path in CSV_EXPORTS:
                     import console_data as cd
