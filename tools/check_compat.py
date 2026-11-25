@@ -257,8 +257,8 @@ def main(argv):
             rel = f.relative_to(ROOT) if f.is_absolute() and ROOT in f.parents else f
             print(f'{rel}:{line}:{col}: {what}: Safari {ver} and later only (iOS 15 must work)\n    {lines[line - 1].strip()[:160]}')
     if bad:
-        print(f'check_compat: {bad} thing(s) Safari 15.0 cannot run; rewrite them, or mark a line that is safe '
-              f'with // compat-ok: <why>')
+        print(f'check_compat: {bad} thing(s) Safari 15.0 cannot run; rewrite them (in CSS: a plain value for the same '
+              f'property first), or mark a line that is safe with // compat-ok: <why> (in CSS /* compat-ok: <why> */)')
         return 1
     print(f'check_compat: {len(files)} scripts and stylesheets, nothing newer than Safari 15.0 without a fallback')
     return 0
