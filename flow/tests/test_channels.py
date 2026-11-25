@@ -326,6 +326,37 @@ class ListingFallbackTests(unittest.TestCase):
 
 
 class ToolTests(unittest.TestCase):
+    def test_the_deploy_check_follows_the_consoles_access_check(self):
+        """With the console's Access check on (#258), nothing on the server has the token Access signs: the check after
+        installing expects 403 for a bare header instead of 200, or every release after the switch would roll back."""
+        import re as _re, tempfile as _tf
+        pull = (TOOLS / 'flow-pull.sh').read_text()
+        fn = _re.search(r'^access_on\(\) \{.*?^\}', pull, _re.S | _re.M).group(0)
+        on = 'FLOW_ACCESS_TEAM=t.cloudflareaccess.com\nFLOW_ACCESS_AUD=abc123\n'
+        cases = {on: 0, 'A=1\n' + on + 'B=2\n': 0, 'FLOW_ACCESS_TEAM="t.cloudflareaccess.com"\r\nFLOW_ACCESS_AUD=\'abc\'\r\n': 0,
+                 '': 1, 'FLOW_SMTP_HOST=x\n': 1, 'FLOW_ACCESS_AUD=abc\n': 1, 'FLOW_ACCESS_TEAM=t.cloudflareaccess.com\n': 1,
+                 'FLOW_ACCESS_TEAM=t\nFLOW_ACCESS_AUD=\n': 1, 'FLOW_ACCESS_TEAM=t\nFLOW_ACCESS_AUD=""\n': 1,
+                 'FLOW_ACCESS_TEAM=t\nFLOW_ACCESS_AUD=  \n': 1, '#FLOW_ACCESS_TEAM=t\n#FLOW_ACCESS_AUD=a\n': 1,
+                 'FLOW_ACCESS_TEAM=t\nFLOW_ACCESS_AUD=a\nFLOW_ACCESS_AUD=\n': 1}  # systemd takes the last line
+        for text, want in cases.items():
+            with _tf.NamedTemporaryFile('w', suffix='.env', delete=False) as f:
+                f.write(text)
+            got = subprocess.run(['bash', '-c', 'set -u\n' + fn + '\naccess_on "$1"', '_', f.name]).returncode
+            os.unlink(f.name)
+            self.assertEqual(got, want, repr(text))
+        self.assertEqual(subprocess.run(['bash', '-c', fn + '\naccess_on /nonexistent/flow.env']).returncode, 1)
+        # on: only the bare-header request, which must be refused; off: the console's pages answer 200, as before
+        self.assertIn('if access_on "/etc/$SVC.env"; then', pull)
+        self.assertIn("admin_needs_token=$(c -H 'Cf-Access-Authenticated-User-Email: flow-pull@localhost' $AU/flow/api/overview)", pull)
+        self.assertIn('else checks="$checks admin=$(c $AU/flow/api/overview) learning=$(c $AU/flow/api/learning)"; fi', pull)
+        loop = _re.search(r'^for kv in \$checks; do .*$', pull, _re.M).group(0)
+        for checks, ok in (('health=200 admin=200 learning=200', True), ('health=200 admin_needs_token=403', True),
+                           ('health=200 admin_needs_token=200', False), ('health=200 admin_needs_token=000', False),
+                           ('health=200 admin=403', False), ('health=502', False)):
+            r = subprocess.run(['bash', '-c', f'set -u\nrollback() {{ echo ROLLBACK; exit 3; }}\nchecks="{checks}"\n{loop}\necho KEPT'],
+                               capture_output=True, text=True)
+            self.assertEqual(r.stdout.strip(), 'KEPT' if ok else 'ROLLBACK', checks)
+
     def test_releases_for_each_site_go_their_own_way(self):
         for f in ('deploy.sh', 'flow-pull.sh', 'flow-pull-rollback.sh'):
             r = subprocess.run(['bash', '-n', str(TOOLS / f)], capture_output=True, text=True)

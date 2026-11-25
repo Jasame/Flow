@@ -176,10 +176,26 @@ c(){ curl -s -m 20 -o /dev/null -w "%{http_code}" "$@"; }
 total=$(curl -s -m 20 "$U/api/next/library?featured=1" | "$PY" -c "import json,sys;print(json.load(sys.stdin).get('total',0))" 2>/dev/null)
 mid=$(curl -s -m 20 "$U/api/next/library?featured=1" | "$PY" -c "import json,sys;print(json.load(sys.stdin)['items'][0]['id'])" 2>/dev/null)
 checks="health=$(c $U/api/health) root=$(c $U/) oldlink=$(c "$U/?classic=1") home=$(c "$U/api/next/home?level=B1") graph=$(c $U/api/next/graph) material=$(c "$U/api/next/material?id=$mid") vocabtest=$(c $U/api/next/vocab/test) survey=$(c $U/survey) sw=$(c $U/sw.js)"
-[ -n "$AU" ] && checks="$checks admin=$(c $AU/flow/api/overview) learning=$(c $AU/flow/api/learning)"
+# The console's Access check (#258): with FLOW_ACCESS_AUD and FLOW_ACCESS_TEAM in the env file, the console answers only
+# requests that carry the token Cloudflare Access signs, and nothing on this server has one. Then this check turns
+# round: a request with the email header alone must get 403 (the console is up and does not take a bare header), and
+# its pages are checked by opening xmc.hk/flow after the release. Without this every release after the switch would
+# roll itself back. Values as systemd reads them: quotes, a CR and blanks dropped; the last line wins.
+access_on() {
+  local k v
+  for k in FLOW_ACCESS_AUD FLOW_ACCESS_TEAM; do
+    v=$(sed -n "s/^$k=//p" "$1" 2>/dev/null | tail -1 | tr -d '\r')
+    v=${v%\"}; v=${v#\"}; v=${v%\'}; v=${v#\'}; v=${v//[[:space:]]/}
+    [ -n "$v" ] || return 1
+  done
+}
+if [ -n "$AU" ]; then
+  if access_on "/etc/$SVC.env"; then checks="$checks admin_needs_token=$(c -H 'Cf-Access-Authenticated-User-Email: flow-pull@localhost' $AU/flow/api/overview)"
+  else checks="$checks admin=$(c $AU/flow/api/overview) learning=$(c $AU/flow/api/learning)"; fi
+fi
 echo "flow: active=$(systemctl is-active "$SVC") featured=$total $checks"
 [ "$(systemctl is-active "$SVC")" = active ] || rollback
-for kv in $checks; do [ "${kv#*=}" = 200 ] || rollback; done
+for kv in $checks; do want=200; [ "${kv%%=*}" = admin_needs_token ] && want=403; [ "${kv#*=}" = "$want" ] || rollback; done
 [ "${total:-0}" -gt 0 ] 2>/dev/null || rollback
 echo "$SHA" > "$OPS/$SVC-deployed-commit"
 echo "rollback later with: FLOW_SERVICE=$SVC FLOW_URL=$U bash $HERE/flow-pull-rollback.sh $BK"
