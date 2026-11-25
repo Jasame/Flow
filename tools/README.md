@@ -221,7 +221,9 @@ database invariants, then deletes every row the test accounts created and verifi
 to the AI (pronunciation and the sound card, shadowing, a dialogue turn by voice, which becomes a typed one, and a
 spoken retell) and notes each skip. **At most `QA_AI_SLOTS` (default 1) AI requests** of a run are in flight at once,
 so a test never takes all of a model's places from learners. `report.json` and `/api/deploy-status` record both
-(`e2e.light`, `e2e_light`). A light run checks 143 things, a full one 150 (against the local UI server, 2026-11-24).
+(`e2e.light`, `e2e_light`). Each failed check comes with a reason in `e2e.failed_details`: only the error text the app
+answered with (and an AI job's kind), an HTTP status or an exception's type, never what anyone wrote; so a release's
+Actions log says why without a look at the server. A light run checks 143 things, a full one 150 (against the local UI server, 2026-11-24).
 
 ## Multi-device UI test (`ui_test.py`)
 

@@ -102,10 +102,31 @@ def verified(sha, path, flat):
     raise RuntimeError(f'{path}: {last!r}')
 
 
+ERROR_TEXT = re.compile(r"""['"]error['"]:\s*(['"])(.*?)\1""")
+JOB_KIND = re.compile(r"""['"]kind['"]:\s*['"]([\w-]+)['"]""")
+
+
+def reason(detail):
+    """Why a check failed, without anything anyone wrote: the error text the app answered with (with an AI job's kind),
+    an HTTP status, or an exception's type. An answer's content is left out, even a test account's (2026-11-25)."""
+    d = str(detail).strip()
+    errors = [e for _, e in ERROR_TEXT.findall(d)]
+    if errors:
+        kinds = JOB_KIND.findall(d)
+        return '; '.join((kinds[k] + ': ' if k < len(kinds) else '') + e for k, e in enumerate(errors))[:160]
+    if re.fullmatch(r'\d{3}|0', d):
+        return f'HTTP {d}'
+    found = re.findall(r'\b([A-Z]\w*(?:Error|Exception))\b', d)
+    return found[-1] if found else ''
+
+
 def e2e_summary(work):
     try:
         r = json.loads((work / 'report.json').read_text())
         return {'checks': r['checks']['total'], 'failed': r['checks']['failed'], 'failed_names': [f['who'] + ': ' + f['name'] for f in r['failed']][:40],
+                # why each failed (the app's error text, a status, an exception type; never what was written): readable in
+                # /api/deploy-status and the release's Actions log without a look at the server (b12 needed one, 2026-11-25)
+                'failed_details': [f"{f['who']}: {f['name']}: {reason(f.get('detail', ''))}" for f in r['failed']][:10],
                 'light': bool(r.get('light')),
                 'server_errors': len(r['server_errors']), 'ai_calls': r['ai_calls_used'], 'seconds': r['seconds'],
                 'cleanup_ok': not any(f['who'] == 'cleanup' for f in r['failed'])}
