@@ -487,8 +487,8 @@ def run_device(pw, dev, opts):
       noicon: [...document.querySelectorAll('#view .px-row .pico svg')].filter(x => !x.children.length).length,
       wide: [...document.querySelectorAll('#view .px-row')].filter(e => e.getBoundingClientRect().right > innerWidth + 1).length,
       tall: [...document.querySelectorAll('#view .px-row .t .tiny')].filter(e => e.getBoundingClientRect().height > 24).length})""")
-    check(dev, '练习: one row per practice, each with an icon and a one-line note, inside the screen',
-          pr['rows'] >= 15 and pr['tiles'] == 0 and pr['noicon'] == 0 and pr['wide'] == 0 and pr['tall'] == 0, pr)
+    check(dev, '练习: one row per practice, each with an icon (a note only where it says what AI does), inside the screen',
+          pr['rows'] >= 14 and pr['tiles'] == 0 and pr['noicon'] == 0 and pr['wide'] == 0 and pr['tall'] == 0, pr)
     # r20: a tap on a counted entry point sends its key only (the console compares releases with these counts)
     with pg.expect_request(lambda r: r.url.endswith('/api/next/tap'), timeout=4000) as tap:
         pg.click('#view .ptile.pmap')
@@ -2581,10 +2581,10 @@ def tour_run(pw):
         # the same account on another phone: nothing either
         ctx, pg = open_('tour', phone)
         check(dev, 'another phone, same account: it does not come back', shown(pg, 2500) is None)
-        # 我的 → 帮助 → 「再看一遍新手引导」 (390 px)
-        go(pg, '#/me'); pg.click('#meTour')
+        # 我的 → 帮助 → 更多 → 「再看一遍新手引导」 (390 px; 简洁化: in the 更多 sheet)
+        go(pg, '#/me'); pg.click('#meMore'); pg.wait_for_selector('#sheetCard #meTour', timeout=4000); pg.click('#meTour')
         again = shown(pg)
-        check(dev, '390 px: 我的 → 帮助 → 「再看一遍新手引导」 opens it on 今日 from step 1',
+        check(dev, '390 px: 我的 → 帮助 → 更多 → 「再看一遍新手引导」 opens it on 今日 from step 1',
               bool(again) and pg.evaluate('location.hash') in ('#/', '') and again['title'] == TOUR_LEARNER[0] and again['inside'], again)
         if again:
             with pg.expect_response(lambda r: r.url.endswith('/api/next/tour') and r.request.method == 'POST', timeout=6000) as resp:
@@ -2593,7 +2593,7 @@ def tour_run(pw):
         ctx.close()
         # a computer, dark, reduced motion
         ctx, pg = open_('tour', dict(viewport={'width': 1280, 'height': 800}, locale='zh-CN'), '#/me', color_scheme='dark', reduced_motion='reduce')
-        pg.click('#meTour')
+        pg.click('#meMore'); pg.wait_for_selector('#sheetCard #meTour', timeout=4000); pg.click('#meTour')
         st = shown(pg)
         steps = walk(pg, 'desktop-dark', shots=True) if st else []
         lum = (lambda c: sum(int(x) for x in re.findall(r'\d+', c)[:3]) / 3)(st['bg']) if st else 255
@@ -2897,7 +2897,9 @@ def about_run(pw):
         pg = ctx.new_page(); pg.goto(BASE + '/#/welcome', wait_until='networkidle'); settle(pg)
         check('about', 'a first visit sees the line to 认识语流 under the starting questions', pg.query_selector('#view a[href="/about"]') is not None)
         pg.goto(BASE + '/#/me'); settle(pg)
-        check('about', '我的 → 帮助 has 认识语流', pg.query_selector('#view a.grow[href="/about"]') is not None)
+        pg.click('#meMore'); pg.wait_for_selector('#sheetCard a.grow[href="/about"]', timeout=4000)  # 简洁化: in 帮助 → 更多
+        check('about', '我的 → 帮助 → 更多 has 认识语流', pg.query_selector('#sheetCard a.grow[href="/about"]') is not None)
+        pg.evaluate("document.querySelector('#sheet [data-close]').click()")
         pg.goto(BASE + '/#/about'); pg.wait_for_url('**/about', timeout=6000)
         check('about', '#/about (the guide links there) opens the page', pg.url.endswith('/about'))
         pg.click('a[href="/#/join"]'); pg.wait_for_selector('#sheetCard', timeout=8000); pg.wait_for_timeout(400)
