@@ -59,7 +59,8 @@ object Updater {
     var testUrl: String? = null
 
     private val source get() = testUrl ?: OFFICIAL
-    private val enabled get() = BuildConfig.FLAVOR == "prod" && (!BuildConfig.DEBUG || testUrl != null)
+    // 语流 from flowlang.cn only: not 语流内测 (CI), not the store build (FLOW_CHANNEL=store: the stores update it)
+    private val enabled get() = BuildConfig.UPDATER && (!BuildConfig.DEBUG || testUrl != null)
 
     private var checkedThisRun = false
     private var busy = false                  // a check, an offer or an install is under way: no second one

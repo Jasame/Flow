@@ -134,9 +134,9 @@
   function mailNudgeHTML() {
     const u = S.user, mail = S.home && S.home.session && S.home.session.mail;
     if (!u || u.email_bound !== false || !mail || Date.now() - (load('flow-next-mail-nudge') || 0) < 14 * 864e5) return '';
-    return `<div class="card sunk section mail-nudge stack-s" id="mailNudge"><b>还没有绑定邮箱</b>
-      <span class="small">忘记密码时，绑定了邮箱就能自己用验证码找回；没绑定的话只能请老师或管理员帮忙重设。</span>
-      <div class="row"><button class="btn small primary" id="mnBind" type="button" data-tap="notice-mail">绑定邮箱</button><button class="btn small ghost" id="mnLater" type="button">以后再说</button></div></div>`;
+    // one line, put away with ✕ (以后再说: 14 days), not a card with two buttons (学优秀 UI 第一批, the user's pick 2026-11-25)
+    return `<div class="mail-nudge mail-line" id="mailNudge" role="note"><span>绑定邮箱，忘记密码时可以自己找回</span>
+      <button class="link small" id="mnBind" type="button" data-tap="notice-mail">去绑定</button><button class="mn-x" id="mnLater" type="button" aria-label="以后再说，14 天后再提醒">✕</button></div>`;
   }
   // A few entry points are counted, how many taps a day and nothing about who, so the operator console can compare
   // the weeks before and after a release (flow_admin.TAP_LABEL lists them). Best effort: a lost count does not matter.
@@ -196,6 +196,16 @@
   }
   // opts.teacher: the token of a 老师注册链接 (teacher_service.py): only the sign-up, no 年龄段, and the account is a teacher's.
   async function openLogin(reason, tab, opts) {
+    // 安卓 App 的基本模式（1.0.4 起：没同意《用户协议》《隐私和数据》）：登录、注册、验证码都会被 App 拦下（403 app-consent）。
+    // 先请 App 再问一次同意（它等学员答完才回 'agreed' 或 'basic'）：同意了就接着打开这个框，还是不同意就不打开，
+    // 免得填完才被拦（C2，docs/native-bridge.md §10）
+    if (window.FlowApp && FlowApp.has && FlowApp.has('privacy')) {
+      let st = null; try { st = await FlowApp.call('privacy.state'); } catch (e) { /* the app could not say: as in a browser */ }
+      if (st && st.state === 'basic') {
+        let r = null; try { r = await FlowApp.call('privacy.ask'); } catch (e) { /* no answer: as not agreed */ }
+        if (r !== 'agreed') return;
+      }
+    }
     const mail = await mailOn(), teacher = opts && opts.teacher;
     tab = teacher ? 'reg' : tab || 'pw'; if (!mail && (tab === 'code' || tab === 'reset')) tab = 'pw';
     // 注册 and 登录 side by side, one level (the owner on WeChat, 2026-11-25: 「注册一般和登录是一级的」); 密码 or 验证码 is

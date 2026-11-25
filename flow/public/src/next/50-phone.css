@@ -9,7 +9,7 @@
   .line{grid-template-columns:36px minmax(0,1fr);gap:8px;padding:8px}
   .line .icon-btn{width:36px;height:36px}
   .line .txt{font-size:17px}
-  .steps button{font-size:13.5px;padding:9px 2px}
+  .steps button{font-size:15.5px;padding:9px 2px}
   .card{padding:14px}
   .player{gap:6px}
   .speed button{padding:8px 8px}

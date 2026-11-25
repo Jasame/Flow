@@ -7,6 +7,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -23,7 +25,9 @@ import android.webkit.RenderProcessGoneDetail
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
+import android.webkit.WebStorage
 import android.webkit.WebView
 import android.widget.Button
 import android.widget.FrameLayout
@@ -39,6 +43,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
@@ -50,11 +55,14 @@ import cn.flowlang.app.audio.FlowAudio
 import cn.flowlang.app.bridge.Bridge
 import cn.flowlang.app.net.Http
 import cn.flowlang.app.notify.Reminders
+import cn.flowlang.app.privacy.Consent
+import cn.flowlang.app.privacy.ConsentUi
 import cn.flowlang.app.rec.Recorder
 import cn.flowlang.app.speech.Speech
 import cn.flowlang.app.update.Updater
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.launch
+import java.io.ByteArrayInputStream
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -64,7 +72,8 @@ import java.time.format.DateTimeFormatter
  * The app: the site in a WebView (so every change to the site is in the app at once), with the native parts behind
  * window.FlowApp (Bridge). Signed in as on the site (the WebView's own cookies, kept on the phone); the back button
  * goes back in the page; other sites open in the phone's browser; the page sits between the status bar, the cutout,
- * the navigation bar and the keyboard, in the page's own colours.
+ * the navigation bar and the keyboard, in the page's own colours. On the first start nothing is opened until the learner
+ * answers the question about the 《用户协议》 and 《隐私和数据》 (privacy/Consent.kt); 不同意 opens the site in 基本模式.
  */
 @OptIn(UnstableApi::class)
 class MainActivity : ComponentActivity() {
@@ -77,8 +86,19 @@ class MainActivity : ComponentActivity() {
     lateinit var web: WebView
         private set
     private lateinit var errorView: View
+    private lateinit var basicBar: View
+    private lateinit var basicAgree: TextView
     private val bridge by lazy { Bridge(this) }
     private val prefs by lazy { getSharedPreferences("flow-app", MODE_PRIVATE) }
+    private val consentUi by lazy { ConsentUi(this) }
+
+    /** The answer to the first start's question on this phone (Consent); read on the WebView's request thread too. */
+    @Volatile var privacy = Consent.State.ASK
+        private set
+    private var opened = false           // the page is loaded: the question has an answer
+    private var asking = false           // one of the questions is on screen
+    private var waitingPath: Intent? = null  // a reminder tapped while the question was open: its page, once answered
+    private var clearHistory = false     // after 撤回同意: 返回 never goes back to the page from before
 
     // ---------------------------------------------------------------- set-up
 
@@ -89,16 +109,23 @@ class MainActivity : ComponentActivity() {
         if (intent?.getBooleanExtra("flow.mute", false) == true && (BuildConfig.DEBUG || BuildConfig.FLAVOR == "beta")) Mute.on = true
         // the update tests: `--es flow.update_url http://127.0.0.1:18765/latest.json` on a debug build, after
         // `adb reverse tcp:18765 tcp:18765` (update/Updater.kt)
-        if (BuildConfig.DEBUG) intent?.getStringExtra("flow.update_url")?.let { Updater.testUrl = it }
+        if (BuildConfig.UPDATER && BuildConfig.DEBUG) intent?.getStringExtra("flow.update_url")?.let { Updater.testUrl = it }
         FlowAudio.init(this)
-        Speech.init(this)
         root = FrameLayout(this)
         root.setBackgroundColor(getColor(R.color.flow_bg))
         web = WebView(this)
-        root.addView(web, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        val page = FrameLayout(this)
+        page.addView(web, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         errorView = errorView()
-        root.addView(errorView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        page.addView(errorView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         errorView.isVisible = false
+        basicBar = basicBar()
+        basicBar.isVisible = false
+        root.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(basicBar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            addView(page, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        }, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         setContentView(root)
         // the page between the bars, the cutout and the keyboard (edge to edge, as Android 15+ draws every app)
         ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
@@ -110,7 +137,131 @@ class MainActivity : ComponentActivity() {
         setUpWeb()
         bridge.install(web)
         onBackPressedDispatcher.addCallback(this, back)
-        if (saved == null || web.restoreState(saved) == null) web.loadUrl(startUrl(intent))
+        privacy = Consent.state(this)
+        if (privacy == Consent.State.ASK) firstQuestion(saved) else open(saved)
+    }
+
+    // ---------------------------------------------------------------- the first start's question (privacy/Consent.kt)
+
+    /** The first start, a build with a newer 用户协议 / 隐私和数据, or after 撤回同意: nothing is opened before the answer. */
+    private fun firstQuestion(saved: Bundle?, home: Boolean = false) {
+        asking = true
+        lifecycleScope.launch {
+            val yes = try { consentUi.ask() } finally { asking = false }
+            if (yes) agreed() else basic()
+            open(saved, home)
+        }
+    }
+
+    /** The page, once there is an answer (同意, or 基本模式). */
+    private fun open(saved: Bundle?, home: Boolean = false) {
+        opened = true
+        showBasicBar()
+        Speech.init(this)  // the phone's voice engine, once there is a page to speak for
+        val i = waitingPath ?: intent
+        waitingPath = null
+        if (saved == null || web.restoreState(saved) == null) web.loadUrl(if (home) Site.origin + "/" else startUrl(i))
+        // already in front (the question was answered): what waits for an agreement starts now; else onStart does it
+        if (privacy == Consent.State.AGREED && lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) whenAgreed()
+    }
+
+    private fun agreed() {
+        Consent.agree(this)
+        privacy = Consent.State.AGREED
+        showBasicBar()
+    }
+
+    private fun basic() {
+        Consent.decline(this)
+        privacy = Consent.State.BASIC
+        forgetHere()
+    }
+
+    /** Only once agreed: the reminders as the site has them, and (语流 from flowlang.cn) a newer version. */
+    private fun whenAgreed() {
+        Reminders.refreshLater(this)
+        if (BuildConfig.UPDATER) Updater.onStart(this)  // at start, then once a day
+    }
+
+    /**
+     * 基本模式 asks again when a feature needs the agreement ([why]: signing in or up, the microphone, the app's reminders), or
+     * when the learner taps 「同意」 on its line (no why). → agreed now. Never asks two questions at once.
+     */
+    suspend fun consented(why: Int? = null): Boolean {
+        if (privacy == Consent.State.AGREED) return true
+        if (asking || privacy != Consent.State.BASIC) return false
+        asking = true
+        val yes = try { consentUi.ask(why?.let { getString(it) }, first = false) } finally { asking = false }
+        if (yes) { agreed(); whenAgreed() }
+        return yes
+    }
+
+    /**
+     * 撤回同意 (privacy.withdraw, from the page's 「我的 → 设置」): after its check, this phone forgets the answer and the
+     * learner's things here (forgetHere), and the first start's question comes back. The account's own consents stay the
+     * site's (「我的 → 账号」). → true once withdrawn (the page that asked is gone by then).
+     */
+    suspend fun withdraw(): Boolean {
+        if (privacy != Consent.State.AGREED || asking) return false
+        asking = true
+        val yes = try { consentUi.withdrawChosen() } finally { asking = false }
+        if (!yes) return false
+        FlowAudio.stop()
+        if (Recorder.busy) Recorder.cancel()
+        Consent.withdraw(this)
+        privacy = Consent.State.ASK
+        opened = false
+        showBasicBar()
+        lifecycleScope.launch {
+            web.loadUrl("about:blank")
+            forgetHere()
+            clearHistory = true
+            firstQuestion(null, home = true)
+        }
+        return true
+    }
+
+    /** 不同意 or 撤回同意: signed out on this phone, the page's own storage and cache emptied, no reminders, no reading places. */
+    private fun forgetHere() {
+        CookieManager.getInstance().removeAllCookies(null)
+        CookieManager.getInstance().flush()
+        WebStorage.getInstance().deleteAllData()
+        web.clearCache(true)
+        Reminders.forget(this)
+        getSharedPreferences("flow-progress", MODE_PRIVATE).edit().clear().apply()  // audio/ProgressStore.kt
+    }
+
+    private fun dip(v: Int) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v.toFloat(), resources.displayMetrics).toInt()
+
+    /** 基本模式's line over the page: what it means, and 「同意」 for everything. */
+    private fun basicBar(): View {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dip(16), dip(4), dip(6), dip(4))
+        }
+        row.addView(TextView(this).apply { text = getString(R.string.basic_bar); textSize = 13f; setTextColor(getColor(R.color.flow_text)) },
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        basicAgree = TextView(this).apply {
+            text = getString(R.string.basic_bar_agree)
+            textSize = 14f
+            setTypeface(typeface, Typeface.BOLD)
+            setPadding(dip(14), dip(10), dip(10), dip(10))
+            setOnClickListener { lifecycleScope.launch { consented() } }
+        }
+        row.addView(basicAgree)
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(getColor(R.color.flow_surface))
+            addView(row)
+            addView(View(this@MainActivity).apply { setBackgroundColor(getColor(R.color.flow_line)) },
+                LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, maxOf(1, dip(1) / 2)))
+        }
+    }
+
+    private fun showBasicBar() {
+        basicBar.isVisible = opened && privacy == Consent.State.BASIC
+        if (basicBar.isVisible) basicAgree.setTextColor(Accent.color(this))
     }
 
     /** Transparent bars over the page's own colour; dark icons on the light page, light ones on the dark page. */
@@ -161,13 +312,26 @@ class MainActivity : ComponentActivity() {
 
         override fun onPageStarted(view: WebView, url: String?, favicon: android.graphics.Bitmap?) { errorView.isVisible = false }
 
+        override fun onPageFinished(view: WebView, url: String?) {
+            if (clearHistory && Site.isOwn(url)) { clearHistory = false; view.clearHistory() }
+        }
+
+        // 基本模式: signing in or up asks first (Consent.SIGN_IN). The page's form gets a 403 that says why (its `error`),
+        // and the question comes up; once agreed, the learner taps again.
+        override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
+            if (privacy == Consent.State.AGREED || request.method != "POST" || !Site.isOwn(request.url) || !Consent.signIn(request.url.path)) return null
+            runOnUiThread { lifecycleScope.launch { consented(R.string.consent_why_signin) } }
+            return WebResourceResponse("application/json", "utf-8", 403, "Forbidden", mapOf("Cache-Control" to "no-store"),
+                ByteArrayInputStream(Consent.SIGN_IN_ANSWER.toByteArray()))
+        }
+
         override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceErrorCompat) {
             if (request.isForMainFrame) errorView.isVisible = true
         }
 
         override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
             // the page's process was ended by the system (memory): start over with a fresh WebView
-            root.removeView(web)
+            (web.parent as? ViewGroup)?.removeView(web)
             web.destroy()
             recreate()
             return true
@@ -191,7 +355,9 @@ class MainActivity : ComponentActivity() {
         // the page's own recorder (getUserMedia), for pages not on the bridge: allowed for this site once the phone allows the app
         override fun onPermissionRequest(request: PermissionRequest) {
             if (!Site.isOwn(request.origin) || !request.resources.contains(PermissionRequest.RESOURCE_AUDIO_CAPTURE)) { request.deny(); return }
-            lifecycleScope.launch { if (askMic()) request.grant(arrayOf(PermissionRequest.RESOURCE_AUDIO_CAPTURE)) else request.deny() }
+            lifecycleScope.launch {
+                if (consented(R.string.consent_why_mic) && askMic()) request.grant(arrayOf(PermissionRequest.RESOURCE_AUDIO_CAPTURE)) else request.deny()
+            }
         }
 
         // 反馈's 添加截图
@@ -222,13 +388,13 @@ class MainActivity : ComponentActivity() {
         super.onStart()
         web.onResume()
         FlowAudio.visible = true
-        Reminders.refreshLater(this)  // opening and coming back: the reminders as the site has them now
-        Updater.onStart(this)  // 语流 only: a newer version on flowlang.cn/download (at start, then once a day)
+        // opening and coming back: the reminders as the site has them now; 语流: a newer version on flowlang.cn/download
+        if (opened && privacy == Consent.State.AGREED) whenAgreed()
     }
 
     override fun onStop() {
         FlowAudio.visible = false
-        Reminders.refreshLater(this)  // going to the background too: a day done is taken off
+        if (privacy == Consent.State.AGREED) Reminders.refreshLater(this)  // going to the background too: a day done is taken off
         if (Recorder.busy) Recorder.cut()  // only an app in front may use the microphone
         CookieManager.getInstance().flush()
         web.onPause()
@@ -237,12 +403,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        intent.getStringExtra(EXTRA_PATH)?.let { web.loadUrl(startUrl(intent)) }
+        intent.getStringExtra(EXTRA_PATH)?.let { if (opened) web.loadUrl(startUrl(intent)) else waitingPath = intent }
     }
 
     override fun onSaveInstanceState(out: Bundle) {
         super.onSaveInstanceState(out)
-        web.saveState(out)
+        if (opened) web.saveState(out)
     }
 
     override fun onConfigurationChanged(c: Configuration) {
@@ -252,6 +418,14 @@ class MainActivity : ComponentActivity() {
         web.setBackgroundColor(getColor(R.color.flow_bg))
         bars()
         (errorView as? LinearLayout)?.let { recolorError(it) }
+        // 基本模式's line in the new colours
+        (basicBar.parent as? ViewGroup)?.let { p ->
+            val k = p.indexOfChild(basicBar)
+            p.removeView(basicBar)
+            basicBar = basicBar()
+            p.addView(basicBar, k, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        }
+        showBasicBar()
     }
 
     override fun onDestroy() {
@@ -259,7 +433,7 @@ class MainActivity : ComponentActivity() {
         FlowAudio.sink = null
         Recorder.sink = null
         Speech.voicesChanged = null
-        if (::web.isInitialized && web.parent != null) { root.removeView(web); web.destroy() }
+        if (::web.isInitialized && web.parent != null) { (web.parent as? ViewGroup)?.removeView(web); web.destroy() }
         super.onDestroy()
     }
 
@@ -271,18 +445,46 @@ class MainActivity : ComponentActivity() {
     private fun granted(p: String) = ContextCompat.checkSelfPermission(this, p) == PackageManager.PERMISSION_GRANTED
     private fun asked(p: String) = prefs.getBoolean("asked:$p", false)
 
-    /** The system dialog; false right away (no dialog shown) means refused for good: then the settings are offered. */
+    /**
+     * The system dialog, with what the permission is for on top of the page while it is open (purpose). False right away
+     * (no dialog shown) means refused for good: then the settings are offered.
+     */
     private suspend fun ask(p: String, offTitle: Int, offBody: Int, settings: () -> Unit): Boolean {
         if (granted(p)) return true
         waiting?.complete(false)
         val d = CompletableDeferred<Boolean>()
         waiting = d
+        val dialog = !(asked(p) && !shouldShowRequestPermissionRationale(p))  // else refused for good: the phone will not ask
         prefs.edit().putBoolean("asked:$p", true).apply()
         val t0 = SystemClock.elapsedRealtime()
+        val note = if (dialog) purpose(p) else null
         askPermission.launch(p)
-        val ok = d.await()
+        val ok = try { d.await() } finally { note?.let { root.removeView(it) } }
         if (!ok && SystemClock.elapsedRealtime() - t0 < 400 && !shouldShowRequestPermissionRationale(p)) offerSettings(offTitle, offBody, settings)
         return ok
+    }
+
+    /** 「麦克风权限说明」 / 「通知权限说明」 over the top of the page while the phone asks (工信部 26 号文第 10 条). */
+    private fun purpose(p: String): View {
+        val (title, body) = if (p == Manifest.permission.RECORD_AUDIO) R.string.mic_purpose_title to R.string.mic_purpose
+            else R.string.notify_purpose_title to R.string.notify_purpose
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dip(16), dip(12), dip(16), dip(14))
+            background = GradientDrawable().apply {
+                cornerRadius = dip(14).toFloat()
+                setColor(getColor(R.color.flow_surface))
+                setStroke(maxOf(1, dip(1) / 2), getColor(R.color.flow_line))
+            }
+            elevation = dip(6).toFloat()
+        }
+        box.addView(TextView(this).apply { text = getString(title); textSize = 15f; setTypeface(typeface, Typeface.BOLD); setTextColor(getColor(R.color.flow_text)) })
+        box.addView(TextView(this).apply {
+            text = getString(body); textSize = 14f; setLineSpacing(0f, 1.2f); setTextColor(getColor(R.color.flow_text)); setPadding(0, dip(4), 0, 0)
+        })
+        root.addView(box, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP)
+            .apply { setMargins(dip(12), dip(8), dip(12), 0) })
+        return box
     }
 
     fun micPermission(): String = when {
@@ -329,6 +531,23 @@ class MainActivity : ComponentActivity() {
         try { startActivity(i) } catch (e: ActivityNotFoundException) { openAppSettings() }
     }
 
+    /**
+     * privacy.permissions, for the page's 权限管理 (小米: a page in the app listing what is allowed): what the phone allows
+     * now. 'granted', 'undetermined' (the phone will ask when it is first needed) or 'denied' (off: in the phone's settings).
+     */
+    fun permissions(): org.json.JSONObject {
+        val p = Manifest.permission.POST_NOTIFICATIONS
+        val notify = when {
+            Reminders.allowed(this) -> "granted"
+            Build.VERSION.SDK_INT >= 33 && (!asked(p) || shouldShowRequestPermissionRationale(p)) -> "undetermined"
+            else -> "denied"
+        }
+        return org.json.JSONObject().put("mic", micPermission()).put("notify", notify)
+    }
+
+    /** privacy.settings: the phone's own page to change one (notifications), or the app's page (the microphone, all). */
+    fun openPermissionSettings(what: String) = if (what == "notify") openNotifySettings() else openAppSettings()
+
     private fun openAppSettings() {
         try { startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))) } catch (e: ActivityNotFoundException) { /* none */ }
     }
@@ -352,14 +571,17 @@ class MainActivity : ComponentActivity() {
 
     // ---------------------------------------------------------------- updates (update/Updater.kt)
 
-    private val installSettings = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { Updater.onInstallSettingsBack(this) }
+    // (BuildConfig.UPDATER: never in 语流内测 or in the store build, whose code then has no updater at all)
+    private val installSettings = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        if (BuildConfig.UPDATER) Updater.onInstallSettingsBack(this)
+    }
 
     /** 「安装未知应用」 for 语流, to install the new version it has just downloaded and checked; back in onInstallSettingsBack. */
     fun openInstallSettings() {
         try {
             installSettings.launch(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))
         } catch (e: ActivityNotFoundException) {
-            Updater.onInstallSettingsBack(this)  // no such screen: the download page is offered instead
+            if (BuildConfig.UPDATER) Updater.onInstallSettingsBack(this)  // no such screen: the download page is offered instead
         }
     }
 
@@ -388,7 +610,9 @@ class MainActivity : ComponentActivity() {
         val at = u.getQueryParameter("at")?.toDoubleOrNull()
         Accent.dialog(this).setTitle(if (plan) R.string.ics_plan_title else R.string.ics_title).setMessage(R.string.ics_body)
             .setPositiveButton(R.string.ics_app) { _, _ ->
-                lifecycleScope.launch { if (notificationsAllowed()) toast(Reminders.optIn(this@MainActivity, plan, hour, minutes, at)) }
+                lifecycleScope.launch {
+                    if (consented(R.string.consent_why_notify) && notificationsAllowed()) toast(Reminders.optIn(this@MainActivity, plan, hour, minutes, at))
+                }
             }
             .setNeutralButton(R.string.ics_calendar) { _, _ -> lifecycleScope.launch { addToCalendar(u) } }
             .setNegativeButton(R.string.cancel, null)

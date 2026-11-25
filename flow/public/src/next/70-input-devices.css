@@ -15,7 +15,6 @@ button,a,.w,.chip,.opt,.ans,.qopt,select,label{touch-action:manipulation;-webkit
   #reader [data-ex]{padding:10px 7px;margin:-10px -3px;min-width:36px}
   .ex .link{display:inline-block;padding:8px 0;margin:-4px 0}
   .link.tiny{padding:6px 2px}
-  .steps button{min-height:42px}
   .seg button,.seg a{min-height:40px;display:grid;place-items:center}
   .tabs a{min-height:48px;justify-content:center}
 }

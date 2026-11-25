@@ -9,7 +9,7 @@ import WebKit
 final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
     static let name = "flow"
     static let version = 1
-    static let features = ["audio", "rec", "notify", "settings"]
+    static let features = ["audio", "rec", "notify", "settings", "haptic", "frugal"]
 
     weak var webView: WKWebView?
     /// the page's 主题色 changed (Accent): the app's own controls take it
@@ -27,6 +27,7 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
         super.init()
         player.emit = { [weak self] type, detail in self?.emit(type, detail) }
         recorder.emit = { [weak self] type, detail in self?.emit(type, detail) }
+        Frugal.shared.changed = { [weak self] on in self?.emit("frugal", ["on": on]) }
     }
 
     /// The wrapper the three apps share (native/flowapp.js, docs/native-bridge.md §2) after iOS's transport, at document
@@ -97,6 +98,10 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
             return ["ok": onSettings?() ?? false]
         case "app.features":  // which of them this phone has, and whether each is on
             return Features.state
+        case "app.haptic":  // 「复习时的轻触震动」: {kind: tap | select | success | warning | error}
+            return ["ok": Haptics.play((a["kind"] as? String) ?? "tap", in: webView)]
+        case "app.frugal":  // 「省电时少做事」: the page preloads less while it is on (and hears `frugal` when it changes)
+            return ["on": Frugal.shared.on]
 
         case "audio.play":
             guard let r = LongPlayer.Request(json: a, base: webView?.url ?? AppConfig.site) else { return ["ok": false, "why": "bad request"] }
@@ -147,6 +152,7 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
     /// After a page (re)load or coming back to the front: what plays now, so the page shows it without guessing.
     func resendState() {
         if player.state != .idle { emit("audio", player.snapshot(why: "state")) }
+        Frugal.shared.update()  // Low Power Mode may have changed while the app was away
     }
 
     func emit(_ type: String, _ detail: [String: Any]) {
