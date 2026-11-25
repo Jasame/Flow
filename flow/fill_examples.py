@@ -3,6 +3,7 @@
 
     python3 fill_examples.py [--env-file /etc/flow.env] [--books tem8,gre] [--per-call 16] [--max-calls N]
                              [--workers 8] [--pause 1.0] [--max-yuan 5] [--dry-run] [--status FILE] [--offpeak]
+                             [--review [--review-log FILE]]
 
 A word card shows up to two sentences from Flow's texts, else the dictionary's example, else an AI example. That last
 one is written the first time someone opens the card (the card says 「正在找例句…」 for a few seconds) and is then
@@ -32,6 +33,13 @@ of a few thousand tokens each every 10-15 s is far below it, so the gateway's 20
 On a batch line of its own (a route other than the site's default model, e.g. flow-batch-ds-flash), a call goes to
 that line only: no fallback to the main model, so the run pays where it was meant to and a rate limit comes back here
 to slow down. On the default model it is the site's usual request_model.
+--review (2026-11-25, the owner: 「加，并重写这类例句」): first the AI examples already written are looked at again for
+mockery and stereotypes (vocab_service.FAIR, in the prompt since that day). Words pick the candidates (REVIEW_EN in the
+sentence, REVIEW_ZH in the translation: illness, disability, race, nationality, gender, places); the model, asked as an
+editor (review_messages, 25 a call), names the ones that mock or stereotype; those are deleted, each written to
+--review-log as a JSON line (default: beside --status, else review.jsonl in the working folder), and the fill that
+follows in the same run writes them again with today's prompt (a word of no book is written again when a learner
+opens its card). --dry-run --review counts the candidates and asks nothing.
 --max-yuan X: start no new call once the calls of this run cost X yuan (ai_calls, priced as the console prices them:
 ai_routes.cost); the status file and the last line say what the run cost.
 
@@ -62,7 +70,7 @@ until, workers, at_once, failed, yuan}.
 Each word is written at its own level (vocab_service.example_level: the school and basic books A2, 四级 B1, the rest
 B2), in its first sense unless that one is clearly a rare use; the sense used is kept with the example.
 """
-import argparse, json, os, sqlite3, sys, time
+import argparse, json, os, re, sqlite3, sys, time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -83,6 +91,43 @@ def pending(c, vs, books):
             if vs.needs_example(c, w):
                 mine.append((b, vs.example_level(w), w))
         out += sorted(mine, key=lambda x: x[1])  # stable: frequency order kept within a level
+    return out
+
+
+# --review: the words that make an AI example worth a second look (a candidate is then judged by the model)
+REVIEW_EN = re.compile(r"\b(mad|madman|madmen|madness|crazy|insane|lunatic|psycho\w*|mental\w*|retard\w*|idiot\w*|stupid|dumb|mute|deaf|blind|"
+                       r"lame|cripple\w*|disab\w+|handicap\w*|wheelchair\w*|autis\w+|ill|illness\w*|sick\w*|disease\w*|patient\w*|ugly|fat|obese|"
+                       r"black|white|negro\w*|race|races|racial|racis\w+|tribe\w*|tribal|savage\w*|primitive|natives?|gyps\w+|jews?|jewish|muslims?|"
+                       r"arabs?|arabic|africans?|asians?|indians?|mexicans?|chinese|japanese|koreans?|immigrants?|foreign\w*|"
+                       r"woman|women|girls?|lady|ladies|wife|wives|housewi\w+|female\w*|male|males|husbands?|nurses?|secretar\w+|maids?|"
+                       r"feminine|masculine|gender|countryside|village\w*|peasant\w*|rural|poor|poverty|beggars?|homeless|slums?|elderly)\b", re.I)
+REVIEW_ZH = re.compile('疯|傻|瞎|聋|哑|瘸|残疾|残障|智障|弱智|精神病|病人|患者|胖|丑|黑人|白人|种族|民族|野蛮|原始|土著|部落|外国人|移民|'
+                       '女人|女孩|女性|女士|男人|男性|妻子|丈夫|主妇|护士|秘书|保姆|农村|乡下|山区|农民|村民|穷|乞丐|老人|老太太|老头')
+REVIEW_PER_CALL = 25
+
+
+def candidates(c):
+    """AI examples worth a second look: the review words in the sentence or in its translation."""
+    rows = c.execute('SELECT norm, sentence, translation FROM next_word_examples ORDER BY norm').fetchall()
+    return [dict(r) for r in rows if REVIEW_EN.search(r['sentence'] or '') or REVIEW_ZH.search(r['translation'] or '')]
+
+
+def review_messages(rows):
+    """Asks the model, as an editor, which of these examples mock or stereotype: {"flag": [{"id", "why"}]}."""
+    system = ('你是英语教材的审读编辑。下面是给中国学生的英文例句和中文翻译。找出带偏见或刻板印象的句子：嘲笑、贬低，'
+              '或者刻板地描写疾病、残障、精神状况、种族、民族、国籍、性别、地域（城乡、某地的人）的。'
+              '只是提到这些话题、说法中性尊重的不算。只输出 JSON：{"flag":[{"id":编号,"why":"简短原因"}]}，没有就给空列表。')
+    user = '\n'.join(f'{k}. {r["norm"]}：{r["sentence"]} ｜ {r["translation"]}' for k, r in enumerate(rows, 1))
+    return [{'role': 'system', 'content': system}, {'role': 'user', 'content': user}]
+
+
+def flagged(raw, rows):
+    """[(row, why)] the model named, ids checked against the batch."""
+    out = []
+    for f in (raw.get('flag') if isinstance(raw, dict) else None) or []:
+        k = f.get('id') if isinstance(f, dict) else None
+        if isinstance(k, int) and not isinstance(k, bool) and 1 <= k <= len(rows):
+            out.append((rows[k - 1], str(f.get('why') or '')[:120]))
     return out
 
 
@@ -147,6 +192,8 @@ def main(argv=None):
     ap.add_argument('--dry-run', action='store_true', help='只数还缺多少，不请求')
     ap.add_argument('--status', help='把进度写进这个 JSON 文件（后台的「后台任务」读它）')
     ap.add_argument('--offpeak', action='store_true', help='例句用的模型有忙时价（百炼上的 DeepSeek：北京时间 8–22 点）时，等到半价时段再跑')
+    ap.add_argument('--review', action='store_true', help='先复查已经写好的 AI 例句：带偏见、刻板印象的删掉，接着按现在的提示词重写')
+    ap.add_argument('--review-log', help='删掉的例句写到这个文件（每行一个 JSON）')
     a = ap.parse_args(argv)
     a.workers = max(1, min(16, a.workers))
     pause = a.pause if a.pause is not None else (1.0 if a.workers == 1 else 0.25)
@@ -181,6 +228,45 @@ def main(argv=None):
     c = sqlite3.connect(db, timeout=15)
     c.row_factory = sqlite3.Row
     books = [b for b in (a.books.split(',') if a.books else ORDER) if b in vs.book_words()]
+    since = time.time()
+
+    def work(messages):
+        with ai_routes.task('fill-examples'):
+            return ask(messages)
+    if a.review:
+        cand = candidates(c)
+        n = (len(cand) + REVIEW_PER_CALL - 1) // REVIEW_PER_CALL
+        print(f'--review: {len(cand)} AI examples to look at again ({n} calls)', flush=True)
+        report(review_candidates=len(cand))
+        if not a.dry_run and cand:
+            if not ai_enabled():
+                print('没有配置 AI 模型（FLOW_AI_MODEL 等），不能复查例句。')
+                report(state='no-model')
+                return 2
+            log = Path(a.review_log or (str(Path(a.status).with_name('review.jsonl')) if a.status else 'review.jsonl'))
+            gone, asked, bad = 0, 0, 0
+            batches = [cand[k:k + REVIEW_PER_CALL] for k in range(0, len(cand), REVIEW_PER_CALL)]
+            with ThreadPoolExecutor(a.workers) as pool, open(log, 'a', encoding='utf-8') as out:
+                for start in range(0, len(batches), a.workers):  # a.workers at a time; the budget is checked between rounds
+                    if ai_routes.over_budget() or (a.max_yuan and spent(c, since) >= a.max_yuan):
+                        print('复查停下：今天的 AI 预算或 --max-yuan 到了，剩下的下次再查。', flush=True)
+                        break
+                    group = batches[start:start + a.workers]
+                    for rows, f in zip(group, [pool.submit(work, review_messages(rows)) for rows in group]):
+                        asked += 1
+                        try:
+                            hits = flagged(parse(f.result()), rows)
+                        except Exception as exc:  # noqa: BLE001 - this batch is looked at next time
+                            bad += 1
+                            print(f'review call failed ({type(exc).__name__}: {str(exc)[:120]})', flush=True)
+                            continue
+                        for r, why in hits:  # this thread alone writes: deleted here, written again by the fill below
+                            c.execute('DELETE FROM next_word_examples WHERE norm=? AND sentence=?', (r['norm'], r['sentence']))
+                            out.write(json.dumps({**r, 'why': why, 'at': round(time.time())}, ensure_ascii=False) + '\n')
+                            gone += 1
+                        c.commit()
+                    report(review_calls=asked, review_failed=bad, review_flagged=gone)
+            print(f'--review: {asked} calls ({bad} failed), {gone} examples taken out to be written again; the list is in {log}', flush=True)
     todo = pending(c, vs, books)
     print(f'{db}: {len(todo)} words without an example in {",".join(books)} ({(len(todo) + a.per_call - 1) // max(1, a.per_call)} calls)', flush=True)
     report(books=books, total=len(todo), left=len(todo))
@@ -193,7 +279,7 @@ def main(argv=None):
         return 2
     calls = made = fails = failed = other = 0
     d = __import__('next_service').dictionary()
-    since, pace, again, running, stop = time.time(), Pace(a.workers), deque(), {}, None
+    pace, again, running, stop = Pace(a.workers), deque(), {}, None
     i = 0
 
     def take():
@@ -211,9 +297,6 @@ def main(argv=None):
                 return batch, level, 1
         return None
 
-    def work(messages):
-        with ai_routes.task('fill-examples'):
-            return ask(messages)
     pool = ThreadPoolExecutor(a.workers)
     try:
         while True:
