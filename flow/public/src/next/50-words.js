@@ -35,6 +35,63 @@
     ['#/cards/mistake', '错题本', '<path d="M6 3h12v18H6z"/><path d="m9.5 9.5 5 5m0-5-5 5"/>'],
     ['#/vocab/test', '测词汇量', '<path d="M4 17a8 8 0 0 1 16 0"/><path d="m12 17 4-5"/>'],
     ['imp', '导入', '<path d="M12 3v11m-4-4 4 4 4-4"/><path d="M5 15v5h14v-5"/>']];
+  // 「认识」放在 (我的 → 设置; a trial student and the owner, 2026-11-25): on the right by default, as in most word apps;
+  // the buttons of the review and of the vocabulary test, their keys (1 2 3, and ← → by their place on screen) and the
+  // swipe all follow it: the side 「认识」 is on is the way to swipe for it. Kept on this device, like 单词读音方式.
+  const KNOW = {
+    side() { try { return localStorage.getItem('flow-know-side') === 'left' ? 'left' : 'right'; } catch (e) { return 'right'; } },
+    set(v) { try { if (v === 'left') localStorage.setItem('flow-know-side', 'left'); else localStorage.removeItem('flow-know-side'); } catch (e) { /* private mode */ } },
+    // the choices in their order on screen, from the 「认识」 end of the list
+    order(list) { return this.side() === 'right' ? list.slice().reverse() : list.slice(); },
+    // what a swipe does, for onSwipe(right, left): 「认识」's side gets know
+    swipe(know, other) { return this.side() === 'right' ? [know, other] : [other, know]; },
+    // keys by place: 1 2 3 left to right, ← the leftmost, → the rightmost
+    keys(acts) { const m = {}; acts.forEach((f, k) => { m[k + 1] = f; }); m.ArrowLeft = acts[0]; m.ArrowRight = acts[acts.length - 1]; return m; },
+  };
+  // 这次什么时候复习 (a trial student, 2026-11-25: not everyone is free at the same hour every day): a time today or
+  // tomorrow for the next reminder only (vocab_service.set_once), then every day at the usual hour again. Opened from the
+  // plan page, the end of a review and 今日's finished plan (语流 08).
+  const ONCE_SLOTS = [[0, 12, 30, '今天中午 12:30'], [0, 18, 0, '今天傍晚 18:00'], [0, 21, 0, '今晚 21:00'], [1, 8, 0, '明早 8:00'], [1, 12, 30, '明天中午 12:30'], [1, 20, 0, '明晚 20:00']];
+  function onceLabel(sec) {
+    const d = new Date(sec * 1000), t = new Date();
+    return `${d.toDateString() === t.toDateString() ? '今天' : '明天'} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+  // 语流 20's iOS app (shared notes ios-app.md): its local notifications follow the reminder; the page tells it whenever
+  // the reminder changes (the app also asks for it when it opens). Not in the app: nothing.
+  const appNotify = r => { try { if (window.FlowApp && FlowApp.has('notify')) FlowApp.notify.sync(r); } catch (e) { /* the app's own business */ } };
+  // the device the app runs on, and where its notifications are turned on (FlowApp.platform; 语流 22's desktop app, 2026-11-25)
+  const APP_PLACES = { ios: ['这台 iPhone', 'iPhone 的「设置 → 语流 → 通知」'], android: ['这台手机', '手机的「设置 → 应用 → 语流 → 通知」'],
+    windows: ['这台电脑', 'Windows 的「设置 → 系统 → 通知」'], macos: ['这台 Mac', 'Mac 的「系统设置 → 通知」'] };
+  const appPlace = () => APP_PLACES[(window.FlowApp && FlowApp.platform) || 'ios'] || ['这台设备', '系统设置里的「通知」'];
+  async function remindOnce(after) {
+    if (!S.user) return needLogin('登录后才能设复习提醒。');
+    let r, forecast; try { const o = await api('/api/next/vocab'); r = o.reminder; forecast = o.forecast; } catch (e) { toast(e.message); return; }
+    const now = Date.now(), slot = ([d, h, m]) => { const x = new Date(); x.setDate(x.getDate() + d); x.setHours(h, m, 0, 0); return x.getTime(); };
+    const picks = ONCE_SLOTS.filter(s => slot(s) > now + 30 * 60000).slice(0, 4);
+    const last = new Date(); last.setDate(last.getDate() + 1); last.setHours(23, 59, 0, 0);
+    const local = ms => { const d = new Date(ms); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">今天或明天什么时候有空复习？</h2>
+      <p class="muted small">选一个时间，下一次提醒就在那时候；之后回到每天 ${r.hour}:00。</p>
+      <div class="chips" id="oncePicks" role="group" aria-labelledby="sheetTitle">${picks.map(s => `<button class="chip" type="button" data-at="${slot(s) / 1000}" aria-pressed="${r.once === slot(s) / 1000}">${s[3]}</button>`).join('')}</div>
+      <div class="row"><label class="small" for="onceOwn">自己选时间：</label><input id="onceOwn" type="datetime-local" min="${local(now + 10 * 60000)}" max="${local(last.getTime())}"><button class="btn small" type="button" id="onceGo">好</button></div>
+      <div id="onceDone" aria-live="polite"></div>
+      ${r.once ? `<button class="link small" type="button" id="onceOff">取消这次（${onceLabel(r.once)}），按每天 ${r.hour}:00</button>` : ''}
+      <button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      const done = card.querySelector('#onceDone');
+      const pick = async at => {
+        try {
+          const x = await api('/api/next/vocab/reminder/once', { at });
+          appNotify({ ...x, forecast });
+          done.innerHTML = `<p class="small" id="onceOk"><b>好，${onceLabel(x.once)}提醒你复习。</b>${x.has_email ? '到时发邮件提醒（有词要复习才发）。' : '账号还没绑定邮箱，可以'}<a class="btn small" href="/api/next/vocab/reminder.ics?at=${x.once}">加到手机日历</a></p>`;
+          if (after) after(x);
+        } catch (e) { toast(e.message); }
+      };
+      card.querySelectorAll('[data-at]').forEach(b => b.onclick = () => { card.querySelectorAll('[data-at]').forEach(y => y.setAttribute('aria-pressed', String(y === b))); pick(Number(b.dataset.at)); });
+      card.querySelector('#onceGo').onclick = () => { const v = card.querySelector('#onceOwn').value; if (!v) { toast('先选一个时间'); return; } pick(Math.round(new Date(v).getTime() / 1000)); };
+      const off = card.querySelector('#onceOff');
+      if (off) off.onclick = async () => { try { const x = await api('/api/next/vocab/reminder/once', { at: null }); appNotify({ ...x, forecast }); toast(`好，按每天 ${x.hour}:00 提醒`); off.remove(); if (after) after(x); } catch (e) { toast(e.message); } };
+    });
+  }
   function dayLabel(iso) { const [y, m, d] = iso.split('-').map(Number); return (y !== new Date().getFullYear() ? y + '年' : '') + m + '月' + d + '日'; }
 
   async function vocabView(q, page, f) {
@@ -250,7 +307,9 @@
         <span class="muted tiny">遗忘曲线最怕"到期没人提醒"。选一个每天方便的时间：</span>
         <div class="row"><select id="rHour" aria-label="提醒时间">${Array.from({ length: 18 }, (_, k) => k + 6).map(h => `<option value="${h}" ${h === o.reminder.hour ? 'selected' : ''}>每天 ${h}:00</option>`).join('')}</select></div>
         <label class="checkline"><input type="checkbox" id="rMail" ${o.reminder.enabled ? 'checked' : ''} ${o.reminder.has_email ? '' : 'disabled'}><span>到点发邮件提醒（只在有词要复习时发）${o.reminder.has_email ? '' : '<br><span class="muted tiny">账号还没绑定邮箱：可以在<a class="link" href="#/me">「我的」</a>里绑定，或者先用下面的日历提醒。</span>'}</span></label>
-        <div class="row"><a class="btn small" id="rCal" href="/api/next/vocab/reminder.ics?hour=${o.reminder.hour}">加到手机日历</a><span class="muted tiny">日历每天到点提醒，不依赖任何 App</span></div></div>`;
+        <div class="row"><a class="btn small" id="rCal" href="/api/next/vocab/reminder.ics?hour=${o.reminder.hour}">加到手机日历</a><span class="muted tiny">日历每天到点提醒，不依赖任何 App</span></div>
+        ${window.FlowApp && FlowApp.has && FlowApp.has('notify') ? `<div class="row"><button class="btn small" type="button" id="rApp">到点用 App 通知提醒</button><span class="muted tiny" id="rAppNote">在${appPlace()[0]}${/[A-Za-z]$/.test(appPlace()[0]) ? ' ' : ''}上，按上面的时间弹通知，不用邮箱</span></div>` : ''}
+        <div class="row between" id="onceRow"><span class="small" id="onceNow">${o.reminder.once ? `下一次：${onceLabel(o.reminder.once)}（只管这一次）` : '哪天这个点没空，可以只改下一次的时间。'}</span><button class="btn small" type="button" id="onceBtn">这次什么时候复习</button></div></div>`;
     const meta = id => o.books.find(b => b.id === id) || {};
     // Days left: words not yet studied, minus the ones this plan skips (everyday words; for exam and data books, what the test showed you know).
     const hint = () => {
@@ -305,8 +364,15 @@
     document.getElementById('impBook').onclick = importSheet;
     hint();
     const rHour = document.getElementById('rHour'), rMail = document.getElementById('rMail'), rCal = document.getElementById('rCal');
-    const saveRemind = async () => { rCal.href = '/api/next/vocab/reminder.ics?hour=' + rHour.value; try { await api('/api/next/vocab/reminder', { enabled: rMail.checked, hour: Number(rHour.value) }); toast(rMail.checked ? `每天 ${rHour.value}:00 会提醒你` : '提醒时间已更新'); } catch (x) { toast(x.message); rMail.checked = false; } };
+    const saveRemind = async () => { rCal.href = '/api/next/vocab/reminder.ics?hour=' + rHour.value; try { appNotify({ ...(await api('/api/next/vocab/reminder', { enabled: rMail.checked, hour: Number(rHour.value) })), forecast: o.forecast }); toast(rMail.checked ? `每天 ${rHour.value}:00 会提醒你` : '提醒时间已更新'); } catch (x) { toast(x.message); rMail.checked = false; } };
     rHour.onchange = saveRemind; rMail.onchange = saveRemind;
+    const rApp = document.getElementById('rApp');
+    if (rApp) rApp.onclick = async () => {  // the app (iOS, Android, desktop): ask once for notifications, then schedule them from the reminder
+      let ok = false; try { ok = await Promise.resolve(FlowApp.notify.ask()); } catch (e) { ok = false; }
+      if (!ok) { toast(`通知没有打开：可以到${appPlace()[1]}里打开`); return; }
+      try { const v = await api('/api/next/vocab'); appNotify({ ...v.reminder, forecast: v.forecast }); toast(`好，每天 ${v.reminder.hour}:00 用 App 通知提醒你（有词要复习的日子）`); } catch (e) { toast(e.message); }
+    };
+    document.getElementById('onceBtn').onclick = () => remindOnce(x => { document.getElementById('onceNow').textContent = x.once ? `下一次：${onceLabel(x.once)}（只管这一次）` : '哪天这个点没空，可以只改下一次的时间。'; });
     document.getElementById('savePlan').onclick = async e => {
       const btn = e.currentTarget; btn.disabled = true;
       const sk = document.getElementById('skipKnown');
@@ -328,11 +394,11 @@
       if (i >= items.length) return finish();
       view.innerHTML = `<div class="bar-progress"><i id="rp"></i></div><div class="review vtest enter"><p class="muted small">认识这个词吗？看到能想起大概意思就算认识。<br>有几个是编出来的假词，用来校正估计。</p>
         <div class="wordbig">${esc(items[i])}</div>
-        <div class="choice two"><button data-a="0">不认识<small>←</small></button><button class="good" data-a="1">认识<small>→</small></button></div>
+        <div class="choice two">${KNOW.order([['1', 'good', '认识'], ['0', '', '不认识']]).map(([a, cls, t], k) => `<button class="${cls}" data-a="${a}">${t}<small>${k ? '→' : '←'}</small></button>`).join('')}</div>
         <p class="muted tiny tc">${i + 1} / ${items.length}</p></div>`;
       document.getElementById('rp').style.width = (i / items.length * 100) + '%';
       view.querySelectorAll('[data-a]').forEach(b => b.onclick = () => answer(b.dataset.a === '1'));
-      document.onkeydown = e => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); answer(e.key === 'ArrowRight'); } };
+      document.onkeydown = e => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); answer((e.key === 'ArrowRight') === (KNOW.side() === 'right')); } };
     }
     function answer(yes) { answers[items[i]] = yes; i++; show(); }
     async function finish() {
@@ -356,7 +422,7 @@
           await api('/api/next/vocab/test', { answers }); await refreshHome(); location.hash = '#/cards'; } catch (e) { toast(e.message); }
       };
     }
-    swipeOn(() => (i < items.length ? { right: () => answer(true), left: () => answer(false) } : null));  // as on the buttons: ← 不认识, 认识 →
+    swipeOn(() => { if (i >= items.length) return null; const [right, left] = KNOW.swipe(() => answer(true), () => answer(false)); return { right, left }; });  // as on the buttons
     show();
   }
 

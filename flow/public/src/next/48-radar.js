@@ -88,7 +88,7 @@
       const p = t.passages[k]; plays = 0;
       view.innerHTML = `<div class="stack"><div class="row between"><span class="kicker">${name}测评 · 第 ${k + 1} / ${t.passages.length} 段</span><span class="pill">${esc(p.level)}</span></div>
         ${kind === 'reading' ? `<h2 class="h2">${esc(p.title)}</h2><div class="exam-passage">${esc(p.body)}</div>` :
-          `<p class="small muted">听一段录音，然后回答两道题。最多听两遍，听的时候看不到原文。</p><button class="btn primary block" id="aPlay">▶ 播放录音</button><p class="tiny muted" id="aPlays"></p>`}
+          `<p class="small muted">听一段录音，然后回答两道题。最多听两遍，听的时候看不到原文。</p><button class="btn primary block" id="aPlay">▶ 播放录音</button><p class="tiny muted" id="aNote" role="status" hidden></p><p class="tiny muted" id="aPlays"></p>`}
         <div id="aQs" ${kind === 'listening' ? 'hidden' : ''}>${p.questions.map(q => `<div class="q gq" data-i="${q.i}"><div class="prompt">${esc(q.prompt)}</div>
           ${q.options.map((o, j) => `<button class="ans" data-o="${j}"><span class="k">${'ABCD'[j]}</span><span>${esc(o)}</span></button>`).join('')}</div>`).join('')}
           <button class="btn primary block" id="aNext" disabled>${k + 1 < t.passages.length ? '下一段' : '交卷，看结果'}</button></div></div>`;
@@ -104,12 +104,22 @@
       let loaded = null; loading.then(ok => { loaded = ok; });
       if (play) play.onclick = async () => {
         if (plays >= 2) return; plays++; play.disabled = true; play.textContent = '正在播放…';
-        const done = () => { play.disabled = plays >= 2; play.textContent = plays >= 2 ? '已经听了两遍' : '▶ 再听一遍'; document.getElementById('aQs').hidden = false; document.getElementById('aPlays').textContent = `已听 ${plays} / 2 遍`; };
-        if (loaded === true || (loaded === null && await loading)) NAR.play(0, null, null, done);
-        else TTS.say(p.body.replace(/^[A-Z][a-z]+(?: [A-Z][a-z]+)?:\s+/gm, ''), done);
+        let over = false;
+        const done = () => {
+          if (over || !play.isConnected) return; over = true;
+          play.disabled = plays >= 2; play.textContent = plays >= 2 ? '已经听了两遍' : '▶ 再听一遍'; document.getElementById('aQs').hidden = false; document.getElementById('aPlays').textContent = `已听 ${plays} / 2 遍`;
+        };
+        if (loaded === true || (loaded === null && await loading)) { NAR.play(0, null, null, done); return; }
+        // No recording: the server's natural voice, sentence by sentence (the first is ready in a moment, not the whole
+        // passage at once), never the browser voice unless the server cannot say it, and then the reason is shown.
+        // Nothing is kept (key ''): a check is heard from the start. ✕ on the player counts as a play heard.
+        const note = document.getElementById('aNote');
+        LONG.start({ key: '', texts: splitSentences(p.body.replace(/^[A-Z][a-z]+(?: [A-Z][a-z]+)?:\s+/gm, '')), nm: null, pack: p.pack, title: '能力测评 · 听力',
+          onState: (state, i, why) => { if (note.isConnected) { note.textContent = why || ''; note.hidden = !why; } if (state === 'idle') done(); },
+          onDone: done }, 0);
       };
       document.getElementById('aNext').onclick = async () => {
-        NAR.stop(); TTS.stop();
+        NAR.stop(); TTS.stop(); LONG.stop();
         p.questions.forEach(q => answers.push({ pack: p.pack, i: q.i, choice: chosen[q.i] }));
         if (++k < t.passages.length) { window.scrollTo(0, 0); show(); return; }
         let r; try { r = await api('/api/next/assess/comprehension', { kind, answers }); } catch (e) { toast(e.message); return; }

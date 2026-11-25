@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Push-to-deploy for the Flow server, run every minute by flow-autodeploy.timer.
 
-A release is a git tag r<N> on GitHub whose REQUEST file reads "<commit sha> <manifest sha256> [e2e [light]]"
+A release is a git tag r<N> on GitHub whose REQUEST file reads "<commit sha> <manifest sha256> [e2e [light]] [ref=<tag>]"
 (tools/deploy.sh writes and pushes it). The server cannot reach GitHub, only jsDelivr, and jsDelivr caches
 branch heads for hours, but a tag it has never seen resolves fresh. So the server only ever asks for the next
 tag number: it handles r<N> once, then waits for r<N+1>.
@@ -74,14 +74,26 @@ def request_for(tag):
     raise RuntimeError(f'no mirror answered: {errors[-1]!r}')
 
 
-def listing(sha):
+TREE_REF = re.compile(r'ref=(build-[0-9a-f]{12})')  # REQUEST's name of the build's tag (tools/deploy.sh)
+
+
+def listing(sha, alt=None):
+    """jsDelivr's list of the commit's files with their sha256 ({path: file}), and the name it was asked by.
+
+    jsDelivr can keep an early "not found" for a commit for hours: b34's build 39d16ba got 404 for its listing while the
+    same tree by its tag, and every file by the commit, came back fine (2026-11-25). So after a 404 for the commit the
+    same tree is asked for by its tag, `alt` (REQUEST's ref=build-<sha12>). Every file is still fetched by the commit
+    and checked against this list, and flow-pull.sh checks the whole manifest, so a tag on another tree only fails."""
     last = None
     for k in range(5):
-        try:
-            return {f['name'].lstrip('/'): f for f in json.loads(fetch(f'https://data.jsdelivr.com/v1/package/gh/{REPO}@{sha}/flat'))['files']}
-        except Exception as e:
-            last = e
-            time.sleep(2 + 3 * k)
+        for ref in (sha, alt) if alt else (sha,):
+            try:
+                return {f['name'].lstrip('/'): f for f in json.loads(fetch(f'https://data.jsdelivr.com/v1/package/gh/{REPO}@{ref}/flat'))['files']}, ref
+            except Exception as e:
+                last = e
+                if not (isinstance(e, urllib.error.HTTPError) and e.code == 404):
+                    break  # only a 404 asks by the tag; anything else is asked again after a pause
+        time.sleep(2 + 3 * k)
     raise RuntimeError(f'listing: {last!r}')
 
 
@@ -116,6 +128,9 @@ def reason(detail):
         return '; '.join((kinds[k] + ': ' if k < len(kinds) else '') + e for k, e in enumerate(errors))[:160]
     if re.fullmatch(r'\d{3}|0', d):
         return f'HTTP {d}'
+    routes = re.findall(r'(/[\w/.-]+) HTTP (\d{3}|0)', d)  # requests and their statuses (qa_e2e: "<route> HTTP <status>")
+    if routes:
+        return '; '.join(f'{path} HTTP {code}' for path, code in routes)[:160]
     found = re.findall(r'\b([A-Z]\w*(?:Error|Exception))\b', d)
     return found[-1] if found else ''
 
@@ -129,6 +144,8 @@ def e2e_summary(work):
                 'failed_details': [f"{f['who']}: {f['name']}: {reason(f.get('detail', ''))}" for f in r['failed']][:10],
                 'light': bool(r.get('light')),
                 'server_errors': len(r['server_errors']), 'ai_calls': r['ai_calls_used'], 'seconds': r['seconds'],
+                # which requests got a 5xx (or no answer): method, route (no query) and status, nothing else (b38, 2026-11-25)
+                'server_error_routes': [f"{x.get('method', '?')} {x.get('path', '?')} {x.get('status', '?')}" for x in r['server_errors']][:10],
                 'cleanup_ok': not any(f['who'] == 'cleanup' for f in r['failed'])}
     except (OSError, ValueError, KeyError) as e:
         return {'error': 'no report: ' + str(e)[:200]}
@@ -200,13 +217,16 @@ def main():
         return
     e2e = 'e2e' in words[2:]
     light = e2e and 'light' in words[2:]  # no recordings sent to the AI (tools/qa_e2e.py QA_LIGHT)
+    alt = next((m.group(1) for m in map(TREE_REF.fullmatch, words[2:]) if m), None)  # the build's tag, if listed
     st.update(commit=sha, e2e_requested=e2e, **({'e2e_light': True} if light else {}))
     write_status(st)
     work = AD / tag
     shutil.rmtree(work, ignore_errors=True)
     (work / 'qa-audio').mkdir(parents=True)
     try:
-        flat = listing(sha)
+        flat, listed_by = listing(sha, alt)
+        if listed_by != sha:
+            st['listed_by'] = listed_by
         for p in TOOLS + sorted(x for x in flat if e2e and x.startswith(AUDIO)):
             if p in flat:
                 (work / (('qa-audio/' if p.startswith(AUDIO) else '') + Path(p).name)).write_bytes(verified(sha, p, flat))
@@ -220,7 +240,8 @@ def main():
     log = work / 'deploy.log'
     with log.open('w') as out:
         try:
-            subprocess.run(['bash', str(work / 'flow-pull.sh'), sha, manifest], env=ENV, stdout=out, stderr=subprocess.STDOUT, timeout=1800)
+            subprocess.run(['bash', str(work / 'flow-pull.sh'), sha, manifest], env={**ENV, **({'FLOW_TREE_REF': alt} if alt else {})},
+                           stdout=out, stderr=subprocess.STDOUT, timeout=1800)
         except subprocess.TimeoutExpired:
             pass
     text = log.read_text(errors='replace')
