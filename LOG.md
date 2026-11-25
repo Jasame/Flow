@@ -731,3 +731,12 @@
   - #353 后台 AI 费用：批量任务每晚上限（跟 #330）（后台和班级）
 - 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45668764204
+
+### b91 · 2026-11-26 02:03
+- main `6a2c712`，构建 `cb44d15`
+- 新合并的 PR（自 b90 起）：
+  - #361 总账：正式版 r36、内测版 b85–b89（发版和构建）
+  - #358 鸿蒙 App 里拒绝麦克风：给鸿蒙自己的设置路径；不认识的系统不再说成 iPhone（配合 C4）（操作指南）
+  - #355 兼容检查也查样式表：Safari 15.0 没有的 CSS 要有退路（check_compat.py）（发版和构建）
+- 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45670680204
