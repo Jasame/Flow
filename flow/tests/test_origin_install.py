@@ -78,6 +78,16 @@ class FrontEndTests(unittest.TestCase):
         p['reviewed_on'] = '2026-11-26'
         self.assertFalse(any('reviewed' in e for e in cv.check_v51(p, p['body'], {'sentences': 14})[0]))
 
+    def test_a_row_does_not_repeat_what_the_section_or_filter_says(self):
+        # B9's audit P2-E7: no 连载 pill under 连载故事, no 精选 pill under the 精选 filter (a light one under 全部材料),
+        # no level on an easy-reading card that has the section's level; the 「AI 生成」 tag stays everywhere
+        lib = (SRC / '80-library.js').read_text(encoding='utf-8')
+        self.assertNotIn('<span class="pill green">连载</span>', lib)
+        self.assertIn("if (f.featured === '1') return false;", lib); self.assertIn("return m.featured ? ['精选', ''] : null;", lib)
+        self.assertIn("${tag === false ? '' : tag ?", (SRC / '10-welcome-today.js').read_text(encoding='utf-8'))
+        self.assertIn('${m.level !== d.target ?', (SRC / '44-easy.js').read_text(encoding='utf-8'))
+        self.assertIn('aiTag()', lib)
+
     def test_cards_say_whether_flow_wrote_the_text_with_ai(self):
         v5 = __import__('content_v50').v5_materials()[0]
         self.assertTrue(nx._card(v5)['ai'])

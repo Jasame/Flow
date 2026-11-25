@@ -247,7 +247,9 @@ def save_settings(update, by, drop_none=False):
 def set_ai_budget(data, by):
     """The daily AI budget in yuan (0 or empty: none), the nightly marking check on or off, platform discounts
     ({'bailian': 0.65}: the share of the list price actually paid) and prices set by hand ({model: {in, cached, out,
-    platform}} yuan per million tokens at list price; a new model name adds a row; null: back to the built-in table)."""
+    platform}} yuan per million tokens at list price; a new model name adds a row; null: back to the built-in table).
+    stop: the yuan a learners' day may cost before their AI stops until 08:00 Beijing (ai_routes.stop_line; 0 = no stop,
+    empty = the default ¥10)."""
     import ai_routes
     update = {}
     if 'daily' in data:
@@ -258,6 +260,14 @@ def set_ai_budget(data, by):
             update['ai_budget'] = round(float(v), 2)
         else:
             return {'error': '每日预算请填 0–100000 元（0 或留空表示不设）'}, 400
+    if 'stop' in data:
+        v = data['stop']
+        if v in (None, ''):
+            update['ai_stop'] = None
+        elif isinstance(v, (int, float)) and not isinstance(v, bool) and 0 <= v <= 100000:
+            update['ai_stop'] = round(float(v), 2)
+        else:
+            return {'error': '硬停线请填 0–100000 元（0 表示不硬停，留空用默认 ¥10）'}, 400
     if 'nightly' in data:
         if type(data['nightly']) is not bool:
             return {'error': '参数不正确'}, 400
@@ -296,11 +306,12 @@ def set_ai_budget(data, by):
     if not update:
         return {'error': '没有要改的'}, 400
     save_settings(update, by, drop_none=True)
-    return {'ok': True, 'daily': ai_routes.budget(), 'nightly': ai_routes.nightly_on(), 'discounts': ai_routes.discounts(), 'prices': ai_routes.prices()}, 200
+    return {'ok': True, 'daily': ai_routes.budget(), 'stop': ai_routes.stop_line(), 'nightly': ai_routes.nightly_on(), 'discounts': ai_routes.discounts(), 'prices': ai_routes.prices()}, 200
 
 
 def ai_budget_text(body):
-    return ((f"每日预算 ¥{body['daily']:g}" if body['daily'] else '不设每日预算') + ('，每晚小评测开' if body['nightly'] else '，每晚小评测关')
+    return ((f"每日预算 ¥{body['daily']:g}" if body['daily'] else '不设每日预算') + (f"，硬停 ¥{body['stop']:g}" if body.get('stop') else '，不硬停')
+            + ('，每晚小评测开' if body['nightly'] else '，每晚小评测关')
             + '，百炼折扣 ' + f"{body['discounts'].get('bailian', 1):g}")
 
 

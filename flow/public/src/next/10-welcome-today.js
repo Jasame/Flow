@@ -99,6 +99,9 @@
     return p.done ? `必做 ${p.total} 步 · 已完成 ${p.done} · 还要约 ${p.left_minutes} 分钟` : `必做 ${p.total} 步 · 约 ${p.must_minutes} 分钟`;
   }
   // A step of the plan as a row: its number (+ for 还有时间的话, 周 for 本周任务), what to do and about how long.
+  // 本周任务's row is .wtask, never .week: .week is the week-days bar (10-pages.css .week span = a 6 px grey bar), which
+  // turned the row's title block and its › into grey bars and pushed the subtitle out of the card (feedback, 2026-11-25).
+  // ui_test progress group checks the rows.
   function planRowHTML(s, num, isNext, a, tap) {
     const mins = s.minutes && !s.done ? `约 ${s.minutes} 分钟` : '';
     const sub = a ? [`${a.redo ? '精读重学 · ' : ''}今天这篇 · ${a.level} · ${a.theme_label}`, s.mode_label, mins] : [s.sub, mins];
@@ -154,11 +157,12 @@
     save('flow-habit-cheered', hb.monday);
     toast(hb.weeks > 1 ? `本周目标达成！一共达成 ${hb.weeks} 周了` : '本周目标达成！');
   }
-  // A material as one row: title, then level, topic and time; a pill says why it is on the list.
+  // A material as one row: title, then level, topic and time; a pill says why it is on the list. tag false: no pill,
+  // where the section or the filter above already says what it would (全部材料 under 精选, B9's audit P2-E7).
   function mrow(m, tag, href, tapKey) {
     return `<a class="mrow" href="${href || '#/m/' + encodeURIComponent(m.id)}"${tapKey ? ` data-tap="${tapKey}"` : ''}><span class="t"><b>${esc(m.title)}</b>
       <span class="tiny muted">${m.level} · ${esc(m.theme_label)}${m.minutes ? ` · 约 ${m.minutes} 分钟` : ''}${m.steps && m.steps.length ? ` · 学了 ${m.steps.length}/4 步` : ''}${OFF.has(m.id) ? ' · 已存到本机' : ''}${m.ai ? ' ' + aiTag() : ''}</span></span>
-      ${tag ? `<span class="pill ${tag[1]}">${tag[0]}</span>` : kindPill(m)}<span class="go" aria-hidden="true">›</span></a>`;
+      ${tag === false ? '' : tag ? `<span class="pill ${tag[1]}">${tag[0]}</span>` : kindPill(m)}<span class="go" aria-hidden="true">›</span></a>`;
   }
   // 公告 from the operators (xmc.hk console, r26): one line at the very top of 今日, for everyone, until it ends.
   // 「知道了」 (or going to its page) hides that one on this phone; a new one shows again.
@@ -199,10 +203,12 @@
         <span class="small">目标定在做得到的地方，每周都能达成。以前达成的周不会被扣，以后也可以在「我的」→「每周目标」里改回来。</span>
         <div class="row"><button class="btn small primary" id="glYes" type="button" data-tap="notice-goal-lower">改成每周 ${g} 天</button><button class="btn small ghost" id="glNo" type="button">不用，保持 ${hb.goal} 天</button></div></div>`;
     }
+    // 上周小结 (Monday to Sunday: the weekly goal's 本周); its button opens 周报, which is the last 7 days (B9 / A0, 2026-11-25:
+    // one word, one meaning), so it says 看周报, not 看上周报告
     if (hb && hb.last_week.done && (hb.days[0].today || hb.days[1].today) && load('flow-habit-lastweek') !== hb.monday)
       return `<div class="card sunk section notice stack-s" id="lastWeek"><b>${hb.last_week.met ? `上周学了 ${hb.last_week.done} 天，目标达成了 🎉` : `上周学了 ${hb.last_week.done} 天，离目标还差 ${hb.goal - hb.last_week.done} 天`}</b>
         <span class="small">${hb.last_week.met ? '这周接着来。' : '没关系，这周重新开始，学一步材料或复习几个词就算一天。'}</span>
-        <div class="row"><a class="btn small primary" href="#/report" data-tap="notice-week">看上周报告</a><button class="btn small ghost" id="lwOk" type="button">知道了</button></div></div>`;
+        <div class="row"><a class="btn small primary" href="#/report" data-tap="notice-week">看周报</a><button class="btn small ghost" id="lwOk" type="button">知道了</button></div></div>`;
     const mail = mailNudgeHTML(); if (mail) return mail;
     if (installNudgeDue(h)) return `<div class="card sunk section notice stack-s" id="installNudge"><b>把语流放到手机桌面</b><span class="small">像 App 一样一点就开，全屏；听过的音频网络差的时候也能复习。</span>
       <div class="row"><button class="btn small primary" id="inGo" type="button" data-tap="notice-install">怎么放</button><button class="btn small ghost" id="inLater" type="button">以后再说</button></div></div>`;

@@ -133,6 +133,12 @@ _ASSET={}
 # the 内测版 (FLOW_CHANNEL=beta), a second instance with its own data, where versions waiting for release run first.
 # The 内测版 says so on every page, sends its mail marked 【内测版】 and asks search engines to stay away.
 CHANNEL='beta' if os.getenv('FLOW_CHANNEL','').strip().lower()=='beta' else 'prod'
+# Every POST that carries a recording (base64 in JSON): the page keeps a recording to 1.4 MB (MIC.payload, 70-learner.js),
+# 1.87 MB as base64, and audio_validation to 1.5 MB, so these take up to 2.2 MB, under nginx's 3 MB. A route left out
+# of this list answered every real recording with 「请求大小不正确」 (/api/next/assess/speaking, 2026-11-25), so
+# tests/test_request_size.py finds the routes whose handlers read audio and fails when one is missing here.
+AUDIO_PATHS=('/api/lab/audio','/api/next/shadow','/api/next/retell','/api/next/dialog','/api/next/say','/api/next/ielts','/api/next/assess/speaking')
+TOO_LONG='录音太长了，请在 1 分钟内说完再交'
 _SLIM={}
 def shell_file(name):
  """A public file; the page shell and the service worker get the asset version filled in (__ASSET__): a hash of
@@ -315,7 +321,7 @@ class Handler(BaseHTTPRequestHandler):
   token=jar['flow_session'].value if 'flow_session' in jar else ''
   now=time.time()
   # an account an operator stopped (xmc.hk console) has no session: its sessions are deleted and none is read
-  u=c.execute('SELECT users.id,username,admin,csrf,token,expires,email,age_band,guardian_ok,role,storage_ok,storage_no FROM sessions JOIN users ON users.id=user_id WHERE token=? AND expires>? AND NOT COALESCE(users.disabled,0)',(token,now)).fetchone()
+  u=c.execute('SELECT users.id,username,admin,csrf,token,expires,email,age_band,guardian_ok,role,storage_ok,storage_no,terms_version FROM sessions JOIN users ON users.id=user_id WHERE token=? AND expires>? AND NOT COALESCE(users.disabled,0)',(token,now)).fetchone()
   # Sliding sessions: a learner who keeps coming back stays signed in; SESSION_DAYS after the last visit it ends.
   # At most one write a day per session; the cookie is renewed with the same answer (send()).
   if u and u['expires']<now+(SESSION_DAYS-1)*86400:
@@ -329,7 +335,8 @@ class Handler(BaseHTTPRequestHandler):
  def get(self):
   path=self.path.split('?')[0]
   if path.startswith('/api/') and not api_open('GET',path):return self.send({'error':'接口不存在'},404)
-  if path=='/api/health':return self.send({'ok':True,'version':'4.5.0','mail':account.configured(),'channel':CHANNEL})
+  # consent: the 用户协议 and 隐私和数据 version a sign-up agrees to now (privacy_service; the release check's test accounts use it)
+  if path=='/api/health':return self.send({'ok':True,'version':'4.5.0','mail':account.configured(),'channel':CHANNEL,'consent':__import__('privacy_service').CONSENT_VERSION})
   # The version of next.js/next.css the server sends now: a home-screen app asleep for days asks it when it wakes
   # (04-home-app.js) and takes a new one when it is safe to. No database, nothing about anyone.
   if path=='/api/version':return self.send({'asset':asset_version()})
@@ -370,10 +377,11 @@ class Handler(BaseHTTPRequestHandler):
      body,mime,ascii_name,name=out
      self.send_response(200);self.headers_common(mime);self.send_header('Content-Disposition',ad.disposition(ascii_name,name))
      self.send_header('Cache-Control','no-store');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
-    if u and __import__('privacy_service').storage(u)!='ok':
-     # 数据存放在香港 not agreed (yet): nothing of the account's learning; the home is a guest's, with the session, so the
-     # page can ask (privacy_service). Export above stays open.
-     if path!='/api/next/home':return self.send(*__import__('privacy_service').STORAGE_HELD)
+    if u and not __import__('privacy_service').consented(u):
+     # 数据存放在香港 or 用户协议 not agreed (yet): nothing of the account's learning; the home is a guest's, with the
+     # session, so the page can ask (privacy_service). Export above stays open.
+     # The guide is open too: the page asks to agree to 用户协议 and 隐私和数据, and those are its chapters.
+     if path not in ('/api/next/home','/api/next/guide'):return self.send(*__import__('privacy_service').storage_held(u,path))
      result=__import__('next_service').get(c,None,path,parse_qs(urlsplit(self.path).query))
      if result and result[1]==200:result[0]['session']=session_info(u)
      return self.send(*result)
@@ -515,7 +523,8 @@ class Handler(BaseHTTPRequestHandler):
  def post(self):
   length=int(self.headers.get('Content-Length',0))
   # /api/feedback: up to three screenshots shrunk on the phone, sent as base64; under nginx's 3 MB (client_max_body_size 3m)
-  limit=2900000 if self.path=='/api/feedback' else 2200000 if self.path in ('/api/lab/audio','/api/next/shadow','/api/next/retell','/api/next/dialog','/api/next/say','/api/next/ielts') else 800000 if self.path=='/api/vocab/import' else 40000 if self.path in ('/api/next/import','/api/next/essay','/api/next/dialog') else 20000
+  limit=2900000 if self.path=='/api/feedback' else 2200000 if self.path in AUDIO_PATHS else 800000 if self.path=='/api/vocab/import' else 40000 if self.path in ('/api/next/import','/api/next/essay') else 20000
+  if length>limit and self.path in AUDIO_PATHS:return self.send({'error':TOO_LONG,'code':'too_long'},413)
   if length<1 or length>limit:return self.send({'error':'请求大小不正确'},400)
   if self.headers.get('Sec-Fetch-Site')=='cross-site':return self.send({'error':'不允许跨站请求'},403)
   if not api_open('POST',self.path.split('?')[0]):return self.send({'error':'接口不存在'},404)
@@ -556,7 +565,7 @@ class Handler(BaseHTTPRequestHandler):
     u=self.user(c)
     # Open routes still record progress for a signed-in learner: only with the session's CSRF token (else as a guest).
     # An account that has not agreed to 数据存放在香港 (privacy_service) records nothing: as a guest here, held below.
-    signed=bool(u) and hmac.compare_digest(self.headers.get('X-CSRF-Token',''),u['csrf']) and __import__('privacy_service').storage(u)=='ok'
+    signed=bool(u) and hmac.compare_digest(self.headers.get('X-CSRF-Token',''),u['csrf']) and __import__('privacy_service').consented(u)
     result=next_service.post_public(c,u['id'] if signed else None,path,data)
     if result is not None:return self.send(*result)
     if not u:return self.send({'error':'请先登录'},401)
@@ -623,6 +632,7 @@ class Handler(BaseHTTPRequestHandler):
    if not hmac.compare_digest(self.headers.get('X-CSRF-Token',''),u['csrf']):return self.send({'error':'安全校验失败，请刷新页面'},403)
    if path=='/api/account/age':return self.send(*__import__('privacy_service').set_age(c,u['id'],data))  # 年龄段, asked later
    if path=='/api/account/storage':return self.send(*__import__('privacy_service').set_storage(c,u['id'],data))  # 数据存放在香港
+   if path=='/api/account/terms':return self.send(*__import__('privacy_service').set_terms(c,u['id'],data))  # 用户协议和隐私和数据
    held=__import__('privacy_service').storage_held(u,path) or __import__('privacy_service').gate(u,path)
    if held:return self.send(*held)
    if path=='/api/account/delete':

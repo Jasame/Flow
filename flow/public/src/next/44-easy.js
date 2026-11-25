@@ -1,14 +1,14 @@
   /* ---------- easy reading: a lot of easy text, read fast, no tasks ---------- */
   async function easyView() {
     const d = await api('/api/next/easy' + guestQuery(true)), st = d.stats;
-    view.innerHTML = `<div class="stack"><div><span class="kicker">轻松读</span><h1 class="h1">读得多，比读得难更重要</h1>
-        <p class="muted small">${esc(d.note)}</p></div>
+    view.innerHTML = `<div class="stack"><div><h1 class="h1">轻松读</h1>
+        <p class="muted small">读得多，比读得难更重要。${esc(d.note)}</p></div>
       ${st ? `<div class="easy-stats"><div><b>${st.week_words.toLocaleString()}</b><span class="tiny muted">这周读了（词）</span></div>
         <div><b>${st.avg_wpm || '—'}</b><span class="tiny muted">阅读速度（词/分钟）</span></div><div><b>${st.reads}</b><span class="tiny muted">一共读了（篇）</span></div></div>
         ${st.first_wpm && st.avg_wpm > st.first_wpm ? `<p class="small cheer">比刚开始快了 ${st.avg_wpm - st.first_wpm} 词/分钟。</p>` : ''}` : '<p class="muted small">登录后会记下你读了多少、读得多快。</p>'}
       <div class="section stack-s"><div class="row between"><h2 class="h2">今天可以读</h2><span class="pill">${esc(d.target)}</span></div>
         <div class="grid-list">${d.items.map(m => `<a class="card flat mini" href="#/easy/${encodeURIComponent(m.id)}"><span class="t">${esc(m.title)}</span>
-          <span class="meta"><span class="pill">${m.level}</span></span><span class="p">${esc(m.preview_en)}</span><span class="tiny muted">${m.words} 词 · 约 ${Math.max(1, Math.round(m.words / 120))} 分钟${m.ai ? ' ' + aiTag() : ''}</span></a>`).join('') || '<div class="empty"><p>这个难度的材料都读过了，明天会有新的。</p></div>'}</div></div>
+          ${m.level !== d.target ? `<span class="meta"><span class="pill">${m.level}</span></span>` : ''}<span class="p">${esc(m.preview_en)}</span><span class="tiny muted">${m.words} 词 · 约 ${Math.max(1, Math.round(m.words / 120))} 分钟${m.ai ? ' ' + aiTag() : ''}</span></a>`).join('') || '<div class="empty"><p>这个难度的材料都读过了，明天会有新的。</p></div>'}</div></div>
       <p class="tiny muted">怎么读：不查词也能猜个大概就继续往下读；实在影响理解再点词。读完选一下难不难就行。</p></div>`;
   }
   async function easyRead(id) {

@@ -30,6 +30,7 @@ flow/VERTEX_SETUP.md
 flow/WORDBOOKS-OPEN.md
 flow/WORDBOOKS.md
 flow/ability_radar.py
+flow/access_check.py
 flow/account_data.py
 flow/account_service.py
 flow/adaptive_service.py
@@ -320,6 +321,7 @@ flow/studio_setup.py
 flow/survey_service.py
 flow/teacher_service.py
 flow/tests/test_ability_radar.py
+flow/tests/test_access_check.py
 flow/tests/test_account_data.py
 flow/tests/test_adaptive.py
 flow/tests/test_admin_roles.py
@@ -383,6 +385,7 @@ flow/tests/test_quota.py
 flow/tests/test_reference.py
 flow/tests/test_reliability.py
 flow/tests/test_relisten.py
+flow/tests/test_request_size.py
 flow/tests/test_rewrite_minimal.py
 flow/tests/test_search_route.py
 flow/tests/test_shadow_eval.py
@@ -391,6 +394,7 @@ flow/tests/test_speak_rounds.py
 flow/tests/test_survey.py
 flow/tests/test_teachers.py
 flow/tests/test_time_budget.py
+flow/tests/test_tour.py
 flow/tests/test_trial_survey.py
 flow/tests/test_tts.py
 flow/tests/test_updates.py
@@ -408,6 +412,7 @@ flow/tools/build_graded.py
 flow/tools/build_reference.py
 flow/tools/revise_pedagogy.py
 flow/topic_guard.py
+flow/tour_service.py
 flow/tts_service.py
 flow/updates_service.py
 flow/upgrade.sh

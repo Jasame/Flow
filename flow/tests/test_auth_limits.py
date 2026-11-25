@@ -24,7 +24,7 @@ class AuthLimitTests(unittest.TestCase):
         app.RATE.clear()
         app.init()
         with app.db() as c:
-            c.execute('INSERT INTO users(username,password,email,storage_ok) VALUES(?,?,?,1)', ('learner', app.password(PW), 'learner@example.com'))
+            c.execute('INSERT INTO users(username,password,email,storage_ok,terms_version) VALUES(?,?,?,1,?)', ('learner', app.password(PW), 'learner@example.com', __import__('privacy_service').CONSENT_VERSION))
         self.srv = ThreadingHTTPServer(('127.0.0.1', 0), app.Handler); threading.Thread(target=self.srv.serve_forever, daemon=True).start()
         self.cookie = ''; self.csrf = ''
 
@@ -114,7 +114,7 @@ class AuthLimitTests(unittest.TestCase):
     def test_unknown_emails_and_taken_usernames_count_too(self):
         with patch.object(auth_service, 'PROBES', 2):
             self.assertEqual(self.call('/api/login', {'method': 'code', 'email': 'nobody@example.com', 'code': '123456'})[0], 404)
-            self.assertEqual(self.call('/api/register', {'username': 'learner', 'password': PW, 'age': '18+', 'storage': True})[0], 409)
+            self.assertEqual(self.call('/api/register', {'username': 'learner', 'password': PW, 'age': '18+', 'storage': True, 'terms': True})[0], 409)
             self.assertEqual(self.call('/api/auth/code', {'email': 'someone@example.com', 'purpose': 'register'})[1].get('code'), 'busy')
 
     # ---- the account's own password typed again

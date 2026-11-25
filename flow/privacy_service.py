@@ -46,9 +46,11 @@ def schema(c):
         c.execute('ALTER TABLE users ADD COLUMN guardian_ok REAL')
     if 'age_set' not in cols:
         c.execute('ALTER TABLE users ADD COLUMN age_set REAL')
-    for col in ('storage_ok', 'storage_no'):  # 数据存放在香港: when agreed / when declined or withdrawn
+    for col in ('storage_ok', 'storage_no', 'terms_ok'):  # 数据存放在香港: when agreed / declined or withdrawn; 用户协议: when agreed
         if col not in cols:
             c.execute(f'ALTER TABLE users ADD COLUMN {col} REAL')
+    if 'terms_version' not in cols:  # which 用户协议 and 隐私和数据 (CONSENT_VERSION) were agreed to
+        c.execute('ALTER TABLE users ADD COLUMN terms_version TEXT')
     c.execute('CREATE TABLE IF NOT EXISTS consent_events(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), '
               'kind TEXT NOT NULL, agree INTEGER NOT NULL, version TEXT NOT NULL, created REAL NOT NULL)')
 
@@ -112,6 +114,8 @@ def info(u):
         if out['storage'] == 'no':  # the day the paused account goes (Beijing date)
             import datetime
             out['storage_until'] = datetime.datetime.fromtimestamp(u['storage_no'] + PAUSE_DAYS * 86400, datetime.timezone(datetime.timedelta(hours=8))).strftime('%Y-%m-%d')
+    if 'terms_version' in keys:
+        out['terms'] = terms(u)
     return out
 
 
@@ -120,9 +124,9 @@ def info(u):
 STORAGE_TEXT = '我同意语流在香港的服务器上存放和处理我的账号和学习数据'
 STORAGE_VERSION = '2026-11-25'  # the wording agreed to (STORAGE_TEXT and its note in 81-privacy.js); a new wording, a new version
 PAUSE_DAYS = 30
-STORAGE_OPEN = {'/api/account/storage', '/api/account/delete', '/api/logout', '/api/password'}
+STORAGE_OPEN = {'/api/account/storage', '/api/account/terms', '/api/account/delete', '/api/logout', '/api/password'}
 STORAGE_HELD = ({'error': '这个账号还没有同意把数据存放在香港的服务器上，学习暂停了。同意以后就能继续；也可以导出数据或注销账号。',
-                 'code': 'storage'}, 403)
+                 'code': 'storage', 'need': 'storage'}, 403)
 
 
 def storage(u):
@@ -140,8 +144,8 @@ def check_storage(data):
     return {'error': '注册前，请先勾选同意把账号和学习数据存放在香港的服务器上', 'field': 'storage', 'code': 'storage'}, 400
 
 
-def _event(c, uid, agree, now):
-    c.execute("INSERT INTO consent_events(user_id, kind, agree, version, created) VALUES(?, 'storage', ?, ?, ?)", (uid, int(agree), STORAGE_VERSION, now))
+def _event(c, uid, agree, now, kind='storage', version=STORAGE_VERSION):
+    c.execute('INSERT INTO consent_events(user_id, kind, agree, version, created) VALUES(?, ?, ?, ?, ?)', (uid, kind, int(agree), version, now))
 
 
 def agreed(c, uid, now=None):
@@ -157,14 +161,68 @@ def set_storage(c, uid, data):
     c.execute('UPDATE users SET storage_ok=?, storage_no=? WHERE id=?', (now if agree else None, None if agree else now, uid))
     _event(c, uid, agree, now)
     c.commit()
-    return {'ok': True, **info(c.execute('SELECT age_band, guardian_ok, storage_ok, storage_no FROM users WHERE id=?', (uid,)).fetchone())}, 200
+    return {'ok': True, **info(c.execute('SELECT age_band, guardian_ok, storage_ok, storage_no, terms_version FROM users WHERE id=?', (uid,)).fetchone())}, 200
 
 
 def storage_held(u, path):
-    """403 for any signed-in request but STORAGE_OPEN while the account has not agreed; else None."""
-    if storage(u) != 'ok' and path not in STORAGE_OPEN:
+    """403 for any signed-in request but STORAGE_OPEN while the account has not agreed (to the storage in Hong Kong or
+    to the current 用户协议 and 隐私和数据); else None."""
+    if path in STORAGE_OPEN:
+        return None
+    if storage(u) != 'ok':
         return STORAGE_HELD
-    return None
+    return TERMS_HELD if terms(u) != 'ok' else None
+
+
+def consented(u):
+    """Both answers on record: the account's learning may be processed."""
+    return storage(u) == 'ok' and terms(u) == 'ok'
+
+
+# ---------------------------------------------------------------- 用户协议和隐私说明 (the basic agreement, 2026-11-25)
+# The user's choice (A0, card): a short 用户协议, agreed together with 隐私和数据 in one tick at sign-up, next to (never
+# merged with) the separate 数据存放在香港 tick. An older account, or one that agreed to an earlier version, is asked
+# once on the same page as the storage question. A new version of either text (its 生效日期, guide.md) asks everyone
+# again: tests/test_privacy.py keeps TERMS_VERSION and PRIVACY_VERSION equal to the two chapters' 生效日期.
+
+TERMS_DRAFT = '0-draft'          # the 用户协议 text is not approved yet: this version is never shipped (test_privacy)
+TERMS_VERSION = '2026-11-25'     # # 语流用户协议 {#terms}: its 生效日期 (the owner approved the text, 「可以上线」, 2026-11-25)
+PRIVACY_VERSION = '2026-11-25'   # # 隐私和数据 {#privacy}: its 生效日期
+CONSENT_VERSION = f'{TERMS_VERSION}/{PRIVACY_VERSION}'
+TERMS_TEXT = '我已阅读并同意《用户协议》和《隐私和数据》'
+# code 'storage' for both holds, 'need' says which answer is missing: the Android App 1.0.1 and 1.0.2 out there pause
+# their reminders on code 'storage' only (C2), so a new code would leave them reminding from stale numbers.
+TERMS_HELD = ({'error': '请先阅读并同意《用户协议》和《隐私和数据》，同意以后就能继续；也可以导出数据或注销账号。', 'code': 'storage', 'need': 'terms'}, 403)
+
+
+def terms(u):
+    """'ok' when the account agreed to the current CONSENT_VERSION, else None (never asked, or an earlier version)."""
+    keys = u.keys() if u is not None and hasattr(u, 'keys') else ()
+    return 'ok' if 'terms_version' in keys and u['terms_version'] == CONSENT_VERSION else None
+
+
+def check_terms(data):
+    """Before an account is made: the 用户协议 and 隐私和数据 tick is required (an error answer, or None)."""
+    if data.get('terms') is True:
+        return None
+    return {'error': '注册前，请先阅读并勾选同意《用户协议》和《隐私和数据》', 'field': 'terms', 'code': 'terms'}, 400
+
+
+def agreed_terms(c, uid, now=None):
+    """The account (just made, or asked again) agreed to CONSENT_VERSION. No commit here."""
+    now = now or time.time()
+    c.execute('UPDATE users SET terms_ok=?, terms_version=? WHERE id=?', (now, CONSENT_VERSION, uid))
+    _event(c, uid, True, now, 'terms', CONSENT_VERSION)
+
+
+def set_terms(c, uid, data):
+    """POST /api/account/terms {agree: true}: the current version agreed. There is nothing to decline: without it the
+    account stays held (only export, delete, sign out, the password)."""
+    if data.get('agree') is not True:
+        return {'error': '勾选同意以后才能继续', 'field': 'terms', 'code': 'terms'}, 400
+    agreed_terms(c, uid)
+    c.commit()
+    return {'ok': True, **info(c.execute('SELECT age_band, guardian_ok, storage_ok, storage_no, terms_version FROM users WHERE id=?', (uid,)).fetchone())}, 200
 
 
 def needs_guardian(u):

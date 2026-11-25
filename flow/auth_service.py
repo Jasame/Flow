@@ -224,7 +224,7 @@ def register(c,data,hash_password,ip=''):
  if c.execute('SELECT 1 FROM users WHERE username=?',(name,)).fetchone():probed(c,ip);return None,({'error':'这个用户名已被使用，换一个试试'},409)
  pv=__import__('privacy_service');problem=None if link else pv.check_signup(data)  # 年龄段; 不满 14 岁 needs the guardian ticked
  if problem:return None,problem
- problem=pv.check_storage(data)  # 数据存放在香港: its own tick, teachers too
+ problem=pv.check_storage(data) or pv.check_terms(data)  # 数据存放在香港 and 用户协议+隐私和数据: two ticks, teachers too
  if problem:return None,problem
  taken=({'error':'这个老师注册链接刚刚被用掉了。需要的话，请联系语流重新发一个。','code':'teacher_link'},410)
  if not account.configured():
@@ -232,7 +232,7 @@ def register(c,data,hash_password,ip=''):
   c.execute('INSERT INTO users(username,password,created) VALUES(?,?,?)',(name,hash_password(p),time.time()))
   u=c.execute('SELECT * FROM users WHERE username=?',(name,)).fetchone()
   if link:ts.made(c,link['id'],u['id'])
-  pv.agreed(c,u['id']);_signed_up(c,ip,invited);c.commit()
+  pv.agreed(c,u['id']);pv.agreed_terms(c,u['id']);_signed_up(c,ip,invited);c.commit()
   if not link:pv.store(c,u['id'],data)
   return c.execute('SELECT * FROM users WHERE id=?',(u['id'],)).fetchone(),None
  if not email:return None,({'error':'请输入有效的邮箱地址'},400)
@@ -243,7 +243,7 @@ def register(c,data,hash_password,ip=''):
  c.execute('INSERT INTO users(username,password,email,created) VALUES(?,?,?,?)',(name,hash_password(p),email,time.time()))
  u=c.execute('SELECT * FROM users WHERE username=?',(name,)).fetchone()
  if link:ts.made(c,link['id'],u['id'])
- pv.agreed(c,u['id']);_signed_up(c,ip,invited);c.commit()
+ pv.agreed(c,u['id']);pv.agreed_terms(c,u['id']);_signed_up(c,ip,invited);c.commit()
  if not link:pv.store(c,u['id'],data)
  return c.execute('SELECT * FROM users WHERE id=?',(u['id'],)).fetchone(),None
 
