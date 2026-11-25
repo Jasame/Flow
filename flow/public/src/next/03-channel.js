@@ -16,12 +16,15 @@
     save('flow-channel', 'beta');
     return before;
   })();
+  // In Flow's 内测 apps (window.FlowApp: iOS, Android, desktop) the learner installed the 内测版 on purpose, and a link to
+  // flowlang.cn would leave the app for the system browser: the line stays, without the link, and the sheet is not shown.
+  const IN_FLOW_APP = !!window.FlowApp;
   if (BETA) {
     document.title = '内测 · ' + document.title;
-    document.getElementById('bar').insertAdjacentHTML('afterend', `<p class="beta-bar" id="betaBar" role="note"><b>内测版</b><span>先试新功能，账号和数据与正式版分开</span><a href="${MAIN_SITE}/" data-tap="beta-main">去正式版 flowlang.cn</a></p>`);
+    document.getElementById('bar').insertAdjacentHTML('afterend', `<p class="beta-bar" id="betaBar" role="note"><b>内测版</b><span>先试新功能，账号和数据与正式版分开</span>${IN_FLOW_APP ? '' : `<a href="${MAIN_SITE}/" data-tap="beta-main">去正式版 flowlang.cn</a>`}</p>`);
   }
   // Once per phone, after the first page is up.
-  if (BETA_BEFORE !== null) setTimeout(() => openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">这里是语流内测版</h2>
+  if (BETA_BEFORE !== null && !IN_FLOW_APP) setTimeout(() => openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">这里是语流内测版</h2>
     ${BETA_BEFORE ? '<p><b>语流的网址改成了 flowlang.cn。</b></p><p class="small">你的账号和学习记录都在 flowlang.cn，用原来的用户名和密码登录就行（换了网址，要重新登录一次）。加到了手机桌面的话，也请在 flowlang.cn 重新添加一次。</p>'
       : '<p>语流正式版的网址是 <b>flowlang.cn</b>。</p>'}
     <p class="small muted">这里（flow.jasa.hk）用来先试还没正式上线的新功能。账号和数据都和正式版分开，内测期间可能会清空。</p>

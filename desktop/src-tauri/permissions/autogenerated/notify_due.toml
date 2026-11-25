@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-notify-due"
+description = "Enables the notify_due command without any pre-configured scope."
+commands.allow = ["notify_due"]
+
+[[permission]]
+identifier = "deny-notify-due"
+description = "Denies the notify_due command without any pre-configured scope."
+commands.deny = ["notify_due"]

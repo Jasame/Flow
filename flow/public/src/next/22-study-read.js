@@ -84,11 +84,11 @@
       const ls = lines();
       // One row of tools (中文导读, 改写成我的难度, 伴读) and one line of colour key and hints, so the text starts on the
       // first screen of a phone; the summary opens under the row.
-      const variantBar = m.variant ? `<div class="seg" role="tablist"><button data-ver="v" aria-selected="${!st.showOriginal}">适合我的版本（${m.variant.level} · AI 改写）</button><button data-ver="o" aria-selected="${st.showOriginal}">原文（${m.original_level}）</button><span></span></div>` : '';
+      const variantBar = m.variant ? `<div class="seg" role="tablist"><button data-ver="v" aria-selected="${!st.showOriginal}">适合我的版本（${m.variant.level} · AI 改写）</button><button data-ver="o" aria-selected="${st.showOriginal}">原文（${m.original_level}）</button><span></span></div>${st.showOriginal ? '' : aiMark('这一版由 AI 按你的难度改写，原文没有改动')}` : '';
       pane.innerHTML = `<div class="read-tools">${m.summary_zh ? '<button class="chip small" id="zhGuide" type="button" aria-expanded="false" aria-controls="zhText">中文导读</button>' : ''}
           ${m.can_variant ? `<button class="chip small" id="mkVar" type="button" title="这篇原文是 ${m.original_level}，你选的是 ${m.user_level}">改写成 ${m.user_level} 难度</button>` : ''}
           <button class="btn small" id="readAlong" title="边听边看文字，读到哪句亮哪句">${playIcon(false, 14)}<span>伴读</span></button>
-          <button class="link tiny" id="alongRestart" type="button" hidden>从头开始</button></div>
+          <button class="link tiny" id="alongRestart" type="button" hidden>从头开始</button>${aiVoice()}</div>
         <p class="tiny muted sv-prep" id="svPrep" role="status" hidden></p>
         ${m.summary_zh ? `<p class="guide-zh small" id="zhText" hidden>${esc(m.summary_zh)}</p>` : ''}${variantBar}
         <div class="read-hint tiny muted"><div class="legend"><span>本篇词汇</span><span class="h">可能超出你的水平</span>${(m.mine || []).length ? '<span class="m">你在背的词</span>' : ''}</div>
@@ -130,7 +130,7 @@
       };
       const stopAlong = () => LONG.stop();
       const readAlong = from => LONG.start({
-        key: RKEY, texts: ls, nm: nmNow, pack: id, title: m.title, label: i => `伴读 · 第 ${i + 1} / ${ls.length} 句`,
+        key: RKEY, texts: ls, nm: nmNow, pack: id, title: m.title, label: i => `第 ${i + 1} / ${ls.length} 句`,  // the 「AI 朗读」 mark and the lit sentence say what plays
         onState: (state, i, note) => {
           setRa(); prep.textContent = note || ''; prep.hidden = !note;
           if (state === 'idle') { alongShown = -1; reader.querySelectorAll('.now,.cur').forEach(x => x.classList.remove('now', 'cur')); return; }

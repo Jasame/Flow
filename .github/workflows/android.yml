@@ -1,0 +1,108 @@
+name: Android
+# The Android app (android/, 语流 21): the Beta debug build, its unit tests and lint, on every change under android/,
+# native/ (the FlowApp wrapper the apps share, copied in when the app is packaged) or this file. The website's runs are unchanged: tests.yml skips its shares for a pull request that touches only
+# the native apps (tools/run_tests.py NATIVE_APPS). Not a required check: a path-filtered check never reports on a
+# website pull request, so requiring it would block them all. Whoever merges an Android pull request first checks
+# this run is green. CI belongs to 语流 15.
+#
+# On main (push, or Run by hand on main), the job beta-apk also makes the 语流内测 APK signed with the beta key (the
+# user chose a key of its own for the beta, 2026-11-25) and keeps it as the artifact flow-beta-apk for 30 days: the owner
+# installs it from here whenever, each one over the one before (versionCode 100 + the run number). The key is a secret of
+# the environment android-beta-signing, which GitHub gives to jobs on main only: no pull request's code can read it, even
+# one that changes this file (语流 15). Never run on the MSI's self-hosted runners. The 语流 (prod) key never leaves the
+# owner's Mac (android/tools/release-apk.sh).
+# Pull requests and main keep the Beta debug APK and the reports for 14 days. Sending an APK to anyone, or putting it
+# anywhere else, needs the owner's yes first. Device tests (connectedBetaDebugAndroidTest) need an emulator and are not
+# run here yet.
+on:
+  pull_request:
+    paths: ['android/**', 'native/**', '.github/workflows/android.yml']
+  push:
+    branches: [main]
+    paths: ['android/**', 'native/**', '.github/workflows/android.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      # caches Gradle and checks gradle-wrapper.jar against Gradle's published checksums
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Android SDK (compileSdk and targetSdk 37)
+        run: |
+          sdk="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$sdk" --licenses > /dev/null || true
+          "$sdk" --install "platforms;android-37.0" "build-tools;37.0.0" > /dev/null
+          ls "$ANDROID_HOME/platforms" "$ANDROID_HOME/build-tools"
+      - name: Build, unit tests, lint
+        run: ./gradlew --no-daemon assembleBetaDebug testBetaDebugUnitTest lintBetaDebug
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: flow-android-beta-debug
+          retention-days: 14
+          if-no-files-found: ignore
+          path: |
+            android/app/build/outputs/apk/beta/debug/*.apk
+            android/app/build/reports/
+            android/app/build/test-results/
+
+  beta-apk:
+    # the signed 语流内测 APK, after the checks above passed, on main only (the environment's rule says so too)
+    needs: android
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: android-beta-signing
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Android SDK (compileSdk and targetSdk 37)
+        run: |
+          sdk="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$sdk" --licenses > /dev/null || true
+          "$sdk" --install "platforms;android-37.0" "build-tools;37.0.0" > /dev/null
+      # built without the key in sight: Gradle, its plugins and dependencies never see it
+      - name: Release build (unsigned)
+        run: |
+          export FLOW_VERSION_CODE=$((100 + GITHUB_RUN_NUMBER))
+          ./gradlew --no-daemon assembleBetaRelease
+      # the only step with the key: zipalign and apksigner, nothing else
+      - name: Sign 语流内测 APK
+        env:
+          FLOW_BETA_KEYSTORE: ${{ secrets.FLOW_BETA_KEYSTORE }}
+          FLOW_BETA_KS_PW: ${{ secrets.FLOW_BETA_KS_PW }}
+        run: |
+          umask 077
+          trap 'rm -f "$RUNNER_TEMP/flow-beta.jks"' EXIT
+          printf %s "$FLOW_BETA_KEYSTORE" | base64 -d > "$RUNNER_TEMP/flow-beta.jks"
+          FLOW_APK_PREBUILT=1 FLOW_BETA_KEYSTORE_FILE="$RUNNER_TEMP/flow-beta.jks" tools/release-apk.sh beta
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flow-beta-apk
+          retention-days: 30
+          path: android/dist/flow-beta-*.apk

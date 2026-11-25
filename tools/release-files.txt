@@ -82,6 +82,7 @@ flow/corpus_data/pilot/flow-pack-001.json
 flow/corpus_data/pilot/pilot-001-audio.json
 flow/corpus_data/revised-packs.json
 flow/corpus_data/shadow-eval.json
+flow/corpus_data/updates.json
 flow/corpus_data/v5/SPEC.md
 flow/corpus_data/v5/campus.A2.2.json
 flow/corpus_data/v5/campus.A2.3.json
@@ -240,6 +241,9 @@ flow/progress_service.py
 flow/public/about.css
 flow/public/about.html
 flow/public/about.js
+flow/public/about/app-android.jpg
+flow/public/about/app-mac.jpg
+flow/public/about/app-windows.jpg
 flow/public/about/check-d.jpg
 flow/public/about/check.jpg
 flow/public/about/desk-d.jpg
@@ -320,6 +324,7 @@ flow/tests/test_adaptive.py
 flow/tests/test_admin_roles.py
 flow/tests/test_ai_cost.py
 flow/tests/test_ai_eval.py
+flow/tests/test_ai_mark.py
 flow/tests/test_ai_routing.py
 flow/tests/test_ai_shape.py
 flow/tests/test_ai_stream.py
@@ -335,6 +340,7 @@ flow/tests/test_corpus.py
 flow/tests/test_corpus_v5.py
 flow/tests/test_daily_knowledge.py
 flow/tests/test_daily_line.py
+flow/tests/test_daily_pause.py
 flow/tests/test_exam_sprint.py
 flow/tests/test_feedback.py
 flow/tests/test_field.py
@@ -361,6 +367,7 @@ flow/tests/test_meaning_fixes.py
 flow/tests/test_media.py
 flow/tests/test_migration.py
 flow/tests/test_next.py
+flow/tests/test_no_gemini.py
 flow/tests/test_origin_install.py
 flow/tests/test_package.py
 flow/tests/test_pedagogy.py
@@ -382,6 +389,7 @@ flow/tests/test_teachers.py
 flow/tests/test_time_budget.py
 flow/tests/test_trial_survey.py
 flow/tests/test_tts.py
+flow/tests/test_updates.py
 flow/tests/test_ux_round.py
 flow/tests/test_vertex.py
 flow/tests/test_vocab.py
@@ -395,7 +403,9 @@ flow/time_budget.py
 flow/tools/build_graded.py
 flow/tools/build_reference.py
 flow/tools/revise_pedagogy.py
+flow/topic_guard.py
 flow/tts_service.py
+flow/updates_service.py
 flow/upgrade.sh
 flow/user_guide.py
 flow/vertex_auth.py

@@ -24,7 +24,7 @@
   // The feedback of either part: overall estimate, the four criteria (a bar each, what went well, what to do next),
   // what was said, a model answer to listen to, and the corrections (already in the mistake book).
   function ieltsFeedbackHTML(r, said) {
-    return `<div class="result enter stack ielts-fb">
+    return `<div class="result enter stack ielts-fb">${aiMark('估计分、点评和示范回答由 AI 生成，不是官方成绩')}
         <div class="card ielts-top"><div class="ielts-overall"><b>${r.overall == null ? '—' : '约 ' + bandTxt(r.overall)}</b><span class="small">总体估计</span></div>
           <p class="tiny ielts-note">${esc(r.notice)}</p>${r.summary ? `<p class="small">${esc(r.summary)}</p>` : ''}</div>
         <div class="stack-s ielts-crit">${r.criteria.map(c => `<div class="crit">
@@ -52,7 +52,7 @@
     const answers = [];
     let q = 0;
     view.innerHTML = `${IELTS_BACK}<div class="stack"><div><span class="kicker">雅思口语 Part 1 · 练习</span><h1 class="h1">${esc(x.title)}</h1><div class="title-en">${esc(x.title_en)}</div>
-        <p class="small">考官一题一题问，不会打断你。每题说 2–4 句：先直接回答，再加一个理由或例子。可以说，也可以打字（打字不评发音）。</p></div>
+        <div class="ai-line">${aiVoice()}<span>考官的声音由 AI 合成</span></div><p class="small">考官一题一题问，不会打断你。每题说 2–4 句：先直接回答，再加一个理由或例子。可以说，也可以打字（打字不评发音）。</p></div>
       <div class="chat" id="chat"></div>
       <div id="ieIn" class="stack-s" hidden><div class="tiny muted" id="ieQn"></div>
         <div class="chat-in"><textarea id="ieText" rows="2" maxlength="600" lang="en" enterkeyhint="send" placeholder="用英文回答，或者点 ● 说出来"></textarea>${recBtn('ieMic', '说出来')}<button class="btn primary" id="ieSend">发送</button></div>
@@ -90,7 +90,7 @@
       catch (e) { toast(e.message); busy(false); if (text) view.querySelector('#ieText').value = text; return; }
       busy(false);
       const said = (r.heard || text || '').trim() || '[听不清]';
-      bubble('me', said, r.better ? `<details class="better"><summary class="tiny">这句可以更好</summary><div class="small text">${esc(r.better.text)}</div>${r.better.why ? `<div class="tiny muted">${esc(r.better.why)}</div>` : ''}</details>` : '');
+      bubble('me', said, r.better ? `<details class="better"><summary class="tiny">这句可以更好 ${aiTag()}</summary><div class="small text">${esc(r.better.text)}</div>${r.better.why ? `<div class="tiny muted">${esc(r.better.why)}</div>` : ''}</details>` : '');
       answers.push({ q, text: said.slice(0, 1200), note: r.note || '', spoken: !!blob });
       q += 1;
       if (q >= x.questions.length) { bubble('ai', 'Thank you. That\'s the end of Part 1.'); feedback(); return; }

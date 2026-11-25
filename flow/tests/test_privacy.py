@@ -51,7 +51,7 @@ class Privacy(unittest.TestCase):
 
     def register(self, name, **extra):
         self.n += 1  # each its own address: sign-ups share a ceiling per address
-        return self.call('/api/register', {'username': name, 'password': PW, **extra}, {'X-Real-IP': f'10.8.0.{self.n}'})
+        return self.call('/api/register', {'username': name, 'password': PW, 'storage': True, **extra}, {'X-Real-IP': f'10.8.0.{self.n}'})
 
     def signed(self, name, **extra):
         st, body, h = self.register(name, **extra)
@@ -62,6 +62,84 @@ class Privacy(unittest.TestCase):
 
     def console(self, path):
         return self.call('/flow/api' + path, headers={'Cf-Access-Authenticated-User-Email': BOSS}, srv=self.admin, raw=path.endswith('.csv'))[:2]
+
+
+
+class StorageTests(Privacy):
+    """数据存放在香港 (the user, 2026-11-25): its own tick at sign-up; an older account is held until it answers; 不同意 or
+    撤回 pauses the account (only agree again, export, delete, sign out, the password), no mail, out of class numbers,
+    PAUSE_DAYS to come back; every answer is kept with the wording's version."""
+
+    def events(self, uid):
+        with app.db() as c:
+            return [tuple(r) for r in c.execute('SELECT agree, version FROM consent_events WHERE user_id=? ORDER BY id', (uid,))]
+
+    def test_sign_up_needs_its_own_tick(self):
+        for bad in (False, None, 'yes'):
+            st, body, _ = self.register('dawei', age='18+', storage=bad)
+            self.assertEqual((st, body['field'], body['code']), (400, 'storage', 'storage'), bad)
+        with app.db() as c:
+            self.assertIsNone(c.execute("SELECT 1 FROM users WHERE username='dawei'").fetchone())  # no account was made
+        _, me = self.signed('dawei', age='18+')
+        self.assertEqual(me['storage'], 'ok')
+        self.assertEqual(self.events(me['id']), [(1, pv.STORAGE_VERSION)])
+
+    def test_an_older_account_is_held_until_it_answers(self):
+        h, me = self.signed('laowang', age='18+')
+        with app.db() as c:
+            c.execute('UPDATE users SET storage_ok=NULL WHERE id=?', (me['id'],)); c.commit()  # as every account before 2026-11-25
+        self.assertIsNone(self.call('/api/session', headers=h)[1]['user']['storage'])
+        st, body, _ = self.call('/api/next/class', headers=h)
+        self.assertEqual((st, body['code']), (403, 'storage'))
+        self.assertEqual(self.call('/api/next/class/leave', {}, h)[0], 403)  # a write too
+        st, home, _ = self.call('/api/next/home', headers=h)  # the page starts: a guest's home, with the session to ask
+        self.assertEqual((st, home['session']['user']['username'], home['session']['user']['storage']), (200, 'laowang', None))
+        st, r, _ = self.call('/api/account/storage', {'agree': True}, h)
+        self.assertEqual((st, r['storage']), (200, 'ok'))
+        self.assertEqual(self.call('/api/next/class', headers=h)[0], 200)
+
+    def test_declining_pauses_the_account_and_leaves_export_password_delete(self):
+        h, me = self.signed('xiaolin', age='18+')
+        st, r, _ = self.call('/api/account/storage', {'agree': False}, h)
+        self.assertEqual((st, r['storage']), (200, 'no'))
+        self.assertRegex(r['storage_until'], r'^\d{4}-\d{2}-\d{2}$')  # the day it goes, PAUSE_DAYS on
+        self.assertEqual(self.call('/api/next/class', headers=h)[1]['code'], 'storage')
+        self.assertEqual(self.call('/api/next/export/records.json', headers=h, raw=True)[0], 200)
+        st, r, _ = self.call('/api/account/storage', {'agree': True}, h)  # 重新同意: goes on
+        self.assertEqual(r['storage'], 'ok')
+        self.assertEqual(self.events(me['id']), [(1, pv.STORAGE_VERSION), (0, pv.STORAGE_VERSION), (1, pv.STORAGE_VERSION)])
+        self.call('/api/account/storage', {'agree': False}, h)
+        self.assertEqual(self.call('/api/password', {'old_password': PW, 'new_password': 'another long one'}, h)[0], 200)  # paused, still allowed
+
+    def test_a_paused_account_gets_no_weekly_mail_and_is_out_of_class_numbers(self):
+        import datetime, class_service as cs, progress_service as ps
+        sunday = datetime.datetime(2026, 11, 29, 21, tzinfo=datetime.timezone(datetime.timedelta(hours=8))).timestamp()
+        ids = {}
+        for n in ('xiaolin', 'xiaowang'):
+            h, me = self.signed(n, age='18+')
+            ids[n] = me['id']
+        with app.db() as c:
+            for n, uid in ids.items():
+                c.execute('UPDATE users SET email=? WHERE id=?', (f'{n}@example.com', uid))
+                c.execute('INSERT OR REPLACE INTO next_progress VALUES(?,?,?,?)', (uid, 'p1', 'listen', sunday - 2 * 86400))
+            cid = c.execute("INSERT INTO classes(name, code, teacher, by, created, updated) VALUES('高一（3）班', 'TESTC2', NULL, 't', ?, ?)", (sunday, sunday)).lastrowid
+            for uid in ids.values():
+                c.execute('INSERT INTO class_members(user_id, class_id, joined_at) VALUES(?,?,?)', (uid, cid, sunday - 9 * 86400))
+            c.commit()
+            pv.set_storage(c, ids['xiaowang'], {'agree': False})
+            sent = []
+            ps.send_weekly(c, sunday, send=lambda to, *a, **k: sent.append(to))
+            self.assertIn('xiaolin@example.com', sent)
+            self.assertNotIn('xiaowang@example.com', sent)
+            members = cs._members(c, cs._class(c, cid))
+        self.assertEqual([u for u, _ in members], [ids['xiaolin']])
+
+    def test_the_guardian_tick_says_hong_kong_too(self):
+        self.assertIn('香港', pv.NEED_GUARDIAN)
+        self.assertIn('录音不保存', pv.NEED_GUARDIAN)
+        js = (HERE / 'public/src/next/81-privacy.js').read_text(encoding='utf-8')
+        self.assertIn('也同意我的账号和学习数据存放在香港的服务器上', js)
+        self.assertIn(pv.STORAGE_TEXT, js)  # the page and the server say the same words
 
 
 class SignUpTests(Privacy):
@@ -227,7 +305,7 @@ class PromiseTests(unittest.TestCase):
     def test_the_privacy_chapter_says_what_the_site_does(self):
         import user_guide as ug
         ch = next(c for c in ug.parse()['chapters'] if c['id'] == 'privacy')
-        for words in ('香港的服务器', '保留 14 天', '最迟 14 天后删除', '阿里云百炼', 'Gemini', '不会被拿去训练', '不带你的用户名',
+        for words in ('香港的服务器', '保留 14 天', '最迟 14 天后删除', '阿里云百炼', '不交给境外的 AI', '不会被拿去训练', '不带你的用户名',
                       '录音不保存', '不满 14 岁', '导出我的数据', '注销账号', '只能看到全班的汇总数字'):
             self.assertIn(words, ch['text'], words)
         self.assertIn('/#/guide/privacy', (HERE / 'public' / 'about.html').read_text())

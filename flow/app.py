@@ -151,6 +151,20 @@ PAGE_CACHE='max-age=0, stale-while-revalidate=2592000'  # the learning page: see
 # 认识语流 (/about): the introduction page for people who have not used Flow yet; its own small files, so it opens fast
 # and never loads the learning site. Its pictures are real screenshots (tools/about_shots.py) in public/about/.
 ABOUT_ASSETS=('about.js','about.css')
+# 下载安装 (认识语流 #download): the apps' installers and download/latest.json, which says which one each platform gets:
+# {"android"|"windows"|"mac": {"version", "file", "size", "sha256", "date", "cert"?}} (about.js downloads()). On 语流 nginx
+# serves /download/ from a folder outside the release (A1, app-downloads-hosting); this route is what answers where it
+# does not: files from FLOW_DOWNLOAD_DIR (by default <data>/download), and an empty list when there is none, so the page
+# shows 即将开放 with no failed request. Only plain file names of these types are served.
+DOWNLOADS=Path(os.environ.get('FLOW_DOWNLOAD_DIR') or str(DATA/'download'))
+DOWNLOAD_TYPES={'apk':'application/vnd.android.package-archive','exe':'application/octet-stream',
+ 'dmg':'application/x-apple-diskimage','json':'application/json; charset=utf-8'}
+def download_file(name):
+ """The file under DOWNLOADS for /download/<name>, with its type, or None: one plain name, no folders, a known type."""
+ if not (0<len(name)<=100 and name.isascii() and name[0].isalnum() and all(ch.isalnum() or ch in '._-' for ch in name)):return None
+ mime=DOWNLOAD_TYPES.get(name.rsplit('.',1)[-1].lower()) if '.' in name else None
+ f=DOWNLOADS/name
+ return (f,mime) if mime and f.is_file() else None
 _FILM={'at':0.0,'v':''}
 def about_film():
  """What the page's one-minute film may say (about.js film(), <html data-film>): 'voice' when sentences are read by
@@ -290,7 +304,7 @@ class Handler(BaseHTTPRequestHandler):
   token=jar['flow_session'].value if 'flow_session' in jar else ''
   now=time.time()
   # an account an operator stopped (xmc.hk console) has no session: its sessions are deleted and none is read
-  u=c.execute('SELECT users.id,username,admin,csrf,token,expires,email,age_band,guardian_ok,role FROM sessions JOIN users ON users.id=user_id WHERE token=? AND expires>? AND NOT COALESCE(users.disabled,0)',(token,now)).fetchone()
+  u=c.execute('SELECT users.id,username,admin,csrf,token,expires,email,age_band,guardian_ok,role,storage_ok,storage_no FROM sessions JOIN users ON users.id=user_id WHERE token=? AND expires>? AND NOT COALESCE(users.disabled,0)',(token,now)).fetchone()
   # Sliding sessions: a learner who keeps coming back stays signed in; SESSION_DAYS after the last visit it ends.
   # At most one write a day per session; the cookie is renewed with the same answer (send()).
   if u and u['expires']<now+(SESSION_DAYS-1)*86400:
@@ -345,6 +359,13 @@ class Handler(BaseHTTPRequestHandler):
      body,mime,ascii_name,name=out
      self.send_response(200);self.headers_common(mime);self.send_header('Content-Disposition',ad.disposition(ascii_name,name))
      self.send_header('Cache-Control','no-store');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
+    if u and __import__('privacy_service').storage(u)!='ok':
+     # 数据存放在香港 not agreed (yet): nothing of the account's learning; the home is a guest's, with the session, so the
+     # page can ask (privacy_service). Export above stays open.
+     if path!='/api/next/home':return self.send(*__import__('privacy_service').STORAGE_HELD)
+     result=__import__('next_service').get(c,None,path,parse_qs(urlsplit(self.path).query))
+     if result and result[1]==200:result[0]['session']=session_info(u)
+     return self.send(*result)
     if path.startswith('/api/next/'):
      q=parse_qs(urlsplit(self.path).query)
      if path=='/api/next/home' and u:q={k:v for k,v in q.items() if k not in ('level','themes')}  # a guest's choices; signed in, the profile decides
@@ -365,7 +386,7 @@ class Handler(BaseHTTPRequestHandler):
     if path=='/api/daily/suggestions':
      pack_id=parse_qs(urlsplit(self.path).query).get('id',[''])[0]
      row=c.execute("SELECT content FROM lab_packs WHERE id=? AND owner IS NULL AND origin='daily'",(pack_id,)).fetchone()
-     if not row:return self.send({'error':'来源不存在'},404)
+     if not row or daily.retired(json.loads(row['content'])):return self.send({'error':'来源不存在'},404)  # 今日热点 news: paused 2026-11-25
      html=json.loads(row['content']).get('provenance',{}).get('suggestions','').encode()
      self.send_response(200);self.send_header('Content-Type','text/html; charset=utf-8');self.send_header('Cache-Control','no-store')
      self.send_header('X-Content-Type-Options','nosniff');self.send_header('Referrer-Policy','no-referrer')
@@ -438,6 +459,15 @@ class Handler(BaseHTTPRequestHandler):
    if not f.is_file():return self.send({'error':'页面不存在'},404)
    body=f.read_bytes();self.send_response(200);self.headers_common('image/jpeg')
    self.send_header('Cache-Control','public, max-age=86400');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
+  if path.startswith('/download/'):
+   # 下载安装: an installer (saved, not opened) or the list the 认识语流 page reads (always asked afresh)
+   got=download_file(path[10:])
+   if not got and path=='/download/latest.json':return self.send({})  # nothing to download yet: 即将开放
+   if not got:return self.send({'error':'页面不存在'},404)
+   f,mime=got;body=f.read_bytes();self.send_response(200);self.headers_common(mime)
+   if f.name=='latest.json':self.send_header('Cache-Control','no-cache')
+   else:self.send_header('Cache-Control','public, max-age=86400');self.send_header('Content-Disposition',f'attachment; filename="{f.name}"')
+   self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
   if path=='/about/':
    self.send_response(301);self.send_header('Location','/about');self.send_header('Content-Length','0');self.end_headers();return
   if path.startswith('/audio/'):
@@ -509,12 +539,14 @@ class Handler(BaseHTTPRequestHandler):
    with db() as c:
     u=self.user(c)
     # Open routes still record progress for a signed-in learner: only with the session's CSRF token (else as a guest).
-    signed=bool(u) and hmac.compare_digest(self.headers.get('X-CSRF-Token',''),u['csrf'])
+    # An account that has not agreed to 数据存放在香港 (privacy_service) records nothing: as a guest here, held below.
+    signed=bool(u) and hmac.compare_digest(self.headers.get('X-CSRF-Token',''),u['csrf']) and __import__('privacy_service').storage(u)=='ok'
     result=next_service.post_public(c,u['id'] if signed else None,path,data)
     if result is not None:return self.send(*result)
     if not u:return self.send({'error':'请先登录'},401)
     if not hmac.compare_digest(self.headers.get('X-CSRF-Token',''),u['csrf']):return self.send({'error':'安全校验失败，请刷新页面'},403)
-    held=__import__('privacy_service').gate(u,path)  # under 14 without a guardian's agreement: no AI on the learner's own words
+    # not agreed to 数据存放在香港: nothing; under 14 without a guardian's agreement: no AI on the learner's own words
+    held=__import__('privacy_service').storage_held(u,path) or __import__('privacy_service').gate(u,path)
     if held:return self.send(*held)
     if path in next_service.AI_PATHS:
      import ai_jobs
@@ -571,7 +603,8 @@ class Handler(BaseHTTPRequestHandler):
    if not u:return self.send({'error':'登录已过期'},401)
    if not hmac.compare_digest(self.headers.get('X-CSRF-Token',''),u['csrf']):return self.send({'error':'安全校验失败，请刷新页面'},403)
    if path=='/api/account/age':return self.send(*__import__('privacy_service').set_age(c,u['id'],data))  # 年龄段, asked later
-   held=__import__('privacy_service').gate(u,path)
+   if path=='/api/account/storage':return self.send(*__import__('privacy_service').set_storage(c,u['id'],data))  # 数据存放在香港
+   held=__import__('privacy_service').storage_held(u,path) or __import__('privacy_service').gate(u,path)
    if held:return self.send(*held)
    if path=='/api/account/delete':
     # 注销账号: the password once more, then everything the account has is deleted (account_data.py)

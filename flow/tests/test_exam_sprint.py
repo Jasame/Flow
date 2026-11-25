@@ -70,6 +70,8 @@ class ContentTests(unittest.TestCase):
     def test_labelled_original(self):
         self.assertIn('不是真题', sp.TYPES_NOTE)
         self.assertIn('原创', sp.TYPES_NOTE)
+        # 《人工智能生成合成内容标识办法》: AI-written questions say so (the pages also show 「AI 生成」)
+        self.assertIn('由 AI 辅助编写', sp.TYPES_NOTE); self.assertIn('由 AI 辅助编写', ex.NOTE)
         self.assertIn('None is taken or adapted from a past paper', T.__doc__)
 
 

@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "site",
+  "description": "语流's own pages (正式版 flowlang.cn, 内测版 flow.jasa.hk) may call the window.FlowApp commands, and nothing else; no other site ever loads in the window (links.rs).",
+  "windows": ["main"],
+  "remote": {
+    "urls": ["https://flowlang.cn", "https://flowlang.cn/*", "https://flow.jasa.hk", "https://flow.jasa.hk/*"]
+  },
+  "permissions": ["allow-media-update", "allow-notify-permission", "allow-notify-ask", "allow-notify-due", "allow-notify-plan", "allow-notify-signed-out", "allow-notify-off", "allow-notify-hold", "allow-notify-pending", "allow-smoke-report"]
+}

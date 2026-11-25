@@ -11,7 +11,9 @@ name: Tests
 # main's runs are never cancelled by the next merge (they were, and with merges in a row no run on main finished, so
 # no 内测版 went out: 2026-11-25, b12 stayed for hours); of the runs waiting, GitHub keeps the newest. A pull request's
 # older run is cancelled by its newer push. A pull request that touches nothing the UI tests depend on (tools/run_tests.py
-# UI_INPUTS: not the website, not the UI tools) skips the 5 UI shares, so it takes 3 runners, not 8.
+# UI_INPUTS: not the website, not the UI tools) skips the 5 UI shares, so it takes 3 runners, not 8. One that touches
+# only the native apps (NATIVE_APPS: ios/, android/, desktop/ and their workflows, which test them) skips the 2 website
+# shares too; the checks backend, ui and frontend still report, as main's protection rule asks.
 #
 # The heavy jobs (2 website shares, 5 UI shares) can run on the owner's MSI instead (self-hosted runners labelled msi,
 # tools/msi-setup.sh), off the 20-job limit. tools/ci_runner.py picks the machine in the 'changes' job, before they are
@@ -40,6 +42,7 @@ jobs:
       actions: write  # to dispatch the MSI probe; a fork's pull request gets a read-only token and never asks
     outputs:
       ui: ${{ steps.paths.outputs.ui }}
+      web: ${{ steps.paths.outputs.web }}
       runner: ${{ steps.pick.outputs.runner }}
       where: ${{ steps.pick.outputs.where }}
     steps:
@@ -48,12 +51,15 @@ jobs:
           fetch-depth: 2  # a pull request's merge commit and main before it
       - id: paths
         run: |
-          if [ "${{ github.event_name }}" != pull_request ]; then echo ui=true >> "$GITHUB_OUTPUT"; exit 0; fi
-          git diff --name-only HEAD^1 HEAD | tee /dev/stderr | python3 tools/run_tests.py --ui-needed >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" != pull_request ]; then printf 'ui=true\nweb=true\n' >> "$GITHUB_OUTPUT"; exit 0; fi
+          git diff --name-only HEAD^1 HEAD | tee /dev/stderr | python3 tools/run_tests.py --needs >> "$GITHUB_OUTPUT"
           cat "$GITHUB_OUTPUT"
       - id: pick
         env:
           MSI_RUNNER: ${{ vars.MSI_RUNNER }}
+          MSI_SLOTS: ${{ vars.MSI_SLOTS }}
+          NEED_WEB: ${{ steps.paths.outputs.web }}
+          NEED_UI: ${{ steps.paths.outputs.ui }}
           HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -77,6 +83,7 @@ jobs:
   backend-share:
     name: backend ${{ matrix.share }}/2
     needs: changes
+    if: needs.changes.outputs.web == 'true'
     runs-on: ${{ fromJSON(needs.changes.outputs.runner) }}
     timeout-minutes: 15  # a share took about 4 minutes (2026-11-24); the whole suite in one job took 18–25
     strategy:
@@ -111,14 +118,18 @@ jobs:
         working-directory: flow-gateway
         run: python -m unittest discover -s tests -v
   backend:
-    # the check main's protection rule asks for; runs when a share failed too (a skipped check would count as passed)
-    needs: backend-share
+    # the check main's protection rule asks for; runs when a share failed too (a skipped check would count as passed).
+    # Passes when every website share passed, or when the pull request touches only the native apps (shares skipped).
+    needs: [changes, backend-share]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
-      - name: Every website share passed
-        run: test "${{ needs.backend-share.result }}" = success
+      - name: Every website share passed (or none was needed)
+        run: |
+          test "${{ needs.changes.result }}" = success
+          if [ "${{ needs.changes.outputs.web }}" = false ]; then echo "this pull request touches only the native apps: website shares skipped"
+          else test "${{ needs.backend-share.result }}" = success; fi
   ui-share:
     # tools/ui_test.py: every page on a phone, a phone held sideways, a tablet and a desktop, with touch, keyboard
     # and mouse; uses the runner's Google Chrome through Playwright and a local server with a simulated AI. Each share

@@ -77,10 +77,29 @@ class MainFirstTests(unittest.TestCase):
         self.assertIn('if [ "${{ needs.changes.outputs.ui }}" = false ]; then', gate)  # only an explicit false skips
         self.assertIn('else test "${{ needs.ui-share.result }}" = success; fi', gate)
         ch = self.jobs['changes']
-        self.assertIn('if [ "${{ github.event_name }}" != pull_request ]; then echo ui=true', ch)  # main: always
+        self.assertIn('if [ "${{ github.event_name }}" != pull_request ]; then printf \'ui=true\\nweb=true\\n\'', ch)  # main: always
         self.assertIn('git diff --name-only HEAD^1 HEAD', ch); self.assertIn('fetch-depth: 2', ch)
-        for job in ('backend-share', 'frontend'):  # the website tests always run (they only ask changes where to)
-            self.assertNotIn('outputs.ui', self.jobs[job]); self.assertNotIn('\n    if:', self.jobs[job])
+        self.assertNotIn('\n    if:', self.jobs['frontend'])  # always
+        self.assertNotIn('outputs.ui', self.jobs['backend-share'])  # the website tests do not depend on the UI decision
+        self.assertIn("if: needs.changes.outputs.web == 'true'", self.jobs['backend-share'])  # only a native-apps-only PR skips them
+
+    def test_a_pull_request_that_touches_only_the_native_apps_skips_the_website_tests(self):
+        for paths in ([], [''], ['ios/Flow/App.swift', 'flow/app.py'], ['tools/run_tests.py'], ['README.md'], ['iosx/a'],
+                      ['.github/workflows/tests.yml'], ['desktop2/x'], ['nativex/a'], ['native/flowapp.js', 'docs/native-bridge.md']):
+            self.assertTrue(rt.web_needed(paths), paths)
+        for paths in (['ios/Flow/App.swift'], ['ios/a', '.github/workflows/ios.yml'], ['desktop/src/main.rs', '.github/workflows/desktop.yml'],
+                      ['android/app/build.gradle'], ['native/flowapp.js'], ['native/flowapp.js', 'ios/Flow/Bridge/Bridge.swift']):
+            self.assertFalse(rt.web_needed(paths), paths)
+            self.assertFalse(rt.ui_needed(paths), paths)
+        r = subprocess.run([sys.executable, str(ROOT / 'tools' / 'run_tests.py'), '--needs'], input='ios/Flow/App.swift\n',
+                           capture_output=True, text=True)
+        self.assertEqual(r.stdout.split(), ['ui=false', 'web=false'])
+        gate = self.jobs['backend']
+        self.assertIn('needs: [changes, backend-share]', gate)
+        self.assertIn('test "${{ needs.changes.result }}" = success', gate)
+        self.assertIn('if [ "${{ needs.changes.outputs.web }}" = false ]; then', gate)  # only an explicit false skips
+        self.assertIn('else test "${{ needs.backend-share.result }}" = success; fi', gate)
+        self.assertIn("printf 'ui=true\\nweb=true\\n'", self.jobs['changes'])  # main and Run workflow: everything
 
     def test_what_counts_as_a_ui_change(self):
         for paths in ([], [''], ['flow/app.py'], ['flow/public/guide/guide.md'], ['docs/x.md', 'flow/corpus_data/v5/a.json'],
@@ -103,6 +122,16 @@ class MsiRunnerTests(unittest.TestCase):
         self.cr = load('ci_runner')
         self.wf = (ROOT / '.github' / 'workflows' / 'tests.yml').read_text(encoding='utf-8')
         self.jobs = dict(re.findall(r'^  ([a-z-]+):\n(.*?)(?=^  [a-z-]+:\n|\Z)', self.wf.split('\njobs:\n', 1)[1], re.S | re.M))
+
+    def test_the_msi_s_slots_come_from_the_repository_variable_and_default_to_6(self):
+        self.assertIn('MSI_SLOTS: ${{ vars.MSI_SLOTS }}', self.jobs['changes'])
+        for value, slots in (('', 6), ('7', 7), (None, 6)):
+            env = {k: v for k, v in os.environ.items() if k != 'MSI_SLOTS'}
+            if value is not None:
+                env['MSI_SLOTS'] = value
+            r = subprocess.run([sys.executable, '-c', 'import ci_runner; print(ci_runner.SLOTS)'], cwd=ROOT / 'tools',
+                               env=env, capture_output=True, text=True)
+            self.assertEqual(r.stdout.strip(), str(slots), (value, r.stderr))
 
     def fake(self, load=0, starts=True, fail=None):
         calls = []
@@ -157,6 +186,28 @@ class MsiRunnerTests(unittest.TestCase):
         self.assertEqual((runner, where), (['self-hosted', 'msi'], 'msi'), reason)
         self.assertIn(('POST', 'actions/workflows/msi-probe.yml/dispatches', {'ref': 'main', 'inputs': {'nonce': '5-1'}}), calls)
         self.assertEqual(self.decide(self.env(GITHUB_EVENT_NAME='push', HEAD_REPO=''), self.fake()[0])[1], 'msi')  # main
+
+    def test_a_run_goes_to_a_busy_msi_only_if_its_shares_fit_in_what_is_left(self):
+        full_run = dict(NEED_WEB='true', NEED_UI='true')
+        self.assertEqual(self.cr.need(self.env(**full_run)), 7)
+        self.assertEqual(self.cr.need(self.env(NEED_WEB='true', NEED_UI='false')), 2)
+        self.assertEqual(self.decide(self.env(**full_run), self.fake(load=0)[0])[1], 'msi')  # the MSI to itself: 7 on 6
+        where, reason = self.decide(self.env(**full_run), self.fake(load=2)[0])[1:]
+        self.assertEqual(where, 'hosted', reason)  # 2 + 7 > 6: it would wait behind the other run
+        self.assertIn('room for 4 more jobs and this run has 7', reason)
+        self.assertEqual(self.decide(self.env(NEED_WEB='true', NEED_UI='false'), self.fake(load=2)[0])[1], 'msi')  # 2 + 2
+        old = self.cr.SLOTS
+        self.cr.SLOTS = 10
+        try:
+            self.assertEqual(self.decide(self.env(**full_run), self.fake(load=3)[0])[1], 'msi')  # 3 + 7 = 10
+            self.assertEqual(self.decide(self.env(**full_run), self.fake(load=4)[0])[1], 'hosted')
+        finally:
+            self.cr.SLOTS = old
+        self.assertIn('NEED_WEB: ${{ steps.paths.outputs.web }}', self.jobs['changes'])
+        self.assertIn('NEED_UI: ${{ steps.paths.outputs.ui }}', self.jobs['changes'])
+        bs, us = self.jobs['backend-share'], self.jobs['ui-share']
+        self.assertIn(f"share: [{', '.join(str(k) for k in range(1, self.cr.WEB_SHARES + 1))}]", bs)
+        self.assertIn(f"share: [{', '.join(str(k) for k in range(1, self.cr.UI_SHARES + 1))}]", us)
 
     def test_the_watch_cancels_a_run_whose_msi_jobs_find_no_machine(self):
         calls = []
@@ -221,6 +272,22 @@ class MsiRunnerTests(unittest.TestCase):
         self.assertNotRegex(sh, r'(vmess|vless|trojan|ss)://')  # no node link, ever
 
 
+class MsiRunTests(unittest.TestCase):
+    """tools/msi-run.sh: the pre-push tests on the MSI from the Mac, without touching the checkout or blocking."""
+
+    def test_it_never_waits_touches_the_checkout_or_keeps_a_slot(self):
+        sh = (ROOT / 'tools' / 'msi-run.sh').read_text()
+        self.assertEqual(subprocess.run(['bash', '-n', str(ROOT / 'tools' / 'msi-run.sh')]).returncode, 0)
+        self.assertIn('BatchMode=yes', sh)  # no password or host-key question can hang a session
+        self.assertNotRegex(sh, r'(^|[\s;(&|])ssh "\$HOST"')  # every ssh goes through the batch-mode options
+        self.assertIn('exit 3', sh)  # the MSI unreachable, told apart from failing tests
+        self.assertIn('GIT_INDEX_FILE=', sh)  # the snapshot is made in a throwaway index
+        self.assertIn('nice -n 10', sh)  # CI's runners keep priority
+        self.assertIn('</dev/null 9>&-', sh)  # the script on stdin is not eaten, the lock is not inherited
+        for word in ('git stash', 'git checkout', 'git reset', 'sudo', 'secrets.'):
+            self.assertNotIn(word, sh)
+
+
 class BetaReleaseTests(unittest.TestCase):
     """.github/workflows/beta.yml releases each main commit that passed Tests to the 内测版, unless BETA_AUTO is off."""
 
@@ -267,6 +334,62 @@ class BetaReleaseTests(unittest.TestCase):
             self.assertTrue(any(c.lower() in n.lower() for n in br.pdf_fonts(f) for c in br.CHINESE_FONTS))
             f.write_bytes(pdf(b'DejaVuSans'))
             self.assertFalse(any(c.lower() in n.lower() for n in br.pdf_fonts(f) for c in br.CHINESE_FONTS))
+
+
+class QuietBrowserTests(unittest.TestCase):
+    """The owner's rule (2026-11-25): what runs in the background makes no sound. Every tool that starts a browser calls
+    quiet.silent(pw) once: Chrome gets --mute-audio, and every context and page gets MUTE_JS (media and Web Audio at volume
+    0, the browser voice at volume 0, which on a Mac is the system's speech and beyond --mute-audio)."""
+
+    def test_every_tool_that_starts_a_browser_makes_it_silent(self):
+        for path in sorted((ROOT / 'tools').glob('*.py')):
+            text = path.read_text(encoding='utf-8')
+            if path.name == 'quiet.py' or not re.search(r'\b(chromium|webkit|firefox)\.launch\(', text):
+                continue
+            self.assertIn('from quiet import silent', text, path.name)
+            self.assertRegex(text, r'with sync_playwright\(\) as (\w+):\n\s+silent\(\1\)', path.name)
+
+    def test_silent_mutes_chrome_and_every_context_and_page(self):
+        quiet = load('quiet')
+        js = quiet.MUTE_JS
+        for part in ("addEventListener('play'", 'volume = 0', 'AudioDestinationNode', 'g.gain.value = 0', 'speechSynthesis.speak = u =>'):
+            self.assertIn(part, js)
+        self.assertNotIn('.muted', js)  # the app sets muted itself
+
+        class Target:
+            def __init__(self):
+                self.scripts = []
+
+            def add_init_script(self, script):
+                self.scripts.append(script)
+
+        class Browser:
+            def new_context(self, **kw):
+                return Target()
+
+            def new_page(self, **kw):
+                return Target()
+
+        class BrowserType:
+            def __init__(self):
+                self.calls = []
+
+            def launch(self, **kw):
+                self.calls.append(kw)
+                return Browser()
+
+        class PW:
+            chromium, webkit = BrowserType(), BrowserType()
+        pw = PW()
+        quiet.silent(pw); quiet.silent(pw)  # twice: wrapped once
+        b = pw.chromium.launch(channel='chrome', args=['--use-fake-ui-for-media-stream', '--mute-audio'])
+        self.assertEqual(pw.chromium.calls[-1]['args'], ['--mute-audio', '--use-fake-ui-for-media-stream'])
+        pw.chromium.launch(channel='chrome')
+        self.assertEqual(pw.chromium.calls[-1]['args'], ['--mute-audio'])
+        self.assertEqual(b.new_context(locale='zh-CN').scripts, [js]); self.assertEqual(b.new_page().scripts, [js])
+        w = pw.webkit.launch()
+        self.assertNotIn('args', pw.webkit.calls[-1])  # WebKit has no --mute-audio: the script does it
+        self.assertEqual(w.new_context().scripts, [js])
 
 
 class MergeFriendlyListTests(unittest.TestCase):

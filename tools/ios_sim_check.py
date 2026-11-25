@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
 """The iPhone checklist (iphone-test.md) in the iOS Simulator, on the real WebKit: the home-screen app's back button,
 Dynamic Island and home bar, dark mode, landscape, the on-screen keyboard, word sound and the lock-screen title, and
-the microphone sheet.
+the microphone sheet; and the reading (audio-test-plan.md: 听 / 伴读 in the natural voice, 暂停 / 继续 / ✕, where it
+was left, offline, the lines while waiting).
 
-    python3 tools/ios_sim_check.py OUT [--udid UDID] [--safari] [--only shell,keyboard,audio,mic,update]
+    python3 tools/ios_sim_check.py OUT [--udid UDID] [--safari] [--only shell,keyboard,audio,mic,update,unify,more]
+
+`unify` and `more` (not run unless asked; about 5 minutes): a guest on the beta takes the text of the day (a recording)
+and a 考试练习 result; with --ui-server, the local learner imports three short texts (no recording) and also takes
+能力测评听力, a 口语情景 and a 名人名言 今日好句.
+
+Silent (rule 9 in tools/README.md): every sound the page plays is muted on the page's side (elements muted underneath,
+Web Audio through a gain of 0, the browser voice at volume 0), so nothing is heard on the Mac; the checks read the
+playback state, the media session and the requests.
 
 It talks to the simulator's Web Inspector socket (the one Safari's Develop menu uses): it reaches the home-screen app
 as well as Safari, which safaridriver cannot. A tap in the page is a click with `emulateUserGesture`, so the keyboard
@@ -12,7 +21,8 @@ comes up, sound may play and the microphone may be asked for, as after a finger.
 Before a run (fixed steps, once per simulator; a Claude session does them with the iOS Simulator tool):
   1. Boot it, open https://flow.jasa.hk in Safari, ≡ → 分享 (Share) → View More → 添加到主屏幕 (Add to Home Screen) → 添加.
      「Open as Web App」 stays on. The hardware keyboard stays disconnected (I/O → Keyboard), so the real one shows.
-  2. Tap the new 「语流内测」 icon. The script finds that app (com.apple.SafariViewService) and, on the first-visit page,
+  2. Tap the new 「语流内测」 icon. The script finds that app (com.apple.SafariViewService, or com.apple.webapp — 「Web」 in
+     the status bar — for an icon added lately on iOS 27.2) and, on the first-visit page,
      goes on as a guest (日常交流, B1). It never signs in on the beta: pages that need an account are reported as
      skipped. Those run against the local test server instead, signed in as its fixture learner by cookie:
        python3 tools/ui_server.py 8766 STATE &   then add http://localhost:8766 to the home screen the same way, and
@@ -28,6 +38,8 @@ What a simulator cannot tell (only a phone): a word's first sound being cut, ear
 switch, a phone call interrupting playback, the lock-screen buttons (the simulator draws none), mail.
 
 Exit status 1 when a check fails. OUT gets <device>-report.md / .json (parts run separately add up) and screenshots.
+If the script finds no app at all (the inspector answers nothing), the simulator's inspector service is stuck:
+    xcrun simctl spawn UDID launchctl kickstart -k user/501/com.apple.webinspectord
 """
 import json, os, plistlib, socket, struct, subprocess, sys, time, uuid, zlib
 from pathlib import Path
@@ -41,7 +53,8 @@ def opt(name, default=None):
 UDID = opt('--udid', 'booted')
 ONLY = set((opt('--only') or 'shell,keyboard,audio,mic,update').split(','))
 HOST = opt('--host', 'flow.jasa.hk')
-BUNDLE = 'com.apple.mobilesafari' if '--safari' in ARGS else 'com.apple.SafariViewService'
+# A home-screen app runs in SafariViewService, or (iOS 27.2, an icon added lately: 「Web」 in the status bar) in com.apple.webapp
+BUNDLE = ('com.apple.mobilesafari',) if '--safari' in ARGS else ('com.apple.SafariViewService', 'com.apple.webapp')
 
 RESULTS = []
 def check(group, name, ok, detail=None, shot=None):
@@ -134,11 +147,11 @@ class RWI:
         while time.time() < end:
             self.pump(0.6); self.listing = {}
             for aid, a in self.apps.items():
-                if a.get('WIRApplicationBundleIdentifierKey') == bundle:
+                if a.get('WIRApplicationBundleIdentifierKey') in bundle:
                     self.send('_rpc_forwardGetListing:', {'WIRApplicationIdentifierKey': aid})
             self.pump(0.8)
             for aid, l in self.listing.items():
-                if self.apps.get(aid, {}).get('WIRApplicationBundleIdentifierKey') != bundle:
+                if self.apps.get(aid, {}).get('WIRApplicationBundleIdentifierKey') not in bundle:
                     continue  # Safari sends its own listings unasked: only the app asked for counts
                 for key, p in l.items():
                     if p.get('WIRTypeKey') == 'WIRTypeWebPage' and host in (p.get('WIRURLKey') or ''):
@@ -194,7 +207,16 @@ class Page:
         return o.get('value')
 
     def reload(self, settle=3):
-        """Reload the page and follow it to its new inspector target."""
+        """Reload the page and follow it to its new inspector target. The service worker may answer with the copy it
+        kept of an older version, which finds the new one 4 s later and reloads itself when it can (04-home-app.js):
+        mid-test that would cut what the test is doing, so the page is reloaded until it is the server's version."""
+        self._reload_once(settle)
+        for _ in range(3):
+            if not globals().get('VERSION') or self.js("((document.querySelector('script[src*=\"/next.js\"]') || {}).src || '').split('v=')[1] || ''") == VERSION:
+                break
+            self._reload_once(settle)
+
+    def _reload_once(self, settle):
         self.js('setTimeout(() => location.reload(), 50)'); old = self.target; end = time.time() + 15
         while time.time() < end and self.target == old:
             for m in self._msgs(0.5):
@@ -265,7 +287,7 @@ def near(a, b, tol=24):
 def run_shell(p):
     g = 'shell'
     m = p.js(METRICS)
-    check(g, 'opened from the home screen: standalone, html.home-app', m['standalone'] and m['homeApp'] or BUNDLE.endswith('mobilesafari'), m)
+    check(g, 'opened from the home screen: standalone, html.home-app', m['standalone'] and m['homeApp'] or BUNDLE[0].endswith('mobilesafari'), m)
     land = m['w'] > m['h']
     # the four tabs: the logo, no back button; the logo clear of the status bar / Dynamic Island; tabs above the home bar
     for h0, name in (('#/', 'today'), ('#/practice', 'practice'), ('#/cards', 'cards'), ('#/me', 'me')):
@@ -423,14 +445,36 @@ def run_keyboard(p, pid):
 
 
 HOOK = """(() => { if (window.__au) return 'hooked'; const log = window.__au = [];
+  // Silent, as the owner asked (2026-11-25: a test in the background makes no sound): every sound is played as the page
+  // plays it — its timing, its state, the lock screen — but muted (elements), at gain 0 (Web Audio) or at volume 0 (the
+  // browser voice). A muted element is not held to the tap rule, so 「refused」 below is the page's own error only.
+  const C0 = AudioNode.prototype.connect;
+  AudioNode.prototype.connect = function (dest) { if (dest instanceof AudioDestinationNode) { const c = this.context;
+      if (!c.__mute) { c.__mute = c.createGain(); c.__mute.gain.value = 0; C0.call(c.__mute, c.destination); log.push({k: 'muted-context'}); } return C0.apply(this, [c.__mute, ...[].slice.call(arguments, 1)]); }
+    return C0.apply(this, arguments); };
+  // the page sets muted itself (a clip plays muted until it has jumped to its start): it reads back what it set, the
+  // element stays muted underneath
+  const MD = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'muted');
+  Object.defineProperty(HTMLMediaElement.prototype, 'muted', { configurable: true,
+    get() { return this.__want === undefined ? MD.get.call(this) : this.__want; }, set(v) { this.__want = !!v; MD.set.call(this, true); } });
+  window.__muted = a => MD.get.call(a);
   const P = HTMLMediaElement.prototype.play;
-  HTMLMediaElement.prototype.play = function () { const src = (this.currentSrc || this.src || '').replace(location.origin, ''); log.push({k: 'element', src, t: Math.round(performance.now())}); const r = P.apply(this, arguments);
+  HTMLMediaElement.prototype.play = function () { MD.set.call(this, true); const src = (this.currentSrc || this.src || '').replace(location.origin, ''); log.push({k: 'element', src, t: Math.round(performance.now())}); const r = P.apply(this, arguments);
     if (r && r.then) r.then(() => log.push({k: 'element-playing', src, t: Math.round(performance.now())}), e => log.push({k: 'element-refused', e: e.name, src})); return r; };
   const S0 = AudioBufferSourceNode.prototype.start;
   AudioBufferSourceNode.prototype.start = function () { log.push({k: 'webaudio-start', ctx: this.context.state, secs: this.buffer && +this.buffer.duration.toFixed(2), t: Math.round(performance.now())}); return S0.apply(this, arguments); };
   const G = navigator.mediaDevices && navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices); window.__streams = [];
   if (G) navigator.mediaDevices.getUserMedia = c => G(c).then(s => { window.__streams.push(s); log.push({k: 'mic-open'}); return s; }, e => { log.push({k: 'mic-refused', e: e.name}); throw e; });
   addEventListener('error', e => log.push({k: 'error', m: String(e.message)}), true);
+  // the browser voice (the robot the learner must not hear unasked), the media elements played, the lines shown while
+  // a sentence is made or why the browser voice reads (#lsPrep, #svPrep, #svWait, the toast)
+  if (window.speechSynthesis) { const SP = speechSynthesis.speak.bind(speechSynthesis); speechSynthesis.speak = u => { if (u) u.volume = 0; if (u && u.text && u.text.trim()) log.push({k: 'speech', text: u.text, t: Math.round(performance.now())}); return SP(u); }; }  // not the empty unlock line of the first tap
+  window.__els = []; const P2 = HTMLMediaElement.prototype.play;
+  HTMLMediaElement.prototype.play = function () { if (!window.__els.includes(this)) window.__els.push(this); return P2.apply(this, arguments); };
+  window.__notes = [];
+  new MutationObserver(() => { for (const q of ['#lsPrep', '#svPrep', '#svWait', '#aNote', '#toast.show']) { const e = document.querySelector(q);
+      const t = e && !e.hidden && e.textContent.trim(); if (t && window.__notes[window.__notes.length - 1] !== t) window.__notes.push(t); } })
+    .observe(document.body, {subtree: true, childList: true, characterData: true, attributes: true});
   return 'hooked'; })()"""
 NOW = "({ title: navigator.mediaSession && navigator.mediaSession.metadata && navigator.mediaSession.metadata.title, state: navigator.mediaSession && navigator.mediaSession.playbackState, session: navigator.audioSession && navigator.audioSession.type, log: window.__au || [] })"
 
@@ -522,18 +566,250 @@ def run_update(p):
     p.reload()  # the page's own fetch back, nothing of the played version left
 
 
+# ---------------------------------------------------------------- 朗读统一 (语流 9, #129): audio-test-plan.md
+# 听 → 播放全文 and 读 → 伴读 (LONG, 01-audio-offline.js) on the real WebKit: the natural voice, never the browser's
+# unasked; 暂停 / 继续 / ✕; where it was left kept per text and per step; the lines while waiting and when offline.
+# What only a phone tells (the lock screen's buttons, a phone call) stays in the checklist.
+LS = """(() => { const q = s => document.querySelector(s), b = q('#playAll'), rs = q('#playRestart'), m = q('.mini-player'), now = q('#view .line.now'),
+  el = (window.__els || []).filter(a => !a.paused).pop() || (window.__els || []).slice(-1)[0];
+  return { btn: b ? b.textContent.trim() : null, restart: !!rs && !rs.hidden, now: now ? Number(now.dataset.i) : -1,
+    mini: !!m && !m.hidden, lbl: m && !m.hidden ? (m.querySelector('.lbl') || {}).textContent : null, ms: navigator.mediaSession && navigator.mediaSession.playbackState,
+    at: el ? +el.currentTime.toFixed(2) : null, src: el ? (el.currentSrc || el.src || '').replace(location.origin, '').split('?')[0] : null,
+    speech: (window.__au || []).filter(e => e.k === 'speech').length, notes: (window.__notes || []).slice(-4) }; })()"""
+RD = """(() => { const b = document.querySelector('#readAlong'), s = document.querySelector('#reader .sent.now');
+  return { btn: b ? b.textContent.trim() : null, now: s ? Number(s.dataset.si) : -1, speech: (window.__au || []).filter(e => e.k === 'speech').length }; })()"""
+SILENT = "(window.__els || []).every(a => window.__muted(a))"  # every element the page played was muted underneath
+SOUNDS = "(window.__au || []).filter(e => (e.k === 'element-playing' && e.src && !e.src.startsWith('data:')) || e.k === 'webaudio-start').length"
+PROGRESS = "(k => (JSON.parse(localStorage.getItem('flow-progress') || '{{}}')[k] || {{}}).i)({key})"
+
+
+def awake(p):
+    """A page in the background plays nothing and its media wait: a result from there would mislead."""
+    if p.js('document.visibilityState') != 'visible':
+        raise RuntimeError('the app is no longer in front (document.visibilityState hidden): put it back and run again')
+
+
+def fresh_listen(p, aid, clear=True):
+    """The text's 听 → 精听, nothing playing; clear: where it was left forgotten (listen and read)."""
+    awake(p)
+    p.js("document.querySelector('.mini-player:not([hidden]) .close')?.click()")
+    if clear:
+        p.js(f"(o => {{ delete o['listen:{aid}']; delete o['read:{aid}']; localStorage.setItem('flow-progress', JSON.stringify(o)); }})(JSON.parse(localStorage.getItem('flow-progress') || '{{}}'))")
+    p.go('#/', 0.6); p.go(f'#/m/{aid}/listen', 1.5)
+    # a server just started (or a text just imported) can take longer than the pause above: wait for the page itself
+    p.until("!!document.querySelector('#view .listen-tip, [data-mode=\"listen\"]')", 15, 0.5)
+    p.js("document.querySelector('[data-mode=\"listen\"]:not([aria-pressed=true])')?.click()")
+    p.until("!!document.querySelector('#playAll')", 10, 0.3); time.sleep(0.3)
+    p.js(HOOK); p.js('window.__au.length = 0; window.__notes.length = 0')
+
+
+def run_unify(p, aid, recorded, extra=None):
+    """aid: a text with a recording (recorded=True, the beta's text of the day, a guest) or without one (an import of the
+    local test server's learner: extra = {'other': a second import, 'fresh': a third never played, 'scene': a 口语情景 id})."""
+    g = 'unify-' + ('recorded' if recorded else 'no-recording')
+    kind = '有录音的文章' if recorded else '没有录音的文章'
+    p.reload(); fresh_listen(p, aid)
+    tip = p.js("(document.querySelector('#view .listen-tip') || {}).textContent || ''")
+    if recorded == ('还没有录音' in tip):
+        check(g, f'{kind}: the page says so', False, tip); return
+    # 1① 播放全文: sentence by sentence, the natural voice, a line while a sentence is being made
+    t0 = time.time(); p.tap('#playAll', 0.2)
+    p.until(LS + '.now >= 2', 45, 0.3); st = p.js(LS); s = shot(f'{g}-playing')
+    check(g, f'{kind}: 播放全文 reads on, sentence by sentence, in the natural voice (no browser voice)',
+          st['now'] >= 2 and st['speech'] == 0 and p.js(SOUNDS) >= 1 and '暂停' in (st['btn'] or ''), {'state': st, 'secs': round(time.time() - t0, 1)}, s)
+    log = p.js('window.__au')
+    check(g, 'the test itself is silent: every element the page played muted, Web Audio at gain 0, the browser voice at volume 0',
+          p.js(SILENT) and (not any(e['k'] == 'webaudio-start' for e in log) or any(e['k'] == 'muted-context' for e in log)),
+          {'elements muted': p.js(SILENT), 'web audio': [e['k'] for e in log if e['k'] in ('webaudio-start', 'muted-context')][:4]})
+    # 2① 暂停: the button says 继续, the player 已暂停, the lock screen paused, and it stays where it was
+    p.tap('#playAll', 0.6); a = p.js(LS); time.sleep(1.5); b = p.js(LS); s = shot(f'{g}-paused')
+    check(g, f'{kind}: 暂停 — the button 继续, the player 已暂停, the lock screen paused, the reading waits',
+          '继续' in (a['btn'] or '') and a['lbl'] == '已暂停' and a['ms'] == 'paused' and b['now'] == a['now'] and (not recorded or abs((b['at'] or 0) - (a['at'] or 0)) < 0.05),
+          {'paused': a, '1.5 s later': b}, s)
+    # 2② 继续: on in the same sentence (a recording: from the second it stopped at), not from the top
+    k, at = a['now'], a['at']; p.tap('#playAll', 0.5); c = p.js(LS)
+    check(g, f'{kind}: 继续 goes on in the sentence it stopped in' + (' (from the same second)' if recorded else ''),
+          c['now'] in (k, k + 1) and '暂停' in (c['btn'] or '') and (not recorded or (c['at'] is not None and at - 0.3 <= c['at'] <= at + 2.5)), {'paused at': [k, at], 'now': c})
+    # 2③ the player's own 暂停 / 继续, then ✕: closed, where it was kept
+    p.tap('.mini-player .toggle', 0.6); d = p.js(LS); p.tap('.mini-player .toggle', 0.6); e = p.js(LS)
+    p.until(LS + '.now >= 0', 10); k2 = p.js(LS)['now']; p.tap('.mini-player .close', 0.6); f = p.js(LS)
+    kept = p.js(PROGRESS.format(key=json.dumps(f'listen:{aid}')))
+    check(g, f'{kind}: the player — 暂停, 继续, then ✕ closes it and keeps where it was', d['lbl'] == '已暂停' and e['lbl'] not in (None, '已暂停') and not f['mini'] and kept in (k2, k2 + 1 if k2 is not None else None),
+          {'paused': d['lbl'], 'resumed': e['lbl'], 'closed': f['mini'], 'kept': kept, 'was at': k2})
+    # 3① back on the page later: 「从第 N 句继续」 and 从头开始
+    p.go('#/', 0.8); p.go(f'#/m/{aid}/listen', 1.2); p.js("document.querySelector('[data-mode=\"listen\"]:not([aria-pressed=true])')?.click()"); time.sleep(0.4)
+    h = p.js(LS); s = shot(f'{g}-continue-from')
+    check(g, f'{kind}: back on the page — 「从第 {(kept or 0) + 1} 句继续」 with 从头开始 beside it, nothing playing',
+          h['btn'] == f'从第 {(kept or 0) + 1} 句继续' and h['restart'] and not h['mini'], h, s)
+    # 3② the app opened again (the page loaded anew): the same
+    p.reload(); p.go(f'#/m/{aid}/listen', 1.2); p.js("document.querySelector('[data-mode=\"listen\"]:not([aria-pressed=true])')?.click()"); time.sleep(0.4)
+    h2 = p.js(LS)
+    check(g, f'{kind}: after the app loads again — still 「从第 N 句继续」', h2['btn'] == h['btn'] and h2['restart'], h2)
+    p.js(HOOK); p.js('window.__au.length = 0; window.__notes.length = 0')
+    # 3③ 从第 N 句继续 starts there; 从头开始 at the first
+    p.tap('#playAll', 0.3); p.until(LS + '.now >= 0', 30, 0.3); x = p.js(LS)
+    p.tap('.mini-player .close', 0.5); p.tap('#playRestart', 0.3); p.until(LS + '.now >= 0', 30, 0.3); y = p.js(LS)
+    check(g, f'{kind}: 从第 N 句继续 starts at sentence N, 从头开始 at the first', x['now'] == kept and y['now'] == 0, {'continue': x['now'], 'kept': kept, 'restart': y['now']})
+    # 2⑤ a word looked up while it reads: it stops there (已暂停), 继续 goes on
+    p.until(LS + '.now >= 1', 30, 0.3); w0 = p.js(LS)
+    word = p.js("(w => { if (!w) return null; w.click(); return w.textContent; })(document.querySelector('#view .line.now .txt [data-w]'))", gesture=True); time.sleep(1.5)
+    w1 = p.js(LS); sheet = p.js("!document.getElementById('sheet').hidden"); s = shot(f'{g}-lookup')
+    p.js("document.querySelector('#sheet [data-close], #sheetCard .close, #sheetCard [aria-label=\"关闭\"]')?.click()"); time.sleep(0.6)
+    if sheet: p.js("document.getElementById('sheet').hidden || document.querySelector('#sheet')?.click()")
+    p.tap('#playAll', 0.8); w2 = p.js(LS)
+    check(g, f'{kind}: looking up a word ({word}) stops the reading there (已暂停); 继续 goes on in that sentence',
+          bool(word) and sheet and w1['lbl'] == '已暂停' and w1['now'] == w0['now'] and w2['now'] in (w0['now'], w0['now'] + 1) and '暂停' in (w2['btn'] or ''),
+          {'before': w0, 'looking up': w1, 'after 继续': w2}, s)
+    p.tap('.mini-player .close', 0.5)
+    if recorded:
+        # 3⑤ 读 → 伴读 keeps its own place, apart from 听's
+        listen_at = p.js(PROGRESS.format(key=json.dumps(f'listen:{aid}')))
+        p.go(f'#/m/{aid}/read', 1.5); p.tap('#readAlong', 0.3); p.until(RD + '.now >= 1', 30, 0.3); r1 = p.js(RD)
+        p.tap('.mini-player .close', 0.5); p.go('#/', 0.6); p.go(f'#/m/{aid}/read', 1.2); r2 = p.js(RD)
+        read_at = p.js(PROGRESS.format(key=json.dumps(f'read:{aid}')))
+        check(g, f'{kind}: 伴读 keeps its own place (「从第 N 句继续」), 听\'s left as it was',
+              r2['btn'] == f'从第 {(read_at or 0) + 1} 句继续' and read_at == r1['now'] and p.js(PROGRESS.format(key=json.dumps(f'listen:{aid}'))) == listen_at and r1['speech'] == 0,
+              {'read': [r1, r2['btn'], read_at], 'listen kept': listen_at})
+        return
+    # ---- no recording only (an import of the local test server's learner)
+    # 1② a sentence's own speaker, and 每句 3 遍: the natural voice each time
+    fresh_listen(p, aid, clear=False); n0 = p.js(SOUNDS)
+    p.tap('[data-say="2"]', 0.2); p.until(f'{SOUNDS} > {n0}', 20, 0.3); one = p.js(SOUNDS) - n0
+    p.js("document.querySelector('#view details.playset').open = true"); p.tap('[data-rep="3"]', 0.3)
+    n1 = p.js(SOUNDS); p.tap('[data-say="1"]', 0.2); p.until(f'{SOUNDS} >= {n1 + 3}', 40, 0.5); three = p.js(SOUNDS) - n1
+    p.tap('[data-rep="1"]', 0.3); p.js("document.querySelector('.mini-player:not([hidden]) .close, .mini-player:not([hidden]) .stop')?.click()")
+    st = p.js(LS)
+    check(g, f'{kind}: a sentence\'s speaker and 每句 3 遍 — the natural voice every time', one >= 1 and three >= 3 and st['speech'] == 0, {'speaker': one, '3 遍': three, 'speech': st['speech']})
+    # 1③ 伴读 first, then 听 → 播放全文: the sentences 伴读 made sound at once (one address book)
+    p.js("(o => { delete o['read:" + aid + "']; localStorage.setItem('flow-progress', JSON.stringify(o)); })(JSON.parse(localStorage.getItem('flow-progress') || '{}'))")
+    p.go(f'#/m/{aid}/read', 1.5); p.js(HOOK); p.js('window.__au.length = 0')
+    p.tap('#readAlong', 0.3); p.until(RD + '.now >= 2', 45, 0.3); r1 = p.js(RD); p.tap('.mini-player .close', 0.5)
+    p.js(f"(o => {{ delete o['listen:{aid}']; localStorage.setItem('flow-progress', JSON.stringify(o)); }})(JSON.parse(localStorage.getItem('flow-progress') || '{{}}'))")
+    fresh_listen(p, aid, clear=False)
+    t = p.js('performance.now()'); p.tap('#playAll', 0); hit = p.until(f"(window.__au.find(e => (e.k === 'element-playing' && !String(e.src).startsWith('data:')) || e.k === 'webaudio-start') || {{}}).t", 15, 0.1)
+    wait = round(hit - t) if hit else None; st = p.js(LS); p.until(LS + '.now >= 1', 30, 0.3); p.tap('.mini-player .close', 0.5)
+    check(g, f'{kind}: after 伴读 read {r1["now"] + 1} sentences, 听 starts at once ({wait} ms, nothing to wait for), the natural voice',
+          r1['now'] >= 2 and r1['speech'] == 0 and wait is not None and wait < 1500 and st['speech'] == 0 and not any('正在准备' in n for n in st['notes']), {'read along': r1, 'ms': wait, 'state': st})
+    # 3⑤ 读 keeps its own place, 听 its own
+    rd_at, ls_at = p.js(PROGRESS.format(key=json.dumps(f'read:{aid}'))), p.js(PROGRESS.format(key=json.dumps(f'listen:{aid}')))
+    p.go(f'#/m/{aid}/read', 1.2); r2 = p.js(RD)
+    check(g, f'{kind}: 伴读 keeps its own place (where it stopped), 听 its own', rd_at in (r1['now'], r1['now'] + 1) and r2['btn'] == f'从第 {rd_at + 1} 句继续' and ls_at is not None,
+          {'read': [r1['now'], rd_at, r2['btn']], 'listen': ls_at})
+    # 3⑥ another text: its own place (none yet), this one's kept
+    if extra and extra.get('other'):
+        fresh_listen(p, extra['other'], clear=False); o = p.js(LS)
+        check(g, f'{kind}: another text has its own place (播放全文 there), this one keeps its', o['btn'] == '播放全文' and p.js(PROGRESS.format(key=json.dumps(f'read:{aid}'))) == rd_at, o)
+    # 3④ heard to the end: 播放全文 again, the place forgotten
+    fresh_listen(p, aid); n = p.js("document.querySelectorAll('#view .line').length")
+    p.tap('#playAll', 0.3); p.until("(b => b && b.textContent.trim() === '播放全文')(document.querySelector('#playAll'))", 30 + 12 * n, 1); end = p.js(LS)
+    check(g, f'{kind}: heard to the end ({n} sentences) — 播放全文 again, the place forgotten, no browser voice',
+          end['btn'] == '播放全文' and not end['restart'] and p.js(PROGRESS.format(key=json.dumps(f'listen:{aid}'))) is None and end['speech'] == 0, end)
+    # 4 offline (the page told it is offline and its sentence requests fail; the audio files themselves still load):
+    # sentences heard before play from the addresses kept on this phone in the natural voice; one never heard on this
+    # phone reads in the browser voice, and the line says why
+    offline = """(() => { Object.defineProperty(Navigator.prototype, 'onLine', { get: () => false, configurable: true }); dispatchEvent(new Event('offline'));
+      const F = window.fetch; window.fetch = (u, o) => /\\/api\\/next\\/tts/.test(String(u)) ? Promise.reject(new TypeError('Load failed')) : F(u, o); return 'offline'; })()"""
+    p.reload(); p.js(offline); fresh_listen(p, aid)
+    p.tap('#playAll', 0.3); p.until(LS + '.now >= 2', 40, 0.3); a = p.js(LS); p.tap('.mini-player .close', 0.5)
+    check(g, f'{kind}: offline — sentences heard before still play in the natural voice', a['now'] >= 2 and a['speech'] == 0 and p.js(SOUNDS) >= 1, a)
+    if extra and extra.get('fresh'):
+        fresh_listen(p, extra['fresh']); p.tap('#playAll', 0.3); p.until(LS + '.speech >= 1', 20, 0.3); time.sleep(0.8); b = p.js(LS); s = shot(f'{g}-offline-new')
+        p.tap('.mini-player .close', 0.5)
+        check(g, f'{kind}: offline — a sentence never heard on this phone: the browser voice, and the line says why',
+              b['speech'] >= 1 and any('离线中' in n for n in b['notes']),
+              {'state': b, 'log': [e['k'] + ':' + str(e.get('text') or e.get('src') or e.get('e') or e.get('m') or '') for e in p.js('window.__au')][-8:],
+               # for 语流 9: the browser voice's own state, and whether the page reloaded itself meanwhile (a new version)
+               'synth': p.js("({ speaking: speechSynthesis.speaking, pending: speechSynthesis.pending, paused: speechSynthesis.paused })"),
+               'page': p.js("({ nav: (performance.getEntriesByType('navigation')[0] || {}).type, hooked: !!window.__au, tried: localStorage.getItem('flow-update-tried') })")}, s)
+    p.reload()  # online again
+    # 5 口语情景: the AI's reply in the role's natural voice; slow to make: 「正在准备朗读…」, then that voice, never the robot
+    if extra and extra.get('scene'):
+        slow = """(() => { const F = window.fetch; window.fetch = (u, o) => /\\/api\\/next\\/tts$/.test(String(u).split('?')[0]) ? new Promise(ok => setTimeout(ok, 2500)).then(() => F(u, o)) : F(u, o); return 'slow'; })()"""
+        awake(p); p.go(f'#/speak/{extra["scene"]}', 1.5); p.js(HOOK); p.js('window.__au.length = 0; window.__notes.length = 0'); p.js(slow)
+        p.tap('#dlgStart', 0.3); seen = p.until("(e => e && !e.hidden && e.textContent.includes('正在准备朗读'))(document.getElementById('svWait'))", 20, 0.2); s = shot(f'{g}-speak-preparing')
+        p.until(SOUNDS + ' >= 1', 30, 0.3); st = p.js(LS)
+        check(g, '口语情景: the reply slow to make — 「正在准备朗读…」, then the natural voice (no browser voice)', bool(seen) and p.js(SOUNDS) >= 1 and st['speech'] == 0,
+              {'notes': st['notes'], 'sounds': p.js(SOUNDS), 'speech': [e.get('text') for e in p.js('window.__au') if e['k'] == 'speech'],
+               'played': [e.get('src') for e in p.js('window.__au') if e['k'] == 'element-playing']}, s)
+        p.reload()
+
+
+RES = "(q => performance.getEntriesByType('resource').map(e => e.name.replace(location.origin, '')).filter(n => n.includes(q)))"
+SLOW_TTS = """(() => { const F = window.fetch; window.fetch = (u, o) => /\\/api\\/next\\/tts$/.test(String(u).split('?')[0]) ? new Promise(ok => setTimeout(ok, 1500)).then(() => F(u, o)) : F(u, o); return 'slow'; })()"""
+
+
+def run_more(p, local):
+    """audio-test-plan.md 第 5 节 (#134, #136): 能力测评听力 and a 名人名言 今日好句 need an account (the local server's
+    learner); 没认出的词 and an article's 今日好句 run as a guest on the beta."""
+    g = 'unify-more'
+    if local:
+        # ① 能力测评 · 听力 without a recording: sentence by sentence in the natural voice, 「正在准备朗读第 N 句…」 while one
+        # is made (made slow here), ✕ on the player counts as a play heard: the questions, 已听 1 / 2 遍, one more left
+        p.reload(); awake(p); p.go('#/radar/test/listening', 1.5); p.js(HOOK); p.js('window.__au.length = 0; window.__notes.length = 0'); p.js(SLOW_TTS)
+        if not p.js("!!document.getElementById('aPlay')"):
+            skip(g, '能力测评听力', 'no 播放录音 on #/radar/test/listening'); return
+        p.tap('#aPlay', 0.3); p.until(f'{SOUNDS} >= 2', 40, 0.4); s = shot(f'{g}-radar-listening')
+        st = p.js(LS); asked = p.js(RES + "('/api/next/tts')")
+        check(g, '能力测评听力 (no recording): the natural voice sentence by sentence, 「正在准备朗读第 N 句…」 while one is made, no browser voice',
+              p.js(SOUNDS) >= 2 and st['speech'] == 0 and any(n.startswith('正在准备朗读第') for n in st['notes']), {'notes': st['notes'], 'sounds': p.js(SOUNDS), 'tts asked': len(asked)}, s)
+        p.tap('.mini-player .close', 0.6)
+        after = p.js("({ qs: !document.getElementById('aQs').hidden, plays: document.getElementById('aPlays').textContent, btn: document.getElementById('aPlay').textContent, off: document.getElementById('aPlay').disabled })")
+        check(g, '能力测评听力: ✕ on the player — the questions show, 已听 1 / 2 遍, 再听一遍 left', after['qs'] and after['plays'] == '已听 1 / 2 遍' and '再听一遍' in after['btn'] and not after['off'], after)
+        # ③ a 名人名言 今日好句 (no recording; the day's line is an article's today, so the page is handed a quote):
+        # 听一遍 in the natural voice, 「正在准备朗读…」 while it is made
+        quote = """(() => { const F = window.fetch; window.fetch = (u, o) => String(u).split('?')[0].endsWith('/api/next/home') ? F(u, o).then(r => r.json()).then(j => {
+            j.line = { kind: 'quote', id: 'q:sim', label: '名人名言', en: 'Stay hungry, stay foolish.', say: 'Stay hungry, stay foolish.', zh: '求知若饥，虚心若愚', note: '', source: 'Steve Jobs' };
+            return new Response(JSON.stringify(j), { headers: { 'Content-Type': 'application/json' } }); }) : F(u, o); return 'quote'; })()"""
+        p.js(quote); p.js(SLOW_TTS); p.go('#/practice', 0.5); p.go('#/', 1.5); p.js(HOOK); p.js('window.__au.length = 0; window.__notes.length = 0')
+        label = p.js("(document.querySelector('#view .lc-head .pill') || {}).textContent")
+        if label != '名人名言':
+            skip(g, '今日好句 (名人名言)', f'the page kept its own line ({label})')
+        else:
+            p.tap('#lcSay', 0.2); p.until(f'{SOUNDS} >= 1', 20, 0.3); st = p.js(LS); s = shot(f'{g}-line-quote')
+            check(g, '今日好句, a 名人名言 (no recording): 听一遍 in the natural voice, 「正在准备朗读…」 while it is made, no browser voice',
+                  p.js(SOUNDS) >= 1 and st['speech'] == 0 and '正在准备朗读…' in st['notes'], {'notes': st['notes'], 'sounds': p.js(SOUNDS), 'speech': st['speech']}, s)
+        p.reload()
+        return
+    # ② 没认出的词 in a 考试练习 result: the word's own recording (/audio/words/…), as in the word books
+    seen = """(() => { const F = window.fetch; window.fetch = (u, o) => { const r = F(u, o); if (String(u).includes('/api/next/exam/submit')) r.then(x => x.clone().json()).then(j => { window.__submit = j; }); return r; }; return 'seen'; })()"""
+    p.reload(); awake(p); p.go('#/exam/cet4', 1.5); p.js(seen)
+    p.tap('#exStart', 0.5); p.until("!!document.querySelector('.exam-bar')", 10)
+    p.tap('#exDone', 0.4); p.tap('#exDone', 0.5); p.until("!!window.__submit && !!document.querySelector('#view [data-say]')", 15)
+    word = p.js("(w => w ? w.word : null)(((window.__submit || {}).vocab || []).find(v => !v.correct && v.audio && (v.audio.us || v.audio.uk)))")
+    if not word:
+        skip(g, '没认出的词', 'no missed word with its own recording in this set (the beta has word audio for some words only)')
+    else:
+        p.js(HOOK); p.js('window.__au.length = 0; performance.clearResourceTimings()')
+        p.tap(f'#view [data-say="{word}"]', 0.2); p.until(f'{SOUNDS} >= 1', 10, 0.3); time.sleep(0.5); s = shot(f'{g}-missed-word')
+        got = {'word': word, 'words files': p.js(RES + "('/audio/words/')"), 'tts asked': p.js(RES + "('/api/next/tts')"), 'speech': p.js(LS)['speech'], 'sounds': p.js(SOUNDS)}
+        check(g, f'考试练习 → 没认出的词 ({word}): its own recording (/audio/words/…), as in the word books', got['words files'] and not got['tts asked'] and got['speech'] == 0 and got['sounds'] >= 1, got, s)
+    # ③ the 今日好句 of a Flow article: that article's recording
+    p.go('#/', 1.5); p.js(HOOK); p.js('window.__au.length = 0; performance.clearResourceTimings()')
+    # the line this page shows (a guest's own level picks it: read from the card, not asked again)
+    line = p.js("""(c => c ? { kind: c.querySelector('.pill.green') ? 'text' : 'quote', audio: true,
+        pack: ((c.querySelector('.lc-src a') || {}).getAttribute?.('href') || '').split('/')[2] || '' } : null)(document.getElementById('lineCard'))""")
+    if not line or line.get('kind') != 'text' or not line.get('pack'):
+        skip(g, '今日好句 (语流文章)', f"today's line here is not an article's ({line})")
+    else:
+        p.tap('#lcSay', 0.2); p.until(f'{SOUNDS} >= 1', 10, 0.3); time.sleep(0.5); s = shot(f'{g}-line-article')
+        got = {'pack': line['pack'], 'files': p.js(RES + "('/audio/')"), 'tts asked': p.js(RES + "('/api/next/tts')"), 'speech': p.js(LS)['speech']}
+        check(g, f"今日好句 from a Flow article ({line['pack']}): 听一遍 plays that article's recording",
+              any(line['pack'] in f for f in got['files']) and not got['tts asked'] and got['speech'] == 0 and p.js(SOUNDS) >= 1, got, s)
+
+
 # ---------------------------------------------------------------- run
 DEV = device(); DEV_W = None; DEV_TAG = ''.join(c for c in DEV['name'].lower().replace(' ', '-') if c.isalnum() or c == '-')
 print(f"{DEV['name']} ({DEV['runtime']}, {DEV['udid']}), {'Safari' if '--safari' in ARGS else 'home-screen app'}", flush=True)
 r = RWI(); p = r.page(HOST, BUNDLE)
 if not p:
-    sys.exit(f'{HOST} is not open in {BUNDLE} on this simulator (see the steps at the top of this file)')
+    sys.exit(f'{HOST} is not open in {" or ".join(BUNDLE)} on this simulator (see the steps at the top of this file)')
 UI_SERVER = opt('--ui-server')  # STATE[:LEARNER] of tools/ui_server.py: its fixture learner, signed in by cookie (localhost only)
 if UI_SERVER:
     if not HOST.split(':')[0] in ('localhost', '127.0.0.1'):
         sys.exit('--ui-server is for the local test server (--host localhost:PORT) only')
     state, _, who = UI_SERVER.partition(':')
     tok = json.loads((Path(state) / 'sessions.json').read_text())['learners'][who or 'home-app']['token']
+    CSRF = json.loads((Path(state) / 'sessions.json').read_text())['learners'][who or 'home-app'].get('csrf', '')
     # an earlier run's session cookie is HttpOnly (the server renews it so), which a page script cannot overwrite
     try: p.cmd('Page.deleteCookie', {'cookieName': 'flow_session', 'url': f'http://{HOST}/'})
     except Exception: pass
@@ -550,8 +826,36 @@ VERSION = p.js("fetch('/api/version', {cache: 'no-store'}).then(r => r.json()).t
 PAGE_ASSET = p.js("((document.querySelector('script[src*=\"/next.js\"]') || {}).src || '').split('v=')[1] || ''")
 DEV_W = p.js('screen.width')  # points across a portrait screenshot (iOS keeps screen.width portrait)
 print(f'server asset {VERSION}, page asset {PAGE_ASSET}, today\'s text {PID}', flush=True)
+def current():
+    """What is tested is the server's front end: a page left from an older one (the service worker's copy) reloads first."""
+    for _ in range(4):
+        if p.js("((document.querySelector('script[src*=\"/next.js\"]') || {}).src || '').split('v=')[1] || ''") == VERSION:
+            return True
+        p.reload(2)
+    check('unify', 'the page is the server\'s version', False, VERSION)
+    return False
+
+
+def unify():
+    if not current():
+        return
+    if not UI_SERVER:
+        return run_unify(p, PID, True)
+    text = lambda n: ' '.join(['The library opens early on weekdays.', 'Students meet there before their first class.', 'Some of them read quietly in the corner.',
+                               'Others work on group projects at the long tables.', 'By noon most seats are taken.', 'In the evening it is quiet again.'][:n])
+    imp = lambda title, body: p.js(f"fetch('/api/next/import', {{method: 'POST', headers: {{'Content-Type': 'application/json', 'X-CSRF-Token': {json.dumps(CSRF)}}}, "
+                                   f"body: JSON.stringify({{title: {json.dumps(title)}, text: {json.dumps(body)}}})}}).then(r => r.json()).then(j => j.id)")
+    a = imp('图书馆的一天', text(6))
+    b = imp('车站的早晨', 'The first train leaves the station at six. A few workers wait on the platform with hot drinks. '
+                       'A student reads her notes under a lamp. The doors open and everyone finds a seat. Outside, the sky turns slowly from grey to blue.')
+    c = imp('午后的公园', 'The afternoon light falls on the old benches in the park. A cat sleeps by the fountain and nobody wakes it. '
+                       'Two children run after a red kite. An old man feeds the pigeons from a paper bag. Later the wind gets cold and people walk home.')
+    scene = p.js("fetch('/api/next/speak').then(r => r.json()).then(d => (d.items || [])[0]?.id)")
+    run_unify(p, a, False, {'other': b, 'fresh': c, 'scene': scene})
+
+
 for part, fn in (('shell', lambda: run_shell(p)), ('keyboard', lambda: run_keyboard(p, PID)), ('audio', lambda: run_audio(p, PID)),
-                 ('mic', lambda: run_mic(p)), ('update', lambda: run_update(p))):
+                 ('mic', lambda: run_mic(p)), ('update', lambda: run_update(p)), ('unify', unify), ('more', lambda: current() and run_more(p, bool(UI_SERVER)))):
     if part in ONLY:
         print(f'— {part}', flush=True)
         try:
@@ -560,7 +864,7 @@ for part, fn in (('shell', lambda: run_shell(p)), ('keyboard', lambda: run_keybo
             check(part, 'ran to the end', False, repr(e))
 appearance('dark' if 'keep-dark' in ARGS else 'light')
 
-meta = {'device': DEV, 'asset': VERSION, 'page_asset': PAGE_ASSET, 'when': time.strftime('%Y-%m-%d %H:%M'), 'app': BUNDLE}
+meta = {'device': DEV, 'asset': VERSION, 'page_asset': PAGE_ASSET, 'when': time.strftime('%Y-%m-%d %H:%M'), 'app': p.r.apps.get(p.app, {}).get('WIRApplicationBundleIdentifierKey')}
 # parts run one at a time add up in one report per device: a check run again replaces its line
 rep = OUT / f'{DEV_TAG}-report.json'
 try:

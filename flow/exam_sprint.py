@@ -17,7 +17,7 @@ SPRINT_DAYS = 28
 REVIEW_DAYS = 7
 EASY_MAX = 40
 TREND_N = 12
-TYPES_NOTE = '题型专练的题目全部是语流原创的，按这个考试的题型和难度编写，不是真题，也不取自任何真题或教辅。'
+TYPES_NOTE = '题型专练的题目是原创题，由 AI 辅助编写，按这个考试的题型和难度出，不是真题，也不取自任何真题或教辅。'
 
 
 def schema(c):
