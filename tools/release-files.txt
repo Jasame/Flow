@@ -240,6 +240,9 @@ flow/progress_service.py
 flow/public/about.css
 flow/public/about.html
 flow/public/about.js
+flow/public/about/app-android.jpg
+flow/public/about/app-mac.jpg
+flow/public/about/app-windows.jpg
 flow/public/about/check-d.jpg
 flow/public/about/check.jpg
 flow/public/about/desk-d.jpg

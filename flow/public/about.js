@@ -351,6 +351,30 @@ document.documentElement.classList.add('js');
     }, true);
   }
 
+  /* ---------- 下载安装 (#download): the installers that exist are listed in /download/manifest.json (app.py
+     DOWNLOADS, put on the server by hand with each app build). A platform that is listed gets its button, version,
+     size and sha256; the others keep 即将开放. Nothing listed, or no answer: the page stays as it is. ---------- */
+  const mb = n => n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+  const FILE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/, SHA256 = /^[0-9a-f]{64}$/;
+  function downloads() {
+    const boxes = $$('[data-dl]'); if (!boxes.length || !window.fetch) return;
+    fetch('/download/manifest.json', { cache: 'no-cache' }).then(r => r.json().then(m => (r.ok ? m : null), () => null)).then(m => {
+      const apps = (m && m.apps) || {};
+      boxes.forEach(box => {
+        const a = apps[box.dataset.dl];
+        if (!a || !FILE_NAME.test(a.file || '') || !SHA256.test(a.sha256 || '')) return;
+        const btn = $('.dl-btn', box), meta = $('.dl-meta', box), sum = $('.dl-sum', box), chip = $('[data-chip]', box.closest('.app-card'));
+        btn.href = '/download/' + a.file; btn.setAttribute('download', a.file); btn.removeAttribute('aria-disabled');
+        btn.textContent = '下载安装';
+        meta.textContent = [a.version && '版本 ' + a.version, Number(a.bytes) > 0 && mb(Number(a.bytes)), a.needs, a.date && a.date + ' 更新']
+          .filter(Boolean).join(' · ');
+        meta.hidden = !meta.textContent;
+        $('code', sum).textContent = a.sha256; sum.hidden = false;
+        if (chip) { chip.textContent = '可以下载'; chip.className = 'app-chip ok'; }
+      });
+    }).catch(() => { /* no list: 即将开放 stays */ });
+  }
+
   /* ---------- 一分钟看懂语流 (#film): one timeline for the stage on this page and for the two videos ----------
      draw(t) sets every moving value from the time alone, so playing, jumping to a part and the frame-by-frame
      recording (/about?record=1&cut=long|short; the recorder seeks window.FILM frame by frame and lives with the promo files, not in this repo) show the same picture. Each scene's parts carry
@@ -520,7 +544,7 @@ document.documentElement.classList.add('js');
   }
 
   function start() {
-    taps(); hero(); reveal(); pauseOffscreen(); statusBars(); story(); lookup(); curve(); levels(); graph(); radar(); shelf(); timers(); faq(); film(); scrolling();
+    taps(); hero(); reveal(); pauseOffscreen(); statusBars(); story(); lookup(); curve(); levels(); graph(); radar(); shelf(); timers(); faq(); downloads(); film(); scrolling();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

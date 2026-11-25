@@ -102,6 +102,32 @@ class ClassicArchivedTests(Servers):
                 patch('ai_routes.route', return_value='flow-text-deepseek'), patch.dict(os.environ, {'FLOW_TEXT_AI_MODEL': 'flow-text'}):
             self.assertIn(b'data-film="voice fast"', self.call(self.site, '/about', raw=True)[1])
 
+    def test_the_installers_come_from_their_own_folder_and_the_page_waits_for_them(self):
+        """下载安装 (/about#download): /download/ serves plain files of a few types from DOWNLOADS (outside the release),
+        installers as attachments and the list afresh; with no list it answers an empty one (no failed request on the page)
+        and the page keeps 即将开放 on its three buttons."""
+        import hashlib, re
+        body = self.call(self.site, '/about', raw=True)[1].decode()
+        sec = body[body.index('id="download"'):body.index('<!-- ============ who')]
+        self.assertEqual(re.findall(r'data-app="(\w+)"', sec), ['web', 'android', 'windows', 'mac', 'ios'])
+        self.assertEqual(re.findall(r'data-dl="(\w+)"', sec), ['android', 'windows', 'mac'])  # iPhone and iPad: 开发中, no button
+        self.assertEqual(sec.count('aria-disabled="true">即将开放</a>'), 3)
+        with tempfile.TemporaryDirectory() as d, patch.object(app, 'DOWNLOADS', Path(d)):
+            self.assertEqual(self.call(self.site, '/download/manifest.json')[:2], (200, {'apps': {}}))  # nothing yet: 即将开放
+            apk = Path(d) / 'flow-1.2.3.apk'; apk.write_bytes(b'PK\x03\x04 an installer')
+            (Path(d) / 'manifest.json').write_text(json.dumps({'apps': {'android': {
+                'file': apk.name, 'version': '1.2.3', 'bytes': apk.stat().st_size, 'sha256': hashlib.sha256(apk.read_bytes()).hexdigest()}}}))
+            (Path(d) / 'notes.txt').write_text('not served'); (Path(d) / '.flow.apk').write_bytes(b'hidden')
+            st, got, h = self.call(self.site, '/download/manifest.json', raw=True)
+            self.assertEqual((st, h['Content-Type'], h['Cache-Control']), (200, 'application/json; charset=utf-8', 'no-cache'))
+            self.assertEqual(json.loads(got)['apps']['android']['file'], apk.name)
+            st, got, h = self.call(self.site, '/download/' + apk.name, raw=True)
+            self.assertEqual((st, got, h['Content-Type']), (200, apk.read_bytes(), 'application/vnd.android.package-archive'))
+            self.assertEqual(h['Content-Disposition'], f'attachment; filename="{apk.name}"')
+            for path in ('/download/', '/download/notes.txt', '/download/.flow.apk', '/download/..%2fapp.py',
+                         '/download/sub/flow.apk', '/download/flow-9.apk', '/download/' + 'a' * 101 + '.apk'):
+                self.assertEqual(self.call(self.site, path, raw=True)[0], 404, path)
+
     def test_the_introduction_page_says_what_the_data_says(self):
         """认识语流 shows the word books with their sizes and a tap-a-word demo with dictionary entries, copied into
         about.js. When a word book or the dictionary changes, this says which figure on the page to update."""
