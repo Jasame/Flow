@@ -217,7 +217,7 @@ def overview(c):
         'ai': {
             'today': q('SELECT COALESCE(SUM(count),0) FROM ai_usage WHERE day=?', day),
             'week': [{'day': d, 'count': q('SELECT COALESCE(SUM(count),0) FROM ai_usage WHERE day=?', d)} for d in reversed(week)],
-            'site_limit': chat_service.daily_limit('FLOW_AI_DAILY_LIMIT'),
+            'site_limit': chat_service.site_limit(c),  # today's, grown with the learners (chat_service.site_limit)
             'limits': __import__('console_ops').limits(),
             'user_limit': chat_service.daily_limit('FLOW_AI_USER_DAILY_LIMIT'),
             'users_at_limit': (q('SELECT COUNT(*) FROM ai_usage WHERE day=? AND user_id>0 AND count>=?', day, chat_service.daily_limit('FLOW_AI_USER_DAILY_LIMIT'))

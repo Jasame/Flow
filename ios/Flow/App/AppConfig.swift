@@ -45,7 +45,9 @@ enum AppConfig {
     /// Hosts the web view keeps inside the app: the site (and, for UI tests, the local test server). Everything else
     /// opens in the system browser.
     static func isOwn(_ url: URL?) -> Bool {
-        guard let host = url?.host?.lowercased() else { return false }
+        guard let host = url?.host?.lowercased(), let scheme = url?.scheme?.lowercased() else { return false }
+        // https only (ATS refuses http anyway); a Beta build's UI tests also use the local test server over http
+        guard scheme == "https" || (isBeta && scheme == "http" && (host == "localhost" || host == "127.0.0.1")) else { return false }
         if let mine = start.host?.lowercased(), host == mine { return true }
         if let mine = site.host?.lowercased(), host == mine || host == "www." + mine { return true }
         return false
@@ -53,7 +55,12 @@ enum AppConfig {
 
     /// Where the page's bridge calls may come from (the frame's security origin).
     static func isOwnOrigin(host: String, scheme: String) -> Bool {
-        guard scheme == "https" || (isBeta && scheme == "http" && (host == "localhost" || host == "127.0.0.1")) else { return false }
-        return isOwn(URL(string: "\(scheme)://\(host)/"))
+        isOwn(URL(string: "\(scheme)://\(host)/"))
+    }
+
+    /// What a link on the page may hand to iOS: another website (Safari), an email, a phone number. Never another app's
+    /// own scheme (weixin://, alipay:// …): a link put into the page must not start one (security-threat-model.md L9).
+    static func opensOutside(_ url: URL?) -> Bool {
+        ["http", "https", "mailto", "tel"].contains(url?.scheme?.lowercased() ?? "")
     }
 }
