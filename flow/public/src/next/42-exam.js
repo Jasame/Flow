@@ -113,7 +113,11 @@
       <div class="row"><button class="btn primary" id="exAgain">再来一套</button><a class="btn ghost" href="#/exam/${esc(r.exam)}">回到考试练习</a></div></div>`;
     drawTrends();
     announce(`练习结果：${r.total} 题做对 ${r.score} 题`);
-    view.querySelectorAll('[data-say]').forEach(b => b.onclick = () => TTS.say(b.dataset.say));
+    // a word's own recording, as in the word books; the voice only for a word without one
+    view.querySelectorAll('[data-say]').forEach(b => b.onclick = () => {
+      const v = missed.find(x => x.word === b.dataset.say);
+      if (v && v.audio && (v.audio.us || v.audio.uk)) CLIP.word({ text: v.word, audio: v.audio }); else TTS.say(b.dataset.say);
+    });
     const add = document.getElementById('exAdd');
     if (add) add.onclick = async () => {
       add.disabled = true;

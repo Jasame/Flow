@@ -254,6 +254,17 @@ class SprintTests(unittest.TestCase):
         cet4 = next(x for x in ex.overview(self.c, 1)[0]['exams'] if x['id'] == 'cet4')
         self.assertEqual(cet4['minutes'], ex.set_minutes('cet4', 30, sprint=True))
 
+    def test_a_missed_word_carries_its_recording(self):
+        p, _ = ex.paper(self.c, 1, 'cet4')
+        key = json.loads(self.c.execute('SELECT content FROM next_exam_papers WHERE id=?', (p['paper'],)).fetchone()['content'])['vocab']
+        right = [v['answer'] for v in key[:3]] + [None] * (len(key) - 3)
+        with patch.object(vs, 'word_audio', lambda w: {'us': [w, 0, 1]}):
+            r, _ = ex.submit(self.c, 1, {'paper': p['paper'], 'answers': {'vocab': right}, 'seconds': 60})
+        self.assertEqual([v['correct'] for v in r['vocab']], [True] * 3 + [False] * (len(key) - 3))
+        # 没认出的词 plays the word's own clip (as in the word books); a word known needs none
+        self.assertTrue(all(v['audio'] == {'us': [v['word'].lower(), 0, 1]} for v in r['vocab'] if not v['correct']))
+        self.assertTrue(all('audio' not in v for v in r['vocab'] if v['correct']))
+
     def test_reading_drill_hides_its_answers_and_is_graded(self):
         s, code = sp.type_set(self.c, 1, 'cet6', 'reading')
         self.assertEqual((code, s['set']['kind'], s['title']), (200, 'reading', '阅读一篇'))
