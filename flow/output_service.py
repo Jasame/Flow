@@ -10,7 +10,7 @@ import time
 
 import next_service as nx
 import skills_service as sk
-from lab_service import Shape, mbool, mnum  # lenient readers of what a model wrote (DeepSeek words JSON unlike Gemini)
+from lab_service import Shape, mbool, mheard, mnum  # lenient readers of what a model wrote (DeepSeek words JSON unlike Gemini)
 
 LEVEL_NOTE = {'A2': '学习者是入门水平，反馈用简单中文，示范用最常见的词和短句。', 'B1': '学习者是中级水平，反馈用中文，示范句清楚自然。',
               'B2': '学习者是中高级水平，关注搭配、语气和衔接。', 'C1': '学习者是高级水平，关注措辞精确、语域和行文层次。'}
@@ -94,7 +94,7 @@ def retell(c, uid, data):
         pts = [{'point': _clean(x.get('point'), 1, 200), 'covered': bool(x.get('covered'))} for x in raw['points'][:8] if isinstance(x, dict) and x.get('point')]
         if not pts:
             raise Shape('points_missing')
-        return {'transcript': _clean(raw.get('transcript') or '', 0, 2500) if audio else text, 'points': pts,
+        return {'transcript': mheard(raw.get('transcript'), 2500) if audio else text, 'points': pts,
                 'used': [_clean(u, 1, 120) for u in (raw.get('used') or [])[:6] if isinstance(u, str) and u.strip()],
                 'fixes': _fixes(raw.get('fixes'), valid), 'comment': _clean(raw.get('comment') or '', 0, 400), 'model': _clean(raw.get('model') or '', 0, 1500)}
 
@@ -198,7 +198,7 @@ def dialog(c, uid, data):
         corr = raw.get('correction')
         corr = {'original': _clean(corr.get('original') or '', 0, 300), 'better': _clean(corr.get('better'), 1, 300), 'why': _clean(corr.get('why') or '', 0, 300)} \
             if isinstance(corr, dict) and corr.get('better') else None
-        heard = _clean(raw.get('heard') or '', 0, 500) if audio else text
+        heard = mheard(raw.get('heard'), 500) if audio else text
         out = {'heard': heard, 'reply': _clean(raw.get('reply'), 1, 400, 'reply_empty'), 'correction': corr, 'hint': _clean(raw.get('hint') or '', 0, 200)}
         if sc:
             out['pace'] = SC.pace(heard, bool(corr))

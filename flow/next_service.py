@@ -1358,7 +1358,7 @@ def pron_score(r):
 
 def shadow(c, uid, data):
     """Shadowing: the learner reads one sentence aloud; AI transcribes it and points out what to fix."""
-    from lab_service import run_job, mtext as clean_text, audio_enabled, Shape, mnum  # model output: lenient
+    from lab_service import run_job, mtext as clean_text, mheard, audio_enabled, Shape, mnum  # model output: lenient
     from chat_service import request_model
     from audio_validation import validate_audio
     if not audio_enabled():
@@ -1403,7 +1403,7 @@ def shadow(c, uid, data):
         if not isinstance(raw, dict):
             raise ValueError('bad')
         flu = raw.get('fluency') if raw.get('fluency') in ('smooth', 'ok', 'choppy') else 'ok'
-        out = {'transcript': clean_text(raw.get('transcript') or '', 0, 600), 'tip': clean_text(raw.get('tip') or '', 0, 300),
+        out = {'transcript': mheard(raw.get('transcript'), 600), 'tip': clean_text(raw.get('tip') or '', 0, 300),
                'fluency': flu, 'accuracy': score_of(raw.get('accuracy')), 'fluency_score': score_of(raw.get('fluency_score')), 'issues': [], 'sounds': []}
         if out['fluency_score'] is None and out['accuracy'] is not None:
             out['fluency_score'] = {'smooth': 88, 'ok': 72, 'choppy': 50}[flu]
