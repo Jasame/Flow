@@ -96,7 +96,8 @@ CI（`.github/workflows/desktop.yml`）在 windows-latest 上装好 NSIS 安装�
 ## Linux（2026-11-25 开工，方案和用户的选择见共享笔记 linux-desktop-plan.md）
 
 - **包**：AppImage（所有发行版通用，能自动更新，打包了放声音用的 GStreamer）和 deb（Ubuntu 22.04+ / Debian 12+ / 深度 / 统信 UOS / 麒麟，
-  依赖 `gstreamer1.0-plugins-good gstreamer1.0-libav`）。x86_64。rpm 以后再说。
+  依赖 `gstreamer1.0-plugins-good gstreamer1.0-libav`，推荐装中文字体 `fonts-noto-cjk`）。x86_64。rpm 以后再说。
+  界面的中文靠系统字体：常见桌面版都带，精简安装或英文系统可能没有，AppImage 也不带（安装说明里写了怎么装）。
 - **网页引擎**：系统的 WebKitGTK 4.1。App 会打开麦克风（WebKitGTK 默认关着），录音能不能用要真机实测。
 - **系统媒体控制**：走 MPRIS（GNOME、KDE 的媒体控件、键盘媒体键），名字是 `org.mpris.MediaPlayer2.<bundle id>`。
 - **提醒**：Linux 没有系统替 App 定时弹通知的接口，所以**只在 App 开着时提醒**。App 自己计时，到点弹 freedesktop 通知，点通知打开复习页。

@@ -68,6 +68,7 @@ sudo xattr -dr com.apple.quarantine "/Applications/语流内测.app"
 几点说明：
 
 - **没有声音**：缺解码器，先运行 `sudo apt install gstreamer1.0-libav gstreamer1.0-plugins-good`（Fedora 等发行版要装 ffmpeg 或 gstreamer1-libav 之类的包）。
+- **中文显示成方框**：缺中文字体，运行 `sudo apt install fonts-noto-cjk`（Fedora 用 `sudo dnf install google-noto-sans-cjk-fonts`），再打开「语流」。
 - **复习提醒只在「语流」开着时弹**：Linux 上关掉窗口，「语流」会留在托盘里继续提醒（托盘菜单里可以关掉这个设置）。
   想开机就有提醒，在托盘菜单里勾选「开机时启动」。
 - **GNOME 桌面默认看不到托盘图标**：要装「AppIndicator」扩展；不装也没关系，关掉窗口后从应用菜单再点一次「语流」，窗口就回来了。

@@ -68,6 +68,9 @@
           "gstreamer1.0-plugins-good",
           "gstreamer1.0-libav"
         ],
+        "recommends": [
+          "fonts-noto-cjk | fonts-wqy-microhei | fonts-wqy-zenhei"
+        ],
         "section": "education"
       }
     }
