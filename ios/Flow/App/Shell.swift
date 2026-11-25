@@ -38,7 +38,7 @@ final class Shell {
         recorder.keepSession = { [weak player] in (player?.state ?? .idle) != .idle }
         // 「iOS 专属功能」 switched on the app's page: what acts at once
         Packs.shared.site = site
-        Features.changed.append { [weak player] f, on in
+        Features.changed.append { [weak player, site] f, on in
             switch f {
             case .lockScreenStudy: player?.lockScreenChanged()
             case .offlinePacks:
@@ -46,6 +46,7 @@ final class Shell {
                 Packs.schedule()
             case .frugal: Frugal.shared.update()
             case .reviewActivity: if !on { Task { await ReviewActivities.endAll() } }
+            case .wordSearch: Task { if on { await WordSearch.refresh(site: site) } else { await WordSearch.clear() } }
             case .smartResume, .haptics, .siri: break
             }
         }
@@ -60,6 +61,7 @@ final class Shell {
                 await WidgetsFeed.publish(reminders.input, outcome: outcome, site: site)  // the widgets' numbers too
             }
             Task { await Packs.shared.refresh() }  // 离线朗读包: today's, over Wi-Fi (at most every 3 hours)
+            Task { [site] in await WordSearch.refresh(site: site) }  // 在系统搜索里找生词: only when the list changed
         case .background:
             recorder.cutNow()  // no recording behind the learner's back
             // the counts may have changed while the app was open (a review done): today's reminder follows them

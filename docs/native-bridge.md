@@ -54,7 +54,7 @@ iOS（语流 C1）、安卓（语流 C2）、桌面 Windows、macOS 和 Linux（
 - 一个 App 在回到前台、网页重新加载以后，会把正在放的状态再发一次（`audio` 事件），网页不用猜。网页可见时也可以调 `FlowApp.call('app.visible')` 让它重发。
 - `FlowApp.call('hello')` → `{v, app, build, platform, features}`。
 - `FlowApp.call('app.settings')` → `{ok}`：打开 App 自己的「专属功能」页（iOS：「iOS 专属功能」，原生页，开关只存在这台手机上）。`ok: false` 是现在打不开（App 在后台）。
-  `FlowApp.call('app.features')` → `{<功能>: true/false}`：这台手机有哪几项、开没开（iOS 的 id：`lock-study` `smart-resume` `offline-packs` `haptics` `frugal` `review-activity` `siri`）。网页现在不用它，留给以后按开关改说法。
+  `FlowApp.call('app.features')` → `{<功能>: true/false}`：这台手机有哪几项、开没开（iOS 的 id：`lock-study` `smart-resume` `offline-packs` `haptics` `frugal` `review-activity` `siri` `word-search`）。网页现在不用它，留给以后按开关改说法。
 - `FlowApp.call('app.haptic', {kind})` → `{ok}`：`kind` 是 `tap`（轻点：打分、选一个选项）、`select`（换了一个选择）、`success`（答对、认识）、`warning`（模糊、半对）、`error`（答错）。
   学员在 App 的设置里关了「复习时的轻触震动」就回 `ok: false`，什么都不做；网页不用自己判断开关，照常调。iOS 本来就没有 navigator.vibrate，网页在浏览器里不用补。
 - `FlowApp.call('activity.review', {done, total})` → `{ok, why?}`：单词复习每评一张调一次，锁屏和灵动岛上显示「复习单词 done / total」；`FlowApp.call('activity.end', {done?, total?})` 复习完或离开复习页时调，最后的数字留一分钟再消失。学员在 App 设置里没打开「复习进度的实时活动」（默认关）时回 `{ok: false, why: 'off'}`，系统不让（关了实时活动、App 不在前台）回 `why: 'denied'`；网页照常调，不用自己判断。
@@ -228,6 +228,7 @@ speaking、pending 照实；2.5 秒内一定发 start；getVoices() 有带 lang 
   - 控制中心（iOS 18 起）：「开始复习」「今天的学习」两个按钮，打开 App 的复习页、今日页。
   - `review-activity` 复习进度的实时活动（默认关，锁屏上别人也看得到数字）：`activity.review` / `activity.end`，ActivityKit 本地更新，没有推送；App 重新启动时清掉上次留下的。
   - `siri` 快捷指令和 Siri（默认开）：App Intents 的三句话「语流开始复习」（打开 `#/review`）、「语流还有多少词要复习」（不打开 App，说出提醒用的那几个数；手机要解锁）、「用语流打开今天这篇」（今日「读」那篇的 `#/m/<id>`，没有就 `#/`）。快捷指令 App 里也有这三个。不用 Apple Intelligence 的实体索引和助手模式，学员的内容不交给 Siri 的大模型。网页不用改。
+  - `word-search` 在系统搜索里找生词（默认关）：App 回到前台时问 `GET /api/next/cards/index?v=<上次的 v>`（语流 B2，#366），变了才重建 Core Spotlight 的本机索引（每张卡：词或表达、释义第一段）；学员在 iPhone 的搜索里点了，就打开 `#/cards/find/<encodeURIComponent(词)>`。没登录、没同意存放、关掉开关：索引清空。不用带大模型的搜索。网页不用改。
   - 专注模式过滤（不设开关，学员在系统设置里加）：「设置 → 专注模式 → 某个模式 → 添加过滤条件 → 语流」，选都提醒 / 只提醒复习单词 / 都不提醒。复习提醒和每天计划提醒的通知各带 `filterCriteria`（`review` / `plan`），过滤由系统做。
 - WKAppBoundDomains 只有本站：服务工作线程、桥、cookie 只在本站有效。
 - audio：AVPlayer，AVAudioSession `.playback` + `.spokenAudio` + 后台音频，MPNowPlayingInfoCenter / MPRemoteCommandCenter；系统声音 AVSpeechSynthesizer。
