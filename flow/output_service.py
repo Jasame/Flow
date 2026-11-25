@@ -358,16 +358,27 @@ def translate(c, uid, data):
 # Who may judge one word well enough to file a mistake: Gemini (the main service) for now; a dedicated pronunciation
 # scorer joins when 语流 12 connects one. A verdict from another model (Qwen-Omni, since the owner moved 跟读 and 发音 off
 # Gemini on 2026-11-25: 「延迟太高了」) is a reference only: counted as practice, never a mistake, said to be maybe wrong.
-SAY_TRUSTED = ('main', 'asr')
+SAY_TRUSTED = ('main', 'asr', 'word')  # word: Qwen-Omni writing down the word (chat_service.hear_word)
+
+
+def say_judge():
+    """How 发音 hears one word, before say_verdict decides: 'omni' = Qwen-Omni writes down the word it hears, told nothing
+    (chat_service.hear_word; the default once the main model is off, 2026-11-25 the owner: 「不用 qwen3-asr，先用 Omni」);
+    'asr' = FLOW_SAY_JUDGE=asr, 百炼's speech recognition told the word and its pair word (qwen3-asr: no filing, not for
+    learners); '' = the old prompt, its verdict on Omni a reference only (FLOW_SAY_JUDGE=model, or the main model on)."""
+    import chat_service
+    v = os.getenv('FLOW_SAY_JUDGE', '').strip().lower()
+    if v == 'asr':
+        return 'asr' if chat_service.asr_model() else ''
+    if v == 'model':
+        return ''
+    if v == 'omni' or not chat_service.main_on():
+        return 'omni' if chat_service.word_model() else ''
+    return ''
 
 
 def say_by_asr():
-    """FLOW_SAY_JUDGE=asr (2026-11-25, the owner: 「换成国内已备案模型」): one word judged by 百炼's speech recognition
-    (chat_service.transcribe, FLOW_ASR_AI_MODEL) told the word and its pair word, instead of a model that listens and
-    decides. say_pairs_eval (24 pairs, 192 judgements each): a correct English-voice reading called wrong 1 time in 48
-    (Qwen-Omni with this page's prompt: 18), a wrong one caught 42 of 48, 0.6 s."""
-    import chat_service
-    return os.getenv('FLOW_SAY_JUDGE', '').strip() == 'asr' and bool(chat_service.asr_model())
+    return say_judge() == 'asr'
 
 
 FULL_VOWELS = set('aeiouyæɑɒɔɛɪʊʌɜɚɝ')  # every vowel but the weak ə
@@ -453,12 +464,16 @@ def say(c, uid, data):
     import hashlib, ai_routes
     ai_routes.CTX.last_service = None
     spec = {'text': target, 'audio_sha256': hashlib.sha256(raw_audio).hexdigest()}
-    if say_by_asr():
+    judge = say_judge()
+    if judge:
         import chat_service
         from lab_service import run_job
 
         def invoke():
-            heard = chat_service.transcribe(data.get('audio'), [target, partner])
+            if judge == 'asr':
+                heard = chat_service.transcribe(data.get('audio'), [target, partner])
+            else:
+                heard = chat_service.hear_word(data.get('audio'))
             return json.dumps(say_verdict(target, partner, heard), ensure_ascii=False), 'stop'
         result, status = run_job(c, uid, str(data.get('request_id', '')), 'next-say', 'sounds', 'speaking', spec, invoke, convert, mark_replay=True)
     else:

@@ -295,6 +295,36 @@ def _request_audio_service(messages,audio,model):
 
 
 SAID=[{'role':'user','content':'[recording]'}]  # what ai_calls counts for a transcription (the audio is not text)
+WORD_PROMPT='You write down English speech. The recording is one English word. Output only that word, as you hear it.'
+
+
+def word_model():
+ """The audio route that writes down one read word: 发音's own (next-say) or, without one, 情景对话's (both Qwen-Omni)."""
+ import ai_routes
+ return ai_routes.audio_route('next-say') or ai_routes.audio_route('next-dialog')
+
+
+def hear_word(audio):
+ """One read word written down by Qwen-Omni (filed under 通义千问), told nothing of the word expected; '' = nothing.
+ 2026-11-25 omni_word_eval (24 pairs of 发音入门, synthetic voices, 192 judgements): a correct reading heard as the pair
+ word 1 in 48 (English voice) and 3 in 48 (Chinese voice), a wrong one caught 36 and 35 of 48, 0.9 s; told the two
+ words it did worse (5 and 10 in 48), and qwen3-asr told them (1 and 6) has no filing (Aliyun ticket, 13:58)."""
+ import ai_routes
+ from vertex_auth import AIConfigurationError
+ model=word_model()
+ if not model:raise AIConfigurationError('No audio route to write down a word')
+ msgs=[{'role':'system','content':WORD_PROMPT},{'role':'user','content':'Write down the word.'}]
+ started=time.monotonic();INFO.__dict__.clear()
+ try:
+  reply,_=_request_audio_service(msgs,audio,model)
+ except ValueError as exc:
+  if str(exc)!='Empty model reply':
+   ai_routes.record('word',model,started,SAID,None,dict(INFO.__dict__),exc);raise
+  reply=''
+ except Exception as exc:
+  ai_routes.record('word',model,started,SAID,None,dict(INFO.__dict__),exc);raise
+ ai_routes.record('word',model,started,SAID,reply,dict(INFO.__dict__))
+ return reply.strip()[:200]
 
 
 def transcribe(audio,words=None):

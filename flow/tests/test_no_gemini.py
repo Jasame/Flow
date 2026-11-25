@@ -266,5 +266,61 @@ class SayTests(unittest.TestCase):
         self.assertTrue(out.say_by_asr())
 
 
+
+class OmniWordTests(unittest.TestCase):
+    """发音 without qwen3-asr (Aliyun ticket 2026-11-25 13:58: no filing; the owner: 「不用 qwen3-asr，先用 Omni」): Qwen-Omni
+    writes down the word it hears, told nothing of the word expected, and say_verdict decides. Its verdict counts."""
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.p = patch.object(app, 'DB', Path(self.tmp.name) / 's.db'); self.p.start()
+        self.env = patch.dict(os.environ, {**ENV, 'FLOW_SAY_JUDGE': ''}); self.env.start()
+        app.init(); self.c = app.db()
+        self.c.execute('INSERT INTO users(username,password) VALUES(?,?)', ('learner', 'h')); self.c.commit()
+        nx.save_profile(self.c, 1, {'level': 'B1', 'goal': 'daily', 'themes': [], 'minutes': 15})
+
+    def tearDown(self):
+        self.c.close(); self.env.stop(); self.p.stop(); self.tmp.cleanup()
+
+    def say(self, answer, rid, text='think'):
+        urlopen, sent = gateway({'flow-audio-omni-flash': [answer]})
+        with patch('urllib.request.urlopen', urlopen), patch('time.sleep'), \
+                patch.object(cs, '_request_main', side_effect=AssertionError('Gemini asked')), \
+                patch.object(cs, 'transcribe', side_effect=AssertionError('qwen3-asr asked')):
+            result, status = out.say(self.c, 1, {'text': text, 'audio': WEBM, 'request_id': rid})
+        self.assertEqual(status, 200, result)
+        return result['result'], sent
+
+    def test_omni_writes_the_word_down_told_nothing_and_two_misses_make_the_card(self):
+        r, sent = self.say('Think.', 'say-omni-0001')
+        self.assertTrue(r['ok']); self.assertFalse(r['tentative'])
+        self.assertEqual([b['model'] for b in sent], ['flow-audio-omni-flash'])
+        asked = json.dumps([m if isinstance(m['content'], str) else [x for x in m['content'] if x.get('type') == 'text'] for m in sent[0]['messages']])
+        self.assertNotIn('think', asked); self.assertNotIn('sink', asked)  # told nothing: hints made it worse (5 / 10 in 48)
+        r, _ = self.say('Sink.', 'say-omni-0002')
+        self.assertFalse(r['ok']); self.assertFalse(r['confirmed']); self.assertEqual(r['heard'], 'sink')
+        r, _ = self.say('Sink.', 'say-omni-0003')
+        self.assertTrue(r['confirmed'])
+        self.assertEqual(self.c.execute("SELECT COUNT(*) FROM next_cards WHERE user_id=1 AND norm='sound:think'").fetchone()[0], 1)
+        self.assertEqual([x[0] for x in self.c.execute("SELECT DISTINCT service FROM ai_calls")], ['word'])
+
+    def test_a_word_written_as_one_that_sounds_the_same_is_right(self):
+        r, _ = self.say('There.', 'say-omni-0004', text='their')
+        self.assertTrue(r['ok']); self.assertEqual(r['note'], '听起来是 their（和 there 同音）')
+
+    def test_nothing_written_down_is_practice_only(self):
+        r, _ = self.say('', 'say-omni-0005')
+        self.assertTrue(r['tentative']); self.assertFalse(r['confirmed'])
+
+    def test_which_judge(self):
+        cases = [({}, 'omni'), ({'FLOW_SAY_JUDGE': 'model'}, ''), ({'FLOW_MAIN_AI': 'on'}, ''), ({'FLOW_AUDIO_ROUTES': ''}, ''),
+                 ({'FLOW_SAY_JUDGE': 'omni', 'FLOW_MAIN_AI': 'on'}, 'omni'), ({'FLOW_SAY_JUDGE': 'asr'}, 'asr'),
+                 ({'FLOW_SAY_JUDGE': 'asr', 'FLOW_ASR_AI_MODEL': ''}, '')]
+        for env, judge in cases:
+            with patch.dict(os.environ, env):
+                self.assertEqual(out.say_judge(), judge, env)
+        with patch.dict(os.environ, {'FLOW_AUDIO_ROUTES': 'next-say=flow-audio-omni-x,next-dialog=flow-audio-omni-flash'}):
+            self.assertEqual(cs.word_model(), 'flow-audio-omni-x')  # 发音's own route first, else 情景对话's
+
+
 if __name__ == '__main__':
     unittest.main()
