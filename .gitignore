@@ -27,6 +27,8 @@ adc.json
 *.zip
 
 /dist/
+# UI reports and screenshots that tools/msi-run.sh brings back from the MSI
+/msi-out/
 # Pre-generated narration is uploaded separately (tools/gen_audio.py)
 flow/audio/
 tools/report.json

@@ -206,6 +206,12 @@ not `flow/`, not the UI tools) skips the 5 UI shares, taking 3 of the account's 
 | `tools/deploy.sh`, `flow-pull.sh`, `flow-autodeploy.py` | `python3 tools/run_tests.py test_channels`, and a full 内测版 release before the PR counts as done |
 | unsure, or many areas | `python3 tools/run_tests.py` (all website tests in parallel, about 3 minutes on a laptop) and let CI run the UI |
 
+**On the MSI instead of the Mac:** `bash tools/msi-run.sh` takes the same arguments (none = `--changed`; `--all` = every
+website test; `--ui <groups>`), sends the branch as it is now (uncommitted changes and new files included, nothing
+.gitignore excludes) over `ssh msi-flow`, runs `run_tests.py` there and streams the output back; a UI run's report and
+screenshots come back to `msi-out/`. Its exit status is the tests', so `bash tools/msi-run.sh && git push` works. It
+shares the MSI with CI: nice 10, at most `MSI_RUN_JOBS` (4) processes, two runs at once (see the script's header).
+
 `--list` prints what would run without running it. A UI group is one switch of `ui_test.py`; `run_tests.py --ui` with
 no group runs all five CI shares at once on the laptop (about 6 minutes).
 
