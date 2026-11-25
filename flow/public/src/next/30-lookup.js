@@ -15,7 +15,7 @@
     if (e && mt) { (mt._looked = mt._looked || new Map()).set(e.lemma, { word: e.lemma, meaning: meaning.split('；').slice(0, 2).join('；').slice(0, 40), sentence }); if (mt._onLook) mt._onLook(); }
     openSheet(`<div class="stack">
       <div class="row between"><div><div class="word" id="sheetTitle">${esc(e ? e.word : word)}</div><div class="ph">${esc(e ? e.phonetic : '')}${e && e.lemma !== word.toLowerCase() ? ' · 原形 ' + esc(e.lemma) : ''}</div></div>
-        <button class="icon-btn" id="sayW" aria-label="朗读">${ICON.speak}</button></div>
+        <span class="say-ai"><button class="icon-btn" id="sayW" aria-label="朗读">${ICON.speak}</button>${aiVoice()}</span></div>
       ${here ? `<div class="here"><span class="pill green">在这篇里</span> ${esc(here.meaning)}</div>` : ''}
       <div class="mean${here ? ' dict' : ''}">${e ? esc(meaning).replace(/；|;/g, '<br>') : '<span class="muted">词典里没有这个词，可以先收藏，复习时再查。</span>'}</div>
       ${e && e.example ? `<div class="small muted text">${esc(e.example)}</div>` : ''}
@@ -43,7 +43,7 @@
     try {
       const r = await api('/api/next/explain', { pack, sentence, request_id: rid('nx') });
       const x = r.result;
-      openSheet(`<div class="stack explain enter"><div class="row between"><div class="kicker">AI 讲解</div>${aiTag()}<button class="icon-btn" id="sayS" aria-label="朗读">${ICON.speak}</button></div>
+      openSheet(`<div class="stack explain enter"><div class="row between"><div class="kicker">AI 讲解</div>${aiTag()}<span class="say-ai"><button class="icon-btn" id="sayS" aria-label="朗读">${ICON.speak}</button>${aiVoice()}</span></div>
         <div class="text" id="sheetTitle">${esc(sentence)}</div>
         <div class="tr">${esc(x.translation)}</div>${x.structure ? `<div class="small muted">${esc(x.structure)}</div>` : ''}
         ${x.points.map(p => `<div class="pt"><b>${esc(p.text)}</b><span class="small">${esc(p.note)}</span>${p.node ? `<span>${nodeChip({ id: p.node, title: p.node_title || p.node, status: 'met' })}</span>` : ''}</div>`).join('')}

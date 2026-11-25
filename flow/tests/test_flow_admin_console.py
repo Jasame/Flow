@@ -56,7 +56,7 @@ class Console(unittest.TestCase):
         return st, body
 
     def register(self, name, password='correct horse 1'):
-        st, body, h = self.call(self.site, '/api/register', {'username': name, 'password': password})
+        st, body, h = self.call(self.site, '/api/register', {'username': name, 'password': password, 'storage': True})
         self.assertEqual(st, 200, body)
         return h['Set-Cookie'].split(';')[0]
 
@@ -353,7 +353,7 @@ class TaskTests(Console):
         with app.db() as c:
             day = __import__('daily_service').today()
             c.execute("INSERT INTO daily_runs(day,status,attempts,updated,error) VALUES(?,'failed',2,?,'x')", (day, time.time())); c.commit()
-        with patch('daily_service.run') as run:
+        with patch('daily_service.run') as run, patch('daily_service.PAUSED', False):
             self.assertEqual(self.console('/daily/run', {'again': True})[0], 202)
             time.sleep(0.2)
         self.assertTrue(run.called)
@@ -386,8 +386,9 @@ class PageTests(unittest.TestCase):
             self.assertIn(f'data-tab="{tab}"', html)
             self.assertIn(f'function {fn}', js)
         self.assertIn('data-tab="learners" data-admin', html)
-        v = html.split('admin.js?v=')[1].split('"')[0]
-        self.assertEqual(v, html.split('admin.css?v=')[1].split('"')[0])
+        # each file is asked for by its own content (?v=<sha256[:10]>, tests/test_release.py), so a changed one is fetched at once
+        for name in ('admin.js', 'admin.css'):
+            self.assertRegex(html.split(name + '?v=')[1].split('"')[0], r'^[0-9a-f]{10}$')
         self.assertNotIn('data-tab="accounts"', html)  # 账号 is part of 学员 now; #accounts still opens it
         self.assertIn("if (tab === 'accounts') tab = 'learners'", js)
 

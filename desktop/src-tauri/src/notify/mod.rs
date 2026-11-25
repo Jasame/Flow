@@ -32,17 +32,28 @@ pub enum Permission {
 }
 
 impl Permission {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Permission::Granted => "granted",
-            Permission::Denied => "denied",
-            Permission::Undetermined => "undetermined",
-            Permission::Provisional => "provisional",
-        }
-    }
     /// notifications will be shown
     pub fn ok(self) -> bool {
         matches!(self, Permission::Granted | Permission::Provisional)
+    }
+}
+
+/// FlowApp.notify.permission() as the contract means it (docs/native-bridge.md §5): whether the app's reminders
+/// are on, not only what the system allows. 'granted' = the system allows and the learner turned them on;
+/// 'undetermined' = not turned on yet, or turned off; 'denied' = turned off in the system's settings.
+/// `lenient`: Windows cannot say before its first toast ('undetermined' there is not a no).
+pub fn app_permission(sys: Permission, on: bool, lenient: bool) -> &'static str {
+    let allowed = sys.ok() || (lenient && sys == Permission::Undetermined);
+    if sys == Permission::Denied {
+        "denied"
+    } else if on && allowed {
+        if sys == Permission::Provisional {
+            "provisional"
+        } else {
+            "granted"
+        }
+    } else {
+        "undetermined"
     }
 }
 
@@ -157,12 +168,22 @@ mod tests {
     }
 
     #[test]
+    fn permission_means_the_apps_reminders() {
+        use Permission::*;
+        assert_eq!(app_permission(Granted, true, false), "granted");
+        assert_eq!(app_permission(Granted, false, false), "undetermined"); // not turned on, or turned off
+        assert_eq!(app_permission(Denied, true, false), "denied");
+        assert_eq!(app_permission(Undetermined, true, false), "undetermined");
+        assert_eq!(app_permission(Undetermined, true, true), "granted"); // Windows before its first toast
+        assert_eq!(app_permission(Provisional, true, false), "provisional");
+    }
+
+    #[test]
     fn reminder_clicks_open_the_review() {
         assert_eq!(route_of("review-2026-11-25"), Some("/review"));
         assert_eq!(route_of("review-once"), Some("/review"));
         assert_eq!(route_of("plan-2026-11-25"), Some("/"));
         assert_eq!(route_of("flow-test"), None);
-        assert_eq!(Permission::Undetermined.as_str(), "undetermined");
         assert!(Permission::Provisional.ok() && !Permission::Undetermined.ok());
         assert_eq!(tag_of("review-2026-11-27"), "r20261127");
         assert_eq!(tag_of("plan-2026-11-27"), "p20261127");

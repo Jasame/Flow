@@ -9,6 +9,7 @@ def graph(c,uid):
   exposure.setdefault(r['pack'],{})[r['skill']]=r['count']
  for r in c.execute('SELECT content,origin FROM lab_packs WHERE owner IS NULL OR owner=? ORDER BY created DESC',(uid,)):
   p=json.loads(r['content']);m=metadata(p)
+  if r['origin']=='daily' and __import__('daily_service').retired(p):continue  # 今日热点 news: paused 2026-11-25
   if m['grammar']:materials.append({k:p[k] for k in ('id','title','level')}|{'grammar':m['grammar'],'daily_day':p.get('daily_day'),'origin':r['origin'],'knowledge':p.get('knowledge',[]),'practice':exposure.get(p['id'],{})})
  for n in nodes:
   related=[p for p in materials if n['id'] in p['grammar']];n['materials']=related[:12]

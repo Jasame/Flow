@@ -32,7 +32,7 @@ def problems(d, os_name):
         out.append(f"notify_plan failed: {p.get('syncError')}")
     if not re.search(r' FlowDesktop/[\d.]+ \(' + label + r'\)$', p.get('ua') or ''):
         out.append(f"User-Agent does not end with FlowDesktop/<version> ({label}): {p.get('ua')!r}")
-    if p.get('permission') not in ('granted', 'denied', 'undetermined'):
+    if p.get('permission') not in ('granted', 'denied', 'undetermined', 'provisional'):
         out.append(f"notify.permission() = {p.get('permission')!r} {p.get('permissionError') or ''}")
     if p.get('syncError'):
         out.append(f"notify.sync failed: {p['syncError']}")
@@ -52,6 +52,8 @@ def problems(d, os_name):
             out.append(f"test notification: {n.get('test_notification')!r}")
     if not n.get('media_controls'):
         out.append('the system media controls did not start')
+    if 'AI 朗读' not in (n.get('media_last_artist') or ''):
+        out.append(f"the system's player does not say AI 朗读: {n.get('media_last_artist')!r}")
     if n.get('media_last_title') != '语流 · 冒烟测试':
         out.append(f"media title did not reach the app: {n.get('media_last_title')!r}")
     return out

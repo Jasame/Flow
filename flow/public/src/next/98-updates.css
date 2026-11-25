@@ -1,0 +1,10 @@
+/* 更新记录 (#/updates) and 今日's 「语流更新了」 card (83-updates.js) */
+.upd-l{margin:0;padding-left:1.2em;display:grid;gap:4px;line-height:1.55}
+.upd-h{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.04em;margin:4px 0 2px}
+.upd .h2{margin:0}
+.upd-note{margin:2px 0 0}
+.upd-card .upd-l{gap:2px}
+.upd-card b .tiny{font-weight:400}
+.upd-go{white-space:nowrap;margin-left:2px}
+.upd-changed{background:var(--amber-soft);border-radius:12px;padding:8px 12px 10px}
+.upd-changed .upd-h{color:var(--amber)}

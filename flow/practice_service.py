@@ -83,6 +83,7 @@ def rank(c,uid,rows,node=None,skill=None,mode=None):
  for row in rows:
   if not quality.recommendable(c,row) or row['origin']=='daily' and not hot:continue
   p=json.loads(row['content'])
+  if row['origin']=='daily' and __import__('daily_service').retired(p):continue  # 今日热点 news: paused 2026-11-25
   if p['level'] not in LEVELS:continue
   m=metadata(p);gap=abs(LEVELS.index(p['level'])-LEVELS.index(target));linked=bool(set(m['grammar'])&weak);seen=used[family(p)];fits=m['minutes']<=budget
   prior=ratings.get(p['id']);calibration=observed_materials.get(p['id'],{});friction=2 if prior=='hard' else 1 if calibration.get('calibrated') and calibration['pass_rate']<.35 else 0

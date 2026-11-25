@@ -99,9 +99,12 @@
     const b = document.getElementById('dueBadge'); b.hidden = !due; b.textContent = due > 99 ? '99+' : due;
   }
   // The page drawn again with fresher data, without the loading skeleton or the entrance animation, and only when it
-  // would not take anything from the learner (a sheet open, typing in a field, another page by now).
+  // would not take anything from the learner (a sheet open, typing in a field, another page by now, a whole text being
+  // read or paused, a sound or a recording going: a redraw stops them — 语流 07's iPhone run, 2026-11-25: 播放全文 tapped
+  // right after opening an article, the fresher 今日 came in and the reading was gone, as if read to its end).
   function redrawQuietly(drawnFor) {
     if (location.hash !== drawnFor || !sheetEl.hidden || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName))) return;
+    if (LONG.r || audioBusy()) return;
     S.homeFresh = true; route(true, true);
   }
   function needLogin(reason) { openLogin(reason); return false; }
@@ -212,14 +215,15 @@
         if ((tab === 'code' || tab === 'reset' || (tab === 'reg' && mail)) && !/^\d{6}$/.test(v('code').trim())) return fieldError(form, err, { message: '请输入邮件里的 6 位验证码', field: 'code' });
         const ag = teacher ? {} : readAge(form), agp = tab === 'reg' && !teacher ? ageProblem(ag, true, false) : '';
         if (agp) return fieldError(form, err, { message: agp, field: ag.age ? 'guardian' : 'age' });
+        if (tab === 'reg' && !form.storage.checked) return fieldError(form, err, { message: '请先勾选同意把账号和学习数据存放在香港的服务器上', field: 'storage' });
         const btn = form.querySelector('[type=submit]'); btn.disabled = true;
         try {
           let r;
           if (tab === 'pw') r = await api('/api/login', { username: v('username').trim(), password: v('password') });
           else if (tab === 'code') r = await api('/api/login', { method: 'code', email: v('email').trim(), code: v('code').trim() });
           else if (reset) r = await api('/api/auth/reset', { email: v('email').trim(), code: v('code').trim(), password: v('password') });
-          else r = await api('/api/register', teacher ? { email: v('email').trim(), code: v('code').trim(), username: v('username').trim(), password: v('password'), teacher }
-            : { email: v('email').trim(), code: v('code').trim(), username: v('username').trim(), password: v('password'), age: ag.age, guardian: ag.guardian });
+          else r = await api('/api/register', teacher ? { email: v('email').trim(), code: v('code').trim(), username: v('username').trim(), password: v('password'), teacher, storage: true }
+            : { email: v('email').trim(), code: v('code').trim(), username: v('username').trim(), password: v('password'), age: ag.age, guardian: ag.guardian, storage: true });
           await afterLogin(); closeSheet();
           const name = (S.user && S.user.username) || r.username || '';
           toast(reset ? '密码已重设，已经登录' : teacher ? `老师账号注册好了，欢迎你${name ? '，' + name : ''}` : tab === 'reg' ? `注册成功，欢迎你${name ? '，' + name : ''}` : `欢迎回来${name ? '，' + name : ''}`);
@@ -243,6 +247,7 @@
       ${pwField('密码', 'password', 'new-password', '至少 10 位，最好是一句只有你知道的话')}
       ${mail ? '' : '<span class="hint">注册后可以在「我的」里绑定邮箱，忘记密码时用它找回。</span>'}
       ${teacher ? '' : ageFields('', false)}
+      ${storageField()}
       <button class="btn primary block" type="submit">${teacher ? '注册老师账号并登录' : '注册并登录'}</button>
       <span class="hint">注册即表示你已了解<a class="link" href="${PRIVACY}" target="_blank" rel="noopener">隐私说明</a>：数据存在哪里、哪些内容交给哪家 AI。</span>`;
   }
@@ -312,12 +317,14 @@
       if (!S.home) { await refreshHome(); fresh = true; }
       // 认识语流's 「注册账号」 (/#/join): the first page with the sign-up sheet open over it; signed in, just the first page.
       if (name === 'join') { location.replace('#/'); if (!S.user) setTimeout(() => openLogin('', 'reg'), 0); return; }
-      if (name === 'welcome') { setNav(''); await welcome(a === 'edit'); }
+      // 数据存放在香港 not agreed (an older account, or paused): that page first, every page but the guide (81-privacy.js)
+      if (S.user && S.user.storage !== 'ok' && name !== 'guide') { setNav(''); await storageView(); }
+      else if (name === 'welcome') { setNav(''); await welcome(a === 'edit'); }
       // 老师模式 (82-class.js): #/teacher/<token> is a 老师注册链接; a teacher account's home is its classes
       else if (name === 'teacher') { setNav(''); await teacherSignup(decodeURIComponent(a || '')); }
       else if (name === 'teach' || (name === '' && S.user && S.user.teacher)) { setNav('today'); await teachHome(); }
       // Only the personalised home needs the level questions first; everything else works for a new guest too.
-      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix', 'easy', 'words', 'speak', 'growth', 'radar', 'practice', 'guide', 'feedback', 'weekly-off', 'invite', 'class'].includes(name)) { location.replace('#/welcome'); return; }
+      else if (!hasProfile() && !['me', 'vocab', 'sounds', 'library', 'graph', 'm', 'cards', 'import', 'report', 'review', 'placement', 'exam', 'series', 'mix', 'easy', 'words', 'speak', 'growth', 'radar', 'practice', 'guide', 'feedback', 'weekly-off', 'invite', 'class', 'updates'].includes(name)) { location.replace('#/welcome'); return; }
       else if (name === 'placement') { setNav('practice'); await placementView(); }
       else if (name === 'exam') { setNav('practice'); await (b ? examTypeView(a, decodeURIComponent(b)) : examView(a)); }
       else if (name === 'series') { setNav('today'); await seriesView(decodeURIComponent(a || '')); }
@@ -343,6 +350,7 @@
       else if (name === 'invite') { setNav('me'); await joinRoute(decodeURIComponent(a || '')); }
       else if (name === 'class' && a) { setNav(S.user && S.user.teacher ? 'today' : 'me'); await classView(decodeURIComponent(a)); }
       else if (name === 'feedback') { setNav('me'); await feedbackView(); }
+      else if (name === 'updates') { setNav('me'); await updatesView(); }  // 更新记录 (83-updates.js)
       else { setNav('today'); await today(fresh); }
       if (!sameMaterial && name !== 'welcome' && !quiet) enter(view);
       if (!sameMaterial && !quiet) { const h = view.querySelector('h1'); announce(h ? h.textContent : document.title); }

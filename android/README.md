@@ -1,6 +1,6 @@
 # 语流 Android App
 
-原生外壳加关键功能原生，和 iOS 版（`ios/`，语流 20）做法一样：Kotlin 写的外壳里用 WebView 打开网站，网站一改，App 里马上就是新的；整篇朗读、录音、复习提醒改用安卓原生来做。网页通过 `window.FlowApp` 调用这些原生功能，两个平台共用一套约定。
+原生外壳加关键功能原生，和 iOS 版（`ios/`，语流 C1）做法一样：Kotlin 写的外壳里用 WebView 打开网站，网站一改，App 里马上就是新的；整篇朗读、录音、复习提醒改用安卓原生来做。网页通过 `window.FlowApp` 调用这些原生功能，两个平台共用一套约定。
 
 | | 内测版 | 正式版 |
 |---|---|---|
@@ -39,19 +39,35 @@ emulator -avd flow37 -no-window -no-audio      # 测试时一律不出声（工�
 
 调试包可以用 Chrome 的 `chrome://inspect` 看网页（正式签名的包关掉了）。
 
-## 发 APK（给自己和内测的人装）
+## 发 APK
 
-```bash
-tools/release-apk.sh both     # → dist/flow-beta-<版本>.apk 和 dist/flow-<版本>.apk
-```
+两个 flavor 用两把签名钥匙（用户 2026-11-25 选的）。两把的别名都是 `flow`。
 
-- 每发一个新 APK，先把 `gradle.properties` 里的 `flow.versionCode` 加 1。只有 versionCode 更大，手机才会把它当成升级。
-- 签名用主人 Mac 上的 `~/.flow-android/flow-release.jks`（别名 `flow`）。它的密码在 macOS 钥匙串里，条目名是 `flow-android-release`。脚本从钥匙串里取密码，再交给 `apksigner`；Gradle 碰不到密码，仓库里也没有。
-- **这个 keystore 要备份**（加密 U 盘、密码管理器都行），密码也要一起备份。丢了以后，新版本就不能覆盖安装了：每个人都得先卸载再装，App 里的登录也要重新登。证书指纹是 SHA-256 `76:88:9C:6F:7E:E0:C6:C6:72:84:4B:05:17:91:9C:33:FB:6D:86:40:D2:EF:22:6A:47:20:AF:2B:12:82:89:27`。
+| | 内测版「语流内测」 | 正式版「语流」 |
+|---|---|---|
+| 钥匙 | `~/.flow-android/flow-beta.jks` | `~/.flow-android/flow-release.jks` |
+| 密码 | macOS 钥匙串 `flow-android-beta` | macOS 钥匙串 `flow-android-release` |
+| 另外一份 | GitHub environment `android-beta-signing` 的 Secrets：`FLOW_BETA_KEYSTORE`（base64）、`FLOW_BETA_KS_PW`。这个 environment 只给 main 用，PR 里的代码拿不到 | 没有，只在主人的 Mac 上 |
+| 证书 SHA-256 | `C2:22:FE:38:31:FD:BC:17:49:7F:7D:9C:78:28:7B:8A:4C:D6:12:BF:53:BB:08:2A:12:85:E7:7E:BD:BA:BF:13` | `76:88:9C:6F:7E:E0:C6:C6:72:84:4B:05:17:91:9C:33:FB:6D:86:40:D2:EF:22:6A:47:20:AF:2B:12:82:89:27` |
+| 谁来打包 | 每次合进 main（只改 `android/` 时），CI 自动打包 | 主人在 Mac 上跑 `tools/release-apk.sh prod` |
+
+- **内测包**：在 GitHub 的 Actions →「Android」里找最新一次 main 的 run，下载 artifact `flow-beta-apk`（zip 里就是 APK），留 30 天。
+  - versionCode 是 100 加上 run 的编号，每个新包都能直接覆盖上一个。
+  - 本机也能打：`tools/release-apk.sh beta`。本机打的 versionCode 是 `gradle.properties` 里的 `flow.versionCode`，比 CI 打的（100 加 run 编号）小，装不上去覆盖手机上 CI 的包：要么先卸载，要么设 `FLOW_VERSION_CODE`，让它比手机上的大。
+- **正式包**：`tools/release-apk.sh prod` → `dist/flow-<版本>.apk`。发之前先把 `gradle.properties` 里的 `flow.versionCode` 加 1，versionCode 更大的包才能覆盖旧的。
+- 脚本从钥匙串里取密码，交给 `apksigner`；CI 上从 Secrets 取。Gradle 碰不到密码，仓库里也没有。
+- **两把钥匙都要备份**（加密 U 盘、密码管理器都行），密码也要一起备份。丢了以后，新版本就不能覆盖安装：每个人都得先卸载再装，App 里的登录也要重新登。
 - 怎么装到手机上，见 [INSTALL-zh.md](INSTALL-zh.md)。
-- 改 `tools/release-apk.sh` 或别的签名相关内容的 PR，合并前要先问用户（`docs/releases.md` 2026-11-25 11:15 的规矩）。把 APK 发给试用的同学之前，也要先问用户，并提前告诉语流 03，由它把指南里 App 的权限说明放上去。
+- 两类事要先问用户：
+  - 改 `tools/release-apk.sh`、签名、Secrets 或 `.github/workflows/android.yml` 的 PR，合并之前（`docs/releases.md` 2026-11-25 11:15 的规矩）；
+  - 把 APK 发给试用的同学、或者放到别的地方之前。这件事也要提前告诉语流 B6，由它把指南里 App 的权限说明放上去。
 
-CI（Linux）上跑 `./gradlew assembleBetaDebug testBetaDebugUnitTest`，不需要签名：release 包不签名，`release-apk.sh` 只在主人的 Mac 上跑。
+CI（`.github/workflows/android.yml`，语流 A2）：
+- 每个改 `android/` 的 PR 都跑 `assembleBetaDebug testBetaDebugUnitTest lintBetaDebug`。
+- main 上另外由 job `beta-apk` 打签名的内测包。它绑定 environment `android-beta-signing`，只在 main 上跑，PR 拿不到钥匙，也不放到 MSI 自托管机器上。
+  - 先在一个看不到钥匙的步骤里构建（Gradle 和它的插件都碰不到钥匙）；
+  - 再在只有 zipalign 和 apksigner 的那一步签名（`FLOW_APK_PREBUILT=1`）；
+  - 钥匙文件用 trap 删掉，签名失败也会删。
 
 ## 外壳做了什么（`MainActivity`）
 
@@ -59,19 +75,21 @@ CI（Linux）上跑 `./gradlew assembleBetaDebug testBetaDebugUnitTest`，不需
 - **返回键和返回手势**：先关网页上开着的弹层（sheet），再回到上一页；已经是第一页时，App 退到后台（正在播的文章继续播）。网页可以在 `flowapp:back` 事件里 `preventDefault()`，自己处理返回。
 - **外链**：别的网站、`mailto:`、`tel:` 用系统浏览器或对应的 App 打开。只有本站在 App 里打开。
 - **刘海、状态栏、导航栏、键盘**：页面夹在它们中间，周围用网页自己的颜色（浅 `#FBFAF6`，深 `#101412`）。深色模式切换时不用重新加载，页面和状态栏一起变。键盘弹出时，页面缩到键盘上面。
-- **User-Agent** 末尾加 `FlowAndroid/<版本>`，例如 `… Mobile Safari/537.36 FlowAndroid/1.0.0`。
+- **User-Agent** 末尾加 `FlowAndroid/<版本>`，例如 `… Mobile Safari/537.36 FlowAndroid/1.0.1`。
 - **「加到手机日历」**（`reminder.ics` 链接）：App 先问用「App 通知」还是「系统日历」。
   - 选 App 通知：按链接排上每天复习（`?hour=`）、约好的一次（`?at=`）或「每天的学习」（`?kind=plan&hour=&minutes=`，不用登录）。
   - 选系统日历：打开手机日历的新建日程页，内容已经填好，不需要日历权限。
 - 反馈里的「添加截图」可以从相册选图片。网页出不来时显示「网络连不上 · 重试」。系统回收网页进程以后，App 自己重新打开网页。
 
-## 网页和 App 之间的桥（`bridge/`、`assets/flowapp.js`）
+## 网页和 App 之间的桥（`bridge/`、`assets/flowapp-android.js`、共用的 `native/flowapp.js`）
 
-约定是 iOS、安卓、桌面共用的 `docs/native-bridge.md`（语流 20 牵头），安卓的实现写在它最后一节「各平台实现 · 安卓」。网页只调 `window.FlowApp`，不判断是哪个平台；平台不同的说法用 `FlowApp.platform`（这里是 `'android'`）。
+约定是 iOS、安卓、桌面共用的 `docs/native-bridge.md`（语流 C1 牵头），安卓的实现写在它最后一节「各平台实现 · 安卓」。网页只调 `window.FlowApp`，不判断是哪个平台；平台不同的说法用 `FlowApp.platform`（这里是 `'android'`）。
 
 **传输方式**：
 
 - App 在网页脚本运行之前放好 `window.FlowApp`（`WebViewCompat.addDocumentStartJavaScript`），只放在本站的源上。
+  - `window.FlowApp` 由三个 App 共用的 `native/flowapp.js` 做出来。打包时 Gradle 把仓库的 `native/` 加进 assets，原样放进 App，不要在安卓里改它；要改先跟语流 C1 说，三个 App 一起改。
+  - 它前面是安卓自己的 `assets/flowapp-android.js`：传输（`window.__flowAppTransport`，包装用完就删掉），返回键 `_back`，系统朗读补丁，测试静音。
 - 消息走 `WebViewCompat.addWebMessageListener` 的 `flowNative` 通道：网页发 `{id, cmd, args}`，App 回 `{id, ok, result | error}`，事件用 `{ev, detail}` 发过来。
 - App 只认本站主框架发来的消息。手机上的 WebView 太旧、缺这两个功能时，App 什么都不加，网页就按普通浏览器的方式运行。
 
@@ -87,9 +105,10 @@ CI（Linux）上跑 `./gradlew assembleBetaDebug testBetaDebugUnitTest`，不需
 
 ## 原生声音（`audio/`）
 
-整篇朗读（「听」的播放全文、「读」的伴读）由 App 来放，用 Media3 的 ExoPlayer 加 `MediaSessionService`：
+整篇朗读（「听」的播放全文、「读」的伴读）由 App 来放，用 Media3 的 ExoPlayer 加 `MediaSessionService`。**要网页调用 `FlowApp.audio` 才会用上**：网页这边是 #152，2026-11-25 时还没合，正式版网页还是自己放，所以现在没有锁屏控制。对外说「锁屏能控制」之前，先确认线上的网页脚本里真的调用了 `FlowApp.audio`。
 
-- 锁屏和通知栏显示「标题 · 第 3 / 20 句」，可以播放、暂停、上一句、下一句。耳机按钮、蓝牙按钮也能用。
+- 锁屏和通知栏显示标题和「AI 朗读 · 第 3 / 20 句」，可以播放、暂停、上一句、下一句。耳机按钮、蓝牙按钮也能用。
+  - 「AI 朗读」是按《人工智能生成合成内容标识办法》加的显式标识：语流的朗读都是合成声音（Kokoro 录音、CosyVoice、手机自带的声音）。音频文件里的隐式标识由服务器写入。
 - 来电、闹钟、导航语音这类短暂打断时暂停，打断结束后自己接着放。别的 App 开始放声音时暂停，不会自己接着放。拔下耳机时暂停。
 - 播放引擎（`FlowAudio`）在 App 里自己跑，网页在后台被挂起也不影响，下一句由 App 接上。
 - **事件**：
@@ -103,7 +122,7 @@ CI（Linux）上跑 `./gradlew assembleBetaDebug testBetaDebugUnitTest`，不需
 - **没有录音**（`items: [{text, url}]` 加 `voice`、`pack`；旧的 `texts` 也认）：
   - 网页已经知道的地址直接放；不知道的，一句一句请求 `POST /api/next/tts`，用网页传来的 `csrf`，以登录学员的身份，同时先准备后面两句。
   - 某一句生成不出来时，用手机自带的声音读这一句，`fail: {code, server}` 说明原因。提示的那句话由网页的 `SV.why` 来写，App 不自己写。
-  - 服务器说今天的额度用完了（`cap`）或功能没开（`off`）以后，这篇剩下的句子不再去问服务器。
+  - 服务器说今天的额度用完了（`cap`）或功能没开（`off`）以后，这篇剩下的句子不再去问服务器。（没同意「数据存放在香港」的账号，`/api/next/tts` 按游客回答，不会回 `storage`。）
 - 播过的文件存进 150 MB 的缓存，重复听不再下载。
 - 读到哪儿也由 App 记一份（`progress(key)` → `{i, t, at}`，30 天、最多 100 篇），App 被关掉以后还能接着读。读完了留一个 `{ended: true, at}`，给错过结束事件的页面看。
 
@@ -137,6 +156,7 @@ CI（Linux）上跑 `./gradlew assembleBetaDebug testBetaDebugUnitTest`，不需
 - `sync(r)`：`r` 是网页的 `reminder`，可以带上 `forecast`、`app`。`sync(null)` 或 `off()` 关掉 App 的提醒。`pending()` → `[{id, at, title, body}]`。
 - App 打开、回到前台、切到后台时，都用登录 cookie 拿一次 `/api/next/vocab` 重新排，所以复习完的日子会被撤掉。退出登录以后不再提醒复习单词，「每天的学习」照常。重启手机、改时间或时区以后，提醒会重新排上。
 - 点通知：复习打开 `#/review`，今天的学习打开 `#/`。
+- 账号还没同意「数据存放在香港」时（`/api/next/vocab` 回 403，code 是 `storage`），什么提醒都不排，「今天的学习」也不排；网站对这样的账号也不发提醒。钟点留着，同意以后下一次拉到 vocab 就会自己排回来。
 - **精确闹钟**：Android 12 和 13 默认允许，提醒准点到。Android 14 起，新装的 App 默认不允许，只有学员在「闹钟和提醒」里打开才行。没有这个权限时，用 10 分钟的时间窗，提醒最多晚 10 分钟左右。权限一打开，App 自动改成准点（模拟器上测过）。我们不用 `USE_EXACT_ALARM`：它是给闹钟类 App 用的，以后上 Google Play 会被拒。
 
 ## 浏览器的声音（`speech/`）
@@ -168,9 +188,9 @@ CI（Linux）上跑 `./gradlew assembleBetaDebug testBetaDebugUnitTest`，不需
 | 权限 | 为什么要 |
 |---|---|
 | `INTERNET` | 打开网站 |
-| `RECORD_AUDIO` | 跟读、口语对话、发音练习；只在录音的那几秒打开 |
+| `RECORD_AUDIO` | 跟读、口语对话、发音练习；App 自己从不打开，只在网页要录音时打开 |
 | `POST_NOTIFICATIONS` | 复习提醒（Android 13 以上要单独问） |
-| `FOREGROUND_SERVICE`、`FOREGROUND_SERVICE_MEDIA_PLAYBACK`、`WAKE_LOCK` | 锁屏以后整篇朗读还能继续 |
+| `FOREGROUND_SERVICE`、`FOREGROUND_SERVICE_MEDIA_PLAYBACK`、`WAKE_LOCK` | 锁屏以后整篇朗读还能继续（网页调用原生朗读以后才用到，见上面「原生声音」） |
 | `RECEIVE_BOOT_COMPLETED` | 重启手机以后把提醒排回去 |
 | `SCHEDULE_EXACT_ALARM` | 提醒准点（手机允许时） |
 | `ACCESS_NETWORK_STATE` | 由 Media3（ExoPlayer）带进来，用来看网络类型；不弹窗 |

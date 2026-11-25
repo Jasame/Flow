@@ -57,6 +57,8 @@ pub struct AppState {
     pub smoke: Option<PathBuf>,
     pub media_ok: std::sync::atomic::AtomicBool,
     pub media_title: Mutex<Option<String>>,
+    /// what the system's player shows under the title (media::display_artist)
+    pub media_artist: Mutex<Option<String>>,
     /// the reminders last handed to the system (for FlowApp.notify.pending())
     pub last_plan: Mutex<Vec<schedule::Planned>>,
     /// FLOW_MUTE=1 or a smoke test: no sound from the page or the notifications
@@ -268,6 +270,17 @@ fn downloads_path(dir: Option<PathBuf>, url: &Url, suggested: &std::path::Path) 
     p
 }
 
+fn debug_theme() -> Option<tauri::Theme> {
+    if !cfg!(debug_assertions) {
+        return None;
+    }
+    match std::env::var("FLOW_DESKTOP_THEME").ok().as_deref() {
+        Some("light") => Some(tauri::Theme::Light),
+        Some("dark") => Some(tauri::Theme::Dark),
+        _ => None,
+    }
+}
+
 fn build_window(app: &AppHandle, hidden: bool) -> tauri::Result<WebviewWindow> {
     let st = app.state::<AppState>();
     let site = st.site.clone();
@@ -284,6 +297,9 @@ fn build_window(app: &AppHandle, hidden: bool) -> tauri::Result<WebviewWindow> {
     );
     let builder = WebviewWindowBuilder::new(app, MAIN, WebviewUrl::External(site.clone()))
         .title(st.channel.name())
+        // debug builds: FLOW_DESKTOP_THEME=light|dark shows the window (and the page's prefers-color-scheme) in that
+        // look whatever the system uses, e.g. light screenshots on a Mac in dark mode; release builds follow the system
+        .theme(debug_theme())
         .inner_size(1180.0, 820.0)
         .min_inner_size(380.0, 560.0)
         .visible(!hidden)
@@ -373,6 +389,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         smoke: smoke::path_from_args(std::env::args()),
         media_ok: Default::default(),
         media_title: Mutex::new(None),
+        media_artist: Mutex::new(None),
         last_plan: Mutex::new(vec![]),
         mute: std::env::var_os("FLOW_MUTE").is_some_and(|v| v != "0")
             || smoke::path_from_args(std::env::args()).is_some(),
@@ -489,6 +506,7 @@ pub fn run() {
             bridge::notify_plan,
             bridge::notify_signed_out,
             bridge::notify_off,
+            bridge::notify_hold,
             bridge::notify_pending,
             smoke::smoke_report
         ])

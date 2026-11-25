@@ -12,7 +12,7 @@
     const items = m.items, before = Object.fromEntries(m.nodes.map(n => [n.id, n.status])), after = {}, per = {};
     let i = 0, right = 0, streak = 0;
     view.innerHTML = `<div class="stack mix"><div><span class="kicker">${esc(TITLE[m.kind])}</span><h1 class="h1">${m.kind === 'pair' ? esc(m.nodes.map(n => n.title).join(' vs ')) : `${items.length} 道题，${m.nodes.length} 个点`}</h1>
-        <p class="muted small">${esc(intro)}</p></div>
+        <p class="muted small">${esc(intro)}</p>${aiMark('题目和讲解由 AI 辅助编写')}</div>
       ${m.note ? `<div class="howto"><b>怎么区分</b><span class="small">${esc(m.note)}</span></div>` : ''}
       <div class="mix-dots" aria-hidden="true">${items.map(() => '<i></i>').join('')}</div>
       <div id="mixQ"></div></div>`;
