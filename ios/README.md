@@ -18,6 +18,8 @@
 | **Beta** | https://flow.jasa.hk（内测版） | `cn.flowlang.app.beta` | 语流内测 | 模拟器、UI 测试、免费账号装到自己手机、内测版的 TestFlight |
 | **Release** | https://flowlang.cn（正式版） | `cn.flowlang.app` | 语流 | TestFlight 外部测试、App Store |
 
+Bundle ID 用户 2026-11-25 已确认：正式版 `cn.flowlang.app`、内测版 `cn.flowlang.app.beta`（两个能同时装）。
+
 两个 scheme：`Flow-Beta`（运行、测试、归档都用 Beta）和 `Flow-Release`（运行、归档用 Release）。网址、名字、Bundle ID 在 `Config/Beta.xcconfig`、`Config/Release.xcconfig`。
 自己的签名设置（开发团队、免费账号用的 Bundle ID）放在 `Config/Local.xcconfig`，这个文件不提交（见下面「装到自己的 iPhone」）。
 
