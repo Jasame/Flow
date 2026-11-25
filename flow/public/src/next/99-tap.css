@@ -1,4 +1,5 @@
-/* 点得中、看得清（界面巡检 B8，2026-11-25，ui-audit.md）。放在最后，盖过前面各页写的同类规则。 */
+/* 点得中（界面巡检 B8，2026-11-25，ui-audit.md）。放在最后，盖过前面各页写的同类规则。颜色归配色方案（00-base.css），这里不定新颜色：
+   下拉框的箭头是 SVG，用不了变量，照抄 --muted 的浅色和深色值，配色改 --muted 时这里跟着改。 */
 
 /* 下拉框：Safari（Mac 和 iPhone）按系统样式画 <select>，前面写的高度、圆角、底色都不生效：只有 22px 高、灰色渐变，
    深色模式下也是浅灰。这里去掉系统样式，自己画箭头。:focus 也要写，因为 80-flat.css 聚焦时用 background 简写换底色，
@@ -27,7 +28,3 @@
 {content:"";position:absolute;left:50%;top:50%;width:100%;height:100%;min-width:44px;min-height:44px;transform:translate(-50%,-50%)}
 :where(#view) details:not(.better)>summary:not(:has(a,button,input,select))::before,:where(#sheet) details:not(.better)>summary:not(:has(a,button,input,select))::before
 {content:"";position:absolute;left:50%;top:50%;width:100%;height:100%;min-width:44px;min-height:44px;transform:translate(-50%,-50%)}
-
-/* 对比度：橙色小标签（单词页的「记得」、错题的来源）的字用 --amber，在浅色底上只有 3.8:1。
-   改用 --amber-fill，今日一读的标签已经在用：浅色约 4.9:1；深色模式下两个颜色一样。 */
-.pill.amber{color:var(--amber-fill)}
