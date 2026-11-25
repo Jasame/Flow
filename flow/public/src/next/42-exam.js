@@ -23,7 +23,7 @@
     // Signed in without an exam: one line says what setting it gives.
     const invite = S.user && !o.goal ? `<div class="card sunk stack-s sp-invite"><b>在准备哪个考试？</b><span class="small">设好考试和日期，这一页就是你的备考主页：倒计时、每天该背多少词、成绩走势和题型专练。</span>
         <div><button class="btn small primary" type="button" id="exInvite" data-tap="exam-goal">设定我的考试</button></div></div>` : '';
-    view.innerHTML = `<div class="stack"><div><span class="kicker">考试练习</span><h1 class="h1">按考试难度练一套</h1>
+    view.innerHTML = `<div class="stack"><div><h1 class="h1">考试练习</h1>
         <p class="muted small">${esc(o.note)}</p></div>
       ${invite}${cur ? '' : '<p class="muted small">选一个考试开始。每套约 12–20 分钟，每周做一套就能看到变化。</p>'}
       ${pickList(o.exams.slice(0, at + 1))}${detail}${pickList(o.exams.slice(at + 1))}</div>`;

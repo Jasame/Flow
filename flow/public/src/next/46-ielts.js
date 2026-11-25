@@ -7,8 +7,9 @@
     const row = (href, title, sub, last) => `<a class="nrow ${last != null ? 'st st-solid' : 'st st-untouched'}" href="${href}"><i class="dot" aria-hidden="true"></i>
         <span class="t"><b>${esc(title)}</b><span class="tiny muted">${esc(sub)}${last != null ? ` · 上次约 ${bandTxt(last)}` : ''}</span></span><span></span><span class="go" aria-hidden="true">›</span></a>`;
     view.innerHTML = `<div><a class="link small" href="#/speak">← 口语路线</a></div>
-      <div class="stack"><div><span class="kicker">雅思口语 · 练习</span><h1 class="h1">像考场一样开口说</h1>
-        <p class="muted small">Part 1 考官问日常问题，一题一题答；Part 2 拿到一张话题卡，准备 1 分钟，说 1–2 分钟。说完按雅思口语的四项标准（流利与连贯、词汇、语法、发音）给出估计分和改法。</p>
+      <div class="stack"><div><h1 class="h1">雅思口语</h1>
+        <p class="muted small">像考场一样开口说：Part 1 日常问答；Part 2 话题卡，准备 1 分钟，说 1–2 分钟。</p>
+        <details class="basis"><summary>怎么评分</summary><p class="small">说完按雅思口语的四项标准（流利与连贯、词汇、语法、发音）给出估计分和改法。</p></details>
         <p class="tiny ielts-note">${esc(d.notice)}</p></div>
       <section class="stack-s"><h2 class="h2">Part 1 · 日常问答</h2><p class="tiny muted">每个话题 4 个问题，大约 3 分钟。考官不打断你，每句下面可以看「这句可以更好」。</p>
         <div class="plist">${d.part1.map(x => row(`#/speak/ielts/p1-${x.id}`, x.title, x.title_en, x.last)).join('')}</div></section>

@@ -2,8 +2,8 @@
   async function confuseView() {
     const d = await api('/api/next/words/confuse');
     const LV = ['A2', 'B1', 'B2', 'C1'];
-    view.innerHTML = `<div class="stack"><div><span class="kicker">词汇辨析</span><h1 class="h1">中文里是一个词，英语里是两个</h1>
-        <p class="muted small">借 = borrow / lend，看 = look / see / watch……这些词靠中文分不开，只能放在一起练。选几组混着做，错的会进复习，每次换一道题。</p></div>
+    view.innerHTML = `<div class="stack"><div><h1 class="h1">词汇辨析</h1>
+        <p class="muted small">中文里是一个词，英语里是几个：借 = borrow / lend，看 = look / see / watch。选几组混着练，错的会进复习。</p></div>
       <button class="btn primary block" id="cfMix" disabled>混合练习选中的组</button>
       ${LV.map(lv => { const gs = d.groups.filter(g => g.level === lv); return gs.length ? `<section class="stack-s section"><h2 class="h2">${lv}</h2>
         <div class="cf-list">${gs.map(g => `<label class="cf-row${g.tries ? ' tried' : ''}"><input type="checkbox" value="${esc(g.id)}"><span class="t"><b class="en">${esc(g.words.join(' / '))}</b>

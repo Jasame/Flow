@@ -18,13 +18,13 @@
       ['#/review', '复习单词', '到期的词和错过的题，一张张过', 'due'],
       ['#/words/confuse', '词汇辨析', '最容易混的词放在一起练'],
       ['#/cards/mistake', '错题本', '做错过的词和题都在这里'],
-      ['#/vocab/plan', '词书和每天新词', '换词书、改每天学多少'],
-      ['#/vocab/test', '词汇量测试', '5 分钟估一估你认识多少词']]],
+      ['#/vocab/plan', '背词计划', '换词书、改每天学多少'],
+      ['#/vocab/test', '测词汇量', '5 分钟估一估你认识多少词']]],
     ['考试和测评', [
       ['#/exam', '考试练习', '中考高考、四六级、考研、专四专八、雅思，限时做'],
       ['#/radar', '能力雷达', '六项能力对照你的目标，定期测一测']]],
     ['看进步', [
-      ['#/report', '这周的报告', '这周学了什么、哪里进步了'],
+      ['#/report', '周报', '最近 7 天学了什么、哪里进步了'],
       ['#/growth', '我的进步', '这个月和上个月比，里程碑']]]];
 
   const PICON = {
@@ -52,7 +52,6 @@
   async function practiceView() {
     const st = S.home && S.home.stats, due = st ? (st.due || 0) + (st.new || 0) : 0;
     view.innerHTML = `<h1 class="h1">练习</h1>
-      <p class="muted small">想练哪一项，就从这里进。不知道先练什么，看最上面的建议。</p>
       <div id="pSuggest">${practiceTip(null, due)}</div>
       ${PRACTICE.map(([group, items]) => `<section class="pgroup stack-s"><h2 class="h2 pgroup-h">${group}</h2>
         ${items.filter(x => x[3] === 'map').map(([href, title, line]) => mapTile(href, title, line)).join('')}
@@ -73,7 +72,7 @@
   }
   function practiceTip(radar, due) {
     const d = radar && radar.dims.find(x => x.id === radar.gap);
-    if (d) return `<a class="card psuggest" data-tap="practice-tip" href="${esc(d.href)}"><span class="tiny">今天建议</span><b>${esc(d.label)}离目标最远（${d.score} 分）</b><span class="small">${esc(d.tip)}</span><span class="btn small primary">去练 ${esc(d.label)}</span></a>`;
+    if (d) return `<a class="card psuggest" data-tap="practice-tip" href="${esc(d.href)}"><span class="tiny">今天建议</span><b>${esc(d.label)}离目标最远（${d.score} 分）</b><span class="small">${esc(d.tip)}</span><span class="btn small primary">去练${esc(d.label)}</span></a>`;
     if (due) return `<a class="card psuggest" data-tap="practice-tip" href="#/review"><span class="tiny">今天建议</span><b>有 ${due} 个词等你复习</b><span class="small">先复习再学新的，记得最牢。</span><span class="btn small primary">开始复习</span></a>`;
     return `<a class="card psuggest" data-tap="practice-tip" href="#/"><span class="tiny">今天建议</span><b>先做今天的计划</b><span class="small">今日页已经按你的水平排好了顺序。</span><span class="btn small primary">打开今日</span></a>`;
   }
