@@ -188,7 +188,8 @@
     if (k === 'proof') body = `<div class="stack-s">${s.lines.map((line, i) => `<div class="q gq xt-q xt-line" data-q="${i}"><div class="tiny muted">第 ${i + 1} 行</div><div class="xt-words">${tapWords(line).map((w, j) => `<button class="xw" type="button" data-i="${i}" data-w="${j}" aria-pressed="false">${esc(w)}</button>`).join('')}</div></div>`).join('')}</div>`;
     view.innerHTML = `<div class="stack xt"><div><span class="kicker">${esc(r.exam_title)} · ${k === 'reading' ? '考试小练' : '题型专练'}</span><h1 class="h1">${esc(r.title)}</h1>
         <p class="small">${esc(r.how)}</p><p class="tiny muted">${esc(r.note)}</p></div>
-      <div class="row between"><span class="tiny muted">${[r.of > 1 ? `第 ${r.index} 组，共 ${r.of} 组` : '', s.title ? `<span lang="en">${esc(s.title)}</span>` : ''].filter(Boolean).join(' · ')}</span><span class="tiny muted" id="xtLeft">还有 ${n} 题</span></div>
+      ${k === 'reading' ? '' : aiMark('题目和解析由 AI 辅助编写')}
+      <div class="row between"><span class="tiny muted">${[r.of > 1 ? `第 ${r.index} 组，共 ${r.of} 组` : '', s.title ? `<span lang="en">${esc(s.title)}</span>${k === 'reading' ? ' ' + aiTag() : ''}` : ''].filter(Boolean).join(' · ')}</span><span class="tiny muted" id="xtLeft">还有 ${n} 题</span></div>
       ${body}
       <button class="btn primary block" id="xtDone" type="button">交卷</button>
       <a class="link small" href="#/exam/${esc(exam)}">回到考试练习</a></div>`;

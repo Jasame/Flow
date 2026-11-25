@@ -24,8 +24,9 @@
         try {
           const x = (await api('/api/next/say', { text: w.word, audio: await MIC.payload(blob), request_id: rid('sy') })).result;
           out.innerHTML = aiTag() + ' ' + (x.ok ? `<span class="ok-mark">✓ 读对了</span>` : `<span class="bad-mark">听着像 ${esc(x.heard || '?')}</span>`)
-            + (x.tentative ? '<div class="tiny muted">这次的判断可能不准，可以再读一次</div>' : '');  // a reference verdict (Qwen-Omni): not filed as a mistake
-          if (!x.ok) toast(x.confirmed ? '两次都没读准，已放进错题本：' + (x.tip || x.note) : `AI 听成了「${x.heard || '?'}」，再读一遍确认一下`);
+            + (x.tentative ? '<div class="tiny muted">AI 的判断只作参考，不会进错题本</div>' : '');  // a reference verdict (FLOW_SAY_COUNTS off, or nothing heard): not filed as a mistake
+          if (!x.ok) toast(x.confirmed ? '两次都没读准，已放进错题本：' + (x.tip || x.note)
+            : x.tentative ? `AI 听成了「${x.heard || '?'}」，可以再读一遍` : `AI 听成了「${x.heard || '?'}」，再读一遍确认一下`);  // a reference never asks to confirm
         } catch (e) { out.textContent = ''; toast(e.message); }
       });
     }));

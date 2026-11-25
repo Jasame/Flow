@@ -123,6 +123,16 @@ class MsiRunnerTests(unittest.TestCase):
         self.wf = (ROOT / '.github' / 'workflows' / 'tests.yml').read_text(encoding='utf-8')
         self.jobs = dict(re.findall(r'^  ([a-z-]+):\n(.*?)(?=^  [a-z-]+:\n|\Z)', self.wf.split('\njobs:\n', 1)[1], re.S | re.M))
 
+    def test_the_msi_s_slots_come_from_the_repository_variable_and_default_to_6(self):
+        self.assertIn('MSI_SLOTS: ${{ vars.MSI_SLOTS }}', self.jobs['changes'])
+        for value, slots in (('', 6), ('7', 7), (None, 6)):
+            env = {k: v for k, v in os.environ.items() if k != 'MSI_SLOTS'}
+            if value is not None:
+                env['MSI_SLOTS'] = value
+            r = subprocess.run([sys.executable, '-c', 'import ci_runner; print(ci_runner.SLOTS)'], cwd=ROOT / 'tools',
+                               env=env, capture_output=True, text=True)
+            self.assertEqual(r.stdout.strip(), str(slots), (value, r.stderr))
+
     def fake(self, load=0, starts=True, fail=None):
         calls = []
 
@@ -176,6 +186,28 @@ class MsiRunnerTests(unittest.TestCase):
         self.assertEqual((runner, where), (['self-hosted', 'msi'], 'msi'), reason)
         self.assertIn(('POST', 'actions/workflows/msi-probe.yml/dispatches', {'ref': 'main', 'inputs': {'nonce': '5-1'}}), calls)
         self.assertEqual(self.decide(self.env(GITHUB_EVENT_NAME='push', HEAD_REPO=''), self.fake()[0])[1], 'msi')  # main
+
+    def test_a_run_goes_to_a_busy_msi_only_if_its_shares_fit_in_what_is_left(self):
+        full_run = dict(NEED_WEB='true', NEED_UI='true')
+        self.assertEqual(self.cr.need(self.env(**full_run)), 7)
+        self.assertEqual(self.cr.need(self.env(NEED_WEB='true', NEED_UI='false')), 2)
+        self.assertEqual(self.decide(self.env(**full_run), self.fake(load=0)[0])[1], 'msi')  # the MSI to itself: 7 on 6
+        where, reason = self.decide(self.env(**full_run), self.fake(load=2)[0])[1:]
+        self.assertEqual(where, 'hosted', reason)  # 2 + 7 > 6: it would wait behind the other run
+        self.assertIn('room for 4 more jobs and this run has 7', reason)
+        self.assertEqual(self.decide(self.env(NEED_WEB='true', NEED_UI='false'), self.fake(load=2)[0])[1], 'msi')  # 2 + 2
+        old = self.cr.SLOTS
+        self.cr.SLOTS = 10
+        try:
+            self.assertEqual(self.decide(self.env(**full_run), self.fake(load=3)[0])[1], 'msi')  # 3 + 7 = 10
+            self.assertEqual(self.decide(self.env(**full_run), self.fake(load=4)[0])[1], 'hosted')
+        finally:
+            self.cr.SLOTS = old
+        self.assertIn('NEED_WEB: ${{ steps.paths.outputs.web }}', self.jobs['changes'])
+        self.assertIn('NEED_UI: ${{ steps.paths.outputs.ui }}', self.jobs['changes'])
+        bs, us = self.jobs['backend-share'], self.jobs['ui-share']
+        self.assertIn(f"share: [{', '.join(str(k) for k in range(1, self.cr.WEB_SHARES + 1))}]", bs)
+        self.assertIn(f"share: [{', '.join(str(k) for k in range(1, self.cr.UI_SHARES + 1))}]", us)
 
     def test_the_watch_cancels_a_run_whose_msi_jobs_find_no_machine(self):
         calls = []
@@ -238,6 +270,22 @@ class MsiRunnerTests(unittest.TestCase):
         self.assertIn("grep -vE '^(https?_proxy|HTTPS?_PROXY|no_proxy|NO_PROXY)=' \"$d/.env\"", sh)
         self.assertIn('curl -sSI -m 20 -o /dev/null https://github.com', sh); self.assertIn('先开 v2rayN 的系统代理', sh)
         self.assertNotRegex(sh, r'(vmess|vless|trojan|ss)://')  # no node link, ever
+
+
+class MsiRunTests(unittest.TestCase):
+    """tools/msi-run.sh: the pre-push tests on the MSI from the Mac, without touching the checkout or blocking."""
+
+    def test_it_never_waits_touches_the_checkout_or_keeps_a_slot(self):
+        sh = (ROOT / 'tools' / 'msi-run.sh').read_text()
+        self.assertEqual(subprocess.run(['bash', '-n', str(ROOT / 'tools' / 'msi-run.sh')]).returncode, 0)
+        self.assertIn('BatchMode=yes', sh)  # no password or host-key question can hang a session
+        self.assertNotRegex(sh, r'(^|[\s;(&|])ssh "\$HOST"')  # every ssh goes through the batch-mode options
+        self.assertIn('exit 3', sh)  # the MSI unreachable, told apart from failing tests
+        self.assertIn('GIT_INDEX_FILE=', sh)  # the snapshot is made in a throwaway index
+        self.assertIn('nice -n 10', sh)  # CI's runners keep priority
+        self.assertIn('</dev/null 9>&-', sh)  # the script on stdin is not eaten, the lock is not inherited
+        for word in ('git stash', 'git checkout', 'git reset', 'sudo', 'secrets.'):
+            self.assertNotIn(word, sh)
 
 
 class BetaReleaseTests(unittest.TestCase):

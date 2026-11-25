@@ -194,7 +194,7 @@
     }
     function pronHTML(x) {
       const sc = x.score;
-      if (!sc) return x.matched ? '' : '<div class="small err">AI 没听清这一句。离手机近一点，完整读一遍再点评。</div>';
+      if (!sc) return x.matched ? '' : '<div class="small err">AI 没听清这一句。离麦克风近一点，完整读一遍再点评。</div>';
       const bar = (l, v, txt) => `<div class="ab"><span class="nm">${l}</span><span class="vbar"><i data-w="${v}"></i></span><span class="lv">${txt == null ? v : txt}</span></div>`;
       return `<div class="pron"><div class="pron-top"><b class="pron-n">${sc.total}</b><span class="stack-xs"><b>发音分</b></span></div>
           <div class="ab-list">${bar('准确', sc.accuracy)}${bar('流利', sc.fluency)}${bar('完整', sc.complete, `${x.matched}/${x.words.length}`)}</div></div>`;

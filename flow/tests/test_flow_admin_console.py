@@ -353,7 +353,7 @@ class TaskTests(Console):
         with app.db() as c:
             day = __import__('daily_service').today()
             c.execute("INSERT INTO daily_runs(day,status,attempts,updated,error) VALUES(?,'failed',2,?,'x')", (day, time.time())); c.commit()
-        with patch('daily_service.run') as run:
+        with patch('daily_service.run') as run, patch('daily_service.PAUSED', False):
             self.assertEqual(self.console('/daily/run', {'again': True})[0], 202)
             time.sleep(0.2)
         self.assertTrue(run.called)

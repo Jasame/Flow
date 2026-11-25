@@ -35,6 +35,9 @@ app.DB = Path(tmp) / 'flow.sqlite3'
 # domain itself; the test intercepts that address. Other materials have narration only as before (audio/index.json).
 MEDIA_PID = 'v5-culture-c1-lighthouse-ledger-3'
 os.environ['FLOW_MEDIA_BASE'] = 'http://127.0.0.1:9'
+# 更新记录 (updates_service.py): none here, so 今日's notice slot shows what the other runs expect; updates_run gives
+# the page its own data through the browser
+os.environ['FLOW_UPDATES_FILE'] = os.path.join(tmp, 'no-updates.json')
 import media  # noqa: E402
 media.MANIFEST = Path(tmp) / 'media-manifest.json'
 # Narration this server has (the WeChat run's FLOW_AUDIO_DIR=tools/ui-fixtures/audio) stays listed, sent from here.
@@ -284,14 +287,18 @@ with app.db() as c:
             c.execute("INSERT INTO learning_events(user_id,node,source,kind,item,correct,evaluator,created) VALUES(?,?,?,'choice','q',0,'rule',?)", (mid, n, f'ui:{mid}:{n}', now - 7200))
     c.execute('INSERT INTO class_members(user_id, class_id, joined_at) VALUES(?,?,?)', (out['veteran']['id'], cid, now - 25 * 86400))
     c.commit()
-# 今日热点 (r27): one news text of today, as the daily job left them before the pause (2026-11-25). It stays in the
-# database and must be shown nowhere: ui_test checks that 今日 has no hotspot card.
+# 今日一读 (since 2026-11-25): today's original short text, as the daily job leaves it (kind 'topic'), clearly a sample.
+# Beside it, one news text of 今日热点 as the job left them before 2026-11-25: kept in the database, shown nowhere
+# (ui_test checks that the card is the 今日一读 one).
 with app.db() as c:
     base = json.loads(c.execute("SELECT content FROM lab_packs WHERE id=?", (PID,)).fetchone()[0])
-    base.update(id='daily-ui-sample', title='示例热点：城市开通夜间公交线路', title_en='Sample news: night buses start running',
-                source='示例来源（测试数据）', summary_zh='示例：这里是今日热点的一句话介绍，真正的热点每天由 AI 联网找新闻改写。', daily_day=time.strftime('%Y-%m-%d'),
-                level='B1')  # 今日 shows the hotspot at the learner's level (r28 第 5 段): the UI learners are B1
     base.pop('cefr', None)
+    old = dict(base, id='daily-ui-old-news', title='示例旧热点：不应显示', daily_day=time.strftime('%Y-%m-%d', time.localtime(time.time() - 86400)),
+               source='示例来源（测试数据）', level='B1')
+    base.update(id='daily-ui-sample', kind='topic', title='示例一读：为什么降噪耳机能“消音”', title_en='Sample: how noise-cancelling headphones work',
+                source='Flow 原创（AI 生成）', ai='AI 生成', summary_zh='示例：这里是今日一读的一句话介绍，真正的今日一读每天由 AI 写一篇原创短文。',
+                daily_day=time.strftime('%Y-%m-%d'), level='B1')  # 今日 shows the one at the learner's level (r28 第 5 段): the UI learners are B1
+    c.execute("INSERT OR REPLACE INTO lab_packs VALUES(?,NULL,'daily',?,?)", (old['id'], json.dumps(old, ensure_ascii=False), time.time() - 86400))
     c.execute("INSERT OR REPLACE INTO lab_packs VALUES(?,NULL,'daily',?,?)", ('daily-ui-sample', json.dumps(base, ensure_ascii=False), time.time()))
     c.commit()
 from http.server import ThreadingHTTPServer  # noqa: E402
