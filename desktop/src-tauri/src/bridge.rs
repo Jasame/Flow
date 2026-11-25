@@ -43,6 +43,8 @@ pub fn build_id() -> &'static str {
 #[tauri::command]
 pub fn media_update(app: AppHandle, s: MediaState) {
     *app.state::<AppState>().media_title.lock().unwrap() = s.title.clone();
+    *app.state::<AppState>().media_artist.lock().unwrap() =
+        s.active().then(|| crate::media::display_artist(&s));
     #[cfg(any(target_os = "macos", target_os = "windows"))]
     {
         let _ = app.run_on_main_thread(move || crate::media::system::update(s));

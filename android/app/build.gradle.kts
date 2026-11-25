@@ -54,6 +54,13 @@ android {
         }
     }
 
+    // the FlowApp wrapper the three apps share (docs/native-bridge.md §2): native/flowapp.js goes into the assets as it is
+    sourceSets {
+        getByName("main") {
+            assets.srcDir(rootProject.file("../native"))
+        }
+    }
+
     buildFeatures {
         buildConfig = true
         resValues = true

@@ -57,6 +57,8 @@ pub struct AppState {
     pub smoke: Option<PathBuf>,
     pub media_ok: std::sync::atomic::AtomicBool,
     pub media_title: Mutex<Option<String>>,
+    /// what the system's player shows under the title (media::display_artist)
+    pub media_artist: Mutex<Option<String>>,
     /// the reminders last handed to the system (for FlowApp.notify.pending())
     pub last_plan: Mutex<Vec<schedule::Planned>>,
     /// FLOW_MUTE=1 or a smoke test: no sound from the page or the notifications
@@ -373,6 +375,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         smoke: smoke::path_from_args(std::env::args()),
         media_ok: Default::default(),
         media_title: Mutex::new(None),
+        media_artist: Mutex::new(None),
         last_plan: Mutex::new(vec![]),
         mute: std::env::var_os("FLOW_MUTE").is_some_and(|v| v != "0")
             || smoke::path_from_args(std::env::args()).is_some(),

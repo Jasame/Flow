@@ -52,6 +52,8 @@ def problems(d, os_name):
             out.append(f"test notification: {n.get('test_notification')!r}")
     if not n.get('media_controls'):
         out.append('the system media controls did not start')
+    if 'AI 朗读' not in (n.get('media_last_artist') or ''):
+        out.append(f"the system's player does not say AI 朗读: {n.get('media_last_artist')!r}")
     if n.get('media_last_title') != '语流 · 冒烟测试':
         out.append(f"media title did not reach the app: {n.get('media_last_title')!r}")
     return out

@@ -90,6 +90,7 @@ pub async fn smoke_report(app: AppHandle, r: serde_json::Value) {
             "webview": tauri::webview_version().ok(),
             "media_controls": st.media_ok.load(std::sync::atomic::Ordering::Relaxed),
             "media_last_title": st.media_title.lock().unwrap().clone(),
+            "media_last_artist": st.media_artist.lock().unwrap().clone(),
             "mute": st.mute,
             "notify_setting": st.settings().notify,
             "smoke_notify": notify_wanted(),

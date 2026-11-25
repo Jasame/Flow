@@ -1370,6 +1370,32 @@ def ux_run(pw):
         check(dev, '留时间跟说: the pause after a sentence is as long as that sentence (2 words: the 1.5 s minimum), not the next one',
               said and said[0][0] == 'Stop here.' and gap0 is not None and 1400 <= gap0 <= 2600, {'said': len(said), 'gap_after_first_ms': gap0})
         c4.close()
+        # opened straight at an article (the page drawn from the 今日 kept on the phone), 播放全文 tapped at once, the
+        # server's fresher 今日 arriving a moment later: the page is not redrawn under the reading (it was, and the reading
+        # was gone as if read to its end: 语流 07, iPhone 17e)
+        c5 = browser.new_context(**phone)
+        c5.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a2']['token'], 'url': BASE}])
+        c5.add_init_script("(() => { window.__said = []; if (!window.speechSynthesis) return; speechSynthesis.cancel = () => {}; speechSynthesis.getVoices = () => []; "
+                           "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); setTimeout(() => u.onstart && u.onstart(), 10); "
+                           "setTimeout(() => u.onend && u.onend(), 800); }; })()")
+        p5 = c5.new_page()
+        p5.route('**/api/next/tts', lambda r: r.fulfill(status=503, json={'error': '服务器朗读没有开启', 'code': 'off'}))
+        p5.route('**/api/next/tts/have', lambda r: r.fulfill(status=503, json={'error': '服务器朗读没有开启', 'code': 'off'}))
+        # the server's 今日 a moment after the page is drawn from the copy, and not the same (a page-level delay: a blocking
+        # route would stall Playwright); only on the second load, so the copy kept by the first stays the server's own
+        c5.add_init_script("""(() => { if (sessionStorage.getItem('lateHome') !== '1') return; const f = window.fetch.bind(window);
+            window.fetch = (u, o) => !String(u).includes('/api/next/home') ? f(u, o) : new Promise(ok => setTimeout(ok, 3500)).then(() => f(u, o)).then(async res => {
+              const j = await res.clone().json().catch(() => null); if (!j || !j.stats) return res;
+              j.stats.due = (j.stats.due || 0) + 7; return new Response(JSON.stringify(j), { status: res.status, headers: res.headers }); }); })()""")
+        p5.goto(BASE + '/', wait_until='networkidle'); settle(p5); p5.wait_for_timeout(300)  # the 今日 copy kept on the phone
+        p5.evaluate("sessionStorage.setItem('lateHome', '1')")
+        p5.goto(BASE + f'/?again=1#/m/{PID}/listen', wait_until='domcontentloaded'); p5.wait_for_selector('#playAll', timeout=8000)  # a real load (a new query): the page starts again from the copy
+        p5.click('#playAll'); p5.wait_for_timeout(4500)
+        kept = p5.evaluate("""() => ({ btn: document.querySelector('#playAll').textContent.trim(), mini: !!document.querySelector('.mini-player:not([hidden])'),
+            said: window.__said.length, now: (document.querySelector('#view .line.now') || {dataset: {}}).dataset.i })""")
+        check(dev, '播放全文 right after opening an article: the fresher 今日 coming in does not stop the reading',
+              kept['btn'] == '暂停' and kept['mini'] and kept['said'] >= 2, kept)
+        c5.close()
         o, al, nv, th = seen['once'], seen['always'], seen['never'], seen['throws']
         check(dev, 'browser voice dropped once (iOS): that sentence is said again and the text reads on to its end',
               len(o['said']) == o['n'] + 1 and o['said'][0] == o['said'][1] and o['btn'] == '播放全文', {k: o[k] for k in ('n', 'btn', 'now')} | {'said': len(o['said'])})
@@ -1653,7 +1679,7 @@ def listen_speak_run(pw):
             pg.click('[data-ai="0"]')
             pg.wait_for_selector('.line[data-i="0"] .sh-res .pron', timeout=10000); pg.wait_for_timeout(400)
             r = pg.evaluate("""() => { const o = document.querySelector('.line[data-i="0"] .sh-res'), n = o.querySelector('.pron-n'), chip = document.querySelector('[data-sc="0"]');
-                const link = o.querySelector('.snd a'); return {n: n && n.textContent, est: o.textContent.includes('AI 听录音给的估计'), bars: [...o.querySelectorAll('.pron .ab .nm')].map(x => x.textContent),
+                const link = o.querySelector('.snd a'); return {n: n && n.textContent, est: o.textContent.includes('由 AI 估计') && !o.textContent.includes('AI 听录音给的估计'), bars: [...o.querySelectorAll('.pron .ab .nm')].map(x => x.textContent),
                   widths: [...o.querySelectorAll('.pron .vbar i')].map(i => parseFloat(i.style.width) || 0), link: link && link.getAttribute('href'), chip: chip && !chip.hidden && chip.textContent,
                   avg: (document.querySelector('#shAvg') || {}).textContent || '', heard: o.textContent.includes('AI 听到：') }; }""")
             check(dev, '跟读: 发音分 shows as an AI estimate', r['n'] and r['n'].isdigit() and r['est'], r)
@@ -1678,6 +1704,9 @@ def listen_speak_run(pw):
                             first: (document.querySelector('#reader .sent.now') || {}).dataset.si}; }""")
                 check(dev, '伴读 of an import: read by the server voice from the learner\'s own files, the sentence lit',
                       got['have'] and got['own'] and got['own'][0].startswith('/audio/own/us-f/') and got['first'] == '0', got)
+                marks = pg.evaluate("() => [!!document.querySelector('#view .read-tools .ai-voice'), !!document.querySelector('.mini-player:not([hidden]) .ai-voice'), (document.querySelector('.mini-player .lbl') || {}).textContent]")
+                check(dev, '伴读: 「AI 朗读」 beside the button and in the mini player (《标识办法》), the label just 第 N / M 句',
+                      marks[0] and marks[1] and (marks[2] or '').startswith('第 ') and '伴读' not in (marks[2] or ''), marks)
                 pg.click('#readAlong')
                 other = browser.new_context(); op = other.new_page()
                 st = op.goto(BASE + got['own'][0]).status if got['own'] else 0
@@ -1721,6 +1750,20 @@ def listen_speak_run(pw):
                 lay('听 从第 N 句继续')
                 pg.click('#playAll'); pg.wait_for_function(f"{now} >= 0", timeout=10000)
                 check(dev, '从第 N 句继续 starts there', pg.evaluate(now) == k, (k, pg.evaluate(now)))
+                # the mini player fits its words: the label whole, 暂停 on one line, at 390 and 360 px (it was half the screen
+                # wide, 「第 4 / 1…」 and 暂停 one character per line: 语流 20's iPhone screenshot)
+                fits = []
+                for w in (390, 360):
+                    pg.set_viewport_size({'width': w, 'height': 780}); pg.wait_for_timeout(150)
+                    fits.append(pg.evaluate("""() => { const m = document.querySelector('.mini-player'), l = m.querySelector('.lbl'), t = m.querySelector('.toggle'), x = m.querySelector('.close');
+                        const one = el => { const r = el.getBoundingClientRect(); return r.height <= 48; };
+                        return { w: innerWidth, label: l.textContent, whole: l.scrollWidth <= l.clientWidth + 1, toggle: one(t), close: one(x), mark: !!m.querySelector('.ai-voice'),
+                                 tip: !!document.querySelector('#view .listen-tip .ai-voice'),
+                                 inside: m.getBoundingClientRect().left >= 0 && m.getBoundingClientRect().right <= innerWidth }; }"""))
+                pg.set_viewport_size(opts['viewport']); pg.wait_for_timeout(150)
+                check(dev, 'the mini player fits: the label whole, 暂停 and ✕ on one line, inside the screen (390 and 360 px), with 「AI 朗读」',
+                      all(f['whole'] and f['toggle'] and f['close'] and f['inside'] and f['mark'] for f in fits), fits)
+                check(dev, '听: 「AI 朗读」 by the player (the voice is synthesized: 《标识办法》)', all(f['tip'] for f in fits), fits)
                 pg.click('.mini-player .close'); pg.wait_for_timeout(200)
                 pg.click('#playRestart'); pg.wait_for_function(f"{now} >= 0", timeout=10000)
                 check(dev, '从头开始 starts at the first sentence', pg.evaluate(now) == 0, pg.evaluate(now))
@@ -1785,6 +1828,8 @@ def listen_speak_run(pw):
                 if k == 0:
                     q = pg.evaluate("() => [document.querySelectorAll('#chat .msg.ai').length, !!document.querySelector('#chat .msg.me details.better'), document.querySelector('#ieQn').textContent]")
                     check(dev, 'Part 1: the examiner asks the next question; a better way to say it is folded', q[0] == 2 and q[1] and '第 2 / 4 题' in q[2], q)
+                    em = pg.evaluate("() => { const l = [...document.querySelectorAll('#view .ai-line')].find(x => x.querySelector('.ai-voice')); return l ? l.textContent : ''; }")
+                    check(dev, 'Part 1: 「AI 朗读」 says the examiner\'s voice is synthesized', '考官的声音由 AI 合成' in em, em)
                     pg.click('#chat .msg.me details.better summary'); lay('Part 1 chat'); shot('ielts-p1-chat')
             pg.wait_for_selector('#ieOut .ielts-fb', timeout=10000); pg.wait_for_timeout(400)
             f = pg.evaluate("""() => { const o = document.querySelector('#ieOut'); return {overall: o.querySelector('.ielts-overall b').textContent, crit: [...o.querySelectorAll('.crit .nm')].map(x => x.textContent),
@@ -1828,6 +1873,8 @@ def listen_speak_run(pw):
             p3.goto(BASE + '/#/speak/cafe-order', wait_until='networkidle'); settle(p3)
             hd = p3.evaluate("() => [document.querySelector('#view .kicker').textContent, (document.querySelector('#view .round-extra') || {}).textContent || '']")
             check(dev, '口语情景: round 2 shows the round and its extra requirement', '第 2 轮' in hd[0] and '这一轮多一条' in hd[1], hd)
+            vm = p3.evaluate("() => { const l = [...document.querySelectorAll('#view .ai-line')].find(x => x.querySelector('.ai-voice')); return l ? l.textContent : ''; }")
+            check(dev, '口语情景: 「AI 朗读」 says the role\'s voice is synthesized', '角色说话的声音也由 AI 合成' in vm, vm)
             l3 = p3.evaluate(LAYOUT_JS, touch); check(dev, '口语情景 round 2: no sideways scroll', l3['overflow'] <= 1, f"{l3['overflow']}px {l3['wide']}")
             p3.click('#dlgStart'); p3.wait_for_selector('#chat .msg.ai', timeout=8000)
             if size == 'phone':  # the AI's line is said by the server voice (an mp3 made once and stored), not the browser voice,
@@ -2617,6 +2664,9 @@ def progress_run(pw):
         pg.on('request', lambda r: voiced.append(json.loads(r.post_data or '{}').get('text')) if '/api/next/tts' in r.url else None)
         pg.click('#lcSay'); pg.wait_for_timeout(600)
         said = pg.evaluate('window.__said || []') + voiced
+        mark = pg.evaluate("() => { const m = document.querySelector('#lineCard .lc-acts .ai-voice'), b = document.getElementById('lcSay'); "
+                           "return m && [m.textContent.trim(), Math.abs(m.getBoundingClientRect().top + m.offsetHeight / 2 - b.getBoundingClientRect().top - b.offsetHeight / 2) < 8, !!m.title]; }")
+        check(dev, '好句: 「AI 朗读」 right by 听一遍, on its row, with what it means on hover', mark == ['AI 朗读', True, True], mark)
         pg.click('#lcShadow'); pg.wait_for_timeout(200)
         panel = pg.evaluate("() => { const p = document.getElementById('lcPanel'); return [p.hidden, !!p.querySelector('#lsRec'), document.getElementById('lsBack').disabled, document.getElementById('lcShadow').getAttribute('aria-expanded')]; }")
         pg.click('#lcShadow'); pg.wait_for_timeout(150)
@@ -2732,7 +2782,7 @@ def review_side_run(pw):
         # in an app (iOS, Android, desktop; FlowApp before the page): the reminder goes to its notifications, said for its device
         ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
-        ctx.add_init_script("window.__synced = []; window.__perm = 'undetermined'; window.FlowApp = { v: 1, platform: 'macos', has: k => k === 'notify', notify: { ask: () => { window.__perm = 'granted'; return Promise.resolve(true); }, sync: r => window.__synced.push(r), permission: () => window.__perm, settings: () => { window.__settings = 1; } } };")
+        ctx.add_init_script("window.__synced = []; window.__perm = 'undetermined'; window.FlowApp = { v: 1, platform: 'macos', has: k => k === 'notify', notify: { ask: () => { window.__perm = 'granted'; return Promise.resolve(true); }, sync: r => { window.__synced.push(r); return Promise.resolve({}); }, permission: () => Promise.resolve(window.__perm), settings: () => { window.__settings = 1; return Promise.resolve(); } } };")  # every call a Promise, as the real apps (native-bridge.md 2)
         pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
         pg.goto(BASE + '/#/vocab/plan', wait_until='load'); settle(pg); pg.wait_for_selector('#rApp', timeout=5000)
         note = pg.text_content('#rAppNote') or ''
@@ -2756,13 +2806,14 @@ def review_side_run(pw):
         # the Android app: on already (permission granted), and it can turn its notifications off itself (notify.off)
         ctx = browser.new_context(viewport={'width': 412, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
-        ctx.add_init_script("window.__perm = 'granted'; window.FlowApp = { v: 1, platform: 'android', has: k => k === 'notify', notify: { ask: () => { window.__perm = 'granted'; return true; }, sync: () => {}, permission: () => window.__perm, off: () => { window.__perm = 'undetermined'; window.__off = 1; }, settings: () => {} } };")
+        ctx.add_init_script("window.__perm = 'granted'; window.FlowApp = { v: 1, platform: 'android', has: k => k === 'notify', notify: { ask: () => { window.__perm = 'granted'; return Promise.resolve(true); }, sync: () => Promise.resolve({ exact: false }), permission: () => Promise.resolve(window.__perm), off: () => { window.__perm = 'undetermined'; window.__off = 1; return Promise.resolve(); }, settings: () => Promise.resolve() } };")
         pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
-        pg.goto(BASE + '/#/vocab/plan', wait_until='load'); settle(pg); pg.wait_for_selector('#rAppRow', timeout=5000)
+        pg.goto(BASE + '/#/vocab/plan', wait_until='load'); settle(pg); pg.wait_for_selector('#rAppOn', timeout=5000)  # once the app has answered
         on = pg.text_content('#rAppOn') if pg.query_selector('#rAppOn') else ''
         pg.click('#rAppOff'); pg.wait_for_timeout(300)
-        check(dev, 'Android app: 已开启：在这台手机上…, and 关闭 turns it off and offers to turn it on again',
-              on.startswith('已开启：在这台手机上') and pg.evaluate('window.__off') == 1 and pg.query_selector('#rApp') is not None, on)
+        pg.click('#rApp'); pg.wait_for_selector('#rAppOn', timeout=5000)  # on again: ask() true turns it back on
+        check(dev, 'Android app: 已开启：在这台手机上…, 关闭 turns it off, and the button turns it on again',
+              on.startswith('已开启：在这台手机上') and pg.evaluate('window.__off') == 1 and pg.query_selector('#rAppOn') is not None, on)
         check(dev, 'no script errors (Android app)', not errs, errs[:3])
         ctx.close()
         # a phone: the swipe follows the side
@@ -3183,6 +3234,21 @@ def home_app_run(pw):
         pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
         pg.wait_for_selector('#updateBar', timeout=9000); pg.wait_for_timeout(1000)
         check(dev, 'new version on 今日 while audio plays: no reload, only the line', len(loads) == 1, len(loads))
+        ctx.close()
+        # on 今日 when the new version is found, but the learner opens a text during the wait for the new worker (up to
+        # 4 s): no reload under them (it cut 播放全文 before its first sentence), the line offers it instead
+        ctx, pg, errs = context('iphone-15-pro')
+        pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+        pg.wait_for_function('!!(navigator.serviceWorker && navigator.serviceWorker.controller)', timeout=10000)  # a worker in charge: the wait happens
+        pg.route('**/api/version', lambda r: r.fulfill(status=200, content_type='application/json', body='{"asset": "newer-version"}'))
+        pg.reload(wait_until='networkidle'); settle(pg)
+        loads = []
+        pg.on('load', lambda: loads.append(1))
+        pg.wait_for_function("localStorage.getItem('flow-update-tried') !== null", timeout=9000)  # the check after 4 s, the wait begun
+        go(pg, f'#/m/{PID}/check'); pg.wait_for_timeout(5500)
+        got = {'loads': len(loads), 'bar': pg.query_selector('#updateBar') is not None, 'tried': pg.evaluate("localStorage.getItem('flow-update-tried')")}
+        check(dev, 'new version found on 今日, a text opened during the 4-second wait: no reload under it, the line offers it',
+              got['loads'] == 0 and got['bar'] and got['tried'] in (None, 'null'), got)
         ctx.close()
         ctx, pg, errs = context('iphone-15-pro')
         loads = []

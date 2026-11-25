@@ -622,7 +622,7 @@
       if (typeof h === 'function') h = { stop: h };
       this.h = h; this.label = label; this.resumeFn = null;
       if (!this.el) { this.el = document.createElement('div'); this.el.className = 'mini-player'; this.el.setAttribute('role', 'region'); this.el.setAttribute('aria-label', '播放控制'); document.body.appendChild(this.el); }
-      this.el.innerHTML = `<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span><span class="lbl"></span>`
+      this.el.innerHTML = `<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>${aiVoice()}<span class="lbl"></span>`
         + (h.toggle ? `<button type="button" class="toggle"></button><button type="button" class="stop close" aria-label="关闭播放（记住读到哪里）">✕</button>`
           : `<button type="button" class="stop">${playIcon(true, 15)}<span>停止</span></button>`);
       this.el.querySelector('.lbl').textContent = label;
@@ -688,7 +688,7 @@
       const tok = r.tok;
       SV.have(o.texts, o).then(() => { if (this.r === r && r.tok === tok && r.state !== 'paused') this.go(); });
     },
-    label() { const r = this.r; return r.state === 'waiting' ? `第 ${r.i + 1} 句准备中…` : (r.label ? r.label(r.i) : `第 ${r.i + 1} / ${r.texts.length} 句`); },
+    label() { const r = this.r; return r.state === 'waiting' ? `准备第 ${r.i + 1} 句…` : (r.label ? r.label(r.i) : `第 ${r.i + 1} / ${r.texts.length} 句`); },
     emit() { const r = this.r; if (!r) return; MINI.update(this.label()); if (r.onState) r.onState(r.state, r.i, r.note); },
     claim() {  // the lock screen for a sentence-by-sentence reading (a recording names itself: NAR.name)
       const r = this.r; if (!r || r.nm) return;
