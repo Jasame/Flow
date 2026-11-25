@@ -151,11 +151,26 @@ object Planner {
     fun signedOut(old: Input) = Input(planHour = old.planHour, planMinutes = old.planMinutes, app = old.app)
 
     /**
-     * The account has not agreed to 数据存放在香港 (an older account until it answers, a paused one after 不同意): every
-     * signed-in request is 403 code storage and the site sends it no reminders; neither does the app, not even the day's
-     * plan. The hours are kept: the next answer from the site brings them back.
+     * The account has not given a consent the site needs: 数据存放在香港 (code storage: an older account until it answers,
+     * a paused one after 不同意) or the current 用户协议 and 隐私和数据 (code terms: asked again whenever their version
+     * changes), or one this app does not know yet. Every signed-in request is then 403 and the site sends it no reminders;
+     * neither does the app, not even the day's plan. The hours are kept: the next answer from the site brings them back.
      */
     fun paused(old: Input) = signedOut(old).copy(paused = true)
+
+    /**
+     * Which consent a 403 asks for. The site answers code 'storage' for every missing consent (so 1.0.1 and 1.0.2, which
+     * know only that code, pause too) and says which one in `need`: 'storage' (数据存放在香港) or 'terms' (用户协议 and
+     * 隐私和数据). `need` first, then `code`, for an answer without it.
+     */
+    fun consentNeeded(answer: JSONObject): String? = answer.optString("need").ifEmpty { answer.optString("code") }.ifEmpty { null }
+
+    /** What 「App 通知」 says while paused, by [consentNeeded] (the page itself shows what to agree to). */
+    fun pausedLine(code: String?): String = when (code) {
+        "storage" -> "先在页面上回答「数据存放在香港」那一问：同意以后，提醒会自己排上。"
+        "terms" -> "先在页面上同意《用户协议》和《隐私和数据》：同意以后，提醒会自己排上。"
+        else -> "这个账号现在排不了提醒：先按页面上的提示处理，处理好以后提醒会自己排上。"
+    }
 
     private fun secs(s: Double): Instant = Instant.ofEpochMilli((s * 1000).toLong())
     private fun JSONObject.optDoubleOrNull(k: String): Double? = if (!has(k) || isNull(k)) null else optDouble(k).takeIf { !it.isNaN() }

@@ -53,8 +53,8 @@ DEFAULT_SECONDS = 30
 # ui_test.py has must be in one (tests/test_ci.py checks): a new group goes into the shortest share.
 UI_SHARDS = [
     ['about', 'wait', 'updates'],                                                  # 456 s
-    ['layout', 'sprint', 'backlog', 'review-side'],                               # 445 s
-    ['home-app', 'phone-land', 'progress', 'ios-audio', 'swipe', 'privacy'],      # 454 s
+    ['layout', 'sprint', 'backlog', 'review-side', 'app-audio'],                  # 465 s (app-audio about 20 s)
+    ['home-app', 'phone-land', 'progress', 'ios-audio', 'swipe', 'privacy', 'one-screen'],  # 454 s + one-screen
     ['phone', 'tablet', 'start', 'ux', 'platforms', 'learner'],                    # 454 s
     ['listen-speak', 'desktop', 'a11y', 'wechat', 'class', 'trial-survey'],       # 454 s
 ]

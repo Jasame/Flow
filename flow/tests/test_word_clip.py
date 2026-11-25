@@ -105,6 +105,8 @@ class RouteTests(unittest.TestCase):
         st, h, short = self.get('/audio/words/us/w000.aac?s=0.2&e=0.9&l=0.1')
         self.assertEqual((st, short), (200, wc.clip(vs.WORD_AUDIO_DIR / 'us' / 'w000.m4a', 0.2, 0.9, lead=0.1, trim=wc.TRIM)))
         self.assertLess(len(short), len(body))
+        tag = json.loads(h['AIGC'])  # 隐式标识 of a cut clip: aigc_label.value() (its other fields are that module's own business)
+        self.assertEqual((tag['Label'], tag['ContentProducer'], tag['ProduceID']), ('1', 'FlowLang', 'flow-words-us-w000'))
 
     def test_a_sentence_of_a_narration_is_cut_the_same_way(self):
         import next_service as nx
@@ -121,6 +123,75 @@ class RouteTests(unittest.TestCase):
         for path in ('/audio/words/us/w000.aac', '/audio/words/us/w000.aac?s=x&e=1', '/audio/words/us/w000.aac?s=0.9&e=0.2', '/audio/words/us/w000.aac?s=0.2&e=0.9&l=1',
                      '/audio/words/us/w999.aac?s=0.2&e=0.9', '/audio/words/zz/w000.aac?s=0.2&e=0.9', '/audio/words/us/../w000.aac?s=0.2&e=0.9'):
             self.assertEqual(self.get(path)[0], 404, path)
+
+
+class AigcLabelTests(unittest.TestCase):
+    """隐式标识 (aigc_label.mp4, 语流 12's format, 2026-11-25): a word sprite says in its own file that its voice is
+    synthetic, and nothing of its audio changes: the same frames, the same clips cut from it."""
+    def setUp(self):
+        import aigc_label
+        self.al = aigc_label
+        self.tmp = tempfile.TemporaryDirectory()
+        self.src = (FIXTURE / 'us' / 'w000.m4a').read_bytes()
+        self.word = json.loads((FIXTURE / 'index.json').read_text())['us']['drain']
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def file(self, name, data):
+        p = Path(self.tmp.name) / name
+        p.write_bytes(data)
+        return p
+
+    def same_audio(self, a, b):
+        ta, tb = (wc._tables(str(p), p.stat().st_mtime_ns) for p in (a, b))
+        frames = lambda t: [t[0][o:o + n] for o, n in zip(t[2], t[3])]
+        self.assertEqual(frames(ta), frames(tb)); self.assertEqual(ta[6], tb[6])  # every frame, and the priming note
+        self.assertEqual(wc.clip(a, self.word[1], self.word[2]), wc.clip(b, self.word[1], self.word[2]))
+
+    def test_a_sprite_gets_the_label_in_its_free_space_and_keeps_its_audio(self):
+        lab = self.al.mp4(self.src, 'flow-words-us-w000')
+        tag = self.al.read_mp4(lab)
+        self.assertEqual((tag['Label'], tag['ContentProducer'], tag['ProduceID']), ('1', 'FlowLang', 'flow-words-us-w000'))
+        self.assertEqual(json.dumps(tag, separators=(',', ':')).encode('ascii'), self.al.value('flow-words-us-w000'))  # the value, as it is
+        self.assertIsNone(self.al.read_mp4(self.src))
+        self.assertEqual(len(lab), len(self.src))  # the free box after moov gave up the bytes: mdat did not move
+        self.assertEqual(self.al.mp4(lab, 'other'), lab)  # once only
+        self.same_audio(self.file('a.m4a', self.src), self.file('b.m4a', lab))
+
+    def test_without_room_after_moov_the_chunk_offsets_move_with_the_audio(self):
+        import struct
+        data = bytearray(self.src)
+        moov = next(k for k in self.al._kids(self.src, 0, len(self.src)) if k[0] == b'moov')
+        free = next(k for k in self.al._kids(self.src, 0, len(self.src)) if k[0] == b'free')
+        n = free[3] - free[1]
+        del data[free[1]:free[3]]  # no free box: mdat right after moov
+        stco = data.find(b'stco', moov[1], moov[3])
+        count = struct.unpack('>I', data[stco + 8:stco + 12])[0]
+        for k in range(count):
+            p = stco + 12 + 4 * k
+            data[p:p + 4] = (struct.unpack('>I', data[p:p + 4])[0] - n).to_bytes(4, 'big')
+        tight = bytes(data)
+        self.same_audio(self.file('a.m4a', self.src), self.file('t.m4a', tight))  # the stand-in is the same sprite
+        lab = self.al.mp4(tight, 'flow-words-us-w000')
+        self.assertGreater(len(lab), len(tight)); self.assertEqual(self.al.read_mp4(lab)['ProduceID'], 'flow-words-us-w000')
+        self.same_audio(self.file('a2.m4a', self.src), self.file('l.m4a', lab))
+
+    def test_a_file_whose_boxes_cannot_be_read_is_left_as_it_is(self):
+        for bad in (b'', b'not an mp4 at all', self.src[:100]):
+            self.assertEqual(self.al.mp4(bad, 'x'), bad)
+
+    def test_the_old_sprites_are_labelled_by_a_script_and_once(self):
+        import shutil, subprocess
+        words = Path(self.tmp.name) / 'words'
+        shutil.copytree(FIXTURE, words)
+        tool = [sys.executable, str(ROOT.parent / 'tools' / 'label_word_audio.py'), str(words)]
+        count = len(list(words.glob('*/*.m4a')))
+        self.assertIn(f'to label: {count}', subprocess.run(tool, capture_output=True, text=True).stdout)
+        self.assertIsNone(self.al.read_mp4((words / 'us' / 'w000.m4a').read_bytes()))  # counting writes nothing
+        self.assertIn(f'labelled: {count}', subprocess.run(tool + ['--write'], capture_output=True, text=True).stdout)
+        self.assertEqual(self.al.read_mp4((words / 'us' / 'w000.m4a').read_bytes())['ProduceID'], 'flow-words-us-w000')
+        self.assertIn(f'already labelled: {count}', subprocess.run(tool, capture_output=True, text=True).stdout)
 
 
 class FrontEndTests(unittest.TestCase):

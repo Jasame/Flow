@@ -1,6 +1,6 @@
 [package]
 name = "flow-desktop"
-version = "0.1.0"
+version = "0.1.1"
 description = "语流 Flow 桌面版：网页内容 + 系统媒体控制、复习提醒、开机自启"
 edition = "2021"
 rust-version = "1.80"
@@ -14,7 +14,8 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.7", features = [] }
 
 [features]
-# Off until the owner has made an updater signing key (desktop/README.md「自动更新」).
+# Automatic updates, on since 0.1.1 (desktop/README.md「自动更新」); `--no-default-features` builds without them.
+default = ["updater"]
 updater = ["dep:tauri-plugin-updater"]
 
 [dependencies]

@@ -5,7 +5,7 @@
   --bg:#fbfaf6;--paper:#ffffff;--sunk:#f3f1ea;--line:#e7e3d8;--line2:#d6d1c3;
   --ink:#1b1d1a;--ink2:#4b4f48;--muted:#666a60;
   --green:#1f9d55;--green-ink:#12733c;--green-soft:#e9f5ee;--green-line:#bfe3cd;
-  --amber:#b4690e;--amber-soft:#fbf1e1;--red:#b42318;--red-soft:#fdeceb;
+  --amber:#9a5a0c;--amber-soft:#fbf1e1;--red:#b42318;--red-soft:#fdeceb;
   --mark:#fff2b8;
   /* solid fills behind text (buttons, badges, the current step): 4.5:1 or more for the text on them, in both themes */
   --fill:#188546;--on-fill:#fff;--on-red:#fff;--amber-fill:#9a5a0c;--on-amber:#fff;
@@ -46,7 +46,7 @@ button{cursor:pointer}
 .tabs a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none;font-size:12px;color:var(--muted);padding:4px 0;position:relative;border-radius:10px}
 .tabs svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .tabs a[aria-current=page]{color:var(--green-ink);font-weight:600}
-.badge{position:absolute;top:0;left:calc(50% + 6px);min-width:18px;height:18px;border-radius:9px;background:var(--red);color:var(--on-red);font-size:11px;line-height:18px;text-align:center;padding:0 5px;font-weight:700}
+.badge{position:absolute;top:0;left:calc(50% + 6px);min-width:18px;height:18px;border-radius:9px;background:var(--ink);color:var(--bg);font-size:11px;line-height:18px;text-align:center;padding:0 5px;font-weight:700}
 @media (min-width:760px){
   body{padding-bottom:0}
   .bar{background:color-mix(in srgb,var(--bg) 90%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
@@ -63,7 +63,9 @@ main{max-width:var(--max);margin:0 auto;padding:20px var(--gut) 40px;outline:non
 h1,h2,h3{margin:0;line-height:1.25}
 .h1{font-size:26px;font-weight:700;letter-spacing:-.01em}
 .h2{font-size:18px;font-weight:700}
-.kicker{font-size:12.5px;font-weight:600;letter-spacing:.06em;color:var(--green-ink);text-transform:uppercase;margin-bottom:6px}
+/* 配色 A (2026-11-25, the user's pick): green only on what can be pressed or shows progress — small labels above a title
+   are grey, the due-word count on the 单词 tab is ink on paper (red read as an error), amber text one step darker */
+.kicker{font-size:12.5px;font-weight:600;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
 .muted{color:var(--muted)}.small{font-size:13.5px}.tiny{font-size:12px}
 .stack{display:grid;gap:14px}.stack-s{display:grid;gap:8px}.stack-xs{display:grid;gap:3px}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row.between{justify-content:space-between}

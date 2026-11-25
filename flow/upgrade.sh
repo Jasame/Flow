@@ -79,6 +79,7 @@ FLOW_FILES=(
   WORDBOOKS-OPEN.md
   WORDBOOKS.md
   ability_radar.py
+  access_check.py
   account_data.py
   account_service.py
   adaptive_service.py
@@ -88,6 +89,7 @@ FLOW_FILES=(
   ai_jobs.py
   ai_routes.py
   ai_stream.py
+  aigc_label.py
   app.py
   attempt_service.py
   audio_validation.py
