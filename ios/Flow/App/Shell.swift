@@ -46,7 +46,7 @@ final class Shell {
                 Packs.schedule()
             case .frugal: Frugal.shared.update()
             case .reviewActivity: if !on { Task { await ReviewActivities.endAll() } }
-            case .smartResume, .haptics: break
+            case .smartResume, .haptics, .siri: break
             }
         }
     }

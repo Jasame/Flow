@@ -10,28 +10,34 @@ nonisolated enum Feature: String, CaseIterable, Identifiable, Sendable {
     case haptics = "haptics"                 // a light tap of the phone as the page asks (复习's ratings, answers: Haptics)
     case frugal = "frugal"                   // Low Power Mode, iOS 27's reduced resources: less ahead of time (Frugal)
     case reviewActivity = "review-activity"  // the word review's progress on the lock screen (ReviewActivities)
+    case siri = "siri"                       // Siri and the Shortcuts app: open 复习 / 今天这篇, say the counts (Intents)
 
     enum Group: String, CaseIterable {
         case listen = "锁屏听读"
         case feel = "手感和省电"
         case glance = "不打开 App 也能学"
+        case ask = "Siri 和专注模式"
 
         /// under the group's switches: what has no switch of its own
         var footer: String? {
             switch self {
             case .glance: "小组件：长按主屏空白处 →「编辑」→「添加小组件」，搜「语流」，有「今天」一种（主屏、锁屏都能放）。控制中心：下拉控制中心，长按空白处 →「添加控件」，搜「语流」，有「开始复习」「今天的学习」两个按钮。"
+            case .ask: "专注模式：在系统「设置 → 专注模式」里点一个模式（比如「工作」「睡眠」）→「添加过滤条件」→「语流」，选「只提醒复习单词」或「都不提醒」。这个模式打开时，语流就照这样提醒。"
             default: nil
             }
         }
     }
 
     var id: String { rawValue }
+    /// what Siri calls the app: 「语流」, the 内测版 「语流内测」
+    static var appName: String { (Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String) ?? "语流" }
     var key: String { "feature." + rawValue }
     var group: Group {
         switch self {
         case .lockScreenStudy, .smartResume, .offlinePacks: .listen
         case .haptics, .frugal: .feel
         case .reviewActivity: .glance
+        case .siri: .ask
         }
     }
 
@@ -43,6 +49,7 @@ nonisolated enum Feature: String, CaseIterable, Identifiable, Sendable {
         case .haptics: "复习时的轻触震动"
         case .frugal: "省电时少做事"
         case .reviewActivity: "复习进度的实时活动"
+        case .siri: "快捷指令和 Siri"
         }
     }
 
@@ -55,12 +62,13 @@ nonisolated enum Feature: String, CaseIterable, Identifiable, Sendable {
         case .haptics: "复习单词点「认识 / 模糊 / 不认识」、做题答对答错时，手机轻轻一震，手感各不一样"
         case .frugal: "开了低电量模式、或者系统提示要省着用时，少提前下载录音和文章，等用到再下"
         case .reviewActivity: "复习单词时，锁屏和灵动岛上显示「12 / 30」，切到别的 App 也看得到。锁屏上别人也看得到这个数字"
+        case .siri: "对 Siri 说「\(Self.appName)开始复习」「\(Self.appName)还有多少词要复习」「用\(Self.appName)打开今天这篇」，「快捷指令」App 里也有这三个。只打开语流的页面、读这台手机上的数字"
         }
     }
 
     var defaultOn: Bool {
         switch self {
-        case .lockScreenStudy, .smartResume, .haptics, .frugal: true
+        case .lockScreenStudy, .smartResume, .haptics, .frugal, .siri: true
         case .offlinePacks: false  // it takes room on the phone: the learner turns it on
         case .reviewActivity: false  // others can see the lock screen: the learner turns it on
         }
@@ -74,7 +82,7 @@ nonisolated enum Feature: String, CaseIterable, Identifiable, Sendable {
             if #available(iOS 27, *) { return true }
             #endif
             return false
-        case .smartResume, .offlinePacks, .haptics, .frugal, .reviewActivity:
+        case .smartResume, .offlinePacks, .haptics, .frugal, .reviewActivity, .siri:
             return true
         }
     }
