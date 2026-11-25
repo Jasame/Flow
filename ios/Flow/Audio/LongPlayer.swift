@@ -279,6 +279,9 @@ final class LongPlayer: NSObject {
 
     func toggle() { if state == .paused { resume(why: .remote) } else { pause(why: .remote) } }
 
+    /// 语速 as the page writes it (0.8, not the Float's 0.800000011920929): its chips compare it with their own (B3's #338)
+    nonisolated static func shown(_ rate: Float) -> Double { (Double(rate) * 100).rounded() / 100 }
+
     /// A recording with no connection: the app hands it back to the page unless it has the file itself (离线朗读包).
     nonisolated static func handBack(kept: Bool, online: Bool) -> Bool { !kept && !online }
 
@@ -439,7 +442,7 @@ final class LongPlayer: NSObject {
             o["n"] = r.count
             o["title"] = r.title
             if r.src != nil { o["t"] = player.currentTime().seconds.finiteOr(0) }
-            o["rate"] = r.rate
+            o["rate"] = Self.shown(r.rate)
             o["rep"] = r.rep
             o["loop"] = r.loop
         }
@@ -743,7 +746,7 @@ final class LongPlayer: NSObject {
             set(.playing)
         }
         if UIApplication.shared.applicationState == .active {
-            emit?("audio-tick", ["key": r.key, "i": index, "t": t, "at": Date().timeIntervalSince1970 * 1000, "rate": r.rate])
+            emit?("audio-tick", ["key": r.key, "i": index, "t": t, "at": Date().timeIntervalSince1970 * 1000, "rate": Self.shown(r.rate)])
         }
     }
 

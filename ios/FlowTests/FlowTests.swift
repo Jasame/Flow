@@ -569,6 +569,12 @@ final class FeatureTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: dir.path), "switched off: nothing stays")
     }
 
+    @MainActor func testTheRateGoesToThePageAsItWritesIt() {
+        XCTAssertEqual(LongPlayer.shown(0.8), 0.8, "not 0.800000011920929: the page's chips compare it with theirs")
+        XCTAssertEqual(LongPlayer.shown(1.25), 1.25)
+        XCTAssertEqual(LongPlayer.shown(0.75), 0.75)
+    }
+
     @MainActor func testNoConnectionHandsARecordingBackToThePage() {
         XCTAssertTrue(LongPlayer.handBack(kept: false, online: false), "the page plays it from its own copy (sw.js)")
         XCTAssertFalse(LongPlayer.handBack(kept: true, online: false), "the app's own copy: the app plays it")
