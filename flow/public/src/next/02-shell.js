@@ -196,6 +196,16 @@
   }
   // opts.teacher: the token of a 老师注册链接 (teacher_service.py): only the sign-up, no 年龄段, and the account is a teacher's.
   async function openLogin(reason, tab, opts) {
+    // 安卓 App 的基本模式（1.0.4 起：没同意《用户协议》《隐私和数据》）：登录、注册、验证码都会被 App 拦下（403 app-consent）。
+    // 先请 App 再问一次同意（它等学员答完才回 'agreed' 或 'basic'）：同意了就接着打开这个框，还是不同意就不打开，
+    // 免得填完才被拦（C2，docs/native-bridge.md §10）
+    if (window.FlowApp && FlowApp.has && FlowApp.has('privacy')) {
+      let st = null; try { st = await FlowApp.call('privacy.state'); } catch (e) { /* the app could not say: as in a browser */ }
+      if (st && st.state === 'basic') {
+        let r = null; try { r = await FlowApp.call('privacy.ask'); } catch (e) { /* no answer: as not agreed */ }
+        if (r !== 'agreed') return;
+      }
+    }
     const mail = await mailOn(), teacher = opts && opts.teacher;
     tab = teacher ? 'reg' : tab || 'pw'; if (!mail && (tab === 'code' || tab === 'reset')) tab = 'pw';
     // 注册 and 登录 side by side, one level (the owner on WeChat, 2026-11-25: 「注册一般和登录是一级的」); 密码 or 验证码 is

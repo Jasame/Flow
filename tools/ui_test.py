@@ -3722,6 +3722,27 @@ def shell_run(pw):
         pg.click('#view #retry'); pg.wait_for_timeout(5000)
         check(dev, 'and its 重试 takes the new version again instead of repeating the same error', len(loads) == 3, len(loads))
         ctx.close()
+        # the Android app's basic mode (1.0.4: the agreement not accepted; it blocks sign-in and sign-up with 403 app-consent):
+        # 注册 or 登录 asks the app to ask again instead of opening a form the app would then refuse (C2, native-bridge §10)
+        app = """(() => { const asked = window.__asked = []; let state = 'basic';
+          window.FlowApp = { features: ['privacy'], has: f => f === 'privacy', on: () => () => {}, off: () => {},
+            call: (cmd) => { asked.push(cmd); if (cmd === 'privacy.state') return Promise.resolve({ state, version: '1' }); if (cmd === 'privacy.ask') { const r = window.__answer || 'agreed'; if (r === 'agreed') state = 'agreed'; return Promise.resolve(r); } return Promise.reject(new Error('no')); } }; })()"""
+        ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True)
+        ctx.add_init_script(app)
+        pg = ctx.new_page(); pg.goto(BASE + '/#/welcome', wait_until='load'); pg.wait_for_selector('#wgReg', timeout=8000)
+        # still 'basic' after the app asked: no form
+        pg.evaluate("window.__answer = 'basic'"); pg.click('#wgReg'); pg.wait_for_timeout(600)
+        no = (pg.evaluate("document.getElementById('sheet').hidden"), pg.evaluate('window.__asked.slice()'))
+        # 'agreed': the form opens at once, no second tap
+        pg.evaluate("window.__answer = 'agreed'; window.__asked.length = 0"); pg.click('#wgReg')
+        try:
+            pg.wait_for_selector('#authForm', timeout=4000)
+        except Exception:
+            pass
+        yes = (pg.is_visible('#authForm'), pg.evaluate('window.__asked'))
+        check(dev, "the Android app's basic mode: 注册 asks the app first; still not agreed → no form, agreed → the form opens at once",
+              no == (True, ['privacy.state', 'privacy.ask']) and yes == (True, ['privacy.state', 'privacy.ask']), (no, yes))
+        ctx.close()
         check(dev, 'no page errors', not errs, errs[:3])
     finally:
         browser.close()
