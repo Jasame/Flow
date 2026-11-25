@@ -55,7 +55,9 @@
         IN_FLOW_APP ? '' : grow(MAIN_SITE + '/', '去正式版', 'flowlang.cn', '', 'me-beta-main'), '<div class="beta-new" id="meBetaNew" hidden></div>'],
         '这里是语流的内测版（flow.jasa.hk），新功能先在这里试。账号和数据都和正式版分开，内测期间可能会清空。<span id="meBetaVer"></span>'],
       // 安卓 App 1.0.4+ (81-privacy.js appPrivacy): 撤回同意 and the system permissions, for the app stores
-      appPrivacy() && ['隐私', [grow('meWithdraw', '撤回同意', '', '', 'me-withdraw'), grow('mePerms', '系统权限', '麦克风、通知', '', 'me-permissions')],
+      // and the two lists the stores ask for (隐私和数据, #342), a tap from 我的
+      appPrivacy() && ['隐私', [grow('#/guide/info-list', '个人信息收集清单', '', '', 'me-info-list'), grow('#/guide/sharing-list', '第三方信息共享清单', '', '', 'me-sharing-list'),
+        grow('meWithdraw', '撤回同意', '', '', 'me-withdraw'), grow('mePerms', '系统权限', '麦克风、通知', '', 'me-permissions')],
         '撤回同意以后，App 清掉这台手机上的登录和缓存，回到第一次打开时的样子。服务器上的账号和学习记录还在：要停下来，请在「账号 → 数据存放」里撤回；要删除，请注销账号。'],
       ['帮助', [grow('#/guide', '操作指南', '', '', 'me-guide'), grow('#/updates', '更新记录', '', '', 'me-updates'),grow('#/feedback', '问题反馈', '', '', 'me-feedback'), grow('#/guide/privacy', '隐私说明', '', '', 'me-privacy'), grow('meMore', '更多', '认识语流、匿名问卷、新手引导', '', 'me-more')], appPrivacy() ? '<span id="meBeian" hidden></span>' : ''],
     ].filter(Boolean);
