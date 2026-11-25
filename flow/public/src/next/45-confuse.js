@@ -33,6 +33,9 @@
       dots.forEach((x, k) => x.classList.toggle('now', k === i));
       box.innerHTML = `<div class="q gq enter"><div class="tiny muted">第 ${i + 1} / ${items.length} 题</div><div class="prompt">${esc(it.prompt)}</div>
         ${it.options.map((o, j) => `<button class="ans" data-o="${j}"><span class="k">${'ABCD'[j]}</span><span>${esc(o)}</span></button>`).join('')}<div class="fb" aria-live="polite"></div></div>`;
+      // The first question shows 怎么区分 open, unless that runs past the screen (an iPhone SE, or Safari with its bars
+      // showing: 375×553 was 62-69 px over, 语流 B8 on r33): then it starts folded too, one tap away, and the question fits
+      if (i === 0 && innerWidth < 760 && document.body.classList.contains('reviewing') && document.scrollingElement.scrollHeight > innerHeight) document.getElementById('cfHow').open = false;
       box.querySelectorAll('.ans').forEach(b => b.onclick = () => {
         const ok = Number(b.dataset.o) === it.answer;
         box.querySelectorAll('.ans').forEach((x, j) => { x.disabled = true; if (j === it.answer) x.classList.add('right'); });

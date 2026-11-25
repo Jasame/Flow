@@ -92,6 +92,8 @@ CI（`.github/workflows/desktop.yml`）在 windows-latest 上装好 NSIS 安装�
 - 产物只在 Actions 里：不自动传到 GitHub Releases 或任何地方。发给试用同学、放到公开的地方、开自动更新的通道，都要先问用户。
 
 图标：`python3 tools/make_icon.py` 画 1024 的圆角方块（和网站同一个 logo），再 `npx tauri icon src-tauri/app-icon.png -o src-tauri/icons`（删掉生成的 android/、ios/）。
+内测版（语流内测）用橙色底（#e8590c，用户 2026-11-25 选的，各端内测版都一样）：`src-tauri/icons-beta/`，tauri.beta.conf.json 的 `bundle.icon` 指向它；
+重画用 `python3 tools/make_icon.py --beta`，再 `npx tauri icon src-tauri/app-icon-beta.png -o src-tauri/icons-beta`。托盘图标跟着窗口图标走，也是橙色。
 
 ## Linux（2026-11-25 开工，方案和用户的选择见共享笔记 linux-desktop-plan.md）
 
