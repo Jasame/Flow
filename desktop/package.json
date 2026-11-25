@@ -1,0 +1,17 @@
+{
+  "name": "flow-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "description": "语流 Flow 桌面版（Windows + macOS，Tauri 2）",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "dev:beta": "tauri dev --config src-tauri/tauri.beta.conf.json",
+    "build": "tauri build",
+    "build:beta": "tauri build --config src-tauri/tauri.beta.conf.json",
+    "test": "cargo test --manifest-path src-tauri/Cargo.toml"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.6"
+  }
+}
