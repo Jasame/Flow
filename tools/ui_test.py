@@ -3504,7 +3504,7 @@ def home_app_run(pw):
                         # what counts is the page at rest, given up to 4 s to settle
                         go(pg, page); pg.wait_for_selector(sel, timeout=8000); pg.wait_for_timeout(600)
                         try:
-                            pg.wait_for_function("document.scrollingElement.scrollHeight - innerHeight <= 1", timeout=4000)
+                            pg.wait_for_function("document.scrollingElement.scrollHeight - innerHeight <= 0", timeout=4000)
                         except Exception:
                             pg.screenshot(path=str(OUT / f"one-screen-{page.strip('#/').replace('/', '_')}-{size}-{'home' if env == 'home app' else 'safari'}-{'beta' if ch == '内测版' else 'main'}.png"), full_page=True)
                         over[(size, env, ch, page)] = pg.evaluate("document.scrollingElement.scrollHeight - innerHeight")
@@ -3512,7 +3512,7 @@ def home_app_run(pw):
         for page in ('#/review', '#/vocab/test', '#/placement'):
             got = {f'{s} {e} {c}': v for (s, e, c, p), v in over.items() if p == page}
             check(dev, f'one screen: {page} — no vertical scroll in the home-screen app or Safari, 375×667 and 390×844, 语流 and 内测版',
-                  all(v <= 1 for v in got.values()), {k: v for k, v in got.items() if v > 1} or got)
+                  all(v <= 0 for v in got.values()), {k: v for k, v in got.items() if v > 0} or got)
         # the 内测版 in one of Flow's apps: the learner installed it on purpose, and flowlang.cn would open the system
         # browser — the line stays without its link, the once-per-phone sheet is not shown (a browser still gets both)
         BETA = "new MutationObserver((m, o) => { if (document.documentElement) { document.documentElement.dataset.channel = 'beta'; o.disconnect(); } }).observe(document, {childList: true, subtree: true})"

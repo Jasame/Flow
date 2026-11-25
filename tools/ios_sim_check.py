@@ -579,11 +579,11 @@ def run_onescreen(p):
         p.js("document.querySelector('#sheet:not([hidden]) [data-close]')?.click()"); time.sleep(0.4)  # the 内测版's once-per-phone sheet
         if not p.until(f"!!document.querySelector({json.dumps(sel)})", 8):
             skip(g, page, 'the page did not open'); continue
-        p.until("document.scrollingElement.scrollHeight - innerHeight <= 1", 4, 0.3)
+        p.until("document.scrollingElement.scrollHeight - innerHeight <= 0", 4, 0.3)
         m = p.js("""({ over: document.scrollingElement.scrollHeight - innerHeight, back: !!document.getElementById('backBtn') && !document.getElementById('backBtn').hidden,
           bar: Math.round(document.getElementById('bar').getBoundingClientRect().height), line: !!document.getElementById('betaBar') })""")
         s = shot(f"one-screen-{page.strip('#/').replace('/', '_')}")
-        check(g, f'{page}: fits one screen (no vertical scroll)', m['over'] <= 1, m, s)
+        check(g, f'{page}: fits one screen (no vertical scroll)', m['over'] <= 0, m, s)
 
 
 # ---------------------------------------------------------------- 朗读统一 (语流 9, #129): audio-test-plan.md
@@ -733,10 +733,12 @@ def run_unify(p, aid, recorded, extra=None):
     p.tap('#playAll', 0.3); p.until(LS + '.now >= 2', 40, 0.3); a = p.js(LS); p.tap('.mini-player .close', 0.5)
     check(g, f'{kind}: offline — sentences heard before still play in the natural voice', a['now'] >= 2 and a['speech'] == 0 and p.js(SOUNDS) >= 1, a)
     if extra and extra.get('fresh'):
-        fresh_listen(p, extra['fresh']); p.tap('#playAll', 0.3); p.until(LS + '.speech >= 1', 20, 0.3); time.sleep(0.8); b = p.js(LS); s = shot(f'{g}-offline-new')
+        # the browser voice speaking, seen on speechSynthesis itself (a wrapper on speak() can miss it); polled while it reads
+        fresh_listen(p, extra['fresh']); p.js("window.__spoke = 0; window.__spk = setInterval(() => { if (speechSynthesis.speaking) window.__spoke += 1; }, 100)")
+        p.tap('#playAll', 0.3); p.until(LS + ".speech >= 1 || window.__spoke >= 3", 20, 0.3); time.sleep(0.8); b = p.js(LS); b['spoke'] = p.js('(clearInterval(window.__spk), window.__spoke)'); s = shot(f'{g}-offline-new')
         p.tap('.mini-player .close', 0.5)
         check(g, f'{kind}: offline — a sentence never heard on this phone: the browser voice, and the line says why',
-              b['speech'] >= 1 and any('离线中' in n for n in b['notes']),
+              (b['speech'] >= 1 or b['spoke'] >= 3) and any('离线中' in n for n in b['notes']),
               {'state': b, 'log': [e['k'] + ':' + str(e.get('text') or e.get('src') or e.get('e') or e.get('m') or '') for e in p.js('window.__au')][-8:],
                # for 语流 9: the browser voice's own state, and whether the page reloaded itself meanwhile (a new version)
                'synth': p.js("({ speaking: speechSynthesis.speaking, pending: speechSynthesis.pending, paused: speechSynthesis.paused })"),
