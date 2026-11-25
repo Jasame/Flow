@@ -1,3 +1,3 @@
-d8328166f0987f3b0c673530ccc05cc17a0ada71 289ef4524da5609deb289d757f8e03cead39524a7f74f3a1fb864de39354a2f1 e2e light
-# b25 main: Merge pull request #113 from Jasame/say-omni-guard = build of 967d787cb57f
+50e03e2df90cfa4e7ad181d533b4b5407c75f6c3 5749b8c0aa6d9642093e7bcef9ea97b910a0043a5ea36aa948f70d111f2c85f4 e2e light
+# b26 main: Merge pull request #114 from Jasame/examples-fair = build of 1db9b7ae1c5a
 # Format: <commit sha> <manifest sha256> [e2e [light]]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
