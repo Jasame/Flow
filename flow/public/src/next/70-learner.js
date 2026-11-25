@@ -43,7 +43,7 @@
     });
     return false;
   }
-  // In 语流's iOS app the app records (16 kHz mono; WAV, or AAC past 45 s): micOpen() gives a stand-in stream after iOS's
+  // In 语流's iOS app the app records (16 kHz mono; WAV, or AAC past 40 s so it stays under 1.4 MB): micOpen() gives a stand-in stream after iOS's
   // own question, and recorderFor() a stand-in MediaRecorder the three recorders use as before (ios/README.md).
   const APP_REC = () => !!(window.FlowApp && FlowApp.has && FlowApp.has('rec'));
   class AppRecorder {
