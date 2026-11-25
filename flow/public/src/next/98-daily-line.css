@@ -12,7 +12,9 @@
 .lc-src{margin:0;color:var(--muted);line-height:1.5}
 .lc-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
 .lc-acts .btn{gap:6px}
-.lc-acts .ai-voice{align-self:center}  /* 「AI 朗读」 by 听一遍: every voice on this card is synthesized (aiVoice, 00-head.js) */
+.lc-acts .ai-voice{align-self:center;border:0;background:none;padding:0}  /* 「AI 朗读」 by 听一遍: every voice on this card is synthesized
+   (aiVoice, 00-head.js). In the row of buttons it has no border, so it reads as a label of 听一遍, not as a fourth button (B7's rule 2,
+   2026-11-25; the mini player does the same) */
 @media (max-width:374px){.lc-acts{gap:6px}.lc-acts .btn{padding-left:11px;padding-right:11px}}  /* with the label, the three buttons still fit one row at 360 */
 .lc-acts .btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .lc-acts .btn.on{background:var(--green-soft);color:var(--green-ink)}

@@ -2984,8 +2984,9 @@ def progress_run(pw):
         pg.click('#lcSay'); pg.wait_for_timeout(600)
         said = pg.evaluate('window.__said || []') + voiced
         mark = pg.evaluate("() => { const m = document.querySelector('#lineCard .lc-acts .ai-voice'), b = document.getElementById('lcSay'); "
-                           "return m && [m.textContent.trim(), Math.abs(m.getBoundingClientRect().top + m.offsetHeight / 2 - b.getBoundingClientRect().top - b.offsetHeight / 2) < 8, !!m.title]; }")
-        check(dev, '好句: 「AI 朗读」 right by 听一遍, on its row, with what it means on hover', mark == ['AI 朗读', True, True], mark)
+                           "return m && [m.textContent.trim(), Math.abs(m.getBoundingClientRect().top + m.offsetHeight / 2 - b.getBoundingClientRect().top - b.offsetHeight / 2) < 8, !!m.title, "
+                           "getComputedStyle(m).borderTopStyle === 'none' && m.previousElementSibling === b]; }")
+        check(dev, '好句: 「AI 朗读」 right after 听一遍, on its row, no border (not read as a button), with what it means on hover', mark == ['AI 朗读', True, True, True], mark)
         pg.click('#lcShadow'); pg.wait_for_timeout(200)
         panel = pg.evaluate("() => { const p = document.getElementById('lcPanel'); return [p.hidden, !!p.querySelector('#lsRec'), document.getElementById('lsBack').disabled, document.getElementById('lcShadow').getAttribute('aria-expanded')]; }")
         pg.click('#lcShadow'); pg.wait_for_timeout(150)
