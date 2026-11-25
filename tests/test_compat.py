@@ -68,6 +68,13 @@ class CompatTests(unittest.TestCase):
         self.assertTrue(css('@media (max-width:759px){.tabs{background:color-mix(in srgb,var(--paper) 72%,transparent)}}'))
         self.assertTrue(css('.card{color:red; & .t{color:blue}}') or css('.card .t{} .x & .y{color:blue}'))
 
+    def test_container_queries_need_a_fallback_for_the_file_or_a_word(self):
+        css = lambda s: [w for line, col, w, v in cc.css_findings(s)]
+        q = '.phone{container-type:inline-size} @container (min-width:300px){.t{font-size:4cqw}}'
+        self.assertEqual(len(css(q)), 2)  # the @container and the cqw
+        self.assertEqual(css(q + ' @supports not (container-type: inline-size){.phone{display:none}}'), [])
+        self.assertEqual(css('@container (min-width:300px){/* compat-ok: hidden below */.t{font-size:12px;font-size:4cqw}}'), [])
+
     def test_every_served_script_is_checked_and_the_check_runs_wherever_scripts_are_checked(self):
         names = {p.name for p in cc.SCRIPTS}
         self.assertIn('99-boot.js', names); self.assertIn('sw.js', names); self.assertIn('about.js', names)

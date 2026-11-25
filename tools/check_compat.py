@@ -177,6 +177,10 @@ def findings(src):
 CSS_VALUES = [('color-mix()', '16.2', re.compile(r'color-mix\(')),
               ('dvh / svh / lvh', '15.4', re.compile(r'\d(?:dvh|svh|lvh|dvw|svw|lvw)\b'))]
 CSS_SELECTORS = [(':has()', '15.4', re.compile(r':has\(')), ('nesting with &', '16.5', re.compile(r'&'))]
+# container queries (Safari 16): a whole layout, not a declaration, so the fallback may be one for the whole file, an
+# @supports not (container-type: …) block that shows something else there (语流 A0, 2026-11-25: about.css's phone)
+CQ_UNITS = re.compile(r'\d(?:cqw|cqh|cqi|cqb|cqmin|cqmax)\b')
+CQ_FALLBACK = re.compile(r'@supports\s+not\s*\(\s*container-type\s*:')
 
 
 def css_findings(src):
@@ -190,6 +194,16 @@ def css_findings(src):
                 text[k] = ' '
     text = ''.join(text)
     found = []
+    cq_ok = bool(CQ_FALLBACK.search(text))
+    if not cq_ok:
+        for m in re.finditer(r'@container\b', text):
+            brace = text.find('{', m.end()); depth, end = 0, len(text)
+            for k in range(brace, len(text)):
+                depth += {'{': 1, '}': -1}.get(text[k], 0)
+                if depth == 0:
+                    end = k; break
+            if not any(m.start() <= o <= end for o in oks):
+                found.append((m.start(), 'a container query (@container) with no @supports not (container-type: …) fallback', '16'))
     start, stack = 0, []                 # start: where the current prelude or declaration list began
     for m in re.finditer(r'[{}]', text):
         if m.group() == '{':
@@ -215,6 +229,8 @@ def css_findings(src):
                 prop, value = decl.split(':', 1)
                 prop = prop.strip().lower()
                 newer = [(what, ver, pat.search(value)) for what, ver, pat in CSS_VALUES if pat.search(value)]
+                if not cq_ok and CQ_UNITS.search(value):
+                    newer.append(('container query units (cqw, cqh …)', '16', CQ_UNITS.search(value)))
                 if newer and not seen.get(prop) and not prop.startswith('--') and not ok:
                     what, ver, s = newer[0]
                     found.append((off + decl.index(value) + s.start(), what + f' in {prop} with no plain {prop} before it', ver))
