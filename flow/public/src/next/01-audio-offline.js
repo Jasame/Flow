@@ -585,8 +585,10 @@
   // in memory as a blob: URL, so a tap plays at once. Not with Save-Data or on 2G; at most 8 recordings are kept.
   // (Word sounds are not preloaded: a word's file holds about 100 words, and the player fetches only that word's bytes.)
   const PRELOAD = {
-    done: new Map(), going: new Map(),
-    frugal() { const c = navigator.connection; return !!(c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || ''))); },
+    done: new Map(), going: new Map(), app: false,
+    // Save-Data, 2G, or 语流's iOS app saving power (低电量模式, iOS 27 asking apps to do less: FlowApp 'frugal', C1):
+    // nothing fetched ahead (today's texts kept offline, the next material, its recording, the next sentences)
+    frugal() { const c = navigator.connection; return this.app || !!(c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || ''))); },
     url(u) { return this.done.get(u) || u; },
     warm(u) {
       if (!u) return Promise.resolve(null);
@@ -605,6 +607,11 @@
       this.going.set(u, p); return p;
     },
   };
+  if (window.FlowApp && FlowApp.has && FlowApp.has('frugal')) {
+    const take = d => { PRELOAD.app = !!(d && d.on); };
+    Promise.resolve(FlowApp.call('app.frugal')).then(take, () => {});
+    if (FlowApp.on) FlowApp.on('frugal', take);
+  }
   // From 今日: the material most likely opened next, and its recording, so the study page opens and plays without a wait.
   async function preloadMaterial(id) {
     if (!id || MAT[id] || PRELOAD.frugal()) return;
