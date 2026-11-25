@@ -1,3 +1,3 @@
-24d4e244a3a84c62afc34752f8701ec457bc8958 47099360e8177d3d94df64c40815dcf79a2043078b403c1ec291c0a74e50cb47 e2e light ref=build-59d700f39f99
-# b37 main: Merge pull request #132 from Jasame/listing-tag-fallback = build of 59d700f39f99
+ade39db9fcec6b5abdc35902c8e43950d9c113d0 184a19a62369bf763ba91a9753cea8ab35ccb4508f22c4680caf1fa00105c2b5 e2e light ref=build-9a8a0d4bf43d
+# b38 main: Merge pull request #133 from Jasame/ledger-r29 = build of 9a8a0d4bf43d
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
