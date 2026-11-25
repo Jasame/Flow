@@ -364,7 +364,8 @@
       else if (name === 'm' && a) { setNav('today'); await study(decodeURIComponent(a), b || 'listen', sameMaterial); }
       else if (name === 'graph') { setNav('practice'); await (a ? nodeView(decodeURIComponent(a)) : graphView()); }
       // #/cards/find/<词>: the words list with that word searched (the iPhone's system search opens a word this way, 语流 C1)
-      else if (name === 'cards' && a === 'find') { setNav('cards'); await vocabView(decodeURIComponent(b || '').slice(0, 80), 1, ''); const sf = document.getElementById('sf'); if (sf) sf.scrollIntoView({ block: 'start' }); }
+      // (a 「/」 left unencoded, as in borrow / lend, is still part of the word)
+      else if (name === 'cards' && a === 'find') { setNav('cards'); await vocabView(parts().slice(2).map(x => decodeURIComponent(x)).join('/').slice(0, 80), 1, ''); const sf = document.getElementById('sf'); if (sf) sf.scrollIntoView({ block: 'start' }); }
       else if (name === 'cards') { setNav('cards'); await vocabView('', 1, a || ''); }
       else if (name === 'import') { setNav('practice'); await importView(); }
       else if (name === 'sounds') { setNav('practice'); await soundsView(a ? decodeURIComponent(a) : ''); }
