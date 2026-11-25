@@ -40,8 +40,15 @@ ROLE_LABEL = {'admin': '管理员', 'viewer': '只看数据'}
 
 
 def operator(headers):
-    """Who is asking (the email Cloudflare Access signed in) and the role that email has."""
+    """Who is asking (the email Cloudflare Access signed in) and the role that email has. With FLOW_ACCESS_AUD and
+    FLOW_ACCESS_TEAM set, the email comes from Access's signed token (access_check.py) and a request without a valid
+    one gets None (403); without them, the header is read as before."""
     email = (headers.get('Cf-Access-Authenticated-User-Email') or '').strip().lower()[:200]
+    check = __import__('access_check').settings()
+    if check:
+        email = __import__('access_check').verify(headers.get('Cf-Access-Jwt-Assertion'), *check)
+        if not email:
+            return None
     admins = {e.strip().lower() for e in os.getenv('FLOW_ADMIN_EMAILS', '').split(',') if e.strip()}
     role = 'admin' if not admins or email in admins else 'viewer'
     return {'email': email, 'role': role, 'label': ROLE_LABEL[role], 'roles_set': bool(admins)}
@@ -481,6 +488,8 @@ class AdminHandler(BaseHTTPRequestHandler):
             return self._send({'error': '接口不存在'}, 404)
         path = path[len(PREFIX):]
         op = operator(self.headers)
+        if op is None:
+            return self._send({'error': '没有通过 Cloudflare Access 的登录核对，请重新打开后台'}, 403)
         with app.db() as c:
             schema(c)
             if method == 'GET':
