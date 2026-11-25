@@ -489,6 +489,7 @@ pub fn run() {
             bridge::notify_plan,
             bridge::notify_signed_out,
             bridge::notify_off,
+            bridge::notify_hold,
             bridge::notify_pending,
             smoke::smoke_report
         ])
