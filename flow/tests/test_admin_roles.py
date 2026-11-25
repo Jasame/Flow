@@ -196,8 +196,9 @@ class ConsoleRoleTests(Servers):
             st, body, _ = self.console('/users/reset-link', 'boss@example.com', {'user': 'nomail'})
             self.assertEqual(st, 200); token = body['link'].split('#reset=')[1]
             self.assertEqual(self.console('/users/reset-link', 'boss@example.com', {'user': 'nobody-here'})[0], 404)
-            self.assertEqual(self.console('/daily/run', 'boss@example.com', {})[0], 409)  # 今日一读 off until its samples are read
-            with patch('daily_service.run', lambda c: None), patch('daily_service.PAUSED', False):
+            with patch('daily_service.PAUSED', True):  # switched off: the console says so instead of starting it
+                self.assertEqual(self.console('/daily/run', 'boss@example.com', {})[0], 409)
+            with patch('daily_service.run', lambda c: None):
                 self.assertEqual(self.console('/daily/run', 'boss@example.com', {})[0], 202)
             st, csv, h = self.console('/survey/export.csv', 'boss@example.com')
             self.assertEqual(st, 200)

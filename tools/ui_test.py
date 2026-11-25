@@ -1887,7 +1887,12 @@ def listen_speak_run(pw):
             hd = p3.evaluate("() => [document.querySelector('#view .kicker').textContent, (document.querySelector('#view .round-extra') || {}).textContent || '']")
             check(dev, '口语情景: round 2 shows the round and its extra requirement', '第 2 轮' in hd[0] and '这一轮多一条' in hd[1], hd)
             vm = p3.evaluate("() => { const l = [...document.querySelectorAll('#view .ai-line')].find(x => x.querySelector('.ai-voice')); return l ? l.textContent : ''; }")
-            check(dev, '口语情景: 「AI 朗读」 says the role\'s voice is synthesized', '角色说话的声音也由 AI 合成' in vm, vm)
+            check(dev, '口语情景: 「AI 朗读」 says the role\'s voice is synthesized', '角色、纠正和声音都由 AI 生成' in vm and 'AI 生成' in vm, vm)
+            if size == 'phone':  # B8's audit: on a small phone, Safari's toolbars showing, 「开始对话」 sat under the tab bar
+                vp = p3.viewport_size; p3.set_viewport_size({'width': 375, 'height': 553})
+                go_at = p3.evaluate("() => { const b = document.getElementById('dlgStart').getBoundingClientRect(), t = document.querySelector('.tabs').getBoundingClientRect(); return [Math.round(b.top), Math.round(b.bottom), Math.round(t.top)]; }")
+                check(dev, '口语情景 round 2 at 375×553: 「开始对话」 on the first screen, above the tab bar', 0 < go_at[0] and go_at[1] <= go_at[2], go_at)
+                p3.set_viewport_size(vp)
             l3 = p3.evaluate(LAYOUT_JS, touch); check(dev, '口语情景 round 2: no sideways scroll', l3['overflow'] <= 1, f"{l3['overflow']}px {l3['wide']}")
             p3.click('#dlgStart'); p3.wait_for_selector('#chat .msg.ai', timeout=8000)
             if size == 'phone':  # the AI's line is said by the server voice (an mp3 made once and stored), not the browser voice,
@@ -2983,13 +2988,22 @@ def backlog_run(pw):
         check(dev, 'the review page says 先做 40 个（还有 N 个）, not 1 / 40 alone', f'先做 40 个（还有 {total - 40} 个）' in foot and '1 / 40' in foot, foot)
         check(dev, '结束 on the review page takes a tap 44 px around it', (pg.evaluate(TAP44_JS, '.rtop a.link') or {}).get('ok'), pg.evaluate(TAP44_JS, '.rtop a.link'))
         for k in range(60):
+            # the next card or the end page, whichever comes: after the 40th answer the end page first asks the server
+            # what is left (60-review.js), which on a slow runner outlasts a fixed pause (A2: two misses on GitHub)
+            try:
+                pg.wait_for_selector('#view .done-card, #view [data-claim], #view [data-self]', timeout=10000)
+            except Exception:
+                break
             if pg.query_selector('.done-card'):
                 break
             if pg.query_selector('[data-claim]'):
-                pg.click('[data-claim="know"]'); pg.wait_for_selector('.open-card', timeout=4000); pg.keyboard.press('Enter'); pg.wait_for_timeout(120); continue
-            if pg.query_selector('[data-self]'):
-                pg.click('[data-self="good"]'); pg.wait_for_timeout(150); continue
-            break
+                pg.click('[data-claim="know"]'); card = pg.wait_for_selector('#view .open-card', timeout=4000); pg.keyboard.press('Enter')
+                card.wait_for_element_state('hidden', timeout=10000); continue  # this answer has gone: the next card is drawn
+            el = pg.query_selector('[data-self="good"]'); el.click(); el.wait_for_element_state('hidden', timeout=10000)
+        try:
+            pg.wait_for_selector('.done-card #stopOk', timeout=10000)
+        except Exception:
+            pass
         head = pg.text_content('.done-card h2') if pg.query_selector('.done-card') else ''
         stop = pg.text_content('#stopOk') if pg.query_selector('#stopOk') else ''
         again = pg.text_content('#again') if pg.query_selector('#again') else ''
