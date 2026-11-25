@@ -8,6 +8,13 @@
   // It goes to the page before when the app has one (the history kept here), else to the page's own tab (‹ 练习).
   const HIST = [location.hash || '#/'];
   const TAB_OF = { today: ['#/', '今日'], practice: ['#/practice', '练习'], cards: ['#/cards', '单词'], me: ['#/me', '我的'] };
+  // The four tab pages; #/teach is a 老师账号's home (its first tab, 「班级」, #121), the same page as its #/.
+  const TAB_PAGES = ['', 'practice', 'cards', 'me', 'teach'];
+  // A page's tab as the tab bar shows it: a 老师账号's first tab says 班级, not 今日 (02-shell.js roleTabs)
+  const tabOf = nav => {
+    const a = document.querySelector(`.tabs [data-nav="${nav}"]`), t = TAB_OF[nav] || TAB_OF.today;
+    return a ? [a.getAttribute('href') || t[0], ((a.querySelector('span') || {}).textContent || t[1]).trim()] : t;
+  };
   addEventListener('hashchange', () => {
     const h = location.hash || '#/';
     if (HIST.length > 1 && HIST[HIST.length - 2] === h) HIST.pop(); else if (HIST[HIST.length - 1] !== h) HIST.push(h);
@@ -18,11 +25,11 @@
     const btn = document.getElementById('backBtn'), brand = bar.querySelector('.brand');
     if (!btn) return;
     const h = location.hash.replace(/^#\/?/, '');
-    const root = ['', 'practice', 'cards', 'me', 'welcome'].includes(h);
+    const root = TAB_PAGES.includes(h) || h === 'welcome';
     const show = HOME_APP && !root;
     btn.hidden = !show; brand.hidden = show;
     if (!show) return;
-    const tab = TAB_OF[nav] || TAB_OF.today, prev = HIST.length > 1;
+    const tab = tabOf(TAB_OF[nav] ? nav : 'today'), prev = HIST.length > 1;
     btn.querySelector('span').textContent = prev ? '返回' : tab[1];
     btn.setAttribute('aria-label', prev ? '返回上一页' : '返回' + tab[1]);
     btn.onclick = () => { if (HIST.length > 1) history.back(); else location.hash = tab[0]; };
@@ -116,7 +123,7 @@
   }
   function restingNow() {
     const h = location.hash.replace(/^#\/?/, '');
-    return ['', 'practice', 'cards', 'me'].includes(h) && sheetEl.hidden && document.visibilityState === 'visible'
+    return TAB_PAGES.includes(h) && sheetEl.hidden && document.visibilityState === 'visible'
       && !isTyping({ target: document.activeElement }) && !document.body.classList.contains('playing') && !audioBusy();
   }
   function updateWhenSafe() {

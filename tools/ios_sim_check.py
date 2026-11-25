@@ -138,6 +138,8 @@ class RWI:
                     self.send('_rpc_forwardGetListing:', {'WIRApplicationIdentifierKey': aid})
             self.pump(0.8)
             for aid, l in self.listing.items():
+                if self.apps.get(aid, {}).get('WIRApplicationBundleIdentifierKey') != bundle:
+                    continue  # Safari sends its own listings unasked: only the app asked for counts
                 for key, p in l.items():
                     if p.get('WIRTypeKey') == 'WIRTypeWebPage' and host in (p.get('WIRURLKey') or ''):
                         return Page(self, aid, p.get('WIRPageIdentifierKey', int(key)))
@@ -269,7 +271,9 @@ def run_shell(p):
     for h0, name in (('#/', 'today'), ('#/practice', 'practice'), ('#/cards', 'cards'), ('#/me', 'me')):
         h = h0 + (' (landscape)' if land else '')
         p.go(h0); m = p.js(METRICS); s = shot(f'tab-{name}' + ('-land' if land else ''))
-        clear_top = m['brand'] and (m['brand']['t'] >= m['sat']) and ((m['off'] or 0) + m['brand']['t'] >= 44 or m['sat'] >= 44 or land)
+        # the page starts below the status bar (status-bar-style default: off > 0) or keeps the top inset (sat): any
+        # height of status bar, notch or Dynamic Island (an iPad's is 24 pt, an iPhone's up to 62)
+        clear_top = m['brand'] and m['brand']['t'] >= m['sat'] and ((m['off'] or 0) > 0 or m['sat'] > 0 or land)
         check(g, f'{h}: logo, no back button', m['brand'] and not m['back'], m, s)
         check(g, f'{h}: logo clear of the status bar / Dynamic Island', clear_top, {'brand': m['brand'], 'sat': m['sat'], 'off': m['off']}, s)
         check(g, f'{h}: tabs above the home bar', m['tabsN'] == 4 and m['tabsLow'] <= m['h'] - m['sab'], {'low': m['tabsLow'], 'limit': m['h'] - m['sab'], 'n': m['tabsN']}, s)
