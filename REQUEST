@@ -1,3 +1,3 @@
-8b6bc3b7f360858418968c6a0ce1ca50669b143f 1b063e38a847e962bd06d2c8de4de1c952fd6b172287a34e3b7e15ff1f89a37b e2e light ref=build-db7c491bc142 tag=b96 tools=c8f8bc8e43fd5f240d1e4b9541d9e4edc8f88c917b5795e6ecafd8f51af4bfbb
-# b96 main: Merge pull request #177 from Jasame/ai-notice = build of db7c491bc142
+c36f595b494e3648235d790afd7060f6b9976a71 2ea8853f3d4ba38ccf763496fa6b50b5d998baf3bede62e1bc76f4b1f3a7e956 e2e light ref=build-3b02917ac61d tag=b97 tools=c8f8bc8e43fd5f240d1e4b9541d9e4edc8f88c917b5795e6ecafd8f51af4bfbb
+# b97 main: Merge pull request #373 from Jasame/paused-account-purge = build of 3b02917ac61d
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
