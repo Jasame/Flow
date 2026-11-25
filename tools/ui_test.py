@@ -1345,6 +1345,32 @@ def ux_run(pw):
         check(dev, '留时间跟说: the pause after a sentence is as long as that sentence (2 words: the 1.5 s minimum), not the next one',
               said and said[0][0] == 'Stop here.' and gap0 is not None and 1400 <= gap0 <= 2600, {'said': len(said), 'gap_after_first_ms': gap0})
         c4.close()
+        # opened straight at an article (the page drawn from the 今日 kept on the phone), 播放全文 tapped at once, the
+        # server's fresher 今日 arriving a moment later: the page is not redrawn under the reading (it was, and the reading
+        # was gone as if read to its end: 语流 07, iPhone 17e)
+        c5 = browser.new_context(**phone)
+        c5.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a2']['token'], 'url': BASE}])
+        c5.add_init_script("(() => { window.__said = []; if (!window.speechSynthesis) return; speechSynthesis.cancel = () => {}; speechSynthesis.getVoices = () => []; "
+                           "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); setTimeout(() => u.onstart && u.onstart(), 10); "
+                           "setTimeout(() => u.onend && u.onend(), 800); }; })()")
+        p5 = c5.new_page()
+        p5.route('**/api/next/tts', lambda r: r.fulfill(status=503, json={'error': '服务器朗读没有开启', 'code': 'off'}))
+        p5.route('**/api/next/tts/have', lambda r: r.fulfill(status=503, json={'error': '服务器朗读没有开启', 'code': 'off'}))
+        # the server's 今日 a moment after the page is drawn from the copy, and not the same (a page-level delay: a blocking
+        # route would stall Playwright); only on the second load, so the copy kept by the first stays the server's own
+        c5.add_init_script("""(() => { if (sessionStorage.getItem('lateHome') !== '1') return; const f = window.fetch.bind(window);
+            window.fetch = (u, o) => !String(u).includes('/api/next/home') ? f(u, o) : new Promise(ok => setTimeout(ok, 3500)).then(() => f(u, o)).then(async res => {
+              const j = await res.clone().json().catch(() => null); if (!j || !j.stats) return res;
+              j.stats.due = (j.stats.due || 0) + 7; return new Response(JSON.stringify(j), { status: res.status, headers: res.headers }); }); })()""")
+        p5.goto(BASE + '/', wait_until='networkidle'); settle(p5); p5.wait_for_timeout(300)  # the 今日 copy kept on the phone
+        p5.evaluate("sessionStorage.setItem('lateHome', '1')")
+        p5.goto(BASE + f'/?again=1#/m/{PID}/listen', wait_until='domcontentloaded'); p5.wait_for_selector('#playAll', timeout=8000)  # a real load (a new query): the page starts again from the copy
+        p5.click('#playAll'); p5.wait_for_timeout(4500)
+        kept = p5.evaluate("""() => ({ btn: document.querySelector('#playAll').textContent.trim(), mini: !!document.querySelector('.mini-player:not([hidden])'),
+            said: window.__said.length, now: (document.querySelector('#view .line.now') || {dataset: {}}).dataset.i })""")
+        check(dev, '播放全文 right after opening an article: the fresher 今日 coming in does not stop the reading',
+              kept['btn'] == '暂停' and kept['mini'] and kept['said'] >= 2, kept)
+        c5.close()
         o, al, nv = seen['once'], seen['always'], seen['never']
         check(dev, 'browser voice dropped once (iOS): that sentence is said again and the text reads on to its end',
               len(o['said']) == o['n'] + 1 and o['said'][0] == o['said'][1] and o['btn'] == '播放全文', {k: o[k] for k in ('n', 'btn', 'now')} | {'said': len(o['said'])})
