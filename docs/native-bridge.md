@@ -1,6 +1,6 @@
 # 语流 App 和网页之间的桥（FlowApp v1）
 
-iOS（语流 C1）、安卓（语流 C2）、桌面 Windows 和 macOS（语流 C3）共用这一份约定。网页只认一个入口 `window.FlowApp`，
+iOS（语流 C1）、安卓（语流 C2）、桌面 Windows、macOS 和 Linux（语流 C3）共用这一份约定。网页只认一个入口 `window.FlowApp`，
 命令、事件、字段、错误码只在这里写一次；各平台怎么实现写在最后一节。
 
 - 约定由语流 C1（iOS）牵头改；各平台的小节由各自的会话写（会话名对照见共享笔记 session-names.md）。要改共用部分，先在 PR 里提，三边同意再合。
@@ -11,9 +11,9 @@ iOS（语流 C1）、安卓（语流 C2）、桌面 Windows 和 macOS（语流 C
 
 - **功能一律看 `window.FlowApp`**：App 在网页自己的脚本之前放好它（document start，只在本站的主框架里）。
   先判断 `window.FlowApp && FlowApp.has('<能力>')`，没有就照网页原来的做法。Safari、主屏 App、微信、电脑浏览器都不受影响。
-- **User-Agent 末尾**：`FlowiOS/<版本>`、`FlowAndroid/<版本>`、`FlowDesktop/<版本> (Windows)` 或 `(macOS)`。
+- **User-Agent 末尾**：`FlowiOS/<版本>`、`FlowAndroid/<版本>`、`FlowDesktop/<版本> (Windows)`、`(macOS)` 或 `(Linux)`。
   UA 只用来决定外壳的样子（04-home-app.js：返回按钮、不显示「添加到桌面」），写成 `/Flow(iOS|Android|Desktop)\//`。不要靠 UA 判断能力。
-- `FlowApp.platform`：`'ios'` | `'android'` | `'windows'` | `'macos'`。说法跟着平台走，比如通知、麦克风权限去哪里打开：
+- `FlowApp.platform`：`'ios'` | `'android'` | `'windows'` | `'macos'` | `'linux'`。说法跟着平台走，比如通知、麦克风权限去哪里打开：
 
 | platform | 通知 | 麦克风 |
 |---|---|---|
@@ -21,6 +21,9 @@ iOS（语流 C1）、安卓（语流 C2）、桌面 Windows 和 macOS（语流 C
 | android | 「设置 → 应用 → 语流 → 通知」 | 「设置 → 应用 → 语流 → 权限 → 麦克风」 |
 | windows | 「设置 → 系统 → 通知」 | 「设置 → 隐私和安全性 → 麦克风」 |
 | macos | 「系统设置 → 通知」 | 「系统设置 → 隐私与安全性 → 麦克风」 |
+| linux | 「系统设置里的通知」 | 「系统设置 → 隐私 → 麦克风」 |
+
+- linux 的说法：各个桌面叫法不一样，通知就笼统写；麦克风这一项是 GNOME 的，KDE 一般不用设。
 
 - 其他字段：`FlowApp.v`（桥的版本，现在 1）、`FlowApp.app`（App 版本）、`FlowApp.build`、`FlowApp.beta`（打开的是内测版）。
 
@@ -33,16 +36,26 @@ iOS（语流 C1）、安卓（语流 C2）、桌面 Windows 和 macOS（语流 C
 - 事件：`FlowApp.on(type, fn)` 返回退订函数，`FlowApp.off(type, fn)` 也行；同时在 `window` 上发 `flowapp:<type>` 事件（detail 同参数）。
 - 能力 `FlowApp.has(名字)`：
 
-| 能力 | 意思 | iOS | 安卓 | 桌面 |
+| 能力 | 意思 | iOS | 安卓 | 桌面（Windows、macOS、Linux） |
 |---|---|---|---|---|
 | `audio` | 整篇朗读交给 App 放（锁屏、来电、后台） | 有 | 有 | 没有 |
 | `rec` | 录音由 App 录 | 有 | 有 | 没有（网页 getUserMedia） |
 | `notify` | 复习提醒用本地通知 | 有 | 有 | 有 |
-| `media` | 网页自己放声音，App 把 navigator.mediaSession 交给系统（媒体键、「正在播放」） | 没有 | 没有 | 有 |
+| `media` | 网页自己放声音，App 把 navigator.mediaSession 交给系统（媒体键、「正在播放」） | 没有 | 没有 | 有（Linux 走 MPRIS） |
 | `speech` | App 替网页补上 speechSynthesis（浏览器声音） | 没有 | 有 | 没有 |
+| `settings` | App 自己的「专属功能」设置页：「我的 → 设置」最后一行，点了调 `FlowApp.call('app.settings')` | 有 | 没有 | 没有 |
+| `haptic` | 让手机轻轻一震：`FlowApp.call('app.haptic', {kind})`（见下） | 有 | 没有 | 没有 |
+| `frugal` | 系统要省着用（低电量模式、iOS 27 的省资源提示）：网页少预载 | 有 | 没有 | 没有 |
+| `privacy` | 第一次打开时的同意和「基本模式」、撤回同意、权限管理页、APP 备案号（命令写在第 10 节安卓一节） | 没有 | 有 | 没有 |
 
 - 一个 App 在回到前台、网页重新加载以后，会把正在放的状态再发一次（`audio` 事件），网页不用猜。网页可见时也可以调 `FlowApp.call('app.visible')` 让它重发。
 - `FlowApp.call('hello')` → `{v, app, build, platform, features}`。
+- `FlowApp.call('app.settings')` → `{ok}`：打开 App 自己的「专属功能」页（iOS：「iOS 专属功能」，原生页，开关只存在这台手机上）。`ok: false` 是现在打不开（App 在后台）。
+  `FlowApp.call('app.features')` → `{<功能>: true/false}`：这台手机有哪几项、开没开（iOS 的 id：`lock-study` `smart-resume` `offline-packs` `haptics` `frugal`）。网页现在不用它，留给以后按开关改说法。
+- `FlowApp.call('app.haptic', {kind})` → `{ok}`：`kind` 是 `tap`（轻点：打分、选一个选项）、`select`（换了一个选择）、`success`（答对、认识）、`warning`（模糊、半对）、`error`（答错）。
+  学员在 App 的设置里关了「复习时的轻触震动」就回 `ok: false`，什么都不做；网页不用自己判断开关，照常调。iOS 本来就没有 navigator.vibrate，网页在浏览器里不用补。
+- `FlowApp.call('app.frugal')` → `{on}`，变了发 `frugal` 事件 `{on}`（回到前台也会再看一次）。`on` 为 true 时网页少预载（PRELOAD.frugal() 也算它）：不提前存今天的文章、不预取下一篇。
+  学员在 App 的设置里关了「省电时少做事」就一直是 false。
 - 安卓的返回键：App 先在 `window` 上发可以取消的 `flowapp:back` 事件，网页 `preventDefault()` 就算处理了；没人处理时 App 关掉开着的 sheet，再回到上一页。iOS、桌面没有这个键，不发。
 
 ### 共用的包装 `native/flowapp.js`
@@ -72,7 +85,8 @@ window.__flowAppTransport = {
 
 ### 命令
 
-`play(o)` → `{ok: true, state}` 或 `{ok: false, why, message?}`。o：
+`play(o)` → `{ok: true, state}` 或 `{ok: false, why, message?}`。`ok: false` 时网页自己放（NATIVE.fail，和 Safari 一样）：
+`why: 'session'` 是系统不给声音（正在通话）；`why: 'offline'` 是没网、这篇的录音 App 里又没存（iOS 的「离线朗读包」没开或还没存），网页从自己存的那份放（存到手机、sw.js）。o：
 
 | 字段 | 意思 |
 |---|---|
@@ -88,11 +102,13 @@ window.__flowAppTransport = {
 旧写法 `texts: [句子]` 等于 `items` 里 url 都是 null，App 照样认。
 
 `pause()`、`resume()`、`stop()`（停下，进度留着）、`step(±1)`、`seek(i)`、`set({rate, rep, gap})`（播放中改语速、复读，立刻生效）、
-`state()` → `{key, state, i, n, t, title, rate}`、`progress(key)` → `{i, t, at}`、读完了是 `{ended: true, at}`，没有记录是 null（`at` 是毫秒时间戳）。
+`state()` → `{key, state, i, n, t, title, rate, rep, loop}`、`progress(key)` → `{i, t, at}`、读完了是 `{ended: true, at}`，没有记录是 null（`at` 是毫秒时间戳）。
 
 ### 事件
 
-- `audio`：`{key, state, i, n, t, why, fail}`
+- `audio`：`{key, state, i, n, t, why, fail, rate, rep, loop}`
+  - `rate`、`rep`、`loop`：App 现在用的语速和复读。一般就是网页给的；iOS 27 锁屏上可以改语速（0.75× / 1× / 1.25×）和「单句循环」（`rep: 0, loop: true`），改了以后下一个 `audio` 带过来（why = remote）。
+    网页之后再调 `set({rate, rep, gap})`（学员在页面上改了），以网页的为准，锁屏的单句循环也就结束了。
   - `state`：`waiting`（录音还在加载、句子还在生成）、`playing`、`paused`、`idle`。
   - `why`：`user`（网页叫的）、`remote`（锁屏、耳机、车机）、`interrupted`（来电、Siri、闹钟）、`route`（耳机拔了）、`other`（别的声音或录音开始了）、
     `ended`（读完）、`error`（加载失败）、`state`（回到前台重发的）。
@@ -107,7 +123,7 @@ window.__flowAppTransport = {
 ### 规矩（和网页的 LONG 一样）
 
 - 暂停后继续：录音从停下的那一秒接着放；按句朗读从停下那一句的开头再读。
-- 来电、Siri 打断：暂停（why = interrupted）；系统说可以接着放，就自己接着放。耳机拔了暂停。
+- 来电、Siri 打断：暂停（why = interrupted）；系统说可以接着放，就自己接着放（iOS 学员可以在「iOS 专属功能」里关掉「来电以后接着放」，关了就停在那里）。耳机拔了暂停。
 - 别的声音或录音开始：网页先调 `pause()`（LONG.other），App 那边自己也会停（why = other）。
 - 加载失败：暂停（why = error）；再点继续会重新加载，从停下的地方接着放。有 `alt` 时先换线路，接着从那一秒放。
 - 进度：网页 PROG 和 App 各存一份。页面打开、回到前台时，网页读 `progress(key)`，和 PROG 比 `at`，用新的那份；新的那份是 `ended` 就清掉 PROG。
@@ -157,7 +173,7 @@ window.__flowAppTransport = {
 
 ## 6. 系统媒体控制 `media`（桌面）
 
-网页照常自己放声音，App 盯着 navigator.mediaSession 交给系统（Windows SMTC、macOS「正在播放」），媒体键再回调网页登记的动作。网页的 MS 层要守住：
+网页照常自己放声音，App 盯着 navigator.mediaSession 交给系统（Windows SMTC、macOS「正在播放」、Linux MPRIS），媒体键再回调网页登记的动作。网页的 MS 层要守住：
 
 - owner `'nar'` 和 `'long'` 登记 play、pause、stop、previoustrack、nexttrack（整篇用 'nar' 一口气放时才有上一句、下一句）；owner `'short'` 只登记 pause、stop。
 - 暂停、继续时 playbackState 跟着变；放完或停下时 release：metadata 清空、状态 `'none'`。
@@ -192,6 +208,18 @@ speaking、pending 照实；2.5 秒内一定发 start；getVoices() 有带 lang 
   （没网 `offline`、超时 `slow`、别的网络错误 `net`、没登录 `guest`，其余用服务器的 code），不自己写原因。
 - 传输：`window.webkit.messageHandlers.flow.postMessage({cmd, args})`，WKScriptMessageHandlerWithReply 直接回 Promise；
   App → 网页：`evaluateJavaScript("FlowApp._emit(type, detail)")`。只认本站主框架（Bridge.swift 检查来源）。
+- 「iOS 专属功能」（`app.settings`，原生 SwiftUI 页 FeaturesView；开关存在 UserDefaults `feature.<id>`，不上传；系统版本不够的不显示、算关）：
+  - `lock-study` 锁屏上的学习按钮（iOS 27，默认开）：NowPlaying 框架的 MediaSession，除了播放、暂停、上一句、下一句，还有语速 0.75× / 1× / 1.25×、
+    单句循环、退回 5 秒（整篇一口气放的录音退 5 秒；一句一句放的，这句从头再读）。用它时旧的 MPRemoteCommandCenter 按钮关掉，免得一个动作做两次。
+  - `smart-resume` 来电以后接着放（默认开）：iOS 27 用 AVAudioSession 的 resumptionRecommendation，旧系统用 shouldResume；关了就不自己接着放。
+  - `offline-packs` 离线朗读包（默认关）：开了以后，连着 Wi-Fi（不用流量、低数据模式也不下）时把今天要学的 3 篇（和网页「存到手机」挑的一样：
+    今天这篇和今日的前两篇，学员的声音）的录音存进 Library/Caches/packs；App 回到前台最多 3 小时看一次，晚上充电时后台任务 `cn.flowlang.app.packs` 再看一次。
+    放的时候地址（/audio/<声音>/<id>.mp4?v=<版本>）对得上就放手机上的那份。存满 7 天删，最多 9 个文件；关掉开关全删。
+  - 没网而这篇录音 App 里没存：`play` 回 `{ok: false, why: 'offline'}`，网页自己放（第 3 节）。
+  - `haptics` 复习时的轻触震动（默认开）：`app.haptic` 用 UIImpactFeedbackGenerator / UINotificationFeedbackGenerator，系统的「触感反馈」关了就感觉不到。
+  - `frugal` 省电时少做事（默认开）：低电量模式或 `UIApplication.systemPrefersReducedResourceUsage`（iOS 27）时，服务器朗读只提前做 1 句（平时 2 句），
+    离线朗读包不在前台下载（晚上充电时照常），网页收到 `frugal`。
+  - App 自己画的出错页（「连不上语流」）在 iOS 26 起用系统的玻璃按钮，前面加一个说明原因的图标（没网 wifi.slash，别的 exclamationmark.icloud）。
 - WKAppBoundDomains 只有本站：服务工作线程、桥、cookie 只在本站有效。
 - audio：AVPlayer，AVAudioSession `.playback` + `.spokenAudio` + 后台音频，MPNowPlayingInfoCenter / MPRemoteCommandCenter；系统声音 AVSpeechSynthesizer。
 - rec：AVAudioRecorder；notify：UNUserNotificationCenter + BGAppRefreshTask。
@@ -214,6 +242,17 @@ Kotlin，minSdk 26，targetSdk 37；说明在 `android/README.md`。flavor `beta
   - UA 末尾是 `FlowAndroid/<版本>`；返回键先发 `flowapp:back`（第 2 节）；别的网站、`mailto:`、`tel:` 交给系统打开；
   - 深色和浅色切换不重新加载；键盘弹出时整个 WebView 变矮，网页里 visualViewport 看不到键盘；
   - WebView 的使用统计和 Safe Browsing 关掉，不做云备份。
+- **第一次打开**（1.0.4 起，为上国内应用商店，`android/README.md`「第一次打开」）：
+  - App 先用自己的弹窗问《用户协议》《隐私和数据》。两章全文是打包时从 guide.md 生成的，回答以前不打开网页，也不联网。
+  - 点「不同意」进入基本模式：不登录，不提醒，不录音。登录、注册的请求由 App 拦下，回 403 `{error, code: 'app-consent'}`，同时再问一次。
+  - 能力 `privacy`（只有安卓，共用的能力表里没有）。网页「我的 → 设置」可以用它来做：
+    - `privacy.state()` → `{state: 'agreed' | 'basic', version, beian, store}`；`beian` 是 APP 备案号，空字符串就不显示；
+    - `privacy.ask()`：在基本模式里再问一次；
+    - `privacy.withdraw()`：撤回同意，App 先说明，再清掉手机上的东西，回到第一次打开的弹窗；
+    - `privacy.permissions()` → `{mic, notify}`；
+    - `privacy.settings({what: 'mic' | 'notify'})`：打开手机设置里对应的那一页。
+  - 申请麦克风、通知权限时，页面顶上同时显示用途说明。
+  - 开机接收器平时关着，打开了 App 提醒才打开。
 - **audio**：Media3 ExoPlayer 加 MediaSessionService（前台服务，类型 mediaPlayback）。
   - 锁屏、通知栏、耳机和蓝牙按键：播放、暂停、上一句、下一句。SimpleBasePlayer 显示标题和「AI 朗读 · 第 n / N 句」（合成声音的显式标识）；句间停顿和正在生成的句子也显示成在放。
   - 音频焦点自己管：
@@ -235,7 +274,7 @@ Kotlin，minSdk 26，targetSdk 37；说明在 `android/README.md`。flavor `beta
     - 能精确就用 `setExactAndAllowWhileIdle`；
     - Android 14 起新装的 App 默认没有精确闹钟权限（我们用 SCHEDULE_EXACT_ALARM，不用给闹钟类 App 的 USE_EXACT_ALARM），这时用 `setWindow` 的 10 分钟时间窗；
     - 用户在「闹钟和提醒」里打开权限以后，自动改成准点；
-    - 重启手机、改时间或时区、App 升级以后都重排。
+    - 重启手机、改时间或时区、App 升级以后都重排（开机这一项只在打开了 App 提醒时才有）。
   - `pending()` 返回 App 自己记下的列表，因为 AlarmManager 不能查。
   - App 打开（onStart）和切后台（onStop）时，用 WebView 的 cookie 拿 `/api/next/vocab` 重排：10 分钟内不重复拿，`sync` 和 `ask` 时一定拿。
   - `reminder.ics` 链接：App 先问「App 通知」还是「系统日历」。系统日历打开日历 App 的新建日程页（CalendarContract 的 ACTION_INSERT），不要日历权限。
@@ -254,7 +293,7 @@ Kotlin，minSdk 26，targetSdk 37；说明在 `android/README.md`。flavor `beta
 
 ### 桌面（语流 C3，`desktop/`）
 
-Tauri 2，一套代码出 Windows（WebView2）和 macOS（WKWebView）；说明在 `desktop/README.md`。
+Tauri 2，一套代码出 Windows（WebView2）、macOS（WKWebView）和 Linux（系统的 WebKitGTK 4.1；AppImage 和 deb，x86_64）；说明在 `desktop/README.md`。
 
 - 注入：`initialization_script`，document start；脚本开头先对 `location.origin`，不是本站就什么都不挂。文件 `desktop/src-tauri/src/bridge.js`。
   `FlowApp` 冻结；`build` 是构建的提交（CI 的 GITHUB_SHA 前 7 位，本机构建是 `"dev"`）。
@@ -262,7 +301,7 @@ Tauri 2，一套代码出 Windows（WebView2）和 macOS（WKWebView）；说明
   只有本站两个 origin 能调，而且只能调 `media_update`、`notify_*`、`smoke_report` 这几条（`capabilities/site.json`，每条命令各有权限）。
   App → 网页：`webview.eval("FlowApp._media(action)")` 和 `FlowApp._emit(type, detail)`。别的网站、`.ics`、`mailto:` 交给系统打开，从不在窗口里加载。
 - media：bridge.js 包住 `navigator.mediaSession`（metadata、setActionHandler、playbackState）和 `HTMLMediaElement.play`，用来拿位置和时长（≥ 20 秒才给系统时间轴）。
-  原生用 souvlaki 交给 Windows SMTC、macOS MPNowPlayingInfoCenter / MPRemoteCommandCenter。按键对应的动作：
+  原生用 souvlaki 交给 Windows SMTC、macOS MPNowPlayingInfoCenter / MPRemoteCommandCenter、Linux MPRIS（D-Bus 名字 `org.mpris.MediaPlayer2.<bundle id>`）。按键对应的动作：
   - 播放/暂停键：按 playbackState 选 pause 或 play；
   - 上一首、下一首：previoustrack、nexttrack；
   - 网页没登记的动作：不做任何事。
@@ -273,12 +312,17 @@ Tauri 2，一套代码出 Windows（WebView2）和 macOS（WKWebView）；说明
   - 401 = 退出登录，撤掉单词提醒。403 且 code 是 `'storage'`（「数据存放在香港」还没同意）：撤掉全部提醒，开关和钟点留着；同意以后，下一次重排时提醒自己回来。
   - macOS：UNCalendarNotificationTrigger。
   - Windows：ScheduledToastNotification。AUMID 就是 bundle id，安装程序放在开始菜单快捷方式上；点通知走 `flowlang://review` 或 `flowlang://open`（内测版是 `flowlang-beta://`），App 没开也能打开。
-  - App 关着时，提醒由系统按时弹出。
+  - Linux：系统没有替 App 定时弹通知的接口，App 自己计时，到点弹 freedesktop 通知（notify-rust），点通知打开复习页。所以**只在 App 开着时提醒**：
+    Linux 上「关窗口后留在托盘」默认打开，再勾上「开机时启动」就等于一直开着；到点时没在运行（关机、睡眠）、迟了 10 分钟以上的那条不补。
+  - Windows、macOS：App 关着时，提醒由系统按时弹出。
   - permission() 照第 5 节说的，是 App 的提醒开没开：系统允许并且开着是 `'granted'`，没开或关了是 `'undetermined'`，系统里关了是 `'denied'`。Windows 在第一次弹通知之前读不到系统设置，这时只看开关；ask() 不弹框。
+    Linux 没有通知权限可问：桌面有通知服务（`org.freedesktop.Notifications`）就看开关，没有就是 `'denied'`。
   - 「每天的计划」（plan）：字段保留了；桌面的 `.ics` 链接还是交给系统日历。
-- 不做：`audio`、`rec`、`speech`。桌面网页本来就能放声音、getUserMedia，麦克风只给本站。
+- 不做：`audio`、`rec`、`speech`。桌面网页本来就能放声音、getUserMedia，麦克风只给本站（WebKitGTK 默认关着 media stream，Linux 上 App 把它打开）。
+  Linux 的网页引擎靠 GStreamer 解码：AAC 要 libav 插件，AppImage 自带，deb 依赖它；别的装法缺的话，网页对 AAC 放不了的情况改用 AI 朗读（B3）。
 - 静音开关：环境变量 `FLOW_MUTE=1`。冒烟测试 `--smoke-test=<file>` 一律静音：网页的 `<audio>` 静音，Web Audio 接一个音量为 0 的节点，speechSynthesis 音量 0，通知不带声音。
 - 测试：
   - Rust 单元测试；
   - `--smoke-test=<file>` 在页面里检查第 1–2 节的形状，`desktop/tools/check_smoke.py` 判定；
-  - CI `.github/workflows/desktop.yml` 在 windows-latest（装好 NSIS 安装包后）和 macos-latest 上各跑一次。Windows 上加了 `FLOW_SMOKE_NOTIFY=1`，真的排提醒、弹一条测试通知，之后清掉；冒烟测试从不改学员的设置。
+  - CI `.github/workflows/desktop.yml` 在 windows-latest（装好 NSIS 安装包后）、macos-latest 和 ubuntu-22.04（AppImage，xvfb + dbus-run-session，dunst 当通知服务）上各跑一次。
+    Windows 和 Linux 上加了 `FLOW_SMOKE_NOTIFY=1`，真的排提醒、弹一条测试通知，之后清掉；冒烟测试从不改学员的设置。

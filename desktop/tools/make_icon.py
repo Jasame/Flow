@@ -1,12 +1,15 @@
 """Draw the desktop app icon (1024 x 1024 PNG with transparency): the site's logo (tools/make_icons.py — green
 square, four sound bars) as a macOS-style rounded square with the standard margin, 3 x 3 samples per pixel.
 Then `npx tauri icon src-tauri/app-icon.png -o src-tauri/icons` makes every size for macOS and Windows.
+--beta: the same logo on orange (#e8590c, the owner's pick for every beta app, 2026-11-25) → app-icon-beta.png,
+then `npx tauri icon src-tauri/app-icon-beta.png -o src-tauri/icons-beta` (tauri.beta.conf.json uses that set; the set in the
+repo came from B9 with the same geometry, only edge pixels differ).
 
-usage (from desktop/): python3 tools/make_icon.py"""
-import struct, zlib
+usage (from desktop/): python3 tools/make_icon.py [--beta]"""
+import struct, sys, zlib
 from pathlib import Path
 
-GREEN, WHITE = (31, 157, 85), (255, 255, 255)
+GREEN, ORANGE, WHITE = (31, 157, 85), (232, 89, 12), (255, 255, 255)
 BARS = [(7, 14, 20), (13, 8, 24), (19, 11, 22), (25, 14, 18)]  # x, y0, y1 on a 32-unit grid; stroke 3, round caps
 SIZE, SS = 1024, 3
 INSET, BOX = 100, 824            # Apple's icon grid: an 824 px rounded square in 1024
@@ -34,6 +37,8 @@ def white(x, y):
 
 
 def main():
+    beta = '--beta' in sys.argv[1:]
+    base = ORANGE if beta else GREEN
     rows = bytearray()
     offs = [(i + .5) / SS for i in range(SS)]
     for y in range(SIZE):
@@ -50,12 +55,12 @@ def main():
                 rows += b'\0\0\0\0'
                 continue
             a = whites / inside
-            rows += bytes(round(g + (w - g) * a) for g, w in zip(GREEN, WHITE)) + bytes([round(255 * inside / SS / SS)])
+            rows += bytes(round(g + (w - g) * a) for g, w in zip(base, WHITE)) + bytes([round(255 * inside / SS / SS)])
     def chunk(t, d):
         return struct.pack('>I', len(d)) + t + d + struct.pack('>I', zlib.crc32(t + d) & 0xffffffff)
     png = b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', SIZE, SIZE, 8, 6, 0, 0, 0)) + \
         chunk(b'IDAT', zlib.compress(bytes(rows), 9)) + chunk(b'IEND', b'')
-    out = Path(__file__).resolve().parent.parent / 'src-tauri' / 'app-icon.png'
+    out = Path(__file__).resolve().parent.parent / 'src-tauri' / ('app-icon-beta.png' if beta else 'app-icon.png')
     out.write_bytes(png)
     print(out, len(png), 'bytes')
 

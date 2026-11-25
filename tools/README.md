@@ -52,6 +52,20 @@ rollback), runs `qa_e2e.py` when asked, and writes the outcome to `data/deploy-s
 `/api/deploy-status`. `deploy.sh` waits for it and exits non-zero if the deploy or the test failed.
 Each tag is handled once; to retry, run `deploy.sh` again (new tag).
 
+**发版请求签名校验.** Next to `REQUEST` (whose first line also says `tag=<tag> tools=<sha256 of TOOLS>`), `deploy.sh`
+puts `TOOLS` (the tools the server runs from the release, one `<base64 sha256>  <path>` line each) and `REQUEST.sig`
+(`ssh-keygen -Y sign`, namespace `flow-release` for 语流, `flow-beta-release` for the 内测版). A site checks them once its
+key has a line in `/etc/flow-release/allowed_signers` (`flow-release namespaces="flow-release" ssh-ed25519 …`, and the
+same with `flow-beta-release`); the two sites share the file, and each is switched on by its own line. A missing or bad
+signature, a request for another tag, a number not above the last release installed there (`installed` in its
+autodeploy folder; the same number again is `NOTHING_TO_DO`), or a TOOLS other than the one signed ends the release as
+`BAD_SIGNATURE` before anything is fetched from the commit; a tool that does not match its line in TOOLS ends it as
+`ABORT_FETCH` before it runs or replaces the server's copy. Without the site's line it installs as before (the journal
+says 本站没开签名校验), so deleting the line, or the file, switches the check off again. When signing is broken and a
+release cannot wait, root writes a Unix time at most 24 hours ahead into `/etc/flow-release/unsigned-until`: until then a
+missing or bad signature goes through (`signature: UNSIGNED_ALLOWED` in deploy-status, and a mail to `FLOW_ADMIN_EMAILS`),
+the rest is still checked. Delete the file afterwards; an expired one, or one more than a day ahead, counts as none.
+
 One-time server setup: `flow-autodeploy.py` in `/root/claude-ops`, the `.service` and `.timer` in
 `/etc/systemd/system`, `systemctl enable --now flow-autodeploy.timer`, and the next tag number in
 `/root/claude-ops/autodeploy/next`.
@@ -215,7 +229,9 @@ not `flow/`, not the UI tools) skips the 5 UI shares, taking 3 of the account's 
 import a changed module of `flow/`, the changed tests themselves, the ones that read next.js for a front-end part)
 and the checks (`--checks`, about 15 s): the repository's own tests (`tests/`: every shipped file listed in
 `tools/release-files.txt`, the CI setup, the ledger), the front end built from its parts, the dictionary matching its
-sources, the served scripts parsing, and `test_guide`. The UI groups and the whole suite are not run before pushing:
+sources, the served scripts parsing, the served scripts still running in Safari 15.0 (`tools/check_compat.py`: iOS 15
+and up must work, 2026-11-25; a lookbehind in a regular expression had made next.js unreadable before iOS 16.4), and
+`test_guide`. The UI groups and the whole suite are not run before pushing:
 CI runs them on every pull request, the one gate before a merge. Running them here as well ran every test twice
 (2026-11-25: 96 runs in a day, PRs waiting 26 minutes for the MSI).
 

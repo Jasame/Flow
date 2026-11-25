@@ -23,7 +23,7 @@
 .rnode .due-tag{font-size:12px;border-radius:999px;padding:1px 8px;background:var(--amber-soft)}
 .rnode.here a{background:var(--green-soft)}
 .rnode.here .dot{animation:here 1.8s var(--ease) infinite}
-@keyframes here{0%{box-shadow:0 0 0 2px var(--green),0 0 0 2px color-mix(in srgb,var(--green) 40%,transparent)}70%{box-shadow:0 0 0 2px var(--green),0 0 0 12px transparent}100%{box-shadow:0 0 0 2px var(--green),0 0 0 2px transparent}}
+@keyframes here{0%{box-shadow:0 0 0 2px var(--green),0 0 0 2px var(--green-soft);box-shadow:0 0 0 2px var(--green),0 0 0 2px color-mix(in srgb,var(--green) 40%,transparent)}70%{box-shadow:0 0 0 2px var(--green),0 0 0 12px transparent}100%{box-shadow:0 0 0 2px var(--green),0 0 0 2px transparent}}
 @media (hover:none){.rnode a:hover{background:none}.rnode.here a:hover{background:var(--green-soft)}}
 /* a point's page: the Chinese-speaker trap and the points it connects to */
 .l1{display:grid;gap:8px;padding:14px 16px;border-radius:14px;background:var(--sunk)}
@@ -50,6 +50,7 @@
 .mix .fb .ok{color:var(--ok-ink);font-weight:700}
 .mix .fb .bad{color:var(--red);font-weight:700}
 .mix-done .done-burst{display:flex;justify-content:center}
+.mix .h1{text-wrap:balance}  /* a long pair title: even lines, not one character left alone on the last (UI audit r33, 375 px) */
 /* answering (43-mix.js puts body.reviewing on: no tabs) on the shortest phones: the question and its four answers on one
    screen (UI audit 2026-11-25: 375×667 home-screen app 17–133 px past it). The empty feedback takes no room, the title,
    answers and gaps a little tighter (answers stay 44 px), the one-line intro folded away (怎么区分 and the AI mark stay).
@@ -68,7 +69,7 @@
 @keyframes pop-in{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
 .cheer{color:var(--green-ink);font-weight:600}
 .node-chip.lit-up{animation:lit-up .9s var(--ease-spring)}
-@keyframes lit-up{0%{transform:scale(1);box-shadow:0 0 0 0 color-mix(in srgb,var(--green) 55%,transparent)}40%{transform:scale(1.12)}100%{transform:scale(1);box-shadow:0 0 0 14px transparent}}
+@keyframes lit-up{0%{transform:scale(1);box-shadow:0 0 0 0 var(--green-soft);box-shadow:0 0 0 0 color-mix(in srgb,var(--green) 55%,transparent)}40%{transform:scale(1.12)}100%{transform:scale(1);box-shadow:0 0 0 14px transparent}}
 .done-burst.all .done-ring{animation:pop .6s var(--ease-spring)}
 /* review: a reading question comes back with its passage */
 .passage-q{display:grid;gap:6px;padding:12px 14px;border-radius:12px;background:var(--sunk);text-align:left}

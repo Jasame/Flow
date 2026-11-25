@@ -57,7 +57,7 @@
 .line{display:grid;grid-template-columns:40px minmax(0,1fr);gap:10px;align-items:start;padding:10px;border-radius:12px;border:1px solid transparent}
 .line.now{background:var(--green-soft);border-color:var(--green-line)}
 .line .txt{font-family:var(--serif);font-size:18px;line-height:1.6}
-.line .txt.blind{color:transparent;text-shadow:0 0 9px color-mix(in srgb,var(--ink) 55%,transparent);user-select:none}
+.line .txt.blind{color:transparent;text-shadow:0 0 9px var(--ink);text-shadow:0 0 9px color-mix(in srgb,var(--ink) 55%,transparent);user-select:none}
 .selbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + var(--sab));z-index:40;background:var(--ink);color:var(--bg);border-radius:99px;padding:6px 6px 6px 14px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
 .selbar span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;font-family:var(--serif)}
 .selbar button{border:0;border-radius:99px;background:var(--fill);color:var(--on-fill);font-weight:700;padding:8px 14px}
@@ -84,7 +84,7 @@
 .verdict .dot{flex:none;width:10px;height:10px;border-radius:50%;margin-top:8px;background:var(--amber)}
 .verdict.natural .dot{background:var(--ok)}.verdict.rewrite .dot{background:var(--red)}
 .compare{display:grid;gap:8px}
-.compare .yours{font-family:var(--serif);color:var(--muted);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--red) 60%,transparent)}
+.compare .yours{font-family:var(--serif);color:var(--muted);text-decoration:line-through;text-decoration-color:var(--red);text-decoration-color:color-mix(in srgb,var(--red) 60%,transparent)}
 .compare .fixed{font-family:var(--serif);font-size:18px}
 .change{display:grid;gap:2px;font-size:14.5px;padding:8px 0;border-top:1px dashed var(--line)}
 .change:first-child{border-top:0}
@@ -109,7 +109,7 @@
 .rate{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .rate button{border:1.5px solid var(--line2);background:var(--paper);border-radius:12px;padding:10px 4px;font-weight:700;display:grid;gap:2px}
 .rate button small{font-weight:500;color:var(--muted);font-size:11.5px}
-.rate .again{border-color:color-mix(in srgb,var(--red) 50%,var(--line2))}
+.rate .again{border-color:var(--red);border-color:color-mix(in srgb,var(--red) 50%,var(--line2))}
 .rate .good{border-color:var(--ok)}
 .bar-progress{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
 .bar-progress i{display:block;height:100%;background:var(--green)}

@@ -150,7 +150,7 @@
     try { v = await fetch('/api/version', { cache: 'no-store', credentials: 'same-origin' }).then(r => (r.ok ? r.json() : null)); } catch (e) { return; }
     if (!v || !v.asset || v.asset === MY_ASSET) return;
     NEW_ASSET = v.asset;
-    try { const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); if (reg) reg.update(); } catch (e) { /* no worker: the reload asks the server */ }
+    try { const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); if (reg) reg.update().catch(() => {}); } catch (e) { /* no worker: the reload asks the server */ }  // the reload into the new version cuts the check short (WebKit: an unhandled "sw.js load failed")
     updateWhenSafe();
   }
   // Something playing or recording (the narration, a clip or the server/browser voice in 01-audio-offline.js, the
@@ -192,6 +192,18 @@
     document.body.appendChild(box);
     box.querySelector('.ub-go').onclick = e => { e.currentTarget.textContent = '正在更新…'; e.currentTarget.disabled = true; takeUpdate(true); };
     box.querySelector('.ub-x').onclick = () => { save('flow-update-later', NEW_ASSET + '|' + new Date().toDateString()); box.remove(); };
+  }
+  // 报错页 (02-shell.js route): a front end older than the server's may be what failed, e.g. a check the server added
+  // since (the terms agreement, 2026-11-25: a copy cached before it got the same error on every 重试, B8). On an error
+  // page a new version is taken at once, once per version; its 重试 takes one the server has, and with none tries again.
+  async function errorPageUpdate() {
+    await checkVersion(true);
+    if (NEW_ASSET && load('flow-update-tried') !== NEW_ASSET) takeUpdate(true);
+  }
+  async function retryOrUpdate() {
+    await checkVersion(true);
+    if (!NEW_ASSET) return false;
+    takeUpdate(true); return true;
   }
   // after a reload into the new version: said once
   if (MY_ASSET && load('flow-update-tried') === MY_ASSET) { save('flow-update-tried', null); setTimeout(() => toast('已更新到新版本'), 1200); }

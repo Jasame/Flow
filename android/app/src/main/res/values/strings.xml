@@ -24,6 +24,36 @@
     <string name="ics_calendar">系统日历</string>
     <string name="no_calendar">这台手机上没有能用的日历 App</string>
     <string name="no_browser">没有找到能打开这个链接的 App</string>
+    <!-- the first start's question (privacy/Consent.kt): its words follow the guide's 《用户协议》 and 《隐私和数据》 -->
+    <string name="consent_title">欢迎使用语流</string>
+    <string name="consent_title_feature">先同意，再继续</string>
+    <string name="consent_body">语流是一个英语自学工具。开始之前，请读一读《用户协议》和《隐私和数据》。简单说：\n\n• 收的都是学英语用得上的信息：账号（用户名、邮箱、年龄段）、学习记录、你写的作文和翻译、你主动发的问题反馈。完整清单见《隐私和数据》。\n• 你写的作文、翻译和说的录音，批改时会交给阿里云百炼上的 AI；录音不保存。\n• 账号和学习数据存放在香港的服务器上，注册时还会单独问你。\n• 不满 14 岁的，要先告诉家长（或监护人）并得到同意。\n• App 没有接第三方 SDK，不做跟踪。麦克风和通知都是第一次用到时才问。\n• 运营者：语流的运营者（公司注册完成后会写上公司名称）。联系我们：「我的 → 问题反馈」，或写信到 i@jasa.hk。</string>
+    <string name="consent_close">点「同意」，表示你已阅读并同意《用户协议》和《隐私和数据》。</string>
+    <!-- only when this build's 《隐私和数据》 has the two lists (B6 #342: ## … {#info-list}, {#sharing-list}) -->
+    <string name="consent_lists">• 收了哪些信息、交给了谁，分别见《个人信息收集清单》和《第三方信息共享清单》。</string>
+    <string name="consent_tail_first">不同意也可以进入基本模式：不登录，进度只存在这台手机上。</string>
+    <string name="consent_tail_basic">不同意的话，继续用基本模式。</string>
+    <string name="consent_agree">同意</string>
+    <string name="consent_decline">不同意</string>
+    <string name="consent_basic_title">不同意也能先看看</string>
+    <string name="consent_basic_body">不同意的话，语流会进入基本模式：不登录，学习进度只存在这台手机上；不开提醒，也不用麦克风。这台手机上要是登录过，也会退出登录。\n\n想用全部功能时，点页面顶上的「同意」就行。</string>
+    <string name="consent_basic_go">进入基本模式</string>
+    <string name="consent_basic_back">再看看</string>
+    <string name="consent_why_signin">要登录或注册，请先同意《用户协议》和《隐私和数据》。</string>
+    <string name="consent_why_mic">要用麦克风录音，请先同意《用户协议》和《隐私和数据》。</string>
+    <string name="consent_why_notify">要用 App 通知提醒你，请先同意《用户协议》和《隐私和数据》。</string>
+    <string name="basic_bar">基本模式：不登录，进度只存在这台手机上</string>
+    <string name="basic_bar_agree">同意</string>
+    <string name="doc_back_arrow">← 返回</string>
+    <string name="doc_back">返回</string>
+    <string name="withdraw_title">撤回同意</string>
+    <string name="withdraw_body">撤回以后，这台手机上的语流会：\n• 退出登录，清掉这台手机上的登录信息、缓存、朗读进度和提醒；\n• 回到第一次打开时的样子，再问你一次。\n\n账号里的学习记录还在服务器上，再同意、再登录就能接着学。账号上的同意（「数据存放在香港」和《用户协议》）在网页的「我的 → 账号」里管理。</string>
+    <string name="withdraw_go">撤回</string>
+    <!-- shown on top while the phone asks for a permission (工信部 26 号文第 10 条: the purpose with the question) -->
+    <string name="mic_purpose_title">麦克风权限说明</string>
+    <string name="mic_purpose">用来录下你说的英语，做跟读、口语对话和发音练习。只在你点录音的那几秒打开；录音只在批改的那一次交给 AI，不保存。</string>
+    <string name="notify_purpose_title">通知权限说明</string>
+    <string name="notify_purpose">用来在你约好的时间提醒你复习单词、开始今天的学习。提醒由手机自己按时弹出，随时可以在手机设置里关掉。</string>
     <!-- new versions (update/Updater.kt, 语流 only) -->
     <string name="update_title">有新版本 %1$s</string>
     <string name="update_how">点「下载」，语流会先下载新版本的安装包（约 %1$s），核对无误后交给手机安装。手机会再问你一次，点「更新」（有的手机叫「安装」）就好。从网站直接装的 App 没法自己悄悄更新，每次都要你点这一下。</string>
