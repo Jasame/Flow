@@ -28,6 +28,8 @@ iOS（语流 20）、安卓（语流 21）、桌面 Windows 和 macOS（语流 2
 
 - 调用：`FlowApp.<块>.<命令>(参数)` 返回 Promise。预料之中的失败（没权限、正在录音……）照常 resolve，结果里 `ok: false` 加 `why`；
   只有传输出错、不在本站、命令不存在时才 reject。
+  - 网页一律 `await`（或 `.then`）以后再用结果，不能直接拿返回值比较（`FlowApp.notify.permission() === 'granted'` 在每个 App 里都是 false）。
+    测试里假的 FlowApp 也要返回 Promise，和真的一样。
 - 事件：`FlowApp.on(type, fn)` 返回退订函数，`FlowApp.off(type, fn)` 也行；同时在 `window` 上发 `flowapp:<type>` 事件（detail 同参数）。
 - 能力 `FlowApp.has(名字)`：
 
@@ -74,8 +76,10 @@ iOS（语流 20）、安卓（语流 21）、桌面 Windows 和 macOS（语流 2
   - `why`：`user`（网页叫的）、`remote`（锁屏、耳机、车机）、`interrupted`（来电、Siri、闹钟）、`route`（耳机拔了）、`other`（别的声音或录音开始了）、
     `ended`（读完）、`error`（加载失败）、`state`（回到前台重发的）。
   - **每换一句都发一次 `audio`**，所以网页靠它就能更新当前句、高亮、自动滚动和播放条的「第 N 句」。
-  - `fail`：这一句退回系统自带的声音时给 `{code, server}`。`code` 和网页的 SV 一样：`off` `cap` `import_cap` `busy` `guest` `store` `gateway` `offline` `net` `slow`；
+  - `fail`：这一句退回系统自带的声音时给 `{code, server}`。`code` 和网页的 SV 一样：`off` `cap` `import_cap` `busy` `guest` `store` `gateway` `offline` `net` `slow`，
+    还有 `storage`（账号还没同意「数据存放在香港」，登录后的请求一律 403）；
     `server` 是服务器回的 error 原文。那句话由网页的 `SV.why(fail)` 写，全站一个说法，同一个原因只说一次。App 不自己写原因。
+  - `off`、`cap`、`storage`：这篇剩下的句子都用系统自带的声音，不再问服务器；别的原因只管这一句。
 - `audio-tick`：`{key, i, t, at, rate}`，页面在前台时每秒 4 次。网页用 `NAR.locate(t)` 点亮词，两次之间按 `at` 和 `rate` 插值。
 - `audio-made`：`{key, i, url}`，App 做出来的新句子地址，网页记进 SV 地址簿（同一句不做两次，Safari 里也能用）。
 
@@ -107,6 +111,9 @@ iOS（语流 20）、安卓（语流 21）、桌面 Windows 和 macOS（语流 2
 ## 5. 复习提醒 `notify`
 
 - `permission()` → `'granted'` | `'denied'` | `'undetermined'` | `'provisional'`；`ask()` → true/false；`off()`：关掉 App 的提醒（等于 `sync({app: false})`）；`settings()`：打开系统里这个 App 的通知设置。
+  - `permission()` 说的是 App 的提醒开没开，不只是系统给没给：系统允许并且学员开着是 `'granted'`；学员还没打开、或者点了「关闭」（`off()`）是 `'undetermined'`；
+    系统里关了是 `'denied'`；`'provisional'` 只有 iOS 有。网页「已开启」那一行就看它是不是 `'granted'`。
+  - `ask()` 为 true 就是学员打开了 App 的提醒，关过的也重新打开（系统的问题只问一次，后面直接给 true）。
 - `sync(r)`：r 是 `/api/next/vocab` 的 `reminder`（`{hour, once, enabled, has_email}`）加上 `forecast`。`{app: false}` 或 `sync(null)`：关掉 App 的提醒。
   网页在改了提醒（每天的钟点、这次什么时候复习、取消这次）以后、学员点「到点用 App 通知提醒」以后调用。
 - `pending()` → `[{id, at, title, body}]`。
@@ -119,6 +126,8 @@ iOS（语流 20）、安卓（语流 21）、桌面 Windows 和 macOS（语流 2
     到点没词：这个时间作废，当天到了每天的钟点照常（有词才提醒）。（服务器周日晚上发过每周进度邮件就不再发复习提醒邮件，App 的通知不跟这一条。）
   - 「我的 → 每天提醒」（`reminder.ics?kind=plan&hour=&minutes=`）选了 App 通知，就每天在那个钟点提醒今天的学习，不用登录。
   - 点通知：复习打开 `#/review`，今天的学习打开 `#/`；App 没在运行也一样。退出登录以后不再提醒复习单词。
+  - 账号还没同意「数据存放在香港」（`/api/next/vocab` 回 403，code `storage`：老账号回答之前、选了不同意而暂停的账号）：和网站一样什么提醒都不排，
+    今天的学习那条也不排。学员设的钟点留着，同意以后下次拿到 `/api/next/vocab` 就自己排回来。
   - App 自己也会拿 `/api/next/vocab` 重排（iOS、安卓用 WebView 的 cookie；桌面在页面里 fetch 再 sync）。
 
 ## 6. 系统媒体控制 `media`（桌面）
