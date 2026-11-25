@@ -259,6 +259,43 @@ class BacklogTests(unittest.TestCase):
         self.assertIn('去复习：', txt); self.assertIn('class="fl-card"', html)
         self.assertIn('learner，你好：', txt)
 
+
+class Stale:
+    """A connection for a request that read before another one wrote (b38, 2026-11-25: 今日 opened at once twice):
+    it sees no book words added today and no cards; everything else as it is."""
+    def __init__(self, c): self.c = c
+    def execute(self, sql, params=()):
+        if sql.startswith("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND source='book'"):
+            return self.c.execute('SELECT 0')
+        if sql.startswith('SELECT norm FROM next_cards WHERE user_id=?') or sql.startswith('SELECT 1 FROM next_cards WHERE user_id=? AND norm=?'):
+            return self.c.execute('SELECT 1 WHERE 0')
+        return self.c.execute(sql, params)
+    def __getattr__(self, k): return getattr(self.c, k)
+
+
+class ConcurrentWriteTests(unittest.TestCase):
+    """Two requests of one learner at once: the second one's insert of a word the first just added is passed over, not a
+    500 on UNIQUE(user_id, norm), and today's new words are added once, not twice."""
+    setUp, tearDown = BacklogTests.setUp, BacklogTests.tearDown
+
+    def book_cards(self):
+        return self.c.execute("SELECT COUNT(*) FROM next_cards WHERE user_id=1 AND source='book'").fetchone()[0]
+
+    def test_todays_new_words_are_added_once_when_two_requests_read_at_the_same_time(self):
+        vs.save_plan(self.c, 1, {'book': 'core', 'daily_new': 5, 'retention': 0.9})
+        self.c.execute('DELETE FROM next_cards'); self.c.commit()
+        self.assertEqual(vs.introduce(self.c, 1, self.now), 5)
+        self.assertEqual(vs.introduce(Stale(self.c), 1, self.now), 0)  # it read before the first wrote: nothing new, no error
+        self.assertEqual(self.book_cards(), 5)
+        self.assertEqual(vs.more_new(Stale(self.c), 1, {'n': 5})[0]['added'], 0)  # 再学 10 个 tapped twice: the same, once
+        self.assertEqual(self.book_cards(), 5)
+
+    def test_a_word_list_imported_twice_at_once_skips_what_the_other_added(self):
+        self.c.execute('DELETE FROM next_cards'); self.c.commit()
+        self.assertEqual(vs.import_words(self.c, 1, {'text': 'deadline\ncommute'})[0]['added'], 2)
+        r, st = vs.import_words(Stale(self.c), 1, {'text': 'deadline\ncommute\nnegotiate'})
+        self.assertEqual((st, r['added'], r['skipped']), (200, 1, 2))
+
 class WordCapTests(unittest.TestCase):
     """r28 section 3 (the owner chose the recommended plan, 2026-11-25): a day of words capped in minutes, reviews most
     at risk first and new words in the time left; after a break the most urgent 40, the rest over 5 days; a finished

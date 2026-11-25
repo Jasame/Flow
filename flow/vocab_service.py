@@ -500,15 +500,18 @@ def introduce(c, uid, now=None):
     have = {r[0] for r in c.execute('SELECT norm FROM next_cards WHERE user_id=?', (uid,))}
     d = nx.dictionary()
     skip = _skip_below(p['book'], p.get('skip_rank'))
-    added = 0
+    # Two requests at once (今日 open twice, the app and the page): both read `have` before either wrote. OR IGNORE
+    # lets the second pass over a word the first just added (b38, 2026-11-25: a 500 on UNIQUE(user_id, norm)), and such
+    # a word still counts toward today's, so the second does not go on to add a second day's worth.
+    added = tried = 0
     for rank, w in book_words()[p['book']]:
         if w in have or (skip and rank <= skip):
             continue
         e = d[w]
-        c.execute('INSERT INTO next_cards(user_id,text,norm,meaning,context,pack,kind,created,due,state,source,rank) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
-                  (uid, e['word'], w, e['meaning'][:300], '', None, 'word', now, now, 'new', 'book', rank))
-        added += 1
-        if added >= need:
+        added += c.execute('INSERT OR IGNORE INTO next_cards(user_id,text,norm,meaning,context,pack,kind,created,due,state,source,rank) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                           (uid, e['word'], w, e['meaning'][:300], '', None, 'word', now, now, 'new', 'book', rank)).rowcount
+        tried += 1
+        if tried >= need:
             break
     c.commit()
     return added
@@ -786,15 +789,16 @@ def more_new(c, uid, data):
     have = {r[0] for r in c.execute('SELECT norm FROM next_cards WHERE user_id=?', (uid,))}
     d = nx.dictionary()
     skip = _skip_below(p['book'], p.get('skip_rank'))
-    added = 0
+    added = tried = 0
     for rank, w in book_words()[p['book']]:
         if w in have or (skip and rank <= skip):
             continue
         e = d[w]
-        c.execute('INSERT INTO next_cards(user_id,text,norm,meaning,context,pack,kind,created,due,state,source,rank) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
-                  (uid, e['word'], w, e['meaning'][:300], '', None, 'word', now, now, 'new', 'book', rank))
-        added += 1
-        if added >= n:
+        # as in introduce: another request may have just added this word (a double tap); it is not added twice
+        added += c.execute('INSERT OR IGNORE INTO next_cards(user_id,text,norm,meaning,context,pack,kind,created,due,state,source,rank) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                           (uid, e['word'], w, e['meaning'][:300], '', None, 'word', now, now, 'new', 'book', rank)).rowcount
+        tried += 1
+        if tried >= n:
             break
     c.commit()
     return {'added': added, **counts(c, uid, now)}, 200
@@ -1039,10 +1043,10 @@ def import_words(c, uid, data):
         words = len(nx.WORD.findall(x))
         hit = nx.lookup(x) if words == 1 else None
         text = hit['word'] if hit and hit['lemma'] == norm else x
-        c.execute('INSERT INTO next_cards(user_id,text,norm,meaning,context,pack,kind,created,due,state,source,rank) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
-                  (uid, text, norm, hit['meaning'][:300] if hit else '', '', None, 'word' if words == 1 else 'phrase', now, now, 'new', 'import',
-                   hit['rank'] if hit else None))
-        added += 1
+        n = c.execute('INSERT OR IGNORE INTO next_cards(user_id,text,norm,meaning,context,pack,kind,created,due,state,source,rank) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                      (uid, text, norm, hit['meaning'][:300] if hit else '', '', None, 'word' if words == 1 else 'phrase', now, now, 'new', 'import',
+                       hit['rank'] if hit else None)).rowcount  # added meanwhile by another request: skipped, not a 500
+        added += n; skipped += 1 - n
     c.commit()
     return {'added': added, 'skipped': skipped}, 200
 
@@ -1103,9 +1107,9 @@ def add_many(c, uid, data):
         if min_rank and (e.get('rank') or 99999) < min_rank:
             skipped += 1
             continue
-        c.execute('INSERT INTO next_cards(user_id,text,norm,meaning,context,pack,kind,created,due,state,source,rank) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
-                  (uid, e.get('word', norm), norm, (e.get('meaning') or '')[:300], sentence, pack, 'word', now, now, 'new', 'saved', e.get('rank')))
-        added += 1
+        n = c.execute('INSERT OR IGNORE INTO next_cards(user_id,text,norm,meaning,context,pack,kind,created,due,state,source,rank) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                      (uid, e.get('word', norm), norm, (e.get('meaning') or '')[:300], sentence, pack, 'word', now, now, 'new', 'saved', e.get('rank'))).rowcount
+        added += n; skipped += 1 - n  # added meanwhile by another request (a double tap): skipped, not a 500
     c.commit()
     return {'added': added, 'skipped': skipped, **counts(c, uid, now)}, 200
 
