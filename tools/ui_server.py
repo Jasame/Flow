@@ -278,7 +278,9 @@ with app.db() as c:
 with app.db() as c:
     base = json.loads(c.execute("SELECT content FROM lab_packs WHERE id=?", (PID,)).fetchone()[0])
     base.update(id='daily-ui-sample', title='示例热点：城市开通夜间公交线路', title_en='Sample news: night buses start running',
-                source='示例来源（测试数据）', summary_zh='示例：这里是今日热点的一句话介绍，真正的热点每天由 AI 联网找新闻改写。', daily_day=time.strftime('%Y-%m-%d'))
+                source='示例来源（测试数据）', summary_zh='示例：这里是今日热点的一句话介绍，真正的热点每天由 AI 联网找新闻改写。', daily_day=time.strftime('%Y-%m-%d'),
+                level='B1')  # 今日 shows the hotspot at the learner's level (r28 第 5 段): the UI learners are B1
+    base.pop('cefr', None)
     c.execute("INSERT OR REPLACE INTO lab_packs VALUES(?,NULL,'daily',?,?)", ('daily-ui-sample', json.dumps(base, ensure_ascii=False), time.time()))
     c.commit()
 (STATE / 'sessions.json').write_text(json.dumps({'base': f'http://127.0.0.1:{PORT}', 'pid': PID, 'learners': out, 'class': {'id': cid, 'code': 'UICLS2', 'name': '高一（3）班'},

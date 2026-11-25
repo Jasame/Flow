@@ -340,6 +340,7 @@ flow/tests/test_fill_examples.py
 flow/tests/test_flow_admin_console.py
 flow/tests/test_foundation.py
 flow/tests/test_front_layout.py
+flow/tests/test_goal_recommend.py
 flow/tests/test_growth.py
 flow/tests/test_guide.py
 flow/tests/test_ielts_speaking.py
