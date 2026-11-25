@@ -3353,7 +3353,7 @@ def review_side_run(pw):
         label = pg.text_content('#meKnowV') or ''
         pg.click('#sheetCard [data-close]'); pg.wait_for_timeout(150)
         go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000); s = st()
-        check(dev, '我的 → 设置: 「认识」放在左边, and the card says 认识 / 模糊 / 不认识', label.strip() == '左边' and s['claims'] == ['know', 'fuzzy', 'forgot'] and not s['tip'], (label, s))
+        check(dev, '我的 → 设置: 「认识」放在左边, and the card says 认识 / 模糊 / 不认识', label.startswith('认识在左') and s['claims'] == ['know', 'fuzzy', 'forgot'] and not s['tip'], (label, s))
         pg.keyboard.press('1'); pg.wait_for_timeout(250); s = st()
         check(dev, 'left: key 1 is 认识, and on the answer 没错 left, 记错了 right', s['back'] and s['rates'] == ['good', 'again'], s)
         f0 = s['foot']; pg.keyboard.press('ArrowLeft'); pg.wait_for_timeout(450); s = st()
@@ -3569,6 +3569,44 @@ def review_side_run(pw):
         pg.mouse.click(*r); pg.wait_for_timeout(300)
         check(dev, '点卡片作答 with a mouse: off by default, a click into the card answers nothing, no guide', pg.evaluate(ZONE_JS)['front'] and not pg.evaluate(ZONE_JS)['guide'], pg.evaluate(ZONE_JS))
         ctx.close()
+        # 复习卡 简洁 / 详细 (words-modes-plan.md; the owner, 2026-11-25): new words detailed, reviews simple by default; the
+        # front asks the same (detailed adds a grey line of tags and history, no meaning); the back adds the meaning by part
+        # of speech, examples beyond the first one tap away, the 词汇辨析 group and how well it is held; 简 / 详 at the top
+        # switches it for that kind of card and keeps it, without answering; 我的 → 设置 → 背词 sets both
+        MODE_JS = """() => ({ front: !!document.querySelector('.ractions [data-claim]'), back: !!document.querySelector('.open-card'), word: (document.querySelector('.review .wordbig') || {}).textContent,
+          meta: (document.querySelector('.review .detail-line') || {}).textContent || '', pos: document.querySelectorAll('.mean-pos b').length, fold: !!document.querySelector('.ex-wrap.fold'),
+          shown: [...document.querySelectorAll('.exs .ex')].filter(e => e.offsetParent !== null).length, all: document.querySelectorAll('.exs .ex').length,
+          confuse: (document.querySelector('.conf-line') || {}).textContent || '', state: (document.querySelector('.mem-line') || {}).textContent || '',
+          on: (document.querySelector('#vmode .on') || {}).textContent || '', mean: (document.querySelector('.review .mean-a') || {}).textContent || '' })"""
+        ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['modes']['token'], 'url': BASE}])
+        ctx.add_init_script("try { localStorage.setItem('flow-tap-guide', '1'); localStorage.setItem('flow-next-swipe-tip', '1'); } catch (e) {}")
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        posts = []; pg.on('request', lambda r: posts.append(r.url) if r.method == 'POST' and '/api/next/review' in r.url else None)
+        pg.goto(BASE + '/#/cards', wait_until='load'); settle(pg)
+        go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(300)
+        m1 = pg.evaluate(MODE_JS)
+        check(dev, '复习卡: a review is 简洁 by default (no grey line, 简 marked)', m1['word'] == 'borrow' and not m1['meta'] and m1['on'] == '简', m1)
+        pg.click('#vmode [data-v="detailed"]'); pg.wait_for_timeout(300); m2 = pg.evaluate(MODE_JS)
+        check(dev, '简 / 详 at the top: the card turns 详细 in place, not an answer; the front gains tags and history only, no meaning',
+              m2['front'] and m2['on'] == '详' and '第 3 次见' in m2['meta'] and '借' not in m2['meta'] and not m2['mean'] and not posts and pg.evaluate("localStorage.getItem('flow-card-view-review')") == 'detailed', m2)
+        pg.click('.ractions [data-claim="know"]'); pg.wait_for_timeout(400); m3 = pg.evaluate(MODE_JS)
+        check(dev, '详细 back: the meaning by part of speech, as many examples open as 简洁 (two) and the rest one tap away, borrow / lend from 词汇辨析, how well it is held',
+              m3['back'] and m3['pos'] >= 2 and m3['shown'] == min(2, m3['all']) and (m3['all'] <= 2 or m3['fold']) and 'borrow / lend' in m3['confuse'] and '记得的把握' in m3['state'], m3)
+        if pg.query_selector('#exMore'):
+            pg.click('#exMore'); pg.wait_for_timeout(200); m4 = pg.evaluate(MODE_JS)
+            check(dev, '详细 back: 再看 N 句 shows the other examples', not m4['fold'] and m4['shown'] == m4['all'], m4)
+        pg.click('#vmode [data-v="simple"]'); pg.wait_for_timeout(300); m5 = pg.evaluate(MODE_JS)
+        check(dev, '简 / 详 on the back: 简洁 again, the same back (no rating), at most two examples, no 词汇辨析 line',
+              m5['back'] and m5['on'] == '简' and m5['all'] <= 3 and not m5['confuse'] and not m5['state'] and not posts, m5)
+        pg.click('.ractions [data-rate="good"]'); pg.wait_for_timeout(600); m6 = pg.evaluate(MODE_JS)
+        check(dev, '复习卡: a new word is 详细 by default (its own setting)', m6['word'] == 'lend' and m6['on'] == '详' and '新词' in m6['meta'], m6)
+        go(pg, '#/me'); pg.click('#meKnow'); pg.wait_for_selector('#sheetCard [data-view="new:simple"]')
+        pg.click('#sheetCard [data-view="new:simple"]'); pg.wait_for_timeout(200)
+        lab = pg.text_content('#meKnowV') or ''
+        check(dev, '我的 → 设置 → 背词: 背新词 / 复习 each 简洁 or 详细, and the row says so', pg.evaluate("localStorage.getItem('flow-card-view-new')") == 'simple' and '新词简洁' in lab, lab)
+        check(dev, 'no script errors (简洁 / 详细)', not errs, errs[:3])
+        ctx.close()
         # a search that finds nothing says what was searched and offers a way out (语流 B9): 清除搜索, and with a filter on, 在全部里找
         ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
@@ -3670,6 +3708,18 @@ def one_screen_run(pw):
                               b['note'] == ['读音由 AI 合成', True] and (f['note'] == ['读音由 AI 合成', True] if f['word'] else True), [f, b])
                     if home:
                         check(dev, f'{where} {name}: --bar-h is the top bar\'s height', s['barH'] == f"{s['bar']}px", s)
+                # 详细's front (words-modes-plan.md): one grey line more than 简洁, still one screen, the answers clear of the home bar
+                pg.evaluate("localStorage.setItem('flow-card-view-review', 'detailed')"); go(pg, '#/cards'); go(pg, '#/review')
+                pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(400); s = pg.evaluate(ONE_SCREEN_JS)
+                pg.screenshot(path=str(OUT / f"one-screen-{size}-{'home' if home else 'safari'}-review-detailed.png"))
+                check(dev, f'{where} 复习卡（详细）: one screen, nothing to scroll ({s["page"]} of {s["H"]}px)',
+                      s['page'] <= s['H'] and pg.query_selector('.review .detail-line') is not None and s['answers'] and max(s['answers'] + [s['lastBottom']]) <= s['H'] - s['sab'], s)
+                if size == 'iphone-se' and not home:  # Safari with its bars showing (375×553): 详细's front still fits
+                    pg.set_viewport_size({'width': 375, 'height': 553}); go(pg, '#/cards'); go(pg, '#/review')
+                    pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(400); s = pg.evaluate(ONE_SCREEN_JS)
+                    check(dev, f'375×553 Safari 复习卡（详细）: one screen ({s["page"]} of {s["H"]}px)', s['page'] <= s['H'] and s['answers'] and max(s['answers']) <= s['H'], s)
+                    pg.set_viewport_size({'width': 375, 'height': 667})
+                pg.evaluate("localStorage.removeItem('flow-card-view-review')")
                 # 词汇辨析's round (语流 B8's audit: 119-213 px past the screen): no tabs, 怎么区分 open for the first question,
                 # one line from the second; both questions one screen, the answers at the bottom and clear of the home bar
                 if size == 'iphone-se' and not home:  # Safari with its bars showing: 375×553 (语流 B8 on r33)
