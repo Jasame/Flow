@@ -1029,6 +1029,14 @@ def app_audio_run(pw):
         check(dev, '伴读: the app plays it too', bool(p) and p.get('key') == f'read:{PID}' and btn('#readAlong').endswith('暂停'), (p and p.get('key'), btn('#readAlong')))
         check(dev, 'no server voice asked, no browser voice, no script errors', not tts and not pg.evaluate('window.__said.length') and not errs, (tts[:3], errs[:3]))
         ctx.close()
+        # the Android app: the page plays it itself for now (NATIVE.on is iOS only until 语流 C2 has checked its player)
+        actx = browser.new_context(**DEVICES['phone'], locale='zh-CN', bypass_csp=True, service_workers='block')
+        actx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['app-audio']['token'], 'url': BASE}])
+        actx.add_init_script(APP_AUDIO_FAKE.replace("platform: 'ios'", "platform: 'android'"))
+        apg = actx.new_page(); apg.goto(BASE + '/', wait_until='load'); settle(apg)
+        go(apg, f'#/m/{PID}/listen'); apg.wait_for_selector('#playAll'); apg.wait_for_timeout(300); apg.click('#playAll'); apg.wait_for_timeout(500)
+        check(dev, 'the Android app: 播放全文 is played by the page (no audio.play to the app)', 'audio.play' not in apg.evaluate('window.__cmds.map(c => c[0])'), apg.evaluate('window.__cmds.map(c => c[0])'))
+        actx.close()
     finally:
         browser.close()
 

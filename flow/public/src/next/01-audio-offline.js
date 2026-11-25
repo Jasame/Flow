@@ -701,7 +701,8 @@
   // second, the page in front) lights the word of a recording, smoothed between ticks.
   const NATIVE = {
     tick: null, raf: 0, sent: '', lone: null, last: null, watcher: null,
-    on() { return !!(window.FlowApp && FlowApp.has && FlowApp.has('audio')); },
+    // the Android app plays it in the page for now (语流 C2 checks its player with the real page first): iOS only
+    on() { return !!(window.FlowApp && FlowApp.has && FlowApp.has('audio')) && FlowApp.platform !== 'android'; },
     // 复读 (times, the pause after each sentence) and 语速, as the page has them now (docs/native-bridge.md §3 set)
     knobs(r) { return { rep: r.rep ? r.rep() : 1, gap: r.texts.map((_, k) => (r.gap ? r.gap(k) : 0)), rate: TTS.rate || 1 }; },
     // changed while the app plays (a 复读 or 语速 chip, or meanwhile): the app gets them at once
