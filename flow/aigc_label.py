@@ -72,3 +72,112 @@ def read(data):
             return json.loads(content[2 + len(DESC):].decode('utf-8'))
         i += 10 + n
     return None
+
+
+# ---------- MP4 / M4A (the word sprites: AAC in MP4, moov first; 语流 11, 2026-11-25) ----------
+# The same value in an iTunes freeform item, moov/udta/meta/ilst/---- with mean "com.apple.iTunes" and name "AIGC"
+# (where iTunes keeps its own iTunSMPB). The audio is not touched: a free box right after moov gives up the bytes the
+# item takes, so mdat stays where it is; without one, everything after moov moves and every stco / co64 chunk offset
+# that points past moov moves with it. A file whose boxes this cannot read safely (64-bit box sizes on the way) is left
+# as it is, like an ID3 tag that cannot be extended.
+MEAN = b'com.apple.iTunes'
+
+
+def _box(kind, body):
+    return (8 + len(body)).to_bytes(4, 'big') + kind + body
+
+
+def _kids(data, start, end):
+    """[(kind, box start, body start, box end)] of the boxes in data[start:end]; None if one has a 64-bit or bad size."""
+    out, i = [], start
+    while i + 8 <= end:
+        size, kind = int.from_bytes(data[i:i + 4], 'big'), data[i + 4:i + 8]
+        if size < 8 or i + size > end:
+            return None
+        out.append((kind, i, i + 8, i + size))
+        i += size
+    return out
+
+
+def _find(data, start, end, kind):
+    kids = _kids(data, start, end)
+    return next((k for k in kids or [] if k[0] == kind), None) if kids is not None else None
+
+
+def _item(produce_id, provider):
+    return _box(b'----', _box(b'mean', b'\0\0\0\0' + MEAN) + _box(b'name', b'\0\0\0\0' + DESC)
+                + _box(b'data', (1).to_bytes(4, 'big') + b'\0\0\0\0' + value(produce_id, provider)))  # type 1: UTF-8 text
+
+
+def read_mp4(data):
+    """The AIGC value of an MP4 / M4A (dict) or None."""
+    moov = _find(data, 0, len(data), b'moov')
+    udta = moov and _find(data, moov[2], moov[3], b'udta')
+    meta = udta and _find(data, udta[2], udta[3], b'meta')
+    ilst = meta and _find(data, meta[2] + 4, meta[3], b'ilst')  # meta is a full box: 4 bytes of version and flags
+    for kind, s, b, e in (_kids(data, ilst[2], ilst[3]) or []) if ilst else []:
+        if kind != b'----':
+            continue
+        parts = {k: data[bs + 4:be] for k, _, bs, be in _kids(data, b, e) or []}
+        if parts.get(b'mean') == MEAN and parts.get(b'name') == DESC and b'data' in parts:
+            return json.loads(parts[b'data'][4:].decode('utf-8'))  # after the 4 bytes of locale
+    return None
+
+
+def mp4(data, produce_id, provider=PROVIDER):
+    """data with the AIGC item in moov/udta/meta/ilst (unchanged when it has one, or when its boxes cannot be read safely)."""
+    try:
+        if read_mp4(data) is not None:
+            return data
+    except (ValueError, UnicodeDecodeError):
+        return data
+    top = _kids(data, 0, len(data))
+    moov = next((k for k in top or [] if k[0] == b'moov'), None)
+    if not moov or _kids(data, moov[2], moov[3]) is None:
+        return data
+    item = _item(produce_id, provider)
+    # what to add, and where: inside the innermost of udta > meta > ilst that exists (each one missing is made)
+    udta = _find(data, moov[2], moov[3], b'udta')
+    meta = udta and _find(data, udta[2], udta[3], b'meta')
+    ilst = meta and _find(data, meta[2] + 4, meta[3], b'ilst')
+    hdlr = _box(b'hdlr', b'\0' * 8 + b'mdir' + b'appl' + b'\0' * 8 + b'\0')
+    if ilst:
+        at, add, grow = ilst[3], item, [moov, udta, meta, ilst]
+    elif meta:
+        at, add, grow = meta[3], _box(b'ilst', item), [moov, udta, meta]
+    elif udta:
+        at, add, grow = udta[3], _box(b'meta', b'\0\0\0\0' + hdlr + _box(b'ilst', item)), [moov, udta]
+    else:
+        at, add, grow = moov[3], _box(b'udta', _box(b'meta', b'\0\0\0\0' + hdlr + _box(b'ilst', item))), [moov]
+    if any(g is None for g in grow):
+        return data
+    n = len(add)
+    out = bytearray(data[:at] + add + data[at:])
+    for _, s, _, e in grow:  # each box that now holds the item is n bytes longer
+        out[s:s + 4] = (e - s + n).to_bytes(4, 'big')
+    after = top.index(moov) + 1
+    free = top[after] if after < len(top) and top[after][0] in (b'free', b'skip') else None
+    if free and free[3] - free[1] - n >= 8:  # the padding right after moov gives up n bytes: mdat stays put
+        s = free[1] + n
+        out[s:s + 4] = (free[3] - free[1] - n).to_bytes(4, 'big')
+        del out[s + 8:s + 8 + n]
+        return bytes(out)
+    # no room: everything after moov moved n bytes on; so do the chunk offsets pointing there
+    moov_end = moov[3] + n
+    for trak in [k for k in _kids(out, moov[2], moov_end) or [] if k[0] == b'trak']:
+        stbl = trak
+        for kind in (b'mdia', b'minf', b'stbl'):
+            stbl = stbl and _find(out, stbl[2], stbl[3], kind)
+        if not stbl:
+            continue
+        for kind, wide in ((b'stco', 4), (b'co64', 8)):
+            box = _find(out, stbl[2], stbl[3], kind)
+            if not box:
+                continue
+            count = int.from_bytes(out[box[2] + 4:box[2] + 8], 'big')
+            for k in range(count):
+                p = box[2] + 8 + k * wide
+                v = int.from_bytes(out[p:p + wide], 'big')
+                if v >= moov[3]:
+                    out[p:p + wide] = (v + n).to_bytes(wide, 'big')
+    return bytes(out)
