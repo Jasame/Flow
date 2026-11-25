@@ -17,7 +17,7 @@
     let looked = 0;
     view.innerHTML = `<div><a class="link small" href="#/easy">← 轻松读</a></div>
       <div class="study-head"><span class="kicker">轻松读 · ${esc(m.level)} · ${ls.join(' ').split(/\s+/).length} 词</span><h1 class="h1">${esc(m.title_en || m.title)}</h1>
-        ${m.title_en ? `<div class="muted small">${esc(m.title)}</div>` : ''}${aiNote(m) ? aiMark(aiNote(m)) : ''}</div>
+        ${m.title_en ? `<div class="muted small">${esc(m.title)}</div>` : ''}${aiNote(m) === null ? '' : aiMark(aiNote(m))}</div>
       <div class="reader easy-reader" id="easyText" lang="en">${ls.map((s, k) => `<span class="s">${wordSpans(s, () => 'w', ` data-s="${k}"`)}</span> `).join('')}</div>
       <div class="section stack-s" id="easyEnd"><div class="kicker">读完了，觉得怎么样？</div>
         <div class="choice three">${[['easy', '太简单'], ['ok', '刚好'], ['hard', '有点难']].map(([v, l]) => `<button class="opt" data-r="${v}"><span class="l">${l}</span></button>`).join('')}</div>

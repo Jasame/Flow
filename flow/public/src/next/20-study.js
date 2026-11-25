@@ -5,15 +5,19 @@
   // Under the title: where the text comes from and how AI took part (r20). The writing rules of the originals, or the
   // sources of a news text, are one tap away.
   // 「AI 生成」 (2026-11-25, 人工智能生成合成内容标识办法): every text Flow wrote with AI says so under its title, in the
-  // shared style (aiMark, 00-head.js). An article the learner imported is theirs: only its AI questions are marked.
+  // shared style (aiMark, 00-head.js). The user's words for a featured text: 「AI 生成，经规范检查」; 经人工审核 only on
+  // one the user has read themselves (reviewed_by_human). null: no mark, an article the learner imported is theirs (only
+  // its AI questions are marked); '': the mark alone, the older texts (简版) were written before the writing rules.
   function aiNote(m) {
     const o = m.origin || { kind: 'original' };
-    return o.kind === 'import' ? '' : o.kind === 'news' ? 'AI 改写 · 未经人工审核' : m.featured ? '本文由 AI 辅助编写，经过规范检查' : '本文由 AI 编写';
+    if (o.kind === 'import') return null;
+    if (o.kind === 'news') return 'AI 改写 · 未经人工审核';
+    return m.featured ? (o.reviewed_by_human ? '经规范检查 · 经人工审核' : '经规范检查') : '';
   }
   function originHTML(m, extra = '') {  // extra: 存到手机 (06-offline.js), on the same line so the step below stays in view
     const o = m.origin || { kind: 'original', label: m.source, ai: '', reviewed: null, url: '', references: m.provenance || [] };
     const note = aiNote(m);
-    return `${note ? aiMark(note) : ''}<div class="origin tiny"><span class="muted">来源：${o.url ? `<a class="link" href="${esc(o.url)}" target="_blank" rel="noopener noreferrer">${esc(o.label)}</a>` : esc(o.label)}</span>${!note && o.ai ? `<span class="otag">${esc(o.ai)}</span>` : ''}${!note && o.reviewed === false ? '<span class="otag warn">未经人工审核</span>' : ''}${o.kind === 'import' ? '' : `<button class="link tiny hit44" type="button" id="originMore" data-tap="study-origin">${o.references.length ? `${o.kind === 'news' ? '来源' : '参考资料'} ${o.references.length} 条` : '怎么写的'}</button>`}${extra}</div>`;
+    return `${note === null ? '' : aiMark(note)}<div class="origin tiny"><span class="muted">来源：${o.url ? `<a class="link" href="${esc(o.url)}" target="_blank" rel="noopener noreferrer">${esc(o.label)}</a>` : esc(o.label)}</span>${note === null && o.ai ? `<span class="otag">${esc(o.ai)}</span>` : ''}${note === null && o.reviewed === false ? '<span class="otag warn">未经人工审核</span>' : ''}${o.kind === 'import' ? '' : `<button class="link tiny hit44" type="button" id="originMore" data-tap="study-origin">${o.references.length ? `${o.kind === 'news' ? '来源' : '参考资料'} ${o.references.length} 条` : '怎么写的'}</button>`}${extra}</div>`;
   }
   function originSheet(m) {
     const o = m.origin, news = o.kind === 'news';

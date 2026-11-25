@@ -178,6 +178,12 @@ def check_v51(p, body, d):
         E.append('purposes 需要 1–3 个，取自 ' + ' / '.join(PURPOSES))
     if p.get('reviewed'):
         E.append('不能标「人工审校」（reviewed）：没有人工逐篇审校的记录')
+    # 经人工审核 (2026-11-25): only a text the user has read in full, with the day; never true by default
+    if 'reviewed_by_human' in p:
+        if not isinstance(p['reviewed_by_human'], bool):
+            E.append('reviewed_by_human 只能是 true 或 false')
+        elif p['reviewed_by_human'] and not re.fullmatch(r'\d{4}-\d{2}-\d{2}', str(p.get('reviewed_on', ''))):
+            E.append('reviewed_by_human 为 true 时要写 reviewed_on（用户读完这篇的日期，YYYY-MM-DD）')
     if 'ai' in p and p['ai'] != 'AI 辅助编写':
         E.append('ai 只能写「AI 辅助编写」')
     for r in p.get('references') or []:
