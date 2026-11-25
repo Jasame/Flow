@@ -44,7 +44,7 @@ AREAS = [
             'tools/build_*wordbooks.py', 'tools/build_dictionary.py', 'tools/build_ecdict_subset.py',
             'tools/build_irregular.py', 'tools/gen_word_audio.py', 'tools/audit_meanings.py']),
     ('听和说', ['flow/tts_service.py', 'flow/ielts_speaking.py', 'flow/relisten_service.py', 'flow/sounds.py',
-             'flow/voice_eval.py', 'flow/scenarios.py', 'flow/meeting_*', 'flow/public/src/next/01-audio-offline.js',
+             'flow/voice_eval.py', 'flow/shadow_eval.py', 'flow/scenarios.py', 'flow/meeting_*', 'flow/public/src/next/01-audio-offline.js',
              'flow/public/src/next/21-study-listen.js', 'flow/public/src/next/46-*', 'flow/public/src/next/72-sounds.js',
              'flow/public/src/next/40-listen.css', 'flow/public/src/next/97-listen-speak.css']),
     ('今日和计划', ['flow/daily_*', 'flow/progress_service.py', 'flow/growth_*', 'flow/skills_service.py', 'flow/loop_service.py',
