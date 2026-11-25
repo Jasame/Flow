@@ -258,3 +258,10 @@
   - #146 工作约定：后台运行的程序不出声（发版和构建）
 - 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45544409605
+
+### b44 · 2026-11-25 12:21
+- main `bbbdee8`，构建 `7bc3a0d`
+- 新合并的 PR（自 b43 起）：
+  - #149 复习提醒：App 里的通知说法按平台（iPhone、手机、Windows、Mac）（单词）
+- 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45546043447
