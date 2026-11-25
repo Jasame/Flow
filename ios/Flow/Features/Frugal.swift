@@ -16,11 +16,13 @@ final class Frugal {
         nc.addObserver(forName: .NSProcessInfoPowerStateDidChange, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.update() }
         }
+        #if canImport(NowPlaying)  // the iOS 27 SDK (Xcode 27); CI's Xcode 26 builds without it: Low Power Mode only
         if #available(iOS 27, *) {
             nc.addObserver(forName: UIApplication.systemPrefersReducedResourceUsageDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
                 MainActor.assumeIsolated { self?.update() }
             }
         }
+        #endif
         on = Self.decide(switchOn: Features.on(.frugal), lowPower: ProcessInfo.processInfo.isLowPowerModeEnabled, reduced: Self.reduced)
     }
 
@@ -35,7 +37,9 @@ final class Frugal {
     nonisolated static func decide(switchOn: Bool, lowPower: Bool, reduced: Bool) -> Bool { switchOn && (lowPower || reduced) }
 
     static var reduced: Bool {
+        #if canImport(NowPlaying)
         if #available(iOS 27, *) { return UIApplication.shared.systemPrefersReducedResourceUsage }
+        #endif
         return false
     }
 }
