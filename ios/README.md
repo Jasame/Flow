@@ -89,7 +89,7 @@ App 在网页自己的脚本之前放好 `window.FlowApp`（只在本站的主�
 ### 录音 `FlowApp.rec`
 
 `permission()`、`ask()`（只问一次系统权限）、`start({max, format})`、`stop()` → `{ok, mime_type, data, ms, bytes, cut}`、`cancel()`；事件 `rec`：`recording` / `done`（到 max 自己停）/ `cut`（来电打断，录到的部分还在）。
-`format`：`wav`（默认，16 kHz 16 位单声道 PCM，44 字节文件头）或 `m4a`（AAC 16 kHz）；max 超过 40 秒默认用 m4a（WAV 每秒 32 KB，网页 `MIC.payload` 的上限是 1.4 MB，服务器 1.5 MB）。`stop()` 返回的形状和网页 `MIC.payload(blob)` 一样，能直接放进上传的 body。
+`format`：`wav`（默认，16 kHz 16 位单声道 PCM，44 字节文件头）或 `m4a`（AAC 16 kHz）；max 超过 40 秒默认用 m4a（WAV 每秒 32 KB，网页 `MIC.payload` 的上限是 1.4 MB，服务器 1.5 MB）。`stop()` 里的 `mime_type`、`data` 和网页 `MIC.payload(blob)` 一样；上传只能带这两项（服务器 `audio_validation` 要求正好是 `{mime_type, data}`），`ms`、`bytes`、`cut` 是给网页看的。
 网页还没接桥的地方照旧用 getUserMedia；App 对本站自动同意，不会每次打开都再问一次（系统的麦克风权限照样要用户点一次「允许」）。
 
 ### 复习提醒 `FlowApp.notify`
@@ -105,8 +105,8 @@ App 打开、回到前台、切到后台、以及 iOS 每天叫醒它几次时�
 
 ## 隐私
 
-- `Flow/PrivacyInfo.xcprivacy`：不跟踪、没有跟踪域名；收集的数据只为 App 功能：邮箱（账号）、录音（批改用，不留存）、学员自己写的内容；用到的「需要说明理由」的 API：UserDefaults（CA92.1，只读写 App 自己的设置）、文件时间（C617.1，删掉 App 自己缓存里 7 天前的朗读文件）。
-- 权限：麦克风（只在点录音的几秒打开）、通知（复习提醒，可以随时在系统设置里关）。日历不需要权限（用系统自带的添加界面）。
+- `Flow/PrivacyInfo.xcprivacy`：不跟踪、没有跟踪域名；收集的数据只为 App 功能：邮箱和用户名（账号）、录音（批改用，不留存）、学员自己写的内容、问题反馈和截图；页面出错和打开快慢的记录不带账号；用到的「需要说明理由」的 API：UserDefaults（CA92.1，只读写 App 自己的设置）、文件时间（C617.1，删掉 App 自己缓存里 7 天前的朗读文件）。
+- 权限：麦克风（只在点录音的几秒打开；切出 App 时录音就停）、相机（只在问题反馈里选「拍照」时）、通知（复习提醒，可以随时在系统设置里关）。日历不需要权限（用系统自带的添加界面）。
 - 登录 cookie 在 WebKit 自己的存储里，另外在钥匙串里存一份（只在这台设备，不进备份），防止刚登录就被关掉时丢失；退出登录时一起删掉。删掉 App 再装上时，第一次打开会先清掉钥匙串里的那份，不会登进上一个人的账号。
 - 网页允许的域名（`WKAppBoundDomains`）只有本站：服务工作线程、JS 桥、cookie 都只在本站有效，别的网站一律用系统浏览器打开。
 

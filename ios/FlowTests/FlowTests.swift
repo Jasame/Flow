@@ -198,6 +198,18 @@ final class ReminderPlanTests: XCTestCase {
         XCTAssertEqual(bad.hour, 21, "hours outside REMIND_HOURS are not taken")
     }
 
+    @MainActor func testSavedSettingsFromAnOlderVersionStillLoad() throws {
+        // a copy saved before a field existed: the learner's own choices stay, the new field takes its default
+        let old = Data(#"{"hour": 21, "planHour": 8, "planMinutes": 15, "app": false, "forecast": [1, 2]}"#.utf8)
+        let x = try JSONDecoder().decode(ReminderPlan.Input.self, from: old)
+        XCTAssertEqual(x.hour, 21)
+        XCTAssertEqual(x.planHour, 8)
+        XCTAssertEqual(x.planMinutes, 15)
+        XCTAssertFalse(x.app, "the app's reminders stay off")
+        XCTAssertEqual(x.later, 0)
+        XCTAssertNil(x.onceSeen)
+    }
+
     @MainActor func testSignedOutKeepsOnlyThePlan() {
         var x = input { $0.planHour = 8 }
         x = ReminderPlan.signedOut(x)

@@ -44,6 +44,7 @@ final class Shell {
             bridge.resendState()
             Task { await reminders.refresh() }
         case .background:
+            recorder.cutNow()  // no recording behind the learner's back
             // the counts may have changed while the app was open (a review done): today's reminder follows them
             BackgroundWork.run("reminders") { [reminders] in await reminders.refresh(force: true) }
             Shell.scheduleRefresh()

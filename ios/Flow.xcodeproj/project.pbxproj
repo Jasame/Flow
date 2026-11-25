@@ -332,6 +332,7 @@
 				INFOPLIST_FILE = Flow/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "$(FLOW_DISPLAY_NAME)";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_NSCameraUsageDescription = "问题反馈时可以拍一张照片当截图。只在你选「拍照」时打开相机，照片只随这条反馈发出。";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "语流要用麦克风录下你说的英语（跟读、口语对话、发音练习）。只在你点录音的那几秒打开，录音只用来给你批改。";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -356,6 +357,7 @@
 				INFOPLIST_FILE = Flow/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "$(FLOW_DISPLAY_NAME)";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_NSCameraUsageDescription = "问题反馈时可以拍一张照片当截图。只在你选「拍照」时打开相机，照片只随这条反馈发出。";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "语流要用麦克风录下你说的英语（跟读、口语对话、发音练习）。只在你点录音的那几秒打开，录音只用来给你批改。";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";

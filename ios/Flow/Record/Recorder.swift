@@ -28,16 +28,23 @@ final class Recorder: NSObject, AVAudioRecorderDelegate {
             MainActor.assumeIsolated {
                 // a call, Siri: what was said so far is kept, stop() still gives it. iOS may already have stopped the
                 // recorder (and then sends no "finished"), so it is handled here whether or not it still records.
-                guard type == AVAudioSession.InterruptionType.began.rawValue, let self, let r = self.rec, self.lengthMs == nil else { return }
-                self.cut = true
-                self.lengthMs = r.isRecording ? Int(r.currentTime * 1000) : Int(Date().timeIntervalSince(self.startedAt ?? Date()) * 1000)
-                r.stop()
-                self.finished(ObjectIdentifier(r))
+                guard type == AVAudioSession.InterruptionType.began.rawValue else { return }
+                self?.cutNow()
             }
         }
     }
 
     var busy: Bool { rec?.isRecording == true }
+
+    /// The recording ends here with what was said so far ('cut'): a call came, or the app left the screen — the
+    /// microphone is open only while the learner is in front of it (the usage text promises that).
+    func cutNow() {
+        guard let r = rec, lengthMs == nil else { return }
+        cut = true
+        lengthMs = r.isRecording ? Int(r.currentTime * 1000) : Int(Date().timeIntervalSince(startedAt ?? Date()) * 1000)
+        r.stop()
+        finished(ObjectIdentifier(r))
+    }
 
     func permission() -> String {
         switch AVAudioApplication.shared.recordPermission {

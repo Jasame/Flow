@@ -26,6 +26,27 @@ struct ReminderPlan {
         var planHour: Int?          // the day's plan reminder (from the app; nil = off)
         var planMinutes = 10
         var app = true              // the learner wants the app's reminders (FlowApp.notify.sync {app: false} turns them off)
+
+        init() {}
+
+        // a field the saved copy does not have yet (an older app version) takes its default; the others are kept
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            let d = Input()
+            hour = try c.decodeIfPresent(Int.self, forKey: .hour) ?? d.hour
+            once = try c.decodeIfPresent(Double.self, forKey: .once)
+            onceSeen = try c.decodeIfPresent(Double.self, forKey: .onceSeen)
+            due = try c.decodeIfPresent(Int.self, forKey: .due) ?? d.due
+            new = try c.decodeIfPresent(Int.self, forKey: .new) ?? d.new
+            later = try c.decodeIfPresent(Int.self, forKey: .later) ?? d.later
+            minutes = try c.decodeIfPresent(Int.self, forKey: .minutes) ?? d.minutes
+            forecast = try c.decodeIfPresent([Int].self, forKey: .forecast) ?? d.forecast
+            dailyNew = try c.decodeIfPresent(Int.self, forKey: .dailyNew) ?? d.dailyNew
+            hasWords = try c.decodeIfPresent(Bool.self, forKey: .hasWords) ?? d.hasWords
+            planHour = try c.decodeIfPresent(Int.self, forKey: .planHour)
+            planMinutes = try c.decodeIfPresent(Int.self, forKey: .planMinutes) ?? d.planMinutes
+            app = try c.decodeIfPresent(Bool.self, forKey: .app) ?? d.app
+        }
     }
 
     struct Slot: Equatable {

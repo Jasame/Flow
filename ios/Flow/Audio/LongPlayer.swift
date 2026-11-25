@@ -237,6 +237,7 @@ final class LongPlayer: NSObject {
     /// previous / next sentence (the lock screen, the page)
     func step(_ d: Int) {
         guard let r = req else { return }
+        let d = max(-1, min(1, d))  // a page bug (step(Infinity)) must not overflow
         if r.straight && !dead {  // as NAR.step: the sentence not yet over (or the last), then back to its start first
             let t = player.currentTime().seconds.finiteOr(0)
             let i = r.sentences.firstIndex { t < $0.e + 0.25 } ?? r.sentences.count - 1
@@ -362,8 +363,11 @@ final class LongPlayer: NSObject {
             resumeAt = nil
             midSentence = true
             set(.playing)
+            holdBackground()  // between two sentences nothing plays: iOS may not suspend the app while it seeks
             seekTo(from) { [weak self] in
-                guard let self, self.token == tok, self.state == .playing else { return }
+                guard let self else { return }
+                defer { self.releaseBackground() }
+                guard self.token == tok, self.state == .playing else { return }
                 self.player.defaultRate = self.req?.rate ?? 1
                 self.player.play()
             }
