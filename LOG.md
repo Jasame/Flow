@@ -717,3 +717,10 @@
   - #352 录音：Omni 没听到时只做转写再由文字模型回答；能力测评·口语借用对话的录音线路（AI）
 - 自检：DEPLOYED，装了 13 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45662551972
+
+### b89 · 2026-11-26 01:31
+- main `0af8830`，构建 `a636898`
+- 新合并的 PR（自 b88 起）：
+  - #356 更新记录 r36（今晚）：简洁/详细卡、推荐开关、精听播放条（内容、发版和构建）
+- 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45665460782
