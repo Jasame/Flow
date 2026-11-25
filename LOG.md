@@ -483,3 +483,12 @@
   - #243 守则第 10 条：fork 来的 PR 改了 .github/ 一律不批准运行（发版和构建）
 - 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45591879714
+
+### b66 · 2026-11-25 18:46
+- main `dd91786`，构建 `789dc2f`
+- 新合并的 PR（自 b65 起）：
+  - #240 登录和验证码：加强限速（后台和班级、操作指南）
+  - #245 服务器变动：香港 SSH 只开给杭州，root 只能用钥匙登（发版和构建）
+  - #248 工作约定：推之前只跑改到的部分，界面测试交给 CI（发版和构建）
+- 自检：DEPLOYED，装了 8 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45596712523
