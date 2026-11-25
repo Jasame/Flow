@@ -648,6 +648,19 @@
           <div class="dl" data-dl="mac" data-name="Mac" data-plus="键盘媒体键控制朗读、系统通知的复习提醒和自动更新" data-perm="通知（复习提醒，第一次打开提醒时系统问一次）；跟读和口语录音时会请求麦克风权限。" data-risk="这个安装包没有 Apple 签名，第一次打开会被 Mac 拦下（提示「未打开“语流”」，较早的系统写「无法验证开发者」），打开方法见安装要点。只从 flowlang.cn 下载，下载后核对 SHA-256。"><a class="btn primary dl-btn" data-tap="about-dl-mac" aria-disabled="true">即将开放</a><p class="dl-needs">需要 macOS 11 或更新，Apple 芯片和 Intel 芯片的 Mac 都可以安装</p><p class="dl-meta" hidden></p><details class="dl-sum" hidden><summary>核对安装包（SHA-256）</summary><code class="dl-hash"></code><p class="dl-cert" hidden>签名证书 SHA-256：<code></code></p></details></div>
         </div>
       </article>
+      <article class="app-card rv" data-d="1" data-app="linux">
+        <figure class="app-shot"><div class="dev-frame wide"><img src="/about/app-linux.jpg" alt="Linux 上的语流 App：第一次打开的页面" width="1128" height="800" loading="lazy" decoding="async"></div></figure>
+        <div class="app-body">
+          <div class="app-head"><span class="ti" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="m7 9 3 2.5L7 14M12 14h5"/></svg></span><h3>Linux</h3><span class="app-chip dev">测试版</span></div>
+          <p class="app-lead">Linux 电脑版，还在测试，欢迎试用和反馈。打开的就是 flowlang.cn，用网站的账号。</p>
+          <ul class="app-perks"><li>一个独立的窗口，账号和网页版是同一个</li><li>复习提醒用桌面的通知，只在语流开着时弹（关掉窗口后默认留在托盘里）</li><li>测试版：AppImage 会自动更新；deb 有新版本要自己来下载</li></ul>
+          <h4>安装要点</h4>
+          <ol class="app-steps"><li><b>AppImage</b>（各种发行版都能用）：在终端运行 <code>chmod +x</code> 加文件名，再运行它。Ubuntu 22.04 及以后提示缺 FUSE 时，先运行 <code>sudo apt install libfuse2</code>。</li><li><b>deb</b>（Ubuntu 22.04+、Debian 12+、Linux Mint 21+、深度、统信 UOS、麒麟）：在终端运行 <code>sudo apt install ./</code> 加文件名，装好后在应用菜单里找「语流」。</li><li>只有 64 位（x86_64），没有 ARM 版和 rpm 包；Fedora、openSUSE、Arch 等请用 AppImage。遇到问题见指南「下载安装 App」的 Linux 一节。</li></ol>
+          <p class="app-warn">这是测试版，还没有签名；真机上的录音、托盘和通知还在请同学试。缺解码器时部分录音放不出声，装 gstreamer1.0-libav 就好（AppImage 自带解码器）。只从 flowlang.cn 下载，下载后核对 SHA-256。</p>
+          <p class="app-perm"><b>要用的权限：</b>通知：在语流里点「到点用 App 通知提醒」就开了，由桌面的通知服务弹出；麦克风只给语流自己的网站用，各桌面会不会再弹窗问不一样。</p>
+          <div class="dl" data-dl="linux-appimage" data-name="Linux · AppImage" data-plus="桌面通知的复习提醒" data-perm="通知：在语流里点「到点用 App 通知提醒」就开了，由桌面的通知服务弹出；麦克风只给语流自己的网站用，各桌面会不会再弹窗问不一样。" data-risk="这是测试版，还没有签名；真机上的录音、托盘和通知还在请同学试。缺解码器时部分录音放不出声，装 gstreamer1.0-libav 就好（AppImage 自带解码器）。只从 flowlang.cn 下载，下载后核对 SHA-256。" data-label="下载 AppImage"><a class="btn primary dl-btn" data-tap="about-dl-linux-appimage" aria-disabled="true">AppImage（即将开放）</a><p class="dl-needs" hidden>需要 64 位（x86_64）的 Linux 桌面</p><p class="dl-meta" hidden></p><details class="dl-sum" hidden><summary>核对安装包（SHA-256）</summary><code class="dl-hash"></code><p class="dl-cert" hidden>签名证书 SHA-256：<code></code></p></details></div>          <div class="dl" data-dl="linux-deb" data-name="Linux · deb" data-plus="桌面通知的复习提醒" data-perm="通知：在语流里点「到点用 App 通知提醒」就开了，由桌面的通知服务弹出；麦克风只给语流自己的网站用，各桌面会不会再弹窗问不一样。" data-risk="这是测试版，还没有签名；真机上的录音、托盘和通知还在请同学试。缺解码器时部分录音放不出声，装 gstreamer1.0-libav 就好（AppImage 自带解码器）。只从 flowlang.cn 下载，下载后核对 SHA-256。" data-label="下载 deb"><a class="btn primary dl-btn" data-tap="about-dl-linux-deb" aria-disabled="true">deb（即将开放）</a><p class="dl-needs">需要 64 位（x86_64）的 Linux 桌面</p><p class="dl-meta" hidden></p><details class="dl-sum" hidden><summary>核对安装包（SHA-256）</summary><code class="dl-hash"></code><p class="dl-cert" hidden>签名证书 SHA-256：<code></code></p></details></div>
+        </div>
+      </article>
       <article class="app-card rv" data-d="1" data-app="ios">
         <figure class="app-shot"><div class="phone"><div class="screen"><picture><source srcset="/about/today-d.jpg" media="(prefers-color-scheme: dark)"><img src="/about/today.jpg" alt="iPhone 上的语流网页版：今天的计划" width="390" height="844" loading="lazy" decoding="async"></picture></div></div><figcaption>图为 iPhone 上的网页版</figcaption></figure>
         <div class="app-body">

@@ -505,6 +505,7 @@ em.ink::after{content:'';position:absolute;left:-2%;right:-2%;bottom:.06em;heigh
 .app-perks{list-style:none;padding-left:0}
 ul.app-steps{list-style:disc}
 .app-steps li::marker{color:var(--green-ink);font-weight:700}
+.app-steps code{font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:1px 5px;border-radius:6px;background:var(--sunk);color:var(--ink);word-break:break-all}
 .app-perks li{position:relative;padding-left:22px}
 .app-perks li::before{content:'';position:absolute;left:2px;top:.55em;width:11px;height:6px;border-left:2px solid var(--green);border-bottom:2px solid var(--green);transform:rotate(-45deg)}
 .app-steps b{color:var(--ink)}
