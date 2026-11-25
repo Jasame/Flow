@@ -303,19 +303,22 @@ def run_device(pw, dev, opts):
     go(pg, '#/m/v5-culture-c1-lighthouse-ledger-2/read')
     check(dev, 'serial: an episode shows its place in the series', '第 2 / 6 集' in (pg.text_content('.study-head .kicker') or ''))
 
-    # ---- listen: whole-text playback shows a stop control that stays on screen, and it stops
+    # ---- listen (精听): 播放全文, 「AI 合成」 and the speed in the bar above the tabs (the user's pick of B9's design,
+    # 2026-11-25); 👁 and 从头开始 on the line above the sentences; 播放设置 opens from 「1×」
     go(pg, f'#/m/{PID}/listen')
-    lp = pg.evaluate("() => { const p = document.getElementById('playAll').getBoundingClientRect(), w = document.querySelector('#view .preread'); return [Math.round(p.top), w ? Math.round(w.getBoundingClientRect().top) : null, w ? w.open : null, innerHeight]; }")
-    check(dev, 'listen: 播放全文 comes first, on the first screen; the words to know are folded under it', lp[0] < lp[3] and (lp[1] is None or (lp[1] > lp[0] and lp[2] is False)), lp)
-    ps = pg.evaluate("""() => { const d = document.querySelector('#view .playset'), l = document.querySelector('#view .line[data-i="0"]');
-      return {open: d ? d.open : null, sum: (document.getElementById('psum') || {}).textContent, first: l ? Math.round(l.getBoundingClientRect().top) : null, h: innerHeight}; }""")
-    check(dev, 'listen: 语速、复读 and 停顿 fold into one line that says how it will play', ps['open'] is False and '每句' in (ps['sum'] or ''), ps)
+    lp = pg.evaluate("""() => { const b = document.getElementById('playAll'), bar = document.querySelector('.mini-player'), l = document.querySelector('#view .line[data-i="0"]'), w = document.querySelector('#view .preread');
+      const r = b ? b.getBoundingClientRect() : null, q = s => (bar && bar.querySelector(s)) || {};
+      return { inBar: !!(b && bar && bar.contains(b)), docked: !!(bar && !bar.hidden && bar.classList.contains('docked') && bar.classList.contains('idle')),
+        onScreen: !!r && r.top >= 0 && r.bottom <= innerHeight, first: l ? Math.round(l.getBoundingClientRect().top) : null, barTop: bar ? Math.round(bar.getBoundingClientRect().top) : null,
+        h: innerHeight, folded: w ? !w.open : true, ai: q('.ai-voice-note').textContent || '', rate: q('.speed-set').textContent || '', tools: !!document.querySelector('#view .ls-head #blind') }; }""")
+    check(dev, 'listen: 播放全文 in the bar above the tabs with 「AI 合成」 and the speed; 👁 on the line above the sentences',
+          lp['inBar'] and lp['docked'] and lp['onScreen'] and 'AI 合成' in lp['ai'] and lp['rate'].endswith('×') and lp['tools'] and lp['folded'], lp)
     if dev == 'phone':
-        check(dev, 'listen: the first sentence is on the first screen of a phone', ps['first'] is not None and ps['first'] < ps['h'], ps)
-    pg.click('#view .playset > summary'); pg.click('#view [data-rate="1.25"]')
-    s125 = pg.text_content('#psum') or ''
-    pg.click('#view [data-rate="1"]'); pg.click('#view .playset > summary')
-    check(dev, 'listen: 播放设置 opens the choices, and the line follows them', '1.25×' in s125 and pg.evaluate("() => !document.querySelector('#view .playset').open"), s125)
+        check(dev, 'listen: the first sentence starts on the first screen of a phone, above the bar', lp['first'] is not None and lp['barTop'] is not None and lp['first'] < lp['barTop'], lp)
+    pg.click('.mini-player .speed-set'); pg.wait_for_selector('#sheet [data-rate="1.25"]', timeout=4000); pg.click('#sheet [data-rate="1.25"]')
+    s125 = pg.text_content('.mini-player .speed-set') or ''
+    pg.click('#sheet [data-rate="1"]'); pg.click('#psDone'); pg.wait_for_timeout(300)
+    check(dev, 'listen: 「1×」 opens 播放设置 (语速, 每句, 句后) and the bar follows the speed', s125 == '1.25×' and (pg.text_content('.mini-player .speed-set') or '') == '1×', s125)
     if dev == 'phone-land':
         pa = pg.evaluate("() => { const r = document.getElementById('playAll').getBoundingClientRect(); return [Math.round(r.bottom), innerHeight]; }")
         check(dev, 'listen: a phone held sideways shows 播放全文 on the first screen (a short study header)', pa[0] <= pa[1], pa)
@@ -336,7 +339,7 @@ def run_device(pw, dev, opts):
     if mini:
         pg.click('.mini-player .stop')
         pg.wait_for_timeout(150)
-    check(dev, 'stop hides the control', pg.evaluate("() => { const m = document.querySelector('.mini-player'); return !m || m.hidden; }"))
+    check(dev, 'stop: the player goes, and the 精听 bar is back to its start button', pg.evaluate("() => { const m = document.querySelector('.mini-player'); return !m || m.hidden || (m.classList.contains('idle') && !!document.getElementById('playAll')); }"))
     if not touch:
         pg.keyboard.press('Space'); pg.wait_for_timeout(200)
         check(dev, 'Space starts playback (desktop)', '暂停' in pg.inner_html('#playAll'))
@@ -996,7 +999,7 @@ def app_audio_run(pw):
         emit = lambda typ, d: pg.evaluate('([t, d]) => FlowApp._emit(t, d)', [typ, d])
         prog = lambda k=key: pg.evaluate("k => { const p = JSON.parse(localStorage.getItem('flow-progress') || '{}')[k]; return p ? p.i : null; }", k)
         btn = lambda sel='#playAll': (pg.text_content(sel) or '').strip()
-        mini = lambda: pg.evaluate("(() => { const m = document.querySelector('.mini-player'); return m && !m.hidden ? m.querySelector('.lbl').textContent : null; })()")
+        mini = lambda: pg.evaluate("(() => { const m = document.querySelector('.mini-player'), l = m && !m.hidden && m.querySelector('.lbl'); return l ? l.textContent : null; })()")  # 精听's idle bar has no label
         lit = lambda: pg.evaluate("(() => { const l = document.querySelector('.line.now'); return l ? l.dataset.i : null; })()")
         listen = lambda: (go(pg, f'#/m/{PID}/listen'), pg.wait_for_selector('#playAll'), pg.wait_for_timeout(400))
 
@@ -1024,11 +1027,11 @@ def app_audio_run(pw):
               line == '离线中，这句还没存到本机，先用系统自带的声音' and len(said) == 1, (line, said))
         emit('audio', {'key': key, 'state': 'playing', 'i': 3, 'n': n, 'title': 't'}); pg.wait_for_timeout(200)
         check(dev, 'the next sentence in the AI voice again: the line goes', not pg.is_visible('#lsPrep') or not (pg.text_content('#lsPrep') or '').strip(), pg.text_content('#lsPrep'))
-        pg.evaluate("document.querySelector('.playset').open = true")  # 语速 and 复读 sit in 播放设置
-        pg.click('[data-rate="0.75"]'); pg.wait_for_timeout(200)
+        pg.evaluate("document.querySelector('.mini-player .speed-set').click()")  # 播放设置 from 「1×」 (hidden while playing on a narrow phone)
+        pg.wait_for_selector('#sheet [data-rate="0.75"]', timeout=4000); pg.click('#sheet [data-rate="0.75"]'); pg.wait_for_timeout(200)
         s = last('audio.set')
         check(dev, '语速 0.75× while the app plays: it gets it at once (audio.set)', bool(s) and s.get('rate') == 0.75, s)
-        pg.click('[data-rate="1"]'); pg.wait_for_timeout(100)
+        pg.click('#sheet [data-rate="1"]'); pg.click('#psDone'); pg.wait_for_timeout(200)
         pg.click('#playAll'); pg.wait_for_timeout(200)
         check(dev, '暂停 goes to the app, the button says 继续', 'audio.pause' in cmds()[-2:] and btn().endswith('继续'), (cmds()[-3:], btn()))
         pg.click('#playAll'); pg.wait_for_timeout(200)
@@ -1040,24 +1043,26 @@ def app_audio_run(pw):
         items = (last('audio.play') or {}).get('items') or []
         check(dev, "audio-made: the app's new address is kept and the next play sends it (items)",
               len(items) == n and items[1].get('url') == '/audio/tts/us-f/made-by-app.mp3' and items[0].get('url') is None, items[:2])
-        # loaded again while the app plays on (第 5 句): the page keeps that place and takes the text back, no new start
+        # loaded again while the app plays on (第 5 句): 精听's one bar takes the text back by itself (B3, the user's pick of
+        # B9's bar, 2026-11-25): no new start, 复读 and 语速 sent, the bar is that text's player on 第 5 句, the place kept
         pg.evaluate(f"k => window.__fakeApp.put({{ playing: {{ key: k, state: 'playing', i: 4, n: {n}, title: 't' }} }})", key)
+        pg.evaluate('window.__cmds = []')
         pg.reload(wait_until='load'); settle(pg); pg.wait_for_selector('#playAll'); pg.wait_for_timeout(500)
-        check(dev, 'loaded again while the app plays: the mini player is back on 第 5 句, and so is the kept place',
-              (mini() or '').startswith('t · 第 5 /') and prog() == 4 and btn().endswith('从第 5 句继续'), (mini(), prog(), btn()))
+        back = cmds()
+        check(dev, "loaded again while the app plays: the bar takes the app's text back on 第 5 句 (no new audio.play, 复读 and 语速 sent), the place kept",
+              (mini() or '').startswith('第 5 /') and prog() == 4 and btn().endswith('暂停') and 'audio.play' not in back and 'audio.set' in back, (mini(), prog(), btn(), back))
         emit('audio', {'key': key, 'state': 'playing', 'i': 5, 'n': n, 'title': 't'}); pg.wait_for_timeout(200)
-        check(dev, '…and while the app reads on, the button follows it (从第 6 句继续)', btn().endswith('从第 6 句继续') and prog() == 5 and (mini() or '').startswith('t · 第 6 /'), (btn(), prog(), mini()))
+        check(dev, '…and while the app reads on, the bar and the kept place follow it (第 6 句)', prog() == 5 and (mini() or '').startswith('第 6 /') and lit() == '5', (btn(), prog(), mini(), lit()))
         pg.click('#playAll'); pg.wait_for_timeout(300)
-        after = cmds()
-        check(dev, "…and 播放全文 takes the app's text back: no new audio.play, 复读 and 语速 sent, 暂停, 第 6 句 lit",
-              'audio.play' not in after and 'audio.set' in after and btn().endswith('暂停') and lit() == '5', (after, btn(), lit()))
+        check(dev, '…and 暂停 on that bar goes to the app', 'audio.pause' in cmds()[-2:] and btn().endswith('继续'), (cmds()[-3:], btn()))
+        pg.click('#playAll'); pg.wait_for_timeout(300)
         # 语速 and 单句循环 changed on the lock screen (iOS 27, C1's #335: rate, rep, loop with why 'remote'): the page takes
-        # them, its line follows, and it pushes nothing back (a set would put 1× back); turned off, the page's own come back
+        # them, the bar's 1× follows, and it pushes nothing back (a set would put 1× back); turned off, the page's own come back
         pg.evaluate('window.__cmds = []')
         emit('audio', {'key': key, 'state': 'playing', 'i': 5, 'n': n, 'title': 't', 'why': 'remote', 'rate': 1.25, 'rep': 0, 'loop': True}); pg.wait_for_timeout(200)
-        kn = pg.evaluate("() => ({ rate: JSON.parse(localStorage.getItem('flow-next-rate')), rep: (JSON.parse(localStorage.getItem('flow-next-loop') || '{}')).rep, sum: (document.getElementById('psum') || {}).textContent || '' })")
-        check(dev, '语速 1.25× and 单句循环 from the lock screen: the page takes them and pushes nothing back',
-              kn['rate'] == 1.25 and kn['rep'] == 0 and '1.25×' in kn['sum'] and '单句循环' in kn['sum'] and 'audio.set' not in cmds(), (kn, cmds()))
+        kn = pg.evaluate("() => ({ rate: JSON.parse(localStorage.getItem('flow-next-rate')), rep: (JSON.parse(localStorage.getItem('flow-next-loop') || '{}')).rep, bar: (document.querySelector('.mini-player .speed-set') || {}).textContent || '' })")
+        check(dev, '语速 1.25× and 单句循环 from the lock screen: the page takes them, the bar says 1.25×, nothing pushed back',
+              kn['rate'] == 1.25 and kn['rep'] == 0 and kn['bar'] == '1.25×' and 'audio.set' not in cmds(), (kn, cmds()))
         emit('audio', {'key': key, 'state': 'playing', 'i': 5, 'n': n, 'title': 't', 'why': 'remote', 'rate': 1, 'rep': 1, 'loop': False}); pg.wait_for_timeout(200)
         kn = pg.evaluate("() => ({ rate: JSON.parse(localStorage.getItem('flow-next-rate')), rep: (JSON.parse(localStorage.getItem('flow-next-loop') || '{}')).rep })")
         check(dev, '…and turned off there, the page is back to 1× and 每句 1 遍, still nothing pushed', kn['rate'] == 1 and kn['rep'] == 1 and 'audio.set' not in cmds(), (kn, cmds()))
@@ -1238,7 +1243,7 @@ def ios_audio_run(pw):
         check(dev, '继续 plays on from where it was', mini['playing'] and not mini['resume'] and mini['state'] == 'playing', mini)
         t0 = pg.evaluate(f"{nar}.currentTime"); pg.evaluate('window.__wa.ms.nexttrack()'); pg.wait_for_timeout(200)
         check(dev, "the lock screen's next goes to the next sentence", pg.evaluate(f"{nar}.currentTime") > t0, (t0, pg.evaluate(f"{nar}.currentTime")))
-        pg.evaluate("(m => m && !m.hidden && m.querySelector('.stop').click())(document.querySelector('.mini-player'))"); pg.wait_for_timeout(300)  # or the short sample ended
+        pg.evaluate("(m => { const b = m && !m.hidden && m.querySelector('.stop'); if (b) b.click(); })(document.querySelector('.mini-player'))"); pg.wait_for_timeout(300)  # or the short sample ended
         check(dev, '停止 (or the end) clears the lock screen', pg.evaluate("!navigator.mediaSession.metadata && navigator.mediaSession.playbackState === 'none'"), pg.evaluate("navigator.mediaSession.playbackState"))
         check(dev, 'no script errors (a whole text)', not errs, errs[:3])
         ctx.close()
@@ -1516,11 +1521,11 @@ def ux_run(pw):
         # 复读: 3 遍, no pause: one tap on a sentence says it three times. The server voice is off on this page (the server's
         # own answer when it is), so the browser voice, faked to end at once, says it and the three times can be counted
         pg.route('**/api/next/tts', lambda r: r.fulfill(status=503, json={'error': '服务器朗读没有开启', 'code': 'off'}))
-        go(pg, f'#/m/{PID}/listen'); pg.wait_for_selector('#view .playset', timeout=5000)
-        pg.evaluate("document.querySelector('#view .playset').open = true"); pg.wait_for_timeout(100)  # 播放设置: remembered open after the reload below
-        pg.click('[data-rep="3"]'); pg.evaluate('window.__said = []')
+        go(pg, f'#/m/{PID}/listen'); pg.wait_for_selector('.mini-player .speed-set', timeout=5000)
+        pg.click('.mini-player .speed-set'); pg.wait_for_selector('#sheet [data-rep="3"]', timeout=4000)  # 播放设置 from 「1×」 in 精听's bar
+        pg.click('#sheet [data-rep="3"]'); pg.click('#psDone'); pg.wait_for_timeout(200); pg.evaluate('window.__said = []')
         pg.click('[data-say="0"]'); pg.wait_for_timeout(30)
-        mini = pg.is_visible('.mini-player')  # while it repeats (it goes away when the last time ends)
+        mini = pg.is_visible('.mini-player:not(.idle)')  # the stop button while it repeats (the bar goes back to 播放全文 after the last time)
         pg.wait_for_timeout(900)
         said = pg.evaluate('window.__said')
         check(dev, '复读: a sentence is said three times, with a stop button on screen meanwhile', len(said) == 3 and len(set(said)) == 1 and mini, (len(said), mini))
@@ -1540,14 +1545,14 @@ def ux_run(pw):
         p2 = c2.new_page()
         p2.route('**/api/next/tts', lambda r: r.fulfill(json={'url': '/audio/tts/us-f/ux-short-0001.wav', 'made': False}))
         p2.route('**/audio/tts/us-f/ux-short-0001.wav', lambda r: r.fulfill(status=200, content_type='audio/wav', body=short))
-        p2.goto(BASE + f'/#/m/{PID}/listen', wait_until='networkidle'); settle(p2, '#view .playset')
-        p2.evaluate("document.querySelector('#view .playset').open = true"); p2.wait_for_timeout(100)
-        p2.click('[data-rep="3"]'); p2.evaluate('window.__plays = []; window.__said = []')
+        p2.goto(BASE + f'/#/m/{PID}/listen', wait_until='networkidle'); settle(p2, '.mini-player .speed-set')
+        p2.click('.mini-player .speed-set'); p2.wait_for_selector('#sheet [data-rep="3"]', timeout=4000)
+        p2.click('#sheet [data-rep="3"]'); p2.click('#psDone'); p2.wait_for_timeout(200); p2.evaluate('window.__plays = []; window.__said = []')
         p2.click('[data-say="0"]'); p2.wait_for_timeout(60)
-        mini2 = p2.is_visible('.mini-player')
+        mini2 = p2.is_visible('.mini-player:not(.idle)')
         p2.wait_for_function("window.__plays.filter(s => s.includes('ux-short')).length >= 3", timeout=8000)
         p2.wait_for_timeout(900)  # a fourth would have started by now
-        got = p2.evaluate("({ plays: window.__plays.filter(s => s.includes('ux-short')).length, said: window.__said.length, mini: !!document.querySelector('.mini-player:not([hidden])') })")
+        got = p2.evaluate("({ plays: window.__plays.filter(s => s.includes('ux-short')).length, said: window.__said.length, mini: !!document.querySelector('.mini-player:not([hidden]):not(.idle)') })")
         check(dev, '复读 in the server voice: the sentence is played three times (each time it ends, the next), not the browser voice, a stop button meanwhile',
               got['plays'] == 3 and got['said'] == 0 and mini2 and not got['mini'], {**got, 'mini_while': mini2})
         c2.close()
@@ -1588,6 +1593,7 @@ def ux_run(pw):
             p3.evaluate("localStorage.removeItem('flow-progress')")
             p3.click('#playAll'); p3.wait_for_timeout({'never': 3400, 'never-voices': 3400, 'stuck': 4200, 'all-words': 5200}.get(kind, 1500))
             seen[kind] = p3.evaluate("""() => ({ said: window.__said.slice(), n: document.querySelectorAll('#view .line').length, toasts: (window.__toasts || []).join(' | '),
+                ai: !!document.querySelector('.mini-player:not([hidden]) .ai-voice-note:not([hidden])'),
                 btn: document.querySelector('#playAll').textContent.trim(), now: (document.querySelector('#view .line.now') || {dataset: {}}).dataset.i,
                 note: (document.querySelector('#lsPrep') || {}).textContent || '', mini: (document.querySelector('.mini-player:not([hidden]) .lbl') || {}).textContent || '' })""")
             c3.close()
@@ -1635,7 +1641,7 @@ def ux_run(pw):
         p5.evaluate("sessionStorage.setItem('lateHome', '1')")
         p5.goto(BASE + f'/?again=1#/m/{PID}/listen', wait_until='domcontentloaded'); p5.wait_for_selector('#playAll', timeout=8000)  # a real load (a new query): the page starts again from the copy
         p5.click('#playAll'); p5.wait_for_timeout(4500)
-        kept = p5.evaluate("""() => ({ btn: document.querySelector('#playAll').textContent.trim(), mini: !!document.querySelector('.mini-player:not([hidden])'),
+        kept = p5.evaluate("""() => ({ btn: document.querySelector('#playAll').textContent.trim(), mini: !!document.querySelector('.mini-player:not([hidden]):not(.idle)'),
             said: window.__said.length, now: (document.querySelector('#view .line.now') || {dataset: {}}).dataset.i })""")
         check(dev, '播放全文 right after opening an article: the fresher 今日 coming in does not stop the reading',
               kept['btn'] == '暂停' and kept['mini'] and kept['said'] >= 2, kept)
@@ -1646,6 +1652,7 @@ def ux_run(pw):
               nvv['btn'] == '继续' and nvv['now'] == '0' and '没有读出' in nvv['note'] and '换 Safari' not in nvv['toasts'], nvv)
         check(dev, 'browser voice stuck part-way (an iPad: two words, then "speaking" for ever): within seconds the text waits at that sentence and says why',
               len(sk['said']) == 1 and sk['btn'] == '继续' and sk['now'] == '0' and '没有读出' in sk['note'], sk)
+        check(dev, 'the server voice off, the browser voice reading: the bar does not say 「AI 合成」 (the voice is the device\'s own)', not aw['ai'], {k: aw[k] for k in ('ai', 'note')})
         check(dev, 'browser voice saying every word but never the end: the sentence counts as said and the text reads on',
               len(aw['said']) >= 2 and aw['said'][0] != aw['said'][1] and '没有读出' not in aw['note'], {k: aw[k] for k in ('btn', 'now', 'note')} | {'said': len(aw['said'])})
         check(dev, 'browser voice dropped once (iOS): that sentence is said again and the text reads on to its end',
@@ -1660,9 +1667,10 @@ def ux_run(pw):
         # sentence counts as said once the voice has been quiet a moment, and the text reads on instead of sticking
         check(dev, 'browser voice starting a sentence but never saying it ended: the text reads on (not stuck "playing")',
               len(ne['said']) >= 2 and ne['said'][0] != ne['said'][1] and '没有读出' not in ne['note'], {k: ne[k] for k in ('btn', 'now', 'note')} | {'said': len(ne['said'])})
-        pg.reload(); settle(pg, '[data-rep]')
-        check(dev, '复读: the choice is remembered', pg.get_attribute('[data-rep="3"]', 'aria-pressed') == 'true')
-        pg.click('[data-rep="1"]')
+        pg.reload(); settle(pg, '.mini-player .speed-set')
+        pg.click('.mini-player .speed-set'); pg.wait_for_selector('#sheet [data-rep="3"]', timeout=4000)
+        check(dev, '复读: the choice is remembered', pg.get_attribute('#sheet [data-rep="3"]', 'aria-pressed') == 'true')
+        pg.click('#sheet [data-rep="1"]'); pg.click('#psDone'); pg.wait_for_timeout(200)
         # 字号: 特大 makes the reading text larger, and a 360-pixel phone still does not scroll sideways
         go(pg, '#/me'); pg.click('#meText'); pg.wait_for_selector('#sheetCard [data-ts="xl"]', timeout=4000)
         pg.click('#sheetCard [data-ts="xl"]'); pg.click('#sheetCard [data-tl="w"]'); pg.evaluate("document.querySelector('#sheet [data-close]').click()")
@@ -2023,7 +2031,7 @@ def listen_speak_run(pw):
                 kept = pg.evaluate("(JSON.parse(localStorage.getItem('flow-progress') || '{}')['listen:" + imp['id'] + "'] || {}).i")
                 check(dev, 'leaving the page keeps where 听 was, on this phone, under 听 (读 keeps its own)', kept == k, (k, kept))
                 go(pg, f"#/m/{imp['id']}/listen"); pg.wait_for_selector('#playAll')
-                back = pg.evaluate("({ btn: document.querySelector('#playAll').textContent, restart: !document.querySelector('#playRestart').hidden, mini: !!document.querySelector('.mini-player:not([hidden])') })")
+                back = pg.evaluate("({ btn: document.querySelector('#playAll').textContent, restart: !document.querySelector('#playRestart').hidden, mini: !!document.querySelector('.mini-player:not([hidden]):not(.idle)') })")
                 check(dev, 'back on the page: 「从第 N 句继续」 where it was left, 从头开始 beside it, nothing playing',
                       back['btn'].strip() == f'从第 {k + 1} 句继续' and back['restart'] and not back['mini'], (k, back))
                 lay('听 从第 N 句继续')
@@ -2036,13 +2044,20 @@ def listen_speak_run(pw):
                     pg.set_viewport_size({'width': w, 'height': 780}); pg.wait_for_timeout(150)
                     fits.append(pg.evaluate("""() => { const m = document.querySelector('.mini-player'), l = m.querySelector('.lbl'), t = m.querySelector('.toggle'), x = m.querySelector('.close');
                         const one = el => { const r = el.getBoundingClientRect(); return r.height <= 48; };
-                        return { w: innerWidth, label: l.textContent, whole: l.scrollWidth <= l.clientWidth + 1, toggle: one(t), close: one(x), mark: !!m.querySelector('.ai-voice-note'),
-                                 tip: !!document.querySelector('#view .listen-tip .ai-voice-note'),
+                        return { w: innerWidth, label: l.textContent, whole: l.scrollWidth <= l.clientWidth + 1, toggle: one(t), close: one(x), mark: !!m.querySelector('.ai-voice-note:not([hidden])'),
+                                 tip: document.querySelectorAll('#view .ai-voice-note').length,
                                  inside: m.getBoundingClientRect().left >= 0 && m.getBoundingClientRect().right <= innerWidth }; }"""))
                 pg.set_viewport_size(opts['viewport']); pg.wait_for_timeout(150)
                 check(dev, 'the mini player fits: the label whole, 暂停 and ✕ on one line, inside the screen (390 and 360 px), with 「AI 合成」',
                       all(f['whole'] and f['toggle'] and f['close'] and f['inside'] and f['mark'] for f in fits), fits)
-                check(dev, '听: 「朗读由 AI 合成」 by the player (the voice is synthesized: 《标识办法》)', all(f['tip'] for f in fits), fits)
+                check(dev, '听: 「AI 合成」 once, in the bar by the play button; no second line on the page (the user, 2026-11-25)', all(f['tip'] == 0 and f['mark'] for f in fits), fits)
+                # the one label on the page: at least 12 px and 4.5:1 against the bar, its opacity counted (B7's rule)
+                lab = pg.evaluate("""() => { const rgb = s => s.match(/[\\d.]+/g).map(Number), bar = document.querySelector('.mini-player'), n = bar.querySelector('.ai-voice-note');
+                    const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+                    const bg = rgb(getComputedStyle(bar).backgroundColor), fg = rgb(getComputedStyle(n).color), a = (fg.length > 3 ? fg[3] : 1) * parseFloat(getComputedStyle(n).opacity);
+                    const seen = [0, 1, 2].map(k => fg[k] * a + bg[k] * (1 - a)), x = lum(seen), y = lum(bg);
+                    return { size: parseFloat(getComputedStyle(n).fontSize), contrast: Math.round((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05) * 100) / 100 }; }""")
+                check(dev, '听: 「AI 合成」 in the bar is at least 12 px and 4.5:1 against it', lab['size'] >= 12 and lab['contrast'] >= 4.5, lab)
                 pg.click('.mini-player .close'); pg.wait_for_timeout(200)
                 pg.click('#playRestart'); pg.wait_for_function(f"{now} >= 0", timeout=10000)
                 check(dev, '从头开始 starts at the first sentence', pg.evaluate(now) == 0, pg.evaluate(now))
