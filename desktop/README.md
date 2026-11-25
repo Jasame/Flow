@@ -82,6 +82,13 @@ npm run build:beta       # 打 Beta 安装包；npm run build 打 Release
 打开网站，在页面里检查 `FlowApp`、UA、通知权限、mediaSession 接到原生，写报告后退出（90 秒没报告退出码 2）。
 CI（`.github/workflows/desktop.yml`）在 windows-latest 上装好 NSIS 安装包再跑一次，在 macos-latest 上跑 .app，截图和安装包都在 run 的 artifacts 里（留 14 天）。
 
+### 出安装包
+
+- **内测包（Beta）**：每次合进 main（改到 `desktop/` 时）自动构建，在那次 Desktop run 的 artifacts 里，留 14 天，用户自己随时可以下载装。
+- **正式包（Release）**：用户同意分发某个版本以后，在 GitHub 的 Actions → Desktop → Run workflow，分支选 main（就是那个提交），
+  channel 选 `release`。产物留 90 天。分发的就是这一次构建。
+- 产物只在 Actions 里：不自动传到 GitHub Releases 或任何地方。发给试用同学、放到公开的地方、开自动更新的通道，都要先问用户。
+
 图标：`python3 tools/make_icon.py` 画 1024 的圆角方块（和网站同一个 logo），再 `npx tauri icon src-tauri/app-icon.png -o src-tauri/icons`（删掉生成的 android/、ios/）。
 
 ## 签名（现在都没有，只记在这里）

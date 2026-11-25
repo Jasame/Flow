@@ -6,7 +6,8 @@ name: Desktop
 #
 # Pull requests and main build the Beta app (opens 内测版 flow.jasa.hk). "Run workflow" can build the Release app
 # (opens 正式版 flowlang.cn). Nothing is signed: no Apple or Windows certificate exists yet (desktop/README.md).
-# The installers are kept 14 days as the run's artifacts.
+# The installers are kept as the run's artifacts only (Beta 14 days, Release 90) and never uploaded anywhere else:
+# handing them out is the owner's call (desktop/README.md「出安装包」).
 on:
   pull_request:
     paths: ['desktop/**', '.github/workflows/desktop.yml']
@@ -113,7 +114,7 @@ jobs:
         if: always()
         with:
           name: flow-desktop-${{ matrix.name }}-${{ inputs.channel || 'beta' }}
-          retention-days: 14
+          retention-days: ${{ inputs.channel == 'release' && 90 || 14 }}
           if-no-files-found: ignore
           path: |
             desktop/src-tauri/target/release/bundle/nsis/*-setup.exe
