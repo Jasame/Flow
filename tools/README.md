@@ -161,7 +161,7 @@ The owner approved these on 2026-11-24 (「按你的建议改，b6 发完就写�
        `--ui <group>` and `--all` are for re-running what failed in CI, nothing else (msi-run says so when used).
      - Exit status 3 means the MSI could not be reached. Then run the same on the Mac:
        `python3 tools/run_tests.py --changed --checks`.
-     - At most two `msi-run`s at once; a third waits.
+     - At most two `msi-run`s at once, four while CI is light on the MSI; the next waits its turn (first come, first served).
    - Tests compute counts from the data. Never hard-code how many questions, columns or items there are.
    - A change to an API response shape updates `tools/qa_e2e.py` in the same PR (b5's e2e broke on exactly this).
    - Progress goes into the area's shared note, so other sessions read it instead of waiting for relayed messages.
@@ -225,7 +225,7 @@ CI runs them on every pull request, the one gate before a merge. Running them he
 `--all` = every website test; `--ui <groups>`; `--no-checks` leaves the checks out), sends the branch as it is now (uncommitted changes and new files included, nothing
 .gitignore excludes) over `ssh msi-flow`, runs `run_tests.py` there and streams the output back; a UI run's report and
 screenshots come back to `msi-out/`. Its exit status is the tests', so `bash tools/msi-run.sh && git push` works. It
-shares the MSI with CI: nice 10, at most `MSI_RUN_JOBS` (4) processes, two runs at once (see the script's header).
+shares the MSI with CI: nice 10, at most `MSI_RUN_JOBS` (4) processes, two runs at once, four while CI is light, first come first served (see the script's header).
 
 `--list` prints what would run without running it. A UI group is one switch of `ui_test.py`; `run_tests.py --ui` with
 no group runs all five CI shares at once on the laptop (about 6 minutes).

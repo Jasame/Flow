@@ -29,7 +29,7 @@
 # Sharing the MSI with CI (its runners, tools/msi-setup.sh): these runs start at nice 10 and idle I/O priority so CI's
 # jobs keep theirs,
 # use at most MSI_RUN_JOBS processes, keep their temporary files in a folder of their own under /tmp, and at most
-# two run at once (a third waits for one to finish). Needs: `ssh msi-flow` working (Tailscale), and the MSI set up
+# two run at once, four while CI has at most 3 jobs there (the next waits its turn, first come first served). Needs: `ssh msi-flow` working (Tailscale), and the MSI set up
 # with tools/msi-setup.sh (Python 3.11 venv with Playwright, Google Chrome, the Chinese fonts).
 set -euo pipefail
 
@@ -97,7 +97,7 @@ git -C "$repo" for-each-ref --format='%(committerdate:unix) %(refname)' refs/msi
 done
 find "$base/w" "$base/out" -mindepth 1 -maxdepth 1 -mtime +0 -exec rm -rf {} + 2>/dev/null
 git -C "$repo" worktree prune
-# at most two runs at once: hold one of two lock files for the whole run. First come, first served (语流 B5,
+# at most 2 runs at once (4 while CI is light, below): hold one lock file for the whole run. First come, first served (语流 B5,
 # 2026-11-25: a run waited 37 minutes while later ones went first): a waiting run leaves a ticket in queue/, and only
 # the oldest ticket tries for a place; a ticket whose run has gone (stopped from the Mac) is dropped, so none blocks.
 mkdir -p "$base/queue"
@@ -106,11 +106,14 @@ trap 'rm -f "$ticket"' EXIT
 slot=; said=
 while [ -z "$slot" ]; do
   for q in "$base/queue"/*; do [ -e "$q" ] || continue; kill -0 "${q##*-}" 2>/dev/null || rm -f "$q"; done
+  # places: 4 while CI has at most 3 jobs on the MSI (its runners' Runner.Worker processes), else 2 (语流 A4, 18:03: CI
+  # idle, CPU at 20 %, and 4 runs waiting); these runs are at nice 10 and idle I/O, so CI's jobs come first anyway
+  places=2; [ "$(ps -eo comm | grep -c '^Runner.Worker')" -le 3 ] && places=4
   if [ "$(ls "$base/queue" | sort | head -1)" = "${ticket##*/}" ]; then
-    for s in 1 2; do exec 9>"$base/slot-$s.lock"; if flock -n 9; then slot=$s; break; fi; done
+    for s in $(seq 1 "$places"); do exec 9>"$base/slot-$s.lock"; if flock -n 9; then slot=$s; break; fi; done
   fi
   if [ -z "$slot" ]; then
-    [ -n "$said" ] || echo "msi-run: two runs are going on the MSI; $(ls "$base/queue" | sort | awk -v me="${ticket##*/}" '$0 < me' | wc -l) more waiting ahead of this one…"
+    [ -n "$said" ] || echo "msi-run: $places runs are going on the MSI; $(ls "$base/queue" | sort | awk -v me="${ticket##*/}" '$0 < me' | wc -l) more waiting ahead of this one…"
     said=1; sleep 5
   fi
 done
