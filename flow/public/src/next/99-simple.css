@@ -1,0 +1,17 @@
+/* 简洁化 (the user's pick, 2026-11-25; eidos-simplify-proposal.md): 今日 and 单词, 轻度 — fewer shadows, outlines and
+   lines; a label that only names a kind (语流文章, 精选, 待学, 记得) is coloured text, not a pill. Scoped to those two pages
+   (#view:has(...)), so other pages are as they were; without :has() a browser simply shows the page as before.
+   The AI marks, the 「也可以读」 / 好句 cards' structure (12-daily-line.js) and every tap area stay as they are. */
+
+/* 今日 */
+#view:has(.today-plan) .card,#view:has(.today-plan) .btn.primary{box-shadow:none}
+#view:has(.today-plan) .line-card .pill.green,#view:has(.today-plan) .mlist .pill.feat{background:none;padding:0;color:var(--muted);font-weight:500}
+#view:has(.today-plan) .card.sunk{border-color:transparent}
+
+/* 单词 */
+#view:has(.xlist) .card{box-shadow:none}
+#view:has(.xlist) .tools a,#view:has(.xlist) .tools button{background:none}
+#view:has(.xlist) details.card.fold{border-color:transparent}
+#view:has(.xlist) .xlist>.xrow+.xrow::before{display:none}
+#view:has(.xlist) .xrow .pill{background:none;padding:0;color:var(--muted);font-weight:500}
+#view:has(.xlist) .xrow .pill.amber{color:var(--amber-fill)}

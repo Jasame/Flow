@@ -57,6 +57,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `86-loop.css` | starting check, re-check tags, exam practice, serial episode list |
 | `86-sprint.css` | 考试冲刺: the line on 今日, the exam hub, the score trend, question-type practice |
 | `85-phone.css` | phone layout from a 360 px audit (16px fields, card layouts, listen controls, one level of surface), the knowledge graph tiles and grammar-point pages |
+| `99-simple.css` | 简洁化 (the user's pick, 2026-11-25) for 今日 and 单词, scoped with `#view:has(...)`: no shadows, outlines or lines between rows; kind labels (语流文章, 精选, 待学, 记得) as coloured text |
 | `98-home-app.css` | 主屏 App: the top bar clear of the Dynamic Island and the sides (safe areas are `--sat/--sab/--sal/--sar`, 00-base.css), the back button, the sheet on the keyboard, the new-version line |
 | `96-tidy.css` | phone tidy-up from a full-length audit: 存到手机 on the kicker line, 听's settings folded into one line, 读's tools in one row, the word-book picker folded, the 练习 list, 全部材料 filters |
 | `97-progress.css` | 这周进步: the four-number card, its details sheet, the three lines after a text, the unsubscribe page |
