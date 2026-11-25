@@ -8,7 +8,7 @@
 /* frosted top bar and bottom tabs, no hairlines. The blur sits on a layer behind the bar, not on the bar itself:
    a backdrop-filter on the bar would make the fixed bottom tabs (inside it on phones) position against the bar. */
 .bar{border-bottom:0;background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none}
-.bar::before{content:'';position:absolute;inset:0;z-index:-1;background:color-mix(in srgb,var(--bg) 76%,transparent);
+.bar::before{content:'';position:absolute;inset:0;z-index:-1;background:var(--bg);background:color-mix(in srgb,var(--bg) 76%,transparent);  /* first: iOS before 16.2 has no color-mix(), the bar stays solid */
   -webkit-backdrop-filter:saturate(180%) blur(18px);backdrop-filter:saturate(180%) blur(18px)}
 @media (max-width:759px){
   .tabs{border-top:0;background:color-mix(in srgb,var(--paper) 72%,transparent);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px)}
@@ -99,7 +99,7 @@ body.reviewing{touch-action:pan-y pinch-zoom}
      status bar or Dynamic Island in the home-screen app and the back button included). The page below it is a column
      the card fills, so the line above the card (结束, progress, 撤销) can change height without a number to keep. */
   body.reviewing{padding-bottom:0}
-  body.reviewing main{display:flex;flex-direction:column;min-height:calc(100dvh - var(--bar-h,48px));padding-bottom:calc(12px + var(--sab))}
+  body.reviewing main{display:flex;flex-direction:column;min-height:calc(100vh - var(--bar-h,48px));min-height:calc(100dvh - var(--bar-h,48px));padding-bottom:calc(12px + var(--sab))}
   body.reviewing .review:not(.q){display:flex;flex-direction:column;flex:1 0 auto;gap:14px}
   body.reviewing .sr-only{top:0}  /* the live region after main (1px, absolute where it stands) would hang below the screen */
   body.reviewing .review:not(.open-card):not(.q)>:first-child{margin-top:auto}
