@@ -365,7 +365,7 @@ class Handler(BaseHTTPRequestHandler):
     if path=='/api/daily/suggestions':
      pack_id=parse_qs(urlsplit(self.path).query).get('id',[''])[0]
      row=c.execute("SELECT content FROM lab_packs WHERE id=? AND owner IS NULL AND origin='daily'",(pack_id,)).fetchone()
-     if not row:return self.send({'error':'来源不存在'},404)
+     if not row or daily.retired(json.loads(row['content'])):return self.send({'error':'来源不存在'},404)  # 今日热点 news: paused 2026-11-25
      html=json.loads(row['content']).get('provenance',{}).get('suggestions','').encode()
      self.send_response(200);self.send_header('Content-Type','text/html; charset=utf-8');self.send_header('Cache-Control','no-store')
      self.send_header('X-Content-Type-Options','nosniff');self.send_header('Referrer-Policy','no-referrer')

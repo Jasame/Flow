@@ -335,6 +335,7 @@ flow/tests/test_corpus.py
 flow/tests/test_corpus_v5.py
 flow/tests/test_daily_knowledge.py
 flow/tests/test_daily_line.py
+flow/tests/test_daily_pause.py
 flow/tests/test_exam_sprint.py
 flow/tests/test_feedback.py
 flow/tests/test_field.py
