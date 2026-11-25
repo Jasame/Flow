@@ -25,11 +25,12 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
         recorder.emit = { [weak self] type, detail in self?.emit(type, detail) }
     }
 
-    /// The script (FlowBridge.js) at document start in the main frame, and the message handler, in the page's own world.
+    /// The wrapper the three apps share (native/flowapp.js, docs/native-bridge.md §2) after iOS's transport, at document
+    /// start in the main frame, and the message handler, in the page's own world.
     func install(in ucc: WKUserContentController) {
         let cfg: [String: Any] = ["v": Self.version, "app": AppConfig.version, "build": AppConfig.build, "platform": "ios",
                                   "features": Self.features, "beta": AppConfig.isBeta]
-        let src = "window.__flowAppConfig = \(Self.json(cfg));\n" + Self.script
+        let src = Self.transport(cfg) + Self.script
         ucc.addUserScript(WKUserScript(source: src, injectionTime: .atDocumentStart, forMainFrameOnly: true, in: .page))
         ucc.addScriptMessageHandler(self, contentWorld: .page, name: Self.name)
         if AppConfig.muted { ucc.addUserScript(WKUserScript(source: Self.muteScript, injectionTime: .atDocumentStart, forMainFrameOnly: false, in: .page)) }
@@ -50,8 +51,18 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
     })();
     """
 
+    /// iOS's transport for native/flowapp.js: WKScriptMessageHandlerWithReply answers each postMessage with a Promise.
+    static func transport(_ cfg: [String: Any]) -> String {
+        """
+        ((h, cfg) => { if (h) window.__flowAppTransport = { cfg, send: (cmd, args) => h.postMessage({ cmd, args }) }; })(
+          window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.\(name), \(json(cfg)));
+
+        """
+    }
+
+    /// native/flowapp.js, bundled from the repo's native/ folder (the project's group Shared)
     static let script: String = {
-        guard let u = Bundle.main.url(forResource: "FlowBridge", withExtension: "js"), let s = try? String(contentsOf: u, encoding: .utf8) else { return "" }
+        guard let u = Bundle.main.url(forResource: "flowapp", withExtension: "js"), let s = try? String(contentsOf: u, encoding: .utf8) else { return "" }
         return s
     }()
 
