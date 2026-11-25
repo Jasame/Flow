@@ -280,3 +280,11 @@
   - #153 App 外壳：桌面版（FlowDesktop）和有 window.FlowApp 的 App 也当主屏 App（开局和考试、后台和班级）
 - 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45548768285
+
+### b47 · 2026-11-25 13:00
+- main `9875a69`，构建 `6f8879b`
+- 新合并的 PR（自 b46 起）：
+  - #156 ios_sim_check：朗读统一的自动测法，测试全程静音（网站其他）
+  - #157 撤回 #151（浏览器静音），由语流 15 的 #154 统一做（操作指南）
+- 自检：DEPLOYED，装了 2 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45550440215
