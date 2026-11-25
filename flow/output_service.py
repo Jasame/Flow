@@ -350,6 +350,12 @@ def translate(c, uid, data):
 
 # ---------- pronunciation ----------
 
+# Who may judge one word well enough to file a mistake: Gemini (the main service) for now; a dedicated pronunciation
+# scorer joins when 语流 12 connects one. A verdict from another model (Qwen-Omni, since the owner moved 跟读 and 发音 off
+# Gemini on 2026-11-25: 「延迟太高了」) is a reference only: counted as practice, never a mistake, said to be maybe wrong.
+SAY_TRUSTED = ('main',)
+
+
 def say(c, uid, data):
     """One word or short phrase read aloud: did the target sound come through?"""
     import sounds
@@ -371,9 +377,12 @@ def say(c, uid, data):
     def convert(raw):
         if not isinstance(raw, dict):
             raise Shape('json_shape')
-        return {'heard': _clean(raw.get('heard') or '', 0, 80), 'ok': mbool(raw.get('ok'), 'ok_missing'), 'note': _clean(raw.get('note') or '', 0, 300), 'tip': _clean(raw.get('tip') or '', 0, 300)}
+        by = getattr(ai_routes.CTX, 'last_service', None)  # the call whose answer this is (same thread, just recorded)
+        return {'heard': _clean(raw.get('heard') or '', 0, 80), 'ok': mbool(raw.get('ok'), 'ok_missing'), 'note': _clean(raw.get('note') or '', 0, 300),
+                'tip': _clean(raw.get('tip') or '', 0, 300), 'tentative': by is not None and by not in SAY_TRUSTED}
 
-    import hashlib
+    import hashlib, ai_routes
+    ai_routes.CTX.last_service = None
     result, status = _ai(c, uid, data, 'next-say', 'sounds', 'speaking', {'text': target, 'audio_sha256': hashlib.sha256(raw_audio).hexdigest()},
                          system, user, convert, data.get('audio'))
     if status == 200 and not result.get('replayed'):
@@ -383,8 +392,9 @@ def say(c, uid, data):
         # a miss asks for another try; a second miss in a row on the same word (within a week) makes the card.
         last = c.execute("SELECT score FROM next_skill_events WHERE user_id=? AND kind='say' AND pack=? AND created>? ORDER BY id DESC LIMIT 1",
                          (uid, key, time.time() - 7 * 86400)).fetchone()
-        sk.log(c, uid, 'pronunciation', 'say', 1.0 if r['ok'] else 0.0, pack=key, commit=False)
-        r['confirmed'] = not r['ok'] and last is not None and last['score'] == 0
+        # a reference verdict counts as practice (today's 发音 step) at a neutral 0.5: never one of the two misses, no pull on 能力
+        sk.log(c, uid, 'pronunciation', 'say', 0.5 if r.get('tentative') else 1.0 if r['ok'] else 0.0, pack=key, commit=False)
+        r['confirmed'] = not r.get('tentative') and not r['ok'] and last is not None and last['score'] == 0
         if r['confirmed']:
             sk.add_mistake(c, uid, 'sound', target, 'sound:' + target.lower(), r['tip'] or r['note'], '', 'pronunciation', extra={'focus': focus}, commit=False)
         c.commit()

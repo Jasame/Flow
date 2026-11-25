@@ -173,7 +173,7 @@
         const mic = document.getElementById('sndMic'), out = document.getElementById('sndOut');
         mic.onclick = () => MIC.toggle(mic, 4, async blob => {
           out.innerHTML = '<span class="spin"></span>';
-          try { const x = (await api('/api/next/say', { text: c.text, audio: await MIC.payload(blob), request_id: rid('sy') })).result; out.innerHTML = x.ok ? '<span class="ok-mark">✓ 这次读准了</span>' : `<span class="bad-mark">AI 听成了「${esc(x.heard || '?')}」</span><div class="tiny muted">${esc(x.tip || x.note || '')}</div>`; }
+          try { const x = (await api('/api/next/say', { text: c.text, audio: await MIC.payload(blob), request_id: rid('sy') })).result; out.innerHTML = (x.ok ? '<span class="ok-mark">✓ 这次读准了</span>' : `<span class="bad-mark">AI 听成了「${esc(x.heard || '?')}」</span><div class="tiny muted">${esc(x.tip || x.note || '')}</div>`) + (x.tentative ? '<div class="tiny muted">这次的判断可能不准，可以再读一次</div>' : ''); }
           catch (e) { out.textContent = e.message; }
         });
         view.querySelectorAll('[data-self]').forEach(b => b.onclick = () => rate(b.dataset.self, Date.now() - t0));
