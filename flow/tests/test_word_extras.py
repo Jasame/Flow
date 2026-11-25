@@ -128,19 +128,30 @@ class StoreTests(unittest.TestCase):
         wx.store(self.c, 'penny', [('colloc', 'save every penny', '省下每一分钱', '')], 'flow-batch-ds-flash')
         self.assertGreater(wx.shown(self.c, 'penny')[0]['id'], max(first.values()))  # an id is never given again
 
-    def test_the_weekly_look_and_a_takedown(self):  # 「这条不对」 counted per learner (B2's table), taken down by id
+    def test_the_weekly_look_a_takedown_and_putting_back(self):  # B2's 「这条不对」 marks, B6's console buttons
         keep, _ = wx.check('borrow', GOOD, nx, topic_guard.hits)
         wx.store(self.c, 'borrow', keep, 'flow-batch-ds-flash')
         self.assertEqual(wx.reported(self.c), [])  # B2's table not there yet
         ids = {x['en']: x['id'] for x in wx.shown(self.c, 'borrow')}
-        self.c.execute('CREATE TABLE vocab_extras_hidden(user_id INTEGER, extra_id INTEGER, created REAL, note TEXT)')
-        self.c.executemany('INSERT INTO vocab_extras_hidden VALUES(?,?,?,?)', [(1, ids['lend'], 1.0, ''), (2, ids['lend'], 2.0, ''),
-                           (2, ids['lend'], 3.0, ''), (3, ids['borrow an idea'], 4.0, '')])
+        self.c.execute('CREATE TABLE vocab_extras_flags(user_id INTEGER, extra_id INTEGER, created REAL, note TEXT)')
+        self.c.executemany('INSERT INTO vocab_extras_flags VALUES(?,?,?,?)', [
+            (1, ids['lend'], 10.0, '区别反了'), (2, ids['lend'], 20.0, ' '), (3, ids['lend'], 30.0, None),
+            (3, ids['borrow an idea'], 40.0, '不常用')])
         top = wx.reported(self.c)
-        self.assertEqual([(x['en'], x['marks']) for x in top], [('lend', 2), ('borrow an idea', 1)])
-        self.assertEqual(wx.take_down(self.c, ids['lend'], '区别说错', 'B7'), 1)
+        self.assertEqual([(x['en'], x['users'], x['last'], x['notes']) for x in top],
+                         [('lend', 3, 30.0, ['区别反了']), ('borrow an idea', 1, 40.0, ['不常用'])])
+        self.assertEqual([x['en'] for x in wx.reported(self.c, since=25.0)], ['borrow an idea', 'lend'])  # one mark each since then
+        self.assertEqual(wx.take_down(self.c, ids['lend'], '区别说错', 'admin@flow'), 1)
         self.assertNotIn('lend', [x['en'] for x in wx.shown(self.c, 'borrow')])
-        self.assertEqual(json.loads(self.c.execute('SELECT flagged FROM vocab_extras WHERE id=?', (ids['lend'],)).fetchone()[0])['by'], 'B7')
+        lend = [x for x in wx.reported(self.c) if x['en'] == 'lend'][0]
+        self.assertTrue(lend['hidden']); self.assertTrue(lend['by_admin'])  # still listed, so the console offers 「放回」
+        self.assertEqual(wx.put_back(self.c, ids['lend'], 'admin@flow'), 1)
+        self.assertIn('lend', [x['en'] for x in wx.shown(self.c, 'borrow')])
+        wx.flag(self.c, [{'word': 'borrow', 'kind': 'colloc', 'en': 'borrow an idea', 'why': '不常用'}])  # the reviewer hid it
+        self.assertEqual(wx.put_back(self.c, ids['borrow an idea'], 'admin@flow'), 0)  # the console does not undo the reviewer
+        self.assertFalse([x for x in wx.reported(self.c) if x['en'] == 'borrow an idea'][0]['by_admin'])
+        wx.store(self.c, 'borrow', keep, 'flow-batch-ds-flash')  # a rerun does not show it again
+        self.assertNotIn('borrow an idea', [x['en'] for x in wx.shown(self.c, 'borrow')])
 
     def test_a_batch_from_writing_to_the_card(self):
         calls = []

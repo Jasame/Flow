@@ -7,7 +7,8 @@ then B2's format and A0's / D2's rules). Written offline in batches, never while
 - One row per item (B2): vocab_extras(id, norm, kind 'colloc' | 'near', en, zh, diff, pos, model, prompt, created,
   hidden, flagged), unique on (norm, kind, en), written with INSERT OR IGNORE so a run can stop and start again. id
   never changes and is never given again (AUTOINCREMENT): 「这条不对」 keeps it to hide one row for one learner
-  (B2's vocab_extras_hidden), and a row is taken down alone by it (D2: 留痕, 单条下架).
+  (B2's vocab_extras_flags(user_id, extra_id, created, note)), and the console takes a row down or puts it back by it
+  (B6; D2: 留痕, 单条下架). reported() is the one summary of those marks.
 - Its own data, shared by every book, not merged into any word list (D2: NAWL and BSL stay CC BY-SA lists of their own).
 - Batch work: ai_routes.batch_stop (the day's ¥5 budget, tonight's batch ceiling) stops a run; --max-yuan too.
 - Nightly (A0 2026-11-26: the owner nods once for the whole run): <data>/word-extras/plan.json (books, max_yuan a night,
@@ -206,21 +207,50 @@ def shown(c, norm):
         'SELECT id, kind, en, zh, diff FROM vocab_extras WHERE norm=? AND hidden=0 ORDER BY kind, pos', (norm,))]
 
 
+FLAGS = 'vocab_extras_flags'  # B2's table: one row per learner and item they marked 「这条不对」
+
+
+def _note(row_flagged):
+    try:
+        v = json.loads(row_flagged or '{}')
+        return v if isinstance(v, dict) else {}
+    except ValueError:
+        return {}
+
+
 def take_down(c, extra_id, why, by):
-    """Hide one row for everyone (the weekly look at 「这条不对」, D2: 单条下架), keeping who and why."""
-    note = json.dumps({'by': str(by)[:40], 'why': str(why)[:120], 'at': int(time.time())}, ensure_ascii=False)
+    """Hide one row for everyone from the console (B6; the weekly look at 「这条不对」), keeping who, why and when.
+    Returns 1 if a row changed. The console keeps its own admin log too."""
+    note = json.dumps({'by': str(by)[:40], 'why': str(why)[:120], 'at': int(time.time()), 'admin': True}, ensure_ascii=False)
     return c.execute('UPDATE vocab_extras SET hidden=1, flagged=? WHERE id=?', (note, int(extra_id))).rowcount
 
 
-def reported(c, limit=50):
-    """The rows learners marked 「这条不对」 most (B2's vocab_extras_hidden), for the console (B6) and the weekly look."""
-    if not c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='vocab_extras_hidden'").fetchone():
+def put_back(c, extra_id, by):
+    """Show again a row the console took down. Rows the reviewer or the owner's review hid are not touched: 0."""
+    row = c.execute('SELECT hidden, flagged FROM vocab_extras WHERE id=?', (int(extra_id),)).fetchone()
+    if not row or not row[0] or not _note(row[1]).get('admin'):
+        return 0
+    note = json.dumps({'put_back_by': str(by)[:40], 'at': int(time.time()), 'was': _note(row[1])}, ensure_ascii=False)
+    return c.execute('UPDATE vocab_extras SET hidden=0, flagged=? WHERE id=?', (note, int(extra_id))).rowcount
+
+
+def reported(c, since=None, limit=200):
+    """The rows learners marked 「这条不对」, most learners first, taken-down ones included (B6 shows 「放回」 for those):
+    extra_id, norm, kind, en, zh, diff, users, last, notes (the last 5 notes that say something, no names), hidden,
+    by_admin (hidden from the console, so put_back works). since: only marks from then on."""
+    if not c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (FLAGS,)).fetchone():
         return []
-    cols = ('id', 'norm', 'kind', 'en', 'zh', 'diff', 'hidden', 'marks', 'last')
-    return [dict(zip(cols, r)) for r in c.execute(
-        'SELECT e.id, e.norm, e.kind, e.en, e.zh, e.diff, e.hidden, COUNT(DISTINCT h.user_id), MAX(h.created) '
-        'FROM vocab_extras_hidden h JOIN vocab_extras e ON e.id = h.extra_id GROUP BY e.id '
-        'ORDER BY COUNT(DISTINCT h.user_id) DESC, MAX(h.created) DESC LIMIT ?', (int(limit),))]
+    since = float(since or 0)
+    rows = c.execute(f'SELECT e.id, e.norm, e.kind, e.en, e.zh, e.diff, e.hidden, e.flagged, COUNT(DISTINCT f.user_id), MAX(f.created) '
+                     f'FROM {FLAGS} f JOIN vocab_extras e ON e.id = f.extra_id WHERE f.created >= ? GROUP BY e.id '
+                     f'ORDER BY COUNT(DISTINCT f.user_id) DESC, MAX(f.created) DESC LIMIT ?', (since, int(limit))).fetchall()
+    out = []
+    for i, norm, kind, en, zh, diff, hidden, flagged, users, last in rows:
+        notes = [r[0] for r in c.execute(f"SELECT note FROM {FLAGS} WHERE extra_id=? AND created >= ? AND TRIM(COALESCE(note, '')) <> '' "
+                                         f'ORDER BY created DESC LIMIT 5', (i, since))]
+        out.append({'extra_id': i, 'norm': norm, 'kind': kind, 'en': en, 'zh': zh, 'diff': diff, 'users': users, 'last': last,
+                    'notes': notes, 'hidden': bool(hidden), 'by_admin': bool(hidden) and bool(_note(flagged).get('admin'))})
+    return out
 
 
 def pending(c, vs, books, nx=None):
