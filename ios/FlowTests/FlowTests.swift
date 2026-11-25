@@ -283,13 +283,14 @@ final class LongPlayerRequestTests: XCTestCase {
     }
 
     @MainActor func testServerVoiceRefusals() {
-        // off, the day's limit, an account that has not agreed to 数据存放在香港: the rest of the text in the iPhone's voice
-        for code in ["off", "cap", "storage"] {
+        // switched off, the day's limit: the rest of the text in the iPhone's voice
+        for code in ["off", "cap"] {
             XCTAssertTrue(TTSFetcher.refused(SiteError.status(403, code: code, message: "")), code)
         }
-        XCTAssertFalse(TTSFetcher.refused(SiteError.status(403, code: "guest", message: "")), "a guest still gets the stored ones")
+        // a guest (and an account that has not agreed to 数据存放在香港, answered as one) still gets the stored ones
+        XCTAssertFalse(TTSFetcher.refused(SiteError.status(403, code: "guest", message: "")))
         XCTAssertFalse(TTSFetcher.refused(URLError(.timedOut)))
-        XCTAssertEqual(TTSFetcher.reason(SiteError.status(403, code: "storage", message: "")), "账号还没同意数据存放在香港，这句先用 iPhone 自带的声音")
+        XCTAssertEqual(TTSFetcher.reason(SiteError.status(403, code: "cap", message: "")), "今天的自然人声用完了，这句先用 iPhone 自带的声音")
     }
 
     @MainActor func testSentenceLookupLikeTheWebPage() {
