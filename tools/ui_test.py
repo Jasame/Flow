@@ -3727,6 +3727,26 @@ def shell_run(pw):
             h1 = pg.evaluate("(h => h && h.textContent.trim())(document.querySelector('#view h1'))")
             check(dev, f'{name}: the page has its h1 (for a screen reader)', h1 == name, h1)
         ctx.close()
+        # an older front end than the server's (B8, 2026-11-25: a copy cached before the terms check got the same error on
+        # every 重试): an error page takes the new version at once, once; its 重试 takes it again rather than repeat
+        ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True, service_workers='block')
+        ctx.add_cookies([{'name': 'flow_session', 'value': tok, 'url': BASE}])
+        pg = ctx.new_page(); loads = []
+        pg.on('load', lambda _: loads.append(1))
+        pg.route('**/api/version', lambda r: r.fulfill(json={'asset': 'zzz-newer'}))
+        pg.route('**/api/next/home*', lambda r: r.fulfill(status=403, json={'error': '请先同意新的用户协议'}))
+        pg.goto(BASE + '/#/', wait_until='load')
+        try:
+            pg.wait_for_function("() => localStorage.getItem('flow-update-tried') === JSON.stringify('zzz-newer')", timeout=10000)
+        except Exception:
+            pass
+        pg.wait_for_timeout(6000)  # a loop would reload again and again by now
+        first = (len(loads), pg.evaluate("localStorage.getItem('flow-update-tried')"), bool(pg.query_selector('#view #retry')), bool(pg.query_selector('#updateBar')))
+        check(dev, 'an error page with a newer version on the server takes it at once, once (no reload loop), then offers it',
+              first[0] == 2 and first[1] == '"zzz-newer"' and first[2] and first[3], first)
+        pg.click('#view #retry'); pg.wait_for_timeout(5000)
+        check(dev, 'and its 重试 takes the new version again instead of repeating the same error', len(loads) == 3, len(loads))
+        ctx.close()
         check(dev, 'no page errors', not errs, errs[:3])
     finally:
         browser.close()

@@ -23,6 +23,9 @@ pub const PAGE_CHECK: &str = r#"(async () => {
     flowapp: !!F, v: F && F.v, app: F && F.app, platform: F && F.platform,
     notify: !!(F && F.has('notify')), media: !!(F && F.has('media')), audio: !!(F && F.has('audio')),
     frozen: !!F && Object.isFrozen(F), mediaSession: !!navigator.mediaSession };
+  // which audio the webview can decode: the long recordings are AAC (mp4), server speech mp3. On Linux this follows
+  // the GStreamer plugins installed (B3 falls back to AI 朗读 where AAC is '')
+  try { const t = new Audio(); r.aac = t.canPlayType('audio/mp4; codecs="mp4a.40.2"'); r.mp3 = t.canPlayType('audio/mpeg'); } catch (e) { r.codecError = String(e); }
   // muted (every smoke test is): an <audio> started by the page comes out muted
   try { const a = new Audio(); a.play().catch(() => {}); r.muted = a.muted; a.pause(); } catch (e) { r.mutedError = String(e); }
   try { r.permission = await F.notify.permission(); } catch (e) { r.permissionError = String(e); }

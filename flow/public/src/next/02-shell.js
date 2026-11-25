@@ -378,7 +378,9 @@
       view.innerHTML = `<div class="empty"><div class="big">⚠︎</div><p>${esc(e.message)}</p><button class="btn" id="retry">重试</button>
         ${kept.length ? `<p class="small">没网时，这些已存到本机的材料还能学：</p><div class="mlist">${kept.map(k => mrow(k, null, '', '')).join('')}</div>` : ''}
         <p class="small"><a class="link" href="#/feedback">反馈这个问题</a></p></div>`;
-      document.getElementById('retry').onclick = () => route();
+      // an older front end than the server's may be what failed: a new version first (04-home-app.js), then the page again
+      document.getElementById('retry').onclick = async ev => { ev.currentTarget.disabled = true; if (!(await retryOrUpdate())) route(); };
+      errorPageUpdate();
     } finally { if (!keepScroll && !sameMaterial && !quiet) view.focus({ preventScroll: true }); }
   }
   // How the page changed (the Navigation API where there is one; else a longer history means a link, and a back or a

@@ -15,7 +15,7 @@
 .mrow .t .tiny{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mrow .go,.grow .go,.notice .go{color:var(--muted);font-size:20px}
 .mrow.more b{color:var(--green-ink)}
-.mrow:not(:has(.pill)){grid-template-columns:minmax(0,1fr) 14px}
+.mrow:not(:has(.pill)){/* compat-ok: before iOS 15.4 a row without a tag keeps an empty narrow column */grid-template-columns:minmax(0,1fr) 14px}
 .mlist+.tiny{margin-top:8px}
 @media (hover:none){.mrow:hover,.grow:hover{background:none}}
 /* the single notice slot */
