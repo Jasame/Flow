@@ -638,3 +638,11 @@
   - #308 服务器变动：杭州 ops-log 补记两条（发版和构建）
 - 自检：DEPLOYED，装了 12 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45631269777
+
+### b80 · 2026-11-25 22:22
+- main `409d86d`，构建 `63fb7a9`
+- 新合并的 PR（自 b79 起）：
+  - #311 更新记录（内测中）：r34 的头两句，邮件改版、安卓锁屏朗读的隐私说明（内容）
+  - #296 Word card centred, review buttons at the bottom, quieter AI voice marks（单词、听和说、今日和计划、开局和考试、后台和班级、AI、操作指南）
+- 自检：DEPLOYED，装了 6 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45633177393
