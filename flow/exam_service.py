@@ -30,9 +30,11 @@ EXAMS = {  # id -> title, word book (ECDICT tag or data book), grammar levels, r
               'blurb': '雅思常考词汇、中级到高级语法、一篇 B2 阅读'},
 }
 VOCAB_N, GRAMMAR_N = 10, 8
-# Reading: two passages, the first two questions of each (the paper is 「阅读 2 篇短文，4 题」 and timed for that).
-# Materials now carry up to four questions (r27 content line); the first two are the original ones and never move.
+# Reading: the first two questions of each passage. Materials now carry up to four questions (r27 content line); the
+# first two are the original ones and never move. How many passages follows the learner's minutes a day (r28 第 4 段):
+# one for 15 minutes or less, two from 20, three in the last four weeks before the exam; two for a guest.
 READING_Q = 2
+BASE_MINUTES = 7  # 词汇 10 题 and 语法 8 题; the rest of an exam's suggested minutes is two passages' worth
 SKIP_COMMON = 300  # the most frequent words of every list ("about", "use"): knowing them says nothing about the exam
 PAPER_TTL = 2 * 86400
 NOTE = '按考试难度出的练习题，全部是原创内容，不是真题；分数只用来看自己的变化，不能换算成考试分数。'
@@ -44,6 +46,39 @@ def schema(c):
     CREATE TABLE IF NOT EXISTS next_exam_results(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), exam TEXT NOT NULL,
       paper TEXT NOT NULL UNIQUE, score INTEGER NOT NULL, total INTEGER NOT NULL, parts TEXT NOT NULL, seconds INTEGER NOT NULL, created REAL NOT NULL);
     CREATE INDEX IF NOT EXISTS next_exam_results_user ON next_exam_results(user_id, exam, created);''')
+
+
+def passages(daily_minutes, sprint=False):
+    """Reading passages in a full set: one for 15 minutes a day or less, two from 20, three in the sprint weeks."""
+    return 3 if sprint else 1 if (daily_minutes or 0) <= 15 else 2
+
+
+def set_minutes(exam, daily_minutes, sprint=False):
+    """Minutes of a full set for a learner with these minutes a day (今日's 本周任务 shows it): 词汇 and 语法 plus
+    each passage's share of the exam's suggested minutes. 四级 at 15 minutes a day: 11; at 20: 15; sprint: 19."""
+    e = EXAMS[exam]
+    return int(BASE_MINUTES + passages(daily_minutes, sprint) * (e['minutes'] - BASE_MINUTES) / 2 + 0.5)
+
+
+def _sized(c, uid, exam, prof=None, cd=None):
+    """(passages, minutes) of a full set of this exam for this learner; two passages (the set before r28) for a guest
+    or a learner who has not set minutes a day yet."""
+    prof = prof if prof is not None else (nx.profile(c, uid) if uid else None)
+    if not prof:
+        return 2, EXAMS[exam]['minutes']
+    if cd is None:
+        import exam_sprint as sp
+        g = sp.goal(c, uid)
+        cd = sp.countdown(c, uid, g=g) if g else {}
+    sprint = bool(cd and cd.get('exam') == exam and cd.get('sprint'))
+    return passages(prof.get('minutes'), sprint), set_minutes(exam, prof.get('minutes'), sprint)
+
+
+def drill_step(c, uid, minutes, now=None):
+    """考试小练, one step of 今日's plan (语流 08's time budget gives it `minutes`): {'key': 'exam-drill', 'title', 'sub',
+    'href', 'done', 'minutes'}, or None. Made in exam_sprint (the question types live there)."""
+    import exam_sprint as sp
+    return sp.drill_step(c, uid, minutes, now)
 
 
 def history(c, uid, exam, limit=8):
@@ -61,9 +96,12 @@ def overview(c, uid):
     plan = vs.plan(c, uid) if uid else None
     import exam_sprint as sp  # 考试冲刺: the learner's exam on top, with its countdown, score trend and question types
     g = sp.goal(c, uid)
+    cd = sp.countdown(c, uid, g=g) if g else None
+    prof = nx.profile(c, uid) if uid else None
     return {'note': NOTE, 'types_note': sp.TYPES_NOTE, 'plan': {k: plan[k] for k in ('book', 'daily_new', 'retention')} if plan else None,
-            'goal': g, 'countdown': sp.countdown(c, uid, g=g) if g else None, 'signed_in': bool(uid),
-            'exams': [{'id': k, 'title': e['title'], 'short': sp.short(k), 'blurb': e['blurb'], 'minutes': e['minutes'], 'words': len(books.get(e['book'], [])),
+            'goal': g, 'countdown': cd, 'signed_in': bool(uid),
+            'exams': [{'id': k, 'title': e['title'], 'short': sp.short(k), 'blurb': e['blurb'], 'minutes': _sized(c, uid, k, prof or {}, cd or {})[1],
+                       'words': len(books.get(e['book'], [])),
                        'book': e['book'], 'book_title': vs.book_title(e['book']), 'history': history(c, uid, k), 'trend': sp.trend(c, uid, k),
                        'types': sp.type_list(c, uid, k)} for k, e in EXAMS.items() if e['book'] in books]}, 200
 
@@ -140,10 +178,12 @@ def paper(c, uid, exam):
     else:
         c.execute('DELETE FROM next_exam_papers WHERE user_id IS NULL AND id NOT IN (SELECT id FROM next_exam_papers WHERE user_id IS NULL ORDER BY created DESC LIMIT 299)')
     rnd = random.Random()
-    vocab, grammar, reading = _vocab(rnd, e['book'], VOCAB_N), _grammar(c, rnd, e['levels'], GRAMMAR_N), _reading(c, uid, rnd, e['reading'])
+    n, minutes = _sized(c, uid, exam)
+    vocab, grammar, reading = _vocab(rnd, e['book'], VOCAB_N), _grammar(c, rnd, e['levels'], GRAMMAR_N), _reading(c, uid, rnd, e['reading'], n)
     pid = secrets.token_urlsafe(12)
     content = {'vocab': vocab, 'grammar': [{'id': q['id']} for q in grammar],
-               'reading': [{'pack': p['id'], 'answer': q['answer'], 'evidence': q.get('evidence', '')} for p in reading for q in p['questions'][:READING_Q]]}
+               'reading': [{'pack': p['id'], 'answer': q['answer'], 'evidence': q.get('evidence', '')} for p in reading for q in p['questions'][:READING_Q]],
+               'minutes': minutes}
     c.execute('INSERT INTO next_exam_papers(id,user_id,exam,content,created) VALUES(?,?,?,?,?)', (pid, uid, exam, json.dumps(content, ensure_ascii=False), now))
     c.commit()
     parts = [{'key': 'vocab', 'title': '词汇', 'hint': '选出单词的中文意思', 'items': [{k: v[k] for k in ('word', 'phonetic', 'options')} for v in vocab]},
@@ -152,7 +192,7 @@ def paper(c, uid, exam):
         parts.append({'key': 'reading', 'title': '阅读', 'hint': '读短文，回答问题',
                       'passages': [{'pack': p['id'], 'title': p.get('title_en') or p['title'], 'body': p['body'],
                                     'items': [{'prompt': q['prompt'], 'options': q['options']} for q in p['questions'][:READING_Q]]} for p in reading]})
-    return {'paper': pid, 'exam': exam, 'title': e['title'], 'minutes': e['minutes'], 'note': NOTE, 'parts': parts}, 200
+    return {'paper': pid, 'exam': exam, 'title': e['title'], 'minutes': minutes, 'note': NOTE, 'parts': parts}, 200
 
 
 def _choice(x, n):
@@ -203,7 +243,7 @@ def submit(c, uid, data):
     c.commit()
     titles = {k: v['title'] for k, v in nx.nodes_meta(c).items()}
     return {'exam': exam, 'title': EXAMS[exam]['title'], 'score': score, 'total': total, 'pct': round(100 * score / total) if total else 0,
-            'seconds': seconds, 'minutes': EXAMS[exam]['minutes'], 'parts': parts, 'saved': bool(uid),
+            'seconds': seconds, 'minutes': content.get('minutes') or EXAMS[exam]['minutes'], 'parts': parts, 'saved': bool(uid),
             'vocab': vocab, 'grammar': [{'id': g['id'], 'correct': g['correct'], 'answer': g['answer'], 'explanation': g['explanation'],
                                          'node': g['node'], 'node_title': titles.get(g['node'], '')} for g in grammar],
             'reading': reading, 'history': history(c, uid, exam)}, 200

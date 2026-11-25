@@ -140,8 +140,9 @@ class LoopTests(unittest.TestCase):
             self.assertTrue(all(len(set(v['options'])) == 4 and 'answer' not in v for v in vocab['items']))
             self.assertTrue(all(nx.node_level(self.c.execute('SELECT node FROM questions WHERE id=?', (q['id'],)).fetchone()[0]) in e['levels'] for q in grammar['items']))
             packs = {x['id']: x for _, x in nx._public_packs(self.c)}
-            self.assertEqual(len(reading['passages']), 2)
-            self.assertEqual(len({packs[ps['pack']]['theme'] for ps in reading['passages']}), 2)
+            n = ex._sized(self.c, 1, exam)[0]  # 1–3 passages by the learner's minutes a day (r28)
+            self.assertEqual(len(reading['passages']), n)
+            self.assertEqual(len({packs[ps['pack']]['theme'] for ps in reading['passages']}), n)  # each from another theme
             self.assertTrue(all(nx.cefr(packs[ps['pack']]) == e['reading'] and not packs[ps['pack']].get('series') for ps in reading['passages']))
             self.assertTrue(all(set(it) == {'prompt', 'options'} for ps in reading['passages'] for it in ps['items']))
         self.assertEqual(ex.paper(self.c, 1, 'toefl')[1], 400)

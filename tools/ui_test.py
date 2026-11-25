@@ -252,14 +252,19 @@ def run_device(pw, dev, opts):
     res = pg.evaluate("() => ({h: (document.querySelector('#view h1') || {}).textContent || '', bands: document.querySelectorAll('.pl-bands .pl-band').length})")
     check(dev, 'starting check: ends with a level and band scores', res['h'].startswith('建议从') and 1 <= res['bands'] <= 4 and asked % 4 == 0, (res, asked))
 
-    # ---- exam practice: a timed paper of 22 questions, handed in once, scored by part
+    # ---- exam practice: a timed paper (its size set by the learner's minutes a day), handed in once, scored by part
     go(pg, '#/exam/cet4')
     ex = pg.evaluate("""() => { const c = document.querySelector('#view .opt[aria-pressed=true]'), d = document.getElementById('examCur');
       return c && d ? [Math.round(d.getBoundingClientRect().top - c.getBoundingClientRect().bottom), getComputedStyle(document.getElementById('exStart')).backgroundColor !== getComputedStyle(document.querySelector('#view .opt:not([aria-pressed=true])')).backgroundColor] : null; }""")
     check(dev, 'exam: the chosen exam opens right under its card, 开始一套 in the primary style', ex and 0 <= ex[0] <= 40 and ex[1], ex)
-    pg.click('#exStart'); pg.wait_for_selector('.exam-bar', timeout=8000); pg.wait_for_timeout(300)
+    with pg.expect_response(lambda r: r.url.endswith('/api/next/exam/paper')) as got:
+        pg.click('#exStart')
+    paper = got.value.json()
+    want = sum(len(p.get('items', [])) + sum(len(x['items']) for x in p.get('passages', [])) for p in paper['parts'])
+    pg.wait_for_selector('.exam-bar', timeout=8000); pg.wait_for_timeout(300)
     n = pg.evaluate("() => document.querySelectorAll('.exam-part .gq').length")
-    check(dev, 'exam: a paper of 22 questions in three parts with a clock', n == 22 and pg.evaluate("() => document.querySelectorAll('.exam-part').length") == 3, n)
+    check(dev, 'exam: every question of the paper (as the server sizes it) in three parts with a clock',
+          n == want and n >= 18 and pg.evaluate("() => document.querySelectorAll('.exam-part').length") == len(paper['parts']) == 3, (n, want))
     for k in range(n):
         pg.click(f'.exam-part .gq >> nth={k} >> .ans >> nth=0')
     pg.click('#exDone'); pg.wait_for_timeout(900)
@@ -2012,8 +2017,9 @@ def sprint_run(pw):
         hub = pg.evaluate("""() => ({h: document.querySelector('#view h1').textContent, pace: (document.querySelector('.sp-pace') || {}).textContent || '',
           types: [...document.querySelectorAll('#spTypesH ~ .mlist .mrow b')].map(b => b.textContent), start: !!document.getElementById('exStart'),
           note: document.querySelector('#spTypesH + p').textContent})""")
+        hub['api'] = pg.evaluate("fetch('/api/next/exam').then(r => r.json()).then(o => o.exams.find(e => e.id === 'cet4').types.map(t => t.title))")  # from the data
         check(dev, 'hub: my exam on top, the pace said plainly, two question types labelled original, the full set',
-              hub['h'] == '大学英语四级' and '背词节奏：跟不上' in hub['pace'] and '每天 40 个' in hub['pace'] and hub['types'] == ['选词填空', '段落匹配']
+              hub['h'] == '大学英语四级' and '背词节奏：跟不上' in hub['pace'] and '每天 40 个' in hub['pace'] and hub['types'] == hub['api'] + ['阅读一篇']
               and hub['start'] and '不是真题' in hub['note'], hub)
         pg.screenshot(path=str(OUT / 'sprint-hub.png'))
         pg.click('.sp-pace [data-daily]')
@@ -2046,8 +2052,9 @@ def sprint_run(pw):
         check(dev, '选词填空: ten gaps marked used, handed in, ten answers each with its reason', used == 10 and '题做对' in res['h'] and res['n'] == 10 and res['why'], (used, res))
         pg.screenshot(path=str(OUT / 'sprint-banked-result.png'))
         # the other kinds: the first choice everywhere, handed in
-        for page, n in (('#/exam/cet4/match', 10), ('#/exam/ielts/tfng', 7), ('#/exam/tem4/choice', 10), ('#/exam/ky/cloze', 10)):
+        for page, n in (('#/exam/cet4/match', 10), ('#/exam/ielts/tfng', 7), ('#/exam/tem4/choice', 10), ('#/exam/ky/cloze', 10), ('#/exam/cet4/reading', None)):
             go(pg, page); pg.wait_for_selector('.xt-q', timeout=6000)
+            n = n or pg.evaluate("document.querySelectorAll('.xt-q').length")  # 阅读一篇 (考试小练): as many as the passage has, 2–4
             pg.evaluate("() => document.querySelectorAll('.xt-q').forEach(q => q.querySelector('.ans').click())")
             pg.click('#xtDone'); pg.wait_for_selector('.xt .pit', timeout=6000)
             got = pg.evaluate("document.querySelectorAll('.xt .pit').length")
