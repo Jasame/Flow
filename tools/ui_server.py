@@ -154,6 +154,7 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             'leaver': ('B1', 'work', ['work', 'science']),  # 注销账号 in tools/ui_test.py (learner_run)
             'a11y': ('B1', 'work', ['work', 'science']),  # the screen-reader and contrast audit (a11y_run)
             'pile': ('B1', 'work', ['work', 'science']),  # back from a break: reviews piled up (backlog_run)
+            'side': ('B1', 'work', ['work']),  # 「认识」放在 and 这次什么时候复习 (review_side_run): 20 words due
             'sprint': ('B1', 'exam', ['campus']),  # 考试冲刺: 四级 in 19 days, four practice sets done (sprint_run; the guide's exam pictures)
             'home-app': ('B1', 'work', ['work', 'science']),  # 主屏 App (home_app_run): the iPhone home-screen app
             'fresh': ('', '', []), 'fresh2': ('', '', []),  # 选方向和目标: accounts with no settings yet (start_run)
@@ -245,6 +246,13 @@ with app.db() as c:
             c.execute("INSERT INTO next_node_notes(user_id,node,pack,kind,detail,created) VALUES(?,?,?,?,?,?)", (uid, 'agreement-head', PID, 'flag', 'guide|it make → it makes', now - 7200))
             sk.log(c, uid, 'speaking', 'ielts', 6.0 / 9, 'B2', 'ielts-p1-mornings')  # 雅思口语: 「上次约 6.0」 on the list
             c.execute("INSERT INTO next_skill_events(user_id,skill,kind,score,level,pack,created) VALUES(?,'speaking','dialog',0.6,'A2','scene-cafe-order',?)", (uid, now - 20 * 86400))  # 情景第 2 轮 (the guide's scene picture)
+        if name == 'side':  # 20 word reviews due, shown as 不认识 / 模糊 / 认识 (stability 1: recognise)
+            c.execute("DELETE FROM next_cards WHERE user_id=? AND source='book'", (uid,))
+            now, d = time.time(), nx.dictionary()
+            for k, (rank, w) in enumerate(vs.book_words()['mid'][100:120]):
+                c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,rank,stability,difficulty,last,reps) "
+                          "VALUES(?,?,?,?,'','word',?,?,'review','book',?,1,5,?,1)", (uid, d[w]['word'], w, d[w]['meaning'][:300], now - 20 * 86400, now - 3600 - k, rank, now - 2 * 86400))
+            c.execute("INSERT INTO next_reviews(user_id,card,rating,created) VALUES(?,0,'good',?)", (uid, now - 3 * 86400))  # reviewed before the move
         if name == 'pile':  # 60 word reviews due, more than 3 x the 10 new words a day: no new words today (ux audit 1.1, 11)
             # 60 minutes a day: the words' share of the day's time (time_budget, r28 第 1 段: 15 minutes) holds all 60
             c.execute('UPDATE next_profiles SET minutes=60 WHERE user_id=?', (uid,))

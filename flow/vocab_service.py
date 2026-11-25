@@ -128,6 +128,9 @@ CREATE TABLE IF NOT EXISTS next_reminders(user_id INTEGER PRIMARY KEY REFERENCES
         c.execute('ALTER TABLE next_vocab_plans ADD COLUMN paused_on TEXT')
     if 'word_minutes' not in pcols:  # 单词每天: the learner's own cap in minutes (0: the day's plan decides)
         c.execute('ALTER TABLE next_vocab_plans ADD COLUMN word_minutes INTEGER NOT NULL DEFAULT 0')
+    rmcols = {r[1] for r in c.execute('PRAGMA table_info(next_reminders)')}
+    if 'once_at' not in rmcols:  # 这次什么时候复习: the next reminder only, at a time the learner chose (then back to the hour)
+        c.execute('ALTER TABLE next_reminders ADD COLUMN once_at REAL')
     if 'catch_up' not in pcols:  # after a break: {"day": the first day, "total": reviews due then} until caught up
         c.execute('ALTER TABLE next_vocab_plans ADD COLUMN catch_up TEXT')
     if 'test_skip' not in pcols:  # what the test said may be skipped, kept so "skip known words" can be turned back on
@@ -530,10 +533,18 @@ def queue(c, uid, limit=BATCH, more=False):
     cap = None if more else word_cap(c, uid, now)
     if cap is None:
         picked = (reviews + steps + new)[:limit]
-        return {'items': [card_out(r, now, level, rich=True, c=c) for r in picked], **counts(c, uid, now), 'more': bool(more)}
+        return {'items': [card_out(r, now, level, rich=True, c=c) for r in picked], **counts(c, uid, now), 'more': bool(more), 'veteran': _veteran(c, uid)}
     n = counts(c, uid, now, cap)
     picked = ((reviews + steps)[:n['due']] + new[:n['new']])[:limit]
-    return {'items': [card_out(r, now, level, rich=True, c=c) for r in picked], **n, 'more': False}
+    return {'items': [card_out(r, now, level, rich=True, c=c) for r in picked], **n, 'more': False, 'veteran': _veteran(c, uid)}
+
+
+KNOW_MOVED = datetime.datetime(2026, 11, 26, tzinfo=nx.TZ).timestamp()  # 「认识」 moved to the right (60-review.js)
+
+
+def _veteran(c, uid):
+    """Reviewed before 「认识」 moved to the right: the review page says so once."""
+    return bool(c.execute('SELECT 1 FROM next_reviews WHERE user_id=? AND created<? LIMIT 1', (uid, KNOW_MOVED)).fetchone())
 
 
 # Due today: a review card from midnight on (a card reviewed last night is not due again only this evening, so a plan
@@ -1212,11 +1223,34 @@ def record_use(c, uid, uses, now=None):
 
 # ---------- reminders ----------
 
-def reminder(c, uid):
-    r = c.execute('SELECT enabled, hour, last_sent FROM next_reminders WHERE user_id=?', (uid,)).fetchone()
+def reminder(c, uid, now=None):
+    """The reminder: every day at hour (enabled: by mail), and once (这次什么时候复习): the next one only, at a time
+    the learner chose for today or tomorrow, a timestamp, or None."""
+    now = now or time.time()
+    r = c.execute('SELECT enabled, hour, last_sent, once_at FROM next_reminders WHERE user_id=?', (uid,)).fetchone()
     cols = {x[1] for x in c.execute('PRAGMA table_info(users)')}
     email = c.execute('SELECT email FROM users WHERE id=?', (uid,)).fetchone() if 'email' in cols else None
-    return {'enabled': bool(r and r['enabled']), 'hour': r['hour'] if r else 20, 'has_email': bool(email and email[0])}
+    once = r['once_at'] if r and r['once_at'] and r['once_at'] > now else None
+    return {'enabled': bool(r and r['enabled']), 'hour': r['hour'] if r else 20, 'has_email': bool(email and email[0]), 'once': once}
+
+
+ONCE_AHEAD = (5 * 60, 2 * fsrs.DAY)  # 这次什么时候复习: from 5 minutes to 2 days ahead (today or tomorrow)
+
+
+def set_once(c, uid, data, now=None):
+    """这次什么时候复习 (a trial student, 2026-11-25: not everyone is free at the same hour every day): the next reminder
+    at a time the learner chose (at: seconds; None clears it). It replaces the daily one until then; the mail goes at
+    that time if there are words to review and none went that day; then the reminder is back to every day at its hour."""
+    now = now or time.time()
+    at = data.get('at')
+    if at is not None:
+        if isinstance(at, bool) or not isinstance(at, (int, float)) or not now + ONCE_AHEAD[0] - 60 <= at <= now + ONCE_AHEAD[1]:
+            return {'error': '请选今天或明天的一个时间'}, 400
+        at = float(int(at // 60 * 60))  # to the minute
+    c.execute('INSERT INTO next_reminders(user_id,enabled,hour,updated,once_at) VALUES(?,0,20,?,?) '
+              'ON CONFLICT(user_id) DO UPDATE SET once_at=excluded.once_at, updated=excluded.updated', (uid, now, at))
+    c.commit()
+    return reminder(c, uid, now), 200
 
 
 def set_reminder(c, uid, data):
@@ -1245,14 +1279,25 @@ def send_reminders(c, now=None, send=None):
         from account_service import mail as send
     if 'email' not in {x[1] for x in c.execute('PRAGMA table_info(users)')}:
         return 0
+    # 这次什么时候复习: a time the learner chose comes instead of the daily hour until then; at that time the mail goes
+    # (if there are words, and none went that day), and the time is cleared; long past (the server was down): cleared only
+    once = c.execute("SELECT r.user_id, u.email, u.username, r.last_sent, r.once_at FROM next_reminders r JOIN users u ON u.id=r.user_id "
+                     "WHERE r.once_at IS NOT NULL AND r.once_at<=?", (now,)).fetchall()
+    for r in once:
+        c.execute('UPDATE next_reminders SET once_at=NULL WHERE user_id=?', (r['user_id'],))
+    c.commit()
+    once = [r for r in once if r['email'] and now - r['once_at'] < 2 * 3600 and (r['last_sent'] or '') < today]
     rows = c.execute("SELECT r.user_id, u.email, u.username FROM next_reminders r JOIN users u ON u.id=r.user_id "
-                     "WHERE r.enabled=1 AND r.hour=? AND (r.last_sent IS NULL OR r.last_sent<?) AND u.email IS NOT NULL AND u.email!=''",
+                     "WHERE r.enabled=1 AND r.hour=? AND (r.last_sent IS NULL OR r.last_sent<?) AND r.once_at IS NULL AND u.email IS NOT NULL AND u.email!=''",
                      (local.hour, today)).fetchall()
     sent = 0
     weekly = __import__('progress_service').mailed_today
-    for r in rows:
+    chosen = {r['user_id'] for r in once}
+    for r in once + [x for x in rows if x['user_id'] not in chosen]:
         introduce(c, r['user_id'], now)
         n = counts(c, r['user_id'], now)
+        if r['user_id'] in chosen and not n['due'] and not n['new']:
+            continue  # nothing to review at the chosen time: the day's own hour may still find some
         c.execute('UPDATE next_reminders SET last_sent=? WHERE user_id=?', (today, r['user_id']))
         c.commit()
         if not n['due'] and not n['new'] or weekly(c, r['user_id'], now):  # Sunday evening: the weekly mail said it already
@@ -1276,14 +1321,17 @@ def send_reminders(c, now=None, send=None):
     return sent
 
 
-def ics(hour, kind='vocab', minutes=10):
+def ics(hour, kind='vocab', minutes=10, at=None):
     """A daily calendar event as a reminder that works on any phone, with no app or email needed.
-    kind 'vocab' is the word review alone; 'plan' is the whole daily plan (words, today's material, grammar re-checks)."""
+    kind 'vocab' is the word review alone; 'plan' is the whole daily plan (words, today's material, grammar re-checks).
+    at (seconds, 这次什么时候复习): one event at that time instead, the daily one unchanged."""
     import os
     hour = hour if hour in REMIND_HOURS else 20
     minutes = minutes if minutes in (5, 10, 15, 20, 30) else 10
     origin = os.getenv('FLOW_PUBLIC_URL', 'https://flowlang.cn').rstrip('/')
     start = datetime.datetime.now(nx.TZ).replace(hour=hour, minute=0, second=0, microsecond=0)
+    if at:
+        start = datetime.datetime.fromtimestamp(at, nx.TZ)
     utc = start.astimezone(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     stamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     if kind == 'plan':
@@ -1292,8 +1340,10 @@ def ics(hour, kind='vocab', minutes=10):
     else:
         uid, length, summary, url = f'flow-vocab-{hour}', 10, '语流：背单词（约 10 分钟）', f'{origin}/#/review'
         desc, alarm = f'按遗忘曲线复习今天到期的单词：{url}', '语流：该复习单词了'
+    if at:  # one event: its own UID, no repeat
+        uid, summary = f'flow-vocab-once-{int(at)}', '语流：复习单词（约 10 分钟）'
     lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Flow//daily reminder//ZH', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
-             f'UID:{uid}@flow', f'DTSTAMP:{stamp}', f'DTSTART:{utc}', f'DURATION:PT{length}M', 'RRULE:FREQ=DAILY',
+             f'UID:{uid}@flow', f'DTSTAMP:{stamp}', f'DTSTART:{utc}', f'DURATION:PT{length}M', *([] if at else ['RRULE:FREQ=DAILY']),
              f'SUMMARY:{summary}', f'URL:{url}', f'DESCRIPTION:{desc}',
              'BEGIN:VALARM', 'ACTION:DISPLAY', f'DESCRIPTION:{alarm}', 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR']
     return '\r\n'.join(_fold(x) for x in lines) + '\r\n'
@@ -1342,6 +1392,8 @@ def post(c, uid, path, data):
         return ai_examples(c, uid, data)
     if path == '/api/next/vocab/reminder':
         return set_reminder(c, uid, data)
+    if path == '/api/next/vocab/reminder/once':
+        return set_once(c, uid, data)
     if path == '/api/next/vocab/import':
         return import_words(c, uid, data)
     if path == '/api/next/vocab/known':

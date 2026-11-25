@@ -128,6 +128,9 @@ def reason(detail):
         return '; '.join((kinds[k] + ': ' if k < len(kinds) else '') + e for k, e in enumerate(errors))[:160]
     if re.fullmatch(r'\d{3}|0', d):
         return f'HTTP {d}'
+    routes = re.findall(r'(/[\w/.-]+) HTTP (\d{3}|0)', d)  # requests and their statuses (qa_e2e: "<route> HTTP <status>")
+    if routes:
+        return '; '.join(f'{path} HTTP {code}' for path, code in routes)[:160]
     found = re.findall(r'\b([A-Z]\w*(?:Error|Exception))\b', d)
     return found[-1] if found else ''
 
@@ -141,6 +144,8 @@ def e2e_summary(work):
                 'failed_details': [f"{f['who']}: {f['name']}: {reason(f.get('detail', ''))}" for f in r['failed']][:10],
                 'light': bool(r.get('light')),
                 'server_errors': len(r['server_errors']), 'ai_calls': r['ai_calls_used'], 'seconds': r['seconds'],
+                # which requests got a 5xx (or no answer): method, route (no query) and status, nothing else (b38, 2026-11-25)
+                'server_error_routes': [f"{x.get('method', '?')} {x.get('path', '?')} {x.get('status', '?')}" for x in r['server_errors']][:10],
                 'cleanup_ok': not any(f['who'] == 'cleanup' for f in r['failed'])}
     except (OSError, ValueError, KeyError) as e:
         return {'error': 'no report: ' + str(e)[:200]}

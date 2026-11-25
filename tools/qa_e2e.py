@@ -617,7 +617,8 @@ def persona_guard(cl, others):
         rs = list(ex.map(lambda a: (a[1], a[0].get(a[1]), ), jobs))
     took = time.time() - t
     sts = [r[1][0] for r in rs]
-    check(who, f'60 concurrent reads all 200 ({took:.1f}s)', all(x == 200 for x in sts), [p for p, (s, _) in rs if s != 200][:10])
+    check(who, f'60 concurrent reads all 200 ({took:.1f}s)', all(x == 200 for x in sts),
+          [f"{p.split('?')[0]} HTTP {s}" for p, (s, _) in rs if s != 200][:10])  # route and status: readable in the deploy status
     # static files and audio through the app (the CDN layer is checked separately from outside)
     raw = Client('guard')
     for p, want in (('/', 200), ('/sw.js', 200), ('/manifest.webmanifest', 200), ('/next.js?v=11', 200), ('/icon-192.png', 200)):
