@@ -864,6 +864,10 @@ def tick(c, now=None):
     """Every few minutes from the site's loop: budget mails, the nightly check, and once a day old rows pruned."""
     check_budget(c, now)
     nightly(c, now)
+    try:
+        __import__('word_extras').nightly(c, now)  # 单词搭配：only with the owner's plan file (word_extras.py)
+    except Exception as exc:  # noqa: BLE001 - never stops the site's loop
+        print('word_extras nightly:', type(exc).__name__, str(exc)[:120], flush=True)
     t = now or time.time()
     if int(t // 300) % 288 == 0:  # about once a day
         prune(c)

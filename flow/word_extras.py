@@ -10,19 +10,41 @@ then B2's format and A0's / D2's rules). Written offline in batches, never while
   (B2's vocab_extras_hidden), and a row is taken down alone by it (D2: 留痕, 单条下架).
 - Its own data, shared by every book, not merged into any word list (D2: NAWL and BSL stay CC BY-SA lists of their own).
 - Batch work: ai_routes.batch_stop (the day's ¥5 budget, tonight's batch ceiling) stops a run; --max-yuan too.
+- Nightly (A0 2026-11-26: the owner nods once for the whole run): <data>/word-extras/plan.json (books, max_yuan a night,
+  nights, until), written only with the owner's OK, lets ai_routes.tick start one run a night (02:00–05:00 Beijing) as a
+  child process, like the nightly check. The night's report is <data>/word-extras/<day>.json. Done when no word is left,
+  the nights are used or the date has passed; paused, never retried on its own, when a night looks wrong (anomaly).
 
     python3 word_extras.py --env-file /etc/flow.env --books zk,gk,cet4 --workers 4 --max-yuan 3 [--offpeak] [--dry-run]
 """
-import argparse, json, os, re, sys, time
+import argparse, datetime, json, os, re, sys, time
 from pathlib import Path
 
 KIND = 'word-extras'
-PROMPT = 'v4-2026-11-26'  # kept with every row: which rules wrote it
+PROMPT = 'v5-2026-11-26'  # kept with every row: which rules wrote it
 LEVEL = {'core': '基础', 'mid': '进阶', 'high': '高阶', 'adv': '精通', 'ext': '拓展', 'zk': '中考', 'gk': '高考', 'cet4': '四级',
          'cet6': '六级', 'ky': '考研', 'tem4': '专四', 'tem8': '专八', 'ielts': '雅思', 'toefl': '托福', 'gre': 'GRE', 'nawl': '学术',
          'bsl': '商务'}
 EVERYDAY = {'zk', 'gk', 'core', 'mid'}  # school words: collocations from everyday life
 ARTICLES = {'a', 'an', 'the'}
+HALF_SENTENCE = {'and', 'but', 'or', 'so', 'because', 'then'}  # sample 3: 「and consequently failed」 is half a sentence
+OFF_TOPIC = {'rights', 'election', 'elections', 'vote', 'votes', 'voting', 'democracy', 'regime', 'protest', 'protests',
+             'military', 'army', 'armies', 'war', 'wars', 'weapon', 'weapons', 'soldier', 'soldiers', 'troops', 'gun',
+             'guns', 'bomb', 'bombs', 'religion', 'religious', 'church', 'mosque', 'bible', 'god', 'gods'}  # v4: human rights
+# The owner's review of the samples (2026-11-26, words-ai-collocations-review.md, B7's 16 doubts): if the writer gives one
+# of these again, it is stored hidden. (norm, kind, en, the zh or diff that was wrong, or None when the English is.)
+REVIEWED_OUT = [
+    ('blind', 'near', 'deaf', None, '只是同一类的词'), ('hot', 'colloc', 'hot and spicy', '又热又辣', '中文不对，是香辣'),
+    ('audience', 'colloc', 'a large audience', '大量观众', '中文不准'), ('clone', 'colloc', 'make a clone of the plant',
+    '培育该植物的无性系', '中文不通'), ('personnel', 'colloc', 'train the personnel', None, '不自然'),
+    ('compliment', 'near', 'praise', 'compliment多指客套称赞，praise更正式', '区别说错'),
+    ('consequently', 'colloc', 'and consequently failed', None, '不是搭配'),
+    ('consequently', 'colloc', 'consequently lose money', None, '不是搭配'),
+    ('practically', 'colloc', 'practically speaking', '实际上说', '中文别扭'),
+    ('economical', 'colloc', 'economical car', None, '缺冠词'), ('principal', 'colloc', 'principal reason', None, '缺冠词'),
+    ('sensible', 'colloc', 'sensible decision', None, '缺冠词'), ('sensible', 'colloc', 'sensible choice', None, '缺冠词'),
+    ('stationary', 'colloc', 'stationary object', None, '缺冠词'), ('custom', 'colloc', 'custom design', None, '和释义对不上'),
+    ('human', 'colloc', 'human rights', None, '政治话题')]
 LATIN = re.compile(r'[A-Za-z]')
 
 
@@ -52,8 +74,9 @@ def write_messages(batch):
         '给下面每个英文单词写：\n'
         '1. collocations：3 条最常用、学习者能直接拿来用的搭配。英文 2–6 个词，冠词和介词写全（写 borrow a book from the '
         'library，不写 borrow from library）；动词搭配带上宾语（写 edge closer to the door）；光是冠词加这个词不算（a penny '
-        '不算）。zh 是通顺的中文，按这个搭配最常见的意思写，不逐词对译，不超过 12 个字；意思要和给出的中文释义对得上，'
-        '不写释义里没有的意思。\n'
+        '不算）；形容词搭配也带冠词（写 a sensible decision，不写 sensible decision）；不写半句话（不写 and '
+        'consequently failed）。zh 是通顺的中文，按这个搭配最常见的意思写，不逐词对译，不超过 12 个字；意思只按给出的中文'
+        '释义写，释义里没有的意思不写（custom 给的是「风俗」，就不写 custom design）。不写政治、宗教、军事和战争。\n'
         '2. near：0–3 个。先写拼写或读音相近、中国学生真的常混淆的词（如 wonder / wander、principle / principal），有就一定'
         '写上，排在最前；再写真正的近义词（如 hope / wish）。没有合适的就给空数组，不要凑。反义词和只是同一类的词都不算（win 和 lose、blind 和 deaf 都不写）。必须是真实存在的单个英文单词，不能是这个词本身或它的变形。zh 不超过 8 个字；'
         'diff 用一句中文只说两个词的区别，不超过 20 个字（一个英文单词算一个字）。\n'
@@ -64,7 +87,8 @@ def write_messages(batch):
 
 def review_messages(items):
     return [{'role': 'system', 'content': '你是严格的英语编辑。只输出 JSON。'}, {'role': 'user', 'content':
-        '逐条检查下面给中国学习者的单词卡内容，只列出有问题的条目：搭配不常用、不地道、缺冠词或介词、中文意思不对或不通顺；'
+        '逐条检查下面给中国学习者的单词卡内容（meaning 是我们给这个词的中文释义），只列出有问题的条目：搭配不常用、不地道、'
+        '缺冠词或介词、像半句话、意思和 meaning 对不上、中文意思不对或不通顺、中文逐词硬译（hot and spicy 是香辣，不是又热又辣）；'
         '近义或易混词其实不近义也不常混淆、其实是反义词或只是同一类的词、区别说错。拼写或读音相近、学生常混的一对词算易混，'
         '不要因为意思不近就列出来。没把握算错的不要列。\n' + json.dumps(items, ensure_ascii=False) + '\n\n'
         '输出 JSON：{"problems":[{"word":"…","kind":"colloc 或 near","en":"有问题的那条英文","why":"中文，一句"}]}'}]
@@ -113,6 +137,10 @@ def check(w, item, nx, guard):
             why.append(f'搭配不含这个词：{en}'); continue
         if not [t for t in toks if t not in ARTICLES and not _is_word(t, w, nx)]:
             why.append(f'搭配只是这个词本身：{en}'); continue
+        if toks[0] in HALF_SENTENCE:
+            why.append(f'搭配像半句话：{en}'); continue
+        if set(toks) & OFF_TOPIC:
+            why.append(f'政治、宗教、军事类：{en}'); continue
         if not zh or len(zh) > 12 or LATIN.search(zh):
             why.append(f'搭配的中文为空、太长或夹英文：{en}'); continue
         if guard({'body': en, 'summary_zh': zh}, dated=False):
@@ -140,8 +168,18 @@ def store(c, norm, keep, model, now=None):
     """The items that passed, one row each (INSERT OR IGNORE: a second run adds nothing twice)."""
     now = now or time.time()
     for pos, (kind, en, zh, diff) in enumerate(keep):
-        c.execute('INSERT OR IGNORE INTO vocab_extras(norm, kind, en, zh, diff, pos, model, prompt, created) VALUES(?,?,?,?,?,?,?,?,?)',
-                  (norm, kind, en, zh, diff, pos, model, PROMPT, now))
+        out = reviewed_out(norm, kind, en, zh, diff)
+        c.execute('INSERT OR IGNORE INTO vocab_extras(norm, kind, en, zh, diff, pos, model, prompt, created, hidden, flagged) '
+                  'VALUES(?,?,?,?,?,?,?,?,?,?,?)', (norm, kind, en, zh, diff, pos, model, PROMPT, now, 1 if out else 0,
+                  json.dumps({'by': 'review-2026-11-26', 'why': out}, ensure_ascii=False) if out else ''))
+
+
+def reviewed_out(norm, kind, en, zh, diff):
+    """Why the owner's review left this item out, or ''."""
+    for n, k, e, bad, why in REVIEWED_OUT:
+        if (n, k, e.lower()) == (norm, kind, en.lower()) and bad in (None, zh if kind == 'colloc' else diff):
+            return why
+    return ''
 
 
 def flag(c, problems):
@@ -164,6 +202,23 @@ def shown(c, norm):
     site-wide takedown go by it)."""
     return [dict(zip(('id', 'kind', 'en', 'zh', 'diff'), r)) for r in c.execute(
         'SELECT id, kind, en, zh, diff FROM vocab_extras WHERE norm=? AND hidden=0 ORDER BY kind, pos', (norm,))]
+
+
+def take_down(c, extra_id, why, by):
+    """Hide one row for everyone (the weekly look at 「这条不对」, D2: 单条下架), keeping who and why."""
+    note = json.dumps({'by': str(by)[:40], 'why': str(why)[:120], 'at': int(time.time())}, ensure_ascii=False)
+    return c.execute('UPDATE vocab_extras SET hidden=1, flagged=? WHERE id=?', (note, int(extra_id))).rowcount
+
+
+def reported(c, limit=50):
+    """The rows learners marked 「这条不对」 most (B2's vocab_extras_hidden), for the console (B6) and the weekly look."""
+    if not c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='vocab_extras_hidden'").fetchone():
+        return []
+    cols = ('id', 'norm', 'kind', 'en', 'zh', 'diff', 'hidden', 'marks', 'last')
+    return [dict(zip(cols, r)) for r in c.execute(
+        'SELECT e.id, e.norm, e.kind, e.en, e.zh, e.diff, e.hidden, COUNT(DISTINCT h.user_id), MAX(h.created) '
+        'FROM vocab_extras_hidden h JOIN vocab_extras e ON e.id = h.extra_id GROUP BY e.id '
+        'ORDER BY COUNT(DISTINCT h.user_id) DESC, MAX(h.created) DESC LIMIT ?', (int(limit),))]
 
 
 def pending(c, vs, books, nx=None):
@@ -208,12 +263,12 @@ def run_batch(c, batch, nx, guard, review=True):
     by = {str(x.get('word', '')).lower(): x for x in (out.get('items') or []) if isinstance(x, dict)}
     rows = left = 0
     passed = []
-    for w, _, _, _ in batch:
+    for w, _, meaning, _ in batch:
         keep, why = check(w, by.get(w) or {}, nx, guard)
         store(c, w, keep, model)
         rows += len(keep); left += len(why)
         if keep:
-            passed.append({'word': w, 'collocations': [{'en': e, 'zh': z} for k, e, z, _ in keep if k == 'colloc'],
+            passed.append({'word': w, 'meaning': meaning, 'collocations': [{'en': e, 'zh': z} for k, e, z, _ in keep if k == 'colloc'],
                            'near': [{'word': e, 'zh': z, 'diff': d} for k, e, z, d in keep if k == 'near']})
     hidden = 0
     reviewer = chat_service.backup_model() if review else ''
@@ -230,6 +285,97 @@ def spent(c, since):
     return sum(ai_routes.cost(ai_routes.served_name(s, m), t, p, k, o) for s, m, t, p, k, o in rows)
 
 
+def plan_dir():
+    return __import__('console_ops').data_dir() / 'word-extras'
+
+
+def _read(path):
+    try:
+        return json.loads(Path(path).read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        return None
+
+
+def _write(path, data):
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    Path(path).write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding='utf-8')
+
+
+def reports(d=None):
+    """The nights' reports, oldest first."""
+    d = Path(d or plan_dir())
+    out = []
+    for f in sorted(d.glob('20*.json')):
+        r = _read(f)
+        if isinstance(r, dict):
+            out.append({**r, 'day': f.stem})
+    return out
+
+
+def anomaly(r, plan):
+    """Why a night looks wrong (the run then waits for the owner), or ''."""
+    if r.get('error'):
+        return f"运行出错：{str(r['error'])[:80]}"
+    if r.get('failed', 0) > 2:
+        return f"{r['failed']} 批没跑成"
+    rows, left, hidden, words = r.get('rows', 0), r.get('left_out', 0), r.get('hidden', 0), r.get('words', 0)
+    if words >= 50:
+        if left > 0.3 * (rows + left):
+            return '程序拦下的超过三成'
+        if hidden > 0.3 * rows:
+            return '复核藏起的超过三成'
+        if rows < words:
+            return '平均每个词不到 1 条'
+    if r.get('yuan', 0) > 1.3 * float(plan.get('max_yuan', 3)):
+        return f"花了 ¥{r['yuan']}，超过每晚上限"
+    return ''
+
+
+def status():
+    """For the console: the plan and the nights so far."""
+    return {'plan': _read(plan_dir() / 'plan.json'), 'nights': reports()[-14:]}
+
+
+def nightly(c, now=None):
+    """From ai_routes.tick: start tonight's run if the owner's plan says so. Returns True if started."""
+    import ai_routes
+    now = now or time.time()
+    t = datetime.datetime.fromtimestamp(now, ai_routes.TZ)
+    if not ai_routes.NIGHT[0] <= t.hour < ai_routes.NIGHT[1]:
+        return False
+    d = plan_dir()
+    plan = _read(d / 'plan.json')
+    if not isinstance(plan, dict) or plan.get('done') or plan.get('paused'):
+        return False
+    day = t.date().isoformat()
+    if (d / f'{day}.json').exists():
+        return False
+    mark = _read(d / 'running.json') or {}
+    if now - mark.get('started', 0) < 3 * 3600:
+        return False
+    past = [r for r in reports(d) if r['day'] >= str(plan.get('from', ''))]
+    why = anomaly(past[-1], plan) if past else ''
+    if why:
+        _write(d / 'plan.json', {**plan, 'paused': why, 'paused_at': day})
+        return False
+    if (past and past[-1].get('pending_after') == 0) or len([r for r in past if r.get('words')]) >= int(plan.get('nights', 0)) \
+            or day > str(plan.get('until', '9999')):
+        _write(d / 'plan.json', {**plan, 'done': day})
+        return False
+    from vertex_auth import ai_enabled
+    if not ai_enabled() or ai_routes.batch_stop(c):
+        return False
+    import subprocess
+    here = os.path.dirname(os.path.abspath(__file__))
+    cmd = [sys.executable, os.path.join(here, 'word_extras.py'), '--env-file', os.devnull, '--books', ','.join(plan.get('books') or []),
+           '--max-yuan', str(float(plan.get('max_yuan', 3))), '--output', str(d / f'{day}.json')]
+    d.mkdir(parents=True, exist_ok=True)
+    with open(d / f'{day}.log', 'w', encoding='utf-8') as log:
+        subprocess.Popen(cmd, cwd=here, stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, env={**os.environ, 'PYTHONUNBUFFERED': '1'})
+    _write(d / 'running.json', {'started': now, 'day': day})
+    return True
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description='单词的常用搭配和近义、易混词（AI 批量生成，夜里跑）')
     ap.add_argument('--env-file', default='/etc/flow.env')
@@ -241,7 +387,17 @@ def main(argv=None):
     ap.add_argument('--offpeak', action='store_true', help='北京时间 8–22 点（DeepSeek 忙时价）先等到 22 点再跑')
     ap.add_argument('--no-review', action='store_true')
     ap.add_argument('--dry-run', action='store_true')
+    ap.add_argument('--output', default='', help='这一晚的结果写到这个文件（夜里自动跑时用）')
     a = ap.parse_args(argv)
+    try:
+        return _main(a)
+    except Exception as exc:  # noqa: BLE001 - the night's report says what went wrong, and the plan pauses
+        if a.output:
+            _write(a.output, {'error': f'{type(exc).__name__}: {str(exc)[:160]}', 'when': int(time.time())})
+        raise
+
+
+def _main(a):
     if Path(a.env_file).is_file():
         sys.path.insert(0, str(Path(__file__).resolve().parent))
         from studio_setup import read_env
@@ -253,7 +409,13 @@ def main(argv=None):
     todo = pending(c, vs, [b.strip() for b in a.books.split(',') if b.strip()], nx)
     if a.limit:
         todo = todo[:a.limit]
-    print(json.dumps({'pending': len(todo)}), flush=True)
+    with ai_routes.task(KIND):
+        writer = ai_routes.route()
+    import chat_service
+    plan = {'pending': len(todo), 'writer': writer, 'reviewer': '' if a.no_review else chat_service.backup_model(),
+            'batch_line': ai_routes.batch_line(), 'batch_spent_tonight': round(ai_routes.batch_spent_since(c, ai_routes.learner_day_start(time.time())), 4),
+            'max_yuan': a.max_yuan, 'prompt': PROMPT}
+    print(json.dumps(plan, ensure_ascii=False), flush=True)
     if a.dry_run or not todo:
         return 0
     while a.offpeak and 8 <= time.localtime().tm_hour < 22:
@@ -282,7 +444,11 @@ def main(argv=None):
             for k, v in r.items():
                 total[k] = total.get(k, 0) + v
     total['yuan'] = round(spent(c, since), 4)
+    total['pending_after'] = len(pending(c, vs, [b.strip() for b in a.books.split(',') if b.strip()], nx))
+    total.update({'prompt': PROMPT, 'when': int(time.time())})
     print(json.dumps(total), flush=True)
+    if a.output:
+        _write(a.output, total)
     return 0
 
 

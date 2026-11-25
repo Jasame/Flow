@@ -34,6 +34,27 @@ class CheckTests(unittest.TestCase):
         keep, why = self.check({'near': [{'word': 'affect', 'zh': '影响', 'diff': 'affect 通常作动词，effect 通常作名词'}]}, 'effect')
         self.assertEqual([e for _, e, *_ in keep], ['affect'])
 
+    def test_what_the_owner_review_found_is_not_written_again(self):  # 2026-11-26: the 16 doubts in the review sheet
+        item = {'collocations': [{'en': 'win an election', 'zh': '赢得选举'}, {'en': 'and win the game', 'zh': '然后赢了'},
+                                 {'en': 'win a prize', 'zh': '获奖'}]}
+        keep, why = self.check(item, 'win')
+        self.assertEqual([e for _, e, *_ in keep], ['win a prize'])
+        self.assertIn('政治、宗教、军事类', why[0]); self.assertIn('半句话', why[1])
+        c = sqlite3.connect(':memory:'); wx.schema(c)
+        wx.store(c, 'sensible', [('colloc', 'sensible decision', '明智的决定', ''), ('colloc', 'a sensible decision', '明智的决定', '')], 'm')
+        wx.store(c, 'hot', [('colloc', 'hot and spicy', '又热又辣', ''), ('colloc', 'a hot drink', '一杯热饮', '')], 'm')
+        wx.store(c, 'audience', [('colloc', 'a large audience', '很多观众', '')], 'm')  # the English was fine, the Chinese was not
+        self.assertEqual([x['en'] for x in wx.shown(c, 'sensible')], ['a sensible decision'])
+        self.assertEqual([x['en'] for x in wx.shown(c, 'hot')], ['a hot drink'])
+        self.assertEqual([x['en'] for x in wx.shown(c, 'audience')], ['a large audience'])
+        why = json.loads(c.execute("SELECT flagged FROM vocab_extras WHERE en='hot and spicy'").fetchone()[0])
+        self.assertEqual(why, {'by': 'review-2026-11-26', 'why': '中文不对，是香辣'})
+        self.assertEqual(len(wx.REVIEWED_OUT), 16)
+        text = wx.write_messages([('sensible', '易混', '明智的', False)])[1]['content']
+        for part in ('a sensible decision', '不写半句话', '不写政治、宗教、军事和战争'):
+            self.assertIn(part, text)
+        self.assertIn('意思和 meaning 对不上', wx.review_messages([])[1]['content'])
+
     def test_names_are_not_word_cards(self):
         c = sqlite3.connect(':memory:'); wx.schema(c)
         class VS:
@@ -63,8 +84,8 @@ class CheckTests(unittest.TestCase):
         self.assertEqual(keep, []); self.assertIn('不含这个词', why[0])
 
     def test_sensitive_items_go_one_by_one(self):
-        with patch.object(topic_guard, 'hits', lambda p, dated=True: ['碰到'] if 'election' in p.get('body', '') else []):
-            keep, why = wx.check('win', {'collocations': [{'en': 'win an election', 'zh': '赢得选举'}, {'en': 'win a prize', 'zh': '获奖'}]},
+        with patch.object(topic_guard, 'hits', lambda p, dated=True: ['碰到'] if 'bet' in p.get('body', '') else []):
+            keep, why = wx.check('win', {'collocations': [{'en': 'win a bet', 'zh': '打赌赢了'}, {'en': 'win a prize', 'zh': '获奖'}]},
                                  nx, topic_guard.hits)
         self.assertEqual([e for _, e, *_ in keep], ['win a prize']); self.assertIn('敏感内容', why[0])
 
@@ -107,6 +128,20 @@ class StoreTests(unittest.TestCase):
         wx.store(self.c, 'penny', [('colloc', 'save every penny', '省下每一分钱', '')], 'flow-batch-ds-flash')
         self.assertGreater(wx.shown(self.c, 'penny')[0]['id'], max(first.values()))  # an id is never given again
 
+    def test_the_weekly_look_and_a_takedown(self):  # 「这条不对」 counted per learner (B2's table), taken down by id
+        keep, _ = wx.check('borrow', GOOD, nx, topic_guard.hits)
+        wx.store(self.c, 'borrow', keep, 'flow-batch-ds-flash')
+        self.assertEqual(wx.reported(self.c), [])  # B2's table not there yet
+        ids = {x['en']: x['id'] for x in wx.shown(self.c, 'borrow')}
+        self.c.execute('CREATE TABLE vocab_extras_hidden(user_id INTEGER, extra_id INTEGER, created REAL, note TEXT)')
+        self.c.executemany('INSERT INTO vocab_extras_hidden VALUES(?,?,?,?)', [(1, ids['lend'], 1.0, ''), (2, ids['lend'], 2.0, ''),
+                           (2, ids['lend'], 3.0, ''), (3, ids['borrow an idea'], 4.0, '')])
+        top = wx.reported(self.c)
+        self.assertEqual([(x['en'], x['marks']) for x in top], [('lend', 2), ('borrow an idea', 1)])
+        self.assertEqual(wx.take_down(self.c, ids['lend'], '区别说错', 'B7'), 1)
+        self.assertNotIn('lend', [x['en'] for x in wx.shown(self.c, 'borrow')])
+        self.assertEqual(json.loads(self.c.execute('SELECT flagged FROM vocab_extras WHERE id=?', (ids['lend'],)).fetchone()[0])['by'], 'B7')
+
     def test_a_batch_from_writing_to_the_card(self):
         calls = []
 
@@ -124,11 +159,71 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(wx.shown(self.c, 'penny'), [])  # nothing passed: the card shows nothing, nothing made up
 
 
+class NightlyTests(unittest.TestCase):  # A0 2026-11-26: one nod from the owner for the whole run, paused on anything odd
+    def setUp(self):
+        import datetime, subprocess, console_ops, vertex_auth
+        self.d = Path(tempfile.mkdtemp()); self.started = []
+        self.night = lambda day, h=3: datetime.datetime(2026, 11, day, h, 0, tzinfo=ai_routes.TZ).timestamp()
+        for target, attr, value in ((console_ops, 'data_dir', lambda: self.d), (vertex_auth, 'ai_enabled', lambda: True),
+                                    (ai_routes, 'batch_stop', lambda c=None: False),
+                                    (subprocess, 'Popen', lambda cmd, **kw: self.started.append(cmd))):
+            p = patch.object(target, attr, value); p.start(); self.addCleanup(p.stop)
+        self.plan = {'books': ['zk', 'gk'], 'max_yuan': 3, 'nights': 3, 'from': '2026-11-27', 'until': '2026-12-05'}
+
+    def tick(self, day, h=3):
+        return wx.nightly(None, self.night(day, h))
+
+    def plan_now(self):
+        return json.loads((self.d / 'word-extras' / 'plan.json').read_text())
+
+    def night_report(self, day, **r):
+        (self.d / 'word-extras' / f'2026-11-{day}.json').write_text(json.dumps(r))
+        (self.d / 'word-extras' / 'running.json').unlink()
+
+    def test_nothing_without_the_owner_plan_or_by_day(self):
+        self.assertFalse(self.tick(27))
+        wx._write(self.d / 'word-extras' / 'plan.json', self.plan)
+        self.assertFalse(self.tick(27, h=14)); self.assertEqual(self.started, [])
+
+    def test_one_run_a_night_until_the_words_are_done(self):
+        wx._write(self.d / 'word-extras' / 'plan.json', self.plan)
+        self.assertTrue(self.tick(27)); self.assertFalse(self.tick(27))  # once a night
+        cmd = self.started[0]
+        self.assertEqual(cmd[cmd.index('--books') + 1], 'zk,gk'); self.assertEqual(cmd[cmd.index('--max-yuan') + 1], '3.0')
+        self.assertTrue(cmd[cmd.index('--output') + 1].endswith('2026-11-27.json'))
+        self.night_report(27, words=3400, rows=11000, left_out=300, hidden=900, failed=0, yuan=2.9, pending_after=4600)
+        self.assertTrue(self.tick(28))
+        self.night_report(28, words=4600, rows=15000, left_out=400, hidden=1200, failed=1, yuan=2.95, pending_after=0)
+        self.assertFalse(self.tick(29)); self.assertEqual(self.plan_now()['done'], '2026-11-29'); self.assertEqual(len(self.started), 2)
+
+    def test_an_odd_night_pauses_the_run(self):
+        wx._write(self.d / 'word-extras' / 'plan.json', self.plan)
+        self.assertTrue(self.tick(27))
+        self.night_report(27, words=3000, rows=4000, left_out=3000, hidden=100, failed=0, yuan=2.0, pending_after=5000)
+        self.assertFalse(self.tick(28)); self.assertEqual(self.plan_now()['paused'], '程序拦下的超过三成')
+        self.assertFalse(self.tick(29)); self.assertEqual(len(self.started), 1)  # waits for the owner, never retries alone
+        self.assertEqual(wx.anomaly({'error': 'boom'}, self.plan), '运行出错：boom')
+        self.assertIn('超过每晚上限', wx.anomaly({'yuan': 4.5}, self.plan))
+
+    def test_the_nights_and_the_date_are_a_ceiling(self):
+        wx._write(self.d / 'word-extras' / 'plan.json', {**self.plan, 'nights': 1})
+        self.assertTrue(self.tick(27))
+        self.night_report(27, words=3400, rows=11000, left_out=300, hidden=900, failed=0, yuan=2.9, pending_after=4600)
+        self.assertFalse(self.tick(28)); self.assertIn('done', self.plan_now())
+        wx._write(self.d / 'word-extras' / 'plan.json', {**self.plan, 'until': '2026-11-28'})
+        self.assertFalse(self.tick(29)); self.assertIn('done', self.plan_now()); self.assertEqual(len(self.started), 1)
+
+
 class RouteTests(unittest.TestCase):
     def test_batch_work_on_the_batch_lane_and_outside_the_learners_stop(self):
         self.assertEqual(ai_routes.LANE_OF.get('word-extras'), 'batch')
         self.assertEqual(ai_routes.EXTRA['word-extras'][1], 'next-examples')
         self.assertIn('word-extras', ai_routes.BATCH); self.assertIn('word-extras', ai_routes.NOT_LEARNER)
+
+    def test_the_site_loop_never_falls_over_on_it(self):
+        with patch.object(wx, 'nightly', lambda c, now=None: 1 / 0), patch.object(ai_routes, 'check_budget', lambda c, now=None: None), \
+                patch.object(ai_routes, 'nightly', lambda c, now=None: False):
+            ai_routes.tick(sqlite3.connect(':memory:'), now=1.0)
 
 
 if __name__ == '__main__':
