@@ -3325,6 +3325,37 @@ def home_app_run(pw):
             check(dev, f'the Android app, {where}: with the page shorter for the keyboard, the field and its button in sight',
                   got['button'] is not None and got['button'] <= got['h'] and got['field'][0] >= 0 and got['field'][1] <= got['h'] and got['open'], got)
             ctx.close()
+        # one-screen pages (复习's card, 测词汇量, 起点小测) fit one screen whatever sits above them: the top bar with
+        # 返回 (it made the bar 12 px taller), the 内测版's line, the safe area — the owner's iPhone, 2026-11-25. The
+        # home-screen app and Safari, 375×667 and 390×844, 语流 and its 内测版: no vertical scroll.
+        ONE = {'375x667': (375, 667, 20, 0), '390x844': (390, 844, 47, 34)}
+        BETA_CH = "new MutationObserver((m, o) => { if (document.documentElement) { document.documentElement.dataset.channel = 'beta'; o.disconnect(); } }).observe(document, {childList: true, subtree: true})"
+        over = {}
+        for size, (w, h, t, b) in ONE.items():
+            for env in ('home app', 'Safari'):
+                for ch in ('语流', '内测版'):
+                    ctx = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
+                    if env == 'home app':
+                        ctx.add_init_script(HOME_INIT % json.dumps([t, b, 0]))
+                    if ch == '内测版':
+                        ctx.add_init_script(BETA_CH)
+                    ctx.add_init_script("try { localStorage.setItem('flow-channel', '\"beta\"') } catch (e) {}")  # no once-per-phone sheet
+                    ctx.add_cookies([{'name': 'flow_session', 'value': tok, 'url': BASE}])
+                    pg = ctx.new_page(); pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg)
+                    for page, sel in (('#/review', '.review'), ('#/vocab/test', '.review.vtest'), ('#/placement', '#view')):
+                        # the card's way in (its parts slide up, a tip comes and goes) can show a few px past the screen for a moment:
+                        # what counts is the page at rest, given up to 4 s to settle
+                        go(pg, page); pg.wait_for_selector(sel, timeout=8000); pg.wait_for_timeout(600)
+                        try:
+                            pg.wait_for_function("document.scrollingElement.scrollHeight - innerHeight <= 1", timeout=4000)
+                        except Exception:
+                            pg.screenshot(path=str(OUT / f"one-screen-{page.strip('#/').replace('/', '_')}-{size}-{'home' if env == 'home app' else 'safari'}-{'beta' if ch == '内测版' else 'main'}.png"), full_page=True)
+                        over[(size, env, ch, page)] = pg.evaluate("document.scrollingElement.scrollHeight - innerHeight")
+                    ctx.close()
+        for page in ('#/review', '#/vocab/test', '#/placement'):
+            got = {f'{s} {e} {c}': v for (s, e, c, p), v in over.items() if p == page}
+            check(dev, f'one screen: {page} — no vertical scroll in the home-screen app or Safari, 375×667 and 390×844, 语流 and 内测版',
+                  all(v <= 1 for v in got.values()), {k: v for k, v in got.items() if v > 1} or got)
         # the 内测版 in one of Flow's apps: the learner installed it on purpose, and flowlang.cn would open the system
         # browser — the line stays without its link, the once-per-phone sheet is not shown (a browser still gets both)
         BETA = "new MutationObserver((m, o) => { if (document.documentElement) { document.documentElement.dataset.channel = 'beta'; o.disconnect(); } }).observe(document, {childList: true, subtree: true})"
@@ -3334,11 +3365,23 @@ def home_app_run(pw):
             ctx.add_init_script(BETA)
             if app:
                 ctx.add_init_script("window.FlowApp = { platform: 'android' }")
+            ctx.add_cookies([{'name': 'flow_session', 'value': tok, 'url': BASE}])
             pg = ctx.new_page(); pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg); pg.wait_for_timeout(1200)
-            seen[label] = pg.evaluate("() => ({ bar: !!document.getElementById('betaBar'), link: !!document.querySelector('#betaBar a'), sheet: !document.getElementById('sheet').hidden && /内测版/.test(document.getElementById('sheetCard').innerText) })")
+            LINE = "() => ({ bar: !!document.getElementById('betaBar'), link: !!document.querySelector('#betaBar a'), pill: !!document.querySelector('#bar .beta-pill'), h: Math.round((document.getElementById('betaBar') || {getBoundingClientRect: () => ({height: 0})}).getBoundingClientRect().height), sheet: !document.getElementById('sheet').hidden && /内测版/.test(document.getElementById('sheetCard').innerText) })"
+            seen[label] = pg.evaluate(LINE)
+            pg.evaluate("document.querySelector('#sheet:not([hidden]) [data-close]')?.click()")
+            go(pg, '#/me'); pg.wait_for_timeout(300)
+            seen[label]['me'] = pg.evaluate("() => ({ section: [...document.querySelectorAll('.gsec h2')].some(h => h.textContent === '内测版'), main: !!document.querySelector('[data-tap=me-beta-main]'), feedback: !!document.querySelector('[data-tap=me-beta-feedback]') })")
+            pg.evaluate("document.querySelector('#betaBar .bb-x').click()"); pg.wait_for_timeout(200)
+            pg.reload(wait_until='load'); settle(pg); pg.wait_for_timeout(800)  # 我的 keeps asking (no network idle)
+            seen[label]['after ✕ and a reload'] = pg.evaluate(LINE)
             ctx.close()
-        check(dev, 'the 内测版 in an app: the line without 「去正式版」, no sheet (a browser: both, as before)',
-              seen['in an app'] == {'bar': True, 'link': False, 'sheet': False} and seen['in a browser'] == {'bar': True, 'link': True, 'sheet': True}, seen)
+        a, b = seen['in an app'], seen['in a browser']
+        check(dev, 'the 内测版: one thin line (no link: 去正式版 is in 我的), 「内测」 by the logo, ✕ closes it for good on this device',
+              a['bar'] and b['bar'] and not a['link'] and not b['link'] and a['pill'] and b['pill'] and b['h'] <= 34
+              and not a['after ✕ and a reload']['bar'] and not b['after ✕ and a reload']['bar'] and b['after ✕ and a reload']['pill'], seen)
+        check(dev, 'the 内测版: 我的 has 内测版 (feedback; 去正式版 in a browser, not in an app); the once-per-phone sheet in a browser only',
+              a['me']['section'] and b['me']['section'] and a['me']['feedback'] and b['me']['main'] and not a['me']['main'] and not a['sheet'] and b['sheet'], seen)
     finally:
         browser.close()
 

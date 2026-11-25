@@ -4,7 +4,7 @@ Dynamic Island and home bar, dark mode, landscape, the on-screen keyboard, word 
 the microphone sheet; and the reading (audio-test-plan.md: 听 / 伴读 in the natural voice, 暂停 / 继续 / ✕, where it
 was left, offline, the lines while waiting).
 
-    python3 tools/ios_sim_check.py OUT [--udid UDID] [--safari] [--only shell,keyboard,audio,mic,update,unify,more]
+    python3 tools/ios_sim_check.py OUT [--udid UDID] [--safari] [--only shell,onescreen,keyboard,audio,mic,update,unify,more]
 
 `unify` and `more` (not run unless asked; about 5 minutes): a guest on the beta takes the text of the day (a recording)
 and a 考试练习 result; with --ui-server, the local learner imports three short texts (no recording) and also takes
@@ -51,7 +51,7 @@ OUT = Path(ARGS[0]); OUT.mkdir(parents=True, exist_ok=True)
 def opt(name, default=None):
     return ARGS[ARGS.index(name) + 1] if name in ARGS else default
 UDID = opt('--udid', 'booted')
-ONLY = set((opt('--only') or 'shell,keyboard,audio,mic,update').split(','))
+ONLY = set((opt('--only') or 'shell,onescreen,keyboard,audio,mic,update').split(','))
 HOST = opt('--host', 'flow.jasa.hk')
 # A home-screen app runs in SafariViewService, or (iOS 27.2, an icon added lately: 「Web」 in the status bar) in com.apple.webapp
 BUNDLE = ('com.apple.mobilesafari',) if '--safari' in ARGS else ('com.apple.SafariViewService', 'com.apple.webapp')
@@ -566,6 +566,26 @@ def run_update(p):
     p.reload()  # the page's own fetch back, nothing of the played version left
 
 
+# ---------------------------------------------------------------- one screen (the owner's iPhone, 2026-11-25)
+def run_onescreen(p):
+    """Pages made to fit one screen (复习's card, 测词汇量, 起点小测) fit it on this device, whatever sits above them: the
+    top bar with 返回, the 内测版's line, the Dynamic Island. Measured at rest (a card's way in can show a few px)."""
+    g = 'onescreen'
+    p.js(HOOK)  # silent: a review card says its word as it opens
+    for page, sel in (('#/review', '#view .review'), ('#/vocab/test', '#view .review.vtest'), ('#/placement', '#view')):
+        p.go(page, 1)
+        if p.login:
+            skip(g, page, 'needs an account (run with --ui-server)'); continue
+        p.js("document.querySelector('#sheet:not([hidden]) [data-close]')?.click()"); time.sleep(0.4)  # the 内测版's once-per-phone sheet
+        if not p.until(f"!!document.querySelector({json.dumps(sel)})", 8):
+            skip(g, page, 'the page did not open'); continue
+        p.until("document.scrollingElement.scrollHeight - innerHeight <= 1", 4, 0.3)
+        m = p.js("""({ over: document.scrollingElement.scrollHeight - innerHeight, back: !!document.getElementById('backBtn') && !document.getElementById('backBtn').hidden,
+          bar: Math.round(document.getElementById('bar').getBoundingClientRect().height), line: !!document.getElementById('betaBar') })""")
+        s = shot(f"one-screen-{page.strip('#/').replace('/', '_')}")
+        check(g, f'{page}: fits one screen (no vertical scroll)', m['over'] <= 1, m, s)
+
+
 # ---------------------------------------------------------------- 朗读统一 (语流 9, #129): audio-test-plan.md
 # 听 → 播放全文 and 读 → 伴读 (LONG, 01-audio-offline.js) on the real WebKit: the natural voice, never the browser's
 # unasked; 暂停 / 继续 / ✕; where it was left kept per text and per step; the lines while waiting and when offline.
@@ -854,7 +874,7 @@ def unify():
     run_unify(p, a, False, {'other': b, 'fresh': c, 'scene': scene})
 
 
-for part, fn in (('shell', lambda: run_shell(p)), ('keyboard', lambda: run_keyboard(p, PID)), ('audio', lambda: run_audio(p, PID)),
+for part, fn in (('shell', lambda: run_shell(p)), ('onescreen', lambda: run_onescreen(p)), ('keyboard', lambda: run_keyboard(p, PID)), ('audio', lambda: run_audio(p, PID)),
                  ('mic', lambda: run_mic(p)), ('update', lambda: run_update(p)), ('unify', unify), ('more', lambda: current() and run_more(p, bool(UI_SERVER)))):
     if part in ONLY:
         print(f'— {part}', flush=True)
