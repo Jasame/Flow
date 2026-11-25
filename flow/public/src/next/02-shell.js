@@ -28,7 +28,19 @@
     setTimeout(() => (f || sheetCard).focus({ preventScroll: true }), 30);
     if (onMount) onMount(sheetCard);
   }
+  // Closing slides the sheet down and fades it (0.16 s; B9's design audit, 2026-11-25), from wherever a finger let it
+  // go. The sheet itself is closed at once (everything that asks whether one is open, focus, a sheet opened right after);
+  // what moves is a copy of it, without ids, that nothing can reach and a screen reader does not see.
+  function sheetGhost() {
+    if (REDUCED || sheetEl.hidden || !sheetCard.firstChild) return;
+    const g = sheetEl.cloneNode(true), c = g.querySelector('.sheet-card');
+    g.removeAttribute('id'); g.querySelectorAll('[id]').forEach(x => x.removeAttribute('id'));
+    g.classList.add('sheet-ghost'); g.setAttribute('aria-hidden', 'true'); g.inert = true;
+    document.body.appendChild(g); if (c) c.scrollTop = sheetCard.scrollTop;
+    setTimeout(() => g.remove(), 200);
+  }
   function closeSheet() {
+    sheetGhost();
     sheetEl.hidden = true; sheetCard.innerHTML = ''; sheetCard.style.transform = ''; document.body.classList.remove('sheet-open');
     if (sheetReturn && document.contains(sheetReturn) && sheetReturn.focus) sheetReturn.focus({ preventScroll: true });
     sheetReturn = null;
