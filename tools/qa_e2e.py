@@ -195,6 +195,11 @@ def persona_a2(cl):
     themes = [t['id'] for t in meta['themes'][:2]]
     s, j = cl.post('/api/next/profile', {'level': 'A2', 'goal': goal, 'themes': themes, 'minutes': 10})
     check(who, 'save profile A2', s == 200 and j['profile']['level'] == 'A2', j)
+    check(who, '主题色 in the profile (green by default)', j['profile'].get('accent') == 'green', j['profile'])
+    s, j = cl.post('/api/next/accent', {'accent': 'indigo'})
+    check(who, '主题色 saved with the account', s == 200 and j.get('accent') == 'indigo', j)
+    s, j = cl.post('/api/next/accent', {'accent': 'green'})
+    check(who, '主题色 back to green', s == 200 and j.get('accent') == 'green', j)
     s, h = cl.get('/api/next/home')
     check(who, 'home has a daily path', s == 200 and isinstance(h.get('path'), dict) and h['path'].get('steps'), list(h)[:20] if isinstance(h, dict) else h)
     s, lib = cl.get('/api/next/library?level=A2')

@@ -3,7 +3,7 @@
    only the first time (.first, set by the script). If the script never runs, the mark fades by itself after 3 s. */
 .splash{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
   background:var(--bg);color:var(--ink);animation:sp-gone .3s ease 3s forwards}
-.sp-mark{width:96px;height:96px;border-radius:26px;background:var(--green);display:flex;align-items:center;justify-content:center;gap:7px}
+.sp-mark{width:96px;height:96px;border-radius:26px;background:var(--brand);display:flex;align-items:center;justify-content:center;gap:7px}
 .sp-mark i{display:block;width:8px;border-radius:4px;background:#fff;animation:sp-bar .42s cubic-bezier(.2,.8,.2,1) both}
 .sp-mark i:nth-child(1){height:26px}
 .sp-mark i:nth-child(2){height:48px;animation-delay:.05s}

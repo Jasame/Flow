@@ -2297,16 +2297,23 @@ def a11y_run(pw):
     browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
     try:
         found = {}
-        for theme in ('light', 'dark'):
+        me = CFG['learners']['a11y']
+        # 主题色 (07-accent.js): every page in both accents, light and dark; the accent is kept with the account, so it is set there
+        for accent, theme in (('green', 'light'), ('green', 'dark'), ('indigo', 'light'), ('indigo', 'dark')):
             ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', color_scheme=theme, bypass_csp=True)
-            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a11y']['token'], 'url': BASE}])
+            ctx.add_cookies([{'name': 'flow_session', 'value': me['token'], 'url': BASE}])
+            ctx.request.post(BASE + '/api/next/accent', data={'accent': accent}, headers={'X-CSRF-Token': me['csrf']})
             pg = ctx.new_page(); pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+            if accent != 'green':
+                check(dev, f'主题色: {accent} is drawn ({theme})', pg.evaluate("document.documentElement.dataset.accent") == accent, pg.evaluate("document.documentElement.dataset.accent"))
             for p in PAGES:
                 go(pg, p); pg.wait_for_timeout(250)
                 for kind, items in pg.evaluate(A11Y_JS).items():
                     for x in items:
-                        found.setdefault((kind, theme), []).append(f'{p}: {x if isinstance(x, str) else json.dumps(x, ensure_ascii=False)}')
-            if theme == 'light':
+                        found.setdefault((kind, theme, accent), []).append(f'{p}: {x if isinstance(x, str) else json.dumps(x, ensure_ascii=False)}')
+            if accent != 'green':
+                ctx.request.post(BASE + '/api/next/accent', data={'accent': 'green'}, headers={'X-CSRF-Token': me['csrf']})
+            if theme == 'light' and accent == 'green':
                 # a sheet is a dialog with a title, and the focus goes into it
                 go(pg, '#/me'); pg.click('#meText')
                 # openSheet moves the focus in 30 ms after drawing it (02-shell.js): wait for that, up to 2 s, instead of a
@@ -2337,8 +2344,9 @@ def a11y_run(pw):
                             ('unlabeled', 'every field has a label (not only a placeholder)'), ('dupid', 'no id is used twice on a page'),
                             ('contrast', 'text contrast meets WCAG AA'), ('lang', 'English is marked lang="en", so it is read with an English voice')):
             for theme in ('light', 'dark'):
-                bad = found.get((kind, theme), [])
-                check(dev, f'{label} ({theme})', not bad, f'{len(bad)}: ' + ' | '.join(bad[:4]))
+                for accent in (('green', 'indigo') if kind == 'contrast' else ('green',)):  # only the colours change with the accent
+                    bad = found.get((kind, theme, accent), [])
+                    check(dev, f'{label} ({theme}{"" if accent == "green" else ", 主题色 " + accent})', not bad, f'{len(bad)}: ' + ' | '.join(bad[:4]))
     finally:
         browser.close()
 

@@ -29,7 +29,7 @@
     const groups = [
       u && ['进步', [grow('#/radar', '能力雷达', '离目标还差多少', '', 'me-radar'), grow('#/growth', '我的进步', '每月对比和里程碑', '', 'me-growth'), grow('#/report', '这周的报告', '', '', 'me-report'), grow('#/cards/mistake', '错题本', '', '', 'me-mistake')]],
       ['设置', [grow('#/welcome/edit', '学习目标和水平', [goal && esc(goal.label), p.target && '目标 ' + p.target, lv && (p.target ? '现在 ' : '') + lv.id].filter(Boolean).join(' · ') || '未设置', '', 'me-level'),
-        u ? grow('meExam', '我的考试', examLabel(p), 'meExamV', 'me-exam') : '', u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', u && !u.teacher ? grow('meClass', '班级', '<span class="spin"></span>', 'meClassV', 'me-class') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), WORD_CLIPS ? grow('meSound', '单词读音方式', soundLabel(), 'meSoundV', 'me-sound') : '', grow('meKnow', '「认识」放在', knowLabel(), 'meKnowV', 'me-know'), grow('meText', '字号和行距', textLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '加到手机日历', '', 'me-remind'),
+        u ? grow('meExam', '我的考试', examLabel(p), 'meExamV', 'me-exam') : '', u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', u && !u.teacher ? grow('meClass', '班级', '<span class="spin"></span>', 'meClassV', 'me-class') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), WORD_CLIPS ? grow('meSound', '单词读音方式', soundLabel(), 'meSoundV', 'me-sound') : '', grow('meKnow', '「认识」放在', knowLabel(), 'meKnowV', 'me-know'), grow('meText', '外观', lookLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '加到手机日历', '', 'me-remind'),
         u ? grow('meMail', '每周进度邮件', weeklyMailLabel(), 'meMailV', 'me-weekly-mail') : '',
         installed ? '' : grow('meInstall', '添加到桌面', '像 App 一样打开', '', 'me-install')]],
       u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
@@ -84,17 +84,26 @@
   // larger and with more room between lines; menus and buttons stay as they are. Kept on the phone (applyText, 02-shell.js).
   const TEXT_SIZES = [['m', '标准'], ['l', '大'], ['xl', '特大']], TEXT_LH = [['n', '标准'], ['w', '宽松']];
   function textLabel() { return [TEXT_SIZES.find(x => x[0] === TEXT.size)[1], TEXT.lh === 'w' ? '行距宽松' : ''].filter(Boolean).join(' · '); }
+  const lookLabel = () => `${textLabel()} · ${accentLabel()}`;  // 外观: 字号、行距 and 主题色 (07-accent.js)
   function textSheet() {
     const chips = (list, key, cur) => list.map(([k, l]) => `<button class="chip" type="button" role="radio" data-${key}="${k}" aria-checked="${cur === k}">${l}</button>`).join('');
-    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">字号和行距</h2>
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">外观</h2>
+      <div class="stack-s"><b>主题色</b><div class="chips" role="radiogroup" aria-label="主题色">${chips(ACCENTS, 'ac', accentNow())}</div>
+        <span class="tiny muted">只换按钮、进度和链接的颜色；答对答错的颜色和标识不变。浅色、深色跟着手机的设置。${S.user ? '' : '登录后会记在账号上。'}</span></div>
       <div class="stack-s"><b>字号</b><div class="chips" role="radiogroup" aria-label="字号">${chips(TEXT_SIZES, 'ts', TEXT.size)}</div></div>
       <div class="stack-s"><b>行距</b><div class="chips" role="radiogroup" aria-label="行距">${chips(TEXT_LH, 'tl', TEXT.lh)}</div></div>
       <p class="text tsample">Reading a little every day is how a new language slowly becomes your own.</p>
       <p class="muted small">课文、听力句子、讲解和释义的字会变大，菜单和按钮不变。</p><button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      card.querySelectorAll('[data-ac]').forEach(b => b.onclick = async () => {
+        card.querySelectorAll('[data-ac]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
+        await setAccent(b.dataset.ac);
+        card.querySelectorAll('[data-ac]').forEach(x => x.setAttribute('aria-checked', String(x.dataset.ac === accentNow())));  // back, if it could not be saved
+        const v = document.getElementById('meTextV'); if (v) v.textContent = lookLabel();
+      });
       card.querySelectorAll('[data-ts], [data-tl]').forEach(b => b.onclick = () => {
         const k = 'ts' in b.dataset ? 'size' : 'lh'; TEXT[k] = b.dataset.ts || b.dataset.tl; save('flow-next-text', TEXT); applyText();
         card.querySelectorAll(k === 'size' ? '[data-ts]' : '[data-tl]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
-        const v = document.getElementById('meTextV'); if (v) v.textContent = textLabel();
+        const v = document.getElementById('meTextV'); if (v) v.textContent = lookLabel();
       });
     });
   }

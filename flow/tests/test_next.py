@@ -412,6 +412,17 @@ class NextAudioTests(unittest.TestCase):
             nx.save_profile(c, 1, {'level': 'B2'})
             self.assertEqual(nx.profile(c, 1)['voice'], 'uk-f')
 
+    def test_accent_is_kept_with_the_account(self):
+        with app.db() as c:
+            nx.save_profile(c, 1, {'level': 'B1'})
+            self.assertEqual(nx.profile(c, 1)['accent'], 'green')  # 配色 A by default
+            self.assertEqual(nx.set_accent(c, 1, {'accent': 'purple'})[1], 400)
+            self.assertEqual(nx.set_accent(c, 1, {'accent': 'indigo'}), ({'accent': 'indigo'}, 200))
+            self.assertEqual(nx.profile(c, 1)['accent'], 'indigo')
+            nx.save_profile(c, 1, {'level': 'B2'})  # other settings saved later keep it
+            self.assertEqual(nx.profile(c, 1)['accent'], 'indigo')
+            self.assertEqual(nx.post(c, 1, '/api/next/accent', {'accent': 'green'}), ({'accent': 'green'}, 200))  # the route
+
 
 if __name__ == '__main__':
     unittest.main()
