@@ -185,6 +185,7 @@ TAP_LABEL = {
     'beta-main': '内测版 · 去正式版',
     'me-about': '我的 · 认识语流', 'welcome-about': '第一次打开 · 认识语流',
     'about-start': '认识语流 · 开始学', 'about-join': '认识语流 · 注册账号', 'about-guide': '认识语流 · 操作指南', 'about-vocab-test': '认识语流 · 测词汇量',
+    'about-dl-android': '认识语流 · 下载安卓 App', 'about-dl-windows': '认识语流 · 下载 Windows 版', 'about-dl-mac': '认识语流 · 下载 Mac 版',
     'announce-open': '今日 · 公告：去看看',
     'home-week': '今日 · 这周进步', 'me-weekly-mail': '我的 · 每周进度邮件',
     'finish-expr': '学完一篇 · 小结：表达', 'finish-words': '学完一篇 · 小结：新词', 'finish-grammar': '学完一篇 · 小结：语法点',
