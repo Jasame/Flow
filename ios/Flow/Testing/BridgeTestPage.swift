@@ -34,8 +34,9 @@ enum BridgeTestPage {
     <p class="out" id="hash">hash: -</p>
     <p class="out" id="feat">features: -</p>
     <p class="out" id="note">note: -</p>
-    <div class="row"><button id="rec">录音两秒</button></div>
+    <div class="row"><button id="rec">录音两秒</button><button id="lcheck">本机检查</button><button id="lsample">本机检查一篇</button></div>
     <p class="out" id="recOut">rec: -</p>
+    <p class="out" id="checkOut">check: -</p>
     <div class="row"><button id="notify">排复习提醒</button><button id="offon">关了再开</button></div>
     <p class="out" id="notifyOut">notify: -</p>
     <p class="out" id="offonOut">offon: -</p>
@@ -124,6 +125,20 @@ enum BridgeTestPage {
       const head = b.slice(0, 4) + '/' + b.slice(8, 12), rate = r.mime_type === 'audio/wav' ? u32(24) : 0;
       $('recOut').textContent = `rec: ok ${r.mime_type} ${head} ${rate} Hz ${r.bytes} bytes ${r.ms} ms`;
     }
+    // 「本机快速检查（离线）」 on the take just stopped: the words of the sentence not heard (the simulator's microphone hears nothing)
+    $('lcheck').onclick = async () => {
+      const r = await A.call('rec.localcheck', { text: "Good morning, everyone. It's a fine day." });
+      $('checkOut').textContent = r.ok ? `check: ok missing ${r.missing.length}/${r.words.length} ${r.missing.join(' ')}` : `check: ${r.why}`;
+    };
+    // the same on a whole text the site reads (彩虹): its recording as the take, its sentences as the text
+    $('lsample').onclick = async () => {
+      const id = 'v5-science-b1-rainbow', m = await (await fetch('/api/next/material?id=' + id)).json();
+      const text = (m.sentences || []).map(s => s.text || s.en || s).join(' ');
+      const t = await A.call('rec.localcheck-take', { path: `/audio/us-f/${id}.mp4?v=${m.audio.version}` });
+      if (!t.ok) { $('checkOut').textContent = 'check: take ' + t.why; return; }
+      const r = await A.call('rec.localcheck', { text });
+      $('checkOut').textContent = r.ok ? `check: ok missing ${r.missing.length}/${r.words.length} ${r.missing.slice(0, 8).join(' ')}` : `check: ${r.why}`;
+    };
     $('rec').onclick = async () => {
       const r = await A.rec.start({ max: 2 });
       if (!r.ok) { $('recOut').textContent = 'rec: ' + (r.message || r.why); return; }

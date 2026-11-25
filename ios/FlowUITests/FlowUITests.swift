@@ -352,6 +352,16 @@ final class FlowUITests: XCTestCase {
         tapButton("开关复原")
     }
 
+    /// 「本机快速检查（离线）」: off until the learner turns it on, so a take is not checked (and nothing is kept for it)
+    @MainActor func test13LocalCheckOffByDefault() {
+        bridgePage()
+        tapButton("开关复原")
+        wait(web.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@ AND label CONTAINS %@", "features: ", "local-check:0")).firstMatch, 10,
+             "off as it comes: \(value("features: "))")
+        tapButton("本机检查")
+        wait(line("check: off"), 10, "off: the page is told so")
+    }
+
     /// 「Siri 和专注模式」: the switch (on as it comes), the Focus filter explained under it, and the page seeing it off
     @MainActor func test12SiriAndFocus() {
         bridgePage()

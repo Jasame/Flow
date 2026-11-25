@@ -46,6 +46,7 @@ final class Shell {
                 Packs.schedule()
             case .frugal: Frugal.shared.update()
             case .reviewActivity: if !on { Task { await ReviewActivities.endAll() } }
+            case .localCheck: if on { Task { _ = await LocalCheck.shared.prepare() } } else { LocalCheck.shared.forget() }
             case .smartResume, .haptics, .siri: break
             }
         }
@@ -62,6 +63,7 @@ final class Shell {
             Task { await Packs.shared.refresh() }  // 离线朗读包: today's, over Wi-Fi (at most every 3 hours)
         case .background:
             recorder.cutNow()  // no recording behind the learner's back
+            LocalCheck.shared.forget()  // nor a take kept for the offline check
             // the counts may have changed while the app was open (a review done): today's reminder follows them
             BackgroundWork.run("reminders") { [reminders] in await reminders.refresh(force: true) }
             Shell.scheduleRefresh()

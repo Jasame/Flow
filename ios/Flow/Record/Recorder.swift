@@ -65,6 +65,7 @@ final class Recorder: NSObject, AVAudioRecorderDelegate {
 
     func start(_ a: [String: Any]) async -> [String: Any] {
         if busy { return ["ok": false, "why": "busy", "message": "正在录音"] }
+        LocalCheck.shared.forget()  // the take before this one is not the one to check any more
         let maxSecs = min(300, max(1, Bridge.double(a["max"]) ?? 30))
         // WAV is 32 KB a second: past 40 s it would be over the page's 1.4 MB (MIC.payload) — AAC then
         let fmt = Format(rawValue: (a["format"] as? String) ?? "") ?? (maxSecs > Self.wavSeconds ? .m4a : .wav)
@@ -122,7 +123,9 @@ final class Recorder: NSObject, AVAudioRecorderDelegate {
         }
         if format == .wav { data = WAV.canonical(data) ?? data }
         let ms = lengthMs ?? Int(Date().timeIntervalSince(startedAt ?? Date()) * 1000)
-        return ["ok": true, "mime_type": format == .wav ? "audio/wav" : "audio/mp4", "data": data.base64EncodedString(),
+        let mime = format == .wav ? "audio/wav" : "audio/mp4"
+        LocalCheck.shared.keep(data, mime: mime)  // only while 「本机快速检查（离线）」 is on, for rec.localcheck
+        return ["ok": true, "mime_type": mime, "data": data.base64EncodedString(),
                 "ms": ms, "bytes": data.count, "cut": cut]
     }
 

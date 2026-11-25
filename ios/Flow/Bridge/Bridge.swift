@@ -12,7 +12,7 @@ import WidgetKit
 final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
     static let name = "flow"
     static let version = 1
-    static let features = ["audio", "rec", "notify", "settings", "haptic", "frugal", "activity"]
+    static let features = ["audio", "rec", "notify", "settings", "haptic", "frugal", "activity", "localcheck"]
 
     weak var webView: WKWebView?
     /// the page's 主题色 changed (Accent): the app's own controls take it
@@ -128,6 +128,8 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
         case "rec.start": return await recorder.start(a)
         case "rec.stop": return await recorder.stop()
         case "rec.cancel": recorder.cancel(); return true
+        case "rec.localcheck":  // 「本机快速检查（离线）」: the take just stopped, heard on the phone (LocalCheck)
+            return await LocalCheck.shared.check((a["text"] as? String) ?? "")
 
         case "notify.permission": return await reminders.permission()
         case "notify.ask": return await reminders.ask()
@@ -138,6 +140,11 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
             if let u = URL(string: UIApplication.openNotificationSettingsURLString) { await UIApplication.shared.open(u) }
             return true
         #if BETA
+        case "rec.localcheck-take":  // tests: one of the site's own recordings as the take (a simulator's microphone hears the room)
+            guard let p = a["path"] as? String, p.hasPrefix("/audio/"), let url = URL(string: p, relativeTo: AppConfig.origin),
+                  let (data, _) = try? await URLSession.shared.data(from: url) else { return ["ok": false, "why": "fetch"] }
+            LocalCheck.shared.keep(data, mime: "audio/mp4")
+            return ["ok": true, "bytes": data.count]
         case "notify.test": return await reminders.testSchedule(a)
         case "audio.remote":  // the lock screen's buttons, for tests (a simulator has no Now Playing to press)
             switch a["cmd"] as? String {

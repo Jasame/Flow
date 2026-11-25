@@ -798,3 +798,44 @@ final class AskTests: XCTestCase {
         XCTAssertNotNil(Features.state["siri"])
     }
 }
+
+/// 「本机快速检查（离线）」 (item 13): the alignment is the server's compare_words (results taken from the Python), and
+/// the check runs only with the switch on, no network and a take just stopped.
+final class LocalCheckTests: XCTestCase {
+    private func marks(_ t: String, _ h: String) -> [String] {
+        LocalCheck.compare(t, h).map { "\($0.w)\($0.ok ? "" : "✗")" }
+    }
+
+    func testSameAlignmentAsTheServer() {
+        XCTAssertEqual(marks("A pair of noisy headphones.", "a pair of headphones"), ["a", "pair", "of", "noisy✗", "headphones"])
+        XCTAssertEqual(marks("Good morning, everyone. It's a fine day.", ""),
+                       ["good✗", "morning✗", "everyone✗", "it's✗", "a✗", "fine✗", "day✗"])
+        XCTAssertEqual(marks("Good morning, everyone. It's a fine day.", "good morning everyone its a fine day"),
+                       ["good", "morning", "everyone", "it's✗", "a", "fine", "day"])
+        XCTAssertEqual(marks("I can't believe it's Monday again!", "I can not believe it's monday"),
+                       ["i", "can't✗", "believe", "it's", "monday", "again✗"])
+        XCTAssertEqual(marks("The cat sat on the mat.", "the the cat sat mat on"), ["the", "cat", "sat", "on", "the✗", "mat✗"])
+        XCTAssertEqual(marks("Well begun is half done.", "well begun is half done"), ["well", "begun", "is", "half", "done"])
+    }
+
+    func testWordsAsTheServerCountsThem() {
+        XCTAssertEqual(LocalCheck.words("Don't stop—it's 5 o'clock, OK?"), ["don't", "stop", "it's", "o'clock", "ok"])
+    }
+
+    @MainActor func testOnlyWithTheSwitchOnAndNoNetwork() async {
+        let key = Feature.localCheck.key
+        defer { UserDefaults.standard.removeObject(forKey: key) }
+        XCTAssertFalse(Feature.localCheck.defaultOn, "off until the learner turns it on")
+        UserDefaults.standard.removeObject(forKey: key)
+        var r = await LocalCheck.shared.check("Good morning")
+        XCTAssertEqual(r["why"] as? String, "off")
+        UserDefaults.standard.set(true, forKey: key)  // not through Features.set: that asks iOS for speech recognition
+        LocalCheck.shared.keep(Data(count: 100), mime: "audio/wav")
+        try? await Task.sleep(for: .milliseconds(300))  // the network monitor's first answer
+        r = await LocalCheck.shared.check("Good morning")
+        XCTAssertEqual(r["why"] as? String, "online", "with a network the server checks: \(r)")
+        r = await LocalCheck.shared.check("Good morning")
+        XCTAssertNotEqual(r["ok"] as? Bool, true, "the take went with the first check")
+        XCTAssertTrue(Bridge.features.contains("localcheck"))
+    }
+}

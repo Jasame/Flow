@@ -6,6 +6,7 @@ struct FeaturesView: View {
     let accent: Color
     @Environment(\.dismiss) private var dismiss
     @AppStorage(Feature.offlinePacks.key) private var packsOn = Feature.offlinePacks.defaultOn
+    @AppStorage(Feature.localCheck.key) private var checkOn = Feature.localCheck.defaultOn
 
     var body: some View {
         NavigationStack {
@@ -22,6 +23,7 @@ struct FeaturesView: View {
                         }
                     }
                     if g == Feature.offlinePacks.group, packsOn { PacksSection() }  // right under its own switch
+                    if g == Feature.localCheck.group, checkOn { LocalCheckSection() }
                 }
                 Section {
                 } footer: {
@@ -85,6 +87,32 @@ private struct PacksSection: View {
             Text("存在手机上的录音")
         } footer: {
             Text("只用 Wi-Fi 下载，不用流量；晚上充电时也会自己存。存在这台手机上，空间不够时 iPhone 也可能先清掉。")
+        }
+    }
+}
+
+/// 本机快速检查（离线）, when it is on: whether this iPhone can do it (iOS asks for speech recognition once)
+private struct LocalCheckSection: View {
+    @State private var state = LocalCheck.shared.state
+
+    var body: some View {
+        Section {
+            Text(Self.says(state)).font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("localcheck.state")
+            if state == "denied", let url = URL(string: UIApplication.openSettingsURLString) {
+                Link("去系统设置里允许", destination: url)
+            }
+        } footer: {
+            Text("只标漏读的词：句子里有、却没听到的。读错了它不一定听得出来，有网时请以语流的批改为准。")
+        }
+        .task { state = await LocalCheck.shared.prepare() }
+    }
+
+    static func says(_ state: String) -> String {
+        switch state {
+        case "ready": "可以用了：下次没网跟读时，录完会标出漏读的词。"
+        case "denied": "要允许语流使用语音识别：「设置 → App → 语流 → 语音识别」。"
+        case "unavailable": "这台 iPhone 现在不能在本机识别英语，没网时这一项不起作用。"
+        default: "iOS 会问一次能不能用语音识别。"
         }
     }
 }
