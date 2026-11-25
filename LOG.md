@@ -173,3 +173,10 @@
   - #127 主屏 App：老师账号的首页显示 logo，返回按钮的文字跟着标签栏（开局和考试）
 - 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45531882162
+
+### b33 · 2026-11-25 10:28
+- main `c0862db`，构建 `6bde788`
+- 新合并的 PR（自 b32 起）：
+  - #121 老师模式：一次性老师注册链接、老师首页建班、操作指南新增「老师」一章（开局和考试、后台和班级、操作指南）
+- 自检：DEPLOYED，装了 14 个文件（1 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45533105876
