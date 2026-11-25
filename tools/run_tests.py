@@ -4,6 +4,7 @@
     python3 tools/run_tests.py                        # every website test (flow/tests), several files at once (~3 min on a laptop)
     python3 tools/run_tests.py test_vocab test_next   # these test files only (names as in flow/tests)
     python3 tools/run_tests.py --changed              # the test files for what this branch changed (against origin/main)
+    python3 tools/run_tests.py --changed --checks     # before pushing: that, and CI's checks that need no browser (~15 s)
     python3 tools/run_tests.py --shard 1/2            # CI: one share of the website tests, balanced by measured time
     python3 tools/run_tests.py --ui [groups…]         # tools/ui_test.py, its groups in parallel (needs Playwright)
     python3 tools/run_tests.py --ui --shard 3/5       # CI: one share of the UI groups
@@ -21,7 +22,7 @@ The UI groups are the switches of tools/ui_test.py (phone, about, sprint …); U
 tests/test_ci.py fails when a group of ui_test.py is in none of them. Each UI process starts its own local server.
 Everything CI runs is still run by CI on every pull request; this only makes the same runs shorter.
 """
-import os, re, subprocess, sys, time
+import os, re, shutil, subprocess, sys, time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -108,7 +109,9 @@ def shard_arg(argv):
     return int(m.group(1)), int(m.group(2))
 
 
-def changed_files(base='origin/main'):
+def changed_files(base=None):
+    # FLOW_CHANGED_BASE: what to compare with instead of origin/main (tools/msi-run.sh: the Mac's origin/main, as a ref of the run's own)
+    base = base or os.getenv('FLOW_CHANGED_BASE') or 'origin/main'
     def git(*a):
         return subprocess.run(['git', *a], cwd=ROOT, capture_output=True, text=True).stdout.split('\n')
     merge_base = (git('merge-base', base, 'HEAD') or [''])[0].strip()
@@ -138,6 +141,45 @@ def tests_for(paths):
         elif p.startswith(('tools/release-files.txt', 'flow/upgrade.sh')):
             pick |= {'test_package', 'test_guide', 'test_wordbooks_open'} & set(files)
     return sorted(pick)
+
+
+# CI's checks that need no browser and take seconds (tests.yml: the frontend job, and the policy tests of backend 1/2):
+# the repository's own tests (tests/: every shipped file in tools/release-files.txt, the CI setup, the ledger), the
+# front end built from its parts, the dictionary matching its sources, every script the site serves parsing (when node
+# is there), and the guide's test (test_guide, added to the test files). Before pushing they catch what used to fail a
+# whole CI round (PR #240: a file missing from release-files.txt).
+SERVED_JS = ['flow/public/next.js', 'flow/public/sw.js', 'flow/public/survey.js', 'flow/public/about.js', 'xmc-admin/admin.js']
+
+
+# tests/ as CI runs them, less the classes that need the files a release builds (the guide PDF: tools/release.py
+# check's part, after build_release.py --here); tools/release-files.txt's own checks (ReleaseListTests) stay
+NEEDS_BUILT = {'ReleaseTests'}
+POLICY_TESTS = f"""import sys, unittest
+def flat(s):
+    for t in s:
+        yield from (flat(t) if isinstance(t, unittest.TestSuite) else [t])
+tests = [t for t in flat(unittest.defaultTestLoader.discover('tests', top_level_dir='tests')) if type(t).__name__ not in {NEEDS_BUILT!r}]
+sys.exit(not unittest.TextTestRunner(verbosity=0).run(unittest.TestSuite(tests)).wasSuccessful())
+"""
+
+
+def run_checks():
+    steps = [('policy tests (tests/)', [sys.executable, '-c', POLICY_TESTS]),
+             ('front end built from its parts', [sys.executable, 'tools/build_front.py']),
+             ('dictionary matches its sources', [sys.executable, 'tools/build_dictionary.py', '--check'])]
+    node = shutil.which('node')
+    steps += [(f'{js} parses', [node, '--check', js]) for js in SERVED_JS] if node else []
+    bad = []
+    for label, cmd in steps:
+        t0 = time.time()
+        r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
+        print(f"{'ok  ' if r.returncode == 0 else 'FAIL'} check  {label:<34} {time.time() - t0:5.1f}s", flush=True)
+        if r.returncode:
+            bad.append(label)
+            print('\n'.join((r.stdout + r.stderr).strip().splitlines()[-25:]))
+    if not node:
+        print('     check  (no node here: the served scripts are not parsed; CI does that)')
+    return bad
 
 
 def jobs(argv):
@@ -220,6 +262,7 @@ def main(argv):
         # built once here, so the servers the processes start (tools/ui_server.py builds too) find it current
         subprocess.run([sys.executable, str(ROOT / 'tools' / 'build_front.py')], check=True, stdout=subprocess.DEVNULL)
         return run_ui(out, plan, workers)
+    bad = run_checks() if '--checks' in argv else []
     if '--changed' in argv:
         paths = changed_files()
         names = tests_for(paths)
@@ -231,14 +274,19 @@ def main(argv):
             sys.exit(f'no such test file in flow/tests: {unknown}')
     else:
         names = test_files()
+    if '--checks' in argv and 'test_guide' not in names:
+        names = [*names, 'test_guide']
     if shard:
         names = shares(names, shard[1])[shard[0] - 1]
     if listing:
         print('\n'.join(names)); return 0
-    if not names:
-        return 0
-    subprocess.run([sys.executable, str(ROOT / 'tools' / 'build_front.py')], check=True, stdout=subprocess.DEVNULL)
-    return run_files(names, jobs(argv))
+    rc = 0
+    if names:
+        subprocess.run([sys.executable, str(ROOT / 'tools' / 'build_front.py')], check=True, stdout=subprocess.DEVNULL)
+        rc = run_files(names, jobs(argv))
+    if bad:
+        print(f'checks FAILED: {"; ".join(bad)}')
+    return rc or (1 if bad else 0)
 
 
 if __name__ == '__main__':

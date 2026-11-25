@@ -102,7 +102,7 @@ pub fn js_for(action: &str) -> String {
     format!("window.FlowApp&&FlowApp._media&&FlowApp._media({action:?})")
 }
 
-#[cfg(any(target_os = "macos", target_os = "windows"))]
+#[cfg(any(target_os = "macos", target_os = "windows", target_os = "linux"))]
 pub mod system {
     //! souvlaki talks to SMTC / MPNowPlayingInfoCenter. Everything here runs on the main thread.
     use super::*;
@@ -130,15 +130,17 @@ pub mod system {
         })
     }
 
-    /// `on_key` gets every key press (on whatever thread the system calls back on).
+    /// `on_key` gets every key press (on whatever thread the system calls back on). `dbus_name` is Linux's MPRIS
+    /// name (org.mpris.MediaPlayer2.<it>): the bundle id, so 语流 and 语流内测 can run side by side.
     pub fn init(
         display_name: &str,
+        dbus_name: &str,
         hwnd: Option<*mut std::ffi::c_void>,
         on_key: impl Fn(Key) + Send + 'static,
     ) -> Result<(), String> {
         let config = PlatformConfig {
             display_name,
-            dbus_name: "cn.flowlang.app",
+            dbus_name,
             hwnd,
         };
         let mut c = MediaControls::new(config).map_err(|e| format!("{e:?}"))?;

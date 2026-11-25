@@ -417,14 +417,26 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let window = build_window(&handle, hidden)?;
     menu::build(&handle)?;
 
-    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    // Linux (WebKitGTK) keeps the microphone off unless asked: 跟读、口语、发音 need it (the permission request is
+    // still answered per page, on_permission_request)
+    #[cfg(target_os = "linux")]
+    let _ = window.with_webview(|wv| {
+        use webkit2gtk::{SettingsExt, WebViewExt};
+        if let Some(s) = WebViewExt::settings(&wv.inner()) {
+            s.set_enable_media_stream(true);
+            s.set_enable_mediasource(true);
+        }
+    });
+
+    #[cfg(any(target_os = "macos", target_os = "windows", target_os = "linux"))]
     {
         #[cfg(target_os = "windows")]
         let hwnd = window.hwnd().ok().map(|h| h.0);
         #[cfg(not(target_os = "windows"))]
         let hwnd = None;
         let h = handle.clone();
-        if let Err(e) = media::system::init(channel.name(), hwnd, move |key| {
+        let dbus_name = app.config().identifier.clone();
+        if let Err(e) = media::system::init(channel.name(), &dbus_name, hwnd, move |key| {
             let h2 = h.clone();
             let _ = h.run_on_main_thread(move || {
                 if let Some(a) = media::action_for(key, &media::system::last()) {
@@ -444,7 +456,8 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let _ = &window;
 
     // flowlang://… : a reminder click on Windows, or a link from elsewhere
-    #[cfg(target_os = "windows")]
+    // Windows and Linux learn the flowlang:// scheme at run time too (an AppImage has no installer to do it)
+    #[cfg(any(target_os = "windows", target_os = "linux"))]
     let _ = app.deep_link().register_all();
     let h = handle.clone();
     app.deep_link().on_open_url(move |e| {

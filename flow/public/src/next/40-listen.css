@@ -33,7 +33,7 @@
 .line.sh:not(.cur) .sh-ctl>.pron-chip:not([hidden]){display:inline-block}
 .wdiff{font-family:var(--serif);font-size:17px;line-height:1.8}
 .wdiff .ok{color:var(--ok-ink)}
-.wdiff .miss{color:var(--red);text-decoration:underline wavy color-mix(in srgb,var(--red) 60%,transparent);text-underline-offset:4px}
+.wdiff .miss{color:var(--red);text-decoration:underline wavy var(--red);text-decoration:underline wavy color-mix(in srgb,var(--red) 60%,transparent);text-underline-offset:4px}
 .dict textarea{min-height:88px;font-size:17px}
 .nw-list{display:flex;flex-wrap:wrap;gap:8px}
 .nw{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line2);border-radius:99px;padding:6px 12px 6px 8px;background:var(--paper);cursor:pointer;max-width:100%}

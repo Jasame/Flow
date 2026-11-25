@@ -1,6 +1,23 @@
 /* 「AI 生成」标识（2026-11-25，《人工智能生成合成内容标识办法》）。aiTag() / aiMark(note) 在 00-head.js。
-   看得清，但不抢内容：灰边小圆角，正文色，前面一个 ✦（和「✦ AI 点评」按钮一样）。深色模式跟着颜色变量走。 */
-.ai-mark{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:600;line-height:18px;border:1px solid var(--line2);border-radius:99px;padding:0 7px;color:var(--ink2);background:var(--paper);white-space:nowrap;vertical-align:middle;letter-spacing:.02em}
+   一定要有，但不抢内容（用户 2026-11-25：「只做告示就可以了」；语流 B7 认可）：没有框和底色，12px 灰字，字重 600，前面一个 ✦，
+   位置不变；灰字在浅色、深色下对比度都 ≥4.5。深色模式跟着颜色变量走。 */
+.ai-mark{display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:600;line-height:18px;color:var(--muted);white-space:nowrap;vertical-align:middle;letter-spacing:.02em}
 .ai-mark::before{content:'✦';font-size:10px;opacity:.75}
 .ai-line{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px;line-height:1.5;color:var(--muted)}
 .result>.ai-line:first-child,.card>.ai-line:first-child{margin-bottom:2px}
+/* 合成的声音：一页一行小灰字 aiVoiceNote()，和播放键同屏；喇叭多、要滚动的地方每个喇叭右上一个淡淡的「AI」aiBadge()
+   （10px 加粗，同样的灰，对比度 ≥3:1）。读屏读按钮自己的名字「……（AI 朗读）」，角标对读屏隐藏。 */
+.ai-voice-note{font-size:12px;line-height:1.5;color:var(--muted);font-weight:400;margin:0}
+.ai-voice-note.tc{text-align:center}
+.ai-line .ai-voice-note,.ai-voice-note.in{font-size:inherit}  /* inside a line of small text: its size (12–13.5px) */
+.has-ai{position:relative}
+.ai-badge{position:absolute;top:3px;right:1px;font:700 10px/1 var(--sans);font-style:normal;color:var(--muted);letter-spacing:.02em;pointer-events:none}
+/* where: by 听一遍 at the end of 今日好句's row, in the mini player (after the label, which gives way first), by 播放这一句 */
+.lc-acts .ai-voice-note{margin-left:auto;align-self:center;white-space:nowrap}
+.mini-player .ai-voice-note{flex-shrink:0;white-space:nowrap;color:inherit;opacity:.78}
+.dict .row .ai-voice-note{align-self:center;white-space:nowrap}
+/* 文章头: 「✦ AI 生成 · 经规范检查」 and 「来源：……」 on one line under the title (20-study.js originHTML), wrapping on a narrow phone */
+.head-note{display:flex;flex-wrap:wrap;align-items:center;gap:0 12px}
+.head-note>.ai-link,.head-note>.origin{margin-top:0}
+/* 口语路线: 「AI 生成 · 对话里的角色由 AI 扮演」 under 下一个 (46-speak.js), still on the first screen */
+.route-ai{margin-top:-4px}
