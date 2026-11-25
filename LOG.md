@@ -661,3 +661,12 @@
   - #315 Dark mode: the filled main button one step darker（开局和考试、操作指南）
 - 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45638992013
+
+### b83 · 2026-11-25 23:23
+- main `f907f2e`，构建 `96312ab`
+- 新合并的 PR（自 b82 起）：
+  - #321 桌面内测版换橙色图标（网站其他）
+  - #322 总账：r34 热修复（老版本 iPhone、iPad 打不开语流）、内测版 b75–b78（发版和构建）
+  - #319 旧设备兼容：系统太旧时说清楚怎么办；color-mix、dvh、:has 补退路；报错页先换新版（单词、听和说、今日和计划、开局和考试、操作指南）
+- 自检：DEPLOYED，装了 6 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45644411831
