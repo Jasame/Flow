@@ -117,10 +117,11 @@ LAYOUT_JS = """(touch) => {
   out.squeezed = [...document.querySelectorAll('#view span, #view p, #view div')].filter(e => e.offsetParent !== null && e.children.length === 0)
     .filter(e => { const t = (e.textContent || '').trim(); const r = e.getBoundingClientRect(); return t.split(/\s+/).length >= 6 && r.width > 0 && r.width < 90 && r.height > 120; })
     .slice(0, 5).map(e => e.tagName + '.' + e.className + ' ' + Math.round(e.getBoundingClientRect().width) + 'px "' + e.textContent.trim().slice(0, 30) + '"');
-  // touch targets: interactive controls smaller than 32x32 (inline word spans and links inside running text excluded)
+  // touch targets: interactive controls smaller than 32x32 (inline word spans and links inside running text excluded;
+  // the guide's list items and table cells are running text too, e.g. 用户协议's 「详见『隐私和数据』」)
   if (touch) {
     out.small = [...document.querySelectorAll('#view button, #view a, #view select, #view input:not([type=hidden]), .tabs a')]
-      .filter(e => e.offsetParent !== null && !e.closest('.text, .p, .ctx, .small p, .muted, .tiny, p, .legend') && !(e.tagName === 'INPUT' && e.closest('label')))
+      .filter(e => e.offsetParent !== null && !e.closest('.text, .p, .ctx, .small p, .muted, .tiny, p, .legend, .guide-body li, .guide-body td') && !(e.tagName === 'INPUT' && e.closest('label')))
       .map(e => { const r = e.getBoundingClientRect(); return [e, r]; })
       .filter(([e, r]) => r.width && (r.width < 32 || r.height < 32))
       .slice(0, 8).map(([e, r]) => `${e.tagName}${e.id ? '#' + e.id : ''}.${[...e.classList].join('.')} "${(e.textContent || e.getAttribute('aria-label') || '').trim().slice(0, 14)}" ${Math.round(r.width)}x${Math.round(r.height)}`);
