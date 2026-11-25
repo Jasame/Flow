@@ -206,7 +206,7 @@ Kotlin，minSdk 26，targetSdk 37；说明在 `android/README.md`。flavor `beta
   - 深色和浅色切换不重新加载；键盘弹出时整个 WebView 变矮，网页里 visualViewport 看不到键盘；
   - WebView 的使用统计和 Safe Browsing 关掉，不做云备份。
 - **audio**：Media3 ExoPlayer 加 MediaSessionService（前台服务，类型 mediaPlayback）。
-  - 锁屏、通知栏、耳机和蓝牙按键：播放、暂停、上一句、下一句。SimpleBasePlayer 显示「标题 · 第 n / N 句」；句间停顿和正在生成的句子也显示成在放。
+  - 锁屏、通知栏、耳机和蓝牙按键：播放、暂停、上一句、下一句。SimpleBasePlayer 显示标题和「AI 朗读 · 第 n / N 句」（合成声音的显式标识）；句间停顿和正在生成的句子也显示成在放。
   - 音频焦点自己管：
     - 短暂失去（来电、闹钟、导航）：暂停，回来后自己接着放；
     - 彻底失去（别的 App 放声音）：暂停（why = other）；
