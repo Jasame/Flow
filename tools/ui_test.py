@@ -1646,6 +1646,25 @@ def ux_run(pw):
         check(dev, '播放全文 right after opening an article: the fresher 今日 coming in does not stop the reading',
               kept['btn'] == '暂停' and kept['mini'] and kept['said'] >= 2, kept)
         c5.close()
+        # no connection, a text never read (B5's offline runs; B3's repro 2026-11-26): each sentence goes to the browser
+        # voice at once, saying 「离线中…」, not after 1–2 s of 「正在准备朗读第 N 句…」 for a request that cannot go out
+        c7 = browser.new_context(**phone, service_workers='block')
+        c7.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a2']['token'], 'url': BASE}])
+        c7.add_init_script("(() => { window.__said = []; window.__preps = []; if (!window.speechSynthesis) return; speechSynthesis.cancel = () => {}; speechSynthesis.getVoices = () => []; "
+                           "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push([u.text, performance.now()]); setTimeout(() => u.onstart && u.onstart(), 10); setTimeout(() => u.onend && u.onend(), 300); }; })()")
+        p7 = c7.new_page(); asked7 = []
+        p7.on('request', lambda q: asked7.append(q.url) if q.url.endswith('/api/next/tts') else None)
+        p7.goto(BASE + f'/#/m/{PID}/listen', wait_until='networkidle'); settle(p7, '#playAll')
+        p7.evaluate("localStorage.removeItem('flow-progress'); localStorage.removeItem('flow-sv-urls')")
+        c7.set_offline(True); p7.route('**/api/next/tts**', lambda r: r.abort('internetdisconnected'))
+        go(p7, '#/'); go(p7, f'#/m/{PID}/listen'); p7.wait_for_selector('#playAll', timeout=8000)  # opened with no connection (the text kept from before)
+        p7.evaluate("window.__t0 = performance.now(); new MutationObserver(() => { const p = document.getElementById('lsPrep'); if (p && !p.hidden && p.textContent) window.__preps.push(p.textContent); }).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true })")
+        asked7.clear(); p7.click('#playAll'); p7.wait_for_timeout(1600)
+        off = p7.evaluate("() => ({ said: window.__said.length, first: window.__said.length ? Math.round(window.__said[0][1] - window.__t0) : null, preparing: window.__preps.filter(x => x.includes('正在准备')).length, offline: window.__preps.some(x => x.includes('离线中')) })")
+        off['tts_asked'] = len(asked7)
+        check(dev, 'no connection: no AI-voice request that cannot go out; the browser voice reads each sentence at once with 「离线中…」, never 「正在准备朗读」',
+              off['tts_asked'] == 0 and off['said'] >= 2 and off['first'] is not None and off['first'] < 700 and off['preparing'] == 0 and off['offline'], off)
+        c7.close()
         o, al, nv, th, ne, sk, aw = seen['once'], seen['always'], seen['never'], seen['throws'], seen['no-end'], seen['stuck'], seen['all-words']
         nvv = seen['never-voices']
         check(dev, 'browser voice with voices but not starting (an iPad offline): the text waits at that sentence saying why, and never says 「换 Safari 或 Chrome」',
