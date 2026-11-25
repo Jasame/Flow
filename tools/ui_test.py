@@ -975,6 +975,17 @@ def ios_audio_run(pw):
         check(dev, 'a clip Web Audio cannot decode plays on an <audio> instead',
               not pg.evaluate('window.__wa.starts') and sum(clip_url in u for u in asked) >= 2, asked[-3:])  # fetched for Web Audio, then by the <audio>
         ctx.close()
+        # neither the clip nor the sprite (audio-inventory.md, 语流 9): one line saying why, then the browser voice
+        for off, line in ((False, '网络不好，这个词的读音没加载出来，先用浏览器的声音'), (True, '离线中，这个词的读音还没存到手机，先用浏览器的声音')):
+            ctx, pg, errs, asked = page()
+            pg.route('**/audio/words/**', lambda r: r.fulfill(status=404, content_type='application/json', body='{}'))
+            pg.evaluate(TOASTS_JS)
+            if off:
+                pg.evaluate("Object.defineProperty(navigator, 'onLine', { get: () => false, configurable: true })")
+            tap_word(pg); pg.wait_for_timeout(1500)
+            said = pg.evaluate('window.__toasts') or []
+            check(dev, f"no word sound at all{' (offline)' if off else ''}: it says why, then the browser voice reads it", line in said, said)
+            ctx.close()
         # the type refused (a browser that does not let the page set it): <audio> clips, which the ringer switch does not mute
         ctx, pg, errs, asked = page(refuse=True)
         tap_word(pg)
@@ -1010,6 +1021,11 @@ def ios_audio_run(pw):
         if browser:
             browser.close()
         srv.terminate()
+
+# every toast as it is set (two in a row replace each other on screen); window.__toasts
+TOASTS_JS = """() => { const el = document.getElementById('toast'), d = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent'); window.__toasts = [];
+  Object.defineProperty(el, 'textContent', { configurable: true, get() { return d.get.call(this); }, set(v) { window.__toasts.push(v); d.set.call(this, v); } }); }"""
+
 
 def wechat_run(pw):
     dev = 'wechat'
@@ -1109,6 +1125,13 @@ def wechat_run(pw):
         n0 = len(iplays()); word()
         new = [x for x in iplays()[n0:] if '/audio/words/' in x['src']]
         check(dev, 'iPhone: without a clip, the sprite plays instead', any('.aac' not in x['src'] and x['ok'] for x in new), new)
+        # neither the clip nor the sprite, and WeChat has no browser voice either: how to hear it, nothing about a voice
+        ip.route('**/audio/words/**', lambda r: r.fulfill(status=404, content_type='application/json', body='{}'))
+        ip.reload(wait_until='load'); settle(ip, '#reader'); ip.wait_for_timeout(600); away(); ip.evaluate(TOASTS_JS)
+        word(); ip.wait_for_timeout(800)
+        said = ip.evaluate('window.__toasts') or []
+        check(dev, 'iPhone WeChat: no word sound and no browser voice: it says how to hear it, not 「先用浏览器的声音」',
+              any('在浏览器打开' in t for t in said) and not any('先用浏览器的声音' in t for t in said), said)
         check(dev, 'iPhone: no script errors', not ierrors, ierrors[:3])
         ictx.close()
         browser.close()

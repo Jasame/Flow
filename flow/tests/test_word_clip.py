@@ -134,7 +134,9 @@ class FrontEndTests(unittest.TestCase):
         # the browser voice stays the last resort of a failed clip (not TTS.say: that may be the server voice again)
         self.assertIn("if (this.session('playback') !== 'playback') { this.off = true; return false; }", js)
         self.assertIn("MS.claim('short', title || '语流'", js); self.assertIn('}, 20000);', js)
-        self.assertIn('CLIP.stop(); if (w.text) TTS.browser(w.text, w.onend);', js)
+        # both lines failed: why first (SV.why, a word's own two lines; nothing about a voice where there is none), then the browser voice
+        self.assertIn("if (TTS.ok) SV.why(/\\/audio\\/words\\//.test(w.src || '')", js)
+        self.assertIn("code: off ? 'word_offline' : 'word_net'", js); self.assertIn('TTS.browser(w.text, w.onend);  // not TTS.say', js)
         self.assertIn("LEAD_DEFAULT = 0.2;", js); self.assertEqual((wc.LEAD, wc.LEADS), (0.2, (0.05, 0.4)))  # the page and the server agree
         self.assertIn("const LEADS = [0.1, 0.15, 0.2, 0.25, 0.3]", js)  # the choices in 我的 → 设置, all inside the server's range
         self.assertIn("this.mode() !== 'compat'", js)  # Web Audio unless 兼容模式 (我的 → 设置) is chosen

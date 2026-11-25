@@ -448,7 +448,7 @@
       this.element(src, from, to, text, onend, fallback, want);
     },
     element(src, from, to, text, onend, fallback, want) {
-      const a = this.audio;
+      const a = this.audio; want.src = src;  // what was asked for: the error below says why a word was not heard
       const loop = () => {
         if (this.want !== want) return;
         if (a.currentTime >= to || a.ended) { a.pause(); this.want = null; if (to === Infinity && WORD_CLIPS) { this.letGo(); MS.release('short'); } if (onend) onend(); return; }
@@ -513,7 +513,16 @@
   CLIP.audio.addEventListener('error', () => {
     const w = CLIP.want; if (!w || !mediaGaveUp(CLIP.audio)) return;
     if (w.fallback) { const n = CLIP.want = { ...w, fallback: null }; CLIP.element(w.fallback[0], w.fallback[1], w.fallback[2], w.text, w.onend, null, n); return; }  // no clip from the server: the sprite, as before (once)
-    CLIP.stop(); if (w.text) TTS.browser(w.text, w.onend);  // not TTS.say: that may be this player again (the server voice); onend still runs (对比回放 plays the recording then)
+    CLIP.stop();
+    if (!w.text) return;
+    // the clip and the sprite both failed: say why before the browser's voice (audio-inventory.md, 语流 9: never a
+    // silent switch to a machine voice); a word has its own two lines, apart from a sentence's (SV.why: once per reason).
+    // No browser voice either (WeChat): TTS.browser says how to hear it instead, and nothing is said about a voice.
+    const off = navigator.onLine === false;
+    if (TTS.ok) SV.why(/\/audio\/words\//.test(w.src || '')
+      ? { code: off ? 'word_offline' : 'word_net', server: off ? '离线中，这个词的读音还没存到手机，先用浏览器的声音' : '网络不好，这个词的读音没加载出来，先用浏览器的声音' }
+      : { code: off ? 'offline' : 'net' });
+    TTS.browser(w.text, w.onend);  // not TTS.say: that may be this player again (the server voice); onend still runs (对比回放 plays the recording then)
   });
   /* ---------- preloading: the recording likely to be played next is fetched while the page is open ---------- */
   // iPhones and WeChat's browser download a recording only when it is played: on a phone network that is a second or
