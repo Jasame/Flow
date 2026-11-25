@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>语流要用麦克风录下你说的英语（跟读、口语对话、发音练习），只在你点录音的那几秒打开，录音只用来给你批改。</string>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>zh_CN</string>
+  <key>LSApplicationCategoryType</key>
+  <string>public.app-category.education</string>
+</dict>
+</plist>
