@@ -253,11 +253,25 @@
   }
   // Both lines failed (or there is only one): nothing more to try for this file.
   const mediaGaveUp = a => !a.dataset.alt || a.dataset.line === 'alt';
+  // Recordings and word sounds are AAC (.mp4, .m4a, .aac). A device that cannot decode it (a Linux desktop without its
+  // codec, 语流 C3, 2026-11-25) has them read sentence by sentence in AI 朗读 instead, and is told why once, rather than
+  // 「音频暂时没加载出来，稍后再点一次」 for a file that can never play there.
+  const AAC = (() => {
+    try { const a = document.createElement('audio'); return !!(a.canPlayType('audio/mp4; codecs="mp4a.40.2"') || a.canPlayType('audio/mp4') || a.canPlayType('audio/aac')); }
+    catch (e) { return true; }
+  })();
+  let aacTold = false;
+  function noAac() {
+    if (aacTold) return; aacTold = true;
+    noteIssue('audio', '这台设备放不了 AAC 录音', '');
+    toast(SV.on() ? '这台设备放不了录音的格式，改用 AI 朗读一句一句读' : '这台设备放不了录音的格式，先用浏览器的声音读');
+  }
 
   /* ---------- narration: pre-generated Kokoro audio + timings (sentence exact, words estimated) ---------- */
   const NAR = {
-    audio: new Audio(), meta: null, key: '', raf: 0, stopAt: null, onTick: null, onEnd: null,
+    audio: new Audio(), meta: null, key: '', raf: 0, stopAt: null, onTick: null, onEnd: null, aac: AAC,
     async load(id, voice, version) {
+      if (!AAC) { noAac(); return false; }  // as a text without a recording: sentence by sentence
       const key = voice + '/' + id + '@' + version;
       if (this.key === key && this.meta) return true;
       this.stop(); this.meta = null; this.key = '';
@@ -528,7 +542,7 @@
     // c: {text, audio: {us: [sprite, start, end], uk: [...]}}; falls back to the browser voice
     word(c) {
       const au = c.audio || {}, ac = au[this.accent()] ? this.accent() : au.us ? 'us' : au.uk ? 'uk' : null;
-      if (!ac) { TTS.say(c.text); return; }
+      if (!ac || !AAC) { if (ac) noAac(); TTS.say(c.text); return; }  // no recording, or none this device can play
       const w = au[ac], sprite = `/audio/words/${ac}/${w[0]}.mp4`, clip = this.wordSrc(c);
       if (WORD_CLIPS) this.play(clip, 0, Infinity, c.text, null, [sprite, w[1], w[2]], { url: clip, from: clipLead() - 0.02, to: clipLead() + w[2] - w[1] + 0.04, title: '语流 · 单词' });
       else this.play(sprite, w[1], w[2], c.text);
@@ -542,7 +556,7 @@
     },
     // ex: {pack, i, text, audio: narration version or 0}; onend when it has been said (对比回放 plays the recording then)
     async sentence(ex, onend) {
-      if (!ex.audio) { TTS.say(ex.text, onend); return; }
+      if (!ex.audio || !AAC) { if (ex.audio) noAac(); TTS.say(ex.text, onend); return; }
       const key = S.voice + '/' + ex.pack;
       try {
         if (!this.metas[key]) this.metas[key] = await mediaJSON(`/audio/${S.voice}/${encodeURIComponent(ex.pack)}.json?v=${ex.audio}`);

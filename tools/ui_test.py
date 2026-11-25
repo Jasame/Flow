@@ -1646,6 +1646,27 @@ def ux_run(pw):
         check(dev, '播放全文 right after opening an article: the fresher 今日 coming in does not stop the reading',
               kept['btn'] == '暂停' and kept['mini'] and kept['said'] >= 2, kept)
         c5.close()
+        # a device that cannot decode AAC (a Linux desktop without its codec, 语流 C3): a text with a recording is read
+        # sentence by sentence in AI 朗读, the recording never fetched, the reason said once on the page and in a toast;
+        # not 「音频暂时没加载出来，稍后再点一次」 for a file that can never play there
+        c6 = browser.new_context(**phone, service_workers='block')
+        c6.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a2']['token'], 'url': BASE}])
+        c6.add_init_script("HTMLMediaElement.prototype.canPlayType = () => ''; window.__toasts = []; "
+                           "document.addEventListener('DOMContentLoaded', () => new MutationObserver(() => { const t = document.querySelector('.toast'); "
+                           "if (t && t.textContent && window.__toasts[window.__toasts.length - 1] !== t.textContent) window.__toasts.push(t.textContent); }).observe(document.body, { subtree: true, childList: true, characterData: true }));")
+        p6 = c6.new_page(); got6 = []
+        p6.on('request', lambda q: got6.append(q.url) if ('/audio/' in q.url and 'lighthouse-ledger-3' in q.url) or q.url.endswith('/api/next/tts') else None)
+        p6.route('**/api/next/tts', lambda r: r.fulfill(json={'url': '/audio/tts/us-f/no-aac-0001.wav', 'made': False}))
+        p6.route('**/audio/tts/us-f/no-aac-0001.wav', lambda r: r.fulfill(status=200, content_type='audio/wav', body=short))
+        p6.goto(BASE + '/#/m/v5-culture-c1-lighthouse-ledger-3/listen', wait_until='networkidle'); settle(p6, '#playAll'); p6.wait_for_timeout(300)
+        lead = p6.text_content('#view .listen-tip') or ''
+        p6.click('#playAll'); p6.wait_for_timeout(1500)
+        six = p6.evaluate("() => ({ toasts: window.__toasts.filter(t => t.includes('放不了录音的格式')).length, btn: document.getElementById('playAll') ? document.getElementById('playAll').textContent.trim() : '' })")
+        rec = [u for u in got6 if '/audio/' in u and 'lighthouse-ledger-3' in u]
+        check(dev, 'no AAC on this device: the recording is never fetched, the text is read sentence by sentence in AI 朗读, why said once',
+              not rec and any(u.endswith('/api/next/tts') for u in got6) and '放不了录音的格式' in lead and six['toasts'] == 1 and six['btn'] == '暂停',
+              {'lead': lead, 'recording_asked': rec[:2], 'tts': sum(u.endswith('/api/next/tts') for u in got6), **six})
+        c6.close()
         o, al, nv, th, ne, sk, aw = seen['once'], seen['always'], seen['never'], seen['throws'], seen['no-end'], seen['stuck'], seen['all-words']
         nvv = seen['never-voices']
         check(dev, 'browser voice with voices but not starting (an iPad offline): the text waits at that sentence saying why, and never says 「换 Safari 或 Chrome」',
