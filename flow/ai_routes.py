@@ -760,3 +760,4 @@ def tick(c, now=None):
     t = now or time.time()
     if int(t // 300) % 288 == 0:  # about once a day
         prune(c)
+        __import__('output_service').prune_say(c, now)  # 发音 verdict counts: 14 days even when nobody practises

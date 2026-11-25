@@ -3,7 +3,7 @@ asked. A text route that fails goes to FLOW_BACKUP_AI_MODEL (another 百炼 mode
 whose audio route fails is written down by FLOW_ASR_AI_MODEL and answered by that backup model; 跟读 has no text
 backup; run_job's last try asks the backup model. 发音 (FLOW_SAY_JUDGE=asr) is judged by speech recognition told the
 word and its pair word. With the switch on (the default) nothing changes (test_ai_routing, test_audio_route)."""
-import base64, io, json, os, sys, tempfile, unittest, urllib.error
+import base64, io, json, os, sys, tempfile, time, unittest, urllib.error
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -312,11 +312,15 @@ class OmniWordTests(unittest.TestCase):
         rows = [tuple(x) for x in self.c.execute('SELECT word, partner, judge, reason, ok, counted FROM say_judgements')]
         self.assertEqual(rows, [('think', 'sink', 'omni', 'pair', 0, 0)] * 3)
         cols = [x[1] for x in self.c.execute('PRAGMA table_info(say_judgements)')]
-        self.assertFalse({'user_id', 'uid', 'heard', 'audio', 'note'} & set(cols), cols)  # nothing of the learner's
+        self.assertEqual(cols, ['id', 'day', 'word', 'partner', 'judge', 'reason', 'ok', 'counted'])  # nothing of the learner's
+        self.assertRegex(self.c.execute('SELECT day FROM say_judgements').fetchone()[0], r'^\d{4}-\d\d-\d\d$')  # the day, not the moment
         self.assertEqual(out.say_summary(self.c)['wrong_words'], [{'word': 'think', 'partner': 'sink', 'n': 3}])
-        self.c.execute('UPDATE say_judgements SET ts=ts-15*86400'); self.c.commit()
+        self.c.execute("UPDATE say_judgements SET day='2000-01-01'"); self.c.commit()
         self.say('Think.', 'say-omni-0200')
         self.assertEqual([tuple(x) for x in self.c.execute('SELECT word, reason FROM say_judgements')], [('think', 'target')])  # 14 days
+        self.c.execute("UPDATE say_judgements SET day='2000-01-01'"); self.c.commit()
+        ai_routes.tick(self.c, now=time.time() // 86400 * 86400)  # the daily round (a day's first 5 minutes), nobody practising
+        self.assertEqual(self.c.execute('SELECT COUNT(*) FROM say_judgements').fetchone()[0], 0)
 
     def test_a_word_written_as_one_that_sounds_the_same_is_right(self):
         r, _ = self.say('There.', 'say-omni-0004', text='their')

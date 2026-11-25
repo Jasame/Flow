@@ -520,28 +520,46 @@ SAY_KEEP_DAYS = 14
 def log_say(c, word, partner, judge, reason, ok, counted):
     """One 发音 verdict for the spot-check (2026-11-25, the owner: 「先只作参考」, a week of verdicts before deciding whether
     they count): the practice word and its pair word, the judge, say_verdict's reason code, the verdict, whether it
-    counted. No account, no recording, nothing the learner said; rows older than SAY_KEEP_DAYS go on the next write."""
-    now = time.time()
-    c.execute('INSERT INTO say_judgements(ts, word, partner, judge, reason, ok, counted) VALUES(?,?,?,?,?,?,?)',
-              (now, word.lower()[:60], (partner or '').lower()[:60], judge, reason, int(bool(ok)), int(bool(counted))))
-    c.execute('DELETE FROM say_judgements WHERE ts<?', (now - SAY_KEEP_DAYS * 86400,))
+    counted. No account, no recording, nothing the learner said, and only the day (Beijing time), not the moment: a
+    moment and a word could be matched to a learner's own practice record. Older than SAY_KEEP_DAYS days: deleted on
+    every write and read here, and once a day by prune_say (ai_routes.tick), so they go even when nobody practises."""
+    c.execute('INSERT INTO say_judgements(day, word, partner, judge, reason, ok, counted) VALUES(?,?,?,?,?,?,?)',
+              (_say_day(), word.lower()[:60], (partner or '').lower()[:60], judge, reason, int(bool(ok)), int(bool(counted))))
+    prune_say(c, commit=False)
+
+
+def _say_day(days_ago=0, now=None):
+    import datetime
+    t = datetime.datetime.fromtimestamp((now or time.time()) - days_ago * 86400, datetime.timezone(datetime.timedelta(hours=8)))
+    return t.strftime('%Y-%m-%d')
+
+
+def prune_say(c, now=None, commit=True):
+    """Verdict rows older than SAY_KEEP_DAYS days go (the privacy chapter: 保留 14 天)."""
+    try:
+        c.execute('DELETE FROM say_judgements WHERE day<?', (_say_day(SAY_KEEP_DAYS, now),))
+        if commit:
+            c.commit()
+    except Exception:  # noqa: BLE001 - a database without the table yet
+        pass
 
 
 def say_summary(c, days=7):
     """The spot-check's starting point: verdicts per judge and reason code, and the words most often judged wrong (to
     read again with the team's own recordings, never the learners')."""
-    since = time.time() - days * 86400
+    prune_say(c)
+    since = _say_day(days - 1)
     by = [dict(judge=j, reason=r, ok=bool(o), n=n) for j, r, o, n in c.execute(
-        'SELECT judge, reason, ok, COUNT(*) FROM say_judgements WHERE ts>=? GROUP BY judge, reason, ok ORDER BY 4 DESC', (since,))]
+        'SELECT judge, reason, ok, COUNT(*) FROM say_judgements WHERE day>=? GROUP BY judge, reason, ok ORDER BY 4 DESC', (since,))]
     wrong = [dict(word=w, partner=p, n=n) for w, p, n in c.execute(
-        'SELECT word, partner, COUNT(*) FROM say_judgements WHERE ts>=? AND ok=0 GROUP BY word, partner ORDER BY 3 DESC LIMIT 30', (since,))]
+        'SELECT word, partner, COUNT(*) FROM say_judgements WHERE day>=? AND ok=0 GROUP BY word, partner ORDER BY 3 DESC LIMIT 30', (since,))]
     return {'days': days, 'by_reason': by, 'wrong_words': wrong}
 
 
 def schema(c):
-    c.execute('CREATE TABLE IF NOT EXISTS say_judgements(id INTEGER PRIMARY KEY, ts REAL NOT NULL, word TEXT NOT NULL, '
+    c.execute('CREATE TABLE IF NOT EXISTS say_judgements(id INTEGER PRIMARY KEY, day TEXT NOT NULL, word TEXT NOT NULL, '
               "partner TEXT NOT NULL DEFAULT '', judge TEXT NOT NULL, reason TEXT NOT NULL, ok INTEGER NOT NULL, counted INTEGER NOT NULL)")
-    c.execute('CREATE INDEX IF NOT EXISTS say_judgements_ts ON say_judgements(ts)')
+    c.execute('CREATE INDEX IF NOT EXISTS say_judgements_day ON say_judgements(day)')
     c.execute('CREATE TABLE IF NOT EXISTS next_translations(pack TEXT NOT NULL, sentence TEXT NOT NULL, zh TEXT NOT NULL, created REAL NOT NULL, PRIMARY KEY(pack, sentence))')
     c.execute('CREATE TABLE IF NOT EXISTS next_dialog_openers(pack TEXT NOT NULL, level TEXT NOT NULL, result TEXT NOT NULL, created REAL NOT NULL, PRIMARY KEY(pack, level))')
     c.commit()
