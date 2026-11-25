@@ -23,9 +23,9 @@ import org.junit.runners.MethodSorters
 import java.util.regex.Pattern
 
 /**
- * On the emulator, against the site the flavor opens (beta: flow.jasa.hk), as a guest. Run by
- * ./gradlew connectedBetaDebugAndroidTest (android/README.md). The app is installed fresh for the run, so the
- * microphone is not allowed yet when e_ runs.
+ * On the emulator, against the site the flavor opens (beta: flow.jasa.hk), as a guest, without a sound (the app's test
+ * switch, docs/native-bridge.md §9; start the emulator with -no-audio too). Run by ./gradlew connectedBetaDebugAndroidTest
+ * (android/README.md). The app is installed fresh for the run, so the microphone is not allowed yet when e_ runs.
  */
 @RunWith(AndroidJUnit4::class)
 @LargeTest
@@ -37,6 +37,7 @@ class AppTest {
     private lateinit var page: Page
 
     @Before fun open() {
+        Mute.on = true
         scenario = ActivityScenario.launch(MainActivity::class.java)
         page = Page(scenario)
         page.ready()
@@ -53,6 +54,8 @@ class AppTest {
         assertTrue(page.js("location.origin").contains(Site.host))
         assertEquals("\"android\"", page.js("FlowApp.platform"))
         assertEquals("[true,true,true,true]", page.js("['audio','rec','notify','speech'].map(k=>FlowApp.has(k))"))
+        assertEquals("true", page.js("FlowApp.beta === true && FlowApp.v === 1 && typeof FlowApp.call === 'function' && Object.isFrozen(FlowApp)"))
+        assertEquals("\"android\"", page.js("JSON.parse(JSON.stringify(FlowApp.platform))"))
         assertTrue("the page's title", page.js("document.title").contains("语流"))
     }
 
@@ -113,8 +116,10 @@ class AppTest {
         }
         SystemClock.sleep(2_500)
         val r = JSONObject(page.await("FlowApp.rec.stop()"))
+        assertTrue(r.getBoolean("ok"))
         assertEquals("audio/wav", r.getString("mime_type"))
-        assertTrue("about two seconds of 16 kHz WAV", r.getString("data").length > 40_000)
+        assertTrue("about two seconds of 16 kHz WAV", r.getInt("bytes") > 30_000 && r.getString("data").length > 40_000)
+        assertEquals("none", JSONObject(page.await("FlowApp.rec.stop()")).getString("why"))  // nothing more to give
         assertEquals("granted", page.await("FlowApp.rec.permission()"))
     }
 
@@ -122,14 +127,28 @@ class AppTest {
         val ctx = inst.targetContext
         if (Build.VERSION.SDK_INT >= 33) inst.uiAutomation.grantRuntimePermission(ctx.packageName, Manifest.permission.POST_NOTIFICATIONS)
         assertEquals("true", page.await("FlowApp.notify.ask()"))
-        SystemClock.sleep(2_000)  // the app's own refresh as a guest (signed out: nothing kept) is done
-        val r = JSONObject(page.await("FlowApp.notify.sync({hour: 20, once: Math.round(Date.now()/1000) + 3600, forecast: [1,0,2,2,2,2,2]})"))
-        val times = r.getJSONArray("scheduled")
-        assertTrue("a once and the dailies after it", times.length() >= 5)
-        assertTrue(Reminders.isScheduled(ctx, 0))
+        SystemClock.sleep(2_000)  // the app's own refresh as a guest (signed out: no word reminders) is done
         assertEquals("granted", page.await("FlowApp.notify.permission()"))
+        // as a signed-in learner with 12 words left today and a forecast (the beta's test command: no server, no account)
+        val r = JSONObject(page.await("FlowApp.call('notify.test', {reminder: {hour: 20}, due: 12, forecast: [12,5,0,7,3,0,2], total: 40, planHour: null})"))
+        val list = r.getJSONArray("pending")
+        val ids = (0 until list.length()).map { list.getJSONObject(it).getString("id") }
+        assertTrue("two weeks of daily reviews: $ids", ids.count { it.startsWith("review-") } >= 13)
+        assertTrue(ids.first(), Reminders.isScheduled(ctx, ids.first()))
+        assertEquals(list.length(), org.json.JSONArray(page.await("FlowApp.notify.pending()")).length())
         page.await("FlowApp.notify.off()")
-        assertTrue(!Reminders.isScheduled(ctx, 0))
+        assertEquals("[]", page.await("FlowApp.notify.pending()"))
+        assertTrue(!Reminders.isScheduled(ctx, ids.first()))
+        assertEquals("undetermined", page.await("FlowApp.notify.permission()"))
+    }
+
+    @Test fun g_aSentenceTheServerCannotGiveSaysWhy() {
+        // a guest asks for a sentence nobody made yet: the phone's own voice reads it, and `fail` {code, server} says why
+        page.js("(window.__fail = null, FlowApp.on('audio', d => { if (d.fail) window.__fail = d.fail; }), 1)")
+        val text = "Android test sentence " + System.currentTimeMillis() + " is not made yet."
+        assertEquals(true, JSONObject(page.await("FlowApp.audio.play({key: '', title: 't', items: [{text: '$text', url: null}], voice: 'us-f'})")).getBoolean("ok"))
+        page.waitFor("an audio event with fail", "window.__fail && window.__fail.code", 30_000)
+        assertTrue(page.js("window.__fail.code").length > 2)
     }
 
     private fun waitState(state: String, minT: Double = -1.0, timeoutMs: Long = 30_000) {

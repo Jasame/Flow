@@ -17,6 +17,8 @@ android {
         versionName = flowVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "FLOW_VERSION", "\"$flowVersionName\"")
+        // FlowApp.build: the commit CI built (its first 7), "dev" on a computer — as the desktop app's
+        buildConfigField("String", "FLOW_BUILD", "\"${(System.getenv("GITHUB_SHA") ?: "dev").take(7)}\"")
     }
 
     // Two apps that can sit side by side on one phone (as on iOS):

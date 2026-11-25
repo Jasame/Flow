@@ -21,9 +21,9 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 
 /**
- * FlowApp.rec: one spoken answer (跟读、口语对话、发音练习), 16 kHz mono. 'wav' is 16-bit PCM in a WAV file (32 KB a
- * second), 'm4a' is AAC; over 45 s the default is m4a (the server takes at most 1.5 MB). stop() gives the same shape as
- * the page's MIC.payload(blob): {mime_type, data (base64), ms}, ready for the upload body.
+ * FlowApp.rec (docs/native-bridge.md §4): one spoken answer (跟读、口语对话、发音练习), 16 kHz mono. 'wav' is 16-bit PCM
+ * in a WAV file (32 KB a second), 'm4a' is AAC; over 40 s the default is m4a (the page's MIC.payload takes at most 1.4 MB:
+ * 40 s of WAV is 1,280,044 bytes). stop() gives the shape of MIC.payload(blob): {ok, mime_type, data (base64), ms, bytes, cut}.
  *
  * While it records, a whole text being read waits (why = other) and other apps' sound is asked to wait too; a call
  * (or the app leaving the screen) cuts it short: what was recorded so far is kept, and `rec` says 'cut'.
@@ -43,6 +43,11 @@ object Recorder {
     private var startedAt = 0L
     private var format = "wav"
     private var result: JSONObject? = null
+    private var cutShort = false
+    /** A start waiting for the permission dialog is called off by a stop() or cancel() meanwhile (§4). */
+    private var request = 0
+    fun begin(): Int = ++request
+    fun stillWanted(token: Int) = token == request
     private var focus: AudioFocusRequest? = null
     private lateinit var app: Context
 
@@ -60,8 +65,9 @@ object Recorder {
         app = context.applicationContext
         if (running) return JSONObject().put("ok", false).put("why", "busy").put("message", "正在录音")
         val seconds = max.coerceIn(1, 300)
-        format = when (fmt) { "wav", "m4a" -> fmt; else -> if (seconds > 45) "m4a" else "wav" }
+        format = when (fmt) { "wav", "m4a" -> fmt; else -> if (seconds > 40) "m4a" else "wav" }
         result = null
+        cutShort = false
         FlowAudio.other()
         takeFocus()
         return try {
@@ -70,7 +76,7 @@ object Recorder {
             startedAt = System.currentTimeMillis()
             main.postDelayed(limit, seconds * 1000L)
             emit("recording", 0)
-            JSONObject().put("ok", true).put("format", format)
+            JSONObject().put("ok", true).put("format", format).put("max", seconds)
         } catch (e: Exception) {
             Log.w(TAG, "start", e)
             cleanUp()
@@ -131,19 +137,22 @@ object Recorder {
     /** The recording ends by itself: at max ('done'), or a call / the app leaving the screen ('cut'). */
     private fun end(how: String) {
         if (!running) return
+        cutShort = how == "cut"
         result = finishNow()
         emit(how, result?.optLong("ms") ?: 0)
     }
 
     /** → {mime_type, data, ms}; after an end by itself, what was recorded then. */
     fun stop(): JSONObject {
-        if (running) result = finishNow()
-        return (result ?: JSONObject().put("mime_type", if (format == "m4a") "audio/mp4" else "audio/wav").put("data", "").put("ms", 0))
-            .put("ok", (result?.optString("data") ?: "").isNotEmpty())
+        if (running) result = finishNow() else request++  // a start still waiting for the permission does not begin
+        val r = result
+        result = null  // given once, as on iOS (the recording is let go)
+        if (r == null || r.optInt("bytes") <= 64) return JSONObject().put("ok", false).put("why", "none").put("message", "没有录到声音，再试一次")
+        return JSONObject(r.toString()).put("ok", true).put("cut", cutShort)
     }
 
     fun cancel() {
-        if (running) finishNow()
+        if (running) finishNow() else request++
         result = null
     }
 
@@ -160,13 +169,14 @@ object Recorder {
             try { record?.stop() } catch (e: Exception) { /* already stopped */ }
             try { thread?.join(600) } catch (e: InterruptedException) { /* go on */ }
             val bytes = synchronized(pcm) { pcm.toByteArray() }
-            out = JSONObject().put("mime_type", "audio/wav").put("data", Base64.encodeToString(Wav.wrap(bytes, RATE), Base64.NO_WRAP))
-                .put("ms", Wav.ms(bytes.size, RATE))
+            val wav = Wav.wrap(bytes, RATE)
+            out = JSONObject().put("mime_type", "audio/wav").put("data", Base64.encodeToString(wav, Base64.NO_WRAP))
+                .put("ms", Wav.ms(bytes.size, RATE)).put("bytes", wav.size)
         } else {
             try { media?.stop() } catch (e: Exception) { /* too short: nothing was written */ }
             val f = mediaFile
             val bytes = try { f?.readBytes() } catch (e: Exception) { null } ?: ByteArray(0)
-            out = JSONObject().put("mime_type", "audio/mp4").put("data", Base64.encodeToString(bytes, Base64.NO_WRAP)).put("ms", ms)
+            out = JSONObject().put("mime_type", "audio/mp4").put("data", Base64.encodeToString(bytes, Base64.NO_WRAP)).put("ms", ms).put("bytes", bytes.size)
         }
         cleanUp()
         dropFocus()
