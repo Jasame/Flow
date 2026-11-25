@@ -159,3 +159,10 @@
   - #123 指南「交给哪家 AI」：对话、复述、雅思、跟读走 Omni（两个站都已切换），发音留在 Gemini；补上 CosyVoice 朗读（操作指南）
 - 自检：DEPLOYED，装了 7 个文件（0 个新的）；轻量 e2e 145/147，没过：exam: AI adds questions/expressions to the import；db: no AI job failed，服务器报错 1
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45529545580
+
+### b31 · 2026-11-25 10:08
+- main `4127190`，构建 `15b4c60`
+- 新合并的 PR（自 b30 起）：
+  - #118 跟读和发音：shadow_eval.py（Omni 和 Gemini 听同一批录音比分数）；指南写上跟读、发音内测版改用 Omni（听和说、AI、内容、发版和构建）
+- 自检：DEPLOYED，装了 7 个文件（2 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45530765949
