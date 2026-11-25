@@ -154,6 +154,11 @@ The owner approved these on 2026-11-24 (「按你的建议改，b6 发完就写�
    总控 coordinates. Only the area's owner changes it at a time. A one-off session is archived once its PR is in main.
 5. **Habits.**
    - Before pushing, run only the test groups the change touches (see 推之前跑哪些测试 below); CI runs everything.
+   - Run those tests on the MSI, not on the Mac, so the Mac stays free for other work (总控, 2026-11-25, after #207):
+     - `bash tools/msi-run.sh` runs `run_tests.py --changed`. You can also give it test file names, or `--ui` and
+       group names.
+     - Exit status 3 means the MSI could not be reached. Then run the same tests on the Mac.
+     - At most two `msi-run`s at once; a third waits.
    - Tests compute counts from the data. Never hard-code how many questions, columns or items there are.
    - A change to an API response shape updates `tools/qa_e2e.py` in the same PR (b5's e2e broke on exactly this).
    - Progress goes into the area's shared note, so other sessions read it instead of waiting for relayed messages.
