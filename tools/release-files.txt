@@ -335,6 +335,7 @@ flow/tests/test_audio_route.py
 flow/tests/test_auth_limits.py
 flow/tests/test_channels.py
 flow/tests/test_chat.py
+flow/tests/test_class_signup.py
 flow/tests/test_classes.py
 flow/tests/test_coach.py
 flow/tests/test_content_fallback.py
