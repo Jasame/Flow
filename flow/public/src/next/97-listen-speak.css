@@ -39,6 +39,7 @@
 /* 口语情景 rounds and pace (46-speak.js): the round's extra requirement (the last task, marked), the pace note under an
    answer, a sentence to use. On a phone 「开始对话」 stays on screen above the tab bar, however long the brief (B8's audit:
    on a 375 phone it sat under the tab bar). */
+div.round-extra{margin-top:8px;padding:8px 12px;border-radius:10px;background:var(--paper);border:1px dashed var(--green-line)}  /* in the feedback: met or not */
 .steps-list .round-extra b{color:var(--green-ink)}
 @media (max-width:759px){
   .dlg-go{position:sticky;bottom:calc(72px + var(--sab));z-index:5;background:var(--bg);padding:10px 0;box-shadow:0 -1px 0 var(--line)}
