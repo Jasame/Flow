@@ -23,7 +23,7 @@ class SystemTests(unittest.TestCase):
         return self.c.execute('SELECT * FROM next_cards WHERE user_id=1 AND norm=?', (norm,)).fetchone()
 
     def review_item(self, cid):
-        return next(x for x in vs.queue(self.c, 1)['items'] if x['id'] == cid)
+        return next(x for x in vs.queue(self.c, 1, part='other')['items'] if x['id'] == cid)  # mistakes: 其他复习
 
     # ---------------- mistakes: the same one again ----------------
     def test_the_same_mistake_again_brings_its_card_back_to_today_and_keeps_one_card(self):
@@ -75,7 +75,7 @@ class SystemTests(unittest.TestCase):
         self.assertGreaterEqual(self.card(f'q:{pid}:0')['due'], time.time() + 1.9 * DAY)  # not again in minutes
         r, _ = vs.rate(self.c, 1, {'id': cid, 'rating': 'again'})
         self.assertEqual(r['outcome'], 'reread'); self.assertEqual(self.card(f'q:{pid}:0')['known'], 1)
-        self.assertNotIn(cid, [x['id'] for x in vs.queue(self.c, 1)['items']])
+        self.assertNotIn(cid, [x['id'] for x in vs.queue(self.c, 1, part='other')['items']])
         # Getting it wrong again in the material brings it back; answering it right then passes it.
         nx.check(self.c, 1, {'pack': pid, 'index': 0, 'choice': (q['answer'] + 1) % 4})
         self.assertEqual(self.card(f'q:{pid}:0')['known'], 0)

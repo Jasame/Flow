@@ -592,14 +592,19 @@ def answer_seconds(c, uid, now=None, part='words'):
     (an answer over a minute is someone who looked away, and is left out); ANSWER_SECONDS (OTHER_SECONDS) until 30."""
     now = now or time.time()
     ms = [r[0] for r in c.execute('SELECT ms FROM next_reviews WHERE user_id=? AND created>? AND ms BETWEEN 1000 AND 60000 '
-                                  'AND card IN (SELECT id FROM next_cards WHERE user_id=? AND ' + part_sql(part) + ') '
+                                  'AND card ' + _card_in(part) + ' '
                                   'ORDER BY created DESC LIMIT 300', (uid, now - 30 * fsrs.DAY, uid))]
     return round(sum(ms) / len(ms) / 1000, 1) if len(ms) >= 30 else (OTHER_SECONDS if part == 'other' else ANSWER_SECONDS)
 
 
+def _card_in(part):
+    """next_reviews.card of a part: 其他复习's cards, or anything else (a word, or a card since deleted: card=-id)."""
+    return ('IN' if part == 'other' else 'NOT IN') + ' (SELECT id FROM next_cards WHERE user_id=? AND ' + OTHER + ')'
+
+
 def _answers_today(c, uid, now, part='words'):
-    return c.execute('SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND created>=? AND card IN (SELECT id FROM next_cards WHERE user_id=? AND '
-                     + part_sql(part) + ')', (uid, _day_start(now), uid)).fetchone()[0]
+    return c.execute('SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND created>=? AND card ' + _card_in(part),
+                     (uid, _day_start(now), uid)).fetchone()[0]
 
 
 def other_view(c, uid, now=None):

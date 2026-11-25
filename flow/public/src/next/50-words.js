@@ -37,6 +37,10 @@
   // 「认识」放在 (我的 → 设置; a trial student and the owner, 2026-11-25): on the right by default, as in most word apps;
   // the buttons of the review and of the vocabulary test, their keys (1 2 3, and ← → by their place on screen) and the
   // swipe all follow it: the side 「认识」 is on is the way to swipe for it. Kept on this device, like 单词读音方式.
+  // 复习时的轻触震动 (语流 C1; the iOS app's own setting turns it off): a light tap where the app can, nothing in a browser.
+  // Turning a card is a light 'select'; a rating says how it went (success, a light tap for 模糊, warning — never error,
+  // a word forgotten is no fault); 撤销 and 太简单了 a light tap.
+  function haptic(kind) { try { if (window.FlowApp && FlowApp.has && FlowApp.has('haptic')) FlowApp.call('app.haptic', { kind }).catch(() => {}); } catch (e) { /* no app */ } }
   const KNOW = {
     side() { try { return localStorage.getItem('flow-know-side') === 'left' ? 'left' : 'right'; } catch (e) { return 'right'; } },
     set(v) { try { if (v === 'left') localStorage.setItem('flow-know-side', 'left'); else localStorage.removeItem('flow-know-side'); } catch (e) { /* private mode */ } },
@@ -445,7 +449,7 @@
       view.querySelectorAll('[data-a]').forEach(b => b.onclick = () => answer(b.dataset.a === '1'));
       document.onkeydown = e => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); answer((e.key === 'ArrowRight') === (KNOW.side() === 'right')); } };
     }
-    function answer(yes) { answers[items[i]] = yes; i++; show(); }
+    function answer(yes) { answers[items[i]] = yes; haptic('select'); i++; show(); }
     async function finish() {
       document.onkeydown = null; swipeOff(); document.body.classList.remove('reviewing');
       view.innerHTML = `<p class="loading"><span class="spin"></span> 正在估算…</p>`;

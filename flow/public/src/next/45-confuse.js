@@ -37,7 +37,7 @@
       // showing: 375×553 was 62-69 px over, 语流 B8 on r33): then it starts folded too, one tap away, and the question fits
       if (i === 0 && innerWidth < 760 && document.body.classList.contains('reviewing') && document.scrollingElement.scrollHeight > innerHeight) document.getElementById('cfHow').open = false;
       box.querySelectorAll('.ans').forEach(b => b.onclick = () => {
-        const ok = Number(b.dataset.o) === it.answer;
+        const ok = Number(b.dataset.o) === it.answer; haptic(ok ? 'success' : 'warning');
         box.querySelectorAll('.ans').forEach((x, j) => { x.disabled = true; if (j === it.answer) x.classList.add('right'); });
         if (!ok) b.classList.add('wrong'); else right++;
         dots[i].classList.add(ok ? 'ok' : 'no');
