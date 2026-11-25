@@ -534,45 +534,47 @@ def run_device(pw, dev, opts):
           not pg.query_selector('[data-f="mistake"]') and '错题 ·' not in (pg.text_content('#listSlot') or ''))
 
     # ---- review: stable total; keyboard (desktop) or swipes (touch); Enter submits a fix card
-    go(pg, '#/review')
-    foot0 = pg.text_content('.rfoot') or ''
-    total0 = foot0.split('/')[-1].split('·')[0].strip()
+    # #344: the words and the rest have their own reviews — the fix cards and reading questions are in 练习 → 复习 (#/review/other)
     seen_fix = seen_passage = False
-    for step in range(16):
-        if pg.query_selector('.done-card'):
+    for page in ('#/review', '#/review/other'):
+        go(pg, page)
+        foot0 = pg.text_content('.rfoot') or ''
+        total0 = foot0.split('/')[-1].split('·')[0].strip()
+        for step in range(16):
+            if pg.query_selector('.done-card'):
+                break
+            if pg.query_selector('#fixIn'):
+                seen_fix = True
+                pg.fill('#fixIn', 'would have arrived')
+                pg.press('#fixIn', 'Enter'); pg.wait_for_timeout(250)
+                # Right: one "next" button. Other words than the reference: the learner says whether it means the same.
+                nxt = pg.query_selector('#go') or pg.query_selector('#fixMiss')
+                check(dev, 'Enter submits a fix card', nxt is not None and (pg.query_selector('#go') or pg.query_selector('#fixSame')))
+                nxt.click(); pg.wait_for_timeout(350); continue
+            if pg.query_selector('.qopt'):
+                seen_passage = seen_passage or bool(pg.query_selector('.passage-q .ptext'))
+                pg.click('.qopt >> nth=0'); pg.wait_for_selector('#go', timeout=5000); pg.click('#go'); pg.wait_for_timeout(350); continue
+            if pg.query_selector('#spellIn'):
+                pg.fill('#spellIn', 'x'); pg.press('#spellIn', 'Enter'); pg.wait_for_timeout(250); pg.click('#go'); pg.wait_for_timeout(350); continue
+            if pg.query_selector('[data-claim]'):
+                if touch:
+                    touch_swipe(pg, '.review', 160)
+                else:
+                    pg.keyboard.press('3')  # 1 2 3 by place: 「认识」 is on the right (KNOW, 50-words.js)
+                pg.wait_for_timeout(300)
+                check(dev, 'know (swipe right / key 3, the right button) reveals the answer', pg.query_selector('.open-card') is not None) if step < 2 else None
+                if touch:
+                    touch_swipe(pg, '.review', 160)
+                else:
+                    pg.keyboard.press('Enter')
+                pg.wait_for_timeout(400)
+                foot = pg.text_content('.rfoot') if pg.query_selector('.rfoot') else ''
+                if foot and '/' in foot:
+                    check(dev, 'review total does not grow after a right answer', foot.split('/')[-1].split('·')[0].strip() == total0, f'{foot0} -> {foot}') if step < 3 else None
+                continue
+            if pg.query_selector('[data-self]'):
+                pg.click('[data-self="good"]'); pg.wait_for_timeout(350); continue
             break
-        if pg.query_selector('#fixIn'):
-            seen_fix = True
-            pg.fill('#fixIn', 'would have arrived')
-            pg.press('#fixIn', 'Enter'); pg.wait_for_timeout(250)
-            # Right: one "next" button. Other words than the reference: the learner says whether it means the same.
-            nxt = pg.query_selector('#go') or pg.query_selector('#fixMiss')
-            check(dev, 'Enter submits a fix card', nxt is not None and (pg.query_selector('#go') or pg.query_selector('#fixSame')))
-            nxt.click(); pg.wait_for_timeout(350); continue
-        if pg.query_selector('.qopt'):
-            seen_passage = seen_passage or bool(pg.query_selector('.passage-q .ptext'))
-            pg.click('.qopt >> nth=0'); pg.wait_for_selector('#go', timeout=5000); pg.click('#go'); pg.wait_for_timeout(350); continue
-        if pg.query_selector('#spellIn'):
-            pg.fill('#spellIn', 'x'); pg.press('#spellIn', 'Enter'); pg.wait_for_timeout(250); pg.click('#go'); pg.wait_for_timeout(350); continue
-        if pg.query_selector('[data-claim]'):
-            if touch:
-                touch_swipe(pg, '.review', 160)
-            else:
-                pg.keyboard.press('3')  # 1 2 3 by place: 「认识」 is on the right (KNOW, 50-words.js)
-            pg.wait_for_timeout(300)
-            check(dev, 'know (swipe right / key 3, the right button) reveals the answer', pg.query_selector('.open-card') is not None) if step < 2 else None
-            if touch:
-                touch_swipe(pg, '.review', 160)
-            else:
-                pg.keyboard.press('Enter')
-            pg.wait_for_timeout(400)
-            foot = pg.text_content('.rfoot') if pg.query_selector('.rfoot') else ''
-            if foot and '/' in foot:
-                check(dev, 'review total does not grow after a right answer', foot.split('/')[-1].split('·')[0].strip() == total0, f'{foot0} -> {foot}') if step < 3 else None
-            continue
-        if pg.query_selector('[data-self]'):
-            pg.click('[data-self="good"]'); pg.wait_for_timeout(350); continue
-        break
     check(dev, 'review reached a fix card', seen_fix)
     check(dev, 'a reading mistake comes back with its part of the text', seen_passage)
 
@@ -1459,8 +1461,8 @@ def layout_run(pw, engine):
             else:
                 found.setdefault((size, theme, 'beyond'), []).append('#/placement: the result was not reached, so not checked')
             # review: each card as it comes, answered so the next one shows; questions start near the top
-            go(pg, '#/review'); pg.wait_for_timeout(300); asked = 0
-            for k in range(40):  # word cards come first; mistakes (questions) after them
+            go(pg, '#/review/other'); pg.wait_for_timeout(300); asked = 0
+            for k in range(40):  # 错题和句型 (#344): questions, and saved sentences or patterns before them
                 if not pg.query_selector('#view .review') or asked:
                     break  # a question is checked and left unanswered, so it is still due for the next run
                 audit(f'#/review card {k + 1}')
@@ -1479,7 +1481,7 @@ def layout_run(pw, engine):
                     if nb and nb.is_visible():
                         nb.click(); pg.wait_for_timeout(250); break
             if not asked:
-                found.setdefault((size, theme, 'q-top'), []).append('#/review: no question card came up, so none was checked')
+                found.setdefault((size, theme, 'q-top'), []).append('#/review/other: no question card came up, so none was checked')
             # the tab bar stays at the bottom of the screen when a long page is scrolled to its end
             for p in ('#/library', '#/cards', '#/guide'):
                 go(pg, p); pg.evaluate('window.scrollTo(0, document.scrollingElement.scrollHeight)'); pg.wait_for_timeout(500)
@@ -3668,6 +3670,14 @@ def review_side_run(pw):
         check(dev, '太简单: a tap 6 px under its box is still 太简单 (its 44 px), not the card\'s 认识', below['hit'] == 'easyBtn' and bar3 and not turned and len(bodies) == n_rated, [below, bar3, turned])
         if bar3:
             pg.click('.easy-bar button'); pg.wait_for_timeout(700)
+        # leaving while an answer is being saved (the save made slow here): nothing of the review is drawn over the next page
+        pg.evaluate("""() => { const f = window.fetch; window.fetch = (u, o) => String(u).endsWith('/api/next/review') && o && o.method === 'POST'
+          ? new Promise(r => setTimeout(r, 900)).then(() => f(u, o)) : f(u, o); }""")
+        pg.wait_for_timeout(700); pg.click('.ractions [data-claim="know"]'); pg.wait_for_timeout(700); pg.click('.ractions [data-rate="good"]')
+        pg.evaluate("location.hash = '#/cards'"); pg.wait_for_timeout(1800)
+        left_ok = pg.evaluate("() => [!!document.querySelector('#listSlot'), !document.querySelector('#view .review'), (document.querySelector('#view h1') || {}).textContent]")
+        check(dev, 'leaving while an answer is saved: the next page stays, no review card drawn over it', left_ok[0] and left_ok[1], left_ok)
+        go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000)
         pg.evaluate("localStorage.setItem('flow-know-side', 'left')"); pg.reload(wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(700)
         tap_card(pg, 0); z6 = pg.evaluate(ZONE_JS)
         check(dev, '点卡片作答 with 「认识」 on the left: the left third is 认识, and the back is mirrored too (没错 · 模糊 · 记错了)', z6['back'] and z6['rates'] == ['good', 'hard', 'again'], z6)

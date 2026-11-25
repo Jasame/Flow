@@ -34,6 +34,8 @@
     if (!S.user) return needLogin('登录后才能复习。');
     document.body.classList.add('reviewing');
     const other = part === 'other', CACHE = other ? 'flow-next-review-other' : 'flow-next-review-cache';
+    // this page's address: a learner who leaves while an answer is being saved gets nothing drawn over the next page
+    const HERE = location.hash;
     const R = '/api/next/review' + (other ? '?part=other' : goOn ? '?more=1' : '');
     const NAME = other ? '复习错题和句型' : '复习单词';
     const seenOld = !!(load('flow-next-review-cache') || load('flow-next-swipe-tip'));  // this device reviewed before (the cache is saved just below)
@@ -205,6 +207,7 @@
       }
     }
     function ask(quiet) {
+      if (location.hash !== HERE) return;
       if (i >= items.length) return more();
       c = items[i]; claim = null; t0 = Date.now(); view.onclick = view.onpointerdown = null;
       if (['fix', 'question', 'sound'].includes(c.mode)) return mistakeAsk();
@@ -454,6 +457,7 @@
         left = q;
       } catch (e) { /* show the summary anyway */ }
       refreshHome().catch(() => {});
+      if (location.hash !== HERE) return;
       swipeOff(); document.body.classList.remove('reviewing');
       undo = null;
       const rated = tally.again + tally.hard + tally.good + tally.easy, mins = Math.max(1, Math.round((Date.now() - started) / 60000));
