@@ -629,9 +629,10 @@ def run_unify(p, aid, recorded, extra=None):
     g = 'unify-' + ('recorded' if recorded else 'no-recording')
     kind = '有录音的文章' if recorded else '没有录音的文章'
     p.reload(); fresh_listen(p, aid)
-    tip = p.js("(document.querySelector('#view .listen-tip') || {}).textContent || ''")
-    if recorded == ('还没有录音' in tip):
-        check(g, f'{kind}: the page says so', False, tip); return
+    # a recording gives the length in minutes at the foot (21-study-listen.js); the 「AI 合成」 line is in the bar since #325
+    foot = p.js("(document.querySelector('#view .section.row .muted.small') || {}).textContent || ''")
+    if recorded != ('分钟' in foot):
+        check(g, f'{kind}: the page says so', False, foot); return
     # 1① 播放全文: sentence by sentence, the natural voice, a line while a sentence is being made
     t0 = time.time(); p.tap('#playAll', 0.2)
     p.until(LS + '.now >= 2', 45, 0.3); st = p.js(LS); s = shot(f'{g}-playing')
@@ -784,9 +785,12 @@ def run_more(p, local):
             return new Response(JSON.stringify(j), { headers: { 'Content-Type': 'application/json' } }); }) : F(u, o); return 'quote'; })()"""
         p.js(quote); p.js(SLOW_TTS); p.go('#/practice', 0.5); p.go('#/', 1.5); p.js(HOOK); p.js('window.__au.length = 0; window.__notes.length = 0')
         label = p.js("(document.querySelector('#view .lc-head .pill') || {}).textContent")
-        if label != '名人名言':
+        if label not in ('名人名言', '公版名句'):  # the quote's label was renamed 公版名句 (a quote day shows the real one)
             skip(g, '今日好句 (名人名言)', f'the page kept its own line ({label})')
         else:
+            # the card folds (12-daily-line.js #lcFold): open it first, or 听一遍 is not there to tap
+            if p.js("(b => !!b && b.getAttribute('aria-expanded') === 'false')(document.getElementById('lcFold'))"):
+                p.tap('#lcFold', 0.6)
             p.tap('#lcSay', 0.2); p.until(f'{SOUNDS} >= 1', 20, 0.3); st = p.js(LS); s = shot(f'{g}-line-quote')
             check(g, '今日好句, a 名人名言 (no recording): 听一遍 in the natural voice, 「正在准备朗读…」 while it is made, no browser voice',
                   p.js(SOUNDS) >= 1 and st['speech'] == 0 and '正在准备朗读…' in st['notes'], {'notes': st['notes'], 'sounds': p.js(SOUNDS), 'speech': st['speech']}, s)

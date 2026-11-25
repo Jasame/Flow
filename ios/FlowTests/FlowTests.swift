@@ -569,6 +569,12 @@ final class FeatureTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: dir.path), "switched off: nothing stays")
     }
 
+    @MainActor func testOnlyTheRecordingsOwnEndFinishesAWholeText() {
+        XCTAssertFalse(LongPlayer.atTheEnd(3.0, of: 96.4), "a sentence's end reported after 单句循环 was turned off: it goes on")
+        XCTAssertTrue(LongPlayer.atTheEnd(96.2, of: 96.4))
+        XCTAssertTrue(LongPlayer.atTheEnd(3.0, of: .nan), "length unknown: as before")
+    }
+
     @MainActor func testTheRateGoesToThePageAsItWritesIt() {
         XCTAssertEqual(LongPlayer.shown(0.8), 0.8, "not 0.800000011920929: the page's chips compare it with theirs")
         XCTAssertEqual(LongPlayer.shown(1.25), 1.25)
@@ -665,5 +671,70 @@ final class FeelTests: XCTestCase {
         XCTAssertEqual(off?["ok"], false)
         let frugal = await b.handle("app.frugal", [:]) as? [String: Bool]
         XCTAssertNotNil(frugal?["on"])
+    }
+}
+
+/// 「iOS 专属功能」 third group: what the widgets show, the app's own links, the review's Live Activity
+final class GlanceTests: XCTestCase {
+    override func tearDown() { UserDefaults.standard.removeObject(forKey: Feature.reviewActivity.key) }
+
+    @MainActor func testTheAppsOwnLinksOpenOnlyTheSitesPages() throws {
+        let url = SharedStore.link("#/review", scheme: "yuliu-beta")
+        XCTAssertEqual(url.absoluteString, "yuliu-beta://open?path=%23/review")
+        XCTAssertEqual(SharedStore.path(from: url, scheme: "yuliu-beta"), "#/review")
+        XCTAssertEqual(SharedStore.path(from: SharedStore.link("#/m/v5-campus%20a", scheme: "yuliu"), scheme: "yuliu"), "#/m/v5-campus%20a")
+        XCTAssertNil(SharedStore.path(from: url, scheme: "yuliu"), "语流 does not open 语流内测's links")
+        for bad in ["yuliu://open?path=https://evil.example", "yuliu://open?path=javascript:alert(1)", "yuliu://other?path=%23/review",
+                    "yuliu://open?path=%23/<script>", "yuliu://open"] {
+            XCTAssertNil(SharedStore.path(from: try XCTUnwrap(URL(string: bad)), scheme: "yuliu"), bad)
+        }
+        XCTAssertNil(SharedStore.path(from: SharedStore.link("#/" + String(repeating: "a", count: 300), scheme: "yuliu"), scheme: "yuliu"), "too long")
+    }
+
+    @MainActor func testTheCardKeepsAndOnlyShowsWhatIsTheLearners() throws {
+        var x = ReminderPlan.Input()
+        x.due = 12
+        x.new = 5
+        x.minutes = 8
+        let home: [String: Any] = [
+            "line": ["en": "To be, or not to be / that is the question", "zh": "生存还是毁灭", "label": "公版名句", "source": "Hamlet"],
+            "path": ["steps": [["key": "read", "href": "#/m/v5-a"]]],
+            "today": [["id": "v5-a", "title": "新学期 1：第一天"]],
+        ]
+        let line = WidgetsFeed.line(home), read = WidgetsFeed.read(home)
+        XCTAssertEqual(line?.en, "To be, or not to be\nthat is the question")
+        XCTAssertEqual(line?.label, "公版名句", "the site's own label goes with it")
+        XCTAssertEqual(read, TodayCard.Read(title: "新学期 1：第一天", path: "#/m/v5-a"))
+        let ok = WidgetsFeed.card(x, state: .ok, line: line, read: read, accent: "indigo")
+        XCTAssertEqual([ok.due, ok.new, ok.minutes], [12, 5, 8])
+        let out = WidgetsFeed.card(x, state: .signedOut, line: line, read: read, accent: "green")
+        XCTAssertEqual([out.due, out.new, out.minutes], [0, 0, 0], "signed out: nobody's words on the home screen")
+        XCTAssertNil(out.read)
+        XCTAssertNotNil(out.line, "今日好句 is everyone's")
+        // kept in a store and read back as the widget does
+        let suite = "test-\(UUID().uuidString)"
+        let d = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { d.removePersistentDomain(forName: suite) }
+        SharedStore.save(ok, d)
+        XCTAssertEqual(SharedStore.load(d), ok)
+    }
+
+    @MainActor func testYesterdaysNumbersAreSaidToBeOld() {
+        let shanghai = TimeZone(identifier: "Asia/Shanghai")!
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = shanghai
+        let noon = cal.date(from: DateComponents(year: 2026, month: 11, day: 26, hour: 12))!
+        XCTAssertFalse(TodayCard(updated: cal.date(from: DateComponents(year: 2026, month: 11, day: 26, hour: 0, minute: 5))!).stale(now: noon))
+        XCTAssertTrue(TodayCard(updated: cal.date(from: DateComponents(year: 2026, month: 11, day: 25, hour: 23, minute: 55))!).stale(now: noon))
+    }
+
+    @MainActor func testTheReviewActivityIsOffUntilTurnedOn() async {
+        XCTAssertFalse(Features.on(.reviewActivity), "others can see the lock screen: off until the learner turns it on")
+        XCTAssertEqual(Feature.reviewActivity.group, .glance)
+        XCTAssertNotNil(Feature.Group.glance.footer, "how to add the widgets and the Control Center buttons")
+        XCTAssertTrue(Bridge.features.contains("activity"))
+        let r = await Shell.shared.bridge.handle("activity.review", ["done": 3, "total": 10]) as? [String: Any]
+        XCTAssertEqual(r?["ok"] as? Bool, false)
+        XCTAssertEqual(r?["why"] as? String, "off")
     }
 }

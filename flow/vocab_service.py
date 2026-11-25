@@ -827,6 +827,9 @@ def set_known(c, uid, data):
     n = c.execute('UPDATE next_cards SET known=? WHERE id=? AND user_id=?', (known, int(data['id']), uid)).rowcount
     if known:
         c.execute('INSERT INTO next_reviews(user_id,card,rating,created,mode) VALUES(?,?,?,?,?)', (uid, int(data['id']), 'known', time.time(), 'known'))
+    else:  # 太简单 taken back (撤销, within seconds): its 'known' row goes too, so the day's count is as before
+        c.execute("DELETE FROM next_reviews WHERE id=(SELECT id FROM next_reviews WHERE user_id=? AND card=? AND rating='known' AND created>? ORDER BY id DESC LIMIT 1)",
+                  (uid, int(data['id']), time.time() - 3600))
     c.commit()
     return ({'ok': True, **counts(c, uid)}, 200) if n else ({'error': '记录不存在'}, 404)
 

@@ -303,19 +303,22 @@ def run_device(pw, dev, opts):
     go(pg, '#/m/v5-culture-c1-lighthouse-ledger-2/read')
     check(dev, 'serial: an episode shows its place in the series', '第 2 / 6 集' in (pg.text_content('.study-head .kicker') or ''))
 
-    # ---- listen: whole-text playback shows a stop control that stays on screen, and it stops
+    # ---- listen (精听): 播放全文, 「AI 合成」 and the speed in the bar above the tabs (the user's pick of B9's design,
+    # 2026-11-25); 👁 and 从头开始 on the line above the sentences; 播放设置 opens from 「1×」
     go(pg, f'#/m/{PID}/listen')
-    lp = pg.evaluate("() => { const p = document.getElementById('playAll').getBoundingClientRect(), w = document.querySelector('#view .preread'); return [Math.round(p.top), w ? Math.round(w.getBoundingClientRect().top) : null, w ? w.open : null, innerHeight]; }")
-    check(dev, 'listen: 播放全文 comes first, on the first screen; the words to know are folded under it', lp[0] < lp[3] and (lp[1] is None or (lp[1] > lp[0] and lp[2] is False)), lp)
-    ps = pg.evaluate("""() => { const d = document.querySelector('#view .playset'), l = document.querySelector('#view .line[data-i="0"]');
-      return {open: d ? d.open : null, sum: (document.getElementById('psum') || {}).textContent, first: l ? Math.round(l.getBoundingClientRect().top) : null, h: innerHeight}; }""")
-    check(dev, 'listen: 语速、复读 and 停顿 fold into one line that says how it will play', ps['open'] is False and '每句' in (ps['sum'] or ''), ps)
+    lp = pg.evaluate("""() => { const b = document.getElementById('playAll'), bar = document.querySelector('.mini-player'), l = document.querySelector('#view .line[data-i="0"]'), w = document.querySelector('#view .preread');
+      const r = b ? b.getBoundingClientRect() : null, q = s => (bar && bar.querySelector(s)) || {};
+      return { inBar: !!(b && bar && bar.contains(b)), docked: !!(bar && !bar.hidden && bar.classList.contains('docked') && bar.classList.contains('idle')),
+        onScreen: !!r && r.top >= 0 && r.bottom <= innerHeight, first: l ? Math.round(l.getBoundingClientRect().top) : null, barTop: bar ? Math.round(bar.getBoundingClientRect().top) : null,
+        h: innerHeight, folded: w ? !w.open : true, ai: q('.ai-voice-note').textContent || '', rate: q('.speed-set').textContent || '', tools: !!document.querySelector('#view .ls-head #blind') }; }""")
+    check(dev, 'listen: 播放全文 in the bar above the tabs with 「AI 合成」 and the speed; 👁 on the line above the sentences',
+          lp['inBar'] and lp['docked'] and lp['onScreen'] and 'AI 合成' in lp['ai'] and lp['rate'].endswith('×') and lp['tools'] and lp['folded'], lp)
     if dev == 'phone':
-        check(dev, 'listen: the first sentence is on the first screen of a phone', ps['first'] is not None and ps['first'] < ps['h'], ps)
-    pg.click('#view .playset > summary'); pg.click('#view [data-rate="1.25"]')
-    s125 = pg.text_content('#psum') or ''
-    pg.click('#view [data-rate="1"]'); pg.click('#view .playset > summary')
-    check(dev, 'listen: 播放设置 opens the choices, and the line follows them', '1.25×' in s125 and pg.evaluate("() => !document.querySelector('#view .playset').open"), s125)
+        check(dev, 'listen: the first sentence starts on the first screen of a phone, above the bar', lp['first'] is not None and lp['barTop'] is not None and lp['first'] < lp['barTop'], lp)
+    pg.click('.mini-player .speed-set'); pg.wait_for_selector('#sheet [data-rate="1.25"]', timeout=4000); pg.click('#sheet [data-rate="1.25"]')
+    s125 = pg.text_content('.mini-player .speed-set') or ''
+    pg.click('#sheet [data-rate="1"]'); pg.click('#psDone'); pg.wait_for_timeout(300)
+    check(dev, 'listen: 「1×」 opens 播放设置 (语速, 每句, 句后) and the bar follows the speed', s125 == '1.25×' and (pg.text_content('.mini-player .speed-set') or '') == '1×', s125)
     if dev == 'phone-land':
         pa = pg.evaluate("() => { const r = document.getElementById('playAll').getBoundingClientRect(); return [Math.round(r.bottom), innerHeight]; }")
         check(dev, 'listen: a phone held sideways shows 播放全文 on the first screen (a short study header)', pa[0] <= pa[1], pa)
@@ -336,7 +339,7 @@ def run_device(pw, dev, opts):
     if mini:
         pg.click('.mini-player .stop')
         pg.wait_for_timeout(150)
-    check(dev, 'stop hides the control', pg.evaluate("() => { const m = document.querySelector('.mini-player'); return !m || m.hidden; }"))
+    check(dev, 'stop: the player goes, and the 精听 bar is back to its start button', pg.evaluate("() => { const m = document.querySelector('.mini-player'); return !m || m.hidden || (m.classList.contains('idle') && !!document.getElementById('playAll')); }"))
     if not touch:
         pg.keyboard.press('Space'); pg.wait_for_timeout(200)
         check(dev, 'Space starts playback (desktop)', '暂停' in pg.inner_html('#playAll'))
@@ -996,7 +999,7 @@ def app_audio_run(pw):
         emit = lambda typ, d: pg.evaluate('([t, d]) => FlowApp._emit(t, d)', [typ, d])
         prog = lambda k=key: pg.evaluate("k => { const p = JSON.parse(localStorage.getItem('flow-progress') || '{}')[k]; return p ? p.i : null; }", k)
         btn = lambda sel='#playAll': (pg.text_content(sel) or '').strip()
-        mini = lambda: pg.evaluate("(() => { const m = document.querySelector('.mini-player'); return m && !m.hidden ? m.querySelector('.lbl').textContent : null; })()")
+        mini = lambda: pg.evaluate("(() => { const m = document.querySelector('.mini-player'), l = m && !m.hidden && m.querySelector('.lbl'); return l ? l.textContent : null; })()")  # 精听's idle bar has no label
         lit = lambda: pg.evaluate("(() => { const l = document.querySelector('.line.now'); return l ? l.dataset.i : null; })()")
         listen = lambda: (go(pg, f'#/m/{PID}/listen'), pg.wait_for_selector('#playAll'), pg.wait_for_timeout(400))
 
@@ -1024,11 +1027,11 @@ def app_audio_run(pw):
               line == '离线中，这句还没存到本机，先用系统自带的声音' and len(said) == 1, (line, said))
         emit('audio', {'key': key, 'state': 'playing', 'i': 3, 'n': n, 'title': 't'}); pg.wait_for_timeout(200)
         check(dev, 'the next sentence in the AI voice again: the line goes', not pg.is_visible('#lsPrep') or not (pg.text_content('#lsPrep') or '').strip(), pg.text_content('#lsPrep'))
-        pg.evaluate("document.querySelector('.playset').open = true")  # 语速 and 复读 sit in 播放设置
-        pg.click('[data-rate="0.75"]'); pg.wait_for_timeout(200)
+        pg.evaluate("document.querySelector('.mini-player .speed-set').click()")  # 播放设置 from 「1×」 (hidden while playing on a narrow phone)
+        pg.wait_for_selector('#sheet [data-rate="0.75"]', timeout=4000); pg.click('#sheet [data-rate="0.75"]'); pg.wait_for_timeout(200)
         s = last('audio.set')
         check(dev, '语速 0.75× while the app plays: it gets it at once (audio.set)', bool(s) and s.get('rate') == 0.75, s)
-        pg.click('[data-rate="1"]'); pg.wait_for_timeout(100)
+        pg.click('#sheet [data-rate="1"]'); pg.click('#psDone'); pg.wait_for_timeout(200)
         pg.click('#playAll'); pg.wait_for_timeout(200)
         check(dev, '暂停 goes to the app, the button says 继续', 'audio.pause' in cmds()[-2:] and btn().endswith('继续'), (cmds()[-3:], btn()))
         pg.click('#playAll'); pg.wait_for_timeout(200)
@@ -1040,24 +1043,26 @@ def app_audio_run(pw):
         items = (last('audio.play') or {}).get('items') or []
         check(dev, "audio-made: the app's new address is kept and the next play sends it (items)",
               len(items) == n and items[1].get('url') == '/audio/tts/us-f/made-by-app.mp3' and items[0].get('url') is None, items[:2])
-        # loaded again while the app plays on (第 5 句): the page keeps that place and takes the text back, no new start
+        # loaded again while the app plays on (第 5 句): 精听's one bar takes the text back by itself (B3, the user's pick of
+        # B9's bar, 2026-11-25): no new start, 复读 and 语速 sent, the bar is that text's player on 第 5 句, the place kept
         pg.evaluate(f"k => window.__fakeApp.put({{ playing: {{ key: k, state: 'playing', i: 4, n: {n}, title: 't' }} }})", key)
+        pg.evaluate('window.__cmds = []')
         pg.reload(wait_until='load'); settle(pg); pg.wait_for_selector('#playAll'); pg.wait_for_timeout(500)
-        check(dev, 'loaded again while the app plays: the mini player is back on 第 5 句, and so is the kept place',
-              (mini() or '').startswith('t · 第 5 /') and prog() == 4 and btn().endswith('从第 5 句继续'), (mini(), prog(), btn()))
+        back = cmds()
+        check(dev, "loaded again while the app plays: the bar takes the app's text back on 第 5 句 (no new audio.play, 复读 and 语速 sent), the place kept",
+              (mini() or '').startswith('第 5 /') and prog() == 4 and btn().endswith('暂停') and 'audio.play' not in back and 'audio.set' in back, (mini(), prog(), btn(), back))
         emit('audio', {'key': key, 'state': 'playing', 'i': 5, 'n': n, 'title': 't'}); pg.wait_for_timeout(200)
-        check(dev, '…and while the app reads on, the button follows it (从第 6 句继续)', btn().endswith('从第 6 句继续') and prog() == 5 and (mini() or '').startswith('t · 第 6 /'), (btn(), prog(), mini()))
+        check(dev, '…and while the app reads on, the bar and the kept place follow it (第 6 句)', prog() == 5 and (mini() or '').startswith('第 6 /') and lit() == '5', (btn(), prog(), mini(), lit()))
         pg.click('#playAll'); pg.wait_for_timeout(300)
-        after = cmds()
-        check(dev, "…and 播放全文 takes the app's text back: no new audio.play, 复读 and 语速 sent, 暂停, 第 6 句 lit",
-              'audio.play' not in after and 'audio.set' in after and btn().endswith('暂停') and lit() == '5', (after, btn(), lit()))
+        check(dev, '…and 暂停 on that bar goes to the app', 'audio.pause' in cmds()[-2:] and btn().endswith('继续'), (cmds()[-3:], btn()))
+        pg.click('#playAll'); pg.wait_for_timeout(300)
         # 语速 and 单句循环 changed on the lock screen (iOS 27, C1's #335: rate, rep, loop with why 'remote'): the page takes
-        # them, its line follows, and it pushes nothing back (a set would put 1× back); turned off, the page's own come back
+        # them, the bar's 1× follows, and it pushes nothing back (a set would put 1× back); turned off, the page's own come back
         pg.evaluate('window.__cmds = []')
         emit('audio', {'key': key, 'state': 'playing', 'i': 5, 'n': n, 'title': 't', 'why': 'remote', 'rate': 1.25, 'rep': 0, 'loop': True}); pg.wait_for_timeout(200)
-        kn = pg.evaluate("() => ({ rate: JSON.parse(localStorage.getItem('flow-next-rate')), rep: (JSON.parse(localStorage.getItem('flow-next-loop') || '{}')).rep, sum: (document.getElementById('psum') || {}).textContent || '' })")
-        check(dev, '语速 1.25× and 单句循环 from the lock screen: the page takes them and pushes nothing back',
-              kn['rate'] == 1.25 and kn['rep'] == 0 and '1.25×' in kn['sum'] and '单句循环' in kn['sum'] and 'audio.set' not in cmds(), (kn, cmds()))
+        kn = pg.evaluate("() => ({ rate: JSON.parse(localStorage.getItem('flow-next-rate')), rep: (JSON.parse(localStorage.getItem('flow-next-loop') || '{}')).rep, bar: (document.querySelector('.mini-player .speed-set') || {}).textContent || '' })")
+        check(dev, '语速 1.25× and 单句循环 from the lock screen: the page takes them, the bar says 1.25×, nothing pushed back',
+              kn['rate'] == 1.25 and kn['rep'] == 0 and kn['bar'] == '1.25×' and 'audio.set' not in cmds(), (kn, cmds()))
         emit('audio', {'key': key, 'state': 'playing', 'i': 5, 'n': n, 'title': 't', 'why': 'remote', 'rate': 1, 'rep': 1, 'loop': False}); pg.wait_for_timeout(200)
         kn = pg.evaluate("() => ({ rate: JSON.parse(localStorage.getItem('flow-next-rate')), rep: (JSON.parse(localStorage.getItem('flow-next-loop') || '{}')).rep })")
         check(dev, '…and turned off there, the page is back to 1× and 每句 1 遍, still nothing pushed', kn['rate'] == 1 and kn['rep'] == 1 and 'audio.set' not in cmds(), (kn, cmds()))
@@ -1238,7 +1243,7 @@ def ios_audio_run(pw):
         check(dev, '继续 plays on from where it was', mini['playing'] and not mini['resume'] and mini['state'] == 'playing', mini)
         t0 = pg.evaluate(f"{nar}.currentTime"); pg.evaluate('window.__wa.ms.nexttrack()'); pg.wait_for_timeout(200)
         check(dev, "the lock screen's next goes to the next sentence", pg.evaluate(f"{nar}.currentTime") > t0, (t0, pg.evaluate(f"{nar}.currentTime")))
-        pg.evaluate("(m => m && !m.hidden && m.querySelector('.stop').click())(document.querySelector('.mini-player'))"); pg.wait_for_timeout(300)  # or the short sample ended
+        pg.evaluate("(m => { const b = m && !m.hidden && m.querySelector('.stop'); if (b) b.click(); })(document.querySelector('.mini-player'))"); pg.wait_for_timeout(300)  # or the short sample ended
         check(dev, '停止 (or the end) clears the lock screen', pg.evaluate("!navigator.mediaSession.metadata && navigator.mediaSession.playbackState === 'none'"), pg.evaluate("navigator.mediaSession.playbackState"))
         check(dev, 'no script errors (a whole text)', not errs, errs[:3])
         ctx.close()
@@ -1516,11 +1521,11 @@ def ux_run(pw):
         # 复读: 3 遍, no pause: one tap on a sentence says it three times. The server voice is off on this page (the server's
         # own answer when it is), so the browser voice, faked to end at once, says it and the three times can be counted
         pg.route('**/api/next/tts', lambda r: r.fulfill(status=503, json={'error': '服务器朗读没有开启', 'code': 'off'}))
-        go(pg, f'#/m/{PID}/listen'); pg.wait_for_selector('#view .playset', timeout=5000)
-        pg.evaluate("document.querySelector('#view .playset').open = true"); pg.wait_for_timeout(100)  # 播放设置: remembered open after the reload below
-        pg.click('[data-rep="3"]'); pg.evaluate('window.__said = []')
+        go(pg, f'#/m/{PID}/listen'); pg.wait_for_selector('.mini-player .speed-set', timeout=5000)
+        pg.click('.mini-player .speed-set'); pg.wait_for_selector('#sheet [data-rep="3"]', timeout=4000)  # 播放设置 from 「1×」 in 精听's bar
+        pg.click('#sheet [data-rep="3"]'); pg.click('#psDone'); pg.wait_for_timeout(200); pg.evaluate('window.__said = []')
         pg.click('[data-say="0"]'); pg.wait_for_timeout(30)
-        mini = pg.is_visible('.mini-player')  # while it repeats (it goes away when the last time ends)
+        mini = pg.is_visible('.mini-player:not(.idle)')  # the stop button while it repeats (the bar goes back to 播放全文 after the last time)
         pg.wait_for_timeout(900)
         said = pg.evaluate('window.__said')
         check(dev, '复读: a sentence is said three times, with a stop button on screen meanwhile', len(said) == 3 and len(set(said)) == 1 and mini, (len(said), mini))
@@ -1540,14 +1545,14 @@ def ux_run(pw):
         p2 = c2.new_page()
         p2.route('**/api/next/tts', lambda r: r.fulfill(json={'url': '/audio/tts/us-f/ux-short-0001.wav', 'made': False}))
         p2.route('**/audio/tts/us-f/ux-short-0001.wav', lambda r: r.fulfill(status=200, content_type='audio/wav', body=short))
-        p2.goto(BASE + f'/#/m/{PID}/listen', wait_until='networkidle'); settle(p2, '#view .playset')
-        p2.evaluate("document.querySelector('#view .playset').open = true"); p2.wait_for_timeout(100)
-        p2.click('[data-rep="3"]'); p2.evaluate('window.__plays = []; window.__said = []')
+        p2.goto(BASE + f'/#/m/{PID}/listen', wait_until='networkidle'); settle(p2, '.mini-player .speed-set')
+        p2.click('.mini-player .speed-set'); p2.wait_for_selector('#sheet [data-rep="3"]', timeout=4000)
+        p2.click('#sheet [data-rep="3"]'); p2.click('#psDone'); p2.wait_for_timeout(200); p2.evaluate('window.__plays = []; window.__said = []')
         p2.click('[data-say="0"]'); p2.wait_for_timeout(60)
-        mini2 = p2.is_visible('.mini-player')
+        mini2 = p2.is_visible('.mini-player:not(.idle)')
         p2.wait_for_function("window.__plays.filter(s => s.includes('ux-short')).length >= 3", timeout=8000)
         p2.wait_for_timeout(900)  # a fourth would have started by now
-        got = p2.evaluate("({ plays: window.__plays.filter(s => s.includes('ux-short')).length, said: window.__said.length, mini: !!document.querySelector('.mini-player:not([hidden])') })")
+        got = p2.evaluate("({ plays: window.__plays.filter(s => s.includes('ux-short')).length, said: window.__said.length, mini: !!document.querySelector('.mini-player:not([hidden]):not(.idle)') })")
         check(dev, '复读 in the server voice: the sentence is played three times (each time it ends, the next), not the browser voice, a stop button meanwhile',
               got['plays'] == 3 and got['said'] == 0 and mini2 and not got['mini'], {**got, 'mini_while': mini2})
         c2.close()
@@ -1588,6 +1593,7 @@ def ux_run(pw):
             p3.evaluate("localStorage.removeItem('flow-progress')")
             p3.click('#playAll'); p3.wait_for_timeout({'never': 3400, 'never-voices': 3400, 'stuck': 4200, 'all-words': 5200}.get(kind, 1500))
             seen[kind] = p3.evaluate("""() => ({ said: window.__said.slice(), n: document.querySelectorAll('#view .line').length, toasts: (window.__toasts || []).join(' | '),
+                ai: !!document.querySelector('.mini-player:not([hidden]) .ai-voice-note:not([hidden])'),
                 btn: document.querySelector('#playAll').textContent.trim(), now: (document.querySelector('#view .line.now') || {dataset: {}}).dataset.i,
                 note: (document.querySelector('#lsPrep') || {}).textContent || '', mini: (document.querySelector('.mini-player:not([hidden]) .lbl') || {}).textContent || '' })""")
             c3.close()
@@ -1635,7 +1641,7 @@ def ux_run(pw):
         p5.evaluate("sessionStorage.setItem('lateHome', '1')")
         p5.goto(BASE + f'/?again=1#/m/{PID}/listen', wait_until='domcontentloaded'); p5.wait_for_selector('#playAll', timeout=8000)  # a real load (a new query): the page starts again from the copy
         p5.click('#playAll'); p5.wait_for_timeout(4500)
-        kept = p5.evaluate("""() => ({ btn: document.querySelector('#playAll').textContent.trim(), mini: !!document.querySelector('.mini-player:not([hidden])'),
+        kept = p5.evaluate("""() => ({ btn: document.querySelector('#playAll').textContent.trim(), mini: !!document.querySelector('.mini-player:not([hidden]):not(.idle)'),
             said: window.__said.length, now: (document.querySelector('#view .line.now') || {dataset: {}}).dataset.i })""")
         check(dev, '播放全文 right after opening an article: the fresher 今日 coming in does not stop the reading',
               kept['btn'] == '暂停' and kept['mini'] and kept['said'] >= 2, kept)
@@ -1646,6 +1652,7 @@ def ux_run(pw):
               nvv['btn'] == '继续' and nvv['now'] == '0' and '没有读出' in nvv['note'] and '换 Safari' not in nvv['toasts'], nvv)
         check(dev, 'browser voice stuck part-way (an iPad: two words, then "speaking" for ever): within seconds the text waits at that sentence and says why',
               len(sk['said']) == 1 and sk['btn'] == '继续' and sk['now'] == '0' and '没有读出' in sk['note'], sk)
+        check(dev, 'the server voice off, the browser voice reading: the bar does not say 「AI 合成」 (the voice is the device\'s own)', not aw['ai'], {k: aw[k] for k in ('ai', 'note')})
         check(dev, 'browser voice saying every word but never the end: the sentence counts as said and the text reads on',
               len(aw['said']) >= 2 and aw['said'][0] != aw['said'][1] and '没有读出' not in aw['note'], {k: aw[k] for k in ('btn', 'now', 'note')} | {'said': len(aw['said'])})
         check(dev, 'browser voice dropped once (iOS): that sentence is said again and the text reads on to its end',
@@ -1660,9 +1667,10 @@ def ux_run(pw):
         # sentence counts as said once the voice has been quiet a moment, and the text reads on instead of sticking
         check(dev, 'browser voice starting a sentence but never saying it ended: the text reads on (not stuck "playing")',
               len(ne['said']) >= 2 and ne['said'][0] != ne['said'][1] and '没有读出' not in ne['note'], {k: ne[k] for k in ('btn', 'now', 'note')} | {'said': len(ne['said'])})
-        pg.reload(); settle(pg, '[data-rep]')
-        check(dev, '复读: the choice is remembered', pg.get_attribute('[data-rep="3"]', 'aria-pressed') == 'true')
-        pg.click('[data-rep="1"]')
+        pg.reload(); settle(pg, '.mini-player .speed-set')
+        pg.click('.mini-player .speed-set'); pg.wait_for_selector('#sheet [data-rep="3"]', timeout=4000)
+        check(dev, '复读: the choice is remembered', pg.get_attribute('#sheet [data-rep="3"]', 'aria-pressed') == 'true')
+        pg.click('#sheet [data-rep="1"]'); pg.click('#psDone'); pg.wait_for_timeout(200)
         # 字号: 特大 makes the reading text larger, and a 360-pixel phone still does not scroll sideways
         go(pg, '#/me'); pg.click('#meText'); pg.wait_for_selector('#sheetCard [data-ts="xl"]', timeout=4000)
         pg.click('#sheetCard [data-ts="xl"]'); pg.click('#sheetCard [data-tl="w"]'); pg.evaluate("document.querySelector('#sheet [data-close]').click()")
@@ -1681,7 +1689,7 @@ def ux_run(pw):
             r = pg.query_selector('#view [data-rate="again"]') or pg.query_selector('#view [data-rate]')
             if r:
                 r.click(); pg.wait_for_timeout(500)
-        has = pg.query_selector('#undo') is not None
+        has = pg.query_selector('#undo:not([disabled])') is not None
         if has:
             pg.click('#undo'); pg.wait_for_timeout(600)
         again = pg.text_content('#view .review') or ''
@@ -2023,7 +2031,7 @@ def listen_speak_run(pw):
                 kept = pg.evaluate("(JSON.parse(localStorage.getItem('flow-progress') || '{}')['listen:" + imp['id'] + "'] || {}).i")
                 check(dev, 'leaving the page keeps where 听 was, on this phone, under 听 (读 keeps its own)', kept == k, (k, kept))
                 go(pg, f"#/m/{imp['id']}/listen"); pg.wait_for_selector('#playAll')
-                back = pg.evaluate("({ btn: document.querySelector('#playAll').textContent, restart: !document.querySelector('#playRestart').hidden, mini: !!document.querySelector('.mini-player:not([hidden])') })")
+                back = pg.evaluate("({ btn: document.querySelector('#playAll').textContent, restart: !document.querySelector('#playRestart').hidden, mini: !!document.querySelector('.mini-player:not([hidden]):not(.idle)') })")
                 check(dev, 'back on the page: 「从第 N 句继续」 where it was left, 从头开始 beside it, nothing playing',
                       back['btn'].strip() == f'从第 {k + 1} 句继续' and back['restart'] and not back['mini'], (k, back))
                 lay('听 从第 N 句继续')
@@ -2036,13 +2044,20 @@ def listen_speak_run(pw):
                     pg.set_viewport_size({'width': w, 'height': 780}); pg.wait_for_timeout(150)
                     fits.append(pg.evaluate("""() => { const m = document.querySelector('.mini-player'), l = m.querySelector('.lbl'), t = m.querySelector('.toggle'), x = m.querySelector('.close');
                         const one = el => { const r = el.getBoundingClientRect(); return r.height <= 48; };
-                        return { w: innerWidth, label: l.textContent, whole: l.scrollWidth <= l.clientWidth + 1, toggle: one(t), close: one(x), mark: !!m.querySelector('.ai-voice-note'),
-                                 tip: !!document.querySelector('#view .listen-tip .ai-voice-note'),
+                        return { w: innerWidth, label: l.textContent, whole: l.scrollWidth <= l.clientWidth + 1, toggle: one(t), close: one(x), mark: !!m.querySelector('.ai-voice-note:not([hidden])'),
+                                 tip: document.querySelectorAll('#view .ai-voice-note').length,
                                  inside: m.getBoundingClientRect().left >= 0 && m.getBoundingClientRect().right <= innerWidth }; }"""))
                 pg.set_viewport_size(opts['viewport']); pg.wait_for_timeout(150)
                 check(dev, 'the mini player fits: the label whole, 暂停 and ✕ on one line, inside the screen (390 and 360 px), with 「AI 合成」',
                       all(f['whole'] and f['toggle'] and f['close'] and f['inside'] and f['mark'] for f in fits), fits)
-                check(dev, '听: 「朗读由 AI 合成」 by the player (the voice is synthesized: 《标识办法》)', all(f['tip'] for f in fits), fits)
+                check(dev, '听: 「AI 合成」 once, in the bar by the play button; no second line on the page (the user, 2026-11-25)', all(f['tip'] == 0 and f['mark'] for f in fits), fits)
+                # the one label on the page: at least 12 px and 4.5:1 against the bar, its opacity counted (B7's rule)
+                lab = pg.evaluate("""() => { const rgb = s => s.match(/[\\d.]+/g).map(Number), bar = document.querySelector('.mini-player'), n = bar.querySelector('.ai-voice-note');
+                    const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+                    const bg = rgb(getComputedStyle(bar).backgroundColor), fg = rgb(getComputedStyle(n).color), a = (fg.length > 3 ? fg[3] : 1) * parseFloat(getComputedStyle(n).opacity);
+                    const seen = [0, 1, 2].map(k => fg[k] * a + bg[k] * (1 - a)), x = lum(seen), y = lum(bg);
+                    return { size: parseFloat(getComputedStyle(n).fontSize), contrast: Math.round((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05) * 100) / 100 }; }""")
+                check(dev, '听: 「AI 合成」 in the bar is at least 12 px and 4.5:1 against it', lab['size'] >= 12 and lab['contrast'] >= 4.5, lab)
                 pg.click('.mini-player .close'); pg.wait_for_timeout(200)
                 pg.click('#playRestart'); pg.wait_for_function(f"{now} >= 0", timeout=10000)
                 check(dev, '从头开始 starts at the first sentence', pg.evaluate(now) == 0, pg.evaluate(now))
@@ -3065,7 +3080,7 @@ SWIPE_AT = """([x, y, dx, dy]) => {
   mk('touchstart', x, y); for (let k = 1; k <= 6; k++) mk('touchmove', x + dx * k / 6, y + dy * k / 6); mk('touchend', x + dx, y + dy);
   return el.tagName + (el.id ? '#' + el.id : '');
 }"""
-CARD_STATE = """() => ({ front: !!document.querySelector('[data-claim]'), back: !!document.querySelector('.open-card'),
+CARD_STATE = """() => ({ front: !!document.querySelector('[data-claim]'), back: !!document.querySelector('.open-card'), def: (document.querySelector('.ractions [data-rate].def') || {dataset: {}}).dataset.rate || null, 
   rates: [...document.querySelectorAll('[data-rate]')].map(b => b.dataset.rate), foot: ((document.querySelector('.rfoot, .vtest .tc') || {}).textContent || '').trim(),
   word: ((document.querySelector('.wordbig') || {}).textContent || '').trim() })"""
 
@@ -3095,13 +3110,13 @@ def swipe_run(pw):
             x = max(12, int(box[0] / 2)) if box[0] > 40 else 24  # beside the card where there is room, else near its edge
             tgt = sw(x, int(h / 2), 160)
             s1 = state()
-            check(f'{dev} {size}', f'swipe right from beside the card ({tgt}) is 认识: the answer shows', s1['back'] and s1['rates'] == ['again', 'good'], s1)
+            check(f'{dev} {size}', f'swipe right from beside the card ({tgt}) is 认识: the answer shows (没错 framed)', s1['back'] and s1['rates'] == ['again', 'hard', 'good'] and s1['def'] == 'good', s1)
             tgt = sw(int(w / 2), h - 24, 160)  # below the card, near the bottom of the screen
             s2 = state()
             check(f'{dev} {size}', f'on the answer, swipe right from below the card ({tgt}) is 没错，下一个', s2['front'] and s2['foot'] != s1['foot'], [s1['foot'], s2['foot']])
             tgt = sw(w - (max(12, int((w - box[1]) / 2)) if w - box[1] > 40 else 24), int(h / 2), -160)
             s3 = state()
-            check(f'{dev} {size}', f'swipe left from the other side ({tgt}) is 不认识', s3['back'] and s3['rates'] == ['again'], s3)
+            check(f'{dev} {size}', f'swipe left from the other side ({tgt}) is 不认识 (不认识 framed)', s3['back'] and s3['def'] == 'again', s3)
             btn = pg.evaluate("() => { const b = document.querySelector('[data-rate]'); const r = b.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }")
             tgt = sw(int(btn[0]) - 60 if btn[0] > w / 2 else int(btn[0]), int(btn[1]), 160)
             s4 = state()
@@ -3313,7 +3328,7 @@ TAP44_JS = """sel => { const el = document.querySelector(sel); if (!el) return n
 
 SIDE_STATE = """() => ({ claims: [...document.querySelectorAll('.choice [data-claim]')].map(b => b.dataset.claim),
   keys: [...document.querySelectorAll('.choice [data-claim] small')].map(s => s.textContent),
-  rates: [...document.querySelectorAll('[data-rate]')].map(b => b.dataset.rate), back: !!document.querySelector('.open-card'),
+  rates: [...document.querySelectorAll('[data-rate]')].map(b => b.dataset.rate), back: !!document.querySelector('.open-card'), def: (document.querySelector('.ractions [data-rate].def') || {dataset: {}}).dataset.rate || null, 
   foot: (document.querySelector('.rfoot') || {}).textContent || '', tip: !!document.getElementById('knowTip') })"""
 
 
@@ -3333,8 +3348,8 @@ def review_side_run(pw):
         pg.evaluate("localStorage.setItem('flow-next-review-cache', JSON.stringify({at: Date.now(), q: {items: []}}))")  # this device reviewed before
         go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(200)
         s = st()
-        check(dev, 'by default 不认识 / 模糊 / 认识 from left to right, keys 1 2 3 by place',
-              s['claims'] == ['forgot', 'fuzzy', 'know'] and s['keys'] == ['1', '2', '3'], s)
+        check(dev, 'by default 不认识 / 模糊 / 认识 from left to right, keys ← ↓ → by place (1 2 3 too)',
+              s['claims'] == ['forgot', 'fuzzy', 'know'] and s['keys'] == ['←', '↓', '→'], s)
         tip = pg.text_content('#knowTip') if s['tip'] else ''
         check(dev, 'one who reviewed before is told once that 认识 moved, and where to move it back', '「认识」换到右边了，想换回去：我的 → 设置' in tip, tip)
         pg.click('#knowTipOk'); pg.wait_for_timeout(100)
@@ -3342,11 +3357,11 @@ def review_side_run(pw):
         go(pg, '#/cards'); go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000)
         check(dev, '知道了 puts the tip away for good', gone and not st()['tip'], st())
         pg.keyboard.press('3'); pg.wait_for_timeout(250); s = st()
-        check(dev, 'key 3 (the right button) is 认识; on the answer 记错了 left, 没错 right', s['back'] and s['rates'] == ['again', 'good'], s)
+        check(dev, 'key 3 (the right button) is 认识; on the answer 记错了 · 模糊 · 没错, 没错 framed', s['back'] and s['rates'] == ['again', 'hard', 'good'] and s['def'] == 'good', s)
         f0 = s['foot']; pg.keyboard.press('ArrowRight'); pg.wait_for_timeout(450); s = st()
         check(dev, '→ is the right button there: 没错，下一个', not s['back'] and s['claims'] and s['foot'] != f0, [f0, s])
         pg.keyboard.press('ArrowLeft'); pg.wait_for_timeout(250); s = st()
-        check(dev, '← on the card is the left button: 不认识', s['back'] and s['rates'] == ['again'], s)
+        check(dev, '← on the card is the left button: 不认识', s['back'] and s['def'] == 'again', s)
         pg.keyboard.press('Enter'); pg.wait_for_timeout(450)
         # 我的 → 设置 → 「认识」放在 → 左边
         go(pg, '#/me'); pg.click('#meKnow'); pg.wait_for_selector('#sheetCard [data-know="left"]'); pg.click('#sheetCard [data-know="left"]'); pg.wait_for_timeout(150)
@@ -3355,7 +3370,7 @@ def review_side_run(pw):
         go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000); s = st()
         check(dev, '我的 → 设置: 「认识」放在左边, and the card says 认识 / 模糊 / 不认识', label.startswith('认识在左') and s['claims'] == ['know', 'fuzzy', 'forgot'] and not s['tip'], (label, s))
         pg.keyboard.press('1'); pg.wait_for_timeout(250); s = st()
-        check(dev, 'left: key 1 is 认识, and on the answer 没错 left, 记错了 right', s['back'] and s['rates'] == ['good', 'again'], s)
+        check(dev, 'left: key 1 is 认识, and on the answer 没错 · 模糊 · 记错了 from the left', s['back'] and s['rates'] == ['good', 'hard', 'again'] and s['def'] == 'good', s)
         f0 = s['foot']; pg.keyboard.press('ArrowLeft'); pg.wait_for_timeout(450); s = st()
         check(dev, 'left: ← is 没错，下一个', not s['back'] and s['foot'] != f0, [f0, s])
         go(pg, '#/vocab/test'); pg.wait_for_selector('.vtest', timeout=8000)
@@ -3446,6 +3461,20 @@ def review_side_run(pw):
                 pg.click('#meApp'); pg.wait_for_timeout(200); row['calls'] = pg.evaluate('window.__calls || []')
             rows[name] = [row, errs[:2]]
             ctx.close()
+        # the microphone refused in an app: the way to turn it on in that system's own settings (HarmonyOS: 语流 C4); a
+        # platform not listed gets no other system's path (it once fell back to the iPhone's)
+        said = {}
+        for plat in ('harmony', 'ios', 'someos'):
+            ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
+            ctx.add_init_script("try { localStorage.setItem('flow-mic-explained', '1'); } catch (e) {} window.FlowApp = { v: 1, platform: '" + plat + "', has: k => k === 'rec', "
+                                "rec: { ask: () => Promise.resolve(false) }, on: () => () => {}, call: () => Promise.resolve(null) };")
+            pg = ctx.new_page(); pg.goto(BASE + '/#/sounds/th-s', wait_until='load'); settle(pg); pg.wait_for_selector('#view .icon-btn.rec', timeout=8000)
+            pg.click('#view .icon-btn.rec'); pg.wait_for_timeout(600)
+            said[plat] = pg.evaluate("(document.querySelector('.toast') || {}).textContent || ''")
+            ctx.close()
+        check(dev, 'the microphone refused in an app: HarmonyOS gets its own settings path, iOS its own, an unknown system no other one',
+              '应用和元服务 → 语流 → 麦克风' in said['harmony'] and 'iPhone 的「设置 → 语流 → 麦克风」' in said['ios'] and 'iPhone' not in said['someos'] and '系统设置里找到语流' in said['someos'], said)
         # 语流's iOS app saving power (低电量模式, iOS 27: FlowApp 'frugal', C1): 今日 fetches nothing ahead (the other tabs,
         # today's texts kept offline), as with Save-Data; the app not saving: it does
         ahead = {}
@@ -3522,7 +3551,7 @@ def review_side_run(pw):
         # back's card answers nothing; on by default with a finger, off with a mouse; a first-time guide, put away by a tap
         ZONE_JS = """() => ({ front: !!document.querySelector('.ractions [data-claim]'), back: !!document.querySelector('.open-card'),
           rates: [...document.querySelectorAll('.ractions [data-rate]')].map(b => b.dataset.rate), guide: !!document.getElementById('zoneGuide'),
-          undo: !!document.getElementById('undo') })"""
+          undo: !!document.querySelector('#undo:not([disabled])') })"""
         def tap_card(pg, third, down=None):  # a third of the card (0 left, 1 middle, 2 right), near its top or `down` of its height
             r = pg.evaluate("() => { const r = document.querySelector('.review').getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; }")
             pg.touchscreen.tap(r[0] + r[2] * (third * 2 + 1) / 6, r[1] + (r[3] * down if down else 24)); pg.wait_for_timeout(350)
@@ -3531,32 +3560,64 @@ def review_side_run(pw):
         pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
         posts = []; pg.on('request', lambda r: posts.append(r.url) if r.method == 'POST' and re.search(r'/api/next/review(/undo)?$', r.url) else None)
         pg.goto(BASE + '/#/cards', wait_until='load'); settle(pg)
-        go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(300)
+        go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(700)  # a new card takes no tap in its first 600 ms
         z0 = pg.evaluate(ZONE_JS)
         labels = pg.evaluate("[...document.querySelectorAll('#zoneGuide span')].map(s => s.textContent)")
         pg.screenshot(path=str(OUT / 'review-side-zone-guide.png'))
-        tap_card(pg, 2); z1 = pg.evaluate(ZONE_JS)
+        tap_card(pg, 2); pg.wait_for_timeout(300); z1 = pg.evaluate(ZONE_JS)
         check(dev, '点卡片作答 on a phone by default: the first time the three parts are drawn (不认识 / 模糊 / 认识), and a tap puts it away without answering',
               z0['guide'] and labels == ['不认识', '模糊', '认识'] and not z1['guide'] and z1['front'], [z0, labels, z1])
         pg.touchscreen.tap(*pg.evaluate("(() => { const r = document.querySelector('.review .tapsay').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; })()")); pg.wait_for_timeout(350)
         check(dev, '点卡片作答: a tap on the word plays it and answers nothing', pg.evaluate(ZONE_JS)['front'], pg.evaluate(ZONE_JS))
-        tap_card(pg, 2); z2 = pg.evaluate(ZONE_JS)
+        def tap_part(pg, part):  # a third (0 left, 1 middle, 2 right) of the back, at its meaning line
+            r = pg.evaluate("() => { const r = document.querySelector('.review').getBoundingClientRect(), m = document.querySelector('.open-card .mean-a, .open-card .ph').getBoundingClientRect(); return [r.left, r.width, m.top + m.height / 2]; }")
+            pg.touchscreen.tap(r[0] + r[1] * (part * 2 + 1) / 6, r[2]); pg.wait_for_timeout(450)
+        DEF_JS = "(() => { const b = document.querySelector('.ractions [data-rate].def'); return b ? b.dataset.rate : null; })()"
+        LAB_JS = "[...document.querySelectorAll('.ractions [data-rate]')].map(b => b.firstChild.textContent)"
+        bodies = []; pg.on('request', lambda r: bodies.append(r.post_data_json) if r.method == 'POST' and r.url.endswith('/api/next/review') else None)
+        tap_card(pg, 2); pg.wait_for_timeout(300); z2 = pg.evaluate(ZONE_JS)
+        bl = pg.evaluate("[...document.querySelectorAll('#zoneGuide span')].map(s => s.textContent)")
         pg.screenshot(path=str(OUT / 'review-side-zone-back.png'))
-        pg.touchscreen.tap(*pg.evaluate("(() => { const r = document.querySelector('.open-card .mean-a, .open-card .ph').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; })()"))
-        pg.wait_for_timeout(350); z3 = pg.evaluate(ZONE_JS)  # the meaning, in the middle of the back's card: not a link, not a speaker
-        check(dev, '点卡片作答: the right third is 认识 (the answer, 没错 / 记错了), nothing sent; a tap on the back\'s card answers nothing',
-              z2['back'] and sorted(z2['rates']) == ['again', 'good'] and z3['back'] and not posts, [z2, z3, posts])
+        check(dev, '一以贯之: 认识 (right third) → the back has the same three parts, 记错了 · 模糊 · 没错, 没错 framed; nothing sent; its parts drawn the first time',
+              z2['back'] and z2['rates'] == ['again', 'hard', 'good'] and pg.evaluate(DEF_JS) == 'good' and not posts and bl == ['记错了', '模糊', '没错'], [z2, bl, pg.evaluate(DEF_JS), posts])
+        pg.touchscreen.tap(*pg.evaluate("(() => { const r = document.querySelector('.review').getBoundingClientRect(); return [r.left + 20, r.top + 40]; })()")); pg.wait_for_timeout(700)  # puts the guide away
         pg.click('#undo'); pg.wait_for_timeout(300); z4 = pg.evaluate(ZONE_JS)
-        check(dev, '点卡片作答: 撤销 on the back turns the card back to its front, nothing sent', z4['front'] and not z4['back'] and not posts, [z4, posts])
-        tap_card(pg, 0); z5 = pg.evaluate(ZONE_JS)
-        check(dev, '点卡片作答: the left third is 不认识 (the answer with 记住了，下一个 only)', z5['back'] and z5['rates'] == ['again'], z5)
-        pg.click('.ractions [data-rate]'); pg.wait_for_timeout(500)
-        check(dev, '点卡片作答: a rating is sent only by the back\'s button: one review', len(posts) == 1 and pg.evaluate(ZONE_JS)['front'], posts)
-        pg.evaluate("localStorage.setItem('flow-know-side', 'left')"); pg.reload(wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(300)
+        check(dev, '撤销 on the back turns the card back to its front, nothing sent', z4['front'] and not z4['back'] and not posts, [z4, posts])
+        pg.wait_for_timeout(500); tap_card(pg, 2); pg.wait_for_timeout(500)
+        tap_part(pg, 2); z5 = pg.evaluate(ZONE_JS)
+        check(dev, '一以贯之: on the back the right third is 没错 — rated good, the next card comes', [b.get('rating') for b in bodies] == ['good'] and z5['front'], [bodies, z5])
+        pg.wait_for_timeout(500); tap_card(pg, 0); pg.wait_for_timeout(500)
+        lab, df = pg.evaluate(LAB_JS), pg.evaluate(DEF_JS)
+        tap_part(pg, 0); z7 = pg.evaluate(ZONE_JS)
+        check(dev, '一以贯之: 不认识 (left) → 不认识 · 模糊 · 其实认识, 不认识 framed; the left third rates again',
+              lab == ['不认识', '模糊', '其实认识'] and df == 'again' and [b.get('rating') for b in bodies] == ['good', 'again'] and z7['front'], [lab, df, bodies, z7])
+        pg.wait_for_timeout(500); tap_card(pg, 1); pg.wait_for_timeout(500)
+        df2 = pg.evaluate(DEF_JS)
+        touch_swipe(pg, '.review', -160); pg.wait_for_timeout(500)
+        check(dev, '一以贯之: 模糊 (middle) frames 模糊 on the back; a left swipe there is the left part (记错了: again), as on the front',
+              df2 == 'hard' and [b.get('rating') for b in bodies] == ['good', 'again', 'again'], [df2, bodies])
+        pg.wait_for_timeout(500)
+        w0 = (pg.text_content('.review .wordbig') or '').strip()
+        pg.click('#easyBtn'); pg.wait_for_timeout(500)
+        bar = pg.text_content('.easy-bar') or ''; w1 = (pg.text_content('.review .wordbig') or '').strip()
+        pg.click('.easy-bar button'); pg.wait_for_timeout(600); w2 = (pg.text_content('.review .wordbig') or '').strip()
+        check(dev, '太简单 (under the bar, right end, out of the three parts): the card leaves at once, 「已标为太简单 … 撤销」 for six seconds, 撤销 brings it back',
+              w0 and w1 != w0 and '已标为太简单' in bar and w2 == w0 and not pg.query_selector('.easy-bar'), [w0, w1, bar, w2])
+        # 太简单's 44 px reach past its 32-px box onto the card's top edge (B9, 2026-11-26): the card comes later in the page
+        # and is positioned, so it used to cover that part — a tap 3 px low turned the card over as 认识
+        pg.wait_for_timeout(700)
+        below = pg.evaluate("""() => { const b = document.getElementById('easyBtn').getBoundingClientRect(), x = b.left + b.width / 2, y = b.bottom + 6;
+          const e = document.elementFromPoint(x, y); return { x, y, hit: e ? (e.closest('#easyBtn') ? 'easyBtn' : (e.id || e.className || e.tagName).toString().slice(0, 30)) : null }; }""")
+        n_rated = len(bodies); pg.touchscreen.tap(below['x'], below['y']); pg.wait_for_timeout(500)
+        bar3, turned = bool(pg.query_selector('.easy-bar')), bool(pg.query_selector('#view .open-card'))
+        check(dev, '太简单: a tap 6 px under its box is still 太简单 (its 44 px), not the card\'s 认识', below['hit'] == 'easyBtn' and bar3 and not turned and len(bodies) == n_rated, [below, bar3, turned])
+        if bar3:
+            pg.click('.easy-bar button'); pg.wait_for_timeout(700)
+        pg.evaluate("localStorage.setItem('flow-know-side', 'left')"); pg.reload(wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(700)
         tap_card(pg, 0); z6 = pg.evaluate(ZONE_JS)
-        check(dev, '点卡片作答 with 「认识」 on the left: the left third is 认识', z6['back'] and sorted(z6['rates']) == ['again', 'good'], z6)
+        check(dev, '点卡片作答 with 「认识」 on the left: the left third is 认识, and the back is mirrored too (没错 · 模糊 · 记错了)', z6['back'] and z6['rates'] == ['good', 'hard', 'again'], z6)
         pg.click('#undo'); pg.wait_for_timeout(300)
-        pg.evaluate("localStorage.setItem('flow-tap-zones', '0')"); pg.reload(wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(300)
+        pg.evaluate("localStorage.setItem('flow-tap-zones', '0')"); pg.reload(wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(700)
         tap_card(pg, 0)
         check(dev, '点卡片作答 off (我的 → 设置): a tap on the card does nothing', pg.evaluate(ZONE_JS)['front'], pg.evaluate(ZONE_JS))
         check(dev, 'no script errors (点卡片作答)', not errs, errs[:3])
@@ -3568,6 +3629,11 @@ def review_side_run(pw):
         r = pg.evaluate("(() => { const r = document.querySelector('.review').getBoundingClientRect(); return [r.left + r.width * 5 / 6, r.top + 24]; })()")
         pg.mouse.click(*r); pg.wait_for_timeout(300)
         check(dev, '点卡片作答 with a mouse: off by default, a click into the card answers nothing, no guide', pg.evaluate(ZONE_JS)['front'] and not pg.evaluate(ZONE_JS)['guide'], pg.evaluate(ZONE_JS))
+        pg.keyboard.press('ArrowDown'); pg.wait_for_timeout(300); k1 = pg.evaluate(ZONE_JS); d1 = pg.evaluate("(() => { const b = document.querySelector('.ractions [data-rate].def'); return b ? b.dataset.rate : null; })()")
+        pg.keyboard.press('Enter'); pg.wait_for_timeout(500); k2 = pg.evaluate(ZONE_JS)
+        pg.keyboard.press('ArrowRight'); pg.wait_for_timeout(300); k3 = pg.evaluate(ZONE_JS)
+        check(dev, 'keys, one rule: ↓ is 模糊 (its back frames 模糊, ↵ takes it), → is 认识, the back again ← · ↓ · →',
+              k1['back'] and k1['rates'] == ['again', 'hard', 'good'] and d1 == 'hard' and k2['front'] and k3['back'] and k3['rates'] == ['again', 'hard', 'good'], [k1, d1, k2, k3])
         ctx.close()
         # 复习卡 简洁 / 详细 (words-modes-plan.md; the owner, 2026-11-25): new words detailed, reviews simple by default; the
         # front asks the same (detailed adds a grey line of tags and history, no meaning); the back adds the meaning by part
@@ -3634,15 +3700,15 @@ def review_side_run(pw):
         st = lambda: pg.evaluate(SIDE_STATE)
         pg.goto(BASE + '/#/review', wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(700)
         touch_swipe(pg, '.review', 160); pg.wait_for_timeout(400); s = st()
-        check(dev, 'phone, by default: swipe right is 认识', s['back'] and s['rates'] == ['again', 'good'], s)
+        check(dev, 'phone, by default: swipe right is 认识', s['back'] and s['rates'] == ['again', 'hard', 'good'] and s['def'] == 'good', s)
         f0 = s['foot']; touch_swipe(pg, '.review', 160); pg.wait_for_timeout(500); s = st()
         check(dev, 'phone: swipe right again is 没错，下一个', not s['back'] and s['foot'] != f0, [f0, s])
         touch_swipe(pg, '.review', -160); pg.wait_for_timeout(400); s = st()
-        check(dev, 'phone: swipe left is 不认识', s['back'] and s['rates'] == ['again'], s)
+        check(dev, 'phone: swipe left is 不认识', s['back'] and s['def'] == 'again', s)
         pg.evaluate("localStorage.setItem('flow-know-side', 'left')")
         pg.reload(wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(500)
         touch_swipe(pg, '.review', -160); pg.wait_for_timeout(400); s = st()
-        check(dev, 'phone, 「认识」放在左边: swipe left is 认识', s['back'] and s['rates'] == ['good', 'again'], s)
+        check(dev, 'phone, 「认识」放在左边: swipe left is 认识', s['back'] and s['rates'] == ['good', 'hard', 'again'] and s['def'] == 'good', s)
         f0 = s['foot']; touch_swipe(pg, '.review', -160); pg.wait_for_timeout(500); s = st()
         check(dev, 'phone, left: swipe left again is 没错，下一个', not s['back'] and s['foot'] != f0, [f0, s])
         check(dev, 'no script errors (phone)', not errs, errs[:3])
@@ -3664,7 +3730,7 @@ ONE_SCREEN_JS = """() => { const H = innerHeight, m = document.querySelector('ma
            mainBottom: Math.round(m.bottom), answers, lastBottom: Math.round(last.bottom), sab, tip: !!document.getElementById('knowTip') }; }"""
 
 
-REVIEW_BAR_JS = """() => { const c = document.querySelector('.review .ractions .choice'), r = c.getBoundingClientRect(), n = document.querySelector('.rtop + .rvoice');
+REVIEW_BAR_JS = """() => { const c = document.querySelector('.review .ractions .choice'), r = c.getBoundingClientRect(), n = document.querySelector('.rtop + .rsub .rvoice, .rtop + .rvoice');
   return { bottom: Math.round(r.bottom), n: c.querySelectorAll('button').length, word: !!document.querySelector('.review .tapsay'),
            note: n ? [n.textContent, parseFloat(getComputedStyle(n).fontSize) >= 12] : null }; }"""
 
@@ -3673,7 +3739,7 @@ def one_screen_run(pw):
     dev = 'one-screen'
     browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
     tok = CFG['learners']['screen']['token']
-    sizes = {'iphone-se': (375, 667, 20, 0), 'iphone-14': (390, 844, 47, 34), 'iphone-15-pro': HOME_SIZES['iphone-15-pro'][:4]}
+    sizes = {'iphone-se': (375, 667, 20, 0), 'iphone-14': (390, 844, 47, 34), 'iphone-15-pro': HOME_SIZES['iphone-15-pro'][:4], 'iphone-15-pro-max': (430, 932, 59, 34)}
     try:
         for size, (w, h, top, bottom) in sizes.items():
             for home in (False, True):
@@ -3703,7 +3769,7 @@ def one_screen_run(pw):
                         pg.click('[data-claim="know"]'); pg.wait_for_selector('#view .open-card', timeout=4000); pg.wait_for_timeout(400)
                         b = pg.evaluate(REVIEW_BAR_JS)
                         pg.screenshot(path=str(OUT / f"one-screen-{size}-{'home' if home else 'safari'}-review-back.png"))
-                        check(dev, f'{where} 复习卡翻面: the buttons in the front\'s place at the bottom, clear of the home bar', b['bottom'] == f['bottom'] and b['bottom'] <= s['H'] - s['sab'] and b['n'] in (1, 2), [f, b])
+                        check(dev, f'{where} 复习卡翻面: the buttons in the front\'s place at the bottom, clear of the home bar', b['bottom'] == f['bottom'] and b['bottom'] <= s['H'] - s['sab'] and b['n'] in (1, 2, 3), [f, b])
                         check(dev, f'{where} 复习卡: 「读音由 AI 合成」 under the progress bar where the word plays, 12px or more',
                               b['note'] == ['读音由 AI 合成', True] and (f['note'] == ['读音由 AI 合成', True] if f['word'] else True), [f, b])
                     if home:

@@ -13,8 +13,12 @@ struct FeaturesView: View {
                 ForEach(Feature.Group.allCases, id: \.self) { g in
                     let fs = Feature.allCases.filter { $0.group == g && $0.available }
                     if !fs.isEmpty {
-                        Section(g.rawValue) {
+                        Section {
                             ForEach(fs) { FeatureRow(feature: $0) }
+                        } header: {
+                            Text(g.rawValue)
+                        } footer: {
+                            if let f = g.footer { Text(f) }
                         }
                     }
                     if g == Feature.offlinePacks.group, packsOn { PacksSection() }  // right under its own switch

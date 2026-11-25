@@ -598,10 +598,25 @@ final class LongPlayer: NSObject {
 
     private func itemEnded(_ item: ObjectIdentifier?) {
         guard let r = req, let item, item == currentItem, state == .playing else { return }
+        if r.straight {
+            // a sentence's end set while 单句循环 or 复读 was on (forwardPlaybackEndTime), reported just after they were
+            // turned off: not the recording's end, so it goes on (it stopped the whole text once: test7 on the iPhone)
+            let t = player.currentTime().seconds, d = player.currentItem?.duration.seconds ?? .nan
+            if !Self.atTheEnd(t, of: d) {
+                player.currentItem?.forwardPlaybackEndTime = .invalid
+                player.play()
+                return
+            }
+            midSentence = false
+            finish()
+            return
+        }
         midSentence = false
-        if r.straight { finish(); return }
         after()
     }
+
+    /// The recording itself is over (not a sentence's end): within half a second of its length, or its length unknown.
+    nonisolated static func atTheEnd(_ t: Double, of d: Double) -> Bool { !(d.isFinite && t.isFinite && d > 0) || t >= d - 0.5 }
 
     private func speechDone(_ tok: Int) {
         guard tok == token, req != nil, state == .playing else { return }
