@@ -15,6 +15,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import cn.flowlang.app.MainActivity
+import cn.flowlang.app.Mute
 import cn.flowlang.app.R
 import cn.flowlang.app.net.Http
 import kotlinx.coroutines.CoroutineScope
@@ -24,24 +25,28 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
 /**
- * FlowApp.notify: review reminders as the phone's own notifications, from the reminder the server keeps
- * (/api/next/vocab → reminder {hour, once, …} and forecast). The page calls sync() whenever the reminder changes;
- * the app also fetches it when it opens or comes back to the front, and puts them back after a restart.
- *
- * They are on only after the learner turned them on (ask(): 「到点用 App 通知提醒」), and only while the phone allows
- * notifications. On time to the minute where exact alarms are allowed, otherwise within about ten minutes.
+ * FlowApp.notify (docs/native-bridge.md §5): review reminders, and the day's plan, as the phone's own notifications. The
+ * site stays the place where the hour and 这次什么时候复习 are set; the app reads them (with the WebView's cookies) when it
+ * opens and when it goes to the background, and whenever the page says one changed (sync). Nothing leaves the phone.
+ * Planner has the rules (the same as iOS). Exact to the minute where the phone allows exact alarms, else within ten minutes.
  */
 object Reminders {
     const val CHANNEL = "review"
-    private const val MAX_SLOTS = 8
     private const val ACTION = "cn.flowlang.app.REMIND"
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var lastFetch = 0L
+    private var generation = 0
 
     private fun prefs(c: Context) = c.getSharedPreferences("flow-remind", Context.MODE_PRIVATE)
+
+    fun input(c: Context): Planner.Input =
+        Planner.Input.fromJson(prefs(c).getString("input", null)?.let { try { JSONObject(it) } catch (e: Exception) { null } })
+
+    private fun save(c: Context, x: Planner.Input) = prefs(c).edit().putString("input", x.toJson().toString()).apply()
 
     fun channel(c: Context) {
         val nm = c.getSystemService(NotificationManager::class.java) ?: return
@@ -55,134 +60,211 @@ object Reminders {
         return NotificationManagerCompat.from(c).areNotificationsEnabled()
     }
 
-    fun optedIn(c: Context) = prefs(c).getBoolean("on", false)
-
-    fun setOptedIn(c: Context, on: Boolean) {
-        prefs(c).edit().putBoolean("on", on).apply()
-        if (on) reschedule(c) else cancelAll(c)
-    }
-
     /**
-     * 'granted' (turned on and allowed), 'denied' (the phone does not allow it: the page should point to the settings),
-     * 'undetermined' (not turned on yet). [askedBefore]/[canAskAgain] come from MainActivity (Android 13+ dialog).
+     * 'granted': turned on in the app and allowed by the phone. 'undetermined': not turned on yet (or the system's question
+     * can still come). 'denied': switched off in the settings, or refused for good (the page points to the settings).
      */
     fun permission(c: Context, askedBefore: Boolean, canAskAgain: Boolean): String = when {
-        allowed(c) && optedIn(c) -> "granted"
-        allowed(c) -> "undetermined"  // the phone allows it; not turned on in the app yet
-        Build.VERSION.SDK_INT >= 33 && (!askedBefore || canAskAgain) -> "undetermined"  // the system dialog can still come
-        else -> "denied"  // switched off in the settings, or refused for good
+        allowed(c) && input(c).app -> "granted"
+        allowed(c) -> "undetermined"
+        Build.VERSION.SDK_INT >= 33 && (!askedBefore || canAskAgain) -> "undetermined"
+        else -> "denied"
     }
 
     /** Exact alarms are allowed here (always before Android 12; on 14+ only if the learner allowed 「闹钟和提醒」). */
     fun exact(c: Context): Boolean = Build.VERSION.SDK_INT < 31 || (c.getSystemService(AlarmManager::class.java)?.canScheduleExactAlarms() == true)
 
-    /** The page's sync(r): r = reminder (+ forecast). Kept, and scheduled when reminders are on. */
-    fun sync(c: Context, r: JSONObject): JSONObject {
-        val p = prefs(c).edit()
-        if (r.has("hour")) p.putInt("hour", r.optInt("hour", 20))
-        if (r.has("once")) { val o = r.optDouble("once", Double.NaN); if (o.isNaN()) p.remove("once") else p.putString("once", o.toString()) }
-        r.optJSONArray("forecast")?.let { p.putString("forecast", it.toString()).putString("forecastDay", LocalDate.now().toString()) }
-        p.apply()
-        val slots = reschedule(c)
-        return JSONObject().put("ok", true).put("on", optedIn(c) && allowed(c)).put("exact", exact(c))
-            .put("scheduled", JSONArray().also { a -> slots.forEach { s -> a.put(s.atMillis / 1000) } })
+    /** The app's reminders on or off (ask() after the phone's permission; notify.off()). */
+    fun setApp(c: Context, on: Boolean) {
+        val x = input(c); x.app = on; save(c, x)
+        schedule(c)
     }
 
-    /** What is kept, planned from now: the reminders that will come. */
-    fun planned(c: Context): List<Planner.Slot> {
-        val sp = prefs(c)
-        val fc = sp.getString("forecast", null)?.let { s -> try { JSONArray(s).let { a -> IntArray(a.length()) { a.optInt(it) } } } catch (e: Exception) { null } }
-        val fDay = sp.getString("forecastDay", null)?.let { try { LocalDate.parse(it) } catch (e: Exception) { null } }
-        return Planner.plan(sp.getInt("hour", 20), sp.getString("once", null)?.toDoubleOrNull(), fc, fDay, Instant.now(), ZoneId.systemDefault())
-            .take(MAX_SLOTS)
+    /**
+     * The page's sync(r): r is its `reminder` ({hour, once, …}), maybe with forecast and `app` (true/false); null = off.
+     * → {ok, permission, scheduled (how many), next (seconds), exact}
+     */
+    suspend fun sync(c: Context, r: JSONObject?, permission: String): JSONObject {
+        val x = input(c)
+        if (r == null) x.app = false else {
+            if (r.has("app")) x.app = r.optBoolean("app")
+            if (r.has("hour")) r.optInt("hour", -1).takeIf { it in Planner.HOURS }?.let { x.hour = it }
+            if (r.has("once")) x.once = if (r.isNull("once")) null else r.optDouble("once").takeIf { !it.isNaN() }
+            r.optJSONArray("forecast")?.let { a -> x.forecast = (0 until a.length()).map { a.optInt(it) } }
+        }
+        save(c, x)
+        refresh(c, force = true)
+        val list = scheduled(c)
+        return JSONObject().put("ok", true).put("permission", permission).put("scheduled", list.size)
+            .put("next", list.firstOrNull()?.let { it.at / 1000.0 } ?: JSONObject.NULL).put("exact", exact(c))
     }
 
-    /** Put the planned reminders on the phone (first taking off the old ones). */
-    fun reschedule(c: Context): List<Planner.Slot> {
+    enum class Outcome { FRESH, SIGNED_OUT, OFFLINE }
+
+    /** Ask the site for the counts and the reminder (when it is on), then put the next two weeks on the phone. */
+    suspend fun refresh(c: Context, force: Boolean = false): Outcome {
+        val app = c.applicationContext
+        if (!input(app).app) { schedule(app); return Outcome.FRESH }
+        if (!force && System.currentTimeMillis() - lastFetch < 10 * 60_000L) { schedule(app); return Outcome.FRESH }
+        val mine = ++generation
+        var outcome = Outcome.FRESH
+        try {
+            val r = Http.get("/api/next/vocab")
+            if (mine != generation) return Outcome.FRESH  // a newer refresh is under way: its answer counts
+            lastFetch = System.currentTimeMillis()
+            when {
+                r.code == 401 -> { save(app, Planner.signedOut(input(app))); outcome = Outcome.SIGNED_OUT }  // the plan stays
+                r.ok -> save(app, Planner.input(r.json(), input(app)))
+                else -> outcome = Outcome.OFFLINE
+            }
+        } catch (e: Exception) {
+            outcome = Outcome.OFFLINE  // what was known last time
+        }
+        schedule(app)
+        return outcome
+    }
+
+    fun refreshLater(c: Context, force: Boolean = false) {
+        val app = c.applicationContext
+        scope.launch { refresh(app, force) }
+    }
+
+    /** Put the planned reminders on the phone (taking off the old ones first). */
+    fun schedule(c: Context): List<Planner.Slot> {
         cancelAll(c)
-        if (!optedIn(c) || !allowed(c)) return emptyList()
+        var x = input(c)
+        if (!x.app || !allowed(c)) { keep(c, emptyList()); return emptyList() }
+        val slots = Planner.slots(x, Instant.now())
+        x = Planner.remember(x, slots); save(c, x)
         val am = c.getSystemService(AlarmManager::class.java) ?: return emptyList()
-        val slots = planned(c)
         val exact = exact(c)
-        slots.forEachIndexed { k, s ->
-            val pi = pending(c, k, s)
+        slots.forEach { s ->
+            val pi = pending(c, s)
             try {
-                if (exact) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, s.atMillis, pi)
-                else am.setWindow(AlarmManager.RTC_WAKEUP, s.atMillis, 10 * 60_000L, pi)
+                if (exact) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, s.at, pi)
+                else am.setWindow(AlarmManager.RTC_WAKEUP, s.at, 10 * 60_000L, pi)
             } catch (e: SecurityException) {
-                am.setWindow(AlarmManager.RTC_WAKEUP, s.atMillis, 10 * 60_000L, pi)
+                am.setWindow(AlarmManager.RTC_WAKEUP, s.at, 10 * 60_000L, pi)
             }
         }
-        prefs(c).edit().putInt("count", slots.size).apply()
+        keep(c, slots)
         return slots
     }
 
-    private fun pending(c: Context, k: Int, s: Planner.Slot?): PendingIntent {
-        val i = Intent(c, ReminderReceiver::class.java).setAction(ACTION).setData(Uri.parse("flow://remind/$k"))
-        if (s != null) i.putExtra("kind", s.kind.name).putExtra("due", s.due ?: -1).putExtra("at", s.atMillis)
-        return PendingIntent.getBroadcast(c, k, i, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+    private fun intent(c: Context, id: String) = Intent(c, ReminderReceiver::class.java).setAction(ACTION).setData(Uri.parse("flow://remind/$id"))
+
+    private fun pending(c: Context, s: Planner.Slot): PendingIntent = PendingIntent.getBroadcast(c, 0,
+        intent(c, s.id).putExtra("id", s.id).putExtra("title", s.title).putExtra("body", s.body).putExtra("path", s.path),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+
+    /** What is on the phone now (kept by the app: the alarm manager cannot be asked). */
+    private fun keep(c: Context, slots: List<Planner.Slot>) {
+        val a = JSONArray()
+        slots.forEach { a.put(JSONObject().put("id", it.id).put("at", it.at).put("title", it.title).put("body", it.body).put("path", it.path)) }
+        prefs(c).edit().putString("slots", a.toString()).apply()
     }
 
-    /** Is reminder [k] on the phone now (the tests). */
-    fun isScheduled(c: Context, k: Int): Boolean =
-        PendingIntent.getBroadcast(c, k, Intent(c, ReminderReceiver::class.java).setAction(ACTION).setData(Uri.parse("flow://remind/$k")),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_NO_CREATE) != null
+    fun scheduled(c: Context): List<Planner.Slot> {
+        val a = try { JSONArray(prefs(c).getString("slots", "[]")) } catch (e: Exception) { JSONArray() }
+        val now = System.currentTimeMillis()
+        return (0 until a.length()).mapNotNull { k -> a.optJSONObject(k) }
+            .map { Planner.Slot(it.optString("id"), it.optLong("at"), it.optString("title"), it.optString("body"), it.optString("path")) }
+            .filter { it.at > now }
+    }
+
+    /** FlowApp.notify.pending() → [{id, at (seconds), title, body}] */
+    fun pendingJson(c: Context): JSONArray = JSONArray().also { a ->
+        scheduled(c).forEach { a.put(JSONObject().put("id", it.id).put("at", it.at / 1000.0).put("title", it.title).put("body", it.body)) }
+    }
+
+    /** Is reminder [id] on the phone now (the tests). */
+    fun isScheduled(c: Context, id: String): Boolean =
+        PendingIntent.getBroadcast(c, 0, intent(c, id), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_NO_CREATE) != null
 
     fun cancelAll(c: Context) {
         val am = c.getSystemService(AlarmManager::class.java) ?: return
-        for (k in 0 until MAX_SLOTS) {
-            val pi = PendingIntent.getBroadcast(c, k, Intent(c, ReminderReceiver::class.java).setAction(ACTION).setData(Uri.parse("flow://remind/$k")),
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_NO_CREATE) ?: continue
+        val ids = scheduled(c).map { it.id } + (0 until 8).map { it.toString() }  // + the first version's numbered ones
+        ids.forEach { id ->
+            val pi = PendingIntent.getBroadcast(c, if (id.length == 1) id.toInt() else 0, intent(c, id), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_NO_CREATE)
+                ?: return@forEach
             am.cancel(pi); pi.cancel()
         }
+        keep(c, emptyList())
     }
 
-    /** The app opened or came back to the front: the reminder as the server has it now (only when they are on). */
-    fun refresh(c: Context) {
-        if (!optedIn(c)) return
-        val app = c.applicationContext
-        scope.launch {
-            val r = try { Http.get("/api/next/vocab") } catch (e: Exception) { return@launch }
-            if (r.code == 401) { cancelAll(app); return@launch }  // signed out: no reminders for that account
-            if (!r.ok) return@launch
-            val o = r.json()
-            val rem = o.optJSONObject("reminder") ?: return@launch
-            o.optJSONArray("forecast")?.let { rem.put("forecast", it) }
-            sync(app, rem)
-        }
+    /**
+     * 「加到手机日历」 tapped in the app and answered with 「App 通知」 (the phone's permission is given): the word review at its
+     * hour, one time (`at`), or the day's plan. → the line to show.
+     */
+    suspend fun optIn(c: Context, plan: Boolean, hour: Int?, minutes: Int, at: Double?): String {
+        val x = input(c)
+        x.app = true
+        if (plan) { x.planHour = (hour ?: 20).coerceIn(0, 23); x.planMinutes = minutes }
+        else { hour?.takeIf { it in Planner.HOURS }?.let { x.hour = it }; at?.let { x.once = it } }
+        save(c, x)
+        val outcome = refresh(c, force = true)
+        val list = scheduled(c)
+        if (plan) return if (list.any { it.id.startsWith("plan-") }) "好，每天 ${input(c).planHour}:00 用通知提醒你今天的学习。不想要了，可以在手机的「设置 → 应用 → 语流 → 通知」里关掉。"
+            else "没有排上，稍后再试一次。"
+        if (outcome == Outcome.SIGNED_OUT) return "登录以后才能用通知提醒复习单词：先登录，再点一次。"
+        val words = list.filter { it.id.startsWith("review-") }
+        val h = input(c).hour
+        if (at != null) return if (words.any { it.id == "review-once" }) "好，${label(at)} 用通知提醒你复习。"
+            else "${label(at)} 那时还没有要复习的词，就不提醒了；之后每天 $h:00，有词要复习才提醒。"
+        val off = if (outcome == Outcome.OFFLINE) "（现在没网，先按上次的情况排；连上网会自动更新）" else ""
+        return if (words.isEmpty()) "好，每天 $h:00 有词要复习时用通知提醒你；这几天没有要复习的词。$off"
+            else "好，每天 $h:00 用通知提醒你复习（那天有词要复习才提醒）。$off"
     }
 
-    /** The notification itself. */
-    fun show(c: Context, kind: String, due: Int) {
+    /** 「今天 12:30」「明天 8:00」 in China time. */
+    fun label(secs: Double): String {
+        val t = ZonedDateTime.ofInstant(Instant.ofEpochMilli((secs * 1000).toLong()), Planner.ZONE)
+        val today = ZonedDateTime.now(Planner.ZONE).toLocalDate()
+        val day = when (t.toLocalDate()) { today -> "今天"; today.plusDays(1) -> "明天"; else -> t.format(DateTimeFormatter.ofPattern("M月d日")) }
+        return day + " " + t.format(DateTimeFormatter.ofPattern("H:mm"))
+    }
+
+    /** UI tests (beta builds): schedule from the given counts, without asking the server. */
+    fun test(c: Context, a: JSONObject): JSONObject {
+        var x = Planner.input(a, input(c))
+        if (a.has("app")) x = x.copy(app = a.optBoolean("app"))
+        if (a.has("planHour")) x = x.copy(planHour = if (a.isNull("planHour")) null else a.optInt("planHour"))
+        save(c, x)
+        schedule(c)
+        return JSONObject().put("ok", true).put("pending", pendingJson(c))
+    }
+
+    /** The notification itself; a tap opens [path] (#/review, #/), the app running or not. */
+    fun show(c: Context, id: String, title: String, body: String, path: String) {
         if (!allowed(c)) return
         channel(c)
-        val open = PendingIntent.getActivity(c, 1, Intent(c, MainActivity::class.java).setAction(Intent.ACTION_VIEW)
-            .putExtra(MainActivity.EXTRA_PATH, "/#/review").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+        val open = PendingIntent.getActivity(c, id.hashCode(), Intent(c, MainActivity::class.java).setAction(Intent.ACTION_VIEW)
+            .putExtra(MainActivity.EXTRA_PATH, "/" + path).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-        val title = if (kind == Planner.Kind.ONCE.name) "你约的复习时间到了" else "该复习单词了"
-        val text = if (due > 0) "今天有 $due 个词到期，花几分钟复习一下" else "花几分钟，把今天到期的单词复习一下"
         val n = NotificationCompat.Builder(c, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_flow)
             .setColor(ContextCompat.getColor(c, R.color.flow_green))
             .setContentTitle(title)
-            .setContentText(text)
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setContentIntent(open)
             .setAutoCancel(true)
+            .setSilent(Mute.on)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .build()
-        try { NotificationManagerCompat.from(c).notify(NOTE_ID, n) } catch (e: SecurityException) { /* not allowed after all */ }
+        try { NotificationManagerCompat.from(c).notify(if (id.startsWith("plan")) NOTE_PLAN else NOTE_REVIEW, n) } catch (e: SecurityException) { /* not allowed after all */ }
     }
 
-    const val NOTE_ID = 2001
+    const val NOTE_REVIEW = 2001
+    const val NOTE_PLAN = 2002
 }
 
-/** A reminder is due: show it, then put the next week's back (the plan rolls forward one day at a time). */
+/** A reminder is due: show it, then put the rest back from what is kept (no network needed). */
 class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(c: Context, intent: Intent) {
-        val kind = intent.getStringExtra("kind") ?: Planner.Kind.DAILY.name
-        if (kind == Planner.Kind.ONCE.name) c.getSharedPreferences("flow-remind", Context.MODE_PRIVATE).edit().remove("once").apply()
-        Reminders.show(c, kind, intent.getIntExtra("due", -1))
-        Reminders.reschedule(c)
+        Reminders.show(c, intent.getStringExtra("id") ?: "review", intent.getStringExtra("title") ?: "该复习单词了",
+            intent.getStringExtra("body") ?: "花几分钟，把今天到期的单词复习一下", intent.getStringExtra("path") ?: "#/review")
+        Reminders.schedule(c)
     }
 }
 
@@ -191,7 +273,7 @@ class RescheduleReceiver : BroadcastReceiver() {
     override fun onReceive(c: Context, intent: Intent) {
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED, Intent.ACTION_TIME_CHANGED, Intent.ACTION_TIMEZONE_CHANGED,
-            AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED -> Reminders.reschedule(c)
+            AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED -> Reminders.schedule(c)
         }
     }
 }
