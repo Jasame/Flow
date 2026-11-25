@@ -17,13 +17,19 @@
   async function confuseRound(groups) {
     const d = await api('/api/next/words/confuse/round?groups=' + encodeURIComponent(groups));
     const items = d.items; let i = 0, right = 0;
-    view.innerHTML = `<div class="stack mix"><div><a class="link small" href="#/words/confuse">← 词汇辨析</a></div>
+    // On a phone the round is one screen, like 复习: no tabs below, the question at the bottom where the thumb is, and
+    // 怎么区分 open for the first question only, then one line to tap open again (语流 B8's audit: 119-213 px past the
+    // screen on an iPhone SE, the last answer under the tabs)
+    document.body.classList.add('reviewing');
+    view.innerHTML = `<div class="stack mix confuse"><div><a class="link small" href="#/words/confuse">← 词汇辨析</a></div>
       <div><span class="kicker">词汇辨析</span><h1 class="h1">${esc(d.groups.map(g => g.words.join(' / ')).join(' · '))}</h1></div>
-      ${d.groups.map(g => `<div class="howto"><b class="en">${esc(g.words.join(' / '))}</b><span class="small">${esc(g.how)}</span></div>`).join('')}
-      <div class="mix-dots" aria-hidden="true">${items.map(() => '<i></i>').join('')}</div><div id="mixQ"></div></div>`;
+      <details class="cf-how" id="cfHow" open><summary data-tap="confuse-how"><b>怎么区分</b></summary><div class="stack-s">
+      ${d.groups.map(g => `<div class="howto"><b class="en">${esc(g.words.join(' / '))}</b><span class="small">${esc(g.how)}</span></div>`).join('')}</div></details>
+      <div class="cf-q"><div class="mix-dots" aria-hidden="true">${items.map(() => '<i></i>').join('')}</div><div id="mixQ"></div></div></div>`;
     const dots = [...view.querySelectorAll('.mix-dots i')];
     const ask = () => {
       const it = items[i], box = document.getElementById('mixQ');
+      if (i === 1) document.getElementById('cfHow').open = false;  // read once; a tap brings it back
       dots.forEach((x, k) => x.classList.toggle('now', k === i));
       box.innerHTML = `<div class="q gq enter"><div class="tiny muted">第 ${i + 1} / ${items.length} 题</div><div class="prompt">${esc(it.prompt)}</div>
         ${it.options.map((o, j) => `<button class="ans" data-o="${j}"><span class="k">${'ABCD'[j]}</span><span>${esc(o)}</span></button>`).join('')}<div class="fb" aria-live="polite"></div></div>`;
@@ -41,6 +47,7 @@
       });
     };
     const done = () => {
+      document.body.classList.remove('reviewing');
       view.innerHTML = `<div class="stack mix-done">${right * 2 >= items.length ? `<div class="done-burst${right === items.length ? ' all' : ''}" aria-hidden="true">${doneRing}</div>` : ''}
         <div class="tc"><span class="kicker">词汇辨析</span><h1 class="h1">${items.length} 题做对 ${right} 题</h1>
         <p class="small">${right === items.length ? '全对！这几组你已经分得很清楚了。' : S.user ? `错的 ${items.length - right} 组已经放进复习，下次会换一道题考你。` : '登录后，错的会进复习，下次换一道题考你。'}</p></div>

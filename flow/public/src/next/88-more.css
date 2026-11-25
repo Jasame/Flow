@@ -20,7 +20,7 @@
 .gtiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .gtile{display:grid;gap:2px;padding:12px;border-radius:12px;background:var(--sunk)}
 .gtile b{font-size:22px;font-variant-numeric:tabular-nums}
-.gtile .up{font-size:12px;color:var(--green-ink);font-weight:600}
+.gtile .up{font-size:12px;color:var(--ok-ink);font-weight:600}
 .miles{display:grid;gap:8px}
 .mile{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:center;padding:10px 4px}
 .mile .mi{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--sunk);color:var(--muted)}

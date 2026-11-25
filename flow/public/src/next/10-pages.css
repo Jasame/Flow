@@ -74,7 +74,7 @@
 .q .prompt{font-family:var(--serif);font-size:18px;font-weight:600}
 .ans{text-align:left;border:1.5px solid var(--line2);background:var(--paper);border-radius:12px;padding:12px 14px;font-family:var(--serif);font-size:16.5px;display:flex;gap:10px;align-items:flex-start}
 .ans .k{font-family:var(--sans);font-weight:700;color:var(--muted);flex:none}
-.ans.right{border-color:var(--green);background:var(--green-soft)}
+.ans.right{border-color:var(--ok);background:var(--ok-soft)}
 .ans.wrong{border-color:var(--red);background:var(--red-soft)}
 .ans[disabled]{cursor:default}
 .evidence{background:var(--mark);border-radius:6px;padding:8px 10px;font-family:var(--serif)}
@@ -84,7 +84,7 @@
 .result{display:grid;gap:14px}
 .verdict{display:flex;gap:10px;align-items:flex-start}
 .verdict .dot{flex:none;width:10px;height:10px;border-radius:50%;margin-top:8px;background:var(--amber)}
-.verdict.natural .dot{background:var(--green)}.verdict.rewrite .dot{background:var(--red)}
+.verdict.natural .dot{background:var(--ok)}.verdict.rewrite .dot{background:var(--red)}
 .compare{display:grid;gap:8px}
 .compare .yours{font-family:var(--serif);color:var(--muted);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--red) 60%,transparent)}
 .compare .fixed{font-family:var(--serif);font-size:18px}
@@ -112,7 +112,7 @@
 .rate button{border:1.5px solid var(--line2);background:var(--paper);border-radius:12px;padding:10px 4px;font-weight:700;display:grid;gap:2px}
 .rate button small{font-weight:500;color:var(--muted);font-size:11.5px}
 .rate .again{border-color:color-mix(in srgb,var(--red) 50%,var(--line2))}
-.rate .good{border-color:var(--green)}
+.rate .good{border-color:var(--ok)}
 .bar-progress{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
 .bar-progress i{display:block;height:100%;background:var(--green)}
 .empty{text-align:center;padding:40px 16px;color:var(--muted)}
