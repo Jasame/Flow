@@ -23,10 +23,10 @@ class DailyPauseTests(unittest.TestCase):
     def tearDown(self):
         self.c.close(); self.p.stop(); self.tmp.cleanup()
 
-    def test_the_switch_stops_the_daily_text_altogether(self):
-        # PAUSED stopped it for a day (2026-11-25) while the news was taken off; 今日一读 runs with it off
-        self.assertFalse(daily.PAUSED)
-        with patch.object(daily, 'PAUSED', True), patch.object(daily, 'request_model') as model, patch.dict('os.environ', {'FLOW_AI_GROUNDING': '1'}):
+    def test_the_switch_is_on_until_the_samples_are_read(self):
+        # 今日一读 waits for 语流 01 to read samples written on the 内测版 (daily_service.samples): nothing is written daily
+        self.assertTrue(daily.PAUSED)
+        with patch.object(daily, 'request_model') as model, patch.dict('os.environ', {'FLOW_AI_GROUNDING': '1'}):
             self.assertEqual(daily.run(self.c)['status'], 'paused')
             model.assert_not_called()
             st = daily.status(self.c)

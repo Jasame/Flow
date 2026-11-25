@@ -30,10 +30,11 @@ TOPICS=(
  ('travel','旅行与地方','travel, places, festivals or local customs around the world','daily-life'),
 )
 LEVELS=('A2','B1','B2','C1')
-# PAUSED stops the daily text altogether (it did for a day, 2026-11-25, while the news was taken off). The news texts
-# written before stay in the database (kept, not deleted) but are shown nowhere: retired() is what every list, the
-# material page, 今日 and the overnight voice leave out. Today's texts carry kind 'topic'.
-PAUSED=False
+# PAUSED stops the daily text altogether. It is on until 语流 01 has read the samples written on the 内测版
+# (python3 daily_service.py samples, one of each kind) and found no news in them (the user's instruction, 2026-11-25);
+# then a one-line change turns 今日一读 on. The news texts written before stay in the database (kept, not deleted) but
+# are shown nowhere: retired() is what every list, the material page, 今日 and the overnight voice leave out.
+PAUSED=True
 DAILY_NAME='今日一读'  # the card, the guide and the tags say this (the name may change: the user picks it)
 def retired(p):
  """A 今日热点 news text from before the pause: kept in the database, never shown."""
@@ -214,52 +215,85 @@ def reserve_call(c):
  if int(os.getenv('FLOW_AI_DAILY_LIMIT','0'))>0 and total>=int(os.getenv('FLOW_AI_DAILY_LIMIT','0')):c.rollback();raise ValueError('Daily site quota exhausted')
  c.execute('INSERT OR IGNORE INTO ai_usage VALUES(0,?,0)',(day,));c.execute('UPDATE ai_usage SET count=count+1 WHERE user_id=0 AND day=?',(day,));c.commit()
 
+def compose(c,day,level,topic):
+ """Write one 今日一读 and check it: (pack, None) when it passes both checks, (pack or None, why) when it does not.
+ Two model calls at most (the writing, the self-check), each counted against the site's daily AI quota."""
+ from lab_service import validate_pack,parse
+ import ai_routes,topic_guard
+ nodes=[dict(r) for r in c.execute('SELECT id,title FROM subskills')]
+ reserve_call(c)
+ with ai_routes.task('daily-topic'):reply,reason=request_model(write_messages(level,topic,nodes))
+ if reason!='stop':return None,'写到一半被截断'
+ try:
+  raw=parse(reply)
+  if level=='C1' and raw.get('level')=='C1':raw['level']='B2'  # C1 is stored as B2 with its real level in cefr (as in v5)
+  pack=validate_pack(raw)
+ except (ValueError,TypeError,KeyError):return None,'写出来的格式不对'
+ if pack['level']!=('B2' if level=='C1' else level) or pack['theme'] not in ('campus','travel','life','work','culture','science'):return None,'级别或话题不对'
+ knowledge=raw.get('knowledge',[]);valid={n['id'] for n in nodes}
+ if not isinstance(knowledge,list) or not 1<=len(knowledge)<=3:return None,'没有挂语法点'
+ for k in knowledge:
+  if not isinstance(k,dict) or k.get('node') not in valid or not isinstance(k.get('quote'),str) or not k['quote'].strip() or k['quote'] not in pack['body'] or not isinstance(k.get('explanation'),str) or not 1<=len(k['explanation'])<=500:return None,'语法点的例句不在正文里'
+ if any(len(set(q['options']))!=4 for q in pack['questions']):return None,'选项重复'
+ pack.update(id='daily-'+day,kind='topic',genre='article',tags=[DAILY_NAME,topic[1]],topic=topic[0],purposes=[topic[4]],
+             **({'cefr':'C1'} if level=='C1' else {}),grammar=list(dict.fromkeys(k['node'] for k in knowledge)),knowledge=knowledge,
+             source='Flow 原创（AI 生成）',ai='AI 生成',daily_day=day)
+ found=topic_guard.hits(pack)
+ if found:return pack,'碰到了新闻、时政或具体数字（'+found[0]+'）'
+ reserve_call(c)
+ with ai_routes.task('daily-topic'):verdict,reason=request_model(check_messages(pack))
+ pack['self_check']=verdict[:500]
+ if reason!='stop' or not passes(verdict):return pack,'模型自查没有通过（时政、新闻、真人、具体数字或不友好）'
+ return pack,None
+
+
 def run(c):
  """Write today's 今日一读, once (two tries at most). The switch is the one the daily job has always had
  (FLOW_AI_GROUNDING=1), although nothing is searched any more."""
- from lab_service import validate_pack,parse
- import ai_routes,topic_guard
  day=today()
  if PAUSED:return {'status':'paused','day':day}
  if os.getenv('FLOW_AI_GROUNDING')!='1':return {'status':'disabled'}
  c.execute('BEGIN IMMEDIATE');r=c.execute('SELECT * FROM daily_runs WHERE day=?',(day,)).fetchone()
  if r and (r['status']=='complete' or (r['status']=='running' and r['updated']>time.time()-600) or r['attempts']>=2):c.rollback();return status(c)
  c.execute("INSERT INTO daily_runs(day,status,attempts,updated) VALUES(?,'running',1,?) ON CONFLICT(day) DO UPDATE SET status='running',attempts=attempts+1,updated=excluded.updated,error=''",(day,time.time()));c.commit()
- why='写出来的格式不对'
+ why='出错了'
  try:
   recent=[json.loads(r[0]).get('topic') for r in c.execute("SELECT content FROM lab_packs WHERE origin='daily' ORDER BY created DESC LIMIT 30")]
   level,topic=plan(day,recent)
-  nodes=[dict(r) for r in c.execute('SELECT id,title FROM subskills')]
-  reserve_call(c)
-  with ai_routes.task('daily-topic'):reply,reason=request_model(write_messages(level,topic,nodes))
-  if reason!='stop':raise ValueError('Truncated generation')
-  raw=parse(reply)
-  if level=='C1' and raw.get('level')=='C1':raw['level']='B2'  # C1 is stored as B2 with its real level in cefr (as in v5)
-  pack=validate_pack(raw)
-  if pack['level']!=('B2' if level=='C1' else level) or pack['theme'] not in ('campus','travel','life','work','culture','science'):raise ValueError('Invalid daily level/theme')
-  knowledge=raw.get('knowledge',[]);valid={n['id'] for n in nodes}
-  if not isinstance(knowledge,list) or not 1<=len(knowledge)<=3:raise ValueError('Missing knowledge links')
-  for k in knowledge:
-   if not isinstance(k,dict) or k.get('node') not in valid or not isinstance(k.get('quote'),str) or not k['quote'].strip() or k['quote'] not in pack['body'] or not isinstance(k.get('explanation'),str) or not 1<=len(k['explanation'])<=500:raise ValueError('Invalid knowledge evidence')
-  if any(len(set(q['options']))!=4 for q in pack['questions']):raise ValueError('Duplicate options')
-  pack.update(id='daily-'+day,kind='topic',genre='article',tags=[DAILY_NAME,topic[1]],topic=topic[0],purposes=[topic[4]],
-              **({'cefr':'C1'} if level=='C1' else {}),grammar=list(dict.fromkeys(k['node'] for k in knowledge)),knowledge=knowledge,
-              source='Flow 原创（AI 生成）',ai='AI 生成',daily_day=day)
-  found=topic_guard.hits(pack)
-  if found:why='碰到了新闻、时政或具体数字（'+found[0]+'）';raise ValueError(why)
-  reserve_call(c)
-  with ai_routes.task('daily-topic'):verdict,reason=request_model(check_messages(pack))
-  if reason!='stop' or not passes(verdict):why='模型自查没有通过（时政、新闻、真人、具体数字或不友好）';raise ValueError(why)
+  pack,why=compose(c,day,level,topic)
+  if why:raise ValueError(why)
+  pack.pop('self_check',None)
   c.execute('BEGIN IMMEDIATE')
   c.execute('INSERT OR IGNORE INTO lab_packs VALUES(?,NULL,?,?,?)',(pack['id'],'daily',json.dumps(pack,ensure_ascii=False),time.time()))
   __import__('lexicon_service').collect_candidates(c,pack['id'])
   __import__('lexicon_service').sync_packs(c)
   c.execute("UPDATE daily_runs SET status='complete',pack=?,updated=?,error='' WHERE day=?",(pack['id'],time.time(),day));c.commit()
- except Exception:
+ except Exception as exc:
+  if why=='出错了' and str(exc).startswith('Daily site quota'):why='今天的 AI 额度用完了'
   c.rollback();c.execute("UPDATE daily_runs SET status='failed',updated=?,error=? WHERE day=?",(time.time(),f'今天的{DAILY_NAME}没有发出：{why}。保留往期内容；每天最多试两次。',day));c.commit()
  return status(c)
 
+
+def samples(c,n=5,day=None):
+ """Sample texts for a person to read before 今日一读 is turned on: one of each kind (science, tech, culture, life,
+ learning), levels A2 → C1 in turn, written and checked exactly as the daily job would, and stored nowhere.
+ Returns Markdown: each text with its topic, its level, what the checks said, and the text itself."""
+ day=day or today();out=[f'# {DAILY_NAME} 样稿（{day}，没有发布）','',
+  f'每类一篇，按每天的流程写、按每天的流程查（黑名单、模型自查）；哪一篇都没有存进网站。','']
+ for i,kind in enumerate(list(POOL)[:n]):
+  topic=POOL[kind][datetime.date.fromisoformat(day).toordinal()%len(POOL[kind])];level=LEVELS[i%4]
+  try:pack,why=compose(c,day,level,topic)
+  except Exception as exc:pack,why=None,f'出错：{type(exc).__name__}'  # noqa: BLE001
+  out+=[f'## {i+1}. {topic[1]} · {level} · {topic[2]}','',f'**检查**：{"通过（会发）" if pack and not why else "没有通过（不会发）：" + why}','']
+  if pack:
+   out+=[f'**标题**：{pack["title"]}','',pack['body'],'']
+   for q in pack['questions']:out+=[f'- {q["prompt"]} —— 答案：{q["options"][q["answer"]]}']
+   out+=['',f'模型自查：`{pack.get("self_check","（没到这一步）")}`','']
+ return '\n'.join(out)
+
 if __name__=='__main__':
- import app
+ import app,sys
  app.init()
- with app.db() as c:print(json.dumps(run(c),ensure_ascii=False))
+ with app.db() as c:
+  if sys.argv[1:2]==['samples']:print(samples(c,int(sys.argv[2]) if len(sys.argv)>2 else 5))  # read before turning 今日一读 on
+  else:print(json.dumps(run(c),ensure_ascii=False))

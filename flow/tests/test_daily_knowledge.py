@@ -9,11 +9,12 @@ class DailyKnowledgeTests(unittest.TestCase):
   self.tmp=tempfile.TemporaryDirectory();self.p=patch.object(app,'DB',Path(self.tmp.name)/'daily.db');self.p.start();app.init();self.c=app.db()
   self.c.executemany('INSERT INTO users(username,password) VALUES(?,?)',[('one','hash'),('two','hash')]);self.c.commit()
   self.env=patch.dict(os.environ,{'FLOW_AI_GROUNDING':'1','FLOW_AI_DAILY_LIMIT':'100'});self.env.start()
+  self.on=patch.object(daily,'PAUSED',False);self.on.start()  # the daily job as it runs once 今日一读 is turned on
   self.brief='A museum has opened a new room. Visitors can read short labels. Staff will collect comments.'
   self.meta={'groundingChunks':[{'web':{'uri':'https://example.org/news','title':'Museum'}}], 'groundingSupports':[{'segment':{'text':'A museum has opened a new room.'},'groundingChunkIndices':[0]}], 'searchEntryPoint':{'renderedContent':'<style>.chip{color:blue}</style><a href="https://google.com/search?q=museum">Museum</a>'},'webSearchQueries':['museum today']}
- def tearDown(self):self.c.close();self.env.stop();self.p.stop();self.tmp.cleanup()
- def raw(self):
-  p=copy.deepcopy(all_materials()[0]);p['level']=daily.plan(daily.today())[0];p['theme']='campus';p['knowledge']=[{'node':'tense-present','quote':lab.sentences(p['body'])[0],'explanation':'说明该句的用法'}];return p
+ def tearDown(self):self.c.close();self.on.stop();self.env.stop();self.p.stop();self.tmp.cleanup()
+ def raw(self,level=None):
+  p=copy.deepcopy(all_materials()[0]);p['level']=level or daily.plan(daily.today())[0];p['level']='B2' if p['level']=='C1' else p['level'];p['theme']='campus';p['knowledge']=[{'node':'tense-present','quote':lab.sentences(p['body'])[0],'explanation':'说明该句的用法'}];return p
  CLEAN=json.dumps({k:False for k in daily.SELF_CHECK})
  def run_mock(self,raw=None,verdict=None):
   """今日一读: one call writes, one call checks; nothing searched (grounding never asked for)."""
@@ -44,6 +45,18 @@ class DailyKnowledgeTests(unittest.TestCase):
   d,count=self.run_mock(verdict=json.dumps(dict(json.loads(self.CLEAN),real_person=True)))
   self.assertEqual(d['status'],'failed');self.assertEqual(count,2);self.assertIn('自查',self.c.execute('SELECT error FROM daily_runs').fetchone()[0])
   self.assertEqual(self.c.execute("SELECT COUNT(*) FROM lab_packs WHERE origin='daily'").fetchone()[0],0)
+ def test_samples_are_one_of_each_kind_checked_and_stored_nowhere(self):
+  calls=[]
+  for i in range(5):
+   raw=self.raw(daily.LEVELS[i%4])
+   if i==2:raw['body']=raw['body']+' Officials said it was reported on the radio.'
+   calls+=[(json.dumps(raw),'stop')]+([] if i==2 else [(self.CLEAN,'stop')])
+  with patch.object(daily,'PAUSED',True),patch.object(daily,'request_model',side_effect=calls) as model:md=daily.samples(self.c,5,'2026-11-26')
+  self.assertEqual(model.call_count,9);self.assertFalse(any(k.kwargs.get('grounding') for k in model.call_args_list))
+  for kind in daily.POOL:self.assertIn(next(t for t in daily.POOL[kind])[1],md)
+  self.assertEqual(md.count('**检查**：通过'),4);self.assertEqual(md.count('没有通过'),1);self.assertIn('officials said',md.lower())
+  self.assertEqual(self.c.execute("SELECT COUNT(*) FROM lab_packs WHERE origin='daily'").fetchone()[0],0)
+  self.assertEqual(self.c.execute('SELECT COUNT(*) FROM daily_runs').fetchone()[0],0)
  def test_topics_take_turns_and_festivals_come_once(self):
   kinds=[next(k for k,v in daily.POOL.items() if t in v) for t in daily.TOPIC_LIST[:5]]
   self.assertEqual(len(set(kinds)),5)  # five kinds in turn

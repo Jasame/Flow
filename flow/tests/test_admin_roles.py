@@ -170,7 +170,8 @@ class ConsoleRoleTests(Servers):
             st, body, _ = self.console('/users/reset-link', 'boss@example.com', {'user': 'nomail'})
             self.assertEqual(st, 200); token = body['link'].split('#reset=')[1]
             self.assertEqual(self.console('/users/reset-link', 'boss@example.com', {'user': 'nobody-here'})[0], 404)
-            with patch('daily_service.run', lambda c: None):
+            self.assertEqual(self.console('/daily/run', 'boss@example.com', {})[0], 409)  # 今日一读 off until its samples are read
+            with patch('daily_service.run', lambda c: None), patch('daily_service.PAUSED', False):
                 self.assertEqual(self.console('/daily/run', 'boss@example.com', {})[0], 202)
             st, csv, h = self.console('/survey/export.csv', 'boss@example.com')
             self.assertEqual(st, 200)
@@ -181,7 +182,7 @@ class ConsoleRoleTests(Servers):
         self.assertEqual((rows[3]['target'], rows[3]['detail']), ('nomail', '已生成'))
         self.assertEqual(rows[2]['target'], 'nobody-here'); self.assertNotEqual(rows[2]['detail'], '已生成')
         self.assertNotIn(token, json.dumps(rows))
-        self.assertEqual(rows[1]['action_label'], '生成今日热点')
+        self.assertEqual(rows[1]['action_label'], '生成今日一读')
 
     def test_the_overview_shows_the_last_backup_and_todays_news_material(self):
         (Path(self.tmp.name) / 'backup-status.json').write_text(json.dumps({'ok': True, 'at': '2026-11-23T03:00:00+08:00'}))

@@ -338,7 +338,7 @@ def content(c, days=0):
         n = learners.get(pid, 0)
         s = per.get(pid, {})
         items.append({'id': pid, 'title': p.get('title') or pid, 'level': nx.cefr(p), 'theme': nx.THEMES.get(p.get('theme'), p.get('theme') or ''),
-                      'origin': '热点' if row['origin'] == 'daily' else '系列' if p.get('series') else '精选' if nx.featured(p) else '材料',
+                      'origin': ('今日一读' if p.get('kind') == 'topic' else '今日热点（已停）') if row['origin'] == 'daily' else '系列' if p.get('series') else '精选' if nx.featured(p) else '材料',
                       'learners': n, 'steps': {k: s.get(k, 0) for k in nx.STEPS}, 'completion': round(100 * s.get('output', 0) / n) if n else None,
                       'easy_read': easy.get(pid, {}), 'last': last.get(pid), 'hidden': pid in hidden, 'hidden_info': hidden.get(pid)})
     items.sort(key=lambda m: (-m['learners'], -(m['last'] or 0), m['title']))
@@ -447,7 +447,7 @@ SAMPLES = {'next-explain': ('句子讲解', 'SELECT e.pack, e.sentence, e.level,
            'next-examples': ('AI 例句', "SELECT norm, sentence, translation, created, COALESCE(sense, '') FROM next_word_examples"),
            'next-transsrc': ('翻译原句', 'SELECT t.pack, t.sentence, t.zh, t.created FROM next_translations t JOIN lab_packs l ON l.id=t.pack AND l.owner IS NULL'),
            'next-dialog': ('对话开场', 'SELECT pack, level, result, created FROM next_dialog_openers'),
-           'daily-news': ('今日热点', "SELECT id, content, created FROM lab_packs WHERE origin='daily' AND owner IS NULL")}
+           'daily-news': ('今日一读（含已停的今日热点）', "SELECT id, content, created FROM lab_packs WHERE origin='daily' AND owner IS NULL")}
 
 
 def _public_title(c, pack, cache):
