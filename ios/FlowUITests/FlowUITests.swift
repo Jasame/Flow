@@ -199,4 +199,86 @@ final class FlowUITests: XCTestCase {
         let back = Int(offon.label.split(separator: " ").last ?? "0") ?? 0
         XCTAssertGreaterThanOrEqual(back, 5, offon.label)
     }
+    /// the sentence the app is on, from the bridge page's state line (「state: playing i: 3 n: 18 …」)
+    @MainActor private func sentenceNow() -> Int? {
+        let parts = value("state: ").components(separatedBy: " ")
+        guard let k = parts.firstIndex(of: "i:"), k + 1 < parts.count else { return nil }
+        return Int(parts[k + 1])
+    }
+
+    @MainActor private func stateLine(_ needles: String...) -> XCUIElement {
+        let p = NSPredicate(format: "label BEGINSWITH %@", "state: ")
+        let all = NSCompoundPredicate(andPredicateWithSubpredicates: [p] + needles.map { NSPredicate(format: "label CONTAINS %@", $0) })
+        return web.staticTexts.matching(all).firstMatch
+    }
+
+    /// iOS 27's lock screen buttons (LockScreen27), pressed through the bridge page: a simulator has no Now Playing
+    @MainActor func test7LockScreenStudyButtons() {
+        bridgePage()
+        tapButton("播放全文")
+        if !line("state: playing").waitForExistence(timeout: 40) {
+            tapButton("继续")  // a weak line (test 3)
+            wait(line("state: playing"), 40, "playing after 继续")
+        }
+        tapButton("锁屏 1.25×")
+        wait(stateLine("rate: 1.25"), 5, "语速 1.25× from the lock screen")
+        tapButton("锁屏单句循环")
+        wait(stateLine("state: playing", "rep: 0", "loop: true"), 10, "单句循环 from the lock screen")
+        let i = sentenceNow()
+        XCTAssertNotNil(i)
+        Thread.sleep(forTimeInterval: 9)  // a sentence is a few seconds: again and again, the same one
+        XCTAssertEqual(sentenceNow(), i, "单句循环 stays on its sentence: \(value("state: "))")
+        tapButton("锁屏退回 5 秒")
+        wait(stateLine("state: playing", "i: \(i ?? -1) "), 5, "this sentence again")
+        shot("07-lock-screen-buttons")
+        tapButton("锁屏不循环")
+        wait(stateLine("rep: 1", "loop: false"), 5, "the page's 复读 back (straight through)")
+        tapButton("停止")
+        wait(line("state: idle"), 5, "stopped")
+    }
+
+    /// 我的 → 设置 → 「iOS 专属功能」: the app's own page, its switches, the offline packs
+    @MainActor func test8IOSFeaturesPage() {
+        bridgePage()
+        let feats = line("features: ")
+        wait(feats, 10, "the switches as the page sees them")
+        XCTAssertTrue(feats.label.contains("offline-packs:0") && feats.label.contains("smart-resume:1"), feats.label)
+        tapButton("iOS 专属功能")
+        wait(app.navigationBars["iOS 专属功能"], 10, "the app's own page")
+        XCTAssertTrue(app.switches["feature.smart-resume"].exists)
+        if #available(iOS 27, *) { XCTAssertTrue(app.switches["feature.lock-study"].exists, "iOS 27: the lock screen's buttons") }
+        shot("08-ios-features")
+        XCUIDevice.shared.appearance = .dark
+        Thread.sleep(forTimeInterval: 3)  // the sheet takes the dark look a moment later
+        shot("08-ios-features-dark", screen: true)
+        XCUIDevice.shared.appearance = .light
+        Thread.sleep(forTimeInterval: 1)
+        let packs = app.switches["feature.offline-packs"]
+        packs.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()  // the switch at the row's end
+        let now = app.buttons["packs.now"]
+        wait(now, 5, "离线朗读包's own part")
+        wait(app.staticTexts["packs.note"], 90, "what fetching today's did")
+        shot("08-offline-packs")
+        let kept = app.staticTexts["packs.kept"]
+        XCTAssertTrue(kept.label.contains("篇") || kept.value.debugDescription.contains("篇") || app.staticTexts["packs.note"].label.contains("登录"),
+                      "kept: \(kept.label) note: \(app.staticTexts["packs.note"].label)")
+        app.buttons["features.done"].tap()
+        XCTAssertTrue(app.navigationBars["iOS 专属功能"].waitForNonExistence(timeout: 5))
+        // today's text with its recording's address pointing nowhere: it plays all the same, from the copy on the phone
+        tapButton("离线播放今天这篇")
+        let ticking = web.staticTexts.matching(NSPredicate(format: "label MATCHES %@", "t: [0-9]+\\.[0-9] i: [0-9]+")).firstMatch
+        wait(ticking, 20, "time from the app's own copy: \(value("state: ")) \(value("note: "))")
+        wait(line("state: playing"), 5, "playing from the phone")
+        tapButton("停止")
+        wait(line("state: idle"), 5, "stopped")
+        tapButton("iOS 专属功能")
+        wait(app.navigationBars["iOS 专属功能"], 10, "the app's own page again")
+        packs.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        XCTAssertTrue(now.waitForNonExistence(timeout: 5), "switched off: the part goes, and the files with it")
+        app.buttons["features.done"].tap()
+        XCTAssertTrue(app.navigationBars["iOS 专属功能"].waitForNonExistence(timeout: 5))
+        tapButton("开关状态")
+        let off = web.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@ AND label CONTAINS %@", "features: ", "offline-packs:0")).firstMatch
+        wait(off, 5, "the page sees it off again")
+    }
 }

@@ -2,7 +2,7 @@
 .wx-bar{display:flex;align-items:flex-start;gap:8px;padding:8px var(--gut);background:var(--amber-soft);color:var(--ink);font-size:13.5px;line-height:1.55}
 .wx-bar span{flex:1;min-width:0;padding-top:4px}
 .wx-x{flex:none;display:grid;place-items:center;width:36px;height:36px;margin:-2px -8px -2px 0;border:0;border-radius:10px;background:none;color:var(--muted);font-size:22px;line-height:1;cursor:pointer}
-.wx-x:hover{background:color-mix(in srgb,var(--ink) 6%,transparent)}
+.wx-x:hover{background:var(--sunk);background:color-mix(in srgb,var(--ink) 6%,transparent)}
 @media (min-width:760px){.wx-bar{justify-content:center}.wx-bar span{flex:0 1 auto;max-width:var(--max)}}
 /* the first visit in WeChat: a dimmed screen, an arrow to the ··· menu (WeChat's own, top right), the two steps */
 .wx-guide{position:fixed;inset:0;z-index:95;background:rgba(10,14,12,.78);color:#fff;display:flex;flex-direction:column;align-items:flex-end;padding:calc(8px + var(--sat)) 18px 18px}

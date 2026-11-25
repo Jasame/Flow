@@ -1,15 +1,37 @@
 //! 复习提醒: system notifications scheduled ahead of time, so they come even when 语流 is not open
 //! (macOS: UserNotifications; Windows: scheduled toasts). schedule.rs decides when; this sends them to the system.
 
+use crate::schedule::Planned;
+
 #[cfg(target_os = "macos")]
 mod macos;
 #[cfg(target_os = "macos")]
 pub use macos::*;
 
+#[cfg(target_os = "linux")]
+mod linux;
+#[cfg(target_os = "linux")]
+pub use linux::*;
+
 #[cfg(target_os = "windows")]
 mod windows;
 #[cfg(target_os = "windows")]
 pub use self::windows::*;
+
+/// Linux keeps the plan itself (no system scheduler): a reminder that comes more than this late (the computer was
+/// asleep or off) is skipped, not shown at wake-up.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+const STALE: i64 = 10 * 60;
+
+/// (due now and not stale, still ahead)
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+pub fn split_due(items: Vec<Planned>, now: i64) -> (Vec<Planned>, Vec<Planned>) {
+    let (due, ahead): (Vec<_>, Vec<_>) = items.into_iter().partition(|p| p.at <= now);
+    (
+        due.into_iter().filter(|p| now - p.at <= STALE).collect(),
+        ahead,
+    )
+}
 
 /// Notifications without their sound (FLOW_MUTE=1, smoke tests).
 static SILENT: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
@@ -119,10 +141,9 @@ pub fn tag_of(id: &str) -> String {
 }
 
 /// A system without a backend (other targets, unit tests): nothing is scheduled.
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+#[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
 mod none {
     use super::*;
-    use crate::schedule::Planned;
     pub fn init(_id: &str, _on_click: impl Fn(Option<&'static str>) + Send + Sync + 'static) {}
     pub fn permission() -> Permission {
         Permission::Denied
@@ -144,7 +165,7 @@ mod none {
         Ok(())
     }
 }
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+#[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
 pub use none::*;
 
 #[cfg(test)]
@@ -176,6 +197,23 @@ mod tests {
         assert_eq!(app_permission(Undetermined, true, false), "undetermined");
         assert_eq!(app_permission(Undetermined, true, true), "granted"); // Windows before its first toast
         assert_eq!(app_permission(Provisional, true, false), "provisional");
+    }
+
+    #[test]
+    fn linux_shows_what_is_due_and_skips_what_is_stale() {
+        let p = |id: &str, at: i64| Planned {
+            id: id.into(),
+            at,
+            title: String::new(),
+            body: String::new(),
+            route: "/review",
+        };
+        let (due, ahead) = split_due(vec![p("a", 100), p("b", 1000), p("c", -5000)], 200);
+        assert_eq!(due.iter().map(|x| x.id.as_str()).collect::<Vec<_>>(), ["a"]); // c: missed while asleep
+        assert_eq!(
+            ahead.iter().map(|x| x.id.as_str()).collect::<Vec<_>>(),
+            ["b"]
+        );
     }
 
     #[test]

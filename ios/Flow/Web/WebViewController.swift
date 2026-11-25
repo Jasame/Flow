@@ -1,3 +1,4 @@
+import SwiftUI
 import UIKit
 import WebKit
 
@@ -79,6 +80,7 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
         refresh.addTarget(self, action: #selector(pulled), for: .valueChanged)
         webView.scrollView.refreshControl = refresh
         bridge.onAccent = { [weak self] name in self?.applyAccent(name) }
+        bridge.onSettings = { [weak self] in self?.showFeatures() ?? false }
         applyAccent(Accent.saved)  // the last 主题色 the page showed, until it says again
         Task { await start() }
     }
@@ -114,6 +116,16 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
             pendingPath = path
             if started, !webView.isLoading { load(AppConfig.start) }
         }
+    }
+
+    /// 我的 → 设置 → 「iOS 专属功能」 (the page asks: app.settings): the app's own page, over the site
+    func showFeatures() -> Bool {
+        guard view.window != nil else { return false }
+        if presentedViewController is UIHostingController<FeaturesView> { return true }
+        let page = UIHostingController(rootView: FeaturesView(accent: Color(uiColor: Accent.color(Accent.saved))))
+        page.view.accessibilityIdentifier = "flow.features"
+        present(page)
+        return true
     }
 
     @objc private func pulled() {
