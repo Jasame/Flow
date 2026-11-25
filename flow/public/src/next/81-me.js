@@ -119,10 +119,10 @@
   function knowSheet() {
     const opts = [['right', '右边（默认）', '和大多数背词 App 一样，右手点着顺。往右滑是认识，往左滑是不认识。'], ['left', '左边', '往左滑是认识，往右滑是不认识。']];
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">「认识」放在</h2>
-      <div class="choice" role="radiogroup" aria-labelledby="sheetTitle">${opts.map(([k, t, d]) => `<button class="opt" type="button" role="radio" data-know="${k}" aria-checked="${KNOW.side() === k}" aria-pressed="${KNOW.side() === k}"><b>${t}</b><span class="small muted">${d}</span></button>`).join('')}</div>
+      <div class="choice two" role="radiogroup" aria-labelledby="sheetTitle">${opts.map(([k, t, d]) => `<button class="opt" type="button" role="radio" data-know="${k}" aria-checked="${KNOW.side() === k}" aria-pressed="${KNOW.side() === k}"><b>${t}</b><span class="small muted">${d}</span></button>`).join('')}</div>
       <p class="muted small">复习单词和测词汇量都跟着变：按钮的位置、滑动的方向，电脑上的按键（1 2 3 和 ← →）也按按钮在屏幕上的位置。只影响这台设备。</p>
       <h3 class="zones-h" id="zonesTitle">点卡片作答</h3>
-      <div class="choice" role="radiogroup" aria-labelledby="zonesTitle">${[[1, '开', '复习卡的左、中、右三块，和下面三个按钮一样（「认识」那边就是认识）。只翻面看答案，翻面后还是点按钮评分；点错了可以「撤销」。'], [0, '关', '只用下面的按钮、滑动和按键。']].map(([k, t, d]) => `<button class="opt" type="button" role="radio" data-zones="${k}" aria-checked="${KNOW.tap() === !!k}" aria-pressed="${KNOW.tap() === !!k}"><b>${t}</b><span class="small muted">${d}</span></button>`).join('')}</div>
+      <div class="choice two" role="radiogroup" aria-labelledby="zonesTitle">${[[1, '开', '复习卡的左、中、右三块，和下面三个按钮一样（「认识」那边就是认识）。只翻面看答案，翻面后还是点按钮评分；点错了可以「撤销」。'], [0, '关', '只用下面的按钮、滑动和按键。']].map(([k, t, d]) => `<button class="opt" type="button" role="radio" data-zones="${k}" aria-checked="${KNOW.tap() === !!k}" aria-pressed="${KNOW.tap() === !!k}"><b>${t}</b><span class="small muted">${d}</span></button>`).join('')}</div>
       <p class="muted small">手机和平板默认开，用鼠标的电脑默认关。<button class="link small" type="button" id="zonesGuide">下次复习再看一次说明</button></p>
       <button class="btn ghost" data-close type="button">完成</button></div>`, card => {
       card.querySelectorAll('[data-zones]').forEach(b => b.onclick = () => {
