@@ -17,8 +17,8 @@ struct FeaturesView: View {
                             ForEach(fs) { FeatureRow(feature: $0) }
                         }
                     }
+                    if g == Feature.offlinePacks.group, packsOn { PacksSection() }  // right under its own switch
                 }
-                if packsOn { PacksSection() }
                 Section {
                 } footer: {
                     Text("这些开关只存在这台手机上，不会上传。换手机或者删掉 App 以后，要重新设一次。")

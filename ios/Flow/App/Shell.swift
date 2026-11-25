@@ -44,7 +44,8 @@ final class Shell {
             case .offlinePacks:
                 if on { Task { await Packs.shared.refresh(force: true) } } else { Packs.shared.clear() }
                 Packs.schedule()
-            case .smartResume: break
+            case .frugal: Frugal.shared.update()
+            case .smartResume, .haptics: break
             }
         }
     }

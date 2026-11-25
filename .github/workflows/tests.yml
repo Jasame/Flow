@@ -197,6 +197,7 @@ jobs:
         run: |
           python tools/build_front.py
           python tools/build_dictionary.py --check
+          python tools/check_compat.py  # every served script still runs in Safari 15.0 (iOS 15)
           for js in flow/public/next.js flow/public/sw.js flow/public/survey.js flow/public/about.js xmc-admin/admin.js; do
             node --check "$js"
           done

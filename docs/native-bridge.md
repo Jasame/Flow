@@ -44,11 +44,18 @@ iOS（语流 C1）、安卓（语流 C2）、桌面 Windows、macOS 和 Linux（
 | `media` | 网页自己放声音，App 把 navigator.mediaSession 交给系统（媒体键、「正在播放」） | 没有 | 没有 | 有（Linux 走 MPRIS） |
 | `speech` | App 替网页补上 speechSynthesis（浏览器声音） | 没有 | 有 | 没有 |
 | `settings` | App 自己的「专属功能」设置页：「我的 → 设置」最后一行，点了调 `FlowApp.call('app.settings')` | 有 | 没有 | 没有 |
+| `haptic` | 让手机轻轻一震：`FlowApp.call('app.haptic', {kind})`（见下） | 有 | 没有 | 没有 |
+| `frugal` | 系统要省着用（低电量模式、iOS 27 的省资源提示）：网页少预载 | 有 | 没有 | 没有 |
+| `privacy` | 第一次打开时的同意和「基本模式」、撤回同意、权限管理页、APP 备案号（命令写在第 10 节安卓一节） | 没有 | 有 | 没有 |
 
 - 一个 App 在回到前台、网页重新加载以后，会把正在放的状态再发一次（`audio` 事件），网页不用猜。网页可见时也可以调 `FlowApp.call('app.visible')` 让它重发。
 - `FlowApp.call('hello')` → `{v, app, build, platform, features}`。
 - `FlowApp.call('app.settings')` → `{ok}`：打开 App 自己的「专属功能」页（iOS：「iOS 专属功能」，原生页，开关只存在这台手机上）。`ok: false` 是现在打不开（App 在后台）。
-  `FlowApp.call('app.features')` → `{<功能>: true/false}`：这台手机有哪几项、开没开（iOS 的 id：`lock-study` `smart-resume` `offline-packs`）。网页现在不用它，留给以后按开关改说法。
+  `FlowApp.call('app.features')` → `{<功能>: true/false}`：这台手机有哪几项、开没开（iOS 的 id：`lock-study` `smart-resume` `offline-packs` `haptics` `frugal`）。网页现在不用它，留给以后按开关改说法。
+- `FlowApp.call('app.haptic', {kind})` → `{ok}`：`kind` 是 `tap`（轻点：打分、选一个选项）、`select`（换了一个选择）、`success`（答对、认识）、`warning`（模糊、半对）、`error`（答错）。
+  学员在 App 的设置里关了「复习时的轻触震动」就回 `ok: false`，什么都不做；网页不用自己判断开关，照常调。iOS 本来就没有 navigator.vibrate，网页在浏览器里不用补。
+- `FlowApp.call('app.frugal')` → `{on}`，变了发 `frugal` 事件 `{on}`（回到前台也会再看一次）。`on` 为 true 时网页少预载（PRELOAD.frugal() 也算它）：不提前存今天的文章、不预取下一篇。
+  学员在 App 的设置里关了「省电时少做事」就一直是 false。
 - 安卓的返回键：App 先在 `window` 上发可以取消的 `flowapp:back` 事件，网页 `preventDefault()` 就算处理了；没人处理时 App 关掉开着的 sheet，再回到上一页。iOS、桌面没有这个键，不发。
 
 ### 共用的包装 `native/flowapp.js`
@@ -209,6 +216,10 @@ speaking、pending 照实；2.5 秒内一定发 start；getVoices() 有带 lang 
     今天这篇和今日的前两篇，学员的声音）的录音存进 Library/Caches/packs；App 回到前台最多 3 小时看一次，晚上充电时后台任务 `cn.flowlang.app.packs` 再看一次。
     放的时候地址（/audio/<声音>/<id>.mp4?v=<版本>）对得上就放手机上的那份。存满 7 天删，最多 9 个文件；关掉开关全删。
   - 没网而这篇录音 App 里没存：`play` 回 `{ok: false, why: 'offline'}`，网页自己放（第 3 节）。
+  - `haptics` 复习时的轻触震动（默认开）：`app.haptic` 用 UIImpactFeedbackGenerator / UINotificationFeedbackGenerator，系统的「触感反馈」关了就感觉不到。
+  - `frugal` 省电时少做事（默认开）：低电量模式或 `UIApplication.systemPrefersReducedResourceUsage`（iOS 27）时，服务器朗读只提前做 1 句（平时 2 句），
+    离线朗读包不在前台下载（晚上充电时照常），网页收到 `frugal`。
+  - App 自己画的出错页（「连不上语流」）在 iOS 26 起用系统的玻璃按钮，前面加一个说明原因的图标（没网 wifi.slash，别的 exclamationmark.icloud）。
 - WKAppBoundDomains 只有本站：服务工作线程、桥、cookie 只在本站有效。
 - audio：AVPlayer，AVAudioSession `.playback` + `.spokenAudio` + 后台音频，MPNowPlayingInfoCenter / MPRemoteCommandCenter；系统声音 AVSpeechSynthesizer。
 - rec：AVAudioRecorder；notify：UNUserNotificationCenter + BGAppRefreshTask。
@@ -231,6 +242,17 @@ Kotlin，minSdk 26，targetSdk 37；说明在 `android/README.md`。flavor `beta
   - UA 末尾是 `FlowAndroid/<版本>`；返回键先发 `flowapp:back`（第 2 节）；别的网站、`mailto:`、`tel:` 交给系统打开；
   - 深色和浅色切换不重新加载；键盘弹出时整个 WebView 变矮，网页里 visualViewport 看不到键盘；
   - WebView 的使用统计和 Safe Browsing 关掉，不做云备份。
+- **第一次打开**（1.0.4 起，为上国内应用商店，`android/README.md`「第一次打开」）：
+  - App 先用自己的弹窗问《用户协议》《隐私和数据》。两章全文是打包时从 guide.md 生成的，回答以前不打开网页，也不联网。
+  - 点「不同意」进入基本模式：不登录，不提醒，不录音。登录、注册的请求由 App 拦下，回 403 `{error, code: 'app-consent'}`，同时再问一次。
+  - 能力 `privacy`（只有安卓，共用的能力表里没有）。网页「我的 → 设置」可以用它来做：
+    - `privacy.state()` → `{state: 'agreed' | 'basic', version, beian, store}`；`beian` 是 APP 备案号，空字符串就不显示；
+    - `privacy.ask()`：在基本模式里再问一次；
+    - `privacy.withdraw()`：撤回同意，App 先说明，再清掉手机上的东西，回到第一次打开的弹窗；
+    - `privacy.permissions()` → `{mic, notify}`；
+    - `privacy.settings({what: 'mic' | 'notify'})`：打开手机设置里对应的那一页。
+  - 申请麦克风、通知权限时，页面顶上同时显示用途说明。
+  - 开机接收器平时关着，打开了 App 提醒才打开。
 - **audio**：Media3 ExoPlayer 加 MediaSessionService（前台服务，类型 mediaPlayback）。
   - 锁屏、通知栏、耳机和蓝牙按键：播放、暂停、上一句、下一句。SimpleBasePlayer 显示标题和「AI 朗读 · 第 n / N 句」（合成声音的显式标识）；句间停顿和正在生成的句子也显示成在放。
   - 音频焦点自己管：
@@ -252,7 +274,7 @@ Kotlin，minSdk 26，targetSdk 37；说明在 `android/README.md`。flavor `beta
     - 能精确就用 `setExactAndAllowWhileIdle`；
     - Android 14 起新装的 App 默认没有精确闹钟权限（我们用 SCHEDULE_EXACT_ALARM，不用给闹钟类 App 的 USE_EXACT_ALARM），这时用 `setWindow` 的 10 分钟时间窗；
     - 用户在「闹钟和提醒」里打开权限以后，自动改成准点；
-    - 重启手机、改时间或时区、App 升级以后都重排。
+    - 重启手机、改时间或时区、App 升级以后都重排（开机这一项只在打开了 App 提醒时才有）。
   - `pending()` 返回 App 自己记下的列表，因为 AlarmManager 不能查。
   - App 打开（onStart）和切后台（onStop）时，用 WebView 的 cookie 拿 `/api/next/vocab` 重排：10 分钟内不重复拿，`sync` 和 `ask` 时一定拿。
   - `reminder.ics` 链接：App 先问「App 通知」还是「系统日历」。系统日历打开日历 App 的新建日程页（CalendarContract 的 ACTION_INSERT），不要日历权限。

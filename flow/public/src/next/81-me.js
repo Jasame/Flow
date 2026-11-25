@@ -7,9 +7,12 @@
   // 帮助 → 更多: the two rows that are not looked at every week (简洁化, the user's pick 2026-11-25)
   function moreSheet() {
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">更多</h2><div class="glist">${grow('/about', '认识语流', '一页看完语流能帮你做什么', '', 'me-about')}${grow('/survey', '匿名问卷', '你想要什么样的英语学习网站', '', 'me-survey')}
-      ${S.user ? grow('meTour', '再看一遍新手引导', '今日的几个主要按钮在哪', '', 'me-tour') : ''}</div>
+      ${S.user ? grow('meTour', '再看一遍新手引导', '今日的几个主要按钮在哪', '', 'me-tour') : ''}${grow('meTips', '重新显示使用提示', '比如「点词查词」，用到时再说一次', '', 'me-tips')}</div>
       <button class="btn ghost" data-close type="button">关闭</button></div>`, card => {
       const t = card.querySelector('#meTour'); if (t) t.onclick = () => { closeSheet(); tourAgain(); };  // 08-tour.js
+      card.querySelector('#meTips').onclick = async () => {  // 08-tips.js
+        try { await TIPS.reset(); closeSheet(); toast('使用提示会在用到时再出现一次'); } catch (e) { toast(e.message); }
+      };
     });
   }
   // 我的 → 内测版: this 内测 version's number and when it went up, and what changed in it (the ledger's beta entry)
@@ -43,8 +46,10 @@
       ['设置', [grow('#/welcome/edit', '学习目标和水平', [goal && esc(goal.label), p.target && '目标 ' + p.target, lv && (p.target ? '现在 ' : '') + lv.id].filter(Boolean).join(' · ') || '未设置', '', 'me-level'),
         u ? grow('meExam', '我的考试', examLabel(p), 'meExamV', 'me-exam') : '', u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', u && !u.teacher ? grow('meClass', '班级', '<span class="spin"></span>', 'meClassV', 'me-class') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), WORD_CLIPS ? grow('meSound', '单词读音方式', soundLabel(), 'meSoundV', 'me-sound') : '', grow('meKnow', '背词', knowLabel(), 'meKnowV', 'me-know'), grow('meText', '外观', lookLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '', '', 'me-remind'),
         u ? grow('meMail', '每周进度邮件', weeklyMailLabel(), 'meMailV', 'me-weekly-mail') : '',
+        u && S.home && S.home.profile ? grow('mePers', '按我的学习记录推荐', personalizeLabel(), 'mePersV', 'me-personalize') : '',  // 81-privacy.js
         installed ? '' : grow('meInstall', '添加到桌面', '', '', 'me-install'),
-        appSettings() ? grow('meApp', appSettings()[0], appSettings()[1], '', 'me-app-settings') : '']],
+        appSettings() ? grow('meApp', appSettings()[0], appSettings()[1], '', 'me-app-settings') : ''],
+        u && S.home && S.home.profile ? '关掉「按我的学习记录推荐」以后，推荐只按你选的水平和新旧排，不看你的学习记录。' : ''],
       u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
         grow('meAge', '年龄段', ageLabel(u && u.age), 'meAgeV', 'me-age'), grow('meStorage', '数据存放', '已同意 · 香港'), grow('#/guide/terms', '用户协议', '和隐私说明一起同意'), grow('meData', '导出我的数据', '', '', 'me-data'), grow('meDelete', '注销账号', '', '', 'me-delete')],
         '绑定邮箱后，可以用验证码登录，忘记密码时自己找回。30 天内来过就一直保持登录；在别人的手机或电脑上用完，记得退出。'],
@@ -54,7 +59,12 @@
       BETA && ['内测版', [grow('#/feedback', '问题反馈', '', '', 'me-beta-feedback'),
         IN_FLOW_APP ? '' : grow(MAIN_SITE + '/', '去正式版', 'flowlang.cn', '', 'me-beta-main'), '<div class="beta-new" id="meBetaNew" hidden></div>'],
         '这里是语流的内测版（flow.jasa.hk），新功能先在这里试。账号和数据都和正式版分开，内测期间可能会清空。<span id="meBetaVer"></span>'],
-      ['帮助', [grow('#/guide', '操作指南', '', '', 'me-guide'), grow('#/updates', '更新记录', '', '', 'me-updates'),grow('#/feedback', '问题反馈', '', '', 'me-feedback'), grow('#/guide/privacy', '隐私说明', '', '', 'me-privacy'), grow('meMore', '更多', '认识语流、匿名问卷、新手引导', '', 'me-more')]],
+      // 安卓 App 1.0.4+ (81-privacy.js appPrivacy): 撤回同意 and the system permissions, for the app stores
+      // and the two lists the stores ask for (隐私和数据, #342), a tap from 我的
+      appPrivacy() && ['隐私', [grow('#/guide/info-list', '个人信息收集清单', '', '', 'me-info-list'), grow('#/guide/sharing-list', '第三方信息共享清单', '', '', 'me-sharing-list'),
+        grow('meWithdraw', '撤回同意', '', '', 'me-withdraw'), grow('mePerms', '系统权限', '麦克风、通知', '', 'me-permissions')],
+        '撤回同意以后，App 清掉这台手机上的登录和缓存，回到第一次打开时的样子。服务器上的账号和学习记录还在：要停下来，请在「账号 → 数据存放」里撤回；要删除，请注销账号。'],
+      ['帮助', [grow('#/guide', '操作指南', '', '', 'me-guide'), grow('#/updates', '更新记录', '', '', 'me-updates'),grow('#/feedback', '问题反馈', '', '', 'me-feedback'), grow('#/guide/privacy', '隐私说明', '', '', 'me-privacy'), grow('meMore', '更多', '认识语流、匿名问卷、新手引导', '', 'me-more')], appPrivacy() ? '<span id="meBeian" hidden></span>' : ''],
     ].filter(Boolean);
     view.innerHTML = `<div class="card flat me-head"><div class="me-id">${u ? `<span class="avatar" aria-hidden="true">${esc([...u.username][0].toUpperCase())}</span>` : ''}
         <div class="t"><h1 class="h1">${u ? esc(u.username) : '我的'}</h1><span class="small muted">${lv ? `${esc(lv.label)}（${lv.id}）` : '还没有设置水平'} · 每天 ${p.minutes || 10} 分钟</span></div></div>
@@ -72,7 +82,11 @@
     const me = document.getElementById('meExam'); if (me) me.onclick = () => examGoalSheet(() => meView());
     document.getElementById('meRemind').onclick = () => remindSheet(p.minutes || 10);
     const mm = document.getElementById('meMail'); if (mm) { mm.onclick = weeklyMailSheet; fillMailRow(); }  // 11-progress.js
+    const mp = document.getElementById('mePers'); if (mp) mp.onclick = personalizeSheet;  // 81-privacy.js
     const mi = document.getElementById('meInstall'); if (mi) mi.onclick = installSheet;
+    const mw = document.getElementById('meWithdraw'); if (mw) mw.onclick = withdrawInApp;  // 81-privacy.js
+    const mpm = document.getElementById('mePerms'); if (mpm) mpm.onclick = permissionsSheet;
+    fillBeian();
     const ma = document.getElementById('meApp'); if (ma) ma.onclick = () => FlowApp.call('app.settings').catch(() => toast('打不开 App 的设置页，把语流 App 更新到最新版再试'));
     document.getElementById('meMore').onclick = moreSheet;
     if (BETA) betaInfo();
