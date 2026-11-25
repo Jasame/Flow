@@ -105,13 +105,15 @@ class ClassicArchivedTests(Servers):
     def test_the_installers_come_from_their_own_folder_and_the_page_waits_for_them(self):
         """下载安装 (/about#download): /download/ serves plain files of a few types from DOWNLOADS (outside the release),
         installers as attachments and the list afresh; with no list it answers an empty one (no failed request on the page)
-        and the page keeps 即将开放 on its three buttons."""
+        and the page keeps 即将开放 on its buttons (Linux: one per package, named)."""
         import hashlib, re
         body = self.call(self.site, '/about', raw=True)[1].decode()
         sec = body[body.index('id="download"'):body.index('<!-- ============ who')]
-        self.assertEqual(re.findall(r'data-app="(\w+)"', sec), ['web', 'android', 'windows', 'mac', 'ios'])
-        self.assertEqual(re.findall(r'data-dl="(\w+)"', sec), ['android', 'windows', 'mac'])  # iPhone and iPad: 开发中, no button
-        self.assertEqual(sec.count('aria-disabled="true">即将开放</a>'), 3)
+        self.assertEqual(re.findall(r'data-app="([\w-]+)"', sec), ['web', 'android', 'windows', 'mac', 'linux', 'ios'])
+        self.assertEqual(re.findall(r'data-dl="([\w-]+)"', sec),  # iPhone and iPad: 开发中, no button
+                         ['android', 'windows', 'mac', 'linux-appimage', 'linux-deb'])
+        self.assertEqual(re.findall(r'aria-disabled="true">([^<]*)</a>', sec),
+                         ['即将开放'] * 3 + ['AppImage（即将开放）', 'deb（即将开放）'])
         with tempfile.TemporaryDirectory() as d, patch.object(app, 'DOWNLOADS', Path(d)):
             self.assertEqual(self.call(self.site, '/download/latest.json')[:2], (200, {}))  # nothing yet: 即将开放
             apk = Path(d) / 'flow-android-1.2.3.apk'; apk.write_bytes(b'PK\x03\x04 an installer')
