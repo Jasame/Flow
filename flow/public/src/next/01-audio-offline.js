@@ -678,12 +678,15 @@
     // player, its 暂停 / 继续 still #playAll for that text. dk: {key, ai, paint(), play(), rate()}. Other pages: only while playing.
     dock(dk) { this.dk = dk; if (!this.h) this.idle(); else this.box(); NATIVE.adopt(); },  // the app playing this text: taken back
     undock() { this.dk = null; document.body.classList.remove('docked'); if (this.el) this.el.classList.remove('docked'); if (!this.h) this.hide(); },
+    // 👁 (盲听) by the speed while nothing plays (B9's r36 audit F1: it had a row of its own above the sentences)
+    eye() { const on = !!(this.dk && this.dk.blind && this.dk.blind.on()); return `<button type="button" class="eye${on ? ' on' : ''}" id="blind" aria-pressed="${on}" title="盲听：先只听不看" aria-label="盲听">${ICON.eye}</button>`; },
     idle() {
       const dk = this.dk, el = this.box();
       el.innerHTML = `<button type="button" class="toggle" id="playAll"></button>${aiVoiceNote('AI 合成', 'span')}<span class="sp"></span>`
-        + '<button type="button" class="speed-set" aria-label="播放设置：语速、每句几遍、句后停顿"></button>';
+        + '<button type="button" class="speed-set" aria-label="播放设置：语速、每句几遍、句后停顿"></button>' + (dk.blind ? this.eye() : '');
       el.querySelector('#playAll').onclick = () => dk.play();
       el.querySelector('.speed-set').onclick = () => dk.rate();
+      if (dk.blind) el.querySelector('#blind').onclick = () => dk.blind.toggle();
       el.classList.remove('paused'); el.classList.add('idle'); el.hidden = false; document.body.classList.add('playing');
       this.ai(typeof dk.ai === 'function' ? dk.ai() : !!dk.ai);
       dk.paint();
@@ -705,9 +708,11 @@
       if (mine) this.dk.paint();
     },
     paint() {
+      if (!this.onResize) { this.onResize = () => this.paint(); addEventListener('resize', this.onResize); }  // 「12/30」 follows the width
       if (!this.el || this.el.hidden || !this.h) return;
-      const on = this.el.classList.contains('paused'), t = this.el.querySelector('.toggle');
-      this.el.querySelector('.lbl').textContent = on ? '已暂停' : this.label;
+      const on = this.el.classList.contains('paused'), t = this.el.querySelector('.toggle'), lbl = this.el.querySelector('.lbl'), text = on ? '已暂停' : this.label;
+      // 精听's bar keeps 1× while playing (B9 F3): where 「第 12 / 30 句」 would not fit with it, 「12/30」
+      lbl.textContent = this.dk && innerWidth < 370 ? text.replace(/^第 (\d+) \/ (\d+) 句$/, '$1/$2') : text;
       if (t) { t.innerHTML = on ? `${playIcon(false, 15)}<span>继续</span>` : `${pauseIcon(15)}<span>暂停</span>`; t.classList.toggle('resume', on); t.setAttribute('aria-label', on ? '继续' : '暂停'); }
       let b = this.el.querySelector('.resume:not(.toggle)');
       if (!t && on && !b) { b = document.createElement('button'); b.type = 'button'; b.className = 'resume'; b.innerHTML = `${playIcon(false, 15)}<span>继续</span>`; this.el.insertBefore(b, this.el.querySelector('.stop')); }
