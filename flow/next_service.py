@@ -1173,16 +1173,16 @@ def save_card(c, uid, data):
         meaning = hit['meaning'][:300] if hit else ''
     norm = _norm(text)
     now = time.time()
-    existing = c.execute('SELECT id FROM next_cards WHERE user_id=? AND norm=?', (uid, norm)).fetchone()
-    if existing:
-        c.execute('UPDATE next_cards SET meaning=CASE WHEN ?!="" THEN ? ELSE meaning END, context=CASE WHEN ?!="" THEN ? ELSE context END WHERE id=?',
-                  (meaning, meaning, context, context, existing['id']))
-        c.commit()
-        return {'card': card(c, uid, existing['id']), 'existing': True}, 200
-    cur = c.execute('INSERT INTO next_cards(user_id,text,norm,meaning,context,pack,kind,created,due) VALUES(?,?,?,?,?,?,?,?,?)',
-                    (uid, text, norm, meaning, context, pack, kind, now, now))
+    # One statement for a new card and for one already there (its meaning and sentence taken from this save when it
+    # brings them), so two saves of one word at once (a double tap, two pages) both answer, with one card: two
+    # separate steps let both see no card and the second insert hit UNIQUE(user_id, norm), a 500 (语流 02, 2026-11-25).
+    c.execute('INSERT INTO next_cards(user_id,text,norm,meaning,context,pack,kind,created,due) VALUES(?,?,?,?,?,?,?,?,?) '
+              "ON CONFLICT(user_id, norm) DO UPDATE SET meaning=CASE WHEN excluded.meaning!='' THEN excluded.meaning ELSE meaning END, "
+              "context=CASE WHEN excluded.context!='' THEN excluded.context ELSE context END",
+              (uid, text, norm, meaning, context, pack, kind, now, now))
     c.commit()
-    return {'card': card(c, uid, cur.lastrowid), 'existing': False}, 200
+    row = c.execute('SELECT id, created FROM next_cards WHERE user_id=? AND norm=?', (uid, norm)).fetchone()
+    return {'card': card(c, uid, row['id']), 'existing': row['created'] != now}, 200  # this save made it, or it was there
 
 
 def card(c, uid, cid):

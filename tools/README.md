@@ -158,6 +158,13 @@ The owner approved these on 2026-11-24 (「按你的建议改，b6 发完就写�
    once their change is in main. Sending one to trial students, to TestFlight external testing or to an app store
    needs the owner's yes first.
 8. **Reports.** 总控 (语流 1) gives the owner a summary about every two hours.
+9. **Automation stays silent** (the owner, 2026-11-25: 「后台运行的应用不要播放系统声音」). Sessions work on the owner's
+   Mac, so nothing they run in the background may make a sound:
+   - browser and simulator automation is muted: Chrome and Playwright start with `--mute-audio`, media elements on the
+     page are set `muted`, and the app has a mute switch for tests;
+   - no `say`, `afplay` or `osascript` beep;
+   - no Escape key press when there is nothing to cancel (macOS beeps);
+   - a test that has to be heard is asked for first.
 
 ## 推之前跑哪些测试 (what to run before pushing)
 

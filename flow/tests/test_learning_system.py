@@ -25,6 +25,40 @@ class SystemTests(unittest.TestCase):
     def review_item(self, cid):
         return next(x for x in vs.queue(self.c, 1)['items'] if x['id'] == cid)
 
+    # ---------------- mistakes: the same one again ----------------
+    def test_the_same_mistake_again_brings_its_card_back_to_today_and_keeps_one_card(self):
+        cid = sk.add_mistake(self.c, 1, 'fix', 'went', 'fix:goed > went', 'past tense')
+        self.c.execute('UPDATE next_cards SET due=?, known=1 WHERE id=?', (time.time() + 5 * DAY, cid)); self.c.commit()
+        again = sk.add_mistake(self.c, 1, 'fix', 'went', 'fix:goed > went', 'past tense')
+        row = self.card('fix:goed > went')
+        self.assertEqual((again, row['id'], row['known']), (cid, cid, 0))
+        self.assertLessEqual(row['due'], time.time())
+        self.assertEqual(self.c.execute("SELECT COUNT(*) FROM next_cards WHERE norm='fix:goed > went'").fetchone()[0], 1)
+
+    def test_the_same_mistake_twice_at_once_is_one_card_and_no_error(self):
+        import threading
+        start, out, errors = threading.Barrier(2), [], []
+
+        def tap():
+            c = app.db()
+            try:
+                start.wait()
+                out.append(sk.add_mistake(c, 1, 'fix', 'children', 'fix:childs > children', 'irregular plural'))
+            except Exception as e:  # noqa: BLE001 — the test reports any of them
+                errors.append(repr(e))
+            finally:
+                c.close()
+        threads = [threading.Thread(target=tap) for _ in range(2)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(10)
+        rows = self.c.execute("SELECT id, due FROM next_cards WHERE norm='fix:childs > children'").fetchall()
+        self.assertEqual(errors, [])
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(out, [rows[0]['id']] * 2)
+        self.assertLessEqual(rows[0]['due'], time.time())
+
     # ---------------- review: no loops ----------------
 
     def test_a_reading_mistake_comes_back_once_with_its_passage_then_leaves(self):
