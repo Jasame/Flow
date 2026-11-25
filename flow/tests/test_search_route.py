@@ -160,9 +160,12 @@ class DailyRunTests(unittest.TestCase):
         self.c = app.db()
         self.env = patch.dict(os.environ, {'FLOW_AI_GROUNDING': '1', 'FLOW_AI_DAILY_LIMIT': '100'})
         self.env.start()
+        self.pause = patch.object(daily, 'PAUSED', False)  # the pipeline itself; 今日热点 is paused since 2026-11-25
+        self.pause.start()
 
     def tearDown(self):
         self.c.close()
+        self.pause.stop()
         self.env.stop()
         self.p.stop()
         self.tmp.cleanup()
