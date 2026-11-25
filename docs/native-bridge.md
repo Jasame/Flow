@@ -76,10 +76,10 @@ iOS（语流 20）、安卓（语流 21）、桌面 Windows 和 macOS（语流 2
   - `why`：`user`（网页叫的）、`remote`（锁屏、耳机、车机）、`interrupted`（来电、Siri、闹钟）、`route`（耳机拔了）、`other`（别的声音或录音开始了）、
     `ended`（读完）、`error`（加载失败）、`state`（回到前台重发的）。
   - **每换一句都发一次 `audio`**，所以网页靠它就能更新当前句、高亮、自动滚动和播放条的「第 N 句」。
-  - `fail`：这一句退回系统自带的声音时给 `{code, server}`。`code` 和网页的 SV 一样：`off` `cap` `import_cap` `busy` `guest` `store` `gateway` `offline` `net` `slow`，
-    还有 `storage`（账号还没同意「数据存放在香港」，登录后的请求一律 403）；
+  - `fail`：这一句退回系统自带的声音时给 `{code, server}`。`code` 和网页的 SV 一样：`off` `cap` `import_cap` `busy` `guest` `store` `gateway` `offline` `net` `slow`；
     `server` 是服务器回的 error 原文。那句话由网页的 `SV.why(fail)` 写，全站一个说法，同一个原因只说一次。App 不自己写原因。
-  - `off`、`cap`、`storage`：这篇剩下的句子都用系统自带的声音，不再问服务器；别的原因只管这一句。
+  - `off`、`cap`：这篇剩下的句子都用系统自带的声音，不再问服务器；别的原因只管这一句。
+  - 还没同意「数据存放在香港」的账号：`/api/next/tts` 对游客也开放，所以不回 403 `storage`，按游客回答（存好的句子照给，新合成的是 `guest`）。
 - `audio-tick`：`{key, i, t, at, rate}`，页面在前台时每秒 4 次。网页用 `NAR.locate(t)` 点亮词，两次之间按 `at` 和 `rate` 插值。
 - `audio-made`：`{key, i, url}`，App 做出来的新句子地址，网页记进 SV 地址簿（同一句不做两次，Safari 里也能用）。
 
