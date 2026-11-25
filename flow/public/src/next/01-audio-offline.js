@@ -2,6 +2,8 @@
   // WeChat's built-in browser (and some other in-app browsers) cannot use the browser voice, and plays sound only when it
   // starts inside a tap; the way out it offers is 「在浏览器打开」.
   const WECHAT = /MicroMessenger/i.test(navigator.userAgent);
+  // the voice a page falls back to: in a browser its own, in 语流's apps the system's (iOS, Android, desktop: B3, 2026-11-25)
+  const SYS_VOICE = () => (window.FlowApp ? '系统自带的声音' : '浏览器的声音');
   function noSound(what) { noteIssue('audio', what + (WECHAT ? '（微信）' : '')); toast(WECHAT ? `微信里${what}：点右上角「···」，选「在浏览器打开」就能听` : `这个浏览器${what}，换 Safari 或 Chrome 试试`); }
   const TTS = {
     ok: 'speechSynthesis' in window, rate: Number(load('flow-next-rate')) || 1, voice: null, token: 0,
@@ -78,7 +80,7 @@
         const watch = setTimeout(() => {
           if (t !== this.token || started) return;
           speechSynthesis.cancel();
-          if (!speechSynthesis.getVoices().length) { this.ok = false; noSound('不能用电脑朗读的声音'); } else if (!onfail) toast('浏览器的声音这次没读出来，再点一次试试');
+          if (!speechSynthesis.getVoices().length) { this.ok = false; noSound('不能用电脑朗读的声音'); } else if (!onfail) toast(`${SYS_VOICE()}这次没读出来，再点一次试试`);
           give();
         }, 2500);
         try { speechSynthesis.speak(u); } catch (e) { again(); }  // refused outright: as a dropped sentence
@@ -156,10 +158,11 @@
     why(e) {
       const code = (e && e.code) || 'other';
       this.lines = this.lines || {};
-      const line = this.lines[code] || { offline: '离线中，这句还没存到本机，先用浏览器的声音', net: '网络不好，这句先用浏览器的声音', slow: '自然人声这次生成得太慢，先用浏览器的声音',
-        guest: '登录后能听 AI 朗读（自然人声），现在先用浏览器的声音', off: 'AI 朗读（自然人声）暂时没开，先用浏览器的声音',
-        ai_day_full: '今天的 AI 用量已满，北京时间早上 8 点恢复；新的句子先用浏览器的声音，已经生成过的照常放' }[code]
-        || (e && e.server) || 'AI 朗读（自然人声）这次没生成出来，先用浏览器的声音';
+      const v = SYS_VOICE();
+      const line = this.lines[code] || { offline: `离线中，这句还没存到本机，先用${v}`, net: `网络不好，这句先用${v}`, slow: `自然人声这次生成得太慢，先用${v}`,
+        guest: `登录后能听 AI 朗读（自然人声），现在先用${v}`, off: `AI 朗读（自然人声）暂时没开，先用${v}`,
+        ai_day_full: `今天的 AI 用量已满，北京时间早上 8 点恢复；新的句子先用${v}，已经生成过的照常放` }[code]
+        || (e && e.server) || `AI 朗读（自然人声）这次没生成出来，先用${v}`;
       this.lines[code] = line;
       if (!this.told.has(code)) { this.told.add(code); toast(line); noteIssue('audio', '服务器朗读退回浏览器声音', code); }
       return line;
@@ -572,7 +575,7 @@
     // No browser voice either (WeChat): TTS.browser says how to hear it instead, and nothing is said about a voice.
     const off = navigator.onLine === false;
     if (TTS.ok) SV.why(/\/audio\/words\//.test(w.src || '')
-      ? { code: off ? 'word_offline' : 'word_net', server: off ? '离线中，这个词的读音还没存到本机，先用浏览器的声音' : '网络不好，这个词的读音没加载出来，先用浏览器的声音' }
+      ? { code: off ? 'word_offline' : 'word_net', server: off ? `离线中，这个词的读音还没存到本机，先用${SYS_VOICE()}` : `网络不好，这个词的读音没加载出来，先用${SYS_VOICE()}` }
       : { code: off ? 'offline' : 'net' });
     TTS.browser(w.text, w.onend);  // not TTS.say: that may be this player again (the server voice); onend still runs (对比回放 plays the recording then)
   });
@@ -723,7 +726,11 @@
       const o = { key: r.key, title: r.title || '', from: r.i, ...this.knobs(r) };
       if (S.csrf) o.csrf = S.csrf;
       if (r.nm) { o.src = NAR.net; o.sentences = r.nm.sentences.map(x => [x.s, x.e]); o.loop = !!r.loop; const alt = mediaAlt(NAR.net); if (alt) o.alt = alt; }
-      else { o.texts = r.texts; o.voice = r.voice || S.voice; if (r.pack) o.pack = r.pack; }
+      else {  // no recording: each sentence with the address this phone already has for it (SV address book), else null (§3 items)
+        const voice = r.voice || S.voice, pack = r.pack;
+        o.items = r.texts.map(text => ({ text, url: (SV.kept()[SV.hash(SV.key(text, { voice, pack }))] || [])[0] || null }));
+        o.voice = voice; if (pack) o.pack = pack;
+      }
       this.sent = JSON.stringify(this.knobs(r));
       FlowApp.audio.play(o).then(x => { if (!(x && x.ok) && LONG.r === r) this.fail(r, x && x.message); }, () => { if (LONG.r === r) this.fail(r); });
     },
@@ -739,6 +746,13 @@
       MINI.paused(d.state === 'paused');
       this.retune();  // 复读 or 语速 changed meanwhile
       LONG.emit(); this.loop();
+    },
+    // the app made a sentence this phone had no address for: kept in the SV address book (§3 audio-made), so it is
+    // not made twice and the page finds it too (offline, in Safari)
+    made(d) {
+      const r = LONG.r;
+      if (!d || !d.url || !r || !r.native || d.key !== r.key || !(d.i >= 0) || d.i >= r.texts.length) return;
+      SV.keep(SV.key(r.texts[d.i], { voice: r.voice || S.voice, pack: r.pack }), d.url);
     },
     // the sentence moved on between two 'audio' news (they come with each new sentence, §3; a tick says it as well)
     ticked(d) {
@@ -778,7 +792,7 @@
       const r = LONG.r; if (!r || !r.native || !r.nm || r.state !== 'playing' || !r.onWord) return;
       const f = () => {
         const k = this.tick; if (LONG.r !== r || r.state !== 'playing') return;
-        if (k && k.key === r.key && NAR.meta === r.nm) { const [si, wc] = NAR.locate(k.t + Math.max(0, Date.now() - k.at) / 1000 * (k.rate || 1)); if (si >= 0) r.onWord(si, wc); }
+        if (k && k.key === r.key && NAR.meta === r.nm) { const [si, wc] = NAR.locate(k.t + Math.max(0, Date.now() - k.at) / 1000 * (k.rate || 1)); if (si >= 0 && si === r.i) r.onWord(si, wc); }  // only the app's sentence: an older tick never lights the one before
         this.raf = requestAnimationFrame(f);
       };
       this.raf = requestAnimationFrame(f);
@@ -801,6 +815,7 @@
   if (NATIVE.on()) {
     FlowApp.on('audio', d => NATIVE.news(d));
     FlowApp.on('audio-tick', d => NATIVE.ticked(d));
+    FlowApp.on('audio-made', d => NATIVE.made(d));
     FlowApp.audio.state().then(d => { if (d && d.state !== 'idle') NATIVE.news(d); }, () => {});
   }
 
@@ -884,7 +899,7 @@
         this.claim();
       } else {
         // the browser voice could not say it (none here, or iOS dropped it twice): the text waits there, paused, with why
-        const failed = () => { clearTimeout(stall); if (this.r !== r || r.tok !== tok) return; this.held(); r.note = '浏览器的声音没有读出这一句，点「继续」再试一次'; this.emit(); };
+        const failed = () => { clearTimeout(stall); if (this.r !== r || r.tok !== tok) return; this.held(); r.note = `${SYS_VOICE()}没有读出这一句，点「继续」再试一次`; this.emit(); };
         // and if nothing at all comes back from it (never asked: something else spoke or stopped it in between; or no
         // event of any kind, which an iPad did once offline: 语流 07, 2026-11-25), it is not left "playing" there either
         const stall = setTimeout(failed, 4000);

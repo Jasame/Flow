@@ -977,7 +977,7 @@ def app_audio_run(pw):
         pg.click('#playAll'); pg.wait_for_timeout(300)
         play = last('audio.play')
         check(dev, '播放全文: the app plays it (audio.play with the key, the sentences, 复读 and 语速)',
-              bool(play) and play.get('key') == key and play.get('from') == 0 and bool(play.get('texts') or play.get('sentences'))
+              bool(play) and play.get('key') == key and play.get('from') == 0 and len(play.get('items') or play.get('sentences') or []) == n
               and play.get('rate') == 1 and 'rep' in play and len(play.get('gap') or []) == n, play)
         check(dev, '播放全文: the page plays nothing itself (no server voice asked, no browser voice)', not tts and not pg.evaluate('window.__said.length'), tts[:3])
         emit('audio', {'key': key, 'state': 'playing', 'i': 2, 'n': n, 'title': 't'}); pg.wait_for_timeout(200)
@@ -991,8 +991,8 @@ def app_audio_run(pw):
         line = (pg.text_content('#lsPrep') or '').strip() if pg.is_visible('#lsPrep') else ''
         emit('audio', {'key': key, 'state': 'playing', 'i': 3, 'n': n, 'title': 't', 'fail': {'code': 'offline', 'server': ''}}); pg.wait_for_timeout(200)
         said = [x for x in (pg.evaluate('window.__toasts') or []) if x.startswith('离线中')]
-        check(dev, "the app fell back to the phone's voice (offline): the line under 播放全文 and one toast say why",
-              line.startswith('离线中，这句还没存到本机') and len(said) == 1, (line, said))
+        check(dev, "the app fell back to the phone's voice (offline): the line under 播放全文 and one toast say why, in the app's words (系统自带的声音)",
+              line == '离线中，这句还没存到本机，先用系统自带的声音' and len(said) == 1, (line, said))
         emit('audio', {'key': key, 'state': 'playing', 'i': 3, 'n': n, 'title': 't'}); pg.wait_for_timeout(200)
         check(dev, 'the next sentence in the AI voice again: the line goes', not pg.is_visible('#lsPrep') or not (pg.text_content('#lsPrep') or '').strip(), pg.text_content('#lsPrep'))
         pg.evaluate("document.querySelector('.playset').open = true")  # 语速 and 复读 sit in 播放设置
@@ -1005,6 +1005,12 @@ def app_audio_run(pw):
         pg.click('#playAll'); pg.wait_for_timeout(200)
         check(dev, '继续 goes to the app', 'audio.resume' in cmds()[-2:] and btn().endswith('暂停'), (cmds()[-3:], btn()))
 
+        # the app made sentence 2 (the page had no address for it): kept in the SV address book, sent along next time (§3)
+        emit('audio-made', {'key': key, 'i': 1, 'url': '/audio/tts/us-f/made-by-app.mp3'}); pg.wait_for_timeout(150)
+        pg.click('#playRestart'); pg.wait_for_timeout(300)
+        items = (last('audio.play') or {}).get('items') or []
+        check(dev, "audio-made: the app's new address is kept and the next play sends it (items)",
+              len(items) == n and items[1].get('url') == '/audio/tts/us-f/made-by-app.mp3' and items[0].get('url') is None, items[:2])
         # loaded again while the app plays on (第 5 句): the page keeps that place and takes the text back, no new start
         pg.evaluate(f"k => window.__fakeApp.put({{ playing: {{ key: k, state: 'playing', i: 4, n: {n}, title: 't' }} }})", key)
         pg.reload(wait_until='load'); settle(pg); pg.wait_for_selector('#playAll'); pg.wait_for_timeout(500)
