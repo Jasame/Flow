@@ -44,11 +44,18 @@ iOS（语流 C1）、安卓（语流 C2）、桌面 Windows、macOS 和 Linux（
 | `media` | 网页自己放声音，App 把 navigator.mediaSession 交给系统（媒体键、「正在播放」） | 没有 | 没有 | 有（Linux 走 MPRIS） |
 | `speech` | App 替网页补上 speechSynthesis（浏览器声音） | 没有 | 有 | 没有 |
 | `settings` | App 自己的「专属功能」设置页：「我的 → 设置」最后一行，点了调 `FlowApp.call('app.settings')` | 有 | 没有 | 没有 |
+| `haptic` | 让手机轻轻一震：`FlowApp.call('app.haptic', {kind})`（见下） | 有 | 没有 | 没有 |
+| `frugal` | 系统要省着用（低电量模式、iOS 27 的省资源提示）：网页少预载 | 有 | 没有 | 没有 |
+| `privacy` | 第一次打开时的同意和「基本模式」、撤回同意、权限管理页、APP 备案号（命令写在第 10 节安卓一节） | 没有 | 有 | 没有 |
 
 - 一个 App 在回到前台、网页重新加载以后，会把正在放的状态再发一次（`audio` 事件），网页不用猜。网页可见时也可以调 `FlowApp.call('app.visible')` 让它重发。
 - `FlowApp.call('hello')` → `{v, app, build, platform, features}`。
 - `FlowApp.call('app.settings')` → `{ok}`：打开 App 自己的「专属功能」页（iOS：「iOS 专属功能」，原生页，开关只存在这台手机上）。`ok: false` 是现在打不开（App 在后台）。
-  `FlowApp.call('app.features')` → `{<功能>: true/false}`：这台手机有哪几项、开没开（iOS 的 id：`lock-study` `smart-resume` `offline-packs`）。网页现在不用它，留给以后按开关改说法。
+  `FlowApp.call('app.features')` → `{<功能>: true/false}`：这台手机有哪几项、开没开（iOS 的 id：`lock-study` `smart-resume` `offline-packs` `haptics` `frugal`）。网页现在不用它，留给以后按开关改说法。
+- `FlowApp.call('app.haptic', {kind})` → `{ok}`：`kind` 是 `tap`（轻点：打分、选一个选项）、`select`（换了一个选择）、`success`（答对、认识）、`warning`（模糊、半对）、`error`（答错）。
+  学员在 App 的设置里关了「复习时的轻触震动」就回 `ok: false`，什么都不做；网页不用自己判断开关，照常调。iOS 本来就没有 navigator.vibrate，网页在浏览器里不用补。
+- `FlowApp.call('app.frugal')` → `{on}`，变了发 `frugal` 事件 `{on}`（回到前台也会再看一次）。`on` 为 true 时网页少预载（PRELOAD.frugal() 也算它）：不提前存今天的文章、不预取下一篇。
+  学员在 App 的设置里关了「省电时少做事」就一直是 false。
 - 安卓的返回键：App 先在 `window` 上发可以取消的 `flowapp:back` 事件，网页 `preventDefault()` 就算处理了；没人处理时 App 关掉开着的 sheet，再回到上一页。iOS、桌面没有这个键，不发。
 
 ### 共用的包装 `native/flowapp.js`
@@ -209,6 +216,10 @@ speaking、pending 照实；2.5 秒内一定发 start；getVoices() 有带 lang 
     今天这篇和今日的前两篇，学员的声音）的录音存进 Library/Caches/packs；App 回到前台最多 3 小时看一次，晚上充电时后台任务 `cn.flowlang.app.packs` 再看一次。
     放的时候地址（/audio/<声音>/<id>.mp4?v=<版本>）对得上就放手机上的那份。存满 7 天删，最多 9 个文件；关掉开关全删。
   - 没网而这篇录音 App 里没存：`play` 回 `{ok: false, why: 'offline'}`，网页自己放（第 3 节）。
+  - `haptics` 复习时的轻触震动（默认开）：`app.haptic` 用 UIImpactFeedbackGenerator / UINotificationFeedbackGenerator，系统的「触感反馈」关了就感觉不到。
+  - `frugal` 省电时少做事（默认开）：低电量模式或 `UIApplication.systemPrefersReducedResourceUsage`（iOS 27）时，服务器朗读只提前做 1 句（平时 2 句），
+    离线朗读包不在前台下载（晚上充电时照常），网页收到 `frugal`。
+  - App 自己画的出错页（「连不上语流」）在 iOS 26 起用系统的玻璃按钮，前面加一个说明原因的图标（没网 wifi.slash，别的 exclamationmark.icloud）。
 - WKAppBoundDomains 只有本站：服务工作线程、桥、cookie 只在本站有效。
 - audio：AVPlayer，AVAudioSession `.playback` + `.spokenAudio` + 后台音频，MPNowPlayingInfoCenter / MPRemoteCommandCenter；系统声音 AVSpeechSynthesizer。
 - rec：AVAudioRecorder；notify：UNUserNotificationCenter + BGAppRefreshTask。

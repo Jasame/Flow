@@ -569,6 +569,25 @@ final class FeatureTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: dir.path), "switched off: nothing stays")
     }
 
+    @MainActor func testTheRateGoesToThePageAsItWritesIt() {
+        XCTAssertEqual(LongPlayer.shown(0.8), 0.8, "not 0.800000011920929: the page's chips compare it with theirs")
+        XCTAssertEqual(LongPlayer.shown(1.25), 1.25)
+        XCTAssertEqual(LongPlayer.shown(0.75), 0.75)
+    }
+
+    @MainActor func testWhichPackFailuresAreTriedAgainAndHowTheyAreSaid() {
+        XCTAssertTrue(Packs.passing(URLError(.timedOut)))
+        XCTAssertTrue(Packs.passing(SiteError.status(502, code: "", message: "")), "the server restarting (a deploy)")
+        XCTAssertTrue(Packs.passing(SiteError.status(429, code: "", message: "")))
+        XCTAssertFalse(Packs.passing(SiteError.status(404, code: "file", message: "")), "not there: once is enough")
+        XCTAssertFalse(Packs.passing(URLError(.notConnectedToInternet)))
+        XCTAssertTrue(Packs.offline(URLError(.notConnectedToInternet)))
+        XCTAssertFalse(Packs.offline(URLError(.timedOut)))
+        XCTAssertEqual(Packs.why(URLError(.timedOut)), "网络太慢")
+        XCTAssertEqual(Packs.why(SiteError.status(503, code: "", message: "")), "服务器忙")
+        XCTAssertEqual(Packs.why(nil), "出了点问题")
+    }
+
     @MainActor func testNoConnectionHandsARecordingBackToThePage() {
         XCTAssertTrue(LongPlayer.handBack(kept: false, online: false), "the page plays it from its own copy (sw.js)")
         XCTAssertFalse(LongPlayer.handBack(kept: true, online: false), "the app's own copy: the app plays it")
@@ -606,4 +625,45 @@ final class FeatureTests: XCTestCase {
         LockScreen.clear()
     }
     #endif
+}
+
+/// 「iOS 专属功能」 second group: the light tap the page asks for, less work while the phone saves power
+final class FeelTests: XCTestCase {
+    override func setUp() { for f in [Feature.haptics, .frugal] { UserDefaults.standard.removeObject(forKey: f.key) } }
+    override func tearDown() { for f in [Feature.haptics, .frugal] { UserDefaults.standard.removeObject(forKey: f.key) } }
+
+    @MainActor func testTheSwitchesAreOnUntilTurnedOff() {
+        XCTAssertTrue(Features.on(.haptics))
+        XCTAssertTrue(Features.on(.frugal))
+        XCTAssertEqual(Feature.haptics.group, .feel)
+        XCTAssertEqual(Feature.frugal.group, .feel)
+    }
+
+    @MainActor func testAHapticOnlyWhenOnAndKnown() {
+        let v = UIView()
+        XCTAssertTrue(Haptics.play("success", in: v))
+        XCTAssertTrue(Haptics.play("tap", in: nil), "no view: the older way")
+        XCTAssertFalse(Haptics.play("boom", in: v), "a kind the app does not know")
+        Features.set(.haptics, false)
+        XCTAssertFalse(Haptics.play("tap", in: v), "switched off on 「iOS 专属功能」")
+    }
+
+    @MainActor func testSavingPowerWhenTheSystemAsks() {
+        XCTAssertTrue(Frugal.decide(switchOn: true, lowPower: true, reduced: false), "Low Power Mode")
+        XCTAssertTrue(Frugal.decide(switchOn: true, lowPower: false, reduced: true), "iOS 27: reduced resource usage")
+        XCTAssertFalse(Frugal.decide(switchOn: true, lowPower: false, reduced: false))
+        XCTAssertFalse(Frugal.decide(switchOn: false, lowPower: true, reduced: true), "switched off: as before")
+    }
+
+    @MainActor func testTheBridgeOffersThem() async {
+        XCTAssertTrue(Bridge.features.contains("haptic") && Bridge.features.contains("frugal"))
+        let b = Shell.shared.bridge
+        let tap = await b.handle("app.haptic", ["kind": "tap"]) as? [String: Bool]
+        XCTAssertEqual(tap?["ok"], true)
+        Features.set(.haptics, false)
+        let off = await b.handle("app.haptic", ["kind": "tap"]) as? [String: Bool]
+        XCTAssertEqual(off?["ok"], false)
+        let frugal = await b.handle("app.frugal", [:]) as? [String: Bool]
+        XCTAssertNotNil(frugal?["on"])
+    }
 }

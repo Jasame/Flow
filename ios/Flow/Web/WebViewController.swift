@@ -341,6 +341,9 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
         box.alignment = .center
         box.spacing = 14
         box.translatesAutoresizingMaskIntoConstraints = false
+        let symbol = UIImageView(image: UIImage(systemName: Self.offline(error) ? "wifi.slash" : "exclamationmark.icloud"))
+        symbol.preferredSymbolConfiguration = UIImage.SymbolConfiguration(textStyle: .largeTitle)
+        symbol.tintColor = .secondaryLabel
         let title = UILabel()
         title.text = "连不上语流"
         title.font = .preferredFont(forTextStyle: .title2)
@@ -350,12 +353,15 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
         detail.textColor = .secondaryLabel
         detail.numberOfLines = 0
         detail.textAlignment = .center
-        var conf = UIButton.Configuration.filled()
+        // iOS 26 and later: the system's own glass button, as the rest of iOS draws it now
+        var conf: UIButton.Configuration
+        if #available(iOS 26, *) { conf = .prominentGlass() } else { conf = .filled() }
         conf.title = "再试一次"
         conf.cornerStyle = .capsule
+        conf.buttonSize = .large
         let again = UIButton(configuration: conf, primaryAction: UIAction { [weak self] _ in self?.load(AppConfig.start) })
         again.accessibilityIdentifier = "flow.retry"
-        [title, detail, again].forEach(box.addArrangedSubview)
+        [symbol, title, detail, again].forEach(box.addArrangedSubview)
         let cover = UIView()
         cover.backgroundColor = view.backgroundColor
         cover.translatesAutoresizingMaskIntoConstraints = false
