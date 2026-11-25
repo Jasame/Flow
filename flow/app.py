@@ -377,7 +377,8 @@ class Handler(BaseHTTPRequestHandler):
     if u and not __import__('privacy_service').consented(u):
      # 数据存放在香港 or 用户协议 not agreed (yet): nothing of the account's learning; the home is a guest's, with the
      # session, so the page can ask (privacy_service). Export above stays open.
-     if path!='/api/next/home':return self.send(*__import__('privacy_service').storage_held(u,path))
+     # The guide is open too: the page asks to agree to 用户协议 and 隐私和数据, and those are its chapters.
+     if path not in ('/api/next/home','/api/next/guide'):return self.send(*__import__('privacy_service').storage_held(u,path))
      result=__import__('next_service').get(c,None,path,parse_qs(urlsplit(self.path).query))
      if result and result[1]==200:result[0]['session']=session_info(u)
      return self.send(*result)

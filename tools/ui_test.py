@@ -2314,6 +2314,15 @@ def privacy_run(pw):
         pg.goto(BASE + '/#/', wait_until='networkidle'); pg.wait_for_selector('#stoF', timeout=8000)
         asked = '补一个同意' in (pg.text_content('h1') or '') and pg.is_visible('#stoNo')
         pg.screenshot(path=str(OUT / 'privacy-storage-ask.png'))
+        # not agreed yet, the names still open the text, over the page; 返回 leaves the form as it was
+        pg.check('#stoF [name=storage]')
+        pg.click('#stoF a[data-doc=terms]'); pg.wait_for_selector('.doc-over .doc-body h3', timeout=8000)
+        over = '语流用户协议' in (pg.text_content('.doc-over .doc-bar') or '') and len(pg.text_content('.doc-over .doc-body') or '') > 500
+        pg.screenshot(path=str(OUT / 'privacy-terms-over.png'))
+        pg.click('.doc-over .doc-bar [data-doc-close]'); pg.wait_for_timeout(200)
+        over = over and pg.query_selector('.doc-over') is None and pg.is_checked('#stoF [name=storage]') and not pg.is_checked('#stoF [name=terms]')
+        pg.uncheck('#stoF [name=storage]')
+        check(dev, '补勾页: 《用户协议》 opens over the page before agreeing, 返回 keeps the ticks', over)
         pg.goto(BASE + '/#/cards', wait_until='networkidle'); pg.wait_for_selector('#stoF', timeout=8000)
         other = '补一个同意' in (pg.text_content('h1') or '')
         pg.click('#stoNo'); pg.wait_for_selector('h1:has-text("这个账号已暂停")', timeout=8000)

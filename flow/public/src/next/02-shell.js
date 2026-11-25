@@ -230,7 +230,7 @@
         if ((tab === 'code' || tab === 'reset' || (tab === 'reg' && mail)) && !/^\d{6}$/.test(v('code').trim())) return fieldError(form, err, { message: '请输入邮件里的 6 位验证码', field: 'code' });
         const ag = teacher ? {} : readAge(form), agp = tab === 'reg' && !teacher ? ageProblem(ag, true, false) : '';
         if (agp) return fieldError(form, err, { message: agp, field: ag.age ? 'guardian' : 'age' });
-        if (tab === 'reg' && !form.terms.checked) return fieldError(form, err, { message: '请先阅读并勾选同意《用户协议》和《隐私和数据》', field: 'terms' });
+        if (tab === 'reg' && !form.terms.checked) return fieldError(form, err, { message: '请先勾选同意《用户协议》和《隐私和数据》', field: 'terms' });
         if (tab === 'reg' && !form.storage.checked) return fieldError(form, err, { message: '请先勾选同意把账号和学习数据存放在香港的服务器上', field: 'storage' });
         const btn = form.querySelector('[type=submit]'); btn.disabled = true;
         try {
