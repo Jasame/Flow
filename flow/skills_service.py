@@ -58,16 +58,13 @@ def add_mistake(c, uid, kind, text, norm, meaning='', context='', skill=None, no
         return None
     now = time.time()
     norm = norm[:300]
-    row = c.execute('SELECT id FROM next_cards WHERE user_id=? AND norm=?', (uid, norm)).fetchone()
-    if row:
-        c.execute('UPDATE next_cards SET due=MIN(due, ?), known=0 WHERE id=?', (now, row['id']))
-        cid = row['id']
-    else:
-        cur = c.execute('INSERT INTO next_cards(user_id,text,norm,meaning,context,pack,kind,created,due,state,source,skill,node,extra) '
-                        'VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-                        (uid, text[:300], norm, (meaning or '')[:300], (context or '')[:600], pack, kind, now, now, 'new', 'mistake',
-                         skill, node, json.dumps(extra or {}, ensure_ascii=False)))
-        cid = cur.lastrowid
+    # One statement, so two requests at once (a double tap) cannot both find nothing and both insert: the second one
+    # meets UNIQUE(user_id, norm) and brings the card back to today instead (b38 self-check, 500 under 60 at once).
+    c.execute('INSERT INTO next_cards(user_id,text,norm,meaning,context,pack,kind,created,due,state,source,skill,node,extra) '
+              'VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(user_id, norm) DO UPDATE SET due=MIN(due, excluded.due), known=0',
+              (uid, text[:300], norm, (meaning or '')[:300], (context or '')[:600], pack, kind, now, now, 'new', 'mistake',
+               skill, node, json.dumps(extra or {}, ensure_ascii=False)))
+    cid = c.execute('SELECT id FROM next_cards WHERE user_id=? AND norm=?', (uid, norm)).fetchone()['id']  # lastrowid is not the row after an update
     if commit:
         c.commit()
     return cid

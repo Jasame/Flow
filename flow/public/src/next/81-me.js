@@ -8,11 +8,11 @@
     if (!S.meta) S.meta = await api('/api/next/meta');
     const p = (S.home && S.home.profile) || S.guest || {}, u = S.user, st = S.home && S.home.stats;
     const lv = S.meta.levels.find(l => l.id === p.level), goal = S.meta.goals.find(g => g.id === p.goal);
-    const installed = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    const installed = HOME_APP;  // the home-screen app, an install, or the iOS app: nothing to add to the desktop
     const groups = [
       u && ['进步', [grow('#/radar', '能力雷达', '离目标还差多少', '', 'me-radar'), grow('#/growth', '我的进步', '每月对比和里程碑', '', 'me-growth'), grow('#/report', '这周的报告', '', '', 'me-report'), grow('#/cards/mistake', '错题本', '', '', 'me-mistake')]],
       ['设置', [grow('#/welcome/edit', '学习目标和水平', [goal && esc(goal.label), p.target && '目标 ' + p.target, lv && (p.target ? '现在 ' : '') + lv.id].filter(Boolean).join(' · ') || '未设置', '', 'me-level'),
-        u ? grow('meExam', '我的考试', examLabel(p), 'meExamV', 'me-exam') : '', u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', u && !u.teacher ? grow('meClass', '班级', '<span class="spin"></span>', 'meClassV', 'me-class') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), WORD_CLIPS ? grow('meSound', '单词读音方式', soundLabel(), 'meSoundV', 'me-sound') : '', grow('meText', '字号和行距', textLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '加到手机日历', '', 'me-remind'),
+        u ? grow('meExam', '我的考试', examLabel(p), 'meExamV', 'me-exam') : '', u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', u && !u.teacher ? grow('meClass', '班级', '<span class="spin"></span>', 'meClassV', 'me-class') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), WORD_CLIPS ? grow('meSound', '单词读音方式', soundLabel(), 'meSoundV', 'me-sound') : '', grow('meKnow', '「认识」放在', knowLabel(), 'meKnowV', 'me-know'), grow('meText', '字号和行距', textLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '加到手机日历', '', 'me-remind'),
         u ? grow('meMail', '每周进度邮件', weeklyMailLabel(), 'meMailV', 'me-weekly-mail') : '',
         installed ? '' : grow('meInstall', '添加到桌面', '像 App 一样打开', '', 'me-install')]],
       u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
@@ -30,6 +30,7 @@
     const lg = document.getElementById('lg'); if (lg) lg.onclick = () => openLogin();
     document.getElementById('meVoice').onclick = voiceSheet;
     if (document.getElementById('meSound')) document.getElementById('meSound').onclick = soundSheet;
+    document.getElementById('meKnow').onclick = knowSheet;
     document.getElementById('meText').onclick = textSheet;
     const mh = document.getElementById('meHabit'); if (mh) mh.onclick = habitSheet;
     const me = document.getElementById('meExam'); if (me) me.onclick = () => examGoalSheet(() => meView());
@@ -78,6 +79,21 @@
   const SOUND_MODES = [['auto', '连续', '从第一个音开始放；连着点单词时，灵动岛会一直显示「语流 · 单词」，停下 20 秒后收起。（默认）'],
     ['compat', '标准', '每个词是一个前面留了一点静音的小音频，大部分单词不会出现在灵动岛上。「连续」没有声音时选这个。']];
   const soundLabel = () => AUDIO.mode() === 'compat' ? `标准 · 前面 ${AUDIO.lead()} 秒` : '连续';
+  // 「认识」放在 (KNOW, 50-words.js): which side the 认识 button is on in the review and the vocabulary test
+  const knowLabel = () => KNOW.side() === 'right' ? '右边' : '左边';
+  function knowSheet() {
+    const opts = [['right', '右边（默认）', '和大多数背词 App 一样，右手点着顺。往右滑是认识，往左滑是不认识。'], ['left', '左边', '往左滑是认识，往右滑是不认识。']];
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">「认识」放在</h2>
+      <div class="choice" role="radiogroup" aria-labelledby="sheetTitle">${opts.map(([k, t, d]) => `<button class="opt" type="button" role="radio" data-know="${k}" aria-checked="${KNOW.side() === k}" aria-pressed="${KNOW.side() === k}"><b>${t}</b><span class="small muted">${d}</span></button>`).join('')}</div>
+      <p class="muted small">复习单词和测词汇量都跟着变：按钮的位置、滑动的方向，电脑上的按键（1 2 3 和 ← →）也按按钮在屏幕上的位置。只影响这台设备。</p><button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      card.querySelectorAll('[data-know]').forEach(b => b.onclick = () => {
+        KNOW.set(b.dataset.know); save('flow-know-tip', 1);  // chosen here: the one-time tip of the move is not needed
+        card.querySelectorAll('[data-know]').forEach(x => { x.setAttribute('aria-checked', String(x === b)); x.setAttribute('aria-pressed', String(x === b)); });
+        const v = document.getElementById('meKnowV'); if (v) v.textContent = knowLabel();
+        toast('「认识」放在' + knowLabel());
+      });
+    });
+  }
   function soundSheet() {
     const leadChips = () => AUDIO.LEADS.map(v => `<button class="chip" type="button" data-lead="${v}" aria-pressed="${AUDIO.lead() === v}">${v} 秒${v === AUDIO.LEAD_DEFAULT ? '（默认）' : ''}</button>`).join('');
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">单词读音方式</h2>

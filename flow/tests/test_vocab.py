@@ -259,6 +259,71 @@ class BacklogTests(unittest.TestCase):
         self.assertIn('去复习：', txt); self.assertIn('class="fl-card"', html)
         self.assertIn('learner，你好：', txt)
 
+
+class OnceReminderTests(unittest.TestCase):
+    """这次什么时候复习 (a trial student, 2026-11-25): a time today or tomorrow for the next reminder only; the mail goes
+    then if there are words and none went that day, and the reminder is back to every day at its hour."""
+    setUp, tearDown, card = BacklogTests.setUp, BacklogTests.tearDown, BacklogTests.card
+
+    def mails(self, at):
+        sent = []
+        n = vs.send_reminders(self.c, at, lambda to, sub, text, html=None: sent.append((to, sub)))
+        self.assertEqual(n, len(sent))
+        return n
+
+    def test_a_time_tonight_takes_the_place_of_the_hour_and_then_the_hour_is_back(self):
+        vs.set_reminder(self.c, 1, {'enabled': True, 'hour': 20})
+        self.card('w1', 'review', self.now - 3600)
+        r, st = vs.set_once(self.c, 1, {'at': self.day + 21 * 3600 + 17}, now=self.now)
+        self.assertEqual((st, r['once']), (200, self.day + 21 * 3600))  # to the minute
+        self.assertEqual(self.mails(self.day + 20 * 3600 + 300), 0)  # 20:05: not the daily one while a time is chosen
+        self.assertEqual(self.mails(self.day + 21 * 3600 + 60), 1)  # 21:01: the chosen time
+        self.assertIsNone(vs.reminder(self.c, 1, self.day + 21 * 3600 + 60)['once'])
+        self.assertEqual(self.mails(self.day + 21 * 3600 + 600), 0)  # once a day
+        self.assertEqual(self.mails(self.day + 86400 + 20 * 3600 + 300), 1)  # tomorrow: every day at 20:00 again
+
+    def test_tomorrow_morning_comes_instead_of_tonight_and_that_day_has_no_second_mail(self):
+        vs.set_reminder(self.c, 1, {'enabled': True, 'hour': 20})
+        self.card('w1', 'review', self.now - 3600)
+        vs.set_once(self.c, 1, {'at': self.day + 86400 + 8 * 3600}, now=self.now)
+        self.assertEqual(self.mails(self.day + 20 * 3600 + 300), 0)
+        self.assertEqual(self.mails(self.day + 86400 + 8 * 3600 + 60), 1)
+        self.assertEqual(self.mails(self.day + 86400 + 20 * 3600 + 300), 0)
+
+    def test_nothing_to_review_at_the_chosen_time_sends_nothing_and_the_hour_still_may(self):
+        vs.set_reminder(self.c, 1, {'enabled': True, 'hour': 20})
+        vs.set_once(self.c, 1, {'at': self.day + 12 * 3600}, now=self.now)
+        self.assertEqual(self.mails(self.day + 12 * 3600 + 60), 0)
+        self.assertIsNone(vs.reminder(self.c, 1, self.day + 12 * 3600 + 60)['once'])  # used up all the same
+        self.card('w1', 'review', self.day + 13 * 3600)
+        self.assertEqual(self.mails(self.day + 20 * 3600 + 300), 1)
+
+    def test_a_chosen_time_mails_even_without_the_daily_mail_and_a_long_past_one_is_only_cleared(self):
+        self.card('w1', 'review', self.now - 3600)
+        vs.set_once(self.c, 1, {'at': self.day + 9 * 3600}, now=self.now)
+        self.assertFalse(vs.reminder(self.c, 1, self.now)['enabled'])
+        self.assertEqual(self.mails(self.day + 9 * 3600 + 60), 1)  # asked for just now: it goes
+        vs.set_once(self.c, 1, {'at': self.day + 86400 + 9 * 3600}, now=self.now)
+        self.assertEqual(self.mails(self.day + 86400 + 15 * 3600), 0)  # six hours late (the server was down): not now
+        self.assertIsNone(vs.reminder(self.c, 1, self.day + 86400 + 15 * 3600)['once'])
+
+    def test_only_today_or_tomorrow_and_none_clears_it(self):
+        for at in (self.now + 60, self.now + 3 * 86400, True, 'tonight', [1]):
+            self.assertEqual(vs.set_once(self.c, 1, {'at': at}, now=self.now)[1], 400, at)
+        vs.set_once(self.c, 1, {'at': self.now + 3600}, now=self.now)
+        r, st = vs.set_once(self.c, 1, {'at': None}, now=self.now)
+        self.assertEqual((st, r['once'], r['hour']), (200, None, 20))
+        r, st = vs.post(self.c, 1, '/api/next/vocab/reminder/once', {'at': time.time() + 7200})  # the route the sheet posts to
+        self.assertEqual((st, r['once']), (200, float(int((time.time() + 7200) // 60 * 60))))
+
+    def test_the_calendar_gets_one_event_at_that_time(self):
+        at = int(self.day + 86400 + 8 * 3600)
+        cal = vs.ics(20, at=at)
+        self.assertNotIn('RRULE', cal); self.assertIn(f'UID:flow-vocab-once-{at}@flow', cal)
+        start = datetime.datetime.fromtimestamp(at, datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+        self.assertIn(f'DTSTART:{start}', cal)
+        self.assertIn('RRULE:FREQ=DAILY', vs.ics(20))  # the daily one unchanged
+
 class WordCapTests(unittest.TestCase):
     """r28 section 3 (the owner chose the recommended plan, 2026-11-25): a day of words capped in minutes, reviews most
     at risk first and new words in the time left; after a break the most urgent 40, the rest over 5 days; a finished
@@ -575,3 +640,40 @@ class ReadingLinkedTests(unittest.TestCase):
         self.assertEqual(d['active_today'], 1); self.assertEqual(d['funnel_7d']['read'], 1)
         self.assertEqual(d['ratings_7d'], {'good': 1}); self.assertEqual(len(d['active_days']), 14)
         self.assertGreaterEqual(d['materials'], 192)
+
+
+class SaveCardTwiceTests(unittest.TestCase):
+    """A word saved twice at once (a double tap, the page open twice): both saves answer 200 and there is one card; a
+    save of a card already there still takes the meaning and the sentence it brings (语流 02, 2026-11-25: a 500 on
+    UNIQUE(user_id, norm) when the check and the insert were two steps)."""
+    setUp, tearDown = BacklogTests.setUp, BacklogTests.tearDown
+
+    def test_two_saves_at_once_both_answer_and_leave_one_card(self):
+        import threading
+        words = [f'serendipity{k}' for k in range(30)]
+        gate, out = threading.Barrier(2), []
+
+        def saver():
+            c = app.db()
+            try:
+                for w in words:
+                    gate.wait(timeout=10)
+                    out.append(nx.save_card(c, 1, {'text': w, 'context': f'It was pure {w}.'})[1])
+            finally:
+                c.close()
+        ts = [threading.Thread(target=saver) for _ in range(2)]
+        for t in ts:
+            t.start()
+        for t in ts:
+            t.join()
+        self.assertEqual(out, [200] * 60)
+        rows = dict(self.c.execute("SELECT norm, COUNT(*) FROM next_cards WHERE user_id=1 AND norm LIKE 'serendipity%' GROUP BY norm").fetchall())
+        self.assertEqual(rows, {w: 1 for w in words})
+
+    def test_saving_again_takes_the_new_meaning_and_keeps_the_card(self):
+        first, st = nx.save_card(self.c, 1, {'text': 'decisions', 'context': 'We need to explain our decisions.'})
+        self.assertEqual((st, first['existing']), (200, False))
+        again, st = nx.save_card(self.c, 1, {'text': 'Decisions!', 'meaning': '决策'})
+        self.assertEqual((st, again['existing'], again['card']['id']), (200, True, first['card']['id']))
+        self.assertEqual(again['card']['meaning'], '决策'); self.assertEqual(again['card']['context'], 'We need to explain our decisions.')  # an empty one keeps it
+
