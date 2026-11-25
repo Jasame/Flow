@@ -31,7 +31,7 @@
 .l1-rows .zh{display:flex;gap:8px;align-items:baseline}
 .l1-rows .bad{color:var(--red);text-decoration:line-through;text-decoration-thickness:1px}
 .l1-rows .bad span{text-decoration:none;display:inline-block}
-.l1-rows .good{color:var(--green-ink);font-weight:600}
+.l1-rows .good{color:var(--ok-ink);font-weight:600}
 .rel-flow{display:grid;justify-items:start;gap:0}
 .rel-step{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:4px 0}
 .rel-step .chips{display:flex;flex-wrap:wrap;gap:6px}
@@ -44,10 +44,10 @@
 .mix-dots{display:flex;gap:6px}
 .mix-dots i{flex:1;height:5px;border-radius:3px;background:var(--line2);transition:background .25s}
 .mix-dots i.now{background:var(--ink2)}
-.mix-dots i.ok{background:var(--green)}
+.mix-dots i.ok{background:var(--ok)}
 .mix-dots i.no{background:var(--red)}
 .mix .fb{display:grid;gap:8px;margin-top:4px}
-.mix .fb .ok{color:var(--green-ink);font-weight:700}
+.mix .fb .ok{color:var(--ok-ink);font-weight:700}
 .mix .fb .bad{color:var(--red);font-weight:700}
 .mix-done .done-burst{display:flex;justify-content:center}
 /* answering (43-mix.js puts body.reviewing on: no tabs) on the shortest phones: the question and its four answers on one

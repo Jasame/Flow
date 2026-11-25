@@ -32,8 +32,8 @@
 .prompt-q{font-family:var(--serif);font-size:19px;line-height:1.5;text-align:left}
 .qopts{display:grid;gap:8px;text-align:left}
 .qopt{border:1.5px solid var(--line2);background:var(--paper);border-radius:12px;padding:12px 14px;font:inherit;font-size:15px;text-align:left;color:inherit}
-.qopt.right{border-color:var(--green);background:var(--green-soft)}.qopt.wrong{border-color:var(--red);background:var(--red-soft)}
-.choice button.good{border-color:var(--green)}.choice button.again{border-color:var(--red)}
+.qopt.right{border-color:var(--ok);background:var(--ok-soft)}.qopt.wrong{border-color:var(--red);background:var(--red-soft)}
+.choice button.good{border-color:var(--ok)}.choice button.again{border-color:var(--red)}
 .chips.filt{margin:-4px 0 12px}
 /* ---------- pronunciation, imports, report ---------- */
 .pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;padding:12px}

@@ -38,32 +38,48 @@
         if (t !== this.token) return;
         const u = new SpeechSynthesisUtterance(text), uk = (S.voice || '').startsWith('uk');
         u.lang = uk ? 'en-GB' : 'en-US'; u.rate = this.rate; const v = this.voice && this.accent === (uk ? 'uk' : 'us') ? this.voice : this.pick(); if (v) u.voice = v;
-        let started = false, ended = false, poll = 0;
-        const give = () => { clearTimeout(watch); clearInterval(poll); if (t !== this.token) return; if (onfail) onfail(); else if (onend) onend(); };
+        let started = false, ended = false, poll = 0, heard = 0, reach = -1;
+        const give = () => { ended = true; clearTimeout(watch); clearInterval(poll); if (t !== this.token) return; if (onfail) onfail(); else if (onend) onend(); };  // final: an end the cancel brings later is not counted
         const again = () => { clearTimeout(watch); clearInterval(poll); if (t !== this.token) return; if (++tries < 2) setTimeout(say, 250); else give(); };
         const done = () => { if (ended) return; ended = true; clearInterval(poll); if (t === this.token && onend) onend(); };
-        if (onword) u.onboundary = e => { if (t === this.token && e.name !== 'sentence') onword(e.charIndex); };
+        // Word boundaries say how far the voice really got (each word as it is said): kept whether or not words are lit
+        const words = [...text.matchAll(/\S+/g)], lastWord = words.length ? words[words.length - 1].index : 0;
+        u.onboundary = e => {
+          if (e.name === 'sentence') return;
+          heard = Date.now(); reach = Math.max(reach, e.charIndex);
+          if (onword && t === this.token) onword(e.charIndex);
+        };
         u.onstart = () => {
           started = true; clearTimeout(watch); if (t === this.token && onstart) onstart();
-          // Started, then never said it ended (an iPad, offline, 语流 B5's run 2026-11-25: start, then silence and no end
-          // or error, the text stuck "playing"): once the voice has been quiet for half a second without an end, the
-          // sentence counts as said; one still "speaking" far past any length it could have is let go as not said.
+          // Started, then never said it ended. Two kinds (语流 B5's runs, 2026-11-25), told apart by the word boundaries:
+          // - the voice went quiet without an end (speaking false): after half a second the sentence counts as said;
+          // - the voice says "speaking" on and on: with the words reported up to the last one and then nothing for a
+          //   moment, it was said (end not reported); stuck part-way (an iPad offline: two words, then nothing, the next
+          //   sentence pending for ever) it was not: stop it and let the text wait at that sentence, saying why.
+          //   A voice that reports no words at all is let go after the longest the sentence could take.
           let quiet = 0;
-          const cap = Date.now() + Math.max(15000, text.length * 160 / (this.rate || 1));
+          const rate = this.rate || 1, t0 = Date.now(), lull = Math.max(2500, 2000 / rate);
+          const cap = t0 + Math.max(8000, words.length * 700 / rate + 3000);
           poll = setInterval(() => {
             if (t !== this.token || ended) { clearInterval(poll); return; }
-            if (!speechSynthesis.speaking && !speechSynthesis.pending) { if (++quiet >= 2) done(); } else quiet = 0;
-            if (!ended && Date.now() > cap) { clearInterval(poll); speechSynthesis.cancel(); give(); }
+            if (!speechSynthesis.speaking && !speechSynthesis.pending) { if (++quiet >= 2) done(); return; }
+            quiet = 0;
+            const now = Date.now();
+            if (heard && reach >= lastWord && now - heard > 1500 / rate) { clearInterval(poll); speechSynthesis.cancel(); done(); return; }  // all said
+            if ((heard && reach < lastWord && now - heard > lull) || now > cap) { clearInterval(poll); speechSynthesis.cancel(); give(); }  // stuck
           }, 250);
         };
         u.onend = () => { clearTimeout(watch); if (t !== this.token || ended) return; if (started) done(); else again(); };
         u.onerror = e => { if (e && /interrupted|canceled/.test(e.error || '')) { clearTimeout(watch); clearInterval(poll); return; } if (!ended) again(); };  // ours: stopped, or a new sentence
         // A browser with speechSynthesis but no voice to speak with (WeChat on Android) neither starts nor fails: after
-        // 2.5 s without a start, say so (and stop counting on it when it has no voices at all) instead of waiting in silence.
+        // 2.5 s without a start, say so (and stop counting on it) instead of waiting in silence. One that has voices but
+        // did not start this time (an iPad offline, 语流 B5's run 2026-11-25) is no reason to send anyone to another
+        // browser: a whole text says why at its sentence (onfail), a single sentence asks for one more tap.
         const watch = setTimeout(() => {
           if (t !== this.token || started) return;
-          speechSynthesis.cancel(); if (!speechSynthesis.getVoices().length) this.ok = false;
-          noSound('不能用电脑朗读的声音'); give();
+          speechSynthesis.cancel();
+          if (!speechSynthesis.getVoices().length) { this.ok = false; noSound('不能用电脑朗读的声音'); } else if (!onfail) toast('浏览器的声音这次没读出来，再点一次试试');
+          give();
         }, 2500);
         try { speechSynthesis.speak(u); } catch (e) { again(); }  // refused outright: as a dropped sentence
       };
@@ -680,6 +696,114 @@
     clear(k) { if (k) { const o = this.all(); delete o[k]; save(this.KEY, o); } },
   };
 
+  /* ---------- in 语流's iOS app the app plays a whole text (ios/README.md, 「网页和 App 之间的桥」) ---------- */
+  // window.FlowApp is there only inside the app (Safari, the home-screen app and WeChat do as before). LONG keeps its own
+  // state (where it is, MINI, PROG, onState / onWord) and the app plays: on with the screen locked and while this page
+  // sleeps, the lock screen's buttons, on again after a call. Its news ('audio') moves LONG along; 'audio-tick' (four a
+  // second, the page in front) lights the word of a recording, smoothed between ticks.
+  const NATIVE = {
+    tick: null, raf: 0, sent: '', lone: null, last: null, watcher: null,
+    on() { return !!(window.FlowApp && FlowApp.has && FlowApp.has('audio')); },
+    // 复读 (times, the pause after each sentence) and 语速, as the page has them now (docs/native-bridge.md §3 set)
+    knobs(r) { return { rep: r.rep ? r.rep() : 1, gap: r.texts.map((_, k) => (r.gap ? r.gap(k) : 0)), rate: TTS.rate || 1 }; },
+    // changed while the app plays (a 复读 or 语速 chip, or meanwhile): the app gets them at once
+    retune(force) {
+      const r = LONG.r; if (!r || !r.native) return;
+      const k = JSON.stringify(this.knobs(r));
+      if (force || k !== this.sent) { this.sent = k; FlowApp.audio.set(this.knobs(r)).catch(() => {}); }
+    },
+    start(r) {
+      const d = this.last;
+      if (this.lone === r.key && d && d.key === r.key && d.state !== 'idle') {
+        // this page loaded again while the app went on with this very text: take it back where the app is, no new start
+        this.lone = null; if (typeof d.i === 'number') r.i = d.i; r.state = d.state === 'paused' ? 'playing' : d.state; r.note = '';
+        if (d.state === 'paused') FlowApp.audio.resume().catch(() => {});
+        MINI.paused(false); this.retune(true); LONG.save(); LONG.emit(); this.loop(); return;
+      }
+      const o = { key: r.key, title: r.title || '', from: r.i, ...this.knobs(r) };
+      if (S.csrf) o.csrf = S.csrf;
+      if (r.nm) { o.src = NAR.net; o.sentences = r.nm.sentences.map(x => [x.s, x.e]); o.loop = !!r.loop; const alt = mediaAlt(NAR.net); if (alt) o.alt = alt; }
+      else { o.texts = r.texts; o.voice = r.voice || S.voice; if (r.pack) o.pack = r.pack; }
+      this.sent = JSON.stringify(this.knobs(r));
+      FlowApp.audio.play(o).then(x => { if (!(x && x.ok) && LONG.r === r) this.fail(r, x && x.message); }, () => { if (LONG.r === r) this.fail(r); });
+    },
+    // the app could not (a call going on): this page reads it, as in Safari
+    fail(r, why) { r.native = false; if (why) toast(why); LONG.go(); },
+    news(d) {
+      const r = LONG.r;
+      if (!r || !r.native || d.key !== r.key) { this.orphan(d); return; }
+      if (d.state === 'idle') { if (d.why === 'ended') LONG.finish(); else if (d.why !== 'user') LONG.stop(); return; }
+      if (typeof d.i === 'number' && d.i !== r.i) { r.i = d.i; r.n = 0; LONG.save(); }
+      // the app fell back to the phone's own voice: why, said by the page as everywhere on the site (SV.why: once a reason)
+      r.state = d.state; r.note = d.fail ? SV.why(d.fail) : (d.note || '');
+      MINI.paused(d.state === 'paused');
+      this.retune();  // 复读 or 语速 changed meanwhile
+      LONG.emit(); this.loop();
+    },
+    // the sentence moved on between two 'audio' news (they come with each new sentence, §3; a tick says it as well)
+    ticked(d) {
+      this.tick = d;
+      const r = LONG.r;
+      if (r && r.native && d && d.key === r.key && typeof d.i === 'number' && d.i !== r.i) { r.i = d.i; r.n = 0; LONG.save(); LONG.emit(); }
+    },
+    // the app's news kept on this phone too (PROG), so 「从第 N 句继续」 is where the app got to, also after this page
+    // loaded again; read to the end clears it, any other stop keeps it (§3 进度)
+    keep(d) {
+      if (!d || !d.key) return;
+      this.last = d;
+      if (d.state === 'idle' && d.why === 'ended') PROG.clear(d.key); else if (typeof d.i === 'number') PROG.set(d.key, d.i);
+      const w = this.watcher; if (w && w.key === d.key && !LONG.of(d.key)) w.paint();
+    },
+    // the page with this text's 播放全文 / 伴读 button: in the app the button says where the app got to, its stored place
+    // when the page opens and its news while it plays this text without this page (loaded again meanwhile)
+    follow(key, paint) {
+      this.watcher = { key, paint };
+      this.reconcile(key).then(() => { if (!LONG.of(key)) paint(); });
+    },
+    // where the app got to in a text against this phone's PROG, the newer one counts (§3: the app played on while this
+    // page slept, or read it to the end): true when PROG changed, so the page can say 「从第 N 句继续」 again
+    reconcile(key) {
+      if (!this.on() || !key) return Promise.resolve(false);
+      return Promise.resolve(FlowApp.audio.progress(key)).then(p => {
+        if (!p || !(p.at > 0)) return false;
+        const mine = PROG.get(key);
+        if (mine && mine.at >= p.at) return false;
+        if (p.ended || !(p.i > 0)) { if (!mine) return false; PROG.clear(key); return true; }
+        if (mine && mine.i === p.i) return false;
+        PROG.set(key, p.i); return true;
+      }, () => false);
+    },
+    loop() {
+      cancelAnimationFrame(this.raf);
+      const r = LONG.r; if (!r || !r.native || !r.nm || r.state !== 'playing' || !r.onWord) return;
+      const f = () => {
+        const k = this.tick; if (LONG.r !== r || r.state !== 'playing') return;
+        if (k && k.key === r.key && NAR.meta === r.nm) { const [si, wc] = NAR.locate(k.t + Math.max(0, Date.now() - k.at) / 1000 * (k.rate || 1)); if (si >= 0) r.onWord(si, wc); }
+        this.raf = requestAnimationFrame(f);
+      };
+      this.raf = requestAnimationFrame(f);
+    },
+    // the app's text, which this page did not start, after the router hid MINI for a new page: on screen again
+    reshow() { const d = this.last; if (!LONG.r && this.lone && d && d.key === this.lone && d.state !== 'idle') this.orphan(d); },
+    // this page loaded again (a new version, iOS ended it in the background) while the app goes on: its control is back
+    orphan(d) {
+      this.keep(d);
+      if (LONG.r) return;
+      if (d.state === 'idle') { if (this.lone) { this.lone = null; MINI.hide(); } return; }
+      const label = (d.title || '朗读') + (d.n ? ` · 第 ${d.i + 1} / ${d.n} 句` : '');
+      if (this.lone !== d.key || !MINI.el || MINI.el.hidden) {
+        this.lone = d.key;
+        MINI.show(label, { toggle: () => (MINI.el.classList.contains('paused') ? FlowApp.audio.resume() : FlowApp.audio.pause()), stop: () => { this.lone = null; FlowApp.audio.stop(); } });
+      } else MINI.update(label);
+      MINI.paused(d.state === 'paused');
+    },
+  };
+  if (NATIVE.on()) {
+    FlowApp.on('audio', d => NATIVE.news(d));
+    FlowApp.on('audio-tick', d => NATIVE.ticked(d));
+    FlowApp.audio.state().then(d => { if (d && d.state !== 'idle') NATIVE.news(d); }, () => {});
+  }
+
   /* ---------- a whole text read aloud: 听's 播放全文 and 读's 伴读 (owner, 2026-11-25) ---------- */
   // The recording (Kokoro) when there is one, straight through (or sentence by sentence when 复读 is set); otherwise the
   // server voice sentence by sentence, the next two asked for while one plays, a line while one is being made (never the
@@ -699,7 +823,9 @@
       this.stop();
       const n = o.texts.length, r = this.r = { ...o, i: Math.max(0, Math.min(from || 0, n - 1)), n: 0, tok: 0, state: o.nm ? 'playing' : 'waiting', note: '', at: null };
       r.cont = !!o.nm && !o.loop;
+      r.native = NATIVE.on();
       MINI.show(this.label(), { toggle: () => this.toggle(), stop: () => this.stop() });
+      if (r.native) { this.emit(); NATIVE.start(r); return; }  // 语流's iOS app plays it (NATIVE)
       if (o.nm) { this.emit(); this.go(); return; }  // inside the tap: WeChat plays a recording only when it starts there
       this.emit();
       const tok = r.tok;
@@ -708,7 +834,7 @@
     label() { const r = this.r; return r.state === 'waiting' ? `准备第 ${r.i + 1} 句…` : (r.label ? r.label(r.i) : `第 ${r.i + 1} / ${r.texts.length} 句`); },
     emit() { const r = this.r; if (!r) return; MINI.update(this.label()); if (r.onState) r.onState(r.state, r.i, r.note); },
     claim() {  // the lock screen for a sentence-by-sentence reading (a recording names itself: NAR.name)
-      const r = this.r; if (!r || r.nm) return;
+      const r = this.r; if (!r || r.nm || r.native) return;
       MS.claim('long', '语流 · ' + (r.title || '朗读'), { play: () => this.resume(), pause: () => this.pause(), stop: () => { this.stop(); MINI.hide(); },
         previoustrack: () => this.step(-1), nexttrack: () => this.step(1) });
       if (r.state === 'paused') MS.state('paused');
@@ -781,6 +907,7 @@
     toggle() { if (!this.r) return; if (this.r.state === 'paused') this.resume(); else this.pause(); },
     pause() {
       const r = this.r; if (!r || r.state === 'paused') return;
+      if (r.native) { FlowApp.audio.pause().catch(() => {}); r.state = 'paused'; r.note = ''; MINI.paused(true); this.save(); this.emit(); return; }
       if (r.cont && NAR.audio.dataset.want === '1') { r.at = NAR.audio.currentTime; NAR.audio.pause(); this.held(); return; }  // the listener calls held() too
       if (r.nm && NAR.audio.dataset.want === '1') { NAR.audio.pause(); this.held(); return; }  // 复读 on a recording: that sentence waits at its second
       r.tok++; clearTimeout(r.timer); this.own(() => { TTS.stop(); CLIP.stop(); });
@@ -795,18 +922,25 @@
     going() { const r = this.r; if (!r || r.state !== 'paused') return; r.state = 'playing'; r.at = null; MINI.paused(false); MS.state('playing'); this.emit(); },
     resume() {
       const r = this.r; if (!r || r.state !== 'paused') return;
+      if (r.native) {  // the app may have let it go meanwhile (closed by iOS): then it starts again where it was
+        r.state = 'playing'; MINI.paused(false); this.emit();
+        FlowApp.audio.resume().then(x => { if (this.r === r && (!x || x.key !== r.key || x.state === 'idle')) NATIVE.start(r); }, () => {});
+        return;
+      }
       if (r.nm && NAR.audio.dataset.want === '1') { this.going(); NAR.resume(); return; }  // still there, paused: on from that second
       r.state = 'playing'; MINI.paused(false); this.go();
     },
     // another sound is about to start (a word looked up, a sentence tapped, the microphone): the text waits, paused
     other() {
       const r = this.r; if (!r || this.self || r.state === 'paused') return;
+      if (r.native) { this.pause(); return; }
       if (r.cont && NAR.audio.dataset.want === '1') r.at = NAR.audio.currentTime;
       if (r.nm) r.tok++;  // the recording is taken over: 继续 plays it again from r.at
       this.held();
     },
     step(d) {  // previous / next sentence (the lock screen)
       const r = this.r; if (!r) return;
+      if (r.native) { FlowApp.audio.step(d).catch(() => {}); return; }
       if (r.cont) { NAR.step(d); return; }
       r.tok++; clearTimeout(r.timer); this.own(() => { TTS.stop(); CLIP.stop(); NAR.stop(); });
       r.i = Math.max(0, Math.min(r.texts.length - 1, r.i + d)); r.n = 0; r.at = null; r.state = 'playing'; MINI.paused(false); this.go();
@@ -814,15 +948,17 @@
     save() { const r = this.r; if (r && r.key) PROG.set(r.key, r.i); },
     finish() {
       const r = this.r; if (!r) return;
-      this.r = null; r.tok++; PROG.clear(r.key); MINI.hide(); MS.release('long');
+      this.r = null; r.tok++; PROG.clear(r.key); MINI.hide(); MS.release('long'); cancelAnimationFrame(NATIVE.raf);
       if (r.onState) r.onState('idle', -1, '');
       if (r.onDone) r.onDone();
     },
     // stop reading (✕, leaving the page, another text): where it was is kept
     stop() {
-      const r = this.r; if (!r) return;
+      const r = this.r;
+      if (!r) { if (NATIVE.lone) setTimeout(() => NATIVE.reshow(), 0); return; }  // a new page (the router hides MINI): the app's text keeps its control
       if (r.cont && NAR.audio.dataset.want === '1') { const [si] = NAR.locate(NAR.audio.currentTime); if (si >= 0) r.i = si; }
       this.save(); this.r = null; r.tok++; clearTimeout(r.timer);
+      if (r.native) { cancelAnimationFrame(NATIVE.raf); FlowApp.audio.stop().catch(() => {}); }
       this.own(() => { TTS.stop(); CLIP.stop(); NAR.stop(); });
       MINI.hide(); MS.release('long');
       if (r.onState) r.onState('idle', -1, '');
