@@ -1,0 +1,23 @@
+{
+ "about": "跟读和发音的评测录音（shadow_eval.py）。跟读：sentence 是要读的原句，read 是合成声音实际读的（ok = 照读；其他是故意留的学习者常见错误），words 是这个错误碰到的原句里的词。发音：word 是目标词，wrong 是故意读成的对比词。录音全是合成的：flow-tts 的英文 CosyVoice 声音，和它的中文声音读英文（轻微中国口音）。不放任何学员的录音。",
+ "shadow": [
+  {"id": "s01", "sentence": "I think this is the best way to learn.", "mistake": {"kind": "sound", "read": "I sink dis is the best way to learn.", "words": ["think", "this"]}},
+  {"id": "s02", "sentence": "We were very worried about the weather.", "mistake": {"kind": "sound", "read": "We were wery worried about the wezzer.", "words": ["very", "weather"]}},
+  {"id": "s03", "sentence": "She lives near the river with her three cats.", "mistake": {"kind": "sound", "read": "She lives near the liver with her tree cats.", "words": ["river", "three"]}},
+  {"id": "s04", "sentence": "Could you tell me where the nearest station is?", "mistake": {"kind": "skip", "read": "Could you tell me where nearest station?", "words": ["the", "is"]}},
+  {"id": "s05", "sentence": "He walked to the shop and bought some bread.", "mistake": {"kind": "ending", "read": "He walk to the shop and bough some bread.", "words": ["walked", "bought"]}},
+  {"id": "s06", "sentence": "It was a long day, but I feel much better now.", "mistake": {"kind": "skip", "read": "It was a long day, I feel better now.", "words": ["but", "much"]}},
+  {"id": "s07", "sentence": "The ship left the port early in the morning.", "mistake": {"kind": "sound", "read": "The sheep left the port early in the morning.", "words": ["ship"]}},
+  {"id": "s08", "sentence": "Thank you for helping me with my homework.", "mistake": {"kind": "sound", "read": "Sank you for helping me wiz my homework.", "words": ["thank", "with"]}}
+ ],
+ "say": [
+  {"word": "think", "wrong": "sink"},
+  {"word": "thick", "wrong": "sick"},
+  {"word": "vest", "wrong": "west"},
+  {"word": "light", "wrong": "right"},
+  {"word": "bad", "wrong": "bed"},
+  {"word": "knock", "wrong": "lock"},
+  {"word": "sheep", "wrong": "ship"},
+  {"word": "she", "wrong": "see"}
+ ]
+}

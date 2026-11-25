@@ -166,7 +166,8 @@ _AUDIO_ENV = {'raw': None, 'routes': {}}
 def audio_route(kind=None):
     """The gateway model name a recording of this task goes to first (FLOW_AUDIO_ROUTES, same forms as FLOW_AI_ROUTES:
     one name, or *=name,task=name pairs), in this process's lane; '' = Gemini hears it on the main service, as before.
-    2026-11-25: Qwen-Omni on 百炼 (e.g. flow-audio-omni-flash) for 情景对话, 复述 and 雅思; Gemini stays the backup."""
+    2026-11-25: Qwen-Omni on 百炼 (e.g. flow-audio-omni-flash) for 情景对话, 复述 and 雅思, then 跟读 (next-shadow) and 发音
+    (next-say: its verdict a reference only, output_service.say); Gemini stays the backup."""
     kind = kind or current()
     raw = os.getenv('FLOW_AUDIO_ROUTES', '')
     if raw != _AUDIO_ENV['raw']:
