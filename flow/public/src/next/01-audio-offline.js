@@ -309,7 +309,9 @@
     owner: null, ACTIONS: ['play', 'pause', 'stop', 'previoustrack', 'nexttrack'],
     claim(owner, title, handlers) {
       this.owner = owner; const ms = navigator.mediaSession; if (!ms) return;
-      try { ms.metadata = window.MediaMetadata ? new MediaMetadata({ title, artist: '语流 Flow' }) : null; } catch (e) { /* ignore */ }
+      // 「AI 朗读」 on the lock screen, the notification shade and a desktop's media controls too (they draw from this, not
+      // the page; 《标识办法》): every voice 语流 plays is synthesized (Kokoro, CosyVoice). The same as the desktop app's #199
+      try { ms.metadata = window.MediaMetadata ? new MediaMetadata({ title, artist: '语流 Flow · AI 朗读' }) : null; } catch (e) { /* ignore */ }
       this.ACTIONS.forEach(k => { try { ms.setActionHandler(k, (handlers && handlers[k]) || null); } catch (e) { /* not supported */ } });
       this.state('playing');
     },

@@ -1001,9 +1001,9 @@ def ios_audio_run(pw):
         playing = "[...document.querySelectorAll('audio')].find(a => !a.paused && a.currentTime > 0)"  # the narration (its preloaded copy is a blob: URL)
         pg.wait_for_function(f"!!{playing}", timeout=8000)
         pg.evaluate(f"window.__nar = {playing}")
-        ms = pg.evaluate("({ title: navigator.mediaSession.metadata && navigator.mediaSession.metadata.title, state: navigator.mediaSession.playbackState, acts: Object.keys(window.__wa.ms).filter(k => window.__wa.ms[k]) })")
-        check(dev, 'a whole text: the lock screen shows 「语流 · 标题」 with play, pause, previous and next sentence',
-              (ms['title'] or '').startswith('语流 · ') and ms['state'] == 'playing' and {'play', 'pause', 'previoustrack', 'nexttrack'} <= set(ms['acts']), ms)
+        ms = pg.evaluate("({ title: navigator.mediaSession.metadata && navigator.mediaSession.metadata.title, artist: navigator.mediaSession.metadata && navigator.mediaSession.metadata.artist, state: navigator.mediaSession.playbackState, acts: Object.keys(window.__wa.ms).filter(k => window.__wa.ms[k]) })")
+        check(dev, 'a whole text: the lock screen shows 「语流 · 标题」 and 「AI 朗读」 with play, pause, previous and next sentence',
+              (ms['title'] or '').startswith('语流 · ') and 'AI 朗读' in (ms['artist'] or '') and ms['state'] == 'playing' and {'play', 'pause', 'previoustrack', 'nexttrack'} <= set(ms['acts']), ms)
         nar = "window.__nar"
         pg.evaluate(f"{nar}.pause()"); pg.wait_for_timeout(300)  # what a call does
         mini = pg.evaluate("({ label: document.querySelector('.mini-player .lbl').textContent, resume: !!document.querySelector('.mini-player .resume'), state: navigator.mediaSession.playbackState })")
