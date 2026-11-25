@@ -2969,6 +2969,23 @@ def home_app_run(pw):
         pg.wait_for_timeout(1500)
         check(dev, 'after that reload: no second one', len(loads) == 2, len(loads))
         ctx.close()
+        # the iOS app (语流 20: a WKWebView, the user agent ending in FlowiOS/<version>; navigator.standalone is not set
+        # there): a home app too, back buttons and all; nothing to add to the desktop; the keyboard left to the app (its
+        # web view ends at the keyboard), so no room made below the page for one
+        ctx = browser.new_context(viewport={'width': 393, 'height': 852}, is_mobile=True, has_touch=True, device_scale_factor=3, locale='zh-CN', bypass_csp=True,
+                                  user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 26_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 FlowiOS/1.0')
+        ctx.add_cookies([{'name': 'flow_session', 'value': tok, 'url': BASE}])
+        pg = ctx.new_page()
+        pg.goto(BASE + f'/#/m/{PID}/read', wait_until='networkidle'); settle(pg)
+        app = pg.evaluate("() => ({ home: document.documentElement.classList.contains('home-app'), standalone: navigator.standalone === true })")
+        bk = pg.evaluate(BACK_JS)
+        go(pg, '#/me'); pg.wait_for_timeout(200)
+        install = pg.evaluate("() => !!document.getElementById('meInstall')")
+        go(pg, '#/import'); pg.wait_for_selector('#view textarea'); pg.focus('#view textarea'); pg.wait_for_timeout(200)
+        room = pg.evaluate("() => document.body.classList.contains('kb-room')")
+        check(dev, 'the iOS app (FlowiOS in the user agent): a home app with back buttons, no 「添加到桌面」, the keyboard left to the app',
+              app['home'] and not app['standalone'] and bk and bk['label'] and not install and not room, (app, bk, install, room))
+        ctx.close()
     finally:
         browser.close()
 
