@@ -1,3 +1,3 @@
-9d4ecb580ff4bdfd3669ec73d0c90a01ac5c0d97 2473e0ecc4ed51417cae58a4ac0d63e417ce6f597f0bcae788e7709d30324fbe e2e light ref=build-006da3a7f471 tag=b101 tools=c8f8bc8e43fd5f240d1e4b9541d9e4edc8f88c917b5795e6ecafd8f51af4bfbb
-# b101 main: Merge pull request #379 from Jasame/review-stay-gone = build of 006da3a7f471
+fc59010f613cd19341a2efc18b60470b3601cd98 8898e96528c2043298404236c5b74c53811b54cf58a36dfe2b0c5e421cbd8330 e2e light ref=build-969c62fc699b tag=b102 tools=c8f8bc8e43fd5f240d1e4b9541d9e4edc8f88c917b5795e6ecafd8f51af4bfbb
+# b102 main: Merge pull request #375 from Jasame/b3-listen-f123 = build of 969c62fc699b
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
