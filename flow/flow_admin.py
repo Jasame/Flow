@@ -173,7 +173,7 @@ TAP_LABEL = {
     'me-level': '我的 · 学习目标和水平', 'me-voice': '我的 · 朗读声音', 'me-text': '我的 · 字号和行距', 'me-remind': '我的 · 每天提醒', 'me-install': '我的 · 添加到桌面',
     'trial-level': '试读之后 · 选学习目标',
     'welcome-start': '第一次打开 · 选好方向和目标，开始学习', 'welcome-login': '第一次打开 · 已有账号，登录', 'notice-test': '今日 · 提醒：去能力里测一下',
-    'home-habit': '今日 · 每周目标', 'notice-week': '今日 · 提醒：上周小结', 'me-habit': '我的 · 每周目标',
+    'home-habit': '今日 · 每周目标', 'notice-week': '今日 · 提醒：上周小结', 'notice-goal-lower': '今日 · 提醒：建议调低每周目标', 'me-habit': '我的 · 每周目标',
     'study-keep': '学习页 · 存到手机',
     'share-material': '学一篇 · 分享学会的一句', 'share-week': '这周报告 · 分享',
     'me-data': '我的 · 导出我的数据', 'me-delete': '我的 · 注销账号', 'words-export': '单词 · 导出单词本',
@@ -185,7 +185,8 @@ TAP_LABEL = {
     'announce-open': '今日 · 公告：去看看',
     'home-week': '今日 · 这周进步', 'me-weekly-mail': '我的 · 每周进度邮件',
     'finish-expr': '学完一篇 · 小结：表达', 'finish-words': '学完一篇 · 小结：新词', 'finish-grammar': '学完一篇 · 小结：语法点',
-    'home-more-one': '今日 · 计划完成后再学一篇',
+    'home-more-one': '今日 · 计划完成后再学一篇', 'home-more-grammar': '今日 · 计划完成后做 4 道语法题',
+    'home-extra': '今日 · 还有时间的话', 'home-week-task': '今日 · 本周任务',
     'line-say': '今日好句 · 听一遍', 'line-shadow': '今日好句 · 跟读', 'line-keep': '今日好句 · 收藏', 'line-read': '今日好句 · 读原文',
     'shadow-sound': '跟读 · 去练要练的音', 'speak-ielts': '口语路线 · 雅思口语',
 }

@@ -28,8 +28,11 @@
     if (!S.meta || !S.meta.targets) S.meta = await api('/api/next/meta');
     const M = S.meta, cur = edit ? ((S.home && S.home.profile) || S.guest || {}) : {};
     const st = { goal: cur.goal || '', exam: cur.exam || '', date: cur.exam_date || '', target: cur.target || '', level: cur.level || '',
-                 minutes: cur.minutes || 10, themes: (cur.themes || []).slice() };
+                 minutes: cur.minutes || 10, themes: (cur.themes || []).slice(), days: cur.weekly_goal || 0 };
     let picked = !!cur.target;  // a target chosen by hand is not replaced by the suggestion
+    // 一周学几天 (r28 第 6 段, 每周目标): 5 for an exam, 4 otherwise (save_profile's default) until chosen by hand
+    let dayPicked = !!cur.weekly_goal;
+    const daysFor = () => (st.goal === 'exam' ? 5 : 4);
     const suggest = () => M.target_for[st.goal === 'exam' && st.exam ? st.exam : st.goal] || 'B1';
     const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
     const radio = (attr, v, on, inner, cls = 'chip') => `<button class="${cls}" type="button" role="radio" data-${attr}="${esc(v)}" aria-checked="${on}">${inner}</button>`;
@@ -45,6 +48,9 @@
         <div class="wg-targets" role="radiogroup" aria-labelledby="wgTargetH">${M.targets.map(t => radio('target', t.id, t.id === st.target,
           `<b>${t.id}</b><span class="d">${esc(t.label)}</span><span class="rec" hidden>推荐</span>`, 'opt')).join('')}</div>
         <p class="tiny muted">${edit ? '' : '现在的水平不用先测：文章先按比目标低一档挑，以后在「能力」里测一下就更准。'}</p></section>
+      <section class="stack-s" aria-labelledby="wgDaysH"><h2 class="h3" id="wgDaysH">一周大概能学几天？</h2>
+        <div class="chips wg-days" role="radiogroup" aria-labelledby="wgDaysH">${[2, 3, 4, 5, 6, 7].map(d => radio('days', d, d === st.days, `${d} 天`)).join('')}</div>
+        <p class="tiny muted">学一步材料或复习几个词就算一天，哪周没学够也不会清零。</p></section>
       ${edit ? `<section class="stack-s" aria-labelledby="wgLevelH"><h2 class="h3" id="wgLevelH">现在的水平</h2>
           <div class="chips" role="radiogroup" aria-labelledby="wgLevelH">${M.levels.map(l => radio('level', l.id, l.id === st.level, `${l.id} ${esc(l.label)}`)).join('')}</div>
           <p class="tiny muted">${cur.level_source === 'guess' ? '这是按目标估的。' : cur.level_source === 'placed' ? '这是语法起点小测给的。' : ''}<a class="link" href="#/radar">去能力里测一下</a>，比自己估更准。</p></section>
@@ -59,6 +65,8 @@
       ${edit ? '' : '<p class="tiny tc about-line"><a class="link" href="/about" data-tap="welcome-about">第一次来？先花一分钟看看语流能帮你做什么</a></p>'}</div>`;  // 认识语流 (#32)
     const sync = () => {
       if (!picked) st.target = suggest();
+      if (!dayPicked) st.days = daysFor();
+      view.querySelectorAll('[data-days]').forEach(b => b.setAttribute('aria-checked', String(Number(b.dataset.days) === st.days)));
       view.querySelectorAll('[data-goal]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.goal === st.goal)));
       view.querySelectorAll('[data-exam]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.exam === st.exam)));
       view.querySelectorAll('[data-target]').forEach(b => { b.setAttribute('aria-checked', String(b.dataset.target === st.target)); b.querySelector('.rec').hidden = !st.goal || b.dataset.target !== suggest(); });
@@ -76,6 +84,7 @@
     view.querySelectorAll('[data-goal]').forEach(b => b.onclick = () => { st.goal = b.dataset.goal; sync(); });
     view.querySelectorAll('[data-exam]').forEach(b => b.onclick = () => { st.exam = b.dataset.exam; sync(); });
     view.querySelectorAll('[data-target]').forEach(b => b.onclick = () => { st.target = b.dataset.target; picked = true; sync(); });
+    view.querySelectorAll('[data-days]').forEach(b => b.onclick = () => { st.days = Number(b.dataset.days); dayPicked = true; sync(); });
     view.querySelectorAll('[data-level]').forEach(b => b.onclick = () => { st.level = b.dataset.level; view.querySelectorAll('[data-level]').forEach(x => x.setAttribute('aria-checked', String(x === b))); });
     view.querySelectorAll('[data-min]').forEach(b => b.onclick = () => { st.minutes = Number(b.dataset.min); view.querySelectorAll('[data-min]').forEach(x => x.setAttribute('aria-checked', String(x === b))); });
     view.querySelectorAll('[data-theme]').forEach(b => b.onclick = () => { const t = b.dataset.theme; st.themes = st.themes.includes(t) ? st.themes.filter(x => x !== t) : st.themes.concat(t); b.setAttribute('aria-pressed', String(st.themes.includes(t))); });
@@ -87,7 +96,7 @@
       // the level: from the starting check if it was just taken; from 我的 as chosen (or kept); otherwise one band below the target
       const level = S.placed ? S.placed : edit ? st.level || below(st.target) : below(st.target);
       const source = S.placed ? 'placed' : edit && st.level === cur.level ? (cur.level_source || 'self') : edit && st.level ? 'self' : 'guess';
-      const prof = { goal: st.goal, target: st.target, level, level_source: source, themes: st.themes, minutes: st.minutes, exam, exam_date: date };
+      const prof = { goal: st.goal, target: st.target, level, level_source: source, themes: st.themes, minutes: st.minutes, exam, exam_date: date, weekly_goal: st.days };
       let made = null;
       if (S.user) { try { made = (await api('/api/next/profile', prof)).plan_made; } catch (x) { btn.disabled = false; toast(x.message); return; } }
       S.placed = ''; S.guest = { ...(S.guest || {}), ...prof }; save('flow-next-guest', S.guest);

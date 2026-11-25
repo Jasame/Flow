@@ -295,6 +295,7 @@ FLOW_FILES=(
   state_service.py
   studio_setup.py
   survey_service.py
+  time_budget.py
   tts_service.py
   user_guide.py
   vertex_auth.py
