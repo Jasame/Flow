@@ -55,8 +55,34 @@ hdc shell aa start -a EntryAbility -b cn.flowlang.app.beta --pb flow.mute true
 ```
 模拟器也要静音。用完就关掉模拟器和 DevEco，这台 Mac 内存紧。
 
+## 模拟器（这台 Mac，2026-11-26）
+
+- 镜像：HarmonyOS 5.0.1（API 13，M114 内核），2.36 GB，解压后放在 `~/.flow-harmony/emulator/images`，实例名 `flow501`，内存 4 GB。
+- 只有 DevEco 的「国家/地区」是中国大陆时才能下载（`~/Library/Application Support/Huawei/DevEcoStudio26.0/options/country.region.xml`）。DevEco 默认跟着 macOS 的地区走。
+- 启动时会再问一次协议，用户 2026-11-25 已经同意：
+  ```bash
+  echo y | $A/tools/emulator/Emulator -start flow501 -noWindow
+  ```
+- 用完一定要关掉：
+  ```bash
+  $A/tools/emulator/Emulator -stop flow501
+  ```
+- 截图：
+  ```bash
+  hdc shell snapshot_display -f /data/local/tmp/s.jpeg && hdc file recv /data/local/tmp/s.jpeg .
+  ```
+- 看网页：调试包开着 Web 调试。
+  ```bash
+  hdc fport tcp:9333 localabstract:webview_devtools_remote_<pid>
+  ```
+  然后打开 `http://127.0.0.1:9333/json`，用 DevTools 协议连上去。
+- 2026-11-26 实测：UA 是 `Mozilla/5.0 (Phone; OpenHarmony 5.0) … Chrome/114.0.0.0 … ArkWeb/4.1.6.1 Mobile FlowHarmony/1.0.0`；FlowApp 的 platform 是 harmony，能力是 audio、rec、notify；MediaRecorder 支持 webm/opus；`speechSynthesis` 存在，但一个声音都没有。
+
 ## 签名
 
-- 调试：DevEco「自动签名」，要用户自己登录华为开发者账号（个人、实名）。DevEco 会把签名配置写进 `build-profile.json5` 的 `signingConfigs`，路径指向 `~/.ohos/config`，**这几行不要提交**。
+- 调试：DevEco「自动签名」，要用户自己登录华为开发者账号（个人、实名）。
+  - 只连模拟器也行，DevEco 要先认到一台设备才能生成；
+  - DevEco 会把签名配置写进 `build-profile.json5` 的 `signingConfigs`，路径指向 `~/.ohos/config`，口令是加密的。内测 product 还要加上 `"signingConfig": "default"`；
+  - **这几行不要提交**：提交时只暂存去掉签名的版本。
 - 调试包只能装在登记过 UDID 的手机上，有效期 1 年。查 UDID：`hdc shell bm get --udid`。
 - 上架华为应用市场、邀请测试都要先在 AppGallery Connect 建应用。这些由用户自己做，发版和服务器归 A1。
