@@ -1,3 +1,3 @@
-675f60c6a5eeca8c75036adef4eda88f9f0cce32 2d22277d5e8a13780d2b68c5a79b3b1037b8e13cd225432de8874770713f3d7a e2e light ref=build-c50b46246050
-# b62 main: Merge pull request #183 from Jasame/word-audio-aigc = build of c50b46246050
+bddb99271e5d5ec552252b9724dd33c1959eafb9 7e562708492a6fe9b8e25e1d1d45e4117a64fbb04fa2455430d1fe9472f28808 e2e light ref=build-5041bb4ae57e
+# b63 main: Merge pull request #229 from Jasame/say-third = build of 5041bb4ae57e
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
