@@ -74,7 +74,7 @@
 .xw.chosen{border-color:var(--amber);background:var(--amber-soft);box-shadow:inset 0 0 0 1px var(--amber)}
 .xt-pick .ans{width:100%}
 .xt-pick .ans .tiny{display:block}
-.xt .pit .ok{color:var(--green-ink)}
+.xt .pit .ok{color:var(--ok-ink)}
 .xt .pit .no{color:var(--red)}
 .xt .pit .tiny.muted{display:block}
 @media (min-width:768px){.xt-opts{grid-template-columns:repeat(2,minmax(0,1fr))}}

@@ -25,7 +25,8 @@
 /* 读: 中文导读、改写 and 伴读 in one row; the colour key and the tap hints in one line under it */
 .read-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:6px}
 .read-tools #readAlong{margin-left:auto}
-.read-tools .chip[aria-expanded=true]{background:var(--green-soft);border-color:var(--green);color:var(--green-ink)}
+.read-tools [aria-expanded=true]{background:var(--green-soft);border-color:var(--green);color:var(--green-ink)}
+.read-ai{margin:0 0 6px}  /* 「AI 朗读 · 声音由 AI 合成」 under the row of tools */
 .guide-zh{margin:0 0 10px;padding:10px 12px;background:var(--sunk);border-radius:12px;line-height:1.7}
 .read-hint{display:flex;flex-wrap:wrap;align-items:center;gap:2px 12px;margin:0 0 10px}
 .read-hint .legend{margin:0}
@@ -42,10 +43,10 @@
 
 /* 练习: one-line rows with an icon, grouped like 我的 (two columns on a wide screen); the grammar map stays a wide card */
 .px-list{display:grid;gap:2px;background:var(--paper);border-radius:var(--r);padding:6px}
-.px-row{display:grid;grid-template-columns:36px minmax(0,1fr) 14px;gap:12px;align-items:center;min-height:56px;padding:8px 10px;border-radius:12px;text-decoration:none;color:inherit}
+.px-row{display:grid;grid-template-columns:36px minmax(0,1fr) 14px;gap:12px;align-items:center;min-height:48px;padding:8px 10px;border-radius:12px;text-decoration:none;color:inherit}
 .px-row:hover{background:var(--sunk)}
 .px-row:active{background:var(--sunk)}
-.px-row .pico{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:var(--green-soft);color:var(--green-ink)}
+.px-row .pico{display:grid;place-items:center;width:36px;height:36px;color:var(--ink2)}  /* 简洁化: a line icon, no green box */
 .px-row .t{display:grid;gap:2px;min-width:0}
 .px-row .t b{font-size:15.5px;display:flex;align-items:center;gap:6px;min-width:0}
 .px-row .t .tiny{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

@@ -32,7 +32,7 @@
 .pron-chip{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--green-ink);background:var(--paper);border:1px solid var(--green-line);border-radius:99px;padding:2px 9px}
 .line.sh:not(.cur) .sh-ctl>.pron-chip:not([hidden]){display:inline-block}
 .wdiff{font-family:var(--serif);font-size:17px;line-height:1.8}
-.wdiff .ok{color:var(--green-ink)}
+.wdiff .ok{color:var(--ok-ink)}
 .wdiff .miss{color:var(--red);text-decoration:underline wavy color-mix(in srgb,var(--red) 60%,transparent);text-underline-offset:4px}
 .dict textarea{min-height:88px;font-size:17px}
 .nw-list{display:flex;flex-wrap:wrap;gap:8px}
@@ -46,5 +46,5 @@
 .checkline{display:flex;gap:8px;align-items:flex-start;font-size:14px;line-height:1.5}
 .checkline input{width:18px;height:18px;margin-top:2px;accent-color:var(--green);flex:none}
 select{font:inherit;font-size:15px;color:var(--ink);background:var(--paper);border:1.5px solid var(--line2);border-radius:10px;padding:8px 12px;min-height:42px}
-.ok-mark{color:var(--green-ink);font-weight:800}.bad-mark{color:var(--red);font-weight:800}
+.ok-mark{color:var(--ok-ink);font-weight:800}.bad-mark{color:var(--red);font-weight:800}
 

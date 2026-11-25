@@ -40,8 +40,15 @@ ROLE_LABEL = {'admin': '管理员', 'viewer': '只看数据'}
 
 
 def operator(headers):
-    """Who is asking (the email Cloudflare Access signed in) and the role that email has."""
+    """Who is asking (the email Cloudflare Access signed in) and the role that email has. With FLOW_ACCESS_AUD and
+    FLOW_ACCESS_TEAM set, the email comes from Access's signed token (access_check.py) and a request without a valid
+    one gets None (403); without them, the header is read as before."""
     email = (headers.get('Cf-Access-Authenticated-User-Email') or '').strip().lower()[:200]
+    check = __import__('access_check').settings()
+    if check:
+        email = __import__('access_check').verify(headers.get('Cf-Access-Jwt-Assertion'), *check)
+        if not email:
+            return None
     admins = {e.strip().lower() for e in os.getenv('FLOW_ADMIN_EMAILS', '').split(',') if e.strip()}
     role = 'admin' if not admins or email in admins else 'viewer'
     return {'email': email, 'role': role, 'label': ROLE_LABEL[role], 'roles_set': bool(admins)}
@@ -170,7 +177,7 @@ TAP_LABEL = {
     'home-resume': '今日 · 继续上次', 'home-news': '今日 · 今日一读', 'home-pick': '今日 · 也可以读', 'home-more': '今日 · 更多材料',
     'practice-map': '练习 · 知识图谱大卡', 'practice-tip': '练习 · 今天建议',
     'words-plan': '单词 · 词书计划', 'words-confuse': '单词 · 辨析', 'words-mistake': '单词 · 错题本', 'words-test': '单词 · 测词汇量', 'words-import': '单词 · 导入',
-    'words-stats': '单词 · 展开统计', 'read-gains': '读 · 展开这篇的收获', 'listen-preread': '听 · 展开读前生词',
+    'words-stats': '单词 · 展开统计', 'confuse-how': '词汇辨析 · 展开怎么区分', 'read-gains': '读 · 展开这篇的收获', 'listen-preread': '听 · 展开读前生词',
     'study-origin': '学习页 · 看来源', 'notice-install': '今日 · 提醒：放到桌面',
     'me-radar': '我的 · 能力雷达', 'me-growth': '我的 · 我的进步', 'me-report': '我的 · 这周的报告', 'me-mistake': '我的 · 错题本',
     'me-level': '我的 · 学习目标和水平', 'me-voice': '我的 · 朗读声音', 'me-text': '我的 · 字号和行距', 'me-remind': '我的 · 每天提醒', 'me-install': '我的 · 添加到桌面',
@@ -217,7 +224,7 @@ def overview(c):
         'ai': {
             'today': q('SELECT COALESCE(SUM(count),0) FROM ai_usage WHERE day=?', day),
             'week': [{'day': d, 'count': q('SELECT COALESCE(SUM(count),0) FROM ai_usage WHERE day=?', d)} for d in reversed(week)],
-            'site_limit': chat_service.daily_limit('FLOW_AI_DAILY_LIMIT'),
+            'site_limit': chat_service.site_limit(c),  # today's, grown with the learners (chat_service.site_limit)
             'limits': __import__('console_ops').limits(),
             'user_limit': chat_service.daily_limit('FLOW_AI_USER_DAILY_LIMIT'),
             'users_at_limit': (q('SELECT COUNT(*) FROM ai_usage WHERE day=? AND user_id>0 AND count>=?', day, chat_service.daily_limit('FLOW_AI_USER_DAILY_LIMIT'))
@@ -481,6 +488,8 @@ class AdminHandler(BaseHTTPRequestHandler):
             return self._send({'error': '接口不存在'}, 404)
         path = path[len(PREFIX):]
         op = operator(self.headers)
+        if op is None:
+            return self._send({'error': '没有通过 Cloudflare Access 的登录核对，请重新打开后台'}, 403)
         with app.db() as c:
             schema(c)
             if method == 'GET':

@@ -59,7 +59,7 @@ class Classes(unittest.TestCase):
 
     def person(self, name):
         """Sign up; returns (cookie, csrf, id)."""
-        req = urllib.request.Request(f'http://127.0.0.1:{self.site.server_address[1]}/api/register', data=json.dumps({'username': name, 'password': PW, 'age': '18+', 'storage': True}).encode(),
+        req = urllib.request.Request(f'http://127.0.0.1:{self.site.server_address[1]}/api/register', data=json.dumps({'username': name, 'password': PW, 'age': '18+', 'storage': True, 'terms': True}).encode(),
                                      headers={'Content-Type': 'application/json', 'X-Real-IP': f'10.9.{len(self.people) // 200}.{len(self.people) % 200 + 1}'})
         with urllib.request.urlopen(req, timeout=10) as r:  # each its own address: sign-ups share a ceiling per address
             cookie = r.headers['Set-Cookie'].split(';')[0]

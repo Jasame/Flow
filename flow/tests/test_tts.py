@@ -121,6 +121,15 @@ class ServerVoiceTests(TtsCase):
         body, st = tts.post(self.c, 1, {'text': 'Hello there.', 'voice': 'zz-x'})
         self.assertEqual(st, 200); self.assertIn('/us-f/', body['url'])  # the default voice
 
+    def test_the_day_stop_holds_new_ai_voice_but_stored_audio_plays(self):  # ¥10 stop (the owner: 「¥5 提醒，¥10 硬停」)
+        import ai_routes
+        self.assertEqual(tts.post(self.c, 1, {'text': 'Stored before the stop.'})[1], 200)
+        with patch.object(ai_routes, 'day_full', lambda c=None, now=None: True):
+            body, st = tts.post(self.c, 1, {'text': 'A new sentence after the stop.'})
+            self.assertEqual((st, body['code']), (429, 'ai_day_full')); self.assertIn('早上 8 点', body['error'])
+            self.assertEqual(tts.post(self.c, 1, {'text': 'Stored before the stop.'})[1], 200)
+        self.assertEqual(len(self.gw.seen), 1)
+
     def test_caps_per_learner_and_per_day(self):
         line = 'This sentence is a little longer than the others, on purpose. ' * 3  # ~190 characters
         self.assertEqual(tts.post(self.c, 1, {'text': line})[1], 200)

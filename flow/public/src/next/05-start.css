@@ -3,7 +3,7 @@
    only the first time (.first, set by the script). If the script never runs, the mark fades by itself after 3 s. */
 .splash{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
   background:var(--bg);color:var(--ink);animation:sp-gone .3s ease 3s forwards}
-.sp-mark{width:96px;height:96px;border-radius:26px;background:var(--green);display:flex;align-items:center;justify-content:center;gap:7px}
+.sp-mark{width:96px;height:96px;border-radius:26px;background:var(--brand);display:flex;align-items:center;justify-content:center;gap:7px}
 .sp-mark i{display:block;width:8px;border-radius:4px;background:#fff;animation:sp-bar .42s cubic-bezier(.2,.8,.2,1) both}
 .sp-mark i:nth-child(1){height:26px}
 .sp-mark i:nth-child(2){height:48px;animation-delay:.05s}
@@ -41,10 +41,16 @@ body.onboarding{padding-bottom:var(--sab)}
 .wg-targets .opt{display:grid;justify-items:center;gap:2px;padding:10px 4px;text-align:center;min-height:72px;position:relative}
 .wg-targets .opt b{font-size:16px}
 .wg-targets .opt .d{font-size:12px;line-height:1.35;color:var(--ink2)}
-.wg-targets .rec{font-size:11.5px;font-weight:700;color:var(--on-fill);background:var(--fill);border-radius:99px;padding:0 7px;line-height:1.6}
+/* 推荐 is a corner badge, not a third line: four tiles in a row stay one height on a 375 px phone (B8 audit, 2026-11-25) */
+.wg-targets .rec{position:absolute;top:-8px;right:-4px;font-size:11px;font-weight:700;color:var(--on-fill);background:var(--fill);border-radius:99px;padding:0 6px;line-height:1.6;pointer-events:none}
 .wg .opt[aria-checked=true] .d{color:var(--green-ink)}
 .wg input[type=date]{width:100%;max-width:280px;min-height:46px;padding:8px 12px;border-radius:12px;border:1px solid var(--line2);background:var(--paper);font-size:16px}
 .wg-go{margin-top:8px}
+/* 注册账号 | 已有账号？登录: two equal buttons under 开始学习 */
+.wg-acct{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.wg-acct .btn{white-space:nowrap;padding-left:8px;padding-right:8px}
 .wg-plan{margin:4px 0 0;padding:10px 12px;border-radius:12px;background:var(--green-soft);color:var(--green-ink)}
 .wg-go .link{min-height:40px;align-self:center}
 @media (min-width:768px){.wg-goals{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* the sign-in sheet's 登录: 「用邮箱验证码登录」 on the left, 「忘记密码？」 on the right */
+.auth .auth-links>:first-child:not(:only-child){margin-right:auto}

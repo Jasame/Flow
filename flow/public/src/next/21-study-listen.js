@@ -115,6 +115,7 @@
       };
       pane.querySelector('#playRestart').onclick = () => { LONG.stop(); PROG.clear(PKEY); readAll(0); };
       setBtn();
+      NATIVE.follow(PKEY, setBtn);  // in the app: the button says where the app got to (it may have played on, or still plays)
       pane.querySelectorAll('[data-say]').forEach(b => b.onclick = () => {
         const i = Number(b.dataset.say); stopAll(); setNow(i);
         if (looping()) MINI.show(`复读第 ${i + 1} 句`, stopAll);  // a stop button on screen while it repeats
@@ -122,12 +123,13 @@
       });
       pane.querySelectorAll('[data-rep], [data-gap]').forEach(b => b.onclick = () => {
         const k = 'rep' in b.dataset ? 'rep' : 'gap'; LOOP[k] = Number(b.dataset[k]); save('flow-next-loop', LOOP);
+        NATIVE.retune();  // the app playing it gets the new 复读 at once
         pane.querySelectorAll(`[data-${k}]`).forEach(x => x.setAttribute('aria-pressed', String(x === b)));
         pane.querySelector('#psum').textContent = psum();
       });
       pane.querySelector('.playset').ontoggle = e => save('flow-next-playset', e.currentTarget.open);
       pane.querySelectorAll('.line .txt').forEach((t, i) => t.onclick = e => { if (e.target.dataset.w && !st.blind) lookupSheet(e.target.dataset.w, ls[i], id); });
-      pane.querySelectorAll('[data-rate]').forEach(b => b.onclick = () => { TTS.rate = Number(b.dataset.rate); save('flow-next-rate', TTS.rate); NAR.audio.playbackRate = TTS.rate; pane.querySelectorAll('[data-rate]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); pane.querySelector('#psum').textContent = psum(); });
+      pane.querySelectorAll('[data-rate]').forEach(b => b.onclick = () => { TTS.rate = Number(b.dataset.rate); save('flow-next-rate', TTS.rate); NAR.audio.playbackRate = TTS.rate; NATIVE.retune(); pane.querySelectorAll('[data-rate]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); pane.querySelector('#psum').textContent = psum(); });
       pane.querySelectorAll('[data-voice]').forEach(b => b.onclick = async () => { if (b.disabled) return; stopAll(); await setVoice(b.dataset.voice); listen(); toast('已切换为' + VOICE_LABELS[b.dataset.voice]); });
       pane.querySelector('#blind').onclick = e => { st.blind = !st.blind; toast(st.blind ? '盲听：只听不看，再点一次显示原文' : '已显示原文'); e.currentTarget.classList.toggle('on', st.blind); e.currentTarget.setAttribute('aria-pressed', String(st.blind)); pane.querySelectorAll('.txt').forEach(t => t.classList.toggle('blind', st.blind)); };
       pane.querySelector('#toRead').onclick = () => { stopAll(); markStep('listen'); go('read'); };

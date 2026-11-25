@@ -8,7 +8,18 @@
   },
   "plugins": {
     "deep-link": {
-      "desktop": { "schemes": ["flowlang-beta"] }
+      "desktop": {
+        "schemes": [
+          "flowlang-beta"
+        ]
+      }
+    }
+  },
+  "app": {
+    "security": {
+      "capabilities": [
+        "site-beta"
+      ]
     }
   }
 }

@@ -162,6 +162,7 @@ The owner approved these on 2026-11-24 (「按你的建议改，b6 发完就写�
      - Exit status 3 means the MSI could not be reached. Then run the same on the Mac:
        `python3 tools/run_tests.py --changed --checks`.
      - At most two `msi-run`s at once, four while CI is light on the MSI; the next waits its turn (first come, first served).
+     - A docs-only PR needs nothing before pushing; CI skips the UI shares for it anyway.
    - Tests compute counts from the data. Never hard-code how many questions, columns or items there are.
    - A change to an API response shape updates `tools/qa_e2e.py` in the same PR (b5's e2e broke on exactly this).
    - Progress goes into the area's shared note, so other sessions read it instead of waiting for relayed messages.
@@ -195,6 +196,10 @@ The owner approved these on 2026-11-24 (「按你的建议改，b6 发完就写�
    - no `say`, `afplay` or `osascript` beep;
    - no Escape key press when there is nothing to cancel (macOS beeps);
    - a test that has to be heard is asked for first.
+10. **A fork's pull request that touches `.github/` is never approved to run.** GitHub asks the owner to approve
+    workflows for outside contributors' pull requests; one that changes anything under `.github/` (workflows,
+    actions, settings files) is declined, whatever it says it does: its own workflow would run with what it wrote in
+    it. Ask for the change without `.github/`, and a session here makes that part.
 
 ## 推之前跑哪些测试 (what to run before pushing)
 

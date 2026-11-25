@@ -114,6 +114,45 @@ class MainFirstTests(unittest.TestCase):
         self.assertEqual(r.stdout.strip(), 'ui=false')
 
 
+class ReleaseSigningTests(unittest.TestCase):
+    """tools/deploy.sh signs each release request: REQUEST names its tag and the sha256 of TOOLS (what the server runs
+    before installing), and REQUEST.sig is `ssh-keygen -Y sign` over REQUEST, namespace flow-release (语流, the owner's
+    key in the Mac's ssh-agent) or flow-beta-release (the 内测版, beta.yml's key)."""
+
+    def test_deploy_writes_tag_tools_and_the_signature(self):
+        sh = (ROOT / 'tools' / 'deploy.sh').read_text(encoding='utf-8')
+        for need in ('tag=%s%s tools=%s', 'release_manifest.py --tools "$BUILD" > "$WT/TOOLS"', 'NS=flow-release; [ $P = b ] && NS=flow-beta-release',
+                     'ssh-keygen -Y sign -q -f "$KEY" -n "$NS" "$WT/REQUEST"', 'git -C "$WT" add REQUEST TOOLS',
+                     'rm -f "$WT/REQUEST.sig"; git -C "$WT" rm -q --cached --ignore-unmatch REQUEST.sig'):
+            self.assertIn(need, sh)
+
+    def test_tools_lists_every_tool_the_server_takes_from_a_release(self):
+        rm = load('release_manifest')
+        auto = (ROOT / 'tools' / 'flow-autodeploy.py').read_text(encoding='utf-8')
+        tools = re.findall(r"'(tools/[^']+)'", re.search(r'^TOOLS = \[(.*?)\]', auto, re.M)[1])
+        self.assertTrue(tools)
+        self.assertLessEqual(set(tools), set(rm.TOOL_FILES))
+        self.assertIn(re.search(r"^AUDIO = '([^']+)'", auto, re.M)[1], rm.TOOL_DIRS)
+
+    def test_a_signature_checks_out_only_with_its_own_key_and_namespace(self):
+        import shutil
+        if not shutil.which('ssh-keygen'):
+            self.skipTest('no ssh-keygen')
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            run = lambda *a, **kw: subprocess.run(list(a), cwd=d, capture_output=True, **kw)
+            run('ssh-keygen', '-q', '-t', 'ed25519', '-N', '', '-C', 'test', '-f', 'k', check=True)
+            (d / 'REQUEST').write_text('0' * 40 + ' ' + '1' * 64 + ' e2e tag=b9 tools=' + '2' * 64 + '\n# b9 main: test\n')
+            run('ssh-keygen', '-Y', 'sign', '-q', '-f', 'k', '-n', 'flow-beta-release', 'REQUEST', check=True)
+            (d / 'allowed').write_text('flow-beta-release namespaces="flow-beta-release" ' + (d / 'k.pub').read_text())
+            verify = lambda ns, body: run('ssh-keygen', '-Y', 'verify', '-f', 'allowed', '-I', ns, '-n', ns, '-s', 'REQUEST.sig',
+                                          input=body).returncode
+            body = (d / 'REQUEST').read_bytes()
+            self.assertEqual(verify('flow-beta-release', body), 0)
+            self.assertNotEqual(verify('flow-release', body), 0)  # the other namespace: refused
+            self.assertNotEqual(verify('flow-beta-release', body.replace(b'tag=b9', b'tag=b8')), 0)  # changed: refused
+
+
 class MsiRunnerTests(unittest.TestCase):
     """The owner's MSI takes the heavy shares only when switched on, never for a fork, and only when it answers; the
     gates, frontend and releases stay on GitHub's machines; nothing secret goes there (tools/ci_runner.py)."""
@@ -328,7 +367,13 @@ class BetaReleaseTests(unittest.TestCase):
         self.assertIn('permissions:\n      contents: write', self.jobs['release'])
         self.assertNotIn('contents: write', self.jobs['dry-run'])
         self.assertIn('group: beta-release\n      cancel-in-progress: false', self.jobs['release'])
-        self.assertNotIn('secrets.', self.wf)  # nothing but the workflow's own token
+        # one secret, the key that signs the 内测版's requests: in the release job only, which only main may run (its
+        # environment), handed to deploy.sh as a file and gone from the environment of what deploy.sh starts
+        self.assertEqual(set(re.findall(r'secrets\.(\w+)', self.wf)), {'FLOW_BETA_SIGN_KEY'})
+        self.assertNotIn('secrets.', self.jobs['dry-run'])
+        self.assertIn('environment: beta-release-signing', self.jobs['release'])
+        self.assertIn('unset FLOW_BETA_SIGN_KEY\n          bash tools/deploy.sh', self.jobs['release'])
+        self.assertIn("trap 'rm -f \"$key\"' EXIT", self.jobs['release'])
 
     def test_the_guide_pdf_is_printed_with_a_chinese_font(self):
         for job in ('release', 'dry-run'):

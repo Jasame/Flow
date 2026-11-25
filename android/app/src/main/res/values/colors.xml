@@ -4,4 +4,6 @@
     <color name="flow_bg">#FBFAF6</color>
     <color name="flow_text">#1B2420</color>
     <color name="flow_green">#1F9D55</color>
+    <!-- 主题色 靛蓝 (「我的 → 外观」; Accent.kt) -->
+    <color name="flow_indigo">#3461D1</color>
 </resources>
