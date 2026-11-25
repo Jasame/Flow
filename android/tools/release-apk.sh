@@ -11,7 +11,10 @@
 #   tools/release-apk.sh [beta|prod|both]      → android/dist/flow-beta-<version>.apk, flow-<version>.apk
 #
 # versionCode: flow.versionCode in gradle.properties (raise it before handing out a prod APK), or FLOW_VERSION_CODE
-# (CI: 100 + the run number, so every beta from main is newer than the one before).
+# (CI: 100 + the run number, so every beta from main is newer than the one before; a beta made here with versionCode 1
+# does not install over one from CI: give FLOW_VERSION_CODE above it, or uninstall first).
+# FLOW_APK_PREBUILT=1: sign what Gradle already built, without running it (CI builds in a step without the key, so
+# Gradle and its plugins never see the key or its password).
 set -eu
 cd "$(dirname "$0")/.."
 which=${1:-both}
@@ -33,9 +36,11 @@ password() {
 }
 for f in $flavors; do [ -f "$(keyfile "$f")" ] || { echo "no $f keystore at $(keyfile "$f") (android/README.md, 「发 APK」)" >&2; exit 1; }; done
 
-tasks=""
-for f in $flavors; do tasks="$tasks assemble$(printf %s "$f" | cut -c1 | tr a-z A-Z)$(printf %s "$f" | cut -c2-)Release"; done
-./gradlew -q $tasks
+if [ "${FLOW_APK_PREBUILT:-}" != 1 ]; then
+  tasks=""
+  for f in $flavors; do tasks="$tasks assemble$(printf %s "$f" | cut -c1 | tr a-z A-Z)$(printf %s "$f" | cut -c2-)Release"; done
+  ./gradlew -q $tasks
+fi
 
 mkdir -p dist
 sum() { if command -v shasum >/dev/null; then shasum -a 256 "$1"; else sha256sum "$1"; fi; }

@@ -53,7 +53,7 @@ emulator -avd flow37 -no-window -no-audio      # 测试时一律不出声（工�
 
 - **内测包**：在 GitHub 的 Actions →「Android」里找最新一次 main 的 run，下载 artifact `flow-beta-apk`（zip 里就是 APK），留 30 天。
   - versionCode 是 100 加上 run 的编号，每个新包都能直接覆盖上一个。
-  - 本机也能打：`tools/release-apk.sh beta`。
+  - 本机也能打：`tools/release-apk.sh beta`。本机打的 versionCode 是 1，比 CI 打的（100 加 run 编号）小，装不上去覆盖手机上 CI 的包：要么先卸载，要么设 `FLOW_VERSION_CODE`，让它比手机上的大。
 - **正式包**：`tools/release-apk.sh prod` → `dist/flow-<版本>.apk`。发之前先把 `gradle.properties` 里的 `flow.versionCode` 加 1，versionCode 更大的包才能覆盖旧的。
 - 脚本从钥匙串里取密码，交给 `apksigner`；CI 上从 Secrets 取。Gradle 碰不到密码，仓库里也没有。
 - **两把钥匙都要备份**（加密 U 盘、密码管理器都行），密码也要一起备份。丢了以后，新版本就不能覆盖安装：每个人都得先卸载再装，App 里的登录也要重新登。
@@ -65,6 +65,9 @@ emulator -avd flow37 -no-window -no-audio      # 测试时一律不出声（工�
 CI（`.github/workflows/android.yml`，语流 15）：
 - 每个改 `android/` 的 PR 都跑 `assembleBetaDebug testBetaDebugUnitTest lintBetaDebug`。
 - main 上另外由 job `beta-apk` 打签名的内测包。它绑定 environment `android-beta-signing`，只在 main 上跑，PR 拿不到钥匙，也不放到 MSI 自托管机器上。
+  - 先在一个看不到钥匙的步骤里构建（Gradle 和它的插件都碰不到钥匙）；
+  - 再在只有 zipalign 和 apksigner 的那一步签名（`FLOW_APK_PREBUILT=1`）；
+  - 钥匙文件用 trap 删掉，签名失败也会删。
 
 ## 外壳做了什么（`MainActivity`）
 

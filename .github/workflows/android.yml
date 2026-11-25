@@ -86,16 +86,21 @@ jobs:
           sdk="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           yes | "$sdk" --licenses > /dev/null || true
           "$sdk" --install "platforms;android-37.0" "build-tools;37.0.0" > /dev/null
-      - name: Signed 语流内测 APK
+      # built without the key in sight: Gradle, its plugins and dependencies never see it
+      - name: Release build (unsigned)
+        run: |
+          export FLOW_VERSION_CODE=$((100 + GITHUB_RUN_NUMBER))
+          ./gradlew --no-daemon assembleBetaRelease
+      # the only step with the key: zipalign and apksigner, nothing else
+      - name: Sign 语流内测 APK
         env:
           FLOW_BETA_KEYSTORE: ${{ secrets.FLOW_BETA_KEYSTORE }}
           FLOW_BETA_KS_PW: ${{ secrets.FLOW_BETA_KS_PW }}
         run: |
           umask 077
+          trap 'rm -f "$RUNNER_TEMP/flow-beta.jks"' EXIT
           printf %s "$FLOW_BETA_KEYSTORE" | base64 -d > "$RUNNER_TEMP/flow-beta.jks"
-          export FLOW_BETA_KEYSTORE_FILE="$RUNNER_TEMP/flow-beta.jks" FLOW_VERSION_CODE=$((100 + GITHUB_RUN_NUMBER))
-          tools/release-apk.sh beta
-          rm -f "$RUNNER_TEMP/flow-beta.jks"
+          FLOW_APK_PREBUILT=1 FLOW_BETA_KEYSTORE_FILE="$RUNNER_TEMP/flow-beta.jks" tools/release-apk.sh beta
       - uses: actions/upload-artifact@v4
         with:
           name: flow-beta-apk
