@@ -23,8 +23,8 @@
       this.browser(text, onend, onword);
     },
     // onfail: the sentence was not said (no voice, or iOS dropped it twice); without it, onend is called then, so whoever
-    // waits on the sentence goes on (a whole text pauses instead: LONG)
-    browser(text, onend, onword, onfail) {
+    // waits on the sentence goes on (a whole text pauses instead: LONG). onstart: the voice has begun this sentence.
+    browser(text, onend, onword, onfail, onstart) {
       LONG.other();
       if (!this.ok) { noSound('不能用电脑朗读的声音'); if (onfail) onfail(); return; }
       const t = ++this.token, busy = speechSynthesis.speaking || speechSynthesis.pending;
@@ -42,7 +42,7 @@
         const give = () => { clearTimeout(watch); if (t !== this.token) return; if (onfail) onfail(); else if (onend) onend(); };
         const again = () => { clearTimeout(watch); if (t !== this.token) return; if (++tries < 2) setTimeout(say, 250); else give(); };
         if (onword) u.onboundary = e => { if (t === this.token && e.name !== 'sentence') onword(e.charIndex); };
-        u.onstart = () => { started = true; clearTimeout(watch); };
+        u.onstart = () => { started = true; clearTimeout(watch); if (t === this.token && onstart) onstart(); };
         u.onend = () => { clearTimeout(watch); if (t !== this.token) return; if (started) { if (onend) onend(); } else again(); };
         u.onerror = e => { if (e && /interrupted|canceled/.test(e.error || '')) { clearTimeout(watch); return; } again(); };  // ours: stopped, or a new sentence
         // A browser with speechSynthesis but no voice to speak with (WeChat on Android) neither starts nor fails: after
@@ -52,7 +52,7 @@
           speechSynthesis.cancel(); if (!speechSynthesis.getVoices().length) this.ok = false;
           noSound('不能用电脑朗读的声音'); give();
         }, 2500);
-        speechSynthesis.speak(u);
+        try { speechSynthesis.speak(u); } catch (e) { again(); }  // refused outright: as a dropped sentence
       };
       if (busy) setTimeout(say, 60); else say();
     },
@@ -741,8 +741,11 @@
         this.claim();
       } else {
         // the browser voice could not say it (none here, or iOS dropped it twice): the text waits there, paused, with why
-        const failed = () => { if (this.r !== r || r.tok !== tok) return; this.held(); r.note = '浏览器的声音没有读出这一句，点「继续」再试一次'; this.emit(); };
-        this.own(() => TTS.browser(text, next, c => { if (this.r === r && r.onWord) r.onWord(i, c); }, failed));
+        const failed = () => { clearTimeout(stall); if (this.r !== r || r.tok !== tok) return; this.held(); r.note = '浏览器的声音没有读出这一句，点「继续」再试一次'; this.emit(); };
+        // and if nothing at all comes back from it (never asked: something else spoke or stopped it in between; or no
+        // event of any kind, which an iPad did once offline: 语流 07, 2026-11-25), it is not left "playing" there either
+        const stall = setTimeout(failed, 4000);
+        this.own(() => TTS.browser(text, () => { clearTimeout(stall); next(); }, c => { if (this.r === r && r.onWord) r.onWord(i, c); }, failed, () => clearTimeout(stall)));
       }
     },
     // one sentence said: again (复读), or the next, after its pause. The pause is the one after the sentence just said

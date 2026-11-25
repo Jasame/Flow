@@ -1330,6 +1330,7 @@ def ux_run(pw):
             'once': "let n = 0; speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); const k = n++; setTimeout(() => { if (k > 0 && u.onstart) u.onstart(); u.onend && u.onend(); }, 30); };",
             'always': "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); setTimeout(() => { u.onend && u.onend(); }, 30); };",
             'never': "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); };",
+            'throws': "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); throw new Error('refused'); };",
         }
         seen = {}
         for kind, js in drops.items():
@@ -1369,13 +1370,15 @@ def ux_run(pw):
         check(dev, '留时间跟说: the pause after a sentence is as long as that sentence (2 words: the 1.5 s minimum), not the next one',
               said and said[0][0] == 'Stop here.' and gap0 is not None and 1400 <= gap0 <= 2600, {'said': len(said), 'gap_after_first_ms': gap0})
         c4.close()
-        o, al, nv = seen['once'], seen['always'], seen['never']
+        o, al, nv, th = seen['once'], seen['always'], seen['never'], seen['throws']
         check(dev, 'browser voice dropped once (iOS): that sentence is said again and the text reads on to its end',
               len(o['said']) == o['n'] + 1 and o['said'][0] == o['said'][1] and o['btn'] == '播放全文', {k: o[k] for k in ('n', 'btn', 'now')} | {'said': len(o['said'])})
         check(dev, 'browser voice dropped every time: tried twice, then the text waits paused at that sentence and says why (not "read")',
               len(al['said']) == 2 and al['btn'] == '继续' and al['now'] == '0' and '没有读出' in al['note'] and al['mini'] == '已暂停', al)
         check(dev, 'browser voice never starting: after 2.5 s the text waits paused at that sentence and says why',
               len(nv['said']) == 1 and nv['btn'] == '继续' and nv['now'] == '0' and '没有读出' in nv['note'], nv)
+        check(dev, 'browser voice refusing outright (speak throws): tried twice, then the text waits paused there and says why',
+              len(th['said']) == 2 and th['btn'] == '继续' and th['now'] == '0' and '没有读出' in th['note'], th)
         pg.reload(); settle(pg, '[data-rep]')
         check(dev, '复读: the choice is remembered', pg.get_attribute('[data-rep="3"]', 'aria-pressed') == 'true')
         pg.click('[data-rep="1"]')
