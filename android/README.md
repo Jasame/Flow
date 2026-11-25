@@ -7,6 +7,7 @@
 | 显示名 | 语流内测 | 语流 |
 | 包名 | `cn.flowlang.app.beta` | `cn.flowlang.app` |
 | 打开的网站 | https://flow.jasa.hk | https://flowlang.cn |
+| 图标 | 同一个声波，橙色底 `#E8590C`（`src/beta/res/drawable/ic_launcher_background.xml`，用户 2026-11-25 选的） | 绿色底 `#1F9D55` |
 | Gradle flavor | `beta` | `prod` |
 
 两个包名不同，可以同时装在一台手机上。Android 8.0（API 26）以上都能装，targetSdk 37（Android 17）。
