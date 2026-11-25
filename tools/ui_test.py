@@ -3145,6 +3145,8 @@ def progress_run(pw):
                           fold['lineH'] <= 70 and fold['newsH'] <= 64 and fold['newsAI'] and fold['planInView'] and not fold['say'] and opened['say'] and not closed['say'], (fold, opened['say'], closed['say']))
                 else:
                     check(dev, f'{tag}: 好句 and 今日一读 shown whole (no fold on a wide screen)', fold['say'] and not fold['foldShown'] and fold['newsH'] > 70, fold)
+                first_h = pg.evaluate("(() => { const h = document.querySelector('#view h1, #view h2, #view h3'); return h ? h.tagName + ' ' + h.textContent.trim() : null; })()")
+                check(dev, f'{tag}: 今日\'s first heading is its h1 (今日好句 names its section, it is not a heading before it)', bool(first_h) and first_h.startswith('H1'), first_h)
                 top = pg.evaluate(TOP_JS)
                 check(dev, f'{tag}: 今日 runs 好句, 今日一读, the plan, 这周进步 from the top (the plan first on a phone held sideways), nothing cut off or wider than the screen',
                       top['order'] == (['plan', 'lineCard', 'news', 'week'] if h < 500 else ['lineCard', 'news', 'plan', 'week']) and not top['clipped'] and top['wide'] <= 0 and (not touch or top['small'] == []), top)
