@@ -1339,6 +1339,7 @@ def ux_run(pw):
             'always': "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); setTimeout(() => { u.onend && u.onend(); }, 30); };",
             'never': "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); };",
             'throws': "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); throw new Error('refused'); };",
+            'no-end': "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); setTimeout(() => { u.onstart && u.onstart(); }, 30); };",
         }
         seen = {}
         for kind, js in drops.items():
@@ -1404,7 +1405,7 @@ def ux_run(pw):
         check(dev, '播放全文 right after opening an article: the fresher 今日 coming in does not stop the reading',
               kept['btn'] == '暂停' and kept['mini'] and kept['said'] >= 2, kept)
         c5.close()
-        o, al, nv, th = seen['once'], seen['always'], seen['never'], seen['throws']
+        o, al, nv, th, ne = seen['once'], seen['always'], seen['never'], seen['throws'], seen['no-end']
         check(dev, 'browser voice dropped once (iOS): that sentence is said again and the text reads on to its end',
               len(o['said']) == o['n'] + 1 and o['said'][0] == o['said'][1] and o['btn'] == '播放全文', {k: o[k] for k in ('n', 'btn', 'now')} | {'said': len(o['said'])})
         check(dev, 'browser voice dropped every time: tried twice, then the text waits paused at that sentence and says why (not "read")',
@@ -1413,6 +1414,10 @@ def ux_run(pw):
               len(nv['said']) == 1 and nv['btn'] == '继续' and nv['now'] == '0' and '没有读出' in nv['note'], nv)
         check(dev, 'browser voice refusing outright (speak throws): tried twice, then the text waits paused there and says why',
               len(th['said']) == 2 and th['btn'] == '继续' and th['now'] == '0' and '没有读出' in th['note'], th)
+        # started, then no end and no error, the voice quiet (an iPad simulator, offline: 语流 B5's [flowdbg] log): the
+        # sentence counts as said once the voice has been quiet a moment, and the text reads on instead of sticking
+        check(dev, 'browser voice starting a sentence but never saying it ended: the text reads on (not stuck "playing")',
+              len(ne['said']) >= 2 and ne['said'][0] != ne['said'][1] and '没有读出' not in ne['note'], {k: ne[k] for k in ('btn', 'now', 'note')} | {'said': len(ne['said'])})
         pg.reload(); settle(pg, '[data-rep]')
         check(dev, '复读: the choice is remembered', pg.get_attribute('[data-rep="3"]', 'aria-pressed') == 'true')
         pg.click('[data-rep="1"]')
