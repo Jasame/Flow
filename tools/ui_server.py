@@ -21,7 +21,8 @@ subprocess.run([sys.executable, str(ROOT.parent / 'tools' / 'build_front.py')], 
 tmp = tempfile.mkdtemp(prefix='flow-ui-')
 # Mail is on, as in production (sign-up, code login and a forgotten password then use emailed codes): messages are
 # written to <data>/outbox as files, never sent.
-os.environ.update({'FLOW_DATA_DIR': tmp, 'FLOW_COOKIE_SECURE': '0', 'FLOW_MAIL_OUTBOX': os.path.join(tmp, 'outbox'), 'FLOW_AI_PROVIDER': 'openai', 'FLOW_AI_KEY': 'ui-test', 'FLOW_AI_MODEL': 'ui-test',
+os.environ.update({'FLOW_TOUR_FROM': '4102444800',  # 新手引导 for no account made here, but the two given theirs below
+                   'FLOW_DATA_DIR': tmp, 'FLOW_COOKIE_SECURE': '0', 'FLOW_MAIL_OUTBOX': os.path.join(tmp, 'outbox'), 'FLOW_AI_PROVIDER': 'openai', 'FLOW_AI_KEY': 'ui-test', 'FLOW_AI_MODEL': 'ui-test',
                    'FLOW_AI_URL': 'https://ai.invalid/v1/chat/completions', 'FLOW_AI_USER_DAILY_LIMIT': '500', 'FLOW_AI_DAILY_LIMIT': '5000', 'FLOW_AI_AUDIO': '1'})
 # Data word books (专四、专八、中考、学术…): small fixtures instead of flow/corpus_data/wordbooks*.json, so the picker
 # always shows the same groups and books whatever data files the checkout has.
@@ -168,7 +169,8 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             'teacher': ('B1', 'work', ['work']), 'student': ('B1', 'work', ['work']),  # 班级试用 (class_run)
             'ageless': ('B1', 'work', ['work']), 'young': ('B1', 'work', ['work']),
             'unasked': ('B1', 'work', ['work']),  # 数据存放在香港 (privacy_run): an older account, not asked yet
-            'veteran': ('B1', 'work', ['work'])}  # 班级试用问卷 (trial_survey_run): in the class for 25 days  # 年龄段 (privacy_run): none yet; 不满 14 岁 without a guardian's agreement
+            'veteran': ('B1', 'work', ['work']),  # 班级试用问卷 (trial_survey_run): in the class for 25 days  # 年龄段 (privacy_run): none yet; 不满 14 岁 without a guardian's agreement
+            'tour': ('B1', 'work', ['work', 'science']), 'tour-teacher': ('B1', 'work', ['work'])}  # 新手引导 (tour_run): theirs still to see
 out = {}
 with app.db() as c:
     for name, (level, goal, themes) in LEARNERS.items():
@@ -273,6 +275,10 @@ with app.db() as c:
     c.execute("UPDATE users SET age_band='u14', age_set=? WHERE username='ui-young'", (time.time(),))
     # 数据存放在香港 (privacy_service): every learner agreed at sign-up, but ui-unasked (the page asks it; privacy_run)
     c.execute("UPDATE users SET storage_ok=? WHERE username!='ui-unasked'", (time.time(),))
+    # 新手引导 (tour_service): no account here gets it (FLOW_TOUR_FROM is far ahead) but these two, given theirs (tour_run)
+    c.execute("UPDATE users SET role='teacher' WHERE username='ui-tour-teacher'")
+    for who, tour in (('tour', 'learner'), ('tour-teacher', 'teacher')):
+        c.execute("INSERT INTO next_tours(user_id, tour, result, created) VALUES(?,?,'pending',?)", (out[who]['id'], tour, time.time()))
     # 班级试用: ui-teacher's class with 5 members who studied and got grammar points wrong this week (class_run)
     now = time.time()
     cid = c.execute("INSERT INTO classes(name, code, teacher, by, created, updated) VALUES('高一（3）班', 'UICLS2', ?, 'ui', ?, ?)", (out['teacher']['id'], now, now)).lastrowid

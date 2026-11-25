@@ -50,7 +50,7 @@ DEFAULT_SECONDS = 30
 # A name ui_test.py does not have yet is allowed: 'privacy' and 'trial-survey' arrive with PRs #58 and #59.
 UI_SHARDS = [
     ['about', 'wait', 'home-app', 'ios-audio', 'review-side'],
-    ['phone', 'phone-land', 'privacy', 'trial-survey', 'updates'],
+    ['phone', 'phone-land', 'privacy', 'trial-survey', 'updates', 'tour'],
     ['tablet', 'desktop', 'platforms', 'wechat', 'ux'],
     ['learner', 'progress', 'swipe', 'listen-speak', 'start', 'sprint', 'backlog', 'class'],
     ['a11y', 'layout'],

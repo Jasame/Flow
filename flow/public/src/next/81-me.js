@@ -18,7 +18,7 @@
       u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
         grow('meAge', '年龄段', ageLabel(u && u.age), 'meAgeV', 'me-age'), grow('meStorage', '数据存放', '已同意 · 香港'), grow('meData', '导出我的数据', '单词本 · 学习记录', '', 'me-data'), grow('meDelete', '注销账号', '', '', 'me-delete')],
         '绑定邮箱后，可以用验证码登录，忘记密码时自己找回。30 天内来过就一直保持登录；在别人的手机或电脑上用完，记得退出。'],
-      ['帮助', [grow('#/guide', '操作指南', '每个页面怎么用', '', 'me-guide'), grow('#/updates', '更新记录', '每一次更新改了什么', '', 'me-updates'), grow('/about', '认识语流', '一页看完语流能帮你做什么', '', 'me-about'),grow('#/feedback', '问题反馈', '页面不对、功能用不了，告诉我们', '', 'me-feedback'), grow('#/guide/privacy', '隐私说明', '数据存在哪里、交给哪家 AI', '', 'me-privacy'), grow('/survey', '匿名问卷', '你想要什么样的英语学习网站', '', 'me-survey')]],
+      ['帮助', [grow('#/guide', '操作指南', '每个页面怎么用', '', 'me-guide'), grow('#/updates', '更新记录', '每一次更新改了什么', '', 'me-updates'), grow('/about', '认识语流', '一页看完语流能帮你做什么', '', 'me-about'),grow('#/feedback', '问题反馈', '页面不对、功能用不了，告诉我们', '', 'me-feedback'), grow('#/guide/privacy', '隐私说明', '数据存在哪里、交给哪家 AI', '', 'me-privacy'), grow('/survey', '匿名问卷', '你想要什么样的英语学习网站', '', 'me-survey'), u ? grow('meTour', '再看一遍新手引导', '今日的几个主要按钮在哪', '', 'me-tour') : '']],
     ].filter(Boolean);
     view.innerHTML = `<div class="card flat me-head"><div class="me-id">${u ? `<span class="avatar" aria-hidden="true">${esc([...u.username][0].toUpperCase())}</span>` : ''}
         <div class="t"><h1 class="h1">${u ? esc(u.username) : '我的'}</h1><span class="small muted">${lv ? `${esc(lv.label)}（${lv.id}）` : '还没有设置水平'} · 每天 ${p.minutes || 10} 分钟</span></div></div>
@@ -37,6 +37,7 @@
     document.getElementById('meRemind').onclick = () => remindSheet(p.minutes || 10);
     const mm = document.getElementById('meMail'); if (mm) { mm.onclick = weeklyMailSheet; fillMailRow(); }  // 11-progress.js
     const mi = document.getElementById('meInstall'); if (mi) mi.onclick = installSheet;
+    const mt = document.getElementById('meTour'); if (mt) mt.onclick = tourAgain;  // 08-tour.js
     if (u) {
       const mc = document.getElementById('meClass'); if (mc) mc.onclick = () => classSheet();  // a 老师账号 has no 班级 row
       meClass();

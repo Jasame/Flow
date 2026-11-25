@@ -354,6 +354,7 @@
       else { setNav('today'); await today(fresh); }
       if (!sameMaterial && name !== 'welcome' && !quiet) enter(view);
       if (!sameMaterial && !quiet) { const h = view.querySelector('h1'); announce(h ? h.textContent : document.title); }
+      if (!quiet) tourMaybe();  // 新手引导: 今日 (or 我的班级) the first time a new account opens it (08-tour.js)
     } catch (e) {
       const kept = e.network ? OFF.list() : [];  // offline: what can still be studied
       view.innerHTML = `<div class="empty"><div class="big">⚠︎</div><p>${esc(e.message)}</p><button class="btn" id="retry">重试</button>

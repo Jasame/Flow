@@ -11,6 +11,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `00-head.js` | page elements, state, utilities, input helpers (touch, typing, scrolling), icons |
 | `01-audio-offline.js` | browser voice, Kokoro narration, word and sentence clips, mini player, offline review queue |
 | `02-shell.js` | sheets (focus, swipe), keyboard shortcuts, session and sign-in, router |
+| `08-tour.js` | 新手引导 (指一指): the first time a new account opens 今日 (or 我的班级 for a 老师账号), its real buttons one after another; once per account (tour_service.py), 我的 → 帮助 plays it again |
 | `09-start.js` | 启动动画 (the mark in next.html, timed against the first page drawn) and 选方向和目标: one page for a new learner (goal, exam and date, the level to reach), the same page edits it from 我的; the 今日 notice for a guessed level |
 | `04-home-app.js` | 主屏 App (Safari 「添加到主屏幕」): `html.home-app`, the 返回 button in the top bar (`homeBack`, from `setNav`), the keyboard (visualViewport → `--kb`), and taking a new version after a long sleep (`/api/version`) |
 | `10-welcome-today.js` | today's page; its plan in three groups (r28 按时间打包): 必做 within the day's minutes, 还有时间的话 folded, 本周任务; the line once the minutes are past |
@@ -48,6 +49,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `83-updates.js` | 更新记录 (#/updates, 我的 → 帮助) and 今日's 「语流更新了」 card, first in the one notice slot (updates_service.py) |
 | `99-boot.js` | start-up |
 | `05-start.css` | 启动动画 and 选方向和目标 |
+| `08-tour.css` | 新手引导: the page dimmed around the button meant, the card beside it; 今日's notices wait that first day |
 | `00-base.css` … `70-input-devices.css` | tokens and base; pages; motion and graph; words; listening; phone pass; learner pages; input methods and devices |
 | `80-flat.css` | the flat look: surfaces instead of outlines, frosted bars, the home plan and its next-step button, review focus mode |
 | `89-radar.css` | the radar chart and its rows |
