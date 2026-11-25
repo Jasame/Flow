@@ -207,7 +207,16 @@ class Page:
         return o.get('value')
 
     def reload(self, settle=3):
-        """Reload the page and follow it to its new inspector target."""
+        """Reload the page and follow it to its new inspector target. The service worker may answer with the copy it
+        kept of an older version, which finds the new one 4 s later and reloads itself when it can (04-home-app.js):
+        mid-test that would cut what the test is doing, so the page is reloaded until it is the server's version."""
+        self._reload_once(settle)
+        for _ in range(3):
+            if not globals().get('VERSION') or self.js("((document.querySelector('script[src*=\"/next.js\"]') || {}).src || '').split('v=')[1] || ''") == VERSION:
+                break
+            self._reload_once(settle)
+
+    def _reload_once(self, settle):
         self.js('setTimeout(() => location.reload(), 50)'); old = self.target; end = time.time() + 15
         while time.time() < end and self.target == old:
             for m in self._msgs(0.5):
@@ -704,7 +713,11 @@ def run_unify(p, aid, recorded, extra=None):
         fresh_listen(p, extra['fresh']); p.tap('#playAll', 0.3); p.until(LS + '.speech >= 1', 20, 0.3); time.sleep(0.8); b = p.js(LS); s = shot(f'{g}-offline-new')
         p.tap('.mini-player .close', 0.5)
         check(g, f'{kind}: offline — a sentence never heard on this phone: the browser voice, and the line says why',
-              b['speech'] >= 1 and any('离线中' in n for n in b['notes']), {'state': b, 'log': [e['k'] + ':' + str(e.get('text') or e.get('src') or e.get('e') or e.get('m') or '') for e in p.js('window.__au')][-8:]}, s)
+              b['speech'] >= 1 and any('离线中' in n for n in b['notes']),
+              {'state': b, 'log': [e['k'] + ':' + str(e.get('text') or e.get('src') or e.get('e') or e.get('m') or '') for e in p.js('window.__au')][-8:],
+               # for 语流 9: the browser voice's own state, and whether the page reloaded itself meanwhile (a new version)
+               'synth': p.js("({ speaking: speechSynthesis.speaking, pending: speechSynthesis.pending, paused: speechSynthesis.paused })"),
+               'page': p.js("({ nav: (performance.getEntriesByType('navigation')[0] || {}).type, hooked: !!window.__au, tried: localStorage.getItem('flow-update-tried') })")}, s)
     p.reload()  # online again
     # 5 口语情景: the AI's reply in the role's natural voice; slow to make: 「正在准备朗读…」, then that voice, never the robot
     if extra and extra.get('scene'):
