@@ -1,8 +1,8 @@
 name: Desktop
-# The desktop app (desktop/, 语流 22): Rust unit tests, the Windows installer and the macOS app, and one real start of
-# each (--smoke-test: the site opens, window.FlowApp is there, the media controls start; desktop/tools/check_smoke.py).
-# Only for changes under desktop/ (or this file), so the website's runs are unchanged. Draft by 语流 22; CI belongs to
-# 语流 15, who may fold it into tests.yml's scheme.
+# The desktop app (desktop/, 语流 C3): Rust unit tests, the Windows installer, the macOS app and the Linux AppImage and
+# deb (x86_64), and one real start of each (--smoke-test: the site opens, window.FlowApp is there, the media controls
+# start; desktop/tools/check_smoke.py; Linux on a virtual screen). Only for changes under desktop/ (or this file), so
+# the website's runs are unchanged. CI belongs to 语流 A2.
 #
 # Pull requests and main build the Beta app (opens 内测版 flow.jasa.hk). "Run workflow" can build the Release app
 # (opens 正式版 flowlang.cn). Nothing is signed: no Apple or Windows certificate exists yet (desktop/README.md).
@@ -39,6 +39,10 @@ jobs:
           - name: macos
             os: macos-latest
             bundles: app,dmg
+          # 22.04: an older glibc, so the AppImage runs on older distributions too, and it has WebKitGTK 4.1 (语流 C3)
+          - name: linux
+            os: ubuntu-22.04
+            bundles: appimage,deb
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     env:
@@ -56,6 +60,15 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: desktop/package-lock.json
+      # WebKitGTK and the tray library for the app; GStreamer, which the AppImage carries for audio (bundleMediaFramework);
+      # xvfb, a D-Bus session and ImageMagick's import for the smoke test. MPRIS and notifications go through zbus (Rust).
+      - name: Linux packages
+        if: matrix.name == 'linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf \
+            libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-good gstreamer1.0-libav \
+            xvfb dbus-x11 imagemagick
       - name: Rust
         run: |
           rustup toolchain install stable --profile minimal --component clippy
@@ -112,6 +125,17 @@ jobs:
           "$bin" & pid=$!; sleep 20; screencapture -x "$RUNNER_TEMP/desktop-macos.png" || true; kill $pid || true; sleep 2
           "$bin" --smoke-test="$RUNNER_TEMP/smoke.json"
           python3 tools/check_smoke.py "$RUNNER_TEMP/smoke.json" macos
+      - name: Smoke test (Linux)
+        if: matrix.name == 'linux'
+        run: |
+          img=$(ls src-tauri/target/release/bundle/appimage/*.AppImage | head -1); chmod +x "$img"
+          ls -la "$img" src-tauri/target/release/bundle/deb/
+          export APPIMAGE_EXTRACT_AND_RUN=1  # no FUSE on the runner
+          # on a virtual screen with a D-Bus session: start it once for a picture, then once with --smoke-test
+          xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- bash -c '
+            "$0" & p=$!; sleep 20; import -window root "$RUNNER_TEMP/desktop-linux.png" || true; kill $p || true; sleep 2
+            FLOW_SMOKE_NOTIFY=1 "$0" --smoke-test="$RUNNER_TEMP/smoke.json"' "$img"
+          python3 tools/check_smoke.py "$RUNNER_TEMP/smoke.json" linux
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -121,5 +145,7 @@ jobs:
           path: |
             desktop/src-tauri/target/release/bundle/nsis/*-setup.exe
             desktop/src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+            desktop/src-tauri/target/release/bundle/appimage/*.AppImage
+            desktop/src-tauri/target/release/bundle/deb/*.deb
             ${{ runner.temp }}/smoke.json
             ${{ runner.temp }}/desktop-*.png
