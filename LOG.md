@@ -774,3 +774,10 @@
   - #370 没网时朗读不再先问服务器：本机存着就直接用，没有就马上「离线中」改用浏览器的声音（听和说）
 - 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45680335676
+
+### b96 · 2026-11-26 03:09
+- main `db7c491`，构建 `8b6bc3b`
+- 新合并的 PR（自 b95 起）：
+  - #177 指南加「AI 服务说明」：模型和备案号（网信办名单原文），查不到的写「查询中」（操作指南）
+- 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45682030928
