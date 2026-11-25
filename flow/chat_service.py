@@ -24,6 +24,23 @@ def daily_limit(name):
 
 def _today():return time.strftime('%Y-%m-%d',time.gmtime())
 
+SITE_PER_LEARNER=40;SITE_MAX=15000
+
+def regulars(c):
+ """Learners who used AI on at least 2 of the last 7 days (UTC days, as ai_usage counts them). An account opened today
+ has one day at most, so a batch of new accounts cannot raise the site's ceiling."""
+ since=time.strftime('%Y-%m-%d',time.gmtime(time.time()-6*86400))
+ return c.execute('SELECT COUNT(*) FROM (SELECT user_id FROM ai_usage WHERE day>=? AND count>0 GROUP BY user_id HAVING COUNT(DISTINCT day)>=2)',(since,)).fetchone()[0]
+
+def site_limit(c):
+ """Today's site-wide ceiling (2026-11-25, the owner: 「按照人数动态设置」, then 「两层都做」; the gateway's own daily
+ cap on the flow key is the last gate): regulars × SITE_PER_LEARNER calls, no lower than FLOW_AI_DAILY_LIMIT (the
+ floor, 2000 on both sites) and no higher than SITE_MAX. A value set in the console wins as it is; 0 = no ceiling."""
+ if __import__('console_ops').limit_override('FLOW_AI_DAILY_LIMIT') is not None:return daily_limit('FLOW_AI_DAILY_LIMIT')
+ floor=daily_limit('FLOW_AI_DAILY_LIMIT')
+ if not floor:return 0
+ return min(max(floor,SITE_PER_LEARNER*regulars(c)),max(floor,SITE_MAX))
+
 def _exempt(c,uid):
  row=c.execute('SELECT admin FROM users WHERE id=?',(uid,)).fetchone()
  return bool(row and row[0])
@@ -35,15 +52,22 @@ def remaining(c,uid):
  row=c.execute('SELECT count FROM ai_usage WHERE user_id=? AND day=?',(uid,_today())).fetchone()
  return max(0,limit-(row[0] if row else 0))
 
+DAY_FULL='今天的 AI 用量已满，北京时间早上 8 点恢复。'  # ai_routes.day_full: the ¥10 stop (code ai_day_full)
+
+def refusal(problem,c,uid):
+ """The 429 body for a refused call: the stop of the day carries code ai_day_full, the page words it (语流 B6)."""
+ return {'error':problem,'remaining':remaining(c,uid),**({'code':'ai_day_full'} if problem==DAY_FULL else {})}
+
 def reserve(c,uid):
  """Count one model call inside the caller's write transaction.
 
  Returns an error message (and counts nothing) when the site-wide
- FLOW_AI_DAILY_LIMIT or the per-account FLOW_AI_USER_DAILY_LIMIT is reached.
+ ceiling (site_limit: FLOW_AI_DAILY_LIMIT grown with the learners) or the per-account FLOW_AI_USER_DAILY_LIMIT is reached.
  Both reset at 00:00 UTC; 0 disables a ceiling; admins skip the per-account one.
  """
+ if __import__('ai_routes').day_full(c):return DAY_FULL
  day=_today();c.execute('INSERT OR IGNORE INTO ai_usage VALUES(?,?,0)',(uid,day))
- site=daily_limit('FLOW_AI_DAILY_LIMIT')
+ site=site_limit(c)
  if site and c.execute('SELECT COALESCE(SUM(count),0) FROM ai_usage WHERE day=?',(day,)).fetchone()[0]>=site:
   return '本站今日 AI 调用额度已用完，请明天再来。'
  if remaining(c,uid)==0:
@@ -485,7 +509,7 @@ def chat(c,uid,data):
  enabled=ai_enabled()
  if enabled:
   problem=reserve(c,uid)
-  if problem:c.rollback();return {'error':problem,'remaining':remaining(c,uid)},429
+  if problem:c.rollback();return refusal(problem,c,uid),429
  now=time.time()
  if row:c.execute("UPDATE chat_turns SET status='pending',error='',updated=? WHERE id=?",(now,row['id']))
  else:c.execute("INSERT INTO chat_turns(user_id,topic,request_id,message,status,created,updated) VALUES(?,?,?,?,'pending',?,?)",(uid,topic_id,rid,question,now,now))
