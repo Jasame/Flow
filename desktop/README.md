@@ -26,7 +26,7 @@ Tauri 2 做的「原生外壳 + 关键功能原生」：窗口里就是网站（
 | 功能 | 怎么做 | 代码 |
 |---|---|---|
 | 系统媒体控制、媒体键 | 网页照常自己放声音；注入的脚本盯住网页的 `navigator.mediaSession`（`MS.claim` 设的标题、登记的动作、播放/暂停），交给系统显示；按键回来时调网页登记的动作（play / pause / previoustrack / nexttrack / stop），进度还是网页管 | `bridge.js`、`media.rs`（souvlaki：SMTC / MPNowPlayingInfoCenter） |
-| 复习提醒 | `FlowApp.notify.sync(r)` 收到 `/api/next/vocab` 的 `reminder` + `forecast`，排今后 7 天每天 hour:00（没词的日子不排）加 `once`（「这次什么时候复习」），规则和 iOS、提醒邮件一样；交给系统定时，App 关着也会到。App 打开、回到前台（最多半小时一次）自己在页面里拿一次 reminder 重排；退出登录（401）就清掉 | `schedule.rs`、`notify/`（macOS UserNotifications，Windows 定时 toast） |
+| 复习提醒 | 规则和 iOS（`ReminderPlan.swift`）、共用约定 `docs/native-bridge.md` §5 一样：北京时间，今后 14 天每天 hour:00，只在有词的日子（今天看还剩多少，含 later；以后看 forecast 累计到那天，加词书没背完时每天的新词）；「这次什么时候复习」之前不排每天那条，那天有词才提醒，提醒过的那天不再排。数据是整份 `/api/next/vocab`，在页面里用页面的登录去拿：App 打开、回到前台（最多半小时一次）、网页调 `sync(r)` 时。交给系统定时，App 关着也会到。退出登录（401）就撤掉 | `schedule.rs`、`notify/`（macOS UserNotifications，Windows 定时 toast） |
 | 点提醒 | 打开 App 到「复习」页（macOS 走通知回调，Windows 走 `flowlang://review`） | `notify/`、`site.rs` |
 | 开机自启 | 可选，默认关；开机启动时不弹窗口 | `tauri-plugin-autostart` |
 | 窗口 | 记住大小、位置、是否最大化；macOS 关窗口留在 Dock（⌘Q 退出），Windows 关窗口就退出，可选「关窗口后留在托盘」 | `tauri-plugin-window-state`、`lib.rs` |
@@ -39,17 +39,18 @@ Tauri 2 做的「原生外壳 + 关键功能原生」：窗口里就是网站（
 
 ## 网页接口 `window.FlowApp`（桌面这边）
 
-和 iOS 的约定一致（共享笔记 `ios-app.md`），网页一律先判断 `window.FlowApp && FlowApp.has(...)`：
+三个平台共用的约定在 `docs/native-bridge.md`（语流 20 牵头）。网页一律先判断 `window.FlowApp && FlowApp.has(...)`。桌面这边：
 
 ```
-FlowApp.v          1
-FlowApp.app        App 版本，如 "0.1.0"
+FlowApp.v / app / build / beta   1、App 版本、构建的提交（CI 的 GITHUB_SHA 前 7 位，本机是 "dev"）、是不是内测版
 FlowApp.platform   "windows" | "macos"（iOS 是 "ios"，安卓 "android"）
-FlowApp.has(k)     'notify' → true，'media' → true，'audio' / 'rec' → false（桌面网页自己放、自己录）
-FlowApp.notify.permission()  → 'granted' | 'denied' | 'undetermined'
+FlowApp.has(k)     'notify' → true，'media' → true，'audio' / 'rec' / 'speech' → false（桌面网页自己放、自己录）
+FlowApp.call('hello')        → {v, app, build, platform, features}；call('app.visible') 把媒体状态再发一次
+FlowApp.notify.permission()  → 'granted' | 'denied' | 'undetermined' | 'provisional'
 FlowApp.notify.ask()         → true / false（macOS 第一次弹系统框；Windows 不问，看「设置 → 通知」）
-FlowApp.notify.sync(r)       r = /api/next/vocab 的 reminder，带上 forecast；null = 清掉
-FlowApp.on(type, fn) / off   事件；同时发 window 事件 flowapp:<type>
+FlowApp.notify.sync(r)       r 不为空：照整份 /api/next/vocab 重排；null 或 {app: false}：关掉 App 的提醒
+FlowApp.notify.pending()     → [{id, at, title, body}]（系统里排着的）
+FlowApp.on(type, fn) → 退订函数；off(type, fn)；同时发 window 事件 flowapp:<type>
 ```
 
 只在本站注入（`location.origin` 对得上才挂），`FlowApp` 冻结不可改。Tauri 的 IPC 只对两个站点的页面开放，且只能调这几条命令
