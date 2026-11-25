@@ -272,3 +272,11 @@
   - #150 CI：只改原生 App（ios/、android/、desktop/）的 PR 跳过网站测试和 UI（发版和构建）
 - 自检：DEPLOYED，装了 2 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45547470440
+
+### b46 · 2026-11-25 12:46
+- main `5676f87`，构建 `1f5fa07`
+- 新合并的 PR（自 b45 起）：
+  - #151 tools：自动化打开的浏览器一律静音（工作约定第 9 条）（操作指南）
+  - #153 App 外壳：桌面版（FlowDesktop）和有 window.FlowApp 的 App 也当主屏 App（开局和考试、后台和班级）
+- 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45548768285
