@@ -50,6 +50,7 @@
 .mix .fb .ok{color:var(--ok-ink);font-weight:700}
 .mix .fb .bad{color:var(--red);font-weight:700}
 .mix-done .done-burst{display:flex;justify-content:center}
+.mix .h1{text-wrap:balance}  /* a long pair title: even lines, not one character left alone on the last (UI audit r33, 375 px) */
 /* answering (43-mix.js puts body.reviewing on: no tabs) on the shortest phones: the question and its four answers on one
    screen (UI audit 2026-11-25: 375×667 home-screen app 17–133 px past it). The empty feedback takes no room, the title,
    answers and gaps a little tighter (answers stay 44 px), the one-line intro folded away (怎么区分 and the AI mark stay).
