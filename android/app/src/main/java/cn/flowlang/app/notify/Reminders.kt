@@ -115,11 +115,11 @@ object Reminders {
             lastFetch = System.currentTimeMillis()
             when {
                 r.code == 401 -> { save(app, Planner.signedOut(input(app))); outcome = Outcome.SIGNED_OUT }  // the plan stays
-                // a consent not given yet: 'storage' (数据存放在香港), 'terms' (the current 用户协议 and 隐私和数据, asked again
-                // whenever their version changes) or one this app does not know yet: no reminders at all until it is given
-                // (the hours are kept). Any 403, so a consent added later stops them too; the page shows what to agree to.
+                // a consent not given yet (code 'storage'; `need` says which: 'storage' for 数据存放在香港, 'terms' for the
+                // current 用户协议 and 隐私和数据, asked again whenever their version changes): no reminders at all until it is
+                // given (the hours are kept). Any 403, so a consent added later stops them too; the page shows what to agree to.
                 r.code == 403 -> {
-                    pausedCode = r.json().optString("code").ifEmpty { null }
+                    pausedCode = Planner.consentNeeded(r.json())
                     save(app, Planner.paused(input(app)))
                     outcome = Outcome.PAUSED
                 }

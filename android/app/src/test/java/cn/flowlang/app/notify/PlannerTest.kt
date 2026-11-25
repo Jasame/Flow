@@ -139,6 +139,11 @@ class PlannerTest {
         assertTrue(Planner.pausedLine("terms").contains("《用户协议》"))
         assertTrue(Planner.pausedLine("something-new").contains("页面上的提示"))
         assertTrue(Planner.pausedLine(null).contains("页面上的提示"))
+        // the site answers code storage for every missing consent and says which one in `need` (B6, 2026-11-25)
+        assertEquals("terms", Planner.consentNeeded(JSONObject().put("code", "storage").put("need", "terms")))
+        assertEquals("storage", Planner.consentNeeded(JSONObject().put("code", "storage").put("need", "storage")))
+        assertEquals("storage", Planner.consentNeeded(JSONObject().put("code", "storage")))   // a site from before `need`
+        assertEquals(null, Planner.consentNeeded(JSONObject()))
     }
 
     @Test fun notAgreedToHongKongStorageNoRemindersUntilAgreed() {
