@@ -1794,12 +1794,14 @@ def listen_speak_run(pw):
                     fits.append(pg.evaluate("""() => { const m = document.querySelector('.mini-player'), l = m.querySelector('.lbl'), t = m.querySelector('.toggle'), x = m.querySelector('.close');
                         const one = el => { const r = el.getBoundingClientRect(); return r.height <= 48; };
                         return { w: innerWidth, label: l.textContent, whole: l.scrollWidth <= l.clientWidth + 1, toggle: one(t), close: one(x), mark: !!m.querySelector('.ai-voice'),
+                                 bare: !!m.querySelector('.ai-voice') && getComputedStyle(m.querySelector('.ai-voice')).borderTopStyle === 'none',
                                  tip: !!document.querySelector('#view .listen-tip .ai-voice'),
                                  inside: m.getBoundingClientRect().left >= 0 && m.getBoundingClientRect().right <= innerWidth }; }"""))
                 pg.set_viewport_size(opts['viewport']); pg.wait_for_timeout(150)
                 check(dev, 'the mini player fits: the label whole, 暂停 and ✕ on one line, inside the screen (390 and 360 px), with 「AI 朗读」',
                       all(f['whole'] and f['toggle'] and f['close'] and f['inside'] and f['mark'] for f in fits), fits)
                 check(dev, '听: 「AI 朗读」 by the player (the voice is synthesized: 《标识办法》)', all(f['tip'] for f in fits), fits)
+                check(dev, 'the mini player: 「AI 朗读」 has no border, so it does not read as a button (B7\'s rule)', all(f['bare'] for f in fits), fits)
                 pg.click('.mini-player .close'); pg.wait_for_timeout(200)
                 pg.click('#playRestart'); pg.wait_for_function(f"{now} >= 0", timeout=10000)
                 check(dev, '从头开始 starts at the first sentence', pg.evaluate(now) == 0, pg.evaluate(now))

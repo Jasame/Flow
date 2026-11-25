@@ -67,6 +67,7 @@ div.round-extra{margin-top:8px;padding:8px 12px;border-radius:10px;background:va
 .mini-player .lbl{flex:1 1 auto;min-width:0}
 .mini-player .toggle,.mini-player .stop,.mini-player .resume{flex-shrink:0;white-space:nowrap}
 /* 「AI 朗读」 in the mini player (aiVoice, 《标识办法》); on a phone narrower than 420 px the sound bars give it their room
-   (暂停 / 继续 says the state already), so 「第 12 / 30 句」 stays whole at 360 px */
-.mini-player .ai-voice{flex-shrink:0}
+   (暂停 / 继续 says the state already), so 「第 12 / 30 句」 stays whole at 360 px. In a row of buttons it has no border, so
+   it does not read as one (B7's rule, B8's audit, 2026-11-25): same size and colour as 「AI 生成」 */
+.mini-player .ai-voice{flex-shrink:0;border:0;background:none;padding:0}
 @media (max-width:419px){.mini-player .eq{display:none}}
