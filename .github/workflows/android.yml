@@ -1,0 +1,58 @@
+name: Android
+# The Android app (android/, 语流 21): the Beta debug build, its unit tests and lint, on every change under android/
+# (or this file). The website's runs are unchanged: tests.yml skips its shares for a pull request that touches only
+# the native apps (tools/run_tests.py NATIVE_APPS). Not a required check: a path-filtered check never reports on a
+# website pull request, so requiring it would block them all. Whoever merges an Android pull request first checks
+# this run is green. CI belongs to 语流 15.
+#
+# Nothing is signed here and no secrets are used: the signed release APK is made only on the owner's Mac
+# (tools/release-apk.sh). Pull requests and main keep the Beta debug APK and the reports as the run's artifacts for
+# 14 days; sending an APK to anyone needs the owner's yes first. Device tests (connectedBetaDebugAndroidTest) need an
+# emulator and are not run here yet.
+on:
+  pull_request:
+    paths: ['android/**', '.github/workflows/android.yml']
+  push:
+    branches: [main]
+    paths: ['android/**', '.github/workflows/android.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      # caches Gradle and checks gradle-wrapper.jar against Gradle's published checksums
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Android SDK (compileSdk and targetSdk 37)
+        run: |
+          sdk="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$sdk" --licenses > /dev/null || true
+          "$sdk" --install "platforms;android-37.0" "build-tools;37.0.0" > /dev/null
+          ls "$ANDROID_HOME/platforms" "$ANDROID_HOME/build-tools"
+      - name: Build, unit tests, lint
+        run: ./gradlew --no-daemon assembleBetaDebug testBetaDebugUnitTest lintBetaDebug
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: flow-android-beta-debug
+          retention-days: 14
+          if-no-files-found: ignore
+          path: |
+            android/app/build/outputs/apk/beta/debug/*.apk
+            android/app/build/reports/
+            android/app/build/test-results/

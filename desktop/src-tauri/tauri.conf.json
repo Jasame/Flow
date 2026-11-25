@@ -3,7 +3,7 @@
   "productName": "语流",
   "mainBinaryName": "flow",
   "version": "0.1.0",
-  "identifier": "cn.flowlang.desktop",
+  "identifier": "cn.flowlang.app",
   "build": {
     "frontendDist": "../src"
   },

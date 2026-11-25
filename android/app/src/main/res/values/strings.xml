@@ -18,6 +18,7 @@
     <string name="ok">好</string>
     <string name="cancel">取消</string>
     <string name="ics_title">怎么提醒你复习？</string>
+    <string name="ics_plan_title">怎么提醒你每天的学习？</string>
     <string name="ics_body">在这台手机上，可以用 App 通知提醒（不用邮箱、不用日历），也可以加到系统日历。</string>
     <string name="ics_app">App 通知</string>
     <string name="ics_calendar">系统日历</string>

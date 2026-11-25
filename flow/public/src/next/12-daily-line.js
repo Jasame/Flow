@@ -48,7 +48,7 @@
           const x = (await api('/api/next/shadow', body)).result;
           const flu = { smooth: '流畅', ok: '基本流畅', choppy: '有点断断续续' }[x.fluency] || '';
           const sc = x.score;  // 发音分 (r27 C, the same as 听 → 跟读): accuracy, fluency and how much of the line was said
-          panel.querySelector('.lc-out').innerHTML = `<div class="card flat stack-s enter">${sc ? `<div class="small"><b class="lc-score">${sc.total}</b> 发音分 · 准确 ${sc.accuracy} · 流利 ${sc.fluency} · 完整 ${x.matched}/${x.words.length}<span class="tiny muted">（AI 估计，仅供参考）</span></div>` : ''}
+          panel.querySelector('.lc-out').innerHTML = `<div class="card flat stack-s enter">${aiMark('发音分和点评由 AI 估计，仅供参考')}${sc ? `<div class="small"><b class="lc-score">${sc.total}</b> 发音分 · 准确 ${sc.accuracy} · 流利 ${sc.fluency} · 完整 ${x.matched}/${x.words.length}<span class="tiny muted">（AI 估计，仅供参考）</span></div>` : ''}
             <div class="small">${x.words.map(w => `<span class="${w.ok ? '' : 'miss'}" lang="en">${esc(w.w)}</span>`).join(' ')}</div>
             <div class="tiny muted">AI 听到：<span lang="en">${esc(x.transcript || '（没听清）')}</span> · 读到 ${x.matched}/${x.words.length} 个词${flu && !sc ? ' · ' + flu : ''}</div>
             ${(x.sounds || []).map(sd => `<div class="small"><b lang="en">${esc(sd.sound)} ${esc(sd.word)}</b>：${esc(sd.note)}${sd.set ? ` <a class="link" href="#/sounds/${encodeURIComponent(sd.set)}" data-tap="shadow-sound">去练 ${esc(sd.set_title)} →</a>` : ''}</div>`).join('')}
@@ -63,5 +63,5 @@
     if (!n) return '';
     return `<a class="card news-card" href="#/m/${encodeURIComponent(n.id)}" data-tap="home-news"><span class="lc-head"><span class="lc-title nc-title">今日热点</span><span class="pill amber">AI 改写 · 未经人工审核</span></span>
       <b class="nc-h">${esc(n.title)}</b>${n.preview ? `<span class="small muted nc-p">${esc(n.preview)}</span>` : ''}
-      <span class="tiny muted">${n.level} · ${n.reasons && n.reasons.length ? `<span class="nc-why">${esc(n.reasons[0])}</span>` : esc(n.theme_label || '')}${n.minutes ? ` · 约 ${n.minutes} 分钟` : ''}<span class="nc-go">读这篇 →</span></span></a>`;
+      <span class="tiny muted">${n.level} · ${n.reasons && n.reasons.length ? `<span class="nc-why">${esc(n.reasons[0])}</span>` : esc(n.theme_label || '')}${n.minutes ? ` · 约 ${n.minutes} 分钟` : ''} ${aiTag()}<span class="nc-go">读这篇 →</span></span></a>`;
   }

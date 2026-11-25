@@ -28,6 +28,13 @@ class ProgressStore(context: Context) {
         prefs.edit().putString("all", o.toString()).apply()
     }
 
+    /** Read to the end: both sides clear theirs; this mark is for a page that missed the event (`{ended: true, at}`). */
+    fun ended(key: String) {
+        if (key.isEmpty()) return
+        val o = all(); o.put(key, JSONObject().put("ended", true).put("at", System.currentTimeMillis()))
+        prefs.edit().putString("all", o.toString()).apply()
+    }
+
     fun clear(key: String) {
         if (key.isEmpty()) return
         val o = all(); o.remove(key)
