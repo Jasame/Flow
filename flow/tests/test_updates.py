@@ -87,6 +87,16 @@ class ServiceTests(unittest.TestCase):
         self.use({'released': [], 'beta': {'new': [], 'better': [], 'fixed': []}})
         self.assertIsNone(us.listing()['beta'], 'an empty 内测中 card is not shown')
 
+    def test_a_file_written_twice_in_a_row_is_read_again(self):
+        p = Path(self.tmp.name) / 'updates.json'
+        os.environ['FLOW_UPDATES_FILE'] = str(p)
+        for label in ('一一', '二二', '三三'):  # the same size each time, and as quick as the disk allows
+            p.write_text(json.dumps({'released': [{'id': 'r1', 'label': label, 'new': ['a']}]}, ensure_ascii=False), encoding='utf-8')
+            self.assertEqual(us.load()['released'][0]['label'], label)
+        st = p.stat()
+        os.utime(p, ns=(st.st_atime_ns, st.st_mtime_ns - 10_000_000_000))  # an old file: from the cache
+        self.assertEqual(us.load()['released'][0]['label'], '三三')
+
     def test_no_file_or_a_broken_one_is_no_updates_not_an_error(self):
         os.environ['FLOW_UPDATES_FILE'] = str(Path(self.tmp.name) / 'missing.json')
         self.assertEqual(us.listing(), {'released': [], 'beta': None})

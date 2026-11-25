@@ -8,7 +8,7 @@ for 今日's 「语流更新了」 card. The id is the internal tag (r30): it ke
 is never shown; the label (「11 月 25 日下午」) is. The beta block lists what is on the 内测版 and not on 语流 yet; only the
 内测版 (FLOW_CHANNEL=beta) returns it. FLOW_UPDATES_FILE points elsewhere (the UI test server: none, so 今日 shows no card).
 """
-import json, os, re
+import json, os, re, time
 from pathlib import Path
 
 FILE = Path(__file__).resolve().parent / 'corpus_data' / 'updates.json'
@@ -29,10 +29,13 @@ def load():
     """The data file, read again only when it changes; a missing or broken file is no updates (never an error)."""
     p = _path()
     try:
-        key = (str(p), p.stat().st_mtime_ns)
+        st = p.stat()
     except OSError:
         return {'released': [], 'beta': None}
-    if _cache.get('key') != key:
+    # A file's time ticks every few milliseconds, so two writes in a row can share it (seen on a tmpfs in CI): the key
+    # has the size and inode too, and a file changed in the last 2 seconds is read again whatever its key says.
+    key = (str(p), st.st_mtime_ns, st.st_size, st.st_ino)
+    if time.time_ns() - st.st_mtime_ns < 2_000_000_000 or _cache.get('key') != key:
         try:
             data = json.loads(p.read_text(encoding='utf-8'))
         except (OSError, ValueError):
