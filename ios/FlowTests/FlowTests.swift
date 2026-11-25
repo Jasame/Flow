@@ -798,3 +798,29 @@ final class AskTests: XCTestCase {
         XCTAssertNotNil(Features.state["siri"])
     }
 }
+
+/// 「在系统搜索里找生词」 (item 7): the search entries made from the site's list, and the page a picked one opens.
+final class WordSearchTests: XCTestCase {
+    func testEntriesFromTheSitesList() {
+        let items = WordSearch.items([["id": 7, "text": "make up for", "zh": "弥补"], ["id": 8, "text": "  "], ["id": "9", "text": "rainbow"]])
+        XCTAssertEqual(items.count, 2, "an empty text makes no entry")
+        XCTAssertEqual(items[0].attributeSet.title, "make up for")
+        XCTAssertEqual(items[0].attributeSet.contentDescription, "弥补")
+        XCTAssertEqual(items[0].domainIdentifier, WordSearch.domain)
+        XCTAssertEqual(items[1].uniqueIdentifier, "card/9/rainbow")
+    }
+
+    func testAPickedWordOpensItsCard() {
+        // the site's route: #/cards/find/<encodeURIComponent(word)> (语流 B2, #366)
+        XCTAssertEqual(WordSearch.path(forIdentifier: WordSearch.identifier(id: "7", text: "make up for")), "#/cards/find/make%20up%20for")
+        XCTAssertEqual(WordSearch.path(forIdentifier: "card/3/it's (not) a/b"), "#/cards/find/it's%20(not)%20a%2Fb")
+        XCTAssertEqual(WordSearch.path(forIdentifier: "card/4/café"), "#/cards/find/caf%C3%A9")
+        XCTAssertNil(WordSearch.path(forIdentifier: "something-else"))
+        XCTAssertNil(WordSearch.path(forIdentifier: "card/5/"))
+    }
+
+    @MainActor func testOffUntilTurnedOn() {
+        XCTAssertFalse(Feature.wordSearch.defaultOn, "the learner's words in the phone's search: the learner turns it on")
+        XCTAssertEqual(Feature.wordSearch.group, .ask)
+    }
+}
