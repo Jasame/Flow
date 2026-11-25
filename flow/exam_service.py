@@ -210,7 +210,12 @@ def submit(c, uid, data):
     def get(key, i):
         xs = answers.get(key)
         return xs[i] if isinstance(xs, list) and i < len(xs) else None
-    vocab = [{'word': v['word'], 'correct': _choice(get('vocab', i), 4) == v['answer'], 'answer': v['options'][v['answer']]} for i, v in enumerate(content['vocab'])]
+    import vocab_service as vs
+    # a missed word carries its own recording (as in the word books), so 没认出的词 plays it, not a voice
+    vocab = []
+    for i, v in enumerate(content['vocab']):
+        ok = _choice(get('vocab', i), 4) == v['answer']
+        vocab.append({'word': v['word'], 'correct': ok, 'answer': v['options'][v['answer']], **({} if ok else {'audio': vs.word_audio(v['word'].lower())})})
     grammar = []
     for i, g in enumerate(content['grammar']):
         q = c.execute('SELECT id, node, prompt, options, answer, explanation FROM questions WHERE id=?', (g['id'],)).fetchone()

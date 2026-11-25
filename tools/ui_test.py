@@ -579,6 +579,25 @@ def run_device(pw, dev, opts):
         pg.click('#aNext'); pg.wait_for_timeout(600)
     h = pg.text_content('#view h1') or ''
     check(dev, 'radar: the reading check ends with a level and a score', '分' in h and '约' in h, h)
+    if dev == 'phone':
+        # the listening check without a recording: the server's natural voice sentence by sentence (the whole passage
+        # at once took 10 s and more before a sound, and fell back to the browser voice past 1500 characters, unsaid);
+        # ✕ on the player counts as a play heard, the questions then shown
+        asked = []
+        on_req = lambda q: asked.append((q.post_data_json or {}).get('text')) if q.url.endswith('/api/next/tts') and q.method == 'POST' else None
+        pg.on('request', on_req)
+        go(pg, '#/radar/test/listening'); pg.wait_for_selector('#aPlay')
+        pg.evaluate("""() => { window.__rspeaks = []; if (window.speechSynthesis) { const s = speechSynthesis.speak.bind(speechSynthesis);
+          speechSynthesis.speak = u => { window.__rspeaks.push(u && u.text); return s(u); }; } }""")
+        pg.click('#aPlay'); pg.wait_for_selector('.mini-player:not([hidden])', timeout=8000)
+        pg.wait_for_timeout(1500)
+        got = pg.evaluate("() => ({ speaks: window.__rspeaks.slice(), btn: document.getElementById('aPlay').textContent, status: document.getElementById('aNote').getAttribute('role') })")
+        pg.remove_listener('request', on_req)
+        check(dev, 'radar: listening without a recording is the server voice sentence by sentence, not the browser voice, a status line for the wait',
+              len(asked) >= 2 and all(t and len(t) < 300 and not re.search(r'[.!?]\s+[A-Z]', t[:-1]) for t in asked) and not got['speaks'] and got['status'] == 'status', (asked[:3], got))
+        pg.click('.mini-player .close'); pg.wait_for_timeout(300)
+        after = pg.evaluate("() => ({ qs: !document.getElementById('aQs').hidden, plays: document.getElementById('aPlays').textContent, btn: document.getElementById('aPlay').textContent, off: document.getElementById('aPlay').disabled })")
+        check(dev, 'radar: ✕ on the player counts as one play: the questions show, 再听一遍 left', after['qs'] and after['plays'] == '已听 1 / 2 遍' and '再听一遍' in after['btn'] and not after['off'], after)
     go(pg, '#/radar'); pg.wait_for_timeout(900)
     rd = pg.evaluate("() => ({axes: document.querySelectorAll('.radar .ax').length, dots: document.querySelectorAll('.radar .dt:not(.none)').length, shown: document.querySelector('.radar .cur').classList.contains('on'), rows: document.querySelectorAll('.rdim').length})")
     check(dev, 'radar: six axes, the measured skill drawn against the goal', rd['axes'] == 6 and rd['dots'] >= 1 and rd['shown'] and rd['rows'] == 6, rd)
