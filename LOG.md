@@ -798,3 +798,10 @@
   - #374 ios_sim_check unify：跟上底部播放条（#325），每句 N 遍改从播放设置里点（网站其他）
 - 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45685793736
+
+### b99 · 2026-11-26 03:42
+- main `9e70b07`，构建 `b4a84c4`
+- 新合并的 PR（自 b98 起）：
+  - #362 放不了 AAC 的设备（Linux 桌面缺解码器）：有录音的文章改用 AI 朗读一句一句读，说一次原因（听和说、操作指南）
+- 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45687561150
