@@ -82,7 +82,7 @@ The owner agreed this order on 2026-11-24.
 4. **The owner tries flow.jasa.hk.** Pause first, so the version being tried stays there while other PRs merge:
    `gh variable set BETA_AUTO --body off -R Jasame/Flow`; afterwards `gh variable delete BETA_AUTO -R Jasame/Flow`
    (the next green main goes out). A problem goes back through 1–3.
-5. **语流, only after the owner says so (「发正式版」):** `tools/deploy.sh <the main sha on the 内测版>`, with the
+5. **语流, only after the owner says so (「发正式版」; since 2026-11-25 once a night at 21:00, see the working agreement, 6.):** `tools/deploy.sh <the main sha on the 内测版>`, with the
    end-to-end test. It installs the build the 内测版 got, byte for byte, and refuses a commit that never went to the
    内测版. Check the 内测版's run first (Actions → Beta release, or `e2e` in its deploy-status): a failure there is
    either the AI's (rerun it) or a reason not to release. A failed deploy or test on 语流 rolls back by itself.
@@ -133,12 +133,15 @@ The owner approved these on 2026-11-24 (「按你的建议改，b6 发完就写�
      allowed it on 2026-11-25, 「允许」, knowing that the app's button asks the owner first and the command does not).
      Only its own PRs; never a draft or a PR marked 「先别合」; and it leaves a one-line note on the PR that it turned
      auto-merge on. It does not ask another session to do it for it.
+   - **Sensitive PRs ask first** (the owner, 2026-11-25 11:15: 「全绿自动合，敏感的问我」). Everything else goes on
+     auto-merge once its tests are green. A PR that changes CI or the GitHub workflows (`.github/`), a deploy script
+     (`tools/deploy.sh`, `flow-pull.sh`, `flow-autodeploy.py`, `build_release.py`), server configuration, or keys and
+     signing waits until the owner has said yes in the author's session.
 2. **The 内测版 follows main.** Every merge to main that passes CI goes to the beta by itself
    (`.github/workflows/beta.yml`, GitHub Actions, the owner's choice; #66), with the light end-to-end test, so the beta
    always shows main and nobody releases it by hand. To keep a version there while the owner tries it, pause with
    `gh variable set BETA_AUTO --body off -R Jasame/Flow` (`gh variable delete BETA_AUTO -R Jasame/Flow` resumes).
-3. **Small steps.** A change goes to 语流 once the owner has tried it on the beta, or with the weekly release, whichever
-   comes first. Never "wait until all of version X is done". Unfinished work merges behind a switch that is off on 语流.
+3. **Small steps.** A change goes to 语流 with the next nightly release (6. below), once it has been on the beta. Never "wait until all of version X is done". Unfinished work merges behind a switch that is off on 语流.
 4. **One owner per area.** One long-lived session owns each area: 今日和计划, 开局和考试, 单词, 听和说, 内容, 后台和班级,
    AI, 发版, and CI/build tooling. 总控 coordinates. Only the area's owner changes it at a time. A one-off session is
    archived once its PR is in main.
@@ -147,6 +150,14 @@ The owner approved these on 2026-11-24 (「按你的建议改，b6 发完就写�
    - Tests compute counts from the data. Never hard-code how many questions, columns or items there are.
    - A change to an API response shape updates `tools/qa_e2e.py` in the same PR (b5's e2e broke on exactly this).
    - Progress goes into the area's shared note, so other sessions read it instead of waiting for relayed messages.
+6. **语流 once a night** (the owner, 2026-11-25 11:15: 「每天固定一次，一次点头」). 语流 is released once a day at 21:00,
+   and not at all when nothing new is on the beta. At 20:00 the release session (语流 2) gives the owner the list of
+   what goes out, the known problems and the full text of the jasa.hk changelog. One 「发」 from the owner releases 语流
+   and publishes the changelog together. Afterwards the ledger entry, as in 发布顺序 step 6.
+7. **App test builds** (the owner: 「自动打包，发给同学前问我」). iOS, Android and desktop builds are made automatically
+   once their change is in main. Sending one to trial students, to TestFlight external testing or to an app store
+   needs the owner's yes first.
+8. **Reports.** 总控 (语流 1) gives the owner a summary about every two hours.
 
 ## 推之前跑哪些测试 (what to run before pushing)
 
