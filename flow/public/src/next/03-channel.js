@@ -25,7 +25,8 @@
   const BETA_NOTE = '2026-11-25';
   if (BETA) {
     document.title = '内测 · ' + document.title;
-    document.querySelector('#bar .brand')?.insertAdjacentHTML('beforeend', '<span class="beta-pill" aria-label="内测版">内测</span>');
+    const brand = document.querySelector('#bar .brand');  // no ?. here: iOS before 13.4 cannot read it (old-device support)
+    if (brand) brand.insertAdjacentHTML('beforeend', '<span class="beta-pill" aria-label="内测版">内测</span>');
     if (load('flow-beta-bar') !== BETA_NOTE) {
       document.getElementById('bar').insertAdjacentHTML('afterend', `<p class="beta-bar" id="betaBar" role="note"><b>内测版</b><span>新功能先在这里试，账号和数据与正式版分开，详见「我的」</span><button class="bb-x" type="button" aria-label="关闭内测版提示" data-tap="beta-bar-close">✕</button></p>`);
       document.querySelector('#betaBar .bb-x').onclick = () => { save('flow-beta-bar', BETA_NOTE); document.getElementById('betaBar').remove(); };

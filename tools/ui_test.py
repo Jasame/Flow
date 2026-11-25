@@ -136,7 +136,7 @@ LAYOUT_JS = """(touch) => {
         if (p.content !== 'none' && p.position === 'absolute') { w = Math.max(w, parseFloat(p.minWidth) || 0); h = Math.max(h, parseFloat(p.minHeight) || 0); } }
       return [Math.round(w), Math.round(h)]; };
     out.tap44 = [...document.querySelectorAll('#view :is(.btn.small, .chip, .icon-btn, .node-chip, .seg>button, .seg>a, .steps button, .wk.habit, a.ai-link, button.link, a.link, details:not(.better)>summary)')]
-      .filter(e => e.offsetParent !== null && !e.closest('.sr-only, [hidden]') && !(e.matches('a.link') && e.closest('p, li, summary'))
+      .filter(e => e.offsetParent !== null && !e.closest('.sr-only, [hidden]') && !(e.matches('a.link') && e.closest('p, li, summary, label'))
         && !(e.tagName === 'SUMMARY' && e.querySelector('a, button, input, select')))
       .map(e => [e, hit(e)]).filter(([e, [w, h]]) => w < 44 || h < 44)
       .slice(0, 6).map(([e, [w, h]]) => `${e.tagName}${e.id ? '#' + e.id : ''}.${[...e.classList].join('.')} "${(e.textContent || '').trim().slice(0, 14)}" ${w}x${h}`);
@@ -3145,6 +3145,8 @@ def progress_run(pw):
                           fold['lineH'] <= 70 and fold['newsH'] <= 64 and fold['newsAI'] and fold['planInView'] and not fold['say'] and opened['say'] and not closed['say'], (fold, opened['say'], closed['say']))
                 else:
                     check(dev, f'{tag}: 好句 and 今日一读 shown whole (no fold on a wide screen)', fold['say'] and not fold['foldShown'] and fold['newsH'] > 70, fold)
+                first_h = pg.evaluate("(() => { const h = document.querySelector('#view h1, #view h2, #view h3'); return h ? h.tagName + ' ' + h.textContent.trim() : null; })()")
+                check(dev, f'{tag}: 今日\'s first heading is its h1 (今日好句 names its section, it is not a heading before it)', bool(first_h) and first_h.startswith('H1'), first_h)
                 top = pg.evaluate(TOP_JS)
                 check(dev, f'{tag}: 今日 runs 好句, 今日一读, the plan, 这周进步 from the top (the plan first on a phone held sideways), nothing cut off or wider than the screen',
                       top['order'] == (['plan', 'lineCard', 'news', 'week'] if h < 500 else ['lineCard', 'news', 'plan', 'week']) and not top['clipped'] and top['wide'] <= 0 and (not touch or top['small'] == []), top)
@@ -3386,6 +3388,28 @@ def review_side_run(pw):
             check(dev, f'iOS app at {w}px: 关闭 stays beside 「已开启：在这台 iPhone 上…」, not on a line of its own',
                   box['offTop'] < box['textBottom'] and box['offBottom'] > box['textTop'] and box['offLeft'] >= box['textRight'] and box['offRight'] <= box['vw'], box)
             ctx.close()
+        # 我的 → 设置 → 「iOS 专属功能」 (语流 C1, 2026-11-25): only in an app that has its own settings page (FlowApp.has('settings')),
+        # one line at 375 px, and a tap asks the app to open it; not in a browser, nor in an app without one
+        rows = {}
+        for name, init in (('iOS app', "window.__calls = []; window.FlowApp = { v: 1, platform: 'ios', has: k => k === 'settings', call: c => { window.__calls.push(c); return Promise.resolve(true); } };"),
+                           ('Android app without one', "window.FlowApp = { v: 1, platform: 'android', has: k => k === 'notify', call: () => Promise.resolve() };"), ('browser', '')):
+            ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
+            if init:
+                ctx.add_init_script(init)
+            pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+            pg.goto(BASE + '/#/me', wait_until='load'); settle(pg); pg.wait_for_timeout(300)
+            row = pg.evaluate("() => { const r = document.getElementById('meApp'); if (!r) return null; const t = r.querySelector('.t').getBoundingClientRect(), v = r.querySelector('.v').getBoundingClientRect(); "
+                              "return { text: r.innerText.replace(/\\s+/g, ' ').trim(), group: r.closest('.gsec').getAttribute('aria-label'), one: Math.abs(t.top - v.top) < 6 && r.getBoundingClientRect().height <= 64 }; }")
+            if row:
+                pg.click('#meApp'); pg.wait_for_timeout(200); row['calls'] = pg.evaluate('window.__calls || []')
+            rows[name] = [row, errs[:2]]
+            ctx.close()
+        ios = rows['iOS app'][0] or {}
+        check(dev, '我的 → 设置: 「iOS 专属功能 · 锁屏、小组件、Siri 等」 in the iOS app, one line at 375 px, a tap opens the app\'s own page (app.settings)',
+              ios.get('group') == '设置' and 'iOS 专属功能' in ios.get('text', '') and '锁屏、小组件、Siri 等' in ios.get('text', '') and ios.get('one') and ios.get('calls') == ['app.settings'], rows)
+        check(dev, '我的: no 「专属功能」 row in a browser, or in an app without a settings page of its own; no script errors',
+              rows['browser'][0] is None and rows['Android app without one'][0] is None and not any(e for _, e in rows.values()), rows)
         # 语流 B8's audit: 知道了 on one line on a phone; 复习 and 测词汇量 name themselves to a screen reader (a hidden h1);
         # 词汇辨析's round is one screen like 复习, 怎么区分 folded from the second question; a word page with no words yet
         # shows how to start, not counts of 0, a search box and filters
@@ -3404,7 +3428,7 @@ def review_side_run(pw):
             if w == 375:
                 check(dev, '复习 and 测词汇量 have a heading for a screen reader: 复习单词, 测词汇量', h1 == ['复习单词'] and h1t == ['测词汇量'], [h1, h1t])
             ctx.close()
-        ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
         pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
         pg.goto(BASE + '/#/words/confuse', wait_until='load'); settle(pg)
@@ -3415,11 +3439,17 @@ def review_side_run(pw):
             a1 = cf()
             pg.click('#mixQ .ans'); pg.wait_for_selector('#mixNext', timeout=4000); pg.click('#mixNext'); pg.wait_for_selector('#mixQ .ans:not([disabled])', timeout=4000); pg.wait_for_timeout(300)
             a2 = cf()
-            check(dev, '词汇辨析 on a phone: no tabs while answering, 怎么区分 open for the first question and folded from the second',
+            check(dev, '词汇辨析 on a phone (390×844): no tabs while answering, 怎么区分 open for the first question and folded from the second',
                   not a1['tabs'] and a1['how'] and not a2['how'], [a1, a2])
-            check(dev, '词汇辨析 at 375×667 from the second question: one screen, the last answer on it', a2['page'] <= a2['H'] and a2['last'] <= a2['H'], a2)
+            check(dev, '词汇辨析 at 390×844: both questions one screen, the last answer on it', a1['page'] <= a1['H'] and a2['page'] <= a2['H'] and a2['last'] <= a2['H'], [a1, a2])
             pg.click('#cfHow summary'); pg.wait_for_timeout(150)
             check(dev, '词汇辨析: a tap on 怎么区分 opens it again', pg.evaluate("document.getElementById('cfHow').open"), None)
+            # a short screen (Safari's bars showing on an iPhone SE, 375×553; borrow / lend and make / do, the longest two):
+            # the first question starts folded, as it would not fit open, and fits
+            pg.set_viewport_size({'width': 375, 'height': 553}); go(pg, '#/words/confuse'); go(pg, '#/words/confuse/borrow-lend,make-do')
+            pg.wait_for_selector('#mixQ .ans', timeout=8000); pg.wait_for_timeout(300)
+            a0 = cf()
+            check(dev, '词汇辨析 at 375×553: 怎么区分 starts folded on the first question (it would not fit open), which fits one screen', not a0['how'] and a0['page'] <= a0['H'] and a0['last'] <= a0['H'], a0)
         else:
             check(dev, '词汇辨析: a group to practise', False, 'no group on #/words/confuse')
         check(dev, 'no script errors (B8 audit pages)', not errs, errs[:3])
@@ -3638,7 +3668,12 @@ def one_screen_run(pw):
                 pg.evaluate("localStorage.removeItem('flow-card-view-review')")
                 # 词汇辨析's round (语流 B8's audit: 119-213 px past the screen): no tabs, 怎么区分 open for the first question,
                 # one line from the second; both questions one screen, the answers at the bottom and clear of the home bar
-                go(pg, '#/words/confuse/borrow-lend,make-do'); pg.wait_for_selector('#mixQ .ans', timeout=8000); pg.wait_for_timeout(400)
+                if size == 'iphone-se' and not home:  # Safari with its bars showing: 375×553 (语流 B8 on r33)
+                    for H in (553, 667):
+                        pg.set_viewport_size({'width': 375, 'height': H}); go(pg, '#/words/confuse'); go(pg, '#/words/confuse/borrow-lend,make-do')
+                        pg.wait_for_selector('#mixQ .ans', timeout=8000); pg.wait_for_timeout(400); s = pg.evaluate(ONE_SCREEN_JS)
+                        check(dev, f'375×{H} Safari 词汇辨析第 1 题: one screen whatever the toolbar ({s["page"]} of {s["H"]}px)', s['page'] <= s['H'] and s['answers'] and max(s['answers']) <= s['H'], s)
+                go(pg, '#/words/confuse'); go(pg, '#/words/confuse/borrow-lend,make-do'); pg.wait_for_selector('#mixQ .ans', timeout=8000); pg.wait_for_timeout(400)
                 for k in (1, 2):
                     if k == 2:
                         pg.click('#mixQ .ans'); pg.wait_for_selector('#mixNext', timeout=4000); pg.click('#mixNext')
@@ -3716,6 +3751,26 @@ def shell_run(pw):
             go(pg, f'#/radar/test/{kind}'); pg.wait_for_timeout(600)
             h1 = pg.evaluate("(h => h && h.textContent.trim())(document.querySelector('#view h1'))")
             check(dev, f'{name}: the page has its h1 (for a screen reader)', h1 == name, h1)
+        ctx.close()
+        # an older front end than the server's (B8, 2026-11-25: a copy cached before the terms check got the same error on
+        # every 重试): an error page takes the new version at once, once; its 重试 takes it again rather than repeat
+        ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True, service_workers='block')
+        ctx.add_cookies([{'name': 'flow_session', 'value': tok, 'url': BASE}])
+        pg = ctx.new_page(); loads = []
+        pg.on('load', lambda _: loads.append(1))
+        pg.route('**/api/version', lambda r: r.fulfill(json={'asset': 'zzz-newer'}))
+        pg.route('**/api/next/home*', lambda r: r.fulfill(status=403, json={'error': '请先同意新的用户协议'}))
+        pg.goto(BASE + '/#/', wait_until='load')
+        try:
+            pg.wait_for_function("() => localStorage.getItem('flow-update-tried') === JSON.stringify('zzz-newer')", timeout=10000)
+        except Exception:
+            pass
+        pg.wait_for_timeout(6000)  # a loop would reload again and again by now
+        first = (len(loads), pg.evaluate("localStorage.getItem('flow-update-tried')"), bool(pg.query_selector('#view #retry')), bool(pg.query_selector('#updateBar')))
+        check(dev, 'an error page with a newer version on the server takes it at once, once (no reload loop), then offers it',
+              first[0] == 2 and first[1] == '"zzz-newer"' and first[2] and first[3], first)
+        pg.click('#view #retry'); pg.wait_for_timeout(5000)
+        check(dev, 'and its 重试 takes the new version again instead of repeating the same error', len(loads) == 3, len(loads))
         ctx.close()
         check(dev, 'no page errors', not errs, errs[:3])
     finally:

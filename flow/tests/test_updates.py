@@ -44,7 +44,7 @@ class DataTests(unittest.TestCase):
                             self.assertIn('{#' + link.split('/')[2] + '}', GUIDE, f'{e["id"]}: the guide has that chapter: {link}')
             self.assertTrue(re.fullmatch(r'\d{4}-\d{2}-\d{2}', e['date']), e['id'])
             self.assertTrue(e['label'] and not re.search(r'\br\d+\b', e['label']), e['id'])  # the tag is never shown
-            self.assertTrue(2 <= len(e.get('highlights') or []) <= 3, e['id'])
+            self.assertTrue(1 <= len(e.get('highlights') or []) <= 3, e['id'])  # a one-fix hotfix has one
             for s in texts(e):
                 self.assertIsNone(us.TECH.search(s), f'{e["id"]}: no PR numbers, tags or model names for learners: {s}')
                 self.assertLessEqual(len(s), 90, f'{e["id"]}: one sentence, not a paragraph: {s}')

@@ -48,10 +48,13 @@ class LoginTests(unittest.TestCase):
         return st, body, h
 
     def code(self, purpose_word):
-        """The latest code mailed for this purpose (the outbox file's subject is 'Flow <purpose>验证码 123456')."""
+        """The latest code mailed for this purpose: the subject is 「语流验证码：123456」 for every purpose, the purpose
+        is said in the mail (「这是你登录语流 Flow 的验证码」)."""
         mails = sorted(self.outbox.glob('*.txt'))
-        subject = [l for l in mails[-1].read_text(encoding='utf-8').splitlines() if l.startswith('Subject:')][0]
-        self.assertIn(purpose_word, subject)
+        raw = mails[-1].read_text(encoding='utf-8')
+        subject = [l for l in raw.splitlines() if l.startswith('Subject:')][0]
+        self.assertRegex(subject, r'^Subject: 语流验证码：\d{6}$')
+        self.assertIn({'注册': '注册语流', '登录': '登录语流', '重设密码': '重设语流 Flow 密码', '绑定邮箱': '绑定这个邮箱'}[purpose_word], raw)
         return re.search(r'(\d{6})', subject).group(1)
 
     def session_expires(self):
