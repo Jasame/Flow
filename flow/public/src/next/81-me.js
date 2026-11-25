@@ -38,7 +38,7 @@
         u ? grow('meMail', '每周进度邮件', weeklyMailLabel(), 'meMailV', 'me-weekly-mail') : '',
         installed ? '' : grow('meInstall', '添加到桌面', '', '', 'me-install')]],
       u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
-        grow('meAge', '年龄段', ageLabel(u && u.age), 'meAgeV', 'me-age'), grow('meStorage', '数据存放', '已同意 · 香港'), grow('meData', '导出我的数据', '', '', 'me-data'), grow('meDelete', '注销账号', '', '', 'me-delete')],
+        grow('meAge', '年龄段', ageLabel(u && u.age), 'meAgeV', 'me-age'), grow('meStorage', '数据存放', '已同意 · 香港'), grow('#/guide/terms', '用户协议', '和隐私说明一起同意'), grow('meData', '导出我的数据', '', '', 'me-data'), grow('meDelete', '注销账号', '', '', 'me-delete')],
         '绑定邮箱后，可以用验证码登录，忘记密码时自己找回。30 天内来过就一直保持登录；在别人的手机或电脑上用完，记得退出。'],
       // 内测版 (flow.jasa.hk) only: what the line under the top bar said, kept here (the line can be closed): the
       // version and what changed in it (/api/deploy-status, /api/next/updates), 去正式版 (not in Flow's apps: it would
