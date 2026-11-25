@@ -11,6 +11,8 @@
     }
   },
   "targets": [
-    { "name": "default" }
+    // 内测版 (product default) and 正式版 (product prod): the same code, each with its own name (src/beta, src/prod)
+    { "name": "default", "resource": { "directories": ["./src/main/resources", "./src/beta/resources"] } },
+    { "name": "prod", "resource": { "directories": ["./src/main/resources", "./src/prod/resources"] } }
   ]
 }

@@ -35,8 +35,13 @@ export class BridgeProxy {
  * and transport errors reject (§2).
  */
 export class Bridge {
-  /** What this app does natively (FlowApp.has). No 'speech': the system's voice is Core Speech Kit, not used (C4 plan §5). */
-  static readonly FEATURES: string[] = ['audio', 'rec', 'notify'];
+  /**
+   * What this app does natively (FlowApp.has). No 'speech': the system's voice is Core Speech Kit, not used (C4 plan §5).
+   * No 'notify' yet: HarmonyOS gives a third-party app no 后台代理提醒 until Huawei opens it for the bundle (publishReminder
+   * answers 1700002 with a limit of 0; seen on the 5.0.1 emulator, 2026-11-26). Until then the page reminds as in a browser
+   * (mail, 加到手机日历); notify/ stays ready, and the commands still answer.
+   */
+  static readonly FEATURES: string[] = ['audio', 'rec'];
 
   readonly proxy: BridgeProxy = new BridgeProxy(this);
   private web: webview.WebviewController;

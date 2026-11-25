@@ -19,7 +19,7 @@
 |---|---|
 | `audio` 整篇朗读 | AVPlayer 播放；AVSession 让锁屏和控制中心显示标题和「AI 朗读 · 第 n / N 句」，有播放、暂停、上一句、下一句；长时任务 AUDIO_PLAYBACK 让锁屏以后接着读。来电时暂停，系统说可以继续时接着放；拔耳机暂停 |
 | `rec` 录音 | AudioCapturer 录 16 kHz 单声道 WAV；超过 40 秒用 AVRecorder 录 m4a（AAC 16 kHz）。来电或切到后台时停下（cut），录到的部分还在 |
-| `notify` 复习提醒 | 后台代理提醒（reminderAgentManager）：App 关着、手机重启以后也会到点提醒，不经过推送服务器。规则和 iOS、安卓一样（`notify/Planner.ets`）。系统规定每个 App 最多 30 条，这里最多排 28 条，打开 App、切到后台时再补 |
+| `notify` 复习提醒 | **还没打开**（`has('notify')` 为 false），网页照浏览器的做法用邮件和「加到手机日历」。<br>原因：第三方 App 的后台代理提醒要华为按包名开通。开通之前 `publishReminder` 回 1700002，系统日志写 `ReminderControl … notification not allowed`，上限是 0（5.0.1 模拟器，2026-11-26 实测）。<br>代码已经写好（`notify/`：规则和 iOS、安卓一样，最多排 28 条），名额开通以后在 `Bridge.FEATURES` 里加回 `'notify'` |
 | `speech` | **不做**。鸿蒙的系统朗读是 Core Speech Kit，属于系统自带的 AI 能力，按规矩不接。服务器的句子做不出来时，朗读暂停（why = error），`fail` 交给网页说明原因，点继续再试 |
 
 ## 外壳
@@ -76,6 +76,11 @@ hdc shell aa start -a EntryAbility -b cn.flowlang.app.beta --pb flow.mute true
   hdc fport tcp:9333 localabstract:webview_devtools_remote_<pid>
   ```
   然后打开 `http://127.0.0.1:9333/json`，用 DevTools 协议连上去。
+- 2026-11-26 在模拟器上测过：
+  - 整篇朗读：播放、下一句、暂停后从同一秒接着放、播到一句 1.5 秒以后按上一句先回本句开头、读完收到 `ended`、进度保存；
+  - 锁屏：卡片写「标题 / AI 朗读 · 第 n / N 句」，锁屏时接着读；锁屏上的暂停、播放能用，网页收到 `why: remote`；停下后卡片会撤掉；
+  - 通知和麦克风：系统弹窗里写的是「语流内测」，麦克风弹窗显示我们写的用途说明；
+  - 录音：WAV 文件头正确，到时自动停，`rec` 先发 `recording` 再发 `done`。第一段声音约 0.3 秒后到。模拟器的虚拟麦克风偶尔会断流，`ms` 按实际录到的声音算，真机上还要再看。
 - 2026-11-26 实测：UA 是 `Mozilla/5.0 (Phone; OpenHarmony 5.0) … Chrome/114.0.0.0 … ArkWeb/4.1.6.1 Mobile FlowHarmony/1.0.0`；FlowApp 的 platform 是 harmony，能力是 audio、rec、notify；MediaRecorder 支持 webm/opus；`speechSynthesis` 存在，但一个声音都没有。
 
 ## 签名

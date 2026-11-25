@@ -7,13 +7,18 @@
         // 「语流内测」 cn.flowlang.app.beta → https://flow.jasa.hk (the one DevEco runs by default)
         "name": "default",
         "bundleName": "cn.flowlang.app.beta",
-        "label": "$string:app_name_beta",
+        // the name on the home screen and in the system's questions: AppScope/resources_beta (语流内测), resources_prod (语流)
+        "resource": { "directories": ["./AppScope/resources", "./AppScope/resources_beta"] },
         "compatibleSdkVersion": "5.0.0(12)",
         "targetSdkVersion": "26.0.0",
         "runtimeOS": "HarmonyOS",
         "buildOption": {
           "arkOptions": {
-            "buildProfileFields": { "FLOW_SITE": "https://flow.jasa.hk", "FLOW_BETA": "true", "FLOW_BUILD": "dev" }
+            "buildProfileFields": {
+              "FLOW_SITE": "https://flow.jasa.hk",
+              "FLOW_BETA": "true",
+              "FLOW_BUILD": "dev"
+            }
           }
         }
       },
@@ -21,19 +26,28 @@
         // 「语流」 cn.flowlang.app → https://flowlang.cn
         "name": "prod",
         "bundleName": "cn.flowlang.app",
+        "resource": { "directories": ["./AppScope/resources", "./AppScope/resources_prod"] },
         "compatibleSdkVersion": "5.0.0(12)",
         "targetSdkVersion": "26.0.0",
         "runtimeOS": "HarmonyOS",
         "buildOption": {
           "arkOptions": {
-            "buildProfileFields": { "FLOW_SITE": "https://flowlang.cn", "FLOW_BETA": "false", "FLOW_BUILD": "dev" }
+            "buildProfileFields": {
+              "FLOW_SITE": "https://flowlang.cn",
+              "FLOW_BETA": "false",
+              "FLOW_BUILD": "dev"
+            }
           }
         }
       }
     ],
     "buildModeSet": [
-      { "name": "debug" },
-      { "name": "release" }
+      {
+        "name": "debug"
+      },
+      {
+        "name": "release"
+      }
     ]
   },
   "modules": [
@@ -41,7 +55,9 @@
       "name": "entry",
       "srcPath": "./entry",
       "targets": [
-        { "name": "default", "applyToProducts": ["default", "prod"] }
+        // 内测版 and 正式版 each with its own module target (entry/build-profile.json5: the name in src/beta, src/prod)
+        { "name": "default", "applyToProducts": ["default"] },
+        { "name": "prod", "applyToProducts": ["prod"] }
       ]
     }
   ]

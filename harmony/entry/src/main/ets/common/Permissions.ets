@@ -1,7 +1,7 @@
 import { abilityAccessCtrl, bundleManager, Permissions as Perm, Want } from '@kit.AbilityKit';
 import { notificationManager } from '@kit.NotificationKit';
 import { preferences } from '@kit.ArkData';
-import { deviceInfo } from '@kit.BasicServicesKit';
+import { BusinessError, deviceInfo } from '@kit.BasicServicesKit';
 import { AppState } from './AppState';
 
 const MIC: Perm = 'ohos.permission.MICROPHONE';
@@ -93,10 +93,16 @@ export class Permissions {
       return false;
     }
     try {
-      Permissions.markAsked('notify');
       await notificationManager.requestEnableNotification(ctx);
+      Permissions.markAsked('notify');
     } catch (e) {
-      // refused, or asked before: the settings
+      // 1600004: the learner said no (it counts as asked: from now on the page points to the settings). Anything else
+      // (1600013 a dialog already up, 1600001/1600003 the service): not asked yet, the next tap asks again.
+      const code = (e as BusinessError).code;
+      AppState.warn('notify ask: ' + code);
+      if (code === 1600004) {
+        Permissions.markAsked('notify');
+      }
     }
     return Permissions.notifyAllowed();
   }

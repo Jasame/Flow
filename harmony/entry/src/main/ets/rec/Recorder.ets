@@ -26,6 +26,10 @@ export class Recorder {
   private static cut: boolean = false;
   private static state: string = 'idle';   // idle | recording | done
   private static timer: number = -1;
+  /** The capturer still hands over sound: until its stop() is done (the last buffers come after the stop was asked). */
+  private static capturing: boolean = false;
+  private static finishing: Promise<void> | null = null;
+  private static asked: number = 0;
 
   static init(): void {
     AppState.onBackground.push(() => {
@@ -82,6 +86,7 @@ export class Recorder {
   }
 
   private static async startWav(): Promise<void> {
+    Recorder.asked = Date.now();
     const options: audio.AudioCapturerOptions = {
       streamInfo: {
         samplingRate: audio.AudioSamplingRate.SAMPLE_RATE_16000,
@@ -94,7 +99,10 @@ export class Recorder {
     const c = await audio.createAudioCapturer(options);
     Recorder.capturer = c;
     c.on('readData', (buf: ArrayBuffer) => {
-      if (Recorder.state === 'recording') {
+      if (Recorder.capturing) {
+        if (Recorder.chunks.length === 0) {
+          AppState.log('rec: first sound ' + (Date.now() - Recorder.asked) + ' ms after the start');  // no sound itself
+        }
         Recorder.chunks.push(buf.slice(0));
       }
     });
@@ -103,6 +111,7 @@ export class Recorder {
         Recorder.finish(true);  // a call: cut, keep what there is
       }
     });
+    Recorder.capturing = true;
     await c.start();
   }
 
@@ -132,10 +141,15 @@ export class Recorder {
   }
 
   /** Stopped by the time limit (done) or by a call or the background (cut); stop() takes the result. */
-  private static async finish(cut: boolean): Promise<void> {
+  private static finish(cut: boolean): Promise<void> {
     if (Recorder.state !== 'recording') {
-      return;
+      return Recorder.finishing ?? Promise.resolve();
     }
+    Recorder.finishing = Recorder.finishNow(cut);
+    return Recorder.finishing;
+  }
+
+  private static async finishNow(cut: boolean): Promise<void> {
     Recorder.state = 'done';
     Recorder.cut = cut;
     Recorder.ended = Date.now();
@@ -150,7 +164,8 @@ export class Recorder {
     } catch (e) {
       AppState.warn('rec stop: ' + JSON.stringify(e));
     }
-    AppState.emit('rec', { 'state': cut ? 'cut' : 'done', 'ms': Recorder.ended - Recorder.started } as Record<string, Object>);
+    Recorder.capturing = false;
+    AppState.emit('rec', { 'state': cut ? 'cut' : 'done', 'ms': Recorder.takeMs() } as Record<string, Object>);
   }
 
   /** → {ok, mime_type, data (base64), ms, bytes, cut}; the upload takes only mime_type and data. */
@@ -160,9 +175,7 @@ export class Recorder {
       const none: Record<string, Object> = { 'ok': false, 'why': 'none' };
       return none;
     }
-    if (Recorder.state === 'recording') {
-      await Recorder.finish(false);
-    }
+    await Recorder.finish(false);  // also waits for one the time limit or a call began
     let bytes: Uint8Array;
     let mime: string;
     if (Recorder.format === 'wav') {
@@ -172,12 +185,24 @@ export class Recorder {
       bytes = Recorder.readFile();
       mime = 'audio/mp4';
     }
-    const ms = (Recorder.ended || Date.now()) - Recorder.started;
+    const ms = Recorder.takeMs();
     const cut = Recorder.cut;
     await Recorder.release();
     const data = new util.Base64Helper().encodeToStringSync(bytes);
     const out: Record<string, Object> = { 'ok': true, 'mime_type': mime, 'data': data, 'ms': ms, 'bytes': bytes.length, 'cut': cut };
     return out;
+  }
+
+  /** How long the take is: from the sound itself for WAV (16-bit mono, 32 bytes a millisecond), else the clock. */
+  private static takeMs(): number {
+    if (Recorder.format === 'wav') {
+      let n = 0;
+      Recorder.chunks.forEach((c: ArrayBuffer) => {
+        n += c.byteLength;
+      });
+      return Math.round(n / 32);
+    }
+    return (Recorder.ended || Date.now()) - Recorder.started;
   }
 
   static async cancel(): Promise<void> {
@@ -242,6 +267,8 @@ export class Recorder {
       Recorder.file = '';
     }
     Recorder.chunks = [];
+    Recorder.capturing = false;
+    Recorder.finishing = null;
     Recorder.state = 'idle';
   }
 }

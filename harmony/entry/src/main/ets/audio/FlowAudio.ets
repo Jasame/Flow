@@ -933,6 +933,11 @@ export class FlowAudio {
       title: j.title,
       artist: 'AI 朗读 · 第 ' + (FlowAudio.i + 1) + ' / ' + j.n() + ' 句',
     };
+    // a recording has a length: the lock screen's bar shows where it is (the server voice goes sentence by sentence)
+    const p = FlowAudio.player;
+    if (j.mode === Mode.REC && !j.loop && p && p.duration > 0) {
+      meta.duration = p.duration;
+    }
     s.setAVMetadata(meta).catch(() => {});
     const playing = FlowAudio.state === 'playing' || FlowAudio.state === 'waiting';
     const ps: avSession.AVPlaybackState = {
@@ -945,10 +950,20 @@ export class FlowAudio {
 
   private static async endSession(): Promise<void> {
     const ctx = AppState.context;
-    try {
-      if (FlowAudio.session) {
-        await FlowAudio.session.deactivate();
+    // the lock screen's card goes away too: stopped, then the session itself (one is made again for the next text)
+    const s = FlowAudio.session;
+    FlowAudio.session = undefined;
+    if (s) {
+      try {
+        const stopped: avSession.AVPlaybackState = { state: avSession.PlaybackState.PLAYBACK_STATE_STOP };
+        await s.setAVPlaybackState(stopped);
+        await s.deactivate();
+        await s.destroy();
+      } catch (e) {
+        AppState.warn('session end: ' + JSON.stringify(e));
       }
+    }
+    try {
       if (FlowAudio.running && ctx) {
         await backgroundTaskManager.stopBackgroundRunning(ctx);
       }
