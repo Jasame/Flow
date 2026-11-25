@@ -354,6 +354,7 @@
       else { setNav('today'); await today(fresh); }
       if (!sameMaterial && name !== 'welcome' && !quiet) enter(view);
       if (!sameMaterial && !quiet) { const h = view.querySelector('h1'); announce(h ? h.textContent : document.title); }
+      homeBackLink();  // 主屏 App: the page's own 「← 上一级」 line gives way to the top bar's 返回 (04-home-app.js)
     } catch (e) {
       const kept = e.network ? OFF.list() : [];  // offline: what can still be studied
       view.innerHTML = `<div class="empty"><div class="big">⚠︎</div><p>${esc(e.message)}</p><button class="btn" id="retry">重试</button>
@@ -365,6 +366,10 @@
   window.addEventListener('hashchange', () => {
     const [name, a] = parts(), last = S.lastRoute.split('/');
     if (!(name === 'm' && last[0] === 'm' && last[1] === a)) window.scrollTo(0, 0);
+    // another page (a link, 返回, the browser's or the phone's back): a sheet of the page left closes with it (one
+    // waiting for an answer stays); a tip the page left showed is put away, one said on the way here (「已保存」) stays
+    if (!sheetEl.hidden && !sheetLocked()) closeSheet();
+    if (Date.now() - (toast.at || 0) > 400) toastEl.classList.remove('show');
     route();
   });
   // Focus mode: while reading, the top bar slides away on scroll down and comes back on scroll up.
