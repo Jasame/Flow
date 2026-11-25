@@ -65,6 +65,10 @@ impl AppState {
     pub fn settings(&self) -> Settings {
         self.settings.lock().unwrap().clone()
     }
+    /// A smoke test with FLOW_SMOKE_NOTIFY=1: reminders on for this run only (not saved).
+    pub fn force_notify(&self) {
+        self.settings.lock().unwrap().notify = true;
+    }
     pub fn update_settings(&self, f: impl FnOnce(&mut Settings)) {
         let mut s = self.settings.lock().unwrap();
         f(&mut s);
@@ -363,6 +367,9 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     notify::set_silent(app.state::<AppState>().mute);
     if let Some(p) = app.state::<AppState>().smoke.clone() {
         smoke::watchdog(handle.clone(), p);
+        if smoke::notify_wanted() {
+            app.state::<AppState>().force_notify();
+        }
     }
     app.manage(menu::MenuState::default());
 

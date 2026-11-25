@@ -98,6 +98,8 @@ jobs:
           $img.Save("$env:RUNNER_TEMP\desktop-windows.png")
           Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
           Start-Sleep -Seconds 2
+          # also plan the reminders and show a test toast (nothing to approve on Windows), then clear them
+          $env:FLOW_SMOKE_NOTIFY = '1'
           $r = Start-Process $exe.FullName -ArgumentList "--smoke-test=$env:RUNNER_TEMP\smoke.json" -PassThru -Wait
           "exit code: $($r.ExitCode)"
           python tools/check_smoke.py "$env:RUNNER_TEMP\smoke.json" windows

@@ -29,6 +29,14 @@ def problems(d, os_name):
         out.append(f"page is {p.get('url')!r}, not the site")
     if not n.get('mute'):
         out.append('a smoke test must run muted (FLOW_MUTE)')
+    if n.get('smoke_notify'):  # FLOW_SMOKE_NOTIFY=1 (CI's Windows runner): the reminders really reached the system
+        if not p.get('synced'):
+            out.append(f"notify.sync planned nothing: {p.get('synced')!r} {p.get('syncError') or ''}")
+        ids = [x.get('id') for x in n.get('pending') or []]
+        if not any(i in ('flow-once', 'once') for i in ids):
+            out.append(f'the one-off reminder is not in the system queue: {ids}')
+        if n.get('test_notification') != 'shown':
+            out.append(f"test notification: {n.get('test_notification')!r}")
     if not n.get('media_controls'):
         out.append('the system media controls did not start')
     if n.get('media_last_title') != '语流 · 冒烟测试':

@@ -39,9 +39,10 @@ pub fn permission() -> Permission {
     }
 }
 
-/// Windows never asks: notifications are on unless turned off in Settings.
+/// Windows never asks: notifications are on unless turned off in Settings. Before the first toast Windows may
+/// not know the app yet (Setting() fails: 'undetermined'), which is not a no.
 pub fn ask() -> bool {
-    permission() == Permission::Granted
+    permission() != Permission::Denied
 }
 
 fn doc(title: &str, body: &str, launch: &str) -> Result<XmlDocument, String> {

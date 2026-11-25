@@ -6,6 +6,12 @@ use crate::AppState;
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 
+/// FLOW_SMOKE_NOTIFY=1: also plan the reminders and show one test notification, report the system's queue, then
+/// clear it. For CI's Windows runner (nothing to approve there); a Mac would ask for permission first.
+pub fn notify_wanted() -> bool {
+    std::env::var_os("FLOW_SMOKE_NOTIFY").is_some_and(|v| v != "0")
+}
+
 pub fn path_from_args(args: impl Iterator<Item = String>) -> Option<PathBuf> {
     args.filter_map(|a| a.strip_prefix("--smoke-test=").map(PathBuf::from))
         .next()
@@ -48,6 +54,22 @@ pub async fn smoke_report(app: AppHandle, r: serde_json::Value) {
     let delivered = tauri::async_runtime::spawn_blocking(crate::notify::delivered)
         .await
         .unwrap_or_default();
+    let test_notification = if notify_wanted() {
+        let launch = format!("{}://open", st.channel.scheme());
+        let r = tauri::async_runtime::spawn_blocking(move || {
+            let r = crate::notify::show_now("语流 · 冒烟测试", "测试通知，可以忽略。", &launch);
+            crate::notify::clear(); // the runner keeps nothing planned
+            r
+        })
+        .await;
+        Some(match r {
+            Ok(Ok(())) => "shown".to_string(),
+            Ok(Err(e)) => e,
+            Err(e) => e.to_string(),
+        })
+    } else {
+        None
+    };
     let out = serde_json::json!({
         "page": r,
         "native": {
@@ -59,6 +81,8 @@ pub async fn smoke_report(app: AppHandle, r: serde_json::Value) {
             "media_last_title": st.media_title.lock().unwrap().clone(),
             "mute": st.mute,
             "notify_setting": st.settings().notify,
+            "smoke_notify": notify_wanted(),
+            "test_notification": test_notification,
             "pending": pending.iter().map(|(id, at)| serde_json::json!({ "id": id, "at": at.map(|t| chrono::DateTime::from_timestamp(t, 0).map(|d| d.with_timezone(&chrono::Local).to_rfc3339())) })).collect::<Vec<_>>(),
             "delivered": delivered,
             "os": std::env::consts::OS,
