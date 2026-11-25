@@ -161,6 +161,21 @@ def made(c, link_id, uid):
     c.execute('UPDATE teacher_links SET used_by=? WHERE id=?', (uid, link_id))
 
 
+def set_teacher(c, uid, on):
+    """POST /learner/teacher {id, teacher} (管理员, the user's rule 2026-11-26): an existing account becomes a 老师账号, or
+    back. Only an account in no class now: a teacher never sits in one. (body, status, user row or None)."""
+    u = c.execute('SELECT * FROM users WHERE id=?', (uid,)).fetchone() if str(uid or '').isdigit() else None
+    if not u:
+        return {'error': '没有找到这个学员'}, 404, None
+    if on:
+        k = c.execute('SELECT k.name FROM class_members m JOIN classes k ON k.id=m.class_id WHERE m.user_id=? AND m.left_at IS NULL', (u['id'],)).fetchone()
+        if k:
+            return {'error': f"这个账号现在在班级「{k['name']}」里。老师账号不能在班里：请他先退出班级，再设为老师账号"}, 409, u
+    c.execute('UPDATE users SET role=? WHERE id=?', ('teacher' if on else None, u['id']))
+    c.commit()
+    return {'ok': True, 'username': u['username'], 'teacher': bool(on)}, 200, u
+
+
 # ---------------------------------------------------------------- a teacher's own classes
 
 def _teacher_row(c, uid):

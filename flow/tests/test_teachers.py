@@ -207,5 +207,42 @@ class TeacherClassTests(Teachers):
         self.assertTrue(self.console(f'/learner?id={uid}')[1]['account']['teacher'])
 
 
+
+class OperatorTests(Teachers):
+    """The user's rules (2026-11-26): a 管理员 may make an existing account a teacher and back (not one in a class), in the
+    operator log; teacher accounts are out of the learner numbers, like 员工账号."""
+    def test_an_operator_makes_an_account_a_teacher_and_back(self):
+        _, _, uid = self.person('xiaolin')
+        st, body = self.console('/learner/teacher', {'id': uid, 'teacher': True})
+        self.assertEqual(st, 200, body)
+        self.assertTrue(self.session('xiaolin')['teacher'])
+        self.assertEqual(self.me('xiaolin', '/api/next/class/create', {'name': '高一（3）班'})[0], 200)
+        self.assertEqual(self.console('/learner/teacher', {'id': uid, 'teacher': False})[0], 200)
+        self.assertFalse(self.session('xiaolin')['teacher'])
+        self.assertEqual([r['action'] for r in self.log()][-2:], ['account-teacher-on', 'account-teacher-off'])
+        self.assertEqual(self.console('/learner/teacher', {'id': uid, 'teacher': True}, email=INTERN)[0], 403)
+
+    def test_an_account_in_a_class_is_not_made_a_teacher(self):
+        self.person('wanglaoshi')
+        _, code = self.make()
+        _, _, uid = self.person('xiaolin')
+        self.assertEqual(self.me('xiaolin', '/api/next/class/join', {'code': code})[0], 200)
+        st, body = self.console('/learner/teacher', {'id': uid, 'teacher': True})
+        self.assertEqual(st, 409, body)
+        self.assertIn('高一（3）班', body['error'])
+        self.me('xiaolin', '/api/next/class/leave', {})
+        self.assertEqual(self.console('/learner/teacher', {'id': uid, 'teacher': True})[0], 200)
+
+    def test_teacher_accounts_are_out_of_the_learner_numbers(self):
+        for n in ('xiaolin', 'xiaowang'):
+            self.person(n)
+        before = self.console('/funnel')[1]['steps'][0]['count'], self.console('/overview')[1]['never_started']
+        self.teacher()
+        after = self.console('/funnel')[1]['steps'][0]['count'], self.console('/overview')[1]['never_started']
+        self.assertEqual(after, before)
+        rows = self.console('/learners?filter=teacher')[1]['items']
+        self.assertEqual([r['username'] for r in rows], ['wanglaoshi'])
+
+
 if __name__ == '__main__':
     unittest.main()

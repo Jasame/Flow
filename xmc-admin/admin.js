@@ -419,6 +419,7 @@
         (isAdmin() ? '<section class="card dr-actions"><h3>操作</h3>' +
           '<div class="toolbar"><button class="btn" data-act="reset">生成重设密码链接</button><button class="btn" data-act="signout"' + (a.sessions ? '' : ' disabled') + '>退出所有设备</button>' +
             '<button class="btn" data-act="staff">' + (a.staff ? '取消员工账号' : '设为员工账号') + '</button>' +
+            '<button class="btn" data-act="teacher">' + (a.teacher ? '取消老师账号' : '设为老师账号') + '</button>' +
             '<button class="btn danger" data-act="disable">' + (a.disabled ? '恢复账号' : '停用账号') + '</button></div>' +
           '<div class="toolbar">' + (p ? '<span class="inline-form"><label class="muted small">水平 <select id="drLevel">' + Object.keys(LEVEL).map(function (k) {
               return '<option value="' + k + '"' + (p.level === k ? ' selected' : '') + '>' + LEVEL[k] + '</option>'; }).join('') + '</select></label><button class="btn" data-act="level">保存</button></span>' : '') +
@@ -476,6 +477,11 @@
     act('staff', function (b) {
       if (!confirm(a.staff ? '取消「' + a.username + '」的员工账号？之后 AI 次数按普通学员的每日上限算。' : '把「' + a.username + '」设为员工账号？\n\n员工账号用 AI 不受每日次数限制，也不算进学员统计（漏斗、留存）。只给自己人。')) return;
       busy(b, postJSON('/learner/staff', { id: a.id, staff: !a.staff })).then(after);
+    });
+    act('teacher', function (b) {
+      if (!confirm(a.teacher ? '取消「' + a.username + '」的老师账号？\n\n之后它是普通学生账号：不能再自己建班，也会算进学员统计；它已经在带的班不受影响。'
+        : '把「' + a.username + '」设为老师账号？\n\n之后打开语流先到「我的班级」，可以自己建班、看全班汇总；不能加入班级，也不算进学员统计（漏斗、留存）。随时可以取消。在班里的账号要先退出班级。')) return;
+      busy(b, postJSON('/learner/teacher', { id: a.id, teacher: !a.teacher })).then(after);
     });
     act('disable', function (b) {
       if (!a.disabled && !confirm('停用「' + a.username + '」？\n\n马上在所有设备上退出，之后不能再登录（会提示账号已停用）。学习记录都保留，随时可以恢复。')) return;

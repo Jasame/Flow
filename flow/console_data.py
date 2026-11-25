@@ -133,6 +133,7 @@ FILTERS = {
     'lapsed': ('学过、超过 7 天没学', lambda r, td: r['days_total'] > 0 and not r['days_7d']),
     'never': ('注册了还没开始学', lambda r, td: not r['days_total']),
     'staff': ('员工账号', lambda r, td: r['staff']),
+    'teacher': ('老师账号', lambda r, td: r['teacher']),
     'disabled': ('已停用', lambda r, td: r['disabled']),
     'minor': ('未成年', lambda r, td: r['age'] in ('u14', '14-17')),
     'no_age': ('没填年龄段', lambda r, td: not r['age']),
@@ -249,7 +250,7 @@ def funnel(c, days=0):
     waiting = [0, 0]
     unknown = 0
     side = {'plan': 0, 'next_day': 0, 'next_day_of': 0}
-    for u in c.execute('SELECT id, created FROM users WHERE admin=0'):
+    for u in c.execute("SELECT id, created FROM users WHERE admin=0 AND COALESCE(role, '')<>'teacher'"):  # no 员工 or 老师账号
         uid = u['id']
         ds = act.get(uid, {})
         first = min(ds) if ds else None
@@ -289,7 +290,7 @@ def cohorts(c, weeks=12):
     """Learners by the week they first studied (Monday first): how many studied again in week 1, 2, 3 and 4 after."""
     td = today()
     act = activity(c)
-    staff = {r[0] for r in c.execute('SELECT id FROM users WHERE admin=1')}
+    staff = {r[0] for r in c.execute("SELECT id FROM users WHERE admin=1 OR role='teacher'")}  # 员工 and 老师账号 left out
     monday = td - datetime.timedelta(days=td.weekday())
     rows = {}
     for uid, ds in act.items():
@@ -355,7 +356,7 @@ def books(c):
     studied = {}
     for uid, norm in c.execute("SELECT user_id, norm FROM next_cards WHERE state!='new' OR known=1"):
         studied.setdefault(uid, set()).add(norm)
-    plans = c.execute('SELECT p.user_id, p.book, p.daily_new FROM next_vocab_plans p JOIN users u ON u.id=p.user_id WHERE u.admin=0').fetchall()
+    plans = c.execute("SELECT p.user_id, p.book, p.daily_new FROM next_vocab_plans p JOIN users u ON u.id=p.user_id WHERE u.admin=0 AND COALESCE(u.role, '')<>'teacher'").fetchall()
     per = {}
     for r in plans:
         size = len(sets.get(r['book'], ()))

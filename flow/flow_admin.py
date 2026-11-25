@@ -71,7 +71,8 @@ ACTION_LABEL = {'reset-link': '生成重设密码链接', 'survey-hide': '隐藏
                 'feedback-reopen': '重新打开反馈',
                 # r26
                 'account-disable': '停用账号', 'account-enable': '恢复账号', 'account-signout': '退出所有设备',
-                'account-staff-on': '设为员工账号', 'account-staff-off': '取消员工账号', 'account-level': '改水平',
+                'account-staff-on': '设为员工账号', 'account-staff-off': '取消员工账号',
+                'account-teacher-on': '设为老师账号', 'account-teacher-off': '取消老师账号', 'account-level': '改水平',
                 'account-daily-new': '改每日新词', 'material-hide': '下架材料', 'material-show': '恢复材料',
                 'daily-again': '重新生成今日热点', 'ai-limits': '改 AI 额度', 'examples-start': '开始例句预生成',
                 'examples-stop': '停止例句预生成', 'announce': '发布公告', 'announce-end': '结束公告', 'export': '导出 CSV',
@@ -225,7 +226,7 @@ def overview(c):
         'survey_responses': q('SELECT COUNT(*) FROM survey_responses WHERE survey=? AND hidden=0', survey.SURVEY_ID),
         'trial_responses': q('SELECT COUNT(*) FROM survey_responses WHERE survey=? AND hidden=0', survey.TRIAL_ID),
         'profiles': q('SELECT COUNT(*) FROM next_profiles'),
-        'never_started': q('SELECT COUNT(*) FROM users WHERE admin=0 AND id NOT IN (SELECT user_id FROM next_progress UNION SELECT user_id FROM next_reviews)'),
+        'never_started': q("SELECT COUNT(*) FROM users WHERE admin=0 AND COALESCE(role, '')<>'teacher' AND id NOT IN (SELECT user_id FROM next_progress UNION SELECT user_id FROM next_reviews)"),
         'disabled': q('SELECT COUNT(*) FROM users WHERE disabled=1'),
         'hidden_materials': q('SELECT COUNT(*) FROM material_hidden'),
         'errors_24h': __import__('ops_errors').count_since(c, 86400),
@@ -343,7 +344,7 @@ def console_get(c, path, one, op):
         return __import__('teacher_service').links(c)
 
 
-ACCOUNT_POSTS = {'/learner/disable', '/learner/signout', '/learner/staff', '/learner/level', '/learner/daily-new'}
+ACCOUNT_POSTS = {'/learner/disable', '/learner/signout', '/learner/staff', '/learner/teacher', '/learner/level', '/learner/daily-new'}
 
 
 def console_post(c, path, data, op):
@@ -363,6 +364,10 @@ def console_post(c, path, data, op):
             on = bool(data.get('staff'))
             body, status, u = co.set_staff(c, uid, on)
             action, detail = ('account-staff-on' if on else 'account-staff-off'), ''
+        elif path == '/learner/teacher':
+            on = bool(data.get('teacher'))
+            body, status, u = __import__('teacher_service').set_teacher(c, uid, on)
+            action, detail = ('account-teacher-on' if on else 'account-teacher-off'), ''
         elif path == '/learner/level':
             body, status, u = co.set_level(c, uid, data.get('level'))
             action, detail = 'account-level', str(data.get('level'))[:10]
