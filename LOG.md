@@ -117,3 +117,10 @@
   - #113 发音：通义千问 Omni 的单词判断只作参考，不进错题本（单词、听和说、AI、操作指南）
 - 自检：DEPLOYED，装了 6 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45520540948
+
+### b26 · 2026-11-25 08:55
+- main `1db9b7a`，构建 `50e03e2`
+- 新合并的 PR（自 b25 起）：
+  - #114 例句：不嘲笑、不带刻板印象；--review 复查旧例句并重写（单词）
+- 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45521706643
