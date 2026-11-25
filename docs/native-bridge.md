@@ -161,7 +161,55 @@ speaking、pending 照实；2.5 秒内一定发 start；getVoices() 有带 lang 
 
 ### 安卓（语流 21，`android/`）
 
-（语流 21 写：传输 WebMessageListener、Media3、AudioRecord、通知和精确闹钟、静音开关。）
+Kotlin，minSdk 26，targetSdk 37；说明在 `android/README.md`。flavor `beta`（cn.flowlang.app.beta，「语流内测」，flow.jasa.hk）和 `prod`（cn.flowlang.app，「语流」，flowlang.cn）。
+
+- **注入**：`WebViewCompat.addDocumentStartJavaScript`，在 document start 注入，规则里只有本站的源。文件 `android/app/src/main/assets/flowapp.js`，形状和 iOS 的 FlowBridge.js 一样（第 2 节），只有最底下的传输不同。
+  - `FlowApp` 冻结；html 加 class `flow-android`；`build` 是 CI 的提交前 7 位（本机构建是 `"dev"`）；`beta` 看 flavor。
+- **传输**：`WebViewCompat.addWebMessageListener` 的 `flowNative` 通道，不用 `addJavascriptInterface`。
+  - 网页发 `postMessage(JSON {id, cmd, args})`，App 用 JavaScriptReplyProxy 回 `{id, ok, result | error}`。
+  - App → 网页走同一个通道，发 `{ev, detail}`，flowapp.js 转给 `FlowApp._emit`。
+  - 只认本站主框架（isMainFrame 加 origin 检查）。WebView 太旧、缺这两个功能时什么都不挂，网页照浏览器的做法。
+- **外壳**：
+  - UA 末尾是 `FlowAndroid/<版本>`；返回键先发 `flowapp:back`（第 2 节）；别的网站、`mailto:`、`tel:` 交给系统打开；
+  - 深色和浅色切换不重新加载；键盘弹出时整个 WebView 变矮，网页里 visualViewport 看不到键盘；
+  - WebView 的使用统计和 Safe Browsing 关掉，不做云备份。
+- **audio**：Media3 ExoPlayer 加 MediaSessionService（前台服务，类型 mediaPlayback）。
+  - 锁屏、通知栏、耳机和蓝牙按键：播放、暂停、上一句、下一句。SimpleBasePlayer 显示「标题 · 第 n / N 句」；句间停顿和正在生成的句子也显示成在放。
+  - 音频焦点自己管：
+    - 短暂失去（来电、闹钟、导航）：暂停，回来后自己接着放；
+    - 彻底失去（别的 App 放声音）：暂停（why = other）；
+    - `ACTION_AUDIO_BECOMING_NOISY`（拔耳机）：暂停（why = route）。
+  - 系统自带的声音用 TextToSpeech，按 voice 挑 en-GB 或 en-US，语速跟 rate。
+  - `fail.code`：手机没联网是 `offline`，其他网络错误是 `net`，超时 `slow`，其余用服务器回的 code。
+  - 放过的文件存进 150 MB 缓存。
+- **rec**：
+  - AudioRecord 录 16 kHz 单声道 PCM（VOICE_RECOGNITION，没有就用 MIC），App 自己写 44 字节的 WAV 头；m4a 用 MediaRecorder（AAC，16 kHz，32 kbps）。
+  - 录音时申请 AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE；失去焦点（来电）或者 App 切到后台（安卓只许前台用麦克风）就 cut。
+  - 权限：第一次由系统弹窗问；拒绝过一次以后，再要用时 App 先说明用途；彻底拒绝以后给「去设置」。
+  - 没接桥的页面照旧用 getUserMedia：系统已经允许麦克风时，App 对本站直接同意。
+- **notify**：规则同第 5 节，`notify/Planner.kt` 照 iOS 的 ReminderPlan 写，单元测试用同一组例子。
+  - Android 12 以下系统不问通知权限，所以「学员打开了 App 提醒」由 App 自己记，`ask()` 为 true 以后才排。
+  - `permission()`：学员打开之前是 `'undetermined'`，打开了并且系统允许是 `'granted'`，系统里关了是 `'denied'`。
+  - AlarmManager：
+    - 能精确就用 `setExactAndAllowWhileIdle`；
+    - Android 14 起新装的 App 默认没有精确闹钟权限（我们用 SCHEDULE_EXACT_ALARM，不用给闹钟类 App 的 USE_EXACT_ALARM），这时用 `setWindow` 的 10 分钟时间窗；
+    - 用户在「闹钟和提醒」里打开权限以后，自动改成准点；
+    - 重启手机、改时间或时区、App 升级以后都重排。
+  - `pending()` 返回 App 自己记下的列表，因为 AlarmManager 不能查。
+  - App 打开（onStart）和切后台（onStop）时，用 WebView 的 cookie 拿 `/api/next/vocab` 重排：10 分钟内不重复拿，`sync` 和 `ask` 时一定拿。
+  - `reminder.ics` 链接：App 先问「App 通知」还是「系统日历」。系统日历打开日历 App 的新建日程页（CalendarContract 的 ACTION_INSERT），不要日历权限。
+  - 内测版有 `call('notify.test', 计数)`。
+- **speech**（第 7 节）：
+  - 用 TextToSpeech 换掉 WebView 里没有声音的 speechSynthesis 和 SpeechSynthesisUtterance；引擎在 App 打开时就初始化好。
+  - `getVoices()` 只给已经装好的英语声音。谷歌语音引擎默认只装美音，英音要用户在系统的「文字转语音」里下载；手机上没有英音时，网页按原来的做法选第一个英语声音。
+- **静音开关**：`Mute`。
+  - 界面测试在启动 App 之前打开；手动打开：`adb shell am start -n cn.flowlang.app.beta/cn.flowlang.app.MainActivity --ez flow.mute true`（调试包和内测包）。
+  - 打开以后：ExoPlayer 和 TextToSpeech 音量为 0；网页的 `<audio>` 静音，Web Audio 接一个音量为 0 的节点；提醒不响铃。
+  - 模拟器另外用 `-no-audio` 启动。
+- **测试**：
+  - 22 个 JUnit（Sentences、Planner、WAV、ics）；
+  - 7 个界面测试（模拟器，内测版，游客，不出声）：桥的字段、登录页、播放、通知栏控制、麦克风弹窗和录音、`notify.test` 排期、退回系统声音时带 `fail`；
+  - CI 是 `.github/workflows/android.yml`，跑构建、单元测试和 lint。
 
 ### 桌面（语流 22，`desktop/`）
 
