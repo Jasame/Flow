@@ -519,7 +519,8 @@ final class LongPlayer: NSObject {
             speech.say(text, voice: r.voice, rate: r.rate, token: tok)
             return
         }
-        for k in [i + 1, i + 2] where k < r.texts.count { tts.prefetch(text: r.texts[k], voice: r.voice, pack: r.pack, csrf: r.csrf, known: r.known(k)) }
+        let ahead = Frugal.shared.on ? 1 : 2  // 省电时少做事: one sentence made ahead, not two
+        for k in (i + 1)...(i + ahead) where k < r.texts.count { tts.prefetch(text: r.texts[k], voice: r.voice, pack: r.pack, csrf: r.csrf, known: r.known(k)) }
         if !tts.ready(text: text, voice: r.voice, pack: r.pack) {
             noteTask = Task { [weak self] in
                 try? await Task.sleep(for: .milliseconds(400))

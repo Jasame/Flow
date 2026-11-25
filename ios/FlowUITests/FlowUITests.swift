@@ -281,4 +281,40 @@ final class FlowUITests: XCTestCase {
         let off = web.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@ AND label CONTAINS %@", "features: ", "offline-packs:0")).firstMatch
         wait(off, 5, "the page sees it off again")
     }
+
+    /// 「复习时的轻触震动」 and 「省电时少做事」: the page's calls, and the switch that turns the tap off
+    @MainActor func test9FeelAndPowerSaving() {
+        bridgePage()
+        tapButton("震一下")
+        wait(line("feel: haptic true"), 5, "a light tap (a simulator does not vibrate: the answer says it was made)")
+        tapButton("省电状态")
+        wait(line("feel: frugal false"), 5, "a simulator is not in Low Power Mode")
+        tapButton("iOS 专属功能")
+        wait(app.navigationBars["iOS 专属功能"], 10, "the app's own page")
+        let haptics = app.switches["feature.haptics"]
+        if !haptics.isHittable { app.swipeUp() }
+        wait(haptics, 5, "「复习时的轻触震动」")
+        XCTAssertTrue(app.switches["feature.frugal"].exists, "「省电时少做事」")
+        shot("09-feel-switches")
+        haptics.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        app.buttons["features.done"].tap()
+        tapButton("震一下")
+        wait(line("feel: haptic false"), 5, "switched off: no tap")
+        tapButton("iOS 专属功能")
+        wait(app.navigationBars["iOS 专属功能"], 10, "the page again")
+        if !haptics.isHittable { app.swipeUp() }
+        haptics.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        app.buttons["features.done"].tap()
+        tapButton("震一下")
+        wait(line("feel: haptic true"), 5, "on again")
+    }
+
+    /// The page the app draws itself when the site cannot be reached: iOS 26's glass button, a symbol for the reason
+    @MainActor func test10ErrorPage() {
+        app.launchEnvironment["FLOW_START_URL"] = "http://127.0.0.1:9/"  // nothing listens there
+        app.launch()
+        wait(app.staticTexts["连不上语流"], 30, "the app's own error page")
+        XCTAssertTrue(app.buttons["flow.retry"].exists, "再试一次")
+        shot("10-error-page")
+    }
 }

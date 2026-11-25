@@ -605,3 +605,44 @@ final class FeatureTests: XCTestCase {
         LockScreen.clear()
     }
 }
+
+/// 「iOS 专属功能」 second group: the light tap the page asks for, less work while the phone saves power
+final class FeelTests: XCTestCase {
+    override func setUp() { for f in [Feature.haptics, .frugal] { UserDefaults.standard.removeObject(forKey: f.key) } }
+    override func tearDown() { for f in [Feature.haptics, .frugal] { UserDefaults.standard.removeObject(forKey: f.key) } }
+
+    @MainActor func testTheSwitchesAreOnUntilTurnedOff() {
+        XCTAssertTrue(Features.on(.haptics))
+        XCTAssertTrue(Features.on(.frugal))
+        XCTAssertEqual(Feature.haptics.group, .feel)
+        XCTAssertEqual(Feature.frugal.group, .feel)
+    }
+
+    @MainActor func testAHapticOnlyWhenOnAndKnown() {
+        let v = UIView()
+        XCTAssertTrue(Haptics.play("success", in: v))
+        XCTAssertTrue(Haptics.play("tap", in: nil), "no view: the older way")
+        XCTAssertFalse(Haptics.play("boom", in: v), "a kind the app does not know")
+        Features.set(.haptics, false)
+        XCTAssertFalse(Haptics.play("tap", in: v), "switched off on 「iOS 专属功能」")
+    }
+
+    @MainActor func testSavingPowerWhenTheSystemAsks() {
+        XCTAssertTrue(Frugal.decide(switchOn: true, lowPower: true, reduced: false), "Low Power Mode")
+        XCTAssertTrue(Frugal.decide(switchOn: true, lowPower: false, reduced: true), "iOS 27: reduced resource usage")
+        XCTAssertFalse(Frugal.decide(switchOn: true, lowPower: false, reduced: false))
+        XCTAssertFalse(Frugal.decide(switchOn: false, lowPower: true, reduced: true), "switched off: as before")
+    }
+
+    @MainActor func testTheBridgeOffersThem() async {
+        XCTAssertTrue(Bridge.features.contains("haptic") && Bridge.features.contains("frugal"))
+        let b = Shell.shared.bridge
+        let tap = await b.handle("app.haptic", ["kind": "tap"]) as? [String: Bool]
+        XCTAssertEqual(tap?["ok"], true)
+        Features.set(.haptics, false)
+        let off = await b.handle("app.haptic", ["kind": "tap"]) as? [String: Bool]
+        XCTAssertEqual(off?["ok"], false)
+        let frugal = await b.handle("app.frugal", [:]) as? [String: Bool]
+        XCTAssertNotNil(frugal?["on"])
+    }
+}

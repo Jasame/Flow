@@ -126,6 +126,7 @@ final class Packs {
     func refresh(force: Bool = false) async {
         guard Features.on(.offlinePacks), !busy, let site else { return }
         if !force, let lastRun, Date().timeIntervalSince(lastRun) < Self.again { return }
+        if !force, Frugal.shared.on { return }  // 省电时少做事: tonight, while it charges
         guard wifi || path == nil else {
             note = "没连 Wi-Fi：连上以后再存"
             return

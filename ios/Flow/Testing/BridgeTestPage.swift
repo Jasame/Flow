@@ -26,6 +26,8 @@ enum BridgeTestPage {
     <div class="row"><button id="lrate">锁屏 1.25×</button><button id="lrep">锁屏单句循环</button><button id="lback">锁屏退回 5 秒</button></div>
     <div class="row"><button id="lnorep">锁屏不循环</button><button id="settings">iOS 专属功能</button><button id="feats">开关状态</button></div>
     <div class="row"><button id="offplay">离线播放今天这篇</button></div>
+    <div class="row"><button id="buzz">震一下</button><button id="frugal">省电状态</button></div>
+    <p class="out" id="feel">feel: -</p>
     <p class="out" id="feat">features: -</p>
     <p class="out" id="note">note: -</p>
     <div class="row"><button id="rec">录音两秒</button></div>
@@ -72,6 +74,9 @@ enum BridgeTestPage {
     const feats = () => A.call('app.features').then(f => { $('feat').textContent = 'features: ' + Object.keys(f).sort().map(k => `${k}:${f[k] ? 1 : 0}`).join(' '); });
     feats();
     $('feats').onclick = feats;
+    $('buzz').onclick = () => A.call('app.haptic', { kind: 'success' }).then(r => { $('feel').textContent = 'feel: haptic ' + r.ok; }, fail);
+    $('frugal').onclick = () => A.call('app.frugal').then(r => { $('feel').textContent = 'feel: frugal ' + r.on; }, fail);
+    A.on('frugal', d => { $('feel').textContent = 'feel: frugal event ' + d.on; });
     // 离线朗读包: today's text, its recording at an address that goes nowhere: only the app's own copy can play it
     $('offplay').onclick = async () => {
       try {
