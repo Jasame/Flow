@@ -5,7 +5,7 @@
     if (!S.meta) S.meta = await api('/api/next/meta');
     view.innerHTML = `<h1 class="h1">我的文章</h1><span class="muted small">论文、新闻、小说章节都可以：贴进来，就能点词查义、AI 讲解句子、听写跟读、把生词加入复习。只有你自己看得到。</span>
       <form class="card flat section stack" id="impF"><input name="title" type="text" maxlength="80" placeholder="标题（可不填）" aria-label="标题">
-        <textarea name="text" rows="8" lang="en" aria-label="英文正文" placeholder="粘贴英文正文（200–8000 个字符）"></textarea>
+        <textarea name="text" data-draft="import" rows="8" lang="en" aria-label="英文正文" placeholder="粘贴英文正文（200–8000 个字符）"></textarea>
         <select name="theme" aria-label="话题"><option value="">话题：按内容自动判断</option>${S.meta.themes.map(t => `<option value="${t.id}">话题：${esc(t.label)}</option>`).join('')}</select>
         <div class="row between"><span class="muted tiny" id="impN">0 字符</span><button class="btn primary">保存并开始学</button></div></form>
       <div class="section stack-s"><div class="row between"><h2 class="h2">已保存</h2><span class="muted tiny">${d.items.length} / ${d.max}</span></div>
@@ -17,7 +17,7 @@
     f.text.oninput = () => { document.getElementById('impN').textContent = f.text.value.length + ' 字符'; };
     f.onsubmit = async e => {
       e.preventDefault(); const b = f.querySelector('button'); b.disabled = true;
-      try { const r = await api('/api/next/import', { title: f.title.value, text: f.text.value, theme: f.theme.value }); toast(r.existing ? '这篇已经导入过了' : `已保存，估计难度 ${r.level}`); location.hash = `#/m/${encodeURIComponent(r.id)}/read`; }
+      try { const r = await api('/api/next/import', { title: f.title.value, text: f.text.value, theme: f.theme.value }); draftDone('import'); toast(r.existing ? '这篇已经导入过了' : `已保存，估计难度 ${r.level}`); location.hash = `#/m/${encodeURIComponent(r.id)}/read`; }
       catch (x) { toast(x.message); b.disabled = false; }
     };
     view.querySelectorAll('[data-enrich]').forEach(b => b.onclick = async () => {
