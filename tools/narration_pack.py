@@ -81,7 +81,8 @@ def main(argv):
         sys.exit('missing in the master copy: ' + ' '.join(missing[:10]))
     out.mkdir(parents=True, exist_ok=True)
     env = dict(os.environ, COPYFILE_DISABLE='1')  # no macOS ._ files in the tar
-    subprocess.run(['tar', '-cf', str(out / f'{name}.tar'), *files], cwd=src, env=env, check=True)
+    # and no extended attributes (com.apple.provenance): GNU tar on 香港 warns about each LIBARCHIVE.xattr header
+    subprocess.run(['tar', '--no-xattrs', '-cf', str(out / f'{name}.tar'), *files], cwd=src, env=env, check=True)
     (out / 'ids.txt').write_text(''.join(i + '\n' for i in ids))
     (out / f'{name}.sh').write_text(SCRIPT.format(name=name, n=len(ids), files=len(files), probe=ids[0], index=index))
     sums = ''.join(f'{hashlib.sha256((out / f).read_bytes()).hexdigest()}  {f}\n' for f in (f'{name}.tar', 'ids.txt'))

@@ -81,7 +81,7 @@ class PlanTests(Db):
                     self.assertIsInstance(s['minutes'], int)
                     self.assertIn(s['group'], ('must', 'extra', 'week'))
                     self.assertTrue(s['part'] in tb.PARTS or s['part'] == 'week')
-                    self.assertNotIn('分钟', s['sub'])  # the page writes the minutes, once
+                    self.assertNotRegex(s['sub'], r'\d+\s*分钟')  # the page writes the minutes, once (a title may say 十分钟)
                 self.assertEqual([s['key'] for s in must[:1]], ['review'])  # words first, always 必做
                 self.assertIn('read', [s['key'] for s in must])  # today's text, always 必做
                 # 必做 first, then 还有时间的话, then 本周任务

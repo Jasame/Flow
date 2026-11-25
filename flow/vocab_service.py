@@ -1110,6 +1110,12 @@ def add_many(c, uid, data):
     return {'added': added, 'skipped': skipped, **counts(c, uid, now)}, 200
 
 
+# 2026-11-25, the owner: examples must not mock or stereotype (one AI example said 「那个疯子整天自言自语」 for mad);
+# fill_examples.py --review finds the ones written before this line and has them written again
+FAIR = ('内容要友善、不带偏见：不嘲笑、不贬低任何人，避开对疾病、残障、精神状况、种族、民族、国籍、性别、地域（城乡、某地的人）'
+        '的刻板印象，比如不写「疯子」「哑巴」，不写某国人或某地人都怎样、女人只该做家务；写到这些话题时用中性、尊重的说法。')
+
+
 def example_messages(words, level=None):
     """The chat messages that ask for one example sentence (and its translation) per word; shared by the learner's
     request (ai_examples) and the batch that writes them ahead of time (fill_examples.py). The level is the easiest of
@@ -1118,7 +1124,7 @@ def example_messages(words, level=None):
     level = level or min((example_level(w) for w in words), default='B1')
     system = ('你是英语词典编辑，给中国学生写例句。为每个单词写一个自然、常用、贴近生活的英文例句（10–20 词，' + level +
               ' 学习者能读懂）：句子里其他的词都要比这个单词简单，让学生一眼就看懂它的意思。'
-              '优先用词书给的第一个义项；只有第一个义项明显是生僻用法时才换别的义项。给出准确的中文翻译。只输出 JSON。')
+              '优先用词书给的第一个义项；只有第一个义项明显是生僻用法时才换别的义项。' + FAIR + '给出准确的中文翻译。只输出 JSON。')
     user = ('单词（附中文义项，括号里是第一个义项）：\n' +
             '\n'.join(f'{w}：{short_meaning(d[w]["meaning"])}（第一个义项：{first_sense(d[w]["meaning"])}）' for w in words) +
             '\n\n输出 JSON：{"examples":[{"word":"单词原形","sense":"例句用的义项（中文，照抄上面的一个义项）",'
