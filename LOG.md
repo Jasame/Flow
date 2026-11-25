@@ -444,3 +444,10 @@
   - #230 今日一读：语法点例句宽松比对（样稿 5 篇里有 1 篇卡在这）（今日和计划）
 - 自检：DEPLOYED，装了 8 个文件（1 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45584851438
+
+### b62 · 2026-11-25 17:33
+- main `c50b462`，构建 `675f60c`
+- 新合并的 PR（自 b61 起）：
+  - #183 单词音频的隐式标识：m4a 用 iTunes 自定义字段，iPhone 小文件在响应头里带（叠在 #180 上）（单词、AI）
+- 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45586340515
