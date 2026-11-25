@@ -3099,6 +3099,22 @@ def home_app_run(pw):
         check(dev, 'the iOS app (FlowiOS in the user agent): a home app with back buttons, no 「添加到桌面」, the keyboard left to the app',
               app['home'] and not app['standalone'] and bk and bk['label'] and not install and not room, (app, bk, install, room))
         ctx.close()
+        # the desktop app (语流 22: Windows and macOS, FlowDesktop/<version> in the user agent), and any app that says so
+        # only by window.FlowApp: a home app too (返回 on a sub-page, the logo on a tab page), nothing to add to the desktop
+        for label, ua, init in (('the desktop app (FlowDesktop)', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) FlowDesktop/0.1 (macOS)', None),
+                                ('an app known by window.FlowApp only', None, "window.FlowApp = { platform: 'windows' }")):
+            ctx = browser.new_context(viewport={'width': 1280, 'height': 800}, locale='zh-CN', bypass_csp=True, **({'user_agent': ua} if ua else {}))
+            if init:
+                ctx.add_init_script(init)
+            ctx.add_cookies([{'name': 'flow_session', 'value': tok, 'url': BASE}])
+            pg = ctx.new_page()
+            pg.goto(BASE + f'/#/m/{PID}/read', wait_until='networkidle'); settle(pg)
+            home, bk = pg.evaluate("document.documentElement.classList.contains('home-app')"), pg.evaluate(BACK_JS)
+            go(pg, '#/me'); pg.wait_for_timeout(200)
+            tab = pg.evaluate(BACK_JS); install = pg.evaluate("() => !!document.getElementById('meInstall')")
+            check(dev, f'{label}: a home app — 返回 on a sub-page, the logo on a tab page, no 「添加到桌面」',
+                  home and bk and bk['label'] and tab is None and not install, (home, bk, tab, install))
+            ctx.close()
     finally:
         browser.close()
 
