@@ -817,7 +817,7 @@ html:not([data-film~="fast"]) [data-gate~="fast"],html:not([data-film~="voice"])
 .fm-text-note{margin-top:8px;font-size:13.5px;color:var(--muted)}
 
 /* phones and other tall stages */
-@container fm (orientation:portrait){
+@container fm (orientation:portrait){  /* compat-ok: iOS 15 没有容器查询，退路在文件最后那段 @supports 里：动画舞台和样机的状态栏都隐藏 */
   .fm-scenes{font-size:3.6cqw}
   .fm-sc{padding:9cqh 6cqw 17cqh;gap:3cqh}
   .fm-sub{font-size:4cqw;bottom:4.5cqh}
@@ -859,4 +859,13 @@ html.fm-rec .fm-stage{position:fixed;inset:0;width:100vw;height:100vh;max-width:
   .mq-track span[aria-hidden]{display:none}
   .marquee{-webkit-mask-image:none;mask-image:none}
   .parallax{transform:none!important}
+}
+
+/* iOS 15 (Safari before 16) has no container queries: the drawn film stage and the phones' drawn status bar and notch
+   are sized in cqw/cqh and would fall apart, so they are left out there, with the hero's link to the film. The film's
+   text version below the stage still says everything, and the phone screenshots stay. */
+@supports not (container-type: inline-size) {
+  .fm-stage,.fm-bar,.fm-now,.film-link{display:none}
+  .fm-text{margin-top:0}
+  .phone::before,.phone .screen::before,.phone .screen::after{display:none}
 }
