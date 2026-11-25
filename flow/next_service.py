@@ -1391,7 +1391,8 @@ def shadow(c, uid, data):
             '\n\n输出 JSON：{"transcript":"你听到的英文","accuracy":0-100,"fluency_score":0-100,"fluency":"smooth|ok|choppy",'
             '"sounds":[{"sound":"音标，如 /v/","word":"原句中读错这个音的词","note":"中文：读成了什么、怎么改","set":"发音入门的 id 或空字符串"}],'
             '"issues":[{"word":"原句中的词或短语","note":"中文：问题和改法"}],"tip":"一句最重要的中文建议"}。'
-            'sounds 最多 3 条，issues 最多 3 条，读得好就给空数组。')
+            'sounds 最多 3 条，issues 最多 3 条，读得好就给空数组。拼写、连字符、大小写和标点的差别听不出来，不算问题'
+            '（noise cancelling 和 noise-cancelling 是一样的）；只写听起来不对的地方。')  # Omni flagged a hyphen on a right reading (2026-11-25)
 
     def score_of(v):  # 85, "85", "85分", "85%", "8.5/10"
         try:
