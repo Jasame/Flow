@@ -164,7 +164,9 @@ App 打开、回到前台、切到后台、以及 iOS 每天叫醒它几次时�
 
 - 网页一侧接桥：已在 main（#152 整篇朗读交给 App，#164 录音用 App，#299 句子地址和系统声音的说法）。
 - 锁屏上改的语速、单句循环，网页的「语速」「复读」按钮还不跟着变（`audio` 事件已经带 `rate`、`rep`、`loop`，网页一侧由语流 B3 接）。
-- iOS 专属功能后面三组：手感和外观（震动、iOS 27 外观、省电）、不打开 App 也能学（小组件、实时活动、控制中心）、Siri 和系统搜索；之后是「本机快速检查（离线）」。
+- iOS 专属功能后面两组：不打开 App 也能学（小组件、实时活动、控制中心）、Siri 和系统搜索；之后是「本机快速检查（离线）」。
+- 网页一侧：复习页的震动（语流 B2，分支 review-split：翻面 select，评分按结果 success / tap / warning，不用 error）、PRELOAD.frugal() 算上 App 的 `frugal`（语流 B3）。
+- 安卓的 `haptic`、`frugal`：语流 C2 已想好做法（performHapticFeedback；PowerManager.isPowerSaveMode），等用户排优先级。
 - 复习提醒：网页一侧已在 main（#139「到点用 App 通知提醒」和 `FlowApp.notify.sync()`，#149 按 `FlowApp.platform` 换说法）。
 - 04-home-app.js 认 `FlowiOS`：已在 main（语流 B5，0f6fc09：App 里也有返回按钮；键盘和深浅色交给 App）。
 - 操作指南「隐私和数据」一章加 App 用到的权限：语流 B6 已审好文字，TestFlight 外部测试前由它放进 guide.md（先告诉它一声）。
