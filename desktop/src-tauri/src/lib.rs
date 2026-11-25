@@ -240,7 +240,7 @@ fn on_menu(app: &AppHandle, id: &str) {
         "zoom-out" => zoom(app, "out"),
         "zoom-reset" => zoom(app, "reset"),
         #[cfg(feature = "updater")]
-        "update" => updater::check(app.clone(), true),
+        "update" => updater::check_now(app.clone()),
         _ => {}
     }
 }
@@ -459,7 +459,10 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     #[cfg(feature = "updater")]
-    updater::check(handle.clone(), false);
+    {
+        app.manage(updater::Pending::default());
+        updater::check_on_start(handle.clone());
+    }
     Ok(())
 }
 
@@ -531,6 +534,11 @@ pub fn run() {
         #[cfg(target_os = "macos")]
         if let RunEvent::Reopen { .. } = _e {
             show_main(_app);
+        }
+        // quitting: a downloaded update goes in now, so the next start is the new version
+        #[cfg(feature = "updater")]
+        if let tauri::RunEvent::Exit = _e {
+            updater::install_pending(_app);
         }
     });
 }

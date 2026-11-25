@@ -120,10 +120,12 @@
       const r = await fetch('/api/next/vocab', { credentials: 'same-origin' });
       if (r.status === 401) return await invoke('notify_signed_out');  // signed out: no word reminders
       if (r.status === 403) {
-        // 「数据存放在香港」 not agreed to yet: no reminders at all (the hour stays); they come back by themselves
-        // on the first plan after the learner agrees. This runs from the bridge, whatever page is showing.
+        // not agreed yet to 「数据存放在香港」 or to the current 用户协议 (the server says code 'storage' for both, with
+        // need: 'storage' | 'terms'; 'terms' as a code is accepted too): no reminders at all (the hour
+        // stays); they come back by themselves on the first plan after the learner agrees. This runs from the bridge,
+        // whatever page is showing.
         const j = await r.json().catch(() => ({}));
-        if (j && j.code === 'storage') return await invoke('notify_hold');
+        if (j && (j.code === 'storage' || j.code === 'terms')) return await invoke('notify_hold');
       }
       if (!r.ok) return { ok: false, planned: 0, why: 'http ' + r.status };
       return await invoke('notify_plan', { v: await r.json() });
