@@ -1225,6 +1225,8 @@ def layout_run(pw, engine):
 
 
 # ---- the experience round: 复读 in 听, 撤销 in review, 字号和行距, and a first visit that can start with an article
+# what the browser voice said aloud: a blank utterance (the first tap's unlock, 01-audio-offline.js) says nothing
+SAID_WORDS = "(window.__said || []).filter(t => t && t.trim())"
 FAKE_TTS = """(() => { window.__said = []; if (!window.speechSynthesis) return;
   speechSynthesis.speak = u => { window.__said.push(u.text); setTimeout(() => { u.onstart && u.onstart(); u.onend && u.onend(); }, 40); };
   speechSynthesis.cancel = () => {}; speechSynthesis.getVoices = () => []; })();"""
@@ -2513,6 +2515,31 @@ def progress_run(pw):
         shown = pg.evaluate("() => { const c = document.getElementById('lineCard'); return [c.querySelector('.lc-en b').textContent, c.querySelector('.lc-src a').getAttribute('href'), c.querySelector('.pill').textContent]; }")
         check(dev, '好句 from a 语流 text: its expression marked, a link to the text, labelled as 语流文章', shown == [ex['text'], f'#/m/{PID}/read', '语流文章'], shown)
         pg.screenshot(path=str(OUT / 'progress-line-text.png'))
+        # 没有录音的好句 (语流 09, #129): the server voice says it, never the browser voice; past 0.6 s 「正在准备朗读…」
+        voiced.clear(); pg.evaluate("() => { window.__said = []; localStorage.removeItem('flow-sv-urls'); }")
+        pg.click('#lcSay'); pg.wait_for_timeout(900)
+        check(dev, '好句 without a recording: the server voice says it, never the browser voice',
+              fake['say'] in voiced and pg.evaluate(SAID_WORDS) == [], (voiced[-2:], pg.evaluate(SAID_WORDS)))
+        c3 = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True, service_workers='block')
+        c3.add_init_script(FAKE_TTS)
+        c3.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['guide']['token'], 'url': BASE}])
+        p3, held = c3.new_page(), {'routes': [], 'open': False}
+        p3.route('**/api/next/home*', lambda route: (lambda r: route.fulfill(response=r, json={**r.json(), 'line': fake}))(route.fetch()))
+        p3.route('**/api/next/tts*', lambda r: r.continue_() if held['open'] else held['routes'].append(r))  # the voice held back until let go
+        p3.goto(BASE + '/#/', wait_until='load'); p3.wait_for_selector('#lineCard .lc-en b', timeout=8000); p3.wait_for_timeout(300)
+        p3.click('#lcSay')
+        try:
+            p3.wait_for_selector('#svWait', state='visible', timeout=3000); wait = p3.text_content('#svWait') or ''
+        except Exception:
+            wait = ''
+        held['open'] = True
+        for r in held['routes']:
+            r.continue_()
+        p3.wait_for_timeout(1500)
+        gone = not p3.is_visible('#svWait')
+        check(dev, '好句 without a recording: 「正在准备朗读…」 while the voice is on its way, gone once it comes, still no browser voice',
+              '正在准备朗读' in wait and gone and p3.evaluate(SAID_WORDS) == [], (wait, gone, p3.evaluate(SAID_WORDS)))
+        c3.close()
         ctx.close()
         # the link in the mail opens without signing in, asks before it turns anything off, and says when a link is wrong
         ctx = browser.new_context(viewport={'width': 360, 'height': 780}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True)
