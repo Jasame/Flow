@@ -695,3 +695,13 @@
   - #317 今日, 学一篇 steps and 读: the text first, the week said once, first-time tips（今日和计划、开局和考试、后台和班级、操作指南）
 - 自检：DEPLOYED，装了 11 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45657450534
+
+### b87 · 2026-11-26 01:04
+- main `e152318`，构建 `31cf07b`
+- 新合并的 PR（自 b86 起）：
+  - #345 我的 → 隐私（安卓 App 1.0.4）：两张清单、撤回同意、系统权限、备案号（后台和班级）
+  - #331 内测版用自己的橙色图标（网页）：主屏、标签页、manifest 和快捷方式；正式版不动（测试）
+  - #349 隐私和数据：按学习记录推荐那一行的日期改成 r36 发版那天（11-26）（操作指南）
+  - #350 总账：正式版 r35、内测版 b79–b84、旧 iPhone 打不开那次的事故记录（发版和构建）
+- 自检：DEPLOYED，装了 9 个文件（3 个新的）；轻量 e2e 159/159，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45660534077
