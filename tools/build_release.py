@@ -116,6 +116,8 @@ def verify(tree):
     if not any(c.lower() in f.lower() for f in fonts for c in CHINESE_FONTS):
         raise SystemExit('the guide PDF embeds no Chinese font (its text would print as boxes): install one, e.g. fonts-noto-cjk')
     run([sys.executable, 'tools/build_front.py', '--check'], tree)
+    if (Path(tree) / 'tools' / 'check_compat.py').exists():  # the scripts still run in Safari 15.0 (from 2026-11-25)
+        run([sys.executable, 'tools/check_compat.py'], tree)
     if shutil.which('node'):
         for name in FRONT:
             if name.endswith('.js'):

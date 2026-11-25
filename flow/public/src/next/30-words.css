@@ -78,18 +78,35 @@ details.basis[open]>summary{margin-bottom:0}
 .zoned{position:relative}  /* the card the zones are on (tapZones), the guide drawn over it */
 .zone-guide{position:absolute;inset:0;z-index:3;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:1fr auto;border-radius:14px;overflow:hidden;
   background:var(--bg);background:color-mix(in srgb,var(--bg) 82%,transparent);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);pointer-events:none}
+.zone-guide.n2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.zone-guide.n1{grid-template-columns:minmax(0,1fr)}
+/* the back's three parts: the one the front chose is framed (↵ and space take it) */
+.ractions .choice button.def{box-shadow:inset 0 0 0 2px currentColor}
+/* a tap on a part lights it up for a moment with what it stands for */
+.zone-flash{position:fixed;z-index:40;display:flex;align-items:center;justify-content:center;font:700 22px/1 var(--sans);pointer-events:none;border-radius:14px;animation:zflash .52s ease-out forwards}
+/* the solid colour first: iOS 15–16.1 have no color-mix() */
+.zone-flash.good{background:var(--green-soft);background:color-mix(in srgb,var(--green) 22%,transparent);color:var(--green-ink)}
+.zone-flash.again{background:var(--red-soft);background:color-mix(in srgb,var(--red) 20%,transparent);color:var(--red)}
+.zone-flash.mid{background:var(--sunk);background:color-mix(in srgb,var(--ink) 10%,transparent);color:var(--ink2)}
+@keyframes zflash{0%{opacity:0}25%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.zone-flash{animation:none;opacity:.8}}
+/* 太简单: the card has left; 撤销 for six seconds, above the buttons */
+.easy-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(140px + var(--sab));z-index:45;display:flex;align-items:center;gap:12px;width:max-content;max-width:calc(100vw - 32px);
+  padding:10px 14px;border-radius:12px;background:var(--ink);color:var(--bg);font-size:14px;box-shadow:0 4px 18px rgba(0,0,0,.18)}
+.easy-bar .link{color:var(--bg);font-weight:700;text-decoration:underline;min-height:32px}
 .zone-guide span{display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;color:var(--ink);border:2px dashed var(--line2);margin:6px;border-radius:12px}
 .zone-guide p{grid-column:1/-1;margin:0;padding:10px 14px 12px;font-size:14px;color:var(--ink2);text-align:center}
 .sheet-card .zones-h{font-size:16px;margin:10px 0 0}
 /* 复习卡 简洁 / 详细 (60-review.js detailed(); words-modes-plan.md; B9's sheet in words-modes/) */
 .vt{display:inline-flex;background:var(--sunk);border-radius:8px;padding:2px;gap:2px;flex:none}
-.vt button{position:relative;border:0;background:none;font:600 12.5px/1 var(--sans);color:var(--muted);padding:6px 9px;border-radius:6px;cursor:pointer}
+.vt button{position:relative;border:0;background:none;font:600 12.5px/1 var(--sans);color:var(--muted);padding:6px 9px;border-radius:6px;cursor:pointer;min-width:32px;min-height:32px}
 .vt button::after{content:'';position:absolute;inset:-8px -1px}  /* 44 px to tap, the look stays small */
 .vt button.on{background:var(--paper);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
 .review .detail-line{font-size:12.5px;color:var(--muted);text-align:center;margin-top:-8px}
-.review .mean-pos{display:grid;gap:4px;text-align:left;width:max-content;max-width:100%;margin:0 auto}
-.review .mean-pos div{font-size:16px;line-height:1.5;color:var(--ink2)}
-.review .mean-pos b{display:inline-block;min-width:2.2em;font-weight:600;color:var(--muted);font-size:14px}
+/* 词性 | 释义: the first column as wide as the widest 词性 on this card (one 「v.」 sits next to its meaning, as in 简洁; several line up) */
+.review .mean-pos{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:6px;row-gap:4px;align-items:baseline;text-align:left;width:max-content;max-width:100%;margin:0 auto;font-size:16px;line-height:1.5;color:var(--ink2)}
+.review .mean-pos .all{grid-column:1/-1}
+.review .mean-pos b{font-weight:600;color:var(--muted);font-size:14px}
 .ex-wrap.fold .exs .ex:nth-child(n+3){display:none}
 .ex-more{display:block;border:0;background:none;font:600 13.5px/1.4 var(--sans);color:var(--green-ink);text-align:left;padding:6px 0 0 52px;cursor:pointer;min-height:32px}
 .review .conf-wrap{max-width:440px;width:100%;margin:0 auto;text-align:left}

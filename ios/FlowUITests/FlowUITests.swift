@@ -199,4 +199,178 @@ final class FlowUITests: XCTestCase {
         let back = Int(offon.label.split(separator: " ").last ?? "0") ?? 0
         XCTAssertGreaterThanOrEqual(back, 5, offon.label)
     }
+    /// the sentence the app is on, from the bridge page's state line (「state: playing i: 3 n: 18 …」)
+    @MainActor private func sentenceNow() -> Int? {
+        let parts = value("state: ").components(separatedBy: " ")
+        guard let k = parts.firstIndex(of: "i:"), k + 1 < parts.count else { return nil }
+        return Int(parts[k + 1])
+    }
+
+    @MainActor private func stateLine(_ needles: String...) -> XCUIElement {
+        let p = NSPredicate(format: "label BEGINSWITH %@", "state: ")
+        let all = NSCompoundPredicate(andPredicateWithSubpredicates: [p] + needles.map { NSPredicate(format: "label CONTAINS %@", $0) })
+        return web.staticTexts.matching(all).firstMatch
+    }
+
+    /// iOS 27's lock screen buttons (LockScreen27), pressed through the bridge page: a simulator has no Now Playing
+    @MainActor func test7LockScreenStudyButtons() {
+        bridgePage()
+        tapButton("播放全文")
+        if !line("state: playing").waitForExistence(timeout: 40) {
+            tapButton("继续")  // a weak line (test 3)
+            wait(line("state: playing"), 40, "playing after 继续")
+        }
+        tapButton("锁屏 1.25×")
+        wait(stateLine("rate: 1.25"), 5, "语速 1.25× from the lock screen")
+        tapButton("锁屏单句循环")
+        wait(stateLine("state: playing", "rep: 0", "loop: true"), 10, "单句循环 from the lock screen")
+        let i = sentenceNow()
+        XCTAssertNotNil(i)
+        Thread.sleep(forTimeInterval: 9)  // a sentence is a few seconds: again and again, the same one
+        XCTAssertEqual(sentenceNow(), i, "单句循环 stays on its sentence: \(value("state: "))")
+        tapButton("锁屏退回 5 秒")
+        wait(stateLine("state: playing", "i: \(i ?? -1) "), 5, "this sentence again")
+        shot("07-lock-screen-buttons")
+        tapButton("锁屏不循环")
+        wait(stateLine("rep: 1", "loop: false"), 5, "the page's 复读 back (straight through)")
+        tapButton("停止")
+        wait(line("state: idle"), 5, "stopped")
+    }
+
+    /// 我的 → 设置 → 「iOS 专属功能」: the app's own page, its switches, the offline packs
+    @MainActor func test8IOSFeaturesPage() {
+        bridgePage()
+        tapButton("开关复原")  // a run that stopped half way may have left one on
+        let feats = web.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@ AND label CONTAINS %@", "features: ", "offline-packs:0")).firstMatch
+        wait(feats, 10, "the switches as the page sees them")
+        let featText = feats.label  // the line says 「shown true」 once the page is open
+        XCTAssertTrue(featText.contains("offline-packs:0") && featText.contains("smart-resume:1"), featText)
+        tapButton("iOS 专属功能")
+        wait(app.navigationBars["iOS 专属功能"], 10, "the app's own page")
+        XCTAssertTrue(app.switches["feature.smart-resume"].exists)
+        XCTAssertEqual(app.switches["feature.lock-study"].exists, featText.contains("lock-study"), "the lock screen's buttons exactly where the system has them (iOS 27): \(featText)")
+        shot("08-ios-features")
+        XCUIDevice.shared.appearance = .dark
+        Thread.sleep(forTimeInterval: 3)  // the sheet takes the dark look a moment later
+        shot("08-ios-features-dark", screen: true)
+        XCUIDevice.shared.appearance = .light
+        Thread.sleep(forTimeInterval: 1)
+        let packs = app.switches["feature.offline-packs"]
+        packs.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()  // the switch at the row's end
+        let now = app.buttons["packs.now"]
+        wait(now, 5, "离线朗读包's own part")
+        // today's three fetched (a few seconds; longer while the 内测版 is being deployed): 「已存 3 篇 · …」
+        let kept = app.descendants(matching: .any).matching(NSPredicate(format: "identifier == %@ AND (label CONTAINS %@ OR value CONTAINS %@)", "packs.kept", "篇", "篇")).firstMatch
+        wait(kept, 180, "today's recordings kept")
+        // the note is under the three titles: a list makes rows only where they are seen, and how far a swipe goes
+        // depends on the screen (the iPad's sheet is short: one swipe up went past it), so look, then nudge either way
+        let note = app.staticTexts.matching(NSPredicate(format: "identifier == %@ AND label CONTAINS %@", "packs.note", "存好")).firstMatch
+        let nudges: [() -> Void] = [{}, { self.app.swipeUp(velocity: .slow) }, { self.app.swipeDown(velocity: .slow) }, { self.app.swipeDown(velocity: .slow) }]
+        for nudge in nudges {
+            nudge()
+            if note.waitForExistence(timeout: 15) { break }
+        }
+        wait(note, 15, "「今天的 3 篇已经存好」")
+        shot("08-offline-packs")
+        app.buttons["features.done"].tap()
+        XCTAssertTrue(app.navigationBars["iOS 专属功能"].waitForNonExistence(timeout: 5))
+        // today's text with its recording's address pointing nowhere: it plays all the same, from the copy on the phone
+        tapButton("离线播放今天这篇")
+        let ticking = web.staticTexts.matching(NSPredicate(format: "label MATCHES %@", "t: [0-9]+\\.[0-9] i: [0-9]+")).firstMatch
+        wait(ticking, 20, "time from the app's own copy: \(value("state: ")) \(value("note: "))")
+        wait(line("state: playing"), 5, "playing from the phone")
+        tapButton("停止")
+        wait(line("state: idle"), 5, "stopped")
+        tapButton("iOS 专属功能")
+        wait(app.navigationBars["iOS 专属功能"], 10, "the app's own page again")
+        packs.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        XCTAssertTrue(now.waitForNonExistence(timeout: 5), "switched off: the part goes, and the files with it")
+        app.buttons["features.done"].tap()
+        XCTAssertTrue(app.navigationBars["iOS 专属功能"].waitForNonExistence(timeout: 5))
+        tapButton("开关状态")
+        let off = web.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@ AND label CONTAINS %@", "features: ", "offline-packs:0")).firstMatch
+        wait(off, 5, "the page sees it off again")
+    }
+
+    /// 「复习时的轻触震动」 and 「省电时少做事」: the page's calls, and the switch that turns the tap off
+    @MainActor func test9FeelAndPowerSaving() {
+        bridgePage()
+        tapButton("开关复原")
+        wait(web.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@ AND label CONTAINS %@", "features: ", "haptics:1")).firstMatch, 10, "the switches as they come")
+        tapButton("震一下")
+        wait(line("feel: haptic true"), 5, "a light tap (a simulator does not vibrate: the answer says it was made)")
+        tapButton("省电状态")
+        wait(line("feel: frugal false"), 5, "a simulator is not in Low Power Mode")
+        tapButton("iOS 专属功能")
+        wait(app.navigationBars["iOS 专属功能"], 10, "the app's own page")
+        let haptics = app.switches["feature.haptics"]
+        if !haptics.isHittable { app.swipeUp() }
+        wait(haptics, 5, "「复习时的轻触震动」")
+        XCTAssertTrue(app.switches["feature.frugal"].exists, "「省电时少做事」")
+        shot("09-feel-switches")
+        haptics.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        app.buttons["features.done"].tap()
+        tapButton("震一下")
+        wait(line("feel: haptic false"), 5, "switched off: no tap")
+        tapButton("iOS 专属功能")
+        wait(app.navigationBars["iOS 专属功能"], 10, "the page again")
+        if !haptics.isHittable { app.swipeUp() }
+        haptics.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        app.buttons["features.done"].tap()
+        tapButton("震一下")
+        wait(line("feel: haptic true"), 5, "on again")
+    }
+
+    /// The page the app draws itself when the site cannot be reached: iOS 26's glass button, a symbol for the reason
+    @MainActor func test10ErrorPage() {
+        app.launchEnvironment["FLOW_START_URL"] = "http://127.0.0.1:9/"  // nothing listens there
+        app.launch()
+        wait(app.staticTexts["连不上语流"], 30, "the app's own error page")
+        XCTAssertTrue(app.buttons["flow.retry"].exists, "再试一次")
+        shot("10-error-page")
+    }
+
+    /// 「不打开 App 也能学」: the widgets' numbers written by the app, a widget's link opening a page of the site, and
+    /// the review's Live Activity (off until turned on)
+    @MainActor func test11Glance() {
+        bridgePage()
+        tapButton("开关复原")
+        tapButton("小组件数据")
+        wait(web.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@ AND label CONTAINS %@", "glance: card ", "line")).firstMatch, 40,
+             "the app wrote the widgets' card (a test is signed out: no words, 今日好句 all the same): \(value("glance: "))")
+        // a widget or a Control Center button opens the app on a page of the site
+        app.open(URL(string: "yuliu-beta://open?path=%23/review")!)
+        wait(line("hash: #/review"), 10, "the widget's link went to 复习")
+        tapButton("实时活动 3/10")
+        wait(line("glance: activity false off"), 10, "off until the learner turns it on")
+        tapButton("打开实时活动")
+        tapButton("实时活动 3/10")
+        wait(line("glance: activity true  count 1"), 10, "on: 「复习单词 3 / 10」 on the lock screen: \(value("glance: "))")
+        shot("11-review-activity-started")
+        tapButton("结束活动")
+        wait(line("glance: ended count 0"), 10, "ended with the review")
+        tapButton("开关复原")
+    }
+
+    /// 「Siri 和专注模式」: the switch (on as it comes), the Focus filter explained under it, and the page seeing it off
+    @MainActor func test12SiriAndFocus() {
+        bridgePage()
+        tapButton("开关复原")
+        wait(web.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@ AND label CONTAINS %@", "features: ", "siri:1")).firstMatch, 10,
+             "快捷指令和 Siri: on as it comes: \(value("features: "))")
+        tapButton("iOS 专属功能")
+        wait(app.navigationBars["iOS 专属功能"], 10, "the app's own page")
+        let siri = app.switches["feature.siri"]
+        for _ in 0..<4 where !siri.isHittable { app.swipeUp() }  // the last group: a list makes rows only where they are seen
+        wait(siri, 5, "快捷指令和 Siri")
+        wait(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "添加过滤条件")).firstMatch, 5, "how to add the Focus filter")
+        shot("12-siri-focus")
+        siri.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        app.buttons["features.done"].tap()
+        XCTAssertTrue(app.navigationBars["iOS 专属功能"].waitForNonExistence(timeout: 5))
+        tapButton("开关状态")
+        wait(web.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@ AND label CONTAINS %@", "features: ", "siri:0")).firstMatch, 5, "the page sees it off")
+        tapButton("开关复原")
+        wait(web.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@ AND label CONTAINS %@", "features: ", "siri:1")).firstMatch, 5, "back on")
+    }
 }

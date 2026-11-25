@@ -48,6 +48,10 @@ class MainSiteTests(Site):
         robots = self.get('/robots.txt')[0].decode()
         self.assertIn('Allow: /', robots); self.assertIn('Disallow: /api/', robots)
         self.assertEqual(json.loads(self.get('/manifest.webmanifest')[0])['name'], '语流 Flow')
+        # 语流's icons are green and stay so (the 内测版's are orange: BetaSiteTests)
+        m = json.loads(self.get('/manifest.webmanifest')[0])
+        self.assertFalse([i['src'] for i in m['icons'] if '-beta' in i['src']])
+        self.assertIn(b'href="/apple-touch-icon.png"', page); self.assertIn(b"fill='%231f9d55'", page)
 
 
 class BetaSiteTests(Site):
@@ -61,6 +65,19 @@ class BetaSiteTests(Site):
         self.assertEqual(json.loads(self.get('/api/health')[0])['channel'], 'beta')
         m = json.loads(self.get('/manifest.webmanifest')[0])
         self.assertEqual((m['name'], m['short_name']), ('语流 Flow 内测版', '语流内测'))  # its home-screen app is told apart
+
+    def test_the_beta_has_its_own_orange_icons(self):
+        # the owner's pick A (2026-11-25): the same logo on orange, so 语流 and 语流内测 sit apart on a home screen
+        m = json.loads(self.get('/manifest.webmanifest')[0])
+        srcs = [i['src'] for i in m['icons']] + [i['src'] for c in m['shortcuts'] for i in c['icons']]
+        self.assertTrue(srcs and all(x.endswith('-beta.png') for x in srcs), srcs)
+        for src in set(srcs) | {'/apple-touch-icon-beta.png'}:
+            body, h = self.get(src)
+            self.assertEqual(h['Content-Type'], 'image/png'); self.assertTrue(body.startswith(b'\x89PNG'), src)
+        for path in ('/', '/about'):
+            page = self.get(path)[0]
+            self.assertIn(b'href="/apple-touch-icon-beta.png"', page, path)
+            self.assertIn(b"fill='%23e8590c'", page, path); self.assertNotIn(b"fill='%231f9d55'", page, path)
 
 
 class MailTests(unittest.TestCase):

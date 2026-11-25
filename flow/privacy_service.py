@@ -20,12 +20,14 @@ likely 个人信息出境): a separate tick, never bundled with anything else.
   not-yet-asked account gets nothing of its learning: every signed-in request answers 403 code 'storage' except
   STORAGE_OPEN (agree again, export, delete the account, sign out, change the password), and /api/next/home is a
   guest's. A paused account (storage_no) gets no mail (weekly progress, review reminders) and is out of every class
-  number (class_service). Its data is kept PAUSE_DAYS for agreeing again or exporting, then deleted (the deletion job is
-  a follow-up, due before the first pause reaches PAUSE_DAYS).
+  number (class_service). Its data is kept PAUSE_DAYS for agreeing again or exporting, then deleted: purge_paused, from
+  the reminder loop in app.py, once the day the page names (storage_until) is over. It only reports until the user has
+  seen the numbers and FLOW_PURGE_PAUSED=on is set, and it deletes only while the daily backup is fresh.
 - Every answer is kept in consent_events (when, agree or not, which wording: STORAGE_VERSION), for the console.
 
 What the 隐私说明 says about where data is and which AI sees what is in public/guide/guide.md (# 隐私和数据).
 """
+import os
 import time
 
 AGES = {'u14': '不满 14 岁', '14-17': '14–17 岁', '18+': '18 岁及以上'}
@@ -162,6 +164,102 @@ def set_storage(c, uid, data):
     _event(c, uid, agree, now)
     c.commit()
     return {'ok': True, **info(c.execute('SELECT age_band, guardian_ok, storage_ok, storage_no, terms_version FROM users WHERE id=?', (uid,)).fetchone())}, 200
+
+
+def gone_at(paused):
+    """When a paused account goes: the end of the Beijing day PAUSE_DAYS after it was paused (the day the page names,
+    「……以前」, is the learner's whole)."""
+    import datetime
+    bj = datetime.timezone(datetime.timedelta(hours=8))
+    day = datetime.datetime.fromtimestamp(paused + PAUSE_DAYS * 86400, bj).date() + datetime.timedelta(days=1)
+    return datetime.datetime(day.year, day.month, day.day, tzinfo=bj).timestamp()
+
+
+PURGE_SWITCH = 'FLOW_PURGE_PAUSED'  # 'on': delete for real; anything else (the default): report only
+BACKUP_FRESH_HOURS = 36  # the daily backup runs at 03:15: the last good one is never older than this on a normal day
+
+
+def purge_on():
+    """Whether paused accounts are really deleted. Off by default: the job only reports. The user turns it on (A1 sets
+    FLOW_PURGE_PAUSED=on in the site's environment) after seeing the report's numbers (A0, 2026-11-26)."""
+    return os.getenv(PURGE_SWITCH, '').strip().lower() in ('on', '1', 'yes')
+
+
+def _bj_day(ts):
+    import datetime
+    return datetime.datetime.fromtimestamp(ts, datetime.timezone(datetime.timedelta(hours=8))).strftime('%Y-%m-%d')
+
+
+def paused_due(c, now=None):
+    """[(id, storage_no)] of the accounts whose pause has run out (gone_at passed), oldest first; never a staff account."""
+    now = time.time() if now is None else now
+    if 'storage_no' not in {r[1] for r in c.execute('PRAGMA table_info(users)')}:
+        return []
+    return [(r['id'], r['storage_no']) for r in c.execute(
+        'SELECT id, storage_no FROM users WHERE storage_no IS NOT NULL AND storage_ok IS NULL AND COALESCE(admin, 0)=0 '
+        'ORDER BY storage_no').fetchall() if gone_at(r['storage_no']) <= now]
+
+
+def backup_fresh(now=None):
+    """The daily backup is there to fall back on: its last run succeeded within BACKUP_FRESH_HOURS (data/backup-status.json,
+    written by ops.py backup). A deletion waits while it is not."""
+    now = time.time() if now is None else now
+    st = __import__('flow_admin').backup_status()
+    return bool(st and st.get('ok') and now - float(st.get('created') or 0) <= BACKUP_FRESH_HOURS * 3600)
+
+
+def paused_report(c, now=None):
+    """For the console (运维 → 任务): how many accounts are paused, how many have run out and when they were paused (Beijing
+    dates, never names), whether deletion is switched on, and whether the backup is fresh."""
+    now = time.time() if now is None else now
+    if 'storage_no' not in {r[1] for r in c.execute('PRAGMA table_info(users)')}:
+        return {'paused': 0, 'due': 0, 'due_days': [], 'on': purge_on(), 'backup_ok': backup_fresh(now)}
+    paused = c.execute('SELECT COUNT(*) FROM users WHERE storage_no IS NOT NULL AND storage_ok IS NULL AND COALESCE(admin, 0)=0').fetchone()[0]
+    due = paused_due(c, now)
+    return {'paused': paused, 'due': len(due), 'due_days': sorted({_bj_day(t) for _, t in due}), 'on': purge_on(),
+            'backup_ok': backup_fresh(now)}
+
+
+def _log_once_today(c, action, detail, now):
+    """One line a Beijing day for the same report (the loop runs every 5 minutes)."""
+    import datetime
+    bj = datetime.timezone(datetime.timedelta(hours=8))
+    d = datetime.datetime.fromtimestamp(now, bj).date()
+    start = datetime.datetime(d.year, d.month, d.day, tzinfo=bj).timestamp()
+    if c.execute('SELECT 1 FROM flow_admin_log WHERE action=? AND detail=? AND created>=?', (action, detail[:300], start)).fetchone():
+        return
+    c.execute('INSERT INTO flow_admin_log(created, email, role, action, target, detail) VALUES(?,?,?,?,?,?)',
+              (now, '语流（自动）', 'system', action, '', detail[:300]))  # as flow_admin.log_action, dated by the same clock
+    c.commit()
+
+
+def purge_paused(c, now=None, data_dir=None):
+    """隐私和数据: 30 天后还没有重新同意，语流会删除这个账号和数据. The accounts paused_due finds (declined or withdrawn,
+    not agreed since, the day the page names over; never staff):
+    - switch off (the default, purge_on): nothing is deleted; once a day the console's log says how many and when they
+      were paused (account-purge-report), and 运维 → 任务 shows the same (paused_report);
+    - switch on, but the daily backup not fresh (backup_fresh): nothing is deleted; once a day the log says why
+      (account-purge-held);
+    - switch on and the backup fresh: each is deleted as 注销账号 deletes one (account_data.forget); the backups lose
+      their copy within their 14 days. One log line each (account-purge), with the account's number only.
+    Returns how many were deleted."""
+    now = time.time() if now is None else now
+    due = paused_due(c, now)
+    if not due:
+        return 0
+    days = '、'.join(sorted({_bj_day(t) for _, t in due}))
+    if not purge_on():
+        _log_once_today(c, 'account-purge-report', f'{len(due)} 个账号暂停满 30 天，等待删除（暂停日期：{days}）；自动删除没有打开，没有删', now)
+        return 0
+    if not backup_fresh(now):
+        _log_once_today(c, 'account-purge-held', f'{len(due)} 个账号暂停满 30 天，但最近一次数据库备份不在或失败，今天没有删', now)
+        return 0
+    import account_data, flow_admin
+    for uid, _ in due:
+        account_data.forget(c, uid, data_dir)
+        flow_admin.log_action(c, {'email': '语流（自动）', 'role': 'system'}, 'account-purge', f'账号 #{uid}',
+                              '不同意或撤回「数据存放在香港」满 30 天，没有重新同意')
+    return len(due)
 
 
 def storage_held(u, path):

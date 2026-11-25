@@ -153,9 +153,10 @@ def ability(c, uid, now=None):
 
 
 def suggest_level(c, uid, now=None):
-    """Adaptive difficulty: after enough comprehension and dictation at the learner's level, suggest moving up or down."""
+    """Adaptive difficulty: after enough comprehension and dictation at the learner's level, suggest moving up or down.
+    None with 按我的学习记录推荐 switched off (next_service.follows_records)."""
     prof = nx.profile(c, uid)
-    if not prof:
+    if not prof or not nx.follows_records(prof):
         return None
     now = now or time.time()
     cur = 'C1' if prof['level'] == 'C1' else prof['level']
@@ -254,7 +255,9 @@ def daily_path(c, uid, home, now=None):
     # the words most due first (one round of BACK_WORDS), a text half read before or one a level easier, and nothing
     # else; the next day is an ordinary one again.
     back = None
-    before = ps.study_days(c, uid, now - 400 * 86400, start)
+    # 回归模式 reshapes the day from the study record: with 按我的学习记录推荐 switched off there is none (D2: the plan's
+    # shape follows the records → under the switch; by the minutes the learner chose → not)
+    before = ps.study_days(c, uid, now - 400 * 86400, start) if nx.follows_records(prof) else None
     if before:
         missed = (ps._local(now).date() - max(before)).days - 1
         if missed >= getattr(vs, 'BACK_DAYS', BACK_DAYS):
@@ -331,7 +334,9 @@ def daily_path(c, uid, home, now=None):
             add({'key': 'read2', 'title': '再读一篇', 'sub': other['title'], 'href': f"#/m/{other['id']}", 'done': 'check' in st2 or 'output' in st2},
                 tb.read_minutes(other.get('words'), 'core'), ('read', 'other'), 8)
     # With goals set, the output step works on the skill furthest from its goal on the radar; otherwise the weakest estimate.
-    weakest = __import__('ability_radar').weakest(c, uid, now) or ability(c, uid, now)['weakest']
+    # 按我的学习记录推荐 switched off: the skill goes round by the day instead (speaking, writing, listening, reading)
+    weakest = (__import__('ability_radar').weakest(c, uid, now) or ability(c, uid, now)['weakest']) if nx.follows_records(prof) else \
+        ('speaking', 'writing', 'listening', 'reading')[datetime.date.fromisoformat(nx._day(now)).toordinal() % 4]
     level = prof.get('level') or 'B1'
     if level == 'A2' and minutes <= 10 and 'say' not in today_kinds:
         key, title, sub = 'sounds', '发音入门', '容易混的音，听辨 + 跟读'
@@ -496,7 +501,7 @@ def report(c, uid, now=None):
     backlog = __import__('vocab_service').counts(c, uid, now)['due']
     if backlog > 100:  # a pile of words due comes first: it only grows while other things are practised
         focus = f'先把单词积压清掉：现在有 {backlog} 个单词到了复习时间。接下来几天，每天先复习一轮，再学新的内容。'
-    elif ab['weakest']:
+    elif ab['weakest'] and nx.follows_records(nx.profile(c, uid)):  # 按我的学习记录推荐 off: no advice picked from the records
         name = SKILLS[ab['weakest']]
         what = {'speaking': '每天复述一篇或和 AI 对话一轮', 'writing': '写一段短文让 AI 批改', 'listening': '每天听写三句', 'reading': '先读懂再做理解题'}
         focus = f"{name}是现在最弱的一项，接下来几天{what.get(ab['weakest'], '多练这一项')}。"

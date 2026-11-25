@@ -393,7 +393,9 @@ def drill_step(c, uid, minutes, now=None):
     if not pick:
         return None
     what = f"{ES.EXAMS[exam]['reading']} 难度的原创短文，{pick['items']} 题" if pick['tid'].startswith(READING) else f"一组 {pick['items']} 题，原创，不是真题"
-    return {'key': 'exam-drill', 'title': f"考试小练：{short_}{pick['title']}", 'sub': f"{what} · 约 {pick['minutes']} 分钟",
+    # the minutes are said by 今日's plan row from 'minutes' (10-welcome-today.js planRowHTML), as for every step: not
+    # here too (B8, 2026-11-25: 「约 4 分钟 · 约 4 分钟」)
+    return {'key': 'exam-drill', 'title': f"考试小练：{short_}{pick['title']}", 'sub': what,
             'href': f"#/exam/{exam}/{pick['tid']}", 'done': False, 'minutes': pick['minutes']}
 
 

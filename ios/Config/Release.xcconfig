@@ -8,6 +8,8 @@ FLOW_SITE_HOST = flowlang.cn
 FLOW_BOUND_EXTRA = www.flowlang.cn
 FLOW_BUNDLE_ID = cn.flowlang.app
 FLOW_DISPLAY_NAME = 语流
+FLOW_URL_SCHEME = yuliu
+FLOW_APP_ICON = AppIcon
 
 SWIFT_COMPILATION_MODE = wholemodule
 SWIFT_OPTIMIZATION_LEVEL = -O

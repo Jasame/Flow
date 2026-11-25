@@ -2,9 +2,25 @@ import MediaPlayer
 import UIKit
 
 /// What the lock screen, Control Center and the Dynamic Island show while a whole text plays: 「AI 朗读 · 标题」, then
-/// 「语流 · 第 3 / 18 句」, and for a recording straight through its time.
+/// 「语流 · 第 3 / 18 句」, and for a recording straight through its time. On iOS 27 with 「锁屏上的学习按钮」 on
+/// (Feature.lockScreenStudy) the NowPlaying framework shows it, with 语速, 单句循环 and 退回 5 秒 (LockScreen27).
 @MainActor
-enum NowPlaying {
+enum LockScreen {
+    /// what is playing, as the long player has it
+    struct Now {
+        var key = ""
+        var title = ""
+        var i = 0
+        var n = 0
+        var elapsed: Double?      // a recording straight through: where it is, and how long it is
+        var duration: Double?
+        var rate: Float = 1
+        var playing = false       // sound coming (or about to: 「准备中」)
+        var waiting = false
+        var interrupted = false   // paused by a call, Siri, an alarm
+        var repeatOne = false     // 单句循环 from the lock screen
+    }
+
     private static let art: MPMediaItemArtwork? = {
         guard let img = UIImage(named: "NowPlayingArt") else { return nil }
         return MPMediaItemArtwork(boundsSize: img.size) { @Sendable _ in img }
@@ -18,7 +34,19 @@ enum NowPlaying {
         return (t.isEmpty ? "AI 朗读" : "AI 朗读 · " + t, n > 0 ? "语流 · 第 \(min(max(i, 0) + 1, n)) / \(n) 句" : "语流")
     }
 
-    static func show(title: String, i: Int, n: Int, elapsed: Double?, duration: Double?, rate: Float, playing: Bool) {
+    static func show(_ now: Now) {
+        #if canImport(NowPlaying)  // the iOS 27 SDK (Xcode 27); CI's Xcode 26 builds the app without it (older lock screen only)
+        if #available(iOS 27, *) {
+            if Features.on(.lockScreenStudy) {
+                RemoteCommands.enable(false)  // the session's own buttons: the older ones would answer as well
+                LockScreen27.show(now)
+                return
+            }
+            LockScreen27.clear()  // switched off while a text plays: the older lock screen from here on
+        }
+        #endif
+        RemoteCommands.enable(true)
+        let (title, i, n, elapsed, duration, rate, playing) = (now.title, now.i, now.n, now.elapsed, now.duration, now.rate, now.playing)
         let shown = labels(title: title, i: i, n: n)
         var info: [String: Any] = [
             MPMediaItemPropertyTitle: shown.title,
@@ -38,6 +66,9 @@ enum NowPlaying {
     }
 
     static func clear() {
+        #if canImport(NowPlaying)
+        if #available(iOS 27, *) { LockScreen27.clear() }
+        #endif
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
 }
@@ -88,4 +119,13 @@ enum RemoteCommands {
     }
 
     static func scrubbing(_ on: Bool) { MPRemoteCommandCenter.shared().changePlaybackPositionCommand.isEnabled = on }
+
+    /// iOS 27's study buttons (LockScreen27) in use: these do not answer meanwhile, so nothing happens twice
+    static func enable(_ on: Bool) {
+        let cc = MPRemoteCommandCenter.shared()
+        for c in [cc.playCommand, cc.pauseCommand, cc.togglePlayPauseCommand, cc.stopCommand, cc.nextTrackCommand, cc.previousTrackCommand] where c.isEnabled != on {
+            c.isEnabled = on
+        }
+        if !on { cc.changePlaybackPositionCommand.isEnabled = false }
+    }
 }

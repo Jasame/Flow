@@ -23,10 +23,20 @@ final class Reminders {
     enum OptIn { case scheduled(String), denied, failed(String) }
     enum Outcome { case fresh, signedOut, paused, offline }
 
+    /// The two kinds of reminder: 复习单词 (review-…) and the day's plan (plan-…). They group the notifications and
+    /// a Focus filter chooses by them.
+    nonisolated static let reviewKind = "review"
+    nonisolated static let planKind = "plan"
+    nonisolated static func kind(of id: String) -> String { id.hasPrefix("plan") ? planKind : reviewKind }
+
     private let site: SiteClient
     private let center = UNUserNotificationCenter.current()
     private let key = "flow.reminders"
     private var lastFetch: Date?
+    /// What the site said the last time it answered: .fresh (a signed-in account's counts), .signedOut or .paused.
+    /// A refresh within 10 minutes of it gives this back (the widgets and Siri must not take a signed-out phone for one
+    /// with nothing to review); while offline Siri goes by it too.
+    private(set) var known = Outcome.fresh
     private var generation = 0  // refreshes overlap (opening, the page's sync, the background): the newest one wins
     private(set) var input: ReminderPlan.Input
 
@@ -127,7 +137,7 @@ final class Reminders {
     /// Ask the site for the counts and the reminder, then put the next two weeks on the phone.
     @discardableResult
     func refresh(force: Bool = false) async -> Outcome {
-        if !force, let last = lastFetch, Date().timeIntervalSince(last) < 600 { return .fresh }
+        if !force, let last = lastFetch, Date().timeIntervalSince(last) < 600 { return known }  // as the site said then
         generation += 1
         let mine = generation
         var outcome = Outcome.fresh
@@ -135,15 +145,18 @@ final class Reminders {
             let j = try await site.json("/api/next/vocab")
             guard mine == generation else { return .fresh }  // a newer refresh is under way: its answer counts
             lastFetch = Date()
+            known = .fresh
             input = ReminderPlan.input(from: j, keeping: input)
         } catch SiteError.signedOut {
             guard mine == generation else { return .signedOut }
             lastFetch = Date()
+            known = .signedOut
             input = ReminderPlan.signedOut(input)  // no word reminders for an account that is not here; the plan stays
             outcome = .signedOut
         } catch SiteError.status(403, "storage", _) {
             guard mine == generation else { return .paused }
             lastFetch = Date()
+            known = .paused
             input = ReminderPlan.paused(input)  // not agreed to 数据存放在香港: no reminders at all until it is
             outcome = .paused
         } catch {
@@ -167,7 +180,8 @@ final class Reminders {
         c.title = s.title
         c.body = s.body
         c.sound = .default
-        c.threadIdentifier = s.id.hasPrefix("plan") ? "plan" : "review"
+        c.threadIdentifier = Self.kind(of: s.id)
+        c.filterCriteria = Self.kind(of: s.id)  // a Focus's 「语流的提醒」 lets through by it (ReminderFocusFilter)
         c.userInfo = ["path": s.path]
         let comps = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: s.date)
         let req = UNNotificationRequest(identifier: s.id, content: c, trigger: UNCalendarNotificationTrigger(dateMatching: comps, repeats: false))
