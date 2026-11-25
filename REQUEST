@@ -1,3 +1,3 @@
-3af21366c09bb8b645ee5e0be700c21241dffde6 d2f255b1d0ecd95adf9535ae3ee52a6bdb4bb1b58a3cbacd52881438a3033ce3 e2e light ref=build-edacfbfe7ce5
-# b45 main: Merge pull request #150 from Jasame/ci-native-apps = build of edacfbfe7ce5
+1f5fa07b5c9b57e7b53cd821608d94b53bd0eedc aae507af4053239c467ac91f715560d7103f82d26655874d2c9c396ae53d38db e2e light ref=build-5676f875cd47
+# b46 main: Merge pull request #153 from Jasame/shell-flowdesktop = build of 5676f875cd47
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
