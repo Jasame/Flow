@@ -1,3 +1,3 @@
-730cf4895cf9f2dc92ef04e67f26a3c48a5f9694 dae430dd31d052206e57083ededee178555aaea8cc90967616455da073651414 e2e light ref=build-94896bcb9ea5 tag=b82 tools=c8f8bc8e43fd5f240d1e4b9541d9e4edc8f88c917b5795e6ecafd8f51af4bfbb
-# b82 main: Merge pull request #315 from Jasame/dark-fill-step = build of 94896bcb9ea5
+96312abb923a17032b9719ce947bbb9d0f1ad6c3 c3ac0ad5f396934b4a7fb42af2a584dcf793a4296f640bb9fb0c2bbd65e78b5a e2e light ref=build-f907f2e39be0 tag=b83 tools=c8f8bc8e43fd5f240d1e4b9541d9e4edc8f88c917b5795e6ecafd8f51af4bfbb
+# b83 main: Merge pull request #319 from Jasame/old-safari-compat = build of f907f2e39be0
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
