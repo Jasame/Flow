@@ -362,8 +362,7 @@ export class FlowAudio {
 
   /** progress(key) → {i, t, at}, {ended: true, at}, or null */
   static async progressJson(key: string): Promise<Object | null> {
-    const all = FlowAudio.progressAll();
-    const v = key ? all[key] : undefined;
+    const v = key ? FlowAudio.progressAll().get(key) : undefined;
     return v !== undefined ? v : null;
   }
 
@@ -616,8 +615,8 @@ export class FlowAudio {
         }
       }, 400);
     }
-    const timeout = new Promise<string>((_: (v: string) => void, no: (e: Error) => void) => {
-      setTimeout(() => no(new Failure('slow', '')), 20000);
+    const timeout = new Promise<string>((resolve, reject) => {
+      setTimeout(() => reject(new Failure('slow', '')), 20000);
     });
     Promise.race([FlowAudio.ttsUrl(j, k), timeout]).then(async (u: string) => {
       if (t !== FlowAudio.tok || FlowAudio.job !== j) {
@@ -966,8 +965,9 @@ export class FlowAudio {
     return ctx ? preferences.getPreferencesSync(ctx, { name: 'flow-progress' }) : undefined;
   }
 
-  private static progressAll(): Record<string, Record<string, Object>> {
+  private static progressAll(): Map<string, Record<string, Object>> {
     const s = FlowAudio.store();
+    const out = new Map<string, Record<string, Object>>();
     let o: Record<string, Record<string, Object>> = {};
     try {
       o = JSON.parse(s ? s.getSync('all', '{}') as string : '{}') as Record<string, Record<string, Object>>;
@@ -977,21 +977,19 @@ export class FlowAudio {
     const cut = Date.now() - 30 * 86400000;
     Object.keys(o).forEach((k: string) => {
       const at = o[k]['at'];
-      if (typeof at !== 'number' || (at as number) < cut) {
-        delete o[k];
+      if (typeof at === 'number' && (at as number) >= cut) {
+        out.set(k, o[k]);
       }
     });
-    return o;
+    return out;
   }
 
-  private static progressWrite(o: Record<string, Record<string, Object>>): void {
-    const keys = Object.keys(o);
-    if (keys.length > 100) {
-      keys.sort((a: string, b: string) => Number(o[a]['at']) - Number(o[b]['at']))
-        .slice(0, keys.length - 100).forEach((k: string) => {
-          delete o[k];
-        });
-    }
+  private static progressWrite(all: Map<string, Record<string, Object>>): void {
+    const keys = Array.from(all.keys()).sort((a: string, b: string) => Number(all.get(a)!['at']) - Number(all.get(b)!['at']));
+    const o: Record<string, Record<string, Object>> = {};
+    keys.slice(Math.max(0, keys.length - 100)).forEach((k: string) => {
+      o[k] = all.get(k)!;
+    });
     const s = FlowAudio.store();
     if (s) {
       s.putSync('all', JSON.stringify(o));
@@ -1003,22 +1001,24 @@ export class FlowAudio {
     if (!key) {
       return;
     }
-    const o = FlowAudio.progressAll();
+    const all = FlowAudio.progressAll();
     if (i > 0 || t > 1) {
-      o[key] = { 'i': i, 't': t, 'at': Date.now() } as Record<string, Object>;
+      const v: Record<string, Object> = { 'i': i, 't': t, 'at': Date.now() };
+      all.set(key, v);
     } else {
-      delete o[key];
+      all.delete(key);
     }
-    FlowAudio.progressWrite(o);
+    FlowAudio.progressWrite(all);
   }
 
   private static progressEnded(key: string): void {
     if (!key) {
       return;
     }
-    const o = FlowAudio.progressAll();
-    o[key] = { 'ended': true, 'at': Date.now() } as Record<string, Object>;
-    FlowAudio.progressWrite(o);
+    const all = FlowAudio.progressAll();
+    const v: Record<string, Object> = { 'ended': true, 'at': Date.now() };
+    all.set(key, v);
+    FlowAudio.progressWrite(all);
   }
 
   // ------------------------------------------------------------------ small helpers

@@ -1,6 +1,7 @@
 import { abilityAccessCtrl, bundleManager, Permissions as Perm, Want } from '@kit.AbilityKit';
 import { notificationManager } from '@kit.NotificationKit';
 import { preferences } from '@kit.ArkData';
+import { deviceInfo } from '@kit.BasicServicesKit';
 import { AppState } from './AppState';
 
 const MIC: Perm = 'ohos.permission.MICROPHONE';
@@ -110,14 +111,27 @@ export class Permissions {
     if (!ctx) {
       return;
     }
-    notificationManager.openNotificationSettings(ctx).catch(() => {
-      // older systems: the app's page in 设置
-      const bundle = bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_DEFAULT).name;
-      const want: Want = {
-        bundleName: 'com.huawei.hmos.settings', abilityName: 'com.huawei.hmos.settings.MainAbility',
-        uri: 'application_info_entry', parameters: { 'pushParams': bundle },
-      };
-      ctx.startAbility(want).catch(() => {});
-    });
+    // the app's page in 设置: HarmonyOS 5.0.0 (API 12) has no openNotificationSettings, it came with API 13
+    const appPage = () => {
+      try {
+        const bundle = bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_DEFAULT).name;
+        const want: Want = {
+          bundleName: 'com.huawei.hmos.settings', abilityName: 'com.huawei.hmos.settings.MainAbility',
+          uri: 'application_info_entry', parameters: { 'pushParams': bundle },
+        };
+        ctx.startAbility(want).catch(() => {});
+      } catch (e) {
+        AppState.warn('settings: ' + JSON.stringify(e));
+      }
+    };
+    if (deviceInfo.sdkApiVersion < 13) {
+      appPage();
+      return;
+    }
+    try {
+      notificationManager.openNotificationSettings(ctx).catch(appPage);
+    } catch (e) {
+      appPage();
+    }
   }
 }

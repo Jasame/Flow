@@ -98,14 +98,14 @@ struct Index {
         .onPermissionRequest((event) => {
           // the page's own recorder (getUserMedia), for pages not on the bridge: this site only, once the phone allows it
           const req = event.request;
-          const wantsMic = req.getAccessibleResource().indexOf(ProtectedResourceType.MicStream) >= 0;
+          const wantsMic = req.getAccessibleResource().indexOf(ProtectedResourceType.AUDIO_CAPTURE) >= 0;
           if (!Site.isOwn(req.getOrigin()) || !wantsMic) {
             req.deny();
             return;
           }
           Permissions.askMic().then((ok: boolean) => {
             if (ok) {
-              req.grant([ProtectedResourceType.MicStream]);
+              req.grant([ProtectedResourceType.AUDIO_CAPTURE]);
             } else {
               req.deny();
             }

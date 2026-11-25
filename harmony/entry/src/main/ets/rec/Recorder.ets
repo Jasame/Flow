@@ -116,11 +116,6 @@ export class Recorder {
     Recorder.fd = f.fd;
     const r = await media.createAVRecorder();
     Recorder.avr = r;
-    r.on('audioInterrupt', (ev: audio.InterruptEvent) => {
-      if (ev.forceType === audio.InterruptForceType.INTERRUPT_FORCE && Recorder.state === 'recording') {
-        Recorder.finish(true);
-      }
-    });
     const config: media.AVRecorderConfig = {
       audioSourceType: media.AudioSourceType.AUDIO_SOURCE_TYPE_MIC,
       profile: {

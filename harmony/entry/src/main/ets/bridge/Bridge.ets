@@ -96,7 +96,10 @@ export class Bridge {
         }
         this.connected = true;
         FlowAudio.replay();
-        return { 'v': 1, 'app': Site.version, 'build': Site.build, 'platform': 'harmony', 'features': Bridge.FEATURES };
+        const hi: Record<string, Object> = {
+          'v': 1, 'app': Site.version, 'build': Site.build, 'platform': 'harmony', 'features': Bridge.FEATURES,
+        };
+        return hi;
       case 'app.visible':
         FlowAudio.replay();
         return true;
@@ -127,10 +130,12 @@ export class Bridge {
       case 'rec.start': {
         const token = Recorder.begin();
         if (!(await Permissions.askMic())) {
-          return { 'ok': false, 'why': 'denied', 'message': '没有拿到麦克风权限' };
+          const denied: Record<string, Object> = { 'ok': false, 'why': 'denied', 'message': '没有拿到麦克风权限' };
+          return denied;
         }
         if (!Recorder.stillWanted(token)) {
-          return { 'ok': false, 'why': 'cancelled' };  // stopped while asking
+          const cancelled: Record<string, Object> = { 'ok': false, 'why': 'cancelled' };  // stopped while asking
+          return cancelled;
         }
         const max = typeof o['max'] === 'number' ? o['max'] as number : 60;
         const format = typeof o['format'] === 'string' ? o['format'] as string : '';
@@ -156,7 +161,8 @@ export class Bridge {
       case 'notify.pending':
         return Reminders.pendingJson();
       case 'notify.off':
-        return Reminders.sync({ 'app': false });
+        const off: Record<string, Object> = { 'app': false };
+        return Reminders.sync(off);
       case 'notify.settings':
         Permissions.openNotifySettings();
         return true;
@@ -203,7 +209,7 @@ export class Bridge {
       return;
     }
     // the JSON is a JavaScript literal as it is; U+2028 and U+2029 are escaped for older parsers anyway
-    const lit = json.replace(new RegExp(' ', 'g'), '\\u2028').replace(new RegExp(' ', 'g'), '\\u2029');
+    const lit = json.split(String.fromCharCode(0x2028)).join('\\u2028').split(String.fromCharCode(0x2029)).join('\\u2029');
     try {
       this.web.runJavaScript('window["' + this.recv + '"] && window["' + this.recv + '"](' + lit + ')').catch(() => {});
     } catch (e) {

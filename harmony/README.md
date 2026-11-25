@@ -35,15 +35,19 @@
 
 要用 DevEco Studio（Apple 芯片的 Mac，带 HarmonyOS SDK 和模拟器）。用 DevEco 打开 `harmony/` 这个目录。每次构建时，`entry/hvigorfile.ts` 会把共用的 `native/flowapp.js` 复制进 `rawfile/`，这个副本不进 git。
 
-命令行（DevEco 自带的 hvigor）：
+命令行，用 DevEco 自带的工具（DevEco Studio 26.0.0，装在 /Applications）：
 
 ```bash
-cd harmony
+A=/Applications/DevEco-Studio.app/Contents
+export JAVA_HOME=$A/jbr/Contents/Home DEVECO_SDK_HOME=$A/sdk
+export PATH="$JAVA_HOME/bin:$A/tools/node/bin:$A/tools/ohpm/bin:$A/tools/hvigor/bin:$A/sdk/default/openharmony/toolchains:$PATH"
+cd harmony && ohpm install                                                # 第一次：测试框架 hypium
 hvigorw assembleHap --mode module -p product=default -p buildMode=debug   # 内测版调试包
 hvigorw assembleHap --mode module -p product=prod -p buildMode=release    # 正式版
-hvigorw test                                                              # 本地单元测试：排期、句子、WAV（不要模拟器）
-hdc install entry/build/default/outputs/default/entry-default-signed.hap
+hvigorw test -p product=default -p module=entry@default -p isLocalTest=true -p buildMode=test   # 本地单元测试（不要模拟器）
 ```
+
+单元测试的结果在 `entry/.test/default/intermediates/test/coverage_data/test_result.txt`（最后一行是总数）。没签名的包在 `entry/build/<product>/outputs/default/entry-default-unsigned.hap`；签好名以后用 `hdc install <hap>` 装到模拟器或手机上。
 
 **测试时一律不出声**（docs/native-bridge.md §9）：
 ```bash

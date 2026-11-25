@@ -13,7 +13,7 @@
         "name": "EntryAbility",
         "srcEntry": "./ets/entryability/EntryAbility.ets",
         "description": "$string:EntryAbility_desc",
-        "icon": "$media:icon",
+        "icon": "$media:layered_image",
         "label": "$string:EntryAbility_label",
         "startWindowIcon": "$media:startIcon",
         "startWindowBackground": "$color:start_window_background",
@@ -22,7 +22,7 @@
         // 锁屏以后接着朗读 (FlowAudio: AVSession + a continuous task)
         "backgroundModes": ["audioPlayback"],
         "skills": [
-          { "entities": ["entity.system.home"], "actions": ["ohos.want.action.home"] }
+          { "entities": ["entity.system.home"], "actions": ["action.system.home"] }
         ]
       }
     ],
