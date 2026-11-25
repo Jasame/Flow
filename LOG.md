@@ -582,3 +582,11 @@
   - #291 安卓：App 自己画的地方跟着网页的主题色（松绿或靛蓝）（发版和构建）
 - 自检：DEPLOYED，装了 2 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45621808867
+
+### b75 · 2026-11-25 21:36
+- main `225cb12`，构建 `02567c9`
+- 新合并的 PR（自 b74 起）：
+  - #297 班级邀请注册：每班每天有上限，到了给管理员发信（后台和班级）
+  - #300 iOS App：退回原因交给网页说、句子地址和网页共用、用户协议提示、主题色跟着网页（发版和构建）
+- 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45624594169
