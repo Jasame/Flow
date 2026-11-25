@@ -29,14 +29,6 @@
 /* words to know before listening: the speaker button sized by itself, with room before the word */
 .pr{grid-template-columns:auto minmax(0,1fr);gap:12px}
 
-/* listen controls on a phone: play and 盲听 on the first line, the three speeds across the second */
-@media (max-width:759px){
-  .player{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
-  .player #playAll{grid-column:1;grid-row:1;justify-content:center}
-  .player #blind{grid-column:2;grid-row:1}
-  .player .speed{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
-  .player .speed button{padding:9px 0}
-}
 
 /* one level of surface: a question, the writing task and the new-words list sit on the page;
    their answers, reference sentence and words are the surfaces (no card inside a card) */
