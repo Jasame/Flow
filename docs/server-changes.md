@@ -22,7 +22,6 @@
 | 事情 | 现在 | 等什么 |
 | --- | --- | --- |
 | Gemini 中转站并发从 2 改成 6（#68） | 代码已合（11-24 22:49），中转站上还是 2 | 用户在 Google Cloud Shell 里执行 `flow-gateway/set_slots.sh 6`（步骤在 #68 和 flow-gateway 的说明里）。上线后语流 B7（原 12） 对比前后的 503/504 和等待时间 |
-| 语流的发音（说一句）恢复 | 13:05 停用 Gemini 以后，语流的发音先暂停（回 403）；内测版已改走 Omni；对话、复述、雅思口语、跟读两个站都走 Qwen-Omni | 今晚换成百炼语音识别（`flow-audio-asr-flash`），随 #175 和 21:00 的正式版一起上，到时问用户；页面上的提示也要跟着改 |
 | 数据库副本只留 14 天（#58） | r27 已带上正式版；内测版只列不删 | 语流上最早的副本是 11-23 的，约 12-07 起开始真正删除（语流 A1（原 2） 记着） |
 | 发信的后续 | 两个站 11-25 都已改用 flowlang.cn 发信 | DMARC 从 p=none 改成 quarantine（报告干净一段时间后，先问用户）；隐私说明要不要写明发信服务商（用户待定）；网易邮箱和 iCloud 的「重发走备用」还没实测 |
 | 上传用过的整包 `/root/claude-ops/flow-audio-packs.tar`（112 MB） | 还在，内容已装好 | 可以删，删以前问一下 |
@@ -30,6 +29,24 @@
 | 例句还差 89 个词；偏敏感的例句要复核 | 两次补全写进 16,308 条，抽查 41 条里 1 条偏敏感 | 语流 B2（原 11）：#114（不嘲笑、不带刻板印象的复核）合进去以后一起补，花费不到 ¥0.5 |
 
 ## 2026-11-25
+
+### 16:28 · 语流：学员请求的备用和发音都走百炼（`/etc/flow.env` 加两行）
+
+- **改了什么**：`/etc/flow.env` 末尾加了两行（第 50、51 行），然后重启 flow：
+  - `FLOW_MAIN_AI=off`：不再把学员请求交给 Gemini，「发音入门」里读单词改由 Qwen-Omni 来听，结果只作参考；
+  - `FLOW_BACKUP_AI_MODEL=flow-text-qwen-plus`：文字 AI 出错时，由百炼上的 qwen-plus 接上。
+- **谁、为什么**：语流 A1·发版和服务器（原 2），r32（#175）的第二步。用户在 A1 的确认框里点了「发」，同时点了「加」。
+- **验证**：加完以后完整测试 153/153，没有 Gemini 调用，也没有 asr 调用。
+- **备份**：`/etc/flow.env.bak-mainoff-20261125-162802`。
+- **撤回**：删掉 `FLOW_MAIN_AI` 和 `FLOW_BACKUP_AI_MODEL` 这两行，重启 flow。
+
+### 16:25 · 香港：安卓 1.0.1 放进下载目录
+
+- **改了什么**：`/www/wwwroot/flow-downloads/` 加了 `flow-android-1.0.1.apk`（1,086,436 字节，sha256 `fca780b8…5cf1`），
+  `latest.json` 加了 android 一项。nginx 没动（15:51 的片段已经认 `.apk`）。
+- **谁、为什么**：语流 A1，用户 15:51 那句「开放，安卓好了也放」；语流 D2 同意了。
+- **备份**：原来的 `latest.json` 在 `/root/claude-ops/backup-latest-json-*.json`。
+- **撤回**：把 apk 挪到 `/root/claude-ops`，`latest.json` 里删掉 android 那一项。
 
 ### 15:51 · 香港：开放 App 下载（flowlang.cn/download/）
 
@@ -47,6 +64,14 @@
 - **谁、为什么**：语流 A1（原 2），放桌面版的第一批安装包。用户：「开放，安卓好了也放」。安卓包以后照同样的步骤加，用户已经同意。
 - **备份**：第一版 nginx 片段 `/root/claude-ops/backup-download-conf-20261125-155353.conf`。
 - **撤回**：删掉 `download.conf`，`nginx -t` 通过后 `nginx -s reload`；三个文件挪到 `/root/claude-ops`。
+
+### 15:50 · 内测版：学员请求的备用和发音都走百炼（`/etc/flow-beta.env` 加三行）
+
+- **改了什么**：`/etc/flow-beta.env` 末尾加了三行（一行注释，加上 `FLOW_MAIN_AI=off` 和 `FLOW_BACKUP_AI_MODEL=flow-text-qwen-plus`），
+  然后重启 flow-beta。和语流 16:28 那两行一样，内测版先上。
+- **谁、为什么**：语流 B7·AI 模型与费用（原 12）做的，语流 A1 转来记账；配合 #175。
+- **备份**：`/root/claude-ops/flow-beta.env.before-mainoff-20261125-154926`。
+- **撤回**：删掉末尾这三行，重启 flow-beta。
 
 ### 13:10 · AI 网关：给 #175 加两个模型名
 
