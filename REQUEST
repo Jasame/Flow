@@ -1,3 +1,3 @@
-adf57264a768fcb7d02f14de584edfc48aa5b42f c6144890ddb432a287681e9ea7979588f78e94b9cbf22f697c36d76be5cb3914 e2e light ref=build-aa8ea678623c
-# b53 main: Merge pull request #185 from Jasame/exam-ai-labels = build of aa8ea678623c
+6207a3500329bd7ab88fdb67266577e53fab264c 92a637e53aad998058649c7a051a19478d6ca499b8f3b890c8d69fbdecbb0eb3 e2e light ref=build-8bf2c25b1435
+# b54 main: Merge pull request #195 from Jasame/browser-voice-stall = build of 8bf2c25b1435
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
