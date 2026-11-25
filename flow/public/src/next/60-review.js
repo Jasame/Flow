@@ -301,7 +301,7 @@
       // 详细 (B9's sheet, words-modes/): the meaning by part of speech, the roots, the examples as many as 简洁 shows (two)
       // and the rest one tap away, the confusable group (词汇辨析) with how to tell them apart, a grey line of how well it is held
       const pos = (c.meaning || '').split(/；|;/).map(x => x.trim()).filter(Boolean).map(x => { const m = x.match(/^([a-z]+\.)\s*(.*)$/);
-        return m ? `<div><b>${esc(m[1])}</b>${esc(m[2])}</div>` : `<div>${esc(x)}</div>`; }).join('');
+        return m ? `<b>${esc(m[1])}</b><span>${esc(m[2])}</span>` : `<span class="all">${esc(x)}</span>`; }).join('');  // a grid: the 词性 column as wide as its widest (B9, r36 audit)
       const g = (c.confuse || [])[0], n = (c.context ? 1 : 0) + (c.examples || []).length, open = 2;
       return `${wordHTML()}${pos ? `<div class="mean-a mean-pos">${pos}</div>` : ''}${rootsHTML(c)}
         <div class="ex-wrap${n > open ? ' fold' : ''}">${examplesHTML(c)}${n > open ? `<button class="ex-more" type="button" id="exMore">再看 ${n - open} 句 ⌄</button>` : ''}</div>

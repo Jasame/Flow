@@ -5,6 +5,9 @@
       return `<div class="seg outmodes" role="tablist" aria-label="输出练习">${Object.entries(OUT_MODES).map(([k, l]) => `<a role="tab" href="#/m/${encodeURIComponent(id)}/output${k === 'model' ? '' : '/' + k}" aria-selected="${cur === k}">${l}</a>`).join('')}</div>`;
     }
     const needAI = reason => { if (!S.user) { needLogin(reason); return true; } return false; };
+    // AI answers take seconds. The learner may switch mode, direction or sentence meanwhile, and the pane is redrawn
+    // (same text, same #pane). So each wait keeps the element it will write into. If that element has left the page
+    // when the answer arrives, the answer is dropped: no error, no sound, nothing written into the newer page.
 
     function retellMode() {
       pane.innerHTML = `${outTabs('retell')}<div class="card flat task stack-s"><b>不看原文，用自己的话把这篇讲一遍</b>
@@ -19,12 +22,13 @@
         if (needAI('登录后 AI 会看你的复述讲到了哪些要点。')) return;
         const text = pane.querySelector('#rtText').value.trim();
         if (!blob && (text.match(/[A-Za-z]+/g) || []).length < 8) { toast('先说一段或写几句英文'); return; }
-        const btn = e.currentTarget; btn.disabled = true; btn.innerHTML = '<span class="spin"></span> 正在看…';
+        const btn = e.currentTarget, out = pane.querySelector('#rtOut'); btn.disabled = true; btn.innerHTML = '<span class="spin"></span> 正在看…';
         try {
           const body = { pack: id, request_id: rid('rt') };
           if (blob) body.audio = await MIC.payload(blob); else body.text = text;
           const x = (await api('/api/next/retell', body)).result;
-          pane.querySelector('#rtOut').innerHTML = `<div class="result enter stack">${aiMark('点评和示范复述由 AI 生成，仅供参考')}
+          if (!out.isConnected) return;
+          out.innerHTML = `<div class="result enter stack">${aiMark('点评和示范复述由 AI 生成，仅供参考')}
             ${blob ? `<div class="card sunk small"><span class="muted">AI 听到：</span>${esc(x.transcript)}</div>` : ''}
             <div class="card verdict"><span class="dot"></span><div>${esc(x.comment)}<div class="tiny muted">讲到 ${x.points.filter(p => p.covered).length} / ${x.points.length} 个要点</div></div></div>
             <div class="card flat stack-s"><b>原文要点</b>${x.points.map(p => `<div class="small"><span class="${p.covered ? 'ok-mark' : 'bad-mark'}">${p.covered ? '✓' : '✗'}</span> ${esc(p.point)}</div>`).join('')}</div>
@@ -55,7 +59,7 @@
       const showInput = () => { const box = pane.querySelector('#dlgIn'); if (box && !box.hidden) box.scrollIntoView({ block: 'end', behavior: REDUCED ? 'auto' : 'smooth' }); };
       async function turn(body) {
         busy(true);
-        try { return (await api('/api/next/dialog', { pack: id, history: hist, request_id: rid('dg'), ...body })).result; }
+        try { const x = (await api('/api/next/dialog', { pack: id, history: hist, request_id: rid('dg'), ...body })).result; return chat.isConnected ? x : null; }
         catch (e) { toast(e.message); return null; } finally { busy(false); }
       }
       pane.querySelector('#dlgStart').onclick = async e => {
@@ -112,16 +116,21 @@
         pane.querySelector('#trNext').onclick = () => { k = (k + 1) % good.length; render(); };
         if (dir === 'zh2en') {
           if (!S.user) { pane.querySelector('#trSrc').innerHTML = '<span class="muted small">登录后可以做汉译英（中文原句由 AI 翻出，全站共享）。</span>'; }
-          else try { pane.querySelector('#trSrc').textContent = (await api('/api/next/translate/source', { pack: id, i, request_id: rid('ts') })).zh; }
-          catch (e) { pane.querySelector('#trSrc').textContent = e.message; }
+          else {
+            const src = pane.querySelector('#trSrc');
+            const zh = await api('/api/next/translate/source', { pack: id, i, request_id: rid('ts') }).then(r => r.zh, e => e.message);
+            if (!src.isConnected) return;  // a newer render() owns the pane (and its #trGo)
+            src.textContent = zh;
+          }
         }
         pane.querySelector('#trGo').onclick = async e => {
           if (needAI('登录后 AI 会批改你的译文。')) return;
           const text = pane.querySelector('#trIn').value.trim(); if (text.length < 2) { toast('先写下你的译文'); return; }
-          const btn = e.currentTarget; btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
+          const btn = e.currentTarget, out = pane.querySelector('#trOut'); btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
           try {
             const x = (await api('/api/next/translate', { pack: id, i, direction: dir, text, request_id: rid('tr') })).result;
-            pane.querySelector('#trOut').innerHTML = `<div class="result enter stack">${aiMark('评分和讲解由 AI 生成，仅供参考')}<div class="card verdict"><span class="dot"></span><div>得分 ${Math.round(x.score * 100)}<div class="small">${esc(x.accuracy)}</div><div class="small muted">${esc(x.fluency)}</div></div></div>
+            if (!out.isConnected) return;
+            out.innerHTML = `<div class="result enter stack">${aiMark('评分和讲解由 AI 生成，仅供参考')}<div class="card verdict"><span class="dot"></span><div>得分 ${Math.round(x.score * 100)}<div class="small">${esc(x.accuracy)}</div><div class="small muted">${esc(x.fluency)}</div></div></div>
               ${fixesHTML(x.fixes)}<div class="card flat stack-s"><b>${dir === 'zh2en' ? '原文' : '参考译文'}</b><div class="text small">${esc(dir === 'zh2en' ? x.original : x.reference)}</div>
               ${dir === 'zh2en' && x.reference && x.reference !== x.original ? `<div class="tiny muted">另一种自然说法：${esc(x.reference)}</div>` : ''}</div></div>`;
             markStep('output'); showFinish(pane, m, id); bringIntoView(pane.querySelector('#trOut')); draftDone(`trans-${id}-${dir}-${i}`);
@@ -147,9 +156,10 @@
       pane.querySelector('#esGo').onclick = async e => {
         if (needAI('登录后 AI 会按评分维度批改你的短文。')) return;
         if (count() < 40) { toast('至少写 40 个词'); return; }
-        const btn = e.currentTarget; btn.disabled = true; btn.innerHTML = '<span class="spin"></span> 正在批改…';
+        const btn = e.currentTarget, out = pane.querySelector('#esOut'); btn.disabled = true; btn.innerHTML = '<span class="spin"></span> 正在批改…';
         try {
           const x = (await api('/api/next/essay', { pack: id, text: ta.value, request_id: rid('es') })).result;
+          if (!out.isConnected) return;
           const dims = { content: '内容切题', organization: '结构衔接', accuracy: '语言准确', range: '词汇句式' };
           pane.querySelector('#esOut').innerHTML = `<div class="result enter stack">${aiMark('批改、评分和示范由 AI 生成，仅供参考')}<div class="card verdict"><span class="dot"></span><div>${esc(x.comment)}${x.level ? `<div class="tiny muted">这篇体现的水平约 ${esc(x.level)}</div>` : ''}</div></div>
             <div class="card flat ab-list">${Object.entries(dims).map(([k, l]) => `<div class="ab"><span class="nm">${l}</span><span class="vbar"><i data-w="${x.scores[k] * 20}"></i></span><span class="lv">${x.scores[k]} / 5</span></div>`).join('')}</div>
@@ -189,7 +199,7 @@
         if (!/[A-Za-z]{2,}.*\s+.*[A-Za-z]/.test(text)) { err.textContent = '先用英文写一个短句。'; return; }
         if (!S.user) return needLogin('登录后 AI 会帮你改写，并给出三种更好的说法。');
         const btn = pane.querySelector('#go'); btn.disabled = true; btn.innerHTML = '<span class="spin"></span> 正在看你写的…';
-        try { const r = await api('/api/next/rewrite', { pack: id, text, request_id: rid('nr') }); markStep('output'); renderResult(r.result, text, r.remaining); }
+        try { const r = await api('/api/next/rewrite', { pack: id, text, request_id: rid('nr') }); markStep('output'); if (!err.isConnected) return; renderResult(r.result, text, r.remaining); }
         catch (e) { err.textContent = e.message; }
         btn.disabled = false; btn.textContent = '再改一次';
       };

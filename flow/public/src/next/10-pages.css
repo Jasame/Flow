@@ -57,7 +57,7 @@
 .line{display:grid;grid-template-columns:40px minmax(0,1fr);gap:10px;align-items:start;padding:10px;border-radius:12px;border:1px solid transparent}
 .line.now{background:var(--green-soft);border-color:var(--green-line)}
 .line .txt{font-family:var(--serif);font-size:18px;line-height:1.6}
-.line .txt.blind{color:transparent;text-shadow:0 0 9px var(--ink);text-shadow:0 0 9px color-mix(in srgb,var(--ink) 55%,transparent);user-select:none}
+.line .txt.blind{color:transparent;text-shadow:0 0 9px var(--ink);text-shadow:0 0 9px color-mix(in srgb,var(--ink) 55%,transparent);-webkit-user-select:none;user-select:none}
 .selbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + var(--sab));z-index:40;background:var(--ink);color:var(--bg);border-radius:99px;padding:6px 6px 6px 14px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
 .selbar span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;font-family:var(--serif)}
 .selbar button{border:0;border-radius:99px;background:var(--fill);color:var(--on-fill);font-weight:700;padding:8px 14px}

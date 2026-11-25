@@ -126,6 +126,7 @@ App 打开、回到前台、切到后台、以及 iOS 每天叫醒它几次时�
 | 复习时的轻触震动（第二组） | 开 | 网页调 `app.haptic`（复习打分、做题答对答错）时手机轻轻一震 | `Features/Haptics.swift` |
 | 省电时少做事（第二组） | 开 | 低电量模式或 iOS 27 提示省资源时：朗读少提前做一句、离线包不在前台下、网页少预载（`frugal`） | `Features/Frugal.swift` |
 | 复习进度的实时活动（第三组） | 关 | 复习单词时锁屏和灵动岛上显示「12 / 30」（网页调 `activity.review`） | `Features/ReviewActivities.swift`、`FlowWidgets/ReviewActivityWidget.swift` |
+| 在系统搜索里找生词（第四组） | 关 | 学员自己的单词和表达进 iPhone 的搜索，点了打开 `#/cards/find/<词>`（B2 的 `/api/next/cards/index`） | `Features/WordSearch.swift` |
 | 本机快速检查（离线）（第 13 项） | 关 | 没网时跟读，iPhone 本机识别一遍，网页标出漏读的词（`rec.localcheck`）；有网不跑 | `Record/LocalCheck.swift` |
 | 快捷指令和 Siri（第四组） | 开 | 「语流开始复习」「语流还有多少词要复习」「用语流打开今天这篇」；关了 Siri 就说在哪里打开 | `Features/Intents.swift` |
 
@@ -141,7 +142,7 @@ App 打开、回到前台、切到后台、以及 iOS 每天叫醒它几次时�
   - Siri 的说法是中文的（开发语言 zh-Hans），`\(.applicationName)` 在正式版是「语流」、内测版是「语流内测」。说出数字的那一句要解锁手机。
   - 专注模式过滤 `ReminderFocusFilter` 不设开关：学员在系统设置里给某个专注模式加上才起作用。通知带 `filterCriteria`（`review` / `plan`），系统按它过滤。
   - 红线：不用 `IndexedEntity`（Apple Intelligence 的语义索引）、助手模式（AssistantSchemas）和 model delegation。
-  - Spotlight 搜生词（第 7 项）等语流 B2 给一个单词列表接口和打开某个词的地址，再做。
+  - 在系统搜索里找生词（第 7 项，默认关）：B2 的接口带 `?v=`，没变就不重建索引；截图用内测版启动参数 `-FlowWordSearchSample YES` 放三个样例词。
   - 模拟器上的坑：没签名的包（`CODE_SIGNING_ALLOWED=NO`）装到放了语流控制中心按钮的模拟器时，系统的 AppIntentsLiveEntityService 会崩，连带 FlowWidgets 崩（WidgetKit「Can't create CHSIntentReference」）；签名的包（`CODE_SIGN_IDENTITY=-`）不会，真机也不会。测试跑着时别往放了按钮的模拟器装没签名的包：XCTest 会把这次崩记到正在跑的那个测试头上。
 
 ## 隐私
@@ -152,6 +153,7 @@ App 打开、回到前台、切到后台、以及 iOS 每天叫醒它几次时�
 - 网页允许的域名（`WKAppBoundDomains`）只有本站：服务工作线程、JS 桥、cookie 都只在本站有效，别的网站一律用系统浏览器打开。
 - 学员的数据存放在香港的服务器上：注册时单独勾选同意，老账号打开时先补一个同意，不同意的账号暂停、30 天后删除（网站一侧，语流 B6）。App 里打开的就是网站，所以 App 不用另外问；App 自己也不另存学习数据，本机只有登录 cookie（钥匙串）、提醒的排期和朗读缓存。
 - 「iOS 专属功能」：开关状态只在本机。小组件的数字（今天要复习几个词、新词、分钟数、今天这篇的标题、今日好句）存在 App 和小组件共用的 App Group 里，只在这台手机上，每次刷新覆盖，没登录时不写任何人的词。「离线朗读包」开了才有：今天要学的几篇文章的录音（网站公开的朗读文件，不含个人数据），存在 App 的缓存目录（Library/Caches/packs，不进 iCloud 备份，空间不够时系统可能先清），存满 7 天删，关掉开关全删；只用 Wi-Fi 下载。
+- 在系统搜索里找生词（开了才有）：你的单词和表达、释义第一段，存在这台手机的系统搜索索引里，不上传；退出登录、关掉开关就删。
 - Siri：问「语流还有多少词要复习」时，App 把提醒用的那几个数（复习几个、新词几个、几分钟）交给 Siri 读出来，别的不给；另外两句只打开页面。专注模式的过滤选择存在系统设置里，App 不存。
 
 ## 装到自己的 iPhone（免费账号，7 天有效）
@@ -180,8 +182,7 @@ App 打开、回到前台、切到后台、以及 iOS 每天叫醒它几次时�
 
 - 网页一侧接桥：已在 main（#152 整篇朗读交给 App，#164 录音用 App，#299 句子地址和系统声音的说法）。
 - 锁屏上改的语速、单句循环，网页的「语速」「复读」按钮还不跟着变（`audio` 事件已经带 `rate`、`rep`、`loop`，网页一侧由语流 B3 接）。
-- Spotlight 搜生词（等语流 B2 的接口）。
-- 「本机快速检查（离线）」：网页一侧（跟读没网时调 `rec.localcheck`）请语流 B3 接；真机上还没试过（模拟器的本机识别报 1101，跑不了）。
+- 「本机快速检查（离线）」：草稿 #376，等用户定做不做；网页一侧语流 B3 接（对齐在网页做）；真机上还没试过（模拟器的本机识别报 1101）。
 - 网页一侧：复习页的震动（语流 B2，分支 review-split：翻面 select，评分按结果 success / tap / warning，不用 error）、PRELOAD.frugal() 算上 App 的 `frugal`（语流 B3）。
 - 安卓的 `haptic`、`frugal`：语流 C2 已想好做法（performHapticFeedback；PowerManager.isPowerSaveMode），等用户排优先级。
 - 复习提醒：网页一侧已在 main（#139「到点用 App 通知提醒」和 `FlowApp.notify.sync()`，#149 按 `FlowApp.platform` 换说法）。
