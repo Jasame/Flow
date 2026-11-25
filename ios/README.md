@@ -13,14 +13,15 @@
 
 ## 两个配置
 
-| 配置 | 打开 | Bundle ID | 名字 | 用在哪 |
-|---|---|---|---|---|
-| **Beta** | https://flow.jasa.hk（内测版） | `cn.flowlang.app.beta` | 语流内测 | 模拟器、UI 测试、免费账号装到自己手机、内测版的 TestFlight |
-| **Release** | https://flowlang.cn（正式版） | `cn.flowlang.app` | 语流 | TestFlight 外部测试、App Store |
+| 配置 | 打开 | Bundle ID | 名字 | 图标 | 用在哪 |
+|---|---|---|---|---|---|
+| **Beta** | https://flow.jasa.hk（内测版） | `cn.flowlang.app.beta` | 语流内测 | 橙色底 `AppIcon-Beta` | 模拟器、UI 测试、免费账号装到自己手机、内测版的 TestFlight |
+| **Release** | https://flowlang.cn（正式版） | `cn.flowlang.app` | 语流 | 绿色底 `AppIcon` | TestFlight 外部测试、App Store |
 
 Bundle ID 用户 2026-11-25 已确认：正式版 `cn.flowlang.app`、内测版 `cn.flowlang.app.beta`（两个能同时装）。
 
-两个 scheme：`Flow-Beta`（运行、测试、归档都用 Beta）和 `Flow-Release`（运行、归档用 Release）。网址、名字、Bundle ID 在 `Config/Beta.xcconfig`、`Config/Release.xcconfig`。
+两个 scheme：`Flow-Beta`（运行、测试、归档都用 Beta）和 `Flow-Release`（运行、归档用 Release）。网址、名字、Bundle ID、图标（`FLOW_APP_ICON`）在 `Config/Beta.xcconfig`、`Config/Release.xcconfig`。
+内测版的图标是同一个声波 logo，底色从 #1f9d55 换成 #e8590c（用户 2026-11-25 选的「A · 橙色底」，网页、安卓、桌面的内测版一样），主屏上一眼分得开；`python3 ios/tools/make_app_icon.py --beta` 画它，只编进内测版。
 自己的签名设置（开发团队、免费账号用的 Bundle ID）放在 `Config/Local.xcconfig`，这个文件不提交（见下面「装到自己的 iPhone」）。
 
 ## 构建和测试
