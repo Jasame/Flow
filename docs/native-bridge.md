@@ -36,7 +36,7 @@ iOS（语流 C1）、安卓（语流 C2）、桌面 Windows、macOS 和 Linux（
   - 网页一律 `await`（或 `.then`）以后再用结果，不能直接拿返回值比较（`FlowApp.notify.permission() === 'granted'` 在每个 App 里都是 false）。
     测试里假的 FlowApp 也要返回 Promise，和真的一样。
 - 事件：`FlowApp.on(type, fn)` 返回退订函数，`FlowApp.off(type, fn)` 也行；同时在 `window` 上发 `flowapp:<type>` 事件（detail 同参数）。
-- 能力 `FlowApp.has(名字)`：
+- 能力 `FlowApp.has(名字)`（跟着 App 走：App 自己设置页里的开关改了能力，现在只有 iOS 的 `localcheck`，App 就发事件 `features` `{features: [...]}`，`has()` 和 `FlowApp.features` 马上换成新的，不用重新加载）：
 
 | 能力 | 意思 | iOS | 安卓 | 桌面（Windows、macOS、Linux） | 鸿蒙 |
 |---|---|---|---|---|---|
@@ -49,12 +49,13 @@ iOS（语流 C1）、安卓（语流 C2）、桌面 Windows、macOS 和 Linux（
 | `haptic` | 让手机轻轻一震：`FlowApp.call('app.haptic', {kind})`（见下） | 有 | 没有 | 没有 | 没有 |
 | `frugal` | 系统要省着用（低电量模式、iOS 27 的省资源提示）：网页少预载 | 有 | 没有 | 没有 | 没有 |
 | `activity` | 复习进度显示在锁屏和灵动岛上（实时活动）：`activity.review` / `activity.end`（见下） | 有 | 没有 | 没有 | 没有 |
+| `localcheck` | 没网时跟读的「本机快速检查（离线）」：`rec.localcheck`（第 4 节）；学员打开了才有 | 有 | 没有 | 没有 | 没有 |
 | `privacy` | 第一次打开时的同意和「基本模式」、撤回同意、权限管理页、APP 备案号（命令写在第 10 节安卓一节） | 没有 | 有 | 没有 | 没有 |
 
 - 一个 App 在回到前台、网页重新加载以后，会把正在放的状态再发一次（`audio` 事件），网页不用猜。网页可见时也可以调 `FlowApp.call('app.visible')` 让它重发。
 - `FlowApp.call('hello')` → `{v, app, build, platform, features}`。
 - `FlowApp.call('app.settings')` → `{ok}`：打开 App 自己的「专属功能」页（iOS：「iOS 专属功能」，原生页，开关只存在这台手机上）。`ok: false` 是现在打不开（App 在后台）。
-  `FlowApp.call('app.features')` → `{<功能>: true/false}`：这台手机有哪几项、开没开（iOS 的 id：`lock-study` `smart-resume` `offline-packs` `haptics` `frugal` `review-activity` `siri` `word-search`）。网页现在不用它，留给以后按开关改说法。
+  `FlowApp.call('app.features')` → `{<功能>: true/false}`：这台手机有哪几项、开没开（iOS 的 id：`lock-study` `smart-resume` `offline-packs` `haptics` `frugal` `review-activity` `siri` `word-search` `local-check`）。网页现在不用它，留给以后按开关改说法。
 - `FlowApp.call('app.haptic', {kind})` → `{ok}`：`kind` 是 `tap`（轻点：打分、选一个选项）、`select`（换了一个选择）、`success`（答对、认识）、`warning`（模糊、半对）、`error`（答错）。
   学员在 App 的设置里关了「复习时的轻触震动」就回 `ok: false`，什么都不做；网页不用自己判断开关，照常调。iOS 本来就没有 navigator.vibrate，网页在浏览器里不用补。
 - `FlowApp.call('activity.review', {done, total})` → `{ok, why?}`：单词复习每评一张调一次，锁屏和灵动岛上显示「复习单词 done / total」；`FlowApp.call('activity.end', {done?, total?})` 复习完或离开复习页时调，最后的数字留一分钟再消失。学员在 App 设置里没打开「复习进度的实时活动」（默认关）时回 `{ok: false, why: 'off'}`，系统不让（关了实时活动、App 不在前台）回 `why: 'denied'`；网页照常调，不用自己判断。
@@ -147,6 +148,10 @@ window.__flowAppTransport = {
 - `stop()` → `{ok: true, mime_type, data, ms, bytes, cut}` 或 `{ok: false, why: 'none'}`。`mime_type`、`data`（base64）和 `MIC.payload(blob)` 一样；
   **上传只带这两项**（服务器 audio_validation 要求正好是 `{mime_type, data}`），`ms`、`bytes`、`cut` 是给网页看的。
   录音还没开始（还在等权限）就 stop，这次录音不再开始。
+- `FlowApp.rec.localcheck({lang})`（能力 `localcheck`，iOS；`lang` 是 `en-US` 或 `en-GB`）：`stop()` 之后，用刚录的那段在手机上做「本机快速检查（离线）」，App 最多 9 秒回答（网页等 10 秒）。
+  - 成功 `{ok: true, heard}`：手机本机识别出来的原文，什么都没听到是 `''`（网页说「没听清，再录一次」）。和句子对齐在网页里做（compare_words 的 JS 版，同一个正则、小写、LCS，语流 B3），只标漏读的词，`heard` 不显示。
+  - 失败 `{ok: false, why}`：`off`（学员没打开，默认关）、`online`（有网：走服务器）、`unavailable`（这台手机不能本机识别英语）、`denied`（语音识别权限）、`none`（没有刚录的，或过了两分钟）、`error`。
+  - 网页在一次跟读里只调一次，只在 `/api/next/shadow` 因为没网失败、或一开始 `navigator.onLine === false` 时调；结果只显示漏读的词，写「本机快速检查（离线）· 仅供参考」；不打分、不进错题本、不写统计，离线录音不补交（用户 2026-11-25 定的条件）。App 只开本机识别，录音用完即删。
 - `cancel()`。事件 `rec`：`{state: 'recording' | 'done' | 'cut', ms}`：到 max 自己停是 done；来电打断、或者 App 切到后台是 cut（录到的部分还在，stop() 照样拿到）。
   麦克风只在学员看着 App 时开：切走就停，不会在后台接着录。
 - App 里网页不切 navigator.audioSession（会话由 App 切）；第一次的说明卡不写「每次重新打开都会再问」。

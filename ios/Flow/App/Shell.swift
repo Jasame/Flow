@@ -47,6 +47,9 @@ final class Shell {
             case .frugal: Frugal.shared.update()
             case .reviewActivity: if !on { Task { await ReviewActivities.endAll() } }
             case .wordSearch: Task { if on { await WordSearch.refresh(site: site) } else { await WordSearch.clear() } }
+            case .localCheck:
+                if on { Task { _ = await LocalCheck.shared.prepare() } } else { LocalCheck.shared.forget() }
+                Shell.shared.bridge.featuresChanged()  // FlowApp.has('localcheck') follows the switch
             case .smartResume, .haptics, .siri: break
             }
         }
@@ -64,6 +67,7 @@ final class Shell {
             Task { [site] in await WordSearch.refresh(site: site) }  // 在系统搜索里找生词: only when the list changed
         case .background:
             recorder.cutNow()  // no recording behind the learner's back
+            LocalCheck.shared.forget()  // nor a take kept for the offline check
             // the counts may have changed while the app was open (a review done): today's reminder follows them
             BackgroundWork.run("reminders") { [reminders] in await reminders.refresh(force: true) }
             Shell.scheduleRefresh()

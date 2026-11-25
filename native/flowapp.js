@@ -24,11 +24,11 @@
     try { return Promise.resolve(t.send(cmd, args == null ? {} : args)); } catch (e) { return Promise.reject(e); }
   };
   const subs = Object.create(null);
-  const features = Object.freeze((cfg.features || []).slice());
+  let features = Object.freeze((cfg.features || []).slice());
   const FlowApp = {
     v: cfg.v || 1, app: cfg.app || '', build: cfg.build || '', beta: !!cfg.beta, platform: cfg.platform || '',
-    features,
-    has: f => features.includes(f),
+    get features() { return features; },
+    has: f => features.includes(f),  // follows the app: a 'features' event (a switch of the app's own page) replaces the list  (§2)
     call,
     on(type, fn) {
       if (typeof fn !== 'function') return () => {};
@@ -37,6 +37,7 @@
     },
     off(type, fn) { if (subs[type]) subs[type] = subs[type].filter(x => x !== fn); },
     _emit(type, detail) {
+      if (type === 'features' && detail && Array.isArray(detail.features)) features = Object.freeze(detail.features.slice());
       (subs[type] || []).slice().forEach(fn => { try { fn(detail); } catch (e) { console.error('FlowApp', type, e); } });
       try { window.dispatchEvent(new CustomEvent('flowapp:' + type, { detail })); } catch (e) { /* ignore */ }
     },
@@ -50,6 +51,8 @@
     rec: Object.freeze({
       permission: () => call('rec.permission'), ask: () => call('rec.ask'), start: o => call('rec.start', o),
       stop: () => call('rec.stop'), cancel: () => call('rec.cancel'),
+      // iOS, has('localcheck'): the take just stopped, heard on the phone with no network → {ok, heard} (§4)
+      localcheck: o => call('rec.localcheck', o),
     }),
     // review reminders as the system's notifications: sync(reminder) after the page changed one; sync(null) or off()
     // turns the app's reminders off; permission() is 'granted' only while they are on  (§5)

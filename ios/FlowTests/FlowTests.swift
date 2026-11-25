@@ -799,6 +799,34 @@ final class AskTests: XCTestCase {
     }
 }
 
+/// 「本机快速检查（离线）」 (item 13): the check runs only with the switch on, no network and a take just stopped; the
+/// page does the lining up (语流 B3), so the app answers what it heard. The page sees the capability only while on.
+final class LocalCheckTests: XCTestCase {
+    @MainActor func testOnlyWithTheSwitchOnAndNoNetwork() async {
+        let key = Feature.localCheck.key
+        defer { UserDefaults.standard.removeObject(forKey: key) }
+        XCTAssertFalse(Feature.localCheck.defaultOn, "off until the learner turns it on")
+        UserDefaults.standard.removeObject(forKey: key)
+        XCTAssertFalse(Bridge.features.contains("localcheck"), "off: the page shows nothing of it")
+        var r = await LocalCheck.shared.check()
+        XCTAssertEqual(r["why"] as? String, "off")
+        UserDefaults.standard.set(true, forKey: key)  // not through Features.set: that asks iOS for speech recognition
+        XCTAssertTrue(Bridge.features.contains("localcheck"))
+        LocalCheck.shared.keep(Data(count: 100), mime: "audio/wav")
+        try? await Task.sleep(for: .milliseconds(300))  // the network monitor's first answer
+        r = await LocalCheck.shared.check()
+        XCTAssertEqual(r["why"] as? String, "online", "with a network the server checks: \(r)")
+        r = await LocalCheck.shared.check()
+        XCTAssertNotEqual(r["ok"] as? Bool, true, "the take went with the first check")
+    }
+
+    func testBritishOrAmerican() {
+        XCTAssertEqual(LocalCheck.locale("en-GB").identifier, "en-GB")
+        XCTAssertEqual(LocalCheck.locale("en-US").identifier, "en-US")
+        XCTAssertEqual(LocalCheck.locale("fr-FR").identifier, "en-US")
+    }
+}
+
 /// 「在系统搜索里找生词」 (item 7): the search entries made from the site's list, and the page a picked one opens.
 final class WordSearchTests: XCTestCase {
     func testEntriesFromTheSitesList() {

@@ -127,6 +127,7 @@ App 打开、回到前台、切到后台、以及 iOS 每天叫醒它几次时�
 | 省电时少做事（第二组） | 开 | 低电量模式或 iOS 27 提示省资源时：朗读少提前做一句、离线包不在前台下、网页少预载（`frugal`） | `Features/Frugal.swift` |
 | 复习进度的实时活动（第三组） | 关 | 复习单词时锁屏和灵动岛上显示「12 / 30」（网页调 `activity.review`） | `Features/ReviewActivities.swift`、`FlowWidgets/ReviewActivityWidget.swift` |
 | 在系统搜索里找生词（第四组） | 关 | 学员自己的单词和表达进 iPhone 的搜索，点了打开 `#/cards/find/<词>`（B2 的 `/api/next/cards/index`） | `Features/WordSearch.swift` |
+| 本机快速检查（离线）（第 13 项） | 关 | 没网时跟读，iPhone 本机识别一遍，网页标出漏读的词（`rec.localcheck`）；有网不跑 | `Record/LocalCheck.swift` |
 | 快捷指令和 Siri（第四组） | 开 | 「语流开始复习」「语流还有多少词要复习」「用语流打开今天这篇」；关了 Siri 就说在哪里打开 | `Features/Intents.swift` |
 
 - 模拟器的控制中心没有「正在播放」，锁屏按钮在测试里通过桥测试页的「锁屏 1.25× / 锁屏单句循环 / 锁屏退回 5 秒」按（Beta 才有的 `audio.remote`），真的锁屏要在手机上看。
@@ -181,7 +182,7 @@ App 打开、回到前台、切到后台、以及 iOS 每天叫醒它几次时�
 
 - 网页一侧接桥：已在 main（#152 整篇朗读交给 App，#164 录音用 App，#299 句子地址和系统声音的说法）。
 - 锁屏上改的语速、单句循环，网页的「语速」「复读」按钮还不跟着变（`audio` 事件已经带 `rate`、`rep`、`loop`，网页一侧由语流 B3 接）。
-- 「本机快速检查（离线）」：草稿 #376，等 D2、用户和真机。
+- 「本机快速检查（离线）」：草稿 #376，等用户定做不做；网页一侧语流 B3 接（对齐在网页做）；真机上还没试过（模拟器的本机识别报 1101）。
 - 网页一侧：复习页的震动（语流 B2，分支 review-split：翻面 select，评分按结果 success / tap / warning，不用 error）、PRELOAD.frugal() 算上 App 的 `frugal`（语流 B3）。
 - 安卓的 `haptic`、`frugal`：语流 C2 已想好做法（performHapticFeedback；PowerManager.isPowerSaveMode），等用户排优先级。
 - 复习提醒：网页一侧已在 main（#139「到点用 App 通知提醒」和 `FlowApp.notify.sync()`，#149 按 `FlowApp.platform` 换说法）。
