@@ -14,3 +14,6 @@
 /* one notice at a time, and the tour is it: while it is open nothing else shows; the rest of a new account's first day
    「语流更新了」 and the reminders under the plan wait for tomorrow (a 公告 is back once the tour is over) */
 body.touring #announce,html.tour-day #updCard,html.tour-day #notice{display:none}
+/* the tab bar is frosted glass on phones (80-flat.css): while the tour points at a tab it is solid, so the lit tab
+   shows only itself, not the page behind it */
+body.touring .tabs{background:var(--paper)}
