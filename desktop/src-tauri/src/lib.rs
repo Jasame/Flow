@@ -383,7 +383,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(any(target_os = "macos", target_os = "windows"))]
     {
         #[cfg(target_os = "windows")]
-        let hwnd = window.hwnd().ok().map(|h| h.0 as *mut std::ffi::c_void);
+        let hwnd = window.hwnd().ok().map(|h| h.0);
         #[cfg(not(target_os = "windows"))]
         let hwnd = None;
         let h = handle.clone();
