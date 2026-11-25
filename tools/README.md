@@ -229,7 +229,9 @@ not `flow/`, not the UI tools) skips the 5 UI shares, taking 3 of the account's 
 import a changed module of `flow/`, the changed tests themselves, the ones that read next.js for a front-end part)
 and the checks (`--checks`, about 15 s): the repository's own tests (`tests/`: every shipped file listed in
 `tools/release-files.txt`, the CI setup, the ledger), the front end built from its parts, the dictionary matching its
-sources, the served scripts parsing, and `test_guide`. The UI groups and the whole suite are not run before pushing:
+sources, the served scripts parsing, the served scripts still running in Safari 15.0 (`tools/check_compat.py`: iOS 15
+and up must work, 2026-11-25; a lookbehind in a regular expression had made next.js unreadable before iOS 16.4), and
+`test_guide`. The UI groups and the whole suite are not run before pushing:
 CI runs them on every pull request, the one gate before a merge. Running them here as well ran every test twice
 (2026-11-25: 96 runs in a day, PRs waiting 26 minutes for the MSI).
 
