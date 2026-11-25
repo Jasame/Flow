@@ -1,3 +1,3 @@
-c36f595b494e3648235d790afd7060f6b9976a71 2ea8853f3d4ba38ccf763496fa6b50b5d998baf3bede62e1bc76f4b1f3a7e956 e2e light ref=build-3b02917ac61d tag=b97 tools=c8f8bc8e43fd5f240d1e4b9541d9e4edc8f88c917b5795e6ecafd8f51af4bfbb
-# b97 main: Merge pull request #373 from Jasame/paused-account-purge = build of 3b02917ac61d
+75b56d4b3f1078d973eb9849d9a7018607ccb67e dd426830c6ab4316da76327ce7f5101ff2aa1d56fb6f6a4b0f5e92ded8c49bce e2e light ref=build-aaf99d432ab3 tag=b98 tools=c8f8bc8e43fd5f240d1e4b9541d9e4edc8f88c917b5795e6ecafd8f51af4bfbb
+# b98 main: Merge pull request #374 from Jasame/sim-check-dock = build of aaf99d432ab3
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
