@@ -375,12 +375,19 @@
       document.getElementById('retry').onclick = () => route();
     } finally { if (!keepScroll && !sameMaterial && !quiet) view.focus({ preventScroll: true }); }
   }
+  // How the page changed (the Navigation API where there is one; else a longer history means a link, and a back or a
+  // redirect cannot be told apart, so neither closes a sheet)
+  const NAV = { type: '', len: history.length };
+  if (window.navigation && navigation.addEventListener) navigation.addEventListener('navigate', e => { NAV.type = e.navigationType || ''; });
   window.addEventListener('hashchange', () => {
     const [name, a] = parts(), last = S.lastRoute.split('/');
     if (!(name === 'm' && last[0] === 'm' && last[1] === a)) window.scrollTo(0, 0);
-    // another page (a link, 返回, the browser's or the phone's back): a sheet of the page left closes with it (one
-    // waiting for an answer stays); a tip the page left showed is put away, one said on the way here (「已保存」) stays
-    if (!sheetEl.hidden && !sheetLocked()) closeSheet();
+    // another page the learner went to (a link, 返回, the browser's or the phone's back): a sheet of the page left closes
+    // with it (one waiting for an answer stays). The app's own redirects (location.replace: #/join → #/ → #/welcome) keep
+    // the sheet a route opened on the way (#/join's 注册). A tip the page left showed is put away, one said on the way
+    // here (「已保存」) stays.
+    const redirect = NAV.type ? NAV.type === 'replace' : history.length === NAV.len; NAV.type = ''; NAV.len = history.length;
+    if (!redirect && !sheetEl.hidden && !sheetLocked()) closeSheet();
     if (Date.now() - (toast.at || 0) > 400) toastEl.classList.remove('show');
     route();
   });
