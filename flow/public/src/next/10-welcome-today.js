@@ -40,11 +40,12 @@
       const art = [pick, h.resume, ...h.today].find(m => m && m.id === readId);
       // 再学一篇 (r27): the next recommendation itself, not the whole library (that only when there is none)
       const more1 = h.today.find(m => m && m.id !== readId && (!(m.steps || []).includes('check') || m.redo));  // 精读重学 counts: it is what 今日 recommends once a level is done
-      top = `<section class="today-plan" aria-labelledby="tpTitle">${backHTML(p, next)}${overLineHTML(p, next)}
+      // the line past the day's minutes goes under the button, so it never pushes 开始 / 继续 off the first screen
+      top = `<section class="today-plan" aria-labelledby="tpTitle">${backHTML(p, next)}
         <div class="tp-head"><div><h1 class="h1" id="tpTitle">${next ? '今天的计划' : '今天的计划完成了'}</h1>
           <span class="muted small">${planHeadText(p)}</span>${sprintLine(h)}</div>
           <span class="ring" data-p="${Math.round(p.done / Math.max(1, p.total) * 100)}" aria-hidden="true"><b>${p.done}/${p.total}</b></span></div>
-        ${next ? `<a class="btn primary block go-next" href="${esc(next.href)}">${p.done ? '继续' : '开始'}第 ${nextK + 1} 步<span aria-hidden="true">→</span></a>`
+        ${next ? `<a class="btn primary block go-next" href="${esc(next.href)}">${p.done ? '继续' : '开始'}第 ${nextK + 1} 步<span aria-hidden="true">→</span></a>${overLineHTML(p, next)}`
           : `<div class="tp-done">${doneRing}<span>都完成了。${more1 ? `想多学一点，下一篇是《${esc(more1.title)}》。` : '想多学一点，就再挑一篇。'}多学的照样算进「这周进步」。</span></div>
             <div class="tp-more"><a class="btn primary block go-next" href="${more1 ? '#/m/' + encodeURIComponent(more1.id) : '#/library'}" data-tap="home-more-one">再学一篇<span aria-hidden="true">→</span></a>
             <a class="btn ghost block" href="#/mix/more" data-tap="home-more-grammar">做 4 道语法题</a></div>`}
@@ -64,7 +65,8 @@
     const more = h.today.filter(m => m.id !== readId && (path || m !== pick) && (!resume || m.id !== resume.id) && (!news || m.id !== news.id)).slice(0, 3);
     // 好句 and 热点 come first, except on a screen too short for them and the plan's button together (a phone held
     // sideways): there the plan comes first, so its next step is still on the first screen.
-    const short = innerHeight < 500 && innerWidth > innerHeight;
+    // The day back after days away (r28 第 2 段) starts with 欢迎回来 and the plan too: getting going comes first.
+    const short = (innerHeight < 500 && innerWidth > innerHeight) || !!(path && h.path.back);
     view.innerHTML = `<div class="greet-row"><span class="kicker greet">${greeting()}${name ? `，<span class="nm">${esc(name)}</span>` : ''}</span>
         ${st && st.habit ? habitChip(st.habit) : st ? `<span class="wk" title="本周学了 ${weekN} 天"><span class="tiny muted">本周 ${weekN} 天</span><span class="week" aria-hidden="true">${st.week.map(d => `<span class="${d.active ? 'on' : ''}"></span>`).join('')}</span></span>` : ''}</div>
       ${announceHTML(h)}${trialSurveyHTML(h)}
@@ -108,7 +110,7 @@
     const left = b.left ? (b.catch_days ? `单词还剩 ${b.left} 个，大约 ${b.catch_days} 天补完。` : `单词还有 ${b.left} 个，之后几天慢慢补上。`) : '';
     return `<div class="tp-back" role="status"><b>欢迎回来</b><span class="small">${next ? `你 ${b.days} 天没学了，没关系。今天只做 ${p.total} 件事，约 ${p.must_minutes} 分钟。` : '今天的几件事做完了，明天照常。'}${left}</span></div>`;
   }
-  // Past the day's minutes by a fifth with 必做 not done: said once a day, above the plan, and nothing is stopped.
+  // Past the day's minutes by a fifth with 必做 not done: said once a day, under the plan's button, and nothing is stopped.
   // It stays for the quiet redraw and a quick look away (two minutes), then not again that day.
   function overLineHTML(p, next) {
     if (!p.over || !next) return '';
