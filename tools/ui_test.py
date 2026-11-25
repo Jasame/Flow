@@ -1527,6 +1527,32 @@ def listen_speak_run(pw):
                 pg.click('.line[data-i="0"] .snd a'); pg.wait_for_timeout(600)
                 check(dev, '跟读: 去练 opens that 发音入门 set', pg.evaluate("location.hash").startswith('#/sounds/') and bool(pg.query_selector('#view h1')), pg.evaluate('location.hash'))
 
+            if size in ('desktop', 'tablet'):  # 发音入门: a word's recording is a 16 kHz mono WAV where WAV16 is on (desktop), as before elsewhere
+                import base64, struct
+                if size == 'desktop':
+                    pg.evaluate("localStorage.setItem('flow-say-wav', '1')")
+                said = []
+                pg.route('**/api/next/say', lambda route: (said.append(route.request.post_data_json),
+                          route.fulfill(json={'result': {'heard': 'think', 'ok': True, 'note': '', 'tip': '', 'tentative': False, 'confirmed': False}})))
+                go(pg, '#/sounds/th-s'); pg.wait_for_selector('#r0-0')
+                pg.click('#r0-0'); pg.wait_for_selector('#r0-0.on', timeout=5000); pg.wait_for_timeout(1500); pg.click('#r0-0')
+                pg.wait_for_selector('#o0-0 .ok-mark', timeout=5000)
+                a = (said[-1] or {}).get('audio') or {} if said else {}
+                raw = base64.b64decode(a.get('data') or '')
+                check(dev, '发音: the microphone is let go when the word is recorded', pg.evaluate(mic_free), pg.evaluate('window.__mics.length'))
+                if size == 'desktop':
+                    h = struct.unpack('<4sI4s4sIHHIIHH4sI', raw[:44]) if len(raw) >= 44 else ()
+                    pcm = struct.unpack(f'<{(len(raw) - 44) // 2}h', raw[44:44 + (len(raw) - 44) // 2 * 2]) if h else ()
+                    got = {'mime': a.get('mime_type'), 'head': (h[0], h[2], h[5], h[6], h[7], h[10]) if h else None, 'secs': round(h[12] / 32000, 2) if h else 0,
+                           'whole': bool(h) and h[1] == len(raw) - 8 and h[12] == len(raw) - 44, 'peak': max(map(abs, pcm), default=0)}
+                    check(dev, '发音 (WAV16 on): sent as audio/wav, 16000 Hz, mono, 16-bit PCM, header sizes right',
+                          got['mime'] == 'audio/wav' and got['head'] == (b'RIFF', b'WAVE', 1, 1, 16000, 16) and got['whole'], got)
+                    check(dev, '发音 (WAV16 on): about as long as the recording, and not silent', 1.0 <= (got['secs'] or 0) <= 4.1 and got['peak'] > 100, got)
+                    pg.evaluate("localStorage.removeItem('flow-say-wav')")
+                else:
+                    check(dev, '发音 (WAV16 off, the default): recorded as before', a.get('mime_type') in ('audio/webm', 'audio/mp4') and raw[:4] != b'RIFF', a.get('mime_type'))
+                pg.unroute('**/api/next/say')
+
             if size == 'phone':  # 伴读 of an imported article: the server voice, sentence by sentence, its files its owner's only
                 text = ' '.join(['The library opens early on weekdays.', 'Students meet there before their first class.', 'Some of them read quietly in the corner.',
                                  'Others work on group projects at the long tables.', 'By noon most seats are taken.', 'In the evening it is quiet again.'])
