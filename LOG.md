@@ -473,3 +473,13 @@
   - #231 隐私和数据：更新日期、生效日期和修改记录（操作指南）
 - 自检：DEPLOYED，装了 5 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45589388173
+
+### b65 · 2026-11-25 18:08
+- main `3efd041`，构建 `3859953`
+- 新合并的 PR（自 b64 起）：
+  - #241 今日「本周任务」不再压着灰条（正式版反馈 #2）（今日和计划）
+  - #239 安卓 1.0.3：账号缺哪一项同意都暂停提醒，按 need 说要先同意什么（网站其他）
+  - #242 发版请求加签名（REQUEST.sig）和工具清单（TOOLS）（发版和构建）
+  - #243 守则第 10 条：fork 来的 PR 改了 .github/ 一律不批准运行（发版和构建）
+- 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45591879714
