@@ -85,6 +85,9 @@ main>h1.sr-only+*{margin-top:0}
 .cf-q{display:grid;gap:14px}
 @media (max-width:759px){
   body.reviewing .mix.confuse{display:flex;flex-direction:column;flex:1 0 auto;gap:12px}
+  /* 6 px between its parts, over 87-route.css's 10 for answering: the first question, 怎么区分 open, then fits an
+     iPhone SE in Safari (667 px; it was 7 px past) */
+  body.reviewing .stack.mix.confuse{gap:6px}
   body.reviewing .mix.confuse>.cf-q{margin-top:auto}
 }
 /* 这次什么时候复习 on 今日's finished plan (10-welcome-today.js): a quiet link under the two buttons */
