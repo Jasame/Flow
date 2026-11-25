@@ -1,3 +1,3 @@
-6bde7881e691d3fafaac8492fe82e840074c0e3f 075582ca0bc28fa3e40258d161ea3692e79d7b651922dc21e4872b0febabfc4b e2e light
-# b33 main: Merge pull request #121 from Jasame/teacher-mode = build of c0862dbef443
+39d16ba3fba0395e17a3aeb07bb341a4a59a06c7 bf51fc1ec469b14d22d0f0518921653034e3b6d67c7d58a847782a204aa63950 e2e light
+# b34 main: Merge pull request #130 from Jasame/text-timeout = build of fdd719761e43
 # Format: <commit sha> <manifest sha256> [e2e [light]]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
