@@ -3703,6 +3703,13 @@ def review_side_run(pw):
         pg.click('#sfClear'); pg.wait_for_selector('#listSlot [data-card]', timeout=5000)
         back = [pg.input_value('#sf input'), pg.evaluate("document.querySelectorAll('#listSlot [data-card]').length")]
         check(dev, '单词 search with no result: 没找到「zzqx」 and 清除搜索 brings the whole list back', '没找到「zzqx」' in msg and back == ['', n0] and n0 > 0, [msg, back, n0])
+        # #/cards/find/<词> (the iPhone's system search opens a word this way, 语流 C1): the list with that word searched
+        w = (pg.text_content('#listSlot [data-card] .x') or '').strip()
+        found = []
+        for href in ('#/cards/find/' + __import__('urllib.parse').parse.quote(w, safe=''), '#/cards/find/' + w):  # encoded, and as typed (a 「/」 in borrow / lend)
+            go(pg, href); pg.wait_for_selector('#listSlot [data-card]', timeout=5000)
+            found.append([pg.input_value('#sf input'), pg.evaluate("[...document.querySelectorAll('#listSlot [data-card] .x')].map(e => e.textContent)")])
+        check(dev, '#/cards/find/<词> opens 单词 with that word searched', w and all(f[0] == w and w in f[1] for f in found), [w, found])
         pg.click('[data-f="mistake"]'); pg.wait_for_timeout(300)
         pg.fill('#sf input', 'zzqx'); pg.press('#sf input', 'Enter'); pg.wait_for_selector('#sfAll', timeout=5000)
         msg2 = pg.text_content('#listSlot .empty p')
