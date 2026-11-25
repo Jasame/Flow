@@ -251,6 +251,10 @@ flow/public/about/check-d.jpg
 flow/public/about/check.jpg
 flow/public/about/desk-d.jpg
 flow/public/about/desk.jpg
+flow/public/about/ios-control.jpg
+flow/public/about/ios-features.jpg
+flow/public/about/ios-island.jpg
+flow/public/about/ios-widget.jpg
 flow/public/about/listen-d.jpg
 flow/public/about/listen.jpg
 flow/public/about/output-d.jpg
