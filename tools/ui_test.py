@@ -1879,6 +1879,42 @@ def learner_run(pw):
         check(dev, '导出: the word book downloads as 语流单词本-<day>.csv, readable by Excel', f.suggested_filename.startswith('语流单词本-') and body.startswith('\ufeff英文,中文意思'.encode()),
               (f.suggested_filename, body[:30]))
         pg.evaluate(closing)
+        # 输出练习: an AI answer that comes back after the learner moved on is dropped (A0/A2, 2026-11-26). Switching
+        # 汉译英 → 写作 before the Chinese source came back threw on #trGo (a UI share went red now and then), and after
+        # 换一句 a late source gave the new sentence's 提交 to the old one. The answers are held here, the page changes,
+        # then they are let through.
+        n0, held, src, ess = len(errs), [], '**/api/next/translate/source', '**/api/next/essay'
+        def hold(n):
+            for _ in range(120):
+                if len(held) >= n:
+                    return True
+                pg.wait_for_timeout(50)
+            return False
+        def let_through(k, part):  # until the answer has reached the page, not a guess at how long the AI takes
+            with pg.expect_response(lambda x: part in x.url, timeout=15000) as got:
+                held[k].continue_()
+            pg.wait_for_timeout(250)
+            return got.value.status
+        pg.route(src, lambda r: held.append(r)); pg.route(ess, lambda r: held.append(r))
+        go(pg, f'#/m/{PID}/output/translate'); a = hold(1)
+        pg.click('#pane #trNext'); b = hold(2)  # 换一句 while the first sentence's source is still out
+        let_through(1, '/translate/source'); let_through(0, '/translate/source')  # the second sentence's source first, the first one's late
+        pg.fill('#trIn', 'Noise is quieter now.')
+        with pg.expect_response(lambda x: x.url.endswith('/api/next/translate'), timeout=15000) as tr:
+            pg.click('#pane #trGo')
+        same = json.loads(tr.value.request.post_data)['i'] == json.loads(held[1].request.post_data)['i']  # graded against the sentence on screen
+        pg.wait_for_timeout(250)
+        go(pg, f'#/m/{PID}/output/essay'); go(pg, f'#/m/{PID}/output/translate'); c = hold(3)
+        go(pg, f'#/m/{PID}/output/essay'); let_through(2, '/translate/source')
+        essay = pg.evaluate("() => !!document.querySelector('#pane #esIn') && !document.querySelector('#pane #trSrc')")
+        pg.fill('#esIn', ' '.join(['Reading a little every day helps me learn new words.'] * 5))
+        pg.click('#esGo'); d = hold(4)
+        go(pg, f'#/m/{PID}/output/retell'); pg.evaluate("document.getElementById('toast').classList.remove('show')")
+        graded = let_through(3, '/api/next/essay'); pg.unroute(src); pg.unroute(ess)
+        # nothing of the essay on 复述: no result, and no toast either (the old code's TypeError was caught and shown as one)
+        retell = pg.evaluate("() => [!!document.querySelector('#pane #rtText') && !document.querySelector('#pane .result'), (document.querySelector('#toast.show') || {}).textContent || '']")
+        check(dev, '输出练习: a late AI answer (汉译英 source after 换一句 or 写作; essay grading after 复述) is dropped, no script error',
+              a and b and c and d and same and essay and retell[0] and not retell[1] and graded == 200 and len(errs) == n0, (a, b, c, d, same, essay, retell, graded, errs[n0:][:2]))
         check(dev, 'no script errors on these pages', not errs, errs[:3])
         ctx.close()
         # 注销账号: a wrong password is refused; the right one deletes the account, and this phone forgets it
