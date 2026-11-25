@@ -958,6 +958,16 @@ def app_audio_run(pw):
               btn().endswith('暂停') and (mini() or '').startswith('第 3 /') and lit() == '2' and prog() == 2, (btn(), mini(), lit(), prog()))
         pg.evaluate("k => FlowApp._emit('audio-tick', { key: k, i: 3, t: 12.5, at: Date.now(), rate: 1 })", key); pg.wait_for_timeout(200)
         check(dev, 'a tick from the next sentence moves the page on too (第 4 句)', (mini() or '').startswith('第 4 /') and lit() == '3' and prog() == 3, (mini(), lit(), prog()))
+        # the app reads a sentence in the phone's own voice (offline): the page says why, as everywhere on the site, once
+        pg.evaluate(TOASTS_JS)
+        emit('audio', {'key': key, 'state': 'playing', 'i': 3, 'n': n, 'title': 't', 'fail': {'code': 'offline', 'server': ''}}); pg.wait_for_timeout(200)
+        line = (pg.text_content('#lsPrep') or '').strip() if pg.is_visible('#lsPrep') else ''
+        emit('audio', {'key': key, 'state': 'playing', 'i': 3, 'n': n, 'title': 't', 'fail': {'code': 'offline', 'server': ''}}); pg.wait_for_timeout(200)
+        said = [x for x in (pg.evaluate('window.__toasts') or []) if x.startswith('离线中')]
+        check(dev, "the app fell back to the phone's voice (offline): the line under 播放全文 and one toast say why",
+              line.startswith('离线中，这句还没存到本机') and len(said) == 1, (line, said))
+        emit('audio', {'key': key, 'state': 'playing', 'i': 3, 'n': n, 'title': 't'}); pg.wait_for_timeout(200)
+        check(dev, 'the next sentence in the AI voice again: the line goes', not pg.is_visible('#lsPrep') or not (pg.text_content('#lsPrep') or '').strip(), pg.text_content('#lsPrep'))
         pg.evaluate("document.querySelector('.playset').open = true")  # 语速 and 复读 sit in 播放设置
         pg.click('[data-rate="0.75"]'); pg.wait_for_timeout(200)
         s = last('audio.set')

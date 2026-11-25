@@ -716,7 +716,8 @@
       if (!r || !r.native || d.key !== r.key) { this.orphan(d); return; }
       if (d.state === 'idle') { if (d.why === 'ended') LONG.finish(); else if (d.why !== 'user') LONG.stop(); return; }
       if (typeof d.i === 'number' && d.i !== r.i) { r.i = d.i; r.n = 0; LONG.save(); }
-      r.state = d.state; r.note = d.note || '';
+      // the app fell back to the phone's own voice: why, said by the page as everywhere on the site (SV.why: once a reason)
+      r.state = d.state; r.note = d.fail ? SV.why(d.fail) : (d.note || '');
       MINI.paused(d.state === 'paused');
       this.retune();  // 复读 or 语速 changed meanwhile
       LONG.emit(); this.loop();
