@@ -736,15 +736,17 @@
         this.own(() => TTS.browser(text, next, c => { if (this.r === r && r.onWord) r.onWord(i, c); }, failed));
       }
     },
-    after() {  // one sentence said: again (复读), or the next, after its pause
-      const r = this.r, rep = r.rep ? r.rep() : 1;
+    // one sentence said: again (复读), or the next, after its pause. The pause is the one after the sentence just said
+    // (「留时间跟说」 is as long as that sentence), so it is taken before moving on
+    after() {
+      const r = this.r, rep = r.rep ? r.rep() : 1, g = r.gap ? r.gap(r.i) : 0;
       r.n += 1;
       if (!(rep === 0 || r.n < rep)) {
         r.n = 0; r.i += 1;
         if (r.i >= r.texts.length) { this.finish(); return; }
         this.save();
       }
-      const g = r.gap ? r.gap(r.i) : 0, tok = r.tok;
+      const tok = r.tok;
       if (g) r.timer = setTimeout(() => { if (this.r === r && r.tok === tok && r.state !== 'paused') this.go(); }, g); else this.go();
     },
     toggle() { if (!this.r) return; if (this.r.state === 'paused') this.resume(); else this.pause(); },

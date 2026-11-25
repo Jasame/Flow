@@ -1322,6 +1322,29 @@ def ux_run(pw):
                 btn: document.querySelector('#playAll').textContent.trim(), now: (document.querySelector('#view .line.now') || {dataset: {}}).dataset.i,
                 note: (document.querySelector('#lsPrep') || {}).textContent || '', mini: (document.querySelector('.mini-player:not([hidden]) .lbl') || {}).textContent || '' })""")
             c3.close()
+        # 「留时间跟说」 in 播放全文: the pause after a sentence is as long as that sentence (to say it back), not the next one.
+        # A two-word sentence before a long one: the next starts after the 1.5 s minimum, not the ~11 s the long one gets
+        c4 = browser.new_context(**phone)
+        c4.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a2']['token'], 'url': BASE}])
+        c4.add_init_script("(() => { window.__said = []; localStorage.setItem('flow-next-loop', JSON.stringify({rep: 1, gap: -1})); if (!window.speechSynthesis) return; "
+                           "speechSynthesis.cancel = () => {}; speechSynthesis.getVoices = () => []; speechSynthesis.speak = u => { if (!u.text.trim()) return; "
+                           "window.__said.push([u.text, performance.now()]); setTimeout(() => { u.onstart && u.onstart(); u.onend && u.onend(); }, 30); }; })()")
+        p4 = c4.new_page()
+        p4.route('**/api/next/tts', lambda r: r.fulfill(status=503, json={'error': '服务器朗读没有开启', 'code': 'off'}))
+        p4.route('**/api/next/tts/have', lambda r: r.fulfill(status=503, json={'error': '服务器朗读没有开启', 'code': 'off'}))
+        p4.goto(BASE + '/', wait_until='networkidle'); settle(p4)
+        body = ('Stop here. The old harbour town grew slowly around a single stone pier that fishermen had built by hand more than '
+                'two hundred years ago, long before the railway came. Today the pier is quiet in the mornings, and visitors walk along '
+                'it slowly to watch the small boats come back with their catch.')
+        art = p4.evaluate("([t, csrf]) => fetch('/api/next/import', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf}, "
+                          "body: JSON.stringify({title: '停顿', text: t})}).then(r => r.json())", [body, CFG['learners']['a2']['csrf']])
+        p4.goto(BASE + f"/#/m/{art['id']}/listen", wait_until='networkidle'); settle(p4, '#playAll')
+        p4.click('#playAll'); p4.wait_for_timeout(3200)
+        said = p4.evaluate('window.__said')
+        gap0 = round(said[1][1] - said[0][1]) if len(said) >= 2 else None
+        check(dev, '留时间跟说: the pause after a sentence is as long as that sentence (2 words: the 1.5 s minimum), not the next one',
+              said and said[0][0] == 'Stop here.' and gap0 is not None and 1400 <= gap0 <= 2600, {'said': len(said), 'gap_after_first_ms': gap0})
+        c4.close()
         o, al, nv = seen['once'], seen['always'], seen['never']
         check(dev, 'browser voice dropped once (iOS): that sentence is said again and the text reads on to its end',
               len(o['said']) == o['n'] + 1 and o['said'][0] == o['said'][1] and o['btn'] == '播放全文', {k: o[k] for k in ('n', 'btn', 'now')} | {'said': len(o['said'])})
