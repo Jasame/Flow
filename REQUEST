@@ -1,3 +1,3 @@
-b4a84c45cc7e00dc824e601925ede298c400dd5d 39a3d9aaaf64ac47322b5bc3bdcdfdbbcc2244e4134ecabc4ee5d73653852eca e2e light ref=build-9e70b074907c tag=b99 tools=c8f8bc8e43fd5f240d1e4b9541d9e4edc8f88c917b5795e6ecafd8f51af4bfbb
-# b99 main: Merge pull request #362 from Jasame/b3-no-aac = build of 9e70b074907c
+048450b058fe5e4f6d207186c967331ca8f50414 62552b60ba641eb198e604383a3b2e03cae3db5237b1d7bf401b9d1f8d4cc880 e2e light ref=build-728af69add10 tag=b100 tools=c8f8bc8e43fd5f240d1e4b9541d9e4edc8f88c917b5795e6ecafd8f51af4bfbb
+# b100 main: Merge pull request #378 from Jasame/ios-spotlight = build of 728af69add10
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
