@@ -217,7 +217,8 @@
       if (sendBtn) sendBtn.onclick = async () => {
         err.textContent = ''; sendBtn.disabled = true;
         try {
-          const r = await api('/api/auth/code', { email: form.email.value.trim(), purpose: { reg: 'register', code: 'login', reset: 'reset' }[tab] });
+          // from a class invite link (82-class.js joinRoute): the class's own code allowance, not this network's (auth_service)
+          const r = await api('/api/auth/code', { email: form.email.value.trim(), purpose: { reg: 'register', code: 'login', reset: 'reset' }[tab], ...(tab === 'reg' && S.invite ? { class: S.invite } : {}) });
           toast(r.message || '验证码已发送，请查看邮箱'); countdown(sendBtn); form.code.focus();
         } catch (x) { fieldError(form, err, { message: x.message, field: x.field || 'email' }); sendBtn.disabled = false; }
       };
