@@ -3232,6 +3232,21 @@ def home_app_run(pw):
         pg.wait_for_selector('#updateBar', timeout=9000); pg.wait_for_timeout(1000)
         check(dev, 'new version on 今日 while audio plays: no reload, only the line', len(loads) == 1, len(loads))
         ctx.close()
+        # on 今日 when the new version is found, but the learner opens a text during the wait for the new worker (up to
+        # 4 s): no reload under them (it cut 播放全文 before its first sentence), the line offers it instead
+        ctx, pg, errs = context('iphone-15-pro')
+        pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+        pg.wait_for_function('!!(navigator.serviceWorker && navigator.serviceWorker.controller)', timeout=10000)  # a worker in charge: the wait happens
+        pg.route('**/api/version', lambda r: r.fulfill(status=200, content_type='application/json', body='{"asset": "newer-version"}'))
+        pg.reload(wait_until='networkidle'); settle(pg)
+        loads = []
+        pg.on('load', lambda: loads.append(1))
+        pg.wait_for_function("localStorage.getItem('flow-update-tried') !== null", timeout=9000)  # the check after 4 s, the wait begun
+        go(pg, f'#/m/{PID}/check'); pg.wait_for_timeout(5500)
+        got = {'loads': len(loads), 'bar': pg.query_selector('#updateBar') is not None, 'tried': pg.evaluate("localStorage.getItem('flow-update-tried')")}
+        check(dev, 'new version found on 今日, a text opened during the 4-second wait: no reload under it, the line offers it',
+              got['loads'] == 0 and got['bar'] and got['tried'] in (None, 'null'), got)
+        ctx.close()
         ctx, pg, errs = context('iphone-15-pro')
         loads = []
         pg.on('load', lambda: loads.append(1))

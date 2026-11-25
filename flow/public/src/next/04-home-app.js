@@ -147,11 +147,15 @@
     if (load('flow-update-tried') !== NEW_ASSET && restingNow()) { takeUpdate(); return; }
     updateBar();
   }
-  async function takeUpdate() {
+  async function takeUpdate(asked) {
     save('flow-update-tried', NEW_ASSET);
     const sw = navigator.serviceWorker;
     // the new worker may have taken over already (then at once); otherwise wait for it, at most 4 s
     if (sw && sw.controller && !swSwitched) await new Promise(done => { sw.addEventListener('controllerchange', done, { once: true }); setTimeout(done, 4000); });
+    // Unasked, the page may no longer be resting after that wait: a text opened and 播放全文 started, a recording
+    // (语流 9 on the simulator, 2026-11-25: the reload cut a reading before its first sentence). Then the line offers it,
+    // and the next resting page takes it.
+    if (!asked && !restingNow()) { save('flow-update-tried', null); updateBar(); return; }
     location.reload();
   }
   function updateBar() {
@@ -160,7 +164,7 @@
     box.className = 'update-bar'; box.id = 'updateBar'; box.setAttribute('role', 'status');
     box.innerHTML = '<button class="ub-go" type="button" data-tap="update-bar">有新版本，点一下更新</button><button class="ub-x" type="button" aria-label="今天先不更新">×</button>';
     document.body.appendChild(box);
-    box.querySelector('.ub-go').onclick = e => { e.currentTarget.textContent = '正在更新…'; e.currentTarget.disabled = true; takeUpdate(); };
+    box.querySelector('.ub-go').onclick = e => { e.currentTarget.textContent = '正在更新…'; e.currentTarget.disabled = true; takeUpdate(true); };
     box.querySelector('.ub-x').onclick = () => { save('flow-update-later', NEW_ASSET + '|' + new Date().toDateString()); box.remove(); };
   }
   // after a reload into the new version: said once
