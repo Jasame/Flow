@@ -361,6 +361,12 @@ class OnceReminderTests(unittest.TestCase):
         self.assertIn(f'DTSTART:{start}', cal)
         self.assertIn('RRULE:FREQ=DAILY', vs.ics(20))  # the daily one unchanged
 
+    def test_the_daily_plan_event_lasts_as_long_as_the_learners_daily_time(self):
+        for m in nx.MINUTES:  # 45 and 60 too (语流 20: they came out as 10)
+            cal = vs.ics(20, 'plan', m)
+            self.assertIn(f'约 {m} 分钟', cal); self.assertIn(f'DURATION:PT{m}M', cal)
+        self.assertIn('约 10 分钟', vs.ics(20, 'plan', 7))  # not a choice of 我的: the usual 10
+
 class WordCapTests(unittest.TestCase):
     """r28 section 3 (the owner chose the recommended plan, 2026-11-25): a day of words capped in minutes, reviews most
     at risk first and new words in the time left; after a break the most urgent 40, the rest over 5 days; a finished
