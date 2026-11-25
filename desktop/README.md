@@ -25,7 +25,7 @@ Tauri 2 做的「原生外壳 + 关键功能原生」：窗口里就是网站（
 
 | 功能 | 怎么做 | 代码 |
 |---|---|---|
-| 系统媒体控制、媒体键 | 网页照常自己放声音；注入的脚本盯住网页的 `navigator.mediaSession`（`MS.claim` 设的标题、登记的动作、播放/暂停），交给系统显示；按键回来时调网页登记的动作（play / pause / previoustrack / nexttrack / stop），进度还是网页管 | `bridge.js`、`media.rs`（souvlaki：SMTC / MPNowPlayingInfoCenter） |
+| 系统媒体控制、媒体键 | 网页照常自己放声音；注入的脚本盯住网页的 `navigator.mediaSession`（`MS.claim` 设的标题、登记的动作、播放/暂停），交给系统显示；按键回来时调网页登记的动作（play / pause / previoustrack / nexttrack / stop），进度还是网页管。系统播放器的副标题写「AI 朗读」（语流的朗读都是合成声音，按《人工智能生成合成内容标识办法》显式标出） | `bridge.js`、`media.rs`（souvlaki：SMTC / MPNowPlayingInfoCenter） |
 | 复习提醒 | 规则和 iOS（`ReminderPlan.swift`）、共用约定 `docs/native-bridge.md` §5 一样：北京时间，今后 14 天每天 hour:00，只在有词的日子（今天看还剩多少，含 later；以后看 forecast 累计到那天，加词书没背完时每天的新词）；「这次什么时候复习」之前不排每天那条，那天有词才提醒，提醒过的那天不再排。数据是整份 `/api/next/vocab`，在页面里用页面的登录去拿：App 打开、回到前台（最多半小时一次）、网页调 `sync(r)` 时。交给系统定时，App 关着也会到。退出登录（401）就撤掉 | `schedule.rs`、`notify/`（macOS UserNotifications，Windows 定时 toast） |
 | 点提醒 | 打开 App 到「复习」页（macOS 走通知回调，Windows 走 `flowlang://review`） | `notify/`、`site.rs` |
 | 开机自启 | 可选，默认关；开机启动时不弹窗口 | `tauri-plugin-autostart` |
