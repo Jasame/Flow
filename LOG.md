@@ -311,3 +311,14 @@
   - #168 复习提醒：App 通知开着时写「已开启」（安卓可关闭）；日历时长认 45、60 分钟（单词）
 - 自检：DEPLOYED，装了 5 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45555532132
+
+### b50 · 2026-11-25 14:15
+- main `59815d8`，构建 `9d74e73`
+- 新合并的 PR（自 b49 起）：
+  - #163 总账：App 安装包和宣传物料两节（发版和构建）
+  - #165 AI 写的内容都标上「AI 生成」（13 处），加测试防止以后漏标（单词、听和说、今日和计划、开局和考试、操作指南）
+  - #174 【等用户同意】CI：安卓 App 的构建、单元测试和 lint（.github/workflows/android.yml）（发版和构建）
+  - #172 安卓 App 跟上共用约定 #162：items、audio-made、fail、提醒新规则、测试静音（只改 android/）（网站其他）
+  - #160 内容页标「AI 生成」：文章页、卡片、连载、轻松读（今日和计划、内容、操作指南）
+- 自检：DEPLOYED，装了 8 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45558630630
