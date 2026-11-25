@@ -7,7 +7,7 @@
     view.innerHTML = `<div class="place stack"><div><span class="kicker">语法起点小测</span><h1 class="h1">16 道题，找到你的起点</h1>
         <p class="muted">从简单到难，每 4 题一档。会就选，不会就点「不会」，不用猜。题目明显变难、开始吃力时会自动结束，一般 3–6 分钟。</p></div>
       <ul class="steps-list small"><li>做完给你一个起点等级，可以直接用它开始学</li><li>做对的语法点会点亮${S.user ? '' : '（登录后保存）'}，几天后再抽查一次</li><li>该补的点会排进今天的计划</li></ul>
-      <p class="tiny muted">${esc(t.note)}</p>
+      <p class="tiny muted">${esc(t.note)}</p>${aiMark('题目由 AI 辅助编写')}
       <button class="btn primary block" id="pStart">开始</button></div>`;
     document.getElementById('pStart').onclick = () => ask();
     function ask() {

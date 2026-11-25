@@ -322,6 +322,8 @@ def _pack_row(c, uid, pid):
         return None
     if __import__('quality_service').info(c, row)['status'] == 'disabled':
         return None
+    if row['origin'] == 'daily' and __import__('daily_service').retired(json.loads(row['content'])):
+        return None  # 今日热点 news, paused 2026-11-25: kept in the database, not shown
     return row
 
 
@@ -342,7 +344,8 @@ def _public_packs(c, level=None, with_hidden=False):
                 rows.append(({'id': row['id'], 'origin': row['origin'], 'created': row['created']}, p))
         _PACKS.update(key=key, at=time.time(), rows=rows)
     hidden = () if with_hidden else __import__('console_ops').hidden_packs(c)
-    return [rp for rp in _PACKS['rows'] if (not level or cefr(rp[1]) == level) and rp[0]['id'] not in hidden]
+    retired = (lambda p: False) if with_hidden else __import__('daily_service').retired  # 今日热点 news: paused, kept, not shown
+    return [rp for rp in _PACKS['rows'] if (not level or cefr(rp[1]) == level) and rp[0]['id'] not in hidden and not retired(rp[1])]
 
 
 _TOKENS = {}

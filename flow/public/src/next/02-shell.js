@@ -99,9 +99,12 @@
     const b = document.getElementById('dueBadge'); b.hidden = !due; b.textContent = due > 99 ? '99+' : due;
   }
   // The page drawn again with fresher data, without the loading skeleton or the entrance animation, and only when it
-  // would not take anything from the learner (a sheet open, typing in a field, another page by now).
+  // would not take anything from the learner (a sheet open, typing in a field, another page by now, a whole text being
+  // read or paused, a sound or a recording going: a redraw stops them — 语流 07's iPhone run, 2026-11-25: 播放全文 tapped
+  // right after opening an article, the fresher 今日 came in and the reading was gone, as if read to its end).
   function redrawQuietly(drawnFor) {
     if (location.hash !== drawnFor || !sheetEl.hidden || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName))) return;
+    if (LONG.r || audioBusy()) return;
     S.homeFresh = true; route(true, true);
   }
   function needLogin(reason) { openLogin(reason); return false; }

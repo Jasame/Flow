@@ -19,6 +19,14 @@ TOPICS=(
  ('travel','旅行与地方','travel, places, festivals or local customs around the world','daily-life'),
 )
 LEVELS=('A2','B1','B2','C1')
+# 今日热点 is paused (2026-11-25, the user's choice: 「改成不碰新闻的话题」, after 语流 23 pointed to the 互联网新闻信息服务
+# 管理规定 licence that providing news to the public needs). No news is searched for or rewritten any more, and the news
+# texts written before stay in the database (kept, not deleted) but are shown nowhere: retired() is what every list, the
+# material page, 今日 and the overnight voice leave out. The topic pieces that replace it (no news) carry kind 'topic'.
+PAUSED=True
+def retired(p):
+ """A 今日热点 news text from before the pause: kept in the database, never shown."""
+ return bool(p.get('daily_day')) and p.get('kind')!='topic'
 WORDS={'A2':'80–120','B1':'110–160','B2':'140–200','C1':'170–240'}
 def plan(day):
  """(level, topic) for a day: 今日热点 rotates through the topic pool and the four levels, C1 included."""
@@ -31,7 +39,7 @@ def status(c):
  r=c.execute('SELECT * FROM daily_runs WHERE day=?',(today(),)).fetchone()
  out=dict(r) if r else {'day':today(),'status':'waiting','attempts':0,'error':''}
  if out['status']=='running' and out['updated']<time.time()-600:out['status']='interrupted'
- out['enabled']=os.getenv('FLOW_AI_GROUNDING')=='1'
+ out['enabled']=os.getenv('FLOW_AI_GROUNDING')=='1' and not PAUSED;out['paused']=PAUSED
  out['latest']=[dict(r) for r in c.execute("SELECT day,pack FROM daily_runs WHERE status='complete' ORDER BY day DESC LIMIT 7")]
  return out
 
@@ -97,6 +105,7 @@ def reserve_call(c):
 def run(c):
  from lab_service import validate_pack,parse
  day=today()
+ if PAUSED:return {'status':'paused','day':day}
  if os.getenv('FLOW_AI_GROUNDING')!='1':return {'status':'disabled'}
  c.execute('BEGIN IMMEDIATE');r=c.execute('SELECT * FROM daily_runs WHERE day=?',(day,)).fetchone()
  if r and (r['status']=='complete' or (r['status']=='running' and r['updated']>time.time()-600) or r['attempts']>=2):c.rollback();return status(c)

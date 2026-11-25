@@ -81,7 +81,7 @@
     view.innerHTML = `<div><a class="link small" href="#/graph">← 知识图谱</a></div>
       <div class="node-head"><span class="kicker">${esc(n.topic)} · ${esc(n.level || '')}${n.focus ? ' · 你现在的重点' : ''}</span><h1 class="h1">${esc(n.title)}</h1>
         <div class="row"><span class="node-chip st st-${n.status}" id="nodeStatus">${esc(n.label)}</span>${n.practice.length ? `<button class="btn small" id="toPractice">做 ${n.practice.length} 题验证 ↓</button>` : ''}</div><div class="tiny muted">${stats}</div><div class="tiny muted" id="nodeReview">${esc(reviewText(n.review))}</div></div>
-      <div class="lesson section stack-s">
+      <div class="lesson section stack-s">${aiMark('讲解和练习题由 AI 辅助编写')}
         <p class="goal">${esc(pg ? pg.goal : n.lesson)}</p>
         ${pg ? `<ol class="steps-list">${pg.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : (n.example ? `<div class="text small">${esc(n.example)}</div>` : '')}
       </div>
