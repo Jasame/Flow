@@ -107,6 +107,7 @@ class PageTests(unittest.TestCase):
             self.assertIn(s, JS, s)
         order = [JS.index(s) for s in ("${short ? '' : lineCardHTML(h) + newsCardHTML(news)}", '${top}', '${weekCardSlot()}')]
         self.assertEqual(order, sorted(order))
+        self.assertIn('${ICON.speak}听一遍</button>${aiVoice()}', JS)  # the voice is synthesized: 「AI 朗读」 by the button (标识办法)
         for s in ('.line-card', '.lc-en', '.news-card', '.week-slot'):
             self.assertIn(s, CSS, s)
 

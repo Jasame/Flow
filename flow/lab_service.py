@@ -174,12 +174,13 @@ def run_job(c,uid,rid,kind,pack,skill,spec,invoke,convert,mark_replay=False):
  except Exception as exc:
   status=502
   error='AI 暂时无法完成这次任务，草稿还在，稍后再试一次。';refund=True
-  if isinstance(exc,__import__('vertex_auth').AIConfigurationError):status=503;error='AI 配置或依赖不完整，请管理员检查模型、接口地址与凭据；反复重试无法修复配置。'
+  learner='这项 AI 功能这会儿用不了，草稿还在，稍后再试一次。'  # what a learner reads when a service is refused or missing; the cause goes to the log
+  if isinstance(exc,__import__('vertex_auth').AIConfigurationError):status=503;error=learner;print('run_job: %s no AI service configured' % kind,file=__import__('sys').stderr,flush=True)
   elif isinstance(exc,ValueError):error='AI 这次的回答不完整，没有保存。请再试一次。';refund=False  # the model ran: it counts
   elif isinstance(exc,(TimeoutError,socket.timeout)):status=504;error='AI 响应超时，草稿还在，稍后再试一次。'
   elif isinstance(exc,urllib.error.HTTPError):
    if exc.code in (400,413):error='模型或网关不支持此请求，请检查模型配置与音频大小。'
-   elif exc.code in (401,403):error='AI 服务认证或访问权限异常，请联系管理员检查网关密钥、Google 权限和访问限制。'
+   elif exc.code in (401,403):error=learner;print('run_job: %s refused by the gateway (HTTP %d)' % (kind,exc.code),file=__import__('sys').stderr,flush=True)
    elif exc.code==429:status=429;error='AI 服务这会儿太忙，请稍后再试；草稿还在。'
    elif exc.code==503:status=503;error='AI 服务暂时繁忙，请稍后重试或先练习内置材料。'
   c.execute("UPDATE lab_jobs SET status='failed',error=?,updated=? WHERE user_id=? AND request_id=? AND lease=?",(error,time.time(),uid,rid,lease))

@@ -363,6 +363,7 @@ flow/tests/test_meaning_fixes.py
 flow/tests/test_media.py
 flow/tests/test_migration.py
 flow/tests/test_next.py
+flow/tests/test_no_gemini.py
 flow/tests/test_origin_install.py
 flow/tests/test_package.py
 flow/tests/test_pedagogy.py

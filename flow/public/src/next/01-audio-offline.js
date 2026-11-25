@@ -23,8 +23,8 @@
       this.browser(text, onend, onword);
     },
     // onfail: the sentence was not said (no voice, or iOS dropped it twice); without it, onend is called then, so whoever
-    // waits on the sentence goes on (a whole text pauses instead: LONG)
-    browser(text, onend, onword, onfail) {
+    // waits on the sentence goes on (a whole text pauses instead: LONG). onstart: the voice has begun this sentence.
+    browser(text, onend, onword, onfail, onstart) {
       LONG.other();
       if (!this.ok) { noSound('不能用电脑朗读的声音'); if (onfail) onfail(); return; }
       const t = ++this.token, busy = speechSynthesis.speaking || speechSynthesis.pending;
@@ -42,7 +42,7 @@
         const give = () => { clearTimeout(watch); if (t !== this.token) return; if (onfail) onfail(); else if (onend) onend(); };
         const again = () => { clearTimeout(watch); if (t !== this.token) return; if (++tries < 2) setTimeout(say, 250); else give(); };
         if (onword) u.onboundary = e => { if (t === this.token && e.name !== 'sentence') onword(e.charIndex); };
-        u.onstart = () => { started = true; clearTimeout(watch); };
+        u.onstart = () => { started = true; clearTimeout(watch); if (t === this.token && onstart) onstart(); };
         u.onend = () => { clearTimeout(watch); if (t !== this.token) return; if (started) { if (onend) onend(); } else again(); };
         u.onerror = e => { if (e && /interrupted|canceled/.test(e.error || '')) { clearTimeout(watch); return; } again(); };  // ours: stopped, or a new sentence
         // A browser with speechSynthesis but no voice to speak with (WeChat on Android) neither starts nor fails: after
@@ -52,7 +52,7 @@
           speechSynthesis.cancel(); if (!speechSynthesis.getVoices().length) this.ok = false;
           noSound('不能用电脑朗读的声音'); give();
         }, 2500);
-        speechSynthesis.speak(u);
+        try { speechSynthesis.speak(u); } catch (e) { again(); }  // refused outright: as a dropped sentence
       };
       if (busy) setTimeout(say, 60); else say();
     },
@@ -309,7 +309,9 @@
     owner: null, ACTIONS: ['play', 'pause', 'stop', 'previoustrack', 'nexttrack'],
     claim(owner, title, handlers) {
       this.owner = owner; const ms = navigator.mediaSession; if (!ms) return;
-      try { ms.metadata = window.MediaMetadata ? new MediaMetadata({ title, artist: '语流 Flow' }) : null; } catch (e) { /* ignore */ }
+      // 「AI 朗读」 on the lock screen, the notification shade and a desktop's media controls too (they draw from this, not
+      // the page; 《标识办法》): every voice 语流 plays is synthesized (Kokoro, CosyVoice). The same as the desktop app's #199
+      try { ms.metadata = window.MediaMetadata ? new MediaMetadata({ title, artist: '语流 Flow · AI 朗读' }) : null; } catch (e) { /* ignore */ }
       this.ACTIONS.forEach(k => { try { ms.setActionHandler(k, (handlers && handlers[k]) || null); } catch (e) { /* not supported */ } });
       this.state('playing');
     },
@@ -622,7 +624,7 @@
       if (typeof h === 'function') h = { stop: h };
       this.h = h; this.label = label; this.resumeFn = null;
       if (!this.el) { this.el = document.createElement('div'); this.el.className = 'mini-player'; this.el.setAttribute('role', 'region'); this.el.setAttribute('aria-label', '播放控制'); document.body.appendChild(this.el); }
-      this.el.innerHTML = `<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span><span class="lbl"></span>`
+      this.el.innerHTML = `<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>${aiVoice()}<span class="lbl"></span>`
         + (h.toggle ? `<button type="button" class="toggle"></button><button type="button" class="stop close" aria-label="关闭播放（记住读到哪里）">✕</button>`
           : `<button type="button" class="stop">${playIcon(true, 15)}<span>停止</span></button>`);
       this.el.querySelector('.lbl').textContent = label;
@@ -688,7 +690,7 @@
       const tok = r.tok;
       SV.have(o.texts, o).then(() => { if (this.r === r && r.tok === tok && r.state !== 'paused') this.go(); });
     },
-    label() { const r = this.r; return r.state === 'waiting' ? `第 ${r.i + 1} 句准备中…` : (r.label ? r.label(r.i) : `第 ${r.i + 1} / ${r.texts.length} 句`); },
+    label() { const r = this.r; return r.state === 'waiting' ? `准备第 ${r.i + 1} 句…` : (r.label ? r.label(r.i) : `第 ${r.i + 1} / ${r.texts.length} 句`); },
     emit() { const r = this.r; if (!r) return; MINI.update(this.label()); if (r.onState) r.onState(r.state, r.i, r.note); },
     claim() {  // the lock screen for a sentence-by-sentence reading (a recording names itself: NAR.name)
       const r = this.r; if (!r || r.nm) return;
@@ -741,8 +743,11 @@
         this.claim();
       } else {
         // the browser voice could not say it (none here, or iOS dropped it twice): the text waits there, paused, with why
-        const failed = () => { if (this.r !== r || r.tok !== tok) return; this.held(); r.note = '浏览器的声音没有读出这一句，点「继续」再试一次'; this.emit(); };
-        this.own(() => TTS.browser(text, next, c => { if (this.r === r && r.onWord) r.onWord(i, c); }, failed));
+        const failed = () => { clearTimeout(stall); if (this.r !== r || r.tok !== tok) return; this.held(); r.note = '浏览器的声音没有读出这一句，点「继续」再试一次'; this.emit(); };
+        // and if nothing at all comes back from it (never asked: something else spoke or stopped it in between; or no
+        // event of any kind, which an iPad did once offline: 语流 07, 2026-11-25), it is not left "playing" there either
+        const stall = setTimeout(failed, 4000);
+        this.own(() => TTS.browser(text, () => { clearTimeout(stall); next(); }, c => { if (this.r === r && r.onWord) r.onWord(i, c); }, failed, () => clearTimeout(stall)));
       }
     },
     // one sentence said: again (复读), or the next, after its pause. The pause is the one after the sentence just said

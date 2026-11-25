@@ -55,3 +55,12 @@
 .mini-player .close{background:transparent;color:var(--bg);padding:8px 12px;min-width:40px;justify-content:center;font-weight:600}
 #playRestart,#alongRestart{min-height:40px;padding:0 6px}
 @media (min-width:760px){.sv-wait{bottom:80px}}
+/* the mini player as wide as its content needs (width:max-content, in 70-input-devices.css with the rest of it; up to
+   the screen less the margins): at left:50% its shrink-to-fit width was capped at half the screen, so on a 390-px iPhone the label was cut to 「第 4 / 1…」 and 「暂停」 broke into one character
+   per line (语流 20's screenshot, 2026-11-25). The label gives way (ellipsis), the buttons never wrap */
+.mini-player .lbl{flex:1 1 auto;min-width:0}
+.mini-player .toggle,.mini-player .stop,.mini-player .resume{flex-shrink:0;white-space:nowrap}
+/* 「AI 朗读」 in the mini player (aiVoice, 《标识办法》); on a phone narrower than 420 px the sound bars give it their room
+   (暂停 / 继续 says the state already), so 「第 12 / 30 句」 stays whole at 360 px */
+.mini-player .ai-voice{flex-shrink:0}
+@media (max-width:419px){.mini-player .eq{display:none}}
