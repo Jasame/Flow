@@ -2909,6 +2909,18 @@ def review_side_run(pw):
               on.startswith('已开启：在这台手机上') and pg.evaluate('window.__off') == 1 and pg.query_selector('#rAppOn') is not None, on)
         check(dev, 'no script errors (Android app)', not errs, errs[:3])
         ctx.close()
+        # the iOS app on a narrow iPhone: 「已开启：在这台 iPhone 上…」 wraps before 关闭, which stays at the end of its line (语流 C1)
+        for w in (375, 320):
+            ctx = browser.new_context(viewport={'width': w, 'height': 667}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
+            ctx.add_init_script("window.FlowApp = { v: 1, platform: 'ios', has: k => k === 'notify', notify: { ask: () => Promise.resolve(true), sync: () => Promise.resolve({}), permission: () => Promise.resolve('granted'), off: () => Promise.resolve() } };")
+            pg = ctx.new_page()
+            pg.goto(BASE + '/#/vocab/plan', wait_until='load'); settle(pg); pg.wait_for_selector('#rAppOn', timeout=5000)
+            box = pg.evaluate("() => { const t = document.getElementById('rAppOn').getBoundingClientRect(), o = document.getElementById('rAppOff').getBoundingClientRect(); "
+                              "return { textTop: Math.round(t.top), textBottom: Math.round(t.bottom), textRight: Math.round(t.right), offTop: Math.round(o.top), offBottom: Math.round(o.bottom), offLeft: Math.round(o.left), vw: innerWidth, offRight: Math.round(o.right) }; }")
+            check(dev, f'iOS app at {w}px: 关闭 stays beside 「已开启：在这台 iPhone 上…」, not on a line of its own',
+                  box['offTop'] < box['textBottom'] and box['offBottom'] > box['textTop'] and box['offLeft'] >= box['textRight'] and box['offRight'] <= box['vw'], box)
+            ctx.close()
         # a phone: the swipe follows the side
         ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
