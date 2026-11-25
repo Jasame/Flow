@@ -155,7 +155,7 @@ class AudioRouteTests(unittest.TestCase):
             return gemini('plain')
         with patch.dict(os.environ, {'FLOW_AUDIO_TIMEOUT': '40'}), patch('urllib.request.urlopen', urlopen), ai_routes.task('chat'):
             cs.request_model([{'role': 'user', 'content': 'typed'}])
-        self.assertEqual(seen, [85])  # text keeps its own timeout
+        self.assertEqual(seen, [45])  # a typed turn goes to the text service, with the text timeout (FLOW_TEXT_TIMEOUT)
 
     def test_evals_ask_the_eval_name_and_omni_has_a_price(self):
         with patch.dict(os.environ, {'FLOW_AUDIO_ROUTES': 'flow-audio-omni-flash', 'FLOW_AI_LANE': 'eval'}):
