@@ -63,6 +63,34 @@ def record(c, uid, data):
     return {'ok': True, 'counted': True}, 200
 
 
+# 使用提示 (the user, 2026-11-25: 「第一次用时提示，记在账号上，换设备不再重复出；我的 → 帮助里能重看」): a line said the
+# first time a page is used, where an instruction used to stay for good (「点词查词…」 on 读), put away with 知道了 and not
+# said again on any phone or computer. 我的 → 帮助 → 更多 →「重新显示使用提示」 brings them all back. Kept in next_tours as
+# 'tip:<name>' rows (no counts: a tip is not a tour); due() and the stats look at TOURS only.
+TIPS = ('read', 'listen')
+
+
+def tips(c, uid):
+    """{seen: [name]}: the tips this account has put away. A guest: none (its browser keeps them)."""
+    if not uid:
+        return {'seen': []}
+    return {'seen': sorted(r['tour'][4:] for r in c.execute("SELECT tour FROM next_tours WHERE user_id=? AND tour LIKE 'tip:%'", (uid,)))}
+
+
+def tip(c, uid, data):
+    """{tip: name} puts one away; {reset: true} brings them all back."""
+    if data.get('reset') is True:
+        if uid:
+            c.execute("DELETE FROM next_tours WHERE user_id=? AND tour LIKE 'tip:%'", (uid,)); c.commit()
+        return {'seen': []}, 200
+    name = data.get('tip')
+    if name not in TIPS:
+        return {'error': '参数不对'}, 400
+    if uid:
+        c.execute('INSERT OR IGNORE INTO next_tours(user_id, tour, result, created) VALUES(?,?,?,?)', (uid, 'tip:' + name, 'seen', time.time())); c.commit()
+    return tips(c, uid), 200
+
+
 def stats(c):
     """The counts, for 后台: {tour: {done, skipped, skipped_at: {step: n}}}."""
     out = {t: {'done': 0, 'skipped': 0, 'skipped_at': {}} for t in TOURS}

@@ -162,6 +162,7 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             'nowords': ('B1', 'work', ['work']),  # settings done, no words and no word book yet: the word page's first look (review_side_run)
             'screen': ('B1', 'work', ['work']),  # 复习 and 测词汇量 fill one phone screen (one_screen_run): as 'side'
             'zones': ('B1', 'work', ['work']),  # 点卡片作答 (review_side_run): as 'side'
+            'modes': ('B1', 'work', ['work']),  # 复习卡 简洁 / 详细 (review_side_run): borrow to review, lend new, no word book
             'sprint': ('B1', 'exam', ['campus']),  # 考试冲刺: 四级 in 19 days, four practice sets done (sprint_run; the guide's exam pictures)
             'home-app': ('B1', 'work', ['work', 'science']),  # 主屏 App (home_app_run): the iPhone home-screen app
             'fresh': ('', '', []), 'fresh2': ('', '', []),  # 选方向和目标: accounts with no settings yet (start_run)
@@ -263,6 +264,13 @@ with app.db() as c:
                 c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,rank,stability,difficulty,last,reps) "
                           "VALUES(?,?,?,?,'','word',?,?,'review','book',?,1,5,?,1)", (uid, d[w]['word'], w, d[w]['meaning'][:300], now - 20 * 86400, now - 3600 - k, rank, now - 2 * 86400))
             c.execute("INSERT INTO next_reviews(user_id,card,rating,created) VALUES(?,0,'good',?)", (uid, now - 3 * 86400))  # reviewed before the move
+        if name == 'modes':  # borrow due for review (it is in a 词汇辨析 group), lend new; no word book, so nothing else comes
+            c.execute('DELETE FROM next_cards WHERE user_id=?', (uid,)); c.execute('DELETE FROM next_vocab_plans WHERE user_id=?', (uid,))
+            now, d = time.time(), nx.dictionary()
+            c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,rank,stability,difficulty,last,reps) "
+                      "VALUES(?,?,?,?,'','word',?,?,'review','book',?,1,5,?,2)", (uid, 'borrow', 'borrow', d['borrow']['meaning'][:300], now - 20 * 86400, now - 3600, d['borrow']['rank'], now - 3 * 86400))
+            c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,rank) VALUES(?,?,?,?,'','word',?,?,'new','book',?)",
+                      (uid, 'lend', 'lend', d['lend']['meaning'][:300], now - 60, now - 60, d['lend']['rank']))
         if name == 'nowords':  # a new account's word page: no cards, no word book
             c.execute('DELETE FROM next_cards WHERE user_id=?', (uid,)); c.execute('DELETE FROM next_vocab_plans WHERE user_id=?', (uid,))
         if name == 'pile':  # 60 word reviews due, more than 3 x the 10 new words a day: no new words today (ux audit 1.1, 11)
@@ -287,7 +295,7 @@ with app.db() as c:
         c.execute("INSERT INTO next_tours(user_id, tour, result, created) VALUES(?,?,'pending',?)", (out[who]['id'], tour, time.time()))
     # 班级试用: ui-teacher's class with 5 members who studied and got grammar points wrong this week (class_run)
     now = time.time()
-    cid = c.execute("INSERT INTO classes(name, code, teacher, by, created, updated) VALUES('高一（3）班', 'UICLS2', ?, 'ui', ?, ?)", (out['teacher']['id'], now, now)).lastrowid
+    cid = c.execute("INSERT INTO classes(name, code, teacher, by, created, updated) VALUES('大学英语（2）班', 'UICLS2', ?, 'ui', ?, ?)", (out['teacher']['id'], now, now)).lastrowid
     nodes = [r[0] for r in c.execute('SELECT id FROM subskills ORDER BY rowid LIMIT 3')]
     for k in range(5):
         c.execute('INSERT INTO users(username,password) VALUES(?,?)', (f'ui-member-{k}', 'ui-no-login:' + secrets.token_hex(8)))
@@ -333,7 +341,7 @@ class ConsolePage(flow_admin.AdminHandler):
 
 console = ThreadingHTTPServer(('127.0.0.1', 0), ConsolePage)
 threading.Thread(target=console.serve_forever, daemon=True).start()
-(STATE / 'sessions.json').write_text(json.dumps({'base': f'http://127.0.0.1:{PORT}', 'pid': PID, 'learners': out, 'class': {'id': cid, 'code': 'UICLS2', 'name': '高一（3）班'},
+(STATE / 'sessions.json').write_text(json.dumps({'base': f'http://127.0.0.1:{PORT}', 'pid': PID, 'learners': out, 'class': {'id': cid, 'code': 'UICLS2', 'name': '大学英语（2）班'},
                                                  'console': f'http://127.0.0.1:{console.server_address[1]}/flow/', 'outbox': os.path.join(tmp, 'outbox')}))
 
 

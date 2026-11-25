@@ -171,6 +171,62 @@
     document.getElementById('stoDel').onclick = deleteAccountSheet;
     document.getElementById('stoOut').onclick = async () => { try { await api('/api/logout', {}); } catch (x) { /* signed out already */ } snapClear(); S.user = null; S.csrf = ''; await refreshHome(); route(); };
   }
+  // 安卓 App 1.0.4 and later (语流 C2, #332; docs/native-bridge.md §10, for the Chinese app stores): the app asks the
+  // 用户协议 and 隐私和数据 itself on first opening. 我的 shows a 「隐私」 group only where the app has 'privacy':
+  // 撤回同意 (the app explains, clears this phone and asks again: four steps at most) and 系统权限 (the microphone
+  // and notifications, as the phone has them, each opening its page in the phone's settings).
+  const appPrivacy = () => { try { return !!(window.FlowApp && FlowApp.has && FlowApp.has('privacy')); } catch (e) { return false; } };
+  const PERM = { granted: '已允许', denied: '已拒绝', undetermined: '还没问过' };
+  function withdrawInApp() { FlowApp.call('privacy.withdraw').catch(() => toast('打不开撤回同意，把语流 App 更新到最新版再试')); }
+  function permissionsSheet() {
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">系统权限</h2>
+      <p class="small">语流只用这两项，都是第一次用到时才问。点一下，打开手机设置里对应的那一页，随时可以改。</p>
+      <div class="glist">${grow('permMic', '麦克风', '…', 'permMicV')}${grow('permNotify', '通知', '…', 'permNotifyV')}</div>
+      <p class="tiny muted">麦克风：只在跟读、口语对话和发音练习录音时用；录音只在批改的那一次交给 AI，不保存。通知：只在你打开「到点用 App 通知提醒」以后，到点提醒复习单词。</p>
+      <button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      const fill = () => FlowApp.call('privacy.permissions').then(p => {
+        [['mic', 'permMicV'], ['notify', 'permNotifyV']].forEach(([k, id]) => { const v = card.querySelector('#' + id); if (v) v.textContent = PERM[p && p[k]] || '—'; });
+      }).catch(() => {});
+      fill();
+      card.querySelector('#permMic').onclick = () => FlowApp.call('privacy.settings', { what: 'mic' }).catch(() => {});
+      card.querySelector('#permNotify').onclick = () => FlowApp.call('privacy.settings', { what: 'notify' }).catch(() => {});
+      // back from the phone's settings: the state as it is now (nothing to do once the sheet is closed)
+      const again = () => { if (!card.isConnected) document.removeEventListener('visibilitychange', again); else if (document.visibilityState === 'visible') fill(); };
+      document.addEventListener('visibilitychange', again);
+    });
+  }
+  // 「APP 备案号」 under 帮助, once the app has one (privacy.state().beian; empty until the filing is done)
+  function fillBeian() {
+    const el = document.getElementById('meBeian');
+    if (!el || !appPrivacy()) return;
+    FlowApp.call('privacy.state').then(st => {
+      const no = st && String(st.beian || '').trim();
+      if (!no || !el.isConnected) return;
+      el.innerHTML = `APP 备案号：<a class="link" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">${esc(no)}</a>`; el.hidden = false;
+    }).catch(() => {});
+  }
+  // 我的 → 设置 → 按我的学习记录推荐 (next_service.personal; 个保法第二十四条, 算法推荐规定第十七条: an option not aimed
+  // at the person, that really switches it off). On by default; off, 今日 recommends by the chosen level only.
+  const personalizeLabel = () => (S.home && S.home.profile && S.home.profile.personalize === false ? '已关闭' : '已打开');
+  function personalizeSheet() {
+    const p = (S.home && S.home.profile) || {}, on = p.personalize !== false;
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">按我的学习记录推荐</h2>
+      <p class="small">打开时，语流按你的学习记录给你挑内容：今日的「今天这篇」和「也可以读」（看你学过哪些、哪些语法要补、收藏和在背的词）、今日好句、今日计划里练哪一项，以及级别建议和周报里的建议。</p>
+      <p class="small">关掉以后马上生效，只按你自己选的水平推荐：精选的在前，新的在前，不再看你的学习记录。复习单词和错题、复听和「接着学」还是按你学过的安排，那是在复习你自己的内容。</p>
+      <div class="chips" role="radiogroup" aria-label="按我的学习记录推荐">${[[true, '打开'], [false, '关闭']].map(([v, l]) => `<button class="chip" type="button" role="radio" data-pers="${v}" aria-checked="${on === v}">${l}</button>`).join('')}</div>
+      <a class="link small" href="#/guide/personalize" data-doc="personalize">用到了哪些记录（隐私说明）</a>
+      <button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      card.querySelectorAll('[data-pers]').forEach(b => b.onclick = async () => {
+        try {
+          const r = await api('/api/next/personalize', { on: b.dataset.pers === 'true' });
+          if (S.home && S.home.profile) S.home.profile.personalize = r.personalize;
+          S.homeFresh = false;  // 今日 is asked again, ranked the new way
+          card.querySelectorAll('[data-pers]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
+          const v = document.getElementById('mePersV'); if (v) v.textContent = personalizeLabel();  // the chips show it: no toast over them (B8)
+        } catch (e) { toast(e.message); }
+      });
+    });
+  }
   // 我的 → 账号 → 数据存放: what was agreed, and 撤回同意 (the account is paused at once).
   function storageSheet() {
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">数据存放</h2>

@@ -37,6 +37,7 @@
       });
     }
     async function listen() {
+      MINI.undock();  // 精听 docks it again below; 跟读 and 听写 have their own buttons
       const again = parts()[3] === 'again' && !!S.user;
       if (again && !st.againSet) { st.againSet = true; st.mode = 'listen'; st.blind = true; }
       if (st.mode === 'shadow') return shadowMode();
@@ -44,41 +45,41 @@
       const ls = lines();
       const nm = await narration(ls);
       const voices = (m.audio && m.audio.voices) || [];
-      // One line says how it will play (语速 · 复读 · 停顿); the choices open under it, so the first sentences stay on the
-      // first screen of a phone. Open or closed is remembered.
-      const rateL = r => `${r}×`, repL = n => (n === 0 ? '单句循环' : `每句 ${n} 遍`), gapL = n => (n === 0 ? '句后不停' : n === -1 ? '留时间跟说' : `句后停 ${n} 秒`);
-      const psum = () => `${rateL(TTS.rate)} · ${repL(LOOP.rep)} · ${gapL(LOOP.gap)}`;
-      pane.innerHTML = `${again ? relistenHTML() : ''}${modeTabs()}<div class="player">
-          <button class="btn primary" id="playAll">${ICON.play.replace('<svg', '<svg width="18" height="18" fill="currentColor"')}<span>播放全文</span></button>
-          <button class="icon-btn ${st.blind ? 'on' : ''}" id="blind" aria-pressed="${st.blind}" title="盲听：先只听不看" aria-label="盲听">${ICON.eye}</button>
-          <button class="link tiny" id="playRestart" type="button" hidden>从头开始</button>
-        </div>
-        <details class="playset" ${load('flow-next-playset') ? 'open' : ''}><summary data-tap="listen-settings"><span class="tiny muted" id="psum">${psum()}</span><span class="tiny link">播放设置</span></summary>
-          <div class="loopbar"><div class="lg" role="group" aria-label="语速"><span class="tiny muted">语速</span>${[0.75, 1, 1.25].map(r => `<button class="chip small" data-rate="${r}" aria-pressed="${TTS.rate === r}">${r}×</button>`).join('')}</div>
-            <div class="lg" role="group" aria-label="复读：每句几遍"><span class="tiny muted">每句</span>${[[1, '1 遍'], [3, '3 遍'], [5, '5 遍'], [0, '循环']].map(([n, l]) => `<button class="chip small" data-rep="${n}" aria-pressed="${LOOP.rep === n}">${l}</button>`).join('')}</div>
-            <div class="lg" role="group" aria-label="复读：句后停顿"><span class="tiny muted">句后</span>${[[0, '不停'], [2, '停 2 秒'], [-1, '留时间跟说']].map(([n, l]) => `<button class="chip small" data-gap="${n}" aria-pressed="${LOOP.gap === n}">${l}</button>`).join('')}</div>
-            ${voices.length ? `<div class="lg"><span class="tiny muted">声音</span>${voiceChips(voices)}</div>` : ''}</div></details>
-        ${prereadHTML()}
+      // The user's pick (语流 B9's design, 2026-11-25): 播放全文, 「AI 合成」 and the speed sit in the bar above the tabs
+      // (MINI, docked), where the thumb is, and the text starts higher on the first screen; 播放设置 opens from 「1×」 as a
+      // sheet; 「从头开始」 and 👁 are on the line above the sentences, playing or not; the how-to is a first-use tip (08-tips.js).
+      const rateL = r => `${r}×`;
+      // 「AI 合成」 is said once, in the bar by the play button (the user, 2026-11-25: no second line); the browser's own
+      // voice is not AI, and only this line says so
+      const lead = nm || SV.on() ? '' : '这篇还没有录音，先用浏览器朗读。';
+      const hint = `点 👁 只听不看，点句子前的喇叭单句反复听${TOUCH ? '' : '；空格键播放 / 暂停'}。`;
+      pane.innerHTML = `${again ? relistenHTML() : ''}${modeTabs()}${prereadHTML()}
         <p class="tiny muted sv-prep" id="lsPrep" role="status" hidden></p>
         ${!nm && !TTS.can() ? '<p class="err">这个浏览器不支持朗读，可以直接去「读」。</p>' : ''}
-        <p class="muted tiny listen-tip">${/* 「AI 合成」 only for 语流's own voices: a recording (Kokoro) or AI 朗读 (CosyVoice); the browser's voice is the device's own (B3) */ nm ? aiVoiceNote('朗读由 AI 合成。', 'span', 'in') : SV.on() ? aiVoiceNote('这篇还没有录音，用 AI 朗读（自然人声）一句一句读。', 'span', 'in') : '这篇还没有录音，先用浏览器朗读。'}点 👁 只听不看，点句子前的喇叭单句反复听${TOUCH ? '' : '；空格键播放 / 停止'}。</p>
+        <div class="ls-head"><p class="muted tiny listen-tip">${lead}</p>
+          <span class="ls-tools"><button class="link tiny" id="playRestart" type="button" hidden>从头开始</button>
+          <button class="icon-btn ${st.blind ? 'on' : ''}" id="blind" type="button" aria-pressed="${st.blind}" title="盲听：先只听不看" aria-label="盲听">${ICON.eye}</button></span></div>
+        ${tipSlot('listen', hint)}
         <div class="lines">${ls.map((s, i) => `<div class="line" data-i="${i}"><button class="icon-btn" data-say="${i}" aria-label="播放第 ${i + 1} 句">${ICON.speak}</button><div class="txt ${st.blind ? 'blind' : ''}">${wordSpans(s, () => 'kw')}</div></div>`).join('')}</div>
         <div class="section row between"><span class="muted small">共 ${ls.length} 句${nm ? ' · ' + Math.round(nm.duration / 60 * 10) / 10 + ' 分钟' : ''}</span><button class="btn" id="toRead">听完了，去读 →</button></div>`;
       let shown = -1;
       const lineEl = i => pane.querySelector(`.line[data-i="${i}"]`);
       const setNow = i => pane.querySelectorAll('.line').forEach(el => { const on = Number(el.dataset.i) === i; el.classList.toggle('now', on); if (!on) el.querySelectorAll('.cur').forEach(x => x.classList.remove('cur')); });
       const light = (el, c) => { if (!el) return; if (c == null) el.querySelectorAll('.cur').forEach(x => x.classList.remove('cur')); else lightWord(el, c); };
-      // 播放全文 (LONG, 01-audio-offline.js): 暂停 / 继续, and where it was left kept on this phone: 「从第 N 句继续」
+      // 播放全文 (LONG, 01-audio-offline.js): 暂停 / 继续, and where it was left kept on this phone: 「从第 N 句继续」.
+      // #playAll is the bar's button: its start label is painted here, its 暂停 / 继续 by the player (MINI.paint).
       const PKEY = 'listen:' + id;
       const setBtn = () => {
-        const b = pane.querySelector('#playAll'), rs = pane.querySelector('#playRestart'); if (!b) return;
+        const b = document.getElementById('playAll'), rs = pane.querySelector('#playRestart'), rb = MINI.el && MINI.el.querySelector('.speed-set');
         const r = LONG.of(PKEY), at = r ? r.i : PROG.at(PKEY, ls.length);
-        b.innerHTML = r && r.state !== 'paused' ? `${pauseIcon()}<span>暂停</span>` : `${playIcon(false)}<span>${r ? '继续' : at ? `从第 ${at + 1} 句继续` : '播放全文'}</span>`;
-        b.setAttribute('aria-pressed', String(!!r && r.state !== 'paused'));
         if (rs) rs.hidden = !at;
+        if (rb) rb.textContent = rateL(TTS.rate);
+        if (!b || MINI.h) return;
+        b.innerHTML = `${playIcon(false, 15)}<span>${at ? `从第 ${at + 1} 句继续` : '播放全文'}</span>`;
+        b.setAttribute('aria-pressed', 'false');
       };
       const prepLine = note => { const p = pane.querySelector('#lsPrep'); if (p) { p.textContent = note || ''; p.hidden = !note; } };
-      const stopAll = () => { loopTok++; clearTimeout(loopTimer); LONG.stop(); TTS.stop(); NAR.stop(); shown = -1; setNow(-1); setBtn(); MINI.hide(); };
+      const stopAll = () => { loopTok++; clearTimeout(loopTimer); LONG.stop(); TTS.stop(); NAR.stop(); shown = -1; setNow(-1); MINI.hide(); setBtn(); };
       // 复读: a sentence said LOOP.rep times (0: until stopped), with a pause after it: none, 2 s, or as long as the
       // sentence itself and a little more, to say it back.
       let loopTok = 0, loopTimer = 0;
@@ -98,8 +99,15 @@
         if (nm) { NAR.play(nm.sentences[i].s, nm.sentences[i].e, t => { const [si, wc] = NAR.locate(t); if (si === i) lightAt(lineEl(i), wc); }, then); return; }
         const el = lineEl(i); TTS.say(ls[i], then, c => lightWord(el, c), { pack: id, title: '语流 · ' + m.title });
       };
-      const readAll = from => LONG.start({
-        key: PKEY, texts: ls, nm, pack: id, title: m.title, loop: looping(), rep: () => LOOP.rep, gap: gapMs, label: i => `第 ${i + 1} / ${ls.length} 句`,
+      // 语速 and 复读 set from outside (the iOS app's lock screen, NATIVE.takeKnobs): kept; the bar's 1× and an open 播放设置 follow
+      const knobsShown = () => {
+        setBtn();
+        document.querySelectorAll('#sheet [data-rate]').forEach(x => x.setAttribute('aria-pressed', String(Number(x.dataset.rate) === TTS.rate)));
+        document.querySelectorAll('#sheet [data-rep]').forEach(x => x.setAttribute('aria-pressed', String(Number(x.dataset.rep) === LOOP.rep)));
+      };
+      const readAll = (from, auto) => LONG.start({
+        key: PKEY, texts: ls, nm, pack: id, title: m.title, loop: looping(), rep: () => LOOP.rep, gap: gapMs, label: i => `第 ${i + 1} / ${ls.length} 句`, auto: !!auto,
+        setRep: n => { LOOP.rep = n; save('flow-next-loop', LOOP); }, onKnobs: knobsShown,
         onState: (state, i, note) => {
           setBtn(); prepLine(note);
           if (state === 'idle') { shown = -1; setNow(-1); return; }
@@ -108,36 +116,48 @@
         onWord: (i, c) => light(lineEl(i), c),
         onDone: () => markStep('listen'),
       }, from);
-      pane.querySelector('#playAll').onclick = () => {
+      const playAll = () => {
         if (LONG.of(PKEY)) { LONG.toggle(); return; }
         loopTok++; clearTimeout(loopTimer);  // a sentence repeating
         readAll(PROG.at(PKEY, ls.length));
       };
+      // 播放设置 from 「1×」: 语速, 复读 (times, the pause after), 声音; it takes effect at once, also on what is playing
+      const playsetHTML = () => `<div class="stack"><h2 class="h2" id="sheetTitle">播放设置</h2><div class="loopbar">
+          <div class="lg" role="group" aria-label="语速"><span class="tiny muted">语速</span>${[0.75, 1, 1.25].map(r => `<button class="chip small" type="button" data-rate="${r}" aria-pressed="${TTS.rate === r}">${r}×</button>`).join('')}</div>
+          <div class="lg" role="group" aria-label="复读：每句几遍"><span class="tiny muted">每句</span>${[[1, '1 遍'], [3, '3 遍'], [5, '5 遍'], [0, '循环']].map(([n, l]) => `<button class="chip small" type="button" data-rep="${n}" aria-pressed="${LOOP.rep === n}">${l}</button>`).join('')}</div>
+          <div class="lg" role="group" aria-label="复读：句后停顿"><span class="tiny muted">句后</span>${[[0, '不停'], [2, '停 2 秒'], [-1, '留时间跟说']].map(([n, l]) => `<button class="chip small" type="button" data-gap="${n}" aria-pressed="${LOOP.gap === n}">${l}</button>`).join('')}</div>
+          ${voices.length ? `<div class="lg"><span class="tiny muted">声音</span>${voiceChips(voices)}</div>` : ''}</div>
+        <button class="btn block" type="button" id="psDone" data-close>好</button></div>`;
+      const openPlayset = () => openSheet(playsetHTML(), card => {
+        card.querySelectorAll('[data-rep], [data-gap]').forEach(b => b.onclick = () => {
+          const k = 'rep' in b.dataset ? 'rep' : 'gap'; LOOP[k] = Number(b.dataset[k]); save('flow-next-loop', LOOP);
+          NATIVE.retune();  // the app playing it gets the new 复读 at once
+          card.querySelectorAll(`[data-${k}]`).forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+        });
+        card.querySelectorAll('[data-rate]').forEach(b => b.onclick = () => {
+          TTS.rate = Number(b.dataset.rate); save('flow-next-rate', TTS.rate); NAR.audio.playbackRate = TTS.rate; NATIVE.retune();
+          card.querySelectorAll('[data-rate]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); setBtn();
+        });
+        card.querySelectorAll('[data-voice]').forEach(b => b.onclick = async () => { if (b.disabled) return; closeSheet(); stopAll(); await setVoice(b.dataset.voice); listen(); toast('已切换为' + VOICE_LABELS[b.dataset.voice]); });
+      });
+      // attach: the app plays this text (语流's iOS app, loaded again): the bar becomes its player (NATIVE.adopt)
+      MINI.dock({ key: PKEY, ai: () => !!nm || SV.on(), paint: setBtn, play: playAll, rate: openPlayset, attach: () => readAll(PROG.at(PKEY, ls.length), true) });
       pane.querySelector('#playRestart').onclick = () => { LONG.stop(); PROG.clear(PKEY); readAll(0); };
       setBtn();
       NATIVE.follow(PKEY, setBtn);  // in the app: the button says where the app got to (it may have played on, or still plays)
       pane.querySelectorAll('[data-say]').forEach(b => b.onclick = () => {
         const i = Number(b.dataset.say); stopAll(); setNow(i);
-        if (looping()) MINI.show(`复读第 ${i + 1} 句`, stopAll);  // a stop button on screen while it repeats
+        if (looping()) MINI.show(`复读第 ${i + 1} 句`, { stop: stopAll, ai: !!nm || SV.on() });  // a stop button on screen while it repeats
         sayRepeated(i, () => { setNow(-1); MINI.hide(); });
       });
-      pane.querySelectorAll('[data-rep], [data-gap]').forEach(b => b.onclick = () => {
-        const k = 'rep' in b.dataset ? 'rep' : 'gap'; LOOP[k] = Number(b.dataset[k]); save('flow-next-loop', LOOP);
-        NATIVE.retune();  // the app playing it gets the new 复读 at once
-        pane.querySelectorAll(`[data-${k}]`).forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-        pane.querySelector('#psum').textContent = psum();
-      });
-      pane.querySelector('.playset').ontoggle = e => save('flow-next-playset', e.currentTarget.open);
       pane.querySelectorAll('.line .txt').forEach((t, i) => t.onclick = e => { if (e.target.dataset.w && !st.blind) lookupSheet(e.target.dataset.w, ls[i], id); });
-      pane.querySelectorAll('[data-rate]').forEach(b => b.onclick = () => { TTS.rate = Number(b.dataset.rate); save('flow-next-rate', TTS.rate); NAR.audio.playbackRate = TTS.rate; NATIVE.retune(); pane.querySelectorAll('[data-rate]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); pane.querySelector('#psum').textContent = psum(); });
-      pane.querySelectorAll('[data-voice]').forEach(b => b.onclick = async () => { if (b.disabled) return; stopAll(); await setVoice(b.dataset.voice); listen(); toast('已切换为' + VOICE_LABELS[b.dataset.voice]); });
       pane.querySelector('#blind').onclick = e => { st.blind = !st.blind; toast(st.blind ? '盲听：只听不看，再点一次显示原文' : '已显示原文'); e.currentTarget.classList.toggle('on', st.blind); e.currentTarget.setAttribute('aria-pressed', String(st.blind)); pane.querySelectorAll('.txt').forEach(t => t.classList.toggle('blind', st.blind)); };
       pane.querySelector('#toRead').onclick = () => { stopAll(); markStep('listen'); go('read'); };
       if (again) bindRelisten();
       bindListenHead(stopAll);
       document.onkeydown = e => {
         if (isTyping(e) || !sheetEl.hidden || e.metaKey || e.ctrlKey || e.altKey) return;
-        const b = pane.querySelector('#playAll'); if (b && (e.key === ' ' || e.key === 'k')) { e.preventDefault(); b.click(); }
+        const b = document.getElementById('playAll'); if (b && (e.key === ' ' || e.key === 'k')) { e.preventDefault(); b.click(); }
       };
     }
 

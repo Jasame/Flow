@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.widgetkit-extension</string>
+	</dict>
+	<!-- the App Group with the app's numbers, and the app's own link scheme (Common/TodayCard.swift) -->
+	<key>FlowAppGroup</key>
+	<string>$(FLOW_APP_GROUP)</string>
+	<key>FlowURLScheme</key>
+	<string>$(FLOW_URL_SCHEME)</string>
+</dict>
+</plist>
