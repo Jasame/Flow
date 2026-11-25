@@ -54,7 +54,9 @@ class ConsentUi(private val a: Activity) {
 
     private suspend fun question(why: String?, first: Boolean): Boolean {
         val d = CompletableDeferred<Boolean>()
-        val body = a.getString(R.string.consent_body) + a.getString(if (first) R.string.consent_tail_first else R.string.consent_tail_basic)
+        val lists = if (Consent.hasLists(Consent.docs(a).html["privacy"])) "\n" + a.getString(R.string.consent_lists) else ""
+        val body = a.getString(R.string.consent_body) + lists + "\n\n" + a.getString(R.string.consent_close) +
+            a.getString(if (first) R.string.consent_tail_first else R.string.consent_tail_basic)
         val text = TextView(a).apply {
             text = linked(if (why != null) why + "\n\n" + body else body)
             textSize = 15f
@@ -93,15 +95,21 @@ class ConsentUi(private val a: Activity) {
         return d.await()
     }
 
-    /** 《用户协议》 and 《隐私和数据》 open their text over the question, as the site's ticks do (B6 #290). */
+    /**
+     * 《用户协议》 and 《隐私和数据》 open their text over the question, as the site's ticks do (B6 #290); the two lists open
+     * 《隐私和数据》 at their part.
+     */
     private fun linked(s: String): CharSequence {
         val b = SpannableStringBuilder(s)
         val color = Accent.color(a)
-        for ((title, id) in listOf("《用户协议》" to "terms", "《隐私和数据》" to "privacy")) {
+        val targets = listOf("《用户协议》" to ("terms" to null), "《隐私和数据》" to ("privacy" to null)) +
+            Consent.LISTS.map { (title, part) -> title to ("privacy" to part) }
+        for ((title, target) in targets) {
+            val (id, part) = target
             var i = s.indexOf(title)
             while (i >= 0) {
                 b.setSpan(object : ClickableSpan() {
-                    override fun onClick(v: View) = showDoc(id)
+                    override fun onClick(v: View) = showDoc(id, part)
                     override fun updateDrawState(ds: TextPaint) { ds.color = color; ds.isUnderlineText = false }
                 }, i, i + title.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 i = s.indexOf(title, i + title.length)

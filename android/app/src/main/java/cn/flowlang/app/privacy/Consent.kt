@@ -35,6 +35,15 @@ object Consent {
     const val SIGN_IN_ANSWER =
         """{"error":"要登录或注册，请先在弹出的窗口里同意《用户协议》和《隐私和数据》，然后再点一次。","code":"app-consent"}"""
 
+    /**
+     * The two lists inside 《隐私和数据》 (B6 #342: its sections {#info-list} and {#sharing-list}), by the names the question
+     * uses. The question names them only when this build's chapter has both (hasLists), so a build made before they were
+     * written never points at a part that is not there.
+     */
+    val LISTS = linkedMapOf("《个人信息收集清单》" to "g-info-list", "《第三方信息共享清单》" to "g-sharing-list")
+
+    fun hasLists(privacyHtml: String?): Boolean = privacyHtml != null && LISTS.values.all { privacyHtml.contains("id=\"$it\"") }
+
     /** The two texts as this build has them (assets legal/legal.json, made by tools/legal_docs.py). */
     class Docs(val version: String, val titles: Map<String, String>, val html: Map<String, String>)
 

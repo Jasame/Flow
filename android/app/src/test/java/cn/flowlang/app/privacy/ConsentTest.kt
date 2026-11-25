@@ -62,6 +62,16 @@ class ConsentTest {
         assertEquals("<p>b</p>", d.html["privacy"])
     }
 
+    /** The question names the two lists only when this build's 《隐私和数据》 has both parts (B6 #342). */
+    @Test
+    fun theListsAreNamedOnlyWhenTheChapterHasThem() {
+        assertTrue(Consent.hasLists("""<h3 id="g-info-list">个人信息收集清单</h3><p>…</p><h3 id="g-sharing-list">第三方信息共享清单</h3>"""))
+        assertFalse(Consent.hasLists("""<h3 id="g-info-list">个人信息收集清单</h3>"""))
+        assertFalse(Consent.hasLists("<p>没有清单</p>"))
+        assertFalse(Consent.hasLists(null))
+        assertEquals(listOf("g-info-list", "g-sharing-list"), Consent.LISTS.values.toList())
+    }
+
     @Test
     fun aBrokenFileIsNotTakenForTexts() {
         assertNull(Consent.parse("{}"))
