@@ -27,6 +27,31 @@ FILES = {'tools/flow-pull.sh': b'#!/bin/bash\nF=${FLOW_DIR:-/www/wwwroot/flow}\n
 # the 内测版's public key as A2 made it (public, 2026-11-25): the form of a line in allowed_signers
 BETA_LINE = ('flow-beta-release namespaces="flow-beta-release" ssh-ed25519 '
              'AAAAC3NzaC1lZDI1NTE5AAAAIPJ76H+6FPgRD5NObSUpAJNFO1JKO4jdZU7Sxlf2UhxZ flow-beta-release\n')
+# 语流's: the owner's public key (public, 2026-11-25; its private half stays in the Mac's keychain)
+PROD_LINE = ('flow-release namespaces="flow-release" ssh-ed25519 '
+             'AAAAC3NzaC1lZDI1NTE5AAAAIDhlEVzFB9+brVIxMYsj8P5AzLQ+mDZNWxlsC05Mn0x0 flow-release\n')
+# b65, the first request CI signed (tag b65 on release-beta, f24f8ba, 2026-11-25): REQUEST, REQUEST.sig and TOOLS as
+# jsDelivr serves them (public). Its build commit's tools are not in this checkout, so it is checked up to fetching them.
+B65 = {
+    'REQUEST': (b'3859953796a7312f113a4986ceb0902d8ed22274 bdfdf62fef5babcb5934d701f1ab58349b16b1ee583b4dce581893e693eb4c1d e2e light ref=build-3efd0418c749 tag=b65 tools=6cabec437d5331a86b772d0870d9963fd1fd12348cff64715122415ab19d1c77\n'
+        b'# b65 main: Merge pull request #243 from Jasame/rule-fork-workflows = build of 3efd0418c749\n'
+        b'# Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.\n'),
+    'REQUEST.sig': (b'-----BEGIN SSH SIGNATURE-----\n'
+        b'U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg8nvof7oU+BEPk05tJSkAk0U7Uk\n'
+        b'o7iN1lTtLGV/ZSHFkAAAARZmxvdy1iZXRhLXJlbGVhc2UAAAAAAAAABnNoYTUxMgAAAFMA\n'
+        b'AAALc3NoLWVkMjU1MTkAAABAFd5E2fBQmU31ehmRkZ56B16BYYhRZ4Z17KRle1ct94nt5s\n'
+        b'7MrAssln1eTJuTpLDxisDABxzXF8p2Cqax3fpBCQ==\n'
+        b'-----END SSH SIGNATURE-----\n'),
+    'TOOLS': (b'3nznG/5giQv4QVw7RcxAjEThW8B3Gc3Ncws0CABuBVA=  tools/flow-autodeploy.py\n'
+        b'U6XRqpnxw9vbWuP/X1SMtXYkl8Y9WL2H7GCSdEiVfM0=  tools/flow-pull-rollback.sh\n'
+        b'wg6It15K5n24dX7XroWOCEzLqna1wJqcAEmy3PbUgnk=  tools/flow-pull.sh\n'
+        b'YfX9xU95XF6Q1nu3F2hHbcemXeR/v9TQ7M6bRTjH59A=  tools/qa-audio/dialog.m4a\n'
+        b'b2lxcByHOXBZ4g5Oz5p20F69YjPvn2FSAYR5Cv5+CDU=  tools/qa-audio/retell.m4a\n'
+        b'R6Fq3cbcr12tS4i37i25D+nxsIphCTOeCxfYCQFN+Hg=  tools/qa-audio/shadow_s0.m4a\n'
+        b'p6yXkVJeNCcndq1/kTvUzH6tBb+nFTj3MstYMUtdf9s=  tools/qa-audio/think_as_sink.m4a\n'
+        b'hB8qQv8i5izHRpuYrvu5Y5jwMSFsSeFzYKW+mIx8K/s=  tools/qa-audio/think_ok.m4a\n'
+        b'mRyxgwBeTUg4CX8J66GRz/HX+0iT8y2RGq3alzHc80g=  tools/qa_e2e.py\n'),
+}
 
 
 def b64(data):
@@ -193,6 +218,17 @@ class Signing(unittest.TestCase):
         self.signers.write_text(BETA_LINE.replace('flow-beta-release namespaces', 'flow-beta-release-old namespaces'))
         st, _ = self.deploy(beta, CDN({'b9': {'REQUEST': self.request('b9')}}))  # a name that only starts like it: not its line
         self.assertEqual(st['result'], 'DEPLOYED', st)
+        self.signers.write_text(PROD_LINE)  # the other way round: 语流's line alone switches on 语流 only
+        st, ran = self.deploy(beta, CDN({'b9': {'REQUEST': self.request('b9')}}))
+        self.assertEqual((st['result'], len(ran)), ('DEPLOYED', 1), st)
+        cdn = CDN({'r9': {'REQUEST': self.request('r9'), 'TOOLS': tools_list(FILES)}})
+        st, ran = self.deploy(prod, cdn)
+        self.assertEqual((st['result'], st['error']), ('BAD_SIGNATURE', 'REQUEST.sig missing'))
+        self.assertNothingTaken(st, cdn, ran)
+        self.signers.write_text(PROD_LINE + BETA_LINE)  # both lines: both sites check
+        for mod, tag in ((prod, 'r9'), (beta, 'b9')):
+            st, ran = self.deploy(mod, CDN({tag: {'REQUEST': self.request(tag), 'TOOLS': tools_list(FILES)}}))
+            self.assertEqual((st['result'], ran), ('BAD_SIGNATURE', []), st)
 
     # ---------- signed ----------
 
@@ -315,6 +351,31 @@ class Signing(unittest.TestCase):
         st, _ = self.deploy(mod, CDN({'b10': {'REQUEST': self.request('b10')}}), n=10)
         self.assertEqual(st['result'], 'DEPLOYED', st)
         self.assertEqual((self.ad / 'installed').read_text(), '12')
+
+    def test_the_first_real_signed_request_checks_out_on_the_beta_only(self):
+        """b65 as CI signed it, against both real keys as allowed_signers will hold them."""
+        self.need_keygen()
+        self.signers.write_text(PROD_LINE + BETA_LINE)
+        beta, prod = load(True), load(False)
+        words = B65['REQUEST'].decode().splitlines()[0].split()
+        ad = self.tmp / 'ad-b'
+        ad.mkdir()
+        (ad / 'installed').write_text('64')
+        with patch.object(beta, 'SIGNERS', self.signers), patch.object(beta, 'UNSIGNED_UNTIL', self.until), patch.object(beta, 'AD', ad), \
+                patch.object(prod, 'SIGNERS', self.signers):
+            st = {}
+            listed = beta.check_request('b65', 65, B65['REQUEST'], words, B65['REQUEST.sig'], B65['TOOLS'], st)
+            self.assertEqual(st, {'signature': 'ok'})
+            self.assertLessEqual(set(beta.TOOLS), set(listed))
+            self.assertEqual(len([p for p in listed if p.startswith(beta.AUDIO)]), 5)
+            self.assertEqual(listed['tools/flow-pull.sh'], 'wg6It15K5n24dX7XroWOCEzLqna1wJqcAEmy3PbUgnk=')
+            # 语流 never takes it: the 内测版's key is not on 语流's line, and its namespace is not 语流's
+            self.assertIn('signature does not verify', prod.signature_problem(B65['REQUEST'], B65['REQUEST.sig']))
+            # changed by one character, or put under the next tag: refused
+            self.assertIn('incorrect signature', beta.signature_problem(B65['REQUEST'].replace(b'tag=b65', b'tag=b66'), B65['REQUEST.sig']))
+            with self.assertRaises(beta.Stop) as e:
+                beta.check_request('b66', 66, B65['REQUEST'], words, B65['REQUEST.sig'], B65['TOOLS'], {})
+            self.assertEqual((e.exception.result, str(e.exception)), ('BAD_SIGNATURE', 'REQUEST is for b65, not b66'))
 
     # ---------- the emergency switch ----------
 
