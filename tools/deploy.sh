@@ -61,8 +61,10 @@ trap 'git worktree remove --force "$WT" >/dev/null 2>&1 || rm -rf "$WT"' EXIT
 git fetch -q origin "$BRANCH" 2>/dev/null || git fetch -q origin "release:refs/remotes/origin/$BRANCH"
 git worktree add -q --detach "$WT" "origin/$BRANCH"
 FROM=""; [ "$BUILD" = "$SHA" ] || FROM=" = build of ${SHA:0:12}"
-printf '%s %s%s\n# %s%s %s: %s%s\n# Format: <commit sha> <manifest sha256> [e2e [light]]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.\n' \
-  "$BUILD" "$MAN" "$E2E" "$P" "$N" "$BR" "$(git log -1 --format=%s "$SHA")" "$FROM" > "$WT/REQUEST"
+# ref=: the build's tag, which the server lists the tree by when jsDelivr answers 404 for the commit (b34, 2026-11-25)
+REF=""; [ "$BUILD" = "$SHA" ] || REF=" ref=build-${SHA:0:12}"
+printf '%s %s%s%s\n# %s%s %s: %s%s\n# Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.\n' \
+  "$BUILD" "$MAN" "$E2E" "$REF" "$P" "$N" "$BR" "$(git log -1 --format=%s "$SHA")" "$FROM" > "$WT/REQUEST"
 git -C "$WT" add REQUEST
 git -C "$WT" commit -qm "release $P$N: ${BUILD:0:12}$FROM ($BR)"
 git -C "$WT" push -q origin "HEAD:refs/heads/$BRANCH"

@@ -222,6 +222,105 @@ class LightEndToEndTests(unittest.TestCase):
         self.assertIn("with AI_SLOTS if slot else contextlib.nullcontext():", src)
 
 
+class ListingFallbackTests(unittest.TestCase):
+    """jsDelivr answered 404 for b34's build commit listing for hours while the same tree by its tag answered (2026-11-25):
+    the server then lists it by the build's tag (REQUEST ref=build-<sha12>), still fetching every file by the commit and
+    checking it; both 404 still aborts. tools/flow-autodeploy.py and the fetch in tools/flow-pull.sh do the same."""
+    SHA = 'a' * 40
+    TAG = 'build-' + 'b' * 12
+    TOOLS_FILES = {'tools/flow-pull.sh': b'#!/bin/bash\nF=${FLOW_DIR:-/www/wwwroot/flow}\n', 'tools/flow-pull-rollback.sh': b'#\n',
+                   'tools/flow-autodeploy.py': b'#\n', 'tools/qa_e2e.py': b'#\n'}
+
+    def autodeploy(self):
+        import importlib.util
+        with patch.object(sys, 'argv', ['flow-autodeploy.py']):
+            spec = importlib.util.spec_from_file_location('autodeploy_listing', TOOLS / 'flow-autodeploy.py')
+            mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+        return mod
+
+    def cdn(self, by_sha=404, by_tag=200, files=None):
+        import base64, hashlib, urllib.error
+        files = self.TOOLS_FILES if files is None else files
+        listing = {'files': [{'name': '/' + p, 'hash': base64.b64encode(hashlib.sha256(b).digest()).decode(), 'size': len(b)}
+                             for p, b in files.items()]}
+        asked = []
+
+        def fetch(url, timeout=40):
+            asked.append(url)
+            if url.startswith('https://data.jsdelivr.com/'):
+                code = by_sha if f'@{self.SHA}/' in url else by_tag
+                if code != 200:
+                    raise urllib.error.HTTPError(url, code, 'no', {}, None)
+                return json.dumps(listing).encode()
+            return files[url.split(f'@{self.SHA}/', 1)[1]]  # a file: always by the commit
+        return fetch, asked
+
+    def test_a_404_for_the_commit_lists_the_same_tree_by_its_tag(self):
+        mod = self.autodeploy()
+        with patch.object(mod.time, 'sleep', lambda s: None):
+            fetch, _ = self.cdn()
+            with patch.object(mod, 'fetch', fetch):
+                flat, ref = mod.listing(self.SHA, self.TAG)
+            self.assertEqual((sorted(flat), ref), (sorted(self.TOOLS_FILES), self.TAG))
+            fetch, _ = self.cdn(by_sha=200)
+            with patch.object(mod, 'fetch', fetch):
+                self.assertEqual(mod.listing(self.SHA, self.TAG)[1], self.SHA)  # the commit first
+            fetch, _ = self.cdn(by_tag=404)
+            with patch.object(mod, 'fetch', fetch):
+                self.assertRaises(RuntimeError, mod.listing, self.SHA, self.TAG)
+                self.assertRaises(RuntimeError, mod.listing, self.SHA)
+            fetch, asked = self.cdn(by_sha=503)
+            with patch.object(mod, 'fetch', fetch):
+                self.assertRaises(RuntimeError, mod.listing, self.SHA, self.TAG)
+            self.assertFalse([u for u in asked if self.TAG in u])  # only a 404 asks by the tag
+
+    def run_main(self, request, fetch):
+        mod = self.autodeploy()
+        seen = []
+
+        def run(cmd, **kw):
+            seen.append(kw.get('env') or {})
+            kw['stdout'].write('installed\nflow: active=active health=200\nRESULT=DEPLOYED\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            with patch.object(mod, 'AD', tmp / 'ad'), patch.object(mod, 'STATUS', tmp / 'status.json'), \
+                    patch.object(mod, 'SITE', {**mod.SITE, 'home': tmp / 'home'}), patch.object(mod, 'request_for', lambda tag: request), \
+                    patch.object(mod, 'fetch', fetch), patch.object(mod.time, 'sleep', lambda s: None), \
+                    patch.object(mod.subprocess, 'run', run):
+                mod.main()
+            return json.loads((tmp / 'status.json').read_text()), seen
+
+    def test_the_deploy_goes_on_through_the_tag_and_still_aborts_when_both_fail(self):
+        req = f'{self.SHA} {"c" * 64} ref={self.TAG}\n# b34 main: x = build of {"b" * 12}\n'
+        st, seen = self.run_main(req, self.cdn()[0])
+        self.assertEqual((st['result'], st.get('listed_by')), ('DEPLOYED', self.TAG), st)
+        self.assertEqual(seen[0].get('FLOW_TREE_REF'), self.TAG)  # flow-pull.sh lists by it too
+        st, seen = self.run_main(req, self.cdn(by_tag=404)[0])
+        self.assertEqual(st['result'], 'ABORT_FETCH'); self.assertIn('listing', st['error']); self.assertEqual(seen, [])
+        st, _ = self.run_main(f'{self.SHA} {"c" * 64}\n', self.cdn()[0])  # no ref= (a commit from before builds): as before
+        self.assertEqual(st['result'], 'ABORT_FETCH')
+        st, seen = self.run_main(f'{self.SHA} {"c" * 64} ref=build-NOT-A-TAG\n', self.cdn()[0])
+        self.assertEqual(st['result'], 'ABORT_FETCH')  # only a build-<12 hex> tag is asked for
+
+    def test_flow_pull_lists_by_the_tag_too(self):
+        import types, urllib.error
+        src = (TOOLS / 'flow-pull.sh').read_text()
+        code = src[src.index("alt = os.environ.get('FLOW_TREE_REF', '')"):src.index('flat = {f[')]  # its real listing code
+        fetch, asked = self.cdn()
+        for env, want in (({'FLOW_TREE_REF': self.TAG}, 'ok'), ({}, 'error'), ({'FLOW_TREE_REF': 'master'}, 'error')):
+            ns = {'os': types.SimpleNamespace(environ=env), 're': __import__('re'), 'json': json, 'urllib': urllib,
+                  'time': types.SimpleNamespace(sleep=lambda s: None), 'fetch': fetch, 'repo': 'Jasame/Flow', 'sha': self.SHA}
+            exec(code, ns)
+            try:
+                got = 'ok' if len(ns['listing']()) == len(self.TOOLS_FILES) else 'short'
+            except RuntimeError:
+                got = 'error'
+            self.assertEqual(got, want, env)
+        deploy = (TOOLS / 'deploy.sh').read_text()
+        self.assertIn('REF=""; [ "$BUILD" = "$SHA" ] || REF=" ref=build-${SHA:0:12}"', deploy)
+        self.assertIn('"$BUILD" "$MAN" "$E2E" "$REF"', deploy)
+
+
 class ToolTests(unittest.TestCase):
     def test_releases_for_each_site_go_their_own_way(self):
         for f in ('deploy.sh', 'flow-pull.sh', 'flow-pull-rollback.sh'):
