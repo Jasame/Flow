@@ -575,3 +575,10 @@
   - #272 班级注册：验证码按班另算，同一网络每天注册数有上限（开局和考试、后台和班级、操作指南）
 - 自检：DEPLOYED，装了 11 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45619200563
+
+### b74 · 2026-11-25 21:18
+- main `ac52e86`，构建 `b47ac0c`
+- 新合并的 PR（自 b73 起）：
+  - #291 安卓：App 自己画的地方跟着网页的主题色（松绿或靛蓝）（发版和构建）
+- 自检：DEPLOYED，装了 2 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45621808867
