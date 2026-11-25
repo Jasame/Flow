@@ -54,6 +54,7 @@ class DailyKnowledgeTests(unittest.TestCase):
   with patch.object(daily,'PAUSED',True),patch.object(daily,'request_model',side_effect=calls) as model:md=daily.samples(self.c,5,'2026-11-26')
   self.assertEqual(model.call_count,9);self.assertFalse(any(k.kwargs.get('grounding') for k in model.call_args_list))
   for kind in daily.POOL:self.assertIn(next(t for t in daily.POOL[kind])[1],md)
+  self.assertIn('scary',daily.SELF_CHECK);self.assertIn('鬼怪',daily.write_messages('B2',daily.POOL['culture'][1],[])[1]['content'])  # under-14s read it too
   self.assertEqual(md.count('**检查**：通过'),4);self.assertEqual(md.count('没有通过'),1);self.assertIn('officials said',md.lower())
   self.assertEqual(self.c.execute("SELECT COUNT(*) FROM lab_packs WHERE origin='daily'").fetchone()[0],0)
   self.assertEqual(self.c.execute('SELECT COUNT(*) FROM daily_runs').fetchone()[0],0)
@@ -69,6 +70,13 @@ class DailyKnowledgeTests(unittest.TestCase):
    self.assertEqual(__import__('topic_guard').hits({'body':t[2]}),[],t)
   msg=daily.write_messages('B1',daily.TOPIC_LIST[0],[])[1]['content']
   for rule in ('时政','新闻','真实人物','具体日期'):self.assertIn(rule,msg)
+ def test_a_quote_copied_loosely_is_taken_from_the_text(self):
+  # one sample in five failed on this (2026-11-25): the model drops the full stop or changes a quote mark
+  raw=self.raw();exact=lab.sentences(raw['body'])[0]
+  raw['knowledge'][0]['quote']=exact.rstrip('.!?').replace("'",'\u2019').replace(' ','  ',1)
+  d,count=self.run_mock(raw);self.assertEqual(d['status'],'complete')
+  p=lab.pack_for(self.c,2,'daily-'+daily.today());self.assertEqual(p['knowledge'][0]['quote'],exact)
+  self.assertIsNone(daily.fit_quote('A sentence that is not there at all.',raw['body']))
  def test_invalid_knowledge_evidence_rejected(self):
   raw=self.raw();raw['knowledge'][0]['quote']='This never appeared.'
   self.assertEqual(self.run_mock(raw)[0]['status'],'failed')

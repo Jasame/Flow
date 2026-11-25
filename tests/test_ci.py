@@ -284,6 +284,7 @@ class MsiRunTests(unittest.TestCase):
         self.assertIn('GIT_INDEX_FILE=', sh)  # the snapshot is made in a throwaway index
         self.assertIn('nice -n 10', sh)  # CI's runners keep priority
         self.assertIn('</dev/null 9>&-', sh)  # the script on stdin is not eaten, the lock is not inherited
+        self.assertIn('-mtime +0', sh); self.assertIn('committerdate:unix', sh)  # leftovers of stopped runs go after a day
         for word in ('git stash', 'git checkout', 'git reset', 'sudo', 'secrets.'):
             self.assertNotIn(word, sh)
 
