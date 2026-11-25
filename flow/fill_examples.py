@@ -116,18 +116,25 @@ def review_messages(rows):
     """Asks the model, as an editor, which of these examples mock or stereotype: {"flag": [{"id", "why"}]}."""
     system = ('你是英语教材的审读编辑。下面是给中国学生的英文例句和中文翻译。找出带偏见或刻板印象的句子：嘲笑、贬低，'
               '或者刻板地描写疾病、残障、精神状况、种族、民族、国籍、性别、地域（城乡、某地的人）的。'
-              '只是提到这些话题、说法中性尊重的不算。只输出 JSON：{"flag":[{"id":编号,"why":"简短原因"}]}，没有就给空列表。')
+              '只是提到这些话题、说法中性尊重的不算，也不要列出来。只输出 JSON：{"flag":[{"id":编号,"why":"简短原因"}]}，没有就给空列表。')
     user = '\n'.join(f'{k}. {r["norm"]}：{r["sentence"]} ｜ {r["translation"]}' for k, r in enumerate(rows, 1))
     return [{'role': 'system', 'content': system}, {'role': 'user', 'content': user}]
 
 
+# the editor now and then lists a sentence only to say it does not count (2026-11-26 on 语流: denigrate's
+# 「…不列入」, about 1 in 20 of the flags): its own why clears it, so it stays
+NOT_A_FLAG = re.compile(r'不列入|不(?:属|算|构成)(?:于)?(?:偏见|刻板|歧视|贬低)|(?:无|没有|并无|并非|不是|未见)(?:明显)?的?(?:偏见|刻板|歧视|贬低)'
+                        r'|(?<!不)(?<!不够)中性')
+
+
 def flagged(raw, rows):
-    """[(row, why)] the model named, ids checked against the batch."""
+    """[(row, why)] the model named, ids checked against the batch; a why that says it does not count is no flag."""
     out = []
     for f in (raw.get('flag') if isinstance(raw, dict) else None) or []:
         k = f.get('id') if isinstance(f, dict) else None
-        if isinstance(k, int) and not isinstance(k, bool) and 1 <= k <= len(rows):
-            out.append((rows[k - 1], str(f.get('why') or '')[:120]))
+        why = str(f.get('why') or '')[:120] if isinstance(f, dict) else ''
+        if isinstance(k, int) and not isinstance(k, bool) and 1 <= k <= len(rows) and not NOT_A_FLAG.search(why):
+            out.append((rows[k - 1], why))
     return out
 
 
@@ -248,7 +255,7 @@ def main(argv=None):
             batches = [cand[k:k + REVIEW_PER_CALL] for k in range(0, len(cand), REVIEW_PER_CALL)]
             with ThreadPoolExecutor(a.workers) as pool, open(log, 'a', encoding='utf-8') as out:
                 for start in range(0, len(batches), a.workers):  # a.workers at a time; the budget is checked between rounds
-                    if ai_routes.over_budget() or (a.max_yuan and spent(c, since) >= a.max_yuan):
+                    if ai_routes.batch_stop() or (a.max_yuan and spent(c, since) >= a.max_yuan):
                         print('复查停下：今天的 AI 预算或 --max-yuan 到了，剩下的下次再查。', flush=True)
                         break
                     group = batches[start:start + a.workers]
@@ -308,7 +315,7 @@ def main(argv=None):
                 if a.max_calls and calls >= a.max_calls:
                     stop = 'max-calls'
                     break
-                if ai_routes.over_budget():
+                if ai_routes.batch_stop():
                     print('今天的 AI 预算已用完：停下，明天再跑。', flush=True)
                     stop = 'budget'
                     break

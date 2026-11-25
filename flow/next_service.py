@@ -1267,6 +1267,21 @@ def cards(c, uid, q='', page=1, per=30, f=''):
     return {'total': len(rows), 'page': page, 'per': per, 'items': [vocab_service.card_out(r, now) for r in rows[(page - 1) * per: page * per]]}
 
 
+def card_index(c, uid, have=''):
+    """The learner's own words and expressions in one go, for the iPhone's system search (语流 C1, iOS 专属 7, off by default):
+    the app keeps the index on the phone only. Not the mistakes, saved sentences or sentence patterns (练习 → 复习 has those).
+    zh is the meaning's first part. v changes whenever the list does: an app that sends the v it holds gets {v, same: true}
+    and keeps its index."""
+    rows = c.execute("SELECT id, text, meaning FROM next_cards WHERE user_id=? AND kind IN ('word','phrase') AND COALESCE(source,'')!='mistake'"
+                     " AND meaning NOT LIKE '句型｜例：%' ORDER BY created DESC LIMIT 5000", (uid,)).fetchall()
+    def zh(m):
+        z = re.split(r'[；;\n]', m or '', maxsplit=1)[0].strip()
+        return z if len(z) <= 40 else z[:39] + '…'
+    words = [{'id': r['id'], 'text': r['text'], 'zh': zh(r['meaning'])} for r in rows]
+    v = hashlib.sha1(json.dumps(words, ensure_ascii=False, sort_keys=True).encode()).hexdigest()[:16]
+    return {'v': v, 'same': True} if have and have == v else {'v': v, 'words': words}
+
+
 def delete_card(c, uid, data):
     n = c.execute('DELETE FROM next_cards WHERE id=? AND user_id=?', (int(data['id']), uid)).rowcount
     if n:
@@ -1738,6 +1753,8 @@ def get(c, uid, path, q):
         return ({'entry': hit} if hit else {'entry': None, 'query': w}), 200
     if not uid:
         return ({'error': '请先登录'}, 401) if path.startswith('/api/next/') else None
+    if path == '/api/next/cards/index':
+        return card_index(c, uid, one('v')[:40]), 200
     if path == '/api/next/cards':
         return cards(c, uid, one('q')[:80], int(one('page', '1') or 1), f=one('f')), 200
     if path == '/api/next/stats':

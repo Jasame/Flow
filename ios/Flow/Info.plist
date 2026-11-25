@@ -5,6 +5,23 @@
 	<!-- the site the app opens: Beta.xcconfig / Release.xcconfig -->
 	<key>FlowSiteURL</key>
 	<string>$(FLOW_SITE_URL)</string>
+	<!-- the widgets' numbers (Common/TodayCard.swift), and the link a widget or a Control Center button opens the app
+	     with: yuliu://open?path=%23/review (语流内测: yuliu-beta) -->
+	<key>FlowAppGroup</key>
+	<string>$(FLOW_APP_GROUP)</string>
+	<key>FlowURLScheme</key>
+	<string>$(FLOW_URL_SCHEME)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>$(FLOW_BUNDLE_ID)</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>$(FLOW_URL_SCHEME)</string>
+			</array>
+		</dict>
+	</array>
 	<!-- a whole text keeps playing with the screen locked; reminders follow the counts; 离线朗读包 at night -->
 	<key>UIBackgroundModes</key>
 	<array>

@@ -28,6 +28,10 @@ enum BridgeTestPage {
     <div class="row"><button id="offplay">离线播放今天这篇</button></div>
     <div class="row"><button id="buzz">震一下</button><button id="frugal">省电状态</button></div>
     <p class="out" id="feel">feel: -</p>
+    <div class="row"><button id="card">小组件数据</button><button id="act">实时活动 3/10</button><button id="actend">结束活动</button></div>
+    <div class="row"><button id="acton">打开实时活动</button><button id="sample">小组件样例</button></div>
+    <p class="out" id="glance">glance: -</p>
+    <p class="out" id="hash">hash: -</p>
     <p class="out" id="feat">features: -</p>
     <p class="out" id="note">note: -</p>
     <div class="row"><button id="rec">录音两秒</button></div>
@@ -76,12 +80,27 @@ enum BridgeTestPage {
     $('feats').onclick = feats;
     // every switch of 「iOS 专属功能」 back to how it comes (a test that stopped half way may have left one on)
     $('featreset').onclick = async () => {
-      for (const id of ['lock-study', 'smart-resume', 'offline-packs', 'haptics', 'frugal']) await A.call('app.feature', { id });
+      for (const id of Object.keys(await A.call('app.features'))) await A.call('app.feature', { id });
       feats();
     };
     $('buzz').onclick = () => A.call('app.haptic', { kind: 'success' }).then(r => { $('feel').textContent = 'feel: haptic ' + r.ok; }, fail);
     $('frugal').onclick = () => A.call('app.frugal').then(r => { $('feel').textContent = 'feel: frugal ' + r.on; }, fail);
     A.on('frugal', d => { $('feel').textContent = 'feel: frugal event ' + d.on; });
+    $('card').onclick = () => A.call('app.today-card').then(c => {
+      $('glance').textContent = c ? `glance: card ${c.state} due ${c.due} line ${c.line ? 'yes' : 'no'}` : 'glance: card none';
+    }, fail);
+    $('act').onclick = async () => {
+      const r = await A.call('activity.review', { done: 3, total: 10 });
+      $('glance').textContent = `glance: activity ${r.ok} ${r.why || ''} count ${await A.call('activity.count')}`;
+    };
+    $('sample').onclick = () => A.call('app.today-card-sample').then(() => { $('glance').textContent = 'glance: sample'; }, fail);
+    $('acton').onclick = () => A.call('app.feature', { id: 'review-activity', on: true }).then(feats, fail);
+    $('actend').onclick = async () => {
+      await A.call('activity.end', { done: 10, total: 10 });
+      $('glance').textContent = `glance: ended count ${await A.call('activity.count')}`;
+    };
+    const showHash = () => { $('hash').textContent = 'hash: ' + (location.hash || '-'); };
+    addEventListener('hashchange', showHash); showHash();
     // 离线朗读包: today's text, its recording at an address that goes nowhere: only the app's own copy can play it
     $('offplay').onclick = async () => {
       try {

@@ -4,7 +4,8 @@
   // iPad sideways) the card is a column in the middle and the thumb rests beside it, or below it. Not from a link or a
   // field, and not while a sheet is open. A swipe is mostly sideways, without a strict
   // height limit (on a big screen it drifts). Leaving the page takes it off (swipeOff, in route()).
-  let SWIPED = 0;  // when a swipe last answered: the click a browser may still send after it is not a tap on the card
+  let SWIPED = 0, SCROLLED = 0;  // when a swipe last answered; when the page last scrolled (the tap that stops a scroll answers nothing)
+  addEventListener('scroll', () => { SCROLLED = Date.now(); }, { passive: true });  // when a swipe last answered: the click a browser may still send after it is not a tap on the card
   function swipeOn(acts) {
     let sx = null;
     const cardEl = () => view.querySelector('.review');
@@ -26,7 +27,7 @@
     };
     document.ontouchcancel = () => { sx = null; settle(); };  // the browser took the gesture (a scroll, the system): the card goes back
   }
-  function swipeOff() { document.ontouchstart = document.ontouchmove = document.ontouchend = document.ontouchcancel = null; activityEnd(); }
+  function swipeOff() { document.ontouchstart = document.ontouchmove = document.ontouchend = document.ontouchcancel = null; view.onclick = view.onpointerdown = null; activityEnd(); }
   // goOn: 继续复习 past today's share (r28: a day of words has a cap in minutes), or the extra new words of 再学 10 个
   // part 'other': 其他复习 (练习 → 复习; review-split-plan.md): mistakes, saved sentences and patterns, apart from the words
   async function reviewView(goOn, part) {
@@ -73,8 +74,14 @@
     let undo = null;  // the latest rating, while it can be taken back (撤销)
     // the answer shown and not yet rated: 撤销 turns the card back (a slip on the front, a tap or a button, sent nothing)
     let peek = null;
+    // 太简单 (语流 B9, A0): a small button at the top right on both sides of a word card, out of the three parts' way;
+    // the card leaves at once, 撤销 for six seconds at the bottom
     // voice: this side plays the word (or its examples) — 「读音由 AI 合成」, one grey line under the progress bar (aiVoiceNote)
-    const top = voice => `<h1 class="sr-only">${NAME}</h1><div class="rtop"><a class="link small hit44" href="#/cards">结束</a><div class="bar-progress"><i id="rp"></i></div>${peek ? '<button class="link small undo" id="undo" type="button" aria-label="撤销：回到这一张的正面">↶ 撤销</button>' : undo ? `<button class="link small undo" id="undo" type="button" aria-label="撤销上一张：${esc(undo.c.text)}">↶ 撤销</button>` : ''}${viewBtn()}</div>${voice ? aiVoiceNote('读音由 AI 合成', 'p', 'tc rvoice') : ''}`;
+    const top = voice => `<h1 class="sr-only">${NAME}</h1><div class="rtop"><a class="link small hit44" href="#/cards">结束</a><div class="bar-progress"><i id="rp"></i></div>${peek ? '<button class="link small undo" id="undo" type="button" aria-label="撤销：回到这一张的正面">↶ 撤销</button>' : undo ? `<button class="link small undo" id="undo" type="button" aria-label="撤销上一张：${esc(undo.c.text)}">↶ 撤销</button>` : '<button class="link small undo" id="undo" type="button" disabled aria-label="撤销（还没有可撤销的）">↶ 撤销</button>'}${viewBtn()}</div>${sub(voice)}`;
+    // the line under the bar (B9, 2026-11-26: the top bar is 结束 · 进度条 · 撤销 · 简|详 only, so the bar keeps its width):
+    // 「读音由 AI 合成」 on the left, a grey 「太简单」 on the right for a word to recall
+    const sub = voice => { const easy = c && c.kind === 'word' && !['fix', 'question', 'sound'].includes(c.mode);
+      return voice || easy ? `<div class="rsub">${voice ? aiVoiceNote('读音由 AI 合成', 'p', 'rvoice') : '<span></span>'}${easy ? '<button class="link small easy-btn" id="easyBtn" type="button" aria-label="太简单，以后不用再背">太简单</button>' : ''}</div>` : ''; };
     const badge = res => { const b = document.getElementById('dueBadge'); if (b && !other && res && res.due != null) { const n = res.due + res.new; b.hidden = !n; b.textContent = n > 99 ? '99+' : n; } };
     // Touch: swipe the card right for "I know it" (or the main button), left for "I don't".
     let swipe = null;
@@ -87,6 +94,7 @@
     const bar = () => {
       const rp = document.getElementById('rp'); if (rp) rp.style.width = (doneIds.size / Math.max(1, uniq.size) * 100) + '%';
       const u = document.getElementById('undo'); if (u) u.onclick = takeBack;
+      const eb = document.getElementById('easyBtn'); if (eb) eb.onclick = () => known();
       document.querySelectorAll('#vmode [data-v]').forEach(x => { x.onclick = () => { if ((x.dataset.v === 'detailed') !== detailed()) flipView(); }; });
     };
     const keys = map => { document.onkeydown = e => { if (!sheetEl.hidden || e.metaKey || e.ctrlKey || e.altKey) return; if (e.target.matches && e.target.matches('input,textarea')) { if (e.key === 'Enter' && map.Enter && ['spellIn', 'fixIn'].includes(e.target.id)) { e.preventDefault(); map.Enter(); } return; } const f = map[e.key] || map[e.key.toLowerCase()]; if (f) { e.preventDefault(); f(); } }; };
@@ -198,7 +206,7 @@
     }
     function ask(quiet) {
       if (i >= items.length) return more();
-      c = items[i]; claim = null; t0 = Date.now();
+      c = items[i]; claim = null; t0 = Date.now(); view.onclick = view.onpointerdown = null;
       if (['fix', 'question', 'sound'].includes(c.mode)) return mistakeAsk();
       const sent = sentenceOf(c), pattern = c.kind !== 'word' && /^句型｜例：/.test(c.meaning || '');
       // Nothing to recall from (an imported phrase with no meaning or sentence): show it and ask whether it is known.
@@ -221,7 +229,7 @@
       }
       view.innerHTML = `${top(m === 'recognize' || m === 'spell')}<div class="review enter">${body}
         ${m === 'spell' ? `<div class="row center"><button class="btn primary" id="check">确定</button><button class="btn ghost" id="giveup">不会</button></div>${foot()}`
-          : actions(`<div class="choice">${KNOW.order(choices.map((t, k) => [t, ['good', '', 'again'][k], ['know', 'fuzzy', 'forgot'][k]])).map(([t, cls, how], k) => `<button class="${cls}" data-claim="${how}">${t}${TOUCH ? '' : `<small>${k + 1}</small>`}</button>`).join('')}</div>`)}</div>`;
+          : actions(`<div class="choice">${KNOW.order(choices.map((t, k) => [t, ['good', '', 'again'][k], ['know', 'fuzzy', 'forgot'][k]])).map(([t, cls, how], k) => `<button class="${cls}" data-claim="${how}">${t}${TOUCH ? '' : `<small>${['←', '↓', '→'][k]}</small>`}</button>`).join('')}</div>`)}</div>`;
       // 「认识」 moved to the right (2026-11-25): said once to those who reviewed before, so a habit does not answer wrong
       if (m !== 'spell' && first.veteran && seenOld && KNOW.side() === 'right' && !load('flow-know-tip')) {
         view.querySelector('.review').insertAdjacentHTML('afterbegin', `<div class="know-tip" id="knowTip" role="note"><span class="small">「认识」换到右边了，想换回去：我的 → 设置</span><button class="btn small" type="button" id="knowTipOk">知道了</button></div>`);
@@ -237,37 +245,54 @@
         keys({ Enter: check });
       } else {
         view.querySelectorAll('[data-claim]').forEach(b => b.onclick = () => reveal(b.dataset.claim));
-        keys(KNOW.keys([...view.querySelectorAll('[data-claim]')].map(b => () => reveal(b.dataset.claim))));
+        const fronts = [...view.querySelectorAll('[data-claim]')].map(b => () => reveal(b.dataset.claim));
+        keys({ ...KNOW.keys(fronts), ArrowDown: fronts[1], ' ': fronts[1], e: () => c.kind === 'word' && known() });  // ← 不会 · ↓ or space 模糊 · → 会 (by place) · E 太简单
         if (KNOW.tap()) tapZones([...view.querySelectorAll('.ractions [data-claim]')]);
         onSwipe(...KNOW.swipe(() => reveal('know'), () => reveal('forgot')));
       }
     }
-    // 点卡片作答 (KNOW.tap): the card's left, middle and right thirds are the three buttons below, in their order on screen.
-    // Only on the front, where an answer only turns the card and sends nothing (撤销 turns it back), so a slip costs no
-    // rating; the back's card answers nothing, or two quick taps would rate a card before its answer is read. The word,
-    // its speaker, the buttons, links and the tips do what they do; a finger that moved, or a swipe just done, is no tap.
-    function tapZones(btns) {
-      const card = view.querySelector('.review'); if (!card || btns.length !== 3) return;
-      card.classList.add('zoned');
-      const skip = '.tapsay,#sayW,[data-exp],a,button,input,.ractions,.know-tip';
+    // One rule on every side of the card (the owner, 2026-11-26: 「一以贯之的用户操作习惯，不要反直觉」): the page is the
+    // buttons below it, part for part — three on the front (不会 · 模糊 · 会), two on the back (记错了 · 没错), and when the
+    // back has one button the whole page is it (下一个). 「认识」's side (KNOW) sets which end is which, for taps, swipes and
+    // keys alike. What can be tapped (the word, a speaker, 再看, 撤销, links, the top line) does its own thing first; a
+    // finger that moved, a swipe just done, or a tap in the first moment after the card turned (a double tap) answers nothing.
+    // the part tapped lights up for a moment with the word it stands for (不认识, 模糊, 认识 …): an answer is seen to be taken
+    function flash(r, n, k, btn) {
+      const f = document.createElement('div'), tone = btn.classList.contains('good') ? 'good' : btn.classList.contains('again') ? 'again' : 'mid';
+      f.className = 'zone-flash ' + tone; f.textContent = btn.firstChild.textContent.replace(/，.*$/, '');
+      Object.assign(f.style, { left: (r.left + r.width * k / n) + 'px', width: (r.width / n) + 'px', top: Math.max(0, r.top) + 'px', height: Math.min(innerHeight, r.bottom) - Math.max(0, r.top) + 'px' });
+      document.body.appendChild(f); setTimeout(() => f.remove(), REDUCED ? 250 : 520);
+    }
+    let turned = 0;
+    function tapZones(btns, back) {
+      if (!btns.length) return;
+      const card = view.querySelector('.review'); if (!card) return;
+      card.classList.add('zoned'); turned = Date.now();  // a new card or a turned one: the next 600 ms are not an answer
+      const skip = '.tapsay,#sayW,[data-exp],a,button,input,summary,details,.ractions,.know-tip,.rtop,.rsub,.rvoice,.sheet';
       let down = null;
-      card.onpointerdown = e => { down = [e.clientX, e.clientY]; };
-      card.onclick = e => {
+      view.onpointerdown = e => { down = [e.clientX, e.clientY]; };
+      view.onclick = e => {
         const d = down; down = null;
+        if (!card.isConnected) { view.onclick = view.onpointerdown = null; return; }  // the card is gone (rated, the round over)
+        if (Date.now() - turned < 600 || Date.now() - SCROLLED < 300) return;  // a double tap, or the tap that ends a scroll
         const g = card.querySelector('.zone-guide'); if (g) { g.remove(); return; }  // the first tap puts the guide away, answers nothing
         if (e.target.closest(skip) || !d || Math.hypot(e.clientX - d[0], e.clientY - d[1]) > 10 || Date.now() - SWIPED < 350) return;
-        const r = card.getBoundingClientRect(), k = Math.min(2, Math.max(0, Math.floor((e.clientX - r.left) / (r.width / 3))));
-        btns[k].click();
+        const r = card.getBoundingClientRect(), n = btns.length;
+        const k = Math.min(n - 1, Math.max(0, Math.floor((e.clientX - r.left) / (r.width / n))));
+        flash(r, n, k, btns[k]); btns[k].click();
       };
-      // the first time: the three parts drawn on the card, a tap anywhere puts it away (and answers nothing)
-      if (load('flow-tap-guide') || card.querySelector('.know-tip')) return;
-      card.insertAdjacentHTML('beforeend', `<div class="zone-guide" id="zoneGuide" aria-hidden="true">${btns.map(b => `<span>${esc(b.firstChild.textContent)}</span>`).join('')}
-        <p>点卡片的左、中、右也能作答，和下面的按钮一样；也可以${KNOW.side() === 'right' ? '右滑「认识」，左滑「不认识」' : '左滑「认识」，右滑「不认识」'}。点单词只是播放。点一下收起</p></div>`);
-      const g = document.getElementById('zoneGuide'), ra = card.querySelector('.ractions');
-      if (ra) g.style.bottom = (card.getBoundingClientRect().bottom - ra.getBoundingClientRect().top) + 'px';  // the buttons stay in view below it
+      // the first time on each side: its parts drawn over the card, a tap puts it away (and answers nothing)
+      const key = back ? 'flow-tap-guide-back' : 'flow-tap-guide';
+      if (load(key) || card.querySelector('.know-tip')) return;
+      const swipe = KNOW.side() === 'right' ? ['右滑', '左滑'] : ['左滑', '右滑'];
+      const say = !back ? `点左、中、右也能作答，和下面的按钮一样；也可以${swipe[0]}「认识」，${swipe[1]}「不认识」。点单词只是播放。点一下收起`
+        : `翻面也是这三块：${swipe[0]}或点${KNOW.side() === 'right' ? '右' : '左'}边是没错，另一边是记错了，中间是模糊。翻面前选的那个加了框，回车或空格就是它。点一下收起`;
+      card.insertAdjacentHTML('beforeend', `<div class="zone-guide n${btns.length}" id="zoneGuide" aria-hidden="true">${btns.map(b => `<span>${esc(b.firstChild.textContent)}</span>`).join('')}<p>${say}</p></div>`);
+      const gd = document.getElementById('zoneGuide'), ra = card.querySelector('.ractions');
+      if (ra) gd.style.bottom = (card.getBoundingClientRect().bottom - ra.getBoundingClientRect().top) + 'px';  // the buttons stay in view below it
       // shown once: seen now. It lets taps through (pointer-events: none), so the word still plays and the buttons answer;
-      // a tap on the card itself only puts it away (above)
-      save('flow-tap-guide', 1); save('flow-next-swipe-tip', 1);
+      // a tap on the page itself only puts it away (above)
+      save(key, 1); save('flow-next-swipe-tip', 1);
     }
     // the speaker and the word play it; the examples' speakers are bound by bindExamples
     function sayable() {
@@ -279,7 +304,7 @@
       // 详细 (B9's sheet, words-modes/): the meaning by part of speech, the roots, the examples as many as 简洁 shows (two)
       // and the rest one tap away, the confusable group (词汇辨析) with how to tell them apart, a grey line of how well it is held
       const pos = (c.meaning || '').split(/；|;/).map(x => x.trim()).filter(Boolean).map(x => { const m = x.match(/^([a-z]+\.)\s*(.*)$/);
-        return m ? `<div><b>${esc(m[1])}</b>${esc(m[2])}</div>` : `<div>${esc(x)}</div>`; }).join('');
+        return m ? `<b>${esc(m[1])}</b><span>${esc(m[2])}</span>` : `<span class="all">${esc(x)}</span>`; }).join('');  // a grid: the 词性 column as wide as its widest (B9, r36 audit)
       const g = (c.confuse || [])[0], n = (c.context ? 1 : 0) + (c.examples || []).length, open = 2;
       return `${wordHTML()}${pos ? `<div class="mean-a mean-pos">${pos}</div>` : ''}${rootsHTML(c)}
         <div class="ex-wrap${n > open ? ' fold' : ''}">${examplesHTML(c)}${n > open ? `<button class="ex-more" type="button" id="exMore">再看 ${n - open} 句 ⌄</button>` : ''}</div>
@@ -315,19 +340,23 @@
     function reveal(how, quiet) {
       claim = how; const ms = Date.now() - t0; peek = { t0 };
       if (!quiet) haptic('select');
-      const next = how === 'know' ? KNOW.order([['没错，下一个', 'good', 'good primary'], ['记错了', 'again', 'again x']]) : [[how === 'fuzzy' ? '下一个' : '记住了，下一个', how === 'fuzzy' ? 'hard' : 'again', 'primary']];
-      // the same place as the three on the front: 没错 where 认识 was, 记错了 where 不认识 was; 太简单了 a small link above them
+      // The back has the front's three parts too, the same width, place and colour (the owner: 「只做了一个界面的三分点」):
+      // left 记错了 (again), middle 模糊 (hard), right 没错 (good). The one the front chose is framed: ↵ and space take it, and
+      // the back can still change it (认识 thought, the answer seen, it was wrong: the left). After 不认识 the right says
+      // 其实认识 — a slip on the front, mended — never 记住了: what is rated is what was recalled before the answer.
+      const right = how === 'forgot' ? '其实认识' : '没错';
+      const want = { know: 'good', fuzzy: 'hard', forgot: 'again' }[how];
+      const next = KNOW.order([[right, 'good', 'good'], ['模糊', 'hard', ''], [how === 'forgot' ? '不认识' : '记错了', 'again', 'again']]);
       view.innerHTML = `${top(true)}<div class="review open-card">${answerHTML()}
-        ${actions(`<div class="choice ${next.length > 1 ? 'two' : 'one'}">${next.map(([t, r, cls], k) => `<button class="${cls}" data-rate="${r}">${t}${TOUCH || next.length < 2 ? '' : `<small>${k + 1}</small>`}</button>`).join('')}</div>`,
-          c.kind === 'word' && how === 'know' ? '<button class="link small too-easy" type="button" id="tooEasy">太简单了，以后不用再背</button>' : '')}</div>`;
+        ${actions(`<div class="choice">${next.map(([t, r, cls], k) => `<button class="${cls}${r === want ? ' def' : ''}" data-rate="${r}"${r === want ? ' aria-describedby="defNote"' : ''}>${t}${TOUCH ? '' : `<small>${['←', '↓', '→'][k]}</small>`}</button>`).join('')}</div><span class="sr-only" id="defNote">翻面前选的就是这一个，回车或空格就是它</span>`)}</div>`;
       bar(); bindExamples(view, c); sayable();
       const em = document.getElementById('exMore'); if (em) em.onclick = () => { em.closest('.ex-wrap').classList.remove('fold'); em.remove(); };
       if (!quiet && c.mode !== 'recognize') CLIP.word(c);
       view.querySelectorAll('[data-rate]').forEach(b => b.onclick = () => rate(b.dataset.rate, ms));
-      const te = document.getElementById('tooEasy'); if (te) te.onclick = () => known();
-      const primary = next.find(x => x[2].includes('primary'))[1];
-      keys({ ...KNOW.keys(next.map(([, r]) => () => rate(r, ms))), Enter: () => rate(primary, ms), ' ': () => rate(primary, ms), x: () => how === 'know' && rate('again', ms) });
-      onSwipe(...KNOW.swipe(() => rate(primary, ms), how === 'know' ? () => rate('again', ms) : null));
+      const acts = next.map(([, r]) => () => rate(r, ms));
+      keys({ ...KNOW.keys(acts), ArrowDown: acts[1], Enter: () => rate(want, ms), ' ': () => rate(want, ms), x: () => rate('again', ms), e: () => known() });
+      onSwipe(...KNOW.swipe(() => rate('good', ms), () => rate('again', ms)));  // the same way as on the front
+      if (KNOW.tap()) tapZones([...view.querySelectorAll('.ractions [data-rate]')], true);
     }
     function spellResult(v) {
       const ms = Date.now() - t0, want = c.text.toLowerCase(), got = v.toLowerCase();
@@ -343,7 +372,7 @@
     }
     let busy = false;
     async function rate(r, ms) {
-      if (busy) return; busy = true; document.onkeydown = null; peek = null;
+      if (busy) return; busy = true; document.onkeydown = null; peek = null; view.onclick = view.onpointerdown = null;  // one answer per card
       try {
         const body = { id: c.id, rating: r, mode: c.mode, ms: Math.min(ms, 3599999), at: Math.floor(Date.now() / 1000) };
         const before = { c, r, i, had: doneIds.has(c.id), left, inserted: -1, offline: false, body };
@@ -393,8 +422,23 @@
       finally { busy = false; }
     }
     async function known() {
-      peek = null;
-      try { const res = await api('/api/next/vocab/known', { id: c.id, known: true }); tally.known++; doneN++; i++; doneIds.add(c.id); left = res; haptic('tap'); toast('已标为熟知'); ask(); } catch (e) { toast(e.message); }
+      if (busy) return; busy = true; peek = null; view.onclick = view.onpointerdown = null;
+      const was = { c, i };
+      try { const res = await api('/api/next/vocab/known', { id: c.id, known: true }); tally.known++; doneN++; i++; doneIds.add(c.id); left = res; haptic('tap'); easyBar(was); ask(); }
+      catch (e) { toast(e.message); } finally { busy = false; }
+    }
+    // 「已标为太简单，不再复习 · 撤销」 at the bottom for six seconds; 撤销 brings the card back to be answered
+    function easyBar(was) {
+      document.querySelectorAll('.easy-bar').forEach(x => x.remove());
+      const b = document.createElement('div'); b.className = 'easy-bar'; b.setAttribute('role', 'status');
+      b.innerHTML = `<span>已标为太简单，「${esc(was.c.text)}」不再复习</span><button class="link small" type="button">撤销</button>`;
+      document.body.appendChild(b);
+      const gone = setTimeout(() => b.remove(), 6000);
+      b.querySelector('button').onclick = async () => {
+        clearTimeout(gone); b.remove();
+        try { left = (await api('/api/next/vocab/known', { id: was.c.id, known: false })); tally.known--; doneN--; doneIds.delete(was.c.id); items.splice(i, 0, was.c); haptic('tap'); toast('已撤销，再答一次这一张'); ask(); }
+        catch (e) { toast(e.message); }
+      };
     }
     async function more() {
       document.onkeydown = null;

@@ -1,7 +1,8 @@
 """No Gemini for learners (2026-11-25, the owner: 「换成国内已备案模型」): with FLOW_MAIN_AI=off the main model is never
 asked. A text route that fails goes to FLOW_BACKUP_AI_MODEL (another 百炼 model); a dialogue / retell / IELTS recording
-whose audio route fails is written down by FLOW_ASR_AI_MODEL and answered by that backup model; 跟读 has no text
-backup; run_job's last try asks the backup model. 发音 (FLOW_SAY_JUDGE=asr) is judged by speech recognition told the
+whose audio route fails is written down (FLOW_ASR_AI_MODEL, or Qwen-Omni told only to write it down when none is set) and
+answered by the task's own text model; 跟读 has no text backup; run_job's last try asks the backup model. A recording task
+with no audio route of its own (能力测评·口语) borrows 情景对话's while Gemini is off. 发音 (FLOW_SAY_JUDGE=asr) is judged by speech recognition told the
 word and its pair word. With the switch on (the default) nothing changes (test_ai_routing, test_audio_route)."""
 import base64, io, json, os, sys, tempfile, time, unittest, urllib.error
 from pathlib import Path
@@ -89,8 +90,8 @@ class RoutingTests(unittest.TestCase):
 
     def test_a_dialogue_recording_whose_omni_fails_is_written_down_then_answered_by_text(self):
         outp, models, sent = self.ask({'flow-audio-omni-flash': down(502), 'flow-audio-asr-flash': 'I would like a coffee.',
-                                       'flow-text-qwen-plus': '{"heard": "I would like a coffee.", "reply": "Sure."}'}, kind='next-dialog', audio=WEBM)
-        self.assertEqual(models, ['flow-audio-omni-flash', 'flow-audio-asr-flash', 'flow-text-qwen-plus'])
+                                       'flow-text-ds-flash': '{"heard": "I would like a coffee.", "reply": "Sure."}'}, kind='next-dialog', audio=WEBM)
+        self.assertEqual(models, ['flow-audio-omni-flash', 'flow-audio-asr-flash', 'flow-text-ds-flash'])  # the quick text model answers
         self.assertIn('学习者说：I would like a coffee.', sent[-1]['messages'][-1]['content'])
         self.assertNotIn('input_audio', json.dumps(sent[-1]))  # the text model gets words, not the recording
         self.assertEqual(sent[1]['asr_options']['language'], 'en')
@@ -102,7 +103,13 @@ class RoutingTests(unittest.TestCase):
     def test_a_recording_without_an_audio_route_is_refused_not_sent_to_gemini(self):
         from vertex_auth import AIConfigurationError
         with self.assertRaises(AIConfigurationError):
-            self.ask({}, kind='next-say', audio=WEBM)
+            self.ask({}, kind='next-say', audio=WEBM, env={'FLOW_AUDIO_ROUTES': ''})
+
+    def test_a_recording_task_without_a_route_of_its_own_borrows_the_dialogue_route(self):  # r35: 能力测评·口语 failed
+        outp, models, _ = self.ask({'flow-audio-omni-flash': '{"level": "B1"}'}, kind='next-assess-speaking', audio=WEBM)
+        self.assertEqual(models, ['flow-audio-omni-flash'])
+        _, models, _ = self.ask({'gemini-3.8-flash': '{"level": "B1"}'}, kind='next-assess-speaking', audio=WEBM, env={'FLOW_MAIN_AI': 'on'})
+        self.assertEqual(models, ['gemini-3.8-flash'])  # with Gemini on, nothing changes
 
     def test_the_last_try_of_run_job_asks_the_backup_model(self):
         outp, models, _ = self.ask({'flow-text-qwen-plus': '{"ok": 2}'}, main_only=True)
@@ -110,9 +117,19 @@ class RoutingTests(unittest.TestCase):
 
     def test_after_omni_twice_with_nothing_heard_the_last_try_is_recognition_then_text(self):  # r30 e2e
         outp, models, sent = self.ask({'flow-audio-asr-flash': 'I want headphones for the train.',
-                                       'flow-text-qwen-plus': '{"heard": "I want headphones for the train.", "reply": "Sure."}'},
+                                       'flow-text-ds-flash': '{"heard": "I want headphones for the train.", "reply": "Sure."}'},
                                       kind='next-dialog', audio=WEBM, main_only=True)
-        self.assertEqual(models, ['flow-audio-asr-flash', 'flow-text-qwen-plus'])
+        self.assertEqual(models, ['flow-audio-asr-flash', 'flow-text-ds-flash'])
+
+    def test_without_speech_recognition_omni_writes_it_down_then_text_answers(self):  # r35 e2e, 2026-11-26
+        outp, models, sent = self.ask({'flow-audio-omni-flash': 'I want headphones for the train.',
+                                       'flow-text-ds-flash': '{"heard": "I want headphones for the train.", "reply": "Sure."}'},
+                                      kind='next-dialog', audio=WEBM, main_only=True, env={'FLOW_ASR_AI_MODEL': ''})
+        self.assertEqual(models, ['flow-audio-omni-flash', 'flow-text-ds-flash'])
+        self.assertEqual(sent[0]['messages'][0]['content'], cs.SPEECH_PROMPT)  # told only to write it down
+        self.assertIn('I want headphones for the train.', json.dumps(sent[1]['messages'], ensure_ascii=False))
+        with self.assertRaises(ValueError):  # nobody spoke: the text model is not asked to guess
+            self.ask({'flow-audio-omni-flash': ''}, kind='next-dialog', audio=WEBM, main_only=True, env={'FLOW_ASR_AI_MODEL': ''})
 
     def test_a_search_without_bailian_search_is_refused(self):
         from vertex_auth import AIConfigurationError
@@ -157,10 +174,20 @@ class DialogTests(unittest.TestCase):
         empty = json.dumps({'heard': '', 'reply': 'Sure.', 'correction': None, 'hint': '', 'say': ''})
         good = json.dumps({'heard': 'A latte, please.', 'reply': 'Sure, one latte.', 'correction': None, 'hint': '', 'say': ''})
         result, status, models = self.turn({'flow-audio-omni-flash': [empty, empty], 'flow-audio-asr-flash': 'A latte, please.',
-                                            'flow-text-qwen-plus': good}, 'dlg-empty-0001')
+                                            'flow-text-ds-flash': good}, 'dlg-empty-0001')
         self.assertEqual(status, 200, result)
         self.assertEqual(result['result']['heard'], 'A latte, please.')
-        self.assertEqual(models, ['flow-audio-omni-flash', 'flow-audio-omni-flash', 'flow-audio-asr-flash', 'flow-text-qwen-plus'])
+        self.assertEqual(models, ['flow-audio-omni-flash', 'flow-audio-omni-flash', 'flow-audio-asr-flash', 'flow-text-ds-flash'])
+
+    def test_nothing_heard_twice_without_speech_recognition(self):  # r35's e2e on 正式版 (no ASR there)
+        empty = json.dumps({'heard': '', 'reply': 'Sure.', 'correction': None, 'hint': '', 'say': ''})
+        good = json.dumps({'heard': 'A latte, please.', 'reply': 'Sure, one latte.', 'correction': None, 'hint': '', 'say': ''})
+        with patch.dict(os.environ, {'FLOW_ASR_AI_MODEL': ''}):
+            result, status, models = self.turn({'flow-audio-omni-flash': [empty, empty, 'A latte, please.'], 'flow-text-ds-flash': good},
+                                               'dlg-empty-0002')
+        self.assertEqual(status, 200, result)
+        self.assertEqual(result['result']['heard'], 'A latte, please.')
+        self.assertEqual(models, ['flow-audio-omni-flash'] * 3 + ['flow-text-ds-flash'])
 
     def test_a_refused_service_reads_as_a_plain_sentence(self):
         result, status, models = self.turn({'flow-audio-omni-flash': [down(403), down(403)], 'flow-audio-asr-flash': down(403)}, 'dlg-403-0001')

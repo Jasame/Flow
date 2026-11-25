@@ -227,7 +227,10 @@
     if (IN_WECHAT && !/iPhone|iPod/.test(ua) && !ipad) return 'wechat';
     if (/iPhone|iPod/.test(ua) || ipad) return /CriOS|FxiOS|EdgiOS|OPiOS|MicroMessenger|QQ\//.test(ua) ? 'ios-other' : ipad ? 'ipad' : 'iphone';
     if (installPrompt) return 'prompt';
-    return /Android/i.test(ua) ? 'android' : 'desktop';
+    if (/Android/i.test(ua)) return 'android';
+    // HarmonyOS NEXT (鸿蒙 5 and up: 华为浏览器 and other ArkWeb browsers) says OpenHarmony and no Android; without this it
+    // was told to use Chrome or Edge, as on a computer. HarmonyOS 4 and before say Android and keep the Android steps.
+    return /OpenHarmony/i.test(ua) ? 'harmony' : 'desktop';
   }
   addEventListener('appinstalled', () => { save('flow-installed', Date.now()); installPrompt = null; const n = document.getElementById('installNudge'); if (n) n.remove(); });
   // The 今日 notice: a phone browser (not WeChat, not already on the home screen) of a learner who has studied once.
@@ -243,6 +246,7 @@
       'ios-other': ['苹果手机要用 <b>Safari</b> 才能放到桌面：点下面的「复制网址」，打开 Safari，粘贴并前往', `在 Safari 里点底部中间的分享按钮 ${share}，选「<b>添加到主屏幕</b>」`],
       wechat: ['微信里不能放到桌面：点右上角「<b>···</b>」，选「<b>在浏览器打开</b>」', '在浏览器里打开「我的 → 添加到桌面」，按那里的两步做'],
       android: ['点浏览器右上角的 <b>⋮</b>（有的浏览器在底部，是 <b>≡</b>）', '选「<b>添加到主屏幕</b>」或「<b>安装应用</b>」（有的手机叫「添加到桌面」）'],
+      harmony: ['点浏览器的菜单按钮（华为浏览器在底部，是 <b>≡</b>）', '找到「<b>添加到桌面</b>」点一下（有的版本叫「添加至桌面」）'],
       desktop: ['用 Chrome 或 Edge 打开语流，点地址栏右边的「安装」图标', '装好以后，可以从开始菜单或程序坞打开'],
     }[k];
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">把语流放到桌面</h2>

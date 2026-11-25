@@ -48,7 +48,9 @@
   const APP_REC = () => !!(window.FlowApp && FlowApp.has && FlowApp.has('rec'));
   // where the microphone is turned on, by platform (docs/native-bridge.md, section 1)
   const APP_MIC = { ios: ' iPhone 的「设置 → 语流 → 麦克风」', android: '手机的「设置 → 应用 → 语流 → 权限 → 麦克风」',
+    harmony: '手机的「设置 → 应用和元服务 → 语流 → 麦克风」',  // HarmonyOS 5 (语流 C4, checked on its 5.0.1 emulator)
     windows: ' Windows 的「设置 → 隐私和安全性 → 麦克风」', macos: ' Mac 的「系统设置 → 隐私与安全性 → 麦克风」' };
+  const APP_MIC_ANY = '系统设置里找到语流，把麦克风';  // a platform not listed: no other system's path
   class AppRecorder {
     constructor(max) { this.max = max || 120; this.state = 'inactive'; this.mimeType = ''; this.ondataavailable = null; this.onstop = null; this.off = null; }
     start() {
@@ -82,7 +84,7 @@
   function recorderFor(stream, opts, maxSecs) { return stream && stream.app ? new AppRecorder(maxSecs) : new MediaRecorder(stream, opts); }
   async function micOpen() {  // the stream; throws an Error whose message is for the learner
     if (APP_REC()) {  // asked inside the tap, as with getUserMedia
-      if (!(await FlowApp.rec.ask())) throw new Error('没有拿到麦克风权限，到' + (APP_MIC[FlowApp.platform] || APP_MIC.ios) + '打开');
+      if (!(await FlowApp.rec.ask())) throw new Error('没有拿到麦克风权限，到' + (APP_MIC[FlowApp.platform] || APP_MIC_ANY) + '打开');
       LONG.other();
       return { app: true, getTracks: () => [] };
     }
