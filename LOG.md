@@ -297,3 +297,17 @@
   - #158 「AI 生成」标识组件：aiTag() / aiMark(note) 和统一样式（开局和考试、AI、发版和构建）
 - 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45553004599
+
+### b49 · 2026-11-25 13:46
+- main `ec25af7`，构建 `c0afd83`
+- 新合并的 PR（自 b48 起）：
+  - #154 测试和截图工具启动的浏览器不发出声音（tools/quiet.py 的 silent()）（操作指南、发版和构建）
+  - #167 安卓：模拟器测试一律静音，改签名的 PR 先问用户（只改 android/README.md）（网站其他）
+  - #169 桌面版：bundle id 和 iOS 对齐（cn.flowlang.app / cn.flowlang.app.beta）（网站其他）
+  - #140 单词读音：放不出来时先说原因，再用浏览器的声音读（听和说）
+  - #143 单词：同一个学员同时开两次首页不再 500（新词插入可重复执行）（单词）
+  - #166 桌面版：按共用约定对齐提醒规则和 FlowApp（docs/native-bridge.md）（网站其他）
+  - #159 浏览器声音被 iOS 吞掉时不再「一下子读完」或卡住：重读一次，还不行就停在那句并写明原因（听和说、操作指南）
+  - #168 复习提醒：App 通知开着时写「已开启」（安卓可关闭）；日历时长认 45、60 分钟（单词）
+- 自检：DEPLOYED，装了 5 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45555532132
