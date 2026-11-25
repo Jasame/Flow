@@ -365,3 +365,11 @@
   - #185 考试练习和能力测评：AI 写的短文、题目和解析标上「AI 生成」（开局和考试、操作指南）
 - 自检：DEPLOYED，装了 7 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45566932840
+
+### b54 · 2026-11-25 15:29
+- main `8bf2c25`，构建 `6207a35`
+- 新合并的 PR（自 b53 起）：
+  - #206 桌面版：截图用的浅色开关（调试版）；安装说明补 macOS 14 及更早（网站其他）
+  - #195 全文朗读不会再卡在「在读」：浏览器声音 4 秒没回音就停在那句并写明原因；speak() 抛错算被吞（听和说）
+- 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45568410266
