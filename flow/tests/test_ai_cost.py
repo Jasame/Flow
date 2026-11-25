@@ -407,7 +407,7 @@ class ConsoleTests(Site):
         self.assertEqual((st, body['daily'], body['nightly']), (200, 20.0, False))
         self.assertEqual(self.console('/settings/ai-budget', {'daily': 'lots'})[0], 400)
         with app.db() as c:
-            self.assertEqual(c.execute("SELECT detail FROM flow_admin_log WHERE action='ai-budget'").fetchone()[0], '每日预算 ¥20，硬停 ¥10，每晚小评测关，百炼折扣 0.65')
+            self.assertEqual(c.execute("SELECT detail FROM flow_admin_log WHERE action='ai-budget'").fetchone()[0], '每日预算 ¥20，硬停 ¥10，批量每晚 ¥15，每晚小评测关，百炼折扣 0.65')
 
     def test_the_learners_hard_stop_from_the_console(self):
         st, d = self.console('/ai?days=14')
@@ -420,6 +420,18 @@ class ConsoleTests(Site):
             self.assertEqual((st, body['stop'], ai_routes.stop_line()), (200, line, line), value)
         for bad in (-1, 'lots', True, 100001):
             self.assertEqual(self.console('/settings/ai-budget', {'stop': bad})[0], 400, bad)
+        # tonight's batch ceiling (ai_routes.batch_line, #330): the same rules, its own key and default ¥15
+        batch = self.console('/ai?days=14')[1]['batch']
+        self.assertEqual((batch['line'], batch['source'], batch['full']), (15.0, 'default', False))
+        for value, line in ((8, 8.0), (0, 0.0), (None, 15.0), ('', 15.0)):
+            st, body = self.console('/settings/ai-budget', {'batch': value})
+            self.assertEqual((st, body['batch'], ai_routes.batch_line()), (200, line, line), value)
+        for bad in (-1, 'lots', True, 100001):
+            self.assertEqual(self.console('/settings/ai-budget', {'batch': bad})[0], 400, bad)
+        self.console('/settings/ai-budget', {'batch': 8})
+        self.assertEqual(self.console('/ai?days=14')[1]['batch']['source'], 'console')
+        with app.db() as c:
+            self.assertIn('，批量每晚 ¥8，', c.execute("SELECT detail FROM flow_admin_log WHERE action='ai-budget' ORDER BY rowid DESC").fetchone()[0])
         self.console('/settings/ai-budget', {'stop': 0})
         stop = self.console('/ai?days=14')[1]['stop']
         self.assertEqual((stop['line'], stop['source'], stop['full']), (0.0, 'console', False))
