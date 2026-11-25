@@ -671,11 +671,25 @@
   // sleeps, the lock screen's buttons, on again after a call. Its news ('audio') moves LONG along; 'audio-tick' (four a
   // second, the page in front) lights the word of a recording, smoothed between ticks.
   const NATIVE = {
-    tick: null, raf: 0, sent: '', lone: null,
+    tick: null, raf: 0, sent: '', lone: null, last: null, watcher: null,
     on() { return !!(window.FlowApp && FlowApp.has && FlowApp.has('audio')); },
-    knobs(r) { return { rep: r.rep ? r.rep() : 1, gap: r.texts.map((_, k) => (r.gap ? r.gap(k) : 0)) }; },
+    // 复读 (times, the pause after each sentence) and 语速, as the page has them now (docs/native-bridge.md §3 set)
+    knobs(r) { return { rep: r.rep ? r.rep() : 1, gap: r.texts.map((_, k) => (r.gap ? r.gap(k) : 0)), rate: TTS.rate || 1 }; },
+    // changed while the app plays (a 复读 or 语速 chip, or meanwhile): the app gets them at once
+    retune(force) {
+      const r = LONG.r; if (!r || !r.native) return;
+      const k = JSON.stringify(this.knobs(r));
+      if (force || k !== this.sent) { this.sent = k; FlowApp.audio.set(this.knobs(r)).catch(() => {}); }
+    },
     start(r) {
-      const o = { key: r.key, title: r.title || '', from: r.i, rate: TTS.rate || 1, ...this.knobs(r) };
+      const d = this.last;
+      if (this.lone === r.key && d && d.key === r.key && d.state !== 'idle') {
+        // this page loaded again while the app went on with this very text: take it back where the app is, no new start
+        this.lone = null; if (typeof d.i === 'number') r.i = d.i; r.state = d.state === 'paused' ? 'playing' : d.state; r.note = '';
+        if (d.state === 'paused') FlowApp.audio.resume().catch(() => {});
+        MINI.paused(false); this.retune(true); LONG.save(); LONG.emit(); this.loop(); return;
+      }
+      const o = { key: r.key, title: r.title || '', from: r.i, ...this.knobs(r) };
       if (S.csrf) o.csrf = S.csrf;
       if (r.nm) { o.src = NAR.net; o.sentences = r.nm.sentences.map(x => [x.s, x.e]); o.loop = !!r.loop; const alt = mediaAlt(NAR.net); if (alt) o.alt = alt; }
       else { o.texts = r.texts; o.voice = r.voice || S.voice; if (r.pack) o.pack = r.pack; }
@@ -691,9 +705,41 @@
       if (typeof d.i === 'number' && d.i !== r.i) { r.i = d.i; r.n = 0; LONG.save(); }
       r.state = d.state; r.note = d.note || '';
       MINI.paused(d.state === 'paused');
-      const k = JSON.stringify(this.knobs(r));
-      if (k !== this.sent) { this.sent = k; FlowApp.audio.set(this.knobs(r)).catch(() => {}); }  // 复读 changed meanwhile
+      this.retune();  // 复读 or 语速 changed meanwhile
       LONG.emit(); this.loop();
+    },
+    // the sentence moved on between two 'audio' news (they come with each new sentence, §3; a tick says it as well)
+    ticked(d) {
+      this.tick = d;
+      const r = LONG.r;
+      if (r && r.native && d && d.key === r.key && typeof d.i === 'number' && d.i !== r.i) { r.i = d.i; r.n = 0; LONG.save(); LONG.emit(); }
+    },
+    // the app's news kept on this phone too (PROG), so 「从第 N 句继续」 is where the app got to, also after this page
+    // loaded again; read to the end clears it, any other stop keeps it (§3 进度)
+    keep(d) {
+      if (!d || !d.key) return;
+      this.last = d;
+      if (d.state === 'idle' && d.why === 'ended') PROG.clear(d.key); else if (typeof d.i === 'number') PROG.set(d.key, d.i);
+      const w = this.watcher; if (w && w.key === d.key && !LONG.of(d.key)) w.paint();
+    },
+    // the page with this text's 播放全文 / 伴读 button: in the app the button says where the app got to, its stored place
+    // when the page opens and its news while it plays this text without this page (loaded again meanwhile)
+    follow(key, paint) {
+      this.watcher = { key, paint };
+      this.reconcile(key).then(() => { if (!LONG.of(key)) paint(); });
+    },
+    // where the app got to in a text against this phone's PROG, the newer one counts (§3: the app played on while this
+    // page slept, or read it to the end): true when PROG changed, so the page can say 「从第 N 句继续」 again
+    reconcile(key) {
+      if (!this.on() || !key) return Promise.resolve(false);
+      return Promise.resolve(FlowApp.audio.progress(key)).then(p => {
+        if (!p || !(p.at > 0)) return false;
+        const mine = PROG.get(key);
+        if (mine && mine.at >= p.at) return false;
+        if (p.ended || !(p.i > 0)) { if (!mine) return false; PROG.clear(key); return true; }
+        if (mine && mine.i === p.i) return false;
+        PROG.set(key, p.i); return true;
+      }, () => false);
     },
     loop() {
       cancelAnimationFrame(this.raf);
@@ -705,8 +751,11 @@
       };
       this.raf = requestAnimationFrame(f);
     },
+    // the app's text, which this page did not start, after the router hid MINI for a new page: on screen again
+    reshow() { const d = this.last; if (!LONG.r && this.lone && d && d.key === this.lone && d.state !== 'idle') this.orphan(d); },
     // this page loaded again (a new version, iOS ended it in the background) while the app goes on: its control is back
     orphan(d) {
+      this.keep(d);
       if (LONG.r) return;
       if (d.state === 'idle') { if (this.lone) { this.lone = null; MINI.hide(); } return; }
       const label = (d.title || '朗读') + (d.n ? ` · 第 ${d.i + 1} / ${d.n} 句` : '');
@@ -719,7 +768,7 @@
   };
   if (NATIVE.on()) {
     FlowApp.on('audio', d => NATIVE.news(d));
-    FlowApp.on('audio-tick', d => { NATIVE.tick = d; });
+    FlowApp.on('audio-tick', d => NATIVE.ticked(d));
     FlowApp.audio.state().then(d => { if (d && d.state !== 'idle') NATIVE.news(d); }, () => {});
   }
 
@@ -873,7 +922,8 @@
     },
     // stop reading (✕, leaving the page, another text): where it was is kept
     stop() {
-      const r = this.r; if (!r) return;
+      const r = this.r;
+      if (!r) { if (NATIVE.lone) setTimeout(() => NATIVE.reshow(), 0); return; }  // a new page (the router hides MINI): the app's text keeps its control
       if (r.cont && NAR.audio.dataset.want === '1') { const [si] = NAR.locate(NAR.audio.currentTime); if (si >= 0) r.i = si; }
       this.save(); this.r = null; r.tok++; clearTimeout(r.timer);
       if (r.native) { cancelAnimationFrame(NATIVE.raf); FlowApp.audio.stop().catch(() => {}); }

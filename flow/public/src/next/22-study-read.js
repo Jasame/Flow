@@ -147,6 +147,7 @@
       };
       restart.onclick = async () => { LONG.stop(); PROG.clear(RKEY); if (!nmNow) nmNow = await narration(ls); readAlong(0); };
       setRa();
+      NATIVE.follow(RKEY, setRa);  // in the app: the button says where the app got to (it may have played on, or still plays)
       // An expression is read by the server voice (the browser voice where it is off); with neither (WeChat on Android,
       // the server voice off), its sentence from the narration.
       pane.querySelectorAll('[data-sayx]').forEach(b => b.onclick = () => {

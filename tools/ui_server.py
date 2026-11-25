@@ -163,6 +163,7 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             'fresh': ('', '', []), 'fresh2': ('', '', []),  # 选方向和目标: accounts with no settings yet (start_run)
             'abroad': ('B1', 'abroad', ['campus']),  # 留学: the plan's speaking step is 雅思 Part 1 (listen_speak_run); nothing else uses it
             'rounds': ('B1', 'work', ['work']),  # 口语情景 round 2: 在咖啡店点单 done 20 days ago (listen_speak_run)
+            'app-audio': ('B1', 'work', ['work', 'science']),  # 整篇朗读交给 App (app_audio_run): its kept places, nothing else uses it
             # swiping the review card from anywhere on the screen (swipe_run): one learner per screen size, each starting fresh
             **{f'swipe-{k}': ('B1', 'work', ['work', 'science']) for k in ('ipad-land', 'ipad-mini-land', 'phone')},
             'teacher': ('B1', 'work', ['work']), 'student': ('B1', 'work', ['work']),  # 班级试用 (class_run)

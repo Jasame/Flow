@@ -49,7 +49,7 @@ DEFAULT_SECONDS = 30
 # Every group ui_test.py has must be in one (tests/test_ci.py checks): a new group goes into the shortest share.
 # A name ui_test.py does not have yet is allowed: 'privacy' and 'trial-survey' arrive with PRs #58 and #59.
 UI_SHARDS = [
-    ['about', 'wait', 'home-app', 'ios-audio', 'review-side'],
+    ['about', 'wait', 'home-app', 'ios-audio', 'app-audio', 'review-side'],
     ['phone', 'phone-land', 'privacy', 'trial-survey', 'updates'],
     ['tablet', 'desktop', 'platforms', 'wechat', 'ux'],
     ['learner', 'progress', 'swipe', 'listen-speak', 'start', 'sprint', 'backlog', 'class'],
