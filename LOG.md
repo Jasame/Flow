@@ -425,3 +425,11 @@
   - #223 浏览器声音开始读了却不报读完时，不再卡在「在读」（听和说）
 - 自检：DEPLOYED，装了 6 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45581549988
+
+### b60 · 2026-11-25 17:12
+- main `03d6446`，构建 `6e2be23`
+- 新合并的 PR（自 b59 起）：
+  - #224 更新记录：r32 是下午发的；下载那句加上安卓（内容）
+  - #225 CI：按实测时间重新分 UI 的 5 份，每份约 450 s（发版和构建）
+- 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45583029191
