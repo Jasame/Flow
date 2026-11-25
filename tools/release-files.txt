@@ -385,6 +385,7 @@ flow/tests/test_teachers.py
 flow/tests/test_time_budget.py
 flow/tests/test_trial_survey.py
 flow/tests/test_tts.py
+flow/tests/test_updates.py
 flow/tests/test_ux_round.py
 flow/tests/test_vertex.py
 flow/tests/test_vocab.py
