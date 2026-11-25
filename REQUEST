@@ -1,3 +1,3 @@
-6207a3500329bd7ab88fdb67266577e53fab264c 92a637e53aad998058649c7a051a19478d6ca499b8f3b890c8d69fbdecbb0eb3 e2e light ref=build-8bf2c25b1435
-# b54 main: Merge pull request #195 from Jasame/browser-voice-stall = build of 8bf2c25b1435
+becad05d057e4520c40f3e83e65380f7ae828aff 4c8ba32565017f7b201bc9053eeac1d7143311c84abcfb089735a04024c848eb e2e light ref=build-b61147f8aa8f
+# b55 main: Merge pull request #205 from Jasame/msi-slots = build of b61147f8aa8f
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
