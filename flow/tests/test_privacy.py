@@ -65,6 +65,24 @@ class Privacy(unittest.TestCase):
 
 
 
+
+class ChapterDateTests(unittest.TestCase):
+    def test_the_privacy_chapter_has_its_dates_and_a_change_log_that_agree(self):
+        """「更新日期 ｜ 生效日期」 under the title, and 「修改记录」 at the end: a change of substance adds a line there and
+        moves the 更新日期 to that day (A0, 2026-11-25)."""
+        import re
+        text = (HERE / 'public/guide/guide.md').read_text(encoding='utf-8')
+        chapter = text[text.index('# 隐私和数据 {#privacy}'):]
+        chapter = chapter[:chapter.index('\n# ', 5)]
+        m = re.search(r'更新日期：(\d{4}-\d{2}-\d{2}) ｜ 生效日期：(\d{4}-\d{2}-\d{2})', chapter)
+        self.assertIsNotNone(m, 'the 隐私和数据 chapter needs 「更新日期：… ｜ 生效日期：…」 under its title')
+        self.assertLessEqual(m.group(2), m.group(1))
+        log = chapter[chapter.index('## 修改记录'):]
+        days = re.findall(r'^- (\d{4}-\d{2}-\d{2})：', log, re.M)
+        self.assertTrue(days, 'the 修改记录 lists each change on a line of its own')
+        self.assertEqual(max(days), m.group(1), 'the 更新日期 is the day of the newest line in 修改记录')
+
+
 class StorageTests(Privacy):
     """数据存放在香港 (the user, 2026-11-25): its own tick at sign-up; an older account is held until it answers; 不同意 or
     撤回 pauses the account (only agree again, export, delete, sign out, the password), no mail, out of class numbers,

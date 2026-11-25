@@ -126,10 +126,10 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
                 return .allow
             }
             if action.targetFrame?.isMainFrame == false { return .allow }
-            await UIApplication.shared.open(url)
+            await UIApplication.shared.open(url)  // another website, or the site over http: Safari
             return .cancel
-        default:  // mailto:, tel:, the App Store …
-            await UIApplication.shared.open(url)
+        default:  // mailto:, tel: to iOS; any other app's scheme is not opened from a page (AppConfig.opensOutside)
+            if AppConfig.opensOutside(url) { await UIApplication.shared.open(url) }
             return .cancel
         }
     }
@@ -208,7 +208,7 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
 
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for action: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
         if let url = action.request.url {
-            if AppConfig.isOwn(url) { webView.load(action.request) } else { UIApplication.shared.open(url) }
+            if AppConfig.isOwn(url) { webView.load(action.request) } else if AppConfig.opensOutside(url) { UIApplication.shared.open(url) }
         }
         return nil
     }
