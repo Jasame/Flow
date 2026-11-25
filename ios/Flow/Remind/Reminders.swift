@@ -105,7 +105,7 @@ final class Reminders {
         }
         save()
         let outcome = await refresh(force: true)
-        if outcome == .paused { return .failed("先在页面上回答「数据存放在香港」那一问：同意以后，提醒会自己排上。") }
+        if outcome == .paused { return .failed("先在页面上同意用户协议和隐私说明（含数据存放在香港）：同意以后，提醒会自己排上。") }
         let pending = await scheduled()
         if a.kind == .plan {
             guard pending.contains(where: { $0.id.hasPrefix("plan-") }) else { return .failed("没有排上，稍后再试一次。") }

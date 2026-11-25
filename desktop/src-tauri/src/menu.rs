@@ -77,7 +77,8 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
         Box::new(autostart.clone()),
         Box::new(test),
     ];
-    if cfg!(feature = "updater") {
+    if cfg!(feature = "updater") && app.state::<AppState>().channel == crate::site::Channel::Release
+    {
         app_items.push(Box::new(MenuItem::with_id(
             app,
             "update",
@@ -191,7 +192,8 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
         Box::new(tray.clone()),
         Box::new(test),
     ];
-    if cfg!(feature = "updater") {
+    if cfg!(feature = "updater") && app.state::<AppState>().channel == crate::site::Channel::Release
+    {
         items.push(Box::new(MenuItem::with_id(
             app,
             "update",

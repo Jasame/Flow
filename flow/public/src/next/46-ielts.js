@@ -7,8 +7,9 @@
     const row = (href, title, sub, last) => `<a class="nrow ${last != null ? 'st st-solid' : 'st st-untouched'}" href="${href}"><i class="dot" aria-hidden="true"></i>
         <span class="t"><b>${esc(title)}</b><span class="tiny muted">${esc(sub)}${last != null ? ` · 上次约 ${bandTxt(last)}` : ''}</span></span><span></span><span class="go" aria-hidden="true">›</span></a>`;
     view.innerHTML = `<div><a class="link small" href="#/speak">← 口语路线</a></div>
-      <div class="stack"><div><span class="kicker">雅思口语 · 练习</span><h1 class="h1">像考场一样开口说</h1>
-        <p class="muted small">Part 1 考官问日常问题，一题一题答；Part 2 拿到一张话题卡，准备 1 分钟，说 1–2 分钟。说完按雅思口语的四项标准（流利与连贯、词汇、语法、发音）给出估计分和改法。</p>
+      <div class="stack"><div><h1 class="h1">雅思口语</h1>
+        <p class="muted small">像考场一样开口说：Part 1 日常问答；Part 2 话题卡，准备 1 分钟，说 1–2 分钟。</p>
+        <details class="basis"><summary>怎么评分</summary><p class="small">说完按雅思口语的四项标准（流利与连贯、词汇、语法、发音）给出估计分和改法。</p></details>
         <p class="tiny ielts-note">${esc(d.notice)}</p></div>
       <section class="stack-s"><h2 class="h2">Part 1 · 日常问答</h2><p class="tiny muted">每个话题 4 个问题，大约 3 分钟。考官不打断你，每句下面可以看「这句可以更好」。</p>
         <div class="plist">${d.part1.map(x => row(`#/speak/ielts/p1-${x.id}`, x.title, x.title_en, x.last)).join('')}</div></section>
@@ -139,7 +140,7 @@
       stage.innerHTML = '<div class="card sunk small row"><span class="spin"></span><span>AI 在听你的回答，按四项标准估计分数（约 20–40 秒）</span></div>';
       try {
         const r = (await api('/api/next/ielts', { step: 'part2', card: x.id, request_id: rid('ie'), ...body })).result;
-        stage.innerHTML = '';
+        stage.innerHTML = ''; if (body.text) draftDone('ielts-p2-' + x.id);
         const cov = r.covered ? `<div class="tiny muted">话题卡的 4 个要点：${r.covered.map((c, k) => `<span class="${c ? 'ok-mark' : 'bad-mark'}">${c ? '✓' : '✗'}</span> ${esc(k < 3 ? x.points[k] : 'explain…')}`).join('　')}</div>` : '';
         const said = `<details class="card flat fold"><summary><b class="small">你说的${r.spoken ? '（AI 转写' + (r.seconds ? ' · ' + mmss(r.seconds) : '') + '）' : ''}</b></summary><div class="stack-s"><p class="text">${esc(r.transcript || '（没听清）')}</p>${cov}</div></details>`;
         out.innerHTML = ieltsFeedbackHTML(r, said);
@@ -181,7 +182,7 @@
     };
     stage.querySelector('#p2Type').onclick = () => {
       if (!S.user) { needLogin('登录后可以练雅思口语，AI 会看你的回答并给估计分。'); return; }
-      stage.innerHTML = `<textarea id="p2Txt" rows="8" maxlength="3000" lang="en" placeholder="像说话一样写下你的回答（至少 20 个英文词）"></textarea>
+      stage.innerHTML = `<textarea id="p2Txt" data-draft="ielts-p2-${esc(x.id)}" rows="8" maxlength="3000" lang="en" placeholder="像说话一样写下你的回答（至少 20 个英文词）"></textarea>
         <div class="row between"><span class="tiny muted">打字作答不评发音，其他三项照常估计</span><button class="btn primary" id="p2Send">提交</button></div>`;
       stage.querySelector('#p2Send').onclick = () => { const v = stage.querySelector('#p2Txt').value.trim(); if ((v.match(/[A-Za-z]+/g) || []).length < 20) { toast('至少写 20 个英文词'); return; } submit({ text: v }); };
     };

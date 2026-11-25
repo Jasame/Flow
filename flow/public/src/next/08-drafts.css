@@ -1,0 +1,3 @@
+/* 08-drafts.js: the line under a writing box whose draft came back — 「已恢复上次没写完的内容 · 清空」 */
+.draft-note{display:flex;align-items:center;flex-wrap:wrap;gap:4px 12px;margin:6px 0 0}
+.draft-note .link{flex:none}
