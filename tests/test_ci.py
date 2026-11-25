@@ -85,10 +85,10 @@ class MainFirstTests(unittest.TestCase):
 
     def test_a_pull_request_that_touches_only_the_native_apps_skips_the_website_tests(self):
         for paths in ([], [''], ['ios/Flow/App.swift', 'flow/app.py'], ['tools/run_tests.py'], ['README.md'], ['iosx/a'],
-                      ['.github/workflows/tests.yml'], ['desktop2/x']):
+                      ['.github/workflows/tests.yml'], ['desktop2/x'], ['nativex/a'], ['native/flowapp.js', 'docs/native-bridge.md']):
             self.assertTrue(rt.web_needed(paths), paths)
         for paths in (['ios/Flow/App.swift'], ['ios/a', '.github/workflows/ios.yml'], ['desktop/src/main.rs', '.github/workflows/desktop.yml'],
-                      ['android/app/build.gradle']):
+                      ['android/app/build.gradle'], ['native/flowapp.js'], ['native/flowapp.js', 'ios/Flow/Bridge/Bridge.swift']):
             self.assertFalse(rt.web_needed(paths), paths)
             self.assertFalse(rt.ui_needed(paths), paths)
         r = subprocess.run([sys.executable, str(ROOT / 'tools' / 'run_tests.py'), '--needs'], input='ios/Flow/App.swift\n',
@@ -284,6 +284,7 @@ class MsiRunTests(unittest.TestCase):
         self.assertIn('GIT_INDEX_FILE=', sh)  # the snapshot is made in a throwaway index
         self.assertIn('nice -n 10', sh)  # CI's runners keep priority
         self.assertIn('</dev/null 9>&-', sh)  # the script on stdin is not eaten, the lock is not inherited
+        self.assertIn('-mtime +0', sh); self.assertIn('committerdate:unix', sh)  # leftovers of stopped runs go after a day
         for word in ('git stash', 'git checkout', 'git reset', 'sudo', 'secrets.'):
             self.assertNotIn(word, sh)
 

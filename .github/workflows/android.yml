@@ -1,6 +1,6 @@
 name: Android
-# The Android app (android/, 语流 21): the Beta debug build, its unit tests and lint, on every change under android/
-# (or this file). The website's runs are unchanged: tests.yml skips its shares for a pull request that touches only
+# The Android app (android/, 语流 21): the Beta debug build, its unit tests and lint, on every change under android/,
+# native/ (the FlowApp wrapper the apps share, copied in when the app is packaged) or this file. The website's runs are unchanged: tests.yml skips its shares for a pull request that touches only
 # the native apps (tools/run_tests.py NATIVE_APPS). Not a required check: a path-filtered check never reports on a
 # website pull request, so requiring it would block them all. Whoever merges an Android pull request first checks
 # this run is green. CI belongs to 语流 15.
@@ -16,10 +16,10 @@ name: Android
 # run here yet.
 on:
   pull_request:
-    paths: ['android/**', '.github/workflows/android.yml']
+    paths: ['android/**', 'native/**', '.github/workflows/android.yml']
   push:
     branches: [main]
-    paths: ['android/**', '.github/workflows/android.yml']
+    paths: ['android/**', 'native/**', '.github/workflows/android.yml']
   workflow_dispatch:
 permissions:
   contents: read

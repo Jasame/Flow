@@ -256,20 +256,20 @@ class Handler(BaseHTTPRequestHandler):
   # /audio/words/<accent>/<sprite>.aac?s=<start>&e=<end>: one word cut from its sprite with silence in front (word_clip:
   # an iPhone waking its audio lost the start of a word played from the middle of the sprite).
   import next_service
-  parts=path.split('/');data=None;mime=None;private=False
+  parts=path.split('/');data=None;mime=None;private=False;aigc=None
   if len(parts)==5 and parts[2]=='words' and parts[4][-4:] in ('.m4a','.mp4'):f=__import__('vocab_service').word_audio_file(parts[3],parts[4][:-4])
   elif len(parts)==5 and parts[2]=='words' and parts[4].endswith('.aac'):
    f=__import__('vocab_service').word_audio_file(parts[3],parts[4][:-4]);q=parse_qs(urlsplit(self.path).query)
    wc=__import__('word_clip')
    try:data=wc.clip(f,float(q.get('s',[''])[0]),float(q.get('e',[''])[0]),wc.MAX,float(q.get('l',[wc.LEAD])[0]),trim=wc.TRIM) if f and f.is_file() else None
    except (ValueError,OSError,IndexError,KeyError,StopIteration,TypeError,__import__('struct').error):data=None
-   f=f if data else None;mime='audio/aac'
+   f=f if data else None;mime='audio/aac';aigc=('flow-words',parts[3],parts[4][:-4])
   elif len(parts)==4 and parts[3].endswith('.aac'):
    # /audio/<voice>/<material>.aac?v=&s=&e=: one sentence of a narration, cut the same way (played by Web Audio on iPhones)
    f=next_service.audio_file(parts[2],parts[3][:-4],'m4a');q=parse_qs(urlsplit(self.path).query);wc=__import__('word_clip')
    try:data=wc.clip(f,float(q.get('s',[''])[0]),float(q.get('e',[''])[0]),wc.SENTENCE,float(q.get('l',[wc.LEAD])[0])) if f and f.is_file() else None
    except (ValueError,OSError,IndexError,KeyError,StopIteration,TypeError,__import__('struct').error):data=None
-   f=f if data else None;mime='audio/aac'
+   f=f if data else None;mime='audio/aac';aigc=('flow-narration',parts[2],parts[3][:-4])
   elif len(parts)==5 and parts[2]=='tts':f=__import__('tts_service').file(parts[3],parts[4])
   elif len(parts)==5 and parts[2]=='own':
    # /audio/own/<voice>/<hash>.mp3: a sentence of the learner's own article (an import), served to that learner only
@@ -295,6 +295,11 @@ class Handler(BaseHTTPRequestHandler):
   self.send_response(status);self.headers_common(mime or {'.m4a':'audio/mp4','.mp3':'audio/mpeg'}.get(f.suffix,'application/json; charset=utf-8'))
   self.send_header('Accept-Ranges','bytes');self.send_header('Cache-Control',('private' if private else 'public')+', max-age=604800')
   if status==206:self.send_header('Content-Range',f'bytes {start}-{end}/{size}')
+  # 隐式标识 of a clip cut on request (aigc_label; 2026-11-25): its bytes are left as they are (an ID3 tag in front of ADTS
+  # is untried on iPhones), the same AIGC value goes in a header; the sprite it is cut from carries it in its own file
+  if aigc:
+   try:self.send_header('AIGC',__import__('aigc_label').value('-'.join(aigc)).decode())
+   except ValueError:pass
   self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def user(self,c):
   self.renew=None
