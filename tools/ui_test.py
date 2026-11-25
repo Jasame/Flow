@@ -1022,6 +1022,16 @@ def app_audio_run(pw):
         after = cmds()
         check(dev, "…and 播放全文 takes the app's text back: no new audio.play, 复读 and 语速 sent, 暂停, 第 6 句 lit",
               'audio.play' not in after and 'audio.set' in after and btn().endswith('暂停') and lit() == '5', (after, btn(), lit()))
+        # 语速 and 单句循环 changed on the lock screen (iOS 27, C1's #335: rate, rep, loop with why 'remote'): the page takes
+        # them, its line follows, and it pushes nothing back (a set would put 1× back); turned off, the page's own come back
+        pg.evaluate('window.__cmds = []')
+        emit('audio', {'key': key, 'state': 'playing', 'i': 5, 'n': n, 'title': 't', 'why': 'remote', 'rate': 1.25, 'rep': 0, 'loop': True}); pg.wait_for_timeout(200)
+        kn = pg.evaluate("() => ({ rate: JSON.parse(localStorage.getItem('flow-next-rate')), rep: (JSON.parse(localStorage.getItem('flow-next-loop') || '{}')).rep, sum: (document.getElementById('psum') || {}).textContent || '' })")
+        check(dev, '语速 1.25× and 单句循环 from the lock screen: the page takes them and pushes nothing back',
+              kn['rate'] == 1.25 and kn['rep'] == 0 and '1.25×' in kn['sum'] and '单句循环' in kn['sum'] and 'audio.set' not in cmds(), (kn, cmds()))
+        emit('audio', {'key': key, 'state': 'playing', 'i': 5, 'n': n, 'title': 't', 'why': 'remote', 'rate': 1, 'rep': 1, 'loop': False}); pg.wait_for_timeout(200)
+        kn = pg.evaluate("() => ({ rate: JSON.parse(localStorage.getItem('flow-next-rate')), rep: (JSON.parse(localStorage.getItem('flow-next-loop') || '{}')).rep })")
+        check(dev, '…and turned off there, the page is back to 1× and 每句 1 遍, still nothing pushed', kn['rate'] == 1 and kn['rep'] == 1 and 'audio.set' not in cmds(), (kn, cmds()))
         emit('audio', {'key': key, 'state': 'idle', 'why': 'ended', 'i': n - 1, 'n': n}); pg.wait_for_timeout(200)
         check(dev, 'read to the end: the kept place cleared, the mini player gone, 播放全文 again',
               prog() is None and mini() is None and btn().endswith('播放全文'), (prog(), mini(), btn()))
