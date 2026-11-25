@@ -105,7 +105,8 @@ class RouteTests(unittest.TestCase):
         st, h, short = self.get('/audio/words/us/w000.aac?s=0.2&e=0.9&l=0.1')
         self.assertEqual((st, short), (200, wc.clip(vs.WORD_AUDIO_DIR / 'us' / 'w000.m4a', 0.2, 0.9, lead=0.1, trim=wc.TRIM)))
         self.assertLess(len(short), len(body))
-        self.assertEqual(json.loads(h['AIGC']), {'Label': '1', 'ContentProducer': 'FlowLang', 'ProduceID': 'flow-words-us-w000'})  # 隐式标识 of a cut clip
+        tag = json.loads(h['AIGC'])  # 隐式标识 of a cut clip: aigc_label.value() (its other fields are that module's own business)
+        self.assertEqual((tag['Label'], tag['ContentProducer'], tag['ProduceID']), ('1', 'FlowLang', 'flow-words-us-w000'))
 
     def test_a_sentence_of_a_narration_is_cut_the_same_way(self):
         import next_service as nx
@@ -150,7 +151,9 @@ class AigcLabelTests(unittest.TestCase):
 
     def test_a_sprite_gets_the_label_in_its_free_space_and_keeps_its_audio(self):
         lab = self.al.mp4(self.src, 'flow-words-us-w000')
-        self.assertEqual(self.al.read_mp4(lab), {'Label': '1', 'ContentProducer': 'FlowLang', 'ProduceID': 'flow-words-us-w000'})
+        tag = self.al.read_mp4(lab)
+        self.assertEqual((tag['Label'], tag['ContentProducer'], tag['ProduceID']), ('1', 'FlowLang', 'flow-words-us-w000'))
+        self.assertEqual(json.dumps(tag, separators=(',', ':')).encode('ascii'), self.al.value('flow-words-us-w000'))  # the value, as it is
         self.assertIsNone(self.al.read_mp4(self.src))
         self.assertEqual(len(lab), len(self.src))  # the free box after moov gave up the bytes: mdat did not move
         self.assertEqual(self.al.mp4(lab, 'other'), lab)  # once only
