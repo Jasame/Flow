@@ -76,5 +76,20 @@ class FrontLayoutTests(unittest.TestCase):
         self.assertNotIn('class="bands"', js)
 
 
+class OldSafariTests(unittest.TestCase):
+    """iPhones and iPads before iOS 16.4 (Safari 16.3 and older) cannot parse a regular expression with lookbehind
+    ((?<= or (?<!), nor a class static block. One of them anywhere in next.js and none of it runs: the page stays at
+    next.html's 「正在打开…」 with the tab bar, and nothing reports it (the error reporter is in next.js too). Learners
+    on iOS 16.1 met it on 2026-11-25 (30-lookup.js splitSentences, there since 2026-11-22)."""
+
+    def test_no_syntax_older_iphones_cannot_parse(self):
+        found = []
+        for f in sorted((NEXT / 'src' / 'next').glob('*.js')) + [NEXT / 'sw.js']:
+            for n, line in enumerate(f.read_text(encoding='utf-8').splitlines(), 1):
+                if '(?<=' in line or '(?<!' in line or re.search(r'\bstatic\s*\{', line):
+                    found.append(f'{f.name}:{n}')
+        self.assertEqual(found, [], 'iOS before 16.4 cannot parse these (lookbehind, class static block): write them without')
+
+
 if __name__ == '__main__':
     unittest.main()
