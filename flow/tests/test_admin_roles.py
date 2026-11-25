@@ -124,6 +124,10 @@ class ClassicArchivedTests(Servers):
             st, got, h = self.call(self.site, '/download/' + apk.name, raw=True)
             self.assertEqual((st, got, h['Content-Type']), (200, apk.read_bytes(), 'application/vnd.android.package-archive'))
             self.assertEqual(h['Content-Disposition'], f'attachment; filename="{apk.name}"')
+            deb = Path(d) / 'flow-linux-1.2.3-amd64.deb'; deb.write_bytes(b'!<arch> a package')
+            img = Path(d) / 'flow-linux-1.2.3-x86_64.AppImage'; img.write_bytes(b'ELF an image')
+            self.assertEqual(self.call(self.site, '/download/' + deb.name, raw=True)[2]['Content-Type'], 'application/vnd.debian.binary-package')
+            self.assertEqual(self.call(self.site, '/download/' + img.name, raw=True)[2]['Content-Type'], 'application/octet-stream')
             for path in ('/download/', '/download/notes.txt', '/download/.flow.apk', '/download/..%2fapp.py',
                          '/download/sub/flow.apk', '/download/flow-9.apk', '/download/' + 'a' * 101 + '.apk'):
                 self.assertEqual(self.call(self.site, path, raw=True)[0], 404, path)
