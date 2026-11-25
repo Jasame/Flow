@@ -987,8 +987,8 @@ def app_audio_run(pw):
         line = (pg.text_content('#lsPrep') or '').strip() if pg.is_visible('#lsPrep') else ''
         emit('audio', {'key': key, 'state': 'playing', 'i': 3, 'n': n, 'title': 't', 'fail': {'code': 'offline', 'server': ''}}); pg.wait_for_timeout(200)
         said = [x for x in (pg.evaluate('window.__toasts') or []) if x.startswith('离线中')]
-        check(dev, "the app fell back to the phone's voice (offline): the line under 播放全文 and one toast say why",
-              line.startswith('离线中，这句还没存到本机') and len(said) == 1, (line, said))
+        check(dev, "the app fell back to the phone's voice (offline): the line under 播放全文 and one toast say why, in the app's words (系统自带的声音)",
+              line == '离线中，这句还没存到本机，先用系统自带的声音' and len(said) == 1, (line, said))
         emit('audio', {'key': key, 'state': 'playing', 'i': 3, 'n': n, 'title': 't'}); pg.wait_for_timeout(200)
         check(dev, 'the next sentence in the AI voice again: the line goes', not pg.is_visible('#lsPrep') or not (pg.text_content('#lsPrep') or '').strip(), pg.text_content('#lsPrep'))
         pg.evaluate("document.querySelector('.playset').open = true")  # 语速 and 复读 sit in 播放设置
