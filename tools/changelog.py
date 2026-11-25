@@ -58,7 +58,7 @@ AREAS = [
                'flow/survey_service.py', 'flow/account_*', 'flow/auth_service.py', 'flow/feedback_service.py',
                'flow/mail_layout.py', 'flow/public/survey*', 'flow/public/src/next/8[1-3]-*',
                'flow/public/src/next/99-privacy.css', 'flow/public/src/next/99-class.css']),
-    ('AI', ['flow/ai_*', 'flow/chat_service.py', 'flow/vertex_*', 'flow/search_eval.py', 'flow-gateway/*', 'tools/ai-gateway/*',
+    ('AI', ['flow/ai_*', 'flow/aigc_label.py', 'flow/chat_service.py', 'flow/vertex_*', 'flow/search_eval.py', 'flow-gateway/*', 'tools/ai-gateway/*',
             'flow/public/src/next/99-ai-mark.css']),
     ('内容', ['flow/corpus_data/*', 'flow/content_*', 'flow/corpus_*', 'flow/easy_reading.py', 'tools/narration_pack.py',
             'tools/corpus_validate.py', 'tools/gen_audio.py', 'tools/push_media.py', 'flow/media.py']),
