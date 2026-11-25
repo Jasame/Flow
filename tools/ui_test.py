@@ -3092,6 +3092,10 @@ def home_app_run(pw):
             ctx, pg, errs = context(size)
             pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
             check(dev, f'{size}: the page knows it is a home-screen app', pg.evaluate("document.documentElement.classList.contains('home-app')"))
+            for page in ('#/', f'#/m/{PID}/read'):  # --bar-h, for pages that fill one screen: the bar's real height, back button or not
+                go(pg, page); pg.wait_for_timeout(150)
+                bh = pg.evaluate("[parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bar-h')), Math.round(document.getElementById('bar').getBoundingClientRect().height)]")
+                check(dev, f'{size} {page}: --bar-h is the top bar\'s height ({bh[1]}px, the inset included)', bh[0] == bh[1] and bh[1] >= 48 + top, bh)
             # the four tabs: no back button, the logo below the Dynamic Island, every tab above the home bar
             for page in ('#/', '#/practice', '#/cards', '#/me'):
                 go(pg, page)

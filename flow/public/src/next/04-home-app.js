@@ -12,6 +12,9 @@
   const IN_APP = /Flow(iOS|Android|Desktop)\//.test(navigator.userAgent) || !!window.FlowApp;  // as docs/native-bridge.md (#162) names them
   const HOME_APP = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true || IN_APP;
   document.documentElement.classList.toggle('home-app', HOME_APP);
+  // --bar-h: the top bar's height as it is (the status bar or Dynamic Island above it in the home-screen app, a back
+  // button's taller row), for pages that fill one screen (复习 and 测词汇量, 80-flat.css — 语流 11). 48px until measured.
+  if (window.ResizeObserver && bar) new ResizeObserver(() => document.documentElement.style.setProperty('--bar-h', Math.round(bar.getBoundingClientRect().height) + 'px')).observe(bar, { box: 'border-box' });  // the inset is padding
 
   // ---- 返回: in the top bar, in place of the logo, on every page but the four tabs and the first-visit page.
   // It goes to the page before when the app has one (the history kept here), else to the page's own tab (‹ 练习).
