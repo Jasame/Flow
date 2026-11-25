@@ -34,7 +34,7 @@ TASKS = [  # kind, label, group (grading: marks what a learner wrote or said; co
     ('next-retell', '复述点评', 'grading'), ('next-dialog', '情景对话', 'grading'), ('next-ielts', '雅思口语点评', 'grading'),
     ('next-explain', '句子讲解', 'content'), ('next-variant', '难度改写', 'content'), ('next-examples', 'AI 例句', 'content'),
     ('next-transsrc', '翻译原句', 'content'), ('next-enrich', '导入文章出题', 'content'), ('daily-news', '今日热点改写', 'content'),
-    ('daily-topic', '今日话题（原创短文）', 'content'),
+    ('daily-topic', '今日一读（原创短文）', 'content'),
     ('context-help', '随堂提示', 'chat'), ('chat', '导师问答', 'chat'),
 ]
 LABEL = {k: l for k, l, _ in TASKS}
@@ -760,3 +760,4 @@ def tick(c, now=None):
     t = now or time.time()
     if int(t // 300) % 288 == 0:  # about once a day
         prune(c)
+        __import__('output_service').prune_say(c, now)  # 发音 verdict counts: 14 days even when nobody practises

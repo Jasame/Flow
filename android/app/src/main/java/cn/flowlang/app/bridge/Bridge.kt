@@ -25,7 +25,8 @@ import org.json.JSONObject
 
 /**
  * The page ↔ app bridge (docs/native-bridge.md, FlowApp v1): window.FlowApp, put in place before the page's scripts on
- * the site's own origin only (assets/flowapp.js), and the `flowNative` message channel behind it (WebMessageListener:
+ * the site's own origin only (assets/flowapp-android.js + the shared native/flowapp.js), and the `flowNative` message
+ * channel behind it (WebMessageListener:
  * {id, cmd, args} in, {id, ok, result | error} back, {ev, detail} for events). Only the main frame of the site is heard.
  * Where the phone's WebView is too old for either, nothing is added and the page works as in a browser.
  */
@@ -45,10 +46,14 @@ class Bridge(private val activity: MainActivity) : WebViewCompat.WebMessageListe
     }
 
     private fun config() = JSONObject().put("v", 1).put("app", BuildConfig.FLOW_VERSION).put("build", BuildConfig.FLOW_BUILD)
-        .put("beta", BuildConfig.FLAVOR == "beta").put("features", JSONArray(FEATURES)).put("mute", Mute.on)
+        .put("beta", BuildConfig.FLAVOR == "beta").put("platform", "android").put("features", JSONArray(FEATURES)).put("mute", Mute.on)
 
-    private fun script(): String = activity.assets.open("flowapp.js").bufferedReader().use { it.readText() }
-        .replace("__FLOW_CONFIG__", config().toString())
+    /** Android's own lines (assets/flowapp-android.js: the transport, _back, speech, the test switch), then the wrapper the
+     *  three apps share (native/flowapp.js, copied into the assets when the app is built). */
+    private fun script(): String {
+        fun asset(name: String) = activity.assets.open(name).bufferedReader().use { it.readText() }
+        return asset("flowapp-android.js").replace("__FLOW_CONFIG__", config().toString()) + "\n" + asset("flowapp.js")
+    }
 
     override fun onPostMessage(view: WebView, message: WebMessageCompat, sourceOrigin: Uri, isMainFrame: Boolean, replyProxy: JavaScriptReplyProxy) {
         if (!isMainFrame || !Site.isOwn(sourceOrigin)) return

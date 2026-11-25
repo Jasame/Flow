@@ -21,7 +21,7 @@
     const goals = swap ? x.swap_goals : x.goals;
     view.innerHTML = `<div><a class="link small" href="#/speak">← 口语路线</a></div>
       <div class="stack"><div><span class="kicker">情景对话 · ${esc(x.level)}${again ? ` · 第 ${x.round} 轮` : ''}</span><h1 class="h1">${esc(x.title)}</h1><div class="title-en">${esc(x.title_en)}</div>
-        ${aiMark('对话里的角色由 AI 扮演，每句的纠正也由 AI 给出')}<p class="small">${swap ? `这一轮换过来：你扮演${esc(x.ai)}，AI 扮演${esc(x.me)}。情景还是：${esc(x.brief)}` : esc(x.brief)}</p></div>
+        ${aiMark('对话里的角色由 AI 扮演，每句的纠正也由 AI 给出')}<div class="ai-line">${aiVoice()}<span>角色说话的声音也由 AI 合成</span></div><p class="small">${swap ? `这一轮换过来：你扮演${esc(x.ai)}，AI 扮演${esc(x.me)}。情景还是：${esc(x.brief)}` : esc(x.brief)}</p></div>
       <div class="scene-goals"><div class="kicker">你的任务${swap ? `（你是${esc(x.ai)}）` : ''}</div><ol class="steps-list small">${goals.map(g => `<li>${esc(g)}</li>`).join('')}</ol>
         ${x.mode === 'challenge' ? `<div class="round-extra small"><b>这一轮多一条：</b>${esc(x.challenge)}</div>` : ''}</div>
       ${swap ? '' : `<details class="useful"><summary class="small">用得上的说法（${x.useful.length}）</summary><div class="plist">${x.useful.map(u => `<div class="crow"><button class="icon-btn" data-say="${esc(u.text)}" aria-label="朗读">${ICON.speak}</button><span><span class="en">${esc(u.text)}</span><span class="tiny muted">${esc(u.meaning)}</span></span></div>`).join('')}</div></details>`}

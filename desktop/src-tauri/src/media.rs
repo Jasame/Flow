@@ -39,6 +39,23 @@ impl MediaState {
     }
 }
 
+/// What the system's 「正在播放」 shows under the title. Every voice in 语流 is synthesized (Kokoro recordings made by
+/// a model, CosyVoice), so it says 「AI 朗读」 — the explicit label 《人工智能生成合成内容标识办法》 asks for on a
+/// player the app draws itself (语流 12, 2026-11-25). The page's own label stays in the page.
+pub fn display_artist(s: &MediaState) -> String {
+    let a = s
+        .artist
+        .as_deref()
+        .map(str::trim)
+        .filter(|a| !a.is_empty())
+        .unwrap_or("语流 Flow");
+    if a.contains("AI 朗读") {
+        a.to_string()
+    } else {
+        format!("{a} · AI 朗读")
+    }
+}
+
 /// A key or button press, whichever system it came from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Key {
@@ -160,7 +177,7 @@ pub mod system {
                 {
                     let _ = c.set_metadata(MediaMetadata {
                         title: s.title.as_deref(),
-                        artist: Some(s.artist.as_deref().unwrap_or("语流 Flow")),
+                        artist: Some(&display_artist(&s)),
                         album: None,
                         cover_url: None,
                         duration: tl.map(|t| Duration::from_secs_f64(t.1)),
@@ -242,6 +259,19 @@ mod tests {
         s.position = Some(200.0);
         s.duration = Some(180.0);
         assert_eq!(timeline(&s), Some((180.0, 180.0)));
+    }
+
+    #[test]
+    fn the_system_player_says_ai_voice() {
+        let mut s = st("playing", &["play"]);
+        assert_eq!(display_artist(&s), "语流 Flow · AI 朗读");
+        s.artist = Some("语流 Flow".into());
+        assert_eq!(display_artist(&s), "语流 Flow · AI 朗读");
+        // the page already says it: not twice
+        s.artist = Some("AI 朗读 · 语流".into());
+        assert_eq!(display_artist(&s), "AI 朗读 · 语流");
+        s.artist = Some("  ".into());
+        assert_eq!(display_artist(&s), "语流 Flow · AI 朗读");
     }
 
     #[test]

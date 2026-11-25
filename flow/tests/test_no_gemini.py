@@ -3,7 +3,7 @@ asked. A text route that fails goes to FLOW_BACKUP_AI_MODEL (another 百炼 mode
 whose audio route fails is written down by FLOW_ASR_AI_MODEL and answered by that backup model; 跟读 has no text
 backup; run_job's last try asks the backup model. 发音 (FLOW_SAY_JUDGE=asr) is judged by speech recognition told the
 word and its pair word. With the switch on (the default) nothing changes (test_ai_routing, test_audio_route)."""
-import base64, io, json, os, sys, tempfile, unittest, urllib.error
+import base64, io, json, os, sys, tempfile, time, unittest, urllib.error
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -269,7 +269,8 @@ class SayTests(unittest.TestCase):
 
 class OmniWordTests(unittest.TestCase):
     """发音 without qwen3-asr (Aliyun ticket 2026-11-25 13:58: no filing; the owner: 「不用 qwen3-asr，先用 Omni」): Qwen-Omni
-    writes down the word it hears, told nothing of the word expected, and say_verdict decides. Its verdict counts."""
+    writes down the word it hears, told nothing of the word expected, and say_verdict decides. A reference only until
+    FLOW_SAY_COUNTS=on (the owner: 「先只作参考」); every verdict is logged without the account for the spot-check."""
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.p = patch.object(app, 'DB', Path(self.tmp.name) / 's.db'); self.p.start()
@@ -281,27 +282,45 @@ class OmniWordTests(unittest.TestCase):
     def tearDown(self):
         self.c.close(); self.env.stop(); self.p.stop(); self.tmp.cleanup()
 
-    def say(self, answer, rid, text='think'):
+    def say(self, answer, rid, text='think', counts=''):
         urlopen, sent = gateway({'flow-audio-omni-flash': [answer]})
-        with patch('urllib.request.urlopen', urlopen), patch('time.sleep'), \
+        with patch('urllib.request.urlopen', urlopen), patch('time.sleep'), patch.dict(os.environ, {'FLOW_SAY_COUNTS': counts}), \
                 patch.object(cs, '_request_main', side_effect=AssertionError('Gemini asked')), \
                 patch.object(cs, 'transcribe', side_effect=AssertionError('qwen3-asr asked')):
             result, status = out.say(self.c, 1, {'text': text, 'audio': WEBM, 'request_id': rid})
         self.assertEqual(status, 200, result)
         return result['result'], sent
 
-    def test_omni_writes_the_word_down_told_nothing_and_two_misses_make_the_card(self):
-        r, sent = self.say('Think.', 'say-omni-0001')
+    def test_omni_writes_the_word_down_told_nothing_and_with_the_switch_two_misses_make_the_card(self):
+        r, sent = self.say('Think.', 'say-omni-0001', counts='on')
         self.assertTrue(r['ok']); self.assertFalse(r['tentative'])
         self.assertEqual([b['model'] for b in sent], ['flow-audio-omni-flash'])
         asked = json.dumps([m if isinstance(m['content'], str) else [x for x in m['content'] if x.get('type') == 'text'] for m in sent[0]['messages']])
         self.assertNotIn('think', asked); self.assertNotIn('sink', asked)  # told nothing: hints made it worse (5 / 10 in 48)
-        r, _ = self.say('Sink.', 'say-omni-0002')
+        r, _ = self.say('Sink.', 'say-omni-0002', counts='on')
         self.assertFalse(r['ok']); self.assertFalse(r['confirmed']); self.assertEqual(r['heard'], 'sink')
-        r, _ = self.say('Sink.', 'say-omni-0003')
+        r, _ = self.say('Sink.', 'say-omni-0003', counts='on')
         self.assertTrue(r['confirmed'])
         self.assertEqual(self.c.execute("SELECT COUNT(*) FROM next_cards WHERE user_id=1 AND norm='sound:think'").fetchone()[0], 1)
         self.assertEqual([x[0] for x in self.c.execute("SELECT DISTINCT service FROM ai_calls")], ['word'])
+
+    def test_by_default_a_reference_only_never_a_mistake_and_logged_without_the_account(self):
+        for i in range(3):
+            r, _ = self.say('Sink.', f'say-omni-01{i}0')
+            self.assertFalse(r['ok']); self.assertTrue(r['tentative']); self.assertFalse(r['confirmed'])
+        self.assertEqual(self.c.execute("SELECT COUNT(*) FROM next_cards WHERE user_id=1").fetchone()[0], 0)
+        rows = [tuple(x) for x in self.c.execute('SELECT word, partner, judge, reason, ok, counted FROM say_judgements')]
+        self.assertEqual(rows, [('think', 'sink', 'omni', 'pair', 0, 0)] * 3)
+        cols = [x[1] for x in self.c.execute('PRAGMA table_info(say_judgements)')]
+        self.assertEqual(cols, ['id', 'day', 'word', 'partner', 'judge', 'reason', 'ok', 'counted'])  # nothing of the learner's
+        self.assertRegex(self.c.execute('SELECT day FROM say_judgements').fetchone()[0], r'^\d{4}-\d\d-\d\d$')  # the day, not the moment
+        self.assertEqual(out.say_summary(self.c)['wrong_words'], [{'word': 'think', 'partner': 'sink', 'n': 3}])
+        self.c.execute("UPDATE say_judgements SET day='2000-01-01'"); self.c.commit()
+        self.say('Think.', 'say-omni-0200')
+        self.assertEqual([tuple(x) for x in self.c.execute('SELECT word, reason FROM say_judgements')], [('think', 'target')])  # 14 days
+        self.c.execute("UPDATE say_judgements SET day='2000-01-01'"); self.c.commit()
+        ai_routes.tick(self.c, now=time.time() // 86400 * 86400)  # the daily round (a day's first 5 minutes), nobody practising
+        self.assertEqual(self.c.execute('SELECT COUNT(*) FROM say_judgements').fetchone()[0], 0)
 
     def test_a_word_written_as_one_that_sounds_the_same_is_right(self):
         r, _ = self.say('There.', 'say-omni-0004', text='their')

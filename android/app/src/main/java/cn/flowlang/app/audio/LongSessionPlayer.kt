@@ -15,7 +15,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import java.io.ByteArrayOutputStream
 
 /**
- * What the lock screen, the notification shade and the headphones see: one item, 「标题 · 第 3 / 20 句」, playing or
+ * What the lock screen, the notification shade and the headphones see: one item, 「标题」 and 「AI 朗读 · 第 3 / 20 句」, playing or
  * paused, with previous / next sentence. It only describes [FlowAudio]; the buttons act on it (why = remote), so a
  * pause between sentences, a sentence being made or one read by the phone's own voice still shows as playing.
  */
@@ -42,7 +42,9 @@ class LongSessionPlayer(private val audio: FlowAudio) : SimpleBasePlayer(Looper.
                 .build()
         }
         val line = buildString {
-            append("第 ").append(audio.i + 1).append(" / ").append(j.n).append(" 句")
+            // 「AI 朗读」: every whole text is a synthesized voice (Kokoro, CosyVoice, the phone's own), and the rules for
+            // AI-generated content (人工智能生成合成内容标识办法) ask for a label where it is shown (语流 B7)
+            append("AI 朗读 · 第 ").append(audio.i + 1).append(" / ").append(j.n).append(" 句")
             if (audio.state == "waiting") append(" · 准备中")
         }
         val meta = MediaMetadata.Builder()

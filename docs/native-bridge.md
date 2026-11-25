@@ -45,6 +45,27 @@ iOS（语流 20）、安卓（语流 21）、桌面 Windows 和 macOS（语流 2
 - `FlowApp.call('hello')` → `{v, app, build, platform, features}`。
 - 安卓的返回键：App 先在 `window` 上发可以取消的 `flowapp:back` 事件，网页 `preventDefault()` 就算处理了；没人处理时 App 关掉开着的 sheet，再回到上一页。iOS、桌面没有这个键，不发。
 
+### 共用的包装 `native/flowapp.js`
+
+上面这些（`FlowApp` 的字段、`has`、`call`、`on`/`off`/`_emit`、`audio`/`rec`/`notify` 三块、html 的 `flow-<platform>`、回到前台调 `app.visible`）
+只写在一个文件里：`native/flowapp.js`。每个 App 原样放进网页，在它前面只放自己的几行传输：
+
+```js
+window.__flowAppTransport = {
+  cfg: { v, app, build, beta, platform, features },  // App 自己的情况
+  send(cmd, args),          // 一条命令交给 App，回答可以是值或 Promise（包装都变成 Promise）
+  extend(FlowApp, call),    // 可以不给：本平台多出来的成员，在冻结之前加（安卓的 _back）
+  ready(FlowApp),           // 可以不给：window.FlowApp 放好以后（安卓收端口的消息、发 hello）
+};
+```
+
+- 包装读完就把 `__flowAppTransport` 从 window 上删掉；已经有 `window.FlowApp` 时什么都不做。
+- iOS：传输是 `webkit.messageHandlers.flow.postMessage({cmd, args})`（Bridge.swift 的 `transport`），文件由 Xcode 项目的 Shared 组直接打进 App；
+  单元测试在 JavaScriptCore 里跑这个文件（FlowTests 的 `testTheSharedWrapper`、`testTheIOSTransport`）。
+- 安卓：打包时从 `native/` 复制进 assets（语流 21）。桌面：要不要用，由语流 22 定。
+- 静音开关、安卓的 speechSynthesis、桌面的 mediaSession 这些各平台自己的东西，不放进这个文件。
+- 改这个文件就是三个 App 一起改：PR 里说明，iOS 的单元测试要过，安卓、桌面再各自打包试一次。
+
 ## 3. 整篇朗读 `audio`
 
 听的「播放全文」、读的「伴读」（网页的 LONG）。短声音（单词、例句、单句、AI 回复）还在网页里放，不走桥。
@@ -56,7 +77,7 @@ iOS（语流 20）、安卓（语流 21）、桌面 Windows 和 macOS（语流 2
 | 字段 | 意思 |
 |---|---|
 | `key` | `'listen:<id>'` / `'read:<id>'`（网页 PROG 的 key；`''` 不记进度） |
-| `title` | 锁屏、通知栏显示「语流 · 标题」 |
+| `title` | 锁屏、通知栏显示「AI 朗读 · 标题」（见下面的规矩） |
 | `src` + `sentences` (+ `alt`) | 有录音（Kokoro）：相对本站的地址、`[[开始秒, 结束秒], …]`；`alt` 是另一条线路，可选 |
 | `items` + `voice` + `pack` | 没有录音：`[{text, url}]`，已经知道的地址网页直接给（SV 地址簿），不知道的 `url: null`，App 自己调 `POST /api/next/tts {text, voice, pack}` |
 | `csrf` | 网页的 CSRF token（App 调 /api/next/tts 时带上） |
@@ -93,6 +114,8 @@ iOS（语流 20）、安卓（语流 21）、桌面 Windows 和 macOS（语流 2
   `idle` 且 `why = ended`：两边都清（App 留一个 ended 记号，给错过这个事件的页面看）；其他的 `idle`：两边都记。
 - 继续时 iOS 不给声音（正在通话、正在录音）：App 发 `audio` `{state: 'paused', why: 'interrupted'}`，网页照它显示。
 - App 在放的时候，网页不 claim navigator.mediaSession（锁屏只有 App 一家）；播放条 MINI 照常显示，暂停、继续、✕ 走桥。
+- App 自己画的播放信息（锁屏、控制中心、灵动岛、通知栏的「正在播放」）：标题前写「AI 朗读 · 」，比如「AI 朗读 · 今日好句」，第几句放第二行。
+  《人工智能生成合成内容标识办法》要求合成的声音在播放的地方写明；语流现在没有真人录音，Kokoro 录音、CosyVoice、系统自带的声音都算（语流 12）。
 - 系统自带声音按 voice 挑英音（`uk-*`）、美音，语速跟 `rate`。
 
 ## 4. 录音 `rec`
@@ -160,7 +183,7 @@ speaking、pending 照实；2.5 秒内一定发 start；getVoices() 有带 lang 
 
 ### iOS（语流 20，`ios/`）
 
-- 注入：WKUserScript，document start，只在主框架；文件 `ios/Flow/Bridge/FlowBridge.js`（第 2 节的形状）。
+- 注入：WKUserScript，document start，只在主框架；Bridge.swift 的几行传输加上共用的 `native/flowapp.js`（第 2 节）。
 - 传输：`window.webkit.messageHandlers.flow.postMessage({cmd, args})`，WKScriptMessageHandlerWithReply 直接回 Promise；
   App → 网页：`evaluateJavaScript("FlowApp._emit(type, detail)")`。只认本站主框架（Bridge.swift 检查来源）。
 - WKAppBoundDomains 只有本站：服务工作线程、桥、cookie 只在本站有效。
@@ -168,22 +191,24 @@ speaking、pending 照实；2.5 秒内一定发 start；getVoices() 有带 lang 
 - rec：AVAudioRecorder；notify：UNUserNotificationCenter + BGAppRefreshTask。
 - 静音开关：`-FlowMuteAudio YES`（AVPlayer.isMuted、朗读音量 0，网页的 `<audio>`、Web Audio、speechSynthesis 也静音）。
 
-### 安卓（语流 21，`android/`）
+### 安卓（语流 C2，`android/`）
 
 Kotlin，minSdk 26，targetSdk 37；说明在 `android/README.md`。flavor `beta`（cn.flowlang.app.beta，「语流内测」，flow.jasa.hk）和 `prod`（cn.flowlang.app，「语流」，flowlang.cn）。
 
-- **注入**：`WebViewCompat.addDocumentStartJavaScript`，在 document start 注入，规则里只有本站的源。文件 `android/app/src/main/assets/flowapp.js`，形状和 iOS 的 FlowBridge.js 一样（第 2 节），只有最底下的传输不同。
-  - `FlowApp` 冻结；html 加 class `flow-android`；`build` 是 CI 的提交前 7 位（本机构建是 `"dev"`）；`beta` 看 flavor。
+- **注入**：`WebViewCompat.addDocumentStartJavaScript`，在 document start 注入，规则里只有本站的源。注入的是两个文件拼在一起：
+  - 先是安卓自己的 `android/app/src/main/assets/flowapp-android.js`：`__flowAppTransport`（传输、`extend` 里加 `_back`、`ready` 里收端口消息和发 hello），再加上 speechSynthesis 和静音开关；
+  - 后面是共用的 `native/flowapp.js`，原样放进去（打包时 Gradle 把 `native/` 加进 assets，第 2 节「共用的包装」）。
+  - `build` 是 CI 的提交前 7 位（本机构建是 `"dev"`）；`beta` 看 flavor。
 - **传输**：`WebViewCompat.addWebMessageListener` 的 `flowNative` 通道，不用 `addJavascriptInterface`。
   - 网页发 `postMessage(JSON {id, cmd, args})`，App 用 JavaScriptReplyProxy 回 `{id, ok, result | error}`。
-  - App → 网页走同一个通道，发 `{ev, detail}`，flowapp.js 转给 `FlowApp._emit`。
+  - App → 网页走同一个通道，发 `{ev, detail}`，flowapp-android.js 转给 `FlowApp._emit`（speech 的事件转给 speechSynthesis 那一段）。
   - 只认本站主框架（isMainFrame 加 origin 检查）。WebView 太旧、缺这两个功能时什么都不挂，网页照浏览器的做法。
 - **外壳**：
   - UA 末尾是 `FlowAndroid/<版本>`；返回键先发 `flowapp:back`（第 2 节）；别的网站、`mailto:`、`tel:` 交给系统打开；
   - 深色和浅色切换不重新加载；键盘弹出时整个 WebView 变矮，网页里 visualViewport 看不到键盘；
   - WebView 的使用统计和 Safe Browsing 关掉，不做云备份。
 - **audio**：Media3 ExoPlayer 加 MediaSessionService（前台服务，类型 mediaPlayback）。
-  - 锁屏、通知栏、耳机和蓝牙按键：播放、暂停、上一句、下一句。SimpleBasePlayer 显示「标题 · 第 n / N 句」；句间停顿和正在生成的句子也显示成在放。
+  - 锁屏、通知栏、耳机和蓝牙按键：播放、暂停、上一句、下一句。SimpleBasePlayer 显示标题和「AI 朗读 · 第 n / N 句」（合成声音的显式标识）；句间停顿和正在生成的句子也显示成在放。
   - 音频焦点自己管：
     - 短暂失去（来电、闹钟、导航）：暂停，回来后自己接着放；
     - 彻底失去（别的 App 放声音）：暂停（why = other）；

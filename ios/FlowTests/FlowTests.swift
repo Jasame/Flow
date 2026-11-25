@@ -1,3 +1,4 @@
+import JavaScriptCore
 import XCTest
 @testable import Flow
 
@@ -293,6 +294,16 @@ final class LongPlayerRequestTests: XCTestCase {
         XCTAssertEqual(TTSFetcher.reason(SiteError.status(403, code: "cap", message: "")), "今天的自然人声用完了，这句先用 iPhone 自带的声音")
     }
 
+    @MainActor func testTheLockScreenSaysAIVoice() {
+        // 《人工智能生成合成内容标识办法》: a synthesized voice is said so where it plays (every voice 语流 has is one)
+        let a = NowPlaying.labels(title: "今日好句", i: 2, n: 18)
+        XCTAssertEqual(a.title, "AI 朗读 · 今日好句")
+        XCTAssertEqual(a.artist, "语流 · 第 3 / 18 句")
+        XCTAssertEqual(NowPlaying.labels(title: " ", i: 0, n: 1).title, "AI 朗读", "no title: the label alone")
+        XCTAssertEqual(NowPlaying.labels(title: "x", i: 30, n: 18).artist, "语流 · 第 18 / 18 句")
+        XCTAssertEqual(NowPlaying.labels(title: "x", i: 0, n: 0).artist, "语流")
+    }
+
     @MainActor func testSentenceLookupLikeTheWebPage() {
         let ss: [LongPlayer.Span] = [.init(s: 0, e: 2.9), .init(s: 3.4, e: 6), .init(s: 7, e: 9)]
         XCTAssertEqual(LongPlayer.sentence(at: 1, in: ss), 0)
@@ -324,6 +335,79 @@ final class BridgeTests: XCTestCase {
     }
 
     @MainActor func testTheScriptIsInTheApp() {
-        XCTAssertTrue(Bridge.script.contains("window.FlowApp"), "FlowBridge.js is copied into the app")
+        XCTAssertTrue(Bridge.script.contains("window.__flowAppTransport"), "native/flowapp.js is copied into the app")
+    }
+
+    /// A page without WebKit: a global object with just what native/flowapp.js touches
+    @MainActor private func page() throws -> (JSContext, () -> [String]) {
+        let js = try XCTUnwrap(JSContext())
+        var errors: [String] = []
+        js.exceptionHandler = { _, e in errors.append(e?.toString() ?? "?") }
+        js.evaluateScript("""
+          var window = globalThis, sent = [], events = [], classes = [], listeners = {}, logged = [];
+          var console = { error: function () { logged.push([].slice.call(arguments).join(' ')); } };
+          var document = { visibilityState: 'visible', documentElement: { classList: { add: function (c) { classes.push(c); } } },
+                           addEventListener: function (t, f) { listeners[t] = f; } };
+          function CustomEvent(type, o) { this.type = type; this.detail = o && o.detail; }
+          window.dispatchEvent = function (e) { events.push(e.type + ' ' + JSON.stringify(e.detail)); return true; };
+        """)
+        return (js, { errors })
+    }
+
+    /// native/flowapp.js, the wrapper the three apps share (docs/native-bridge.md §2), with a made-up transport
+    @MainActor func testTheSharedWrapper() throws {
+        let (js, errors) = try page()
+        js.evaluateScript("""
+          window.__flowAppTransport = { cfg: { v: 1, app: '1.0.0', build: 'abc1234', beta: true, platform: 'android', features: ['audio', 'notify'] },
+            send: function (cmd, args) { if (cmd === 'boom') throw new Error('no'); sent.push([cmd, args]); return { ok: true }; },
+            extend: function (A, call) { A._extra = function () { return call('extra.one'); }; },
+            ready: function (A) { window.readyWith = A.platform; } };
+        """)
+        js.evaluateScript(Bridge.script)
+        js.evaluateScript("""
+          FlowApp.notify.sync(null); FlowApp.notify.sync({ hour: 21 }); FlowApp.audio.step(-1); FlowApp.rec.stop();
+          FlowApp.call('hello'); FlowApp.call('x', null); FlowApp._extra(); listeners.visibilitychange();
+          var got = [], un = FlowApp.on('audio', function (d) { got.push(d.i); });
+          FlowApp._emit('audio', { i: 2 }); un(); FlowApp._emit('audio', { i: 3 });
+          FlowApp.on('audio', function () { throw new Error('a listener'); }); FlowApp._emit('audio', { i: 4 });
+          window.isPromise = FlowApp.call('y') instanceof Promise;
+          FlowApp.call('boom').then(function () { window.boom = 'resolved'; }, function (e) { window.boom = e.message; });
+          FlowApp.x = 1; window.added = 'x' in FlowApp;
+        """)
+        let v = { (s: String) in js.evaluateScript(s)?.toString() ?? "" }
+        XCTAssertEqual(errors(), [])
+        XCTAssertEqual(v("JSON.stringify(sent)"), #"[["notify.sync",{"app":false}],["notify.sync",{"hour":21}],["audio.step",{"d":-1}],["rec.stop",{}],["hello",{}],["x",{}],["extra.one",{}],["app.visible",{}],["y",{}]]"#)
+        XCTAssertEqual(v("JSON.stringify(got)"), "[2]", "on() gives back its own off")
+        XCTAssertEqual(v("JSON.stringify(events)"), #"["flowapp:audio {\"i\":2}","flowapp:audio {\"i\":3}","flowapp:audio {\"i\":4}"]"#)
+        XCTAssertEqual(v("logged.length"), "1", "a listener that throws is logged, the others still run")
+        XCTAssertEqual(v("[FlowApp.v, FlowApp.app, FlowApp.build, FlowApp.beta, FlowApp.platform].join(' ')"), "1 1.0.0 abc1234 true android")
+        XCTAssertEqual(v("[FlowApp.has('audio'), FlowApp.has('rec'), Object.isFrozen(FlowApp), Object.isFrozen(FlowApp.notify), window.added].join(' ')"), "true false true true false")
+        XCTAssertEqual(v("JSON.stringify(classes)"), #"["flow-android"]"#)
+        XCTAssertEqual(v("[window.readyWith, typeof window.__flowAppTransport, window.isPromise, window.boom].join(' ')"), "android undefined true no",
+                       "ready() after install, the transport gone from window, every call a Promise, a throwing send a rejected one")
+        // a second copy (a page that injects again) leaves the first one alone
+        js.evaluateScript("window.__flowAppTransport = { cfg: { build: 'other' }, send: function () {} };")
+        js.evaluateScript(Bridge.script)
+        XCTAssertEqual(v("FlowApp.build + ' ' + typeof window.__flowAppTransport"), "abc1234 undefined")
+    }
+
+    /// iOS's own few lines of transport in front of it: WKScriptMessageHandlerWithReply's postMessage({cmd, args})
+    @MainActor func testTheIOSTransport() throws {
+        let (js, errors) = try page()
+        js.evaluateScript("""
+          var posted = [];
+          window.webkit = { messageHandlers: { flow: { postMessage: function (m) { posted.push(m); return Promise.resolve('answer'); } } } };
+        """)
+        js.evaluateScript(Bridge.transport(["v": 1, "app": "1.0.0", "platform": "ios", "features": ["audio", "rec", "notify"], "beta": false]) + Bridge.script)
+        js.evaluateScript("FlowApp.audio.pause().then(function (r) { window.answer = r; }); FlowApp.notify.permission();")
+        let v = { (s: String) in js.evaluateScript(s)?.toString() ?? "" }
+        XCTAssertEqual(errors(), [])
+        XCTAssertEqual(v("JSON.stringify(posted)"), #"[{"cmd":"audio.pause","args":{}},{"cmd":"notify.permission","args":{}}]"#)
+        XCTAssertEqual(v("[window.answer, FlowApp.platform, FlowApp.has('rec'), JSON.stringify(classes)].join(' ')"), #"answer ios true ["flow-ios"]"#)
+        // not in the app (no message handler): no transport, no FlowApp, and the page does what it does in Safari
+        let (bare, bareErrors) = try page()
+        bare.evaluateScript(Bridge.transport(["platform": "ios"]) + Bridge.script)
+        XCTAssertEqual(bare.evaluateScript("typeof window.FlowApp")?.toString(), "undefined")
+        XCTAssertEqual(bareErrors(), [])
     }
 }

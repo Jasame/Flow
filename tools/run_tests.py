@@ -50,7 +50,7 @@ DEFAULT_SECONDS = 30
 # A name ui_test.py does not have yet is allowed: 'privacy' and 'trial-survey' arrive with PRs #58 and #59.
 UI_SHARDS = [
     ['about', 'wait', 'home-app', 'ios-audio', 'review-side'],
-    ['phone', 'phone-land', 'privacy', 'trial-survey'],
+    ['phone', 'phone-land', 'privacy', 'trial-survey', 'updates'],
     ['tablet', 'desktop', 'platforms', 'wechat', 'ux'],
     ['learner', 'progress', 'swipe', 'listen-speak', 'start', 'sprint', 'backlog', 'class'],
     ['a11y', 'layout'],
@@ -64,9 +64,10 @@ UI_INPUTS = ('flow/', 'tools/ui_test.py', 'tools/ui_server.py', 'tools/ui-fixtur
              'tools/run_tests.py', '.github/workflows/tests.yml')
 
 
-# The native apps' folders and their own workflows (iOS 语流 20, desktop 语流 22, Android): nothing of the website is in
-# them, so a pull request that changes only these needs neither the website nor the UI tests; their workflows test them.
-NATIVE_APPS = ('ios/', 'android/', 'desktop/', '.github/workflows/ios.yml', '.github/workflows/android.yml',
+# The native apps' folders and their own workflows (iOS 语流 20, desktop 语流 22, Android 语流 21), and native/, the
+# FlowApp wrapper the apps share (docs/native-bridge.md §2; the site never loads it): nothing of the website is in them,
+# so a pull request that changes only these needs neither the website nor the UI tests; the apps' workflows test them.
+NATIVE_APPS = ('ios/', 'android/', 'desktop/', 'native/', '.github/workflows/ios.yml', '.github/workflows/android.yml',
                '.github/workflows/desktop.yml')
 
 

@@ -1,7 +1,7 @@
 # 语流 Flow 桌面版（Windows + macOS）
 
 Tauri 2 做的「原生外壳 + 关键功能原生」：窗口里就是网站（正式版 https://flowlang.cn ，内测版 https://flow.jasa.hk ），
-原生只补浏览器标签页做不好的几件事。和 iOS（`ios/`，语流 20）、安卓（语流 21）共用同一个网页接口 `window.FlowApp`（v1）。
+原生只补浏览器标签页做不好的几件事。和 iOS（`ios/`，语流 C1）、安卓（语流 C2）共用同一个网页接口 `window.FlowApp`（v1）。
 
 | | Windows | macOS |
 |---|---|---|
@@ -25,7 +25,7 @@ Tauri 2 做的「原生外壳 + 关键功能原生」：窗口里就是网站（
 
 | 功能 | 怎么做 | 代码 |
 |---|---|---|
-| 系统媒体控制、媒体键 | 网页照常自己放声音；注入的脚本盯住网页的 `navigator.mediaSession`（`MS.claim` 设的标题、登记的动作、播放/暂停），交给系统显示；按键回来时调网页登记的动作（play / pause / previoustrack / nexttrack / stop），进度还是网页管 | `bridge.js`、`media.rs`（souvlaki：SMTC / MPNowPlayingInfoCenter） |
+| 系统媒体控制、媒体键 | 网页照常自己放声音；注入的脚本盯住网页的 `navigator.mediaSession`（`MS.claim` 设的标题、登记的动作、播放/暂停），交给系统显示；按键回来时调网页登记的动作（play / pause / previoustrack / nexttrack / stop），进度还是网页管。系统播放器的副标题写「AI 朗读」（语流的朗读都是合成声音，按《人工智能生成合成内容标识办法》显式标出） | `bridge.js`、`media.rs`（souvlaki：SMTC / MPNowPlayingInfoCenter） |
 | 复习提醒 | 规则和 iOS（`ReminderPlan.swift`）、共用约定 `docs/native-bridge.md` §5 一样：北京时间，今后 14 天每天 hour:00，只在有词的日子（今天看还剩多少，含 later；以后看 forecast 累计到那天，加词书没背完时每天的新词）；「这次什么时候复习」之前不排每天那条，那天有词才提醒，提醒过的那天不再排。数据是整份 `/api/next/vocab`，在页面里用页面的登录去拿：App 打开、回到前台（最多半小时一次）、网页调 `sync(r)` 时。交给系统定时，App 关着也会到。退出登录（401）就撤掉 | `schedule.rs`、`notify/`（macOS UserNotifications，Windows 定时 toast） |
 | 点提醒 | 打开 App 到「复习」页（macOS 走通知回调，Windows 走 `flowlang://review`） | `notify/`、`site.rs` |
 | 开机自启 | 可选，默认关；开机启动时不弹窗口 | `tauri-plugin-autostart` |
@@ -39,7 +39,7 @@ Tauri 2 做的「原生外壳 + 关键功能原生」：窗口里就是网站（
 
 ## 网页接口 `window.FlowApp`（桌面这边）
 
-三个平台共用的约定在 `docs/native-bridge.md`（语流 20 牵头）。网页一律先判断 `window.FlowApp && FlowApp.has(...)`。桌面这边：
+三个平台共用的约定在 `docs/native-bridge.md`（语流 C1 牵头）。网页一律先判断 `window.FlowApp && FlowApp.has(...)`。桌面这边：
 
 ```
 FlowApp.v / app / build / beta   1、App 版本、构建的提交（CI 的 GITHUB_SHA 前 7 位，本机是 "dev"）、是不是内测版
@@ -69,6 +69,7 @@ npm run build:beta       # 打 Beta 安装包；npm run build 打 Release
 ```
 
 调试版可以指向本机服务器：`FLOW_DESKTOP_SITE=http://127.0.0.1:8090/ npm run dev`（正式构建忽略这个变量）。
+`FLOW_DESKTOP_THEME=light`（或 `dark`）让窗口和网页用浅色（深色），不管系统怎么设，截图用（只在调试版有效）。
 `FLOW_DESKTOP_LOG=1` 在终端打印日志（只打到 stderr，不写文件、不上传）。
 
 **测试时不出声**：`FLOW_MUTE=1`（冒烟测试总是这样）。网页的 `<audio>` 静音、Web Audio 走一个音量为 0 的节点、浏览器朗读音量 0，
@@ -108,7 +109,7 @@ Tauri updater 要一把签名密钥：私钥签每个更新包，App 里放公�
 2. 把公钥（`~/.tauri/flow-updater.key.pub` 的内容）填进 `src-tauri/tauri.updater.conf.json` 的 `pubkey`。
 3. 私钥和密码加到 GitHub Secrets：`TAURI_SIGNING_PRIVATE_KEY`、`TAURI_SIGNING_PRIVATE_KEY_PASSWORD`。
 4. 构建时：`npx tauri build --features updater --config src-tauri/tauri.updater.conf.json`，会多出 `.sig` 和更新包；
-   把它们和 `latest.json` 放到 `https://flowlang.cn/desktop/`（发布流程归语流 02）。
+   把它们和 `latest.json` 放到 `https://flowlang.cn/desktop/`（发布流程归语流 A1）。
 
 开了以后：启动时检查，有新版本发一条通知；菜单「检查更新…」下载安装并重启。
 
@@ -123,5 +124,5 @@ Tauri updater 要一把签名密钥：私钥签每个更新包，App 里放公�
 - macOS 签名和公证、Windows 代码签名（等账号和证书）。
 - 自动更新的密钥（等用户生成），以及发布 `latest.json` 的流程。
 - 在用户的 MSI（Windows 11 测试机）上实际用一遍：媒体键、SMTC 浮层、提醒通知点开到复习页。
-- 网页侧的小改动（归各区域）：桌面 App 里也显示「返回」按钮（04-home-app.js，语流 07），「添加到桌面」在 App 里隐藏，
-  「已存到手机」「在这台 iPhone 上」这类文案按 `FlowApp.platform` 说（语流 07 / 11）。
+- 网页侧的小改动（归各区域）：桌面 App 里也显示「返回」按钮（04-home-app.js，语流 B5），「添加到桌面」在 App 里隐藏，
+  「已存到手机」「在这台 iPhone 上」这类文案按 `FlowApp.platform` 说（语流 B5 / 11）。

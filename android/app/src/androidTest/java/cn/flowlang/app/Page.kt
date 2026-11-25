@@ -43,8 +43,8 @@ class Page(private val scenario: ActivityScenario<MainActivity>) {
         throw AssertionError("timed out waiting for $what")
     }
 
-    /** The site is open and window.FlowApp is there. */
-    fun ready() = waitFor("the page and FlowApp", "document.readyState==='complete' && window.FlowApp && FlowApp.v===1", 60_000)
+    /** The site is open and window.FlowApp is there (the first launch on a cold emulator can take over a minute). */
+    fun ready() = waitFor("the page and FlowApp", "document.readyState==='complete' && window.FlowApp && FlowApp.v===1", 120_000)
 
     /**
      * A text with a recording, from today's materials: sets window.__item = {key, title, src, sentences}.
