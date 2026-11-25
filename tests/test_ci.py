@@ -289,6 +289,16 @@ class MsiRunTests(unittest.TestCase):
             self.assertNotIn(word, sh)
 
 
+    def test_before_pushing_it_adds_the_browser_free_checks_and_points_the_ui_to_ci(self):
+        sh = (ROOT / 'tools' / 'msi-run.sh').read_text(encoding='utf-8')
+        self.assertIn('args+=(--checks)', sh)
+        self.assertIn('界面测试和全套交给 CI', sh)
+        rt = load('run_tests')
+        wf = (ROOT / '.github' / 'workflows' / 'tests.yml').read_text(encoding='utf-8')
+        served = re.search(r'for js in ([^;]+); do\n\s+node --check', wf)[1].split()
+        self.assertEqual(rt.SERVED_JS, served)  # the checks parse what CI's frontend job parses
+        self.assertIn('tools/build_dictionary.py --check', wf)
+
 class BetaReleaseTests(unittest.TestCase):
     """.github/workflows/beta.yml releases each main commit that passed Tests to the 内测版, unless BETA_AUTO is off."""
 

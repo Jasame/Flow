@@ -2,11 +2,17 @@
 # Runs Flow's tests on the owner's MSI from the Mac, instead of on the Mac: the branch as it is now (committed or not)
 # goes over SSH, tools/run_tests.py runs there, its output streams back, and the UI report and screenshots come back.
 #
-#   bash tools/msi-run.sh                          # run_tests.py --changed: the test files for what this branch changed
-#   bash tools/msi-run.sh test_vocab test_next     # these website test files (names as in flow/tests)
-#   bash tools/msi-run.sh --all                    # every website test file
-#   bash tools/msi-run.sh --ui phone desktop       # these UI groups (tools/ui_test.py); report + screenshots in msi-out/
+#   bash tools/msi-run.sh                          # before pushing: run_tests.py --changed --checks, the test files for
+#                                                  # what this branch changed and CI's checks that need no browser
+#   bash tools/msi-run.sh test_vocab test_next     # these website test files (names as in flow/tests), with the checks
+#   bash tools/msi-run.sh --all                    # every website test file   } CI runs these on every pull request:
+#   bash tools/msi-run.sh --ui phone desktop       # these UI groups           } only to look into a CI failure
 #   bash tools/msi-run.sh --ui --shard 3/5         # anything else run_tests.py takes is passed through
+#
+# The rule (the owner, 2026-11-25: 96 test runs that day, most of them the UI and the whole suite run twice, here
+# before pushing and again in CI): before pushing, only the default. The UI and the whole suite are CI's, the one gate
+# before a merge; --ui and --all are for re-running what failed there. The checks (run_tests.py --checks, ~15 s:
+# tools/release-files.txt, the CI setup, the front end, the guide's test) catch here what used to fail a CI round.
 #
 #   MSI_HOST (default msi-flow, the ~/.ssh/config entry)   MSI_RUN_JOBS (default 4: processes at once on the MSI)
 #
@@ -41,7 +47,15 @@ if ! "${SSH[@]}" "$HOST" true 2>/dev/null; then
   echo "msi-run: MSI 连不上（关机、睡眠或 Tailscale 断了）: $HOST; run the tests here instead: python3 tools/run_tests.py ${*:---changed}" >&2
   exit 3
 fi
+# --no-checks: leave out run_tests.py --checks (CI's checks that need no browser), which every website run gets
+checks=1; kept=()
+for a in ${args[@]+"${args[@]}"}; do if [ "$a" = --no-checks ]; then checks=; else kept+=("$a"); fi; done
+args=(${kept[@]+"${kept[@]}"})
+case " ${args[*]-} " in
+  *" --ui "*|*" --all "*) echo "msi-run: 界面测试和全套交给 CI；只在查 CI 失败时用 --ui / --all（推送前默认那一步就够了）" >&2 ;;
+esac
 if [ ${#args[@]} -eq 0 ]; then args=(--changed); elif [ "${args[0]}" = --all ]; then args=("${args[@]:1}"); fi
+case " ${args[*]-} " in *" --ui "*) ;; *) if [ -n "$checks" ]; then args+=(--checks); fi ;; esac
 
 # New files that would go over: refuse names that look like keys or secrets, even if .gitignore missed them.
 new=$(git ls-files --others --exclude-standard)

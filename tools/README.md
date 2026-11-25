@@ -153,11 +153,14 @@ The owner approved these on 2026-11-24 (「按你的建议改，b6 发完就写�
    
    总控 coordinates. Only the area's owner changes it at a time. A one-off session is archived once its PR is in main.
 5. **Habits.**
-   - Before pushing, run only the test groups the change touches (see 推之前跑哪些测试 below); CI runs everything.
-   - Run those tests on the MSI, not on the Mac, so the Mac stays free for other work (总控, 2026-11-25, after #207):
-     - `bash tools/msi-run.sh` runs `run_tests.py --changed`. You can also give it test file names, or `--ui` and
-       group names.
-     - Exit status 3 means the MSI could not be reached. Then run the same tests on the Mac.
+   - Before pushing, run only `bash tools/msi-run.sh` (the owner, 2026-11-25: 「按推荐改」, after 96 test runs in a day,
+     most of them the UI and the whole suite run once before pushing and again in CI). It runs on the MSI, so the Mac
+     stays free: the test files for what the branch changed, and CI's checks that need no browser (about 15 s:
+     `tools/release-files.txt`, the CI setup, the front end, the guide's test). See 推之前跑哪些测试 below.
+     - The UI and the whole suite are CI's: it runs them on every pull request and is the one gate before a merge.
+       `--ui <group>` and `--all` are for re-running what failed in CI, nothing else (msi-run says so when used).
+     - Exit status 3 means the MSI could not be reached. Then run the same on the Mac:
+       `python3 tools/run_tests.py --changed --checks`.
      - At most two `msi-run`s at once; a third waits.
    - Tests compute counts from the data. Never hard-code how many questions, columns or items there are.
    - A change to an API response shape updates `tools/qa_e2e.py` in the same PR (b5's e2e broke on exactly this).
@@ -202,17 +205,24 @@ the change touches; don't run the whole suite locally as well. Two rules keep ma
 finishes, and of the merges waiting behind it the newest runs next, so main's newest commit always reaches the 内测版; and a PR that touches nothing the UI tests depend on (`UI_INPUTS` in `run_tests.py`:
 not `flow/`, not the UI tools) skips the 5 UI shares, taking 3 of the account's 20 runners instead of 8.
 
-| the change touches | run before pushing |
-| --- | --- |
-| a module in `flow/` | `python3 tools/run_tests.py --changed` (the test files that import what changed, and the changed tests themselves), or name them: `python3 tools/run_tests.py test_vocab test_next` |
-| front-end parts (`flow/public/src/next/`) | `python3 tools/run_tests.py --changed`, and the UI groups of the pages changed: `python3 tools/run_tests.py --ui phone desktop` (add `sprint`, `start`, `progress`, `listen-speak`, `swipe`, `backlog`, `wechat`, `about`… for those pages) |
-| `guide.md` or a guide screenshot | `python3 tools/run_tests.py test_guide` (a PDF is not needed; the release prints it) |
-| `release-files.txt`, `flow/upgrade.sh` | `python3 -m unittest discover -s tests` and `python3 tools/release.py check` (after `python3 tools/build_release.py --here`) |
-| `tools/deploy.sh`, `flow-pull.sh`, `flow-autodeploy.py` | `python3 tools/run_tests.py test_channels`, and a full 内测版 release before the PR counts as done |
-| unsure, or many areas | `python3 tools/run_tests.py` (all website tests in parallel, about 3 minutes on a laptop) and let CI run the UI |
+**Before pushing: `bash tools/msi-run.sh`, nothing else** (on the Mac when the MSI is away:
+`python3 tools/run_tests.py --changed --checks`). That is the test files for what the branch changed (the ones that
+import a changed module of `flow/`, the changed tests themselves, the ones that read next.js for a front-end part)
+and the checks (`--checks`, about 15 s): the repository's own tests (`tests/`: every shipped file listed in
+`tools/release-files.txt`, the CI setup, the ledger), the front end built from its parts, the dictionary matching its
+sources, the served scripts parsing, and `test_guide`. The UI groups and the whole suite are not run before pushing:
+CI runs them on every pull request, the one gate before a merge. Running them here as well ran every test twice
+(2026-11-25: 96 runs in a day, PRs waiting 26 minutes for the MSI).
 
-**On the MSI instead of the Mac:** `bash tools/msi-run.sh` takes the same arguments (none = `--changed`; `--all` = every
-website test; `--ui <groups>`), sends the branch as it is now (uncommitted changes and new files included, nothing
+| the change touches | before pushing |
+| --- | --- |
+| anything | `bash tools/msi-run.sh` |
+| a few test files you want by name | `bash tools/msi-run.sh test_vocab test_next` (the checks come along) |
+| `tools/deploy.sh`, `flow-pull.sh`, `flow-autodeploy.py` | the default, and a full 内测版 release before the PR counts as done |
+| a UI group failed in CI | that group only, to look into it: `bash tools/msi-run.sh --ui backlog` |
+
+**How msi-run works:** `bash tools/msi-run.sh` takes `run_tests.py`'s arguments (none = `--changed --checks`;
+`--all` = every website test; `--ui <groups>`; `--no-checks` leaves the checks out), sends the branch as it is now (uncommitted changes and new files included, nothing
 .gitignore excludes) over `ssh msi-flow`, runs `run_tests.py` there and streams the output back; a UI run's report and
 screenshots come back to `msi-out/`. Its exit status is the tests', so `bash tools/msi-run.sh && git push` works. It
 shares the MSI with CI: nice 10, at most `MSI_RUN_JOBS` (4) processes, two runs at once (see the script's header).
