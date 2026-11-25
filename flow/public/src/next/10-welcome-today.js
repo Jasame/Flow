@@ -16,7 +16,7 @@
   function miniCard(m, tag) {
     return `<a class="card flat mini" href="#/m/${encodeURIComponent(m.id)}"><span class="t">${esc(m.title)}</span>
       <span class="meta">${kindPill(m)}${tag ? `<span class="pill amber">${esc(tag)}</span>` : ''}<span class="pill">${m.level}</span></span>
-      <span class="p">${esc(m.preview)}</span><span class="tiny muted">${esc(m.theme_label)} · ${m.words} 词 · 约 ${m.minutes} 分钟</span>${m.steps.length ? stepDots(m.steps) : ''}${reasonsHTML(m)}</a>`;
+      <span class="p">${esc(m.preview)}</span><span class="tiny muted">${esc(m.theme_label)} · ${m.words} 词 · 约 ${m.minutes} 分钟${m.ai ? ' ' + aiTag() : ''}</span>${m.steps.length ? stepDots(m.steps) : ''}${reasonsHTML(m)}</a>`;
   }
   async function today(fresh) {
     // Drawn at once from the home data already here; the server's answer follows and, if anything changed, the page is
@@ -59,7 +59,7 @@
       top = `<div class="hello"><h1 class="h1">今天学一篇，用上一句。</h1><span class="muted small">按「${esc(h.level_label)}（${h.level}）」为你挑选 · <a class="link" href="#/welcome/edit">调整</a></span></div>
         <article class="card hero"><div class="meta">${kindPill(pick)}<span class="pill green">今日推荐</span><span class="pill">${pick.level}</span><span class="pill">${esc(pick.theme_label)}</span></div>
         <h2 class="title">${esc(pick.title)}</h2>${pick.title_en ? `<div class="title-en">${esc(pick.title_en)}</div>` : ''}<p class="preview">${esc(pick.preview)}</p>${reasonsHTML(pick)}
-        <span class="muted small">${pick.words} 词 · 约 ${pick.minutes} 分钟 · 听、读、理解、用出来</span>
+        <span class="muted small">${pick.words} 词 · 约 ${pick.minutes} 分钟 · 听、读、理解、用出来${pick.ai ? ' ' + aiTag() : ''}</span>
         <a class="btn primary block go-next" href="#/m/${encodeURIComponent(pick.id)}">开始学习<span aria-hidden="true">→</span></a></article>`;
     } else top = '<div class="empty">今天没有可推荐的材料了。</div>';
     const resume = h.resume && h.resume.id !== readId ? h.resume : null, news = h.news && h.news.id !== readId ? h.news : null;
@@ -157,7 +157,7 @@
   // A material as one row: title, then level, topic and time; a pill says why it is on the list.
   function mrow(m, tag, href, tapKey) {
     return `<a class="mrow" href="${href || '#/m/' + encodeURIComponent(m.id)}"${tapKey ? ` data-tap="${tapKey}"` : ''}><span class="t"><b>${esc(m.title)}</b>
-      <span class="tiny muted">${m.level} · ${esc(m.theme_label)}${m.minutes ? ` · 约 ${m.minutes} 分钟` : ''}${m.steps && m.steps.length ? ` · 学了 ${m.steps.length}/4 步` : ''}${OFF.has(m.id) ? ' · 已存到手机' : ''}</span></span>
+      <span class="tiny muted">${m.level} · ${esc(m.theme_label)}${m.minutes ? ` · 约 ${m.minutes} 分钟` : ''}${m.steps && m.steps.length ? ` · 学了 ${m.steps.length}/4 步` : ''}${OFF.has(m.id) ? ' · 已存到手机' : ''}${m.ai ? ' ' + aiTag() : ''}</span></span>
       ${tag ? `<span class="pill ${tag[1]}">${tag[0]}</span>` : kindPill(m)}<span class="go" aria-hidden="true">›</span></a>`;
   }
   // 公告 from the operators (xmc.hk console, r26): one line at the very top of 今日, for everyone, until it ends.

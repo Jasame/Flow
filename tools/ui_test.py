@@ -749,7 +749,8 @@ def platform_run(pw):
         pg.evaluate("document.querySelector('#sheet [data-close]').click()")
         go(pg, f'#/m/{PID}/read')
         o = pg.text_content('#view .origin') or ''
-        check(dev, 'a text says where it comes from and that AI helped write it', '来源：' in o and 'AI 辅助编写' in o, o)
+        mark = pg.text_content('#view .study-head .ai-line') or ''  # 「AI 生成」 under the title (人工智能生成合成内容标识办法)
+        check(dev, 'a text says where it comes from and that AI wrote it', '来源：' in o and 'AI 生成' in mark and '经规范检查' in mark and '人工审核' not in mark, (o, mark))
         pg.click('#originMore'); pg.wait_for_selector('#sheetCard .origin-rules', timeout=4000)
         check(dev, 'the source line opens the writing rules', '在原文里找得到依据' in (pg.text_content('#sheetCard') or ''))
         pg.evaluate("document.querySelector('#sheet [data-close]').click()")
