@@ -1,7 +1,7 @@
 """Mail layout (mail_layout.py, the owner's 「A 简洁卡片」): every mail goes as text and HTML; a code is in the subject,
 is the first line of the text and one run of digits in the HTML, so phones and password managers can pick it up; the
 HTML loads nothing from elsewhere and escapes what it is given; the 内测版 still marks its subjects."""
-import email, os, re, smtplib, sys, tempfile, unittest
+import email, os, re, smtplib, struct, sys, tempfile, unittest
 from pathlib import Path
 from unittest.mock import patch
 
@@ -15,14 +15,27 @@ class LayoutTests(unittest.TestCase):
         self.assertEqual(text.splitlines()[0], '验证码：048213')
         self.assertIn('第一段', text)
         self.assertIn(mail_layout.FROM_LINE, text)
-        self.assertEqual(len(re.findall(r'048213', page)), 2)  # the first line and the big code, each whole
+        self.assertEqual(len(re.findall(r'048213', page)), 2)  # the preview line and the card's code, each whole
         self.assertNotRegex(page, r'0\s*<[^>]+>\s*4')  # never one digit per box
 
-    def test_the_html_loads_nothing_from_elsewhere_and_escapes_what_it_is_given(self):
+    def test_the_html_loads_only_the_logo_and_escapes_what_it_is_given(self):
         text, page = mail_layout.message(['<b>a</b> & "b"'], rows=[('x<y', 'z')], button=('打开', 'https://flowlang.cn/#/review'),
                                          foot=[('退订', 'https://flowlang.cn/api/next/weekly-mail/off?t=1&x=2')])
-        for bad in ('<img', ' src=', 'url(', '@import', '<link', '<script'):
+        for bad in ('url(', '@import', '<link', '<script', 'data:'):
             self.assertNotIn(bad, page)
+        # the one picture: the logo the site serves (never inlined: Gmail and QQ 邮箱 block that), its size fixed, and
+        # 「语流 Flow」 as text beside it for a mail app that blocks pictures
+        self.assertEqual(re.findall(r'<img src="([^"]+)" width="32" height="32"', page), ['https://flowlang.cn/mail-logo.png'])
+        self.assertEqual(page.count(' src='), 1)
+        self.assertIn('>语流 Flow</td>', page)
+        self.assertNotIn('>流</td>', page)
+        with patch.dict(os.environ, {'FLOW_PUBLIC_URL': 'https://flow.jasa.hk/'}):
+            self.assertIn('src="https://flow.jasa.hk/mail-logo.png"', mail_layout.message(['x'])[1])
+        self.assertEqual(mail_layout.LOGO_PNG[:8], b'\x89PNG\r\n\x1a\n')
+        self.assertEqual(struct.unpack('>II', mail_layout.LOGO_PNG[16:24]), (96, 96))  # 3x for 32 px
+        # the button is a table cell with its colour (Outlook), one column at most 560 px wide
+        self.assertRegex(page, r'<td class="fl-btn" bgcolor="#1f9d55"[^>]*><a href="https://flowlang.cn/#/review"')
+        self.assertIn('max-width:560px', page)
         self.assertIn('&lt;b&gt;a&lt;/b&gt; &amp; &quot;b&quot;', page)
         self.assertIn('x&lt;y', page)
         self.assertIn('href="https://flowlang.cn/api/next/weekly-mail/off?t=1&amp;x=2"', page)
@@ -57,13 +70,17 @@ class Sending(unittest.TestCase):
         self.assertEqual(st, 200, body)
         raw, html_file = self.last()
         subject = next(l for l in raw.splitlines() if l.startswith('Subject: '))[9:]
-        code = re.fullmatch(r'语流 Flow 注册验证码：(\d{6})', subject).group(1)
-        first = raw.split('\n\n', 1)[1].splitlines()[0]
-        self.assertEqual(first, f'验证码：{code}')
-        self.assertIn(f'{auth_service.TTL // 60} 分钟内有效', raw)
-        self.assertIn('请勿把验证码转发', raw)
+        code = re.fullmatch(r'语流验证码：(\d{6})', subject).group(1)  # one fixed form for every purpose
+        body = raw.split('\n\n', 1)[1]
+        self.assertEqual(body.splitlines()[0], f'验证码：{code}')
+        self.assertIn('注册语流 Flow 的验证码，十分钟内有效', body)  # how long, in words
+        self.assertIn('请勿把验证码转发', body)
+        self.assertEqual(re.findall(r'\d+', body), [code])  # the code once, and no other number
         page = html_file.read_text(encoding='utf-8')
-        self.assertEqual(page.count(code), 2)
+        self.assertEqual(page.count(code), 2)  # the preview line and the card
+        seen = re.sub(r'<style.*?</style>|<[^>]+>', ' ', page, flags=re.S)
+        self.assertEqual(set(re.findall(r'\d+', seen)), {code})
+        self.assertIn(f'验证码：<span style="display:block', page)  # 「验证码：」 and the code in one line of text
 
     def test_the_reset_mail_still_tells_the_username(self):
         with app.db() as c:
@@ -89,7 +106,7 @@ class Sending(unittest.TestCase):
         with patch.dict(os.environ, {'FLOW_CHANNEL': 'beta'}), app.db() as c:
             auth_service.request(c, {'email': 'beta@example.com', 'purpose': 'register'}, '10.0.0.3')
         raw, _ = self.last()
-        self.assertRegex(raw, r'Subject: 【内测版】语流 Flow 注册验证码：\d{6}')
+        self.assertRegex(raw, r'Subject: 【内测版】语流验证码：\d{6}')
 
     def test_over_smtp_it_is_one_message_with_text_and_html(self):
         sent = []

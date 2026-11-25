@@ -105,8 +105,8 @@ def issue(c,uid,email,purpose):
  url=origin+'/#reset='+token if purpose=='reset' else None
  # The text stays as it was (the link or the token on the line after the first); the HTML is the shared layout.
  text=(('请在 30 分钟内打开此链接设置新密码：\n'+url) if url else '请在 Flow 账号设置中输入以下验证令牌（30 分钟内有效）：\n'+token)+'\n\n如非本人操作，请忽略。'
- page=__import__('mail_layout').message(['请在 30 分钟内打开下面的链接设置新密码。','如果不是你本人操作，忽略这封邮件即可。'],button=('设置新密码',url))[1] if url else \
-  __import__('mail_layout').message(['请在语流的账号设置里输入下面这串验证令牌，30 分钟内有效。',token,'如果不是你本人操作，忽略这封邮件即可。'])[1]
+ page=__import__('mail_layout').message(['请在三十分钟内打开下面的链接设置新密码。','如果不是你本人操作，忽略这封邮件即可。'],title='设置新密码',button=('设置新密码',url))[1] if url else \
+  __import__('mail_layout').message(['请在语流的账号设置里输入下面这串验证令牌，三十分钟内有效。',token,'如果不是你本人操作，忽略这封邮件即可。'],title='邮箱验证')[1]
  channel=None
  try:channel=mail(email,'Flow 密码找回' if purpose=='reset' else 'Flow 邮箱验证',text,html=page,prefer='fallback' if again else None);state='sent'
  except Exception:

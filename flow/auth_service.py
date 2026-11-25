@@ -97,16 +97,18 @@ def send(c,email,purpose,ip):
  c.execute('UPDATE email_codes SET used=1 WHERE email=? AND purpose=? AND used=0',(email,purpose))
  c.execute('DELETE FROM email_codes WHERE expires<?',(now-86400,))
  c.execute('INSERT INTO email_codes(email,purpose,salt,digest,expires,created,ip) VALUES(?,?,?,?,?,?,?)',(email,purpose,salt,_hash(salt,code),now+TTL,now,ip));c.commit()
- # So that phones and password managers pick the code up (mail_layout): the code in the subject, 「验证码：123456」 as
- # the first line, the code as one run of digits; how long it lasts and not to pass it on.
- paras=[f'这是你{FOR[purpose]}的验证码，{TTL//60} 分钟内有效，只能用一次。',
+ # So that phones and password managers pick the code up (mail_layout): 「语流验证码：123456」 as the subject, 「验证码：
+ # 123456」 as the first line, the code as one run of digits and the mail's only number (how long it lasts in words);
+ # then how long it lasts and not to pass it on.
+ ml=__import__('mail_layout')
+ paras=[f'这是你{FOR[purpose]}{" " if FOR[purpose].endswith("Flow") else ""}的验证码，{ml.minutes(TTL//60)}内有效，只能用一次。',
         '请勿把验证码转发或告诉任何人，语流不会向你索要验证码。如果不是你本人操作，忽略这封邮件即可。']
  if purpose=='reset':  # a learner who forgot the password often forgot the username too
   u=owner(c,email)
   if u:paras.append(f'你的用户名是：{u["username"]}（登录时用户名和这个邮箱都可以用）。')
- text,page=__import__('mail_layout').message(paras,code=code)
+ text,page=ml.message(paras,code=code)
  channel=None
- try:channel=account.mail(email,f'语流 Flow {PURPOSES[purpose]}验证码：{code}',text,html=page,prefer='fallback' if again else None);state='sent'
+ try:channel=account.mail(email,f'语流验证码：{code}',text,html=page,prefer='fallback' if again else None);state='sent'
  except Exception:state='failed';c.execute('UPDATE email_codes SET used=1 WHERE email=? AND purpose=? AND used=0',(email,purpose))
  account.mail_event(c,state,channel)
  if state!='sent':return {'error':'验证码邮件发送失败，请稍后再试'},502
