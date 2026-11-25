@@ -1,3 +1,3 @@
-9c8e222ed2642199dfbd4569c2c688ce5a54c73c c3775b1d862d5f475922b1d73daf5fad2cc27ee2cd9493b20046b6721f041022 e2e light ref=build-a4318f486100 tag=b79 tools=c8f8bc8e43fd5f240d1e4b9541d9e4edc8f88c917b5795e6ecafd8f51af4bfbb
-# b79 main: Merge pull request #308 from Jasame/ledger-opslog = build of a4318f486100
+63fb7a97986ef3740931004d7ba288b95dcfbff3 c7cb3fddde1b27e9615e640b8a12094ad21d8fc0b70c34eb4110f77ed512e9c2 e2e light ref=build-409d86dca0d2 tag=b80 tools=c8f8bc8e43fd5f240d1e4b9541d9e4edc8f88c917b5795e6ecafd8f51af4bfbb
+# b80 main: Merge pull request #296 from Jasame/word-card-voice = build of 409d86dca0d2
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
