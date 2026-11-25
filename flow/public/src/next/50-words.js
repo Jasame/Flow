@@ -30,8 +30,8 @@
   const WEEKDAY = '日一二三四五六';
   // The 单词 page's tool row: [link or button id, label, icon paths].
   const WORD_TOOLS = [
-    ['#/vocab/plan', '词书计划', '<path d="M5 5a2 2 0 0 1 2-2h11v15H7a2 2 0 0 0-2 2z"/><path d="M5 20a2 2 0 0 0 2 1h11v-3"/>'],
-    ['#/words/confuse', '辨析', '<circle cx="9" cy="12" r="5.5"/><circle cx="15" cy="12" r="5.5"/>'],
+    ['#/vocab/plan', '背词计划', '<path d="M5 5a2 2 0 0 1 2-2h11v15H7a2 2 0 0 0-2 2z"/><path d="M5 20a2 2 0 0 0 2 1h11v-3"/>'],
+    ['#/words/confuse', '词汇辨析', '<circle cx="9" cy="12" r="5.5"/><circle cx="15" cy="12" r="5.5"/>'],
     ['#/cards/mistake', '错题本', '<path d="M6 3h12v18H6z"/><path d="m9.5 9.5 5 5m0-5-5 5"/>'],
     ['#/vocab/test', '测词汇量', '<path d="M4 17a8 8 0 0 1 16 0"/><path d="m12 17 4-5"/>'],
     ['imp', '导入', '<path d="M12 3v11m-4-4 4 4 4-4"/><path d="M5 15v5h14v-5"/>']];
@@ -274,11 +274,11 @@
   function importSheet() {
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">导入词表</h2>
       <p class="muted small">每行一个单词或短语（也可以用逗号分开），一次最多 500 个。词典里有的会自动配上释义和例句；已经在复习里的会跳过。适合导入老师给的或自己整理的词表。</p>
-      <textarea id="impText" rows="8" placeholder="abandon&#10;make ends meet&#10;serendipity"></textarea>
+      <textarea id="impText" data-draft="words-import" rows="8" placeholder="abandon&#10;make ends meet&#10;serendipity"></textarea>
       <div class="row"><button class="btn primary" id="impGo">导入</button><button class="btn ghost" data-close>取消</button></div></div>`, card => {
       card.querySelector('#impGo').onclick = async e => {
         e.currentTarget.disabled = true;
-        try { const r = await api('/api/next/vocab/import', { text: card.querySelector('#impText').value }); closeSheet(); toast(`导入了 ${r.added} 个${r.skipped ? `，跳过 ${r.skipped} 个已有的` : ''}`); refreshHome().catch(() => {}); vocabView(); }
+        try { const r = await api('/api/next/vocab/import', { text: card.querySelector('#impText').value }); draftDone('words-import'); closeSheet(); toast(`导入了 ${r.added} 个${r.skipped ? `，跳过 ${r.skipped} 个已有的` : ''}`); refreshHome().catch(() => {}); vocabView(); }
         catch (x) { toast(x.message); e.currentTarget.disabled = false; }
       };
     });

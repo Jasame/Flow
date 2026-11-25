@@ -11,6 +11,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `00-head.js` | page elements, state, utilities, input helpers (touch, typing, scrolling), icons |
 | `01-audio-offline.js` | browser voice, Kokoro narration, word and sentence clips, mini player, offline review queue |
 | `02-shell.js` | sheets (focus, swipe), keyboard shortcuts, session and sign-in, router |
+| `08-drafts.js` | drafts: a writing box with `data-draft="<key>"` keeps its text on this device and gets it back when drawn again, with 「已恢复上次没写完的内容 · 清空」 under it (`08-drafts.css`); `draftDone(key)` after sending; only the account that wrote it gets it back, signing out clears all drafts (`snapClear`). Used by retell, translation, IELTS Part 2 typed, the radar's writing check, 我的文章, word-list import, feedback |
 | `09-start.js` | 启动动画 (the mark in next.html, timed against the first page drawn) and 选方向和目标: one page for a new learner (goal, exam and date, the level to reach), the same page edits it from 我的; the 今日 notice for a guessed level |
 | `04-home-app.js` | 主屏 App (Safari 「添加到主屏幕」): `html.home-app`, the 返回 button in the top bar (`homeBack`, from `setNav`), the keyboard (visualViewport → `--kb`), and taking a new version after a long sleep (`/api/version`) |
 | `10-welcome-today.js` | today's page; its plan in three groups (r28 按时间打包): 必做 within the day's minutes, 还有时间的话 folded, 本周任务; the line once the minutes are past |
@@ -67,3 +68,14 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `99-class.css` | 班级试用: what a teacher sees and not, the class found by its code, the teacher's summary page |
 | `99-privacy.css` | 年龄段: the three chips and the guardian's box |
 | `99-ai-mark.css` | the 「AI 生成」 mark on everything an AI wrote for the learner (`aiTag()`, `aiMark(note)` in `00-head.js`; 2026-11-25, 《人工智能生成合成内容标识办法》) |
+
+## Page names and words (one word, one meaning)
+
+A page's `<h1>` is the name its entry uses (练习's tiles, 我的's rows, the 单词 tools): 知识图谱, 语法起点小测, 轻松读, 词汇辨析,
+口语路线, 雅思口语, 考试练习, 能力雷达, 背词计划, 测词汇量, 周报 — not a slogan; a useful line goes under it, small. What a
+first visit needs to read (how it works, how it is scored) folds into a `details.basis` 「怎么练」 under that line, so the
+first thing to do stays on the first screen. Disclaimers (不是真题, AI 估计, 不是官方成绩…) and AI marks stay as they are.
+
+- **本周** = Monday to Sunday, only for the weekly goal (每周目标, 今日's 「本周 3/4 天」).
+- **周报** = the last 7 calendar days, today included (`skills_service.report`): its page says 「这 7 天」, never 这周.
+- 背词计划 (not 词书计划 / 词书和每天新词), 测词汇量 (not 词汇量测试), 词汇辨析 (not 辨析).

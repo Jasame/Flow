@@ -26,7 +26,7 @@
     const r = await api('/api/next/radar');
     const prev = r.before ? (r.history.find(h => h.created === r.before) || {}).scores : null;
     const known = r.dims.filter(d => d.score != null);
-    view.innerHTML = `<div class="stack"><div><span class="kicker">能力雷达</span><h1 class="h1">离目标还差多少</h1><p class="muted small">${esc(r.note)}</p></div>
+    view.innerHTML = `<div class="stack"><div><h1 class="h1">能力雷达</h1><p class="muted small">离目标还差多少。${esc(r.note)}</p></div>
       ${r.goals_chosen ? '' : `<a class="card flat place-cta" href="#/radar/goals"><b>先定一个目标</b><span class="small muted">每一项想到什么水平？现在先按比你的水平高一级来算，可以随时改。</span></a>`}
       <div class="radar-box">${radarSVG(r.dims, prev)}
         <div class="radar-legend tiny"><span class="lg goal">目标（100 分）</span>${prev ? '<span class="lg prev">上次</span>' : ''}<span class="lg cur">现在</span></div></div>
@@ -77,7 +77,7 @@
         <p class="muted small">不用一次测完。建议每 4 周测一轮，雷达图会把两次的变化画出来。</p></div>
       <div class="plist">${r.dims.map(d => `<a class="nrow ${d.due ? 'st st-untouched' : 'st st-solid'}" href="${DIM_TEST[d.id]}"><i class="dot" aria-hidden="true"></i>
         <span class="t"><b>${esc(d.label)}</b><span class="tiny muted">约 ${MIN[d.id]} 分钟 · ${d.assessed ? '上次 ' + new Date(d.assessed * 1000).toLocaleDateString('zh-CN') : '还没测过'}${d.due ? ' · 该测了' : ''}</span></span><span></span><span class="go" aria-hidden="true">›</span></a>`).join('')}</div>
-      <p class="tiny muted">词汇用词汇量测试，语法用起点小测；阅读和听力各有 2–3 段短文；口语录一段回答、写作写一小段，由 AI 按 CEFR 描述评分。</p></div>`;
+      <p class="tiny muted">词汇用「测词汇量」，语法用起点小测；阅读和听力各有 2–3 段短文；口语录一段回答、写作写一小段，由 AI 按 CEFR 描述评分。</p></div>`;
   }
   async function assessComprehension(kind) {
     if (!S.user) return needLogin('登录后可以做能力测评。');
@@ -135,12 +135,13 @@
     view.innerHTML = `<div class="stack"><div><a class="link small" href="#/radar/test">← 能力测评</a></div>
       <div><span class="kicker">${name}测评 · ${esc(t.level)}</span><h1 class="h1">${esc(t.question)}</h1><p class="small">${esc(t.task)}</p><p class="tiny muted">${esc(t.limit)}。AI 按 CEFR 描述从四个方面评分，不看话题难易${kind === 'speaking' ? '，口音不扣分' : ''}。</p></div>
       ${kind === 'speaking' ? `<div class="row center">${recBtn('aMic', '开始回答')}<span class="small" id="aState">点 ● 开始说，说完再点一下结束</span></div>` :
-        `<textarea id="aText" aria-label="你的英文回答" rows="9" lang="en" placeholder="用英文写……" autocapitalize="sentences" spellcheck="false"></textarea><div class="row between"><span class="tiny muted" id="aCount">0 词</span><button class="btn primary" id="aGo">提交</button></div>`}
+        `<textarea id="aText" data-draft="assess-${kind}-${draftHash(t.question)}" aria-label="你的英文回答" rows="9" lang="en" placeholder="用英文写……" autocapitalize="sentences" spellcheck="false"></textarea><div class="row between"><span class="tiny muted" id="aCount">0 词</span><button class="btn primary" id="aGo">提交</button></div>`}
       <div id="aOut"></div></div>`;
     const send = async body => {
       const out = document.getElementById('aOut'); out.innerHTML = '<p class="loading"><span class="spin"></span> AI 正在评估…</p>';
       try {
         const x = (await api('/api/next/assess/' + kind, { question: t.question, request_id: rid('as'), ...body })).result;
+        if (body.text) draftDone(`assess-${kind}-${draftHash(t.question)}`);
         const DIMN = kind === 'speaking' ? { fluency: '流利度', accuracy: '准确度', range: '词汇句式', pronunciation: '发音清晰度' } : { content: '内容切题', organization: '结构衔接', accuracy: '语言准确', range: '词汇句式' };
         assessResult(name, x.recorded, `${aiMark('评分和建议由 AI 估计，仅供参考')}${x.transcript ? `<div class="small"><span class="muted">AI 听到的：</span>${esc(x.transcript)}</div>` : ''}
           <div class="ab-list">${Object.entries(x.scores).map(([k2, v]) => `<div class="ab"><span class="nm">${DIMN[k2] || k2}</span><span class="vbar"><i data-w="${v * 20}"></i></span><span class="lv">${v} / 5</span></div>`).join('')}</div>
@@ -149,7 +150,11 @@
     };
     if (kind === 'speaking') {
       const mic = document.getElementById('aMic'), st = document.getElementById('aState');
-      mic.onclick = () => { st.textContent = MIC.busy() ? '' : '正在录音，说完再点一下'; MIC.toggle(mic, 75, async blob => { st.textContent = ''; send({ audio: await MIC.payload(blob) }); }); };
+      mic.onclick = () => { st.textContent = MIC.busy() ? '' : '正在录音，说完再点一下'; MIC.toggle(mic, 75, async blob => {
+        st.textContent = ''; let audio;
+        try { audio = await MIC.payload(blob); } catch (e) { toast(e.message); return; }  // too long: said, not lost silently
+        send({ audio });
+      }); };
     } else {
       const ta = document.getElementById('aText'), cnt = document.getElementById('aCount');
       ta.oninput = () => { cnt.textContent = (ta.value.match(/[A-Za-z]+(?:'[A-Za-z]+)?/g) || []).length + ' 词'; };
