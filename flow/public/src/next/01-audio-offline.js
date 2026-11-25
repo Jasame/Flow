@@ -635,6 +635,64 @@
     clear(k) { if (k) { const o = this.all(); delete o[k]; save(this.KEY, o); } },
   };
 
+  /* ---------- in 语流's iOS app the app plays a whole text (ios/README.md, 「网页和 App 之间的桥」) ---------- */
+  // window.FlowApp is there only inside the app (Safari, the home-screen app and WeChat do as before). LONG keeps its own
+  // state (where it is, MINI, PROG, onState / onWord) and the app plays: on with the screen locked and while this page
+  // sleeps, the lock screen's buttons, on again after a call. Its news ('audio') moves LONG along; 'audio-tick' (four a
+  // second, the page in front) lights the word of a recording, smoothed between ticks.
+  const NATIVE = {
+    tick: null, raf: 0, sent: '', lone: null,
+    on() { return !!(window.FlowApp && FlowApp.has && FlowApp.has('audio')); },
+    knobs(r) { return { rep: r.rep ? r.rep() : 1, gap: r.texts.map((_, k) => (r.gap ? r.gap(k) : 0)) }; },
+    start(r) {
+      const o = { key: r.key, title: r.title || '', from: r.i, rate: TTS.rate || 1, ...this.knobs(r) };
+      if (S.csrf) o.csrf = S.csrf;
+      if (r.nm) { o.src = NAR.net; o.sentences = r.nm.sentences.map(x => [x.s, x.e]); o.loop = !!r.loop; const alt = mediaAlt(NAR.net); if (alt) o.alt = alt; }
+      else { o.texts = r.texts; o.voice = r.voice || S.voice; if (r.pack) o.pack = r.pack; }
+      this.sent = JSON.stringify(this.knobs(r));
+      FlowApp.audio.play(o).then(x => { if (!(x && x.ok) && LONG.r === r) this.fail(r, x && x.message); }, () => { if (LONG.r === r) this.fail(r); });
+    },
+    // the app could not (a call going on): this page reads it, as in Safari
+    fail(r, why) { r.native = false; if (why) toast(why); LONG.go(); },
+    news(d) {
+      const r = LONG.r;
+      if (!r || !r.native || d.key !== r.key) { this.orphan(d); return; }
+      if (d.state === 'idle') { if (d.why === 'ended') LONG.finish(); else if (d.why !== 'user') LONG.stop(); return; }
+      if (typeof d.i === 'number' && d.i !== r.i) { r.i = d.i; r.n = 0; LONG.save(); }
+      r.state = d.state; r.note = d.note || '';
+      MINI.paused(d.state === 'paused');
+      const k = JSON.stringify(this.knobs(r));
+      if (k !== this.sent) { this.sent = k; FlowApp.audio.set(this.knobs(r)).catch(() => {}); }  // 复读 changed meanwhile
+      LONG.emit(); this.loop();
+    },
+    loop() {
+      cancelAnimationFrame(this.raf);
+      const r = LONG.r; if (!r || !r.native || !r.nm || r.state !== 'playing' || !r.onWord) return;
+      const f = () => {
+        const k = this.tick; if (LONG.r !== r || r.state !== 'playing') return;
+        if (k && k.key === r.key && NAR.meta === r.nm) { const [si, wc] = NAR.locate(k.t + Math.max(0, Date.now() - k.at) / 1000 * (k.rate || 1)); if (si >= 0) r.onWord(si, wc); }
+        this.raf = requestAnimationFrame(f);
+      };
+      this.raf = requestAnimationFrame(f);
+    },
+    // this page loaded again (a new version, iOS ended it in the background) while the app goes on: its control is back
+    orphan(d) {
+      if (LONG.r) return;
+      if (d.state === 'idle') { if (this.lone) { this.lone = null; MINI.hide(); } return; }
+      const label = (d.title || '朗读') + (d.n ? ` · 第 ${d.i + 1} / ${d.n} 句` : '');
+      if (this.lone !== d.key || !MINI.el || MINI.el.hidden) {
+        this.lone = d.key;
+        MINI.show(label, { toggle: () => (MINI.el.classList.contains('paused') ? FlowApp.audio.resume() : FlowApp.audio.pause()), stop: () => { this.lone = null; FlowApp.audio.stop(); } });
+      } else MINI.update(label);
+      MINI.paused(d.state === 'paused');
+    },
+  };
+  if (NATIVE.on()) {
+    FlowApp.on('audio', d => NATIVE.news(d));
+    FlowApp.on('audio-tick', d => { NATIVE.tick = d; });
+    FlowApp.audio.state().then(d => { if (d && d.state !== 'idle') NATIVE.news(d); }, () => {});
+  }
+
   /* ---------- a whole text read aloud: 听's 播放全文 and 读's 伴读 (owner, 2026-11-25) ---------- */
   // The recording (Kokoro) when there is one, straight through (or sentence by sentence when 复读 is set); otherwise the
   // server voice sentence by sentence, the next two asked for while one plays, a line while one is being made (never the
@@ -654,7 +712,9 @@
       this.stop();
       const n = o.texts.length, r = this.r = { ...o, i: Math.max(0, Math.min(from || 0, n - 1)), n: 0, tok: 0, state: o.nm ? 'playing' : 'waiting', note: '', at: null };
       r.cont = !!o.nm && !o.loop;
+      r.native = NATIVE.on();
       MINI.show(this.label(), { toggle: () => this.toggle(), stop: () => this.stop() });
+      if (r.native) { this.emit(); NATIVE.start(r); return; }  // 语流's iOS app plays it (NATIVE)
       if (o.nm) { this.emit(); this.go(); return; }  // inside the tap: WeChat plays a recording only when it starts there
       this.emit();
       const tok = r.tok;
@@ -663,7 +723,7 @@
     label() { const r = this.r; return r.state === 'waiting' ? `第 ${r.i + 1} 句准备中…` : (r.label ? r.label(r.i) : `第 ${r.i + 1} / ${r.texts.length} 句`); },
     emit() { const r = this.r; if (!r) return; MINI.update(this.label()); if (r.onState) r.onState(r.state, r.i, r.note); },
     claim() {  // the lock screen for a sentence-by-sentence reading (a recording names itself: NAR.name)
-      const r = this.r; if (!r || r.nm) return;
+      const r = this.r; if (!r || r.nm || r.native) return;
       MS.claim('long', '语流 · ' + (r.title || '朗读'), { play: () => this.resume(), pause: () => this.pause(), stop: () => { this.stop(); MINI.hide(); },
         previoustrack: () => this.step(-1), nexttrack: () => this.step(1) });
       if (r.state === 'paused') MS.state('paused');
@@ -727,6 +787,7 @@
     toggle() { if (!this.r) return; if (this.r.state === 'paused') this.resume(); else this.pause(); },
     pause() {
       const r = this.r; if (!r || r.state === 'paused') return;
+      if (r.native) { FlowApp.audio.pause().catch(() => {}); r.state = 'paused'; r.note = ''; MINI.paused(true); this.save(); this.emit(); return; }
       if (r.cont && NAR.audio.dataset.want === '1') { r.at = NAR.audio.currentTime; NAR.audio.pause(); this.held(); return; }  // the listener calls held() too
       if (r.nm && NAR.audio.dataset.want === '1') { NAR.audio.pause(); this.held(); return; }  // 复读 on a recording: that sentence waits at its second
       r.tok++; clearTimeout(r.timer); this.own(() => { TTS.stop(); CLIP.stop(); });
@@ -741,18 +802,25 @@
     going() { const r = this.r; if (!r || r.state !== 'paused') return; r.state = 'playing'; r.at = null; MINI.paused(false); MS.state('playing'); this.emit(); },
     resume() {
       const r = this.r; if (!r || r.state !== 'paused') return;
+      if (r.native) {  // the app may have let it go meanwhile (closed by iOS): then it starts again where it was
+        r.state = 'playing'; MINI.paused(false); this.emit();
+        FlowApp.audio.resume().then(x => { if (this.r === r && (!x || x.key !== r.key || x.state === 'idle')) NATIVE.start(r); }, () => {});
+        return;
+      }
       if (r.nm && NAR.audio.dataset.want === '1') { this.going(); NAR.resume(); return; }  // still there, paused: on from that second
       r.state = 'playing'; MINI.paused(false); this.go();
     },
     // another sound is about to start (a word looked up, a sentence tapped, the microphone): the text waits, paused
     other() {
       const r = this.r; if (!r || this.self || r.state === 'paused') return;
+      if (r.native) { this.pause(); return; }
       if (r.cont && NAR.audio.dataset.want === '1') r.at = NAR.audio.currentTime;
       if (r.nm) r.tok++;  // the recording is taken over: 继续 plays it again from r.at
       this.held();
     },
     step(d) {  // previous / next sentence (the lock screen)
       const r = this.r; if (!r) return;
+      if (r.native) { FlowApp.audio.step(d).catch(() => {}); return; }
       if (r.cont) { NAR.step(d); return; }
       r.tok++; clearTimeout(r.timer); this.own(() => { TTS.stop(); CLIP.stop(); NAR.stop(); });
       r.i = Math.max(0, Math.min(r.texts.length - 1, r.i + d)); r.n = 0; r.at = null; r.state = 'playing'; MINI.paused(false); this.go();
@@ -760,7 +828,7 @@
     save() { const r = this.r; if (r && r.key) PROG.set(r.key, r.i); },
     finish() {
       const r = this.r; if (!r) return;
-      this.r = null; r.tok++; PROG.clear(r.key); MINI.hide(); MS.release('long');
+      this.r = null; r.tok++; PROG.clear(r.key); MINI.hide(); MS.release('long'); cancelAnimationFrame(NATIVE.raf);
       if (r.onState) r.onState('idle', -1, '');
       if (r.onDone) r.onDone();
     },
@@ -769,6 +837,7 @@
       const r = this.r; if (!r) return;
       if (r.cont && NAR.audio.dataset.want === '1') { const [si] = NAR.locate(NAR.audio.currentTime); if (si >= 0) r.i = si; }
       this.save(); this.r = null; r.tok++; clearTimeout(r.timer);
+      if (r.native) { cancelAnimationFrame(NATIVE.raf); FlowApp.audio.stop().catch(() => {}); }
       this.own(() => { TTS.stop(); CLIP.stop(); NAR.stop(); });
       MINI.hide(); MS.release('long');
       if (r.onState) r.onState('idle', -1, '');

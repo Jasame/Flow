@@ -115,7 +115,7 @@
       const type = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
       // a low bitrate keeps two minutes of speech under the 1.4 MB a recording may be
       const opts = Object.assign(type ? { mimeType: type } : {}, { audioBitsPerSecond: 32000 });
-      let mr; try { mr = new MediaRecorder(this.stream, opts); } catch (e) { mr = new MediaRecorder(this.stream); }
+      let mr; try { mr = recorderFor(this.stream, opts, 130); } catch (e) { mr = new MediaRecorder(this.stream); }
       this.mr = mr; this.chunks = []; this.t0 = Date.now();
       mr.ondataavailable = e => { if (e.data && e.data.size) this.chunks.push(e.data); };
       mr.onstop = () => { const secs = Math.round((Date.now() - this.t0) / 1000), blob = new Blob(this.chunks, { type: mr.mimeType || type || 'audio/webm' }); this.close(); onStop(blob, secs); };

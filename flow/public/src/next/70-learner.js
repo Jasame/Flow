@@ -37,13 +37,49 @@
     if (seen) return true;
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">要用一下麦克风</h2>
       <p class="small">说出来的回答要录音。麦克风只在你点 ● 以后、说话的这几秒打开，说完马上关；录音只在批改时发给 AI，服务器上不留。</p>
-      <p class="small muted">接下来手机会问能不能用麦克风，请选「允许」。放在 iPhone 主屏上的语流，每次重新打开后第一次录音，系统都会再问一次，这是 iOS 的规定。</p>
+      <p class="small muted">接下来手机会问能不能用麦克风，请选「允许」。${APP_REC() ? '在语流 App 里只问这一次。' : '放在 iPhone 主屏上的语流，每次重新打开后第一次录音，系统都会再问一次，这是 iOS 的规定。'}</p>
       <div class="row"><button class="btn primary" id="micGo" type="button">好，开始录音</button><button class="btn ghost" type="button" data-close>先不用</button></div></div>`, card => {
       card.querySelector('#micGo').onclick = () => { try { localStorage.setItem(MIC_SEEN, '1'); } catch (e) { /* asked again next time */ } closeSheet(); go(); };
     });
     return false;
   }
+  // In 语流's iOS app the app records (16 kHz mono; WAV, or AAC past 45 s): micOpen() gives a stand-in stream after iOS's
+  // own question, and recorderFor() a stand-in MediaRecorder the three recorders use as before (ios/README.md).
+  const APP_REC = () => !!(window.FlowApp && FlowApp.has && FlowApp.has('rec'));
+  class AppRecorder {
+    constructor(max) { this.max = max || 120; this.state = 'inactive'; this.mimeType = ''; this.ondataavailable = null; this.onstop = null; this.off = null; }
+    start() {
+      this.state = 'recording';
+      FlowApp.rec.start({ max: this.max }).then(x => {
+        if (x && x.ok) { this.mimeType = x.format === 'm4a' ? 'audio/mp4' : 'audio/wav'; return; }
+        toast((x && x.message) || '录音没能开始'); this.done(null);
+      }, () => this.done(null));
+      this.off = FlowApp.on('rec', d => { if (d.state === 'done' || d.state === 'cut') this.stop(); });  // max reached, or a call
+    }
+    stop() {
+      if (this.state !== 'recording') return;
+      this.state = 'stopping';
+      FlowApp.rec.stop().then(x => this.done(x && x.ok ? x : null), () => this.done(null));
+    }
+    done(x) {
+      if (this.off) { this.off(); this.off = null; }
+      this.state = 'inactive';
+      if (x) {
+        this.mimeType = x.mime_type;
+        const bin = atob(x.data), bytes = new Uint8Array(bin.length);
+        for (let k = 0; k < bin.length; k++) bytes[k] = bin.charCodeAt(k);
+        if (this.ondataavailable) this.ondataavailable({ data: new Blob([bytes], { type: x.mime_type }) });
+      }
+      if (this.onstop) this.onstop();
+    }
+  }
+  function recorderFor(stream, opts, maxSecs) { return stream && stream.app ? new AppRecorder(maxSecs) : new MediaRecorder(stream, opts); }
   async function micOpen() {  // the stream; throws an Error whose message is for the learner
+    if (APP_REC()) {  // asked inside the tap, as with getUserMedia
+      if (!(await FlowApp.rec.ask())) throw new Error('没有拿到麦克风权限，到 iPhone 的「设置 → 语流 → 麦克风」打开');
+      LONG.other();
+      return { app: true, getTracks: () => [] };
+    }
     if (!navigator.mediaDevices || !window.MediaRecorder) throw new Error('这个浏览器不支持录音，换 Safari 或 Chrome 试试');
     micSession('play-and-record');
     try { return await navigator.mediaDevices.getUserMedia({ audio: true }); }
@@ -66,7 +102,7 @@
       let stream;
       try { stream = await micOpen(); } catch (e) { toast(e.message); return; }
       const type = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
-      const mr = new MediaRecorder(stream, type ? { mimeType: type } : undefined), chunks = [];
+      const mr = recorderFor(stream, type ? { mimeType: type } : undefined, maxSecs), chunks = [];
       this.mr = mr;
       mr.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
       mr.onstop = () => {
@@ -79,7 +115,7 @@
     async payload(blob) {
       if (blob.size > 1400000) throw new Error('录音太长了，缩短一点再试');
       const data = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = no; r.readAsDataURL(blob); });
-      return { mime_type: /mp4|m4a|aac/.test(blob.type) ? 'audio/mp4' : /ogg/.test(blob.type) ? 'audio/ogg' : 'audio/webm', data };
+      return { mime_type: /wav/.test(blob.type) ? 'audio/wav' : /mp4|m4a|aac/.test(blob.type) ? 'audio/mp4' : /ogg/.test(blob.type) ? 'audio/ogg' : 'audio/webm', data };
     },
   };
   const recBtn = (id, label) => `<button class="icon-btn rec" id="${id}" type="button" aria-label="${label || '录音'}"><span class="dot"></span></button>`;
