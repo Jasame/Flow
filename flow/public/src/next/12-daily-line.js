@@ -64,5 +64,5 @@
     if (!n) return '';
     return `<a class="card news-card" href="#/m/${encodeURIComponent(n.id)}" data-tap="home-news"><span class="lc-head"><span class="lc-title nc-title">今日一读</span>${aiTag()}</span>
       <b class="nc-h">${esc(n.title)}</b>${n.preview ? `<span class="small muted nc-p">${esc(n.preview)}</span>` : ''}
-      <span class="tiny muted">${n.level} · ${n.reasons && n.reasons.length ? `<span class="nc-why">${esc(n.reasons[0])}</span>` : esc(n.theme_label || '')}${n.minutes ? ` · 约 ${n.minutes} 分钟` : ''} ${aiTag()}<span class="nc-go">读这篇 →</span></span></a>`;
+      <span class="tiny muted">${n.level} · ${n.reasons && n.reasons.length ? `<span class="nc-why">${esc(n.reasons[0])}</span>` : esc(n.theme_label || '')}${n.minutes ? ` · 约 ${n.minutes} 分钟` : ''}<span class="nc-go">读这篇 →</span></span></a>`;
   }

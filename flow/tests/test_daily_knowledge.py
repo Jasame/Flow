@@ -54,6 +54,7 @@ class DailyKnowledgeTests(unittest.TestCase):
   with patch.object(daily,'PAUSED',True),patch.object(daily,'request_model',side_effect=calls) as model:md=daily.samples(self.c,5,'2026-11-26')
   self.assertEqual(model.call_count,9);self.assertFalse(any(k.kwargs.get('grounding') for k in model.call_args_list))
   for kind in daily.POOL:self.assertIn(next(t for t in daily.POOL[kind])[1],md)
+  self.assertIn('scary',daily.SELF_CHECK);self.assertIn('鬼怪',daily.write_messages('B2',daily.POOL['culture'][1],[])[1]['content'])  # under-14s read it too
   self.assertEqual(md.count('**检查**：通过'),4);self.assertEqual(md.count('没有通过'),1);self.assertIn('officials said',md.lower())
   self.assertEqual(self.c.execute("SELECT COUNT(*) FROM lab_packs WHERE origin='daily'").fetchone()[0],0)
   self.assertEqual(self.c.execute('SELECT COUNT(*) FROM daily_runs').fetchone()[0],0)
