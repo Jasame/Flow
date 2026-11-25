@@ -186,8 +186,10 @@ class LightEndToEndTests(unittest.TestCase):
                       {'who': 'db', 'name': 'no AI job failed', 'detail': str([{'kind': 'next-dialog', 'error': 'AI 这次的回答不完整，没有保存。'}])},
                       {'who': 'exam', 'name': 'AI scores an essay', 'detail': str({'summary': 'what the learner wrote, never shown', 'score': 0.4})},
                       {'who': 'guard', 'name': 'oversized essay body refused', 'detail': '502'},
-                      {'who': 'a2', 'name': 'persona finished without crashing', 'detail': 'Traceback (most recent call last):\n  File "x"\nKeyError: \'reply\''}]
-            (work / 'report.json').write_text(json.dumps({'checks': {'total': 3, 'failed': 1}, 'failed': failed, 'server_errors': [],
+                      {'who': 'a2', 'name': 'persona finished without crashing', 'detail': 'Traceback (most recent call last):\n  File "x"\nKeyError: \'reply\''},
+                      {'who': 'guard', 'name': '60 concurrent reads all 200 (0.8s)', 'detail': str(['/api/next/report HTTP 500', '/api/next/graph HTTP 0'])}]
+            server_errors = [{'who': 'guard', 'method': 'GET', 'path': '/api/next/report', 'q': '?id=7', 'status': 500, 'ms': 3, 'error': '服务暂时异常'}]
+            (work / 'report.json').write_text(json.dumps({'checks': {'total': 3, 'failed': 1}, 'failed': failed, 'server_errors': server_errors,
                                                           'ai_calls_used': 1, 'seconds': 1, 'light': True}))
             seen = []
             with patch.object(mod.subprocess, 'run', lambda *a, **k: seen.append(k['env'])):
@@ -200,8 +202,10 @@ class LightEndToEndTests(unittest.TestCase):
             'db: no AI job failed: next-dialog: AI 这次的回答不完整，没有保存。',
             'exam: AI scores an essay: ',
             'guard: oversized essay body refused: HTTP 502',
-            'a2: persona finished without crashing: KeyError'])
+            'a2: persona finished without crashing: KeyError',
+            'guard: 60 concurrent reads all 200 (0.8s): /api/next/report HTTP 500; /api/next/graph HTTP 0'])
         self.assertNotIn('learner wrote', json.dumps(summary, ensure_ascii=False))
+        self.assertEqual(summary['server_error_routes'], ['GET /api/next/report 500'])  # method, route, status: no query, no text
         self.assertEqual(seen[0].get('QA_LIGHT'), '1')
         self.assertNotIn('QA_LIGHT', seen[1])
         self.assertEqual(seen[0].get('FLOW_SERVICE'), 'flow-beta')  # the 内测版's settings are kept
