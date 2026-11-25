@@ -9,10 +9,20 @@ nonisolated enum Feature: String, CaseIterable, Identifiable, Sendable {
     case offlinePacks = "offline-packs"      // today's recordings kept on the phone, fetched on Wi-Fi (Packs)
     case haptics = "haptics"                 // a light tap of the phone as the page asks (复习's ratings, answers: Haptics)
     case frugal = "frugal"                   // Low Power Mode, iOS 27's reduced resources: less ahead of time (Frugal)
+    case reviewActivity = "review-activity"  // the word review's progress on the lock screen (ReviewActivities)
 
     enum Group: String, CaseIterable {
         case listen = "锁屏听读"
         case feel = "手感和省电"
+        case glance = "不打开 App 也能学"
+
+        /// under the group's switches: what has no switch of its own
+        var footer: String? {
+            switch self {
+            case .glance: "小组件：长按主屏空白处 →「编辑」→「添加小组件」，搜「语流」，有「今天」一种（主屏、锁屏都能放）。控制中心：下拉控制中心，长按空白处 →「添加控件」，搜「语流」，有「开始复习」「今天的学习」两个按钮。"
+            default: nil
+            }
+        }
     }
 
     var id: String { rawValue }
@@ -21,6 +31,7 @@ nonisolated enum Feature: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .lockScreenStudy, .smartResume, .offlinePacks: .listen
         case .haptics, .frugal: .feel
+        case .reviewActivity: .glance
         }
     }
 
@@ -31,6 +42,7 @@ nonisolated enum Feature: String, CaseIterable, Identifiable, Sendable {
         case .offlinePacks: "离线朗读包"
         case .haptics: "复习时的轻触震动"
         case .frugal: "省电时少做事"
+        case .reviewActivity: "复习进度的实时活动"
         }
     }
 
@@ -42,6 +54,7 @@ nonisolated enum Feature: String, CaseIterable, Identifiable, Sendable {
         case .offlinePacks: "连着 Wi-Fi 时，把今天要学的 3 篇文章录音存到手机上，地铁里没网也能放；存满 7 天的自动删掉"
         case .haptics: "复习单词点「认识 / 模糊 / 不认识」、做题答对答错时，手机轻轻一震，手感各不一样"
         case .frugal: "开了低电量模式、或者系统提示要省着用时，少提前下载录音和文章，等用到再下"
+        case .reviewActivity: "复习单词时，锁屏和灵动岛上显示「12 / 30」，切到别的 App 也看得到。锁屏上别人也看得到这个数字"
         }
     }
 
@@ -49,6 +62,7 @@ nonisolated enum Feature: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .lockScreenStudy, .smartResume, .haptics, .frugal: true
         case .offlinePacks: false  // it takes room on the phone: the learner turns it on
+        case .reviewActivity: false  // others can see the lock screen: the learner turns it on
         }
     }
 
@@ -60,7 +74,7 @@ nonisolated enum Feature: String, CaseIterable, Identifiable, Sendable {
             if #available(iOS 27, *) { return true }
             #endif
             return false
-        case .smartResume, .offlinePacks, .haptics, .frugal:
+        case .smartResume, .offlinePacks, .haptics, .frugal, .reviewActivity:
             return true
         }
     }

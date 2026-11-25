@@ -322,4 +322,26 @@ final class FlowUITests: XCTestCase {
         XCTAssertTrue(app.buttons["flow.retry"].exists, "再试一次")
         shot("10-error-page")
     }
+
+    /// 「不打开 App 也能学」: the widgets' numbers written by the app, a widget's link opening a page of the site, and
+    /// the review's Live Activity (off until turned on)
+    @MainActor func test11Glance() {
+        bridgePage()
+        tapButton("开关复原")
+        tapButton("小组件数据")
+        wait(web.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@ AND label CONTAINS %@", "glance: card ", "line")).firstMatch, 40,
+             "the app wrote the widgets' card (a test is signed out: no words, 今日好句 all the same): \(value("glance: "))")
+        // a widget or a Control Center button opens the app on a page of the site
+        app.open(URL(string: "yuliu-beta://open?path=%23/review")!)
+        wait(line("hash: #/review"), 10, "the widget's link went to 复习")
+        tapButton("实时活动 3/10")
+        wait(line("glance: activity false off"), 10, "off until the learner turns it on")
+        tapButton("打开实时活动")
+        tapButton("实时活动 3/10")
+        wait(line("glance: activity true  count 1"), 10, "on: 「复习单词 3 / 10」 on the lock screen: \(value("glance: "))")
+        shot("11-review-activity-started")
+        tapButton("结束活动")
+        wait(line("glance: ended count 0"), 10, "ended with the review")
+        tapButton("开关复原")
+    }
 }

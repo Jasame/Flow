@@ -48,6 +48,7 @@ iOS（语流 C1）、安卓（语流 C2）、桌面 Windows、macOS 和 Linux（
 | `settings` | App 自己的「专属功能」设置页：「我的 → 设置」最后一行，点了调 `FlowApp.call('app.settings')` | 有 | 没有 | 没有 | 没有 |
 | `haptic` | 让手机轻轻一震：`FlowApp.call('app.haptic', {kind})`（见下） | 有 | 没有 | 没有 | 没有 |
 | `frugal` | 系统要省着用（低电量模式、iOS 27 的省资源提示）：网页少预载 | 有 | 没有 | 没有 | 没有 |
+| `activity` | 复习进度显示在锁屏和灵动岛上（实时活动）：`activity.review` / `activity.end`（见下） | 有 | 没有 | 没有 | 没有 |
 | `privacy` | 第一次打开时的同意和「基本模式」、撤回同意、权限管理页、APP 备案号（命令写在第 10 节安卓一节） | 没有 | 有 | 没有 | 没有 |
 
 - 一个 App 在回到前台、网页重新加载以后，会把正在放的状态再发一次（`audio` 事件），网页不用猜。网页可见时也可以调 `FlowApp.call('app.visible')` 让它重发。
@@ -56,6 +57,7 @@ iOS（语流 C1）、安卓（语流 C2）、桌面 Windows、macOS 和 Linux（
   `FlowApp.call('app.features')` → `{<功能>: true/false}`：这台手机有哪几项、开没开（iOS 的 id：`lock-study` `smart-resume` `offline-packs` `haptics` `frugal`）。网页现在不用它，留给以后按开关改说法。
 - `FlowApp.call('app.haptic', {kind})` → `{ok}`：`kind` 是 `tap`（轻点：打分、选一个选项）、`select`（换了一个选择）、`success`（答对、认识）、`warning`（模糊、半对）、`error`（答错）。
   学员在 App 的设置里关了「复习时的轻触震动」就回 `ok: false`，什么都不做；网页不用自己判断开关，照常调。iOS 本来就没有 navigator.vibrate，网页在浏览器里不用补。
+- `FlowApp.call('activity.review', {done, total})` → `{ok, why?}`：单词复习每评一张调一次，锁屏和灵动岛上显示「复习单词 done / total」；`FlowApp.call('activity.end', {done?, total?})` 复习完或离开复习页时调，最后的数字留一分钟再消失。学员在 App 设置里没打开「复习进度的实时活动」（默认关）时回 `{ok: false, why: 'off'}`，系统不让（关了实时活动、App 不在前台）回 `why: 'denied'`；网页照常调，不用自己判断。
 - `FlowApp.call('app.frugal')` → `{on}`，变了发 `frugal` 事件 `{on}`（回到前台也会再看一次）。`on` 为 true 时网页少预载（PRELOAD.frugal() 也算它）：不提前存今天的文章、不预取下一篇。
   学员在 App 的设置里关了「省电时少做事」就一直是 false。
 - 安卓的返回键、鸿蒙的侧滑返回：App 先在 `window` 上发可以取消的 `flowapp:back` 事件，网页 `preventDefault()` 就算处理了；没人处理时 App 关掉开着的 sheet，再回到上一页。iOS、桌面没有这个键，不发。
@@ -222,6 +224,9 @@ speaking、pending 照实；2.5 秒内一定发 start；getVoices() 有带 lang 
   - `frugal` 省电时少做事（默认开）：低电量模式或 `UIApplication.systemPrefersReducedResourceUsage`（iOS 27）时，服务器朗读只提前做 1 句（平时 2 句），
     离线朗读包不在前台下载（晚上充电时照常），网页收到 `frugal`。
   - App 自己画的出错页（「连不上语流」）在 iOS 26 起用系统的玻璃按钮，前面加一个说明原因的图标（没网 wifi.slash，别的 exclamationmark.icloud）。
+  - 小组件（扩展 FlowWidgets，和 App 共用 App Group `group.<Bundle ID>`）：「今天」（主屏小、中，锁屏圆形、长条、一行）显示今天要复习几个词、新词、大约几分钟，中号的还有今日好句（带网站给的「公版名句」「语流文章」标注和出处）。小组件自己不上网：App 回到前台、后台刷新提醒时把数字写进 App Group。没登录不显示任何人的词。点一下用 App 自己的链接 `yuliu://open?path=%23/review`（内测版 `yuliu-beta`）打开复习；只认本站的 `#/` 页面。
+  - 控制中心（iOS 18 起）：「开始复习」「今天的学习」两个按钮，打开 App 的复习页、今日页。
+  - `review-activity` 复习进度的实时活动（默认关，锁屏上别人也看得到数字）：`activity.review` / `activity.end`，ActivityKit 本地更新，没有推送；App 重新启动时清掉上次留下的。
 - WKAppBoundDomains 只有本站：服务工作线程、桥、cookie 只在本站有效。
 - audio：AVPlayer，AVAudioSession `.playback` + `.spokenAudio` + 后台音频，MPNowPlayingInfoCenter / MPRemoteCommandCenter；系统声音 AVSpeechSynthesizer。
 - rec：AVAudioRecorder；notify：UNUserNotificationCenter + BGAppRefreshTask。

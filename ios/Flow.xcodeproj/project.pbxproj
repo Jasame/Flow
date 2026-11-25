@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		65F74B412E71DDDF10A8CD70 /* flowapp.js in Resources */ = {isa = PBXBuildFile; fileRef = 0466368CCE6AA73D89684269 /* flowapp.js */; };
+		4CCD05817685F82E104EA50E /* FlowWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1FAE7A6D238FECB07C2C245D /* FlowWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -25,12 +26,34 @@
 			remoteGlobalIDString = A83CFC723D0903950655CAD7;
 			remoteInfo = Flow;
 		};
+		76EAF282FFB29FCFE6C596CF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C7213D2993B78B40B09823E0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1EDDDDBF62AAEC2B02A4F38D;
+			remoteInfo = FlowWidgets;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		1A5D5CDCE0D88F9F828A926A /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				4CCD05817685F82E104EA50E /* FlowWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		C712CB453C31A8D3D1D9763B /* Flow.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Flow.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BAB816168F4D090B6E7CD170 /* FlowTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FlowTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D253219243AC34EB35910581 /* FlowUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FlowUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		1FAE7A6D238FECB07C2C245D /* FlowWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FlowWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		997D3F159AE966A93A37E784 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
 		6A2AB7B46815A5A87C73EEA5 /* Beta.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Beta.xcconfig; sourceTree = "<group>"; };
 		58994FA7E4E9FB910499DC22 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
@@ -41,9 +64,18 @@
 		D2BD6FFAD8BBCF8903326CFD /* Exceptions for "Flow" folder in "Flow" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Flow.entitlements,
 				Info.plist,
 			);
 			target = A83CFC723D0903950655CAD7 /* Flow */;
+		};
+		48238FB5FBD1ED11150F9F72 /* Exceptions for "FlowWidgets" folder in "FlowWidgets" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				FlowWidgets.entitlements,
+				Info.plist,
+			);
+			target = 1EDDDDBF62AAEC2B02A4F38D /* FlowWidgets */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -54,6 +86,19 @@
 				D2BD6FFAD8BBCF8903326CFD /* Exceptions for "Flow" folder in "Flow" target */,
 			);
 			path = Flow;
+			sourceTree = "<group>";
+		};
+		38AD2A3416F567C1F05E9AFC /* Common */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Common;
+			sourceTree = "<group>";
+		};
+		CCDBB05F1EE22B09C92741DC /* FlowWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				48238FB5FBD1ED11150F9F72 /* Exceptions for "FlowWidgets" folder in "FlowWidgets" target */,
+			);
+			path = FlowWidgets;
 			sourceTree = "<group>";
 		};
 		5F21F97F3D9C6807F48B170A /* FlowTests */ = {
@@ -90,6 +135,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		3C3994A53847EE296DB627AB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -99,6 +151,8 @@
 				774F6083100D4B3FDF4841DF /* Config */,
 				449ADEA367FF1746EB6F8ED5 /* Shared */,
 				C0CA3009F43BCDF8A3BC3F23 /* Flow */,
+				38AD2A3416F567C1F05E9AFC /* Common */,
+				CCDBB05F1EE22B09C92741DC /* FlowWidgets */,
 				5F21F97F3D9C6807F48B170A /* FlowTests */,
 				3878117C015CDB3116FA907F /* FlowUITests */,
 				5C8C5EA09D14FAD397A1D190 /* Products */,
@@ -130,6 +184,7 @@
 				C712CB453C31A8D3D1D9763B /* Flow.app */,
 				BAB816168F4D090B6E7CD170 /* FlowTests.xctest */,
 				D253219243AC34EB35910581 /* FlowUITests.xctest */,
+				1FAE7A6D238FECB07C2C245D /* FlowWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -144,13 +199,16 @@
 				8401D4DF53C093BF9A6E2A0E /* Sources */,
 				71701F3F0F718A0C9729EADA /* Frameworks */,
 				AC3C07E362B7AACE48FF5241 /* Resources */,
+				1A5D5CDCE0D88F9F828A926A /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				2BF9252827FAB2891E4AFE97 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				C0CA3009F43BCDF8A3BC3F23 /* Flow */,
+				38AD2A3416F567C1F05E9AFC /* Common */,
 			);
 			name = Flow;
 			packageProductDependencies = (
@@ -205,6 +263,29 @@
 			productReference = D253219243AC34EB35910581 /* FlowUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		1EDDDDBF62AAEC2B02A4F38D /* FlowWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 68453829DE2ADC12FE5F0908 /* Build configuration list for PBXNativeTarget "FlowWidgets" */;
+			buildPhases = (
+				061F45DFD754B55BD5980BC3 /* Sources */,
+				3C3994A53847EE296DB627AB /* Frameworks */,
+				7B605EE1B2D74FAA6D88E008 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CCDBB05F1EE22B09C92741DC /* FlowWidgets */,
+				38AD2A3416F567C1F05E9AFC /* Common */,
+			);
+			name = FlowWidgets;
+			packageProductDependencies = (
+			);
+			productName = FlowWidgets;
+			productReference = 1FAE7A6D238FECB07C2C245D /* FlowWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -226,6 +307,9 @@
 						CreatedOnToolsVersion = 27.2;
 						TestTargetID = A83CFC723D0903950655CAD7;
 					};
+					1EDDDDBF62AAEC2B02A4F38D = {
+						CreatedOnToolsVersion = 27.2;
+					};
 				};
 			};
 			buildConfigurationList = 120A26488AA68E05A5B6C6DC /* Build configuration list for PBXProject "Flow" */;
@@ -245,6 +329,7 @@
 				A83CFC723D0903950655CAD7 /* Flow */,
 				AE81DCE019785598A3660E71 /* FlowTests */,
 				4B65691B6BCE2F830278411D /* FlowUITests */,
+				1EDDDDBF62AAEC2B02A4F38D /* FlowWidgets */,
 			);
 		};
 /* End PBXProject section */
@@ -266,6 +351,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		C3AF3CADEA41125F7B4C0B75 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7B605EE1B2D74FAA6D88E008 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -296,6 +388,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		061F45DFD754B55BD5980BC3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -308,6 +407,11 @@
 			isa = PBXTargetDependency;
 			target = A83CFC723D0903950655CAD7 /* Flow */;
 			targetProxy = 98BADA074925C20D6E50DEE3 /* PBXContainerItemProxy */;
+		};
+		2BF9252827FAB2891E4AFE97 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1EDDDDBF62AAEC2B02A4F38D /* FlowWidgets */;
+			targetProxy = 76EAF282FFB29FCFE6C596CF /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -344,12 +448,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "$(FLOW_APP_ICON)";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Flow/Flow.entitlements;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Flow/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "$(FLOW_DISPLAY_NAME)";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_NSCameraUsageDescription = "问题反馈时可以拍一张照片当截图。只在你选「拍照」时打开相机，照片只随这条反馈发出。";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "语流要用麦克风录下你说的英语（跟读、口语对话、发音练习）。只在你点录音的那几秒打开，录音只用来给你批改。";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -369,12 +475,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "$(FLOW_APP_ICON)";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Flow/Flow.entitlements;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Flow/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "$(FLOW_DISPLAY_NAME)";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_NSCameraUsageDescription = "问题反馈时可以拍一张照片当截图。只在你选「拍照」时打开相机，照片只随这条反馈发出。";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "语流要用麦克风录下你说的英语（跟读、口语对话、发音练习）。只在你点录音的那几秒打开，录音只用来给你批改。";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -442,6 +550,50 @@
 			};
 			name = Release;
 		};
+		C4A1FC89791A4F332D10283E /* Beta */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 6A2AB7B46815A5A87C73EEA5 /* Beta.xcconfig */;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = FlowWidgets/FlowWidgets.entitlements;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FlowWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "$(FLOW_DISPLAY_NAME)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FLOW_BUNDLE_ID).widgets";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Beta;
+		};
+		B31CE6B4376A9C593BD0C26B /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 58994FA7E4E9FB910499DC22 /* Release.xcconfig */;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = FlowWidgets/FlowWidgets.entitlements;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FlowWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "$(FLOW_DISPLAY_NAME)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FLOW_BUNDLE_ID).widgets";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -477,6 +629,15 @@
 			buildConfigurations = (
 				503B18CC0576A33760CB52C9 /* Beta */,
 				008A794D919872A927983090 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Beta;
+		};
+		68453829DE2ADC12FE5F0908 /* Build configuration list for PBXNativeTarget "FlowWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C4A1FC89791A4F332D10283E /* Beta */,
+				B31CE6B4376A9C593BD0C26B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Beta;

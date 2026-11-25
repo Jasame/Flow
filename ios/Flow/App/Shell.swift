@@ -45,6 +45,7 @@ final class Shell {
                 if on { Task { await Packs.shared.refresh(force: true) } } else { Packs.shared.clear() }
                 Packs.schedule()
             case .frugal: Frugal.shared.update()
+            case .reviewActivity: if !on { Task { await ReviewActivities.endAll() } }
             case .smartResume, .haptics: break
             }
         }
@@ -54,7 +55,10 @@ final class Shell {
         switch p {
         case .active:
             bridge.resendState()
-            Task { await reminders.refresh() }
+            Task { [reminders, site] in
+                let outcome = await reminders.refresh()
+                await WidgetsFeed.publish(reminders.input, outcome: outcome, site: site)  // the widgets' numbers too
+            }
             Task { await Packs.shared.refresh() }  // 离线朗读包: today's, over Wi-Fi (at most every 3 hours)
         case .background:
             recorder.cutNow()  // no recording behind the learner's back
@@ -76,7 +80,8 @@ final class Shell {
             MainActor.assumeIsolated {
                 var done = false
                 let job = Task {
-                    await Shell.shared.reminders.refresh(force: true)
+                    let outcome = await Shell.shared.reminders.refresh(force: true)
+                    await WidgetsFeed.publish(Shell.shared.reminders.input, outcome: outcome, site: Shell.shared.site)
                     if !done { done = true; task.setTaskCompleted(success: true) }
                 }
                 task.expirationHandler = {  // out of time: say so now (the cookie calls do not stop on cancel)
