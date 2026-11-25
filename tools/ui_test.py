@@ -1859,7 +1859,7 @@ def class_run(pw):
         pg.fill('#authForm [name=email]', 'ui-teacher-new@example.com'); pg.click('#authForm [data-send]'); pg.wait_for_timeout(800)
         mail = sorted(Path(CFG['outbox']).glob('*.txt'), key=lambda f: f.stat().st_mtime)[-1].read_text(encoding='utf-8')
         pg.fill('#authForm [name=code]', re.search(r'验证码：(\d{6})', mail).group(1))
-        pg.fill('#authForm [name=username]', 'ui-new-teacher'); pg.fill('#authForm [name=password]', 'correct horse 1')
+        pg.fill('#authForm [name=username]', 'ui-new-teacher'); pg.fill('#authForm [name=password]', 'correct horse 1'); pg.check('#authForm [name=storage]')
         pg.click('#authForm [type=submit]'); pg.wait_for_selector('#tNew', timeout=8000); settle(pg)
         tab = pg.text_content('[data-nav="today"] span') or ''
         check(dev, '老师账号: after signing up, the home is 我的班级 and the first tab says 班级', '我的班级' in (pg.text_content('h1') or '') and tab == '班级', tab)
@@ -1937,6 +1937,29 @@ def privacy_run(pw):
         gp.screenshot(path=str(OUT / 'privacy-signup.png'))
         gp.click('#authForm .agechip:has-text("14–17 岁")'); gp.wait_for_timeout(150)
         check(dev, '注册: another band hides the tick again', not gp.is_visible('#authForm .guard'))
+        gp.click('#authForm [type=submit]'); gp.wait_for_timeout(200)
+        no_store = gp.text_content('#authErr') or ''
+        check(dev, '注册: the separate 香港 tick is required, and said before any request', '香港' in no_store and gp.is_visible('#authForm [name=storage]'), no_store)
+        ctx.close()
+        # 数据存放在香港 (privacy_service): an older account is asked on a page of its own, before any other page;
+        # 不同意 pauses it (export, delete, sign out, agree again), and ticking goes on
+        ctx = browser.new_context(**phone)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['unasked']['token'], 'url': BASE}])
+        pg = ctx.new_page(); pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.goto(BASE + '/#/', wait_until='networkidle'); pg.wait_for_selector('#stoF', timeout=8000)
+        asked = '补一个同意' in (pg.text_content('h1') or '') and pg.is_visible('#stoNo')
+        pg.screenshot(path=str(OUT / 'privacy-storage-ask.png'))
+        pg.goto(BASE + '/#/cards', wait_until='networkidle'); pg.wait_for_selector('#stoF', timeout=8000)
+        other = '补一个同意' in (pg.text_content('h1') or '')
+        pg.click('#stoNo'); pg.wait_for_selector('h1:has-text("这个账号已暂停")', timeout=8000)
+        paused = pg.is_visible('a[href="/api/next/export/records.json"]') and pg.is_visible('#stoDel') and pg.is_visible('#stoOut')
+        pg.screenshot(path=str(OUT / 'privacy-storage-paused.png'))
+        pg.click('#stoF [type=submit]'); pg.wait_for_timeout(200)
+        err = pg.text_content('#stoErr') or ''
+        pg.check('#stoF [name=storage]'); pg.click('#stoF [type=submit]'); pg.wait_for_timeout(1500); settle(pg)
+        back = pg.query_selector('#stoF') is None
+        check(dev, '数据存放: an older account is asked first on every page, 不同意 pauses it, ticking goes on',
+              asked and other and paused and '勾选' in err and back, (asked, other, paused, err, back))
         ctx.close()
         # an older account without a band: asked once, the question stays until answered
         ctx = browser.new_context(**phone)

@@ -139,7 +139,8 @@ def setup():
     c.execute("DELETE FROM sessions WHERE user_id IN (%s)" % ','.join('?' * len(IDS)), list(IDS.values()))
     out = {}
     for name, uid in IDS.items():
-        c.execute('INSERT INTO users(id,username,password,admin) VALUES(?,?,?,0)', (uid, f'qa-e2e-{name}', 'qa-e2e-no-login:' + secrets.token_hex(16)))
+        # storage_ok: agreed to 数据存放在香港 (privacy_service), as every sign-up does; without it the account is paused
+        c.execute('INSERT INTO users(id,username,password,admin,storage_ok) VALUES(?,?,?,0,?)', (uid, f'qa-e2e-{name}', 'qa-e2e-no-login:' + secrets.token_hex(16), time.time()))
         token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(24)
         c.execute('INSERT INTO sessions VALUES(?,?,?,?)', (token, uid, csrf, time.time() + 3 * 3600))
         out[name] = Client(name, token, csrf)
