@@ -231,6 +231,17 @@ Kotlin，minSdk 26，targetSdk 37；说明在 `android/README.md`。flavor `beta
   - UA 末尾是 `FlowAndroid/<版本>`；返回键先发 `flowapp:back`（第 2 节）；别的网站、`mailto:`、`tel:` 交给系统打开；
   - 深色和浅色切换不重新加载；键盘弹出时整个 WebView 变矮，网页里 visualViewport 看不到键盘；
   - WebView 的使用统计和 Safe Browsing 关掉，不做云备份。
+- **第一次打开**（1.0.4 起，为上国内应用商店，`android/README.md`「第一次打开」）：
+  - App 先用自己的弹窗问《用户协议》《隐私和数据》。两章全文是打包时从 guide.md 生成的，回答以前不打开网页，也不联网。
+  - 点「不同意」进入基本模式：不登录，不提醒，不录音。登录、注册的请求由 App 拦下，回 403 `{error, code: 'app-consent'}`，同时再问一次。
+  - 能力 `privacy`（只有安卓，共用的能力表里没有）。网页「我的 → 设置」可以用它来做：
+    - `privacy.state()` → `{state: 'agreed' | 'basic', version, beian, store}`；`beian` 是 APP 备案号，空字符串就不显示；
+    - `privacy.ask()`：在基本模式里再问一次；
+    - `privacy.withdraw()`：撤回同意，App 先说明，再清掉手机上的东西，回到第一次打开的弹窗；
+    - `privacy.permissions()` → `{mic, notify}`；
+    - `privacy.settings({what: 'mic' | 'notify'})`：打开手机设置里对应的那一页。
+  - 申请麦克风、通知权限时，页面顶上同时显示用途说明。
+  - 开机接收器平时关着，打开了 App 提醒才打开。
 - **audio**：Media3 ExoPlayer 加 MediaSessionService（前台服务，类型 mediaPlayback）。
   - 锁屏、通知栏、耳机和蓝牙按键：播放、暂停、上一句、下一句。SimpleBasePlayer 显示标题和「AI 朗读 · 第 n / N 句」（合成声音的显式标识）；句间停顿和正在生成的句子也显示成在放。
   - 音频焦点自己管：
@@ -252,7 +263,7 @@ Kotlin，minSdk 26，targetSdk 37；说明在 `android/README.md`。flavor `beta
     - 能精确就用 `setExactAndAllowWhileIdle`；
     - Android 14 起新装的 App 默认没有精确闹钟权限（我们用 SCHEDULE_EXACT_ALARM，不用给闹钟类 App 的 USE_EXACT_ALARM），这时用 `setWindow` 的 10 分钟时间窗；
     - 用户在「闹钟和提醒」里打开权限以后，自动改成准点；
-    - 重启手机、改时间或时区、App 升级以后都重排。
+    - 重启手机、改时间或时区、App 升级以后都重排（开机这一项只在打开了 App 提醒时才有）。
   - `pending()` 返回 App 自己记下的列表，因为 AlarmManager 不能查。
   - App 打开（onStart）和切后台（onStop）时，用 WebView 的 cookie 拿 `/api/next/vocab` 重排：10 分钟内不重复拿，`sync` 和 `ask` 时一定拿。
   - `reminder.ics` 链接：App 先问「App 通知」还是「系统日历」。系统日历打开日历 App 的新建日程页（CalendarContract 的 ACTION_INSERT），不要日历权限。

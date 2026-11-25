@@ -378,6 +378,7 @@ flow/tests/test_no_gemini.py
 flow/tests/test_origin_install.py
 flow/tests/test_package.py
 flow/tests/test_pedagogy.py
+flow/tests/test_personalize.py
 flow/tests/test_practice.py
 flow/tests/test_practice_hub.py
 flow/tests/test_privacy.py

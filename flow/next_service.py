@@ -94,6 +94,9 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
         c.execute('ALTER TABLE next_profiles ADD COLUMN level_source TEXT')
     if 'accent' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:  # 主题色, kept with the account
         c.execute("ALTER TABLE next_profiles ADD COLUMN accent TEXT NOT NULL DEFAULT 'green'")
+    if 'personalize' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:
+        # 按我的学习记录推荐 (我的 → 设置; 个保法第二十四条, 算法推荐规定第十七条): 1 = on (the default), 0 = off
+        c.execute('ALTER TABLE next_profiles ADD COLUMN personalize INTEGER NOT NULL DEFAULT 1')
     import vocab_service  # word books, daily plan and FSRS state live on top of next_cards
     vocab_service.schema(c)
     __import__('skills_service').schema(c)  # ability profile, mistake book, weekly report
@@ -377,7 +380,26 @@ def profile(c, uid):
             'voice': r['voice'] if r['voice'] in VOICES else 'us-f', 'weekly_goal': r['weekly_goal'] if 'weekly_goal' in r.keys() else 4,
             'exam': r['exam'] if 'exam' in r.keys() else None, 'exam_date': r['exam_date'] if 'exam_date' in r.keys() else None,
             'target': r['target'] if 'target' in r.keys() else None, 'level_source': (r['level_source'] if 'level_source' in r.keys() else None) or 'self',
-            'accent': r['accent'] if 'accent' in r.keys() and r['accent'] in ACCENTS else 'green'}
+            'accent': r['accent'] if 'accent' in r.keys() and r['accent'] in ACCENTS else 'green',
+            'personalize': bool(r['personalize']) if 'personalize' in r.keys() else True}
+
+
+def follows_records(prof):
+    """Whether what is recommended may follow the learner's records (按我的学习记录推荐): yes unless the learner switched
+    it off in 我的 → 设置. Off: texts by the level the learner chose, featured first, the newest first; nothing picked
+    from their records (个保法第二十四条: an option not aimed at the person). A guest has no records to follow anyway."""
+    return not (prof and prof.get('personalize') is False)
+
+
+def set_personalize(c, uid, data):
+    """POST /api/next/personalize {on: bool}."""
+    on = data.get('on')
+    if type(on) is not bool:
+        return {'error': '参数不正确'}, 400
+    if not c.execute('UPDATE next_profiles SET personalize=?, updated=? WHERE user_id=?', (int(on), time.time(), uid)).rowcount:
+        return {'error': '请先设置学习目标和水平'}, 400
+    c.commit()
+    return {'personalize': on}, 200
 
 
 BANDS = ('A2', 'B1', 'B2', 'C1')
@@ -763,8 +785,11 @@ def home(c, uid, level=None, themes=None):
     themes = (prof or {}).get('themes') or [t for t in (themes or []) if t in THEMES]
     done = _done(c, uid)
     day = _day()
+    # 按我的学习记录推荐 switched off (我的 → 设置; D2: off means the ranking reads no records at all, not that it hides
+    # the reasons): the level the learner chose, featured first, the newest first. Only an account that switched it off.
+    plain = bool(uid) and not follows_records(prof)
     # A serial is recommended one episode at a time: only its next unread episode, never one from the middle.
-    serial_next = {s['next'] for s in series_list(c, uid)}
+    serial_next = set() if plain else {s['next'] for s in series_list(c, uid)}
     pool = [(r, p) for r, p in _public_packs(c, level) if r['origin'] != 'daily' and (not p.get('series') or p['id'] in serial_next)]
     learned = lambda p: 'check' in done.get(p['id'], set())
     # What 今日 recommends, tier by tier, until there are three (r27 content line, audit 3.2; the user's choices):
@@ -778,7 +803,7 @@ def home(c, uid, level=None, themes=None):
         tiers.append(('up', [rp for rp in _public_packs(c, up) if rp[0]['origin'] != 'daily' and featured(rp[1]) and not rp[1].get('series')
                              and not learned(rp[1])]))
     last = {}
-    if uid:
+    if uid and not plain:
         # The latest time each text was learned: the first time (next_progress) or again (next_step_log, since #51)
         last = {r['pack']: r['t'] for r in c.execute(
             "SELECT pack, MAX(created) t FROM (SELECT pack, created FROM next_progress WHERE user_id=? AND step='check' "
@@ -790,7 +815,7 @@ def home(c, uid, level=None, themes=None):
     states = graph_states(c, uid) if uid else {}
     focus = set(LEVEL_NODES.get(level, ())) or None
     meta_titles = {k: v['title'] for k, v in nodes_meta(c).items()}
-    saved = _card_norms(c, uid)
+    saved = [] if plain else _card_norms(c, uid)
     # Ties are broken per day and level, not per account, so signing in does not swap the article a guest was shown.
     seed = lambda p: hashlib.sha256(f"{day}|{level}|{p['id']}".encode()).hexdigest()
     # New grammar counts only once the learner has some (a new account ranks like the guest it was a minute ago).
@@ -835,6 +860,12 @@ def home(c, uid, level=None, themes=None):
     short = bool(prof) and minutes <= 15  # a guest has no day's time: ranked as before
     exam_day = goal == 'exam' and bool(getattr(__import__('exam_service'), 'drill_step', None))  # 考试小练 (r28 第 4 段)
     picks, taken = [], set()
+    # switched off: nothing from the records — no grammar to make up, no saved words, no texts left out for being learned
+    if plain:
+        rows = [rp for rp in _public_packs(c, level) if rp[0]['origin'] != 'daily' and not rp[1].get('series')]
+        rows.sort(key=lambda rp: (0 if featured(rp[1]) else 1, -(rp[0]['created'] or 0), rp[1]['id']))
+        picks = [_card(p, done.get(p['id']), {'reasons': []}) for _, p in rows[:3]]
+        tiers = []
     for kind, rows in tiers:
         if len(picks) >= 3:
             break
@@ -873,7 +904,7 @@ def home(c, uid, level=None, themes=None):
     hot = next((p for p in dailies if cefr(p) == level), None) or next((p for p in dailies if below and cefr(p) == below), None)
     if hot:
         extra = {'source': hot.get('source', ''), 'day': hot.get('daily_day')}
-        if goal and suits_goal(hot, goal):
+        if goal and suits_goal(hot, goal) and not plain:
             extra['reasons'] = ['和你的目标相关']
         news = _card(hot, done.get(hot['id']), extra)
     resume = None
@@ -892,13 +923,14 @@ def home(c, uid, level=None, themes=None):
         g['watch'] = [{'id': n, 'title': meta_titles.get(n, n)} for n in watch[:3]]
         g['due'] = [{'id': n, 'title': meta_titles.get(n, n)} for n in GB.due(c, uid) if n not in watch][:3]
     # 今日好句 (r27, daily_line.py): a public-domain line or a sentence from a featured text, not today's own article
-    line = __import__('daily_line').today(c, uid, level, skip={p['id'] for p in picks[:1]})
+    line = __import__('daily_line').today(c, None if plain else uid, level, skip={p['id'] for p in picks[:1]})
     out = {'profile': prof, 'level': level, 'level_label': LEVELS[level]['label'], 'today': picks, 'news': news, 'resume': resume, 'line': line,
            'featured_left': left if uid else None, 'level_up': up,
            'stats': stats(c, uid) if uid else None, 'graph': g,
            'announce': __import__('console_ops').current_announcement(c),
            'trial_survey': bool(uid) and __import__('class_service').survey_due(c, uid),  # 公告 from the xmc.hk console, at the top of 今日
-           'update': __import__('updates_service').latest()}  # 「语流更新了」 on 今日: the newest release's highlights (updates_service.py)
+           'update': __import__('updates_service').latest(),  # 「语流更新了」 on 今日: the newest release's highlights (updates_service.py)
+           'personalized': bool(uid) and not plain}  # 按我的学习记录推荐: whether today's picks followed the records (B8: 今日 shows nothing for it; 我的 → 设置 says it)
     if uid and prof:
         import skills_service as sk
         out['sprint'] = __import__('exam_sprint').brief(c, uid)  # 考试冲刺: the exam and its days left, in the plan's header line
@@ -1779,6 +1811,8 @@ def post(c, uid, path, data):
         return save_profile(c, uid, data)
     if path == '/api/next/habit':
         return set_weekly_goal(c, uid, data)
+    if path == '/api/next/personalize':
+        return set_personalize(c, uid, data)
     if path == '/api/next/exam/goal':
         return __import__('exam_sprint').set_goal(c, uid, data)
     if path == '/api/next/weekly-mail':

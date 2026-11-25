@@ -140,7 +140,7 @@
     view.innerHTML = `<div class="stack cls-page">${teachIntro('我的班级')}${S.user.teacher ? '<span class="small muted">老师账号</span>' : ''}
       ${rows ? `<div class="stack-s">${rows}</div>` : '<div class="card flat"><p>还没有班级。先建一个，拿到邀请码发给学生。</p></div>'}
       ${S.user.teacher ? `<form class="card flat stack-s" id="tNew" novalidate><h2 class="h2">新建班级</h2>
-        <label class="field">班级名<input name="name" type="text" maxlength="30" placeholder="比如 高一（3）班" autocomplete="off" required><span class="hint">2–30 个字。建好以后可以改名。</span></label>
+        <label class="field">班级名<input name="name" type="text" maxlength="30" placeholder="比如 大学英语（2）班" autocomplete="off" required><span class="hint">2–30 个字。建好以后可以改名。</span></label>
         <button class="btn primary" type="submit">新建班级</button><p class="err" id="tErr" role="alert"></p></form>` : ''}
       <div class="card flat stack-s">${teachTerms(k.min)}</div>
       <p class="small"><a class="link" href="#/guide/teacher">老师操作说明</a></p>

@@ -205,6 +205,28 @@
       el.innerHTML = `APP 备案号：<a class="link" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">${esc(no)}</a>`; el.hidden = false;
     }).catch(() => {});
   }
+  // 我的 → 设置 → 按我的学习记录推荐 (next_service.personal; 个保法第二十四条, 算法推荐规定第十七条: an option not aimed
+  // at the person, that really switches it off). On by default; off, 今日 recommends by the chosen level only.
+  const personalizeLabel = () => (S.home && S.home.profile && S.home.profile.personalize === false ? '已关闭' : '已打开');
+  function personalizeSheet() {
+    const p = (S.home && S.home.profile) || {}, on = p.personalize !== false;
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">按我的学习记录推荐</h2>
+      <p class="small">打开时，语流按你的学习记录给你挑内容：今日的「今天这篇」和「也可以读」（看你学过哪些、哪些语法要补、收藏和在背的词）、今日好句、今日计划里练哪一项，以及级别建议和周报里的建议。</p>
+      <p class="small">关掉以后马上生效，只按你自己选的水平推荐：精选的在前，新的在前，不再看你的学习记录。复习单词和错题、复听和「接着学」还是按你学过的安排，那是在复习你自己的内容。</p>
+      <div class="chips" role="radiogroup" aria-label="按我的学习记录推荐">${[[true, '打开'], [false, '关闭']].map(([v, l]) => `<button class="chip" type="button" role="radio" data-pers="${v}" aria-checked="${on === v}">${l}</button>`).join('')}</div>
+      <a class="link small" href="#/guide/personalize" data-doc="personalize">用到了哪些记录（隐私说明）</a>
+      <button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      card.querySelectorAll('[data-pers]').forEach(b => b.onclick = async () => {
+        try {
+          const r = await api('/api/next/personalize', { on: b.dataset.pers === 'true' });
+          if (S.home && S.home.profile) S.home.profile.personalize = r.personalize;
+          S.homeFresh = false;  // 今日 is asked again, ranked the new way
+          card.querySelectorAll('[data-pers]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
+          const v = document.getElementById('mePersV'); if (v) v.textContent = personalizeLabel();  // the chips show it: no toast over them (B8)
+        } catch (e) { toast(e.message); }
+      });
+    });
+  }
   // 我的 → 账号 → 数据存放: what was agreed, and 撤回同意 (the account is paused at once).
   function storageSheet() {
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">数据存放</h2>

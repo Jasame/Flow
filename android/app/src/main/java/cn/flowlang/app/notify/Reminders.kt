@@ -6,6 +6,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -143,6 +144,7 @@ object Reminders {
     fun schedule(c: Context): List<Planner.Slot> {
         cancelAll(c)
         var x = input(c)
+        boot(c, x.app && allowed(c))
         if (!x.app || !allowed(c)) { keep(c, emptyList()); return emptyList() }
         val slots = Planner.slots(x, Instant.now())
         x = Planner.remember(x, slots); save(c, x)
@@ -159,6 +161,30 @@ object Reminders {
         }
         keep(c, slots)
         return slots
+    }
+
+    /**
+     * 开机自启动 only with the app's reminders (the stores' rule: no start at boot without a reason the learner chose):
+     * RescheduleReceiver is off in the manifest, on while app reminders are on and allowed, off again with them.
+     */
+    fun boot(c: Context, on: Boolean) {
+        val pm = c.packageManager
+        val cn = ComponentName(c, RescheduleReceiver::class.java)
+        val now = pm.getComponentEnabledSetting(cn) == PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+        if (on != now) pm.setComponentEnabledSetting(cn,
+            if (on) PackageManager.COMPONENT_ENABLED_STATE_ENABLED else PackageManager.COMPONENT_ENABLED_STATE_DEFAULT, PackageManager.DONT_KILL_APP)
+    }
+
+    fun bootOn(c: Context): Boolean =
+        c.packageManager.getComponentEnabledSetting(ComponentName(c, RescheduleReceiver::class.java)) == PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+
+    /** 不同意 or 撤回同意 (MainActivity.forgetHere): nothing on the phone, the hours and counts forgotten, no start at boot. */
+    fun forget(c: Context) {
+        cancelAll(c)
+        prefs(c).edit().clear().apply()
+        boot(c, false)
+        pausedCode = null
+        lastFetch = 0L
     }
 
     private fun intent(c: Context, id: String) = Intent(c, ReminderReceiver::class.java).setAction(ACTION).setData(Uri.parse("flow://remind/$id"))
@@ -279,12 +305,22 @@ class ReminderReceiver : BroadcastReceiver() {
     }
 }
 
-/** After a restart, an update, a change of time or time zone, or of the exact-alarm permission: put them back. */
+/**
+ * After a restart, a change of time or time zone, or of the exact-alarm permission: put them back. Only enabled while the
+ * app's reminders are on (Reminders.boot), so 语流 never starts at boot otherwise.
+ */
 class RescheduleReceiver : BroadcastReceiver() {
     override fun onReceive(c: Context, intent: Intent) {
         when (intent.action) {
-            Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED, Intent.ACTION_TIME_CHANGED, Intent.ACTION_TIMEZONE_CHANGED,
+            Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_TIME_CHANGED, Intent.ACTION_TIMEZONE_CHANGED,
             AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED -> Reminders.schedule(c)
         }
+    }
+}
+
+/** 语流 itself was updated: its reminders back in place (and RescheduleReceiver on or off with them). No network. */
+class UpdatedReceiver : BroadcastReceiver() {
+    override fun onReceive(c: Context, intent: Intent) {
+        if (intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) Reminders.schedule(c)
     }
 }
