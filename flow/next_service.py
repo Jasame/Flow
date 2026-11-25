@@ -31,6 +31,8 @@ GOAL_REASON = {'daily': '日常交流用得上', 'work': '工作沟通用得上'
                'media': '适合「看懂影视、新闻」', 'interest': '有故事，读着轻松'}
 MINUTES = (5, 10, 15, 20, 30, 45, 60)
 # Pre-generated Kokoro narration (see tools/gen_audio.py): audio/<voice>/<material>.m4a + .json timings.
+# 主题色 (我的 → 外观): the accent the pages are drawn in; green is 配色 A, indigo the optional blue (99-accent.css)
+ACCENTS = ('green', 'indigo')
 VOICES = {'us-f': '美音 · 女声', 'us-m': '美音 · 男声', 'uk-f': '英音 · 女声', 'uk-m': '英音 · 男声'}
 # Which ids can have narration files: the v5 corpus and, since the r27 content line, the older materials too (简版:
 # graded-*, graph-* and the first theme-level texts), so WeChat on Android, which has no browser voice, can play them.
@@ -90,6 +92,8 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
         # 'guess' (one band below the target, until a test says more), 'placed' (语法起点小测), 'self' (chosen; older rows: NULL)
         c.execute('ALTER TABLE next_profiles ADD COLUMN target TEXT')
         c.execute('ALTER TABLE next_profiles ADD COLUMN level_source TEXT')
+    if 'accent' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:  # 主题色, kept with the account
+        c.execute("ALTER TABLE next_profiles ADD COLUMN accent TEXT NOT NULL DEFAULT 'green'")
     import vocab_service  # word books, daily plan and FSRS state live on top of next_cards
     vocab_service.schema(c)
     __import__('skills_service').schema(c)  # ability profile, mistake book, weekly report
@@ -371,7 +375,8 @@ def profile(c, uid):
     return {'level': r['level'], 'goal': r['goal'], 'themes': json.loads(r['themes']), 'minutes': r['minutes'],
             'voice': r['voice'] if r['voice'] in VOICES else 'us-f', 'weekly_goal': r['weekly_goal'] if 'weekly_goal' in r.keys() else 4,
             'exam': r['exam'] if 'exam' in r.keys() else None, 'exam_date': r['exam_date'] if 'exam_date' in r.keys() else None,
-            'target': r['target'] if 'target' in r.keys() else None, 'level_source': (r['level_source'] if 'level_source' in r.keys() else None) or 'self'}
+            'target': r['target'] if 'target' in r.keys() else None, 'level_source': (r['level_source'] if 'level_source' in r.keys() else None) or 'self',
+            'accent': r['accent'] if 'accent' in r.keys() and r['accent'] in ACCENTS else 'green'}
 
 
 BANDS = ('A2', 'B1', 'B2', 'C1')
@@ -444,6 +449,15 @@ def set_voice(c, uid, data):
     if c.execute('UPDATE next_profiles SET voice=?, updated=? WHERE user_id=?', (voice, time.time(), uid)).rowcount:
         c.commit()
     return {'voice': voice}, 200
+
+
+def set_accent(c, uid, data):
+    accent = data.get('accent')
+    if accent not in ACCENTS:
+        return {'error': '没有这个主题色'}, 400
+    if c.execute('UPDATE next_profiles SET accent=?, updated=? WHERE user_id=?', (accent, time.time(), uid)).rowcount:
+        c.commit()
+    return {'accent': accent}, 200
 
 
 def audio_index():
@@ -1767,6 +1781,8 @@ def post(c, uid, path, data):
         return __import__('ability_radar').judged(c, uid, path.rsplit('/', 1)[1], data)
     if path == '/api/next/voice':
         return set_voice(c, uid, data)
+    if path == '/api/next/accent':
+        return set_accent(c, uid, data)
     if path == '/api/next/progress':
         if not _pack_row(c, uid, str(data.get('pack', ''))):
             return {'error': '材料不存在'}, 404
