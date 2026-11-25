@@ -1,0 +1,120 @@
+name: Desktop
+# The desktop app (desktop/, 语流 22): Rust unit tests, the Windows installer and the macOS app, and one real start of
+# each (--smoke-test: the site opens, window.FlowApp is there, the media controls start; desktop/tools/check_smoke.py).
+# Only for changes under desktop/ (or this file), so the website's runs are unchanged. Draft by 语流 22; CI belongs to
+# 语流 15, who may fold it into tests.yml's scheme.
+#
+# Pull requests and main build the Beta app (opens 内测版 flow.jasa.hk). "Run workflow" can build the Release app
+# (opens 正式版 flowlang.cn). Nothing is signed: no Apple or Windows certificate exists yet (desktop/README.md).
+# The installers are kept 14 days as the run's artifacts.
+on:
+  pull_request:
+    paths: ['desktop/**', '.github/workflows/desktop.yml']
+  push:
+    branches: [main]
+    paths: ['desktop/**', '.github/workflows/desktop.yml']
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: beta (内测版) or release (正式版)
+        type: choice
+        options: [beta, release]
+        default: beta
+permissions:
+  contents: read
+concurrency:
+  group: desktop-${{ github.ref }}-${{ inputs.channel || 'beta' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  app:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows
+            os: windows-latest
+            bundles: nsis
+          - name: macos
+            os: macos-latest
+            bundles: app,dmg
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    env:
+      CHANNEL: ${{ inputs.channel || 'beta' }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - name: Rust
+        run: |
+          rustup toolchain install stable --profile minimal --component clippy
+          rustup default stable
+          if [ "${{ matrix.name }}" = macos ]; then rustup target add x86_64-apple-darwin aarch64-apple-darwin; fi
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri -> target
+      - run: npm ci
+      - name: Unit tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+      - name: Clippy
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+      - name: Build
+        run: |
+          conf=""; [ "$CHANNEL" = beta ] && conf="--config src-tauri/tauri.beta.conf.json"
+          target=""; [ "${{ matrix.name }}" = macos ] && target="--target universal-apple-darwin"
+          npx tauri build $conf $target --bundles ${{ matrix.bundles }}
+      - name: Smoke test (Windows, installed)
+        if: matrix.name == 'windows'
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem src-tauri/target/release/bundle/nsis/*-setup.exe | Select-Object -First 1
+          "installer: $($setup.Name) $([math]::Round($setup.Length / 1MB, 1)) MB"
+          Start-Process $setup.FullName -ArgumentList '/S' -Wait
+          $bin = if ($env:CHANNEL -eq 'beta') { 'flow-beta.exe' } else { 'flow.exe' }
+          $exe = Get-ChildItem $env:LOCALAPPDATA -Recurse -Depth 3 -Filter $bin -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $exe) { throw "installed $bin not found" }
+          "installed: $($exe.FullName)"
+          Get-ChildItem "$env:APPDATA\Microsoft\Windows\Start Menu\Programs" -Recurse -Filter *.lnk | Where-Object Name -like '语流*' | ForEach-Object { "shortcut: $($_.FullName)" }
+          $scheme = if ($env:CHANNEL -eq 'beta') { 'flowlang-beta' } else { 'flowlang' }
+          "url scheme registered: $(Test-Path "HKCU:\Software\Classes\$scheme")"
+          # a picture of the window for the notes: start it normally, wait for the site, capture the screen
+          $p = Start-Process $exe.FullName -PassThru
+          Start-Sleep -Seconds 20
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $img = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+          [System.Drawing.Graphics]::FromImage($img).CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+          $img.Save("$env:RUNNER_TEMP\desktop-windows.png")
+          Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+          Start-Sleep -Seconds 2
+          $r = Start-Process $exe.FullName -ArgumentList "--smoke-test=$env:RUNNER_TEMP\smoke.json" -PassThru -Wait
+          "exit code: $($r.ExitCode)"
+          python tools/check_smoke.py "$env:RUNNER_TEMP\smoke.json" windows
+      - name: Smoke test (macOS)
+        if: matrix.name == 'macos'
+        run: |
+          app=$(ls -d src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app | head -1)
+          du -sh "$app"; ls -la src-tauri/target/universal-apple-darwin/release/bundle/dmg/
+          bin="$app/Contents/MacOS/$(defaults read "$PWD/$app/Contents/Info" CFBundleExecutable)"
+          "$bin" & pid=$!; sleep 20; screencapture -x "$RUNNER_TEMP/desktop-macos.png" || true; kill $pid || true; sleep 2
+          "$bin" --smoke-test="$RUNNER_TEMP/smoke.json"
+          python3 tools/check_smoke.py "$RUNNER_TEMP/smoke.json" macos
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: flow-desktop-${{ matrix.name }}-${{ inputs.channel || 'beta' }}
+          retention-days: 14
+          if-no-files-found: ignore
+          path: |
+            desktop/src-tauri/target/release/bundle/nsis/*-setup.exe
+            desktop/src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+            ${{ runner.temp }}/smoke.json
+            ${{ runner.temp }}/desktop-*.png
