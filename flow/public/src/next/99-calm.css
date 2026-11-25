@@ -1,0 +1,22 @@
+/* 学优秀 UI，第一批 (the user's pick, 2026-11-25; shared notes ui-benchmark.md): the way reading and study apps do it —
+   the text first, tools as words, an instruction said once. The four steps' underlined tabs are in 10-pages.css and
+   20-motion-graph.css. */
+
+/* 读: 中文导读, 改写, 伴读 as text buttons in one row (still 44 px to tap, 99-tap.css); the AI line and the legend share
+   the line under them */
+.read-tools .btn.small{background:none;color:var(--green-ink);padding-left:6px;padding-right:6px;font-weight:600}
+.read-tools [aria-expanded=true]{background:var(--green-soft);border-color:transparent}
+.read-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 14px;margin:2px 0 10px}
+.read-line .read-ai,.read-line .legend{margin:0}
+
+/* 使用提示 (08-tips.js): said once, put away with 知道了 */
+.tip-once{display:flex;align-items:center;gap:8px;font-size:13.5px;line-height:1.5;color:var(--ink2);background:var(--sunk);border-radius:12px;padding:4px 4px 4px 12px;margin:0 0 10px}
+.tip-once[hidden]{display:none}
+.tip-once span{flex:1}
+.tip-once .link{flex:none}
+
+/* 今日: 绑定邮箱 one line (02-shell.js), ✕ is 以后再说 */
+.mail-line{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--ink2);padding:2px 0 2px 2px;margin:4px 0}
+.mail-line span{flex:1}
+.mail-line .link{flex:none;font-weight:600}
+.mail-line .mn-x{flex:none;border:0;background:none;color:var(--muted);width:44px;height:44px;font-size:16px;border-radius:50%}

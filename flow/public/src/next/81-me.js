@@ -7,9 +7,12 @@
   // 帮助 → 更多: the two rows that are not looked at every week (简洁化, the user's pick 2026-11-25)
   function moreSheet() {
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">更多</h2><div class="glist">${grow('/about', '认识语流', '一页看完语流能帮你做什么', '', 'me-about')}${grow('/survey', '匿名问卷', '你想要什么样的英语学习网站', '', 'me-survey')}
-      ${S.user ? grow('meTour', '再看一遍新手引导', '今日的几个主要按钮在哪', '', 'me-tour') : ''}</div>
+      ${S.user ? grow('meTour', '再看一遍新手引导', '今日的几个主要按钮在哪', '', 'me-tour') : ''}${grow('meTips', '重新显示使用提示', '比如「点词查词」，用到时再说一次', '', 'me-tips')}</div>
       <button class="btn ghost" data-close type="button">关闭</button></div>`, card => {
       const t = card.querySelector('#meTour'); if (t) t.onclick = () => { closeSheet(); tourAgain(); };  // 08-tour.js
+      card.querySelector('#meTips').onclick = async () => {  // 08-tips.js
+        try { await TIPS.reset(); closeSheet(); toast('使用提示会在用到时再出现一次'); } catch (e) { toast(e.message); }
+      };
     });
   }
   // 我的 → 内测版: this 内测 version's number and when it went up, and what changed in it (the ledger's beta entry)

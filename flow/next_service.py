@@ -1622,6 +1622,8 @@ def get(c, uid, path, q):
     one = lambda k, d='': (q.get(k) or [d])[0]
     if path == '/api/next/tour':  # 新手引导 this account has not seen yet (a guest: none)
         return __import__('tour_service').due(c, uid), 200
+    if path == '/api/next/tips':  # 使用提示 this account has put away (tour_service.TIPS)
+        return __import__('tour_service').tips(c, uid), 200
     if path.startswith('/api/next/vocab') or path == '/api/next/review':
         if not uid and path != '/api/next/vocab/test':
             return {'error': '请先登录'}, 401
@@ -1752,6 +1754,8 @@ def post_public(c, uid, path, data):
         return __import__('word_links').answer(c, uid, data)
     if path == '/api/next/tour':  # 新手引导 ended (finished or skipped, and where)
         return __import__('tour_service').record(c, uid, data)
+    if path == '/api/next/tips':  # 使用提示: one put away ({tip}), or all back ({reset: true})
+        return __import__('tour_service').tip(c, uid, data)
     if path == '/api/next/exam/paper':
         return __import__('exam_service').paper(c, uid, data.get('exam'))
     if path == '/api/next/exam/submit':

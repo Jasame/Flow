@@ -90,11 +90,10 @@
           ${m.can_variant ? `<button class="btn small" id="mkVar" type="button" title="这篇原文是 ${m.original_level}，你选的是 ${m.user_level}">改写成 ${m.user_level} 难度</button>` : ''}
           <button class="btn small" id="readAlong" title="边听边看文字，读到哪句亮哪句">${playIcon(false, 14)}<span>伴读</span></button>
           <button class="link tiny" id="alongRestart" type="button" hidden>从头开始</button></div>
-        ${aiVoiceNote('朗读由 AI 合成', 'p', 'read-ai')}
+        <div class="read-line">${aiVoiceNote('朗读由 AI 合成', 'p', 'read-ai')}<div class="legend"><span>本篇词汇</span><span class="h">可能超出你的水平</span>${(m.mine || []).length ? '<span class="m">你在背的词</span>' : ''}</div></div>
         <p class="tiny muted sv-prep" id="svPrep" role="status" hidden></p>
         ${m.summary_zh ? `<p class="guide-zh small" id="zhText" hidden>${esc(m.summary_zh)}</p>` : ''}${variantBar}
-        <div class="read-hint tiny muted"><div class="legend"><span>本篇词汇</span><span class="h">可能超出你的水平</span>${(m.mine || []).length ? '<span class="m">你在背的词</span>' : ''}</div>
-          <span>点词查词，点句尾 ✦ 讲解整句，${TOUCH ? '长按拖选' : '选中'}可收藏${TOUCH ? '' : '；键盘：Tab 进入正文后 ← → 逐词，↵ 查词，E 讲解'}</span></div>
+        ${tipSlot('read', `点词查词，点句尾 ✦ 讲解整句，${TOUCH ? '长按拖选' : '选中'}可收藏${TOUCH ? '' : '；键盘：Tab 进入正文后 ← → 逐词，↵ 查词，E 讲解'}`)}
         <div class="text" id="reader" tabindex="0" aria-label="正文：左右方向键逐词移动，回车查词">${ls.map((s, i) => sentenceHTML(s, i)).join('')}</div>
         <div class="section row between"><span></span><button class="btn primary" id="toCheck">读完了，做理解题 →</button></div>
         ${gainsHTML()}`;
