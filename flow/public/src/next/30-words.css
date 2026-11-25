@@ -75,3 +75,8 @@ details.basis[open]>summary{margin-bottom:0}
 .know-tip{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;margin:0 auto 6px;max-width:440px;background:var(--sunk);border:1px solid var(--line);border-radius:12px;text-align:left}
 /* 这次什么时候复习 on 今日's finished plan (10-welcome-today.js): a quiet link under the two buttons */
 .today-plan .tp-remind{justify-self:center}
+/* 「AI 朗读」 (aiVoice, 《标识办法》: a synthetic voice is said so where it plays): beside a word's play button, and once
+   at the head of a list of examples (every word and example sound in 语流 is synthetic: Kokoro, CosyVoice or the browser's) */
+.say-ai{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.say-ai .ai-mark{font-family:var(--sans)}  /* in the phonetic line (serif) the label keeps the page's own type */
+.exs .ex-ai{display:flex;justify-content:flex-end;margin-bottom:-4px}
