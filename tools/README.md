@@ -124,9 +124,9 @@ Conventions:
 The owner approved these on 2026-11-24 (「按你的建议改，b6 发完就写进去」). They apply from #60 (in main since 2026-11-24).
 
 1. **Authors merge their own PRs.** When CI is green and the PR merges cleanly into main, the session that wrote it
-   turns on auto-merge. The release session (语流 2) handles releases and the servers. 语流 still gets a release only
+   turns on auto-merge. The release session (语流 A1（原 2）) handles releases and the servers. 语流 still gets a release only
    when the owner says 「发正式版」. **GitHub as a whole** (the order PRs land in, conflicts, branch cleanup) belongs to the
-   ledger session (语流·总账; the owner's choice, 2026-11-25). When a PR is stuck on a conflict or a flaky check, that
+   ledger session (语流 A3·版本总账（原 18）; the owner's choice, 2026-11-25). When a PR is stuck on a conflict or a flaky check, that
    session merges main into its branch and pushes (never with force), then tells the author to pull. It also deletes
    remote branches that are already in main, after noting each name and sha in the shared note `ledger.md`.
    - The session may turn auto-merge on itself with `gh pr merge <number> --repo Jasame/Flow --auto --merge` (the owner
@@ -142,16 +142,23 @@ The owner approved these on 2026-11-24 (「按你的建议改，b6 发完就写�
    always shows main and nobody releases it by hand. To keep a version there while the owner tries it, pause with
    `gh variable set BETA_AUTO --body off -R Jasame/Flow` (`gh variable delete BETA_AUTO -R Jasame/Flow` resumes).
 3. **Small steps.** A change goes to 语流 with the next nightly release (6. below), once it has been on the beta. Never "wait until all of version X is done". Unfinished work merges behind a switch that is off on 语流.
-4. **One owner per area.** One long-lived session owns each area: 今日和计划, 开局和考试, 单词, 听和说, 内容, 后台和班级,
-   AI, 发版, and CI/build tooling. 总控 coordinates. Only the area's owner changes it at a time. A one-off session is
-   archived once its PR is in main.
+4. **One owner per area.** One long-lived session owns each area. Sessions are named by group letter and number since
+   2026-11-25 (the owner's choice; the old number in brackets):
+   - A, coordination and infrastructure: 语流 A0 总控（原 1）, A1 发版和服务器（原 2）, A2 CI 和构建（原 15）, A3 版本总账（原 18）,
+     A4 MSI 测试机（原 24）;
+   - B, the website: B1 今日和计划（原 8）, B2 单词（原 11）, B3 听和说（原 9）, B4 内容（原 14）, B5 开局、考试和 App 外壳（原 7）,
+     B6 后台、班级、隐私和邮件（原 3）, B7 AI 模型与费用（原 12）;
+   - C, the apps: C1 iOS（原 20）, C2 Android（原 21）, C3 桌面版（原 22）;
+   - D, projects and compliance: D1 春萌项目（原 10）, D2 知识产权和运营主体（原 23）, D3 宣传和下载页（原 17）.
+   
+   总控 coordinates. Only the area's owner changes it at a time. A one-off session is archived once its PR is in main.
 5. **Habits.**
    - Before pushing, run only the test groups the change touches (see 推之前跑哪些测试 below); CI runs everything.
    - Tests compute counts from the data. Never hard-code how many questions, columns or items there are.
    - A change to an API response shape updates `tools/qa_e2e.py` in the same PR (b5's e2e broke on exactly this).
    - Progress goes into the area's shared note, so other sessions read it instead of waiting for relayed messages.
 6. **语流 once a night** (the owner, 2026-11-25 11:15: 「每天固定一次，一次点头」). 语流 is released once a day at 21:00,
-   and not at all when nothing new is on the beta. At 20:00 the release session (语流 2) gives the owner the list of
+   and not at all when nothing new is on the beta. At 20:00 the release session (语流 A1（原 2）) gives the owner the list of
    what goes out, the known problems, the full text of the jasa.hk changelog and the sentences learners will read in
    the site's 更新记录. One 「发」 from the owner releases 语流 and publishes the changelog together; the 更新记录
    goes with the release, because it is part of that build. Afterwards the ledger entry, as in 发布顺序 step 6.
@@ -168,7 +175,7 @@ The owner approved these on 2026-11-24 (「按你的建议改，b6 发完就写�
 7. **App test builds** (the owner: 「自动打包，发给同学前问我」). iOS, Android and desktop builds are made automatically
    once their change is in main. Sending one to trial students, to TestFlight external testing or to an app store
    needs the owner's yes first.
-8. **Reports.** 总控 (语流 1) gives the owner a summary about every two hours.
+8. **Reports.** 总控 (语流 A0（原 1）) gives the owner a summary about every two hours.
 9. **Automation stays silent** (the owner, 2026-11-25: 「后台运行的应用不要播放系统声音」). Sessions work on the owner's
    Mac, so nothing they run in the background may make a sound:
    - browser automation is muted: every tool that starts a browser calls `silent(pw)` from `tools/quiet.py` right
