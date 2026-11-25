@@ -301,6 +301,9 @@ def origin(p):
     def links(items, n):
         return [{'title': str(r.get('title') or r.get('url'))[:120], 'url': r['url']} for r in items or []
                 if isinstance(r, dict) and str(r.get('url', '')).startswith('https://')][:n]
+    if p.get('kind') == 'topic':  # 今日一读 (since 2026-11-25): an original text on a lasting topic, AI-written, no news
+        name = __import__('daily_service').DAILY_NAME
+        return {'kind': 'topic', 'label': f'{name}（Flow 原创）', 'ai': 'AI 生成', 'reviewed': None, 'url': '', 'references': []}
     if p.get('daily_day'):
         return {'kind': 'news', 'label': '今日热点（联网检索）', 'ai': 'AI 改写', 'reviewed': False, 'url': '',
                 'references': links((p.get('provenance') or {}).get('sources'), 5)}
@@ -309,6 +312,8 @@ def origin(p):
                 'url': p['source_url'] if str(p.get('source_url', '')).startswith('https://') else '', 'references': []}
     return {'kind': 'original', 'label': p.get('source') or 'Flow 编辑部原创', 'ai': p.get('ai', V5_AI if featured(p) else ''),
             'reviewed': p.get('reviewed'), 'url': p['source_url'] if str(p.get('source_url', '')).startswith('https://') else '',
+            # 经人工审核: only a text the user has read themselves (SPEC v5.1 reviewed_by_human, with the day), never by default
+            'reviewed_by_human': p.get('reviewed_by_human') is True,
             'references': links(p.get('references'), 8),
             'quotes': [{k: qt[k] for k in ('text', 'author', 'work', 'year')} for qt in p.get('quotes') or []
                        if isinstance(qt, dict) and all(qt.get(k) for k in ('text', 'author', 'work', 'year'))][:3]}
@@ -320,6 +325,8 @@ def _pack_row(c, uid, pid):
         return None
     if __import__('quality_service').info(c, row)['status'] == 'disabled':
         return None
+    if row['origin'] == 'daily' and __import__('daily_service').retired(json.loads(row['content'])):
+        return None  # 今日热点 news, paused 2026-11-25: kept in the database, not shown
     return row
 
 
@@ -340,7 +347,8 @@ def _public_packs(c, level=None, with_hidden=False):
                 rows.append(({'id': row['id'], 'origin': row['origin'], 'created': row['created']}, p))
         _PACKS.update(key=key, at=time.time(), rows=rows)
     hidden = () if with_hidden else __import__('console_ops').hidden_packs(c)
-    return [rp for rp in _PACKS['rows'] if (not level or cefr(rp[1]) == level) and rp[0]['id'] not in hidden]
+    retired = (lambda p: False) if with_hidden else __import__('daily_service').retired  # 今日热点 news: paused, kept, not shown
+    return [rp for rp in _PACKS['rows'] if (not level or cefr(rp[1]) == level) and rp[0]['id'] not in hidden and not retired(rp[1])]
 
 
 _TOKENS = {}
@@ -488,6 +496,7 @@ def _card(pack, done=None, extra=None):
             'preview': pack.get('summary_zh') or sentences(pack['body'])[0][:140], 'preview_en': sentences(pack['body'])[0][:160],
             'daily': bool(pack.get('daily_day')), 'featured': featured(pack), 'grammar': pack.get('grammar', []),
             'brief': not featured(pack) and not pack.get('daily_day') and not pack.get('imported'),  # 简版: the older, shorter texts
+            'ai': not pack.get('imported'),  # 「AI 生成」 on the card: everything Flow wrote is (featured, 简版, 热点); an imported article is the learner's
             'steps': sorted(done or [], key=STEPS.index), **(extra or {})}
 
 
@@ -873,7 +882,8 @@ def home(c, uid, level=None, themes=None):
            'featured_left': left if uid else None, 'level_up': up,
            'stats': stats(c, uid) if uid else None, 'graph': g,
            'announce': __import__('console_ops').current_announcement(c),
-           'trial_survey': bool(uid) and __import__('class_service').survey_due(c, uid)}  # 公告 from the xmc.hk console, at the top of 今日
+           'trial_survey': bool(uid) and __import__('class_service').survey_due(c, uid),  # 公告 from the xmc.hk console, at the top of 今日
+           'update': __import__('updates_service').latest()}  # 「语流更新了」 on 今日: the newest release's highlights (updates_service.py)
     if uid and prof:
         import skills_service as sk
         out['sprint'] = __import__('exam_sprint').brief(c, uid)  # 考试冲刺: the exam and its days left, in the plan's header line
@@ -1613,6 +1623,8 @@ def get(c, uid, path, q):
         return cs.mine(c, uid) if path == '/api/next/class' else cs.teach(c, uid, one('id'))
     if path == '/api/next/guide':
         return __import__('user_guide').api(), 200
+    if path == '/api/next/updates':
+        return __import__('updates_service').listing(), 200  # 更新记录 (#/updates)
     if path == '/api/next/meta':
         return meta(), 200
     if path == '/api/next/home':

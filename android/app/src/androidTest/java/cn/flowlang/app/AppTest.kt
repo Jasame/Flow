@@ -91,6 +91,8 @@ class AppTest {
         device.openNotification()
         val pause = device.wait(Until.findObject(By.desc(Pattern.compile("(?i).*(pause|暂停).*"))), 10_000)
         assertTrue("the media controls in the shade", pause != null)
+        // a synthesized voice says so where the app shows it (人工智能生成合成内容标识办法)
+        assertTrue("「AI 朗读」 on the media card", device.wait(Until.hasObject(By.textContains("AI 朗读")), 5_000))
         pause.click()
         waitState("paused")
         page.waitFor("the page told why", "window.__why === 'remote'", 5_000)

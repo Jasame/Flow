@@ -24,6 +24,7 @@ def catalog(c,uid):
   quality=__import__('quality_service').info(c,row)
   if quality['status']=='disabled':continue
   p=json.loads(row['content'])
+  if row['origin']=='daily' and __import__('daily_service').retired(p):continue  # 今日热点 news: paused 2026-11-25
   from content_v30 import SUPERSEDED
   if p['id'] in SUPERSEDED and p['id'] not in saved and p['id'] not in drafts:continue
   m=metadata(p);words=len(p['body'].split())

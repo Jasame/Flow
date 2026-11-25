@@ -1,4 +1,4 @@
-  /* ---------- 今日好句 and 今日热点 (r27): the top of 今日 ---------- */
+  /* ---------- 今日好句 and 今日一读 (今日热点 until 2026-11-25): the top of 今日 ---------- */
   // 好句 (daily_line.py, in the home data): a public-domain line one day, a sentence from a 语流 text the next, with its
   // meaning and where it comes from. 听一遍 (the text's own narration when it has one, else the browser voice),
   // 跟读 (record, play back after the original; signed in, the AI says what to fix) and 收藏 (into review).
@@ -11,7 +11,7 @@
       <p class="lc-en${l.say.length > 100 ? ' long' : ''}" lang="en">${en}</p>
       <p class="lc-zh">${esc(l.zh)}</p>${l.note ? `<p class="tiny muted lc-note">${esc(l.note)}</p>` : ''}
       <p class="lc-src tiny">${l.kind === 'quote' ? '— ' : ''}${esc(l.source)}${l.href ? ` · <a class="link" href="${esc(l.href)}" data-tap="line-read">读原文</a>` : ''}</p>
-      <div class="lc-acts"><button class="btn small" id="lcSay" type="button" data-tap="line-say">${ICON.speak}听一遍</button>
+      <div class="lc-acts"><button class="btn small" id="lcSay" type="button" data-tap="line-say">${ICON.speak}听一遍</button>${aiVoice()}
         <button class="btn small" id="lcShadow" type="button" data-tap="line-shadow" aria-expanded="false" aria-controls="lcPanel">跟读</button>
         <button class="btn small" id="lcKeep" type="button" data-tap="line-keep">${ICON.star}收藏</button></div>
       <div id="lcPanel" hidden></div></section>`;
@@ -58,10 +58,11 @@
       };
     };
   }
-  // 今日热点: today's news text, rewritten by AI from what it found online and not checked by a person, said on it.
+  // 今日一读 (since 2026-11-25; 今日热点 before): an original short text a day on a lasting topic, written by AI with no
+  // news and no search (daily_service), marked 「AI 生成」 in the shared style (aiTag, 00-head.js).
   function newsCardHTML(n) {
     if (!n) return '';
-    return `<a class="card news-card" href="#/m/${encodeURIComponent(n.id)}" data-tap="home-news"><span class="lc-head"><span class="lc-title nc-title">今日热点</span><span class="pill amber">AI 改写 · 未经人工审核</span></span>
+    return `<a class="card news-card" href="#/m/${encodeURIComponent(n.id)}" data-tap="home-news"><span class="lc-head"><span class="lc-title nc-title">今日一读</span>${aiTag()}</span>
       <b class="nc-h">${esc(n.title)}</b>${n.preview ? `<span class="small muted nc-p">${esc(n.preview)}</span>` : ''}
-      <span class="tiny muted">${n.level} · ${n.reasons && n.reasons.length ? `<span class="nc-why">${esc(n.reasons[0])}</span>` : esc(n.theme_label || '')}${n.minutes ? ` · 约 ${n.minutes} 分钟` : ''}<span class="nc-go">读这篇 →</span></span></a>`;
+      <span class="tiny muted">${n.level} · ${n.reasons && n.reasons.length ? `<span class="nc-why">${esc(n.reasons[0])}</span>` : esc(n.theme_label || '')}${n.minutes ? ` · 约 ${n.minutes} 分钟` : ''} ${aiTag()}<span class="nc-go">读这篇 →</span></span></a>`;
   }

@@ -83,7 +83,7 @@ class GrowthTests(unittest.TestCase):
   growth.post(self.c,1,False,'/api/growth/correct',{'kind':'memory','id':ref,'correction':'我认识词，主要是连读听不清'})
   prompt=coach.prompt_context(self.c,1,'继续');self.assertIn('连读听不清',prompt[0]['content']);self.assertLess(sum(len(m['content']) for m in prompt),8000)
  def test_unreviewed_ai_material_not_recommended_and_hash_guarded(self):
-  self.profile();p=copy.deepcopy(lab.pack_for(self.c,1,'travel-a2'));p.pop('origin',None);p['id']='daily-quality';p['daily_day']='2026-10-19';p['provenance']={'sources':[{'url':'https://example.org'}]}
+  self.profile();p=copy.deepcopy(lab.pack_for(self.c,1,'travel-a2'));p.pop('origin',None);p['id']='daily-quality';p['daily_day']='2026-10-19';p['kind']='topic';p['provenance']={'sources':[{'url':'https://example.org'}]}
   self.c.execute('INSERT INTO lab_packs VALUES(?,NULL,?,?,?)',(p['id'],'daily',json.dumps(p),time.time()+10));self.c.commit();growth.post(self.c,1,False,'/api/growth/settings',{'theme':'travel','hotspots':True})
   self.assertNotIn(p['id'],[x['id'] for x in growth.material_candidates(self.c,1)])
   data={'pack':p['id'],'hash':quality.digest(p),'status':'approved','note':'逐项核对教学内容与来源','confirmed':{k:True for k in ('language','answers','difficulty','vocabulary','sources')}}

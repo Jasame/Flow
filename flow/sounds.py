@@ -60,6 +60,12 @@ def focus_of(word):
     return f"{s['title']}" if s else ''
 
 
+def tip_of(word):
+    """How to make the sound of the set this word is in (its tip), or ''."""
+    s = _WORDS.get((word or '').lower())
+    return s.get('tip', '') if s else ''
+
+
 def partner_of(word):
     """The other word of its minimal pair (think -> sink), or ''."""
     return _PARTNER.get((word or '').lower(), '')

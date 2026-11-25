@@ -29,7 +29,7 @@ TRIES, WINDOW = 10, 900         # wrong invite codes: 10 in 15 minutes pause loo
 DAY, WEEK = 86400, 7 * 86400
 TZ = datetime.timezone(datetime.timedelta(hours=8))
 STEP = '学材料的任一步、复习单词、复听、轻松读、做题或其他练习，和「我的进步」算学习天数的口径一样'
-RULE_PEOPLE = ('试用人数：加入班级以后、退出之前，在语流里至少学过一步（' + STEP + '）的不同学员。员工账号和这个班的老师不算；'
+RULE_PEOPLE = ('试用人数：加入班级以后、退出之前，在语流里至少学过一步（' + STEP + '）的不同学员。员工账号、这个班的老师和暂停的账号（没同意数据存放在香港）不算；'
                '同一个人在一个班里只算一个，全部班级合计时也只算一个。退出班级的人，在班里时学过就仍然算。')
 RULE_DAYS = ('试用人次：这些学员在班里期间学习的天数加起来，同一学员同一天算 1 次（按北京时间算天，和「我的进步」里的学习天数一致）。'
              '全部班级合计时，同一学员同一天也只算 1 次。')
@@ -100,7 +100,7 @@ def _tables(c):
 def _base(t, cid, current):
     """FROM … WHERE for the study rows of table t made by members inside their membership (the teacher and 员工 left out)."""
     sql = (f'FROM class_members m JOIN users u ON u.id=m.user_id JOIN classes k ON k.id=m.class_id JOIN "{t}" s ON s.user_id=m.user_id '
-           'WHERE COALESCE(u.admin,0)=0 AND m.user_id IS NOT k.teacher AND s.created>=m.joined_at AND (m.left_at IS NULL OR s.created<m.left_at)')
+           'WHERE COALESCE(u.admin,0)=0 AND u.storage_no IS NULL AND m.user_id IS NOT k.teacher AND s.created>=m.joined_at AND (m.left_at IS NULL OR s.created<m.left_at)')
     args = []
     if cid is not None:
         sql += ' AND m.class_id=?'
@@ -128,7 +128,7 @@ def _trial(c, cid=None):
     joining to leaving)} — only learners who studied, so the keys are 试用人数 and the dates add up to 试用人次."""
     import progress_service as ps
     sql = ('SELECT m.user_id, m.class_id, m.joined_at, m.left_at FROM class_members m JOIN users u ON u.id=m.user_id '
-           'JOIN classes k ON k.id=m.class_id WHERE COALESCE(u.admin,0)=0 AND m.user_id IS NOT k.teacher')
+           'JOIN classes k ON k.id=m.class_id WHERE COALESCE(u.admin,0)=0 AND u.storage_no IS NULL AND m.user_id IS NOT k.teacher')
     out = {}
     for r in c.execute(sql + (' AND m.class_id=?' if cid is not None else ''), (cid,) if cid is not None else ()).fetchall():
         days = ps.study_days(c, r['user_id'], r['joined_at'], r['left_at'])
@@ -149,7 +149,7 @@ def _members(c, k):
     """The class's members now: [(user_id, joined_at)], the teacher and 员工 left out."""
     return [(r['user_id'], r['joined_at']) for r in c.execute(
         'SELECT m.user_id, m.joined_at FROM class_members m JOIN users u ON u.id=m.user_id '
-        'WHERE m.class_id=? AND m.left_at IS NULL AND COALESCE(u.admin,0)=0 AND m.user_id IS NOT ?', (k['id'], k['teacher']))]
+        'WHERE m.class_id=? AND m.left_at IS NULL AND COALESCE(u.admin,0)=0 AND u.storage_no IS NULL AND m.user_id IS NOT ?', (k['id'], k['teacher']))]
 
 
 def _points(c, members, now, n=5):

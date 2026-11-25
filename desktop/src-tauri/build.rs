@@ -10,6 +10,7 @@ fn main() {
             "notify_plan",
             "notify_signed_out",
             "notify_off",
+            "notify_hold",
             "notify_pending",
             "smoke_report",
         ]),
