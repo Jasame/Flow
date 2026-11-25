@@ -190,3 +190,11 @@
   - #130 文字模型（百炼 DeepSeek）45 秒没回就交给 Gemini（FLOW_TEXT_TIMEOUT）（AI）
 - 自检：ABORT_FETCH
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45534199497
+
+### b35 · 2026-11-25 10:46
+- main `187b90d`，构建 `938e5d7`
+- 新合并的 PR（自 b34 起）：
+  - #131 总账：jasa.hk 的 Flow 介绍页换成一分钟动画（发版和构建）
+  - #86 发布状态的自检汇总带上失败原因（每项 ≤160 字），Actions 日志里直接能看到（发版和构建）
+- 自检：DEPLOYED，装了 10 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45535216633
