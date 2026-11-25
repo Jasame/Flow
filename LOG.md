@@ -400,3 +400,11 @@
   - #216 更新记录：updates.json 连着改两次也读得到新的（修 MSI 上偶发失败的 test_updates）（测试）
 - 自检：DEPLOYED，装了 17 个文件（3 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45576273225
+
+### b57 · 2026-11-25 16:38
+- main `c0a9df9`，构建 `31ba6e9`
+- 新合并的 PR（自 b56 起）：
+  - #213 认识语流：「在哪儿都能学」五个平台和下载安装（后台和班级、操作指南）
+  - #193 CI：native/（App 共用的 FlowApp 包装）改动时跑 iOS、安卓 CI，跳过网站测试（发版和构建）
+- 自检：DEPLOYED，装了 11 个文件（3 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45577881449
