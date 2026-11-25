@@ -119,6 +119,12 @@
       if (!force && !(await invoke('notify_due'))) return { ok: true, planned: 0, why: 'off' };
       const r = await fetch('/api/next/vocab', { credentials: 'same-origin' });
       if (r.status === 401) return await invoke('notify_signed_out');  // signed out: no word reminders
+      if (r.status === 403) {
+        // 「数据存放在香港」 not agreed to yet: no reminders at all (the hour stays); they come back by themselves
+        // on the first plan after the learner agrees. This runs from the bridge, whatever page is showing.
+        const j = await r.json().catch(() => ({}));
+        if (j && j.code === 'storage') return await invoke('notify_hold');
+      }
       if (!r.ok) return { ok: false, planned: 0, why: 'http ' + r.status };
       return await invoke('notify_plan', { v: await r.json() });
     } catch (e) {
@@ -128,6 +134,8 @@
   const quietly = () => { if (document.visibilityState === 'visible') replan(false); };
   addEventListener('load', () => setTimeout(quietly, 4000));
   document.addEventListener('visibilitychange', () => setTimeout(quietly, 1500));
+  // a window left open for days (or hidden in the Dock / tray): plan again every 3 hours anyway
+  setInterval(() => replan(false), 3 * 3600 * 1000);
 
   const FlowApp = {
     v: 1,
