@@ -237,11 +237,12 @@ Tauri 2，一套代码出 Windows（WebView2）和 macOS（WKWebView）；说明
   
   WebView2 关掉 HardwareMediaKeyHandling，免得网页和 App 同时响应一次按键。
 - notify：规则照第 5 节，和 iOS `ReminderPlan` 一一对应（`desktop/src-tauri/src/schedule.rs`，单元测试有对应的例子）。
-  - 数据：bridge.js 在页面里 `fetch('/api/next/vocab')`，带页面的 cookie，把整份交给 App。时机：App 打开、回到前台（最多 30 分钟一次）、网页调 `sync(r)`。401 = 退出登录，撤掉单词提醒。
+  - 数据：bridge.js 在页面里 `fetch('/api/next/vocab')`，带页面的 cookie，把整份交给 App。时机：App 打开、回到前台（最多 30 分钟一次）、网页调 `sync(r)`，以及每 3 小时一次（窗口一直开着、或藏在 Dock 或托盘里时）。这一步在桥里跑，不靠网页自己的代码，所以页面显示什么都照样跑。
+  - 401 = 退出登录，撤掉单词提醒。403 且 code 是 `'storage'`（「数据存放在香港」还没同意）：撤掉全部提醒，开关和钟点留着；同意以后，下一次重排时提醒自己回来。
   - macOS：UNCalendarNotificationTrigger。
   - Windows：ScheduledToastNotification。AUMID 就是 bundle id，安装程序放在开始菜单快捷方式上；点通知走 `flowlang://review` 或 `flowlang://open`（内测版是 `flowlang-beta://`），App 没开也能打开。
   - App 关着时，提醒由系统按时弹出。
-  - Windows 在第一次弹通知之前读不到设置，permission 返回 `'undetermined'`，不算拒绝；ask() 不弹框。
+  - permission() 照第 5 节说的，是 App 的提醒开没开：系统允许并且开着是 `'granted'`，没开或关了是 `'undetermined'`，系统里关了是 `'denied'`。Windows 在第一次弹通知之前读不到系统设置，这时只看开关；ask() 不弹框。
   - 「每天的计划」（plan）：字段保留了；桌面的 `.ics` 链接还是交给系统日历。
 - 不做：`audio`、`rec`、`speech`。桌面网页本来就能放声音、getUserMedia，麦克风只给本站。
 - 静音开关：环境变量 `FLOW_MUTE=1`。冒烟测试 `--smoke-test=<file>` 一律静音：网页的 `<audio>` 静音，Web Audio 接一个音量为 0 的节点，speechSynthesis 音量 0，通知不带声音。
