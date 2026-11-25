@@ -59,7 +59,7 @@ SIMCTL_CHILD_FLOW_START_URL=http://localhost:8771 xcrun simctl launch booted cn.
 
 ## 网页和 App 之间的桥
 
-App 在网页自己的脚本之前放好 `window.FlowApp`（只在本站的主框架里），User-Agent 末尾是 `FlowiOS/<版本>`。`FlowApp.platform` 是 `'ios'`；桌面版（语流 22）用同一个 v1，`platform` 是 `'windows'` / `'macos'`，`has('audio')`、`has('rec')` 为 false。网页一律先判断 `window.FlowApp && FlowApp.has('audio' | 'rec' | 'notify')`，没有就照旧（Safari、主屏 App、微信都不受影响）。
+App 在网页自己的脚本之前放好 `window.FlowApp`（只在本站的主框架里），User-Agent 末尾是 `FlowiOS/<版本>`。`FlowApp.platform` 是 `'ios'`；桌面版（语流 C3）用同一个 v1，`platform` 是 `'windows'` / `'macos'`，`has('audio')`、`has('rec')` 为 false。网页一律先判断 `window.FlowApp && FlowApp.has('audio' | 'rec' | 'notify')`，没有就照旧（Safari、主屏 App、微信都不受影响）。
 
 - 网页 → App：`window.webkit.messageHandlers.flow.postMessage({cmd, args})`，返回 Promise。下面的 `FlowApp.xxx()` 都是它的包装。
 - 包装是三个 App 共用的 `native/flowapp.js`（约定 docs/native-bridge.md 第 2 节）：Xcode 项目的 Shared 组直接引用它，构建时打进 App；iOS 自己只在前面加几行传输（`Bridge.transport`）。改它要跑 FlowTests（`testTheSharedWrapper`）。
@@ -113,7 +113,7 @@ App 打开、回到前台、切到后台、以及 iOS 每天叫醒它几次时�
 - 权限：麦克风（只在点录音的几秒打开；切出 App 时录音就停）、相机（只在问题反馈里选「拍照」时）、通知（复习提醒，可以随时在系统设置里关）。日历不需要权限（用系统自带的添加界面）。
 - 登录 cookie 在 WebKit 自己的存储里，另外在钥匙串里存一份（只在这台设备，不进备份），防止刚登录就被关掉时丢失；退出登录时一起删掉。删掉 App 再装上时，第一次打开会先清掉钥匙串里的那份，不会登进上一个人的账号。
 - 网页允许的域名（`WKAppBoundDomains`）只有本站：服务工作线程、JS 桥、cookie 都只在本站有效，别的网站一律用系统浏览器打开。
-- 学员的数据存放在香港的服务器上：注册时单独勾选同意，老账号打开时先补一个同意，不同意的账号暂停、30 天后删除（网站一侧，语流 03）。App 里打开的就是网站，所以 App 不用另外问；App 自己也不另存学习数据，本机只有登录 cookie（钥匙串）、提醒的排期和朗读缓存。
+- 学员的数据存放在香港的服务器上：注册时单独勾选同意，老账号打开时先补一个同意，不同意的账号暂停、30 天后删除（网站一侧，语流 B6）。App 里打开的就是网站，所以 App 不用另外问；App 自己也不另存学习数据，本机只有登录 cookie（钥匙串）、提醒的排期和朗读缓存。
 
 ## 装到自己的 iPhone（免费账号，7 天有效）
 
@@ -132,14 +132,14 @@ App 打开、回到前台、切到后台、以及 iOS 每天叫醒它几次时�
 1. App Store Connect 里新建 App：Bundle ID `cn.flowlang.app`（正式版）；要给自己测内测版，再建一个 `cn.flowlang.app.beta`。
 2. Xcode 里 Team 换成付费团队，scheme 选 `Flow-Release`（或 `Flow-Beta`）→ Product → Archive → Distribute App → App Store Connect。
 3. TestFlight：先「内部测试」（自己和团队成员，不用审核）；顺了再开「外部测试」给试用同学（第一次要过 Beta 审核，最多 1 万人，用公开链接邀请）。
-4. 上 App Store 前要准备：隐私政策网址（用操作指南的隐私一章 https://flowlang.cn/#/guide/privacy；语流 03 在外部测试前把「语流 iPhone App（内测）」一节放进去，文字已审好，在共享笔记 area-console-classes.md）、App 隐私问卷（和 PrivacyInfo.xcprivacy 一致）、截图、年龄分级（有未满 14 岁的学员，见网站的隐私章节）、审核用的测试账号。凡是问到数据存在哪里的地方（隐私政策、App 备案、以后别的表），都写「存放在香港」，和网站那个单独同意一致；Apple 的隐私问卷本身只问收集哪些数据、关不关联账号、跟不跟踪。
+4. 上 App Store 前要准备：隐私政策网址（用操作指南的隐私一章 https://flowlang.cn/#/guide/privacy；语流 B6 在外部测试前把「语流 iPhone App（内测）」一节放进去，文字已审好，在共享笔记 area-console-classes.md）、App 隐私问卷（和 PrivacyInfo.xcprivacy 一致）、截图、年龄分级（有未满 14 岁的学员，见网站的隐私章节）、审核用的测试账号。凡是问到数据存在哪里的地方（隐私政策、App 备案、以后别的表），都写「存放在香港」，和网站那个单独同意一致；Apple 的隐私问卷本身只问收集哪些数据、关不关联账号、跟不跟踪。
 5. **App Store 中国区要先办 App 备案**（ICP 备案主体名下，在云服务商那里提交 App 名称、Bundle ID、签名公钥信息），拿到备案号填进 App Store Connect 才能在中国区上架。现在不用办，上架前再办。备案一般通过境内的接入服务商办，服务器在香港时能不能办、怎么办，要先问清楚，和「数据要不要迁回境内」一起定。
 
 只有开发者账号办好以后才能做的：TestFlight（内部和外部）、App Store 上架、超过 7 天的真机安装、给试用同学装、推送通知（现在的提醒是本地通知，不需要推送）。
 
 ## 还没做的
 
-- 网页一侧接桥：Jasame/Flow#152（`ios-bridge-web`：01-audio-offline.js 的 LONG 交给 App，跟读、口语、雅思的录音用 App），语流 09 看过再合。合之前 App 里的页面照常用网页自己的声音和 getUserMedia。
+- 网页一侧接桥：Jasame/Flow#152（`ios-bridge-web`：听的「播放全文」、读的「伴读」交给 App）和 #164（`ios-rec-web`：跟读、口语、雅思的录音用 App），语流 B3 看过再合。合之前 App 里的页面照常用网页自己的声音和 getUserMedia。
 - 复习提醒：网页一侧已在 main（#139「到点用 App 通知提醒」和 `FlowApp.notify.sync()`，#149 按 `FlowApp.platform` 换说法）。
-- 04-home-app.js 认 `FlowiOS`：已在 main（语流 07，0f6fc09：App 里也有返回按钮；键盘和深浅色交给 App）。
-- 操作指南「隐私和数据」一章加 App 用到的权限：语流 03 已审好文字，TestFlight 外部测试前由它放进 guide.md（先告诉它一声）。
+- 04-home-app.js 认 `FlowiOS`：已在 main（语流 B5，0f6fc09：App 里也有返回按钮；键盘和深浅色交给 App）。
+- 操作指南「隐私和数据」一章加 App 用到的权限：语流 B6 已审好文字，TestFlight 外部测试前由它放进 guide.md（先告诉它一声）。
