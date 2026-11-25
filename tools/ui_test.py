@@ -1887,7 +1887,12 @@ def listen_speak_run(pw):
             hd = p3.evaluate("() => [document.querySelector('#view .kicker').textContent, (document.querySelector('#view .round-extra') || {}).textContent || '']")
             check(dev, '口语情景: round 2 shows the round and its extra requirement', '第 2 轮' in hd[0] and '这一轮多一条' in hd[1], hd)
             vm = p3.evaluate("() => { const l = [...document.querySelectorAll('#view .ai-line')].find(x => x.querySelector('.ai-voice')); return l ? l.textContent : ''; }")
-            check(dev, '口语情景: 「AI 朗读」 says the role\'s voice is synthesized', '角色说话的声音也由 AI 合成' in vm, vm)
+            check(dev, '口语情景: 「AI 朗读」 says the role\'s voice is synthesized', '角色、纠正和声音都由 AI 生成' in vm and 'AI 生成' in vm, vm)
+            if size == 'phone':  # B8's audit: on a small phone, Safari's toolbars showing, 「开始对话」 sat under the tab bar
+                vp = p3.viewport_size; p3.set_viewport_size({'width': 375, 'height': 553})
+                go_at = p3.evaluate("() => { const b = document.getElementById('dlgStart').getBoundingClientRect(), t = document.querySelector('.tabs').getBoundingClientRect(); return [Math.round(b.top), Math.round(b.bottom), Math.round(t.top)]; }")
+                check(dev, '口语情景 round 2 at 375×553: 「开始对话」 on the first screen, above the tab bar', 0 < go_at[0] and go_at[1] <= go_at[2], go_at)
+                p3.set_viewport_size(vp)
             l3 = p3.evaluate(LAYOUT_JS, touch); check(dev, '口语情景 round 2: no sideways scroll', l3['overflow'] <= 1, f"{l3['overflow']}px {l3['wide']}")
             p3.click('#dlgStart'); p3.wait_for_selector('#chat .msg.ai', timeout=8000)
             if size == 'phone':  # the AI's line is said by the server voice (an mp3 made once and stored), not the browser voice,
