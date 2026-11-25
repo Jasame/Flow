@@ -17,7 +17,7 @@ import argparse, json, os, re, sys, time
 from pathlib import Path
 
 KIND = 'word-extras'
-PROMPT = 'v3-2026-11-25'  # kept with every row: which rules wrote it
+PROMPT = 'v4-2026-11-26'  # kept with every row: which rules wrote it
 LEVEL = {'core': '基础', 'mid': '进阶', 'high': '高阶', 'adv': '精通', 'ext': '拓展', 'zk': '中考', 'gk': '高考', 'cet4': '四级',
          'cet6': '六级', 'ky': '考研', 'tem4': '专四', 'tem8': '专八', 'ielts': '雅思', 'toefl': '托福', 'gre': 'GRE', 'nawl': '学术',
          'bsl': '商务'}
@@ -54,8 +54,8 @@ def write_messages(batch):
         'library，不写 borrow from library）；动词搭配带上宾语（写 edge closer to the door）；光是冠词加这个词不算（a penny '
         '不算）。zh 是通顺的中文，按这个搭配最常见的意思写，不逐词对译，不超过 12 个字；意思要和给出的中文释义对得上，'
         '不写释义里没有的意思。\n'
-        '2. near：只写真正的近义词（如 hope / wish），或中国学生真的常混淆的词（如 wonder / wander、affect / effect），'
-        '0–3 个，没有合适的就给空数组，不要凑。反义词和只是同一类的词都不算（win 和 lose、blind 和 deaf 都不写）。必须是真实存在的单个英文单词，不能是这个词本身或它的变形。zh 不超过 8 个字；'
+        '2. near：0–3 个。先写拼写或读音相近、中国学生真的常混淆的词（如 wonder / wander、principle / principal），有就一定'
+        '写上，排在最前；再写真正的近义词（如 hope / wish）。没有合适的就给空数组，不要凑。反义词和只是同一类的词都不算（win 和 lose、blind 和 deaf 都不写）。必须是真实存在的单个英文单词，不能是这个词本身或它的变形。zh 不超过 8 个字；'
         'diff 用一句中文只说两个词的区别，不超过 20 个字（一个英文单词算一个字）。\n'
         + (f'这几个词用日常生活里的搭配：{", ".join(daily)}。\n' if daily else '') +
         '\n单词（级别 | 词 | 中文释义）：\n' + lines + '\n\n'
@@ -65,7 +65,8 @@ def write_messages(batch):
 def review_messages(items):
     return [{'role': 'system', 'content': '你是严格的英语编辑。只输出 JSON。'}, {'role': 'user', 'content':
         '逐条检查下面给中国学习者的单词卡内容，只列出有问题的条目：搭配不常用、不地道、缺冠词或介词、中文意思不对或不通顺；'
-        '近义或易混词其实不近义也不常混淆、其实是反义词或只是同一类的词、区别说错。没把握算错的不要列。\n' + json.dumps(items, ensure_ascii=False) + '\n\n'
+        '近义或易混词其实不近义也不常混淆、其实是反义词或只是同一类的词、区别说错。拼写或读音相近、学生常混的一对词算易混，'
+        '不要因为意思不近就列出来。没把握算错的不要列。\n' + json.dumps(items, ensure_ascii=False) + '\n\n'
         '输出 JSON：{"problems":[{"word":"…","kind":"colloc 或 near","en":"有问题的那条英文","why":"中文，一句"}]}'}]
 
 

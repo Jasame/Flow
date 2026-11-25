@@ -66,6 +66,8 @@ class CheckTests(unittest.TestCase):
             self.assertIn(part, text)
         self.assertIn('不照搬任何一本词典', m[0]['content']); self.assertIn('真人、品牌、政治和时事', m[0]['content'])
         self.assertIn('反义词和只是同一类的词都不算', text)  # A0 on sample 2: blind came back with deaf
+        self.assertIn('先写拼写或读音相近', text)  # A0 on sample 3: quiet came back with silent, not quite
+        self.assertIn('不要因为意思不近就列出来', wx.review_messages([])[1]['content'])
         self.assertIn('其实是反义词', wx.review_messages([])[1]['content'])
 
 
