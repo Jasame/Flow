@@ -1,0 +1,8 @@
+{
+  "color": [
+    { "name": "flow_bg", "value": "#101412" },
+    { "name": "flow_text", "value": "#E8ECEA" },
+    { "name": "flow_muted", "value": "#9BA59F" },
+    { "name": "start_window_background", "value": "#101412" }
+  ]
+}

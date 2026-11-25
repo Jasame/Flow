@@ -1,0 +1,9 @@
+{
+  "name": "entry",
+  "version": "1.0.0",
+  "description": "语流 HarmonyOS app: the site in ArkWeb, with FlowApp's native parts",
+  "main": "",
+  "author": "",
+  "license": "",
+  "dependencies": {}
+}

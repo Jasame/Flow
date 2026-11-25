@@ -1,0 +1,18 @@
+{
+  "apiType": "stageMode",
+  "buildOption": {
+    "arkOptions": {
+      // read as BuildProfile.FLOW_* (common/Site.ets); each product in ../build-profile.json5 sets its own
+      "buildProfileFields": {
+        "FLOW_SITE": "https://flow.jasa.hk",
+        "FLOW_BETA": "true",
+        "FLOW_BUILD": "dev"
+      }
+    }
+  },
+  "targets": [
+    // 内测版 (product default) and 正式版 (product prod): the same code, each with its own name (src/beta, src/prod)
+    { "name": "default", "resource": { "directories": ["./src/main/resources", "./src/beta/resources"] } },
+    { "name": "prod", "resource": { "directories": ["./src/main/resources", "./src/prod/resources"] } }
+  ]
+}
