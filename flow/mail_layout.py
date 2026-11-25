@@ -1,35 +1,54 @@
-"""One look for every mail 语流 sends (owner's choice 2026-11-24: 「A 简洁卡片」): a small brand mark, a white card on a
-light ground, a footer saying where the mail comes from. Each mail goes as plain text and HTML together
+"""One look for every mail 语流 sends. 2026-11-24 the owner chose 「A 简洁卡片」; 2026-11-25 they asked for the real logo,
+a plainer layout and codes that phones pick up reliably (via A0). So, as big companies' notices look: the logo at the
+top, the words on one white card, one grey line at the bottom. Each mail goes as plain text and HTML together
 (account_service.mail(..., html=...)): mail apps that show only text get the same words.
 
     text, html = mail_layout.message(['第一段', '第二段'], code='482915', rows=[('每周目标', '学了 5 天')],
                                      button=('打开语流', url), foot=[('不想再收到，点这里退订', link)])
 
-The HTML is what mail apps render reliably: tables, inline styles for the light look, dark overrides in one <style>
-under prefers-color-scheme (Apple 邮件 and others that support it; the rest keep the light look), no images, no web
-fonts, nothing loaded from elsewhere. Every string given here is plain text and is escaped.
+The HTML is what mail apps render reliably: one column of tables (no sideways scrolling on a phone), inline styles for
+the light look, dark overrides in one <style> under prefers-color-scheme (Apple 邮件 and others that support it; the rest
+keep the light look or darken it themselves), a button that is a table cell (Outlook too), no web fonts.
+The logo is the site's icon as a PNG the site serves (/icon-192.png, width and height fixed), never inlined as base64
+(Gmail and QQ 邮箱 block that), with 「语流 Flow」 as real text beside it: a mail app that blocks pictures still shows
+the name, and the name follows dark mode. Every string given here is plain text and is escaped.
 
-A code (验证码) goes so that phones and password managers can pick it up: the first line of the text is
-「验证码：482915」, the code is one run of digits in one element (never split into boxes or put in a picture), and
-the caller puts it in the subject too (auth_service.send). Apple documents that iOS 17 / macOS 14 offer codes
-received in Mail for AutoFill and that web fields should say autocomplete="one-time-code" (ours do); it does not
-document a mail format, so this keeps to the plainest one.
+A code (验证码): the subject is 「语流验证码：482915」 (auth_service.send), the first line of the text and of the card is
+「验证码：482915」 with the code alone on its own line in large type, one run of digits in one element (never split into
+boxes or put in a picture), and the mail carries no other number near it: how long it lasts is written in words
+(「十分钟内有效」) and nothing in the layout around it has digits. The preview line mail apps show under the subject is
+the same 「验证码：482915」. Apple documents that iOS 17 / macOS 14 offer codes received in Mail for AutoFill and that web
+fields should say autocomplete="one-time-code" (ours do); it does not document a mail format, so this keeps to the
+plainest one.
 """
 import html as _html
+import os
+import re
 
 FONT = "-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei','Helvetica Neue',Arial,sans-serif"
-MONO = "'SF Mono',Menlo,Consolas,'Courier New',monospace"
-GREEN, INK, TINT = '#1f9d55', '#12733c', '#e9f5ee'
+GREEN = '#1f9d55'
+INK, MUTED, BG, CARD = '#1b1d1a', '#6b7066', '#f4f5f3', '#ffffff'
 FROM_LINE = '这封邮件由语流 Flow（flowlang.cn）自动发送，请不要直接回复。'
-LIGHT = ('.fl-bg{background:#f3f5f2}.fl-card{background:#ffffff}.fl-t{color:#1b1d1a}.fl-m{color:#5f6459}.fl-line{border-color:#e7e9e4}'
-         '.fl-code{background:#e9f5ee;color:#12733c}.fl-btn{background:#1f9d55}.fl-a{color:#12733c}')
-DARK = ('.fl-bg{background:#101412!important}.fl-card{background:#181d1a!important}.fl-t{color:#e8ebe6!important}'
-        '.fl-m{color:#a3aa9f!important}.fl-line{border-color:#28302b!important}.fl-code{background:#173024!important;color:#6ee0a0!important}'
-        '.fl-btn{background:#2fb56a!important}.fl-a{color:#6ee0a0!important}')
+LIGHT = f'.fl-bg{{background:{BG}}}.fl-card{{background:{CARD}}}.fl-t{{color:{INK}}}.fl-m{{color:{MUTED}}}.fl-a{{color:#12733c}}'
+DARK = ('.fl-bg{background:#111412!important}.fl-card{background:#1a1e1b!important}.fl-t{color:#e9ece7!important}'
+        '.fl-m{color:#a1a89d!important}.fl-a{color:#6ee0a0!important}.fl-btn{background:#2fb56a!important}')
+# Chinese numerals for how long something lasts, so that a code mail holds no digits but the code
+NUMERALS = {5: '五', 10: '十', 15: '十五', 20: '二十', 30: '三十', 60: '六十'}
 
 
 def esc(s):
     return _html.escape(str(s), quote=True)
+
+
+def minutes(n):
+    """「十分钟」 for 10: a duration in words (a code mail keeps its only digits for the code)."""
+    return NUMERALS.get(int(n), str(int(n))) + '分钟'
+
+
+def logo_url():
+    """The site's icon for mails: the app icon both sites already serve (/icon-192.png, 6x for 32 px; the same mark as the
+    page's .brand), from the site that sends them (FLOW_PUBLIC_URL: flowlang.cn, or the beta's own)."""
+    return os.getenv('FLOW_PUBLIC_URL', 'https://flowlang.cn').rstrip('/') + '/icon-192.png'
 
 
 def message(paragraphs, code=None, code_label='验证码', rows=None, button=None, foot=None, title=None):
@@ -55,34 +74,41 @@ def message(paragraphs, code=None, code_label='验证码', rows=None, button=Non
     text += ['——'] + [f'{t}：{u}' if u else t for t, u in foot] + [FROM_LINE]
     # ---- HTML
     t, m = 'fl-t', 'fl-m'
-    para = lambda s: f'<p class="{t}" style="margin:0 0 12px;font:15px/1.7 {FONT};color:#1b1d1a">{esc(s)}</p>'
+    para = lambda s: f'<p class="{t}" style="margin:0 0 14px;font:15px/1.75 {FONT};color:{INK}">{esc(s)}</p>'
     inner = ''
     if code:
-        inner += (f'<p class="{t}" style="margin:0 0 6px;font:600 15px/1.6 {FONT};color:#1b1d1a">{esc(code_label)}：{esc(code)}</p>'
-                  f'<div class="fl-code" style="margin:14px 0 20px;padding:18px 0;border-radius:10px;background:{TINT};color:{INK};'
-                  f'text-align:center;font:700 36px/1 {MONO};letter-spacing:8px">{esc(code)}</div>')
+        # 「验证码：482915」 as one line of text, the code itself alone on its own line, large
+        inner += (f'<p class="{t}" style="margin:0 0 18px;font:15px/1.6 {FONT};color:{INK}">{esc(code_label)}：'
+                  f'<span style="display:block;margin-top:8px;font:700 34px/1.2 {FONT};letter-spacing:4px;'
+                  f'font-variant-numeric:tabular-nums">{esc(code)}</span></p>')
     if title:
-        inner += f'<p class="{t}" style="margin:0 0 14px;font:600 17px/1.5 {FONT};color:#1b1d1a">{esc(title)}</p>'
+        inner += f'<p class="{t}" style="margin:0 0 16px;font:600 18px/1.5 {FONT};color:{INK}">{esc(title)}</p>'
     inner += ''.join(para(p) for p in paragraphs)
     if rows:
-        inner += ('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 12px">' + ''.join(
-            f'<tr><td class="fl-line" style="padding:12px 0;border-top:1px solid #e7e9e4">'
-            f'<div class="{t}" style="font:600 15px/1.5 {FONT};color:#1b1d1a">{esc(k)}</div>'
-            f'<div class="{m}" style="font:14px/1.6 {FONT};color:#5f6459">{esc(v)}</div></td></tr>' for k, v in rows) + '</table>')
+        inner += ''.join(
+            f'<p style="margin:0 0 12px"><span class="{t}" style="display:block;font:600 15px/1.6 {FONT};color:{INK}">{esc(k)}</span>'
+            f'<span class="{m}" style="display:block;font:14px/1.65 {FONT};color:{MUTED}">{esc(v)}</span></p>' for k, v in rows)
     if button:
-        inner += (f'<p style="margin:8px 0 4px"><a class="fl-btn" href="{esc(button[1])}" style="display:inline-block;background:{GREEN};'
-                  f'color:#ffffff;text-decoration:none;font:600 15px {FONT};padding:12px 22px;border-radius:10px">{esc(button[0])}</a></p>')
-    footer = ''.join((f'<a class="fl-a" href="{esc(u)}" style="color:{INK}">{esc(tx)}</a>' if u else esc(tx)) + '<br>' for tx, u in foot) + esc(FROM_LINE)
-    body = f"""<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="fl-bg" style="background:#f3f5f2"><tr><td align="center" style="padding:28px 14px">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px">
-<tr><td style="padding:0 6px 14px"><table role="presentation" cellpadding="0" cellspacing="0"><tr>
-<td style="width:28px;height:28px;background:{GREEN};border-radius:8px;color:#ffffff;font:700 15px/28px {FONT};text-align:center">流</td>
-<td class="{t}" style="padding-left:9px;font:600 16px {FONT};color:#1b1d1a">语流 Flow</td></tr></table></td></tr>
-<tr><td class="fl-card" style="background:#ffffff;border-radius:14px;padding:28px 24px;font-family:{FONT}">{inner}</td></tr>
-<tr><td class="{m}" style="padding:16px 8px 0;font:12px/1.7 {FONT};color:#5f6459">{footer}</td></tr>
+        # a table cell with the colour (Outlook draws it), the link filling it
+        inner += (f'<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:10px 0 2px"><tr>'
+                  f'<td class="fl-btn" bgcolor="{GREEN}" style="background:{GREEN};border-radius:8px">'
+                  f'<a href="{esc(button[1])}" target="_blank" style="display:inline-block;padding:12px 24px;font:600 15px/1.2 {FONT};'
+                  f'color:#ffffff;text-decoration:none;border-radius:8px">{esc(button[0])}</a></td></tr></table>')
+    footer = ''.join((f'<a class="fl-a" href="{esc(u)}" style="color:#12733c">{esc(tx)}</a>' if u else esc(tx)) + '<br>' for tx, u in foot) + esc(FROM_LINE)
+    # what mail apps show under the subject: the code line, or the title, or the first words
+    preview = f'{code_label}：{code}' if code else (title or (paragraphs[0] if paragraphs else ''))
+    preview = re.sub(r'\s+', ' ', preview)[:90]
+    body = f"""<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all">{esc(preview)}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="fl-bg" bgcolor="{BG}" style="background:{BG}"><tr><td align="center" style="padding:24px 12px 28px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px">
+<tr><td style="padding:0 4px 16px"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+<td style="width:32px;vertical-align:middle"><img src="{esc(logo_url())}" width="32" height="32" alt="" style="display:block;width:32px;height:32px;border:0;border-radius:9px"></td>
+<td class="{t}" style="padding-left:10px;vertical-align:middle;font:700 18px/1 {FONT};color:{INK};letter-spacing:.3px">语流 Flow</td></tr></table></td></tr>
+<tr><td class="fl-card" bgcolor="{CARD}" style="background:{CARD};border-radius:12px;padding:28px 24px 24px;font-family:{FONT}">{inner}</td></tr>
+<tr><td class="{m}" style="padding:16px 4px 0;font:12px/1.7 {FONT};color:{MUTED}">{footer}</td></tr>
 </table></td></tr></table>"""
     page = f"""<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark">
+<meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark"><title>语流 Flow</title>
 <style>{LIGHT}@media (prefers-color-scheme: dark){{{DARK}}}</style></head>
-<body style="margin:0;padding:0">{body}</body></html>"""
+<body class="fl-bg" style="margin:0;padding:0;background:{BG};-webkit-text-size-adjust:100%">{body}</body></html>"""
     return '\n'.join(text).rstrip() + '\n', page
