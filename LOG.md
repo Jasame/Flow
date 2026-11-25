@@ -790,3 +790,11 @@
   - #373 暂停满 30 天的账号自动删除：默认只出报告，开关打开、备份在才删（后台和班级）
 - 自检：DEPLOYED，装了 8 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45684051212
+
+### b98 · 2026-11-26 03:31
+- main `aaf99d4`，构建 `75b56d4`
+- 新合并的 PR（自 b97 起）：
+  - #368 输出练习：学生切走后回来的 AI 回答直接丢掉（#trGo 偶发报错）（测试）
+  - #374 ios_sim_check unify：跟上底部播放条（#325），每句 N 遍改从播放设置里点（网站其他）
+- 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45685793736
