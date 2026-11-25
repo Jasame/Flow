@@ -3389,6 +3389,58 @@ def review_side_run(pw):
               e['start'] and not e['stats'] and not e['search'] and not e['chips'] and not e['count'], e)
         check(dev, 'no script errors (no words yet)', not errs, errs[:3])
         ctx.close()
+        # 点卡片作答 (the owner, 2026-11-25): the front card's left, middle and right thirds are the three buttons below, 认识 on
+        # its side; only the front, which sends nothing (撤销 turns the card back); the word plays and answers nothing; the
+        # back's card answers nothing; on by default with a finger, off with a mouse; a first-time guide, put away by a tap
+        ZONE_JS = """() => ({ front: !!document.querySelector('.ractions [data-claim]'), back: !!document.querySelector('.open-card'),
+          rates: [...document.querySelectorAll('.ractions [data-rate]')].map(b => b.dataset.rate), guide: !!document.getElementById('zoneGuide'),
+          undo: !!document.getElementById('undo') })"""
+        def tap_card(pg, third, down=None):  # a third of the card (0 left, 1 middle, 2 right), near its top or `down` of its height
+            r = pg.evaluate("() => { const r = document.querySelector('.review').getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; }")
+            pg.touchscreen.tap(r[0] + r[2] * (third * 2 + 1) / 6, r[1] + (r[3] * down if down else 24)); pg.wait_for_timeout(350)
+        ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['zones']['token'], 'url': BASE}])
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        posts = []; pg.on('request', lambda r: posts.append(r.url) if r.method == 'POST' and re.search(r'/api/next/review(/undo)?$', r.url) else None)
+        pg.goto(BASE + '/#/cards', wait_until='load'); settle(pg)
+        go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(300)
+        z0 = pg.evaluate(ZONE_JS)
+        labels = pg.evaluate("[...document.querySelectorAll('#zoneGuide span')].map(s => s.textContent)")
+        pg.screenshot(path=str(OUT / 'review-side-zone-guide.png'))
+        tap_card(pg, 2); z1 = pg.evaluate(ZONE_JS)
+        check(dev, '点卡片作答 on a phone by default: the first time the three parts are drawn (不认识 / 模糊 / 认识), and a tap puts it away without answering',
+              z0['guide'] and labels == ['不认识', '模糊', '认识'] and not z1['guide'] and z1['front'], [z0, labels, z1])
+        pg.touchscreen.tap(*pg.evaluate("(() => { const r = document.querySelector('.review .tapsay').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; })()")); pg.wait_for_timeout(350)
+        check(dev, '点卡片作答: a tap on the word plays it and answers nothing', pg.evaluate(ZONE_JS)['front'], pg.evaluate(ZONE_JS))
+        tap_card(pg, 2); z2 = pg.evaluate(ZONE_JS)
+        pg.screenshot(path=str(OUT / 'review-side-zone-back.png'))
+        pg.touchscreen.tap(*pg.evaluate("(() => { const r = document.querySelector('.open-card .mean-a, .open-card .ph').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; })()"))
+        pg.wait_for_timeout(350); z3 = pg.evaluate(ZONE_JS)  # the meaning, in the middle of the back's card: not a link, not a speaker
+        check(dev, '点卡片作答: the right third is 认识 (the answer, 没错 / 记错了), nothing sent; a tap on the back\'s card answers nothing',
+              z2['back'] and sorted(z2['rates']) == ['again', 'good'] and z3['back'] and not posts, [z2, z3, posts])
+        pg.click('#undo'); pg.wait_for_timeout(300); z4 = pg.evaluate(ZONE_JS)
+        check(dev, '点卡片作答: 撤销 on the back turns the card back to its front, nothing sent', z4['front'] and not z4['back'] and not posts, [z4, posts])
+        tap_card(pg, 0); z5 = pg.evaluate(ZONE_JS)
+        check(dev, '点卡片作答: the left third is 不认识 (the answer with 记住了，下一个 only)', z5['back'] and z5['rates'] == ['again'], z5)
+        pg.click('.ractions [data-rate]'); pg.wait_for_timeout(500)
+        check(dev, '点卡片作答: a rating is sent only by the back\'s button: one review', len(posts) == 1 and pg.evaluate(ZONE_JS)['front'], posts)
+        pg.evaluate("localStorage.setItem('flow-know-side', 'left')"); pg.reload(wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(300)
+        tap_card(pg, 0); z6 = pg.evaluate(ZONE_JS)
+        check(dev, '点卡片作答 with 「认识」 on the left: the left third is 认识', z6['back'] and sorted(z6['rates']) == ['again', 'good'], z6)
+        pg.click('#undo'); pg.wait_for_timeout(300)
+        pg.evaluate("localStorage.setItem('flow-tap-zones', '0')"); pg.reload(wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(300)
+        tap_card(pg, 0)
+        check(dev, '点卡片作答 off (我的 → 设置): a tap on the card does nothing', pg.evaluate(ZONE_JS)['front'], pg.evaluate(ZONE_JS))
+        check(dev, 'no script errors (点卡片作答)', not errs, errs[:3])
+        ctx.close()
+        ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['zones']['token'], 'url': BASE}])
+        pg = ctx.new_page()
+        pg.goto(BASE + '/#/review', wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(300)
+        r = pg.evaluate("(() => { const r = document.querySelector('.review').getBoundingClientRect(); return [r.left + r.width * 5 / 6, r.top + 24]; })()")
+        pg.mouse.click(*r); pg.wait_for_timeout(300)
+        check(dev, '点卡片作答 with a mouse: off by default, a click into the card answers nothing, no guide', pg.evaluate(ZONE_JS)['front'] and not pg.evaluate(ZONE_JS)['guide'], pg.evaluate(ZONE_JS))
+        ctx.close()
         # a search that finds nothing says what was searched and offers a way out (语流 B9): 清除搜索, and with a filter on, 在全部里找
         ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])

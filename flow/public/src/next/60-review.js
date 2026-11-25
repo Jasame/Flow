@@ -4,6 +4,7 @@
   // iPad sideways) the card is a column in the middle and the thumb rests beside it, or below it. Not from a link or a
   // field, and not while a sheet is open. A swipe is mostly sideways, without a strict
   // height limit (on a big screen it drifts). Leaving the page takes it off (swipeOff, in route()).
+  let SWIPED = 0;  // when a swipe last answered: the click a browser may still send after it is not a tap on the card
   function swipeOn(acts) {
     let sx = null;
     const cardEl = () => view.querySelector('.review');
@@ -21,7 +22,7 @@
     document.ontouchend = e => {
       settle(); const a = acts();
       if (!sx || !a) return; const t = e.changedTouches[0], dx = t.clientX - sx[0], dy = t.clientY - sx[1]; sx = null;
-      if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 1.4) { const f = dx > 0 ? a.right : a.left; if (f) f(); }
+      if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 1.4) { const f = dx > 0 ? a.right : a.left; if (f) { SWIPED = Date.now(); f(); } }
     };
     document.ontouchcancel = () => { sx = null; settle(); };  // the browser took the gesture (a scroll, the system): the card goes back
   }
@@ -67,8 +68,10 @@
     const sayBtn = (label, big) => `<button class="icon-btn ${big ? 'big' : 'say-btn'}" id="sayW" type="button" aria-label="${label}（AI 朗读）">${ICON.speak}</button>`;
     const wordHTML = (cls) => `<div class="wordbig tapsay${cls || ''}">${esc(c.text)}</div><div class="ph">${esc(c.phonetic || '')}${sayBtn('播放读音')}</div>`;
     let undo = null;  // the latest rating, while it can be taken back (撤销)
+    // the answer shown and not yet rated: 撤销 turns the card back (a slip on the front, a tap or a button, sent nothing)
+    let peek = null;
     // voice: this side plays the word (or its examples) — 「读音由 AI 合成」, one grey line under the progress bar (aiVoiceNote)
-    const top = voice => `<h1 class="sr-only">复习单词</h1><div class="rtop"><a class="link small hit44" href="#/cards">结束</a><div class="bar-progress"><i id="rp"></i></div>${undo ? `<button class="link small undo" id="undo" type="button" aria-label="撤销上一张：${esc(undo.c.text)}">↶ 撤销</button>` : ''}</div>${voice ? aiVoiceNote('读音由 AI 合成', 'p', 'tc rvoice') : ''}`;
+    const top = voice => `<h1 class="sr-only">复习单词</h1><div class="rtop"><a class="link small hit44" href="#/cards">结束</a><div class="bar-progress"><i id="rp"></i></div>${peek ? '<button class="link small undo" id="undo" type="button" aria-label="撤销：回到这一张的正面">↶ 撤销</button>' : undo ? `<button class="link small undo" id="undo" type="button" aria-label="撤销上一张：${esc(undo.c.text)}">↶ 撤销</button>` : ''}</div>${voice ? aiVoiceNote('读音由 AI 合成', 'p', 'tc rvoice') : ''}`;
     const badge = res => { const b = document.getElementById('dueBadge'); if (b && res && res.due != null) { const n = res.due + res.new; b.hidden = !n; b.textContent = n > 99 ? '99+' : n; } };
     // Touch: swipe the card right for "I know it" (or the main button), left for "I don't".
     let swipe = null;
@@ -84,7 +87,8 @@
     };
     const keys = map => { document.onkeydown = e => { if (!sheetEl.hidden || e.metaKey || e.ctrlKey || e.altKey) return; if (e.target.matches && e.target.matches('input,textarea')) { if (e.key === 'Enter' && map.Enter && ['spellIn', 'fixIn'].includes(e.target.id)) { e.preventDefault(); map.Enter(); } return; } const f = map[e.key] || map[e.key.toLowerCase()]; if (f) { e.preventDefault(); f(); } }; };
     swipeOn(() => swipe);
-    if (TOUCH && !load('flow-next-swipe-tip')) { save('flow-next-swipe-tip', 1); setTimeout(() => toast(KNOW.side() === 'right' ? '小技巧：右滑「认识」，左滑「不认识」' : '小技巧：左滑「认识」，右滑「不认识」'), 600); }
+    // the swipe tip, once; where the zones' first-time guide comes it says this too
+    if (TOUCH && !load('flow-next-swipe-tip') && !(KNOW.tap() && !load('flow-tap-guide'))) { save('flow-next-swipe-tip', 1); setTimeout(() => toast(KNOW.side() === 'right' ? '小技巧：右滑「认识」，左滑「不认识」' : '小技巧：左滑「认识」，右滑「不认识」'), 600); }
     // A saved sentence pattern: the frame's fixed words become gaps in its example, so the front does not give it away.
     const frameCloze = (example, frame) => {
       const fixed = (frame.match(/[A-Za-z']+/g) || []).filter(w => !/^(A|B|C|sb|sth|do|doing|done|adj|n|v|X|Y)$/.test(w)).map(w => w.toLowerCase());
@@ -230,8 +234,36 @@
       } else {
         view.querySelectorAll('[data-claim]').forEach(b => b.onclick = () => reveal(b.dataset.claim));
         keys(KNOW.keys([...view.querySelectorAll('[data-claim]')].map(b => () => reveal(b.dataset.claim))));
+        if (KNOW.tap()) tapZones([...view.querySelectorAll('.ractions [data-claim]')]);
         onSwipe(...KNOW.swipe(() => reveal('know'), () => reveal('forgot')));
       }
+    }
+    // 点卡片作答 (KNOW.tap): the card's left, middle and right thirds are the three buttons below, in their order on screen.
+    // Only on the front, where an answer only turns the card and sends nothing (撤销 turns it back), so a slip costs no
+    // rating; the back's card answers nothing, or two quick taps would rate a card before its answer is read. The word,
+    // its speaker, the buttons, links and the tips do what they do; a finger that moved, or a swipe just done, is no tap.
+    function tapZones(btns) {
+      const card = view.querySelector('.review'); if (!card || btns.length !== 3) return;
+      card.classList.add('zoned');
+      const skip = '.tapsay,#sayW,[data-exp],a,button,input,.ractions,.know-tip';
+      let down = null;
+      card.onpointerdown = e => { down = [e.clientX, e.clientY]; };
+      card.onclick = e => {
+        const d = down; down = null;
+        const g = card.querySelector('.zone-guide'); if (g) { g.remove(); return; }  // the first tap puts the guide away, answers nothing
+        if (e.target.closest(skip) || !d || Math.hypot(e.clientX - d[0], e.clientY - d[1]) > 10 || Date.now() - SWIPED < 350) return;
+        const r = card.getBoundingClientRect(), k = Math.min(2, Math.max(0, Math.floor((e.clientX - r.left) / (r.width / 3))));
+        btns[k].click();
+      };
+      // the first time: the three parts drawn on the card, a tap anywhere puts it away (and answers nothing)
+      if (load('flow-tap-guide') || card.querySelector('.know-tip')) return;
+      card.insertAdjacentHTML('beforeend', `<div class="zone-guide" id="zoneGuide" aria-hidden="true">${btns.map(b => `<span>${esc(b.firstChild.textContent)}</span>`).join('')}
+        <p>点卡片的左、中、右也能作答，和下面的按钮一样；也可以${KNOW.side() === 'right' ? '右滑「认识」，左滑「不认识」' : '左滑「认识」，右滑「不认识」'}。点单词只是播放。点一下收起</p></div>`);
+      const g = document.getElementById('zoneGuide'), ra = card.querySelector('.ractions');
+      if (ra) g.style.bottom = (card.getBoundingClientRect().bottom - ra.getBoundingClientRect().top) + 'px';  // the buttons stay in view below it
+      // shown once: seen now. It lets taps through (pointer-events: none), so the word still plays and the buttons answer;
+      // a tap on the card itself only puts it away (above)
+      save('flow-tap-guide', 1); save('flow-next-swipe-tip', 1);
     }
     // the speaker and the word play it; the examples' speakers are bound by bindExamples
     function sayable() {
@@ -242,7 +274,7 @@
         ${c.meaning ? `<div class="mean-a">${esc(c.meaning).replace(/；|;/g, '<br>')}</div>` : ''}${rootsHTML(c)}${examplesHTML(c)}`;
     }
     function reveal(how) {
-      claim = how; const ms = Date.now() - t0;
+      claim = how; const ms = Date.now() - t0; peek = { t0 };
       const next = how === 'know' ? KNOW.order([['没错，下一个', 'good', 'good primary'], ['记错了', 'again', 'again x']]) : [[how === 'fuzzy' ? '下一个' : '记住了，下一个', how === 'fuzzy' ? 'hard' : 'again', 'primary']];
       // the same place as the three on the front: 没错 where 认识 was, 记错了 where 不认识 was; 太简单了 a small link above them
       view.innerHTML = `${top(true)}<div class="review open-card">${answerHTML()}
@@ -269,7 +301,7 @@
     }
     let busy = false;
     async function rate(r, ms) {
-      if (busy) return; busy = true; document.onkeydown = null;
+      if (busy) return; busy = true; document.onkeydown = null; peek = null;
       try {
         const body = { id: c.id, rating: r, mode: c.mode, ms: Math.min(ms, 3599999), at: Math.floor(Date.now() / 1000) };
         const before = { c, r, i, had: doneIds.has(c.id), left, inserted: -1, offline: false, body };
@@ -303,6 +335,7 @@
     }
     // 撤销: the latest rating taken back (a slip of the finger); the same card comes up again to answer.
     async function takeBack() {
+      if (peek && !busy) { const t = peek.t0; peek = null; ask(); t0 = t; return; }  // the front again; the time runs on
       const u = undo; if (!u || busy) return; busy = true;
       try {
         let res = u.left;
@@ -316,6 +349,7 @@
       finally { busy = false; }
     }
     async function known() {
+      peek = null;
       try { const res = await api('/api/next/vocab/known', { id: c.id, known: true }); tally.known++; doneN++; i++; doneIds.add(c.id); left = res; toast('已标为熟知'); ask(); } catch (e) { toast(e.message); }
     }
     async function more() {
