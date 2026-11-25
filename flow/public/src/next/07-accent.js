@@ -10,11 +10,21 @@
     return a;
   }
   applyAccent(load('flow-accent'));
+  // The account's choice when the home data comes (refreshHome, 02-shell.js). One made on this device before signing in
+  // goes to the account first, once, so signing in does not undo it.
+  function accentFromAccount(p) {
+    const g = load('flow-accent-guest');
+    if (g) {
+      save('flow-accent-guest', null);
+      if (g !== (p.accent || 'green')) { p.accent = g; api('/api/next/accent', { accent: g }).catch(() => { /* the device keeps it */ }); }
+    }
+    applyAccent(p.accent);
+  }
   const accentNow = () => document.documentElement.dataset.accent || 'green';
   const accentLabel = () => ACCENTS.find(x => x[0] === accentNow())[1];
   async function setAccent(a) {
     const was = accentNow(); applyAccent(a);
-    if (!S.user) return;
+    if (!S.user) { save('flow-accent-guest', a); return; }  // chosen before signing in: given to the account once (below)
     try { await api('/api/next/accent', { accent: a }); if (S.home && S.home.profile) S.home.profile.accent = a; }
     catch (e) { applyAccent(was); toast(e.message); }
   }
