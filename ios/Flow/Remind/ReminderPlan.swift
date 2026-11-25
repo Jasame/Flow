@@ -26,6 +26,7 @@ struct ReminderPlan {
         var planHour: Int?          // the day's plan reminder (from the app; nil = off)
         var planMinutes = 10
         var app = true              // the learner wants the app's reminders (FlowApp.notify.sync {app: false} turns them off)
+        var paused = false          // the account has not agreed to 数据存放在香港 (403 code storage): no reminders at all
 
         init() {}
 
@@ -46,6 +47,7 @@ struct ReminderPlan {
             planHour = try c.decodeIfPresent(Int.self, forKey: .planHour)
             planMinutes = try c.decodeIfPresent(Int.self, forKey: .planMinutes) ?? d.planMinutes
             app = try c.decodeIfPresent(Bool.self, forKey: .app) ?? d.app
+            paused = try c.decodeIfPresent(Bool.self, forKey: .paused) ?? d.paused
         }
     }
 
@@ -69,7 +71,7 @@ struct ReminderPlan {
     }
 
     static func slots(_ x: Input, now: Date, calendar cal: Calendar = serverCalendar) -> [Slot] {
-        guard x.app else { return [] }
+        guard x.app, !x.paused else { return [] }
         var out: [Slot] = []
         let today = cal.startOfDay(for: now)
         let fmt = DateFormatter()
@@ -143,6 +145,7 @@ struct ReminderPlan {
         let paused = (j["new_paused"] as? Bool) ?? false
         x.dailyNew = bookOn && !paused ? max(0, Bridge.int(plan?["daily_new"]) ?? 0) : 0
         x.hasWords = (Bridge.int(j["total"]) ?? 0) > 0
+        x.paused = false  // the site answered: the account is in use again
         return x
     }
 
@@ -161,6 +164,15 @@ struct ReminderPlan {
         x.planHour = old.planHour
         x.planMinutes = old.planMinutes
         x.app = old.app
+        return x
+    }
+
+    /// The account has not agreed to 数据存放在香港 (older accounts until they answer, paused ones after 不同意): every
+    /// signed-in request is 403 code storage and the site sends it no reminders (privacy_service). Neither does the
+    /// app, the day's plan included; the plan's hour is kept, so agreeing brings everything back on the next refresh.
+    static func paused(_ old: Input) -> Input {
+        var x = signedOut(old)
+        x.paused = true
         return x
     }
 }

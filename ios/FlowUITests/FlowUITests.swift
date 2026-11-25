@@ -192,5 +192,11 @@ final class FlowUITests: XCTestCase {
         let n = Int(out.label.components(separatedBy: "pending ").last?.split(separator: " ").first ?? "0") ?? 0
         XCTAssertGreaterThanOrEqual(n, 5, out.label)
         shot("06-reminders")
+        // the plan page's 关闭, then 到点用 App 通知提醒 again: off clears them, the second tap brings them back
+        tapButton("关了再开")
+        let offon = line("offon: undetermined 0 allowed granted")
+        wait(offon, 15, "turned off, then on again")
+        let back = Int(offon.label.split(separator: " ").last ?? "0") ?? 0
+        XCTAssertGreaterThanOrEqual(back, 5, offon.label)
     }
 }

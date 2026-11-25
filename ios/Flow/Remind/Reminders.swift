@@ -21,7 +21,7 @@ struct ReminderAsk {
 @MainActor
 final class Reminders {
     enum OptIn { case scheduled(String), denied, failed(String) }
-    enum Outcome { case fresh, signedOut, offline }
+    enum Outcome { case fresh, signedOut, paused, offline }
 
     private let site: SiteClient
     private let center = UNUserNotificationCenter.current()
@@ -39,7 +39,17 @@ final class Reminders {
         }
     }
 
-    func permission() async -> String {
+    /// For the page (docs/native-bridge.md §5, as on Android): the app's reminders as the learner left them.
+    func permission() async -> String { Self.pageState(system: await system(), app: input.app) }
+
+    /// 'granted' only while iOS allows them and the learner has them on; turned off in the app (notify.off), or never
+    /// turned on: 'undetermined', and the page offers 「到点用 App 通知提醒」 again. iOS's own no stays 'denied'.
+    nonisolated static func pageState(system: String, app: Bool) -> String {
+        system == "denied" || app ? system : "undetermined"
+    }
+
+    /// iOS's own answer
+    private func system() async -> String {
         switch await center.notificationSettings().authorizationStatus {
         case .authorized, .ephemeral: return "granted"
         case .provisional: return "provisional"
@@ -48,15 +58,22 @@ final class Reminders {
         }
     }
 
-    /// iOS's question, asked once; true when notifications may be shown.
+    /// The learner tapped 「到点用 App 通知提醒」: iOS's question (asked only once), and when notifications may be shown,
+    /// the app's reminders are on (again, after 关闭). True when they are.
     func ask() async -> Bool {
-        if await allowed() { return true }
-        return (try? await center.requestAuthorization(options: [.alert, .sound, .badge])) ?? false
+        var ok = await allowed()
+        if !ok { ok = (try? await center.requestAuthorization(options: [.alert, .sound, .badge])) ?? false }
+        if ok && !input.app {
+            input.app = true
+            save()
+            await schedule()  // from what is known; the page's sync that follows asks the site
+        }
+        return ok
     }
 
     /// Notifications may be shown (quietly too: provisional)
     private func allowed() async -> Bool {
-        let p = await permission()
+        let p = await system()
         return p == "granted" || p == "provisional"
     }
 
@@ -88,6 +105,7 @@ final class Reminders {
         }
         save()
         let outcome = await refresh(force: true)
+        if outcome == .paused { return .failed("先在页面上回答「数据存放在香港」那一问：同意以后，提醒会自己排上。") }
         let pending = await scheduled()
         if a.kind == .plan {
             guard pending.contains(where: { $0.id.hasPrefix("plan-") }) else { return .failed("没有排上，稍后再试一次。") }
@@ -123,6 +141,11 @@ final class Reminders {
             lastFetch = Date()
             input = ReminderPlan.signedOut(input)  // no word reminders for an account that is not here; the plan stays
             outcome = .signedOut
+        } catch SiteError.status(403, "storage", _) {
+            guard mine == generation else { return .paused }
+            lastFetch = Date()
+            input = ReminderPlan.paused(input)  // not agreed to 数据存放在香港: no reminders at all until it is
+            outcome = .paused
         } catch {
             outcome = .offline  // what was known last time
         }

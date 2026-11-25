@@ -85,16 +85,18 @@ final class TTSFetcher {
             case "cap": return "今天的自然人声用完了" + tail
             case "import_cap": return "今天导入文章的自然人声用完了" + tail
             case "busy": return "今天用自然人声的人多" + tail
+            case "storage": return "账号还没同意数据存放在香港" + tail
             default: break
             }
         }
         return "这句自然人声没做出来" + tail
     }
 
-    /// The server said no for the rest of the day (switched off, the day's limit), as the page's SV.off: not worth asking
-    /// again for the next sentences of this text. Anything else is per sentence (a guest still gets the stored ones).
+    /// The server said no for the rest of the day (switched off, the day's limit, an account that has not agreed to
+    /// 数据存放在香港), as the page's SV.off: not worth asking again for the next sentences of this text. Anything else
+    /// is per sentence (a guest still gets the stored ones).
     static func refused(_ error: Error) -> Bool {
-        if case SiteError.status(_, let code, _) = error { return ["off", "cap"].contains(code) }
+        if case SiteError.status(_, let code, _) = error { return ["off", "cap", "storage"].contains(code) }
         return false
     }
 

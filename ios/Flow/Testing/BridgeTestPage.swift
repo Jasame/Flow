@@ -26,8 +26,9 @@ enum BridgeTestPage {
     <p class="out" id="note">note: -</p>
     <div class="row"><button id="rec">录音两秒</button></div>
     <p class="out" id="recOut">rec: -</p>
-    <div class="row"><button id="notify">排复习提醒</button></div>
+    <div class="row"><button id="notify">排复习提醒</button><button id="offon">关了再开</button></div>
     <p class="out" id="notifyOut">notify: -</p>
+    <p class="out" id="offonOut">offon: -</p>
     <script>
     'use strict';
     const $ = id => document.getElementById(id);
@@ -79,6 +80,16 @@ enum BridgeTestPage {
         forecast: [8, 6, 0, 4, 3, 2, 1], plan: { daily_new: 0 }, total: 30, app: true });
       const p = r.pending || [];
       $('notifyOut').textContent = `notify: ${ok ? 'allowed' : 'not allowed'} ${r.permission} pending ${p.length}` + (p.length ? ` first ${p[0].id}` : '');
+    };
+    $('offon').onclick = async () => {  // 关闭, then 到点用 App 通知提醒 again (the plan page's row)
+      await A.notify.off();
+      const off = await A.notify.permission(), none = (await A.notify.pending()).length;
+      const ok = await A.notify.ask();
+      const on = await A.notify.permission();
+      // the same counts again without `app`: whatever ask() left the app's switch at decides
+      const r = await A.call('notify.test', { reminder: { hour: 20 }, due: 5, new: 3, minutes: 4,
+        forecast: [8, 6, 0, 4, 3, 2, 1], plan: { daily_new: 0 }, total: 30 });
+      $('offonOut').textContent = `offon: ${off} ${none} ${ok ? 'allowed' : 'not allowed'} ${on} ${(r.pending || []).length}`;
     };
     </script></body></html>
     """#

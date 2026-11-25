@@ -208,6 +208,35 @@ final class ReminderPlanTests: XCTestCase {
         XCTAssertFalse(x.app, "the app's reminders stay off")
         XCTAssertEqual(x.later, 0)
         XCTAssertNil(x.onceSeen)
+        XCTAssertFalse(x.paused)
+    }
+
+    @MainActor func testThePageSeesTheAppsOwnSwitch() {
+        // docs/native-bridge.md §5: 'granted' only while they are on; after 关闭 the page offers to turn them on again
+        XCTAssertEqual(Reminders.pageState(system: "granted", app: true), "granted")
+        XCTAssertEqual(Reminders.pageState(system: "granted", app: false), "undetermined")
+        XCTAssertEqual(Reminders.pageState(system: "undetermined", app: true), "undetermined")
+        XCTAssertEqual(Reminders.pageState(system: "denied", app: false), "denied", "iOS's own no is said as it is")
+        XCTAssertEqual(Reminders.pageState(system: "provisional", app: true), "provisional")
+    }
+
+    @MainActor func testNotAgreedToHongKongStorageNoRemindersUntilAgreed() {
+        // 403 code storage (an older account before it answers, a paused one after 不同意): the site sends no reminders,
+        // the app neither, not even the day's plan; agreeing brings them back on the next refresh
+        let once = at(26, 12).timeIntervalSince1970
+        var x = input { $0.planHour = 8; $0.once = once }
+        x = ReminderPlan.paused(x)
+        XCTAssertTrue(x.paused)
+        XCTAssertEqual(x.planHour, 8, "the plan's hour is kept for later")
+        XCTAssertTrue(ReminderPlan.slots(x, now: at(25, 7), calendar: cal).isEmpty)
+        let saved = try? JSONDecoder().decode(ReminderPlan.Input.self, from: JSONEncoder().encode(x))
+        XCTAssertEqual(saved?.paused, true, "still paused after the app is closed")
+        let back = ReminderPlan.input(from: ["reminder": ["hour": 21], "due": 3, "forecast": [3, 2], "total": 40], keeping: x)
+        XCTAssertFalse(back.paused)
+        let s = ReminderPlan.slots(back, now: at(25, 7), calendar: cal)
+        XCTAssertTrue(s.contains { $0.id == "review-2026-11-25" && $0.date == at(25, 21) })
+        XCTAssertTrue(s.contains { $0.id == "plan-2026-11-25" })
+        XCTAssertFalse(ReminderPlan.signedOut(x).paused, "signing out (or in as someone else) starts over")
     }
 
     @MainActor func testSignedOutKeepsOnlyThePlan() {
@@ -251,6 +280,16 @@ final class LongPlayerRequestTests: XCTestCase {
         XCTAssertNil(LongPlayer.Request(json: ["key": "x"], base: base), "nothing to read")
         XCTAssertNil(LongPlayer.Request(json: ["src": "/a.mp4"], base: base), "a recording without sentence times")
         XCTAssertNil(LongPlayer.Request(json: ["src": "javascript:alert(1)", "sentences": [[0, 1]]], base: base)?.src)
+    }
+
+    @MainActor func testServerVoiceRefusals() {
+        // off, the day's limit, an account that has not agreed to 数据存放在香港: the rest of the text in the iPhone's voice
+        for code in ["off", "cap", "storage"] {
+            XCTAssertTrue(TTSFetcher.refused(SiteError.status(403, code: code, message: "")), code)
+        }
+        XCTAssertFalse(TTSFetcher.refused(SiteError.status(403, code: "guest", message: "")), "a guest still gets the stored ones")
+        XCTAssertFalse(TTSFetcher.refused(URLError(.timedOut)))
+        XCTAssertEqual(TTSFetcher.reason(SiteError.status(403, code: "storage", message: "")), "账号还没同意数据存放在香港，这句先用 iPhone 自带的声音")
     }
 
     @MainActor func testSentenceLookupLikeTheWebPage() {
