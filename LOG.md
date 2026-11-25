@@ -805,3 +805,10 @@
   - #362 放不了 AAC 的设备（Linux 桌面缺解码器）：有录音的文章改用 AI 朗读一句一句读，说一次原因（听和说、操作指南）
 - 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45687561150
+
+### b100 · 2026-11-26 03:52
+- main `728af69`，构建 `048450b`
+- 新合并的 PR（自 b99 起）：
+  - #378 iOS 第四组第 7 项「在系统搜索里找生词」（默认关）（操作指南、发版和构建）
+- 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45689359183
