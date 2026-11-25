@@ -11,7 +11,7 @@ then B2's format and A0's / D2's rules). Written offline in batches, never while
 - Its own data, shared by every book, not merged into any word list (D2: NAWL and BSL stay CC BY-SA lists of their own).
 - Batch work: ai_routes.batch_stop (the day's ¥5 budget, tonight's batch ceiling) stops a run; --max-yuan too.
 - Nightly (A0 2026-11-26: the owner nods once for the whole run): <data>/word-extras/plan.json (books, max_yuan a night,
-  nights, until), written only with the owner's OK, lets ai_routes.tick start one run a night (02:00–05:00 Beijing) as a
+  nights, until, hold_after_first: stop after the first night until B7 has looked at it), written only with the owner's OK, lets ai_routes.tick start one run a night (02:00–05:00 Beijing) as a
   child process, like the nightly check. The night's report is <data>/word-extras/<day>.json. Done when no word is left,
   the nights are used or the date has passed; paused, never retried on its own, when a night looks wrong (anomaly).
 
@@ -355,6 +355,8 @@ def nightly(c, now=None):
         return False
     past = [r for r in reports(d) if r['day'] >= str(plan.get('from', ''))]
     why = anomaly(past[-1], plan) if past else ''
+    if not why and plan.get('hold_after_first') and [r for r in past if r.get('words')]:
+        why = '第一晚跑完，等 B7 抽查'  # the first night on a new prompt is looked at before the rest; B7 then clears it
     if why:
         _write(d / 'plan.json', {**plan, 'paused': why, 'paused_at': day})
         return False

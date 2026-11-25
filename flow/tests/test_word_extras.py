@@ -205,6 +205,15 @@ class NightlyTests(unittest.TestCase):  # A0 2026-11-26: one nod from the owner 
         self.assertEqual(wx.anomaly({'error': 'boom'}, self.plan), '运行出错：boom')
         self.assertIn('超过每晚上限', wx.anomaly({'yuan': 4.5}, self.plan))
 
+    def test_the_first_night_is_looked_at_first(self):
+        wx._write(self.d / 'word-extras' / 'plan.json', {**self.plan, 'hold_after_first': True})
+        self.assertTrue(self.tick(27))
+        self.night_report(27, words=3400, rows=11000, left_out=300, hidden=900, failed=0, yuan=2.9, pending_after=4600)
+        self.assertFalse(self.tick(28)); self.assertEqual(self.plan_now()['paused'], '第一晚跑完，等 B7 抽查')
+        plan = self.plan_now(); plan.pop('paused'); plan.pop('paused_at'); plan['hold_after_first'] = False  # B7 has looked
+        wx._write(self.d / 'word-extras' / 'plan.json', plan)
+        self.assertTrue(self.tick(29)); self.assertEqual(len(self.started), 2)
+
     def test_the_nights_and_the_date_are_a_ceiling(self):
         wx._write(self.d / 'word-extras' / 'plan.json', {**self.plan, 'nights': 1})
         self.assertTrue(self.tick(27))
