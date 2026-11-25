@@ -49,6 +49,8 @@ jobs:
        (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch'))
     runs-on: ubuntu-24.04
     timeout-minutes: 50  # deploy.sh waits up to 40 minutes for the 内测版 (usually 5–8)
+    # the key that signs the 内测版's release requests (FLOW_BETA_SIGN_KEY): this environment gives it to main only
+    environment: beta-release-signing
     permissions:
       contents: write  # the tags build-* and b<N> and the release-beta branch; main stays protected
     concurrency:
@@ -71,10 +73,16 @@ jobs:
       - name: Release to the 内测版 and wait for its end-to-end test
         env:
           E2E_MODE: ${{ inputs.e2e == 'full' && 'full' || 'light' }}  # automatic releases: light
+          FLOW_BETA_SIGN_KEY: ${{ secrets.FLOW_BETA_SIGN_KEY }}
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
           if [ "$E2E_MODE" = full ]; then light=""; else light="--light"; fi
+          # the signing key as a file of this step only (deploy.sh signs REQUEST with it), gone when the step ends;
+          # what deploy.sh starts (the release build, Chrome) no longer has it in its environment
+          key="$RUNNER_TEMP/flow-beta-sign"; trap 'rm -f "$key"' EXIT
+          if [ -n "$FLOW_BETA_SIGN_KEY" ]; then (umask 077; printf '%s\n' "$FLOW_BETA_SIGN_KEY" > "$key"); export FLOW_SIGN_KEY_FILE="$key"; fi
+          unset FLOW_BETA_SIGN_KEY
           bash tools/deploy.sh --beta $light "$(git rev-parse HEAD)"
       - name: Log the release (LOG.md on release-beta; the ledger is docs/releases.md)
         # also after a failed test, which is worth keeping; a failure here never fails the release
