@@ -1,6 +1,6 @@
 # 语流 App 和网页之间的桥（FlowApp v1）
 
-iOS（语流 C1）、安卓（语流 C2）、桌面 Windows 和 macOS（语流 C3）共用这一份约定。网页只认一个入口 `window.FlowApp`，
+iOS（语流 C1）、安卓（语流 C2）、桌面 Windows、macOS 和 Linux（语流 C3）共用这一份约定。网页只认一个入口 `window.FlowApp`，
 命令、事件、字段、错误码只在这里写一次；各平台怎么实现写在最后一节。
 
 - 约定由语流 C1（iOS）牵头改；各平台的小节由各自的会话写（会话名对照见共享笔记 session-names.md）。要改共用部分，先在 PR 里提，三边同意再合。
@@ -11,9 +11,9 @@ iOS（语流 C1）、安卓（语流 C2）、桌面 Windows 和 macOS（语流 C
 
 - **功能一律看 `window.FlowApp`**：App 在网页自己的脚本之前放好它（document start，只在本站的主框架里）。
   先判断 `window.FlowApp && FlowApp.has('<能力>')`，没有就照网页原来的做法。Safari、主屏 App、微信、电脑浏览器都不受影响。
-- **User-Agent 末尾**：`FlowiOS/<版本>`、`FlowAndroid/<版本>`、`FlowDesktop/<版本> (Windows)` 或 `(macOS)`。
+- **User-Agent 末尾**：`FlowiOS/<版本>`、`FlowAndroid/<版本>`、`FlowDesktop/<版本> (Windows)`、`(macOS)` 或 `(Linux)`。
   UA 只用来决定外壳的样子（04-home-app.js：返回按钮、不显示「添加到桌面」），写成 `/Flow(iOS|Android|Desktop)\//`。不要靠 UA 判断能力。
-- `FlowApp.platform`：`'ios'` | `'android'` | `'windows'` | `'macos'`。说法跟着平台走，比如通知、麦克风权限去哪里打开：
+- `FlowApp.platform`：`'ios'` | `'android'` | `'windows'` | `'macos'` | `'linux'`。说法跟着平台走，比如通知、麦克风权限去哪里打开：
 
 | platform | 通知 | 麦克风 |
 |---|---|---|
@@ -21,6 +21,9 @@ iOS（语流 C1）、安卓（语流 C2）、桌面 Windows 和 macOS（语流 C
 | android | 「设置 → 应用 → 语流 → 通知」 | 「设置 → 应用 → 语流 → 权限 → 麦克风」 |
 | windows | 「设置 → 系统 → 通知」 | 「设置 → 隐私和安全性 → 麦克风」 |
 | macos | 「系统设置 → 通知」 | 「系统设置 → 隐私与安全性 → 麦克风」 |
+| linux | 「系统设置里的通知」 | 「系统设置 → 隐私 → 麦克风」 |
+
+- linux 的说法：各个桌面叫法不一样，通知就笼统写；麦克风这一项是 GNOME 的，KDE 一般不用设。
 
 - 其他字段：`FlowApp.v`（桥的版本，现在 1）、`FlowApp.app`（App 版本）、`FlowApp.build`、`FlowApp.beta`（打开的是内测版）。
 
@@ -33,12 +36,12 @@ iOS（语流 C1）、安卓（语流 C2）、桌面 Windows 和 macOS（语流 C
 - 事件：`FlowApp.on(type, fn)` 返回退订函数，`FlowApp.off(type, fn)` 也行；同时在 `window` 上发 `flowapp:<type>` 事件（detail 同参数）。
 - 能力 `FlowApp.has(名字)`：
 
-| 能力 | 意思 | iOS | 安卓 | 桌面 |
+| 能力 | 意思 | iOS | 安卓 | 桌面（Windows、macOS、Linux） |
 |---|---|---|---|---|
 | `audio` | 整篇朗读交给 App 放（锁屏、来电、后台） | 有 | 有 | 没有 |
 | `rec` | 录音由 App 录 | 有 | 有 | 没有（网页 getUserMedia） |
 | `notify` | 复习提醒用本地通知 | 有 | 有 | 有 |
-| `media` | 网页自己放声音，App 把 navigator.mediaSession 交给系统（媒体键、「正在播放」） | 没有 | 没有 | 有 |
+| `media` | 网页自己放声音，App 把 navigator.mediaSession 交给系统（媒体键、「正在播放」） | 没有 | 没有 | 有（Linux 走 MPRIS） |
 | `speech` | App 替网页补上 speechSynthesis（浏览器声音） | 没有 | 有 | 没有 |
 
 - 一个 App 在回到前台、网页重新加载以后，会把正在放的状态再发一次（`audio` 事件），网页不用猜。网页可见时也可以调 `FlowApp.call('app.visible')` 让它重发。
@@ -157,7 +160,7 @@ window.__flowAppTransport = {
 
 ## 6. 系统媒体控制 `media`（桌面）
 
-网页照常自己放声音，App 盯着 navigator.mediaSession 交给系统（Windows SMTC、macOS「正在播放」），媒体键再回调网页登记的动作。网页的 MS 层要守住：
+网页照常自己放声音，App 盯着 navigator.mediaSession 交给系统（Windows SMTC、macOS「正在播放」、Linux MPRIS），媒体键再回调网页登记的动作。网页的 MS 层要守住：
 
 - owner `'nar'` 和 `'long'` 登记 play、pause、stop、previoustrack、nexttrack（整篇用 'nar' 一口气放时才有上一句、下一句）；owner `'short'` 只登记 pause、stop。
 - 暂停、继续时 playbackState 跟着变；放完或停下时 release：metadata 清空、状态 `'none'`。
