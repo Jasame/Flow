@@ -110,3 +110,10 @@
   - #104 r28 第 1 段：按时间打包今日计划（今日和计划、开局和考试、后台和班级、操作指南）
 - 自检：DEPLOYED，装了 12 个文件（1 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45474204709
+
+### b25 · 2026-11-25 08:46
+- main `967d787`，构建 `d832816`
+- 新合并的 PR（自 b24 起）：
+  - #113 发音：通义千问 Omni 的单词判断只作参考，不进错题本（单词、听和说、AI、操作指南）
+- 自检：DEPLOYED，装了 6 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45520540948
