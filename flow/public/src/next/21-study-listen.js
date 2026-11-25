@@ -52,7 +52,9 @@
       const rateL = r => `${r}×`;
       // 「AI 合成」 is said once, in the bar by the play button (the user, 2026-11-25: no second line); the browser's own
       // voice is not AI, and only this line says so
-      const lead = nm || SV.on() ? '' : '这篇还没有录音，先用浏览器朗读。';
+      // a recording this device cannot play (no AAC decoder): said here too, as the reason the text is read sentence by sentence
+      const lead = voices.length && !NAR.aac ? (SV.on() ? '这台设备放不了录音的格式，改用 AI 朗读一句一句读。' : '这台设备放不了录音的格式，先用浏览器朗读。')
+        : nm || SV.on() ? '' : '这篇还没有录音，先用浏览器朗读。';
       const hint = `点 👁 只听不看，点喇叭单句反复听${TOUCH ? '' : '；空格键播放 / 暂停'}。`;  // one line on SE (F1)
       pane.innerHTML = `${again ? relistenHTML() : ''}${modeTabs()}${prereadHTML()}
         <p class="tiny muted sv-prep" id="lsPrep" role="status" hidden></p>
