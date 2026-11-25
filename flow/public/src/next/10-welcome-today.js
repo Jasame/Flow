@@ -64,7 +64,7 @@
     } else top = '<div class="empty">今天没有可推荐的材料了。</div>';
     const resume = h.resume && h.resume.id !== readId ? h.resume : null, news = h.news && h.news.id !== readId ? h.news : null;
     const more = h.today.filter(m => m.id !== readId && (path || m !== pick) && (!resume || m.id !== resume.id) && (!news || m.id !== news.id)).slice(0, 3);
-    // 好句 and 热点 come first, except on a screen too short for them and the plan's button together (a phone held
+    // 好句 and 一读 come first, except on a screen too short for them and the plan's button together (a phone held
     // sideways): there the plan comes first, so its next step is still on the first screen.
     // The day back after days away (r28 第 2 段) starts with 欢迎回来 and the plan too: getting going comes first.
     const short = (innerHeight < 500 && innerWidth > innerHeight) || !!(path && h.path.back);

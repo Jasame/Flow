@@ -396,6 +396,7 @@ flow/time_budget.py
 flow/tools/build_graded.py
 flow/tools/build_reference.py
 flow/tools/revise_pedagogy.py
+flow/topic_guard.py
 flow/tts_service.py
 flow/upgrade.sh
 flow/user_guide.py

@@ -97,6 +97,9 @@ def check_pack(p, theme, cefr, seen):
     q = checks(p)
     E += ['质量检查：' + x for x in q['errors']]
     W += ['质量检查：' + x for x in q['warnings'] if '篇幅偏离' not in x]
+    # 不碰新闻和时政 (2026-11-25): words only news and politics use. A warning here (the corpus is fiction and common
+    # knowledge, and "fans protest" is not news): the weekly spot check looks at each one; 今日一读 is stopped by it.
+    W += ['新闻/时政：' + h for h in __import__('topic_guard').hits(p, dated=False)]
     qs = p['questions']
     if isinstance(qs, list):
         for i, qq in enumerate(qs):
