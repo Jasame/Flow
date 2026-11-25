@@ -128,6 +128,21 @@ LAYOUT_JS = """(touch) => {
     out.smallFields = [...document.querySelectorAll('input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]), select, textarea')]
       .filter(e => e.offsetParent !== null && parseFloat(getComputedStyle(e).fontSize) < 16).slice(0, 5)
       .map(e => `${e.tagName}${e.id ? '#' + e.id : ''} ${getComputedStyle(e).fontSize}`);
+    // 99-tap.css (UI audit, 2026-11-25): small buttons, chips, icon and segmented buttons, standalone links and fold titles
+    // reach 44x44 to a finger, the invisible ::after (::before on a fold title) included; the layout stays as it was
+    const hit = e => { const r = e.getBoundingClientRect(); let w = r.width, h = r.height;
+      for (const ps of ['::after', '::before']) { const p = getComputedStyle(e, ps);
+        if (p.content !== 'none' && p.position === 'absolute') { w = Math.max(w, parseFloat(p.minWidth) || 0); h = Math.max(h, parseFloat(p.minHeight) || 0); } }
+      return [Math.round(w), Math.round(h)]; };
+    out.tap44 = [...document.querySelectorAll('#view :is(.btn.small, .chip, .icon-btn, .node-chip, .seg>button, .seg>a, .steps button, .wk.habit, a.ai-link, button.link, a.link, details:not(.better)>summary)')]
+      .filter(e => e.offsetParent !== null && !e.closest('.sr-only, [hidden]') && !(e.matches('a.link') && e.closest('p, li, summary'))
+        && !(e.tagName === 'SUMMARY' && e.querySelector('a, button, input, select')))
+      .map(e => [e, hit(e)]).filter(([e, [w, h]]) => w < 44 || h < 44)
+      .slice(0, 6).map(([e, [w, h]]) => `${e.tagName}${e.id ? '#' + e.id : ''}.${[...e.classList].join('.')} "${(e.textContent || '').trim().slice(0, 14)}" ${w}x${h}`);
+    // <select> drawn by the page, not the system: Safari ignores height and colours on a system-drawn one (22 px, grey)
+    out.sysSelect = [...document.querySelectorAll('#view select')].filter(e => e.offsetParent !== null)
+      .filter(e => getComputedStyle(e).appearance !== 'none' || e.getBoundingClientRect().height < 43.5)
+      .slice(0, 4).map(e => `${e.id || e.name || 'select'} ${getComputedStyle(e).appearance} ${Math.round(e.getBoundingClientRect().height)}px`);
   }
   return out;
 }"""
@@ -182,6 +197,8 @@ def run_device(pw, dev, opts):
             if touch:
                 check(dev, f'{h} touch targets ≥ 32px', not lay['small'], lay['small'])
                 check(dev, f'{h} fields ≥ 16px (no zoom on focus)', not lay['smallFields'], lay['smallFields'])
+                check(dev, f'{h} small buttons, chips, standalone links and folds: tap area ≥ 44px', not lay['tap44'], lay['tap44'])
+                check(dev, f'{h} drop-downs drawn by the page (not the system), ≥ 44px', not lay['sysSelect'], lay['sysSelect'])
             cov = pg.evaluate(COVER_JS)
             check(dev, f'{h} last control not covered', cov in (None, 'ok'), cov)
             pg.evaluate('scrollTo(0, 0)')

@@ -66,3 +66,4 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `99-class.css` | 班级试用: what a teacher sees and not, the class found by its code, the teacher's summary page |
 | `99-privacy.css` | 年龄段: the three chips and the guardian's box |
 | `99-ai-mark.css` | the 「AI 生成」 mark on everything an AI wrote for the learner (`aiTag()`, `aiMark(note)` in `00-head.js`; 2026-11-25, 《人工智能生成合成内容标识办法》) |
+| `99-tap.css` | last on purpose: `<select>` drawn by us, not the system (Safari ignored our height and colours), a 44×44 hit area for small buttons, chips, icon buttons, standalone links and fold titles (an invisible `::after`, the layout unchanged), the amber pill's contrast (UI audit, 2026-11-25) |
