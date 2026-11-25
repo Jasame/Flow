@@ -267,8 +267,9 @@ def run_device(pw, dev, opts):
     check(dev, 'exam: every question of the paper (as the server sizes it) in three parts with a clock',
           n == want and n >= 18 and pg.evaluate("() => document.querySelectorAll('.exam-part').length") == len(paper['parts']) == 3, (n, want))
     marks = pg.evaluate("""() => ({ passages: [...document.querySelectorAll('.exam-part article h3')].map(h => !!h.querySelector('.ai-mark')),
-      grammar: [...document.querySelectorAll('.exam-part h2')].filter(h => h.textContent.startsWith('语法')).map(h => !!h.querySelector('.ai-mark')) })""")
-    check(dev, 'exam: 「AI 生成」 by every passage and on 语法 (AI-assisted, 《标识办法》)', marks['passages'] and all(marks['passages']) and marks['grammar'] == [True], marks)
+      grammar: [...document.querySelectorAll('.exam-part')].filter(s => s.querySelector('h2').textContent.startsWith('语法')).map(s => (s.querySelector('.ai-line') || {}).textContent || '') })""")
+    check(dev, 'exam: 「AI 生成」 by every passage; 语法 (the bank, original and AI-assisted) says 「题目和解析由 AI 辅助编写」',
+          marks['passages'] and all(marks['passages']) and len(marks['grammar']) == 1 and '题目和解析由 AI 辅助编写' in marks['grammar'][0], marks)
     for k in range(n):
         pg.click(f'.exam-part .gq >> nth={k} >> .ans >> nth=0')
     pg.click('#exDone'); pg.wait_for_timeout(900)

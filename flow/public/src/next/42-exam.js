@@ -63,7 +63,7 @@
     };
     const total = p.parts.reduce((s, pt) => s + (pt.items ? pt.items.length : pt.passages.reduce((a, ps) => a + ps.items.length, 0)), 0);
     view.innerHTML = `<div class="stack"><div class="exam-bar"><b>${esc(p.title)} · 练习</b><span class="clock" id="exClock" aria-live="off">0:00</span></div>
-      ${p.parts.map(pt => `<section class="exam-part"><h2 class="h2">${esc(pt.title)}${pt.key === 'grammar' ? ' ' + aiTag() : ''}</h2><p class="tiny muted">${esc(pt.hint)}</p>${part(pt)}</section>`).join('')}
+      ${p.parts.map(pt => `<section class="exam-part"><h2 class="h2">${esc(pt.title)}</h2><p class="tiny muted">${esc(pt.hint)}</p>${pt.key === 'grammar' ? aiMark('题目和解析由 AI 辅助编写') : ''}${part(pt)}</section>`).join('')}
       <button class="btn primary block" id="exDone">交卷</button><p class="tiny muted">建议 ${p.minutes} 分钟内完成；超时也可以交卷，只是会标出来。</p></div>`;
     const clock = document.getElementById('exClock');
     view.querySelector('.exam-bar').style.top = (bar.offsetHeight + 6) + 'px';  // just under the app's top bar, whatever its height
