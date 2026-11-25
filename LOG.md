@@ -646,3 +646,11 @@
   - #296 Word card centred, review buttons at the bottom, quieter AI voice marks（单词、听和说、今日和计划、开局和考试、后台和班级、AI、操作指南）
 - 自检：DEPLOYED，装了 6 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45633177393
+
+### b81 · 2026-11-25 22:36
+- main `1107d86`，构建 `8462a59`
+- 新合并的 PR（自 b80 起）：
+  - #312 热修：iOS 16.4 以前的 iPhone/iPad 打不开语流（正则后行断言）（单词）
+  - #314 更新记录 r34（热修复）：老版本 iPhone、iPad 打不开语流（内容）
+- 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45635460030
