@@ -39,6 +39,7 @@ object Reminders {
     private const val ACTION = "cn.flowlang.app.REMIND"
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var lastFetch = 0L
+    @Volatile private var pausedCode: String? = null  // the last 403's code: what 「App 通知」 says (Planner.pausedLine)
     private var generation = 0
 
     private fun prefs(c: Context) = c.getSharedPreferences("flow-remind", Context.MODE_PRIVATE)
@@ -114,8 +115,14 @@ object Reminders {
             lastFetch = System.currentTimeMillis()
             when {
                 r.code == 401 -> { save(app, Planner.signedOut(input(app))); outcome = Outcome.SIGNED_OUT }  // the plan stays
-                // not agreed to 数据存放在香港: no reminders at all until it is (the hours are kept)
-                r.code == 403 && r.json().optString("code") == "storage" -> { save(app, Planner.paused(input(app))); outcome = Outcome.PAUSED }
+                // a consent not given yet: 'storage' (数据存放在香港), 'terms' (the current 用户协议 and 隐私和数据, asked again
+                // whenever their version changes) or one this app does not know yet: no reminders at all until it is given
+                // (the hours are kept). Any 403, so a consent added later stops them too; the page shows what to agree to.
+                r.code == 403 -> {
+                    pausedCode = r.json().optString("code").ifEmpty { null }
+                    save(app, Planner.paused(input(app)))
+                    outcome = Outcome.PAUSED
+                }
                 r.ok -> save(app, Planner.input(r.json(), input(app)))
                 else -> outcome = Outcome.OFFLINE
             }
@@ -206,7 +213,7 @@ object Reminders {
         save(c, x)
         val outcome = refresh(c, force = true)
         val list = scheduled(c)
-        if (outcome == Outcome.PAUSED) return "先在页面上回答「数据存放在香港」那一问：同意以后，提醒会自己排上。"
+        if (outcome == Outcome.PAUSED) return Planner.pausedLine(pausedCode)
         if (plan) return if (list.any { it.id.startsWith("plan-") }) "好，每天 ${input(c).planHour}:00 用通知提醒你今天的学习。不想要了，可以在手机的「设置 → 应用 → 语流 → 通知」里关掉。"
             else "没有排上，稍后再试一次。"
         if (outcome == Outcome.SIGNED_OUT) return "登录以后才能用通知提醒复习单词：先登录，再点一次。"

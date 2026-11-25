@@ -132,6 +132,15 @@ class PlannerTest {
         assertEquals("hours outside REMIND_HOURS are not taken", 21, Planner.input(JSONObject().put("reminder", JSONObject().put("hour", 3)), x).hour)
     }
 
+    @Test fun theLineSaysWhichConsentIsMissing() {
+        // 403 code storage, terms (用户协议 and 隐私和数据, asked again when their version changes) or one not known yet:
+        // all pause the reminders (Reminders.refresh); 「App 通知」 says what the page will ask for
+        assertTrue(Planner.pausedLine("storage").contains("数据存放在香港"))
+        assertTrue(Planner.pausedLine("terms").contains("《用户协议》"))
+        assertTrue(Planner.pausedLine("something-new").contains("页面上的提示"))
+        assertTrue(Planner.pausedLine(null).contains("页面上的提示"))
+    }
+
     @Test fun notAgreedToHongKongStorageNoRemindersUntilAgreed() {
         // 403 code storage (an older account before it answers, a paused one after 不同意): the site sends no reminders,
         // the app neither, not even the day's plan; agreeing brings them back on the next refresh
