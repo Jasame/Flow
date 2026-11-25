@@ -1,3 +1,3 @@
-6f8879b0fbece03d1668c089e96d3051b3b22c4f 27984837425523c750beb59148fc1d54602cae4125cd519ed10cf92089e0cf6d e2e light ref=build-9875a69553e2
-# b47 main: Merge pull request #157 from Jasame/revert-151 = build of 9875a69553e2
+d34341267a26fdeddb0cf046e1eae8ea4b3254e8 d734d0db1e74d9359377f5a0f8e12d0ebd344ab56f17ddcf97d893cc116fdf7f e2e light ref=build-cb72d6c3f451
+# b48 main: Merge pull request #158 from Jasame/ai-mark = build of cb72d6c3f451
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
