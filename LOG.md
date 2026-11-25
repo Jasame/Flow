@@ -219,3 +219,11 @@
   - #133 总账：正式版 r29 和内测版 b25–b35（发版和构建）
 - 自检：DEPLOYED，装了 2 个文件（0 个新的）；轻量 e2e 147/148，没过：guard: 60 concurrent reads all 200 (0.8s)，服务器报错 1
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45538844045
+
+### b39 · 2026-11-25 11:27
+- main `81d44fd`，构建 `a00db23`
+- 新合并的 PR（自 b38 起）：
+  - #134 能力测评听力按句用自然人声读；考试结果里没认出的词用单词录音（开局和考试、操作指南）
+  - #137 changelog.py：自动记录里写上自检失败的原因（发版和构建）
+- 自检：DEPLOYED，装了 5 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45539927938
