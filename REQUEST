@@ -1,3 +1,3 @@
-82577bc876d1ad9390bda9a29560f9d281516efb bb390612800c496385057e24daca760ea8dd46d46c2c20ef1ec41f26eca690ef e2e light ref=build-70fbcdc90a7d
-# b40 main: Merge pull request #138 from Jasame/shell-flowios = build of 70fbcdc90a7d
+38cd16c570c9df9f066f381d8712cf4e5bdf86fa 57ba7a0f0633cff197a3d1cc5dbc87628a19b21f977c2ab94c38ac6483d61c1b e2e light ref=build-20e57d402aff
+# b41 main: Merge pull request #141 from Jasame/rules-1115 = build of 20e57d402aff
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
