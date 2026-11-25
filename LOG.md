@@ -812,3 +812,10 @@
   - #378 iOS 第四组第 7 项「在系统搜索里找生词」（默认关）（操作指南、发版和构建）
 - 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45689359183
+
+### b101 · 2026-11-26 04:08
+- main `006da3a`，构建 `9d4ecb5`
+- 新合并的 PR（自 b100 起）：
+  - #379 复习页：评分还在保存时离开，不再把复习卡画到下一页上（单词）
+- 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45691863573
