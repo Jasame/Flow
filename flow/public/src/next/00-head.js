@@ -15,6 +15,10 @@
 
   /* ---------- utilities ---------- */
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  // 「AI 生成」标识（2026-11-25，《人工智能生成合成内容标识办法》）：AI 写的、给学员看的内容都带它，样式在 99-ai-mark.css。
+  // aiMark(note)：放在一块内容最上面的一行，note 是后面的一句小字（可省），如「未经人工审核」；aiTag()：卡片信息行里的小标签。
+  function aiTag() { return '<span class="ai-mark" title="这部分由人工智能生成，可能有错，仅供参考">AI 生成</span>'; }
+  function aiMark(note) { return `<div class="ai-line">${aiTag()}${note ? `<span>${esc(note)}</span>` : ''}</div>`; }
   function load(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
   function save(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private mode */ } }
   function rid(prefix) { return prefix + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10); }
