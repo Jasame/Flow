@@ -195,7 +195,8 @@ def checks(d):
         kind = '轻量 e2e' if e.get('light') or d.get('e2e_light') else 'e2e'
         s = f'{kind} {n - bad}/{n}'
         if bad:
-            s += '，没过：' + '；'.join(e.get('failed_names') or [])
+            # failed_details (#86, from 2026-11-25) carries why: 「who: name: reason」; older releases only have the names
+            s += '，没过：' + '；'.join(e.get('failed_details') or e.get('failed_names') or [])
         s += f'，服务器报错 {e.get("server_errors", "?")}'
         if e.get('cleanup_ok') is False:
             s += '，测试数据没清干净'
