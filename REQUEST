@@ -1,3 +1,3 @@
-fa65179aaa18e7031753da41d134882414a70021 75e6f687f626030c86d98d82ac1574f3451590f681172e2cc5a8ea7d481ced86 e2e light ref=build-61020f09cbe0 tag=b76 tools=597561c34526117206a9ab50909c31f43f5c04458741bfe6feb69478d5de0d67
-# b76 main: Merge pull request #301 from Jasame/tap-label-links = build of 61020f09cbe0
+16f0290f82f74e12f188b8931daba5e42375672f 98d18f1702a1d4b8e961719696598eaad4510d771dd415e86d43155a6371a931 e2e light ref=build-e62e23898e0d tag=b77 tools=c8f8bc8e43fd5f240d1e4b9541d9e4edc8f88c917b5795e6ecafd8f51af4bfbb
+# b77 main: Merge pull request #298 from Jasame/mail-redesign = build of e62e23898e0d
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
