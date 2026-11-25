@@ -62,7 +62,10 @@
     let j = {}; try { j = t ? JSON.parse(t) : {}; } catch (x) { /* not JSON: an error page */ }
     if (!r.ok) {
       if (r.status >= 500) noteIssue('api', `服务器返回 ${r.status}`, path.split('?')[0]);  // 4xx are answers (a wrong password …), not faults
-      const e = new Error(j.error || ('请求失败（' + r.status + '）')); e.status = r.status; e.field = j.field; e.code = j.code;
+      // No message of ours (an nginx page while the server restarts, a gateway timeout, an upload too large): plain words,
+      // no status code (UI audit 2026-11-25: 「请求失败（502）」 on every page during a release). The server's own messages stay.
+      const plain = r.status === 413 ? '内容太大，传不上去，换小一点的再试' : r.status >= 500 || r.status === 429 ? '服务暂时有点忙，请稍后重试' : '没有成功，请稍后重试';
+      const e = new Error(j.error || plain); e.status = r.status; e.field = j.field; e.code = j.code;
       // Signed out on the server (30 days away, a password change, 退出所有设备): say so and offer to sign in again.
       if (r.status === 401 && S.user && !quiet && !/^\/api\/(login|register|auth\/)/.test(path)) {
         S.user = null; S.csrf = ''; e.message = '登录已过期，请重新登录';
