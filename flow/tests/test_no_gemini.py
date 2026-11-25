@@ -108,6 +108,12 @@ class RoutingTests(unittest.TestCase):
         outp, models, _ = self.ask({'flow-text-qwen-plus': '{"ok": 2}'}, main_only=True)
         self.assertEqual(models, ['flow-text-qwen-plus'])
 
+    def test_after_omni_twice_with_nothing_heard_the_last_try_is_recognition_then_text(self):  # r30 e2e
+        outp, models, sent = self.ask({'flow-audio-asr-flash': 'I want headphones for the train.',
+                                       'flow-text-qwen-plus': '{"heard": "I want headphones for the train.", "reply": "Sure."}'},
+                                      kind='next-dialog', audio=WEBM, main_only=True)
+        self.assertEqual(models, ['flow-audio-asr-flash', 'flow-text-qwen-plus'])
+
     def test_a_search_without_bailian_search_is_refused(self):
         from vertex_auth import AIConfigurationError
         urlopen, sent = gateway({})
@@ -124,6 +130,43 @@ class RoutingTests(unittest.TestCase):
         self.assertIn('"think" or "sink"', body['messages'][0]['content'][0]['text'])
         self.assertEqual(body['messages'][1]['content'][0]['type'], 'input_audio')
         self.assertEqual(body['asr_options'], {'language': 'en', 'enable_itn': False})
+
+
+class DialogTests(unittest.TestCase):
+    """A dialogue turn by voice end to end: Omni answers twice with nothing heard (Shape heard_empty), the last try is
+    speech recognition then the backup model; a refused service reads as a plain sentence, never an admin's."""
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.p = patch.object(app, 'DB', Path(self.tmp.name) / 's.db'); self.p.start()
+        self.env = patch.dict(os.environ, ENV); self.env.start()
+        app.init(); self.c = app.db()
+        self.c.execute('INSERT INTO users(username,password) VALUES(?,?)', ('learner', 'h')); self.c.commit()
+        nx.save_profile(self.c, 1, {'level': 'B1', 'goal': 'daily', 'themes': [], 'minutes': 15})
+
+    def tearDown(self):
+        self.c.close(); self.env.stop(); self.p.stop(); self.tmp.cleanup()
+
+    def turn(self, answers, rid):
+        urlopen, sent = gateway(answers)
+        hist = [{'role': 'ai', 'text': 'Hi! What can I get you?'}]
+        with patch('urllib.request.urlopen', urlopen), patch('time.sleep'), patch('tts_service.start', create=True):
+            result, status = out.dialog(self.c, 1, {'scenario': 'cafe-order', 'history': hist, 'audio': WEBM, 'request_id': rid})
+        return result, status, [b['model'] for b in sent]
+
+    def test_nothing_heard_twice_then_recognition_and_text_answer(self):
+        empty = json.dumps({'heard': '', 'reply': 'Sure.', 'correction': None, 'hint': '', 'say': ''})
+        good = json.dumps({'heard': 'A latte, please.', 'reply': 'Sure, one latte.', 'correction': None, 'hint': '', 'say': ''})
+        result, status, models = self.turn({'flow-audio-omni-flash': [empty, empty], 'flow-audio-asr-flash': 'A latte, please.',
+                                            'flow-text-qwen-plus': good}, 'dlg-empty-0001')
+        self.assertEqual(status, 200, result)
+        self.assertEqual(result['result']['heard'], 'A latte, please.')
+        self.assertEqual(models, ['flow-audio-omni-flash', 'flow-audio-omni-flash', 'flow-audio-asr-flash', 'flow-text-qwen-plus'])
+
+    def test_a_refused_service_reads_as_a_plain_sentence(self):
+        result, status, models = self.turn({'flow-audio-omni-flash': [down(403), down(403)], 'flow-audio-asr-flash': down(403)}, 'dlg-403-0001')
+        self.assertNotEqual(status, 200)
+        self.assertNotIn('管理员', result['error']); self.assertNotIn('Google', result['error'])
+        self.assertIn('稍后再试', result['error'])
 
 
 class VerdictTests(unittest.TestCase):

@@ -86,7 +86,8 @@ class ReliabilityTests(unittest.TestCase):
  def test_config_error_is_actionable_not_output_format_failure(self):
   from vertex_auth import AIConfigurationError
   with patch.object(lab,'ai_enabled',return_value=True):out,status=lab.run_job(self.c,1,'configuration-error-01','test','','',{},lambda:(_ for _ in ()).throw(AIConfigurationError()),lambda x:x)
-  self.assertEqual(status,503);self.assertIn('配置',out['error']);self.assertNotIn('输出不完整',out['error'])
+  # 2026-11-25: the learner reads a plain sentence (the cause, a missing service, goes to the log for whoever runs the site)
+  self.assertEqual(status,503);self.assertIn('用不了',out['error']);self.assertNotIn('管理员',out['error']);self.assertNotIn('输出不完整',out['error'])
  def test_task_review_rejects_invented_quote_and_disputes_are_owner_scoped(self):
   raw={'strength':'Clear','priorities':[],'revision':'I like books.','next_question':'Why?','links':[],'task_check':{'on_task':True,'evidence':'invented quotation','reason':'判断'}}
   data={'pack':'campus-a2','skill':'writing','answer':'I like books.','request_id':'quoted-review-0001'}

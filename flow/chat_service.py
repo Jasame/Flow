@@ -157,7 +157,10 @@ def request_model(messages,audio=None,grounding=False):
  elif order[:1]==['text'] and backup and backup!=text_model:order.append('backup')  # 百炼's other model, not Gemini
  elif order[:1]==['audio'] and backup and asr_model() and ai_routes.current() in HEARD_ONLY:order.append('asr')
  elif not order and backup and not audio and not grounding:order.append('backup')
- if getattr(MAIN_ONLY,'on',False):order=['main'] if main else ['backup'] if backup and not audio and not grounding else order  # run_job's last try: another model
+ if getattr(MAIN_ONLY,'on',False):  # run_job's last try after answers it could not take (e.g. Omni twice with nothing heard): another model
+  if main:order=['main']
+  elif backup and not audio and not grounding:order=['backup']
+  elif hearing and backup and asr_model() and ai_routes.current() in HEARD_ONLY:order=['asr']  # r30 e2e: Omni's heard empty twice
  if not order:
   from vertex_auth import AIConfigurationError
   raise AIConfigurationError('No AI service for this request')
