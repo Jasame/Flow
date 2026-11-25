@@ -67,3 +67,14 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `99-class.css` | 班级试用: what a teacher sees and not, the class found by its code, the teacher's summary page |
 | `99-privacy.css` | 年龄段: the three chips and the guardian's box |
 | `99-ai-mark.css` | the 「AI 生成」 mark on everything an AI wrote for the learner (`aiTag()`, `aiMark(note)` in `00-head.js`; 2026-11-25, 《人工智能生成合成内容标识办法》) |
+
+## Page names and words (one word, one meaning)
+
+A page's `<h1>` is the name its entry uses (练习's tiles, 我的's rows, the 单词 tools): 知识图谱, 语法起点小测, 轻松读, 词汇辨析,
+口语路线, 雅思口语, 考试练习, 能力雷达, 背词计划, 测词汇量, 周报 — not a slogan; a useful line goes under it, small. What a
+first visit needs to read (how it works, how it is scored) folds into a `details.basis` 「怎么练」 under that line, so the
+first thing to do stays on the first screen. Disclaimers (不是真题, AI 估计, 不是官方成绩…) and AI marks stay as they are.
+
+- **本周** = Monday to Sunday, only for the weekly goal (每周目标, 今日's 「本周 3/4 天」).
+- **周报** = the last 7 calendar days, today included (`skills_service.report`): its page says 「这 7 天」, never 这周.
+- 背词计划 (not 词书计划 / 词书和每天新词), 测词汇量 (not 词汇量测试), 词汇辨析 (not 辨析).
