@@ -2813,6 +2813,55 @@ def review_side_run(pw):
         browser.close()
 
 
+# 复习 and 测词汇量 on a phone are one screen: the card below the top bar, the answers at the bottom where the thumb is,
+# nothing to scroll. On an iPhone's home-screen app the back button (r30) and the status bar / Dynamic Island made the top
+# bar taller and the page ran past the screen (the owner, 2026-11-25). Sizes: an iPhone SE (its status bar 20px in the
+# home-screen app), an iPhone 14 (notch 47, home bar 34) and an iPhone 15 Pro (Dynamic Island 59, home bar 34), each in
+# Safari and from the home screen.
+ONE_SCREEN_JS = """() => { const H = innerHeight, m = document.querySelector('main').getBoundingClientRect(), bar = document.getElementById('bar').getBoundingClientRect();
+  const sab = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sab')) || 0;
+  const answers = [...document.querySelectorAll('.review .choice button')].map(b => Math.round(b.getBoundingClientRect().bottom));
+  const last = document.querySelector('.review').lastElementChild.getBoundingClientRect();
+  return { H, page: document.scrollingElement.scrollHeight, bar: Math.round(bar.height), barH: getComputedStyle(document.documentElement).getPropertyValue('--bar-h').trim(),
+           mainBottom: Math.round(m.bottom), answers, lastBottom: Math.round(last.bottom), sab, tip: !!document.getElementById('knowTip') }; }"""
+
+
+def one_screen_run(pw):
+    dev = 'one-screen'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    tok = CFG['learners']['screen']['token']
+    sizes = {'iphone-se': (375, 667, 20, 0), 'iphone-14': (390, 844, 47, 34), 'iphone-15-pro': HOME_SIZES['iphone-15-pro'][:4]}
+    try:
+        for size, (w, h, top, bottom) in sizes.items():
+            for home in (False, True):
+                where = f"{size} {'home-screen app' if home else 'Safari'}"
+                ctx = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=True, has_touch=True, device_scale_factor=3, locale='zh-CN',
+                                          bypass_csp=True, reduced_motion='reduce')
+                if home:
+                    ctx.add_init_script(HOME_INIT % json.dumps([top, bottom, 0]))
+                ctx.add_cookies([{'name': 'flow_session', 'value': tok, 'url': BASE}])
+                pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+                pg.goto(BASE + '/#/cards', wait_until='load'); settle(pg)
+                # this device reviewed before, so the one-time 「认识」换到右边了 tip shows too: the tallest the card gets
+                pg.evaluate("localStorage.setItem('flow-next-review-cache', JSON.stringify({at: Date.now(), q: {items: []}}))")
+                for page, wait in (('#/review', '[data-claim]'), ('#/vocab/test', '.vtest [data-a]')):
+                    go(pg, page); pg.wait_for_selector(wait, timeout=8000); pg.wait_for_timeout(400)
+                    s = pg.evaluate(ONE_SCREEN_JS)
+                    name = '复习卡' if page == '#/review' else '测词汇量'
+                    pg.screenshot(path=str(OUT / f"one-screen-{size}-{'home' if home else 'safari'}-{page.strip('#/').replace('/', '_')}.png"))
+                    check(dev, f'{where} {name}: one screen, nothing to scroll ({s["page"]} of {s["H"]}px)', s['page'] <= s['H'], s)
+                    check(dev, f'{where} {name}: the page fills the screen, the answers at the bottom', abs(s['mainBottom'] - s['H']) <= 1 and min(s['answers'] or [0]) > s['H'] * 0.6, s)
+                    check(dev, f'{where} {name}: the answers and the line below them clear the home bar', s['answers'] and max(s['answers'] + [s['lastBottom']]) <= s['H'] - s['sab'], s)
+                    if page == '#/review':
+                        check(dev, f'{where}: the 「认识」换到右边了 tip is on the card (the tallest it gets)', s['tip'], s)
+                    if home:
+                        check(dev, f'{where} {name}: --bar-h is the top bar\'s height', s['barH'] == f"{s['bar']}px", s)
+                check(dev, f'{where}: no script errors', not errs, errs[:3])
+                ctx.close()
+    finally:
+        browser.close()
+
+
 def backlog_run(pw):
     """Reviews piled up after a break (ux-longterm-audit 1.1, 11, 16, 2026-11-24): no new words today and the word page
     says so; the review page says 「先做 40 个（还有 N 个）」 and, after those 40, offers a place to stop; the small links
@@ -3391,6 +3440,12 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('review-side', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'one-screen' in ONLY:
+            try:
+                one_screen_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('one-screen', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'backlog' in ONLY:
             try:
                 backlog_run(pw)
