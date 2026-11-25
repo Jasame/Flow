@@ -12,6 +12,8 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
     static let features = ["audio", "rec", "notify"]
 
     weak var webView: WKWebView?
+    /// the page's 主题色 changed (Accent): the app's own controls take it
+    var onAccent: ((String) -> Void)?
     let player: LongPlayer
     let recorder: Recorder
     let reminders: Reminders
@@ -33,6 +35,7 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
         let src = Self.transport(cfg) + Self.script
         ucc.addUserScript(WKUserScript(source: src, injectionTime: .atDocumentStart, forMainFrameOnly: true, in: .page))
         ucc.addScriptMessageHandler(self, contentWorld: .page, name: Self.name)
+        ucc.addUserScript(WKUserScript(source: Accent.script, injectionTime: .atDocumentEnd, forMainFrameOnly: true, in: .page))
         if AppConfig.muted { ucc.addUserScript(WKUserScript(source: Self.muteScript, injectionTime: .atDocumentStart, forMainFrameOnly: false, in: .page)) }
     }
 
@@ -82,6 +85,11 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
             return ["v": Self.version, "app": AppConfig.version, "build": AppConfig.build, "platform": "ios", "features": Self.features]
         case "app.visible":
             resendState()
+            return true
+        case "app.accent":  // the page's html[data-accent] (Accent.script): 我的 → 外观
+            let name = Accent.name(a["accent"] as? String)
+            Accent.save(name)
+            onAccent?(name)
             return true
 
         case "audio.play":

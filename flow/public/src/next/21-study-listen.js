@@ -232,7 +232,7 @@
         let stream;
         try { stream = await micOpen(); } catch (e) { toast(e.message); return; }  // 70-learner.js: open only while recording
         const type = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
-        const mr = new MediaRecorder(stream, type ? { mimeType: type } : undefined), chunks = [];
+        const mr = recorderFor(stream, type ? { mimeType: type } : undefined, 25), chunks = [];  // the app's cap; the timer below stops it sooner
         REC.mr = mr;
         mr.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
         mr.onstop = () => {
@@ -255,7 +255,7 @@
         btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
         try {
           const data = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = no; r.readAsDataURL(blob); });
-          const mime = /mp4|m4a|aac/.test(blob.type) ? 'audio/mp4' : /ogg/.test(blob.type) ? 'audio/ogg' : 'audio/webm';
+          const mime = /wav/.test(blob.type) ? 'audio/wav' : /mp4|m4a|aac/.test(blob.type) ? 'audio/mp4' : /ogg/.test(blob.type) ? 'audio/ogg' : 'audio/webm';  // wav: 语流's iOS app
           const x = (await api('/api/next/shadow', { pack: id, i, audio: { mime_type: mime, data }, request_id: rid('sh') })).result;
           const flu = { smooth: '流畅', ok: '基本流畅', choppy: '有点断断续续' }[x.fluency];
           const out = row(i).querySelector('.sh-out');

@@ -1,6 +1,5 @@
 package cn.flowlang.app.update
 
-import android.app.AlertDialog
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -17,6 +16,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.pm.PackageInfoCompat
 import androidx.lifecycle.lifecycleScope
+import cn.flowlang.app.Accent
 import cn.flowlang.app.BuildConfig
 import cn.flowlang.app.MainActivity
 import cn.flowlang.app.R
@@ -108,7 +108,7 @@ object Updater {
             append(a.getString(R.string.update_how, mb(info.size)))
         }
         var chosen = false
-        AlertDialog.Builder(a)
+        Accent.dialog(a)
             .setTitle(a.getString(R.string.update_title, info.version))
             .setMessage(text)
             .setPositiveButton(R.string.update_download) { _, _ -> chosen = true; download(a, info) }
@@ -131,7 +131,10 @@ object Updater {
     private fun download(a: MainActivity, info: UpdateInfo) {
         val pad = (20 * a.resources.displayMetrics.density).toInt()
         val label = TextView(a).apply { text = a.getString(R.string.update_downloading, 0) }
-        val bar = ProgressBar(a, null, android.R.attr.progressBarStyleHorizontal).apply { max = 100 }
+        val bar = ProgressBar(a, null, android.R.attr.progressBarStyleHorizontal).apply {
+            max = 100
+            progressTintList = android.content.res.ColorStateList.valueOf(Accent.color(a))
+        }
         val box = LinearLayout(a).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(pad, pad / 2, pad, 0)
@@ -139,7 +142,7 @@ object Updater {
             addView(bar)
         }
         var job: Job? = null
-        val dlg = AlertDialog.Builder(a)
+        val dlg = Accent.dialog(a)
             .setTitle(a.getString(R.string.update_title, info.version))
             .setView(box)
             .setNegativeButton(R.string.cancel) { _, _ -> job?.cancel(); quiet(a, info) }
@@ -248,7 +251,7 @@ object Updater {
             waitingFile = f
             waitingInfo = info
             var chosen = false
-            AlertDialog.Builder(a)
+            Accent.dialog(a)
                 .setTitle(R.string.update_allow_title)
                 .setMessage(R.string.update_allow)
                 .setPositiveButton(R.string.go_settings) { _, _ -> chosen = true; a.openInstallSettings() }
@@ -275,7 +278,7 @@ object Updater {
         waitingInfo = null
         if (a.packageManager.canRequestPackageInstalls()) { install(a, info, f); return }
         f.delete()
-        AlertDialog.Builder(a)
+        Accent.dialog(a)
             .setTitle(R.string.update_allow_title)
             .setMessage(R.string.update_allow_no)
             .setPositiveButton(R.string.update_open_page) { _, _ -> a.openDownloadPage() }
@@ -356,7 +359,7 @@ object Updater {
 
     private fun retry(a: MainActivity, info: UpdateInfo, title: Int, body: Int) {
         var chosen = false
-        AlertDialog.Builder(a)
+        Accent.dialog(a)
             .setTitle(title)
             .setMessage(body)
             .setPositiveButton(R.string.update_retry) { _, _ -> chosen = true; download(a, info) }
@@ -366,7 +369,7 @@ object Updater {
     }
 
     private fun refuse(a: MainActivity, info: UpdateInfo, why: Int) {
-        AlertDialog.Builder(a)
+        Accent.dialog(a)
             .setTitle(R.string.update_failed_title)
             .setMessage(a.getString(R.string.update_wrong, a.getString(why)))
             .setPositiveButton(R.string.update_open_page) { _, _ -> a.openDownloadPage() }
@@ -385,7 +388,7 @@ object Updater {
         })
         val text = c.getString(R.string.update_install_failed, why)
         if (a == null) { Toast.makeText(c, text, Toast.LENGTH_LONG).show(); return }
-        AlertDialog.Builder(a)
+        Accent.dialog(a)
             .setTitle(R.string.update_failed_title)
             .setMessage(text)
             .setPositiveButton(R.string.update_open_page) { _, _ -> a.openDownloadPage() }

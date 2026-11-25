@@ -78,6 +78,7 @@
   }
   // #/invite/<code>: the link a teacher sends: 我的, with the sheet open and the code filled in. (#/join is 认识语流's sign-up.)
   async function joinRoute(code) {
+    S.invite = code;  // a sign-up from here counts against the class's allowance, not the school network's (auth_service)
     await meView();
     if (!S.user) return openLogin('登录后就能加入班级（还没有账号可以先注册）');
     classSheet(code);

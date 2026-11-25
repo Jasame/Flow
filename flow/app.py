@@ -32,6 +32,9 @@ DATA=Path(os.environ.get('FLOW_DATA_DIR',str(ROOT/'data'))); DATA.mkdir(parents=
 DB=DATA/'flow.sqlite3'
 SECURE=os.getenv('FLOW_COOKIE_SECURE','1')=='1'
 RATE={}; LOCK=threading.Lock()
+# sign-in, sign-up and reset calls per address a minute: a whole class signs in from one school network (the user,
+# 2026-11-25: 120, was 30); each account still locks after 5 wrong passwords (auth_service)
+LOGIN_PER_MINUTE=120
 REVISION_TAG=__import__('re').compile(r' · (?:A2|B1|B2) · 修订题组')
 def public_text(s):
  """Internal edition tags stay in the data; learners see the plain title (level is shown on its own)."""
@@ -377,7 +380,8 @@ class Handler(BaseHTTPRequestHandler):
     if u and not __import__('privacy_service').consented(u):
      # 数据存放在香港 or 用户协议 not agreed (yet): nothing of the account's learning; the home is a guest's, with the
      # session, so the page can ask (privacy_service). Export above stays open.
-     if path!='/api/next/home':return self.send(*__import__('privacy_service').storage_held(u,path))
+     # The guide is open too: the page asks to agree to 用户协议 and 隐私和数据, and those are its chapters.
+     if path not in ('/api/next/home','/api/next/guide'):return self.send(*__import__('privacy_service').storage_held(u,path))
      result=__import__('next_service').get(c,None,path,parse_qs(urlsplit(self.path).query))
      if result and result[1]==200:result[0]['session']=session_info(u)
      return self.send(*result)
@@ -609,7 +613,7 @@ class Handler(BaseHTTPRequestHandler):
      if len(RATE)>5000:  # addresses not seen for a minute are dropped, so many addresses cannot grow this without end
       for k in [k for k,v in RATE.items() if not v or v[-1]<=now-60]:del RATE[k]
      times=[t for t in RATE.get(key,[]) if t>now-60];RATE[key]=times
-     if len(times)>=30:return self.send({'error':'操作过于频繁，请稍后再试'},429)
+     if len(times)>=LOGIN_PER_MINUTE:return self.send({'error':'操作过于频繁，请稍后再试'},429)
      times.append(now)
    import auth_service
    with db() as c:
