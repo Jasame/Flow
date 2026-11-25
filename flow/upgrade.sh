@@ -82,6 +82,7 @@ FLOW_FILES=(
   account_data.py
   account_service.py
   adaptive_service.py
+  aigc_label.py
   ai_check.py
   ai_eval.py
   ai_help_service.py

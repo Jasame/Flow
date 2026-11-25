@@ -39,6 +39,7 @@ flow/ai_help_service.py
 flow/ai_jobs.py
 flow/ai_routes.py
 flow/ai_stream.py
+flow/aigc_label.py
 flow/app.py
 flow/attempt_service.py
 flow/audio_validation.py
@@ -324,6 +325,7 @@ flow/tests/test_ai_mark.py
 flow/tests/test_ai_routing.py
 flow/tests/test_ai_shape.py
 flow/tests/test_ai_stream.py
+flow/tests/test_aigc_label.py
 flow/tests/test_atlas.py
 flow/tests/test_audio_route.py
 flow/tests/test_channels.py
