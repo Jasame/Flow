@@ -13,7 +13,7 @@
         return;
       }
       const answered = {};
-      pane.innerHTML = `<div class="stack">${m.questions.map((q, i) => `<div class="card flat q" data-q="${i}"><div class="tiny muted">第 ${i + 1} / ${m.questions.length} 题${q.type ? ` · ${esc(q.type)}` : ''}</div><div class="prompt">${esc(q.prompt)}</div>
+      pane.innerHTML = `<div class="stack">${m.imported ? aiMark('这些题目由 AI 根据这篇文章出，仅供练习') : ''}${m.questions.map((q, i) => `<div class="card flat q" data-q="${i}"><div class="tiny muted">第 ${i + 1} / ${m.questions.length} 题${q.type ? ` · ${esc(q.type)}` : ''}</div><div class="prompt">${esc(q.prompt)}</div>
         ${q.options.map((o, j) => `<button class="ans" data-q="${i}" data-o="${j}"><span class="k">${'ABCD'[j]}</span><span>${esc(o)}</span></button>`).join('')}<div class="fb" aria-live="polite"></div></div>`).join('')}
         <div id="score"></div></div>`;
       pane.querySelectorAll('.ans').forEach(b => b.onclick = async () => {

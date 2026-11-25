@@ -288,6 +288,62 @@ class BetaReleaseTests(unittest.TestCase):
             self.assertFalse(any(c.lower() in n.lower() for n in br.pdf_fonts(f) for c in br.CHINESE_FONTS))
 
 
+class QuietBrowserTests(unittest.TestCase):
+    """The owner's rule (2026-11-25): what runs in the background makes no sound. Every tool that starts a browser calls
+    quiet.silent(pw) once: Chrome gets --mute-audio, and every context and page gets MUTE_JS (media and Web Audio at volume
+    0, the browser voice at volume 0, which on a Mac is the system's speech and beyond --mute-audio)."""
+
+    def test_every_tool_that_starts_a_browser_makes_it_silent(self):
+        for path in sorted((ROOT / 'tools').glob('*.py')):
+            text = path.read_text(encoding='utf-8')
+            if path.name == 'quiet.py' or not re.search(r'\b(chromium|webkit|firefox)\.launch\(', text):
+                continue
+            self.assertIn('from quiet import silent', text, path.name)
+            self.assertRegex(text, r'with sync_playwright\(\) as (\w+):\n\s+silent\(\1\)', path.name)
+
+    def test_silent_mutes_chrome_and_every_context_and_page(self):
+        quiet = load('quiet')
+        js = quiet.MUTE_JS
+        for part in ("addEventListener('play'", 'volume = 0', 'AudioDestinationNode', 'g.gain.value = 0', 'speechSynthesis.speak = u =>'):
+            self.assertIn(part, js)
+        self.assertNotIn('.muted', js)  # the app sets muted itself
+
+        class Target:
+            def __init__(self):
+                self.scripts = []
+
+            def add_init_script(self, script):
+                self.scripts.append(script)
+
+        class Browser:
+            def new_context(self, **kw):
+                return Target()
+
+            def new_page(self, **kw):
+                return Target()
+
+        class BrowserType:
+            def __init__(self):
+                self.calls = []
+
+            def launch(self, **kw):
+                self.calls.append(kw)
+                return Browser()
+
+        class PW:
+            chromium, webkit = BrowserType(), BrowserType()
+        pw = PW()
+        quiet.silent(pw); quiet.silent(pw)  # twice: wrapped once
+        b = pw.chromium.launch(channel='chrome', args=['--use-fake-ui-for-media-stream', '--mute-audio'])
+        self.assertEqual(pw.chromium.calls[-1]['args'], ['--mute-audio', '--use-fake-ui-for-media-stream'])
+        pw.chromium.launch(channel='chrome')
+        self.assertEqual(pw.chromium.calls[-1]['args'], ['--mute-audio'])
+        self.assertEqual(b.new_context(locale='zh-CN').scripts, [js]); self.assertEqual(b.new_page().scripts, [js])
+        w = pw.webkit.launch()
+        self.assertNotIn('args', pw.webkit.calls[-1])  # WebKit has no --mute-audio: the script does it
+        self.assertEqual(w.new_context().scripts, [js])
+
+
 class MergeFriendlyListTests(unittest.TestCase):
     def test_the_upgrade_lists_are_one_name_per_line_and_sorted(self):
         script = (ROOT / 'flow' / 'upgrade.sh').read_text()

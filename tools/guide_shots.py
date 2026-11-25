@@ -9,7 +9,7 @@ flow/public/guide/<name>.jpg at phone size. Commit the pictures; the PDF is prin
 import json, socket, subprocess, sys, tempfile, time, atexit
 from pathlib import Path
 from playwright.sync_api import sync_playwright
-import silent  # noqa: F401  (rule 9 in tools/README.md: every browser started here is muted)
+from quiet import silent  # every browser it starts makes no sound (tools/quiet.py)
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'flow'))
@@ -153,6 +153,7 @@ def main(only):
     cfg = json.loads((state / 'sessions.json').read_text())
     base = cfg['base']
     with sync_playwright() as p:
+        silent(p)
         browser = p.chromium.launch(channel='chrome', args=['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'])  # the installed Chrome, as tools/ui_test.py does
         for name in names:
             route, step, signed, *who = SHOTS[name]

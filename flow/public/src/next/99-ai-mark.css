@@ -1,0 +1,6 @@
+/* 「AI 生成」标识（2026-11-25，《人工智能生成合成内容标识办法》）。aiTag() / aiMark(note) 在 00-head.js。
+   看得清，但不抢内容：灰边小圆角，正文色，前面一个 ✦（和「✦ AI 点评」按钮一样）。深色模式跟着颜色变量走。 */
+.ai-mark{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:600;line-height:18px;border:1px solid var(--line2);border-radius:99px;padding:0 7px;color:var(--ink2);background:var(--paper);white-space:nowrap;vertical-align:middle;letter-spacing:.02em}
+.ai-mark::before{content:'✦';font-size:10px;opacity:.75}
+.ai-line{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px;line-height:1.5;color:var(--muted)}
+.result>.ai-line:first-child,.card>.ai-line:first-child{margin-bottom:2px}
