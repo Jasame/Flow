@@ -447,6 +447,9 @@ def run_device(pw, dev, opts):
     rd = pg.evaluate("""() => { const r = document.getElementById('reader'), t = document.querySelector('#view .read-tools');
       return {tools: t ? [...t.querySelectorAll('button')].map(b => b.id) : [], top: r ? Math.round(r.getBoundingClientRect().top) : null, h: innerHeight}; }""")
     check(dev, 'read: the tools sit in one row above the text', 'readAlong' in rd['tools'], rd)
+    kinds = pg.evaluate("() => [...document.querySelectorAll('#view .read-tools button:not([hidden])')].map(b => b.className.includes('btn small') ? 'btn' : b.id)")
+    check(dev, 'read: one kind of button in the row, 「AI 朗读 · 声音由 AI 合成」 on its own line under it',
+          all(k == 'btn' for k in kinds) and pg.is_visible('#view .read-ai .ai-voice') and '合成' in (pg.text_content('#view .read-ai') or ''), kinds)
     if dev == 'phone':
         check(dev, 'read: the text starts on the first screen of a phone', rd['top'] is not None and rd['top'] < rd['h'] * 0.6, rd)
     if pg.query_selector('#zhGuide'):
@@ -1717,8 +1720,8 @@ def listen_speak_run(pw):
                             first: (document.querySelector('#reader .sent.now') || {}).dataset.si}; }""")
                 check(dev, '伴读 of an import: read by the server voice from the learner\'s own files, the sentence lit',
                       got['have'] and got['own'] and got['own'][0].startswith('/audio/own/us-f/') and got['first'] == '0', got)
-                marks = pg.evaluate("() => [!!document.querySelector('#view .read-tools .ai-voice'), !!document.querySelector('.mini-player:not([hidden]) .ai-voice'), (document.querySelector('.mini-player .lbl') || {}).textContent]")
-                check(dev, '伴读: 「AI 朗读」 beside the button and in the mini player (《标识办法》), the label just 第 N / M 句',
+                marks = pg.evaluate("() => [!!document.querySelector('#view .read-ai .ai-voice'), !!document.querySelector('.mini-player:not([hidden]) .ai-voice'), (document.querySelector('.mini-player .lbl') || {}).textContent]")
+                check(dev, '伴读: 「AI 朗读」 on the line under the button and in the mini player (《标识办法》), the label just 第 N / M 句',
                       marks[0] and marks[1] and (marks[2] or '').startswith('第 ') and '伴读' not in (marks[2] or ''), marks)
                 pg.click('#readAlong')
                 other = browser.new_context(); op = other.new_page()
