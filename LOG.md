@@ -142,3 +142,12 @@
   - #100 对话结尾补的摘要放成常量 SUMMARY_FILLER（测试）
 - 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45526953849
+
+### b29 · 2026-11-25 09:48
+- main `1e26ad4`，构建 `bf9a3fb`
+- 新合并的 PR（自 b28 起）：
+  - #124 测试：并发的例句测试不依赖调用顺序（测试）
+  - #122 隐私和数据：写明发信服务商（阿里云邮件推送为主，飞书备用）（操作指南）
+  - #126 今日计划：超时那句放到按钮下面（修 main 的 ui phone-360）（今日和计划、操作指南）
+- 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45528251944
