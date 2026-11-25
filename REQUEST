@@ -1,3 +1,3 @@
-f31a917793c5ccc953e9b2a37604b987464ef427 30dcb0d3563deaa5871057e9c556cb1f9d002b7a0179957b830ff98eec60ce2d e2e light ref=build-fa6e028db7b6
-# b64 main: Merge pull request #231 from Jasame/privacy-dates-log = build of fa6e028db7b6
-# Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
+3859953796a7312f113a4986ceb0902d8ed22274 bdfdf62fef5babcb5934d701f1ab58349b16b1ee583b4dce581893e693eb4c1d e2e light ref=build-3efd0418c749 tag=b65 tools=6cabec437d5331a86b772d0870d9963fd1fd12348cff64715122415ab19d1c77
+# b65 main: Merge pull request #243 from Jasame/rule-fork-workflows = build of 3efd0418c749
+# Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
