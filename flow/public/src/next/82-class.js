@@ -39,7 +39,7 @@
           // 年龄段 first, and under 14 a guardian's agreement (privacy_service): asked here when not on record yet
           const needAge = !S.user.age || (S.user.age === 'u14' && !S.user.guardian);
           found.innerHTML = `<div class="card sunk cls-found"><b>${esc(r.name)}</b><span class="small muted">老师 ${esc(r.teacher)}</span></div>
-            ${r.teaching ? '<p class="small muted">你是这个班的老师，不用加入；在「我的 → 我的班级」里看全班汇总。</p>' : `${needAge ? ageFields(S.user.age, S.user.guardian) : ''}<button class="btn primary" id="clsJoin" type="button">加入这个班</button>`}`;
+            ${r.teaching ? '<p class="small muted">你是这个班的老师，不用加入；在「我的班级」里看全班汇总。</p>' : `${needAge ? ageFields(S.user.age, S.user.guardian) : ''}<button class="btn primary" id="clsJoin" type="button">加入这个班</button>`}`;
           found.hidden = false;
           if (needAge) bindAge(found, S.user.guardian);
           const j = found.querySelector('#clsJoin');
@@ -173,7 +173,7 @@
       ${body}
       <div class="card flat stack-s"><h2 class="h2">邀请学生</h2>
         <div class="cls-code" aria-label="邀请码">${esc(k.code)}</div>
-        <p class="small muted">学生在「我的 → 班级」输入邀请码，或打开下面的链接加入。加入前会先告诉他们你能看到什么、看不到什么。</p>
+        <p class="small muted">学生在「我的 → 设置 → 班级」输入邀请码，或打开下面的链接加入。加入前会先告诉他们你能看到什么、看不到什么。</p>
         <div class="row"><button class="btn" id="clsCopy" type="button">复制链接</button><button class="btn ghost" id="clsQr" type="button">二维码</button></div>
         <canvas id="clsQrC" width="240" height="240" hidden aria-label="加入班级的二维码"></canvas></div>
       <p class="tiny muted">这里只有全班的数字，看不到任何学生的名字、作业和记录；退出班级的学生马上不再计入。</p></div>`;
