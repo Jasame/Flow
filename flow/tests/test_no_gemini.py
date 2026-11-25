@@ -174,7 +174,7 @@ class VerdictTests(unittest.TestCase):
         self.assertFalse(out.say_verdict('think', 'sink', 'Sink.')['ok'])
         self.assertTrue(out.say_verdict('think', 'sink', 'Think.')['ok'])
         self.assertTrue(out.say_verdict('think', 'sink', 'think sink')['ok'])  # both: not sure, not wrong
-        self.assertTrue(out.say_verdict('think', 'sink', 'Thing.')['ok'])  # neither: lenient, as the prompt was
+        self.assertTrue(out.say_verdict('think', 'sink', 'Thing.')['ok'])  # neither, but nearer the target: right
         v = out.say_verdict('think', 'sink', 'sink')
         self.assertEqual((v['heard'], v['note']), ('sink', '听起来像 sink，不像 think'))
         self.assertIn('/θ/', v['tip'])
@@ -184,11 +184,25 @@ class VerdictTests(unittest.TestCase):
             v = out.say_verdict(target, '', heard)
             self.assertFalse(v['ok'], (target, heard))
         v = out.say_verdict('ship', 'sheep', 'Worship.')
-        self.assertTrue(v['ok'])  # not the pair's mistake: let through, but said as heard
-        self.assertEqual(v['note'], '听起来像 worship，没有读成 sheep')
+        self.assertTrue(v['ok'])  # not the pair's mistake, and nearer the target: let through, said as heard
+        self.assertEqual(v['note'], '听起来像 worship，接近 ship')
         v = out.say_verdict('think', 'sink', 'Pink.')
-        self.assertEqual(v['note'], '听起来像 pink，没有读成 sink')
         self.assertNotIn('听起来是 think', v['note'])
+
+    def test_a_third_word_is_right_only_when_it_leans_to_the_target(self):  # 语流 B3, 2026-11-25 (zinc in the r32 e2e)
+        cases = [('think', 'sink', 'Zinc.', False, 'third_near_pair', '听起来像 zinc，不像 think'),  # one sound from both: spelling
+                 ('think', 'sink', 'Thing.', True, 'third_ok', '听起来像 thing，接近 think'),
+                 ('think', 'sink', 'Pink.', False, 'third_near_pair', '听起来像 pink，不像 think'),
+                 ('think', 'sink', 'Sing.', False, 'third_near_pair', '听起来像 sing，更接近 sink，不像 think'),  # by sound
+                 ('ship', 'sheep', 'Shape.', False, 'third_unclear', '没听出 ship，听着像 shape，可以再读一遍'),  # a tie is never right
+                 ('ship', 'sheep', 'Worship.', True, 'third_ok', '听起来像 worship，接近 ship'),
+                 ('think', 'sink', 'Banana.', False, 'third_unclear', '没听出 think，听着像 banana，可以再读一遍')]
+        for target, partner, heard, ok, reason, note in cases:
+            v = out.say_verdict(target, partner, heard)
+            self.assertEqual((v['ok'], v['reason'], v['note']), (ok, reason, note), heard)
+            self.assertEqual(v.get('reference') is True, not ok, heard)  # wrong this way: a reference only, never a card
+        self.assertIn('/θ/', out.say_verdict('think', 'sink', 'Zinc.')['tip'])  # leans to the pair: the tip as for the pair
+        self.assertEqual(out.say_verdict('think', 'sink', 'Banana.')['tip'], '')
 
     def test_nothing_heard_is_a_reference_not_a_verdict(self):
         v = out.say_verdict('think', 'sink', '')
@@ -329,6 +343,14 @@ class OmniWordTests(unittest.TestCase):
     def test_nothing_written_down_is_practice_only(self):
         r, _ = self.say('', 'say-omni-0005')
         self.assertTrue(r['tentative']); self.assertFalse(r['confirmed'])
+
+    def test_a_third_word_never_makes_a_card_even_with_the_switch_on(self):  # zinc for think, r32 e2e
+        for i in range(3):
+            r, _ = self.say('Zinc.', f'say-omni-03{i}0', counts='on')
+            self.assertFalse(r['ok']); self.assertTrue(r['tentative']); self.assertFalse(r['confirmed'])
+            self.assertEqual(r['reason'], 'third_near_pair')
+        self.assertEqual(self.c.execute("SELECT COUNT(*) FROM next_cards WHERE user_id=1").fetchone()[0], 0)
+        self.assertEqual([x[0] for x in self.c.execute('SELECT DISTINCT reason FROM say_judgements')], ['third_near_pair'])
 
     def test_which_judge(self):
         cases = [({}, 'omni'), ({'FLOW_SAY_JUDGE': 'model'}, ''), ({'FLOW_MAIN_AI': 'on'}, ''), ({'FLOW_AUDIO_ROUTES': ''}, ''),
