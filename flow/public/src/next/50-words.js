@@ -40,6 +40,19 @@
   // 复习时的轻触震动 (语流 C1; the iOS app's own setting turns it off): a light tap where the app can, nothing in a browser.
   // Turning a card is a light 'select'; a rating says how it went (success, a light tap for 模糊, warning — never error,
   // a word forgotten is no fault); 撤销 and 太简单了 a light tap.
+  // 复习进度的实时活动 (语流 C1; the iOS app, off unless the learner turns it on): the lock screen and the Dynamic Island
+  // say 「复习单词 done / total」 while a round of words goes on; ended (the last numbers kept a minute) when the round is
+  // over or the page is left. Words only. Nothing in a browser; an app without it answers nothing.
+  let ACTIVITY = null;
+  function activity(kind, done, total) {
+    try {
+      if (!(window.FlowApp && FlowApp.has && FlowApp.has('activity'))) return;
+      if (kind === 'end' && !ACTIVITY) return;
+      ACTIVITY = kind === 'end' ? null : { done, total };
+      FlowApp.call('activity.' + kind, { done, total }).catch(() => {});
+    } catch (e) { /* no app */ }
+  }
+  function activityEnd() { if (ACTIVITY) activity('end', ACTIVITY.done, ACTIVITY.total); }
   function haptic(kind) { try { if (window.FlowApp && FlowApp.has && FlowApp.has('haptic')) FlowApp.call('app.haptic', { kind }).catch(() => {}); } catch (e) { /* no app */ } }
   const KNOW = {
     side() { try { return localStorage.getItem('flow-know-side') === 'left' ? 'left' : 'right'; } catch (e) { return 'right'; } },

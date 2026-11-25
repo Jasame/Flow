@@ -26,7 +26,7 @@
     };
     document.ontouchcancel = () => { sx = null; settle(); };  // the browser took the gesture (a scroll, the system): the card goes back
   }
-  function swipeOff() { document.ontouchstart = document.ontouchmove = document.ontouchend = document.ontouchcancel = null; }
+  function swipeOff() { document.ontouchstart = document.ontouchmove = document.ontouchend = document.ontouchcancel = null; activityEnd(); }
   // goOn: 继续复习 past today's share (r28: a day of words has a cap in minutes), or the extra new words of 再学 10 个
   // part 'other': 其他复习 (练习 → 复习; review-split-plan.md): mistakes, saved sentences and patterns, apart from the words
   async function reviewView(goOn, part) {
@@ -359,6 +359,7 @@
         }
         tally[r]++; doneN++; left = res; i++; doneIds.add(c.id); badge(res); spent += Math.min(ms, 60000); undo = before;
         haptic(r === 'again' ? 'warning' : r === 'hard' ? 'tap' : 'success');
+        if (!other) activity('review', doneIds.size, uniq.size);
         const n = res.card;
         if (res.outcome && OUTCOME[res.outcome]) toast(OUTCOME[res.outcome]);
         if ((r === 'good' || r === 'easy') && n.due) farthest = Math.max(farthest, Math.round((n.due * 1000 - Date.now()) / 86400000));

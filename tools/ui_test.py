@@ -3588,11 +3588,14 @@ def review_side_run(pw):
         # in a browser nothing is called
         ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['screen']['token'], 'url': BASE}])
-        ctx.add_init_script("window.__hap = []; window.FlowApp = { v: 1, platform: 'ios', has: k => k === 'haptic', call: (m, a) => { if (m === 'app.haptic') window.__hap.push(a.kind); return Promise.resolve({ ok: true }); } }; try { localStorage.setItem('flow-tap-guide', '1'); localStorage.setItem('flow-next-swipe-tip', '1'); } catch (e) {}")
+        ctx.add_init_script("window.__hap = []; window.__act = []; window.FlowApp = { v: 1, platform: 'ios', has: k => k === 'haptic' || k === 'activity', call: (m, a) => { if (m === 'app.haptic') window.__hap.push(a.kind); else if (m.startsWith('activity.')) window.__act.push([m, a.done, a.total]); return Promise.resolve({ ok: true }); } }; try { localStorage.setItem('flow-tap-guide', '1'); localStorage.setItem('flow-next-swipe-tip', '1'); } catch (e) {}")
         pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
         pg.goto(BASE + '/#/review', wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000)
         pg.click('.ractions [data-claim="know"]'); pg.wait_for_selector('[data-rate="again"]', timeout=4000); pg.click('[data-rate="again"]'); pg.wait_for_timeout(600)
         check(dev, 'in the iOS app: turning a card taps lightly (select), 记错了 a warning (never error)', pg.evaluate('window.__hap') == ['select', 'warning'], pg.evaluate('window.__hap'))
+        go(pg, '#/cards'); pg.wait_for_timeout(300); act = pg.evaluate('window.__act')
+        check(dev, '复习进度的实时活动 (语流 C1): each rating sends activity.review (done / total of the round), leaving the page activity.end',
+              len(act) == 2 and act[0][0] == 'activity.review' and act[0][1] == 1 and act[0][2] >= 1 and act[1][0] == 'activity.end' and act[1][1:] == act[0][1:], act)
         check(dev, 'no script errors (haptics)', not errs, errs[:3])
         ctx.close()
         # a search that finds nothing says what was searched and offers a way out (语流 B9): 清除搜索, and with a filter on, 在全部里找
