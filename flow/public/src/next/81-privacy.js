@@ -171,6 +171,40 @@
     document.getElementById('stoDel').onclick = deleteAccountSheet;
     document.getElementById('stoOut').onclick = async () => { try { await api('/api/logout', {}); } catch (x) { /* signed out already */ } snapClear(); S.user = null; S.csrf = ''; await refreshHome(); route(); };
   }
+  // 安卓 App 1.0.4 and later (语流 C2, #332; docs/native-bridge.md §10, for the Chinese app stores): the app asks the
+  // 用户协议 and 隐私和数据 itself on first opening. 我的 shows a 「隐私」 group only where the app has 'privacy':
+  // 撤回同意 (the app explains, clears this phone and asks again: four steps at most) and 系统权限 (the microphone
+  // and notifications, as the phone has them, each opening its page in the phone's settings).
+  const appPrivacy = () => { try { return !!(window.FlowApp && FlowApp.has && FlowApp.has('privacy')); } catch (e) { return false; } };
+  const PERM = { granted: '已允许', denied: '已拒绝', undetermined: '还没问过' };
+  function withdrawInApp() { FlowApp.call('privacy.withdraw').catch(() => toast('打不开撤回同意，把语流 App 更新到最新版再试')); }
+  function permissionsSheet() {
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">系统权限</h2>
+      <p class="small">语流只用这两项，都是第一次用到时才问。点一下，打开手机设置里对应的那一页，随时可以改。</p>
+      <div class="glist">${grow('permMic', '麦克风', '…', 'permMicV')}${grow('permNotify', '通知', '…', 'permNotifyV')}</div>
+      <p class="tiny muted">麦克风：只在跟读、口语对话和发音练习录音时用；录音只在批改的那一次交给 AI，不保存。通知：只在你打开「到点用 App 通知提醒」以后，到点提醒复习单词。</p>
+      <button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      const fill = () => FlowApp.call('privacy.permissions').then(p => {
+        [['mic', 'permMicV'], ['notify', 'permNotifyV']].forEach(([k, id]) => { const v = card.querySelector('#' + id); if (v) v.textContent = PERM[p && p[k]] || '—'; });
+      }).catch(() => {});
+      fill();
+      card.querySelector('#permMic').onclick = () => FlowApp.call('privacy.settings', { what: 'mic' }).catch(() => {});
+      card.querySelector('#permNotify').onclick = () => FlowApp.call('privacy.settings', { what: 'notify' }).catch(() => {});
+      // back from the phone's settings: the state as it is now (nothing to do once the sheet is closed)
+      const again = () => { if (!card.isConnected) document.removeEventListener('visibilitychange', again); else if (document.visibilityState === 'visible') fill(); };
+      document.addEventListener('visibilitychange', again);
+    });
+  }
+  // 「APP 备案号」 under 帮助, once the app has one (privacy.state().beian; empty until the filing is done)
+  function fillBeian() {
+    const el = document.getElementById('meBeian');
+    if (!el || !appPrivacy()) return;
+    FlowApp.call('privacy.state').then(st => {
+      const no = st && String(st.beian || '').trim();
+      if (!no || !el.isConnected) return;
+      el.innerHTML = `APP 备案号：<a class="link" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">${esc(no)}</a>`; el.hidden = false;
+    }).catch(() => {});
+  }
   // 我的 → 账号 → 数据存放: what was agreed, and 撤回同意 (the account is paused at once).
   function storageSheet() {
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">数据存放</h2>
