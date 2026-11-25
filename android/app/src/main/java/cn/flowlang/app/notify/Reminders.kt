@@ -16,6 +16,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import cn.flowlang.app.MainActivity
 import cn.flowlang.app.Mute
+import cn.flowlang.app.Accent
 import cn.flowlang.app.R
 import cn.flowlang.app.net.Http
 import kotlinx.coroutines.CoroutineScope
@@ -253,7 +254,7 @@ object Reminders {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         val n = NotificationCompat.Builder(c, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_flow)
-            .setColor(ContextCompat.getColor(c, R.color.flow_green))
+            .setColor(Accent.color(c))  // the page's 主题色
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
