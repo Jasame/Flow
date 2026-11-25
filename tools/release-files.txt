@@ -82,6 +82,7 @@ flow/corpus_data/pilot/flow-pack-001.json
 flow/corpus_data/pilot/pilot-001-audio.json
 flow/corpus_data/revised-packs.json
 flow/corpus_data/shadow-eval.json
+flow/corpus_data/updates.json
 flow/corpus_data/v5/SPEC.md
 flow/corpus_data/v5/campus.A2.2.json
 flow/corpus_data/v5/campus.A2.3.json
@@ -385,6 +386,7 @@ flow/tests/test_teachers.py
 flow/tests/test_time_budget.py
 flow/tests/test_trial_survey.py
 flow/tests/test_tts.py
+flow/tests/test_updates.py
 flow/tests/test_ux_round.py
 flow/tests/test_vertex.py
 flow/tests/test_vocab.py
@@ -399,6 +401,7 @@ flow/tools/build_graded.py
 flow/tools/build_reference.py
 flow/tools/revise_pedagogy.py
 flow/tts_service.py
+flow/updates_service.py
 flow/upgrade.sh
 flow/user_guide.py
 flow/vertex_auth.py

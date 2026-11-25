@@ -45,6 +45,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `81-me.js` | 我的, email binding |
 | `81-privacy.js` | 年龄段 and a guardian's agreement under 14: the sign-up chips, the one-time ask for older accounts, the prompt when AI needs the agreement |
 | `82-class.js` | 班级试用: joining a class with an invite code and leaving it (我的 → 班级), the teacher's whole-class summary (#/class/<id>) |
+| `83-updates.js` | 更新记录 (#/updates, 我的 → 帮助) and 今日's 「语流更新了」 card, first in the one notice slot (updates_service.py) |
 | `99-boot.js` | start-up |
 | `05-start.css` | 启动动画 and 选方向和目标 |
 | `00-base.css` … `70-input-devices.css` | tokens and base; pages; motion and graph; words; listening; phone pass; learner pages; input methods and devices |
@@ -61,6 +62,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `97-progress.css` | 这周进步: the four-number card, its details sheet, the three lines after a text, the unsubscribe page |
 | `97-time-box.css` | 今日's plan groups (r28): 还有时间的话, 本周任务, the line past the day's minutes |
 | `98-daily-line.css` | 今日好句 and 今日热点 cards |
+| `98-updates.css` | 更新记录 and 今日's 「语流更新了」 card (83-updates.js) |
 | `99-class.css` | 班级试用: what a teacher sees and not, the class found by its code, the teacher's summary page |
 | `99-privacy.css` | 年龄段: the three chips and the guardian's box |
 | `99-ai-mark.css` | the 「AI 生成」 mark on everything an AI wrote for the learner (`aiTag()`, `aiMark(note)` in `00-head.js`; 2026-11-25, 《人工智能生成合成内容标识办法》) |
