@@ -166,3 +166,10 @@
   - #118 跟读和发音：shadow_eval.py（Omni 和 Gemini 听同一批录音比分数）；指南写上跟读、发音内测版改用 Omni（听和说、AI、内容、发版和构建）
 - 自检：DEPLOYED，装了 7 个文件（2 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45530765949
+
+### b32 · 2026-11-25 10:18
+- main `7b7fe8c`，构建 `0c54902`
+- 新合并的 PR（自 b31 起）：
+  - #127 主屏 App：老师账号的首页显示 logo，返回按钮的文字跟着标签栏（开局和考试）
+- 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45531882162
