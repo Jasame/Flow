@@ -62,6 +62,24 @@ class TourTests(unittest.TestCase):
             block = re.search(name + r': \[(.*?)\n    \],', JS, re.S).group(1)
             self.assertEqual(len(re.findall(r"\{ at: \[", block)), n, name)
 
+    def test_tips_are_kept_per_account_and_come_back_together(self):
+        """使用提示: put away once, gone on every device of that account; 重新显示使用提示 brings them all back; the
+        tour is not touched; a guest keeps them in its browser; an unknown name is refused."""
+        new, old = self.id['new'], self.id['old']
+        self.assertEqual(ts.tips(self.c, new), {'seen': []})
+        self.assertEqual(ts.tip(self.c, new, {'tip': 'read'}), ({'seen': ['read']}, 200))
+        self.assertEqual(ts.tip(self.c, new, {'tip': 'read'})[0], {'seen': ['read']})  # twice: still one
+        self.assertEqual(ts.tips(self.c, old), {'seen': []})  # another account
+        self.assertEqual(ts.tip(self.c, new, {'tip': 'nope'})[1], 400)
+        self.assertTrue(ts.due(self.c, new)['learner'], 'a tip is not the tour')
+        ts.tip(self.c, new, {'tip': 'listen'})
+        self.assertEqual(ts.tips(self.c, new), {'seen': ['listen', 'read']})
+        self.assertEqual(ts.tip(self.c, new, {'reset': True}), ({'seen': []}, 200))
+        self.assertEqual(ts.tips(self.c, new), {'seen': []})
+        self.assertEqual(ts.tips(self.c, None), {'seen': []})
+        self.assertEqual(ts.tip(self.c, None, {'tip': 'read'}), ({'seen': []}, 200))
+        self.assertEqual(self.c.execute("SELECT COUNT(*) FROM next_tour_stats").fetchone()[0], 0, 'tips are not counted')
+
 
 if __name__ == '__main__':
     unittest.main()

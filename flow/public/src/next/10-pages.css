@@ -34,11 +34,10 @@
 /* ---- study ---- */
 .study-head{display:grid;gap:8px;margin-bottom:12px}
 .study-head .h1{font-size:22px}
-.steps{position:sticky;top:57px;z-index:10;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:var(--bg);padding:8px 0;margin:0 0 12px}
-.steps button{border:0;background:var(--sunk);border-radius:10px;padding:9px 4px;font-size:14px;font-weight:600;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:5px}
-.steps button[aria-selected=true]{background:var(--fill);color:var(--on-fill)}
+.steps{position:sticky;top:57px;z-index:10;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;background:var(--bg);padding:0;margin:0 0 10px;box-shadow:0 1px 0 var(--line)}  /* the line under the tabs: where the text slides under them (B8) */
+.steps button{border:0;background:none;border-radius:0;padding:9px 4px;min-height:44px;font-size:15.5px;font-weight:600;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:5px}
+.steps button[aria-selected=true]{color:var(--green-ink)}
 .steps button .ok{width:16px;height:16px;border-radius:50%;background:var(--fill);color:var(--on-fill);font-size:11px;line-height:16px;text-align:center}
-.steps button[aria-selected=true] .ok{background:var(--on-fill);color:var(--fill)}
 .text{font-family:var(--serif);font-size:19px;line-height:1.75;letter-spacing:.005em}
 .text p{margin:0 0 4px}
 .sent{border-radius:6px;padding:1px 2px;transition:background .2s}
@@ -51,7 +50,6 @@
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin:4px 0 14px}
 .legend span::before{content:'';display:inline-block;width:18px;height:0;border-bottom:2px solid var(--green);margin-right:6px;vertical-align:4px}
 .legend span.h::before{border-bottom:2px dotted var(--amber)}
-.player{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .speed{display:inline-flex;border:1px solid var(--line2);border-radius:10px;overflow:hidden}
 .speed button{border:0;background:var(--paper);padding:8px 10px;font-size:13.5px;font-variant-numeric:tabular-nums}
 .speed button[aria-pressed=true]{background:var(--green-soft);color:var(--green-ink);font-weight:700}

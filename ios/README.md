@@ -13,14 +13,15 @@
 
 ## 两个配置
 
-| 配置 | 打开 | Bundle ID | 名字 | 用在哪 |
-|---|---|---|---|---|
-| **Beta** | https://flow.jasa.hk（内测版） | `cn.flowlang.app.beta` | 语流内测 | 模拟器、UI 测试、免费账号装到自己手机、内测版的 TestFlight |
-| **Release** | https://flowlang.cn（正式版） | `cn.flowlang.app` | 语流 | TestFlight 外部测试、App Store |
+| 配置 | 打开 | Bundle ID | 名字 | 图标 | 用在哪 |
+|---|---|---|---|---|---|
+| **Beta** | https://flow.jasa.hk（内测版） | `cn.flowlang.app.beta` | 语流内测 | 橙色底 `AppIcon-Beta` | 模拟器、UI 测试、免费账号装到自己手机、内测版的 TestFlight |
+| **Release** | https://flowlang.cn（正式版） | `cn.flowlang.app` | 语流 | 绿色底 `AppIcon` | TestFlight 外部测试、App Store |
 
 Bundle ID 用户 2026-11-25 已确认：正式版 `cn.flowlang.app`、内测版 `cn.flowlang.app.beta`（两个能同时装）。
 
-两个 scheme：`Flow-Beta`（运行、测试、归档都用 Beta）和 `Flow-Release`（运行、归档用 Release）。网址、名字、Bundle ID 在 `Config/Beta.xcconfig`、`Config/Release.xcconfig`。
+两个 scheme：`Flow-Beta`（运行、测试、归档都用 Beta）和 `Flow-Release`（运行、归档用 Release）。网址、名字、Bundle ID、图标（`FLOW_APP_ICON`）在 `Config/Beta.xcconfig`、`Config/Release.xcconfig`。
+内测版的图标是同一个声波 logo，底色从 #1f9d55 换成 #e8590c（用户 2026-11-25 选的「A · 橙色底」，网页、安卓、桌面的内测版一样），主屏上一眼分得开；`python3 ios/tools/make_app_icon.py --beta` 画它，只编进内测版。
 自己的签名设置（开发团队、免费账号用的 Bundle ID）放在 `Config/Local.xcconfig`，这个文件不提交（见下面「装到自己的 iPhone」）。
 
 ## 构建和测试
@@ -122,9 +123,12 @@ App 打开、回到前台、切到后台、以及 iOS 每天叫醒它几次时�
 | 锁屏上的学习按钮（iOS 27） | 开 | 锁屏、灵动岛、控制中心上除了播放暂停、上一句下一句，还能调语速 0.75× / 1× / 1.25×、单句循环、退回 5 秒 | `Audio/LockScreen27.swift`（NowPlaying 框架的 MediaSession） |
 | 来电以后接着放 | 开 | 来电、Siri、闹钟以后系统说可以就接着放（iOS 27 用新的 resumptionRecommendation）；关了就停在那里 | `LongPlayer.resumption` |
 | 离线朗读包 | 关 | 连着 Wi-Fi 时把今天要学的 3 篇录音存到手机上（和网页「存到手机」同样三篇），没网时 App 也能放；7 天删，关掉全删 | `Audio/Packs.swift` |
+| 复习时的轻触震动（第二组） | 开 | 网页调 `app.haptic`（复习打分、做题答对答错）时手机轻轻一震 | `Features/Haptics.swift` |
+| 省电时少做事（第二组） | 开 | 低电量模式或 iOS 27 提示省资源时：朗读少提前做一句、离线包不在前台下、网页少预载（`frugal`） | `Features/Frugal.swift` |
 
 - 模拟器的控制中心没有「正在播放」，锁屏按钮在测试里通过桥测试页的「锁屏 1.25× / 锁屏单句循环 / 锁屏退回 5 秒」按（Beta 才有的 `audio.remote`），真的锁屏要在手机上看。
 - 没网时这篇的录音 App 里又没存：`play` 回 `why: 'offline'`，网页自己放它存的那份（以前 App 会报「录音没加载出来」）。
+- 第二组的外观部分不设开关、跟着系统走：App 自己画的出错页在 iOS 26 起用系统的玻璃按钮；设置页本来就是系统的样子。
 
 ## 隐私
 
@@ -161,7 +165,9 @@ App 打开、回到前台、切到后台、以及 iOS 每天叫醒它几次时�
 
 - 网页一侧接桥：已在 main（#152 整篇朗读交给 App，#164 录音用 App，#299 句子地址和系统声音的说法）。
 - 锁屏上改的语速、单句循环，网页的「语速」「复读」按钮还不跟着变（`audio` 事件已经带 `rate`、`rep`、`loop`，网页一侧由语流 B3 接）。
-- iOS 专属功能后面三组：手感和外观（震动、iOS 27 外观、省电）、不打开 App 也能学（小组件、实时活动、控制中心）、Siri 和系统搜索；之后是「本机快速检查（离线）」。
+- iOS 专属功能后面两组：不打开 App 也能学（小组件、实时活动、控制中心）、Siri 和系统搜索；之后是「本机快速检查（离线）」。
+- 网页一侧：复习页的震动（语流 B2，分支 review-split：翻面 select，评分按结果 success / tap / warning，不用 error）、PRELOAD.frugal() 算上 App 的 `frugal`（语流 B3）。
+- 安卓的 `haptic`、`frugal`：语流 C2 已想好做法（performHapticFeedback；PowerManager.isPowerSaveMode），等用户排优先级。
 - 复习提醒：网页一侧已在 main（#139「到点用 App 通知提醒」和 `FlowApp.notify.sync()`，#149 按 `FlowApp.platform` 换说法）。
 - 04-home-app.js 认 `FlowiOS`：已在 main（语流 B5，0f6fc09：App 里也有返回按钮；键盘和深浅色交给 App）。
 - 操作指南「隐私和数据」一章加 App 用到的权限：语流 B6 已审好文字，TestFlight 外部测试前由它放进 guide.md（先告诉它一声）。

@@ -153,6 +153,7 @@ final class LongPlayer: NSObject {
             let item = (note.object as AnyObject?).map(ObjectIdentifier.init)
             MainActor.assumeIsolated { self?.itemFailed(item) }
         }
+        #if canImport(NowPlaying)  // the iOS 27 SDK (Xcode 27); CI's Xcode 26 builds the app without it (older lock screen only)
         if #available(iOS 27, *) {
             // iOS 27 says when the sound may go on again (a call ended, Siri done), and why it was taken away
             nc.addObserver(forName: AVAudioSession.resumptionRecommendationNotification, object: nil, queue: .main) { [weak self] note in
@@ -166,6 +167,7 @@ final class LongPlayer: NSObject {
             }
             LockScreen27.player = self
         }
+        #endif
         speech.done = { [weak self] tok in self?.speechDone(tok) }
         RemoteCommands.install(self)
     }
@@ -276,6 +278,9 @@ final class LongPlayer: NSObject {
     }
 
     func toggle() { if state == .paused { resume(why: .remote) } else { pause(why: .remote) } }
+
+    /// 语速 as the page writes it (0.8, not the Float's 0.800000011920929): its chips compare it with their own (B3's #338)
+    nonisolated static func shown(_ rate: Float) -> Double { (Double(rate) * 100).rounded() / 100 }
 
     /// A recording with no connection: the app hands it back to the page unless it has the file itself (离线朗读包).
     nonisolated static func handBack(kept: Bool, online: Bool) -> Bool { !kept && !online }
@@ -437,7 +442,7 @@ final class LongPlayer: NSObject {
             o["n"] = r.count
             o["title"] = r.title
             if r.src != nil { o["t"] = player.currentTime().seconds.finiteOr(0) }
-            o["rate"] = r.rate
+            o["rate"] = Self.shown(r.rate)
             o["rep"] = r.rep
             o["loop"] = r.loop
         }
@@ -519,7 +524,8 @@ final class LongPlayer: NSObject {
             speech.say(text, voice: r.voice, rate: r.rate, token: tok)
             return
         }
-        for k in [i + 1, i + 2] where k < r.texts.count { tts.prefetch(text: r.texts[k], voice: r.voice, pack: r.pack, csrf: r.csrf, known: r.known(k)) }
+        let ahead = Frugal.shared.on ? 1 : 2  // 省电时少做事: one sentence made ahead, not two
+        for k in (i + 1)...(i + ahead) where k < r.texts.count { tts.prefetch(text: r.texts[k], voice: r.voice, pack: r.pack, csrf: r.csrf, known: r.known(k)) }
         if !tts.ready(text: text, voice: r.voice, pack: r.pack) {
             noteTask = Task { [weak self] in
                 try? await Task.sleep(for: .milliseconds(400))
@@ -740,7 +746,7 @@ final class LongPlayer: NSObject {
             set(.playing)
         }
         if UIApplication.shared.applicationState == .active {
-            emit?("audio-tick", ["key": r.key, "i": index, "t": t, "at": Date().timeIntervalSince1970 * 1000, "rate": r.rate])
+            emit?("audio-tick", ["key": r.key, "i": index, "t": t, "at": Date().timeIntervalSince1970 * 1000, "rate": Self.shown(r.rate)])
         }
     }
 
@@ -769,7 +775,12 @@ final class LongPlayer: NSObject {
     }
 
     /// iOS 27 sends a recommendation of its own (AVAudioSession.resumptionRecommendationNotification)
-    nonisolated static var recommends: Bool { if #available(iOS 27, *) { true } else { false } }
+    nonisolated static var recommends: Bool {
+        #if canImport(NowPlaying)
+        if #available(iOS 27, *) { return true }
+        #endif
+        return false
+    }
 
     /// iOS says the sound may go on (or not): with 「来电以后接着放」 on, a text a call paused goes on by itself
     private func resumption(_ go: Bool) {
