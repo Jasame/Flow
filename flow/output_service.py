@@ -358,7 +358,18 @@ def translate(c, uid, data):
 # Who may judge one word well enough to file a mistake: Gemini (the main service) for now; a dedicated pronunciation
 # scorer joins when 语流 12 connects one. A verdict from another model (Qwen-Omni, since the owner moved 跟读 and 发音 off
 # Gemini on 2026-11-25: 「延迟太高了」) is a reference only: counted as practice, never a mistake, said to be maybe wrong.
-SAY_TRUSTED = ('main', 'asr', 'word')  # word: Qwen-Omni writing down the word (chat_service.hear_word)
+SAY_TRUSTED = ('main', 'asr')
+
+
+def say_counts():
+    """FLOW_SAY_COUNTS=on: Qwen-Omni's written-down word (service 'word') counts like a trusted verdict, two misses in a row
+    make the card. Off by default (2026-11-25, the owner: 「先只作参考」): shown, never a mistake, while a week of anonymous
+    verdicts (say_judgements) is spot-checked with the team's own recordings."""
+    return os.getenv('FLOW_SAY_COUNTS', '').strip().lower() in ('on', '1', 'yes', 'true')
+
+
+def say_trusted():
+    return SAY_TRUSTED + (('word',) if say_counts() else ())
 
 
 def say_judge():
@@ -418,22 +429,22 @@ def say_verdict(target, partner, heard):
     one = words[0] if len(words) == 1 else ''
     tip = sounds.tip_of(t)
     if not words:
-        return {'heard': '', 'ok': True, 'note': '这次没听清读的是什么，可以再读一遍', 'tip': '', 'unclear': True}
+        return {'heard': '', 'ok': True, 'note': '这次没听清读的是什么，可以再读一遍', 'tip': '', 'unclear': True, 'reason': 'unclear'}
     hit = re.search(r"(?<![a-z'])" + re.escape(t) + r"(?![a-z'])", said)
     if p and p in words and not hit:
-        return {'heard': said, 'ok': False, 'note': f'听起来像 {p}，不像 {t}', 'tip': tip}
+        return {'heard': said, 'ok': False, 'note': f'听起来像 {p}，不像 {t}', 'tip': tip, 'reason': 'pair'}
     if hit:
-        return {'heard': said, 'ok': True, 'note': f'听起来是 {t}', 'tip': ''}
+        return {'heard': said, 'ok': True, 'note': f'听起来是 {t}', 'tip': '', 'reason': 'target'}
     if one and same_sound(t, one):
-        return {'heard': said, 'ok': True, 'note': f'听起来是 {t}（和 {one} 同音）', 'tip': ''}
+        return {'heard': said, 'ok': True, 'note': f'听起来是 {t}（和 {one} 同音）', 'tip': '', 'reason': 'same'}
     if p and one and same_sound(p, one):  # the pair word, written as one that sounds like it (right as write)
-        return {'heard': said, 'ok': False, 'note': f'听起来像 {p}（和 {one} 同音），不像 {t}', 'tip': tip}
+        return {'heard': said, 'ok': False, 'note': f'听起来像 {p}（和 {one} 同音），不像 {t}', 'tip': tip, 'reason': 'pair_same'}
     if p:  # neither the target nor its pair: not the mistake this pair practises
-        return {'heard': said, 'ok': True, 'note': f'听起来像 {said}，没有读成 {p}', 'tip': ''}
+        return {'heard': said, 'ok': True, 'note': f'听起来像 {said}，没有读成 {p}', 'tip': '', 'reason': 'third'}
     other = len(words) == 1 and words[0] != t and nx.lookup(words[0])
     if not other and difflib.SequenceMatcher(None, t, words[0]).ratio() >= 0.6:  # a spelling slip of the recogniser
-        return {'heard': said, 'ok': True, 'note': f'听起来接近 {t}', 'tip': ''}
-    return {'heard': said, 'ok': False, 'note': f'听起来像 {said}', 'tip': tip}
+        return {'heard': said, 'ok': True, 'note': f'听起来接近 {t}', 'tip': '', 'reason': 'near'}
+    return {'heard': said, 'ok': False, 'note': f'听起来像 {said}', 'tip': tip, 'reason': 'other'}
 
 
 def say(c, uid, data):
@@ -459,7 +470,8 @@ def say(c, uid, data):
             raise Shape('json_shape')
         by = getattr(ai_routes.CTX, 'last_service', None)  # the call whose answer this is (same thread, just recorded)
         return {'heard': _clean(raw.get('heard') or '', 0, 80), 'ok': mbool(raw.get('ok'), 'ok_missing'), 'note': _clean(raw.get('note') or '', 0, 300),
-                'tip': _clean(raw.get('tip') or '', 0, 300), 'tentative': (by is not None and by not in SAY_TRUSTED) or raw.get('unclear') is True}
+                'tip': _clean(raw.get('tip') or '', 0, 300), 'tentative': (by is not None and by not in say_trusted()) or raw.get('unclear') is True,
+                'reason': raw.get('reason') if raw.get('reason') in SAY_REASONS else ''}
 
     import hashlib, ai_routes
     ai_routes.CTX.last_service = None
@@ -490,6 +502,8 @@ def say(c, uid, data):
         r['confirmed'] = not r.get('tentative') and not r['ok'] and last is not None and last['score'] == 0
         if r['confirmed']:
             sk.add_mistake(c, uid, 'sound', target, 'sound:' + target.lower(), r['tip'] or r['note'], '', 'pronunciation', extra={'focus': focus}, commit=False)
+        if judge and r.get('reason'):
+            log_say(c, target, partner, judge, r['reason'], r['ok'], not r.get('tentative'))
         c.commit()
     return result, status
 
@@ -499,7 +513,35 @@ def say(c, uid, data):
 AI_PATHS = ('/api/next/retell', '/api/next/dialog', '/api/next/essay', '/api/next/translate/source', '/api/next/translate', '/api/next/say')
 
 
+SAY_REASONS = ('unclear', 'target', 'pair', 'same', 'pair_same', 'third', 'near', 'other')  # say_verdict's ways to decide
+SAY_KEEP_DAYS = 14
+
+
+def log_say(c, word, partner, judge, reason, ok, counted):
+    """One 发音 verdict for the spot-check (2026-11-25, the owner: 「先只作参考」, a week of verdicts before deciding whether
+    they count): the practice word and its pair word, the judge, say_verdict's reason code, the verdict, whether it
+    counted. No account, no recording, nothing the learner said; rows older than SAY_KEEP_DAYS go on the next write."""
+    now = time.time()
+    c.execute('INSERT INTO say_judgements(ts, word, partner, judge, reason, ok, counted) VALUES(?,?,?,?,?,?,?)',
+              (now, word.lower()[:60], (partner or '').lower()[:60], judge, reason, int(bool(ok)), int(bool(counted))))
+    c.execute('DELETE FROM say_judgements WHERE ts<?', (now - SAY_KEEP_DAYS * 86400,))
+
+
+def say_summary(c, days=7):
+    """The spot-check's starting point: verdicts per judge and reason code, and the words most often judged wrong (to
+    read again with the team's own recordings, never the learners')."""
+    since = time.time() - days * 86400
+    by = [dict(judge=j, reason=r, ok=bool(o), n=n) for j, r, o, n in c.execute(
+        'SELECT judge, reason, ok, COUNT(*) FROM say_judgements WHERE ts>=? GROUP BY judge, reason, ok ORDER BY 4 DESC', (since,))]
+    wrong = [dict(word=w, partner=p, n=n) for w, p, n in c.execute(
+        'SELECT word, partner, COUNT(*) FROM say_judgements WHERE ts>=? AND ok=0 GROUP BY word, partner ORDER BY 3 DESC LIMIT 30', (since,))]
+    return {'days': days, 'by_reason': by, 'wrong_words': wrong}
+
+
 def schema(c):
+    c.execute('CREATE TABLE IF NOT EXISTS say_judgements(id INTEGER PRIMARY KEY, ts REAL NOT NULL, word TEXT NOT NULL, '
+              "partner TEXT NOT NULL DEFAULT '', judge TEXT NOT NULL, reason TEXT NOT NULL, ok INTEGER NOT NULL, counted INTEGER NOT NULL)")
+    c.execute('CREATE INDEX IF NOT EXISTS say_judgements_ts ON say_judgements(ts)')
     c.execute('CREATE TABLE IF NOT EXISTS next_translations(pack TEXT NOT NULL, sentence TEXT NOT NULL, zh TEXT NOT NULL, created REAL NOT NULL, PRIMARY KEY(pack, sentence))')
     c.execute('CREATE TABLE IF NOT EXISTS next_dialog_openers(pack TEXT NOT NULL, level TEXT NOT NULL, result TEXT NOT NULL, created REAL NOT NULL, PRIMARY KEY(pack, level))')
     c.commit()

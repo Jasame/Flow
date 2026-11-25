@@ -269,7 +269,8 @@ class SayTests(unittest.TestCase):
 
 class OmniWordTests(unittest.TestCase):
     """发音 without qwen3-asr (Aliyun ticket 2026-11-25 13:58: no filing; the owner: 「不用 qwen3-asr，先用 Omni」): Qwen-Omni
-    writes down the word it hears, told nothing of the word expected, and say_verdict decides. Its verdict counts."""
+    writes down the word it hears, told nothing of the word expected, and say_verdict decides. A reference only until
+    FLOW_SAY_COUNTS=on (the owner: 「先只作参考」); every verdict is logged without the account for the spot-check."""
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.p = patch.object(app, 'DB', Path(self.tmp.name) / 's.db'); self.p.start()
@@ -281,27 +282,41 @@ class OmniWordTests(unittest.TestCase):
     def tearDown(self):
         self.c.close(); self.env.stop(); self.p.stop(); self.tmp.cleanup()
 
-    def say(self, answer, rid, text='think'):
+    def say(self, answer, rid, text='think', counts=''):
         urlopen, sent = gateway({'flow-audio-omni-flash': [answer]})
-        with patch('urllib.request.urlopen', urlopen), patch('time.sleep'), \
+        with patch('urllib.request.urlopen', urlopen), patch('time.sleep'), patch.dict(os.environ, {'FLOW_SAY_COUNTS': counts}), \
                 patch.object(cs, '_request_main', side_effect=AssertionError('Gemini asked')), \
                 patch.object(cs, 'transcribe', side_effect=AssertionError('qwen3-asr asked')):
             result, status = out.say(self.c, 1, {'text': text, 'audio': WEBM, 'request_id': rid})
         self.assertEqual(status, 200, result)
         return result['result'], sent
 
-    def test_omni_writes_the_word_down_told_nothing_and_two_misses_make_the_card(self):
-        r, sent = self.say('Think.', 'say-omni-0001')
+    def test_omni_writes_the_word_down_told_nothing_and_with_the_switch_two_misses_make_the_card(self):
+        r, sent = self.say('Think.', 'say-omni-0001', counts='on')
         self.assertTrue(r['ok']); self.assertFalse(r['tentative'])
         self.assertEqual([b['model'] for b in sent], ['flow-audio-omni-flash'])
         asked = json.dumps([m if isinstance(m['content'], str) else [x for x in m['content'] if x.get('type') == 'text'] for m in sent[0]['messages']])
         self.assertNotIn('think', asked); self.assertNotIn('sink', asked)  # told nothing: hints made it worse (5 / 10 in 48)
-        r, _ = self.say('Sink.', 'say-omni-0002')
+        r, _ = self.say('Sink.', 'say-omni-0002', counts='on')
         self.assertFalse(r['ok']); self.assertFalse(r['confirmed']); self.assertEqual(r['heard'], 'sink')
-        r, _ = self.say('Sink.', 'say-omni-0003')
+        r, _ = self.say('Sink.', 'say-omni-0003', counts='on')
         self.assertTrue(r['confirmed'])
         self.assertEqual(self.c.execute("SELECT COUNT(*) FROM next_cards WHERE user_id=1 AND norm='sound:think'").fetchone()[0], 1)
         self.assertEqual([x[0] for x in self.c.execute("SELECT DISTINCT service FROM ai_calls")], ['word'])
+
+    def test_by_default_a_reference_only_never_a_mistake_and_logged_without_the_account(self):
+        for i in range(3):
+            r, _ = self.say('Sink.', f'say-omni-01{i}0')
+            self.assertFalse(r['ok']); self.assertTrue(r['tentative']); self.assertFalse(r['confirmed'])
+        self.assertEqual(self.c.execute("SELECT COUNT(*) FROM next_cards WHERE user_id=1").fetchone()[0], 0)
+        rows = [tuple(x) for x in self.c.execute('SELECT word, partner, judge, reason, ok, counted FROM say_judgements')]
+        self.assertEqual(rows, [('think', 'sink', 'omni', 'pair', 0, 0)] * 3)
+        cols = [x[1] for x in self.c.execute('PRAGMA table_info(say_judgements)')]
+        self.assertFalse({'user_id', 'uid', 'heard', 'audio', 'note'} & set(cols), cols)  # nothing of the learner's
+        self.assertEqual(out.say_summary(self.c)['wrong_words'], [{'word': 'think', 'partner': 'sink', 'n': 3}])
+        self.c.execute('UPDATE say_judgements SET ts=ts-15*86400'); self.c.commit()
+        self.say('Think.', 'say-omni-0200')
+        self.assertEqual([tuple(x) for x in self.c.execute('SELECT word, reason FROM say_judgements')], [('think', 'target')])  # 14 days
 
     def test_a_word_written_as_one_that_sounds_the_same_is_right(self):
         r, _ = self.say('There.', 'say-omni-0004', text='their')
