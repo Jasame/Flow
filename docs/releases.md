@@ -583,6 +583,15 @@ Flow 每一次发布都记在这里：**正式版**（语流，flowlang.cn）和
 网站以外的 App：桌面版（Windows、macOS）和 iOS。按工作约定第 7 条，合进 main 就自动打内测包；发给试用的同学、
 上 TestFlight 外部测试或应用商店之前，要先问用户。每到一个这样的节点，在这里记一条。
 
+### 2026-11-25 18:43 · 桌面版 0.1.1 开放下载，有了自动更新
+
+- **是什么**：Windows `flow-windows-0.1.1-setup.exe` 和 Mac `flow-mac-0.1.1.dmg`，放在 flowlang.cn/download/。
+  - 这一版加了自动更新（#253）：装了 0.1.1 的电脑会去查 `flowlang.cn/desktop/latest.json`，有新版本就更新。Mac 用 `.app.tar.gz`，
+    签名文件在 GitHub Release `desktop-v0.1.1` 上。
+  - 服务器上的做法见 server-changes.md 18:43 那条。发布：语流 A1。
+- **用户的原话**：「放」，GitHub Release 那一项是「发」（都在语流 A1）。
+- **已经装了 0.1.0 的**：0.1.0 没有自动更新，要手动装一次 0.1.1。0.1.0 的文件留着。
+
 ### 2026-11-25 17:21 · 安卓 1.0.2 开放下载（App 里可以更新了）
 
 - **是什么**：`flow-android-1.0.2.apk`（1,106,916 字节，sha256 `5aca76bd…e099`，versionCode 3），放在 flowlang.cn/download/。

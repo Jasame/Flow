@@ -892,6 +892,129 @@ IOS_AUDIO_FAKE = """(() => {
 })();"""
 
 
+# 语流's iOS / Android app as the page sees it (docs/native-bridge.md §2–3): the apps' own native/flowapp.js behind a
+# made-up transport that writes down every command and answers like the app (what it plays survives a reload, in
+# localStorage); the test sends the app's news (FlowApp._emit) itself.
+APP_AUDIO_FAKE = """(() => {
+  const KEEP = 'ui-fake-app';
+  const st = () => { try { return JSON.parse(localStorage.getItem(KEEP)) || {}; } catch (e) { return {}; } };
+  const put = o => localStorage.setItem(KEEP, JSON.stringify(Object.assign(st(), o)));
+  window.__cmds = []; window.__fakeApp = { st, put }; window.__said = [];
+  if (window.speechSynthesis) { const s = speechSynthesis.speak.bind(speechSynthesis); speechSynthesis.speak = u => { if (u && u.text && u.text.trim()) window.__said.push(u.text); return s(u); }; }
+  window.__flowAppTransport = {
+    cfg: { v: 1, app: '1.0.0', build: 'ui', beta: true, platform: 'ios', features: ['audio'] },
+    send(cmd, args) {
+      window.__cmds.push([cmd, args]);
+      const s = st();
+      if (cmd === 'audio.play') {
+        put({ playing: { key: args.key, state: 'playing', i: args.from || 0, n: (args.texts || args.sentences || []).length, title: args.title } });
+        return Promise.resolve({ ok: true, state: 'playing' });
+      }
+      if (cmd === 'audio.state') return Promise.resolve(s.playing || { state: 'idle' });
+      if (cmd === 'audio.progress') return Promise.resolve((s.progress || {})[args.key] || null);
+      if (cmd === 'audio.resume') return Promise.resolve(Object.assign({ ok: true }, s.playing || {}));
+      return Promise.resolve({ ok: true });
+    },
+  };
+})();
+""" + (Path(__file__).resolve().parents[1] / 'native' / 'flowapp.js').read_text()
+
+
+def app_audio_run(pw):
+    """In 语流's iOS / Android app (window.FlowApp has 'audio'), 听's 播放全文 and 读's 伴读 are played by the app: the page
+    sends play / pause / set and follows the app's news: the button, the mini player, the lit sentence and where it got
+    to (PROG). Loaded again while the app plays, the page takes the text back without starting it over; the app's newer
+    place counts, its 读完 clears this phone's (docs/native-bridge.md §3; 语流 B3's review of PR #152)."""
+    dev = 'app-audio'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
+    try:
+        ctx = browser.new_context(**DEVICES['phone'], locale='zh-CN', bypass_csp=True, service_workers='block')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['app-audio']['token'], 'url': BASE}])
+        ctx.add_init_script(APP_AUDIO_FAKE)
+        pg = ctx.new_page(); errs = []; tts = []
+        pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        pg.on('request', lambda r: tts.append(r.url) if '/api/next/tts' in r.url else None)
+        key = f'listen:{PID}'
+        cmds = lambda: pg.evaluate('window.__cmds.map(c => c[0])')
+        last = lambda name: pg.evaluate("n => { const c = window.__cmds.filter(x => x[0] === n); return c.length ? c[c.length - 1][1] : null; }", name)
+        emit = lambda typ, d: pg.evaluate('([t, d]) => FlowApp._emit(t, d)', [typ, d])
+        prog = lambda k=key: pg.evaluate("k => { const p = JSON.parse(localStorage.getItem('flow-progress') || '{}')[k]; return p ? p.i : null; }", k)
+        btn = lambda sel='#playAll': (pg.text_content(sel) or '').strip()
+        mini = lambda: pg.evaluate("(() => { const m = document.querySelector('.mini-player'); return m && !m.hidden ? m.querySelector('.lbl').textContent : null; })()")
+        lit = lambda: pg.evaluate("(() => { const l = document.querySelector('.line.now'); return l ? l.dataset.i : null; })()")
+        listen = lambda: (go(pg, f'#/m/{PID}/listen'), pg.wait_for_selector('#playAll'), pg.wait_for_timeout(400))
+
+        pg.goto(BASE + '/', wait_until='load'); settle(pg)
+        listen()
+        n = pg.evaluate("document.querySelectorAll('.line[data-i]').length")
+        pg.click('#playAll'); pg.wait_for_timeout(300)
+        play = last('audio.play')
+        check(dev, '播放全文: the app plays it (audio.play with the key, the sentences, 复读 and 语速)',
+              bool(play) and play.get('key') == key and play.get('from') == 0 and bool(play.get('texts') or play.get('sentences'))
+              and play.get('rate') == 1 and 'rep' in play and len(play.get('gap') or []) == n, play)
+        check(dev, '播放全文: the page plays nothing itself (no server voice asked, no browser voice)', not tts and not pg.evaluate('window.__said.length'), tts[:3])
+        emit('audio', {'key': key, 'state': 'playing', 'i': 2, 'n': n, 'title': 't'}); pg.wait_for_timeout(200)
+        check(dev, "the app's news moves the page: 暂停 on the button, 第 3 句 on the mini player, that line lit, 第 3 句 kept",
+              btn().endswith('暂停') and (mini() or '').startswith('第 3 /') and lit() == '2' and prog() == 2, (btn(), mini(), lit(), prog()))
+        pg.evaluate("k => FlowApp._emit('audio-tick', { key: k, i: 3, t: 12.5, at: Date.now(), rate: 1 })", key); pg.wait_for_timeout(200)
+        check(dev, 'a tick from the next sentence moves the page on too (第 4 句)', (mini() or '').startswith('第 4 /') and lit() == '3' and prog() == 3, (mini(), lit(), prog()))
+        # the app reads a sentence in the phone's own voice (offline): the page says why, as everywhere on the site, once
+        pg.evaluate(TOASTS_JS)
+        emit('audio', {'key': key, 'state': 'playing', 'i': 3, 'n': n, 'title': 't', 'fail': {'code': 'offline', 'server': ''}}); pg.wait_for_timeout(200)
+        line = (pg.text_content('#lsPrep') or '').strip() if pg.is_visible('#lsPrep') else ''
+        emit('audio', {'key': key, 'state': 'playing', 'i': 3, 'n': n, 'title': 't', 'fail': {'code': 'offline', 'server': ''}}); pg.wait_for_timeout(200)
+        said = [x for x in (pg.evaluate('window.__toasts') or []) if x.startswith('离线中')]
+        check(dev, "the app fell back to the phone's voice (offline): the line under 播放全文 and one toast say why",
+              line.startswith('离线中，这句还没存到本机') and len(said) == 1, (line, said))
+        emit('audio', {'key': key, 'state': 'playing', 'i': 3, 'n': n, 'title': 't'}); pg.wait_for_timeout(200)
+        check(dev, 'the next sentence in the AI voice again: the line goes', not pg.is_visible('#lsPrep') or not (pg.text_content('#lsPrep') or '').strip(), pg.text_content('#lsPrep'))
+        pg.evaluate("document.querySelector('.playset').open = true")  # 语速 and 复读 sit in 播放设置
+        pg.click('[data-rate="0.75"]'); pg.wait_for_timeout(200)
+        s = last('audio.set')
+        check(dev, '语速 0.75× while the app plays: it gets it at once (audio.set)', bool(s) and s.get('rate') == 0.75, s)
+        pg.click('[data-rate="1"]'); pg.wait_for_timeout(100)
+        pg.click('#playAll'); pg.wait_for_timeout(200)
+        check(dev, '暂停 goes to the app, the button says 继续', 'audio.pause' in cmds()[-2:] and btn().endswith('继续'), (cmds()[-3:], btn()))
+        pg.click('#playAll'); pg.wait_for_timeout(200)
+        check(dev, '继续 goes to the app', 'audio.resume' in cmds()[-2:] and btn().endswith('暂停'), (cmds()[-3:], btn()))
+
+        # loaded again while the app plays on (第 5 句): the page keeps that place and takes the text back, no new start
+        pg.evaluate(f"k => window.__fakeApp.put({{ playing: {{ key: k, state: 'playing', i: 4, n: {n}, title: 't' }} }})", key)
+        pg.reload(wait_until='load'); settle(pg); pg.wait_for_selector('#playAll'); pg.wait_for_timeout(500)
+        check(dev, 'loaded again while the app plays: the mini player is back on 第 5 句, and so is the kept place',
+              (mini() or '').startswith('t · 第 5 /') and prog() == 4 and btn().endswith('从第 5 句继续'), (mini(), prog(), btn()))
+        emit('audio', {'key': key, 'state': 'playing', 'i': 5, 'n': n, 'title': 't'}); pg.wait_for_timeout(200)
+        check(dev, '…and while the app reads on, the button follows it (从第 6 句继续)', btn().endswith('从第 6 句继续') and prog() == 5 and (mini() or '').startswith('t · 第 6 /'), (btn(), prog(), mini()))
+        pg.click('#playAll'); pg.wait_for_timeout(300)
+        after = cmds()
+        check(dev, "…and 播放全文 takes the app's text back: no new audio.play, 复读 and 语速 sent, 暂停, 第 6 句 lit",
+              'audio.play' not in after and 'audio.set' in after and btn().endswith('暂停') and lit() == '5', (after, btn(), lit()))
+        emit('audio', {'key': key, 'state': 'idle', 'why': 'ended', 'i': n - 1, 'n': n}); pg.wait_for_timeout(200)
+        check(dev, 'read to the end: the kept place cleared, the mini player gone, 播放全文 again',
+              prog() is None and mini() is None and btn().endswith('播放全文'), (prog(), mini(), btn()))
+
+        # the app played on while this page slept: its newer place counts; its 读完 clears this phone's
+        k = max(1, n - 2)
+        pg.evaluate("([key, k]) => { window.__fakeApp.put({ playing: null, progress: { [key]: { i: k, t: 30, at: Date.now() } } });"
+                    " const o = JSON.parse(localStorage.getItem('flow-progress') || '{}'); o[key] = { i: 1, at: Date.now() - 60000 };"
+                    " localStorage.setItem('flow-progress', JSON.stringify(o)); }", [key, k])
+        pg.reload(wait_until='load'); settle(pg); pg.wait_for_selector('#playAll'); pg.wait_for_timeout(500)
+        check(dev, f"the app's newer place counts: 从第 {k + 1} 句继续", btn().endswith(f'从第 {k + 1} 句继续') and prog() == k, (btn(), prog()))
+        pg.evaluate("key => window.__fakeApp.put({ progress: { [key]: { i: 0, ended: true, at: Date.now() } } })", key)
+        pg.reload(wait_until='load'); settle(pg); pg.wait_for_selector('#playAll'); pg.wait_for_timeout(500)
+        check(dev, "the app read it to the end since: 播放全文 again", btn().endswith('播放全文') and prog() is None, (btn(), prog()))
+
+        # 读's 伴读 goes to the app the same way
+        go(pg, f'#/m/{PID}/read'); pg.wait_for_selector('#readAlong'); pg.wait_for_timeout(300)
+        pg.click('#readAlong'); pg.wait_for_timeout(600)
+        p = last('audio.play')
+        check(dev, '伴读: the app plays it too', bool(p) and p.get('key') == f'read:{PID}' and btn('#readAlong').endswith('暂停'), (p and p.get('key'), btn('#readAlong')))
+        check(dev, 'no server voice asked, no browser voice, no script errors', not tts and not pg.evaluate('window.__said.length') and not errs, (tts[:3], errs[:3]))
+        ctx.close()
+    finally:
+        browser.close()
+
+
 def ios_audio_run(pw):
     """iPhone (Safari / the home-screen app): a word, an example sentence and the learner's recording play on Web Audio
     from their first sound, under a 'playback' audio session (the ringer switch does not mute it) and named 「语流 · …」
@@ -1505,6 +1628,17 @@ def learner_run(pw):
         goal = (pg.text_content('#weekCard .wk-tile.goal b') or '').strip()
         chip = (pg.text_content('#habitBtn') or '').strip()
         check(dev, '每周目标: the goal set from 今日 shows on the 这周进步 card and the chip by the greeting at once', goal.endswith('/3天') and '/3 天' in chip, (goal[:40], chip[:40]))
+        # 草稿 (08-drafts.js): a writing box keeps what was typed when the page is left, its counter too; sending forgets it
+        draft = 'A paragraph pasted here, and then the learner tapped another tab by mistake. ' * 4
+        go(pg, '#/import'); pg.fill('#impF textarea[name=text]', draft); go(pg, '#/practice'); go(pg, '#/import')
+        kept, count = pg.input_value('#impF textarea[name=text]'), (pg.text_content('#impN') or '').strip()
+        note = (pg.text_content('#impF .draft-note') or '').strip() if pg.locator('#impF .draft-note').count() else ''
+        go(pg, '#/feedback'); pg.fill('#fbText', 'The word page shows the wrong count.'); go(pg, '#/practice'); go(pg, '#/feedback')
+        fb = pg.input_value('#fbText'); pg.click('#fbSend'); pg.wait_for_selector('.fb-done', timeout=6000)
+        go(pg, '#/practice'); go(pg, '#/feedback'); after = pg.input_value('#fbText')
+        check(dev, '草稿: 我的文章 and 问题反馈 keep what was typed after leaving the page (with the counter and 「已恢复…清空」); sent feedback starts empty',
+              kept == draft and count == f'{len(draft)} 字符' and note.startswith('已恢复上次没写完的内容') and fb == 'The word page shows the wrong count.' and after == '',
+              (len(kept), count, note, fb[:24], after[:24]))
         # 分享卡片: after the questions, a learned expression becomes a picture with a QR code back to the site
         go(pg, f'#/m/{PID}/check'); pg.wait_for_selector('#pane .q', timeout=6000)
         for q in pg.query_selector_all('#pane .q'):
@@ -1959,6 +2093,19 @@ def listen_speak_run(pw):
                 check(dev, '口语情景: the feedback says the requirement was met and how the AI adjusted', '这一轮的要求' in end and '做到了' in end and '放慢了 1 次' in end and '加深了 1 次' in end, end[:160])
                 check(dev, '口语情景: 「放进错题本」 said once, not twice', end.count('放进错题本') <= 1, end.count('放进错题本'))
             c3.close()
+            if size == 'desktop':  # 能力测评的口语题 (2026-11-25): every real recording got 「请求大小不正确」 (the route had the 20 KB limit)
+                pr = ctx.new_page(); pr.on('pageerror', lambda e: errors.append(str(e)))
+                pr.goto(BASE + '/#/radar/test/speaking', wait_until='networkidle'); settle(pr); pr.wait_for_selector('#aMic', timeout=8000)
+                pr.evaluate("""() => { try { localStorage.setItem('flow-mic-explained', '1'); } catch (e) {} window.__recOpts = []; const R = window.MediaRecorder;
+                  window.MediaRecorder = class extends R { constructor(st, o) { super(st, o); window.__recOpts.push(o || {}); } }; }""")
+                with pr.expect_response(lambda r: '/api/next/assess/speaking' in r.url, timeout=20000) as rs:
+                    pr.click('#aMic'); pr.wait_for_timeout(4000); pr.click('#aMic')
+                resp = rs.value; sent = len(resp.request.post_data_buffer or b'')
+                check(dev, '能力测评 口语: a 4-second recording is taken, not refused for its size', resp.status == 200 and sent > 20000, (resp.status, sent, resp.text()[:100]))
+                opts = pr.evaluate('window.__recOpts')
+                check(dev, '能力测评 口语: the 75-second answer is recorded at 48 kb/s (an iPhone would make 1.7 MB at its own rate)', any(o.get('audioBitsPerSecond') == 48000 for o in opts), opts)
+                pr.wait_for_selector('#view .ab-list', timeout=10000)
+                pr.close()
             check(dev, 'no script errors', not errors, errors[:3])
             ctx.close()
     finally:
@@ -2387,11 +2534,6 @@ def sprint_run(pw):
                 if page == '#/' and h > w:  # with 这周进步 on top and the exam line under the title, the next step is still on the first screen
                     b = pg.evaluate("Math.round(document.querySelector('#view .go-next').getBoundingClientRect().bottom)")
                     check(dev, f'{size} 今日: the next-step button is on the first screen', b <= h, (b, h))
-                if page == '#/':  # 正式版反馈 #2 (2026-11-25): a.prow.week took 10-pages.css's .week span bars, grey 6 px strips over the words
-                    wk = pg.evaluate("""() => [...document.querySelectorAll('#view .tp-week .prow')].map(r => { const t = r.querySelector('.t'), b = t.querySelector('b'), s = t.querySelector('.muted');
-                      const rr = r.getBoundingClientRect(), br = b.getBoundingClientRect(), sr = s ? s.getBoundingClientRect() : null;
-                      return {fill: [t, b, s].filter(Boolean).some(x => getComputedStyle(x).backgroundColor !== 'rgba(0, 0, 0, 0)'), tall: br.height >= 16 && (!sr || sr.height >= 12), inside: !sr || sr.bottom <= rr.bottom + 1}; })""")
-                    check(dev, f'{size} 今日: 本周任务 shows its title and line in full, no grey bars over them', bool(wk) and all(not x['fill'] and x['tall'] and x['inside'] for x in wk), wk)
                 pg.screenshot(path=str(OUT / f"sprint-{size}-{page.strip('#/').replace('/', '_') or 'today'}.png"))
             # the hub at this size: the trend is drawn to the width it has, inside the screen
             go(pg, '#/exam'); pg.wait_for_timeout(300)
@@ -2632,6 +2774,11 @@ CARD_JS = r"""() => {
 }"""
 
 # 今日 from the top: 好句, 热点, the plan, 这周进步; nothing in the 好句 card cut off; its buttons big enough to tap
+FOLD_JS = """() => { const q = s => document.querySelector(s), r = e => e.getBoundingClientRect();
+  const tabs = q('.tabs'), cs = tabs && getComputedStyle(tabs), tabTop = tabs && cs.position === 'fixed' && cs.display !== 'none' ? r(tabs).top : innerHeight;
+  const lc = q('#lineCard'), nc = q('#view .news-card'), h1 = q('#tpTitle'), go = q('#view .today-plan .go-next'), say = q('#lcSay'), ai = nc && nc.querySelector('.ai-mark');
+  return { lineH: lc ? Math.round(r(lc).height) : null, newsH: nc ? Math.round(r(nc).height) : null, newsAI: !!(ai && r(ai).height > 0 && r(ai).bottom <= r(nc).bottom),
+    planInView: !!(h1 && go && r(h1).top >= 0 && r(go).bottom <= tabTop), say: !!(say && say.offsetParent !== null), foldShown: !!(q('#lcFold') && q('#lcFold').offsetParent !== null) }; }"""
 TOP_JS = r"""() => {
   const r = el => el.getBoundingClientRect();
   const blocks = [['lineCard', '#lineCard'], ['news', '#view .news-card'], ['plan', '#view .today-plan'], ['week', '#weekCard']]
@@ -2639,7 +2786,7 @@ TOP_JS = r"""() => {
   const card = document.getElementById('lineCard');
   return { order: blocks, wide: document.scrollingElement.scrollWidth - innerWidth,
            clipped: card ? [...card.querySelectorAll('*')].filter(e => r(e).right > r(card).right + 1).map(e => e.className || e.tagName).slice(0, 3) : ['no card'],
-           small: card ? [...card.querySelectorAll('button')].filter(b => r(b).height < 40).map(b => b.textContent.trim()) : [] };
+           small: card ? [...card.querySelectorAll('button')].filter(b => b.offsetParent !== null && r(b).height < 40).map(b => b.textContent.trim()) : [] };
 }"""
 
 SWIPE_SIZES = {'ipad-land': (1180, 820), 'ipad-mini-land': (1133, 744), 'phone': (390, 844)}
@@ -2715,6 +2862,28 @@ PLAN_JS = r"""() => {
 }"""
 
 
+# 今日's plan rows (必做, 还有时间的话, 本周任务), each as it is and once marked done (the one check for this; #241 fixed it): the title block keeps its height and no
+# fill, the subtitle stays inside the row, no grey bar anywhere in it (feedback 2026-11-25: 本周任务's row was .week, the
+# week-days bar's class, so its spans became 6 px grey bars and 「这周的一套做完了」 fell out of the card)
+PLAN_ROWS_JS = """() => { const bad = [], seen = [];
+  const fill = el => { const c = getComputedStyle(el).backgroundColor; return c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent'; };
+  const one = (r, state) => { const rr = r.getBoundingClientRect(), t = r.querySelector('.t'), b = r.querySelector('.t b'), sub = r.querySelector('.t .tiny');
+    const name = (b ? b.textContent : '').trim().slice(0, 10) + ' (' + state + ')'; seen.push(name);
+    if (!t || !b) { bad.push(name + ': no title'); return; }
+    const tr = t.getBoundingClientRect(), br = b.getBoundingClientRect();
+    if (tr.height < br.height - 1 || br.height < 16) bad.push(name + ': title squashed to ' + Math.round(Math.min(tr.height, br.height)) + 'px');
+    if (br.top < rr.top - 1 || br.bottom > rr.bottom + 1) bad.push(name + ': title outside the row');
+    if (sub && sub.textContent.trim()) { const sr = sub.getBoundingClientRect(); if (sr.bottom > rr.bottom + 1 || sr.height < 12) bad.push(name + ': subtitle outside the row or squashed'); }
+    [...r.querySelectorAll('span, b, i')].filter(e => !e.classList.contains('num') && !e.closest('.num') && fill(e)).forEach(e => bad.push(name + ': a filled bar ' + e.className + ' ' + Math.round(e.getBoundingClientRect().width) + 'x' + Math.round(e.getBoundingClientRect().height)));
+    if (rr.height < 44) bad.push(name + ': row ' + Math.round(rr.height) + 'px tall'); };
+  const folds = [...document.querySelectorAll('#view .today-plan details:not([open])')]; folds.forEach(d => { d.open = true; });  // 还有时间的话 too
+  const rows = [...document.querySelectorAll('#view .today-plan .prow')];
+  rows.forEach(r => one(r, r.classList.contains('done') ? 'done' : 'to do'));
+  rows.filter(r => !r.classList.contains('done')).forEach(r => { r.classList.add('done'); one(r, 'marked done'); r.classList.remove('done'); });
+  folds.forEach(d => { d.open = false; });
+  return { bad, seen, week: document.querySelectorAll('#view .tp-week .prow').length }; }"""
+
+
 def progress_run(pw):
     dev = 'progress'
     browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
@@ -2736,11 +2905,29 @@ def progress_run(pw):
                 want = [str(pr['remembered']['now']), str(pr['finished']['now']),
                         f"{acc['rate']}%" if acc['rate'] is not None else (f"{acc['right']}/{acc['total']}" if acc['total'] else '—'), f"{hb['done']}/{hb['goal']}天"]
                 check(dev, f'{tag}: 这周进步 sits under the plan, the week chip by the greeting', card and card['below'] and card['chip'] and card['inView'], card)
+                # phones (the owner, 2026-11-25): 好句 and 今日一读 one line each, 「AI 生成」 on 今日一读's line, so 今天的计划 and its
+                # button are on the first screen; a tap opens 好句 in place, again closes it. iPad and computer: both cards whole
+                fold = pg.evaluate(FOLD_JS)
+                if w < 760:
+                    pg.click('#lcFold'); pg.wait_for_timeout(300); opened = pg.evaluate(FOLD_JS)
+                    pg.click('#lcFold'); pg.wait_for_timeout(300); closed = pg.evaluate(FOLD_JS)
+                    check(dev, f'{tag}: 好句 and 今日一读 one line each (今日一读 marked AI 生成 on it), the plan and its button on the first screen; 好句 opens and closes in place',
+                          fold['lineH'] <= 70 and fold['newsH'] <= 64 and fold['newsAI'] and fold['planInView'] and not fold['say'] and opened['say'] and not closed['say'], (fold, opened['say'], closed['say']))
+                else:
+                    check(dev, f'{tag}: 好句 and 今日一读 shown whole (no fold on a wide screen)', fold['say'] and not fold['foldShown'] and fold['newsH'] > 70, fold)
                 top = pg.evaluate(TOP_JS)
                 check(dev, f'{tag}: 今日 runs 好句, 今日一读, the plan, 这周进步 from the top (the plan first on a phone held sideways), nothing cut off or wider than the screen',
                       top['order'] == (['plan', 'lineCard', 'news', 'week'] if h < 500 else ['lineCard', 'news', 'plan', 'week']) and not top['clipped'] and top['wide'] <= 0 and (not touch or top['small'] == []), top)
                 nc = pg.text_content('#view .news-card') or ''
                 check(dev, f'{tag}: the card is 今日一读, marked AI 生成, never an old 今日热点', '今日一读' in nc and 'AI 生成' in nc and '旧热点' not in nc, nc[:80])
+                # the plan's rows, 本周任务 included (an exam learner has one): nothing squashed, filled or out of its row
+                ec = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=touch, has_touch=touch, device_scale_factor=2 if touch else 1,
+                                         color_scheme=theme, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+                ec.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['exam']['token'], 'url': BASE}])
+                ex = ec.new_page(); ex.goto(BASE + '/#/', wait_until='networkidle'); settle(ex); ex.wait_for_selector('#view .today-plan .prow', timeout=8000)
+                rows = ex.evaluate(PLAN_ROWS_JS)
+                check(dev, f'{tag}: 今日 plan rows, 本周任务 too, to do and done: title and subtitle inside the row, no grey bars', rows['week'] >= 1 and not rows['bad'], rows)
+                ec.close()
                 check(dev, f'{tag}: its four numbers are the learner\'s own (as the server counts them)', card and card['values'] == want, (card and card['values'], want))
                 path = home['path']; plan = pg.evaluate(PLAN_JS)
                 grp = {g: [x for x in path['steps'] if x.get('group', 'must') == g] for g in ('must', 'extra', 'week')}
@@ -2801,6 +2988,7 @@ def progress_run(pw):
         line = pg.evaluate("fetch('/api/next/home').then(r => r.json()).then(h => h.line)")
         voiced = []  # the server voice (tts_service) says it now; the browser voice when that is off
         pg.on('request', lambda r: voiced.append(json.loads(r.post_data or '{}').get('text')) if '/api/next/tts' in r.url else None)
+        pg.click('#lcFold'); pg.wait_for_timeout(250)  # one line on a phone: open it first
         pg.click('#lcSay'); pg.wait_for_timeout(600)
         said = pg.evaluate('window.__said || []') + voiced
         mark = pg.evaluate("() => { const m = document.querySelector('#lineCard .lc-acts .ai-voice'), b = document.getElementById('lcSay'); "
@@ -2823,7 +3011,8 @@ def progress_run(pw):
                 'note': ex.get('note', ''), 'expression': ex['text'], 'meaning': ex['meaning'], 'source': f"出自《{m['title']}》 · B2", 'pack': PID, 'i': k,
                 'title': m['title'], 'level': 'B2', 'audio': 0, 'href': f'#/m/{PID}/read', 'day': '2026-11-25'}
         pg.route('**/api/next/home*', lambda route: (lambda r: route.fulfill(response=r, json={**r.json(), 'line': fake}))(route.fetch()))
-        pg.evaluate("() => { localStorage.removeItem('flow-snap'); }"); pg.reload(wait_until='networkidle'); settle(pg); pg.wait_for_selector('#lineCard .lc-en b', timeout=8000)
+        pg.evaluate("() => { localStorage.removeItem('flow-snap'); }"); pg.reload(wait_until='networkidle'); settle(pg); pg.wait_for_selector('#lcFold', timeout=8000)
+        pg.click('#lcFold'); pg.wait_for_selector('#lineCard .lc-en b', timeout=8000)  # another line: one line again until opened
         shown = pg.evaluate("() => { const c = document.getElementById('lineCard'); return [c.querySelector('.lc-en b').textContent, c.querySelector('.lc-src a').getAttribute('href'), c.querySelector('.pill').textContent]; }")
         check(dev, '好句 from a 语流 text: its expression marked, a link to the text, labelled as 语流文章', shown == [ex['text'], f'#/m/{PID}/read', '语流文章'], shown)
         pg.screenshot(path=str(OUT / 'progress-line-text.png'))
@@ -3639,6 +3828,12 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('ios-audio', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'app-audio' in ONLY:
+            try:
+                app_audio_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('app-audio', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'ux' in ONLY:
             try:
                 ux_run(pw)
