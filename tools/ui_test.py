@@ -1933,7 +1933,7 @@ def listen_speak_run(pw):
             c3.close()
             if size == 'desktop':  # 能力测评的口语题 (2026-11-25): every real recording got 「请求大小不正确」 (the route had the 20 KB limit)
                 pr = ctx.new_page(); pr.on('pageerror', lambda e: errors.append(str(e)))
-                go(pr, '#/radar/test/speaking'); pr.wait_for_selector('#aMic', timeout=8000)
+                pr.goto(BASE + '/#/radar/test/speaking', wait_until='networkidle'); settle(pr); pr.wait_for_selector('#aMic', timeout=8000)
                 pr.evaluate("""() => { try { localStorage.setItem('flow-mic-explained', '1'); } catch (e) {} window.__recOpts = []; const R = window.MediaRecorder;
                   window.MediaRecorder = class extends R { constructor(st, o) { super(st, o); window.__recOpts.push(o || {}); } }; }""")
                 with pr.expect_response(lambda r: '/api/next/assess/speaking' in r.url, timeout=20000) as rs:
