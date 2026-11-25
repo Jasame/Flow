@@ -69,3 +69,28 @@ div.round-extra{margin-top:8px;padding:8px 12px;border-radius:10px;background:va
 /* 「AI 合成」 in the mini player (aiVoiceNote, 《标识办法》); on a phone narrower than 420 px the sound bars give it their
    room (暂停 / 继续 says the state already), so 「第 12 / 30 句」 stays whole at 360 px */
 @media (max-width:419px){.mini-player .eq{display:none}}
+/* 精听's bar (MINI docked, the user's pick of 语流 B9's design, 2026-11-25): the same dark pill, 12 px from each side so it
+   keeps its width playing or not, in the same place above the tabs. Idle: ▶ 播放全文 · AI 合成 · 1×; playing: the usual
+   player, with 1× where there is room. The page leaves room under its last sentence */
+.mini-player.docked{left:12px;right:12px;width:auto;max-width:none;transform:none;gap:8px;padding:6px 6px 6px 8px}
+.mini-player.docked:not(.idle){padding-left:14px}
+.mini-player.docked .sp{flex:1 1 auto}
+.mini-player.docked .toggle{min-height:44px;padding:0 16px}
+.mini-player.docked .close{min-height:44px;min-width:44px}
+.mini-player .speed-set{flex-shrink:0;min-width:44px;min-height:44px;padding:0 6px;border:0;border-radius:99px;background:transparent;color:inherit;font:inherit;font-weight:700;font-variant-numeric:tabular-nums}
+.mini-player .speed-set:focus-visible{outline:2px solid var(--fill);outline-offset:2px}
+@media (max-width:389px){.mini-player.docked:not(.idle) .speed-set{display:none}}
+@media (min-width:760px){.mini-player.docked{left:50%;right:auto;width:min(720px,calc(100% - 24px));transform:translateX(-50%)}}
+body.docked #view{padding-bottom:76px}
+/* 「正在准备朗读第 N 句…」 just above the bar */
+body.docked #lsPrep:not([hidden]){position:fixed;left:50%;transform:translateX(-50%);bottom:calc(140px + var(--sab));z-index:46;margin:0;max-width:calc(100% - 32px);
+  background:var(--ink);color:var(--bg);border-radius:99px;padding:6px 14px;box-shadow:var(--shadow);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (min-width:760px){body.docked #lsPrep:not([hidden]){bottom:84px}}
+/* the short row above the sentences: 从头开始 (with a kept place) and 👁 on the right; on the left only when the browser's
+   own voice reads (「AI 合成」 is in the bar, once) */
+.ls-head{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;margin:2px 0 4px}
+.ls-head .listen-tip{margin:0;flex:1 1 auto;min-width:0}
+.ls-head .listen-tip:empty{display:none}
+.ls-tools{display:inline-flex;align-items:center;gap:4px;flex-shrink:0;margin-left:auto}
+.ls-tools #playRestart{min-height:44px;padding:0 6px}
+.mini-player .ai-voice-note[hidden]{display:none}  /* the browser's own voice: not 「AI 合成」 */
