@@ -450,7 +450,7 @@ def daily_path(c, uid, home, now=None):
     # 「还有时间的话」, never 必做 — the words are 必做, these wait for time to spare. Not on a day back (the words first).
     oc = vs.other_counts(c, uid, now)
     if oc['due'] and not back:
-        extra = [{'key': 'review-other', 'title': f"错题和句型复习 · {oc['due']} 道", 'sub': f"做错过的题和收藏的句型，到期再来一次 · 约 {oc['minutes']} 分钟",
+        extra = [{'key': 'review-other', 'title': f"错题和句型复习 · {oc['due']} 道", 'sub': '做错过的题和收藏的句型，到期再来一次',  # 今日 adds 「· 约 N 分钟」 from minutes
                   'href': '#/review/other', 'done': False, 'minutes': oc['minutes'], 'group': 'extra', 'part': 'other'}] + extra[:EXTRA - 1]
     done = sum(1 for s in must if s['done'])
     studied = ps.active_minutes(c, uid, start, now + 1)
