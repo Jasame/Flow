@@ -2970,13 +2970,22 @@ def backlog_run(pw):
         check(dev, 'the review page says 先做 40 个（还有 N 个）, not 1 / 40 alone', f'先做 40 个（还有 {total - 40} 个）' in foot and '1 / 40' in foot, foot)
         check(dev, '结束 on the review page takes a tap 44 px around it', (pg.evaluate(TAP44_JS, '.rtop a.link') or {}).get('ok'), pg.evaluate(TAP44_JS, '.rtop a.link'))
         for k in range(60):
+            # the next card or the end page, whichever comes: after the 40th answer the end page first asks the server
+            # what is left (60-review.js), which on a slow runner outlasts a fixed pause (A2: two misses on GitHub)
+            try:
+                pg.wait_for_selector('#view .done-card, #view [data-claim], #view [data-self]', timeout=10000)
+            except Exception:
+                break
             if pg.query_selector('.done-card'):
                 break
             if pg.query_selector('[data-claim]'):
-                pg.click('[data-claim="know"]'); pg.wait_for_selector('.open-card', timeout=4000); pg.keyboard.press('Enter'); pg.wait_for_timeout(120); continue
-            if pg.query_selector('[data-self]'):
-                pg.click('[data-self="good"]'); pg.wait_for_timeout(150); continue
-            break
+                pg.click('[data-claim="know"]'); card = pg.wait_for_selector('#view .open-card', timeout=4000); pg.keyboard.press('Enter')
+                card.wait_for_element_state('hidden', timeout=10000); continue  # this answer has gone: the next card is drawn
+            el = pg.query_selector('[data-self="good"]'); el.click(); el.wait_for_element_state('hidden', timeout=10000)
+        try:
+            pg.wait_for_selector('.done-card #stopOk', timeout=10000)
+        except Exception:
+            pass
         head = pg.text_content('.done-card h2') if pg.query_selector('.done-card') else ''
         stop = pg.text_content('#stopOk') if pg.query_selector('#stopOk') else ''
         again = pg.text_content('#again') if pg.query_selector('#again') else ''
