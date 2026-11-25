@@ -3582,10 +3582,10 @@ def start_run(pw):
                     sheet = "() => ({title: document.getElementById('sheetTitle').textContent, tabs: [...document.querySelectorAll('#sheet [role=tab]')].map(b => b.textContent.trim() + (b.getAttribute('aria-selected') === 'true' ? '*' : ''))})"
                     pg.click('#wgReg'); pg.wait_for_selector('#authForm [name=username]', timeout=4000); pg.wait_for_timeout(300); a = pg.evaluate(sheet)
                     pg.screenshot(path=str(OUT / f'start-sheet-register-{theme}.png'))
-                    pg.click('#sheet [data-close]'); pg.wait_for_selector('#sheet', state='hidden', timeout=4000)
+                    pg.click('#sheet button[data-close]'); pg.wait_for_selector('#sheet', state='hidden', timeout=4000)
                     pg.click('#wgLogin'); pg.wait_for_selector('#authForm [name=password]', timeout=4000); pg.wait_for_timeout(300); b = pg.evaluate(sheet)
                     pg.screenshot(path=str(OUT / f'start-sheet-login-{theme}.png'))
-                    pg.click('#sheet [data-close]'); pg.wait_for_selector('#sheet', state='hidden', timeout=4000)
+                    pg.click('#sheet button[data-close]'); pg.wait_for_selector('#sheet', state='hidden', timeout=4000)
                     check(dev, f'{tag}: 注册账号 opens 注册语流 on 注册, 已有账号？登录 opens 登录语流 on 登录; 注册｜登录 the only tabs',
                           a == {'title': '注册语流', 'tabs': ['注册*', '登录']} and b == {'title': '登录语流', 'tabs': ['注册', '登录*']}, (a, b))
                 # 考试 opens the exams; an exam suggests a level (推荐), picked unless one was chosen by hand
