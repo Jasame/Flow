@@ -32,6 +32,11 @@ LIGHT = os.getenv('QA_LIGHT') == '1'
 AI_SLOT_COUNT = max(1, int(os.getenv('QA_AI_SLOTS', '1')))
 AI_SLOTS = threading.BoundedSemaphore(AI_SLOT_COUNT)
 CALLS, CHECKS, NOTES = [], [], []
+# The ¥10 stop of the day (ai_routes.day_full, 2026-11-25): an AI answer of code ai_day_full is the site doing its job,
+# not a fault. A check that fails right after it, on the same thread, is recorded as skipped, so a full day never
+# blocks a release or a fix (语流 A5). DAY_FULL: it happened in this run.
+LAST_AI = threading.local()
+DAY_FULL = threading.Event()
 T0 = time.time()
 
 
@@ -55,9 +60,12 @@ def spoken(who, what):
     return not LIGHT
 
 def check(who, name, ok, detail=''):
+    skipped = not ok and getattr(LAST_AI, 'full', False)
+    if skipped:
+        detail = '跳过（今天额度已满，ai_day_full）'
     with LOCK:
-        CHECKS.append({'who': who, 'name': name, 'ok': bool(ok), 'detail': str(detail)[:600]})
-    print(f'[{time.time() - T0:7.1f}] {who}: {"PASS" if ok else "FAIL"} {name} {"" if ok else str(detail)[:300]}', flush=True)
+        CHECKS.append({'who': who, 'name': name, 'ok': bool(ok) or skipped, 'skipped': skipped, 'detail': str(detail)[:600]})
+    print(f'[{time.time() - T0:7.1f}] {who}: {"SKIP" if skipped else "PASS" if ok else "FAIL"} {name} {"" if ok else str(detail)[:300]}', flush=True)
     return ok
 
 
@@ -121,6 +129,10 @@ class Client:
         data = dict(data, request_id=rid(tag))
         with AI_SLOTS if slot else contextlib.nullcontext():
             s, j = self.post(path, data)
+        LAST_AI.full = s == 429 and isinstance(j, dict) and j.get('code') == 'ai_day_full'
+        if LAST_AI.full and not DAY_FULL.is_set():
+            DAY_FULL.set()
+            note(self.who, "the day's AI stop is reached (ai_day_full): AI checks after it are skipped, not failed")
         res = j.get('result') if isinstance(j, dict) else None
         if s != 200:
             note(self.who, f'AI {path} -> {s} {j.get("error") if isinstance(j, dict) else j!r}'[:300])
@@ -749,7 +761,7 @@ def main():
               'light': LIGHT, 'ai_slots': AI_SLOT_COUNT,
               'limits': lim, 'usage_before': u0, 'usage_after': u1,
               'ai_calls_used': sum(u1['test_accounts'].values()),
-              'checks': {'total': len(CHECKS), 'failed': sum(not x['ok'] for x in CHECKS)},
+              'checks': {'total': len(CHECKS), 'failed': sum(not x['ok'] for x in CHECKS), 'skipped': sum(bool(x.get('skipped')) for x in CHECKS)},
               'failed': [x for x in CHECKS if not x['ok']], 'crashes': errors,
               'server_errors': [r for r in CALLS if r['status'] >= 500 or r['status'] == 0],
               'latency_ms': lat, 'removed': removed, 'user_columns_scanned': ncols,
