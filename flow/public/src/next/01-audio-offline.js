@@ -133,6 +133,7 @@
           if (e.network && old) return old[0];
           const err = new Error(e.message); err.server = e.message;
           err.code = e.network ? (navigator.onLine === false ? 'offline' : 'net') : (e.code || (e.status >= 500 ? 'gateway' : 'other'));
+          // the day's AI stop (ai_day_full) is not switched off here: sentences made already still come from the server
           if (err.code === 'off' || err.code === 'cap') this.off = err.code;  // today's share used (or switched off): the browser voice from now on
           throw err;
         }
@@ -156,7 +157,8 @@
       const code = (e && e.code) || 'other';
       this.lines = this.lines || {};
       const line = this.lines[code] || { offline: '离线中，这句还没存到本机，先用浏览器的声音', net: '网络不好，这句先用浏览器的声音', slow: '自然人声这次生成得太慢，先用浏览器的声音',
-        guest: '登录后能听 AI 朗读（自然人声），现在先用浏览器的声音', off: 'AI 朗读（自然人声）暂时没开，先用浏览器的声音' }[code]
+        guest: '登录后能听 AI 朗读（自然人声），现在先用浏览器的声音', off: 'AI 朗读（自然人声）暂时没开，先用浏览器的声音',
+        ai_day_full: '今天的 AI 用量已满，北京时间早上 8 点恢复；新的句子先用浏览器的声音，已经生成过的照常放' }[code]
         || (e && e.server) || 'AI 朗读（自然人声）这次没生成出来，先用浏览器的声音';
       this.lines[code] = line;
       if (!this.told.has(code)) { this.told.add(code); toast(line); noteIssue('audio', '服务器朗读退回浏览器声音', code); }

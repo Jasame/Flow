@@ -903,13 +903,16 @@
       var PF = cs.platforms || {}, bl = PF.bailian || {};
       var envBad = cs.server_routes_problem ? '<p class="err small">服务器设置有问题，任务都没按它走：' + esc(cs.server_routes_problem) + '</p>' : '';
       var budPill = bud.level === 'over' ? '<span class="pill danger">超过预算</span>' : bud.level === 'warn' ? '<span class="pill warn">已到 80%</span>' : '';
+      // the learners' hard stop (ai_routes.stop_line, default ¥10): their AI and new AI voice wait for 08:00 Beijing
+      var stop = d.stop || {}, stopPill = stop.full ? ' <span class="pill danger">学员 AI 已暂停</span>' : '';
+      var stopLine = stop.line ? '学员硬停 ' + yuan(stop.line) + (stop.full ? '（已到，北京时间早上 8 点恢复）' : '（从早上 8 点起已花 ' + yuan(stop.spent) + '，还差 ' + yuan(Math.max(0, stop.line - stop.spent)) + '）') : '不硬停';
       var ev = d.evals || [], ev0 = ev[0];
       main.innerHTML =
         '<div class="head-row"><div><h1>AI 用量、费用和质量</h1><p class="muted">' + esc(d.note) + ' 费用、token 按北京时间算。</p></div>' +
         '<div class="toolbar"><select id="aiDays"><option value="14"' + (d.days === 14 ? ' selected' : '') + '>近 14 天</option><option value="30"' + (d.days === 30 ? ' selected' : '') + '>近 30 天</option></select>' +
         (isAdmin() ? '<a class="btn" href="' + API + '/export/ai.csv">导出 CSV</a>' : '') + '</div></div>' +
         '<div class="kpi-grid">' +
-          kpi('今天的费用（估算）', yuan(cs.today) + ' ' + budPill, bud.daily ? '每日预算 ' + yuan(bud.daily) + ' · 已用 ' + bud.pct + '%' : '没有设每日预算') +
+          kpi('今天的费用（估算）', yuan(cs.today) + ' ' + budPill + stopPill, (bud.daily ? '每日预算 ' + yuan(bud.daily) + ' · 已用 ' + bud.pct + '%' : '没有设每日预算') + ' · ' + stopLine) +
           kpi('近 ' + cs.days + ' 天费用', yuan(tot.cost), n(tot.ok) + ' 次成功 · 失败 ' + n(tot.failed) + ' 次') +
           kpi('输入命中缓存', tot.cache_pct == null ? '—' : tot.cache_pct + '%', '百炼：命中的部分按输入价的 20% 算；提示词要 1024 token 以上才会命中') +
           kpi('备用线路答的', n((tot.backup || 0) + (tot.fallback || 0)) + ' 次', '网关换线 ' + n(tot.backup || 0) + ' · Flow 换到主模型 ' + n(tot.fallback || 0)) + '</div>' +
@@ -933,9 +936,12 @@
         '<div class="grid2">' +
           '<section class="card"><h2>每日预算和单价</h2><dl class="kv"><dt>每日预算</dt><dd>' + (bud.daily ? yuan(bud.daily) : '不设') + '</dd>' +
             '<dt>到预算时</dt><dd>80% 和 100% 各给管理员发一封邮件；超过后暂停例句预生成和每晚小评测，第二天恢复。学员的请求不受影响。</dd>' +
+            '<dt>学员硬停线</dt><dd>' + (stop.line ? yuan(stop.line) + ' · ' + (stop.source === 'console' ? '后台设置' : '默认') : '不硬停 · 后台设置') + stopPill +
+              '<div class="muted small">从北京时间早上 8 点算起，所有付了钱的 AI 调用花到这条线，学员的 AI 和新的 AI 朗读就暂停到第二天早上 8 点；页面上写「今天的 AI 用量已满」，不用 AI 的练习照常。' + (stop.line ? '现在已花 ' + yuan(stop.spent) + '。' : '') + '</div></dd>' +
             Object.keys(PF).map(function (k) { return '<dt>' + esc(PF[k].label) + '折扣</dt><dd>' + (PF[k].discount === 1 ? '按标价' : '标价 × ' + PF[k].discount) + '</dd>'; }).join('') +
             Object.keys(cs.prices || {}).map(function (f) { var p = cs.prices[f]; return '<dt>' + esc(p.label) + '</dt><dd><code>' + esc(f) + '</code> 标价：输入 ' + p['in'] + ' · 命中缓存 ' + p.cached + ' · 输出 ' + p.out + ' 元 / 百万 token' + (p.custom ? ' <span class="pill blue">手动设置</span>' : '') + (p.note ? '<div class="muted small">' + esc(p.note) + '</div>' : '') + '</dd>'; }).join('') + '</dl>' +
             (isAdmin() ? '<form class="form" id="budF" style="margin-top:12px"><div class="row"><label><span>每日预算（元，0 = 不设）</span><input class="input" id="budD" type="number" min="0" max="100000" step="0.5" value="' + (bud.daily || 0) + '"></label>' +
+              '<label><span>学员硬停线（元，0 = 不硬停，留空 = 默认 ¥10）</span><input class="input" id="budS" type="number" min="0" max="100000" step="0.5" placeholder="10" value="' + (stop.source === 'console' ? stop.line : '') + '"></label>' +
               '<label><span>百炼折扣（标价的几成，0.65 = 六五折）</span><input class="input" id="budB" type="number" min="0.05" max="1" step="0.01" value="' + (bl.discount || 1) + '"></label>' +
               '<label class="chk"><input type="checkbox" id="budN"' + (d.nightly ? ' checked' : '') + '> 每晚小评测（约 17 次调用）</label></div>' +
               '<div class="row"><button class="btn primary">保存</button></div></form>' : '') + '</section>' +
@@ -957,9 +963,9 @@
             return '<tr><td>' + esc(k.label) + '</td><td class="num">' + n(k.complete) + '</td><td class="num">' + n(k.failed) + '</td><td class="num">' + (k.fail_pct == null ? '—' : '<span class="' + (k.fail_pct >= 10 ? 'down' : '') + '">' + k.fail_pct + '%</span>') + '</td><td class="num opt">' + (k.seconds == null ? '—' : k.seconds + ' 秒') + '</td></tr>';
           }).join('') + '</tbody></table>' : '<p class="muted">这段时间没有 AI 请求。</p>') + '</section>' +
           '<section class="card"><h2>每日次数额度</h2><div class="spark" style="height:44px">' + d.by_day.map(function (x) { return '<div title="' + esc(x.day + '：' + x.count + ' 次') + '" style="height:' + Math.max(3, pct(x.count, max)) + '%"></div>'; }).join('') + '</div>' +
-            '<dl class="kv"><dt>今天</dt><dd>' + n(d.today) + ' 次' + (lim.site_limit ? '（全站上限 ' + n(lim.site_limit) + '，已用 ' + pct(d.today, lim.site_limit) + '%）' : '') + ' · 用满的账号 ' + n(d.users_at_limit) + ' 个</dd>' +
+            '<dl class="kv"><dt>今天</dt><dd>' + n(d.today) + ' 次' + (d.site_today ? '（今天的全站上限 ' + n(d.site_today) + '，已用 ' + pct(d.today, d.site_today) + '%，还剩 ' + n(Math.max(0, d.site_today - d.today)) + ' 次）' : '') + ' · 用满每账号上限的 ' + n(d.users_at_limit) + ' 个</dd>' +
             '<dt>每账号每天</dt><dd>' + (lim.user_limit ? n(lim.user_limit) + ' 次' : '不限') + ' · ' + src('user_limit') + '</dd>' +
-            '<dt>全站每天</dt><dd>' + (lim.site_limit ? n(lim.site_limit) + ' 次' : '不限') + ' · ' + src('site_limit') + '</dd>' +
+            '<dt>全站每天</dt><dd>' + (lim.site_limit ? n(lim.site_limit) + ' 次' + (lim.site_limit_source === 'console' ? '' : '起，近 7 天里至少 2 天用过 AI 的学员越多，当天的上限越高') : '不限') + ' · ' + src('site_limit') + '</dd>' +
             (lim.updated ? '<dt>上次修改</dt><dd>' + esc(when(lim.updated)) + ' · ' + esc(lim.by || '') + '</dd>' : '') + '</dl>' +
             (isAdmin() ? '<form class="form" id="limF" style="margin-top:14px"><div class="row"><label><span>每账号每天（次）</span><input class="input" id="limU" type="number" min="0" max="1000000" placeholder="服务器配置" value="' + (lim.user_limit_source === 'console' ? lim.user_limit : '') + '"></label>' +
               '<label><span>全站每天（次）</span><input class="input" id="limS" type="number" min="0" max="1000000" placeholder="服务器配置" value="' + (lim.site_limit_source === 'console' ? lim.site_limit : '') + '"></label></div>' +
@@ -992,9 +998,12 @@
       if (bf) bf.onsubmit = function (e) {
         e.preventDefault();
         var v = Number(document.getElementById('budD').value || 0), night = document.getElementById('budN').checked, disc = Number(document.getElementById('budB').value || 1);
+        var sv = document.getElementById('budS').value.trim(), sl = sv === '' ? null : Number(sv);
         if (!(v >= 0)) { alert('预算请填 0 或正数。'); return; }
+        if (sl !== null && !(sl >= 0)) { alert('硬停线请填 0 或正数，留空用默认 ¥10。'); return; }
+        if (sl === 0 && !confirm('设成 0 就不硬停了：AI 花多少都不会自动暂停。确定吗？')) return;
         if (!(disc > 0 && disc <= 1)) { alert('折扣请填 0–1 之间的小数，比如 0.65。'); return; }
-        busy(bf.querySelector('button'), postJSON('/settings/ai-budget', { daily: v, nightly: night, discounts: { bailian: disc } })).then(aiView);
+        busy(bf.querySelector('button'), postJSON('/settings/ai-budget', { daily: v, stop: sl, nightly: night, discounts: { bailian: disc } })).then(aiView);
       };
       var f = document.getElementById('limF');
       if (f) f.onsubmit = function (e) {
