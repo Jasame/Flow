@@ -154,7 +154,8 @@ def records(c, u):
     out = {'说明': '语流 Flow 为这个账号保存的全部学习记录。时间是 Unix 时间戳（秒）；每张表一组记录，常用的几张在「目录」里有说明。',
            'exported_at': datetime.datetime.now(CN).isoformat(timespec='seconds'),
            'account': {'username': row['username'], 'email': row['email'] or '', '年龄段': pv.label(pv.info(row)['age']),
-                       **({'监护人同意': _day(row['guardian_ok'])} if pv.info(row)['guardian'] else {})},
+                       **({'监护人同意': _day(row['guardian_ok'])} if pv.info(row)['guardian'] else {}),
+                       '数据存放在香港': {'ok': '同意（' + _day(row['storage_ok']) + '）', 'no': '不同意或撤回（' + _day(row['storage_no']) + '），账号暂停'}.get(pv.storage(row), '还没问') if 'storage_ok' in row.keys() else '还没问'},
            **__import__('class_service').export_rows(c, uid),
            '目录': {t: GUIDE[t] for t in tables if t in GUIDE}, 'tables': tables}
     return json.dumps(out, ensure_ascii=False, indent=1).encode('utf-8')

@@ -108,7 +108,7 @@ class ExportTests(Site):
         st, body, hd = self.call('/api/next/export/records.json', headers=self.sign_in(), raw=True)
         self.assertEqual(st, 200)
         out = json.loads(body)
-        self.assertEqual(out['account'], {'username': 'lin', 'email': 'lin@example.com', '年龄段': '没填'})  # the band, when given (privacy_service)
+        self.assertEqual(out['account'], {'username': 'lin', 'email': 'lin@example.com', '年龄段': '没填', '数据存放在香港': '还没问'})  # the band, when given (privacy_service)
         self.assertEqual(len(out['tables']['next_cards']), 4)
         self.assertEqual(out['tables']['next_profiles'][0]['themes'], [])  # JSON kept as JSON
         self.assertIn('next_cards', out['目录'])
@@ -186,7 +186,7 @@ class DeleteTests(Site):
         self.assertIsNone(self.call('/api/session', headers={'Cookie': h['Cookie']})[1].get('user'))
         self.assertEqual(self.call('/api/next/export/cards.csv', headers=hb, raw=True)[0], 200)  # ma is still signed in
         # the name is free again: signing up starts from nothing
-        st, body, _ = self.call('/api/register', {'username': 'lin', 'password': PW})
+        st, body, _ = self.call('/api/register', {'username': 'lin', 'password': PW, 'storage': True})
         self.assertEqual(st, 200, body)
 
     def counts(self, c):
