@@ -3405,6 +3405,19 @@ def review_side_run(pw):
                 pg.click('#meApp'); pg.wait_for_timeout(200); row['calls'] = pg.evaluate('window.__calls || []')
             rows[name] = [row, errs[:2]]
             ctx.close()
+        # 语流's iOS app saving power (低电量模式, iOS 27: FlowApp 'frugal', C1): 今日 fetches nothing ahead (the other tabs,
+        # today's texts kept offline), as with Save-Data; the app not saving: it does
+        ahead = {}
+        for name, on in (('saving', 'true'), ('not saving', 'false')):
+            ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
+            ctx.add_init_script("window.FlowApp = { v: 1, platform: 'ios', has: k => k === 'frugal', call: c => Promise.resolve(c === 'app.frugal' ? { on: " + on + " } : null), on: () => () => {} };")
+            pg = ctx.new_page(); seen = []
+            pg.on('request', lambda q: seen.append(q.url) if '/api/next/vocab' in q.url or '/api/next/material' in q.url else None)
+            pg.goto(BASE + '/', wait_until='load'); settle(pg); pg.wait_for_timeout(4000)
+            ahead[name] = len(seen)
+            ctx.close()
+        check(dev, 'the iOS app saving power: 今日 fetches nothing ahead; not saving, it does', ahead['saving'] == 0 and ahead['not saving'] > 0, ahead)
         ios = rows['iOS app'][0] or {}
         check(dev, '我的 → 设置: 「iOS 专属功能 · 锁屏、小组件、Siri 等」 in the iOS app, one line at 375 px, a tap opens the app\'s own page (app.settings)',
               ios.get('group') == '设置' and 'iOS 专属功能' in ios.get('text', '') and '锁屏、小组件、Siri 等' in ios.get('text', '') and ios.get('one') and ios.get('calls') == ['app.settings'], rows)
