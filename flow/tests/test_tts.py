@@ -243,6 +243,9 @@ class NightTests(TtsCase):
         r = tts.prewarm(self.c, budget=budget)
         self.assertEqual((r['status'], r['made']), ('budget', 5))
         self.assertEqual(self.c.execute('SELECT chars FROM tts_usage WHERE who=-1').fetchone()[0], budget - 1)
+        import ai_routes
+        kinds = {r[0] for r in ai_routes._db().execute("SELECT kind FROM ai_calls WHERE service='tts'")} if ai_routes._db() else {'tts-prewarm'}
+        self.assertEqual(kinds, {'tts-prewarm'})  # its own name in the costs; never counted for the learners' ¥10 stop
         self.assertIsNone(self.c.execute('SELECT 1 FROM tts_usage WHERE who=0').fetchone())  # not the learners' share
         r = tts.prewarm(self.c, budget=10 ** 6)
         self.assertEqual((r['status'], r['made'], r['stored']), ('done', len(fixed) - 5, 5))
