@@ -724,3 +724,10 @@
   - #356 更新记录 r36（今晚）：简洁/详细卡、推荐开关、精听播放条（内容、发版和构建）
 - 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45665460782
+
+### b90 · 2026-11-26 01:50
+- main `a6429f6`，构建 `4bdc14a`
+- 新合并的 PR（自 b89 起）：
+  - #353 后台 AI 费用：批量任务每晚上限（跟 #330）（后台和班级）
+- 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45668764204
