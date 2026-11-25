@@ -3461,6 +3461,20 @@ def review_side_run(pw):
                 pg.click('#meApp'); pg.wait_for_timeout(200); row['calls'] = pg.evaluate('window.__calls || []')
             rows[name] = [row, errs[:2]]
             ctx.close()
+        # the microphone refused in an app: the way to turn it on in that system's own settings (HarmonyOS: 语流 C4); a
+        # platform not listed gets no other system's path (it once fell back to the iPhone's)
+        said = {}
+        for plat in ('harmony', 'ios', 'someos'):
+            ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
+            ctx.add_init_script("try { localStorage.setItem('flow-mic-explained', '1'); } catch (e) {} window.FlowApp = { v: 1, platform: '" + plat + "', has: k => k === 'rec', "
+                                "rec: { ask: () => Promise.resolve(false) }, on: () => () => {}, call: () => Promise.resolve(null) };")
+            pg = ctx.new_page(); pg.goto(BASE + '/#/sounds/th-s', wait_until='load'); settle(pg); pg.wait_for_selector('#view .icon-btn.rec', timeout=8000)
+            pg.click('#view .icon-btn.rec'); pg.wait_for_timeout(600)
+            said[plat] = pg.evaluate("(document.querySelector('.toast') || {}).textContent || ''")
+            ctx.close()
+        check(dev, 'the microphone refused in an app: HarmonyOS gets its own settings path, iOS its own, an unknown system no other one',
+              '应用和元服务 → 语流 → 麦克风' in said['harmony'] and 'iPhone 的「设置 → 语流 → 麦克风」' in said['ios'] and 'iPhone' not in said['someos'] and '系统设置里找到语流' in said['someos'], said)
         # 语流's iOS app saving power (低电量模式, iOS 27: FlowApp 'frugal', C1): 今日 fetches nothing ahead (the other tabs,
         # today's texts kept offline), as with Save-Data; the app not saving: it does
         ahead = {}
