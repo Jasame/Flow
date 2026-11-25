@@ -180,3 +180,13 @@
   - #121 老师模式：一次性老师注册链接、老师首页建班、操作指南新增「老师」一章（开局和考试、后台和班级、操作指南）
 - 自检：DEPLOYED，装了 14 个文件（1 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45533105876
+
+### b34 · 2026-11-25 10:37
+- main `fdd7197`，构建 `39d16ba`
+- 新合并的 PR（自 b33 起）：
+  - #110 r28 第 4 段：每天一份「考试小练」，整套阅读篇数按每天的时间（开局和考试、操作指南）
+  - #112 r28 第 2 段：回归模式（欢迎回来）（今日和计划、操作指南）
+  - #128 MSI 测试机：Tests 的分片可以跑在用户的 MSI 上，离线或太忙时自动退回 GitHub 的机器（默认不启用）（发版和构建）
+  - #130 文字模型（百炼 DeepSeek）45 秒没回就交给 Gemini（FLOW_TEXT_TIMEOUT）（AI）
+- 自检：ABORT_FETCH
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45534199497
