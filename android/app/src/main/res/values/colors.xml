@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- the page's own theme-color (next.html), so the bars around it match -->
+    <color name="flow_bg">#FBFAF6</color>
+    <color name="flow_text">#1B2420</color>
+    <color name="flow_green">#1F9D55</color>
+</resources>
