@@ -46,7 +46,9 @@ final class Shell {
                 Packs.schedule()
             case .frugal: Frugal.shared.update()
             case .reviewActivity: if !on { Task { await ReviewActivities.endAll() } }
-            case .localCheck: if on { Task { _ = await LocalCheck.shared.prepare() } } else { LocalCheck.shared.forget() }
+            case .localCheck:
+                if on { Task { _ = await LocalCheck.shared.prepare() } } else { LocalCheck.shared.forget() }
+                Shell.shared.bridge.featuresChanged()  // FlowApp.has('localcheck') follows the switch
             case .smartResume, .haptics, .siri: break
             }
         }

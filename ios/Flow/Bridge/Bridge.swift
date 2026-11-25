@@ -12,7 +12,11 @@ import WidgetKit
 final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
     static let name = "flow"
     static let version = 1
-    static let features = ["audio", "rec", "notify", "settings", "haptic", "frugal", "activity", "localcheck"]
+    /// What this app can do for the page (FlowApp.has). `localcheck` only while its switch is on: the page shows
+    /// nothing of the offline check otherwise, and follows the switch at once (featuresChanged).
+    static var features: [String] {
+        ["audio", "rec", "notify", "settings", "haptic", "frugal", "activity"] + (Features.on(.localCheck) ? ["localcheck"] : [])
+    }
 
     weak var webView: WKWebView?
     /// the page's 主题色 changed (Accent): the app's own controls take it
@@ -36,13 +40,30 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
     /// The wrapper the three apps share (native/flowapp.js, docs/native-bridge.md §2) after iOS's transport, at document
     /// start in the main frame, and the message handler, in the page's own world.
     func install(in ucc: WKUserContentController) {
+        scripts = ucc
+        addScripts(ucc)
+        ucc.addScriptMessageHandler(self, contentWorld: .page, name: Self.name)
+    }
+
+    private weak var scripts: WKUserContentController?
+
+    private func addScripts(_ ucc: WKUserContentController) {
         let cfg: [String: Any] = ["v": Self.version, "app": AppConfig.version, "build": AppConfig.build, "platform": "ios",
                                   "features": Self.features, "beta": AppConfig.isBeta]
         let src = Self.transport(cfg) + Self.script
         ucc.addUserScript(WKUserScript(source: src, injectionTime: .atDocumentStart, forMainFrameOnly: true, in: .page))
-        ucc.addScriptMessageHandler(self, contentWorld: .page, name: Self.name)
         ucc.addUserScript(WKUserScript(source: Accent.script, injectionTime: .atDocumentEnd, forMainFrameOnly: true, in: .page))
         if AppConfig.muted { ucc.addUserScript(WKUserScript(source: Self.muteScript, injectionTime: .atDocumentStart, forMainFrameOnly: false, in: .page)) }
+    }
+
+    /// A switch of the app's own page changed what it can do: the page now (event `features`, FlowApp.has follows) and
+    /// after a reload (the scripts again, with the new list).
+    func featuresChanged() {
+        if let ucc = scripts {
+            ucc.removeAllUserScripts()
+            addScripts(ucc)
+        }
+        emit("features", ["features": Self.features])
     }
 
     /// AppConfig.muted: the page's own sound silenced too (<audio>/<video>, Web Audio, the browser voice)
@@ -129,7 +150,7 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
         case "rec.stop": return await recorder.stop()
         case "rec.cancel": recorder.cancel(); return true
         case "rec.localcheck":  // 「本机快速检查（离线）」: the take just stopped, heard on the phone (LocalCheck)
-            return await LocalCheck.shared.check((a["text"] as? String) ?? "")
+            return await LocalCheck.shared.check(lang: (a["lang"] as? String) ?? "en-US")
 
         case "notify.permission": return await reminders.permission()
         case "notify.ask": return await reminders.ask()

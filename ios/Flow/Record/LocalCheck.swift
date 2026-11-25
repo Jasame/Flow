@@ -3,9 +3,10 @@ import Network
 import Speech
 
 /// 「本机快速检查（离线）」 (iOS 专属功能, item 13; the owner's conditions of 2026-11-25, ios-27-features.md): with no
-/// network, a 跟读 take is heard once by iOS's own speech recognition **on this phone** and the words of the sentence
-/// it did not hear are marked 漏读. Nothing else: no score, no 错题本, no statistics, nothing uploaded later; with a
-/// network the server does the checking and this never runs. Recognition is on-device only (requiresOnDeviceRecognition):
+/// network, a 跟读 take is heard once by iOS's own speech recognition **on this phone**; the page lines what was heard
+/// up with the sentence (its compare_words, the same for every app: 语流 B3) and marks only the words not heard (漏读).
+/// Nothing else: no score, no 错题本, no statistics, nothing uploaded later; with a network the server does the checking
+/// and this never runs. Recognition is on-device only (requiresOnDeviceRecognition):
 /// where this iPhone cannot recognise English on the device, the answer is 'unavailable', never Apple's servers.
 /// The take is kept in memory only while the switch is on, from rec.stop() until the check, the next recording or
 /// two minutes, whichever comes first.
@@ -58,8 +59,8 @@ final class LocalCheck {
         return state
     }
 
-    /// FlowApp.call('rec.localcheck', {text}) after rec.stop()
-    func check(_ text: String) async -> [String: Any] {
+    /// FlowApp.rec.localcheck({lang}) after rec.stop(): {ok: true, heard} ('' when nothing was heard) or {ok: false, why}
+    func check(lang: String = "en-US") async -> [String: Any] {
         guard Features.on(.localCheck) else { return ["ok": false, "why": "off"] }
         guard !online || pretendOffline else { take = nil; return ["ok": false, "why": "online"] }
         guard let t = take, Date().timeIntervalSince(t.at) < 120 else { take = nil; return ["ok": false, "why": "none"] }
@@ -72,9 +73,8 @@ final class LocalCheck {
         let file = FileManager.default.temporaryDirectory.appendingPathComponent("localcheck-\(UUID().uuidString).\(t.ext)")
         defer { try? FileManager.default.removeItem(at: file) }
         do { try t.data.write(to: file, options: .completeFileProtection) } catch { return ["ok": false, "why": "error"] }
-        guard let heard = await Self.recognize(file) else { return ["ok": false, "why": "error"] }
-        let words = Self.compare(text, heard)
-        return ["ok": true, "words": words.map { ["w": $0.w, "ok": $0.ok] }, "missing": words.filter { !$0.ok }.map(\.w)]
+        guard let heard = await Self.recognize(file, locale: Self.locale(lang)) else { return ["ok": false, "why": "error"] }
+        return ["ok": true, "heard": heard]
     }
 
     /// iOS's question; its answer comes on a queue of its own
@@ -86,9 +86,12 @@ final class LocalCheck {
 
     nonisolated private static var recognizer: SFSpeechRecognizer? { SFSpeechRecognizer(locale: Locale(identifier: "en-US")) }
 
-    /// iOS's recognition of the file, on this phone only; nil when it failed (an empty take is "", all words missing)
-    nonisolated private static func recognize(_ file: URL) async -> String? {
-        guard let r = recognizer, r.supportsOnDeviceRecognition else { return nil }
+    /// the page's lang: American or British English; anything else is heard as American
+    nonisolated static func locale(_ lang: String) -> Locale { Locale(identifier: lang == "en-GB" ? "en-GB" : "en-US") }
+
+    /// iOS's recognition of the file, on this phone only; nil when it failed ("" when nothing was heard)
+    nonisolated private static func recognize(_ file: URL, locale: Locale) async -> String? {
+        guard let r = SFSpeechRecognizer(locale: locale), r.supportsOnDeviceRecognition else { return nil }
         let req = SFSpeechURLRecognitionRequest(url: file)
         req.requiresOnDeviceRecognition = true  // never Apple's servers (the owner's condition)
         req.shouldReportPartialResults = false
@@ -102,34 +105,8 @@ final class LocalCheck {
                     once.resume(error.domain == "kAFAssistantErrorDomain" && error.code == 1110 ? "" : nil)
                 }
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 30) { once.timeout() }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 9) { once.timeout() }  // the page waits 10 s
         }
-    }
-
-    /// The server's compare_words (next_service.py), word for word: a longest common subsequence of the sentence's
-    /// words and the heard ones (letters and an inner apostrophe, case ignored); each word of the sentence ok or not.
-    nonisolated static func compare(_ target: String, _ heard: String) -> [(w: String, ok: Bool)] {
-        let t = words(target), h = words(heard)
-        let n = t.count, m = h.count
-        var lcs = Array(repeating: Array(repeating: 0, count: m + 1), count: n + 1)
-        for i in stride(from: n - 1, through: 0, by: -1) {
-            for j in stride(from: m - 1, through: 0, by: -1) {
-                lcs[i][j] = t[i] == h[j] ? lcs[i + 1][j + 1] + 1 : max(lcs[i + 1][j], lcs[i][j + 1])
-            }
-        }
-        var out: [(w: String, ok: Bool)] = [], i = 0, j = 0
-        while i < n {
-            if j < m, t[i] == h[j] { out.append((t[i], true)); i += 1; j += 1 }
-            else if j < m, lcs[i][j + 1] >= lcs[i + 1][j] { j += 1 }
-            else { out.append((t[i], false)); i += 1 }
-        }
-        return out
-    }
-
-    /// next_service.WORD: [A-Za-z]+(?:'[A-Za-z]+)?, lower-cased
-    nonisolated static func words(_ s: String) -> [String] {
-        let re = /[A-Za-z]+(?:'[A-Za-z]+)?/
-        return s.matches(of: re).map { String($0.output).lowercased() }
     }
 }
 

@@ -127,17 +127,16 @@ enum BridgeTestPage {
     }
     // 「本机快速检查（离线）」 on the take just stopped: the words of the sentence not heard (the simulator's microphone hears nothing)
     $('lcheck').onclick = async () => {
-      const r = await A.call('rec.localcheck', { text: "Good morning, everyone. It's a fine day." });
-      $('checkOut').textContent = r.ok ? `check: ok missing ${r.missing.length}/${r.words.length} ${r.missing.join(' ')}` : `check: ${r.why}`;
+      const r = await A.call('rec.localcheck', { lang: 'en-US' });
+      $('checkOut').textContent = r.ok ? `check: ok heard ${r.heard.split(/\s+/).filter(Boolean).length} words` : `check: ${r.why}`;
     };
-    // the same on a whole text the site reads (彩虹): its recording as the take, its sentences as the text
+    // the same on a whole text the site reads (彩虹): its recording as the take
     $('lsample').onclick = async () => {
       const id = 'v5-science-b1-rainbow', m = await (await fetch('/api/next/material?id=' + id)).json();
-      const text = (m.sentences || []).map(s => s.text || s.en || s).join(' ');
       const t = await A.call('rec.localcheck-take', { path: `/audio/us-f/${id}.mp4?v=${m.audio.version}` });
       if (!t.ok) { $('checkOut').textContent = 'check: take ' + t.why; return; }
-      const r = await A.call('rec.localcheck', { text });
-      $('checkOut').textContent = r.ok ? `check: ok missing ${r.missing.length}/${r.words.length} ${r.missing.slice(0, 8).join(' ')}` : `check: ${r.why}`;
+      const r = await A.call('rec.localcheck', { lang: 'en-US' });
+      $('checkOut').textContent = r.ok ? `check: ok heard ${r.heard.slice(0, 60)}` : `check: ${r.why}`;
     };
     $('rec').onclick = async () => {
       const r = await A.rec.start({ max: 2 });
