@@ -38,7 +38,7 @@
       <form class="card stack fb" id="fbForm" novalidate>
         <div class="chips" role="radiogroup" aria-label="反馈类型">${FB_KINDS.map(([k, l]) => `<button type="button" class="chip" role="radio" data-k="${k}" aria-checked="${k === kind}">${l}</button>`).join('')}</div>
         <label class="stack-s" for="fbText"><b>发生了什么</b><span class="tiny muted">在哪个页面、点了什么、看到了什么。</span></label>
-        <textarea id="fbText" rows="5" maxlength="1000" placeholder="比如：在「单词」页往下滑，底部的按钮跑到了屏幕中间。"></textarea>
+        <textarea id="fbText" data-draft="feedback" rows="5" maxlength="1000" placeholder="比如：在「单词」页往下滑，底部的按钮跑到了屏幕中间。"></textarea>
         <div class="row between"><span class="tiny err" id="fbErr" role="alert"></span><span class="tiny muted" id="fbCount">0 / 1000</span></div>
         <div class="stack-s"><b>截图 <span class="tiny muted">可选，最多 3 张</span></b>
           <div class="fb-shots" id="fbShots"></div>
@@ -77,6 +77,7 @@
         await api('/api/feedback', { kind, text, contact: c ? c.value.trim() : '', page: from, images: shots, website: document.getElementById('fbHp').value,
           device: { ua: navigator.userAgent, w: innerWidth, h: innerHeight, dpr: devicePixelRatio || 1, lang: navigator.language || '', asset: ASSET,
             theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light', standalone: STANDALONE(), wechat: IN_WECHAT, errors: ERRS.slice() } });
+        draftDone('feedback');
         view.innerHTML = `<div class="card done-card enter stack fb-done"><div class="big" aria-hidden="true">✓</div><h1 class="h1">已收到，谢谢！</h1>
           <p class="muted">${shots.length ? `连同 ${shots.length} 张截图一起收到了。` : ''}我们会尽快看，修好后会在新版本里更新。</p>
           <div class="row center"><a class="btn primary" href="${esc(from || '#/me')}">${from ? '回到刚才的页面' : '返回「我的」'}</a><button class="btn ghost" id="fbMore" type="button">再提一个</button></div></div>`;
