@@ -166,7 +166,8 @@ sys.exit(not unittest.TextTestRunner(verbosity=0).run(unittest.TestSuite(tests))
 def run_checks():
     steps = [('policy tests (tests/)', [sys.executable, '-c', POLICY_TESTS]),
              ('front end built from its parts', [sys.executable, 'tools/build_front.py']),
-             ('dictionary matches its sources', [sys.executable, 'tools/build_dictionary.py', '--check'])]
+             ('dictionary matches its sources', [sys.executable, 'tools/build_dictionary.py', '--check']),
+             ('scripts run in Safari 15.0', [sys.executable, 'tools/check_compat.py'])]
     node = shutil.which('node')
     steps += [(f'{js} parses', [node, '--check', js]) for js in SERVED_JS] if node else []
     bad = []

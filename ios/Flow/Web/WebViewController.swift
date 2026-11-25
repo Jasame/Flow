@@ -1,3 +1,4 @@
+import SwiftUI
 import UIKit
 import WebKit
 
@@ -79,6 +80,7 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
         refresh.addTarget(self, action: #selector(pulled), for: .valueChanged)
         webView.scrollView.refreshControl = refresh
         bridge.onAccent = { [weak self] name in self?.applyAccent(name) }
+        bridge.onSettings = { [weak self] in self?.showFeatures() ?? false }
         applyAccent(Accent.saved)  // the last 主题色 the page showed, until it says again
         Task { await start() }
     }
@@ -114,6 +116,16 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
             pendingPath = path
             if started, !webView.isLoading { load(AppConfig.start) }
         }
+    }
+
+    /// 我的 → 设置 → 「iOS 专属功能」 (the page asks: app.settings): the app's own page, over the site
+    func showFeatures() -> Bool {
+        guard view.window != nil else { return false }
+        if presentedViewController is UIHostingController<FeaturesView> { return true }
+        let page = UIHostingController(rootView: FeaturesView(accent: Color(uiColor: Accent.color(Accent.saved))))
+        page.view.accessibilityIdentifier = "flow.features"
+        present(page)
+        return true
     }
 
     @objc private func pulled() {
@@ -329,6 +341,9 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
         box.alignment = .center
         box.spacing = 14
         box.translatesAutoresizingMaskIntoConstraints = false
+        let symbol = UIImageView(image: UIImage(systemName: Self.offline(error) ? "wifi.slash" : "exclamationmark.icloud"))
+        symbol.preferredSymbolConfiguration = UIImage.SymbolConfiguration(textStyle: .largeTitle)
+        symbol.tintColor = .secondaryLabel
         let title = UILabel()
         title.text = "连不上语流"
         title.font = .preferredFont(forTextStyle: .title2)
@@ -338,12 +353,15 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
         detail.textColor = .secondaryLabel
         detail.numberOfLines = 0
         detail.textAlignment = .center
-        var conf = UIButton.Configuration.filled()
+        // iOS 26 and later: the system's own glass button, as the rest of iOS draws it now
+        var conf: UIButton.Configuration
+        if #available(iOS 26, *) { conf = .prominentGlass() } else { conf = .filled() }
         conf.title = "再试一次"
         conf.cornerStyle = .capsule
+        conf.buttonSize = .large
         let again = UIButton(configuration: conf, primaryAction: UIAction { [weak self] _ in self?.load(AppConfig.start) })
         again.accessibilityIdentifier = "flow.retry"
-        [title, detail, again].forEach(box.addArrangedSubview)
+        [symbol, title, detail, again].forEach(box.addArrangedSubview)
         let cover = UIView()
         cover.backgroundColor = view.backgroundColor
         cover.translatesAutoresizingMaskIntoConstraints = false

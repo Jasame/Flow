@@ -287,7 +287,7 @@ with app.db() as c:
         c.execute("INSERT INTO next_tours(user_id, tour, result, created) VALUES(?,?,'pending',?)", (out[who]['id'], tour, time.time()))
     # 班级试用: ui-teacher's class with 5 members who studied and got grammar points wrong this week (class_run)
     now = time.time()
-    cid = c.execute("INSERT INTO classes(name, code, teacher, by, created, updated) VALUES('高一（3）班', 'UICLS2', ?, 'ui', ?, ?)", (out['teacher']['id'], now, now)).lastrowid
+    cid = c.execute("INSERT INTO classes(name, code, teacher, by, created, updated) VALUES('大学英语（2）班', 'UICLS2', ?, 'ui', ?, ?)", (out['teacher']['id'], now, now)).lastrowid
     nodes = [r[0] for r in c.execute('SELECT id FROM subskills ORDER BY rowid LIMIT 3')]
     for k in range(5):
         c.execute('INSERT INTO users(username,password) VALUES(?,?)', (f'ui-member-{k}', 'ui-no-login:' + secrets.token_hex(8)))
@@ -333,7 +333,7 @@ class ConsolePage(flow_admin.AdminHandler):
 
 console = ThreadingHTTPServer(('127.0.0.1', 0), ConsolePage)
 threading.Thread(target=console.serve_forever, daemon=True).start()
-(STATE / 'sessions.json').write_text(json.dumps({'base': f'http://127.0.0.1:{PORT}', 'pid': PID, 'learners': out, 'class': {'id': cid, 'code': 'UICLS2', 'name': '高一（3）班'},
+(STATE / 'sessions.json').write_text(json.dumps({'base': f'http://127.0.0.1:{PORT}', 'pid': PID, 'learners': out, 'class': {'id': cid, 'code': 'UICLS2', 'name': '大学英语（2）班'},
                                                  'console': f'http://127.0.0.1:{console.server_address[1]}/flow/', 'outbox': os.path.join(tmp, 'outbox')}))
 
 

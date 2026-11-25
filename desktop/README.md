@@ -95,6 +95,21 @@ CI（`.github/workflows/desktop.yml`）在 windows-latest 上装好 NSIS 安装�
 内测版（语流内测）用橙色底（#e8590c，用户 2026-11-25 选的，各端内测版都一样）：`src-tauri/icons-beta/`，tauri.beta.conf.json 的 `bundle.icon` 指向它；
 重画用 `python3 tools/make_icon.py --beta`，再 `npx tauri icon src-tauri/app-icon-beta.png -o src-tauri/icons-beta`。托盘图标跟着窗口图标走，也是橙色。
 
+## Linux（2026-11-25 开工，方案和用户的选择见共享笔记 linux-desktop-plan.md）
+
+- **包**：AppImage（所有发行版通用，能自动更新，打包了放声音用的 GStreamer）和 deb（Ubuntu 22.04+ / Debian 12+ / 深度 / 统信 UOS / 麒麟，
+  依赖 `gstreamer1.0-plugins-good gstreamer1.0-libav`，推荐装中文字体 `fonts-noto-cjk`）。x86_64。rpm 以后再说。
+  界面的中文靠系统字体：常见桌面版都带，精简安装或英文系统可能没有，AppImage 也不带（安装说明里写了怎么装）。
+- **网页引擎**：系统的 WebKitGTK 4.1。App 会打开麦克风（WebKitGTK 默认关着），录音能不能用要真机实测。
+- **系统媒体控制**：走 MPRIS（GNOME、KDE 的媒体控件、键盘媒体键），名字是 `org.mpris.MediaPlayer2.<bundle id>`。
+- **提醒**：Linux 没有系统替 App 定时弹通知的接口，所以**只在 App 开着时提醒**。App 自己计时，到点弹 freedesktop 通知，点通知打开复习页。
+  Linux 上「关窗口后留在托盘」默认打开，再配合「开机时启动」，就等于一直开着。
+  GNOME 没有托盘区（要装 AppIndicator 扩展）；关掉窗口后再从应用菜单打开一次，窗口就会回来。
+- **自动更新**：只有 AppImage 会自己换新版。deb 每次更新都要管理员密码（pkexec），所以 deb 只发一条「有新版本，到下载页下载」的通知。
+  latest.json 里多一项 `linux-x86_64`，指向签过名的 AppImage（`make_update.py prepare --appimage … --deb …`）。
+- **构建**：GitHub 的 ubuntu-22.04 机器（desktop.yml 的 linux job，由 A2 配，要用户同意），冒烟测试在 xvfb 和 dbus-run-session 里跑。
+- **真机测试**：请有 Linux 电脑的同学按共享笔记 linux-desktop-test.md 试。
+
 ## 签名（现在都没有，只记在这里）
 
 - **macOS**：正式分发要 Apple 开发者账号（和 iOS 共用一个，用户还没有）。在那之前是 ad-hoc 签名的 .app，下载后第一次打开要到

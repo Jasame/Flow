@@ -98,6 +98,10 @@ class QuotaTests(unittest.TestCase):
   rows=[(t-60,200,1),(t-50,200,0),(t-40,500,0),(t-10*3600,200,1)]  # paid, paid but unusable, failed, yesterday's learner day
   for ts,status,ok in rows:
    self.c.execute("INSERT INTO ai_calls(ts,kind,service,model,ok,status) VALUES(?,?,?,?,?,?)",(ts,'next-rewrite','text','m',ok,status))
+  # work no learner asked for: never counted for the learners' stop (a night of batch work must not stop them)
+  for kind,model in (('fill-examples','flow-batch-ds-flash'),('daily-topic','flow-text-ds-flash'),('tts-prewarm','flow-tts'),
+                     ('next-rewrite','flow-eval-ds-flash'),('word-extras','flow-batch-ds-flash'),('ai-check','flow-text')):
+   self.c.execute("INSERT INTO ai_calls(ts,kind,service,model,ok,status) VALUES(?,?,?,?,?,?)",(t-30,kind,'text',model,1,200))
   self.c.commit()
   with patch.object(ai_routes,'cost',lambda *a:3.0):
    self.assertEqual(ai_routes.spent_since(self.c,ai_routes.learner_day_start(t)),6.0)
@@ -106,5 +110,27 @@ class QuotaTests(unittest.TestCase):
    ai_routes._FULL.update(key=None)
    with patch.object(ai_routes,'_settings',lambda:{'ai_stop':7}):self.assertFalse(ai_routes.day_full(self.c,now=t))
   ai_routes._FULL.update(key=None)
+
+ def test_batch_work_has_a_night_ceiling_of_its_own(self):  # A0 for the owner 2026-11-25: 每晚上限 ¥15，到线就停，后台看得到
+  import ai_routes
+  with patch.object(ai_routes,'_settings',lambda:{}):self.assertEqual(ai_routes.batch_line(),15.0)
+  with patch.object(ai_routes,'_settings',lambda:{'ai_batch':20}):self.assertEqual(ai_routes.batch_line(),20.0)
+  with patch.object(ai_routes,'_settings',lambda:{'ai_batch':0}):
+   self.assertEqual(ai_routes.batch_line(),0.0);self.assertFalse(ai_routes.batch_full(self.c))
+  ai_routes.schema(self.c)
+  t=time.time();start=ai_routes.learner_day_start(t)
+  for kind,model in (('fill-examples','flow-batch-ds-flash'),('daily-topic','flow-text-ds-flash'),('tts-prewarm','flow-tts'),
+                     ('next-rewrite','flow-eval-ds-flash'),('word-extras','flow-batch-ds-flash'),  # batch: 5 rows
+                     ('next-rewrite','flow-text-ds-flash'),('tts','flow-tts'),('ai-check','flow-text')):  # learners and a deploy check
+   self.c.execute("INSERT INTO ai_calls(ts,kind,service,model,ok,status) VALUES(?,?,?,?,?,?)",(max(start,t-30),kind,'text',model,1,200))
+  self.c.commit()
+  with patch.object(ai_routes,'cost',lambda *a:3.0):
+   self.assertEqual(ai_routes.batch_spent_since(self.c,start),15.0)
+   self.assertEqual(ai_routes.spent_since(self.c,start),6.0)  # the learners' stop sees only their two calls
+   with patch.object(ai_routes,'_settings',lambda:{}):
+    self.assertTrue(ai_routes.batch_full(self.c,now=t));self.assertTrue(ai_routes.batch_stop(self.c))
+   with patch.object(ai_routes,'_settings',lambda:{'ai_batch':16}):
+    self.assertFalse(ai_routes.batch_full(self.c,now=t))
+    with patch.object(ai_routes,'over_budget',lambda c=None:True):self.assertTrue(ai_routes.batch_stop(self.c))  # the ¥5 budget still stops it
 
 if __name__=='__main__':unittest.main()
