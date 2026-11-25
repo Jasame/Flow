@@ -4,9 +4,10 @@
 The daily backup (flow-backup.service, 03:15) keeps the database as it is, so the copy 杭州 pulls every day can be
 restored straight away. /etc/flow.env holds every key: with FLOW_BACKUP_AGE_RECIPIENT set (the owner's age public key,
 age1…; several: comma-separated) it is kept only encrypted, as flow.env.age (age -r), and its private key never comes
-to a server. Restoring /etc/flow.env from such a backup takes that private key: ask the user (the owner) for it, then
-  age -d -i <the key file> -o /etc/flow.env <backup>/flow.env.age && chmod 600 /etc/flow.env
-and remove the key file from the server afterwards. Without FLOW_BACKUP_AGE_RECIPIENT, flow.env is copied as before."""
+to a server. Restoring /etc/flow.env from such a backup takes that private key, which only the user has, in their
+password manager (the AGE-SECRET-KEY-1… line): ask the user for it, put it in a temporary file (chmod 600), then
+  age -d -i <that file> -o /etc/flow.env <backup>/flow.env.age && chmod 600 /etc/flow.env
+and delete the temporary file. Without FLOW_BACKUP_AGE_RECIPIENT, flow.env is copied as before."""
 import argparse,datetime,json,os,re,secrets,sqlite3,tarfile,tempfile,time,subprocess,shutil
 from pathlib import Path
 ROOT=Path('/www/wwwroot/flow');BACKUPS=Path('/www/backup/flow/daily');ENV_FILE=Path('/etc/flow.env')
@@ -86,8 +87,9 @@ def save_env(folder):
 def env_note(folder):
  """How to put this backup's flow.env back (restore leaves /etc/flow.env as it is)."""
  if (folder/'flow.env.age').exists():
-  print('这份备份里的 flow.env 是加密的（flow.env.age）：要还原 /etc/flow.env，先找用户要 age 私钥，再执行 '
-        'age -d -i <私钥文件> -o /etc/flow.env '+str(folder/'flow.env.age')+' && chmod 600 /etc/flow.env，用完把私钥文件从服务器上删掉。')
+  print('这份备份里的 flow.env 是加密的（flow.env.age）：要还原 /etc/flow.env，先找用户从密码管理器拿 age 私钥'
+        '（AGE-SECRET-KEY-1… 那一行），存进一个临时文件（chmod 600），再执行 '
+        'age -d -i <临时文件> -o /etc/flow.env '+str(folder/'flow.env.age')+' && chmod 600 /etc/flow.env，用完把临时文件删掉。')
 
 # tools/flow-pull.sh keeps a copy of the database from before each deploy, in one folder for both sites:
 # backup-pull-<YYYYMMDD-HHMMSS> for 语流 (flow), backup-pull-beta-<…> for the 内测版 (flow-beta).

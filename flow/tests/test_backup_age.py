@@ -151,10 +151,11 @@ class BackupEnvTests(unittest.TestCase):
         for folder, asks in ((sealed, True), (plain, False)):
             with contextlib.redirect_stdout(io.StringIO()) as said:
                 ops.restore(folder, False)
-            self.assertEqual('找用户要 age 私钥' in said.getvalue(), asks, said.getvalue())
+            self.assertEqual('找用户从密码管理器拿 age 私钥（AGE-SECRET-KEY-1… 那一行）' in said.getvalue(), asks, said.getvalue())
             if asks:
-                self.assertIn(f'age -d -i <私钥文件> -o /etc/flow.env {folder.resolve() / "flow.env.age"}', said.getvalue())
-        self.assertIn('ask the user (the owner) for it', ops.__doc__)
+                self.assertIn(f'age -d -i <临时文件> -o /etc/flow.env {folder.resolve() / "flow.env.age"}', said.getvalue())
+                self.assertIn('用完把临时文件删掉', said.getvalue())
+        self.assertIn('password manager (the AGE-SECRET-KEY-1… line): ask the user for it', ops.__doc__)
 
 
 if __name__ == '__main__':
