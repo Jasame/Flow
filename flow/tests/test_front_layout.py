@@ -90,6 +90,72 @@ class OldSafariTests(unittest.TestCase):
                     found.append(f'{f.name}:{n}')
         self.assertEqual(found, [], 'iOS before 16.4 cannot parse these (lookbehind, class static block): write them without')
 
+    @staticmethod
+    def _code(text):
+        """The script with comments, strings and template text blanked out (the code a parser sees as syntax)."""
+        out, i, n = [], 0, len(text)
+        while i < n:
+            c, d = text[i], text[i + 1] if i + 1 < n else ''
+            if c == '/' and d == '/':
+                while i < n and text[i] != '\n': i += 1
+                continue
+            if c == '/' and d == '*':
+                j = text.find('*/', i + 2); j = n if j < 0 else j + 2
+                out.append('\n' * text.count('\n', i, j)); i = j; continue
+            if c in '\'"':
+                i += 1
+                while i < n and text[i] != c and text[i] != '\n':
+                    i += 2 if text[i] == '\\' else 1
+                out.append('""'); i += 1; continue
+            if c == '`':
+                i += 1; depth = 0
+                while i < n:
+                    if text[i] == '\\': i += 2; continue
+                    if text[i] == '`' and depth == 0: break
+                    if text[i] == '$' and i + 1 < n and text[i + 1] == '{': depth += 1; out.append('${'); i += 2; continue
+                    if text[i] == '}' and depth: depth -= 1; out.append('}'); i += 1; continue
+                    out.append(text[i] if depth or text[i] == '\n' else ''); i += 1
+                out.append('``'); i += 1; continue
+            out.append(c); i += 1
+        return ''.join(out)
+
+    def test_no_optional_chaining_or_nullish_for_ios_before_13_4(self):
+        # iOS 12–14 is supported as far as it goes (A0, 2026-11-25): ?. and ?? stop all of next.js before iOS 13.4
+        found = []
+        for f in sorted((NEXT / 'src' / 'next').glob('*.js')):
+            for n, line in enumerate(self._code(f.read_text(encoding='utf-8')).splitlines(), 1):
+                if re.search(r'\?\.(?!\d)|\?\?', line):
+                    found.append(f'{f.name}:{n}')
+        self.assertEqual(found, [], 'iOS before 13.4 cannot parse ?. or ??: write them out (if (x) x.f(), x != null ? x : y)')
+
+    def test_a_browser_that_cannot_run_next_js_is_told_what_to_do(self):
+        # next.html's 「正在打开…」 gets a few lines after 12 s, shown by CSS alone (the CSP blocks inline scripts, and the
+        # point is a browser where next.js does not run); the first page drawn replaces all of #view, the help too
+        html = (NEXT / 'next.html').read_text(encoding='utf-8')
+        view = re.search(r'<main id="view"[^>]*>(.*?)</main>', html, re.S).group(1)
+        self.assertIn('class="boot-help"', view)
+        self.assertIn('iOS 15', view)
+        self.assertNotRegex(html, r'<script(?![^>]*\bsrc=)[^>]*>', 'no inline script: the CSP (script-src self) blocks it')
+        css = '\n'.join(f.read_text(encoding='utf-8') for f in sorted((NEXT / 'src' / 'next').glob('*.css')))
+        rule = re.search(r'\.boot-help\{([^}]*)\}', css).group(1)
+        self.assertIn('visibility:hidden', rule)
+        self.assertRegex(rule, r'animation:boot-help [.\d]+s 12s forwards')
+        self.assertRegex(css, r'@keyframes boot-help\{to\{visibility:visible')
+
+    def test_the_top_bar_and_full_height_pages_have_a_fallback_for_older_safari(self):
+        # color-mix() needs Safari 16.2, dvh 15.4: without a plain value first the top bar was see-through on iOS 16.1
+        css = {f.name: f.read_text(encoding='utf-8') for f in sorted((NEXT / 'src' / 'next').glob('*.css'))}
+        bar = re.search(r'\.bar::before\{([^}]*)\}', css['80-flat.css']).group(1)
+        self.assertLess(bar.index('background:var(--bg)'), bar.index('background:color-mix('), bar)
+        for name, text in css.items():
+            for m in re.finditer(r'\{([^{}]*)\}', text):
+                decls = [d.strip() for d in m.group(1).split(';')]
+                for k, d in enumerate(decls):
+                    if 'dvh' in d:
+                        prop = d.split(':', 1)[0]
+                        self.assertTrue(any(e.startswith(prop + ':') and 'dvh' not in e for e in decls[:k]),
+                                        f'{name}: {d} needs a vh value for the same property first (iOS before 15.4)')
+
 
 if __name__ == '__main__':
     unittest.main()
