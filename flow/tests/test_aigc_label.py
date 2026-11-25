@@ -1,6 +1,6 @@
 """隐式标识 in synthesized audio (aigc_label, 2026-11-25): an ID3 TXXX "AIGC" frame with {"Label":"1","ContentProducer",
-"ProduceID"}, added to the tag CosyVoice's MP3s already have (LAME's, ID3v2.3) or in a new v2.4 tag; the audio bytes
-are never touched; a file is labelled once; a tag it cannot safely extend is left alone."""
+"ProduceID","ContentPropagator","PropagateID"}, added to the tag CosyVoice's MP3s already have (LAME's, ID3v2.3) or in
+a new v2.4 tag; the audio bytes are never touched; a file is labelled once; a tag it cannot safely extend is left alone."""
 import struct, sys, unittest
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -20,7 +20,8 @@ LAME = v23((b'TSSE', b'\x00LAME 64bits version 3.100'), (b'COMM', b'\x00eng\x00L
 class AigcLabelTests(unittest.TestCase):
     def test_a_cosyvoice_style_file_gets_the_frame_in_its_own_tag(self):
         x = al.mp3(LAME + AUDIO, 'flow-tts-abc')
-        self.assertEqual(al.read(x), {'Label': '1', 'ContentProducer': 'FlowLang', 'ProduceID': 'flow-tts-abc'})
+        self.assertEqual(al.read(x), {'Label': '1', 'ContentProducer': 'FlowLang', 'ProduceID': 'flow-tts-abc',
+                                      'ContentPropagator': 'FlowLang', 'PropagateID': 'flow-tts-abc'})
         self.assertEqual(x[3], 3)  # still one ID3v2.3 tag, not a second tag in front
         self.assertEqual(x.count(b'ID3'), 1)
         end = 10 + al._unsync(x[6:10])
@@ -42,7 +43,8 @@ class AigcLabelTests(unittest.TestCase):
     def test_values_are_visible_ascii_only(self):
         with self.assertRaises(ValueError):
             al.value('id', provider='语流 Flow')
-        self.assertEqual(al.value('x-1'), b'{"Label":"1","ContentProducer":"FlowLang","ProduceID":"x-1"}')
+        self.assertEqual(al.value('x-1'), b'{"Label":"1","ContentProducer":"FlowLang","ProduceID":"x-1",'
+                                          b'"ContentPropagator":"FlowLang","PropagateID":"x-1"}')
 
     def test_a_tag_that_cannot_be_extended_safely_is_left_alone(self):
         unsync = b'ID3\x03\x00\x80' + LAME[6:]
