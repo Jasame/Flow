@@ -266,6 +266,9 @@ def run_device(pw, dev, opts):
     n = pg.evaluate("() => document.querySelectorAll('.exam-part .gq').length")
     check(dev, 'exam: every question of the paper (as the server sizes it) in three parts with a clock',
           n == want and n >= 18 and pg.evaluate("() => document.querySelectorAll('.exam-part').length") == len(paper['parts']) == 3, (n, want))
+    marks = pg.evaluate("""() => ({ passages: [...document.querySelectorAll('.exam-part article h3')].map(h => !!h.querySelector('.ai-mark')),
+      grammar: [...document.querySelectorAll('.exam-part h2')].filter(h => h.textContent.startsWith('语法')).map(h => !!h.querySelector('.ai-mark')) })""")
+    check(dev, 'exam: 「AI 生成」 by every passage and on 语法 (AI-assisted, 《标识办法》)', marks['passages'] and all(marks['passages']) and marks['grammar'] == [True], marks)
     for k in range(n):
         pg.click(f'.exam-part .gq >> nth={k} >> .ans >> nth=0')
     pg.click('#exDone'); pg.wait_for_timeout(900)
@@ -572,6 +575,7 @@ def run_device(pw, dev, opts):
     pg.click('[data-all="B2"]'); pg.wait_for_timeout(150); pg.click('[data-d="speaking"][data-l="B1"]'); pg.wait_for_timeout(150)
     pg.click('#gSave'); pg.wait_for_selector('.radar', timeout=8000); pg.wait_for_timeout(300)
     go(pg, '#/radar/test/reading')
+    check(dev, 'radar: the reading passage\'s title carries 「AI 生成」', pg.evaluate("!!document.querySelector('#view h2 .ai-mark')"))
     for _ in range(3):
         if not pg.query_selector('#aNext'):
             break
@@ -2248,6 +2252,8 @@ def sprint_run(pw):
         for page, n in (('#/exam/cet4/match', 10), ('#/exam/ielts/tfng', 7), ('#/exam/tem4/choice', 10), ('#/exam/ky/cloze', 10), ('#/exam/cet4/reading', None)):
             go(pg, page); pg.wait_for_selector('.xt-q', timeout=6000)
             n = n or pg.evaluate("document.querySelectorAll('.xt-q').length")  # 阅读一篇 (考试小练): as many as the passage has, 2–4
+            mark = pg.evaluate("({ line: (document.querySelector('.xt .ai-line') || {}).textContent || '', tag: !!document.querySelector('.xt .row .ai-mark') })")
+            check(dev, f'{page}: marked as AI-assisted (《标识办法》)', mark['tag'] if page.endswith('/reading') else '题目和解析由 AI 辅助编写' in mark['line'], mark)
             pg.evaluate("() => document.querySelectorAll('.xt-q').forEach(q => q.querySelector('.ans').click())")
             pg.click('#xtDone'); pg.wait_for_selector('.xt .pit', timeout=6000)
             got = pg.evaluate("document.querySelectorAll('.xt .pit').length")
