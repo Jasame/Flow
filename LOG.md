@@ -740,3 +740,12 @@
   - #355 兼容检查也查样式表：Safari 15.0 没有的 CSS 要有退路（check_compat.py）（发版和构建）
 - 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45670680204
+
+### b92 · 2026-11-26 02:18
+- main `16bacfc`，构建 `e49e872`
+- 新合并的 PR（自 b91 起）：
+  - #351 HarmonyOS app (harmony/) and its section of the bridge doc（发版和构建）
+  - #359 例句复查：审读编辑自己说「不算」的不再删掉重写（单词）
+  - #354 测试：每个读录音的接口在主 AI 关着时都要有国内的线路（测试）
+- 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45672396022
