@@ -28,15 +28,18 @@
   }
   function swipeOff() { document.ontouchstart = document.ontouchmove = document.ontouchend = document.ontouchcancel = null; }
   // goOn: 继续复习 past today's share (r28: a day of words has a cap in minutes), or the extra new words of 再学 10 个
-  async function reviewView(goOn) {
+  // part 'other': 其他复习 (练习 → 复习; review-split-plan.md): mistakes, saved sentences and patterns, apart from the words
+  async function reviewView(goOn, part) {
     if (!S.user) return needLogin('登录后才能复习。');
     document.body.classList.add('reviewing');
-    const R = goOn ? '/api/next/review?more=1' : '/api/next/review';
+    const other = part === 'other', CACHE = other ? 'flow-next-review-other' : 'flow-next-review-cache';
+    const R = '/api/next/review' + (other ? '?part=other' : goOn ? '?more=1' : '');
+    const NAME = other ? '复习错题和句型' : '复习单词';
     const seenOld = !!(load('flow-next-review-cache') || load('flow-next-swipe-tip'));  // this device reviewed before (the cache is saved just below)
     let first, offline = false;
-    try { await OUTBOX.flush(); first = await api(R); save('flow-next-review-cache', { at: Date.now(), q: first }); }
+    try { await OUTBOX.flush(); first = await api(R); save(CACHE, { at: Date.now(), q: first }); }
     catch (e) {
-      const cached = load('flow-next-review-cache');
+      const cached = load(CACHE);
       if (!e.network || !cached || Date.now() - cached.at > 2 * 86400000) throw e;
       const done = new Set(OUTBOX.list().map(x => x.body.id)); offline = true;
       first = { ...cached.q, items: cached.q.items.filter(x => !done.has(x.id)) };
@@ -71,14 +74,14 @@
     // the answer shown and not yet rated: 撤销 turns the card back (a slip on the front, a tap or a button, sent nothing)
     let peek = null;
     // voice: this side plays the word (or its examples) — 「读音由 AI 合成」, one grey line under the progress bar (aiVoiceNote)
-    const top = voice => `<h1 class="sr-only">复习单词</h1><div class="rtop"><a class="link small hit44" href="#/cards">结束</a><div class="bar-progress"><i id="rp"></i></div>${peek ? '<button class="link small undo" id="undo" type="button" aria-label="撤销：回到这一张的正面">↶ 撤销</button>' : undo ? `<button class="link small undo" id="undo" type="button" aria-label="撤销上一张：${esc(undo.c.text)}">↶ 撤销</button>` : ''}${viewBtn()}</div>${voice ? aiVoiceNote('读音由 AI 合成', 'p', 'tc rvoice') : ''}`;
-    const badge = res => { const b = document.getElementById('dueBadge'); if (b && res && res.due != null) { const n = res.due + res.new; b.hidden = !n; b.textContent = n > 99 ? '99+' : n; } };
+    const top = voice => `<h1 class="sr-only">${NAME}</h1><div class="rtop"><a class="link small hit44" href="#/cards">结束</a><div class="bar-progress"><i id="rp"></i></div>${peek ? '<button class="link small undo" id="undo" type="button" aria-label="撤销：回到这一张的正面">↶ 撤销</button>' : undo ? `<button class="link small undo" id="undo" type="button" aria-label="撤销上一张：${esc(undo.c.text)}">↶ 撤销</button>` : ''}${viewBtn()}</div>${voice ? aiVoiceNote('读音由 AI 合成', 'p', 'tc rvoice') : ''}`;
+    const badge = res => { const b = document.getElementById('dueBadge'); if (b && !other && res && res.due != null) { const n = res.due + res.new; b.hidden = !n; b.textContent = n > 99 ? '99+' : n; } };
     // Touch: swipe the card right for "I know it" (or the main button), left for "I don't".
     let swipe = null;
     const onSwipe = (right, left2) => { swipe = { right, left: left2 }; };
     if (!items.length) {
       document.body.classList.remove('reviewing');
-      view.innerHTML = `<div class="empty"><div class="big">✓</div><p>现在没有要复习的单词。</p><div class="row center"><a class="btn" href="#/cards">单词</a><a class="btn primary" href="#/">回到今日</a></div></div>`; return;
+      view.innerHTML = `<div class="empty"><div class="big">✓</div><p>${other ? '现在没有要复习的错题和句型。' : '现在没有要复习的单词。'}</p><div class="row center">${other ? '<a class="btn" href="#/practice">练习</a>' : '<a class="btn" href="#/cards">单词</a>'}<a class="btn primary" href="#/">回到今日</a></div></div>`; return;
     }
     let c, t0, claim;
     const bar = () => {
@@ -407,7 +410,7 @@
       swipeOff(); document.body.classList.remove('reviewing');
       undo = null;
       const rated = tally.again + tally.hard + tally.good + tally.easy, mins = Math.max(1, Math.round((Date.now() - started) / 60000));
-      view.innerHTML = `<h1 class="sr-only">复习单词</h1><div class="card done-card enter">${doneRing}<h2 class="h2">这一轮复习了 ${doneIds.size} 个</h2>
+      view.innerHTML = `<h1 class="sr-only">${NAME}</h1><div class="card done-card enter">${doneRing}<h2 class="h2">这一轮复习了 ${doneIds.size} 个</h2>
         <p class="small rsum">用时约 ${mins} 分钟${rated ? ` · 记住了 ${Math.round((tally.good + tally.easy) / rated * 100)}%` : ''}<span id="tmr"></span></p>${doneN > doneIds.size ? `<p class="muted tiny">共作答 ${doneN} 次，其中 ${doneN - doneIds.size} 次是再巩固</p>` : ''}
         <p class="muted small">记得 ${tally.good + tally.easy} · 模糊 ${tally.hard} · 忘了 ${tally.again}${tally.known ? ' · 熟知 ' + tally.known : ''}。</p>
         <p class="small cheer">${tally.good + tally.easy ? `记得的都往后推了${farthest > 1 ? `，最远的要 ${farthest} 天后才再见` : ''}。` : ''}${tally.again ? `忘了的 ${tally.again} 个明天再来：忘了再想起来，正是记牢的过程。` : tally.good + tally.easy ? '这一轮全都记得，很稳。' : ''}</p>
@@ -417,7 +420,7 @@
           : `<p class="small">还有 ${left.due + left.new} 个可以继续。</p>`) : ''}
         <div class="row center">${left && (left.due + left.new) && uniq.size >= batchN
           ? `<button class="btn" id="again">再做 ${Math.min(batchN, left.due + left.new)} 个</button><a class="btn primary" href="#/">今天就到这里</a>`
-          : `${left && !(left.due + left.new) && left.later ? '<button class="btn" id="againMore">继续复习</button>' : '<a class="btn" href="#/cards">单词</a>'}${left && (left.due + left.new) ? '<button class="btn primary" id="again">继续</button>' : '<a class="btn primary" href="#/">回到今日</a>'}`}</div>
+          : `${left && !(left.due + left.new) && left.later ? '<button class="btn" id="againMore">继续复习</button>' : (other ? '<a class="btn" href="#/practice">练习</a>' : '<a class="btn" href="#/cards">单词</a>')}${left && (left.due + left.new) ? '<button class="btn primary" id="again">继续</button>' : '<a class="btn primary" href="#/">回到今日</a>'}`}</div>
         ${left && !(left.due + left.new) && !left.later ? '<div class="row center"><button class="btn ghost small" id="moreNew">还想多背：再学 10 个新词</button></div>' : ''}
         ${left && !(left.due + left.new) ? '<div class="row center"><button class="link small hit44" type="button" id="onceAsk">今天或明天什么时候有空复习？</button></div>' : ''}</div>`;
       api('/api/next/vocab').then(o => { const t = document.getElementById('tmr'); if (t && o.forecast && o.forecast[1] != null) t.textContent = ` · 明天大约复习 ${o.forecast[1]} 个`; }).catch(() => {});

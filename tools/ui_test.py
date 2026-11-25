@@ -498,14 +498,14 @@ def run_device(pw, dev, opts):
     # ---- words page: five tools, the stats folded, one short row per word
     go(pg, '#/cards')
     wd = pg.evaluate("() => { const rows = [...document.querySelectorAll('#clist .xrow')]; return {tools: document.querySelectorAll('#view .tools a, #view .tools button').length, folded: !document.getElementById('vStats').open, rows: rows.length, tallest: Math.max(0, ...rows.map(r => Math.round(r.getBoundingClientRect().height)))}; }")
-    check(dev, 'words: five tools, the stats folded, one short row per word', wd['tools'] == 5 and wd['folded'] and wd['rows'] >= 10 and wd['tallest'] <= 80, wd)
+    check(dev, 'words: four tools (错题本 moved to 练习 → 复习), the stats folded, one short row per word', wd['tools'] == 4 and wd['folded'] and wd['rows'] >= 10 and wd['tallest'] <= 80, wd)
     # ---- words page: a filter swaps only the list (the header element survives, no flash)
     pg.evaluate("document.querySelector('#view h1').dataset.keep = '1'")
-    pg.click('[data-f="mistake"]')
+    pg.click('[data-f="phrase"]')
     pg.wait_for_timeout(600)
     check(dev, 'filter swaps only the list', pg.evaluate("() => document.querySelector('#view h1').dataset.keep === '1'"))
-    check(dev, 'mistake filter lists mistakes', '错题' in (pg.text_content('#listSlot') or ''))
-    pg.click('[data-f="phrase"]'); pg.wait_for_timeout(500)
+    check(dev, 'the word page lists no mistakes (they are in 练习 → 复习 → 错题本), and no 错题 filter',
+          not pg.query_selector('[data-f="mistake"]') and '错题 ·' not in (pg.text_content('#listSlot') or ''))
 
     # ---- review: stable total; keyboard (desktop) or swipes (touch); Enter submits a fix card
     go(pg, '#/review')
@@ -3553,6 +3553,32 @@ def review_side_run(pw):
         check(dev, '我的 → 设置 → 背词: 背新词 / 复习 each 简洁 or 详细, and the row says so', pg.evaluate("localStorage.getItem('flow-card-view-new')") == 'simple' and '新词简洁' in lab, lab)
         check(dev, 'no script errors (简洁 / 详细)', not errs, errs[:3])
         ctx.close()
+        # 单词 and 其他复习 apart (the owner, 2026-11-25; review-split-plan.md): the 单词 badge and its review hold words only;
+        # #/review/other holds the mistakes, sentences and patterns, answered there without touching the 单词 badge
+        ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['split']['token'], 'url': BASE}])
+        ctx.add_init_script("try { localStorage.setItem('flow-tap-guide', '1'); localStorage.setItem('flow-next-swipe-tip', '1'); } catch (e) {}")
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        pg.goto(BASE + '/#/cards', wait_until='load'); settle(pg)
+        home = pg.evaluate("fetch('/api/next/home').then(r => r.json())")
+        stt = home.get('stats') or {}
+        badge = pg.text_content('#dueBadge') or ''
+        extra = [x for x in (home.get('path') or {}).get('steps', []) if x.get('group') == 'extra']
+        check(dev, '单词 counts words only (2), 其他复习 apart (2): the 单词 badge, home.stats.other_due, and 错题和句型复习 first in 还有时间的话',
+              stt.get('due') == 2 and stt.get('other_due') == 2 and badge.strip() == '2' and extra and extra[0].get('key') == 'review-other' and '2 道' in extra[0].get('title', ''),
+              [stt.get('due'), stt.get('other_due'), badge, extra[:1]])
+        go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000)
+        seen = set()
+        for k in range(6):
+            if not pg.query_selector('[data-claim]'): break
+            seen.add((pg.text_content('.review .wordbig') or '').strip()); pg.click('.ractions [data-claim="know"]'); pg.wait_for_selector('[data-rate="good"]', timeout=4000)
+            pg.click('[data-rate="good"]'); pg.wait_for_timeout(500)
+        check(dev, '复习 (单词) shows the words only', seen == {'borrow', 'lend'}, sorted(seen))
+        go(pg, '#/review/other'); pg.wait_for_timeout(600)
+        o = pg.evaluate("({ h1: (document.querySelector('main h1') || {}).textContent, nav: (document.querySelector('.tabs a.on, .tabs a[aria-current]') || {}).textContent || '', text: document.getElementById('view').textContent })")
+        check(dev, '#/review/other: 复习错题和句型, under 练习, a mistake or the pattern first', o['h1'] == '复习错题和句型' and '练习' in o['nav'] and ('划线' in o['text'] or '回忆这个句型' in o['text'] or 'went' in o['text']), {k: v[:120] for k, v in o.items()})
+        check(dev, 'no script errors (单词 and 其他复习 apart)', not errs, errs[:3])
+        ctx.close()
         # a search that finds nothing says what was searched and offers a way out (语流 B9): 清除搜索, and with a filter on, 在全部里找
         ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
@@ -3564,13 +3590,13 @@ def review_side_run(pw):
         pg.click('#sfClear'); pg.wait_for_selector('#listSlot [data-card]', timeout=5000)
         back = [pg.input_value('#sf input'), pg.evaluate("document.querySelectorAll('#listSlot [data-card]').length")]
         check(dev, '单词 search with no result: 没找到「zzqx」 and 清除搜索 brings the whole list back', '没找到「zzqx」' in msg and back == ['', n0] and n0 > 0, [msg, back, n0])
-        pg.click('[data-f="mistake"]'); pg.wait_for_timeout(300)
+        pg.click('[data-f="phrase"]'); pg.wait_for_timeout(300)
         pg.fill('#sf input', 'zzqx'); pg.press('#sf input', 'Enter'); pg.wait_for_selector('#sfAll', timeout=5000)
         msg2 = pg.text_content('#listSlot .empty p')
         pg.click('#sfAll'); pg.wait_for_timeout(400)
         all_on = pg.get_attribute('[data-f=""]', 'aria-pressed')
-        check(dev, 'with a filter on: says where it looked (只在「错题」里找了); 在全部里找 searches all of them',
-              '只在「错题」里找了' in msg2 and all_on == 'true' and '只在' not in (pg.text_content('#listSlot .empty p') or ''), [msg2, all_on])
+        check(dev, 'with a filter on: says where it looked (只在「表达」里找了); 在全部里找 searches all of them',
+              '只在「表达」里找了' in msg2 and all_on == 'true' and '只在' not in (pg.text_content('#listSlot .empty p') or ''), [msg2, all_on])
         check(dev, 'no script errors (search)', not errs, errs[:3])
         ctx.close()
         # a phone: the swipe follows the side

@@ -446,6 +446,12 @@ def daily_path(c, uid, home, now=None):
     for s in must + extra:
         for k in ('_parts', '_rank', '_must'):
             s.pop(k)
+    # 其他复习 (review-split-plan.md; the owner chose 方案 1): mistakes, saved sentences and patterns due, the first line of
+    # 「还有时间的话」, never 必做 — the words are 必做, these wait for time to spare. Not on a day back (the words first).
+    oc = vs.other_counts(c, uid, now)
+    if oc['due'] and not back:
+        extra = [{'key': 'review-other', 'title': f"错题和句型复习 · {oc['due']} 道", 'sub': f"做错过的题和收藏的句型，到期再来一次 · 约 {oc['minutes']} 分钟",
+                  'href': '#/review/other', 'done': False, 'minutes': oc['minutes'], 'group': 'extra', 'part': 'other'}] + extra[:EXTRA - 1]
     done = sum(1 for s in must if s['done'])
     studied = ps.active_minutes(c, uid, start, now + 1)
     return {'minutes': minutes, 'budget': b, 'steps': must + extra + week, 'done': done, 'total': len(must),

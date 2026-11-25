@@ -720,3 +720,81 @@ class SaveCardTwiceTests(unittest.TestCase):
         self.assertEqual((st, again['existing'], again['card']['id']), (200, True, first['card']['id']))
         self.assertEqual(again['card']['meaning'], '决策'); self.assertEqual(again['card']['context'], 'We need to explain our decisions.')  # an empty one keeps it
 
+
+
+class ReviewSplitTests(unittest.TestCase):
+    """单词 and 其他复习 apart (the owner, 2026-11-25; review-split-plan.md): the word queue, its counts and the word page
+    hold words and phrases only; mistakes, saved sentences and patterns are 其他复习 (练习 → 复习), with their own queue
+    and counts, the same forgetting curve and records."""
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.p = patch.object(app, 'DB', Path(self.tmp.name) / 'v.db'); self.p.start()
+        app.init(); self.c = app.db()
+        self.c.execute('INSERT INTO users(username,password,email) VALUES(?,?,?)', ('learner', 'h', 'learner@example.test'))
+        self.c.commit()
+        self.now = datetime.datetime.now(nx.TZ).replace(hour=8, minute=0, second=0, microsecond=0).timestamp()
+
+    def tearDown(self):
+        self.c.close(); self.p.stop(); self.tmp.cleanup()
+
+    def card(self, text, kind='word', source='saved', meaning='', norm=None, state='review'):
+        self.c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,stability,difficulty,last) "
+                       "VALUES(1,?,?,?,' ',?,?,?,?,?,3,5,?)", (text, norm or text, meaning, kind, self.now - 9 * 86400, self.now - 3600, state, source, self.now - 3 * 86400))
+        self.c.commit()
+        return self.c.execute('SELECT id FROM next_cards WHERE norm=?', (norm or text,)).fetchone()[0]
+
+    def fill(self):
+        self.card('borrow'); self.card('make a decision', kind='phrase')
+        self.card('Which is right?', kind='question', source='mistake', norm='gq:1')
+        self.card('they went', kind='fix', source='mistake', norm='fix:they go > they went')
+        self.card('as soon as', kind='phrase', meaning='句型｜例：Call me as soon as you land.')
+        self.card('I would rather stay at home than go out tonight.', kind='sentence')
+
+    def test_the_word_queue_and_counts_hold_words_and_phrases_only(self):
+        self.fill()
+        with patch.object(vs.time, 'time', lambda: self.now):
+            words = sorted(i['text'] for i in vs.queue(self.c, 1)['items'])
+            other = sorted(i['text'] for i in vs.queue(self.c, 1, part='other')['items'])
+        self.assertEqual(words, ['borrow', 'make a decision'])
+        self.assertEqual(other, sorted(['Which is right?', 'they went', 'as soon as', 'I would rather stay at home than go out tonight.']))
+        self.assertEqual(vs.counts(self.c, 1, self.now)['due'], 2)
+        o = vs.other_counts(self.c, 1, self.now)
+        self.assertEqual(o['due'], 4)
+        self.assertEqual(o['minutes'], max(1, round(4 * vs.OTHER_SECONDS / 60)))
+
+    def test_a_new_mistake_counts_in_its_own_queue_not_as_a_new_word(self):
+        self.card('borrow')
+        self.card('Which is right?', kind='question', source='mistake', norm='gq:2', state='new')
+        self.assertEqual(vs.counts(self.c, 1, self.now)['new'], 0)
+        self.assertEqual(vs.other_counts(self.c, 1, self.now)['due'], 1)
+
+    def test_answering_returns_the_counts_of_its_own_queue_and_undo_restores_it(self):
+        self.fill()
+        gq = self.c.execute("SELECT id FROM next_cards WHERE norm='gq:1'").fetchone()[0]
+        with patch.object(vs.time, 'time', lambda: self.now):
+            res, code = vs.rate(self.c, 1, {'id': gq, 'rating': 'good', 'mode': 'question', 'ms': 8000})
+        self.assertEqual(code, 200)
+        self.assertEqual((res['due'], res['new']), (3, 0))                      # 其他复习 left, not the words
+        self.assertEqual(vs.counts(self.c, 1, self.now)['done_today'], 0)        # a mistake answered is no word answered
+        with patch.object(vs.time, 'time', lambda: self.now):
+            back, code = vs.undo(self.c, 1, {'id': gq})
+        self.assertEqual(back['due'], 4)
+
+    def test_the_word_list_leaves_mistakes_to_the_mistake_book(self):
+        self.fill()
+        texts = {i['text'] for i in nx.cards(self.c, 1)['items']}
+        self.assertNotIn('Which is right?', texts); self.assertNotIn('they went', texts)
+        self.assertIn('as soon as', texts)                                       # a saved pattern is still in the list, reviewed apart
+        self.assertEqual({i['text'] for i in nx.cards(self.c, 1, f='mistake')['items']}, {'Which is right?', 'they went'})
+
+    def test_home_stats_and_the_api_carry_the_other_count(self):
+        self.fill()
+        with patch.object(vs.time, 'time', lambda: self.now), patch.object(nx.time, 'time', lambda: self.now):
+            st = nx.stats(self.c, 1)
+            self.assertEqual((st['due'], st['other_due']), (2, 4))
+            out, code = vs.get(self.c, 1, '/api/next/review', {'part': ['other']})
+            words, _ = vs.get(self.c, 1, '/api/next/review', {})
+            ov, _ = vs.get(self.c, 1, '/api/next/vocab', {})
+        self.assertEqual((code, len(out['items']), out['part']), (200, 4, 'other'))
+        self.assertEqual(len(words['items']), 2)
+        self.assertEqual(ov['other']['due'], 4)

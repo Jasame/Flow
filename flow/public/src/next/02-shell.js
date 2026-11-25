@@ -359,7 +359,7 @@
       else if (name === 'report') { setNav('me'); await reportView(); }
       else if (name === 'weekly-off') { setNav('me'); await weeklyOffView(decodeURIComponent(a || '')); }  // the link in the Sunday mail
       else if (name === 'vocab') { setNav('cards'); await (a === 'plan' ? planView() : a === 'test' ? vocabTest() : vocabView()); }
-      else if (name === 'review') { setNav('cards'); await reviewView(a === 'more'); }
+      else if (name === 'review') { setNav(a === 'other' ? 'practice' : 'cards'); await reviewView(a === 'more', a === 'other' ? 'other' : 'words'); }
       else if (name === 'library') { setNav('practice'); await libraryView(); }
       else if (name === 'practice') { setNav('practice'); await practiceView(); }
       else if (name === 'guide') { setNav('practice'); await guideView(a ? decodeURIComponent(a) : ''); }

@@ -922,9 +922,11 @@ def stats(c, uid):
     week = [_day(now - i * 86400) for i in range(6, -1, -1)]
     import vocab_service
     vocab_service.introduce(c, uid, now)  # today's new words from the learner's word book, so home shows the real task
-    vc = vocab_service.counts(c, uid, now)
+    vc = vocab_service.counts(c, uid, now)  # words only (单词 and its badge); 其他复习 apart (练习's badge, review-split-plan.md)
+    oc = vocab_service.other_counts(c, uid, now)
     return {
         'due': vc['due'], 'new': vc['new'], 'minutes': vc['minutes'], 'vocab_plan': bool(vocab_service.plan(c, uid)),
+        'other_due': oc['due'], 'other_minutes': oc['minutes'],
         'cards': c.execute('SELECT COUNT(*) FROM next_cards WHERE user_id=?', (uid,)).fetchone()[0],
         'materials_done': c.execute("SELECT COUNT(DISTINCT pack) FROM next_progress WHERE user_id=? AND step='check'", (uid,)).fetchone()[0],
         'reviews_week': c.execute('SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND created>?', (uid, week_start)).fetchone()[0],
@@ -1218,8 +1220,10 @@ def card(c, uid, cid):
 
 def cards(c, uid, q='', page=1, per=30, f=''):
     rows = c.execute('SELECT * FROM next_cards WHERE user_id=? ORDER BY created DESC', (uid,)).fetchall()
-    if f == 'mistake':
+    if f == 'mistake':  # 错题本 (练习 → 复习)
         rows = [r for r in rows if r['source'] == 'mistake']
+    elif not f:  # the word page's list: what was saved and learned; mistakes have 错题本 (review-split-plan.md)
+        rows = [r for r in rows if r['source'] != 'mistake']
     elif f in ('word', 'phrase'):
         rows = [r for r in rows if r['source'] != 'mistake' and (r['kind'] == 'word') == (f == 'word')]
     if q:
