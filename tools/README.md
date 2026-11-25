@@ -225,7 +225,8 @@ CI runs them on every pull request, the one gate before a merge. Running them he
 `--all` = every website test; `--ui <groups>`; `--no-checks` leaves the checks out), sends the branch as it is now (uncommitted changes and new files included, nothing
 .gitignore excludes) over `ssh msi-flow`, runs `run_tests.py` there and streams the output back; a UI run's report and
 screenshots come back to `msi-out/`. Its exit status is the tests', so `bash tools/msi-run.sh && git push` works. It
-shares the MSI with CI: nice 10, at most `MSI_RUN_JOBS` (4) processes, two runs at once, four while CI is light, first come first served (see the script's header).
+shares the MSI with CI: it runs in user.slice, whose CPU weight is 20 against the runners' 100 (CI gets about 83 % of the
+CPU when both want it), at most `MSI_RUN_JOBS` (4) processes, two runs at once, four while CI is light, first come first served (see the script's header).
 
 `--list` prints what would run without running it. A UI group is one switch of `ui_test.py`; `run_tests.py --ui` with
 no group runs all five CI shares at once on the laptop (about 6 minutes).

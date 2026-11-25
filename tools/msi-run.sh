@@ -26,8 +26,10 @@
 # Mac's origin/main (which --changed compares against), to a bare repository on the MSI (~/msi-run/flow.git, cloned
 # from GitHub the first time), checked out in a worktree of its own, and both are removed when the run ends.
 #
-# Sharing the MSI with CI (its runners, tools/msi-setup.sh): these runs start at nice 10 and idle I/O priority so CI's
-# jobs keep theirs,
+# Sharing the MSI with CI (its runners, tools/msi-setup.sh): CI's runners are in system.slice and these runs (over SSH)
+# in user.slice, whose CPU weight is 20 (the owner's yes, 2026-11-25 18:28): when both want the CPU, CI gets about 83 %;
+# when CI is idle these use all of it. (nice 10 and idle I/O on top only order these among themselves: under cgroup v2
+# nice does not reach across slices.) They
 # use at most MSI_RUN_JOBS processes, keep their temporary files in a folder of their own under /tmp, and at most
 # two run at once, four while CI has at most 3 jobs there (the next waits its turn, first come first served). Needs: `ssh msi-flow` working (Tailscale), and the MSI set up
 # with tools/msi-setup.sh (Python 3.11 venv with Playwright, Google Chrome, the Chinese fonts).
@@ -107,7 +109,7 @@ slot=; said=
 while [ -z "$slot" ]; do
   for q in "$base/queue"/*; do [ -e "$q" ] || continue; kill -0 "${q##*-}" 2>/dev/null || rm -f "$q"; done
   # places: 4 while CI has at most 3 jobs on the MSI (its runners' Runner.Worker processes), else 2 (语流 A4, 18:03: CI
-  # idle, CPU at 20 %, and 4 runs waiting); these runs are at nice 10 and idle I/O, so CI's jobs come first anyway
+  # idle, CPU at 20 %, and 4 runs waiting); CI's jobs come first anyway (user.slice's CPU weight, above)
   places=2; [ "$(ps -eo comm | grep -c '^Runner.Worker')" -le 3 ] && places=4
   if [ "$(ls "$base/queue" | sort | head -1)" = "${ticket##*/}" ]; then
     for s in $(seq 1 "$places"); do exec 9>"$base/slot-$s.lock"; if flock -n 9; then slot=$s; break; fi; done
