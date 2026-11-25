@@ -27,7 +27,7 @@
     const lv = S.meta.levels.find(l => l.id === p.level), goal = S.meta.goals.find(g => g.id === p.goal);
     const installed = HOME_APP;  // the home-screen app, an install, or one of Flow's apps: nothing to add to the desktop
     const groups = [
-      u && ['进步', [grow('#/radar', '能力雷达', '离目标还差多少', '', 'me-radar'), grow('#/growth', '我的进步', '每月对比和里程碑', '', 'me-growth'), grow('#/report', '这周的报告', '', '', 'me-report'), grow('#/cards/mistake', '错题本', '', '', 'me-mistake')]],
+      u && ['进步', [grow('#/radar', '能力雷达', '离目标还差多少', '', 'me-radar'), grow('#/growth', '我的进步', '每月对比和里程碑', '', 'me-growth'), grow('#/report', '周报', '', '', 'me-report'), grow('#/cards/mistake', '错题本', '', '', 'me-mistake')]],
       ['设置', [grow('#/welcome/edit', '学习目标和水平', [goal && esc(goal.label), p.target && '目标 ' + p.target, lv && (p.target ? '现在 ' : '') + lv.id].filter(Boolean).join(' · ') || '未设置', '', 'me-level'),
         u ? grow('meExam', '我的考试', examLabel(p), 'meExamV', 'me-exam') : '', u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', u && !u.teacher ? grow('meClass', '班级', '<span class="spin"></span>', 'meClassV', 'me-class') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), WORD_CLIPS ? grow('meSound', '单词读音方式', soundLabel(), 'meSoundV', 'me-sound') : '', grow('meKnow', '「认识」放在', knowLabel(), 'meKnowV', 'me-know'), grow('meText', '外观', lookLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '加到手机日历', '', 'me-remind'),
         u ? grow('meMail', '每周进度邮件', weeklyMailLabel(), 'meMailV', 'me-weekly-mail') : '',
@@ -41,7 +41,7 @@
       BETA && ['内测版', [grow('#/feedback', '问题反馈', '内测版里不对、用不了，告诉我们', '', 'me-beta-feedback'),
         IN_FLOW_APP ? '' : grow(MAIN_SITE + '/', '去正式版', 'flowlang.cn', '', 'me-beta-main'), '<div class="beta-new" id="meBetaNew" hidden></div>'],
         '这里是语流的内测版（flow.jasa.hk），新功能先在这里试。账号和数据都和正式版分开，内测期间可能会清空。<span id="meBetaVer"></span>'],
-      ['帮助', [grow('#/guide', '操作指南', '每个页面怎么用', '', 'me-guide'), grow('#/updates', '更新记录', '每一次更新改了什么', '', 'me-updates'), grow('/about', '认识语流', '一页看完语流能帮你做什么', '', 'me-about'),grow('#/feedback', '问题反馈', '页面不对、功能用不了，告诉我们', '', 'me-feedback'), grow('#/guide/privacy', '隐私说明', '数据存在哪里、交给哪家 AI', '', 'me-privacy'), grow('/survey', '匿名问卷', '你想要什么样的英语学习网站', '', 'me-survey')]],
+      ['帮助', [grow('#/guide', '操作指南', '每个页面怎么用', '', 'me-guide'), grow('#/updates', '更新记录', '每一次更新改了什么', '', 'me-updates'), grow('/about', '认识语流', '一页看完语流能帮你做什么', '', 'me-about'),grow('#/feedback', '问题反馈', '页面不对、功能用不了，告诉我们', '', 'me-feedback'), grow('#/guide/privacy', '隐私说明', '数据存在哪里、交给哪家 AI', '', 'me-privacy'), grow('/survey', '匿名问卷', '你想要什么样的英语学习网站', '', 'me-survey'), u ? grow('meTour', '再看一遍新手引导', '今日的几个主要按钮在哪', '', 'me-tour') : '']],
     ].filter(Boolean);
     view.innerHTML = `<div class="card flat me-head"><div class="me-id">${u ? `<span class="avatar" aria-hidden="true">${esc([...u.username][0].toUpperCase())}</span>` : ''}
         <div class="t"><h1 class="h1">${u ? esc(u.username) : '我的'}</h1><span class="small muted">${lv ? `${esc(lv.label)}（${lv.id}）` : '还没有设置水平'} · 每天 ${p.minutes || 10} 分钟</span></div></div>
@@ -60,6 +60,7 @@
     document.getElementById('meRemind').onclick = () => remindSheet(p.minutes || 10);
     const mm = document.getElementById('meMail'); if (mm) { mm.onclick = weeklyMailSheet; fillMailRow(); }  // 11-progress.js
     const mi = document.getElementById('meInstall'); if (mi) mi.onclick = installSheet;
+    const mt = document.getElementById('meTour'); if (mt) mt.onclick = tourAgain;  // 08-tour.js
     if (BETA) betaInfo();
     if (u) {
       const mc = document.getElementById('meClass'); if (mc) mc.onclick = () => classSheet();  // a 老师账号 has no 班级 row

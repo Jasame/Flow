@@ -106,6 +106,7 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
     __import__('word_links').schema(c)  # practice on words Chinese speakers mix up
     __import__('ability_radar').schema(c)  # goals, assessments and radar snapshots
     __import__('exam_service').schema(c)  # exam practice papers and results
+    __import__('tour_service').schema(c)  # 新手引导: seen per account, counts without accounts
     __import__('exam_sprint').schema(c)  # question-type practice results
     __import__('progress_service').schema(c)  # 这周进步: weekly goals by week, the Sunday mail's switch and link
     __import__('content_v50').sync(c)  # additive edits of published materials (more questions, tags) reach the database
@@ -1619,6 +1620,8 @@ def meta():
 
 def get(c, uid, path, q):
     one = lambda k, d='': (q.get(k) or [d])[0]
+    if path == '/api/next/tour':  # 新手引导 this account has not seen yet (a guest: none)
+        return __import__('tour_service').due(c, uid), 200
     if path.startswith('/api/next/vocab') or path == '/api/next/review':
         if not uid and path != '/api/next/vocab/test':
             return {'error': '请先登录'}, 401
@@ -1747,6 +1750,8 @@ def post_public(c, uid, path, data):
         return __import__('easy_reading').done(c, uid, data)
     if path == '/api/next/words/confuse/answer':
         return __import__('word_links').answer(c, uid, data)
+    if path == '/api/next/tour':  # 新手引导 ended (finished or skipped, and where)
+        return __import__('tour_service').record(c, uid, data)
     if path == '/api/next/exam/paper':
         return __import__('exam_service').paper(c, uid, data.get('exam'))
     if path == '/api/next/exam/submit':

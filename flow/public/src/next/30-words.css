@@ -84,7 +84,10 @@ main>h1.sr-only+*{margin-top:0}
 .cf-how[open]>summary::after{content:'收起'}
 .cf-q{display:grid;gap:14px}
 @media (max-width:759px){
-  body.reviewing .mix.confuse{display:flex;flex-direction:column;flex:1 0 auto;gap:12px}
+  body.reviewing .mix.confuse{display:flex;flex-direction:column;flex:1 0 auto;gap:10px}
+  /* 「← 词汇辨析」 right above says where this is: the small 词汇辨析 over the title goes, room for a question that runs
+     longer on an iPhone SE (Safari, 674 of 667 px on main 880f237) */
+  body.reviewing .mix.confuse .kicker{display:none}
   body.reviewing .mix.confuse>.cf-q{margin-top:auto}
 }
 /* 这次什么时候复习 on 今日's finished plan (10-welcome-today.js): a quiet link under the two buttons */

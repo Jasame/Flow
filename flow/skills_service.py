@@ -489,13 +489,13 @@ def report(c, uid, now=None):
     focus = None
     backlog = __import__('vocab_service').counts(c, uid, now)['due']
     if backlog > 100:  # a pile of words due comes first: it only grows while other things are practised
-        focus = f'先把单词积压清掉：现在有 {backlog} 个单词到了复习时间。下周每天先复习一轮，再学新的内容。'
+        focus = f'先把单词积压清掉：现在有 {backlog} 个单词到了复习时间。接下来几天，每天先复习一轮，再学新的内容。'
     elif ab['weakest']:
         name = SKILLS[ab['weakest']]
         what = {'speaking': '每天复述一篇或和 AI 对话一轮', 'writing': '写一段短文让 AI 批改', 'listening': '每天听写三句', 'reading': '先读懂再做理解题'}
-        focus = f"{name}是现在最弱的一项，下周{what.get(ab['weakest'], '多练这一项')}。"
+        focus = f"{name}是现在最弱的一项，接下来几天{what.get(ab['weakest'], '多练这一项')}。"
     elif not days:
-        focus = '这周还没开始：每天 10 分钟，先从今天这篇开始。'
+        focus = '这 7 天还没学：每天 10 分钟，先从今天这篇开始。'
     return {'from': nx._day(week), 'to': nx._day(now), 'days': len(days), 'minutes': minutes, 'materials': materials, 'outputs': outputs,
             'reviews': reviews, 'learned': learned, 'mastered': mastered, 'mistakes_new': new_mistakes, 'mistakes_fixed': fixed,
             'skills': skills, 'watch': watch, 'focus': focus, 'ability': ab['skills'], 'relisten': __import__('relisten_service').week(c, uid, week),

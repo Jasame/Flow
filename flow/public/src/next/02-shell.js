@@ -369,6 +369,7 @@
       if (!sameMaterial && name !== 'welcome' && !quiet) enter(view);
       if (!sameMaterial && !quiet) { const h = view.querySelector('h1'); announce(h ? h.textContent : document.title); }
       homeBackLink();  // 主屏 App: the page's own 「← 上一级」 line gives way to the top bar's 返回 (04-home-app.js)
+      if (!quiet) tourMaybe();  // 新手引导: 今日 (or 我的班级) the first time a new account opens it (08-tour.js)
     } catch (e) {
       const kept = e.network ? OFF.list() : [];  // offline: what can still be studied
       view.innerHTML = `<div class="empty"><div class="big">⚠︎</div><p>${esc(e.message)}</p><button class="btn" id="retry">重试</button>
