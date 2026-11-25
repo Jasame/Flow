@@ -103,6 +103,7 @@
     const changed = before !== JSON.stringify(S.home);
     if (changed) snapHome();
     if (S.home.profile && S.home.profile.voice) { S.voice = S.home.profile.voice; save('flow-next-voice', S.voice); }
+    if (S.user && S.home.profile) accentFromAccount(S.home.profile);  // 主题色 kept with the account (07-accent.js)
     setDueBadge();
     return changed;
   }

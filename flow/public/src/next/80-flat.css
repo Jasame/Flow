@@ -53,9 +53,9 @@ input[type=text]:focus,input[type=email]:focus,input[type=password]:focus,input[
 .opt,.ans,.qopt,.rate button,.choice button{border-color:transparent;background:var(--paper)}
 .card .ans,.card .qopt,.card .opt{background:var(--sunk)}
 .opt[aria-pressed=true],.opt[aria-checked=true],.bookc[aria-pressed=true]{border-color:transparent;box-shadow:inset 0 0 0 2px var(--green);background:var(--green-soft)}
-.ans.right,.qopt.right{border-color:transparent;box-shadow:inset 0 0 0 2px var(--green);background:var(--green-soft)}
+.ans.right,.qopt.right{border-color:transparent;box-shadow:inset 0 0 0 2px var(--ok);background:var(--ok-soft)}
 .ans.wrong,.qopt.wrong{border-color:transparent;box-shadow:inset 0 0 0 2px var(--red);background:var(--red-soft)}
-.choice .good,.choice button.good{border-color:transparent;background:var(--green-soft);color:var(--green-ink)}
+.choice .good,.choice button.good{border-color:transparent;background:var(--ok-soft);color:var(--ok-ink)}
 .choice .again,.choice button.again{border-color:transparent;background:var(--red-soft);color:var(--red)}
 .choice button:not(.good):not(.again){background:var(--sunk)}
 .review .choice button[disabled]{opacity:.7}

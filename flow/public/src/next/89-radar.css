@@ -20,7 +20,7 @@
 .rdim{display:grid;gap:4px;padding:10px 4px}
 .rbar{display:flex;align-items:center;gap:10px}
 .rbar .num{font-size:18px;font-variant-numeric:tabular-nums;min-width:30px}
-.rbar .up{color:var(--green-ink);font-weight:700;font-size:13px}
+.rbar .up{color:var(--ok-ink);font-weight:700;font-size:13px}
 .rbar .down{color:var(--red);font-weight:700;font-size:13px}
 .spark{width:60px;height:20px;flex:none}
 .spark polyline{fill:none;stroke:var(--green);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
