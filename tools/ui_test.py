@@ -3404,7 +3404,7 @@ def review_side_run(pw):
             if w == 375:
                 check(dev, '复习 and 测词汇量 have a heading for a screen reader: 复习单词, 测词汇量', h1 == ['复习单词'] and h1t == ['测词汇量'], [h1, h1t])
             ctx.close()
-        ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
         pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
         pg.goto(BASE + '/#/words/confuse', wait_until='load'); settle(pg)
@@ -3415,11 +3415,17 @@ def review_side_run(pw):
             a1 = cf()
             pg.click('#mixQ .ans'); pg.wait_for_selector('#mixNext', timeout=4000); pg.click('#mixNext'); pg.wait_for_selector('#mixQ .ans:not([disabled])', timeout=4000); pg.wait_for_timeout(300)
             a2 = cf()
-            check(dev, '词汇辨析 on a phone: no tabs while answering, 怎么区分 open for the first question and folded from the second',
+            check(dev, '词汇辨析 on a phone (390×844): no tabs while answering, 怎么区分 open for the first question and folded from the second',
                   not a1['tabs'] and a1['how'] and not a2['how'], [a1, a2])
-            check(dev, '词汇辨析 at 375×667 from the second question: one screen, the last answer on it', a2['page'] <= a2['H'] and a2['last'] <= a2['H'], a2)
+            check(dev, '词汇辨析 at 390×844: both questions one screen, the last answer on it', a1['page'] <= a1['H'] and a2['page'] <= a2['H'] and a2['last'] <= a2['H'], [a1, a2])
             pg.click('#cfHow summary'); pg.wait_for_timeout(150)
             check(dev, '词汇辨析: a tap on 怎么区分 opens it again', pg.evaluate("document.getElementById('cfHow').open"), None)
+            # a short screen (Safari's bars showing on an iPhone SE, 375×553; borrow / lend and make / do, the longest two):
+            # the first question starts folded, as it would not fit open, and fits
+            pg.set_viewport_size({'width': 375, 'height': 553}); go(pg, '#/words/confuse'); go(pg, '#/words/confuse/borrow-lend,make-do')
+            pg.wait_for_selector('#mixQ .ans', timeout=8000); pg.wait_for_timeout(300)
+            a0 = cf()
+            check(dev, '词汇辨析 at 375×553: 怎么区分 starts folded on the first question (it would not fit open), which fits one screen', not a0['how'] and a0['page'] <= a0['H'] and a0['last'] <= a0['H'], a0)
         else:
             check(dev, '词汇辨析: a group to practise', False, 'no group on #/words/confuse')
         check(dev, 'no script errors (B8 audit pages)', not errs, errs[:3])
@@ -3522,7 +3528,12 @@ def one_screen_run(pw):
                         check(dev, f'{where} {name}: --bar-h is the top bar\'s height', s['barH'] == f"{s['bar']}px", s)
                 # 词汇辨析's round (语流 B8's audit: 119-213 px past the screen): no tabs, 怎么区分 open for the first question,
                 # one line from the second; both questions one screen, the answers at the bottom and clear of the home bar
-                go(pg, '#/words/confuse/borrow-lend,make-do'); pg.wait_for_selector('#mixQ .ans', timeout=8000); pg.wait_for_timeout(400)
+                if size == 'iphone-se' and not home:  # Safari with its bars showing: 375×553 (语流 B8 on r33)
+                    for H in (553, 667):
+                        pg.set_viewport_size({'width': 375, 'height': H}); go(pg, '#/words/confuse'); go(pg, '#/words/confuse/borrow-lend,make-do')
+                        pg.wait_for_selector('#mixQ .ans', timeout=8000); pg.wait_for_timeout(400); s = pg.evaluate(ONE_SCREEN_JS)
+                        check(dev, f'375×{H} Safari 词汇辨析第 1 题: one screen whatever the toolbar ({s["page"]} of {s["H"]}px)', s['page'] <= s['H'] and s['answers'] and max(s['answers']) <= s['H'], s)
+                go(pg, '#/words/confuse'); go(pg, '#/words/confuse/borrow-lend,make-do'); pg.wait_for_selector('#mixQ .ans', timeout=8000); pg.wait_for_timeout(400)
                 for k in (1, 2):
                     if k == 2:
                         pg.click('#mixQ .ans'); pg.wait_for_selector('#mixNext', timeout=4000); pg.click('#mixNext')
