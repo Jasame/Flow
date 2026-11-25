@@ -60,6 +60,18 @@ ANSWERS_PER_REVIEW, ANSWERS_PER_NEW, ANSWER_SECONDS = 1.2, 3, 9.5
 MONTH_REVIEWS_PER_NEW = {0.8: 4, 0.85: 4.5, 0.9: 6, 0.95: 8}
 PAUSE_OVER = 3  # new words wait for a day while more reviews are due than this many times the daily new words
 BATCH = 40  # one review session: the most urgent 40; the review page offers a place to stop after them
+# r28 (section 3, the owner chose the recommended plan 2026-11-25): a day of words has a cap in minutes, the 单词 part of
+# the day's plan (time_budget.budget(minutes)['words'], 语流 08: 5 → 3, 15 → 5, 30 → 9 …), or the plan's own 单词每天,
+# at least what an exam date needs. Reviews most at risk first, then new words while time is left; at the cap the step
+# is done and the rest waits (later). After a break (BACK_DAYS without a review) the most urgent BATCH first, the rest
+# over SPREAD_DAYS days, no new words until caught up (r28 section 2's 回来模式 uses the same numbers).
+BACK_DAYS, SPREAD_DAYS = 3, 5
+WORD_MINUTES = (5, 8, 10, 15, 20, 30)  # the plan page's choices for 单词每天 (0: follow the day's plan)
+# A finished book: the next one (r28 section 3). 六级 is followed by 考研, or 雅思 for a learner going abroad.
+NEXT_BOOK = {'zk': 'gk', 'gk': 'cet4', 'cet4': 'cet6', 'cet6': 'ky', 'tem4': 'tem8', 'ielts': 'toefl', 'toefl': 'gre',
+             'core': 'mid', 'mid': 'high', 'high': 'adv', 'adv': 'ext'}
+ABROAD_NEXT = {'cet6': 'ielts'}
+SOON_DAYS = 7  # the word page tells what comes next once the book's new words last this many days or fewer
 SPELL_FROM, RECALL_FROM = 21, 3  # stability (days) at which reviews move to spelling / active recall
 LEVEL_ORDER = {'A2': 0, 'B1': 1, 'B2': 2, 'C1': 3}
 # Made-up words for the vocabulary test: saying you know them reveals guessing, which the estimate corrects for.
@@ -114,6 +126,10 @@ CREATE TABLE IF NOT EXISTS next_reminders(user_id INTEGER PRIMARY KEY REFERENCES
         c.execute('ALTER TABLE next_vocab_plans ADD COLUMN suggest TEXT')
     if 'paused_on' not in pcols:  # the day new words were held back because too many reviews were due
         c.execute('ALTER TABLE next_vocab_plans ADD COLUMN paused_on TEXT')
+    if 'word_minutes' not in pcols:  # 单词每天: the learner's own cap in minutes (0: the day's plan decides)
+        c.execute('ALTER TABLE next_vocab_plans ADD COLUMN word_minutes INTEGER NOT NULL DEFAULT 0')
+    if 'catch_up' not in pcols:  # after a break: {"day": the first day, "total": reviews due then} until caught up
+        c.execute('ALTER TABLE next_vocab_plans ADD COLUMN catch_up TEXT')
     if 'test_skip' not in pcols:  # what the test said may be skipped, kept so "skip known words" can be turned back on
         c.execute('ALTER TABLE next_vocab_plans ADD COLUMN test_skip INTEGER NOT NULL DEFAULT 0')
         c.execute('UPDATE next_vocab_plans SET test_skip=skip_rank')
@@ -476,6 +492,11 @@ def introduce(c, uid, now=None):
         c.execute('UPDATE next_vocab_plans SET paused_on=? WHERE user_id=?', (day, uid))
         c.commit()
         return 0
+    cap = word_cap(c, uid, now, p)
+    if cap is not None:  # only as many as fit in the time the reviews leave today; none while catching up
+        need = min(need, share(c, uid, now, cap, p)['new_room'])
+        if need <= 0:
+            return 0
     have = {r[0] for r in c.execute('SELECT norm FROM next_cards WHERE user_id=?', (uid,))}
     d = nx.dictionary()
     skip = _skip_below(p['book'], p.get('skip_rank'))
@@ -493,8 +514,9 @@ def introduce(c, uid, now=None):
     return added
 
 
-def queue(c, uid, limit=BATCH):
-    """Today's session: items most at risk of being forgotten first, then ones still in learning steps, then new words."""
+def queue(c, uid, limit=BATCH, more=False):
+    """Today's session: items most at risk of being forgotten first, then ones still in learning steps, then new words.
+    Under a cap (word_cap), only today's share; more=True (继续复习, 再学 10 个): everything due, as before r28."""
     now = time.time()
     introduce(c, uid, now)
     rows = c.execute('SELECT * FROM next_cards WHERE user_id=? AND known=0 AND ' + DUE_TODAY, (uid, _day_start(now) + fsrs.DAY, now)).fetchall()
@@ -502,8 +524,13 @@ def queue(c, uid, limit=BATCH):
     steps = sorted((r for r in rows if r['state'] in ('learning', 'relearning')), key=lambda r: r['due'])
     new = sorted((r for r in rows if r['state'] == 'new'), key=lambda r: (r['source'] == 'book', r['rank'] or 0, r['created']))
     level = _level(c, uid)
-    picked = (reviews + steps + new)[:limit]
-    return {'items': [card_out(r, now, level, rich=True, c=c) for r in picked], **counts(c, uid, now)}
+    cap = None if more else word_cap(c, uid, now)
+    if cap is None:
+        picked = (reviews + steps + new)[:limit]
+        return {'items': [card_out(r, now, level, rich=True, c=c) for r in picked], **counts(c, uid, now), 'more': bool(more)}
+    n = counts(c, uid, now, cap)
+    picked = ((reviews + steps)[:n['due']] + new[:n['new']])[:limit]
+    return {'items': [card_out(r, now, level, rich=True, c=c) for r in picked], **n, 'more': False}
 
 
 # Due today: a review card from midnight on (a card reviewed last night is not due again only this evening, so a plan
@@ -530,14 +557,135 @@ def minutes_for(reviews, new, seconds):
     return max(1, round((reviews * ANSWERS_PER_REVIEW + new * ANSWERS_PER_NEW) * seconds / 60))
 
 
-def counts(c, uid, now=None):
+def counts(c, uid, now=None, cap=None):
+    """Today's words: reviews due, new words, minutes. With cap (minutes; r28: 今日's 单词 step passes
+    time_budget.budget(…)['words']): today's share only, what is left of it (due, new, minutes), and beyond it later
+    (reviews that wait for the coming days) and catch_up ({left, days} after a break, else None). The cap used is the
+    plan's own 单词每天 when the learner set one, and at least what an exam date needs (word_cap)."""
     now = now or time.time()
+    p = plan(c, uid)
+    done = c.execute('SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND created>=?', (uid, _day_start(now))).fetchone()[0]
+    paused = bool(p and p.get('paused_on') == nx._day(now))
+    if cap is not None:
+        cap = word_cap(c, uid, now, p, default=cap)
+    if cap is not None and p:
+        s = share(c, uid, now, cap, p)
+        return {'due': s['due'], 'new': s['new'], 'done_today': done, 'minutes': s['minutes'], 'new_paused': paused, 'batch': BATCH,
+                'later': s['later'], 'catch_up': s['catch_up'], 'cap': cap}
     due = _reviews_due(c, uid, now)
     new = c.execute("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND known=0 AND state='new' AND due<=?", (uid, now)).fetchone()[0]
-    done = c.execute('SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND created>=?', (uid, _day_start(now))).fetchone()[0]
-    p = plan(c, uid)
     return {'due': due, 'new': new, 'done_today': done, 'minutes': minutes_for(due, new, answer_seconds(c, uid, now)),
-            'new_paused': bool(p and p.get('paused_on') == nx._day(now)), 'batch': BATCH}
+            'new_paused': paused, 'batch': BATCH, 'later': 0, 'catch_up': None, 'cap': None}
+
+
+# ---------- a day of words in minutes (r28 section 3) ----------
+
+def _per_new(retention):
+    """Answers a day each daily new word costs a month in: its own first steps and its share of the reviews."""
+    return ANSWERS_PER_NEW + MONTH_REVIEWS_PER_NEW.get(retention, 6) * ANSWERS_PER_REVIEW
+
+
+def word_cap(c, uid, now=None, p=None, default=None):
+    """Minutes a day for words, or None (no cap: everything due, as before r28). The plan's own 单词每天 when set; else
+    default (the caller's budget) or the day's plan budget (time_budget, r28 section 1) for the learner's daily minutes;
+    at least what an exam date needs (exam_minutes)."""
+    p = p if p is not None else plan(c, uid)
+    if not p:
+        return None
+    cap = p.get('word_minutes') or default
+    if not cap:
+        try:
+            import time_budget
+        except ImportError:  # the day's plan does not budget its steps yet (before 语流 08's time-box)
+            return None
+        prof = nx.profile(c, uid) or {}
+        if not prof.get('minutes'):
+            return None
+        cap = time_budget.budget(prof['minutes'], exam=prof.get('goal') == 'exam')['words']
+    return max(int(cap), exam_minutes(c, uid, p, now))
+
+
+def exam_minutes(c, uid, p, now=None):
+    """Minutes a day the words need to finish the exam's book in time (考试冲刺: need new words a day), or 0."""
+    try:
+        cd = __import__('exam_sprint').countdown(c, uid, now)
+    except Exception:  # noqa: BLE001 - no exam, no date: no floor
+        return 0
+    if not cd or not cd.get('need') or cd.get('plan_book') != cd.get('book'):
+        return 0
+    return math.ceil(cd['need'] * _per_new(p['retention']) * answer_seconds(c, uid, now) / 60)
+
+
+def fit_new(cap, retention, seconds):
+    """New words a day that a cap of minutes keeps up with, a month in (their reviews included); at least 1."""
+    return max(1, int(cap * 60 / seconds // _per_new(retention)))
+
+
+def share(c, uid, now, cap, p=None):
+    """Today's share of the words under a cap of minutes: the reviews most at risk first, then new words, as many as
+    the time allows (answers: a review about 1.2, a new word about 3, at this learner's pace). What was answered today
+    counts against the cap, so the share shrinks as the learner goes and is used up at the cap.
+    {due, new: what is left of the share; minutes; later: reviews beyond it; new_room: new words that would still fit
+    (introduce); catch_up: {left, days} while catching up after a break, else None}."""
+    p = p if p is not None else plan(c, uid)
+    sec = answer_seconds(c, uid, now)
+    answers = c.execute('SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND created>=?', (uid, _day_start(now))).fetchone()[0]
+    due = _reviews_due(c, uid, now)
+    waiting = c.execute("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND known=0 AND state='new' AND due<=?", (uid, now)).fetchone()[0]
+    budget = cap * 60 / sec
+    back = _catch_up(c, uid, p, now, due, budget)
+    if back:
+        budget = max(budget, back['cards'] * ANSWERS_PER_REVIEW)
+    left = max(0.0, budget - answers)
+    reviews = min(due, int(left // ANSWERS_PER_REVIEW + 1e-9))
+    room = int((left - reviews * ANSWERS_PER_REVIEW) // ANSWERS_PER_NEW + 1e-9)
+    new = 0 if back else min(waiting, room)
+    later = due - reviews
+    catch = None
+    if back:
+        catch = {'left': due, 'days': (1 if reviews else 0) + math.ceil(later / back['per_day'])}
+    return {'due': reviews, 'new': new, 'minutes': minutes_for(reviews, new, sec) if reviews + new else 0, 'later': later,
+            'new_room': 0 if back else max(0, room - new), 'catch_up': catch}
+
+
+def _catch_up(c, uid, p, now, due, budget):
+    """After a break (BACK_DAYS days in a row without a review) with more due than a day's cap holds: the first day the BATCH
+    most at risk, then the rest over SPREAD_DAYS days, no new words meanwhile. Kept in the plan (catch_up) from the
+    first day; over once a day's cap holds what is due (or after SPREAD_DAYS + 2 days). None when not catching up."""
+    if not p:
+        return None
+    day = nx._day(now)
+    try:
+        st = json.loads(p.get('catch_up') or 'null')
+    except ValueError:
+        st = None
+    holds = int(budget // ANSWERS_PER_REVIEW + 1e-9)
+    if not st:
+        last = c.execute('SELECT MAX(created) FROM next_reviews WHERE user_id=? AND created<?', (uid, _day_start(now))).fetchone()[0]
+        # BACK_DAYS whole days without a review in between: the last one 4 days before today or earlier, as 今日's
+        # 回来那天 (r28 section 2, 语流 08) counts the days without study (a day is 23-25 hours around a clock change)
+        if not last or due <= holds or (_day_start(now) - _day_start(last)) / fsrs.DAY < BACK_DAYS + 0.5:
+            return None
+        st = {'day': day, 'total': due}
+        c.execute('UPDATE next_vocab_plans SET catch_up=? WHERE user_id=?', (json.dumps(st), uid))
+        c.commit()
+        p['catch_up'] = json.dumps(st)
+    k = (datetime.date.fromisoformat(day) - datetime.date.fromisoformat(st['day'])).days
+    per_day = max(1, holds, math.ceil(max(0, st['total'] - BATCH) / SPREAD_DAYS))
+    if (k > 0 and due <= holds) or k > SPREAD_DAYS + 1 or due == 0:
+        c.execute('UPDATE next_vocab_plans SET catch_up=NULL WHERE user_id=?', (uid,))
+        c.commit()
+        p['catch_up'] = None
+        return None
+    return {'cards': max(holds, BATCH if k == 0 else per_day), 'per_day': per_day}
+
+
+def next_book(c, uid, book):
+    """The book that follows a finished one (NEXT_BOOK; 雅思 after 六级 for a learner going abroad), or None."""
+    if (nx.profile(c, uid) or {}).get('goal') == 'abroad' and book in ABROAD_NEXT:
+        return ABROAD_NEXT[book]
+    nxt = NEXT_BOOK.get(book)
+    return nxt if nxt in book_words() else None
 
 
 def rate(c, uid, data):
@@ -739,8 +887,24 @@ def overview(c, uid):
         started = sum(1 for _, w in words if w in studied)
         skipped = _skipped(p['book'], skip_rank)
         left = max(0, len(words) - started - skipped)
+        cap = word_cap(c, uid, now, p)
+        pace = min(p['daily_new'], fit_new(cap, p['retention'], answer_seconds(c, uid, now))) if cap else p['daily_new']
+        days_left = math.ceil(left / max(1, pace)) if left else 0
         book = {'id': p['book'], 'title': book_title(p['book']), 'size': len(words), 'started': started, 'skipped': skipped,
-                'finish': nx._day(now + math.ceil(left / max(1, p['daily_new'])) * fsrs.DAY) if left else None}
+                'left': left, 'pace': pace, 'days': days_left, 'soon': bool(left) and days_left <= SOON_DAYS, 'done': not left,
+                'finish': nx._day(now + days_left * fsrs.DAY) if left else None, 'next': None, 'exam_first': False}
+        if book['soon'] or book['done']:  # what comes next, and how many of its words are new to this learner
+            nb = next_book(c, uid, p['book'])
+            if nb:
+                have = {r['norm'] for r in rows}
+                book['next'] = {'id': nb, 'title': book_title(nb), 'new': sum(1 for _, w in book_words()[nb] if w not in have)}
+            cd = None
+            try:
+                cd = __import__('exam_sprint').countdown(c, uid, now)
+            except Exception:  # noqa: BLE001
+                cd = None
+            # an exam still ahead on this book: review until the exam first, the next book after it
+            book['exam_first'] = bool(cd and cd.get('book') == p['book'] and (cd.get('days') or 0) > 0)
     books = registry()
     for b in books:  # how many words a plan would skip in each book, for the estimate on the plan page
         b['skippable'] = _skipped(b['id'], ((p.get('test_skip') or skip_rank) if p else 0) or 0, force=True)
@@ -754,7 +918,9 @@ def overview(c, uid):
             # the plan page's 「一个月后每天大约要复习…」 uses the same numbers as the day's estimate
             'load': {'answer_seconds': answer_seconds(c, uid, now), 'per_review': ANSWERS_PER_REVIEW, 'per_new': ANSWERS_PER_NEW,
                      'month_reviews_per_new': {str(k): v for k, v in MONTH_REVIEWS_PER_NEW.items()}},
-            **counts(c, uid, now)}
+            # 单词每天 (r28): the choices, and the cap the day's plan gives when the learner sets none
+            'word_minutes_options': list(WORD_MINUTES), 'word_auto': word_cap(c, uid, now, {**p, 'word_minutes': 0}) if p else None,
+            **counts(c, uid, now, cap=word_cap(c, uid, now, p))}
 
 
 def save_plan(c, uid, data):
@@ -765,8 +931,11 @@ def save_plan(c, uid, data):
     retention = data.get('retention', 0.9)
     if type(daily) is not int or not 1 <= daily <= DAILY_MAX or retention not in RETENTION:
         return {'error': f'每天新词可以是 1–{DAILY_MAX} 个；记住率请从选项里选'}, 400
-    now = time.time()
     old = plan(c, uid)
+    minutes = data.get('word_minutes', (old or {}).get('word_minutes') or 0)
+    if type(minutes) is not int or minutes not in (0, *WORD_MINUTES):
+        return {'error': '单词每天的分钟数请从选项里选'}, 400
+    now = time.time()
     if old and old['book'] != book:
         # Words the old book put into today's queue but that were never studied make way for the new book's words.
         gone = [r[0] for r in c.execute("SELECT id FROM next_cards WHERE user_id=? AND source='book' AND state='new' AND reps=0 AND known=0", (uid,))]
@@ -776,6 +945,7 @@ def save_plan(c, uid, data):
     c.execute('''INSERT INTO next_vocab_plans(user_id,book,daily_new,retention,created,updated) VALUES(?,?,?,?,?,?)
                  ON CONFLICT(user_id) DO UPDATE SET book=excluded.book, daily_new=excluded.daily_new, retention=excluded.retention, updated=excluded.updated''',
               (uid, book, daily, retention, now, now))
+    c.execute('UPDATE next_vocab_plans SET word_minutes=? WHERE user_id=?', (minutes, uid))
     if data.get('skip_known') is False:
         c.execute('UPDATE next_vocab_plans SET skip_rank=0 WHERE user_id=?', (uid,))
     elif data.get('skip_known') is True:
@@ -940,6 +1110,12 @@ def add_many(c, uid, data):
     return {'added': added, 'skipped': skipped, **counts(c, uid, now)}, 200
 
 
+# 2026-11-25, the owner: examples must not mock or stereotype (one AI example said 「那个疯子整天自言自语」 for mad);
+# fill_examples.py --review finds the ones written before this line and has them written again
+FAIR = ('内容要友善、不带偏见：不嘲笑、不贬低任何人，避开对疾病、残障、精神状况、种族、民族、国籍、性别、地域（城乡、某地的人）'
+        '的刻板印象，比如不写「疯子」「哑巴」，不写某国人或某地人都怎样、女人只该做家务；写到这些话题时用中性、尊重的说法。')
+
+
 def example_messages(words, level=None):
     """The chat messages that ask for one example sentence (and its translation) per word; shared by the learner's
     request (ai_examples) and the batch that writes them ahead of time (fill_examples.py). The level is the easiest of
@@ -948,7 +1124,7 @@ def example_messages(words, level=None):
     level = level or min((example_level(w) for w in words), default='B1')
     system = ('你是英语词典编辑，给中国学生写例句。为每个单词写一个自然、常用、贴近生活的英文例句（10–20 词，' + level +
               ' 学习者能读懂）：句子里其他的词都要比这个单词简单，让学生一眼就看懂它的意思。'
-              '优先用词书给的第一个义项；只有第一个义项明显是生僻用法时才换别的义项。给出准确的中文翻译。只输出 JSON。')
+              '优先用词书给的第一个义项；只有第一个义项明显是生僻用法时才换别的义项。' + FAIR + '给出准确的中文翻译。只输出 JSON。')
     user = ('单词（附中文义项，括号里是第一个义项）：\n' +
             '\n'.join(f'{w}：{short_meaning(d[w]["meaning"])}（第一个义项：{first_sense(d[w]["meaning"])}）' for w in words) +
             '\n\n输出 JSON：{"examples":[{"word":"单词原形","sense":"例句用的义项（中文，照抄上面的一个义项）",'
@@ -1060,6 +1236,7 @@ def send_reminders(c, now=None, send=None):
     local = datetime.datetime.fromtimestamp(now, nx.TZ)
     today = local.date().isoformat()
     origin = os.getenv('FLOW_PUBLIC_URL', 'https://flowlang.cn').rstrip('/')
+    import mail_layout
     if send is None:
         from account_service import mail as send
     if 'email' not in {x[1] for x in c.execute('PRAGMA table_info(users)')}:
@@ -1078,16 +1255,17 @@ def send_reminders(c, now=None, send=None):
             continue
         if n['due'] + n['new'] > BATCH:  # piled up: the first 40 is a session that can be done, not the whole heap
             first = minutes_for(min(n['due'], BATCH), max(0, BATCH - n['due']), answer_seconds(c, r['user_id'], now))
-            text = (f"{r['username']}，你好：\n\n先复习最要紧的 {BATCH} 个，大约 {first} 分钟。最容易忘的排在前面，"
-                    f"做完这些今天就可以停，剩下的之后几天接着来。\n{origin}/#/review\n\n")
+            say = f"先复习最要紧的 {BATCH} 个，大约 {first} 分钟。最容易忘的排在前面，做完这些今天就可以停，剩下的之后几天接着来。"
             subject = f"语流 · 先复习最要紧的 {BATCH} 个，约 {first} 分钟"
         else:
-            text = (f"{r['username']}，你好：\n\n今天有 {n['due']} 个单词该复习了" + (f"，还有 {n['new']} 个新词" if n['new'] else '') +
-                    f"，大约 {n['minutes']} 分钟。\n记忆曲线到点了，现在复习效果最好：{origin}/#/review\n\n")
+            say = (f"今天有 {n['due']} 个单词该复习了" + (f"，还有 {n['new']} 个新词" if n['new'] else '') +
+                   f"，大约 {n['minutes']} 分钟。记忆曲线到点了，现在复习效果最好。")
             subject = f"语流 · 今天有 {n['due'] + n['new']} 个单词等你"
-        text += "不想再收到提醒，可以在「单词 → 调整计划」里关掉。\n—— 语流 Flow"
+        # the one look of every mail 语流 sends (mail_layout, 「A 简洁卡片」): plain text and HTML with the same words
+        text, page = mail_layout.message([f"{r['username']}，你好：", say], button=('去复习', f'{origin}/#/review'),
+                                         foot=[('不想再收到提醒，可以在「单词 → 调整计划」里关掉', f'{origin}/#/vocab/plan')])
         try:
-            send(r['email'], subject, text)
+            send(r['email'], subject, text, html=page)
             sent += 1
         except Exception:
             pass  # a mail outage must not stop the loop; tomorrow is another try
@@ -1141,7 +1319,7 @@ def get(c, uid, path, q):
     if path == '/api/next/vocab/card':
         return detail(c, uid, int(one('id', '0') or 0))
     if path == '/api/next/review':
-        return queue(c, uid), 200
+        return queue(c, uid, more=one('more') == '1'), 200
     return None
 
 

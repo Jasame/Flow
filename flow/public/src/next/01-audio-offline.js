@@ -82,8 +82,9 @@
   // S.home.session.media = {base: '<media domain>/audio', version} when the server keeps audio in R2 (flow/media.py).
   function mediaAlt(url) {
     const m = S.home && S.home.session && S.home.session.media;
-    // server-voice files and word clips (.aac, cut by this server from a sprite) are not in R2
-    if (!m || !m.base || !/^\/audio\//.test(url || '') || /^\/audio\/tts\//.test(url) || /\.aac(\?|$)/.test(url)) return '';
+    // server-voice files, a learner's own articles' voice (private: never asked of another host) and word clips (.aac, cut
+    // by this server from a sprite) are not in R2
+    if (!m || !m.base || !/^\/audio\//.test(url || '') || /^\/audio\/(tts|own)\//.test(url) || /\.aac(\?|$)/.test(url)) return '';
     return `${m.base}/${url.split('?')[0].slice(7).replace(/\.mp4$/, '.m4a')}?v=${encodeURIComponent(m.version)}`;
   }
   const mainDown = () => Date.now() - (S.mediaMainDown || 0) < 120000;  // after a failure, the other line for 2 minutes
@@ -220,10 +221,16 @@
     },
   };
 
-  /* ---------- short sounds on iPhones and iPads: Web Audio, so a word is heard from its first sound ---------- */
+  /* ---------- short sounds on iPhones and iPads ---------- */
   // An <audio> is a media session for iOS: every play() sets one up (the Dynamic Island and Now Playing show it and take
-  // it away again), and the moment that takes ate the start of a word (the owner, 2026-11-24). A buffer source starts
-  // on the AudioContext's own clock, so nothing is lost. What WebKit does (its source, read 2026-11-25):
+  // it away again), and the moment that takes ate the start of a word (the owner, 2026-11-24). Two ways, both on the
+  // 内测版 until the owner has tried them on an iPhone and chosen one before the next release (语流 1, 2026-11-25):
+  //  - 连续 (the default): Web Audio (AUDIO, here). A buffer source starts on the context's own clock, so nothing is
+  //    lost; the island shows 「语流 · 单词」 while words are being played, and goes 20 s after the last.
+  //  - 标准 (我的 → 设置 → 单词读音方式, or ?audio=element in Safari): short <audio> clips cut by the server with
+  //    silence in front (CLIP below). Under 0.95 s an <audio> is not shown in Now Playing: about 66% of the American
+  //    and 55% of the British words are, with 0.2 s in front.
+  // Neither is silenced by the ringer switch. What WebKit does (its source, read 2026-11-25):
   //  - an AudioContext alone is in the Ambient category, which the ringer switch mutes, unless navigator.audioSession.type
   //    is 'playback' (or 'play-and-record'); under those it is eligible for Now Playing (AudioContext::isNowPlayingEligible)
   //    while it runs, so it is named 「语流」 (MS) and suspended 20 s after the last sound;
@@ -231,14 +238,30 @@
   //  - setting the type is refused where the page may not use the microphone: then this player is not used, and the
   //    short <audio> clips below are (the ringer switch does not mute those);
   //  - iOS 26 home-screen apps: a context may stay silent after the app comes back (WebKit bug 291892): it is closed when
-  //    the page is hidden and made again for the next sound. ?audio=element turns this player off (?audio=auto: on again).
+  //    the page is hidden and made again for the next sound.
   const WORD_CLIPS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const CLIP_LEAD = 0.3;  // the silence in front of a cut clip (word_clip.LEAD)
-  (() => { const m = /[?&]audio=(element|auto)\b/.exec(location.search); if (m) save('flow-audio', m[1] === 'auto' ? null : m[1]); })();
+  (() => {  // switches for trying in Safari: ?audio=element|compat|auto|webaudio, ?lead=0.05–0.4|auto (silence before a word)
+    const q = location.search, a = /[?&]audio=(webaudio|element|compat|auto)\b/.exec(q), l = /[?&]lead=([\d.]+|auto)\b/.exec(q);
+    if (a) save('flow-audio', a[1] === 'element' || a[1] === 'compat' ? 'compat' : null);
+    if (l) save('flow-lead', l[1] === 'auto' ? null : Number(l[1]));
+  })();
+  // the silence in front of a cut clip: long enough for an iPhone to wake its sound, short enough that most words stay
+  // under 0.95 s (word_clip.LEAD; with 0.2 s, 66% of the American and 55% of the British words do)
+  // (我的 → 设置 → 单词读音方式 sets it too; read at each play, so a change counts at once)
+  const LEADS = [0.1, 0.15, 0.2, 0.25, 0.3], LEAD_DEFAULT = 0.2;
+  const clipLead = () => (v => (v >= 0.05 && v <= 0.4 ? v : LEAD_DEFAULT))(Number(load('flow-lead')));
   const AUDIO = {
     ctx: null, src: null, done: null, own: null, token: 0, bufs: new Map(), idle: 0, off: false,
     AC: window.AudioContext || window.webkitAudioContext,
-    usable() { return WORD_CLIPS && !!this.AC && !!navigator.audioSession && !this.off && load('flow-audio') !== 'element'; },
+    usable() { return WORD_CLIPS && !!this.AC && !!navigator.audioSession && !this.off && this.mode() !== 'compat'; },
+    // 我的 → 设置 → 单词读音方式 (iPhones and iPads), kept on this phone (the home-screen app has no address bar for
+    // ?audio= and ?lead=, and keeps its own storage): 'auto' = 连续 (Web Audio where it works) or 'compat' = 标准 (the
+    // <audio> clips), and the silence in front of a clip
+    mode() { return load('flow-audio') === 'compat' ? 'compat' : 'auto'; },
+    setMode(m) { save('flow-audio', m === 'compat' ? 'compat' : null); if (m === 'compat') this.drop(); this.off = false; },
+    lead() { return clipLead(); },
+    setLead(v) { save('flow-lead', LEADS.includes(v) && v !== LEAD_DEFAULT ? v : null); },
+    LEADS, LEAD_DEFAULT,
     // The page's audio session type, for this player and for recording (语流 9): AUDIO.session('play-and-record') before
     // the microphone, AUDIO.session('playback') after. Returns the type in effect ('playback', 'play-and-record', 'auto'…),
     // or null where the browser has no navigator.audioSession (then nothing is changed). A type WebKit refuses (no
@@ -314,9 +337,12 @@
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') AUDIO.drop(); });
 
   /* ---------- short clips: a word's pronunciation, one sentence of a narration, a sentence of the server voice ---------- */
-  // On iPhones and iPads these play on AUDIO (above). Where it is not used, or fails, an <audio> plays them: there a word
-  // is its own small file, cut by the server with 0.3 s of silence in front (word_clip.py), played from its start, so
-  // the waking of the sound happens in the silence; elsewhere the sprite is played as before.
+  // On iPhones and iPads a word (and a sentence of a narration) is its own small file, cut by the server with clipLead()
+  // seconds of silence in front (word_clip.py), played from its start on an <audio>: the waking of the sound happens in
+  // the silence. Its source is let go when it ends, so WebKit no longer counts it for Now Playing (a page that once was
+  // the Now Playing app shows even short sounds there until it has nothing left to show; a paused whole text may still
+  // count, which only a phone can tell). Unless 标准 is chosen they play on AUDIO instead, where it works.
+  // Elsewhere the sprite and the narration are played as before.
   const CLIP = {
     audio: new Audio(), raf: 0, metas: {}, want: null,
     accent() { return (S.voice || 'us-f').startsWith('uk') ? 'uk' : 'us'; },
@@ -328,16 +354,22 @@
     // wa: {url, from, to, title}: what AUDIO plays instead, where it is used.
     play(src, from, to, text, onend, fallback, wa) {
       NAR.stop(); TTS.stop(); this.stop();
-      const want = this.want = { from, to, text, onend, fallback };
+      const want = this.want = { from, to, text, onend, fallback, title: wa && wa.title };
       if (wa && AUDIO.play(wa.url, wa.from, wa.to, TTS.rate, () => { if (this.want === want) { this.want = null; if (onend) onend(); } },
         () => { if (this.want === want) this.element(src, from, to, text, onend, fallback, want); }, wa.title)) { want.wa = true; return; }
       this.element(src, from, to, text, onend, fallback, want);
     },
     element(src, from, to, text, onend, fallback, want) {
       const a = this.audio;
-      const loop = () => { if (this.want !== want) return; if (a.currentTime >= to || a.ended) { a.pause(); this.want = null; if (onend) onend(); return; } this.raf = requestAnimationFrame(loop); };
+      const loop = () => {
+        if (this.want !== want) return;
+        if (a.currentTime >= to || a.ended) { a.pause(); this.want = null; if (to === Infinity && WORD_CLIPS) { this.letGo(); MS.release('short'); } if (onend) onend(); return; }
+        this.raf = requestAnimationFrame(loop);
+      };
       const refused = e => { if (this.want === want && e && e.name === 'NotAllowedError') noSound('没有放出声音'); };
       claim(a); a.playbackRate = TTS.rate; a.dataset.want = '1'; a._from = from;
+      // a word longer than 0.95 s still shows in the Dynamic Island: named, not an address (metadata changes nothing else)
+      if (WORD_CLIPS && want.title) MS.claim('short', want.title, { pause: () => this.stop(), stop: () => this.stop() });
       if (a.dataset.src === src && a.readyState >= 1) {
         try { a.currentTime = from; } catch (e) { /* not seekable yet */ }
         a.muted = false; a.play().catch(refused); this.raf = requestAnimationFrame(loop); return;
@@ -349,12 +381,13 @@
       a.addEventListener('seeked', () => { if (this.want !== want) return; a.muted = false; this.raf = requestAnimationFrame(loop); }, { once: true });
       a.play().catch(refused);
     },
+    letGo() { const a = this.audio; a.dataset.src = ''; a.removeAttribute('src'); try { a.load(); } catch (e) { /* ignore */ } },
     // c: {text, audio: {us: [sprite, start, end], uk: [...]}}; falls back to the browser voice
     word(c) {
       const au = c.audio || {}, ac = au[this.accent()] ? this.accent() : au.us ? 'us' : au.uk ? 'uk' : null;
       if (!ac) { TTS.say(c.text); return; }
-      const w = au[ac], sprite = `/audio/words/${ac}/${w[0]}.mp4`, clip = `/audio/words/${ac}/${w[0]}.aac?s=${w[1]}&e=${w[2]}`;
-      if (WORD_CLIPS) this.play(clip, 0, Infinity, c.text, null, [sprite, w[1], w[2]], { url: clip, from: CLIP_LEAD - 0.02, to: CLIP_LEAD + w[2] - w[1] + 0.04, title: '语流 · 单词' });
+      const w = au[ac], sprite = `/audio/words/${ac}/${w[0]}.mp4`, clip = this.wordSrc(c);
+      if (WORD_CLIPS) this.play(clip, 0, Infinity, c.text, null, [sprite, w[1], w[2]], { url: clip, from: clipLead() - 0.02, to: clipLead() + w[2] - w[1] + 0.04, title: '语流 · 单词' });
       else this.play(sprite, w[1], w[2], c.text);
     },
     // the file word(c) plays: the word's own clip on an iPhone or iPad, its sprite elsewhere (prefetched by the review)
@@ -362,19 +395,20 @@
       const au = (c && c.audio) || {}, ac = au[this.accent()] ? this.accent() : au.us ? 'us' : au.uk ? 'uk' : null;
       if (!ac) return null;
       const w = au[ac];
-      return WORD_CLIPS ? `/audio/words/${ac}/${w[0]}.aac?s=${w[1]}&e=${w[2]}` : `/audio/words/${ac}/${w[0]}.mp4`;
+      return WORD_CLIPS ? `/audio/words/${ac}/${w[0]}.aac?s=${w[1]}&e=${w[2]}&l=${clipLead()}` : `/audio/words/${ac}/${w[0]}.mp4`;
     },
-    // ex: {pack, i, text, audio: narration version or 0}
-    async sentence(ex) {
-      if (!ex.audio) { TTS.say(ex.text); return; }
+    // ex: {pack, i, text, audio: narration version or 0}; onend when it has been said (对比回放 plays the recording then)
+    async sentence(ex, onend) {
+      if (!ex.audio) { TTS.say(ex.text, onend); return; }
       const key = S.voice + '/' + ex.pack;
       try {
         if (!this.metas[key]) this.metas[key] = await mediaJSON(`/audio/${S.voice}/${encodeURIComponent(ex.pack)}.json?v=${ex.audio}`);
         const s = this.metas[key].sentences[ex.i]; if (!s) throw new Error('no sentence');
-        const base = `/audio/${S.voice}/${encodeURIComponent(ex.pack)}`, e = s.e + 0.05;
-        this.play(`${base}.mp4?v=${ex.audio}`, s.s, e, ex.text, null, null,
-          { url: `${base}.aac?v=${ex.audio}&s=${s.s}&e=${e}`, from: CLIP_LEAD - 0.02, to: CLIP_LEAD + e - s.s + 0.02, title: '语流 · 例句' });
-      } catch (e) { TTS.say(ex.text); }
+        const base = `/audio/${S.voice}/${encodeURIComponent(ex.pack)}`, e = s.e + 0.05, cut = `${base}.aac?v=${ex.audio}&s=${s.s}&e=${e}&l=${clipLead()}`;
+        const wa = { url: cut, from: clipLead() - 0.02, to: clipLead() + e - s.s + 0.02, title: '语流 · 例句' };
+        if (WORD_CLIPS) this.play(cut, 0, Infinity, ex.text, onend, [`${base}.mp4?v=${ex.audio}`, s.s, e], wa);
+        else this.play(`${base}.mp4?v=${ex.audio}`, s.s, e, ex.text, onend);
+      } catch (e) { TTS.say(ex.text, onend); }
     },
     // the learner's own recording (a blob: URL), after or beside the original: it does not stop what plays
     mine(url, onend) {

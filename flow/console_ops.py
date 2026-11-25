@@ -183,11 +183,36 @@ def limits():
         out[key] = chat_service.daily_limit(env)
         out[key + '_source'] = 'console' if limit_override(env) is not None else 'server'
         out[key + '_server'] = server_limit(env)
+    out['tts'] = tts_limits()
+    return out
+
+
+TTS_KEYS = {'FLOW_TTS_USER_CHARS': 'tts_user_chars', 'FLOW_TTS_DAILY_CHARS': 'tts_site_chars', 'FLOW_TTS_IMPORT_CHARS': 'tts_import_chars',
+            'FLOW_TTS_IMPORT_PERCENT': 'tts_import_percent', 'FLOW_TTS_PREWARM_CHARS': 'tts_prewarm_chars'}
+
+
+def tts_limits():
+    """AI 朗读 (CosyVoice) caps in characters a day, and the share of the site's day imports may use (tts_service.CAPS)."""
+    import tts_service
+    out = {}
+    for env, key in TTS_KEYS.items():
+        out[key] = tts_service.cap(env)
+        out[key + '_source'] = 'console' if limit_override(env) is not None else 'server'
     return out
 
 
 def set_limits(data, by):
     new = {k: v for k, v in settings().items()}
+    for env, key in TTS_KEYS.items():
+        if key not in data:
+            continue
+        v, top = data[key], 100 if env == 'FLOW_TTS_IMPORT_PERCENT' else 10_000_000
+        if v is None or v == '':
+            new.pop(env, None)
+        elif type(v) is int and 0 <= v <= top:
+            new[env] = v
+        else:
+            return {'error': f'AI 朗读额度请填 0–{top} 的整数（留空表示用服务器配置）'}, 400
     for env, key in LIMIT_KEYS.items():
         if key not in data:
             continue
@@ -198,7 +223,7 @@ def set_limits(data, by):
             new[env] = v
         else:
             return {'error': '额度请填 0–1000000 的整数（0 表示不限，留空表示用服务器配置）'}, 400
-    save_settings({k: new.get(k) for k in LIMIT_KEYS}, by, drop_none=True)
+    save_settings({k: new.get(k) for k in (*LIMIT_KEYS, *TTS_KEYS)}, by, drop_none=True)
     return {'ok': True, **limits()}, 200
 
 
@@ -299,7 +324,10 @@ def redo_sample(c, kind, key):
 
 def limits_text(lim):
     show = lambda v: '不限' if not v else f'{v} 次'
-    return f"每账号 {show(lim['user_limit'])} · 全站 {show(lim['site_limit'])}"
+    t = lim.get('tts') or {}
+    voice = (f" · AI 朗读每账号 {t['tts_user_chars']} 字符、全站 {t['tts_site_chars']}、导入每账号 {t['tts_import_chars']}、"
+             f"导入最多用到全站 {t['tts_import_percent']}%") if t else ''
+    return f"每账号 {show(lim['user_limit'])} · 全站 {show(lim['site_limit'])}" + voice
 
 
 # ---------- 例句预生成 (fill_examples.py) ----------

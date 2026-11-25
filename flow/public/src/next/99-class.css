@@ -28,3 +28,7 @@
 .cls-code{font-size:30px;font-weight:700;letter-spacing:.18em;font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 #clsQrC{width:200px;height:200px;border-radius:8px;image-rendering:pixelated}
 #clsF input[name=code]{text-transform:uppercase;letter-spacing:.12em;font-variant-numeric:tabular-nums}
+/* 老师模式: the teacher's class list (82-class.js teachHome) */
+.cls-row{display:flex;align-items:center;justify-content:space-between;gap:12px;text-decoration:none;color:inherit}
+.cls-row:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.cls-list{margin:0;padding-left:1.2em;display:grid;gap:4px}

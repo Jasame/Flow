@@ -42,4 +42,8 @@
 .say-line{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
 .say-line b{font-family:var(--serif);font-weight:600;color:var(--ink)}
 .say-line .icon-btn{width:32px;height:32px;border-radius:8px}.say-line .icon-btn svg{width:16px;height:16px}
+/* 说完就显示进度 (46-speak.js waiting): what is happening and for how long, at the end of the chat; resend when it failed */
+.dlg-wait{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:4px 2px}.dlg-wait .secs{font-variant-numeric:tabular-nums}
 @media (prefers-reduced-motion:reduce){.rec-dot{animation:none}.p2-clock .vbar i{transition:none}}
+/* 伴读 in the server voice (22-study-read.js): 「正在准备朗读 12/30 句」, or why it reads with the browser voice */
+.sv-prep{margin:6px 0 0}

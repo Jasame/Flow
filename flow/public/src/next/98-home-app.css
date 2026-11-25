@@ -12,6 +12,8 @@
 .sheet{bottom:var(--kb,0px)}
 .sheet-card{max-height:min(86vh,calc(100vh - var(--kb,0px) - var(--sat) - 24px))}
 body.kb-open{padding-bottom:calc(var(--kb) + 16px)}
+/* iPhone/iPad, while a field has focus: room to bring a field near the end of the page above the keyboard ourselves */
+body.kb-room{padding-bottom:max(60vh,calc(var(--kb) + 16px))}
 /* a new version waiting (04-home-app.js): one line just under the top bar, clear of 返回 */
 .update-bar{position:fixed;z-index:70;top:calc(var(--sat) + 64px);left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:2px;
   max-width:calc(100vw - 24px);background:var(--ink);color:var(--bg);border-radius:99px;box-shadow:var(--shadow);padding:2px}

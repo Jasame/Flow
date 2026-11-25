@@ -1,0 +1,321 @@
+[
+ {
+  "id": "v5-life-b2-heating-repair-email",
+  "title": "给房东写信报修暖气",
+  "title_en": "Asking the Landlord to Fix the Heating",
+  "summary_zh": "天冷了，暖气却不热了。Anna 给房东写了一封报修邮件：说清楚现象、已经试过的办法、哪天方便上门，还附上了视频。读完你能写一封清楚、有礼貌的报修邮件。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "life",
+  "genre": "email",
+  "purposes": [
+   "daily-life"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Dear Mr Hughes, I hope you are well. I am writing about the heating in the flat, which stopped working properly last Tuesday. The radiators in the living room and bedroom now stay cold even when the boiler is switched on, although the hot water is still fine. I have checked the settings and tried turning the system off and on again, as the instructions in the kitchen drawer suggest, but nothing has changed. With the nights getting colder, the flat is becoming quite uncomfortable, especially in the mornings. I am also a little worried that the walls in the bathroom are starting to feel damp. I have put a small heater in the bedroom for now, but it is not really enough for the whole flat. Could you arrange for someone to come and take a look this week? I work from home on Wednesdays and Fridays, so either of those days would be easiest, but I can also leave a key with my neighbour if another day suits the engineer better. I have attached two short videos showing the radiators and the display on the boiler, in case they help. I would be grateful if you could let me know when someone is able to come. Thank you for your help, and for sorting out the kitchen tap so quickly last month. Best wishes, Anna Kowalski",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the main purpose of Anna's email?",
+    "options": [
+     "To ask the landlord to arrange a repair of the heating",
+     "To complain about her neighbour",
+     "To say that she is moving out",
+     "To ask for a lower rent"
+    ],
+    "answer": 0,
+    "evidence": "Could you arrange for someone to come and take a look this week?"
+   },
+   {
+    "type": "inference",
+    "prompt": "Why does Anna mention the kitchen tap at the end?",
+    "options": [
+     "The tap is broken again",
+     "To thank the landlord and keep the tone friendly",
+     "To ask for a new kitchen",
+     "To complain about slow repairs"
+    ],
+    "answer": 1,
+    "evidence": "for sorting out the kitchen tap so quickly last month"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"damp\" mean in \"starting to feel damp\"?",
+    "options": [
+     "very hot",
+     "dirty",
+     "slightly wet",
+     "cracked"
+    ],
+    "answer": 2,
+    "evidence": "starting to feel damp"
+   },
+   {
+    "type": "detail",
+    "prompt": "What has Anna already tried?",
+    "options": [
+     "Calling an engineer",
+     "Buying a new boiler",
+     "Asking her neighbour to fix it",
+     "Checking the settings and turning the system off and on again"
+    ],
+    "answer": 3,
+    "evidence": "I have checked the settings and tried turning the system off and on again"
+   }
+  ],
+  "dictation_index": 4,
+  "vocabulary": [
+   {
+    "term": "radiators",
+    "meaning": "暖气片",
+    "example": "The radiators take a few minutes to warm up."
+   },
+   {
+    "term": "uncomfortable",
+    "meaning": "不舒服的",
+    "example": "The chairs in the waiting room were uncomfortable."
+   },
+   {
+    "term": "damp",
+    "meaning": "潮湿的",
+    "example": "Dry your coat before you hang it in a damp room."
+   },
+   {
+    "term": "engineer",
+    "meaning": "工程师；维修技师",
+    "example": "An engineer is coming to check the lift."
+   },
+   {
+    "term": "grateful",
+    "meaning": "感激的",
+    "example": "I am grateful for your quick reply."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "switched on",
+    "meaning": "打开（电器）",
+    "note": "Is the heater switched on?"
+   },
+   {
+    "text": "take a look",
+    "meaning": "看一下",
+    "note": "Could you take a look at my bike?"
+   },
+   {
+    "text": "for now",
+    "meaning": "暂时",
+    "note": "This room will do for now."
+   },
+   {
+    "text": "either of those days",
+    "meaning": "那两天中的任何一天",
+    "note": "either of + 复数名词，表示两者之一。"
+   },
+   {
+    "text": "in case they help",
+    "meaning": "以防有用",
+    "note": "in case 引出“万一需要”的情况。"
+   },
+   {
+    "text": "sorting out",
+    "meaning": "解决；处理好",
+    "note": "Thanks for sorting out the problem so quickly."
+   }
+  ],
+  "grammar": [
+   "clause-nondefining",
+   "nonfinite-clause",
+   "conditional-real"
+  ],
+  "knowledge": [
+   {
+    "node": "clause-nondefining",
+    "quote": "the heating in the flat, which stopped working properly last Tuesday",
+    "explanation": "逗号后的 which 引导非限制性定语从句，补充说明暖气什么时候坏的。"
+   },
+   {
+    "node": "nonfinite-clause",
+    "quote": "With the nights getting colder, the flat is becoming quite uncomfortable",
+    "explanation": "with + 名词 + -ing 作状语，说明伴随的情况（夜里越来越冷），常用来交代原因。"
+   },
+   {
+    "node": "conditional-real",
+    "quote": "I can also leave a key with my neighbour if another day suits the engineer better",
+    "explanation": "真实条件句：如果另一天对师傅更方便，我也可以把钥匙留给邻居。"
+   }
+  ],
+  "speaking": "用 1 分钟练习：给房东或宿管打电话，说明家里某样东西坏了，问什么时候能来修。用上 take a look 和 in case。",
+  "writing": "用 120–150 词写一封英文邮件给房东或宿管，报修一个问题：说清楚现象、已经试过什么、你哪天方便。用一个 which 非限制性定语从句。",
+  "task": {
+   "prompt": "仿照这句，用 With … getting …, … 写一句话，说明一个变化带来的影响。",
+   "model": "With the nights getting colder, the flat is becoming quite uncomfortable"
+  },
+  "tags": [
+   "生活邮件",
+   "租房"
+  ],
+  "source": "Flow 编辑部原创"
+ },
+ {
+  "id": "v5-life-b2-unwritten-gym-rules",
+  "title": "健身房里没写出来的规矩",
+  "title_en": "The Unwritten Rules of the Gym",
+  "summary_zh": "健身房的墙上没写，但老会员都懂：轮流用器械、用完擦干净、哑铃放回原处、别随便指导别人。读完你会知道这些「潜规则」背后的道理，也能用动名词主语和比较句介绍公共场所的礼仪。",
+  "level": "B2",
+  "cefr": "B2",
+  "theme": "life",
+  "genre": "article",
+  "purposes": [
+   "daily-life",
+   "news-commentary"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Walk into any gym for the first time and you will notice a set of rules that nobody has written on the wall. Regulars seem to follow them without thinking, while newcomers discover them one awkward moment at a time. The most important rule is about sharing. If you are resting between sets on a machine that someone else is waiting for, it is polite to let them work in, taking turns rather than sitting there scrolling through your phone. Wiping down equipment after using it is another unspoken expectation, and in most gyms it matters more than how much you can lift. Then there is the question of space. Weights are meant to go back where they came from, because nothing annoys people more than searching the whole room for a missing pair. Standing directly in front of the mirror while someone else is trying to check their form is also considered rude, even if nobody says so. Advice is a trickier area. Some experienced members love to help, but unasked-for corrections can feel embarrassing, especially for beginners who are already nervous. The safest approach is to offer only if you see a real risk of injury, and to accept a polite no. None of these rules are difficult, and most of them come down to one idea: everyone is there to work on themselves, so make it easy for them to do that. Follow that, and the gym quickly stops feeling like a test you might fail.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the article mainly about?",
+    "options": [
+     "How to lift heavier weights",
+     "Why gyms are too expensive",
+     "The polite behaviour people expect in a gym without being told",
+     "How to choose a personal trainer"
+    ],
+    "answer": 2,
+    "evidence": "you will notice a set of rules that nobody has written on the wall"
+   },
+   {
+    "type": "inference",
+    "prompt": "Why might unasked-for advice make beginners uncomfortable?",
+    "options": [
+     "They may feel watched and judged",
+     "Beginners never need any help",
+     "Giving advice is against gym rules",
+     "They do not understand English"
+    ],
+    "answer": 0,
+    "evidence": "unasked-for corrections can feel embarrassing, especially for beginners who are already nervous"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"work in\" mean in \"let them work in\"?",
+    "options": [
+     "arrive at work",
+     "join a class",
+     "take turns using the equipment",
+     "repair the machine"
+    ],
+    "answer": 2,
+    "evidence": "it is polite to let them work in, taking turns"
+   },
+   {
+    "type": "detail",
+    "prompt": "According to the writer, what annoys people most?",
+    "options": [
+     "Loud music",
+     "Searching the whole room for a missing pair of weights",
+     "Crowded changing rooms",
+     "Slow machines"
+    ],
+    "answer": 1,
+    "evidence": "nothing annoys people more than searching the whole room for a missing pair"
+   }
+  ],
+  "dictation_index": 12,
+  "vocabulary": [
+   {
+    "term": "regulars",
+    "meaning": "常客；老会员",
+    "example": "The café knows all its regulars by name."
+   },
+   {
+    "term": "unspoken",
+    "meaning": "心照不宣的；没说出来的",
+    "example": "There is an unspoken rule about where to sit."
+   },
+   {
+    "term": "equipment",
+    "meaning": "器材；设备",
+    "example": "Please return the equipment after class."
+   },
+   {
+    "term": "embarrassing",
+    "meaning": "令人尴尬的",
+    "example": "It was embarrassing to fall off the bike in front of everyone."
+   },
+   {
+    "term": "injury",
+    "meaning": "受伤",
+    "example": "Warm up first to avoid injury."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "one awkward moment at a time",
+    "meaning": "在一次次尴尬中（慢慢学会）",
+    "note": "one … at a time 表示“一次一个、逐步地”。"
+   },
+   {
+    "text": "taking turns",
+    "meaning": "轮流",
+    "note": "take turns doing sth：We took turns driving."
+   },
+   {
+    "text": "Wiping down",
+    "meaning": "擦干净",
+    "note": "wipe down 指把表面整个擦一遍。"
+   },
+   {
+    "text": "go back where they came from",
+    "meaning": "放回原处",
+    "note": "口语里常说 put it back where it came from。"
+   },
+   {
+    "text": "come down to",
+    "meaning": "归结为",
+    "note": "It all comes down to respect."
+   },
+   {
+    "text": "even if nobody says so",
+    "meaning": "即使没人说出来",
+    "note": "even if 引出让步：即使……也……"
+   }
+  ],
+  "grammar": [
+   "nonfinite-gerund",
+   "compare-pattern",
+   "conditional-real"
+  ],
+  "knowledge": [
+   {
+    "node": "nonfinite-gerund",
+    "quote": "Wiping down equipment after using it is another unspoken expectation",
+    "explanation": "动名词短语 Wiping down equipment… 作主语，谓语用单数 is；after 后面也接动名词 using。"
+   },
+   {
+    "node": "compare-pattern",
+    "quote": "nothing annoys people more than searching the whole room for a missing pair",
+    "explanation": "nothing … more than … 用比较级表示最高级的意思：没有什么比……更让人烦。"
+   },
+   {
+    "node": "conditional-real",
+    "quote": "If you are resting between sets on a machine that someone else is waiting for, it is polite to let them work in",
+    "explanation": "真实条件句：if 从句用现在进行时描述当下的情况，主句给出建议。"
+   }
+  ],
+  "speaking": "用 1 分钟说说：健身房、图书馆或自习室里，有哪些「没写出来的规矩」？用上 come down to 和 take turns。",
+  "writing": "用 120–150 词介绍一个公共场所的「潜规则」（如图书馆、地铁、宿舍）。用一个动名词作主语的句子和一个 nothing… more than… 的比较句。",
+  "task": {
+   "prompt": "仿照这句，用 Nothing annoys me more than … 写一句话，说说一个让你不舒服的小习惯。",
+   "model": "nothing annoys people more than searching the whole room for a missing pair"
+  },
+  "tags": [
+   "生活观察",
+   "公共礼仪"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

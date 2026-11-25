@@ -236,11 +236,169 @@ class BacklogTests(unittest.TestCase):
         for k in range(120):
             self.card(f'w{k}', 'review', self.now - 3600)
         sent = []
-        self.assertEqual(vs.send_reminders(self.c, at, lambda to, sub, text: sent.append((sub, text))), 1)
-        sub, text = sent[0]
-        self.assertIn('先复习最要紧的 40 个', sub); self.assertIn('先复习最要紧的 40 个', text)
+        self.assertEqual(vs.send_reminders(self.c, at, lambda to, sub, text, html=None: sent.append((sub, text, html))), 1)
+        sub, text, html = sent[0]
+        self.assertIn('先复习最要紧的 40 个', sub); self.assertIn('先复习最要紧的 40 个', text); self.assertIn('先复习最要紧的 40 个', html)
         self.assertNotIn('120', sub + text)
         self.assertIn(f"约 {vs.minutes_for(40, 0, vs.ANSWER_SECONDS)} 分钟", sub)
+        # the card layout (mail_layout): the same words as text and HTML, a button to the review, the way to turn it off
+        self.assertIn('去复习：', text); self.assertIn('/#/review', text); self.assertIn('调整计划', text.split('——')[-1])
+        self.assertIn('class="fl-btn"', html); self.assertIn('/#/review', html); self.assertIn('/#/vocab/plan', html)
+
+
+    def test_a_reminder_goes_as_text_and_the_card_layout(self):
+        """Through the real mail function (the outbox in tests): the .txt and the .html beside it, same words."""
+        self.assertTrue(vs.set_reminder(self.c, 1, {'enabled': True, 'hour': 20})[0]['enabled'])
+        for k in range(3):
+            self.card(f'w{k}', 'review', self.now - 3600)
+        box = Path(self.tmp.name) / 'outbox'
+        with patch.dict(os.environ, {'FLOW_MAIL_OUTBOX': str(box)}):
+            self.assertEqual(vs.send_reminders(self.c, self.day + 20 * 3600 + 300), 1)
+        txt = next(box.glob('*.txt')).read_text(encoding='utf-8'); html = next(box.glob('*.html')).read_text(encoding='utf-8')
+        self.assertIn('今天有 3 个单词该复习了', txt); self.assertIn('今天有 3 个单词该复习了', html)
+        self.assertIn('去复习：', txt); self.assertIn('class="fl-card"', html)
+        self.assertIn('learner，你好：', txt)
+
+class WordCapTests(unittest.TestCase):
+    """r28 section 3 (the owner chose the recommended plan, 2026-11-25): a day of words capped in minutes, reviews most
+    at risk first and new words in the time left; after a break the most urgent 40, the rest over 5 days; a finished
+    book names the next one."""
+    setUp, tearDown = BacklogTests.setUp, BacklogTests.tearDown  # the same learner, without running BacklogTests twice
+
+    def review(self, word, recall_days, due=None):
+        """A review card due now; recall_days: days since its last review at stability 3 (more days: more at risk)."""
+        self.c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,stability,difficulty,last) "
+                       "VALUES(1,?,?,'',' ','word',?,?,'review','saved',3,5,?)", (word, word, self.now - 30 * 86400, due or self.now - 60, self.now - recall_days * 86400))
+
+    def answered(self, n, at=None):
+        for _ in range(n):
+            self.c.execute("INSERT INTO next_reviews(user_id,card,rating,created) VALUES(1,0,'good',?)", (at or self.now - 60,))
+        self.c.commit()
+
+    def plan(self, minutes=5, book='core', daily=10):
+        vs.save_plan(self.c, 1, {'book': book, 'daily_new': daily, 'retention': 0.9, 'word_minutes': minutes})
+        self.c.execute('DELETE FROM next_cards'); self.c.commit()
+
+    def test_a_cap_gives_todays_share_most_at_risk_first(self):
+        self.plan(5)
+        for k in range(28):
+            self.review(f'w{k:02d}', 3 + k)  # w27 the most at risk
+        self.c.commit()
+        holds = int(5 * 60 / vs.ANSWER_SECONDS // vs.ANSWERS_PER_REVIEW)  # 26 reviews in 5 minutes at 9.5 s an answer
+        n = vs.counts(self.c, 1, self.now, cap=5)
+        self.assertEqual((n['due'], n['later'], n['cap'], n['catch_up']), (holds, 28 - holds, 5, None))
+        self.assertLessEqual(n['minutes'], 5)
+        with patch.object(vs.time, 'time', lambda: self.now):
+            q = vs.queue(self.c, 1)
+            self.assertEqual(len(q['items']), holds)
+            self.assertNotIn('w00', [i['text'] for i in q['items']]); self.assertNotIn('w01', [i['text'] for i in q['items']])  # the safest wait
+            self.assertEqual(len(vs.queue(self.c, 1, more=True)['items']), 28)  # 继续复习: everything due
+        self.assertEqual(vs.counts(self.c, 1, self.now)['due'], 28)  # without a cap, as before (今日 before r28, the badge)
+
+    def test_answers_today_use_up_the_share(self):
+        self.plan(5)
+        for k in range(20):
+            self.review(f'w{k}', 5)
+        self.c.commit()
+        self.assertEqual(vs.counts(self.c, 1, self.now, cap=5)['due'], 20)
+        self.answered(12)  # about ten cards done: the share is what is left of the time
+        n = vs.counts(self.c, 1, self.now, cap=5)
+        self.assertEqual(n['due'], int((5 * 60 / vs.ANSWER_SECONDS - 12) // vs.ANSWERS_PER_REVIEW))
+        self.answered(30)  # past the cap: today's words are done, the rest is for later
+        n = vs.counts(self.c, 1, self.now, cap=5)
+        self.assertEqual((n['due'], n['new'], n['minutes'], n['later']), (0, 0, 0, 20))
+
+    def test_new_words_come_in_the_time_the_reviews_leave(self):
+        self.plan(5, daily=10)
+        self.assertEqual(vs.introduce(self.c, 1, self.now), 10)  # nothing due: 5 minutes hold 10 new words (3 answers each)
+        self.c.execute('DELETE FROM next_cards'); self.c.execute("UPDATE next_vocab_plans SET paused_on=NULL"); self.c.commit()
+        for k in range(15):
+            self.review(f'w{k}', 5)
+        self.c.commit()
+        left = 5 * 60 / vs.ANSWER_SECONDS - 15 * vs.ANSWERS_PER_REVIEW
+        self.assertEqual(vs.introduce(self.c, 1, self.now), int(left // vs.ANSWERS_PER_NEW))
+        self.assertEqual(vs.introduce(self.c, 1, self.now), 0)  # asked again: no more than fits
+        self.assertEqual(vs.fit_new(5, 0.9, vs.ANSWER_SECONDS), 3)  # what 5 minutes keep up with a month in
+
+    def test_the_cap_is_the_learners_own_else_the_days_plan_and_an_exam_date_raises_it(self):
+        import types
+        self.plan(0)
+        nx.save_profile(self.c, 1, {'level': 'B1', 'goal': 'daily', 'themes': [], 'minutes': 15})
+        self.assertEqual(vs.word_cap(self.c, 1, self.now), __import__('time_budget').budget(15)['words'])  # the day's plan (time_budget, r28 第 1 段)
+        tb = types.ModuleType('time_budget'); tb.budget = lambda minutes, exam=False: {'words': {15: 5}.get(minutes, 9)}
+        with patch.dict(sys.modules, {'time_budget': tb}):
+            self.assertEqual(vs.word_cap(self.c, 1, self.now), 5)
+            self.assertEqual(vs.word_cap(self.c, 1, self.now, default=4), 4)  # the caller's budget
+            self.c.execute('UPDATE next_vocab_plans SET word_minutes=8'); self.c.commit()
+            self.assertEqual(vs.word_cap(self.c, 1, self.now, default=4), 8)  # 单词每天 set on the plan page wins
+            with patch('exam_sprint.countdown', return_value={'need': 20, 'book': 'core', 'plan_book': 'core'}):
+                per = vs.ANSWERS_PER_NEW + vs.MONTH_REVIEWS_PER_NEW[0.9] * vs.ANSWERS_PER_REVIEW
+                self.assertEqual(vs.word_cap(self.c, 1, self.now), -(-20 * per * vs.ANSWER_SECONDS // 60))  # 20 new a day to make the exam
+
+    def test_after_a_break_the_most_urgent_40_then_the_rest_over_5_days_without_new_words(self):
+        self.plan(5, daily=10)
+        self.answered(1, at=self.now - 4 * 86400)  # last review four days ago
+        for k in range(140):
+            self.review(f'w{k:03d}', 3 + k % 20)
+        self.c.commit()
+        n = vs.counts(self.c, 1, self.now, cap=5)
+        self.assertEqual((n['due'], n['new'], n['later']), (vs.BATCH, 0, 100))
+        holds = int(5 * 60 / vs.ANSWER_SECONDS // vs.ANSWERS_PER_REVIEW)
+        # today 40; the other 100 over 5 days, or faster when a day's cap holds more than 100 / 5
+        self.assertEqual(n['catch_up'], {'left': 140, 'days': 1 + -(-100 // max(holds, 20))})
+        self.assertEqual(vs.introduce(self.c, 1, self.now), 0)  # no new words until caught up
+        self.assertEqual((vs.BACK_DAYS, vs.SPREAD_DAYS), (3, 5))  # r28 section 2 (回来模式) says 3 days and 5 days
+        # the next day, 100 left: a day's share is the larger of the cap and 100 / 5
+        self.c.execute("DELETE FROM next_cards WHERE norm IN (SELECT norm FROM next_cards ORDER BY norm LIMIT 40)"); self.c.commit()
+        self.answered(48, at=self.now)
+        tomorrow = self.now + 86400
+        n = vs.counts(self.c, 1, tomorrow, cap=5)
+        self.assertEqual(n['due'], max(26, 20)); self.assertIsNotNone(n['catch_up'])
+        # once a day's cap holds what is due, catching up is over and new words come back
+        self.c.execute("DELETE FROM next_cards WHERE norm IN (SELECT norm FROM next_cards ORDER BY norm LIMIT 80)"); self.c.commit()
+        n = vs.counts(self.c, 1, tomorrow + 86400, cap=5)
+        self.assertIsNone(n['catch_up']); self.assertIsNone(vs.plan(self.c, 1)['catch_up'])
+
+    def test_a_short_break_or_a_small_heap_is_not_catching_up(self):
+        self.plan(5)
+        self.answered(1, at=self.now - 86400)  # yesterday
+        for k in range(60):
+            self.review(f'w{k}', 5)
+        self.c.commit()
+        self.assertIsNone(vs.counts(self.c, 1, self.now, cap=5)['catch_up'])
+        self.c.execute('DELETE FROM next_reviews'); self.answered(1, at=self.now - 3 * 86400)
+        self.assertIsNone(vs.counts(self.c, 1, self.now, cap=5)['catch_up'])  # two days without a review in between: not yet
+        self.c.execute('DELETE FROM next_reviews'); self.answered(1, at=self.now - 5 * 86400)
+        self.c.execute('DELETE FROM next_cards WHERE rowid > 10'); self.c.commit()  # 10 due: a day's cap holds them
+        self.assertIsNone(vs.counts(self.c, 1, self.now, cap=5)['catch_up'])
+
+    def test_a_finished_book_names_the_next_one_and_a_book_nearly_done_says_so(self):
+        books = {**vs.book_words(), 'zk': [(1, 'apple'), (2, 'banana'), (3, 'cherry')], 'gk': [(1, 'apple'), (2, 'cherry'), (3, 'date'), (4, 'elder')]}
+        with patch.object(vs, 'book_words', lambda: books):
+            self.plan(0, book='zk', daily=10)
+            for w in ('apple', 'banana'):
+                self.review(w, 5, due=self.now + 9 * 86400)
+            self.c.commit()
+            b = vs.overview(self.c, 1)['book']
+            self.assertEqual((b['left'], b['soon'], b['done']), (1, True, False))
+            self.assertEqual(b['next'], {'id': 'gk', 'title': vs.book_title('gk'), 'new': 3})  # apple is known already
+            self.review('cherry', 5, due=self.now + 9 * 86400); self.c.commit()
+            b = vs.overview(self.c, 1)['book']
+            self.assertTrue(b['done']); self.assertIsNone(b['finish']); self.assertEqual(b['next']['new'], 2)
+            self.assertEqual(vs.next_book(self.c, 1, 'cet6'), 'ky')
+            nx.save_profile(self.c, 1, {'level': 'B2', 'goal': 'abroad', 'themes': [], 'minutes': 30})
+            self.assertEqual(vs.next_book(self.c, 1, 'cet6'), 'ielts')  # going abroad: 雅思 after 六级
+            self.assertIsNone(vs.next_book(self.c, 1, 'gre'))
+
+    def test_the_plan_keeps_its_word_minutes(self):
+        self.plan(8)
+        self.assertEqual(vs.plan(self.c, 1)['word_minutes'], 8)
+        vs.save_plan(self.c, 1, {'book': 'core', 'daily_new': 5, 'retention': 0.9})  # left out: kept
+        self.assertEqual(vs.plan(self.c, 1)['word_minutes'], 8)
+        self.assertEqual(vs.save_plan(self.c, 1, {'book': 'core', 'daily_new': 5, 'retention': 0.9, 'word_minutes': 7})[1], 400)
+        o = vs.overview(self.c, 1)
+        self.assertEqual(o['word_minutes_options'], list(vs.WORD_MINUTES)); self.assertEqual(o['cap'], 8)
+        self.assertEqual(vs.get(self.c, 1, '/api/next/review', {'more': ['1']})[0]['more'], True)
 
 
 class ReadingLinkedTests(unittest.TestCase):
@@ -314,10 +472,10 @@ class ReadingLinkedTests(unittest.TestCase):
         if at8.timestamp() < time.time():  # the next 20:05, so the card saved just now is already due then
             at8 += datetime.timedelta(days=1)
         at8 = at8.timestamp()
-        self.assertEqual(vs.send_reminders(self.c, at8, lambda to, sub, text: sent.append((to, sub))), 1)
+        self.assertEqual(vs.send_reminders(self.c, at8, lambda to, sub, text, html=None: sent.append((to, sub))), 1)
         self.assertEqual(sent[0][0], 'learner@example.test'); self.assertIn('单词', sent[0][1])
-        self.assertEqual(vs.send_reminders(self.c, at8 + 60, lambda *a: sent.append(a)), 0)  # once a day
-        self.assertEqual(vs.send_reminders(self.c, at8 - 3600, lambda *a: sent.append(a)), 0)  # other hours
+        self.assertEqual(vs.send_reminders(self.c, at8 + 60, lambda *a, **kw: sent.append(a)), 0)  # once a day
+        self.assertEqual(vs.send_reminders(self.c, at8 - 3600, lambda *a, **kw: sent.append(a)), 0)  # other hours
         cal = vs.ics(21)
         self.assertIn('RRULE:FREQ=DAILY', cal); self.assertIn('DTSTART:', cal); self.assertTrue(cal.endswith('\r\n'))
         self.assertTrue(vs.overview(self.c, 1)['reminder']['has_email'])
@@ -346,12 +504,27 @@ class ReadingLinkedTests(unittest.TestCase):
         with patch('chat_service.request_model', return_value=(reply, 'stop')) as model:
             out, s = nx.shadow(self.c, 1, {'pack': 'v5-science-b2-noise-cancelling', 'i': 0, 'audio': audio, 'request_id': 'next-sh-0001'})
         self.assertEqual(s, 200); self.assertEqual(model.call_args.kwargs['audio'], audio)
+        self.assertIn('连字符', ' '.join(m['content'] for m in model.call_args[0][0]))  # spelling and hyphens are not what was heard (Omni, 2026-11-25)
         r = out['result']
         self.assertEqual(r['issues'][0]['word'], 'on'); self.assertLess(r['matched'], len(r['words']))
         self.assertEqual(nx.shadow(self.c, 1, {'pack': 'v5-science-b2-noise-cancelling', 'i': 999, 'audio': audio})[1], 400)
         with patch.dict(os.environ, {'FLOW_AI_AUDIO': '0'}):
             self.assertEqual(nx.shadow(self.c, 1, {'pack': 'v5-science-b2-noise-cancelling', 'i': 0, 'audio': audio})[1], 503)
         self.assertIsNone(r['score'])  # an older-style reply (no estimate) shows no score
+
+    def test_a_right_reading_files_nothing_and_a_misread_word_files_that_word(self):
+        pid = 'v5-science-b2-noise-cancelling'
+        sentence = nx.sentences(next(x for x in __import__('content_v50').v5_materials() if x['id'] == pid)['body'])[0]
+        audio = {'mime_type': 'audio/webm', 'data': base64.b64encode(b'\x1aE\xdf\xa3' + b'\0' * 80).decode()}
+        listed = {'sounds': [{'sound': '/θ/', 'word': 'the', 'note': '舌尖再往前', 'set': 'th-s'}],
+                  'issues': [{'word': 'pair of noise-cancelling headphones on a train', 'note': '连读'}], 'tip': '', 'fluency': 'ok', 'accuracy': 90, 'fluency_score': 85}
+        cards = lambda: [r[0] for r in self.c.execute("SELECT text FROM next_cards WHERE user_id=1 AND kind='sound' ORDER BY id")]
+        with patch('chat_service.request_model', return_value=(json.dumps({**listed, 'transcript': sentence}, ensure_ascii=False), 'stop')):
+            nx.shadow(self.c, 1, {'pack': pid, 'i': 0, 'audio': audio, 'request_id': 'next-sh-right-01'})
+        self.assertEqual(cards(), [])  # read right: what the model listed is shown, nothing filed
+        with patch('chat_service.request_model', return_value=(json.dumps({**listed, 'transcript': sentence.replace('train', 'rain')}, ensure_ascii=False), 'stop')):
+            nx.shadow(self.c, 1, {'pack': pid, 'i': 0, 'audio': audio, 'request_id': 'next-sh-wrong-01'})
+        self.assertEqual(cards(), ['train'])  # the phrase files its misread word, not the whole phrase
 
     def test_shadowing_pronunciation_score(self):
         pid = 'v5-science-b2-noise-cancelling'
@@ -378,7 +551,9 @@ class ReadingLinkedTests(unittest.TestCase):
         self.assertEqual([(e['skill'], e['score']) for e in ev], [('pronunciation', sc['total'] / 100)])
         self.assertEqual(self.c.execute("SELECT COUNT(*) FROM next_skill_events WHERE user_id=1 AND kind='shadow'").fetchone()[0], 1)
         mk = self.c.execute("SELECT text, meaning FROM next_cards WHERE user_id=1 AND kind='sound' ORDER BY id").fetchall()
-        self.assertEqual(mk[0]['text'], 'switch'); self.assertTrue(mk[0]['meaning'].startswith('/ɪ/：'))
+        # only what the transcript shows went wrong is filed: "on" was not heard; "switch" and "first" were, so they are
+        # shown under 要练的音 but not filed (语流 12, 2026-11-25: models list sounds on right readings too)
+        self.assertEqual([m['text'] for m in mk], ['on']); self.assertEqual(mk[0]['meaning'], '漏读了 on')
         # the same request again is a replay: same score, nothing logged twice
         with patch('chat_service.request_model', return_value=(json.dumps(reply, ensure_ascii=False), 'stop')):
             again, _ = nx.shadow(self.c, 1, {'pack': pid, 'i': 0, 'audio': audio, 'request_id': 'next-sh-score-1'})

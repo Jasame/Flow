@@ -126,6 +126,33 @@ def mode_of(round_no):
     return 'first' if round_no <= 1 else 'challenge' if round_no % 2 == 0 else 'swap'
 
 
+# 像真人 (owner, 2026-11-24: 「语音比较僵硬，回复速度比较慢，不像真人」): each AI role has a way of talking, told to the model
+# in English, and a voice: 'f' or 'm' here, the accent from the learner's 朗读声音 (us / uk). In a swapped round the AI plays
+# the learner's usual part, in the other voice.
+PERSONA = {
+    'cafe-order': ('a busy but cheerful barista: quick, friendly, short questions', 'f'),
+    'ask-way': ('a helpful local in a bit of a hurry: gives directions in small steps and uses landmarks', 'm'),
+    'hotel-check-in': ('a polite, efficient front-desk receptionist', 'f'),
+    'see-doctor': ('a calm, patient GP who asks one clear question at a time', 'm'),
+    'flat-viewing': ('a chatty landlord who likes the flat and answers honestly when pressed', 'm'),
+    'return-item': ('a shop assistant who follows the store policy but wants to help', 'f'),
+    'group-project': ('a classmate who is easy-going but busy this week', 'm'),
+    'phone-booking': ('a restaurant host on the phone: brisk, and reads details back to check them', 'f'),
+    'job-interview': ('a friendly but probing interviewer who asks for specific examples', 'm'),
+    'disagree-meeting': ('a colleague attached to their own plan, but open to good reasons', 'f'),
+    'landlord-repair': ('a landlord who tries to put things off but gives way to firm, polite pressure', 'm'),
+    'presentation-qa': ('a sharp department head who asks pointed questions about the data', 'f'),
+}
+
+
+def voice_for(sid, mode, learner_voice):
+    """The AI role's voice in this round: its gender (PERSONA, the other one when swapped), the learner's accent."""
+    g = PERSONA.get(sid, ('', 'f'))[1]
+    if mode == 'swap':
+        g = 'm' if g == 'f' else 'f'
+    return ('uk' if str(learner_voice or '').startswith('uk') else 'us') + '-' + g
+
+
 def pack(sid, mode='first'):
     """A scene in the shape the dialogue code expects of a material; mode 'challenge' adds round 2's requirement,
     'swap' gives the learner the other part (and its goals)."""
@@ -133,8 +160,10 @@ def pack(sid, mode='first'):
     if not s:
         return None
     level, title, title_en, ai, me, brief, scene, goals, useful = s
+    persona = PERSONA.get(sid, ('', 'f'))[0]
     if mode == 'swap':
         ai, me, goals = me, ai, SWAP[sid]
+        persona = f'an ordinary person in this part ({ai}): relaxed and natural, not an expert'
     body = (f'Scene: {scene}\nThe AI plays: {ai}. The learner plays: {me}.\nThe learner\'s goals: ' + '；'.join(goals) +
             ('' if mode == 'swap' else '\nUseful expressions: ' + '; '.join(u[0] for u in useful)))
     task = f'情景对话：{title}。你扮演{me}，AI 扮演{ai}。目标：' + '；'.join(goals)
@@ -144,7 +173,8 @@ def pack(sid, mode='first'):
         body += '\nThis round the learner has one extra requirement (in Chinese): ' + CHALLENGE[sid]
         task += '。这一轮多一条要求：' + CHALLENGE[sid]
     return {'id': 'scene-' + sid, 'title': title, 'title_en': title_en, 'body': body, 'cefr': level, 'level': level,
-            'speaking': task, 'mode': mode if mode in ('challenge', 'swap') else 'first', 'challenge': CHALLENGE[sid] if mode == 'challenge' else ''}
+            'speaking': task, 'mode': mode if mode in ('challenge', 'swap') else 'first', 'challenge': CHALLENGE[sid] if mode == 'challenge' else '',
+            'persona': persona, 'sid': sid}
 
 
 def _history(c, uid):

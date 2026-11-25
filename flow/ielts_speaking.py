@@ -94,12 +94,12 @@ def card_text(key):
 
 
 def band(v):
-    """An estimate on the IELTS scale: 1–9 in half bands; None when missing."""
+    """An estimate on the IELTS scale: 1–9 in half bands; None when missing. Read as a model writes it: 6.5, "6.5",
+    "6.5分", "Band 6.5", "6.5/9"."""
+    from lab_service import Shape, mnum
     try:
-        f = float(v)
-    except (TypeError, ValueError):
-        return None
-    if math.isnan(f):
+        f = mnum(v, 1.0, 9.0)
+    except Shape:
         return None
     return max(1.0, min(9.0, round(f * 2) / 2))
 
@@ -142,21 +142,22 @@ def next_part1(c, uid):
     return {'id': key, 'title': PART1[key][0], 'title_en': PART1[key][1], 'round': len(last) >= len(PART1)}
 
 
-def _clean(v, lo=0, hi=600):
-    from lab_service import text
-    return text(v if isinstance(v, str) else '', lo, hi)
+def _clean(v, lo=0, hi=600, code='text_empty', default=None):
+    """A field a model wrote: cut when long, Shape(code) when missing (output_service._clean)."""
+    from lab_service import mtext
+    return mtext(v, lo, hi, code, default)
 
 
 def _feedback(raw, spoken, valid):
     """The four criteria as given by the AI, checked; pronunciation only when something was heard."""
     from output_service import _fixes
     if not isinstance(raw, dict) or not isinstance(raw.get('bands'), dict):
-        raise ValueError('bad')
+        raise __import__('lab_service').Shape('bands_missing')
     bands = {k: band(raw['bands'].get(k)) for k, _, _ in CRITERIA}
     if not spoken:
         bands['p'] = None
     if sum(b is not None for k, b in bands.items() if k != 'p') < 3:
-        raise ValueError('missing bands')
+        raise __import__('lab_service').Shape('bands_missing')
     notes = raw.get('notes') if isinstance(raw.get('notes'), dict) else {}
     crit = []
     for k, zh, en in CRITERIA:
@@ -200,7 +201,7 @@ def answer(c, uid, data):
             raise ValueError('bad')
         b = raw.get('better')
         better = {'text': _clean(b.get('text'), 1, 500), 'why': _clean(b.get('why') or '', 0, 200)} if isinstance(b, dict) and isinstance(b.get('text'), str) and nx.WORD.search(b['text']) else None
-        return {'heard': _clean(raw.get('heard') or '', 0, 1200) if audio else text, 'better': better, 'note': _clean(raw.get('note') or '', 0, 240)}
+        return {'heard': __import__('lab_service').mheard(raw.get('heard'), 1200) if audio else text, 'better': better, 'note': _clean(raw.get('note') or '', 0, 240)}
 
     spec = {'part': 1, 'topic': topic, 'q': q, 'text': text, 'audio': bool(audio)}
     return _ai(c, uid, data, 'next-ielts', pack_id(1, topic), 'speaking', spec, system, user, convert, audio)
@@ -267,7 +268,7 @@ def part2_talk(c, uid, data):
 
     def convert(raw):
         out = _feedback(raw, spoken, valid)
-        out['transcript'] = _clean(raw.get('transcript') or '', 0, 3000) if spoken else text
+        out['transcript'] = __import__('lab_service').mheard(raw.get('transcript'), 3000) if spoken else text
         cov = raw.get('covered') if isinstance(raw.get('covered'), list) else []
         out['covered'] = [bool(x) for x in cov[:4]] if len(cov) >= 4 else None
         out['seconds'] = secs if spoken else None

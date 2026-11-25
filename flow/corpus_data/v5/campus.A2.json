@@ -12,6 +12,7 @@
     "body": "Amara: Jun, have you got a minute? Jun: Sure. Is something wrong? Amara: Not really. But I go to bed at ten, and you usually come back after midnight. Jun: Oh no. Do I wake you up? Amara: Sometimes. The door makes a lot of noise, and you always turn on the big light. Jun: I'm so sorry. I study in the library until it closes. Amara: I know. I just need my sleep, because I have class at eight. Jun: Okay. If I come back late, I'll use the light on my phone. Amara: That would help a lot. Thanks. You're a real night owl, aren't you? Jun: Yes, and you're an early bird. But maybe that's good. When you need the bathroom, I'm still asleep! Amara: True. We never have to wait.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main problem between Amara and Jun?",
         "options": [
           "They both need the bathroom at the same time",
@@ -23,6 +24,7 @@
         "evidence": "But I go to bed at ten, and you usually come back after midnight."
       },
       {
+        "type": "detail",
         "prompt": "What does Jun say about coming back late?",
         "options": [
           "Jun will use the light on the phone",
@@ -32,7 +34,9 @@
         ],
         "answer": 0,
         "evidence": "If I come back late, I'll use the light on my phone."
-      }
+      },
+      {"type": "inference", "prompt": "Why does Jun think their different times might be good?", "options": ["They both like the library", "They never have to wait for the bathroom", "They can study together at night", "They can both use the big light"], "answer": 1, "evidence": "When you need the bathroom, I'm still asleep!"},
+      {"type": "vocab", "prompt": "What is \"a night owl\" in \"You're a real night owl\"?", "options": ["a person who likes to stay up late", "a bird that lives near the library", "a person who sleeps a lot", "a noisy neighbour"], "answer": 0, "evidence": "You're a real night owl, aren't you?"}
     ],
     "dictation_index": 14,
     "vocabulary": [
@@ -130,6 +134,7 @@
     "body": "Priya borrowed a book about birds from the university library. She needed it for her biology project. One evening, the library sent her an email. The book was due back on Friday. Priya looked in her bag, under her bed and on every shelf. It wasn't there. She felt terrible, because the book was old and very expensive. On Thursday, she went to her usual cafe to think. When she ordered her tea, the owner gave her a big smile. Then he took the bird book from behind the counter. She left it on a table there last week! He kept it safe for her, but he also read some of it. He learned a lot about owls! Priya laughed and returned the book on time. From now on, she will always check the table before she leaves.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the story mainly about?",
         "options": [
           "Why Priya stopped using the university library",
@@ -141,6 +146,7 @@
         "evidence": "Then he took the bird book from behind the counter."
       },
       {
+        "type": "detail",
         "prompt": "Why did Priya feel terrible?",
         "options": [
           "The library was going to close on Friday",
@@ -150,7 +156,9 @@
         ],
         "answer": 3,
         "evidence": "because the book was old and very expensive"
-      }
+      },
+      {"type": "inference", "prompt": "Why did the café owner give Priya \"a big smile\"?", "options": ["He wanted to talk about owls", "It was his birthday", "He wanted her to buy more tea", "He knew he had her lost book"], "answer": 3, "evidence": "When she ordered her tea, the owner gave her a big smile."},
+      {"type": "vocab", "prompt": "What does \"due back\" mean in \"The book was due back on Friday\"?", "options": ["was lost", "had to be returned", "could be bought", "was very old"], "answer": 1, "evidence": "The book was due back on Friday."}
     ],
     "dictation_index": 8,
     "vocabulary": [
@@ -253,6 +261,7 @@
     "body": "Dear Grandma, I have been here for one week now, and I want to tell you everything. The city is big and noisy, but I'm starting to like it. On my first day, I took the wrong bus and ended up by the sea. It was a mistake, but the view was beautiful! I have cooked rice three times. The first time it burned. The third time it was almost as good as yours. My classes are hard, but the teachers are friendly. I sit next to a girl called Aiko. She is far from home too, so we eat lunch together. Yesterday we went to the market to buy fruit and got lost again. We laughed all the way home. Please don't worry about me. I miss your cooking, but I'm okay. I'll call you on Sunday. Love, Mateo",
     "questions": [
       {
+        "type": "inference",
         "prompt": "How does Mateo seem to feel about his first week?",
         "options": [
           "Bored, because nothing interesting has happened",
@@ -264,6 +273,7 @@
         "evidence": "The city is big and noisy, but I'm starting to like it."
       },
       {
+        "type": "detail",
         "prompt": "Why did Mateo and Aiko go to the market?",
         "options": [
           "To buy rice",
@@ -273,7 +283,9 @@
         ],
         "answer": 1,
         "evidence": "Yesterday we went to the market to buy fruit"
-      }
+      },
+      {"type": "main", "prompt": "What is the email mainly about?", "options": ["Aiko's family", "A day trip to the sea", "How to cook rice", "Mateo's first week in a new city"], "answer": 3, "evidence": "I have been here for one week now, and I want to tell you everything."},
+      {"type": "vocab", "prompt": "What does \"ended up\" mean in \"ended up by the sea\"?", "options": ["went swimming", "stayed for a long time", "arrived somewhere he did not plan to go", "started a long trip"], "answer": 2, "evidence": "I took the wrong bus and ended up by the sea"}
     ],
     "dictation_index": 2,
     "vocabulary": [
@@ -376,6 +388,7 @@
     "body": "In your first month at university, you will see posters for clubs everywhere. There are clubs for chess, hiking, cooking and even old films. Here are three simple tips. First, go to the club fair and talk to the members. Ask them what they do each week. If they look happy and relaxed, that's a good sign. Second, don't join too many clubs. Some new students sign up for six or seven, and then they have no free time. Two clubs are enough to start with. Third, try something new. If you always play football, why not join the drama club? You might be bad at it at first, and that's okay. Most clubs don't want experts. They want people who come back every week. A club is the easiest way to make friends, so give it a try.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main purpose of this text?",
         "options": [
           "To explain how to start your own club",
@@ -387,6 +400,7 @@
         "evidence": "Here are three simple tips."
       },
       {
+        "type": "detail",
         "prompt": "According to the text, what do most clubs want?",
         "options": [
           "Students who are already very good at something",
@@ -396,7 +410,9 @@
         ],
         "answer": 1,
         "evidence": "They want people who come back every week."
-      }
+      },
+      {"type": "inference", "prompt": "Why does the writer say two clubs are enough to start with?", "options": ["Too many clubs can leave you with no free time", "Most clubs meet on the same day", "The university only allows two clubs", "Clubs cost a lot of money"], "answer": 0, "evidence": "Some new students sign up for six or seven, and then they have no free time."},
+      {"type": "vocab", "prompt": "What does \"sign up for\" mean in \"sign up for six or seven\"?", "options": ["leave", "watch", "put your name down to join", "make posters for"], "answer": 2, "evidence": "sign up for six or seven"}
     ],
     "dictation_index": 5,
     "vocabulary": [

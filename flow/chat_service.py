@@ -141,30 +141,36 @@ def request_model(messages,audio=None,grounding=False):
  once, which is another vendor. Every attempt is written to ai_calls (tokens, the model that answered, failures and
  fallbacks) for the console.
  A grounded request goes first to 百炼's search when FLOW_SEARCH_AI_MODEL names one (search_provider); if that fails for
- any reason, Gemini searches instead (the main service), so a bad day at one vendor costs no news."""
+ any reason, Gemini searches instead (the main service), so a bad day at one vendor costs no news.
+ A recording goes first to the task's audio route when FLOW_AUDIO_ROUTES names one (ai_routes.audio_route: Qwen-Omni on
+ 百炼 through the gateway, _request_audio_service); if that fails for any reason, Gemini hears it, as before."""
  import ai_routes
  text_model=ai_routes.route()
  search=search_provider() if grounding and not audio else None
+ hearing=ai_routes.audio_route() if audio and not grounding and audio_provider() else ''
  order=[]
  if search:order.append('search')
+ elif hearing:order.append('audio')
  elif not audio and not grounding and text_provider(text_model):order.append('text')
  order.append('main')
+ if getattr(MAIN_ONLY,'on',False):order=['main']  # run_job's last try after answers it could not take: Gemini only, no route
  if len(order)==1:order.append('main')  # one retry on the only service
- ai_routes.CTX.route=text_model if order[0]=='text' else search[2] if order[0]=='search' else ''
+ ai_routes.CTX.route=text_model if order[0]=='text' else search[2] if order[0]=='search' else hearing if order[0]=='audio' else ''
  last=None
  for i,which in enumerate(order):
   started=time.monotonic();INFO.__dict__.clear()
-  model=text_model if which=='text' else search[2] if which=='search' else os.getenv('FLOW_AI_MODEL','')
+  model=text_model if which=='text' else search[2] if which=='search' else hearing if which=='audio' else os.getenv('FLOW_AI_MODEL','')
   try:
    out=(_request_text_service(messages,text_model,ai_routes.extra_body(text_model)) if which=='text' else
-        _request_search_service(messages) if which=='search' else _request_main(messages,audio,grounding))
+        _request_search_service(messages) if which=='search' else _request_audio_service(messages,audio,hearing) if which=='audio' else
+        _request_main(messages,audio,grounding))
    LAST['provider']=which
    ai_routes.record(which,model,started,messages,out[0],dict(INFO.__dict__),fallback=i>0)
    return out
   except Exception as exc:
    last=exc
    ai_routes.record(which,model,started,messages,None,dict(INFO.__dict__),exc,fallback=i>0)
-   if which=='search':continue  # Gemini searches instead
+   if which in ('search','audio'):continue  # Gemini searches / hears it instead
    if which=='text' and time.monotonic()-started<=60 and (not refused(exc) or (ai_routes.is_bailian(text_model) and getattr(exc,'code',None)!=413)):continue  # the main service takes over
    if i==len(order)-1 or not transient(exc) or time.monotonic()-started>60:raise
    if order[i+1]==which:
@@ -174,11 +180,71 @@ def request_model(messages,audio=None,grounding=False):
 
 
 INFO=__import__('threading').local()  # the last call's usage and answering model (ai_routes.record)
+MAIN_ONLY=__import__('threading').local()
+
+
+@__import__('contextlib').contextmanager
+def main_only():
+ """Inside, request_model asks the main service (Gemini) only: after the task's own model twice answered in a shape the
+ converter could not take (lab_service.run_job), another vendor gets the last word."""
+ old=getattr(MAIN_ONLY,'on',False);MAIN_ONLY.on=True
+ try:yield
+ finally:MAIN_ONLY.on=old
 
 
 def _request_text_service(messages,model=None,extra=None):
  url,key,model=text_provider(model) or ('','','')
  return _openai_compatible(url,key,model,messages,None,False,extra)
+
+
+AUDIO_FORMATS={'audio/webm':'webm','audio/ogg':'ogg','audio/wav':'wav','audio/mpeg':'mp3','audio/mp3':'mp3','audio/mp4':'mp4','audio/m4a':'mp4','audio/flac':'flac'}
+
+
+def audio_provider():
+ """The gateway that hears recordings on an audio route (the main gateway address and key), or None (Vertex direct)."""
+ url,key=os.getenv('FLOW_AI_URL',''),os.getenv('FLOW_AI_KEY','')
+ return (url,key) if not vertex_enabled() and endpoint_ok(url) and key and url.endswith('/chat/completions') else None
+
+
+def _request_audio_service(messages,audio,model):
+ """A recording to an audio route (Qwen-Omni on 百炼): the same system and user text, the recording as an OpenAI
+ input_audio part before the user's text, streamed (Omni answers only streamed), thinking off. (reply, reason).
+ Measured 2026-11-25 (voice_eval.py): browser webm/opus and iPhone mp4/AAC are taken as they are."""
+ from audio_validation import validate_audio
+ from vertex_auth import AIConfigurationError
+ found=audio_provider()
+ if not found or not model:raise AIConfigurationError('Audio route configuration incomplete')
+ validate_audio(audio)
+ url,key=found
+ fmt=AUDIO_FORMATS.get(audio['mime_type'],'')
+ if not fmt:raise ValueError('Audio format not for this route')
+ msgs=[dict(m) for m in messages]
+ last=next(i for i in range(len(msgs)-1,-1,-1) if msgs[i].get('role')=='user')
+ msgs[last]={'role':'user','content':[{'type':'input_audio','input_audio':{'data':f"data:{audio['mime_type']};base64,{audio['data']}",'format':fmt}},
+                                      {'type':'text','text':msgs[last]['content']}]}
+ payload={'model':model,'messages':msgs,'modalities':['text'],'enable_thinking':False,'max_tokens':4096,'stream':True,'stream_options':{'include_usage':True}}
+ req=urllib.request.Request(url,data=json.dumps(payload,ensure_ascii=False).encode(),headers={'User-Agent':'jasa-flow/1.0','Authorization':'Bearer '+key,'Content-Type':'application/json'})
+ import ai_routes
+ reply='';reason=None;started=time.monotonic()
+ with urllib.request.urlopen(req,timeout=25) as r:  # Omni answers in ~3 s (P90 ~5); give up early so Gemini still has time
+  for frame in ai_stream.events(r):
+   if time.monotonic()-started>30:raise TimeoutError('Audio route deadline exceeded')
+   if frame=='[DONE]':break
+   chunk=json.loads(frame)
+   if chunk.get('model'):INFO.served=str(chunk['model'])[:80]
+   if ai_routes.usage_of(chunk):INFO.usage=ai_routes.usage_of(chunk)
+   if chunk.get('error'):raise urllib.error.HTTPError(url,502,'Audio route stream failed',None,None)
+   for choice in chunk.get('choices') or []:
+    delta=(choice.get('delta') or {}).get('content') or ''
+    if delta:
+     if not isinstance(delta,str):raise ValueError('Invalid model delta')
+     reply+=delta
+     if len(reply)>20000:raise ValueError('Model response too long')
+     if ai_stream.active():ai_stream.emit({'type':'preview','text':ai_stream.preview(reply,getattr(ai_stream.LOCAL,'structured',True)),'characters':len(reply)})
+    if choice.get('finish_reason') is not None:reason=choice['finish_reason']
+ if not reply.strip():raise ValueError('Empty model reply')
+ if reason not in (None,'stop'):raise ValueError('Model stream not complete')
+ return reply,'stop'
 
 
 def _request_search_service(messages):
@@ -214,6 +280,17 @@ def _request_main(messages,audio=None,grounding=False):
  return _openai_compatible(endpoint,key,model,messages,audio,grounding)
 
 
+def audio_timeout():
+ """Seconds a recording may take on the main service before the learner is told (FLOW_AUDIO_TIMEOUT, 15–85; default
+ 85, as before). 2026-11-25: Vertex was slow on recordings and every one waited the relay's full 65 s; a site can answer
+ sooner with e.g. 40. Normal Gemini turns took up to ~37 s in voice_eval, so not much lower."""
+ try:
+  v=int(os.getenv('FLOW_AUDIO_TIMEOUT','85'))
+ except ValueError:
+  return 85
+ return v if 15<=v<=85 else 85
+
+
 def _openai_compatible(endpoint,key,model,messages,audio,grounding,extra=None):
  from vertex_auth import AIConfigurationError
  if not endpoint_ok(endpoint) or not model or not key:raise AIConfigurationError('AI configuration incomplete')
@@ -224,7 +301,7 @@ def _openai_compatible(endpoint,key,model,messages,audio,grounding,extra=None):
   from audio_validation import validate_audio
   validate_audio(audio);payload['flow_audio']=audio
  req=urllib.request.Request(endpoint,data=json.dumps(payload,ensure_ascii=False).encode(),headers={'User-Agent':'jasa-flow/1.0','Authorization':'Bearer '+key,'Content-Type':'application/json'})
- with urllib.request.urlopen(req,timeout=85) as r:
+ with urllib.request.urlopen(req,timeout=audio_timeout() if audio else 85) as r:
   if ai_stream.active():
    if 'text/event-stream' not in r.headers.get('Content-Type',''):raise AIConfigurationError('Gateway streaming upgrade required')
    reply='';reason=None;metadata={};started=time.monotonic()

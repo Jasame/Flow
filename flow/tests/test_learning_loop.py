@@ -140,8 +140,9 @@ class LoopTests(unittest.TestCase):
             self.assertTrue(all(len(set(v['options'])) == 4 and 'answer' not in v for v in vocab['items']))
             self.assertTrue(all(nx.node_level(self.c.execute('SELECT node FROM questions WHERE id=?', (q['id'],)).fetchone()[0]) in e['levels'] for q in grammar['items']))
             packs = {x['id']: x for _, x in nx._public_packs(self.c)}
-            self.assertEqual(len(reading['passages']), 2)
-            self.assertEqual(len({packs[ps['pack']]['theme'] for ps in reading['passages']}), 2)
+            n = ex._sized(self.c, 1, exam)[0]  # 1–3 passages by the learner's minutes a day (r28)
+            self.assertEqual(len(reading['passages']), n)
+            self.assertEqual(len({packs[ps['pack']]['theme'] for ps in reading['passages']}), n)  # each from another theme
             self.assertTrue(all(nx.cefr(packs[ps['pack']]) == e['reading'] and not packs[ps['pack']].get('series') for ps in reading['passages']))
             self.assertTrue(all(set(it) == {'prompt', 'options'} for ps in reading['passages'] for it in ps['items']))
         self.assertEqual(ex.paper(self.c, 1, 'toefl')[1], 400)
@@ -180,8 +181,14 @@ class LoopTests(unittest.TestCase):
         self.assertFalse(step['done'])
         p, _ = ex.paper(self.c, 1, 'cet6'); ex.submit(self.c, 1, {'paper': p['paper'], 'answers': {}})
         self.assertTrue(next(s for s in nx.home(self.c, 1)['path']['steps'] if s['key'] == 'exam')['done'])
-        self.c.execute('UPDATE next_exam_results SET created=created-3*86400'); self.c.commit()
-        self.assertNotIn('exam', [s['key'] for s in nx.home(self.c, 1)['path']['steps']])  # done this week
+        self.assertEqual((step['group'], step['part']), ('week', 'week'))  # 本周任务 (r28): outside the day's budget
+        path = nx.home(self.c, 1)['path']
+        self.assertNotIn('exam', [s['key'] for s in path['steps'] if s['group'] != 'week'])
+        # Any day of the week: done since Monday stays ticked all week; a set from before Monday leaves it to do again.
+        import progress_service as ps
+        monday = ps._bounds(time.time())[2]
+        self.c.execute('UPDATE next_exam_results SET created=?', (monday - 3600,)); self.c.commit()
+        self.assertFalse(next(s for s in nx.home(self.c, 1)['path']['steps'] if s['key'] == 'exam')['done'])
         nx.save_profile(self.c, 2, {'level': 'B2', 'goal': 'work', 'themes': [], 'minutes': 15})
         self.assertNotIn('exam', [s['key'] for s in nx.home(self.c, 2)['path']['steps']])
 

@@ -23,7 +23,7 @@ says which service gave it: when the text service fails, the main one answers, a
 also has the run's tokens and estimated cost by task and model (usage), and the gateway names it asked (asked): a run
 takes the eval lane (flow-eval-X for flow-text-X, the owner's own 百炼 account) where the gateway has it; --lane none
 asks the learners' names. About 90 model calls a run; --quick (the
-nightly check, ai_routes.nightly) is a sample of about 17. Exit status 0 when every question passed, 1 when some did
+nightly check, ai_routes.nightly) is a sample of about 21. Exit status 0 when every question passed, 1 when some did
 not, 2 when no model is configured.
 """
 import argparse, json, os, re, secrets, statistics, sys, tempfile, time
@@ -33,7 +33,7 @@ HERE = Path(__file__).resolve().parent
 CASES = HERE / 'corpus_data' / 'ai-eval.json'
 HAN = re.compile(r'[㐀-鿿]')
 KINDS = ('rewrite', 'essay', 'translate')
-CONTENT = ('explain', 'examples', 'variant', 'dialog', 'transsrc')
+CONTENT = ('explain', 'examples', 'variant', 'dialog', 'dialog_turn', 'dialog_end', 'transsrc')
 QUICK = {'rewrite': ('third-person-s', 'although-but', 'if-will', 'suggest-somebody-to', 'keep-second-conditional', 'keep-inversion'),
          'translate': 1}  # the nightly sample: 4 errors to put right, 2 correct sentences to leave alone, 1 translation pair
 STABLE = 2         # the two marks of one essay (4–20 points) differ by this much at most
@@ -119,6 +119,16 @@ def check_translation(case, good, poor):
     return why
 
 
+def touches(err, fix):
+    """Does this correction (a turn's {original, better} or a summary's {from, to}) put this planted mistake right?"""
+    if not isinstance(fix, dict):
+        return False
+    orig = ' '.join(words(fix.get('original') or fix.get('from') or ''))
+    better = ' '.join(words(fix.get('better') or fix.get('to') or ''))
+    want = ' '.join(words(err['original']))
+    return bool(want and want in orig) or any(w and w in better for w in (' '.join(words(x)) for x in err['better'].split('/')))
+
+
 def check_content(kind, case, result, status, ctx):
     """The reasons this generated content is not fit to show a learner ([] when it is)."""
     if status != 200:
@@ -159,6 +169,32 @@ def check_content(kind, case, result, status, ctx):
             why.append('第一句太长（超过 3 句）')
         if not HAN.search(r.get('scene') or ''):
             why.append('情景说明不是中文')
+    elif kind == 'dialog_turn':  # one turn mid-conversation: the reply, and a correction only when there is something to correct
+        r = result['result']
+        reply = r.get('reply') or ''
+        if HAN.search(reply) or not words(reply):
+            why.append('回复不是英文')
+        if len(re.findall(r'[.!?](?:\s|$)', reply)) > 3:
+            why.append('回复太长（超过 3 句）')
+        err, corr = case.get('error'), r.get('correction')
+        if err and not touches(err, corr):
+            why.append('没纠正句子里的错误：' + err['original'])
+        if not err and corr:
+            why.append('把说对的句子也改了：' + (corr.get('original') or '') + ' → ' + (corr.get('better') or ''))
+    elif kind == 'dialog_end':  # the summary after the last turn (output_service.dialog end=True); status != 200 = the site refused it
+        r = result['result']
+        # since #90 the site fills in a line when the model wrote no summary; the model still did not write one
+        filler = getattr(__import__('output_service'), 'SUMMARY_FILLER', '这一轮练完了，下面是具体的反馈。')
+        if (r.get('summary') or '').strip() == filler:
+            why.append('模型没写总评（网站补了默认句）')
+        elif not HAN.search(r.get('summary') or ''):
+            why.append('总评不是中文')
+        if not r.get('score'):
+            why.append('没有给分')
+        errs = case.get('errors') or []
+        found = sum(1 for e in errs if any(touches(e, f) for f in r.get('fixes') or []))
+        if errs and found < min(2, len(errs)):
+            why.append(f'学员的 {len(errs)} 处错误只指出 {found} 处')
     elif kind == 'transsrc':
         zh = (result.get('result') or {}).get('zh') or result.get('zh') or ''
         if len(HAN.findall(zh)) < 8 or re.search(r'[A-Za-z]{4,}', zh):
@@ -266,6 +302,14 @@ def _run(cases, kinds, repeat, say, quick=False):
                 result, status, meta = call('dialog', case, out.dialog, {'history': []})
                 why = check_content('dialog', case, result, status, {})
                 report['items'].append({'kind': 'content', 'task': 'dialog', 'id': case['id'], 'ok': not why, 'why': why, 'status': status, **meta})
+            for case in cc.get('dialog_turn', []):
+                result, status, meta = call('dialog_turn', case, out.dialog, {'history': case['history'], 'text': case['text']})
+                why = check_content('dialog_turn', case, result, status, {})
+                report['items'].append({'kind': 'content', 'task': 'dialog_turn', 'id': case['id'], 'ok': not why, 'why': why, 'status': status, **meta})
+            for case in cc.get('dialog_end', []):
+                result, status, meta = call('dialog_end', case, out.dialog, {'history': case['history'], 'end': True})
+                why = check_content('dialog_end', case, result, status, {})
+                report['items'].append({'kind': 'content', 'task': 'dialog_end', 'id': case['id'], 'ok': not why, 'why': why, 'status': status, **meta})
             for case in cc.get('transsrc', []):
                 result, status, meta = call('transsrc', case, out.translate_source, {'i': case['i']})
                 why = check_content('transsrc', case, result, status, {})
@@ -340,7 +384,7 @@ def main(argv=None):
     ap.add_argument('--main-model', help='这次改用另一个主模型')
     ap.add_argument('--route', help='这次所有任务都问网关里的这个模型名（如 flow-text、flow-qwen-plus）')
     ap.add_argument('--site-settings', help='用这个网站的后台设置（console-settings.json）里的线路')
-    ap.add_argument('--quick', action='store_true', help='只考一小部分（每晚的小评测，约 17 次调用）')
+    ap.add_argument('--quick', action='store_true', help='只考一小部分（每晚的小评测，约 21 次调用）')
     ap.add_argument('--lane', choices=('eval', 'none'), default='eval', help='eval（默认）：网关有 flow-eval-* 时走它（研发账号）；none：和学员用同一个名字')
     ap.add_argument('--only', help='只考其中几类：rewrite,essay,translate,content')
     ap.add_argument('--cases', default=str(CASES))

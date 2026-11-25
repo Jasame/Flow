@@ -252,14 +252,19 @@ def run_device(pw, dev, opts):
     res = pg.evaluate("() => ({h: (document.querySelector('#view h1') || {}).textContent || '', bands: document.querySelectorAll('.pl-bands .pl-band').length})")
     check(dev, 'starting check: ends with a level and band scores', res['h'].startswith('建议从') and 1 <= res['bands'] <= 4 and asked % 4 == 0, (res, asked))
 
-    # ---- exam practice: a timed paper of 22 questions, handed in once, scored by part
+    # ---- exam practice: a timed paper (its size set by the learner's minutes a day), handed in once, scored by part
     go(pg, '#/exam/cet4')
     ex = pg.evaluate("""() => { const c = document.querySelector('#view .opt[aria-pressed=true]'), d = document.getElementById('examCur');
       return c && d ? [Math.round(d.getBoundingClientRect().top - c.getBoundingClientRect().bottom), getComputedStyle(document.getElementById('exStart')).backgroundColor !== getComputedStyle(document.querySelector('#view .opt:not([aria-pressed=true])')).backgroundColor] : null; }""")
     check(dev, 'exam: the chosen exam opens right under its card, 开始一套 in the primary style', ex and 0 <= ex[0] <= 40 and ex[1], ex)
-    pg.click('#exStart'); pg.wait_for_selector('.exam-bar', timeout=8000); pg.wait_for_timeout(300)
+    with pg.expect_response(lambda r: r.url.endswith('/api/next/exam/paper')) as got:
+        pg.click('#exStart')
+    paper = got.value.json()
+    want = sum(len(p.get('items', [])) + sum(len(x['items']) for x in p.get('passages', [])) for p in paper['parts'])
+    pg.wait_for_selector('.exam-bar', timeout=8000); pg.wait_for_timeout(300)
     n = pg.evaluate("() => document.querySelectorAll('.exam-part .gq').length")
-    check(dev, 'exam: a paper of 22 questions in three parts with a clock', n == 22 and pg.evaluate("() => document.querySelectorAll('.exam-part').length") == 3, n)
+    check(dev, 'exam: every question of the paper (as the server sizes it) in three parts with a clock',
+          n == want and n >= 18 and pg.evaluate("() => document.querySelectorAll('.exam-part').length") == len(paper['parts']) == 3, (n, want))
     for k in range(n):
         pg.click(f'.exam-part .gq >> nth={k} >> .ans >> nth=0')
     pg.click('#exDone'); pg.wait_for_timeout(900)
@@ -895,14 +900,16 @@ def ios_audio_run(pw):
             pg.click('#reader .w:text-is("drains")'); pg.wait_for_selector('#sheetCard .word', timeout=5000); pg.wait_for_timeout(600)
 
         elements = "[...document.querySelectorAll('audio')].map(a => a.getAttribute('src') || '').filter(s => s.includes('/audio/words/'))"
+        length = word[2] - word[1]
+        clip_url = f"/audio/words/us/{word[0]}.aac?s={word[1]}&e={word[2]}&l=0.2"
+        # 自动 (the default): Web Audio, from just before the word, under a 'playback' session, named on the lock screen
         ctx, pg, errs, asked = page()
         tap_word(pg)
         wa = pg.evaluate('window.__wa')
         st = wa['starts'][-1] if wa['starts'] else {}
-        length = word[2] - word[1]
-        check(dev, 'a word plays on Web Audio from its clip: from just before the word (0.28 s in) for its length, at the reading speed',
-              st and abs(st['off'] - 0.28) < 0.005 and abs(st['dur'] - (length + 0.06)) < 0.005 and st['rate'] == 1
-              and any(f"/audio/words/us/{word[0]}.aac?s={word[1]}&e={word[2]}" in u for u in asked) and not pg.evaluate(elements), (st, asked[-3:]))
+        check(dev, 'by default a word plays on Web Audio from its clip: from just before the word for its length, at the reading speed',
+              st and abs(st['off'] - 0.18) < 0.005 and abs(st['dur'] - (length + 0.06)) < 0.005 and st['rate'] == 1
+              and any(clip_url in u for u in asked) and not pg.evaluate(elements), (st, asked[-3:]))
         check(dev, "the audio session is 'playback' (the ringer switch does not mute it), and the context was started inside the first tap",
               'playback' in wa['types'] and wa['created'] == 1 and wa['resumed'] >= 1, wa)
         title = pg.evaluate("navigator.mediaSession && navigator.mediaSession.metadata && navigator.mediaSession.metadata.title")
@@ -912,27 +919,48 @@ def ios_audio_run(pw):
         check(dev, 'leaving the page closes the context (iOS 26 home-screen apps went silent with an old one) and clears the lock screen',
               wa['closed'] == 1 and pg.evaluate("!(navigator.mediaSession && navigator.mediaSession.metadata)"), wa)
         pg.evaluate("Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true }); document.dispatchEvent(new Event('visibilitychange'))")
-        check(dev, 'no script errors (Web Audio)', not errs, errs[:3])
+        # 我的 → 设置 → 单词读音方式: the switch the home-screen app can reach (no address bar there), kept on the phone
+        pg.evaluate("document.querySelector('#sheet [data-close]').click()"); pg.wait_for_timeout(300)  # the word's card
+        pg.evaluate("location.hash = '#/me'"); settle(pg); pg.wait_for_timeout(300)
+        row = pg.text_content('#meSound') if pg.query_selector('#meSound') else ''
+        pg.click('#meSound'); pg.wait_for_selector('#sheetCard [data-sound="compat"]', timeout=4000); pg.click('#sheetCard [data-sound="compat"]'); pg.wait_for_timeout(200)
+        picked = pg.text_content('#meSoundV')
+        pg.click('#sheetCard [data-lead="0.15"]'); pg.wait_for_timeout(200)
+        leaded = pg.text_content('#meSoundV')
+        pg.evaluate("document.querySelector('#sheet [data-close]').click()")
+        pg.reload(wait_until='load'); settle(pg); pg.wait_for_timeout(300)
+        kept = pg.text_content('#meSoundV') if pg.query_selector('#meSoundV') else ''
+        check(dev, '我的 → 设置 has 单词读音方式 (连续 by default); 标准 and 0.15 s chosen there stay after the app is opened again',
+              '单词读音方式' in row and '连续' in row and picked == '标准 · 前面 0.2 秒' and leaded == kept == '标准 · 前面 0.15 秒', (row, picked, leaded, kept))
+        n = len(pg.evaluate('window.__wa.starts')); pg.evaluate("location.hash = '#/m/" + pid + "/read'"); settle(pg, '#reader'); pg.wait_for_timeout(400)
+        asked.clear(); tap_word(pg)
+        check(dev, '标准: the word plays its <audio> clip with the silence chosen (0.15 s), not Web Audio',
+              any(clip_url.replace('l=0.2', 'l=0.15') in u for u in asked) and len(pg.evaluate('window.__wa.starts')) == n, asked[-3:])
+        pg.wait_for_timeout(1500)
+        check(dev, '标准: a clip that has ended lets its source go (WebKit then stops counting it for Now Playing)', not pg.evaluate(elements), pg.evaluate(elements))
+        check(dev, 'no script errors (连续 and 标准)', not errs, errs[:3])
+        ctx.close()
+        # ?audio=element in Safari: the same 兼容模式; ?lead=: the silence in front (0.05–0.4 s)
+        ctx, pg, errs, asked = page('?audio=element&lead=0.15')
+        tap_word(pg)
+        check(dev, '?audio=element is 标准, and ?lead=0.15 asks for a clip with 0.15 s of silence',
+              not pg.evaluate('window.__wa.starts') and any(clip_url.replace('l=0.2', 'l=0.15') in u for u in asked), asked[-3:])
+        pg.goto(base + '/?audio=auto&lead=auto#/m/' + pid + '/read', wait_until='load'); settle(pg, '#reader'); pg.wait_for_timeout(400)
+        tap_word(pg)
+        check(dev, '?audio=auto: Web Audio again', len(pg.evaluate('window.__wa.starts')) >= 1, pg.evaluate('window.__wa'))
         ctx.close()
         # decoding fails: the <audio> clip instead
         ctx, pg, errs, asked = page(undecodable=True)
         tap_word(pg)
-        check(dev, 'a clip Web Audio cannot decode plays on an <audio> instead', not pg.evaluate('window.__wa.starts') and any('.aac?s=' in x for x in pg.evaluate(elements)), pg.evaluate(elements))
+        check(dev, 'a clip Web Audio cannot decode plays on an <audio> instead',
+              not pg.evaluate('window.__wa.starts') and sum(clip_url in u for u in asked) >= 2, asked[-3:])  # fetched for Web Audio, then by the <audio>
         ctx.close()
         # the type refused (a browser that does not let the page set it): <audio> clips, which the ringer switch does not mute
         ctx, pg, errs, asked = page(refuse=True)
         tap_word(pg)
         wa = pg.evaluate('window.__wa')
-        check(dev, "where 'playback' is refused, words play on an <audio> clip (no Web Audio, so the ringer switch cannot mute them)",
-              not wa['starts'] and 'playback' in wa['types'] and any('.aac?s=' in x for x in pg.evaluate(elements)), (wa, pg.evaluate(elements)))
-        ctx.close()
-        # ?audio=element: the switch for trying the old way on a phone
-        ctx, pg, errs, asked = page('?audio=element')
-        tap_word(pg)
-        check(dev, '?audio=element turns Web Audio off (and ?audio=auto back on)', not pg.evaluate('window.__wa.starts') and any('.aac?s=' in x for x in pg.evaluate(elements)), pg.evaluate('window.__wa'))
-        pg.goto(base + '/?audio=auto#/m/' + pid + '/read', wait_until='load'); settle(pg, '#reader'); pg.wait_for_timeout(400)
-        tap_word(pg)
-        check(dev, '?audio=auto: Web Audio again', len(pg.evaluate('window.__wa.starts')) >= 1, pg.evaluate('window.__wa'))
+        check(dev, "where 'playback' is refused, words play their <audio> clip (no Web Audio, so the ringer switch cannot mute them)",
+              not wa['starts'] and 'playback' in wa['types'] and any(clip_url in u for u in asked), (wa, asked[-3:]))
         ctx.close()
         # a whole text: <audio> (the lock screen controls it), named, and a pause from outside shows on the page
         ctx, pg, errs, asked = page(narration=True)
@@ -1045,15 +1073,16 @@ def wechat_run(pw):
         new = [x for x in iplays() if '/audio/words/' in x['src']]
         check(dev, 'iPhone: a looked-up word plays its own clip (.aac, from its start), as WeChat allows',
               new and all(x['ok'] and '.aac?s=' in x['src'] for x in new), new)
-        ip.wait_for_function("[...document.querySelectorAll('audio')].some(x => (x.currentSrc || x.src || '').includes('.aac') && (x.ended || x.paused))", timeout=5000)
-        info = ip.evaluate("""async () => { const a = [...document.querySelectorAll('audio')].find(x => (x.currentSrc || x.src || '').includes('.aac'));
-          if (!a) return null; const r = await fetch(a.currentSrc || a.src); const b = await r.arrayBuffer();
+        clip = next(x['src'] for x in new if '.aac?s=' in x['src']) if new else ''
+        # it plays to its end, then lets its source go (no Now Playing for it after that)
+        ip.wait_for_function("![...document.querySelectorAll('audio')].some(x => (x.getAttribute('src') || '').includes('.aac'))", timeout=5000)
+        info = ip.evaluate("""async u => { const r = await fetch(u); const b = await r.arrayBuffer();
           const buf = await new OfflineAudioContext(1, 1, 44100).decodeAudioData(b);
-          return { type: r.headers.get('content-type'), dur: buf.duration, played: a.currentTime, ended: a.ended }; }""")
+          return { type: r.headers.get('content-type'), dur: buf.duration, ended: true }; }""", clip)
         idx = json.loads((Path(__file__).with_name('ui-fixtures') / 'audio' / 'words' / 'index.json').read_text())['us']['drain']
-        want = 0.3 + (idx[2] - idx[1])  # silence, then the word; then a little of the gap after it
-        check(dev, 'iPhone: the clip is audio/aac with 0.3 s of silence, the whole word and a little after, and it plays to its end',
-              info and info['type'].startswith('audio/aac') and want <= info['dur'] <= want + 0.4 and info['ended'], (info, want))
+        want = 0.2 + (idx[2] - idx[1])  # silence, then the word (its quiet tail trimmed, to the end of a frame)
+        check(dev, 'iPhone: the clip is audio/aac with 0.2 s of silence and the whole word, and it plays to its end',
+              info and info['type'].startswith('audio/aac') and want - 0.12 <= info['dur'] <= want + 0.15 and info['ended'], (info, want))
         # no clip from the server (an older server, an error): the word plays from its sprite, as before
         ip.route('**/*.aac*', lambda r: r.fulfill(status=404, content_type='application/json', body='{}'))
         ip.reload(wait_until='load'); settle(ip, '#reader'); ip.wait_for_timeout(600); away()
@@ -1503,6 +1532,25 @@ def listen_speak_run(pw):
                 pg.click('.line[data-i="0"] .snd a'); pg.wait_for_timeout(600)
                 check(dev, '跟读: 去练 opens that 发音入门 set', pg.evaluate("location.hash").startswith('#/sounds/') and bool(pg.query_selector('#view h1')), pg.evaluate('location.hash'))
 
+            if size == 'phone':  # 伴读 of an imported article: the server voice, sentence by sentence, its files its owner's only
+                text = ' '.join(['The library opens early on weekdays.', 'Students meet there before their first class.', 'Some of them read quietly in the corner.',
+                                 'Others work on group projects at the long tables.', 'By noon most seats are taken.', 'In the evening it is quiet again.'])
+                imp = pg.evaluate("([t, csrf]) => fetch('/api/next/import', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf}, "
+                                  "body: JSON.stringify({title: '图书馆的一天', text: t})}).then(r => r.json())", [text, CFG['learners'][learner]['csrf']])
+                go(pg, f"#/m/{imp['id']}/read"); pg.wait_for_selector('#readAlong'); pg.wait_for_timeout(300)
+                pg.click('#readAlong'); pg.wait_for_selector('#reader .sent.now', timeout=5000)
+                pg.wait_for_function("performance.getEntriesByType('resource').some(e => e.name.includes('/audio/own/'))", timeout=8000)
+                got = pg.evaluate("""() => { const r = performance.getEntriesByType('resource').map(e => e.name);
+                    return {have: r.some(n => n.includes('/api/next/tts/have')), own: r.filter(n => n.includes('/audio/own/')).map(n => n.split(location.host)[1]),
+                            first: (document.querySelector('#reader .sent.now') || {}).dataset.si}; }""")
+                check(dev, '伴读 of an import: read by the server voice from the learner\'s own files, the sentence lit',
+                      got['have'] and got['own'] and got['own'][0].startswith('/audio/own/us-f/') and got['first'] == '0', got)
+                pg.click('#readAlong')
+                other = browser.new_context(); op = other.new_page()
+                st = op.goto(BASE + got['own'][0]).status if got['own'] else 0
+                other.close()
+                check(dev, '伴读 of an import: someone else (signed out) cannot fetch its voice', st == 404, st)
+
             if size == 'phone':  # 留学: today's speaking step is the next 雅思口语 Part 1 topic, and it opens that topic
                 # its own learner: by now the device learners have set radar goals and spoken, which changes today's steps
                 me = CFG['learners']['abroad']
@@ -1514,7 +1562,8 @@ def listen_speak_run(pw):
                 p2.goto(BASE + '/#/', wait_until='networkidle'); settle(p2); p2.wait_for_timeout(500)
                 step = p2.evaluate("() => { const a = [...document.querySelectorAll('#view a[href^=\"#/speak/ielts/p1-\"]')][0]; return a ? [a.getAttribute('href'), a.textContent.replace(/\\s+/g, ' ')] : null; }")
                 check(dev, '留学: 今日 speaks 雅思 Part 1, the next topic', st == 200 and step and step[0] == '#/speak/ielts/p1-study-work' and '雅思 Part 1 · 学习还是工作' in step[1], (st, step))
-                if step:
+                if step:  # at 20 minutes a day the speaking step is under 还有时间的话 (r28 time budget): open it first
+                    p2.evaluate("h => { const a = document.querySelector(`#view a[href=\"${h}\"]`), d = a && a.closest('details'); if (d) d.open = true; }", step[0])
                     p2.click(f'#view a[href="{step[0]}"]'); settle(p2)
                     check(dev, '留学: the step opens that Part 1 topic', p2.evaluate('location.hash') == step[0] and bool(p2.query_selector('#ieStart')), p2.evaluate('location.hash'))
                 c2.close()
@@ -1585,10 +1634,17 @@ def listen_speak_run(pw):
             check(dev, '口语情景: round 2 shows the round and its extra requirement', '第 2 轮' in hd[0] and '这一轮多一条' in hd[1], hd)
             l3 = p3.evaluate(LAYOUT_JS, touch); check(dev, '口语情景 round 2: no sideways scroll', l3['overflow'] <= 1, f"{l3['overflow']}px {l3['wide']}")
             p3.click('#dlgStart'); p3.wait_for_selector('#chat .msg.ai', timeout=8000)
-            if size == 'phone':  # the AI's line is said by the server voice (an mp3 made once and stored), not the browser voice
+            if size == 'phone':  # the AI's line is said by the server voice (an mp3 made once and stored), not the browser voice,
+                # in its role's voice: the barista is a woman, the accent is the learner's (set to uk-m for this check, then back)
                 p3.wait_for_function("performance.getEntriesByType('resource').some(e => e.name.includes('/api/next/tts'))", timeout=8000)
                 src = p3.evaluate("new Promise(r => setTimeout(() => r(performance.getEntriesByType('resource').filter(e => e.name.includes('/audio/tts/')).map(e => e.name.split('/audio/')[1])), 1200))")
                 check(dev, '口语情景: the AI line is spoken by the server voice', bool(src) and src[0].startswith('tts/us-f/') and src[0].endswith('.mp3'), src)
+                set_voice = "([v, csrf]) => fetch('/api/next/voice', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf}, body: JSON.stringify({voice: v})}).then(r => r.status)"
+                p3.evaluate(set_voice, ['uk-m', me3['csrf']])
+                rv = p3.evaluate("([csrf]) => fetch('/api/next/dialog', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf}, "
+                                 "body: JSON.stringify({scenario: 'cafe-order', history: [], request_id: 'ui-role-voice-01'})}).then(r => r.json()).then(j => j.result.voice)", [me3['csrf']])
+                p3.evaluate(set_voice, ['us-f', me3['csrf']])
+                check(dev, '口语情景: the role has its own voice, in the learner\'s accent (barista: uk-f for a uk-m learner)', rv == 'uk-f', rv)
             p3.fill('#dlgText', 'yes'); p3.click('#dlgSend'); p3.wait_for_selector('#chat .msg.me .pace', timeout=8000)
             sl = p3.evaluate("() => [document.querySelector('#chat .msg.me .pace').dataset.pace, document.querySelector('#chat .msg.me .pace').textContent, (document.querySelector('#dlgHint .say-line b') || {}).textContent || '']")
             check(dev, '口语情景: a one-word answer slows the AI down, says so, and offers a sentence to use', sl[0] == 'easier' and '放慢' in sl[1] and len(sl[2].split()) >= 3, sl)
@@ -1598,10 +1654,26 @@ def listen_speak_run(pw):
             check(dev, '口语情景: a long, correct answer makes the AI go deeper', pc == ['easier', 'harder'], pc)
             l3 = p3.evaluate(LAYOUT_JS, touch); check(dev, '口语情景 with pace notes: no sideways scroll', l3['overflow'] <= 1, f"{l3['overflow']}px {l3['wide']}")
             p3.screenshot(path=str(OUT / f'{dev}-scene-round2.png'), full_page=False)
+            if size == 'desktop':  # 说完就显示进度: a slow reply shows what is happening and for how long; a failed one gives the answer back
+                # the reply held back 2.2 s in the page (a blocking route handler would stall the test's own event loop)
+                p3.evaluate("""() => { const f = window.fetch; window.__slow = true;
+                    window.fetch = (u, o) => (window.__slow && String(u).includes('/api/next/dialog')) ? new Promise(r => setTimeout(r, 2200)).then(() => f(u, o)) : f(u, o); }""")
+                p3.fill('#dlgText', 'And a small croissant, please.'); p3.click('#dlgSend')
+                p3.wait_for_selector('#chat .dlg-wait', timeout=3000); p3.wait_for_timeout(1300)
+                wt = p3.text_content('#chat .dlg-wait') or ''
+                p3.wait_for_function("document.querySelectorAll('#chat .msg.me').length >= 3", timeout=8000)
+                check(dev, '口语情景: while the reply is on its way, a line says so with the seconds, gone when it comes',
+                      '对方正在回' in wt and '1 秒' in wt and not p3.query_selector('#chat .dlg-wait'), wt)
+                p3.evaluate('window.__slow = false')
+                p3.route('**/api/next/dialog', lambda route: route.fulfill(status=502, json={'error': 'AI 服务暂时繁忙'}))
+                p3.fill('#dlgText', 'Can I pay by card?'); p3.click('#dlgSend'); p3.wait_for_timeout(800)
+                check(dev, '口语情景: an answer that did not get through goes back into the box', p3.input_value('#dlgText') == 'Can I pay by card?' and not p3.query_selector('#chat .dlg-wait'))
+                p3.unroute('**/api/next/dialog'); p3.fill('#dlgText', '')
             if size == 'desktop':  # the end of the round: whether the requirement was met, and how often the AI adjusted
                 p3.click('#dlgEnd'); p3.wait_for_selector('#dlgOut .result', timeout=10000)
                 end = p3.text_content('#dlgOut') or ''
                 check(dev, '口语情景: the feedback says the requirement was met and how the AI adjusted', '这一轮的要求' in end and '做到了' in end and '放慢了 1 次' in end and '加深了 1 次' in end, end[:160])
+                check(dev, '口语情景: 「放进错题本」 said once, not twice', end.count('放进错题本') <= 1, end.count('放进错题本'))
             c3.close()
             check(dev, 'no script errors', not errors, errors[:3])
             ctx.close()
@@ -1653,6 +1725,38 @@ def class_run(pw):
         check(dev, '老师: the QR code reads back as the class\'s join link', read in (None, [BASE + '/#/invite/' + k['code']]),
               read if read is not None else 'no BarcodeDetector here (Linux): read on macOS')
         pg.screenshot(path=str(OUT / 'class-teacher.png'), full_page=True)
+        ctx.close()
+        # 老师模式: a 管理员 makes a 老师注册链接 on the console page (班级 → 老师注册链接), shown once and listed 未使用
+        ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN')
+        cp = ctx.new_page(); cp.on('pageerror', lambda e: errs.append('console: ' + str(e)))
+        cp.goto(CFG['console'] + '#classes', wait_until='networkidle'); cp.wait_for_selector('#tlF', timeout=8000)
+        cp.fill('#tlF [name=note]', 'UI 测试 王老师'); cp.fill('#tlF [name=days]', '3'); cp.click('#tlF button')
+        cp.wait_for_selector('#tlNew code', timeout=8000); cp.wait_for_selector('#tlList tbody tr', timeout=8000)
+        made, row = cp.text_content('#tlNew code') or '', cp.text_content('#tlList tbody tr') or ''
+        check(dev, '后台: 生成老师注册链接 shows the link once and lists it as 未使用', '/#/teacher/' in made and 'UI 测试 王老师' in row and '未使用' in row, (made[-20:], row[:60]))
+        cp.screenshot(path=str(OUT / 'class-console-link.png'), full_page=True)
+        # the link signs up a 老师账号 (no 年龄段); its home is its classes, and it makes one
+        pctx = browser.new_context(**phone)
+        pg = pctx.new_page(); pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.goto(BASE + '/#/teacher/' + made.rsplit('/#/teacher/', 1)[1], wait_until='networkidle')
+        pg.wait_for_selector('#authForm [name=username]', timeout=8000)
+        bar, ages = pg.evaluate('location.hash'), pg.locator('#authForm [name=age]').count()
+        check(dev, '老师注册链接: the sign-up opens, the token leaves the address bar, and no 年龄段 is asked', bar == '#/teacher' and ages == 0, (bar, ages))
+        pg.fill('#authForm [name=email]', 'ui-teacher-new@example.com'); pg.click('#authForm [data-send]'); pg.wait_for_timeout(800)
+        mail = sorted(Path(CFG['outbox']).glob('*.txt'), key=lambda f: f.stat().st_mtime)[-1].read_text(encoding='utf-8')
+        pg.fill('#authForm [name=code]', re.search(r'验证码：(\d{6})', mail).group(1))
+        pg.fill('#authForm [name=username]', 'ui-new-teacher'); pg.fill('#authForm [name=password]', 'correct horse 1')
+        pg.click('#authForm [type=submit]'); pg.wait_for_selector('#tNew', timeout=8000); settle(pg)
+        tab = pg.text_content('[data-nav="today"] span') or ''
+        check(dev, '老师账号: after signing up, the home is 我的班级 and the first tab says 班级', '我的班级' in (pg.text_content('h1') or '') and tab == '班级', tab)
+        pg.fill('#tNew [name=name]', '高二（5）班'); pg.click('#tNew [type=submit]'); pg.wait_for_selector('.cls-code', timeout=8000)
+        code = (pg.text_content('.cls-code') or '').strip()
+        check(dev, '老师账号: a new class opens on its page with a 6-character invite code', re.fullmatch(r'[A-Z2-9]{6}', code) is not None and pg.evaluate(wide), code)
+        pg.screenshot(path=str(OUT / 'class-new-teacher.png'), full_page=True)
+        cp.reload(wait_until='networkidle'); cp.wait_for_selector('#tlList tbody tr', timeout=8000)
+        row = cp.text_content('#tlList tbody tr') or ''
+        check(dev, '后台: the used link now says 已注册 and names the new teacher account', '已注册' in row and 'ui-new-teacher' in row, row[:80])
+        pctx.close()
         check(dev, 'no page errors', not errs, errs[:3])
     finally:
         browser.close()
@@ -1913,8 +2017,9 @@ def sprint_run(pw):
         hub = pg.evaluate("""() => ({h: document.querySelector('#view h1').textContent, pace: (document.querySelector('.sp-pace') || {}).textContent || '',
           types: [...document.querySelectorAll('#spTypesH ~ .mlist .mrow b')].map(b => b.textContent), start: !!document.getElementById('exStart'),
           note: document.querySelector('#spTypesH + p').textContent})""")
+        hub['api'] = pg.evaluate("fetch('/api/next/exam').then(r => r.json()).then(o => o.exams.find(e => e.id === 'cet4').types.map(t => t.title))")  # from the data
         check(dev, 'hub: my exam on top, the pace said plainly, two question types labelled original, the full set',
-              hub['h'] == '大学英语四级' and '背词节奏：跟不上' in hub['pace'] and '每天 40 个' in hub['pace'] and hub['types'] == ['选词填空', '段落匹配']
+              hub['h'] == '大学英语四级' and '背词节奏：跟不上' in hub['pace'] and '每天 40 个' in hub['pace'] and hub['types'] == hub['api'] + ['阅读一篇']
               and hub['start'] and '不是真题' in hub['note'], hub)
         pg.screenshot(path=str(OUT / 'sprint-hub.png'))
         pg.click('.sp-pace [data-daily]')
@@ -1947,8 +2052,9 @@ def sprint_run(pw):
         check(dev, '选词填空: ten gaps marked used, handed in, ten answers each with its reason', used == 10 and '题做对' in res['h'] and res['n'] == 10 and res['why'], (used, res))
         pg.screenshot(path=str(OUT / 'sprint-banked-result.png'))
         # the other kinds: the first choice everywhere, handed in
-        for page, n in (('#/exam/cet4/match', 10), ('#/exam/ielts/tfng', 7), ('#/exam/tem4/choice', 10), ('#/exam/ky/cloze', 10)):
+        for page, n in (('#/exam/cet4/match', 10), ('#/exam/ielts/tfng', 7), ('#/exam/tem4/choice', 10), ('#/exam/ky/cloze', 10), ('#/exam/cet4/reading', None)):
             go(pg, page); pg.wait_for_selector('.xt-q', timeout=6000)
+            n = n or pg.evaluate("document.querySelectorAll('.xt-q').length")  # 阅读一篇 (考试小练): as many as the passage has, 2–4
             pg.evaluate("() => document.querySelectorAll('.xt-q').forEach(q => q.querySelector('.ans').click())")
             pg.click('#xtDone'); pg.wait_for_selector('.xt .pit', timeout=6000)
             got = pg.evaluate("document.querySelectorAll('.xt .pit').length")
@@ -2035,6 +2141,16 @@ def about_run(pw):
                     check(tag, 'the word-book shelf switches groups and says 专四、专八 are not official lists', '专四词汇' in shelf and '6,161' in shelf and '不是官方词表' in shelf, shelf[:160])
                     pg.click('#faq .qa:first-child summary'); pg.wait_for_timeout(600)
                     check(tag, 'a question opens', pg.evaluate("document.querySelector('#faq .qa').open"))
+                    # 一分钟看懂语流: plays by itself once on screen, a bar jumps to its part, the button pauses
+                    pg.evaluate("document.getElementById('fmStage').scrollIntoView({block: 'center', behavior: 'instant'})"); pg.wait_for_timeout(1600)
+                    t1 = pg.evaluate("document.getElementById('fmTime').textContent"); pg.wait_for_timeout(1200)
+                    t2 = pg.evaluate("document.getElementById('fmTime').textContent")
+                    check(tag, 'the one-minute film plays by itself once it is on screen', t1 != t2 and pg.evaluate("document.getElementById('fmPlayL').textContent") == '暂停', (t1, t2))
+                    pg.click('#fmCh .fm-cb:nth-child(5)'); pg.wait_for_timeout(500)
+                    now = pg.evaluate("[document.getElementById('fmNow').textContent, document.querySelector('.fm-sc[data-seg=daily]').classList.contains('on')]")
+                    pg.click('#fmPlay'); pg.wait_for_timeout(200)
+                    t3 = pg.evaluate("document.getElementById('fmTime').textContent"); pg.wait_for_timeout(700)
+                    check(tag, 'a bar under the film jumps to its part (5 · 每天一篇) and the button pauses it', now == ['5 / 10 · 每天一篇', True] and t3 == pg.evaluate("document.getElementById('fmTime').textContent"), (now, t3))
                     if dev == 'desktop':
                         pg.evaluate("document.querySelector('.step[data-step=\"2\"]').scrollIntoView({block: 'center', behavior: 'instant'})"); pg.wait_for_timeout(900)
                         on = pg.evaluate("[document.querySelector('.layer.on') && document.querySelector('.layer.on').dataset.i, getComputedStyle(document.querySelector('.stage-in')).position]")
@@ -2059,9 +2175,24 @@ def about_run(pw):
             pg = ctx.new_page(); pg.goto(BASE + '/about', wait_until='networkidle'); pg.wait_for_timeout(300)
             shown = pg.evaluate("[...document.querySelectorAll('.rv, .display .w')].every(e => getComputedStyle(e).opacity === '1')")
             check('about', f'with less motion every part is shown at once ({theme})', shown)
+            pg.evaluate("document.getElementById('fmStage').scrollIntoView({block: 'center', behavior: 'instant'})"); pg.wait_for_timeout(1500)
+            still = pg.evaluate("[document.getElementById('fmPlayL').textContent, document.getElementById('fmNow').textContent, document.querySelector('.fm-sc[data-seg=speak]').classList.contains('on')]")
+            check('about', f'with less motion the film does not play by itself and shows the café conversation ({theme})', still == ['播放', '2 / 10 · 口语情景', True], still)
             for kind, items in pg.evaluate(A11Y_JS).items():
                 found.setdefault((kind, theme), []).extend(items)
             ctx.close()
+        # the film's recording view: the stage alone, the long and short cuts, and only the words the server allows
+        ctx = browser.new_context(viewport={'width': 1280, 'height': 720}, locale='zh-CN')
+        pg = ctx.new_page()
+        pg.goto(BASE + '/about?record=1&cut=short&gates=voice,fast', wait_until='networkidle')
+        rec = pg.evaluate("[Math.round(FILM.dur * 100) / 100, FILM.segs.map(s => s.id).join(' '), getComputedStyle(document.getElementById('fmStage')).position, FILM.caps.some(c => c[2].includes('一两秒'))]")
+        check('about', 'the film records: the short cut is 28.8 s in 6 parts, the stage fills the window', rec == [28.8, 'open speak daily words any end', 'fixed', True], rec)
+        pg.goto(BASE + '/about?record=1&cut=long', wait_until='networkidle')  # what this server has on (<html data-film>): the test server reads with the server voice, not on 百炼
+        said = pg.evaluate("""(() => { const on = (document.documentElement.dataset.film || '').split(' '), said = FILM.caps.map(c => c[2]).join(' ');
+          return [Math.round(FILM.dur * 100) / 100, FILM.segs.length, /一两秒/.test(said) === on.includes('fast'), /更像真人/.test(said) === on.includes('voice'),
+                  (getComputedStyle(document.querySelector('.fm-fast')).display === 'none') === !on.includes('fast'), on.join(' ')]; })()""")
+        check('about', 'the film mentions the server voice and quick replies only where the server has them on (long cut: 81.5 s, 10 parts)', said[:5] == [81.5, 10, True, True, True], said)
+        ctx.close()
         for kind, label in (('unnamed', 'every button and link has a name'), ('noalt', 'every image has alt text'), ('dupid', 'no id is used twice'),
                             ('contrast', 'text contrast meets WCAG AA'), ('lang', 'English is marked lang="en"')):
             for theme in ('light', 'dark'):
@@ -2170,6 +2301,17 @@ def swipe_run(pw):
         browser.close()
 
 
+# 按时间打包 (r28): today's plan in its groups, as the page draws them
+PLAN_JS = r"""() => {
+  const s = document.querySelector('#view .today-plan'); if (!s) return null;
+  const sum = s.querySelector('.tp-extra > summary'), head = s.querySelector('.tp-head .muted.small'), over = s.querySelector('.tp-over');
+  return { must: s.querySelectorAll(':scope > .plist .prow').length, extra: s.querySelectorAll('.tp-extra .prow').length,
+           week: s.querySelectorAll('.tp-week .prow').length, head: head ? head.textContent.trim() : '', open: s.querySelector('.tp-extra') ? s.querySelector('.tp-extra').open : null,
+           summaryH: sum ? Math.round(sum.getBoundingClientRect().height) : null, wide: s.scrollWidth - s.clientWidth, over: !!over,
+           shown: [...s.querySelectorAll('.tp-extra .prow')].every(r => r.getBoundingClientRect().height > 0) };
+}"""
+
+
 def progress_run(pw):
     dev = 'progress'
     browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
@@ -2195,6 +2337,18 @@ def progress_run(pw):
                 check(dev, f'{tag}: 今日 runs 好句, 热点, the plan, 这周进步 from the top (the plan first on a phone held sideways), nothing cut off or wider than the screen',
                       top['order'] == (['plan', 'lineCard', 'news', 'week'] if h < 500 else ['lineCard', 'news', 'plan', 'week']) and not top['clipped'] and top['wide'] <= 0 and (not touch or top['small'] == []), top)
                 check(dev, f'{tag}: its four numbers are the learner\'s own (as the server counts them)', card and card['values'] == want, (card and card['values'], want))
+                path = home['path']; plan = pg.evaluate(PLAN_JS)
+                grp = {g: [x for x in path['steps'] if x.get('group', 'must') == g] for g in ('must', 'extra', 'week')}
+                head = (f"约 {path['must_minutes']} 分钟" if not path['done'] else '都做完了' if path['done'] >= path['total'] else f"还要约 {path['left_minutes']} 分钟")
+                check(dev, f'{tag}: the plan shows 必做 (counted), 还有时间的话 folded and 本周任务 as the server packs them, its title the real minutes of 必做',
+                      plan and (plan['must'], plan['extra'], plan['week']) == (path['total'], len(grp['extra']), len(grp['week'])) and head in plan['head']
+                      and plan['wide'] <= 0 and (not grp['extra'] or (plan['summaryH'] >= 44 and plan['open'] == (path['done'] >= path['total']))), (plan, head))
+                if grp['extra'] and not plan['open']:
+                    pg.click('#view .tp-extra > summary'); pg.wait_for_timeout(150)
+                    check(dev, f'{tag}: 还有时间的话 opens with a tap and its rows show', pg.evaluate(PLAN_JS)['shown'] and pg.evaluate(PLAN_JS)['open'], pg.evaluate(PLAN_JS))
+                    if size == 'phone-390':
+                        pg.screenshot(path=str(OUT / f'progress-plan-extra-{theme}.png'))
+                    pg.click('#view .tp-extra > summary'); pg.wait_for_timeout(100)
                 check(dev, f'{tag}: four numbers in one row, nothing cut off or wrapped', card and card['tiles'] == 4 and card['oneRow'] and not card['clipped'] and not card['wrapped'],
                       card and (card['oneRow'], card['clipped'], card['wrapped']))
                 check(dev, f'{tag}: no sideways scrolling; a surface of its own; text contrast at least 4.5:1',
@@ -2290,7 +2444,8 @@ TAP44_JS = """sel => { const el = document.querySelector(sel); if (!el) return n
 def backlog_run(pw):
     """Reviews piled up after a break (ux-longterm-audit 1.1, 11, 16, 2026-11-24): no new words today and the word page
     says so; the review page says 「先做 40 个（还有 N 个）」 and, after those 40, offers a place to stop; the small links
-    a finger needs (结束, 去读, 去练, 按 B1 挑选 · 调整, 怎么写的) take a tap 44 px around them."""
+    a finger needs (结束, 去读, 去练, 按 B1 挑选 · 调整, 怎么写的) take a tap 44 px around them. r28 section 3: 单词每天
+    (a cap in minutes: done at the cap, 继续复习 past it, the new words a day it keeps up with) and a finished book's next."""
     dev = 'backlog'
     browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
     try:
@@ -2332,12 +2487,60 @@ def backlog_run(pw):
         # 背词计划: 20 new words a day at 90 % comes to over half an hour a month in: the number, the way out, and one tap to 10
         go(pg, '#/vocab/plan'); pg.click('#dn [data-v="20"]'); pg.wait_for_timeout(200)
         hint = pg.text_content('#dnHint') or ''
-        check(dev, 'plan: half an hour or more says the minutes and offers 10 a day, one tap away',
-              '按现在的设置，一个月后每天大约要' in hint and '可以改成每天 10 个新词' in hint and pg.is_visible('#dnTen'), hint)
-        pg.click('#dnTen'); pg.wait_for_timeout(200)
-        hint = pg.text_content('#dnHint') or ''
-        check(dev, 'plan: after the tap, 10 a day is chosen and the hint is calm again',
-              pg.get_attribute('#dn [data-v="10"]', 'aria-pressed') == 'true' and not pg.is_visible('#dnTen') and '连新词约' in hint, hint)
+        # every learner has the day's word time now (time_budget, r28 第 1 段: 15 minutes at 60 a day), so the way out is the
+        # number of new words that time keeps up with (单词每天, r28 第 3 段), not a flat 10
+        wmh = pg.text_content('#wmHint') or ''
+        fit = pg.get_attribute('#wmFit', 'data-n')
+        check(dev, 'plan: more than the day\'s word time says the minutes and offers the number that fits, one tap away',
+              '连新词约' in hint and '按单词每天 15 分钟' in wmh and '比 15 分钟多' in wmh and pg.is_visible('#wmFit') and not pg.is_visible('#dnTen'), (hint, wmh))
+        pg.click('#wmFit'); pg.wait_for_timeout(200)
+        check(dev, 'plan: after the tap, that number is chosen and the offer is gone',
+              fit and pg.input_value('#dnOwn') == fit and not pg.is_visible('#wmFit'), (fit, pg.input_value('#dnOwn'), pg.text_content('#wmHint')))
+        # r28 section 3: 单词每天 5 分钟. The 40 answered above are past it: today's words are done, the rest waits for the
+        # coming days, 继续复习 goes on past the cap
+        csrf = CFG['learners']['pile']['csrf']
+        plan = pg.evaluate("fetch('/api/next/vocab').then(r => r.json()).then(o => o.plan)")
+        st = pg.evaluate("([p, csrf]) => fetch('/api/next/vocab/plan', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf}, "
+                         "body: JSON.stringify({book: p.book, daily_new: 10, retention: p.retention, word_minutes: 5})}).then(r => r.status)", [plan, csrf])
+        fresh = lambda: (pg.reload(wait_until='load'), settle(pg), go(pg, '#/cards'), pg.wait_for_timeout(300))  # the page keeps API answers in memory (05-data.js)
+        fresh()
+        o = pg.evaluate("fetch('/api/next/vocab').then(r => r.json())")
+        later = pg.text_content('#laterLine') if pg.query_selector('#laterLine') else ''
+        check(dev, 'a cap of 5 minutes already used: 今天的单词做完了, the rest waits, 继续复习 one tap away',
+              st == 200 and o['cap'] == 5 and o['due'] + o['new'] == 0 and o['later'] > 0 and f"还有 {o['later']} 个复习留到之后几天" in later
+              and '单词每天 5 分钟' in later and pg.is_visible('#moreRev'), (st, o.get('cap'), o.get('due'), o.get('later'), later))
+        pg.click('#moreRev'); pg.wait_for_timeout(500)
+        check(dev, '继续复习 goes on past the cap', 'review/more' in pg.url and bool(pg.query_selector('[data-claim], [data-self]')), pg.url)
+        # the plan page: 5 minutes keep up with about 3 new words a day; 10 a day is more: the number that fits, one tap away
+        go(pg, '#/vocab/plan'); pg.wait_for_timeout(300)
+        wmh = pg.text_content('#wmHint') or ''
+        check(dev, 'plan: 单词每天 5 分钟 says the new words a day it keeps up with, and offers that number',
+              pg.get_attribute('#wm [data-m="5"]', 'aria-pressed') == 'true' and '按单词每天 5 分钟，每天大约能学 3 个新词' in wmh and pg.is_visible('#wmFit'), wmh)
+        pg.click('#wmFit'); pg.wait_for_timeout(200)
+        check(dev, 'plan: after the tap, 3 new words a day and no more offer', pg.input_value('#dnOwn') == '3' and not pg.is_visible('#wmFit'),
+              (pg.input_value('#dnOwn'), pg.text_content('#wmHint')))
+        # a book nearly done, then done: what comes next, one tap away (the API's answer is changed here; test_vocab tests vocab_service)
+        def book(route, kind):
+            r = route.fetch(); o = r.json()
+            o['book'].update(left=12, days=2, soon=kind == 'soon', done=kind == 'done', finish=None if kind == 'done' else o['book'].get('finish'),
+                             next={'id': 'high', 'title': '高阶词汇', 'new': 2400}, exam_first=False)
+            route.fulfill(response=r, json=o)
+        pg.route('**/api/next/vocab', lambda route: book(route, 'soon'))
+        fresh()
+        soon = pg.text_content('#bookSoon') if pg.query_selector('#bookSoon') else ''
+        check(dev, 'a book nearly done: the new words left, the days, and the next book with its new words',
+              '还剩 12 个新词，大约 2 天背完' in soon and '接下来推荐《高阶词汇》' in soon and '还剩约 2,400 个新词' in soon, soon)
+        pg.unroute('**/api/next/vocab'); pg.route('**/api/next/vocab', lambda route: book(route, 'done'))
+        fresh()
+        done = pg.text_content('#bookDone') if pg.query_selector('#bookDone') else ''
+        check(dev, 'a finished book: 背完了, 换成 the next one as the main button, 先只复习 beside it',
+              '背完了' in done and (pg.text_content('#bookNext') or '') == '换成《高阶词汇》' and 'primary' in (pg.get_attribute('#bookNext', 'class') or '')
+              and pg.is_visible('#bookRest'), done)
+        pg.click('#bookRest'); pg.wait_for_timeout(100)
+        gone = not pg.query_selector('#bookDone')
+        fresh()
+        check(dev, '先只复习 puts the card away, and it stays away', gone and not pg.query_selector('#bookDone'), gone)
+        pg.unroute('**/api/next/vocab')
         check(dev, 'no script errors', not errs, errs[:3])
         ctx.close()
     finally:
@@ -2388,6 +2591,12 @@ def start_run(pw):
                 pg.click('[data-target="C1"]'); pg.click('[data-exam="ielts"]'); pg.wait_for_timeout(100)
                 kept = pg.evaluate("document.querySelector('[data-target][aria-checked=true]').dataset.target")
                 check(dev, f'{tag}: 考试 opens the exams; 四级 suggests B1, 六级 B2; a level picked by hand stays', rec == [['B1', 'true']] and rec6 == 'B2' and kept == 'C1', (rec, rec6, kept))
+                # 一周学几天 (每周目标): 5 for an exam, 4 otherwise, until picked by hand
+                days = lambda: pg.evaluate("(b => b && +b.dataset.days)(document.querySelector('[data-days][aria-checked=true]'))")
+                d_exam = days(); pg.click('[data-goal="daily"]'); d_daily = days()
+                pg.click('[data-days="6"]'); pg.click('[data-goal="exam"]'); d_kept = days()
+                row = pg.evaluate("new Set([...document.querySelectorAll('[data-days]')].map(b => Math.round(b.getBoundingClientRect().top))).size")
+                check(dev, f'{tag}: 一周学几天: 5 days for an exam, 4 otherwise, 2–7 in one row; a number picked by hand stays', (d_exam, d_daily, d_kept, row) == (5, 4, 6, 1), (d_exam, d_daily, d_kept, row))
                 if size == 'phone':
                     pg.click('[data-target="B2"]'); pg.wait_for_timeout(100)
                     pg.screenshot(path=str(OUT / f'start-page-{theme}.png'), full_page=True)
@@ -2395,7 +2604,7 @@ def start_run(pw):
                 pg.click('#wgGo'); pg.wait_for_function("() => location.hash === '#/'", timeout=6000); settle(pg)
                 guest = pg.evaluate("JSON.parse(localStorage.getItem('flow-next-guest'))")
                 check(dev, f'{tag}: started as a guest: the choices kept on the phone, materials one band below the target, today shown',
-                      guest['goal'] == 'exam' and guest['exam'] == 'ielts' and guest['level_source'] == 'guess' and guest['level'] == {'C1': 'B2', 'B2': 'B1'}[guest['target']]
+                      guest['goal'] == 'exam' and guest['exam'] == 'ielts' and guest['level_source'] == 'guess' and guest['level'] == {'C1': 'B2', 'B2': 'B1'}[guest['target']] and guest['weekly_goal'] == 6
                       and pg.query_selector('#view .hello, #view .today-plan') is not None, guest)
                 # the next opening: the mark alone and short; never the start page again
                 pg.reload(wait_until='commit'); pg.wait_for_selector('#splash', state='attached', timeout=5000)
@@ -2422,7 +2631,7 @@ def start_run(pw):
         prof = pg.evaluate("fetch('/api/next/home').then(r => r.json()).then(h => [h.profile, h.level_guess])")
         note = pg.evaluate("(document.getElementById('levelGuess') || {}).textContent || ''")
         check(dev, 'the account keeps goal, exam (the exam goal of 考试冲刺), target and a guessed level; 今日 suggests a test',
-              prof[0]['goal'] == 'exam' and prof[0]['exam'] == 'cet6' and prof[0]['target'] == 'B2' and prof[0]['level'] == 'B1' and prof[1]
+              prof[0]['goal'] == 'exam' and prof[0]['exam'] == 'cet6' and prof[0]['target'] == 'B2' and prof[0]['level'] == 'B1' and prof[0]['weekly_goal'] == 5 and prof[1]
               and '去能力里测一下' in note and pg.get_attribute('#levelGuess a', 'href') == '#/radar/test', (prof, note[:40]))
         pg.screenshot(path=str(OUT / 'start-today-hint.png'))
         pg.click('#lgLater'); pg.wait_for_timeout(200)
@@ -2452,7 +2661,7 @@ def start_run(pw):
         go(pg, '#/vocab/plan'); pg.wait_for_timeout(300)
         chosen = pg.evaluate("[document.getElementById('bookNow').textContent, [...document.querySelectorAll('#goal [aria-pressed=true]')].map(x => x.textContent)]")
         check(dev, 'no word plan: 今日 starts with 选一本词书 (not ticked, to 背词计划), which opens with the exam\'s book chosen',
-              step == ['选一本词书（1 分钟）', '#/vocab/plan', False] and '《四级词汇》' in chosen[0] and chosen[1] == ['四级'], (step, chosen))
+              step == ['选一本词书', '#/vocab/plan', False] and '《四级词汇》' in chosen[0] and chosen[1] == ['四级'], (step, chosen))
         check(dev, 'no script errors (no word plan)', not errs, errs[:3])
         ctx.close()
         # reduced motion: no rising bars, the mark only fades
@@ -2633,6 +2842,19 @@ def home_app_run(pw):
         pg.goto(BASE + '/', wait_until='networkidle'); settle(pg); pg.wait_for_timeout(5500)
         ver = pg.evaluate("fetch('/api/version').then(r => r.json())")
         check(dev, 'the same version: /api/version answers it, and nothing reloads or shows', ver.get('asset') and len(loads) == 1 and pg.query_selector('#updateBar') is None, (ver, len(loads)))
+        ctx.close()
+        # light → dark while open (an iPhone keeps the status-bar strip of the page's load: a white band): no reload while
+        # answering questions; the next tab page reloads to repaint it (tools/ios_sim_check.py checks the strip itself)
+        ctx, pg, errs = context('iphone-15-pro')
+        loads = []
+        pg.on('load', lambda: loads.append(1))
+        pg.goto(BASE + f'/#/m/{PID}/check', wait_until='networkidle'); settle(pg)
+        pg.emulate_media(color_scheme='dark'); pg.wait_for_timeout(1200)
+        stayed = len(loads) == 1
+        go(pg, '#/'); pg.wait_for_timeout(1500)
+        check(dev, 'light → dark while answering: no reload there; the next tab page reloads once (the status-bar strip)', stayed and len(loads) == 2, (stayed, len(loads)))
+        pg.wait_for_timeout(1500)
+        check(dev, 'after that reload: no second one', len(loads) == 2, len(loads))
         ctx.close()
     finally:
         browser.close()

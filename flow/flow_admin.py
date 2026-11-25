@@ -33,7 +33,7 @@ VIEWER_GET = {'/me', '/overview', '/learning', '/survey/definition', '/survey/su
               '/funnel', '/cohorts', '/content', '/books', '/ai', '/ai/samples', '/tasks', '/announcements'}
 ADMIN_GET = {'/users', '/survey/responses', '/survey/export.csv', '/errors', '/log', '/feedback', '/feedback/image',
              '/learners', '/learner', '/export/learners.csv', '/export/materials.csv', '/export/ai.csv',
-             '/classes', '/class', '/export/classes.csv'}
+             '/classes', '/class', '/export/classes.csv', '/teacher-links'}
 CSV_EXPORTS = {'/export/learners.csv': ('learners', '学员'), '/export/materials.csv': ('materials', '材料'), '/export/ai.csv': ('ai', 'AI 用量'),
                '/export/classes.csv': ('classes', '班级试用人次')}
 ROLE_LABEL = {'admin': '管理员', 'viewer': '只看数据'}
@@ -57,6 +57,7 @@ def schema(c):
     __import__('field_service').schema(c)  # page errors and opening times the browsers report
     __import__('console_ops').schema(c)  # materials off the lists, 公告 (r26)
     __import__('class_service').schema(c)  # 班级试用: classes, who is in which (2026-11-24)
+    __import__('teacher_service').schema(c)  # 老师账号 and the one-use 老师注册链接 (2026-11-26)
 
 
 def log_action(c, op, action, target='', detail=''):
@@ -70,13 +71,15 @@ ACTION_LABEL = {'reset-link': '生成重设密码链接', 'survey-hide': '隐藏
                 'feedback-reopen': '重新打开反馈',
                 # r26
                 'account-disable': '停用账号', 'account-enable': '恢复账号', 'account-signout': '退出所有设备',
-                'account-staff-on': '设为员工账号', 'account-staff-off': '取消员工账号', 'account-level': '改水平',
+                'account-staff-on': '设为员工账号', 'account-staff-off': '取消员工账号',
+                'account-teacher-on': '设为老师账号', 'account-teacher-off': '取消老师账号', 'account-level': '改水平',
                 'account-daily-new': '改每日新词', 'material-hide': '下架材料', 'material-show': '恢复材料',
                 'daily-again': '重新生成今日热点', 'ai-limits': '改 AI 额度', 'examples-start': '开始例句预生成',
                 'examples-stop': '停止例句预生成', 'announce': '发布公告', 'announce-end': '结束公告', 'export': '导出 CSV',
                 # 班级试用
                 'class-create': '新建班级', 'class-rename': '班级改名', 'class-teacher': '换班级老师', 'class-code': '换邀请码',
                 'class-stop': '停用班级', 'class-start': '重新启用班级',
+                'teacher-link': '生成老师注册链接', 'teacher-link-revoke': '作废老师注册链接',
                 'ai-routes': '改任务用的模型', 'ai-budget': '改 AI 预算和评测', 'ai-redo': '让 AI 重写一条内容'}
 
 
@@ -173,7 +176,7 @@ TAP_LABEL = {
     'me-level': '我的 · 学习目标和水平', 'me-voice': '我的 · 朗读声音', 'me-text': '我的 · 字号和行距', 'me-remind': '我的 · 每天提醒', 'me-install': '我的 · 添加到桌面',
     'trial-level': '试读之后 · 选学习目标',
     'welcome-start': '第一次打开 · 选好方向和目标，开始学习', 'welcome-login': '第一次打开 · 已有账号，登录', 'notice-test': '今日 · 提醒：去能力里测一下',
-    'home-habit': '今日 · 每周目标', 'notice-week': '今日 · 提醒：上周小结', 'me-habit': '我的 · 每周目标',
+    'home-habit': '今日 · 每周目标', 'notice-week': '今日 · 提醒：上周小结', 'notice-goal-lower': '今日 · 提醒：建议调低每周目标', 'me-habit': '我的 · 每周目标',
     'study-keep': '学习页 · 存到手机',
     'share-material': '学一篇 · 分享学会的一句', 'share-week': '这周报告 · 分享',
     'me-data': '我的 · 导出我的数据', 'me-delete': '我的 · 注销账号', 'words-export': '单词 · 导出单词本',
@@ -185,7 +188,8 @@ TAP_LABEL = {
     'announce-open': '今日 · 公告：去看看',
     'home-week': '今日 · 这周进步', 'me-weekly-mail': '我的 · 每周进度邮件',
     'finish-expr': '学完一篇 · 小结：表达', 'finish-words': '学完一篇 · 小结：新词', 'finish-grammar': '学完一篇 · 小结：语法点',
-    'home-more-one': '今日 · 计划完成后再学一篇',
+    'home-more-one': '今日 · 计划完成后再学一篇', 'home-more-grammar': '今日 · 计划完成后做 4 道语法题',
+    'home-extra': '今日 · 还有时间的话', 'home-week-task': '今日 · 本周任务',
     'line-say': '今日好句 · 听一遍', 'line-shadow': '今日好句 · 跟读', 'line-keep': '今日好句 · 收藏', 'line-read': '今日好句 · 读原文',
     'shadow-sound': '跟读 · 去练要练的音', 'speak-ielts': '口语路线 · 雅思口语',
 }
@@ -222,7 +226,7 @@ def overview(c):
         'survey_responses': q('SELECT COUNT(*) FROM survey_responses WHERE survey=? AND hidden=0', survey.SURVEY_ID),
         'trial_responses': q('SELECT COUNT(*) FROM survey_responses WHERE survey=? AND hidden=0', survey.TRIAL_ID),
         'profiles': q('SELECT COUNT(*) FROM next_profiles'),
-        'never_started': q('SELECT COUNT(*) FROM users WHERE admin=0 AND id NOT IN (SELECT user_id FROM next_progress UNION SELECT user_id FROM next_reviews)'),
+        'never_started': q("SELECT COUNT(*) FROM users WHERE admin=0 AND COALESCE(role, '')<>'teacher' AND id NOT IN (SELECT user_id FROM next_progress UNION SELECT user_id FROM next_reviews)"),
         'disabled': q('SELECT COUNT(*) FROM users WHERE disabled=1'),
         'hidden_materials': q('SELECT COUNT(*) FROM material_hidden'),
         'errors_24h': __import__('ops_errors').count_since(c, 86400),
@@ -336,9 +340,11 @@ def console_get(c, path, one, op):
         return cd.learner_list(c, one('q')[:60], one('filter', 'all'), one('sort', 'recent'), int(one('page', '1') or 1))
     if path == '/classes':
         return __import__('class_service').console_list(c)
+    if path == '/teacher-links':
+        return __import__('teacher_service').links(c)
 
 
-ACCOUNT_POSTS = {'/learner/disable', '/learner/signout', '/learner/staff', '/learner/level', '/learner/daily-new'}
+ACCOUNT_POSTS = {'/learner/disable', '/learner/signout', '/learner/staff', '/learner/teacher', '/learner/level', '/learner/daily-new'}
 
 
 def console_post(c, path, data, op):
@@ -358,6 +364,10 @@ def console_post(c, path, data, op):
             on = bool(data.get('staff'))
             body, status, u = co.set_staff(c, uid, on)
             action, detail = ('account-staff-on' if on else 'account-staff-off'), ''
+        elif path == '/learner/teacher':
+            on = bool(data.get('teacher'))
+            body, status, u = __import__('teacher_service').set_teacher(c, uid, on)
+            action, detail = ('account-teacher-on' if on else 'account-teacher-off'), ''
         elif path == '/learner/level':
             body, status, u = co.set_level(c, uid, data.get('level'))
             action, detail = 'account-level', str(data.get('level'))[:10]
@@ -419,6 +429,16 @@ def console_post(c, path, data, op):
         body, status, tgt = __import__('class_service').create(c, data, who)
         if status == 200:
             log_action(c, op, 'class-create', tgt)
+        return body, status
+    if path == '/teacher-link/create':
+        body, status, tgt = __import__('teacher_service').make_link(c, data, who)
+        if status == 200:
+            log_action(c, op, 'teacher-link', tgt, f"有效 {body['days']} 天，到 {body['expires']}")
+        return body, status
+    if path == '/teacher-link/revoke':
+        body, status, tgt = __import__('teacher_service').revoke(c, data)
+        if status == 200:
+            log_action(c, op, 'teacher-link-revoke', tgt)
         return body, status
     if path in CLASS_POSTS:
         what = path.rsplit('/', 1)[1]
@@ -508,7 +528,7 @@ class AdminHandler(BaseHTTPRequestHandler):
                     return self._send(got)
                 if path == '/ai/samples':
                     return self._send(*__import__('console_data').ai_samples(c, one('kind'), int(one('n', '5') or 5)))
-                if path in ('/funnel', '/cohorts', '/content', '/books', '/ai', '/tasks', '/announcements', '/learners', '/classes'):
+                if path in ('/funnel', '/cohorts', '/content', '/books', '/ai', '/tasks', '/announcements', '/learners', '/classes', '/teacher-links'):
                     return self._send(console_get(c, path, one, op))
                 if path in CSV_EXPORTS:
                     import console_data as cd

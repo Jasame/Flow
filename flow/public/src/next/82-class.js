@@ -39,7 +39,7 @@
           // 年龄段 first, and under 14 a guardian's agreement (privacy_service): asked here when not on record yet
           const needAge = !S.user.age || (S.user.age === 'u14' && !S.user.guardian);
           found.innerHTML = `<div class="card sunk cls-found"><b>${esc(r.name)}</b><span class="small muted">老师 ${esc(r.teacher)}</span></div>
-            ${r.teaching ? '<p class="small muted">你是这个班的老师，不用加入；在「我的 → 我的班级」里看全班汇总。</p>' : `${needAge ? ageFields(S.user.age, S.user.guardian) : ''}<button class="btn primary" id="clsJoin" type="button">加入这个班</button>`}`;
+            ${r.teaching ? '<p class="small muted">你是这个班的老师，不用加入；在「我的班级」里看全班汇总。</p>' : `${needAge ? ageFields(S.user.age, S.user.guardian) : ''}<button class="btn primary" id="clsJoin" type="button">加入这个班</button>`}`;
           found.hidden = false;
           if (needAge) bindAge(found, S.user.guardian);
           const j = found.querySelector('#clsJoin');
@@ -83,6 +83,78 @@
     classSheet(code);
   }
 
+  /* ---------- 老师模式 (teacher_service.py): a 老师账号 signs up with a one-use link; its home lists and makes its classes ---------- */
+  const TEACH_SEES = ['全班最近 7 天几人在学，和近 4 周每周的人数', '全班最常错的 5 个语法点（点进去是讲解和练习）'];
+  const TEACH_NOT = ['任何学生的名字、作业、答题和学习记录', '某一个学生学了多少、错了什么'];
+  function teachTerms(min) {
+    return `<div class="cls-terms"><div><b>你能看到</b><ul>${TEACH_SEES.map(x => `<li class="yes">${x}</li>`).join('')}</ul></div>
+      <div><b>你看不到</b><ul>${TEACH_NOT.map(x => `<li class="no">${x}</li>`).join('')}</ul></div></div>
+      <p class="tiny muted">班里不满 ${min || 5} 人时不显示任何数字；学生退出后马上不再计入。学生加入前会先看到这些。</p>`;
+  }
+  const TEACH_LINK_KEY = 'flow-teacher-link';
+  function teachIntro(title) { return `<div><span class="kicker">老师</span><h1 class="h1">${title}</h1></div>`; }
+  function teachWhat() {
+    return `<div class="card flat stack-s"><b>老师账号能做什么</b><ul class="cls-list"><li>自己建班级，拿到 6 位邀请码、加入链接和二维码，发给学生</li>
+      <li>看全班汇总：最近 7 天几人在学、近 4 周每周人数、全班最常错的 5 个语法点</li><li>看不到任何学生的名字、作业、答题和学习记录</li></ul>
+      <a class="link small" href="#/guide/teacher">老师操作说明</a></div>`;
+  }
+  // #/teacher/<token>: the 老师注册链接. The token leaves the address bar at once (kept for this tab only), so it is not
+  // left in the history or a screenshot; the sign-up sheet sends it with the form.
+  async function teacherSignup(token) {
+    if (token) { try { sessionStorage.setItem(TEACH_LINK_KEY, token); } catch (e) { /* the sheet still has it */ } history.replaceState(null, '', location.pathname + location.search + '#/teacher'); }
+    else { try { token = sessionStorage.getItem(TEACH_LINK_KEY) || ''; } catch (e) { token = ''; } }
+    if (S.user && S.user.teacher) { try { sessionStorage.removeItem(TEACH_LINK_KEY); } catch (e) { /* nothing kept */ } location.replace('#/teach'); return; }
+    const page = body => { view.innerHTML = `<div class="stack cls-page">${teachIntro('注册老师账号')}${body}${teachWhat()}</div>`; };
+    if (!token) return page('<div class="card flat"><p>老师账号要用语流发给你的「老师注册链接」注册，一条链接只能注册一个老师账号。还没有链接，请联系语流。在登录框里直接注册，得到的是学生账号。</p></div>');
+    if (S.user) {
+      page(`<div class="card flat stack-s"><p>这台设备上现在登录着一个学生账号。老师账号要另外注册：先退出这个账号，再用这条链接注册。退出不会删掉学生账号里的任何东西。</p>
+        <div class="row"><button class="btn primary" id="tOut" type="button">退出登录，注册老师账号</button></div></div>`);
+      document.getElementById('tOut').onclick = async e => {
+        e.target.disabled = true; await OUTBOX.flush(); try { await api('/api/logout', {}); } catch (x) { /* signed out already */ }
+        snapClear(); S.user = null; S.csrf = ''; await refreshHome(); route();
+      };
+      return;
+    }
+    let ok;
+    try { ok = await api('/api/teacher/check', { token }); }
+    catch (x) { return page(`<div class="card flat"><p>${esc(x.message)}</p></div>`); }
+    page(`<div class="card flat stack-s"><p>这是语流发给你的老师注册链接，有效到 ${esc(ok.expires)}（北京时间），只能注册一个老师账号。</p>
+      <button class="btn primary" id="tReg" type="button">注册老师账号</button>
+      <p class="tiny muted">已经有老师账号了？<button class="link small" type="button" id="tLogin">直接登录</button></p></div>`);
+    const open = () => openLogin('用这条链接注册的是老师账号。注册时要验证邮箱，忘记密码时用它找回。', 'reg', { teacher: token });
+    document.getElementById('tReg').onclick = open;
+    document.getElementById('tLogin').onclick = () => openLogin('');
+    open();
+  }
+  // #/teach (and #/ for a teacher account): its classes, and a new one.
+  async function teachHome() {
+    if (!S.user) {
+      view.innerHTML = `<div class="stack cls-page">${teachIntro('我的班级')}<div class="card flat stack-s"><p>登录老师账号后，这里是你的班级。</p><button class="btn primary" id="lg" type="button">登录</button></div>${teachWhat()}</div>`;
+      document.getElementById('lg').onclick = () => openLogin(); return;
+    }
+    const k = await api('/api/next/class'); S.myClass = k;
+    if (!S.user.teacher && !k.teaching.length) { location.replace('#/'); return; }  // a 学生账号 has no teacher page
+    const rows = k.teaching.map(t => `<a class="card flat cls-row" href="#/class/${t.id}"><span class="stack-s"><b>${esc(t.name)}</b><span class="small muted">邀请码 ${esc(t.code)}</span></span>
+      <span class="small${t.active && t.ready ? '' : ' muted'}">${!t.active ? '已停用' : t.ready ? '看全班汇总 ›' : `还不到 ${k.min} 人 ›`}</span></a>`).join('');
+    view.innerHTML = `<div class="stack cls-page">${teachIntro('我的班级')}${S.user.teacher ? '<span class="small muted">老师账号</span>' : ''}
+      ${rows ? `<div class="stack-s">${rows}</div>` : '<div class="card flat"><p>还没有班级。先建一个，拿到邀请码发给学生。</p></div>'}
+      ${S.user.teacher ? `<form class="card flat stack-s" id="tNew" novalidate><h2 class="h2">新建班级</h2>
+        <label class="field">班级名<input name="name" type="text" maxlength="30" placeholder="比如 高一（3）班" autocomplete="off" required><span class="hint">2–30 个字。建好以后可以改名。</span></label>
+        <button class="btn primary" type="submit">新建班级</button><p class="err" id="tErr" role="alert"></p></form>` : ''}
+      <div class="card flat stack-s">${teachTerms(k.min)}</div>
+      <p class="small"><a class="link" href="#/guide/teacher">老师操作说明</a></p>
+      <p class="tiny muted">想看看学生用的语流，点下面的「练习」「单词」随便用；老师账号不能加入班级，自己学的也不算进任何班级的数字。</p></div>`;
+    const f = document.getElementById('tNew');
+    if (f) f.onsubmit = async e => {
+      e.preventDefault(); const err = document.getElementById('tErr'); err.textContent = '';
+      const name = f.name.value.trim();
+      if (name.length < 2 || name.length > 30) return fieldError(f, err, { message: '班级名写 2–30 个字', field: 'name' });
+      const b = f.querySelector('[type=submit]'); b.disabled = true;
+      try { const r = await api('/api/next/class/create', { name }); S.myClass = r; toast('班级建好了：把邀请码发给学生'); location.hash = `#/class/${r.created}`; }
+      catch (x) { fieldError(f, err, { message: x.message, field: 'name' }); b.disabled = false; }
+    };
+  }
+
   /* ---------- the teacher's page: #/class/<id> ---------- */
   async function classView(id) {
     if (!S.user) { view.innerHTML = '<div class="empty"><p>登录老师的语流账号后，才能看班级汇总。</p><button class="btn primary" id="lg">登录</button></div>'; document.getElementById('lg').onclick = () => openLogin(); return; }
@@ -97,15 +169,20 @@
           ${k.points.length ? `<ol class="cls-points">${k.points.map(p => `<li><a href="#/graph/${encodeURIComponent(p.node)}" data-tap="class-point"><span class="t">${esc(p.title)}</span><span class="small muted">${p.learners} 人错过</span><span class="go small">讲解 ›</span></a></li>`).join('')}</ol>
             <p class="tiny muted">做语法题、考试练习答错的，和 AI 批改写作时因为这个语法点改过的，都算。点进去是这个语法点的讲解和练习，上课可以直接用。</p>`
             : '<p class="small muted">近 7 天全班还没有做错的语法点（也可能还没人做语法题）。</p>'}</div>`;
-    view.innerHTML = `<div class="stack cls-page"><div><span class="kicker">我的班级</span><h1 class="h1">${esc(k.name)}</h1><span class="small muted">${k.ready ? `${k.members} 人 · ` : ''}全班汇总，只有数字</span></div>
+    view.innerHTML = `<div class="stack cls-page"><div><a class="kicker link" href="#/teach">‹ 我的班级</a><h1 class="h1">${esc(k.name)}</h1><span class="small muted">${k.ready ? `${k.members} 人 · ` : ''}全班汇总，只有数字 · <button class="link small" id="clsRename" type="button">改名</button></span></div>
       ${body}
       <div class="card flat stack-s"><h2 class="h2">邀请学生</h2>
         <div class="cls-code" aria-label="邀请码">${esc(k.code)}</div>
-        <p class="small muted">学生在「我的 → 班级」输入邀请码，或打开下面的链接加入。加入前会先告诉他们你能看到什么、看不到什么。</p>
+        <p class="small muted">学生在「我的 → 设置 → 班级」输入邀请码，或打开下面的链接加入。加入前会先告诉他们你能看到什么、看不到什么。</p>
         <div class="row"><button class="btn" id="clsCopy" type="button">复制链接</button><button class="btn ghost" id="clsQr" type="button">二维码</button></div>
         <canvas id="clsQrC" width="240" height="240" hidden aria-label="加入班级的二维码"></canvas></div>
       <p class="tiny muted">这里只有全班的数字，看不到任何学生的名字、作业和记录；退出班级的学生马上不再计入。</p></div>`;
     view.querySelectorAll('.cls-weeks i').forEach(i => { i.style.height = i.dataset.h + '%'; });  // CSP: no inline style attributes
+    document.getElementById('clsRename').onclick = async () => {
+      const name = (prompt('新的班级名（2–30 个字）', k.name) || '').trim();
+      if (!name || name === k.name) return;
+      try { await api('/api/next/class/rename', { id: k.id, name }); toast('已改名'); route(true); } catch (x) { toast(x.message); }
+    };
     const link = classLink(k.code);
     document.getElementById('clsCopy').onclick = () => (navigator.clipboard ? navigator.clipboard.writeText(link) : Promise.reject()).then(() => toast('链接已复制，发给学生就行'), () => prompt('复制这个链接发给学生', link));
     document.getElementById('clsQr').onclick = e => {

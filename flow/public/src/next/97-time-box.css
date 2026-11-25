@@ -1,0 +1,17 @@
+/* 按时间打包今日计划 (r28): 还有时间的话 folded under 必做, 本周任务, the line once the day's minutes are past; 欢迎回来 */
+.today-plan .tp-over{margin:0;padding:10px 12px;border-radius:12px;background:var(--amber-soft);color:var(--ink);border-left:3px solid var(--amber-fill)}
+.today-plan .tp-more{display:grid;gap:8px}
+.today-plan .tp-extra,.today-plan .tp-week{display:grid;gap:6px}
+.today-plan .tp-extra>summary{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:44px;padding:0 10px;
+  border-radius:12px;background:var(--sunk);cursor:pointer;font-weight:600;list-style:none}
+.today-plan .tp-extra>summary::-webkit-details-marker{display:none}
+.today-plan .tp-extra>summary>span:first-child::after{content:'›';display:inline-block;margin-left:8px;color:var(--muted);transform:rotate(90deg);transition:transform .2s}
+.today-plan .tp-extra[open]>summary>span:first-child::after{transform:rotate(-90deg)}
+.today-plan .tp-extra>summary:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.today-plan .tp-week-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;padding:0 4px}
+.today-plan .tp-week-head .h3{margin:0;font-size:16px}
+.prow.extra .num,.prow.week .num{background:transparent;border:1.5px dashed var(--line2);color:var(--muted)}
+.prow.extra.done .num,.prow.week.done .num{border:0;background:var(--green-soft);color:var(--green-ink)}
+@media (prefers-reduced-motion:reduce){.today-plan .tp-extra>summary>span:first-child::after{transition:none}}
+.today-plan .tp-back{display:grid;gap:2px;margin:0;padding:12px 14px;border-radius:14px;background:var(--green-soft);color:var(--ink)}
+.today-plan .tp-back b{color:var(--green-ink);font-size:16px}

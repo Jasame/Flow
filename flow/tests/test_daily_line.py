@@ -102,7 +102,7 @@ class LineTests(Db):
 class PageTests(unittest.TestCase):
     def test_today_has_the_line_the_news_and_the_plan_in_that_order_and_the_week_card_under_it(self):
         for s in ('function lineCardHTML', 'function newsCardHTML', 'function bindLine', "api('/api/next/shadow'", 'data-tap="line-shadow"',
-                  'AI 改写 · 未经人工审核', 'const short = innerHeight < 500 && innerWidth > innerHeight', '${weekCardSlot()}', 'function mountWeekCards',
+                  'AI 改写 · 未经人工审核', 'const short = (innerHeight < 500 && innerWidth > innerHeight) || !!(path && h.path.back)', '${weekCardSlot()}', 'function mountWeekCards',
                   "api('/api/next/week?brief=1')"):
             self.assertIn(s, JS, s)
         order = [JS.index(s) for s in ("${short ? '' : lineCardHTML(h) + newsCardHTML(news)}", '${top}', '${weekCardSlot()}')]

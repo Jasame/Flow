@@ -12,6 +12,7 @@
     "body": "Have you ever noticed tiny bumps on your arms on a cold morning? We call them goosebumps, because your skin looks like the skin of a goose without its feathers. Next to every hair, there is a tiny muscle that can pull it up. When you feel cold, these muscles get tight. The hairs stand up, and the skin around them rises into little bumps. For animals with thick fur, this is useful. Standing fur holds warm air close to the body. A cat that is scared looks bigger with its fur up. Humans don't have much body hair, so goosebumps don't really keep us warm. Scientists think they are something that our bodies have kept from the distant past. Fear can cause them too. That's why we say a scary film can make your hair stand on end!",
     "questions": [
       {
+        "type": "inference",
         "prompt": "Why don't goosebumps help humans much today?",
         "options": [
           "Our muscles are too weak to pull the hairs up",
@@ -23,6 +24,7 @@
         "evidence": "Humans don't have much body hair, so goosebumps don't really keep us warm."
       },
       {
+        "type": "detail",
         "prompt": "What pulls each hair up when you feel cold?",
         "options": [
           "The cold air around your arms",
@@ -32,7 +34,9 @@
         ],
         "answer": 2,
         "evidence": "Next to every hair, there is a tiny muscle that can pull it up."
-      }
+      },
+      {"type": "main", "prompt": "What does the text mainly explain?", "options": ["How geese lose their feathers", "Why cats are often scared", "What goosebumps are and why we get them", "How to stay warm in winter"], "answer": 2, "evidence": "We call them goosebumps, because your skin looks like the skin of a goose without its feathers."},
+      {"type": "vocab", "prompt": "What does \"scared\" mean in \"A cat that is scared\"?", "options": ["tired", "afraid", "happy", "hungry"], "answer": 1, "evidence": "A cat that is scared looks bigger with its fur up."}
     ],
     "dictation_index": 4,
     "vocabulary": [
@@ -131,6 +135,7 @@
     "body": "Here is a small experiment that you can do at home. You need a balloon, some tiny bits of paper and dry hair. First, blow up the balloon and tie it. Next, rub it quickly on your hair for a few seconds. Once you have rubbed it, hold it just above the paper. Watch closely. The bits jump up and stick to it! Then hold it near your head, and some hairs rise to meet it. Why does this happen? Everything is made of tiny parts that carry electric charge. When you rub, some of these parts move from your hair onto the balloon. Now it can pull light things towards it. Your hairs all get the same charge, so they push each other away. The trick works best on a dry day. Keep balloons away from very young children.",
     "questions": [
       {
+        "type": "inference",
         "prompt": "Why can the balloon pull the paper after you rub it?",
         "options": [
           "Air comes out of the balloon and lifts the paper",
@@ -142,6 +147,7 @@
         "evidence": "When you rub, some of these parts move from your hair onto the balloon."
       },
       {
+        "type": "detail",
         "prompt": "Why do your hairs push each other away?",
         "options": [
           "They are too dry to stay down",
@@ -151,7 +157,9 @@
         ],
         "answer": 1,
         "evidence": "Your hairs all get the same charge, so they push each other away."
-      }
+      },
+      {"type": "main", "prompt": "What is the main purpose of the text?", "options": ["To explain how to cut paper", "To warn people about electricity at home", "To sell balloons", "To show a simple experiment with static electricity and explain it"], "answer": 3, "evidence": "Here is a small experiment that you can do at home."},
+      {"type": "vocab", "prompt": "What does \"rub\" mean in \"rub it quickly on your hair\"?", "options": ["throw it", "cut it", "wash it", "move it backwards and forwards while pressing"], "answer": 3, "evidence": "Next, rub it quickly on your hair for a few seconds."}
     ],
     "dictation_index": 4,
     "vocabulary": [
@@ -260,6 +268,7 @@
     "body": "Zoe: Dad, the Moon was round last week. Now it looks like a banana. Has someone eaten it? Dad: No, it's still round. Zoe: But why does it look different? Dad: The Moon doesn't make its own light. The Sun shines on it, and the half that faces the Sun is always bright. Zoe: Always? Dad: Always. But the Moon is travelling around the Earth, and each trip takes about a month. So we see different parts of the bright half. Zoe: So when it's round, we see all of the bright side? Dad: Exactly. When it's thin, we only see a small piece. Zoe: My friend says the Earth's shadow covers it. Dad: Many people think so, but it isn't true. Zoe: I've learned something new tonight. Dad: Me too. I've never heard anyone call the Moon a banana.",
     "questions": [
       {
+        "type": "main",
         "prompt": "Why does the Moon seem to change shape?",
         "options": [
           "The Earth's shadow covers a different part of it each night",
@@ -271,6 +280,7 @@
         "evidence": "So we see different parts of the bright half."
       },
       {
+        "type": "detail",
         "prompt": "What does Dad think about the idea from Zoe's friend?",
         "options": [
           "It explains why the Moon looks like a banana",
@@ -280,7 +290,9 @@
         ],
         "answer": 2,
         "evidence": "Many people think so, but it isn't true."
-      }
+      },
+      {"type": "inference", "prompt": "Why does Zoe ask if someone has eaten the Moon?", "options": ["It has gone completely dark", "It looks much thinner than it did last week", "Her friend told her so", "She saw a bird near it"], "answer": 1, "evidence": "Now it looks like a banana."},
+      {"type": "vocab", "prompt": "What does \"faces\" mean in \"the half that faces the Sun\"?", "options": ["goes around", "hides from", "moves away from", "points towards"], "answer": 3, "evidence": "the half that faces the Sun is always bright"}
     ],
     "dictation_index": 9,
     "vocabulary": [
@@ -384,6 +396,7 @@
     "body": "Anna Ross is a science teacher who has worked at the same primary school for many years. We asked her about her favourite lesson. Q: What do your students love most? Anna: Bubbles! We have blown thousands of them in my classroom. Q: Why are bubbles always round? Anna: A bubble has a very thin skin of soap and water. This skin pulls itself tight, but the air inside pushes out. A ball is the shape that holds the most air with the smallest skin. So the bubble becomes a ball. Q: What if you use a square wand? Anna: My students have tried that many times. The bubble still comes out round! Q: Is there a lesson here for adults? Anna: Yes. Never stop asking simple questions. Good science often starts with a child who asks why.",
     "questions": [
       {
+        "type": "main",
         "prompt": "According to Anna, why does a bubble become a ball?",
         "options": [
           "The air inside is lighter than the air outside",
@@ -395,6 +408,7 @@
         "evidence": "A ball is the shape that holds the most air with the smallest skin."
       },
       {
+        "type": "detail",
         "prompt": "What message does Anna have for adults?",
         "options": [
           "They should buy better bubble soap",
@@ -404,7 +418,9 @@
         ],
         "answer": 3,
         "evidence": "Never stop asking simple questions."
-      }
+      },
+      {"type": "inference", "prompt": "Why does a bubble from a square wand still come out round?", "options": ["Its skin still pulls into the shape that holds the most air", "The students blow too hard", "Soap only works when it is cold", "Square wands are too small"], "answer": 0, "evidence": "A ball is the shape that holds the most air with the smallest skin."},
+      {"type": "vocab", "prompt": "What is a \"wand\" in \"a square wand\"?", "options": ["a small box", "a stick with a shape at the end for blowing bubbles", "a glass of soapy water", "a kind of soap"], "answer": 1, "evidence": "What if you use a square wand?"}
     ],
     "dictation_index": 8,
     "vocabulary": [

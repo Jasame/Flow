@@ -1,5 +1,5 @@
 """Integrated language studio: private packs, bounded Gemini jobs, revisions and vocabulary."""
-import json,time,re,uuid,hashlib,os,difflib,urllib.error,socket
+import json,time,re,uuid,hashlib,os,difflib,urllib.error,socket,contextlib
 import ai_jobs
 from content_v06 import PACKS,material
 from content_v09 import THEMES
@@ -31,9 +31,63 @@ def schema(c):
  c.execute('CREATE TABLE IF NOT EXISTS feedback_disputes(user_id INTEGER REFERENCES users(id),job INTEGER REFERENCES lab_jobs(id),correction TEXT,created REAL,PRIMARY KEY(user_id,job))')
 
 def audio_enabled():return ai_enabled() and os.getenv('FLOW_AI_AUDIO','0')=='1'
+class Shape(ValueError):
+ """The model answered, but not in the shape asked for (DeepSeek words JSON a little differently from Gemini). code is a
+ fixed word for ai_calls.error (json_parse, summary_empty, score_nan …), never the learner's text."""
+ def __init__(self,code):super().__init__(code);self.code=code
 def parse(text):
+ # A model may wrap the JSON in a fence or a sentence now and then: the outermost object is taken.
  text=text.strip().removeprefix('```json').removeprefix('```').removesuffix('```').strip()
- return json.loads(text)
+ try:return json.loads(text)
+ except ValueError:pass
+ a,b=text.find('{'),text.rfind('}')
+ if 0<=a<b:
+  try:return json.loads(text[a:b+1])
+  except ValueError:pass
+ raise Shape('json_parse')
+def mtext(value,minimum=0,maximum=600,code='text_empty',default=None):
+ """Text a model wrote: too long is cut (a long summary is not a failure); missing or too short gives `default`, else
+ Shape(code). Not for what a learner wrote: that keeps text(), which refuses what is too long."""
+ if isinstance(value,(int,float)) and not isinstance(value,bool):value=str(value)
+ v=value.strip() if isinstance(value,str) else ''
+ if len(v)>maximum:v=v[:maximum].rstrip()
+ if len(v)<minimum:
+  if default is not None:return default
+  raise Shape(code)
+ return v
+_NUM=re.compile(r'(-?\d+(?:\.\d+)?)\s*(?:(%)|/\s*(\d+(?:\.\d+)?))?')
+def mnum(value,lo=0.0,hi=1.0,code='score_nan',default=None):
+ """A number a model wrote, on the scale lo–hi: 0.7, "0.7", "0.7分", "Band 6.5", "70%", "7/10" (a share of hi), and on a
+ 0–1 scale a plain 70 (2–100) as a percentage. Missing or unreadable gives `default`, else Shape(code)."""
+ x=None
+ if isinstance(value,(int,float)) and not isinstance(value,bool):x=float(value)
+ elif isinstance(value,str):
+  m=_NUM.search(value)
+  if m:
+   x=float(m.group(1))
+   if m.group(2):x=x/100.0*hi
+   elif m.group(3) and float(m.group(3))>0:x=x/float(m.group(3))*hi
+ if x is None or x!=x or abs(x)==float('inf'):
+  if default is not None:return default
+  raise Shape(code)
+ if hi==1.0 and 2.0<=x<=100.0:x/=100.0  # 70 on a 0–1 scale is 70 %; 1.2 is just over the top
+ return max(lo,min(hi,x))
+def mbool(value,code='flag_missing'):
+ """true / false as a model wrote it: a bool, "true", "yes", "是", 1."""
+ if isinstance(value,bool):return value
+ if isinstance(value,(int,float)) and value in (0,1):return bool(value)
+ if isinstance(value,str) and value.strip().lower() in ('true','yes','y','是','对','1'):return True
+ if isinstance(value,str) and value.strip().lower() in ('false','no','n','否','不','错','0'):return False
+ raise Shape(code)
+def mheard(value,maximum=600):
+ """What a model says it heard in a recording, cut when long. Empty is a miss only when Qwen-Omni answered
+ (ai_routes.CTX.last_service == 'audio'): on 正式版 2026-11-25 08:26 it answered a dialogue turn whole with nothing heard,
+ and 20 tries of the same clip never did it again. Shape('heard_empty') makes run_job ask again (Omni once more, then
+ Gemini, as for any Shape); when Gemini hears nothing too, the recording may really be silent, so empty is taken."""
+ import ai_routes
+ v=mtext(value,0,maximum)
+ if not v and getattr(ai_routes.CTX,'last_service',None)=='audio':raise Shape('heard_empty')
+ return v
 def text(value,minimum=1,maximum=4000):
  if not isinstance(value,str) or not minimum<=len(value.strip())<=maximum:raise ValueError('文本长度不正确')
  return value.strip()
@@ -71,14 +125,14 @@ def validate_pack(raw):
 
 def validate_feedback(raw,audio=False):
  if not isinstance(raw,dict):raise ValueError('反馈格式不正确')
- out={k:text(raw.get(k),maximum=4500 if k=='revision' else 800) for k in ('strength','revision','next_question')}
+ out={k:mtext(raw.get(k),1,4500 if k=='revision' else 800,k+'_empty') for k in ('strength','revision','next_question')}
  items=raw.get('priorities')
  if not isinstance(items,list) or not 0<=len(items)<=3:raise ValueError('反馈建议不完整')
  out['priorities']=[]
  for item in items:
   if not isinstance(item,dict):raise ValueError('反馈建议不正确')
-  out['priorities'].append({k:text(item.get(k),maximum=650) for k in ('issue','evidence','suggestion')})
- if audio:out['transcript']=text(raw.get('transcript'),maximum=4000)
+  out['priorities'].append({k:mtext(item.get(k),1,650,'priority_'+k) for k in ('issue','evidence','suggestion')})
+ if audio:out['transcript']=mtext(raw.get('transcript'),1,4000,'transcript_empty')
  return out
 
 def run_job(c,uid,rid,kind,pack,skill,spec,invoke,convert,mark_replay=False):
@@ -99,9 +153,21 @@ def run_job(c,uid,rid,kind,pack,skill,spec,invoke,convert,mark_replay=False):
  else:c.execute("INSERT INTO lab_jobs(user_id,request_id,kind,pack,skill,fingerprint,status,created,updated) VALUES(?,?,?,?,?,?,'pending',?,?)",(uid,rid,kind,pack,skill,fp,now,now))
  lease=ai_jobs.reserve(c,'lab_jobs',uid,rid);c.commit()
  try:
-  with ai_jobs.renewing(c,'lab_jobs',uid,rid,lease),__import__('ai_routes').task(kind):reply,reason=invoke()
-  if reason in ('length','max_tokens','content_filter'):raise ValueError('模型输出未完成，请重试或缩短内容')
-  result=convert(parse(reply));encoded=json.dumps(result,ensure_ascii=False)
+  ai_routes=__import__('ai_routes')
+  with ai_jobs.renewing(c,'lab_jobs',uid,rid,lease),ai_routes.task(kind):
+   # An answer in a shape the converter cannot take (a model's JSON worded unlike the prompt asked) is asked for once more on the
+   # same model, then once from the main service (Gemini); the learner sees 「不完整」 only when all three fail.
+   # Each miss is marked on its ai_calls row with a fixed code (json_parse, summary_empty …), never the text.
+   for n in range(3):
+    with (__import__('chat_service').main_only() if n==2 else contextlib.nullcontext()):reply,reason=invoke()
+    try:
+     if reason in ('length','max_tokens','content_filter'):raise Shape('truncated')
+     result=convert(parse(reply));break
+    except ValueError as exc:  # only a shape is asked for again; a converter's own content check (仿写: another sentence) stands
+     shape=isinstance(exc,Shape)
+     ai_routes.mark_shape(exc.code if shape else 'content')
+     if n==2 or not shape:raise
+  encoded=json.dumps(result,ensure_ascii=False)
   changed=c.execute("UPDATE lab_jobs SET status='complete',result=?,updated=? WHERE user_id=? AND request_id=? AND lease=?",(encoded,time.time(),uid,rid,lease)).rowcount;c.commit()
   if not changed:return {'error':'旧请求已被新的处理接替，请刷新记录。','request_id':rid},409
   return {'result':result,'request_id':rid,'remaining':remaining(c,uid)},200

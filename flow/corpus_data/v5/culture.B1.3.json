@@ -1,0 +1,157 @@
+[
+ {
+  "id": "v5-culture-b1-watching-films-again",
+  "title": "为什么我们爱重看老电影",
+  "title_en": "Why We Watch Our Favourite Films Again",
+  "summary_zh": "明明知道结局，很多人还是一遍遍重看同一部电影。这篇短文说说背后的原因：轻松、熟悉、能看出新细节。读完你能用 even though 和 the more…, the more… 谈自己的观影习惯。",
+  "level": "B1",
+  "cefr": "B1",
+  "theme": "culture",
+  "genre": "article",
+  "purposes": [
+   "film-culture",
+   "news-commentary"
+  ],
+  "spec": "5.1",
+  "ai": "AI 辅助编写",
+  "body": "Streaming services offer thousands of new films, but many people still choose one they have seen ten times before. This might seem strange, but there are good reasons for it. The first reason is comfort. After a long day, a new film can feel like hard work, because you have to learn the characters and follow the story. An old favourite asks for nothing. You already know who is good, who is bad and how it ends, so you can simply relax. The second reason is that a familiar film often brings back memories. Watching a film you loved as a child can remind you of the sofa you sat on and the people who sat next to you. A third reason is that you notice new things each time. Even though you know the plot, you might spot a joke in the background or understand why a character acts in a certain way. In fact, the more often you watch a good film, the more details you are likely to find. Some people worry that rewatching means they are not open to new things. But most people do both, and a familiar film on a tired evening can make them more ready to try something new at the weekend.",
+  "questions": [
+   {
+    "type": "main",
+    "prompt": "What is the article mainly about?",
+    "options": [
+     "Why streaming services are expensive",
+     "Why many people enjoy watching the same film again",
+     "How to choose a new film",
+     "Why old films are better than new ones"
+    ],
+    "answer": 1,
+    "evidence": "but many people still choose one they have seen ten times before"
+   },
+   {
+    "type": "inference",
+    "prompt": "Why might a new film feel like \"hard work\" after a long day?",
+    "options": [
+     "New films are always longer",
+     "You need energy to learn new characters and follow the story",
+     "New films are harder to find",
+     "Tired people cannot see the screen"
+    ],
+    "answer": 1,
+    "evidence": "because you have to learn the characters and follow the story"
+   },
+   {
+    "type": "vocab",
+    "prompt": "What does \"spot\" mean in \"you might spot a joke in the background\"?",
+    "options": [
+     "make",
+     "forget",
+     "notice",
+     "tell"
+    ],
+    "answer": 2,
+    "evidence": "you might spot a joke in the background"
+   },
+   {
+    "type": "detail",
+    "prompt": "According to the article, what can a film you loved as a child remind you of?",
+    "options": [
+     "The price of the ticket",
+     "The actors' names",
+     "The sofa you sat on and the people next to you",
+     "Your first job"
+    ],
+    "answer": 2,
+    "evidence": "can remind you of the sofa you sat on and the people who sat next to you"
+   }
+  ],
+  "dictation_index": 7,
+  "vocabulary": [
+   {
+    "term": "streaming",
+    "meaning": "（网络）流媒体",
+    "example": "We watch most films on a streaming service now."
+   },
+   {
+    "term": "familiar",
+    "meaning": "熟悉的",
+    "example": "It was nice to see a familiar face at the party."
+   },
+   {
+    "term": "plot",
+    "meaning": "情节",
+    "example": "The plot was simple, but the acting was great."
+   },
+   {
+    "term": "rewatching",
+    "meaning": "重看",
+    "example": "I am rewatching my favourite series this week."
+   }
+  ],
+  "expressions": [
+   {
+    "text": "asks for nothing",
+    "meaning": "对你没什么要求",
+    "note": "这里指看老电影不费脑子，很轻松。"
+   },
+   {
+    "text": "brings back memories",
+    "meaning": "唤起回忆",
+    "note": "This song brings back memories of my school days."
+   },
+   {
+    "text": "remind you of",
+    "meaning": "让你想起",
+    "note": "This street reminds me of my hometown."
+   },
+   {
+    "text": "in a certain way",
+    "meaning": "以某种方式",
+    "note": "He always folds his shirts in a certain way."
+   },
+   {
+    "text": "In fact",
+    "meaning": "事实上",
+    "note": "用来补充或加强前面的说法。"
+   },
+   {
+    "text": "open to new things",
+    "meaning": "乐于尝试新事物",
+    "note": "be open to sth 愿意接受：She is open to new ideas."
+   }
+  ],
+  "grammar": [
+   "clause-adverb",
+   "compare-pattern",
+   "nonfinite-gerund"
+  ],
+  "knowledge": [
+   {
+    "node": "clause-adverb",
+    "quote": "Even though you know the plot, you might spot a joke in the background",
+    "explanation": "Even though 引导让步状语从句：虽然知道情节，还是可能看出新东西。语气比 although 更强。"
+   },
+   {
+    "node": "compare-pattern",
+    "quote": "the more often you watch a good film, the more details you are likely to find",
+    "explanation": "the + 比较级…, the + 比较级… 表示“越……就越……”。"
+   },
+   {
+    "node": "nonfinite-gerund",
+    "quote": "Watching a film you loved as a child can remind you of the sofa you sat on",
+    "explanation": "动名词短语 Watching a film… 作主语，谓语用 can remind。"
+   }
+  ],
+  "speaking": "用 1 分钟说说：你有没有看过很多遍的电影或剧？为什么喜欢重看？用上 even though 和 bring back memories。",
+  "writing": "用 80–100 词写一段话，介绍一部你重看过的电影或剧，说明你每次看都有什么新发现。用一个 the more…, the more… 句子。",
+  "task": {
+   "prompt": "仿照这句，用 The more …, the more … 写一句话，说说一个你越做越喜欢的习惯。",
+   "model": "the more often you watch a good film, the more details you are likely to find"
+  },
+  "tags": [
+   "影视文化",
+   "生活习惯"
+  ],
+  "source": "Flow 编辑部原创"
+ }
+]

@@ -12,6 +12,7 @@
     "body": "Hi Lena, I have some good news. I have just got my first library card in this city! The library is near my flat, so I walked there after work. A woman who works at the front desk helped me. She asked for my address and took a quick photo. The card was ready in five minutes, and it is free. I didn't know that! The library has a lot more than books. There is a quiet room with big tables, and there are free English classes on Saturdays. I have already borrowed two cookbooks and a film. Every Tuesday, people meet there to play chess, so I want to join them next week. I feel a bit less like a visitor now. Write back soon! Love, Jia",
     "questions": [
       {
+        "type": "inference",
         "prompt": "How does Jia feel about the city at the end of the email?",
         "options": [
           "She wants to move to a bigger city",
@@ -23,6 +24,7 @@
         "evidence": "I feel a bit less like a visitor now."
       },
       {
+        "type": "detail",
         "prompt": "What surprised Jia about the library card?",
         "options": [
           "It needed a photo from home",
@@ -32,7 +34,9 @@
         ],
         "answer": 2,
         "evidence": "it is free. I didn't know that!"
-      }
+      },
+      {"type": "main", "prompt": "What is the email mainly about?", "options": ["Jia's new job", "A chess competition", "Getting a first library card and finding out what the library offers", "How to cook from a cookbook"], "answer": 2, "evidence": "I have just got my first library card in this city!"},
+      {"type": "vocab", "prompt": "What does \"borrowed\" mean in \"I have already borrowed two cookbooks\"?", "options": ["taken for a short time, to give back later", "sold", "bought", "written"], "answer": 0, "evidence": "I have already borrowed two cookbooks and a film."}
     ],
     "dictation_index": 3,
     "vocabulary": [
@@ -73,6 +77,7 @@
     "body": "Ruby: Hi, is this the folk dance class? Dev: Yes, come in! Are you new? Ruby: I am. I've never danced like this before. Dev: Don't worry. Most of us have only been coming for a few weeks. Ruby: Everyone is holding hands in a circle. What happens next? Dev: The teacher plays the music, and we all step to the left. Then we clap twice and turn. Ruby: That sounds easy. Dev: It is, until the music gets faster! Ruby: Oh no. What if I step on someone's foot? Dev: Then you say sorry and keep going. I've stepped on the teacher's foot three times. She just laughs. She says the dance is about the group, not about being perfect. Ruby: Which hand do I give you? Dev: Your right one. And smile. It helps more than you think!",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the main thing Dev wants Ruby to understand?",
         "options": [
           "She should watch tonight and dance next week",
@@ -84,6 +89,7 @@
         "evidence": "the dance is about the group, not about being perfect"
       },
       {
+        "type": "detail",
         "prompt": "What do the dancers do after they step to the left?",
         "options": [
           "They let go of each other's hands",
@@ -93,7 +99,9 @@
         ],
         "answer": 1,
         "evidence": "Then we clap twice and turn."
-      }
+      },
+      {"type": "inference", "prompt": "Why does Dev tell Ruby that he has stepped on the teacher's foot?", "options": ["To say the teacher is angry", "To ask her to leave the class", "To complain about the teacher", "To show her that mistakes are fine"], "answer": 3, "evidence": "I've stepped on the teacher's foot three times."},
+      {"type": "vocab", "prompt": "What does \"clap\" mean in \"we clap twice\"?", "options": ["hold hands", "jump up", "turn around", "hit your hands together"], "answer": 3, "evidence": "Then we clap twice and turn."}
     ],
     "dictation_index": 6,
     "vocabulary": [
@@ -133,6 +141,7 @@
     "body": "Some dish names are hard to translate. Think of a dish that is called \"ants climbing a tree\". In English, it sounds strange, and some people may not want to try it. But there are no ants in it! It is made with noodles and small pieces of meat. So what can you do when a name doesn't work in another language? A good idea is to say what the food is, not what the name says. For example, you can say: It's glass noodles with minced pork. Then add the fun name later, like a small story. People usually love that part. If a friend asks about a dish that you like, tell them three things: what it is made of, how it tastes, and when people eat it. After that, the strange name becomes a nice surprise.",
     "questions": [
       {
+        "type": "main",
         "prompt": "What is the writer's main advice?",
         "options": [
           "Never tell people the real name of a dish",
@@ -144,6 +153,7 @@
         "evidence": "A good idea is to say what the food is, not what the name says."
       },
       {
+        "type": "detail",
         "prompt": "Why might some people not want to try \"ants climbing a tree\"?",
         "options": [
           "It is too spicy for most people",
@@ -153,7 +163,9 @@
         ],
         "answer": 1,
         "evidence": "In English, it sounds strange, and some people may not want to try it."
-      }
+      },
+      {"type": "inference", "prompt": "Why should you tell the fun name \"later, like a small story\"?", "options": ["The name is a secret", "People enjoy it more once they know what the food is", "It is rude to say the name first", "Nobody can remember the name"], "answer": 1, "evidence": "Then add the fun name later, like a small story."},
+      {"type": "vocab", "prompt": "What does \"translate\" mean in \"hard to translate\"?", "options": ["write by hand", "say in another language", "cook", "remember"], "answer": 1, "evidence": "Some dish names are hard to translate."}
     ],
     "dictation_index": 4,
     "vocabulary": [
@@ -194,6 +206,7 @@
     "body": "Every Sunday morning, I sit at the kitchen table and practise calligraphy for one hour. I have done this for six months now. My brush is an old one that my uncle gave me. I use cheap paper, because I make a lot of mistakes. My teacher, who runs a small class near the park, has one rule: write slowly. At first, I hated this rule. I wanted to finish a page in ten minutes. But slow lines are strong lines. Now I breathe in before each line and breathe out as I write. Some weeks my characters look messy. Other weeks, one or two look good, and I put them on the fridge. My phone stays in another room. For one hour, the only sound is the brush on the paper. It is the quietest part of my week.",
     "questions": [
       {
+        "type": "inference",
         "prompt": "Why does the writer enjoy the Sunday hour?",
         "options": [
           "It helps them finish many pages quickly",
@@ -205,6 +218,7 @@
         "evidence": "It is the quietest part of my week."
       },
       {
+        "type": "detail",
         "prompt": "Why does the writer use cheap paper?",
         "options": [
           "Good paper is hard to find",
@@ -214,7 +228,9 @@
         ],
         "answer": 2,
         "evidence": "I use cheap paper, because I make a lot of mistakes."
-      }
+      },
+      {"type": "main", "prompt": "What is the article mainly about?", "options": ["A calligraphy competition", "The writer's weekly hour of calligraphy practice", "How to buy a good brush", "The writer's uncle"], "answer": 1, "evidence": "Every Sunday morning, I sit at the kitchen table and practise calligraphy for one hour."},
+      {"type": "vocab", "prompt": "What does \"messy\" mean in \"my characters look messy\"?", "options": ["very small", "untidy, not neat", "very beautiful", "bright and colourful"], "answer": 1, "evidence": "Some weeks my characters look messy."}
     ],
     "dictation_index": 4,
     "vocabulary": [

@@ -102,6 +102,15 @@ class ServerVoiceTests(TtsCase):
         again, _ = tts.post(self.c, 2, {'text': text})
         self.assertEqual((again['url'], again['made']), (first['url'], False))  # back on flow-tts: the first file
 
+    def test_a_smaller_sample_rate_is_asked_for_and_makes_its_own_files(self):
+        first, _ = tts.post(self.c, 1, {'text': 'A smaller file, please.'})
+        with patch.dict(os.environ, {'FLOW_TTS_SAMPLE_RATE': '22050'}):
+            second, _ = tts.post(self.c, 1, {'text': 'A smaller file, please.'})
+        with patch.dict(os.environ, {'FLOW_TTS_SAMPLE_RATE': '44100'}):  # not one the gateway takes: its default
+            self.assertEqual(tts.sample_rate(), 0)
+        self.assertNotEqual(first['url'], second['url'])
+        self.assertEqual([g.get('sample_rate') for g in self.gw.seen], [None, 22050])
+
     def test_guests_get_stored_sentences_only(self):
         body, st = tts.post(self.c, None, {'text': 'Nothing stored yet.'})
         self.assertEqual((st, body['code']), (404, 'guest')); self.assertEqual(self.gw.seen, [])
@@ -134,6 +143,19 @@ class ServerVoiceTests(TtsCase):
         self.assertEqual((st, body['code']), (502, 'gateway'))
         self.assertIsNone(self.c.execute('SELECT 1 FROM tts_usage').fetchone())
         self.assertFalse((nx.AUDIO_DIR / 'tts').exists() and any((nx.AUDIO_DIR / 'tts').rglob('*.mp3')))
+        row = self.c.execute("SELECT ok, prompt FROM ai_calls WHERE kind='tts'").fetchone()
+        self.assertEqual(tuple(row), (0, len('The gateway is down.')))  # in the console's costs, as a failed call
+
+    def test_each_sentence_made_is_a_row_in_the_ai_costs(self):
+        tts.post(self.c, 1, {'text': 'Counted in the costs.', 'voice': 'uk-m'})
+        tts.post(self.c, 2, {'text': 'Counted in the costs.', 'voice': 'uk-m'})  # stored: no second call, no second row
+        rows = [tuple(r) for r in self.c.execute("SELECT kind, service, model, served, ok, prompt FROM ai_calls WHERE kind='tts'")]
+        self.assertEqual(rows, [('tts', 'tts', 'flow-tts', 'cosyvoice-v3-flash', 1, len('Counted in the costs.'))])
+
+    def test_the_nightly_prewarm_waits_when_the_days_ai_budget_is_spent(self):
+        with patch('ai_routes.over_budget', return_value=True):
+            self.assertEqual(tts.prewarm(self.c, budget=10 ** 6), {'status': 'over-budget'})
+        self.assertEqual(self.gw.seen, [])
 
     def test_a_folder_it_cannot_write_is_found_before_the_gateway_is_paid(self):
         # 内测版, 2026-11-24: systemd ProtectSystem=strict kept the folder read-only; every tap was charged, then lost.
@@ -238,6 +260,150 @@ class NightTests(TtsCase):
             with patch.dict(os.environ, {'FLOW_TTS_MODEL': ''}):
                 tts._NIGHT['day'] = None; tts.tick(app.db, day.timestamp()); self.assertEqual(len(started), 1)
 
+    def test_one_off_sentences_go_after_thirty_days_the_fixed_ones_stay(self):
+        fixed = tts.fixed_texts()[0]
+        tts.ensure(self.c, 1, fixed, 'us-f'); tts.ensure(self.c, 1, 'A reply nobody will hear again.', 'us-f')
+        tts.ensure(self.c, 1, 'A reply from this morning.', 'uk-m')
+        old = time.time() - 31 * 86400
+        for t, v in ((fixed, 'us-f'), ('A reply nobody will hear again.', 'us-f')):
+            os.utime(nx.AUDIO_DIR / 'tts' / v / tts.name_of(t, v), (old, old))
+        self.assertEqual(tts.prune(), {'removed': 1, 'kept': 2})
+        self.assertIsNotNone(tts.file('us-f', tts.name_of(fixed, 'us-f')))
+        self.assertIsNone(tts.file('us-f', tts.name_of('A reply nobody will hear again.', 'us-f')))
+
+
+class SoonTests(TtsCase):
+    """声音接力: the AI's line is made in a thread while the reply travels to the page, counted against the learner."""
+
+    def test_made_in_a_thread_and_then_found_by_the_page(self):
+        t = tts.start(1, 'Sure thing. Hot or iced?', 'uk-f', wait=True)
+        self.assertIsNotNone(t)
+        self.assertEqual([g['voice'] for g in self.gw.seen], ['loongemily_v3'])
+        self.assertEqual(self.c.execute('SELECT chars, files FROM tts_usage WHERE who=1').fetchone()[:], (24, 1))
+        body, st = tts.post(self.c, 1, {'text': 'Sure thing. Hot or iced?', 'voice': 'uk-f'})
+        self.assertEqual((st, body['made']), (200, False)); self.assertEqual(len(self.gw.seen), 1)  # the page's request: already made
+        self.assertIsNone(tts.start(1, 'Sure thing. Hot or iced?', 'uk-f'))  # stored: nothing to do
+
+    def test_nothing_happens_when_off_busy_or_without_a_connection(self):
+        with patch.dict(os.environ, {'FLOW_TTS_MODEL': ''}):
+            self.assertIsNone(tts.start(1, 'Off tonight.', 'us-f'))
+        with patch.object(tts, 'CONNECT', None):
+            self.assertIsNone(tts.start(1, 'No connection.', 'us-f'))
+        self.assertIsNone(tts.start(1, 'An unknown voice.', 'xx-y'))
+        taken = [tts._SOON.acquire(blocking=False) for _ in range(4)]
+        try:
+            self.assertIsNone(tts.start(1, 'Four already being made.', 'us-f'))
+        finally:
+            [tts._SOON.release() for ok in taken if ok]
+        self.assertEqual(self.gw.seen, [])
+
+    def test_a_failure_in_the_thread_is_left_to_the_page(self):
+        self.gw.status = 502
+        tts.start(1, 'The gateway is down.', 'us-f', wait=True)
+        self.assertIsNone(self.c.execute('SELECT 1 FROM tts_usage').fetchone())
+        self.assertEqual(tts._SOON._value, 4)  # the slot is given back
+
+
+
+class OwnTests(RouteTests):
+    """没有录音的整篇伴读 (owner, 2026-11-25): an imported article read sentence by sentence in the server voice. Its files are
+    its owner's only (data/tts-own/<id>, never listed, served to their session), with an import share of their own, and
+    imports give way first when the site's day is running out."""
+    TEXT = ('The library opens early on weekdays. Students meet there before their first class. Some of them read quietly '
+            'in the corner. Others work on group projects at the long tables. By noon most seats are taken.')
+
+    def setUp(self):
+        super().setUp()
+        self.data = Path(self.tmp.name) / 'data'; self.data.mkdir()
+        self.pd = patch.object(app, 'DATA', self.data); self.pd.start()
+        import import_service as im
+        with patch.object(tts, 'start_pack'):
+            r, _ = im.save(self.c, 1, {'title': '图书馆', 'text': self.TEXT})
+        self.pid = r['id']
+        self.first = nx.sentences(self.TEXT)[0]
+
+    def tearDown(self):
+        self.pd.stop()
+        super().tearDown()
+
+    def session(self, uid):
+        tok = 'tok-%d-%s' % (uid, '0' * 20)
+        self.c.execute('INSERT OR REPLACE INTO sessions VALUES(?,?,?,?)', (tok, uid, 'csrf', time.time() + 3600)); self.c.commit()
+        return {'Cookie': 'flow_session=' + tok}
+
+    def test_a_sentence_of_my_article_is_kept_for_me_only(self):
+        body, st = tts.post(self.c, 1, {'text': self.first, 'voice': 'uk-f', 'pack': self.pid})
+        self.assertEqual((st, body['made']), (200, True))
+        self.assertRegex(body['url'], r'^/audio/own/uk-f/[0-9a-f]{32}\.mp3$')
+        name = body['url'].rsplit('/', 1)[1]
+        self.assertTrue((self.data / 'tts-own' / '1' / 'uk-f' / name).is_file())
+        self.assertIsNone(tts.file('uk-f', name))  # not in the shared folder
+        self.assertEqual(self.call(body['url'], headers=self.session(1))[0], 200)
+        st2, _, h = self.call(body['url'], headers=self.session(1))
+        self.assertIn('private', h['Cache-Control'])
+        self.assertEqual(self.call(body['url'], headers=self.session(2))[0], 404)  # another learner
+        self.assertEqual(self.call(body['url'])[0], 404)  # signed out
+        self.assertEqual(self.c.execute('SELECT chars FROM tts_import WHERE who=1').fetchone()[0], len(self.first))
+
+    def test_only_its_owner_and_only_its_sentences(self):
+        self.assertEqual(tts.post(self.c, 2, {'text': self.first, 'pack': self.pid})[1], 404)
+        self.assertEqual(tts.post(self.c, None, {'text': self.first, 'pack': self.pid})[1], 404)
+        self.assertEqual(tts.post(self.c, 1, {'text': 'Something else entirely.', 'pack': self.pid})[1], 400)
+        self.assertEqual(self.gw.seen, [])
+
+    def test_the_import_share_and_the_sites_day(self):
+        with patch.dict(os.environ, {'FLOW_TTS_IMPORT_CHARS': str(len(self.first))}):
+            self.assertEqual(tts.post(self.c, 1, {'text': self.first, 'pack': self.pid})[1], 200)
+            body, st = tts.post(self.c, 1, {'text': nx.sentences(self.TEXT)[1], 'pack': self.pid})
+        self.assertEqual((st, body['code']), (429, 'import_cap'))
+        tts._add(self.c, 0, 590, 1); self.c.commit()  # the site (cap 1000 here) has used 59 % + this sentence > 60 %
+        body, st = tts.post(self.c, 1, {'text': nx.sentences(self.TEXT)[2], 'pack': self.pid})
+        self.assertEqual((st, body['code']), (429, 'busy'))
+        self.assertEqual(tts.post(self.c, 1, {'text': 'An AI reply still has its voice.'})[1], 200)  # replies keep the rest
+
+    def test_the_console_sets_the_caps(self):
+        import console_ops
+        (self.data / 'console-settings.json').write_text(json.dumps({'FLOW_TTS_IMPORT_CHARS': 5, 'FLOW_TTS_IMPORT_PERCENT': 80}))
+        console_ops._CACHE.update(path=None, mtime=None, data={})
+        self.assertEqual((tts.cap('FLOW_TTS_IMPORT_CHARS'), tts.cap('FLOW_TTS_IMPORT_PERCENT'), tts.cap('FLOW_TTS_USER_CHARS')), (5, 80, 400))
+        self.assertEqual(console_ops.limits()['tts']['tts_import_chars_source'], 'console')
+        r, st = console_ops.set_limits({'tts_import_chars': 12000, 'tts_import_percent': 101}, 'test')
+        self.assertEqual(st, 400)
+        r, st = console_ops.set_limits({'tts_import_chars': 12000}, 'test')
+        self.assertEqual((st, r['tts']['tts_import_chars']), (200, 12000))
+        console_ops._CACHE.update(path=None, mtime=None, data={})
+
+    def test_what_is_made_already_and_the_background_after_importing(self):
+        texts = nx.sentences(self.TEXT)
+        self.assertEqual(tts.have(self.c, 1, {'pack': self.pid, 'voice': 'us-f', 'texts': texts})[0]['urls'], [None] * len(texts))
+        with patch.object(tts, 'CONNECT', app.db):
+            tts.start_pack(1, self.pid, wait=True, pause=0)
+        urls = tts.have(self.c, 1, {'pack': self.pid, 'voice': 'us-f', 'texts': texts})[0]['urls']
+        self.assertTrue(all(u and u.startswith('/audio/own/us-f/') for u in urls))
+        self.assertEqual(tts.have(self.c, 2, {'pack': self.pid, 'voice': 'us-f', 'texts': texts})[1], 404)
+        self.assertEqual(len(self.gw.seen), len(texts))
+
+    def test_deleting_the_article_or_the_account_takes_the_voice_with_it(self):
+        import import_service as im
+        tts.post(self.c, 1, {'text': self.first, 'pack': self.pid})
+        folder = self.data / 'tts-own' / '1' / 'us-f'
+        self.assertEqual(len(list(folder.glob('*.mp3'))), 1)
+        im.delete(self.c, 1, {'id': self.pid})
+        self.assertEqual(list(folder.glob('*.mp3')), [])
+        (folder / ('a' * 32 + '.mp3')).write_bytes(MP3)
+        tts.forget(1)
+        self.assertFalse((self.data / 'tts-own' / '1').exists())
+
+    def test_the_days_hot_article_is_made_when_it_appears(self):
+        body = 'Cities are planting more trees. Shade cools the streets in summer. Residents say the parks feel calmer.'
+        self.c.execute('INSERT INTO lab_packs VALUES(?,?,?,?,?)', ('daily-2026-11-25', None, 'daily', json.dumps({'body': body}), time.time())); self.c.commit()
+        self.assertEqual(tts.daily_texts(self.c), ('daily-2026-11-25', nx.sentences(body)))
+        tts._DAILY.update(done=None, busy=False)
+        tts._daily_tick(app.db, inline=True)
+        self.assertEqual(len(self.gw.seen), 3)
+        self.assertTrue(all(tts.file('us-f', tts.name_of(t, 'us-f')) for t in nx.sentences(body)))
+        self.assertEqual(self.c.execute('SELECT chars FROM tts_usage WHERE who=-1').fetchone()[0], sum(map(len, nx.sentences(body))))
+        tts._daily_tick(app.db, inline=True); self.assertEqual(len(self.gw.seen), 3)  # done: not again
 
 if __name__ == '__main__':
     unittest.main()

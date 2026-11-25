@@ -64,6 +64,8 @@ PRICES = {
     'qwen3.8-flash': {'label': '通义千问 3.8 Flash', 'platform': 'bailian', 'in': 0.8, 'cached': 0.16, 'out': 2.7, 'note': '默认思考，Flow 关掉'},
     'deepseek-v4.1-flash': {'label': 'DeepSeek V4.1 Flash（百炼）', 'platform': 'bailian', 'in': 2.0, 'cached': 0.04, 'out': 8.0,
                             'offpeak': 0.5, 'busy': [8, 22], 'note': '百炼上北京时间 22:00–08:00 半价'},
+    'qwen3.8-omni-flash': {'label': '通义千问 3.8 Omni Flash（听录音）', 'platform': 'bailian', 'in': 0.8, 'cached': 0.1, 'out': 2.7,
+                           'note': '录音按 token 计（约每秒 7 个），只回文字；不思考'},
     # CosyVoice is billed per character: a call is recorded with prompt = characters, so 'in' is yuan per million
     # characters (list price ¥1 per 10,000; help.aliyun.com/zh/model-studio/model-pricing, 2026-11-24).
     'cosyvoice-v3-flash': {'label': 'CosyVoice v3 Flash（百炼朗读）', 'platform': 'bailian', 'in': 100.0, 'cached': 100.0, 'out': 0.0,
@@ -158,6 +160,25 @@ def _env_routes():
     return _ENV['routes']
 
 
+_AUDIO_ENV = {'raw': None, 'routes': {}}
+
+
+def audio_route(kind=None):
+    """The gateway model name a recording of this task goes to first (FLOW_AUDIO_ROUTES, same forms as FLOW_AI_ROUTES:
+    one name, or *=name,task=name pairs), in this process's lane; '' = Gemini hears it on the main service, as before.
+    2026-11-25: Qwen-Omni on 百炼 (e.g. flow-audio-omni-flash) for 情景对话, 复述 and 雅思, then 跟读 (next-shadow) and 发音
+    (next-say: its verdict a reference only, output_service.say); Gemini stays the backup."""
+    kind = kind or current()
+    raw = os.getenv('FLOW_AUDIO_ROUTES', '')
+    if raw != _AUDIO_ENV['raw']:
+        routes, problem = parse_routes(raw)
+        _AUDIO_ENV.update(raw=raw, routes=routes)
+        if problem:
+            print('ai_routes: ' + problem.replace('FLOW_AI_ROUTES', 'FLOW_AUDIO_ROUTES') + '; recordings stay on the main model', file=sys.stderr, flush=True)
+    r = _AUDIO_ENV['routes'].get(kind) or _AUDIO_ENV['routes'].get('*') or ''
+    return in_lane(r) if isinstance(r, str) and NAME.fullmatch(r) else ''
+
+
 def env_problem():
     """Why the server's FLOW_AI_ROUTES was not understood, or None."""
     _env_routes()
@@ -194,8 +215,8 @@ def in_lane(name, lane=None):
     lane = lane if lane is not None else os.getenv('FLOW_AI_LANE', '').strip()
     if lane not in LANES:
         return name
-    if name.startswith('flow-text-'):
-        other = f'flow-{lane}-' + name[len('flow-text-'):]
+    if name.startswith(('flow-text-', 'flow-audio-')):
+        other = f'flow-{lane}-' + name.split('-', 2)[2]
     elif name == 'flow-text':
         other = f'flow-{lane}'
     else:
@@ -361,6 +382,8 @@ def _db():
 
 def record(service, model, started, messages, reply=None, info=None, exc=None, fallback=False):
     """One attempt, into ai_calls. Never raises: the learner's answer matters more than the bookkeeping."""
+    CTX.last_call = None  # set again only when this row is written: mark_shape must never touch an older row
+    CTX.last_service = service  # who answered (or was asked) last on this thread: output_service.say trusts some only
     info = info or {}
     try:
         status = getattr(exc, 'code', None) if exc is not None else 200
@@ -376,8 +399,26 @@ def record(service, model, started, messages, reply=None, info=None, exc=None, f
         if c is None:
             return
         with c:
-            c.execute('INSERT INTO ai_calls(ts,kind,route,service,model,served,ok,status,prompt,cached,completion,reasoning,estimated,ms,fallback,error) '
-                      'VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', row)
+            CTX.last_call = c.execute('INSERT INTO ai_calls(ts,kind,route,service,model,served,ok,status,prompt,cached,completion,reasoning,estimated,ms,fallback,error) '
+                                      'VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', row).lastrowid
+        c.close()
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def mark_shape(code):
+    """The last call on this thread answered, but the answer could not be used (lab_service.Shape): its row says so, with
+    a fixed code such as json_parse or summary_empty, never the text. Never raises."""
+    rid = getattr(CTX, 'last_call', None)
+    if not rid:
+        return
+    CTX.last_call = None
+    try:
+        c = _db()
+        if c is None:
+            return
+        with c:
+            c.execute('UPDATE ai_calls SET ok=0, error=? WHERE id=?', ('shape: ' + str(code)[:40], rid))
         c.close()
     except Exception:  # noqa: BLE001
         pass
@@ -659,7 +700,7 @@ def nightly_on():
 
 
 def nightly(c, now=None):
-    """Once a night (02:00–05:00 Beijing), the quick marking check (ai_eval.py --quick, about 17 calls, a throwaway
+    """Once a night (02:00–05:00 Beijing), the quick marking check (ai_eval.py --quick, about 21 calls, a throwaway
     database, the site's routes) as a child process; its report is <data>/ai-eval/<day>.json for the console.
     Not on the 内测版, not when turned off in the console, not once the day's budget is spent. Returns True if started."""
     now = now or time.time()

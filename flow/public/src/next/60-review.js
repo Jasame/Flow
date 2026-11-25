@@ -26,11 +26,13 @@
     document.ontouchcancel = () => { sx = null; settle(); };  // the browser took the gesture (a scroll, the system): the card goes back
   }
   function swipeOff() { document.ontouchstart = document.ontouchmove = document.ontouchend = document.ontouchcancel = null; }
-  async function reviewView() {
+  // goOn: 继续复习 past today's share (r28: a day of words has a cap in minutes), or the extra new words of 再学 10 个
+  async function reviewView(goOn) {
     if (!S.user) return needLogin('登录后才能复习。');
     document.body.classList.add('reviewing');
+    const R = goOn ? '/api/next/review?more=1' : '/api/next/review';
     let first, offline = false;
-    try { await OUTBOX.flush(); first = await api('/api/next/review'); save('flow-next-review-cache', { at: Date.now(), q: first }); }
+    try { await OUTBOX.flush(); first = await api(R); save('flow-next-review-cache', { at: Date.now(), q: first }); }
     catch (e) {
       const cached = load('flow-next-review-cache');
       if (!e.network || !cached || Date.now() - cached.at > 2 * 86400000) throw e;
@@ -171,7 +173,7 @@
         const mic = document.getElementById('sndMic'), out = document.getElementById('sndOut');
         mic.onclick = () => MIC.toggle(mic, 4, async blob => {
           out.innerHTML = '<span class="spin"></span>';
-          try { const x = (await api('/api/next/say', { text: c.text, audio: await MIC.payload(blob), request_id: rid('sy') })).result; out.innerHTML = x.ok ? '<span class="ok-mark">✓ 这次读准了</span>' : `<span class="bad-mark">AI 听成了「${esc(x.heard || '?')}」</span><div class="tiny muted">${esc(x.tip || x.note || '')}</div>`; }
+          try { const x = (await api('/api/next/say', { text: c.text, audio: await MIC.payload(blob), request_id: rid('sy') })).result; out.innerHTML = (x.ok ? '<span class="ok-mark">✓ 这次读准了</span>' : `<span class="bad-mark">AI 听成了「${esc(x.heard || '?')}」</span><div class="tiny muted">${esc(x.tip || x.note || '')}</div>`) + (x.tentative ? '<div class="tiny muted">这次的判断可能不准，可以再读一次</div>' : ''); }
           catch (e) { out.textContent = e.message; }
         });
         view.querySelectorAll('[data-self]').forEach(b => b.onclick = () => rate(b.dataset.self, Date.now() - t0));
@@ -303,7 +305,7 @@
     async function more() {
       document.onkeydown = null;
       try {
-        const q = await api('/api/next/review');
+        const q = await api(R);
         const fresh = q.items.filter(x => !seen.has(x.id) || (x.state !== 'new' && x.due * 1000 <= Date.now()));
         const extra = fresh.filter(x => !items.slice(i).some(y => y.id === x.id));
         // this batch's own cards due again (a miss, a learning step) are finished first; after a full batch, the next
@@ -321,17 +323,19 @@
         <p class="small rsum">用时约 ${mins} 分钟${rated ? ` · 记住了 ${Math.round((tally.good + tally.easy) / rated * 100)}%` : ''}<span id="tmr"></span></p>${doneN > doneIds.size ? `<p class="muted tiny">共作答 ${doneN} 次，其中 ${doneN - doneIds.size} 次是再巩固</p>` : ''}
         <p class="muted small">记得 ${tally.good + tally.easy} · 模糊 ${tally.hard} · 忘了 ${tally.again}${tally.known ? ' · 熟知 ' + tally.known : ''}。</p>
         <p class="small cheer">${tally.good + tally.easy ? `记得的都往后推了${farthest > 1 ? `，最远的要 ${farthest} 天后才再见` : ''}。` : ''}${tally.again ? `忘了的 ${tally.again} 个明天再来：忘了再想起来，正是记牢的过程。` : tally.good + tally.easy ? '这一轮全都记得，很稳。' : ''}</p>
+        ${left && !(left.due + left.new) && left.later ? `<p class="small stop-ok" id="capDone"><b>今天的单词做完了。</b>还有 ${left.later} 个复习留到之后几天，最容易忘的排在前面。想多背可以继续。</p>` : ''}
         ${left && (left.due + left.new) ? (uniq.size >= batchN
           ? `<p class="small stop-ok" id="stopOk"><b>今天做到这里也行。</b>最要紧的 ${uniq.size} 个已经复习过了，还有 ${left.due + left.new} 个，之后几天接着来，最容易忘的排在前面。</p>`
           : `<p class="small">还有 ${left.due + left.new} 个可以继续。</p>`) : ''}
         <div class="row center">${left && (left.due + left.new) && uniq.size >= batchN
           ? `<button class="btn" id="again">再做 ${Math.min(batchN, left.due + left.new)} 个</button><a class="btn primary" href="#/">今天就到这里</a>`
-          : `<a class="btn" href="#/cards">单词</a>${left && (left.due + left.new) ? '<button class="btn primary" id="again">继续</button>' : '<a class="btn primary" href="#/">回到今日</a>'}`}</div>
-        ${left && !(left.due + left.new) ? '<div class="row center"><button class="btn ghost small" id="moreNew">还想多背：再学 10 个新词</button></div>' : ''}</div>`;
+          : `${left && !(left.due + left.new) && left.later ? '<button class="btn" id="againMore">继续复习</button>' : '<a class="btn" href="#/cards">单词</a>'}${left && (left.due + left.new) ? '<button class="btn primary" id="again">继续</button>' : '<a class="btn primary" href="#/">回到今日</a>'}`}</div>
+        ${left && !(left.due + left.new) && !left.later ? '<div class="row center"><button class="btn ghost small" id="moreNew">还想多背：再学 10 个新词</button></div>' : ''}</div>`;
       api('/api/next/vocab').then(o => { const t = document.getElementById('tmr'); if (t && o.forecast && o.forecast[1] != null) t.textContent = ` · 明天大约复习 ${o.forecast[1]} 个`; }).catch(() => {});
-      const ag = document.getElementById('again'); if (ag) ag.onclick = () => reviewView();
+      const ag = document.getElementById('again'); if (ag) ag.onclick = () => reviewView(goOn);
+      const am = document.getElementById('againMore'); if (am) am.onclick = () => reviewView(true);
       const mn = document.getElementById('moreNew');
-      if (mn) mn.onclick = async () => { mn.disabled = true; try { const r = await api('/api/next/vocab/more', { n: 10 }); if (r.added) reviewView(); else { toast('词书里的词都学过了'); } } catch (e) { toast(e.message); mn.disabled = false; } };
+      if (mn) mn.onclick = async () => { mn.disabled = true; try { const r = await api('/api/next/vocab/more', { n: 10 }); if (r.added) reviewView(true); else { toast('词书里的词都学过了'); } } catch (e) { toast(e.message); mn.disabled = false; } };
     }
     ask();
   }

@@ -339,7 +339,7 @@
           '<th class="num opt">材料</th><th class="opt">词书</th><th class="num opt">复习·7天</th><th class="num opt">AI·7天</th><th class="opt">注册</th></tr></thead><tbody>' +
           d.items.map(function (r) {
             return '<tr class="click' + (r.disabled ? ' dim' : '') + '" data-uid="' + r.id + '" tabindex="0"><td><b>' + esc(r.username) + '</b> ' +
-              (r.staff ? '<span class="pill blue">员工</span> ' : '') + (r.disabled ? '<span class="pill danger">已停用</span>' : '') +
+              (r.staff ? '<span class="pill blue">员工</span> ' : '') + (r.teacher ? '<span class="pill">老师</span> ' : '') + (r.disabled ? '<span class="pill danger">已停用</span>' : '') +
               (r.age === 'u14' || r.age === '14-17' ? '<span class="pill warn">' + esc(r.age_label) + '</span> ' : '') +
               '<span class="sub">#' + r.id + ' · ' + (r.has_email ? esc(r.email) : '没有绑定邮箱') + '</span></td>' +
               '<td>' + (r.level ? esc(r.level) : '<span class="muted">未填</span>') + (r.goal ? '<span class="sub">' + esc(r.goal) + '</span>' : '') + '</td>' +
@@ -401,7 +401,7 @@
     var book = v && v.book, bookPct = book ? pct(book.started, book.size) : 0;
     drawer.innerHTML =
       '<div class="dr-head"><div><h2 id="drawerTitle">' + esc(a.username) + '</h2><div class="dr-pills"><span class="pill off">#' + a.id + '</span>' +
-        (a.staff ? '<span class="pill blue">员工账号 · AI 不限次数</span>' : '') + (a.disabled ? '<span class="pill danger">已停用</span>' : '') +
+        (a.staff ? '<span class="pill blue">员工账号 · AI 不限次数</span>' : '') + (a.teacher ? '<span class="pill">老师账号</span>' : '') + (a.disabled ? '<span class="pill danger">已停用</span>' : '') +
         (a.locked_until ? '<span class="pill warn">密码错太多次，暂停到 ' + esc(when(a.locked_until)) + '</span>' : '') +
         (p ? '<span class="pill">' + esc(LEVEL[p.level] || p.level) + '</span>' : '<span class="pill off">还没填学习档案</span>') + '</div></div>' +
         '<button class="btn" type="button" data-close>关闭</button></div>' +
@@ -419,6 +419,7 @@
         (isAdmin() ? '<section class="card dr-actions"><h3>操作</h3>' +
           '<div class="toolbar"><button class="btn" data-act="reset">生成重设密码链接</button><button class="btn" data-act="signout"' + (a.sessions ? '' : ' disabled') + '>退出所有设备</button>' +
             '<button class="btn" data-act="staff">' + (a.staff ? '取消员工账号' : '设为员工账号') + '</button>' +
+            '<button class="btn" data-act="teacher">' + (a.teacher ? '取消老师账号' : '设为老师账号') + '</button>' +
             '<button class="btn danger" data-act="disable">' + (a.disabled ? '恢复账号' : '停用账号') + '</button></div>' +
           '<div class="toolbar">' + (p ? '<span class="inline-form"><label class="muted small">水平 <select id="drLevel">' + Object.keys(LEVEL).map(function (k) {
               return '<option value="' + k + '"' + (p.level === k ? ' selected' : '') + '>' + LEVEL[k] + '</option>'; }).join('') + '</select></label><button class="btn" data-act="level">保存</button></span>' : '') +
@@ -477,6 +478,11 @@
       if (!confirm(a.staff ? '取消「' + a.username + '」的员工账号？之后 AI 次数按普通学员的每日上限算。' : '把「' + a.username + '」设为员工账号？\n\n员工账号用 AI 不受每日次数限制，也不算进学员统计（漏斗、留存）。只给自己人。')) return;
       busy(b, postJSON('/learner/staff', { id: a.id, staff: !a.staff })).then(after);
     });
+    act('teacher', function (b) {
+      if (!confirm(a.teacher ? '取消「' + a.username + '」的老师账号？\n\n之后它是普通学生账号：不能再自己建班，也会算进学员统计；它已经在带的班不受影响。'
+        : '把「' + a.username + '」设为老师账号？\n\n之后打开语流先到「我的班级」，可以自己建班、看全班汇总；不能加入班级，也不算进学员统计（漏斗、留存）。随时可以取消。在班里的账号要先退出班级。')) return;
+      busy(b, postJSON('/learner/teacher', { id: a.id, teacher: !a.teacher })).then(after);
+    });
     act('disable', function (b) {
       if (!a.disabled && !confirm('停用「' + a.username + '」？\n\n马上在所有设备上退出，之后不能再登录（会提示账号已停用）。学习记录都保留，随时可以恢复。')) return;
       busy(b, postJSON('/learner/disable', { id: a.id, disabled: !a.disabled })).then(after);
@@ -500,13 +506,16 @@
     return getJSON('/classes').then(function (d) {
       var live = d.items.filter(function (x) { return x.active; }).length;
       main.innerHTML =
-        '<div class="head-row"><div><h1>班级</h1><p class="muted">学员凭邀请码自愿加入，随时可以退出。老师用自己的语流账号，在「我的 → 我的班级」里只看全班汇总：近 7 天几人在学、全班最常错的 5 个语法点；看不到任何学生的名字、作业和记录。不满 ' + d.min + ' 人的班不显示。</p></div>' +
+        '<div class="head-row"><div><h1>班级</h1><p class="muted">学员凭邀请码自愿加入，随时可以退出。老师用老师账号（用下面的老师注册链接注册）登录语流，首页就是「我的班级」：自己建班、看邀请码，只看全班汇总：近 7 天几人在学、全班最常错的 5 个语法点；看不到任何学生的名字、作业和记录。不满 ' + d.min + ' 人的班不显示。</p></div>' +
         '<div class="toolbar"><a class="btn" href="' + API + '/export/classes.csv">导出试用人数和人次 CSV</a></div></div>' +
         '<div class="kpi-grid">' + kpi('使用中的班级', n(live), '一共 ' + n(d.items.length) + ' 个') + kpi('现在在班里', n(d.members), '不算老师和员工账号') +
           kpi('试用人数', n(d.trial_people), '全部班级合计，同一人只算一个') + kpi('试用人次', n(d.trial_days), '同一人同一天算 1 次') + '</div>' +
         '<section class="card"><h2>新建班级</h2><form class="toolbar" id="clF"><input class="input" name="name" maxlength="30" placeholder="班级名，如 高一（3）班" style="width:220px">' +
           '<input class="input" name="teacher" maxlength="60" placeholder="老师的语流用户名" style="width:180px"><button class="btn primary">新建</button></form>' +
-          '<p class="err" id="clErr" hidden></p><p class="muted small" style="margin:0">老师要先在语流注册账号。新建后生成 6 位邀请码；老师在自己的「我的班级」页面也能看到邀请码，复制链接或出二维码发给学生。</p></section>' +
+          '<p class="err" id="clErr" hidden></p><p class="muted small" style="margin:0">老师账号可以自己在语流里建班，这里是替老师建：填老师的语流用户名。新建后生成 6 位邀请码；老师在自己的「我的班级」页面也能看到邀请码，复制链接或出二维码发给学生。</p></section>' +
+        '<section class="card"><h2>老师注册链接</h2><p class="muted small">一条链接只能注册一个老师账号，用过就失效；有效期 1–' + TL.max + ' 天。普通注册永远是学生账号。链接只在生成时显示一次（语流只存它的指纹），请马上复制发给老师。</p>' +
+          '<form class="toolbar" id="tlF"><input class="input" name="note" maxlength="40" placeholder="备注，如 某中学 王老师" style="width:220px"><label class="muted small">有效 <input class="input" name="days" type="number" min="1" max="30" value="7" style="width:64px"> 天</label><button class="btn primary">生成链接</button></form>' +
+          '<p class="err" id="tlErr" hidden></p><div id="tlNew"></div><div id="tlList"><p class="muted">正在加载…</p></div></section>' +
         '<section class="card">' + (d.items.length ? '<div class="tbl-wrap"><table class="cmp"><thead><tr><th>班级</th><th>老师</th><th class="num">人数</th><th class="num">近 7 天在学</th><th class="num">试用人数</th><th class="num">试用人次</th><th class="opt">邀请码</th><th class="opt">创建</th></tr></thead><tbody>' +
           d.items.map(function (x) {
             return '<tr class="click' + (x.active ? '' : ' dim') + '" data-cid="' + x.id + '" tabindex="0"><td><b>' + esc(x.name) + '</b> ' + (x.active ? '' : '<span class="pill off">已停用</span>') +
@@ -523,12 +532,47 @@
         busy(f.querySelector('button'), postJSON('/class/create', { name: f.name.value.trim(), teacher: f.teacher.value.trim() }).catch(function (x) { err.textContent = x.message; err.hidden = false; throw x; }))
           .then(function (r) { location.hash = '#classes/' + r.id; classesView(); }, function () { /* shown above */ });
       };
+      var tf = document.getElementById('tlF'), terr = document.getElementById('tlErr');
+      tf.onsubmit = function (e) {
+        e.preventDefault(); terr.hidden = true;
+        busy(tf.querySelector('button'), postJSON('/teacher-link/create', { note: tf.note.value.trim(), days: +tf.days.value }).catch(function (x) { terr.textContent = x.message; terr.hidden = false; throw x; }))
+          .then(function (r) {
+            var box = document.getElementById('tlNew');
+            box.innerHTML = '<div class="card sunk"><p style="margin:0 0 6px"><b>新的老师注册链接</b>（只显示这一次）</p><p style="margin:0 0 6px;word-break:break-all"><code>' + esc(r.link) + '</code></p>' +
+              '<div class="toolbar"><button class="btn" type="button" id="tlCopy">复制链接</button></div><p class="muted small" style="margin:0">有效到 ' + esc(r.expires) + '（北京时间），只能注册一个老师账号。关掉或刷新这一页后就看不到了；丢了就作废它，再生成一个。</p></div>';
+            document.getElementById('tlCopy').onclick = function (ev) { (navigator.clipboard ? navigator.clipboard.writeText(r.link) : Promise.reject()).then(function () { ev.target.textContent = '已复制'; }, function () { prompt('复制这个链接发给老师', r.link); }); };
+            tf.note.value = ''; teacherLinks();
+          }, function () { /* shown above */ });
+      };
+      teacherLinks();
       main.querySelectorAll('tr[data-cid]').forEach(function (tr) {
         var open = function () { location.hash = '#classes/' + tr.dataset.cid; };
         tr.onclick = open;
         tr.onkeydown = function (e) { if (e.key === 'Enter') open(); };
       });
     }).catch(fail);
+  }
+  // 老师注册链接 (teacher_service.py): who got one, whether it was used and by which account; an unused one can be revoked.
+  var TL = { max: 30 };
+  function teacherLinks() {
+    var box = document.getElementById('tlList'); if (!box) return;
+    getJSON('/teacher-links').then(function (d) {
+      TL.max = d.max_days;
+      box.innerHTML = (d.items.length ? '<div class="tbl-wrap"><table class="cmp"><thead><tr><th>备注</th><th>状态</th><th class="opt">生成</th><th class="opt">有效到</th><th></th></tr></thead><tbody>' + d.items.map(function (x) {
+        return '<tr' + (x.status === 'open' ? '' : ' class="dim"') + '><td>' + (x.note ? esc(x.note) : '<span class="muted">没有备注</span>') + '<span class="sub">#t' + x.id + '</span></td><td>' +
+          (x.status === 'used' ? '已注册 ' + (x.teacher ? '<a href="#learners/' + x.teacher.id + '">' + esc(x.teacher.username) + '</a>' : '（账号已注销）') + '<span class="sub">' + esc(x.used) + '</span>'
+            : '<span class="pill' + (x.status === 'open' ? '' : ' off') + '">' + esc(x.status_label) + '</span>') + '</td>' +
+          '<td class="opt">' + esc(x.created) + (x.by ? '<span class="sub">' + esc(x.by) + '</span>' : '') + '</td><td class="opt">' + esc(x.expires) + '</td>' +
+          '<td>' + (x.status === 'open' ? '<button class="btn" type="button" data-revoke="' + x.id + '">作废</button>' : '') + '</td></tr>';
+      }).join('') + '</tbody></table></div>' : '<p class="muted">还没有生成过老师注册链接。</p>') +
+        '<p class="muted small" style="margin:0">现在一共有 ' + n(d.teachers) + ' 个老师账号。</p>';
+      box.querySelectorAll('[data-revoke]').forEach(function (b) {
+        b.onclick = function () {
+          if (!confirm('作废这个老师注册链接？\n\n作废后马上不能再用来注册；已经注册的老师账号不受影响。')) return;
+          busy(b, postJSON('/teacher-link/revoke', { id: +b.dataset.revoke })).then(teacherLinks);
+        };
+      });
+    }).catch(function (e) { box.innerHTML = '<p class="err">' + esc(e.message) + '</p>'; });
   }
   function openClass(id) {
     drawer.hidden = drawerBg.hidden = false;
@@ -826,6 +870,25 @@
       var max = Math.max.apply(null, d.by_day.map(function (x) { return x.count; }).concat([1]));
       var cmax = Math.max.apply(null, cs.by_day.map(function (x) { return x.cost; }).concat([0.0001]));
       var src = function (k) { return lim[k + '_source'] === 'console' ? '后台设置（服务器配置是 ' + (lim[k + '_server'] ? n(lim[k + '_server']) + ' 次' : '不限') + '）' : '服务器配置'; };
+      // AI 朗读 (CosyVoice) caps in characters a day: a learner, the site, a learner's imported articles, and the share of the
+      // site's day imports may use before they fall back to the browser voice (tts_service.CAPS; 语流 9, 2026-11-25)
+      var ttsCard = function (t) {
+        var ts = function (k) { return t[k + '_source'] === 'console' ? '后台设置' : '服务器配置'; };
+        var inp = function (id, k, max) { return '<input class="input" id="' + id + '" type="number" min="0" max="' + max + '" placeholder="服务器配置" value="' + (t[k + '_source'] === 'console' ? t[k] : '') + '">'; };
+        return '<section class="card"><h2>AI 朗读额度（每天，按字符）</h2><dl class="kv">' +
+          '<dt>每账号</dt><dd>' + n(t.tts_user_chars) + ' · ' + ts('tts_user_chars') + '</dd>' +
+          '<dt>全站</dt><dd>' + n(t.tts_site_chars) + ' · ' + ts('tts_site_chars') + '</dd>' +
+          '<dt>导入文章（每账号）</dt><dd>' + n(t.tts_import_chars) + ' · ' + ts('tts_import_chars') + '</dd>' +
+          '<dt>导入文章最多用到全站的</dt><dd>' + t.tts_import_percent + '%（剩下的留给 AI 回复和口语）· ' + ts('tts_import_percent') + '</dd>' +
+          '<dt>夜里和今日热点提前生成</dt><dd>' + n(t.tts_prewarm_chars) + ' · ' + ts('tts_prewarm_chars') + '</dd></dl>' +
+          (isAdmin() ? '<form class="form" id="ttsF" style="margin-top:14px"><div class="row">' +
+            '<label><span>每账号（字符）</span>' + inp('ttsU', 'tts_user_chars', 10000000) + '</label>' +
+            '<label><span>全站（字符）</span>' + inp('ttsS', 'tts_site_chars', 10000000) + '</label></div><div class="row">' +
+            '<label><span>导入文章每账号（字符）</span>' + inp('ttsI', 'tts_import_chars', 10000000) + '</label>' +
+            '<label><span>导入文章最多用到全站的（%）</span>' + inp('ttsP', 'tts_import_percent', 100) + '</label></div>' +
+            '<p class="muted small" style="margin:0">马上生效。约 1 万字符 1 元（CosyVoice 标价）。留空表示用服务器配置。超过额度的句子用浏览器的声音读。</p>' +
+            '<div class="row"><button class="btn primary">保存</button></div></form>' : '') + '</section>';
+      };
       var CH = cs.choices || [], label = function (name) { var c = CH.filter(function (x) { return x.name === name; })[0]; return c ? c.label : name; };
       var SRC = { console: '后台', server: '服务器', 'default': '默认' };
       var options = function (cur) { return CH.map(function (c) { return '<option value="' + esc(c.name) + '"' + (c.name === cur ? ' selected' : '') + '>' + esc(c.label) + '</option>'; }).join(''); };
@@ -899,6 +962,7 @@
               '<label><span>全站每天（次）</span><input class="input" id="limS" type="number" min="0" max="1000000" placeholder="服务器配置" value="' + (lim.site_limit_source === 'console' ? lim.site_limit : '') + '"></label></div>' +
               '<p class="muted small" style="margin:0">马上生效，不用重启。0 表示不限；留空表示用服务器 /etc/flow.env 里的值。员工账号不受每账号上限限制。每天北京时间 08:00 重置。</p>' +
               '<div class="row"><button class="btn primary">保存</button></div></form>' : '') + '</section>' +
+          (lim.tts ? ttsCard(lim.tts) : '') +
           (d.top ? '<section class="card"><h2>用得最多的账号</h2>' + (d.top.length ? '<table class="cmp"><tbody>' + d.top.map(function (u) {
             return '<tr class="click" data-uid="' + u.id + '"><td>' + esc(u.username) + (u.staff ? ' <span class="pill blue">员工</span>' : '') + '</td><td class="num">' + n(u.count) + ' 次</td></tr>'; }).join('') + '</tbody></table>' : '<p class="muted">没有。</p>') + '</section>' : '') +
           (d.failures && d.failures.length ? '<section class="card"><h2>最近失败的请求</h2><table class="cmp"><tbody>' + d.failures.map(function (f) {
@@ -937,6 +1001,15 @@
         if ([body.user_limit, body.site_limit].some(function (v) { return v != null && !(Number.isInteger(v) && v >= 0); })) { alert('请填 0 或正整数；留空表示用服务器配置。'); return; }
         if (!confirm('把 AI 每日额度改成：每账号 ' + (body.user_limit == null ? '服务器配置' : body.user_limit || '不限') + '，全站 ' + (body.site_limit == null ? '服务器配置' : body.site_limit || '不限') + '？马上生效。')) return;
         busy(f.querySelector('button'), postJSON('/settings/ai-limits', body)).then(aiView);
+      };
+      var tf = document.getElementById('ttsF');
+      if (tf) tf.onsubmit = function (e) {
+        e.preventDefault();
+        var val = function (id) { var v = document.getElementById(id).value.trim(); return v === '' ? null : Number(v); };
+        var body = { tts_user_chars: val('ttsU'), tts_site_chars: val('ttsS'), tts_import_chars: val('ttsI'), tts_import_percent: val('ttsP') };
+        if (Object.keys(body).some(function (k) { var v = body[k]; return v != null && !(Number.isInteger(v) && v >= 0 && (k !== 'tts_import_percent' || v <= 100)); })) { alert('请填 0 或正整数（百分比 0–100）；留空表示用服务器配置。'); return; }
+        if (!confirm('保存 AI 朗读额度？马上生效。')) return;
+        busy(tf.querySelector('button'), postJSON('/settings/ai-limits', body)).then(aiView);
       };
       main.querySelectorAll('[data-sample]').forEach(function (b) { b.onclick = function () { AIV.sample = b.dataset.sample; main.querySelectorAll('[data-sample]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); }); aiSamples(); }; });
       if (AIV.sample) aiSamples();

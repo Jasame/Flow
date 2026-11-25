@@ -99,7 +99,7 @@ python3 tools/corpus_validate.py flow/corpus_data/v5/science.B2.json
 | `theme` | campus / travel / life / work / culture / science 之一，与文件名一致 |
 | `genre` | article / story / dialogue / explainer / opinion / interview / email / guide 之一 |
 | `body` | 一段（不分段），3–30 句，≤ 2600 字符。词数：A2 90–140 · B1 140–210 · B2 210–300 · C1 280–380 |
-| `questions` | v5 首批 2 道，v5.1 起 **3–4 道**（见上）；各 4 个不重复选项；`evidence` 必须是正文的原样子串。一道考主旨或推断，一道考细节或语境词义；干扰项要合理，不能一眼排除 |
+| `questions` | v5 首批 2 道（2026-11 已全部补到 4 道并标题型），v5.1 起 **3–4 道**（见上）；各 4 个不重复选项；`evidence` 必须是正文的原样子串。一道考主旨或推断，一道考细节或语境词义；干扰项要合理，不能一眼排除 |
 | `dictation_index` | 正文第几句（从 0 数）适合听写：长度适中、有可学的结构 |
 | `vocabulary` | 3–5 个，`term` 以相同词形出现在正文，`example` 是新造的句子且包含 `term` |
 | `expressions` | 4–6 个**地道搭配/短语**（不是单词），`text` 原样出现在正文；`note` 说明语气或用法 |

@@ -246,6 +246,8 @@ with app.db() as c:
             sk.log(c, uid, 'speaking', 'ielts', 6.0 / 9, 'B2', 'ielts-p1-mornings')  # 雅思口语: 「上次约 6.0」 on the list
             c.execute("INSERT INTO next_skill_events(user_id,skill,kind,score,level,pack,created) VALUES(?,'speaking','dialog',0.6,'A2','scene-cafe-order',?)", (uid, now - 20 * 86400))  # 情景第 2 轮 (the guide's scene picture)
         if name == 'pile':  # 60 word reviews due, more than 3 x the 10 new words a day: no new words today (ux audit 1.1, 11)
+            # 60 minutes a day: the words' share of the day's time (time_budget, r28 第 1 段: 15 minutes) holds all 60
+            c.execute('UPDATE next_profiles SET minutes=60 WHERE user_id=?', (uid,))
             c.execute("DELETE FROM next_cards WHERE user_id=? AND source='book'", (uid,))
             now, d = time.time(), nx.dictionary()
             for k, (rank, w) in enumerate(vs.book_words()['mid'][:60]):
@@ -274,13 +276,34 @@ with app.db() as c:
 with app.db() as c:
     base = json.loads(c.execute("SELECT content FROM lab_packs WHERE id=?", (PID,)).fetchone()[0])
     base.update(id='daily-ui-sample', title='示例热点：城市开通夜间公交线路', title_en='Sample news: night buses start running',
-                source='示例来源（测试数据）', summary_zh='示例：这里是今日热点的一句话介绍，真正的热点每天由 AI 联网找新闻改写。', daily_day=time.strftime('%Y-%m-%d'))
+                source='示例来源（测试数据）', summary_zh='示例：这里是今日热点的一句话介绍，真正的热点每天由 AI 联网找新闻改写。', daily_day=time.strftime('%Y-%m-%d'),
+                level='B1')  # 今日 shows the hotspot at the learner's level (r28 第 5 段): the UI learners are B1
+    base.pop('cefr', None)
     c.execute("INSERT OR REPLACE INTO lab_packs VALUES(?,NULL,'daily',?,?)", ('daily-ui-sample', json.dumps(base, ensure_ascii=False), time.time()))
     c.commit()
-(STATE / 'sessions.json').write_text(json.dumps({'base': f'http://127.0.0.1:{PORT}', 'pid': PID, 'learners': out, 'class': {'id': cid, 'code': 'UICLS2', 'name': '高一（3）班'}}))
-
-
 from http.server import ThreadingHTTPServer  # noqa: E402
+import threading  # noqa: E402
+import flow_admin  # noqa: E402
+
+CONSOLE_FILES = {'/flow/': ('index.html', 'text/html'), '/flow/admin.js': ('admin.js', 'text/javascript'), '/flow/admin.css': ('admin.css', 'text/css')}
+
+
+class ConsolePage(flow_admin.AdminHandler):
+    """The xmc.hk console as nginx serves it: the page's files under /flow/ and its API under /flow/api/ (as 管理员:
+    FLOW_ADMIN_EMAILS is not set here). class_run makes a 老师注册链接 on it."""
+    def do_GET(self):
+        path = self.path.split('?')[0]
+        if path in CONSOLE_FILES or path == '/shared-ui.css':
+            name, mime = CONSOLE_FILES.get(path, (None, 'text/css'))
+            body = (ROOT.parent / 'xmc-admin' / name).read_bytes() if name else b''
+            return self._send(None, body=body, mime=mime + '; charset=utf-8')
+        return super().do_GET()
+
+
+console = ThreadingHTTPServer(('127.0.0.1', 0), ConsolePage)
+threading.Thread(target=console.serve_forever, daemon=True).start()
+(STATE / 'sessions.json').write_text(json.dumps({'base': f'http://127.0.0.1:{PORT}', 'pid': PID, 'learners': out, 'class': {'id': cid, 'code': 'UICLS2', 'name': '高一（3）班'},
+                                                 'console': f'http://127.0.0.1:{console.server_address[1]}/flow/', 'outbox': os.path.join(tmp, 'outbox')}))
 
 
 class Server(ThreadingHTTPServer):

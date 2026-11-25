@@ -10,6 +10,11 @@ import time
 
 import next_service as nx
 import skills_service as sk
+from lab_service import Shape, mbool, mheard, mnum  # lenient readers of what a model wrote (DeepSeek words JSON unlike Gemini)
+
+# The end of a role-play without a summary from the model gets this line instead (#90); ai_eval reads it to report
+# 「模型没写总评」 (语流 12), so the text lives in one place.
+SUMMARY_FILLER = '这一轮练完了，下面是具体的反馈。'
 
 LEVEL_NOTE = {'A2': '学习者是入门水平，反馈用简单中文，示范用最常见的词和短句。', 'B1': '学习者是中级水平，反馈用中文，示范句清楚自然。',
               'B2': '学习者是中高级水平，关注搭配、语气和衔接。', 'C1': '学习者是高级水平，关注措辞精确、语域和行文层次。'}
@@ -33,9 +38,10 @@ def _ai(c, uid, data, kind, pack, skill, spec, system, user, convert, audio=None
                    (lambda: request_model(msgs, audio=audio)) if audio else (lambda: request_model(msgs)), convert, mark_replay=True)
 
 
-def _clean(v, lo=0, hi=600):
-    from lab_service import text
-    return text(v if isinstance(v, str) else '', lo, hi)
+def _clean(v, lo=0, hi=600, code='text_empty', default=None):
+    """A field a model wrote (only those): cut when long, Shape(code) when missing or short (run_job asks again)."""
+    from lab_service import mtext
+    return mtext(v, lo, hi, code, default)
 
 
 def _fixes(raw, valid):
@@ -88,11 +94,11 @@ def retell(c, uid, data):
 
     def convert(raw):
         if not isinstance(raw, dict) or not isinstance(raw.get('points'), list):
-            raise ValueError('bad')
+            raise Shape('points_missing')
         pts = [{'point': _clean(x.get('point'), 1, 200), 'covered': bool(x.get('covered'))} for x in raw['points'][:8] if isinstance(x, dict) and x.get('point')]
         if not pts:
-            raise ValueError('no points')
-        return {'transcript': _clean(raw.get('transcript') or '', 0, 2500) if audio else text, 'points': pts,
+            raise Shape('points_missing')
+        return {'transcript': mheard(raw.get('transcript'), 2500) if audio else text, 'points': pts,
                 'used': [_clean(u, 1, 120) for u in (raw.get('used') or [])[:6] if isinstance(u, str) and u.strip()],
                 'fixes': _fixes(raw.get('fixes'), valid), 'comment': _clean(raw.get('comment') or '', 0, 400), 'model': _clean(raw.get('model') or '', 0, 1500)}
 
@@ -116,21 +122,29 @@ def dialog(c, uid, data):
     SC = __import__('scenarios')
     sid = data.get('scenario') if isinstance(data.get('scenario'), str) else None
     sc = SC.pack(sid, SC.mode_for(c, uid, sid)) if sid in SC.SCENES else None
+    prof = nx.profile(c, uid) or {}
     if sc:
-        p, level = sc, (nx.profile(c, uid) or {}).get('level') or sc['cefr']
+        p, level = sc, prof.get('level') or sc['cefr']
     else:
         p, level = _material(c, uid, data)
     if not p:
         return {'error': '材料不存在'}, 404
+    # the voice the AI's lines are said in: a scene's role has its own (scenarios.voice_for), a material's partner the learner's
+    voice = SC.voice_for(sc['sid'], sc['mode'], prof.get('voice')) if sc else (prof.get('voice') or 'us-f')
+    opener_key = p['id'] + ('@persona' if sc else '')
     hist = data.get('history') or []
     if not isinstance(hist, list) or len(hist) > 16:
         return {'error': '对话太长了，先结束这一轮吧'}, 400
     if not hist:
         # The opening (scene, role, first line) is the same for everyone on this text at this level: asked once, kept.
-        row = c.execute('SELECT result FROM next_dialog_openers WHERE pack=? AND level=?', (p['id'], level)).fetchone()
+        # Scenes' openings are kept under a new key since the roles got their personas (像真人, 2026-11-25).
+        row = c.execute('SELECT result FROM next_dialog_openers WHERE pack=? AND level=?', (opener_key, level)).fetchone()
         if row:
             from chat_service import remaining
-            return {'result': json.loads(row['result']), 'request_id': str(data.get('request_id', '')), 'remaining': remaining(c, uid), 'cached': True}, 200
+            r = json.loads(row['result'])
+            _say_soon(uid, r.get('reply'), voice)
+            return {'result': {**r, **({'voice': voice} if sc else {})}, 'request_id': str(data.get('request_id', '')),
+                    'remaining': remaining(c, uid), 'cached': True}, 200
     turns = []
     for h in hist:
         if not isinstance(h, dict) or h.get('role') not in ('ai', 'me') or not isinstance(h.get('text'), str) or len(h['text']) > 500:
@@ -144,8 +158,12 @@ def dialog(c, uid, data):
             return err
     valid = set(nx.nodes_meta(c))
     task = p.get('speaking') or f"围绕「{p['title']}」这个话题聊一聊"
-    system = ('你在和一位中国英语学习者做情景对话练习。你扮演情景里的另一方，说话自然、简短（1–3 句），'
-              '用学习者水平能听懂的英语，适时追问让对方多说。不要替学习者回答。只输出 JSON。' + LEVEL_NOTE.get(level, ''))
+    # 像真人 (owner: 「不像真人」): short spoken turns that react before they ask, one question at a time, in character
+    system = ('你在和一位中国英语学习者做情景对话练习。你扮演情景里的另一方，像真人一样说话：每次只说 1–2 句，'
+              'reply 不超过 25 个英文词；用口语（缩写，以及 Sure / Oh, got it / Hmm, let me check 这样自然的回应）；'
+              '先接住对方刚说的内容，再往下问；一次只问一个问题。用学习者水平能听懂的英语。不要像老师：reply 里不夸对方的英语、'
+              '不纠错（纠错只放在 correction 里）。不要替学习者回答。只输出 JSON。'
+              + (f'你的角色和说话方式（英文）：{p["persona"]}。' if sc and p.get('persona') else '') + LEVEL_NOTE.get(level, ''))
     if sc:  # 按回答调难度: the next line follows the learner's last answer (scenarios.pace has the same rule)
         system += (f'按学习者刚才这句调整你下一句的难度：如果这句很短（不到 {SC.PACE_SHORT} 个词），或者不到 {SC.PACE_MID} 个词而且有明显错误，'
                    '你的下一句要更短、用更常见的词，并在 say 里给一句学习者可以直接套用的英文；如果这句有 '
@@ -169,23 +187,23 @@ def dialog(c, uid, data):
 
     def convert(raw):
         if not isinstance(raw, dict):
-            raise ValueError('bad')
+            raise Shape('json_shape')
         rnd = {'mode': sc['mode'], 'challenge': sc['challenge']} if sc else {}
         if not hist:
-            return {'scene': _clean(raw.get('scene'), 1, 300), 'role': _clean(raw.get('role') or '', 0, 60), 'reply': _clean(raw.get('reply'), 1, 400), **rnd}
+            return {'scene': _clean(raw.get('scene'), 1, 300, 'scene_empty'), 'role': _clean(raw.get('role') or '', 0, 60), 'reply': _clean(raw.get('reply'), 1, 400, 'reply_empty'), **rnd}
         if end:
             met = raw.get('challenge_met')
-            return {'summary': _clean(raw.get('summary'), 1, 500), 'good': [_clean(g, 1, 300) for g in (raw.get('good') or [])[:3] if isinstance(g, str) and g],
+            return {'summary': _clean(raw.get('summary'), 1, 500, default=SUMMARY_FILLER), 'good': [_clean(g, 1, 300) for g in (raw.get('good') or [])[:3] if isinstance(g, str) and g],
                     'fixes': _fixes(raw.get('fixes'), valid),
                     'expressions': [{'text': _clean(e.get('text'), 1, 120), 'meaning': _clean(e.get('meaning') or '', 0, 120)}
                                     for e in (raw.get('expressions') or [])[:4] if isinstance(e, dict) and e.get('text')],
-                    'score': max(0.0, min(1.0, float(raw.get('score') or 0))), **rnd,
+                    'score': mnum(raw.get('score'), 0.0, 1.0, 'score_nan'), **rnd,
                     **({'challenge_met': met} if sc and sc['challenge'] and isinstance(met, bool) else {})}
         corr = raw.get('correction')
         corr = {'original': _clean(corr.get('original') or '', 0, 300), 'better': _clean(corr.get('better'), 1, 300), 'why': _clean(corr.get('why') or '', 0, 300)} \
             if isinstance(corr, dict) and corr.get('better') else None
-        heard = _clean(raw.get('heard') or '', 0, 500) if audio else text
-        out = {'heard': heard, 'reply': _clean(raw.get('reply'), 1, 400), 'correction': corr, 'hint': _clean(raw.get('hint') or '', 0, 200)}
+        heard = mheard(raw.get('heard'), 500) if audio else text
+        out = {'heard': heard, 'reply': _clean(raw.get('reply'), 1, 400, 'reply_empty'), 'correction': corr, 'hint': _clean(raw.get('hint') or '', 0, 200)}
         if sc:
             out['pace'] = SC.pace(heard, bool(corr))
             say = raw.get('say')
@@ -196,13 +214,24 @@ def dialog(c, uid, data):
             **({'mode': sc['mode']} if sc else {})}
     result, status = _ai(c, uid, data, 'next-dialog', p['id'], 'speaking', spec, system, user, convert, audio)
     if status == 200 and not hist:
-        c.execute('INSERT OR IGNORE INTO next_dialog_openers VALUES(?,?,?,?)', (p['id'], level, json.dumps(result['result'], ensure_ascii=False), time.time()))
+        c.execute('INSERT OR IGNORE INTO next_dialog_openers VALUES(?,?,?,?)', (opener_key, level, json.dumps(result['result'], ensure_ascii=False), time.time()))
         c.commit()
     if status == 200 and end and not result.get('replayed'):
         r = result['result']
         sk.log(c, uid, 'speaking', 'dialog', r['score'], nx.cefr(p), p['id'], commit=False)
         sk.mistakes_from_changes(c, uid, r['fixes'], '', 'speaking', p['id'])
+    if status == 200 and not end:
+        _say_soon(uid, result['result'].get('reply'), voice)
+        if sc:
+            result = {**result, 'result': {**result['result'], 'voice': voice}}
     return result, status
+
+
+def _say_soon(uid, text, voice):
+    """声音接力: the server voice starts making the AI's line now, while the reply travels to the page, so the page's own
+    request for it (/api/next/tts) finds it made or joins the making (tts_service locks per sentence). Saves a round trip."""
+    if uid and text:
+        __import__('tts_service').start(uid, text, voice)
 
 
 # ---------- essay ----------
@@ -232,10 +261,10 @@ def essay(c, uid, data):
     def convert(raw):
         s = raw.get('scores') if isinstance(raw, dict) else None
         if not isinstance(s, dict):
-            raise ValueError('bad')
-        scores = {k: max(1, min(5, int(s.get(k) or 1))) for k in ('content', 'organization', 'accuracy', 'range')}
-        return {'scores': scores, 'level': raw.get('level') if raw.get('level') in sk.LEVELS else None, 'comment': _clean(raw.get('comment'), 1, 500),
-                'paragraphs': [{'para': int(x.get('para') or i + 1), 'note': _clean(x.get('note'), 1, 300)} for i, x in enumerate((raw.get('paragraphs') or [])[:6])
+            raise Shape('scores_missing')
+        scores = {k: int(round(mnum(s.get(k), 1, 5, default=1))) for k in ('content', 'organization', 'accuracy', 'range')}
+        return {'scores': scores, 'level': raw.get('level') if raw.get('level') in sk.LEVELS else None, 'comment': _clean(raw.get('comment'), 1, 500, 'comment_empty'),
+                'paragraphs': [{'para': int(mnum(x.get('para'), 1, 99, default=i + 1)), 'note': _clean(x.get('note'), 1, 300)} for i, x in enumerate((raw.get('paragraphs') or [])[:6])
                                if isinstance(x, dict) and x.get('note')],
                 'fixes': _fixes(raw.get('fixes'), valid), 'better': _fixes(raw.get('better'), valid)[:2], 'model': _clean(raw.get('model') or '', 0, 1200)}
 
@@ -308,9 +337,9 @@ def translate(c, uid, data):
     user = task + ('\n\nreference 写一个自然的英文译法。' if direction == 'zh2en' else '\n\nreference 写一个自然的中文译法。')
 
     def convert(raw):
-        if not isinstance(raw, dict) or raw.get('score') is None:
-            raise ValueError('bad')
-        return {'score': max(0.0, min(1.0, float(raw['score']))), 'accuracy': _clean(raw.get('accuracy') or '', 0, 400),
+        if not isinstance(raw, dict):
+            raise Shape('json_shape')
+        return {'score': mnum(raw.get('score'), 0.0, 1.0, 'score_nan'), 'accuracy': _clean(raw.get('accuracy') or '', 0, 400),
                 'fluency': _clean(raw.get('fluency') or '', 0, 400), 'fixes': _fixes(raw.get('fixes'), valid) if direction == 'zh2en' else [],
                 'reference': _clean(raw.get('reference') or '', 0, 800), 'original': en}
 
@@ -324,6 +353,12 @@ def translate(c, uid, data):
 
 
 # ---------- pronunciation ----------
+
+# Who may judge one word well enough to file a mistake: Gemini (the main service) for now; a dedicated pronunciation
+# scorer joins when 语流 12 connects one. A verdict from another model (Qwen-Omni, since the owner moved 跟读 and 发音 off
+# Gemini on 2026-11-25: 「延迟太高了」) is a reference only: counted as practice, never a mistake, said to be maybe wrong.
+SAY_TRUSTED = ('main',)
+
 
 def say(c, uid, data):
     """One word or short phrase read aloud: did the target sound come through?"""
@@ -344,11 +379,14 @@ def say(c, uid, data):
             '\n\n输出 JSON：{"heard":"听起来像哪个英文词","ok":true或false,"note":"中文：哪里对、哪里不对","tip":"中文：舌位、口型或气流怎么调整"}')
 
     def convert(raw):
-        if not isinstance(raw, dict) or not isinstance(raw.get('ok'), bool):
-            raise ValueError('bad')
-        return {'heard': _clean(raw.get('heard') or '', 0, 80), 'ok': raw['ok'], 'note': _clean(raw.get('note') or '', 0, 300), 'tip': _clean(raw.get('tip') or '', 0, 300)}
+        if not isinstance(raw, dict):
+            raise Shape('json_shape')
+        by = getattr(ai_routes.CTX, 'last_service', None)  # the call whose answer this is (same thread, just recorded)
+        return {'heard': _clean(raw.get('heard') or '', 0, 80), 'ok': mbool(raw.get('ok'), 'ok_missing'), 'note': _clean(raw.get('note') or '', 0, 300),
+                'tip': _clean(raw.get('tip') or '', 0, 300), 'tentative': by is not None and by not in SAY_TRUSTED}
 
-    import hashlib
+    import hashlib, ai_routes
+    ai_routes.CTX.last_service = None
     result, status = _ai(c, uid, data, 'next-say', 'sounds', 'speaking', {'text': target, 'audio_sha256': hashlib.sha256(raw_audio).hexdigest()},
                          system, user, convert, data.get('audio'))
     if status == 200 and not result.get('replayed'):
@@ -358,8 +396,9 @@ def say(c, uid, data):
         # a miss asks for another try; a second miss in a row on the same word (within a week) makes the card.
         last = c.execute("SELECT score FROM next_skill_events WHERE user_id=? AND kind='say' AND pack=? AND created>? ORDER BY id DESC LIMIT 1",
                          (uid, key, time.time() - 7 * 86400)).fetchone()
-        sk.log(c, uid, 'pronunciation', 'say', 1.0 if r['ok'] else 0.0, pack=key, commit=False)
-        r['confirmed'] = not r['ok'] and last is not None and last['score'] == 0
+        # a reference verdict counts as practice (today's 发音 step) at a neutral 0.5: never one of the two misses, no pull on 能力
+        sk.log(c, uid, 'pronunciation', 'say', 0.5 if r.get('tentative') else 1.0 if r['ok'] else 0.0, pack=key, commit=False)
+        r['confirmed'] = not r.get('tentative') and not r['ok'] and last is not None and last['score'] == 0
         if r['confirmed']:
             sk.add_mistake(c, uid, 'sound', target, 'sound:' + target.lower(), r['tip'] or r['note'], '', 'pronunciation', extra={'focus': focus}, commit=False)
         c.commit()
