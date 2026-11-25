@@ -56,7 +56,7 @@ class Console(unittest.TestCase):
         return st, body
 
     def register(self, name, password='correct horse 1'):
-        st, body, h = self.call(self.site, '/api/register', {'username': name, 'password': password, 'storage': True})
+        st, body, h = self.call(self.site, '/api/register', {'username': name, 'password': password, 'storage': True, 'terms': True})
         self.assertEqual(st, 200, body)
         return h['Set-Cookie'].split(';')[0]
 

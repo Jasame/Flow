@@ -131,7 +131,7 @@ class NextHttpTests(unittest.TestCase):
         app.SECURE = False
         app.init()
         with app.db() as c:
-            c.execute('INSERT INTO users(username,password,storage_ok) VALUES(?,?,1)', ('learner', app.password('correct horse battery')))  # agreed to 数据存放在香港
+            c.execute('INSERT INTO users(username,password,storage_ok,terms_version) VALUES(?,?,1,?)', ('learner', app.password('correct horse battery'), __import__('privacy_service').CONSENT_VERSION))  # agreed to 数据存放在香港
         self.srv = ThreadingHTTPServer(('127.0.0.1', 0), app.Handler); threading.Thread(target=self.srv.serve_forever, daemon=True).start()
         self.cookie = ''
 
@@ -365,7 +365,7 @@ class NextAudioTests(unittest.TestCase):
         nx._AUDIO.update(mtime=None, index={})
         app.init()
         with app.db() as c:
-            c.execute('INSERT INTO users(username,password,storage_ok) VALUES(?,?,1)', ('learner', app.password('correct horse battery')))  # agreed to 数据存放在香港
+            c.execute('INSERT INTO users(username,password,storage_ok,terms_version) VALUES(?,?,1,?)', ('learner', app.password('correct horse battery'), __import__('privacy_service').CONSENT_VERSION))  # agreed to 数据存放在香港
         self.pid = 'v5-science-b2-noise-cancelling'
         (self.audio / 'uk-m').mkdir(parents=True)
         (self.audio / 'uk-m' / (self.pid + '.m4a')).write_bytes(bytes(range(256)) * 4)

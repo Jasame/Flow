@@ -24,6 +24,18 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 DB = os.getenv('QA_DB', '/www/wwwroot/flow/data/flow.sqlite3')
 BASE = os.getenv('QA_BASE', 'http://127.0.0.1:8090')
+
+
+def consent_version():
+    """The 用户协议 and 隐私和数据 version the site asks for now (/api/health), for the test accounts."""
+    try:
+        with urllib.request.urlopen(BASE + '/api/health', timeout=20) as r:
+            return json.loads(r.read()).get('consent')
+    except Exception:
+        return None
+
+
+CONSENT = consent_version()
 AUD = Path(os.getenv('QA_AUDIO', HERE / 'qa-audio'))
 PID = 'v5-science-b2-noise-cancelling'
 IDS = {'a2': 990001, 'b1': 990002, 'exam': 990003, 'guard': 990004}
@@ -32,6 +44,11 @@ LIGHT = os.getenv('QA_LIGHT') == '1'
 AI_SLOT_COUNT = max(1, int(os.getenv('QA_AI_SLOTS', '1')))
 AI_SLOTS = threading.BoundedSemaphore(AI_SLOT_COUNT)
 CALLS, CHECKS, NOTES = [], [], []
+# The ¥10 stop of the day (ai_routes.day_full, 2026-11-25): an AI answer of code ai_day_full is the site doing its job,
+# not a fault. A check that fails right after it, on the same thread, is recorded as skipped, so a full day never
+# blocks a release or a fix (语流 A5). DAY_FULL: it happened in this run.
+LAST_AI = threading.local()
+DAY_FULL = threading.Event()
 T0 = time.time()
 
 
@@ -55,9 +72,12 @@ def spoken(who, what):
     return not LIGHT
 
 def check(who, name, ok, detail=''):
+    skipped = not ok and getattr(LAST_AI, 'full', False)
+    if skipped:
+        detail = '跳过（今天额度已满，ai_day_full）'
     with LOCK:
-        CHECKS.append({'who': who, 'name': name, 'ok': bool(ok), 'detail': str(detail)[:600]})
-    print(f'[{time.time() - T0:7.1f}] {who}: {"PASS" if ok else "FAIL"} {name} {"" if ok else str(detail)[:300]}', flush=True)
+        CHECKS.append({'who': who, 'name': name, 'ok': bool(ok) or skipped, 'skipped': skipped, 'detail': str(detail)[:600]})
+    print(f'[{time.time() - T0:7.1f}] {who}: {"SKIP" if skipped else "PASS" if ok else "FAIL"} {name} {"" if ok else str(detail)[:300]}', flush=True)
     return ok
 
 
@@ -121,6 +141,10 @@ class Client:
         data = dict(data, request_id=rid(tag))
         with AI_SLOTS if slot else contextlib.nullcontext():
             s, j = self.post(path, data)
+        LAST_AI.full = s == 429 and isinstance(j, dict) and j.get('code') == 'ai_day_full'
+        if LAST_AI.full and not DAY_FULL.is_set():
+            DAY_FULL.set()
+            note(self.who, "the day's AI stop is reached (ai_day_full): AI checks after it are skipped, not failed")
         res = j.get('result') if isinstance(j, dict) else None
         if s != 200:
             note(self.who, f'AI {path} -> {s} {j.get("error") if isinstance(j, dict) else j!r}'[:300])
@@ -139,8 +163,10 @@ def setup():
     c.execute("DELETE FROM sessions WHERE user_id IN (%s)" % ','.join('?' * len(IDS)), list(IDS.values()))
     out = {}
     for name, uid in IDS.items():
-        # storage_ok: agreed to 数据存放在香港 (privacy_service), as every sign-up does; without it the account is paused
-        c.execute('INSERT INTO users(id,username,password,admin,storage_ok) VALUES(?,?,?,0,?)', (uid, f'qa-e2e-{name}', 'qa-e2e-no-login:' + secrets.token_hex(16), time.time()))
+        # storage_ok and terms_version: agreed to 数据存放在香港 and to the current 用户协议 and 隐私和数据 (privacy_service),
+        # as every sign-up does; without them the account is held. The version is what the site says it asks for now.
+        c.execute('INSERT INTO users(id,username,password,admin,storage_ok,terms_ok,terms_version) VALUES(?,?,?,0,?,?,?)',
+                  (uid, f'qa-e2e-{name}', 'qa-e2e-no-login:' + secrets.token_hex(16), time.time(), time.time(), CONSENT))
         token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(24)
         c.execute('INSERT INTO sessions VALUES(?,?,?,?)', (token, uid, csrf, time.time() + 3 * 3600))
         out[name] = Client(name, token, csrf)
@@ -423,6 +449,18 @@ def persona_exam(cl):
         ans = [{'pack': p['pack'], 'i': q['i'], 'choice': 0} for p in at['passages'] for q in p['questions']]
         s, sc = cl.post('/api/next/assess/comprehension', {'kind': 'reading', 'answers': ans})
         check(who, 'radar: the check is scored and recorded', s == 200 and sc.get('recorded', {}).get('skill') == 'reading', s)
+    # 2026-11-25: the speaking check refused every real recording (「请求大小不正确」, the route had the 20 KB limit). A body
+    # the size of a minute on an iPhone (AAC at its default 185 kb/s, the most the page sends) goes through nginx and the
+    # size check; its bytes are not audio, so the audio check refuses it before any AI is called (nothing spent)
+    s, tk = cl.get('/api/next/assess/task?kind=speaking')
+    if s == 200 and isinstance(tk, dict) and tk.get('question'):
+        big = {'mime_type': 'audio/mp4', 'data': base64.b64encode(b'\x1aE\xdf\xa3' + b'\0' * 1_390_000).decode()}
+        s, j = cl.post('/api/next/assess/speaking', {'question': tk['question'], 'audio': big, 'request_id': rid('as')})
+        err = (j or {}).get('error') if isinstance(j, dict) else ''
+        check(who, 'radar: a minute-long recording reaches the speaking check (not refused for its size)',
+              s in (400, 503) and err not in ('请求大小不正确', '录音太长了，请在 1 分钟内说完再交'), (s, err))
+    else:
+        check(who, 'radar: the speaking task', False, s)
     s, rr = cl.get('/api/next/radar')
     check(who, 'radar: reading measured against its goal', s == 200 and next(d for d in rr['dims'] if d['id'] == 'reading')['source'] == 'assessment', s)
     s, m = cl.get('/api/next/material?id=' + PID)
@@ -749,7 +787,7 @@ def main():
               'light': LIGHT, 'ai_slots': AI_SLOT_COUNT,
               'limits': lim, 'usage_before': u0, 'usage_after': u1,
               'ai_calls_used': sum(u1['test_accounts'].values()),
-              'checks': {'total': len(CHECKS), 'failed': sum(not x['ok'] for x in CHECKS)},
+              'checks': {'total': len(CHECKS), 'failed': sum(not x['ok'] for x in CHECKS), 'skipped': sum(bool(x.get('skipped')) for x in CHECKS)},
               'failed': [x for x in CHECKS if not x['ok']], 'crashes': errors,
               'server_errors': [r for r in CALLS if r['status'] >= 500 or r['status'] == 0],
               'latency_ms': lat, 'removed': removed, 'user_columns_scanned': ncols,

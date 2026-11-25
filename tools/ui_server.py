@@ -164,6 +164,7 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             'fresh': ('', '', []), 'fresh2': ('', '', []),  # 选方向和目标: accounts with no settings yet (start_run)
             'abroad': ('B1', 'abroad', ['campus']),  # 留学: the plan's speaking step is 雅思 Part 1 (listen_speak_run); nothing else uses it
             'rounds': ('B1', 'work', ['work']),  # 口语情景 round 2: 在咖啡店点单 done 20 days ago (listen_speak_run)
+            'app-audio': ('B1', 'work', ['work', 'science']),  # 整篇朗读交给 App (app_audio_run): its kept places, nothing else uses it
             # swiping the review card from anywhere on the screen (swipe_run): one learner per screen size, each starting fresh
             **{f'swipe-{k}': ('B1', 'work', ['work', 'science']) for k in ('ipad-land', 'ipad-mini-land', 'phone')},
             'teacher': ('B1', 'work', ['work']), 'student': ('B1', 'work', ['work']),  # 班级试用 (class_run)
@@ -273,7 +274,7 @@ with app.db() as c:
     c.execute("UPDATE users SET age_band='18+', age_set=? WHERE username NOT IN ('ui-ageless', 'ui-young')", (time.time(),))
     c.execute("UPDATE users SET age_band='u14', age_set=? WHERE username='ui-young'", (time.time(),))
     # 数据存放在香港 (privacy_service): every learner agreed at sign-up, but ui-unasked (the page asks it; privacy_run)
-    c.execute("UPDATE users SET storage_ok=? WHERE username!='ui-unasked'", (time.time(),))
+    c.execute("UPDATE users SET storage_ok=?, terms_ok=?, terms_version=? WHERE username!='ui-unasked'", (time.time(), time.time(), __import__('privacy_service').CONSENT_VERSION))
     # 班级试用: ui-teacher's class with 5 members who studied and got grammar points wrong this week (class_run)
     now = time.time()
     cid = c.execute("INSERT INTO classes(name, code, teacher, by, created, updated) VALUES('高一（3）班', 'UICLS2', ?, 'ui', ?, ?)", (out['teacher']['id'], now, now)).lastrowid

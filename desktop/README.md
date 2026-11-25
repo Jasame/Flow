@@ -35,7 +35,7 @@ Tauri 2 做的「原生外壳 + 关键功能原生」：窗口里就是网站（
 | 麦克风 | 只给本站页面（跟读、口语、发音）；摄像头、定位一律拒绝 | `lib.rs` `on_permission_request` |
 | User-Agent | 末尾 `FlowDesktop/<版本> (Windows)` 或 `(macOS)` | `ua.rs` |
 | 菜单 | macOS：语流 / 编辑（⌘C ⌘V 要靠它）/ 显示（后退 ⌘[、前进 ⌘]、重新载入 ⌘R、缩放）/ 窗口 / 帮助；Windows：托盘菜单 | `menu.rs` |
-| 自动更新 | 结构已在，**默认不编译**（见下） | `updater.rs`、`tauri.updater.conf.json` |
+| 自动更新 | 0.1.1 起：正式版启动时查新版本，后台下载、退出时装上；只装用户私钥签过名的（见下） | `updater.rs`、`tools/make_update.py` |
 
 ## 网页接口 `window.FlowApp`（桌面这边）
 
@@ -101,28 +101,56 @@ CI（`.github/workflows/desktop.yml`）在 windows-latest 上装好 NSIS 安装�
 - **Windows**：没有代码签名证书时，下载运行会出现 SmartScreen「Windows 已保护你的电脑」，内测可以接受（INSTALL-zh.md）。
   以后买 OV/EV 证书或用 Azure Trusted Signing，再在 `bundle.windows` 里配。
 
-## 自动更新（结构已做好，默认关）
+## 自动更新（0.1.1 起，正式版）
 
-Tauri updater 要一把签名密钥：私钥签每个更新包，App 里放公钥，只装签名对得上的更新。**密钥只能用户自己在本机生成**，不进仓库：
+用户 2026-11-25 选的：打开自动更新，私钥只放用户本机。
 
-1. 用户在自己电脑上：`npx tauri signer generate -w ~/.tauri/flow-updater.key`（设一个密码）。
-2. 把公钥（`~/.tauri/flow-updater.key.pub` 的内容）填进 `src-tauri/tauri.updater.conf.json` 的 `pubkey`。
-3. 私钥和密码加到 GitHub Secrets：`TAURI_SIGNING_PRIVATE_KEY`、`TAURI_SIGNING_PRIVATE_KEY_PASSWORD`。
-4. 构建时：`npx tauri build --features updater --config src-tauri/tauri.updater.conf.json`，会多出 `.sig` 和更新包；
-   把它们和 `latest.json` 放到 `https://flowlang.cn/desktop/`（发布流程归语流 A1）。
+- **怎么更新**：正式版「语流」打开后大约 20 秒，去查 `https://flowlang.cn/desktop/latest.json`。服务器只看到网络地址，不带账号。
+  - 有新版本：在后台下载，**关掉语流（⌘Q / 退出）时装上**，下次打开就是新版。菜单「检查更新…」可以马上装，装完自己重启。
+  - 内测版和冒烟测试从不检查。
+- **只装签了名的**：更新包要用用户的私钥签名，App 里存着公钥（`tauri.conf.json` 的 `plugins.updater.pubkey`），签名对不上的一律不装。
+  - 私钥在用户 Mac 上的 `~/.tauri/flow-updater.key`，有密码，**不进仓库、笔记和 GitHub**，C3 也不碰。
+  - **私钥丢了，已经装好的 App 就再也收不到更新**，只能让大家重新下载安装，所以请用户自己备份私钥和密码（比如放进密码管理器）。
+- **从 0.1.0 升上来**：0.1.0 里没有更新功能，要到下载页手动装一次 0.1.1，之后才会自动更新。
+- **Mac 上**：App 要放在「应用程序」里才能自己替换自己；直接从 dmg 或「下载」文件夹里打开的，系统会把它放到只读的临时位置，更新装不上，下次打开还是旧版。
 
-开了以后：启动时检查，有新版本发一条通知；菜单「检查更新…」下载安装并重启。
+### 发一个新版本
+
+1. 改版本号：`src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml`、`package.json` 三处一致，PR 合进 main（Desktop 两个检查要绿）。
+2. 出正式包：GitHub → Actions → Desktop → Run workflow，分支选 main，channel 选 `release`。把这次 run 的两个 artifact 下下来。
+3. 准备文件：
+   `python3 tools/make_update.py prepare --version <v> --dmg <语流_…_universal.dmg> --setup <语流_…_x64-setup.exe> --out <目录>`
+   会生成三个文件：`flow-mac-<v>.dmg`、`flow-mac-<v>.app.tar.gz`（Mac 更新用的）、`flow-windows-<v>-setup.exe`（Windows 下载和更新共用）。
+4. **用户自己签名**：在自己的终端里跑脚本打印的两条 `npx tauri signer sign -f ~/.tauri/flow-updater.key …`，每条要输一次私钥密码，会生成 `.sig`。
+5. 生成清单：`python3 tools/make_update.py manifest --version <v> --dir <目录> --notes "这一版改了什么"`，得到 `latest.json` 和 `SHA256SUMS.txt`。
+6. 交给 A1：
+   - 三个安装包放到 `https://flowlang.cn/download/`；
+   - `latest.json` 放到 `https://flowlang.cn/desktop/latest.json`；
+   - sha256 和签名也交给 A1，按 A5 的建议同时发到 GitHub Release。
+   
+   A1 上传、核对后改下载页的 latest.json。**清单一放上去，所有装了 0.1.1 及以后的 App 就会开始更新**，所以这一步之前先问用户。
+
+### 本机试更新（不用真私钥）
+
+用一把临时测试密钥：`npx tauri signer generate -w <临时目录>/test.key --ci -p test`。然后用 `--config` 覆盖 `pubkey`、
+`endpoints`（指向本机 `http://127.0.0.1:8765/latest.json`）和 `dangerousInsecureTransportProtocol: true`，先出一个旧版本号的 App、一个新版本号的更新包。
+用测试密钥签名，起 `python3 -m http.server` 当服务器，打开旧版 → 等它下好 → 退出 → 看 Info.plist 的版本号变了没有。
+
+注意两点：
+- App 的路径里不能有符号链接（macOS 的 `/var` 就是，要用 `/private/var/...`），不然更新功能不启动；
+- Mac 的打包必须不带 `._` 文件（`make_update.py` 用的是 `COPYFILE_DISABLE=1 tar --no-mac-metadata`），不然装不上。
+
+2026-11-25 这样测过 0.1.1 → 0.1.2：下好、退出时装上；换一把密钥签的更新会被拒绝（「签名不是用这把公钥对应的私钥签的」）。
 
 ## 隐私
 
-不加任何第三方 SDK，不做统计和跟踪。App 自己只存两样东西在本机：窗口位置（`.window-state.json`）和两个开关（`settings.json`，
-在系统的 App 配置目录）。网页的数据、登录 cookie 在系统网页引擎的存储里，和浏览器里用网站一样。提醒由系统在本机定时，
+不加任何第三方 SDK，不做统计和跟踪。App 自己只存两样东西在本机：窗口位置（`.window-state.json`）和几个开关（`settings.json`，
+在系统的 App 配置目录）。正式版启动时会连 flowlang.cn 查有没有新版本，只看到网络地址，不带账号。网页的数据、登录 cookie 在系统网页引擎的存储里，和浏览器里用网站一样。提醒由系统在本机定时，
 不经过任何推送服务。指南「隐私和数据」一章有给学员看的说明。
 
 ## 还没做 / 以后
 
 - macOS 签名和公证、Windows 代码签名（等账号和证书）。
-- 自动更新的密钥（等用户生成），以及发布 `latest.json` 的流程。
 - 在用户的 MSI（Windows 11 测试机）上实际用一遍：媒体键、SMTC 浮层、提醒通知点开到复习页。
 - 网页侧的小改动（归各区域）：桌面 App 里也显示「返回」按钮（04-home-app.js，语流 B5），「添加到桌面」在 App 里隐藏，
   「已存到手机」「在这台 iPhone 上」这类文案按 `FlowApp.platform` 说（语流 B5 / 11）。

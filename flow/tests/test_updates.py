@@ -31,7 +31,8 @@ class DataTests(unittest.TestCase):
         for e in rel:
             self.assertFalse(set(e) - {'id', 'date', 'label', 'note', 'highlights', *us.GROUPS}, e['id'])
             items = [i for g in us.GROUPS for i in us.items(e, g)]
-            self.assertTrue(1 <= len(items) <= 20, (e['id'], len(items)))
+            # every change a learner can notice is listed (a big night can have 20+); the cap only catches a pasted PR list
+            self.assertTrue(1 <= len(items) <= 30, (e['id'], len(items)))
             for g in us.GROUPS:
                 for x in e.get(g) or []:
                     link = x.get('link') if isinstance(x, dict) else None

@@ -44,3 +44,9 @@ details[open]>summary{margin-bottom:8px}
 .serial .ep .t{display:grid;gap:2px;min-width:0}
 @media (max-width:420px){.exam-pick{grid-template-columns:minmax(0,1fr)}.pl-bands{gap:6px}.pl-band span{font-size:16px}}
 @media (hover:none){.serial .ep:hover{background:none}}
+/* 起点小测's first page on a short screen (Safari's toolbars showing: 375×553): 「开始」 above the tab bar (B8 audit) */
+@media (max-height:620px){
+  .place.stack{gap:8px}
+  .place .h1{margin-bottom:2px}
+  .place .steps-list{gap:2px;line-height:1.5}
+}
