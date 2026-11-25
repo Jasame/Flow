@@ -189,7 +189,7 @@ speaking、pending 照实；2.5 秒内一定发 start；getVoices() 有带 lang 
 - rec：AVAudioRecorder；notify：UNUserNotificationCenter + BGAppRefreshTask。
 - 静音开关：`-FlowMuteAudio YES`（AVPlayer.isMuted、朗读音量 0，网页的 `<audio>`、Web Audio、speechSynthesis 也静音）。
 
-### 安卓（语流 21，`android/`）
+### 安卓（语流 C2，`android/`）
 
 Kotlin，minSdk 26，targetSdk 37；说明在 `android/README.md`。flavor `beta`（cn.flowlang.app.beta，「语流内测」，flow.jasa.hk）和 `prod`（cn.flowlang.app，「语流」，flowlang.cn）。
 
