@@ -87,9 +87,10 @@ details.basis[open]>summary{margin-bottom:0}
 .vt button::after{content:'';position:absolute;inset:-8px -1px}  /* 44 px to tap, the look stays small */
 .vt button.on{background:var(--paper);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
 .review .detail-line{font-size:12.5px;color:var(--muted);text-align:center;margin-top:-8px}
-.review .mean-pos{display:grid;gap:4px;text-align:left;width:max-content;max-width:100%;margin:0 auto}
-.review .mean-pos div{font-size:16px;line-height:1.5;color:var(--ink2)}
-.review .mean-pos b{display:inline-block;min-width:2.2em;font-weight:600;color:var(--muted);font-size:14px}
+/* 词性 | 释义: the first column as wide as the widest 词性 on this card (one 「v.」 sits next to its meaning, as in 简洁; several line up) */
+.review .mean-pos{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:6px;row-gap:4px;align-items:baseline;text-align:left;width:max-content;max-width:100%;margin:0 auto;font-size:16px;line-height:1.5;color:var(--ink2)}
+.review .mean-pos .all{grid-column:1/-1}
+.review .mean-pos b{font-weight:600;color:var(--muted);font-size:14px}
 .ex-wrap.fold .exs .ex:nth-child(n+3){display:none}
 .ex-more{display:block;border:0;background:none;font:600 13.5px/1.4 var(--sans);color:var(--green-ink);text-align:left;padding:6px 0 0 52px;cursor:pointer;min-height:32px}
 .review .conf-wrap{max-width:440px;width:100%;margin:0 auto;text-align:left}
