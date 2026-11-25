@@ -1,3 +1,3 @@
-b47ac0c75e5ae193dbc15afff42c9a81af6424df d8297467a64ea6a611ee326eefcf08155966c2769891fe995c2b7590358513f5 e2e light ref=build-ac52e86f202f tag=b74 tools=597561c34526117206a9ab50909c31f43f5c04458741bfe6feb69478d5de0d67
-# b74 main: Merge pull request #291 from Jasame/android-accent = build of ac52e86f202f
+02567c9c6f46d8d86297fa0205a60ce3804cbbd2 1b127033c4544282a108883e74124ca92e25701eddd192b6abe0bbba45c77946 e2e light ref=build-225cb124a622 tag=b75 tools=597561c34526117206a9ab50909c31f43f5c04458741bfe6feb69478d5de0d67
+# b75 main: Merge pull request #300 from Jasame/ios-fail-items = build of 225cb124a622
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
