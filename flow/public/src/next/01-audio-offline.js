@@ -335,7 +335,9 @@
   const AUDIO = {
     ctx: null, src: null, done: null, own: null, token: 0, bufs: new Map(), idle: 0, off: false,
     AC: window.AudioContext || window.webkitAudioContext,
-    usable() { return WORD_CLIPS && !!this.AC && !!navigator.audioSession && !this.off && this.mode() !== 'compat'; },
+    // not while the page is hidden (the screen locked): the context is closed then (below), and an <audio> plays on there
+    // (继续 on the lock screen for a whole text read sentence by sentence)
+    usable() { return WORD_CLIPS && !!this.AC && !!navigator.audioSession && !this.off && this.mode() !== 'compat' && document.visibilityState !== 'hidden'; },
     // 我的 → 设置 → 单词读音方式 (iPhones and iPads), kept on this phone (the home-screen app has no address bar for
     // ?audio= and ?lead=, and keeps its own storage): 'auto' = 连续 (Web Audio where it works) or 'compat' = 标准 (the
     // <audio> clips), and the silence in front of a clip
