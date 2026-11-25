@@ -31,6 +31,16 @@
 
 ## 2026-11-25
 
+### 17:21 · 香港：安卓 1.0.2 放进下载目录，`latest.json` 换成 1.0.2
+
+- **改了什么**：
+  - `/www/wwwroot/flow-downloads/` 加了 `flow-android-1.0.2.apk`（1,106,916 字节，sha256 `5aca76bd…e099`，versionCode 3）。
+    1.0.1 的文件留着，回退时用。
+  - `latest.json` 的 android 一项换成 1.0.2，新加了 `code` 和 `notes` 两个字段。从 1.0.2 起，App 读这一项来提示更新（#232）。
+- **谁、为什么**：语流 A1·发版和服务器（原 2）。用户在 A1 那边同意了：「放」。
+- **备份**：原来的 `latest.json` 在 `/root/claude-ops/backup-latest-json-*.json`。
+- **撤回**：把 `latest.json` 的 android 一项改回 1.0.1。
+
 ### 17:09 · 香港：root 的一把 SSH 钥匙只能从杭州用
 
 - **改了什么**：`/root/.ssh/authorized_keys` 里 `flow-hk-migrate` 那把钥匙前面加了 `from="<杭州服务器>"`，只认杭州来的连接。
