@@ -261,6 +261,7 @@ flow/public/about/review.jpg
 flow/public/about/share.jpg
 flow/public/about/today-d.jpg
 flow/public/about/today.jpg
+flow/public/apple-touch-icon-beta.png
 flow/public/apple-touch-icon.png
 flow/public/guide/cards.jpg
 flow/public/guide/easy.jpg
@@ -293,7 +294,9 @@ flow/public/guide/sprint.jpg
 flow/public/guide/today.jpg
 flow/public/guide/week.jpg
 flow/public/guide/welcome.jpg
+flow/public/icon-192-beta.png
 flow/public/icon-192.png
+flow/public/icon-512-beta.png
 flow/public/icon-512.png
 flow/public/literata.woff2
 flow/public/manifest.webmanifest
