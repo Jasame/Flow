@@ -1,3 +1,3 @@
-31ba6e93953ab863f2ed842951ba2cbee656d69d 199b1045811293a0a3481c3409aaadd82c51cca92cf5810b79a8df0bc26852b8 e2e light ref=build-c0a9df9559d1
-# b57 main: Merge pull request #193 from Jasame/ci-native-shared = build of c0a9df9559d1
+e821a0835694e9cc7d8f81e15d189700a6b872ac 37d1751c793ab2218961d784d766d08af577aa5d0ca231af1c6f8a0656193c24 e2e light ref=build-67f4e045529e
+# b58 main: Merge pull request #217 from Jasame/ledger-evening = build of 67f4e045529e
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
