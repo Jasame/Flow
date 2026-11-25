@@ -1,3 +1,3 @@
-938e5d70dc5dd470ca9dfc47e19b2f2ac74332b0 def140adcd60c6c25b5750c9ad6d8d9f61803ae30e6b046d5f83bd7839aae325 e2e light
-# b35 main: Merge pull request #86 from Jasame/e2e-failure-details = build of 187b90dcb54d
+f893e072959a7aaa038e7fab819f42ead64cd0fe a0185831db0cc6f92d050054bc70a2b786005102ad475b89cb46d1702567d25d e2e light
+# b36 main: Merge pull request #129 from Jasame/audio-pause = build of 7343be80334e
 # Format: <commit sha> <manifest sha256> [e2e [light]]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
