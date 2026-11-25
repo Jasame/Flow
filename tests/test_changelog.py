@@ -134,6 +134,12 @@ class LedgerTests(unittest.TestCase):
         self.assertTrue(row.startswith(f'| b2 | '), row)
         self.assertIn(f'| `{self.m6[:7]}` | #5 #6 | 轻量 e2e 149/149，服务器报错 0 |', row)
 
+    def test_the_reason_a_check_failed_is_logged_when_the_server_gives_it(self):
+        d = self.status('b2', failed=1)
+        self.assertIn('没过：b1: dialog end gives feedback，', cl.checks(d))  # an older autodeploy: names only
+        d['e2e']['failed_details'] = ['b1: dialog end gives feedback: AI returned no summary (502)']
+        self.assertIn('没过：b1: dialog end gives feedback: AI returned no summary (502)，', cl.checks(d))
+
     def test_status_must_be_for_the_same_tag(self):
         f = Path(self.tmp.name) / 'status.json'
         f.write_text(json.dumps(self.status('b3')))
