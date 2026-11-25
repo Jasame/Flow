@@ -197,6 +197,21 @@ class LearnerModelTests(unittest.TestCase):
         self.assertIn('这周', sent[0][1]); self.assertEqual(sk.send_weekly(self.c, sunday + 60, lambda *a: sent.append(a)), 0)
         self.assertEqual(sk.send_weekly(self.c, sunday - 86400, lambda *a: sent.append(a)), 0)  # Saturday
 
+    def test_weekly_report_days_stay_within_its_dates(self):
+        # Every day for 8 days, at 21:00; the report is opened at 09:00, so the 8th day back (21:00) is within 7×24 hours
+        # but before the first date the page shows: the report is the last 7 calendar days, so 7 days, never 8.
+        now = datetime.datetime.now(nx.TZ).replace(hour=9, minute=0, second=0, microsecond=0)
+        for k in range(8):
+            sk.log(self.c, 1, 'listening', 'dictation', 0.8, 'B1')
+            at = (now - datetime.timedelta(days=k)).replace(hour=21) if k else now - datetime.timedelta(minutes=5)
+            self.c.execute('UPDATE next_skill_events SET created=? WHERE id=(SELECT MAX(id) FROM next_skill_events)', (at.timestamp(),))
+        self.c.commit()
+        rp = sk.report(self.c, 1, now.timestamp())
+        self.assertEqual(rp['from'], (now - datetime.timedelta(days=6)).date().isoformat())
+        self.assertEqual(rp['days'], 7)
+        # the other counts cover the same dates: the 8th day's practice is not in this report's numbers
+        self.assertEqual(sum(s['count'] for s in rp['skills']), 7)
+
     def test_client_scored_practice(self):
         self.assertEqual(sk.post_skill(self.c, 1, {'kind': 'dictation', 'score': 0.8, 'pack': PID})[1], 200)
         self.assertEqual(sk.post_skill(self.c, 1, {'kind': 'essay', 'score': 1})[1], 400)

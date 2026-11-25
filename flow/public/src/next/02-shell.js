@@ -28,7 +28,19 @@
     setTimeout(() => (f || sheetCard).focus({ preventScroll: true }), 30);
     if (onMount) onMount(sheetCard);
   }
+  // Closing slides the sheet down and fades it (0.16 s; B9's design audit, 2026-11-25), from wherever a finger let it
+  // go. The sheet itself is closed at once (everything that asks whether one is open, focus, a sheet opened right after);
+  // what moves is a copy of it, without ids, that nothing can reach and a screen reader does not see.
+  function sheetGhost() {
+    if (REDUCED || sheetEl.hidden || !sheetCard.firstChild) return;
+    const g = sheetEl.cloneNode(true), c = g.querySelector('.sheet-card');
+    g.removeAttribute('id'); g.querySelectorAll('[id]').forEach(x => x.removeAttribute('id'));
+    g.classList.add('sheet-ghost'); g.setAttribute('aria-hidden', 'true'); g.inert = true;
+    document.body.appendChild(g); if (c) c.scrollTop = sheetCard.scrollTop;
+    setTimeout(() => g.remove(), 200);
+  }
   function closeSheet() {
+    sheetGhost();
     sheetEl.hidden = true; sheetCard.innerHTML = ''; sheetCard.style.transform = ''; document.body.classList.remove('sheet-open');
     if (sheetReturn && document.contains(sheetReturn) && sheetReturn.focus) sheetReturn.focus({ preventScroll: true });
     sheetReturn = null;
@@ -91,6 +103,7 @@
     const changed = before !== JSON.stringify(S.home);
     if (changed) snapHome();
     if (S.home.profile && S.home.profile.voice) { S.voice = S.home.profile.voice; save('flow-next-voice', S.voice); }
+    if (S.user && S.home.profile) accentFromAccount(S.home.profile);  // 主题色 kept with the account (07-accent.js)
     setDueBadge();
     return changed;
   }
@@ -185,15 +198,17 @@
   async function openLogin(reason, tab, opts) {
     const mail = await mailOn(), teacher = opts && opts.teacher;
     tab = teacher ? 'reg' : tab || 'pw'; if (!mail && (tab === 'code' || tab === 'reset')) tab = 'pw';
-    const tabs = mail ? [['pw', '密码登录'], ['code', '验证码登录'], ['reg', '注册']] : [['pw', '密码登录'], ['reg', '注册']];
+    // 注册 and 登录 side by side, one level (the owner on WeChat, 2026-11-25: 「注册一般和登录是一级的」); 密码 or 验证码 is
+    // a choice inside 登录, a link under its form
+    const tabs = [['reg', '注册', 'reg'], ['pw', '登录', 'pw code']];
     const reset = tab === 'reset';
     openSheet(`<div class="stack auth">
       <div><h2 class="h2" id="sheetTitle">${teacher ? '注册老师账号' : reset ? '找回密码' : tab === 'reg' ? '注册语流' : '登录语流'}</h2>${reason ? `<p class="muted small">${esc(reason)}</p>` : ''}</div>
       ${teacher ? '' : reset ? '<p class="small">填绑定的邮箱，收到验证码后设一个新密码。设好就直接登录，其他手机和电脑上的登录会退出。</p>'
-        : `<div class="seg" role="tablist" aria-label="登录方式">${tabs.map(([k, l]) => `<button role="tab" data-tab="${k}" aria-selected="${k === tab}">${l}</button>`).join('')}</div>`}
+        : `<div class="seg two" role="tablist" aria-label="注册或登录">${tabs.map(([k, l, on]) => `<button role="tab" type="button" data-tab="${k}" aria-selected="${on.split(' ').includes(tab)}">${l}</button>`).join('')}</div>`}
       <form id="authForm" class="stack" novalidate>${authFields(tab, mail, teacher)}</form>
       <p class="err" id="authErr" role="alert"></p>
-      ${reset ? '<button class="btn ghost" type="button" data-tab="pw">返回登录</button>' : '<button class="btn ghost" data-close type="button">先不登录</button>'}</div>`, card => {
+      ${reset ? '<button class="btn ghost" type="button" data-tab="pw">返回登录</button>' : `<button class="btn ghost" data-close type="button">${tab === 'reg' && !teacher ? '先不注册' : '先不登录'}</button>`}</div>`, card => {
       card.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => openLogin(reason, b.dataset.tab));
       bindEyes(card);
       if (tab === 'reg' && !teacher) bindAge(card, false);
@@ -202,7 +217,8 @@
       if (sendBtn) sendBtn.onclick = async () => {
         err.textContent = ''; sendBtn.disabled = true;
         try {
-          const r = await api('/api/auth/code', { email: form.email.value.trim(), purpose: { reg: 'register', code: 'login', reset: 'reset' }[tab] });
+          // from a class invite link (82-class.js joinRoute): the class's own code allowance, not this network's (auth_service)
+          const r = await api('/api/auth/code', { email: form.email.value.trim(), purpose: { reg: 'register', code: 'login', reset: 'reset' }[tab], ...(tab === 'reg' && S.invite ? { class: S.invite } : {}) });
           toast(r.message || '验证码已发送，请查看邮箱'); countdown(sendBtn); form.code.focus();
         } catch (x) { fieldError(form, err, { message: x.message, field: x.field || 'email' }); sendBtn.disabled = false; }
       };
@@ -215,6 +231,7 @@
         if ((tab === 'code' || tab === 'reset' || (tab === 'reg' && mail)) && !/^\d{6}$/.test(v('code').trim())) return fieldError(form, err, { message: '请输入邮件里的 6 位验证码', field: 'code' });
         const ag = teacher ? {} : readAge(form), agp = tab === 'reg' && !teacher ? ageProblem(ag, true, false) : '';
         if (agp) return fieldError(form, err, { message: agp, field: ag.age ? 'guardian' : 'age' });
+        if (tab === 'reg' && !form.terms.checked) return fieldError(form, err, { message: '请先勾选同意《用户协议》和《隐私和数据》', field: 'terms' });
         if (tab === 'reg' && !form.storage.checked) return fieldError(form, err, { message: '请先勾选同意把账号和学习数据存放在香港的服务器上', field: 'storage' });
         const btn = form.querySelector('[type=submit]'); btn.disabled = true;
         try {
@@ -222,8 +239,8 @@
           if (tab === 'pw') r = await api('/api/login', { username: v('username').trim(), password: v('password') });
           else if (tab === 'code') r = await api('/api/login', { method: 'code', email: v('email').trim(), code: v('code').trim() });
           else if (reset) r = await api('/api/auth/reset', { email: v('email').trim(), code: v('code').trim(), password: v('password') });
-          else r = await api('/api/register', teacher ? { email: v('email').trim(), code: v('code').trim(), username: v('username').trim(), password: v('password'), teacher, storage: true }
-            : { email: v('email').trim(), code: v('code').trim(), username: v('username').trim(), password: v('password'), age: ag.age, guardian: ag.guardian, storage: true });
+          else r = await api('/api/register', teacher ? { email: v('email').trim(), code: v('code').trim(), username: v('username').trim(), password: v('password'), teacher, storage: true, terms: true }
+            : { email: v('email').trim(), code: v('code').trim(), username: v('username').trim(), password: v('password'), age: ag.age, guardian: ag.guardian, storage: true, terms: true });
           await afterLogin(); closeSheet();
           const name = (S.user && S.user.username) || r.username || '';
           toast(reset ? '密码已重设，已经登录' : teacher ? `老师账号注册好了，欢迎你${name ? '，' + name : ''}` : tab === 'reg' ? `注册成功，欢迎你${name ? '，' + name : ''}` : `欢迎回来${name ? '，' + name : ''}`);
@@ -238,18 +255,18 @@
       <button class="btn small" type="button" data-send>发送验证码</button></div><span class="hint">验证码 10 分钟内有效。收不到就看看垃圾邮件，60 秒后可以重发。</span>`;
     if (tab === 'pw') return `<label class="field">用户名或邮箱<input name="username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" required></label>
       ${pwField('密码', 'password', 'current-password')}
-      <div class="auth-links">${mail ? '<button class="link small" type="button" data-tab="reset">忘记密码？</button>' : '<span class="tiny muted">忘记密码：请联系老师或管理员重设。</span>'}</div>
+      <div class="auth-links">${mail ? '<button class="link small" type="button" data-tab="code">用邮箱验证码登录</button><button class="link small" type="button" data-tab="reset">忘记密码？</button>' : '<span class="tiny muted">忘记密码：请联系老师或管理员重设。</span>'}</div>
       <button class="btn primary block" type="submit">登录</button>`;
-    if (tab === 'code') return email + code + '<button class="btn primary block" type="submit">登录</button>';
+    if (tab === 'code') return email + code + '<div class="auth-links"><button class="link small" type="button" data-tab="pw">用密码登录</button></div><button class="btn primary block" type="submit">登录</button>';
     if (tab === 'reset') return email + code + pwField('新密码', 'password', 'new-password', '至少 10 位，最好是一句只有你知道的话') + '<button class="btn primary block" type="submit">设置新密码并登录</button>';
     return (mail ? email + code : '') + `<label class="field">用户名<input name="username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" maxlength="40" required>
         <span class="hint">2–40 个字符，可以用中文，不能有空格和 @。登录时用户名和邮箱都可以用。</span></label>
       ${pwField('密码', 'password', 'new-password', '至少 10 位，最好是一句只有你知道的话')}
       ${mail ? '' : '<span class="hint">注册后可以在「我的」里绑定邮箱，忘记密码时用它找回。</span>'}
       ${teacher ? '' : ageFields('', false)}
+      ${termsField()}
       ${storageField()}
-      <button class="btn primary block" type="submit">${teacher ? '注册老师账号并登录' : '注册并登录'}</button>
-      <span class="hint">注册即表示你已了解<a class="link" href="${PRIVACY}" target="_blank" rel="noopener">隐私说明</a>：数据存在哪里、哪些内容交给哪家 AI。</span>`;
+      <button class="btn primary block" type="submit">${teacher ? '注册老师账号并登录' : '注册并登录'}</button>`;
   }
   // An older password-reset email links to /#reset=<token>: set the new password here, then sign in with it.
   function resetByLink(token) {
@@ -318,7 +335,7 @@
       // 认识语流's 「注册账号」 (/#/join): the first page with the sign-up sheet open over it; signed in, just the first page.
       if (name === 'join') { location.replace('#/'); if (!S.user) setTimeout(() => openLogin('', 'reg'), 0); return; }
       // 数据存放在香港 not agreed (an older account, or paused): that page first, every page but the guide (81-privacy.js)
-      if (S.user && S.user.storage !== 'ok' && name !== 'guide') { setNav(''); await storageView(); }
+      if (S.user && (S.user.storage !== 'ok' || S.user.terms !== 'ok') && name !== 'guide') { setNav(''); await storageView(); }
       else if (name === 'welcome') { setNav(''); await welcome(a === 'edit'); }
       // 老师模式 (82-class.js): #/teacher/<token> is a 老师注册链接; a teacher account's home is its classes
       else if (name === 'teacher') { setNav(''); await teacherSignup(decodeURIComponent(a || '')); }
@@ -354,17 +371,30 @@
       else { setNav('today'); await today(fresh); }
       if (!sameMaterial && name !== 'welcome' && !quiet) enter(view);
       if (!sameMaterial && !quiet) { const h = view.querySelector('h1'); announce(h ? h.textContent : document.title); }
+      homeBackLink();  // 主屏 App: the page's own 「← 上一级」 line gives way to the top bar's 返回 (04-home-app.js)
+      if (!quiet) tourMaybe();  // 新手引导: 今日 (or 我的班级) the first time a new account opens it (08-tour.js)
     } catch (e) {
       const kept = e.network ? OFF.list() : [];  // offline: what can still be studied
       view.innerHTML = `<div class="empty"><div class="big">⚠︎</div><p>${esc(e.message)}</p><button class="btn" id="retry">重试</button>
-        ${kept.length ? `<p class="small">没网时，这些已存到手机的材料还能学：</p><div class="mlist">${kept.map(k => mrow(k, null, '', '')).join('')}</div>` : ''}
+        ${kept.length ? `<p class="small">没网时，这些已存到本机的材料还能学：</p><div class="mlist">${kept.map(k => mrow(k, null, '', '')).join('')}</div>` : ''}
         <p class="small"><a class="link" href="#/feedback">反馈这个问题</a></p></div>`;
       document.getElementById('retry').onclick = () => route();
     } finally { if (!keepScroll && !sameMaterial && !quiet) view.focus({ preventScroll: true }); }
   }
+  // How the page changed (the Navigation API where there is one; else a longer history means a link, and a back or a
+  // redirect cannot be told apart, so neither closes a sheet)
+  const NAV = { type: '', len: history.length };
+  if (window.navigation && navigation.addEventListener) navigation.addEventListener('navigate', e => { NAV.type = e.navigationType || ''; });
   window.addEventListener('hashchange', () => {
     const [name, a] = parts(), last = S.lastRoute.split('/');
     if (!(name === 'm' && last[0] === 'm' && last[1] === a)) window.scrollTo(0, 0);
+    // another page the learner went to (a link, 返回, the browser's or the phone's back): a sheet of the page left closes
+    // with it (one waiting for an answer stays). The app's own redirects (location.replace: #/join → #/ → #/welcome) keep
+    // the sheet a route opened on the way (#/join's 注册). A tip the page left showed is put away, one said on the way
+    // here (「已保存」) stays.
+    const redirect = NAV.type ? NAV.type === 'replace' : history.length === NAV.len; NAV.type = ''; NAV.len = history.length;
+    if (!redirect && !sheetEl.hidden && !sheetLocked()) closeSheet();
+    if (Date.now() - (toast.at || 0) > 400) toastEl.classList.remove('show');
     route();
   });
   // Focus mode: while reading, the top bar slides away on scroll down and comes back on scroll up.

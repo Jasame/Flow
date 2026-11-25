@@ -12,25 +12,56 @@ r19: the same codes reset a forgotten password (purpose reset, signs the learner
 and bind an email from 我的 (purpose bind). Password login locks an account for 15 minutes after 5 wrong
 passwords in 15 minutes (code login and reset still work), and new usernames cannot contain spaces or @, so a
 username never reads as an email address.
+
+2026-11-25 (语流 A5): ceilings a stranger cannot get round by asking again. One email gets at most CODES_PER_DAY codes
+for one purpose a day and may type CODE_FAILS_PER_DAY wrong codes for it a day, across all its codes (one code allowing
+5 tries is no ceiling when a new one can be asked for every minute). The site sends at most FLOW_REGISTER_CODES_PER_HOUR
+sign-up codes an hour, so its mail address cannot be used to flood other people's inboxes. An address that is told
+PROBES times an hour that an email or a username is taken (or unknown) is paused for the rest of that hour. Typing the
+account's own password again (改密码, 绑定邮箱) pauses after 5 wrong ones, as password login does.
 """
-import time,secrets,hashlib,hmac,re
+import os,time,secrets,hashlib,hmac,re
 import account_service as account
 TTL=600
 TRIES=5
 RESEND=60
 PER_IP_HOUR=30
+# 班级试用 (the user's choices 2026-11-25): a whole class signs up from one school network. A code asked for from a
+# class invite link (data.class: an active class's code) skips PER_IP_HOUR and counts against its class instead
+# (CLASS_CODES_PER_HOUR); the per-email, site-wide and one-minute limits still hold. One network makes at most
+# SIGNUPS_PER_IP_DAY accounts a day, class invites not counted (signup_ips: the address and when, no account,
+# kept one day).
+CLASS_CODES_PER_HOUR=120
+SIGNUPS_PER_IP_DAY=60
 EMAIL=re.compile(r'[^\s@<>"\'(),;:]+@[^\s@<>"\'(),;:]+\.[A-Za-z]{2,}')
 PURPOSES={'register':'注册','login':'登录','reset':'重设密码','bind':'绑定邮箱'}
 FOR={'register':'注册语流 Flow','login':'登录语流 Flow','reset':'重设语流 Flow 密码','bind':'给语流 Flow 账号绑定这个邮箱'}
 USERNAME=re.compile(r'[^\s@<>"\'\\/]{2,40}')
 LOCK_TRIES=5
 LOCK_WINDOW=900
+CODES_PER_DAY=10
+CODE_FAILS_PER_DAY=20
+PROBES,PROBE_WINDOW=60,3600
+
+def register_per_hour():
+ try:return max(1,int(os.getenv('FLOW_REGISTER_CODES_PER_HOUR','') or 300))
+ except ValueError:return 300
 
 def schema(c):
  c.executescript('''CREATE TABLE IF NOT EXISTS email_codes(id INTEGER PRIMARY KEY,email TEXT NOT NULL,purpose TEXT NOT NULL,salt TEXT NOT NULL,digest TEXT NOT NULL,expires REAL NOT NULL,tries INTEGER NOT NULL DEFAULT 0,used INTEGER NOT NULL DEFAULT 0,created REAL NOT NULL);
  CREATE INDEX IF NOT EXISTS email_codes_lookup ON email_codes(email,purpose,used);
  CREATE TABLE IF NOT EXISTS login_failures(key TEXT PRIMARY KEY,count INTEGER NOT NULL,first REAL NOT NULL,until REAL NOT NULL DEFAULT 0);''')
- if 'ip' not in {r[1] for r in c.execute('PRAGMA table_info(email_codes)')}:c.execute('ALTER TABLE email_codes ADD COLUMN ip TEXT')
+ cols={r[1] for r in c.execute('PRAGMA table_info(email_codes)')}
+ if 'ip' not in cols:c.execute('ALTER TABLE email_codes ADD COLUMN ip TEXT')
+ if 'class_id' not in cols:c.execute('ALTER TABLE email_codes ADD COLUMN class_id INTEGER')  # asked for from a class invite
+ c.execute('CREATE TABLE IF NOT EXISTS signup_ips(ip TEXT NOT NULL,created REAL NOT NULL)')
+
+def invited_class(c,code):
+ """The id of the active class whose invite code this is, else None (班级试用's sign-up allowance)."""
+ code=str(code or '').strip().upper()[:16]
+ if not code:return None
+ r=c.execute('SELECT id FROM classes WHERE code=? AND active=1',(code,)).fetchone() if c.execute("SELECT 1 FROM sqlite_master WHERE name='classes'").fetchone() else None
+ return r[0] if r else None
 
 def normalize(value):
  email=str(value or '').strip().lower()
@@ -46,16 +77,38 @@ def request(c,data,ip):
  if purpose not in ('register','login','reset'):return {'error':'请求类型不正确'},400
  if not email:return {'error':'请输入有效的邮箱地址'},400
  if not account.configured():return {'error':'邮件服务暂未开启。'+('请稍后再注册。' if purpose=='register' else '请先用密码登录。')},503
+ held=probing(c,ip)
+ if held:return held
  exists=owner(c,email)
- if purpose=='register' and exists:return {'error':'这个邮箱已经注册，可以直接用验证码登录。','code':'email_taken'},409
- if purpose=='login' and not exists:return {'error':'这个邮箱还没有绑定账号。老账号请先用密码登录，再到「我的」里绑定邮箱。','code':'email_unknown'},404
- if purpose=='reset' and not exists:return {'error':'没有找到绑定这个邮箱的账号。注册时没有填邮箱的话，请联系老师或管理员，在后台为你生成一个重设密码的链接。','code':'email_unknown','field':'email'},404
- return send(c,email,purpose,ip)
+ if purpose=='register' and exists:probed(c,ip);return {'error':'这个邮箱已经注册，可以直接用验证码登录。','code':'email_taken'},409
+ if purpose=='login' and not exists:probed(c,ip);return {'error':'这个邮箱还没有绑定账号。老账号请先用密码登录，再到「我的」里绑定邮箱。','code':'email_unknown'},404
+ if purpose=='reset' and not exists:probed(c,ip);return {'error':'没有找到绑定这个邮箱的账号。注册时没有填邮箱的话，请联系老师或管理员，在后台为你生成一个重设密码的链接。','code':'email_unknown','field':'email'},404
+ return send(c,email,purpose,ip,invited_class(c,data.get('class')) if purpose=='register' else None)
 
-def send(c,email,purpose,ip):
- """Mail a fresh code for this email and purpose (the caller has checked who may ask)."""
- # Per address: at most PER_IP_HOUR codes an hour; per email: one code a minute.
- if c.execute('SELECT COUNT(*) FROM email_codes WHERE ip=? AND created>?',(ip,time.time()-3600)).fetchone()[0]>=PER_IP_HOUR:return {'error':'这台设备获取验证码太频繁，请一小时后再试'},429
+def probing(c,ip):
+ """(body, 429) while this address is paused for asking too often whether an email or a username is taken, else None."""
+ if not ip:return None
+ row=c.execute('SELECT until FROM login_failures WHERE key=?',('probe:'+ip,)).fetchone()
+ if row and row['until']>time.time():return {'error':'操作过于频繁，请一小时后再试','code':'busy'},429
+ return None
+
+def probed(c,ip):
+ """One more answer that told this address whether an email or a username is taken (PROBES an hour, then a pause)."""
+ if not ip:return
+ key='probe:'+ip;now=time.time()
+ strike(c,key,c.execute('SELECT * FROM login_failures WHERE key=?',(key,)).fetchone(),now,PROBE_WINDOW,PROBES)
+
+def send(c,email,purpose,ip,class_id=None):
+ """Mail a fresh code for this email and purpose (the caller has checked who may ask). class_id: asked for from that
+ class's invite link (CLASS_CODES_PER_HOUR instead of PER_IP_HOUR)."""
+ # Per address: at most PER_IP_HOUR codes an hour (a class invite: its class's own allowance); per email: one a minute.
+ if class_id:
+  if c.execute('SELECT COUNT(*) FROM email_codes WHERE class_id=? AND created>?',(class_id,time.time()-3600)).fetchone()[0]>=CLASS_CODES_PER_HOUR:return {'error':'这个班这一小时获取验证码的人太多了，请过一会儿再试','code':'busy'},429
+ elif c.execute('SELECT COUNT(*) FROM email_codes WHERE ip=? AND created>? AND class_id IS NULL',(ip,time.time()-3600)).fetchone()[0]>=PER_IP_HOUR:return {'error':'这台设备获取验证码太频繁，请一小时后再试'},429
+ if c.execute('SELECT COUNT(*) FROM email_codes WHERE email=? AND purpose=? AND created>?',(email,purpose,time.time()-86400)).fetchone()[0]>=CODES_PER_DAY:
+  return {'error':f'这个邮箱今天已经收到 {CODES_PER_DAY} 封验证码了。为了这个邮箱的安全，请明天再试'+('，或者先用密码登录。' if purpose in ('login','reset') else '。'),'code':'codes_today'},429
+ if purpose=='register' and c.execute("SELECT COUNT(*) FROM email_codes WHERE purpose='register' AND created>?",(time.time()-3600,)).fetchone()[0]>=register_per_hour():
+  return {'error':'现在注册的人很多，请过几分钟再试','code':'busy'},429
  if account.limited(c,'code:'+purpose+':'+account.digest(email),RESEND):return {'error':'验证码已发送，请 60 秒后再重新获取'},429
  code=f'{secrets.randbelow(10**6):06d}';salt=secrets.token_hex(8);now=time.time()
  # The same address and purpose asked again within account.AGAIN (the learner's 「重新发送」): this one goes by the
@@ -63,7 +116,7 @@ def send(c,email,purpose,ip):
  again=c.execute('SELECT 1 FROM email_codes WHERE email=? AND purpose=? AND created>?',(email,purpose,now-account.AGAIN)).fetchone()
  c.execute('UPDATE email_codes SET used=1 WHERE email=? AND purpose=? AND used=0',(email,purpose))
  c.execute('DELETE FROM email_codes WHERE expires<?',(now-86400,))
- c.execute('INSERT INTO email_codes(email,purpose,salt,digest,expires,created,ip) VALUES(?,?,?,?,?,?,?)',(email,purpose,salt,_hash(salt,code),now+TTL,now,ip));c.commit()
+ c.execute('INSERT INTO email_codes(email,purpose,salt,digest,expires,created,ip,class_id) VALUES(?,?,?,?,?,?,?,?)',(email,purpose,salt,_hash(salt,code),now+TTL,now,ip,class_id));c.commit()
  # So that phones and password managers pick the code up (mail_layout): the code in the subject, 「验证码：123456」 as
  # the first line, the code as one run of digits; how long it lasts and not to pass it on.
  paras=[f'这是你{FOR[purpose]}的验证码，{TTL//60} 分钟内有效，只能用一次。',
@@ -87,6 +140,9 @@ def check(c,email,purpose,code):
  """Consume a code. Returns None when valid, otherwise an error message. Commits its own changes."""
  code=str(code or '').strip()
  if not re.fullmatch(r'\d{6}',code):return '请输入邮件里的 6 位验证码'
+ # wrong codes for this email and purpose in the last day, across all its codes: past the ceiling even a right one waits
+ if c.execute('SELECT COALESCE(SUM(tries),0) FROM email_codes WHERE email=? AND purpose=? AND created>?',(email,purpose,time.time()-86400)).fetchone()[0]>=CODE_FAILS_PER_DAY:
+  return '验证码输错的次数太多了，这个邮箱今天先不能再用验证码'+('，可以先用密码登录' if purpose=='login' else '')+'，明天再试'
  row=c.execute('SELECT * FROM email_codes WHERE email=? AND purpose=? AND used=0 ORDER BY id DESC LIMIT 1',(email,purpose)).fetchone()
  if not row or row['expires']<time.time():return '验证码已过期，请重新获取'
  if row['tries']>=TRIES:return '尝试次数过多，请重新获取验证码'
@@ -96,6 +152,11 @@ def check(c,email,purpose,code):
   return '验证码不正确'+('，还可以再试 '+str(left)+' 次' if left>0 else '，请重新获取')
  c.execute('UPDATE email_codes SET used=1 WHERE id=?',(row['id'],));c.commit()
  return None
+
+def _signed_up(c,ip,invited):
+ """Count this sign-up toward its network's day (SIGNUPS_PER_IP_DAY): the address and when only, kept one day."""
+ if not ip or invited:return
+ now=time.time();c.execute('DELETE FROM signup_ips WHERE created<?',(now-86400,));c.execute('INSERT INTO signup_ips(ip,created) VALUES(?,?)',(ip,now))
 
 def register(c,data,hash_password,ip=''):
  """Returns (user_row, None) or (None, (body, status)).
@@ -108,12 +169,20 @@ def register(c,data,hash_password,ip=''):
   link,problem=ts.usable(c,data.get('teacher'),ip)
   if problem:return None,problem
  name=str(data.get('username','')).strip();p=str(data.get('password',''));email=normalize(data.get('email'))
+ held=probing(c,ip)
+ if held:return None,held
+ # 班级试用: a sign-up from a class invite (its email code was asked for from the invite link, or data.class) does not
+ # count toward SIGNUPS_PER_IP_DAY
+ row=c.execute("SELECT class_id FROM email_codes WHERE email=? AND purpose='register' AND used=0 AND expires>? ORDER BY id DESC LIMIT 1",(email,time.time())).fetchone() if email else None
+ invited=invited_class(c,data.get('class')) or (row['class_id'] if row else None)
+ if ip and not invited and c.execute('SELECT COUNT(*) FROM signup_ips WHERE ip=? AND created>?',(ip,time.time()-86400)).fetchone()[0]>=SIGNUPS_PER_IP_DAY:
+  return None,({'error':'这个网络今天注册的账号已经很多了，请明天再试。班级的同学请用老师发的邀请链接注册。','code':'busy'},429)
  if not USERNAME.fullmatch(name):return None,({'error':'用户名需 2–40 个字符，不能有空格、@ 和 < > " \' / \\','field':'username'},400)
  if not 10<=len(p)<=200:return None,({'error':'密码需 10–200 个字符','field':'password'},400)
- if c.execute('SELECT 1 FROM users WHERE username=?',(name,)).fetchone():return None,({'error':'这个用户名已被使用，换一个试试'},409)
+ if c.execute('SELECT 1 FROM users WHERE username=?',(name,)).fetchone():probed(c,ip);return None,({'error':'这个用户名已被使用，换一个试试'},409)
  pv=__import__('privacy_service');problem=None if link else pv.check_signup(data)  # 年龄段; 不满 14 岁 needs the guardian ticked
  if problem:return None,problem
- problem=pv.check_storage(data)  # 数据存放在香港: its own tick, teachers too
+ problem=pv.check_storage(data) or pv.check_terms(data)  # 数据存放在香港 and 用户协议+隐私和数据: two ticks, teachers too
  if problem:return None,problem
  taken=({'error':'这个老师注册链接刚刚被用掉了。需要的话，请联系语流重新发一个。','code':'teacher_link'},410)
  if not account.configured():
@@ -121,38 +190,57 @@ def register(c,data,hash_password,ip=''):
   c.execute('INSERT INTO users(username,password,created) VALUES(?,?,?)',(name,hash_password(p),time.time()))
   u=c.execute('SELECT * FROM users WHERE username=?',(name,)).fetchone()
   if link:ts.made(c,link['id'],u['id'])
-  pv.agreed(c,u['id']);c.commit()
+  pv.agreed(c,u['id']);pv.agreed_terms(c,u['id']);_signed_up(c,ip,invited);c.commit()
   if not link:pv.store(c,u['id'],data)
   return c.execute('SELECT * FROM users WHERE id=?',(u['id'],)).fetchone(),None
  if not email:return None,({'error':'请输入有效的邮箱地址'},400)
- if owner(c,email):return None,({'error':'这个邮箱已经注册，可以直接用验证码登录。','code':'email_taken'},409)
+ if owner(c,email):probed(c,ip);return None,({'error':'这个邮箱已经注册，可以直接用验证码登录。','code':'email_taken'},409)
  problem=check(c,email,'register',data.get('code'))
  if problem:return None,({'error':problem,'field':'code'},400)
  if link and not ts.claim(c,link['id']):return None,taken
  c.execute('INSERT INTO users(username,password,email,created) VALUES(?,?,?,?)',(name,hash_password(p),email,time.time()))
  u=c.execute('SELECT * FROM users WHERE username=?',(name,)).fetchone()
  if link:ts.made(c,link['id'],u['id'])
- pv.agreed(c,u['id']);c.commit()
+ pv.agreed(c,u['id']);pv.agreed_terms(c,u['id']);_signed_up(c,ip,invited);c.commit()
  if not link:pv.store(c,u['id'],data)
  return c.execute('SELECT * FROM users WHERE id=?',(u['id'],)).fetchone(),None
+
+def strike(c,key,row,now,window,tries):
+ """One more strike for key within window seconds (row: its login_failures row or None); at tries strikes it is paused
+ for window seconds. Returns the strikes so far."""
+ if row and row['first']>now-window:
+  n=row['count']+1;c.execute('UPDATE login_failures SET count=?,until=? WHERE key=?',(n,now+window if n>=tries else 0,key))
+ else:
+  n=1;c.execute('INSERT OR REPLACE INTO login_failures(key,count,first,until) VALUES(?,1,?,0)',(key,now))
+ c.execute('DELETE FROM login_failures WHERE first<? AND until<?',(now-86400,now));c.commit()
+ return n
 
 def failed(c,key,row,now):
  """One more wrong password for this account (key u:<id>): 5 in 15 minutes pause password login, and 注销账号
  (account_data.erase), for 15 minutes. Returns the count so far."""
- if row and row['first']>now-LOCK_WINDOW:
-  count=row['count']+1;c.execute('UPDATE login_failures SET count=?,until=? WHERE key=?',(count,now+LOCK_WINDOW if count>=LOCK_TRIES else 0,key))
- else:
-  count=1;c.execute('INSERT OR REPLACE INTO login_failures(key,count,first,until) VALUES(?,1,?,0)',(key,now))
- c.execute('DELETE FROM login_failures WHERE first<? AND until<?',(now-86400,now));c.commit()
- return count
+ return strike(c,key,row,now,LOCK_WINDOW,LOCK_TRIES)
 
-def login(c,data,verify):
+def own_password(c,uid,given,verify,wrong):
+ """The account's own password typed again (改密码, 绑定邮箱): None when right, else the message (wrong + how many
+ tries are left). 5 wrong in 15 minutes pause this check for 15 minutes; password login has its own lock."""
+ key='pw:%d'%uid;now=time.time();row=c.execute('SELECT * FROM login_failures WHERE key=?',(key,)).fetchone()
+ if row and row['until']>now:return '当前密码错了太多次，请 %d 分钟后再试'%max(1,round((row['until']-now)/60))
+ stored=c.execute('SELECT password FROM users WHERE id=?',(uid,)).fetchone()[0]
+ if verify(str(given or ''),stored):
+  if row:c.execute('DELETE FROM login_failures WHERE key=?',(key,));c.commit()
+  return None
+ left=LOCK_TRIES-failed(c,key,row,now)
+ return wrong+('，再错 %d 次会暂停 15 分钟'%left if 0<left<=2 else '，已暂停 15 分钟' if left<=0 else '')
+
+def login(c,data,verify,ip=''):
  """Password login by username or email, or code login by email."""
  if data.get('method')=='code':
   email=normalize(data.get('email'))
   if not email:return None,({'error':'请输入有效的邮箱地址'},400)
+  held=probing(c,ip)
+  if held:return None,held
   u=owner(c,email)
-  if not u:return None,({'error':'这个邮箱还没有绑定账号','code':'email_unknown'},404)
+  if not u:probed(c,ip);return None,({'error':'这个邮箱还没有绑定账号','code':'email_unknown'},404)
   problem=check(c,email,'login',data.get('code'))
   if problem:return None,({'error':problem,'field':'code'},400)
   return u,None
@@ -170,14 +258,16 @@ def login(c,data,verify):
  if row:c.execute('DELETE FROM login_failures WHERE key=?',(key,));c.commit()
  return u,None
 
-def reset(c,data,hash_password):
+def reset(c,data,hash_password,ip=''):
  """POST /api/auth/reset {email, code, password}: a forgotten password, reset with an emailed code.
  Ends every session of the account and clears its lock; the caller signs the learner in."""
  email=normalize(data.get('email'));p=str(data.get('password',''))
  if not email:return None,({'error':'请输入有效的邮箱地址','field':'email'},400)
  if not 10<=len(p)<=200:return None,({'error':'新密码需 10–200 个字符','field':'password'},400)
+ held=probing(c,ip)
+ if held:return None,held
  u=owner(c,email)
- if not u:return None,({'error':'这个邮箱还没有绑定账号','code':'email_unknown'},404)
+ if not u:probed(c,ip);return None,({'error':'这个邮箱还没有绑定账号','code':'email_unknown'},404)
  problem=check(c,email,'reset',data.get('code'))
  if problem:return None,({'error':problem,'field':'code'},400)
  c.execute('UPDATE users SET password=? WHERE id=?',(hash_password(p),u['id']))

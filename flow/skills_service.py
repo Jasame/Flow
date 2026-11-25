@@ -457,8 +457,11 @@ def daily_path(c, uid, home, now=None):
 
 def report(c, uid, now=None):
     now = now or time.time()
-    week = now - 7 * 86400
-    prev = now - 14 * 86400
+    # The last 7 calendar days, today included (the page shows 「from – to」 and says 这 7 天): from midnight 6 days ago,
+    # so every count covers exactly those dates (7×24 hours back reached into an 8th date: 学习天数 8 for a 7-day range).
+    # The 7 days before them are the comparison.
+    week = (datetime.datetime.fromtimestamp(now, nx.TZ).replace(hour=0, minute=0, second=0, microsecond=0) - datetime.timedelta(days=6)).timestamp()
+    prev = week - 7 * 86400
     q = lambda sql, *a: c.execute(sql, a).fetchone()[0]
     days = set()
     for (t,) in c.execute('SELECT created FROM next_progress WHERE user_id=? AND created>? UNION ALL SELECT created FROM next_reviews WHERE user_id=? AND created>? '
@@ -486,14 +489,14 @@ def report(c, uid, now=None):
     focus = None
     backlog = __import__('vocab_service').counts(c, uid, now)['due']
     if backlog > 100:  # a pile of words due comes first: it only grows while other things are practised
-        focus = f'先把单词积压清掉：现在有 {backlog} 个单词到了复习时间。下周每天先复习一轮，再学新的内容。'
+        focus = f'先把单词积压清掉：现在有 {backlog} 个单词到了复习时间。接下来几天，每天先复习一轮，再学新的内容。'
     elif ab['weakest']:
         name = SKILLS[ab['weakest']]
         what = {'speaking': '每天复述一篇或和 AI 对话一轮', 'writing': '写一段短文让 AI 批改', 'listening': '每天听写三句', 'reading': '先读懂再做理解题'}
-        focus = f"{name}是现在最弱的一项，下周{what.get(ab['weakest'], '多练这一项')}。"
+        focus = f"{name}是现在最弱的一项，接下来几天{what.get(ab['weakest'], '多练这一项')}。"
     elif not days:
-        focus = '这周还没开始：每天 10 分钟，先从今天这篇开始。'
-    return {'from': nx._day(now - 6 * 86400), 'to': nx._day(now), 'days': len(days), 'minutes': minutes, 'materials': materials, 'outputs': outputs,
+        focus = '这 7 天还没学：每天 10 分钟，先从今天这篇开始。'
+    return {'from': nx._day(week), 'to': nx._day(now), 'days': len(days), 'minutes': minutes, 'materials': materials, 'outputs': outputs,
             'reviews': reviews, 'learned': learned, 'mastered': mastered, 'mistakes_new': new_mistakes, 'mistakes_fixed': fixed,
             'skills': skills, 'watch': watch, 'focus': focus, 'ability': ab['skills'], 'relisten': __import__('relisten_service').week(c, uid, week),
             **_week_more(c, uid, now, week, prev)}

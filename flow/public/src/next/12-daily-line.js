@@ -6,22 +6,35 @@
     const l = h && h.line; if (!l) return '';
     let en = esc(l.en).split(' / ').join('<br>');
     if (l.expression) { const k = l.en.toLowerCase().indexOf(l.expression.toLowerCase()); if (k >= 0) en = esc(l.en.slice(0, k)) + '<b>' + esc(l.en.slice(k, k + l.expression.length)) + '</b>' + esc(l.en.slice(k + l.expression.length)); }
-    return `<section class="card line-card" id="lineCard" aria-labelledby="lineTitle">
-      <div class="lc-head"><h2 class="lc-title" id="lineTitle">今日好句</h2><span class="pill${l.kind === 'text' ? ' green' : ''}">${esc(l.label)}</span></div>
+    // On a phone the card is one line until tapped (the owner, 2026-11-25: 今天的计划 and its button on the first screen);
+    // opened, it stays open for the rest of the day. iPad and computer always show it whole (98-daily-line.css).
+    const open = load('flow-line-open') === lineDay(l);
+    return `<section class="card line-card${open ? ' open' : ''}" id="lineCard" aria-labelledby="lineTitle">
+      <div class="lc-head"><h2 class="lc-title" id="lineTitle">今日好句</h2><span class="pill${l.kind === 'text' ? ' green' : ''}">${esc(l.label)}</span>
+        <button class="lc-fold" id="lcFold" type="button" aria-expanded="${open}" aria-controls="lcBody" aria-label="${open ? '收起' : '展开'}今日好句" data-tap="line-fold"><span class="lc-peek" lang="en" aria-hidden="true">${esc(l.say)}</span><span class="lc-chev" aria-hidden="true"></span></button></div>
+      <div class="lc-body" id="lcBody">
       <p class="lc-en${l.say.length > 100 ? ' long' : ''}" lang="en">${en}</p>
       <p class="lc-zh">${esc(l.zh)}</p>${l.note ? `<p class="tiny muted lc-note">${esc(l.note)}</p>` : ''}
       <p class="lc-src tiny">${l.kind === 'quote' ? '— ' : ''}${esc(l.source)}${l.href ? ` · <a class="link" href="${esc(l.href)}" data-tap="line-read">读原文</a>` : ''}</p>
       <div class="lc-acts"><button class="btn small" id="lcSay" type="button" data-tap="line-say">${ICON.speak}听一遍</button>${aiVoice()}
         <button class="btn small" id="lcShadow" type="button" data-tap="line-shadow" aria-expanded="false" aria-controls="lcPanel">跟读</button>
         <button class="btn small" id="lcKeep" type="button" data-tap="line-keep">${ICON.star}收藏</button></div>
-      <div id="lcPanel" hidden></div></section>`;
+      <div id="lcPanel" hidden></div></div></section>`;
   }
+  function lineDay(l) { return new Date().toDateString() + ' ' + l.id; }
   function sayLine(l, done) {
     if (l.kind === 'text' && l.audio) CLIP.sentence({ pack: l.pack, i: l.i, text: l.say, audio: l.audio }, done);
     else TTS.say(l.say, done);
   }
   function bindLine(h) {
     const l = h && h.line, box = document.getElementById('lineCard'); if (!l || !box) return;
+    const fold = box.querySelector('#lcFold');
+    fold.onclick = () => {
+      const open = !box.classList.contains('open');
+      box.classList.toggle('open', open); fold.setAttribute('aria-expanded', String(open)); fold.setAttribute('aria-label', (open ? '收起' : '展开') + '今日好句');
+      save('flow-line-open', open ? lineDay(l) : null);
+      if (!open) { MIC.stop(); const p = box.querySelector('#lcPanel'); if (!p.hidden) box.querySelector('#lcShadow').click(); }
+    };
     box.querySelector('#lcSay').onclick = () => sayLine(l);
     box.querySelector('#lcKeep').onclick = e => saveCard(l.kind === 'text'
       ? { text: l.expression, meaning: l.meaning, context: l.en, pack: l.pack }
@@ -59,10 +72,11 @@
     };
   }
   // 今日一读 (since 2026-11-25; 今日热点 before): an original short text a day on a lasting topic, written by AI with no
-  // news and no search (daily_service), marked 「AI 生成」 in the shared style (aiTag, 00-head.js).
+  // news and no search (daily_service), marked 「AI 生成」 in the shared style (aiTag, 00-head.js). On a phone it is one
+  // line (its name, the title, 「AI 生成」): a tap opens the text, as before.
   function newsCardHTML(n) {
     if (!n) return '';
     return `<a class="card news-card" href="#/m/${encodeURIComponent(n.id)}" data-tap="home-news"><span class="lc-head"><span class="lc-title nc-title">今日一读</span>${aiTag()}</span>
       <b class="nc-h">${esc(n.title)}</b>${n.preview ? `<span class="small muted nc-p">${esc(n.preview)}</span>` : ''}
-      <span class="tiny muted">${n.level} · ${n.reasons && n.reasons.length ? `<span class="nc-why">${esc(n.reasons[0])}</span>` : esc(n.theme_label || '')}${n.minutes ? ` · 约 ${n.minutes} 分钟` : ''} ${aiTag()}<span class="nc-go">读这篇 →</span></span></a>`;
+      <span class="tiny muted nc-meta">${n.level} · ${n.reasons && n.reasons.length ? `<span class="nc-why">${esc(n.reasons[0])}</span>` : esc(n.theme_label || '')}${n.minutes ? ` · 约 ${n.minutes} 分钟` : ''}<span class="nc-go">读这篇 →</span></span></a>`;
   }

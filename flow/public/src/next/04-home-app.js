@@ -12,9 +12,16 @@
   const IN_APP = /Flow(iOS|Android|Desktop)\//.test(navigator.userAgent) || !!window.FlowApp;  // as docs/native-bridge.md (#162) names them
   const HOME_APP = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true || IN_APP;
   document.documentElement.classList.toggle('home-app', HOME_APP);
-  // --bar-h: the top bar's height as it is (the status bar or Dynamic Island above it in the home-screen app, a back
-  // button's taller row), for pages that fill one screen (复习 and 测词汇量, 80-flat.css — 语流 11). 48px until measured.
-  if (window.ResizeObserver && bar) new ResizeObserver(() => document.documentElement.style.setProperty('--bar-h', Math.round(bar.getBoundingClientRect().height) + 'px')).observe(bar, { box: 'border-box' });  // the inset is padding
+  // --bar-h: the top bar's height as it is (the status bar or Dynamic Island above it in the home-screen app), and
+  // --top-h: all above the page (the bar, and the 内测版's line while it is open), for pages that fill one screen
+  // (复习 and 测词汇量, 80-flat.css). 48px until measured; the inset is padding, so the border box is measured.
+  if (window.ResizeObserver && bar) {
+    const tops = () => { const r = document.documentElement.style, b = Math.round(bar.getBoundingClientRect().height), line = document.getElementById('betaBar');
+      r.setProperty('--bar-h', b + 'px'); r.setProperty('--top-h', b + (line && line.isConnected ? Math.round(line.getBoundingClientRect().height) : 0) + 'px'); };
+    const ro = new ResizeObserver(tops), line = document.getElementById('betaBar');
+    ro.observe(bar, { box: 'border-box' }); if (line) ro.observe(line, { box: 'border-box' });
+    if (line) new MutationObserver(tops).observe(line.parentNode, { childList: true });  // closed: removed, no size to report
+  }
 
   // ---- 返回: in the top bar, in place of the logo, on every page but the four tabs and the first-visit page.
   // It goes to the page before when the app has one (the history kept here), else to the page's own tab (‹ 练习).
@@ -44,7 +51,23 @@
     const tab = tabOf(TAB_OF[nav] ? nav : 'today'), prev = HIST.length > 1;
     btn.querySelector('span').textContent = prev ? '返回' : tab[1];
     btn.setAttribute('aria-label', prev ? '返回上一页' : '返回' + tab[1]);
-    btn.onclick = () => { if (HIST.length > 1) history.back(); else location.hash = tab[0]; };
+    btn.onclick = () => { if (HIST.length > 1) history.back(); else location.hash = homeBack.up || tab[0]; };
+    homeBack.up = '';
+  }
+  // A sub-page's own 「← 口语路线」 line (a .link.small at the top of the page, before its title) says the same as the
+  // top bar's 返回 and takes a line of the screen: in the app it is hidden, and 返回 with no page before goes where it
+  // went (‹ 口语路线), not to the tab. In Safari there is no 返回 in the bar: the line stays.
+  function homeBackLink() {
+    const btn = document.getElementById('backBtn');
+    if (!HOME_APP || !btn || btn.hidden) return;
+    const h1 = view.querySelector('h1');
+    const a = [...view.querySelectorAll('a.link.small')].find(x => /^←/.test(x.textContent.trim()) && (!h1 || x.compareDocumentPosition(h1) & Node.DOCUMENT_POSITION_FOLLOWING));
+    if (!a) return;
+    const box = a.parentElement !== view && a.parentElement.children.length === 1 && !a.parentElement.textContent.replace(a.textContent, '').trim() ? a.parentElement : a;
+    box.classList.add('pg-back');
+    if (HIST.length > 1) return;
+    const to = a.getAttribute('href'), name = a.textContent.trim().replace(/^←\s*/, '');
+    homeBack.up = to; btn.querySelector('span').textContent = name; btn.setAttribute('aria-label', '返回' + name);
   }
 
   // ---- 键盘: a field being typed in and its button stay above the keyboard. iOS lays fixed things (the bottom sheet)

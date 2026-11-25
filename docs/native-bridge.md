@@ -1,11 +1,11 @@
 # 语流 App 和网页之间的桥（FlowApp v1）
 
-iOS（语流 20）、安卓（语流 21）、桌面 Windows 和 macOS（语流 22）共用这一份约定。网页只认一个入口 `window.FlowApp`，
+iOS（语流 C1）、安卓（语流 C2）、桌面 Windows 和 macOS（语流 C3）共用这一份约定。网页只认一个入口 `window.FlowApp`，
 命令、事件、字段、错误码只在这里写一次；各平台怎么实现写在最后一节。
 
-- 约定由语流 20 牵头改；各平台的小节由各自的会话写。要改共用部分，先在 PR 里提，三边同意再合。
-- 网页一侧用桥的地方：声音和录音（语流 09，01-audio-offline.js、70-learner.js），提醒（语流 11，50-words.js），
-  App 外壳的样子（语流 07，04-home-app.js）。
+- 约定由语流 C1（iOS）牵头改；各平台的小节由各自的会话写（会话名对照见共享笔记 session-names.md）。要改共用部分，先在 PR 里提，三边同意再合。
+- 网页一侧用桥的地方：声音和录音（语流 B3，01-audio-offline.js、70-learner.js），提醒（语流 B2，50-words.js），
+  App 外壳的样子（语流 B5，04-home-app.js）。
 
 ## 1. 网页怎么知道自己在 App 里
 
@@ -62,7 +62,7 @@ window.__flowAppTransport = {
 - 包装读完就把 `__flowAppTransport` 从 window 上删掉；已经有 `window.FlowApp` 时什么都不做。
 - iOS：传输是 `webkit.messageHandlers.flow.postMessage({cmd, args})`（Bridge.swift 的 `transport`），文件由 Xcode 项目的 Shared 组直接打进 App；
   单元测试在 JavaScriptCore 里跑这个文件（FlowTests 的 `testTheSharedWrapper`、`testTheIOSTransport`）。
-- 安卓：打包时从 `native/` 复制进 assets（语流 21）。桌面：要不要用，由语流 22 定。
+- 安卓：打包时从 `native/` 复制进 assets（语流 C2）。桌面：要不要用，由语流 C3 定。
 - 静音开关、安卓的 speechSynthesis、桌面的 mediaSession 这些各平台自己的东西，不放进这个文件。
 - 改这个文件就是三个 App 一起改：PR 里说明，iOS 的单元测试要过，安卓、桌面再各自打包试一次。
 
@@ -77,7 +77,7 @@ window.__flowAppTransport = {
 | 字段 | 意思 |
 |---|---|
 | `key` | `'listen:<id>'` / `'read:<id>'`（网页 PROG 的 key；`''` 不记进度） |
-| `title` | 锁屏、通知栏显示「AI 朗读 · 标题」（见下面的规矩） |
+| `title` | 锁屏、通知栏显示的标题，带「AI 朗读」（见下面的规矩） |
 | `src` + `sentences` (+ `alt`) | 有录音（Kokoro）：相对本站的地址、`[[开始秒, 结束秒], …]`；`alt` 是另一条线路，可选 |
 | `items` + `voice` + `pack` | 没有录音：`[{text, url}]`，已经知道的地址网页直接给（SV 地址簿），不知道的 `url: null`，App 自己调 `POST /api/next/tts {text, voice, pack}` |
 | `csrf` | 网页的 CSRF token（App 调 /api/next/tts 时带上） |
@@ -114,8 +114,8 @@ window.__flowAppTransport = {
   `idle` 且 `why = ended`：两边都清（App 留一个 ended 记号，给错过这个事件的页面看）；其他的 `idle`：两边都记。
 - 继续时 iOS 不给声音（正在通话、正在录音）：App 发 `audio` `{state: 'paused', why: 'interrupted'}`，网页照它显示。
 - App 在放的时候，网页不 claim navigator.mediaSession（锁屏只有 App 一家）；播放条 MINI 照常显示，暂停、继续、✕ 走桥。
-- App 自己画的播放信息（锁屏、控制中心、灵动岛、通知栏的「正在播放」）：标题前写「AI 朗读 · 」，比如「AI 朗读 · 今日好句」，第几句放第二行。
-  《人工智能生成合成内容标识办法》要求合成的声音在播放的地方写明；语流现在没有真人录音，Kokoro 录音、CosyVoice、系统自带的声音都算（语流 12）。
+- App 自己画的播放信息（锁屏、控制中心、灵动岛、通知栏的「正在播放」）：标题或第二行写上「AI 朗读」。iOS 写在标题前（「AI 朗读 · 今日好句」，第几句放第二行），安卓写在第二行（「AI 朗读 · 第 n / N 句」）。
+  《人工智能生成合成内容标识办法》要求合成的声音在播放的地方写明；语流现在没有真人录音，Kokoro 录音、CosyVoice、系统自带的声音都算（语流 B7）。
 - 系统自带声音按 voice 挑英音（`uk-*`）、美音，语速跟 `rate`。
 
 ## 4. 录音 `rec`
@@ -181,7 +181,7 @@ speaking、pending 照实；2.5 秒内一定发 start；getVoices() 有带 lang 
 
 ## 10. 各平台实现
 
-### iOS（语流 20，`ios/`）
+### iOS（语流 C1，`ios/`）
 
 - 注入：WKUserScript，document start，只在主框架；Bridge.swift 的几行传输加上共用的 `native/flowapp.js`（第 2 节）。
 - 传输：`window.webkit.messageHandlers.flow.postMessage({cmd, args})`，WKScriptMessageHandlerWithReply 直接回 Promise；
@@ -245,7 +245,7 @@ Kotlin，minSdk 26，targetSdk 37；说明在 `android/README.md`。flavor `beta
   - 7 个界面测试（模拟器，内测版，游客，不出声）：桥的字段、登录页、播放、通知栏控制、麦克风弹窗和录音、`notify.test` 排期、退回系统声音时带 `fail`；
   - CI 是 `.github/workflows/android.yml`，跑构建、单元测试和 lint。
 
-### 桌面（语流 22，`desktop/`）
+### 桌面（语流 C3，`desktop/`）
 
 Tauri 2，一套代码出 Windows（WebView2）和 macOS（WKWebView）；说明在 `desktop/README.md`。
 

@@ -53,9 +53,9 @@ input[type=text]:focus,input[type=email]:focus,input[type=password]:focus,input[
 .opt,.ans,.qopt,.rate button,.choice button{border-color:transparent;background:var(--paper)}
 .card .ans,.card .qopt,.card .opt{background:var(--sunk)}
 .opt[aria-pressed=true],.opt[aria-checked=true],.bookc[aria-pressed=true]{border-color:transparent;box-shadow:inset 0 0 0 2px var(--green);background:var(--green-soft)}
-.ans.right,.qopt.right{border-color:transparent;box-shadow:inset 0 0 0 2px var(--green);background:var(--green-soft)}
+.ans.right,.qopt.right{border-color:transparent;box-shadow:inset 0 0 0 2px var(--ok);background:var(--ok-soft)}
 .ans.wrong,.qopt.wrong{border-color:transparent;box-shadow:inset 0 0 0 2px var(--red);background:var(--red-soft)}
-.choice .good,.choice button.good{border-color:transparent;background:var(--green-soft);color:var(--green-ink)}
+.choice .good,.choice button.good{border-color:transparent;background:var(--ok-soft);color:var(--ok-ink)}
 .choice .again,.choice button.again{border-color:transparent;background:var(--red-soft);color:var(--red)}
 .choice button:not(.good):not(.again){background:var(--sunk)}
 .review .choice button[disabled]{opacity:.7}
@@ -66,7 +66,7 @@ input[type=text]:focus,input[type=email]:focus,input[type=password]:focus,input[
 .mini .p{font-size:14.5px}
 
 /* home: one clear next action, then the plan as plain rows */
-.greet{display:block;margin-bottom:4px}
+.greet{display:block;margin-bottom:4px;color:var(--ink2)}
 .today-plan{display:grid;gap:14px}
 .tp-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .ring{--p:0%;flex:none;width:58px;height:58px;border-radius:50%;display:grid;place-items:center;
@@ -95,8 +95,13 @@ body.reviewing{touch-action:pan-y pinch-zoom}
 /* review and the vocabulary test on phones: no tabs, answers where the thumb is */
 @media (max-width:759px){
   body.reviewing .tabs{display:none}
-  body.reviewing{padding-bottom:calc(12px + var(--sab))}
-  body.reviewing .review:not(.open-card):not(.q){display:flex;flex-direction:column;min-height:calc(100dvh - 120px);gap:14px}
+  /* exactly one screen, whatever the top bar is: --bar-h is its real height (98-home-app.css / 04-home-app.js: the
+     status bar or Dynamic Island in the home-screen app and the back button included). The page below it is a column
+     the card fills, so the line above the card (结束, progress, 撤销) can change height without a number to keep. */
+  body.reviewing{padding-bottom:0}
+  body.reviewing main{display:flex;flex-direction:column;min-height:calc(100dvh - var(--bar-h,48px));padding-bottom:calc(12px + var(--sab))}
+  body.reviewing .review:not(.open-card):not(.q){display:flex;flex-direction:column;flex:1 0 auto;gap:14px}
+  body.reviewing .sr-only{top:0}  /* the live region after main (1px, absolute where it stands) would hang below the screen */
   body.reviewing .review:not(.open-card):not(.q)>:first-child{margin-top:auto}
   body.reviewing .review:not(.open-card):not(.q) .choice{margin-top:auto}
   body.reviewing .choice button{min-height:64px;font-size:16.5px}
