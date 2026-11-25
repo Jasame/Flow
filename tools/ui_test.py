@@ -117,10 +117,11 @@ LAYOUT_JS = """(touch) => {
   out.squeezed = [...document.querySelectorAll('#view span, #view p, #view div')].filter(e => e.offsetParent !== null && e.children.length === 0)
     .filter(e => { const t = (e.textContent || '').trim(); const r = e.getBoundingClientRect(); return t.split(/\s+/).length >= 6 && r.width > 0 && r.width < 90 && r.height > 120; })
     .slice(0, 5).map(e => e.tagName + '.' + e.className + ' ' + Math.round(e.getBoundingClientRect().width) + 'px "' + e.textContent.trim().slice(0, 30) + '"');
-  // touch targets: interactive controls smaller than 32x32 (inline word spans and links inside running text excluded)
+  // touch targets: interactive controls smaller than 32x32 (inline word spans and links inside running text excluded;
+  // the guide's list items and table cells are running text too, e.g. 用户协议's 「详见『隐私和数据』」)
   if (touch) {
     out.small = [...document.querySelectorAll('#view button, #view a, #view select, #view input:not([type=hidden]), .tabs a')]
-      .filter(e => e.offsetParent !== null && !e.closest('.text, .p, .ctx, .small p, .muted, .tiny, p, .legend') && !(e.tagName === 'INPUT' && e.closest('label')))
+      .filter(e => e.offsetParent !== null && !e.closest('.text, .p, .ctx, .small p, .muted, .tiny, p, .legend, .guide-body li, .guide-body td') && !(e.tagName === 'INPUT' && e.closest('label')))
       .map(e => { const r = e.getBoundingClientRect(); return [e, r]; })
       .filter(([e, r]) => r.width && (r.width < 32 || r.height < 32))
       .slice(0, 8).map(([e, r]) => `${e.tagName}${e.id ? '#' + e.id : ''}.${[...e.classList].join('.')} "${(e.textContent || e.getAttribute('aria-label') || '').trim().slice(0, 14)}" ${Math.round(r.width)}x${Math.round(r.height)}`);
@@ -2193,7 +2194,7 @@ def class_run(pw):
         pg.fill('#authForm [name=email]', 'ui-teacher-new@example.com'); pg.click('#authForm [data-send]'); pg.wait_for_timeout(800)
         mail = sorted(Path(CFG['outbox']).glob('*.txt'), key=lambda f: f.stat().st_mtime)[-1].read_text(encoding='utf-8')
         pg.fill('#authForm [name=code]', re.search(r'验证码：(\d{6})', mail).group(1))
-        pg.fill('#authForm [name=username]', 'ui-new-teacher'); pg.fill('#authForm [name=password]', 'correct horse 1'); pg.check('#authForm [name=storage]')
+        pg.fill('#authForm [name=username]', 'ui-new-teacher'); pg.fill('#authForm [name=password]', 'correct horse 1'); pg.check('#authForm [name=storage]'); pg.check('#authForm [name=terms]')
         pg.click('#authForm [type=submit]'); pg.wait_for_selector('#tNew', timeout=8000); settle(pg)
         tab = pg.text_content('[data-nav="today"] span') or ''
         check(dev, '老师账号: after signing up, the home is 我的班级 and the first tab says 班级', '我的班级' in (pg.text_content('h1') or '') and tab == '班级', tab)
@@ -2272,8 +2273,13 @@ def privacy_run(pw):
         gp.click('#authForm .agechip:has-text("14–17 岁")'); gp.wait_for_timeout(150)
         check(dev, '注册: another band hides the tick again', not gp.is_visible('#authForm .guard'))
         gp.click('#authForm [type=submit]'); gp.wait_for_timeout(200)
+        no_terms = gp.text_content('#authErr') or ''
+        links = gp.evaluate("[...document.querySelectorAll('#authForm .storagefs a')].map(a => a.getAttribute('href'))")
+        check(dev, '注册: 「我已阅读并同意《用户协议》和《隐私和数据》」 is required, both names open the text',
+              '用户协议' in no_terms and '/#/guide/terms' in links and '/#/guide/privacy' in links, (no_terms, links))
+        gp.check('#authForm [name=terms]'); gp.click('#authForm [type=submit]'); gp.wait_for_timeout(200)
         no_store = gp.text_content('#authErr') or ''
-        check(dev, '注册: the separate 香港 tick is required, and said before any request', '香港' in no_store and gp.is_visible('#authForm [name=storage]'), no_store)
+        check(dev, '注册: the separate 香港 tick is required too, and said before any request', '香港' in no_store and gp.is_visible('#authForm [name=storage]'), no_store)
         ctx.close()
         # 数据存放在香港 (privacy_service): an older account is asked on a page of its own, before any other page;
         # 不同意 pauses it (export, delete, sign out, agree again), and ticking goes on
@@ -2290,10 +2296,13 @@ def privacy_run(pw):
         pg.screenshot(path=str(OUT / 'privacy-storage-paused.png'))
         pg.click('#stoF [type=submit]'); pg.wait_for_timeout(200)
         err = pg.text_content('#stoErr') or ''
-        pg.check('#stoF [name=storage]'); pg.click('#stoF [type=submit]'); pg.wait_for_timeout(1500); settle(pg)
+        both = pg.is_visible('#stoF [name=terms]') and pg.is_visible('#stoF [name=storage]')
+        pg.check('#stoF [name=storage]'); pg.click('#stoF [type=submit]'); pg.wait_for_timeout(200)
+        err = err + ' / ' + (pg.text_content('#stoErr') or '')  # the 用户协议 tick is asked for too
+        pg.check('#stoF [name=terms]'); pg.click('#stoF [type=submit]'); pg.wait_for_timeout(1500); settle(pg)
         back = pg.query_selector('#stoF') is None
         check(dev, '数据存放: an older account is asked first on every page, 不同意 pauses it, ticking goes on',
-              asked and other and paused and '勾选' in err and back, (asked, other, paused, err, back))
+              asked and other and paused and '勾选' in err and '用户协议' in err and both and back, (asked, other, paused, err, both, back))
         ctx.close()
         # an older account without a band: asked once, the question stays until answered
         ctx = browser.new_context(**phone)
