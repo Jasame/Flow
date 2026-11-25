@@ -406,6 +406,7 @@ flow/tests/test_vocab.py
 flow/tests/test_voice_eval.py
 flow/tests/test_welcome.py
 flow/tests/test_word_clip.py
+flow/tests/test_word_extras.py
 flow/tests/test_wordbook_registry.py
 flow/tests/test_wordbooks.py
 flow/tests/test_wordbooks_open.py
@@ -424,6 +425,7 @@ flow/vertex_native.py
 flow/vocab_service.py
 flow/voice_eval.py
 flow/word_clip.py
+flow/word_extras.py
 flow/word_links.py
 tests/test_release.py
 tools/build_ecdict_subset.py

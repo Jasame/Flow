@@ -43,7 +43,8 @@ GROUP = {k: g for k, _, g in TASKS}
 EXTRA = {'fill-examples': ('例句预生成（批量）', 'next-examples'), 'daily-search': ('今日热点联网检索', None),
          'ai-check': ('部署自检', None), 'ai-check-json': ('部署自检', None),
          # 2026-11-25: read-aloud through the gateway's flow-tts (tts_service): in the costs and the daily budget, never a route
-         'tts': ('AI 朗读（声音）', None), 'tts-prewarm': ('AI 朗读预生成（夜间）', None)}
+         'tts': ('AI 朗读（声音）', None), 'tts-prewarm': ('AI 朗读预生成（夜间）', None),
+         'word-extras': ('单词搭配和近义词（批量）', 'next-examples')}  # word_extras.py: AI 例句's route, batch lane
 LABEL.update({k: v[0] for k, v in EXTRA.items()})
 FREE_TEXT = {'chat', 'ai-check'}  # answers in prose, not JSON
 LANES = ('eval', 'batch')
@@ -198,7 +199,7 @@ def _pick(kind, tables):
     return default_model(), 'default'
 
 
-LANE_OF = {'fill-examples': 'batch'}  # batch work in the site's own process, whatever FLOW_AI_LANE says
+LANE_OF = {'fill-examples': 'batch', 'word-extras': 'batch'}  # batch work in the site's own process, whatever FLOW_AI_LANE says
 
 
 def route(kind=None):
