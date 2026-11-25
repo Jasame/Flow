@@ -79,8 +79,8 @@ class MainFirstTests(unittest.TestCase):
         ch = self.jobs['changes']
         self.assertIn('if [ "${{ github.event_name }}" != pull_request ]; then echo ui=true', ch)  # main: always
         self.assertIn('git diff --name-only HEAD^1 HEAD', ch); self.assertIn('fetch-depth: 2', ch)
-        for job in ('backend-share', 'frontend'):
-            self.assertNotIn('needs: changes', self.jobs[job])  # the website tests always run
+        for job in ('backend-share', 'frontend'):  # the website tests always run (they only ask changes where to)
+            self.assertNotIn('outputs.ui', self.jobs[job]); self.assertNotIn('\n    if:', self.jobs[job])
 
     def test_what_counts_as_a_ui_change(self):
         for paths in ([], [''], ['flow/app.py'], ['flow/public/guide/guide.md'], ['docs/x.md', 'flow/corpus_data/v5/a.json'],
@@ -95,6 +95,132 @@ class MainFirstTests(unittest.TestCase):
         self.assertEqual(r.stdout.strip(), 'ui=false')
 
 
+class MsiRunnerTests(unittest.TestCase):
+    """The owner's MSI takes the heavy shares only when switched on, never for a fork, and only when it answers; the
+    gates, frontend and releases stay on GitHub's machines; nothing secret goes there (tools/ci_runner.py)."""
+
+    def setUp(self):
+        self.cr = load('ci_runner')
+        self.wf = (ROOT / '.github' / 'workflows' / 'tests.yml').read_text(encoding='utf-8')
+        self.jobs = dict(re.findall(r'^  ([a-z-]+):\n(.*?)(?=^  [a-z-]+:\n|\Z)', self.wf.split('\njobs:\n', 1)[1], re.S | re.M))
+
+    def fake(self, load=0, starts=True, fail=None):
+        calls = []
+
+        def api(method, path, body=None):
+            calls.append((method, path, body))
+            if fail:
+                raise fail
+            if path.startswith('actions/runs?status=in_progress'):
+                return {'workflow_runs': [{'id': 7}]}
+            if path.startswith('actions/runs?status='):
+                return {'workflow_runs': []}
+            if path.startswith('actions/runs/7/jobs'):
+                return {'jobs': [{'name': f'ui {k}/5', 'labels': ['self-hosted', 'msi'], 'status': 'in_progress'} for k in range(load)]
+                        + [{'name': 'backend', 'labels': ['ubuntu-24.04'], 'status': 'queued'}]}
+            if path.endswith('/dispatches'):
+                return {}
+            if 'msi-probe.yml/runs' in path:
+                return {'workflow_runs': [{'id': 99, 'display_title': 'MSI probe 5-1'}]}
+            if path.startswith('actions/runs/99/jobs'):
+                return {'jobs': [{'name': 'probe', 'labels': ['self-hosted', 'msi'], 'status': 'in_progress' if starts else 'queued'}]}
+            raise AssertionError(path)
+        return api, calls
+
+    def env(self, **kw):
+        return {'MSI_RUNNER': 'on', 'GITHUB_EVENT_NAME': 'pull_request', 'GITHUB_REPOSITORY': 'Jasame/Flow',
+                'HEAD_REPO': 'Jasame/Flow', 'GITHUB_RUN_ID': '5', 'GITHUB_RUN_ATTEMPT': '1', 'DEFAULT_BRANCH': 'main', **kw}
+
+    def decide(self, env, api):
+        old = self.cr.PROBE_WAIT
+        self.cr.PROBE_WAIT = 0.05
+        try:
+            return self.cr.decide(env, api, sleep=lambda s: None)
+        finally:
+            self.cr.PROBE_WAIT = old
+
+    def test_github_machines_unless_switched_on_ours_and_answering(self):
+        hosted = self.cr.HOSTED
+        api, calls = self.fake()
+        self.assertEqual(self.decide(self.env(MSI_RUNNER=''), api)[:2], (hosted, 'hosted'))
+        self.assertEqual(self.decide(self.env(HEAD_REPO='stranger/Flow'), api)[:2], (hosted, 'hosted'))  # a fork
+        self.assertEqual(self.decide(self.env(HEAD_REPO=''), api)[:2], (hosted, 'hosted'))
+        self.assertEqual(self.decide(self.env(GITHUB_EVENT_NAME='schedule'), api)[:2], (hosted, 'hosted'))
+        self.assertEqual(calls, [])  # none of these even asks GitHub, let alone dispatches a probe
+        self.assertEqual(self.decide(self.env(), None)[:2], (hosted, 'hosted'))
+        self.assertEqual(self.decide(self.env(), self.fake(load=6)[0])[:2], (hosted, 'hosted'))  # full
+        self.assertEqual(self.decide(self.env(), self.fake(starts=False)[0])[:2], (hosted, 'hosted'))  # off: no answer
+        import urllib.error
+        self.assertEqual(self.decide(self.env(), self.fake(fail=urllib.error.URLError('x'))[0])[:2], (hosted, 'hosted'))
+        api, calls = self.fake(load=2)
+        runner, where, reason = self.decide(self.env(), api)
+        self.assertEqual((runner, where), (['self-hosted', 'msi'], 'msi'), reason)
+        self.assertIn(('POST', 'actions/workflows/msi-probe.yml/dispatches', {'ref': 'main', 'inputs': {'nonce': '5-1'}}), calls)
+        self.assertEqual(self.decide(self.env(GITHUB_EVENT_NAME='push', HEAD_REPO=''), self.fake()[0])[1], 'msi')  # main
+
+    def test_the_watch_cancels_a_run_whose_msi_jobs_find_no_machine(self):
+        calls = []
+        state = {'status': 'queued'}
+
+        def api(method, path, body=None):
+            calls.append((method, path, body))
+            if path.startswith('actions/runs/5/jobs'):
+                return {'jobs': [{'name': 'ui 1/5', 'labels': ['self-hosted', 'msi'], 'status': state['status']}]}
+            return {}
+        env = self.env(GITHUB_EVENT_NAME='push', GITHUB_REF_NAME='main')
+        state['status'] = 'in_progress'
+        self.assertEqual(self.cr.watch(env, api, sleep=lambda s: None, minutes=0), 'every MSI job has a machine')
+        state['status'] = 'queued'
+        out = self.cr.watch(env, api, sleep=lambda s: None, minutes=0)
+        self.assertIn('run cancelled', out)
+        self.assertIn(('POST', 'actions/runs/5/cancel', None), calls)
+        self.assertIn(('POST', 'actions/workflows/tests.yml/dispatches', {'ref': 'main'}), calls)  # main gets a new run
+        calls.clear()
+        self.cr.watch(self.env(), api, sleep=lambda s: None, minutes=0)  # a pull request: cancelled, not re-run
+        self.assertEqual([c[1] for c in calls if c[0] == 'POST'], ['actions/runs/5/cancel'])
+
+    def test_only_the_shares_can_go_to_the_msi_and_nothing_secret_goes_with_them(self):
+        for job in ('backend-share', 'ui-share'):
+            self.assertIn('runs-on: ${{ fromJSON(needs.changes.outputs.runner) }}', self.jobs[job], job)
+            self.assertIn('echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"', self.jobs[job], job)  # each runner its own temp
+            self.assertIn("if: needs.changes.outputs.where == 'msi'", self.jobs[job])  # the MSI's own Python 3.11
+        for job in ('changes', 'msi-watch', 'backend', 'ui', 'frontend'):
+            self.assertIn('runs-on: ubuntu-24.04', self.jobs[job], job)
+        self.assertIn('/tmp', self.jobs['ui-share'].replace('$RUNNER_TEMP/ui-out', '').replace('runner.temp }}/ui-out', '') + '/tmp')
+        self.assertNotIn('--out /tmp/', self.wf)
+        self.assertIn('MSI_RUNNER: ${{ vars.MSI_RUNNER }}', self.jobs['changes'])
+        self.assertIn('HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}', self.jobs['changes'])
+        self.assertIn('\npermissions:\n  contents: read\n', self.wf)  # what a job on the MSI gets: read, nothing else
+        for job in ('backend-share', 'ui-share'):
+            self.assertNotIn('permissions:', self.jobs[job])
+        for name in ('tests.yml', 'msi-probe.yml', 'msi-setup-check.yml'):
+            self.assertNotIn('secrets.', (ROOT / '.github' / 'workflows' / name).read_text())
+        probe = (ROOT / '.github' / 'workflows' / 'msi-probe.yml').read_text()
+        self.assertIn('permissions: {}', probe); self.assertIn('cancel-in-progress: true', probe)
+        self.assertIn('runs-on: [self-hosted, msi]', probe); self.assertNotIn('actions/checkout', probe)
+        for name in ('beta.yml', 'monitor.yml', 'msi-setup-check.yml'):  # releases and checks never run on the MSI
+            self.assertNotIn('self-hosted', (ROOT / '.github' / 'workflows' / name).read_text(), name)
+
+    def test_the_setup_script_never_handles_a_token(self):
+        sh = (ROOT / 'tools' / 'msi-setup.sh').read_text()
+        self.assertEqual(subprocess.run(['bash', '-n', str(ROOT / 'tools' / 'msi-setup.sh')]).returncode, 0)
+        self.assertNotIn('--token "$', sh.split('cat <<EOF', 1)[0])  # only in the commands it prints for the owner
+        self.assertIn('read -rs -p "token: " T', sh)
+        self.assertIn('RUNNERS=${RUNNERS:-6}', sh)
+        self.assertIn('sha256sum -c', sh)
+        self.assertNotIn('api.github.com', sh)  # unauthenticated API calls get 403 now and then (PR #128's first check)
+        self.assertRegex(sh, r'RUNNER_SHA256=\$\{RUNNER_SHA256:-[0-9a-f]{64}\}')
+        # a proxy from the shell reaches what does not read it: apt, sudo, the runners (systemd services)
+        self.assertIn('PROXY=${https_proxy:-${HTTPS_PROXY:-}}', sh)
+        self.assertIn('/etc/apt/apt.conf.d/95flow-proxy', sh)
+        self.assertIn('Acquire::http::Proxy', sh); self.assertIn('Acquire::https::Proxy', sh)
+        self.assertIn('psudo add-apt-repository', sh); self.assertNotIn('\n  sudo add-apt-repository', sh)
+        self.assertIn("NO_PROXY_LIST=localhost,127.0.0.1,::1,100.64.0.0/10", sh)
+        self.assertIn("grep -vE '^(https?_proxy|HTTPS?_PROXY|no_proxy|NO_PROXY)=' \"$d/.env\"", sh)
+        self.assertIn('curl -sSI -m 20 -o /dev/null https://github.com', sh); self.assertIn('先开 v2rayN 的系统代理', sh)
+        self.assertNotRegex(sh, r'(vmess|vless|trojan|ss)://')  # no node link, ever
+
+
 class BetaReleaseTests(unittest.TestCase):
     """.github/workflows/beta.yml releases each main commit that passed Tests to the 内测版, unless BETA_AUTO is off."""
 
@@ -107,7 +233,8 @@ class BetaReleaseTests(unittest.TestCase):
         self.assertIn(f'workflow_run:\n    workflows: [{tests_name}]\n    types: [completed]\n    branches: [main]', self.wf)
         cond = self.jobs['release']
         for part in ("vars.BETA_AUTO != 'off'", "github.event.workflow_run.conclusion == 'success'",
-                     "github.event.workflow_run.event == 'push'", "github.event_name == 'workflow_dispatch'"):
+                     "github.event.workflow_run.event == 'push'", "github.event_name == 'workflow_dispatch'",
+                     "github.event.workflow_run.head_branch == 'main'"):
             self.assertIn(part, cond)
         self.assertIn('ref: ${{ github.event.workflow_run.head_sha', cond)  # the commit that passed, not main's newest
         # with the end-to-end test (never --no-e2e), the light one unless a Run workflow asks for the full one

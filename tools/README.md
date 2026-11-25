@@ -169,6 +169,47 @@ not `flow/`, not the UI tools) skips the 5 UI shares, taking 3 of the account's 
 `--list` prints what would run without running it. A UI group is one switch of `ui_test.py`; `run_tests.py --ui` with
 no group runs all five CI shares at once on the laptop (about 6 minutes).
 
+## MSI 测试机 (the owner's PC as a test machine)
+
+The owner's MSI (i7-12700, WSL2 Ubuntu 24.04 with 16 processors) runs Tests' heavy jobs — the 2 website shares and
+the 5 UI shares — as self-hosted runners `msi-1` … `msi-6`, all labelled `msi`, so they are off GitHub's 20-job limit.
+Everything else (`changes`, the gates `backend` / `ui`, `frontend`, the watch, every release and the monitor) stays on
+GitHub's machines.
+
+- **Set up** (in WSL, once; safe to run again): `git clone https://github.com/Jasame/Flow.git ~/Flow && cd ~/Flow &&
+  bash tools/msi-setup.sh`. It installs Python 3.11, Google Chrome, the Chinese fonts and Playwright, unpacks 6
+  sha256-checked runner folders with a clean-up hook, runs a self-check (front end, guide PDF, two test files, one UI
+  share), then prints the commands that register the runners: the owner types the token from the GitHub page there;
+  the script never sees it. `msi-setup-check.yml` runs the whole script on a GitHub machine whenever it changes.
+- **Proxy** (the MSI is in mainland China): v2rayN's system proxy on Windows listens on this machine (e.g.
+  `http://127.0.0.1:10808`), and `.wslconfig` (`networkingMode=mirrored`, `autoProxy=true`, `dnsTunneling=true`) hands
+  it to a WSL shell as `https_proxy`. With it, `msi-setup.sh` first checks it can reach github.com (if not: 「先开
+  v2rayN 的系统代理」), then gives it to what does not read the shell's: apt (`/etc/apt/apt.conf.d/95flow-proxy`), the
+  commands it runs with sudo, and every runner's `.env` (`https_proxy`, `http_proxy`, `no_proxy=localhost,127.0.0.1,
+  ::1,100.64.0.0/10`; a runner is a systemd service), restarting a runner whose `.env` changed. Without a proxy none of
+  this is written. A new port: run the script again in a shell that has it. Only a local address is ever written; the
+  node link stays in v2rayN. `msi-setup-check.yml` runs the script through a local squid too.
+- **How a run picks** (`tools/ci_runner.py pick`, in `changes`): the MSI only if the repository variable `MSI_RUNNER`
+  is `on`, the run is main's or a pull request from this repository (never a fork's), fewer than 6 MSI jobs are queued
+  or running, and a probe (`msi-probe.yml`) starts on it within 45 s. Otherwise GitHub's machines, exactly as before.
+  GitHub never moves a queued job, hence the probe; if the MSI goes away right after answering, `msi-watch` cancels the
+  run after 10 minutes without a machine (for main it also starts a new run, which then uses GitHub's machines).
+- **Why 6 runners:** a website share keeps 4 processors busy, a UI share about 2; a run's 7 shares then start 6 at once
+  (2×4 + 4×2 = 16) and the 7th when a website share ends. More would squeeze the UI tests' timing.
+- **Turn it on** (after the runners show Idle under Settings → Actions → Runners): `gh variable set MSI_RUNNER --body on
+  -R Jasame/Flow`. **Pause** (every run from the next one on uses GitHub's machines): `gh variable set MSI_RUNNER
+  --body off -R Jasame/Flow`. A switched-off or sleeping PC needs nothing: the probe gets no answer and runs go to
+  GitHub's machines by themselves.
+- **Stop the runners** (in WSL): `for i in $(seq 1 6); do (cd ~/actions-runner/msi-$i && sudo ./svc.sh stop); done`, or
+  `wsl --shutdown` in Windows. **Remove them**: `sudo ./svc.sh uninstall` in each folder, then delete them under
+  Settings → Actions → Runners (or `./config.sh remove --token <the page's removal token>`).
+- **Safety:** no workflow passes a secret to the MSI; its jobs get the run's read-only token (`contents: read`). The
+  runners run as the owner's Linux user (no sudo without a password). Each job keeps its temporary files in its
+  runner's `_temp` (`TMPDIR`), which the runner clears, and a hook (`ACTIONS_RUNNER_HOOK_JOB_COMPLETED`) empties the
+  workspace after every job. A fork's pull request is never sent there by the pick, and because a fork could edit the
+  workflow itself, Settings → Actions → General keeps "Require approval for all outside collaborators": never approve a
+  fork's run that changes `.github/workflows/` without reading it.
+
 ## End-to-end test on the server (`qa_e2e.py`)
 
 Four internal test learners (ids from 990001, sessions written straight into the database, no password, no

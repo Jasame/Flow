@@ -1,0 +1,23 @@
+name: MSI probe
+# Asks whether the MSI (self-hosted runners labelled msi; tools/msi-setup.sh) can take a job right now. tools/ci_runner.py
+# dispatches it from a Tests run and waits a few seconds for it to start; if it does not, that Tests run uses GitHub's
+# machines. One job, no token, no checkout: it only says it is there. A newer probe cancels an older one, so an MSI
+# that is off leaves at most one probe waiting, never a pile.
+run-name: MSI probe ${{ inputs.nonce }}
+on:
+  workflow_dispatch:
+    inputs:
+      nonce:
+        description: Which Tests run asks (run id and attempt)
+        required: true
+permissions: {}
+concurrency:
+  group: msi-probe
+  cancel-in-progress: true
+jobs:
+  probe:
+    runs-on: [self-hosted, msi]
+    timeout-minutes: 1
+    steps:
+      - name: The MSI is here
+        run: echo "msi is here"
