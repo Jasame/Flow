@@ -36,6 +36,13 @@ class CompatTests(unittest.TestCase):
         self.assertEqual(found('class A { static size = 1; static of(x) { return x } }'), [])
         self.assertEqual(found('const help = "Object.hasOwn( and structuredClone( are Safari 15.4";'), [])
 
+    def test_the_built_ins_past_chrome_114_are_found_too(self):
+        # HarmonyOS 5.0–5.1's browser and ArkWeb are Chromium 114 (语流 C4); these are past Safari 15 as well
+        for src in ('URL.canParse(u)', 'AbortSignal.any([a, b])', 'Promise.try(f)', 'await scheduler.yield()',
+                    'Uint8Array.fromBase64(s)', 'RegExp.escape(s)', 'a.union(new Set([1]))', 'new Set(x).isSubsetOf(y)'):
+            self.assertTrue(found(src), src)
+        self.assertEqual(found('graph.union(a, b); tags.difference(other)'), [])  # not known to be Sets: not taken for them
+
     def test_division_is_not_a_regular_expression(self):
         self.assertEqual(found('const r = a / b / c, s = (x) / 2, t = arr[0] / n;'), [])
         self.assertEqual(found('const w = total / count; const v = n / (?<=0 ? 1 : 2);'.replace('(?<=0', '(m')), [])

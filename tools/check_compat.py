@@ -4,6 +4,9 @@
     python3 tools/check_compat.py              # the served scripts (SCRIPTS: next.js's parts and the other pages)
     python3 tools/check_compat.py FILE…        # these files
 
+The floor is Safari 15.0; the built-ins below are past Chrome 114 too, the Chromium of HarmonyOS 5.0–5.1's browser
+and ArkWeb (语流 C4: the HarmonyOS app supports 5.0 and up), whose syntax Safari 15's floor already covers.
+
 Why (2026-11-25): one regular expression with a lookbehind, (?<=…), made next.js fail to parse in Safari before 16.4,
 so a teacher's iPhone on iOS 16.1 showed nothing at all. The owner asked for old devices to work: iOS 15 and up fully
 (语流 A0's line), 12–14 as far as it goes. Nothing transforms the code (no build tool), so this check keeps it there.
@@ -39,6 +42,15 @@ CODE_FEATURES = [
     ('String.prototype.isWellFormed / toWellFormed', '16.4', re.compile(r'\.(?:isWellFormed|toWellFormed)\(')),
     ('Object.groupBy / Map.groupBy', '17.4', re.compile(r'\b(?:Object|Map)\.groupBy\(')),
     ('Promise.withResolvers', '17.4', re.compile(r'\bPromise\.withResolvers\(')),
+    # also past Chrome 114, the core of HarmonyOS 5.0–5.1's browser and ArkWeb (语流 C4, harmony-plan.md)
+    ('URL.canParse', '17', re.compile(r'\bURL\.canParse\(')),
+    ('AbortSignal.any', '17.4', re.compile(r'\bAbortSignal\.any\(')),
+    ('Promise.try', '18.2', re.compile(r'\bPromise\.try\(')),
+    ('scheduler.yield', '-', re.compile(r'\bscheduler\.yield\(')),
+    ('Uint8Array base64 (fromBase64 / toBase64 / fromHex / toHex)', '18.2', re.compile(r'\bUint8Array\.from(?:Base64|Hex)\(|\.to(?:Base64|Hex)\(')),
+    ('RegExp.escape', '18.2', re.compile(r'\bRegExp\.escape\(')),
+    ('Set methods (union / intersection / difference / symmetricDifference / isSubsetOf / isSupersetOf / isDisjointFrom)',
+     '17', re.compile(r'\.(?:union|intersection|difference|symmetricDifference|isSubsetOf|isSupersetOf|isDisjointFrom)\(\s*new\s+Set\b|\bnew\s+Set\([^)]*\)\.(?:union|intersection|difference|symmetricDifference|isSubsetOf|isSupersetOf|isDisjointFrom)\(')),
 ]
 # after these, a / starts a regular expression; after anything else (a name, a number, ) or ]) it divides
 REGEX_AFTER = set('(,=:[!&|?{};+-*%<>~^') | {''}
