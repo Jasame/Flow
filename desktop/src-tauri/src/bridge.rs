@@ -45,11 +45,11 @@ pub fn media_update(app: AppHandle, s: MediaState) {
     *app.state::<AppState>().media_title.lock().unwrap() = s.title.clone();
     *app.state::<AppState>().media_artist.lock().unwrap() =
         s.active().then(|| crate::media::display_artist(&s));
-    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    #[cfg(any(target_os = "macos", target_os = "windows", target_os = "linux"))]
     {
         let _ = app.run_on_main_thread(move || crate::media::system::update(s));
     }
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
     {
         let _ = (app, s);
     }

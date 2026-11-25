@@ -1,7 +1,7 @@
 /* 新手引导 (08-tour.js): the page dimmed but for the button it points at, and a small card beside it */
 .tour{position:fixed;inset:0;z-index:200}
 .tour-hole{position:fixed;border-radius:14px;box-shadow:0 0 0 200vmax rgba(8,12,10,.58);pointer-events:none;transition:left .22s var(--ease),top .22s var(--ease),width .22s var(--ease),height .22s var(--ease)}
-.tour-tip{position:fixed;box-sizing:border-box;width:min(340px,calc(100vw - 32px));max-height:calc(100dvh - 16px);overflow:auto;background:var(--paper);color:var(--ink);border-radius:16px;padding:14px 16px 12px;box-shadow:0 12px 32px rgba(0,0,0,.24)}
+.tour-tip{position:fixed;box-sizing:border-box;width:min(340px,calc(100vw - 32px));max-height:calc(100vh - 16px);max-height:calc(100dvh - 16px);overflow:auto;background:var(--paper);color:var(--ink);border-radius:16px;padding:14px 16px 12px;box-shadow:0 12px 32px rgba(0,0,0,.24)}
 .tour-tip .tour-n{margin:0;color:var(--muted)}
 .tour-tip .tour-t{margin:2px 0 4px;font-size:17px;line-height:1.35}
 .tour-tip p{margin:0}

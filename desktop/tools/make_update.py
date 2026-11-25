@@ -1,7 +1,8 @@
 """Make a desktop update from a Release build (desktop/README.md「自动更新」). The private key never comes here:
 the owner signs the two files in their own terminal between the two steps.
 
-  1. python3 tools/make_update.py prepare --version 0.1.1 --dmg <语流_…_universal.dmg> --setup <语流_…_x64-setup.exe> --out <dir>
+  1. python3 tools/make_update.py prepare --version 0.1.1 --dmg <语流_…_universal.dmg> --setup <语流_…_x64-setup.exe>
+        [--appimage <语流_…_amd64.AppImage> --deb <语流_…_amd64.deb>] --out <dir>
      → <dir>/flow-mac-<v>.dmg            the Mac download (manual installs)
        <dir>/flow-mac-<v>.app.tar.gz     what the Mac app's updater downloads (the .app from the dmg)
        <dir>/flow-windows-<v>-setup.exe  the Windows download, which the updater runs as well
@@ -22,7 +23,8 @@ import tempfile
 
 
 def names(v):
-    return {'dmg': f'flow-mac-{v}.dmg', 'tar': f'flow-mac-{v}.app.tar.gz', 'exe': f'flow-windows-{v}-setup.exe'}
+    return {'dmg': f'flow-mac-{v}.dmg', 'tar': f'flow-mac-{v}.app.tar.gz', 'exe': f'flow-windows-{v}-setup.exe',
+            'appimage': f'flow-linux-{v}-x86_64.AppImage', 'deb': f'flow-linux-{v}-amd64.deb'}
 
 
 def prepare(a):
@@ -30,6 +32,12 @@ def prepare(a):
     os.makedirs(a.out, exist_ok=True)
     shutil.copyfile(a.dmg, os.path.join(a.out, n['dmg']))
     shutil.copyfile(a.setup, os.path.join(a.out, n['exe']))
+    # Linux: the AppImage updates itself (it is also the download); the deb is a download only
+    if a.appimage:
+        shutil.copyfile(a.appimage, os.path.join(a.out, n['appimage']))
+        os.chmod(os.path.join(a.out, n['appimage']), 0o755)
+    if a.deb:
+        shutil.copyfile(a.deb, os.path.join(a.out, n['deb']))
     with tempfile.TemporaryDirectory() as mnt:
         subprocess.run(['hdiutil', 'attach', '-nobrowse', '-readonly', '-mountpoint', mnt, a.dmg], check=True, capture_output=True)
         try:
@@ -44,8 +52,9 @@ def prepare(a):
             subprocess.run(['hdiutil', 'detach', mnt], check=False, capture_output=True)
     print('ready in', a.out)
     print('now sign, in your own terminal (each asks for the key password):')
-    for k in ('tar', 'exe'):
-        print(f'  npx tauri signer sign -f ~/.tauri/flow-updater.key "{os.path.join(a.out, n[k])}"')
+    for k in ('tar', 'exe', 'appimage'):
+        if os.path.exists(os.path.join(a.out, n[k])):
+            print(f'  npx tauri signer sign -f ~/.tauri/flow-updater.key "{os.path.join(a.out, n[k])}"')
 
 
 def manifest(a):
@@ -59,6 +68,8 @@ def manifest(a):
         plat['darwin-x86_64'] = mac  # one universal app for both
     if os.path.exists(os.path.join(a.dir, n['exe'] + '.sig')):
         plat['windows-x86_64'] = {'signature': sig(n['exe']), 'url': base + n['exe']}
+    if os.path.exists(os.path.join(a.dir, n['appimage'] + '.sig')):
+        plat['linux-x86_64'] = {'signature': sig(n['appimage']), 'url': base + n['appimage']}
     if not plat:
         sys.exit('no .sig files: sign first (step 2)')
     doc = {
@@ -71,7 +82,7 @@ def manifest(a):
         json.dump(doc, f, ensure_ascii=False, indent=2)
         f.write('\n')
     lines = []
-    for k in ('exe', 'dmg', 'tar'):
+    for k in ('exe', 'dmg', 'tar', 'appimage', 'deb'):
         p = os.path.join(a.dir, n[k])
         if os.path.exists(p):
             lines.append(f'{hashlib.sha256(open(p, "rb").read()).hexdigest()}  {n[k]}')
@@ -88,6 +99,8 @@ def main():
     p.add_argument('--version', required=True)
     p.add_argument('--dmg', required=True)
     p.add_argument('--setup', required=True)
+    p.add_argument('--appimage', help='Linux AppImage (updates itself)')
+    p.add_argument('--deb', help='Linux deb (download only)')
     p.add_argument('--out', required=True)
     m = sub.add_parser('manifest')
     m.add_argument('--version', required=True)
