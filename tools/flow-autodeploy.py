@@ -254,7 +254,7 @@ def mail_admins(subject, text):
         journal('no FLOW_ADMIN_EMAILS: nobody to tell')
         return 0
     sys.path.insert(0, ENV.get('FLOW_DIR', '/www/wwwroot/flow'))
-    sys.dont_write_bytecode = True  # no root-owned __pycache__ in the site's folder
+    write_bytecode, sys.dont_write_bytecode = sys.dont_write_bytecode, True  # no root-owned __pycache__ in the site's folder
     try:
         import account_service
     except Exception as e:
@@ -262,6 +262,7 @@ def mail_admins(subject, text):
         return 0
     finally:
         sys.path.pop(0)
+        sys.dont_write_bytecode = write_bytecode
     sent = 0
     for addr in to:
         try:
