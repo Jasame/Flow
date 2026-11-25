@@ -20,8 +20,8 @@ likely 个人信息出境): a separate tick, never bundled with anything else.
   not-yet-asked account gets nothing of its learning: every signed-in request answers 403 code 'storage' except
   STORAGE_OPEN (agree again, export, delete the account, sign out, change the password), and /api/next/home is a
   guest's. A paused account (storage_no) gets no mail (weekly progress, review reminders) and is out of every class
-  number (class_service). Its data is kept PAUSE_DAYS for agreeing again or exporting, then deleted (the deletion job is
-  a follow-up, due before the first pause reaches PAUSE_DAYS).
+  number (class_service). Its data is kept PAUSE_DAYS for agreeing again or exporting, then deleted: purge_paused, from
+  the reminder loop in app.py, once the day the page names (storage_until) is over.
 - Every answer is kept in consent_events (when, agree or not, which wording: STORAGE_VERSION), for the console.
 
 What the 隐私说明 says about where data is and which AI sees what is in public/guide/guide.md (# 隐私和数据).
@@ -162,6 +162,33 @@ def set_storage(c, uid, data):
     _event(c, uid, agree, now)
     c.commit()
     return {'ok': True, **info(c.execute('SELECT age_band, guardian_ok, storage_ok, storage_no, terms_version FROM users WHERE id=?', (uid,)).fetchone())}, 200
+
+
+def gone_at(paused):
+    """When a paused account goes: the end of the Beijing day PAUSE_DAYS after it was paused (the day the page names,
+    「……以前」, is the learner's whole)."""
+    import datetime
+    bj = datetime.timezone(datetime.timedelta(hours=8))
+    day = datetime.datetime.fromtimestamp(paused + PAUSE_DAYS * 86400, bj).date() + datetime.timedelta(days=1)
+    return datetime.datetime(day.year, day.month, day.day, tzinfo=bj).timestamp()
+
+
+def purge_paused(c, now=None, data_dir=None):
+    """隐私和数据: 30 天后还没有重新同意，语流会删除这个账号和数据. Every account declined or withdrawn (storage_no, not
+    agreed since) whose gone_at has passed is deleted as 注销账号 deletes one (account_data.forget); the backups lose
+    their copy within their 14 days. A staff account is never deleted here. Each deletion leaves one line in the
+    console's log, with the account's number only (its name goes with it). Returns how many went."""
+    now = time.time() if now is None else now
+    if 'storage_no' not in {r[1] for r in c.execute('PRAGMA table_info(users)')}:
+        return 0
+    due = [r['id'] for r in c.execute('SELECT id, storage_no FROM users WHERE storage_no IS NOT NULL AND storage_ok IS NULL '
+                                      'AND COALESCE(admin, 0)=0 ORDER BY storage_no').fetchall() if gone_at(r['storage_no']) <= now]
+    import account_data, flow_admin
+    for uid in due:
+        account_data.forget(c, uid, data_dir)
+        flow_admin.log_action(c, {'email': '语流（自动）', 'role': 'system'}, 'account-purge', f'账号 #{uid}',
+                              '不同意或撤回「数据存放在香港」满 30 天，没有重新同意')
+    return len(due)
 
 
 def storage_held(u, path):
