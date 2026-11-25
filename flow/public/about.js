@@ -351,27 +351,45 @@ document.documentElement.classList.add('js');
     }, true);
   }
 
-  /* ---------- 下载安装 (#download): the installers that exist are listed in /download/manifest.json (app.py
-     DOWNLOADS, put on the server by hand with each app build). A platform that is listed gets its button, version,
-     size and sha256; the others keep 即将开放. Nothing listed, or no answer: the page stays as it is. ---------- */
+  /* ---------- 下载安装 (#download): /download/latest.json says which installer each platform gets now
+     ({"android"|"windows"|"mac": {version, file, size, sha256, date, cert?}}; put on the server by hand, nginx serves
+     it, app.py answers {} where nobody has). A listed platform gets its button, version, size and SHA-256; the others
+     keep 即将开放. 下载安装 first opens a sheet with what the app is, who makes it, the permissions, the privacy notes
+     and the checksum; the file only comes with 下载 there (or 取消). ---------- */
   const mb = n => n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
-  const FILE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/, SHA256 = /^[0-9a-f]{64}$/;
+  const FILE_NAME = /^[a-z0-9][a-z0-9._-]{0,99}\.(apk|exe|dmg)$/, SHA256 = /^[0-9a-f]{64}$/, CERT = /^[0-9A-Fa-f:]{64,95}$/;
   function downloads() {
-    const boxes = $$('[data-dl]'); if (!boxes.length || !window.fetch) return;
-    fetch('/download/manifest.json', { cache: 'no-cache' }).then(r => r.json().then(m => (r.ok ? m : null), () => null)).then(m => {
-      const apps = (m && m.apps) || {};
+    const boxes = $$('[data-dl]'), ask = $('#dlAsk'); if (!boxes.length || !window.fetch) return;
+    fetch('/download/latest.json', { cache: 'no-cache' }).then(r => r.json().then(m => (r.ok ? m : null), () => null)).then(m => {
+      const apps = (m && (m.apps || m)) || {};
       boxes.forEach(box => {
         const a = apps[box.dataset.dl];
         if (!a || !FILE_NAME.test(a.file || '') || !SHA256.test(a.sha256 || '')) return;
+        const size = Number(a.size || a.bytes), cert = CERT.test(a.cert || '') ? a.cert : '';
+        const ver = [a.version && '版本 ' + a.version, a.date && a.date + ' 更新', size > 0 && mb(size)].filter(Boolean).join(' · ');
         const btn = $('.dl-btn', box), meta = $('.dl-meta', box), sum = $('.dl-sum', box), chip = $('[data-chip]', box.closest('.app-card'));
-        btn.href = '/download/' + a.file; btn.setAttribute('download', a.file); btn.removeAttribute('aria-disabled');
-        btn.textContent = '下载安装';
-        meta.textContent = [a.version && '版本 ' + a.version, Number(a.bytes) > 0 && mb(Number(a.bytes)), a.needs, a.date && a.date + ' 更新']
-          .filter(Boolean).join(' · ');
-        meta.hidden = !meta.textContent;
-        $('code', sum).textContent = a.sha256; sum.hidden = false;
+        const url = '/download/' + a.file;
+        btn.href = url; btn.setAttribute('download', a.file); btn.removeAttribute('aria-disabled'); btn.textContent = '下载安装';
+        meta.textContent = ver; meta.hidden = !ver;
+        $('.dl-hash', sum).textContent = a.sha256; sum.hidden = false;
+        if (cert) { const c = $('.dl-cert', sum); $('code', c).textContent = cert; c.hidden = false; }
         if (chip) { chip.textContent = '可以下载'; chip.className = 'app-chip ok'; }
+        if (!ask || !ask.showModal) return;  // no sheet in this browser: the button downloads at once
+        btn.addEventListener('click', e => {
+          e.preventDefault();
+          const d = box.dataset;
+          $('#dlAskT').textContent = `下载语流 App（${d.name}）`;
+          $('#dlAskWhat').textContent = `语流正式版网站（flowlang.cn）的 App 外壳，多了${d.plus}。` + (d.extra ? d.extra + '。' : '');
+          $('#dlAskVer').textContent = [ver, $('.dl-needs', box).textContent].filter(Boolean).join(' · ');
+          $('#dlAskHash').textContent = a.sha256;
+          $('#dlAskCert').textContent = cert; $('#dlAskCertRow').hidden = !cert;
+          $('#dlAskPerm').textContent = d.perm;
+          $('#dlAskRisk').textContent = d.risk;
+          const go = $('#dlAskGo'); go.href = url; go.setAttribute('download', a.file);
+          ask.showModal();
+        });
       });
+      if (ask) $('#dlAskGo').addEventListener('click', () => ask.close());  // the link still downloads
     }).catch(() => { /* no list: 即将开放 stays */ });
   }
 

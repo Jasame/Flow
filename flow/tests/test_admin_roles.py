@@ -113,14 +113,14 @@ class ClassicArchivedTests(Servers):
         self.assertEqual(re.findall(r'data-dl="(\w+)"', sec), ['android', 'windows', 'mac'])  # iPhone and iPad: 开发中, no button
         self.assertEqual(sec.count('aria-disabled="true">即将开放</a>'), 3)
         with tempfile.TemporaryDirectory() as d, patch.object(app, 'DOWNLOADS', Path(d)):
-            self.assertEqual(self.call(self.site, '/download/manifest.json')[:2], (200, {'apps': {}}))  # nothing yet: 即将开放
-            apk = Path(d) / 'flow-1.2.3.apk'; apk.write_bytes(b'PK\x03\x04 an installer')
-            (Path(d) / 'manifest.json').write_text(json.dumps({'apps': {'android': {
-                'file': apk.name, 'version': '1.2.3', 'bytes': apk.stat().st_size, 'sha256': hashlib.sha256(apk.read_bytes()).hexdigest()}}}))
+            self.assertEqual(self.call(self.site, '/download/latest.json')[:2], (200, {}))  # nothing yet: 即将开放
+            apk = Path(d) / 'flow-android-1.2.3.apk'; apk.write_bytes(b'PK\x03\x04 an installer')
+            (Path(d) / 'latest.json').write_text(json.dumps({'android': {
+                'file': apk.name, 'version': '1.2.3', 'size': apk.stat().st_size, 'sha256': hashlib.sha256(apk.read_bytes()).hexdigest()}}))
             (Path(d) / 'notes.txt').write_text('not served'); (Path(d) / '.flow.apk').write_bytes(b'hidden')
-            st, got, h = self.call(self.site, '/download/manifest.json', raw=True)
+            st, got, h = self.call(self.site, '/download/latest.json', raw=True)
             self.assertEqual((st, h['Content-Type'], h['Cache-Control']), (200, 'application/json; charset=utf-8', 'no-cache'))
-            self.assertEqual(json.loads(got)['apps']['android']['file'], apk.name)
+            self.assertEqual(json.loads(got)['android']['file'], apk.name)
             st, got, h = self.call(self.site, '/download/' + apk.name, raw=True)
             self.assertEqual((st, got, h['Content-Type']), (200, apk.read_bytes(), 'application/vnd.android.package-archive'))
             self.assertEqual(h['Content-Disposition'], f'attachment; filename="{apk.name}"')

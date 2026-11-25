@@ -151,12 +151,13 @@ PAGE_CACHE='max-age=0, stale-while-revalidate=2592000'  # the learning page: see
 # 认识语流 (/about): the introduction page for people who have not used Flow yet; its own small files, so it opens fast
 # and never loads the learning site. Its pictures are real screenshots (tools/about_shots.py) in public/about/.
 ABOUT_ASSETS=('about.js','about.css')
-# 下载安装 (认识语流 #download): the apps' installers and download/manifest.json, which lists them. They live outside the
-# release (FLOW_DOWNLOAD_DIR, by default <data>/download) and are put there by hand with each app build, so a release
-# never removes them; with no list the page shows 即将开放. manifest.json: {"apps": {"android"|"windows"|"mac": {"file",
-# "version", "bytes", "sha256", "needs", "date"}}} (about.js downloads()). Only plain file names of these types are served.
+# 下载安装 (认识语流 #download): the apps' installers and download/latest.json, which says which one each platform gets:
+# {"android"|"windows"|"mac": {"version", "file", "size", "sha256", "date", "cert"?}} (about.js downloads()). On 语流 nginx
+# serves /download/ from a folder outside the release (A1, app-downloads-hosting); this route is what answers where it
+# does not: files from FLOW_DOWNLOAD_DIR (by default <data>/download), and an empty list when there is none, so the page
+# shows 即将开放 with no failed request. Only plain file names of these types are served.
 DOWNLOADS=Path(os.environ.get('FLOW_DOWNLOAD_DIR') or str(DATA/'download'))
-DOWNLOAD_TYPES={'apk':'application/vnd.android.package-archive','exe':'application/vnd.microsoft.portable-executable',
+DOWNLOAD_TYPES={'apk':'application/vnd.android.package-archive','exe':'application/octet-stream',
  'dmg':'application/x-apple-diskimage','json':'application/json; charset=utf-8'}
 def download_file(name):
  """The file under DOWNLOADS for /download/<name>, with its type, or None: one plain name, no folders, a known type."""
@@ -461,10 +462,10 @@ class Handler(BaseHTTPRequestHandler):
   if path.startswith('/download/'):
    # 下载安装: an installer (saved, not opened) or the list the 认识语流 page reads (always asked afresh)
    got=download_file(path[10:])
-   if not got and path=='/download/manifest.json':return self.send({'apps':{}})  # nothing to download yet: 即将开放
+   if not got and path=='/download/latest.json':return self.send({})  # nothing to download yet: 即将开放
    if not got:return self.send({'error':'页面不存在'},404)
    f,mime=got;body=f.read_bytes();self.send_response(200);self.headers_common(mime)
-   if f.name=='manifest.json':self.send_header('Cache-Control','no-cache')
+   if f.name=='latest.json':self.send_header('Cache-Control','no-cache')
    else:self.send_header('Cache-Control','public, max-age=86400');self.send_header('Content-Disposition',f'attachment; filename="{f.name}"')
    self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
   if path=='/about/':
