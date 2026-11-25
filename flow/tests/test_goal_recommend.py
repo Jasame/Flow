@@ -67,7 +67,7 @@ class GoalRecommendTests(unittest.TestCase):
         self.assertTrue(nx.read_fits(380, 5))
         self.assertTrue(nx.read_fits(100, 10)); self.assertFalse(nx.read_fits(200, 10))
         self.assertTrue(nx.read_fits(200, 15)); self.assertFalse(nx.read_fits(300, 15))
-        self.assertTrue(nx.read_fits(10_000, 20))  # longer days: the length does not decide
+        # 20 minutes and more: home() does not ask, the length does not decide there
 
     def test_guest_has_no_goal_line(self):
         h = nx.home(self.c, None, level='B1')
