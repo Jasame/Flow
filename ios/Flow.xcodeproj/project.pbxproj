@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		65F74B412E71DDDF10A8CD70 /* flowapp.js in Resources */ = {isa = PBXBuildFile; fileRef = 0466368CCE6AA73D89684269 /* flowapp.js */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		5BE21404146BEB7BF89758B9 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -30,6 +34,7 @@
 		997D3F159AE966A93A37E784 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
 		6A2AB7B46815A5A87C73EEA5 /* Beta.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Beta.xcconfig; sourceTree = "<group>"; };
 		58994FA7E4E9FB910499DC22 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		0466368CCE6AA73D89684269 /* flowapp.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = flowapp.js; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -92,6 +97,7 @@
 			isa = PBXGroup;
 			children = (
 				774F6083100D4B3FDF4841DF /* Config */,
+				449ADEA367FF1746EB6F8ED5 /* Shared */,
 				C0CA3009F43BCDF8A3BC3F23 /* Flow */,
 				5F21F97F3D9C6807F48B170A /* FlowTests */,
 				3878117C015CDB3116FA907F /* FlowUITests */,
@@ -107,6 +113,15 @@
 				58994FA7E4E9FB910499DC22 /* Release.xcconfig */,
 			);
 			path = Config;
+			sourceTree = "<group>";
+		};
+		449ADEA367FF1746EB6F8ED5 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				0466368CCE6AA73D89684269 /* flowapp.js */,
+			);
+			name = Shared;
+			path = ../native;
 			sourceTree = "<group>";
 		};
 		5C8C5EA09D14FAD397A1D190 /* Products */ = {
@@ -239,6 +254,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				65F74B412E71DDDF10A8CD70 /* flowapp.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

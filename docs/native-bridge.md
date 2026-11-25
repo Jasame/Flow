@@ -45,6 +45,27 @@ iOS（语流 20）、安卓（语流 21）、桌面 Windows 和 macOS（语流 2
 - `FlowApp.call('hello')` → `{v, app, build, platform, features}`。
 - 安卓的返回键：App 先在 `window` 上发可以取消的 `flowapp:back` 事件，网页 `preventDefault()` 就算处理了；没人处理时 App 关掉开着的 sheet，再回到上一页。iOS、桌面没有这个键，不发。
 
+### 共用的包装 `native/flowapp.js`
+
+上面这些（`FlowApp` 的字段、`has`、`call`、`on`/`off`/`_emit`、`audio`/`rec`/`notify` 三块、html 的 `flow-<platform>`、回到前台调 `app.visible`）
+只写在一个文件里：`native/flowapp.js`。每个 App 原样放进网页，在它前面只放自己的几行传输：
+
+```js
+window.__flowAppTransport = {
+  cfg: { v, app, build, beta, platform, features },  // App 自己的情况
+  send(cmd, args),          // 一条命令交给 App，回答可以是值或 Promise（包装都变成 Promise）
+  extend(FlowApp, call),    // 可以不给：本平台多出来的成员，在冻结之前加（安卓的 _back）
+  ready(FlowApp),           // 可以不给：window.FlowApp 放好以后（安卓收端口的消息、发 hello）
+};
+```
+
+- 包装读完就把 `__flowAppTransport` 从 window 上删掉；已经有 `window.FlowApp` 时什么都不做。
+- iOS：传输是 `webkit.messageHandlers.flow.postMessage({cmd, args})`（Bridge.swift 的 `transport`），文件由 Xcode 项目的 Shared 组直接打进 App；
+  单元测试在 JavaScriptCore 里跑这个文件（FlowTests 的 `testTheSharedWrapper`、`testTheIOSTransport`）。
+- 安卓：打包时从 `native/` 复制进 assets（语流 21）。桌面：要不要用，由语流 22 定。
+- 静音开关、安卓的 speechSynthesis、桌面的 mediaSession 这些各平台自己的东西，不放进这个文件。
+- 改这个文件就是三个 App 一起改：PR 里说明，iOS 的单元测试要过，安卓、桌面再各自打包试一次。
+
 ## 3. 整篇朗读 `audio`
 
 听的「播放全文」、读的「伴读」（网页的 LONG）。短声音（单词、例句、单句、AI 回复）还在网页里放，不走桥。
@@ -160,7 +181,7 @@ speaking、pending 照实；2.5 秒内一定发 start；getVoices() 有带 lang 
 
 ### iOS（语流 20，`ios/`）
 
-- 注入：WKUserScript，document start，只在主框架；文件 `ios/Flow/Bridge/FlowBridge.js`（第 2 节的形状）。
+- 注入：WKUserScript，document start，只在主框架；Bridge.swift 的几行传输加上共用的 `native/flowapp.js`（第 2 节）。
 - 传输：`window.webkit.messageHandlers.flow.postMessage({cmd, args})`，WKScriptMessageHandlerWithReply 直接回 Promise；
   App → 网页：`evaluateJavaScript("FlowApp._emit(type, detail)")`。只认本站主框架（Bridge.swift 检查来源）。
 - WKAppBoundDomains 只有本站：服务工作线程、桥、cookie 只在本站有效。

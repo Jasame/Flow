@@ -62,6 +62,7 @@ SIMCTL_CHILD_FLOW_START_URL=http://localhost:8771 xcrun simctl launch booted cn.
 App 在网页自己的脚本之前放好 `window.FlowApp`（只在本站的主框架里），User-Agent 末尾是 `FlowiOS/<版本>`。`FlowApp.platform` 是 `'ios'`；桌面版（语流 22）用同一个 v1，`platform` 是 `'windows'` / `'macos'`，`has('audio')`、`has('rec')` 为 false。网页一律先判断 `window.FlowApp && FlowApp.has('audio' | 'rec' | 'notify')`，没有就照旧（Safari、主屏 App、微信都不受影响）。
 
 - 网页 → App：`window.webkit.messageHandlers.flow.postMessage({cmd, args})`，返回 Promise。下面的 `FlowApp.xxx()` 都是它的包装。
+- 包装是三个 App 共用的 `native/flowapp.js`（约定 docs/native-bridge.md 第 2 节）：Xcode 项目的 Shared 组直接引用它，构建时打进 App；iOS 自己只在前面加几行传输（`Bridge.transport`）。改它要跑 FlowTests（`testTheSharedWrapper`）。
 - App → 网页：`FlowApp.on(type, fn)`，同时在 `window` 上发 `flowapp:<type>` 事件。
 - 只接受本站主框架发来的消息（`Bridge.swift` 检查来源）。
 
