@@ -125,6 +125,13 @@
     url(text, o) {
       const k = this.key(text, o);
       if (this.urls.has(k)) return this.urls.get(k);
+      // No connection at all: the address kept on this device at once, or 'offline' at once, rather than a request that
+      // cannot go out (each sentence of a whole text waited 1–2 s under 「正在准备朗读第 N 句…」, B3's offline run 2026-11-26)
+      if (navigator.onLine === false) {
+        const old = this.kept()[this.hash(k)];
+        if (old) return Promise.resolve(old[0]);
+        return Promise.reject(Object.assign(new Error('离线中'), { code: 'offline' }));
+      }
       const p = (async () => {
         await DATA.ready;
         try {
