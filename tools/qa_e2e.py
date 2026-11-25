@@ -435,6 +435,18 @@ def persona_exam(cl):
         ans = [{'pack': p['pack'], 'i': q['i'], 'choice': 0} for p in at['passages'] for q in p['questions']]
         s, sc = cl.post('/api/next/assess/comprehension', {'kind': 'reading', 'answers': ans})
         check(who, 'radar: the check is scored and recorded', s == 200 and sc.get('recorded', {}).get('skill') == 'reading', s)
+    # 2026-11-25: the speaking check refused every real recording (「请求大小不正确」, the route had the 20 KB limit). A body
+    # the size of a minute on an iPhone (AAC at its default 185 kb/s, the most the page sends) goes through nginx and the
+    # size check; its bytes are not audio, so the audio check refuses it before any AI is called (nothing spent)
+    s, tk = cl.get('/api/next/assess/task?kind=speaking')
+    if s == 200 and isinstance(tk, dict) and tk.get('question'):
+        big = {'mime_type': 'audio/mp4', 'data': base64.b64encode(b'\x1aE\xdf\xa3' + b'\0' * 1_390_000).decode()}
+        s, j = cl.post('/api/next/assess/speaking', {'question': tk['question'], 'audio': big, 'request_id': rid('as')})
+        err = (j or {}).get('error') if isinstance(j, dict) else ''
+        check(who, 'radar: a minute-long recording reaches the speaking check (not refused for its size)',
+              s in (400, 503) and err not in ('请求大小不正确', '录音太长了，请在 1 分钟内说完再交'), (s, err))
+    else:
+        check(who, 'radar: the speaking task', False, s)
     s, rr = cl.get('/api/next/radar')
     check(who, 'radar: reading measured against its goal', s == 200 and next(d for d in rr['dims'] if d['id'] == 'reading')['source'] == 'assessment', s)
     s, m = cl.get('/api/next/material?id=' + PID)
