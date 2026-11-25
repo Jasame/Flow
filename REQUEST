@@ -1,3 +1,3 @@
-7363c30144058012205319baf5c1478e5e247397 7c8805d831dae7b7a1150b0d7edfc88b528d6bb658274b2a62058b2167ece330 e2e light ref=build-298a5749d604 tag=b86 tools=c8f8bc8e43fd5f240d1e4b9541d9e4edc8f88c917b5795e6ecafd8f51af4bfbb
-# b86 main: Merge pull request #317 from Jasame/ui-batch1 = build of 298a5749d604
+31cf07bc7f2c02797bdc75cdc2e19e2f757543b8 85d2354d67bb05f6df4a4c16fc358da3ac8c05cbf3cfd7289694b59790a0e641 e2e light ref=build-e15231808e64 tag=b87 tools=c8f8bc8e43fd5f240d1e4b9541d9e4edc8f88c917b5795e6ecafd8f51af4bfbb
+# b87 main: Merge pull request #350 from Jasame/ledger-r35 = build of e15231808e64
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
