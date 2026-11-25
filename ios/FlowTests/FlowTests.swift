@@ -575,6 +575,19 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(LongPlayer.shown(0.75), 0.75)
     }
 
+    @MainActor func testWhichPackFailuresAreTriedAgainAndHowTheyAreSaid() {
+        XCTAssertTrue(Packs.passing(URLError(.timedOut)))
+        XCTAssertTrue(Packs.passing(SiteError.status(502, code: "", message: "")), "the server restarting (a deploy)")
+        XCTAssertTrue(Packs.passing(SiteError.status(429, code: "", message: "")))
+        XCTAssertFalse(Packs.passing(SiteError.status(404, code: "file", message: "")), "not there: once is enough")
+        XCTAssertFalse(Packs.passing(URLError(.notConnectedToInternet)))
+        XCTAssertTrue(Packs.offline(URLError(.notConnectedToInternet)))
+        XCTAssertFalse(Packs.offline(URLError(.timedOut)))
+        XCTAssertEqual(Packs.why(URLError(.timedOut)), "网络太慢")
+        XCTAssertEqual(Packs.why(SiteError.status(503, code: "", message: "")), "服务器忙")
+        XCTAssertEqual(Packs.why(nil), "出了点问题")
+    }
+
     @MainActor func testNoConnectionHandsARecordingBackToThePage() {
         XCTAssertTrue(LongPlayer.handBack(kept: false, online: false), "the page plays it from its own copy (sw.js)")
         XCTAssertFalse(LongPlayer.handBack(kept: true, online: false), "the app's own copy: the app plays it")

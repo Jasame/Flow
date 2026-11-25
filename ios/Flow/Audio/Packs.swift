@@ -2,6 +2,7 @@ import BackgroundTasks
 import Foundation
 import Network
 import Observation
+import os
 
 /// 离线朗读包 (Feature.offlinePacks): the recordings of today's texts kept in this app, so a whole text plays in the app
 /// without a connection (the page keeps its own copy for itself, sw.js; the app's player cannot read that one). The
@@ -23,6 +24,7 @@ final class Packs {
     static let most = 9                   // files at most (three days' worth), the oldest go first
     static let keepDays = 7.0
     static let again: TimeInterval = 3 * 3600  // in front again within 3 hours: no new look
+    private static let log = Logger(subsystem: "cn.flowlang.app", category: "packs")
 
     struct Entry: Codable, Equatable {
         var id: String
@@ -136,26 +138,66 @@ final class Packs {
         lastRun = Date()
         note = "正在看今天要学哪几篇…"
         do {
-            let home = try await site.json("/api/next/home")
+            let home = try await again { try await site.json("/api/next/home") }
             let ids = Self.todaysTexts(home)
             let voice = ((home["profile"] as? [String: Any])?["voice"] as? String) ?? UserDefaults.standard.string(forKey: "packs.voice") ?? "us-f"
-            var got = 0
+            var kept = 0, none = 0, failed: Error?
             for (n, id) in ids.enumerated() {
                 guard Features.on(.offlinePacks), !Task.isCancelled else { break }
                 note = "正在存第 \(n + 1) / \(ids.count) 篇…"
-                if try await keep(id, voice: voice, site: site) { got += 1 }
+                do {  // one text that does not come is no reason to leave the others
+                    if try await again({ try await self.keep(id, voice: voice, site: site) }) { kept += 1 } else { none += 1 }
+                } catch {
+                    if Self.offline(error) { throw error }
+                    Self.log.error("packs: \(id, privacy: .public) not kept: \(String(describing: error), privacy: .public)")
+                    failed = error
+                }
             }
             prune(today: ids)
-            note = ids.isEmpty ? "今天还没有要读的文章" : "今天的 \(ids.count) 篇已经存好" + (got < ids.count ? "（有 \(ids.count - got) 篇没有录音）" : "")
+            let missed = ids.count - kept - none
+            if ids.isEmpty {
+                note = "今天还没有要读的文章"
+            } else if missed == 0 {
+                note = "今天的 \(ids.count) 篇已经存好" + (none > 0 ? "（有 \(none) 篇没有录音）" : "")
+            } else {
+                note = (kept > 0 ? "存好 \(kept) 篇，" : "") + "\(missed) 篇这次没存成（\(Self.why(failed))），下次连着 Wi-Fi 时再试"
+            }
         } catch SiteError.signedOut {
             note = "登录以后才会存"
         } catch SiteError.status(403, "storage", _) {
             note = "先在页面上同意用户协议和隐私说明，才会存"
-        } catch let e as URLError where e.networkUnavailableReason != nil || e.code == .notConnectedToInternet {
-            note = "没连 Wi-Fi：连上以后再存"
         } catch {
-            note = "这次没存成，下次连着 Wi-Fi 时再试"
+            Self.log.error("packs: today's not fetched: \(String(describing: error), privacy: .public)")
+            note = Self.offline(error) ? "没连 Wi-Fi：连上以后再存" : "这次没存成（\(Self.why(error))），下次连着 Wi-Fi 时再试"
         }
+    }
+
+    /// A request that failed for a passing reason (the server busy or restarting, a slow line): once more after 2 s.
+    private func again<T>(_ work: () async throws -> T) async throws -> T {
+        do { return try await work() } catch {
+            guard !Self.offline(error), !Task.isCancelled, Self.passing(error) else { throw error }
+            try await Task.sleep(for: .seconds(2))
+            return try await work()
+        }
+    }
+
+    nonisolated static func offline(_ error: Error) -> Bool {
+        guard let e = error as? URLError else { return false }
+        return e.networkUnavailableReason != nil || [.notConnectedToInternet, .dataNotAllowed].contains(e.code)
+    }
+
+    /// worth one more try: a timeout, a dropped line, the server's 5xx or 429
+    nonisolated static func passing(_ error: Error) -> Bool {
+        if let e = error as? URLError { return [.timedOut, .networkConnectionLost, .cannotConnectToHost, .badServerResponse].contains(e.code) }
+        if case SiteError.status(let s, _, _) = error { return s >= 500 || s == 429 }
+        return false
+    }
+
+    /// the reason in a few words, for the settings page
+    nonisolated static func why(_ error: Error?) -> String {
+        if let e = error as? URLError { return e.code == .timedOut ? "网络太慢" : "网络不稳" }
+        if case SiteError.status(let s, _, _)? = error { return s >= 500 || s == 429 ? "服务器忙" : "服务器没给" }
+        return "出了点问题"
     }
 
     /// One text's recording, if the site has one in this voice (else its first voice). true: it is on the phone now.
@@ -173,7 +215,7 @@ final class Packs {
         let (tmp, resp) = try await session.download(for: req)
         guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else {
             try? FileManager.default.removeItem(at: tmp)
-            return false
+            throw SiteError.status((resp as? HTTPURLResponse)?.statusCode ?? 0, code: "file", message: "")
         }
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let name = Self.fileName(id: id, voice: v, version: version)
