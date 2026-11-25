@@ -22,13 +22,61 @@
 | 事情 | 现在 | 等什么 |
 | --- | --- | --- |
 | Gemini 中转站并发从 2 改成 6（#68） | 代码已合（11-24 22:49），中转站上还是 2 | 用户在 Google Cloud Shell 里执行 `flow-gateway/set_slots.sh 6`（步骤在 #68 和 flow-gateway 的说明里）。上线后语流 12 对比前后的 503/504 和等待时间 |
-| 录音任务改走百炼 Qwen-Omni（#88） | 代码已在 main（b14 起在内测版），默认关 | 内测版上试过、评测不比 Gemini 差，再问用户切 |
+| 发音（说一句）也改走 Qwen-Omni | 两个站的对话、复述、雅思口语、跟读 11-25 已改走 Qwen-Omni；发音还走 Gemini | 语流 9 的保护代码上线以后再切；一次语音对话 Omni 没给出「听到了什么」的偶发问题在语流 12 |
 | 删内测版手工加的 `70-tts-write.conf` | 还在 | b11 起每次部署自己装 `61-flow-tts.conf`，确认装上后找个没人用的时候删掉 70，`daemon-reload` 再重启 flow-beta |
 | 数据库副本只留 14 天（#58） | r27 已带上正式版；内测版只列不删 | 语流上最早的副本是 11-23 的，约 12-07 起开始真正删除（语流 2 记着） |
-| 语流的系统邮件改用 flowlang.cn 发 | 内测版 11-25 凌晨已切到阿里云邮件推送；语流还是用户的 jasa.hk 飞书邮箱 | 备用通道 #93 和 EHLO #85 已合进 main（b14、b15 在内测版），随下一个正式版上去以后，用户在语流 16 同意再切 `/etc/flow.env`（杭州的 xmc-hz-watch 也读这几行，要一起看） |
+| 语流的系统邮件改用 flowlang.cn 发 | 内测版 11-25 凌晨已切到阿里云邮件推送；r28 已带上备用通道 #93 和 EHLO #85；语流还是用户的 jasa.hk 飞书邮箱 | 语流 16 请用户同意后切 `/etc/flow.env` 的发信几行（杭州的 xmc-hz-watch 也读这几行，要一起看） |
 | 上传用过的整包 `/root/claude-ops/flow-audio-packs.tar`（112 MB） | 还在，内容已装好 | 可以删，删以前问一下 |
+| 每日 AI 预算调回 ¥3 | 11-25 08:2x 临时调到 ¥6，为当天补例句 | 语流 1 问用户要不要调回 |
+| 内容线第 2 批的录音包 | 用户已同意装（「装」） | 等语流 14 交包，语流 2 装 |
 
 ## 2026-11-25
+
+### 08:2x · 语流：每日 AI 预算 ¥3 → ¥6（后台设置）
+
+- **改了什么**：xmc.hk/flow 的 AI 页，把每日预算从 ¥3 调到 ¥6，只为当天补例句。
+- **谁、为什么**：语流 2。用户：「调到 6 元」。
+- **撤回**：同一页改回 ¥3。语流 1 之后会问用户要不要调回（见上表）。
+
+### 08:25 · 语流：跟读也改走 Qwen-Omni
+
+- **改了什么**：`/etc/flow.env` 第 41 行 `FLOW_AUDIO_ROUTES` 的末尾加上 `,next-shadow=flow-audio-omni-flash`，然后重启 flow。
+- **谁、为什么**：语流 2。用户：「切，先内测版再正式版」，内测版 08:22 先切过、先测过。
+- **备份**：`/root/claude-ops/flow.env.bak-shadow-20261125-082524`（只用来对照）。
+- **核对**：完整 e2e 154 项过 153，跟读 3.6 秒，走的是 Omni。没过的一项是一次语音对话 Omni 没给出「听到了什么」，偶发，已转给语流 12。
+- **撤回**：只把跟读改回去：`sed -i '/^FLOW_AUDIO_ROUTES=/ s/,next-shadow=flow-audio-omni-flash$//' /etc/flow.env`，然后重启 flow。
+
+### 08:22 · 内测版：跟读也改走 Qwen-Omni
+
+- **改了什么**：`/etc/flow-beta.env` 第 50 行 `FLOW_AUDIO_ROUTES` 加上 `next-shadow`，然后重启 flow-beta。
+- **谁、为什么**：语流 2。用户：「切，先内测版再正式版」。
+- **备份**：`/root/claude-ops/flow-beta.env.bak-shadow-20261125-082249`（只用来对照）。核对：153/153。
+- **撤回**：把 `FLOW_AUDIO_ROUTES` 那一行末尾的 `,next-shadow=…` 删掉，然后重启 flow-beta。
+
+### 08:20 · 语流：对话、复述、雅思口语的录音改走 Qwen-Omni，超时 40 秒
+
+- **改了什么**：在 `/etc/flow.env` 末尾加两行，然后重启 flow：
+  - 第 41 行 `FLOW_AUDIO_ROUTES=next-dialog=flow-audio-omni-flash,next-retell=flow-audio-omni-flash,next-ielts=flow-audio-omni-flash`；
+  - 第 42 行 `FLOW_AUDIO_TIMEOUT=40`（录音交给 AI 时最多等 40 秒）。
+- **谁、为什么**：语流 2，跟 r28 一起。#88 的开关，Gemini 中转站在录音上常常要等很久，甚至 504。
+  用户：「发，并开 Omni」「改成 40 秒」。
+- **备份**：`/root/claude-ops/flow.env.bak-omni-20261125-082038`（只用来对照）。
+- **核对**：完整 e2e 154/154；对话 3.0 秒、复述 12.7 秒，走的是 Omni。发音（说一句，next-say）照旧走 Gemini，等语流 9 的保护代码。
+- **撤回**：删除 `FLOW_AUDIO_ROUTES` 那一行（录音都回到 Gemini）或 `FLOW_AUDIO_TIMEOUT` 那一行（超时回到代码里的默认值），然后重启 flow。
+
+### 08:15 · 内测版：朗读的采样率 22050
+
+- **改了什么**：`/etc/flow-beta.env` 第 51 行加 `FLOW_TTS_SAMPLE_RATE=22050`，然后重启 flow-beta。
+- **谁**：语流 2。用户：「可以，试一下」。
+- **备份**：`/root/claude-ops/flow-beta.env.bak-ttsrate-20261125-081549`（只用来对照）。
+- **撤回**：删除 `FLOW_TTS_SAMPLE_RATE` 那一行，然后重启 flow-beta。
+
+### 02:08 · 内测版：对话、复述、雅思口语的录音改走 Qwen-Omni
+
+- **改了什么**：`/etc/flow-beta.env` 第 50 行加 `FLOW_AUDIO_ROUTES`（对话、复述、雅思口语三项，指向网关上的 `flow-audio-omni-flash`），然后重启 flow-beta。
+- **谁**：语流 2。用户：「可以，切过去」。
+- **备份**：`/root/claude-ops/flow-beta.env.bak-omni-20261125-020854`（只用来对照）。
+- **撤回**：删除 `FLOW_AUDIO_ROUTES` 那一行，然后重启 flow-beta。
 
 ### 01:54 · 语流：文字 AI 改走百炼 DeepSeek（后台设置）
 
