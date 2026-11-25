@@ -22,13 +22,147 @@
 | 事情 | 现在 | 等什么 |
 | --- | --- | --- |
 | Gemini 中转站并发从 2 改成 6（#68） | 代码已合（11-24 22:49），中转站上还是 2 | 用户在 Google Cloud Shell 里执行 `flow-gateway/set_slots.sh 6`（步骤在 #68 和 flow-gateway 的说明里）。上线后语流 12 对比前后的 503/504 和等待时间 |
-| 录音任务改走百炼 Qwen-Omni（#88） | 代码已在 main（b14 起在内测版），默认关 | 内测版上试过、评测不比 Gemini 差，再问用户切 |
-| 删内测版手工加的 `70-tts-write.conf` | 还在 | b11 起每次部署自己装 `61-flow-tts.conf`，确认装上后找个没人用的时候删掉 70，`daemon-reload` 再重启 flow-beta |
+| 发音（说一句）也改走 Qwen-Omni | 两个站的对话、复述、雅思口语、跟读 11-25 已改走 Qwen-Omni；发音还走 Gemini | 语流 9 的保护代码 #113 上了内测版以后，请用户点头再切；连字符误判的提示词修正 #116 在合；一次语音对话 Omni 没给出「听到了什么」的偶发问题在语流 12 |
 | 数据库副本只留 14 天（#58） | r27 已带上正式版；内测版只列不删 | 语流上最早的副本是 11-23 的，约 12-07 起开始真正删除（语流 2 记着） |
-| 语流的系统邮件改用 flowlang.cn 发 | 内测版 11-25 凌晨已切到阿里云邮件推送；语流还是用户的 jasa.hk 飞书邮箱 | 备用通道 #93 和 EHLO #85 已合进 main（b14、b15 在内测版），随下一个正式版上去以后，用户在语流 16 同意再切 `/etc/flow.env`（杭州的 xmc-hz-watch 也读这几行，要一起看） |
+| 发信的后续 | 两个站 11-25 都已改用 flowlang.cn 发信 | DMARC 从 p=none 改成 quarantine（报告干净一段时间后，先问用户）；隐私说明要不要写明发信服务商（用户待定）；网易邮箱和 iCloud 的「重发走备用」还没实测 |
 | 上传用过的整包 `/root/claude-ops/flow-audio-packs.tar`（112 MB） | 还在，内容已装好 | 可以删，删以前问一下 |
+| 例句还差 89 个词；偏敏感的例句要复核 | 两次补全写进 16,308 条，抽查 41 条里 1 条偏敏感 | 语流 11：#114（不嘲笑、不带刻板印象的复核）合进去以后一起补，花费不到 ¥0.5 |
+| 语流的朗读也用 22050 采样率 | 内测版 11-25 08:15 起是 22050，文件小约 20%，速度不变 | 用户试听以后决定 |
 
 ## 2026-11-25
+
+### 08:35 · 香港：告警邮件脚本跟着换发信
+
+- **改了什么**：`/usr/local/sbin/xmc-hz-watch`（香港，杭州出问题时给用户发告警）：
+  - 按 UTF-8 读配置；
+  - EHLO 报 flowlang.cn；
+  - 告警先走飞书（`FLOW_SMTP_FALLBACK_*`），失败再走阿里云。告警是发给用户自己的，所以先走用户自己的邮箱。
+  
+  `--check` 两条通道都能登录。
+- **谁**：语流 16，用户同意（08:32，告警优先走飞书）。
+- **备份**：`/root/claude-ops/xmc-hz-watch.bak-20261125-mail`。这个脚本只有这一个改动来源，可以整份拷回去再跑 `--check`。
+- **要记住**：杭州 `/www/xmc-status/ops` 里的镜像比香港在用的旧，归语流 2 同步。
+
+### 08:34 · 两个站：内容线第 2 批的朗读包
+
+- **改了什么**：装 narration-content2，224 个文件，`audio/index.json` 294 条（原来 266）。两个站读同一个声音目录，装一次两个站都有：
+  语流（8090）和内测版（8092）取文件都回 206。
+- **谁、为什么**：语流 2。用户：「装」。包是语流 14 做的，经本机中转、用 Chrome 里的宝塔面板分块传上香港，4 个文件的 sha 都核对过。
+- **备份**：`/root/claude-ops/backup-narration-content2-20261125-083434`。
+- **撤回**：用 `/root/claude-ops/narration-content2.log` 末尾的撤销命令。
+
+### 08:33 · 语流：系统邮件改用 flowlang.cn 发（阿里云邮件推送）
+
+- **改了什么**：`/etc/flow.env` 按键改行：`FLOW_SMTP_*` 改成阿里云邮件推送（465 端口），发件人「语流 Flow」（mail.flowlang.cn
+  子域名，不收回信）；另加 `FLOW_SMTP_FALLBACK_*` 指向原来的飞书邮箱，作备用；然后重启 flow。08:33:47 起生效。
+  发信规则是 r28 带上的 #93 和 #85：
+  - 所有邮件先走阿里云，当场发不出去就换飞书再发一次；
+  - 验证码类邮件 10 分钟内重发时，那一封先走飞书；
+  - 每周进度和背词提醒不先走飞书；
+  - EHLO 报站点域名。
+- **谁、为什么**：语流 16。内测版从 00:37 起先用了一晚上。用户 08:32 同意切正式版（SMTP 密码用脚本从内测版配置复制，没人经手）。
+- **备份**：`/root/claude-ops/flow.env.bak-20261125-mail`（只用来对照）。
+- **核对**：08:34 往 Gmail 发了一封，进了收件箱，SPF、DKIM、DMARC 都 pass，邮件里是新版式，`Received: from flowlang.cn`。
+- **撤回**：`python3 /root/claude-ops/mail-sender-undo-prod.py --dry-run` 看要改哪几行，确认后去掉 `--dry-run` 再跑，然后重启 flow。
+  它只把 `FLOW_SMTP_HOST/PORT/USER/PASSWORD/FROM` 改回旧值，删掉 `FLOW_SMTP_FALLBACK_*`，别的行不碰。
+
+### 08:3x · 语流：每日 AI 预算定成 ¥5（后台设置）
+
+- **改了什么**：xmc.hk/flow 的 AI 页，每日预算从 ¥6 改成 ¥5，只改了每日那一项。
+- **谁、为什么**：语流 1，用后台的接口改的。补例句那天临时调到 ¥6，补完以后定下来。用户：「定成 5 元」。
+  当天已经花了 ¥6.10，超过 ¥5，所以批量任务当天不再跑，第二天照常。
+- **撤回**：同一页改回原来的数。预算经过：01:54 设成 ¥3（语流 2）→ 08:1x 临时 ¥6 → 08:3x ¥5。
+
+### 08:30 · 内测版：去掉手工加的写权限 drop-in
+
+- **改了什么**：`/etc/systemd/system/flow-beta.service.d/70-tts-write.conf` 移到
+  `/root/claude-ops/backup-flow-beta-dropin-20261125-083059/`（不是直接删），`daemon-reload`，重启 flow-beta。
+  部署自己装的 `61-flow-tts.conf` 还在（`ReadWritePaths=-/www/wwwroot/flow/audio/tts`），所以这一份是多余的。
+- **谁**：语流 2。用户：「删」。
+- **核对**：沙箱里写得进去；用服务自己的环境真的合成了一句（47 个字，1.1 秒，40 KB），外网取得到（200）。
+- **撤回**：把文件 mv 回 `flow-beta.service.d/`，`daemon-reload`，重启 flow-beta。
+
+### 08:25 · 语流：跟读也改走 Qwen-Omni
+
+- **改了什么**：`/etc/flow.env` 第 41 行 `FLOW_AUDIO_ROUTES` 的末尾加上 `,next-shadow=flow-audio-omni-flash`，然后重启 flow。
+- **谁、为什么**：语流 2。用户：「切，先内测版再正式版」，内测版 08:22 先切过、先测过。
+- **备份**：`/root/claude-ops/flow.env.bak-shadow-20261125-082524`（只用来对照）。
+- **核对**：完整 e2e 154 项过 153，跟读 3.6 秒，走的是 Omni。没过的一项是一次语音对话 Omni 没给出「听到了什么」，偶发，已转给语流 12。
+- **撤回**：只把跟读改回去：`sed -i '/^FLOW_AUDIO_ROUTES=/ s/,next-shadow=flow-audio-omni-flash$//' /etc/flow.env`，然后重启 flow。
+- **打分抽查**（语流 9，在内测版用临时学员，测完清理了）：同一句读成 4 种，每种 2 次，8 次都由 qwen3.8-omni-flash 回答，每次 3.5–7.9 秒。
+  - 读对：85、92 分；
+  - 读错 3 个词：78、75 分；
+  - 漏读：76、75 分；
+  - 只读一半：72 分。
+  
+  转写逐字正确，读得差的比读对的低 10–20 分；同一段录音打两次分会差几分。有 4 次把 noise-cancelling 里连字符的差别
+  当成了问题，#116 改提示词修这个。结论：跟读留在 Omni。
+
+### 08:22 · 内测版：跟读也改走 Qwen-Omni
+
+- **改了什么**：`/etc/flow-beta.env` 第 50 行 `FLOW_AUDIO_ROUTES` 加上 `next-shadow`，然后重启 flow-beta。
+- **谁、为什么**：语流 2。用户：「切，先内测版再正式版」。
+- **备份**：`/root/claude-ops/flow-beta.env.bak-shadow-20261125-082249`（只用来对照）。核对：153/153。
+- **撤回**：把 `FLOW_AUDIO_ROUTES` 那一行末尾的 `,next-shadow=…` 删掉，然后重启 flow-beta。
+
+### 08:20 · 语流：对话、复述、雅思口语的录音改走 Qwen-Omni，超时 40 秒
+
+- **改了什么**：在 `/etc/flow.env` 末尾加两行，然后重启 flow：
+  - 第 41 行 `FLOW_AUDIO_ROUTES=next-dialog=flow-audio-omni-flash,next-retell=flow-audio-omni-flash,next-ielts=flow-audio-omni-flash`；
+  - 第 42 行 `FLOW_AUDIO_TIMEOUT=40`（录音交给 AI 时最多等 40 秒）。
+- **谁、为什么**：语流 2，跟 r28 一起。#88 的开关，Gemini 中转站在录音上常常要等很久，甚至 504。
+  用户：「发，并开 Omni」「改成 40 秒」。
+- **备份**：`/root/claude-ops/flow.env.bak-omni-20261125-082038`（只用来对照）。
+- **核对**：完整 e2e 154/154；对话 3.0 秒、复述 12.7 秒，走的是 Omni。发音（说一句，next-say）照旧走 Gemini，等语流 9 的保护代码。
+- **撤回**：删除 `FLOW_AUDIO_ROUTES` 那一行（录音都回到 Gemini）或 `FLOW_AUDIO_TIMEOUT` 那一行（超时回到代码里的默认值），然后重启 flow。
+
+### 08:15 · 语流：例句预生成补全（02:10 和 08:15 两次，数据库写入）
+
+- **改了什么**：在语流的数据库里给没有例句的词补例句，两次一共 1,027 次请求、写入 16,308 条、花了 ¥5.43。
+  - 02:10 那次：12 路并发，写入 11,212 条（含 80 条试跑），¥2.82。全站当天的花费到了每日预算 ¥3，脚本自己停了。
+  - 08:15–08:18 那次：写入 5,096 条，¥2.61，到了临时调高的 ¥6 又自己停了。
+  - 剩 89 个词，不到 ¥0.1，下次顺手补。
+- **怎么跑的**：`fill_examples.py`（#98，多路并发）以 www 身份用 `systemd-run` 跑，只给这个进程设
+  `FLOW_AI_ROUTES=next-examples=flow-batch-ds-flash`，走用户学生账号上的 DeepSeek，网站本身的设置没动。
+  日志在 `/root/claude-ops/fill-examples-prod-1125*`。
+- **谁、为什么**：语流 11（单词）。用户：「都开始」（费用超过 ¥5 就停，08:00 前停）、「直接调用 deepseek 可以高并发」、「现在补」。
+- **抽查**：41 条合格，1 条偏敏感（mad：「那个疯子整天自言自语」）。用户选了「加，并重写这类例句」，
+  也就是 #114：例句不嘲笑、不带刻板印象，复核一遍。
+- **撤回**：例句在 `next_word_examples` 表里，按这两次的写入时间删掉对应的行即可；具体条件问语流 11。
+
+### 08:15 · 内测版：朗读的采样率 22050
+
+- **改了什么**：`/etc/flow-beta.env` 第 51 行加 `FLOW_TTS_SAMPLE_RATE=22050`，然后重启 flow-beta。
+- **谁**：语流 2。用户：「可以，试一下」。
+- **备份**：`/root/claude-ops/flow-beta.env.bak-ttsrate-20261125-081549`（只用来对照）。
+- **撤回**：删除 `FLOW_TTS_SAMPLE_RATE` 那一行，然后重启 flow-beta。
+- **比较**（语流 9 做的）：文件小 19.7%（658.5 → 528.8 KB），合成和下载的速度基本不变。11-24 晚上那次 13 秒的下载只是存储偶尔卡了一下。
+  内测版保持 22050；语流要不要也加，等用户试听以后决定。
+
+### 08:1x · 语流：每日 AI 预算临时 ¥3 → ¥6（后台设置）
+
+- **改了什么**：xmc.hk/flow 的 AI 页，把每日预算从 ¥3 调到 ¥6，只为当天把例句补完。凌晨那次补全在 ¥3 处自己停了。
+- **谁、为什么**：语流 2。用户：「现在补」（在语流 1、语流 11 那边），「调到 6 元」（在语流 2）。
+- **撤回**：同一页改回 ¥3。08:3x 已定成 ¥5（上一条）。
+
+### 08:14 · AI 网关：按用途分道限流，总并发 20 → 64
+
+- **改了什么**：xmc-api 的 `control_plane.py` 加了按用途分道的限流，配置在 `/www/xmc-api/limits.json`：
+  - 总并发从 20 提到 64；
+  - 批量和评测最多 16 个，不会占满学员用的位置；
+  - 排队最多等 5 秒；
+  - gemini-flow（Gemini 中转站）最多 2 个，和中转站自己的并发位一样。
+- **谁、为什么**：语流 12 装的，用户在语流 12 那边点了「Yes, install」。起因是批量补例句和评测要多开并发，又不能挤到学员。
+- **备份**：`/root/claude-ops/xmc-api-control_plane.py.before-lanes-20261125-081455`。
+- **撤回**：只调数字就改 `/www/xmc-api/limits.json`，然后重启 xmc-api。要连分道一起去掉，就拷回 before-lanes 这份再重启。
+  这份是装分道前最新的一份，语音转发和检索接口都还在里面。前提是之后没人再改过 `control_plane.py`，拷之前先对一下。
+
+### 02:08 · 内测版：对话、复述、雅思口语的录音改走 Qwen-Omni
+
+- **改了什么**：`/etc/flow-beta.env` 第 50 行加 `FLOW_AUDIO_ROUTES`（对话、复述、雅思口语三项，指向网关上的 `flow-audio-omni-flash`），然后重启 flow-beta。
+- **谁**：语流 2。用户：「可以，切过去」。
+- **备份**：`/root/claude-ops/flow-beta.env.bak-omni-20261125-020854`（只用来对照）。
+- **撤回**：删除 `FLOW_AUDIO_ROUTES` 那一行，然后重启 flow-beta。
 
 ### 01:54 · 语流：文字 AI 改走百炼 DeepSeek（后台设置）
 
@@ -60,7 +194,13 @@
   - `/api/session` 返回 tts=true。
 - **要记住**：两个站共用 `audio/tts`，同一句话、同一个声音、同一个模型只合成一次。
 
-### 凌晨 · 内测版：系统邮件改用 flowlang.cn 发（阿里云邮件推送）
+### 00:47 · 内测版：服务器朗读每天的总字数上限
+
+- **改了什么**：`/etc/flow-beta.env` 加了 `FLOW_TTS_DAILY_CHARS`（全站每天最多合成多少字，#69 的开关之一）。
+- **谁**：语流 2。数值、原因和备份以语流 2 在香港 `/root/claude-ops/ops-notes.log` 里的记录为准，这里还没核对。
+- **撤回**：删除 `FLOW_TTS_DAILY_CHARS` 那一行，然后重启 flow-beta（不设时用代码里的默认值）。
+
+### 00:37 · 内测版：系统邮件改用 flowlang.cn 发（阿里云邮件推送）
 
 - **改了什么**：Cloudflare 上给 `mail.flowlang.cn` 加了 MX、SPF、DKIM 和 DMARC（p=none），只在 mail 子域名下，根域名 flowlang.cn
   留着以后收信用。`/etc/flow-beta.env` 的 `FLOW_SMTP_*` 改成阿里云邮件推送（465 端口），发件人「语流 Flow」，不收回信；
@@ -71,13 +211,8 @@
 - **撤回**：删除 `FLOW_SMTP_FALLBACK_*` 那几行，把 `FLOW_SMTP_*` 那几行改回原来的飞书邮箱设置，然后重启 flow-beta。
   `/root/claude-ops/mail-sender-undo-beta.py` 就是按行做这件事（先 `--dry-run` 看它要改哪几行）。
 - **测试**：Gmail、QQ、jasa.hk 进收件箱；Outlook 进垃圾箱；iCloud 第二封被退回（554，只在阿里云的发送详情里看得到）。
-  网易没测。语流的 `/etc/flow.env` 没动（见上表）。
-
-### 00:47 · 内测版：服务器朗读每天的总字数上限
-
-- **改了什么**：`/etc/flow-beta.env` 加了 `FLOW_TTS_DAILY_CHARS`（全站每天最多合成多少字，#69 的开关之一）。
-- **谁**：语流 2。数值、原因和备份以语流 2 在香港 `/root/claude-ops/ops-notes.log` 里的记录为准，这里还没核对。
-- **撤回**：删除 `FLOW_TTS_DAILY_CHARS` 那一行，然后重启 flow-beta（不设时用代码里的默认值）。
+  网易没测。08:29–08:30 在内测版 b24 上验证了「10 分钟内重发走备用」：首发走阿里云、重发走飞书，两封都进了 Gmail 收件箱。
+  语流 08:33 也切过去了（见那一条）。
 
 ### 00:05 · AI 网关：加联网检索接口和 4 个评测用模型名
 
@@ -102,7 +237,7 @@
   `/api/next/tts`，都是 200、都存下了 mp3，网关记录对得上。
 - **撤回**：删掉这个文件，`daemon-reload`，重启 flow-beta。
 - **之后**：#75（11-24 23:55 合并）让每次部署自己建 `audio/tts`（www:www）并装 `$SVC.service.d/61-flow-tts.conf`
-  （`ReadWritePaths=-<audio>/tts`），内测版 b11 起有，语流下次发正式版时有。之后手工的 70 可以删（见上表）。
+  （`ReadWritePaths=-<audio>/tts`），内测版 b11 起有，语流 r27 起有。手工的 70 在 11-25 08:30 去掉了（见那一条）。
 
 ### 23:31 · 内测版：打开服务器朗读（CosyVoice）
 
