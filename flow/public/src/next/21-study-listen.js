@@ -98,8 +98,15 @@
         if (nm) { NAR.play(nm.sentences[i].s, nm.sentences[i].e, t => { const [si, wc] = NAR.locate(t); if (si === i) lightAt(lineEl(i), wc); }, then); return; }
         const el = lineEl(i); TTS.say(ls[i], then, c => lightWord(el, c), { pack: id, title: '语流 · ' + m.title });
       };
+      // 语速 and 复读 set from outside (the iOS app's lock screen, NATIVE.takeKnobs): kept, and the chips and the line follow
+      const knobsShown = () => {
+        const ps = pane.querySelector('#psum'); if (ps) ps.textContent = psum();
+        pane.querySelectorAll('[data-rate]').forEach(x => x.setAttribute('aria-pressed', String(Number(x.dataset.rate) === TTS.rate)));
+        pane.querySelectorAll('[data-rep]').forEach(x => x.setAttribute('aria-pressed', String(Number(x.dataset.rep) === LOOP.rep)));
+      };
       const readAll = from => LONG.start({
         key: PKEY, texts: ls, nm, pack: id, title: m.title, loop: looping(), rep: () => LOOP.rep, gap: gapMs, label: i => `第 ${i + 1} / ${ls.length} 句`,
+        setRep: n => { LOOP.rep = n; save('flow-next-loop', LOOP); }, onKnobs: knobsShown,
         onState: (state, i, note) => {
           setBtn(); prepLine(note);
           if (state === 'idle') { shown = -1; setNow(-1); return; }

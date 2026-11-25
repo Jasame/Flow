@@ -37,8 +37,8 @@ a{color:inherit}
 .sv-opt{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border:1px solid var(--control);border-radius:12px;cursor:pointer;background:var(--surface)}
 .sv-opt:hover{border-color:var(--accent)}
 .sv-opt input{margin:3px 0 0;accent-color:var(--brand);width:17px;height:17px;flex:none}
-.sv-opt:has(input:checked){border-color:var(--brand);background:var(--accent-soft)}
-.sv-opt:has(input:disabled){opacity:.5;cursor:not-allowed}
+.sv-opt:has(input:checked){/* compat-ok: Safari before 15.4 (older iPhones and iPads) drops this rule: the chosen option is not tinted, but its own radio or checkbox, always shown, is ticked */border-color:var(--brand);background:var(--accent-soft)}
+.sv-opt:has(input:disabled){/* compat-ok: Safari before 15.4 drops this rule: past a question's limit the other options are not faded, but their own checkboxes are greyed out and cannot be ticked */opacity:.5;cursor:not-allowed}
 .sv-matrix{display:grid;gap:12px}
 .sv-row{display:grid;gap:6px}
 .sv-row-label{font-size:14.5px}

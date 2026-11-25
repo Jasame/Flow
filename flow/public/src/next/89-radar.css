@@ -7,7 +7,7 @@
 .radar .prev{fill:none;stroke:var(--muted);stroke-width:1.5;stroke-dasharray:3 3}
 .radar .cur{transform-origin:160px 160px;transform:scale(.2);opacity:0;transition:transform .8s var(--ease-spring),opacity .4s}
 .radar .cur.on{transform:scale(1);opacity:1}
-.radar .area{fill:color-mix(in srgb,var(--green) 22%,transparent);stroke:var(--green);stroke-width:2.5;stroke-linejoin:round}
+.radar .area{fill:var(--green-soft);fill:color-mix(in srgb,var(--green) 22%,transparent);stroke:var(--green);stroke-width:2.5;stroke-linejoin:round}
 .radar .dt{fill:var(--green);stroke:var(--paper);stroke-width:2}
 .radar .dt.none{fill:var(--paper);stroke:var(--muted)}
 .radar .lb{font-size:13px;fill:var(--ink);font-weight:600}
@@ -27,3 +27,6 @@
 .goal-row{padding:6px 0}
 @media (prefers-reduced-motion:reduce){.radar .cur{transition:none;transform:none;opacity:1}}
 .rdim .tiny a.link{display:inline-block;white-space:nowrap;padding:4px 0}
+
+/* no colour mixing (iOS before 16.2): the area see-through, as the mix makes it */
+@supports not (background:color-mix(in srgb,red 50%,blue)){.radar .area{fill:var(--green);fill-opacity:.22}}

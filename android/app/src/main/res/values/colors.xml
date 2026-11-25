@@ -6,4 +6,7 @@
     <color name="flow_green">#1F9D55</color>
     <!-- 主题色 靛蓝 (「我的 → 外观」; Accent.kt) -->
     <color name="flow_indigo">#3461D1</color>
+    <!-- what the app draws over the page (the permission note, the 基本模式 line) -->
+    <color name="flow_surface">#FFFFFF</color>
+    <color name="flow_line">#241B2420</color>
 </resources>

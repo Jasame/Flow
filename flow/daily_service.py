@@ -236,6 +236,7 @@ def compose(c,day,level,topic):
  Two model calls at most (the writing, the self-check), each counted against the site's daily AI quota."""
  from lab_service import validate_pack,parse
  import ai_routes,topic_guard
+ if ai_routes.batch_stop(c):return None,'今晚的批量额度或今天的预算已用完'  # batch work (ai_routes.BATCH)
  nodes=[dict(r) for r in c.execute('SELECT id,title FROM subskills')]
  reserve_call(c)
  with ai_routes.task('daily-topic'):reply,reason=request_model(write_messages(level,topic,nodes))

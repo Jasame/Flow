@@ -248,7 +248,7 @@ def main(argv=None):
             batches = [cand[k:k + REVIEW_PER_CALL] for k in range(0, len(cand), REVIEW_PER_CALL)]
             with ThreadPoolExecutor(a.workers) as pool, open(log, 'a', encoding='utf-8') as out:
                 for start in range(0, len(batches), a.workers):  # a.workers at a time; the budget is checked between rounds
-                    if ai_routes.over_budget() or (a.max_yuan and spent(c, since) >= a.max_yuan):
+                    if ai_routes.batch_stop() or (a.max_yuan and spent(c, since) >= a.max_yuan):
                         print('复查停下：今天的 AI 预算或 --max-yuan 到了，剩下的下次再查。', flush=True)
                         break
                     group = batches[start:start + a.workers]
@@ -308,7 +308,7 @@ def main(argv=None):
                 if a.max_calls and calls >= a.max_calls:
                     stop = 'max-calls'
                     break
-                if ai_routes.over_budget():
+                if ai_routes.batch_stop():
                     print('今天的 AI 预算已用完：停下，明天再跑。', flush=True)
                     stop = 'budget'
                     break

@@ -102,9 +102,9 @@ class PageTests(unittest.TestCase):
     def test_keep_share_and_the_week_are_on_the_page(self):
         for s in ("const OFF = {", "materialPath(id) + '&offline=1'", 'function keepTodayOffline', "data-tap=\"study-keep\"", 'm.answers && m.answers[i]',
                   "const SHARE_URL = 'https://flowlang.cn/?f=card'", 'function shareFromMaterial', 'id="shareX"', 'id="shareDone"', 'QR.draw(g, SHARE_URL',
-                  'function habitChip', 'function habitSheet', "api('/api/next/habit'", 'id="lastWeek"'):
+                  'function mountWeekCards', 'function habitSheet', "api('/api/next/habit'", 'id="lastWeek"'):
             self.assertIn(s, JS)
-        for k in ('share-material', 'share-week', 'study-keep', 'home-habit', 'notice-week', 'me-habit'):
+        for k in ('share-material', 'share-week', 'study-keep', 'notice-week', 'me-habit'):
             self.assertIn(k, flow_admin.TAP_LABEL)
 
 

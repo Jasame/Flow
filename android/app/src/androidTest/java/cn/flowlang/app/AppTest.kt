@@ -11,6 +11,7 @@ import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import cn.flowlang.app.notify.Reminders
+import cn.flowlang.app.privacy.Consent
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -38,6 +39,7 @@ class AppTest {
 
     @Before fun open() {
         Mute.on = true
+        Consent.agree(inst.targetContext)  // the first start's question answered (privacy/Consent.kt): the site opens at once
         scenario = ActivityScenario.launch(MainActivity::class.java)
         page = Page(scenario)
         page.ready()
@@ -53,7 +55,7 @@ class AppTest {
         assertTrue(page.js("navigator.userAgent").contains("FlowAndroid/" + BuildConfig.FLOW_VERSION))
         assertTrue(page.js("location.origin").contains(Site.host))
         assertEquals("\"android\"", page.js("FlowApp.platform"))
-        assertEquals("[true,true,true,true]", page.js("['audio','rec','notify','speech'].map(k=>FlowApp.has(k))"))
+        assertEquals("[true,true,true,true,true]", page.js("['audio','rec','notify','speech','privacy'].map(k=>FlowApp.has(k))"))
         assertEquals("true", page.js("FlowApp.beta === true && FlowApp.v === 1 && typeof FlowApp.call === 'function' && Object.isFrozen(FlowApp)"))
         assertEquals("\"android\"", page.js("JSON.parse(JSON.stringify(FlowApp.platform))"))
         assertTrue("the page's title", page.js("document.title").contains("语流"))

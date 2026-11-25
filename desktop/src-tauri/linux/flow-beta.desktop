@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=语流内测
+Comment=语流 Flow 内测版（flow.jasa.hk）
+Exec={{exec}} %u
+StartupWMClass={{exec}}
+Icon={{icon}}
+Categories=Education;Languages;
+Terminal=false
+MimeType=x-scheme-handler/flowlang-beta;

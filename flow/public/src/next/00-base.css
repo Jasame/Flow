@@ -20,12 +20,14 @@
   --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px);
   --shadow:0 1px 2px rgba(30,30,20,.05),0 8px 24px rgba(30,30,20,.06);
 }
+/* dark: a filled button (--fill) one step darker than the accent's line and text green (the user's pick, 2026-11-25,
+   学优秀 UI G5): the brightest thing on a dark page was the main button; its dark text stays at 6.4:1 */
 @media (prefers-color-scheme:dark){:root{
   --bg:#101412;--paper:#171c19;--sunk:#1d231f;--line:#28302b;--line2:#36403a;
   --ink:#ecefe9;--ink2:#c3c9c0;--muted:#97a097;
   --green:#3ccf7c;--green-ink:#6ee0a0;--green-soft:#173024;--green-line:#24553a;
   --amber:#f2b55b;--amber-soft:#2f2617;--red:#ff8a80;--red-soft:#351c1a;--mark:#4a4116;
-  --fill:#3ccf7c;--on-fill:#0b1f12;--on-red:#2a0e0c;--amber-fill:#f2b55b;--on-amber:#2a1a05;
+  --fill:#2fb36a;--on-fill:#0b1f12;--on-red:#2a0e0c;--amber-fill:#f2b55b;--on-amber:#2a1a05;
   --ok:#3ccf7c;--ok-ink:#6ee0a0;--ok-soft:#173024;--brand:#3ccf7c;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
 }}
@@ -53,7 +55,7 @@ button{cursor:pointer}
 .badge{position:absolute;top:0;left:calc(50% + 6px);min-width:18px;height:18px;border-radius:9px;background:var(--ink);color:var(--bg);font-size:11px;line-height:18px;text-align:center;padding:0 5px;font-weight:700}
 @media (min-width:760px){
   body{padding-bottom:0}
-  .bar{background:color-mix(in srgb,var(--bg) 90%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+  .bar{background:var(--bg);background:color-mix(in srgb,var(--bg) 90%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
   .tabs{position:static;border:0;background:none;padding:0;gap:4px;justify-content:flex-end}
   .tabs a{flex:none;flex-direction:row;gap:6px;font-size:14px;padding:8px 14px}
   .tabs a[aria-current=page]{background:var(--green-soft)}

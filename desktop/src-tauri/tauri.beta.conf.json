@@ -4,7 +4,14 @@
   "mainBinaryName": "flow-beta",
   "identifier": "cn.flowlang.app.beta",
   "bundle": {
-    "shortDescription": "语流内测 · 英语学习（内测版）"
+    "shortDescription": "语流内测 · 英语学习（内测版）",
+    "icon": [
+      "icons-beta/32x32.png",
+      "icons-beta/128x128.png",
+      "icons-beta/128x128@2x.png",
+      "icons-beta/icon.icns",
+      "icons-beta/icon.ico"
+    ]
   },
   "plugins": {
     "deep-link": {

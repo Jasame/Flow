@@ -10,8 +10,10 @@
       const drawnFor = location.hash;
       route().then(drawn);
       try { if (await refreshHome()) redrawQuietly(drawnFor); } catch (e) { DATA.ok(); }
+      TIPS.load();  // 使用提示 this account put away, kept on the phone before a page needs them (08-tips.js)
     } else {
       try { await refreshHome(); S.homeFresh = true; } catch (e) { DATA.ok(); /* offline: route() asks again and offers a retry */ }
+      TIPS.load();
       route().then(drawn);  // the opening time ends when the first page is drawn
     }
     OUTBOX.flush();
