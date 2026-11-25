@@ -2379,11 +2379,6 @@ def sprint_run(pw):
                 if page == '#/' and h > w:  # with 这周进步 on top and the exam line under the title, the next step is still on the first screen
                     b = pg.evaluate("Math.round(document.querySelector('#view .go-next').getBoundingClientRect().bottom)")
                     check(dev, f'{size} 今日: the next-step button is on the first screen', b <= h, (b, h))
-                if page == '#/':  # 正式版反馈 #2 (2026-11-25): a.prow.week took 10-pages.css's .week span bars, grey 6 px strips over the words
-                    wk = pg.evaluate("""() => [...document.querySelectorAll('#view .tp-week .prow')].map(r => { const t = r.querySelector('.t'), b = t.querySelector('b'), s = t.querySelector('.muted');
-                      const rr = r.getBoundingClientRect(), br = b.getBoundingClientRect(), sr = s ? s.getBoundingClientRect() : null;
-                      return {fill: [t, b, s].filter(Boolean).some(x => getComputedStyle(x).backgroundColor !== 'rgba(0, 0, 0, 0)'), tall: br.height >= 16 && (!sr || sr.height >= 12), inside: !sr || sr.bottom <= rr.bottom + 1}; })""")
-                    check(dev, f'{size} 今日: 本周任务 shows its title and line in full, no grey bars over them', bool(wk) and all(not x['fill'] and x['tall'] and x['inside'] for x in wk), wk)
                 pg.screenshot(path=str(OUT / f"sprint-{size}-{page.strip('#/').replace('/', '_') or 'today'}.png"))
             # the hub at this size: the trend is drawn to the width it has, inside the screen
             go(pg, '#/exam'); pg.wait_for_timeout(300)
@@ -2707,7 +2702,7 @@ PLAN_JS = r"""() => {
 }"""
 
 
-# 今日's plan rows (必做, 还有时间的话, 本周任务), each as it is and once marked done: the title block keeps its height and no
+# 今日's plan rows (必做, 还有时间的话, 本周任务), each as it is and once marked done (the one check for this; #241 fixed it): the title block keeps its height and no
 # fill, the subtitle stays inside the row, no grey bar anywhere in it (feedback 2026-11-25: 本周任务's row was .week, the
 # week-days bar's class, so its spans became 6 px grey bars and 「这周的一套做完了」 fell out of the card)
 PLAN_ROWS_JS = """() => { const bad = [], seen = [];
@@ -2716,9 +2711,9 @@ PLAN_ROWS_JS = """() => { const bad = [], seen = [];
     const name = (b ? b.textContent : '').trim().slice(0, 10) + ' (' + state + ')'; seen.push(name);
     if (!t || !b) { bad.push(name + ': no title'); return; }
     const tr = t.getBoundingClientRect(), br = b.getBoundingClientRect();
-    if (tr.height < br.height - 1) bad.push(name + ': title block squashed to ' + Math.round(tr.height) + 'px');
+    if (tr.height < br.height - 1 || br.height < 16) bad.push(name + ': title squashed to ' + Math.round(Math.min(tr.height, br.height)) + 'px');
     if (br.top < rr.top - 1 || br.bottom > rr.bottom + 1) bad.push(name + ': title outside the row');
-    if (sub && sub.textContent.trim()) { const sr = sub.getBoundingClientRect(); if (sr.bottom > rr.bottom + 1 || sr.height < 8) bad.push(name + ': subtitle outside the row or squashed'); }
+    if (sub && sub.textContent.trim()) { const sr = sub.getBoundingClientRect(); if (sr.bottom > rr.bottom + 1 || sr.height < 12) bad.push(name + ': subtitle outside the row or squashed'); }
     [...r.querySelectorAll('span, b, i')].filter(e => !e.classList.contains('num') && !e.closest('.num') && fill(e)).forEach(e => bad.push(name + ': a filled bar ' + e.className + ' ' + Math.round(e.getBoundingClientRect().width) + 'x' + Math.round(e.getBoundingClientRect().height)));
     if (rr.height < 44) bad.push(name + ': row ' + Math.round(rr.height) + 'px tall'); };
   const folds = [...document.querySelectorAll('#view .today-plan details:not([open])')]; folds.forEach(d => { d.open = true; });  // 还有时间的话 too
