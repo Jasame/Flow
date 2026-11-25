@@ -134,6 +134,33 @@ class LedgerTests(unittest.TestCase):
         self.assertTrue(row.startswith(f'| b2 | '), row)
         self.assertIn(f'| `{self.m6[:7]}` | #5 #6 | 轻量 e2e 149/149，服务器报错 0 |', row)
 
+    def test_a_hotfix_tag_lists_the_commit_it_added_and_the_next_main_release_lists_prs_again(self):
+        # r34 on 2026-11-25: a fix picked onto the last release's main commit, released from a branch, not from main
+        self.sh('git', 'checkout', '-q', '-b', 'hotfix', self.m6)
+        self.commit('flow/public/src/next/30-lookup.js', 'iPhones before iOS 16.4: no regex lookbehind')
+        fix = self.sha('HEAD')
+        self.commit('flow/public/next.js', 'release build of the hotfix')
+        hot_build = self.sha('HEAD')
+        self.sh('git', 'checkout', '-q', 'main')
+        m7 = self.merge(7, 'words2', {'flow/vocab_service.py': 'y'}, '单词卡居中')
+        self.request('release-beta', 'b3', f'{hot_build} {MAN} e2e light',
+                     f'release b3: {hot_build[:12]} = build of {fix[:12]} (hotfix)')
+        self.request('release', 'r2', f'{hot_build} {MAN} e2e', f'release r2: {hot_build[:12]} = build of {fix[:12]} (hotfix)')
+        self.request('release', 'r3', f'{m7} {MAN} e2e', f'release r3: {m7[:12]} (main)')
+        self.assertFalse(cl.on_main(fix))
+        self.assertTrue(cl.on_main(m7))
+        hot = cl.entry('r2', None)
+        self.assertIn(f'- 热修：`{fix[:7]}` 不在 main 上，是从 main 的 `{self.m6[:7]}` 分出来的，构建 `{hot_build[:7]}`', hot)
+        self.assertIn(f'  - `{fix[:7]}` iPhones before iOS 16.4: no regex lookbehind', hot)
+        self.assertNotIn('没有新合并的 PR', hot)
+        self.assertNotIn(f'main `{fix[:7]}`', hot)
+        self.assertIn('内测版上同一个构建：b3', hot)
+        after = cl.entry('r3', None)  # from main again: the PRs since the hotfix's fork point
+        self.assertIn(f'main `{m7[:7]}`', after)
+        self.assertIn('#7 单词卡居中（单词）', after)
+        row = cl.rows('b3', 'b3')
+        self.assertIn(f'| `{fix[:7]}` | 热修：在 `{self.m6[:7]}` 上加了 `{fix[:7]}` |', row)
+
     def test_the_reason_a_check_failed_is_logged_when_the_server_gives_it(self):
         d = self.status('b2', failed=1)
         self.assertIn('没过：b1: dialog end gives feedback，', cl.checks(d))  # an older autodeploy: names only

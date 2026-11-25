@@ -446,11 +446,18 @@ def card_out(r, now=None, level=None, rich=False, c=None):
         entry = nx.dictionary().get(r['norm']) if r['kind'] == 'word' else None
         out['phonetic'] = entry['phonetic'] if entry else ''
         out['mode'] = mode(r)
-        out['examples'] = examples(r['norm'], level or 'B1', 2, r['context']) if r['kind'] == 'word' else []
+        # three: 简洁 shows the first two, 详细 all three (words-modes-plan.md)
+        out['examples'] = examples(r['norm'], level or 'B1', 3, r['context']) if r['kind'] == 'word' else []
         if r['kind'] == 'word' and not out['examples']:
             out['examples'] = extra_examples(c, r['norm'])
         out['audio'] = word_audio(r['norm']) if r['kind'] == 'word' else {}
         out['roots'] = roots(r['norm']) if r['kind'] == 'word' else []
+        # 详细 (words-modes-plan.md): what the back can add from data at hand, nothing of it on the front but tags and rank
+        if r['kind'] == 'word':
+            out['tags'] = list(entry['tags']) if entry else []
+            out['collins'] = entry['collins'] if entry else 0
+            out['rank'] = entry['rank'] if entry else 0
+            out['confuse'] = __import__('word_links').group_of(r['norm'])[:1]
         if r['source'] == 'mistake':
             out['extra'] = json.loads(r['extra'] or '{}') if 'extra' in r.keys() else {}
             norm = r['norm'] or ''

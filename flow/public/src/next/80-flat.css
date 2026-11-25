@@ -8,10 +8,10 @@
 /* frosted top bar and bottom tabs, no hairlines. The blur sits on a layer behind the bar, not on the bar itself:
    a backdrop-filter on the bar would make the fixed bottom tabs (inside it on phones) position against the bar. */
 .bar{border-bottom:0;background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none}
-.bar::before{content:'';position:absolute;inset:0;z-index:-1;background:color-mix(in srgb,var(--bg) 76%,transparent);
+.bar::before{content:'';position:absolute;inset:0;z-index:-1;background:var(--bg);background:color-mix(in srgb,var(--bg) 76%,transparent);  /* plain colour first: iOS before 16.2 cannot mix colours, the bar stays solid */
   -webkit-backdrop-filter:saturate(180%) blur(18px);backdrop-filter:saturate(180%) blur(18px)}
 @media (max-width:759px){
-  .tabs{border-top:0;background:color-mix(in srgb,var(--paper) 72%,transparent);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px)}
+  .tabs{border-top:0;background:var(--paper);background:color-mix(in srgb,var(--paper) 72%,transparent);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px)}
 }
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
   .bar::before{background:var(--bg)}
@@ -21,7 +21,7 @@
 /* surfaces without outlines */
 .card,.card.flat,button.xcard,.mini,.bookc,.share-img{border-color:transparent}
 .card.flat{box-shadow:none}
-.mini:hover,button.xcard:hover{border-color:transparent;background:color-mix(in srgb,var(--green) 4%,var(--paper))}
+.mini:hover,button.xcard:hover{border-color:transparent;background:var(--sunk);background:color-mix(in srgb,var(--green) 4%,var(--paper))}
 .expr{border-color:transparent;background:var(--sunk)}
 .list a,.list button{border-bottom:0}
 .change{border-top:0;padding:6px 0}
@@ -31,7 +31,7 @@
 
 /* controls: soft fills; the primary action stays solid green */
 .btn{border-color:transparent;background:var(--sunk)}
-.btn:hover{border-color:transparent;background:color-mix(in srgb,var(--green) 10%,var(--sunk))}
+.btn:hover{border-color:transparent;background:var(--sunk);background:color-mix(in srgb,var(--green) 10%,var(--sunk))}
 .btn.primary,.btn.primary:hover{border-color:var(--fill);background:var(--fill)}
 .btn.ghost{background:none}
 .icon-btn{border-color:transparent;background:var(--sunk)}
@@ -72,7 +72,7 @@ input[type=text]:focus,input[type=email]:focus,input[type=password]:focus,input[
 .ring{--p:0%;flex:none;width:58px;height:58px;border-radius:50%;display:grid;place-items:center;
   background:radial-gradient(closest-side,var(--bg) 78%,transparent 80% 100%),conic-gradient(var(--green) var(--p),var(--line) 0)}
 .ring b{font-size:13px;font-variant-numeric:tabular-nums}
-.go-next{min-height:56px;font-size:17px;border-radius:16px;justify-content:space-between;padding:0 20px;box-shadow:0 6px 18px color-mix(in srgb,var(--green) 28%,transparent)}
+.go-next{min-height:56px;font-size:17px;border-radius:16px;justify-content:space-between;padding:0 20px;box-shadow:0 6px 18px rgba(0,0,0,.12);box-shadow:0 6px 18px color-mix(in srgb,var(--green) 28%,transparent)}
 .go-next span{font-size:20px}
 .tp-done{display:flex;align-items:center;gap:12px}.tp-done .done-ring{width:44px;height:44px;margin:0}
 .plist{display:grid;gap:2px;background:var(--paper);border-radius:var(--r);padding:6px}
@@ -99,7 +99,7 @@ body.reviewing{touch-action:pan-y pinch-zoom}
      status bar or Dynamic Island in the home-screen app and the back button included). The page below it is a column
      the card fills, so the line above the card (结束, progress, 撤销) can change height without a number to keep. */
   body.reviewing{padding-bottom:0}
-  body.reviewing main{display:flex;flex-direction:column;min-height:calc(100dvh - var(--bar-h,48px));padding-bottom:calc(12px + var(--sab))}
+  body.reviewing main{display:flex;flex-direction:column;min-height:calc(100vh - var(--bar-h,48px));min-height:calc(100dvh - var(--bar-h,48px));padding-bottom:calc(12px + var(--sab))}
   body.reviewing .review:not(.q){display:flex;flex-direction:column;flex:1 0 auto;gap:14px}
   body.reviewing .sr-only{top:0}  /* the live region after main (1px, absolute where it stands) would hang below the screen */
   body.reviewing .review:not(.open-card):not(.q)>:first-child{margin-top:auto}
@@ -108,6 +108,6 @@ body.reviewing{touch-action:pan-y pinch-zoom}
   /* the buttons (.ractions, 60-review.js) at the bottom of the screen on both sides of the card, in the same place: the
      column fills the screen, so a short answer leaves them there; a long one scrolls under them (the user, 2026-11-25) */
   body.reviewing .review:not(.q)>.ractions{margin-top:auto;position:sticky;bottom:calc(12px + var(--sab));z-index:2;background:var(--bg);box-shadow:0 calc(12px + var(--sab)) 0 var(--bg)}
-  body.reviewing .review.open-card>.ractions::before{content:'';position:absolute;left:0;right:0;bottom:100%;height:16px;background:linear-gradient(transparent,var(--bg));pointer-events:none}
+  body.reviewing .review.open-card>.ractions::before{content:'';position:absolute;left:0;right:0;bottom:100%;height:28px;background:linear-gradient(transparent,var(--bg));pointer-events:none}
 }
 @media (max-width:759px){body.reviewing .toast{bottom:calc(132px + var(--sab))}}

@@ -34,11 +34,10 @@
 
 /* step tabs: sliding indicator */
 .steps{position:sticky}
-.steps .ind{position:absolute;top:8px;bottom:8px;left:0;border-radius:10px;background:var(--fill);transition:transform .32s var(--ease),width .32s var(--ease);z-index:0}
+.steps .ind{position:absolute;bottom:0;height:3px;left:0;border-radius:3px;background:var(--green);transition:transform .32s var(--ease),width .32s var(--ease);z-index:0}
 .steps button{position:relative;z-index:1;background:transparent}
 .steps{background:var(--bg)}
-.steps::before{content:'';position:absolute;inset:8px 0;border-radius:10px;background:var(--sunk);z-index:0}
-.steps button[aria-selected=true]{background:transparent;color:var(--on-fill)}
+.steps button[aria-selected=true]{background:transparent;color:var(--green-ink)}
 .steps button .ok{animation:pop .4s var(--ease-spring) both}
 
 /* reading: karaoke word highlight, sentence focus, evidence sweep */
@@ -102,7 +101,7 @@ details.guide p{margin:8px 0 0;font-size:15px}
 .expr .e{font-family:var(--serif);font-weight:700;font-size:17px}
 .expr .m{font-size:14px}
 .expr .n{grid-column:1/-1;font-size:13px;color:var(--muted)}
-.mark-expr{background:linear-gradient(transparent 62%,color-mix(in srgb,var(--green) 28%,transparent) 62%);border-radius:2px}
+.mark-expr{background:linear-gradient(transparent 62%,var(--green-soft) 62%);background:linear-gradient(transparent 62%,color-mix(in srgb,var(--green) 28%,transparent) 62%);border-radius:2px}
 
 /* knowledge graph */
 .st{--c:var(--st-untouched)}

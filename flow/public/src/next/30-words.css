@@ -1,6 +1,6 @@
 /* ---------- words: plan, forecast, memory curve, review modes ---------- */
-.w.mine{background:color-mix(in srgb,var(--green) 22%,transparent);border-radius:4px;padding:0 2px;margin:0 -2px}
-.legend span.m::before{height:10px;border:0;border-radius:3px;background:color-mix(in srgb,var(--green) 22%,transparent);vertical-align:-1px}
+.w.mine{background:var(--green-soft);background:color-mix(in srgb,var(--green) 22%,transparent);border-radius:4px;padding:0 2px;margin:0 -2px}
+.legend span.m::before{height:10px;border:0;border-radius:3px;background:var(--green-soft);background:color-mix(in srgb,var(--green) 22%,transparent);vertical-align:-1px}
 .vtoday .big-line{font-size:17px}.vtoday .big-line b{font-size:26px;font-variant-numeric:tabular-nums;margin:0 2px}
 .vbar{display:block;flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden;min-width:60px}
 .vbar i{display:block;height:100%;width:0;background:var(--green);border-radius:3px;transition:width .6s var(--ease)}
@@ -11,8 +11,8 @@
 .forecast .n{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink2)}
 .cal{display:grid;grid-template-columns:repeat(35,minmax(0,1fr));gap:3px;margin-top:4px}
 .cal i{aspect-ratio:1;border-radius:3px;background:var(--line)}
-.cal i.l1{background:color-mix(in srgb,var(--green) 28%,var(--line))}.cal i.l2{background:color-mix(in srgb,var(--green) 52%,var(--line))}
-.cal i.l3{background:color-mix(in srgb,var(--green) 76%,var(--line))}.cal i.l4{background:var(--green)}
+.cal i.l1{background:var(--green);background:color-mix(in srgb,var(--green) 28%,var(--line))}.cal i.l2{background:var(--green);background:color-mix(in srgb,var(--green) 52%,var(--line))}
+.cal i.l3{background:var(--green);background:color-mix(in srgb,var(--green) 76%,var(--line))}.cal i.l4{background:var(--green)}
 button.xcard{text-align:left;width:100%;font:inherit;color:inherit;cursor:pointer}
 button.xcard:hover{border-color:var(--green-line)}
 .books{display:grid;gap:10px}
@@ -55,7 +55,7 @@ details.basis[open]>summary{margin-bottom:0}
 .choice button:active{transform:scale(.97)}
 .choice button small{font-weight:500;color:var(--muted);font-size:11px}
 .choice .good{border-color:var(--ok);color:var(--ok-ink)}
-.choice .again{border-color:color-mix(in srgb,var(--red) 45%,var(--line2))}
+.choice .again{border-color:var(--red);border-color:color-mix(in srgb,var(--red) 45%,var(--line2))}
 .icon-btn.big{width:64px;height:64px;border-radius:50%}.icon-btn.big svg{width:30px;height:30px}
 .spell{font:inherit;font-family:var(--serif);font-size:24px;text-align:center;padding:10px 14px;border:1.5px solid var(--line2);border-radius:12px;background:var(--paper);color:var(--ink);width:min(320px,100%);margin:0 auto}
 .spell:focus{outline:none;border-color:var(--green)}
@@ -77,10 +77,30 @@ details.basis[open]>summary{margin-bottom:0}
 /* 点卡片作答 (60-review.js tapZones): the first time, the card's three parts drawn over it, a tap puts it away */
 .zoned{position:relative}  /* the card the zones are on (tapZones), the guide drawn over it */
 .zone-guide{position:absolute;inset:0;z-index:3;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:1fr auto;border-radius:14px;overflow:hidden;
-  background:color-mix(in srgb,var(--bg) 82%,transparent);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);pointer-events:none}
+  background:var(--bg);background:color-mix(in srgb,var(--bg) 82%,transparent);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);pointer-events:none}
 .zone-guide span{display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;color:var(--ink);border:2px dashed var(--line2);margin:6px;border-radius:12px}
 .zone-guide p{grid-column:1/-1;margin:0;padding:10px 14px 12px;font-size:14px;color:var(--ink2);text-align:center}
 .sheet-card .zones-h{font-size:16px;margin:10px 0 0}
+/* 复习卡 简洁 / 详细 (60-review.js detailed(); words-modes-plan.md; B9's sheet in words-modes/) */
+.vt{display:inline-flex;background:var(--sunk);border-radius:8px;padding:2px;gap:2px;flex:none}
+.vt button{position:relative;border:0;background:none;font:600 12.5px/1 var(--sans);color:var(--muted);padding:6px 9px;border-radius:6px;cursor:pointer;min-width:32px;min-height:32px}
+.vt button::after{content:'';position:absolute;inset:-8px -1px}  /* 44 px to tap, the look stays small */
+.vt button.on{background:var(--paper);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.review .detail-line{font-size:12.5px;color:var(--muted);text-align:center;margin-top:-8px}
+.review .mean-pos{display:grid;gap:4px;text-align:left;width:max-content;max-width:100%;margin:0 auto}
+.review .mean-pos div{font-size:16px;line-height:1.5;color:var(--ink2)}
+.review .mean-pos b{display:inline-block;min-width:2.2em;font-weight:600;color:var(--muted);font-size:14px}
+.ex-wrap.fold .exs .ex:nth-child(n+3){display:none}
+.ex-more{display:block;border:0;background:none;font:600 13.5px/1.4 var(--sans);color:var(--green-ink);text-align:left;padding:6px 0 0 52px;cursor:pointer;min-height:32px}
+.review .conf-wrap{max-width:440px;width:100%;margin:0 auto;text-align:left}
+.review .conf-line{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px;color:var(--ink2);background:var(--sunk);border-radius:12px;padding:10px 12px;min-height:44px;cursor:pointer;list-style:none}
+.review .conf-line::-webkit-details-marker{display:none}
+.review .conf-line .how{color:var(--green-ink);font-weight:600;white-space:nowrap}
+.review .conf-wrap[open] .how{visibility:hidden}
+.review .conf-wrap p{margin:8px 12px 0;color:var(--ink2)}
+.review .mem-line{font-size:12.5px;color:var(--muted);text-align:center}
+.sheet-card .view-row{align-items:center;gap:10px;margin-top:4px}
+.sheet-card .seg{display:flex;gap:6px}
 /* the page's name for a screen reader (复习单词, 测词汇量), first in main: hidden, so it moves nothing below it */
 main>h1.sr-only+*{margin-top:0}
 /* 词汇辨析's round (45-confuse.js) on a phone: one screen like 复习 (body.reviewing: no tabs), 怎么区分 folded to a line
@@ -101,6 +121,9 @@ main>h1.sr-only+*{margin-top:0}
 .today-plan .tp-remind{justify-self:center}
 /* 复习提醒 in Flow's apps: 「已开启：在这台 iPhone 上到点用 App 通知提醒」 and its 关闭 / 通知设置 on one line; the words
    wrap before the link, the link does not drop to a line of its own on a narrow phone (语流 C1, iOS simulator) */
-#rAppRow:has(#rAppOn){flex-wrap:nowrap}
+#rAppRow:has(#rAppOn){/* compat-ok: before iOS 15.4 the row may wrap, still all there */flex-wrap:nowrap}
 #rAppRow #rAppOn{flex:1 1 auto;min-width:0}
 #rAppRow #rAppOff,#rAppRow #rAppSet{flex:none}
+
+/* no colour mixing (iOS before 16.2): the heat levels as opacity of the plain green set before each mix */
+@supports not (background:color-mix(in srgb,red 50%,blue)){.cal i.l1{opacity:.35}.cal i.l2{opacity:.6}.cal i.l3{opacity:.85}}

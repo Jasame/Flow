@@ -5,16 +5,19 @@
 	<!-- the site the app opens: Beta.xcconfig / Release.xcconfig -->
 	<key>FlowSiteURL</key>
 	<string>$(FLOW_SITE_URL)</string>
-	<!-- a whole text keeps playing with the screen locked -->
+	<!-- a whole text keeps playing with the screen locked; reminders follow the counts; 离线朗读包 at night -->
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
 		<string>fetch</string>
+		<string>processing</string>
 	</array>
-	<!-- a few times a day: the next two weeks of review reminders follow the counts (Shell.refreshTask) -->
+	<!-- a few times a day: the next two weeks of review reminders follow the counts (Shell.refreshTask);
+	     once a night on Wi-Fi while charging: today's recordings when 离线朗读包 is on (Packs.task) -->
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
 		<string>cn.flowlang.app.refresh</string>
+		<string>cn.flowlang.app.packs</string>
 	</array>
 	<!-- the site's own domains: service worker (offline, audio cache), the JS bridge and cookies only there -->
 	<key>WKAppBoundDomains</key>

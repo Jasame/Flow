@@ -437,6 +437,9 @@ def ai(c, days=14, people=False):
     line = ai_routes.stop_line()
     out['stop'] = {'line': line, 'source': 'console' if console_ops.settings().get('ai_stop') is not None else 'default',
                    'spent': round(ai_routes.spent_since(c, ai_routes.learner_day_start()), 4), 'full': bool(line) and ai_routes.day_full(c)}
+    bline = ai_routes.batch_line()  # tonight's batch ceiling (ai_routes.batch_line / batch_full, console key ai_batch, default ¥15)
+    out['batch'] = {'line': bline, 'source': 'console' if console_ops.settings().get('ai_batch') is not None else 'default',
+                    'spent': round(ai_routes.batch_spent_since(c, ai_routes.learner_day_start()), 4), 'full': bool(bline) and ai_routes.batch_full(c)}
     out['costs'] = ai_routes.summary(c, days)
     out['evals'] = ai_routes.eval_reports()
     out['nightly'] = ai_routes.nightly_on()

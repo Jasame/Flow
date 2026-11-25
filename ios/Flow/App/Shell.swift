@@ -36,6 +36,18 @@ final class Shell {
         // when it closes, the audio session stays ours while that text is still there to go on with
         recorder.willRecord = { [weak player] in player?.pause(why: .other) }
         recorder.keepSession = { [weak player] in (player?.state ?? .idle) != .idle }
+        // 「iOS 专属功能」 switched on the app's page: what acts at once
+        Packs.shared.site = site
+        Features.changed.append { [weak player] f, on in
+            switch f {
+            case .lockScreenStudy: player?.lockScreenChanged()
+            case .offlinePacks:
+                if on { Task { await Packs.shared.refresh(force: true) } } else { Packs.shared.clear() }
+                Packs.schedule()
+            case .frugal: Frugal.shared.update()
+            case .smartResume, .haptics: break
+            }
+        }
     }
 
     func phase(_ p: ScenePhase) {
@@ -43,11 +55,13 @@ final class Shell {
         case .active:
             bridge.resendState()
             Task { await reminders.refresh() }
+            Task { await Packs.shared.refresh() }  // 离线朗读包: today's, over Wi-Fi (at most every 3 hours)
         case .background:
             recorder.cutNow()  // no recording behind the learner's back
             // the counts may have changed while the app was open (a review done): today's reminder follows them
             BackgroundWork.run("reminders") { [reminders] in await reminders.refresh(force: true) }
             Shell.scheduleRefresh()
+            Packs.schedule()
         default:
             break
         }

@@ -22,6 +22,12 @@ fn wanted(app: &AppHandle) -> bool {
     st.channel == Channel::Release && st.smoke.is_none()
 }
 
+/// Can this install update itself? Windows and macOS: yes. Linux: only the AppImage (a deb or rpm would need the
+/// system's admin password for every update, so those say where to download instead).
+fn self_updating() -> bool {
+    !cfg!(target_os = "linux") || std::env::var_os("APPIMAGE").is_some()
+}
+
 fn say(app: &AppHandle, title: &str, body: &str) {
     let launch = format!("{}://open", app.state::<AppState>().channel.scheme());
     if let Err(e) = crate::notify::show_now(title, body, &launch) {
@@ -42,6 +48,16 @@ pub fn check_on_start(app: AppHandle) {
             Err(e) => return log::warn!("updater unavailable: {e}"),
         };
         match updater.check().await {
+            Ok(Some(u)) if !self_updating() => {
+                say(
+                    &app,
+                    "语流 · 有新版本",
+                    &format!(
+                        "{} 可以更新了：到 flowlang.cn 的下载页下载安装。",
+                        u.version
+                    ),
+                );
+            }
             Ok(Some(u)) => match u.download(|_, _| {}, || {}).await {
                 Ok(bytes) => {
                     log::info!("update {} downloaded ({} bytes)", u.version, bytes.len());
@@ -89,6 +105,16 @@ pub fn check_now(app: AppHandle) {
         }
         let Ok(updater) = app.updater() else { return };
         match updater.check().await {
+            Ok(Some(u)) if !self_updating() => {
+                say(
+                    &app,
+                    "语流 · 有新版本",
+                    &format!(
+                        "{} 可以更新了：到 flowlang.cn 的下载页下载安装。",
+                        u.version
+                    ),
+                );
+            }
             Ok(Some(u)) => {
                 say(
                     &app,

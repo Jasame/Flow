@@ -462,6 +462,29 @@ def run_device(pw, dev, opts):
 
     # ---- 读: 中文导读、改写 and 伴读 in one row, the key and hints in one line, the text on a phone's first screen
     go(pg, f'#/m/{PID}/read')
+    # 使用提示 (08-tips.js, 学优秀 UI 第一批): 「点词查词…」 said once above the text, 知道了 puts it away and the account
+    # keeps that (not after a reload either); 我的 → 帮助 → 更多 →「重新显示使用提示」 brings it back
+    # the server's list and the phone's copy of it (08-tips.js keeps one per account, so the tip is drawn with the page)
+    tips_reset = """async () => { const s = await (await fetch('/api/session')).json();
+        await fetch('/api/next/tips', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': s.user.csrf }, body: JSON.stringify({ reset: true }) });
+        Object.keys(localStorage).filter(k => k.startsWith('flow-tips')).forEach(k => localStorage.removeItem(k));
+        [s.user.id, s.user.username].filter(Boolean).forEach(w => localStorage.setItem('flow-tips-' + w, '[]')); }"""
+    pg.evaluate(tips_reset); pg.reload(wait_until='load'); settle(pg)
+    shown = bool(pg.wait_for_selector('#tip-read', timeout=6000)); text = pg.text_content('#tip-read') or ''
+    y0 = pg.evaluate("Math.round(document.getElementById('reader').getBoundingClientRect().top)"); pg.wait_for_timeout(1500)
+    y1 = pg.evaluate("Math.round(document.getElementById('reader').getBoundingClientRect().top)")
+    check(dev, 'read: the first-time tip is drawn with the page (kept on the phone), the text does not move when the server answers', y0 == y1, (y0, y1))
+    pg.click('#tip-read button'); pg.wait_for_timeout(300); gone = pg.query_selector('#tip-read') is None
+    pg.reload(wait_until='load'); settle(pg); pg.wait_for_timeout(800)
+    again = pg.query_selector('#tip-read') is not None
+    seen = pg.evaluate("fetch('/api/next/tips').then(r => r.json())")
+    check(dev, 'read: 「点词查词…」 is a first-time tip: shown once above the text, 知道了 puts it away, the account keeps it',
+          shown and '点词查词' in text and gone and not again and 'read' in seen.get('seen', []), (text[:30], gone, again, seen))
+    if dev == 'phone':
+        go(pg, '#/me'); pg.click('#meMore'); pg.wait_for_selector('#meTips', timeout=4000); pg.click('#meTips'); pg.wait_for_timeout(500)
+        go(pg, f'#/m/{PID}/read'); back = bool(pg.wait_for_selector('#tip-read', timeout=6000))
+        check(dev, '我的 → 帮助 → 更多 →「重新显示使用提示」 brings the 读 tip back', back)
+        pg.click('#tip-read button'); pg.wait_for_timeout(300); go(pg, f'#/m/{PID}/read')
     rd = pg.evaluate("""() => { const r = document.getElementById('reader'), t = document.querySelector('#view .read-tools');
       return {tools: t ? [...t.querySelectorAll('button')].map(b => b.id) : [], top: r ? Math.round(r.getBoundingClientRect().top) : null, h: innerHeight}; }""")
     check(dev, 'read: the tools sit in one row above the text', 'readAlong' in rd['tools'], rd)
@@ -755,6 +778,7 @@ def run_device(pw, dev, opts):
 # install offer), where a text comes from, and a 360-pixel-wide phone
 IPHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1'
 ANDROID_UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36'
+HARMONY_UA = 'Mozilla/5.0 (Phone; OpenHarmony 5.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 ArkWeb/4.1.6.1 Mobile HuaweiBrowser/5.0.4.300'
 OFFER = """window.__prompted = 0; addEventListener('load', () => { const e = new Event('beforeinstallprompt');
   e.prompt = () => { window.__prompted++; }; e.userChoice = Promise.resolve({ outcome: 'accepted' }); dispatchEvent(e); });"""
 
@@ -804,6 +828,11 @@ def platform_run(pw):
         ctx, pg = page(ANDROID_UA)
         t = install_text(pg)
         check(dev, 'Android: the browser menu, then 添加到主屏幕 / 安装应用', '⋮' in t and '安装应用' in t, t[:120])
+        ctx.close()
+        # HarmonyOS NEXT (华为浏览器, ArkWeb: OpenHarmony and no Android in its user agent): its menu, not a computer's Chrome
+        ctx, pg = page(HARMONY_UA)
+        t = install_text(pg)
+        check(dev, 'HarmonyOS: the browser menu, then 添加到桌面 (not Chrome or Edge)', '≡' in t and '添加到桌面' in t and 'Chrome' not in t, t[:120])
         ctx.close()
         # Android with the offer (beforeinstallprompt): one button, the browser's own install
         ctx, pg = page(ANDROID_UA, init=OFFER)
@@ -1022,6 +1051,16 @@ def app_audio_run(pw):
         after = cmds()
         check(dev, "…and 播放全文 takes the app's text back: no new audio.play, 复读 and 语速 sent, 暂停, 第 6 句 lit",
               'audio.play' not in after and 'audio.set' in after and btn().endswith('暂停') and lit() == '5', (after, btn(), lit()))
+        # 语速 and 单句循环 changed on the lock screen (iOS 27, C1's #335: rate, rep, loop with why 'remote'): the page takes
+        # them, its line follows, and it pushes nothing back (a set would put 1× back); turned off, the page's own come back
+        pg.evaluate('window.__cmds = []')
+        emit('audio', {'key': key, 'state': 'playing', 'i': 5, 'n': n, 'title': 't', 'why': 'remote', 'rate': 1.25, 'rep': 0, 'loop': True}); pg.wait_for_timeout(200)
+        kn = pg.evaluate("() => ({ rate: JSON.parse(localStorage.getItem('flow-next-rate')), rep: (JSON.parse(localStorage.getItem('flow-next-loop') || '{}')).rep, sum: (document.getElementById('psum') || {}).textContent || '' })")
+        check(dev, '语速 1.25× and 单句循环 from the lock screen: the page takes them and pushes nothing back',
+              kn['rate'] == 1.25 and kn['rep'] == 0 and '1.25×' in kn['sum'] and '单句循环' in kn['sum'] and 'audio.set' not in cmds(), (kn, cmds()))
+        emit('audio', {'key': key, 'state': 'playing', 'i': 5, 'n': n, 'title': 't', 'why': 'remote', 'rate': 1, 'rep': 1, 'loop': False}); pg.wait_for_timeout(200)
+        kn = pg.evaluate("() => ({ rate: JSON.parse(localStorage.getItem('flow-next-rate')), rep: (JSON.parse(localStorage.getItem('flow-next-loop') || '{}')).rep })")
+        check(dev, '…and turned off there, the page is back to 1× and 每句 1 遍, still nothing pushed', kn['rate'] == 1 and kn['rep'] == 1 and 'audio.set' not in cmds(), (kn, cmds()))
         emit('audio', {'key': key, 'state': 'idle', 'why': 'ended', 'i': n - 1, 'n': n}); pg.wait_for_timeout(200)
         check(dev, 'read to the end: the kept place cleared, the mini player gone, 播放全文 again',
               prog() is None and mini() is None and btn().endswith('播放全文'), (prog(), mini(), btn()))
@@ -1697,8 +1736,8 @@ def learner_run(pw):
         pg.wait_for_selector('#sheetCard [data-goal="3"]', timeout=4000)
         pg.click('#sheetCard [data-goal="3"]'); pg.wait_for_timeout(600); pg.evaluate(closing)
         goal = (pg.text_content('#weekCard .wk-tile.goal b') or '').strip()
-        chip = (pg.text_content('#habitBtn') or '').strip()
-        check(dev, '每周目标: the goal set from 今日 shows on the 这周进步 card and the chip by the greeting at once', goal.endswith('/3天') and '/3 天' in chip, (goal[:40], chip[:40]))
+        chip = pg.query_selector('#habitBtn')
+        check(dev, '每周目标: the goal set from 今日 shows on the 这周进步 card at once (the week said there only, not by the greeting)', goal.endswith('/3天') and chip is None, goal[:40])
         # 草稿 (08-drafts.js): a writing box keeps what was typed when the page is left, its counter too; sending forgets it
         draft = 'A paragraph pasted here, and then the learner tapped another tab by mistake. ' * 4
         go(pg, '#/import'); pg.fill('#impF textarea[name=text]', draft); go(pg, '#/practice'); go(pg, '#/import')
@@ -1830,7 +1869,6 @@ A11Y_JS = """() => {
       if (cs.backgroundImage && cs.backgroundImage !== 'none' && !/gradient/.test(cs.backgroundImage)) return null;  // a picture behind: skip
       let c = parse(cs.backgroundColor);
       if (/gradient/.test(cs.backgroundImage)) { const m = cs.backgroundImage.match(/rgba?\([^)]+\)/); if (m) c = parse(m[0]); }
-      if ((!c || !c[3]) && e.matches('.steps [aria-selected="true"]')) { const ind = document.querySelector('.steps .ind'); c = ind && parse(getComputedStyle(ind).backgroundColor); }
       if (c && c[3] > 0) { layers.push(c); if (c[3] >= 1) break; }
       op *= Number(cs.opacity); e = e.parentElement;
     }
@@ -2251,7 +2289,7 @@ def class_run(pw):
         pg.click('#authForm [type=submit]'); pg.wait_for_selector('#tNew', timeout=8000); settle(pg)
         tab = pg.text_content('[data-nav="today"] span') or ''
         check(dev, '老师账号: after signing up, the home is 我的班级 and the first tab says 班级', '我的班级' in (pg.text_content('h1') or '') and tab == '班级', tab)
-        pg.fill('#tNew [name=name]', '高二（5）班'); pg.click('#tNew [type=submit]'); pg.wait_for_selector('.cls-code', timeout=8000)
+        pg.fill('#tNew [name=name]', '周三晚英语口语课'); pg.click('#tNew [type=submit]'); pg.wait_for_selector('.cls-code', timeout=8000)
         code = (pg.text_content('.cls-code') or '').strip()
         check(dev, '老师账号: a new class opens on its page with a 6-character invite code', re.fullmatch(r'[A-Z2-9]{6}', code) is not None and pg.evaluate(wide), code)
         pg.screenshot(path=str(OUT / 'class-new-teacher.png'), full_page=True)
@@ -3134,7 +3172,7 @@ def progress_run(pw):
                 acc = pr['accuracy']['now']
                 want = [str(pr['remembered']['now']), str(pr['finished']['now']),
                         f"{acc['rate']}%" if acc['rate'] is not None else (f"{acc['right']}/{acc['total']}" if acc['total'] else '—'), f"{hb['done']}/{hb['goal']}天"]
-                check(dev, f'{tag}: 这周进步 sits under the plan, the week chip by the greeting', card and card['below'] and card['chip'] and card['inView'], card)
+                check(dev, f'{tag}: 这周进步 sits under the plan, and the week is said there only (no chip by the greeting: 学优秀 UI 第一批)', card and card['below'] and not card['chip'] and card['inView'], card)
                 # phones (the owner, 2026-11-25): 好句 and 今日一读 one line each, 「AI 生成」 on 今日一读's line, so 今天的计划 and its
                 # button are on the first screen; a tap opens 好句 in place, again closes it. iPad and computer: both cards whole
                 fold = pg.evaluate(FOLD_JS)
@@ -3162,6 +3200,9 @@ def progress_run(pw):
                 ec.close()
                 check(dev, f'{tag}: its four numbers are the learner\'s own (as the server counts them)', card and card['values'] == want, (card and card['values'], want))
                 path = home['path']; plan = pg.evaluate(PLAN_JS)
+                ring = pg.get_attribute('#view .today-plan .ring', 'aria-label') or ''
+                check(dev, f'{tag}: the ring says the steps done to a screen reader (the line under the title gives the minutes only)',
+                      ring == f"今天的计划，已完成 {path['done']} 步，共 {path['total']} 步", ring)
                 grp = {g: [x for x in path['steps'] if x.get('group', 'must') == g] for g in ('must', 'extra', 'week')}
                 head = (f"约 {path['must_minutes']} 分钟" if not path['done'] else '都做完了' if path['done'] >= path['total'] else f"还要约 {path['left_minutes']} 分钟")
                 check(dev, f'{tag}: the plan shows 必做 (counted), 还有时间的话 folded and 本周任务 as the server packs them, its title the real minutes of 必做',
@@ -3312,7 +3353,7 @@ def review_side_run(pw):
         label = pg.text_content('#meKnowV') or ''
         pg.click('#sheetCard [data-close]'); pg.wait_for_timeout(150)
         go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000); s = st()
-        check(dev, '我的 → 设置: 「认识」放在左边, and the card says 认识 / 模糊 / 不认识', label.strip() == '左边' and s['claims'] == ['know', 'fuzzy', 'forgot'] and not s['tip'], (label, s))
+        check(dev, '我的 → 设置: 「认识」放在左边, and the card says 认识 / 模糊 / 不认识', label.startswith('认识在左') and s['claims'] == ['know', 'fuzzy', 'forgot'] and not s['tip'], (label, s))
         pg.keyboard.press('1'); pg.wait_for_timeout(250); s = st()
         check(dev, 'left: key 1 is 认识, and on the answer 没错 left, 记错了 right', s['back'] and s['rates'] == ['good', 'again'], s)
         f0 = s['foot']; pg.keyboard.press('ArrowLeft'); pg.wait_for_timeout(450); s = st()
@@ -3405,6 +3446,19 @@ def review_side_run(pw):
                 pg.click('#meApp'); pg.wait_for_timeout(200); row['calls'] = pg.evaluate('window.__calls || []')
             rows[name] = [row, errs[:2]]
             ctx.close()
+        # 语流's iOS app saving power (低电量模式, iOS 27: FlowApp 'frugal', C1): 今日 fetches nothing ahead (the other tabs,
+        # today's texts kept offline), as with Save-Data; the app not saving: it does
+        ahead = {}
+        for name, on in (('saving', 'true'), ('not saving', 'false')):
+            ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
+            ctx.add_init_script("window.FlowApp = { v: 1, platform: 'ios', has: k => k === 'frugal', call: c => Promise.resolve(c === 'app.frugal' ? { on: " + on + " } : null), on: () => () => {} };")
+            pg = ctx.new_page(); seen = []
+            pg.on('request', lambda q: seen.append(q.url) if '/api/next/vocab' in q.url or '/api/next/material' in q.url else None)
+            pg.goto(BASE + '/', wait_until='load'); settle(pg); pg.wait_for_timeout(4000)
+            ahead[name] = len(seen)
+            ctx.close()
+        check(dev, 'the iOS app saving power: 今日 fetches nothing ahead; not saving, it does', ahead['saving'] == 0 and ahead['not saving'] > 0, ahead)
         ios = rows['iOS app'][0] or {}
         check(dev, '我的 → 设置: 「iOS 专属功能 · 锁屏、小组件、Siri 等」 in the iOS app, one line at 375 px, a tap opens the app\'s own page (app.settings)',
               ios.get('group') == '设置' and 'iOS 专属功能' in ios.get('text', '') and '锁屏、小组件、Siri 等' in ios.get('text', '') and ios.get('one') and ios.get('calls') == ['app.settings'], rows)
@@ -3515,6 +3569,44 @@ def review_side_run(pw):
         pg.mouse.click(*r); pg.wait_for_timeout(300)
         check(dev, '点卡片作答 with a mouse: off by default, a click into the card answers nothing, no guide', pg.evaluate(ZONE_JS)['front'] and not pg.evaluate(ZONE_JS)['guide'], pg.evaluate(ZONE_JS))
         ctx.close()
+        # 复习卡 简洁 / 详细 (words-modes-plan.md; the owner, 2026-11-25): new words detailed, reviews simple by default; the
+        # front asks the same (detailed adds a grey line of tags and history, no meaning); the back adds the meaning by part
+        # of speech, examples beyond the first one tap away, the 词汇辨析 group and how well it is held; 简 / 详 at the top
+        # switches it for that kind of card and keeps it, without answering; 我的 → 设置 → 背词 sets both
+        MODE_JS = """() => ({ front: !!document.querySelector('.ractions [data-claim]'), back: !!document.querySelector('.open-card'), word: (document.querySelector('.review .wordbig') || {}).textContent,
+          meta: (document.querySelector('.review .detail-line') || {}).textContent || '', pos: document.querySelectorAll('.mean-pos b').length, fold: !!document.querySelector('.ex-wrap.fold'),
+          shown: [...document.querySelectorAll('.exs .ex')].filter(e => e.offsetParent !== null).length, all: document.querySelectorAll('.exs .ex').length,
+          confuse: (document.querySelector('.conf-line') || {}).textContent || '', state: (document.querySelector('.mem-line') || {}).textContent || '',
+          on: (document.querySelector('#vmode .on') || {}).textContent || '', mean: (document.querySelector('.review .mean-a') || {}).textContent || '' })"""
+        ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['modes']['token'], 'url': BASE}])
+        ctx.add_init_script("try { localStorage.setItem('flow-tap-guide', '1'); localStorage.setItem('flow-next-swipe-tip', '1'); } catch (e) {}")
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        posts = []; pg.on('request', lambda r: posts.append(r.url) if r.method == 'POST' and '/api/next/review' in r.url else None)
+        pg.goto(BASE + '/#/cards', wait_until='load'); settle(pg)
+        go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(300)
+        m1 = pg.evaluate(MODE_JS)
+        check(dev, '复习卡: a review is 简洁 by default (no grey line, 简 marked)', m1['word'] == 'borrow' and not m1['meta'] and m1['on'] == '简', m1)
+        pg.click('#vmode [data-v="detailed"]'); pg.wait_for_timeout(300); m2 = pg.evaluate(MODE_JS)
+        check(dev, '简 / 详 at the top: the card turns 详细 in place, not an answer; the front gains tags and history only, no meaning',
+              m2['front'] and m2['on'] == '详' and '第 3 次见' in m2['meta'] and '借' not in m2['meta'] and not m2['mean'] and not posts and pg.evaluate("localStorage.getItem('flow-card-view-review')") == 'detailed', m2)
+        pg.click('.ractions [data-claim="know"]'); pg.wait_for_timeout(400); m3 = pg.evaluate(MODE_JS)
+        check(dev, '详细 back: the meaning by part of speech, as many examples open as 简洁 (two) and the rest one tap away, borrow / lend from 词汇辨析, how well it is held',
+              m3['back'] and m3['pos'] >= 2 and m3['shown'] == min(2, m3['all']) and (m3['all'] <= 2 or m3['fold']) and 'borrow / lend' in m3['confuse'] and '记得的把握' in m3['state'], m3)
+        if pg.query_selector('#exMore'):
+            pg.click('#exMore'); pg.wait_for_timeout(200); m4 = pg.evaluate(MODE_JS)
+            check(dev, '详细 back: 再看 N 句 shows the other examples', not m4['fold'] and m4['shown'] == m4['all'], m4)
+        pg.click('#vmode [data-v="simple"]'); pg.wait_for_timeout(300); m5 = pg.evaluate(MODE_JS)
+        check(dev, '简 / 详 on the back: 简洁 again, the same back (no rating), at most two examples, no 词汇辨析 line',
+              m5['back'] and m5['on'] == '简' and m5['all'] <= 3 and not m5['confuse'] and not m5['state'] and not posts, m5)
+        pg.click('.ractions [data-rate="good"]'); pg.wait_for_timeout(600); m6 = pg.evaluate(MODE_JS)
+        check(dev, '复习卡: a new word is 详细 by default (its own setting)', m6['word'] == 'lend' and m6['on'] == '详' and '新词' in m6['meta'], m6)
+        go(pg, '#/me'); pg.click('#meKnow'); pg.wait_for_selector('#sheetCard [data-view="new:simple"]')
+        pg.click('#sheetCard [data-view="new:simple"]'); pg.wait_for_timeout(200)
+        lab = pg.text_content('#meKnowV') or ''
+        check(dev, '我的 → 设置 → 背词: 背新词 / 复习 each 简洁 or 详细, and the row says so', pg.evaluate("localStorage.getItem('flow-card-view-new')") == 'simple' and '新词简洁' in lab, lab)
+        check(dev, 'no script errors (简洁 / 详细)', not errs, errs[:3])
+        ctx.close()
         # a search that finds nothing says what was searched and offers a way out (语流 B9): 清除搜索, and with a filter on, 在全部里找
         ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
@@ -3616,6 +3708,18 @@ def one_screen_run(pw):
                               b['note'] == ['读音由 AI 合成', True] and (f['note'] == ['读音由 AI 合成', True] if f['word'] else True), [f, b])
                     if home:
                         check(dev, f'{where} {name}: --bar-h is the top bar\'s height', s['barH'] == f"{s['bar']}px", s)
+                # 详细's front (words-modes-plan.md): one grey line more than 简洁, still one screen, the answers clear of the home bar
+                pg.evaluate("localStorage.setItem('flow-card-view-review', 'detailed')"); go(pg, '#/cards'); go(pg, '#/review')
+                pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(400); s = pg.evaluate(ONE_SCREEN_JS)
+                pg.screenshot(path=str(OUT / f"one-screen-{size}-{'home' if home else 'safari'}-review-detailed.png"))
+                check(dev, f'{where} 复习卡（详细）: one screen, nothing to scroll ({s["page"]} of {s["H"]}px)',
+                      s['page'] <= s['H'] and pg.query_selector('.review .detail-line') is not None and s['answers'] and max(s['answers'] + [s['lastBottom']]) <= s['H'] - s['sab'], s)
+                if size == 'iphone-se' and not home:  # Safari with its bars showing (375×553): 详细's front still fits
+                    pg.set_viewport_size({'width': 375, 'height': 553}); go(pg, '#/cards'); go(pg, '#/review')
+                    pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(400); s = pg.evaluate(ONE_SCREEN_JS)
+                    check(dev, f'375×553 Safari 复习卡（详细）: one screen ({s["page"]} of {s["H"]}px)', s['page'] <= s['H'] and s['answers'] and max(s['answers']) <= s['H'], s)
+                    pg.set_viewport_size({'width': 375, 'height': 667})
+                pg.evaluate("localStorage.removeItem('flow-card-view-review')")
                 # 词汇辨析's round (语流 B8's audit: 119-213 px past the screen): no tabs, 怎么区分 open for the first question,
                 # one line from the second; both questions one screen, the answers at the bottom and clear of the home bar
                 if size == 'iphone-se' and not home:  # Safari with its bars showing: 375×553 (语流 B8 on r33)
@@ -3701,6 +3805,47 @@ def shell_run(pw):
             go(pg, f'#/radar/test/{kind}'); pg.wait_for_timeout(600)
             h1 = pg.evaluate("(h => h && h.textContent.trim())(document.querySelector('#view h1'))")
             check(dev, f'{name}: the page has its h1 (for a screen reader)', h1 == name, h1)
+        ctx.close()
+        # an older front end than the server's (B8, 2026-11-25: a copy cached before the terms check got the same error on
+        # every 重试): an error page takes the new version at once, once; its 重试 takes it again rather than repeat
+        ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True, service_workers='block')
+        ctx.add_cookies([{'name': 'flow_session', 'value': tok, 'url': BASE}])
+        pg = ctx.new_page(); loads = []
+        pg.on('load', lambda _: loads.append(1))
+        pg.route('**/api/version', lambda r: r.fulfill(json={'asset': 'zzz-newer'}))
+        pg.route('**/api/next/home*', lambda r: r.fulfill(status=403, json={'error': '请先同意新的用户协议'}))
+        pg.goto(BASE + '/#/', wait_until='load')
+        try:
+            pg.wait_for_function("() => localStorage.getItem('flow-update-tried') === JSON.stringify('zzz-newer')", timeout=10000)
+        except Exception:
+            pass
+        pg.wait_for_timeout(6000)  # a loop would reload again and again by now
+        first = (len(loads), pg.evaluate("localStorage.getItem('flow-update-tried')"), bool(pg.query_selector('#view #retry')), bool(pg.query_selector('#updateBar')))
+        check(dev, 'an error page with a newer version on the server takes it at once, once (no reload loop), then offers it',
+              first[0] == 2 and first[1] == '"zzz-newer"' and first[2] and first[3], first)
+        pg.click('#view #retry'); pg.wait_for_timeout(5000)
+        check(dev, 'and its 重试 takes the new version again instead of repeating the same error', len(loads) == 3, len(loads))
+        ctx.close()
+        # the Android app's basic mode (1.0.4: the agreement not accepted; it blocks sign-in and sign-up with 403 app-consent):
+        # 注册 or 登录 asks the app to ask again instead of opening a form the app would then refuse (C2, native-bridge §10)
+        app = """(() => { const asked = window.__asked = []; let state = 'basic';
+          window.FlowApp = { features: ['privacy'], has: f => f === 'privacy', on: () => () => {}, off: () => {},
+            call: (cmd) => { asked.push(cmd); if (cmd === 'privacy.state') return Promise.resolve({ state, version: '1' }); if (cmd === 'privacy.ask') { const r = window.__answer || 'agreed'; if (r === 'agreed') state = 'agreed'; return Promise.resolve(r); } return Promise.reject(new Error('no')); } }; })()"""
+        ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True)
+        ctx.add_init_script(app)
+        pg = ctx.new_page(); pg.goto(BASE + '/#/welcome', wait_until='load'); pg.wait_for_selector('#wgReg', timeout=8000)
+        # still 'basic' after the app asked: no form
+        pg.evaluate("window.__answer = 'basic'"); pg.click('#wgReg'); pg.wait_for_timeout(600)
+        no = (pg.evaluate("document.getElementById('sheet').hidden"), pg.evaluate('window.__asked.slice()'))
+        # 'agreed': the form opens at once, no second tap
+        pg.evaluate("window.__answer = 'agreed'; window.__asked.length = 0"); pg.click('#wgReg')
+        try:
+            pg.wait_for_selector('#authForm', timeout=4000)
+        except Exception:
+            pass
+        yes = (pg.is_visible('#authForm'), pg.evaluate('window.__asked'))
+        check(dev, "the Android app's basic mode: 注册 asks the app first; still not agreed → no form, agreed → the form opens at once",
+              no == (True, ['privacy.state', 'privacy.ask']) and yes == (True, ['privacy.state', 'privacy.ask']), (no, yes))
         ctx.close()
         check(dev, 'no page errors', not errs, errs[:3])
     finally:
