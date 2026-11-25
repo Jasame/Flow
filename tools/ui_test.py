@@ -3722,6 +3722,20 @@ def shell_run(pw):
         pg.click('#view #retry'); pg.wait_for_timeout(5000)
         check(dev, 'and its 重试 takes the new version again instead of repeating the same error', len(loads) == 3, len(loads))
         ctx.close()
+        # the Android app's basic mode (1.0.4: the agreement not accepted; it blocks sign-in and sign-up with 403 app-consent):
+        # 注册 or 登录 asks the app to ask again instead of opening a form the app would then refuse (C2, native-bridge §10)
+        app = """(() => { const asked = window.__asked = []; let state = 'basic';
+          window.FlowApp = { features: ['privacy'], has: f => f === 'privacy', on: () => () => {}, off: () => {},
+            call: (cmd) => { asked.push(cmd); if (cmd === 'privacy.state') return Promise.resolve({ state, version: '1' }); if (cmd === 'privacy.ask') { state = 'agreed'; return Promise.resolve({ ok: true }); } return Promise.reject(new Error('no')); } }; })()"""
+        ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True)
+        ctx.add_init_script(app)
+        pg = ctx.new_page(); pg.goto(BASE + '/#/welcome', wait_until='load'); pg.wait_for_selector('#wgReg', timeout=8000)
+        pg.click('#wgReg'); pg.wait_for_timeout(600)
+        first = (pg.evaluate("document.getElementById('sheet').hidden"), pg.evaluate('window.__asked'))
+        pg.click('#wgReg'); pg.wait_for_selector('#authForm', timeout=4000)
+        check(dev, "the Android app's basic mode: 注册 asks the app to ask again (no form it would refuse); once agreed, the form opens",
+              first[0] and first[1] == ['privacy.state', 'privacy.ask'] and pg.is_visible('#authForm'), first)
+        ctx.close()
         check(dev, 'no page errors', not errs, errs[:3])
     finally:
         browser.close()
