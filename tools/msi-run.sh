@@ -80,7 +80,9 @@ id="$(date +%Y%m%d-%H%M%S)-$(printf '%s' "${branch:-head}" | tr -c 'A-Za-z0-9._-
 
 "${SSH[@]}" "$HOST" 'set -e; mkdir -p ~/msi-run; [ -d ~/msi-run/flow.git ] || git clone -q --bare https://github.com/Jasame/Flow.git ~/msi-run/flow.git'
 pushes=("$snap:refs/msi-run/$id")
-git rev-parse -q --verify refs/remotes/origin/main >/dev/null && pushes+=("+refs/remotes/origin/main:refs/remotes/origin/main")
+# this Mac's origin/main, what --changed compares against: a ref of this run's own (two runs pushing one shared ref
+# collided, and one would compare against the other's main)
+git rev-parse -q --verify refs/remotes/origin/main >/dev/null && pushes+=("+refs/remotes/origin/main:refs/msi-run-base/$id")
 git push -q --no-verify "$HOST:msi-run/flow.git" "${pushes[@]}"
 echo "msi-run: $id ($(git rev-parse --short HEAD)${branch:+ on $branch}) -> $HOST: run_tests.py ${args[*]-}"
 
@@ -96,6 +98,11 @@ mkdir -p "$base/w" "$base/out"
 old=$(( $(date +%s) - 86400 ))
 git -C "$repo" for-each-ref --format='%(committerdate:unix) %(refname)' refs/msi-run/ | while read -r t ref; do
   [ "$t" -lt "$old" ] && git -C "$repo" update-ref -d "$ref"
+done
+# a run's base points at an older commit of main, so its age is in its name (the run's id starts with the time)
+day=$(date -d '1 day ago' +%Y%m%d-%H%M%S)
+git -C "$repo" for-each-ref --format='%(refname)' refs/msi-run-base/ | while read -r ref; do
+  [[ "${ref#refs/msi-run-base/}" < "$day" ]] && git -C "$repo" update-ref -d "$ref"
 done
 find "$base/w" "$base/out" -mindepth 1 -maxdepth 1 -mtime +0 -exec rm -rf {} + 2>/dev/null
 git -C "$repo" worktree prune
@@ -126,6 +133,7 @@ cleanup() {
   git -C "$repo" worktree remove --force "$w" >/dev/null 2>&1 || rm -rf "$w"
   git -C "$repo" worktree prune
   git -C "$repo" update-ref -d "refs/msi-run/$id" 2>/dev/null
+  git -C "$repo" update-ref -d "refs/msi-run-base/$id" 2>/dev/null
   rm -rf "$tmp"
 }
 trap cleanup EXIT
@@ -136,7 +144,9 @@ case " $* " in *" --jobs "*) ;; *) extra+=(--jobs "$jobs") ;; esac
 case " $* " in *" --ui "*) case " $* " in *" --out "*) ;; *) extra+=(--out "$out") ;; esac ;; esac
 # </dev/null: bash -s reads this script from stdin, so a child reading stdin would eat the lines below.
 # 9>&-: the lock is fd 9; a test process left running (Chrome, ui_server) must not keep the slot taken.
-TMPDIR=$tmp nice -n 10 ionice -c 3 "$venv/bin/python" tools/run_tests.py "$@" "${extra[@]}" </dev/null 9>&-
+# --changed compares against this run's own copy of the Mac's origin/main (run_tests.py FLOW_CHANGED_BASE)
+base_ref=; git -C "$repo" rev-parse -q --verify "refs/msi-run-base/$id" >/dev/null && base_ref=refs/msi-run-base/$id
+FLOW_CHANGED_BASE=${base_ref:-origin/main} TMPDIR=$tmp nice -n 10 ionice -c 3 "$venv/bin/python" tools/run_tests.py "$@" "${extra[@]}" </dev/null 9>&-
 rc=$?
 [ -d "$out" ] && [ -n "$(ls -A "$out" 2>/dev/null)" ] && echo "msi-run-out:$out"
 exit $rc

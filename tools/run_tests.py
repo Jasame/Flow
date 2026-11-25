@@ -109,7 +109,9 @@ def shard_arg(argv):
     return int(m.group(1)), int(m.group(2))
 
 
-def changed_files(base='origin/main'):
+def changed_files(base=None):
+    # FLOW_CHANGED_BASE: what to compare with instead of origin/main (tools/msi-run.sh: the Mac's origin/main, as a ref of the run's own)
+    base = base or os.getenv('FLOW_CHANGED_BASE') or 'origin/main'
     def git(*a):
         return subprocess.run(['git', *a], cwd=ROOT, capture_output=True, text=True).stdout.split('\n')
     merge_base = (git('merge-base', base, 'HEAD') or [''])[0].strip()
