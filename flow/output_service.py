@@ -371,8 +371,9 @@ def say_by_asr():
 
 
 def say_verdict(target, partner, heard):
-    """What the recogniser wrote down -> the answer say() reads. Wrong only when it heard the pair word and not the
-    target (or, without a pair, a clearly different word); nothing heard is a reference, not a verdict."""
+    """What the recogniser wrote down -> the answer say() reads. The target counts only as a whole word (hat is not
+    in "that"). Wrong when it heard the pair word and not the target, or, for a word without a pair, another real word
+    (it heard as "sit"); a third word next to a pair is let through, and said as heard; nothing heard is a reference."""
     import difflib, sounds
     t, p = target.lower().strip(), (partner or '').lower().strip()
     words = re.findall(r"[a-z']+", (heard or '').lower())
@@ -380,10 +381,16 @@ def say_verdict(target, partner, heard):
     tip = sounds.tip_of(t)
     if not words:
         return {'heard': '', 'ok': True, 'note': '这次没听清读的是什么，可以再读一遍', 'tip': '', 'unclear': True}
-    if p and p in words and t not in words:
+    hit = re.search(r"(?<![a-z'])" + re.escape(t) + r"(?![a-z'])", said)
+    if p and p in words and not hit:
         return {'heard': said, 'ok': False, 'note': f'听起来像 {p}，不像 {t}', 'tip': tip}
-    if t in said or (not p and difflib.SequenceMatcher(None, t, words[0]).ratio() >= 0.6) or p:
+    if hit:
         return {'heard': said, 'ok': True, 'note': f'听起来是 {t}', 'tip': ''}
+    if p:  # neither the target nor its pair: not the mistake this pair practises
+        return {'heard': said, 'ok': True, 'note': f'听起来像 {said}，没有读成 {p}', 'tip': ''}
+    other = len(words) == 1 and words[0] != t and nx.lookup(words[0])
+    if not other and difflib.SequenceMatcher(None, t, words[0]).ratio() >= 0.6:  # a spelling slip of the recogniser
+        return {'heard': said, 'ok': True, 'note': f'听起来接近 {t}', 'tip': ''}
     return {'heard': said, 'ok': False, 'note': f'听起来像 {said}', 'tip': tip}
 
 
