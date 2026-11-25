@@ -53,6 +53,7 @@ import cn.flowlang.app.net.Http
 import cn.flowlang.app.notify.Reminders
 import cn.flowlang.app.rec.Recorder
 import cn.flowlang.app.speech.Speech
+import cn.flowlang.app.update.Updater
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.launch
 import java.time.Duration
@@ -87,6 +88,9 @@ class MainActivity : ComponentActivity() {
         bars()
         // the test switch (docs/native-bridge.md §9): `--ez flow.mute true` on a debug or beta build; the UI tests set it themselves
         if (intent?.getBooleanExtra("flow.mute", false) == true && (BuildConfig.DEBUG || BuildConfig.FLAVOR == "beta")) Mute.on = true
+        // the update tests: `--es flow.update_url http://127.0.0.1:18765/latest.json` on a debug build, after
+        // `adb reverse tcp:18765 tcp:18765` (update/Updater.kt)
+        if (BuildConfig.DEBUG) intent?.getStringExtra("flow.update_url")?.let { Updater.testUrl = it }
         FlowAudio.init(this)
         Speech.init(this)
         root = FrameLayout(this)
@@ -220,6 +224,7 @@ class MainActivity : ComponentActivity() {
         web.onResume()
         FlowAudio.visible = true
         Reminders.refreshLater(this)  // opening and coming back: the reminders as the site has them now
+        Updater.onStart(this)  // 语流 only: a newer version on flowlang.cn/download (at start, then once a day)
     }
 
     override fun onStop() {
@@ -345,6 +350,22 @@ class MainActivity : ComponentActivity() {
             .setNegativeButton(R.string.not_now, null)
             .show()
     }
+
+    // ---------------------------------------------------------------- updates (update/Updater.kt)
+
+    private val installSettings = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { Updater.onInstallSettingsBack(this) }
+
+    /** 「安装未知应用」 for 语流, to install the new version it has just downloaded and checked; back in onInstallSettingsBack. */
+    fun openInstallSettings() {
+        try {
+            installSettings.launch(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))
+        } catch (e: ActivityNotFoundException) {
+            Updater.onInstallSettingsBack(this)  // no such screen: the download page is offered instead
+        }
+    }
+
+    /** flowlang.cn/download in the phone's browser (when installing from here is not possible). */
+    fun openDownloadPage() = openOutside(Uri.parse(Updater.DOWNLOAD_PAGE))
 
     // ---------------------------------------------------------------- links
 

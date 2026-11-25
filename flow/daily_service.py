@@ -215,6 +215,21 @@ def reserve_call(c):
  if int(os.getenv('FLOW_AI_DAILY_LIMIT','0'))>0 and total>=int(os.getenv('FLOW_AI_DAILY_LIMIT','0')):c.rollback();raise ValueError('Daily site quota exhausted')
  c.execute('INSERT OR IGNORE INTO ai_usage VALUES(0,?,0)',(day,));c.execute('UPDATE ai_usage SET count=count+1 WHERE user_id=0 AND day=?',(day,));c.commit()
 
+_QUOTES=str.maketrans({'\u2018':"'",'\u2019':"'",'\u201c':'"','\u201d':'"','\u2013':'-','\u2014':'-'})
+def fit_quote(quote,body):
+ """The sentence of the text a grammar point quotes, as the text has it. A model copying a sentence often turns a
+ quote mark into another, drops the final full stop or doubles a space (one in five samples, 2026-11-25): compared
+ without those, a match is replaced by the text's own sentence; anything else is not in the text (None)."""
+ from lab_service import sentences
+ if not isinstance(quote,str) or not quote.strip():return None
+ if quote in body:return quote
+ norm=lambda t:re.sub(r'\s+',' ',t.translate(_QUOTES)).strip().rstrip('.!?').strip()
+ q=norm(quote)
+ for sent in sentences(body):
+  if norm(sent)==q:return sent
+ return None
+
+
 def compose(c,day,level,topic):
  """Write one 今日一读 and check it: (pack, None) when it passes both checks, (pack or None, why) when it does not.
  Two model calls at most (the writing, the self-check), each counted against the site's daily AI quota."""
@@ -233,6 +248,7 @@ def compose(c,day,level,topic):
  knowledge=raw.get('knowledge',[]);valid={n['id'] for n in nodes}
  if not isinstance(knowledge,list) or not 1<=len(knowledge)<=3:return None,'没有挂语法点'
  for k in knowledge:
+  if isinstance(k,dict) and fit_quote(k.get('quote'),pack['body']):k['quote']=fit_quote(k['quote'],pack['body'])  # the text's own sentence
   if not isinstance(k,dict) or k.get('node') not in valid or not isinstance(k.get('quote'),str) or not k['quote'].strip() or k['quote'] not in pack['body'] or not isinstance(k.get('explanation'),str) or not 1<=len(k['explanation'])<=500:return None,'语法点的例句不在正文里'
  if any(len(set(q['options']))!=4 for q in pack['questions']):return None,'选项重复'
  pack.update(id='daily-'+day,kind='topic',genre='article',tags=[DAILY_NAME,topic[1]],topic=topic[0],purposes=[topic[4]],

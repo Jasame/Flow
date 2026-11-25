@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 语流 only (语流内测 comes from CI): a new version from flowlang.cn/download is handed to the phone's own installer,
+         which asks the learner every time. Android allows it only after the learner turns on 「安装未知应用」 for 语流;
+         that is asked, with the reason, when they choose to install a new version (update/Updater.kt). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <application>
+        <!-- the installer reports on our session here; not exported -->
+        <receiver android:name=".update.InstallReceiver" android:exported="false" />
+    </application>
+</manifest>
