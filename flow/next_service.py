@@ -1397,7 +1397,7 @@ def pron_score(r):
 
 def shadow(c, uid, data):
     """Shadowing: the learner reads one sentence aloud; AI transcribes it and points out what to fix."""
-    from lab_service import run_job, mtext as clean_text, audio_enabled, Shape, mnum  # model output: lenient
+    from lab_service import run_job, mtext as clean_text, mheard, audio_enabled, Shape, mnum  # model output: lenient
     from chat_service import request_model
     from audio_validation import validate_audio
     if not audio_enabled():
@@ -1443,7 +1443,7 @@ def shadow(c, uid, data):
         if not isinstance(raw, dict):
             raise ValueError('bad')
         flu = raw.get('fluency') if raw.get('fluency') in ('smooth', 'ok', 'choppy') else 'ok'
-        out = {'transcript': clean_text(raw.get('transcript') or '', 0, 600), 'tip': clean_text(raw.get('tip') or '', 0, 300),
+        out = {'transcript': mheard(raw.get('transcript'), 600), 'tip': clean_text(raw.get('tip') or '', 0, 300),
                'fluency': flu, 'accuracy': score_of(raw.get('accuracy')), 'fluency_score': score_of(raw.get('fluency_score')), 'issues': [], 'sounds': []}
         if out['fluency_score'] is None and out['accuracy'] is not None:
             out['fluency_score'] = {'smooth': 88, 'ok': 72, 'choppy': 50}[flu]
@@ -1474,7 +1474,16 @@ def shadow(c, uid, data):
         sk.log(c, uid, 'speaking', 'shadow', r['matched'] / max(1, len(r['words'])), lvl, pid, commit=False)
         if r['score']:
             sk.log(c, uid, 'pronunciation', 'shadow-pron', r['score']['total'] / 100, lvl, pid, commit=False)
-        for it in ([{'word': x['word'], 'note': x['sound'] + '：' + x['note']} for x in r.get('sounds') or []] + r['issues'])[:2]:
+        # 错题本 only for what the transcript shows went wrong (the word missed or misread there). On right readings the model
+        # still lists sounds and issues (语流 12's check, 2026-11-25: Qwen-Omni on 16 of 16 native readings, Gemini on 5):
+        # shown under 要练的音, never filed. A phrase files its missed word, not the whole phrase.
+        missed = {w['w'] for w in r['words'] if not w['ok']}
+        cards = []
+        for it in [{'word': x['word'], 'note': x['sound'] + '：' + x['note']} for x in r.get('sounds') or []] + r['issues']:
+            hit = [w for w in _words(it['word']) if w in missed]
+            if hit:
+                cards.append({'word': it['word'] if len(_words(it['word'])) == 1 else hit[0], 'note': it['note']})
+        for it in cards[:2]:
             sk.add_mistake(c, uid, 'sound', it['word'], 'sound:' + _norm(it['word']), it['note'], sentence, 'pronunciation', pack=pid, commit=False)
         c.commit()
     return result, status
