@@ -188,8 +188,7 @@
           if (S.home && S.home.profile) S.home.profile.personalize = r.personalize;
           S.homeFresh = false;  // 今日 is asked again, ranked the new way
           card.querySelectorAll('[data-pers]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
-          const v = document.getElementById('mePersV'); if (v) v.textContent = personalizeLabel();
-          toast(r.personalize ? '已打开：按你的学习记录推荐' : '已关闭：只按你选的水平推荐');
+          const v = document.getElementById('mePersV'); if (v) v.textContent = personalizeLabel();  // the chips show it: no toast over them (B8)
         } catch (e) { toast(e.message); }
       });
     });

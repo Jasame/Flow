@@ -930,7 +930,7 @@ def home(c, uid, level=None, themes=None):
            'announce': __import__('console_ops').current_announcement(c),
            'trial_survey': bool(uid) and __import__('class_service').survey_due(c, uid),  # 公告 from the xmc.hk console, at the top of 今日
            'update': __import__('updates_service').latest(),  # 「语流更新了」 on 今日: the newest release's highlights (updates_service.py)
-           'personalized': bool(uid) and not plain}  # 按我的学习记录推荐: off, 今日 says so in one grey line
+           'personalized': bool(uid) and not plain}  # 按我的学习记录推荐: whether today's picks followed the records (B8: 今日 shows nothing for it; 我的 → 设置 says it)
     if uid and prof:
         import skills_service as sk
         out['sprint'] = __import__('exam_sprint').brief(c, uid)  # 考试冲刺: the exam and its days left, in the plan's header line
