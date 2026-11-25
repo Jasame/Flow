@@ -375,8 +375,7 @@ object FlowAudio {
         val u = r.json().optString("url")
         if (!r.ok || u.isEmpty()) {
             val code = r.json().optString("code").ifEmpty { if (r.code >= 500) "gateway" else "store" }
-            // as SV.off on the page: off, used up for today, or not agreed to 数据存放在香港: not asked again for this text
-            if (code == "off" || code == "cap" || code == "storage") serverOff = code
+            if (code == "off" || code == "cap") serverOff = code  // as SV.off on the page: not asked again for this text
             throw Http.Failure(code, r.json().optString("error"), r.code)
         }
         urls[urlKey(j, k)] = u

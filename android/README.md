@@ -103,7 +103,7 @@ CI（Linux）上跑 `./gradlew assembleBetaDebug testBetaDebugUnitTest`，不需
 - **没有录音**（`items: [{text, url}]` 加 `voice`、`pack`；旧的 `texts` 也认）：
   - 网页已经知道的地址直接放；不知道的，一句一句请求 `POST /api/next/tts`，用网页传来的 `csrf`，以登录学员的身份，同时先准备后面两句。
   - 某一句生成不出来时，用手机自带的声音读这一句，`fail: {code, server}` 说明原因。提示的那句话由网页的 `SV.why` 来写，App 不自己写。
-  - 服务器说今天的额度用完了（`cap`）、功能没开（`off`）或账号还没同意「数据存放在香港」（`storage`）以后，这篇剩下的句子不再去问服务器。
+  - 服务器说今天的额度用完了（`cap`）或功能没开（`off`）以后，这篇剩下的句子不再去问服务器。（没同意「数据存放在香港」的账号，`/api/next/tts` 按游客回答，不会回 `storage`。）
 - 播过的文件存进 150 MB 的缓存，重复听不再下载。
 - 读到哪儿也由 App 记一份（`progress(key)` → `{i, t, at}`，30 天、最多 100 篇），App 被关掉以后还能接着读。读完了留一个 `{ended: true, at}`，给错过结束事件的页面看。
 
