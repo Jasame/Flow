@@ -504,7 +504,7 @@ class ReadingLinkedTests(unittest.TestCase):
         with patch('chat_service.request_model', return_value=(reply, 'stop')) as model:
             out, s = nx.shadow(self.c, 1, {'pack': 'v5-science-b2-noise-cancelling', 'i': 0, 'audio': audio, 'request_id': 'next-sh-0001'})
         self.assertEqual(s, 200); self.assertEqual(model.call_args.kwargs['audio'], audio)
-        self.assertIn('连字符', model.call_args[0][0][0]['content'])  # spelling and hyphens are not what was heard (Omni, 2026-11-25)
+        self.assertIn('连字符', ' '.join(m['content'] for m in model.call_args[0][0]))  # spelling and hyphens are not what was heard (Omni, 2026-11-25)
         r = out['result']
         self.assertEqual(r['issues'][0]['word'], 'on'); self.assertLess(r['matched'], len(r['words']))
         self.assertEqual(nx.shadow(self.c, 1, {'pack': 'v5-science-b2-noise-cancelling', 'i': 999, 'audio': audio})[1], 400)
