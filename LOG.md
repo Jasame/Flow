@@ -553,3 +553,11 @@
   - #287 修 main：词汇辨析 SE 一屏（Safari 674 → 667 以内）（单词）
 - 自检：DEPLOYED，装了 9 个文件（1 个新的）；轻量 e2e 152/152，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45614695664
+
+### b72 · 2026-11-25 20:51
+- main `0fc3e22`，构建 `cc8b3de`
+- 新合并的 PR（自 b71 起）：
+  - #292 发版自检：后台打开 Access 核对后，改查「不带凭证会被挡下」（发版和构建）
+  - #289 起点小测矮屏放得下内测版提示条（main 上 UI 第 3 份的一屏检查会红）（网站其他）
+- 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 152/152，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45617487469
