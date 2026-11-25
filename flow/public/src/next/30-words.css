@@ -83,7 +83,7 @@ details.basis[open]>summary{margin-bottom:0}
 .sheet-card .zones-h{font-size:16px;margin:10px 0 0}
 /* 复习卡 简洁 / 详细 (60-review.js detailed(); words-modes-plan.md; B9's sheet in words-modes/) */
 .vt{display:inline-flex;background:var(--sunk);border-radius:8px;padding:2px;gap:2px;flex:none}
-.vt button{position:relative;border:0;background:none;font:600 12.5px/1 var(--sans);color:var(--muted);padding:6px 9px;border-radius:6px;cursor:pointer}
+.vt button{position:relative;border:0;background:none;font:600 12.5px/1 var(--sans);color:var(--muted);padding:6px 9px;border-radius:6px;cursor:pointer;min-width:32px;min-height:32px}
 .vt button::after{content:'';position:absolute;inset:-8px -1px}  /* 44 px to tap, the look stays small */
 .vt button.on{background:var(--paper);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
 .review .detail-line{font-size:12.5px;color:var(--muted);text-align:center;margin-top:-8px}
