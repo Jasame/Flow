@@ -7,7 +7,7 @@
 | 文件 | 装好后的名字 | 打开的网站 | 从哪里拿 |
 |---|---|---|---|
 | `flow-beta-<版本>.apk` | 语流内测 | flow.jasa.hk（内测版） | GitHub → Jasame/Flow → Actions →「Android」→ 最新一次 main 的 run → 下载 `flow-beta-apk`（zip，解压出 APK）。每次合进新改动都会打一个新的，留 30 天 |
-| `flow-<版本>.apk` | 语流 | flowlang.cn（正式版） | 语流 21 在你的 Mac 上打好给你 |
+| `flow-<版本>.apk` | 语流 | flowlang.cn（正式版） | 语流 C2 在你的 Mac 上打好给你 |
 
 两个可以同时装。内测版和正式版的账号是分开的。
 

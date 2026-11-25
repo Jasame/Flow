@@ -43,7 +43,7 @@ class LongSessionPlayer(private val audio: FlowAudio) : SimpleBasePlayer(Looper.
         }
         val line = buildString {
             // 「AI 朗读」: every whole text is a synthesized voice (Kokoro, CosyVoice, the phone's own), and the rules for
-            // AI-generated content (人工智能生成合成内容标识办法) ask for a label where it is shown (语流 12)
+            // AI-generated content (人工智能生成合成内容标识办法) ask for a label where it is shown (语流 B7)
             append("AI 朗读 · 第 ").append(audio.i + 1).append(" / ").append(j.n).append(" 句")
             if (audio.state == "waiting") append(" · 准备中")
         }
