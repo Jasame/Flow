@@ -74,6 +74,8 @@ class RoundTests(unittest.TestCase):
     def test_the_plan_keeps_a_speaking_step_after_all_twelve(self):
         for k, sid in enumerate(SC.SCENES):
             self.did(sid, 20 + k, 0.3 if sid == 'flat-viewing' else 0.8)  # one round each; 看房租房 went least well
+        # a few words answered yesterday: an ordinary day, not the short day back after days away (r28 回归模式)
+        self.c.execute("INSERT INTO next_reviews(user_id,card,rating,created) VALUES(1,0,'good',?)", (self.now - 86400,)); self.c.commit()
         with patch('ability_radar.weakest', return_value='writing'):  # today's output step is an essay, not a spoken retell
             st = {s['key']: s for s in sk.daily_path(self.c, 1, nx.home(self.c, 1), self.now)['steps']}
         s = st['speak']

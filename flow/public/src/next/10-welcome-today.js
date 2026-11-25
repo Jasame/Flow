@@ -41,7 +41,7 @@
       // 再学一篇 (r27): the next recommendation itself, not the whole library (that only when there is none)
       const more1 = h.today.find(m => m && m.id !== readId && (!(m.steps || []).includes('check') || m.redo));  // 精读重学 counts: it is what 今日 recommends once a level is done
       // the line past the day's minutes goes under the button, so it never pushes 开始 / 继续 off the first screen
-      top = `<section class="today-plan" aria-labelledby="tpTitle">
+      top = `<section class="today-plan" aria-labelledby="tpTitle">${backHTML(p, next)}
         <div class="tp-head"><div><h1 class="h1" id="tpTitle">${next ? '今天的计划' : '今天的计划完成了'}</h1>
           <span class="muted small">${planHeadText(p)}</span>${sprintLine(h)}</div>
           <span class="ring" data-p="${Math.round(p.done / Math.max(1, p.total) * 100)}" aria-hidden="true"><b>${p.done}/${p.total}</b></span></div>
@@ -65,7 +65,8 @@
     const more = h.today.filter(m => m.id !== readId && (path || m !== pick) && (!resume || m.id !== resume.id) && (!news || m.id !== news.id)).slice(0, 3);
     // 好句 and 热点 come first, except on a screen too short for them and the plan's button together (a phone held
     // sideways): there the plan comes first, so its next step is still on the first screen.
-    const short = innerHeight < 500 && innerWidth > innerHeight;
+    // The day back after days away (r28 第 2 段) starts with 欢迎回来 and the plan too: getting going comes first.
+    const short = (innerHeight < 500 && innerWidth > innerHeight) || !!(path && h.path.back);
     view.innerHTML = `<div class="greet-row"><span class="kicker greet">${greeting()}${name ? `，<span class="nm">${esc(name)}</span>` : ''}</span>
         ${st && st.habit ? habitChip(st.habit) : st ? `<span class="wk" title="本周学了 ${weekN} 天"><span class="tiny muted">本周 ${weekN} 天</span><span class="week" aria-hidden="true">${st.week.map(d => `<span class="${d.active ? 'on' : ''}"></span>`).join('')}</span></span>` : ''}</div>
       ${announceHTML(h)}${trialSurveyHTML(h)}
@@ -102,6 +103,12 @@
     return `<a class="prow${s.done ? ' done' : ''}${isNext ? ' next' : ''}${s.group === 'extra' ? ' extra' : s.group === 'week' ? ' week' : ''}" href="${esc(s.href)}"${tap ? ` data-tap="${tap}"` : ''}>
       <span class="num">${s.done ? '✓' : num}</span><span class="t"><b>${esc(a ? a.title : s.title)}</b><span class="muted tiny">${esc(sub.filter(Boolean).join(' · '))}</span></span>
       <span class="go" aria-hidden="true">›</span></a>`;
+  }
+  // 欢迎回来 (r28 第 2 段): after three days or more away, the day back is short, and the plan says so first.
+  function backHTML(p, next) {
+    const b = p.back; if (!b) return '';
+    const left = b.left ? (b.catch_days ? `单词还剩 ${b.left} 个，大约 ${b.catch_days} 天补完。` : `单词还有 ${b.left} 个，之后几天慢慢补上。`) : '';
+    return `<div class="tp-back" role="status"><b>欢迎回来</b><span class="small">${next ? `你 ${b.days} 天没学了，没关系。今天只做 ${p.total} 件事，约 ${p.must_minutes} 分钟。` : '今天的几件事做完了，明天照常。'}${left}</span></div>`;
   }
   // Past the day's minutes by a fifth with 必做 not done: said once a day, under the plan's button, and nothing is stopped.
   // It stays for the quiet redraw and a quick look away (two minutes), then not again that day.
