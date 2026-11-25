@@ -4,8 +4,13 @@
   // The iOS app (语流 20, ios/: Flow in a WKWebView, its user agent ending in FlowiOS/<version>) has no browser around
   // the page either, but there navigator.standalone and display-mode are not standalone. It follows theme-color and the
   // keyboard itself (the web view ends at the keyboard), so the two iOS work-arounds below stay off in it.
+  // The desktop app (语流 22: Windows and macOS, a native window around the site, its user agent ending in
+  // FlowDesktop/<version> (Windows) or (macOS)) has no browser back either: 返回 is its way back (with ⌘[ / Alt+← in its
+  // own menu). Any of Flow's apps also says so before the page's scripts: window.FlowApp ({platform: 'ios' | 'windows' |
+  // 'macos' …}). The keyboard work-around is for iPhones and iPads only, so the desktop leaves it alone anyway.
   const IN_IOS_APP = /FlowiOS\//.test(navigator.userAgent);
-  const HOME_APP = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true || IN_IOS_APP;
+  const IN_APP = IN_IOS_APP || /FlowDesktop\//.test(navigator.userAgent) || !!window.FlowApp;
+  const HOME_APP = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true || IN_APP;
   document.documentElement.classList.toggle('home-app', HOME_APP);
 
   // ---- 返回: in the top bar, in place of the logo, on every page but the four tabs and the first-visit page.
