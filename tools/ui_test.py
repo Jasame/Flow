@@ -13,6 +13,7 @@ playback stop button, step switching, list filters. Screenshots of every page pe
 import atexit, json, os, re, socket, subprocess, sys, tempfile, time, traceback
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from quiet import silent  # every browser it starts makes no sound (tools/quiet.py)
 
 OUT = Path(sys.argv[1] if len(sys.argv) > 1 else tempfile.mkdtemp(prefix='flow-ui-out-'))
 OUT.mkdir(parents=True, exist_ok=True)
@@ -974,6 +975,17 @@ def ios_audio_run(pw):
         check(dev, 'a clip Web Audio cannot decode plays on an <audio> instead',
               not pg.evaluate('window.__wa.starts') and sum(clip_url in u for u in asked) >= 2, asked[-3:])  # fetched for Web Audio, then by the <audio>
         ctx.close()
+        # neither the clip nor the sprite (audio-inventory.md, 语流 9): one line saying why, then the browser voice
+        for off, line in ((False, '网络不好，这个词的读音没加载出来，先用浏览器的声音'), (True, '离线中，这个词的读音还没存到手机，先用浏览器的声音')):
+            ctx, pg, errs, asked = page()
+            pg.route('**/audio/words/**', lambda r: r.fulfill(status=404, content_type='application/json', body='{}'))
+            pg.evaluate(TOASTS_JS)
+            if off:
+                pg.evaluate("Object.defineProperty(navigator, 'onLine', { get: () => false, configurable: true })")
+            tap_word(pg); pg.wait_for_timeout(1500)
+            said = pg.evaluate('window.__toasts') or []
+            check(dev, f"no word sound at all{' (offline)' if off else ''}: it says why, then the browser voice reads it", line in said, said)
+            ctx.close()
         # the type refused (a browser that does not let the page set it): <audio> clips, which the ringer switch does not mute
         ctx, pg, errs, asked = page(refuse=True)
         tap_word(pg)
@@ -1009,6 +1021,11 @@ def ios_audio_run(pw):
         if browser:
             browser.close()
         srv.terminate()
+
+# every toast as it is set (two in a row replace each other on screen); window.__toasts
+TOASTS_JS = """() => { const el = document.getElementById('toast'), d = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent'); window.__toasts = [];
+  Object.defineProperty(el, 'textContent', { configurable: true, get() { return d.get.call(this); }, set(v) { window.__toasts.push(v); d.set.call(this, v); } }); }"""
+
 
 def wechat_run(pw):
     dev = 'wechat'
@@ -1108,6 +1125,13 @@ def wechat_run(pw):
         n0 = len(iplays()); word()
         new = [x for x in iplays()[n0:] if '/audio/words/' in x['src']]
         check(dev, 'iPhone: without a clip, the sprite plays instead', any('.aac' not in x['src'] and x['ok'] for x in new), new)
+        # neither the clip nor the sprite, and WeChat has no browser voice either: how to hear it, nothing about a voice
+        ip.route('**/audio/words/**', lambda r: r.fulfill(status=404, content_type='application/json', body='{}'))
+        ip.reload(wait_until='load'); settle(ip, '#reader'); ip.wait_for_timeout(600); away(); ip.evaluate(TOASTS_JS)
+        word(); ip.wait_for_timeout(800)
+        said = ip.evaluate('window.__toasts') or []
+        check(dev, 'iPhone WeChat: no word sound and no browser voice: it says how to hear it, not 「先用浏览器的声音」',
+              any('在浏览器打开' in t for t in said) and not any('先用浏览器的声音' in t for t in said), said)
         check(dev, 'iPhone: no script errors', not ierrors, ierrors[:3])
         ictx.close()
         browser.close()
@@ -1296,6 +1320,61 @@ def ux_run(pw):
         check(dev, '复读 in the server voice: the sentence is played three times (each time it ends, the next), not the browser voice, a stop button meanwhile',
               got['plays'] == 3 and got['said'] == 0 and mini2 and not got['mini'], {**got, 'mini_while': mini2})
         c2.close()
+        # the browser voice as iOS sometimes treats it (语流 07, iPhone 17e and iPad simulators): an utterance spoken right
+        # after cancel() ends at once without starting, or never starts. 播放全文 with the server voice off: dropped once,
+        # the sentence is said again and the text goes on; dropped every time, or never started, the text waits paused at
+        # that sentence with why, instead of racing to its end (marked heard) or sitting there "playing". The blank
+        # utterance the first tap speaks to unlock the voice is left out
+        drops = {
+            'once': "let n = 0; speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); const k = n++; setTimeout(() => { if (k > 0 && u.onstart) u.onstart(); u.onend && u.onend(); }, 30); };",
+            'always': "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); setTimeout(() => { u.onend && u.onend(); }, 30); };",
+            'never': "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); };",
+        }
+        seen = {}
+        for kind, js in drops.items():
+            c3 = browser.new_context(**phone)
+            c3.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a2']['token'], 'url': BASE}])
+            c3.add_init_script("(() => { window.__said = []; if (!window.speechSynthesis) return; speechSynthesis.cancel = () => {}; speechSynthesis.getVoices = () => []; " + js + " })()")
+            p3 = c3.new_page()
+            p3.route('**/api/next/tts', lambda r: r.fulfill(status=503, json={'error': '服务器朗读没有开启', 'code': 'off'}))
+            p3.route('**/api/next/tts/have', lambda r: r.fulfill(status=503, json={'error': '服务器朗读没有开启', 'code': 'off'}))
+            p3.goto(BASE + f'/#/m/{PID}/listen', wait_until='networkidle'); settle(p3, '#playAll')
+            p3.evaluate("localStorage.removeItem('flow-progress')")
+            p3.click('#playAll'); p3.wait_for_timeout(3400 if kind == 'never' else 1500)
+            seen[kind] = p3.evaluate("""() => ({ said: window.__said.slice(), n: document.querySelectorAll('#view .line').length,
+                btn: document.querySelector('#playAll').textContent.trim(), now: (document.querySelector('#view .line.now') || {dataset: {}}).dataset.i,
+                note: (document.querySelector('#lsPrep') || {}).textContent || '', mini: (document.querySelector('.mini-player:not([hidden]) .lbl') || {}).textContent || '' })""")
+            c3.close()
+        # 「留时间跟说」 in 播放全文: the pause after a sentence is as long as that sentence (to say it back), not the next one.
+        # A two-word sentence before a long one: the next starts after the 1.5 s minimum, not the ~11 s the long one gets
+        c4 = browser.new_context(**phone)
+        c4.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a2']['token'], 'url': BASE}])
+        c4.add_init_script("(() => { window.__said = []; localStorage.setItem('flow-next-loop', JSON.stringify({rep: 1, gap: -1})); if (!window.speechSynthesis) return; "
+                           "speechSynthesis.cancel = () => {}; speechSynthesis.getVoices = () => []; speechSynthesis.speak = u => { if (!u.text.trim()) return; "
+                           "window.__said.push([u.text, performance.now()]); setTimeout(() => { u.onstart && u.onstart(); u.onend && u.onend(); }, 30); }; })()")
+        p4 = c4.new_page()
+        p4.route('**/api/next/tts', lambda r: r.fulfill(status=503, json={'error': '服务器朗读没有开启', 'code': 'off'}))
+        p4.route('**/api/next/tts/have', lambda r: r.fulfill(status=503, json={'error': '服务器朗读没有开启', 'code': 'off'}))
+        p4.goto(BASE + '/', wait_until='networkidle'); settle(p4)
+        body = ('Stop here. The old harbour town grew slowly around a single stone pier that fishermen had built by hand more than '
+                'two hundred years ago, long before the railway came. Today the pier is quiet in the mornings, and visitors walk along '
+                'it slowly to watch the small boats come back with their catch.')
+        art = p4.evaluate("([t, csrf]) => fetch('/api/next/import', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf}, "
+                          "body: JSON.stringify({title: '停顿', text: t})}).then(r => r.json())", [body, CFG['learners']['a2']['csrf']])
+        p4.goto(BASE + f"/#/m/{art['id']}/listen", wait_until='networkidle'); settle(p4, '#playAll')
+        p4.click('#playAll'); p4.wait_for_timeout(3200)
+        said = p4.evaluate('window.__said')
+        gap0 = round(said[1][1] - said[0][1]) if len(said) >= 2 else None
+        check(dev, '留时间跟说: the pause after a sentence is as long as that sentence (2 words: the 1.5 s minimum), not the next one',
+              said and said[0][0] == 'Stop here.' and gap0 is not None and 1400 <= gap0 <= 2600, {'said': len(said), 'gap_after_first_ms': gap0})
+        c4.close()
+        o, al, nv = seen['once'], seen['always'], seen['never']
+        check(dev, 'browser voice dropped once (iOS): that sentence is said again and the text reads on to its end',
+              len(o['said']) == o['n'] + 1 and o['said'][0] == o['said'][1] and o['btn'] == '播放全文', {k: o[k] for k in ('n', 'btn', 'now')} | {'said': len(o['said'])})
+        check(dev, 'browser voice dropped every time: tried twice, then the text waits paused at that sentence and says why (not "read")',
+              len(al['said']) == 2 and al['btn'] == '继续' and al['now'] == '0' and '没有读出' in al['note'] and al['mini'] == '已暂停', al)
+        check(dev, 'browser voice never starting: after 2.5 s the text waits paused at that sentence and says why',
+              len(nv['said']) == 1 and nv['btn'] == '继续' and nv['now'] == '0' and '没有读出' in nv['note'], nv)
         pg.reload(); settle(pg, '[data-rep]')
         check(dev, '复读: the choice is remembered', pg.get_attribute('[data-rep="3"]', 'aria-pressed') == 'true')
         pg.click('[data-rep="1"]')
@@ -3121,6 +3200,7 @@ def home_app_run(pw):
 
 def main():
     with sync_playwright() as pw:
+        silent(pw)
         if not ONLY or 'about' in ONLY:
             try:
                 about_run(pw)

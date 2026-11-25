@@ -14,6 +14,7 @@ python3 tools/build_release.py --here.
 import datetime, hashlib, html, json, os, sys, tempfile
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from quiet import silent  # every browser it starts makes no sound (tools/quiet.py)
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'flow'))
@@ -93,6 +94,7 @@ def main():
         src = Path(tmp) / 'guide.html'
         src.write_text(page(g), encoding='utf-8')
         with sync_playwright() as p:
+            silent(p)
             browser = p.chromium.launch(channel='chrome')
             pg = browser.new_page()
             pg.goto(src.as_uri())
