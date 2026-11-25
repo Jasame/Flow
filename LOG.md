@@ -654,3 +654,10 @@
   - #314 更新记录 r34（热修复）：老版本 iPhone、iPad 打不开语流（内容）
 - 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45635460030
+
+### b82 · 2026-11-25 22:56
+- main `94896bc`，构建 `730cf48`
+- 新合并的 PR（自 b81 起）：
+  - #315 Dark mode: the filled main button one step darker（开局和考试、操作指南）
+- 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45638992013
