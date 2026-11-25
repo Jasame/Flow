@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 语流 for the app stores (FLOW_CHANNEL=store, app/build.gradle.kts): in place of src/prod's manifest, so it has no
+     REQUEST_INSTALL_PACKAGES and no installer receiver. The stores update the app; it never downloads an APK itself. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" />

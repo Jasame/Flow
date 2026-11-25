@@ -83,6 +83,35 @@ CI（`.github/workflows/android.yml`，语流 A2）：
 - 反馈里的「添加截图」可以从相册选图片。网页出不来时显示「网络连不上 · 重试」。系统回收网页进程以后，App 自己重新打开网页。
 - **主题色**（网页「我的 → 外观」选松绿或靛蓝，EIDOS #282）：App 自己画的地方跟着变，包括对话框的按钮、复习提醒通知的颜色、新版本下载的进度条（`Accent`）。`assets/flowapp-android.js` 盯着 `<html data-accent>`（没有这个属性就是松绿，`indigo` 是靛蓝），一变就发 `app.accent`；App 记在 `flow-app` 里，App 没开时弹出的提醒也是这个颜色。logo、答对答错的颜色、「AI 生成」「AI 朗读」标识都不变，所以 App 图标和锁屏卡片上的图照旧是绿的。对话框按钮照写的字显示（「App 通知」，不变成「APP 通知」）。
 
+## 第一次打开（`privacy/`，1.0.4 起）
+
+为上应用商店做的准备（方案在共享笔记 `android-stores-plan.md`，用户 2026-11-25 选了「现在先做」）。各家商店都要求：第一次打开先弹隐私政策，同意以前不收集任何信息。
+
+- **先问，再联网**：第一次打开时，App 先弹「欢迎使用语流」，几句话说明收什么、存在哪里、运营者和联系方式，按钮是「同意」「不同意」。回答以前，App 不打开网站、不查新版本、不拉提醒，什么都不连。
+  - 2026-11-25 在模拟器上核对过：回答之前，内核按 uid 记的流量（`dumpsys netstats` 的 `mAppUidStatsMap`）里没有 App 的记录，App 也没有任何打开的连接。点了以后才有流量。
+- **《用户协议》《隐私和数据》**：点书名，全文盖在弹窗上面，上面「← 返回」，下面「返回」（和网页 B6 #290 的弹层一样）。全文是打包时从网站的 `flow/public/guide/guide.md` 生成的：Gradle 任务 `legalDocs` 用网站自己的 `flow/user_guide.py` 渲染两章，写进 assets 的 `legal/legal.json`（`tools/legal_docs.py`，构建时要有 `python3`）。所以弹窗里的字就是这次构建时网站上的字，不用联网。
+  - 版本就是两章的生效日期，写法和服务器的 `privacy_service.CONSENT_VERSION` 一样（`2026-11-25/2026-11-25`）。新的构建里生效日期变了，App 会再问一次。
+- **同意**：和以前一样。
+- **不同意**：再说明一次。这时可以「再看看」回到弹窗，也可以「进入基本模式」：
+  - 打开网站，不登录，进度只存在这台手机上（网页本来就有「不登录先看看」）。页面上方有一行「基本模式：不登录，进度只存在这台手机上」，旁边是「同意」。
+  - 不排提醒，不用麦克风，不查新版本。
+  - 要登录、注册、要验证码时，App 拦下这个请求（`Consent.SIGN_IN`，和服务器 `flow/app.py` 的 `SIGN_IN_ROUTES` 一样，单元测试核对两边一致），网页的表单显示「要登录或注册，请先在弹出的窗口里同意……然后再点一次」，同时弹出询问。要录音、要 App 通知时也先问。在基本模式里点「不同意」，就留在基本模式。
+  - 进入基本模式时，清掉这台手机上的登录、网页的本地存储和缓存、提醒、朗读进度。
+  - App 只问这一次，以后打开不再自己弹窗，直接进基本模式。
+- **撤回同意**：网页在「我的 → 设置」里放一个按钮，调 `privacy.withdraw`（这个按钮归 B6）。App 先说明会发生什么，用户点「撤回」以后，清掉这台手机上的东西（同上），回到第一次打开时的弹窗。账号上的同意（「数据存放在香港」、《用户协议》）照旧在网页里管理。
+- **申请权限时说明用途**（工信部 26 号文第 10 条）：系统弹窗问麦克风、通知的时候，页面顶上同时显示「麦克风权限说明」「通知权限说明」和一两句用途，系统弹窗关掉就收起来。
+- **开机自启动**：`RescheduleReceiver`（开机、改时间、改时区以后把提醒排回去）在 manifest 里是关着的，用户打开 App 提醒（并且手机允许通知）时才打开，关掉提醒时一起关（`Reminders.boot`）。App 自己更新以后把提醒排回去的是另一个接收器 `UpdatedReceiver`，不联网。
+- 手机上存的：SharedPreferences `flow-consent`：同意的版本和时间，或者「基本模式」。
+
+## 应用商店（构建开关，等备案下来再用）
+
+- **商店版不带 App 内更新**：`FLOW_CHANNEL=store tools/release-apk.sh prod`（或者 `-Pflow.channel=store`）。
+  - 商店版没有 `REQUEST_INSTALL_PACKAGES` 和 `InstallReceiver`（`src/store/AndroidManifest.xml` 代替 `src/prod` 的那份），也不查新版本。R8 会把更新的代码整个去掉：2026-11-25 核对过，商店版的 dex 里没有 `latest.json`，也没有 PackageInstaller。
+  - 包名、钥匙都和官网直装版一样，所以两边可以互相覆盖安装。versionCode 一起涨。
+  - `tools/release-apk.sh` 没有改（改签名脚本要先问用户），输出的文件名和直装版一样，打完要自己改名，比如 `flow-1.0.4-store.apk`。
+- **APP 备案号**：`-Pflow.beian=<备案号>`。App 通过 `privacy.state` 把号码交给网页，网页在「我的 → 关于」里显示，点了打开 https://beian.miit.gov.cn （小米的要求：显示在显著位置，能点开查询）。不填就是空的，网页什么都不显示。
+- 官网直装版照旧：带 App 内更新，`FLOW_CHANNEL` 默认是 `direct`。
+
 ## 网页和 App 之间的桥（`bridge/`、`assets/flowapp-android.js`、共用的 `native/flowapp.js`）
 
 约定是 iOS、安卓、桌面共用的 `docs/native-bridge.md`（语流 C1 牵头），安卓的实现写在它最后一节「各平台实现 · 安卓」。网页只调 `window.FlowApp`，不判断是哪个平台；平台不同的说法用 `FlowApp.platform`（这里是 `'android'`）。
@@ -97,7 +126,8 @@ CI（`.github/workflows/android.yml`，语流 A2）：
 
 | 调用 | 安卓的做法 |
 |---|---|
-| `FlowApp.v` / `app` / `build` / `beta` / `platform` / `features` / `has(k)` / `call(cmd, args)` | `1`、App 版本、构建（CI 的提交前 7 位，本机是 `dev`）、是不是内测版、`'android'`；能力有 `audio`、`rec`、`notify`、`speech`。`call('hello')` → `{v, app, build, platform, features}`；`call('app.visible')` 让 App 把正在放的状态再发一次 |
+| `FlowApp.v` / `app` / `build` / `beta` / `platform` / `features` / `has(k)` / `call(cmd, args)` | `1`、App 版本、构建（CI 的提交前 7 位，本机是 `dev`）、是不是内测版、`'android'`；能力有 `audio`、`rec`、`notify`、`speech`、`privacy`。`call('hello')` → `{v, app, build, platform, features}`；`call('app.visible')` 让 App 把正在放的状态再发一次 |
+| `privacy.state()` / `ask()` / `withdraw()` / `permissions()` / `settings({what})`（安卓自己的） | 见上面「第一次打开」。`state()` → `{state: 'agreed' \| 'basic', version, beian, store}`；`ask()` 在基本模式里再问一次，返回新的 state；`withdraw()` 撤回同意（先说明，用户点「撤回」才撤，返回 true，之后页面会换掉）；`permissions()` → `{mic, notify}`，各是 `granted`、`undetermined`、`denied`，给网页做权限管理页；`settings({what: 'mic' \| 'notify'})` 打开手机设置里对应的那一页 |
 | `FlowApp.on(type, fn)` → 取消订阅的函数；`off` | 同时发 `window` 事件 `flowapp:<type>` |
 | `audio.play(o)` / `pause()` / `resume()` / `stop()` / `step(±1)` / `seek(i)` / `set({rate, rep, gap})` / `state()` / `progress(key)` | 见下面「原生声音」。这些都返回当前状态 `{ok, key, state, i, n, t, title, rate}`；`resume()` 的返回值网页用来判断要不要从头再放 |
 | `rec.permission()` / `ask()` / `start({max, format})` / `stop()` / `cancel()` | 见下面「录音」 |
@@ -156,7 +186,7 @@ CI（`.github/workflows/android.yml`，语流 A2）：
     - 到点没词：这个时间作废，当天到了每天的钟点照常提醒（有词才提醒）。
   - 「每天的学习」（`reminder.ics?kind=plan`，在 App 里选了通知）：每天那个钟点提醒今天的学习，打开 `#/`，不用登录。同一时刻的复习提醒就不再单独发。
 - `sync(r)`：`r` 是网页的 `reminder`，可以带上 `forecast`、`app`。`sync(null)` 或 `off()` 关掉 App 的提醒。`pending()` → `[{id, at, title, body}]`。
-- App 打开、回到前台、切到后台时，都用登录 cookie 拿一次 `/api/next/vocab` 重新排，所以复习完的日子会被撤掉。退出登录以后不再提醒复习单词，「每天的学习」照常。重启手机、改时间或时区以后，提醒会重新排上。
+- App 打开、回到前台、切到后台时，都用登录 cookie 拿一次 `/api/next/vocab` 重新排，所以复习完的日子会被撤掉（只在同意以后；基本模式里不拉）。退出登录以后不再提醒复习单词，「每天的学习」照常。重启手机、改时间或时区以后，提醒会重新排上；这个开机接收器只在打开了 App 提醒时才开着（见上面「第一次打开」）。
 - 点通知：复习打开 `#/review`，今天的学习打开 `#/`。
 - 账号还没给网站要的同意时，`/api/next/vocab` 回 403，什么提醒都不排，「今天的学习」也不排；网站对这样的账号也不发提醒。钟点留着，同意以后下一次拉到 vocab 就会自己排回来。
   - 缺哪一项同意，网站都回 code `storage`（这样只认 `storage` 的 1.0.1、1.0.2 也会暂停），另用 `need` 说明是哪一项：`storage` 是「数据存放在香港」，`terms` 是当前版本的《用户协议》和《隐私和数据》。协议一改版，所有人都会被再问一次，所以 `terms` 会不定期出现（B6，2026-11-25）。
@@ -193,7 +223,7 @@ CI（`.github/workflows/android.yml`，语流 A2）：
 
 从 1.0.2 起，App 自己看有没有新版本，有就提示，用户点了才下载、才装。直接装的 APK 没法悄悄自动更新：手机每次都要用户点一下「更新」，提示里照实这么说。要完全自动，得等上应用商店。
 
-- **什么时候看**：App 启动时，以及每天第一次回到前台时（`MainActivity.onStart` → `Updater.onStart`）。没连上网就下次再看。
+- **什么时候看**：App 启动时，以及每天第一次回到前台时（`MainActivity.onStart` → `Updater.onStart`）。没连上网就下次再看。第一次打开时要等用户同意以后才看；基本模式里不看。商店版（`FLOW_CHANNEL=store`）没有这个功能，见上面「应用商店」。
 - **看哪里**：`https://flowlang.cn/download/latest.json` 里的 `android` 一项，由 A1 写：
   `{"version": "1.0.2", "code": 3, "file": "flow-android-1.0.2.apk", "size": …, "sha256": "…", "cert": "76:88:…", "date": "…", "notes": "这一版改了什么"}`。
   - 有 `code`（versionCode）就比 versionCode，没有就比版本号；`notes` 是提示里「这一版改了什么」，没有就不写（也认 `changes` 数组）。
@@ -214,11 +244,12 @@ CI（`.github/workflows/android.yml`，语流 A2）：
 | `RECORD_AUDIO` | 跟读、口语对话、发音练习；App 自己从不打开，只在网页要录音时打开 |
 | `POST_NOTIFICATIONS` | 复习提醒（Android 13 以上要单独问） |
 | `FOREGROUND_SERVICE`、`FOREGROUND_SERVICE_MEDIA_PLAYBACK`、`WAKE_LOCK` | 锁屏以后整篇朗读还能继续（正式版从 r33 起用到，见上面「原生声音」） |
-| `RECEIVE_BOOT_COMPLETED` | 重启手机以后把提醒排回去 |
+| `RECEIVE_BOOT_COMPLETED` | 重启手机以后把提醒排回去；接收器平时关着，只在打开了 App 提醒时开着 |
 | `SCHEDULE_EXACT_ALARM` | 提醒准点（手机允许时） |
 | `ACCESS_NETWORK_STATE` | 由 Media3（ExoPlayer）带进来，用来看网络类型；不弹窗 |
-| `REQUEST_INSTALL_PACKAGES`（只有正式版） | 在 App 里装新版本；要用户自己在设置里打开「安装未知应用」，第一次在 App 里装新版本时才问（见上面「新版本」） |
+| `REQUEST_INSTALL_PACKAGES`（只有官网直装的正式版，商店版没有） | 在 App 里装新版本；要用户自己在设置里打开「安装未知应用」，第一次在 App 里装新版本时才问（见上面「新版本」） |
 
+- 第一次打开先问《用户协议》和《隐私和数据》，回答以前什么都不连（见上面「第一次打开」）。
 - 不加任何第三方 SDK，不做统计和跟踪。用到的库只有 AndroidX、Media3、kotlinx-coroutines。
 - WebView 的使用统计和 Safe Browsing 网址检查都关掉了，App 不会因为 WebView 给 Google 发数据。
 - 不备份到云端（`allowBackup=false`）：登录 cookie 和手机上存的东西不会被带到别的手机上。
@@ -226,7 +257,8 @@ CI（`.github/workflows/android.yml`，语流 A2）：
 
 ## 测试
 
-- 单元测试（`src/test`，JVM，CI 上可以跑），共 34 个：
+- 单元测试（`src/test`，JVM，CI 上可以跑），共 43 个：
+  - 第一次打开：同意、基本模式、新版本再问，打包进来的两章怎么读，登录的那几个地址（和服务器的 `SIGN_IN_ROUTES` 对一遍）（`Consent`）；
   - 句子定位、上一句和下一句的规则、复读（`Sentences`，和网页 `NAR`、`LONG` 的规则一致）；
   - 提醒排期（`Planner`，用 iOS 的同一组例子）；
   - WAV 文件头；
@@ -234,7 +266,8 @@ CI（`.github/workflows/android.yml`，语流 A2）：
   - 新版本：`latest.json` 的读法、版本比较、什么时候看、「稍后」当天不再提示（`UpdateInfo`、`UpdateGate`）。
   - 主题色：网页传来的值怎么认、两种颜色在浅色和深色下的色值（`Accent`）。
 - 新版本的整个流程在模拟器上手动测过（调试包，见上面「新版本」里的测试办法）：提示、「稍后」、下载和核对、「安装未知应用」的说明和设置页、系统的「要更新此应用吗？」、装好后是新版本；SHA-256 不对、签名不对、没打开权限、在确认页点「取消」，都不装。
-- 界面测试（`src/androidTest`，模拟器或真机，打开内测版，以游客身份，不出声），共 7 个：
+- 第一次打开在模拟器上手动测过（正式版的调试包，2026-11-25）：弹窗、两章全文、回答前不联网、「不同意」和基本模式、基本模式里登录被拦下并弹出询问、同意以后那一行消失、麦克风和通知的用途说明、打开或关掉 App 提醒时开机接收器跟着开关、撤回同意（cookie 和本地存储清空、回到弹窗、返回不到以前的页面）、重启后不再问。截图在共享笔记 `android-shots/consent/`。
+- 界面测试（`src/androidTest`，模拟器或真机，打开内测版，以游客身份，不出声；开始前先记作已经同意），共 7 个：
   - 打开网站，桥和 `FlowApp` 的字段都在，UA 正确；
   - 登录页；
   - 播放一篇有录音的文章，下一句、暂停、记住读到哪儿；
@@ -248,7 +281,7 @@ CI（`.github/workflows/android.yml`，语流 A2）：
 
 - **上应用商店**：
   - Google Play：要一次性 25 美元的开发者账号；还要填数据安全表，以及隐私政策网址；个人账号第一次上架前，要先找一批测试者做一轮封闭测试（人数和天数以当时的规定为准）。
-  - 国内应用商店（华为、小米、OPPO、vivo、应用宝）：要软件著作权、App 备案（工信部）、隐私政策和权限说明；有的商店只收企业开发者；华为还要单独适配鸿蒙。现在先不办。
+  - 国内应用商店（华为、小米、OPPO、vivo、荣耀、应用宝）：要 APP 备案（工信部）、软件著作权、隐私政策和权限说明，以公司名义上架。方案在共享笔记 `android-stores-plan.md`。App 这边能先做的已经做了（上面「第一次打开」「应用商店」）；注册账号和提交，等公司成立、APP 备案的办法定下来。华为还要单独适配鸿蒙。
 - 纯血鸿蒙（HarmonyOS NEXT）装不了 APK，要单独做鸿蒙版。
 - App Links（点 flowlang.cn 的链接直接进 App）：要在网站上放 `/.well-known/assetlinks.json`。
 - 推送：国内没有统一的推送服务，复习提醒用本地通知，不需要推送。
