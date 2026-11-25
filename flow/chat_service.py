@@ -194,7 +194,18 @@ def main_only():
 
 def _request_text_service(messages,model=None,extra=None):
  url,key,model=text_provider(model) or ('','','')
- return _openai_compatible(url,key,model,messages,None,False,extra)
+ return _openai_compatible(url,key,model,messages,None,False,extra,timeout=text_timeout())
+
+
+def text_timeout():
+ """Seconds the text service (DeepSeek on 百炼) may take before the main model takes over (FLOW_TEXT_TIMEOUT, 15–85;
+ default 45). 2026-11-25: on 内测版 its 321 answered text calls took at most 28 s (P99 20 s), but one import enrichment
+ got nothing back for 85 s and failed, as request_model hands a failure to Gemini only within 60 s. At 45 s it still does."""
+ try:
+  v=int(os.getenv('FLOW_TEXT_TIMEOUT','45'))
+ except ValueError:
+  return 45
+ return v if 15<=v<=85 else 45
 
 
 AUDIO_FORMATS={'audio/webm':'webm','audio/ogg':'ogg','audio/wav':'wav','audio/mpeg':'mp3','audio/mp3':'mp3','audio/mp4':'mp4','audio/m4a':'mp4','audio/flac':'flac'}
@@ -291,7 +302,7 @@ def audio_timeout():
  return v if 15<=v<=85 else 85
 
 
-def _openai_compatible(endpoint,key,model,messages,audio,grounding,extra=None):
+def _openai_compatible(endpoint,key,model,messages,audio,grounding,extra=None,timeout=None):
  from vertex_auth import AIConfigurationError
  if not endpoint_ok(endpoint) or not model or not key:raise AIConfigurationError('AI configuration incomplete')
  payload={**(extra or {}),'model':model,'messages':messages,'max_tokens':4096}
@@ -301,7 +312,7 @@ def _openai_compatible(endpoint,key,model,messages,audio,grounding,extra=None):
   from audio_validation import validate_audio
   validate_audio(audio);payload['flow_audio']=audio
  req=urllib.request.Request(endpoint,data=json.dumps(payload,ensure_ascii=False).encode(),headers={'User-Agent':'jasa-flow/1.0','Authorization':'Bearer '+key,'Content-Type':'application/json'})
- with urllib.request.urlopen(req,timeout=audio_timeout() if audio else 85) as r:
+ with urllib.request.urlopen(req,timeout=timeout or (audio_timeout() if audio else 85)) as r:
   if ai_stream.active():
    if 'text/event-stream' not in r.headers.get('Content-Type',''):raise AIConfigurationError('Gateway streaming upgrade required')
    reply='';reason=None;metadata={};started=time.monotonic()

@@ -139,5 +139,20 @@ class RoutingTests(unittest.TestCase):
             out, calls = self.call(env, {'main.test': [http(code), 'never']})
             self.assertIsInstance(out, urllib.error.HTTPError); self.assertEqual(out.code, code); self.assertEqual(len(calls), 1)
 
+    def test_the_text_service_gives_up_sooner_so_the_main_model_can_still_answer(self):
+        for extra, want in (({}, 45), ({'FLOW_TEXT_TIMEOUT': '30'}, 30), ({'FLOW_TEXT_TIMEOUT': '5'}, 45), ({'FLOW_TEXT_TIMEOUT': 'x'}, 45)):
+            seen = []
+
+            def urlopen(req, timeout=None):
+                seen.append((req.full_url.split('/')[2], timeout))
+                if 'text.test' in req.full_url:
+                    raise TimeoutError('timed out')  # 2026-11-25: DeepSeek sent nothing back
+                return Reply('from the main model')
+            with patch.dict(os.environ, {**MAIN, **TEXT, **extra}, clear=True), patch('urllib.request.urlopen', urlopen):
+                out = cs.request_model(MSGS)
+            self.assertEqual(out[0], 'from the main model')
+            self.assertEqual(seen, [('text.test', want), ('main.test', 85)], extra)
+
+
 if __name__ == '__main__':
     unittest.main()
