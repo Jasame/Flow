@@ -240,6 +240,22 @@ class MsiRunnerTests(unittest.TestCase):
         self.assertNotRegex(sh, r'(vmess|vless|trojan|ss)://')  # no node link, ever
 
 
+class MsiRunTests(unittest.TestCase):
+    """tools/msi-run.sh: the pre-push tests on the MSI from the Mac, without touching the checkout or blocking."""
+
+    def test_it_never_waits_touches_the_checkout_or_keeps_a_slot(self):
+        sh = (ROOT / 'tools' / 'msi-run.sh').read_text()
+        self.assertEqual(subprocess.run(['bash', '-n', str(ROOT / 'tools' / 'msi-run.sh')]).returncode, 0)
+        self.assertIn('BatchMode=yes', sh)  # no password or host-key question can hang a session
+        self.assertNotRegex(sh, r'(^|[\s;(&|])ssh "\$HOST"')  # every ssh goes through the batch-mode options
+        self.assertIn('exit 3', sh)  # the MSI unreachable, told apart from failing tests
+        self.assertIn('GIT_INDEX_FILE=', sh)  # the snapshot is made in a throwaway index
+        self.assertIn('nice -n 10', sh)  # CI's runners keep priority
+        self.assertIn('</dev/null 9>&-', sh)  # the script on stdin is not eaten, the lock is not inherited
+        for word in ('git stash', 'git checkout', 'git reset', 'sudo', 'secrets.'):
+            self.assertNotIn(word, sh)
+
+
 class BetaReleaseTests(unittest.TestCase):
     """.github/workflows/beta.yml releases each main commit that passed Tests to the 内测版, unless BETA_AUTO is off."""
 
