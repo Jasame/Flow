@@ -3,7 +3,8 @@
 #
 #   bash flow-pull.sh <40-char commit sha> <manifest sha256> [--dry-run]
 #
-# 1. Lists the commit's files through jsDelivr (data.jsdelivr.com, sha256 per file) and downloads every
+# 1. Lists the commit's files through jsDelivr (data.jsdelivr.com, sha256 per file; after a 404, by the build's tag
+#    FLOW_TREE_REF, the same tree) and downloads every
 #    release file under flow/ (from tools/release-files.txt at that commit, tests excluded) plus the
 #    xmc.hk admin page, checking each against its listed sha256.
 # 2. Builds a manifest ("<base64 sha256>  <path>" per line, sorted) and requires its sha256 to equal the
@@ -31,7 +32,7 @@ PY=$(readlink /proc/$(systemctl show -p MainPID --value "$SVC")/exe 2>/dev/null)
 rm -rf "$STAGE"; mkdir -p "$STAGE"
 
 "$PY" -I - "$STAGE" "$REPO" "$SHA" "$WANT" "$F" "$XMC" <<'PYEOF' || { echo ABORT_FETCH; exit 1; }
-import base64, hashlib, json, sys, time, urllib.request
+import base64, hashlib, json, os, re, sys, time, urllib.error, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 stage, repo, sha, want, flow_dir, xmc_dir = Path(sys.argv[1]), sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6]
@@ -51,12 +52,21 @@ def get_any(path, rounds=4):
                 last = e
         time.sleep(2 + 3 * k)
     raise RuntimeError(f'{path}: {last}')
+# After a 404 for the commit's listing (jsDelivr can keep an early "not found" for hours: b34, 2026-11-25), the same tree
+# by its tag (FLOW_TREE_REF=build-<sha12>, from REQUEST through flow-autodeploy.py). Files are still fetched by the commit.
+alt = os.environ.get('FLOW_TREE_REF', '')
+alt = alt if re.fullmatch(r'build-[0-9a-f]{12}', alt) else ''
 def listing():
+    last = None
     for k in range(6):
-        try:
-            return json.loads(fetch(f'https://data.jsdelivr.com/v1/package/gh/{repo}@{sha}/flat'))['files']
-        except Exception as e:
-            last = e; time.sleep(2 + 3 * k)
+        for ref in ([sha, alt] if alt else [sha]):
+            try:
+                return json.loads(fetch(f'https://data.jsdelivr.com/v1/package/gh/{repo}@{ref}/flat'))['files']
+            except Exception as e:
+                last = e
+                if not (isinstance(e, urllib.error.HTTPError) and e.code == 404):
+                    break
+        time.sleep(2 + 3 * k)
     raise RuntimeError(f'listing: {last}')
 flat = {f['name'].lstrip('/'): f for f in listing()}
 names = get_any('tools/release-files.txt').decode().split()

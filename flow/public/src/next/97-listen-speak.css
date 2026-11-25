@@ -47,3 +47,11 @@
 @media (prefers-reduced-motion:reduce){.rec-dot{animation:none}.p2-clock .vbar i{transition:none}}
 /* 伴读 in the server voice (22-study-read.js): 「正在准备朗读 12/30 句」, or why it reads with the browser voice */
 .sv-prep{margin:6px 0 0}
+/* 朗读 (01-audio-offline.js SV, LONG): 「正在准备朗读…」 over the page while a sentence is made; 暂停 / 继续 and ✕ in the
+   mini player (✕ keeps where it was); 从头开始 beside 播放全文 and 伴读 once there is a place to go on from */
+.sv-wait{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(136px + var(--sab));z-index:46;background:var(--ink);color:var(--bg);border-radius:99px;padding:8px 14px;font-size:14px;box-shadow:var(--shadow);max-width:calc(100% - 32px);pointer-events:none}
+.sv-wait[hidden]{display:none}
+.mini-player .toggle{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:99px;background:var(--fill);color:var(--on-fill);font-weight:700;padding:8px 14px;min-height:40px}
+.mini-player .close{background:transparent;color:var(--bg);padding:8px 12px;min-width:40px;justify-content:center;font-weight:600}
+#playRestart,#alongRestart{min-height:40px;padding:0 6px}
+@media (min-width:760px){.sv-wait{bottom:80px}}

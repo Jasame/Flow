@@ -5,24 +5,29 @@
   function noSound(what) { noteIssue('audio', what + (WECHAT ? '（微信）' : '')); toast(WECHAT ? `微信里${what}：点右上角「···」，选「在浏览器打开」就能听` : `这个浏览器${what}，换 Safari 或 Chrome 试试`); }
   const TTS = {
     ok: 'speechSynthesis' in window, rate: Number(load('flow-next-rate')) || 1, voice: null, token: 0,
+    // the browser's English voice in the accent of 朗读声音 (S.voice: us-… or uk-…)
     pick() {
       if (!this.ok) return null;
-      const vs = speechSynthesis.getVoices().filter(v => /^en[-_]/i.test(v.lang));
-      const pref = ['Samantha', 'Google US English', 'Microsoft Aria', 'Microsoft Jenny', 'Karen', 'Daniel', 'Google UK English Female'];
-      this.voice = pref.map(n => vs.find(v => v.name.includes(n))).find(Boolean) || vs.find(v => /en-US/i.test(v.lang)) || vs[0] || null;
+      const uk = (S.voice || '').startsWith('uk'), vs = speechSynthesis.getVoices().filter(v => /^en[-_]/i.test(v.lang));
+      const pref = uk ? ['Daniel', 'Kate', 'Serena', 'Google UK English Female', 'Google UK English Male', 'Microsoft Sonia', 'Microsoft Libby']
+        : ['Samantha', 'Google US English', 'Microsoft Aria', 'Microsoft Jenny', 'Karen', 'Daniel', 'Google UK English Female'];
+      this.voice = pref.map(n => vs.find(v => v.name.includes(n))).find(Boolean) || vs.find(v => (uk ? /en[-_]GB/i : /en[-_]US/i).test(v.lang)) || vs[0] || null;
+      this.accent = uk ? 'uk' : 'us';
       return this.voice;
     },
-    // A short sentence with no word highlighting goes to the server voice when it is on (SV below: CosyVoice, made once
-    // and stored, works in WeChat too); reading a text along word by word keeps the browser voice, which reports words.
-    say(text, onend, onword) {
-      if (!onword && SV.on() && text && text.length <= SV.MAX) { SV.say(text, onend); return; }
+    // A sentence goes to the server voice whenever it is on (SV below: CosyVoice, made once and stored, works in WeChat
+    // too), word highlighting or not: the owner hears the browser voice as a robot (2026-11-25), so a text is lit sentence
+    // by sentence rather than read by it. onword counts only where the browser voice reads. o: {pack, voice, title}.
+    say(text, onend, onword, o) {
+      if (SV.on() && text && text.length <= SV.MAX) { SV.say(text, onend, { ...(o || {}), onword }); return; }
       this.browser(text, onend, onword);
     },
     browser(text, onend, onword) {
+      LONG.other();
       if (!this.ok) { noSound('不能用电脑朗读的声音'); return; }
       speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'en-US'; u.rate = this.rate; const v = this.voice || this.pick(); if (v) u.voice = v;
+      const u = new SpeechSynthesisUtterance(text), uk = (S.voice || '').startsWith('uk');
+      u.lang = uk ? 'en-GB' : 'en-US'; u.rate = this.rate; const v = this.voice && this.accent === (uk ? 'uk' : 'us') ? this.voice : this.pick(); if (v) u.voice = v;
       const t = ++this.token;
       if (onword) u.onboundary = e => { if (t === this.token && e.name !== 'sentence') onword(e.charIndex); };
       u.onend = () => { if (t === this.token && onend) onend(); };
@@ -32,7 +37,7 @@
       u.onstart = () => clearTimeout(watch); u.onerror = () => clearTimeout(watch);
       speechSynthesis.speak(u);
     },
-    stop() { this.token++; if (this.ok) speechSynthesis.cancel(); if (SV.active) { SV.active = false; CLIP.stop(); } },
+    stop() { this.token++; if (this.ok) speechSynthesis.cancel(); SV.note(''); if (SV.active) { SV.active = false; CLIP.stop(); } },
     can() { return this.ok || SV.on(); },  // some voice can say a sentence here
   };
   if (TTS.ok) speechSynthesis.onvoiceschanged = () => TTS.pick();
@@ -40,24 +45,95 @@
   /* ---------- server voice (tts_service): what the browser would say, in CosyVoice, made once and stored for everyone ---------- */
   // The first tap on a sentence asks the server for it (made then, 1–4 s, or already stored: at once); the file is played
   // on the short-clip player, which the first tap anywhere has unlocked (WeChat plays only sound started that way).
-  // A guest gets only stored sentences; anything the server cannot give falls back to the browser voice.
+  // One address book for every page (听, 读, 跟读, 口语, 雅思…): a sentence is asked for once in a voice, and the answer is
+  // kept on this phone for 30 days (at most 600), so what was heard before plays offline too (sw.js keeps the files). A
+  // sentence of the learner's own article goes with its pack, so its file is the owner's only (/audio/own/).
+  // While a sentence is being made a line says so (after 0.6 s); when the browser voice has to read instead, one line
+  // says why (today's share used, offline, the network, too slow), once per reason while the page is open.
   const SV = {
-    MAX: 1500, urls: new Map(), active: false, off: false,
+    MAX: 1500, urls: new Map(), active: false, off: '', told: new Set(), KEY: 'flow-sv-urls', KEEP: 600, DAYS: 30, SLOW: 20000,
     on() { const s = S.home && S.home.session; return !!(s && s.tts) && !this.off; },
-    async say(text, onend) {
-      const t = ++TTS.token; if (TTS.ok) speechSynthesis.cancel();
-      const key = S.voice + '|' + text;
-      let u = this.urls.get(key);
-      if (!u) {
-        try { await DATA.ready; u = (await request('/api/next/tts', { text, voice: S.voice }, true)).j.url; this.urls.set(key, u); }  // not api(): it empties the data layer
-        catch (e) {
-          if (e.status === 503 || e.status === 429) this.off = true;  // off, or today's share is used: the browser voice from now on
-          if (t === TTS.token) TTS.browser(text, onend);
-          return;
+    key(text, o) { return ((o && o.voice) || S.voice || 'us-f') + '|' + ((o && o.pack) || '') + '|' + text; },
+    hash(k) {  // a short name for the address book (cyrb53)
+      let a = 0xdeadbeef, b = 0x41c6ce57;
+      for (let i = 0; i < k.length; i++) { const c = k.charCodeAt(i); a = Math.imul(a ^ c, 2654435761); b = Math.imul(b ^ c, 1597334677); }
+      a = Math.imul(a ^ (a >>> 16), 2246822507) ^ Math.imul(b ^ (b >>> 13), 3266489909); b = Math.imul(b ^ (b >>> 16), 2246822507) ^ Math.imul(a ^ (a >>> 13), 3266489909);
+      return (b >>> 0).toString(36) + (a >>> 0).toString(36);
+    },
+    kept() {
+      if (!this._kept) { const o = load(this.KEY) || {}, cut = Date.now() - this.DAYS * 864e5; for (const k of Object.keys(o)) if (!Array.isArray(o[k]) || o[k][1] < cut) delete o[k]; this._kept = o; }
+      return this._kept;
+    },
+    keep(k, u) {
+      const o = this.kept(); o[this.hash(k)] = [u, Date.now()];
+      const ks = Object.keys(o); if (ks.length > this.KEEP) ks.sort((x, y) => o[x][1] - o[y][1]).slice(0, ks.length - this.KEEP).forEach(x => delete o[x]);
+      clearTimeout(this._save); this._save = setTimeout(() => save(this.KEY, o), 400);
+    },
+    // -> Promise of the sentence's address; rejects with an Error whose .code says why (off, cap, import_cap, busy,
+    // guest, store, gateway, offline, net). Online the server is always asked (a stored sentence answers at once); the
+    // address kept on the phone is used when it cannot be reached.
+    url(text, o) {
+      const k = this.key(text, o);
+      if (this.urls.has(k)) return this.urls.get(k);
+      const p = (async () => {
+        await DATA.ready;
+        try {
+          const u = (await request('/api/next/tts', { text, voice: (o && o.voice) || S.voice, ...(o && o.pack ? { pack: o.pack } : {}) }, true)).j.url;  // not api(): it empties the data layer
+          this.keep(k, u); return u;
+        } catch (e) {
+          const old = this.kept()[this.hash(k)];
+          if (e.network && old) return old[0];
+          const err = new Error(e.message); err.server = e.message;
+          err.code = e.network ? (navigator.onLine === false ? 'offline' : 'net') : (e.code || (e.status >= 500 ? 'gateway' : 'other'));
+          if (err.code === 'off' || err.code === 'cap') this.off = err.code;  // today's share used (or switched off): the browser voice from now on
+          throw err;
         }
-      }
+      })();
+      this.urls.set(k, p); p.catch(() => this.urls.delete(k));  // a failure is asked again next time
+      return p;
+    },
+    // what is made already, in one request (an article's sentences; an import is made in the background after importing)
+    async have(texts, o) {
+      if (!this.on() || !texts.length) return 0;
+      try {
+        await DATA.ready;
+        const r = await request('/api/next/tts/have', { voice: S.voice, texts, ...(o && o.pack ? { pack: o.pack } : {}) }, true);
+        let n = 0;
+        r.j.urls.forEach((u, i) => { if (!u) return; n += 1; const k = this.key(texts[i], o); if (!this.urls.has(k)) this.urls.set(k, Promise.resolve(u)); this.keep(k, u); });
+        return n;
+      } catch (e) { return 0; }
+    },
+    // one line on why the browser voice reads this time; once per reason while the page is open
+    why(e) {
+      const code = (e && e.code) || 'other';
+      this.lines = this.lines || {};
+      const line = this.lines[code] || { offline: '离线中，这句还没存到手机，先用浏览器的声音', net: '网络不好，这句先用浏览器的声音', slow: '自然人声这次生成得太慢，先用浏览器的声音',
+        guest: '登录后能听 AI 朗读（自然人声），现在先用浏览器的声音', off: 'AI 朗读（自然人声）暂时没开，先用浏览器的声音' }[code]
+        || (e && e.server) || 'AI 朗读（自然人声）这次没生成出来，先用浏览器的声音';
+      this.lines[code] = line;
+      if (!this.told.has(code)) { this.told.add(code); toast(line); noteIssue('audio', '服务器朗读退回浏览器声音', code); }
+      return line;
+    },
+    slow(p) { return Promise.race([p, new Promise((ok, no) => setTimeout(() => no(Object.assign(new Error('slow'), { code: 'slow' })), this.SLOW))]); },
+    // 「正在准备朗读…」 over the page, from 0.6 s until the sentence is ready (or something else speaks)
+    note(text) {
+      let el = document.getElementById('svWait');
+      if (!text) { if (el) el.hidden = true; return; }
+      if (!el) { el = document.createElement('div'); el.id = 'svWait'; el.className = 'sv-wait'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+      el.textContent = text; el.hidden = false;
+    },
+    async say(text, onend, o) {
+      o = o || {};
+      const t = ++TTS.token; if (TTS.ok) speechSynthesis.cancel();
+      const k = this.key(text, o), ready = this.urls.has(k);
+      const late = ready ? 0 : setTimeout(() => { if (t === TTS.token) this.note('正在准备朗读…'); }, 600);
+      let u = null, err = null;
+      try { u = await this.slow(this.url(text, o)); } catch (e) { err = e; }
+      clearTimeout(late);
       if (t !== TTS.token) return;  // stopped, or something else spoke, while the sentence was being made
-      CLIP.play(u, 0, 1e6, text, () => { this.active = false; if (onend) onend(); }, null, { url: u, from: 0, to: Infinity, title: '语流' });
+      this.note('');
+      if (!u) { this.why(err); TTS.browser(text, onend, o.onword); return; }
+      CLIP.play(u, 0, 1e6, text, () => { this.active = false; if (onend) onend(); }, null, { url: u, from: 0, to: Infinity, title: o.title || '语流' });
       this.active = true; TTS.token = t;  // CLIP.play stops the browser voice (a new token); keep this one current
     },
   };
@@ -141,6 +217,7 @@
       } catch (e) { return false; }
     },
     play(from, to, onTick, onEnd) {
+      LONG.other();
       this.stopLoop(); this.stopAt = to; this.onTick = onTick; this.onEnd = onEnd; this.paused = false;
       const a = this.audio, asked = a.src;
       this.name();
@@ -193,9 +270,14 @@
   // 已暂停 and 继续) instead of showing it still playing; playing again (继续, the lock screen) takes it back.
   NAR.audio.addEventListener('pause', () => {
     const a = NAR.audio; if (a.dataset.want !== '1' || a.ended || (NAR.stopAt != null && a.currentTime >= NAR.stopAt)) return;
-    NAR.paused = true; MS.state('paused'); MINI.pause(true, () => NAR.resume());
+    NAR.paused = true; MS.state('paused');
+    if (LONG.nar()) LONG.held(); else MINI.pause(true, () => NAR.resume());
   });
-  NAR.audio.addEventListener('play', () => { if (!NAR.paused || NAR.audio.dataset.want !== '1') return; NAR.paused = false; NAR.name(); MINI.pause(false); });
+  NAR.audio.addEventListener('play', () => {
+    if (!NAR.paused || NAR.audio.dataset.want !== '1') return;
+    NAR.paused = false; NAR.name();
+    if (LONG.nar()) LONG.going(); else MINI.pause(false);
+  });
   function lightAt(container, charOffset) {
     container.querySelectorAll('.cur').forEach(el => el.classList.remove('cur'));
     if (charOffset == null) return;
@@ -253,7 +335,9 @@
   const AUDIO = {
     ctx: null, src: null, done: null, own: null, token: 0, bufs: new Map(), idle: 0, off: false,
     AC: window.AudioContext || window.webkitAudioContext,
-    usable() { return WORD_CLIPS && !!this.AC && !!navigator.audioSession && !this.off && this.mode() !== 'compat'; },
+    // not while the page is hidden (the screen locked): the context is closed then (below), and an <audio> plays on there
+    // (继续 on the lock screen for a whole text read sentence by sentence)
+    usable() { return WORD_CLIPS && !!this.AC && !!navigator.audioSession && !this.off && this.mode() !== 'compat' && document.visibilityState !== 'hidden'; },
     // 我的 → 设置 → 单词读音方式 (iPhones and iPads), kept on this phone (the home-screen app has no address bar for
     // ?audio= and ?lead=, and keeps its own storage): 'auto' = 连续 (Web Audio where it works) or 'compat' = 标准 (the
     // <audio> clips), and the silence in front of a clip
@@ -274,9 +358,10 @@
     context() {
       if (!this.ctx) {
         try { this.ctx = new this.AC(); } catch (e) { this.off = true; return null; }
-        this.ctx.onstatechange = () => {  // a call or another app took the sound: what was playing is over
+        this.ctx.onstatechange = () => {  // a call or another app took the sound: what was playing is over (or, for a
+          // whole text being read, paused: cut)
           const c = this.ctx; if (!c || !this.src || c.state === 'running') return;
-          const end = this.done; this.stop(); if (end) end();
+          const end = this.done, cut = this.cut; this.stop(); if (cut) cut(); else if (end) end();
         };
       }
       return this.ctx;
@@ -300,7 +385,7 @@
     // url from `from` to `to` seconds (Infinity: to its end) at `rate`. onend when it is over; onfail(error) when it
     // cannot (the caller then plays it the old way). False at once when this player is not to be used here.
     // own: a second slot that does not stop the first (the learner's recording after the original).
-    play(url, from, to, rate, onend, onfail, title, own) {
+    play(url, from, to, rate, onend, onfail, title, own, cut) {
       if (!this.usable()) return false;
       if (this.session('playback') !== 'playback') { this.off = true; return false; }  // refused: the ringer switch would mute it
       const c = this.context(); if (!c) return false;
@@ -318,21 +403,21 @@
           if (own) this.own = null; else { this.src = null; this.done = null; }
           this.rest(); if (onend) onend();
         };
-        if (own) { if (this.own) { this.own.onended = null; try { this.own.stop(); } catch (e) { /* ignore */ } } this.own = s; } else { this.src = s; this.done = onend; }
+        if (own) { if (this.own) { this.own.onended = null; try { this.own.stop(); } catch (e) { /* ignore */ } } this.own = s; } else { this.src = s; this.done = onend; this.cut = cut || null; }
         s.start(c.currentTime + 0.03, start, Math.max(0.01, end - start));
         // a context that would not run (refused outside a tap, or broken): the old way, once
         setTimeout(() => { if ((own ? this.own : this.src) === s && c.state !== 'running') { if (own) this.own = null; else this.stop(); if (onfail) onfail(new Error('not running')); } }, 1500);
       }).catch(e => { if ((own || t === this.token) && onfail) onfail(e); });
       return true;
     },
-    stop() { this.token++; const s = this.src; this.src = null; this.done = null; if (s) { s.onended = null; try { s.stop(); } catch (e) { /* not started */ } } },
+    stop() { this.token++; const s = this.src; this.src = null; this.done = null; this.cut = null; if (s) { s.onended = null; try { s.stop(); } catch (e) { /* not started */ } } },
     halt() { this.stop(); if (this.own) { this.own.onended = null; try { this.own.stop(); } catch (e) { /* ignore */ } this.own = null; } this.rest(); },
     // 20 s after the last sound the context rests: WebKit takes 语流 out of Now Playing (and the Dynamic Island)
     rest() {
       clearTimeout(this.idle);
       this.idle = setTimeout(() => { if (this.src || this.own || !this.ctx) return; if (this.ctx.state === 'running') this.ctx.suspend().catch(() => {}); MS.release('short'); }, 20000);
     },
-    drop() { this.halt(); clearTimeout(this.idle); const c = this.ctx; this.ctx = null; if (c) c.close().catch(() => {}); MS.release('short'); },
+    drop() { const cut = this.src && this.cut; this.halt(); clearTimeout(this.idle); const c = this.ctx; this.ctx = null; if (c) c.close().catch(() => {}); MS.release('short'); if (cut) cut(); },
   };
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') AUDIO.drop(); });
 
@@ -352,11 +437,14 @@
     // text: said by the browser voice if neither line can play the clip.
     // to: Infinity plays a file to its end (a word clip). fallback: [src, from, to] played instead if src fails.
     // wa: {url, from, to, title}: what AUDIO plays instead, where it is used.
+    // wa.cut: called instead of onend when a call (or the page hidden) cuts the sound off: a whole text pauses there
     play(src, from, to, text, onend, fallback, wa) {
+      LONG.other();
       NAR.stop(); TTS.stop(); this.stop();
-      const want = this.want = { from, to, text, onend, fallback, title: wa && wa.title };
+      const want = this.want = { from, to, text, onend, fallback, title: wa && wa.title, cut: wa && wa.cut };
       if (wa && AUDIO.play(wa.url, wa.from, wa.to, TTS.rate, () => { if (this.want === want) { this.want = null; if (onend) onend(); } },
-        () => { if (this.want === want) this.element(src, from, to, text, onend, fallback, want); }, wa.title)) { want.wa = true; return; }
+        () => { if (this.want === want) this.element(src, from, to, text, onend, fallback, want); }, wa.title, false,
+        wa.cut && (() => { if (this.want === want) { this.want = null; wa.cut(); } }))) { want.wa = true; return; }
       this.element(src, from, to, text, onend, fallback, want);
     },
     element(src, from, to, text, onend, fallback, want) {
@@ -417,6 +505,11 @@
     },
     mineElement(url, onend) { const a = new Audio(url); if (onend) a.onended = () => onend(); a.play().catch(() => { if (onend) onend(); }); },
   };
+  // paused by something other than the page (a call) while a whole text's sentence plays: it waits there (LONG)
+  CLIP.audio.addEventListener('pause', () => {
+    const w = CLIP.want, a = CLIP.audio; if (!w || !w.cut || w.wa || a.dataset.want !== '1' || a.ended || a.currentTime >= w.to) return;
+    CLIP.want = null; cancelAnimationFrame(CLIP.raf); a.dataset.want = ''; w.cut();
+  });
   CLIP.audio.addEventListener('error', () => {
     const w = CLIP.want; if (!w || !mediaGaveUp(CLIP.audio)) return;
     if (w.fallback) { const n = CLIP.want = { ...w, fallback: null }; CLIP.element(w.fallback[0], w.fallback[1], w.fallback[2], w.text, w.onend, null, n); return; }  // no clip from the server: the sprite, as before (once)
@@ -491,30 +584,195 @@
   addEventListener('DOMContentLoaded', () => { [NAR.audio, CLIP.audio].forEach(a => { a.hidden = true; document.body.appendChild(a); }); });
   if (document.readyState !== 'loading') [NAR.audio, CLIP.audio].forEach(a => { a.hidden = true; document.body.appendChild(a); });
 
-  /* ---------- mini player: while a whole text plays, a stop button stays on screen however far the text scrolls ---------- */
+  /* ---------- mini player: while a whole text plays, its control stays on screen however far the text scrolls ---------- */
+  // A whole text (LONG): 暂停 / 继续, and ✕ to close it (where it was is kept). A sentence repeating: 停止. Paused from
+  // outside the page (a call, the lock screen): 已暂停, and the button says 继续.
+  const pauseIcon = size => `<svg width="${size || 18}" height="${size || 18}" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4.5" height="14" rx="1.2"/><rect x="13.5" y="5" width="4.5" height="14" rx="1.2"/></svg>`;
   const MINI = {
-    el: null,
-    show(label, onStop) {
+    el: null, h: null, label: '', resumeFn: null,
+    show(label, h) {
+      if (typeof h === 'function') h = { stop: h };
+      this.h = h; this.label = label; this.resumeFn = null;
       if (!this.el) { this.el = document.createElement('div'); this.el.className = 'mini-player'; this.el.setAttribute('role', 'region'); this.el.setAttribute('aria-label', '播放控制'); document.body.appendChild(this.el); }
-      this.el.innerHTML = `<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span><span class="lbl"></span><button type="button" class="stop">${playIcon(true, 15)}<span>停止</span></button>`;
+      this.el.innerHTML = `<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span><span class="lbl"></span>`
+        + (h.toggle ? `<button type="button" class="toggle"></button><button type="button" class="stop close" aria-label="关闭播放（记住读到哪里）">✕</button>`
+          : `<button type="button" class="stop">${playIcon(true, 15)}<span>停止</span></button>`);
       this.el.querySelector('.lbl').textContent = label;
-      this.el.querySelector('.stop').onclick = () => { this.hide(); onStop(); };
-      this.el.hidden = false; document.body.classList.add('playing');
+      this.el.querySelector('.stop').onclick = () => { const st = this.h && this.h.stop; this.hide(); if (st) st(); };
+      if (h.toggle) this.el.querySelector('.toggle').onclick = () => this.h.toggle();
+      this.el.classList.remove('paused'); this.el.hidden = false; document.body.classList.add('playing');
+      this.paint();
     },
-    update(label) { if (this.el && !this.el.hidden && !this.el.classList.contains('paused')) this.el.querySelector('.lbl').textContent = label; },
-    hide() { if (this.el) { this.el.hidden = true; this.el.classList.remove('paused'); } document.body.classList.remove('playing'); },
-    // paused from outside the page (a call…): 已暂停, and 继续 next to 停止
-    pause(on, resume) {
+    paint() {
       if (!this.el || this.el.hidden) return;
-      this.el.classList.toggle('paused', !!on);
-      let b = this.el.querySelector('.resume');
-      if (on) {
-        this.label = this.label || this.el.querySelector('.lbl').textContent; this.el.querySelector('.lbl').textContent = '已暂停';
-        if (!b) { b = document.createElement('button'); b.type = 'button'; b.className = 'resume'; b.innerHTML = `${playIcon(false, 15)}<span>继续</span>`; this.el.insertBefore(b, this.el.querySelector('.stop')); }
-        b.onclick = resume;
-      } else { if (b) b.remove(); if (this.label) this.el.querySelector('.lbl').textContent = this.label; this.label = null; }
+      const on = this.el.classList.contains('paused'), t = this.el.querySelector('.toggle');
+      this.el.querySelector('.lbl').textContent = on ? '已暂停' : this.label;
+      if (t) { t.innerHTML = on ? `${playIcon(false, 15)}<span>继续</span>` : `${pauseIcon(15)}<span>暂停</span>`; t.classList.toggle('resume', on); t.setAttribute('aria-label', on ? '继续' : '暂停'); }
+      let b = this.el.querySelector('.resume:not(.toggle)');
+      if (!t && on && !b) { b = document.createElement('button'); b.type = 'button'; b.className = 'resume'; b.innerHTML = `${playIcon(false, 15)}<span>继续</span>`; this.el.insertBefore(b, this.el.querySelector('.stop')); }
+      if (b) { if (!t && on) b.onclick = () => { if (this.resumeFn) this.resumeFn(); }; else b.remove(); }
     },
+    update(label) { this.label = label; this.paint(); },
+    paused(on) { if (this.el && !this.el.hidden) { this.el.classList.toggle('paused', !!on); this.paint(); } },
+    // a recording paused from outside, with no whole text around it: 已暂停, and 继续 calls resume
+    pause(on, resume) { if (!this.el || this.el.hidden) return; this.resumeFn = resume || null; this.paused(on); },
+    hide() { if (this.el) { this.el.hidden = true; this.el.classList.remove('paused'); } this.h = null; document.body.classList.remove('playing'); },
     end() { const b = this.el && !this.el.hidden && this.el.querySelector('.stop'); if (b) b.click(); },
+  };
+
+  /* ---------- where a whole text was left: per text and per page (听 / 读), on this phone for 30 days ---------- */
+  const PROG = {
+    KEY: 'flow-progress', DAYS: 30, MAX: 100,
+    all() { const o = load(this.KEY) || {}, cut = Date.now() - this.DAYS * 864e5; for (const k of Object.keys(o)) if (!o[k] || !(o[k].at > cut)) delete o[k]; return o; },
+    get(k) { return (k && this.all()[k]) || null; },
+    // the sentence to go on from, when it is not the first and the text still has it
+    at(k, n) { const p = this.get(k); return p && p.i > 0 && p.i < n ? p.i : 0; },
+    set(k, i) {
+      if (!k) return; const o = this.all(); if (i > 0) o[k] = { i, at: Date.now() }; else delete o[k];
+      const ks = Object.keys(o); if (ks.length > this.MAX) ks.sort((x, y) => o[x].at - o[y].at).slice(0, ks.length - this.MAX).forEach(x => delete o[x]);
+      save(this.KEY, o);
+    },
+    clear(k) { if (k) { const o = this.all(); delete o[k]; save(this.KEY, o); } },
+  };
+
+  /* ---------- a whole text read aloud: 听's 播放全文 and 读's 伴读 (owner, 2026-11-25) ---------- */
+  // The recording (Kokoro) when there is one, straight through (or sentence by sentence when 复读 is set); otherwise the
+  // server voice sentence by sentence, the next two asked for while one plays, a line while one is being made (never the
+  // browser voice for being slow), and the browser voice only for a sentence the server could not give, with the reason.
+  // 暂停 / 继续: a recording goes on from the second it stopped, a sentence-by-sentence reading from the start of the
+  // sentence it stopped in. The same from the mini player, the lock screen and the Dynamic Island, after a call, the page
+  // hidden, or another sound (a word, a recording) started meanwhile. Where it was left is kept per text and page (PROG)
+  // until its end is reached: 「从第 N 句继续」. One text at a time.
+  // o: {key, texts, nm (Kokoro timings, or null), pack, title, loop (sentence by sentence even with a recording),
+  //     rep() (times each sentence, 0 = until stopped), gap(i) (ms after sentence i), label(i),
+  //     onState(state, i, note) ('waiting' | 'playing' | 'paused' | 'idle'), onWord(i, charOffset | null), onDone()}
+  const LONG = {
+    r: null, self: false,
+    of(key) { return this.r && this.r.key === key ? this.r : null; },
+    nar() { return !!(this.r && this.r.nm && NAR.audio.dataset.want === '1'); },
+    start(o, from) {
+      this.stop();
+      const n = o.texts.length, r = this.r = { ...o, i: Math.max(0, Math.min(from || 0, n - 1)), n: 0, tok: 0, state: o.nm ? 'playing' : 'waiting', note: '', at: null };
+      r.cont = !!o.nm && !o.loop;
+      MINI.show(this.label(), { toggle: () => this.toggle(), stop: () => this.stop() });
+      if (o.nm) { this.emit(); this.go(); return; }  // inside the tap: WeChat plays a recording only when it starts there
+      this.emit();
+      const tok = r.tok;
+      SV.have(o.texts, o).then(() => { if (this.r === r && r.tok === tok && r.state !== 'paused') this.go(); });
+    },
+    label() { const r = this.r; return r.state === 'waiting' ? `第 ${r.i + 1} 句准备中…` : (r.label ? r.label(r.i) : `第 ${r.i + 1} / ${r.texts.length} 句`); },
+    emit() { const r = this.r; if (!r) return; MINI.update(this.label()); if (r.onState) r.onState(r.state, r.i, r.note); },
+    claim() {  // the lock screen for a sentence-by-sentence reading (a recording names itself: NAR.name)
+      const r = this.r; if (!r || r.nm) return;
+      MS.claim('long', '语流 · ' + (r.title || '朗读'), { play: () => this.resume(), pause: () => this.pause(), stop: () => { this.stop(); MINI.hide(); },
+        previoustrack: () => this.step(-1), nexttrack: () => this.step(1) });
+      if (r.state === 'paused') MS.state('paused');
+    },
+    // inside LONG: what it plays is not "another sound"
+    own(f) { this.self = true; try { f(); } finally { this.self = false; } },
+    go() {
+      const r = this.r; if (!r) return;
+      const tok = ++r.tok, s = r.nm && r.nm.sentences[r.i];
+      if (r.cont) {
+        const from = r.at != null ? r.at : s.s; r.at = null; r.state = 'playing'; this.emit();
+        this.own(() => NAR.play(from, null, t => this.tick(t), () => { if (this.r === r && r.tok === tok) this.ended(); }));
+        return;
+      }
+      if (r.nm) {
+        r.state = 'playing'; this.emit();
+        this.own(() => NAR.play(s.s, s.e, t => { const [si, wc] = NAR.locate(t); if (si === r.i && r.onWord) r.onWord(si, wc); }, () => { if (this.r === r && r.tok === tok) this.after(); }));
+        return;
+      }
+      this.sentence(tok);
+    },
+    tick(t) {  // a recording straight through: which sentence, which word
+      const r = this.r; if (!r) return;
+      const [si, wc] = NAR.locate(t);
+      if (si >= 0 && si !== r.i) { r.i = si; this.emit(); this.save(); }
+      if (si >= 0 && r.onWord) r.onWord(si, wc);
+    },
+    ended() {  // the recording stopped by itself: the end, or a file that would not load (then where it was is kept)
+      const r = this.r, a = NAR.audio, last = r.nm.sentences[r.nm.sentences.length - 1];
+      if (a.ended || a.currentTime >= last.s) this.finish(); else this.stop();
+    },
+    async sentence(tok) {
+      const r = this.r, i = r.i, text = r.texts[i];
+      for (const k of [i + 1, i + 2]) if (k < r.texts.length && SV.on()) SV.url(r.texts[k], r).then(u => PRELOAD.warm(u), () => {});
+      let u = null, err = null;
+      if (SV.on()) {
+        const ready = SV.urls.has(SV.key(text, r));
+        const late = ready ? 0 : setTimeout(() => { if (this.r === r && r.tok === tok) { r.state = 'waiting'; r.note = `正在准备朗读第 ${i + 1} 句…`; this.emit(); } }, 400);
+        try { u = await SV.slow(SV.url(text, r)); } catch (e) { err = e; }
+        clearTimeout(late);
+        if (this.r !== r || r.tok !== tok) return;  // paused, stopped or moved on while it was being made
+      }
+      r.state = 'playing'; r.note = u ? '' : err ? SV.why(err) : SV.off ? SV.why({ code: SV.off }) : ''; this.emit();
+      const next = () => { if (this.r === r && r.tok === tok) this.after(); };
+      if (u) {
+        this.own(() => CLIP.play(u, 0, 1e6, text, next, null, { url: u, from: 0, to: Infinity, title: '语流 · ' + (r.title || '朗读'), cut: () => { if (this.r === r && r.tok === tok) this.held(); } }));
+        this.claim();
+      } else this.own(() => TTS.browser(text, next, c => { if (this.r === r && r.onWord) r.onWord(i, c); }));
+    },
+    after() {  // one sentence said: again (复读), or the next, after its pause
+      const r = this.r, rep = r.rep ? r.rep() : 1;
+      r.n += 1;
+      if (!(rep === 0 || r.n < rep)) {
+        r.n = 0; r.i += 1;
+        if (r.i >= r.texts.length) { this.finish(); return; }
+        this.save();
+      }
+      const g = r.gap ? r.gap(r.i) : 0, tok = r.tok;
+      if (g) r.timer = setTimeout(() => { if (this.r === r && r.tok === tok && r.state !== 'paused') this.go(); }, g); else this.go();
+    },
+    toggle() { if (!this.r) return; if (this.r.state === 'paused') this.resume(); else this.pause(); },
+    pause() {
+      const r = this.r; if (!r || r.state === 'paused') return;
+      if (r.cont && NAR.audio.dataset.want === '1') { r.at = NAR.audio.currentTime; NAR.audio.pause(); this.held(); return; }  // the listener calls held() too
+      if (r.nm && NAR.audio.dataset.want === '1') { NAR.audio.pause(); this.held(); return; }  // 复读 on a recording: that sentence waits at its second
+      r.tok++; clearTimeout(r.timer); this.own(() => { TTS.stop(); CLIP.stop(); });
+      this.held();
+    },
+    held() {  // paused (by the learner, a call, the lock screen, the page hidden, another sound): where it was is kept
+      const r = this.r; if (!r || r.state === 'paused') return;
+      if (r.cont && r.at == null && NAR.audio.dataset.want === '1') r.at = NAR.audio.currentTime;
+      if (!r.nm) { r.tok++; clearTimeout(r.timer); }
+      r.state = 'paused'; r.note = ''; MINI.paused(true); MS.state('paused'); this.save(); this.emit();
+    },
+    going() { const r = this.r; if (!r || r.state !== 'paused') return; r.state = 'playing'; r.at = null; MINI.paused(false); MS.state('playing'); this.emit(); },
+    resume() {
+      const r = this.r; if (!r || r.state !== 'paused') return;
+      if (r.nm && NAR.audio.dataset.want === '1') { this.going(); NAR.resume(); return; }  // still there, paused: on from that second
+      r.state = 'playing'; MINI.paused(false); this.go();
+    },
+    // another sound is about to start (a word looked up, a sentence tapped, the microphone): the text waits, paused
+    other() {
+      const r = this.r; if (!r || this.self || r.state === 'paused') return;
+      if (r.cont && NAR.audio.dataset.want === '1') r.at = NAR.audio.currentTime;
+      if (r.nm) r.tok++;  // the recording is taken over: 继续 plays it again from r.at
+      this.held();
+    },
+    step(d) {  // previous / next sentence (the lock screen)
+      const r = this.r; if (!r) return;
+      if (r.cont) { NAR.step(d); return; }
+      r.tok++; clearTimeout(r.timer); this.own(() => { TTS.stop(); CLIP.stop(); NAR.stop(); });
+      r.i = Math.max(0, Math.min(r.texts.length - 1, r.i + d)); r.n = 0; r.at = null; r.state = 'playing'; MINI.paused(false); this.go();
+    },
+    save() { const r = this.r; if (r && r.key) PROG.set(r.key, r.i); },
+    finish() {
+      const r = this.r; if (!r) return;
+      this.r = null; r.tok++; PROG.clear(r.key); MINI.hide(); MS.release('long');
+      if (r.onState) r.onState('idle', -1, '');
+      if (r.onDone) r.onDone();
+    },
+    // stop reading (✕, leaving the page, another text): where it was is kept
+    stop() {
+      const r = this.r; if (!r) return;
+      if (r.cont && NAR.audio.dataset.want === '1') { const [si] = NAR.locate(NAR.audio.currentTime); if (si >= 0) r.i = si; }
+      this.save(); this.r = null; r.tok++; clearTimeout(r.timer);
+      this.own(() => { TTS.stop(); CLIP.stop(); NAR.stop(); });
+      MINI.hide(); MS.release('long');
+      if (r.onState) r.onState('idle', -1, '');
+    },
   };
   /* ---------- offline: reviews done without a connection are queued and synced with the time they happened ---------- */
   const OUTBOX = {
