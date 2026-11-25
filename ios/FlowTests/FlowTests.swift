@@ -569,6 +569,12 @@ final class FeatureTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: dir.path), "switched off: nothing stays")
     }
 
+    @MainActor func testOnlyTheRecordingsOwnEndFinishesAWholeText() {
+        XCTAssertFalse(LongPlayer.atTheEnd(3.0, of: 96.4), "a sentence's end reported after 单句循环 was turned off: it goes on")
+        XCTAssertTrue(LongPlayer.atTheEnd(96.2, of: 96.4))
+        XCTAssertTrue(LongPlayer.atTheEnd(3.0, of: .nan), "length unknown: as before")
+    }
+
     @MainActor func testTheRateGoesToThePageAsItWritesIt() {
         XCTAssertEqual(LongPlayer.shown(0.8), 0.8, "not 0.800000011920929: the page's chips compare it with theirs")
         XCTAssertEqual(LongPlayer.shown(1.25), 1.25)
