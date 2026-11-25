@@ -2,6 +2,7 @@ import { describe, it, expect } from '@ohos/hypium';
 import { Planner, PlanInput, Slot } from '../main/ets/notify/Planner';
 import { Sentences, Span } from '../main/ets/audio/Sentences';
 import { Wav } from '../main/ets/rec/Wav';
+import { Ics } from '../main/ets/common/Ics';
 
 /** 2026-11-<day> <hour>:<minute> China time, as milliseconds. */
 function at(day: number, hour: number, minute: number = 0): number {
@@ -177,6 +178,32 @@ export default function plannerTest() {
       expect(v.getUint32(24, true)).assertEqual(16000);
       expect(v.getUint16(22, true)).assertEqual(1);
       expect(v.getUint32(40, true)).assertEqual(32000);
+    });
+  });
+
+  describe('Ics', () => {
+    it('the site\'s 加到手机日历 file: daily, UTC, folded lines', 0, () => {
+      const text = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT', 'UID:flow-vocab-20@flow', 'DTSTART:20261126T120000Z',
+        'DURATION:PT10M', 'RRULE:FREQ=DAILY', 'SUMMARY:语流：背单词（约 10 分钟）',
+        'DESCRIPTION:按遗忘曲线复习今天到期的单词：https://flowlang.cn/#/rev', ' iew',
+        'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:语流：该复习单词了', 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT',
+        'END:VCALENDAR'].join('\r\n');
+      const e = Ics.first(text);
+      expect(e !== null).assertTrue();
+      if (e) {
+        expect(e.start).assertEqual(Date.UTC(2026, 10, 26, 12, 0, 0));  // 20:00 China time
+        expect(e.end - e.start).assertEqual(10 * 60000);
+        expect(e.daily).assertTrue();
+        expect(e.title).assertEqual('语流：背单词（约 10 分钟）');
+        expect(e.description).assertEqual('按遗忘曲线复习今天到期的单词：https://flowlang.cn/#/review');
+      }
+    });
+
+    it('one time (这次什么时候复习), no repeat; nothing readable is null', 0, () => {
+      const e = Ics.first('BEGIN:VEVENT\nDTSTART:20261127T043000Z\nDURATION:PT1H30M\nSUMMARY:语流\\, 复习\nEND:VEVENT');
+      expect(e !== null && !e.daily && e.end - e.start === 90 * 60000 && e.title === '语流, 复习').assertTrue();
+      expect(Ics.first('BEGIN:VEVENT\nSUMMARY:x\nEND:VEVENT') === null).assertTrue();
+      expect(Ics.first('not a calendar') === null).assertTrue();
     });
   });
 }

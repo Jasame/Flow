@@ -19,6 +19,7 @@
 |---|---|
 | `audio` 整篇朗读 | AVPlayer 播放；AVSession 让锁屏和控制中心显示标题和「AI 朗读 · 第 n / N 句」，有播放、暂停、上一句、下一句；长时任务 AUDIO_PLAYBACK 让锁屏以后接着读。来电时暂停，系统说可以继续时接着放；拔耳机暂停 |
 | `rec` 录音 | AudioCapturer 录 16 kHz 单声道 WAV；超过 40 秒用 AVRecorder 录 m4a（AAC 16 kHz）。来电或切到后台时停下（cut），录到的部分还在 |
+| 「加到手机日历」 | 网页里的 `/api/next/vocab/reminder.ics` 链接由 App 接下来处理：拿到这份 .ics，解析出第一个日程（`common/Ics.ets`），再用 Calendar Kit 的 `editEvent` 打开系统日历的「新建日程」页，标题、时间、准时提醒、每天重复都已填好，学员点保存。不要日历权限，也不开浏览器（2026-11-26 模拟器实测）。**用户 2026-11-26 选定：鸿蒙版先只用邮件和日历提醒** |
 | `notify` 复习提醒 | **还没打开**（`has('notify')` 为 false），网页照浏览器的做法用邮件和「加到手机日历」。<br>原因：第三方 App 的后台代理提醒要华为按包名开通。开通之前 `publishReminder` 回 1700002，系统日志写 `ReminderControl … notification not allowed`，上限是 0（5.0.1 模拟器，2026-11-26 实测）。<br>代码已经写好（`notify/`：规则和 iOS、安卓一样，最多排 28 条），名额开通以后在 `Bridge.FEATURES` 里加回 `'notify'` |
 | `speech` | **不做**。鸿蒙的系统朗读是 Core Speech Kit，属于系统自带的 AI 能力，按规矩不接。服务器的句子做不出来时，朗读暂停（why = error），`fail` 交给网页说明原因，点继续再试 |
 

@@ -4,6 +4,7 @@ import { AppState } from '../common/AppState';
 import { Site } from '../common/Site';
 import { Permissions } from '../common/Permissions';
 import { Bridge } from '../bridge/Bridge';
+import { CalendarLink } from '../common/CalendarLink';
 
 /**
  * The app: the site in an ArkWeb web view (so every change to the site is in the app at once), with the native parts
@@ -78,6 +79,10 @@ struct Index {
         })
         .onLoadIntercept((event) => {
           const u = event.data.getRequestUrl();
+          if (CalendarLink.isLink(u)) {
+            CalendarLink.open(u);  // 「加到手机日历」: the system calendar's own new-event page
+            return true;
+          }
           if (Site.isOwn(u)) {
             return false;
           }
