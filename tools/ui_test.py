@@ -1458,6 +1458,20 @@ def ux_run(pw):
         check(dev, 'first visit: the start page, then 今日 for the level chosen; a link to a material opens it directly', start == '#/welcome' and today and pg.query_selector('#view .steps') is not None,
               (start, today))
         ctx.close()
+        # 语法混合 and 辨析练习 while answering (43-mix.js, body.reviewing): no tabs, the question and its four answers on one
+        # screen in the home-screen app, 375×667 and 390×844 (UI audit 2026-11-25: 17–133 px past it on the smallest iPhone)
+        for (w, h, t, b) in ((375, 667, 20, 0), (390, 844, 47, 34)):
+            ctx = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
+            ctx.add_init_script(HOME_INIT % json.dumps([t, b, 0]))
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a2']['token'], 'url': BASE}])
+            pg = ctx.new_page(); pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+            for page in ('#/mix', '#/mix/pair/tense-past,tense-perfect'):
+                go(pg, page); pg.wait_for_selector('#mixQ .ans', timeout=8000); pg.wait_for_timeout(500)
+                got = pg.evaluate("[document.scrollingElement.scrollHeight - innerHeight, getComputedStyle(document.querySelector('.tabs')).display]")
+                check(dev, f'{w}×{h} home-screen app {page}: no tabs while answering, the question and its answers on one screen', got[0] <= 1 and got[1] == 'none', got)
+            go(pg, '#/practice')
+            check(dev, f'{w}×{h}: the tabs come back on the next page', pg.evaluate("getComputedStyle(document.querySelector('.tabs')).display") != 'none')
+            ctx.close()
     finally:
         browser.close()
 
