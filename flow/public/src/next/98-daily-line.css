@@ -26,7 +26,7 @@
 .news-card .nc-title,.news-card .pill.amber{color:var(--amber-fill)}
 .nc-h{font-size:16.5px;line-height:1.45}
 .nc-p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.news-card .reasons{margin-top:0;justify-self:start}
+.news-card .nc-why{color:var(--green-ink);font-weight:600}  /* 和你的目标相关, in place of the topic: the card keeps its height */
 .nc-go{float:right;color:var(--green-ink);font-weight:600;font-size:13px}
 @media (min-width:760px){
   .line-card{padding:22px 24px}
