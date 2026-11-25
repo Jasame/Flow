@@ -2,8 +2,9 @@
   async function speakView() {
     const d = await api('/api/next/speak' + guestQuery(true));
     const LV = { A2: '入门', B1: '中级', B2: '中高级', C1: '高级' };
-    view.innerHTML = `<div class="stack"><div><span class="kicker">口语路线</span><h1 class="h1">开口说，从真实情景开始</h1>
-        ${aiMark('对话里的角色由 AI 扮演')}<p class="muted small">AI 扮演情景里的另一方：店员、房东、面试官……你用英文完成任务，可以说也可以打字。每说一句它会顺手纠正一处，并按你的回答放慢或加深一点；结束时告诉你哪里说得好、哪里要改。练过的情景过两周会回来：第 2 轮多一条要求，第 3 轮换角色。</p></div>
+    view.innerHTML = `<div class="stack"><div><h1 class="h1">口语路线</h1>
+        ${aiMark('对话里的角色由 AI 扮演')}<p class="muted small">AI 扮演店员、房东、面试官……你用英文完成任务，说或打字都行。</p>
+        <details class="basis"><summary>怎么练</summary><p class="small">每说一句，AI 会顺手纠正一处，并按你的回答放慢或加深一点；结束时告诉你哪里说得好、哪里要改。练过的情景过两周会回来：第 2 轮多一条要求，第 3 轮换角色。</p></details></div>
       ${d.next ? (n => `<a class="btn primary block" href="#/speak/${encodeURIComponent(d.next)}">下一个：${esc(n.title)}${n.rounds ? ` · 第 ${n.round} 轮` : ''}<span aria-hidden="true">→</span></a>`)(d.items.find(x => x.id === d.next)) : ''}
       <p class="small muted">${d.round_two ? `${d.total} 个情景都练过了，现在是复练：练过的情景会多一条要求，或者换角色再演一次。` : `已完成 ${d.done} / ${d.total} 个情景`}</p>
       <a class="card flat ielts-entry" href="#/speak/ielts" data-tap="speak-ielts"><span class="stack-xs"><b>雅思口语 · Part 1 和 Part 2</b>

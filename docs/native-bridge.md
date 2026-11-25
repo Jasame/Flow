@@ -151,6 +151,8 @@ window.__flowAppTransport = {
   - 点通知：复习打开 `#/review`，今天的学习打开 `#/`；App 没在运行也一样。退出登录以后不再提醒复习单词。
   - 账号还没同意「数据存放在香港」（`/api/next/vocab` 回 403，code `storage`：老账号回答之前、选了不同意而暂停的账号）：和网站一样什么提醒都不排，
     今天的学习那条也不排。学员设的钟点留着，同意以后下次拿到 `/api/next/vocab` 就自己排回来。
+    没同意当前版本《用户协议》的账号也一样：同样回 403 `storage`，另带字段 `need`（`'storage'` 或 `'terms'`，B6 #244）。协议或隐私说明改版以后会不定期出现，
+    App 不用分开处理。
   - App 自己也会拿 `/api/next/vocab` 重排（iOS、安卓用 WebView 的 cookie；桌面在页面里 fetch 再 sync）。
 
 ## 6. 系统媒体控制 `media`（桌面）
@@ -184,6 +186,10 @@ speaking、pending 照实；2.5 秒内一定发 start；getVoices() 有带 lang 
 ### iOS（语流 C1，`ios/`）
 
 - 注入：WKUserScript，document start，只在主框架；Bridge.swift 的几行传输加上共用的 `native/flowapp.js`（第 2 节）。
+- 主题色（网页 #282 的「我的 → 外观」）：另一段 WKUserScript（document end，主框架）看 `html[data-accent]`，变了就发 `app.accent`（只在 iOS 内部，
+  不在 FlowApp 上）；App 自己画的地方（对话框按钮、下拉刷新、出错页的按钮）跟着换成松绿或靛蓝，logo 和启动图不变。
+- 朗读：`items` 里已知的地址直接下载，`url: null` 的才问 `/api/next/tts`，问到的用 `audio-made` 告诉网页；退回系统声音时发 `fail {code, server}`
+  （没网 `offline`、超时 `slow`、别的网络错误 `net`、没登录 `guest`，其余用服务器的 code），不自己写原因。
 - 传输：`window.webkit.messageHandlers.flow.postMessage({cmd, args})`，WKScriptMessageHandlerWithReply 直接回 Promise；
   App → 网页：`evaluateJavaScript("FlowApp._emit(type, detail)")`。只认本站主框架（Bridge.swift 检查来源）。
 - WKAppBoundDomains 只有本站：服务工作线程、桥、cookie 只在本站有效。
@@ -204,6 +210,7 @@ Kotlin，minSdk 26，targetSdk 37；说明在 `android/README.md`。flavor `beta
   - App → 网页走同一个通道，发 `{ev, detail}`，flowapp-android.js 转给 `FlowApp._emit`（speech 的事件转给 speechSynthesis 那一段）。
   - 只认本站主框架（isMainFrame 加 origin 检查）。WebView 太旧、缺这两个功能时什么都不挂，网页照浏览器的做法。
 - **外壳**：
+  - 主题色：`assets/flowapp-android.js` 盯着 `<html data-accent>`，变了就发安卓自己的命令 `app.accent`（`{accent: 'green' | 'indigo'}`），App 自己画的对话框、提醒通知、进度条跟着变。网页不用做什么。
   - UA 末尾是 `FlowAndroid/<版本>`；返回键先发 `flowapp:back`（第 2 节）；别的网站、`mailto:`、`tel:` 交给系统打开；
   - 深色和浅色切换不重新加载；键盘弹出时整个 WebView 变矮，网页里 visualViewport 看不到键盘；
   - WebView 的使用统计和 Safe Browsing 关掉，不做云备份。

@@ -21,7 +21,7 @@ class PracticeHubTests(unittest.TestCase):
         known = set(re.findall(r"name === '([a-z]+)'", shell)) | {''}
         hub = (SRC / '49-practice.js').read_text(encoding='utf-8')
         tiles = re.findall(r"\['(#/[^']*)', '([^']+)'", hub)
-        self.assertGreaterEqual(len(tiles), 18)
+        self.assertGreaterEqual(len(tiles), 15)  # 简洁化: 今天的材料 (= 今日) and 看进步 (= 我的 → 进步) are no longer repeated here
         for href, title in tiles:
             self.assertIn(href[2:].split('/')[0], known, title)
         # r20: four tabs; the grammar map has no tab of its own and is the 语法 group's wide card in the hub

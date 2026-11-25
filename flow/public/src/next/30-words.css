@@ -54,12 +54,12 @@ details.basis[open]>summary{margin-bottom:0}
 .choice button{border:1.5px solid var(--line2);background:var(--paper);border-radius:14px;min-height:58px;padding:8px 4px;font-weight:700;font-size:16px;display:grid;gap:2px;transition:transform .12s,border-color .15s}
 .choice button:active{transform:scale(.97)}
 .choice button small{font-weight:500;color:var(--muted);font-size:11px}
-.choice .good{border-color:var(--green);color:var(--green-ink)}
+.choice .good{border-color:var(--ok);color:var(--ok-ink)}
 .choice .again{border-color:color-mix(in srgb,var(--red) 45%,var(--line2))}
 .icon-btn.big{width:64px;height:64px;border-radius:50%}.icon-btn.big svg{width:30px;height:30px}
 .spell{font:inherit;font-family:var(--serif);font-size:24px;text-align:center;padding:10px 14px;border:1.5px solid var(--line2);border-radius:12px;background:var(--paper);color:var(--ink);width:min(320px,100%);margin:0 auto}
 .spell:focus{outline:none;border-color:var(--green)}
-.review .ok{color:var(--green-ink);font-weight:700}.review .warn{color:var(--amber);font-weight:600}.review .bad{color:var(--red);font-weight:600}
+.review .ok{color:var(--ok-ink);font-weight:700}.review .warn{color:var(--amber);font-weight:600}.review .bad{color:var(--red);font-weight:600}
 .review s{opacity:.8}
 .huge{font-size:54px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
 .vt-bands{display:grid;gap:8px;text-align:left}
@@ -73,6 +73,23 @@ details.basis[open]>summary{margin-bottom:0}
 
 /* 「认识」换到右边了 (60-review.js, once for those who reviewed before 2026-11-26) */
 .know-tip{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;margin:0 auto 6px;max-width:440px;background:var(--sunk);border:1px solid var(--line);border-radius:12px;text-align:left}
+.know-tip .btn{white-space:nowrap;flex:none}  /* 知道了 on one line, not 知道 / 了 (语流 B8, 375 and 390) */
+/* the page's name for a screen reader (复习单词, 测词汇量), first in main: hidden, so it moves nothing below it */
+main>h1.sr-only+*{margin-top:0}
+/* 词汇辨析's round (45-confuse.js) on a phone: one screen like 复习 (body.reviewing: no tabs), 怎么区分 folded to a line
+   from the second question, the question at the bottom where the thumb is */
+.cf-how>summary{min-height:44px;display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none}
+.cf-how>summary::-webkit-details-marker{display:none}
+.cf-how>summary::after{content:'展开';margin-left:auto;font-size:13px;color:var(--muted)}
+.cf-how[open]>summary::after{content:'收起'}
+.cf-q{display:grid;gap:14px}
+@media (max-width:759px){
+  body.reviewing .mix.confuse{display:flex;flex-direction:column;flex:1 0 auto;gap:10px}
+  /* 「← 词汇辨析」 right above says where this is: the small 词汇辨析 over the title goes, room for a question that runs
+     longer on an iPhone SE (Safari, 674 of 667 px on main 880f237) */
+  body.reviewing .mix.confuse .kicker{display:none}
+  body.reviewing .mix.confuse>.cf-q{margin-top:auto}
+}
 /* 这次什么时候复习 on 今日's finished plan (10-welcome-today.js): a quiet link under the two buttons */
 .today-plan .tp-remind{justify-self:center}
 /* 复习提醒 in Flow's apps: 「已开启：在这台 iPhone 上到点用 App 通知提醒」 and its 关闭 / 通知设置 on one line; the words

@@ -3,7 +3,7 @@
 .cls-terms ul{list-style:none;margin:4px 0 0;padding:0;display:grid;gap:4px}
 .cls-terms li{padding-left:20px;position:relative;line-height:1.45}
 .cls-terms li::before{position:absolute;left:0;top:0;font-weight:700}
-.cls-terms li.yes::before{content:'✓';color:var(--green)}
+.cls-terms li.yes::before{content:'✓';color:var(--ok)}
 .cls-terms li.no::before{content:'✗';color:var(--red)}
 @media (max-width:420px){.cls-terms{grid-template-columns:minmax(0,1fr)}}
 .cls-found{display:flex;flex-direction:column;gap:2px;padding:12px 14px}

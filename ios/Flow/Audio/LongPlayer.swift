@@ -25,6 +25,7 @@ final class LongPlayer: NSObject {
         var alt: URL?
         var sentences: [Span] = []
         var texts: [String] = []
+        var urls: [String?] = []   // the page's known address per sentence (its SV address book, `items`), nil: ask the server
         var voice = "us-f"
         var pack: String?
         var csrf: String?
@@ -39,6 +40,8 @@ final class LongPlayer: NSObject {
         var straight: Bool { src != nil && !loop }
         /// ms of quiet after sentence i, each time it was said (复读's 「留时间跟说」: sized by the sentence just read)
         func gap(_ i: Int) -> Int { gaps.isEmpty ? 0 : max(0, gaps.count == 1 ? gaps[0] : (i < gaps.count ? gaps[i] : 0)) }
+        /// sentence i's address the page already had, if any
+        func known(_ i: Int) -> String? { i >= 0 && i < urls.count ? urls[i] : nil }
 
         init() {}
 
@@ -58,7 +61,15 @@ final class LongPlayer: NSObject {
                 if let d = x as? [String: Any], let s = Bridge.double(d["s"]), let e = Bridge.double(d["e"]) { return Span(s: s, e: e) }
                 return nil
             }
-            texts = ((o["texts"] as? [Any]) ?? []).compactMap { $0 as? String }
+            if let items = o["items"] as? [Any] {  // [{text, url}]: url what the page's address book has, null: not known
+                for x in items {
+                    guard let d = x as? [String: Any], let t = d["text"] as? String else { continue }
+                    texts.append(t)
+                    urls.append((d["url"] as? String).flatMap { Self.ownAddress($0, base: base) })
+                }
+            } else {
+                texts = ((o["texts"] as? [Any]) ?? []).compactMap { $0 as? String }  // the older form: no address known
+            }
             voice = (o["voice"] as? String) ?? "us-f"
             pack = o["pack"] as? String
             csrf = o["csrf"] as? String
@@ -71,6 +82,13 @@ final class LongPlayer: NSObject {
             if src != nil, sentences.isEmpty { return nil }  // a recording needs its sentence times
             if count == 0 { return nil }
         }
+
+        /// A sentence file on the site itself (/audio/…): another host's address is not fetched with the learner's cookies.
+        static func ownAddress(_ s: String, base: URL) -> String? {
+            if s.hasPrefix("/"), !s.hasPrefix("//") { return s }
+            guard let u = URL(string: s), u.host != nil, AppConfig.isOwn(u) || u.host?.lowercased() == base.host?.lowercased() else { return nil }
+            return s
+        }
     }
 
     private(set) var req: Request?
@@ -79,6 +97,7 @@ final class LongPlayer: NSObject {
     private(set) var lastWhy: Why = .user
     private var reps = 0
     private var note = ""
+    private var fail: [String: String]?  // this sentence is in the phone's own voice: why, for the page to say (§3 fail)
     private var token = 0              // moves on every pause / stop / step: late callbacks of an older start are dropped
     private var midSentence = false    // a sentence (or the recording) is under way: 继续 goes on from where it stopped
     private var resumeAfterInterruption = false
@@ -87,7 +106,7 @@ final class LongPlayer: NSObject {
     private var dead = false           // the recording failed for good: an AVPlayerItem that failed never plays again
     private var resumeAt: Double?      // where 继续 starts a recording that had to be loaded again (a new line, after a failure)
     private var seeking = 0            // seeks on their way: the time observer still reports the old second meanwhile
-    private var serverVoiceOff: String? // the server said no for this text (signed out, switched off): no more asking
+    private var serverVoiceOff: [String: String]?  // the server said no for this text (switched off, the day's share): no more asking
     private var player = AVPlayer()
     private var timeObserver: Any?
     private var statusWatch: NSKeyValueObservation?
@@ -107,6 +126,7 @@ final class LongPlayer: NSObject {
         tts = TTSFetcher(site: site)
         self.site = site
         super.init()
+        tts.resolved = { [weak self] text, voice, pack, url in self?.resolvedURL(text: text, voice: voice, pack: pack, url: url) }
         setUpPlayer()
         let nc = NotificationCenter.default
         nc.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { [weak self] note in
@@ -162,6 +182,7 @@ final class LongPlayer: NSObject {
         index = r.from
         reps = 0
         note = ""
+        fail = nil
         usedAlt = false
         altLoading = false
         dead = false
@@ -194,6 +215,7 @@ final class LongPlayer: NSObject {
         if why == .interrupted { resumeAfterInterruption = true } else if why != .other { resumeAfterInterruption = false }
         lastWhy = why
         note = ""
+        fail = nil
         set(.paused, why: why)
         save()
         releaseBackground()
@@ -308,6 +330,7 @@ final class LongPlayer: NSObject {
 
     func snapshot(why: String? = nil) -> [String: Any] {
         var o: [String: Any] = ["state": state.rawValue, "i": index, "note": note]
+        if let fail { o["fail"] = fail }
         if let r = req {
             o["key"] = r.key
             o["n"] = r.count
@@ -382,12 +405,13 @@ final class LongPlayer: NSObject {
         let i = index, text = r.texts[i]
         if let off = serverVoiceOff {
             midSentence = true
-            note = off
+            note = ""
+            fail = off
             set(.playing)
             speech.say(text, voice: r.voice, rate: r.rate, token: tok)
             return
         }
-        for k in [i + 1, i + 2] where k < r.texts.count { tts.prefetch(text: r.texts[k], voice: r.voice, pack: r.pack, csrf: r.csrf) }
+        for k in [i + 1, i + 2] where k < r.texts.count { tts.prefetch(text: r.texts[k], voice: r.voice, pack: r.pack, csrf: r.csrf, known: r.known(k)) }
         if !tts.ready(text: text, voice: r.voice, pack: r.pack) {
             noteTask = Task { [weak self] in
                 try? await Task.sleep(for: .milliseconds(400))
@@ -400,9 +424,9 @@ final class LongPlayer: NSObject {
         Task { [weak self] in
             guard let self else { return }
             var file: URL?
-            var why = ""
-            do { file = try await self.tts.file(text: text, voice: r.voice, pack: r.pack, csrf: r.csrf) } catch {
-                why = TTSFetcher.reason(error)
+            var why: [String: String]?
+            do { file = try await self.tts.file(text: text, voice: r.voice, pack: r.pack, csrf: r.csrf, known: r.known(i)) } catch {
+                why = TTSFetcher.failure(error)
                 if TTSFetcher.refused(error) { self.serverVoiceOff = why }
             }
             guard self.token == tok, self.req != nil, self.state != .paused else { return }
@@ -415,10 +439,12 @@ final class LongPlayer: NSObject {
                 self.player.replaceCurrentItem(with: item)
                 self.player.defaultRate = r.rate
                 self.note = ""
+                self.fail = nil
                 self.set(.playing)
                 self.player.play()
             } else {
-                self.note = why
+                self.note = ""
+                self.fail = why
                 self.set(.playing)
                 self.speech.say(text, voice: r.voice, rate: r.rate, token: tok)
             }
@@ -520,7 +546,8 @@ final class LongPlayer: NSObject {
             return
         }
         if r.src == nil, state == .playing || state == .waiting {  // a server-voice file that would not play: the iPhone's voice
-            note = "这句自然人声放不出来，先用 iPhone 自带的声音"
+            note = ""
+            fail = ["code": "other", "server": ""]  // a server-voice file the phone could not play
             midSentence = true
             set(.playing)
             speech.say(r.texts[index], voice: r.voice, rate: r.rate, token: token)
@@ -563,10 +590,23 @@ final class LongPlayer: NSObject {
         resumeAfterInterruption = false
         state = .idle
         note = ""
+        fail = nil
         NowPlaying.clear()
         releaseBackground()
         AudioSessionManager.shared.deactivate()
         if let why { emit?("audio", ["key": r.key, "state": "idle", "i": index, "n": r.count, "why": why.rawValue, "note": ""]) }
+    }
+
+    /// The server gave an address the page did not have: the page keeps it in its SV address book (§3 audio-made), so the
+    /// same sentence is not made twice and a browser on this phone finds it too.
+    private func resolvedURL(text: String, voice: String, pack: String?, url: String) {
+        guard var r = req, r.src == nil, r.voice == voice, r.pack == pack else { return }
+        if r.urls.count < r.texts.count { r.urls += Array(repeating: nil, count: r.texts.count - r.urls.count) }
+        for i in r.texts.indices where r.texts[i] == text && r.urls[i] == nil {
+            r.urls[i] = url
+            emit?("audio-made", ["key": r.key, "i": i, "url": url])
+        }
+        req = r
     }
 
     // MARK: the page, the lock screen, the progress kept
