@@ -212,3 +212,10 @@
   - #132 部署取文件清单：按提交编号 404 时改用构建标签再取（b34 被挡住的修复）（发版和构建）
 - 自检：DEPLOYED，装了 2 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45537709058
+
+### b38 · 2026-11-25 11:17
+- main `9a8a0d4`，构建 `ade39db`
+- 新合并的 PR（自 b37 起）：
+  - #133 总账：正式版 r29 和内测版 b25–b35（发版和构建）
+- 自检：DEPLOYED，装了 2 个文件（0 个新的）；轻量 e2e 147/148，没过：guard: 60 concurrent reads all 200 (0.8s)，服务器报错 1
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45538844045
