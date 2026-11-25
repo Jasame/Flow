@@ -49,5 +49,19 @@ class AigcLabelTests(unittest.TestCase):
         self.assertEqual(al.mp3(unsync + AUDIO, 'x'), unsync + AUDIO)
 
 
+    def test_a_label_that_fails_never_costs_the_reading(self):  # 语流 09's review of #180
+        import tts_service
+        from unittest.mock import patch
+        with patch.object(al, 'mp3', side_effect=ValueError('odd bytes')):
+            self.assertEqual(tts_service.labelled(LAME + AUDIO, 'a' * 32 + '.mp3'), LAME + AUDIO)
+        self.assertEqual(al.read(tts_service.labelled(LAME + AUDIO, 'b' * 32 + '.mp3'))['ProduceID'], 'flow-tts-' + 'b' * 32)
+
+    def test_extended_header_and_footer_are_left_alone(self):
+        ext = b'ID3\x03\x00\x40' + LAME[6:]
+        foot = b'ID3\x04\x00\x10' + LAME[6:]
+        self.assertEqual(al.mp3(ext + AUDIO, 'x'), ext + AUDIO)
+        self.assertEqual(al.mp3(foot + AUDIO, 'x'), foot + AUDIO)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -17,6 +17,7 @@ needs ReadWritePaths=<audio>/tts (a drop-in); without it every new sentence was 
 2026-11-24 23:40). Now the folder is checked before the gateway is called: not writable → StoreError, 503 code 'store'
 (the page switches to the browser voice), one log line, no charge.
 """
+import sys
 import aigc_label
 import datetime, hashlib, json, os, re, shutil, tempfile, threading, time, urllib.error, urllib.request
 from pathlib import Path
@@ -320,6 +321,16 @@ def _speak(text, voice):
             ai_routes.record('tts', model(), started, [], info={'usage': (len(text), 0, 0, 0), 'served': 'cosyvoice-v3-flash'}, exc=err)
 
 
+def labelled(data, name):
+    """The MP3 with its implicit AI label (隐式标识, an ID3 AIGC frame: 《标识办法》第五条). A label that cannot be written
+    never costs the reading: the file is kept as it came, and only the exception type is logged."""
+    try:
+        return aigc_label.mp3(data, 'flow-tts-' + name[:-4])
+    except Exception as exc:  # noqa: BLE001
+        print('tts: AIGC label not written (%s)' % type(exc).__name__, file=sys.stderr, flush=True)
+        return data
+
+
 def _store(f, data):
     f.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=f.parent, prefix='.' + f.name + '.')
@@ -376,7 +387,7 @@ def ensure(c, who, text, voice, cap_left=None, own=False):
         except (urllib.error.URLError, OSError, ValueError) as e:
             raise OSError(str(e)[:120])
         try:
-            _store(folder / name, aigc_label.mp3(data, 'flow-tts-' + name[:-4]))  # 隐式标识（AIGC，《标识办法》第五条）
+            _store(folder / name, labelled(data, name))
         except OSError as e:
             _warn(folder, e)
             raise StoreError('store')
