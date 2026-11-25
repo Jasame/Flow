@@ -1246,6 +1246,32 @@ def ux_run(pw):
         said = pg.evaluate('window.__said')
         check(dev, '复读: a sentence is said three times, with a stop button on screen meanwhile', len(said) == 3 and len(set(said)) == 1 and mini, (len(said), mini))
         pg.unroute('**/api/next/tts')
+        # 复读 on the path learners hear: the server voice. A 0.3 s silent WAV for the sentence (its own page with the service
+        # worker held off, so the test answers the file), each play() of it counted: three, and the stop button meanwhile
+        import io, wave
+        buf = io.BytesIO()
+        with wave.open(buf, 'wb') as w:
+            w.setnchannels(1); w.setsampwidth(2); w.setframerate(16000); w.writeframes(b'\0\0' * 4800)
+        short = buf.getvalue()
+        c2 = browser.new_context(**phone, service_workers='block')
+        c2.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a2']['token'], 'url': BASE}])
+        c2.add_init_script(FAKE_TTS)
+        c2.add_init_script("""(() => { window.__plays = []; const p = HTMLMediaElement.prototype.play;
+            HTMLMediaElement.prototype.play = function () { window.__plays.push(this.getAttribute('src') || ''); return p.apply(this, arguments); }; })()""")
+        p2 = c2.new_page()
+        p2.route('**/api/next/tts', lambda r: r.fulfill(json={'url': '/audio/tts/us-f/ux-short-0001.wav', 'made': False}))
+        p2.route('**/audio/tts/us-f/ux-short-0001.wav', lambda r: r.fulfill(status=200, content_type='audio/wav', body=short))
+        p2.goto(BASE + f'/#/m/{PID}/listen', wait_until='networkidle'); settle(p2, '#view .playset')
+        p2.evaluate("document.querySelector('#view .playset').open = true"); p2.wait_for_timeout(100)
+        p2.click('[data-rep="3"]'); p2.evaluate('window.__plays = []; window.__said = []')
+        p2.click('[data-say="0"]'); p2.wait_for_timeout(60)
+        mini2 = p2.is_visible('.mini-player')
+        p2.wait_for_function("window.__plays.filter(s => s.includes('ux-short')).length >= 3", timeout=8000)
+        p2.wait_for_timeout(900)  # a fourth would have started by now
+        got = p2.evaluate("({ plays: window.__plays.filter(s => s.includes('ux-short')).length, said: window.__said.length, mini: !!document.querySelector('.mini-player:not([hidden])') })")
+        check(dev, '复读 in the server voice: the sentence is played three times (each time it ends, the next), not the browser voice, a stop button meanwhile',
+              got['plays'] == 3 and got['said'] == 0 and mini2 and not got['mini'], {**got, 'mini_while': mini2})
+        c2.close()
         pg.reload(); settle(pg, '[data-rep]')
         check(dev, '复读: the choice is remembered', pg.get_attribute('[data-rep="3"]', 'aria-pressed') == 'true')
         pg.click('[data-rep="1"]')
