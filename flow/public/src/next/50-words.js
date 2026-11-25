@@ -63,6 +63,15 @@
   const APP_PLACES = { ios: ['这台 iPhone', 'iPhone 的「设置 → 语流 → 通知」'], android: ['这台手机', '手机的「设置 → 应用 → 语流 → 通知」'],
     windows: ['这台电脑', 'Windows 的「设置 → 系统 → 通知」'], macos: ['这台 Mac', 'Mac 的「系统设置 → 通知」'] };
   const appPlace = () => APP_PLACES[(window.FlowApp && FlowApp.platform) || 'ios'] || ['这台设备', '系统设置里的「通知」'];
+  const appOn = () => { try { return FlowApp.notify.permission() === 'granted'; } catch (e) { return false; } };
+  // the app's row on the plan page: off, a button to turn it on; on, said so, with 关闭 where the app can (Android: notify.off)
+  // or the system's settings where it opens them (notify.settings); neither (iOS, desktop): the system's settings say how
+  function appRowHTML() {
+    const [place] = appPlace(), at = `在${place}${/[A-Za-z]$/.test(place) ? ' ' : ''}上`;
+    if (!appOn()) return `<button class="btn small" type="button" id="rApp">到点用 App 通知提醒</button><span class="muted tiny" id="rAppNote">${at}，按上面的时间弹通知，不用邮箱</span>`;
+    return `<span class="small" id="rAppOn">已开启：${at}到点用 App 通知提醒</span>${typeof FlowApp.notify.off === 'function' ? '<button class="link small hit44" type="button" id="rAppOff">关闭</button>'
+      : typeof FlowApp.notify.settings === 'function' ? '<button class="link small hit44" type="button" id="rAppSet">通知设置</button>' : ''}`;
+  }
   async function remindOnce(after) {
     if (!S.user) return needLogin('登录后才能设复习提醒。');
     let r, forecast; try { const o = await api('/api/next/vocab'); r = o.reminder; forecast = o.forecast; } catch (e) { toast(e.message); return; }
@@ -220,7 +229,7 @@
     (c.examples || []).forEach(e => list.push(e));
     return list.length ? `<div class="exs">${list.map((e, k) => `<div class="ex"><button class="icon-btn" data-exp="${k}" aria-label="播放例句">${ICON.speak}</button>
       <div><div class="text">${open === false ? gapped(e.text, e.form || c.text, false) : gapped(e.text, e.form || c.text, true)}</div>${e.zh && open !== false ? `<div class="tiny muted">${esc(e.zh)}</div>` : ''}
-      ${e.pack ? `<a class="tiny muted link" href="#/m/${encodeURIComponent(e.pack)}/read">${e.mine ? esc(e.title) : '出自《' + esc(e.title) + '》'}${e.audio ? ' · 原文录音' : ''}</a>` : `<span class="tiny muted">${esc(e.title)}</span>`}</div></div>`).join('')}</div>` : '';
+      ${e.pack ? `<a class="tiny muted link" href="#/m/${encodeURIComponent(e.pack)}/read">${e.mine ? esc(e.title) : '出自《' + esc(e.title) + '》'}${e.audio ? ' · 原文录音' : ''}</a>` : e.ai ? aiTag() : `<span class="tiny muted">${esc(e.title)}</span>`}</div></div>`).join('')}</div>` : '';
   }
   function rootsHTML(c) {
     return c.roots && c.roots.length ? `<div class="roots">${c.roots.map(r => `<span class="root"><span class="k">${esc(r.kind)}</span> <b>${esc(r.part)}</b> ${esc(r.meaning)}</span>`).join('')}</div>` : '';
@@ -308,7 +317,7 @@
         <div class="row"><select id="rHour" aria-label="提醒时间">${Array.from({ length: 18 }, (_, k) => k + 6).map(h => `<option value="${h}" ${h === o.reminder.hour ? 'selected' : ''}>每天 ${h}:00</option>`).join('')}</select></div>
         <label class="checkline"><input type="checkbox" id="rMail" ${o.reminder.enabled ? 'checked' : ''} ${o.reminder.has_email ? '' : 'disabled'}><span>到点发邮件提醒（只在有词要复习时发）${o.reminder.has_email ? '' : '<br><span class="muted tiny">账号还没绑定邮箱：可以在<a class="link" href="#/me">「我的」</a>里绑定，或者先用下面的日历提醒。</span>'}</span></label>
         <div class="row"><a class="btn small" id="rCal" href="/api/next/vocab/reminder.ics?hour=${o.reminder.hour}">加到手机日历</a><span class="muted tiny">日历每天到点提醒，不依赖任何 App</span></div>
-        ${window.FlowApp && FlowApp.has && FlowApp.has('notify') ? `<div class="row"><button class="btn small" type="button" id="rApp">到点用 App 通知提醒</button><span class="muted tiny" id="rAppNote">在${appPlace()[0]}${/[A-Za-z]$/.test(appPlace()[0]) ? ' ' : ''}上，按上面的时间弹通知，不用邮箱</span></div>` : ''}
+        ${window.FlowApp && FlowApp.has && FlowApp.has('notify') ? `<div class="row" id="rAppRow">${appRowHTML()}</div>` : ''}
         <div class="row between" id="onceRow"><span class="small" id="onceNow">${o.reminder.once ? `下一次：${onceLabel(o.reminder.once)}（只管这一次）` : '哪天这个点没空，可以只改下一次的时间。'}</span><button class="btn small" type="button" id="onceBtn">这次什么时候复习</button></div></div>`;
     const meta = id => o.books.find(b => b.id === id) || {};
     // Days left: words not yet studied, minus the ones this plan skips (everyday words; for exam and data books, what the test showed you know).
@@ -366,12 +375,22 @@
     const rHour = document.getElementById('rHour'), rMail = document.getElementById('rMail'), rCal = document.getElementById('rCal');
     const saveRemind = async () => { rCal.href = '/api/next/vocab/reminder.ics?hour=' + rHour.value; try { appNotify({ ...(await api('/api/next/vocab/reminder', { enabled: rMail.checked, hour: Number(rHour.value) })), forecast: o.forecast }); toast(rMail.checked ? `每天 ${rHour.value}:00 会提醒你` : '提醒时间已更新'); } catch (x) { toast(x.message); rMail.checked = false; } };
     rHour.onchange = saveRemind; rMail.onchange = saveRemind;
-    const rApp = document.getElementById('rApp');
-    if (rApp) rApp.onclick = async () => {  // the app (iOS, Android, desktop): ask once for notifications, then schedule them from the reminder
-      let ok = false; try { ok = await Promise.resolve(FlowApp.notify.ask()); } catch (e) { ok = false; }
-      if (!ok) { toast(`通知没有打开：可以到${appPlace()[1]}里打开`); return; }
-      try { const v = await api('/api/next/vocab'); appNotify({ ...v.reminder, forecast: v.forecast }); toast(`好，每天 ${v.reminder.hour}:00 用 App 通知提醒你（有词要复习的日子）`); } catch (e) { toast(e.message); }
+    const bindApp = () => {  // the app (iOS, Android, desktop): ask once for notifications, then schedule them from the reminder
+      const row = document.getElementById('rAppRow'); if (!row) return;
+      const redo = () => { row.innerHTML = appRowHTML(); bindApp(); };
+      const on = document.getElementById('rApp');
+      if (on) on.onclick = async () => {
+        let ok = false; try { ok = await Promise.resolve(FlowApp.notify.ask()); } catch (e) { ok = false; }
+        if (!ok) { toast(`通知没有打开：可以到${appPlace()[1]}里打开`); return; }
+        try { const v = await api('/api/next/vocab'); appNotify({ ...v.reminder, forecast: v.forecast }); toast(`好，每天 ${v.reminder.hour}:00 用 App 通知提醒你（有词要复习的日子）`); } catch (e) { toast(e.message); }
+        redo();
+      };
+      const off = document.getElementById('rAppOff');
+      if (off) off.onclick = async () => { try { await Promise.resolve(FlowApp.notify.off()); toast('App 通知提醒关了；邮件和日历提醒照旧'); } catch (e) { toast(e.message || '没有关掉，再试一次'); } redo(); };
+      const set = document.getElementById('rAppSet');
+      if (set) set.onclick = () => { try { FlowApp.notify.settings(); } catch (e) { toast(`可以到${appPlace()[1]}里改`); } };
     };
+    bindApp();
     document.getElementById('onceBtn').onclick = () => remindOnce(x => { document.getElementById('onceNow').textContent = x.once ? `下一次：${onceLabel(x.once)}（只管这一次）` : '哪天这个点没空，可以只改下一次的时间。'; });
     document.getElementById('savePlan').onclick = async e => {
       const btn = e.currentTarget; btn.disabled = true;

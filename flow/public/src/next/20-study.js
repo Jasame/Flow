@@ -4,9 +4,22 @@
   const MAT = {}; // the material being studied: step changes reuse it instead of refetching and re-animating the header
   // Under the title: where the text comes from and how AI took part (r20). The writing rules of the originals, or the
   // sources of a news text, are one tap away.
+  // 「AI 生成」 (2026-11-25, 人工智能生成合成内容标识办法): every text Flow wrote with AI says so under its title, in the
+  // shared style (aiMark, 00-head.js). The user's words for a featured text: 「AI 生成，经规范检查」; 经人工审核 only on
+  // one the user has read themselves (reviewed_by_human). null: no mark, an article the learner imported is theirs (only
+  // its AI questions are marked); '': the mark alone, the older texts (简版) were written before the writing rules.
+  function aiNote(m) {
+    const o = m.origin || { kind: 'original' };
+    if (o.kind === 'import') return null;
+    if (o.kind === 'news') return 'AI 改写 · 未经人工审核';
+    return m.featured ? (o.reviewed_by_human ? '经规范检查 · 经人工审核' : '经规范检查') : '';
+  }
+  // 「经规范检查」 says what was checked: a tap opens that section of the guide (#/guide/ai-check)
+  function aiCheckLink(mark) { return `<a class="ai-link" href="#/guide/ai-check" data-tap="study-ai-check" aria-label="AI 生成，经规范检查：看规范检查查什么">${mark}</a>`; }
   function originHTML(m, extra = '') {  // extra: 存到手机 (06-offline.js), on the same line so the step below stays in view
     const o = m.origin || { kind: 'original', label: m.source, ai: '', reviewed: null, url: '', references: m.provenance || [] };
-    return `<div class="origin tiny"><span class="muted">来源：${o.url ? `<a class="link" href="${esc(o.url)}" target="_blank" rel="noopener noreferrer">${esc(o.label)}</a>` : esc(o.label)}</span>${o.ai ? `<span class="otag">${esc(o.ai)}</span>` : ''}${o.reviewed === false ? '<span class="otag warn">未经人工审核</span>' : ''}${o.kind === 'import' ? '' : `<button class="link tiny hit44" type="button" id="originMore" data-tap="study-origin">${o.references.length ? `${o.kind === 'news' ? '来源' : '参考资料'} ${o.references.length} 条` : '怎么写的'}</button>`}${extra}</div>`;
+    const note = aiNote(m);
+    return `${note === null ? '' : m.featured ? aiCheckLink(aiMark(note)) : aiMark(note)}<div class="origin tiny"><span class="muted">来源：${o.url ? `<a class="link" href="${esc(o.url)}" target="_blank" rel="noopener noreferrer">${esc(o.label)}</a>` : esc(o.label)}</span>${note === null && o.ai ? `<span class="otag">${esc(o.ai)}</span>` : ''}${note === null && o.reviewed === false ? '<span class="otag warn">未经人工审核</span>' : ''}${o.kind === 'import' ? '' : `<button class="link tiny hit44" type="button" id="originMore" data-tap="study-origin">${o.references.length ? `${o.kind === 'news' ? '来源' : '参考资料'} ${o.references.length} 条` : '怎么写的'}</button>`}${extra}</div>`;
   }
   function originSheet(m) {
     const o = m.origin, news = o.kind === 'news', topic = o.kind === 'topic';
@@ -15,7 +28,7 @@
         : news ? '<p class="small">今日热点是 AI 联网检索新闻后改写成的学习材料，<b>没有经过人工审核</b>。下面是它检索到的来源，事实以原文为准。</p>'
         : m.featured ? `<p class="small">精选材料由 Flow 编辑部按统一的写作规范原创${o.ai ? `（${esc(o.ai)}）` : ''}：</p>
           <ul class="small origin-rules"><li>不抄、不改写已有的文章、书籍和影视台词；</li><li>只写广为人知、稳定的常识，不写具体的统计数字、年份、价格和研究结论；</li><li>不写在世的真实人物，也不写时事新闻；</li><li>引用名句只用已进入公有领域的，并写明出处；</li><li>每道理解题的答案都要在原文里找得到依据，发布前由程序逐篇检查。</li></ul>`
-        : `<p class="small">这是 Flow 编辑部较早编写的练习材料${o.ai ? `（${esc(o.ai)}）` : ''}。</p>`}
+        : `<p class="small">这是 Flow 编辑部较早用 AI 编写的练习材料${o.ai ? `（${esc(o.ai)}）` : ''}，比精选短，没有中文导读和表达。</p>`}
       ${(o.quotes || []).length ? `<div class="stack-s"><b class="small">文中引用的名句</b>${o.quotes.map(q => `<span class="small">“${esc(q.text)}” · ${esc(q.author)}，${esc(q.work)}（${esc(String(q.year))}）</span>`).join('')}</div>` : ''}
       ${o.references.length ? `<div class="stack-s"><b class="small">${news ? '来源' : '核对事实用的参考资料'}</b>${o.references.map(r => `<a class="link small" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">${esc(r.title)}</a>`).join('')}</div>` : ''}
       <button class="btn ghost" data-close type="button">知道了</button></div>`);
