@@ -47,6 +47,11 @@
     swipe(know, other) { return this.side() === 'right' ? [know, other] : [other, know]; },
     // keys by place: 1 2 3 left to right, ← the leftmost, → the rightmost
     keys(acts) { const m = {}; acts.forEach((f, k) => { m[k + 1] = f; }); m.ArrowLeft = acts[0]; m.ArrowRight = acts[acts.length - 1]; return m; },
+    // 点卡片作答 (the owner, 2026-11-25): the card's left, middle and right thirds answer like the buttons below them, so
+    // 认识 is on its side too. On by default where a finger points; with a mouse a click into the card (to select a word)
+    // should not answer, so there it is off until chosen in 我的 → 设置.
+    tap() { try { const v = localStorage.getItem('flow-tap-zones'); return v ? v === '1' : matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } },
+    setTap(on) { try { localStorage.setItem('flow-tap-zones', on ? '1' : '0'); } catch (e) { /* private mode */ } },
   };
   // 这次什么时候复习 (a trial student, 2026-11-25: not everyone is free at the same hour every day): a time today or
   // tomorrow for the next reminder only (vocab_service.set_once), then every day at the usual hour again. Opened from the

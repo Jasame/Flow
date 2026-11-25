@@ -74,6 +74,13 @@ details.basis[open]>summary{margin-bottom:0}
 /* 「认识」换到右边了 (60-review.js, once for those who reviewed before 2026-11-26) */
 .know-tip{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;margin:0 auto 6px;max-width:440px;background:var(--sunk);border:1px solid var(--line);border-radius:12px;text-align:left}
 .know-tip .btn{white-space:nowrap;flex:none}  /* 知道了 on one line, not 知道 / 了 (语流 B8, 375 and 390) */
+/* 点卡片作答 (60-review.js tapZones): the first time, the card's three parts drawn over it, a tap puts it away */
+.zoned{position:relative}  /* the card the zones are on (tapZones), the guide drawn over it */
+.zone-guide{position:absolute;inset:0;z-index:3;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:1fr auto;border-radius:14px;overflow:hidden;
+  background:color-mix(in srgb,var(--bg) 82%,transparent);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);pointer-events:none}
+.zone-guide span{display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;color:var(--ink);border:2px dashed var(--line2);margin:6px;border-radius:12px}
+.zone-guide p{grid-column:1/-1;margin:0;padding:10px 14px 12px;font-size:14px;color:var(--ink2);text-align:center}
+.sheet-card .zones-h{font-size:16px;margin:10px 0 0}
 /* the page's name for a screen reader (复习单词, 测词汇量), first in main: hidden, so it moves nothing below it */
 main>h1.sr-only+*{margin-top:0}
 /* 词汇辨析's round (45-confuse.js) on a phone: one screen like 复习 (body.reviewing: no tabs), 怎么区分 folded to a line
