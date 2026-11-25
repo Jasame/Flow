@@ -266,11 +266,17 @@ def run_device(pw, dev, opts):
     n = pg.evaluate("() => document.querySelectorAll('.exam-part .gq').length")
     check(dev, 'exam: every question of the paper (as the server sizes it) in three parts with a clock',
           n == want and n >= 18 and pg.evaluate("() => document.querySelectorAll('.exam-part').length") == len(paper['parts']) == 3, (n, want))
+    marks = pg.evaluate("""() => ({ passages: [...document.querySelectorAll('.exam-part article h3')].map(h => !!h.querySelector('.ai-mark')),
+      grammar: [...document.querySelectorAll('.exam-part')].filter(s => s.querySelector('h2').textContent.startsWith('语法')).map(s => (s.querySelector('.ai-line') || {}).textContent || '') })""")
+    check(dev, 'exam: 「AI 生成」 by every passage; 语法 (the bank, original and AI-assisted) says 「题目和解析由 AI 辅助编写」',
+          marks['passages'] and all(marks['passages']) and len(marks['grammar']) == 1 and '题目和解析由 AI 辅助编写' in marks['grammar'][0], marks)
     for k in range(n):
         pg.click(f'.exam-part .gq >> nth={k} >> .ans >> nth=0')
     pg.click('#exDone'); pg.wait_for_timeout(900)
     res = pg.evaluate("() => ({h: (document.querySelector('#view h1') || {}).textContent || '', parts: document.querySelectorAll('.exam-score div').length})")
     check(dev, 'exam: handed in, scored by part', '题做对' in res['h'] and res['parts'] == 3, res)
+    missed = pg.evaluate("() => [...document.querySelectorAll('#view h2')].filter(h => h.textContent.startsWith('没认出')).map(h => !!h.querySelector('.ai-voice'))")
+    check(dev, 'exam: 没认出的词 (their sound is synthesized) says 「AI 朗读」 by its heading', missed in ([], [True]), missed)
 
     # ---- serial: six episodes in order, an episode names its place in the series
     go(pg, '#/series/lighthouse-ledger')
@@ -572,6 +578,7 @@ def run_device(pw, dev, opts):
     pg.click('[data-all="B2"]'); pg.wait_for_timeout(150); pg.click('[data-d="speaking"][data-l="B1"]'); pg.wait_for_timeout(150)
     pg.click('#gSave'); pg.wait_for_selector('.radar', timeout=8000); pg.wait_for_timeout(300)
     go(pg, '#/radar/test/reading')
+    check(dev, 'radar: the reading passage\'s title carries 「AI 生成」', pg.evaluate("!!document.querySelector('#view h2 .ai-mark')"))
     for _ in range(3):
         if not pg.query_selector('#aNext'):
             break
@@ -594,6 +601,7 @@ def run_device(pw, dev, opts):
         pg.wait_for_timeout(1500)
         got = pg.evaluate("() => ({ speaks: window.__rspeaks.slice(), btn: document.getElementById('aPlay').textContent, status: document.getElementById('aNote').getAttribute('role') })")
         pg.remove_listener('request', on_req)
+        check(dev, 'radar: the listening check says 「AI 朗读」 by its player (a synthesized voice, 《标识办法》)', pg.evaluate("!!document.querySelector('#view .ai-voice')"))
         check(dev, 'radar: listening without a recording is the server voice sentence by sentence, not the browser voice, a status line for the wait',
               len(asked) >= 2 and all(t and len(t) < 300 and not re.search(r'[.!?]\s+[A-Z]', t[:-1]) for t in asked) and not got['speaks'] and got['status'] == 'status', (asked[:3], got))
         pg.click('.mini-player .close'); pg.wait_for_timeout(300)
@@ -2318,6 +2326,8 @@ def sprint_run(pw):
         for page, n in (('#/exam/cet4/match', 10), ('#/exam/ielts/tfng', 7), ('#/exam/tem4/choice', 10), ('#/exam/ky/cloze', 10), ('#/exam/cet4/reading', None)):
             go(pg, page); pg.wait_for_selector('.xt-q', timeout=6000)
             n = n or pg.evaluate("document.querySelectorAll('.xt-q').length")  # 阅读一篇 (考试小练): as many as the passage has, 2–4
+            mark = pg.evaluate("({ line: (document.querySelector('.xt .ai-line') || {}).textContent || '', tag: !!document.querySelector('.xt .row .ai-mark') })")
+            check(dev, f'{page}: marked as AI-assisted (《标识办法》)', mark['tag'] if page.endswith('/reading') else '题目和解析由 AI 辅助编写' in mark['line'], mark)
             pg.evaluate("() => document.querySelectorAll('.xt-q').forEach(q => q.querySelector('.ans').click())")
             pg.click('#xtDone'); pg.wait_for_selector('.xt .pit', timeout=6000)
             got = pg.evaluate("document.querySelectorAll('.xt .pit').length")

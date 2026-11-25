@@ -37,7 +37,7 @@ READING_Q = 2
 BASE_MINUTES = 7  # 词汇 10 题 and 语法 8 题; the rest of an exam's suggested minutes is two passages' worth
 SKIP_COMMON = 300  # the most frequent words of every list ("about", "use"): knowing them says nothing about the exam
 PAPER_TTL = 2 * 86400
-NOTE = '按考试难度出的练习题，全部是原创内容，不是真题；分数只用来看自己的变化，不能换算成考试分数。'
+NOTE = '按考试难度出的练习题：原创题，由 AI 辅助编写，不是真题；分数只用来看自己的变化，不能换算成考试分数。'
 
 
 def schema(c):
