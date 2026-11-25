@@ -1,3 +1,3 @@
-3225817a11c2e5964bed2b4f6bfa6988ed7768fe 4c1547693b036943413187959e300a5bdbb14f2278aba398af9f7d48304b49c2 e2e light ref=build-d54477382162
-# b52 main: Merge pull request #191 from Jasame/native-flowapp = build of d54477382162
+adf57264a768fcb7d02f14de584edfc48aa5b42f c6144890ddb432a287681e9ea7979588f78e94b9cbf22f697c36d76be5cb3914 e2e light ref=build-aa8ea678623c
+# b53 main: Merge pull request #185 from Jasame/exam-ai-labels = build of aa8ea678623c
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
