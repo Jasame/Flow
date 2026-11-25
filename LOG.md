@@ -408,3 +408,10 @@
   - #193 CI：native/（App 共用的 FlowApp 包装）改动时跑 iOS、安卓 CI，跳过网站测试（发版和构建）
 - 自检：DEPLOYED，装了 11 个文件（3 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45577881449
+
+### b58 · 2026-11-25 16:52
+- main `67f4e04`，构建 `e821a08`
+- 新合并的 PR（自 b57 起）：
+  - #217 总账：香港开放 App 下载；工作约定：推之前的测试在 MSI 上跑（发版和构建）
+- 自检：DEPLOYED，装了 2 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45579910975
