@@ -1,3 +1,3 @@
-2d6c58e736c048e1118703d5abc64cf9dbe60f38 9ba203594b9b8c5aa32dc5f9ccade4b3fca47347acbf3cd95d8375632a0b7396 e2e ref=build-954d21308d04 tag=r34 tools=597561c34526117206a9ab50909c31f43f5c04458741bfe6feb69478d5de0d67
-# r34 hotfix-r34-ios: iPhones before iOS 16.4: no regex lookbehind, so next.js parses again = build of 954d21308d04
+201f00beccdc50f7fc648a8602f961a58ce9bd8c 70f69fdeecd646ec460a5feb09fba5160ddace8232b1bfb8a05ab5012def6ca1 e2e ref=build-c4eacde57bb1 tag=r35 tools=c8f8bc8e43fd5f240d1e4b9541d9e4edc8f88c917b5795e6ecafd8f51af4bfbb
+# r35 main: Merge pull request #335 from Jasame/ios-lock-listen = build of c4eacde57bb1
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
