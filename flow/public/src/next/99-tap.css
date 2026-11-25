@@ -19,12 +19,13 @@
    这里只是加点按区，不算这些组件的又一份布局（tests/test_front_layout.py 一个类名一个组件）。
    ::after 那条也用 :where()：不认 :where() 的旧浏览器两条一起不生效，免得扩展区没了 position 去盖住整张卡片。
    折叠标题那条单独写，它用 :has()，不认 :has() 的浏览器只丢这一条。
-   不包括正文里的链接（p、li 里的），也不包括折叠标题里面的东西。
+   不包括正文里的链接（p、li 里的），也不包括折叠标题和 label 里面的东西：label 自己就是点按区（比如勾选「我已阅读并同意」），
+   里面的链接再撑大，会占掉打勾的地方（B6 的用户协议勾选，2026-11-25）。
    折叠标题用 ::before：好几种折叠标题的 ::after 是右边的小箭头；.better 的 ::before 是「▸」，所以不算它。
    折叠标题里有按钮或链接时也不加，免得把里面的按钮盖住。 */
-:where(#view .btn.small,#view .chip,#view .icon-btn,#view .node-chip,#view .seg>button,#view .seg>a,#view .steps button,#view .wk.habit,#view a.ai-link,#view button.link,#view a.link:not(p *,li *,summary *),#sheet .btn.small,#sheet .chip,#sheet .icon-btn,#sheet .node-chip,#sheet .seg>button,#sheet .seg>a,#sheet .steps button,#sheet .wk.habit,#sheet a.ai-link,#sheet button.link,#sheet a.link:not(p *,li *,summary *),#view details:not(.better)>summary,#sheet details:not(.better)>summary){position:relative}
-:where(#view) .btn.small::after,:where(#view) .chip::after,:where(#view) .icon-btn::after,:where(#view) .node-chip::after,:where(#view) .seg>button::after,:where(#view) .seg>a::after,:where(#view) .steps button::after,:where(#view) .wk.habit::after,:where(#view) a.ai-link::after,:where(#view) button.link::after,:where(#view) a.link:not(p *,li *,summary *)::after,
-:where(#sheet) .btn.small::after,:where(#sheet) .chip::after,:where(#sheet) .icon-btn::after,:where(#sheet) .node-chip::after,:where(#sheet) .seg>button::after,:where(#sheet) .seg>a::after,:where(#sheet) .steps button::after,:where(#sheet) .wk.habit::after,:where(#sheet) a.ai-link::after,:where(#sheet) button.link::after,:where(#sheet) a.link:not(p *,li *,summary *)::after
+:where(#view .btn.small,#view .chip,#view .icon-btn,#view .node-chip,#view .seg>button,#view .seg>a,#view .steps button,#view .wk.habit,#view a.ai-link,#view button.link,#view a.link:not(p *,li *,summary *,label *),#sheet .btn.small,#sheet .chip,#sheet .icon-btn,#sheet .node-chip,#sheet .seg>button,#sheet .seg>a,#sheet .steps button,#sheet .wk.habit,#sheet a.ai-link,#sheet button.link,#sheet a.link:not(p *,li *,summary *,label *),#view details:not(.better)>summary,#sheet details:not(.better)>summary){position:relative}
+:where(#view) .btn.small::after,:where(#view) .chip::after,:where(#view) .icon-btn::after,:where(#view) .node-chip::after,:where(#view) .seg>button::after,:where(#view) .seg>a::after,:where(#view) .steps button::after,:where(#view) .wk.habit::after,:where(#view) a.ai-link::after,:where(#view) button.link::after,:where(#view) a.link:not(p *,li *,summary *,label *)::after,
+:where(#sheet) .btn.small::after,:where(#sheet) .chip::after,:where(#sheet) .icon-btn::after,:where(#sheet) .node-chip::after,:where(#sheet) .seg>button::after,:where(#sheet) .seg>a::after,:where(#sheet) .steps button::after,:where(#sheet) .wk.habit::after,:where(#sheet) a.ai-link::after,:where(#sheet) button.link::after,:where(#sheet) a.link:not(p *,li *,summary *,label *)::after
 {content:"";position:absolute;left:50%;top:50%;width:100%;height:100%;min-width:44px;min-height:44px;transform:translate(-50%,-50%)}
 :where(#view) details:not(.better)>summary:not(:has(a,button,input,select))::before,:where(#sheet) details:not(.better)>summary:not(:has(a,button,input,select))::before
 {content:"";position:absolute;left:50%;top:50%;width:100%;height:100%;min-width:44px;min-height:44px;transform:translate(-50%,-50%)}

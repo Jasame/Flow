@@ -1,4 +1,5 @@
-  function splitSentences(body) { return body.split(/(?<=[.!?]["”’]?)\s+/).map(s => s.trim()).filter(Boolean); }
+  // no lookbehind assertion here: Safari before iOS 16.4 cannot parse one, and then none of next.js runs (2026-11-25)
+  function splitSentences(body) { return body.replace(/([.!?]["”’]?)\s+/g, '$1\u0001').split('\u0001').map(s => s.trim()).filter(Boolean); }
   function findContext(term, ls) { const t = term.toLowerCase(); return ls.find(s => s.toLowerCase().includes(t)) || ''; }
 
   async function lookupSheet(word, sentence, pack, mine) {
