@@ -99,10 +99,13 @@
     return p.done ? `必做 ${p.total} 步 · 已完成 ${p.done} · 还要约 ${p.left_minutes} 分钟` : `必做 ${p.total} 步 · 约 ${p.must_minutes} 分钟`;
   }
   // A step of the plan as a row: its number (+ for 还有时间的话, 周 for 本周任务), what to do and about how long.
+  // 本周任务's row is .wtask, never .week: .week is the week-days bar (10-pages.css .week span = a 6 px grey bar), which
+  // turned the row's title block and its › into grey bars and pushed the subtitle out of the card (feedback, 2026-11-25).
+  // ui_test progress group checks the rows.
   function planRowHTML(s, num, isNext, a, tap) {
     const mins = s.minutes && !s.done ? `约 ${s.minutes} 分钟` : '';
     const sub = a ? [`${a.redo ? '精读重学 · ' : ''}今天这篇 · ${a.level} · ${a.theme_label}`, s.mode_label, mins] : [s.sub, mins];
-    return `<a class="prow${s.done ? ' done' : ''}${isNext ? ' next' : ''}${s.group === 'extra' ? ' extra' : s.group === 'week' ? ' week' : ''}" href="${esc(s.href)}"${tap ? ` data-tap="${tap}"` : ''}>
+    return `<a class="prow${s.done ? ' done' : ''}${isNext ? ' next' : ''}${s.group === 'extra' ? ' extra' : s.group === 'week' ? ' wtask' : ''}" href="${esc(s.href)}"${tap ? ` data-tap="${tap}"` : ''}>
       <span class="num">${s.done ? '✓' : num}</span><span class="t"><b>${esc(a ? a.title : s.title)}</b><span class="muted tiny">${esc(sub.filter(Boolean).join(' · '))}</span></span>
       <span class="go" aria-hidden="true">›</span></a>`;
   }

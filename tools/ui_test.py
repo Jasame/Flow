@@ -2679,6 +2679,28 @@ PLAN_JS = r"""() => {
 }"""
 
 
+# 今日's plan rows (必做, 还有时间的话, 本周任务), each as it is and once marked done: the title block keeps its height and no
+# fill, the subtitle stays inside the row, no grey bar anywhere in it (feedback 2026-11-25: 本周任务's row was .week, the
+# week-days bar's class, so its spans became 6 px grey bars and 「这周的一套做完了」 fell out of the card)
+PLAN_ROWS_JS = """() => { const bad = [], seen = [];
+  const fill = el => { const c = getComputedStyle(el).backgroundColor; return c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent'; };
+  const one = (r, state) => { const rr = r.getBoundingClientRect(), t = r.querySelector('.t'), b = r.querySelector('.t b'), sub = r.querySelector('.t .tiny');
+    const name = (b ? b.textContent : '').trim().slice(0, 10) + ' (' + state + ')'; seen.push(name);
+    if (!t || !b) { bad.push(name + ': no title'); return; }
+    const tr = t.getBoundingClientRect(), br = b.getBoundingClientRect();
+    if (tr.height < br.height - 1) bad.push(name + ': title block squashed to ' + Math.round(tr.height) + 'px');
+    if (br.top < rr.top - 1 || br.bottom > rr.bottom + 1) bad.push(name + ': title outside the row');
+    if (sub && sub.textContent.trim()) { const sr = sub.getBoundingClientRect(); if (sr.bottom > rr.bottom + 1 || sr.height < 8) bad.push(name + ': subtitle outside the row or squashed'); }
+    [...r.querySelectorAll('span, b, i')].filter(e => !e.classList.contains('num') && !e.closest('.num') && fill(e)).forEach(e => bad.push(name + ': a filled bar ' + e.className + ' ' + Math.round(e.getBoundingClientRect().width) + 'x' + Math.round(e.getBoundingClientRect().height)));
+    if (rr.height < 44) bad.push(name + ': row ' + Math.round(rr.height) + 'px tall'); };
+  const folds = [...document.querySelectorAll('#view .today-plan details:not([open])')]; folds.forEach(d => { d.open = true; });  // 还有时间的话 too
+  const rows = [...document.querySelectorAll('#view .today-plan .prow')];
+  rows.forEach(r => one(r, r.classList.contains('done') ? 'done' : 'to do'));
+  rows.filter(r => !r.classList.contains('done')).forEach(r => { r.classList.add('done'); one(r, 'marked done'); r.classList.remove('done'); });
+  folds.forEach(d => { d.open = false; });
+  return { bad, seen, week: document.querySelectorAll('#view .tp-week .prow').length }; }"""
+
+
 def progress_run(pw):
     dev = 'progress'
     browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
@@ -2705,6 +2727,14 @@ def progress_run(pw):
                       top['order'] == (['plan', 'lineCard', 'news', 'week'] if h < 500 else ['lineCard', 'news', 'plan', 'week']) and not top['clipped'] and top['wide'] <= 0 and (not touch or top['small'] == []), top)
                 nc = pg.text_content('#view .news-card') or ''
                 check(dev, f'{tag}: the card is 今日一读, marked AI 生成, never an old 今日热点', '今日一读' in nc and 'AI 生成' in nc and '旧热点' not in nc, nc[:80])
+                # the plan's rows, 本周任务 included (an exam learner has one): nothing squashed, filled or out of its row
+                ec = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=touch, has_touch=touch, device_scale_factor=2 if touch else 1,
+                                         color_scheme=theme, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+                ec.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['exam']['token'], 'url': BASE}])
+                ex = ec.new_page(); ex.goto(BASE + '/#/', wait_until='networkidle'); settle(ex); ex.wait_for_selector('#view .today-plan .prow', timeout=8000)
+                rows = ex.evaluate(PLAN_ROWS_JS)
+                check(dev, f'{tag}: 今日 plan rows, 本周任务 too, to do and done: title and subtitle inside the row, no grey bars', rows['week'] >= 1 and not rows['bad'], rows)
+                ec.close()
                 check(dev, f'{tag}: its four numbers are the learner\'s own (as the server counts them)', card and card['values'] == want, (card and card['values'], want))
                 path = home['path']; plan = pg.evaluate(PLAN_JS)
                 grp = {g: [x for x in path['steps'] if x.get('group', 'must') == g] for g in ('must', 'extra', 'week')}
