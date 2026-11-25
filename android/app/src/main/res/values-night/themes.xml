@@ -5,4 +5,13 @@
         <item name="android:colorAccent">@color/flow_green</item>
         <item name="android:windowLightStatusBar">false</item>
     </style>
+    <!-- the app's own dialogs in the page's 主题色 (Accent.dialog): 松绿 or 靛蓝 -->
+    <style name="Flow.Dialog.Green" parent="android:Theme.Material.Dialog.Alert">
+        <item name="android:colorAccent">@color/flow_green</item>
+        <item name="android:buttonBarButtonStyle">@style/Flow.DialogButton</item>
+    </style>
+    <style name="Flow.Dialog.Indigo" parent="android:Theme.Material.Dialog.Alert">
+        <item name="android:colorAccent">@color/flow_indigo</item>
+        <item name="android:buttonBarButtonStyle">@style/Flow.DialogButton</item>
+    </style>
 </resources>

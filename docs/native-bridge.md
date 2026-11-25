@@ -204,6 +204,7 @@ Kotlin，minSdk 26，targetSdk 37；说明在 `android/README.md`。flavor `beta
   - App → 网页走同一个通道，发 `{ev, detail}`，flowapp-android.js 转给 `FlowApp._emit`（speech 的事件转给 speechSynthesis 那一段）。
   - 只认本站主框架（isMainFrame 加 origin 检查）。WebView 太旧、缺这两个功能时什么都不挂，网页照浏览器的做法。
 - **外壳**：
+  - 主题色：`assets/flowapp-android.js` 盯着 `<html data-accent>`，变了就发安卓自己的命令 `app.accent`（`{accent: 'green' | 'indigo'}`），App 自己画的对话框、提醒通知、进度条跟着变。网页不用做什么。
   - UA 末尾是 `FlowAndroid/<版本>`；返回键先发 `flowapp:back`（第 2 节）；别的网站、`mailto:`、`tel:` 交给系统打开；
   - 深色和浅色切换不重新加载；键盘弹出时整个 WebView 变矮，网页里 visualViewport 看不到键盘；
   - WebView 的使用统计和 Safe Browsing 关掉，不做云备份。
