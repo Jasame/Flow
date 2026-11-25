@@ -120,7 +120,7 @@ SESSION_DAYS=30
 # the survey, sign-in and the account need, and the operations checks; every other /api/ path answers 404. Operator
 # functions live in the xmc.hk console (flow_admin.py, port FLOW_ADMIN_PORT), never on the learner site.
 OPEN_API={'GET':('/api/health','/api/version','/api/survey','/api/deploy-status','/api/session','/api/account','/api/next/'),
- 'POST':('/api/survey','/api/feedback','/api/next/','/api/recovery/','/api/login','/api/register','/api/auth/code','/api/auth/reset','/api/logout','/api/password','/api/account/')}
+ 'POST':('/api/survey','/api/feedback','/api/next/','/api/recovery/','/api/teacher/check','/api/login','/api/register','/api/auth/code','/api/auth/reset','/api/logout','/api/password','/api/account/')}
 def api_open(method,path):return any(path==p or (p.endswith('/') and path.startswith(p)) for p in OPEN_API[method])
 def session_cookie(token):
  return 'flow_session='+token+'; HttpOnly; SameSite=Lax; Path=/; Max-Age='+str(SESSION_DAYS*86400)+('; Secure' if SECURE else '')
@@ -184,7 +184,8 @@ def session_info(u):
  # email_bound: the page reminds an account without one that a forgotten password could not be reset by itself.
  # media: where audio can also be fetched when this server cannot answer (None unless R2 is in use).
  # age/guardian: 年龄段 and a guardian's agreement under 14 (privacy_service): an account without a band is asked once.
- return {'user':{**{k:u[k] for k in ('id','username','admin','csrf')},'email_bound':bool(u['email']),**__import__('privacy_service').info(u)} if u else None,'ai_enabled':ai_enabled(),'mail':account.configured(),'media':__import__('media').info(),'tts':__import__('tts_service').enabled()}
+ # teacher: a 老师账号 (teacher_service): its home is the teacher page, it makes classes and never joins one.
+ return {'user':{**{k:u[k] for k in ('id','username','admin','csrf')},'email_bound':bool(u['email']),'teacher':__import__('teacher_service').is_teacher(u),**__import__('privacy_service').info(u)} if u else None,'ai_enabled':ai_enabled(),'mail':account.configured(),'media':__import__('media').info(),'tts':__import__('tts_service').enabled()}
 def verify(p,stored): return hmac.compare_digest(password(p,stored.split(':')[0]),stored)
 def topics(c):
  out=[]
@@ -289,7 +290,7 @@ class Handler(BaseHTTPRequestHandler):
   token=jar['flow_session'].value if 'flow_session' in jar else ''
   now=time.time()
   # an account an operator stopped (xmc.hk console) has no session: its sessions are deleted and none is read
-  u=c.execute('SELECT users.id,username,admin,csrf,token,expires,email,age_band,guardian_ok FROM sessions JOIN users ON users.id=user_id WHERE token=? AND expires>? AND NOT COALESCE(users.disabled,0)',(token,now)).fetchone()
+  u=c.execute('SELECT users.id,username,admin,csrf,token,expires,email,age_band,guardian_ok,role FROM sessions JOIN users ON users.id=user_id WHERE token=? AND expires>? AND NOT COALESCE(users.disabled,0)',(token,now)).fetchone()
   # Sliding sessions: a learner who keeps coming back stays signed in; SESSION_DAYS after the last visit it ends.
   # At most one write a day per session; the cookie is renewed with the same answer (send()).
   if u and u['expires']<now+(SESSION_DAYS-1)*86400:
@@ -534,6 +535,13 @@ class Handler(BaseHTTPRequestHandler):
      except ValueError:pass
     result=account.public(c,path,data,password,ip)
     if result is not None:return self.send(*result)
+  if path=='/api/teacher/check':
+   # a 老师注册链接 before its sign-up form: wrong tokens from one address are paused (teacher_service)
+   ip=self.client_address[0]
+   if ip in ('127.0.0.1','::1'):
+    try:ip=str(ipaddress.ip_address(self.headers.get('X-Real-IP',ip)))
+    except ValueError:pass
+   with db() as c:return self.send(*__import__('teacher_service').check(c,data,ip))
   if path in ['/api/login','/api/register','/api/auth/code','/api/auth/reset']:
    # Rate-limit by directly connected address; loopback proxy intentionally shares a ceiling.
    key=self.client_address[0]
@@ -551,7 +559,7 @@ class Handler(BaseHTTPRequestHandler):
     if path=='/api/auth/code':return self.send(*auth_service.request(c,data,key))
     # 3.6: sign-up needs a verified email code; login accepts username/email + password or email + code.
     # r19: a forgotten password is reset with an emailed code, which also signs the learner in.
-    u,problem=auth_service.register(c,data,password) if path=='/api/register' else auth_service.reset(c,data,password) if path=='/api/auth/reset' else auth_service.login(c,data,verify)
+    u,problem=auth_service.register(c,data,password,key) if path=='/api/register' else auth_service.reset(c,data,password) if path=='/api/auth/reset' else auth_service.login(c,data,verify)
     if problem:return self.send(*problem)
     if 'disabled' in u.keys() and u['disabled']:return self.send({'error':'这个账号已停用。如有疑问，请联系语流。','code':'disabled'},403)
     token=secrets.token_urlsafe(32);csrf=secrets.token_urlsafe(24)

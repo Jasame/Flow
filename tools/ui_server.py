@@ -281,10 +281,29 @@ with app.db() as c:
     base.pop('cefr', None)
     c.execute("INSERT OR REPLACE INTO lab_packs VALUES(?,NULL,'daily',?,?)", ('daily-ui-sample', json.dumps(base, ensure_ascii=False), time.time()))
     c.commit()
-(STATE / 'sessions.json').write_text(json.dumps({'base': f'http://127.0.0.1:{PORT}', 'pid': PID, 'learners': out, 'class': {'id': cid, 'code': 'UICLS2', 'name': '高一（3）班'}}))
-
-
 from http.server import ThreadingHTTPServer  # noqa: E402
+import threading  # noqa: E402
+import flow_admin  # noqa: E402
+
+CONSOLE_FILES = {'/flow/': ('index.html', 'text/html'), '/flow/admin.js': ('admin.js', 'text/javascript'), '/flow/admin.css': ('admin.css', 'text/css')}
+
+
+class ConsolePage(flow_admin.AdminHandler):
+    """The xmc.hk console as nginx serves it: the page's files under /flow/ and its API under /flow/api/ (as 管理员:
+    FLOW_ADMIN_EMAILS is not set here). class_run makes a 老师注册链接 on it."""
+    def do_GET(self):
+        path = self.path.split('?')[0]
+        if path in CONSOLE_FILES or path == '/shared-ui.css':
+            name, mime = CONSOLE_FILES.get(path, (None, 'text/css'))
+            body = (ROOT.parent / 'xmc-admin' / name).read_bytes() if name else b''
+            return self._send(None, body=body, mime=mime + '; charset=utf-8')
+        return super().do_GET()
+
+
+console = ThreadingHTTPServer(('127.0.0.1', 0), ConsolePage)
+threading.Thread(target=console.serve_forever, daemon=True).start()
+(STATE / 'sessions.json').write_text(json.dumps({'base': f'http://127.0.0.1:{PORT}', 'pid': PID, 'learners': out, 'class': {'id': cid, 'code': 'UICLS2', 'name': '高一（3）班'},
+                                                 'console': f'http://127.0.0.1:{console.server_address[1]}/flow/', 'outbox': os.path.join(tmp, 'outbox')}))
 
 
 class Server(ThreadingHTTPServer):

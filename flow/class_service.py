@@ -185,7 +185,8 @@ def mine(c, uid):
     """GET /api/next/class: the class this learner is in (or None), and the classes they teach."""
     r = c.execute('SELECT k.*, m.joined_at FROM class_members m JOIN classes k ON k.id=m.class_id WHERE m.user_id=? AND m.left_at IS NULL', (uid,)).fetchone()
     member = {'name': r['name'], 'teacher': _username(c, r['teacher']), 'joined': _day(r['joined_at']), 'active': bool(r['active'])} if r else None
-    teaching = [{'id': k['id'], 'name': k['name'], 'active': bool(k['active'])} for k in
+    # ready: whether the class has MIN members (never how many fewer: with 2 or 3 the teacher could tell who joined)
+    teaching = [{'id': k['id'], 'name': k['name'], 'active': bool(k['active']), 'code': k['code'], 'ready': len(_members(c, k)) >= MIN} for k in
                 c.execute('SELECT * FROM classes WHERE teacher=? ORDER BY active DESC, created DESC', (uid,))]
     return {'member': member, 'teaching': teaching, 'min': MIN}, 200
 
@@ -238,7 +239,9 @@ def join(c, uid, data):
     if err:
         return err
     if k['teacher'] == uid:
-        return {'error': '你是这个班的老师，不用加入；在「我的 → 我的班级」里看全班汇总', 'field': 'code'}, 409
+        return {'error': '你是这个班的老师，不用加入；在首页「我的班级」里看全班汇总', 'field': 'code'}, 409
+    if __import__('teacher_service').is_teacher(c.execute('SELECT * FROM users WHERE id=?', (uid,)).fetchone()):
+        return {'error': '老师账号不能加入班级。想以学生身份体验，请另外注册一个学生账号', 'field': 'code'}, 409
     import privacy_service as pv  # the 年龄段 first (asked in the same sheet), and under 14 a guardian's agreement
     if data.get('age'):
         got = pv.set_age(c, uid, data)

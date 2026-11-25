@@ -97,26 +97,41 @@ def check(c,email,purpose,code):
  c.execute('UPDATE email_codes SET used=1 WHERE id=?',(row['id'],));c.commit()
  return None
 
-def register(c,data,hash_password):
+def register(c,data,hash_password,ip=''):
  """Returns (user_row, None) or (None, (body, status)).
  Without mail configured, sign-up stays username + password (as in 3.5) and any email is ignored,
- because an unverified address must not be bound to an account."""
+ because an unverified address must not be bound to an account.
+ data.teacher: the token of a 老师注册链接 (teacher_service): the account is a 老师账号, the link is used up, and no
+ 年龄段 is asked (a teacher is an adult: 18 岁及以上). Without it, every sign-up is a 学生账号."""
+ ts=__import__('teacher_service');link=None
+ if data.get('teacher'):
+  link,problem=ts.usable(c,data.get('teacher'),ip)
+  if problem:return None,problem
  name=str(data.get('username','')).strip();p=str(data.get('password',''));email=normalize(data.get('email'))
  if not USERNAME.fullmatch(name):return None,({'error':'用户名需 2–40 个字符，不能有空格、@ 和 < > " \' / \\','field':'username'},400)
  if not 10<=len(p)<=200:return None,({'error':'密码需 10–200 个字符','field':'password'},400)
  if c.execute('SELECT 1 FROM users WHERE username=?',(name,)).fetchone():return None,({'error':'这个用户名已被使用，换一个试试'},409)
- pv=__import__('privacy_service');problem=pv.check_signup(data)  # 年龄段; 不满 14 岁 needs the guardian ticked
+ pv=__import__('privacy_service');problem=None if link else pv.check_signup(data)  # 年龄段; 不满 14 岁 needs the guardian ticked
  if problem:return None,problem
+ taken=({'error':'这个老师注册链接刚刚被用掉了。需要的话，请联系语流重新发一个。','code':'teacher_link'},410)
  if not account.configured():
-  c.execute('INSERT INTO users(username,password,created) VALUES(?,?,?)',(name,hash_password(p),time.time()));c.commit()
-  u=c.execute('SELECT * FROM users WHERE username=?',(name,)).fetchone();pv.store(c,u['id'],data)
+  if link and not ts.claim(c,link['id']):return None,taken
+  c.execute('INSERT INTO users(username,password,created) VALUES(?,?,?)',(name,hash_password(p),time.time()))
+  u=c.execute('SELECT * FROM users WHERE username=?',(name,)).fetchone()
+  if link:ts.made(c,link['id'],u['id'])
+  c.commit()
+  if not link:pv.store(c,u['id'],data)
   return c.execute('SELECT * FROM users WHERE id=?',(u['id'],)).fetchone(),None
  if not email:return None,({'error':'请输入有效的邮箱地址'},400)
  if owner(c,email):return None,({'error':'这个邮箱已经注册，可以直接用验证码登录。','code':'email_taken'},409)
  problem=check(c,email,'register',data.get('code'))
  if problem:return None,({'error':problem,'field':'code'},400)
- c.execute('INSERT INTO users(username,password,email,created) VALUES(?,?,?,?)',(name,hash_password(p),email,time.time()));c.commit()
- u=c.execute('SELECT * FROM users WHERE username=?',(name,)).fetchone();pv.store(c,u['id'],data)
+ if link and not ts.claim(c,link['id']):return None,taken
+ c.execute('INSERT INTO users(username,password,email,created) VALUES(?,?,?,?)',(name,hash_password(p),email,time.time()))
+ u=c.execute('SELECT * FROM users WHERE username=?',(name,)).fetchone()
+ if link:ts.made(c,link['id'],u['id'])
+ c.commit()
+ if not link:pv.store(c,u['id'],data)
  return c.execute('SELECT * FROM users WHERE id=?',(u['id'],)).fetchone(),None
 
 def failed(c,key,row,now):

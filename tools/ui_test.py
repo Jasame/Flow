@@ -1720,6 +1720,38 @@ def class_run(pw):
         check(dev, '老师: the QR code reads back as the class\'s join link', read in (None, [BASE + '/#/invite/' + k['code']]),
               read if read is not None else 'no BarcodeDetector here (Linux): read on macOS')
         pg.screenshot(path=str(OUT / 'class-teacher.png'), full_page=True)
+        ctx.close()
+        # 老师模式: a 管理员 makes a 老师注册链接 on the console page (班级 → 老师注册链接), shown once and listed 未使用
+        ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN')
+        cp = ctx.new_page(); cp.on('pageerror', lambda e: errs.append('console: ' + str(e)))
+        cp.goto(CFG['console'] + '#classes', wait_until='networkidle'); cp.wait_for_selector('#tlF', timeout=8000)
+        cp.fill('#tlF [name=note]', 'UI 测试 王老师'); cp.fill('#tlF [name=days]', '3'); cp.click('#tlF button')
+        cp.wait_for_selector('#tlNew code', timeout=8000); cp.wait_for_selector('#tlList tbody tr', timeout=8000)
+        made, row = cp.text_content('#tlNew code') or '', cp.text_content('#tlList tbody tr') or ''
+        check(dev, '后台: 生成老师注册链接 shows the link once and lists it as 未使用', '/#/teacher/' in made and 'UI 测试 王老师' in row and '未使用' in row, (made[-20:], row[:60]))
+        cp.screenshot(path=str(OUT / 'class-console-link.png'), full_page=True)
+        # the link signs up a 老师账号 (no 年龄段); its home is its classes, and it makes one
+        pctx = browser.new_context(**phone)
+        pg = pctx.new_page(); pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.goto(BASE + '/#/teacher/' + made.rsplit('/#/teacher/', 1)[1], wait_until='networkidle')
+        pg.wait_for_selector('#authForm [name=username]', timeout=8000)
+        bar, ages = pg.evaluate('location.hash'), pg.locator('#authForm [name=age]').count()
+        check(dev, '老师注册链接: the sign-up opens, the token leaves the address bar, and no 年龄段 is asked', bar == '#/teacher' and ages == 0, (bar, ages))
+        pg.fill('#authForm [name=email]', 'ui-teacher-new@example.com'); pg.click('#authForm [data-send]'); pg.wait_for_timeout(800)
+        mail = sorted(Path(CFG['outbox']).glob('*.txt'), key=lambda f: f.stat().st_mtime)[-1].read_text(encoding='utf-8')
+        pg.fill('#authForm [name=code]', re.search(r'验证码：(\d{6})', mail).group(1))
+        pg.fill('#authForm [name=username]', 'ui-new-teacher'); pg.fill('#authForm [name=password]', 'correct horse 1')
+        pg.click('#authForm [type=submit]'); pg.wait_for_selector('#tNew', timeout=8000); settle(pg)
+        tab = pg.text_content('[data-nav="today"] span') or ''
+        check(dev, '老师账号: after signing up, the home is 我的班级 and the first tab says 班级', '我的班级' in (pg.text_content('h1') or '') and tab == '班级', tab)
+        pg.fill('#tNew [name=name]', '高二（5）班'); pg.click('#tNew [type=submit]'); pg.wait_for_selector('.cls-code', timeout=8000)
+        code = (pg.text_content('.cls-code') or '').strip()
+        check(dev, '老师账号: a new class opens on its page with a 6-character invite code', re.fullmatch(r'[A-Z2-9]{6}', code) is not None and pg.evaluate(wide), code)
+        pg.screenshot(path=str(OUT / 'class-new-teacher.png'), full_page=True)
+        cp.reload(wait_until='networkidle'); cp.wait_for_selector('#tlList tbody tr', timeout=8000)
+        row = cp.text_content('#tlList tbody tr') or ''
+        check(dev, '后台: the used link now says 已注册 and names the new teacher account', '已注册' in row and 'ui-new-teacher' in row, row[:80])
+        pctx.close()
         check(dev, 'no page errors', not errs, errs[:3])
     finally:
         browser.close()

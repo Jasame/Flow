@@ -102,7 +102,7 @@ def learners(c):
     import vocab_service as vs
     out = []
     import privacy_service as pv
-    for u in c.execute('SELECT id, username, email, admin, disabled, created, age_band, guardian_ok FROM users ORDER BY id DESC'):
+    for u in c.execute('SELECT id, username, email, admin, disabled, created, age_band, guardian_ok, role FROM users ORDER BY id DESC'):
         uid = u['id']
         days = act.get(uid, {})
         first = min(days) if days else None
@@ -114,7 +114,7 @@ def learners(c):
         plan = plans.get(uid)
         out.append({
             'id': uid, 'username': u['username'], 'email': auth_service.mask(u['email']) if u['email'] else '', 'has_email': bool(u['email']),
-            'staff': bool(u['admin']), 'disabled': bool(u['disabled']), 'joined': joined, 'joined_known': bool(u['created']),
+            'staff': bool(u['admin']), 'teacher': u['role'] == 'teacher', 'disabled': bool(u['disabled']), 'joined': joined, 'joined_known': bool(u['created']),
             'age': u['age_band'], 'age_label': pv.label(u['age_band']), 'guardian': bool(u['guardian_ok']),
             'level': p['level'] if p else None, 'goal': GOAL_LABEL.get(p['goal'], p['goal']) if p else None,
             'last_study': last_study.isoformat() if last_study else None, 'last_seen': last_seen,
@@ -133,6 +133,7 @@ FILTERS = {
     'lapsed': ('学过、超过 7 天没学', lambda r, td: r['days_total'] > 0 and not r['days_7d']),
     'never': ('注册了还没开始学', lambda r, td: not r['days_total']),
     'staff': ('员工账号', lambda r, td: r['staff']),
+    'teacher': ('老师账号', lambda r, td: r['teacher']),
     'disabled': ('已停用', lambda r, td: r['disabled']),
     'minor': ('未成年', lambda r, td: r['age'] in ('u14', '14-17')),
     'no_age': ('没填年龄段', lambda r, td: not r['age']),
@@ -166,7 +167,7 @@ def learner(c, uid):
     learner wrote."""
     import auth_service, vocab_service as vs, exam_service as ex, chat_service, feedback_service
     uid = int(uid)
-    u = c.execute('SELECT id, username, email, admin, disabled, created, age_band, guardian_ok FROM users WHERE id=?', (uid,)).fetchone()
+    u = c.execute('SELECT id, username, email, admin, disabled, created, age_band, guardian_ok, role FROM users WHERE id=?', (uid,)).fetchone()
     if not u:
         return None
     now, td = time.time(), today()
@@ -216,7 +217,7 @@ def learner(c, uid):
     seen = _session_seen(c).get(uid)
     return {
         'account': {'id': uid, 'username': u['username'], 'email': auth_service.mask(u['email']) if u['email'] else '', 'has_email': bool(u['email']),
-                    'staff': bool(u['admin']), 'disabled': bool(u['disabled']), 'joined': _joined(u, p['created'] if p else None, first),
+                    'staff': bool(u['admin']), 'teacher': u['role'] == 'teacher', 'disabled': bool(u['disabled']), 'joined': _joined(u, p['created'] if p else None, first),
                     'age': u['age_band'], 'age_label': __import__('privacy_service').label(u['age_band']), 'guardian': u['guardian_ok'],
                     'joined_known': bool(u['created']), 'sessions': sessions, 'last_open': seen,
                     'locked_until': lock['until'] if lock and lock['until'] > now else None},
@@ -249,7 +250,7 @@ def funnel(c, days=0):
     waiting = [0, 0]
     unknown = 0
     side = {'plan': 0, 'next_day': 0, 'next_day_of': 0}
-    for u in c.execute('SELECT id, created FROM users WHERE admin=0'):
+    for u in c.execute("SELECT id, created FROM users WHERE admin=0 AND COALESCE(role, '')<>'teacher'"):  # no 员工 or 老师账号
         uid = u['id']
         ds = act.get(uid, {})
         first = min(ds) if ds else None
@@ -289,7 +290,7 @@ def cohorts(c, weeks=12):
     """Learners by the week they first studied (Monday first): how many studied again in week 1, 2, 3 and 4 after."""
     td = today()
     act = activity(c)
-    staff = {r[0] for r in c.execute('SELECT id FROM users WHERE admin=1')}
+    staff = {r[0] for r in c.execute("SELECT id FROM users WHERE admin=1 OR role='teacher'")}  # 员工 and 老师账号 left out
     monday = td - datetime.timedelta(days=td.weekday())
     rows = {}
     for uid, ds in act.items():
@@ -355,7 +356,7 @@ def books(c):
     studied = {}
     for uid, norm in c.execute("SELECT user_id, norm FROM next_cards WHERE state!='new' OR known=1"):
         studied.setdefault(uid, set()).add(norm)
-    plans = c.execute('SELECT p.user_id, p.book, p.daily_new FROM next_vocab_plans p JOIN users u ON u.id=p.user_id WHERE u.admin=0').fetchall()
+    plans = c.execute("SELECT p.user_id, p.book, p.daily_new FROM next_vocab_plans p JOIN users u ON u.id=p.user_id WHERE u.admin=0 AND COALESCE(u.role, '')<>'teacher'").fetchall()
     per = {}
     for r in plans:
         size = len(sets.get(r['book'], ()))
