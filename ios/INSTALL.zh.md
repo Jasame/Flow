@@ -71,5 +71,5 @@ App 的标识会是 `cn.flowlang.app.beta.lx`：原来的 `cn.flowlang.app.beta`
 想给别的同学装、或者不想每 7 天重装一次的时候，就该办 Apple Developer Program 了：
 
 - 网址 developer.apple.com/programs，每年 99 美元（人民币按 Apple 当时的价格），**👉 你来办**：用你自己的 Apple ID 登录，个人身份要实名（中国大陆一般要身份证信息和人脸验证，用 Apple Developer App 办最顺）；以公司名义办需要邓白氏编码（D-U-N-S）。
-- 办好以后告诉我（语流 20），我把 TestFlight 的步骤接着做：先你自己内部测试，再开外部测试给试用同学。
+- 办好以后告诉我（语流 C1），我把 TestFlight 的步骤接着做：先你自己内部测试，再开外部测试给试用同学。
 - 以后要在 App Store 中国区上架，还要先做 App 备案（和网站的 ICP 备案主体一致），这个到时候再办。

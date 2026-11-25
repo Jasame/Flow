@@ -332,6 +332,20 @@ final class BridgeTests: XCTestCase {
         XCTAssertTrue(AppConfig.isOwnOrigin(host: "flow.jasa.hk", scheme: "https"))
         XCTAssertFalse(AppConfig.isOwnOrigin(host: "flow.jasa.hk", scheme: "http"))
         XCTAssertFalse(AppConfig.isOwnOrigin(host: "evil.example", scheme: "https"))
+        XCTAssertFalse(AppConfig.isOwn(URL(string: "http://flow.jasa.hk/#/")), "the site over http is not kept in the app")
+        XCTAssertFalse(AppConfig.isOwn(URL(string: "ftp://flow.jasa.hk/")))
+        XCTAssertFalse(AppConfig.isOwn(URL(string: "http://localhost:8771/#/")), "the local test server only when the app was started on it (FLOW_START_URL)")
+    }
+
+    @MainActor func testOnlyWebsitesMailAndPhoneLeaveTheApp() {
+        // security-threat-model.md L9: a link put into the page cannot start another app
+        for s in ["https://example.com/", "http://example.com/", "mailto:i@example.com", "tel:10086"] {
+            XCTAssertTrue(AppConfig.opensOutside(URL(string: s)), s)
+        }
+        for s in ["weixin://dl/scan", "alipays://platformapi/startapp", "itms-services://?action=download-manifest", "javascript:alert(1)", "file:///etc/hosts", "sms:10086"] {
+            XCTAssertFalse(AppConfig.opensOutside(URL(string: s)), s)
+        }
+        XCTAssertFalse(AppConfig.opensOutside(nil))
     }
 
     @MainActor func testTheScriptIsInTheApp() {
