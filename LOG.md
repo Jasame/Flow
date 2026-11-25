@@ -288,3 +288,12 @@
   - #157 撤回 #151（浏览器静音），由语流 15 的 #154 统一做（操作指南）
 - 自检：DEPLOYED，装了 2 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45550440215
+
+### b48 · 2026-11-25 13:24
+- main `cb72d6c`，构建 `d343412`
+- 新合并的 PR（自 b47 起）：
+  - #148 桌面版（Windows + macOS，Tauri 2）第一版（发版和构建）
+  - #161 安卓 App：原生外壳加原生朗读、录音和复习提醒（android/）（网站其他）
+  - #158 「AI 生成」标识组件：aiTag() / aiMark(note) 和统一样式（开局和考试、AI、发版和构建）
+- 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45553004599
