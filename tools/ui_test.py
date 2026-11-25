@@ -1490,6 +1490,19 @@ def ux_run(pw):
             'never': "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); };",
             'throws': "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); throw new Error('refused'); };",
             'no-end': "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); setTimeout(() => { u.onstart && u.onstart(); }, 30); };",
+            # 'speaking' for ever, no end (语流 B5's boundary probe, 2026-11-25): an iPad reports two words, then nothing;
+            # a voice that reports every word but never the end
+            'stuck': "let on = false; Object.defineProperty(speechSynthesis, 'speaking', { get: () => on, configurable: true }); speechSynthesis.cancel = () => { on = false; }; "
+                     "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); on = true; const ws = [...u.text.matchAll(/\\S+/g)]; "
+                     "setTimeout(() => { u.onstart && u.onstart(); }, 30); setTimeout(() => ws.slice(0, 2).forEach(w => u.onboundary && u.onboundary({ name: 'word', charIndex: w.index })), 400); };",
+            # voices there, but this sentence never started (an iPad offline, 语流 B5): no 「换 Safari 或 Chrome」, only why at the sentence
+            'never-voices': "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); }; "
+                            "speechSynthesis.getVoices = () => [{ name: 'Amélie', lang: 'fr-CA', voiceURI: 'Amélie' }]; window.__toasts = []; "  # a voice list, none the page assigns (a plain object as u.voice would throw)
+                            "document.addEventListener('DOMContentLoaded', () => new MutationObserver(() => { const t = document.querySelector('.toast'); "
+                            "if (t && t.textContent) window.__toasts.push(t.textContent); }).observe(document.body, { subtree: true, childList: true, characterData: true }));",
+            'all-words': "let on = false; Object.defineProperty(speechSynthesis, 'speaking', { get: () => on, configurable: true }); speechSynthesis.cancel = () => { on = false; }; "
+                         "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); on = true; const ws = [...u.text.matchAll(/\\S+/g)]; "
+                         "setTimeout(() => { u.onstart && u.onstart(); }, 30); ws.forEach((w, k) => setTimeout(() => u.onboundary && u.onboundary({ name: 'word', charIndex: w.index }), 60 + k * 40)); };",
         }
         seen = {}
         for kind, js in drops.items():
@@ -1501,8 +1514,8 @@ def ux_run(pw):
             p3.route('**/api/next/tts/have', lambda r: r.fulfill(status=503, json={'error': '服务器朗读没有开启', 'code': 'off'}))
             p3.goto(BASE + f'/#/m/{PID}/listen', wait_until='networkidle'); settle(p3, '#playAll')
             p3.evaluate("localStorage.removeItem('flow-progress')")
-            p3.click('#playAll'); p3.wait_for_timeout(3400 if kind == 'never' else 1500)
-            seen[kind] = p3.evaluate("""() => ({ said: window.__said.slice(), n: document.querySelectorAll('#view .line').length,
+            p3.click('#playAll'); p3.wait_for_timeout({'never': 3400, 'never-voices': 3400, 'stuck': 4200, 'all-words': 5200}.get(kind, 1500))
+            seen[kind] = p3.evaluate("""() => ({ said: window.__said.slice(), n: document.querySelectorAll('#view .line').length, toasts: (window.__toasts || []).join(' | '),
                 btn: document.querySelector('#playAll').textContent.trim(), now: (document.querySelector('#view .line.now') || {dataset: {}}).dataset.i,
                 note: (document.querySelector('#lsPrep') || {}).textContent || '', mini: (document.querySelector('.mini-player:not([hidden]) .lbl') || {}).textContent || '' })""")
             c3.close()
@@ -1555,7 +1568,14 @@ def ux_run(pw):
         check(dev, '播放全文 right after opening an article: the fresher 今日 coming in does not stop the reading',
               kept['btn'] == '暂停' and kept['mini'] and kept['said'] >= 2, kept)
         c5.close()
-        o, al, nv, th, ne = seen['once'], seen['always'], seen['never'], seen['throws'], seen['no-end']
+        o, al, nv, th, ne, sk, aw = seen['once'], seen['always'], seen['never'], seen['throws'], seen['no-end'], seen['stuck'], seen['all-words']
+        nvv = seen['never-voices']
+        check(dev, 'browser voice with voices but not starting (an iPad offline): the text waits at that sentence saying why, and never says 「换 Safari 或 Chrome」',
+              nvv['btn'] == '继续' and nvv['now'] == '0' and '没有读出' in nvv['note'] and '换 Safari' not in nvv['toasts'], nvv)
+        check(dev, 'browser voice stuck part-way (an iPad: two words, then "speaking" for ever): within seconds the text waits at that sentence and says why',
+              len(sk['said']) == 1 and sk['btn'] == '继续' and sk['now'] == '0' and '没有读出' in sk['note'], sk)
+        check(dev, 'browser voice saying every word but never the end: the sentence counts as said and the text reads on',
+              len(aw['said']) >= 2 and aw['said'][0] != aw['said'][1] and '没有读出' not in aw['note'], {k: aw[k] for k in ('btn', 'now', 'note')} | {'said': len(aw['said'])})
         check(dev, 'browser voice dropped once (iOS): that sentence is said again and the text reads on to its end',
               len(o['said']) == o['n'] + 1 and o['said'][0] == o['said'][1] and o['btn'] == '播放全文', {k: o[k] for k in ('n', 'btn', 'now')} | {'said': len(o['said'])})
         check(dev, 'browser voice dropped every time: tried twice, then the text waits paused at that sentence and says why (not "read")',
@@ -2470,16 +2490,23 @@ def a11y_run(pw):
     browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv)
     try:
         found = {}
-        for theme in ('light', 'dark'):
+        me = CFG['learners']['a11y']
+        # 主题色 (07-accent.js): every page in both accents, light and dark; the accent is kept with the account, so it is set there
+        for accent, theme in (('green', 'light'), ('green', 'dark'), ('indigo', 'light'), ('indigo', 'dark')):
             ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', color_scheme=theme, bypass_csp=True)
-            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a11y']['token'], 'url': BASE}])
+            ctx.add_cookies([{'name': 'flow_session', 'value': me['token'], 'url': BASE}])
+            ctx.request.post(BASE + '/api/next/accent', data={'accent': accent}, headers={'X-CSRF-Token': me['csrf']})
             pg = ctx.new_page(); pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
+            if accent != 'green':
+                check(dev, f'主题色: {accent} is drawn ({theme})', pg.evaluate("document.documentElement.dataset.accent") == accent, pg.evaluate("document.documentElement.dataset.accent"))
             for p in PAGES:
                 go(pg, p); pg.wait_for_timeout(250)
                 for kind, items in pg.evaluate(A11Y_JS).items():
                     for x in items:
-                        found.setdefault((kind, theme), []).append(f'{p}: {x if isinstance(x, str) else json.dumps(x, ensure_ascii=False)}')
-            if theme == 'light':
+                        found.setdefault((kind, theme, accent), []).append(f'{p}: {x if isinstance(x, str) else json.dumps(x, ensure_ascii=False)}')
+            if accent != 'green':
+                ctx.request.post(BASE + '/api/next/accent', data={'accent': 'green'}, headers={'X-CSRF-Token': me['csrf']})
+            if theme == 'light' and accent == 'green':
                 # a sheet is a dialog with a title, and the focus goes into it
                 go(pg, '#/me'); pg.click('#meText')
                 # openSheet moves the focus in 30 ms after drawing it (02-shell.js): wait for that, up to 2 s, instead of a
@@ -2510,8 +2537,9 @@ def a11y_run(pw):
                             ('unlabeled', 'every field has a label (not only a placeholder)'), ('dupid', 'no id is used twice on a page'),
                             ('contrast', 'text contrast meets WCAG AA'), ('lang', 'English is marked lang="en", so it is read with an English voice')):
             for theme in ('light', 'dark'):
-                bad = found.get((kind, theme), [])
-                check(dev, f'{label} ({theme})', not bad, f'{len(bad)}: ' + ' | '.join(bad[:4]))
+                for accent in (('green', 'indigo') if kind == 'contrast' else ('green',)):  # only the colours change with the accent
+                    bad = found.get((kind, theme, accent), [])
+                    check(dev, f'{label} ({theme}{"" if accent == "green" else ", 主题色 " + accent})', not bad, f'{len(bad)}: ' + ' | '.join(bad[:4]))
     finally:
         browser.close()
 
@@ -3176,6 +3204,73 @@ def review_side_run(pw):
             check(dev, f'iOS app at {w}px: 关闭 stays beside 「已开启：在这台 iPhone 上…」, not on a line of its own',
                   box['offTop'] < box['textBottom'] and box['offBottom'] > box['textTop'] and box['offLeft'] >= box['textRight'] and box['offRight'] <= box['vw'], box)
             ctx.close()
+        # 语流 B8's audit: 知道了 on one line on a phone; 复习 and 测词汇量 name themselves to a screen reader (a hidden h1);
+        # 词汇辨析's round is one screen like 复习, 怎么区分 folded from the second question; a word page with no words yet
+        # shows how to start, not counts of 0, a search box and filters
+        for w in (375, 390):
+            ctx = browser.new_context(viewport={'width': w, 'height': 667 if w == 375 else 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
+            pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+            pg.goto(BASE + '/#/cards', wait_until='load'); settle(pg)
+            pg.evaluate("localStorage.setItem('flow-next-review-cache', JSON.stringify({at: Date.now(), q: {items: []}})); localStorage.removeItem('flow-know-tip')")
+            go(pg, '#/review'); pg.wait_for_selector('#knowTipOk', timeout=8000)
+            ok = pg.evaluate("(() => { const b = document.getElementById('knowTipOk'), g = document.createRange(); g.selectNodeContents(b); return { lines: new Set([...g.getClientRects()].map(x => Math.round(x.top))).size, h: Math.round(b.getBoundingClientRect().height), text: b.textContent }; })()")
+            check(dev, f'{w}px: 知道了 on one line, not 知道 / 了', ok['lines'] <= 1, ok)
+            h1 = pg.evaluate("[...document.querySelectorAll('main h1')].map(h => h.textContent)")
+            go(pg, '#/vocab/test'); pg.wait_for_selector('.vtest [data-a]', timeout=8000)
+            h1t = pg.evaluate("[...document.querySelectorAll('main h1')].map(h => h.textContent)")
+            if w == 375:
+                check(dev, '复习 and 测词汇量 have a heading for a screen reader: 复习单词, 测词汇量', h1 == ['复习单词'] and h1t == ['测词汇量'], [h1, h1t])
+            ctx.close()
+        ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        pg.goto(BASE + '/#/words/confuse', wait_until='load'); settle(pg)
+        grp = pg.evaluate("(() => { const a = document.querySelector('#view a.btn[href^=\"#/words/confuse/\"]'); return a ? a.getAttribute('href') : null; })()")
+        if grp:
+            go(pg, grp); pg.wait_for_selector('#mixQ .ans', timeout=8000); pg.wait_for_timeout(300)
+            cf = lambda: pg.evaluate("({ page: document.scrollingElement.scrollHeight, H: innerHeight, tabs: !!document.querySelector('.tabs') && getComputedStyle(document.querySelector('.tabs')).display !== 'none', how: document.getElementById('cfHow').open, last: Math.round(Math.max(...[...document.querySelectorAll('#mixQ .ans')].map(b => b.getBoundingClientRect().bottom))) })")
+            a1 = cf()
+            pg.click('#mixQ .ans'); pg.wait_for_selector('#mixNext', timeout=4000); pg.click('#mixNext'); pg.wait_for_selector('#mixQ .ans:not([disabled])', timeout=4000); pg.wait_for_timeout(300)
+            a2 = cf()
+            check(dev, '词汇辨析 on a phone: no tabs while answering, 怎么区分 open for the first question and folded from the second',
+                  not a1['tabs'] and a1['how'] and not a2['how'], [a1, a2])
+            check(dev, '词汇辨析 at 375×667 from the second question: one screen, the last answer on it', a2['page'] <= a2['H'] and a2['last'] <= a2['H'], a2)
+            pg.click('#cfHow summary'); pg.wait_for_timeout(150)
+            check(dev, '词汇辨析: a tap on 怎么区分 opens it again', pg.evaluate("document.getElementById('cfHow').open"), None)
+        else:
+            check(dev, '词汇辨析: a group to practise', False, 'no group on #/words/confuse')
+        check(dev, 'no script errors (B8 audit pages)', not errs, errs[:3])
+        ctx.close()
+        ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['nowords']['token'], 'url': BASE}])
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        pg.goto(BASE + '/#/cards', wait_until='load'); settle(pg)
+        e = pg.evaluate("({ start: !!document.querySelector('#view a[href=\"#/vocab/plan\"].btn'), stats: !!document.getElementById('vStats'), search: !!document.getElementById('sf'), chips: !!document.querySelector('#view [data-f]'), count: /共 0 个/.test(document.getElementById('view').textContent) })")
+        check(dev, 'no words yet: the word page shows how to start, without counts of 0, the search box or the filters',
+              e['start'] and not e['stats'] and not e['search'] and not e['chips'] and not e['count'], e)
+        check(dev, 'no script errors (no words yet)', not errs, errs[:3])
+        ctx.close()
+        # a search that finds nothing says what was searched and offers a way out (语流 B9): 清除搜索, and with a filter on, 在全部里找
+        ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        pg.goto(BASE + '/#/cards', wait_until='load'); settle(pg)
+        n0 = pg.evaluate("document.querySelectorAll('#listSlot [data-card]').length")
+        pg.fill('#sf input', 'zzqx'); pg.press('#sf input', 'Enter'); pg.wait_for_selector('#sfClear', timeout=5000)
+        msg = pg.text_content('#listSlot .empty p')
+        pg.click('#sfClear'); pg.wait_for_selector('#listSlot [data-card]', timeout=5000)
+        back = [pg.input_value('#sf input'), pg.evaluate("document.querySelectorAll('#listSlot [data-card]').length")]
+        check(dev, '单词 search with no result: 没找到「zzqx」 and 清除搜索 brings the whole list back', '没找到「zzqx」' in msg and back == ['', n0] and n0 > 0, [msg, back, n0])
+        pg.click('[data-f="mistake"]'); pg.wait_for_timeout(300)
+        pg.fill('#sf input', 'zzqx'); pg.press('#sf input', 'Enter'); pg.wait_for_selector('#sfAll', timeout=5000)
+        msg2 = pg.text_content('#listSlot .empty p')
+        pg.click('#sfAll'); pg.wait_for_timeout(400)
+        all_on = pg.get_attribute('[data-f=""]', 'aria-pressed')
+        check(dev, 'with a filter on: says where it looked (只在「错题」里找了); 在全部里找 searches all of them',
+              '只在「错题」里找了' in msg2 and all_on == 'true' and '只在' not in (pg.text_content('#listSlot .empty p') or ''), [msg2, all_on])
+        check(dev, 'no script errors (search)', not errs, errs[:3])
+        ctx.close()
         # a phone: the swipe follows the side
         ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
@@ -3207,8 +3302,8 @@ def review_side_run(pw):
 # Safari and from the home screen.
 ONE_SCREEN_JS = """() => { const H = innerHeight, m = document.querySelector('main').getBoundingClientRect(), bar = document.getElementById('bar').getBoundingClientRect();
   const sab = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sab')) || 0;
-  const answers = [...document.querySelectorAll('.review .choice button')].map(b => Math.round(b.getBoundingClientRect().bottom));
-  const last = document.querySelector('.review').lastElementChild.getBoundingClientRect();
+  const answers = [...document.querySelectorAll('.review .choice button, #mixQ .ans')].map(b => Math.round(b.getBoundingClientRect().bottom));
+  const last = (document.querySelector('.review') || document.querySelector('#mixQ .q')).lastElementChild.getBoundingClientRect();
   return { H, page: document.scrollingElement.scrollHeight, bar: Math.round(bar.height), barH: getComputedStyle(document.documentElement).getPropertyValue('--bar-h').trim(),
            mainBottom: Math.round(m.bottom), answers, lastBottom: Math.round(last.bottom), sab, tip: !!document.getElementById('knowTip') }; }"""
 
@@ -3243,6 +3338,18 @@ def one_screen_run(pw):
                         check(dev, f'{where}: the 「认识」换到右边了 tip is on the card (the tallest it gets)', s['tip'], s)
                     if home:
                         check(dev, f'{where} {name}: --bar-h is the top bar\'s height', s['barH'] == f"{s['bar']}px", s)
+                # 词汇辨析's round (语流 B8's audit: 119-213 px past the screen): no tabs, 怎么区分 open for the first question,
+                # one line from the second; both questions one screen, the answers at the bottom and clear of the home bar
+                go(pg, '#/words/confuse/borrow-lend,make-do'); pg.wait_for_selector('#mixQ .ans', timeout=8000); pg.wait_for_timeout(400)
+                for k in (1, 2):
+                    if k == 2:
+                        pg.click('#mixQ .ans'); pg.wait_for_selector('#mixNext', timeout=4000); pg.click('#mixNext')
+                        pg.wait_for_selector('#mixQ .ans:not([disabled])', timeout=4000); pg.wait_for_timeout(400)
+                    s = pg.evaluate(ONE_SCREEN_JS)
+                    pg.screenshot(path=str(OUT / f"one-screen-{size}-{'home' if home else 'safari'}-confuse-q{k}.png"))
+                    check(dev, f'{where} 词汇辨析第 {k} 题: one screen, nothing to scroll ({s["page"]} of {s["H"]}px)', s['page'] <= s['H'], s)
+                    check(dev, f'{where} 词汇辨析第 {k} 题: the answers at the bottom, clear of the home bar',
+                          abs(s['mainBottom'] - s['H']) <= 1 and s['answers'] and min(s['answers']) > s['H'] * 0.6 and max(s['answers']) <= s['H'] - s['sab'], s)
                 check(dev, f'{where}: no script errors', not errs, errs[:3])
                 ctx.close()
     finally:
