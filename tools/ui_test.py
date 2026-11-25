@@ -2251,7 +2251,7 @@ def class_run(pw):
         pg.click('#authForm [type=submit]'); pg.wait_for_selector('#tNew', timeout=8000); settle(pg)
         tab = pg.text_content('[data-nav="today"] span') or ''
         check(dev, '老师账号: after signing up, the home is 我的班级 and the first tab says 班级', '我的班级' in (pg.text_content('h1') or '') and tab == '班级', tab)
-        pg.fill('#tNew [name=name]', '高二（5）班'); pg.click('#tNew [type=submit]'); pg.wait_for_selector('.cls-code', timeout=8000)
+        pg.fill('#tNew [name=name]', '周三晚英语口语课'); pg.click('#tNew [type=submit]'); pg.wait_for_selector('.cls-code', timeout=8000)
         code = (pg.text_content('.cls-code') or '').strip()
         check(dev, '老师账号: a new class opens on its page with a 6-character invite code', re.fullmatch(r'[A-Z2-9]{6}', code) is not None and pg.evaluate(wide), code)
         pg.screenshot(path=str(OUT / 'class-new-teacher.png'), full_page=True)
