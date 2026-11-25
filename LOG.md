@@ -227,3 +227,10 @@
   - #137 changelog.py：自动记录里写上自检失败的原因（发版和构建）
 - 自检：DEPLOYED，装了 5 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45539927938
+
+### b40 · 2026-11-25 11:35
+- main `70fbcdc`，构建 `82577bc`
+- 新合并的 PR（自 b39 起）：
+  - #138 App 外壳：iOS App（FlowiOS）里也当主屏 App，键盘交给 App（开局和考试、后台和班级）
+- 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 148/148，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45540971829
