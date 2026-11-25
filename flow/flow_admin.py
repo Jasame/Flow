@@ -176,6 +176,7 @@ TAP_LABEL = {
     'notice-login': '今日 · 提醒：登录', 'notice-level': '今日 · 提醒：换水平', 'notice-mail': '今日 · 提醒：绑定邮箱', 'notice-guide': '今日 · 提醒：看指南',
     'home-resume': '今日 · 继续上次', 'home-news': '今日 · 今日一读', 'home-pick': '今日 · 也可以读', 'home-more': '今日 · 更多材料',
     'practice-map': '练习 · 知识图谱大卡', 'practice-tip': '练习 · 今天建议',
+    'practice-review-other': '练习 · 错题和句型复习',  # 练习 → 复习 (49-practice.js)
     'words-plan': '单词 · 词书计划', 'words-confuse': '单词 · 辨析', 'words-mistake': '单词 · 错题本', 'words-test': '单词 · 测词汇量', 'words-import': '单词 · 导入',
     'words-stats': '单词 · 展开统计', 'confuse-how': '词汇辨析 · 展开怎么区分', 'read-gains': '读 · 展开这篇的收获', 'listen-preread': '听 · 展开读前生词',
     'study-origin': '学习页 · 看来源', 'notice-install': '今日 · 提醒：放到桌面',
