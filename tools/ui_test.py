@@ -3083,8 +3083,50 @@ def home_app_run(pw):
         browser.close()
 
 
+# The owner (2026-11-25): 「后台运行的应用不要播放系统声音」. Every browser these tests start is silent: Chrome with
+# --mute-audio, and in every page (Chrome and WebKit alike) media at volume 0, Web Audio through a gain of 0, and each
+# browser-voice utterance at volume 0 (on a Mac, Chrome hands those to the system's speech, which --mute-audio may not
+# reach). Pages still play: time runs, events fire, so the checks on playback hold; only the speakers stay quiet.
+MUTE_JS = """(() => {
+  const P = HTMLMediaElement.prototype, play = P.play;
+  P.play = function () { try { this.volume = 0; } catch (e) {} return play.apply(this, arguments); };
+  if (window.AudioNode && window.AudioDestinationNode) {
+    const conn = AudioNode.prototype.connect;
+    AudioNode.prototype.connect = function (dest, ...rest) {
+      if (dest instanceof AudioDestinationNode) {
+        const c = this.context; if (!c.__mute) { c.__mute = c.createGain(); c.__mute.gain.value = 0; conn.call(c.__mute, dest); }
+        return conn.call(this, c.__mute, ...rest);
+      }
+      return conn.call(this, dest, ...rest);
+    };
+  }
+  if (window.speechSynthesis) { const sp = speechSynthesis.speak.bind(speechSynthesis); speechSynthesis.speak = u => { try { u.volume = 0; } catch (e) {} return sp(u); }; }
+})();"""
+
+
+def silent(kind):
+    """kind.launch, but the browser makes no sound (MUTE_JS in every context and page it opens)."""
+    launch = kind.launch
+
+    def go(*a, **kw):
+        if kind.name == 'chromium':
+            kw['args'] = list(kw.get('args') or []) + ['--mute-audio']
+        b = launch(*a, **kw)
+        new_context, new_page = b.new_context, b.new_page
+
+        def context(*a2, **kw2):
+            c = new_context(*a2, **kw2); c.add_init_script(MUTE_JS); return c
+
+        def page(*a2, **kw2):
+            c = context(*a2, **kw2); return c.new_page()
+        b.new_context, b.new_page = context, page
+        return b
+    kind.launch = go
+
+
 def main():
     with sync_playwright() as pw:
+        silent(pw.chromium); silent(pw.webkit)
         if not ONLY or 'about' in ONLY:
             try:
                 about_run(pw)
