@@ -985,7 +985,7 @@ def ios_audio_run(pw):
               not pg.evaluate('window.__wa.starts') and sum(clip_url in u for u in asked) >= 2, asked[-3:])  # fetched for Web Audio, then by the <audio>
         ctx.close()
         # neither the clip nor the sprite (audio-inventory.md, 语流 9): one line saying why, then the browser voice
-        for off, line in ((False, '网络不好，这个词的读音没加载出来，先用浏览器的声音'), (True, '离线中，这个词的读音还没存到手机，先用浏览器的声音')):
+        for off, line in ((False, '网络不好，这个词的读音没加载出来，先用浏览器的声音'), (True, '离线中，这个词的读音还没存到本机，先用浏览器的声音')):
             ctx, pg, errs, asked = page()
             pg.route('**/audio/words/**', lambda r: r.fulfill(status=404, content_type='application/json', body='{}'))
             pg.evaluate(TOASTS_JS)
