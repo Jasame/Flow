@@ -1,3 +1,3 @@
-53f12525515e71c325ccb88055c4b5b9d28ca49e cb28548e67c17590c70a92e61ee2a9bc9f45925f3a610743c940aab913b3afbd e2e light ref=build-7571b8a0ed20 tag=b70 tools=03d2e90ff1c75db4babab9671c7913459dbffd10eedd45be996ec1442a1f624f
-# b70 main: Merge pull request #282 from Jasame/accent-indigo = build of 7571b8a0ed20
+154f03bb4f7edd2b46f66035993825f80f198f43 85546357a5cb15bc0a0d4af7dfe859158275d0abe12690fc3cd5eb2d1d59c7d8 e2e light ref=build-f7f34e6580cb tag=b71 tools=03d2e90ff1c75db4babab9671c7913459dbffd10eedd45be996ec1442a1f624f
+# b71 main: Merge pull request #287 from Jasame/fix-confuse-se = build of f7f34e6580cb
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
