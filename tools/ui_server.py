@@ -164,6 +164,7 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             **{f'swipe-{k}': ('B1', 'work', ['work', 'science']) for k in ('ipad-land', 'ipad-mini-land', 'phone')},
             'teacher': ('B1', 'work', ['work']), 'student': ('B1', 'work', ['work']),  # 班级试用 (class_run)
             'ageless': ('B1', 'work', ['work']), 'young': ('B1', 'work', ['work']),
+            'unasked': ('B1', 'work', ['work']),  # 数据存放在香港 (privacy_run): an older account, not asked yet
             'veteran': ('B1', 'work', ['work'])}  # 班级试用问卷 (trial_survey_run): in the class for 25 days  # 年龄段 (privacy_run): none yet; 不满 14 岁 without a guardian's agreement
 out = {}
 with app.db() as c:
@@ -267,6 +268,8 @@ with app.db() as c:
     # ui-ageless has none (it is asked), ui-young is 不满 14 岁 with no guardian's agreement yet (AI waits for it)
     c.execute("UPDATE users SET age_band='18+', age_set=? WHERE username NOT IN ('ui-ageless', 'ui-young')", (time.time(),))
     c.execute("UPDATE users SET age_band='u14', age_set=? WHERE username='ui-young'", (time.time(),))
+    # 数据存放在香港 (privacy_service): every learner agreed at sign-up, but ui-unasked (the page asks it; privacy_run)
+    c.execute("UPDATE users SET storage_ok=? WHERE username!='ui-unasked'", (time.time(),))
     # 班级试用: ui-teacher's class with 5 members who studied and got grammar points wrong this week (class_run)
     now = time.time()
     cid = c.execute("INSERT INTO classes(name, code, teacher, by, created, updated) VALUES('高一（3）班', 'UICLS2', ?, 'ui', ?, ?)", (out['teacher']['id'], now, now)).lastrowid
@@ -280,7 +283,8 @@ with app.db() as c:
             c.execute("INSERT INTO learning_events(user_id,node,source,kind,item,correct,evaluator,created) VALUES(?,?,?,'choice','q',0,'rule',?)", (mid, n, f'ui:{mid}:{n}', now - 7200))
     c.execute('INSERT INTO class_members(user_id, class_id, joined_at) VALUES(?,?,?)', (out['veteran']['id'], cid, now - 25 * 86400))
     c.commit()
-# 今日热点 (r27: its own card under 今日好句): one news text of today, as the daily job would leave it, clearly a sample
+# 今日热点 (r27): one news text of today, as the daily job left them before the pause (2026-11-25). It stays in the
+# database and must be shown nowhere: ui_test checks that 今日 has no hotspot card.
 with app.db() as c:
     base = json.loads(c.execute("SELECT content FROM lab_packs WHERE id=?", (PID,)).fetchone()[0])
     base.update(id='daily-ui-sample', title='示例热点：城市开通夜间公交线路', title_en='Sample news: night buses start running',

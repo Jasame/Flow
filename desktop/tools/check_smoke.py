@@ -19,9 +19,20 @@ def problems(d, os_name):
     for k, v in want.items():
         if p.get(k) != v:
             out.append(f'page.{k} = {p.get(k)!r}, want {v!r}')
+    if not p.get('onReturnsOff'):
+        out.append('FlowApp.on() does not return an unsubscribe function')
+    if not p.get('callUnknownRejects'):
+        out.append("FlowApp.call('<unknown>') did not reject")
+    h = p.get('hello') or {}
+    if h.get('v') != 1 or h.get('platform') != os_name or sorted(h.get('features') or []) != ['media', 'notify']:
+        out.append(f"FlowApp.call('hello') = {h!r}")
+    if not isinstance(p.get('beta'), bool) or not p.get('build'):
+        out.append(f"FlowApp.beta / build missing: {p.get('beta')!r} {p.get('build')!r}")
+    if p.get('syncOk') is False:
+        out.append(f"notify_plan failed: {p.get('syncError')}")
     if not re.search(r' FlowDesktop/[\d.]+ \(' + label + r'\)$', p.get('ua') or ''):
         out.append(f"User-Agent does not end with FlowDesktop/<version> ({label}): {p.get('ua')!r}")
-    if p.get('permission') not in ('granted', 'denied', 'undetermined'):
+    if p.get('permission') not in ('granted', 'denied', 'undetermined', 'provisional'):
         out.append(f"notify.permission() = {p.get('permission')!r} {p.get('permissionError') or ''}")
     if p.get('syncError'):
         out.append(f"notify.sync failed: {p['syncError']}")
@@ -33,8 +44,10 @@ def problems(d, os_name):
         if not p.get('synced'):
             out.append(f"notify.sync planned nothing: {p.get('synced')!r} {p.get('syncError') or ''}")
         ids = [x.get('id') for x in n.get('pending') or []]
-        if not any(i in ('flow-once', 'once') for i in ids):
+        if not any(i in ('review-once', 'once') for i in ids):
             out.append(f'the one-off reminder is not in the system queue: {ids}')
+        if 'review-once' not in (p.get('pendingFromPage') or []):
+            out.append(f"FlowApp.notify.pending() does not list it: {p.get('pendingFromPage')!r}")
         if n.get('test_notification') != 'shown':
             out.append(f"test notification: {n.get('test_notification')!r}")
     if not n.get('media_controls'):

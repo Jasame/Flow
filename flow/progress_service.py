@@ -381,7 +381,8 @@ def send_weekly(c, now=None, send=None):
         return 0
     today, origin, sent = local.date().isoformat(), os.getenv('FLOW_PUBLIC_URL', 'https://flowlang.cn').rstrip('/'), 0
     rows = c.execute("SELECT u.id, u.email, u.username FROM users u LEFT JOIN next_weekly w ON w.user_id=u.id WHERE u.email IS NOT NULL AND u.email!='' "
-                     "AND COALESCE(w.off,0)=0 AND (w.last_sent IS NULL OR w.last_sent<?)" + (' AND COALESCE(u.disabled,0)=0' if 'disabled' in cols else ''),
+                     "AND COALESCE(w.off,0)=0 AND (w.last_sent IS NULL OR w.last_sent<?)" + (' AND COALESCE(u.disabled,0)=0' if 'disabled' in cols else '')
+                     + (' AND u.storage_no IS NULL' if 'storage_no' in cols else ''),  # a paused account (privacy_service) gets no mail
                      (today,)).fetchall()
     for r in rows:
         c.execute('INSERT INTO next_weekly(user_id,last_sent) VALUES(?,?) ON CONFLICT(user_id) DO UPDATE SET last_sent=excluded.last_sent', (r['id'], today))

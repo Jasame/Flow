@@ -9,9 +9,10 @@ class DailyKnowledgeTests(unittest.TestCase):
   self.tmp=tempfile.TemporaryDirectory();self.p=patch.object(app,'DB',Path(self.tmp.name)/'daily.db');self.p.start();app.init();self.c=app.db()
   self.c.executemany('INSERT INTO users(username,password) VALUES(?,?)',[('one','hash'),('two','hash')]);self.c.commit()
   self.env=patch.dict(os.environ,{'FLOW_AI_GROUNDING':'1','FLOW_AI_DAILY_LIMIT':'100'});self.env.start()
+  self.pause=patch.object(daily,'PAUSED',False);self.pause.start()  # the pipeline itself; 今日热点 is paused since 2026-11-25 (test_daily_pause)
   self.brief='A museum has opened a new room. Visitors can read short labels. Staff will collect comments.'
   self.meta={'groundingChunks':[{'web':{'uri':'https://example.org/news','title':'Museum'}}], 'groundingSupports':[{'segment':{'text':'A museum has opened a new room.'},'groundingChunkIndices':[0]}], 'searchEntryPoint':{'renderedContent':'<style>.chip{color:blue}</style><a href="https://google.com/search?q=museum">Museum</a>'},'webSearchQueries':['museum today']}
- def tearDown(self):self.c.close();self.env.stop();self.p.stop();self.tmp.cleanup()
+ def tearDown(self):self.c.close();self.pause.stop();self.env.stop();self.p.stop();self.tmp.cleanup()
  def raw(self):
   p=copy.deepcopy(all_materials()[0]);p['level']=daily.plan(daily.today())[0];p['theme']='campus';p['knowledge']=[{'node':'tense-present','quote':lab.sentences(p['body'])[0],'explanation':'说明该句的用法'}];return p
  def run_mock(self,raw=None,meta=None):
@@ -23,7 +24,8 @@ class DailyKnowledgeTests(unittest.TestCase):
   self.assertEqual(daily.run(self.c)['status'],'complete');self.assertEqual(self.c.execute('SELECT SUM(count) FROM ai_usage').fetchone()[0],2)
   p=lab.pack_for(self.c,2,'daily-'+daily.today());self.assertEqual(p['provenance']['sources'][0]['url'],'https://example.org/news')
   self.assertEqual(p['grammar'],['tense-present']);self.assertIn('suggestions',p['provenance'])
-  g=kg.graph(self.c,1);node=next(n for n in g['nodes'] if n['id']=='tense-present');self.assertEqual(node['state'],'待建立');self.assertTrue(any(x['id']==p['id'] for x in node['materials']))
+  # a news text (no kind 'topic') is retired since the pause (2026-11-25): kept, but linked from no grammar point
+  g=kg.graph(self.c,1);node=next(n for n in g['nodes'] if n['id']=='tense-present');self.assertEqual(node['state'],'待建立');self.assertFalse(any(x['id']==p['id'] for x in node['materials']))
  def test_no_grounding_never_publishes_and_retry_bounded(self):
   for i in range(2):self.assertEqual(self.run_mock(meta={})[0]['status'],'failed')
   with patch.object(daily,'request_model') as model:daily.run(self.c);model.assert_not_called()

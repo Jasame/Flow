@@ -13,6 +13,7 @@ playback stop button, step switching, list filters. Screenshots of every page pe
 import atexit, json, os, re, socket, subprocess, sys, tempfile, time, traceback
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from quiet import silent  # every browser it starts makes no sound (tools/quiet.py)
 
 OUT = Path(sys.argv[1] if len(sys.argv) > 1 else tempfile.mkdtemp(prefix='flow-ui-out-'))
 OUT.mkdir(parents=True, exist_ok=True)
@@ -748,7 +749,8 @@ def platform_run(pw):
         pg.evaluate("document.querySelector('#sheet [data-close]').click()")
         go(pg, f'#/m/{PID}/read')
         o = pg.text_content('#view .origin') or ''
-        check(dev, 'a text says where it comes from and that AI helped write it', '来源：' in o and 'AI 辅助编写' in o, o)
+        mark = pg.text_content('#view .study-head .ai-line') or ''  # 「AI 生成」 under the title (人工智能生成合成内容标识办法)
+        check(dev, 'a text says where it comes from and that AI wrote it', '来源：' in o and 'AI 生成' in mark and '经规范检查' in mark and '人工审核' not in mark, (o, mark))
         pg.click('#originMore'); pg.wait_for_selector('#sheetCard .origin-rules', timeout=4000)
         check(dev, 'the source line opens the writing rules', '在原文里找得到依据' in (pg.text_content('#sheetCard') or ''))
         pg.evaluate("document.querySelector('#sheet [data-close]').click()")
@@ -974,6 +976,17 @@ def ios_audio_run(pw):
         check(dev, 'a clip Web Audio cannot decode plays on an <audio> instead',
               not pg.evaluate('window.__wa.starts') and sum(clip_url in u for u in asked) >= 2, asked[-3:])  # fetched for Web Audio, then by the <audio>
         ctx.close()
+        # neither the clip nor the sprite (audio-inventory.md, 语流 9): one line saying why, then the browser voice
+        for off, line in ((False, '网络不好，这个词的读音没加载出来，先用浏览器的声音'), (True, '离线中，这个词的读音还没存到手机，先用浏览器的声音')):
+            ctx, pg, errs, asked = page()
+            pg.route('**/audio/words/**', lambda r: r.fulfill(status=404, content_type='application/json', body='{}'))
+            pg.evaluate(TOASTS_JS)
+            if off:
+                pg.evaluate("Object.defineProperty(navigator, 'onLine', { get: () => false, configurable: true })")
+            tap_word(pg); pg.wait_for_timeout(1500)
+            said = pg.evaluate('window.__toasts') or []
+            check(dev, f"no word sound at all{' (offline)' if off else ''}: it says why, then the browser voice reads it", line in said, said)
+            ctx.close()
         # the type refused (a browser that does not let the page set it): <audio> clips, which the ringer switch does not mute
         ctx, pg, errs, asked = page(refuse=True)
         tap_word(pg)
@@ -1009,6 +1022,11 @@ def ios_audio_run(pw):
         if browser:
             browser.close()
         srv.terminate()
+
+# every toast as it is set (two in a row replace each other on screen); window.__toasts
+TOASTS_JS = """() => { const el = document.getElementById('toast'), d = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent'); window.__toasts = [];
+  Object.defineProperty(el, 'textContent', { configurable: true, get() { return d.get.call(this); }, set(v) { window.__toasts.push(v); d.set.call(this, v); } }); }"""
+
 
 def wechat_run(pw):
     dev = 'wechat'
@@ -1108,6 +1126,13 @@ def wechat_run(pw):
         n0 = len(iplays()); word()
         new = [x for x in iplays()[n0:] if '/audio/words/' in x['src']]
         check(dev, 'iPhone: without a clip, the sprite plays instead', any('.aac' not in x['src'] and x['ok'] for x in new), new)
+        # neither the clip nor the sprite, and WeChat has no browser voice either: how to hear it, nothing about a voice
+        ip.route('**/audio/words/**', lambda r: r.fulfill(status=404, content_type='application/json', body='{}'))
+        ip.reload(wait_until='load'); settle(ip, '#reader'); ip.wait_for_timeout(600); away(); ip.evaluate(TOASTS_JS)
+        word(); ip.wait_for_timeout(800)
+        said = ip.evaluate('window.__toasts') or []
+        check(dev, 'iPhone WeChat: no word sound and no browser voice: it says how to hear it, not 「先用浏览器的声音」',
+              any('在浏览器打开' in t for t in said) and not any('先用浏览器的声音' in t for t in said), said)
         check(dev, 'iPhone: no script errors', not ierrors, ierrors[:3])
         ictx.close()
         browser.close()
@@ -1296,6 +1321,61 @@ def ux_run(pw):
         check(dev, '复读 in the server voice: the sentence is played three times (each time it ends, the next), not the browser voice, a stop button meanwhile',
               got['plays'] == 3 and got['said'] == 0 and mini2 and not got['mini'], {**got, 'mini_while': mini2})
         c2.close()
+        # the browser voice as iOS sometimes treats it (语流 07, iPhone 17e and iPad simulators): an utterance spoken right
+        # after cancel() ends at once without starting, or never starts. 播放全文 with the server voice off: dropped once,
+        # the sentence is said again and the text goes on; dropped every time, or never started, the text waits paused at
+        # that sentence with why, instead of racing to its end (marked heard) or sitting there "playing". The blank
+        # utterance the first tap speaks to unlock the voice is left out
+        drops = {
+            'once': "let n = 0; speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); const k = n++; setTimeout(() => { if (k > 0 && u.onstart) u.onstart(); u.onend && u.onend(); }, 30); };",
+            'always': "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); setTimeout(() => { u.onend && u.onend(); }, 30); };",
+            'never': "speechSynthesis.speak = u => { if (!u.text.trim()) return; window.__said.push(u.text); };",
+        }
+        seen = {}
+        for kind, js in drops.items():
+            c3 = browser.new_context(**phone)
+            c3.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a2']['token'], 'url': BASE}])
+            c3.add_init_script("(() => { window.__said = []; if (!window.speechSynthesis) return; speechSynthesis.cancel = () => {}; speechSynthesis.getVoices = () => []; " + js + " })()")
+            p3 = c3.new_page()
+            p3.route('**/api/next/tts', lambda r: r.fulfill(status=503, json={'error': '服务器朗读没有开启', 'code': 'off'}))
+            p3.route('**/api/next/tts/have', lambda r: r.fulfill(status=503, json={'error': '服务器朗读没有开启', 'code': 'off'}))
+            p3.goto(BASE + f'/#/m/{PID}/listen', wait_until='networkidle'); settle(p3, '#playAll')
+            p3.evaluate("localStorage.removeItem('flow-progress')")
+            p3.click('#playAll'); p3.wait_for_timeout(3400 if kind == 'never' else 1500)
+            seen[kind] = p3.evaluate("""() => ({ said: window.__said.slice(), n: document.querySelectorAll('#view .line').length,
+                btn: document.querySelector('#playAll').textContent.trim(), now: (document.querySelector('#view .line.now') || {dataset: {}}).dataset.i,
+                note: (document.querySelector('#lsPrep') || {}).textContent || '', mini: (document.querySelector('.mini-player:not([hidden]) .lbl') || {}).textContent || '' })""")
+            c3.close()
+        # 「留时间跟说」 in 播放全文: the pause after a sentence is as long as that sentence (to say it back), not the next one.
+        # A two-word sentence before a long one: the next starts after the 1.5 s minimum, not the ~11 s the long one gets
+        c4 = browser.new_context(**phone)
+        c4.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a2']['token'], 'url': BASE}])
+        c4.add_init_script("(() => { window.__said = []; localStorage.setItem('flow-next-loop', JSON.stringify({rep: 1, gap: -1})); if (!window.speechSynthesis) return; "
+                           "speechSynthesis.cancel = () => {}; speechSynthesis.getVoices = () => []; speechSynthesis.speak = u => { if (!u.text.trim()) return; "
+                           "window.__said.push([u.text, performance.now()]); setTimeout(() => { u.onstart && u.onstart(); u.onend && u.onend(); }, 30); }; })()")
+        p4 = c4.new_page()
+        p4.route('**/api/next/tts', lambda r: r.fulfill(status=503, json={'error': '服务器朗读没有开启', 'code': 'off'}))
+        p4.route('**/api/next/tts/have', lambda r: r.fulfill(status=503, json={'error': '服务器朗读没有开启', 'code': 'off'}))
+        p4.goto(BASE + '/', wait_until='networkidle'); settle(p4)
+        body = ('Stop here. The old harbour town grew slowly around a single stone pier that fishermen had built by hand more than '
+                'two hundred years ago, long before the railway came. Today the pier is quiet in the mornings, and visitors walk along '
+                'it slowly to watch the small boats come back with their catch.')
+        art = p4.evaluate("([t, csrf]) => fetch('/api/next/import', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf}, "
+                          "body: JSON.stringify({title: '停顿', text: t})}).then(r => r.json())", [body, CFG['learners']['a2']['csrf']])
+        p4.goto(BASE + f"/#/m/{art['id']}/listen", wait_until='networkidle'); settle(p4, '#playAll')
+        p4.click('#playAll'); p4.wait_for_timeout(3200)
+        said = p4.evaluate('window.__said')
+        gap0 = round(said[1][1] - said[0][1]) if len(said) >= 2 else None
+        check(dev, '留时间跟说: the pause after a sentence is as long as that sentence (2 words: the 1.5 s minimum), not the next one',
+              said and said[0][0] == 'Stop here.' and gap0 is not None and 1400 <= gap0 <= 2600, {'said': len(said), 'gap_after_first_ms': gap0})
+        c4.close()
+        o, al, nv = seen['once'], seen['always'], seen['never']
+        check(dev, 'browser voice dropped once (iOS): that sentence is said again and the text reads on to its end',
+              len(o['said']) == o['n'] + 1 and o['said'][0] == o['said'][1] and o['btn'] == '播放全文', {k: o[k] for k in ('n', 'btn', 'now')} | {'said': len(o['said'])})
+        check(dev, 'browser voice dropped every time: tried twice, then the text waits paused at that sentence and says why (not "read")',
+              len(al['said']) == 2 and al['btn'] == '继续' and al['now'] == '0' and '没有读出' in al['note'] and al['mini'] == '已暂停', al)
+        check(dev, 'browser voice never starting: after 2.5 s the text waits paused at that sentence and says why',
+              len(nv['said']) == 1 and nv['btn'] == '继续' and nv['now'] == '0' and '没有读出' in nv['note'], nv)
         pg.reload(); settle(pg, '[data-rep]')
         check(dev, '复读: the choice is remembered', pg.get_attribute('[data-rep="3"]', 'aria-pressed') == 'true')
         pg.click('[data-rep="1"]')
@@ -1858,7 +1938,7 @@ def class_run(pw):
         pg.fill('#authForm [name=email]', 'ui-teacher-new@example.com'); pg.click('#authForm [data-send]'); pg.wait_for_timeout(800)
         mail = sorted(Path(CFG['outbox']).glob('*.txt'), key=lambda f: f.stat().st_mtime)[-1].read_text(encoding='utf-8')
         pg.fill('#authForm [name=code]', re.search(r'验证码：(\d{6})', mail).group(1))
-        pg.fill('#authForm [name=username]', 'ui-new-teacher'); pg.fill('#authForm [name=password]', 'correct horse 1')
+        pg.fill('#authForm [name=username]', 'ui-new-teacher'); pg.fill('#authForm [name=password]', 'correct horse 1'); pg.check('#authForm [name=storage]')
         pg.click('#authForm [type=submit]'); pg.wait_for_selector('#tNew', timeout=8000); settle(pg)
         tab = pg.text_content('[data-nav="today"] span') or ''
         check(dev, '老师账号: after signing up, the home is 我的班级 and the first tab says 班级', '我的班级' in (pg.text_content('h1') or '') and tab == '班级', tab)
@@ -1936,6 +2016,29 @@ def privacy_run(pw):
         gp.screenshot(path=str(OUT / 'privacy-signup.png'))
         gp.click('#authForm .agechip:has-text("14–17 岁")'); gp.wait_for_timeout(150)
         check(dev, '注册: another band hides the tick again', not gp.is_visible('#authForm .guard'))
+        gp.click('#authForm [type=submit]'); gp.wait_for_timeout(200)
+        no_store = gp.text_content('#authErr') or ''
+        check(dev, '注册: the separate 香港 tick is required, and said before any request', '香港' in no_store and gp.is_visible('#authForm [name=storage]'), no_store)
+        ctx.close()
+        # 数据存放在香港 (privacy_service): an older account is asked on a page of its own, before any other page;
+        # 不同意 pauses it (export, delete, sign out, agree again), and ticking goes on
+        ctx = browser.new_context(**phone)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['unasked']['token'], 'url': BASE}])
+        pg = ctx.new_page(); pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.goto(BASE + '/#/', wait_until='networkidle'); pg.wait_for_selector('#stoF', timeout=8000)
+        asked = '补一个同意' in (pg.text_content('h1') or '') and pg.is_visible('#stoNo')
+        pg.screenshot(path=str(OUT / 'privacy-storage-ask.png'))
+        pg.goto(BASE + '/#/cards', wait_until='networkidle'); pg.wait_for_selector('#stoF', timeout=8000)
+        other = '补一个同意' in (pg.text_content('h1') or '')
+        pg.click('#stoNo'); pg.wait_for_selector('h1:has-text("这个账号已暂停")', timeout=8000)
+        paused = pg.is_visible('a[href="/api/next/export/records.json"]') and pg.is_visible('#stoDel') and pg.is_visible('#stoOut')
+        pg.screenshot(path=str(OUT / 'privacy-storage-paused.png'))
+        pg.click('#stoF [type=submit]'); pg.wait_for_timeout(200)
+        err = pg.text_content('#stoErr') or ''
+        pg.check('#stoF [name=storage]'); pg.click('#stoF [type=submit]'); pg.wait_for_timeout(1500); settle(pg)
+        back = pg.query_selector('#stoF') is None
+        check(dev, '数据存放: an older account is asked first on every page, 不同意 pauses it, ticking goes on',
+              asked and other and paused and '勾选' in err and back, (asked, other, paused, err, back))
         ctx.close()
         # an older account without a band: asked once, the question stays until answered
         ctx = browser.new_context(**phone)
@@ -2447,8 +2550,8 @@ def progress_run(pw):
                         f"{acc['rate']}%" if acc['rate'] is not None else (f"{acc['right']}/{acc['total']}" if acc['total'] else '—'), f"{hb['done']}/{hb['goal']}天"]
                 check(dev, f'{tag}: 这周进步 sits under the plan, the week chip by the greeting', card and card['below'] and card['chip'] and card['inView'], card)
                 top = pg.evaluate(TOP_JS)
-                check(dev, f'{tag}: 今日 runs 好句, 热点, the plan, 这周进步 from the top (the plan first on a phone held sideways), nothing cut off or wider than the screen',
-                      top['order'] == (['plan', 'lineCard', 'news', 'week'] if h < 500 else ['lineCard', 'news', 'plan', 'week']) and not top['clipped'] and top['wide'] <= 0 and (not touch or top['small'] == []), top)
+                check(dev, f'{tag}: 今日 runs 好句, the plan, 这周进步 from the top (今日热点 paused 2026-11-25, no card) (the plan first on a phone held sideways), nothing cut off or wider than the screen',
+                      top['order'] == (['plan', 'lineCard', 'week'] if h < 500 else ['lineCard', 'plan', 'week']) and not top['clipped'] and top['wide'] <= 0 and (not touch or top['small'] == []), top)
                 check(dev, f'{tag}: its four numbers are the learner\'s own (as the server counts them)', card and card['values'] == want, (card and card['values'], want))
                 path = home['path']; plan = pg.evaluate(PLAN_JS)
                 grp = {g: [x for x in path['steps'] if x.get('group', 'must') == g] for g in ('must', 'extra', 'week')}
@@ -2626,7 +2729,7 @@ def review_side_run(pw):
         # in an app (iOS, Android, desktop; FlowApp before the page): the reminder goes to its notifications, said for its device
         ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
-        ctx.add_init_script("window.__synced = []; window.FlowApp = { v: 1, platform: 'macos', has: k => k === 'notify', notify: { ask: () => Promise.resolve(true), sync: r => window.__synced.push(r), permission: () => 'granted' } };")
+        ctx.add_init_script("window.__synced = []; window.__perm = 'undetermined'; window.FlowApp = { v: 1, platform: 'macos', has: k => k === 'notify', notify: { ask: () => { window.__perm = 'granted'; return Promise.resolve(true); }, sync: r => window.__synced.push(r), permission: () => window.__perm, settings: () => { window.__settings = 1; } } };")
         pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
         pg.goto(BASE + '/#/vocab/plan', wait_until='load'); settle(pg); pg.wait_for_selector('#rApp', timeout=5000)
         note = pg.text_content('#rAppNote') or ''
@@ -2634,6 +2737,10 @@ def review_side_run(pw):
         synced = pg.evaluate('window.__synced')
         check(dev, 'in the desktop app on a Mac: 到点用 App 通知提醒 says 这台 Mac, and hands the reminder (with the forecast) to the app',
               note.startswith('在这台 Mac 上') and synced and synced[-1].get('hour') == 20 and isinstance(synced[-1].get('forecast'), list), (note, synced[-1:]))
+        on = pg.text_content('#rAppOn') if pg.query_selector('#rAppOn') else ''
+        pg.click('#rAppSet') if pg.query_selector('#rAppSet') else None
+        check(dev, 'once on, the row says so, and 通知设置 opens the system settings (no 关闭 where the app cannot turn it off)',
+              on.startswith('已开启：在这台 Mac 上') and not pg.query_selector('#rAppOff') and pg.evaluate('window.__settings') == 1, on)
         pg.click('#onceBtn'); pg.wait_for_selector('#oncePicks [data-at]', timeout=5000); pick = pg.get_attribute('#oncePicks [data-at]', 'data-at')
         pg.click('#oncePicks [data-at]'); pg.wait_for_selector('#onceOk', timeout=5000)
         synced = pg.evaluate('window.__synced')
@@ -2642,6 +2749,18 @@ def review_side_run(pw):
         pg.wait_for_selector('#sheetCard #onceOff', timeout=5000); pg.click('#sheetCard #onceOff'); pg.wait_for_timeout(300)
         check(dev, 'in the app: 取消这次 too', pg.evaluate('window.__synced')[-1].get('once') is None, pg.evaluate('window.__synced')[-1:])
         check(dev, 'no script errors (app)', not errs, errs[:3])
+        ctx.close()
+        # the Android app: on already (permission granted), and it can turn its notifications off itself (notify.off)
+        ctx = browser.new_context(viewport={'width': 412, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
+        ctx.add_init_script("window.__perm = 'granted'; window.FlowApp = { v: 1, platform: 'android', has: k => k === 'notify', notify: { ask: () => { window.__perm = 'granted'; return true; }, sync: () => {}, permission: () => window.__perm, off: () => { window.__perm = 'undetermined'; window.__off = 1; }, settings: () => {} } };")
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        pg.goto(BASE + '/#/vocab/plan', wait_until='load'); settle(pg); pg.wait_for_selector('#rAppRow', timeout=5000)
+        on = pg.text_content('#rAppOn') if pg.query_selector('#rAppOn') else ''
+        pg.click('#rAppOff'); pg.wait_for_timeout(300)
+        check(dev, 'Android app: 已开启：在这台手机上…, and 关闭 turns it off and offers to turn it on again',
+              on.startswith('已开启：在这台手机上') and pg.evaluate('window.__off') == 1 and pg.query_selector('#rApp') is not None, on)
+        check(dev, 'no script errors (Android app)', not errs, errs[:3])
         ctx.close()
         # a phone: the swipe follows the side
         ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
@@ -3115,12 +3234,48 @@ def home_app_run(pw):
             check(dev, f'{label}: a home app — 返回 on a sub-page, the logo on a tab page, no 「添加到桌面」',
                   home and bk and bk['label'] and tab is None and not install, (home, bk, tab, install))
             ctx.close()
+        # the Android app (语流 21): its WebView gets shorter for the keyboard, nothing is covered, so a field near the end
+        # and its button would sit below the page's end (登录 under the keyboard): both are brought into sight
+        android = dict(viewport={'width': 393, 'height': 852}, is_mobile=True, has_touch=True, device_scale_factor=3, locale='zh-CN', bypass_csp=True,
+                       user_agent='Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Mobile Safari/537.36 FlowAndroid/1.0')
+        SIGHT = """([f, b]) => { const r = document.querySelector(f).getBoundingClientRect(), bt = document.querySelector(b), q = bt && bt.getBoundingClientRect();
+          return { field: [Math.round(r.top), Math.round(r.bottom)], button: q ? Math.round(q.bottom) : null, h: innerHeight, open: document.body.classList.contains('kb-open') }; }"""
+        for where, page, opener, field, button in (('导入文章', '#/import', None, '#view textarea', '#view .btn.primary'),
+                                                   ('背词计划 → 导入词表 (a sheet)', '#/vocab/plan', '#impBook', '#impText', '#impGo')):
+            ctx = browser.new_context(**android); ctx.add_init_script("window.FlowApp = { platform: 'android' }")
+            ctx.add_cookies([{'name': 'flow_session', 'value': tok, 'url': BASE}])
+            pg = ctx.new_page(); pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg)
+            go(pg, page)
+            if opener:
+                pg.wait_for_selector(opener, timeout=8000); pg.click(opener)
+            pg.wait_for_selector(field, timeout=8000); pg.wait_for_timeout(300)
+            pg.evaluate(f"document.querySelector({json.dumps(field)}).scrollIntoView({{block: 'start'}})"); pg.focus(field); pg.wait_for_timeout(200)
+            pg.set_viewport_size({'width': 393, 'height': 852 - 330}); pg.wait_for_timeout(600)  # the keyboard: the WebView 330 px shorter
+            got = pg.evaluate(SIGHT, [field, button])
+            check(dev, f'the Android app, {where}: with the page shorter for the keyboard, the field and its button in sight',
+                  got['button'] is not None and got['button'] <= got['h'] and got['field'][0] >= 0 and got['field'][1] <= got['h'] and got['open'], got)
+            ctx.close()
+        # the 内测版 in one of Flow's apps: the learner installed it on purpose, and flowlang.cn would open the system
+        # browser — the line stays without its link, the once-per-phone sheet is not shown (a browser still gets both)
+        BETA = "new MutationObserver((m, o) => { if (document.documentElement) { document.documentElement.dataset.channel = 'beta'; o.disconnect(); } }).observe(document, {childList: true, subtree: true})"
+        seen = {}
+        for label, app in (('in an app', True), ('in a browser', False)):
+            ctx = browser.new_context(viewport={'width': 393, 'height': 852}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True)
+            ctx.add_init_script(BETA)
+            if app:
+                ctx.add_init_script("window.FlowApp = { platform: 'android' }")
+            pg = ctx.new_page(); pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg); pg.wait_for_timeout(1200)
+            seen[label] = pg.evaluate("() => ({ bar: !!document.getElementById('betaBar'), link: !!document.querySelector('#betaBar a'), sheet: !document.getElementById('sheet').hidden && /内测版/.test(document.getElementById('sheetCard').innerText) })")
+            ctx.close()
+        check(dev, 'the 内测版 in an app: the line without 「去正式版」, no sheet (a browser: both, as before)',
+              seen['in an app'] == {'bar': True, 'link': False, 'sheet': False} and seen['in a browser'] == {'bar': True, 'link': True, 'sheet': True}, seen)
     finally:
         browser.close()
 
 
 def main():
     with sync_playwright() as pw:
+        silent(pw)
         if not ONLY or 'about' in ONLY:
             try:
                 about_run(pw)

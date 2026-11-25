@@ -85,6 +85,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(saved: Bundle?) {
         super.onCreate(saved)
         bars()
+        // the test switch (docs/native-bridge.md §9): `--ez flow.mute true` on a debug or beta build; the UI tests set it themselves
+        if (intent?.getBooleanExtra("flow.mute", false) == true && (BuildConfig.DEBUG || BuildConfig.FLAVOR == "beta")) Mute.on = true
         FlowAudio.init(this)
         Speech.init(this)
         root = FrameLayout(this)
@@ -217,11 +219,12 @@ class MainActivity : ComponentActivity() {
         super.onStart()
         web.onResume()
         FlowAudio.visible = true
-        Reminders.refresh(this)
+        Reminders.refreshLater(this)  // opening and coming back: the reminders as the site has them now
     }
 
     override fun onStop() {
         FlowAudio.visible = false
+        Reminders.refreshLater(this)  // going to the background too: a day done is taken off
         if (Recorder.busy) Recorder.cut()  // only an app in front may use the microphone
         CookieManager.getInstance().flush()
         web.onPause()
@@ -297,8 +300,16 @@ class MainActivity : ComponentActivity() {
         return Reminders.permission(this, p.isNotEmpty() && asked(p), p.isNotEmpty() && shouldShowRequestPermissionRationale(p))
     }
 
-    /** 「到点用 App 通知提醒」: the phone's permission (Android 13+), then reminders on, from the server's reminder. */
+    /** 「到点用 App 通知提醒」: the phone's permission (Android 13+), then the app's reminders on, from the server's reminder. */
     suspend fun askNotify(): Boolean {
+        if (!notificationsAllowed()) return false
+        Reminders.setApp(this, true)
+        Reminders.refreshLater(this, force = true)
+        return true
+    }
+
+    /** The phone's own permission for notifications: asked (Android 13+), or the settings offered when it is off for good. */
+    private suspend fun notificationsAllowed(): Boolean {
         if (!Reminders.allowed(this)) {
             if (Build.VERSION.SDK_INT >= 33 && !granted(Manifest.permission.POST_NOTIFICATIONS)) {
                 if (!ask(Manifest.permission.POST_NOTIFICATIONS, R.string.notify_off_title, R.string.notify_off) { openNotifySettings() }) return false
@@ -306,8 +317,6 @@ class MainActivity : ComponentActivity() {
             if (!Reminders.allowed(this)) { offerSettings(R.string.notify_off_title, R.string.notify_off) { openNotifySettings() }; return false }
         }
         Reminders.channel(this)
-        Reminders.setOptedIn(this, true)
-        Reminders.refresh(this)
         return true
     }
 
@@ -348,11 +357,19 @@ class MainActivity : ComponentActivity() {
         try { startActivity(i) } catch (e: ActivityNotFoundException) { toast(getString(R.string.no_browser)) }
     }
 
-    /** 「加到手机日历」 in the app: the app's own notifications, or the phone's calendar. The daily plan's goes to the calendar. */
+    /**
+     * 「加到手机日历」 in the app (docs/native-bridge.md §5): the app's own notifications, or the phone's calendar. The link says
+     * what: the daily word review (?hour=), one time (?at=, 这次什么时候复习) or the day's plan (?kind=plan&hour=&minutes=).
+     */
     private fun reminderLink(u: Uri) {
-        if (u.getQueryParameter("kind") == "plan") { lifecycleScope.launch { addToCalendar(u) }; return }
-        AlertDialog.Builder(this).setTitle(R.string.ics_title).setMessage(R.string.ics_body)
-            .setPositiveButton(R.string.ics_app) { _, _ -> lifecycleScope.launch { if (askNotify()) toast("好，到点用 App 通知提醒你复习（有词要复习的日子）") } }
+        val plan = u.getQueryParameter("kind") == "plan"
+        val hour = u.getQueryParameter("hour")?.toIntOrNull()
+        val minutes = u.getQueryParameter("minutes")?.toIntOrNull() ?: 10
+        val at = u.getQueryParameter("at")?.toDoubleOrNull()
+        AlertDialog.Builder(this).setTitle(if (plan) R.string.ics_plan_title else R.string.ics_title).setMessage(R.string.ics_body)
+            .setPositiveButton(R.string.ics_app) { _, _ ->
+                lifecycleScope.launch { if (notificationsAllowed()) toast(Reminders.optIn(this@MainActivity, plan, hour, minutes, at)) }
+            }
             .setNeutralButton(R.string.ics_calendar) { _, _ -> lifecycleScope.launch { addToCalendar(u) } }
             .setNegativeButton(R.string.cancel, null)
             .show()

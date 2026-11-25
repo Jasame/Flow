@@ -3,7 +3,8 @@ plugins {
 }
 
 val flowVersionName = providers.gradleProperty("flow.versionName").getOrElse("1.0.0")
-val flowVersionCode = providers.gradleProperty("flow.versionCode").getOrElse("1").toInt()
+// CI sets FLOW_VERSION_CODE (100 + the run number) so every beta from main installs over the one before
+val flowVersionCode = (System.getenv("FLOW_VERSION_CODE") ?: providers.gradleProperty("flow.versionCode").getOrElse("1")).toInt()
 
 android {
     namespace = "cn.flowlang.app"
@@ -17,6 +18,8 @@ android {
         versionName = flowVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "FLOW_VERSION", "\"$flowVersionName\"")
+        // FlowApp.build: the commit CI built (its first 7), "dev" on a computer — as the desktop app's
+        buildConfigField("String", "FLOW_BUILD", "\"${(System.getenv("GITHUB_SHA") ?: "dev").take(7)}\"")
     }
 
     // Two apps that can sit side by side on one phone (as on iOS):

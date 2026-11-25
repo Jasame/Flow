@@ -1,5 +1,7 @@
 """Archive policy checks; bootability is checked against the extracted ZIP by release.py."""
+import hashlib
 import importlib.util
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -105,6 +107,16 @@ class ReleaseListTests(unittest.TestCase):
         self.assertIn('for n in ' + repr(CONSOLE), pull)
         page_parts = sorted(n.split('/')[1] for n in self.files if n.startswith('xmc-admin/') and n.endswith(('.html', '.js', '.css')))
         self.assertEqual(page_parts, sorted(CONSOLE), 'a new console file must be added to tools/flow-pull.sh (names += ...)')
+
+    def test_the_console_page_asks_for_its_files_by_their_content(self):
+        """xmc.hk keeps admin.js and admin.css in the browser for 12 hours, so the page asks for each as ?v=<the first 10 of
+        its sha256>: a changed file is a new address and is fetched at once (r29: the 老师注册链接 card stayed hidden behind
+        a cached admin.js that still had the old ?v=2.2.3)."""
+        page = (ROOT / 'xmc-admin/index.html').read_text(encoding='utf-8')
+        for name in CONSOLE[1:]:
+            want = hashlib.sha256((ROOT / 'xmc-admin' / name).read_bytes()).hexdigest()[:10]
+            got = re.findall(r'/flow/' + re.escape(name) + r'\?v=([^"\']+)', page)
+            self.assertEqual(got, [want], f'xmc-admin/index.html: ask for /flow/{name}?v={want} (its content changed)')
 
     def test_nothing_of_the_classic_site_ships(self):
         """r20: the classic site is archived in archive/classic/ and is neither listed nor served."""

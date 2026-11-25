@@ -1,21 +1,43 @@
-//! The commands behind window.FlowApp (bridge.js). Only the app's own site can call them: the capability in
-//! capabilities/site.json names its two origins, and the window never shows any other site.
+//! The commands behind window.FlowApp (bridge.js; the contract is docs/native-bridge.md). Only the app's own site
+//! can call them: the capability in capabilities/site.json names its two origins, and the window never shows any
+//! other site.
 
 use crate::media::MediaState;
 use crate::notify;
-use crate::schedule::{self, Reminder};
+use crate::schedule::{self, Input, Planned};
 use crate::AppState;
+use serde::Serialize;
 use std::sync::atomic::Ordering;
 use tauri::{AppHandle, Manager, State};
 
-/// bridge.js with this run's origin, version and platform filled in (as JSON literals: no quoting surprises).
-pub fn script(origin: &str, version: &str, platform: &str, mute: bool) -> String {
+/// What goes into bridge.js for this run (filled in as JSON literals: no quoting surprises).
+pub struct ScriptVars<'a> {
+    pub origin: &'a str,
+    pub version: &'a str,
+    pub build: &'a str,
+    pub platform: &'a str,
+    pub beta: bool,
+    pub mute: bool,
+}
+
+pub fn script(v: &ScriptVars) -> String {
     let lit = |s: &str| serde_json::to_string(s).unwrap_or_else(|_| "\"\"".into());
+    let b = |x: bool| if x { "true" } else { "false" };
     include_str!("bridge.js")
-        .replace("__FLOW_ORIGIN__", &lit(origin))
-        .replace("__FLOW_VERSION__", &lit(version))
-        .replace("__FLOW_PLATFORM__", &lit(platform))
-        .replace("__FLOW_MUTE__", if mute { "true" } else { "false" })
+        .replace("__FLOW_ORIGIN__", &lit(v.origin))
+        .replace("__FLOW_VERSION__", &lit(v.version))
+        .replace("__FLOW_BUILD__", &lit(v.build))
+        .replace("__FLOW_PLATFORM__", &lit(v.platform))
+        .replace("__FLOW_BETA__", b(v.beta))
+        .replace("__FLOW_MUTE__", b(v.mute))
+}
+
+/// The commit the app was built from (CI's GITHUB_SHA), or "dev".
+pub fn build_id() -> &'static str {
+    match option_env!("GITHUB_SHA") {
+        Some(s) if s.len() >= 7 => &s[..7],
+        _ => "dev",
+    }
 }
 
 #[tauri::command]
@@ -31,91 +53,217 @@ pub fn media_update(app: AppHandle, s: MediaState) {
     }
 }
 
+/// Whether the app's reminders are on (notify::app_permission), not only the system's answer.
 #[tauri::command]
-pub async fn notify_permission() -> String {
-    tauri::async_runtime::spawn_blocking(|| notify::permission().as_str().to_string())
+pub async fn notify_permission(app: AppHandle) -> String {
+    let on = app.state::<AppState>().settings().notify;
+    let sys = tauri::async_runtime::spawn_blocking(notify::permission)
         .await
-        .unwrap_or_else(|_| "denied".into())
+        .unwrap_or(notify::Permission::Denied);
+    notify::app_permission(sys, on, cfg!(target_os = "windows")).to_string()
 }
 
-/// 「到点用 App 通知提醒」: asks the system once, and from then on the app keeps the reminders planned.
+/// 「到点用 App 通知提醒」: asks the system once; yes → the app keeps the reminders planned from now on.
 #[tauri::command]
 pub async fn notify_ask(app: AppHandle) -> bool {
     let ok = tauri::async_runtime::spawn_blocking(notify::ask)
         .await
         .unwrap_or(false);
     if ok {
-        let st = app.state::<AppState>();
-        st.update_settings(|s| s.notify = true);
+        app.state::<AppState>().update_settings(|s| s.notify = true);
         crate::menu::refresh(&app);
     }
     ok
 }
 
-/// Whether bridge.js should fetch the reminder and sync now: the reminders are on, and the last plan is
-/// older than 30 minutes (or from before this run).
+/// Whether bridge.js should fetch /api/next/vocab and plan now: the reminders are on, and the last plan is older
+/// than 30 minutes (or from before this run).
 #[tauri::command]
 pub fn notify_due(state: State<'_, AppState>) -> bool {
-    if !state.settings().notify {
-        return false;
-    }
-    let now = chrono::Utc::now().timestamp();
-    now - state.last_sync.load(Ordering::Relaxed) > 30 * 60
+    state.settings().notify
+        && chrono::Utc::now().timestamp() - state.last_sync.load(Ordering::Relaxed) > 30 * 60
 }
 
-/// FlowApp.notify.sync(r): plan the next 7 days from the page's reminder; r = null clears them (signed out).
-#[tauri::command]
-pub async fn notify_sync(app: AppHandle, r: Option<Reminder>) -> Result<usize, String> {
-    let state = app.state::<AppState>();
-    let launch = format!("{}://review", state.channel.scheme());
-    let on = state.settings().notify;
-    state
-        .last_sync
+#[derive(Serialize)]
+pub struct PlanResult {
+    ok: bool,
+    planned: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    why: Option<String>,
+}
+
+/// Hand a plan to the system (replacing what was there) and remember it for pending().
+async fn put(app: &AppHandle, items: Vec<Planned>) -> PlanResult {
+    let st = app.state::<AppState>();
+    st.last_sync
         .store(chrono::Utc::now().timestamp(), Ordering::Relaxed);
-    tauri::async_runtime::spawn_blocking(move || match r {
-        Some(r) if on => notify::schedule(&schedule::plan(&r, chrono::Local::now()), &launch),
-        _ => {
+    let scheme = st.channel.scheme().to_string();
+    let n = items.len();
+    *st.last_plan.lock().unwrap() = items.clone();
+    let r = tauri::async_runtime::spawn_blocking(move || {
+        if items.is_empty() {
             notify::clear();
             Ok(0)
+        } else {
+            notify::schedule(&items, &scheme)
         }
     })
-    .await
-    .map_err(|e| e.to_string())?
+    .await;
+    match r {
+        Ok(Ok(_)) => PlanResult {
+            ok: true,
+            planned: n,
+            why: None,
+        },
+        Ok(Err(e)) => PlanResult {
+            ok: false,
+            planned: 0,
+            why: Some(e),
+        },
+        Err(e) => PlanResult {
+            ok: false,
+            planned: 0,
+            why: Some(e.to_string()),
+        },
+    }
+}
+
+fn input_now(st: &AppState) -> Input {
+    let s = st.settings();
+    Input {
+        once_seen: s.once_seen,
+        app: s.notify,
+        ..Input::default()
+    }
+}
+
+/// The page fetched /api/next/vocab (bridge.js): plan the next two weeks from it (schedule.rs), if the learner
+/// turned the app's reminders on.
+#[tauri::command]
+pub async fn notify_plan(app: AppHandle, v: serde_json::Value) -> PlanResult {
+    let st = app.state::<AppState>();
+    let x = schedule::input_from(&v, &input_now(&st));
+    let items = schedule::slots(&x, chrono::Utc::now());
+    // a once that went to the system is remembered (its day gets no daily one after it)
+    let seen = schedule::remember(&x, &items).once_seen;
+    if seen != st.settings().once_seen {
+        st.update_settings(|s| s.once_seen = seen);
+    }
+    put(&app, items).await
+}
+
+/// Signed out (/api/next/vocab said 401): no word reminders for an account that is not here.
+#[tauri::command]
+pub async fn notify_signed_out(app: AppHandle) -> PlanResult {
+    let st = app.state::<AppState>();
+    let x = schedule::signed_out(&input_now(&st));
+    put(&app, schedule::slots(&x, chrono::Utc::now())).await
+}
+
+/// 「数据存放在香港」 not agreed to yet (/api/next/vocab said 403 'storage'): no reminders at all, the switch stays
+/// on, and the next plan after the learner agrees puts them back.
+#[tauri::command]
+pub async fn notify_hold(app: AppHandle) -> PlanResult {
+    put(&app, vec![]).await
+}
+
+/// FlowApp.notify.sync(null) or sync({app: false}): the learner turned the app's reminders off.
+#[tauri::command]
+pub async fn notify_off(app: AppHandle) -> PlanResult {
+    app.state::<AppState>()
+        .update_settings(|s| s.notify = false);
+    crate::menu::refresh(&app);
+    put(&app, vec![]).await
+}
+
+#[derive(Serialize)]
+pub struct Pending {
+    id: String,
+    at: Option<i64>,
+    title: String,
+    body: String,
+}
+
+/// FlowApp.notify.pending(): what the system has queued, with the texts of the last plan.
+#[tauri::command]
+pub async fn notify_pending(app: AppHandle) -> Vec<Pending> {
+    let queued = tauri::async_runtime::spawn_blocking(notify::pending)
+        .await
+        .unwrap_or_default();
+    let plan = app.state::<AppState>().last_plan.lock().unwrap().clone();
+    queued
+        .into_iter()
+        .map(|(key, at)| {
+            let p = plan
+                .iter()
+                .find(|p| p.id == key || notify::tag_of(&p.id) == key);
+            Pending {
+                id: p.map(|p| p.id.clone()).unwrap_or(key),
+                at: at.or(p.map(|p| p.at)),
+                title: p.map(|p| p.title.clone()).unwrap_or_default(),
+                body: p.map(|p| p.body.clone()).unwrap_or_default(),
+            }
+        })
+        .collect()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn script_fills_in_literals() {
-        let s = script("https://flowlang.cn", "0.1.0", "macos", false);
-        assert!(s.contains(r#"location.origin !== "https://flowlang.cn""#));
-        assert!(s.contains("const MUTE = false;"));
-        assert!(
-            script("https://flowlang.cn", "0.1.0", "macos", true).contains("const MUTE = true;")
-        );
-        assert!(s.contains(r#"app: "0.1.0""#));
-        assert!(s.contains(r#"platform: "macos""#));
-        assert!(!s.contains("__FLOW_"));
-        // a quote in a value cannot break out of the string
-        let s = script("https://x\"y", "0", "windows", false);
-        assert!(s.contains(r#""https://x\"y""#));
+    fn vars(origin: &str, mute: bool) -> ScriptVars<'_> {
+        ScriptVars {
+            origin,
+            version: "0.1.0",
+            build: "abc1234",
+            platform: "macos",
+            beta: true,
+            mute,
+        }
     }
 
     #[test]
-    fn capabilities_match_the_page() {
-        let s = script("https://flowlang.cn", "0.1.0", "macos", false);
-        // the three things the page tests for (#139 uses has('notify'), notify.ask and notify.sync)
+    fn script_fills_in_literals() {
+        let s = script(&vars("https://flowlang.cn", false));
+        assert!(s.contains(r#"location.origin !== "https://flowlang.cn""#));
+        assert!(
+            s.contains(r#"app: "0.1.0""#)
+                && s.contains(r#"build: "abc1234""#)
+                && s.contains("beta: true")
+        );
+        assert!(s.contains(r#"platform: "macos""#));
+        assert!(s.contains("const MUTE = false;"));
+        assert!(script(&vars("https://flowlang.cn", true)).contains("const MUTE = true;"));
+        assert!(!s.contains("__FLOW_"));
+        // a quote in a value cannot break out of the string
+        assert!(script(&vars("https://x\"y", false)).contains(r#""https://x\"y""#));
+    }
+
+    #[test]
+    fn script_matches_the_contract() {
+        let s = script(&vars("https://flowlang.cn", false));
+        // docs/native-bridge.md §2: has(), call('hello'), on() returning an unsubscribe function, notify.pending()
         assert!(s.contains("CAPS = ['notify', 'media']"));
         for c in [
+            "notify_hold",
             "notify_permission",
             "notify_ask",
-            "notify_sync",
+            "notify_plan",
+            "notify_off",
+            "notify_signed_out",
             "notify_due",
+            "notify_pending",
             "media_update",
         ] {
             assert!(s.contains(&format!("'{c}'")), "{c}");
         }
+        assert!(s.contains("'hello'") && s.contains("'app.visible'"));
+        assert!(s.contains("return () => FlowApp.off(type, fn)"));
+    }
+
+    #[test]
+    fn build_id_is_short() {
+        let b = build_id();
+        assert!(b == "dev" || b.len() == 7);
     }
 }

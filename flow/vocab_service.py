@@ -503,15 +503,18 @@ def introduce(c, uid, now=None):
     have = {r[0] for r in c.execute('SELECT norm FROM next_cards WHERE user_id=?', (uid,))}
     d = nx.dictionary()
     skip = _skip_below(p['book'], p.get('skip_rank'))
-    added = 0
+    # Two requests at once (今日 open twice, the app and the page): both read `have` before either wrote. OR IGNORE
+    # lets the second pass over a word the first just added (b38, 2026-11-25: a 500 on UNIQUE(user_id, norm)), and such
+    # a word still counts toward today's, so the second does not go on to add a second day's worth.
+    added = tried = 0
     for rank, w in book_words()[p['book']]:
         if w in have or (skip and rank <= skip):
             continue
         e = d[w]
-        c.execute('INSERT INTO next_cards(user_id,text,norm,meaning,context,pack,kind,created,due,state,source,rank) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
-                  (uid, e['word'], w, e['meaning'][:300], '', None, 'word', now, now, 'new', 'book', rank))
-        added += 1
-        if added >= need:
+        added += c.execute('INSERT OR IGNORE INTO next_cards(user_id,text,norm,meaning,context,pack,kind,created,due,state,source,rank) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                           (uid, e['word'], w, e['meaning'][:300], '', None, 'word', now, now, 'new', 'book', rank)).rowcount
+        tried += 1
+        if tried >= need:
             break
     c.commit()
     return added
@@ -797,15 +800,16 @@ def more_new(c, uid, data):
     have = {r[0] for r in c.execute('SELECT norm FROM next_cards WHERE user_id=?', (uid,))}
     d = nx.dictionary()
     skip = _skip_below(p['book'], p.get('skip_rank'))
-    added = 0
+    added = tried = 0
     for rank, w in book_words()[p['book']]:
         if w in have or (skip and rank <= skip):
             continue
         e = d[w]
-        c.execute('INSERT INTO next_cards(user_id,text,norm,meaning,context,pack,kind,created,due,state,source,rank) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
-                  (uid, e['word'], w, e['meaning'][:300], '', None, 'word', now, now, 'new', 'book', rank))
-        added += 1
-        if added >= n:
+        # as in introduce: another request may have just added this word (a double tap); it is not added twice
+        added += c.execute('INSERT OR IGNORE INTO next_cards(user_id,text,norm,meaning,context,pack,kind,created,due,state,source,rank) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                           (uid, e['word'], w, e['meaning'][:300], '', None, 'word', now, now, 'new', 'book', rank)).rowcount
+        tried += 1
+        if tried >= n:
             break
     c.commit()
     return {'added': added, **counts(c, uid, now)}, 200
@@ -1050,10 +1054,10 @@ def import_words(c, uid, data):
         words = len(nx.WORD.findall(x))
         hit = nx.lookup(x) if words == 1 else None
         text = hit['word'] if hit and hit['lemma'] == norm else x
-        c.execute('INSERT INTO next_cards(user_id,text,norm,meaning,context,pack,kind,created,due,state,source,rank) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
-                  (uid, text, norm, hit['meaning'][:300] if hit else '', '', None, 'word' if words == 1 else 'phrase', now, now, 'new', 'import',
-                   hit['rank'] if hit else None))
-        added += 1
+        n = c.execute('INSERT OR IGNORE INTO next_cards(user_id,text,norm,meaning,context,pack,kind,created,due,state,source,rank) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                      (uid, text, norm, hit['meaning'][:300] if hit else '', '', None, 'word' if words == 1 else 'phrase', now, now, 'new', 'import',
+                       hit['rank'] if hit else None)).rowcount  # added meanwhile by another request: skipped, not a 500
+        added += n; skipped += 1 - n
     c.commit()
     return {'added': added, 'skipped': skipped}, 200
 
@@ -1114,9 +1118,9 @@ def add_many(c, uid, data):
         if min_rank and (e.get('rank') or 99999) < min_rank:
             skipped += 1
             continue
-        c.execute('INSERT INTO next_cards(user_id,text,norm,meaning,context,pack,kind,created,due,state,source,rank) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
-                  (uid, e.get('word', norm), norm, (e.get('meaning') or '')[:300], sentence, pack, 'word', now, now, 'new', 'saved', e.get('rank')))
-        added += 1
+        n = c.execute('INSERT OR IGNORE INTO next_cards(user_id,text,norm,meaning,context,pack,kind,created,due,state,source,rank) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                      (uid, e.get('word', norm), norm, (e.get('meaning') or '')[:300], sentence, pack, 'word', now, now, 'new', 'saved', e.get('rank'))).rowcount
+        added += n; skipped += 1 - n  # added meanwhile by another request (a double tap): skipped, not a 500
     c.commit()
     return {'added': added, 'skipped': skipped, **counts(c, uid, now)}, 200
 
@@ -1277,14 +1281,15 @@ def send_reminders(c, now=None, send=None):
         return 0
     # 这次什么时候复习: a time the learner chose comes instead of the daily hour until then; at that time the mail goes
     # (if there are words, and none went that day), and the time is cleared; long past (the server was down): cleared only
+    paused = ' AND u.storage_no IS NULL' if 'storage_no' in {x[1] for x in c.execute('PRAGMA table_info(users)')} else ''  # no mail to a paused account (privacy_service)
     once = c.execute("SELECT r.user_id, u.email, u.username, r.last_sent, r.once_at FROM next_reminders r JOIN users u ON u.id=r.user_id "
-                     "WHERE r.once_at IS NOT NULL AND r.once_at<=?", (now,)).fetchall()
+                     "WHERE r.once_at IS NOT NULL AND r.once_at<=?" + paused, (now,)).fetchall()
     for r in once:
         c.execute('UPDATE next_reminders SET once_at=NULL WHERE user_id=?', (r['user_id'],))
     c.commit()
     once = [r for r in once if r['email'] and now - r['once_at'] < 2 * 3600 and (r['last_sent'] or '') < today]
     rows = c.execute("SELECT r.user_id, u.email, u.username FROM next_reminders r JOIN users u ON u.id=r.user_id "
-                     "WHERE r.enabled=1 AND r.hour=? AND (r.last_sent IS NULL OR r.last_sent<?) AND r.once_at IS NULL AND u.email IS NOT NULL AND u.email!=''",
+                     "WHERE r.enabled=1 AND r.hour=? AND (r.last_sent IS NULL OR r.last_sent<?) AND r.once_at IS NULL AND u.email IS NOT NULL AND u.email!=''" + paused,
                      (local.hour, today)).fetchall()
     sent = 0
     weekly = __import__('progress_service').mailed_today
@@ -1323,7 +1328,7 @@ def ics(hour, kind='vocab', minutes=10, at=None):
     at (seconds, 这次什么时候复习): one event at that time instead, the daily one unchanged."""
     import os
     hour = hour if hour in REMIND_HOURS else 20
-    minutes = minutes if minutes in (5, 10, 15, 20, 30) else 10
+    minutes = minutes if minutes in nx.MINUTES else 10  # every 每天学习时长 of 我的 (语流 20: 45 and 60 came out as 10)
     origin = os.getenv('FLOW_PUBLIC_URL', 'https://flowlang.cn').rstrip('/')
     start = datetime.datetime.now(nx.TZ).replace(hour=hour, minute=0, second=0, microsecond=0)
     if at:

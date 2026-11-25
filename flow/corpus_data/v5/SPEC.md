@@ -66,6 +66,7 @@ python3 tools/corpus_validate.py flow/corpus_data/v5/science.B2.json
 |---|---|
 | `spec` | 新材料写 `"5.1"` |
 | `ai` | 只能是 `"AI 辅助编写"`。**不要**写 `reviewed`，也不要在任何地方写「人工审校」：没有人工逐篇审校的记录 |
+| `reviewed_by_human`（可选） | 默认没有（等于 `false`）。只有**用户本人读完了这一篇**，才写 `true`，同时写 `reviewed_on: "YYYY-MM-DD"`。文章页的「AI 生成」后面会多一句「经人工审核」。抽查清单里看过的篇目，用户确认以后才能这样标 |
 | `body` | 至少 **13 句** |
 | `questions` | **3–4 道**，每道标 `type`：`main` 主旨、`inference` 推断、`vocab` 语境词义、`detail` 细节；主旨、推断、词义至少各一道。学习者看到「第 1 题 · 主旨」 |
 | `purposes` | 1–3 个，取自下表；r28「按学习目的推荐」用它 |
