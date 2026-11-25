@@ -723,7 +723,11 @@
       const o = { key: r.key, title: r.title || '', from: r.i, ...this.knobs(r) };
       if (S.csrf) o.csrf = S.csrf;
       if (r.nm) { o.src = NAR.net; o.sentences = r.nm.sentences.map(x => [x.s, x.e]); o.loop = !!r.loop; const alt = mediaAlt(NAR.net); if (alt) o.alt = alt; }
-      else { o.texts = r.texts; o.voice = r.voice || S.voice; if (r.pack) o.pack = r.pack; }
+      else {  // no recording: each sentence with the address this phone already has for it (SV address book), else null (§3 items)
+        const voice = r.voice || S.voice, pack = r.pack;
+        o.items = r.texts.map(text => ({ text, url: (SV.kept()[SV.hash(SV.key(text, { voice, pack }))] || [])[0] || null }));
+        o.voice = voice; if (pack) o.pack = pack;
+      }
       this.sent = JSON.stringify(this.knobs(r));
       FlowApp.audio.play(o).then(x => { if (!(x && x.ok) && LONG.r === r) this.fail(r, x && x.message); }, () => { if (LONG.r === r) this.fail(r); });
     },
@@ -739,6 +743,13 @@
       MINI.paused(d.state === 'paused');
       this.retune();  // 复读 or 语速 changed meanwhile
       LONG.emit(); this.loop();
+    },
+    // the app made a sentence this phone had no address for: kept in the SV address book (§3 audio-made), so it is
+    // not made twice and the page finds it too (offline, in Safari)
+    made(d) {
+      const r = LONG.r;
+      if (!d || !d.url || !r || !r.native || d.key !== r.key || !(d.i >= 0) || d.i >= r.texts.length) return;
+      SV.keep(SV.key(r.texts[d.i], { voice: r.voice || S.voice, pack: r.pack }), d.url);
     },
     // the sentence moved on between two 'audio' news (they come with each new sentence, §3; a tick says it as well)
     ticked(d) {
@@ -778,7 +789,7 @@
       const r = LONG.r; if (!r || !r.native || !r.nm || r.state !== 'playing' || !r.onWord) return;
       const f = () => {
         const k = this.tick; if (LONG.r !== r || r.state !== 'playing') return;
-        if (k && k.key === r.key && NAR.meta === r.nm) { const [si, wc] = NAR.locate(k.t + Math.max(0, Date.now() - k.at) / 1000 * (k.rate || 1)); if (si >= 0) r.onWord(si, wc); }
+        if (k && k.key === r.key && NAR.meta === r.nm) { const [si, wc] = NAR.locate(k.t + Math.max(0, Date.now() - k.at) / 1000 * (k.rate || 1)); if (si >= 0 && si === r.i) r.onWord(si, wc); }  // only the app's sentence: an older tick never lights the one before
         this.raf = requestAnimationFrame(f);
       };
       this.raf = requestAnimationFrame(f);
@@ -801,6 +812,7 @@
   if (NATIVE.on()) {
     FlowApp.on('audio', d => NATIVE.news(d));
     FlowApp.on('audio-tick', d => NATIVE.ticked(d));
+    FlowApp.on('audio-made', d => NATIVE.made(d));
     FlowApp.audio.state().then(d => { if (d && d.state !== 'idle') NATIVE.news(d); }, () => {});
   }
 
