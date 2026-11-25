@@ -21,9 +21,9 @@ use std::path::PathBuf;
 use std::sync::atomic::AtomicI64;
 use std::sync::Mutex;
 use tauri::webview::{NewWindowResponse, PageLoadEvent, PermissionKind, PermissionResponse};
-use tauri::{
-    AppHandle, Manager, RunEvent, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent,
-};
+#[cfg(target_os = "macos")]
+use tauri::RunEvent;
+use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_autostart::ManagerExt as _;
 use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_opener::OpenerExt;
@@ -57,6 +57,8 @@ pub struct AppState {
     pub smoke: Option<PathBuf>,
     pub media_ok: std::sync::atomic::AtomicBool,
     pub media_title: Mutex<Option<String>>,
+    /// FLOW_MUTE=1 or a smoke test: no sound from the page or the notifications
+    pub mute: bool,
 }
 
 impl AppState {
@@ -277,7 +279,7 @@ fn build_window(app: &AppHandle, hidden: bool) -> tauri::Result<WebviewWindow> {
         .min_inner_size(380.0, 560.0)
         .visible(!hidden)
         .user_agent(&user_agent)
-        .initialization_script(bridge::script(&origin, &version, os.platform()))
+        .initialization_script(bridge::script(&origin, &version, os.platform(), st.mute))
         .zoom_hotkeys_enabled(cfg!(target_os = "windows"))
         .on_navigation(move |u| match links::classify(&s1, u) {
             links::Nav::InApp => true,
@@ -355,7 +357,10 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         smoke: smoke::path_from_args(std::env::args()),
         media_ok: Default::default(),
         media_title: Mutex::new(None),
+        mute: std::env::var_os("FLOW_MUTE").is_some_and(|v| v != "0")
+            || smoke::path_from_args(std::env::args()).is_some(),
     });
+    notify::set_silent(app.state::<AppState>().mute);
     if let Some(p) = app.state::<AppState>().smoke.clone() {
         smoke::watchdog(handle.clone(), p);
     }
@@ -480,9 +485,11 @@ pub fn run() {
         .setup(setup)
         .build(tauri::generate_context!())
         .expect("error while building 语流");
-    app.run(|app, e| {
-        if let RunEvent::Reopen { .. } = e {
-            show_main(app); // the Dock icon
+    app.run(|_app, _e| {
+        // the Dock icon (macOS only: Windows has the taskbar and the tray)
+        #[cfg(target_os = "macos")]
+        if let RunEvent::Reopen { .. } = _e {
+            show_main(_app);
         }
     });
 }

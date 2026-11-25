@@ -70,6 +70,9 @@ npm run build:beta       # 打 Beta 安装包；npm run build 打 Release
 调试版可以指向本机服务器：`FLOW_DESKTOP_SITE=http://127.0.0.1:8090/ npm run dev`（正式构建忽略这个变量）。
 `FLOW_DESKTOP_LOG=1` 在终端打印日志（只打到 stderr，不写文件、不上传）。
 
+**测试时不出声**：`FLOW_MUTE=1`（冒烟测试总是这样）。网页的 `<audio>` 静音、Web Audio 走一个音量为 0 的节点、浏览器朗读音量 0，
+通知不带提示音；播放、事件、系统媒体控制照常，只是听不见。要真的放出声音的测试，先问用户。
+
 ### 冒烟测试
 
 ```bash

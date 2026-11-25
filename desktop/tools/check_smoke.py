@@ -15,7 +15,7 @@ def problems(d, os_name):
     label = {'windows': 'Windows', 'macos': 'macOS'}[os_name]
     out = []
     want = {'flowapp': True, 'v': 1, 'platform': os_name, 'notify': True, 'media': True, 'audio': False,
-            'frozen': True, 'mediaSession': True, 'mediaHandlers': 11}
+            'frozen': True, 'mediaSession': True, 'mediaHandlers': 11, 'muted': True}
     for k, v in want.items():
         if p.get(k) != v:
             out.append(f'page.{k} = {p.get(k)!r}, want {v!r}')
@@ -27,6 +27,8 @@ def problems(d, os_name):
         out.append(f"notify.sync failed: {p['syncError']}")
     if not str(p.get('url', '')).startswith(('https://flow.jasa.hk/', 'https://flowlang.cn/')):
         out.append(f"page is {p.get('url')!r}, not the site")
+    if not n.get('mute'):
+        out.append('a smoke test must run muted (FLOW_MUTE)')
     if not n.get('media_controls'):
         out.append('the system media controls did not start')
     if n.get('media_last_title') != '语流 · 冒烟测试':
@@ -35,6 +37,7 @@ def problems(d, os_name):
 
 
 def main():
+    sys.stdout.reconfigure(encoding='utf-8')  # a Windows runner's console is not UTF-8
     path, os_name = sys.argv[1], (sys.argv[2] if len(sys.argv) > 2 else ('windows' if sys.platform == 'win32' else 'macos'))
     with open(path, encoding='utf-8') as f:
         d = json.load(f)

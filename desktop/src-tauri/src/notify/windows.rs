@@ -2,7 +2,7 @@
 //! closed. They belong to the app's AppUserModelID — the bundle identifier, which the installer puts on the
 //! Start-menu shortcut — and a click opens flowlang://review, which starts 语流 on the review page.
 
-use super::{toast_xml, Permission};
+use super::{silent, toast_xml, Permission};
 use crate::schedule::Planned;
 use std::sync::OnceLock;
 use windows::core::HSTRING;
@@ -46,7 +46,7 @@ pub fn ask() -> bool {
 
 fn doc(title: &str, body: &str, launch: &str) -> Result<XmlDocument, String> {
     let d = XmlDocument::new().map_err(|e| e.message().to_string())?;
-    d.LoadXml(&HSTRING::from(toast_xml(title, body, launch)))
+    d.LoadXml(&HSTRING::from(toast_xml(title, body, launch, silent())))
         .map_err(|e| e.message().to_string())?;
     Ok(d)
 }

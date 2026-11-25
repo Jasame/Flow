@@ -1,7 +1,7 @@
 //! macOS: UNUserNotificationCenter. Works only from the bundled 语流.app (not `cargo run`): outside a bundle
 //! there is no notification center, and every call here quietly does nothing.
 
-use super::{route_of, Permission};
+use super::{route_of, silent, Permission};
 use crate::schedule::Planned;
 use block2::RcBlock;
 use chrono::{Datelike, Local, TimeZone, Timelike};
@@ -42,9 +42,12 @@ define_class!(
             _n: &UNNotification,
             handler: &block2::DynBlock<dyn Fn(UNNotificationPresentationOptions)>,
         ) {
-            handler.call((UNNotificationPresentationOptions::Banner
-                | UNNotificationPresentationOptions::List
-                | UNNotificationPresentationOptions::Sound,));
+            let mut o =
+                UNNotificationPresentationOptions::Banner | UNNotificationPresentationOptions::List;
+            if !silent() {
+                o |= UNNotificationPresentationOptions::Sound;
+            }
+            handler.call((o,));
         }
 
         #[unsafe(method(userNotificationCenter:didReceiveNotificationResponse:withCompletionHandler:))]
@@ -133,7 +136,9 @@ fn request(id: &str, title: &str, body: &str, at: Option<i64>) -> Retained<UNNot
     let content = UNMutableNotificationContent::new();
     content.setTitle(&NSString::from_str(title));
     content.setBody(&NSString::from_str(body));
-    content.setSound(Some(&UNNotificationSound::defaultSound()));
+    if !silent() {
+        content.setSound(Some(&UNNotificationSound::defaultSound()));
+    }
     content.setThreadIdentifier(&NSString::from_str("flow-review"));
     let trigger = at
         .and_then(|at| Local.timestamp_opt(at, 0).single())

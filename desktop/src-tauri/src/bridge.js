@@ -7,6 +7,8 @@
  *  - has('media'): the system's media controls (Windows SMTC, macOS 「正在播放」, the media keys) follow the
  *    page's navigator.mediaSession; a key runs the action the page registered. The page plays its own audio.
  *  - no 'audio' / 'rec': a desktop webview plays and records like a browser.
+ *  - FLOW_MUTE=1 (and every --smoke-test): the page makes no sound — <audio>/<video> muted, Web Audio through a
+ *    silent gain, browser speech at volume 0. Everything else (events, timing, media controls) runs as usual.
  */
 (() => {
   'use strict';
@@ -14,6 +16,23 @@
   const T = window.__TAURI_INTERNALS__;
   if (!T || typeof T.invoke !== 'function') return;
   const invoke = (cmd, args) => T.invoke(cmd, args || {});
+  const MUTE = __FLOW_MUTE__;
+  if (MUTE) {
+    const conn = AudioNode.prototype.connect;
+    AudioNode.prototype.connect = function (dest, ...rest) {
+      if (typeof AudioDestinationNode !== 'undefined' && dest instanceof AudioDestinationNode) {
+        const ctx = dest.context;
+        if (!ctx.__flowSilent) { const g = ctx.createGain(); g.gain.value = 0; conn.call(g, dest); ctx.__flowSilent = g; }
+        conn.call(this, ctx.__flowSilent, ...rest);
+        return dest;
+      }
+      return conn.call(this, dest, ...rest);
+    };
+    if (window.speechSynthesis) {
+      const speak = speechSynthesis.speak.bind(speechSynthesis);
+      speechSynthesis.speak = u => { try { u.volume = 0; } catch (e) { /* ignore */ } return speak(u); };
+    }
+  }
   const CAPS = ['notify', 'media'];
   const subs = new Map();
   const emit = (type, detail) => {
@@ -79,6 +98,7 @@
   // which <audio> is playing: for the position and length in the system's controls
   const P = HTMLMediaElement.prototype, play0 = P.play, seen = new WeakSet();
   P.play = function () {
+    if (MUTE) this.muted = true;
     media.el = this;
     if (!seen.has(this)) {
       seen.add(this);

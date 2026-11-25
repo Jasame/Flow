@@ -13,7 +13,6 @@ pub struct Settings {
     pub close_to_tray: bool,
 }
 
-
 pub fn load(path: &Path) -> Settings {
     std::fs::read_to_string(path)
         .ok()

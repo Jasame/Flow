@@ -9,12 +9,13 @@ use std::sync::atomic::Ordering;
 use tauri::{AppHandle, Manager, State};
 
 /// bridge.js with this run's origin, version and platform filled in (as JSON literals: no quoting surprises).
-pub fn script(origin: &str, version: &str, platform: &str) -> String {
+pub fn script(origin: &str, version: &str, platform: &str, mute: bool) -> String {
     let lit = |s: &str| serde_json::to_string(s).unwrap_or_else(|_| "\"\"".into());
     include_str!("bridge.js")
         .replace("__FLOW_ORIGIN__", &lit(origin))
         .replace("__FLOW_VERSION__", &lit(version))
         .replace("__FLOW_PLATFORM__", &lit(platform))
+        .replace("__FLOW_MUTE__", if mute { "true" } else { "false" })
 }
 
 #[tauri::command]
@@ -88,19 +89,23 @@ mod tests {
 
     #[test]
     fn script_fills_in_literals() {
-        let s = script("https://flowlang.cn", "0.1.0", "macos");
+        let s = script("https://flowlang.cn", "0.1.0", "macos", false);
         assert!(s.contains(r#"location.origin !== "https://flowlang.cn""#));
+        assert!(s.contains("const MUTE = false;"));
+        assert!(
+            script("https://flowlang.cn", "0.1.0", "macos", true).contains("const MUTE = true;")
+        );
         assert!(s.contains(r#"app: "0.1.0""#));
         assert!(s.contains(r#"platform: "macos""#));
         assert!(!s.contains("__FLOW_"));
         // a quote in a value cannot break out of the string
-        let s = script("https://x\"y", "0", "windows");
+        let s = script("https://x\"y", "0", "windows", false);
         assert!(s.contains(r#""https://x\"y""#));
     }
 
     #[test]
     fn capabilities_match_the_page() {
-        let s = script("https://flowlang.cn", "0.1.0", "macos");
+        let s = script("https://flowlang.cn", "0.1.0", "macos", false);
         // the three things the page tests for (#139 uses has('notify'), notify.ask and notify.sync)
         assert!(s.contains("CAPS = ['notify', 'media']"));
         for c in [

@@ -11,6 +11,15 @@ mod windows;
 #[cfg(target_os = "windows")]
 pub use self::windows::*;
 
+/// Notifications without their sound (FLOW_MUTE=1, smoke tests).
+static SILENT: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+pub fn set_silent(on: bool) {
+    SILENT.store(on, std::sync::atomic::Ordering::Relaxed);
+}
+pub fn silent() -> bool {
+    SILENT.load(std::sync::atomic::Ordering::Relaxed)
+}
+
 /// FlowApp.notify.permission(): 'granted' | 'denied' | 'undetermined' (the same words as the iOS app)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Permission {
@@ -31,12 +40,17 @@ impl Permission {
 
 #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
 /// The toast XML Windows shows (pure, so it is tested everywhere). A click opens `launch` (flowlang://review).
-pub fn toast_xml(title: &str, body: &str, launch: &str) -> String {
+pub fn toast_xml(title: &str, body: &str, launch: &str, silent: bool) -> String {
     format!(
-        r#"<toast launch="{}" activationType="protocol"><visual><binding template="ToastGeneric"><text>{}</text><text>{}</text></binding></visual></toast>"#,
+        r#"<toast launch="{}" activationType="protocol"><visual><binding template="ToastGeneric"><text>{}</text><text>{}</text></binding></visual>{}</toast>"#,
         xml_escape(launch),
         xml_escape(title),
-        xml_escape(body)
+        xml_escape(body),
+        if silent {
+            r#"<audio silent="true"/>"#
+        } else {
+            ""
+        }
     )
 }
 
@@ -58,6 +72,7 @@ pub fn xml_escape(s: &str) -> String {
 }
 
 /// The click target of a notification id (all reminders open the review).
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub fn route_of(id: &str) -> Option<&'static str> {
     if id.starts_with("flow-daily-") || id == "flow-once" {
         Some("/review")
@@ -105,7 +120,11 @@ mod tests {
             "语流 · <复习>",
             "A & B \"quoted\"\u{1}",
             "flowlang://review",
+            false,
         );
+        assert!(!x.contains("<audio"));
+        assert!(toast_xml("t", "b", "flowlang://review", true)
+            .contains(r#"<audio silent="true"/></toast>"#));
         assert!(x.contains("<text>语流 · &lt;复习&gt;</text>"));
         assert!(x.contains("<text>A &amp; B &quot;quoted&quot;</text>"));
         assert!(x.contains(r#"launch="flowlang://review" activationType="protocol""#));

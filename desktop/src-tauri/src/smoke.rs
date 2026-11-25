@@ -17,6 +17,8 @@ pub const PAGE_CHECK: &str = r#"(async () => {
     flowapp: !!F, v: F && F.v, app: F && F.app, platform: F && F.platform,
     notify: !!(F && F.has('notify')), media: !!(F && F.has('media')), audio: !!(F && F.has('audio')),
     frozen: !!F && Object.isFrozen(F), mediaSession: !!navigator.mediaSession };
+  // muted (every smoke test is): an <audio> started by the page comes out muted
+  try { const a = new Audio(); a.play().catch(() => {}); r.muted = a.muted; a.pause(); } catch (e) { r.mutedError = String(e); }
   try { r.permission = await F.notify.permission(); } catch (e) { r.permissionError = String(e); }
   try {
     let played = 0;
@@ -55,6 +57,7 @@ pub async fn smoke_report(app: AppHandle, r: serde_json::Value) {
             "webview": tauri::webview_version().ok(),
             "media_controls": st.media_ok.load(std::sync::atomic::Ordering::Relaxed),
             "media_last_title": st.media_title.lock().unwrap().clone(),
+            "mute": st.mute,
             "notify_setting": st.settings().notify,
             "pending": pending.iter().map(|(id, at)| serde_json::json!({ "id": id, "at": at.map(|t| chrono::DateTime::from_timestamp(t, 0).map(|d| d.with_timezone(&chrono::Local).to_rfc3339())) })).collect::<Vec<_>>(),
             "delivered": delivered,
