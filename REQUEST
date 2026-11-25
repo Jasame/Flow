@@ -1,3 +1,3 @@
-ade39db9fcec6b5abdc35902c8e43950d9c113d0 184a19a62369bf763ba91a9753cea8ab35ccb4508f22c4680caf1fa00105c2b5 e2e light ref=build-9a8a0d4bf43d
-# b38 main: Merge pull request #133 from Jasame/ledger-r29 = build of 9a8a0d4bf43d
+a00db23530c3db638add3d0dceb7eecbefaaddeb 244d5aabade24fc512a0e6fa09f52781038e2f9a6aee8bb5b1cccc82a0ee4991 e2e light ref=build-81d44fd433e9
+# b39 main: Merge pull request #137 from Jasame/changelog-reasons = build of 81d44fd433e9
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>]. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
