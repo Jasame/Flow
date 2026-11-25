@@ -1,0 +1,89 @@
+name: iOS
+# The iOS app (ios/, 语流 20): the unit tests (FlowTests, 25 tests, about a minute, no network) on every change under
+# ios/ (or this file); on main also the simulator .app for Beta and for Release. The website's runs are unchanged:
+# tests.yml skips its shares for a pull request that touches only the native apps (tools/run_tests.py NATIVE_APPS).
+# Not a required check: a path-filtered check never reports on a website pull request, so requiring it would block
+# them all. Whoever merges an iOS pull request first checks this run is green. CI belongs to 语流 15.
+#
+# Nothing is signed (CODE_SIGNING_ALLOWED=NO), no keychain, no secrets, no environment for the app. The UI tests
+# (FlowUITests) talk to the 内测版 and are not run here. A device .ipa needs a developer account and is not made.
+# The simulator apps are kept 14 days as the run's artifacts; sending one to anyone needs the owner's yes first.
+on:
+  pull_request:
+    paths: ['ios/**', '.github/workflows/ios.yml']
+  push:
+    branches: [main]
+    paths: ['ios/**', '.github/workflows/ios.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  ios:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Xcode 26 or newer
+        run: |
+          xcodebuild -version
+          major=$(xcodebuild -version | awk 'NR == 1 { split($2, v, "."); print v[1] }')
+          if [ "$major" -lt 26 ]; then echo "::error::the project needs Xcode 26 or newer (objectVersion 77, Swift 6.2); this runner has $major"; exit 1; fi
+      - name: Pick a simulator
+        # an available iPhone (a plain "iPhone <n>" first) on the newest iOS runtime the selected Xcode's SDK can run:
+        # names follow the runner's Xcode, so none is written down here
+        run: |
+          sdk=$(xcrun --sdk iphonesimulator --show-sdk-version)
+          xcrun simctl list devices available -j > "$RUNNER_TEMP/devices.json"
+          udid=$(python3 - "$RUNNER_TEMP/devices.json" "$sdk" <<'EOF'
+          import json, re, sys
+          devices = json.load(open(sys.argv[1]))['devices']
+          sdk = tuple(int(x) for x in sys.argv[2].split('.'))
+          runtimes = []
+          for key, items in devices.items():
+              m = re.search(r'\.iOS-(\d+)-(\d+)$', key)  # not a device's own runtime (iOS-27-2-iPhone19-4)
+              if m and (int(m[1]), int(m[2])) <= sdk:
+                  phones = [d for d in items if d.get('isAvailable', True) and d['name'].startswith('iPhone')]
+                  phones.sort(key=lambda d: not re.fullmatch(r'iPhone \d+', d['name']))  # a plain iPhone first
+                  if phones:
+                      runtimes.append(((int(m[1]), int(m[2])), phones[0]))
+          if not runtimes:
+              sys.exit(f'no available iPhone simulator for iOS {sys.argv[2]} or older')
+          version, phone = max(runtimes, key=lambda r: r[0])
+          print(f"simulator: {phone['name']}, iOS {version[0]}.{version[1]} (SDK {sys.argv[2]})", file=sys.stderr)
+          print(phone['udid'])
+          EOF
+          )
+          echo "UDID=$udid" >> "$GITHUB_ENV"
+      - name: Unit tests (FlowTests)
+        run: |
+          xcodebuild test -project ios/Flow.xcodeproj -scheme Flow-Beta -destination "platform=iOS Simulator,id=$UDID" \
+            -only-testing:FlowTests -derivedDataPath build -resultBundlePath build/FlowTests.xcresult CODE_SIGNING_ALLOWED=NO
+      - name: Simulator apps (Beta and Release)
+        if: github.event_name != 'pull_request'
+        run: |
+          mkdir -p dist
+          for c in Beta Release; do
+            xcodebuild build -project ios/Flow.xcodeproj -scheme "Flow-$c" -configuration "$c" \
+              -destination 'generic/platform=iOS Simulator' -derivedDataPath build CODE_SIGNING_ALLOWED=NO
+            lc=$(echo "$c" | tr '[:upper:]' '[:lower:]')
+            ditto -c -k --keepParent "build/Build/Products/$c-iphonesimulator/Flow.app" "dist/flow-ios-$lc-simulator.zip"
+          done
+          ls -la dist
+      - uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request'
+        with:
+          name: flow-ios-simulator-apps
+          retention-days: 14
+          path: dist/*.zip
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: flow-ios-test-results
+          retention-days: 14
+          if-no-files-found: ignore
+          path: build/FlowTests.xcresult

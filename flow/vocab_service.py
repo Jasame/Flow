@@ -1281,14 +1281,15 @@ def send_reminders(c, now=None, send=None):
         return 0
     # 这次什么时候复习: a time the learner chose comes instead of the daily hour until then; at that time the mail goes
     # (if there are words, and none went that day), and the time is cleared; long past (the server was down): cleared only
+    paused = ' AND u.storage_no IS NULL' if 'storage_no' in {x[1] for x in c.execute('PRAGMA table_info(users)')} else ''  # no mail to a paused account (privacy_service)
     once = c.execute("SELECT r.user_id, u.email, u.username, r.last_sent, r.once_at FROM next_reminders r JOIN users u ON u.id=r.user_id "
-                     "WHERE r.once_at IS NOT NULL AND r.once_at<=?", (now,)).fetchall()
+                     "WHERE r.once_at IS NOT NULL AND r.once_at<=?" + paused, (now,)).fetchall()
     for r in once:
         c.execute('UPDATE next_reminders SET once_at=NULL WHERE user_id=?', (r['user_id'],))
     c.commit()
     once = [r for r in once if r['email'] and now - r['once_at'] < 2 * 3600 and (r['last_sent'] or '') < today]
     rows = c.execute("SELECT r.user_id, u.email, u.username FROM next_reminders r JOIN users u ON u.id=r.user_id "
-                     "WHERE r.enabled=1 AND r.hour=? AND (r.last_sent IS NULL OR r.last_sent<?) AND r.once_at IS NULL AND u.email IS NOT NULL AND u.email!=''",
+                     "WHERE r.enabled=1 AND r.hour=? AND (r.last_sent IS NULL OR r.last_sent<?) AND r.once_at IS NULL AND u.email IS NOT NULL AND u.email!=''" + paused,
                      (local.hour, today)).fetchall()
     sent = 0
     weekly = __import__('progress_service').mailed_today

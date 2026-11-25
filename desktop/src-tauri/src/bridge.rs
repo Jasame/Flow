@@ -53,11 +53,14 @@ pub fn media_update(app: AppHandle, s: MediaState) {
     }
 }
 
+/// Whether the app's reminders are on (notify::app_permission), not only the system's answer.
 #[tauri::command]
-pub async fn notify_permission() -> String {
-    tauri::async_runtime::spawn_blocking(|| notify::permission().as_str().to_string())
+pub async fn notify_permission(app: AppHandle) -> String {
+    let on = app.state::<AppState>().settings().notify;
+    let sys = tauri::async_runtime::spawn_blocking(notify::permission)
         .await
-        .unwrap_or_else(|_| "denied".into())
+        .unwrap_or(notify::Permission::Denied);
+    notify::app_permission(sys, on, cfg!(target_os = "windows")).to_string()
 }
 
 /// 「到点用 App 通知提醒」: asks the system once; yes → the app keeps the reminders planned from now on.
@@ -157,6 +160,13 @@ pub async fn notify_signed_out(app: AppHandle) -> PlanResult {
     put(&app, schedule::slots(&x, chrono::Utc::now())).await
 }
 
+/// 「数据存放在香港」 not agreed to yet (/api/next/vocab said 403 'storage'): no reminders at all, the switch stays
+/// on, and the next plan after the learner agrees puts them back.
+#[tauri::command]
+pub async fn notify_hold(app: AppHandle) -> PlanResult {
+    put(&app, vec![]).await
+}
+
 /// FlowApp.notify.sync(null) or sync({app: false}): the learner turned the app's reminders off.
 #[tauri::command]
 pub async fn notify_off(app: AppHandle) -> PlanResult {
@@ -235,6 +245,7 @@ mod tests {
         // docs/native-bridge.md §2: has(), call('hello'), on() returning an unsubscribe function, notify.pending()
         assert!(s.contains("CAPS = ['notify', 'media']"));
         for c in [
+            "notify_hold",
             "notify_permission",
             "notify_ask",
             "notify_plan",

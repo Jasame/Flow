@@ -99,7 +99,7 @@ object Reminders {
             .put("next", list.firstOrNull()?.let { it.at / 1000.0 } ?: JSONObject.NULL).put("exact", exact(c))
     }
 
-    enum class Outcome { FRESH, SIGNED_OUT, OFFLINE }
+    enum class Outcome { FRESH, SIGNED_OUT, PAUSED, OFFLINE }
 
     /** Ask the site for the counts and the reminder (when it is on), then put the next two weeks on the phone. */
     suspend fun refresh(c: Context, force: Boolean = false): Outcome {
@@ -114,6 +114,8 @@ object Reminders {
             lastFetch = System.currentTimeMillis()
             when {
                 r.code == 401 -> { save(app, Planner.signedOut(input(app))); outcome = Outcome.SIGNED_OUT }  // the plan stays
+                // not agreed to 数据存放在香港: no reminders at all until it is (the hours are kept)
+                r.code == 403 && r.json().optString("code") == "storage" -> { save(app, Planner.paused(input(app))); outcome = Outcome.PAUSED }
                 r.ok -> save(app, Planner.input(r.json(), input(app)))
                 else -> outcome = Outcome.OFFLINE
             }
@@ -204,6 +206,7 @@ object Reminders {
         save(c, x)
         val outcome = refresh(c, force = true)
         val list = scheduled(c)
+        if (outcome == Outcome.PAUSED) return "先在页面上回答「数据存放在香港」那一问：同意以后，提醒会自己排上。"
         if (plan) return if (list.any { it.id.startsWith("plan-") }) "好，每天 ${input(c).planHour}:00 用通知提醒你今天的学习。不想要了，可以在手机的「设置 → 应用 → 语流 → 通知」里关掉。"
             else "没有排上，稍后再试一次。"
         if (outcome == Outcome.SIGNED_OUT) return "登录以后才能用通知提醒复习单词：先登录，再点一次。"

@@ -30,6 +30,8 @@ class AiMarkTests(unittest.TestCase):
         self.assertIn('function aiTag()', head)
         self.assertIn('function aiMark(note)', head)
         self.assertIn('>AI 生成<', head)
+        self.assertIn('function aiVoice()', head)  # synthesized voices: 「AI 朗读」 next to the play button
+        self.assertIn('>AI 朗读<', head)
         css = (SRC / '99-ai-mark.css').read_text(encoding='utf-8')
         self.assertIn('.ai-mark{', css)
         self.assertIn('.ai-line{', css)

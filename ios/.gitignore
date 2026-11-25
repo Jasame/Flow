@@ -1,0 +1,8 @@
+# Xcode: per-user state and build output
+xcuserdata/
+*.xcuserstate
+build/
+DerivedData/
+*.xcresult
+# your own signing settings (team, bundle id for the free personal team): see README.md
+Config/Local.xcconfig

@@ -132,6 +132,24 @@ class PlannerTest {
         assertEquals("hours outside REMIND_HOURS are not taken", 21, Planner.input(JSONObject().put("reminder", JSONObject().put("hour", 3)), x).hour)
     }
 
+    @Test fun notAgreedToHongKongStorageNoRemindersUntilAgreed() {
+        // 403 code storage (an older account before it answers, a paused one after 不同意): the site sends no reminders,
+        // the app neither, not even the day's plan; agreeing brings them back on the next refresh
+        val once = secs(at(26, 12))
+        val x = Planner.paused(input { planHour = 8; this.once = once })
+        assertTrue(x.paused)
+        assertEquals("the plan's hour is kept for later", 8, x.planHour)
+        assertTrue(Planner.slots(x, at(25, 7), zone).isEmpty())
+        assertTrue("still paused after the app is closed", Planner.Input.fromJson(JSONObject(x.toJson().toString())).paused)
+        val back = Planner.input(JSONObject().put("reminder", JSONObject().put("hour", 21)).put("due", 3)
+            .put("forecast", JSONArray(listOf(3, 2))).put("total", 40), x)
+        assertFalse(back.paused)
+        val s = Planner.slots(back, at(25, 7), zone)
+        assertTrue(s.any { it.id == "review-2026-11-25" && it.at == at(25, 21).toEpochMilli() })
+        assertTrue(s.any { it.id == "plan-2026-11-25" })
+        assertFalse("signing out (or in as someone else) starts over", Planner.signedOut(x).paused)
+    }
+
     @Test fun signedOutKeepsOnlyThePlan() {
         val x = Planner.signedOut(input { planHour = 8 })
         val s = Planner.slots(x, at(25, 7), zone)

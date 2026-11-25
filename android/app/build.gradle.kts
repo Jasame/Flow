@@ -3,7 +3,8 @@ plugins {
 }
 
 val flowVersionName = providers.gradleProperty("flow.versionName").getOrElse("1.0.0")
-val flowVersionCode = providers.gradleProperty("flow.versionCode").getOrElse("1").toInt()
+// CI sets FLOW_VERSION_CODE (100 + the run number) so every beta from main installs over the one before
+val flowVersionCode = (System.getenv("FLOW_VERSION_CODE") ?: providers.gradleProperty("flow.versionCode").getOrElse("1")).toInt()
 
 android {
     namespace = "cn.flowlang.app"
