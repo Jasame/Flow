@@ -3386,6 +3386,28 @@ def review_side_run(pw):
             check(dev, f'iOS app at {w}px: 关闭 stays beside 「已开启：在这台 iPhone 上…」, not on a line of its own',
                   box['offTop'] < box['textBottom'] and box['offBottom'] > box['textTop'] and box['offLeft'] >= box['textRight'] and box['offRight'] <= box['vw'], box)
             ctx.close()
+        # 我的 → 设置 → 「iOS 专属功能」 (语流 C1, 2026-11-25): only in an app that has its own settings page (FlowApp.has('settings')),
+        # one line at 375 px, and a tap asks the app to open it; not in a browser, nor in an app without one
+        rows = {}
+        for name, init in (('iOS app', "window.__calls = []; window.FlowApp = { v: 1, platform: 'ios', has: k => k === 'settings', call: c => { window.__calls.push(c); return Promise.resolve(true); } };"),
+                           ('Android app without one', "window.FlowApp = { v: 1, platform: 'android', has: k => k === 'notify', call: () => Promise.resolve() };"), ('browser', '')):
+            ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
+            if init:
+                ctx.add_init_script(init)
+            pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+            pg.goto(BASE + '/#/me', wait_until='load'); settle(pg); pg.wait_for_timeout(300)
+            row = pg.evaluate("() => { const r = document.getElementById('meApp'); if (!r) return null; const t = r.querySelector('.t').getBoundingClientRect(), v = r.querySelector('.v').getBoundingClientRect(); "
+                              "return { text: r.innerText.replace(/\\s+/g, ' ').trim(), group: r.closest('.gsec').getAttribute('aria-label'), one: Math.abs(t.top - v.top) < 6 && r.getBoundingClientRect().height <= 64 }; }")
+            if row:
+                pg.click('#meApp'); pg.wait_for_timeout(200); row['calls'] = pg.evaluate('window.__calls || []')
+            rows[name] = [row, errs[:2]]
+            ctx.close()
+        ios = rows['iOS app'][0] or {}
+        check(dev, '我的 → 设置: 「iOS 专属功能 · 锁屏、小组件、Siri 等」 in the iOS app, one line at 375 px, a tap opens the app\'s own page (app.settings)',
+              ios.get('group') == '设置' and 'iOS 专属功能' in ios.get('text', '') and '锁屏、小组件、Siri 等' in ios.get('text', '') and ios.get('one') and ios.get('calls') == ['app.settings'], rows)
+        check(dev, '我的: no 「专属功能」 row in a browser, or in an app without a settings page of its own; no script errors',
+              rows['browser'][0] is None and rows['Android app without one'][0] is None and not any(e for _, e in rows.values()), rows)
         # 语流 B8's audit: 知道了 on one line on a phone; 复习 and 测词汇量 name themselves to a screen reader (a hidden h1);
         # 词汇辨析's round is one screen like 复习, 怎么区分 folded from the second question; a word page with no words yet
         # shows how to start, not counts of 0, a search box and filters
