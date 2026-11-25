@@ -46,7 +46,7 @@ iOS（语流 C1）、安卓（语流 C2）、桌面 Windows、macOS 和 Linux（
 | `settings` | App 自己的「专属功能」设置页：「我的 → 设置」最后一行，点了调 `FlowApp.call('app.settings')` | 有 | 没有 | 没有 |
 | `haptic` | 让手机轻轻一震：`FlowApp.call('app.haptic', {kind})`（见下） | 有 | 没有 | 没有 |
 | `frugal` | 系统要省着用（低电量模式、iOS 27 的省资源提示）：网页少预载 | 有 | 没有 | 没有 |
-| `privacy` | 第一次打开时的同意和「基本模式」、撤回同意、权限管理页、App 备案号（命令写在第 10 节安卓一节） | 没有 | 有 | 没有 |
+| `privacy` | 第一次打开时的同意和「基本模式」、撤回同意、权限管理页、APP 备案号（命令写在第 10 节安卓一节） | 没有 | 有 | 没有 |
 
 - 一个 App 在回到前台、网页重新加载以后，会把正在放的状态再发一次（`audio` 事件），网页不用猜。网页可见时也可以调 `FlowApp.call('app.visible')` 让它重发。
 - `FlowApp.call('hello')` → `{v, app, build, platform, features}`。
