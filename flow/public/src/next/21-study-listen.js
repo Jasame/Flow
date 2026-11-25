@@ -47,18 +47,17 @@
       const voices = (m.audio && m.audio.voices) || [];
       // The user's pick (语流 B9's design, 2026-11-25): 播放全文, 「AI 合成」 and the speed sit in the bar above the tabs
       // (MINI, docked), where the thumb is, and the text starts higher on the first screen; 播放设置 opens from 「1×」 as a
-      // sheet; 「从头开始」 and 👁 are on the line above the sentences, playing or not.
+      // sheet; 「从头开始」 and 👁 are on the line above the sentences, playing or not; the how-to is a first-use tip (08-tips.js).
       const rateL = r => `${r}×`;
       const lead = nm ? '' : SV.on() ? aiVoiceNote('这篇还没有录音，用 AI 朗读（自然人声）一句一句读。', 'span', 'in') : '这篇还没有录音，先用浏览器朗读。';
       const hint = `点 👁 只听不看，点句子前的喇叭单句反复听${TOUCH ? '' : '；空格键播放 / 暂停'}。`;
-      const tips = typeof tipSlot === 'function';  // first-use tips (08-tips.js): the how-to once, not on every visit
       pane.innerHTML = `${again ? relistenHTML() : ''}${modeTabs()}${prereadHTML()}
         <p class="tiny muted sv-prep" id="lsPrep" role="status" hidden></p>
         ${!nm && !TTS.can() ? '<p class="err">这个浏览器不支持朗读，可以直接去「读」。</p>' : ''}
-        <div class="ls-head"><p class="muted tiny listen-tip">${lead}${tips ? '' : hint}</p>
+        <div class="ls-head"><p class="muted tiny listen-tip">${lead}</p>
           <span class="ls-tools"><button class="link tiny" id="playRestart" type="button" hidden>从头开始</button>
           <button class="icon-btn ${st.blind ? 'on' : ''}" id="blind" type="button" aria-pressed="${st.blind}" title="盲听：先只听不看" aria-label="盲听">${ICON.eye}</button></span></div>
-        ${tips ? tipSlot('listen', hint) : ''}
+        ${tipSlot('listen', hint)}
         <div class="lines">${ls.map((s, i) => `<div class="line" data-i="${i}"><button class="icon-btn" data-say="${i}" aria-label="播放第 ${i + 1} 句">${ICON.speak}</button><div class="txt ${st.blind ? 'blind' : ''}">${wordSpans(s, () => 'kw')}</div></div>`).join('')}</div>
         <div class="section row between"><span class="muted small">共 ${ls.length} 句${nm ? ' · ' + Math.round(nm.duration / 60 * 10) / 10 + ' 分钟' : ''}</span><button class="btn" id="toRead">听完了，去读 →</button></div>`;
       let shown = -1;
