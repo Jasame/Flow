@@ -45,15 +45,18 @@ SECONDS = {
     'test_welcome': 18, 'test_wordbook_registry': 19,
 }
 DEFAULT_SECONDS = 30
-# The groups of tools/ui_test.py, one list per CI job (4.4–5.9 minutes each on a hosted runner, PR #60, 2026-11-24).
-# Every group ui_test.py has must be in one (tests/test_ci.py checks): a new group goes into the shortest share.
-# A name ui_test.py does not have yet is allowed: 'privacy' and 'trial-survey' arrive with PRs #58 and #59.
+# The groups of tools/ui_test.py, one list per CI job. Seconds each group took alone on the MSI, 5 at a time
+# (2026-11-25, tools/msi-run.sh): about 412, layout 269, home-app 168, phone 144, listen-speak 137, desktop 135,
+# tablet 133, phone-land 131, sprint 118, a11y 114, start 72, progress 59, ux 53, ios-audio 48, wechat 34, backlog 33,
+# platforms 32, swipe 28, wait 26, review-side 25, class 21, learner 20, privacy 20, updates 18, trial-survey 13.
+# Each share comes to about 450 s; 'about' alone is 412, so 5 shares are as short as a share can be. Every group
+# ui_test.py has must be in one (tests/test_ci.py checks): a new group goes into the shortest share.
 UI_SHARDS = [
-    ['about', 'wait', 'home-app', 'ios-audio', 'review-side'],
-    ['phone', 'phone-land', 'privacy', 'trial-survey', 'updates'],
-    ['tablet', 'desktop', 'platforms', 'wechat', 'ux'],
-    ['learner', 'progress', 'swipe', 'listen-speak', 'start', 'sprint', 'backlog', 'class'],
-    ['a11y', 'layout'],
+    ['about', 'wait', 'updates'],                                                  # 456 s
+    ['layout', 'sprint', 'backlog', 'review-side'],                               # 445 s
+    ['home-app', 'phone-land', 'progress', 'ios-audio', 'swipe', 'privacy'],      # 454 s
+    ['phone', 'tablet', 'start', 'ux', 'platforms', 'learner'],                    # 454 s
+    ['listen-speak', 'desktop', 'a11y', 'wechat', 'class', 'trial-survey'],       # 454 s
 ]
 
 
