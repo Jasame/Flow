@@ -57,6 +57,7 @@ jobs:
       - id: pick
         env:
           MSI_RUNNER: ${{ vars.MSI_RUNNER }}
+          MSI_SLOTS: ${{ vars.MSI_SLOTS }}
           HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           GITHUB_TOKEN: ${{ github.token }}

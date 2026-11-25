@@ -25,7 +25,9 @@ import json, os, sys, time, urllib.error, urllib.request
 
 HOSTED = 'ubuntu-24.04'
 MSI = ['self-hosted', 'msi']
-SLOTS = int(os.getenv('MSI_SLOTS', '6'))
+# how many jobs the MSI runs at once: its runner count, the repository variable MSI_SLOTS (empty or unset: 6;
+# tools/msi-setup.sh RUNNERS, which also says how many fit its processors)
+SLOTS = int(os.getenv('MSI_SLOTS') or 6)
 PROBE_WAIT = int(os.getenv('MSI_PROBE_WAIT', '45'))
 WATCH_MINUTES = int(os.getenv('MSI_WATCH', '10'))
 PROBE = 'msi-probe.yml'

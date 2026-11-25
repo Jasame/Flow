@@ -123,6 +123,16 @@ class MsiRunnerTests(unittest.TestCase):
         self.wf = (ROOT / '.github' / 'workflows' / 'tests.yml').read_text(encoding='utf-8')
         self.jobs = dict(re.findall(r'^  ([a-z-]+):\n(.*?)(?=^  [a-z-]+:\n|\Z)', self.wf.split('\njobs:\n', 1)[1], re.S | re.M))
 
+    def test_the_msi_s_slots_come_from_the_repository_variable_and_default_to_6(self):
+        self.assertIn('MSI_SLOTS: ${{ vars.MSI_SLOTS }}', self.jobs['changes'])
+        for value, slots in (('', 6), ('7', 7), (None, 6)):
+            env = {k: v for k, v in os.environ.items() if k != 'MSI_SLOTS'}
+            if value is not None:
+                env['MSI_SLOTS'] = value
+            r = subprocess.run([sys.executable, '-c', 'import ci_runner; print(ci_runner.SLOTS)'], cwd=ROOT / 'tools',
+                               env=env, capture_output=True, text=True)
+            self.assertEqual(r.stdout.strip(), str(slots), (value, r.stderr))
+
     def fake(self, load=0, starts=True, fail=None):
         calls = []
 
