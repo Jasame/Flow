@@ -91,4 +91,4 @@ body.docked #lsPrep:not([hidden]){position:fixed;left:50%;transform:translateX(-
 .ls-head .listen-tip{margin:0;flex:1 1 auto;min-width:0}
 .ls-tools{display:inline-flex;align-items:center;gap:4px;flex-shrink:0}
 .ls-tools #playRestart{min-height:44px;padding:0 6px}
-
+.mini-player .ai-voice-note[hidden]{display:none}  /* the browser's own voice: not 「AI 合成」 */

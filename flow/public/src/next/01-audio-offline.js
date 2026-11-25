@@ -666,18 +666,19 @@
     undock() { this.dk = null; document.body.classList.remove('docked'); if (this.el) this.el.classList.remove('docked'); if (!this.h) this.hide(); },
     idle() {
       const dk = this.dk, el = this.box();
-      el.innerHTML = `<button type="button" class="toggle" id="playAll"></button>${dk.ai ? aiVoiceNote('AI 合成', 'span') : ''}<span class="sp"></span>`
+      el.innerHTML = `<button type="button" class="toggle" id="playAll"></button>${aiVoiceNote('AI 合成', 'span')}<span class="sp"></span>`
         + '<button type="button" class="speed-set" aria-label="播放设置：语速、每句几遍、句后停顿"></button>';
       el.querySelector('#playAll').onclick = () => dk.play();
       el.querySelector('.speed-set').onclick = () => dk.rate();
       el.classList.remove('paused'); el.classList.add('idle'); el.hidden = false; document.body.classList.add('playing');
+      this.ai(typeof dk.ai === 'function' ? dk.ai() : !!dk.ai);
       dk.paint();
     },
     show(label, h) {
       if (typeof h === 'function') h = { stop: h };
       this.h = h; this.label = label; this.resumeFn = null;
       const el = this.box(), mine = !!(this.dk && h.key && h.key === this.dk.key);
-      el.innerHTML = `<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span><span class="lbl"></span>${h.ai === false ? '' : aiVoiceNote('AI 合成', 'span')}`
+      el.innerHTML = `<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span><span class="lbl"></span>${aiVoiceNote('AI 合成', 'span')}`
         + (h.toggle ? `<button type="button" class="toggle"${mine ? ' id="playAll"' : ''}></button>${mine ? '<button type="button" class="speed-set" aria-label="播放设置：语速、每句几遍、句后停顿"></button>' : ''}<button type="button" class="stop close" aria-label="关闭播放（记住读到哪里）">✕</button>`
           : `<button type="button" class="stop">${playIcon(true, 15)}<span>停止</span></button>`);
       el.querySelector('.lbl').textContent = label;
@@ -685,6 +686,7 @@
       if (h.toggle) el.querySelector('.toggle').onclick = () => this.h.toggle();
       if (mine) { const dk = this.dk; el.querySelector('.speed-set').onclick = () => dk.rate(); }
       el.classList.remove('paused', 'idle'); el.hidden = false; document.body.classList.add('playing');
+      this.ai(h.ai !== false);
       this.paint();
       if (mine) this.dk.paint();
     },
@@ -698,6 +700,8 @@
       if (b) { if (!t && on) b.onclick = () => { if (this.resumeFn) this.resumeFn(); }; else b.remove(); }
     },
     update(label) { this.label = label; this.paint(); },
+    // 「AI 合成」 follows the voice really heard: 语流's own (a recording, AI 朗读) or, fallen back, the browser's (B9, 2026-11-25)
+    ai(on) { const n = this.el && this.el.querySelector('.ai-voice-note'); if (n) n.hidden = !on; },
     paused(on) { if (this.el && !this.el.hidden && this.h) { this.el.classList.toggle('paused', !!on); this.paint(); } },
     // a recording paused from outside, with no whole text around it: 已暂停, and 继续 calls resume
     pause(on, resume) { if (!this.el || this.el.hidden || !this.h) return; this.resumeFn = resume || null; this.paused(on); },
@@ -770,7 +774,7 @@
       if (d.state === 'idle') { if (d.why === 'ended') LONG.finish(); else if (d.why !== 'user') LONG.stop(); return; }
       if (typeof d.i === 'number' && d.i !== r.i) { r.i = d.i; r.n = 0; LONG.save(); }
       // the app fell back to the phone's own voice: why, said by the page as everywhere on the site (SV.why: once a reason)
-      r.state = d.state; r.note = d.fail ? SV.why(d.fail) : (d.note || '');
+      r.state = d.state; r.note = d.fail ? SV.why(d.fail) : (d.note || ''); MINI.ai(!!r.nm || !d.fail);
       MINI.paused(d.state === 'paused');
       this.retune();  // 复读 or 语速 changed meanwhile
       LONG.emit(); this.loop();
@@ -901,7 +905,7 @@
         return;
       }
       if (r.nm) {
-        r.state = 'playing'; this.emit();
+        r.state = 'playing'; MINI.ai(true); this.emit();
         this.own(() => NAR.play(s.s, s.e, t => { const [si, wc] = NAR.locate(t); if (si === r.i && r.onWord) r.onWord(si, wc); }, () => { if (this.r === r && r.tok === tok) this.after(); }));
         return;
       }
@@ -928,7 +932,7 @@
         clearTimeout(late);
         if (this.r !== r || r.tok !== tok) return;  // paused, stopped or moved on while it was being made
       }
-      r.state = 'playing'; r.note = u ? '' : err ? SV.why(err) : SV.off ? SV.why({ code: SV.off }) : ''; this.emit();
+      r.state = 'playing'; r.note = u ? '' : err ? SV.why(err) : SV.off ? SV.why({ code: SV.off }) : ''; MINI.ai(!!u); this.emit();
       const next = () => { if (this.r === r && r.tok === tok) this.after(); };
       if (u) {
         this.own(() => CLIP.play(u, 0, 1e6, text, next, null, { url: u, from: 0, to: Infinity, title: '语流 · ' + (r.title || '朗读'), cut: () => { if (this.r === r && r.tok === tok) this.held(); } }));

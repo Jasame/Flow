@@ -132,7 +132,7 @@
         card.querySelectorAll('[data-voice]').forEach(b => b.onclick = async () => { if (b.disabled) return; closeSheet(); stopAll(); await setVoice(b.dataset.voice); listen(); toast('已切换为' + VOICE_LABELS[b.dataset.voice]); });
       });
       // attach: the app plays this text (语流's iOS app, loaded again): the bar becomes its player (NATIVE.adopt)
-      MINI.dock({ key: PKEY, ai: !!nm || SV.on(), paint: setBtn, play: playAll, rate: openPlayset, attach: () => readAll(PROG.at(PKEY, ls.length), true) });
+      MINI.dock({ key: PKEY, ai: () => !!nm || SV.on(), paint: setBtn, play: playAll, rate: openPlayset, attach: () => readAll(PROG.at(PKEY, ls.length), true) });
       pane.querySelector('#playRestart').onclick = () => { LONG.stop(); PROG.clear(PKEY); readAll(0); };
       setBtn();
       NATIVE.follow(PKEY, setBtn);  // in the app: the button says where the app got to (it may have played on, or still plays)
