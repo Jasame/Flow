@@ -1651,7 +1651,8 @@ def ux_run(pw):
         # not 「音频暂时没加载出来，稍后再点一次」 for a file that can never play there
         c6 = browser.new_context(**phone, service_workers='block')
         c6.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a2']['token'], 'url': BASE}])
-        c6.add_init_script("HTMLMediaElement.prototype.canPlayType = () => ''; window.__toasts = []; "
+        # WebKitGTK without libav (C3): the container is known ('maybe'), only the codec question answers ''
+        c6.add_init_script("HTMLMediaElement.prototype.canPlayType = t => (/mp4a\\.40\\.2/.test(t) ? '' : 'maybe'); window.__toasts = []; "
                            "document.addEventListener('DOMContentLoaded', () => new MutationObserver(() => { const t = document.querySelector('.toast'); "
                            "if (t && t.textContent && window.__toasts[window.__toasts.length - 1] !== t.textContent) window.__toasts.push(t.textContent); }).observe(document.body, { subtree: true, childList: true, characterData: true }));")
         p6 = c6.new_page(); got6 = []
@@ -1667,6 +1668,27 @@ def ux_run(pw):
               not rec and any(u.endswith('/api/next/tts') for u in got6) and '放不了录音的格式' in lead and six['toasts'] == 1 and six['btn'] == '暂停',
               {'lead': lead, 'recording_asked': rec[:2], 'tts': sum(u.endswith('/api/next/tts') for u in got6), **six})
         c6.close()
+        # canPlayType said yes, but the recording the server has will not decode (code 4 with the file there): the text goes
+        # on sentence by sentence in AI 朗读 from where it was, why said once; a file that is missing still says 没加载出来
+        med = 'v5-culture-c1-lighthouse-ledger-3'  # listed with a recording (ui_server.py MEDIA_PID)
+        c8 = browser.new_context(**phone, service_workers='block')
+        c8.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['a2']['token'], 'url': BASE}])
+        n8 = len(c8.request.get(BASE + f'/api/next/material?id={med}').json()['sentences'])
+        meta = {'sentences': [{'s': k * 2.0, 'e': k * 2.0 + 1.8, 'w': [[0, k * 2.0]]} for k in range(n8)], 'duration': n8 * 2.0}
+        c8.add_init_script("window.__toasts = []; document.addEventListener('DOMContentLoaded', () => new MutationObserver(() => { const t = document.querySelector('.toast'); "
+                           "if (t && t.textContent && window.__toasts[window.__toasts.length - 1] !== t.textContent) window.__toasts.push(t.textContent); }).observe(document.body, { subtree: true, childList: true, characterData: true }));")
+        p8 = c8.new_page(); tts8 = []
+        p8.on('request', lambda q: tts8.append(q.url) if q.url.endswith('/api/next/tts') else None)
+        p8.route(f'**/{med}.json*', lambda r: r.fulfill(json=meta))
+        p8.route(f'**/{med}.m*', lambda r: r.fulfill(status=200, content_type='audio/mp4', body=b'this is not audio at all ' * 40))
+        p8.route('**/api/next/tts', lambda r: r.fulfill(json={'url': '/audio/tts/us-f/no-aac-0001.wav', 'made': False}))
+        p8.route('**/audio/tts/us-f/no-aac-0001.wav', lambda r: r.fulfill(status=200, content_type='audio/wav', body=short))
+        p8.goto(BASE + f'/#/m/{med}/listen', wait_until='networkidle'); settle(p8, '#playAll'); p8.wait_for_timeout(300)
+        p8.click('#playAll'); p8.wait_for_timeout(2500)
+        eight = p8.evaluate("() => ({ toasts: window.__toasts.filter(t => t.includes('放不了录音的格式')).length, missing: window.__toasts.filter(t => t.includes('没加载出来')).length, btn: (document.getElementById('playAll') || {}).textContent || '' })")
+        check(dev, 'a recording that will not decode here (code 4, the file there): the text goes on in AI 朗读 sentence by sentence, why said once',
+              eight['toasts'] == 1 and eight['missing'] == 0 and len(tts8) >= 1 and eight['btn'].strip() == '暂停', {**eight, 'tts': len(tts8)})
+        c8.close()
         o, al, nv, th, ne, sk, aw = seen['once'], seen['always'], seen['never'], seen['throws'], seen['no-end'], seen['stuck'], seen['all-words']
         nvv = seen['never-voices']
         check(dev, 'browser voice with voices but not starting (an iPad offline): the text waits at that sentence saying why, and never says 「换 Safari 或 Chrome」',

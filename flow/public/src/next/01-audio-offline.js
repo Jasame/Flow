@@ -256,8 +256,10 @@
   // Recordings and word sounds are AAC (.mp4, .m4a, .aac). A device that cannot decode it (a Linux desktop without its
   // codec, 语流 C3, 2026-11-25) has them read sentence by sentence in AI 朗读 instead, and is told why once, rather than
   // 「音频暂时没加载出来，稍后再点一次」 for a file that can never play there.
-  const AAC = (() => {
-    try { const a = document.createElement('audio'); return !!(a.canPlayType('audio/mp4; codecs="mp4a.40.2"') || a.canPlayType('audio/mp4') || a.canPlayType('audio/aac')); }
+  // Only the question with the codec tells: a browser answers 「audio/mp4」 from the container alone (WebKitGTK says
+  // 'maybe' with just GStreamer's mp4 demuxer and no AAC decoder, C3), so that one says nothing.
+  let AAC = (() => {
+    try { return document.createElement('audio').canPlayType('audio/mp4; codecs="mp4a.40.2"') !== ''; }
     catch (e) { return true; }
   })();
   let aacTold = false;
@@ -284,6 +286,7 @@
       } catch (e) { return false; }
     },
     play(from, to, onTick, onEnd) {
+      if (!AAC) { this.onEnd = onEnd; this.noFormat(); return; }  // found out before (the file would not decode): no try
       LONG.other();
       this.stopLoop(); this.stopAt = to; this.onTick = onTick; this.onEnd = onEnd; this.paused = false;
       const a = this.audio, asked = a.src;
@@ -292,7 +295,14 @@
       try { a.currentTime = from; } catch (e) { /* not seekable yet */ }
       // Refused (WeChat: not inside a tap): say how to hear it. A file that fails is tried on the other line first
       // (mediaSwap changes the source, and that play() is the one that counts); only when none is left, give up.
-      a.play().catch(e => { if (e && e.name === 'NotAllowedError') { noSound('没有放出声音'); this.finish(); } else if (a.src === asked && mediaGaveUp(a)) this.gaveUp(); });
+      // A source that cannot be played (NotSupportedError) is left to the 'error' listener: it tells a missing file from
+      // one this device cannot decode (noFormat) before saying anything.
+      a.play().catch(e => {
+        if (e && e.name === 'NotAllowedError') { noSound('没有放出声音'); this.finish(); return; }
+        if (a.src !== asked || !mediaGaveUp(a)) return;
+        if (e && e.name === 'NotSupportedError' && !a.error) return;  // the 'error' listener comes next and decides
+        this.failed();
+      });
       const loop = () => {
         const t = this.audio.currentTime;
         if (this.onTick) this.onTick(t);
@@ -321,6 +331,21 @@
       try { this.audio.currentTime = ss[j].s; } catch (e) { /* not seekable yet */ }
     },
     gaveUp() { if (!this.raf && !this.onEnd) return; noteIssue('audio', '全文录音没加载出来', this.net ? this.net.split('?')[0] : ''); toast('音频暂时没加载出来，稍后再点一次'); this.finish(); },
+    // Both lines failed: a file this device cannot decode (「not supported」 with the file there: noFormat), or one that
+    // did not come (gaveUp). 「not supported」 is also what a missing file says, so the server is asked first.
+    failed() {
+      const e = this.audio.error, net = this.net;
+      if (e && e.code === 4 && net && AAC) { fetch(net, { method: 'HEAD', credentials: 'same-origin' }).then(r => (r.ok ? this.noFormat() : this.gaveUp()), () => this.gaveUp()); return; }
+      this.gaveUp();
+    },
+    // The file came (the server has it) and still would not play: this device cannot decode it, whatever canPlayType
+    // said. From now on as with no AAC (NAR.load says no recording), and a whole text playing goes on sentence by sentence.
+    noFormat() {
+      AAC = false; this.aac = false; noAac();
+      const r = LONG.r;
+      if (r && r.nm && this.onEnd) { this.stopLoop(); this.audio.dataset.want = ''; this.onEnd = null; this.onTick = null; r.nm = null; r.cont = false; r.at = null; LONG.go(); return; }
+      this.finish();
+    },
     stopLoop() { cancelAnimationFrame(this.raf); this.raf = 0; },
     stop() { this.stopLoop(); this.audio.dataset.want = ''; this.paused = false; MS.release('nar'); this.onEnd = null; this.onTick = null; try { this.audio.pause(); } catch (e) { /* ignore */ } },
     // -> [sentence index, char offset of the current word] at time t
@@ -332,7 +357,7 @@
       return [si, wc];
     },
   };
-  NAR.audio.addEventListener('error', () => { if (mediaGaveUp(NAR.audio)) NAR.gaveUp(); });
+  NAR.audio.addEventListener('error', () => { if (mediaGaveUp(NAR.audio)) NAR.failed(); });
   // Paused by something other than the page (a call, the lock screen, another app's sound): the page says so (MINI:
   // 已暂停 and 继续) instead of showing it still playing; playing again (继续, the lock screen) takes it back.
   NAR.audio.addEventListener('pause', () => {
