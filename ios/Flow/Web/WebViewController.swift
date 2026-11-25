@@ -7,15 +7,17 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
     let webView: WKWebView
     private let bridge: Bridge
     private let reminders: Reminders
-    private let cookies = CookieKeeper()
+    private let site: SiteClient
     private let refresh = UIRefreshControl()
     private var errorView: UIView?
     private var downloads: [ObjectIdentifier: URL] = [:]
     private var started = false
+    private var pendingPath: String?  // a page asked for (a reminder tapped) before the site had finished loading
 
-    init(bridge: Bridge, reminders: Reminders) {
+    init(bridge: Bridge, reminders: Reminders, site: SiteClient) {
         self.bridge = bridge
         self.reminders = reminders
+        self.site = site
         let cfg = WKWebViewConfiguration()
         cfg.websiteDataStore = .default()
         cfg.allowsInlineMediaPlayback = true
@@ -69,7 +71,7 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
     private func start() async {
         guard !started else { return }
         started = true
-        if let host = AppConfig.start.host { await cookies.start(webView.configuration.websiteDataStore.httpCookieStore, host: host) }
+        await site.ready?.value  // the saved session is back in WebKit (Shell, CookieKeeper)
         #if BETA
         if ProcessInfo.processInfo.environment["FLOW_BRIDGE_TEST"] == "1" {
             webView.loadHTMLString(BridgeTestPage.html, baseURL: AppConfig.site)
@@ -84,13 +86,18 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
         webView.load(URLRequest(url: url))
     }
 
-    /// A page of the site from outside (a reminder tapped): "#/review" while the site is open, else the site at it.
+    /// A page of the site from outside (a reminder tapped): "#/review" while the site is open; otherwise it waits for
+    /// the site to finish loading (a cold launch from the notification) and is opened then (didFinish).
     func open(path: String) {
-        guard let url = URL(string: path, relativeTo: AppConfig.start)?.absoluteURL else { return }
-        if path.hasPrefix("#"), let now = webView.url, AppConfig.isOwn(now), errorView == nil {
+        guard path.hasPrefix("#") else {
+            if let url = URL(string: path, relativeTo: AppConfig.start)?.absoluteURL { load(url) }
+            return
+        }
+        if started, !webView.isLoading, let now = webView.url, AppConfig.isOwn(now), errorView == nil {
             webView.evaluateJavaScript("location.hash = \(Bridge.js(path))", completionHandler: nil)
         } else {
-            load(url)
+            pendingPath = path
+            if started, !webView.isLoading { load(AppConfig.start) }
         }
     }
 
@@ -141,6 +148,10 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         refresh.endRefreshing()
         hideError()
+        if let p = pendingPath, let now = webView.url, AppConfig.isOwn(now) {
+            pendingPath = nil
+            webView.evaluateJavaScript("location.hash = \(Bridge.js(p))", completionHandler: nil)
+        }
         bridge.resendState()
     }
 
@@ -172,7 +183,7 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
         await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
             let a = UIAlertController(title: nil, message: message, preferredStyle: .alert)
             a.addAction(UIAlertAction(title: "好", style: .default) { _ in done.resume() })
-            if !present(a) { done.resume() }
+            present(a) { done.resume() }
         }
     }
 
@@ -181,7 +192,7 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
             let a = UIAlertController(title: nil, message: message, preferredStyle: .alert)
             a.addAction(UIAlertAction(title: "取消", style: .cancel) { _ in done.resume(returning: false) })
             a.addAction(UIAlertAction(title: "确定", style: .default) { _ in done.resume(returning: true) })
-            if !present(a) { done.resume(returning: false) }
+            present(a) { done.resume(returning: false) }
         }
     }
 
@@ -191,7 +202,7 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
             a.addTextField { $0.text = defaultText }
             a.addAction(UIAlertAction(title: "取消", style: .cancel) { _ in done.resume(returning: nil) })
             a.addAction(UIAlertAction(title: "确定", style: .default) { [weak a] _ in done.resume(returning: a?.textFields?.first?.text ?? "") })
-            if !present(a) { done.resume(returning: nil) }
+            present(a) { done.resume(returning: nil) }
         }
     }
 
@@ -222,7 +233,7 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
     func downloadDidFinish(_ download: WKDownload) {
         guard let url = downloads.removeValue(forKey: ObjectIdentifier(download)) else { return }
         let share = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-        _ = present(share)
+        present(share)
     }
 
     func download(_ download: WKDownload, didFailWithError error: Error, resumeData: Data?) {
@@ -235,8 +246,11 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
     private func remindChoice(_ url: URL) {
         let q = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
         let v = { (k: String) in q.first { $0.name == k }?.value }
-        let ask = ReminderAsk(kind: v("kind") == "plan" ? .plan : .vocab, hour: v("hour").flatMap(Int.init),
-                              minutes: v("minutes").flatMap(Int.init) ?? 10, at: v("at").flatMap(Double.init).map { Date(timeIntervalSince1970: $0) })
+        // the same checks as the server's ics(): an hour of REMIND_HOURS, minutes of 5/10/15/20/30
+        let hour = v("hour").flatMap(Int.init).flatMap { ReminderPlan.hours.contains($0) ? $0 : nil }
+        let minutes = v("minutes").flatMap(Int.init).flatMap { ReminderPlan.planMinutes.contains($0) ? $0 : nil } ?? 10
+        let at = v("at").flatMap(Double.init).flatMap { $0 > Date().timeIntervalSince1970 ? Date(timeIntervalSince1970: $0) : nil }
+        let ask = ReminderAsk(kind: v("kind") == "plan" ? .plan : .vocab, hour: hour, minutes: minutes, at: at)
         let sheet = UIAlertController(title: "怎么提醒你？", message: ask.when, preferredStyle: .actionSheet)
         sheet.addAction(UIAlertAction(title: "用 App 通知提醒（推荐）", style: .default) { [weak self] _ in
             Task { await self?.notify(ask) }
@@ -246,7 +260,7 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
             CalendarAdd.present(from: self, ask: ask)
         })
         sheet.addAction(UIAlertAction(title: "取消", style: .cancel))
-        _ = present(sheet)
+        present(sheet)
     }
 
     private func notify(_ ask: ReminderAsk) async {
@@ -258,7 +272,7 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
                 if let u = URL(string: UIApplication.openNotificationSettingsURLString) { UIApplication.shared.open(u) }
             })
             a.addAction(UIAlertAction(title: "先不用", style: .cancel))
-            _ = present(a)
+            present(a)
         case .failed(let why): say("没有排上提醒", why)
         }
     }
@@ -268,22 +282,29 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
     func say(_ title: String, _ message: String) {
         let a = UIAlertController(title: title, message: message, preferredStyle: .alert)
         a.addAction(UIAlertAction(title: "好", style: .default))
-        _ = present(a)
+        present(a)
     }
 
-    /// From the top view controller (an alert may already be up); false when nothing can show it (in the background).
-    @discardableResult
-    func present(_ vc: UIViewController) -> Bool {
-        guard view.window != nil else { return false }
+    /// Shows vc from the top view controller (an alert may already be up). When nothing can show it (the app in the
+    /// background), `otherwise` runs instead, so a page's alert() / confirm() is always answered. UIKit drops a
+    /// presentation asked for while another one is coming or going (an action sheet closing): it waits for that first.
+    func present(_ vc: UIViewController, otherwise: (() -> Void)? = nil) {
+        guard view.window != nil else { otherwise?(); return }
         var top: UIViewController = self
         while let p = top.presentedViewController, !p.isBeingDismissed { top = p }
+        if let moving = top.presentedViewController ?? (top.isBeingPresented ? top : nil), let tc = moving.transitionCoordinator {
+            tc.animate(alongsideTransition: nil) { [weak self] _ in
+                guard let self else { otherwise?(); return }
+                self.present(vc, otherwise: otherwise)
+            }
+            return
+        }
         if let pop = vc.popoverPresentationController {  // iPad: action sheets and the share sheet need an anchor
             pop.sourceView = view
             pop.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.maxY - 80, width: 1, height: 1)
             pop.permittedArrowDirections = []
         }
         top.present(vc, animated: true)
-        return true
     }
 
     private func showError(_ error: Error) {

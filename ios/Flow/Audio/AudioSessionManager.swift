@@ -19,6 +19,7 @@ final class AudioSessionManager {
     /// Before a sound starts. false: iOS said no (a call is going on).
     @discardableResult
     func activate() -> Bool {
+        if !recording { playback() }  // whatever the page's own microphone (getUserMedia) left behind
         do {
             try s.setActive(true)
             active = true

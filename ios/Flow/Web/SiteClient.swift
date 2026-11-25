@@ -13,6 +13,8 @@ enum SiteError: Error, Equatable {
 final class SiteClient {
     let base: URL
     var cookieStore: WKHTTPCookieStore?
+    /// the saved session put back into WebKit at launch (Shell): requests wait for it, or they would go out signed out
+    var ready: Task<Void, Never>?
     private let session: URLSession
     private var csrfToken: String?
 
@@ -32,6 +34,7 @@ final class SiteClient {
 
     /// The web view's cookies that go with a request to url (RFC 6265 domain and path matching).
     func cookies(for url: URL) async -> [HTTPCookie] {
+        await ready?.value
         guard let store = cookieStore, let host = url.host?.lowercased() else { return [] }
         let path = url.path.isEmpty ? "/" : url.path
         return await store.allCookies().filter { c in
@@ -83,6 +86,7 @@ final class SiteClient {
         return t
     }
 
+    /// The session changed in the web view (signed in, out, as someone else): the next POST asks for its token again.
     func forgetSession() { csrfToken = nil }
 
     private func keepCookies(_ http: HTTPURLResponse, url: URL) async {

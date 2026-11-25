@@ -45,10 +45,12 @@ final class WAVTests: XCTestCase {
         XCTAssertNil(WAV.canonical(Data()))
     }
 
-    @MainActor func testUnder1Point5MBForFortyFiveSeconds() throws {
-        // the server takes 1.5 MB (audio_validation.MAX_AUDIO_BYTES): 45 s of 16 kHz 16-bit mono WAV fits
-        let w = try XCTUnwrap(WAV.canonical(recorderWAV(samples: 16_000 * 45)))
-        XCTAssertLessThan(w.count, 1_500_000)
+    @MainActor func testLongestWAVFitsThePage() throws {
+        // the page refuses more than 1.4 MB (MIC.payload), the server 1.5 MB: the recorder switches to AAC past 40 s
+        let w = try XCTUnwrap(WAV.canonical(recorderWAV(samples: 16_000 * Int(Recorder.wavSeconds))))
+        XCTAssertLessThan(w.count, 1_400_000)
+        let over = try XCTUnwrap(WAV.canonical(recorderWAV(samples: 16_000 * 45)))
+        XCTAssertGreaterThan(over.count, 1_400_000, "why 45 s cannot be WAV")
     }
 }
 
@@ -80,17 +82,29 @@ final class ReminderPlanTests: XCTestCase {
         let ids = s.map(\.id)
         XCTAssertEqual(ids.first, "review-2026-11-25")
         XCTAssertTrue(ids.contains("review-2026-11-26"))
-        XCTAssertFalse(ids.contains("review-2026-11-27"), "forecast 0 that day")
-        XCTAssertFalse(ids.contains("review-2026-11-30"), "forecast 0 that day")
+        XCTAssertTrue(ids.contains("review-2026-11-27"), "words not reviewed stay due (the mail counts them)")
         XCTAssertTrue(ids.contains("review-2026-12-08"), "after the forecast: every day while there are words")
         XCTAssertEqual(s.first?.date, at(25, 20))
         XCTAssertTrue(s.first!.body.contains("12 个词"))
         XCTAssertTrue(s.allSatisfy { $0.path == "#/review" })
     }
 
+    @MainActor func testNoWordsAtAllNoReminders() {
+        let s = ReminderPlan.slots(input { $0.due = 0; $0.forecast = [0, 0, 0, 0, 0, 0, 0]; $0.hasWords = false }, now: at(25, 9), calendar: cal)
+        XCTAssertTrue(s.isEmpty, s.map(\.id).joined(separator: " "))
+    }
+
+    @MainActor func testChinaTimeByDefault() {
+        // the hour is the mail's hour (UTC+8), wherever the phone is
+        let s = ReminderPlan.slots(input { _ in }, now: at(25, 9))
+        XCTAssertEqual(s.first?.date, at(25, 20))
+    }
+
     @MainActor func testNothingLeftTodayMeansNoReminderToday() {
         let s = ReminderPlan.slots(input { $0.due = 0; $0.new = 0 }, now: at(25, 9), calendar: cal)
         XCTAssertFalse(s.map(\.id).contains("review-2026-11-25"))
+        let later = ReminderPlan.slots(input { $0.due = 0; $0.new = 0; $0.later = 30 }, now: at(25, 9), calendar: cal)
+        XCTAssertTrue(later.map(\.id).contains("review-2026-11-25"), "beyond the day's share counts too")
     }
 
     @MainActor func testPastTheHourTodayStartsTomorrow() {
@@ -110,10 +124,19 @@ final class ReminderPlanTests: XCTestCase {
         XCTAssertTrue(ids.contains("review-2026-11-28"))
     }
 
-    @MainActor func testOnceInThePastIsIgnored() {
-        let s = ReminderPlan.slots(input { $0.once = self.at(25, 8).timeIntervalSince1970 }, now: at(25, 9), calendar: cal)
+    @MainActor func testAOnceThatCameTakesThatDay() {
+        // 12:30 came (the server forgot it, the app did not): no second reminder at 20:00 that day
+        let s = ReminderPlan.slots(input { $0.once = nil; $0.onceSeen = self.at(25, 12, 30).timeIntervalSince1970 }, now: at(25, 13), calendar: cal)
         XCTAssertFalse(s.map(\.id).contains("review-once"))
-        XCTAssertEqual(s.first?.id, "review-2026-11-25")
+        XCTAssertFalse(s.map(\.id).contains("review-2026-11-25"))
+        XCTAssertEqual(s.first?.id, "review-2026-11-26")
+    }
+
+    @MainActor func testOnceWithNothingToReviewDoesNotCome() {
+        // tomorrow 8:00 chosen, nothing due then and no book: no reminder then, and none before it
+        let s = ReminderPlan.slots(input { $0.once = self.at(26, 8).timeIntervalSince1970; $0.due = 0; $0.forecast = [0, 0, 0, 0, 0, 0, 0]; $0.hasWords = false },
+                                   now: at(25, 9), calendar: cal)
+        XCTAssertTrue(s.isEmpty, s.map(\.id).joined(separator: " "))
     }
 
     @MainActor func testThePlanReminderAndNoDoubleAtTheSameHour() {
@@ -148,8 +171,24 @@ final class ReminderPlanTests: XCTestCase {
         XCTAssertEqual(x.dailyNew, 10)
         XCTAssertTrue(x.hasWords)
         XCTAssertEqual(x.planHour, 8, "the app's own setting is kept")
+        XCTAssertEqual(x.onceSeen, 1_795_600_000)
         let cleared = ReminderPlan.input(from: ["reminder": ["hour": 21, "once": NSNull()]], keeping: x)
         XCTAssertNil(cleared.once)
+        XCTAssertEqual(cleared.onceSeen, 1_795_600_000, "the day of a once that came is remembered")
+        let older = ReminderPlan.input(from: ["reminder": ["hour": 21]], keeping: x)
+        XCTAssertEqual(older.once, 1_795_600_000, "a server without once leaves the app's alone")
+        let finished = ReminderPlan.input(from: ["plan": ["daily_new": 10], "book": ["done": true]], keeping: x)
+        XCTAssertEqual(finished.dailyNew, 0, "a finished book brings no new words")
+        let bad = ReminderPlan.input(from: ["reminder": ["hour": 3]], keeping: x)
+        XCTAssertEqual(bad.hour, 21, "hours outside REMIND_HOURS are not taken")
+    }
+
+    @MainActor func testSignedOutKeepsOnlyThePlan() {
+        var x = input { $0.planHour = 8 }
+        x = ReminderPlan.signedOut(x)
+        let s = ReminderPlan.slots(x, now: at(25, 7), calendar: cal)
+        XCTAssertFalse(s.isEmpty)
+        XCTAssertTrue(s.allSatisfy { $0.id.hasPrefix("plan-") })
     }
 }
 

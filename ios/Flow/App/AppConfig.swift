@@ -19,12 +19,27 @@ enum AppConfig {
     static let isBeta = false
     #endif
 
+    /// Tests and automation make no sound (the owner, 2026-11-25: 「后台运行的应用不要播放系统声音」): launched with
+    /// `-FlowMuteAudio YES` the app's player and the iPhone voice play at volume 0 and the page's own sound is muted;
+    /// playing is checked by the state and the events, not by ear. The UI tests always pass it.
+    static let muted = UserDefaults.standard.bool(forKey: "FlowMuteAudio")
+
     /// The page to open: the site, or (Beta builds only) the one a UI test asks for with FLOW_START_URL.
     static var start: URL {
         #if BETA
         if let s = ProcessInfo.processInfo.environment["FLOW_START_URL"], let u = URL(string: s), u.host != nil { return u }
         #endif
         return site
+    }
+
+    /// The origin of the page the app opens (scheme, host, port): the native side talks to the same server as the page.
+    static var origin: URL {
+        var c = URLComponents()
+        c.scheme = start.scheme
+        c.host = start.host
+        c.port = start.port
+        c.path = "/"
+        return c.url ?? site
     }
 
     /// Hosts the web view keeps inside the app: the site (and, for UI tests, the local test server). Everything else

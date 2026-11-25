@@ -24,7 +24,8 @@ enum CalendarAdd {
             e.notes = "按遗忘曲线复习今天到期的单词。"
             e.url = URL(string: site + "/#/review")
         }
-        let start = ask.at ?? Calendar.current.date(bySettingHour: ask.hour ?? 20, minute: 0, second: 0, of: Date()) ?? Date()
+        // China time, as the site's .ics (vocab_service.ics: next_service.TZ)
+        let start = ask.at ?? ReminderPlan.serverCalendar.date(bySettingHour: ask.hour ?? 20, minute: 0, second: 0, of: Date()) ?? Date()
         e.startDate = start
         e.endDate = start.addingTimeInterval(TimeInterval(length * 60))
         if ask.at == nil { e.addRecurrenceRule(EKRecurrenceRule(recurrenceWith: .daily, interval: 1, end: nil)) }

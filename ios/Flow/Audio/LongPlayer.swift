@@ -83,6 +83,9 @@ final class LongPlayer: NSObject {
     private var midSentence = false    // a sentence (or the recording) is under way: 继续 goes on from where it stopped
     private var resumeAfterInterruption = false
     private var usedAlt = false
+    private var altLoading = false     // the other line is being loaded: the first line's second failure report is the same one
+    private var dead = false           // the recording failed for good: an AVPlayerItem that failed never plays again
+    private var resumeAt: Double?      // where 继续 starts a recording that had to be loaded again (a new line, after a failure)
     private var seeking = 0            // seeks on their way: the time observer still reports the old second meanwhile
     private var serverVoiceOff: String? // the server said no for this text (signed out, switched off): no more asking
     private var player = AVPlayer()
@@ -133,6 +136,7 @@ final class LongPlayer: NSObject {
     }
 
     private func setUpPlayer() {
+        player.isMuted = AppConfig.muted
         player.actionAtItemEnd = .pause
         player.automaticallyWaitsToMinimizeStalling = true
         timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(value: 1, timescale: 4), queue: .main) { [weak self] time in
@@ -158,6 +162,9 @@ final class LongPlayer: NSObject {
         reps = 0
         note = ""
         usedAlt = false
+        altLoading = false
+        dead = false
+        resumeAt = nil
         serverVoiceOff = nil
         lastWhy = .user
         if let at = r.at, r.src != nil { index = Self.sentence(at: at, in: r.sentences) ?? Self.sentenceAfter(at, in: r.sentences) ?? index }
@@ -196,13 +203,27 @@ final class LongPlayer: NSObject {
         guard AudioSessionManager.shared.activate() else { return }
         lastWhy = why
         resumeAfterInterruption = false
+        if dead, let src = r.src {  // 「录音没加载出来…」 then 继续: the recording anew, from where it was
+            dead = false
+            usedAlt = false
+            note = ""
+            token += 1
+            let tok = token
+            set(.playing, why: why)
+            Task {
+                await self.load(src)
+                guard self.token == tok, self.req != nil, self.state == .playing || self.state == .waiting else { return }
+                self.go(at: self.resumeAt)
+            }
+            return
+        }
         if r.src != nil && midSentence {
             token += 1
             set(.playing, why: why)
             player.play()
         } else {
             set(.playing, why: why)
-            go()
+            go(at: resumeAt)
         }
     }
 
@@ -211,11 +232,11 @@ final class LongPlayer: NSObject {
     /// previous / next sentence (the lock screen, the page)
     func step(_ d: Int) {
         guard let r = req else { return }
-        if r.straight {
-            let t = player.currentTime().seconds
-            let i = Self.sentence(at: t, in: r.sentences) ?? index
+        if r.straight && !dead {  // as NAR.step: the sentence not yet over (or the last), then back to its start first
+            let t = player.currentTime().seconds.finiteOr(0)
+            let i = r.sentences.firstIndex { t < $0.e + 0.25 } ?? r.sentences.count - 1
             var dd = d
-            if d < 0, t - r.sentences[i].s > 1.5 { dd = 0 }  // well into a sentence: back to its start first
+            if d < 0, t - r.sentences[i].s > 1.5 { dd = 0 }
             jump(to: i + dd)
             return
         }
@@ -227,6 +248,14 @@ final class LongPlayer: NSObject {
     private func jump(to i: Int) {
         guard let r = req else { return }
         let j = max(0, min(r.count - 1, i))
+        if dead {  // nothing to seek in: 继续 loads the recording again from there
+            index = j
+            reps = 0
+            resumeAt = r.src != nil ? r.sentences[j].s : nil
+            save()
+            set(state, why: .user)
+            return
+        }
         if r.straight {
             index = j
             seekTo(r.sentences[j].s)
@@ -308,9 +337,10 @@ final class LongPlayer: NSObject {
     }
 
     private func watch(_ item: AVPlayerItem) {
+        let id = ObjectIdentifier(item)
         statusWatch = item.observe(\.status, options: [.new]) { [weak self] item, _ in
             let failed = item.status == .failed
-            Task { @MainActor in if failed { self?.itemFailed(nil) } }
+            Task { @MainActor in if failed { self?.itemFailed(id) } }
         }
     }
 
@@ -324,6 +354,7 @@ final class LongPlayer: NSObject {
             let s = r.sentences[index]
             player.currentItem?.forwardPlaybackEndTime = r.straight ? .invalid : CMTime(seconds: s.e + 0.05, preferredTimescale: 600)
             let from = at ?? s.s
+            resumeAt = nil
             midSentence = true
             set(.playing)
             seekTo(from) { [weak self] in
@@ -365,12 +396,13 @@ final class LongPlayer: NSObject {
                 why = TTSFetcher.reason(error)
                 if TTSFetcher.refused(error) { self.serverVoiceOff = why }
             }
-            self.noteTask?.cancel()
             guard self.token == tok, self.req != nil, self.state != .paused else { return }
+            self.noteTask?.cancel()  // this sentence's 「正在准备…」, never a newer one's
             self.midSentence = true
             if let file {
                 let item = AVPlayerItem(url: file)
                 item.audioTimePitchAlgorithm = .timeDomain
+                self.watch(item)  // a file AVFoundation cannot open: the iPhone's voice for it (itemFailed)
                 self.player.replaceCurrentItem(with: item)
                 self.player.defaultRate = r.rate
                 self.note = ""
@@ -447,27 +479,42 @@ final class LongPlayer: NSObject {
     }
 
     private func itemFailed(_ item: ObjectIdentifier?) {
-        guard let r = req, state != .idle else { return }
+        guard let r = req, state != .idle, !altLoading, !dead else { return }  // one failure is reported twice (KVO, notification)
         if let item, item != currentItem { return }
+        let t = player.currentTime().seconds
         if let alt = r.alt, !usedAlt, r.src != nil {  // the other line, from the same second
             usedAlt = true
-            let t = player.currentTime().seconds.finiteOr(r.sentences[index].s)
+            altLoading = true
+            let at = t.isFinite && t > 0 ? t : r.sentences[index].s
             let tok = token
             Task {
                 await self.load(alt)
-                guard self.token == tok, self.req != nil else { return }
-                if self.state == .playing { self.go(at: r.straight ? t : nil) }
+                self.altLoading = false
+                guard self.req != nil else { return }
+                let from = self.token == tok && r.straight ? at : nil  // moved meanwhile (a step): that sentence's start
+                switch self.state {
+                case .playing, .waiting: self.go(at: from)
+                case .paused:  // 继续 starts the new line there (nothing on it is under way yet)
+                    self.midSentence = false
+                    self.resumeAt = from
+                case .idle: break
+                }
             }
             return
         }
-        if r.src == nil, state == .playing {  // a server-voice file that would not play: the iPhone's voice for it
+        if r.src == nil, state == .playing || state == .waiting {  // a server-voice file that would not play: the iPhone's voice
             note = "这句自然人声放不出来，先用 iPhone 自带的声音"
+            midSentence = true
             set(.playing)
             speech.say(r.texts[index], voice: r.voice, rate: r.rate, token: token)
             return
         }
+        guard r.src != nil else { return }
         note = "录音没加载出来，网络好一点再点继续"
+        if r.straight, t.isFinite, t > 0 { resumeAt = t }
+        dead = true
         midSentence = false
+        token += 1
         player.pause()
         lastWhy = .error
         set(.paused, why: .error)
@@ -493,6 +540,9 @@ final class LongPlayer: NSObject {
         speech.stop()
         req = nil
         midSentence = false
+        dead = false
+        altLoading = false
+        resumeAt = nil
         resumeAfterInterruption = false
         state = .idle
         note = ""
@@ -551,6 +601,7 @@ final class LongPlayer: NSObject {
 
     private func servicesReset() {
         let wasOn = state != .idle
+        let t = player.currentTime().seconds
         if wasOn { pause(why: .error) }
         if let o = timeObserver { player.removeTimeObserver(o) }
         controlWatch = nil
@@ -559,6 +610,7 @@ final class LongPlayer: NSObject {
         AudioSessionManager.shared.prepare()
         if wasOn, let r = req {
             midSentence = false
+            if r.straight, t.isFinite, t > 0 { resumeAt = t }
             if let src = r.src { Task { await self.load(src) } }
         }
     }

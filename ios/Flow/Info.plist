@@ -24,6 +24,12 @@
 	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<!-- one window: the web view, the player and the bridge exist once per app (iPad: no second 语流 window) -->
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+	</dict>
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>

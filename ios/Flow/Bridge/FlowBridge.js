@@ -12,6 +12,7 @@
   const subs = {};
   const FlowApp = {
     v: cfg.v || 1, app: cfg.app || '', build: cfg.build || '', beta: !!cfg.beta,
+    platform: cfg.platform || 'ios',  // the same FlowApp v1 as the desktop app (语流 22: 'windows' | 'macos')
     features: Object.freeze((cfg.features || []).slice()),
     has(f) { return this.features.includes(f); },
     call,

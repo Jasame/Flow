@@ -1,11 +1,12 @@
 import AVFoundation
 
-/// The microphone for 跟读, 口语对话 and 发音: AVAudioRecorder, 16 kHz mono. WAV (16-bit PCM) by default; AAC (m4a) for long
-/// answers, since WAV takes 32 KB a second and the server takes 1.5 MB. stop() answers in the shape the page uploads
+/// The microphone for 跟读, 口语对话 and 发音: AVAudioRecorder, 16 kHz mono. WAV (16-bit PCM) by default; AAC (m4a) for answers
+/// longer than 40 s, since WAV takes 32 KB a second and the page takes 1.4 MB (the server 1.5 MB). stop() answers in the shape the page uploads
 /// ({mime_type, data}, as MIC.payload). The microphone is open only while recording; then the session is playback again.
 @MainActor
 final class Recorder: NSObject, AVAudioRecorderDelegate {
     enum Format: String { case wav, m4a }
+    static let wavSeconds = 40.0
 
     private var rec: AVAudioRecorder?
     private var file: URL?
@@ -17,6 +18,8 @@ final class Recorder: NSObject, AVAudioRecorderDelegate {
     private var dropStart = false      // stop() or cancel() came meanwhile: the recording does not begin
     var emit: ((String, [String: Any]) -> Void)?
     var willRecord: (() -> Void)?
+    /// true while a whole text is still there to go on with: the audio session stays ours after the recording
+    var keepSession: (() -> Bool)?
 
     override init() {
         super.init()
@@ -53,7 +56,8 @@ final class Recorder: NSObject, AVAudioRecorderDelegate {
     func start(_ a: [String: Any]) async -> [String: Any] {
         if busy { return ["ok": false, "why": "busy", "message": "正在录音"] }
         let maxSecs = min(300, max(1, Bridge.double(a["max"]) ?? 30))
-        let fmt = Format(rawValue: (a["format"] as? String) ?? "") ?? (maxSecs > 45 ? .m4a : .wav)
+        // WAV is 32 KB a second: past 40 s it would be over the page's 1.4 MB (MIC.payload) — AAC then
+        let fmt = Format(rawValue: (a["format"] as? String) ?? "") ?? (maxSecs > Self.wavSeconds ? .m4a : .wav)
         starting = true
         dropStart = false
         let granted = await ask()
@@ -88,7 +92,7 @@ final class Recorder: NSObject, AVAudioRecorderDelegate {
             emit?("rec", ["state": "recording", "max": maxSecs, "format": fmt.rawValue])
             return ["ok": true, "format": fmt.rawValue, "max": maxSecs]
         } catch {
-            AudioSessionManager.shared.endRecording(stillPlaying: false)
+            AudioSessionManager.shared.endRecording(stillPlaying: keepSession?() ?? false)
             try? FileManager.default.removeItem(at: url)
             return ["ok": false, "why": "error", "message": "录音没能开始，再试一次"]
         }
@@ -101,7 +105,7 @@ final class Recorder: NSObject, AVAudioRecorderDelegate {
             lengthMs = Int(r.currentTime * 1000)
             r.stop()
         }
-        AudioSessionManager.shared.endRecording(stillPlaying: false)
+        AudioSessionManager.shared.endRecording(stillPlaying: keepSession?() ?? false)
         defer { discard() }
         guard let file, var data = try? Data(contentsOf: file), data.count > 64 else {
             return ["ok": false, "why": "none", "message": "没有录到声音，再试一次"]
@@ -115,7 +119,7 @@ final class Recorder: NSObject, AVAudioRecorderDelegate {
     func cancel() {
         if starting { dropStart = true }
         rec?.stop()
-        AudioSessionManager.shared.endRecording(stillPlaying: false)
+        AudioSessionManager.shared.endRecording(stillPlaying: keepSession?() ?? false)
         discard()
     }
 
@@ -127,14 +131,15 @@ final class Recorder: NSObject, AVAudioRecorderDelegate {
 
     // the recording reached max by itself, or was stopped (a call, stop())
     nonisolated func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
-        Task { @MainActor in self.finished() }
+        let id = ObjectIdentifier(recorder)
+        Task { @MainActor in self.finished(id) }
     }
 
-    private func finished() {
-        guard rec != nil else { return }
+    private func finished(_ id: ObjectIdentifier) {
+        guard let rec, ObjectIdentifier(rec) == id else { return }  // a late call from an earlier recording
         let ms = lengthMs ?? Int(Date().timeIntervalSince(startedAt ?? Date()) * 1000)
         lengthMs = ms
-        AudioSessionManager.shared.endRecording(stillPlaying: false)
+        AudioSessionManager.shared.endRecording(stillPlaying: keepSession?() ?? false)
         emit?("rec", ["state": cut ? "cut" : "done", "ms": ms])
     }
 }

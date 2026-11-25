@@ -42,6 +42,7 @@ xcodebuild -project Flow.xcodeproj -scheme Flow-Beta -destination 'platform=iOS 
 - `FlowUITests`（要联网，打开内测版）：打开、登录页、App 播放一篇文章（暂停、继续、下一句、切到主屏幕后接着放）、控制中心、麦克风权限弹窗和 16 kHz WAV、复习提醒排期。截图在结果里：
   `xcrun xcresulttool export attachments --path <结果.xcresult> --output-path <文件夹>`
 - 模拟器里测不了的（只有真机能测）：锁屏界面上的按钮（模拟器的控制中心没有「正在播放」）、来电打断后接着放、静音键、听筒还是扬声器。
+- **测试不出声**（用户 2026-11-25：后台运行的应用不要播放系统声音）：启动参数 `-FlowMuteAudio YES` 让 App 的播放器和 iPhone 自带声音音量为 0，网页自己的 `<audio>`、Web Audio、朗读也静音，靠状态和事件判断有没有在放。UI 测试默认带上；自己用 simctl 启动时也加：`xcrun simctl launch booted cn.flowlang.app.beta -FlowMuteAudio YES`。真要听声音的测试先问用户。
 
 ### 用本地测试服务器试网页那一侧
 
@@ -56,7 +57,7 @@ SIMCTL_CHILD_FLOW_START_URL=http://localhost:8771 xcrun simctl launch booted cn.
 
 ## 网页和 App 之间的桥
 
-App 在网页自己的脚本之前放好 `window.FlowApp`（只在本站的主框架里），User-Agent 末尾是 `FlowiOS/<版本>`。网页一律先判断 `window.FlowApp && FlowApp.has('audio' | 'rec' | 'notify')`，没有就照旧（Safari、主屏 App、微信都不受影响）。
+App 在网页自己的脚本之前放好 `window.FlowApp`（只在本站的主框架里），User-Agent 末尾是 `FlowiOS/<版本>`。`FlowApp.platform` 是 `'ios'`；桌面版（语流 22）用同一个 v1，`platform` 是 `'windows'` / `'macos'`，`has('audio')`、`has('rec')` 为 false。网页一律先判断 `window.FlowApp && FlowApp.has('audio' | 'rec' | 'notify')`，没有就照旧（Safari、主屏 App、微信都不受影响）。
 
 - 网页 → App：`window.webkit.messageHandlers.flow.postMessage({cmd, args})`，返回 Promise。下面的 `FlowApp.xxx()` 都是它的包装。
 - App → 网页：`FlowApp.on(type, fn)`，同时在 `window` 上发 `flowapp:<type>` 事件。
@@ -86,7 +87,7 @@ App 在网页自己的脚本之前放好 `window.FlowApp`（只在本站的主�
 ### 录音 `FlowApp.rec`
 
 `permission()`、`ask()`（只问一次系统权限）、`start({max, format})`、`stop()` → `{ok, mime_type, data, ms, bytes, cut}`、`cancel()`；事件 `rec`：`recording` / `done`（到 max 自己停）/ `cut`（来电打断，录到的部分还在）。
-`format`：`wav`（默认，16 kHz 16 位单声道 PCM，44 字节文件头）或 `m4a`（AAC 16 kHz）；max 超过 45 秒默认用 m4a（WAV 每秒 32 KB，服务器上限 1.5 MB）。`stop()` 返回的形状和网页 `MIC.payload(blob)` 一样，能直接放进上传的 body。
+`format`：`wav`（默认，16 kHz 16 位单声道 PCM，44 字节文件头）或 `m4a`（AAC 16 kHz）；max 超过 40 秒默认用 m4a（WAV 每秒 32 KB，网页 `MIC.payload` 的上限是 1.4 MB，服务器 1.5 MB）。`stop()` 返回的形状和网页 `MIC.payload(blob)` 一样，能直接放进上传的 body。
 网页还没接桥的地方照旧用 getUserMedia；App 对本站自动同意，不会每次打开都再问一次（系统的麦克风权限照样要用户点一次「允许」）。
 
 ### 复习提醒 `FlowApp.notify`
@@ -94,16 +95,17 @@ App 在网页自己的脚本之前放好 `window.FlowApp`（只在本站的主�
 `permission()`、`ask()`、`sync(r)`（r 是 `/api/next/vocab` 里的 `reminder`，可带 `app: false` 关掉 App 的提醒）、`pending()`。
 App 打开、回到前台、切到后台、以及 iOS 每天叫醒它几次时，会用登录 cookie 拿一次 `/api/next/vocab`，排今后两周的通知：
 
-- 每天提醒的那个钟点，只在有词要复习的日子（今天看现在还剩多少，后面六天看服务器的 forecast，再往后有词就提醒）；
-- 「这次什么时候复习」（`once`）：在它之前不排每天的那条，当天也不再排，过了回到每天——和服务器发邮件的规矩一样；
-- 网页里「加到手机日历」的链接在 App 里会先问「用 App 通知提醒 / 加到系统日历」；选了「我的 → 每天提醒」那条，就每天在那个钟点提醒今天的学习。
-- 点通知打开复习页（`#/review`）或今日（`#/`）。退出登录以后不再提醒。
+- 时间按北京时间（和邮件、网页的 .ics 一样，服务器的 next_service.TZ）；
+- 每天提醒的那个钟点，只在有词要复习的日子（今天看现在还剩多少，包括超出当天份额的；后面看服务器的 forecast 累计到那天——没复习的词第二天还在——加上词书没学完时每天的新词；再往后有词就提醒）；App 每次打开、切到后台都会重排，复习完的日子就撤掉；
+- 「这次什么时候复习」（`once`）：在它之前不排每天的那条；到点那天有词才提醒，提醒过的那天不再排每天那条；过了回到每天——和服务器发邮件的规矩一样；
+- 网页里「加到手机日历」的链接在 App 里会先问「用 App 通知提醒 / 加到系统日历」；选了「我的 → 每天提醒」那条，就每天在那个钟点提醒今天的学习（这条不用登录）。
+- 点通知打开复习页（`#/review`）或今日（`#/`），App 没在运行时也一样。退出登录以后不再提醒复习单词。
 
 ## 隐私
 
-- `Flow/PrivacyInfo.xcprivacy`：不跟踪、没有跟踪域名；收集的数据只为 App 功能：邮箱（账号）、录音（批改用，不留存）、学员自己写的内容；用到的「需要说明理由」的 API 只有 UserDefaults（CA92.1，只读写 App 自己的设置）。
+- `Flow/PrivacyInfo.xcprivacy`：不跟踪、没有跟踪域名；收集的数据只为 App 功能：邮箱（账号）、录音（批改用，不留存）、学员自己写的内容；用到的「需要说明理由」的 API：UserDefaults（CA92.1，只读写 App 自己的设置）、文件时间（C617.1，删掉 App 自己缓存里 7 天前的朗读文件）。
 - 权限：麦克风（只在点录音的几秒打开）、通知（复习提醒，可以随时在系统设置里关）。日历不需要权限（用系统自带的添加界面）。
-- 登录 cookie 在 WebKit 自己的存储里，另外在钥匙串里存一份（只在这台设备，不进备份），防止刚登录就被关掉时丢失；退出登录时一起删掉。
+- 登录 cookie 在 WebKit 自己的存储里，另外在钥匙串里存一份（只在这台设备，不进备份），防止刚登录就被关掉时丢失；退出登录时一起删掉。删掉 App 再装上时，第一次打开会先清掉钥匙串里的那份，不会登进上一个人的账号。
 - 网页允许的域名（`WKAppBoundDomains`）只有本站：服务工作线程、JS 桥、cookie 都只在本站有效，别的网站一律用系统浏览器打开。
 
 ## 装到自己的 iPhone（免费账号，7 天有效）
@@ -112,7 +114,7 @@ App 打开、回到前台、切到后台、以及 iOS 每天叫醒它几次时�
 
 1. Xcode → 设置 → Apple 账户，登录自己的 Apple ID（用户自己登录）。
 2. 运行 `sh ios/tools/personal-team.sh <缩写>`：把 Xcode 里已登录的 Personal Team 和 `cn.flowlang.app.beta.<缩写>` 写进 `Config/Local.xcconfig`（不提交）。
-   不在 Xcode 的 Signing 界面里改，是为了不改动项目文件（以后 `git pull` 不冲突），也免得免费账号占用以后付费账号要用的 `cn.flowlang.app.beta`。
+   不在 Xcode 的 Signing 界面里改，是为了不改动项目文件（以后 `git pull` 不冲突），也免得免费账号占用以后付费账号要用的 `cn.flowlang.app.beta`。这个文件只给 Beta 换 Bundle ID，Release 永远是 `cn.flowlang.app`；免费账号只用 `Flow-Beta`。
 3. 数据线连手机，手机上打开「开发者模式」，选手机，运行。第一次要在手机「设置 → 通用 → VPN 与设备管理」里信任自己的开发者证书。
 4. 7 天后 App 打不开了，连上电脑再运行一次就好。
 
@@ -130,7 +132,7 @@ App 打开、回到前台、切到后台、以及 iOS 每天叫醒它几次时�
 
 ## 还没做的
 
-- 网页一侧接桥（PR：`ios-bridge-web`，01-audio-offline.js 的 LONG 交给 App、70-learner.js 等的录音用 App）：语流 09 看过再合。
-- 复习提醒卡片里的「到点用 App 通知提醒」开关和 `FlowApp.notify.sync()`：语流 11 在「这次什么时候复习」那一块加。
-- 04-home-app.js 的 `HOME_APP` 认 `FlowiOS`（返回按钮等）：语流 07。
+- 网页一侧接桥：Jasame/Flow#152（`ios-bridge-web`：01-audio-offline.js 的 LONG 交给 App，跟读、口语、雅思的录音用 App），语流 09 看过再合。合之前 App 里的页面照常用网页自己的声音和 getUserMedia。
+- 复习提醒：网页一侧已在 main（#139「到点用 App 通知提醒」和 `FlowApp.notify.sync()`，#149 按 `FlowApp.platform` 换说法）。
+- 04-home-app.js 认 `FlowiOS`：已在 main（语流 07，0f6fc09：App 里也有返回按钮；键盘和深浅色交给 App）。
 - 操作指南「隐私和数据」一章加 App 用到的权限：语流 03 已审好文字，TestFlight 外部测试前由它放进 guide.md（先告诉它一声）。

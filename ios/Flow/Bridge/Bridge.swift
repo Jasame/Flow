@@ -26,12 +26,28 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
 
     /// The script (FlowBridge.js) at document start in the main frame, and the message handler, in the page's own world.
     func install(in ucc: WKUserContentController) {
-        let cfg: [String: Any] = ["v": Self.version, "app": AppConfig.version, "build": AppConfig.build,
+        let cfg: [String: Any] = ["v": Self.version, "app": AppConfig.version, "build": AppConfig.build, "platform": "ios",
                                   "features": Self.features, "beta": AppConfig.isBeta]
         let src = "window.__flowAppConfig = \(Self.json(cfg));\n" + Self.script
         ucc.addUserScript(WKUserScript(source: src, injectionTime: .atDocumentStart, forMainFrameOnly: true, in: .page))
         ucc.addScriptMessageHandler(self, contentWorld: .page, name: Self.name)
+        if AppConfig.muted { ucc.addUserScript(WKUserScript(source: Self.muteScript, injectionTime: .atDocumentStart, forMainFrameOnly: false, in: .page)) }
     }
+
+    /// AppConfig.muted: the page's own sound silenced too (<audio>/<video>, Web Audio, the browser voice)
+    static let muteScript = """
+    (() => {
+      const play = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function () { this.muted = true; this.volume = 0; return play.apply(this, arguments); };
+      for (const name of ['AudioContext', 'webkitAudioContext']) {
+        const AC = window[name]; if (!AC) continue;
+        window[name] = class extends AC {
+          constructor(...a) { super(...a); const g = this.createGain(); g.gain.value = 0; g.connect(super.destination); Object.defineProperty(this, 'destination', { get: () => g }); }
+        };
+      }
+      if (window.speechSynthesis) { const speak = speechSynthesis.speak.bind(speechSynthesis); speechSynthesis.speak = u => { try { u.volume = 0; } catch (e) {} return speak(u); }; }
+    })();
+    """
 
     static let script: String = {
         guard let u = Bundle.main.url(forResource: "FlowBridge", withExtension: "js"), let s = try? String(contentsOf: u, encoding: .utf8) else { return "" }
@@ -51,7 +67,7 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
     func handle(_ cmd: String, _ a: [String: Any]) async -> Any {
         switch cmd {
         case "hello":
-            return ["v": Self.version, "app": AppConfig.version, "build": AppConfig.build, "features": Self.features]
+            return ["v": Self.version, "app": AppConfig.version, "build": AppConfig.build, "platform": "ios", "features": Self.features]
         case "app.visible":
             resendState()
             return true

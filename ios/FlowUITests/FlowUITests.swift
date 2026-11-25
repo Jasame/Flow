@@ -10,7 +10,8 @@ final class FlowUITests: XCTestCase {
     @MainActor private var app: XCUIApplication {
         if let made { return made }
         let a = XCUIApplication()
-        a.launchArguments += ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        // no sound from tests (the owner's rule): the app plays at volume 0 and is checked by state and events
+        a.launchArguments += ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN", "-FlowMuteAudio", "YES"]
         made = a
         return a
     }
@@ -109,7 +110,12 @@ final class FlowUITests: XCTestCase {
         tapButton("播放全文")
         // the recording comes over the network first (「准备中」), then the app's time goes on
         let ticking = web.staticTexts.matching(NSPredicate(format: "label MATCHES %@", "t: [0-9]+\\.[0-9] i: [0-9]+")).firstMatch
-        wait(ticking, 40, "time from the app")
+        if !ticking.waitForExistence(timeout: 40) {
+            // a weak line: 「录音没加载出来，网络好一点再点继续」 — 继续 loads the recording again (LongPlayer.resume)
+            XCTAssertTrue(value("state: ").contains("why: error"), "neither playing nor an error: \(value("state: "))")
+            tapButton("继续")
+            wait(ticking, 40, "time from the app after 继续")
+        }
         wait(line("state: playing"), 5, "playing")
         shot("03-playing")
         tapButton("下一句")
@@ -156,8 +162,8 @@ final class FlowUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 1)
         app.activate()
         if seen {
+            // back in front the app sends its state again (why: state), so only "paused" is checked here
             wait(line("state: paused"), 5, "paused from Control Center")
-            XCTAssertTrue(value("state: ").contains("why: remote"), value("state: "))
         } else {
             throw XCTSkip("this simulator shows no Now Playing tile in Control Center (a phone does)")
         }

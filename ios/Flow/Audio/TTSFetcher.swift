@@ -19,10 +19,22 @@ final class TTSFetcher {
 
     private func key(_ text: String, _ voice: String, _ pack: String?) -> String { voice + "\u{1}" + (pack ?? "") + "\u{1}" + text }
 
-    func ready(text: String, voice: String, pack: String?) -> Bool {
-        guard let f = made[key(text, voice, pack)] else { return false }
-        return FileManager.default.fileExists(atPath: f.path)
+    private func name(_ k: String) -> String { SHA256.hash(data: Data(k.utf8)).map { String(format: "%02x", $0) }.joined().prefix(32).description }
+
+    /// A file made earlier, in memory or on disk (kept 7 days, so an offline listen after a relaunch still has it).
+    private func onDisk(_ k: String) -> URL? {
+        if let f = made[k], FileManager.default.fileExists(atPath: f.path) { return f }
+        for ext in ["mp3", "wav", "m4a"] {
+            let f = dir.appendingPathComponent(name(k) + "." + ext)
+            if FileManager.default.fileExists(atPath: f.path) {
+                made[k] = f
+                return f
+            }
+        }
+        return nil
     }
+
+    func ready(text: String, voice: String, pack: String?) -> Bool { onDisk(key(text, voice, pack)) != nil }
 
     func prefetch(text: String, voice: String, pack: String?, csrf: String?) {
         _ = start(text: text, voice: voice, pack: pack, csrf: csrf)
@@ -34,9 +46,9 @@ final class TTSFetcher {
 
     private func start(text: String, voice: String, pack: String?, csrf: String?) -> Task<URL, Error> {
         let k = key(text, voice, pack)
-        if let f = made[k], FileManager.default.fileExists(atPath: f.path) { return Task { f } }
+        if let f = onDisk(k) { return Task { f } }
         if let t = running[k] { return t }
-        let name = SHA256.hash(data: Data(k.utf8)).map { String(format: "%02x", $0) }.joined().prefix(32)
+        let name = name(k)
         let t = Task { [site, dir] () throws -> URL in
             defer { self.running[k] = nil }
             var body: [String: Any] = ["text": text, "voice": voice]
@@ -46,7 +58,7 @@ final class TTSFetcher {
             let (data, http) = try await site.send(u, timeout: 20)
             guard (200..<300).contains(http.statusCode), data.count > 100 else { throw SiteError.status(http.statusCode, code: "file", message: "") }
             let ext = URL(string: u)?.pathExtension.isEmpty == false ? URL(string: u)!.pathExtension : "mp3"
-            let f = dir.appendingPathComponent(String(name) + "." + ext)
+            let f = dir.appendingPathComponent(name + "." + ext)
             try data.write(to: f, options: .atomic)
             self.made[k] = f
             return f
@@ -66,24 +78,23 @@ final class TTSFetcher {
             }
         }
         if case SiteError.signedOut = error { return "登录后可以用自然人声朗读" + tail }
-        if case SiteError.status(_, let code, let message) = error {
+        if case SiteError.status(_, let code, _) = error {
             switch code {
             case "guest": return "登录后可以用自然人声朗读" + tail
             case "off", "store": return "自然人声暂时用不了" + tail
-            case "cap", "import_cap", "busy":
-                let head = message.components(separatedBy: "，先用").first ?? ""
-                return (head.isEmpty ? "今天的自然人声用完了" : head) + tail
+            case "cap": return "今天的自然人声用完了" + tail
+            case "import_cap": return "今天导入文章的自然人声用完了" + tail
+            case "busy": return "今天用自然人声的人多" + tail
             default: break
             }
         }
         return "这句自然人声没做出来" + tail
     }
 
-    /// The server said no for good (signed out, a guest, switched off, the day's limit): not worth asking again for the
-    /// next sentences of this text. A slow network or one failed sentence is worth another try.
+    /// The server said no for the rest of the day (switched off, the day's limit), as the page's SV.off: not worth asking
+    /// again for the next sentences of this text. Anything else is per sentence (a guest still gets the stored ones).
     static func refused(_ error: Error) -> Bool {
-        if case SiteError.signedOut = error { return true }
-        if case SiteError.status(_, let code, _) = error { return ["guest", "off", "store", "cap", "import_cap", "busy"].contains(code) }
+        if case SiteError.status(_, let code, _) = error { return ["off", "cap"].contains(code) }
         return false
     }
 
