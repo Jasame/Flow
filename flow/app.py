@@ -129,6 +129,12 @@ _ASSET={}
 # the 内测版 (FLOW_CHANNEL=beta), a second instance with its own data, where versions waiting for release run first.
 # The 内测版 says so on every page, sends its mail marked 【内测版】 and asks search engines to stay away.
 CHANNEL='beta' if os.getenv('FLOW_CHANNEL','').strip().lower()=='beta' else 'prod'
+# Every POST that carries a recording (base64 in JSON): the page keeps a recording to 1.4 MB (MIC.payload, 70-learner.js),
+# 1.87 MB as base64, and audio_validation to 1.5 MB, so these take up to 2.2 MB, under nginx's 3 MB. A route left out
+# of this list answered every real recording with 「请求大小不正确」 (/api/next/assess/speaking, 2026-11-25), so
+# tests/test_request_size.py finds the routes whose handlers read audio and fails when one is missing here.
+AUDIO_PATHS=('/api/lab/audio','/api/next/shadow','/api/next/retell','/api/next/dialog','/api/next/say','/api/next/ielts','/api/next/assess/speaking')
+TOO_LONG='录音太长了，请在 1 分钟内说完再交'
 _SLIM={}
 def shell_file(name):
  """A public file; the page shell and the service worker get the asset version filled in (__ASSET__): a hash of
@@ -504,7 +510,8 @@ class Handler(BaseHTTPRequestHandler):
  def post(self):
   length=int(self.headers.get('Content-Length',0))
   # /api/feedback: up to three screenshots shrunk on the phone, sent as base64; under nginx's 3 MB (client_max_body_size 3m)
-  limit=2900000 if self.path=='/api/feedback' else 2200000 if self.path in ('/api/lab/audio','/api/next/shadow','/api/next/retell','/api/next/dialog','/api/next/say','/api/next/ielts') else 800000 if self.path=='/api/vocab/import' else 40000 if self.path in ('/api/next/import','/api/next/essay','/api/next/dialog') else 20000
+  limit=2900000 if self.path=='/api/feedback' else 2200000 if self.path in AUDIO_PATHS else 800000 if self.path=='/api/vocab/import' else 40000 if self.path in ('/api/next/import','/api/next/essay') else 20000
+  if length>limit and self.path in AUDIO_PATHS:return self.send({'error':TOO_LONG,'code':'too_long'},413)
   if length<1 or length>limit:return self.send({'error':'请求大小不正确'},400)
   if self.headers.get('Sec-Fetch-Site')=='cross-site':return self.send({'error':'不允许跨站请求'},403)
   if not api_open('POST',self.path.split('?')[0]):return self.send({'error':'接口不存在'},404)

@@ -57,6 +57,7 @@
   /* ---------- microphone: one spoken answer, sent to the AI as {mime_type, data} ---------- */
   const MIC = {
     mr: null, timer: 0,
+    MAX: 1400000, FULL: 1340000,  // bytes a recording may be (base64 1.87 MB, under the server's 2.2 MB: app.py AUDIO_PATHS); a long one stops at FULL
     busy() { return !!(this.mr && this.mr.state === 'recording'); },
     stop() { if (this.busy()) this.mr.stop(); },
     async toggle(btn, maxSecs, onDone) {
@@ -66,18 +67,30 @@
       let stream;
       try { stream = await micOpen(); } catch (e) { toast(e.message); return; }
       const type = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
-      const mr = new MediaRecorder(stream, type ? { mimeType: type } : undefined), chunks = [];
+      // A long answer (the ability test's 75 s, a retell's 2 minutes) at a speech bitrate: by default an iPhone records
+      // AAC at about 185 kb/s (1.7 MB in 75 s) and Chrome Opus at 128 kb/s (1.9 MB in 2 minutes), over the 1.4 MB a
+      // recording may be; at 48 kb/s two minutes are about 0.7 MB. If a browser keeps its own rate, the recording stops
+      // by itself just under the limit and what was said is sent, never lost. Short ones (words, a sentence) keep the default.
+      const long = maxSecs > 30, opts = Object.assign(type ? { mimeType: type } : {}, long ? { audioBitsPerSecond: 48000 } : {});
+      let mr; try { mr = new MediaRecorder(stream, opts); } catch (e) { mr = new MediaRecorder(stream, type ? { mimeType: type } : undefined); }
+      const chunks = []; let size = 0, full = false;
       this.mr = mr;
-      mr.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+      mr.ondataavailable = e => {
+        if (!e.data || !e.data.size) return;
+        chunks.push(e.data); size += e.data.size;
+        if (long && size > this.FULL && mr.state === 'recording') { full = true; mr.stop(); }
+      };
       mr.onstop = () => {
         micClose(stream); clearTimeout(this.timer); btn.classList.remove('on');
+        if (full) toast('录音到了长度上限，已经停下，先交这一段');
         if (chunks.length) onDone(new Blob(chunks, { type: mr.mimeType || type || 'audio/webm' }));
       };
-      mr.start(); btn.classList.add('on');
+      if (long) mr.start(1000); else mr.start();
+      btn.classList.add('on');
       this.timer = setTimeout(() => this.stop(), maxSecs * 1000);
     },
     async payload(blob) {
-      if (blob.size > 1400000) throw new Error('录音太长了，缩短一点再试');
+      if (blob.size > this.MAX) throw new Error('录音太长了，请在 1 分钟内说完再交');
       const data = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = no; r.readAsDataURL(blob); });
       return { mime_type: /mp4|m4a|aac/.test(blob.type) ? 'audio/mp4' : /ogg/.test(blob.type) ? 'audio/ogg' : 'audio/webm', data };
     },

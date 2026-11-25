@@ -149,7 +149,11 @@
     };
     if (kind === 'speaking') {
       const mic = document.getElementById('aMic'), st = document.getElementById('aState');
-      mic.onclick = () => { st.textContent = MIC.busy() ? '' : '正在录音，说完再点一下'; MIC.toggle(mic, 75, async blob => { st.textContent = ''; send({ audio: await MIC.payload(blob) }); }); };
+      mic.onclick = () => { st.textContent = MIC.busy() ? '' : '正在录音，说完再点一下'; MIC.toggle(mic, 75, async blob => {
+        st.textContent = ''; let audio;
+        try { audio = await MIC.payload(blob); } catch (e) { toast(e.message); return; }  // too long: said, not lost silently
+        send({ audio });
+      }); };
     } else {
       const ta = document.getElementById('aText'), cnt = document.getElementById('aCount');
       ta.oninput = () => { cnt.textContent = (ta.value.match(/[A-Za-z]+(?:'[A-Za-z]+)?/g) || []).length + ' 词'; };
