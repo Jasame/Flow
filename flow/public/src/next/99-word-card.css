@@ -16,7 +16,7 @@
 .review .roots .root+.root::before,.sheet .roots .root+.root::before{content:' · '}
 .review .roots .k,.sheet .roots .k{color:inherit;font-weight:400}
 /* 复习: the line above the card, and the buttons at the bottom (80-flat.css keeps them in one place on a phone) */
-.rtop+.rvoice{margin:2px 0 0}
+.rtop+.rvoice{margin:2px 0 0;pointer-events:none}  /* a line to read, not to tap: 结束's 44-px tap area runs under it */
 .ractions{display:grid;gap:10px}
 .ractions>.too-easy{justify-self:center;color:var(--muted);font-weight:500}
 .choice.one{grid-template-columns:minmax(0,1fr)}
