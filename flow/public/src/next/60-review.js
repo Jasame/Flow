@@ -314,6 +314,7 @@
     }
     function reveal(how, quiet) {
       claim = how; const ms = Date.now() - t0; peek = { t0 };
+      if (!quiet) haptic('select');
       const next = how === 'know' ? KNOW.order([['没错，下一个', 'good', 'good primary'], ['记错了', 'again', 'again x']]) : [[how === 'fuzzy' ? '下一个' : '记住了，下一个', how === 'fuzzy' ? 'hard' : 'again', 'primary']];
       // the same place as the three on the front: 没错 where 认识 was, 记错了 where 不认识 was; 太简单了 a small link above them
       view.innerHTML = `${top(true)}<div class="review open-card">${answerHTML()}
@@ -357,6 +358,7 @@
           res.card.step = (c.step || 0) + 1;
         }
         tally[r]++; doneN++; left = res; i++; doneIds.add(c.id); badge(res); spent += Math.min(ms, 60000); undo = before;
+        haptic(r === 'again' ? 'warning' : r === 'hard' ? 'tap' : 'success');
         const n = res.card;
         if (res.outcome && OUTCOME[res.outcome]) toast(OUTCOME[res.outcome]);
         if ((r === 'good' || r === 'easy') && n.due) farthest = Math.max(farthest, Math.round((n.due * 1000 - Date.now()) / 86400000));
@@ -376,7 +378,7 @@
     }
     // 撤销: the latest rating taken back (a slip of the finger); the same card comes up again to answer.
     async function takeBack() {
-      if (peek && !busy) { const t = peek.t0; peek = null; ask(true); t0 = t; return; }  // the front again; the time runs on
+      if (peek && !busy) { const t = peek.t0; peek = null; ask(true); t0 = t; haptic('tap'); return; }  // the front again; the time runs on
       const u = undo; if (!u || busy) return; busy = true;
       try {
         let res = u.left;
@@ -385,13 +387,13 @@
         tally[u.r]--; doneN--; if (!u.had) doneIds.delete(u.c.id);
         if (u.inserted >= 0) items.splice(u.inserted, 1);
         i = u.i; left = res; undo = null; badge(res);
-        toast('已撤销，再答一次这一张'); ask();
+        toast('已撤销，再答一次这一张'); haptic('tap'); ask();
       } catch (e) { undo = null; toast(e.message); const b = document.getElementById('undo'); if (b) b.remove(); }
       finally { busy = false; }
     }
     async function known() {
       peek = null;
-      try { const res = await api('/api/next/vocab/known', { id: c.id, known: true }); tally.known++; doneN++; i++; doneIds.add(c.id); left = res; toast('已标为熟知'); ask(); } catch (e) { toast(e.message); }
+      try { const res = await api('/api/next/vocab/known', { id: c.id, known: true }); tally.known++; doneN++; i++; doneIds.add(c.id); left = res; haptic('tap'); toast('已标为熟知'); ask(); } catch (e) { toast(e.message); }
     }
     async function more() {
       document.onkeydown = null;

@@ -3579,6 +3579,17 @@ def review_side_run(pw):
         check(dev, '#/review/other: 复习错题和句型, under 练习, a mistake or the pattern first', o['h1'] == '复习错题和句型' and '练习' in o['nav'] and ('划线' in o['text'] or '回忆这个句型' in o['text'] or 'went' in o['text']), {k: v[:120] for k, v in o.items()})
         check(dev, 'no script errors (单词 and 其他复习 apart)', not errs, errs[:3])
         ctx.close()
+        # 复习时的轻触震动 (语流 C1): in the app (has('haptic')), turning a card is 'select' and the rating says how it went;
+        # in a browser nothing is called
+        ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['screen']['token'], 'url': BASE}])
+        ctx.add_init_script("window.__hap = []; window.FlowApp = { v: 1, platform: 'ios', has: k => k === 'haptic', call: (m, a) => { if (m === 'app.haptic') window.__hap.push(a.kind); return Promise.resolve({ ok: true }); } }; try { localStorage.setItem('flow-tap-guide', '1'); localStorage.setItem('flow-next-swipe-tip', '1'); } catch (e) {}")
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        pg.goto(BASE + '/#/review', wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000)
+        pg.click('.ractions [data-claim="know"]'); pg.wait_for_selector('[data-rate="again"]', timeout=4000); pg.click('[data-rate="again"]'); pg.wait_for_timeout(600)
+        check(dev, 'in the iOS app: turning a card taps lightly (select), 记错了 a warning (never error)', pg.evaluate('window.__hap') == ['select', 'warning'], pg.evaluate('window.__hap'))
+        check(dev, 'no script errors (haptics)', not errs, errs[:3])
+        ctx.close()
         # a search that finds nothing says what was searched and offers a way out (语流 B9): 清除搜索, and with a filter on, 在全部里找
         ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
