@@ -3115,6 +3115,41 @@ def home_app_run(pw):
             check(dev, f'{label}: a home app — 返回 on a sub-page, the logo on a tab page, no 「添加到桌面」',
                   home and bk and bk['label'] and tab is None and not install, (home, bk, tab, install))
             ctx.close()
+        # the Android app (语流 21): its WebView gets shorter for the keyboard, nothing is covered, so a field near the end
+        # and its button would sit below the page's end (登录 under the keyboard): both are brought into sight
+        android = dict(viewport={'width': 393, 'height': 852}, is_mobile=True, has_touch=True, device_scale_factor=3, locale='zh-CN', bypass_csp=True,
+                       user_agent='Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Mobile Safari/537.36 FlowAndroid/1.0')
+        SIGHT = """([f, b]) => { const r = document.querySelector(f).getBoundingClientRect(), bt = document.querySelector(b), q = bt && bt.getBoundingClientRect();
+          return { field: [Math.round(r.top), Math.round(r.bottom)], button: q ? Math.round(q.bottom) : null, h: innerHeight, open: document.body.classList.contains('kb-open') }; }"""
+        for where, page, opener, field, button in (('导入文章', '#/import', None, '#view textarea', '#view .btn.primary'),
+                                                   ('背词计划 → 导入词表 (a sheet)', '#/vocab/plan', '#impBook', '#impText', '#impGo')):
+            ctx = browser.new_context(**android); ctx.add_init_script("window.FlowApp = { platform: 'android' }")
+            ctx.add_cookies([{'name': 'flow_session', 'value': tok, 'url': BASE}])
+            pg = ctx.new_page(); pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg)
+            go(pg, page)
+            if opener:
+                pg.wait_for_selector(opener, timeout=8000); pg.click(opener)
+            pg.wait_for_selector(field, timeout=8000); pg.wait_for_timeout(300)
+            pg.evaluate(f"document.querySelector({json.dumps(field)}).scrollIntoView({{block: 'start'}})"); pg.focus(field); pg.wait_for_timeout(200)
+            pg.set_viewport_size({'width': 393, 'height': 852 - 330}); pg.wait_for_timeout(600)  # the keyboard: the WebView 330 px shorter
+            got = pg.evaluate(SIGHT, [field, button])
+            check(dev, f'the Android app, {where}: with the page shorter for the keyboard, the field and its button in sight',
+                  got['button'] is not None and got['button'] <= got['h'] and got['field'][0] >= 0 and got['field'][1] <= got['h'] and got['open'], got)
+            ctx.close()
+        # the 内测版 in one of Flow's apps: the learner installed it on purpose, and flowlang.cn would open the system
+        # browser — the line stays without its link, the once-per-phone sheet is not shown (a browser still gets both)
+        BETA = "new MutationObserver((m, o) => { if (document.documentElement) { document.documentElement.dataset.channel = 'beta'; o.disconnect(); } }).observe(document, {childList: true, subtree: true})"
+        seen = {}
+        for label, app in (('in an app', True), ('in a browser', False)):
+            ctx = browser.new_context(viewport={'width': 393, 'height': 852}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True)
+            ctx.add_init_script(BETA)
+            if app:
+                ctx.add_init_script("window.FlowApp = { platform: 'android' }")
+            pg = ctx.new_page(); pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg); pg.wait_for_timeout(1200)
+            seen[label] = pg.evaluate("() => ({ bar: !!document.getElementById('betaBar'), link: !!document.querySelector('#betaBar a'), sheet: !document.getElementById('sheet').hidden && /内测版/.test(document.getElementById('sheetCard').innerText) })")
+            ctx.close()
+        check(dev, 'the 内测版 in an app: the line without 「去正式版」, no sheet (a browser: both, as before)',
+              seen['in an app'] == {'bar': True, 'link': False, 'sheet': False} and seen['in a browser'] == {'bar': True, 'link': True, 'sheet': True}, seen)
     finally:
         browser.close()
 
