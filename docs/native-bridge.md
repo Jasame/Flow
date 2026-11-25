@@ -64,7 +64,7 @@ iOS（语流 20）、安卓（语流 21）、桌面 Windows 和 macOS（语流 2
 旧写法 `texts: [句子]` 等于 `items` 里 url 都是 null，App 照样认。
 
 `pause()`、`resume()`、`stop()`（停下，进度留着）、`step(±1)`、`seek(i)`、`set({rate, rep, gap})`（播放中改语速、复读，立刻生效）、
-`state()` → `{key, state, i, n, t, title, rate}`、`progress(key)` → `{i, t, at}` 或 null（`at` 是毫秒时间戳）。
+`state()` → `{key, state, i, n, t, title, rate}`、`progress(key)` → `{i, t, at}`、读完了是 `{ended: true, at}`，没有记录是 null（`at` 是毫秒时间戳）。
 
 ### 事件
 
@@ -84,8 +84,9 @@ iOS（语流 20）、安卓（语流 21）、桌面 Windows 和 macOS（语流 2
 - 来电、Siri 打断：暂停（why = interrupted）；系统说可以接着放，就自己接着放。耳机拔了暂停。
 - 别的声音或录音开始：网页先调 `pause()`（LONG.other），App 那边自己也会停（why = other）。
 - 加载失败：暂停（why = error）；再点继续会重新加载，从停下的地方接着放。有 `alt` 时先换线路，接着从那一秒放。
-- 进度：网页 PROG 和 App 各存一份。页面打开、回到前台时，网页读 `progress(key)`，和 PROG 比 `at`，用新的那份。
-  `idle` 且 `why = ended`：两边都清；其他的 `idle`：两边都记。
+- 进度：网页 PROG 和 App 各存一份。页面打开、回到前台时，网页读 `progress(key)`，和 PROG 比 `at`，用新的那份；新的那份是 `ended` 就清掉 PROG。
+  `idle` 且 `why = ended`：两边都清（App 留一个 ended 记号，给错过这个事件的页面看）；其他的 `idle`：两边都记。
+- 继续时 iOS 不给声音（正在通话、正在录音）：App 发 `audio` `{state: 'paused', why: 'interrupted'}`，网页照它显示。
 - App 在放的时候，网页不 claim navigator.mediaSession（锁屏只有 App 一家）；播放条 MINI 照常显示，暂停、继续、✕ 走桥。
 - 系统自带声音按 voice 挑英音（`uk-*`）、美音，语速跟 `rate`。
 
