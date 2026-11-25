@@ -65,6 +65,8 @@ class CheckTests(unittest.TestCase):
         for part in ('中考 | penny | 便士', '冠词和介词写全', '不要凑', '不超过 20 个字', '日常生活里的搭配：penny'):
             self.assertIn(part, text)
         self.assertIn('不照搬任何一本词典', m[0]['content']); self.assertIn('真人、品牌、政治和时事', m[0]['content'])
+        self.assertIn('反义词和只是同一类的词都不算', text)  # A0 on sample 2: blind came back with deaf
+        self.assertIn('其实是反义词', wx.review_messages([])[1]['content'])
 
 
 class StoreTests(unittest.TestCase):
@@ -82,6 +84,17 @@ class StoreTests(unittest.TestCase):
         self.assertEqual([x['en'] for x in wx.shown(self.c, 'borrow')], ['borrow a book from the library', 'borrow money from a friend', 'lend'])
         why = json.loads(self.c.execute("SELECT flagged FROM vocab_extras WHERE en='borrow an idea'").fetchone()[0])
         self.assertEqual(why, {'by': 'qwen-plus', 'why': '不常用'})
+
+    def test_each_row_keeps_one_id_for_good(self):  # B2: 「这条不对」 and the takedown go by id
+        keep, _ = wx.check('borrow', GOOD, nx, topic_guard.hits)
+        wx.store(self.c, 'borrow', keep, 'flow-batch-ds-flash')
+        first = {x['en']: x['id'] for x in wx.shown(self.c, 'borrow')}
+        self.assertEqual(len(set(first.values())), 4)
+        wx.store(self.c, 'borrow', keep, 'flow-batch-ds-flash')  # a second run: same rows, same ids
+        self.assertEqual({x['en']: x['id'] for x in wx.shown(self.c, 'borrow')}, first)
+        self.c.execute('DELETE FROM vocab_extras WHERE id=?', (max(first.values()),))
+        wx.store(self.c, 'penny', [('colloc', 'save every penny', '省下每一分钱', '')], 'flow-batch-ds-flash')
+        self.assertGreater(wx.shown(self.c, 'penny')[0]['id'], max(first.values()))  # an id is never given again
 
     def test_a_batch_from_writing_to_the_card(self):
         calls = []

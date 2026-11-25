@@ -4,9 +4,10 @@ then B2's format and A0's / D2's rules). Written offline in batches, never while
 - DeepSeek on the batch lane writes (kind word-extras, route of AI 例句 like 例句预生成), sent only the word, its level
   and our own Chinese meaning. qwen-plus (FLOW_BACKUP_AI_MODEL) reads what passed the program's checks and names the
   items it doubts; those are kept hidden (hidden=1, its words in flagged), never shown.
-- One row per item (B2): vocab_extras(norm, kind 'colloc' | 'near', en, zh, diff, pos, model, prompt, created, hidden,
-  flagged), unique on (norm, kind, en), written with INSERT OR IGNORE so a run can stop and start again. 「这条不对」
-  hides one row for one learner (B2's page); a row can be taken down alone (D2: 留痕, 单条下架).
+- One row per item (B2): vocab_extras(id, norm, kind 'colloc' | 'near', en, zh, diff, pos, model, prompt, created,
+  hidden, flagged), unique on (norm, kind, en), written with INSERT OR IGNORE so a run can stop and start again. id
+  never changes and is never given again (AUTOINCREMENT): 「这条不对」 keeps it to hide one row for one learner
+  (B2's vocab_extras_hidden), and a row is taken down alone by it (D2: 留痕, 单条下架).
 - Its own data, shared by every book, not merged into any word list (D2: NAWL and BSL stay CC BY-SA lists of their own).
 - Batch work: ai_routes.batch_stop (the day's ¥5 budget, tonight's batch ceiling) stops a run; --max-yuan too.
 
@@ -16,7 +17,7 @@ import argparse, json, os, re, sys, time
 from pathlib import Path
 
 KIND = 'word-extras'
-PROMPT = 'v2-2026-11-25'  # kept with every row: which rules wrote it
+PROMPT = 'v3-2026-11-25'  # kept with every row: which rules wrote it
 LEVEL = {'core': '基础', 'mid': '进阶', 'high': '高阶', 'adv': '精通', 'ext': '拓展', 'zk': '中考', 'gk': '高考', 'cet4': '四级',
          'cet6': '六级', 'ky': '考研', 'tem4': '专四', 'tem8': '专八', 'ielts': '雅思', 'toefl': '托福', 'gre': 'GRE', 'nawl': '学术',
          'bsl': '商务'}
@@ -32,10 +33,11 @@ def units(text):
 
 
 def schema(c):
-    c.execute('CREATE TABLE IF NOT EXISTS vocab_extras(norm TEXT NOT NULL, kind TEXT NOT NULL, en TEXT NOT NULL, '
+    c.execute('CREATE TABLE IF NOT EXISTS vocab_extras(id INTEGER PRIMARY KEY AUTOINCREMENT, norm TEXT NOT NULL, '
+              'kind TEXT NOT NULL, en TEXT NOT NULL, '
               "zh TEXT NOT NULL DEFAULT '', diff TEXT NOT NULL DEFAULT '', pos INTEGER NOT NULL DEFAULT 0, "
               "model TEXT NOT NULL DEFAULT '', prompt TEXT NOT NULL DEFAULT '', created REAL NOT NULL, "
-              "hidden INTEGER NOT NULL DEFAULT 0, flagged TEXT NOT NULL DEFAULT '', PRIMARY KEY(norm, kind, en))")
+              "hidden INTEGER NOT NULL DEFAULT 0, flagged TEXT NOT NULL DEFAULT '', UNIQUE(norm, kind, en))")
 
 
 SYSTEM = ('你是给中国学习者编单词卡的英语老师。只输出 JSON。拿不准就少写，绝不编造，不照搬任何一本词典的条目。'
@@ -53,7 +55,7 @@ def write_messages(batch):
         '不算）。zh 是通顺的中文，按这个搭配最常见的意思写，不逐词对译，不超过 12 个字；意思要和给出的中文释义对得上，'
         '不写释义里没有的意思。\n'
         '2. near：只写真正的近义词（如 hope / wish），或中国学生真的常混淆的词（如 wonder / wander、affect / effect），'
-        '0–3 个，没有合适的就给空数组，不要凑。必须是真实存在的单个英文单词，不能是这个词本身或它的变形。zh 不超过 8 个字；'
+        '0–3 个，没有合适的就给空数组，不要凑。反义词和只是同一类的词都不算（win 和 lose、blind 和 deaf 都不写）。必须是真实存在的单个英文单词，不能是这个词本身或它的变形。zh 不超过 8 个字；'
         'diff 用一句中文只说两个词的区别，不超过 20 个字（一个英文单词算一个字）。\n'
         + (f'这几个词用日常生活里的搭配：{", ".join(daily)}。\n' if daily else '') +
         '\n单词（级别 | 词 | 中文释义）：\n' + lines + '\n\n'
@@ -63,7 +65,7 @@ def write_messages(batch):
 def review_messages(items):
     return [{'role': 'system', 'content': '你是严格的英语编辑。只输出 JSON。'}, {'role': 'user', 'content':
         '逐条检查下面给中国学习者的单词卡内容，只列出有问题的条目：搭配不常用、不地道、缺冠词或介词、中文意思不对或不通顺；'
-        '近义或易混词其实不近义也不常混淆、区别说错。没把握算错的不要列。\n' + json.dumps(items, ensure_ascii=False) + '\n\n'
+        '近义或易混词其实不近义也不常混淆、其实是反义词或只是同一类的词、区别说错。没把握算错的不要列。\n' + json.dumps(items, ensure_ascii=False) + '\n\n'
         '输出 JSON：{"problems":[{"word":"…","kind":"colloc 或 near","en":"有问题的那条英文","why":"中文，一句"}]}'}]
 
 
@@ -135,9 +137,10 @@ def flag(c, problems):
 
 
 def shown(c, norm):
-    """What a word's card shows (B2's page): rows not hidden, in order."""
-    return [dict(zip(('kind', 'en', 'zh', 'diff'), r)) for r in c.execute(
-        'SELECT kind, en, zh, diff FROM vocab_extras WHERE norm=? AND hidden=0 ORDER BY kind, pos', (norm,))]
+    """What a word's card shows (B2's page): rows not hidden, in order, each with its id (「这条不对」 and the
+    site-wide takedown go by it)."""
+    return [dict(zip(('id', 'kind', 'en', 'zh', 'diff'), r)) for r in c.execute(
+        'SELECT id, kind, en, zh, diff FROM vocab_extras WHERE norm=? AND hidden=0 ORDER BY kind, pos', (norm,))]
 
 
 def pending(c, vs, books, nx=None):
