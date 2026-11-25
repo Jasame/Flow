@@ -72,11 +72,14 @@
         u.onend = () => { clearTimeout(watch); if (t !== this.token || ended) return; if (started) done(); else again(); };
         u.onerror = e => { if (e && /interrupted|canceled/.test(e.error || '')) { clearTimeout(watch); clearInterval(poll); return; } if (!ended) again(); };  // ours: stopped, or a new sentence
         // A browser with speechSynthesis but no voice to speak with (WeChat on Android) neither starts nor fails: after
-        // 2.5 s without a start, say so (and stop counting on it when it has no voices at all) instead of waiting in silence.
+        // 2.5 s without a start, say so (and stop counting on it) instead of waiting in silence. One that has voices but
+        // did not start this time (an iPad offline, 语流 B5's run 2026-11-25) is no reason to send anyone to another
+        // browser: a whole text says why at its sentence (onfail), a single sentence asks for one more tap.
         const watch = setTimeout(() => {
           if (t !== this.token || started) return;
-          speechSynthesis.cancel(); if (!speechSynthesis.getVoices().length) this.ok = false;
-          noSound('不能用电脑朗读的声音'); give();
+          speechSynthesis.cancel();
+          if (!speechSynthesis.getVoices().length) { this.ok = false; noSound('不能用电脑朗读的声音'); } else if (!onfail) toast('浏览器的声音这次没读出来，再点一次试试');
+          give();
         }, 2500);
         try { speechSynthesis.speak(u); } catch (e) { again(); }  // refused outright: as a dropped sentence
       };
