@@ -44,7 +44,7 @@
       top = `<section class="today-plan" aria-labelledby="tpTitle">${backHTML(p, next)}
         <div class="tp-head"><div><h1 class="h1" id="tpTitle">${next ? '今天的计划' : '今天的计划完成了'}</h1>
           <span class="muted small">${planHeadText(p)}</span>${sprintLine(h)}</div>
-          <span class="ring" data-p="${Math.round(p.done / Math.max(1, p.total) * 100)}" aria-hidden="true"><b>${p.done}/${p.total}</b></span></div>
+          <span class="ring" data-p="${Math.round(p.done / Math.max(1, p.total) * 100)}" role="img" aria-label="今天的计划，已完成 ${p.done} 步，共 ${p.total} 步"><b aria-hidden="true">${p.done}/${p.total}</b></span></div>
         ${next ? `<a class="btn primary block go-next" href="${esc(next.href)}">${p.done ? '继续' : '开始'}第 ${nextK + 1} 步<span aria-hidden="true">→</span></a>${overLineHTML(p, next)}`
           : `<div class="tp-done">${doneRing}<span>都完成了。${more1 ? `想多学一点，下一篇是《${esc(more1.title)}》。` : '想多学一点，就再挑一篇。'}多学的照样算进「这周进步」。</span></div>
             <div class="tp-more"><a class="btn primary block go-next" href="${more1 ? '#/m/' + encodeURIComponent(more1.id) : '#/library'}" data-tap="home-more-one">再学一篇<span aria-hidden="true">→</span></a>
@@ -69,7 +69,7 @@
     // The day back after days away (r28 第 2 段) starts with 欢迎回来 and the plan too: getting going comes first.
     const short = (innerHeight < 500 && innerWidth > innerHeight) || !!(path && h.path.back);
     view.innerHTML = `<div class="greet-row"><span class="kicker greet">${greeting()}${name ? `，<span class="nm">${esc(name)}</span>` : ''}</span>
-        ${st && st.habit ? habitChip(st.habit) : st ? `<span class="wk" title="本周学了 ${weekN} 天"><span class="tiny muted">本周 ${weekN} 天</span><span class="week" aria-hidden="true">${st.week.map(d => `<span class="${d.active ? 'on' : ''}"></span>`).join('')}</span></span>` : ''}</div>
+        ${st && st.habit ? '' : st ? `<span class="wk" title="本周学了 ${weekN} 天"><span class="tiny muted">本周 ${weekN} 天</span><span class="week" aria-hidden="true">${st.week.map(d => `<span class="${d.active ? 'on' : ''}"></span>`).join('')}</span></span>` : ''}</div>
       ${announceHTML(h) || updateCardHTML(h)}${trialSurveyHTML(h)}
       ${short ? '' : lineCardHTML(h) + newsCardHTML(news)}
       ${top}
@@ -86,7 +86,6 @@
     bindLine(h);  // 今日好句 (12-daily-line.js)
     const ro = document.getElementById('remindOnce'); if (ro) ro.onclick = () => remindOnce();  // 这次什么时候复习 (50-words.js)
     mountWeekCards(view);  // 这周进步 (11-progress.js)
-    const hb = document.getElementById('habitBtn'); if (hb) hb.onclick = weekSheet;
     if (st && st.habit) cheerWeek(st.habit);
     const nextRead = readId || (pick && pick.id);
     if (nextRead) setTimeout(() => preloadMaterial(nextRead), 600);  // after the page is drawn, not before
@@ -96,7 +95,7 @@
   function planHeadText(p) {
     if (p.must_minutes == null) return `${p.total} 步 · 约 ${p.minutes} 分钟 · 已完成 ${p.done} / ${p.total}`;
     if (p.done >= p.total) return `必做 ${p.total} 步都做完了${p.studied ? ` · 今天学了约 ${p.studied} 分钟` : ''}`;
-    return p.done ? `必做 ${p.total} 步 · 已完成 ${p.done} · 还要约 ${p.left_minutes} 分钟` : `必做 ${p.total} 步 · 约 ${p.must_minutes} 分钟`;
+    return p.done ? `还要约 ${p.left_minutes} 分钟` : `约 ${p.must_minutes} 分钟`;  // the ring beside it says 1/3
   }
   // A step of the plan as a row: its number (+ for 还有时间的话, 周 for 本周任务), what to do and about how long.
   // 本周任务's row is .wtask, never .week: .week is the week-days bar (10-pages.css .week span = a 6 px grey bar), which
@@ -124,14 +123,6 @@
     if (!said || said.day !== day) save('flow-over-said', { day, t: Date.now() });
     return `<p class="tp-over small" role="status">今天已经学了约 ${p.studied} 分钟，超过你定的 ${p.minutes} 分钟，剩下的可以留到明天。</p>`;
   }
-  // 每周目标: this week's days (Monday to Sunday) against the goal; a missed day breaks nothing while the week still
-  // reaches it. The weeks reached are counted up, never as a run that breaks (r27). A tap opens 这周进步's details
-  // (11-progress.js), where the goal can be changed.
-  function habitChip(hb) {
-    return `<button class="wk habit" id="habitBtn" type="button" aria-label="本周学了 ${hb.done} 天，目标 ${hb.goal} 天${hb.weeks ? '，已达成 ' + hb.weeks + ' 周' : ''}。点这里看这周进步" data-tap="home-habit">
-      <span class="tiny ${hb.met ? 'met' : 'muted'}">本周 ${hb.done}/${hb.goal} 天${hb.weeks ? ` · 已达成 ${hb.weeks} 周` : ''}</span>
-      <span class="week" aria-hidden="true">${hb.days.map(d => `<span class="${d.active ? 'on' : ''}${d.today ? ' today' : ''}"></span>`).join('')}</span></button>`;
-  }
   function habitSheet() {
     const hb = (S.home && S.home.stats && S.home.stats.habit) || { goal: 4 };
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">每周目标</h2>
@@ -144,7 +135,6 @@
           if (S.home && S.home.stats) S.home.stats.habit = r.habit;
           card.querySelectorAll('[data-goal]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
           const v = document.getElementById('meHabitV'); if (v) v.textContent = `每周 ${r.habit.goal} 天`;
-          const chip = document.getElementById('habitBtn'); if (chip) { chip.outerHTML = habitChip(r.habit); const n = document.getElementById('habitBtn'); if (n) n.onclick = weekSheet; }
           refreshWeekCard();
           toast(`每周目标：${r.habit.goal} 天`);
         } catch (e) { toast(e.message); }
@@ -229,7 +219,6 @@
       try {
         const r = await api('/api/next/habit', { goal: hb.lower.goal });
         h.stats.habit = r.habit;
-        const chip = document.getElementById('habitBtn'); if (chip) { chip.outerHTML = habitChip(r.habit); const n = document.getElementById('habitBtn'); if (n) n.onclick = weekSheet; }
         refreshWeekCard();
         toast(`每周目标：${r.habit.goal} 天`);
         save('flow-goal-lower', r.habit.monday); save('flow-habit-lastweek', r.habit.monday); fillNotice(h);

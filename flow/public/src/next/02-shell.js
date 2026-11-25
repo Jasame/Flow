@@ -134,9 +134,9 @@
   function mailNudgeHTML() {
     const u = S.user, mail = S.home && S.home.session && S.home.session.mail;
     if (!u || u.email_bound !== false || !mail || Date.now() - (load('flow-next-mail-nudge') || 0) < 14 * 864e5) return '';
-    return `<div class="card sunk section mail-nudge stack-s" id="mailNudge"><b>还没有绑定邮箱</b>
-      <span class="small">忘记密码时，绑定了邮箱就能自己用验证码找回；没绑定的话只能请老师或管理员帮忙重设。</span>
-      <div class="row"><button class="btn small primary" id="mnBind" type="button" data-tap="notice-mail">绑定邮箱</button><button class="btn small ghost" id="mnLater" type="button">以后再说</button></div></div>`;
+    // one line, put away with ✕ (以后再说: 14 days), not a card with two buttons (学优秀 UI 第一批, the user's pick 2026-11-25)
+    return `<div class="mail-nudge mail-line" id="mailNudge" role="note"><span>绑定邮箱，忘记密码时可以自己找回</span>
+      <button class="link small" id="mnBind" type="button" data-tap="notice-mail">去绑定</button><button class="mn-x" id="mnLater" type="button" aria-label="以后再说，14 天后再提醒">✕</button></div>`;
   }
   // A few entry points are counted, how many taps a day and nothing about who, so the operator console can compare
   // the weeks before and after a release (flow_admin.TAP_LABEL lists them). Best effort: a lost count does not matter.

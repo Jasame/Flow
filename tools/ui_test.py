@@ -462,6 +462,29 @@ def run_device(pw, dev, opts):
 
     # ---- 读: 中文导读、改写 and 伴读 in one row, the key and hints in one line, the text on a phone's first screen
     go(pg, f'#/m/{PID}/read')
+    # 使用提示 (08-tips.js, 学优秀 UI 第一批): 「点词查词…」 said once above the text, 知道了 puts it away and the account
+    # keeps that (not after a reload either); 我的 → 帮助 → 更多 →「重新显示使用提示」 brings it back
+    # the server's list and the phone's copy of it (08-tips.js keeps one per account, so the tip is drawn with the page)
+    tips_reset = """async () => { const s = await (await fetch('/api/session')).json();
+        await fetch('/api/next/tips', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': s.user.csrf }, body: JSON.stringify({ reset: true }) });
+        Object.keys(localStorage).filter(k => k.startsWith('flow-tips')).forEach(k => localStorage.removeItem(k));
+        [s.user.id, s.user.username].filter(Boolean).forEach(w => localStorage.setItem('flow-tips-' + w, '[]')); }"""
+    pg.evaluate(tips_reset); pg.reload(wait_until='load'); settle(pg)
+    shown = bool(pg.wait_for_selector('#tip-read', timeout=6000)); text = pg.text_content('#tip-read') or ''
+    y0 = pg.evaluate("Math.round(document.getElementById('reader').getBoundingClientRect().top)"); pg.wait_for_timeout(1500)
+    y1 = pg.evaluate("Math.round(document.getElementById('reader').getBoundingClientRect().top)")
+    check(dev, 'read: the first-time tip is drawn with the page (kept on the phone), the text does not move when the server answers', y0 == y1, (y0, y1))
+    pg.click('#tip-read button'); pg.wait_for_timeout(300); gone = pg.query_selector('#tip-read') is None
+    pg.reload(wait_until='load'); settle(pg); pg.wait_for_timeout(800)
+    again = pg.query_selector('#tip-read') is not None
+    seen = pg.evaluate("fetch('/api/next/tips').then(r => r.json())")
+    check(dev, 'read: 「点词查词…」 is a first-time tip: shown once above the text, 知道了 puts it away, the account keeps it',
+          shown and '点词查词' in text and gone and not again and 'read' in seen.get('seen', []), (text[:30], gone, again, seen))
+    if dev == 'phone':
+        go(pg, '#/me'); pg.click('#meMore'); pg.wait_for_selector('#meTips', timeout=4000); pg.click('#meTips'); pg.wait_for_timeout(500)
+        go(pg, f'#/m/{PID}/read'); back = bool(pg.wait_for_selector('#tip-read', timeout=6000))
+        check(dev, '我的 → 帮助 → 更多 →「重新显示使用提示」 brings the 读 tip back', back)
+        pg.click('#tip-read button'); pg.wait_for_timeout(300); go(pg, f'#/m/{PID}/read')
     rd = pg.evaluate("""() => { const r = document.getElementById('reader'), t = document.querySelector('#view .read-tools');
       return {tools: t ? [...t.querySelectorAll('button')].map(b => b.id) : [], top: r ? Math.round(r.getBoundingClientRect().top) : null, h: innerHeight}; }""")
     check(dev, 'read: the tools sit in one row above the text', 'readAlong' in rd['tools'], rd)
@@ -1707,8 +1730,8 @@ def learner_run(pw):
         pg.wait_for_selector('#sheetCard [data-goal="3"]', timeout=4000)
         pg.click('#sheetCard [data-goal="3"]'); pg.wait_for_timeout(600); pg.evaluate(closing)
         goal = (pg.text_content('#weekCard .wk-tile.goal b') or '').strip()
-        chip = (pg.text_content('#habitBtn') or '').strip()
-        check(dev, '每周目标: the goal set from 今日 shows on the 这周进步 card and the chip by the greeting at once', goal.endswith('/3天') and '/3 天' in chip, (goal[:40], chip[:40]))
+        chip = pg.query_selector('#habitBtn')
+        check(dev, '每周目标: the goal set from 今日 shows on the 这周进步 card at once (the week said there only, not by the greeting)', goal.endswith('/3天') and chip is None, goal[:40])
         # 草稿 (08-drafts.js): a writing box keeps what was typed when the page is left, its counter too; sending forgets it
         draft = 'A paragraph pasted here, and then the learner tapped another tab by mistake. ' * 4
         go(pg, '#/import'); pg.fill('#impF textarea[name=text]', draft); go(pg, '#/practice'); go(pg, '#/import')
@@ -1840,7 +1863,6 @@ A11Y_JS = """() => {
       if (cs.backgroundImage && cs.backgroundImage !== 'none' && !/gradient/.test(cs.backgroundImage)) return null;  // a picture behind: skip
       let c = parse(cs.backgroundColor);
       if (/gradient/.test(cs.backgroundImage)) { const m = cs.backgroundImage.match(/rgba?\([^)]+\)/); if (m) c = parse(m[0]); }
-      if ((!c || !c[3]) && e.matches('.steps [aria-selected="true"]')) { const ind = document.querySelector('.steps .ind'); c = ind && parse(getComputedStyle(ind).backgroundColor); }
       if (c && c[3] > 0) { layers.push(c); if (c[3] >= 1) break; }
       op *= Number(cs.opacity); e = e.parentElement;
     }
@@ -3144,7 +3166,7 @@ def progress_run(pw):
                 acc = pr['accuracy']['now']
                 want = [str(pr['remembered']['now']), str(pr['finished']['now']),
                         f"{acc['rate']}%" if acc['rate'] is not None else (f"{acc['right']}/{acc['total']}" if acc['total'] else '—'), f"{hb['done']}/{hb['goal']}天"]
-                check(dev, f'{tag}: 这周进步 sits under the plan, the week chip by the greeting', card and card['below'] and card['chip'] and card['inView'], card)
+                check(dev, f'{tag}: 这周进步 sits under the plan, and the week is said there only (no chip by the greeting: 学优秀 UI 第一批)', card and card['below'] and not card['chip'] and card['inView'], card)
                 # phones (the owner, 2026-11-25): 好句 and 今日一读 one line each, 「AI 生成」 on 今日一读's line, so 今天的计划 and its
                 # button are on the first screen; a tap opens 好句 in place, again closes it. iPad and computer: both cards whole
                 fold = pg.evaluate(FOLD_JS)
@@ -3172,6 +3194,9 @@ def progress_run(pw):
                 ec.close()
                 check(dev, f'{tag}: its four numbers are the learner\'s own (as the server counts them)', card and card['values'] == want, (card and card['values'], want))
                 path = home['path']; plan = pg.evaluate(PLAN_JS)
+                ring = pg.get_attribute('#view .today-plan .ring', 'aria-label') or ''
+                check(dev, f'{tag}: the ring says the steps done to a screen reader (the line under the title gives the minutes only)',
+                      ring == f"今天的计划，已完成 {path['done']} 步，共 {path['total']} 步", ring)
                 grp = {g: [x for x in path['steps'] if x.get('group', 'must') == g] for g in ('must', 'extra', 'week')}
                 head = (f"约 {path['must_minutes']} 分钟" if not path['done'] else '都做完了' if path['done'] >= path['total'] else f"还要约 {path['left_minutes']} 分钟")
                 check(dev, f'{tag}: the plan shows 必做 (counted), 还有时间的话 folded and 本周任务 as the server packs them, its title the real minutes of 必做',
