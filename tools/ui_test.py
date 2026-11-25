@@ -2626,7 +2626,7 @@ def review_side_run(pw):
         # in an app (iOS, Android, desktop; FlowApp before the page): the reminder goes to its notifications, said for its device
         ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
-        ctx.add_init_script("window.__synced = []; window.FlowApp = { v: 1, platform: 'macos', has: k => k === 'notify', notify: { ask: () => Promise.resolve(true), sync: r => window.__synced.push(r), permission: () => 'granted' } };")
+        ctx.add_init_script("window.__synced = []; window.__perm = 'undetermined'; window.FlowApp = { v: 1, platform: 'macos', has: k => k === 'notify', notify: { ask: () => { window.__perm = 'granted'; return Promise.resolve(true); }, sync: r => window.__synced.push(r), permission: () => window.__perm, settings: () => { window.__settings = 1; } } };")
         pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
         pg.goto(BASE + '/#/vocab/plan', wait_until='load'); settle(pg); pg.wait_for_selector('#rApp', timeout=5000)
         note = pg.text_content('#rAppNote') or ''
@@ -2634,6 +2634,10 @@ def review_side_run(pw):
         synced = pg.evaluate('window.__synced')
         check(dev, 'in the desktop app on a Mac: 到点用 App 通知提醒 says 这台 Mac, and hands the reminder (with the forecast) to the app',
               note.startswith('在这台 Mac 上') and synced and synced[-1].get('hour') == 20 and isinstance(synced[-1].get('forecast'), list), (note, synced[-1:]))
+        on = pg.text_content('#rAppOn') if pg.query_selector('#rAppOn') else ''
+        pg.click('#rAppSet') if pg.query_selector('#rAppSet') else None
+        check(dev, 'once on, the row says so, and 通知设置 opens the system settings (no 关闭 where the app cannot turn it off)',
+              on.startswith('已开启：在这台 Mac 上') and not pg.query_selector('#rAppOff') and pg.evaluate('window.__settings') == 1, on)
         pg.click('#onceBtn'); pg.wait_for_selector('#oncePicks [data-at]', timeout=5000); pick = pg.get_attribute('#oncePicks [data-at]', 'data-at')
         pg.click('#oncePicks [data-at]'); pg.wait_for_selector('#onceOk', timeout=5000)
         synced = pg.evaluate('window.__synced')
@@ -2642,6 +2646,18 @@ def review_side_run(pw):
         pg.wait_for_selector('#sheetCard #onceOff', timeout=5000); pg.click('#sheetCard #onceOff'); pg.wait_for_timeout(300)
         check(dev, 'in the app: 取消这次 too', pg.evaluate('window.__synced')[-1].get('once') is None, pg.evaluate('window.__synced')[-1:])
         check(dev, 'no script errors (app)', not errs, errs[:3])
+        ctx.close()
+        # the Android app: on already (permission granted), and it can turn its notifications off itself (notify.off)
+        ctx = browser.new_context(viewport={'width': 412, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
+        ctx.add_init_script("window.__perm = 'granted'; window.FlowApp = { v: 1, platform: 'android', has: k => k === 'notify', notify: { ask: () => { window.__perm = 'granted'; return true; }, sync: () => {}, permission: () => window.__perm, off: () => { window.__perm = 'undetermined'; window.__off = 1; }, settings: () => {} } };")
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        pg.goto(BASE + '/#/vocab/plan', wait_until='load'); settle(pg); pg.wait_for_selector('#rAppRow', timeout=5000)
+        on = pg.text_content('#rAppOn') if pg.query_selector('#rAppOn') else ''
+        pg.click('#rAppOff'); pg.wait_for_timeout(300)
+        check(dev, 'Android app: 已开启：在这台手机上…, and 关闭 turns it off and offers to turn it on again',
+              on.startswith('已开启：在这台手机上') and pg.evaluate('window.__off') == 1 and pg.query_selector('#rApp') is not None, on)
+        check(dev, 'no script errors (Android app)', not errs, errs[:3])
         ctx.close()
         # a phone: the swipe follows the side
         ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)

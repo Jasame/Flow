@@ -1323,7 +1323,7 @@ def ics(hour, kind='vocab', minutes=10, at=None):
     at (seconds, 这次什么时候复习): one event at that time instead, the daily one unchanged."""
     import os
     hour = hour if hour in REMIND_HOURS else 20
-    minutes = minutes if minutes in (5, 10, 15, 20, 30) else 10
+    minutes = minutes if minutes in nx.MINUTES else 10  # every 每天学习时长 of 我的 (语流 20: 45 and 60 came out as 10)
     origin = os.getenv('FLOW_PUBLIC_URL', 'https://flowlang.cn').rstrip('/')
     start = datetime.datetime.now(nx.TZ).replace(hour=hour, minute=0, second=0, microsecond=0)
     if at:
