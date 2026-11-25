@@ -12,6 +12,13 @@ name: Tests
 # no 内测版 went out: 2026-11-25, b12 stayed for hours); of the runs waiting, GitHub keeps the newest. A pull request's
 # older run is cancelled by its newer push. A pull request that touches nothing the UI tests depend on (tools/run_tests.py
 # UI_INPUTS: not the website, not the UI tools) skips the 5 UI shares, so it takes 3 runners, not 8.
+#
+# The heavy jobs (2 website shares, 5 UI shares) can run on the owner's MSI instead (self-hosted runners labelled msi,
+# tools/msi-setup.sh), off the 20-job limit. tools/ci_runner.py picks the machine in the 'changes' job, before they are
+# queued: the MSI only when the repository variable MSI_RUNNER is "on", the run is main's or a pull request from this
+# repository (never a fork's), and the MSI answers a probe within seconds; otherwise GitHub's machines, as before.
+# The gates, frontend and every release stay on GitHub's machines. On the MSI a job keeps its temporary files in its
+# runner's own folder (TMPDIR), which the runner clears after the job; no secret ever goes there.
 on:
   push:
     branches: [main]
@@ -24,11 +31,17 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   changes:
-    # whether the UI shares run: always on main; on a pull request, when it touches anything the UI depends on
+    # whether the UI shares run (always on main; on a pull request, when it touches anything the UI depends on), and
+    # where the shares run (tools/ci_runner.py pick: the MSI or GitHub's machines)
     runs-on: ubuntu-24.04
     timeout-minutes: 3
+    permissions:
+      contents: read
+      actions: write  # to dispatch the MSI probe; a fork's pull request gets a read-only token and never asks
     outputs:
       ui: ${{ steps.paths.outputs.ui }}
+      runner: ${{ steps.pick.outputs.runner }}
+      where: ${{ steps.pick.outputs.where }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -38,9 +51,33 @@ jobs:
           if [ "${{ github.event_name }}" != pull_request ]; then echo ui=true >> "$GITHUB_OUTPUT"; exit 0; fi
           git diff --name-only HEAD^1 HEAD | tee /dev/stderr | python3 tools/run_tests.py --ui-needed >> "$GITHUB_OUTPUT"
           cat "$GITHUB_OUTPUT"
+      - id: pick
+        env:
+          MSI_RUNNER: ${{ vars.MSI_RUNNER }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 tools/ci_runner.py pick
+  msi-watch:
+    # if the MSI went away in the seconds after it answered, its jobs would wait a day (and on main block every later
+    # run): past 10 minutes without a machine, this cancels the run, and for main asks for a new one
+    needs: changes
+    if: needs.changes.outputs.where == 'msi'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 tools/ci_runner.py watch
   backend-share:
     name: backend ${{ matrix.share }}/2
-    runs-on: ubuntu-24.04
+    needs: changes
+    runs-on: ${{ fromJSON(needs.changes.outputs.runner) }}
     timeout-minutes: 15  # a share took about 4 minutes (2026-11-24); the whole suite in one job took 18–25
     strategy:
       fail-fast: false
@@ -48,9 +85,15 @@ jobs:
         share: [1, 2]
     steps:
       - uses: actions/checkout@v4
+      - name: Temporary files in this runner's own folder (cleared after the job; the MSI runs several jobs at once)
+        run: echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
       - uses: actions/setup-python@v5
+        if: needs.changes.outputs.where != 'msi'
         with:
           python-version: '3.11'
+      - name: Python 3.11 on the MSI (tools/msi-setup.sh installs it), in a venv of this job's own
+        if: needs.changes.outputs.where == 'msi'
+        run: python3.11 -m venv "$RUNNER_TEMP/venv" && echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
       - name: Playwright (prints the 操作指南 PDF with the installed Chrome)
         run: python -m pip install --quiet playwright==1.49.1
       - name: The files a release builds (next.js, next.css, the guide PDF and its manifest)
@@ -83,7 +126,7 @@ jobs:
     name: ui ${{ matrix.share }}/5
     needs: changes
     if: needs.changes.outputs.ui == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ${{ fromJSON(needs.changes.outputs.runner) }}
     timeout-minutes: 15  # a share took about 6 minutes (2026-11-24); all groups in one job took 21–24
     strategy:
       fail-fast: false
@@ -91,21 +134,27 @@ jobs:
         share: [1, 2, 3, 4, 5]
     steps:
       - uses: actions/checkout@v4
+      - name: Temporary files in this runner's own folder (cleared after the job; the MSI runs several jobs at once)
+        run: echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
       - uses: actions/setup-python@v5
+        if: needs.changes.outputs.where != 'msi'
         with:
           python-version: '3.11'
+      - name: Python 3.11 on the MSI (tools/msi-setup.sh installs it), in a venv of this job's own
+        if: needs.changes.outputs.where == 'msi'
+        run: python3.11 -m venv "$RUNNER_TEMP/venv" && echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
       - name: Playwright (driving the installed Chrome)
         run: python -m pip install --quiet playwright==1.49.1
       - name: Front end built from its parts
         run: python tools/build_front.py
       - name: Multi-device UI tests (this share's groups)
-        run: python tools/run_tests.py --ui --shard ${{ matrix.share }}/5 --out /tmp/ui-out
+        run: python tools/run_tests.py --ui --shard ${{ matrix.share }}/5 --out "$RUNNER_TEMP/ui-out"
       - name: Screenshots when something failed
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: ui-screenshots-${{ matrix.share }}
-          path: /tmp/ui-out
+          path: ${{ runner.temp }}/ui-out
           retention-days: 7
   ui:
     # passes when every UI share passed, or when the pull request touches nothing the UI depends on (shares skipped)

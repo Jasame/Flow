@@ -1,0 +1,32 @@
+name: MSI setup check
+# tools/msi-setup.sh, run end to end on one of GitHub's Ubuntu 24.04 machines (a normal user with sudo, like the
+# MSI's WSL): packages, the self-check venv, one runner folder (downloaded and sha256-checked, not registered) and the
+# self-check (front end, guide PDF with a Chinese font, two website test files, one UI share). Runs when the script or
+# what it installs changes, so the commands the owner runs on the MSI are known to work.
+on:
+  pull_request:
+    paths:
+      - tools/msi-setup.sh
+      - tools/requirements-release.txt
+      - .github/workflows/msi-setup-check.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  setup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: tools/msi-setup.sh with one runner folder
+        run: RUNNERS=1 bash tools/msi-setup.sh
+      - name: Run again (nothing is redone, nothing breaks)
+        run: RUNNERS=1 SKIP_CHECK=1 bash tools/msi-setup.sh
+      - name: The runner folder and its clean-up hook
+        run: |
+          test -x ~/actions-runner/msi-1/config.sh
+          grep -qx "ACTIONS_RUNNER_HOOK_JOB_COMPLETED=$HOME/.local/share/flow-ci/job-completed.sh" ~/actions-runner/msi-1/.env
+          test "$(grep -c ACTIONS_RUNNER_HOOK_JOB_COMPLETED ~/actions-runner/msi-1/.env)" = 1
+          ws=$HOME/actions-runner/msi-1/_work/Flow/Flow; mkdir -p "$ws/x"; touch "$ws/.y" "$ws/z"
+          GITHUB_WORKSPACE=$ws ~/.local/share/flow-ci/job-completed.sh; test -z "$(ls -A "$ws")"
+          mkdir -p /tmp/keep/a; GITHUB_WORKSPACE=/tmp/keep ~/.local/share/flow-ci/job-completed.sh; test -d /tmp/keep/a  # outside _work: untouched

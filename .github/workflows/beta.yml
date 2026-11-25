@@ -45,7 +45,8 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' && vars.BETA_AUTO != 'off' &&
-       github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+       github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' &&
+       (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch'))
     runs-on: ubuntu-24.04
     timeout-minutes: 50  # deploy.sh waits up to 40 minutes for the 内测版 (usually 5–8)
     permissions:
