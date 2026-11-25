@@ -27,6 +27,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = [*sorted((ROOT / 'flow' / 'public' / 'src' / 'next').glob('*.js')),
            *(ROOT / 'flow' / 'public' / n for n in ('sw.js', 'survey.js', 'about.js'))]
+STYLES = [*sorted((ROOT / 'flow' / 'public' / 'src' / 'next').glob('*.css')),
+          *(ROOT / 'flow' / 'public' / n for n in ('survey.css', 'about.css'))]
 
 # (what, first Safari with it, pattern): in regular expressions (the literal's body, or a string's text)
 REGEX_FEATURES = [('a lookbehind (?<= / (?<! in a regular expression', '16.4', re.compile(r'\(\?<[=!]'))]
@@ -168,13 +170,73 @@ def findings(src):
     return out
 
 
+# CSS: an unknown value or selector drops only its own declaration or rule, so the page still opens; but with nothing
+# before it, what it set is gone (2026-11-25: color-mix backgrounds lost on iOS 16.1, 语流 B5's #319). So a value
+# Safari 15.0 lacks needs a plain one for the same property before it in the same rule, and a selector it lacks a
+# compat-ok comment in its rule saying what happens without it.
+CSS_VALUES = [('color-mix()', '16.2', re.compile(r'color-mix\(')),
+              ('dvh / svh / lvh', '15.4', re.compile(r'\d(?:dvh|svh|lvh|dvw|svw|lvw)\b'))]
+CSS_SELECTORS = [(':has()', '15.4', re.compile(r':has\(')), ('nesting with &', '16.5', re.compile(r'&'))]
+
+
+def css_findings(src):
+    """(line, column, what, safari) for what Safari 15.0 lacks with nothing to fall back on (see CSS_VALUES)."""
+    text, oks = list(src), []
+    for m in re.finditer(r'/\*.*?\*/', src, re.S):
+        if 'compat-ok' in m.group():
+            oks.append(m.start())
+        for k in range(m.start(), m.end()):
+            if text[k] != '\n':
+                text[k] = ' '
+    text = ''.join(text)
+    found = []
+    start, stack = 0, []                 # start: where the current prelude or declaration list began
+    for m in re.finditer(r'[{}]', text):
+        if m.group() == '{':
+            stack.append((start, m.start()))   # (prelude start, its brace)
+            start = m.end()
+            continue
+        if not stack:
+            start = m.end(); continue
+        pre_start, brace = stack.pop()
+        prelude, body, body_start = text[pre_start:brace], text[brace + 1:m.start()], brace + 1
+        start = m.end()
+        if '{' in body or prelude.strip().startswith('@'):
+            continue                     # @media, @supports …: their rules are checked one by one
+        ok = any(pre_start <= o < m.start() for o in oks)
+        for what, ver, pat in CSS_SELECTORS:
+            s = pat.search(prelude)
+            if s and not ok:
+                found.append((pre_start + s.start(), what, ver))
+        seen = {}                        # property -> it has had a value Safari 15.0 knows
+        off = body_start
+        for decl in body.split(';'):
+            if ':' in decl:
+                prop, value = decl.split(':', 1)
+                prop = prop.strip().lower()
+                newer = [(what, ver, pat.search(value)) for what, ver, pat in CSS_VALUES if pat.search(value)]
+                if newer and not seen.get(prop) and not prop.startswith('--') and not ok:
+                    what, ver, s = newer[0]
+                    found.append((off + decl.index(value) + s.start(), what + f' in {prop} with no plain {prop} before it', ver))
+                if not newer:
+                    seen[prop] = True
+            off += len(decl) + 1
+    lines = src.split('\n')
+    out = []
+    for off, what, ver in sorted(set(found)):
+        line = src.count('\n', 0, off) + 1
+        if 'compat-ok' not in lines[line - 1]:
+            out.append((line, off - (src.rfind('\n', 0, off) + 1) + 1, what, ver))
+    return out
+
+
 def main(argv):
-    files = [Path(a) for a in argv] or SCRIPTS
+    files = [Path(a) for a in argv] or [*SCRIPTS, *STYLES]
     bad = 0
     for f in files:
         text = f.read_text(encoding='utf-8')
         lines = text.split('\n')
-        for line, col, what, ver in findings(text):
+        for line, col, what, ver in (css_findings(text) if f.suffix == '.css' else findings(text)):
             bad += 1
             rel = f.relative_to(ROOT) if f.is_absolute() and ROOT in f.parents else f
             print(f'{rel}:{line}:{col}: {what}: Safari {ver} and later only (iOS 15 must work)\n    {lines[line - 1].strip()[:160]}')
@@ -182,7 +244,7 @@ def main(argv):
         print(f'check_compat: {bad} thing(s) Safari 15.0 cannot run; rewrite them, or mark a line that is safe '
               f'with // compat-ok: <why>')
         return 1
-    print(f'check_compat: {len(files)} scripts, nothing newer than Safari 15.0')
+    print(f'check_compat: {len(files)} scripts and stylesheets, nothing newer than Safari 15.0 without a fallback')
     return 0
 
 

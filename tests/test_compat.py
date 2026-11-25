@@ -54,6 +54,20 @@ class CompatTests(unittest.TestCase):
     def test_a_line_marked_compat_ok_passes(self):
         self.assertEqual(found('const r = /(?<=x)y/;  // compat-ok: only on the 内测版 console, Safari 17 there'), [])
 
+    def test_css_needs_a_plain_value_before_a_newer_one_and_a_word_on_a_newer_selector(self):
+        css = lambda s: [w for line, col, w, v in cc.css_findings(s)]
+        self.assertTrue(css('.bar{background:color-mix(in srgb,var(--bg) 76%,transparent)}'))
+        self.assertEqual(css('.bar{background:var(--bg);background:color-mix(in srgb,var(--bg) 76%,transparent)}'), [])
+        self.assertEqual(css('.x{--tint:color-mix(in srgb,red 10%,white)}'), [])  # a custom property: its users fall back
+        self.assertTrue(css('main{min-height:100dvh}'))
+        self.assertEqual(css('main{min-height:100vh;min-height:100dvh}'), [])
+        self.assertTrue(css('.row:has(.on){flex-wrap:nowrap}'))
+        self.assertEqual(css('.row:has(.on){/* compat-ok: before iOS 15.4 it may wrap */flex-wrap:nowrap}'), [])
+        self.assertEqual(css('@supports not (background:color-mix(in srgb,red 50%,blue)){.cal i{opacity:.5}}'), [])
+        self.assertEqual(css('/* never color-mix( here */ .a{color:red}'), [])
+        self.assertTrue(css('@media (max-width:759px){.tabs{background:color-mix(in srgb,var(--paper) 72%,transparent)}}'))
+        self.assertTrue(css('.card{color:red; & .t{color:blue}}') or css('.card .t{} .x & .y{color:blue}'))
+
     def test_every_served_script_is_checked_and_the_check_runs_wherever_scripts_are_checked(self):
         names = {p.name for p in cc.SCRIPTS}
         self.assertIn('99-boot.js', names); self.assertIn('sw.js', names); self.assertIn('about.js', names)
