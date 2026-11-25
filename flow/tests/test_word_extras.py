@@ -49,6 +49,15 @@ class CheckTests(unittest.TestCase):
         keep, why = self.check(item)
         self.assertEqual(keep, []); self.assertEqual(len(why), 3)
 
+    def test_look_alike_words_are_other_words(self):  # sample 4: besides was taken for a form of beside
+        for w, nw in (('beside', 'besides'), ('cloth', 'clothes'), ('sleeping', 'sleepy'), ('besides', 'beside')):
+            keep, why = self.check({'near': [{'word': nw, 'zh': '另一个词', 'diff': '意思不同'}]}, w)
+            self.assertEqual([e for _, e, *_ in keep], [nw], (w, nw, why))
+        for w, nw in (('book', 'books'), ('borrow', 'borrowed'), ('lie', 'lying')):
+            keep, why = self.check({'near': [{'word': nw, 'zh': '变形', 'diff': '只是变形'}]}, w)
+            self.assertEqual(keep, [], (w, nw)); self.assertIn('就是原词', why[0])
+        self.assertNotIn('wind', wx._forms('win')); self.assertIn('making', wx._forms('make'))
+
     def test_a_collocation_must_hold_the_word(self):
         keep, why = self.check({'collocations': [{'en': 'take out a loan', 'zh': '贷款'}]})
         self.assertEqual(keep, []); self.assertIn('不含这个词', why[0])

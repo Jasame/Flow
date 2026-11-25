@@ -71,12 +71,34 @@ def review_messages(items):
 
 
 def _forms(w):
-    return {w, w + 's', w + 'es', w + 'ed', w + 'd', w + 'ing', w[:-1] + 'ing', w[:-1] + 'ies', w[:-1] + 'ied',
-            w + w[-1:] + 'ed', w + w[-1:] + 'ing'}
+    """The word's own inflections (sample 4: sleepy is not a form of sleeping, nor wind of win)."""
+    f = {w, w + 's', w + 'es', w + 'ed', w + 'ing', w + w[-1:] + 'ed', w + w[-1:] + 'ing'}
+    if w.endswith('e'):
+        f |= {w + 'd', w[:-1] + 'ing'}
+    if w.endswith('ie'):
+        f.add(w[:-2] + 'ying')  # lie → lying
+    if w.endswith('y'):
+        f |= {w[:-1] + 'ies', w[:-1] + 'ied'}
+    return f
 
 
 def _is_word(token, w, nx):
     return token in _forms(w) or w in nx.lemma_candidates(token)
+
+
+def _own(word, nx):
+    return ((nx.lookup(word) or {}).get('word') or '').lower() == word
+
+
+def _same(nw, w, nx):
+    """Is the near word only this word again? beside / besides and cloth / clothes are two words: an s-form the
+    dictionary keeps as a headword of its own is another word (sample 4 left besides out)."""
+    if nw == w:
+        return True
+    for a, b in ((nw, w), (w, nw)):
+        if a in (b + 's', b + 'es') and _own(a, nx):
+            return False
+    return _is_word(nw, w, nx) or w in _forms(nw)
 
 
 def check(w, item, nx, guard):
@@ -100,7 +122,7 @@ def check(w, item, nx, guard):
         nw, zh, diff = str(x.get('word', '')).strip().lower(), str(x.get('zh', '')).strip(), str(x.get('diff', '')).strip()
         if not re.fullmatch(r'[a-z]+', nw):
             why.append(f'近义词不是单个词：{nw}'); continue
-        if _is_word(nw, w, nx) or w in _forms(nw):
+        if _same(nw, w, nx):
             why.append(f'近义词就是原词：{nw}'); continue
         if not nx.lookup(nw):
             why.append(f'近义词词典里查不到：{nw}'); continue
