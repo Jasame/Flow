@@ -3300,6 +3300,20 @@ def about_run(pw):
 
 # ---- 这周进步 (r27): the card at the top of 今日 on phones (390 and 360 px), a phone held sideways, a tablet and a
 # computer, in light and dark; its details; the three lines after a text; 每周进度邮件 in 我的; the mail's link
+# 调整顺序: hold a tile by its middle and drag it a little; the lifted tile's middle against the pointer (it must stay
+# under the finger: a page's entry animation left on the grid once moved it off by the grid's distance from the corner)
+def drag_tile(pg, k, to):
+    b = pg.locator(f'#tvGrid .tv-tile[data-k="{k}"]').bounding_box()
+    x0, y0 = b['x'] + b['width'] / 2, b['y'] + b['height'] / 2
+    x1, y1 = to if isinstance(to, tuple) else (to['x'] + to['width'] / 2, to['y'] + to['height'] / 2)
+    pg.mouse.move(x0, y0); pg.mouse.down()
+    for i in range(1, 11):
+        pg.mouse.move(x0 + (x1 - x0) * i / 10, y0 + (y1 - y0) * i / 10); pg.wait_for_timeout(16)
+    c = pg.evaluate("() => { const t = document.querySelector('#tvGrid .tv-tile.lift'); if (!t) return null; const r = t.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }")
+    lifted = pg.evaluate("[!!document.querySelector('#tvGrid .tv-tile.lift'), !!document.querySelector('#tvGrid .tv-slot')]")
+    return lifted, (None if c is None else round(max(abs(c[0] - x1), abs(c[1] - y1)), 1))
+
+
 PROGRESS_SIZES = {'phone-390': (390, 844), 'phone-360': (360, 780), 'phone-land': (844, 390), 'tablet': (820, 1180), 'desktop': (1440, 900)}
 # 今日 (r39, the user's picks 2026-11-26, B9's v3): 这周, 今天的计划, then the rest under 还有时间的话 (列表), or the same
 # order as cards side by side, 今天的计划 in the middle (卡片). The greeting has the 列表 | 卡片 switch.
@@ -3544,11 +3558,7 @@ def progress_run(pw):
                     pg.click('.tv-under .tv-edit'); pg.wait_for_selector('#tvGrid .tv-tile', timeout=6000)
                     tiles = lambda: pg.evaluate("[...document.querySelectorAll('#tvGrid .tv-tile')].map(t => t.dataset.k)")
                     first = tiles(); labels = pg.evaluate("[...document.querySelectorAll('#tvGrid .tv-tile')].map(t => t.getAttribute('aria-label'))")
-                    src, dst = pg.locator('#tvGrid .tv-tile[data-k="line"]').bounding_box(), pg.locator('#tvGrid .tv-tile[data-k="plan"]').bounding_box()
-                    pg.mouse.move(src['x'] + 40, src['y'] + 40); pg.mouse.down()
-                    for k in range(1, 11):
-                        pg.mouse.move(src['x'] + 40 + (dst['x'] - src['x']) * k / 10, src['y'] + 40 + (dst['y'] - src['y']) * k / 10); pg.wait_for_timeout(16)
-                    lifted = pg.evaluate("[!!document.querySelector('#tvGrid .tv-tile.lift'), !!document.querySelector('#tvGrid .tv-slot')]")
+                    lifted, off = drag_tile(pg, 'line', pg.locator('#tvGrid .tv-tile[data-k="plan"]').bounding_box())
                     pg.mouse.up(); pg.wait_for_timeout(150)
                     dragged = tiles()
                     pg.focus('#tvGrid .tv-tile[data-k="mine"]'); pg.keyboard.press('ArrowUp'); pg.wait_for_timeout(100)
@@ -3559,11 +3569,19 @@ def progress_run(pw):
                     want = ['line', 'plan', 'week', 'mine', 'news', 'extra']; want_keyed = ['line', 'plan', 'mine', 'week', 'news', 'extra']
                     check(dev, '调整顺序: 编辑 shows the six blocks in order, each named with its place; a dragged tile lifts with a space left behind',
                           first == ['plan', 'week', 'line', 'mine', 'news', 'extra'] and labels[0] == '今天的计划，第 1 个，共 6 个' and lifted == [True, True], (first, labels[:1], lifted))
+                    check(dev, f'{tag}: 调整顺序: the tile held stays under the finger while it is dragged', off is not None and off <= 3, off)
                     check(dev, '调整顺序: dropped where it was dragged, moved up with the arrow key; 完成 keeps it and 今日 opens on the new first card',
                           dragged == want and keyed == want_keyed and saved == want_keyed and after['keys'][0] == 'line' and after['at'] == 0, (dragged, keyed, saved, after['keys']))
                     pg.evaluate("([o, c]) => fetch('/api/next/today-view', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': c}, body: JSON.stringify({order: o})})",
                                 [['plan', 'week', 'line', 'mine', 'news', 'extra'], me['csrf']])
                     pg.evaluate("() => { try { localStorage.removeItem('flow-snap'); } catch (e) {} }"); pg.reload(wait_until='networkidle'); settle(pg); pg.wait_for_selector('#tvDeck', timeout=8000)
+                elif size == 'desktop' and theme == 'light':  # a wide grid far from the screen's corner: the tile under the mouse all the same
+                    pg.click('.tv-under .tv-edit'); pg.wait_for_selector('#tvGrid .tv-tile', timeout=6000)
+                    g = pg.locator('#tvGrid').bounding_box()
+                    lifted, off = drag_tile(pg, 'week', (g['x'] + g['width'] * 0.3, g['y'] + g['height'] * 0.7))
+                    pg.mouse.up(); pg.wait_for_timeout(150)
+                    check(dev, f'{tag}: 调整顺序: the tile held stays under the mouse while it is dragged', lifted == [True, True] and off is not None and off <= 3, (lifted, off))
+                    go(pg, '#/'); pg.wait_for_selector('#tvDeck', timeout=8000); pg.wait_for_timeout(300)  # left without 完成: nothing kept
                 pg.screenshot(path=str(OUT / f'progress-cards-{size}-{theme}.png'))
                 go(pg, '#/me'); go(pg, '#/'); pg.wait_for_selector('#tvDeck', timeout=8000); pg.wait_for_timeout(300)
                 back = pg.evaluate(DECK_JS)
