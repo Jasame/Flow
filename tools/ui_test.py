@@ -3827,7 +3827,7 @@ def review_side_run(pw):
         check(dev, 'by default 不认识 / 模糊 / 认识 from left to right, keys ← ↓ → by place (1 2 3 too)',
               s['claims'] == ['forgot', 'fuzzy', 'know'] and s['keys'] == ['←', '↓', '→'], s)
         tip = pg.text_content('#knowTip') if s['tip'] else ''
-        check(dev, 'one who reviewed before is told once that 认识 moved, and where to move it back', '「认识」换到右边了，想换回去：我的 → 设置' in tip, tip)
+        check(dev, 'one who reviewed before is told once that 认识 moved, and where to move it back', '「认识」换到右边了，想换回去：我的 → 使用习惯' in tip, tip)
         pg.click('#knowTipOk'); pg.wait_for_timeout(100)
         gone = not st()['tip']
         go(pg, '#/cards'); go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000)
