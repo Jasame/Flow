@@ -146,6 +146,25 @@ class WeeksTests(Db):
             c.commit()
             self.assertEqual(gr._days(c, self.uid, at(2026, 11, 1), at(2026, 12, 1)), 2)
 
+    def test_one_rule_for_a_study_day_wherever_the_week_is_shown(self):
+        # 今日's 这周 and 我的 (habit), the home numbers' last 7 days (stats.week), 我的进步 and the class all ask
+        # progress_service.study_days. Signing in or saving a word is not studying; a scored practice or an answered
+        # question is, even with today's plan not started.
+        import growth_report as gr
+        day = lambda t: datetime.datetime.fromtimestamp(t, CN).date().isoformat()
+        with patch('time.time', return_value=NOW), app.db() as c:
+            nx.save_card(c, self.uid, {'text': 'commute', 'pack': PID}); c.commit()
+            st = nx.stats(c, self.uid)
+            self.assertEqual((st['habit']['done'], [d['day'] for d in st['week'] if d['active']]), (0, []))
+            sk.log(c, self.uid, 'reading', 'question', 0.8)    # today, 10:00: a scored practice
+            self.answer(c, 1, at(2026, 11, 24, 21)); c.commit()  # yesterday evening: an answered question
+            st = nx.stats(c, self.uid)
+            on = [d['day'] for d in st['week'] if d['active']]
+            self.assertEqual(on, [day(at(2026, 11, 24, 21)), day(NOW)])
+            self.assertEqual([d['day'] for d in st['habit']['days'] if d['active']], on)
+            self.assertEqual(st['habit']['done'], 2)
+            self.assertEqual(gr._days(c, self.uid, at(2026, 11, 23), NOW + 1), 2)
+
 
 class SummaryTests(Db):
     def test_the_three_lines_after_a_text(self):

@@ -224,6 +224,8 @@ with app.db() as c:
         q = json.loads(c.execute('SELECT content FROM lab_packs WHERE id=?', (PID,)).fetchone()[0])['questions'][0]
         sk.add_mistake(c, uid, 'question', q['prompt'], f'q:{PID}:0', q.get('evidence', ''), '', 'reading', pack=PID,
                        extra={'options': q['options'], 'answer': q['answer'], 'evidence': q.get('evidence', '')})
+        # three rounds of scored practice, now: so every learner here has studied today (anything learned counts,
+        # progress_service.study_days) and 今日's 这周 has today lit even with today's plan not started
         for _ in range(3):
             sk.log(c, uid, 'reading', 'question', 0.8, level, PID); sk.log(c, uid, 'writing', 'rewrite', 0.7, level, PID)
         if name == 'sprint':  # preparing for 四级 in 19 days on its word book, four sets done over four weeks, getting better
