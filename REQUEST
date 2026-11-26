@@ -1,3 +1,3 @@
-b0d4c1969cbb87666526dbb9df366fa6e377414b d9d587e7cbd45d230191cd69741253f80ab84876cb0dd3a4c5499e6c2df4cc72 e2e light ref=build-4d2dcf99ee73 tag=b138 tools=9daef7db87f14af779d8a9065824e676b242acccd14d621453ee03c4a68dbd97
-# b138 main: 桌面版：切换账号以后提醒跟着现在的账号（account.changed） (#461) = build of 4d2dcf99ee73
+65fac20499b0e34e25fbc20f01a8a5be67688b5f 1a6c8ffdf8daf815b27a84e81618d0b6cc500b0dfff3a3f9e5652e972b5b4485 e2e light ref=build-87bfc7e86510 tag=b139 tools=9daef7db87f14af779d8a9065824e676b242acccd14d621453ee03c4a68dbd97
+# b139 main: Merge pull request #475 from Jasame/narration-qa-tags = build of 87bfc7e86510
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
