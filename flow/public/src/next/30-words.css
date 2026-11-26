@@ -48,6 +48,11 @@ details.basis[open]>summary{margin-bottom:0}
 .mean-q{font-size:18px;line-height:1.6}
 .mean-a{font-size:16px;line-height:1.6;color:var(--ink2)}
 .review.open-card{align-content:start;padding-top:12px}
+/* the word in one place on both sides of a card, and from card to card (the owner, 2026-11-26): at the top, never centred
+   (复习 only: 测词汇量 and 发音 keep theirs) */
+body.reviewing .review:not(.q):not(.vtest){align-content:start;padding-top:12px}
+body.reviewing .review:not(.vtest) .wordbig{display:flex;align-items:center;justify-content:center}
+body.reviewing .review:not(.vtest) .wordbig.one-line{white-space:nowrap}
 .review.open-card .exs{margin-top:4px}
 .choice{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .choice.two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
