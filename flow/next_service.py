@@ -1851,6 +1851,11 @@ def get(c, uid, path, q):
         return __import__('vocab_service').get(c, uid, path, q)
     if path == '/api/next/sounds':
         return __import__('sounds').listing(), 200
+    if path == '/api/next/history' or path.startswith('/api/next/history/'):  # 练习记录: the learner's own (history_service)
+        if not uid:
+            return {'error': '请先登录'}, 401
+        hs = __import__('history_service')
+        return hs.listing(c, uid, q) if path == '/api/next/history' else hs.one(c, uid, path[len('/api/next/history/'):])
     if path in ('/api/next/ability', '/api/next/report', '/api/next/import'):
         if not uid:
             return {'error': '请先登录'}, 401
@@ -2043,6 +2048,9 @@ def post(c, uid, path, data):
     if path in ('/api/next/class/find', '/api/next/class/join', '/api/next/class/leave'):
         cs = __import__('class_service')  # 班级试用: join of one's own accord with an invite code, leave at any time
         return cs.leave(c, uid) if path.endswith('/leave') else (cs.find if path.endswith('/find') else cs.join)(c, uid, data)
+    if path in ('/api/next/history/delete', '/api/next/history/delete-all'):  # 练习记录: one, or all of them (history_service)
+        hs = __import__('history_service')
+        return (hs.delete if path.endswith('/delete') else hs.delete_all)(c, uid, data)
     if path == '/api/next/profile':
         return save_profile(c, uid, data)
     if path == '/api/next/habit':
