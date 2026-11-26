@@ -150,7 +150,8 @@
   // one step's page (not yet the current one: no ids, not wired)
   function introMake(i) {
     const s = INTRO.steps[i], page = document.createElement('section');
-    page.className = 'intro-step' + (s.ask ? ' ask' : '') + (introTour(s) ? ' intro-place' : '') + (s.id === 'hello' ? ' intro-hello' : '');
+    // (想达到什么水平 is short: it sits down by the button too, B9; 学英语为了什么 fills its room from the top)
+    page.className = 'intro-step' + (s.ask ? ' ask' : '') + (s.id === 'aim' ? ' low' : '') + (introTour(s) ? ' intro-place' : '') + (s.id === 'hello' ? ' intro-hello' : '');
     page.dataset.k = String(i);
     page.innerHTML = introStepHTML(s);
     introArtPrep(page);

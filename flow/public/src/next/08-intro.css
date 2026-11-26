@@ -50,6 +50,9 @@
 /* the steps that ask: from the top, the list scrolls if a small phone needs it (the choices look as on the one-page form) */
 .intro-step.ask{justify-content:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;text-align:left;padding:8px 20px 16px;bottom:calc(var(--btn-b) + 52px + 12px)}
 .intro-step.ask .intro-d{margin:0;max-width:none;font-size:14.5px}
+/* a short one sits down by the button (an auto margin: on a small phone it still scrolls from its top) */
+.intro-step.ask.low{padding-bottom:max(4px,calc(var(--gap,28px) - 12px))}
+.intro-step.ask.low .intro-body{margin-top:auto}
 .intro-opts{margin-top:18px}
 .intro-h{margin:22px 0 10px;font-size:16px;font-weight:650}
 .intro-exam .chips,.intro-days{display:flex;flex-wrap:wrap;gap:8px}
