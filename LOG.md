@@ -998,3 +998,10 @@
   - #425 内测版发版也装后台页面（xmc.hk/flow-beta，管理端口 8093）［敏感：发版脚本，用户点头再合］（发版和构建）
 - 自检：DEPLOYED，装了 11 个文件（0 个新的）；轻量 e2e 160/160，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45767522773
+
+### b123 · 2026-11-26 14:33
+- main `3649dcc`，构建 `478c4b8`
+- 新合并的 PR（自 b122 起）：
+  - #424 底栏「练习」「单词」的数字角标改成墨色小圆点，读屏照旧读出数量（单词、开局和考试、操作指南）
+- 自检：DEPLOYED，装了 9 个文件（3 个新的）；轻量 e2e 160/160，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45768884784
